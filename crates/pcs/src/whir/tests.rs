@@ -1,7 +1,7 @@
 use super::*;
 use crate::merkle::Hash;
-use crate::whir_config::tests::test_config_for;
-use crate::whir_induce::{
+use crate::whir::config::tests::test_config_for;
+use crate::whir::induce::{
     induce_sumcheck_evaluate_at_residual, induce_sumcheck_poly, induce_sumcheck_poly_via_ntt_base,
     induce_use_ntt_heuristic,
 };

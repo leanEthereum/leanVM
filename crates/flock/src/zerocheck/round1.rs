@@ -1,6 +1,24 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! Round-1 prover message: fully optimized (shift_reduce + extract_c).
+//! The zerocheck's round-1 prover message, the univariate skip.
 //!
+//! The round-1 message is `(P^{AB}, P^C)`, each a length-`2^k_skip` vector
+//! of F192 values. They are evaluations on the NTT domain `Λ` of the
+//! polynomial (over λ) defined by
+//!
+//!   P^{AB}(λ) = Σ_{x ∈ {0,1}^{m-k_skip}} eq(r_rest, x) · φ₈(â(λ, x) · b̂(λ, x))
+//!   P^C(λ)   = Σ_{x ∈ {0,1}^{m-k_skip}} eq(r_rest, x) · φ₈(ĉ(λ, x))
+//!
+//! where â(λ, x), b̂(λ, x), ĉ(λ, x) ∈ F₂⁸ are the values at λ of the
+//! univariate polynomial whose evaluations on `S = {0,…,2^k_skip − 1}` are
+//! the boolean witness values `a(s, x), b(s, x), c(s, x)`. The polynomial is
+//! recovered via `inv_NTT_S`; we then evaluate on `Λ = {2^k_skip, …}` via
+//! `fwd_NTT_Λ`.
+//!
+//! The naive oracle keeps the constant F₈ factor `C_s = φ₈(0x1C)` in the eq-on-S weights;
+//! the optimized sweep below drops it and the caller restores it before the message
+//! goes on the wire.
+//!
+//! The sweep is fully optimized (shift_reduce + extract_c).
 //! Scalar Rust, with NEON, AVX2 and GFNI kernels for the inner sweep.
 //! Three layered optimizations:
 //!
@@ -28,15 +46,14 @@
 //!   `C_s · (res_AB[i] + res_C_lifted[i])  ==  naive_p_ab[i] + naive_p_c[i]`
 //! with `C_s = φ_8(0x1C)`.
 //!
-//! This variant is hardcoded for `k_skip = 6` (ell=64, n_chunks=8, N_INNER=7).
+//! The sweep is fixed at `K_SKIP = 6` (ell=64, n_chunks=8, N_INNER=7).
 
-use super::univariate_skip::{EQ_HIGH_VARS, ntt_extend_vec};
 use super::{K_SKIP, N_INNER, PaddingSpec};
+use crate::zerocheck::ntt::InvNttTableByteSingleGf8;
 #[cfg(target_arch = "aarch64")]
 use core::arch::aarch64::*;
-#[cfg(all(target_arch = "x86_64", any(target_feature = "gfni", target_feature = "avx2")))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use core::arch::x86_64::*;
-use pcs::ntt::InvNttTableByteSingleGf8;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use primitives::bit_fold::avx2;
 #[cfg(all(
@@ -105,7 +122,7 @@ pub(crate) fn c_s() -> F192 {
 /// The three F192 small challenges (embeddings of `SMALL_CHAL_F8`): caller
 /// must place these at `r_rest[..3]` for the naive cross-check to
 /// produce a result related to the optimized output by exactly `C_s`.
-pub fn small_challenges() -> [F192; 3] {
+pub(crate) fn small_challenges() -> [F192; 3] {
     [
         phi8_192(F8(SMALL_CHAL_F8[0])),
         phi8_192(F8(SMALL_CHAL_F8[1])),
@@ -116,7 +133,7 @@ pub fn small_challenges() -> [F192; 3] {
 /// The four F192 medium challenges `β_i = γ^{2^{i-1}} / (1 + γ^{2^{i-1}})`.
 /// Caller must place these at `r_rest[3..7]` for the naive
 /// cross-check.
-pub fn medium_challenges() -> [F192; 4] {
+pub(crate) fn medium_challenges() -> [F192; 4] {
     let g1 = medium_generator();
     let g2 = g1.square();
     let g4 = g2.square();
@@ -146,6 +163,60 @@ fn compute_d_inv() -> F192 {
 static D_INV_CACHE: OnceLock<F192> = OnceLock::new();
 fn d_inv() -> F192 {
     *D_INV_CACHE.get_or_init(compute_d_inv)
+}
+
+/// Most high variables of a split eq table capped on its high side: few high weights keep the outer products cheap.
+pub(crate) const EQ_HIGH_VARS: usize = 7;
+
+/// Extend a length-`ell` F192 vector from the input domain S to the extension
+/// domain Λ using bit-plane decomposition: for each of the 192 bit positions
+/// of F192, run the bit-input NTT (`inv_NTT_S` then `fwd_NTT_Λ` via the
+/// precomputed table) on that bit-plane, scale by γ^b, and accumulate.
+///
+/// Ports `ntt_extend_vec` (scalar form). The NTT is F_2-linear and
+/// φ_8 commutes with that linearity, which is what makes the bit-by-bit
+/// decomposition equal to the direct F_8-valued NTT extension.
+pub(crate) fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8) -> Vec<F192> {
+    let ell = inv_table.ell;
+    assert_eq!(in_s.len(), ell);
+    assert_eq!(ell, 1usize << inv_table.k);
+
+    let mut out = vec![F192::ZERO; ell];
+    let n_chunks = inv_table.n_chunks;
+
+    let mut input_bits = vec![0u8; n_chunks];
+    let mut out_bytes = vec![F8::ZERO; ell];
+
+    for b in 0..192 {
+        // Pack bit b of each in_s[z] into z-indexed LSB-first byte form.
+        input_bits.iter_mut().for_each(|x| *x = 0);
+        for z in 0..ell {
+            let bit = match b / 64 {
+                0 => (in_s[z].c0 >> b) & 1,
+                1 => (in_s[z].c1 >> (b - 64)) & 1,
+                2 => (in_s[z].c2 >> (b - 128)) & 1,
+                _ => unreachable!(),
+            };
+            if bit != 0 {
+                input_bits[z / 8] |= 1u8 << (z % 8);
+            }
+        }
+
+        // Bit-input NTT.
+        inv_table.apply(&input_bits, &mut out_bytes);
+
+        let basis = match b / 64 {
+            0 => F192::new(1u64 << b, 0, 0),
+            1 => F192::new(0, 1u64 << (b - 64), 0),
+            2 => F192::new(0, 0, 1u64 << (b - 128)),
+            _ => unreachable!(),
+        };
+        for lambda in 0..ell {
+            out[lambda] += basis * phi8_192(out_bytes[lambda]);
+        }
+    }
+
+    out
 }
 
 // ---------------------------------------------------------------------------
@@ -469,15 +540,7 @@ fn shift_reduce_inner_ab(
         // SAFETY: avx2, and gfni where the kernel uses it, are statically enabled at compile time.
         unsafe { shift_reduce_inner_ab_avx2(a_packed, b_packed, inv_table, chunk_byte_base, b_med, out) };
     }
-    #[cfg(all(target_arch = "x86_64", target_feature = "gfni", not(target_feature = "avx2")))]
-    {
-        // SAFETY: gfni is statically enabled at compile time.
-        unsafe { shift_reduce_inner_ab_gfni(a_packed, b_packed, inv_table, chunk_byte_base, b_med, out) };
-    }
-    #[cfg(not(any(
-        target_arch = "aarch64",
-        all(target_arch = "x86_64", any(target_feature = "gfni", target_feature = "avx2"))
-    )))]
+    #[cfg(not(any(target_arch = "aarch64", all(target_arch = "x86_64", target_feature = "avx2"))))]
     {
         shift_reduce_inner_ab_scalar(a_packed, b_packed, inv_table, chunk_byte_base, b_med, out);
     }
@@ -612,84 +675,8 @@ unsafe fn shift_reduce_inner_ab_avx2(
     }
 }
 
-/// x86 GFNI kernel: same structure as the scalar fallback (SSE2 `apply` into
-/// `a_col`/`b_col`, then vectorized combine), with the per-lane F_8 products
-/// done 16-at-a-time by `gf2p8mulb` (`_mm_gf2p8mul_epi8`).
-///
-/// flock's F_8 is GF(2^8) mod x^8 + x^4 + x^3 + x + 1 (= 0x11B) in standard
-/// bit order: exactly the field `gf2p8mulb` implements, so the instruction
-/// IS the field mul. `gf2p8mulb` returns the reduced product, and reduction
-/// commutes with the `Σ_K x^K · y_K` accumulation (the shifted sum is ≤ 15
-/// bits), so one `gf8_reduce` per lane at the end still matches the scalar
-/// path bit-for-bit.
-///
-/// # Safety
-/// Requires the `gfni` target feature (plus SSE2, baseline on x86_64).
-#[cfg(all(target_arch = "x86_64", target_feature = "gfni", not(target_feature = "avx2")))]
-#[target_feature(enable = "gfni", enable = "sse2")]
-unsafe fn shift_reduce_inner_ab_gfni(
-    a_packed: &[u8],
-    b_packed: &[u8],
-    inv_table: &InvNttTableByteSingleGf8,
-    chunk_byte_base: usize,
-    b_med: usize,
-    out: &mut [u8; 64],
-) {
-    let byte_base_b = chunk_byte_base + b_med * N_CHUNKS * 8;
-    // `inv_table.apply` overwrites every lane, so these need no re-zeroing per K.
-    let mut a_col = [F8::ZERO; ELL];
-    let mut b_col = [F8::ZERO; ELL];
-
-    // SAFETY: gfni+sse2 are carried by the function's target features; the
-    // pointer loads/stores stay within a_col/b_col/out (each 64 bytes).
-    unsafe {
-        // 8 u16x8 accumulators = 64 u16 lanes, matching the inv-NTT output.
-        let mut acc = [_mm_setzero_si128(); 8];
-
-        for k in 0..8 {
-            let chunk_off = byte_base_b + k * N_CHUNKS;
-            inv_table.apply(&a_packed[chunk_off..chunk_off + N_CHUNKS], &mut a_col);
-            inv_table.apply(&b_packed[chunk_off..chunk_off + N_CHUNKS], &mut b_col);
-            let a_ptr = a_col.as_ptr() as *const __m128i;
-            let b_ptr = b_col.as_ptr() as *const __m128i;
-            let shift = _mm_cvtsi32_si128(k as i32);
-            let zero = _mm_setzero_si128();
-            for v in 0..4 {
-                let y = _mm_gf2p8mul_epi8(_mm_loadu_si128(a_ptr.add(v)), _mm_loadu_si128(b_ptr.add(v)));
-                // Widen the 16 product bytes to u16 and XOR-accumulate << k.
-                let lo = _mm_unpacklo_epi8(y, zero);
-                let hi = _mm_unpackhi_epi8(y, zero);
-                acc[2 * v] = _mm_xor_si128(acc[2 * v], _mm_sll_epi16(lo, shift));
-                acc[2 * v + 1] = _mm_xor_si128(acc[2 * v + 1], _mm_sll_epi16(hi, shift));
-            }
-        }
-
-        // Vectorized gf8_reduce over u16 lanes: two-step fold of the high
-        // byte h with h ^ (h<<1) ^ (h<<3) ^ (h<<4)  (x^8 ≡ x^4+x^3+x+1).
-        let mask_ff = _mm_set1_epi16(0xff);
-        let fold = |p: __m128i| -> __m128i {
-            let h = _mm_srli_epi16::<8>(p);
-            _mm_xor_si128(
-                _mm_and_si128(p, mask_ff),
-                _mm_xor_si128(
-                    _mm_xor_si128(h, _mm_slli_epi16::<1>(h)),
-                    _mm_xor_si128(_mm_slli_epi16::<3>(h), _mm_slli_epi16::<4>(h)),
-                ),
-            )
-        };
-        let out_ptr = out.as_mut_ptr() as *mut __m128i;
-        for v in 0..4 {
-            // Two folds bring 15-bit accumulators down to 8 bits; the second
-            // fold's high byte is ≤ 0x0f so lanes stay < 256 for packus.
-            let r_lo = _mm_and_si128(fold(fold(acc[2 * v])), mask_ff);
-            let r_hi = _mm_and_si128(fold(fold(acc[2 * v + 1])), mask_ff);
-            _mm_storeu_si128(out_ptr.add(v), _mm_packus_epi16(r_lo, r_hi));
-        }
-    }
-}
-
 /// Kept under `#[allow(dead_code)]` because the dispatcher only reaches it when
-/// neither NEON, AVX2 nor GFNI is available, which is not any platform we build
+/// neither NEON nor AVX2 is available, which is not any platform we build
 /// on today. It stays as that fallback AND as the cross-check oracle for
 /// `neon_fused_inner_matches_scalar_inner` / `x86_inner_matches_scalar_inner`.
 #[allow(dead_code)]
@@ -1118,32 +1105,26 @@ fn build_b_med_counts(padding: &PaddingSpec) -> (usize, Vec<u8>) {
 /// Skips 512-bit b_med sub-windows that fall entirely in the zero padding of
 /// every witness block per `padding`, which is byte-identical to the dense
 /// path when those bits are honestly zero.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "The proof kernel keeps its independent inputs explicit."
-)]
 pub(crate) fn round1_shift_reduce_extract_c_packed_padded(
     a_packed: &[u8],
     b_packed: &[u8],
     c_packed: &[u8],
     m: usize,
-    k_skip: usize,
     r_rest: &[F192],
     inv_table: &InvNttTableByteSingleGf8,
     padding: &PaddingSpec,
 ) -> (Vec<F192>, Vec<F192>) {
-    assert_eq!(k_skip, K_SKIP, "optimized variant is k_skip=6 only");
     assert!(
-        m >= k_skip + N_INNER,
-        "m must be ≥ k_skip + N_INNER ({}) for the shift_reduce optimization",
-        k_skip + N_INNER
+        m >= K_SKIP + N_INNER,
+        "m must be ≥ K_SKIP + N_INNER ({}) for the shift_reduce optimization",
+        K_SKIP + N_INNER
     );
     let total_bytes = (1usize << m) / 8;
     assert_eq!(a_packed.len(), total_bytes);
     assert_eq!(b_packed.len(), total_bytes);
     assert_eq!(c_packed.len(), total_bytes);
-    assert_eq!(r_rest.len(), m - k_skip);
-    assert_eq!(inv_table.k, k_skip);
+    assert_eq!(r_rest.len(), m - K_SKIP);
+    assert_eq!(inv_table.k, K_SKIP);
 
     let eq = SplitEq::with_high_vars(&r_rest[N_INNER..], EQ_HIGH_VARS);
     let big_lo_size = eq.low.len();
@@ -1193,12 +1174,99 @@ pub(crate) fn round1_shift_reduce_extract_c_packed_padded(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::zerocheck::PaddingSpec;
-    use crate::zerocheck::univariate_skip::tests::{pack_bits, round1_naive};
-    use pcs::ntt::AdditiveNttGf8;
+    use crate::zerocheck::ntt::AdditiveNttGf8;
+    use primitives::multilinear::eq_table;
     use primitives::test_util::Rng;
+
+    /// Compute the round-1 prover message naively (no shift-reduce, no fused
+    /// inner, no deferred reduction: direct algorithmic translation of the
+    /// protocol formula).
+    ///
+    /// Returns `(p_ab, p_c)`, each a length-`2^K_SKIP` F192 vector of evaluations
+    /// on Λ.
+    ///
+    /// Preconditions:
+    /// - `a.len() == b.len() == c.len() == 2^m`
+    /// - `r_rest.len() == m - K_SKIP`
+    ///
+    /// Index convention: for index `i ∈ 0..2^m`, the low `K_SKIP` bits address
+    /// the *skip* variables (`y_skip ∈ S`), the high `m - K_SKIP` bits address
+    /// the *rest* variables (`y_rest`).
+    pub(crate) fn round1_naive(
+        a: &[bool],
+        b: &[bool],
+        c: &[bool],
+        m: usize,
+        r_rest: &[F192],
+    ) -> (Vec<F192>, Vec<F192>) {
+        assert!(K_SKIP <= m, "K_SKIP must be ≤ m");
+        assert_eq!(a.len(), 1usize << m);
+        assert_eq!(b.len(), 1usize << m);
+        assert_eq!(c.len(), 1usize << m);
+        assert_eq!(r_rest.len(), m - K_SKIP);
+
+        let ell = 1usize << K_SKIP;
+        let n_chunks_x = 1usize << (m - K_SKIP);
+
+        // NTT for evaluating-on-Λ via inv-on-S then fwd-on-Λ.
+        let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
+        let ntt_l = AdditiveNttGf8::new(K_SKIP, F8(ell as u8));
+
+        let eq_full = eq_table(r_rest);
+
+        let mut p_ab = vec![F192::ZERO; ell];
+        let mut p_c = vec![F192::ZERO; ell];
+
+        let mut a_col = vec![F8::ZERO; ell];
+        let mut b_col = vec![F8::ZERO; ell];
+        let mut c_col = vec![F8::ZERO; ell];
+
+        for (x_rest, &weight) in eq_full.iter().enumerate().take(n_chunks_x) {
+            let base = x_rest * ell;
+            for s in 0..ell {
+                a_col[s] = F8(a[base + s] as u8);
+                b_col[s] = F8(b[base + s] as u8);
+                c_col[s] = F8(c[base + s] as u8);
+            }
+            // Extend the row polynomial from S to Λ.
+            ntt_s.inverse(&mut a_col);
+            ntt_l.forward(&mut a_col);
+            ntt_s.inverse(&mut b_col);
+            ntt_l.forward(&mut b_col);
+            ntt_s.inverse(&mut c_col);
+            ntt_l.forward(&mut c_col);
+
+            let eq_x = weight;
+            for i in 0..ell {
+                let ab = a_col[i] * b_col[i];
+                p_ab[i] += eq_x * phi8_192(ab);
+                p_c[i] += eq_x * phi8_192(c_col[i]);
+            }
+        }
+
+        (p_ab, p_c)
+    }
+
+    /// Pack a bit vector LSB-first into bytes.
+    pub(crate) fn pack_bits(bits: &[bool]) -> Vec<u8> {
+        let n_bytes = bits.len().div_ceil(8);
+        // Each output byte depends on 8 contiguous input bits: disjoint, so
+        // process bytes in parallel.
+        parallel::map_collect(n_bytes, |byte_idx| {
+            let mut byte = 0u8;
+            let base = byte_idx * 8;
+            for j in 0..8 {
+                let bit_idx = base + j;
+                if bit_idx < bits.len() && bits[bit_idx] {
+                    byte |= 1u8 << j;
+                }
+            }
+            byte
+        })
+    }
 
     #[test]
     fn convert_matches_definition() {
@@ -1249,7 +1317,7 @@ mod tests {
         check::<avx2::Gfni>(&mut rng);
     }
 
-    #[cfg(all(target_arch = "x86_64", any(target_feature = "gfni", target_feature = "avx2")))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
     #[test]
     fn x86_inner_matches_scalar_inner() {
         let mut seed = 0xDEADBEEFu64;
@@ -1380,13 +1448,12 @@ mod tests {
             let r = build_protocol_r_rest(m, &outer);
             let table = make_inv_table();
 
-            let (naive_ab, naive_c) = round1_naive(&a, &b, &c, m, K_SKIP, &r);
+            let (naive_ab, naive_c) = round1_naive(&a, &b, &c, m, &r);
             let (opt_ab, opt_c) = round1_shift_reduce_extract_c_packed_padded(
                 &pack_bits(&a),
                 &pack_bits(&b),
                 &pack_bits(&c),
                 m,
-                K_SKIP,
                 &r,
                 &table,
                 &PaddingSpec::dense(m),
@@ -1462,13 +1529,13 @@ mod tests {
 
             let dense = PaddingSpec::dense(m);
             let (dense_ab, dense_c) =
-                round1_shift_reduce_extract_c_packed_padded(&a_p, &b_p, &c_p, m, K_SKIP, &r, &table, &dense);
+                round1_shift_reduce_extract_c_packed_padded(&a_p, &b_p, &c_p, m, &r, &table, &dense);
             let padding = PaddingSpec {
                 k_log,
                 useful_bits_per_block: useful_bits,
             };
             let (padded_ab, padded_c) =
-                round1_shift_reduce_extract_c_packed_padded(&a_p, &b_p, &c_p, m, K_SKIP, &r, &table, &padding);
+                round1_shift_reduce_extract_c_packed_padded(&a_p, &b_p, &c_p, m, &r, &table, &padding);
 
             assert_eq!(
                 dense_ab, padded_ab,

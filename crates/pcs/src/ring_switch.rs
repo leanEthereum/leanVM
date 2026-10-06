@@ -57,11 +57,12 @@
 //! - The verifier never materializes the vector: its MLE at the WHIR final point is the closed form of doc `leanvm` Annex A (`rs:weight`), with the Frobenius moved onto the point every claim shares (`rs:cost`), so a claim costs `64 L` E-multiplications and 63 squarings after one precomputation per opening, and claims at prefixes of one point share their products.
 
 use super::pack::PACKING_WIDTH;
-use fiat_shamir::arith::Arith;
+use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::Challenger;
 use primitives::bit_fold::{BLOCK, F192Map, Sliced};
 use primitives::field::{F64, F192};
 use primitives::multilinear::eq_table;
+use std::cmp::Reverse;
 
 /// Frobenius shifts in the order in which the two-term maps are composed.
 /// Descending order bounds every challenge's exponent by `2^31`.
@@ -337,17 +338,238 @@ pub fn inverse_frobenius_ladder<A: Arith>(a: &mut A, v: A::E, lowest: usize) -> 
     ladder
 }
 
+/// One ring-switched claim on a packed region: its 64 bit-slice values at a suffix point.
+///
+/// - The suffix point has one coordinate per variable of the region.
+/// - Slice `i` is the multilinear extension of the words' bit `i` at that point.
+/// - The caller sends and checks the slices itself, so the opening only binds them to the commitment.
+///
+/// Its elements are values, or whatever a verifier holds them as.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SliceClaim<E = F192> {
+    /// The point, one coordinate per variable of the region.
+    pub suffix_point: Vec<E>,
+    /// The 64 slice values at the point.
+    pub s_hat_v: Vec<E>,
+}
+
+impl<E: Copy> SliceClaim<E> {
+    /// A claim whose slices past the given ones are zero.
+    ///
+    /// # Panics
+    ///
+    /// If more than 64 slices are given.
+    pub fn zero_padded(suffix_point: Vec<E>, slices: impl IntoIterator<Item = E>, zero: E) -> Self {
+        let mut s_hat_v: Vec<E> = slices.into_iter().collect();
+        assert!(s_hat_v.len() <= PACKING_WIDTH, "a claim has at most 64 slices");
+        s_hat_v.resize(PACKING_WIDTH, zero);
+        Self { suffix_point, s_hat_v }
+    }
+}
+
+/// A ring-switched region of the committed stack and the slice claims on it.
+///
+/// Prover and verifier describe a region with the same data.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RingSwitch<E = F192> {
+    /// The region's first word, a multiple of its length.
+    pub offset: usize,
+    /// The base-two logarithm of the region's length in words.
+    pub qflock_vars: usize,
+    /// The claims on the region.
+    pub claims: Vec<SliceClaim<E>>,
+}
+
+/// The ring switch's one family per opening: claim `j` scaled by `gamma_rs^j`, then one map `Phi` for all.
+///
+/// Both sides draw `gamma_rs` once every claim's slices are bound, then the map's six challenges.
+///
+/// Its challenges are values, or whatever a verifier holds them as.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RingFamily<E = F192> {
+    gamma_rs: E,
+    map_challenges: [E; COMPOSITION_SHIFTS.len()],
+}
+
+impl RingFamily {
+    /// Draw the family's challenges on the prover's side: `gamma_rs`, then the map's.
+    pub fn sample(ch: &mut impl Challenger) -> Self {
+        let gamma_rs = ch.sample();
+        Self {
+            gamma_rs,
+            map_challenges: sample_map_challenges(ch),
+        }
+    }
+
+    /// The challenge `gamma_rs` whose powers scale the claims.
+    pub const fn gamma_rs(&self) -> F192 {
+        self.gamma_rs
+    }
+
+    /// The map's weight on each of the 192 coordinates.
+    pub(crate) fn coordinate_weights(&self) -> Vec<F192> {
+        build_coordinate_weights(&self.map_challenges)
+    }
+}
+
+impl<E: Copy> RingFamily<E> {
+    /// Draw the family's challenges on the verifier's side, as the prover does.
+    pub fn draw<V: Verifier<E = E>>(v: &mut V) -> Self {
+        let gamma_rs = v.sample();
+        let map = v.sample_vec(COMPOSITION_SHIFTS.len());
+        Self {
+            gamma_rs,
+            map_challenges: std::array::from_fn(|i| map[i]),
+        }
+    }
+
+    /// The family of the regions' claims in order, each scaled, under the map.
+    pub fn share<'a, A: Arith<E = E>>(&self, a: &mut A, rings: &'a [RingSwitch<E>]) -> RingShare<'a, E> {
+        let n_claims = rings.iter().map(|ring| ring.claims.len()).sum();
+        let scales = a.powers(self.gamma_rs, n_claims);
+        let map = RingMap::new(a, &self.map_challenges);
+        RingShare { rings, scales, map }
+    }
+}
+
+/// Every ring-switched claim of an opening as one family, claim `j` scaled by `gamma_rs^j`, under one map: its target, and its weight at a point.
+pub struct RingShare<'a, E> {
+    rings: &'a [RingSwitch<E>],
+    scales: Vec<E>,
+    map: RingMap<E>,
+}
+
+impl<E: Copy + PartialEq> RingShare<'_, E> {
+    /// The family's target: the map applied once to the slices `sum_j gamma_rs^j s_{j,i}`.
+    ///
+    /// # Panics
+    ///
+    /// If a claim does not carry 64 slices.
+    pub fn target<A: Arith<E = E>>(&self, a: &mut A) -> E {
+        let claims = self.rings.iter().flat_map(|ring| &ring.claims);
+        let zero = a.zero();
+        let mut family = vec![zero; PACKING_WIDTH];
+        for (claim, &scale) in claims.zip(&self.scales) {
+            assert_eq!(
+                claim.s_hat_v.len(),
+                PACKING_WIDTH,
+                "a ring-switched claim has 64 slices"
+            );
+            for (f, &s) in family.iter_mut().zip(&claim.s_hat_v) {
+                *f = a.mul_add(scale, s, *f);
+            }
+        }
+        self.map.target(a, &family)
+    }
+
+    /// The family's weight at a point `x` of the stack cube: `sum_j eq(sel_j, x_hi) MLE(Phi(gamma_rs^j eq(r_j, .)))(x_lo)`.
+    ///
+    /// Claim `j` is the `j`-th claim across the regions in order, `sel_j` its region's selector bits.
+    ///
+    /// - The Frobenius moves onto `x`, so one ladder per coordinate serves every claim.
+    /// - Claims whose points are prefixes of one another share one pass over the longest.
+    /// - The claims of one region add their scaled terms and close once, the Frobenius being additive.
+    ///
+    /// # Panics
+    ///
+    /// If a region or a claim's point is longer than `x`.
+    pub fn weight_at<A: Arith<E = E>>(&self, a: &mut A, x: &[E]) -> E {
+        let max_vars = self.rings.iter().map(|ring| ring.qflock_vars).max().unwrap_or(0);
+        let ladders: Vec<Vec<E>> = x[..max_vars]
+            .iter()
+            .map(|&q| inverse_frobenius_ladder(a, q, 1))
+            .collect();
+        let zero = a.zero();
+        let mut sums = vec![vec![zero; PACKING_WIDTH]; self.rings.len()];
+        for group in PrefixGroup::of(self.rings) {
+            let at = self.map.prefix_terms(a, group.lead, &ladders, &group.lengths);
+            for member in group.members {
+                let scale = self.scales[member.claim];
+                for (s, &term) in sums[member.ring].iter_mut().zip(&at[member.length]) {
+                    *s = a.mul_add(scale, term, *s);
+                }
+            }
+        }
+        let mut weight = zero;
+        for (ring, sum) in self.rings.iter().zip(&sums) {
+            let part = RingMap::close(a, sum);
+            let sel_eq = a.eq_bits(ring.offset >> ring.qflock_vars, &x[ring.qflock_vars..]);
+            weight = a.mul_add(sel_eq, part, weight);
+        }
+        weight
+    }
+}
+
+/// Ring claims whose suffix points are all prefixes of the longest, `lead`.
+///
+/// Its elements are values, or whatever a verifier holds them as: two points are prefixes of one another when their elements are equal.
+#[derive(Clone, Debug)]
+pub struct PrefixGroup<'a, E = F192> {
+    /// The longest point.
+    pub lead: &'a [E],
+    /// The distinct prefix lengths its claims sit at.
+    pub lengths: Vec<usize>,
+    /// Its claims.
+    pub members: Vec<PrefixMember>,
+}
+
+/// One claim of a prefix group.
+#[derive(Clone, Copy, Debug)]
+pub struct PrefixMember {
+    /// Its index across every ring, which picks its scale.
+    pub claim: usize,
+    /// Its ring.
+    pub ring: usize,
+    /// Its entry in the group's lengths.
+    pub length: usize,
+}
+
+impl<'a, E: PartialEq> PrefixGroup<'a, E> {
+    /// Every ring claim in a group whose lead point it is a prefix of, longest points first.
+    pub fn of(rings: &'a [RingSwitch<E>]) -> Vec<Self> {
+        let mut claims: Vec<(usize, usize, &'a [E])> = rings
+            .iter()
+            .enumerate()
+            .flat_map(|(r, ring)| ring.claims.iter().map(move |claim| (r, claim.suffix_point.as_slice())))
+            .enumerate()
+            .map(|(i, (r, point))| (i, r, point))
+            .collect();
+        claims.sort_by_key(|&(_, _, point)| Reverse(point.len()));
+        let mut groups: Vec<Self> = Vec::new();
+        for (claim, ring, point) in claims {
+            let g = groups
+                .iter()
+                .position(|g| g.lead.starts_with(point))
+                .unwrap_or_else(|| {
+                    groups.push(Self {
+                        lead: point,
+                        lengths: Vec::new(),
+                        members: Vec::new(),
+                    });
+                    groups.len() - 1
+                });
+            let group = &mut groups[g];
+            let length = group.lengths.iter().position(|&n| n == point.len()).unwrap_or_else(|| {
+                group.lengths.push(point.len());
+                group.lengths.len() - 1
+            });
+            group.members.push(PrefixMember { claim, ring, length });
+        }
+        groups
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
     use crate::merkle::Hash;
     use crate::pack::LOG_PACKING;
     use crate::tensor_algebra::transpose_s_hat;
+    use crate::whir::config::tests::test_config_for;
     use crate::whir::{
         VerifierConfig, commit, inner_product_base_ext, recursive_prover_with_basis,
         recursive_verifier_with_basis_succinct,
     };
-    use crate::whir_config::tests::test_config_for;
     use fiat_shamir::arith::Native;
     use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
     use primitives::field::F64;

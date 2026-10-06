@@ -21,25 +21,23 @@
 //! puts all three claims at ONE point and leaves lincheck a single family of
 //! bit slices per circuit for ring switching (doc/leanvm Annex C).
 
+use crate::zerocheck::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 use fiat_shamir::arith::{Native, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
 use multilinear::{
     PackedWitness, RoundPair, bit_round_materialize, bit_round_pair, fold_and_round_pair_into, fold_in_place_pair,
     fold_in_place_single, round_pair_naive, round_single_naive,
 };
-use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 use primitives::bit_fold::BitFold;
 use primitives::field::{F8, F192, powers};
 use primitives::multilinear::skip_lagrange_weights;
+use round1::{c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges};
 use thiserror::Error;
-use univariate_skip_optimized::{
-    c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
-};
 
 pub(crate) mod multilinear;
+mod ntt;
+pub(crate) mod round1;
 mod skip_domain;
-pub(crate) mod univariate_skip;
-pub mod univariate_skip_optimized;
 
 pub use skip_domain::SkipDomain;
 
@@ -226,10 +224,10 @@ impl<'a> CircuitProver<'a> {
 
         // The optimized URM drops a `C_s = φ_8(0x1C)` scalar from its accumulators
         // (a prover-side optimization tied to the small-eq trick: see the
-        // C_s factor analysis in `univariate_skip_optimized`). The wire format
+        // C_s factor analysis in `round1`). The wire format
         // must be in "naive" convention so the verifier doesn't need to know
         // about this internal optimization; we restore the C_s factor here.
-        let (ab, c) = round1_shift_reduce_extract_c_packed_padded(bits.a, bits.b, c, m, K_SKIP, r, inv_table, &padding);
+        let (ab, c) = round1_shift_reduce_extract_c_packed_padded(bits.a, bits.b, c, m, r, inv_table, &padding);
         let c_s = c_s();
         let round1 = ab.iter().zip(&c).map(|(x, y)| c_s * (*x + *y)).collect();
         let prover = Self {
@@ -537,7 +535,7 @@ mod tests {
     use super::*;
     use fiat_shamir::transcript::VerifierState;
     use primitives::test_util::Rng;
-    use univariate_skip::tests::pack_bits;
+    use round1::tests::pack_bits;
 
     impl PaddingSpec {
         // Every bit useful.

@@ -18,16 +18,16 @@
 //! Storage: 256 × ell bytes (16 KB at k=6, 32 KB at k=7), which fits in L1.
 //! Lookups per row: n_chunks (= ell/8), each load is `ell` contiguous bytes.
 
-use crate::ntt::AdditiveNttGf8;
+use super::AdditiveNttGf8;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use core::arch::x86_64::*;
 use primitives::field::F8;
 
 #[derive(Clone, Debug)]
-pub struct InvNttTableByteSingleGf8 {
-    pub k: usize,
-    pub ell: usize,
-    pub n_chunks: usize,
+pub(crate) struct InvNttTableByteSingleGf8 {
+    pub(crate) k: usize,
+    pub(crate) ell: usize,
+    pub(crate) n_chunks: usize,
     /// `data[w * ell .. (w+1) * ell]` = T_0[w], the XOR-sum of columns of `M`
     /// indexed by the set bits of `w`.
     data: Vec<F8>,
@@ -37,7 +37,7 @@ impl InvNttTableByteSingleGf8 {
     /// Build the table given the two NTT instances: `ntt_S` over the input
     /// domain, `ntt_L` over the output (extension) domain. Both must have the
     /// same `k`.
-    pub fn new(ntt_s: &AdditiveNttGf8, ntt_l: &AdditiveNttGf8) -> Self {
+    pub(crate) fn new(ntt_s: &AdditiveNttGf8, ntt_l: &AdditiveNttGf8) -> Self {
         assert_eq!(ntt_s.k(), ntt_l.k(), "ntt_S and ntt_L must share k");
         let k = ntt_s.k();
         let ell = 1usize << k;
@@ -86,8 +86,9 @@ impl InvNttTableByteSingleGf8 {
     /// Raw pointer to the table data (`256 × ell` bytes, row-major). Used by
     /// the URM fused inner kernel, which can't go through the safe slice API
     /// without losing the register-fused layout.
+    #[cfg(target_arch = "aarch64")]
     #[inline]
-    pub const fn data_ptr(&self) -> *const u8 {
+    pub(crate) const fn data_ptr(&self) -> *const u8 {
         self.data.as_ptr() as *const u8
     }
 
@@ -100,7 +101,7 @@ impl InvNttTableByteSingleGf8 {
     /// The scalar arm is reachable only at `ell < 16`, i.e. k=3, which occurs
     /// only in tests.
     #[inline]
-    pub fn apply(&self, bytes: &[u8], out: &mut [F8]) {
+    pub(crate) fn apply(&self, bytes: &[u8], out: &mut [F8]) {
         #[cfg(target_arch = "aarch64")]
         if self.ell >= 16 {
             // SAFETY: aarch64 statically guarantees NEON; ell ≥ 16 ⇒ at least
@@ -161,7 +162,7 @@ impl InvNttTableByteSingleGf8 {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
     #[inline]
     #[target_feature(enable = "avx512f")]
-    pub fn apply_zmm(&self, bytes: &[u8; 8]) -> __m512i {
+    pub(crate) fn apply_zmm(&self, bytes: &[u8; 8]) -> __m512i {
         assert_eq!(self.ell, 64);
         let base = self.data.as_ptr().cast::<u8>();
         // SAFETY: every row offset is `byte * 64` into a `256 * 64` table.

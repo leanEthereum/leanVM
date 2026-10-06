@@ -8,7 +8,7 @@
 
 use crate::merkle::{Hash, MerkleBuilder};
 use crate::ntt::AdditiveNttF64;
-use crate::whir_ntt_ext::encode_interleaved_ext;
+use crate::whir::ntt_ext::encode_interleaved_ext;
 use primitives::field::{F64, F192};
 
 /// Public commitment for an `F64` message: the L0 Merkle root.

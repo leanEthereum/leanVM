@@ -31,7 +31,7 @@ fn rust_constants() -> String {
     scalar("HASH_WORDS", Hash::WORDS as u64);
     scalar(
         "INITIAL_FOLDING_FACTOR",
-        pcs::whir_config::INITIAL_FOLDING_FACTOR as u64,
+        pcs::whir::config::INITIAL_FOLDING_FACTOR as u64,
     );
     scalar("LIVE_BIT", Clock::LIVE_BIT as u64);
     scalar("LOG_PACKING", pcs::pack::LOG_PACKING as u64);
@@ -43,21 +43,21 @@ fn rust_constants() -> String {
     scalar("MAX_STACKED_LOG", leanvm_core::MAX_MU as u64);
     scalar("MIN_STACKED_LOG", leanvm_core::MIN_MU as u64);
     scalar("NUM_FRAMEWORK_COLUMNS", leanvm_core::Q_BASE as u64);
-    scalar("QUERY_GRINDING_BITS", pcs::whir_config::QUERY_GRINDING_BITS as u64);
+    scalar("QUERY_GRINDING_BITS", pcs::whir::config::QUERY_GRINDING_BITS as u64);
     scalar("RAM_BASE", Region::RAM.base());
     scalar("RAM_SLOT", Clock::RAM_SLOT as u64);
     scalar("REGISTER_BITS", Reg::BITS as u64);
-    scalar("RESIDUAL_MAX_LOG", pcs::whir_config::RESIDUAL_MAX_LOG as u64);
-    let rs_domain = pcs::whir_config::RS_DOMAIN_INITIAL_REDUCTION_FACTOR;
+    scalar("RESIDUAL_MAX_LOG", pcs::whir::config::RESIDUAL_MAX_LOG as u64);
+    let rs_domain = pcs::whir::config::RS_DOMAIN_INITIAL_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_INITIAL_REDUCTION_FACTOR", rs_domain as u64);
-    let rs_domain_rest = pcs::whir_config::RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR;
+    let rs_domain_rest = pcs::whir::config::RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR;
     scalar("RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR", rs_domain_rest as u64);
     scalar("SEED_CLOCK", Clock::SEED_CLOCK);
     scalar("SINK", RegisterFile::SINK as u64);
     scalar("SLOT_BITS", Clock::SLOT_BITS as u64);
     scalar(
         "SUBSEQUENT_FOLDING_FACTOR",
-        pcs::whir_config::SUBSEQUENT_FOLDING_FACTOR as u64,
+        pcs::whir::config::SUBSEQUENT_FOLDING_FACTOR as u64,
     );
     scalar("SYSCALL_REGISTER", Reg::SYSCALL.index() as u64);
     scalar("SYS_EXIT", Syscall::Exit.number());

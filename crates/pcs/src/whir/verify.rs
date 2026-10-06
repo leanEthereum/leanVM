@@ -9,8 +9,8 @@
 //! Every query opens a full row whose path follows the query's bits, so the rows never depend on which rows are opened.
 
 use crate::verifier::OpeningVerifier;
-use crate::whir_config::{ConfigError, VerifierConfig};
-use crate::whir_induce::eval_sk_at_vks;
+use crate::whir::config::{ConfigError, VerifierConfig};
+use crate::whir::induce::eval_sk_at_vks;
 use fiat_shamir::transcript::TranscriptError;
 use primitives::field::{F64, F192};
 use thiserror::Error;

@@ -909,7 +909,7 @@ fn l0_list_bits_bound_every_l0_list() {
     );
 }
 
-/// `WHIR_QUERIES`'s rows as `whir_config.rs` writes them, with `queries(log_inv_rate, log_n)` in each entry.
+/// `WHIR_QUERIES`'s rows as `config.rs` writes them, with `queries(log_inv_rate, log_n)` in each entry.
 fn table_rows(queries: impl Fn(usize, usize) -> Vec<usize>) -> String {
     let mut rows = String::new();
     for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
@@ -935,7 +935,7 @@ fn the_table_is_the_derivation() {
         table_rows(|log_inv_rate, log_n| WHIR_QUERIES[log_inv_rate - MIN_LOG_INV_RATE][log_n - MIN_LOG_N].to_vec());
     assert!(
         tabulated == rows,
-        "WHIR_QUERIES is stale, replace its rows in crates/pcs/src/whir_config.rs with:\n{rows}"
+        "WHIR_QUERIES is stale, replace its rows in crates/pcs/src/whir/config.rs with:\n{rows}"
     );
     for log_inv_rate in MIN_LOG_INV_RATE - 1..=MAX_LOG_INV_RATE + 1 {
         for log_n in 0..=MAX_LOG_N + 8 {

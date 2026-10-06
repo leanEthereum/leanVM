@@ -31,6 +31,9 @@
 //! ```
 
 mod commit;
+pub mod config;
+mod induce;
+mod ntt_ext;
 mod prove;
 mod sumcheck;
 #[cfg(test)]
@@ -41,14 +44,14 @@ use fiat_shamir::transcript::Challenger;
 use primitives::field::{F64, F192};
 use primitives::multilinear::inner_product_base;
 
-pub use super::whir_config::{
+pub use config::{
     INITIAL_FOLDING_FACTOR, L0_LIST_BITS, LOG_INV_RATE_0, MAX_LOG_INV_RATE, MAX_LOG_N, MIN_LOG_INV_RATE, MIN_LOG_N,
     ProverConfig, QUERY_GRINDING_BITS, RESIDUAL_MAX_LOG, RS_DOMAIN_INITIAL_REDUCTION_FACTOR, SECURITY_BITS,
     SUBSEQUENT_FOLDING_FACTOR, VerifierConfig, config_for_rate,
 };
 
-pub use crate::whir_induce::eval_sk_at_vks;
 pub use commit::{Commitment, ProverData, commit};
+pub use induce::eval_sk_at_vks;
 pub use prove::recursive_prover_with_basis;
 pub(crate) use prove::recursive_prover_with_prepared_basis;
 pub(crate) use sumcheck::{Basis, INITIAL_BASIS_CHUNK, initial_rounds};

@@ -16,8 +16,5 @@ pub mod stack_open;
 mod tensor_algebra;
 pub mod verifier;
 pub mod whir;
-pub mod whir_config;
-mod whir_induce;
-mod whir_ntt_ext;
 
 pub use pack::LOG_PACKING;

@@ -3,7 +3,8 @@ use std::mem::MaybeUninit;
 use primitives::field::F192;
 use primitives::multilinear::{eq_table_seeded, fill_eq_table_uninit};
 
-use super::{RingSwitch, StackClaim};
+use super::StackClaim;
+use crate::ring_switch::RingSwitch;
 use crate::ring_switch::{DeferredWeight, combine_deferred_chunk};
 use crate::whir::INITIAL_BASIS_CHUNK;
 

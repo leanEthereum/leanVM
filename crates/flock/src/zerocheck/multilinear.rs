@@ -35,7 +35,7 @@
 //! `current_claim = (1+r_now)·G(0) + r_now·G(1)`.
 
 use crate::zerocheck::PaddingSpec;
-use crate::zerocheck::univariate_skip::EQ_HIGH_VARS;
+use crate::zerocheck::round1::EQ_HIGH_VARS;
 use parallel::Chunks;
 use primitives::bit_fold::{BLOCK, BitFold};
 use primitives::field::{F192, F192Unreduced};
@@ -839,11 +839,11 @@ mod planar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::zerocheck::univariate_skip::tests::pack_bits;
-    use crate::zerocheck::univariate_skip_optimized::{
+    use crate::zerocheck::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
+    use crate::zerocheck::round1::tests::pack_bits;
+    use crate::zerocheck::round1::{
         c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
     };
-    use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
     use primitives::field::F8;
     use primitives::field::PHI_8_TABLE_192;
     use primitives::multilinear::{barycentric_sum, skip_lagrange_weights, window_denominator};
@@ -1000,7 +1000,6 @@ mod tests {
                 &b_packed,
                 &c_packed,
                 m,
-                K_SKIP,
                 &r,
                 &inv_table,
                 &PaddingSpec::dense(m),

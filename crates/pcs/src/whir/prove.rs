@@ -11,8 +11,8 @@ use super::sample_queries_ordered;
 use super::sumcheck::{Basis, InitialRounds, SumcheckProver, send_msg};
 use crate::merkle::Hash;
 use crate::ntt::AdditiveNttF64;
-use crate::whir_config::ProverConfig;
-use crate::whir_induce::{
+use crate::whir::config::ProverConfig;
+use crate::whir::induce::{
     eval_sk_at_vks, induce_sumcheck_enforced_sum, induce_sumcheck_evaluate_at_residual, induce_sumcheck_poly,
     induce_sumcheck_poly_auto_base,
 };

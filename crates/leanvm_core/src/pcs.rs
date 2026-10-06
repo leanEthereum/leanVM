@@ -26,14 +26,15 @@
 //! - The base-field commitment only shrinks the level-0 symbols to 8 bytes; every random ingredient is sampled from `E`.
 
 use crate::witness::StackShape;
-use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
+use ::pcs::stack_open;
 use ::pcs::verifier::OpeningVerifier;
 use ::pcs::whir::{self, ProverConfig, ProverData, WhirError, config_for_rate};
 use fiat_shamir::transcript::{ProverState, TranscriptError, Transmitter};
 use primitives::field::F64;
 use thiserror::Error;
 
-pub use ::pcs::stack_open::{RingSwitch, SliceClaim, StackClaim};
+pub use ::pcs::ring_switch::{RingSwitch, SliceClaim};
+pub use ::pcs::stack_open::StackClaim;
 
 /// Row-batch lanes `2^LOG_BATCH`: the Merkle leaf width (`2^LOG_BATCH` F64
 /// = 512 bytes/leaf) IS WHIR's INITIAL folding factor: the L0 commit is
@@ -173,7 +174,7 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[StackClaim
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
     let cfg = whir_config(c.mu, c.log_inv_rate);
-    open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg, points, rings);
+    stack_open::open(ps, c.mu, q, &c.prover_data, &cfg, points, rings);
 }
 
 /// Verify the opening (mirror of [`open`]): flock's ring-switched claim
@@ -194,5 +195,5 @@ pub fn verify<V: OpeningVerifier>(
     root: V::Root,
 ) -> Result<(), WhirError> {
     let cfg = config_for_rate(shape.mu, log_inv_rate)?;
-    verify_opening_batch_mixed_whir_stacked(v, &cfg, shape.mu, shape.n_lanes, root, points, rings)
+    stack_open::verify(v, &cfg, shape.mu, shape.n_lanes, root, points, rings)
 }

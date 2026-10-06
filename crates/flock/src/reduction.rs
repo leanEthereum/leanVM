@@ -12,7 +12,7 @@ use crate::zerocheck::{self, K_SKIP, PaddingSpec, SkipDomain, ZerocheckClaim, Ze
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::ProverState;
 use pcs::pack::LOG_PACKING;
-use pcs::stack_open::SliceClaim;
+use pcs::ring_switch::SliceClaim;
 use primitives::field::F192;
 
 // A claim's `2^K_SKIP` slices are a ring-switch claim on `q_flock` only if that

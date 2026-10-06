@@ -909,7 +909,7 @@ impl<'a> SumcheckProver<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::whir_config::INITIAL_FOLDING_FACTOR;
+    use crate::whir::config::INITIAL_FOLDING_FACTOR;
     use primitives::multilinear::inner_product;
     use primitives::test_util::Rng;
 
