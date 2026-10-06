@@ -67,6 +67,19 @@ pub fn falcon(n: usize) -> Workload {
     }
 }
 
+/// Verify `n` L1 state reads at one mainnet block, each an account and one of its storage slots.
+pub fn stateproof(n: usize) -> Workload {
+    let run = stateproof_host::reads(n);
+    Workload {
+        title: format!("L1 state proofs, {n} reads"),
+        elf: stateproof_host::ELF,
+        advice: run.advice,
+        expected: run.expected,
+        items: n,
+        item: "read",
+    }
+}
+
 /// Check `n` leanDA blobs and compute their commitment.
 pub fn leanda(n: usize) -> Workload {
     let run = leanda_host::blobs(n);

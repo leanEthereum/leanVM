@@ -78,6 +78,12 @@ enum Command {
         #[arg(long, default_value_t = 4, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         n: usize,
     },
+    /// Prove and verify a guest checking L1 state proofs: mainnet accounts and storage slots at one block.
+    Stateproof {
+        /// Reads to verify, each an account and one of its slots.
+        #[arg(long, default_value_t = 4, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+    },
     /// Prove and verify a guest checking leanDA blobs and computing their commitment.
     Leanda {
         /// Blobs of 128 KiB to check.
@@ -144,6 +150,7 @@ fn main() {
         Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), &prover, plan),
         Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), &prover, plan),
         Command::Falcon { n } => workload::run(&workload::falcon(n), &prover, plan),
+        Command::Stateproof { n } => workload::run(&workload::stateproof(n), &prover, plan),
         Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), &prover, plan),
         Command::Aggregate {
             program,

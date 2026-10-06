@@ -26,6 +26,7 @@ leanvm_guest.workspace = true
 leanxmss-host.workspace = true
 leansphincs-host.workspace = true
 falcon-host.workspace = true
+stateproof-host.workspace = true
 leanda-host.workspace = true
 tracing.workspace = true
 clap = { version = "4", features = ["derive"] }
