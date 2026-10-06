@@ -216,6 +216,13 @@ pub trait Verifier: Arith {
     /// Returns the error when the two differ and the verifier checks values.
     fn ensure_eq<Er>(&mut self, a: Self::E, b: Self::E, err: impl FnOnce() -> Er) -> Result<(), Er>;
 
+    /// Check the whole proof was read.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the proof holds data past what was read and the verifier checks values.
+    fn finish(&mut self) -> Result<(), TranscriptError>;
+
     /// Run `f` as a named stage of the verifier.
     ///
     /// A verifier that records its failed checks rather than refusing reports each under its stages' names.
@@ -331,5 +338,9 @@ impl Verifier for VerifierState<'_> {
 
     fn ensure_eq<Er>(&mut self, a: F192, b: F192, err: impl FnOnce() -> Er) -> Result<(), Er> {
         if a == b { Ok(()) } else { Err(err()) }
+    }
+
+    fn finish(&mut self) -> Result<(), TranscriptError> {
+        VerifierState::finish(self)
     }
 }

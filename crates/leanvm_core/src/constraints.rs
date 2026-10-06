@@ -54,20 +54,6 @@ pub struct Claims<E = F192> {
     pub slices: Vec<E>,
 }
 
-impl<E: Copy> Claims<E> {
-    /// The evaluations, then `zero`s up to `n`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if there are more than `n` evaluations.
-    pub fn evals_padded_with(&self, n: usize, zero: E) -> Vec<E> {
-        assert!(self.evals.len() <= n, "more evaluations than slots");
-        let mut out = self.evals.clone();
-        out.resize(n, zero);
-        out
-    }
-}
-
 /// Why the table constraints reject.
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum ConstraintError {

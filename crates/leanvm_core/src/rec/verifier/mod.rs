@@ -168,6 +168,15 @@ impl Verifier for Rows<'_, '_> {
         Ok(())
     }
 
+    fn finish(&mut self) -> Result<(), TranscriptError> {
+        if !self.t.finished() {
+            self.scope("transcript", |r| {
+                r.b.fail("the proof has data the verifier never reads");
+            });
+        }
+        Ok(())
+    }
+
     fn scope<T>(&mut self, name: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
         self.b.enter(name);
         let out = f(self);

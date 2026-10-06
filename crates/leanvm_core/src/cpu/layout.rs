@@ -492,14 +492,8 @@ impl RegisterWord {
     ///
     /// Why zeros: an unused bit of an honest word is zero, so a word with one set fails the opening.
     fn claim<E: Copy>(&self, tables: &[Claims<E>], zero: E) -> SliceClaim<E> {
-        let mut s_hat_v: Vec<E> = (self.tables.iter())
-            .flat_map(|&t| tables[t.index()].slices.iter().copied())
-            .collect();
-        s_hat_v.resize(PACKING_WIDTH, zero);
-        SliceClaim {
-            suffix_point: tables[self.tables[0].index()].chi.clone(),
-            s_hat_v,
-        }
+        let slices = (self.tables.iter()).flat_map(|&t| tables[t.index()].slices.iter().copied());
+        SliceClaim::zero_padded(tables[self.tables[0].index()].chi.clone(), slices, zero)
     }
 }
 
@@ -642,10 +636,8 @@ impl Layout {
     ) -> Vec<RingSwitch<E>> {
         let witnesses = (FlockId::ALL.into_iter().zip(witnesses)).map(|(f, claim)| self.witness_window(f).ring(claim));
         let producers = (self.producers.iter().zip(multiplicities)).map(|(p, claims)| {
-            self.multiplicity_window(p).ring(SliceClaim {
-                suffix_point: claims.chi.clone(),
-                s_hat_v: claims.evals_padded_with(PACKING_WIDTH, zero),
-            })
+            let claim = SliceClaim::zero_padded(claims.chi.clone(), claims.evals.iter().copied(), zero);
+            self.multiplicity_window(p).ring(claim)
         });
         let registers = self.registers.iter().map(|word| {
             let window = self.placements[word.col]
@@ -711,51 +703,71 @@ impl Layout {
 ///
 /// The program's own sizes are public, so they are never announced.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct Announcement {
+pub(crate) struct Announcement {
     /// Each table's base-two logarithm of rows.
-    pub(super) taus: PerTable<usize>,
-    /// The commitment's base-two logarithm of the inverse rate.
-    pub(super) log_inv_rate: usize,
+    pub(crate) taus: PerTable<usize>,
+    /// The commitment's rate.
+    pub(crate) rate: Rate,
     /// The clock the run ended on: the final state's timestamp (§sec:state).
-    pub(super) ts_final: u64,
+    pub(crate) ts_final: u64,
 }
 
 impl Announcement {
-    /// Write the announcement onto the scalar stream, which binds it into the transcript.
+    /// The scalars it takes on the stream: each table's height, the rate, then the final clock.
+    pub(crate) const LEN: usize = N_TABLES + 2;
+
+    /// The scalars announcing each table's height, then the rate's, each an integer in the first coordinate.
     ///
     /// A height, not a row count: every table's rows are real, filled to a power of two.
+    pub(crate) fn sizes(taus: &PerTable<usize>, rate: Rate) -> impl Iterator<Item = F192> {
+        let rate = usize::from(rate.log_inv_rate());
+        (taus.values().copied().chain([rate])).map(|size| F192::new(size as u64, 0, 0))
+    }
+
+    /// Write the announcement onto the scalar stream, which binds it into the transcript.
     pub(super) fn write(&self, ps: &mut ProverState) {
-        for &tau in self.taus.values() {
-            ps.add_scalar(F192::new(tau as u64, 0, 0));
+        for size in Self::sizes(&self.taus, self.rate) {
+            ps.add_scalar(size);
         }
-        ps.add_scalar(F192::new(self.log_inv_rate as u64, 0, 0));
         ps.add_scalar(F192::new(self.ts_final, 0, 0));
     }
 
-    /// Read an announcement off the scalar stream, and check every value is in range.
+    /// Read an announcement off the scalar stream, binding it, and check every value is in range.
     ///
     /// The checks run before any reduction, so an out-of-range announcement costs nothing.
     ///
     /// # Errors
     ///
-    /// Refuses a non-canonical size, a final clock that is not live, a table height or a rate outside its range.
+    /// Refuses a short stream, then what decoding refuses.
     pub(super) fn read(vs: &mut VerifierState) -> Result<Self, CpuError> {
+        let mut scalars = [F192::ZERO; Self::LEN];
+        for x in &mut scalars {
+            *x = vs.next_scalar()?;
+        }
+        Self::decode(&scalars)
+    }
+
+    /// The announcement its scalars state, every value checked in range.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a non-canonical size, a final clock that is not live, a table height or a rate outside its range.
+    pub(crate) fn decode(scalars: &[F192; Self::LEN]) -> Result<Self, CpuError> {
         // A size is a canonical integer in the first coordinate.
-        let read_size = |vs: &mut VerifierState| -> Result<usize, CpuError> {
-            let word = vs.next_scalar()?;
-            if word.c1 != 0 || word.c2 != 0 {
+        let size = |x: &F192| -> Result<usize, CpuError> {
+            if x.c1 != 0 || x.c2 != 0 {
                 return Err(CpuError::NonCanonicalSize);
             }
-            usize::try_from(word.c0).map_err(|_| CpuError::NonCanonicalSize)
+            usize::try_from(x.c0).map_err(|_| CpuError::NonCanonicalSize)
         };
         let mut taus = PerTable::default();
-        for t in TableId::ALL {
-            taus[t] = read_size(vs)?;
+        for (t, x) in TableId::ALL.into_iter().zip(scalars) {
+            taus[t] = size(x)?;
         }
-        let log_inv_rate = read_size(vs)?;
+        let log_inv_rate = size(&scalars[N_TABLES])?;
 
         // A live clock at slot zero: neither a padding row's clock nor a failed row's can end the run.
-        let ts_final = vs.next_scalar()?;
+        let ts_final = scalars[N_TABLES + 1];
         let live = ts_final.c0 >> Clock::LIVE_BIT == 1 && ts_final.c0.is_multiple_of(Clock::CYCLE);
         if !live || ts_final.c1 != 0 || ts_final.c2 != 0 {
             return Err(CpuError::FinalClock);
@@ -764,12 +776,12 @@ impl Announcement {
         Layout::check_heights(&taus)?;
 
         // A rate the commitment supports.
-        if !u8::try_from(log_inv_rate).is_ok_and(|r| Rate::new(r).is_ok()) {
-            return Err(CpuError::Rate { log_inv_rate });
-        }
+        let rate = (u8::try_from(log_inv_rate).ok())
+            .and_then(|r| Rate::new(r).ok())
+            .ok_or(CpuError::Rate { log_inv_rate })?;
         Ok(Self {
             taus,
-            log_inv_rate,
+            rate,
             ts_final: ts_final.c0,
         })
     }

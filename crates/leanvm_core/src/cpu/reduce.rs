@@ -1,15 +1,18 @@
-//! The verifier's core from the bus to the opening's claims, written once over the verifier's arithmetic.
+//! The verifier's core from the commitment to the end of the proof, written once over the verifier's arithmetic.
 
 use super::batch::{FormPowers, VerifierBatch};
-use super::deferred::{Claim, ProgramPoint};
+use super::deferred::{Claim, DeferredClaims, ProgramPoint};
 use super::error::CpuError;
 use super::layout::{Framework, Layout, Schema};
+use crate::class_flock::FlockId;
 use crate::constraints::Claims;
 use crate::leaf::PublicColumns;
-use crate::pcs::StackClaim;
+use crate::pcs::{Rate, StackClaim};
 use crate::tables::{ClassTable, N_TABLES};
-use crate::{constraints, leaf};
+use crate::{constraints, leaf, pcs};
+use ::pcs::verifier::OpeningVerifier;
 use fiat_shamir::arith::Verifier;
+use flock::reduction;
 
 /// What the bus and the table sumcheck leave to the rest of the verifier.
 pub(crate) struct TableReduction<E> {
@@ -48,6 +51,48 @@ impl<E: Clone> TableClaims<E> {
 }
 
 impl Layout {
+    /// The verifier's core past the announcement, for a run that ends on the given clock and returns the given output.
+    ///
+    /// It reads the commitment, verifies the bus and the tables, the flock reductions and the opening, then checks nothing is left to read.
+    /// It returns the claims the proof leaves on the program's polynomials and on each circuit's matrices.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first stage that refuses the proof.
+    pub(crate) fn verify_core<V: OpeningVerifier + PublicColumns>(
+        &self,
+        v: &mut V,
+        clock: V::E,
+        output: &[V::E; 4],
+        rate: Rate,
+    ) -> Result<DeferredClaims<V::E>, CpuError> {
+        let root = pcs::read_commitment(v)?;
+        let reduced = v.scope("bus and tables", |v| self.reduce_tables(v, clock, output))?;
+
+        // Flock's reductions, batched over every class circuit then every clock circuit, each leaving its matrices' form to its circuit.
+        let batches = FlockId::batches(&self.taus);
+        let replays = v
+            .scope("flock", |v| reduction::verify(&batches, v))
+            .map_err(CpuError::Reductions)?;
+        let (slices, circuits): (Vec<_>, Vec<_>) = (replays.into_iter())
+            .map(|replay| (replay.claim, replay.matrices.into()))
+            .unzip();
+
+        // The one opening, its ring-switched regions each packed witness, each producer's multiplicity column and each table's register numbers.
+        v.scope("opening", |v| {
+            let zero = v.zero();
+            let rings = self.rings(slices, &reduced.producers, &reduced.tables, zero);
+            let log_inv_rate = rate.log_inv_rate().into();
+            pcs::verify(v, &reduced.slots, &rings, self.shape, log_inv_rate, root)
+        })
+        .map_err(CpuError::Open)?;
+        v.finish()?;
+        Ok(DeferredClaims {
+            program: reduced.program,
+            circuits,
+        })
+    }
+
     /// Verify the bus and the table sumcheck of a run that ends on the given clock and returns the given output.
     ///
     /// The layout's own final clock is zero: a leaf is affine in each coordinate, so the clock's share joins the pull side's total here.

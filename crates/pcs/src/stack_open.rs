@@ -167,6 +167,20 @@ pub struct SliceClaim<E = F192> {
     pub s_hat_v: Vec<E>,
 }
 
+impl<E: Copy> SliceClaim<E> {
+    /// A claim whose slices past the given ones are zero.
+    ///
+    /// # Panics
+    ///
+    /// If more than 64 slices are given.
+    pub fn zero_padded(suffix_point: Vec<E>, slices: impl IntoIterator<Item = E>, zero: E) -> Self {
+        let mut s_hat_v: Vec<E> = slices.into_iter().collect();
+        assert!(s_hat_v.len() <= PACKING_WIDTH, "a claim has at most 64 slices");
+        s_hat_v.resize(PACKING_WIDTH, zero);
+        Self { suffix_point, s_hat_v }
+    }
+}
+
 /// A ring-switched region of the committed stack and the slice claims on it.
 ///
 /// Prover and verifier describe a region with the same data.

@@ -8,18 +8,17 @@
 
 use super::{Rows, infallible};
 use crate::cpu::Claim;
-use crate::pcs::{self, Rate};
+use crate::pcs::Rate;
 use crate::rec::RecError;
 use crate::rec::bus::BusBlocks;
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::fixed::{FixedColumn, FixedColumns};
 use crate::rec::layout::RecLayout;
 use crate::rec::proof::TableArgument;
-use crate::rec::table::{HashFlock, PerRecTable, Table};
+use crate::rec::table::PerRecTable;
 use crate::rec::transcript::{ProofSource, Transcript};
 use ::flock::lincheck::MatrixForm;
-use ::flock::reduction;
-use fiat_shamir::arith::{Arith, Verifier};
+use fiat_shamir::arith::Arith;
 use primitives::field::F192;
 use primitives::multilinear::mle_eval_par;
 
@@ -116,30 +115,11 @@ impl RecShape {
         };
         let mut r = Rows::hinting(b, &mut t, &mut hints);
 
-        let root = r.t.next_root(r.b);
         let constants = std::array::from_fn(|j| columns.public(FixedColumn::Constant(j)));
         let blocks = BusBlocks::new(columns, constants, &self.layout);
-        let slots = r.scope("bus and tables", |r| {
-            infallible(TableArgument::new(&self.layout, blocks).verify(r))
-        });
-        let shape = HashFlock::FLOCK.shape();
-        let tau = self.layout.tau(Table::Hash);
-        let [reduction] = r
-            .scope("flock", |r| infallible(reduction::verify(&[(shape, tau)], r)))
-            .try_into()
-            .unwrap_or_else(|_| unreachable!("a batch of one circuit"));
-        let rings = [self.layout.hash_window().ring(reduction.claim.clone())];
-        let log_inv_rate = self.rate.log_inv_rate().into();
-        r.scope("opening", |r| {
-            infallible(pcs::verify(r, &slots, &rings, self.layout.shape, log_inv_rate, root));
-        });
-        if !r.t.finished() {
-            r.scope("transcript", |r| {
-                r.b.fail("the proof has data the verifier never reads");
-            });
-        }
+        let matrices = infallible(TableArgument::new(&self.layout, blocks).verify_core(&mut r, self.rate));
         RecRows {
-            matrix: reduction.matrices.into(),
+            matrix: matrices.into(),
             hints: hints.hints,
             state: t.state(),
         }
