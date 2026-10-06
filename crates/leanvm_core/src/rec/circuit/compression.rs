@@ -2,6 +2,7 @@
 
 use super::Limbs;
 use crate::rv::{Hash, InstructionClass};
+use std::array::from_fn;
 
 /// The parameter IV as four words.
 pub const PARAM_IV: Limbs = words(primitives::hash::PARAM_IV);
@@ -35,7 +36,7 @@ impl Compression {
     /// The output chaining value, as the precompile computes it.
     pub fn output(&self) -> Limbs {
         let i = &self.0;
-        let block: [u64; 16] = std::array::from_fn(|w| match w {
+        let block: [u64; 16] = from_fn(|w| match w {
             0..4 => i[2 + w],
             4..8 => 0,
             _ => i[6 + w - 8],
@@ -62,10 +63,8 @@ pub fn chain(words: &[u64]) -> Limbs {
     let n_blocks = words.len().div_ceil(8).max(1);
     let bytes = 8 * words.len() as u64;
     (0..n_blocks).fold(PARAM_IV, |h, j| {
-        let mut m = [0; 8];
-        for (slot, &w) in m.iter_mut().zip(words.iter().skip(8 * j)) {
-            *slot = w;
-        }
+        // The final block retains the message's words and zero-pads its unused slots.
+        let m = from_fn(|k| words.get(8 * j + k).copied().unwrap_or(0));
         Compression::new(h, m, (64 * (j as u64 + 1)).min(bytes), j + 1 == n_blocks).output()
     })
 }

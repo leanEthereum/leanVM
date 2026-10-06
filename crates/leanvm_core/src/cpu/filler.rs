@@ -141,12 +141,16 @@ impl Traversals {
     ///
     /// As many of the largest block as fit, then the binary decomposition of the rest.
     fn delivering(fill: usize) -> Self {
-        let mut out = [0; SIZES.len()];
         let mut left = fill;
-        for (k, &size) in SIZES.iter().enumerate().filter(|&(_, &size)| size > 0) {
-            out[k] = left / size;
-            left -= out[k] * size;
-        }
+        let out = SIZES.map(|size| {
+            // The lone jump supplies no rows to a non-ALU table.
+            if size == 0 {
+                return 0;
+            }
+            let count = left / size;
+            left -= count * size;
+            count
+        });
         debug_assert_eq!(left, 0, "the positive sizes end at 1, so nothing can be left over");
         Self(out)
     }
@@ -157,12 +161,13 @@ impl Traversals {
     ///
     /// So the sizes to decompose over are `s + 1`, down to the lone jump's 1.
     fn landing_on_jump(gap: usize) -> Self {
-        let mut out = [0; SIZES.len()];
         let mut left = gap;
-        for (k, &size) in SIZES.iter().enumerate() {
-            out[k] = left / (size + 1);
-            left -= out[k] * (size + 1);
-        }
+        let out = SIZES.map(|size| {
+            // Each traversal contributes its closing jump to the ALU too.
+            let count = left / (size + 1);
+            left -= count * (size + 1);
+            count
+        });
         Self(out)
     }
 
