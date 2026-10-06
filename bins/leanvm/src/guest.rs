@@ -57,11 +57,11 @@ pub fn run_guest(elf: &Path, advice: &[u64], prover: &Prover, plan: Plan) {
         pretty_integer(&(advice.len()))
     );
     println!("  output                      : {output}");
-    println!("  cycles (VM steps)           : {}", pretty_integer(&stats.cycles));
+    println!("  cycles (VM steps)           : {}", pretty_integer(&stats.cycles()));
     println!("    details                   : {}", stats.details());
     let proof_bytes = proof.to_bytes().len();
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
-    let cycles_per_second = (stats.cycles as f64 / prove_time.mean()).round() as u64;
+    let cycles_per_second = (stats.cycles() as f64 / prove_time.mean()).round() as u64;
     println!(
         "  proving                     : {} s{}   {} cycles/s      peak memory {} GiB",
         pretty_f64(prove_time.mean()),

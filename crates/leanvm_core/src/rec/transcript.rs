@@ -219,7 +219,7 @@ impl<'a> Transcript<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rec::circuit::Circuit;
+    use crate::rec::circuit::{Circuit, Unsatisfied};
     use fiat_shamir::merkle::{Hash, RawMerklePath, hash_leaf, hash_pair};
     use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
     use primitives::field::F64;
@@ -250,7 +250,7 @@ mod tests {
     }
 
     // The native transcript above, in rows: the claims are the sums the scalars read make.
-    fn replay(source: ProofSource<'_>) -> (Circuit, Vec<F192>, Vec<String>) {
+    fn replay(source: ProofSource<'_>) -> (Circuit, Vec<F192>, Vec<Unsatisfied>) {
         let mut b = Builder::new();
         let iv = b.d_const(digest_limbs(&primitives::hash::hash(LABEL)));
         let mut t = Transcript::from_state(iv, source);
@@ -295,7 +295,7 @@ mod tests {
     }
 
     // Opens one row of eight words at index 0 of a tree of the given depth, returning the rows' failures.
-    fn open(leaf: &[u64; 8], path: &[Hash], root: &Hash, depth: usize) -> Vec<String> {
+    fn open(leaf: &[u64; 8], path: &[Hash], root: &Hash, depth: usize) -> Vec<Unsatisfied> {
         let raw = RawProof {
             stream: Vec::new(),
             merkle: vec![RawMerklePath {

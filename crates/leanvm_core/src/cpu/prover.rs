@@ -53,11 +53,14 @@ impl Prover {
     /// - The run traps.
     /// - The run is longer than one proof holds.
     /// - The advice is longer than the program's region.
+    #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = self.rate.log_inv_rate()))]
     pub fn prove(&self, program: &Program, advice: &[u64]) -> Result<ProvenRun, ProveError> {
-        let (proof, output, stats) = program.prove(advice, self.rate)?;
+        let exec = crate::stage!("Execute program", || program.execute(advice))?;
+        program.committed_size(exec.trace.row_counts())?;
+        let (proof, stats) = program.prove_execution(&exec, self.rate);
         Ok(ProvenRun {
             proof,
-            output: Output::new(output),
+            output: Output::new(exec.output),
             stats,
         })
     }

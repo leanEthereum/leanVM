@@ -3,7 +3,9 @@
 //! in both, and this is what catches the Python one drifting.
 
 use fiat_shamir::transcript::RawProof;
-use leanvm_core::{Alu, Class, Clock, CpuError, EXIT_SLOT, Lookup, PerTable, Program, Rate, Region, TableId};
+use leanvm_core::{
+    Alu, Class, Clock, CpuError, EXIT_SLOT, Lookup, PerTable, Program, ProvenRun, Prover, Rate, Region, TableId,
+};
 use primitives::field::{F64, F192};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -155,13 +157,15 @@ impl Drop for PythonStatement {
 #[test]
 fn test_python_verifier() {
     let (program, _) = super::programs::fibonacci();
-    let (proof, output, stats) = program.prove(&[], Rate::MIN).expect("the run halts");
+    let ProvenRun {
+        proof, output, stats, ..
+    } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     // Python reads the RAW proof: same protocol, each query carrying its own
     // full Merkle path instead of one octopus over the batch. A Rust verify
     // expands the wire form, so the pruning is written once.
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
+    let raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
     let encoded = bincode::serialize(&proof.0).expect("serialize proof");
-    let statement = PythonStatement::new("tamper", &program, &output);
+    let statement = PythonStatement::new("tamper", &program, output.words());
     let verification_started = Instant::now();
     statement.assert_accepts(&raw);
     let verification_time = verification_started.elapsed();
@@ -169,7 +173,7 @@ fn test_python_verifier() {
     let mut malformed_announcement = proof.clone();
     malformed_announcement.0.stream[0].c1 = 1;
     assert_eq!(
-        program.verify(output.into(), &malformed_announcement),
+        program.verify(output, &malformed_announcement),
         Err(CpuError::NonCanonicalSize.into())
     );
     let mut raw_announcement = raw.clone();
@@ -184,7 +188,7 @@ fn test_python_verifier() {
     for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
         let mut forged = proof.clone();
         forged.0.stream[final_clock] = F192::new(clock, 0, 0);
-        assert_eq!(program.verify(output.into(), &forged), Err(CpuError::FinalClock.into()));
+        assert_eq!(program.verify(output, &forged), Err(CpuError::FinalClock.into()));
         let mut raw_forged = raw.clone();
         raw_forged.stream[final_clock] = F192::new(clock, 0, 0);
         let refused = statement.verify(&raw_forged);
@@ -196,7 +200,7 @@ fn test_python_verifier() {
     // Past the announcement: the table heights, the rate, the final clock.
     let root_offset = leanvm_core::N_TABLES + 2;
     malformed_root.0.stream[root_offset].c2 = 1;
-    assert!(program.verify(output.into(), &malformed_root).is_err());
+    assert!(program.verify(output, &malformed_root).is_err());
     let mut raw_root = raw.clone();
     raw_root.stream[root_offset].c2 = 1;
     PythonStatement::assert_rejects(&statement.verify(&raw_root), "a noncanonical commitment root");
@@ -317,7 +321,7 @@ for fields in [[(2, {alu}), (3, {always}), (4, 0), (5, 0), (7, {link}), (9, 0)],
     println!(
         "{} instructions; proved {} cycles in {} bytes; Python verified in {:.2?}",
         program.rv().entries().len(),
-        stats.cycles,
+        stats.cycles(),
         encoded.len(),
         verification_time,
     );
@@ -327,9 +331,9 @@ for fields in [[(2, {alu}), (3, {always}), (4, 0), (5, 0), (7, {link}), (9, 0)],
 #[test]
 fn the_python_verifier_refuses_what_rust_cannot_express() {
     let (program, _) = super::programs::fibonacci();
-    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
-    let statement = PythonStatement::new("shape", &program, &output);
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+    let raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
+    let statement = PythonStatement::new("shape", &program, output.words());
     let refuses = |what: &str, reason: &str| {
         let refused = statement.verify(&raw);
         PythonStatement::assert_rejects(&refused, what);
@@ -386,9 +390,9 @@ fn the_python_verifier_refuses_what_rust_cannot_express() {
 #[test]
 fn the_python_verifier_follows_the_slowest_rate() {
     let (program, _) = super::programs::fibonacci();
-    let (proof, output, _) = program.prove(&[], Rate::MAX).expect("the run halts");
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
-    PythonStatement::new("rate", &program, &output).assert_accepts(&raw);
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MAX).prove(&program, &[]).expect("the run halts");
+    let raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
+    PythonStatement::new("rate", &program, output.words()).assert_accepts(&raw);
 }
 
 /// Every ring-switched claim joins the opening's one family through its slices: both verifiers reject a moved slice of
@@ -398,10 +402,10 @@ fn the_python_verifier_follows_the_slowest_rate() {
 #[test]
 fn both_verifiers_bind_every_circuits_slices() {
     let (program, _) = super::programs::fibonacci();
-    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+    let raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
     assert_eq!(raw.stream, proof.0.stream, "the raw proof's scalars are the proof's");
-    let statement = PythonStatement::new("slices", &program, &output);
+    let statement = PythonStatement::new("slices", &program, output.words());
 
     // Where the table sumcheck (ending on the multiplicity bits) and the batched reductions (ending on each circuit's
     // 64 slices and its form's value, in circuit order) stop reading the stream, as the Python verifier reads it.
@@ -459,7 +463,7 @@ sys.exit(v['main'](sys.argv[2:]))
         let mut forged = proof.clone();
         forged.0.stream[at] += F192::ONE;
         assert!(
-            program.verify(output.into(), &forged).is_err(),
+            program.verify(output, &forged).is_err(),
             "Rust accepted a moved scalar at {at}"
         );
         let mut raw_forged = raw.clone();

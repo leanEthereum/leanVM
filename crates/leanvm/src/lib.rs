@@ -68,6 +68,7 @@ pub use leanvm_core::{
 /// A tree over one leaf, with `arity_0 = 1`, is a single proof's recursion.
 pub mod aggregate {
     pub use leanvm_core::{
-        CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, TableStats, Tree, TreeError, TreeProof, TreeShape,
+        CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
+        TreeShape, Unsatisfied,
     };
 }

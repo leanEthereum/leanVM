@@ -120,8 +120,7 @@ pub fn run(workload: &Workload, prover: &Prover, plan: Plan) {
         program.verify(output, &proof).expect("the proof verifies");
     });
 
-    // The proven rows include padding: the guest's own cycles are the per-table base counts.
-    let cycles: usize = stats.base_counts.values().sum();
+    let cycles = stats.cycles();
     println!("{}", workload.title);
     println!(
         "  cycles (RISC-V)             : {}   {} per {}",
@@ -169,7 +168,7 @@ mod tests {
             let exec = program.execute(&workload.advice).expect("the run halts");
             let stats = program.measure(&workload.advice).expect("the run halts");
             assert_eq!(stats.base_counts, exec.base_counts, "{}", workload.title);
-            assert_eq!(stats.cycles, exec.cycles, "{}", workload.title);
+            assert_eq!(stats.proven_rows, exec.proven_rows, "{}", workload.title);
         }
     }
 }

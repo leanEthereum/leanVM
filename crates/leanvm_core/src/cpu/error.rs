@@ -5,6 +5,7 @@ use crate::constraints::ConstraintError;
 use crate::leaf::BusError;
 use crate::pcs;
 use crate::pcs::Rate;
+use crate::rec::RecError;
 use crate::rv::Trap;
 use crate::tables::Part;
 use ::pcs::whir::WhirError;
@@ -124,4 +125,27 @@ pub enum DecodeError {
 /// A caller only needs to know that the proof is refused.
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 #[error("the proof does not verify: {0}")]
-pub struct VerifyError(#[from] pub(crate) CpuError);
+pub struct VerifyError(Refusal);
+
+/// The verifier that refused a proof, and why.
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
+enum Refusal {
+    /// A RISC-V proof's verifier.
+    #[error(transparent)]
+    Riscv(CpuError),
+    /// A recursion proof's verifier.
+    #[error(transparent)]
+    Recursion(RecError),
+}
+
+impl From<CpuError> for VerifyError {
+    fn from(error: CpuError) -> Self {
+        Self(Refusal::Riscv(error))
+    }
+}
+
+impl From<RecError> for VerifyError {
+    fn from(error: RecError) -> Self {
+        Self(Refusal::Recursion(error))
+    }
+}

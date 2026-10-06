@@ -2,7 +2,9 @@
 
 use super::python_verifier::PythonStatement;
 use leanvm_core::asm::*;
-use leanvm_core::{ConstraintError, CpuError, DeferredClaims, MalformedClaim, Program, Rate, Region};
+use leanvm_core::{
+    ConstraintError, CpuError, DeferredClaims, MalformedClaim, Program, ProvenRun, Prover, Rate, Region,
+};
 use primitives::field::F192;
 
 // Reads its RAM image, so that the image's share of the program claim is not zero.
@@ -19,10 +21,10 @@ fn image_program(image: Vec<u64>) -> Program {
 }
 
 fn claims_of(program: &Program, rate: Rate) -> DeferredClaims {
-    let (proof, output, _) = program.prove(&[], rate).expect("the run halts");
+    let ProvenRun { proof, output, .. } = Prover::new(rate).prove(program, &[]).expect("the run halts");
     assert_eq!(output, [16, 0, 0, 0]);
     program
-        .verify_core(&output, &proof)
+        .verify_core(output, &proof)
         .expect("the proof's own checks pass")
 }
 
@@ -165,11 +167,11 @@ fn render(claims: &DeferredClaims) -> String {
 #[test]
 fn python_leaves_the_same_deferred_claims() {
     let program = image_program(vec![7, 9]);
-    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     let claims = program
-        .verify_core(&output, &proof)
+        .verify_core(output, &proof)
         .expect("the proof's own checks pass");
-    let raw = program.verify_to_raw(&output, &proof).expect("the proof verifies");
-    let python = PythonStatement::new("deferred", &program, &output).deferred(&raw);
+    let raw = program.verify_to_raw(output, &proof).expect("the proof verifies");
+    let python = PythonStatement::new("deferred", &program, output.words()).deferred(&raw);
     assert_eq!(python, render(&claims));
 }

@@ -4,7 +4,8 @@ use super::python_verifier::PythonStatement;
 use fiat_shamir::transcript::TranscriptError;
 use leanvm_core::asm::*;
 use leanvm_core::{
-    BusError, CpuError, Hash, Machine, N_TABLES, Program, Proof, ProveError, Rate, Region, Trap, UNGROUND_LOG_BYTECODE,
+    BusError, CpuError, Hash, Machine, N_TABLES, Output, Program, Proof, ProveError, ProvenRun, Prover, Rate, Region,
+    Trap, UNGROUND_LOG_BYTECODE,
 };
 use primitives::field::{F64, F192};
 
@@ -41,13 +42,13 @@ fn proves_and_verifies(tag: &str, program: &Program, expected: [u64; 4]) {
 }
 
 fn proves_and_verifies_with(tag: &str, program: &Program, advice: &[u64], expected: [u64; 4]) {
-    let (proof, output, _) = program.prove(advice, Rate::MIN).expect("the run halts");
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(program, advice).expect("the run halts");
     assert_eq!(output, expected);
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
-    PythonStatement::new(tag, program, &output).assert_accepts(&raw);
+    let raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
+    PythonStatement::new(tag, program, output.words()).assert_accepts(&raw);
 
     // The proof is about this output.
-    let mut wrong = output;
+    let mut wrong = *output.words();
     wrong[0] ^= 1;
     assert!(program.verify(wrong.into(), &proof).is_err());
 }
@@ -278,7 +279,7 @@ fn blake2s_precompile_proves_and_verifies() {
         .finish();
     let program = Program::new(&text, Region::TEXT.base(), vec![], 7, 0).expect("valid instruction program");
     assert_eq!(
-        program.prove(&[], Rate::MIN).err(),
+        Prover::new(Rate::MIN).prove(&program, &[]).err(),
         Some(ProveError::Trap(Trap::Misaligned {
             pc: Region::TEXT.base() + 8,
             address: BLOCK + 4
@@ -400,7 +401,7 @@ fn advice_proves_and_verifies() {
         .finish();
     let program = Program::new(&text, Region::TEXT.base(), vec![], 2, LOG_ADVICE).expect("valid instruction program");
     assert!(matches!(
-        program.prove(&[], Rate::MIN).err(),
+        Prover::new(Rate::MIN).prove(&program, &[]).err(),
         Some(ProveError::Trap(Trap::Unmapped { .. }))
     ));
 }
@@ -411,7 +412,7 @@ fn a_trap_is_reported() {
     let text = Asm::new().word(0x0010_0073).exit().finish();
     let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
     assert_eq!(
-        program.prove(&[], Rate::MIN).err(),
+        Prover::new(Rate::MIN).prove(&program, &[]).err(),
         Some(ProveError::Trap(Trap::Illegal {
             pc: Region::TEXT.base()
         }))
@@ -422,14 +423,14 @@ fn a_trap_is_reported() {
 ///
 /// The exit, then a nop for every unground entry: with the illegal word, the fill blocks and the halt slot, the bytecode
 /// has 2^(UNGROUND_LOG_BYTECODE + 1) entries, so one bit of grinding.
-fn large_program() -> (Program, Proof, Proof, [u64; 4]) {
+fn large_program() -> (Program, Proof, Proof, Output) {
     let mut a = Asm::new();
     a.li(Reg::A0, 7).exit();
     for _ in 0..1 << UNGROUND_LOG_BYTECODE {
         a.i(Addi, Reg::ZERO, Reg::ZERO, 0);
     }
     let program = Program::new(&a.finish(), Region::TEXT.base(), vec![], 0, 0).expect("valid instruction program");
-    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     assert_eq!(output, [7, 0, 0, 0]);
 
     // The nonce follows the announcement and the root; replace it with the next one that misses the work.
@@ -440,7 +441,7 @@ fn large_program() -> (Program, Proof, Proof, [u64; 4]) {
             forged.0.stream[N_TABLES + 4].c0 += step;
             forged
         })
-        .find(|forged| program.verify(output.into(), forged) == Err(missed.clone().into()))
+        .find(|forged| program.verify(output, forged) == Err(missed.clone().into()))
         .expect("half the nonces miss one bit of work");
     (program, proof, forged, output)
 }
@@ -448,9 +449,9 @@ fn large_program() -> (Program, Proof, Proof, [u64; 4]) {
 #[test]
 fn a_large_program_grinds_before_the_bus() {
     let (program, proof, forged, output) = large_program();
-    assert!(program.verify(output.into(), &proof).is_ok());
+    assert!(program.verify(output, &proof).is_ok());
     // The nonce that misses the work is refused at the bus.
-    assert!(program.verify(output.into(), &forged).is_err());
+    assert!(program.verify(output, &forged).is_err());
 }
 
 /// Python reads the large program's bytecode table, 2^26 words, which takes it minutes.
@@ -458,8 +459,8 @@ fn a_large_program_grinds_before_the_bus() {
 #[ignore = "minutes of Python: run with --ignored"]
 fn python_checks_a_large_programs_grinding() {
     let (program, proof, forged, output) = large_program();
-    let statement = PythonStatement::new("large", &program, &output);
-    let mut raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
+    let statement = PythonStatement::new("large", &program, output.words());
+    let mut raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
     statement.assert_accepts(&raw);
 
     // The raw proof carries the same stream, so the same forged nonce.

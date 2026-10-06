@@ -14,7 +14,7 @@ pub struct Execution {
     /// The public output: `a0` to `a3` as the run left them.
     pub output: [u64; 4],
     /// The rows proven, padding rows included.
-    pub cycles: usize,
+    pub proven_rows: usize,
     /// The rows per table before the padding rows: the work the program itself does.
     ///
     /// Cost measurements want these, not the power-of-two heights that get proven.

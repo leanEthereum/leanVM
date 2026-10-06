@@ -34,11 +34,11 @@ pub fn run_fibonacci(n: usize, prover: &Prover, plan: Plan) {
     drop(trace_span);
 
     println!("Fibonacci (modulo 2^64), N = {}", pretty_integer(&n));
-    println!("  cycles (VM steps)           : {}", pretty_integer(&stats.cycles));
+    println!("  cycles (VM steps)           : {}", pretty_integer(&stats.cycles()));
     println!("    details                   : {}", stats.details());
     let proof_bytes = proof.to_bytes().len();
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
-    let cycles_per_second = (stats.cycles as f64 / prove_time.mean()).round() as u64;
+    let cycles_per_second = (stats.cycles() as f64 / prove_time.mean()).round() as u64;
     println!(
         "  proving                     : {} s{}   {} cycles/s      peak memory {} GiB",
         pretty_f64(prove_time.mean()),

@@ -4,7 +4,7 @@
 //! nightly toolchain.
 
 use super::python_verifier::PythonStatement;
-use leanvm_core::{ElfError, Guest, Machine, Program, Rate, Region};
+use leanvm_core::{ElfError, Guest, Machine, Program, ProvenRun, Prover, Rate, Region};
 use leanvm_guest::PublicValues;
 use primitives::hash::{digest_words, hash};
 
@@ -22,13 +22,15 @@ fn proves_and_verifies(tag: &str, elf: &[u8], advice: &[u64], expected: [u64; 4]
     let ran = Machine::new(program.rv(), advice).run().expect("the run halts");
     assert_eq!(ran, expected, "{tag}: the interpreter");
 
-    let (proof, output, stats) = program.prove(advice, Rate::MIN).expect("the run halts");
+    let ProvenRun {
+        proof, output, stats, ..
+    } = Prover::new(Rate::MIN).prove(&program, advice).expect("the run halts");
     assert_eq!(output, expected);
     // Measuring a run reports what proving it does, without the proof.
     assert_eq!(program.measure(advice), Ok(stats.clone()), "{tag}: measure");
-    let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
-    PythonStatement::new(tag, &program, &output).assert_accepts(&raw);
-    let mut wrong = output;
+    let raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
+    PythonStatement::new(tag, &program, output.words()).assert_accepts(&raw);
+    let mut wrong = *output.words();
     wrong[3] ^= 1;
     assert!(program.verify(wrong.into(), &proof).is_err());
     println!(

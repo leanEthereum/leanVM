@@ -43,7 +43,8 @@ mod witness;
 pub use self::pcs::{InvalidRate, Rate};
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
 pub use rec::tree::{
-    CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, TableStats, Tree, TreeError, TreeProof, TreeShape,
+    CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
+    TreeShape, Unsatisfied,
 };
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 

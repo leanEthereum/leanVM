@@ -133,10 +133,10 @@ impl Program {
         }
 
         let trace = trace.finish(p, &m, ts);
-        let cycles = trace.rows.values().map(Vec::len).sum();
+        let proven_rows = trace.rows.values().map(Vec::len).sum();
         Ok(Execution {
             output,
-            cycles,
+            proven_rows,
             base_counts,
             trace,
         })
@@ -185,24 +185,6 @@ impl Program {
         Ok(ts)
     }
 
-    /// Prove a run of the program on `advice`, the advice region's first words, at commitment rate `rate`.
-    ///
-    /// The statement says nothing about the advice.
-    ///
-    /// Returns the proof, the run's public output (`a0` to `a3` at the exit), and its statistics.
-    ///
-    /// # Errors
-    ///
-    /// Refuses a run that traps, one too long for one proof, and more advice than the program's region holds.
-    #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = rate.log_inv_rate()))]
-    #[doc(hidden)]
-    pub fn prove(&self, advice: &[u64], rate: Rate) -> Result<(Proof, [u64; 4], Stats), ProveError> {
-        let exec = crate::stage!("Execute program", || self.execute(advice))?;
-        self.committed_size(exec.trace.row_counts())?;
-        let (proof, stats) = self.prove_execution(&exec, rate);
-        Ok((proof, exec.output, stats))
-    }
-
     /// The statistics a proof of this run would report, from one execution and no proof.
     ///
     /// The run counts its rows without recording them, and the fill plan gives the heights they are proven at.
@@ -218,7 +200,7 @@ impl Program {
         let base_counts = counter.row_counts();
         let counts = Plan::solve(base_counts).filled(base_counts);
         Ok(Stats {
-            cycles: counts.values().sum(),
+            proven_rows: counts.values().sum(),
             counts,
             base_counts,
             committed: self.committed_size(counts)?,
@@ -226,15 +208,15 @@ impl Program {
     }
 
     /// Prove a finished run, which a test may have forged.
-    fn prove_execution(&self, exec: &Execution, rate: Rate) -> (Proof, Stats) {
+    pub(super) fn prove_execution(&self, exec: &Execution, rate: Rate) -> (Proof, Stats) {
         let w = crate::stage!("Build witness", || Witness::build(self, exec));
         let stats = Stats {
-            cycles: exec.cycles,
+            proven_rows: exec.proven_rows,
             counts: w.layout.taus.map(|t| 1usize << t),
             base_counts: exec.base_counts,
             committed: w.committed_size(),
         };
-        (self.prove_witness(w, &exec.output, rate), stats)
+        (self.prove_witness(w, Output::new(exec.output), rate), stats)
     }
 
     /// Prove a built witness, which a test may have forged.
@@ -242,9 +224,9 @@ impl Program {
     /// # Panics
     ///
     /// Panics if the witness's bus does not balance: an honest run's always does.
-    fn prove_witness(&self, w: Witness, output: &[u64; 4], rate: Rate) -> Proof {
+    fn prove_witness(&self, w: Witness, output: Output, rate: Rate) -> Proof {
         // The public statement, the program's digest and the output, seeds the transcript.
-        let mut ps = ProverState::new(self.fs_seed(), output.map(F64));
+        let mut ps = ProverState::new(self.fs_seed(), output.words().map(F64));
 
         // Announce the sizes, then commit, before any challenge.
         let log_inv_rate = rate.log_inv_rate().into();
@@ -315,7 +297,7 @@ impl Program {
             &mut Native,
             bus_claims,
             &table_claims.columns,
-            &output.map(|o| F192::from(F64(o))),
+            &output.words().map(|o| F192::from(F64(o))),
         );
 
         // Flock's reductions, batched over every class circuit then every clock circuit under shared challenges.
@@ -341,7 +323,7 @@ impl Program {
     /// The proof is not one of this program and this output.
     #[tracing::instrument(name = "Verify", skip_all)]
     pub fn verify(&self, output: Output, proof: &Proof) -> Result<(), VerifyError> {
-        let claims = self.verify_core(output.words(), proof)?;
+        let claims = self.verify_core(output, proof)?;
         Ok(self.check_deferred(&claims)?)
     }
 
@@ -352,7 +334,7 @@ impl Program {
     /// Returns the first stage that refuses the proof.
     #[tracing::instrument(name = "Verify", skip_all)]
     #[doc(hidden)]
-    pub fn verify_to_raw(&self, output: &[u64; 4], proof: &Proof) -> Result<RawProof, CpuError> {
+    pub fn verify_to_raw(&self, output: Output, proof: &Proof) -> Result<RawProof, CpuError> {
         let (claims, raw) = self.replay(output, proof)?;
         self.check_deferred(&claims)?;
         Ok(raw)
@@ -368,15 +350,15 @@ impl Program {
     ///
     /// Returns the first stage that refuses the proof.
     #[doc(hidden)]
-    pub fn verify_core(&self, output: &[u64; 4], proof: &Proof) -> Result<DeferredClaims, CpuError> {
+    pub fn verify_core(&self, output: Output, proof: &Proof) -> Result<DeferredClaims, CpuError> {
         self.replay(output, proof).map(|(claims, _)| claims)
     }
 
     /// The verifier's core, and the proof it replayed with its Merkle paths written out.
     #[tracing::instrument(name = "Verify core", skip_all)]
-    fn replay(&self, output: &[u64; 4], proof: &Proof) -> Result<(DeferredClaims, RawProof), CpuError> {
+    fn replay(&self, output: Output, proof: &Proof) -> Result<(DeferredClaims, RawProof), CpuError> {
         // The public statement seeds the transcript, as on the prover's side.
-        let mut vs = VerifierState::new(self.fs_seed(), &proof.0, output.map(F64));
+        let mut vs = VerifierState::new(self.fs_seed(), &proof.0, output.words().map(F64));
 
         // The announced sizes, then the layout they describe, then the commitment.
         let announcement = Announcement::read(&mut vs)?;
@@ -384,7 +366,7 @@ impl Program {
         let root = pcs::read_commitment(&mut vs)?;
 
         let clock = F192::from(F64(announcement.ts_final));
-        let reduced = l.reduce_tables(&mut vs, clock, &output.map(|o| F192::from(F64(o))))?;
+        let reduced = l.reduce_tables(&mut vs, clock, &output.words().map(|o| F192::from(F64(o))))?;
 
         // Replay the batched flock reductions off the stream, to recover each circuit's validity claim on its packed witness.
         //
@@ -451,7 +433,7 @@ impl Program {
     /// # Errors
     ///
     /// Refuses a stack larger than one commitment.
-    fn committed_size(&self, row_counts: PerTable<usize>) -> Result<usize, ProveError> {
+    pub(super) fn committed_size(&self, row_counts: PerTable<usize>) -> Result<usize, ProveError> {
         let taus = PerTable::from_fn(|t: TableId| crate::log2_strict_usize(t.spec().provable_height(row_counts[t])));
         let (placements, shape) = Sizes::of(&self.rv).stack(&taus);
         if shape.mu > pcs::MAX_MU {
@@ -485,12 +467,12 @@ impl Program {
     }
 }
 
-/// What a run costs: its cycles, its rows per table, and its committed witness size.
+/// What a run costs: its rows per table, and its committed witness size.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Stats {
     /// The rows proven, padding rows included.
-    pub cycles: usize,
+    pub proven_rows: usize,
     /// The rows per table as proven: each a power of two, the fill blocks having filled them.
     pub counts: PerTable<usize>,
     /// The rows per table before that filling: the work the program itself does.
@@ -500,6 +482,12 @@ pub struct Stats {
 }
 
 impl Stats {
+    /// The cycles the run took: one row per instruction it executed, before any padding.
+    #[must_use]
+    pub fn cycles(&self) -> usize {
+        self.base_counts.values().sum()
+    }
+
     /// One line of per-table counts and shares, largest first, then the committed size.
     ///
     /// The counts are the program's own work: the proven counts are all powers of two, which say nothing of it.
@@ -507,12 +495,12 @@ impl Stats {
     /// Tables with no rows are left out.
     #[must_use]
     pub fn details(&self) -> String {
-        if self.cycles == 0 {
+        if self.proven_rows == 0 {
             return "-".to_string();
         }
 
         // Each table's share of the program's own rows, largest first.
-        let base_cycles: usize = self.base_counts.values().sum();
+        let base_cycles = self.cycles();
         let mut shares: Vec<(&str, usize)> = (self.base_counts.iter())
             .filter(|&(_, &c)| c > 0)
             .map(|(t, &c)| (t.name(), c))
@@ -672,7 +660,7 @@ mod tests {
     }
 
     /// The prover refuses a witness whose bus does not balance: its two products differ.
-    fn assert_unbalanced(program: &Program, w: Witness, output: &[u64; 4]) {
+    fn assert_unbalanced(program: &Program, w: Witness, output: Output) {
         let refused = std::panic::catch_unwind(AssertUnwindSafe(|| program.prove_witness(w, output, Rate::MIN)))
             .expect_err("an unbalanced bus was proven");
         let message = refused.downcast_ref::<String>().map(String::as_str).unwrap_or("");
@@ -792,7 +780,7 @@ mod tests {
         // first block past its four framework blocks.
         assert_eq!(unmatched.len(), 2, "{unmatched:?}");
         assert!(unmatched.iter().all(|(_, block, _)| *block == 0 || *block == 4));
-        assert_unbalanced(&program, witness, &execution.output);
+        assert_unbalanced(&program, witness, execution.output.into());
     }
 
     /// The jump's column on the ALU's state push, `pc + 4` plus the jump: a port of its class circuit.
@@ -823,9 +811,9 @@ mod tests {
         );
         column_mut(&mut w, jump_column())[row] = F64(value);
         assert!(unmatched(&w).is_empty());
-        let proof = program.prove_witness(w, &forged.output, Rate::MIN);
+        let proof = program.prove_witness(w, forged.output.into(), Rate::MIN);
         program
-            .verify_core(&forged.output, &proof)
+            .verify_core(forged.output.into(), &proof)
             .expect_err("a forged successor is refused")
     }
 
@@ -1038,7 +1026,7 @@ mod tests {
         let (side, block, at) = unmatched[0];
         assert_eq!((side, at), ("pull", row));
         assert!(matches!(w.layout.pull[block].coords[0], Coord::Const(sep) if sep == Separator::Bytecode.value()));
-        assert_unbalanced(&program, w, &forged.output);
+        assert_unbalanced(&program, w, forged.output.into());
     }
 
     /// Extension-field products on packed elements: `x` at word 0, `y` at word 3, the base-field `w` at word 6, `c`
@@ -1076,8 +1064,8 @@ mod tests {
         let w = Witness::build(program, exec);
         let unmatched = unmatched(&w);
         assert!(unmatched.is_empty(), "the forged run balances: {unmatched:?}");
-        let proof = program.prove_witness(w, &exec.output, Rate::MIN);
-        program.verify_to_raw(&exec.output, &proof).map(drop)
+        let proof = program.prove_witness(w, exec.output.into(), Rate::MIN);
+        program.verify_to_raw(exec.output.into(), &proof).map(drop)
     }
 
     #[test]
@@ -1143,7 +1131,7 @@ mod tests {
         let w = Witness::build(&program, &forged);
         let unmatched = unmatched(&w);
         assert_eq!(unmatched.len(), 4, "{unmatched:?}");
-        assert_unbalanced(&program, w, &forged.output);
+        assert_unbalanced(&program, w, forged.output.into());
     }
 
     #[test]
@@ -1186,7 +1174,7 @@ mod tests {
         let w = Witness::build(&program, &forged);
         let unmatched = unmatched(&w);
         assert_eq!(unmatched.len(), 12, "{unmatched:?}");
-        assert_unbalanced(&program, w, &forged.output);
+        assert_unbalanced(&program, w, forged.output.into());
     }
 
     #[test]
@@ -1270,7 +1258,7 @@ mod tests {
             let w = Witness::build(&misaligned, &forged);
             // The access's pull and push, at an address no cell has.
             assert_eq!(unmatched(&w).len(), 2, "{class:?}: {:?}", unmatched(&w));
-            assert_unbalanced(&misaligned, w, &forged.output);
+            assert_unbalanced(&misaligned, w, forged.output.into());
         }
     }
 
@@ -1311,7 +1299,7 @@ mod tests {
                 .iter()
                 .all(|&(side, block, _)| side == "pull" || block < push)
         );
-        assert_unbalanced(&program, w, &forged.output);
+        assert_unbalanced(&program, w, forged.output.into());
     }
 
     /// A row can only read an instruction the program has: one claiming a branch offset
@@ -1340,7 +1328,7 @@ mod tests {
         let (side, block, at) = unmatched[0];
         assert_eq!((side, at), ("pull", row));
         assert!(matches!(w.layout.pull[block].coords[0], Coord::Const(sep) if sep == Separator::Bytecode.value()));
-        assert_unbalanced(&program, w, &exec.output);
+        assert_unbalanced(&program, w, exec.output.into());
     }
 
     /// The multiplicities are the producers' whole claim, so one that does not count the
@@ -1369,7 +1357,7 @@ mod tests {
                         .all(|&(side, block, row)| side == "pull" || (block, row) == (producer, 0)),
                     "{unmatched:?}"
                 );
-                assert_unbalanced(&program, w, &exec.output);
+                assert_unbalanced(&program, w, exec.output.into());
             }
         }
     }
@@ -1405,7 +1393,7 @@ mod tests {
         let (side, block, at) = unmatched[0];
         assert_eq!((side, at), ("pull", row));
         assert!(matches!(w.layout.pull[block].coords[0], Coord::Const(sep) if sep == Separator::Bytecode.value()));
-        assert_unbalanced(&program, w, &forged.output);
+        assert_unbalanced(&program, w, forged.output.into());
     }
 
     #[test]
@@ -1433,9 +1421,12 @@ mod tests {
                 unmatched(&w).is_empty(),
                 "the bus reads the register numbers, not the word"
             );
-            let proof = program.prove_witness(w, &exec.output, Rate::MIN);
+            let proof = program.prove_witness(w, exec.output.into(), Rate::MIN);
             assert!(
-                matches!(program.verify_to_raw(&exec.output, &proof), Err(CpuError::Open(_))),
+                matches!(
+                    program.verify_to_raw(exec.output.into(), &proof),
+                    Err(CpuError::Open(_))
+                ),
                 "bit {bit}"
             );
         }

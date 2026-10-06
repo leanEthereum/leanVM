@@ -9,7 +9,7 @@
 //! -- --ignored act4`.
 
 use super::python_verifier::PythonStatement;
-use leanvm_core::{Guest, Machine, PerTable, Program, Rate, Region, Trap};
+use leanvm_core::{Guest, Machine, PerTable, Program, ProvenRun, Prover, Rate, Region, Trap};
 use std::path::{Path, PathBuf};
 use std::thread::Builder;
 
@@ -162,17 +162,19 @@ fn act4_proven() {
     let mut covered = PerTable::<bool>::default();
     let mut python = Vec::new();
     for Test { name, program, .. } in suite() {
-        let (proof, output, stats) = program
-            .prove(&[], Rate::MIN)
+        let ProvenRun {
+            proof, output, stats, ..
+        } = Prover::new(Rate::MIN)
+            .prove(&program, &[])
             .unwrap_or_else(|trap| panic!("{name}: {trap}"));
         assert_eq!(output, PASS, "{name}: the prover's output");
         let raw = program
-            .verify_to_raw(&output, &proof)
+            .verify_to_raw(output, &proof)
             .unwrap_or_else(|error| panic!("{name}: {error:?}"));
         let used = stats.base_counts.map(|rows| rows > 0);
         if used.iter().any(|(t, &used)| used && !covered[t]) {
             covered = PerTable::from_fn(|t| covered[t] || used[t]);
-            python.push((name.clone(), PythonStatement::new(&name, &program, &output), raw));
+            python.push((name.clone(), PythonStatement::new(&name, &program, output.words()), raw));
         }
     }
     std::thread::scope(|scope| {

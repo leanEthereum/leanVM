@@ -16,6 +16,7 @@ pub(crate) use compression::digest_limbs;
 pub use compression::{Compression, PARAM_IV, chain, zero_prefix};
 
 use super::table::{PerRecTable, Table};
+use thiserror::Error;
 
 /// A wire's value as four `K` words: a `K` wire uses the first, an `E` wire the first three.
 pub type Limbs = [u64; 4];
@@ -154,6 +155,30 @@ pub struct Finished {
     pub circuit: Circuit,
     /// The run's values.
     pub assignment: Assignment,
-    /// The checks that failed, each under its scope's name, then a count of those past the first few.
-    pub failures: Vec<String>,
+    /// The first few checks that failed, each under its scope's names.
+    pub failures: Vec<Unsatisfied>,
+}
+
+/// A check of a circuit's rows that fails on the prover's values.
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
+#[error("{}: {check}", scope.join(" / "))]
+pub struct Unsatisfied {
+    /// The names the check ran under, outermost first.
+    scope: Vec<String>,
+    /// What the check asserts.
+    check: &'static str,
+}
+
+impl Unsatisfied {
+    /// The names the check ran under, outermost first.
+    #[must_use]
+    pub fn scope(&self) -> &[String] {
+        &self.scope
+    }
+
+    /// What the check asserts.
+    #[must_use]
+    pub const fn check(&self) -> &'static str {
+        self.check
+    }
 }

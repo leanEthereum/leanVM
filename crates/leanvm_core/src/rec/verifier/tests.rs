@@ -5,11 +5,11 @@ use super::whir::Opening;
 use super::{ProofShape, RecShape, Rows};
 use crate::class_flock::FlockId;
 use crate::constraints::ConstraintError;
-use crate::cpu::{CpuError, DeferredClaims, Program, UNGROUND_LOG_BYTECODE};
+use crate::cpu::{CpuError, DeferredClaims, Output, Program, ProvenRun, Prover, UNGROUND_LOG_BYTECODE};
 use crate::leaf::BusError;
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rec::RecError;
-use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Kw, Limbs};
+use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Kw, Limbs, Unsatisfied};
 use crate::rec::fixed::FixedColumns;
 use crate::rec::table::HashFlock;
 use crate::rec::transcript::{ProofSource, Transcript};
@@ -45,7 +45,7 @@ fn small_program() -> Program {
 struct Fixture {
     program: Program,
     raw: RawProof,
-    output: [u64; 4],
+    output: Output,
     taus: PerTable<usize>,
     native: DeferredClaims,
 }
@@ -55,9 +55,9 @@ fn fixture() -> &'static Fixture {
     static FIXTURE: OnceLock<Fixture> = OnceLock::new();
     FIXTURE.get_or_init(|| {
         let program = small_program();
-        let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
-        let native = program.verify_core(&output, &proof).expect("an honest proof");
-        let raw = program.verify_to_raw(&output, &proof).expect("an honest proof");
+        let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+        let native = program.verify_core(output, &proof).expect("an honest proof");
+        let raw = program.verify_to_raw(output, &proof).expect("an honest proof");
         let taus = PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height"));
         Fixture {
             program,
@@ -74,14 +74,15 @@ impl Fixture {
     fn build(&self, source: ProofSource<'_>) -> (Builder, DeferredClaims<Ew>) {
         let shape = ProofShape::new(&self.program, self.taus, Rate::MIN).expect("an honest shape");
         let mut b = Builder::new();
-        let output = self.output.map(|o| b.free_k(o));
+        let output = self.output.words().map(|o| b.free_k(o));
         let core = shape.verify_core(&mut b, output, source);
         (b, core.claims)
     }
 
     // The checks a forged proof fails, in the order the rows meet them.
     fn failures(&self, raw: &RawProof) -> Vec<String> {
-        self.build(ProofSource::Proof(raw)).0.finish().failures
+        let failures = self.build(ProofSource::Proof(raw)).0.finish().failures;
+        failures.iter().map(Unsatisfied::to_string).collect()
     }
 }
 
@@ -181,10 +182,10 @@ fn a_large_programs_rows_check_its_grinding() {
         a.i(Addi, Reg::ZERO, Reg::ZERO, 0);
     }
     let program = Program::new(&a.finish(), Region::TEXT.base(), vec![], 0, 0).expect("a valid program");
-    let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     let f = Fixture {
-        native: program.verify_core(&output, &proof).expect("an honest proof"),
-        raw: program.verify_to_raw(&output, &proof).expect("an honest proof"),
+        native: program.verify_core(output, &proof).expect("an honest proof"),
+        raw: program.verify_to_raw(output, &proof).expect("an honest proof"),
         taus: PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height")),
         program,
         output,
@@ -205,7 +206,7 @@ fn a_large_programs_rows_check_its_grinding() {
             forged.0.stream[N_TABLES + 4].c0 += step;
             forged
         })
-        .find(|forged| f.program.verify_core(&f.output, forged).err() == Some(missed.clone()))
+        .find(|forged| f.program.verify_core(f.output, forged).err() == Some(missed.clone()))
         .expect("half the nonces miss one bit of work");
     let mut forged_raw = f.raw.clone();
     forged_raw.stream = forged.0.stream;
@@ -339,7 +340,7 @@ fn check_reductions(batches: &[Instance<'static>]) {
         assert!(native(&forged).is_err(), "the native verifier refuses scalar {index}");
         let failures = rows(&raw(&forged)).0.finish().failures;
         assert!(
-            failures.first().is_some_and(|f| f.starts_with(stage)),
+            failures.first().is_some_and(|f| f.scope()[0] == stage),
             "scalar {index}: {failures:?}"
         );
     }
@@ -476,7 +477,7 @@ fn opening_rows(
     slots: &[StackClaim],
     rings: &[RingSwitch],
     source: ProofSource<'_>,
-) -> (Circuit, Vec<String>, bool) {
+) -> (Circuit, Vec<Unsatisfied>, bool) {
     let (b, (), finished) = replay(source, |r| {
         let root = r.t.next_root(r.b);
         let wire = |r: &mut Rows<'_, '_>, v: &F192| r.b.free_e(*v);
@@ -548,7 +549,7 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
         "{what}: the shape builds another circuit"
     );
 
-    let terminal = |failures: &[String]| failures.iter().any(|f| f.contains("terminal"));
+    let terminal = |failures: &[Unsatisfied]| failures.iter().any(|f| f.scope().iter().any(|s| s == "terminal"));
     for i in 0..slots.len() {
         let mut forged = slots.clone();
         match &mut forged[i] {
