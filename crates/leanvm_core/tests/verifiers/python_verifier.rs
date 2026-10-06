@@ -3,7 +3,7 @@
 //! in both, and this is what catches the Python one drifting.
 
 use fiat_shamir::transcript::RawProof;
-use leanvm_core::{Alu, Class, ClassTable, Clock, CpuError, EXIT_SLOT, Lookup, Program, Rate, Region};
+use leanvm_core::{Alu, Class, Clock, CpuError, EXIT_SLOT, Lookup, PerTable, Program, Rate, Region, TableId};
 use primitives::field::{F64, F192};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -224,7 +224,7 @@ fn test_python_verifier() {
         (Class::Ld, 3, "flags are not its class's"),
     ] {
         // The class tag `g^t`, which is `2^t` since `g = x`.
-        let tag = 1u64 << ClassTable::index_of(class).expect("the class has a table");
+        let tag = 1u64 << TableId::of(class).expect("the class has a table").index();
         let mut malformed = table.clone();
         for (slot, value) in [(2, tag), (3, 0), (slot, 1)] {
             malformed[8 * slot * entries..][..8].copy_from_slice(&value.to_le_bytes());
@@ -243,7 +243,7 @@ fn test_python_verifier() {
     assert!(String::from_utf8_lossy(&refused.stderr).contains("an exit entry is not ECALL"));
     // A jump's shape is its flags': only a branch or a `jal` has an offset, and a `jal` links `pc + 4` as a constant
     // added to `x0`. Entry 0's fields are set in full, so each case breaks that rule alone.
-    let alu = 1u64 << ClassTable::index_of(Class::Alu).unwrap();
+    let alu = 1u64 << TableId::ALU.index();
     let link = Region::TEXT.base() + 4;
     for (what, fields) in [
         (
@@ -366,7 +366,7 @@ fn the_python_verifier_refuses_what_rust_cannot_express() {
         );
     }
     // A halt slot tagged as an ALU entry is otherwise a well-formed `addi` to the sink.
-    let alu = 1u64 << ClassTable::index_of(Class::Alu).expect("the class has a table");
+    let alu = 1u64 << TableId::ALU.index();
     write(2, entries - 1, alu);
     refuses("a readable halt slot", "the halt slot is not an illegal entry");
     std::fs::write(&statement.bytecode, table).expect("restore bytecode");
@@ -443,8 +443,8 @@ sys.exit(v['main'](sys.argv[2:]))
     };
     let slices = |f: usize| flock_end - (n - f) * 65;
     // The announced heights lead the stream; the last table's register bits end right before the multiplicity bits.
-    let taus = std::array::from_fn(|t| proof.0.stream[t].c0 as usize);
-    let register_end = bits_end - Lookup::Bytecode.multiplicity_bits(taus);
+    let taus = PerTable::from_fn(|t: TableId| proof.0.stream[t.index()].c0 as usize);
+    let register_end = bits_end - Lookup::Bytecode.multiplicity_bits(&taus);
     // The first table's register bits, the only columns of a settled table the table sumcheck sends, come first.
     let settled_bits = ends("register_bits")[0];
     for at in [

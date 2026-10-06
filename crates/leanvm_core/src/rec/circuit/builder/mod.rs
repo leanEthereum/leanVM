@@ -5,7 +5,7 @@ mod bits;
 mod hash;
 
 use super::{Assignment, Circuit, Compression, Dw, Ew, Finished, Kw, Limbs, PubSource, TableSlots, WireKind};
-use crate::rec::table::Table;
+use crate::rec::table::{PerRecTable, Table};
 use primitives::field::F192;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
@@ -151,7 +151,7 @@ impl Builder {
             classes,
             pubs,
             statement_len: self.statement.len(),
-            floor: [0; Table::COUNT],
+            floor: PerRecTable::default(),
         };
         let assignment = Assignment {
             wires,

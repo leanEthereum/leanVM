@@ -16,6 +16,7 @@
 //!
 //! Each node reduces the claims its children leave and carry to one of each, and only the root's verifier evaluates them.
 
+use crate::class_flock::FlockId;
 use crate::cpu::{CpuError, DecodeError, Lookup, Output, Program, Proof, ProvenRun, Stats, VerifyError};
 use crate::envelope::Envelope;
 use crate::pcs::Rate;
@@ -23,10 +24,10 @@ use crate::rec::RecError;
 use crate::rec::circuit::{Circuit, Finished};
 use crate::rec::fixed::FixedColumns;
 use crate::rec::layout::RecLayout;
-use crate::rec::table::Table;
+use crate::rec::table::PerRecTable;
 use crate::rec::transcript::ProofSource;
 use crate::rec::verifier::ProofShape;
-use crate::tables::{ClassSpec, N_TABLES, Part};
+use crate::tables::{N_TABLES, Part, PerTable, TableId};
 use design::{ChildWitness, Design, LeafWitness, NodeInputs, NodeRows};
 use fiat_shamir::transcript::{ProofTranscript, RawProof};
 use primitives::field::{F64, F192};
@@ -59,7 +60,7 @@ const MAX_ROUNDS: usize = 8;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LeafShape {
     /// Each table's base-two logarithm of rows.
-    taus: [usize; N_TABLES],
+    taus: PerTable<usize>,
     /// The commitment's rate.
     rate: Rate,
 }
@@ -226,7 +227,7 @@ pub enum TreeError {
 
 impl LeafShape {
     /// The shape of proofs with these table heights at this rate.
-    pub(crate) const fn new(taus: [usize; N_TABLES], rate: Rate) -> Self {
+    pub(crate) const fn new(taus: PerTable<usize>, rate: Rate) -> Self {
         Self { taus, rate }
     }
 
@@ -255,9 +256,9 @@ impl LeafShape {
 
         // The stream opens with each table's height, then the rate.
         let announced = proof.0.stream.get(..=N_TABLES)?;
-        let mut taus = [0; N_TABLES];
-        for (tau, x) in taus.iter_mut().zip(announced) {
-            *tau = size(x)?;
+        let mut taus = PerTable::default();
+        for (t, x) in TableId::ALL.into_iter().zip(announced) {
+            taus[t] = size(x)?;
         }
         let rate = Rate::new(u8::try_from(size(&announced[N_TABLES])?).ok()?).ok()?;
         Some(Self { taus, rate })
@@ -387,13 +388,13 @@ impl<'p> Tree<'p> {
     ///
     /// Each round only raises heights, and a node's rows grow with the logarithm of its children's, so few rounds reach it.
     fn converge(
-        design: impl Fn([usize; Table::COUNT]) -> Result<Design<'p>, TreeError>,
+        design: impl Fn(PerRecTable<usize>) -> Result<Design<'p>, TreeError>,
     ) -> Result<(Design<'p>, [Circuit; 2]), TreeError> {
-        let mut taus = design([0; Table::COUNT])?.shape(Kind::First).circuit.heights();
+        let mut taus = design(PerRecTable::default())?.shape(Kind::First).circuit.heights();
         for _ in 0..MAX_ROUNDS {
             let d = design(taus)?;
             let built = Kind::ALL.map(|kind| d.shape(kind).circuit);
-            let next = std::array::from_fn(|t| built.iter().map(|c| c.heights()[t]).fold(taus[t], usize::max));
+            let next = PerRecTable::from_fn(|t| built.iter().map(|c| c.heights()[t]).fold(taus[t], usize::max));
             if next == taus {
                 let circuits = built.map(|mut c| {
                     c.floor = taus;
@@ -614,20 +615,22 @@ impl<'p> Tree<'p> {
                 return Err(TreeError::Claim(FalseClaim::Dense(poly)));
             }
         }
-        let held = parallel::map_collect(crate::class_flock::N_FLOCKS, |f| {
-            let circuit = crate::class_flock::circuit(f);
+        let held = parallel::map_collect(FlockId::ALL.len(), |f| {
+            let f = FlockId::ALL[f];
+            let circuit = f.circuit();
             let k = circuit.k_log();
             let (ra, rb) = circuit.row_values(&eq_table(&s.cols()[..k]));
             let u = eq_table(&s.rows()[..k]);
             let dot = |r: &[F192]| u.iter().zip(r).fold(F192::ZERO, |acc, (&x, &y)| acc + x * y);
             [dot(&ra), dot(&rb)] == s.matrices(f)
         });
-        held.iter().position(|&h| !h).map_or(Ok(()), |f| {
-            let (t, part) = crate::class_flock::flock(f);
-            Err(TreeError::Claim(FalseClaim::Matrix {
-                table: ClassSpec::ALL[t].name,
-                part,
-            }))
-        })
+        (FlockId::ALL.into_iter().zip(held))
+            .find(|&(_, h)| !h)
+            .map_or(Ok(()), |(f, _)| {
+                Err(TreeError::Claim(FalseClaim::Matrix {
+                    table: f.table().name(),
+                    part: f.part(),
+                }))
+            })
     }
 }

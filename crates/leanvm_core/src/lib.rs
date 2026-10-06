@@ -50,7 +50,7 @@ pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 #[doc(hidden)]
 pub use self::pcs::{MAX_MU, MIN_MU};
 #[doc(hidden)]
-pub use class_flock::{MIN_CUBE_LOG, N_FLOCKS, circuit, flock_index, n_blocks_log, stride_log};
+pub use class_flock::{FlockId, MIN_CUBE_LOG, N_FLOCKS};
 #[doc(hidden)]
 pub use constraints::ConstraintError;
 #[doc(hidden)]
@@ -60,7 +60,7 @@ pub use leaf::{BusError, N_TUPLE_BITS};
 #[doc(hidden)]
 pub use rv::{Alu, Class, Guest, Hash, Machine, Reg, RegisterFile, Syscall};
 #[doc(hidden)]
-pub use tables::{BAD_SLOT, ClassSpec, ClassTable, Clock, EXIT_SLOT, N_TABLES, Part};
+pub use tables::{BAD_SLOT, Clock, EXIT_SLOT, N_TABLES, PerTable, TableId};
 
 /// Prepare the process for proving: spawn the worker pool up front.
 ///

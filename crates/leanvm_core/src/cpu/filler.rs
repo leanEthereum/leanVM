@@ -20,9 +20,8 @@
 //!
 //! That is what makes the solve exact, with no cost model and no residual to correct.
 
-use crate::rv::Class;
 use crate::rv::asm::{Op, Reg};
-use crate::tables::{ClassSpec, N_TABLES};
+use crate::tables::{N_TABLES, PerTable, TableId};
 
 /// Block sizes, largest first.
 ///
@@ -31,13 +30,12 @@ use crate::tables::{ClassSpec, N_TABLES};
 /// The last, a lone jump, is the ALU's only: it makes a gap of a single row reachable.
 pub const SIZES: [usize; 9] = [128, 64, 32, 16, 8, 4, 2, 1, 0];
 
-/// The ALU's index in the table order.
+/// The table of the closing jumps, the ALU.
 ///
 /// Every traversal of every block lands its closing jump there.
 ///
 /// So that table is solved last, absorbing the cost of the whole fill.
-pub const JUMP: usize = 0;
-const _: () = assert!(matches!(ClassSpec::ALL[JUMP].class, Class::Alu));
+pub const JUMP: TableId = TableId::ALU;
 
 /// One block in the text: `size` no-ops of `table`'s class from entry `index`, then the jump back to `index`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,7 +45,7 @@ pub struct Block {
     /// The no-ops before the closing jump.
     pub size: usize,
     /// The table whose class the no-ops are.
-    pub table: usize,
+    pub table: TableId,
 }
 
 /// Every table's fill blocks, as they sit in a program's text.
@@ -62,7 +60,7 @@ impl FillBlocks {
         while t < N_TABLES {
             let mut k = 0;
             while k < SIZES.len() {
-                if SIZES[k] > 0 || t == JUMP {
+                if SIZES[k] > 0 || t == JUMP.index() {
                     words += SIZES[k] + 1;
                 }
                 k += 1;
@@ -77,7 +75,7 @@ impl FillBlocks {
     /// Each table gets a block per positive size, and the ALU the lone jump too.
     pub fn append(text: &mut Vec<u32>) -> Self {
         let mut blocks = Vec::new();
-        for (t, spec) in ClassSpec::ALL.iter().enumerate() {
+        for t in TableId::ALL {
             for size in SIZES.into_iter().filter(|&size| size > 0 || t == JUMP) {
                 blocks.push(Block {
                     index: text.len(),
@@ -85,8 +83,8 @@ impl FillBlocks {
                     table: t,
                 });
                 // A no-op touches only `x0` and address zero, which a padding row at clock zero never touches for real.
-                let nop = spec
-                    .class
+                let nop = t
+                    .class()
                     .nop()
                     .expect("every table's class has an instruction")
                     .encode()
@@ -108,7 +106,7 @@ impl FillBlocks {
     }
 
     /// The block of `table` with `size` no-ops, if it has one.
-    pub fn get(&self, table: usize, size: usize) -> Option<&Block> {
+    pub fn get(&self, table: TableId, size: usize) -> Option<&Block> {
         self.0.iter().find(|b| b.table == table && b.size == size)
     }
 
@@ -119,12 +117,12 @@ impl FillBlocks {
     /// Panics if a block the plan traverses is missing.
     pub fn cycles(&self, plan: &Plan) -> Vec<(usize, usize, usize)> {
         let mut out = Vec::new();
-        for (t, traversals) in plan.0.iter().enumerate() {
+        for (t, traversals) in plan.0.iter() {
             for (k, &n) in traversals.0.iter().enumerate().filter(|&(_, &n)| n > 0) {
                 let size = SIZES[k];
                 let block = self
                     .get(t, size)
-                    .unwrap_or_else(|| panic!("the program has no fill block for table {t}, size {size}"));
+                    .unwrap_or_else(|| panic!("the program has no fill block for {}, size {size}", t.name()));
                 out.push((block.index, size, n));
             }
         }
@@ -184,7 +182,7 @@ impl Traversals {
 
 /// How the fill traverses every table's blocks.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Plan([Traversals; N_TABLES]);
+pub struct Plan(PerTable<Traversals>);
 
 impl Plan {
     /// The plan taking every table from `base` rows to its provable height: the next power of two at or above its floor.
@@ -194,10 +192,10 @@ impl Plan {
     /// The ALU is not, since every traversal lands a row there, its own included.
     ///
     /// Counting those first makes it one decomposition rather than a fixpoint.
-    pub fn solve(base: [usize; N_TABLES]) -> Self {
-        let height = |t: usize, rows: usize| ClassSpec::ALL[t].provable_height(rows);
-        let mut plan = Self([Traversals::default(); N_TABLES]);
-        for t in (0..N_TABLES).filter(|&t| t != JUMP) {
+    pub fn solve(base: PerTable<usize>) -> Self {
+        let height = |t: TableId, rows: usize| t.spec().provable_height(rows);
+        let mut plan = Self(PerTable::default());
+        for t in TableId::ALL.into_iter().filter(|&t| t != JUMP) {
             plan.0[t] = Traversals::delivering(height(t, base[t]) - base[t]);
         }
 
@@ -207,23 +205,19 @@ impl Plan {
         debug_assert!(
             plan.filled(base)
                 .iter()
-                .zip(ClassSpec::ALL)
-                .all(|(&rows, spec)| spec.is_provable_height(rows))
+                .all(|(t, &rows)| t.spec().is_provable_height(rows))
         );
         plan
     }
 
     /// The traversals in total: the number of jump rows the fill costs.
     pub fn traversals(&self) -> usize {
-        self.0.iter().map(Traversals::count).sum()
+        self.0.values().map(Traversals::count).sum()
     }
 
     /// The row counts the plan produces from `base`: its fill, plus one jump per traversal.
-    pub fn filled(&self, base: [usize; N_TABLES]) -> [usize; N_TABLES] {
-        let mut out = base;
-        for (rows, traversals) in out.iter_mut().zip(&self.0) {
-            *rows += traversals.delivered();
-        }
+    pub fn filled(&self, base: PerTable<usize>) -> PerTable<usize> {
+        let mut out = PerTable::from_fn(|t| base[t] + self.0[t].delivered());
         out[JUMP] += self.traversals();
         out
     }
@@ -245,9 +239,9 @@ mod tests {
         // Fixture: empty, tiny, large and power-of-two runs, then ALU gaps of 3, 2 and 1 rows.
         //
         // A gap of one row is what the other tables' closing jumps can leave the ALU with.
-        let mut cases = vec![[0; N_TABLES], [1; N_TABLES], [125_000; N_TABLES], [1 << 17; N_TABLES]];
+        let mut cases: Vec<_> = [0, 1, 125_000, 1 << 17].map(|n| PerTable::new([n; N_TABLES])).into();
         for alu in [(1 << 17) - 3, (1 << 17) - 2, (1 << 17) - 1] {
-            let mut base = [1 << 10; N_TABLES];
+            let mut base = PerTable::new([1 << 10; N_TABLES]);
             base[JUMP] = alu;
             cases.push(base);
         }
@@ -257,7 +251,8 @@ mod tests {
             let got = plan.filled(base);
 
             // Every table lands on the nearest provable height: what it owed, rounded up, the ALU owing the others' jumps too.
-            for (t, spec) in ClassSpec::ALL.iter().enumerate() {
+            for t in TableId::ALL {
+                let spec = t.spec();
                 let jumps = if t == JUMP {
                     plan.traversals() - plan.0[JUMP].count()
                 } else {
@@ -277,9 +272,9 @@ mod tests {
     #[test]
     fn the_bulk_of_a_fill_rides_the_largest_block() {
         // Fixture: 125 000 rows short of a power of two on every table.
-        let base = [125_000; N_TABLES];
+        let base = PerTable::new([125_000; N_TABLES]);
         let plan = Plan::solve(base);
-        let fill: usize = plan.0.iter().map(Traversals::delivered).sum();
+        let fill: usize = plan.0.values().map(Traversals::delivered).sum();
 
         // One closing jump per 128 rows, plus at most one traversal per size per table for the remainders.
         assert!(

@@ -339,7 +339,7 @@ fn merged(objects: &[String]) -> String {
 /// machine.
 fn counts(stats: &Stats) -> Vec<(&'static str, Metric)> {
     vec![
-        ("cycles", Metric::exact(stats.base_counts.iter().sum())),
+        ("cycles", Metric::exact(stats.base_counts.values().sum())),
         ("proven-rows", Metric::exact(stats.cycles)),
         ("committed", Metric::exact(stats.committed)),
     ]
@@ -531,7 +531,7 @@ fn table(counted: &[(Case, Stats)]) -> String {
     let mut table =
         String::from("| program | RISC-V cycles | per item | committed words | tables |\n|---|---:|---:|---:|---|\n");
     for (case, stats) in counted {
-        let cycles: usize = stats.base_counts.iter().sum();
+        let cycles: usize = stats.base_counts.values().sum();
         writeln!(
             table,
             "| {} | {} | {} / {} | 2^{:.2} | {} |",

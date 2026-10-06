@@ -121,7 +121,7 @@ pub fn run(workload: &Workload, prover: &Prover, plan: Plan) {
     });
 
     // The proven rows include padding: the guest's own cycles are the per-table base counts.
-    let cycles: usize = stats.base_counts.iter().sum();
+    let cycles: usize = stats.base_counts.values().sum();
     println!("{}", workload.title);
     println!(
         "  cycles (RISC-V)             : {}   {} per {}",

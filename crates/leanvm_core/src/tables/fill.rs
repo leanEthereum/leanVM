@@ -151,7 +151,7 @@ impl ClassTable {
             "the fill context has the wrong number of columns"
         );
         let c = &self.cols;
-        let rows: &[Row] = &ctx.trace.rows[self.index];
+        let rows: &[Row] = &ctx.trace.rows[self.id];
         let p = ctx.program;
         let entry = move |r: &Row| &p.entries()[r.index as usize];
         ctx.columns(out, rows, c.pc, move |r| {
@@ -229,12 +229,12 @@ impl ClassTable {
         if let Some(bad) = c.bad {
             ctx.column(out, rows, bad, move |_| F64::ZERO);
         }
-        let table = ctx.trace.table(self.index);
-        let n = self.spec.n_accesses();
+        let table = ctx.trace.table(self.id);
+        let n = self.id.spec().n_accesses();
         for i in 0..n {
             ctx.indexed(out, [c.prev + i], move |j| [F64(table.row(j).prev()[i])]);
         }
-        let slots = self.spec.slots();
+        let slots = self.id.spec().slots();
         ctx.indexed(out, [c.step], move |j| {
             let r = table.row(j);
             [F64(Clock { timestamp: r.row.ts }.step(&r.prev()[..n], &slots))]

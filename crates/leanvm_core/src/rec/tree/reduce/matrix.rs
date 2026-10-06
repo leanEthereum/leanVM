@@ -9,7 +9,7 @@
 
 use super::{FoldTable, ReduceError, products};
 use crate::arith::{Arith, Verifier};
-use crate::class_flock;
+use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::rec::tree::claims::{Coefficient, ColWeight, MatrixClaim, RowWeight};
 use crate::rec::verifier::SkipDomain;
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
@@ -50,11 +50,6 @@ struct RowTables {
     g: FoldTable,
 }
 
-/// The variables of flock circuit `f`'s matrices, each side.
-const fn k_of(f: usize) -> usize {
-    class_flock::shape(f).k_log
-}
-
 /// `prod_{i >= k} x_i`: what a circuit of `k` variables waits on.
 fn waiting<A: Arith>(a: &mut A, x: &[A::E], k: usize) -> A::E {
     let one = a.one();
@@ -85,7 +80,7 @@ impl<E: Copy + PartialEq> MatrixReduced<E> {
         let zero = v.zero();
         let mut claim = (claims.iter().zip(&powers)).fold(zero, |acc, (c, &p)| v.mul_add(p, c.value, acc));
         let phase = |v: &mut V, claim: &mut E| -> Result<Vec<E>, ReduceError> {
-            (0..class_flock::max_k_log())
+            (0..FlockId::MAX_K_LOG)
                 .map(|_| {
                     let h = v.next_round_poly(3, *claim, None)?;
                     let x = v.sample();
@@ -96,7 +91,7 @@ impl<E: Copy + PartialEq> MatrixReduced<E> {
         };
         let rows = phase(v, &mut claim)?;
         let cols = phase(v, &mut claim)?;
-        let values = (0..class_flock::N_FLOCKS)
+        let values = (0..N_FLOCKS)
             .map(|_| Ok([v.next_scalar()?, v.next_scalar()?]))
             .collect::<Result<Vec<_>, ReduceError>>()?;
         let weights = Self::final_weights(v, claims, &powers, &rows, &cols);
@@ -121,21 +116,21 @@ impl<E: Copy + PartialEq> MatrixReduced<E> {
         let skip_r = a.eq_table(&rows[..K_SKIP]);
         let skip_s = a.eq_table(&cols[..K_SKIP]);
         let zero = a.zero();
-        let mut weights = vec![[zero; 2]; class_flock::N_FLOCKS];
+        let mut weights = vec![[zero; 2]; N_FLOCKS];
         let (mut row_values, mut skips, mut col_eqs) = (Vec::new(), Vec::new(), Vec::new());
         for (c, &power) in claims.iter().zip(powers) {
-            let k = k_of(c.circuit);
+            let k = c.circuit.k_log();
             let u = shared(&mut row_values, &c.row, || c.row.at(a, &rows[..k], &skip_r, &mut skips));
             let w = c.col.at(a, &cols[..k], &skip_s, &mut col_eqs);
             let uw = a.mul(u, w);
             let g = a.mul(power, uw);
-            let [wa, wb] = &mut weights[c.circuit];
+            let [wa, wb] = &mut weights[c.circuit.index()];
             *wa = c.coefficients[0].times(a, g, *wa);
             *wb = c.coefficients[1].times(a, g, *wb);
         }
         let mut lifts = Vec::new();
-        for (f, pair) in weights.iter_mut().enumerate() {
-            let k = k_of(f);
+        for (f, pair) in FlockId::ALL.into_iter().zip(&mut weights) {
+            let k = f.k_log();
             let lift = shared(&mut lifts, k, || {
                 let lift_r = waiting(a, rows, k);
                 let lift_s = waiting(a, cols, k);
@@ -228,7 +223,7 @@ impl MatrixProver {
     pub(crate) fn prove(ps: &mut ProverState, claims: &[MatrixClaim<F192>]) {
         let theta = ps.sample();
         let mut rows = Self::new(claims, theta);
-        let r: Vec<F192> = (0..class_flock::max_k_log())
+        let r: Vec<F192> = (0..FlockId::MAX_K_LOG)
             .map(|i| {
                 ps.add_scalars(&rows.round(i));
                 let x = ps.sample();
@@ -237,7 +232,7 @@ impl MatrixProver {
             })
             .collect();
         let mut cols = rows.columns(claims, &r);
-        for i in 0..class_flock::max_k_log() {
+        for i in 0..FlockId::MAX_K_LOG {
             ps.add_scalars(&cols.round(i));
             let x = ps.sample();
             cols.bind(i, x);
@@ -253,11 +248,11 @@ impl MatrixProver {
         let claims = parallel::map_collect(claims.len(), |i| {
             let c = &claims[i];
             let u: Vec<F192> = c.row.table().into_iter().map(|x| powers[i] * x).collect();
-            let (ra, rb) = class_flock::circuit(c.circuit).row_values(&c.col.table());
+            let (ra, rb) = c.circuit.circuit().row_values(&c.col.table());
             let [a, b] = c.coefficients.map(Coefficient::value);
             let g = ra.iter().zip(&rb).map(|(&x, &y)| a * x + b * y).collect();
             RowTables {
-                k: k_of(c.circuit),
+                k: c.circuit.k_log(),
                 u: FoldTable::new(u),
                 g: FoldTable::new(g),
             }
@@ -295,9 +290,10 @@ impl MatrixProver {
 
     /// The column phase at the row point `r`: per circuit, two backward walks for `A(r, .)` and `B(r, .)`, and the claims' column weights.
     pub(crate) fn columns(&self, claims: &[MatrixClaim<F192>], r: &[F192]) -> ColumnPhase {
-        let circuits = parallel::map_collect(class_flock::N_FLOCKS, |f| {
-            let k = k_of(f);
-            let circuit = class_flock::circuit(f);
+        let circuits = parallel::map_collect(N_FLOCKS, |f| {
+            let f = FlockId::ALL[f];
+            let k = f.k_log();
+            let circuit = f.circuit();
             let eq = eq_table(&r[..k]);
             let at = circuit.fold_alpha_batched(F192::ZERO, &eq);
             let both = circuit.fold_alpha_batched(F192::ONE, &eq);
@@ -327,7 +323,7 @@ impl ColumnPhase {
             self.circuits.len(),
             || [F192::ZERO; 2],
             |f| {
-                if k_of(f) <= i {
+                if FlockId::ALL[f].k_log() <= i {
                     return [F192::ZERO; 2];
                 }
                 let [at, wa, bt, wb] = &self.circuits[f];
@@ -340,7 +336,7 @@ impl ColumnPhase {
     /// Bind column round `i`'s variable to `x`.
     pub(crate) fn bind(&mut self, i: usize, x: F192) {
         parallel::for_each_mut(&mut self.circuits, |f, tables| {
-            if k_of(f) > i {
+            if FlockId::ALL[f].k_log() > i {
                 tables.iter_mut().for_each(|t| t.fold(x, false));
             }
         });

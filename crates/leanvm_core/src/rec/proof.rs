@@ -387,7 +387,7 @@ mod tests {
     fn every_table_and_slot_kind_proves_and_verifies() {
         let (circuit, a, _) = every_kind();
         let counts = circuit.row_counts();
-        assert!(counts.iter().all(|&n| n > 0), "{counts:?}");
+        assert!(counts.values().all(|&n| n > 0), "{counts:?}");
         let proof = prove_run(&circuit, &a);
         assert_eq!(verify_run(&circuit, &a.statement, &proof), Ok(()));
     }
@@ -554,8 +554,8 @@ mod tests {
         } = b.finish();
         assert!(failures.is_empty(), "{failures:?}");
         let counts = circuit.row_counts();
-        assert_eq!(counts[Table::Hash as usize], 61);
-        assert!(counts.iter().all(|&n| n > 1 && !n.is_power_of_two()), "{counts:?}");
+        assert_eq!(counts[Table::Hash], 61);
+        assert!(counts.values().all(|&n| n > 1 && !n.is_power_of_two()), "{counts:?}");
         let proof = prove_run(&circuit, &a);
         assert_eq!(verify_run(&circuit, &a.statement, &proof), Ok(()));
     }
@@ -564,13 +564,13 @@ mod tests {
     fn a_circuit_past_one_commitment_is_an_error() {
         let (mut circuit, a, _) = every_kind();
         let proof = prove_run(&circuit, &a);
-        circuit.floor[Table::Emul as usize] = pcs::MAX_MU;
+        circuit.floor[Table::Emul] = pcs::MAX_MU;
         let too_long = |e: &RecError| matches!(e, RecError::TooLong { mu } if *mu > pcs::MAX_MU);
         assert!(circuit.prove(&a, IV, Rate::MIN).is_err_and(|e| too_long(&e)));
         assert!(verify_run(&circuit, &a.statement, &proof).is_err_and(|e| too_long(&e)));
 
-        circuit.floor[Table::Emul as usize] = 0;
-        circuit.floor[Table::Pub as usize] = RecLayout::MAX_TAU + 1;
+        circuit.floor[Table::Emul] = 0;
+        circuit.floor[Table::Pub] = RecLayout::MAX_TAU + 1;
         let too_many = Err(RecError::TooManyRows {
             table: Table::Pub,
             tau: RecLayout::MAX_TAU + 1,

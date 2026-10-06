@@ -7,12 +7,14 @@ mod bus;
 mod clock;
 mod columns;
 mod fill;
+mod id;
 pub(crate) mod spec;
 mod table;
 mod word;
 
 pub use clock::Clock;
-pub use spec::{BAD_SLOT, ClassSpec, EXIT_SLOT, N_CIRCUITS, N_TABLES, Ram};
+pub use id::{N_TABLES, PerTable, TableId, TableKey};
+pub use spec::{BAD_SLOT, ClassSpec, EXIT_SLOT, N_CIRCUITS, Ram};
 pub use table::ClassTable;
 pub use word::Word;
 
@@ -20,7 +22,7 @@ pub(crate) use bus::Separator;
 pub(crate) use fill::FillContext;
 
 /// One of a table's flock circuits: its class's function, which the extension-field table has none of, or its clock.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Part {
     /// Instruction semantics.
     Class,

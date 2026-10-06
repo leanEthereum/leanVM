@@ -3,7 +3,7 @@ use super::recursion::RecRows;
 use super::ring::RingShare;
 use super::whir::Opening;
 use super::{ProofShape, RecShape, Rows};
-use crate::class_flock;
+use crate::class_flock::FlockId;
 use crate::constraints::ConstraintError;
 use crate::cpu::{CpuError, DeferredClaims, Program, UNGROUND_LOG_BYTECODE};
 use crate::leaf::BusError;
@@ -15,7 +15,7 @@ use crate::rec::table::HashFlock;
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::rv::Region;
 use crate::rv::asm::*;
-use crate::tables::{ClassSpec, N_TABLES, Part};
+use crate::tables::{N_TABLES, PerTable, TableId};
 use crate::witness::StackShape;
 use ::flock::reduction::{Instance, Shape};
 use ::flock::zerocheck::K_SKIP;
@@ -46,7 +46,7 @@ struct Fixture {
     program: Program,
     raw: RawProof,
     output: [u64; 4],
-    taus: [usize; N_TABLES],
+    taus: PerTable<usize>,
     native: DeferredClaims,
 }
 
@@ -58,7 +58,7 @@ fn fixture() -> &'static Fixture {
         let (proof, output, _) = program.prove(&[], Rate::MIN).expect("the run halts");
         let native = program.verify_core(&output, &proof).expect("an honest proof");
         let raw = program.verify_to_raw(&output, &proof).expect("an honest proof");
-        let taus = std::array::from_fn(|i| usize::try_from(proof.0.stream[i].c0).expect("a height"));
+        let taus = PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height"));
         Fixture {
             program,
             raw,
@@ -185,7 +185,7 @@ fn a_large_programs_rows_check_its_grinding() {
     let f = Fixture {
         native: program.verify_core(&output, &proof).expect("an honest proof"),
         raw: program.verify_to_raw(&output, &proof).expect("an honest proof"),
-        taus: std::array::from_fn(|i| usize::try_from(proof.0.stream[i].c0).expect("a height")),
+        taus: PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height")),
         program,
         output,
     };
@@ -264,17 +264,17 @@ fn raw(proof: &ProofTranscript) -> RawProof {
 
 // Packed witness `f`'s batch over `rows`: its instances' count, and its witness as the prover holds it.
 struct Batch {
-    f: usize,
+    f: FlockId,
     n_blocks_log: usize,
     witness: (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>),
 }
 
 impl Batch {
-    fn new<const N: usize>(f: usize, rows: &[[u64; N]]) -> Self {
-        let circuit = class_flock::circuit(f);
-        let (t, _) = class_flock::flock(f);
-        let n_blocks_log = class_flock::n_blocks_log(ClassSpec::ALL[t], rows.len());
-        let witness = ClassSpec::ALL[t].witness.map_or_else(
+    fn new<const N: usize>(f: FlockId, rows: &[[u64; N]]) -> Self {
+        let circuit = f.circuit();
+        let spec = f.table().spec();
+        let n_blocks_log = spec.n_blocks_log(rows.len());
+        let witness = spec.circuit.as_ref().and_then(|c| c.witness).map_or_else(
             || circuit.generate_witness(rows, n_blocks_log),
             |witness| {
                 circuit.generate_witness_with(rows, &[0; N], n_blocks_log, |row, z, az, bz| witness(row, z, az, bz))
@@ -294,7 +294,7 @@ fn prove_reductions(batches: &[Batch]) -> ProofTranscript {
         .map(|batch| {
             let (z, a, b, z_lincheck) = &batch.witness;
             Instance {
-                block: class_flock::circuit(batch.f).block(),
+                block: batch.f.circuit().block(),
                 n_blocks_log: batch.n_blocks_log,
                 z,
                 a,
@@ -312,7 +312,7 @@ fn prove_reductions(batches: &[Batch]) -> ProofTranscript {
 fn check_reductions(batches: &[Batch]) {
     let proof = prove_reductions(batches);
     let circuits: Vec<(Shape, usize)> = (batches.iter())
-        .map(|batch| (class_flock::shape(batch.f), batch.n_blocks_log))
+        .map(|batch| (batch.f.shape(), batch.n_blocks_log))
         .collect();
     let native = |proof: &ProofTranscript| {
         let mut vs = VerifierState::from_label(LABEL, proof);
@@ -325,10 +325,10 @@ fn check_reductions(batches: &[Batch]) {
     assert!(finished, "the rows read the whole stream");
     for ((batch, reduction), (replay, matrices)) in batches.iter().zip(&reductions).zip(&replays) {
         let point: Vec<F192> = reduction.slice.suffix_point.iter().map(|&w| b.e(w)).collect();
-        assert_eq!(point, replay.claim.suffix_point, "circuit {}'s point", batch.f);
+        assert_eq!(point, replay.claim.suffix_point, "{:?}'s point", batch.f);
         assert_eq!(reduction.matrix.point.map(|w| b.e(w)), matrices.form);
         assert_eq!(b.e(reduction.matrix.value), matrices.value);
-        assert_eq!(matrices.form.evaluate(class_flock::circuit(batch.f)), matrices.value);
+        assert_eq!(matrices.form.evaluate(batch.f.circuit()), matrices.value);
     }
     let Finished { circuit, failures, .. } = b.finish();
     assert!(failures.is_empty(), "{failures:?}");
@@ -390,7 +390,7 @@ fn check_reductions(batches: &[Batch]) {
         let (b, reductions, _) = rows(&raw(&forged));
         for (f, (reduction, (_, matrices))) in reductions.iter().zip(&moved).enumerate() {
             assert_eq!(b.e(reduction.matrix.value), matrices.value);
-            let settles = matrices.form.evaluate(class_flock::circuit(batches[f].f)) == matrices.value;
+            let settles = matrices.form.evaluate(batches[f].f.circuit()) == matrices.value;
             assert_eq!(settles, f > 1, "circuit {f}'s moved claim");
         }
         let failures = b.finish().failures;
@@ -398,21 +398,16 @@ fn check_reductions(batches: &[Batch]) {
     }
 }
 
-fn flock_index(name: &str, part: Part) -> usize {
-    let t = ClassSpec::ALL.iter().position(|c| c.name == name).expect("a table");
-    class_flock::flock_index(t, part)
-}
-
 fn hash_batch(seed: u64) -> Batch {
     let mut rng = Rng::new(seed);
     let rows: Vec<[u64; 14]> = (0..5).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
-    Batch::new(flock_index("HASH", Part::Class), &rows)
+    Batch::new(HashFlock::FLOCK, &rows)
 }
 
 fn ld_batch(seed: u64, n: usize) -> Batch {
     let mut rng = Rng::new(seed);
     let rows: Vec<[u64; 2]> = (0..n).map(|_| [rng.next_u64(), rng.next_u64()]).collect();
-    Batch::new(flock_index("LD", Part::Class), &rows)
+    Batch::new(FlockId::class(TableId::LD).unwrap(), &rows)
 }
 
 #[test]
@@ -736,7 +731,7 @@ fn a_recursion_proof_in_rows_is_its_verifier() {
 
     let (b, rows) = recursion_rows(&circuit, a.statement(), &columns, ProofSource::Proof(&raw));
     let form = rows.matrix.point.map(|w| b.e(w));
-    let hash = class_flock::circuit(HashFlock::index());
+    let hash = HashFlock::FLOCK.circuit();
     assert_eq!(
         form.evaluate(hash),
         b.e(rows.matrix.value),

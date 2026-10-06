@@ -10,7 +10,6 @@ use super::flock::Reduction;
 use super::whir::Opening;
 use super::{Rows, infallible};
 use crate::arith::Arith;
-use crate::class_flock;
 use crate::cpu::Claim;
 use crate::pcs::Rate;
 use crate::rec::RecError;
@@ -19,7 +18,7 @@ use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::fixed::{FixedColumn, FixedColumns};
 use crate::rec::layout::RecLayout;
 use crate::rec::proof::TableArgument;
-use crate::rec::table::{HashFlock, Table};
+use crate::rec::table::{HashFlock, PerRecTable, Table};
 use crate::rec::transcript::{ProofSource, Transcript};
 use ::flock::lincheck::MatrixForm;
 use primitives::field::F192;
@@ -85,7 +84,7 @@ impl RecShape {
     /// # Errors
     ///
     /// Returns an error if the heights admit no layout.
-    pub(crate) fn new(taus: [usize; Table::COUNT], rate: Rate) -> Result<Self, RecError> {
+    pub(crate) fn new(taus: PerRecTable<usize>, rate: Rate) -> Result<Self, RecError> {
         Ok(Self {
             layout: RecLayout::from_taus(taus)?,
             rate,
@@ -124,7 +123,7 @@ impl RecShape {
         let slots = r.scope("bus and tables", |r| {
             infallible(TableArgument::new(&self.layout, blocks).verify(r))
         });
-        let shape = class_flock::shape(HashFlock::index());
+        let shape = HashFlock::FLOCK.shape();
         let tau = self.layout.tau(Table::Hash);
         let [reduction] = r
             .scope("flock", |r| Reduction::replay(r, &[(shape, tau)]))

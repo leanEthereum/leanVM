@@ -2,6 +2,7 @@
 //!
 //! Every claim is generic over its elements: values for the prover, wires for the rows.
 
+use crate::class_flock::FlockId;
 use crate::cpu::Claim;
 use flock::lincheck::MatrixForm;
 
@@ -83,8 +84,8 @@ pub(crate) enum ColWeight<E> {
 /// `u^T (a A + b B) w = v` on a flock circuit's matrices: `u` and `w` its weights, `a` and `b` its coefficients.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MatrixClaim<E> {
-    /// The flock circuit's index among the packed witnesses.
-    pub(crate) circuit: usize,
+    /// The flock circuit.
+    pub(crate) circuit: FlockId,
     /// The row weight `u`.
     pub(crate) row: RowWeight<E>,
     /// The column weight `w`.
@@ -198,7 +199,7 @@ impl<E: Copy> ColWeight<E> {
 
 impl<E: Copy> MatrixClaim<E> {
     /// The claim a lincheck leaves: `u^T (A + alpha B) w`, at the zerocheck's skip point and the lincheck's sliced point.
-    pub(crate) fn fresh(circuit: usize, claim: &Claim<MatrixForm<E>, E>) -> Self {
+    pub(crate) fn fresh(circuit: FlockId, claim: &Claim<MatrixForm<E>, E>) -> Self {
         let form = &claim.point;
         Self {
             circuit,
@@ -216,7 +217,7 @@ impl<E: Copy> MatrixClaim<E> {
     }
 
     /// A child's claims on both matrices of a circuit of `k` variables, at its prefixes of the child's points.
-    pub(crate) fn carried(circuit: usize, k: usize, rows: &[E], cols: &[E], values: [E; 2]) -> [Self; 2] {
+    pub(crate) fn carried(circuit: FlockId, k: usize, rows: &[E], cols: &[E], values: [E; 2]) -> [Self; 2] {
         let claim = |coefficients, value| Self {
             circuit,
             row: RowWeight::Point(rows[..k].to_vec()),

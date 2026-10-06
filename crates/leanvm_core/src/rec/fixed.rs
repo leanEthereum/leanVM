@@ -7,7 +7,7 @@
 
 use super::bus::SlotKey;
 use super::circuit::{Circuit, Limbs, PubSource};
-use super::table::Table;
+use super::table::{PerRecTable, Table};
 use crate::leaf::PublicColumn;
 use primitives::field::F64;
 use std::sync::Arc;
@@ -69,10 +69,10 @@ impl FixedColumns {
     /// The fixed columns of a circuit at the given table heights.
     ///
     /// The slots of a wire class, in table, row and slot order, form one cycle: each slot's `next` is the following one's key.
-    pub(crate) fn of(circuit: &Circuit, taus: &[usize; Table::COUNT]) -> Self {
+    pub(crate) fn of(circuit: &Circuit, taus: &PerRecTable<usize>) -> Self {
         let mut next: Vec<Vec<F64>> = (Table::ALL.into_iter())
             .flat_map(|t| {
-                let height = 1 << taus[t as usize];
+                let height = 1 << taus[t];
                 (0..t.n_slots()).map(move |s| (0..height).map(|z| SlotKey::new(t, s, z).to_f64()).collect())
             })
             .collect();
@@ -98,7 +98,7 @@ impl FixedColumns {
             link(last, first);
         }
 
-        let mut constants: [Vec<F64>; 4] = std::array::from_fn(|_| vec![F64::ZERO; 1 << taus[Table::Pub as usize]]);
+        let mut constants: [Vec<F64>; 4] = std::array::from_fn(|_| vec![F64::ZERO; 1 << taus[Table::Pub]]);
         for (z, source) in circuit.pubs.iter().enumerate() {
             if let PubSource::Const(v) = *source {
                 for (column, &v) in constants.iter_mut().zip(&v) {
@@ -112,9 +112,9 @@ impl FixedColumns {
     }
 
     /// Zero columns at the given heights: what a circuit built from shapes alone reads, whose rows never depend on them.
-    pub(crate) fn zeros(taus: &[usize; Table::COUNT]) -> Self {
+    pub(crate) fn zeros(taus: &PerRecTable<usize>) -> Self {
         let columns = (0..FixedColumn::COUNT)
-            .map(|c| Arc::new(vec![F64::ZERO; 1 << taus[FixedColumn::at(c).table() as usize]]))
+            .map(|c| Arc::new(vec![F64::ZERO; 1 << taus[FixedColumn::at(c).table()]]))
             .collect();
         Self { columns }
     }

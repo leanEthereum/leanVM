@@ -7,9 +7,7 @@
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
-use leanvm_core::{
-    ClassSpec, ClassTable, Clock, Hash, Part, Reg, Region, RegisterFile, Syscall, circuit, flock_index, stride_log,
-};
+use leanvm_core::{Clock, FlockId, Hash, Reg, Region, RegisterFile, Syscall, TableId};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 use std::path::Path;
@@ -73,25 +71,25 @@ fn rust_constants() -> String {
     ));
     lines.push(format!("REGISTER_SLOTS {}", list(&Clock::REG_SLOTS.map(u64::from))));
 
-    for (t, spec) in ClassSpec::ALL.iter().enumerate() {
-        let clock = circuit(flock_index(t, Part::Clock));
+    for t in TableId::ALL {
+        let spec = t.spec();
+        let clock = FlockId::clock(t).circuit();
         let prefix = format!("TABLE.{}", spec.name.to_lowercase());
         let mut fields = vec![
-            ("opcode", t as u64),
+            ("opcode", t.index() as u64),
             ("clock_k_log", clock.k_log() as u64),
             ("clock_const_pos", clock.const_pos() as u64),
             ("clock_ports", spec.clock_ports().len() as u64),
-            ("min_log_height", leanvm_core::n_blocks_log(spec, 1) as u64),
-            ("ports", spec.ports.len() as u64),
-            ("width", ClassTable::all()[t].n_committed_columns() as u64),
+            ("min_log_height", spec.n_blocks_log(1) as u64),
+            ("ports", spec.ports().count() as u64),
+            ("width", t.class_table().n_committed_columns() as u64),
         ];
         // A table with no class circuit has no class block either.
-        if spec.has_circuit() {
-            let circuit = circuit(flock_index(t, Part::Class));
+        if let Some(class) = FlockId::class(t) {
             fields.extend([
-                ("k_log", spec.k_log as u64),
-                ("const_pos", circuit.const_pos() as u64),
-                ("slot_bits", stride_log(spec, Part::Class) as u64),
+                ("k_log", class.k_log() as u64),
+                ("const_pos", class.circuit().const_pos() as u64),
+                ("slot_bits", class.stride_log() as u64),
             ]);
         }
         let mut line = String::new();

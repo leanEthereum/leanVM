@@ -15,12 +15,12 @@ use super::semantics::{
 use flock::circuit::Circuit;
 
 /// An instruction class: one table, and one circuit unless its table proves it by identities.
+///
+/// The classes with a table come in table order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Class {
     /// Add, subtract, compare, bitwise logic, branches and jumps.
     Alu,
-    /// Logical and arithmetic shifts.
-    Shift,
     /// A byte, half word or word read from memory.
     Load,
     /// A byte, half word or word written to memory.
@@ -29,6 +29,8 @@ pub enum Class {
     Ld,
     /// `sd`: a double word moved from a register to its cell, with no byte to select.
     Sd,
+    /// Logical and arithmetic shifts.
+    Shift,
     /// The low word of a product.
     Mul,
     /// The high word of a product.

@@ -5,7 +5,7 @@
 //! ```
 
 use bench::Plan;
-use leanvm_core::ClassSpec;
+use leanvm_core::TableId;
 use primitives::test_util::Rng;
 
 #[global_allocator]
@@ -22,9 +22,10 @@ fn main() {
         "class", "k_log", "walk", "64 lanes", "speedup"
     );
     // Every class with a circuit and no word-level witness of its own.
-    for spec in ClassSpec::ALL
-        .iter()
-        .filter(|spec| spec.has_circuit() && spec.witness.is_none())
+    for spec in TableId::ALL
+        .map(TableId::spec)
+        .into_iter()
+        .filter(|spec| spec.circuit.as_ref().is_some_and(|c| c.witness.is_none()))
     {
         let circuit = spec.class.circuit();
 

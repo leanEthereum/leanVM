@@ -39,8 +39,8 @@ impl Tree<'_> {
         let tables = (Table::ALL.iter())
             .map(|&table| TableStats {
                 name: table.name(),
-                rows: rows[table as usize],
-                height_log: heights[table as usize],
+                rows: rows[table],
+                height_log: heights[table],
             })
             .collect();
 

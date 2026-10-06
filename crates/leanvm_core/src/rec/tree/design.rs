@@ -11,13 +11,13 @@ use super::reduce::{DenseTables, DenseVars, Reduced};
 use super::statement::{Kind, Section, StatementLayout, TreeStatement, digest_halves_rows};
 use super::{TreeError, reduce};
 use crate::arith::Arith;
-use crate::class_flock;
+use crate::class_flock::FlockId;
 use crate::cpu::{Claim, ProgramPoint};
 use crate::leaf::N_TUPLE_BITS;
 use crate::pcs::Rate;
 use crate::rec::circuit::{Builder, Dw, Ew, Finished, Kw};
 use crate::rec::fixed::FixedColumns;
-use crate::rec::table::{HashFlock, Table};
+use crate::rec::table::{HashFlock, PerRecTable};
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::rec::verifier::{FixedHint, ProofShape, RecShape, RingMap, Rows, infallible};
 use fiat_shamir::transcript::RawProof;
@@ -39,7 +39,7 @@ pub(crate) struct Design<'p> {
     /// Every tree proof's rate.
     pub(crate) rate: Rate,
     /// The nodes' heights, which both circuits share.
-    pub(crate) taus: [usize; Table::COUNT],
+    pub(crate) taus: PerRecTable<usize>,
     /// The shape of a child recursion proof.
     child: RecShape,
     /// Where each fixed column sits in one circuit's stack.
@@ -136,7 +136,7 @@ impl<'p> Design<'p> {
         arity_0: usize,
         arity: usize,
         rate: Rate,
-        taus: [usize; Table::COUNT],
+        taus: PerRecTable<usize>,
     ) -> Result<Self, TreeError> {
         let child = RecShape::new(taus, rate).map_err(|_| TreeError::TooLarge)?;
         let fixed = FixedLayout::new(&taus);
@@ -171,9 +171,9 @@ impl<'p> Design<'p> {
         let mut h = Hasher::new();
         h.update(DOMAIN);
         h.update(self.leaf.program().digest());
-        let sizes = (self.leaf.taus().iter().copied())
+        let sizes = (self.leaf.taus().values().copied())
             .chain([self.arity_0, self.arity, self.statement.len()])
-            .chain(self.taus);
+            .chain(self.taus.into_values());
         for x in sizes {
             h.update(&(x as u64).to_le_bytes());
         }
@@ -195,7 +195,7 @@ impl<'p> Design<'p> {
             b.scope(format!("leaf {i} program"), |b| {
                 self.program_claims(b, &core.claims.program, inputs, &mut claims);
             });
-            let fresh = core.claims.circuits.iter().enumerate();
+            let fresh = FlockId::ALL.into_iter().zip(&core.claims.circuits);
             claims.matrices.extend(fresh.map(|(f, c)| MatrixClaim::fresh(f, c)));
             outputs.push(output);
         }
@@ -243,9 +243,7 @@ impl<'p> Design<'p> {
             claims.bind_state(&mut b, rows.state);
             claims.bound.extend(rows.hints.iter().map(|h| h.value));
             claims.dense.push(self.fixed_claim(&rows.hints, kind));
-            claims
-                .matrices
-                .push(MatrixClaim::fresh(HashFlock::index(), &rows.matrix));
+            claims.matrices.push(MatrixClaim::fresh(HashFlock::FLOCK, &rows.matrix));
             self.carried(&statement, kind, &mut claims);
             let digest = statement.digest_wire(&mut b);
             digests.push(b.d_to_k(digest));
@@ -353,11 +351,10 @@ impl<'p> Design<'p> {
                 statement.dense_value(poly),
             ));
         }
-        for f in 0..class_flock::N_FLOCKS {
-            let k = class_flock::shape(f).k_log;
+        for f in FlockId::ALL {
             claims.matrices.extend(MatrixClaim::carried(
                 f,
-                k,
+                f.k_log(),
                 statement.rows(),
                 statement.cols(),
                 statement.matrices(f),

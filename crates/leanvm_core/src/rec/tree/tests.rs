@@ -8,7 +8,7 @@ use crate::rec::circuit::{Assignment, Builder, Kw};
 use crate::rec::table::HashFlock;
 use crate::rv::Region;
 use crate::rv::asm::*;
-use crate::tables::ClassSpec;
+use crate::tables::TableId;
 use design::NodeRows;
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter, VerifierState};
 use flock::lincheck::MatrixForm;
@@ -426,7 +426,7 @@ fn forged_reduction(vars: &DenseVars, tables: &DenseTables, claims: &NodeClaims<
 
     let theta = ps.sample();
     let mut rows = MatrixProver::new(&claims.matrices, theta);
-    let r: Vec<F192> = (0..crate::class_flock::max_k_log())
+    let r: Vec<F192> = (0..FlockId::MAX_K_LOG)
         .map(|i| {
             ps.add_scalars(&rows.round(i));
             let x = ps.sample();
@@ -435,7 +435,7 @@ fn forged_reduction(vars: &DenseVars, tables: &DenseTables, claims: &NodeClaims<
         })
         .collect();
     let mut cols = rows.columns(&claims.matrices, &r);
-    let s: Vec<F192> = (0..crate::class_flock::max_k_log())
+    let s: Vec<F192> = (0..FlockId::MAX_K_LOG)
         .map(|i| {
             ps.add_scalars(&cols.round(i));
             let x = ps.sample();
@@ -495,7 +495,7 @@ fn forged_reduced_claims_are_refused() {
         (
             Forge::Matrix,
             FalseClaim::Matrix {
-                table: ClassSpec::ALL[0].name,
+                table: TableId::ALU.name(),
                 part: Part::Class,
             },
         ),
@@ -674,8 +674,12 @@ fn matrix_claims(rng: &mut Rng) -> Vec<MatrixClaim<F192>> {
     let (alpha, z_skip) = (rng.ext(), rng.ext());
     let (x, r) = (rng.ext_vec(16), rng.ext_vec(16));
     let mut claims = Vec::new();
-    for (i, f) in [0, 0, 3, HashFlock::index()].into_iter().enumerate() {
-        let circuit = crate::class_flock::circuit(f);
+    let first = FlockId::ALL[0];
+    for (i, f) in [first, first, FlockId::ALL[3], HashFlock::FLOCK]
+        .into_iter()
+        .enumerate()
+    {
+        let circuit = f.circuit();
         let k = circuit.k_log();
         let form = MatrixForm {
             alpha,
@@ -713,13 +717,13 @@ fn the_matrix_reduction_reduces_to_the_matrices() {
     };
     let proof = prove(&claims);
     let reduced = verify(&claims, &proof).expect("an honest reduction");
-    for (f, values) in reduced.values.iter().enumerate() {
-        let circuit = crate::class_flock::circuit(f);
+    for (f, values) in FlockId::ALL.into_iter().zip(&reduced.values) {
+        let circuit = f.circuit();
         let k = circuit.k_log();
         let (ra, rb) = circuit.row_values(&eq_table(&reduced.cols[..k]));
         let u = eq_table(&reduced.rows[..k]);
         let dot = |r: &[F192]| u.iter().zip(r).fold(F192::ZERO, |acc, (&x, &y)| acc + x * y);
-        assert_eq!(*values, [dot(&ra), dot(&rb)], "circuit {f}");
+        assert_eq!(*values, [dot(&ra), dot(&rb)], "{f:?}");
     }
     for c in [0, 2] {
         let mut false_claims = claims.clone();

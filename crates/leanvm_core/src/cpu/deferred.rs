@@ -15,11 +15,12 @@ use super::batch::FormPowers;
 use super::layout::Lookup;
 use super::{CpuError, Program};
 use crate::arith::Arith;
+use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::constraints::{ConstraintError, Final};
+use crate::leaf;
 use crate::leaf::{BusVerify, N_TUPLE_BITS, SparseColumn};
 use crate::rv::RiscvProgram;
-use crate::tables::{ClassSpec, Part};
-use crate::{class_flock, leaf, tables};
+use crate::tables::{N_TABLES, Part};
 use flock::lincheck::{LincheckError, MatrixClaim, MatrixForm};
 use flock::verifier::FlockError;
 use primitives::field::F192;
@@ -157,7 +158,7 @@ impl<E: Copy> Claim<ProgramPoint<E>, E> {
             unreachable!("one lookup array, the bytecode")
         };
         // The producer's air follows the tables'.
-        let air = tables::N_TABLES;
+        let air = N_TABLES;
         let (weight, producer) = (table_sumcheck.weights[air], &table_sumcheck.claims[air]);
         let twist = (coefficients.iter().zip(&producer.evals))
             .map(|(&c, &b)| {
@@ -202,9 +203,9 @@ impl Program {
     #[tracing::instrument(name = "Check deferred", skip_all)]
     #[doc(hidden)]
     pub fn check_deferred(&self, claims: &DeferredClaims) -> Result<(), CpuError> {
-        if claims.circuits.len() != class_flock::N_FLOCKS {
+        if claims.circuits.len() != N_FLOCKS {
             return Err(CpuError::MalformedClaim(MalformedClaim::CircuitCount {
-                expected: class_flock::N_FLOCKS,
+                expected: N_FLOCKS,
                 got: claims.circuits.len(),
             }));
         }
@@ -216,13 +217,12 @@ impl Program {
             return Err(CpuError::Constraint(ConstraintError::FinalMismatch));
         }
 
-        for (f, claim) in claims.circuits.iter().enumerate() {
-            let (t, part) = class_flock::flock(f);
-            let table = ClassSpec::ALL[t].name;
-            if !class_flock::shape(f).fits(&claim.point) {
+        for (f, claim) in FlockId::ALL.into_iter().zip(&claims.circuits) {
+            let (table, part) = (f.table().name(), f.part());
+            if !f.shape().fits(&claim.point) {
                 return Err(CpuError::MalformedClaim(MalformedClaim::MatrixForm { table, part }));
             }
-            if claim.point.evaluate(class_flock::circuit(f)) != claim.value {
+            if claim.point.evaluate(f.circuit()) != claim.value {
                 return Err(CpuError::Flock {
                     table,
                     part,

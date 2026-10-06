@@ -12,13 +12,14 @@ use super::error::CpuError;
 use super::execute::Trace;
 use super::{MAX_LOG_ROWS, UNGROUND_LOG_BYTECODE};
 use crate::arith::Arith;
+use crate::class_flock::FlockId;
 use crate::constraints::{BitColumns, Claims};
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
-use crate::tables::{ClassSpec, ClassTable, Clock, Part, Separator};
+use crate::tables::{ClassTable, Clock, N_TABLES, PerTable, Separator, TableId};
 use crate::witness::{Placement, Source, StackShape, Window};
-use crate::{class_flock, pcs, tables, witness};
+use crate::{class_flock, pcs, witness};
 use ::pcs::pack::PACKING_WIDTH;
 use Coord::{Col, Const, IntIndex, Sparse};
 use fiat_shamir::MAX_GRINDING_BITS;
@@ -173,11 +174,11 @@ impl Lookup {
     /// Enough for the most reads tables of these heights can make of it.
     ///
     /// Completeness only: no read count is too large for soundness.
-    pub fn multiplicity_bits(self, taus: [usize; tables::N_TABLES]) -> usize {
+    pub fn multiplicity_bits(self, taus: &PerTable<usize>) -> usize {
         match self {
             // Every row reads the bytecode once.
             Self::Bytecode => {
-                let rows: u64 = taus.iter().map(|&tau| 1u64 << tau).sum();
+                let rows: u64 = taus.values().map(|&tau| 1u64 << tau).sum();
                 (u64::BITS - rows.leading_zeros()) as usize
             }
         }
@@ -227,7 +228,7 @@ impl Lookup {
                 vec![
                     // An illegal entry's tag is zero, which is no table's: nothing can read it.
                     parallel::map_collect(entries.len(), |i| {
-                        ClassTable::index_of(entries[i].class).map_or(F64::ZERO, primitives::field::g_pow)
+                        TableId::of(entries[i].class).map_or(F64::ZERO, |t| primitives::field::g_pow(t.index()))
                     }),
                     column(&|_, e| e.flags),
                     column(&|_, e| e.a1 as u64),
@@ -344,8 +345,8 @@ pub const Q_BASE: usize = Shared::ALL.len();
 pub const N_SHARED: usize = Q_BASE + class_flock::N_FLOCKS;
 
 /// The committed column holding packed witness `f`.
-pub(crate) const fn q_column(f: usize) -> usize {
-    Q_BASE + f
+pub(crate) const fn q_column(f: FlockId) -> usize {
+    Q_BASE + f.index()
 }
 
 /// The program's sizes the layout depends on.
@@ -372,7 +373,7 @@ impl Sizes {
     /// Where every column of a program of these sizes sits in the stacked witness, for tables of heights `2^taus`, and the stack's shape.
     ///
     /// No witness is needed.
-    pub(super) fn stack(self, taus: [usize; tables::N_TABLES]) -> (Vec<Placement>, StackShape) {
+    pub(super) fn stack(self, taus: &PerTable<usize>) -> (Vec<Placement>, StackShape) {
         witness::placements_of(&self.column_sources(taus))
     }
 
@@ -385,30 +386,27 @@ impl Sizes {
     /// A circuit word is a port of its class's packed witness, which already holds it.
     ///
     /// So it is never committed again: its bus claims settle against that witness.
-    fn column_sources(self, taus: [usize; tables::N_TABLES]) -> Vec<Source> {
+    fn column_sources(self, taus: &PerTable<usize>) -> Vec<Source> {
         let mut sources: Vec<Source> = Shared::ALL
             .iter()
             .map(|c| Source::Committed(c.log_rows(self)))
             .collect();
 
         // The packed witnesses: every class circuit's, then every clock circuit's.
-        sources.extend((0..class_flock::N_FLOCKS).map(|f| {
-            let (t, part) = class_flock::flock(f);
-            Source::Committed(taus[t] + class_flock::stride_log(ClassSpec::ALL[t], part))
-        }));
+        sources.extend(FlockId::ALL.map(|f| Source::Committed(taus[f.table()] + f.stride_log())));
 
         // Each table's columns, its circuit words turned into ports of its packed witnesses.
         //
         // Its register numbers are fields of its packed register column instead.
-        for (t, table) in ClassTable::all().iter().enumerate() {
+        for (t, table) in ClassTable::all().iter() {
             let base = sources.len();
             sources.resize(base + table.n_committed_columns(), Source::Committed(taus[t]));
-            for part in [Part::Class, Part::Clock] {
-                for (port, c) in table.word_columns(part) {
+            for f in FlockId::class(t).into_iter().chain([FlockId::clock(t)]) {
+                for (port, c) in table.word_columns(f.part()) {
                     sources[base + c] = Source::Port {
-                        column: q_column(class_flock::flock_index(t, part)),
+                        column: q_column(f),
                         port,
-                        stride_log: class_flock::stride_log(ClassSpec::ALL[t], part),
+                        stride_log: f.stride_log(),
                     };
                 }
             }
@@ -419,7 +417,7 @@ impl Sizes {
 
         // Each table's packed register numbers: committed where its word opens, a field of that word otherwise.
         let base = sources.len();
-        sources.resize(base + tables::N_TABLES, Source::Sliced);
+        sources.resize(base + N_TABLES, Source::Sliced);
         for word in RegisterWord::of(taus) {
             sources[word.col] = Source::Committed(taus[word.tables[0]]);
         }
@@ -438,19 +436,17 @@ pub(crate) struct RegisterWord {
     /// Its column: the register column of its first table.
     pub(crate) col: usize,
     /// Its tables, in table order.
-    pub(crate) tables: Vec<usize>,
+    pub(crate) tables: Vec<TableId>,
 }
 
 impl RegisterWord {
     /// The words of tables of heights `2^taus`.
     ///
     /// In table order, each table joins the first word of its height with room for its fields, or opens one.
-    pub(crate) fn of(taus: [usize; tables::N_TABLES]) -> Vec<Self> {
-        let bits = ClassTable::all()
-            .each_ref()
-            .map(|table| table.register_bits().n_slices());
+    pub(crate) fn of(taus: &PerTable<usize>) -> Vec<Self> {
+        let bits = PerTable::from_fn(|t: TableId| t.class_table().register_bits().n_slices());
         let mut words: Vec<(Self, usize)> = Vec::new();
-        for t in 0..tables::N_TABLES {
+        for t in TableId::ALL {
             let room = words
                 .iter_mut()
                 .find(|(word, used)| taus[word.tables[0]] == taus[t] && used + bits[t] <= PACKING_WIDTH);
@@ -481,7 +477,7 @@ impl RegisterWord {
             .map(|&t| {
                 let (base, n) = schema.spans[t];
                 let cols = windows[base..base + n].iter().map(|c| &**c).collect();
-                (ClassTable::all()[t].register_bits(), cols)
+                (t.class_table().register_bits(), cols)
             })
             .collect();
         parallel::fill(word, |x| {
@@ -497,11 +493,11 @@ impl RegisterWord {
     /// Why zeros: an unused bit of an honest word is zero, so a word with one set fails the opening.
     fn claim<E: Copy>(&self, tables: &[Claims<E>], zero: E) -> SliceClaim<E> {
         let mut s_hat_v: Vec<E> = (self.tables.iter())
-            .flat_map(|&t| tables[t].slices.iter().copied())
+            .flat_map(|&t| tables[t.index()].slices.iter().copied())
             .collect();
         s_hat_v.resize(PACKING_WIDTH, zero);
         SliceClaim {
-            suffix_point: tables[self.tables[0]].chi.clone(),
+            suffix_point: tables[self.tables[0].index()].chi.clone(),
             s_hat_v,
         }
     }
@@ -515,11 +511,11 @@ impl RegisterWord {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Schema {
     /// Each table's first column and its number of columns.
-    pub spans: [(usize, usize); tables::N_TABLES],
+    pub spans: PerTable<(usize, usize)>,
     /// Each table's packed register column: one word per row, its register numbers as bit fields.
     ///
     /// Tables of one height share the first one's word while it has room.
-    pub registers: [usize; tables::N_TABLES],
+    pub registers: PerTable<usize>,
     /// The total number of columns.
     pub n: usize,
 }
@@ -531,16 +527,16 @@ impl Schema {
         SCHEMA.get_or_init(|| {
             // Each table's span starts where the previous one ends.
             let mut next = N_SHARED;
-            let spans = ClassTable::all().each_ref().map(|table| {
-                let span = (next, table.n_committed_columns());
+            let spans = PerTable::from_fn(|t: TableId| {
+                let span = (next, t.class_table().n_committed_columns());
                 next += span.1;
                 span
             });
-            let registers = std::array::from_fn(|t| next + t);
+            let registers = PerTable::from_fn(|t: TableId| next + t.index());
             Self {
                 spans,
                 registers,
-                n: next + tables::N_TABLES,
+                n: next + N_TABLES,
             }
         })
     }
@@ -561,7 +557,7 @@ pub struct Layout {
     /// The stacked witness's shape: its announced size, and how many lane blocks are committed.
     pub shape: StackShape,
     /// Each table's base-two logarithm of rows.
-    pub taus: [usize; tables::N_TABLES],
+    pub taus: PerTable<usize>,
     /// The committed register words.
     pub(crate) registers: Vec<RegisterWord>,
 }
@@ -572,7 +568,7 @@ impl Layout {
     /// A table's height is its row count: the fill blocks bring every count to a power of two.
     ///
     /// So every row was executed, and no flush has padding tuples to divide back out of the bus.
-    pub fn new(p: &RiscvProgram, taus: [usize; tables::N_TABLES], ts_final: u64) -> Self {
+    pub fn new(p: &RiscvProgram, taus: PerTable<usize>, ts_final: u64) -> Self {
         let sizes = Sizes::of(p);
 
         // The framework's blocks open both sides, one push and one pull block each.
@@ -586,21 +582,12 @@ impl Layout {
 
         // Each table declares its flushes in local column indices, offset here to its global span.
         let schema = Schema::get();
-        for (t, table) in ClassTable::all().iter().enumerate() {
+        for (t, table) in ClassTable::all().iter() {
             let (base, kappa) = (schema.spans[t].0, taus[t]);
             let flushes = table.flushes();
-            push.extend(
-                flushes
-                    .push
-                    .into_iter()
-                    .map(|c| Block::table(t, kappa, c.into_iter().map(|c| c.offset(base)).collect())),
-            );
-            pull.extend(
-                flushes
-                    .pull
-                    .into_iter()
-                    .map(|c| Block::table(t, kappa, c.into_iter().map(|c| c.offset(base)).collect())),
-            );
+            let block = |c: Vec<Coord>| Block::table(t.index(), kappa, c.into_iter().map(|c| c.offset(base)).collect());
+            push.extend(flushes.push.into_iter().map(block));
+            pull.extend(flushes.pull.into_iter().map(block));
         }
 
         // Each lookup array's producer: its tuple, its multiplicity column, and how many bits of it the bus reads.
@@ -610,11 +597,11 @@ impl Layout {
                 kappa: lookup.log_rows(sizes),
                 coords: lookup.tuple(p),
                 col: lookup.multiplicity().col(),
-                bits: lookup.multiplicity_bits(taus),
+                bits: lookup.multiplicity_bits(&taus),
             })
             .collect();
 
-        let (placements, shape) = sizes.stack(taus);
+        let (placements, shape) = sizes.stack(&taus);
         Self {
             push,
             pull,
@@ -622,13 +609,13 @@ impl Layout {
             grinding: Lookup::Bytecode.grinding_bits(sizes),
             placements,
             shape,
+            registers: RegisterWord::of(&taus),
             taus,
-            registers: RegisterWord::of(taus),
         }
     }
 
     /// Packed witness `f`'s window in the stack.
-    pub(crate) fn witness_window(&self, f: usize) -> Window {
+    pub(crate) fn witness_window(&self, f: FlockId) -> Window {
         self.placements[q_column(f)]
             .window()
             .expect("a packed witness is committed")
@@ -653,7 +640,7 @@ impl Layout {
         tables: &[Claims<E>],
         zero: E,
     ) -> Vec<RingSwitch<E>> {
-        let witnesses = (witnesses.into_iter().enumerate()).map(|(f, claim)| self.witness_window(f).ring(claim));
+        let witnesses = (FlockId::ALL.into_iter().zip(witnesses)).map(|(f, claim)| self.witness_window(f).ring(claim));
         let producers = (self.producers.iter().zip(multiplicities)).map(|(p, claims)| {
             self.multiplicity_window(p).ring(SliceClaim {
                 suffix_point: claims.chi.clone(),
@@ -688,7 +675,7 @@ impl Layout {
         claims.reserve(schema.n - N_SHARED);
 
         // Each table's column claims, at the batch's point.
-        for (&(base, _), table) in schema.spans.iter().zip(table_claims) {
+        for (&(base, _), table) in schema.spans.values().zip(table_claims) {
             claims.extend(table.evals.iter().enumerate().map(|(c, &value)| ColumnClaim {
                 col: base + c,
                 point: table.chi.clone(),
@@ -726,7 +713,7 @@ impl Layout {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct Announcement {
     /// Each table's base-two logarithm of rows.
-    pub(super) taus: [usize; tables::N_TABLES],
+    pub(super) taus: PerTable<usize>,
     /// The commitment's base-two logarithm of the inverse rate.
     pub(super) log_inv_rate: usize,
     /// The clock the run ended on: the final state's timestamp (§sec:state).
@@ -738,7 +725,7 @@ impl Announcement {
     ///
     /// A height, not a row count: every table's rows are real, filled to a power of two.
     pub(super) fn write(&self, ps: &mut ProverState) {
-        for &tau in &self.taus {
+        for &tau in self.taus.values() {
             ps.add_scalar(F192::new(tau as u64, 0, 0));
         }
         ps.add_scalar(F192::new(self.log_inv_rate as u64, 0, 0));
@@ -761,9 +748,9 @@ impl Announcement {
             }
             usize::try_from(word.c0).map_err(|_| CpuError::NonCanonicalSize)
         };
-        let mut taus = [0usize; tables::N_TABLES];
-        for tau in &mut taus {
-            *tau = read_size(vs)?;
+        let mut taus = PerTable::default();
+        for t in TableId::ALL {
+            taus[t] = read_size(vs)?;
         }
         let log_inv_rate = read_size(vs)?;
 
@@ -805,7 +792,7 @@ impl Layout {
     /// # Errors
     ///
     /// Refuses a height outside its table's range, or heights whose stacked witness the commitment does not take.
-    pub(crate) fn announced(p: &RiscvProgram, taus: [usize; tables::N_TABLES]) -> Result<Self, CpuError> {
+    pub(crate) fn announced(p: &RiscvProgram, taus: PerTable<usize>) -> Result<Self, CpuError> {
         Self::check_heights(&taus)?;
         // The caps bound each height alone; the stacked size they imply is checked here.
         let layout = Self::new(p, taus, 0);
@@ -818,12 +805,12 @@ impl Layout {
     /// Check each table's height lies between flock's instance floor and the public cap.
     ///
     /// A table's rows are its class's runs, unbounded by the program's size, so it has a cap of its own.
-    fn check_heights(taus: &[usize; tables::N_TABLES]) -> Result<(), CpuError> {
-        for (spec, &log_rows) in ClassSpec::ALL.iter().zip(taus) {
-            let min = class_flock::n_blocks_log(spec, 1);
+    fn check_heights(taus: &PerTable<usize>) -> Result<(), CpuError> {
+        for (t, &log_rows) in taus.iter() {
+            let min = t.spec().n_blocks_log(1);
             if !(min..=MAX_LOG_ROWS).contains(&log_rows) {
                 return Err(CpuError::TableHeight {
-                    table: spec.name,
+                    table: t.name(),
                     log_rows,
                     min,
                     max: MAX_LOG_ROWS,
@@ -841,12 +828,12 @@ mod tests {
     #[test]
     fn multiplicity_bits_cover_every_read() {
         // Fixture: one table of 2^10 rows, the rest of 2^3.
-        let mut taus = [3; tables::N_TABLES];
-        taus[0] = 10;
-        let rows: u64 = taus.iter().map(|&tau| 1u64 << tau).sum();
+        let mut taus = PerTable::new([3; N_TABLES]);
+        taus[TableId::ALU] = 10;
+        let rows: u64 = taus.values().map(|&tau| 1u64 << tau).sum();
 
         // The bits hold the most reads one entry can get, every row reading it, and no more.
-        let bits = Lookup::Bytecode.multiplicity_bits(taus);
+        let bits = Lookup::Bytecode.multiplicity_bits(&taus);
         assert!(rows < 1 << bits);
         assert!(rows >= 1 << (bits - 1));
     }

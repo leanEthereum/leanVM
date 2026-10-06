@@ -4,10 +4,9 @@
 //! The public table commits nothing: its blocks are the framework's.
 
 use super::circuit::{Assignment, WireKind};
-use crate::class_flock;
+use crate::class_flock::{self, FlockId};
 use crate::leaf::{BusForm, Coord};
-use crate::rv::Class;
-use crate::tables::{ClassSpec, ClassTable, Part};
+use crate::tables::{PerTable, TableId, TableKey};
 use Coord::{Col, Prod, Sum};
 use WireKind::{D, E, K};
 use flock::circuit::Circuit;
@@ -29,6 +28,9 @@ pub enum Table {
     /// A value the verifier knows: a constant of the circuit or a word of the statement.
     Pub,
 }
+
+/// One value per table of the recursion machine.
+pub type PerRecTable<T> = PerTable<T, Table, { Table::COUNT }>;
 
 /// The four limbs a slot carries, each a degree-two form over its table's local columns.
 #[derive(Clone, Debug)]
@@ -324,6 +326,14 @@ impl SlotForm {
     }
 }
 
+impl TableKey<{ Self::COUNT }> for Table {
+    const ALL: [Self; Self::COUNT] = Self::ALL;
+
+    fn index(self) -> usize {
+        self as usize
+    }
+}
+
 impl HashFlock {
     /// How many ports the hash table reads, at the witness's words `0..18`.
     pub(crate) const N_PORTS: usize = 18;
@@ -335,25 +345,22 @@ impl HashFlock {
     /// The hash table's mux bit, its one committed column, after its ports.
     const SEL: usize = Self::N_PORTS;
 
-    /// The packed witness index of the BLAKE2s class circuit, which proves every hash row.
-    pub(crate) fn index() -> usize {
-        let t = ClassTable::index_of(Class::Hash).expect("the HASH class has a table");
-        class_flock::flock_index(t, Part::Class)
-    }
+    /// The packed witness of the BLAKE2s class circuit, which proves every hash row.
+    pub(crate) const FLOCK: FlockId = FlockId::class(TableId::HASH).expect("the HASH class has a circuit");
 
     /// The BLAKE2s compression circuit.
     pub(crate) fn circuit() -> &'static Circuit {
-        class_flock::circuit(Self::index())
+        Self::FLOCK.circuit()
     }
 
     /// `log2` of a hash row's packed words: the stride between consecutive rows' same-port words.
     pub(crate) const fn stride_log() -> usize {
-        class_flock::stride_log(&ClassSpec::HASH, Part::Class)
+        Self::FLOCK.stride_log()
     }
 
     /// `log2` of the hash table's height for `rows` rows, at least flock's floor.
     const fn height_log(rows: usize) -> usize {
-        class_flock::batch_log(ClassSpec::HASH.k_log, rows)
+        class_flock::batch_log(Self::FLOCK.k_log(), rows)
     }
 }
 
@@ -406,7 +413,7 @@ mod tests {
 
     #[test]
     fn the_hash_ports_are_the_precompile_ports() {
-        let ports = ClassSpec::HASH.ports;
+        let ports: Vec<Word> = ClassSpec::HASH.ports().collect();
         assert_eq!(ports.len(), HashFlock::N_PORTS);
         assert_eq!((ports[HashFlock::T], ports[HashFlock::F]), (Word::V2, Word::Flags));
         assert!((0..4).all(|i| ports[HashFlock::H + i] == Word::Cell(i as u8)));

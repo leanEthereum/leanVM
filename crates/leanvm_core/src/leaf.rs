@@ -1700,7 +1700,7 @@ pub(crate) mod tests {
     use crate::cpu::{Layout, Lookup, Program, UNGROUND_LOG_BYTECODE};
     use crate::pcs::MAX_MU;
     use crate::rv::Region;
-    use crate::tables::N_TABLES;
+    use crate::tables::PerTable;
     use fiat_shamir::transcript::{ProverState, VerifierState};
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -1870,7 +1870,7 @@ pub(crate) mod tests {
     fn every_layout_one_commitment_holds_keeps_the_margin_with_its_grinding() {
         // Every block of a RISC-V layout at 2^MAX_MU rows, more than any block of a committed layout has.
         let program = Program::new(&[0x0000_0073], Region::TEXT.base(), vec![], 0, 0).unwrap();
-        let layout = Layout::new(program.rv(), [0; N_TABLES], 0);
+        let layout = Layout::new(program.rv(), PerTable::default(), 0);
         let widest = |blocks: &[Block]| -> Vec<Block> {
             blocks
                 .iter()

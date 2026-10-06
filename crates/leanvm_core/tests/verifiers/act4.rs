@@ -9,7 +9,7 @@
 //! -- --ignored act4`.
 
 use super::python_verifier::PythonStatement;
-use leanvm_core::{Guest, Machine, N_TABLES, Program, Rate, Region, Trap};
+use leanvm_core::{Guest, Machine, PerTable, Program, Rate, Region, Trap};
 use std::path::{Path, PathBuf};
 use std::thread::Builder;
 
@@ -159,7 +159,7 @@ fn act4_on_the_interpreter() {
 #[test]
 #[ignore = "needs the ELF files of conformance/act4/generate.sh"]
 fn act4_proven() {
-    let mut covered = [false; N_TABLES];
+    let mut covered = PerTable::<bool>::default();
     let mut python = Vec::new();
     for Test { name, program, .. } in suite() {
         let (proof, output, stats) = program
@@ -170,8 +170,8 @@ fn act4_proven() {
             .verify_to_raw(&output, &proof)
             .unwrap_or_else(|error| panic!("{name}: {error:?}"));
         let used = stats.base_counts.map(|rows| rows > 0);
-        if used.iter().zip(&covered).any(|(&used, &seen)| used && !seen) {
-            covered = std::array::from_fn(|t| covered[t] || used[t]);
+        if used.iter().any(|(t, &used)| used && !covered[t]) {
+            covered = PerTable::from_fn(|t| covered[t] || used[t]);
             python.push((name.clone(), PythonStatement::new(&name, &program, &output), raw));
         }
     }

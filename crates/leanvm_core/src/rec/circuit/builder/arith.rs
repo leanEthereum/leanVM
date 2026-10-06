@@ -133,7 +133,7 @@ mod tests {
         assert_eq!(b.sum(&[x]), x);
         let finished = b.finish();
         assert!(finished.failures.is_empty(), "{:?}", finished.failures);
-        assert_eq!(finished.circuit.row_counts(), [0, 0, 0, 0, 0, 4]);
+        assert_eq!(finished.circuit.row_counts().into_values(), [0, 0, 0, 0, 0, 4]);
     }
 
     #[test]
@@ -172,7 +172,7 @@ mod tests {
         );
         let finished = b.finish();
         assert!(finished.failures.is_empty(), "{:?}", finished.failures);
-        let [emul, exk, ..] = finished.circuit.row_counts();
+        let [emul, exk, ..] = finished.circuit.row_counts().into_values();
         assert_eq!(
             (emul, exk),
             (6, 3),

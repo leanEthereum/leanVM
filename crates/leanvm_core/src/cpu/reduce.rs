@@ -70,7 +70,7 @@ impl Layout {
             &self.pull,
             &self.producers,
             self.grinding,
-            &Schema::get().spans,
+            Schema::get().spans.as_slice(),
         )
         .map_err(CpuError::Bus)?;
         let per_tick = v.mul(
@@ -85,7 +85,7 @@ impl Layout {
         // Its forms there, its register numbers taken as zero, are its share of each side short of their part, which
         // leaves the rest owed: in characteristic two, the sum.
         let mut settled = Vec::with_capacity(N_TABLES);
-        for (t, table) in ClassTable::all().iter().enumerate() {
+        for (t, table) in ClassTable::all().iter() {
             if !table.settled_at_bus() {
                 continue;
             }
@@ -102,7 +102,7 @@ impl Layout {
                 })
                 .collect();
             for (total, forms) in bus.totals.iter_mut().zip(&bus.forms) {
-                let share = forms[t].at(v, &evals);
+                let share = forms[t.index()].at(v, &evals);
                 *total = v.add(*total, share);
             }
             settled.push(Claims {

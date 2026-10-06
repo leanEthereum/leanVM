@@ -8,13 +8,12 @@
 //! by the same stacked WHIR opening, through one ring-switched region per circuit.
 //!
 //! A register or bytecode word is 64 bits and the packing is 64 bits a word, so the
-//! words a row puts on the bus ARE packed words of its instance, the circuit's ports
-//! ([`ClassSpec::ports`]). The table's columns for them are therefore virtual, their
-//! claims routed to those words.
+//! words a row puts on the bus ARE packed words of its instance, the circuit's ports.
+//! The table's columns for them are therefore virtual, their claims routed to those words.
 
 use crate::cpu::{Payloads, RowRef, Trace};
 use crate::rv::RiscvProgram;
-use crate::tables::{ClassSpec, ClassTable, N_CIRCUITS, N_TABLES, Part};
+use crate::tables::{N_CIRCUITS, N_TABLES, Part, PerTable, TableId};
 use ::pcs::pack::LOG_PACKING;
 use ::pcs::stack_open::SliceClaim;
 use fiat_shamir::transcript::{ProverState, VerifierState};
@@ -36,111 +35,146 @@ const MAX_INPUT_WORDS: usize = 14;
 /// table's clock circuit.
 pub const N_FLOCKS: usize = N_CIRCUITS + N_TABLES;
 
-/// The table and the circuit of packed witness `f`.
-pub const fn flock(f: usize) -> (usize, Part) {
-    if f < N_CIRCUITS {
-        (f, Part::Class)
-    } else {
-        (f - N_CIRCUITS, Part::Clock)
-    }
+/// One packed witness: a table's class circuit, or its clock circuit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct FlockId {
+    table: TableId,
+    part: Part,
 }
 
-/// The packed witness of table `t`'s circuit `part`.
-///
-/// # Panics
-///
-/// Panics for the class circuit of a table that has none.
-pub const fn flock_index(t: usize, part: Part) -> usize {
-    match part {
-        Part::Class => {
-            assert!(t < N_CIRCUITS, "the table has no class circuit");
-            t
+impl FlockId {
+    /// Every packed witness, in protocol order.
+    pub const ALL: [Self; N_FLOCKS] = {
+        let mut all = [Self::clock(TableId::ALU); N_FLOCKS];
+        let mut t = 0;
+        while t < N_TABLES {
+            let table = TableId::ALL[t];
+            if let Some(class) = Self::class(table) {
+                all[class.index()] = class;
+            }
+            all[Self::clock(table).index()] = Self::clock(table);
+            t += 1;
         }
-        Part::Clock => N_CIRCUITS + t,
-    }
-}
-
-/// `log2` of the bits one instance of a table's circuit occupies.
-pub const fn k_log(spec: &ClassSpec, part: Part) -> usize {
-    match part {
-        Part::Class => spec.k_log,
-        Part::Clock => spec.clock_k_log,
-    }
-}
-
-/// `log2` of an instance's packed words: the stride between consecutive instances'
-/// same-port words.
-pub const fn stride_log(spec: &ClassSpec, part: Part) -> usize {
-    k_log(spec, part) - LOG_PACKING
-}
-
-/// The most variables any packed witness's circuit has per instance.
-pub fn max_k_log() -> usize {
-    (0..N_FLOCKS).map(|f| shape(f).k_log).max().unwrap_or(0)
-}
-
-/// What the verifier's replay of packed witness `f`'s reduction reads of its circuit short of its matrices.
-///
-/// - The instance's size.
-/// - The constant wire's column, the first after the port words.
-///
-/// The table's spec fixes both, so the replay builds no circuit, and building the circuit checks them.
-pub const fn shape(f: usize) -> Shape {
-    let (t, part) = flock(f);
-    let spec = ClassSpec::ALL[t];
-    let n_ports = match part {
-        Part::Class => spec.ports.len(),
-        // The clock, each access's previous timestamp and the clock's own inputs, then the step and its own outputs.
-        Part::Clock => spec.n_accesses() + 2 + spec.clock_inputs.len() + spec.clock_outputs.len(),
+        all
     };
-    Shape {
-        k_log: k_log(spec, part),
-        const_pin_col: 64 * n_ports,
-    }
-}
 
-/// Packed witness `f`'s gate list, built once.
-pub fn circuit(f: usize) -> &'static Circuit {
-    static CIRCUITS: [OnceLock<Circuit>; N_FLOCKS] = [const { OnceLock::new() }; N_FLOCKS];
-    CIRCUITS[f].get_or_init(|| {
-        let (t, part) = flock(f);
-        let spec = ClassSpec::ALL[t];
-        let (circuit, n_inputs) = match part {
-            Part::Class => (spec.class.circuit(), spec.n_inputs),
-            Part::Clock => (spec.clock_circuit(), 1 + spec.n_accesses() + spec.clock_inputs.len()),
+    /// The most variables any packed witness's circuit has per instance.
+    pub const MAX_K_LOG: usize = {
+        let mut max = 0;
+        let mut f = 0;
+        while f < N_FLOCKS {
+            if Self::ALL[f].k_log() > max {
+                max = Self::ALL[f].k_log();
+            }
+            f += 1;
+        }
+        max
+    };
+
+    /// The class circuit of `table`, if its class has one.
+    pub const fn class(table: TableId) -> Option<Self> {
+        if table.spec().has_circuit() {
+            Some(Self {
+                table,
+                part: Part::Class,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// The clock circuit of `table`.
+    pub const fn clock(table: TableId) -> Self {
+        Self {
+            table,
+            part: Part::Clock,
+        }
+    }
+
+    /// The table whose rows are the witness's instances.
+    pub const fn table(self) -> TableId {
+        self.table
+    }
+
+    /// Which of the table's circuits it is.
+    pub const fn part(self) -> Part {
+        self.part
+    }
+
+    /// Its position in protocol order.
+    pub const fn index(self) -> usize {
+        match self.part {
+            Part::Class => self.table.index(),
+            Part::Clock => N_CIRCUITS + self.table.index(),
+        }
+    }
+
+    /// `log2` of the bits one instance occupies.
+    pub const fn k_log(self) -> usize {
+        let spec = self.table.spec();
+        match (self.part, &spec.circuit) {
+            (Part::Class, Some(circuit)) => circuit.k_log,
+            (Part::Class, None) => unreachable!(),
+            (Part::Clock, _) => spec.clock_k_log,
+        }
+    }
+
+    /// `log2` of an instance's packed words: the stride between consecutive instances' same-port words.
+    pub const fn stride_log(self) -> usize {
+        self.k_log() - LOG_PACKING
+    }
+
+    /// What the verifier's replay of the witness's reduction reads of its circuit short of its matrices.
+    ///
+    /// - The instance's size.
+    /// - The constant wire's column, the first after the port words.
+    ///
+    /// The table's spec fixes both, so the replay builds no circuit, and building the circuit checks them.
+    pub const fn shape(self) -> Shape {
+        let spec = self.table.spec();
+        let n_ports = match (self.part, &spec.circuit) {
+            (Part::Class, Some(circuit)) => circuit.inputs.len() + circuit.outputs.len(),
+            (Part::Class, None) => unreachable!(),
+            // The clock, each access's previous timestamp and the clock's own inputs, then the step and its own outputs.
+            (Part::Clock, _) => spec.n_accesses() + 2 + spec.clock_inputs.len() + spec.clock_outputs.len(),
         };
-        let shape = shape(f);
-        assert_eq!(
-            circuit.k_log(),
-            shape.k_log,
-            "{}'s {part:?} block size moved",
-            spec.name
-        );
-        assert_eq!(
-            circuit.const_pos(),
-            shape.const_pin_col,
-            "{}'s {part:?} constant wire moved",
-            spec.name
-        );
-        assert_eq!(
-            circuit.n_input_words(),
-            n_inputs,
-            "{}'s {part:?} input ports moved",
-            spec.name
-        );
-        circuit
-    })
-}
+        Shape {
+            k_log: self.k_log(),
+            const_pin_col: 64 * n_ports,
+        }
+    }
 
-/// `log2` of the batch proving `n_rows` instances: a power of two, at least flock's
-/// stripe floor and at least what the zerocheck's cube needs for each of the table's circuits.
-pub const fn n_blocks_log(spec: &ClassSpec, n_rows: usize) -> usize {
-    let smallest = if spec.clock_k_log < spec.k_log || !spec.has_circuit() {
-        spec.clock_k_log
-    } else {
-        spec.k_log
-    };
-    batch_log(smallest, n_rows)
+    /// The witness's gate list, built once.
+    pub fn circuit(self) -> &'static Circuit {
+        static CIRCUITS: [OnceLock<Circuit>; N_FLOCKS] = [const { OnceLock::new() }; N_FLOCKS];
+        CIRCUITS[self.index()].get_or_init(|| {
+            let (spec, part) = (self.table.spec(), self.part);
+            let (circuit, n_inputs) = match &spec.circuit {
+                Some(circuit) if part == Part::Class => (spec.class.circuit(), circuit.inputs.len()),
+                _ => (spec.clock_circuit(), 1 + spec.n_accesses() + spec.clock_inputs.len()),
+            };
+            let shape = self.shape();
+            assert_eq!(
+                circuit.k_log(),
+                shape.k_log,
+                "{}'s {part:?} block size moved",
+                spec.name
+            );
+            assert_eq!(
+                circuit.const_pos(),
+                shape.const_pin_col,
+                "{}'s {part:?} constant wire moved",
+                spec.name
+            );
+            assert_eq!(
+                circuit.n_input_words(),
+                n_inputs,
+                "{}'s {part:?} input ports moved",
+                spec.name
+            );
+            circuit
+        })
+    }
 }
 
 /// `log2` of the batch proving a table's rows on one circuit, given `log2` of its bits per instance.
@@ -156,7 +190,7 @@ pub const fn batch_log(k_log: usize, n_rows: usize) -> usize {
 /// The flock-native tables of one class's batch, kept from the pass that wrote its
 /// committed column so the reduction needs no second witness pass.
 pub(crate) struct Prepared {
-    flock: usize,
+    flock: FlockId,
     n_blocks_log: usize,
     z: Vec<u64>,
     a: Vec<u64>,
@@ -167,8 +201,8 @@ pub(crate) struct Prepared {
 impl Prepared {
     /// Build packed witness `f`'s batch, one instance per row of its table, and write it
     /// into `window`, its committed column.
-    pub(crate) fn build(f: usize, trace: &Trace, p: &RiscvProgram, window: &mut [F64]) -> Self {
-        let table = trace.table(flock(f).0);
+    pub(crate) fn build(f: FlockId, trace: &Trace, p: &RiscvProgram, window: &mut [F64]) -> Self {
+        let table = trace.table(f.table());
         match table.payloads {
             Payloads::None => Self::build_from(f, table.rows, |r| RowRef::plain(r), p, window),
             // Why: the witness walk takes a slice, so a payload is paired with its row first.
@@ -181,22 +215,21 @@ impl Prepared {
 
     /// Build packed witness `f`'s batch from its table's rows, each seen through `view`.
     fn build_from<S: Sync>(
-        f: usize,
+        f: FlockId,
         rows: &[S],
         view: impl for<'r> Fn(&'r S) -> RowRef<'r> + Sync,
         p: &RiscvProgram,
         window: &mut [F64],
     ) -> Self {
-        let (t, part) = flock(f);
-        let spec = ClassSpec::ALL[t];
-        let n_blocks_log = n_blocks_log(spec, rows.len());
+        let (part, spec) = (f.part(), f.table().spec());
+        let n_blocks_log = spec.n_blocks_log(rows.len());
         assert_eq!(
             rows.len(),
             1 << n_blocks_log,
             "a table's rows fill its batch (cpu::filler)"
         );
-        let circuit = circuit(f);
-        let ports = ClassTable::all()[t].ports(part);
+        let circuit = f.circuit();
+        let ports = f.table().class_table().ports(part);
         let n_inputs = circuit.n_input_words();
         let slots = spec.slots();
         // The row's input words, one per input port.
@@ -209,8 +242,9 @@ impl Prepared {
         };
         // A class with a word-level witness skips the walk of its gate list; the others
         // walk it 64 instances at a time.
-        let witness = spec.witness.filter(|_| part == Part::Class);
-        let batch_witness = spec.batch_witness.filter(|_| part == Part::Class);
+        let class = spec.circuit.as_ref().filter(|_| part == Part::Class);
+        let witness = class.and_then(|c| c.witness);
+        let batch_witness = class.and_then(|c| c.batch_witness);
         let (z, a, b, z_lincheck) = batch_witness.map_or_else(
             || {
                 witness.map_or_else(
@@ -238,7 +272,7 @@ impl Prepared {
             },
         );
         assert_eq!(window.len(), z.len(), "the committed column is the wrong size");
-        let stride = 1 << stride_log(spec, part);
+        let stride = 1 << f.stride_log();
         // `F64` is `repr(transparent)` over `u64`, and the packing is bit `i` at
         // position `i` on both sides.
         const BATCH: usize = 1 << 10;
@@ -277,7 +311,7 @@ impl Prepared {
 pub(crate) fn prove_reductions(batches: &[Prepared], ps: &mut ProverState) -> Vec<SliceClaim> {
     let instances: Vec<Instance<'_>> = (batches.iter())
         .map(|p| Instance {
-            block: circuit(p.flock).block(),
+            block: p.flock.circuit().block(),
             n_blocks_log: p.n_blocks_log,
             z: &p.z,
             a: &p.a,
@@ -288,7 +322,8 @@ pub(crate) fn prove_reductions(batches: &[Prepared], ps: &mut ProverState) -> Ve
     flock::reduction::prove(&instances, ps)
 }
 
-/// The verifier's replay of the batched reductions, zerocheck then lincheck, up to the circuits' matrices, packed witness `f`'s batch being `2^n_blocks_log[f]` instances.
+/// The verifier's replay of the batched reductions, zerocheck then lincheck, up to the circuits' matrices, each
+/// packed witness's batch being its table's rows at heights `2^taus`.
 ///
 /// Each circuit's form is left as a claim for the built circuit to settle.
 /// It reads only the circuits' shapes, and builds none.
@@ -297,9 +332,9 @@ pub(crate) fn prove_reductions(batches: &[Prepared], ps: &mut ProverState) -> Ve
 ///
 /// Returns the first stage that refuses the proof.
 pub fn verify_reductions(
-    n_blocks_log: &[usize; N_FLOCKS],
+    taus: &PerTable<usize>,
     vs: &mut VerifierState,
 ) -> Result<Vec<(ReductionReplay, MatrixClaim)>, FlockError> {
-    let circuits: Vec<(Shape, usize)> = (0..N_FLOCKS).map(|f| (shape(f), n_blocks_log[f])).collect();
+    let circuits: Vec<(Shape, usize)> = FlockId::ALL.map(|f| (f.shape(), taus[f.table()])).to_vec();
     flock::reduction::verify_deferred(&circuits, vs)
 }

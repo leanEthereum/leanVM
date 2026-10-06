@@ -6,8 +6,7 @@
 
 use crate::rv::machine::{MemoryAccess, Step};
 use crate::rv::{BlockAccess, Class, Ext, Hash, Limb, Machine, RegisterFile, RiscvProgram, WordAccess};
-use crate::tables;
-use crate::tables::{ClassSpec, ClassTable, Clock, N_TABLES};
+use crate::tables::{Clock, PerTable, TableId};
 use primitives::field::F64;
 
 /// A finished run: its output, its rows, and what it left behind.
@@ -19,7 +18,7 @@ pub struct Execution {
     /// The rows per table before the padding rows: the work the program itself does.
     ///
     /// Cost measurements want these, not the power-of-two heights that get proven.
-    pub base_counts: [usize; N_TABLES],
+    pub base_counts: PerTable<usize>,
     /// The rows and the final state, emitted in the same walk as the run.
     pub(crate) trace: Trace,
 }
@@ -54,23 +53,23 @@ pub(super) trait Recorder {
     fn record(&mut self, p: &RiscvProgram, m: &Machine<'_>, step: Step, ts: u64);
 
     /// The rows recorded so far, per table.
-    fn row_counts(&self) -> [usize; N_TABLES];
+    fn row_counts(&self) -> PerTable<usize>;
 }
 
 /// The rows a run makes per table, and nothing else.
 pub(super) struct RowCounter {
     /// The table of each bytecode entry, or none for a class with no table.
-    tables: Vec<Option<usize>>,
+    tables: Vec<Option<TableId>>,
     /// The rows counted so far, per table.
-    counts: [usize; N_TABLES],
+    counts: PerTable<usize>,
 }
 
 impl RowCounter {
     /// A counter for runs of `p`.
     pub(super) fn new(p: &RiscvProgram) -> Self {
         Self {
-            tables: p.entries().iter().map(|e| ClassTable::index_of(e.class)).collect(),
-            counts: [0; N_TABLES],
+            tables: p.entries().iter().map(|e| TableId::of(e.class)).collect(),
+            counts: PerTable::default(),
         }
     }
 }
@@ -82,7 +81,7 @@ impl Recorder for RowCounter {
         self.counts[table] += 1;
     }
 
-    fn row_counts(&self) -> [usize; N_TABLES] {
+    fn row_counts(&self) -> PerTable<usize> {
         self.counts
     }
 }
@@ -94,13 +93,13 @@ pub(super) struct TraceBuilder {
     /// RAM's cells, then the advice's, as the machine numbers them.
     ram: LastAccess,
     /// Each table's rows.
-    rows: [Vec<Row>; N_TABLES],
+    rows: PerTable<Vec<Row>>,
     /// The hash table's payloads, one per row.
     hash: Vec<HashRow>,
     /// The extension-field table's payloads, one per row.
     ext: Vec<ExtRow>,
     /// Each table's access slots, which a padding row's accesses pull as their previous timestamps.
-    padding_prev: [Vec<u64>; N_TABLES],
+    padding_prev: PerTable<Vec<u64>>,
     /// The advice before the run, which is committed.
     adv_init: Vec<F64>,
 }
@@ -111,8 +110,8 @@ impl Recorder for TraceBuilder {
         self.record_row(p, m, step, ts);
     }
 
-    fn row_counts(&self) -> [usize; N_TABLES] {
-        std::array::from_fn(|t| self.rows[t].len())
+    fn row_counts(&self) -> PerTable<usize> {
+        PerTable::from_fn(|t| self.rows[t].len())
     }
 }
 
@@ -122,10 +121,10 @@ impl TraceBuilder {
         Self {
             regs: LastAccess::new(RegisterFile::CELLS),
             ram: LastAccess::new((1 << p.log_ram()) + (1 << p.log_advice())),
-            rows: std::array::from_fn(|_| Vec::new()),
+            rows: PerTable::default(),
             hash: Vec::new(),
             ext: Vec::new(),
-            padding_prev: std::array::from_fn(|t| ClassSpec::ALL[t].slots().into_iter().map(u64::from).collect()),
+            padding_prev: PerTable::from_fn(|t: TableId| t.spec().slots().into_iter().map(u64::from).collect()),
             adv_init: advice.iter().map(|&w| F64(w)).collect(),
         }
     }
@@ -134,8 +133,8 @@ impl TraceBuilder {
     #[inline(always)]
     fn record_row(&mut self, p: &RiscvProgram, m: &Machine<'_>, step: Step, ts: u64) {
         let e = &p.entries()[step.index];
-        let table = ClassTable::index_of(e.class).expect("every class that runs has a table");
-        let spec = ClassSpec::ALL[table];
+        let table = TableId::of(e.class).expect("every class that runs has a table");
+        let spec = table.spec();
 
         // The register accesses the class makes, in column order, each at its slot of the row's clock.
         let cells = [e.a1, e.a2, e.ad].map(|cell| cell as usize);
@@ -215,7 +214,7 @@ impl TraceBuilder {
     /// An access in slot `k` pushes the timestamp `0 ^ k` and pulls that same timestamp, so the two tuples cancel.
     pub(super) fn pad(&mut self, p: &RiscvProgram, index: usize) {
         let e = &p.entries()[index];
-        let table = ClassTable::index_of(e.class).expect("a fill block's class has a table");
+        let table = TableId::of(e.class).expect("a fill block's class has a table");
         let outcome = e.evaluate(p.pc_of(index), 0, 0, 0);
         let slots = &self.padding_prev[table];
 
@@ -437,7 +436,7 @@ impl<'a> TableRows<'a> {
 /// Every row of a run, and what the run leaves for the finalize blocks.
 pub(crate) struct Trace {
     /// Each table's rows, in table order.
-    pub(crate) rows: [Vec<Row>; tables::N_TABLES],
+    pub(crate) rows: PerTable<Vec<Row>>,
     /// The hash table's payloads, row `i`'s at `i`.
     pub(crate) hash: Vec<HashRow>,
     /// The extension-field table's payloads, row `i`'s at `i`.
@@ -464,14 +463,14 @@ impl Trace {
     /// How often each bytecode entry is read, once by every row, written into `counts` as integers.
     pub(crate) fn count_reads(&self, counts: &mut [F64]) {
         counts.fill(F64::ZERO);
-        for row in self.rows.iter().flatten() {
+        for row in self.rows.values().flatten() {
             counts[row.index as usize].0 += 1;
         }
     }
 
     /// Table `t`'s rows, with the payloads they record.
-    pub(crate) fn table(&self, t: usize) -> TableRows<'_> {
-        let payloads = match ClassSpec::ALL[t].class {
+    pub(crate) fn table(&self, t: TableId) -> TableRows<'_> {
+        let payloads = match t.class() {
             Class::Hash => Payloads::Hash(&self.hash),
             Class::Ext => Payloads::Ext(&self.ext),
             _ => Payloads::None,
@@ -483,7 +482,7 @@ impl Trace {
     }
 
     /// The rows per table.
-    pub(crate) fn row_counts(&self) -> [usize; tables::N_TABLES] {
-        std::array::from_fn(|t| self.rows[t].len())
+    pub(crate) fn row_counts(&self) -> PerTable<usize> {
+        PerTable::from_fn(|t| self.rows[t].len())
     }
 }

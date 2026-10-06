@@ -15,7 +15,7 @@ pub use builder::Builder;
 pub(crate) use compression::digest_limbs;
 pub use compression::{Compression, PARAM_IV, chain, zero_prefix};
 
-use super::table::Table;
+use super::table::{PerRecTable, Table};
 
 /// A wire's value as four `K` words: a `K` wire uses the first, an `E` wire the first three.
 pub type Limbs = [u64; 4];
@@ -54,25 +54,25 @@ pub enum PubSource {
 
 /// Every table's rows, row-major, one number per slot: a wire, or the class of wires it is held equal to.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(crate) struct TableSlots([Vec<u32>; Table::COUNT]);
+pub(crate) struct TableSlots(PerRecTable<Vec<u32>>);
 
 impl TableSlots {
     /// Append a row to a table.
     fn push(&mut self, table: Table, slots: &[u32]) {
         debug_assert_eq!(slots.len(), table.n_slots());
-        self.0[table as usize].extend_from_slice(slots);
+        self.0[table].extend_from_slice(slots);
     }
 
     /// Put a one-slot table's rows in the given order of their old indices.
     fn reorder(&mut self, table: Table, order: &[usize]) {
         debug_assert_eq!(table.n_slots(), 1);
-        let rows = &self.0[table as usize];
-        self.0[table as usize] = order.iter().map(|&i| rows[i]).collect();
+        let rows = &self.0[table];
+        self.0[table] = order.iter().map(|&i| rows[i]).collect();
     }
 
     /// A table's slots, row-major.
     pub(crate) fn of(&self, table: Table) -> &[u32] {
-        &self.0[table as usize]
+        &self.0[table]
     }
 
     /// How many rows a table has.
@@ -82,7 +82,7 @@ impl TableSlots {
 
     /// Every table's slots, each number replaced through `f`.
     pub(crate) fn map(&self, mut f: impl FnMut(u32) -> u32) -> Self {
-        Self(std::array::from_fn(|t| self.0[t].iter().map(|&w| f(w)).collect()))
+        Self(PerRecTable::from_fn(|t| self.0[t].iter().map(|&w| f(w)).collect()))
     }
 }
 
@@ -98,19 +98,19 @@ pub struct Circuit {
     /// How many words the statement has.
     pub(crate) statement_len: usize,
     /// Each table's least height, as a base-two logarithm.
-    pub(crate) floor: [usize; Table::COUNT],
+    pub(crate) floor: PerRecTable<usize>,
 }
 
 impl Circuit {
     /// Each table's number of rows.
-    pub fn row_counts(&self) -> [usize; Table::COUNT] {
-        Table::ALL.map(|t| self.classes.len(t))
+    pub fn row_counts(&self) -> PerRecTable<usize> {
+        PerRecTable::from_fn(|t| self.classes.len(t))
     }
 
     /// Each table's base-two logarithm of rows: the least power of two holding its rows, and at least its floor.
-    pub fn heights(&self) -> [usize; Table::COUNT] {
+    pub fn heights(&self) -> PerRecTable<usize> {
         let counts = self.row_counts();
-        Table::ALL.map(|t| t.height_log(counts[t as usize]).max(self.floor[t as usize]))
+        PerRecTable::from_fn(|t: Table| t.height_log(counts[t]).max(self.floor[t]))
     }
 
     /// How many wire classes the slots name.

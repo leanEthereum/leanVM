@@ -3,7 +3,7 @@
 //! The two circuits share their heights, so their stacks have one layout, and one more variable, the kind's bit, selects the circuit.
 
 use crate::rec::fixed::{FixedColumn, FixedColumns};
-use crate::rec::table::Table;
+use crate::rec::table::PerRecTable;
 use primitives::field::F64;
 
 /// Where each fixed column sits in one circuit's stack: the circuit's fixed polynomial over `kappa_fix` variables.
@@ -21,9 +21,9 @@ pub(crate) struct FixedLayout {
 
 impl FixedLayout {
     /// The stack of a circuit's fixed columns at the given table heights.
-    pub(crate) fn new(taus: &[usize; Table::COUNT]) -> Self {
+    pub(crate) fn new(taus: &PerRecTable<usize>) -> Self {
         let taus: Vec<usize> = (0..FixedColumn::COUNT)
-            .map(|c| taus[FixedColumn::at(c).table() as usize])
+            .map(|c| taus[FixedColumn::at(c).table()])
             .collect();
         let kappas: Vec<Option<usize>> = taus.iter().copied().map(Some).collect();
         let (offsets, placed) = crate::witness::stack_offsets(&kappas);

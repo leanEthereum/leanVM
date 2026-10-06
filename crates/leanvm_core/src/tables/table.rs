@@ -2,11 +2,11 @@
 
 use super::bus::{FlushBuilder, Separator};
 use super::columns::Columns;
-use super::{BAD_SLOT, ClassSpec, EXIT_SLOT, N_TABLES, Part, Word};
+use super::{BAD_SLOT, EXIT_SLOT, Part, PerTable, TableId, Word};
 use crate::constraints::{BitColumns, BitField};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, Scaled};
-use crate::rv::{Class, Ext, Hash, Reg, RegisterFile};
+use crate::rv::{Ext, Hash, Reg, RegisterFile};
 use primitives::field::{F64, F192, g_pow};
 use std::sync::OnceLock;
 
@@ -14,14 +14,14 @@ use std::sync::OnceLock;
 ///
 /// Column indices are local to this table, including its virtual circuit columns.
 pub struct ClassTable {
-    /// Table position in the protocol's fixed instruction-class order.
-    pub(super) index: usize,
-
-    /// Register accesses, memory shape, and circuit ports of this class.
-    pub(super) spec: &'static ClassSpec,
+    /// The table.
+    pub(super) id: TableId,
 
     /// Local column layout, including aliases for unchanged memory values.
     pub(super) cols: Columns,
+
+    /// Class circuit ports in input-then-output order.
+    class_ports: Vec<Word>,
 
     /// Clock circuit ports in input-then-output order.
     clock_ports: Vec<Word>,
@@ -29,25 +29,20 @@ pub struct ClassTable {
 
 impl ClassTable {
     /// All instruction tables, built once in protocol order.
-    pub fn all() -> &'static [Self; N_TABLES] {
-        static TABLES: OnceLock<[ClassTable; N_TABLES]> = OnceLock::new();
-        TABLES.get_or_init(|| std::array::from_fn(Self::new))
+    pub fn all() -> &'static PerTable<Self> {
+        static TABLES: OnceLock<PerTable<ClassTable>> = OnceLock::new();
+        TABLES.get_or_init(|| PerTable::from_fn(Self::new))
     }
 
-    /// Protocol table index of an instruction class, if supported.
-    pub fn index_of(class: Class) -> Option<usize> {
-        ClassSpec::ALL.iter().position(|spec| spec.class == class)
-    }
-
-    /// Build the columns and clock ports of a validated class specification.
-    pub(super) fn new(index: usize) -> Self {
-        let spec = ClassSpec::ALL[index];
+    /// Build the columns and ports of a validated class specification.
+    fn new(id: TableId) -> Self {
+        let spec = id.spec();
         spec.assert_valid();
         let cols = Columns::new(spec);
         let table = Self {
-            index,
-            spec,
+            id,
             cols,
+            class_ports: spec.ports().collect(),
             clock_ports: spec.clock_ports(),
         };
         table.assert_x0_is_constant();
@@ -76,7 +71,7 @@ impl ClassTable {
             assert!(
                 memory || read || at_destination,
                 "{} writes a register other than its destination",
-                self.spec.name
+                self.id.spec().name
             );
         }
     }
@@ -103,7 +98,7 @@ impl ClassTable {
 
     /// Whether the bus point settles the table: a table with a class circuit flushes only linear tuples.
     pub(crate) const fn settled_at_bus(&self) -> bool {
-        self.spec.has_circuit()
+        self.id.spec().has_circuit()
     }
 
     /// The columns the table sumcheck folds, in order: all of them, or only the register numbers of a settled table.
@@ -155,9 +150,9 @@ impl ClassTable {
         let bus = self.flushes();
         let linear = bus.push.iter().chain(&bus.pull).flatten().all(Coord::is_linear);
         assert!(
-            !self.spec.has_circuit() || linear,
+            !self.id.spec().has_circuit() || linear,
             "{}: a product on the bus",
-            self.spec.name
+            self.id.spec().name
         );
     }
 
@@ -169,7 +164,7 @@ impl ClassTable {
     /// The port words of one of the table's circuits.
     pub fn ports(&self, part: Part) -> &[Word] {
         match part {
-            Part::Class => self.spec.ports,
+            Part::Class => &self.class_ports,
             Part::Clock => &self.clock_ports,
         }
     }
@@ -212,7 +207,7 @@ impl ClassTable {
         let mut entry = vec![
             Separator::Bytecode.coordinate(),
             Col(c.pc),
-            Const(g_pow(self.index)),
+            Const(g_pow(self.id.index())),
             c.flags.map_or(Const(F64::ZERO), Col),
             Col(c.a1),
             c.rs2.map_or(Const(F64::ZERO), |r| Col(r.a2)),
@@ -240,7 +235,7 @@ impl ClassTable {
     fn flush_accesses(&self, bus: &mut FlushBuilder) {
         let c = &self.cols;
         // The accesses' columns are in the order the row makes them.
-        let mut accesses = bus.accesses(c.ts, c.prev, self.spec.slots());
+        let mut accesses = bus.accesses(c.ts, c.prev, self.id.spec().slots());
         accesses.read(Separator::Registers.coordinate(), Col(c.a1), Col(c.v1));
         if let Some(r) = c.rs2 {
             accesses.read(Separator::Registers.coordinate(), Col(r.a2), Col(r.v2));
@@ -364,10 +359,10 @@ mod tests {
 
     #[test]
     fn every_table_binds_its_ports_and_accesses_within_its_local_columns() {
-        for table in ClassTable::all() {
+        for (_, table) in ClassTable::all().iter() {
             let width = table.n_committed_columns();
-            let accesses = table.spec.n_accesses();
-            let slots = table.spec.slots();
+            let accesses = table.id.spec().n_accesses();
+            let slots = table.id.spec().slots();
             assert_eq!(slots.len(), accesses);
             assert!(slots.iter().all(|&slot| slot < 1 << Clock::SLOT_BITS));
             for part in [Part::Class, Part::Clock] {
@@ -399,7 +394,7 @@ mod tests {
             // Invariant: on a row, the identities vanish exactly when the new limbs are the reference's.
             //
             // Mutation: one bit of one new limb, which only that limb's identity reads.
-            let table = &ClassTable::all()[ClassTable::index_of(Class::Ext).unwrap()];
+            let table = TableId::EXT.class_table();
             let (cols, bits) = (table.cols.limbs.unwrap(), table.cols.flag_bits.unwrap());
             let mut limbs = limbs;
             if flags & Ext::BASE != 0 {

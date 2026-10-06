@@ -6,7 +6,7 @@
 //! - Each flock circuit's two matrices at prefixes of one row point and one column point.
 
 use super::claims::DensePoly;
-use crate::class_flock;
+use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::rec::circuit::{Builder, Dw, Ew, Kw, Limbs, chain};
 use primitives::field::F192;
 use std::ops::Range;
@@ -115,10 +115,10 @@ impl Section {
 
 impl StatementLayout {
     /// The layout of a tree whose dense polynomials have at most this many variables.
-    pub(crate) fn new(n_dense: usize) -> Self {
+    pub(crate) const fn new(n_dense: usize) -> Self {
         Self {
             n_dense,
-            n_matrix: class_flock::max_k_log(),
+            n_matrix: FlockId::MAX_K_LOG,
         }
     }
 
@@ -130,7 +130,7 @@ impl StatementLayout {
             Section::DensePoint => self.n_dense,
             Section::DenseValues => DensePoly::COUNT,
             Section::Rows | Section::Cols => self.n_matrix,
-            Section::Matrices => 2 * class_flock::N_FLOCKS,
+            Section::Matrices => 2 * N_FLOCKS,
         }
     }
 
@@ -216,9 +216,9 @@ impl<E: Copy> TreeStatement<E> {
     }
 
     /// Flock circuit `f`'s two matrices at their prefixes of the points.
-    pub(crate) fn matrices(&self, f: usize) -> [E; 2] {
+    pub(crate) fn matrices(&self, f: FlockId) -> [E; 2] {
         let m = self.section(Section::Matrices);
-        [m[2 * f], m[2 * f + 1]]
+        [m[2 * f.index()], m[2 * f.index() + 1]]
     }
 }
 
