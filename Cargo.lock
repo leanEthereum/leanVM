@@ -1489,6 +1489,7 @@ dependencies = [
  "leanxmss-host",
  "parallel",
  "primitives",
+ "serde_json",
  "stateproof-host",
  "tracing",
 ]

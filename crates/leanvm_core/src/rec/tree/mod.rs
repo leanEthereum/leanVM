@@ -94,6 +94,8 @@ pub struct TreeShape {
 ///
 /// It is built from the program and the shape alone, before any proof exists.
 pub struct Tree<'p> {
+    /// How it is shaped.
+    shape: TreeShape,
     /// What fixes the circuits.
     design: Design<'p>,
     /// Each kind's circuit, the first level's first.
@@ -270,6 +272,30 @@ impl LeafShape {
     }
 }
 
+impl TreeShape {
+    /// The kind of the root over this many leaves: a first-level node over `n_0`, a node over `n_0 n^d`.
+    ///
+    /// # Errors
+    ///
+    /// A number of leaves no tree of these arities has.
+    pub fn root_kind(&self, leaves: usize) -> Result<Kind, TreeError> {
+        let Self { arity_0, arity, .. } = *self;
+        let count = TreeError::LeafCount { leaves, arity_0, arity };
+        if leaves == 0 || arity < 2 || !leaves.is_multiple_of(arity_0) {
+            return Err(count);
+        }
+        let mut nodes = leaves / arity_0;
+        while nodes > 1 && nodes.is_multiple_of(arity) {
+            nodes /= arity;
+        }
+        match (nodes, leaves == arity_0) {
+            (1, true) => Ok(Kind::First),
+            (1, false) => Ok(Kind::Node),
+            _ => Err(count),
+        }
+    }
+}
+
 impl<'a> Leaf<'a> {
     /// The leaf of a proof and the output it proves.
     #[must_use]
@@ -380,6 +406,7 @@ impl<'p> Tree<'p> {
         image.resize(1 << design.vars.0[DensePoly::Image as usize], F64::ZERO);
         let tables = DenseTables([Lookup::Bytecode.table(rv), image, fixed]);
         Ok(Self {
+            shape,
             design,
             circuits,
             columns,
@@ -498,7 +525,7 @@ impl<'p> Tree<'p> {
     ///
     /// A number of leaves no tree of the arities has, or a leaf the first level refuses.
     pub fn prove(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, TreeError> {
-        self.levels(leaves.len())?;
+        self.shape.root_kind(leaves.len())?;
         let (arity_0, arity) = (self.design.arity_0, self.design.arity);
         let mut level: Vec<TreeProof> = (leaves.chunks(arity_0))
             .map(|leaves| self.prove_first(leaves))
@@ -526,7 +553,7 @@ impl<'p> Tree<'p> {
                 got: root.rate,
             });
         }
-        let expected = self.levels(outputs.len())?;
+        let expected = self.shape.root_kind(outputs.len())?;
         if root.kind != expected {
             return Err(TreeError::Kind {
                 leaves: outputs.len(),
@@ -540,24 +567,6 @@ impl<'p> Tree<'p> {
             return Err(TreeError::Outputs);
         }
         self.settle(&statement, root.kind)
-    }
-
-    /// The kind of the root over this many leaves: a first-level node over `n_0`, a node over `n_0 n^d`.
-    fn levels(&self, leaves: usize) -> Result<Kind, TreeError> {
-        let (arity_0, arity) = (self.design.arity_0, self.design.arity);
-        let count = TreeError::LeafCount { leaves, arity_0, arity };
-        if leaves == 0 || !leaves.is_multiple_of(arity_0) {
-            return Err(count);
-        }
-        let mut nodes = leaves / arity_0;
-        while nodes > 1 && nodes.is_multiple_of(arity) {
-            nodes /= arity;
-        }
-        match (nodes, leaves == arity_0) {
-            (1, true) => Ok(Kind::First),
-            (1, false) => Ok(Kind::Node),
-            _ => Err(count),
-        }
     }
 
     /// The digest the root over these leaf outputs states.

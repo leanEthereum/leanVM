@@ -7,6 +7,8 @@
 use crate::Blake2s;
 #[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
 use crate::blake2s::{Block, IV};
+#[cfg(not(all(target_arch = "riscv64", target_os = "none")))]
+use alloc::vec::Vec;
 #[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
 use core::mem::MaybeUninit;
 
@@ -76,6 +78,18 @@ impl PublicValues {
     pub fn digest(self) -> [u64; 4] {
         self.0.finalize_words()
     }
+}
+
+/// What one run of a guest is given, and what it must output.
+///
+/// A host builds it off the VM: the advice it lays out, and the digest of the public values it computes natively.
+#[cfg(not(all(target_arch = "riscv64", target_os = "none")))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Run {
+    /// The words the guest reads.
+    pub advice: Vec<u64>,
+    /// The output the guest must give: the digest of what it commits.
+    pub expected: [u64; 4],
 }
 
 /// The committed words' BLAKE2s, in progress, as `commit` keeps it: the block the instruction reads, where the next

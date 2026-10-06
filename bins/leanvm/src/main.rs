@@ -1,19 +1,20 @@
 //! Benchmark CLI.
 
-use aggregate::{LeafProgram, Shape};
+use aggregate::LeafProgram;
 use bench::Plan;
 use clap::builder::RangedU64ValueParser;
 use clap::{Parser, Subcommand};
 use leanvm::{Prover, Rate};
 use std::error::Error;
+use std::fmt::Arguments;
+use std::num::ParseIntError;
 use std::path::PathBuf;
+use workload::Workload;
 
 #[global_allocator]
 static ALLOCATOR: bench::Counting<bench::Jemalloc> = bench::Counting(bench::Jemalloc);
 
 mod aggregate;
-mod fibonacci;
-mod guest;
 mod tracked;
 mod workload;
 
@@ -57,7 +58,7 @@ enum Command {
         /// The guest's ELF executable.
         elf: PathBuf,
         /// The advice: the words the guest reads, decimal or 0x-prefixed. The statement does not cover it.
-        #[arg(long, value_delimiter = ',', value_parser = guest::parse_word)]
+        #[arg(long, value_delimiter = ',', value_parser = parse_word)]
         advice: Vec<u64>,
     },
     /// Prove and verify a guest checking leanXMSS signatures, one key each.
@@ -137,6 +138,29 @@ fn parse_rate(log_inv_rate: &str) -> Result<Rate, Box<dyn Error + Send + Sync>> 
     Ok(Rate::new(log_inv_rate.parse()?)?)
 }
 
+/// A word, decimal or 0x-prefixed.
+fn parse_word(word: &str) -> Result<u64, ParseIntError> {
+    word.strip_prefix("0x")
+        .map_or_else(|| word.parse(), |hex| u64::from_str_radix(hex, 16))
+}
+
+/// An error and its causes, outermost first.
+fn chain(error: &dyn Error) -> String {
+    let mut text = error.to_string();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        text = format!("{text}: {cause}");
+        source = cause.source();
+    }
+    text
+}
+
+/// What the user got wrong, said once and plainly: none of these is a bug here.
+fn refuse(what: Arguments) -> ! {
+    eprintln!("{what}");
+    std::process::exit(1)
+}
+
 fn main() {
     let cli = Cli::parse();
     let prover = Prover::new(cli.rate);
@@ -145,27 +169,20 @@ fn main() {
         bench::init_tracing();
     }
     match cli.command {
-        Command::Fibonacci { n } => fibonacci::run_fibonacci(n, &prover, plan),
-        Command::Guest { elf, advice } => guest::run_guest(&elf, &advice, &prover, plan),
-        Command::Leanxmss { n } => workload::run(&workload::leanxmss(n), &prover, plan),
-        Command::Leansphincs { n } => workload::run(&workload::leansphincs(n), &prover, plan),
-        Command::Falcon { n } => workload::run(&workload::falcon(n), &prover, plan),
-        Command::Stateproof { n } => workload::run(&workload::stateproof(n), &prover, plan),
-        Command::Leanda { blobs } => workload::run(&workload::leanda(blobs), &prover, plan),
+        Command::Fibonacci { n } => Workload::fibonacci(n).run(&prover, plan),
+        Command::Guest { elf, advice } => Workload::guest(&elf, advice).run(&prover, plan),
+        Command::Leanxmss { n } => Workload::leanxmss(n).run(&prover, plan),
+        Command::Leansphincs { n } => Workload::leansphincs(n).run(&prover, plan),
+        Command::Falcon { n } => Workload::falcon(n).run(&prover, plan),
+        Command::Stateproof { n } => Workload::stateproof(n).run(&prover, plan),
+        Command::Leanda { blobs } => Workload::leanda(blobs).run(&prover, plan),
         Command::Aggregate {
             program,
             n,
             leaves,
             arity0,
             arity,
-        } => {
-            let shape = Shape {
-                leaves,
-                arity_0: arity0,
-                arity,
-            };
-            aggregate::run(program, n, shape, &prover, plan);
-        }
+        } => aggregate::run(&program.workload(n), leaves, arity0, arity, &prover, plan),
         Command::Bench {
             cycles_only,
             markdown,

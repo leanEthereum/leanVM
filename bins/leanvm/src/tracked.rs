@@ -15,16 +15,13 @@
 //! proof (the leaf's run measured gives the shape its proofs announce), and one node of each
 //! kind proven over copies of one leaf proof.
 
-use crate::fibonacci::fibonacci_program;
-use crate::guest::refuse;
-use crate::workload;
-use crate::workload::Workload;
+use crate::refuse;
+use crate::workload::{Items, Workload};
 use bench::{Heap, Metric, Plan, Timing, bencher_json};
 use leanvm::aggregate::{CircuitStats, Kind, Leaf, LeafShape, Tree, TreeError, TreeProof, TreeShape};
-use leanvm::{Output, Program, ProvenRun, Prover, Rate, Stats};
-use leanvm_guest::PublicValues;
-use primitives::hash::{digest_words, hash};
+use leanvm::{Output, ProvenRun, Prover, Rate, Stats};
 use primitives::pretty_integer;
+use serde_json::{Map, Value};
 use std::fmt::Write as _;
 use std::fs::OpenOptions;
 use std::io::Write as _;
@@ -32,83 +29,33 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
+/// A tracked benchmark: its name, which CI matches a PR's results by, and its run.
 struct Case {
     name: &'static str,
-    /// What the markdown table calls it.
-    title: String,
-    program: Program,
-    advice: Vec<u64>,
-    /// The output the native reference computed.
-    expected: [u64; 4],
-    items: usize,
-    item: &'static str,
+    workload: Workload,
 }
 
 impl Case {
-    fn workload(name: &'static str, workload: Workload) -> Self {
-        Self {
-            name,
-            program: workload.program(),
-            title: workload.title,
-            advice: workload.advice,
-            expected: workload.expected,
-            items: workload.items,
-            item: workload.item,
-        }
+    const fn new(name: &'static str, workload: Workload) -> Self {
+        Self { name, workload }
     }
 
-    /// Fibonacci modulo 2^64 in hand-written RISC-V, `n` steps.
-    fn fibonacci(name: &'static str, n: usize) -> Self {
-        let (program, expected) = fibonacci_program(n);
-        Self {
-            name,
-            title: format!("Fibonacci modulo 2^64, {} steps", pretty_integer(&n)),
-            program,
-            advice: vec![],
-            expected,
-            items: n,
-            item: "step",
-        }
-    }
-
-    /// The `hash` guest: BLAKE2s of the bytes `0, 1, 2, ...` (mod 251) through the precompile.
-    fn hash(name: &'static str, length: usize) -> Self {
-        let message: Vec<u8> = (0..length).map(|i| (i % 251) as u8).collect();
-        let digest = digest_words(&hash(&message));
-        // What the guest commits: the length, then the digest.
-        let mut public = PublicValues::new();
-        public.commit(&(length as u64)).commit(&digest);
-        Self::workload(
-            name,
-            Workload {
-                title: format!("BLAKE2s of {} bytes", pretty_integer(&length)),
-                elf: include_bytes!("../../../programs/hash/hash.elf"),
-                advice: vec![length as u64],
-                expected: public.digest(),
-                items: length,
-                item: "byte",
-            },
-        )
-    }
-
-    /// The run's exact counts, without a proof.
-    fn measure(&self) -> Stats {
-        self.program
-            .measure(&self.advice)
-            .unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
+    /// How many items the run covers, and what one is called: every tracked run counts in items.
+    const fn items(&self) -> Items {
+        self.workload.items.expect("a tracked run counts in items")
     }
 }
 
 /// Counted without a proof: the README's sizes.
 fn counted() -> Vec<Case> {
     vec![
-        Case::fibonacci("fibonacci-asm-2000000", 2_000_000),
-        Case::hash("hash-50000", 50_000),
-        Case::workload("leanxmss-400", workload::leanxmss(400)),
-        Case::workload("leansphincs-104", workload::leansphincs(104)),
-        Case::workload("leanda-1", workload::leanda(1)),
-        Case::workload("falcon-28", workload::falcon(28)),
-        Case::workload("stateproof-21", workload::stateproof(21)),
+        Case::new("fibonacci-asm-2000000", Workload::fibonacci(2_000_000)),
+        Case::new("hash-50000", Workload::hash(50_000)),
+        Case::new("leanxmss-400", Workload::leanxmss(400)),
+        Case::new("leansphincs-104", Workload::leansphincs(104)),
+        Case::new("leanda-1", Workload::leanda(1)),
+        Case::new("falcon-28", Workload::falcon(28)),
+        Case::new("stateproof-21", Workload::stateproof(21)),
     ]
 }
 
@@ -118,15 +65,15 @@ type Build = fn(&'static str) -> Case;
 /// Proven: the sizes that fit a GitHub-hosted runner, each built only if it is proven.
 fn proven() -> [(&'static str, Build); 7] {
     [
-        ("fibonacci-asm-2000000", |name| Case::fibonacci(name, 2_000_000)),
-        ("hash-50000", |name| Case::hash(name, 50_000)),
-        ("leanxmss-100", |name| Case::workload(name, workload::leanxmss(100))),
-        ("leanxmss-100-1thread", |name| {
-            Case::workload(name, workload::leanxmss(100))
+        ("fibonacci-asm-2000000", |name| {
+            Case::new(name, Workload::fibonacci(2_000_000))
         }),
-        ("leansphincs-26", |name| Case::workload(name, workload::leansphincs(26))),
-        ("falcon-7", |name| Case::workload(name, workload::falcon(7))),
-        ("stateproof-5", |name| Case::workload(name, workload::stateproof(5))),
+        ("hash-50000", |name| Case::new(name, Workload::hash(50_000))),
+        ("leanxmss-100", |name| Case::new(name, Workload::leanxmss(100))),
+        ("leanxmss-100-1thread", |name| Case::new(name, Workload::leanxmss(100))),
+        ("leansphincs-26", |name| Case::new(name, Workload::leansphincs(26))),
+        ("falcon-7", |name| Case::new(name, Workload::falcon(7))),
+        ("stateproof-5", |name| Case::new(name, Workload::stateproof(5))),
     ]
 }
 
@@ -142,13 +89,13 @@ const ONE_THREAD: [&str; 2] = ["leanxmss-100-1thread", "aggregate-leanxmss-100-2
 /// combines `N` proofs into 1; then `-1thread` when it is proven on one thread (`ONE_THREAD`).
 struct Aggregation {
     name: &'static str,
-    leaf: Case,
+    leaf: Workload,
     arity_0: usize,
     arity: usize,
 }
 
 impl Aggregation {
-    const fn new(name: &'static str, leaf: Case, arity_0: usize, arity: usize) -> Self {
+    const fn new(name: &'static str, leaf: Workload, arity_0: usize, arity: usize) -> Self {
         Self {
             name,
             leaf,
@@ -191,7 +138,7 @@ impl Aggregation {
 /// Aggregation trees counted without a proof: the README's leaves, 2 to 1 (`cargo leanvm
 /// aggregate`'s shape) and 4 to 1.
 fn counted_trees() -> Vec<Aggregation> {
-    let leaf = || Case::workload("leanxmss-400", workload::leanxmss(400));
+    let leaf = || Workload::leanxmss(400);
     vec![
         Aggregation::new("aggregate-leanxmss-400-2to1", leaf(), 2, 2),
         Aggregation::new("aggregate-leanxmss-400-4to1", leaf(), 4, 4),
@@ -207,13 +154,13 @@ type BuildTree = fn(&'static str) -> Aggregation;
 fn proven_trees() -> [(&'static str, BuildTree); 3] {
     [
         ("aggregate-leanxmss-100-2to1", |name| {
-            Aggregation::new(name, Case::workload("leanxmss-100", workload::leanxmss(100)), 2, 2)
+            Aggregation::new(name, Workload::leanxmss(100), 2, 2)
         }),
         ("aggregate-leanxmss-100-4to1", |name| {
-            Aggregation::new(name, Case::workload("leanxmss-100", workload::leanxmss(100)), 4, 4)
+            Aggregation::new(name, Workload::leanxmss(100), 4, 4)
         }),
         ("aggregate-leanxmss-100-2to1-1thread", |name| {
-            Aggregation::new(name, Case::workload("leanxmss-100", workload::leanxmss(100)), 2, 2)
+            Aggregation::new(name, Workload::leanxmss(100), 2, 2)
         }),
     ]
 }
@@ -234,7 +181,7 @@ pub fn run(
         let counted: Vec<_> = counted()
             .into_iter()
             .map(|case| {
-                let stats = case.measure();
+                let stats = case.workload.measure();
                 (case, stats)
             })
             .collect();
@@ -279,24 +226,26 @@ pub fn run(
         }
         bench::time_stages("Prove");
         let one_thread = |name: &str| ONE_THREAD.contains(&name) && parallel::num_threads() > 1;
-        let mut reports: Vec<String> = cases
-            .into_iter()
-            .map(|(name, case)| {
-                if one_thread(name) {
-                    on_one_thread(name, only.is_none())
-                } else {
-                    bencher_json(&[(name.to_string(), proved(&case(name), prover, plan))])
-                }
-            })
-            .collect();
+        // Every case's benchmarks, proven here or by a child, as one JSON object.
+        let mut benchmarks = Map::new();
+        for (name, case) in cases {
+            let json = if one_thread(name) {
+                on_one_thread(name, only.is_none())
+            } else {
+                bencher_json(&[(name.to_string(), proved(&case(name), prover, plan))])
+            };
+            benchmarks.extend(parsed(name, &json));
+        }
         for (name, tree) in trees {
-            reports.push(if one_thread(name) {
+            let json = if one_thread(name) {
                 on_one_thread(name, only.is_none())
             } else {
                 bencher_json(&proved_tree(&tree(name), prover, plan))
-            });
+            };
+            benchmarks.extend(parsed(name, &json));
         }
-        return println!("{}", merged(&reports));
+        let json = serde_json::to_string_pretty(&Value::Object(benchmarks)).expect("JSON values print");
+        return println!("{json}");
     };
     println!("{}", bencher_json(&report));
 }
@@ -321,17 +270,9 @@ fn on_one_thread(name: &str, add_only: bool) -> String {
     String::from_utf8(output.stdout).unwrap_or_else(|e| refuse(format_args!("{name}: {e}")))
 }
 
-/// One JSON object of the benchmarks of `objects`, each one as `bencher_json` prints it.
-fn merged(objects: &[String]) -> String {
-    let benchmarks: Vec<&str> = objects
-        .iter()
-        .map(|object| {
-            let object = object.trim().strip_prefix('{').and_then(|o| o.strip_suffix('}'));
-            object.expect("a JSON object").trim_matches('\n')
-        })
-        .filter(|benchmarks| !benchmarks.is_empty())
-        .collect();
-    format!("{{\n{}\n}}", benchmarks.join(",\n"))
+/// The benchmarks of case `name`'s Bencher Metric Format JSON.
+fn parsed(name: &str, json: &str) -> Map<String, Value> {
+    serde_json::from_str(json).unwrap_or_else(|e| refuse(format_args!("{name}: no benchmarks: {e}")))
 }
 
 /// `cycles` (the program's own instructions), `proven-rows` (the tables' heights once
@@ -382,20 +323,16 @@ fn proved(case: &Case, prover: &Prover, plan: Plan) -> Vec<(String, Metric)> {
     eprintln!("{}", case.name);
     let mut passes = Vec::new();
     let mut heaps = Vec::new();
+    let workload = &case.workload;
     let (ProvenRun { proof, output, .. }, time) = plan.warm_then_measure(|_| {
-        let (proved, heap) = bench::measure_heap(|| prover.prove(&case.program, &case.advice));
-        let proved = proved.unwrap_or_else(|e| refuse(format_args!("{}: {e}", case.name)));
+        let (proved, heap) = bench::measure_heap(|| workload.prove(prover));
         passes.push(bench::take_stages());
         heaps.push(heap);
         proved
     });
     let peak_memory = bench::peak_rss_bytes();
-    assert_eq!(
-        output, case.expected,
-        "{}: the output is the native reference's",
-        case.name
-    );
-    let (verified, verify_time) = Plan::new(VERIFY_PASSES, 0).measure_quiet(|_| case.program.verify(output, &proof));
+    let (verified, verify_time) =
+        Plan::new(VERIFY_PASSES, 0).measure_quiet(|_| workload.program.verify(output, &proof));
     verified.expect("an honest proof verifies");
     measures(
         &time,
@@ -437,15 +374,7 @@ fn measures(
 /// process's so far, the node's including the first-level node's.
 fn proved_tree(tree: &Aggregation, prover: &Prover, plan: Plan) -> Vec<(String, Vec<(String, Metric)>)> {
     eprintln!("{}", tree.name);
-    let leaf = &tree.leaf;
-    let ProvenRun { proof, output, .. } = prover
-        .prove(&leaf.program, &leaf.advice)
-        .unwrap_or_else(|e| refuse(format_args!("{}: {e}", leaf.name)));
-    assert_eq!(
-        output, leaf.expected,
-        "{}: the output is the native reference's",
-        leaf.name
-    );
+    let ProvenRun { proof, output, .. } = tree.leaf.prove(prover);
     let built = tree.tree(LeafShape::of(&proof).expect("an honest announcement"), prover.rate());
     // The leaf's stages.
     bench::take_stages();
@@ -532,13 +461,13 @@ fn table(counted: &[(Case, Stats)]) -> String {
         String::from("| program | RISC-V cycles | per item | committed words | tables |\n|---|---:|---:|---:|---|\n");
     for (case, stats) in counted {
         let cycles = stats.cycles();
+        let Items { count, name } = case.items();
         writeln!(
             table,
-            "| {} | {} | {} / {} | 2^{:.2} | {} |",
-            case.title,
+            "| {} | {} | {} / {name} | 2^{:.2} | {} |",
+            case.workload.title,
             pretty_integer(&cycles),
-            pretty_integer(&(cycles / case.items)),
-            case.item,
+            pretty_integer(&(cycles / count)),
             (stats.committed as f64).log2(),
             stats.details()
         )

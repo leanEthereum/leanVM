@@ -19,8 +19,11 @@
 //! Off the VM the hashers, the extension field, [`Words`] and [`PublicValues`] remain, in portable Rust.
 //!
 //! So a guest's library code also runs natively, as its own reference, and a host computes
-//! the output a guest must give.
+//! the output a guest must give, which it hands over with the advice as a [`Run`].
 #![no_std]
+
+#[cfg(not(all(target_arch = "riscv64", target_os = "none")))]
+extern crate alloc;
 
 mod blake2s;
 pub mod ext;
@@ -28,6 +31,10 @@ mod io;
 pub mod keccak;
 pub use blake2s::{Blake2s, Stream, Template, hash_with};
 pub use io::{PublicValues, Words, as_words_unchecked};
+
+// A run's advice is a heap vector, which only a host has.
+#[cfg(not(all(target_arch = "riscv64", target_os = "none")))]
+pub use io::Run;
 
 // Reading, committing, the entry point and the precompiles exist on the VM only.
 #[cfg(all(target_arch = "riscv64", target_os = "none"))]

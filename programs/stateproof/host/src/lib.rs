@@ -13,20 +13,12 @@
 //!
 //! The proofs are real, so the cycles are what a mainnet read costs.
 
-use leanvm_guest::PublicValues;
+use leanvm_guest::{PublicValues, Run};
 use serde::Deserialize;
 use stateproof::{Address, Hash, Node};
 
 /// The guest (`../guest`), built by `programs/build.sh`.
 pub const ELF: &[u8] = include_bytes!("../../stateproof.elf");
-
-/// What one run of the guest is given, and what it must output.
-pub struct Run {
-    /// The words the guest reads.
-    pub advice: Vec<u64>,
-    /// The digest of the claims the guest must commit.
-    pub expected: [u64; 4],
-}
 
 /// The fixture, as `fetch.py` writes it.
 const FIXTURE: &str = include_str!("../fixture/mainnet.json");

@@ -1,13 +1,12 @@
 //! Aggregation: prove a leaf program once, then a tree over copies of its proof, and report each kind of node and the whole tree.
 
+use crate::refuse;
+use crate::workload::Workload;
 use bench::{Plan, Timing};
 use clap::ValueEnum;
+use leanvm::Prover;
 use leanvm::aggregate::{Kind, Leaf, LeafShape, Tree, TreeProof, TreeShape};
-use leanvm::{Program, ProvenRun, Prover};
 use primitives::{pretty_f64, pretty_integer};
-
-use crate::guest::refuse;
-use crate::{fibonacci, workload};
 
 /// The leaf program.
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -20,49 +19,13 @@ pub enum LeafProgram {
     Leansphincs,
 }
 
-/// A tree's arities and leaf count.
-#[derive(Clone, Copy, Debug)]
-pub struct Shape {
-    pub leaves: usize,
-    pub arity_0: usize,
-    pub arity: usize,
-}
-
-impl Shape {
-    /// Whether the leaves are `arity_0` times a power of `arity`, and the arities make a tree.
-    const fn is_tree(self) -> bool {
-        if self.arity_0 == 0 || self.arity < 2 || !self.leaves.is_multiple_of(self.arity_0) {
-            return false;
-        }
-        let mut nodes = self.leaves / self.arity_0;
-        while nodes > 1 && nodes.is_multiple_of(self.arity) {
-            nodes /= self.arity;
-        }
-        nodes == 1
-    }
-}
-
 impl LeafProgram {
-    /// The program, its advice and the output it must give.
-    fn run(self, n: usize) -> (String, Program, Vec<u64>, [u64; 4]) {
+    /// The leaf's run at size `n`.
+    pub fn workload(self, n: usize) -> Workload {
         match self {
-            Self::Fibonacci => {
-                let (program, expected) = fibonacci::fibonacci_program(n);
-                (
-                    format!("Fibonacci, N = {}", pretty_integer(&n)),
-                    program,
-                    Vec::new(),
-                    expected,
-                )
-            }
-            Self::Leanxmss | Self::Leansphincs => {
-                let w = if matches!(self, Self::Leanxmss) {
-                    workload::leanxmss(n)
-                } else {
-                    workload::leansphincs(n)
-                };
-                (w.title.clone(), w.program(), w.advice, w.expected)
-            }
+            Self::Fibonacci => Workload::fibonacci(n),
+            Self::Leanxmss => Workload::leanxmss(n),
+            Self::Leansphincs => Workload::leansphincs(n),
         }
     }
 }
@@ -96,41 +59,35 @@ fn report(name: &str, tree: &Tree<'_>, kind: Kind, proof: &TreeProof, prove: &Ti
     println!("  verifying as a root         : {}", ms(verify));
 }
 
-/// Prove the leaf program, then the tree over copies of its proof, every proof at the prover's rate, and print the report.
-pub fn run(leaf: LeafProgram, n: usize, shape: Shape, prover: &Prover, plan: Plan) {
+/// Prove the leaf, then the tree of `leaves` over copies of its proof, every proof at the prover's rate, and print the report.
+///
+/// The tree's first level verifies `arity_0` leaves, each node `arity` children.
+pub fn run(leaf: &Workload, leaves: usize, arity_0: usize, arity: usize, prover: &Prover, plan: Plan) {
     let rate = prover.rate();
-    let Shape { leaves, arity_0, arity } = shape;
-    if !shape.is_tree() {
-        refuse(format_args!(
-            "{leaves} leaves make no tree of a first level of {arity_0} and nodes of {arity}"
-        ));
-    }
-    let (title, program, advice, expected) = leaf.run(n);
+    let title = &leaf.title;
+
+    // The leaf's run, measured, gives the shape its proofs announce: the tree is checked before anything is proven.
+    let stats = leaf.measure();
+    let shape = TreeShape {
+        leaf: LeafShape::measured(&stats, rate),
+        arity_0,
+        arity,
+        rate,
+    };
+    shape.root_kind(leaves).unwrap_or_else(|e| refuse(format_args!("{e}")));
+
     let (proved, leaf_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        (prover.prove(&program, &advice)).unwrap_or_else(|e| refuse(format_args!("{title} has no proof: {e}")))
+        leaf.prove(prover)
     });
-    let ProvenRun {
-        proof, output, stats, ..
-    } = proved;
-    assert_eq!(output, expected, "the leaf's output is the native reference's");
+    let (proof, output) = (&proved.proof, proved.output);
     let quiet = Plan::new(plan.repeat, 0);
 
-    let leaf_shape = LeafShape::of(&proof).expect("an honest announcement");
     let (tree, setup) = Plan::new(1, 0).measure_quiet(|_| {
         let _span = tracing::info_span!("Tree setup").entered();
-        Tree::new(
-            &program,
-            TreeShape {
-                leaf: leaf_shape,
-                arity_0,
-                arity,
-                rate,
-            },
-        )
-        .unwrap_or_else(|e| refuse(format_args!("{e}")))
+        Tree::new(&leaf.program, shape).unwrap_or_else(|e| refuse(format_args!("{e}")))
     });
-    let leaves_proofs = vec![Leaf::new(&proof, output); leaves];
+    let leaves_proofs = vec![Leaf::new(proof, output); leaves];
 
     println!(
         "Aggregation tree over {leaves} x {title}, first level {arity_0}, arity {arity}, log-inv-rate {}",
@@ -149,7 +106,7 @@ pub fn run(leaf: LeafProgram, n: usize, shape: Shape, prover: &Prover, plan: Pla
     println!("  proving                     : {}", secs(&leaf_time));
     println!("tree setup (both circuits, the fixed polynomials): {}", secs(&setup));
 
-    let firsts = vec![Leaf::new(&proof, output); arity_0];
+    let firsts = vec![Leaf::new(proof, output); arity_0];
     let (first, first_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
         tree.prove_first(&firsts).expect("honest leaves")

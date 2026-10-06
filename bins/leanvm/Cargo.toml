@@ -30,3 +30,5 @@ stateproof-host.workspace = true
 leanda-host.workspace = true
 tracing.workspace = true
 clap = { version = "4", features = ["derive"] }
+# The one-thread cases' benchmarks, merged with this process's.
+serde_json = "1"

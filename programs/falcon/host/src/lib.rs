@@ -7,7 +7,7 @@
 //! One message for all signers is the Ethereum shape: validators attest to one block.
 
 use falcon::{BODY_WORDS, Message, NONCE_WORDS, PUBLIC_KEY_WORDS, PublicKey, Signature};
-use leanvm_guest::{PublicValues, as_words_unchecked};
+use leanvm_guest::{PublicValues, Run, as_words_unchecked};
 use tide_fn_dsa::{
     CryptoRng, FALCON_KEYGEN_SEED_SIZE, FN_DSA_LOGN_512, FalconProfile, KeyPairGenerator512, RngCore, RngError,
     SHAKE256, SIGN_KEY_SIZE_512, SIGNATURE_SIZE_512, SigningKey, SigningKeyStandard, VRFY_KEY_SIZE_512,
@@ -15,12 +15,6 @@ use tide_fn_dsa::{
 
 /// The guest (`../guest`), built by `programs/build.sh`.
 pub const ELF: &[u8] = include_bytes!("../../falcon.elf");
-
-/// What one run of the guest is given, and what it must output.
-pub struct Run {
-    pub advice: Vec<u64>,
-    pub expected: [u64; 4],
-}
 
 /// The message every signer signs.
 const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
