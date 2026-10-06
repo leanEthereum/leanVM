@@ -17,8 +17,9 @@ use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
+use flock::Witness;
 use flock::arith::{U64Circuit, U64Op};
-use flock::reduction::min_n_blocks_log;
+use flock::reduction::{Instance, min_n_blocks_log};
 use pcs::pack::LOG_PACKING;
 use pcs::stack_open::{RingSwitch, open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
@@ -91,38 +92,34 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
         let _span = tracing::info_span!("Flock prove", n_log).entered();
         let t_pass = Instant::now();
         let t = Instant::now();
-        let (z_packed, a_packed, b_packed, z_lincheck) = circuit.generate_witness(&pairs, n_log);
+        let witness = circuit.generate_witness(&pairs, n_log);
         // SAFETY: `F64` is `repr(transparent)` over `u64`.
-        let q_flock: &[F64] = unsafe { std::slice::from_raw_parts(z_packed.as_ptr().cast(), z_packed.len()) };
+        let q_flock = |z: &[u64]| -> &[F64] { unsafe { std::slice::from_raw_parts(z.as_ptr().cast(), z.len()) } };
         let witness_s = t.elapsed().as_secs_f64();
-        assert_eq!(q_flock.len(), 1 << mu);
+        assert_eq!(witness.z.len(), 1 << mu);
 
         let mut ps = ProverState::from_label(&label);
         let t_prove = Instant::now();
 
         let t = Instant::now();
-        let (commitment, prover_data) = commit(q_flock, mu, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
+        let (commitment, prover_data) = commit(q_flock(&witness.z), mu, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
         ps.add_root(&commitment.root);
         let commit_s = t.elapsed().as_secs_f64();
 
-        let instance = [flock::reduction::Instance {
+        let instance = [Instance {
             block,
             n_blocks_log: n_log,
-            z: &z_packed,
-            a: &a_packed,
-            b: &b_packed,
-            z_lincheck: &z_lincheck,
+            witness,
         }];
         let t = Instant::now();
-        let stage = flock::reduction::prove_zerocheck(&instance, &mut ps);
-        let zerocheck_s = t.elapsed().as_secs_f64();
-
-        let t = Instant::now();
-        let reduced = flock::reduction::prove_lincheck(&instance, stage, &mut ps)
-            .pop()
-            .expect("one circuit");
-        let lincheck_s = t.elapsed().as_secs_f64();
-        drop((a_packed, b_packed, z_lincheck));
+        let reduced = flock::reduction::prove(&instance, &mut ps).pop().expect("one circuit");
+        let reduction_s = t.elapsed().as_secs_f64();
+        let [
+            Instance {
+                witness: Witness { z, .. },
+                ..
+            },
+        ] = instance;
 
         let t = Instant::now();
         let ring = RingSwitch {
@@ -133,7 +130,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
         open_batch_mixed_whir_stacked(
             &mut ps,
             mu,
-            q_flock,
+            q_flock(&z),
             &prover_data,
             &config,
             &[],
@@ -144,14 +141,11 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
 
         let proof = ps.into_proof();
         let pass_s = t_pass.elapsed().as_secs_f64();
-        (
-            proof,
-            [witness_s, commit_s, zerocheck_s, lincheck_s, open_s, prove_s, pass_s],
-        )
+        (proof, [witness_s, commit_s, reduction_s, open_s, prove_s, pass_s])
     };
 
     let plan = Plan::from_env();
-    let mut stages: [Timing; 7] = std::array::from_fn(|_| Timing::default());
+    let mut stages: [Timing; 6] = std::array::from_fn(|_| Timing::default());
     let (transcript, _) = plan.warm_then_measure(|final_pass| {
         let _quiet = (!final_pass).then(bench::suppress_tracing);
         let (out, secs) = prove_pass();
@@ -161,7 +155,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
         out
     });
     // The warmup pass also pushed a sample; drop the leading one per stage.
-    let [witness, commit_stage, zerocheck, lincheck, open, prove, pass] = stages.map(|t| {
+    let [witness, commit_stage, reduction, open, prove, pass] = stages.map(|t| {
         let mut kept = Timing::default();
         for &s in &t.samples()[1..] {
             kept.push(s);
@@ -172,9 +166,10 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|_final_pass| {
         let mut vs = VerifierState::from_label(&label, &transcript);
         let root = vs.next_root().expect("commitment root");
-        let replay = flock::reduction::verify(&[(block, n_log)], &mut vs)
+        let replay = flock::reduction::verify(&[(block.shape(), n_log)], &mut vs)
             .expect("Flock reduction verifies")
             .remove(0);
+        replay.matrices.check(block.circuit).expect("the matrices settle");
         let ring = RingSwitch {
             offset: 0,
             qflock_vars: mu,
@@ -202,7 +197,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
     let pass_s = pass.mean();
     let share = |s: f64| format!("{:>5.1}%", 100.0 * s / pass_s);
     let ms = |t: &Timing| format!("{:>8.1} ms{:<9}{}", t.mean() * 1e3, t.spread(), share(t.mean()));
-    let named = witness.mean() + commit_stage.mean() + zerocheck.mean() + lincheck.mean() + open.mean();
+    let named = witness.mean() + commit_stage.mean() + reduction.mean() + open.mean();
     println!(
         "\nFlock {title} batch proving, {} {unit} (2^{n_log} slots)",
         pretty_integer(&n)
@@ -215,8 +210,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
     println!("  setup (circuit, excluded)       : {setup_ms:>8.1} ms");
     println!("  witness-gen                     : {}", ms(&witness));
     println!("  commit                          : {}", ms(&commit_stage));
-    println!("  zerocheck                       : {}", ms(&zerocheck));
-    println!("  lincheck                        : {}", ms(&lincheck));
+    println!("  reduction                       : {}", ms(&reduction));
     println!("  pcs opening                     : {}", ms(&open));
     println!(
         "  other                           : {:>8.1} ms{:<9}{}",

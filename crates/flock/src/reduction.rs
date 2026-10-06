@@ -8,7 +8,7 @@ use crate::lincheck::{
     self, LincheckCircuit, LincheckClaim, LincheckInput, LincheckStatement, MatrixClaim, MatrixForm, QuirkyPoint,
 };
 use crate::verifier::FlockError;
-use crate::witness::packed_bytes;
+use crate::witness::{Witness, packed_bytes};
 use crate::zerocheck::multilinear::PackedWitness;
 use crate::zerocheck::{self, K_SKIP, PaddingSpec, ZerocheckClaim, ZerocheckInput};
 use fiat_shamir::transcript::{ProverState, VerifierState};
@@ -52,32 +52,20 @@ pub struct Shape {
     pub const_pin_col: usize,
 }
 
-/// Everything the verifier recovers for one circuit: the z-claim for the PCS and the
-/// lincheck claim.
+/// What the verifier's replay leaves of one circuit.
 #[derive(Clone, Debug)]
 pub struct ReductionReplay {
+    /// The claim on the circuit's packed witness, which the PCS discharges.
     pub claim: SliceClaim,
-    pub lc_claim: LincheckClaim,
+    /// The claim on the circuit's matrices, which whoever holds the circuit settles.
+    pub matrices: MatrixClaim,
 }
 
-/// One circuit's batch as the prover holds it: the packed `z`, `A·z` and `B·z` of
-/// `2^n_blocks_log` instances, and `z` again in the lincheck stripe layout.
-#[derive(Clone, Copy)]
+/// One circuit's batch as the prover holds it: `2^n_blocks_log` instances of its block, and their witness.
 pub struct Instance<'a> {
     pub block: Block<'a>,
     pub n_blocks_log: usize,
-    pub z: &'a [u64],
-    pub a: &'a [u64],
-    pub b: &'a [u64],
-    pub z_lincheck: &'a [u8],
-}
-
-/// What the zerocheck stage hands the lincheck stage: the quirky point each
-/// circuit's lincheck runs at. Opaque; the two stages are split only so a caller
-/// can time or profile them apart.
-#[derive(Clone, Debug)]
-pub struct ZerocheckStage {
-    x_abs: Vec<QuirkyPoint>,
+    pub witness: Witness,
 }
 
 /// The lincheck input point carried over from the zerocheck claim: the
@@ -103,57 +91,59 @@ fn reduction_claim(lc: &LincheckClaim, x_outer: &[F192]) -> SliceClaim {
     }
 }
 
-/// **First stage (prover): the batched zerocheck.** Reduces `a·b ⊕ c = 0` over
-/// every circuit's cube to evaluation claims on its `(â, b̂, ĉ)`, all three at one
-/// point, the circuits sharing every challenge.
-pub fn prove_zerocheck(instances: &[Instance<'_>], ps: &mut ProverState) -> ZerocheckStage {
-    let _span = tracing::info_span!("Zerocheck").entered();
-    // No bind_statement here: the embedding protocol binds the circuits, the
-    // instance counts and the commitment root before any challenge, so the
-    // statement is already fully transcript-bound.
-    let inputs: Vec<ZerocheckInput<'_>> = instances
-        .iter()
-        .map(|i| {
-            let m = i.block.k_log + i.n_blocks_log;
-            // The fused generator packs 64 Boolean coordinates per word.
-            let packed_len = 1usize << (m - 6);
-            assert_eq!(i.z.len(), packed_len, "wrong packed witness length");
-            assert_eq!(i.a.len(), packed_len, "wrong packed A·z length");
-            assert_eq!(i.b.len(), packed_len, "wrong packed B·z length");
-            ZerocheckInput {
-                bits: PackedWitness {
-                    a: packed_bytes(i.a),
-                    b: packed_bytes(i.b),
-                },
-                c: packed_bytes(i.z), // C = I, so c == z
-                m,
-                padding: PaddingSpec {
-                    k_log: i.block.k_log,
-                    useful_bits_per_block: i.block.useful_bits,
-                },
-            }
-        })
-        .collect();
-    let claims = zerocheck::prove(&inputs, ps);
-    ZerocheckStage {
-        x_abs: (instances.iter().zip(&claims))
+/// The batched zerocheck then lincheck, leaving one claim on each circuit's committed witness.
+///
+/// - The zerocheck reduces `a·b ⊕ c = 0` over every circuit's cube to claims on its `(â, b̂, ĉ)` at one point.
+/// - The lincheck reduces those to the `2^k_skip` bit slices of each circuit's `z` at one point, against its matrices.
+///
+/// Every circuit shares every challenge.
+pub fn prove(instances: &[Instance<'_>], ps: &mut ProverState) -> Vec<SliceClaim> {
+    // No statement is bound here: the embedding protocol binds the circuits, the instance counts and the commitment
+    // before any challenge.
+    let x_abs: Vec<QuirkyPoint> = {
+        let _span = tracing::info_span!("Zerocheck").entered();
+        let inputs: Vec<ZerocheckInput<'_>> = instances
+            .iter()
+            .map(|i| {
+                let m = i.block.k_log + i.n_blocks_log;
+                // The fused generator packs 64 Boolean coordinates per word.
+                let packed_len = 1usize << (m - 6);
+                let w = &i.witness;
+                assert_eq!(w.z.len(), packed_len, "wrong packed witness length");
+                assert_eq!(w.az.len(), packed_len, "wrong packed A·z length");
+                assert_eq!(w.bz.len(), packed_len, "wrong packed B·z length");
+                ZerocheckInput {
+                    bits: PackedWitness {
+                        a: packed_bytes(&w.az),
+                        b: packed_bytes(&w.bz),
+                    },
+                    // `C = I`, so `c = z`.
+                    c: packed_bytes(&w.z),
+                    m,
+                    padding: PaddingSpec {
+                        k_log: i.block.k_log,
+                        useful_bits_per_block: i.block.useful_bits,
+                    },
+                }
+            })
+            .collect();
+        let claims = zerocheck::prove(&inputs, ps);
+        (instances.iter().zip(&claims))
             .map(|(i, zc)| x_ab_of(zc, i.block.k_log - K_SKIP))
-            .collect(),
-    }
-}
+            .collect()
+    };
 
-/// **Second stage (prover): the batched lincheck.** Reduces every circuit's
-/// `(â, b̂, ĉ)` claims to the `2^k_skip` bit slices of its `z` at one point, against
-/// its per-block matrices, under one sumcheck.
-pub fn prove_lincheck(instances: &[Instance<'_>], stage: ZerocheckStage, ps: &mut ProverState) -> Vec<SliceClaim> {
     let _span = tracing::info_span!("Lincheck").entered();
-    let ZerocheckStage { x_abs } = stage;
     let inputs: Vec<LincheckInput<'_>> = (instances.iter().zip(&x_abs))
         .map(|(i, x_ab)| {
             let m = i.block.k_log + i.n_blocks_log;
-            assert_eq!(i.z_lincheck.len(), (1usize << m) / 8, "wrong lincheck stripe length");
+            assert_eq!(
+                i.witness.stripes.len(),
+                (1usize << m) / 8,
+                "wrong lincheck stripe length"
+            );
             LincheckInput {
-                z_packed: i.z_lincheck,
+                z_packed: &i.witness.stripes,
                 m,
                 k_log: i.block.k_log,
                 k_skip: K_SKIP,
@@ -167,12 +157,6 @@ pub fn prove_lincheck(instances: &[Instance<'_>], stage: ZerocheckStage, ps: &mu
     (claims.iter().zip(&x_abs))
         .map(|(lc, x_ab)| reduction_claim(lc, &x_ab.x_outer))
         .collect()
-}
-
-/// The batched zerocheck then lincheck, leaving one claim on each circuit's committed witness.
-pub fn prove(instances: &[Instance<'_>], ps: &mut ProverState) -> Vec<SliceClaim> {
-    let stage = prove_zerocheck(instances, ps);
-    prove_lincheck(instances, stage, ps)
 }
 
 impl Block<'_> {
@@ -204,10 +188,7 @@ impl Shape {
 /// # Errors
 ///
 /// Returns the first stage that refuses the proof.
-pub fn verify_deferred(
-    circuits: &[(Shape, usize)],
-    vs: &mut VerifierState<'_>,
-) -> Result<Vec<(ReductionReplay, MatrixClaim)>, FlockError> {
+pub fn verify(circuits: &[(Shape, usize)], vs: &mut VerifierState<'_>) -> Result<Vec<ReductionReplay>, FlockError> {
     let log_ns: Vec<usize> = circuits.iter().map(|(shape, n)| shape.k_log + n).collect();
     let zc_claims = zerocheck::verify(&log_ns, vs).map_err(FlockError::Zerocheck)?;
 
@@ -229,28 +210,9 @@ pub fn verify_deferred(
     let lc_claims = lincheck::verify_deferred(&statements, vs).map_err(FlockError::Lincheck)?;
 
     Ok((lc_claims.into_iter().zip(&x_abs))
-        .map(|((lc_claim, matrices), x_ab)| {
-            let replay = ReductionReplay {
-                claim: reduction_claim(&lc_claim, &x_ab.x_outer),
-                lc_claim,
-            };
-            (replay, matrices)
+        .map(|((lc_claim, matrices), x_ab)| ReductionReplay {
+            claim: reduction_claim(&lc_claim, &x_ab.x_outer),
+            matrices,
         })
         .collect())
-}
-
-/// [`verify_deferred`], each circuit's matrix claim settled against the circuit.
-///
-/// # Errors
-///
-/// Returns the first stage that refuses the proof.
-pub fn verify(circuits: &[(Block<'_>, usize)], vs: &mut VerifierState<'_>) -> Result<Vec<ReductionReplay>, FlockError> {
-    let shapes: Vec<(Shape, usize)> = circuits.iter().map(|(block, n)| (block.shape(), *n)).collect();
-    let replays = verify_deferred(&shapes, vs)?;
-    (replays.into_iter().zip(circuits))
-        .map(|((replay, matrices), (block, _))| {
-            matrices.check(block.circuit).map_err(FlockError::Lincheck)?;
-            Ok(replay)
-        })
-        .collect()
 }

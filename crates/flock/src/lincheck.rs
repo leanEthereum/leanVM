@@ -196,13 +196,6 @@ pub(crate) struct QuirkyPoint {
 /// `r_inner_rest` combined with `x_ab.x_outer` (publicly known to the caller).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LincheckClaim {
-    /// The A/B batching challenge (sampled first).
-    pub alpha: F192,
-    /// The constant-pin challenge `alpha³`; zero when the circuit has no pin
-    /// column.
-    pub beta: F192,
-    /// The sumcheck round challenges, in round order (MSB-first binding).
-    pub r_rounds: Vec<F192>,
     /// Multilinear post-vector random sample, length `k_log − k_skip`.
     pub r_inner_rest: Vec<F192>,
     /// The transmitted post-sumcheck vector: the 64 bit-slice values of `z` at
@@ -1179,8 +1172,8 @@ pub(crate) fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<L
     // its matrices' form: the circuit's terminal value less the identity's closed terms.
     (provers.into_iter().zip(inputs))
         .map(|(prover, input)| {
-            let claim = claim_of(alpha, &r_rounds[..prover.rounds], prover.z);
-            let closed = closed_terms(&claim, input.circuit.const_pin_col(), input.x_ab);
+            let claim = claim_of(&r_rounds[..prover.rounds], prover.z);
+            let closed = closed_terms(alpha, &claim, input.circuit.const_pin_col(), input.x_ab);
             ps.add_scalars(&claim.s_hat_v);
             ps.add_scalars(&[prover.running + closed]);
             claim
@@ -1191,14 +1184,9 @@ pub(crate) fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<L
 /// A circuit's claim from its rounds' challenges. The rounds bind the TOP bit
 /// first, so `r_rounds[0]` bound bit `inner_rest_len − 1` of the inner rest, and
 /// LSB-first `r_inner_rest[j] = r_rounds[inner_rest_len − 1 − j]`.
-fn claim_of(alpha: F192, r_rounds: &[F192], s_hat_v: Vec<F192>) -> LincheckClaim {
-    let mut r_inner_rest = r_rounds.to_vec();
-    r_inner_rest.reverse();
+fn claim_of(r_rounds: &[F192], s_hat_v: Vec<F192>) -> LincheckClaim {
     LincheckClaim {
-        alpha,
-        beta: alpha.square() * alpha,
-        r_rounds: r_rounds.to_vec(),
-        r_inner_rest,
+        r_inner_rest: r_rounds.iter().rev().copied().collect(),
         s_hat_v,
     }
 }
@@ -1285,9 +1273,9 @@ pub(crate) fn verify_deferred(
         let rounds = s.k_log - s.k_skip;
         let z_partial: Vec<F192> = vs.next_scalars(1 << s.k_skip)?;
         let value = vs.next_scalar()?;
-        let claim = claim_of(alpha, &r_rounds[..rounds], z_partial);
+        let claim = claim_of(&r_rounds[..rounds], z_partial);
         let lift = r_rounds[rounds..].iter().fold(weight, |acc, &r| acc * r);
-        final_sum += lift * (value + closed_terms(&claim, s.const_pin_col, s.x_ab));
+        final_sum += lift * (value + closed_terms(alpha, &claim, s.const_pin_col, s.x_ab));
         let matrices = MatrixClaim {
             form: MatrixForm {
                 alpha,
@@ -1313,22 +1301,23 @@ pub(crate) fn verify_deferred(
 /// The terms of a circuit's terminal identity that its matrices do not fix, at its claim.
 ///
 /// ```text
-/// beta w_col[pin] + alpha^2 eq(x_inner_rest, r_inner_rest) <lambda(z_skip), s_hat_v>
+/// alpha^3 w_col[pin] + alpha^2 eq(x_inner_rest, r_inner_rest) <lambda(z_skip), s_hat_v>
 /// ```
 ///
 /// - `w_col[pin]` is the constant wire's slice times the eq weight of its inner index.
 /// - The `C` term is `<eq_inner, w_col>` by the tensor structure of both sides: `eq_inner = eq(x_inner_rest) ⊗ λ(z_skip)` and `w_col = eq(r_inner_rest) ⊗ s_hat_v`.
-fn closed_terms(claim: &LincheckClaim, const_pin_col: usize, x_ab: &QuirkyPoint) -> F192 {
+fn closed_terms(alpha: F192, claim: &LincheckClaim, const_pin_col: usize, x_ab: &QuirkyPoint) -> F192 {
     let n_skip = claim.s_hat_v.len();
     let k_skip = n_skip.ilog2() as usize;
     let pin_rest = const_pin_col >> k_skip;
     let eq_pin = (claim.r_inner_rest.iter().enumerate()).fold(F192::ONE, |acc, (j, &r)| {
         acc * if (pin_rest >> j) & 1 == 1 { r } else { r + F192::ONE }
     });
-    let pin = claim.beta * claim.s_hat_v[const_pin_col & (n_skip - 1)] * eq_pin;
+    let beta = alpha.square() * alpha;
+    let pin = beta * claim.s_hat_v[const_pin_col & (n_skip - 1)] * eq_pin;
     let lambda_skip = skip_lagrange_weights(k_skip, x_ab.z_skip);
     let c_slice_value = (lambda_skip.iter().zip(&claim.s_hat_v)).fold(F192::ZERO, |acc, (&w, &v)| acc + w * v);
-    pin + claim.alpha.square() * eq_eval(&x_ab.x_inner_rest, &claim.r_inner_rest) * c_slice_value
+    pin + alpha.square() * eq_eval(&x_ab.x_inner_rest, &claim.r_inner_rest) * c_slice_value
 }
 
 /// The share of a lincheck's terminal identity that only the circuit's matrices fix.

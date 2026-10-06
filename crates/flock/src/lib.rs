@@ -8,6 +8,8 @@
 //! 3. The lincheck reduces those to the bit-slice values of each circuit's `z` at one point.
 //! 4. The commitment's opening binds each circuit's slices.
 //!
+//! One prover and one verifier take any batch of circuits, each a witness over its block.
+//!
 //! Both sumchecks batch every circuit under shared challenges.
 //! Steps 2 to 4 take a circuit's block shape as plain numbers, and reach its matrices only by walking its gate list.
 //!
@@ -34,3 +36,5 @@ mod reduction_tests;
 pub mod verifier;
 mod witness;
 pub mod zerocheck;
+
+pub use witness::Witness;

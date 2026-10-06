@@ -216,10 +216,7 @@ mod tests {
                 circuit.witness_instance(row, z, az, bz);
             });
             let sliced = circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
-            assert!(walk.0[..] == sliced.0[..], "z");
-            assert!(walk.1[..] == sliced.1[..], "A*z");
-            assert!(walk.2[..] == sliced.2[..], "B*z");
-            assert!(walk.3[..] == sliced.3[..], "lincheck stripes");
+            assert!(walk == sliced, "the witness tables");
         }
     }
 }

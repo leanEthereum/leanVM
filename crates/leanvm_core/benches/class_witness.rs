@@ -5,7 +5,7 @@
 //! ```
 
 use bench::Plan;
-use leanvm_core::TableId;
+use leanvm_core::{Fill, TableId};
 use primitives::test_util::Rng;
 
 #[global_allocator]
@@ -22,11 +22,11 @@ fn main() {
         "class", "k_log", "walk", "64 lanes", "speedup"
     );
     // Every class with a circuit and no word-level witness of its own.
-    for spec in TableId::ALL
-        .map(TableId::spec)
-        .into_iter()
-        .filter(|spec| spec.circuit.as_ref().is_some_and(|c| c.witness.is_none()))
-    {
+    for spec in TableId::ALL.map(TableId::spec).into_iter().filter(|spec| {
+        spec.circuit
+            .as_ref()
+            .is_some_and(|c| !matches!(c.fill, Fill::Instance(_)))
+    }) {
         let circuit = spec.class.circuit();
 
         // Random input words: the walk costs the same on any input.

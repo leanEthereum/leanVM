@@ -40,6 +40,17 @@ pub type InstanceWitness = fn(&[u64], &mut [u64], &mut [u64], &mut [u64]);
 /// Eight instances' packed witness by native word arithmetic.
 pub type BatchWitness = fn(&[&[u64]; 8], &mut [u64], &mut [u64], &mut [u64]);
 
+/// How a class circuit's witness is generated.
+#[derive(Clone, Copy, Debug)]
+pub enum Fill {
+    /// The generic walk of the gate list, 64 instances at a time.
+    Walk,
+    /// Word arithmetic one instance at a time, checked against the walk.
+    Instance(InstanceWitness),
+    /// Word arithmetic eight instances at a time, checked against the walk.
+    Batch8(BatchWitness),
+}
+
 /// A class's flock circuit: its size, its ports, and how its witness is generated.
 pub struct ClassCircuit {
     /// Base-two logarithm of the circuit's bits per instance.
@@ -51,11 +62,8 @@ pub struct ClassCircuit {
     /// The words the circuit gives, in port order after the inputs.
     pub outputs: &'static [Word],
 
-    /// Word-level witness generation, checked against the generic circuit walk.
-    pub witness: Option<InstanceWitness>,
-
-    /// Eight-instance witness generation when native arithmetic supports batching.
-    pub batch_witness: Option<BatchWitness>,
+    /// How the witness is generated.
+    pub fill: Fill,
 }
 
 /// Register accesses, memory shape, and circuit ports of one instruction class.
@@ -112,8 +120,7 @@ impl ClassSpec {
             k_log: 10,
             inputs: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Dt, Word::Pc4],
             outputs: &[Word::Out, Word::Jump],
-            witness: None,
-            batch_witness: None,
+            fill: Fill::Walk,
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -134,8 +141,7 @@ impl ClassSpec {
             k_log: 10,
             inputs: &[Word::V1, Word::Imm, Word::Flags, Word::Cell(0)],
             outputs: &[Word::Address, Word::Out],
-            witness: None,
-            batch_witness: None,
+            fill: Fill::Walk,
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -156,8 +162,7 @@ impl ClassSpec {
             k_log: 10,
             inputs: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Cell(0)],
             outputs: &[Word::Address, Word::CellNew(0)],
-            witness: None,
-            batch_witness: None,
+            fill: Fill::Walk,
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -178,8 +183,7 @@ impl ClassSpec {
             k_log: 8,
             inputs: &[Word::V1, Word::Imm],
             outputs: &[Word::Address],
-            witness: None,
-            batch_witness: None,
+            fill: Fill::Walk,
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -200,8 +204,7 @@ impl ClassSpec {
             k_log: 8,
             inputs: &[Word::V1, Word::Imm],
             outputs: &[Word::Address],
-            witness: None,
-            batch_witness: None,
+            fill: Fill::Walk,
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -222,8 +225,7 @@ impl ClassSpec {
             k_log: 10,
             inputs: &[Word::V1, Word::V2, Word::Imm, Word::Flags],
             outputs: &[Word::Out],
-            witness: None,
-            batch_witness: None,
+            fill: Fill::Walk,
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -244,11 +246,10 @@ impl ClassSpec {
             k_log: 12,
             inputs: &[Word::V1, Word::V2, Word::Flags],
             outputs: &[Word::Out],
-            witness: None,
-            batch_witness: if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
-                Some(Mul::witness_batch)
+            fill: if cfg!(all(target_arch = "x86_64", target_feature = "avx2")) {
+                Fill::Batch8(Mul::witness_batch)
             } else {
-                None
+                Fill::Walk
             },
         }),
         clock_k_log: 9,
@@ -270,8 +271,7 @@ impl ClassSpec {
             k_log: 13,
             inputs: &[Word::V1, Word::V2, Word::Flags],
             outputs: &[Word::Out],
-            witness: Some(Mulh::witness),
-            batch_witness: None,
+            fill: Fill::Instance(Mulh::witness),
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -292,8 +292,7 @@ impl ClassSpec {
             k_log: 13,
             inputs: &[Word::V1, Word::V2, Word::Flags, Word::HintQ, Word::HintR],
             outputs: &[Word::Out, Word::Bad],
-            witness: None,
-            batch_witness: None,
+            fill: Fill::Walk,
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -329,8 +328,7 @@ impl ClassSpec {
                 Word::Cell(15),
             ],
             outputs: &[Word::CellNew(4), Word::CellNew(5), Word::CellNew(6), Word::CellNew(7)],
-            witness: Some(rv::circuits::blake2s_witness),
-            batch_witness: None,
+            fill: Fill::Instance(rv::circuits::blake2s_witness),
         }),
         clock_k_log: 11,
         clock_inputs: &[],

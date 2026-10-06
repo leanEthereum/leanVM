@@ -5,6 +5,7 @@ use super::mul::Multiplier;
 use super::{Instance, or_bits};
 use crate::circuit::{Builder, Circuit};
 use crate::reduction::Block;
+use crate::witness::Witness;
 
 pub(crate) const A_BASE: usize = 0;
 pub(crate) const B_BASE: usize = 64;
@@ -90,14 +91,8 @@ impl U64Circuit {
         self.circuit.block()
     }
 
-    /// `(z, a, b, z_lincheck)` for `pairs` padded with `(0, 0)` to
-    /// `2^n_blocks_log` instances: the bit-packed `z`, `A·z` and `B·z`
-    /// (`2^k_log / 64` words per instance), and lincheck's byte stripes.
-    pub fn generate_witness(
-        &self,
-        pairs: &[(u64, u64)],
-        n_blocks_log: usize,
-    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
+    /// The witness of `pairs`, padded with `(0, 0)` to `2^n_blocks_log` instances.
+    pub fn generate_witness(&self, pairs: &[(u64, u64)], n_blocks_log: usize) -> Witness {
         let n = self.op.out_bits();
         self.circuit
             .generate_witness_with(pairs, &(0, 0), n_blocks_log, |&(a, b), z, az, bz| {
@@ -155,7 +150,7 @@ mod tests {
             let circuit = U64Circuit::new(op);
             let k = circuit.circuit.n_cols();
             let pairs = pairs(1 << n_log, 0x3A11);
-            let (z, _, _, _) = circuit.generate_witness(&pairs, n_log);
+            let z = circuit.generate_witness(&pairs, n_log).z;
             for (t, &(x, y)) in pairs.iter().enumerate() {
                 let word = |w: usize| z[t * (k / 64) + w];
                 let out = (word(2) as u128 | (word(3) as u128) << 64) & (u128::MAX >> (128 - op.out_bits()));
@@ -185,10 +180,7 @@ mod tests {
             let rows: Vec<[u64; 2]> = pairs.iter().map(|&(a, b)| [a, b]).collect();
             let fast = circuit.generate_witness(&pairs, n_log);
             let generic = circuit.circuit.generate_witness(&rows, n_log);
-            assert!(fast.0[..] == generic.0[..], "{op:?}: z");
-            assert!(fast.1[..] == generic.1[..], "{op:?}: A·z");
-            assert!(fast.2[..] == generic.2[..], "{op:?}: B·z");
-            assert!(fast.3[..] == generic.3[..], "{op:?}: stripes");
+            assert!(fast == generic, "{op:?}");
         }
     }
 
@@ -205,24 +197,22 @@ mod tests {
             let block = circuit.block();
             let pairs = pairs(1 << n_log, 0x3A12);
             let run = |tamper: Option<usize>| {
-                let (mut z, a, b, mut z_lincheck) = circuit.generate_witness(&pairs, n_log);
+                let mut witness = circuit.generate_witness(&pairs, n_log);
                 if let Some(bit) = tamper {
-                    z[bit / 64] ^= 1 << (bit % 64);
-                    z_lincheck[bit] ^= 1;
+                    witness.z[bit / 64] ^= 1 << (bit % 64);
+                    witness.stripes[bit] ^= 1;
                 }
                 let mut ps = ProverState::from_label(LABEL);
                 let instance = Instance {
                     block,
                     n_blocks_log: n_log,
-                    z: &z,
-                    a: &a,
-                    b: &b,
-                    z_lincheck: &z_lincheck,
+                    witness,
                 };
                 let claims = reduction::prove(&[instance], &mut ps);
                 let proof = ps.into_proof();
                 let mut vs = VerifierState::from_label(LABEL, &proof);
-                reduction::verify(&[(block, n_log)], &mut vs).is_ok_and(|r| r[0].claim == claims[0])
+                reduction::verify(&[(block.shape(), n_log)], &mut vs)
+                    .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
                     && vs.finish().is_ok()
             };
             assert!(run(None), "{op:?}");
@@ -245,27 +235,23 @@ mod tests {
     /// rejected.
     #[test]
     fn a_mixed_batch_proves_each_circuit() {
-        type Tables = (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>);
         const LABEL: &[u8] = b"flock-arith-batch-test";
         let ops = OPS.map(U64Circuit::new);
         assert_eq!(ops.each_ref().map(U64Circuit::k_log), [8, 12, 13]);
         // (operation, log instances, height)
         let shapes = [(0, 9, 0), (1, 7, 40), (2, 3, 5), (0, 6, 64), (1, 8, 130)];
         let blocks: Vec<(Block<'_>, usize)> = shapes.iter().map(|&(op, n_log, _)| (ops[op].block(), n_log)).collect();
-        let tables = |f: usize| -> Tables {
+        let tables = |f: usize| -> Witness {
             let (op, n_log, h) = shapes[f];
             ops[op].generate_witness(&pairs(h, 0x3A15 + f as u64), n_log)
         };
-        let whole: Vec<Tables> = (0..shapes.len()).map(tables).collect();
-        let prove = |tables: &[Tables]| {
-            let instances: Vec<Instance<'_>> = (tables.iter().zip(&blocks))
-                .map(|((z, a, b, z_lincheck), &(block, n_blocks_log))| Instance {
+        let whole: Vec<Witness> = (0..shapes.len()).map(tables).collect();
+        let prove = |tables: Vec<Witness>| {
+            let instances: Vec<Instance<'_>> = (tables.into_iter().zip(&blocks))
+                .map(|(witness, &(block, n_blocks_log))| Instance {
                     block,
                     n_blocks_log,
-                    z,
-                    a,
-                    b,
-                    z_lincheck,
+                    witness,
                 })
                 .collect();
             let mut ps = ProverState::from_label(LABEL);
@@ -274,12 +260,15 @@ mod tests {
         };
         let accepts = |proof: &ProofTranscript| {
             let mut vs = VerifierState::from_label(LABEL, proof);
-            reduction::verify(&blocks, &mut vs).ok().filter(|_| vs.finish().is_ok())
+            let shapes: Vec<_> = blocks.iter().map(|(block, n)| (block.shape(), *n)).collect();
+            let replays = reduction::verify(&shapes, &mut vs).ok()?;
+            let settled = (replays.iter().zip(&blocks)).all(|(r, (block, _))| r.matrices.check(block.circuit).is_ok());
+            (settled && vs.finish().is_ok()).then_some(replays)
         };
 
-        let (proof, claims) = prove(&whole);
+        let (proof, claims) = prove(whole.clone());
         let replays = accepts(&proof).expect("an honest batch verifies");
-        for (f, ((replay, claim), (z, ..))) in replays.iter().zip(&claims).zip(&whole).enumerate() {
+        for (f, ((replay, claim), Witness { z, .. })) in replays.iter().zip(&claims).zip(&whole).enumerate() {
             assert_eq!(&replay.claim, claim, "circuit {f}'s claim");
             // Word `w` of the packed witness is position `w` past the skip, bit `i` its slice `i`.
             let eq = primitives::multilinear::eq_table(&claim.suffix_point);
@@ -293,13 +282,13 @@ mod tests {
 
         // A flipped bit (an output bit of instance 1) in any one circuit.
         for f in 0..shapes.len() {
-            let mut tampered: Vec<Tables> = (0..shapes.len()).map(tables).collect();
+            let mut tampered: Vec<Witness> = (0..shapes.len()).map(tables).collect();
             let k = 1usize << blocks[f].0.k_log;
-            let (z, _, _, z_lincheck) = &mut tampered[f];
+            let Witness { z, stripes, .. } = &mut tampered[f];
             let bit = k + OUT_BASE + 5;
             z[bit / 64] ^= 1 << (bit % 64);
-            z_lincheck[OUT_BASE + 5] ^= 1 << 1;
-            let (bad, _) = prove(&tampered);
+            stripes[OUT_BASE + 5] ^= 1 << 1;
+            let (bad, _) = prove(tampered);
             assert!(accepts(&bad).is_none(), "a flipped bit of circuit {f} must reject");
         }
 

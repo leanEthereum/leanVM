@@ -24,7 +24,9 @@
 
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
-use crate::witness::{GroupTables, drive_witness_batched, drive_witness_groups, drive_witness_packed_and_lincheck};
+use crate::witness::{
+    GroupTables, Witness, drive_witness_batched, drive_witness_groups, drive_witness_packed_and_lincheck,
+};
 use primitives::bits::transpose_64x64;
 use primitives::field::F192;
 use std::ops::Range;
@@ -306,15 +308,9 @@ impl Circuit {
         }
     }
 
-    /// `(z, a, b, z_lincheck)` for `rows` of input words, padded with all-zero inputs
-    /// to `2^n_blocks_log` instances: the bit-packed `z`, `A·z` and `B·z`
-    /// (`2^k_log / 64` words per instance), and lincheck's byte stripes.
+    /// The witness of `rows` of input words, padded with all-zero inputs to `2^n_blocks_log` instances.
     #[cfg(any(test, feature = "bench"))]
-    pub fn generate_witness<const N: usize>(
-        &self,
-        rows: &[[u64; N]],
-        n_blocks_log: usize,
-    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
+    pub fn generate_witness<const N: usize>(&self, rows: &[[u64; N]], n_blocks_log: usize) -> Witness {
         assert_eq!(N, self.n_input_words);
         self.generate_witness_from(rows, &[0; N], n_blocks_log, |row, words| words.copy_from_slice(row))
     }
@@ -340,7 +336,7 @@ impl Circuit {
         padding: &S,
         n_blocks_log: usize,
         input_words: impl Fn(&S, &mut [u64]) + Sync,
-    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
+    ) -> Witness {
         assert!(rows.len() <= 1 << n_blocks_log, "more rows than instances");
         // A batch below 64 instances is walked in full and stored in part.
         let lanes = LANES.min(1 << n_blocks_log);
@@ -411,7 +407,7 @@ impl Circuit {
         padding: &S,
         n_blocks_log: usize,
         instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
-    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
+    ) -> Witness {
         drive_witness_packed_and_lincheck(rows, Some(padding), n_blocks_log, self.k_log, instance)
     }
 
@@ -424,7 +420,7 @@ impl Circuit {
         padding: &S,
         n_blocks_log: usize,
         batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
-    ) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
+    ) -> Witness {
         // Eight adjacent instances occupy one lincheck byte stripe.
         drive_witness_batched(rows, padding, n_blocks_log, self.k_log, batch)
     }
@@ -624,10 +620,10 @@ mod tests {
                 circuit.witness_instance(row, z, az, bz);
             });
             let sliced = circuit.generate_witness_from(&rows, &padding, n_log, |row, words| words.copy_from_slice(row));
-            assert!(walk.0[..] == sliced.0[..], "z, round {round}");
-            assert!(walk.1[..] == sliced.1[..], "A·z, round {round}");
-            assert!(walk.2[..] == sliced.2[..], "B·z, round {round}");
-            assert!(walk.3[..] == sliced.3[..], "lincheck stripes, round {round}");
+            assert!(walk.z == sliced.z, "z, round {round}");
+            assert!(walk.az == sliced.az, "A·z, round {round}");
+            assert!(walk.bz == sliced.bz, "B·z, round {round}");
+            assert!(walk.stripes == sliced.stripes, "lincheck stripes, round {round}");
         }
     }
 }

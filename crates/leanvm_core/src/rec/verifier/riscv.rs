@@ -76,7 +76,7 @@ impl<'p> ProofShape<'p> {
         let reduced = r.scope("bus and tables", |r| {
             infallible(self.layout.reduce_tables(r, clock, &output))
         });
-        let circuits = FlockId::ALL.map(|f| (f.shape(), self.taus[f.table()]));
+        let circuits = FlockId::batches(&self.taus);
         let reductions = r.scope("flock", |r| Reduction::replay(r, &circuits));
 
         r.scope("opening", |r| self.open(r, root, &reductions, &reduced));

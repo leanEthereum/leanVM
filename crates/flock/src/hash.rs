@@ -87,14 +87,9 @@ use crate::gf2::{
     walk_add3_fused, wire_from_const, wire_from_slot_base, wire_rotl, wire_rotr, wire_xor,
 };
 use crate::lincheck::LincheckCircuit;
-use crate::reduction;
 use crate::reduction::Block;
-use crate::verifier::FlockError;
-use crate::witness::drive_witness_packed_and_lincheck;
-use fiat_shamir::transcript::VerifierState;
+use crate::witness::{Witness, drive_witness_packed_and_lincheck};
 use primitives::field::F192;
-
-use crate::reduction::{Instance, ReductionReplay, min_n_blocks_log};
 use primitives::hash::{G_LANES, IV, SIGMA};
 
 // ---------------------------------------------------------------------------
@@ -705,13 +700,8 @@ fn build_block_witness_ab_packed_into(
     }
 }
 
-/// Produce `(z, a, b, z_lincheck)` for `blocks.len()` compressions padded to
-/// `2^n_blocks_log` slots. Mirror of `blake2s`'s generator; see it for the
-/// buffer shapes and the lincheck stripe indexing.
-pub fn generate_witness_with_ab_packed_and_lincheck(
-    blocks: &[Compression],
-    n_blocks_log: usize,
-) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
+/// The witness of `blocks.len()` compressions, padded to `2^n_blocks_log` instances.
+pub fn generate_witness(blocks: &[Compression], n_blocks_log: usize) -> Witness {
     let padding = padding_block();
     drive_witness_packed_and_lincheck(
         blocks,
@@ -722,70 +712,12 @@ pub fn generate_witness_with_ab_packed_and_lincheck(
     )
 }
 
-// ---------------------------------------------------------------------------
-// Convenience API: Blake2sSetup
-// ---------------------------------------------------------------------------
-
-/// Bundles the monolithic BLAKE2s compression R1CS for the smallest supported
-/// power-of-two shape that can hold `n_blocks` compressions.
-#[derive(Clone, Debug)]
-pub struct Blake2sSetup {
-    n_blocks_log: usize,
-}
-
-impl Blake2sSetup {
-    /// Build a setup for `n_blocks` BLAKE2s compressions.
-    pub const fn new(n_blocks: usize) -> Self {
-        Self {
-            n_blocks_log: min_n_blocks_log(n_blocks),
-        }
-    }
-
-    pub const fn m(&self) -> usize {
-        K_LOG + self.n_blocks_log
-    }
-    pub const fn n_blocks_log(&self) -> usize {
-        self.n_blocks_log
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-// The zerocheck, lincheck, and ring-switch scalars use the shared transcript;
-// the caller carries the WHIR opening.
-
 /// The BLAKE2s circuit as the reduction sees it.
-const BLOCK: Block<'static> = Block {
+pub const BLOCK: Block<'static> = Block {
     k_log: K_LOG,
     useful_bits: USEFUL_BITS,
     circuit: &WalkLincheckCircuit,
 };
-
-impl Blake2sSetup {
-    /// The compressions' batch for the reduction: the packed `z`, `A·z`, `B·z`, and
-    /// lincheck-stripe buffers the embedder generated
-    /// (`generate_witness_with_ab_packed_and_lincheck`) before committing the
-    /// flattened witness.
-    pub const fn instance<'a>(&self, z: &'a [u64], a: &'a [u64], b: &'a [u64], z_lincheck: &'a [u8]) -> Instance<'a> {
-        Instance {
-            block: BLOCK,
-            n_blocks_log: self.n_blocks_log,
-            z,
-            a,
-            b,
-            z_lincheck,
-        }
-    }
-
-    /// **Flock reduction (verifier).** Replay the BLAKE2s zerocheck and
-    /// lincheck straight off the shared transcript stream, recovering the one
-    /// evaluation claim on the committed witness `q_flock`, which the PCS then discharges.
-    pub fn verify_reduction(&self, vs: &mut VerifierState<'_>) -> Result<ReductionReplay, FlockError> {
-        reduction::verify(&[(BLOCK, self.n_blocks_log)], vs).map(|mut replays| replays.pop().expect("one circuit"))
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -814,8 +746,8 @@ mod tests {
         (0..n_bits).map(|i| (z[i / 64] >> (i % 64)) & 1 == 1).collect()
     }
 
-    fn generate_witness(blocks: &[Compression], n_blocks_log: usize) -> Vec<bool> {
-        let z = generate_witness_with_ab_packed_and_lincheck(blocks, n_blocks_log).0;
+    fn witness_bits(blocks: &[Compression], n_blocks_log: usize) -> Vec<bool> {
+        let z = generate_witness(blocks, n_blocks_log).z;
         unpack_bits(&z, (1usize << n_blocks_log) * K)
     }
 
@@ -862,7 +794,7 @@ mod tests {
         let h: [u32; 8] = std::array::from_fn(|_| rng.next_u32());
         let m: [u32; 16] = std::array::from_fn(|_| rng.next_u32());
         let blocks = vec![(h, m, 0x1234_5678_9ABC_DEF0u64, u32::MAX, 0u32)];
-        let z = generate_witness(&blocks, 3);
+        let z = witness_bits(&blocks, 3);
         let mut expected = h;
         compress(&mut expected, &m, 0x1234_5678_9ABC_DEF0, true);
         for w in 0..8 {
@@ -886,7 +818,7 @@ mod tests {
                     )
                 })
                 .collect();
-            let z = generate_witness(&blocks, 3);
+            let z = witness_bits(&blocks, 3);
             assert_eq!(z.len(), K << 3);
             assert!(satisfies(&z, 3), "witness for {n_blocks} compressions fails R1CS");
         }
@@ -896,7 +828,7 @@ mod tests {
     fn mutated_witness_fails() {
         let mut rng = Rng::new(0xB2DEAD);
         let blocks = vec![(param_iv(), std::array::from_fn(|_| rng.next_u32()), 64, 0, 0)];
-        let mut z = generate_witness(&blocks, 3);
+        let mut z = witness_bits(&blocks, 3);
         assert!(satisfies(&z, 3));
         // One bit in each layer of a fused ADD, and one in a two-operand ADD,
         // in the last round where the affine cascade is deepest.
@@ -916,7 +848,7 @@ mod tests {
         assert_eq!(WalkLincheckCircuit.const_pin_col(), Z_CONST_POS);
         let z_zero = vec![false; K << 3];
         assert!(satisfies(&z_zero, 3), "homogeneous rows accept zero without the pin");
-        let z = generate_witness(&[padding_block()], 3);
+        let z = witness_bits(&[padding_block()], 3);
         assert!(z[Z_CONST_POS], "the pinned constant wire must be 1 in every block");
     }
 }

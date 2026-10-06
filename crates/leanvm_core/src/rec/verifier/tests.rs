@@ -15,9 +15,9 @@ use crate::rec::table::HashFlock;
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::rv::Region;
 use crate::rv::asm::*;
-use crate::tables::{N_TABLES, PerTable, TableId};
+use crate::tables::{Fill, N_TABLES, PerTable, TableId};
 use crate::witness::StackShape;
-use ::flock::reduction::{Instance, Shape};
+use ::flock::reduction::{self, Instance, ReductionReplay, Shape};
 use ::flock::zerocheck::K_SKIP;
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::stack_open::RingFamily;
@@ -262,73 +262,51 @@ fn raw(proof: &ProofTranscript) -> RawProof {
     }
 }
 
-// Packed witness `f`'s batch over `rows`: its instances' count, and its witness as the prover holds it.
-struct Batch {
-    f: FlockId,
-    n_blocks_log: usize,
-    witness: (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>),
-}
-
-impl Batch {
-    fn new<const N: usize>(f: FlockId, rows: &[[u64; N]]) -> Self {
-        let circuit = f.circuit();
-        let spec = f.table().spec();
-        let n_blocks_log = spec.n_blocks_log(rows.len());
-        let witness = spec.circuit.as_ref().and_then(|c| c.witness).map_or_else(
-            || circuit.generate_witness(rows, n_blocks_log),
-            |witness| {
-                circuit.generate_witness_with(rows, &[0; N], n_blocks_log, |row, z, az, bz| witness(row, z, az, bz))
-            },
-        );
-        Self {
-            f,
-            n_blocks_log,
-            witness,
+// Packed witness `f`'s batch over `rows`, as the prover holds it.
+fn batch<const N: usize>(f: FlockId, rows: &[[u64; N]]) -> Instance<'static> {
+    let (circuit, spec) = (f.circuit(), f.table().spec());
+    let n_blocks_log = spec.n_blocks_log(rows.len());
+    let witness = match spec.circuit.as_ref().map(|c| c.fill) {
+        Some(Fill::Instance(instance)) => {
+            circuit.generate_witness_with(rows, &[0; N], n_blocks_log, |row, z, az, bz| instance(row, z, az, bz))
         }
+        _ => circuit.generate_witness(rows, n_blocks_log),
+    };
+    Instance {
+        block: circuit.block(),
+        n_blocks_log,
+        witness,
     }
 }
 
-// The batched reduction of the packed witnesses, proven natively.
-fn prove_reductions(batches: &[Batch]) -> ProofTranscript {
-    let instances: Vec<Instance<'_>> = (batches.iter())
-        .map(|batch| {
-            let (z, a, b, z_lincheck) = &batch.witness;
-            Instance {
-                block: batch.f.circuit().block(),
-                n_blocks_log: batch.n_blocks_log,
-                z,
-                a,
-                b,
-                z_lincheck,
-            }
-        })
-        .collect();
-    let mut ps = ProverState::from_label(LABEL);
-    ::flock::reduction::prove(&instances, &mut ps);
-    ps.into_proof()
-}
-
 // The reduction in rows agrees with the native replay, and a tampered scalar fails both, where the native verifier fails.
-fn check_reductions(batches: &[Batch]) {
-    let proof = prove_reductions(batches);
+fn check_reductions(batches: &[Instance<'static>]) {
+    let proof = {
+        let mut ps = ProverState::from_label(LABEL);
+        reduction::prove(batches, &mut ps);
+        ps.into_proof()
+    };
     let circuits: Vec<(Shape, usize)> = (batches.iter())
-        .map(|batch| (batch.f.shape(), batch.n_blocks_log))
+        .map(|batch| (batch.block.shape(), batch.n_blocks_log))
         .collect();
     let native = |proof: &ProofTranscript| {
         let mut vs = VerifierState::from_label(LABEL, proof);
-        ::flock::reduction::verify_deferred(&circuits, &mut vs)
+        reduction::verify(&circuits, &mut vs)
     };
     let rows = |proof: &RawProof| replay(ProofSource::Proof(proof), |r| Reduction::replay(r, &circuits));
 
     let replays = native(&proof).expect("an honest batch");
     let (b, reductions, finished) = rows(&raw(&proof));
     assert!(finished, "the rows read the whole stream");
-    for ((batch, reduction), (replay, matrices)) in batches.iter().zip(&reductions).zip(&replays) {
+    for (f, ((batch, reduction), replay)) in batches.iter().zip(&reductions).zip(&replays).enumerate() {
         let point: Vec<F192> = reduction.slice.suffix_point.iter().map(|&w| b.e(w)).collect();
-        assert_eq!(point, replay.claim.suffix_point, "{:?}'s point", batch.f);
-        assert_eq!(reduction.matrix.point.map(|w| b.e(w)), matrices.form);
-        assert_eq!(b.e(reduction.matrix.value), matrices.value);
-        assert_eq!(matrices.form.evaluate(batch.f.circuit()), matrices.value);
+        assert_eq!(point, replay.claim.suffix_point, "circuit {f}'s point");
+        assert_eq!(reduction.matrix.point.map(|w| b.e(w)), replay.matrices.form);
+        assert_eq!(b.e(reduction.matrix.value), replay.matrices.value);
+        assert_eq!(
+            replay.matrices.form.evaluate(batch.block.circuit),
+            replay.matrices.value
+        );
     }
     let Finished { circuit, failures, .. } = b.finish();
     assert!(failures.is_empty(), "{failures:?}");
@@ -369,17 +347,15 @@ fn check_reductions(batches: &[Batch]) {
     // A value moved between two circuits' forms keeps the batch's identity: the core accepts, and the claims do not settle.
     if n > 1 {
         let lifts: Vec<F192> = {
-            let longest = (replays.iter().map(|(replay, _)| &replay.lc_claim.r_rounds))
-                .max_by_key(|r| r.len())
-                .expect("a batch");
-            let alpha_4 = replays[0].0.lc_claim.alpha.square().square();
+            // A circuit's lincheck rounds bind its inner coordinates top first: its round challenges are its
+            // column point reversed, a prefix of the longest circuit's.
+            let rounds = |replay: &ReductionReplay| replay.matrices.form.r_inner_rest.len();
+            let longest = replays.iter().max_by_key(|r| rounds(r)).expect("a batch");
+            let r_rounds: Vec<F192> = longest.matrices.form.r_inner_rest.iter().rev().copied().collect();
+            let alpha_4 = replays[0].matrices.form.alpha.square().square();
             let weights = primitives::field::powers(alpha_4, n);
             (replays.iter().zip(weights))
-                .map(|((replay, _), w)| {
-                    longest[replay.lc_claim.r_rounds.len()..]
-                        .iter()
-                        .fold(w, |acc, &r| acc * r)
-                })
+                .map(|(replay, w)| r_rounds[rounds(replay)..].iter().fold(w, |acc, &r| acc * r))
                 .collect()
         };
         let delta = F192::new(7, 0, 0);
@@ -388,9 +364,10 @@ fn check_reductions(batches: &[Batch]) {
         forged.stream[len - tail + 2 * PACKING_WIDTH + 1] += delta * lifts[0];
         let moved = native(&forged).expect("the batch's identity holds");
         let (b, reductions, _) = rows(&raw(&forged));
-        for (f, (reduction, (_, matrices))) in reductions.iter().zip(&moved).enumerate() {
+        for (f, (reduction, replay)) in reductions.iter().zip(&moved).enumerate() {
+            let matrices = &replay.matrices;
             assert_eq!(b.e(reduction.matrix.value), matrices.value);
-            let settles = matrices.form.evaluate(batches[f].f.circuit()) == matrices.value;
+            let settles = matrices.form.evaluate(batches[f].block.circuit) == matrices.value;
             assert_eq!(settles, f > 1, "circuit {f}'s moved claim");
         }
         let failures = b.finish().failures;
@@ -398,16 +375,16 @@ fn check_reductions(batches: &[Batch]) {
     }
 }
 
-fn hash_batch(seed: u64) -> Batch {
+fn hash_batch(seed: u64) -> Instance<'static> {
     let mut rng = Rng::new(seed);
     let rows: Vec<[u64; 14]> = (0..5).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
-    Batch::new(HashFlock::FLOCK, &rows)
+    batch(HashFlock::FLOCK, &rows)
 }
 
-fn ld_batch(seed: u64, n: usize) -> Batch {
+fn ld_batch(seed: u64, n: usize) -> Instance<'static> {
     let mut rng = Rng::new(seed);
     let rows: Vec<[u64; 2]> = (0..n).map(|_| [rng.next_u64(), rng.next_u64()]).collect();
-    Batch::new(FlockId::class(TableId::LD).unwrap(), &rows)
+    batch(FlockId::class(TableId::LD).unwrap(), &rows)
 }
 
 #[test]

@@ -8,20 +8,12 @@
 //! `k_log = 14` and `k_skip = 6`. Only the PCS opening is left out, which is
 //! generic in the claims and covered end to end by `blake2s_batch`.
 
-use crate::hash::{
-    Compression, K_LOG, K_SKIP, WalkLincheckCircuit, generate_witness_with_ab_packed_and_lincheck, param_iv,
-};
-use crate::reduction::{self, Block, min_n_blocks_log};
+use crate::hash::{BLOCK, Compression, K_LOG, K_SKIP, generate_witness, param_iv};
+use crate::reduction::{self, Instance, min_n_blocks_log};
 use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
 use primitives::test_util::Rng;
 
 const LABEL: &[u8] = b"flock-blake2s-reduction-test";
-
-const BLOCK: Block<'static> = Block {
-    k_log: K_LOG,
-    useful_bits: crate::hash::USEFUL_BITS,
-    circuit: &WalkLincheckCircuit,
-};
 
 fn blocks_for(n: usize, seed: u64) -> Vec<Compression> {
     let mut rng = Rng::new(seed);
@@ -48,22 +40,19 @@ fn prove(n: usize, tamper: Option<usize>) -> (usize, ProofTranscript) {
     let n_log = min_n_blocks_log(n);
     let blocks = blocks_for(n, 0xB2_5E_ED ^ n as u64);
 
-    let (mut z, a, b, mut z_lincheck) = generate_witness_with_ab_packed_and_lincheck(&blocks, n_log);
+    let mut witness = generate_witness(&blocks, n_log);
     if let Some(bit) = tamper {
         // Flip one committed witness bit, in both views the prover feeds in.
-        z[bit / 64] ^= 1u64 << (bit % 64);
+        witness.z[bit / 64] ^= 1u64 << (bit % 64);
         let (inner, outer) = (bit % (1 << K_LOG), bit >> K_LOG);
-        z_lincheck[(outer / 8) * (1 << K_LOG) + inner] ^= 1u8 << (outer % 8);
+        witness.stripes[(outer / 8) * (1 << K_LOG) + inner] ^= 1u8 << (outer % 8);
     }
 
     let mut ps = ProverState::from_label(LABEL);
-    let instance = reduction::Instance {
+    let instance = Instance {
         block: BLOCK,
         n_blocks_log: n_log,
-        z: &z,
-        a: &a,
-        b: &b,
-        z_lincheck: &z_lincheck,
+        witness,
     };
     reduction::prove(&[instance], &mut ps);
     (n_log, ps.into_proof())
@@ -72,7 +61,9 @@ fn prove(n: usize, tamper: Option<usize>) -> (usize, ProofTranscript) {
 /// Replay a transcript through the reduction verifier.
 fn verify(n_log: usize, transcript: &ProofTranscript) -> bool {
     let mut vs = VerifierState::from_label(LABEL, transcript);
-    reduction::verify(&[(BLOCK, n_log)], &mut vs).is_ok() && vs.finish().is_ok()
+    reduction::verify(&[(BLOCK.shape(), n_log)], &mut vs)
+        .is_ok_and(|replays| replays[0].matrices.check(BLOCK.circuit).is_ok())
+        && vs.finish().is_ok()
 }
 
 /// Prove, then verify.

@@ -261,6 +261,7 @@ mod tests {
     use crate::rv::Class;
     use crate::rv::semantics::tests::{Ports, circuit_matches_reference, edge_word};
     use fiat_shamir::transcript::{ProverState, VerifierState};
+    use flock::reduction::{self, Instance};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -327,24 +328,22 @@ mod tests {
 
         // Prove the batch, optionally flipping one witness bit first, and verify.
         let accepts = |tamper: Option<usize>| {
-            let (mut z, a, b, mut z_lincheck) = ALU.generate_witness(&rows, n_log);
+            let mut witness = ALU.generate_witness(&rows, n_log);
             if let Some(bit) = tamper {
-                z[bit / 64] ^= 1 << (bit % 64);
-                z_lincheck[bit] ^= 1;
+                witness.z[bit / 64] ^= 1 << (bit % 64);
+                witness.stripes[bit] ^= 1;
             }
             let mut ps = ProverState::from_label(LABEL);
-            let instance = flock::reduction::Instance {
+            let instance = Instance {
                 block,
                 n_blocks_log: n_log,
-                z: &z,
-                a: &a,
-                b: &b,
-                z_lincheck: &z_lincheck,
+                witness,
             };
-            let claims = flock::reduction::prove(&[instance], &mut ps);
+            let claims = reduction::prove(&[instance], &mut ps);
             let proof = ps.into_proof();
             let mut vs = VerifierState::from_label(LABEL, &proof);
-            flock::reduction::verify(&[(block, n_log)], &mut vs).is_ok_and(|r| r[0].claim == claims[0])
+            reduction::verify(&[(block.shape(), n_log)], &mut vs)
+                .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
                 && vs.finish().is_ok()
         };
         assert!(accepts(None));

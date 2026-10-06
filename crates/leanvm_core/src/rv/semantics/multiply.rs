@@ -347,10 +347,10 @@ mod tests {
                 let walk = circuit.generate_witness_from(&rows, &padding, 8, |row, words| words.copy_from_slice(row));
                 let native =
                     circuit.generate_witness_with(&rows, &padding, 8, |row, z, az, bz| witness(row, z, az, bz));
-                assert_eq!(&native.0[..], &walk.0[..], "committed bits, flags {flag}");
-                assert_eq!(&native.1[..], &walk.1[..], "left factors, flags {flag}");
-                assert_eq!(&native.2[..], &walk.2[..], "right factors, flags {flag}");
-                assert_eq!(&native.3[..], &walk.3[..], "byte stripes, flags {flag}");
+                assert_eq!(native.z, walk.z, "committed bits, flags {flag}");
+                assert_eq!(native.az, walk.az, "left factors, flags {flag}");
+                assert_eq!(native.bz, walk.bz, "right factors, flags {flag}");
+                assert_eq!(native.stripes, walk.stripes, "byte stripes, flags {flag}");
             }
         }
     }
@@ -373,10 +373,10 @@ mod tests {
             let inputs = rows.map(|row| row.as_slice());
             Mul::witness_batch(&inputs, z, az, bz);
         });
-        assert_eq!(&batched.0[..], &generic.0[..], "committed bits");
-        assert_eq!(&batched.1[..], &generic.1[..], "left factors");
-        assert_eq!(&batched.2[..], &generic.2[..], "right factors");
-        assert_eq!(&batched.3[..], &generic.3[..], "byte stripes");
+        assert_eq!(batched.z, generic.z, "committed bits");
+        assert_eq!(batched.az, generic.az, "left factors");
+        assert_eq!(batched.bz, generic.bz, "right factors");
+        assert_eq!(batched.stripes, generic.stripes, "byte stripes");
     }
 
     #[test]

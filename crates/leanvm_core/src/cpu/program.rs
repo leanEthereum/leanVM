@@ -12,12 +12,14 @@ use super::reduce::TableClaims;
 use super::witness::Witness;
 use super::{Output, Proof};
 use crate::arith::Native;
+use crate::class_flock::FlockId;
 use crate::constraints::{Claims, Columns};
 use crate::pcs::Rate;
 use crate::rv::{ElfError, Guest, Machine, ProgramError, Region, RiscvProgram};
 use crate::tables::{ClassTable, Clock, PerTable, TableId};
-use crate::{class_flock, constraints, leaf, pcs};
+use crate::{constraints, leaf, pcs};
 use fiat_shamir::transcript::{Challenger, ProverState, RawProof, Transmitter, VerifierState};
+use flock::reduction;
 use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
 use std::cmp::Reverse;
@@ -321,9 +323,7 @@ impl Program {
         // Each circuit leaves a validity claim on its packed witness, discharged in the same opening through a ring-switched region.
         // Each producer's multiplicity column is a ring-switched region too.
         let reductions = w.reductions;
-        let slices = crate::stage!("Flock reductions", || {
-            class_flock::prove_reductions(&reductions, &mut ps)
-        });
+        let slices = crate::stage!("Flock reductions", || reduction::prove(&reductions, &mut ps));
         drop(reductions);
         let rings = l.rings(slices, &table_claims.producers, &table_claims.summed, F192::ZERO);
         crate::stage!("PCS open", || pcs::open(&mut ps, &committed, &w.q, &slots, &rings));
@@ -389,10 +389,10 @@ impl Program {
         // Replay the batched flock reductions off the stream, to recover each circuit's validity claim on its packed witness.
         //
         // Each leaves its matrices' form to its circuit.
-        let (slices, circuit_claims): (Vec<_>, Vec<_>) = class_flock::verify_reductions(&l.taus, &mut vs)
+        let (slices, circuit_claims): (Vec<_>, Vec<_>) = reduction::verify(&FlockId::batches(&l.taus), &mut vs)
             .map_err(CpuError::Reductions)?
             .into_iter()
-            .map(|(replay, matrices)| (replay.claim, matrices.into()))
+            .map(|replay| (replay.claim, replay.matrices.into()))
             .unzip();
 
         // The ring-switched regions: each packed witness, each producer's multiplicity column, each table's register numbers.
@@ -546,6 +546,7 @@ mod tests {
     use crate::rv::semantics::Outcome;
     use crate::rv::{Alu, Class, Machine, ProgramError, Reg, RegisterFile, Trap};
     use crate::tables::{ClassSpec, ClassTable, Clock, Separator};
+    use std::panic::AssertUnwindSafe;
 
     #[test]
     fn construction_refuses_an_entry_or_a_size_out_of_range() {
@@ -672,7 +673,7 @@ mod tests {
 
     /// The prover refuses a witness whose bus does not balance: its two products differ.
     fn assert_unbalanced(program: &Program, w: Witness, output: &[u64; 4]) {
-        let refused = std::panic::catch_unwind(|| program.prove_witness(w, output, Rate::MIN))
+        let refused = std::panic::catch_unwind(AssertUnwindSafe(|| program.prove_witness(w, output, Rate::MIN)))
             .expect_err("an unbalanced bus was proven");
         let message = refused.downcast_ref::<String>().map(String::as_str).unwrap_or("");
         assert!(

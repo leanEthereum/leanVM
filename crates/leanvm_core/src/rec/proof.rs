@@ -14,8 +14,11 @@ use super::table::{HashFlock, Table};
 use crate::arith::Verifier;
 use crate::constraints::{Columns, ConstraintError};
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
+use crate::rv::circuits::blake2s_witness;
 use crate::{constraints, pcs, witness};
 use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, RawProof, VerifierState};
+use flock::reduction::{self, Instance};
+use flock::verifier::FlockError;
 use primitives::field::{F64, F192};
 
 /// The transcript's public input for a statement: the hash of its words' limbs, in order.
@@ -24,20 +27,11 @@ pub fn statement_seed(statement: &[Limbs]) -> [F64; 4] {
     chain(&limbs).map(F64)
 }
 
-/// The hash table's flock batch, one instance per row.
-struct HashBatch {
-    tau: usize,
-    z: Vec<u64>,
-    a: Vec<u64>,
-    b: Vec<u64>,
-    z_lincheck: Vec<u8>,
-}
-
 /// The prover's stack, the hash table's ports by global column, and the hash table's batch.
 struct RecWitness {
     q: Vec<F64>,
     ports: Vec<(usize, Vec<F64>)>,
-    batch: HashBatch,
+    batch: Instance<'static>,
 }
 
 /// The bus and the constraint batch over the owned tables, which leave the column claims the opening settles.
@@ -46,43 +40,33 @@ pub(crate) struct TableArgument<'a> {
     blocks: BusBlocks,
 }
 
-impl HashBatch {
-    /// Every hash row's packed witness, at the hash table's height.
-    fn build(hash: &[Compression], tau: usize) -> Self {
-        let (z, a, b, z_lincheck) =
-            HashFlock::circuit().generate_witness_with(hash, &Compression::PADDING, tau, |row, z, az, bz| {
-                crate::rv::circuits::blake2s_witness(row.inputs(), z, az, bz);
-            });
-        Self {
-            tau,
-            z,
-            a,
-            b,
-            z_lincheck,
+impl HashFlock {
+    /// Every hash row's packed witness, at the hash table's height `2^tau`.
+    fn instance(hash: &[Compression], tau: usize) -> Instance<'static> {
+        let circuit = Self::circuit();
+        let witness = circuit.generate_witness_with(hash, &Compression::PADDING, tau, |row, z, az, bz| {
+            blake2s_witness(row.inputs(), z, az, bz);
+        });
+        Instance {
+            block: circuit.block(),
+            n_blocks_log: tau,
+            witness,
         }
     }
 
     /// Prove every hash row: zerocheck, then lincheck, a batch of one circuit, to one ring-switched claim on the packed witness.
-    fn prove(self, layout: &RecLayout, ps: &mut ProverState) -> RingSwitch {
-        let window = layout.hash_window();
-        let instance = flock::reduction::Instance {
-            block: HashFlock::circuit().block(),
-            n_blocks_log: self.tau,
-            z: &self.z,
-            a: &self.a,
-            b: &self.b,
-            z_lincheck: &self.z_lincheck,
-        };
-        let [reduced] = <[_; 1]>::try_from(flock::reduction::prove(&[instance], ps)).expect("one circuit");
-        window.ring(reduced)
+    fn prove(instance: Instance<'static>, layout: &RecLayout, ps: &mut ProverState) -> RingSwitch {
+        let [reduced] = <[_; 1]>::try_from(reduction::prove(&[instance], ps)).expect("one circuit");
+        layout.hash_window().ring(reduced)
     }
 
     /// The verifier's replay of the hash rows' reduction, to the claim on the packed witness.
     ///
     /// The rows' matrices are settled here, against the circuit.
     fn verify(layout: &RecLayout, vs: &mut VerifierState) -> Result<SliceClaim, RecError> {
-        let circuits = [(HashFlock::circuit().block(), layout.tau(Table::Hash))];
-        let [replay] = <[_; 1]>::try_from(flock::reduction::verify(&circuits, vs)?).expect("one circuit");
+        let batch = (Self::FLOCK.shape(), layout.tau(Table::Hash));
+        let [replay] = <[_; 1]>::try_from(reduction::verify(&[batch], vs)?).expect("one circuit");
+        replay.matrices.check(Self::circuit()).map_err(FlockError::Lincheck)?;
         Ok(replay.claim)
     }
 }
@@ -97,12 +81,17 @@ impl RecWitness {
             table.fill(a, &mut windows[RecLayout::columns(table)]);
         }
 
-        let batch = HashBatch::build(&a.hash, layout.tau(Table::Hash));
-        parallel::chunks_mut_zip(windows[RecLayout::HASH_WITNESS], &batch.z, 1 << 16, |_, dst, src| {
-            for (d, &s) in dst.iter_mut().zip(src) {
-                *d = F64(s);
-            }
-        });
+        let batch = HashFlock::instance(&a.hash, layout.tau(Table::Hash));
+        parallel::chunks_mut_zip(
+            windows[RecLayout::HASH_WITNESS],
+            &batch.witness.z,
+            1 << 16,
+            |_, dst, src| {
+                for (d, &s) in dst.iter_mut().zip(src) {
+                    *d = F64(s);
+                }
+            },
+        );
         drop(windows);
         // SAFETY: the windows tile the stack up to its zeroed tail, and each was filled above.
         let q = unsafe { q.assume_init() }.into_vec();
@@ -113,7 +102,7 @@ impl RecWitness {
         let ports = (0..HashFlock::N_PORTS)
             .map(|port| {
                 let values = (0..1 << layout.tau(Table::Hash))
-                    .map(|j| F64(batch.z[(j << stride_log) + port]))
+                    .map(|j| F64(batch.witness.z[(j << stride_log) + port]))
                     .collect();
                 (ports_at + port, values)
             })
@@ -226,7 +215,7 @@ impl Circuit {
 
         let RecWitness { q, ports, batch } = w;
         drop(ports);
-        let ring = crate::stage!("Flock reduction", || batch.prove(&layout, &mut ps));
+        let ring = crate::stage!("Flock reduction", || HashFlock::prove(batch, &layout, &mut ps));
         crate::stage!("PCS open", || pcs::open(&mut ps, &committed, &q, &slots, &[ring]));
         Ok(ps.into_proof())
     }
@@ -267,7 +256,7 @@ impl Circuit {
         let mut vs = VerifierState::new(iv, proof, public_input);
         let root = pcs::read_commitment(&mut vs)?;
         let slots = TableArgument::of(self, statement, &layout).verify(&mut vs)?;
-        let hash_claim = HashBatch::verify(&layout, &mut vs)?;
+        let hash_claim = HashFlock::verify(&layout, &mut vs)?;
         let ring = layout.hash_window().ring(hash_claim);
         pcs::verify(
             &mut vs,

@@ -60,7 +60,7 @@ pub use leaf::{BusError, N_TUPLE_BITS};
 #[doc(hidden)]
 pub use rv::{Alu, Class, Guest, Hash, Machine, Reg, RegisterFile, Syscall};
 #[doc(hidden)]
-pub use tables::{BAD_SLOT, Clock, EXIT_SLOT, N_TABLES, PerTable, TableId};
+pub use tables::{BAD_SLOT, Clock, EXIT_SLOT, Fill, N_TABLES, PerTable, TableId};
 
 /// Prepare the process for proving: spawn the worker pool up front.
 ///

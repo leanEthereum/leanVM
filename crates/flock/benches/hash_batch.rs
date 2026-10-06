@@ -21,8 +21,9 @@ use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
-use flock::hash::{Blake2sSetup, Compression, K_LOG, generate_witness_with_ab_packed_and_lincheck, pinned_compression};
-use flock::reduction::min_n_blocks_log;
+use flock::Witness;
+use flock::hash::{BLOCK, Compression, K_LOG, generate_witness, pinned_compression};
+use flock::reduction::{Instance, min_n_blocks_log};
 use pcs::pack::LOG_PACKING;
 use pcs::stack_open::{RingSwitch, open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
@@ -53,45 +54,44 @@ fn main() {
         .map(|_| pinned_compression(std::array::from_fn(|_| rng.next_u32())))
         .collect();
 
-    let t = Instant::now();
-    let setup = Blake2sSetup::new(n);
-    let setup_ms = t.elapsed().as_secs_f64() * 1e3;
-
     let config = config_for_rate(mu, LOG_INV_RATE_0).expect("WHIR configuration");
 
-    // One full prove pass: witness generation, commitment, zerocheck, lincheck,
-    // and the stacked opening. Deterministic in `blocks`, so every pass is the
+    // One full prove pass: witness generation, commitment, the reduction (zerocheck
+    // then lincheck), and the stacked opening. Deterministic in `blocks`, so every pass is the
     // same work on the same shape and their timings are directly comparable.
     let prove_pass = || {
         let _span = tracing::info_span!("Flock prove", n_log).entered();
         let t_pass = Instant::now();
         let t = Instant::now();
-        let (z_packed, a_packed, b_packed, z_lincheck) = generate_witness_with_ab_packed_and_lincheck(&blocks, n_log);
+        let witness = generate_witness(&blocks, n_log);
         let witness_s = t.elapsed().as_secs_f64();
         // The committed column is the packed words themselves, viewed in place.
         // SAFETY: `F64` is `repr(transparent)` over `u64`.
-        let q_flock: &[F64] = unsafe { std::slice::from_raw_parts(z_packed.as_ptr().cast(), z_packed.len()) };
-        assert_eq!(q_flock.len(), 1 << mu);
+        let q_flock = |z: &[u64]| -> &[F64] { unsafe { std::slice::from_raw_parts(z.as_ptr().cast(), z.len()) } };
+        assert_eq!(witness.z.len(), 1 << mu);
 
         let mut ps = ProverState::from_label(b"flock-blake2s-batch");
         let t_prove = Instant::now();
 
         let t = Instant::now();
-        let (commitment, prover_data) = commit(q_flock, mu, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
+        let (commitment, prover_data) = commit(q_flock(&witness.z), mu, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
         ps.add_root(&commitment.root);
         let commit_s = t.elapsed().as_secs_f64();
 
-        let instance = [setup.instance(&z_packed, &a_packed, &b_packed, &z_lincheck)];
+        let instance = [Instance {
+            block: BLOCK,
+            n_blocks_log: n_log,
+            witness,
+        }];
         let t = Instant::now();
-        let stage = flock::reduction::prove_zerocheck(&instance, &mut ps);
-        let zerocheck_s = t.elapsed().as_secs_f64();
-
-        let t = Instant::now();
-        let reduced = flock::reduction::prove_lincheck(&instance, stage, &mut ps)
-            .pop()
-            .expect("one circuit");
-        let lincheck_s = t.elapsed().as_secs_f64();
-        drop((a_packed, b_packed, z_lincheck));
+        let reduced = flock::reduction::prove(&instance, &mut ps).pop().expect("one circuit");
+        let reduction_s = t.elapsed().as_secs_f64();
+        let [
+            Instance {
+                witness: Witness { z, .. },
+                ..
+            },
+        ] = instance;
 
         let t = Instant::now();
         let ring = RingSwitch {
@@ -102,7 +102,7 @@ fn main() {
         open_batch_mixed_whir_stacked(
             &mut ps,
             mu,
-            q_flock,
+            q_flock(&z),
             &prover_data,
             &config,
             &[],
@@ -111,20 +111,17 @@ fn main() {
         let open_s = t.elapsed().as_secs_f64();
         let prove_s = t_prove.elapsed().as_secs_f64();
 
-        // `pass_s` closes over everything the closure does, so whatever the five
+        // `pass_s` closes over everything the closure does, so whatever the four
         // stages do not name shows up as "other" rather than vanishing.
         let proof = ps.into_proof();
         let pass_s = t_pass.elapsed().as_secs_f64();
-        (
-            proof,
-            [witness_s, commit_s, zerocheck_s, lincheck_s, open_s, prove_s, pass_s],
-        )
+        (proof, [witness_s, commit_s, reduction_s, open_s, prove_s, pass_s])
     };
 
     // The per-stage timings ride alongside the pass result, so one `Plan` drives
     // the warmup, the cooldown, and the repetition for all of them.
     let plan = Plan::from_env();
-    let mut stages: [Timing; 7] = std::array::from_fn(|_| Timing::default());
+    let mut stages: [Timing; 6] = std::array::from_fn(|_| Timing::default());
     let (transcript, _) = plan.warm_then_measure(|final_pass| {
         let _quiet = (!final_pass).then(bench::suppress_tracing);
         let (out, secs) = prove_pass();
@@ -134,7 +131,7 @@ fn main() {
         out
     });
     // The warmup pass also pushed a sample; drop the leading one per stage.
-    let [witness, commit_stage, zerocheck, lincheck, open, prove, pass] = stages.map(|t| {
+    let [witness, commit_stage, reduction, open, prove, pass] = stages.map(|t| {
         let mut kept = Timing::default();
         for &s in &t.samples()[1..] {
             kept.push(s);
@@ -145,7 +142,11 @@ fn main() {
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|_final_pass| {
         let mut vs = VerifierState::from_label(b"flock-blake2s-batch", &transcript);
         let root = vs.next_root().expect("commitment root");
-        let replay = setup.verify_reduction(&mut vs).expect("Flock reduction verifies");
+        let [replay] = <[_; 1]>::try_from(
+            flock::reduction::verify(&[(BLOCK.shape(), n_log)], &mut vs).expect("Flock reduction verifies"),
+        )
+        .expect("one circuit");
+        replay.matrices.check(BLOCK.circuit).expect("the matrices settle");
         let ring = RingSwitch {
             offset: 0,
             qflock_vars: mu,
@@ -181,16 +182,14 @@ fn main() {
     let pass_s = pass.mean();
     let share = |s: f64| format!("{:>5.1}%", 100.0 * s / pass_s);
     let ms = |t: &Timing| format!("{:>8.1} ms{:<9}{}", t.mean() * 1e3, t.spread(), share(t.mean()));
-    let named = witness.mean() + commit_stage.mean() + zerocheck.mean() + lincheck.mean() + open.mean();
+    let named = witness.mean() + commit_stage.mean() + reduction.mean() + open.mean();
     println!(
         "\nFlock BLAKE2s batch proving, {} compressions (2^{n_log} slots)",
         pretty_integer(&n)
     );
-    println!("  setup (preprocessing, excluded) : {setup_ms:>8.1} ms");
     println!("  witness-gen                     : {}", ms(&witness));
     println!("  commit                          : {}", ms(&commit_stage));
-    println!("  zerocheck                       : {}", ms(&zerocheck));
-    println!("  lincheck                        : {}", ms(&lincheck));
+    println!("  reduction                       : {}", ms(&reduction));
     println!("  pcs opening                     : {}", ms(&open));
     println!(
         "  other                           : {:>8.1} ms{:<9}{}",

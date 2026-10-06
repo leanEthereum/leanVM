@@ -13,14 +13,10 @@
 
 use crate::cpu::{Payloads, RowRef, Trace};
 use crate::rv::RiscvProgram;
-use crate::tables::{N_CIRCUITS, N_TABLES, Part, PerTable, TableId};
+use crate::tables::{Fill, N_CIRCUITS, N_TABLES, Part, PerTable, TableId};
 use ::pcs::pack::LOG_PACKING;
-use ::pcs::stack_open::SliceClaim;
-use fiat_shamir::transcript::{ProverState, VerifierState};
 use flock::circuit::Circuit;
-use flock::lincheck::MatrixClaim;
-use flock::reduction::{Instance, ReductionReplay, Shape, min_n_blocks_log};
-use flock::verifier::FlockError;
+use flock::reduction::{Instance, Shape, min_n_blocks_log};
 use primitives::field::F64;
 use std::sync::OnceLock;
 
@@ -187,49 +183,46 @@ pub const fn batch_log(k_log: usize, n_rows: usize) -> usize {
     if natural > floor { natural } else { floor }
 }
 
-/// The flock-native tables of one class's batch, kept from the pass that wrote its
-/// committed column so the reduction needs no second witness pass.
-pub(crate) struct Prepared {
-    flock: FlockId,
-    n_blocks_log: usize,
-    z: Vec<u64>,
-    a: Vec<u64>,
-    b: Vec<u64>,
-    z_lincheck: Vec<u8>,
-}
+impl FlockId {
+    /// Each packed witness's shape and `log2` of its batch, its table's height `2^taus`, in protocol order.
+    ///
+    /// The verifier's replay of the reductions reads these alone, and builds no circuit.
+    pub fn batches(taus: &PerTable<usize>) -> [(Shape, usize); N_FLOCKS] {
+        Self::ALL.map(|f| (f.shape(), taus[f.table()]))
+    }
 
-impl Prepared {
-    /// Build packed witness `f`'s batch, one instance per row of its table, and write it
-    /// into `window`, its committed column.
-    pub(crate) fn build(f: FlockId, trace: &Trace, p: &RiscvProgram, window: &mut [F64]) -> Self {
-        let table = trace.table(f.table());
+    /// The witness's batch, one instance per row of its table, also written into `window`, its committed column.
+    ///
+    /// The reduction keeps it, so it needs no second witness pass.
+    pub(crate) fn instance(self, trace: &Trace, p: &RiscvProgram, window: &mut [F64]) -> Instance<'static> {
+        let table = trace.table(self.table);
         match table.payloads {
-            Payloads::None => Self::build_from(f, table.rows, |r| RowRef::plain(r), p, window),
+            Payloads::None => self.instance_of(table.rows, |r| RowRef::plain(r), p, window),
             // Why: the witness walk takes a slice, so a payload is paired with its row first.
             _ => {
                 let refs: Vec<RowRef> = (0..table.rows.len()).map(|i| table.row(i)).collect();
-                Self::build_from(f, &refs, |r| *r, p, window)
+                self.instance_of(&refs, |r| *r, p, window)
             }
         }
     }
 
-    /// Build packed witness `f`'s batch from its table's rows, each seen through `view`.
-    fn build_from<S: Sync>(
-        f: FlockId,
+    /// The witness's batch from its table's rows, each seen through `view`.
+    fn instance_of<S: Sync>(
+        self,
         rows: &[S],
         view: impl for<'r> Fn(&'r S) -> RowRef<'r> + Sync,
         p: &RiscvProgram,
         window: &mut [F64],
-    ) -> Self {
-        let (part, spec) = (f.part(), f.table().spec());
+    ) -> Instance<'static> {
+        let (part, spec) = (self.part, self.table.spec());
         let n_blocks_log = spec.n_blocks_log(rows.len());
         assert_eq!(
             rows.len(),
             1 << n_blocks_log,
             "a table's rows fill its batch (cpu::filler)"
         );
-        let circuit = f.circuit();
-        let ports = f.table().class_table().ports(part);
+        let circuit = self.circuit();
+        let ports = self.table.class_table().ports(part);
         let n_inputs = circuit.n_input_words();
         let slots = spec.slots();
         // The row's input words, one per input port.
@@ -240,43 +233,36 @@ impl Prepared {
                 *word = port.value(row, at, &slots);
             }
         };
-        // A class with a word-level witness skips the walk of its gate list; the others
-        // walk it 64 instances at a time.
-        let class = spec.circuit.as_ref().filter(|_| part == Part::Class);
-        let witness = class.and_then(|c| c.witness);
-        let batch_witness = class.and_then(|c| c.batch_witness);
-        let (z, a, b, z_lincheck) = batch_witness.map_or_else(
-            || {
-                witness.map_or_else(
-                    || circuit.generate_witness_from(rows, &rows[0], n_blocks_log, input_words),
-                    |witness| {
-                        circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
-                            let mut words = [0u64; MAX_INPUT_WORDS];
-                            let words = &mut words[..n_inputs];
-                            input_words(row, words);
-                            witness(words, z, az, bz);
-                        })
-                    },
-                )
-            },
-            |batch| {
-                // Eight rows share a native arithmetic call before their byte stripe is packed.
-                circuit.generate_witness_batched(rows, &rows[0], n_blocks_log, |rows, z, az, bz| {
-                    let mut words = [[0u64; MAX_INPUT_WORDS]; 8];
-                    for (row, words) in rows.into_iter().zip(&mut words) {
-                        input_words(row, &mut words[..n_inputs]);
-                    }
-                    let inputs = std::array::from_fn(|i| &words[i][..n_inputs]);
-                    batch(&inputs, z, az, bz);
+        let fill = match (part, &spec.circuit) {
+            (Part::Class, Some(class)) => class.fill,
+            _ => Fill::Walk,
+        };
+        let witness = match fill {
+            Fill::Walk => circuit.generate_witness_from(rows, &rows[0], n_blocks_log, input_words),
+            Fill::Instance(instance) => {
+                circuit.generate_witness_with(rows, &rows[0], n_blocks_log, |row, z, az, bz| {
+                    let mut words = [0u64; MAX_INPUT_WORDS];
+                    let words = &mut words[..n_inputs];
+                    input_words(row, words);
+                    instance(words, z, az, bz);
                 })
-            },
-        );
-        assert_eq!(window.len(), z.len(), "the committed column is the wrong size");
-        let stride = 1 << f.stride_log();
+            }
+            // Eight rows share a native arithmetic call before their byte stripe is packed.
+            Fill::Batch8(batch) => circuit.generate_witness_batched(rows, &rows[0], n_blocks_log, |rows, z, az, bz| {
+                let mut words = [[0u64; MAX_INPUT_WORDS]; 8];
+                for (row, words) in rows.into_iter().zip(&mut words) {
+                    input_words(row, &mut words[..n_inputs]);
+                }
+                let inputs = std::array::from_fn(|i| &words[i][..n_inputs]);
+                batch(&inputs, z, az, bz);
+            }),
+        };
+        assert_eq!(window.len(), witness.z.len(), "the committed column is the wrong size");
+        let stride = 1 << self.stride_log();
         // `F64` is `repr(transparent)` over `u64`, and the packing is bit `i` at
         // position `i` on both sides.
         const BATCH: usize = 1 << 10;
-        parallel::chunks_mut_zip(window, &z, stride * BATCH, |batch, dst, src| {
+        parallel::chunks_mut_zip(window, &witness.z, stride * BATCH, |batch, dst, src| {
             for (j, src) in src.chunks_exact(stride).enumerate() {
                 // What the circuit computed is what the interpreter did, or the bus
                 // would carry one and flock prove the other.
@@ -295,46 +281,10 @@ impl Prepared {
                 *d = F64(s);
             }
         });
-        Self {
-            flock: f,
+        Instance {
+            block: circuit.block(),
             n_blocks_log,
-            z,
-            a,
-            b,
-            z_lincheck,
+            witness,
         }
     }
-}
-
-/// Flock's batched zerocheck then lincheck over every packed witness, every class
-/// circuit then every clock circuit, leaving one claim on each committed column.
-pub(crate) fn prove_reductions(batches: &[Prepared], ps: &mut ProverState) -> Vec<SliceClaim> {
-    let instances: Vec<Instance<'_>> = (batches.iter())
-        .map(|p| Instance {
-            block: p.flock.circuit().block(),
-            n_blocks_log: p.n_blocks_log,
-            z: &p.z,
-            a: &p.a,
-            b: &p.b,
-            z_lincheck: &p.z_lincheck,
-        })
-        .collect();
-    flock::reduction::prove(&instances, ps)
-}
-
-/// The verifier's replay of the batched reductions, zerocheck then lincheck, up to the circuits' matrices, each
-/// packed witness's batch being its table's rows at heights `2^taus`.
-///
-/// Each circuit's form is left as a claim for the built circuit to settle.
-/// It reads only the circuits' shapes, and builds none.
-///
-/// # Errors
-///
-/// Returns the first stage that refuses the proof.
-pub fn verify_reductions(
-    taus: &PerTable<usize>,
-    vs: &mut VerifierState,
-) -> Result<Vec<(ReductionReplay, MatrixClaim)>, FlockError> {
-    let circuits: Vec<(Shape, usize)> = FlockId::ALL.map(|f| (f.shape(), taus[f.table()])).to_vec();
-    flock::reduction::verify_deferred(&circuits, vs)
 }

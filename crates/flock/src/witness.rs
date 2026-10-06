@@ -16,9 +16,20 @@ pub(crate) const fn packed_bytes(words: &[u64]) -> &[u8] {
     unsafe { core::slice::from_raw_parts(words.as_ptr().cast::<u8>(), words.len() * 8) }
 }
 
-// ---------------------------------------------------------------------------
-// Generic witness packing driver.
-// ---------------------------------------------------------------------------
+/// One circuit's witness over a batch of instances, as the prover holds it.
+///
+/// `z`, `A·z` and `B·z` pack 64 bits a word, `2^k_log / 64` words per instance, instance-major.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Witness {
+    /// The witness bits.
+    pub z: Vec<u64>,
+    /// `A·z`.
+    pub az: Vec<u64>,
+    /// `B·z`.
+    pub bz: Vec<u64>,
+    /// `z` again in lincheck's byte stripes: `2^k_log` bytes per eight instances.
+    pub stripes: Vec<u8>,
+}
 
 /// One group's share of the four witness tables, in its worker's scratch.
 pub(crate) struct GroupTables<'a> {
@@ -44,7 +55,7 @@ pub(crate) fn drive_witness_groups<St, I, F>(
     group: usize,
     init: I,
     fill: F,
-) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>)
+) -> Witness
 where
     St: Send,
     I: Fn() -> St + Sync,
@@ -65,7 +76,7 @@ where
     let mut z = Box::<[u64]>::new_uninit_slice(total_words);
     let mut a = Box::<[u64]>::new_uninit_slice(total_words);
     let mut b = Box::<[u64]>::new_uninit_slice(total_words);
-    let mut z_lincheck = Box::<[u8]>::new_uninit_slice((n_total / 8) * k);
+    let mut all_stripes = Box::<[u8]>::new_uninit_slice((n_total / 8) * k);
 
     // A group's share: its packed words in each table, and one stripe per 8 instances.
     let group_words = group * (k / 64);
@@ -73,7 +84,7 @@ where
     let z_chunks = Chunks::new(&mut z, group_words);
     let a_chunks = Chunks::new(&mut a, group_words);
     let b_chunks = Chunks::new(&mut b, group_words);
-    let stripe_chunks = Chunks::new(&mut z_lincheck, group_bytes);
+    let stripe_chunks = Chunks::new(&mut all_stripes, group_bytes);
     debug_assert_eq!(z_chunks.count(), stripe_chunks.count());
 
     parallel::map_reduce_with_state(
@@ -110,19 +121,17 @@ where
 
     // SAFETY: group `g` wrote chunk `g` of every table in full, and the chunk counts match.
     unsafe {
-        (
-            z.assume_init().into_vec(),
-            a.assume_init().into_vec(),
-            b.assume_init().into_vec(),
-            z_lincheck.assume_init().into_vec(),
-        )
+        Witness {
+            z: z.assume_init().into_vec(),
+            az: a.assume_init().into_vec(),
+            bz: b.assume_init().into_vec(),
+            stripes: all_stripes.assume_init().into_vec(),
+        }
     }
 }
 
 /// Drive the parallel chunked witness build for `n_blocks` instances padded
-/// to `2^n_blocks_log` slots, one instance at a time. Returns `(z, a, b, z_lincheck)`:
-/// the three bit-packed `u64` tables (`K / 64` words per instance) and the lincheck
-/// byte stripe.
+/// to `2^n_blocks_log` slots, one instance at a time.
 ///
 /// `per_block(initial, z_u64, a_u64, b_u64)` populates one block's worth of
 /// `(z, a, b)` data: 3 zero-initialized `u64`-buffers of length `K / 64`.
@@ -141,7 +150,7 @@ pub(crate) fn drive_witness_packed_and_lincheck<S: Sync, F>(
     n_blocks_log: usize,
     k_log: usize,
     per_block: F,
-) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>)
+) -> Witness
 where
     F: Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
 {
@@ -192,7 +201,7 @@ pub(crate) fn drive_witness_batched<S: Sync>(
     n_blocks_log: usize,
     k_log: usize,
     batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
-) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u8>) {
+) -> Witness {
     assert!(rows.len() <= 1 << n_blocks_log, "more rows than instances");
     let words = (1usize << k_log) / 64;
     drive_witness_groups(
