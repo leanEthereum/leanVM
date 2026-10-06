@@ -2,12 +2,10 @@
 
 use super::python_verifier::PythonStatement;
 use fiat_shamir::transcript::TranscriptError;
-use leanvm_core::cpu::{CpuError, Program, Proof, ProveError, UNGROUND_LOG_BYTECODE};
-use leanvm_core::leaf::BusError;
-use leanvm_core::pcs::Rate;
-use leanvm_core::rv::asm::*;
-use leanvm_core::rv::{Hash, Machine, Region, Trap};
-use leanvm_core::tables::N_TABLES;
+use leanvm_core::asm::*;
+use leanvm_core::{
+    BusError, CpuError, Hash, Machine, N_TABLES, Program, Proof, ProveError, Rate, Region, Trap, UNGROUND_LOG_BYTECODE,
+};
 use primitives::field::{F64, F192};
 
 const STEPS: u64 = 2000;

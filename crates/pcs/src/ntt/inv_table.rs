@@ -228,7 +228,7 @@ impl InvNttTableByteSingleGf8 {
 
     /// Scalar reference. Kept public so tests can use it as the cross-check
     /// oracle for the NEON variant.
-    pub fn apply_scalar(&self, bytes: &[u8], out: &mut [F8]) {
+    pub(crate) fn apply_scalar(&self, bytes: &[u8], out: &mut [F8]) {
         assert_eq!(bytes.len(), self.n_chunks);
         assert_eq!(out.len(), self.ell);
         out.iter_mut().for_each(|x| *x = F8::ZERO);

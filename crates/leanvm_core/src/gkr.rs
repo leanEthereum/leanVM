@@ -643,30 +643,26 @@ impl QuaternaryLayerState {
     }
 }
 
-/// The result of a batched grand-product proof: the roots and leaf evaluations, all
-/// reduced to one shared point. `roots[0] == roots[1]` by construction rather than by
-/// a check.
-pub struct Products<const N: usize, E = F192> {
-    pub roots: [E; N],
+/// The result of a batched grand-product proof: the two trees' leaf evaluations, at one shared point.
+pub struct Products<E = F192> {
     pub point: Vec<E>,
-    pub values: [E; N],
+    pub values: [E; 2],
 }
 
-/// `Σ_k λ^k·values[k]`, the batch's combination of one coefficient across the trees.
-fn combine<const N: usize>(values: [F192; N], lambda: F192) -> F192 {
-    values.iter().rev().fold(F192::ZERO, |acc, &v| acc * lambda + v)
+/// `values[0] + λ·values[1]`, the batch's combination of one coefficient across the two trees.
+fn combine([first, second]: [F192; 2], lambda: F192) -> F192 {
+    first + lambda * second
 }
 
-/// Prove `N` identity-padded grand products as one RLC-batched radix-four GKR, over the
-/// depth of the tallest tree.
+/// Prove two identity-padded grand products as one RLC-batched radix-four GKR, over the
+/// depth of the taller tree.
 ///
-/// The first two trees share a product by construction, as the bus's two sides do
+/// The two trees share a product by construction, as the bus's two sides do
 /// (`cpu::filler` fills every table to a power of two, so they balance outright). ONE root
 /// is sent for both, and no verifier can be handed an unbalanced pair to check.
 ///
 /// Each tree comes as its leaves and their first product level, `gkr::next_level`.
-pub fn prove_products<const N: usize>(trees: [(Vec<F192>, Vec<F192>); N], ps: &mut ProverState) -> Products<N> {
-    const { assert!(N >= 2, "the first two trees are the bus's two sides") };
+pub fn prove_products(trees: [(Vec<F192>, Vec<F192>); 2], ps: &mut ProverState) -> Products {
     let mu = trees
         .iter()
         .map(|(lane, _)| crate::log2_ceil_usize(lane.len()))
@@ -677,9 +673,9 @@ pub fn prove_products<const N: usize>(trees: [(Vec<F192>, Vec<F192>); N], ps: &m
         "batched trees must be nonempty"
     );
     let mut layers = trees.map(|(lane, first)| build_layers(lane, first, mu));
-    let roots: [F192; N] = std::array::from_fn(|tree| layers[tree][mu][0]);
+    let roots = [0, 1].map(|tree| layers[tree][mu][0]);
     assert_eq!(roots[0], roots[1], "the bus needs the two products to agree");
-    ps.add_scalars(&roots[1..]);
+    ps.add_scalar(roots[0]);
     let mut lambda = ps.sample();
     let mut point = Vec::new();
     let mut values = roots;
@@ -689,7 +685,7 @@ pub fn prove_products<const N: usize>(trees: [(Vec<F192>, Vec<F192>); N], ps: &m
         let round_count = mu - layer;
         if layer % 2 == 1 {
             debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
-            let tails: [[F192; 2]; N] = std::array::from_fn(|tree| {
+            let tails: [[F192; 2]; 2] = std::array::from_fn(|tree| {
                 let below = &layers[tree][layer - 1];
                 match below.as_slice() {
                     [left, right] => [*left, *right],
@@ -711,7 +707,7 @@ pub fn prove_products<const N: usize>(trees: [(Vec<F192>, Vec<F192>); N], ps: &m
         }
 
         let width = 1usize << round_count;
-        let mut trees: [QuaternaryLayerState; N] =
+        let mut trees: [QuaternaryLayerState; 2] =
             std::array::from_fn(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
         // Round `j` of this layer weighs its rows by `eq(point[1 + j..], .)`.
         let mut equality = SplitEq::with_low_vars(if round_count > 0 { &point[1..] } else { &[] }, EQ_LOW_VARS);
@@ -719,7 +715,7 @@ pub fn prove_products<const N: usize>(trees: [(Vec<F192>, Vec<F192>); N], ps: &m
         let mut messages = if round_count > 0 {
             trees.each_ref().map(|tree| tree.round_message(&equality))
         } else {
-            [[F192::ZERO; 4]; N]
+            [[F192::ZERO; 4]; 2]
         };
         for round in 0..round_count {
             let mut coeffs = [0, 1, 2, 3].map(|coefficient| combine(messages.map(|m| m[coefficient]), lambda));
@@ -762,26 +758,21 @@ pub fn prove_products<const N: usize>(trees: [(Vec<F192>, Vec<F192>); N], ps: &m
         layer -= 2;
     }
 
-    Products { roots, point, values }
+    Products { point, values }
 }
 
-/// Verify the RLC-batched radix-four proof of `N` trees of depth `mu`.
+/// Verify the RLC-batched radix-four proof of two trees of depth `mu`.
 ///
 /// # Errors
 ///
 /// Returns the first layer whose sumcheck does not end at the next layer's claims, or a malformed stream.
-pub fn verify_products<V: Verifier, const N: usize>(v: &mut V, mu: usize) -> Result<Products<N, V::E>, GkrError> {
-    const { assert!(N >= 2, "the first two trees are the bus's two sides") };
+pub fn verify_products<V: Verifier>(v: &mut V, mu: usize) -> Result<Products<V::E>, GkrError> {
     // One root for both balancing trees, so their equality is structural: there is no
     // unbalanced pair a prover could state, and nothing for the caller to check.
     let first = v.next_scalar()?;
-    let mut roots = [first; N];
-    for root in &mut roots[2..] {
-        *root = v.next_scalar()?;
-    }
     let mut lambda = v.sample();
     let mut point = Vec::new();
-    let mut values = roots;
+    let mut values = [first; 2];
 
     let mut layer = mu;
     while layer > 0 {
@@ -789,7 +780,7 @@ pub fn verify_products<V: Verifier, const N: usize>(v: &mut V, mu: usize) -> Res
         let mut claim = v.poly_eval(&values, lambda);
         if layer % 2 == 1 {
             debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
-            let mut tails = [[first; 2]; N];
+            let mut tails = [[first; 2]; 2];
             for value in tails.iter_mut().flatten() {
                 *value = v.next_scalar()?;
             }
@@ -813,7 +804,7 @@ pub fn verify_products<V: Verifier, const N: usize>(v: &mut V, mu: usize) -> Res
             round_point.push(challenge);
             claim = v.poly_eval(&h, challenge);
         }
-        let mut tails = [[first; 4]; N];
+        let mut tails = [[first; 4]; 2];
         for value in tails.iter_mut().flatten() {
             *value = v.next_scalar()?;
         }
@@ -833,7 +824,7 @@ pub fn verify_products<V: Verifier, const N: usize>(v: &mut V, mu: usize) -> Res
         layer -= 2;
     }
 
-    Ok(Products { roots, point, values })
+    Ok(Products { point, values })
 }
 
 #[cfg(test)]
@@ -921,19 +912,13 @@ mod tests {
     #[test]
     fn radix_four_roundtrip_at_even_and_odd_depths() {
         for mu in 0..=10 {
-            let mut leaves: [Vec<F192>; 3] = [0, 1, 2].map(|lane| {
-                (0..1usize << mu)
-                    .map(|row| F192::new((1 + row + lane * 100_003) as u64, row as u64, lane as u64))
-                    .collect()
-            });
-            // The first two trees share their product.
-            leaves[1] = leaves[0].iter().rev().copied().collect();
-            let expected_roots = leaves
-                .each_ref()
-                .map(|lane| lane.iter().copied().fold(F192::ONE, |product, value| product * value));
+            let first: Vec<F192> = (0..1usize << mu)
+                .map(|row| F192::new((1 + row) as u64, row as u64, 0))
+                .collect();
+            // The two trees share their product.
+            let leaves = [first.clone(), first.into_iter().rev().collect()];
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
             let proved = prove_products(leaves.each_ref().map(|l| (l.to_vec(), next_level(l))), &mut ps);
-            assert_eq!(proved.roots, expected_roots);
             for (lane, leaf) in leaves.iter().enumerate() {
                 assert_eq!(proved.values[lane], mle_eval_e(leaf, &proved.point));
             }
@@ -941,7 +926,6 @@ mod tests {
             let proof = ps.into_proof();
             let mut vs = VerifierState::from_label(b"radix-four-gkr-test", &proof);
             let verified = verify_products(&mut vs, mu).expect("GKR verifies");
-            assert_eq!(verified.roots, proved.roots);
             assert_eq!(verified.point, proved.point);
             assert_eq!(verified.values, proved.values);
             vs.finish().expect("proof stream is consumed");
@@ -951,13 +935,13 @@ mod tests {
     #[test]
     fn implicit_identity_suffix_matches_dense_padding() {
         for mu in 3..=10 {
-            let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1, (1usize << (mu - 2)) + 3];
-            let mut leaves: [Vec<F192>; 3] = std::array::from_fn(|lane| {
+            let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1];
+            let mut leaves: [Vec<F192>; 2] = std::array::from_fn(|lane| {
                 (0..lengths[lane])
                     .map(|row| F192::new((3 + row + lane * 10_007) as u64, row as u64, lane as u64))
                     .collect()
             });
-            // The first two trees share their product: the second's last leaf makes up the difference.
+            // The two trees share their product: the second's last leaf makes up the difference.
             let product = |lane: &[F192]| lane.iter().fold(F192::ONE, |p, &v| p * v);
             let last = leaves[1].len() - 1;
             leaves[1][last] = product(&leaves[0]) * product(&leaves[1][..last]).inv();
@@ -970,21 +954,15 @@ mod tests {
             let proved = prove_products(leaves.each_ref().map(|l| (l.to_vec(), next_level(l))), &mut sparse_ps);
             for (lane, values) in dense.iter().enumerate() {
                 assert_eq!(proved.values[lane], mle_eval_e(values, &proved.point));
-                assert_eq!(
-                    proved.roots[lane],
-                    values.iter().copied().fold(F192::ONE, |product, value| product * value)
-                );
             }
             let proof = sparse_ps.into_proof();
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
             let dense_proved = prove_products(dense.each_ref().map(|l| (l.to_vec(), next_level(l))), &mut dense_ps);
-            assert_eq!(dense_proved.roots, proved.roots);
             assert_eq!(dense_proved.point, proved.point);
             assert_eq!(dense_proved.values, proved.values);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);
             let mut vs = VerifierState::from_label(b"sparse-radix-four-gkr-test", &proof);
             let verified = verify_products(&mut vs, mu).expect("GKR verifies");
-            assert_eq!(verified.roots, proved.roots);
             assert_eq!(verified.point, proved.point);
             assert_eq!(verified.values, proved.values);
             vs.finish().expect("proof stream is consumed");

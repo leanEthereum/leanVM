@@ -927,11 +927,6 @@ impl BusForm {
         (self.prods.iter()).fold(acc, |acc, &(a, b, c)| acc ^ (evals[a] * evals[b]).mul_e_unreduced(c))
     }
 
-    /// [`eval_unreduced`](Self::eval_unreduced) on its own.
-    pub fn eval<T: ColVal>(&self, evals: &[T]) -> F192 {
-        T::reduce(self.eval_unreduced(evals, false))
-    }
-
     /// What the form sums to over the table's rows against `eq(ζ, ·)`, the target the
     /// zerocheck settles. The linear part factors through the columns' evaluations at
     /// `ζ`, which is the whole point of a form; a product coordinate does NOT, so
@@ -1651,7 +1646,7 @@ pub fn verify_balance<V: Verifier>(
         alphas,
         beta: v.sample(),
     };
-    let bus_gkr = gkr::verify_products::<V, 2>(v, setup.mu())?;
+    let bus_gkr = gkr::verify_products(v, setup.mu())?;
     // Every row of every table is a real row (`cpu::filler`), so the two sides balance
     // outright: no padding tuples to divide back out, and no announced row counts whose
     // truthfulness the soundness argument would have to establish. The GKR sends ONE root
@@ -1701,7 +1696,8 @@ pub(crate) mod tests {
         SparseColumn, build_leaves, fingerprint_weights, gkr, layout, prove_balance, soundness_bits, tuple_leaves,
         verify_balance,
     };
-    use crate::cpu::{Layout, Lookup, Program, Sizes, UNGROUND_LOG_BYTECODE};
+    use crate::cpu::layout::Sizes;
+    use crate::cpu::{Layout, Lookup, Program, UNGROUND_LOG_BYTECODE};
     use crate::pcs::MAX_MU;
     use crate::rv::Region;
     use crate::tables::N_TABLES;

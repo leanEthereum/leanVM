@@ -24,7 +24,7 @@
 //! whole stack plus one `target`, then proved by
 //! [`super::whir::recursive_prover_with_basis`]. The verifier replays
 //! the ring switch succinctly (the family's target, with no dense `rs_eq_ind`) and drives
-//! [`super::whir::recursive_verifier_with_basis_succinct`] with a
+//! the WHIR verifier with a
 //! terminal evaluator that reconstructs `MLE(b_stack)` once, at the final fold
 //! point, using closed-form eq / stride selectors and the family's weight.
 //!

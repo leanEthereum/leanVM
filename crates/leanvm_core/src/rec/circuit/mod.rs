@@ -107,11 +107,6 @@ impl Circuit {
         Table::ALL.map(|t| self.classes.len(t))
     }
 
-    /// How many words the statement has.
-    pub const fn statement_len(&self) -> usize {
-        self.statement_len
-    }
-
     /// Each table's base-two logarithm of rows: the least power of two holding its rows, and at least its floor.
     pub fn heights(&self) -> [usize; Table::COUNT] {
         let counts = self.row_counts();

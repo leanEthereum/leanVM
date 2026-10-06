@@ -27,7 +27,7 @@
 
 use crate::witness::StackShape;
 use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
-use ::pcs::whir::{ProverConfig, ProverData, WhirError, commit as whir_commit, config_for_rate};
+use ::pcs::whir::{self, ProverConfig, ProverData, WhirError, config_for_rate};
 use fiat_shamir::transcript::{ProverState, Receiver, TranscriptError, Transmitter, VerifierState};
 use primitives::field::F64;
 use thiserror::Error;
@@ -131,7 +131,7 @@ pub fn commit(ps: &mut ProverState, witness: &[F64], shape: StackShape, log_inv_
         shape.committed_len(),
         "witness must be the committed lanes"
     );
-    let (commitment, prover_data) = whir_commit(witness, mu, LOG_BATCH, log_inv_rate);
+    let (commitment, prover_data) = whir::commit(witness, mu, LOG_BATCH, log_inv_rate);
     ps.add_root(&commitment.root);
     Committed {
         prover_data,

@@ -2,7 +2,6 @@
 
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
-use crate::rv::entry::Class;
 use flock::circuit::{Builder, Circuit};
 
 /// One ALU instance: add, subtract, compare, bitwise logic, branches and jumps.
@@ -85,8 +84,6 @@ impl Alu {
 }
 
 impl InstructionClass for Alu {
-    const CLASS: Class = Class::Alu;
-
     /// At most one output selector and at most one branch condition is set.
     const LEGAL: &'static [u64] = &[
         0,
@@ -154,15 +151,6 @@ impl InstructionClass for Alu {
             || (self.has_flag(Self::BR_LTU) && ltu)
             || (self.has_flag(Self::BR_GEU) && !ltu);
         (out, taken)
-    }
-
-    fn input_words(&self) -> Vec<u64> {
-        vec![self.v1, self.v2, self.imm, self.flags, self.dt, self.pc4]
-    }
-
-    /// The output, and the offset the successor adds to `pc + 4`.
-    fn output_words(&self, &(out, taken): &(u64, bool)) -> Vec<u64> {
-        vec![out, self.jump(taken)]
     }
 }
 
@@ -270,7 +258,8 @@ impl ClassCircuit for Alu {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::semantics::tests::{circuit_matches_reference, edge_word};
+    use crate::rv::Class;
+    use crate::rv::semantics::tests::{Ports, circuit_matches_reference, edge_word};
     use fiat_shamir::transcript::{ProverState, VerifierState};
     use proptest::prelude::*;
     use proptest::sample::select;
@@ -367,6 +356,19 @@ mod tests {
             ALU.useful_bits() - 1,
         ] {
             assert!(!accepts(Some(bit)), "flipping bit {bit} must reject");
+        }
+    }
+
+    impl Ports for Alu {
+        const CLASS: Class = Class::Alu;
+
+        fn input_words(&self) -> Vec<u64> {
+            vec![self.v1, self.v2, self.imm, self.flags, self.dt, self.pc4]
+        }
+
+        // The output, and the offset the successor adds to `pc + 4`.
+        fn output_words(&self, &(out, taken): &(u64, bool)) -> Vec<u64> {
+            vec![out, self.jump(taken)]
         }
     }
 }

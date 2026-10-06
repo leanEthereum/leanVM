@@ -79,7 +79,7 @@ pub(crate) enum LadderError {
 }
 
 /// Validate a production WHIR inverse-rate logarithm.
-pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), ConfigError> {
+pub(crate) fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), ConfigError> {
     if !(MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(ConfigError::RateOutOfRange { log_inv_rate });
     }

@@ -1,11 +1,8 @@
 //! The claims the verifier's core leaves on the program and the circuits: they bind what the full verifier checks whole, and Python leaves the same ones.
 
 use super::python_verifier::PythonStatement;
-use leanvm_core::constraints::ConstraintError;
-use leanvm_core::cpu::{CpuError, DeferredClaims, MalformedClaim, Program};
-use leanvm_core::pcs::Rate;
-use leanvm_core::rv::Region;
-use leanvm_core::rv::asm::*;
+use leanvm_core::asm::*;
+use leanvm_core::{ConstraintError, CpuError, DeferredClaims, MalformedClaim, Program, Rate, Region};
 use primitives::field::F192;
 
 // Reads its RAM image, so that the image's share of the program claim is not zero.

@@ -44,9 +44,8 @@
 //! Many proofs of one program aggregate into one proof through the aggregation module.
 
 pub use leanvm_core::{
-    cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError},
-    pcs::{InvalidRate, Rate},
-    rv::{ElfError, ProgramError, Region, Trap, asm},
+    DecodeError, ElfError, InvalidRate, Output, Program, ProgramError, Proof, ProveError, ProvenRun, Prover, Rate,
+    Region, Stats, Trap, VerifyError, asm,
 };
 
 /// Aggregation trees: many proofs of one program, verified as one.
@@ -68,7 +67,7 @@ pub use leanvm_core::{
 ///
 /// A tree over one leaf, with `arity_0 = 1`, is a single proof's recursion.
 pub mod aggregate {
-    pub use leanvm_core::rec::tree::{
+    pub use leanvm_core::{
         CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, TableStats, Tree, TreeError, TreeProof, TreeShape,
     };
 }

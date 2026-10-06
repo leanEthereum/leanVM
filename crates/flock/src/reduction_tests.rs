@@ -9,10 +9,9 @@
 //! generic in the claims and covered end to end by `blake2s_batch`.
 
 use crate::hash::{
-    Compression, K_LOG, K_SKIP, WalkLincheckCircuit, generate_witness_with_ab_packed_and_lincheck, min_n_blocks_log,
-    param_iv,
+    Compression, K_LOG, K_SKIP, WalkLincheckCircuit, generate_witness_with_ab_packed_and_lincheck, param_iv,
 };
-use crate::reduction::{self, Block};
+use crate::reduction::{self, Block, min_n_blocks_log};
 use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
 use primitives::test_util::Rng;
 

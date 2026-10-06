@@ -91,11 +91,6 @@ impl<'a> Transcript<'a> {
         x
     }
 
-    /// The next `n` scalars, each bound.
-    pub fn next_scalars(&mut self, b: &mut Builder, n: usize) -> Vec<Ew> {
-        (0..n).map(|_| self.next_scalar(b)).collect()
-    }
-
     /// A challenge: the first three words of `compress(cv, (0, 0, 0, SQUEEZE))`, whose output becomes the state.
     pub fn sample(&mut self, b: &mut Builder) -> Ew {
         let zero = b.zero();
@@ -103,11 +98,6 @@ impl<'a> Transcript<'a> {
         let (cv, ch) = b.compress(self.cv, zero, ds);
         self.cv = cv;
         ch
-    }
-
-    /// `n` challenges.
-    pub fn sample_vec(&mut self, b: &mut Builder, n: usize) -> Vec<Ew> {
-        (0..n).map(|_| self.sample(b)).collect()
     }
 
     /// A Merkle root as its two 128-bit halves, each bound, their top limbs zero.
@@ -264,7 +254,7 @@ mod tests {
         let mut b = Builder::new();
         let iv = b.d_const(digest_limbs(&primitives::hash::hash(LABEL)));
         let mut t = Transcript::from_state(iv, source);
-        let scalars = t.next_scalars(&mut b, 2);
+        let scalars: Vec<Ew> = (0..2).map(|_| t.next_scalar(&mut b)).collect();
         let c0 = t.sample(&mut b);
         // `g(0) + g(1)` of the honest polynomial, as a hint the round derives its linear coefficient from.
         let claim = b.free_e(match source {

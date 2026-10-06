@@ -230,7 +230,7 @@ fn a_non_boolean_merkle_selector_is_refused() {
     let iv = [F64(7); 4];
     let statement = a.statement().to_vec();
     let prove = |a: &Assignment| circuit.prove(a, iv, Rate::MIN).expect("the circuit fits");
-    let verify = |proof: &ProofTranscript| circuit.verify(&statement, iv, Rate::MIN, proof);
+    let verify = |proof: &ProofTranscript| circuit.verify_to_raw(&statement, iv, Rate::MIN, proof).map(|_| ());
     assert_eq!(verify(&prove(&a)), Ok(()));
     a.values[bit.0 as usize][0] = 2;
     assert_eq!(

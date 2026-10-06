@@ -47,10 +47,10 @@ fn whir_query_table_matches_rust() {
     // is what stops the two drifting, and names the edit when the knob moves.
     assert_eq!(
         (min_log, max_log),
-        (leanvm_core::pcs::MIN_MU, leanvm_core::pcs::MAX_MU),
+        (leanvm_core::MIN_MU, leanvm_core::MAX_MU),
         "set MIN_STACKED_LOG / MAX_STACKED_LOG in python-verifier/verifier.py to {} / {}",
-        leanvm_core::pcs::MIN_MU,
-        leanvm_core::pcs::MAX_MU
+        leanvm_core::MIN_MU,
+        leanvm_core::MAX_MU
     );
 
     let mut checked = 0;
@@ -114,7 +114,7 @@ fn whir_query_table_matches_rust() {
 fn python_table() -> String {
     let rates: Vec<String> = (MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE)
         .map(|rate| {
-            let rows: Vec<String> = (leanvm_core::pcs::MIN_MU..=leanvm_core::pcs::MAX_MU)
+            let rows: Vec<String> = (leanvm_core::MIN_MU..=leanvm_core::MAX_MU)
                 .map(|log_n| {
                     let config = config_for_rate(log_n, rate).unwrap();
                     let queries: Vec<String> = config.queries().iter().map(usize::to_string).collect();

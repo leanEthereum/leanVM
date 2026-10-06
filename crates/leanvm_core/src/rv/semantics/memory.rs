@@ -4,7 +4,6 @@
 
 use super::InstructionClass;
 use crate::rv::circuits::{ClassCircuit, WordGadgets};
-use crate::rv::entry::Class;
 use flock::circuit::{Builder, Circuit, Wire};
 
 /// One load instance of 1, 2 or 4 bytes: the width and extension in its flags, the address `v1 + imm`, the cell read there.
@@ -28,8 +27,6 @@ impl Load {
 }
 
 impl InstructionClass for Load {
-    const CLASS: Class = Class::Load;
-
     /// Every width but a double word's, signed or not.
     const LEGAL: &'static [u64] = &[Self::SIGNED, Self::SIGNED | 1, Self::SIGNED | 2, 0, 1, 2];
 
@@ -51,14 +48,6 @@ impl InstructionClass for Load {
             x & ((1 << bits) - 1)
         };
         (WordAccess::bus_address(address, log_width), value)
-    }
-
-    fn input_words(&self) -> Vec<u64> {
-        vec![self.v1, self.imm, self.flags, self.cell]
-    }
-
-    fn output_words(&self, &(address, value): &(u64, u64)) -> Vec<u64> {
-        vec![address, value]
     }
 }
 
@@ -83,8 +72,6 @@ impl Store {
 }
 
 impl InstructionClass for Store {
-    const CLASS: Class = Class::Store;
-
     /// Every width but a double word's.
     const LEGAL: &'static [u64] = &[0, 1, 2];
 
@@ -103,14 +90,6 @@ impl InstructionClass for Store {
         let mask = ((1u64 << bits) - 1) << (8 * (address & 7));
         (bus, (self.cell & !mask) | ((self.v2 << (8 * (address & 7))) & mask))
     }
-
-    fn input_words(&self) -> Vec<u64> {
-        vec![self.v1, self.v2, self.imm, self.flags, self.cell]
-    }
-
-    fn output_words(&self, &(address, cell): &(u64, u64)) -> Vec<u64> {
-        vec![address, cell]
-    }
 }
 
 /// One `ld` instance: the address `v1 + imm`, and the cell read there, which is the value.
@@ -125,8 +104,6 @@ pub struct Ld {
 }
 
 impl InstructionClass for Ld {
-    const CLASS: Class = Class::Ld;
-
     /// A double word has no width to select and no extension.
     const LEGAL: &'static [u64] = &[0];
 
@@ -135,15 +112,6 @@ impl InstructionClass for Ld {
 
     fn eval(&self) -> (u64, u64) {
         (WordAccess::word_address(self.v1, self.imm), self.cell)
-    }
-
-    fn input_words(&self) -> Vec<u64> {
-        vec![self.v1, self.imm]
-    }
-
-    /// The address alone: the value moved is a column of the table, not a circuit word.
-    fn output_words(&self, &(address, _): &(u64, u64)) -> Vec<u64> {
-        vec![address]
     }
 }
 
@@ -159,8 +127,6 @@ pub struct Sd {
 }
 
 impl InstructionClass for Sd {
-    const CLASS: Class = Class::Sd;
-
     /// A double word has no width to select.
     const LEGAL: &'static [u64] = &[0];
 
@@ -169,15 +135,6 @@ impl InstructionClass for Sd {
 
     fn eval(&self) -> (u64, u64) {
         (WordAccess::word_address(self.v1, self.imm), self.v2)
-    }
-
-    fn input_words(&self) -> Vec<u64> {
-        vec![self.v1, self.imm]
-    }
-
-    /// The address alone: the value moved is a column of the table, not a circuit word.
-    fn output_words(&self, &(address, _): &(u64, u64)) -> Vec<u64> {
-        vec![address]
     }
 }
 
@@ -345,7 +302,8 @@ impl ClassCircuit for Sd {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::semantics::tests::{circuit_matches_reference, edge_word, run};
+    use crate::rv::Class;
+    use crate::rv::semantics::tests::{Ports, circuit_matches_reference, edge_word, run};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -501,6 +459,56 @@ mod tests {
             let bus = run(&WORD, &[v1, imm], 1)[0];
             prop_assert_eq!(bus, address);
             prop_assert_eq!(bus.is_multiple_of(8), WordAccess::is_aligned(address, 3));
+        }
+    }
+
+    impl Ports for Load {
+        const CLASS: Class = Class::Load;
+
+        fn input_words(&self) -> Vec<u64> {
+            vec![self.v1, self.imm, self.flags, self.cell]
+        }
+
+        fn output_words(&self, &(address, value): &(u64, u64)) -> Vec<u64> {
+            vec![address, value]
+        }
+    }
+
+    impl Ports for Store {
+        const CLASS: Class = Class::Store;
+
+        fn input_words(&self) -> Vec<u64> {
+            vec![self.v1, self.v2, self.imm, self.flags, self.cell]
+        }
+
+        fn output_words(&self, &(address, cell): &(u64, u64)) -> Vec<u64> {
+            vec![address, cell]
+        }
+    }
+
+    impl Ports for Ld {
+        const CLASS: Class = Class::Ld;
+
+        fn input_words(&self) -> Vec<u64> {
+            vec![self.v1, self.imm]
+        }
+
+        // The address alone: the value moved is a column of the table, not a circuit word.
+        fn output_words(&self, &(address, _): &(u64, u64)) -> Vec<u64> {
+            vec![address]
+        }
+    }
+
+    impl Ports for Sd {
+        const CLASS: Class = Class::Sd;
+
+        fn input_words(&self) -> Vec<u64> {
+            vec![self.v1, self.imm]
+        }
+
+        // The address alone: the value moved is a column of the table, not a circuit word.
+        fn output_words(&self, &(address, _): &(u64, u64)) -> Vec<u64> {
+            vec![address]
         }
     }
 }

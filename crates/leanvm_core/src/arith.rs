@@ -71,12 +71,6 @@ pub trait Arith {
         self.add(a, c)
     }
 
-    /// `sum_i terms_i`.
-    fn sum(&mut self, terms: &[Self::E]) -> Self::E {
-        let zero = self.zero();
-        terms.iter().fold(zero, |acc, &t| self.add(acc, t))
-    }
-
     /// `prod_i factors_i`.
     fn product(&mut self, factors: &[Self::E]) -> Self::E {
         let one = self.one();

@@ -4,9 +4,7 @@
 //! nightly toolchain.
 
 use super::python_verifier::PythonStatement;
-use leanvm_core::cpu::Program;
-use leanvm_core::pcs::Rate;
-use leanvm_core::rv::{ElfError, Guest, Machine, Region};
+use leanvm_core::{ElfError, Guest, Machine, Program, Rate, Region};
 use leanvm_guest::PublicValues;
 use primitives::hash::{digest_words, hash};
 

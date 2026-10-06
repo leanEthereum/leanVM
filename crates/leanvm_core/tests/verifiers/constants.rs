@@ -7,9 +7,9 @@
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
-use leanvm_core::class_flock::{circuit, flock_index, stride_log};
-use leanvm_core::rv::{Hash, Reg, Region, RegisterFile, Syscall};
-use leanvm_core::tables::{ClassSpec, ClassTable, Clock, Part};
+use leanvm_core::{
+    ClassSpec, ClassTable, Clock, Hash, Part, Reg, Region, RegisterFile, Syscall, circuit, flock_index, stride_log,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 use std::path::Path;
@@ -22,13 +22,13 @@ fn rust_constants() -> String {
     let mut scalar = |name: &str, value: u64| lines.push(format!("{name} {value}"));
 
     scalar("ADVICE_BASE", Region::ADVICE.base());
-    scalar("BAD_SLOT", leanvm_core::tables::BAD_SLOT as u64);
-    scalar("BUS_BITS", leanvm_core::leaf::N_TUPLE_BITS as u64);
-    scalar("EXIT_SLOT", leanvm_core::tables::EXIT_SLOT as u64);
+    scalar("BAD_SLOT", leanvm_core::BAD_SLOT as u64);
+    scalar("BUS_BITS", leanvm_core::N_TUPLE_BITS as u64);
+    scalar("EXIT_SLOT", leanvm_core::EXIT_SLOT as u64);
     scalar("CLOCK_START", Clock::CLOCK_START);
     scalar("FAIL_BIT", Clock::FAIL_BIT as u64);
     scalar("FLOCK_K_SKIP", flock::zerocheck::K_SKIP as u64);
-    scalar("FLOCK_MIN_LOG_SIZE", leanvm_core::class_flock::MIN_CUBE_LOG as u64);
+    scalar("FLOCK_MIN_LOG_SIZE", leanvm_core::MIN_CUBE_LOG as u64);
     scalar("HASH_OUT_WORD", Hash::OUT / 8);
     scalar("HASH_WORDS", Hash::WORDS as u64);
     scalar(
@@ -40,11 +40,11 @@ fn rust_constants() -> String {
     scalar("LOG_REGISTERS", RegisterFile::LOG_CELLS as u64);
     scalar("MAX_LOG_ADVICE", Region::ADVICE.max_log_words() as u64);
     scalar("MAX_LOG_RAM", Region::RAM.max_log_words() as u64);
-    scalar("MAX_LOG_ROWS", leanvm_core::cpu::MAX_LOG_ROWS as u64);
+    scalar("MAX_LOG_ROWS", leanvm_core::MAX_LOG_ROWS as u64);
     scalar("MAX_LOG_TEXT", Region::TEXT.max_log_words() as u64);
-    scalar("MAX_STACKED_LOG", leanvm_core::pcs::MAX_MU as u64);
-    scalar("MIN_STACKED_LOG", leanvm_core::pcs::MIN_MU as u64);
-    scalar("NUM_FRAMEWORK_COLUMNS", leanvm_core::cpu::Q_BASE as u64);
+    scalar("MAX_STACKED_LOG", leanvm_core::MAX_MU as u64);
+    scalar("MIN_STACKED_LOG", leanvm_core::MIN_MU as u64);
+    scalar("NUM_FRAMEWORK_COLUMNS", leanvm_core::Q_BASE as u64);
     scalar("QUERY_GRINDING_BITS", pcs::whir_config::QUERY_GRINDING_BITS as u64);
     scalar("RAM_BASE", Region::RAM.base());
     scalar("RAM_SLOT", Clock::RAM_SLOT as u64);
@@ -64,7 +64,7 @@ fn rust_constants() -> String {
     scalar("SYSCALL_REGISTER", Reg::SYSCALL.index() as u64);
     scalar("SYS_EXIT", Syscall::Exit.number());
     scalar("TEXT_BASE", Region::TEXT.base());
-    scalar("UNGROUND_LOG_BYTECODE", leanvm_core::cpu::UNGROUND_LOG_BYTECODE as u64);
+    scalar("UNGROUND_LOG_BYTECODE", leanvm_core::UNGROUND_LOG_BYTECODE as u64);
 
     let list = |values: &[u64]| values.iter().map(u64::to_string).collect::<Vec<_>>().join(",");
     lines.push(format!(
@@ -81,7 +81,7 @@ fn rust_constants() -> String {
             ("clock_k_log", clock.k_log() as u64),
             ("clock_const_pos", clock.const_pos() as u64),
             ("clock_ports", spec.clock_ports().len() as u64),
-            ("min_log_height", leanvm_core::class_flock::n_blocks_log(spec, 1) as u64),
+            ("min_log_height", leanvm_core::n_blocks_log(spec, 1) as u64),
             ("ports", spec.ports.len() as u64),
             ("width", ClassTable::all()[t].n_committed_columns() as u64),
         ];

@@ -5,7 +5,7 @@
 //! ```
 
 use bench::Plan;
-use leanvm_core::tables::ClassSpec;
+use leanvm_core::ClassSpec;
 use primitives::test_util::Rng;
 
 #[global_allocator]

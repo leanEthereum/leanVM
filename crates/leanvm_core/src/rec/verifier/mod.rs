@@ -26,7 +26,7 @@ mod tests;
 pub(crate) use flock::SkipDomain;
 pub(crate) use recursion::{FixedHint, RecShape};
 pub(crate) use ring::RingMap;
-pub use riscv::{CoreRows, ProofShape};
+pub use riscv::ProofShape;
 
 /// The verifier's arithmetic and transcript as rows: a circuit being built, and a transcript replayed in it.
 ///

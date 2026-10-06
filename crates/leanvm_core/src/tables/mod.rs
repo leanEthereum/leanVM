@@ -7,14 +7,12 @@ mod bus;
 mod clock;
 mod columns;
 mod fill;
-mod spec;
+pub(crate) mod spec;
 mod table;
 mod word;
 
-pub use bus::FlushBuilder;
 pub use clock::Clock;
-pub use fill::ColumnOut;
-pub use spec::{BAD_SLOT, BatchWitness, ClassSpec, EXIT_SLOT, InstanceWitness, N_CIRCUITS, N_TABLES, Ram};
+pub use spec::{BAD_SLOT, ClassSpec, EXIT_SLOT, N_CIRCUITS, N_TABLES, Ram};
 pub use table::ClassTable;
 pub use word::Word;
 

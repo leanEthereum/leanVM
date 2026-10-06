@@ -85,12 +85,6 @@ impl Builder {
         c
     }
 
-    /// `a·k`, `k` in `K`.
-    pub fn mul_k(&mut self, a: Ew, k: Kw) -> Ew {
-        let zero = self.zero();
-        self.mul_k_add(a, k, zero)
-    }
-
     /// `a·c + d` for a constant `c`, through the cheaper table when `c` is in `K`.
     pub fn mul_const_add(&mut self, a: Ew, c: F192, d: Ew) -> Ew {
         if c.c1 == 0 && c.c2 == 0 {
@@ -101,18 +95,6 @@ impl Builder {
         self.mul_add(a, c, d)
     }
 
-    /// `a·c` for a constant `c`.
-    pub fn mul_const(&mut self, a: Ew, c: F192) -> Ew {
-        let zero = self.zero();
-        self.mul_const_add(a, c, zero)
-    }
-
-    /// `a + c` for a constant `c`.
-    pub fn add_const(&mut self, a: Ew, c: F192) -> Ew {
-        let c = self.e_const(c);
-        self.add(a, c)
-    }
-
     /// `1 / a`, zero for zero: a hint the prover supplies, held to `a·(1/a) = 1`.
     pub fn inv(&mut self, a: Ew) -> Ew {
         let v = self.e(a);
@@ -120,16 +102,6 @@ impl Builder {
         let p = self.mul(a, i);
         self.eq_e_const(p, F192::ONE);
         i
-    }
-
-    /// `sum_i a_i·b_i + init`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the two lists differ in length.
-    pub fn dot(&mut self, a: &[Ew], b: &[Ew], init: Ew) -> Ew {
-        assert_eq!(a.len(), b.len(), "a dot product of unequal lengths");
-        a.iter().zip(b).fold(init, |acc, (&x, &y)| self.mul_add(x, y, acc))
     }
 
     /// `sum_i terms_i`.
@@ -157,9 +129,7 @@ mod tests {
         assert_eq!(b.mul_add(x, zero, one), one);
         assert_eq!(b.mul_k_add(x, k1, zero), x);
         assert_eq!(b.mul_k_add(x, k0, one), one);
-        assert_eq!(b.mul_k(zero, k), zero);
-        assert_eq!(b.mul_const(x, F192::ONE), x);
-        assert_eq!(b.add_const(x, F192::ZERO), x);
+        assert_eq!(b.mul_k_add(zero, k, zero), zero);
         assert_eq!(b.sum(&[x]), x);
         let finished = b.finish();
         assert!(finished.failures.is_empty(), "{:?}", finished.failures);

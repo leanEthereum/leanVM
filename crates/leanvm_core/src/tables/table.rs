@@ -348,6 +348,7 @@ impl ClassTable {
 mod tests {
     use super::super::Clock;
     use super::*;
+    use crate::colval::ColVal;
 
     fn check_columns(coordinate: &Coord, width: usize) {
         // Every table-side coordinate must use its own local span of columns.
@@ -408,7 +409,7 @@ mod tests {
             row[cols.limbs..cols.limbs + 9].copy_from_slice(&limbs.map(F64));
             row[cols.new..cols.new + 3].copy_from_slice(&Ext { flags, pointers: [0; 3], limbs }.eval().map(F64));
             (row[bits], row[bits + 1]) = (F64(flags & 1), F64(flags >> 1));
-            let values = |row: &[F64]| table.identities().iter().map(|form| form.eval(row)).collect::<Vec<_>>();
+            let values = |row: &[F64]| table.identities().iter().map(|form| <F64 as ColVal>::reduce(form.eval_unreduced(row, false))).collect::<Vec<_>>();
             proptest::prop_assert_eq!(values(&row), vec![F192::ZERO; 3]);
             row[cols.new + wrong].0 ^= 1 << bit;
             let values = values(&row);

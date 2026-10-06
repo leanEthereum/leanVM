@@ -80,21 +80,21 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
 /// `mat[pos * num_interleaved + lane]`; each row (one `pos` across all lanes)
 /// is one Merkle leaf of `num_interleaved * 16` bytes.
 pub(crate) struct LigeroWitness {
-    pub mat: Vec<F192>,
+    pub(crate) mat: Vec<F192>,
     pub tree: Vec<Hash>,
-    pub block_len: usize,
-    pub num_interleaved: usize,
+    pub(crate) block_len: usize,
+    pub(crate) num_interleaved: usize,
 }
 
 impl LigeroWitness {
     #[inline]
-    pub fn row(&self, pos: usize) -> &[F192] {
+    pub(super) fn row(&self, pos: usize) -> &[F192] {
         let start = pos * self.num_interleaved;
         &self.mat[start..start + self.num_interleaved]
     }
 
     #[inline]
-    pub fn root(&self) -> Hash {
+    pub(super) fn root(&self) -> Hash {
         self.tree[self.tree.len() - 1]
     }
 }

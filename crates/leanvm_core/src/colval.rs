@@ -48,7 +48,6 @@ impl PackedCoeffs {
 /// A value a constraint reads out of a column.
 pub trait ColVal: Copy + Send + Sync + Add<Output = Self> + Mul<Output = Self> {
     const ZERO: Self;
-    const ONE: Self;
 
     /// Where this column's products XOR-accumulate before the one reduction that
     /// ends a form.
@@ -85,7 +84,6 @@ pub trait ColVal: Copy + Send + Sync + Add<Output = Self> + Mul<Output = Self> {
 
 impl ColVal for F64 {
     const ZERO: Self = Self::ZERO;
-    const ONE: Self = Self::ONE;
 
     type Unreduced = F192Unreduced;
 
@@ -131,7 +129,6 @@ impl ColVal for F64 {
 
 impl ColVal for F192 {
     const ZERO: Self = Self::ZERO;
-    const ONE: Self = Self::ONE;
 
     type Unreduced = F192Unreduced;
 

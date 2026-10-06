@@ -40,7 +40,7 @@ const STAGE_TILE_BYTES: usize = 16 << 10;
 /// Leaf `i` is `zeros(leaf_words - row_words) ‖ row_i`.
 ///
 /// Blocks must all have the same power-of-two size, and together cover every leaf once.
-pub struct MerkleBuilder {
+pub(crate) struct MerkleBuilder {
     nodes: Nodes,
     leaves: LeafHasher,
     progress: Progress,
@@ -48,7 +48,7 @@ pub struct MerkleBuilder {
 
 impl MerkleBuilder {
     /// An empty tree of `num_leaves` leaves of `leaf_words`, each committing `row_words`.
-    pub fn new(num_leaves: usize, row_words: usize, leaf_words: usize) -> Self {
+    pub(crate) fn new(num_leaves: usize, row_words: usize, leaf_words: usize) -> Self {
         Self::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words)
     }
 
@@ -66,7 +66,7 @@ impl MerkleBuilder {
     /// # Panics
     ///
     /// Panics unless the block is aligned, sized like every other, and new.
-    pub fn absorb(&self, first_leaf: usize, rows: &[F64]) {
+    pub(crate) fn absorb(&self, first_leaf: usize, rows: &[F64]) {
         self.absorb_bytes(first_leaf, words_as_bytes(rows));
     }
 
@@ -111,7 +111,7 @@ impl MerkleBuilder {
     /// # Panics
     ///
     /// Panics unless every leaf was absorbed.
-    pub fn finish(self) -> Vec<Hash> {
+    pub(crate) fn finish(self) -> Vec<Hash> {
         assert!(self.progress.all_claimed(), "every leaf absorbed");
         // SAFETY: every block was absorbed once, and the last arrivals climbed every level above.
         unsafe { self.nodes.assume_init() }

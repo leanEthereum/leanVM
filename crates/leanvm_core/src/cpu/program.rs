@@ -538,7 +538,8 @@ mod tests {
     use crate::leaf::tests::unmatched_leaves;
     use crate::pcs::Rate;
     use crate::rv::asm::*;
-    use crate::rv::{Alu, Class, Machine, Outcome, ProgramError, Reg, RegisterFile, Trap};
+    use crate::rv::semantics::Outcome;
+    use crate::rv::{Alu, Class, Machine, ProgramError, Reg, RegisterFile, Trap};
     use crate::tables::{ClassSpec, ClassTable, Clock, Separator};
 
     #[test]

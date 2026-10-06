@@ -1,8 +1,8 @@
 //! u64 arithmetic as Flock R1CS circuits, one operation per block: wrapping
-//! addition ([`add`]), and multiplication ([`mul`]) wrapping or widening.
+//! addition (`add`), and multiplication ([`mul`]) wrapping or widening.
 //!
 //! Each is a [`crate::circuit`] gate list over the ports `a`, `b` and the result, in
-//! that order ([`A_BASE`], [`B_BASE`], [`OUT_BASE`]), built from [`add::Adder`] and
+//! that order (`A_BASE`, `B_BASE`, `OUT_BASE`), built from `add::Adder` and
 //! [`mul::Multiplier`], which take wires and return wires and so compose into
 //! larger circuits. Here the witness is not the generic walk of the gate list but
 //! word arithmetic on the structure the list is built from, one instance at a time.
@@ -12,12 +12,12 @@ use crate::reduction::Block;
 use add::Adder;
 use mul::Multiplier;
 
-pub mod add;
+pub(crate) mod add;
 pub mod mul;
 
-pub const A_BASE: usize = 0;
-pub const B_BASE: usize = 64;
-pub const OUT_BASE: usize = 128;
+pub(crate) const A_BASE: usize = 0;
+pub(crate) const B_BASE: usize = 64;
+pub(crate) const OUT_BASE: usize = 128;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum U64Op {
@@ -31,7 +31,7 @@ pub enum U64Op {
 
 impl U64Op {
     /// Bits of the committed result.
-    pub const fn out_bits(self) -> usize {
+    pub(crate) const fn out_bits(self) -> usize {
         match self {
             Self::WrappingAdd | Self::WrappingMul => 64,
             Self::WideningMul => 128,

@@ -89,13 +89,6 @@ impl Builder {
         std::array::from_fn(|i| Kw(w[WORDS + i]))
     }
 
-    /// A digest from its words.
-    pub fn k_to_d(&mut self, k: [Kw; 4]) -> Dw {
-        let v = k.map(|w| self.k(w));
-        let given: [(usize, u32); 4] = std::array::from_fn(|i| (WORDS + i, k[i].0));
-        Dw(self.cast_row(&given, v)[DIGEST])
-    }
-
     /// The digest whose two 128-bit halves are `lo` and `hi`, each with a zero top limb.
     pub fn halves_to_d(&mut self, lo: Ew, hi: Ew) -> Dw {
         let (l, h) = (self.e(lo), self.e(hi));
@@ -104,5 +97,18 @@ impl Builder {
         }
         let w = self.cast_row(&[(HALVES, lo.0), (HALVES + 1, hi.0)], [l.c0, l.c1, h.c0, h.c1]);
         Dw(w[DIGEST])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl Builder {
+        pub(crate) fn k_to_d(&mut self, k: [Kw; 4]) -> Dw {
+            let v = k.map(|w| self.k(w));
+            let given: [(usize, u32); 4] = std::array::from_fn(|i| (WORDS + i, k[i].0));
+            Dw(self.cast_row(&given, v)[DIGEST])
+        }
     }
 }

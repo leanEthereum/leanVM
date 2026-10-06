@@ -132,13 +132,6 @@ impl Framework {
     }
 }
 
-/// How many public columns a bytecode entry has.
-///
-/// They are the class tag, `flags`, `a1`, `a2`, `ad`, `imm`, `pc4` and `dt` (§sec:e2e-bc).
-///
-/// Then come a zero verdict and the exit selector.
-pub const N_BYTECODE_COLUMNS: usize = tables::EXIT_SLOT + 1 - crate::leaf::BYTECODE_PUBLIC_SLOT;
-
 /// The read-only arrays (§sec:lookup).
 ///
 /// Their table side is a producer rather than a pair of framework blocks.

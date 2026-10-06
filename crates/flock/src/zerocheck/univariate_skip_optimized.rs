@@ -54,7 +54,7 @@ use primitives::field::gf2_8::gf8_reduce;
 use primitives::field::gf2_8::neon::{gf8_mul_vec16, gf8_reduce_vec16};
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use primitives::field::mul4;
-use primitives::field::{F8, F192, PHI_8_TABLE_192 as PHI_8_TABLE, phi8_192 as phi8};
+use primitives::field::{F8, F192, PHI_8_TABLE_192, phi8_192};
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "gfni",
@@ -98,8 +98,8 @@ const C_S_F8: u8 = 0x1C;
 
 /// The constant `C_s = φ_8(0x1C) ∈ F_{2^192}`: the relative scaling factor
 /// between this optimized output and the naive output.
-pub fn c_s() -> F192 {
-    phi8(F8(C_S_F8))
+pub(crate) fn c_s() -> F192 {
+    phi8_192(F8(C_S_F8))
 }
 
 /// The three F192 small challenges (embeddings of `SMALL_CHAL_F8`): caller
@@ -107,9 +107,9 @@ pub fn c_s() -> F192 {
 /// produce a result related to the optimized output by exactly `C_s`.
 pub fn small_challenges() -> [F192; 3] {
     [
-        phi8(F8(SMALL_CHAL_F8[0])),
-        phi8(F8(SMALL_CHAL_F8[1])),
-        phi8(F8(SMALL_CHAL_F8[2])),
+        phi8_192(F8(SMALL_CHAL_F8[0])),
+        phi8_192(F8(SMALL_CHAL_F8[1])),
+        phi8_192(F8(SMALL_CHAL_F8[2])),
     ]
 }
 
@@ -183,7 +183,7 @@ fn gamma_powers() -> &'static [F192; N_MEDIUM_VALUES] {
 fn build_convert_table() -> Box<ConvertTable> {
     let mut table: Box<ConvertTable> = Box::new([[F192::ZERO; 256]; N_MEDIUM_VALUES]);
     for (row, &g_b) in table.iter_mut().zip(gamma_powers()) {
-        for (entry, &phi) in row.iter_mut().zip(PHI_8_TABLE.iter()) {
+        for (entry, &phi) in row.iter_mut().zip(PHI_8_TABLE_192.iter()) {
             *entry = g_b * phi;
         }
     }
@@ -805,7 +805,7 @@ type ConvertMaps<P> = [[<P as avx2::Product>::Map; avx2::OUT_BYTES]; N_MEDIUM_VA
     allow(dead_code)
 )]
 fn convert_maps<P: avx2::Product>() -> ConvertMaps<P> {
-    let units: [F192; 8] = std::array::from_fn(|s| PHI_8_TABLE[1 << s]);
+    let units: [F192; 8] = std::array::from_fn(|s| PHI_8_TABLE_192[1 << s]);
     gamma_powers().map(|g| P::maps(&units.map(|u| g * u)))
 }
 
@@ -878,7 +878,7 @@ impl Convert {
         static PHI_UNITS: OnceLock<[F64; 8]> = OnceLock::new();
         let units = PHI_UNITS.get_or_init(|| {
             std::array::from_fn(|s| {
-                let phi = PHI_8_TABLE[1 << s];
+                let phi = PHI_8_TABLE_192[1 << s];
                 assert!(phi.c1 == 0 && phi.c2 == 0, "phi_8 lands in the base field");
                 F64(phi.c0)
             })
@@ -1122,7 +1122,7 @@ fn build_b_med_counts(padding: &PaddingSpec) -> (usize, Vec<u8>) {
     clippy::too_many_arguments,
     reason = "The proof kernel keeps its independent inputs explicit."
 )]
-pub fn round1_shift_reduce_extract_c_packed_padded(
+pub(crate) fn round1_shift_reduce_extract_c_packed_padded(
     a_packed: &[u8],
     b_packed: &[u8],
     c_packed: &[u8],
@@ -1216,7 +1216,7 @@ mod tests {
                 let conv = |rows: &[[u8; 64]]| {
                     rows.iter()
                         .zip(gamma_powers())
-                        .fold(F192::ZERO, |acc, (row, &gamma)| acc + gamma * phi8(F8(row[lane])))
+                        .fold(F192::ZERO, |acc, (row, &gamma)| acc + gamma * phi8_192(F8(row[lane])))
                 };
                 want_ab[lane] += conv(&ab) * eq;
                 want_c[lane] += conv(&c) * eq;
@@ -1238,7 +1238,7 @@ mod tests {
                 let want: [F192; ELL] = std::array::from_fn(|lane| {
                     rows.iter()
                         .zip(gamma_powers())
-                        .fold(F192::ZERO, |acc, (row, &gamma)| acc + gamma * phi8(F8(row[lane])))
+                        .fold(F192::ZERO, |acc, (row, &gamma)| acc + gamma * phi8_192(F8(row[lane])))
                 });
                 assert_eq!(got, want, "n={n}");
             }

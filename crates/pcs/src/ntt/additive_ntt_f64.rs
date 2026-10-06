@@ -64,7 +64,7 @@ fn span_get(basis: &[F64], idx: usize) -> F64 {
 }
 
 /// Receives a finished block of codeword rows, as `(first_row, rows)`.
-pub type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
+pub(crate) type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
 
 /// Additive NTT over F_{2^64} with the standard polynomial-basis subspace
 /// `{1, x, x², …}`: the F_2-subspace is `{0, 1, …, 2^ℓ−1}` under the natural
@@ -91,7 +91,7 @@ impl AdditiveNttF64 {
         Self::new(&basis)
     }
 
-    pub const fn log_domain_size(&self) -> usize {
+    pub(crate) const fn log_domain_size(&self) -> usize {
         self.evals.len()
     }
 
@@ -99,7 +99,7 @@ impl AdditiveNttF64 {
     ///
     /// - It is `s_i(sum_j bit_j(block) * b_(i+1+j))`, with `i = L - layer - 1` on a `2^L`-point domain.
     /// - The normalized `s_i` is F_2-linear, so this is a subset sum of row `i` of the table.
-    pub fn twiddle(&self, layer: usize, block: usize) -> F64 {
+    pub(crate) fn twiddle(&self, layer: usize, block: usize) -> F64 {
         let v = &self.evals[self.log_domain_size() - layer - 1];
         span_get(&v[1..], block)
     }
@@ -161,7 +161,7 @@ impl AdditiveNttF64 {
     /// - Each row is handed over exactly once.
     /// - Blocks are aligned, and all of one power-of-two size.
     /// - A block is handed over while its rows are still in cache.
-    pub fn encode_interleaved_in_place_with(
+    pub(crate) fn encode_interleaved_in_place_with(
         &self,
         data: &mut [F64],
         num_ntts: usize,
@@ -181,7 +181,7 @@ impl AdditiveNttF64 {
     /// # Panics
     ///
     /// Panics unless the codeword is exactly `2^r` messages long.
-    pub fn encode_interleaved_with(
+    pub(crate) fn encode_interleaved_with(
         &self,
         data: &mut [F64],
         msg: &[F64],
@@ -648,7 +648,7 @@ fn radix8_butterflies(rows: &mut [&mut [F64]; 8], t: &[F64; 7]) {
 /// - Each lane adds a contiguous burst of words to an L1-resident tile.
 /// - The finished tile goes out as one contiguous run.
 /// - That keeps an n-way gather at a `2^rows_log` stride near memory bandwidth.
-pub fn transpose_lane_major(out: &mut [F64], msg: &[F64], n_lanes: usize, log_rows: usize) {
+pub(crate) fn transpose_lane_major(out: &mut [F64], msg: &[F64], n_lanes: usize, log_rows: usize) {
     let rows = 1usize << log_rows;
     assert!(n_lanes > 0, "a commitment needs at least one lane");
     assert_eq!(msg.len(), n_lanes * rows, "message is n_lanes contiguous lane blocks");

@@ -10,14 +10,14 @@ use crate::circuit::{Builder, Wire};
 /// The carries into bits 1 to 63.
 const CARRIES: u128 = (u64::MAX >> 1) as u128;
 
-pub struct Adder {
+pub(crate) struct Adder {
     /// The first of the carries' 63 product slots.
     slot: usize,
 }
 
 impl Adder {
     /// `a + b mod 2^64`, as wires.
-    pub fn build(c: &mut Builder, a: &[Wire], b: &[Wire]) -> (Vec<Wire>, Self) {
+    pub(crate) fn build(c: &mut Builder, a: &[Wire], b: &[Wire]) -> (Vec<Wire>, Self) {
         let slot = c.next_slot();
         let mut carry = None;
         let mut sum = Vec::with_capacity(64);

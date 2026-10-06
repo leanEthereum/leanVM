@@ -13,7 +13,7 @@ use ::flock::reduction::Shape;
 use ::flock::zerocheck::univariate_skip_optimized::{medium_challenges, small_challenges};
 use ::flock::zerocheck::{K_SKIP, MIN_LOG_N};
 use ::pcs::stack_open::SliceClaim;
-use primitives::field::{F192, PHI_8_TABLE_192 as PHI_8_TABLE};
+use primitives::field::{F192, PHI_8_TABLE_192};
 use primitives::multilinear::window_denominator;
 
 /// The skip domain's size, and the zerocheck's first message's.
@@ -196,7 +196,7 @@ impl SkipDomain {
         let mut c = [F192::ZERO; K_SKIP + 1];
         c[0] = F192::ONE;
         for j in 0..K_SKIP {
-            let a = PHI_8_TABLE[1 << j];
+            let a = PHI_8_TABLE_192[1 << j];
             let at_a = Self::linearized(&c, a);
             for k in (0..=j + 1).rev() {
                 let squared = if k == 0 { F192::ZERO } else { c[k - 1].square() };
@@ -239,7 +239,7 @@ impl SkipDomain {
 
     /// `1 / (z + s_i)` over `S`, which [`Self::lagrange_with`] takes.
     fn inverses<A: Arith>(a: &mut A, z: A::E) -> Vec<A::E> {
-        Self::inverses_at(a, z, &PHI_8_TABLE[..ELL])
+        Self::inverses_at(a, z, &PHI_8_TABLE_192[..ELL])
     }
 
     /// `scale * sum_i values_i * inverses_i`.
@@ -254,7 +254,7 @@ impl SkipDomain {
     ///
     /// Its value is `D_2ELL · V_S(z) · V_Lambda(z) · sum_i values_i / (z + lambda_i)`, with `V_Lambda(z) = V_S(z) + V_S(phi_8(ELL))`.
     fn first_round_at<A: Arith>(a: &mut A, z: A::E, vanishing: A::E, values: &[A::E]) -> A::E {
-        let lambda = &PHI_8_TABLE[ELL..2 * ELL];
+        let lambda = &PHI_8_TABLE_192[ELL..2 * ELL];
         let offset = Self::linearized(&Self::vanishing_coefficients(), lambda[0]);
         let on_lambda = a.add_const(vanishing, offset);
         let both = a.mul(vanishing, on_lambda);

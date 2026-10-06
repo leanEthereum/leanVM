@@ -36,7 +36,7 @@
 //! ## Quirky (univariate-skip) claim points
 //!
 //! To compose with the **zerocheck's univariate skip** for the first `k_skip`
-//! variables, claim points use the [`QuirkyPoint`] representation:
+//! variables, claim points use the `QuirkyPoint` representation:
 //!
 //!   `x = (z_skip ∈ F_{2^192},  x_inner_rest ∈ F_{2^192}^{k_log − k_skip},  x_outer ∈ F_{2^192}^{n_log})`
 //!
@@ -104,7 +104,7 @@ use primitives::bit_fold::gfni::{OUT_BYTES, store_f192, weight_matrices};
 use primitives::field::F192;
 #[cfg(target_arch = "aarch64")]
 use primitives::field::neon::xor3_u64;
-use primitives::multilinear::{eq_eval, eq_table as build_eq, inner_product, skip_lagrange_weights};
+use primitives::multilinear::{eq_eval, eq_table, inner_product, skip_lagrange_weights};
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
 use thiserror::Error;
@@ -175,14 +175,14 @@ pub trait LincheckCircuit: Sync {
 /// Total "elements" = `1 + (k_log − k_skip) + n_log`, which is the shape the
 /// zerocheck's extract_c output uses.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct QuirkyPoint {
+pub(crate) struct QuirkyPoint {
     /// Univariate-skip challenge ∈ F₁₉₂ (tower). Binds all `k_skip` skip variables.
     pub z_skip: F192,
     /// Multilinear coords for the inner dims *after* the skip block. Length
     /// `k_log − k_skip`.
     pub x_inner_rest: Vec<F192>,
     /// Multilinear coords for the outer dims. Length `n_log = m − k_log`.
-    pub x_outer: Vec<F192>,
+    pub(crate) x_outer: Vec<F192>,
 }
 
 // Lincheck prover message: a partial product-sumcheck that proves the two
@@ -820,7 +820,7 @@ fn build_sum_table(eq8: &[F192], table: &mut [F192]) {
 /// inner-rest dims occupy the next bits.
 pub fn build_quirky_eq_table(z_skip: F192, x_inner_rest: &[F192], k_skip: usize) -> Vec<F192> {
     let lambda_skip = skip_lagrange_weights(k_skip, z_skip);
-    let eq_rest = build_eq(x_inner_rest);
+    let eq_rest = eq_table(x_inner_rest);
     // Layout: index = i_skip + i_inner_rest · 2^k_skip  ⇒  i_skip is low bits.
     outer_product(&eq_rest, &lambda_skip)
 }
@@ -1001,29 +1001,29 @@ fn circuit_weights(alpha: F192, n: usize) -> Vec<F192> {
 /// One circuit's witness in a batched lincheck: its packed `z` in the lincheck
 /// stripe layout, and the quirky point its zerocheck claims are at.
 #[derive(Clone, Copy)]
-pub struct LincheckInput<'a> {
+pub(crate) struct LincheckInput<'a> {
     pub z_packed: &'a [u8],
     pub m: usize,
     pub k_log: usize,
     pub k_skip: usize,
     pub useful_bits: usize,
     pub circuit: &'a dyn LincheckCircuit,
-    pub x_ab: &'a QuirkyPoint,
+    pub(crate) x_ab: &'a QuirkyPoint,
 }
 
 /// One circuit's statement in a batched lincheck: its shape and its zerocheck claims.
 ///
 /// Of the circuit it reads only its size and the constant wire's column: its matrices are left to the claim the replay returns.
 #[derive(Clone, Copy)]
-pub struct LincheckStatement<'a> {
+pub(crate) struct LincheckStatement<'a> {
     pub m: usize,
     pub k_log: usize,
     pub k_skip: usize,
     pub const_pin_col: usize,
-    pub x_ab: &'a QuirkyPoint,
-    pub v_a: F192,
-    pub v_b: F192,
-    pub v_c: F192,
+    pub(crate) x_ab: &'a QuirkyPoint,
+    pub(crate) v_a: F192,
+    pub(crate) v_b: F192,
+    pub(crate) v_c: F192,
 }
 
 /// One circuit's product sumcheck: its α-batched column marginal and its partially
@@ -1082,7 +1082,7 @@ impl CircuitProver {
 
         // Partial fold of z at the shared outer half (length-k F192 vector).
         let z = tracing::info_span!("Partial fold").in_scope(|| {
-            let eq_x_outer = build_eq(&x_ab.x_outer);
+            let eq_x_outer = eq_table(&x_ab.x_outer);
             partial_fold_packed_z_best(z_packed, m, k_log, useful_bits, &eq_x_outer)
         });
 
@@ -1140,7 +1140,7 @@ impl CircuitProver {
 /// transmitted post-sumcheck `z_partial`, which is exactly its 64-entry ring-switch
 /// `s_hat_v`, sent after the rounds in circuit order, each followed by the value of
 /// its matrices' form, which the verifier leaves as a claim on the circuit.
-pub fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<LincheckClaim> {
+pub(crate) fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<LincheckClaim> {
     // Sample α (matches verifier's order). It batches each circuit's scalar
     // consistency checks v_a, v_b, v_c and its pin, and the circuits.
     let alpha = ps.sample();
@@ -1217,7 +1217,7 @@ fn claim_of(alpha: F192, r_rounds: &[F192], s_hat_v: Vec<F192>) -> LincheckClaim
 ///
 /// Returns the first malformed length or transcript read, or a final claim the
 /// circuits' terms do not reproduce.
-pub fn verify_deferred(
+pub(crate) fn verify_deferred(
     statements: &[LincheckStatement<'_>],
     vs: &mut VerifierState<'_>,
 ) -> Result<Vec<(LincheckClaim, MatrixClaim)>, LincheckError> {
@@ -1376,7 +1376,7 @@ impl MatrixForm {
     pub fn evaluate(&self, circuit: &dyn LincheckCircuit) -> F192 {
         let k_skip = self.s_hat_v.len().ilog2() as usize;
         let eq_inner = build_quirky_eq_table(self.z_skip, &self.x_inner_rest, k_skip);
-        let w_col = outer_product(&build_eq(&self.r_inner_rest), &self.s_hat_v);
+        let w_col = outer_product(&eq_table(&self.r_inner_rest), &self.s_hat_v);
         circuit
             .bilinear_form(self.alpha, &eq_inner, &w_col)
             .unwrap_or_else(|| inner_product(&circuit.fold_alpha_batched(self.alpha, &eq_inner), &w_col))
@@ -1674,8 +1674,8 @@ mod tests {
         // Tower helpers: the point is F192 (the verifier's field), and the
         // expected value must equal the F192 claim the verifier derives.
         let lambda = skip_lagrange_weights(k_skip, point.z_skip);
-        let eq_rest = build_eq(&point.x_inner_rest);
-        let eq_outer = build_eq(&point.x_outer);
+        let eq_rest = eq_table(&point.x_inner_rest);
+        let eq_outer = eq_table(&point.x_outer);
         debug_assert_eq!(lambda.len(), k_skip_dim);
         debug_assert_eq!(eq_rest.len(), inner_rest_dim);
         debug_assert_eq!(eq_outer.len(), n_outer);
@@ -1729,7 +1729,7 @@ mod tests {
             let z_packed = pack_z_lincheck(&z, m, k_log);
             let n_log = m - k_log;
             let p = rng.ext_vec(n_log);
-            let eq = build_eq(&p);
+            let eq = eq_table(&p);
 
             let serial = partial_fold_packed_z(&z_packed, m, k_log, &eq);
             let fast = partial_fold_packed_z_fast_padded_dense(&z_packed, m, k_log, &eq);
@@ -1759,7 +1759,7 @@ mod tests {
                 block[useful_bits..].fill(false);
             }
             let z_packed = pack_z_lincheck(&z, m, k_log);
-            let eq = build_eq(&rng.ext_vec(m - k_log));
+            let eq = eq_table(&rng.ext_vec(m - k_log));
             let serial = partial_fold_packed_z(&z_packed, m, k_log, &eq);
             let best = partial_fold_packed_z_best(&z_packed, m, k_log, useful_bits, &eq);
             assert_eq!(serial, best, "m={m} k_log={k_log} useful={useful_bits}");
@@ -1779,7 +1779,7 @@ mod tests {
                     block[useful_bits..].fill(false);
                 }
                 let z_packed = pack_z_lincheck(&z, m, k_log);
-                let eq = build_eq(&rng.ext_vec(m - k_log));
+                let eq = eq_table(&rng.ext_vec(m - k_log));
                 let serial = partial_fold_packed_z(&z_packed, m, k_log, &eq);
                 let folded = partial_fold_packed_z_avx2::<P>(&z_packed, m, k_log, useful_bits, &eq);
                 assert_eq!(serial, folded, "{name}: m={m} k_log={k_log} useful={useful_bits}");
@@ -1803,7 +1803,7 @@ mod tests {
             let z_packed = pack_z_lincheck(&z, m, k_log);
             let n_log = m - k_log;
             let p = rng.ext_vec(n_log);
-            let eq = build_eq(&p);
+            let eq = eq_table(&p);
 
             let serial = partial_fold_packed_z(&z_packed, m, k_log, &eq);
             let iblock = partial_fold_packed_z_iblock_padded(&z_packed, m, k_log, 1usize << k_log, &eq);
@@ -1841,7 +1841,7 @@ mod tests {
                 }
             }
             let z_packed = pack_z_lincheck(&z, m, k_log);
-            let eq = build_eq(&rng.ext_vec(n_log));
+            let eq = eq_table(&rng.ext_vec(n_log));
             let want = partial_fold_packed_z_iblock_padded(&z_packed, m, k_log, useful_bits, &eq);
             let got = partial_fold_packed_z_oblock_padded(&z_packed, m, k_log, useful_bits, &eq);
             assert_eq!(want, got, "m={m} k_log={k_log} useful={useful_bits}");
@@ -1885,7 +1885,7 @@ mod tests {
             }
             let z_packed = pack_z_lincheck(&z, m, k_log);
             let outer_point = rng.ext_vec(n_log);
-            let eq_outer = build_eq(&outer_point);
+            let eq_outer = eq_table(&outer_point);
 
             let dense_fast = partial_fold_packed_z_fast_padded_dense(&z_packed, m, k_log, &eq_outer);
             let padded_fast = partial_fold_packed_z_fast_padded(&z_packed, m, k_log, useful_bits, &eq_outer);
@@ -1973,8 +1973,8 @@ mod tests {
             // Every entry of the output vector must be the true bit-slice MLE
             // of z at (r_inner_rest, x_ab.x_outer): the whole claim, not just
             // one combination of it.
-            let eq_rest = build_eq(&claim_v.r_inner_rest);
-            let eq_outer = build_eq(&x_ab.x_outer);
+            let eq_rest = eq_table(&claim_v.r_inner_rest);
+            let eq_outer = eq_table(&x_ab.x_outer);
             for i_skip in 0..(1usize << k_skip) {
                 let mut acc = F192::ZERO;
                 for (i_rest, &er) in eq_rest.iter().enumerate() {

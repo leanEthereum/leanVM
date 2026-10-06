@@ -53,11 +53,10 @@ pub struct Shape {
 }
 
 /// Everything the verifier recovers for one circuit: the z-claim for the PCS and the
-/// zerocheck / lincheck claims.
+/// lincheck claim.
 #[derive(Clone, Debug)]
 pub struct ReductionReplay {
     pub claim: SliceClaim,
-    pub zc_claim: ZerocheckClaim,
     pub lc_claim: LincheckClaim,
 }
 
@@ -229,11 +228,10 @@ pub fn verify_deferred(
         .collect();
     let lc_claims = lincheck::verify_deferred(&statements, vs).map_err(FlockError::Lincheck)?;
 
-    Ok((zc_claims.into_iter().zip(lc_claims).zip(&x_abs))
-        .map(|((zc_claim, (lc_claim, matrices)), x_ab)| {
+    Ok((lc_claims.into_iter().zip(&x_abs))
+        .map(|((lc_claim, matrices), x_ab)| {
             let replay = ReductionReplay {
                 claim: reduction_claim(&lc_claim, &x_ab.x_outer),
-                zc_claim,
                 lc_claim,
             };
             (replay, matrices)

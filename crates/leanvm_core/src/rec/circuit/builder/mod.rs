@@ -340,14 +340,19 @@ impl Builder {
     pub fn expose_e(&mut self, w: Ew) -> usize {
         self.expose(w.0)
     }
+}
 
-    /// Make `w` a word of the statement.
-    pub fn expose_k(&mut self, w: Kw) -> usize {
-        self.expose(w.0)
-    }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    /// Make `w` a word of the statement.
-    pub fn expose_d(&mut self, w: Dw) -> usize {
-        self.expose(w.0)
+    impl Builder {
+        pub(crate) fn expose_k(&mut self, w: Kw) -> usize {
+            self.expose(w.0)
+        }
+
+        pub(crate) fn expose_d(&mut self, w: Dw) -> usize {
+            self.expose(w.0)
+        }
     }
 }

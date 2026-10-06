@@ -66,8 +66,7 @@ mod tests {
     use super::*;
     use leansphincs::SphincsVerifyError::{InadmissibleDigest, InadmissibleEncoding, RootMismatch};
     use leansphincs::{Signature, SphincsVerifyError};
-    use leanvm_core::cpu::Program;
-    use leanvm_core::rv::{Machine, Trap};
+    use leanvm_core::{Machine, Program, Trap};
     use primitives::hash::digest_words;
 
     fn hex(bytes: impl IntoIterator<Item = u8>) -> String {

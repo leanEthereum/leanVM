@@ -211,11 +211,6 @@ impl Circuit {
         self.const_pos
     }
 
-    /// Products, which is what an instance pays beyond its ports.
-    pub const fn n_products(&self) -> usize {
-        self.useful_bits - self.const_pos - 1
-    }
-
     pub const fn n_input_words(&self) -> usize {
         self.n_input_words
     }

@@ -21,10 +21,8 @@ use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
-use flock::hash::{
-    Blake2sSetup, Compression, K_LOG, generate_witness_with_ab_packed_and_lincheck, min_n_blocks_log,
-    pinned_compression,
-};
+use flock::hash::{Blake2sSetup, Compression, K_LOG, generate_witness_with_ab_packed_and_lincheck, pinned_compression};
+use flock::reduction::min_n_blocks_log;
 use pcs::pack::LOG_PACKING;
 use pcs::stack_open::{RingSwitch, open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};

@@ -169,7 +169,7 @@ fn batch_level_claims(
 /// enforced-sum recomputation, and the residual uses the closed-form
 /// `induce_sumcheck_evaluate_at_residual`. `log_n` is the committed
 /// K-witness log size (b's logical dimension).
-pub fn recursive_verifier_with_basis_succinct<F>(
+pub(crate) fn recursive_verifier_with_basis_succinct<F>(
     config: &VerifierConfig,
     log_n: usize,
     n_lanes: usize,

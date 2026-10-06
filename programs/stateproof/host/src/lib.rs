@@ -211,8 +211,7 @@ mod tests {
     use alloy_primitives::{B256, keccak256};
     use alloy_trie::proof::ProofRetainer;
     use alloy_trie::{HashBuilder, Nibbles};
-    use leanvm_core::cpu::Program;
-    use leanvm_core::rv::{Machine, Trap};
+    use leanvm_core::{Machine, Program, Trap};
     use leanvm_guest::keccak;
     use proptest::prelude::*;
     use serde_json::Value;

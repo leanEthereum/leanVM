@@ -64,17 +64,12 @@ use primitives::bit_fold::{BLOCK, F192Map, Sliced};
 use primitives::field::F192;
 use primitives::multilinear::eq_table;
 
-/// Total degree of the six-challenge composed batching map. This is the
-/// conservative degree used by the WHIR list-size soundness accounting.
-pub const RING_SWITCH_SOUNDNESS_DEGREE: usize =
-    (1usize << 31) + (1usize << 15) + (1usize << 7) + (1usize << 3) + (1usize << 1) + 1;
-
 /// Frobenius shifts in the order in which the two-term maps are composed.
 /// Descending order bounds every challenge's exponent by `2^31`.
 pub const COMPOSITION_SHIFTS: [usize; 6] = [32, 16, 8, 4, 2, 1];
 
 /// Number of Frobenius terms the composed batching map expands to: the `F_2`-dimension of `K`.
-pub const LINEARIZED_TERMS: usize = PACKING_WIDTH;
+pub(crate) const LINEARIZED_TERMS: usize = PACKING_WIDTH;
 
 /// The coordinate batching weights: `weights[w] = Phi(b_w)`, where `b_w` is the
 /// `w`-th `F_2`-coordinate basis element of `E` (the order `transpose_s_hat`
@@ -114,14 +109,14 @@ pub const LINEARIZED_TERMS: usize = PACKING_WIDTH;
 /// degree 64 over `F_2`, so `D_j = 0` and `delta = 0`. Hence some `V_k != 0`.
 /// The 64 `C_k` are distinct monomials, so the discrepancy is a nonzero
 /// polynomial in the challenges. In descending shift order its total degree is
-/// [`RING_SWITCH_SOUNDNESS_DEGREE`], below `2^32`.
+/// `2^31 + 2^15 + 2^7 + 2^3 + 2 + 1`, below `2^32`.
 ///
 /// The 64 terms are also the floor: the weights must separate any nonzero
 /// error on the 192 transposed `K`-columns, which is `|S|` `E`-equations, i.e.
 /// `3·|S|` `K`-equations, in `192` `K`-unknowns, and with `3·|S| < 192` a
 /// nonzero error lies in the kernel for EVERY coefficient choice and passes
 /// with probability one.
-pub fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> Vec<F192> {
+pub(crate) fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> Vec<F192> {
     // b_w has only bit w set: bits 0..64 are K's power basis, and bits 64/128
     // shift it by Y / Y^2.
     let basis = |w: usize| match w / PACKING_WIDTH {
@@ -148,23 +143,13 @@ fn apply_composed_map(mut value: F192, challenges: &[F192; COMPOSITION_SHIFTS.le
 
 /// Sample the composed map's challenges after every ring-switch message has
 /// been bound.
-pub fn sample_map_challenges(ch: &mut impl Challenger) -> [F192; COMPOSITION_SHIFTS.len()] {
+pub(crate) fn sample_map_challenges(ch: &mut impl Challenger) -> [F192; COMPOSITION_SHIFTS.len()] {
     std::array::from_fn(|_| ch.sample())
 }
 
 // ---------------------------------------------------------------------------
 // Building blocks
 // ---------------------------------------------------------------------------
-
-/// Standard inner product `sum_i a[i] * b[i]` over E.
-pub fn inner_product_ext(a: &[F192], b: &[F192]) -> F192 {
-    assert_eq!(a.len(), b.len());
-    let mut acc = F192::ZERO;
-    for (&x, &y) in a.iter().zip(b.iter()) {
-        acc += x * y;
-    }
-    acc
-}
 
 /// A claim's weight `Phi(scale·eq(point, ·))`, kept factored: the split eq
 /// tensor, its high half scaled, and `Phi` on the coordinates, so combining
@@ -246,7 +231,7 @@ fn split_n_lo(n: usize) -> usize {
 /// The family's target: given the shared coordinate weights, `Σ_w Phi(b_w)·t_w`
 /// over the transposed slices, which is `Σ_i x^i·Phi(s_i)`. Pair it with the closed-form weight
 /// at the WHIR final point, which takes the same map's challenges, so `rs_eq_ind` is never built.
-pub fn verify_finish(s_hat_v: &[F192], coordinate_weights: &[F192]) -> F192 {
+pub(crate) fn verify_finish(s_hat_v: &[F192], coordinate_weights: &[F192]) -> F192 {
     inner_product_base_ext(&transpose_s_hat(s_hat_v), coordinate_weights)
 }
 
@@ -266,7 +251,7 @@ fn inverse_frobenius_ladder(v: F192) -> [F192; LINEARIZED_TERMS] {
 }
 
 /// What every claim weight at a prefix of one query point shares: the query's inverse Frobenius ladders and the map's coefficients shifted to match. Each ring of a stacked opening is evaluated at a prefix of the same terminal point, so one of these serves the whole opening.
-pub struct RsEqQuery {
+pub(crate) struct RsEqQuery {
     /// `C_k^(2^-k)` at index `k`, `C_k` the map's Frobenius coefficients.
     coefficients: [F192; LINEARIZED_TERMS],
     /// `1 + q_n^(2^-k)` at `[n][k]`.
@@ -275,7 +260,7 @@ pub struct RsEqQuery {
 
 impl RsEqQuery {
     /// Precompute for `query` under the map drawn from `challenges` (those of [`build_coordinate_weights`]).
-    pub fn new(challenges: &[F192; COMPOSITION_SHIFTS.len()], query: &[F192]) -> Self {
+    pub(crate) fn new(challenges: &[F192; COMPOSITION_SHIFTS.len()], query: &[F192]) -> Self {
         // With d_p = COMPOSITION_SHIFTS[p], C_k = prod_{p : k & d_p} f_p^(2^(k mod d_p)), so C_k^(2^-k) = prod_{p : k & d_p} f_p^(2^-(k - k mod d_p)).
         let challenge_ladders = challenges.map(inverse_frobenius_ladder);
         let coefficients = std::array::from_fn(|k| {
@@ -304,7 +289,11 @@ impl RsEqQuery {
 /// The products `P_k` of a prefix extend to the next coordinate by one product each, so one pass over the longest prefix serves every length. Terms are additive under the closing Horner rule, the Frobenius being additive: claims on one region add their scaled terms and close once.
 ///
 /// Panics if a length exceeds `z_vals` or the query.
-pub fn rs_eq_prefix_terms(z_vals: &[F192], query: &RsEqQuery, lengths: &[usize]) -> Vec<[F192; LINEARIZED_TERMS]> {
+pub(crate) fn rs_eq_prefix_terms(
+    z_vals: &[F192],
+    query: &RsEqQuery,
+    lengths: &[usize],
+) -> Vec<[F192; LINEARIZED_TERMS]> {
     let longest = lengths.iter().copied().max().unwrap_or(0);
     assert!(
         longest <= z_vals.len() && longest <= query.ladders.len(),
@@ -328,7 +317,7 @@ pub fn rs_eq_prefix_terms(z_vals: &[F192], query: &RsEqQuery, lengths: &[usize])
 }
 
 /// The linearized Horner rule that closes the Frobenius sum: `acc <- acc^2 + term` from the last term down.
-pub fn close_rs_eq(terms: &[F192; LINEARIZED_TERMS]) -> F192 {
+pub(crate) fn close_rs_eq(terms: &[F192; LINEARIZED_TERMS]) -> F192 {
     let (&last, rest) = terms.split_last().expect("the map has 64 terms");
     rest.iter().rev().fold(last, |acc, &term| acc.square() + term)
 }
@@ -344,6 +333,21 @@ pub(crate) mod tests {
     use primitives::field::F64;
     use primitives::test_util::Rng;
     use std::collections::HashSet;
+
+    /// Total degree of the six-challenge composed batching map. This is the
+    /// conservative degree used by the WHIR list-size soundness accounting.
+    pub(crate) const RING_SWITCH_SOUNDNESS_DEGREE: usize =
+        (1usize << 31) + (1usize << 15) + (1usize << 7) + (1usize << 3) + (1usize << 1) + 1;
+
+    /// Standard inner product `sum_i a[i] * b[i]` over E.
+    fn inner_product_ext(a: &[F192], b: &[F192]) -> F192 {
+        assert_eq!(a.len(), b.len());
+        let mut acc = F192::ZERO;
+        for (&x, &y) in a.iter().zip(b.iter()) {
+            acc += x * y;
+        }
+        acc
+    }
 
     /// Compute `rs_eq_ind`, the transparent E-valued weight vector over the
     /// suffix domain: `rs_eq_ind[y] = Phi(suffix_tensor[y])` where `Phi` sends

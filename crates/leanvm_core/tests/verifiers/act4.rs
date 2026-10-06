@@ -9,10 +9,7 @@
 //! -- --ignored act4`.
 
 use super::python_verifier::PythonStatement;
-use leanvm_core::cpu::Program;
-use leanvm_core::pcs::Rate;
-use leanvm_core::rv::{Guest, Machine, Region, Trap};
-use leanvm_core::tables::N_TABLES;
+use leanvm_core::{Guest, Machine, N_TABLES, Program, Rate, Region, Trap};
 use std::path::{Path, PathBuf};
 use std::thread::Builder;
 

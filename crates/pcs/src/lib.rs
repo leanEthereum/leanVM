@@ -5,6 +5,7 @@
 //! over its cubic extension `E = GF(2^192)`.
 
 #![deny(clippy::float_arithmetic, clippy::cast_precision_loss)]
+#![warn(unreachable_pub)]
 
 pub mod merkle;
 pub mod ntt;

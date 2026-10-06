@@ -694,21 +694,6 @@ pub struct Final<E = F192> {
     pub target_weight: E,
 }
 
-impl Final {
-    /// The claims, when nothing was left out.
-    ///
-    /// # Errors
-    ///
-    /// Returns a final mismatch when the residual is not zero.
-    pub fn settle(self) -> Result<Vec<Claims>, ConstraintError> {
-        if self.residual.is_zero() {
-            Ok(self.claims)
-        } else {
-            Err(ConstraintError::FinalMismatch)
-        }
-    }
-}
-
 /// Verify the table sumcheck.
 ///
 /// It returns the per-table claims, for the caller to settle against the commitment.
@@ -784,6 +769,17 @@ mod tests {
     use primitives::multilinear::{fold_high_inplace, fold_high_k, mle_eval};
     use primitives::test_util::Rng;
     use proptest::prelude::*;
+
+    impl Final {
+        // The claims, when nothing was left out.
+        fn settle(self) -> Result<Vec<Claims>, ConstraintError> {
+            if self.residual.is_zero() {
+                Ok(self.claims)
+            } else {
+                Err(ConstraintError::FinalMismatch)
+            }
+        }
+    }
 
     /// Reference prover with separate column-message and column-fold passes.
     fn prove_reference<S: Summand>(

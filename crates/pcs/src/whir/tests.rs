@@ -1,6 +1,10 @@
 use super::*;
 use crate::merkle::Hash;
 use crate::whir_config::tests::test_config_for;
+use crate::whir_induce::{
+    induce_sumcheck_evaluate_at_residual, induce_sumcheck_poly, induce_sumcheck_poly_via_ntt_base,
+    induce_use_ntt_heuristic,
+};
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, VerifierState};
 use primitives::field::powers;
 use primitives::multilinear::{eq_eval, eq_table, inner_product};

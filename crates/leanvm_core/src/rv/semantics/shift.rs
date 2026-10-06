@@ -2,7 +2,6 @@
 
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
-use crate::rv::entry::Class;
 use flock::circuit::{Builder, Circuit};
 
 /// One shifter instance.
@@ -30,8 +29,6 @@ impl Shift {
 }
 
 impl InstructionClass for Shift {
-    const CLASS: Class = Class::Shift;
-
     /// An arithmetic shift is always a right shift.
     const LEGAL: &'static [u64] = &[
         0,
@@ -64,14 +61,6 @@ impl InstructionClass for Shift {
             (true, true) => ((x as i64) >> amount) as u64,
         };
         if word { sext32(out) } else { out }
-    }
-
-    fn input_words(&self) -> Vec<u64> {
-        vec![self.v1, self.v2, self.imm, self.flags]
-    }
-
-    fn output_words(&self, &out: &u64) -> Vec<u64> {
-        vec![out]
     }
 }
 
@@ -122,7 +111,8 @@ impl ClassCircuit for Shift {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::semantics::tests::{circuit_matches_reference, edge_word};
+    use crate::rv::Class;
+    use crate::rv::semantics::tests::{Ports, circuit_matches_reference, edge_word};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -155,5 +145,17 @@ mod tests {
     fn shift_circuit_matches_the_reference() {
         // Legal flags and edge-biased operands pin the gate list to the reference function.
         circuit_matches_reference::<Shift>(4096);
+    }
+
+    impl Ports for Shift {
+        const CLASS: Class = Class::Shift;
+
+        fn input_words(&self) -> Vec<u64> {
+            vec![self.v1, self.v2, self.imm, self.flags]
+        }
+
+        fn output_words(&self, &out: &u64) -> Vec<u64> {
+            vec![out]
+        }
     }
 }

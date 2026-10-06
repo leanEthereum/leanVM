@@ -3,8 +3,7 @@
 //! prover's to choose, so every path the verifier takes through it has to end in
 //! [`CpuError`], not in an index out of bounds.
 
-use leanvm_core::cpu::Proof;
-use leanvm_core::pcs::Rate;
+use leanvm_core::{Proof, Rate};
 use std::panic::AssertUnwindSafe;
 
 struct Rng(u64);

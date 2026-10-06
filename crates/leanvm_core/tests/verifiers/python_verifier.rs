@@ -1,12 +1,9 @@
-//! Pins `python-verifier/verifier.py` against `leanvm_core::cpu::Program::verify`: the same
+//! Pins `python-verifier/verifier.py` against `leanvm_core::Program::verify`: the same
 //! protocol is written out in Rust and in Python, so any protocol change must land
 //! in both, and this is what catches the Python one drifting.
 
 use fiat_shamir::transcript::RawProof;
-use leanvm_core::cpu::{CpuError, Lookup, Program};
-use leanvm_core::pcs::Rate;
-use leanvm_core::rv::{Alu, Class, Region};
-use leanvm_core::tables::{ClassTable, Clock, EXIT_SLOT};
+use leanvm_core::{Alu, Class, ClassTable, Clock, CpuError, EXIT_SLOT, Lookup, Program, Rate, Region};
 use primitives::field::{F64, F192};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -182,7 +179,7 @@ fn test_python_verifier() {
     // Neither a padding row's clock nor a failed row's can end the run.
     //
     // A padding row of the exit pushes the exit marker at its clock, zero, which only a final clock zero would meet.
-    let final_clock = leanvm_core::tables::N_TABLES + 1;
+    let final_clock = leanvm_core::N_TABLES + 1;
     let honest = proof.0.stream[final_clock].c0;
     for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
         let mut forged = proof.clone();
@@ -197,7 +194,7 @@ fn test_python_verifier() {
 
     let mut malformed_root = proof;
     // Past the announcement: the table heights, the rate, the final clock.
-    let root_offset = leanvm_core::tables::N_TABLES + 2;
+    let root_offset = leanvm_core::N_TABLES + 2;
     malformed_root.0.stream[root_offset].c2 = 1;
     assert!(program.verify(output.into(), &malformed_root).is_err());
     let mut raw_root = raw.clone();
@@ -437,7 +434,7 @@ sys.exit(v['main'](sys.argv[2:]))
             .filter_map(|line| line.strip_prefix(name)?.trim().parse().ok())
             .collect()
     };
-    let n = leanvm_core::class_flock::N_FLOCKS;
+    let n = leanvm_core::N_FLOCKS;
     let [flock_end] = ends("verify_flock")[..] else {
         panic!("one batched reduction")
     };

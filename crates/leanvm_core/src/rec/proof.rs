@@ -231,21 +231,6 @@ impl Circuit {
         Ok(ps.into_proof())
     }
 
-    /// Verify a proof that the circuit has a run exposing the statement, at the given commitment rate.
-    ///
-    /// # Errors
-    ///
-    /// Returns the first check that refuses the proof.
-    pub fn verify(
-        &self,
-        statement: &[Limbs],
-        iv: [F64; 4],
-        rate: Rate,
-        proof: &ProofTranscript,
-    ) -> Result<(), RecError> {
-        self.verify_to_raw(statement, iv, rate, proof).map(|_| ())
-    }
-
     /// Verify a proof, returning it as its verifier read it, every Merkle path written out.
     ///
     /// That is what a recursive verifier replays.
@@ -300,6 +285,7 @@ impl Circuit {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arith::Arith;
     use crate::constraints::ConstraintError;
     use crate::leaf::BusError;
     use crate::pcs::Rate;
@@ -316,7 +302,7 @@ mod tests {
     }
 
     fn verify_run(circuit: &Circuit, statement: &[Limbs], proof: &ProofTranscript) -> Result<(), RecError> {
-        circuit.verify(statement, IV, Rate::MIN, proof)
+        circuit.verify_to_raw(statement, IV, Rate::MIN, proof).map(|_| ())
     }
 
     // Wires of the every-kind circuit a test forges.
@@ -370,7 +356,8 @@ mod tests {
         b.eq_e(back, challenge);
         let embedded = b.k_to_e1(k);
         let seven = b.e_const(F192::new(0, 7, 0));
-        let kk = b.mul_k(seven, k);
+        let zero = b.zero();
+        let kk = b.mul_k_add(seven, k, zero);
         let kk_again = b.mul(seven, embedded);
         b.eq_e(kk, kk_again);
         let digest = b.k_to_d(words);

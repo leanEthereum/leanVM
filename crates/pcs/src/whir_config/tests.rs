@@ -424,7 +424,7 @@ fn johnson_algebraic_bits_for(
 ) -> f64 {
     let log2_l = johnson_interleaved_list_log2(log_inv_rate, log_msg_cols, eta);
     let batch_degree = if level == 0 {
-        crate::ring_switch::RING_SWITCH_SOUNDNESS_DEGREE
+        crate::ring_switch::tests::RING_SWITCH_SOUNDNESS_DEGREE
     } else {
         prev_queries + ood_samples
     };

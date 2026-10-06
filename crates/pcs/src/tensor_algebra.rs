@@ -15,7 +15,7 @@ use primitives::field::{F64, F192};
 use crate::pack::PACKING_WIDTH;
 
 /// The degree of E = GF(2^192) over F_2 (the opening degree e).
-pub const DEGREE_E: usize = 192;
+pub(crate) const DEGREE_E: usize = 192;
 
 /// Rectangular tensor-algebra transpose: `s_hat_v` (64 E-elements, the row
 /// view of a `K (x)_F2 E` element) to `s_hat_u` (192 K-elements, the column
@@ -26,7 +26,7 @@ pub const DEGREE_E: usize = 192;
 /// ```
 ///
 /// `s_hat_u[w] = t_w` in the ring-switching construction.
-pub fn transpose_s_hat(s_hat_v: &[F192]) -> Vec<F64> {
+pub(crate) fn transpose_s_hat(s_hat_v: &[F192]) -> Vec<F64> {
     assert_eq!(
         s_hat_v.len(),
         PACKING_WIDTH,

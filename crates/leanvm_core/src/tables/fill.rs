@@ -246,7 +246,8 @@ impl ClassTable {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cpu::{Execution, Program};
+    use crate::cpu::Program;
+    use crate::cpu::execute::Execution;
     use crate::rv::Region;
     use crate::rv::asm::Asm;
 

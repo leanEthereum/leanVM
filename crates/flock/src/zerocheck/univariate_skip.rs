@@ -19,16 +19,14 @@
 //! goes on the wire.
 
 use pcs::ntt::InvNttTableByteSingleGf8;
-use primitives::field::{F8, F192, phi8_192 as phi8};
+use primitives::field::{F8, F192, phi8_192};
 
 // ---------------------------------------------------------------------------
 // Live helpers.
 // ---------------------------------------------------------------------------
 
-pub use primitives::multilinear::eq_table as build_eq;
-
 /// Most high variables of a split eq table capped on its high side: few high weights keep the outer products cheap.
-pub const EQ_HIGH_VARS: usize = 7;
+pub(crate) const EQ_HIGH_VARS: usize = 7;
 
 /// Extend a length-`ell` F192 vector from the input domain S to the extension
 /// domain Λ using bit-plane decomposition: for each of the 192 bit positions
@@ -38,7 +36,7 @@ pub const EQ_HIGH_VARS: usize = 7;
 /// Ports `ntt_extend_vec` (scalar form). The NTT is F_2-linear and
 /// φ_8 commutes with that linearity, which is what makes the bit-by-bit
 /// decomposition equal to the direct F_8-valued NTT extension.
-pub fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8) -> Vec<F192> {
+pub(crate) fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8) -> Vec<F192> {
     let ell = inv_table.ell;
     assert_eq!(in_s.len(), ell);
     assert_eq!(ell, 1usize << inv_table.k);
@@ -74,7 +72,7 @@ pub fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8) -> Ve
             _ => unreachable!(),
         };
         for lambda in 0..ell {
-            out[lambda] += basis * phi8(out_bytes[lambda]);
+            out[lambda] += basis * phi8_192(out_bytes[lambda]);
         }
     }
 
@@ -85,6 +83,7 @@ pub fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8) -> Ve
 pub(crate) mod tests {
     use super::*;
     use pcs::ntt::AdditiveNttGf8;
+    use primitives::multilinear::eq_table;
 
     /// Compute the round-1 prover message naively (no shift-reduce, no fused
     /// inner, no deferred reduction: direct algorithmic translation of the
@@ -122,7 +121,7 @@ pub(crate) mod tests {
         let ntt_s = AdditiveNttGf8::new(k_skip, F8::ZERO);
         let ntt_l = AdditiveNttGf8::new(k_skip, F8(ell as u8));
 
-        let eq_full = build_eq(r_rest);
+        let eq_full = eq_table(r_rest);
 
         let mut p_ab = vec![F192::ZERO; ell];
         let mut p_c = vec![F192::ZERO; ell];
@@ -149,8 +148,8 @@ pub(crate) mod tests {
             let eq_x = weight;
             for i in 0..ell {
                 let ab = a_col[i] * b_col[i];
-                p_ab[i] += eq_x * phi8(ab);
-                p_c[i] += eq_x * phi8(c_col[i]);
+                p_ab[i] += eq_x * phi8_192(ab);
+                p_c[i] += eq_x * phi8_192(c_col[i]);
             }
         }
 

@@ -16,7 +16,7 @@
 //!
 //! [`hash`] is the protocol's circuit: the BLAKE2s compression as a per-block
 //! R1CS, plus its witness generation and the leanVM-facing reduction entry
-//! points (`Blake2sSetup::{prove_reduction_precomputed, verify_reduction, …}`). [`circuit`]
+//! points (`Blake2sSetup::{instance, verify_reduction}`). [`circuit`]
 //! is the gate-list vocabulary every other circuit is written in, and [`arith`]
 //! holds u64 addition and multiplication in it.
 //! Steps 2 to 4 above are
@@ -29,6 +29,8 @@
 //! The private `gf2` module owns that part: the wire word and the two adder
 //! gadgets, forwards and transposed, kept separate because the fused
 //! three-operand adder's bit boundaries are the subtlest thing here.
+
+#![warn(unreachable_pub)]
 
 pub mod arith;
 pub mod circuit;
