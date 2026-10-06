@@ -2,7 +2,7 @@
 
 use crate::guest::refuse;
 use bench::Plan;
-use leanvm::{Program, ProvenRun, Prover};
+use leanvm::{Program, ProvenRun, Prover, Stats};
 use primitives::{pretty_f64, pretty_integer};
 
 /// One run of a guest (`programs/`): what it is given and what it must output.
@@ -67,6 +67,19 @@ pub fn falcon(n: usize) -> Workload {
     }
 }
 
+/// Verify `n` Groth16 proofs from World Chain, the fixtures in turn.
+pub fn groth16(n: usize) -> Workload {
+    let run = groth16_host::batch(n);
+    Workload {
+        title: format!("Groth16 (BN254) verification, {n} proofs"),
+        elf: groth16_host::ELF,
+        advice: run.advice,
+        expected: run.expected,
+        items: n,
+        item: "proof",
+    }
+}
+
 /// Check `n` leanDA blobs and compute their commitment.
 pub fn leanda(n: usize) -> Workload {
     let run = leanda_host::blobs(n);
@@ -82,9 +95,19 @@ pub fn leanda(n: usize) -> Workload {
 
 /// Prove and verify a workload, and print the report.
 ///
-/// Proving runs one discarded warmup pass, then `plan.repeat` measured passes.
+/// Proving runs one discarded warmup pass, then `plan.repeat` measured passes. A run too long
+/// for one proof is counted instead, and reported as such.
 pub fn run(workload: &Workload, prover: &Prover, plan: Plan) {
     let program = workload.program();
+    let counted = program
+        .count(&workload.advice)
+        .unwrap_or_else(|e| refuse(format_args!("{} {}s have no run: {e}", workload.items, workload.item)));
+    if !counted.provable {
+        println!("{}", workload.title);
+        print_cycles(workload, &counted);
+        println!("  not provable                : more than one proof holds");
+        return;
+    }
     // Only the final measured pass is traced.
     let (
         ProvenRun {
@@ -107,17 +130,8 @@ pub fn run(workload: &Workload, prover: &Prover, plan: Plan) {
         program.verify(output, &proof).expect("the proof verifies");
     });
 
-    // The proven rows include padding: the guest's own cycles are the per-table base counts.
-    let cycles: usize = stats.base_counts.iter().sum();
     println!("{}", workload.title);
-    println!(
-        "  cycles (RISC-V)             : {}   {} per {}",
-        pretty_integer(&cycles),
-        pretty_f64(cycles as f64 / workload.items as f64),
-        workload.item
-    );
-    // Rows per table, then the committed witness: what the prover pays for.
-    println!("    details                   : {}", stats.details());
+    print_cycles(workload, &stats);
     let proof_bytes = proof.to_bytes().len();
     println!("  proof size                  : {:.1} KiB", proof_bytes as f64 / 1024.0);
     println!(
@@ -132,6 +146,20 @@ pub fn run(workload: &Workload, prover: &Prover, plan: Plan) {
         "  verifying                   : {} ms",
         pretty_f64(verify_time.mean() * 1000.0)
     );
+}
+
+/// The run's cycles, in all and per item, then its rows per table and committed witness.
+fn print_cycles(workload: &Workload, stats: &Stats) {
+    // The proven rows include padding: the guest's own cycles are the per-table base counts.
+    let cycles: usize = stats.base_counts.iter().sum();
+    println!(
+        "  cycles (RISC-V)             : {}   {} per {}",
+        pretty_integer(&cycles),
+        pretty_f64(cycles as f64 / workload.items as f64),
+        workload.item
+    );
+    // Rows per table, then the committed witness: what the prover pays for.
+    println!("    details                   : {}", stats.details());
 }
 
 #[cfg(test)]

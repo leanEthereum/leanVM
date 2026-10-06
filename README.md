@@ -127,7 +127,15 @@ The report gives the RISC-V cycles per signature or per blob, the rows per table
 
 These are the most one proof holds: continuations are not implemented.
 
-To get the cost of all four without proving, exact and the same on every machine:
+### Groth16
+
+A fifth program verifies Groth16 proofs over BN254 (`programs/groth16`), as Ethereum's pairing precompile and a Solidity verifier check them: real proofs that World ID 4.0's verifier contract accepted on World Chain, with the transactions that carried them (`programs/groth16/host/proofs.txt`), pinned to substrate-bn's pairing check (the precompile's implementation in Parity's and Substrate's Ethereum clients). Its field arithmetic is plain RISC-V, 64-bit Montgomery multiplication, so one verification is more than one proof holds: `cargo leanvm groth16` counts it rather than proving it, and says so.
+
+```bash
+cargo leanvm groth16 --n 1
+```
+
+To get the cost of all five without proving, exact and the same on every machine:
 
 ```bash
 cargo leanvm bench --cycles-only --markdown

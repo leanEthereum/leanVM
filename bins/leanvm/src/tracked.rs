@@ -2,7 +2,8 @@
 //! proof, as a markdown table, or both from one pass.
 //!
 //! Two lists. The counts are exact and cheap, so they are taken at the README's sizes, the
-//! most one proof holds, on one runner (`.github/workflows/counts.yml`), which compares a
+//! most one proof holds (and one Groth16 verification, more than one proof holds, counted
+//! all the same), on one runner (`.github/workflows/counts.yml`), which compares a
 //! PR's with its base's: they are the same on every machine. Proving on CI's GitHub-hosted
 //! runners (16 GB, `.github/workflows/bench.yml`) takes the sizes that fit them (leanXMSS and
 //! leanSPHINCS at a quarter, and no leanDA, whose one blob is its smallest run), and a PR's
@@ -97,9 +98,17 @@ impl Case {
             .measure(&self.advice)
             .unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
     }
+
+    /// The run's exact counts, without a proof, a run one proof cannot hold included.
+    fn count(&self) -> Stats {
+        self.program
+            .count(&self.advice)
+            .unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
+    }
 }
 
-/// Counted without a proof: the README's sizes.
+/// Counted without a proof: the README's sizes, and one Groth16 verification, which one proof
+/// cannot hold.
 fn counted() -> Vec<Case> {
     vec![
         Case::fibonacci("fibonacci-asm-2000000", 2_000_000),
@@ -108,6 +117,7 @@ fn counted() -> Vec<Case> {
         Case::workload("leansphincs-104", workload::leansphincs(104)),
         Case::workload("leanda-1", workload::leanda(1)),
         Case::workload("falcon-28", workload::falcon(28)),
+        Case::workload("groth16-1", workload::groth16(1)),
     ]
 }
 
@@ -232,7 +242,7 @@ pub fn run(
         let counted: Vec<_> = counted()
             .into_iter()
             .map(|case| {
-                let stats = case.measure();
+                let stats = case.count();
                 (case, stats)
             })
             .collect();
@@ -334,13 +344,18 @@ fn merged(objects: &[String]) -> String {
 
 /// `cycles` (the program's own instructions), `proven-rows` (the tables' heights once
 /// padded to powers of two) and `committed` (the witness words): exact, the same on every
-/// machine.
+/// machine. A run one proof cannot hold adds `not-provable`.
 fn counts(stats: &Stats) -> Vec<(&'static str, Metric)> {
-    vec![
+    let mut counts = vec![
         ("cycles", Metric::exact(stats.base_counts.iter().sum())),
         ("proven-rows", Metric::exact(stats.cycles)),
         ("committed", Metric::exact(stats.committed)),
-    ]
+    ];
+    if !stats.provable {
+        // One proof cannot hold the run: its counts are what it would take.
+        counts.push(("not-provable", Metric::exact(1)));
+    }
+    counts
 }
 
 /// Each kind of node's circuit, without a proof: the leaf's run, measured, gives the shape its

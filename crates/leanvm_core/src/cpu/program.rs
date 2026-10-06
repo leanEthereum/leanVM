@@ -117,7 +117,7 @@ impl Program {
         let p = &self.rv;
         let mut m = self.machine(advice)?;
         let mut trace = TraceBuilder::new(p, m.memory().advice());
-        let ts = self.run(&mut m, &mut trace)?;
+        let ts = self.run(&mut m, &mut trace, true)?;
         let output = m.output()?;
 
         // The padding rows, written out rather than executed.
@@ -153,9 +153,10 @@ impl Program {
     ///
     /// Every so many cycles the rows so far are checked against one commitment.
     ///
-    /// So a run too long for one proof is refused while it runs, before its trace outgrows memory.
+    /// So a run too long for one proof is refused while it runs, before its trace outgrows memory; unless it is not
+    /// `bounded`, which only counting asks, the cycle cap aside.
     #[inline(always)]
-    fn run<R: Recorder>(&self, m: &mut Machine<'_>, recorder: &mut R) -> Result<u64, ProveError> {
+    fn run<R: Recorder>(&self, m: &mut Machine<'_>, recorder: &mut R, bounded: bool) -> Result<u64, ProveError> {
         // The clock starts on cycle 1, so that the first access comes strictly after the seeds.
         let mut ts = Clock::CLOCK_START;
 
@@ -168,7 +169,7 @@ impl Program {
             if cycle == Clock::MAX_CYCLES {
                 return Err(ProveError::TooLong);
             }
-            if cycle.is_multiple_of(Self::SIZE_CHECK_PERIOD) {
+            if bounded && cycle.is_multiple_of(Self::SIZE_CHECK_PERIOD) {
                 let counts = recorder.row_counts();
                 let heights = std::array::from_fn(|t| ClassSpec::ALL[t].provable_height(counts[t]));
                 if heights != checked {
@@ -209,17 +210,37 @@ impl Program {
     ///
     /// What would refuse the proof itself, the rate aside.
     pub fn measure(&self, advice: &[u64]) -> Result<Stats, ProveError> {
+        self.counted(advice, true)
+    }
+
+    /// The statistics `measure` gives, for a run too long for one proof too: it is counted to its end, and its
+    /// statistics say it is not `provable`.
+    ///
+    /// # Errors
+    ///
+    /// What would refuse the proof itself, the rate and the size of one commitment aside.
+    pub fn count(&self, advice: &[u64]) -> Result<Stats, ProveError> {
+        self.counted(advice, false)
+    }
+
+    /// A run counted without a trace, refused as soon as one proof cannot hold it if `bounded`.
+    fn counted(&self, advice: &[u64], bounded: bool) -> Result<Stats, ProveError> {
         let mut m = self.machine(advice)?;
         let mut counter = RowCounter::new(&self.rv);
-        self.run(&mut m, &mut counter)?;
+        self.run(&mut m, &mut counter, bounded)?;
         m.output()?;
         let base_counts = counter.row_counts();
         let counts = Plan::solve(base_counts).filled(base_counts);
+        let (committed, provable) = self.stack_size(counts);
+        if bounded && !provable {
+            return Err(ProveError::TooLong);
+        }
         Ok(Stats {
             cycles: counts.iter().sum(),
             counts,
             base_counts,
-            committed: self.committed_size(counts)?,
+            committed,
+            provable,
         })
     }
 
@@ -231,6 +252,7 @@ impl Program {
             counts: w.layout.taus.map(|t| 1usize << t),
             base_counts: exec.base_counts,
             committed: w.committed_size(),
+            provable: true,
         };
         (self.prove_witness(w, &exec.output, rate), stats)
     }
@@ -445,12 +467,18 @@ impl Program {
     ///
     /// Refuses a stack larger than one commitment.
     fn committed_size(&self, row_counts: [usize; tables::N_TABLES]) -> Result<usize, ProveError> {
+        match self.stack_size(row_counts) {
+            (committed, true) => Ok(committed),
+            (_, false) => Err(ProveError::TooLong),
+        }
+    }
+
+    /// The committed size of a run making these rows per table, as `committed_size`, and whether one commitment
+    /// holds its stack.
+    fn stack_size(&self, row_counts: [usize; tables::N_TABLES]) -> (usize, bool) {
         let taus = std::array::from_fn(|t| crate::log2_strict_usize(ClassSpec::ALL[t].provable_height(row_counts[t])));
         let (placements, shape) = Sizes::of(&self.rv).stack(taus);
-        if shape.mu > pcs::MAX_MU {
-            return Err(ProveError::TooLong);
-        }
-        Ok(crate::witness::committed_len(&placements))
+        (crate::witness::committed_len(&placements), shape.mu <= pcs::MAX_MU)
     }
 
     /// The digest of `rv`'s public statement.
@@ -490,6 +518,9 @@ pub struct Stats {
     pub base_counts: [usize; tables::N_TABLES],
     /// The committed witness size: the columns' total length, before the stack's zero pad.
     pub committed: usize,
+    /// Whether one proof holds the run, its stack within one commitment (`pcs::MAX_MU`): only [`Program::count`]
+    /// reports a run it does not.
+    pub provable: bool,
 }
 
 impl Stats {
@@ -524,6 +555,9 @@ impl Stats {
         // The committed size, as a power of two.
         let log2 = |n: usize| primitives::pretty_f64((n.max(1) as f64).log2());
         parts.push(format!("TOTAL_COMMITTED 2^{}", log2(self.committed)));
+        if !self.provable {
+            parts.push("NOT PROVABLE (more than one proof holds)".to_string());
+        }
         parts.join("  ")
     }
 }
@@ -747,7 +781,7 @@ mod tests {
         // The run stops before its rows outnumber the words of one commitment.
         let mut m = program.machine(&[]).unwrap();
         let mut counter = RowCounter::new(&program.rv);
-        assert_eq!(program.run(&mut m, &mut counter), Err(ProveError::TooLong));
+        assert_eq!(program.run(&mut m, &mut counter, true), Err(ProveError::TooLong));
         let counts = counter.row_counts();
         let rows: usize = counts.iter().sum();
         assert!(rows < 1 << pcs::MAX_MU, "{rows} rows counted");
@@ -756,6 +790,32 @@ mod tests {
         // A period earlier, no table had more than these rows, and they fit.
         let earlier = counts.map(|c| c.saturating_sub(Program::SIZE_CHECK_PERIOD as usize));
         assert!(program.committed_size(earlier).is_ok());
+    }
+
+    #[test]
+    fn a_run_too_long_for_one_proof_is_counted_to_its_end() {
+        // Fibonacci for 2^21 steps: five instructions a step, past what one proof holds.
+        let text = Asm::new()
+            .li(Reg::A0, 0)
+            .li(Reg::A1, 1)
+            .li(Reg::T0, 1 << 21)
+            .label("loop")
+            .r(Add, Reg::A2, Reg::A0, Reg::A1)
+            .i(Addi, Reg::A0, Reg::A1, 0)
+            .i(Addi, Reg::A1, Reg::A2, 0)
+            .i(Addi, Reg::T0, Reg::T0, -1)
+            .branch(Bne, Reg::T0, Reg::ZERO, "loop")
+            .exit()
+            .finish();
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
+        assert_eq!(program.measure(&[]), Err(ProveError::TooLong));
+
+        // Every row counted, and the stack it would take, flagged as more than one proof holds.
+        let stats = program.count(&[]).expect("the run halts");
+        assert!(!stats.provable);
+        assert!(stats.base_counts.iter().sum::<usize>() > 5 << 21);
+        assert_eq!(program.committed_size(stats.counts), Err(ProveError::TooLong));
+        assert_eq!(program.stack_size(stats.counts), (stats.committed, false));
     }
 
     #[test]

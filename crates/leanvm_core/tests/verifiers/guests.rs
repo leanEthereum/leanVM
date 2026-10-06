@@ -28,6 +28,7 @@ fn proves_and_verifies(tag: &str, elf: &[u8], advice: &[u64], expected: [u64; 4]
     assert_eq!(output, expected);
     // Measuring a run reports what proving it does, without the proof.
     assert_eq!(program.measure(advice), Ok(stats.clone()), "{tag}: measure");
+    assert_eq!(program.count(advice), Ok(stats.clone()), "{tag}: count");
     let raw = program.verify_to_raw(&output, &proof).expect("honest proof verifies");
     PythonStatement::new(tag, &program, &output).assert_accepts(&raw);
     let mut wrong = output;
