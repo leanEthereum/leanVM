@@ -1,8 +1,7 @@
-use super::flock::Reduction;
 use super::recursion::RecRows;
 use super::ring::RingShare;
 use super::whir::Opening;
-use super::{ProofShape, RecShape, Rows};
+use super::{ProofShape, RecShape, Rows, infallible};
 use crate::class_flock::FlockId;
 use crate::constraints::ConstraintError;
 use crate::cpu::{CpuError, DeferredClaims, Output, Program, ProvenRun, Prover, UNGROUND_LOG_BYTECODE};
@@ -18,6 +17,7 @@ use crate::rv::asm::*;
 use crate::tables::{Fill, N_TABLES, PerTable, TableId};
 use crate::witness::StackShape;
 use ::flock::reduction::{self, Instance, ReductionReplay, Shape};
+use ::flock::verifier::FlockError;
 use ::flock::zerocheck::K_SKIP;
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::stack_open::RingFamily;
@@ -280,7 +280,7 @@ fn batch<const N: usize>(f: FlockId, rows: &[[u64; N]]) -> Instance<'static> {
     }
 }
 
-// The reduction in rows agrees with the native replay, and a tampered scalar fails both, where the native verifier fails.
+// The reduction's matrix claims settle, its rows read the whole proof and are the shape's, and a tampered scalar fails both verifiers at one stage.
 fn check_reductions(batches: &[Instance<'static>]) {
     let proof = {
         let mut ps = ProverState::from_label(LABEL);
@@ -294,28 +294,23 @@ fn check_reductions(batches: &[Instance<'static>]) {
         let mut vs = VerifierState::from_label(LABEL, proof);
         reduction::verify(&circuits, &mut vs)
     };
-    let rows = |proof: &RawProof| replay(ProofSource::Proof(proof), |r| Reduction::replay(r, &circuits));
+    let rows = |source: ProofSource<'_>| replay(source, |r| infallible(reduction::verify(&circuits, r)));
 
     let replays = native(&proof).expect("an honest batch");
-    let (b, reductions, finished) = rows(&raw(&proof));
-    assert!(finished, "the rows read the whole stream");
-    for (f, ((batch, reduction), replay)) in batches.iter().zip(&reductions).zip(&replays).enumerate() {
-        let point: Vec<F192> = reduction.slice.suffix_point.iter().map(|&w| b.e(w)).collect();
-        assert_eq!(point, replay.claim.suffix_point, "circuit {f}'s point");
-        assert_eq!(reduction.matrix.point.map(|w| b.e(w)), replay.matrices.form);
-        assert_eq!(b.e(reduction.matrix.value), replay.matrices.value);
+    for (batch, replay) in batches.iter().zip(&replays) {
         assert_eq!(
             replay.matrices.form.evaluate(batch.block.circuit),
             replay.matrices.value
         );
     }
+    let (b, _, finished) = rows(ProofSource::Proof(&raw(&proof)));
+    assert!(finished, "the rows read the whole stream");
     let Finished { circuit, failures, .. } = b.finish();
     assert!(failures.is_empty(), "{failures:?}");
-    let shaped: Circuit = replay(ProofSource::Shape, |r| Reduction::replay(r, &circuits))
-        .0
-        .finish()
-        .circuit;
-    assert!(circuit == shaped, "the shape builds another circuit");
+    assert!(
+        circuit == rows(ProofSource::Shape).0.finish().circuit,
+        "the shape builds another circuit"
+    );
 
     // The first scalar of the zerocheck's first round, the last circuit's `c` claim, the last lincheck round's top
     // coefficient, the first circuit's first slice and its form's value.
@@ -337,15 +332,20 @@ fn check_reductions(batches: &[Instance<'static>]) {
     for (index, stage) in tampers {
         let mut forged = proof.clone();
         forged.stream[index] += F192::ONE;
-        assert!(native(&forged).is_err(), "the native verifier refuses scalar {index}");
-        let failures = rows(&raw(&forged)).0.finish().failures;
+        let refused = match native(&forged) {
+            Err(FlockError::Zerocheck(_)) => "zerocheck",
+            Err(FlockError::Lincheck(_)) => "lincheck",
+            Ok(_) => "",
+        };
+        assert_eq!(refused, stage, "the native verifier refuses scalar {index}");
+        let failures = rows(ProofSource::Proof(&raw(&forged))).0.finish().failures;
         assert!(
             failures.first().is_some_and(|f| f.scope()[0] == stage),
             "scalar {index}: {failures:?}"
         );
     }
 
-    // A value moved between two circuits' forms keeps the batch's identity: the core accepts, and the claims do not settle.
+    // A value moved between two circuits' forms keeps the batch's identity: the reduction accepts, and the claims do not settle.
     if n > 1 {
         let lifts: Vec<F192> = {
             // A circuit's lincheck rounds bind its inner coordinates top first: its round challenges are its
@@ -364,15 +364,11 @@ fn check_reductions(batches: &[Instance<'static>]) {
         forged.stream[len - tail + PACKING_WIDTH] += delta * lifts[1];
         forged.stream[len - tail + 2 * PACKING_WIDTH + 1] += delta * lifts[0];
         let moved = native(&forged).expect("the batch's identity holds");
-        let (b, reductions, _) = rows(&raw(&forged));
-        for (f, (reduction, replay)) in reductions.iter().zip(&moved).enumerate() {
+        for (f, replay) in moved.iter().enumerate() {
             let matrices = &replay.matrices;
-            assert_eq!(b.e(reduction.matrix.value), matrices.value);
             let settles = matrices.form.evaluate(batches[f].block.circuit) == matrices.value;
             assert_eq!(settles, f > 1, "circuit {f}'s moved claim");
         }
-        let failures = b.finish().failures;
-        assert!(failures.is_empty(), "{failures:?}");
     }
 }
 
@@ -389,13 +385,13 @@ fn ld_batch(seed: u64, n: usize) -> Instance<'static> {
 }
 
 #[test]
-fn the_hash_reduction_in_rows_is_the_native_one() {
+fn the_hash_reduction_holds_in_both_verifiers() {
     check_reductions(&[hash_batch(0xA7)]);
 }
 
 // Two block sizes, and two batches of one circuit at different heights, so the claims sit at prefixes of one another.
 #[test]
-fn a_mixed_batch_in_rows_is_the_native_one() {
+fn a_mixed_batch_holds_in_both_verifiers() {
     check_reductions(&[ld_batch(0x5EED, 20), hash_batch(0xA7), ld_batch(0xB0B, 300)]);
 }
 

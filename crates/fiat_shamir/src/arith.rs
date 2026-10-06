@@ -213,6 +213,14 @@ pub trait Verifier: Arith {
     /// Returns the error when the two differ and the verifier checks values.
     fn ensure_eq<Er>(&mut self, a: Self::E, b: Self::E, err: impl FnOnce() -> Er) -> Result<(), Er>;
 
+    /// Run `f` as a named stage of the verifier.
+    ///
+    /// A verifier that records its failed checks rather than refusing reports each under its stages' names.
+    fn scope<T>(&mut self, name: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
+        let _ = name;
+        f(self)
+    }
+
     /// The next `n` scalars.
     ///
     /// # Errors

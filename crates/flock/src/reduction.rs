@@ -4,14 +4,13 @@
 //! witness, packaged for ring switching. A circuit supplies only its [`Block`]:
 //! the shape, and the walks behind its [`LincheckCircuit`].
 
-use crate::lincheck::{
-    self, LincheckCircuit, LincheckClaim, LincheckInput, LincheckStatement, MatrixClaim, MatrixForm, QuirkyPoint,
-};
+use crate::lincheck::{self, LincheckCircuit, LincheckClaim, LincheckInput, MatrixClaim, MatrixForm, QuirkyPoint};
 use crate::verifier::FlockError;
 use crate::witness::{Witness, packed_bytes};
 use crate::zerocheck::multilinear::PackedWitness;
-use crate::zerocheck::{self, K_SKIP, PaddingSpec, ZerocheckClaim, ZerocheckInput};
-use fiat_shamir::transcript::{ProverState, VerifierState};
+use crate::zerocheck::{self, K_SKIP, PaddingSpec, SkipDomain, ZerocheckClaim, ZerocheckInput};
+use fiat_shamir::arith::Verifier;
+use fiat_shamir::transcript::ProverState;
 use pcs::pack::LOG_PACKING;
 use pcs::stack_open::SliceClaim;
 use primitives::field::F192;
@@ -53,12 +52,14 @@ pub struct Shape {
 }
 
 /// What the verifier's replay leaves of one circuit.
+///
+/// Its elements are values, or whatever a verifier holds them as.
 #[derive(Clone, Debug)]
-pub struct ReductionReplay {
+pub struct ReductionReplay<E = F192> {
     /// The claim on the circuit's packed witness, which the PCS discharges.
-    pub claim: SliceClaim,
+    pub claim: SliceClaim<E>,
     /// The claim on the circuit's matrices, which whoever holds the circuit settles.
-    pub matrices: MatrixClaim,
+    pub matrices: MatrixClaim<E>,
 }
 
 /// One circuit's batch as the prover holds it: `2^n_blocks_log` instances of its block, and their witness.
@@ -185,34 +186,33 @@ impl Shape {
 /// It reads only the circuits' shapes: their matrices' forms are left as claims
 /// for the built circuits to settle.
 ///
+/// The verifier's arithmetic is the native one or the recursion machine's rows, which run the same steps.
+///
 /// # Errors
 ///
 /// Returns the first stage that refuses the proof.
-pub fn verify(circuits: &[(Shape, usize)], vs: &mut VerifierState<'_>) -> Result<Vec<ReductionReplay>, FlockError> {
+pub fn verify<V: Verifier>(circuits: &[(Shape, usize)], v: &mut V) -> Result<Vec<ReductionReplay<V::E>>, FlockError> {
     let log_ns: Vec<usize> = circuits.iter().map(|(shape, n)| shape.k_log + n).collect();
-    let zc_claims = zerocheck::verify(&log_ns, vs).map_err(FlockError::Zerocheck)?;
-
-    let x_abs: Vec<QuirkyPoint> = (circuits.iter().zip(&zc_claims))
-        .map(|((shape, _), zc)| x_ab_of(zc, shape.k_log - K_SKIP))
-        .collect();
-    let statements: Vec<LincheckStatement<'_>> = (circuits.iter().zip(&log_ns).zip(&zc_claims).zip(&x_abs))
-        .map(|((((shape, _), &m), zc), x_ab)| LincheckStatement {
-            m,
-            k_log: shape.k_log,
-            k_skip: K_SKIP,
-            const_pin_col: shape.const_pin_col,
-            x_ab,
-            v_a: zc.a_eval,
-            v_b: zc.b_eval,
-            v_c: zc.c_eval,
+    let zc = v
+        .scope("zerocheck", |v| zerocheck::verify(&log_ns, v))
+        .map_err(FlockError::Zerocheck)?;
+    let shapes: Vec<Shape> = circuits.iter().map(|&(shape, _)| shape).collect();
+    let matrices = v
+        .scope("lincheck", |v| {
+            lincheck::verify_deferred(SkipDomain::FLOCK, &zc, &shapes, v)
         })
-        .collect();
-    let lc_claims = lincheck::verify_deferred(&statements, vs).map_err(FlockError::Lincheck)?;
-
-    Ok((lc_claims.into_iter().zip(&x_abs))
-        .map(|((lc_claim, matrices), x_ab)| ReductionReplay {
-            claim: reduction_claim(&lc_claim, &x_ab.x_outer),
-            matrices,
+        .map_err(FlockError::Lincheck)?;
+    Ok((matrices.into_iter().zip(&log_ns))
+        .map(|(matrices, &m)| {
+            // The witness's point: the lincheck's inner coordinates, then the zerocheck's outer ones.
+            let rest = matrices.form.r_inner_rest.len();
+            let mut suffix_point = matrices.form.r_inner_rest.clone();
+            suffix_point.extend_from_slice(&zc.mlv_challenges[rest..m - K_SKIP]);
+            let claim = SliceClaim {
+                suffix_point,
+                s_hat_v: matrices.form.s_hat_v.clone(),
+            };
+            ReductionReplay { claim, matrices }
         })
         .collect())
 }

@@ -38,8 +38,8 @@ use crate::zerocheck::PaddingSpec;
 use crate::zerocheck::univariate_skip::EQ_HIGH_VARS;
 use parallel::Chunks;
 use primitives::bit_fold::{BLOCK, BitFold};
-use primitives::field::{F192, F192Unreduced, PHI_8_TABLE_192};
-use primitives::multilinear::{SplitEq, barycentric_sum, eq_table, window_denominator};
+use primitives::field::{F192, F192Unreduced};
+use primitives::multilinear::{SplitEq, eq_table};
 use primitives::stream::Stream;
 use std::mem::MaybeUninit;
 
@@ -73,31 +73,6 @@ fn mul_quad_unreduced(
         a.2.mul_unreduced(b.2),
         a.3.mul_unreduced(b.3),
     )
-}
-
-// ---------------------------------------------------------------------------
-// Lagrange weights for the univariate-skip fold at z.
-// ---------------------------------------------------------------------------
-
-/// Interpolate a degree-`< 2·2^k_skip` polynomial at z, given its `2^k_skip`
-/// evaluations on Λ and the assumption that it equals **zero on S**.
-///
-/// This is the verifier's round-1 reconstruction trick: for an honest prover
-/// the combined polynomial `P = P^{AB} + P^C` satisfies `P(λ) = 0` for every
-/// `λ ∈ S` (the zerocheck identity at S). Together with the `2^k_skip`
-/// evaluations on Λ that the prover sends, that's `2·2^k_skip` evaluations -
-/// enough to interpolate the degree-`< 2·2^k_skip` polynomial uniquely.
-///
-/// Over the window `S ∪ Λ` the zeros on S drop out of the Lagrange sum, and the
-/// weight of every node of Λ carries the factor `∏_{s∈S} (z + s)`.
-pub(crate) fn interpolate_at_z_combined(values_on_lambda: &[F192], k_skip: usize, z: F192) -> F192 {
-    let ell = 1usize << k_skip;
-    assert_eq!(values_on_lambda.len(), ell);
-    assert!(2 * ell <= 256, "Λ ∪ S must fit in F_8 (need k_skip ≤ 7)");
-    let (s, lambda) = PHI_8_TABLE_192[..2 * ell].split_at(ell);
-    let vanishing_on_s = s[1..].iter().fold(z + s[0], |acc, &node| acc * (z + node));
-    let scale = vanishing_on_s * window_denominator(2 * ell);
-    barycentric_sum(lambda, values_on_lambda, z, scale)
 }
 
 // ---------------------------------------------------------------------------
@@ -870,7 +845,8 @@ mod tests {
     };
     use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
     use primitives::field::F8;
-    use primitives::multilinear::skip_lagrange_weights;
+    use primitives::field::PHI_8_TABLE_192;
+    use primitives::multilinear::{barycentric_sum, skip_lagrange_weights, window_denominator};
     use primitives::test_util::Rng;
 
     /// Evaluate the univariate-skip polynomial at the fold point `z`, given the
@@ -910,33 +886,6 @@ mod tests {
         assert_eq!(values.len(), ell);
         assert!(2 * ell <= 256, "Λ ∪ S must fit in F_8 (need k_skip ≤ 7)");
         barycentric_sum(&PHI_8_TABLE_192[ell..2 * ell], values, z, window_denominator(ell))
-    }
-
-    /// The round-1 claim, interpolated over Λ alone with S's vanishing product factored out, equals the
-    /// interpolation of the zeros on S and the values on Λ over the whole window, at random points and
-    /// at every node of either half.
-    #[test]
-    fn combined_interpolation_matches_the_whole_window() {
-        let mut rng = Rng::new(0x0C0B_14ED);
-        for k_skip in 0..=7 {
-            let ell = 1usize << k_skip;
-            let values_on_lambda = rng.ext_vec(ell);
-            for z in rng
-                .ext_vec(4)
-                .into_iter()
-                .chain(PHI_8_TABLE_192[..2 * ell].iter().copied())
-            {
-                let whole_window = skip_lagrange_weights(k_skip + 1, z)[ell..]
-                    .iter()
-                    .zip(&values_on_lambda)
-                    .fold(F192::ZERO, |acc, (&w, &v)| acc + w * v);
-                assert_eq!(
-                    interpolate_at_z_combined(&values_on_lambda, k_skip, z),
-                    whole_window,
-                    "k_skip {k_skip}"
-                );
-            }
-        }
     }
 
     #[test]

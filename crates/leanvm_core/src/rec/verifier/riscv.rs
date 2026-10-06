@@ -1,6 +1,5 @@
 //! The verifier's core of one RISC-V proof, in rows: every check that depends on the proof.
 
-use super::flock::Reduction;
 use super::whir::Opening;
 use super::{Rows, infallible};
 use crate::class_flock::FlockId;
@@ -9,6 +8,7 @@ use crate::pcs::Rate;
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::tables::{Clock, PerTable};
+use ::flock::reduction::{self, ReductionReplay};
 use fiat_shamir::arith::{Arith, Verifier};
 use primitives::field::F192;
 
@@ -77,7 +77,7 @@ impl<'p> ProofShape<'p> {
             infallible(self.layout.reduce_tables(r, clock, &output))
         });
         let circuits = FlockId::batches(&self.taus);
-        let reductions = r.scope("flock", |r| Reduction::replay(r, &circuits));
+        let reductions = r.scope("flock", |r| infallible(reduction::verify(&circuits, r)));
 
         r.scope("opening", |r| self.open(r, root, &reductions, &reduced));
         if !r.t.finished() {
@@ -86,7 +86,10 @@ impl<'p> ProofShape<'p> {
             });
         }
 
-        let circuits = reductions.into_iter().map(|reduction| reduction.matrix).collect();
+        let circuits = reductions
+            .into_iter()
+            .map(|reduction| reduction.matrices.into())
+            .collect();
         CoreRows {
             claims: DeferredClaims {
                 program: reduced.program,
@@ -99,8 +102,8 @@ impl<'p> ProofShape<'p> {
     /// The one opening: the point claims, then the ring-switched regions.
     ///
     /// They are each packed witness, each producer's multiplicity column, then each table's register numbers.
-    fn open(&self, r: &mut Rows<'_, '_>, root: Dw, reductions: &[Reduction], reduced: &TableReduction<Ew>) {
-        let slices = reductions.iter().map(|reduction| reduction.slice.clone());
+    fn open(&self, r: &mut Rows<'_, '_>, root: Dw, reductions: &[ReductionReplay<Ew>], reduced: &TableReduction<Ew>) {
+        let slices = reductions.iter().map(|reduction| reduction.claim.clone());
         let rings = self.layout.rings(slices, &reduced.producers, &reduced.tables, r.zero());
         let opening = Opening {
             slots: &reduced.slots,

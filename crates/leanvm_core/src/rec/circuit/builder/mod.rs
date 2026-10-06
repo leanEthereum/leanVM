@@ -113,10 +113,20 @@ impl Builder {
 
     /// Run `f` under a name, which an equality that fails reports.
     pub fn scope<T>(&mut self, name: impl Into<String>, f: impl FnOnce(&mut Self) -> T) -> T {
-        self.scope.push(name.into());
+        self.enter(name);
         let out = f(self);
-        self.scope.pop();
+        self.leave();
         out
+    }
+
+    /// Enter a named scope, which the next leave closes.
+    pub(crate) fn enter(&mut self, name: impl Into<String>) {
+        self.scope.push(name.into());
+    }
+
+    /// Close the innermost scope.
+    pub(crate) fn leave(&mut self) {
+        self.scope.pop();
     }
 
     /// Record a check that failed on the values and that no equality expresses.

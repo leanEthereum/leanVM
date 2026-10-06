@@ -10,11 +10,10 @@
 use super::{FoldTable, ReduceError, products};
 use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::rec::tree::claims::{Coefficient, ColWeight, MatrixClaim, RowWeight};
-use crate::rec::verifier::SkipDomain;
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use flock::lincheck::{LincheckCircuit, build_quirky_eq_table};
-use flock::zerocheck::K_SKIP;
+use flock::zerocheck::{K_SKIP, SkipDomain};
 use primitives::field::F192;
 use primitives::multilinear::eq_table;
 
@@ -148,8 +147,8 @@ impl<E: Copy + PartialEq> RowWeight<E> {
         match self {
             Self::Skip { z, rest } => {
                 let low = shared(skips, *z, || {
-                    let vanishing = SkipDomain::vanishing(a, *z);
-                    SkipDomain::lagrange_at(a, *z, vanishing, skip)
+                    let vanishing = SkipDomain::FLOCK.vanishing(a, *z);
+                    SkipDomain::FLOCK.lagrange_at(a, *z, vanishing, skip)
                 });
                 let high = a.eq_eval(rest, &r[K_SKIP..]);
                 a.mul(low, high)

@@ -7,7 +7,7 @@ use crate::rec::circuit::{Builder, Ew};
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::ring_switch::COMPOSITION_SHIFTS;
 use ::pcs::stack_open::{PrefixGroup, RingSwitch};
-use fiat_shamir::arith::Arith;
+use fiat_shamir::arith::{Arith, Verifier};
 use primitives::field::{F64, F192};
 
 /// The ring-switching map `Phi`, as the coefficients `C_k^(2^-k)` of its Frobenius form, `k < 64`.

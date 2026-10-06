@@ -184,8 +184,8 @@ impl<E: Copy> Claim<ProgramPoint<E>, E> {
     }
 }
 
-impl From<MatrixClaim> for Claim<MatrixForm> {
-    fn from(claim: MatrixClaim) -> Self {
+impl<E> From<MatrixClaim<E>> for Claim<MatrixForm<E>, E> {
+    fn from(claim: MatrixClaim<E>) -> Self {
         Self {
             point: claim.form,
             value: claim.value,

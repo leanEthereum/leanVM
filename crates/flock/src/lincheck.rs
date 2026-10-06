@@ -88,9 +88,12 @@
 //!   `byte_idx` and apply it across all `i_inner` with one lookup + one XOR
 //!   per byte.
 
+use crate::reduction::Shape;
+use crate::zerocheck::{SkipDomain, ZerocheckReplay};
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use core::arch::x86_64::*;
-use fiat_shamir::transcript::{Challenger, ProverState, Receiver, TranscriptError, Transmitter, VerifierState};
+use fiat_shamir::arith::{Arith, Native, Verifier};
+use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
 use parallel::SendPtr;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use primitives::bit_fold::avx2;
@@ -104,7 +107,7 @@ use primitives::bit_fold::gfni::{OUT_BYTES, store_f192, weight_matrices};
 use primitives::field::F192;
 #[cfg(target_arch = "aarch64")]
 use primitives::field::neon::xor3_u64;
-use primitives::multilinear::{eq_eval, eq_table, inner_product, skip_lagrange_weights};
+use primitives::multilinear::{eq_table, inner_product, skip_lagrange_weights};
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
 use thiserror::Error;
@@ -208,12 +211,6 @@ pub struct LincheckClaim {
 /// Why the lincheck verifier rejects.
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum LincheckError {
-    /// The claim point's inner coordinates are not `k_log - k_skip` long.
-    #[error("the claim point has {got} inner coordinates, and lincheck needs {expected}")]
-    BadInnerRestLength { expected: usize, got: usize },
-    /// The claim point's outer coordinates are not `m - k_log` long.
-    #[error("the claim point has {got} outer coordinates, and lincheck needs {expected}")]
-    BadOuterLength { expected: usize, got: usize },
     /// The circuit's column count is not `2^k_log`.
     #[error("the circuit has {got} columns, and lincheck needs {expected}")]
     BadNCols { expected: usize, got: usize },
@@ -1004,21 +1001,6 @@ pub(crate) struct LincheckInput<'a> {
     pub(crate) x_ab: &'a QuirkyPoint,
 }
 
-/// One circuit's statement in a batched lincheck: its shape and its zerocheck claims.
-///
-/// Of the circuit it reads only its size and the constant wire's column: its matrices are left to the claim the replay returns.
-#[derive(Clone, Copy)]
-pub(crate) struct LincheckStatement<'a> {
-    pub m: usize,
-    pub k_log: usize,
-    pub k_skip: usize,
-    pub const_pin_col: usize,
-    pub(crate) x_ab: &'a QuirkyPoint,
-    pub(crate) v_a: F192,
-    pub(crate) v_b: F192,
-    pub(crate) v_c: F192,
-}
-
 /// One circuit's product sumcheck: its α-batched column marginal and its partially
 /// folded `z`, both bound top variable first, and its own running claim.
 struct CircuitProver {
@@ -1170,12 +1152,32 @@ pub(crate) fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<L
 
     // Send each `z_partial` (the post-sumcheck collapsed z, length 2^k_skip), then
     // its matrices' form: the circuit's terminal value less the identity's closed terms.
+    let alpha_sq = alpha.square();
+    let beta = alpha_sq * alpha;
     (provers.into_iter().zip(inputs))
         .map(|(prover, input)| {
             let claim = claim_of(&r_rounds[..prover.rounds], prover.z);
-            let closed = closed_terms(alpha, &claim, input.circuit.const_pin_col(), input.x_ab);
+            let (domain, x_ab) = (SkipDomain::new(input.k_skip), input.x_ab);
+            let vanishing = domain.vanishing(&mut Native, x_ab.z_skip);
+            let mut closed = ClosedTerms::new(
+                &mut Native,
+                domain,
+                alpha_sq,
+                beta,
+                x_ab.z_skip,
+                vanishing,
+                prover.rounds,
+            );
+            let value = closed.add_to(
+                &mut Native,
+                prover.running,
+                input.circuit.const_pin_col(),
+                &x_ab.x_inner_rest,
+                &claim.r_inner_rest,
+                &claim.s_hat_v,
+            );
             ps.add_scalars(&claim.s_hat_v);
-            ps.add_scalars(&[prover.running + closed]);
+            ps.add_scalars(&[value]);
             claim
         })
         .collect()
@@ -1201,104 +1203,84 @@ fn claim_of(r_rounds: &[F192], s_hat_v: Vec<F192>) -> LincheckClaim {
 /// which is returned as a claim for whoever holds the circuit to settle. Nothing is
 /// absorbed after the claims' challenges, so settling them later is the same check.
 ///
+/// Each claim's `s_hat_v` is its circuit's output claim: the `2^k_skip` bit slices of `z` at `(r_inner_rest, x_outer)`, which ring switching binds to the commitment.
+///
 /// # Errors
 ///
-/// Returns the first malformed length or transcript read, or a final claim the
-/// circuits' terms do not reproduce.
-pub(crate) fn verify_deferred(
-    statements: &[LincheckStatement<'_>],
-    vs: &mut VerifierState<'_>,
-) -> Result<Vec<(LincheckClaim, MatrixClaim)>, LincheckError> {
-    for s in statements {
-        let k_log = s.k_log;
-        if s.k_skip > k_log {
-            return Err(LincheckError::KSkipExceedsKLog {
-                k_skip: s.k_skip,
-                k_log,
-            });
-        }
-        if s.x_ab.x_inner_rest.len() != k_log - s.k_skip {
-            return Err(LincheckError::BadInnerRestLength {
-                expected: k_log - s.k_skip,
-                got: s.x_ab.x_inner_rest.len(),
-            });
-        }
-        if s.x_ab.x_outer.len() != s.m - k_log {
-            return Err(LincheckError::BadOuterLength {
-                expected: s.m - k_log,
-                got: s.x_ab.x_outer.len(),
-            });
-        }
+/// Returns a circuit narrower than the skip, a malformed transcript read, or a final claim the circuits' terms do not reproduce.
+pub(crate) fn verify_deferred<V: Verifier>(
+    domain: SkipDomain,
+    zc: &ZerocheckReplay<V::E>,
+    shapes: &[Shape],
+    v: &mut V,
+) -> Result<Vec<MatrixClaim<V::E>>, LincheckError> {
+    let k_skip = domain.k_skip();
+    if let Some(shape) = shapes.iter().find(|shape| shape.k_log < k_skip) {
+        return Err(LincheckError::KSkipExceedsKLog {
+            k_skip,
+            k_log: shape.k_log,
+        });
+    }
+    let rests: Vec<usize> = shapes.iter().map(|shape| shape.k_log - k_skip).collect();
+
+    // The target the α-batched claims and the constant-wire pins (`beta = alpha^3`, target 1) set, circuit `f` at `alpha^(4f)`.
+    let alpha = v.sample();
+    let alpha_sq = v.square(alpha);
+    let beta = v.mul(alpha_sq, alpha);
+    let alpha_4 = v.square(alpha_sq);
+    let weights = v.powers(alpha_4, shapes.len());
+    let mut running = v.zero();
+    for (&[a, b, c], &weight) in zc.evals.iter().zip(&weights) {
+        let own = v.mul_add(alpha, b, a);
+        let own = v.mul_add(alpha_sq, c, own);
+        let own = v.add(own, beta);
+        running = v.mul_add(weight, own, running);
     }
 
-    // 1. Sample α (matches prover's order).
-    let alpha = vs.sample();
-    let weights = circuit_weights(alpha, statements.len());
-
-    // 2. Replay the batched product sumcheck. The zerocheck's c-claim enters at α²
-    //    and the pin at β = α³, whose target is 1, the honest all-ones constant
-    //    column folding to 1. See `LincheckCircuit::const_pin_col`.
-    let alpha_sq = alpha.square();
-    let beta = alpha_sq * alpha;
-    let target = (statements.iter().zip(&weights)).fold(F192::ZERO, |acc, (s, &w)| {
-        acc + w * (s.v_a + alpha * s.v_b + alpha_sq * s.v_c + beta)
-    });
-    let n_rounds = statements
-        .iter()
-        .map(|s| s.k_log - s.k_skip)
-        .max()
-        .expect("a batch has a circuit");
-    let mut running = target;
+    // `c1 + c2 = claim` in char 2, so `c1` never rides the wire.
+    let n_rounds = rests.iter().copied().max().expect("a batch has a circuit");
     let mut r_rounds = Vec::with_capacity(n_rounds);
     for _ in 0..n_rounds {
-        // `c1 + c2 = claim` in char 2, so `c1` never rides the wire.
-        let q = vs.next_round_poly(3, running, None)?;
-        let r = vs.sample();
-        running = primitives::multilinear::poly_eval(&q, r);
-        r_rounds.push(r);
+        let q = v.next_round_poly(3, running, None)?;
+        let challenge = v.sample();
+        running = v.poly_eval(&q, challenge);
+        r_rounds.push(challenge);
     }
+    // What a circuit of `rest` rounds waits on: the challenges of the rounds after its own.
+    let mut waits = vec![v.one(); n_rounds + 1];
+    for i in (0..n_rounds).rev() {
+        waits[i] = v.mul(waits[i + 1], r_rounds[i]);
+    }
+    let mut closed = ClosedTerms::new(v, domain, alpha_sq, beta, zc.z, zc.vanishing, n_rounds);
 
-    // 3. Read every z_partial and form value AFTER the sumcheck rounds (matches
-    //    prover order), and check the batch's final claim. The prover's comb_partial
-    //    (comb_vec bound MSB-first at r_rounds) satisfies
-    //
-    //      ⟨comb_partial, z_partial⟩ = Σ_c comb_vec[c] · w_col[c],
-    //      w_col[i_skip + i_rest·2^k_skip] = z_partial[i_skip] · eq(r_inner_rest, i_rest),
-    //
-    //    so each circuit's terminal value is ONE bilinear form
-    //    `eq_innerᵀ·(A_0 + α·B_0)·w_col`, its matrices', plus its closed terms.
-    let mut final_sum = F192::ZERO;
-    let mut out = Vec::with_capacity(statements.len());
-    for (s, &weight) in statements.iter().zip(&weights) {
-        let rounds = s.k_log - s.k_skip;
-        let z_partial: Vec<F192> = vs.next_scalars(1 << s.k_skip)?;
-        let value = vs.next_scalar()?;
-        let claim = claim_of(&r_rounds[..rounds], z_partial);
-        let lift = r_rounds[rounds..].iter().fold(weight, |acc, &r| acc * r);
-        final_sum += lift * (value + closed_terms(alpha, &claim, s.const_pin_col, s.x_ab));
-        let matrices = MatrixClaim {
+    // Each `z_partial` and form value rides the stream after the rounds, in circuit order.
+    // A circuit's terminal value is one bilinear form `eq_inner^T (A_0 + alpha B_0) w_col`, its matrices', plus its closed terms.
+    let mut total = v.zero();
+    let mut claims = Vec::with_capacity(shapes.len());
+    for ((shape, &rest), &weight) in shapes.iter().zip(&rests).zip(&weights) {
+        let z_partial = v.next_scalars(domain.size())?;
+        let value = v.next_scalar()?;
+        let r_inner_rest: Vec<V::E> = r_rounds[..rest].iter().rev().copied().collect();
+        let x_inner_rest = &zc.mlv_challenges[..rest];
+        let own = closed.add_to(v, value, shape.const_pin_col, x_inner_rest, &r_inner_rest, &z_partial);
+        let lift = v.mul(weight, waits[rest]);
+        total = v.mul_add(lift, own, total);
+        claims.push(MatrixClaim {
             form: MatrixForm {
                 alpha,
-                z_skip: s.x_ab.z_skip,
-                x_inner_rest: s.x_ab.x_inner_rest.clone(),
-                r_inner_rest: claim.r_inner_rest.clone(),
-                s_hat_v: claim.s_hat_v.clone(),
+                z_skip: zc.z,
+                x_inner_rest: x_inner_rest.to_vec(),
+                r_inner_rest,
+                s_hat_v: z_partial,
             },
             value,
-        };
-        out.push((claim, matrices));
+        });
     }
-    if running != final_sum {
-        return Err(LincheckError::SumcheckMismatch);
-    }
-
-    // 4. Each `z_partial` IS its circuit's output claim: the 64 bit-slice values of
-    //    z at (r_inner_rest, x_outer), pinned by the identity its matrix claim
-    //    completes, and ring switching binds all 64 of them against the commitment.
-    Ok(out)
+    v.ensure_eq(total, running, || LincheckError::SumcheckMismatch)?;
+    Ok(claims)
 }
 
-/// The terms of a circuit's terminal identity that its matrices do not fix, at its claim.
+/// The terms of a circuit's terminal identity that its matrices do not fix, at one batch's challenges.
 ///
 /// ```text
 /// alpha^3 w_col[pin] + alpha^2 eq(x_inner_rest, r_inner_rest) <lambda(z_skip), s_hat_v>
@@ -1306,18 +1288,59 @@ pub(crate) fn verify_deferred(
 ///
 /// - `w_col[pin]` is the constant wire's slice times the eq weight of its inner index.
 /// - The `C` term is `<eq_inner, w_col>` by the tensor structure of both sides: `eq_inner = eq(x_inner_rest) ⊗ λ(z_skip)` and `w_col = eq(r_inner_rest) ⊗ s_hat_v`.
-fn closed_terms(alpha: F192, claim: &LincheckClaim, const_pin_col: usize, x_ab: &QuirkyPoint) -> F192 {
-    let n_skip = claim.s_hat_v.len();
-    let k_skip = n_skip.ilog2() as usize;
-    let pin_rest = const_pin_col >> k_skip;
-    let eq_pin = (claim.r_inner_rest.iter().enumerate()).fold(F192::ONE, |acc, (j, &r)| {
-        acc * if (pin_rest >> j) & 1 == 1 { r } else { r + F192::ONE }
-    });
-    let beta = alpha.square() * alpha;
-    let pin = beta * claim.s_hat_v[const_pin_col & (n_skip - 1)] * eq_pin;
-    let lambda_skip = skip_lagrange_weights(k_skip, x_ab.z_skip);
-    let c_slice_value = (lambda_skip.iter().zip(&claim.s_hat_v)).fold(F192::ZERO, |acc, (&w, &v)| acc + w * v);
-    pin + alpha.square() * eq_eval(&x_ab.x_inner_rest, &claim.r_inner_rest) * c_slice_value
+///
+/// The skip weights' inverses at `z_skip` serve every circuit, and `eq(x_inner_rest, r_inner_rest)` every circuit of one inner length.
+struct ClosedTerms<E> {
+    domain: SkipDomain,
+    alpha_sq: E,
+    beta: E,
+    inverses: Vec<E>,
+    scale: E,
+    eq_inner: Vec<Option<E>>,
+}
+
+impl<E: Copy> ClosedTerms<E> {
+    /// The terms at the batch's `alpha^2`, `alpha^3` and skip challenge, for circuits of at most `max_rest` inner rounds.
+    fn new<A: Arith<E = E>>(
+        a: &mut A,
+        domain: SkipDomain,
+        alpha_sq: E,
+        beta: E,
+        z_skip: E,
+        vanishing: E,
+        max_rest: usize,
+    ) -> Self {
+        let inverses = domain.inverses(a, z_skip);
+        let scale = domain.lagrange_scale(a, vanishing);
+        Self {
+            domain,
+            alpha_sq,
+            beta,
+            inverses,
+            scale,
+            eq_inner: vec![None; max_rest + 1],
+        }
+    }
+
+    /// `value` plus the closed terms of a circuit whose constant wire is column `pin`, at its claim.
+    fn add_to<A: Arith<E = E>>(
+        &mut self,
+        a: &mut A,
+        value: E,
+        pin: usize,
+        x_inner_rest: &[E],
+        r_inner_rest: &[E],
+        s_hat_v: &[E],
+    ) -> E {
+        let k_skip = self.domain.k_skip();
+        let eq_pin = a.eq_bits(pin >> k_skip, r_inner_rest);
+        let pin_term = a.mul(s_hat_v[pin & (self.domain.size() - 1)], eq_pin);
+        let own = a.mul_add(self.beta, pin_term, value);
+        let slices = SkipDomain::lagrange_with(a, self.scale, &self.inverses, s_hat_v);
+        let eq = *self.eq_inner[r_inner_rest.len()].get_or_insert_with(|| a.eq_eval(x_inner_rest, r_inner_rest));
+        let c_term = a.mul(eq, slices);
+        a.mul_add(self.alpha_sq, c_term, own)
+    }
 }
 
 /// The share of a lincheck's terminal identity that only the circuit's matrices fix.
@@ -1373,12 +1396,14 @@ impl MatrixForm {
 }
 
 /// What the deferred replay leaves to the circuit: the terminal identity holds exactly when the form takes the value.
+///
+/// Its elements are values, or whatever a verifier holds them as.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MatrixClaim {
+pub struct MatrixClaim<E = F192> {
     /// The form, at the replay's challenges.
-    pub form: MatrixForm,
+    pub form: MatrixForm<E>,
     /// The value the form must take.
-    pub value: F192,
+    pub value: E,
 }
 
 impl MatrixClaim {
@@ -1507,35 +1532,32 @@ mod tests {
         super::prove(&[input], ps).pop().expect("one circuit")
     }
 
-    /// Test shim: the replay of one circuit, its matrix claim settled against the circuit.
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "The shim keeps the statement's fields explicit."
-    )]
+    /// Test shim: the replay of one circuit at its zerocheck point, its matrix claim settled against the circuit.
     fn verify(
-        m: usize,
         k_log: usize,
         k_skip: usize,
         circuit: &dyn LincheckCircuit,
         x_ab: &QuirkyPoint,
-        v_a: F192,
-        v_b: F192,
-        v_c: F192,
+        evals: [F192; 3],
         vs: &mut VerifierState<'_>,
     ) -> Result<LincheckClaim, LincheckError> {
-        let statement = LincheckStatement {
-            m,
-            k_log,
-            k_skip,
-            const_pin_col: circuit.const_pin_col(),
-            x_ab,
-            v_a,
-            v_b,
-            v_c,
+        let domain = SkipDomain::new(k_skip);
+        let zc = ZerocheckReplay {
+            z: x_ab.z_skip,
+            vanishing: domain.vanishing(&mut Native, x_ab.z_skip),
+            mlv_challenges: [&x_ab.x_inner_rest[..], &x_ab.x_outer].concat(),
+            evals: vec![evals],
         };
-        let (claim, matrices) = verify_deferred(&[statement], vs)?.pop().expect("one circuit");
+        let shape = Shape {
+            k_log,
+            const_pin_col: circuit.const_pin_col(),
+        };
+        let matrices = verify_deferred(domain, &zc, &[shape], vs)?.pop().expect("one circuit");
         matrices.check(circuit)?;
-        Ok(claim)
+        Ok(LincheckClaim {
+            r_inner_rest: matrices.form.r_inner_rest,
+            s_hat_v: matrices.form.s_hat_v,
+        })
     }
 
     /// Test shim: the padded fast fold with a dense (no-padding) block.
@@ -1950,7 +1972,7 @@ mod tests {
 
             let proof_t = ch_p.into_proof();
             let mut ch_v = VerifierState::from_label(b"flock-test-v0", &proof_t);
-            let claim_v = verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch_v).unwrap_or_else(|e| {
+            let claim_v = verify(k_log, k_skip, &circuit, &x_ab, [v_a, v_b, v_c], &mut ch_v).unwrap_or_else(|e| {
                 panic!("verify rejected honest proof at m={m},k_log={k_log},k_skip={k_skip}: {e:?}")
             });
 
@@ -2040,7 +2062,7 @@ mod tests {
                 bad.stream[zp_word].c0 ^= 1;
             }
             let mut ch = VerifierState::from_label(b"flock-test-v0", &bad);
-            let res = verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch);
+            let res = verify(k_log, k_skip, &circuit, &x_ab, [v_a, v_b, v_c], &mut ch);
             assert!(
                 matches!(res, Err(LincheckError::SumcheckMismatch)),
                 "verify did not reject z_partial[{skip_idx}].{label} bit-flip: got {res:?}"
@@ -2077,26 +2099,14 @@ mod tests {
         bad.stream.pop();
         let mut ch = VerifierState::from_label(b"flock-test-v0", &bad);
         assert!(matches!(
-            verify(m, k_log, k_skip, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
+            verify(k_log, k_skip, &circuit, &x_ab, [v_a, v_b, v_c], &mut ch),
             Err(LincheckError::Transcript(_))
-        ));
-
-        // Wrong x_inner_rest length.
-        let mut ch = VerifierState::from_label(b"flock-test-v0", &proof_t);
-        let bad_x_ab = QuirkyPoint {
-            z_skip: x_ab.z_skip,
-            x_inner_rest: x_ab.x_inner_rest[..x_ab.x_inner_rest.len() - 1].to_vec(),
-            x_outer: x_ab.x_outer.clone(),
-        };
-        assert!(matches!(
-            verify(m, k_log, k_skip, &circuit, &bad_x_ab, v_a, v_b, v_c, &mut ch),
-            Err(LincheckError::BadInnerRestLength { .. })
         ));
 
         // k_skip > k_log.
         let mut ch = VerifierState::from_label(b"flock-test-v0", &proof_t);
         assert!(matches!(
-            verify(m, k_log, k_log + 1, &circuit, &x_ab, v_a, v_b, v_c, &mut ch),
+            verify(k_log, k_log + 1, &circuit, &x_ab, [v_a, v_b, v_c], &mut ch),
             Err(LincheckError::KSkipExceedsKLog { .. })
         ));
     }

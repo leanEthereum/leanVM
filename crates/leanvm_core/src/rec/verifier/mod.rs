@@ -1,7 +1,8 @@
 //! The verifier of a leanVM proof as rows of the recursion machine (Annex E).
 //!
 //! - The bus, its GKR and the table sumcheck are the native verifier's own code, run over wires.
-//! - The flock reductions and the opening are replayed here, and tests pin them to the native verifier.
+//! - The flock reductions are the native verifier's code too.
+//! - The opening is replayed here, and tests pin it to the native verifier.
 //!
 //! No row depends on a value: a circuit built from a proof equals the one built from its shape.
 
@@ -14,7 +15,6 @@ use primitives::field::F192;
 use recursion::FixedHints;
 use std::fmt::Debug;
 
-mod flock;
 mod recursion;
 mod ring;
 mod riscv;
@@ -23,7 +23,6 @@ mod whir;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use flock::SkipDomain;
 pub(crate) use recursion::{FixedHint, RecShape};
 pub(crate) use ring::RingMap;
 pub use riscv::ProofShape;
@@ -52,12 +51,6 @@ impl<'a, 's> Rows<'a, 's> {
             t,
             fixed: Some(fixed),
         }
-    }
-
-    /// Run `f` under a name, which an equality that fails reports.
-    fn scope<T>(&mut self, name: impl Into<String>, f: impl FnOnce(&mut Rows<'_, 's>) -> T) -> T {
-        let (t, fixed) = (&mut *self.t, self.fixed.as_deref_mut());
-        self.b.scope(name, |b| f(&mut Rows { b, t, fixed }))
     }
 }
 
@@ -163,6 +156,13 @@ impl Verifier for Rows<'_, '_> {
     fn ensure_eq<Er>(&mut self, a: Ew, b: Ew, _: impl FnOnce() -> Er) -> Result<(), Er> {
         self.b.eq_e(a, b);
         Ok(())
+    }
+
+    fn scope<T>(&mut self, name: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
+        self.b.enter(name);
+        let out = f(self);
+        self.b.leave();
+        out
     }
 }
 
