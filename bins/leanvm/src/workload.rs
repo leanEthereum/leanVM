@@ -126,6 +126,12 @@ impl Workload {
         Self::hosted(title, stateproof_host::ELF, stateproof_host::reads(n), n, "read")
     }
 
+    /// Check `n` shielded transfers, each a privacy-pool spend of two notes into two.
+    pub fn shielded(n: usize) -> Self {
+        let title = format!("Shielded transfers, {n} spends");
+        Self::hosted(title, shielded_host::ELF, shielded_host::spends(n), n, "spend")
+    }
+
     /// Check `n` leanDA blobs and compute their commitment.
     pub fn leanda(n: usize) -> Self {
         let title = format!("leanDA check, {n} blobs of 128 KiB");
@@ -239,6 +245,7 @@ mod tests {
             Workload::leanxmss(2),
             Workload::leansphincs(1),
             Workload::falcon(1),
+            Workload::shielded(3),
         ] {
             workload.run(&prover, Plan::default());
         }

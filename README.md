@@ -110,9 +110,9 @@ programs/hash/hash.elf
   verifying                   : 7.796 ms
 ```
 
-### leanXMSS, leanSPHINCS, leanDA, Falcon-512 and L1 state proofs
+### leanXMSS, leanSPHINCS, leanDA, Falcon-512, L1 state proofs and shielded transfers
 
-Three programs check what an Ethereum node would: leanXMSS signatures, leanSPHINCS signatures, and leanDA blobs (`programs/leanxmss`, `programs/leansphincs`, `programs/leanda`). A fourth verifies Falcon-512 signatures as the round-3 specification defines them (`programs/falcon`), pinned to NIST's known answers. A fifth verifies Ethereum L1 state proofs (`programs/stateproof`): accounts and storage slots at one mainnet block, as `eth_getProof` (EIP-1186) proves them, from the block hash down, keccak256 and RLP in software.
+Three programs check what an Ethereum node would: leanXMSS signatures, leanSPHINCS signatures, and leanDA blobs (`programs/leanxmss`, `programs/leansphincs`, `programs/leanda`). A fourth verifies Falcon-512 signatures as the round-3 specification defines them (`programs/falcon`), pinned to NIST's known answers. A fifth verifies Ethereum L1 state proofs (`programs/stateproof`): accounts and storage slots at one mainnet block, as `eth_getProof` (EIP-1186) proves them, from the block hash down, keccak256 and RLP in software. A sixth checks shielded transfers (`programs/shielded`): privacy-pool spends of two notes into two over a depth-20 tree, the statement of soispoke's [minimal shielded pool](https://github.com/soispoke/evm-spend-challenge/blob/main/SPEC.md), BLAKE2s edition, whose digests it reproduces.
 
 Each guest is a `no_std` library, byte-compatible with the schemes' reference implementations, plus the `main` that runs it. Each host runs the same library natively to build the inputs and the expected output.
 
@@ -122,13 +122,14 @@ cargo leanvm leansphincs --n 104 --repeat 3
 cargo leanvm leanda --blobs 1 --repeat 3
 cargo leanvm falcon --n 28 --repeat 3
 cargo leanvm stateproof --n 21 --repeat 3
+cargo leanvm shielded --n 1035 --repeat 3
 ```
 
-The report gives the RISC-V cycles per signature, per blob or per read, the rows per table and the committed witness, then the proving and verifying times.
+The report gives the RISC-V cycles per signature, per blob, per read or per spend, the rows per table and the committed witness, then the proving and verifying times.
 
 These are the most one proof holds: continuations are not implemented.
 
-To get the cost of all five without proving, exact and the same on every machine:
+To get the cost of all six without proving, exact and the same on every machine:
 
 ```bash
 cargo leanvm bench --cycles-only --markdown

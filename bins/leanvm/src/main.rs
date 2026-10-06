@@ -85,6 +85,12 @@ enum Command {
         #[arg(long, default_value_t = 4, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         n: usize,
     },
+    /// Prove and verify a guest checking shielded transfers: privacy-pool spends, two notes in and two out.
+    Shielded {
+        /// Spends to check.
+        #[arg(long, default_value_t = 16, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+    },
     /// Prove and verify a guest checking leanDA blobs and computing their commitment.
     Leanda {
         /// Blobs of 128 KiB to check.
@@ -175,6 +181,7 @@ fn main() {
         Command::Leansphincs { n } => Workload::leansphincs(n).run(&prover, plan),
         Command::Falcon { n } => Workload::falcon(n).run(&prover, plan),
         Command::Stateproof { n } => Workload::stateproof(n).run(&prover, plan),
+        Command::Shielded { n } => Workload::shielded(n).run(&prover, plan),
         Command::Leanda { blobs } => Workload::leanda(blobs).run(&prover, plan),
         Command::Aggregate {
             program,

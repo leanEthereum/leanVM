@@ -2,7 +2,7 @@
 members = ["crates/*", "bins/*", "sdk", "programs/*/host"]
 # Each guest is its own workspace, for another target. A host depends on its guest's library by path, which
 # would make the guest a member: `exclude` takes no globs, so each is named.
-exclude = ["programs/leanxmss/guest", "programs/leansphincs/guest", "programs/leanda/guest", "programs/falcon/guest", "programs/stateproof/guest"]
+exclude = ["programs/leanxmss/guest", "programs/leansphincs/guest", "programs/leanda/guest", "programs/falcon/guest", "programs/stateproof/guest", "programs/shielded/guest"]
 resolver = "3"
 
 [workspace.package]
@@ -43,6 +43,7 @@ leansphincs-host = { path = "programs/leansphincs/host" }
 leanda-host = { path = "programs/leanda/host" }
 falcon-host = { path = "programs/falcon/host" }
 stateproof-host = { path = "programs/stateproof/host" }
+shielded-host = { path = "programs/shielded/host" }
 libc = "0.2"
 proptest = { version = "1", default-features = false, features = ["std"] }
 serde = { version = "1", features = ["derive"] }

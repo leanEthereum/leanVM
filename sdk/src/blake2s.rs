@@ -271,18 +271,38 @@ mod plain {
 /// each compression instead, which keeps a hasher that lives across calls in registers too.
 #[inline(always)]
 pub fn hash_with(write: impl FnOnce(&mut Stream<'_>)) -> [u64; 4] {
+    with_stream(|stream| {
+        write(stream);
+        stream.finish()
+    })
+}
+
+/// BLAKE2s-256 of the first `LEN` bytes of the words `write` puts in a stream, as four little-endian words.
+///
+/// The message ends inside its last word, whose bytes from `LEN` on must be zero: BLAKE2s pads with zeros.
+///
+/// It may span blocks: a template's prefix digest is the one-block counterpart.
+#[inline(always)]
+pub fn hash_prefix_with<const LEN: usize>(write: impl FnOnce(&mut Stream<'_>)) -> [u64; 4] {
+    with_stream(|stream| {
+        write(stream);
+        stream.finish_prefix(LEN as u64)
+    })
+}
+
+/// Run `f` on a fresh stream over a block this frame owns.
+#[inline(always)]
+fn with_stream(f: impl FnOnce(&mut Stream<'_>) -> [u64; 4]) -> [u64; 4] {
     // Only the chaining value is written here: the stream writes each message word before a compression reads it,
     // padding the last block itself.
     let mut block = MaybeUninit::<Block>::uninit();
     // SAFETY: a field of the block this frame owns.
     unsafe { (&raw mut (*block.as_mut_ptr()).h).write(IV) };
-    let mut stream = Stream {
+    f(&mut Stream {
         block: &mut block,
         filled: 0,
         done: 0,
-    };
-    write(&mut stream);
-    stream.finish()
+    })
 }
 
 /// A message being written for [`hash_with`], in words: each full block absorbed once more of it follows.
@@ -386,10 +406,23 @@ impl Stream<'_> {
     #[inline(always)]
     fn finish(&mut self) -> [u64; 4] {
         let t = self.done + 8 * self.filled as u64;
+        self.finish_prefix(t)
+    }
+
+    /// The digest of the message's first `len` bytes, which end inside its last word.
+    ///
+    /// BLAKE2s counts bytes, not words: the counter is `len`, the bytes past it already zero.
+    #[inline(always)]
+    fn finish_prefix(&mut self, len: u64) -> [u64; 4] {
+        let written = self.done + 8 * self.filled as u64;
+        assert!(
+            len <= written && written < len + 8,
+            "a length inside the message's last word"
+        );
         while self.filled < 8 {
             self.put([0]);
         }
-        self.full().compress(t, true)
+        self.full().compress(len, true)
     }
 }
 
@@ -796,6 +829,41 @@ mod tests {
                 check(in_pieces::<11>(message, prefix), 11);
             }
         }
+    }
+
+    /// `hash_prefix_with` of `LEN` random bytes, written a word at a time, against the reference of those bytes.
+    fn streams_its_prefix<const LEN: usize>(rng: &mut Rng) {
+        // The message's words: `LEN` random bytes, then zeros to the end of the last word.
+        let mut bytes = [0u8; 8 * 40];
+        bytes[..LEN].iter_mut().for_each(|b| *b = rng.next_u64() as u8);
+        let words: [u64; 40] =
+            core::array::from_fn(|k| u64::from_le_bytes(bytes[8 * k..8 * k + 8].try_into().unwrap()));
+        let digest = hash_prefix_with::<LEN>(|s| {
+            for &word in &words[..LEN.div_ceil(8)] {
+                s.write([word]);
+            }
+        });
+        assert_eq!(digest, reference(&bytes[..LEN]), "{LEN} bytes");
+    }
+
+    #[test]
+    fn hash_prefix_with_is_the_blake2s_of_those_bytes() {
+        // Invariant: the counter is the byte length, not the words written.
+        //
+        // Fixture: lengths ending at every kind of place.
+        //
+        //     1, 33, 63      inside the first block
+        //     64             on its end: the block is the last one, compressed once
+        //     65             one byte into a second block
+        //     129, 265       three and five blocks, ending one byte past a block and a word
+        let mut rng = Rng::new(0x9EF);
+        streams_its_prefix::<1>(&mut rng);
+        streams_its_prefix::<33>(&mut rng);
+        streams_its_prefix::<63>(&mut rng);
+        streams_its_prefix::<64>(&mut rng);
+        streams_its_prefix::<65>(&mut rng);
+        streams_its_prefix::<129>(&mut rng);
+        streams_its_prefix::<265>(&mut rng);
     }
 
     /// `write_each` of `count` arrays of `N` words after `prefix` single words and before `suffix` more, against the
