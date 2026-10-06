@@ -8,6 +8,7 @@
 //! transposed-NTT fast path with the dispatch between them.
 
 use crate::ntt::AdditiveNttF64;
+use crate::ntt::additive_ntt_f64::transposed_butterfly_lanes;
 use parallel::SendPtr;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, inner_product, inner_product_base};
@@ -286,6 +287,22 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
     }
 }
 
+/// The transposed butterfly `s = a + b; a' = s; b' = t*s + b` on every pair of a top and a bottom row.
+///
+/// An E value is three K words and `t` is in K, so the rows are K lanes sharing one twiddle.
+fn transposed_butterflies(t: F64, top: &mut [F192], bot: &mut [F192]) {
+    // SAFETY:
+    // - An E element is laid out as three K words, and a K element as one word.
+    // - So each view covers exactly the same memory as the slice it came from.
+    let (top, bot) = unsafe {
+        (
+            std::slice::from_raw_parts_mut(top.as_mut_ptr().cast::<F64>(), 3 * top.len()),
+            std::slice::from_raw_parts_mut(bot.as_mut_ptr().cast::<F64>(), 3 * bot.len()),
+        )
+    };
+    transposed_butterfly_lanes(top, bot, t);
+}
+
 /// Transposed forward additive NTT, `F^T`, in place over `2^log_d` E-values
 /// with K-twiddles. Forward butterfly is `M = [[1, t], [1, t+1]]`; transpose
 /// `M^T = [[1, 1], [t, t+1]]` is `s = a + b; top = s; bot = t*s + b` (here
@@ -323,15 +340,6 @@ fn transpose_layers_ext_windowed(
     window_len: usize,
 ) {
     let n_threads = parallel::num_threads();
-    let butterfly = |t: F64, top: &mut [F192], bot: &mut [F192]| {
-        for (a_ref, b_ref) in top.iter_mut().zip(bot.iter_mut()) {
-            let a = *a_ref;
-            let b = *b_ref;
-            let s = a + b;
-            *a_ref = s;
-            *b_ref = s.mul_base(t) + b;
-        }
-    };
     let layers: Vec<usize> = layers.collect();
     debug_assert!(layers.windows(2).all(|w| w[0] > w[1]), "layers descend");
     // Keep a window per worker, or the blocked run costs more in lost
@@ -352,7 +360,7 @@ fn transpose_layers_ext_windowed(
                 let bsh = block_size >> 1;
                 for (b, block) in window.chunks_mut(block_size).enumerate() {
                     let (top, bot) = block.split_at_mut(bsh);
-                    butterfly(ntt.twiddle(layer, base / block_size + b), top, bot);
+                    transposed_butterflies(ntt.twiddle(layer, base / block_size + b), top, bot);
                 }
             }
         });
@@ -374,7 +382,7 @@ fn transpose_layers_ext_windowed(
         if num_blocks >= n_threads {
             parallel::chunks_mut(data, block_size, |block, chunk: &mut [F192]| {
                 let (top, bot) = chunk.split_at_mut(bsh);
-                butterfly(ntt.twiddle(layer, block), top, bot);
+                transposed_butterflies(ntt.twiddle(layer, block), top, bot);
             });
         } else {
             for block in 0..num_blocks {
@@ -382,7 +390,9 @@ fn transpose_layers_ext_windowed(
                 let chunk = &mut data[block * block_size..(block + 1) * block_size];
                 let (top, bot) = chunk.split_at_mut(bsh);
                 let chunk_len = parallel::recommended_chunk_size(bsh);
-                parallel::chunks_mut2(top, bot, chunk_len, |_, top_c, bot_c| butterfly(t, top_c, bot_c));
+                parallel::chunks_mut2(top, bot, chunk_len, |_, top_c, bot_c| {
+                    transposed_butterflies(t, top_c, bot_c);
+                });
             }
         }
     }
@@ -435,12 +445,7 @@ fn transpose_low_layers_gathered(ntt: &AdditiveNttF64, data: &mut [F192], log_d:
                 let t = ntt.twiddle(layer, block);
                 let at = block * 2 * half * per_task;
                 let (top, bot) = scratch[at..at + 2 * half * per_task].split_at_mut(half * per_task);
-                for (a_ref, b_ref) in top.iter_mut().zip(bot.iter_mut()) {
-                    let (a, b) = (*a_ref, *b_ref);
-                    let s = a + b;
-                    *a_ref = s;
-                    *b_ref = s.mul_base(t) + b;
-                }
+                transposed_butterflies(t, top, bot);
             }
         }
 
@@ -510,14 +515,8 @@ fn transpose_forward_ntt_sparse_ext(
             for jb in 0..nblocks {
                 // global block index = ((w<<k) + jb*block_size) >> (s+1).
                 let t = ntt.twiddle(layer, (w << (k - s - 1)) + jb);
-                let base = jb * block_size;
-                for r in 0..bsh {
-                    let a = buf[base + r];
-                    let b = buf[base + r + bsh];
-                    let sab = a + b;
-                    buf[base + r] = sab;
-                    buf[base + r + bsh] = sab.mul_base(t) + b;
-                }
+                let (top, bot) = buf[jb * block_size..(jb + 1) * block_size].split_at_mut(bsh);
+                transposed_butterflies(t, top, bot);
             }
         }
     });
