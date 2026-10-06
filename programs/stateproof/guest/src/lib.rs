@@ -18,12 +18,11 @@
 //! [EIP-1186]: https://eips.ethereum.org/EIPS/eip-1186
 #![no_std]
 use leanvm_guest::Words;
+use leanvm_guest::keccak::keccak256;
 use thiserror::Error;
 
-mod keccak;
 mod trie;
 
-pub use keccak::keccak256;
 pub use trie::{EMPTY_ROOT, Node};
 
 /// A 32-byte hash, its bytes in order.

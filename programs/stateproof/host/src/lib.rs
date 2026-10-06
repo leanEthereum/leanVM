@@ -213,6 +213,7 @@ mod tests {
     use alloy_trie::{HashBuilder, Nibbles};
     use leanvm_core::cpu::Program;
     use leanvm_core::rv::{Machine, Trap};
+    use leanvm_guest::keccak;
     use proptest::prelude::*;
     use serde_json::Value;
     use stateproof::{Account, EMPTY_CODE_HASH, EMPTY_ROOT, ProofError};
@@ -363,7 +364,7 @@ mod tests {
             if message.len() % 8 != 0 {
                 *words.last_mut().unwrap() |= junk << (8 * (message.len() % 8));
             }
-            let ours = stateproof::keccak256(&words, message.len());
+            let ours = keccak::keccak256(&words, message.len());
             prop_assert_eq!(bytes(&ours), keccak256(&message).to_vec());
         }
 

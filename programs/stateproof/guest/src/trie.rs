@@ -14,8 +14,8 @@
 //!
 //! The walk reads only the bytes it needs: the node's hash binds the rest.
 
-use crate::keccak::keccak256;
 use crate::{Hash, ProofError};
+use leanvm_guest::keccak::keccak256;
 
 /// The root of the empty trie: keccak256 of the empty string's RLP, `0x80`.
 pub const EMPTY_ROOT: Hash = [

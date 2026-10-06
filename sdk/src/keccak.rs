@@ -1,15 +1,15 @@
-//! keccak256 over 64-bit lanes: the Keccak-f[1600] permutation and Ethereum's sponge.
+//! Keccak in software: the `Keccak-f[1600]` permutation, and keccak256 over it.
 //!
-//! The permutation is Falcon's (`programs/falcon/guest/src/shake.rs`).
+//! The machine has no Keccak instruction, so this is ordinary code, on the VM and off it alike.
 //!
 //! rv64im has no rotate and no and-not, so a round is shifts, ORs, XORs and ANDs.
 //!
-//! keccak256 is Keccak[c = 512] with the original padding `10*1`, not SHA3-256's `0110*1`.
+//! keccak256 is Ethereum's hash: `Keccak[c = 512]` with the original padding `10*1`, not SHA3-256's `0110*1`.
 
-use crate::Hash;
-
-/// The rate: 136 bytes, 17 lanes, for a 512-bit capacity.
-const RATE: usize = 17;
+/// Lanes a sponge of capacity 512 absorbs per permutation: 136 bytes.
+///
+/// keccak256 and SHAKE256 share it.
+pub const RATE: usize = 17;
 
 /// keccak256 of the first `len` bytes of `words`, little-endian: each word is the next eight bytes.
 ///
@@ -18,7 +18,7 @@ const RATE: usize = 17;
 /// # Panics
 ///
 /// If `words` holds fewer than `len` bytes.
-pub fn keccak256(words: &[u64], len: usize) -> Hash {
+pub fn keccak256(words: &[u64], len: usize) -> [u64; 4] {
     let (full, tail) = (len / 8, len % 8);
     let mut state = [0; 25];
     // The message's whole words are lanes: XOR each into the rate, permuting once the rate is full.
@@ -27,7 +27,7 @@ pub fn keccak256(words: &[u64], len: usize) -> Hash {
         state[lane] ^= w;
         lane += 1;
         if lane == RATE {
-            keccak_f1600(&mut state);
+            f1600(&mut state);
             lane = 0;
         }
     }
@@ -47,7 +47,7 @@ pub fn keccak256(words: &[u64], len: usize) -> Hash {
     };
     state[lane] ^= last ^ (0x01 << (8 * tail));
     state[RATE - 1] ^= 0x80 << 56;
-    keccak_f1600(&mut state);
+    f1600(&mut state);
     // The digest is the first 32 bytes of the state: four lanes.
     [state[0], state[1], state[2], state[3]]
 }
@@ -85,11 +85,13 @@ const ROUND_CONSTANTS: [u64; 24] = [
 /// With them complemented, chi needs one NOT per plane instead of one per lane.
 const COMPLEMENTED: [usize; 6] = [1, 2, 8, 12, 17, 20];
 
-/// The Keccak-f[1600] permutation, lane `x + 5y` at index `x + 5 * y`.
+/// The `Keccak-f[1600]` permutation, lane `x + 5y` at index `x + 5 * y`.
 ///
-/// XKCP's 64-bit round: plane by plane, theta, rho and pi fused into chi's inputs, the next round's column parities
-/// summed from chi's outputs.
-fn keccak_f1600(state: &mut [u64; 25]) {
+/// XKCP's 64-bit round, plane by plane:
+///
+/// - theta, rho and pi are fused into chi's inputs;
+/// - the next round's column parities are summed from chi's outputs.
+pub fn f1600(state: &mut [u64; 25]) {
     let mut a = *state;
     for i in COMPLEMENTED {
         a[i] = !a[i];
@@ -109,8 +111,9 @@ fn keccak_f1600(state: &mut [u64; 25]) {
 
 /// One round from `a` into `e`, given `a`'s column parities: returns `e`'s.
 ///
-/// Each output plane `y` is chi over five lanes of `a`, each XORed with its column's theta term and rotated by rho:
-/// the lanes pi moves to plane `y`.
+/// Each output plane `y` is chi over the five lanes pi moves to plane `y`.
+///
+/// Each lane is first XORed with its column's theta term, then rotated by rho.
 #[inline(always)]
 fn round(a: &[u64; 25], e: &mut [u64; 25], c: [u64; 5], rc: u64) -> [u64; 5] {
     let d: [u64; 5] = core::array::from_fn(|x| c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1));
