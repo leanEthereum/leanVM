@@ -158,7 +158,7 @@ fn main() {
                 &config,
                 mu,
                 1 << INITIAL_FOLDING_FACTOR,
-                &root,
+                root,
                 &[],
                 std::slice::from_ref(&ring)
             )

@@ -18,7 +18,8 @@ use crate::rec::circuit::{Builder, Dw, Ew, Finished, Kw};
 use crate::rec::fixed::FixedColumns;
 use crate::rec::table::{HashFlock, PerRecTable};
 use crate::rec::transcript::{ProofSource, Transcript};
-use crate::rec::verifier::{FixedHint, ProofShape, RecShape, RingMap, Rows, infallible};
+use crate::rec::verifier::{FixedHint, ProofShape, RecShape, Rows, infallible};
+use ::pcs::ring_switch::inverse_frobenius_ladder;
 use fiat_shamir::arith::Arith;
 use fiat_shamir::transcript::RawProof;
 use primitives::field::{F64, F192};
@@ -280,7 +281,7 @@ impl<'p> Design<'p> {
         let p = &program.point;
         let kbc = self.vars.0[DensePoly::Bytecode as usize] - N_TUPLE_BITS;
         let (chi, alpha) = p.bytecode.split_at(kbc);
-        let ladders: Vec<Vec<Ew>> = chi.iter().map(|&x| RingMap::ladder(b, x, 1)).collect();
+        let ladders: Vec<Vec<Ew>> = chi.iter().map(|&x| inverse_frobenius_ladder(b, x, 1)).collect();
         let mut total = b.zero();
         for (i, &mu) in p.twist.iter().enumerate() {
             let point: Vec<Ew> = ladders.iter().map(|l| l[i]).chain(alpha.iter().copied()).collect();

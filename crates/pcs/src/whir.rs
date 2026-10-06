@@ -78,7 +78,7 @@ pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
 /// `config.queries`). Duplicates are harmless, a repeated position re-opens the
 /// same Merkle-authenticated row.
 ///
-fn sample_queries_ordered(ch: &mut impl Challenger, block_len: usize, count: usize) -> Vec<usize> {
+pub(crate) fn sample_queries_ordered(ch: &mut impl Challenger, block_len: usize, count: usize) -> Vec<usize> {
     let d = block_len.trailing_zeros() as usize;
     let per = 192 / d;
     let mut out = Vec::with_capacity(count);

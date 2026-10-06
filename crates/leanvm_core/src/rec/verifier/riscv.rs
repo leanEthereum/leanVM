@@ -1,10 +1,9 @@
 //! The verifier's core of one RISC-V proof, in rows: every check that depends on the proof.
 
-use super::whir::Opening;
 use super::{Rows, infallible};
 use crate::class_flock::FlockId;
 use crate::cpu::{CpuError, DeferredClaims, Layout, Program, TableReduction};
-use crate::pcs::Rate;
+use crate::pcs::{self, Rate};
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::tables::{Clock, PerTable};
@@ -105,13 +104,15 @@ impl<'p> ProofShape<'p> {
     fn open(&self, r: &mut Rows<'_, '_>, root: Dw, reductions: &[ReductionReplay<Ew>], reduced: &TableReduction<Ew>) {
         let slices = reductions.iter().map(|reduction| reduction.claim.clone());
         let rings = self.layout.rings(slices, &reduced.producers, &reduced.tables, r.zero());
-        let opening = Opening {
-            slots: &reduced.slots,
-            rings: &rings,
-            shape: self.layout.shape,
-            log_inv_rate: self.rate.log_inv_rate().into(),
-        };
-        opening.verify(r, root);
+        let log_inv_rate = self.rate.log_inv_rate().into();
+        infallible(pcs::verify(
+            r,
+            &reduced.slots,
+            &rings,
+            self.layout.shape,
+            log_inv_rate,
+            root,
+        ));
     }
 
     /// The announced sizes: every height and the rate the shape's, the final clock a live clock at slot zero.

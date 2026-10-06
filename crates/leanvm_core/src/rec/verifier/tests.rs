@@ -1,6 +1,4 @@
 use super::recursion::RecRows;
-use super::ring::RingShare;
-use super::whir::Opening;
 use super::{ProofShape, RecShape, Rows, infallible};
 use crate::class_flock::FlockId;
 use crate::constraints::ConstraintError;
@@ -20,8 +18,7 @@ use ::flock::reduction::{self, Instance, ReductionReplay, Shape};
 use ::flock::verifier::FlockError;
 use ::flock::zerocheck::K_SKIP;
 use ::pcs::pack::PACKING_WIDTH;
-use ::pcs::stack_open::RingFamily;
-use ::pcs::whir::inner_product_base_ext;
+use ::pcs::whir::{WhirError, inner_product_base_ext};
 use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::test_util::Rng;
@@ -475,7 +472,7 @@ fn opening_rows(
     source: ProofSource<'_>,
 ) -> (Circuit, Vec<Unsatisfied>, bool) {
     let (b, (), finished) = replay(source, |r| {
-        let root = r.t.next_root(r.b);
+        let root = infallible(crate::pcs::read_commitment(r));
         let wire = |r: &mut Rows<'_, '_>, v: &F192| r.b.free_e(*v);
         let slot_wires: Vec<StackClaim<Ew>> = (slots.iter())
             .map(|claim| match claim {
@@ -504,19 +501,20 @@ fn opening_rows(
             })
             .collect();
         let ring_wires = ring_wires(r, rings);
-        let opening = Opening {
-            slots: &slot_wires,
-            rings: &ring_wires,
+        infallible(crate::pcs::verify(
+            r,
+            &slot_wires,
+            &ring_wires,
             shape,
             log_inv_rate,
-        };
-        opening.verify(r, root);
+            root,
+        ));
     });
     let done = b.finish();
     (done.circuit, done.failures, finished)
 }
 
-// Commit and open natively, verify natively, then replay the opening in rows, honest and with each claim tampered.
+// Commit and open, then verify natively and in rows: an honest opening holds in both, and a tampered claim fails both at the terminal check.
 fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
     let what = format!("mu {mu}, log_inv_rate {log_inv_rate}");
     let mut rng = Rng::new(seed);
@@ -528,11 +526,14 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
     let committed = crate::pcs::commit(&mut ps, &q, shape, log_inv_rate);
     crate::pcs::open(&mut ps, &committed, &q, &slots, &rings);
     let proof = ps.into_proof();
-    let mut vs = VerifierState::from_label(LABEL, &proof);
-    let root = crate::pcs::read_commitment(&mut vs).expect("a root");
-    crate::pcs::verify(&mut vs, &slots, &rings, shape, log_inv_rate, &root).expect("the native verifier accepts");
-    vs.finish().expect("the native verifier reads the whole proof");
-    let raw = vs.into_raw_proof();
+    let native = |slots: &[StackClaim], rings: &[RingSwitch], proof: &ProofTranscript| {
+        let mut vs = VerifierState::from_label(LABEL, proof);
+        let root = crate::pcs::read_commitment(&mut vs).expect("a root");
+        crate::pcs::verify(&mut vs, slots, rings, shape, log_inv_rate, root)?;
+        vs.finish().expect("the native verifier reads the whole proof");
+        Ok::<_, WhirError>(vs.into_raw_proof())
+    };
+    let raw = native(&slots, &rings, &proof).expect("the native verifier accepts");
 
     let rows = |slots: &[StackClaim], rings: &[RingSwitch], source: ProofSource<'_>| {
         opening_rows(shape, log_inv_rate, slots, rings, source)
@@ -546,25 +547,27 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
     );
 
     let terminal = |failures: &[Unsatisfied]| failures.iter().any(|f| f.scope().iter().any(|s| s == "terminal"));
+    let refused = |slots: &[StackClaim], rings: &[RingSwitch]| {
+        native(slots, rings, &proof).err() == Some(WhirError::TerminalMismatch)
+            && terminal(&rows(slots, rings, ProofSource::Proof(&raw)).1)
+    };
     for i in 0..slots.len() {
         let mut forged = slots.clone();
         match &mut forged[i] {
             StackClaim::Point { value, .. } | StackClaim::Strided { value, .. } => *value += F192::ONE,
         }
-        let (_, failures, _) = rows(&forged, &rings, ProofSource::Proof(&raw));
         assert!(
-            terminal(&failures),
-            "{what}: a wrong value of point claim {i} passes: {failures:?}"
+            refused(&forged, &rings),
+            "{what}: a wrong value of point claim {i} passes"
         );
     }
     for ring in 0..rings.len() {
         for claim in 0..rings[ring].claims.len() {
             let mut forged = rings.clone();
             forged[ring].claims[claim].s_hat_v[7] += F192::ONE;
-            let (_, failures, _) = rows(&slots, &forged, ProofSource::Proof(&raw));
             assert!(
-                terminal(&failures),
-                "{what}: a wrong slice of ring {ring} claim {claim} passes: {failures:?}"
+                refused(&slots, &forged),
+                "{what}: a wrong slice of ring {ring} claim {claim} passes"
             );
         }
     }
@@ -578,83 +581,15 @@ fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
 }
 
 #[test]
-fn the_smallest_opening_in_rows_is_the_native_one() {
+fn the_smallest_opening_holds_in_both_verifiers() {
     check_opening(crate::pcs::MIN_MU, 1, 1);
     check_opening(crate::pcs::MIN_MU, 2, 2);
 }
 
 #[test]
-fn a_larger_opening_in_rows_is_the_native_one() {
+fn a_larger_opening_holds_in_both_verifiers() {
     check_opening(20, 1, 3);
     check_opening(20, 2, 4);
-}
-
-// The family's share in rows is what the native verifier adds to the target and to the weight.
-//
-// Two more regions take claims at prefixes of the first claim's point, two at one length, on the same wires, as flock's circuits of one block size do.
-#[test]
-fn the_ring_family_in_rows_is_the_native_one() {
-    let mut rng = Rng::new(9);
-    let mu = 16;
-    let q: Vec<F64> = (0..1 << mu).map(|_| F64(rng.next_u64())).collect();
-    let (_, mut rings) = opening_claims(mu, &q, &mut rng);
-    let lead = rings[0].claims[0].suffix_point.clone();
-    let top = 1usize << mu;
-    for (offset, vars, lengths) in [
-        (top - (1 << (mu - 5)), mu - 5, &[mu - 5][..]),
-        (top - (1 << (mu - 5)) - (1 << (mu - 6)), mu - 6, &[mu - 6, mu - 6][..]),
-    ] {
-        let claims = (lengths.iter())
-            .map(|&len| {
-                let suffix_point = lead[..len].to_vec();
-                let s_hat_v = slices(&q[offset..offset + (1 << vars)], &suffix_point);
-                SliceClaim { suffix_point, s_hat_v }
-            })
-            .collect();
-        rings.push(RingSwitch {
-            offset,
-            qflock_vars: vars,
-            claims,
-        });
-    }
-    let gamma_rs = rng.ext();
-    let map: [F192; 6] = std::array::from_fn(|_| rng.ext());
-    let x = rng.ext_vec(mu);
-    let family = RingFamily::new(gamma_rs, map);
-    let target = family.target(
-        rings
-            .iter()
-            .flat_map(|ring| ring.claims.iter().map(|c| c.s_hat_v.as_slice())),
-    );
-    let weight = family.weight(&rings, &x);
-
-    let (b, (target_wire, weight_wire), _) = replay(ProofSource::Shape, |r| {
-        // Claims at prefixes of the lead point hold its wires, so the rows see them as one point.
-        let lead_wires: Vec<Ew> = lead.iter().map(|&v| r.b.free_e(v)).collect();
-        let wires: Vec<RingSwitch<Ew>> = (rings.iter())
-            .map(|ring| RingSwitch {
-                offset: ring.offset,
-                qflock_vars: ring.qflock_vars,
-                claims: (ring.claims.iter())
-                    .map(|claim| SliceClaim {
-                        suffix_point: if lead.starts_with(&claim.suffix_point) {
-                            lead_wires[..claim.suffix_point.len()].to_vec()
-                        } else {
-                            claim.suffix_point.iter().map(|&v| r.b.free_e(v)).collect()
-                        },
-                        s_hat_v: claim.s_hat_v.iter().map(|&v| r.b.free_e(v)).collect(),
-                    })
-                    .collect(),
-            })
-            .collect();
-        let gamma = r.b.free_e(gamma_rs);
-        let map: Vec<Ew> = map.iter().map(|&m| r.b.free_e(m)).collect();
-        let x: Vec<Ew> = x.iter().map(|&v| r.b.free_e(v)).collect();
-        let family = RingShare::new(r, &wires, gamma, &map);
-        (family.target(r), family.weight_at(r, &x))
-    });
-    assert_eq!(b.e(target_wire), target);
-    assert_eq!(b.e(weight_wire), weight);
 }
 
 // A recursion proof of a small circuit, as rows of another.

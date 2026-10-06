@@ -11,8 +11,8 @@ use primitives::multilinear::mle_eval_par;
 
 /// Arithmetic over `E`, on values or on the wires that hold them.
 pub trait Arith {
-    /// An element of `E`.
-    type E: Copy;
+    /// An element of `E`: a value, or a wire, two of which are equal when they are one wire.
+    type E: Copy + PartialEq;
 
     /// The constant `c`.
     fn constant(&mut self, c: F192) -> Self::E;
@@ -28,6 +28,9 @@ pub trait Arith {
 
     /// `1 / a`, zero for zero.
     fn inv(&mut self, a: Self::E) -> Self::E;
+
+    /// `a^(2^128)`: two Frobenius maps of `E` over `K`, which take `a` to `a^(2^-64)`.
+    fn frobenius2(&mut self, a: Self::E) -> Self::E;
 
     /// The multilinear extension of public `K` words at `point`, lowest coordinate first.
     fn public_mle(&mut self, values: &[F64], point: &[Self::E]) -> Self::E {
@@ -263,6 +266,10 @@ impl Arith for Native {
         if a.is_zero() { F192::ZERO } else { a.inv() }
     }
 
+    fn frobenius2(&mut self, a: F192) -> F192 {
+        a.frobenius().frobenius()
+    }
+
     fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
         mle_eval_par(values, point)
     }
@@ -289,6 +296,10 @@ impl Arith for VerifierState<'_> {
 
     fn inv(&mut self, a: F192) -> F192 {
         if a.is_zero() { F192::ZERO } else { a.inv() }
+    }
+
+    fn frobenius2(&mut self, a: F192) -> F192 {
+        a.frobenius().frobenius()
     }
 
     fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {

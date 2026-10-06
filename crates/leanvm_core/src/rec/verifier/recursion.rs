@@ -1,15 +1,14 @@
 //! The verifier of a recursion proof as rows: the recursion machine verifying its own proofs.
 //!
 //! - The bus and the table sumcheck are the native verifier's code, over rows that hint every fixed column's evaluation.
-//! - The hash table's flock reduction is the native verifier's code, and the opening the replay a RISC-V proof's verifier uses.
+//! - The hash table's flock reduction and the opening are the native verifier's code.
 //!
 //! What the native verifier reads off the circuit, its fixed columns, is left as hinted evaluations.
 //! The hash rows' matrices are left as a claim, as a RISC-V proof's circuits' are.
 
-use super::whir::Opening;
 use super::{Rows, infallible};
 use crate::cpu::Claim;
-use crate::pcs::Rate;
+use crate::pcs::{self, Rate};
 use crate::rec::RecError;
 use crate::rec::bus::BusBlocks;
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
@@ -130,13 +129,10 @@ impl RecShape {
             .try_into()
             .unwrap_or_else(|_| unreachable!("a batch of one circuit"));
         let rings = [self.layout.hash_window().ring(reduction.claim.clone())];
-        let opening = Opening {
-            slots: &slots,
-            rings: &rings,
-            shape: self.layout.shape,
-            log_inv_rate: self.rate.log_inv_rate().into(),
-        };
-        r.scope("opening", |r| opening.verify(r, root));
+        let log_inv_rate = self.rate.log_inv_rate().into();
+        r.scope("opening", |r| {
+            infallible(pcs::verify(r, &slots, &rings, self.layout.shape, log_inv_rate, root));
+        });
         if !r.t.finished() {
             r.scope("transcript", |r| {
                 r.b.fail("the proof has data the verifier never reads");

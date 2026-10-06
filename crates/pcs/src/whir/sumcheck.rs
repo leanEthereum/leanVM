@@ -8,7 +8,7 @@
 //! come out of one pass, in [`first_pass`].
 
 use core::ops::BitXorAssign;
-use fiat_shamir::transcript::{Receiver, TranscriptError, Transmitter};
+use fiat_shamir::transcript::Transmitter;
 use first_pass::{LaneWeight, WeightFold};
 use parallel::SendPtr;
 use primitives::field::{F64, F192, F192Unreduced};
@@ -76,18 +76,7 @@ pub(super) fn send_msg(ps: &mut impl Transmitter, m: SumcheckMessage, claim: F19
     ps.add_round_poly(&[m.u_0, claim + m.u_2, m.u_2], false);
 }
 
-/// Verifier mirror of [`send_msg`]. The round polynomial already travels in the
-/// coefficient form the folds use.
-pub(super) fn recv_quad(vs: &mut impl Receiver, claim: F192) -> Result<RoundQuad, TranscriptError> {
-    let h = vs.next_round_poly(3, claim, None)?;
-    Ok(RoundQuad {
-        c: h[0],
-        b: h[1],
-        a: h[2],
-    })
-}
-
-/// Round-quadratic in coefficient form `c + b X + a X^2` (verifier side).
+/// Round-quadratic in coefficient form `c + b X + a X^2`, the prover's copy of the verifier's running round.
 #[derive(Clone, Copy, Debug)]
 pub(super) struct RoundQuad {
     c: F192, // u_0

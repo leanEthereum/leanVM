@@ -181,7 +181,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
                 &config,
                 mu,
                 1 << INITIAL_FOLDING_FACTOR,
-                &root,
+                root,
                 &[],
                 std::slice::from_ref(&ring)
             )

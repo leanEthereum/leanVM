@@ -387,7 +387,7 @@ impl Program {
             &rings,
             l.shape,
             announcement.log_inv_rate,
-            &root,
+            root,
         )
         .map_err(CpuError::Open)?;
         vs.finish()?;

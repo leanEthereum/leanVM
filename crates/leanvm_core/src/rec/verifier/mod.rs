@@ -1,14 +1,14 @@
 //! The verifier of a leanVM proof as rows of the recursion machine (Annex E).
 //!
 //! - The bus, its GKR and the table sumcheck are the native verifier's own code, run over wires.
-//! - The flock reductions are the native verifier's code too.
-//! - The opening is replayed here, and tests pin it to the native verifier.
+//! - The flock reductions and the opening are the native verifier's code too, over the rows' transcript and Merkle openings.
 //!
 //! No row depends on a value: a circuit built from a proof equals the one built from its shape.
 
-use super::circuit::{Builder, Ew};
+use super::circuit::{Builder, Dw, Ew, Kw};
 use super::transcript::Transcript;
 use crate::leaf::{PublicColumn, PublicColumns};
+use ::pcs::verifier::OpeningVerifier;
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::TranscriptError;
 use primitives::field::F192;
@@ -16,15 +16,12 @@ use recursion::FixedHints;
 use std::fmt::Debug;
 
 mod recursion;
-mod ring;
 mod riscv;
-mod whir;
 
 #[cfg(test)]
 mod tests;
 
 pub(crate) use recursion::{FixedHint, RecShape};
-pub(crate) use ring::RingMap;
 pub use riscv::ProofShape;
 
 /// The verifier's arithmetic and transcript as rows: a circuit being built, and a transcript replayed in it.
@@ -77,6 +74,15 @@ impl Arith for Builder {
         Self::inv(self, a)
     }
 
+    /// `v + c2 (Y + Y^2) + c1 Y^2` for `v = c0 + c1 Y + c2 Y^2`.
+    fn frobenius2(&mut self, a: Ew) -> Ew {
+        let [_, c1, c2] = self.e_to_k(a);
+        let y_y2 = self.e_const(F192::new(0, 1, 1));
+        let y2 = self.e_const(F192::new(0, 0, 1));
+        let u = self.mul_k_add(y_y2, c2, a);
+        self.mul_k_add(y2, c1, u)
+    }
+
     fn zero(&mut self) -> Ew {
         Self::zero(self)
     }
@@ -111,6 +117,10 @@ impl Arith for Rows<'_, '_> {
 
     fn inv(&mut self, a: Ew) -> Ew {
         self.b.inv(a)
+    }
+
+    fn frobenius2(&mut self, a: Ew) -> Ew {
+        self.b.frobenius2(a)
     }
 
     fn zero(&mut self) -> Ew {
@@ -163,6 +173,60 @@ impl Verifier for Rows<'_, '_> {
         let out = f(self);
         self.b.leave();
         out
+    }
+}
+
+impl OpeningVerifier for Rows<'_, '_> {
+    type Root = Dw;
+    type K = Kw;
+    /// A query's index bits, lowest first.
+    type Query = Vec<Kw>;
+
+    fn next_root(&mut self) -> Result<Dw, TranscriptError> {
+        Ok(self.t.next_root(self.b))
+    }
+
+    /// Each challenge's 192 bits `c0 | c1 << 64 | c2 << 128`, split, then cut into queries.
+    fn sample_queries(&mut self, depth: usize, count: usize) -> Vec<Vec<Kw>> {
+        let per = 192 / depth;
+        let mut out = Vec::with_capacity(count);
+        while out.len() < count {
+            let v = self.sample();
+            let n = per.min(count - out.len());
+            let limbs = self.b.e_to_k(v);
+            let mut bits = Vec::with_capacity(192);
+            for &limb in &limbs[..(n * depth).div_ceil(64)] {
+                bits.extend(self.b.split(limb));
+            }
+            out.extend((0..n).map(|j| bits[j * depth..(j + 1) * depth].to_vec()));
+        }
+        out
+    }
+
+    fn open_rows(
+        &mut self,
+        root: &Dw,
+        _depth: usize,
+        queries: &[Vec<Kw>],
+        row_words: usize,
+        leaf_words: usize,
+    ) -> Result<Vec<Vec<Kw>>, TranscriptError> {
+        Ok((queries.iter())
+            .map(|bits| self.t.open_row(self.b, *root, bits, row_words, leaf_words))
+            .collect())
+    }
+
+    fn mul_k_add(&mut self, a: Ew, k: Kw, d: Ew) -> Ew {
+        self.b.mul_k_add(a, k, d)
+    }
+
+    fn e_of_limbs(&mut self, limbs: [Kw; 3]) -> Ew {
+        self.b.k_to_e(limbs)
+    }
+
+    fn query_point(&mut self, bits: &Vec<Kw>) -> Ew {
+        let q = self.b.pack(bits);
+        self.b.k_to_e1(q)
     }
 }
 

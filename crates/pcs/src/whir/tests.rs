@@ -62,13 +62,13 @@ fn dense_mle(table: &[F192], point: &[F192]) -> F192 {
 fn verify_with(inst: &Instance, fs: &ProofTranscript, eval_b_at: impl Fn(&[F192]) -> F192) -> Result<(), WhirError> {
     let mut vs = VerifierState::from_label(b"whir-test", fs);
     recursive_verifier_with_basis_succinct(
+        &mut vs,
         &inst.vc,
         inst.log_n,
         1 << inst.vc.initial_k(),
         inst.target,
-        &inst.root,
-        eval_b_at,
-        &mut vs,
+        inst.root,
+        |_, point| eval_b_at(point),
     )
 }
 
@@ -276,15 +276,9 @@ fn truncated_lanes_match_an_explicit_zero_tail() {
             // The verifier evaluates the weight over the whole `2^log_n` cube.
             let verify = |fs: &ProofTranscript| {
                 let mut vs = VerifierState::from_label(b"whir-test", fs);
-                recursive_verifier_with_basis_succinct(
-                    &pc,
-                    log_n,
-                    n_lanes,
-                    target,
-                    &root_trunc,
-                    |point| dense_mle(&b_initial, point),
-                    &mut vs,
-                )
+                recursive_verifier_with_basis_succinct(&mut vs, &pc, log_n, n_lanes, target, root_trunc, |_, point| {
+                    dense_mle(&b_initial, point)
+                })
             };
             assert_eq!(verify(&fs_trunc), Ok(()), "verify failed at n_lanes = {n_lanes}");
 

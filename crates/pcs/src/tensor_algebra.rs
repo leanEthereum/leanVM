@@ -8,14 +8,11 @@
 // Port of binius64's `crates/math/src/tensor_algebra.rs` for the 64-bit
 // transition: K = F_{2^64} packing, E = GF(2^192) tower opening field.
 
-//! Tensor algebra for the rectangular `K ⊗ E` transpose used by ring switching.
+//! Tensor algebra for the rectangular `K ⊗ E` transpose: the column view of ring switching, which its tests check the map's coordinate weights against.
 
 use primitives::field::{F64, F192};
 
 use crate::pack::PACKING_WIDTH;
-
-/// The degree of E = GF(2^192) over F_2 (the opening degree e).
-pub(crate) const DEGREE_E: usize = 192;
 
 /// Rectangular tensor-algebra transpose: `s_hat_v` (64 E-elements, the row
 /// view of a `K (x)_F2 E` element) to `s_hat_u` (192 K-elements, the column
@@ -32,7 +29,7 @@ pub(crate) fn transpose_s_hat(s_hat_v: &[F192]) -> Vec<F64> {
         PACKING_WIDTH,
         "transpose_s_hat: s_hat_v must have one entry per packing bit (64)"
     );
-    let mut s_hat_u = vec![F64::ZERO; DEGREE_E];
+    let mut s_hat_u = vec![F64::ZERO; 3 * PACKING_WIDTH];
     for (i, elem) in s_hat_v.iter().enumerate() {
         // Deposit bit w of elem into bit i of s_hat_u[w]; scan set bits only.
         let mut c0 = elem.c0;
@@ -78,7 +75,7 @@ mod tests {
         let mut rng = Rng::new(1);
         let s_hat_v = rng.ext_vec(PACKING_WIDTH);
         let s_hat_u = transpose_s_hat(&s_hat_v);
-        assert_eq!(s_hat_u.len(), DEGREE_E);
+        assert_eq!(s_hat_u.len(), 192);
         for (i, &v) in s_hat_v.iter().enumerate() {
             for (w, &u) in s_hat_u.iter().enumerate() {
                 assert_eq!((u.0 >> i) & 1, ext_bit(v, w), "bit ({i}, {w}) not transposed");

@@ -259,14 +259,7 @@ impl Circuit {
         let slots = TableArgument::of(self, statement, &layout).verify(&mut vs)?;
         let hash_claim = HashFlock::verify(&layout, &mut vs)?;
         let ring = layout.hash_window().ring(hash_claim);
-        pcs::verify(
-            &mut vs,
-            &slots,
-            &[ring],
-            layout.shape,
-            rate.log_inv_rate().into(),
-            &root,
-        )?;
+        pcs::verify(&mut vs, &slots, &[ring], layout.shape, rate.log_inv_rate().into(), root)?;
         vs.finish()?;
         Ok(vs.into_raw_proof())
     }
