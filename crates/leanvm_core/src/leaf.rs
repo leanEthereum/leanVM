@@ -9,14 +9,14 @@
 //! fingerprint challenges `α, β` are `E`-valued, so a leaf accumulates via the mixed
 //! `mul_base` product (2 PMULL per coordinate).
 
-use crate::arith::{Arith, Native, Verifier};
 use crate::colval::ColVal;
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 use crate::colval::PackedCoeffs;
 use crate::gkr::GkrError;
 use crate::rec::FixedColumn;
 use crate::{PAR_THRESHOLD, gkr};
-use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
+use fiat_shamir::arith::{Arith, Native, Verifier};
+use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter, VerifierState};
 use parallel::Chunks;
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 use primitives::field::MixedSums8;
@@ -106,6 +106,20 @@ impl PublicColumn {
         }
     }
 }
+
+/// Arithmetic that evaluates public columns.
+///
+/// A recursive verifier takes a fixed column's evaluation as a hint rather than computing it.
+pub(crate) trait PublicColumns: Arith {
+    /// The multilinear extension of a public column at `point`, lowest coordinate first.
+    fn column_mle(&mut self, column: &PublicColumn, point: &[Self::E]) -> Self::E {
+        self.public_mle(&column.values, point)
+    }
+}
+
+impl PublicColumns for Native {}
+
+impl PublicColumns for VerifierState<'_> {}
 
 impl Coord {
     /// Whether the coordinate is linear in the columns: it multiplies no column by another.
@@ -1046,12 +1060,12 @@ struct Openings<E> {
 
 impl<E: Copy> Openings<E> {
     /// A public column at a prefix of the bus point, evaluated once per column and prefix length.
-    fn public<A: Arith<E = E>>(&mut self, a: &mut A, column: &PublicColumn, point: &[E]) -> E {
+    fn public<A: PublicColumns<E = E>>(&mut self, a: &mut A, column: &PublicColumn, point: &[E]) -> E {
         let key = (Arc::as_ptr(&column.values) as usize, point.len());
         if let Some(&x) = self.public.get(&key) {
             return x;
         }
-        let x = a.public_mle(column, point);
+        let x = a.column_mle(column, point);
         self.public.insert(key, x);
         x
     }
@@ -1104,7 +1118,7 @@ impl Side<'_> {
         clippy::too_many_arguments,
         reason = "the side's fingerprint, point and the claims it extends"
     )]
-    fn decompose<A: Arith, Er>(
+    fn decompose<A: PublicColumns, Er>(
         &self,
         a: &mut A,
         fp: &Fingerprint<A::E>,
@@ -1628,7 +1642,7 @@ pub struct BusVerify<E = F192> {
 /// # Errors
 ///
 /// Returns the GKR's refusal, a malformed stream, a nonce short of the proof of work, or a layout too large for the bus's margin at this grinding.
-pub fn verify_balance<V: Verifier>(
+pub fn verify_balance<V: Verifier + PublicColumns>(
     v: &mut V,
     push: &[Block],
     pull: &[Block],

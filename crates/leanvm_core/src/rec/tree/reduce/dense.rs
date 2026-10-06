@@ -10,8 +10,8 @@
 //! A polynomial of fewer variables is bound early, and its share then waits on the rest: each later round multiplies it by its challenge.
 
 use super::{DenseTables, FoldTable, PAR_LEN, ReduceError, products_par, table_of};
-use crate::arith::{Arith, Verifier};
 use crate::rec::tree::claims::{DenseClaim, DensePoly, DenseTerm};
+use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use primitives::field::{F64, F192};
 use primitives::multilinear::eq_table;

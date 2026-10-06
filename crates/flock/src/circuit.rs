@@ -1,4 +1,4 @@
-//! Boolean circuits as gate lists over word ports: what [`crate::arith`] and the
+//! Boolean circuits as gate lists over word ports: what [`crate::gadgets`] and the
 //! VM's instruction classes are written in.
 //!
 //! ## Witness layout per block

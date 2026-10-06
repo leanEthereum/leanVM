@@ -5,7 +5,6 @@
 //! The one structural check of the native lincheck, a circuit's width, holds by the circuit's construction.
 
 use super::{Rows, infallible};
-use crate::arith::{Arith, Verifier};
 use crate::cpu::Claim;
 use crate::rec::circuit::Ew;
 use ::flock::lincheck::MatrixForm;
@@ -13,6 +12,7 @@ use ::flock::reduction::Shape;
 use ::flock::zerocheck::univariate_skip_optimized::{medium_challenges, small_challenges};
 use ::flock::zerocheck::{K_SKIP, MIN_LOG_N};
 use ::pcs::stack_open::SliceClaim;
+use fiat_shamir::arith::{Arith, Verifier};
 use primitives::field::{F192, PHI_8_TABLE_192};
 use primitives::multilinear::window_denominator;
 

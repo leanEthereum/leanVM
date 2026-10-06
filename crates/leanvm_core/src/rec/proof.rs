@@ -11,11 +11,12 @@ use super::circuit::{Assignment, Circuit, Compression, Limbs, chain};
 use super::fixed::FixedColumns;
 use super::layout::RecLayout;
 use super::table::{HashFlock, Table};
-use crate::arith::Verifier;
 use crate::constraints::{Columns, ConstraintError};
+use crate::leaf::PublicColumns;
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rv::circuits::blake2s_witness;
 use crate::{constraints, pcs, witness};
+use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, RawProof, VerifierState};
 use flock::reduction::{self, Instance};
 use flock::verifier::FlockError;
@@ -161,7 +162,7 @@ impl<'a> TableArgument<'a> {
     /// # Errors
     ///
     /// Returns the bus's or the table sumcheck's refusal.
-    pub(crate) fn verify<V: Verifier>(&self, v: &mut V) -> Result<Vec<StackClaim<V::E>>, RecError> {
+    pub(crate) fn verify<V: Verifier + PublicColumns>(&self, v: &mut V) -> Result<Vec<StackClaim<V::E>>, RecError> {
         let bus = self.blocks.verify(v)?;
         let xi = v.sample();
         let target = v.mul_add(xi, bus.totals[1], bus.totals[0]);
@@ -274,11 +275,11 @@ impl Circuit {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arith::Arith;
     use crate::constraints::ConstraintError;
     use crate::leaf::BusError;
     use crate::pcs::Rate;
     use crate::rec::circuit::{Builder, Dw, Ew, Finished, Kw, PARAM_IV};
+    use fiat_shamir::arith::Arith;
     use fiat_shamir::{DS_OBSERVE, DS_SQUEEZE};
     use std::panic::AssertUnwindSafe;
 

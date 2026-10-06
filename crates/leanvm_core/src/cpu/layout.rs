@@ -11,7 +11,6 @@
 use super::error::CpuError;
 use super::execute::Trace;
 use super::{MAX_LOG_ROWS, UNGROUND_LOG_BYTECODE};
-use crate::arith::Arith;
 use crate::class_flock::FlockId;
 use crate::constraints::{BitColumns, Claims};
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
@@ -23,6 +22,7 @@ use crate::{class_flock, pcs, witness};
 use ::pcs::pack::PACKING_WIDTH;
 use Coord::{Col, Const, IntIndex, Sparse};
 use fiat_shamir::MAX_GRINDING_BITS;
+use fiat_shamir::arith::Arith;
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192};
 use std::sync::{Arc, OnceLock};

@@ -14,13 +14,13 @@
 use super::batch::FormPowers;
 use super::layout::Lookup;
 use super::{CpuError, Program};
-use crate::arith::Arith;
 use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::constraints::{ConstraintError, Final};
 use crate::leaf;
 use crate::leaf::{BusVerify, N_TUPLE_BITS, SparseColumn};
 use crate::rv::RiscvProgram;
 use crate::tables::{N_TABLES, Part};
+use fiat_shamir::arith::Arith;
 use flock::lincheck::{LincheckError, MatrixClaim, MatrixForm};
 use flock::verifier::FlockError;
 use primitives::field::F192;

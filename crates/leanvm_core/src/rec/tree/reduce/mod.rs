@@ -9,8 +9,8 @@
 //! Each is a sumcheck: if an input claim is false, an output claim is false but with probability about `(claims + 2 rounds) / |E|`.
 
 use super::claims::{DensePoly, NodeClaims};
-use crate::arith::Verifier;
 use crate::rec::circuit::{Limbs, digest_limbs};
+use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, Transmitter};
 use primitives::field::{F64, F192};
 use std::ops::Add;

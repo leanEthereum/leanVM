@@ -3,11 +3,11 @@
 //! The native verifier computes the same two values with the stacked opening's family helpers; tests hold them equal.
 
 use super::Rows;
-use crate::arith::Arith;
 use crate::rec::circuit::{Builder, Ew};
 use ::pcs::pack::PACKING_WIDTH;
 use ::pcs::ring_switch::COMPOSITION_SHIFTS;
 use ::pcs::stack_open::{PrefixGroup, RingSwitch};
+use fiat_shamir::arith::Arith;
 use primitives::field::{F64, F192};
 
 /// The ring-switching map `Phi`, as the coefficients `C_k^(2^-k)` of its Frobenius form, `k < 64`.

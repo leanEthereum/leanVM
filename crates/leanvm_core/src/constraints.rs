@@ -33,8 +33,8 @@
 //! are no rounds in which no table has joined.
 
 use crate::PAR_THRESHOLD;
-use crate::arith::{Arith, Verifier};
 use crate::colval::{ColVal, padded_width};
+use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter, VerifierState};
 use parallel::Chunks;
 use primitives::field::{F64, F192, F192Unreduced};

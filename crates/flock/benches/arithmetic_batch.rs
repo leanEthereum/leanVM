@@ -18,7 +18,7 @@ use std::time::Instant;
 use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use flock::Witness;
-use flock::arith::{U64Circuit, U64Op};
+use flock::gadgets::{U64Circuit, U64Op};
 use flock::reduction::{Instance, min_n_blocks_log};
 use pcs::pack::LOG_PACKING;
 use pcs::stack_open::{RingSwitch, open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};

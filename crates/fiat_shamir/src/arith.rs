@@ -5,9 +5,9 @@
 //! - Natively an element is an `F192`, a read comes off the proof, and a failed equality is an error.
 //! - In rows an element is a wire, a read is a free wire bound by a hash row, and an equality joins two wires.
 
-use crate::leaf::PublicColumn;
-use fiat_shamir::transcript::{Challenger, Receiver, TranscriptError, VerifierState};
+use crate::transcript::{Challenger, Receiver, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
+use primitives::multilinear::mle_eval_par;
 
 /// Arithmetic over `E`, on values or on the wires that hold them.
 pub trait Arith {
@@ -29,9 +29,8 @@ pub trait Arith {
     /// `1 / a`, zero for zero.
     fn inv(&mut self, a: Self::E) -> Self::E;
 
-    /// The multilinear extension of a public `K` column at `point`, lowest coordinate first.
-    fn public_mle(&mut self, column: &PublicColumn, point: &[Self::E]) -> Self::E {
-        let values = column.values.as_slice();
+    /// The multilinear extension of public `K` words at `point`, lowest coordinate first.
+    fn public_mle(&mut self, values: &[F64], point: &[Self::E]) -> Self::E {
         assert_eq!(values.len(), 1 << point.len(), "a column has a word per vertex");
         let eq = self.eq_table(point);
         let zero = self.zero();
@@ -256,8 +255,8 @@ impl Arith for Native {
         if a.is_zero() { F192::ZERO } else { a.inv() }
     }
 
-    fn public_mle(&mut self, column: &PublicColumn, point: &[F192]) -> F192 {
-        primitives::multilinear::mle_eval_par(&column.values, point)
+    fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
+        mle_eval_par(values, point)
     }
 }
 
@@ -284,8 +283,8 @@ impl Arith for VerifierState<'_> {
         if a.is_zero() { F192::ZERO } else { a.inv() }
     }
 
-    fn public_mle(&mut self, column: &PublicColumn, point: &[F192]) -> F192 {
-        primitives::multilinear::mle_eval_par(&column.values, point)
+    fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
+        mle_eval_par(values, point)
     }
 }
 

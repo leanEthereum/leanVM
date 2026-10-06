@@ -3,13 +3,13 @@
 use super::flock::Reduction;
 use super::whir::Opening;
 use super::{Rows, infallible};
-use crate::arith::{Arith, Verifier};
 use crate::class_flock::FlockId;
 use crate::cpu::{CpuError, DeferredClaims, Layout, Program, TableReduction};
 use crate::pcs::Rate;
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::transcript::{ProofSource, Transcript};
 use crate::tables::{Clock, PerTable};
+use fiat_shamir::arith::{Arith, Verifier};
 use primitives::field::F192;
 
 /// What fixes the rows of a RISC-V proof's verifier: the program, each table's height, and the commitment's rate.

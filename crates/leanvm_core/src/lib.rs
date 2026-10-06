@@ -13,7 +13,6 @@
 //! - `tables`: the instruction tables, one per class (columns, bus tuples, clock circuits).
 //! - `class_flock`: the glue to flock: each circuit proven over its own packed witness, in the same commitment.
 //! - `cpu`: whole-program assembly and the prove/verify entry points.
-//! - `arith`: the verifier's arithmetic, shared by the native verifier and its replay in rows.
 //! - `rec`: the recursion machine and the aggregation trees (§annex:rec).
 
 pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
@@ -26,7 +25,6 @@ macro_rules! stage {
 }
 pub(crate) use stage;
 
-mod arith;
 mod class_flock;
 mod colval;
 mod constraints;

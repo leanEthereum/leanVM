@@ -8,10 +8,10 @@
 //! A circuit of fewer variables waits on the rest in each phase, as the dense reduction's smaller polynomials do.
 
 use super::{FoldTable, ReduceError, products};
-use crate::arith::{Arith, Verifier};
 use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::rec::tree::claims::{Coefficient, ColWeight, MatrixClaim, RowWeight};
 use crate::rec::verifier::SkipDomain;
+use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use flock::lincheck::{LincheckCircuit, build_quirky_eq_table};
 use flock::zerocheck::K_SKIP;

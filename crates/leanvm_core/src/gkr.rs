@@ -7,7 +7,7 @@
 //! into `E` upstream, [`crate::leaf`]).
 
 use crate::PAR_THRESHOLD;
-use crate::arith::Verifier;
+use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
 use parallel::SendPtr;
 use primitives::field::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};

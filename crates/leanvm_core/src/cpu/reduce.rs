@@ -4,11 +4,12 @@ use super::batch::{FormPowers, VerifierBatch};
 use super::deferred::{Claim, ProgramPoint};
 use super::error::CpuError;
 use super::layout::{Framework, Layout, Schema};
-use crate::arith::Verifier;
 use crate::constraints::Claims;
+use crate::leaf::PublicColumns;
 use crate::pcs::StackClaim;
 use crate::tables::{ClassTable, N_TABLES};
 use crate::{constraints, leaf};
+use fiat_shamir::arith::Verifier;
 
 /// What the bus and the table sumcheck leave to the rest of the verifier.
 pub(crate) struct TableReduction<E> {
@@ -58,7 +59,7 @@ impl Layout {
     /// # Errors
     ///
     /// Returns the bus's or the table sumcheck's refusal.
-    pub(crate) fn reduce_tables<V: Verifier>(
+    pub(crate) fn reduce_tables<V: Verifier + PublicColumns>(
         &self,
         v: &mut V,
         clock: V::E,

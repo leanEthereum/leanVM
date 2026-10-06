@@ -11,11 +11,11 @@
 use super::fixed::{FixedColumn, FixedColumns};
 use super::layout::RecLayout;
 use super::table::Table;
-use crate::arith::{Arith, Verifier};
 use crate::colval::ColVal;
 use crate::constraints::{Residual, Summand};
-use crate::leaf::{Block, BusError, BusForm, BusProof, BusVerify, Coord, PackedForm, PublicColumn};
+use crate::leaf::{Block, BusError, BusForm, BusProof, BusVerify, Coord, PackedForm, PublicColumn, PublicColumns};
 use crate::{constraints, leaf};
+use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F192};
 
@@ -117,7 +117,7 @@ impl BusBlocks {
     /// # Errors
     ///
     /// Returns the first check of the balance that refuses.
-    pub(crate) fn verify<V: Verifier>(&self, v: &mut V) -> Result<BusVerify<V::E>, BusError> {
+    pub(crate) fn verify<V: Verifier + PublicColumns>(&self, v: &mut V) -> Result<BusVerify<V::E>, BusError> {
         let bus = leaf::verify_balance(v, &self.push, &self.pull, &[], 0, &RecLayout::TABLE_COLUMNS)?;
         debug_assert!(
             bus.sparse.iter().all(Vec::is_empty) && bus.producers.is_empty(),

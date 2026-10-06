@@ -21,8 +21,8 @@
 
 #![warn(unreachable_pub)]
 
-pub mod arith;
 pub mod circuit;
+pub mod gadgets;
 #[cfg(any(test, feature = "bench"))]
 mod gf2;
 #[cfg(any(test, feature = "bench"))]

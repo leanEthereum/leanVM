@@ -4,13 +4,13 @@
 
 use super::ring::RingShare;
 use super::{Rows, infallible};
-use crate::arith::{Arith, Verifier};
 use crate::pcs::StackClaim;
 use crate::rec::circuit::{Dw, Ew, Kw};
 use crate::witness::StackShape;
 use ::pcs::ring_switch::COMPOSITION_SHIFTS;
 use ::pcs::stack_open::RingSwitch;
 use ::pcs::whir::{VerifierConfig, config_for_rate, eval_sk_at_vks};
+use fiat_shamir::arith::{Arith, Verifier};
 use primitives::field::{F64, F192};
 
 /// One opening of the committed stack: its point claims and its ring-switched regions.

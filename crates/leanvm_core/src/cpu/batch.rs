@@ -10,12 +10,12 @@
 //! numbers: its summand is its forms' part on them alone, which the batch folds so that their bits share its point.
 
 use super::layout::Layout;
-use crate::arith::{Arith, Native};
 use crate::colval::ColVal;
 use crate::constraints::{Air, BitColumns, Residual, Summand};
 use crate::leaf;
 use crate::leaf::{BusForm, BusProof, BusVerify, PackedForm, Producer};
 use crate::tables::ClassTable;
+use fiat_shamir::arith::{Arith, Native};
 use primitives::field::F192;
 
 /// The two bus sides' weights in the batch, `1` and `xi`, shared by every table.

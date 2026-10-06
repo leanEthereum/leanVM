@@ -9,7 +9,6 @@
 use super::flock::Reduction;
 use super::whir::Opening;
 use super::{Rows, infallible};
-use crate::arith::Arith;
 use crate::cpu::Claim;
 use crate::pcs::Rate;
 use crate::rec::RecError;
@@ -21,6 +20,7 @@ use crate::rec::proof::TableArgument;
 use crate::rec::table::{HashFlock, PerRecTable, Table};
 use crate::rec::transcript::{ProofSource, Transcript};
 use ::flock::lincheck::MatrixForm;
+use fiat_shamir::arith::Arith;
 use primitives::field::F192;
 use primitives::multilinear::mle_eval_par;
 
