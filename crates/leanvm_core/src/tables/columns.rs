@@ -2,7 +2,7 @@
 
 use super::{ClassSpec, Ram, Word};
 use crate::leaf::Coord::{self, Col};
-use crate::rv::{Ext, Hash};
+use crate::rv::Hash;
 
 /// The `rs2` read's columns: the register's number and what it held.
 #[derive(Clone, Copy)]
@@ -12,16 +12,6 @@ pub(super) struct SourceColumns {
 
     /// Second source register value.
     pub(super) v2: usize,
-}
-
-/// The destination read's columns: the register's number and the address it holds.
-#[derive(Clone, Copy)]
-pub(super) struct PointerColumns {
-    /// Destination register number.
-    pub(super) ad: usize,
-
-    /// Address held in the destination register.
-    pub(super) vd: usize,
 }
 
 /// Columns binding a destination register write.
@@ -90,37 +80,30 @@ impl BlockColumns {
     }
 }
 
-/// Columns for extension-field operands, output, and computed limb locations.
+/// Columns of an extension-field product: its operands' limbs, the result's, and its selectors.
 ///
-/// The limbs and `c`'s new limbs are committed columns, which the table's identities relate; the addresses are the
-/// clock circuit's words.
+/// All are committed columns, which the table's identities relate.
 #[derive(Clone, Copy)]
-pub(super) struct LimbColumns {
-    /// First operand limb column.
+pub(super) struct ExtColumns {
+    /// The nine limbs as found, `a`'s, `b`'s, then `c`'s: `a`'s first is the first source's value column.
     pub(super) limbs: usize,
 
-    /// First replacement value column.
+    /// `c`'s three limbs after the row.
     pub(super) new: usize,
 
-    /// First computed limb address column.
-    pub(super) addresses: usize,
+    /// The three selectors, each 0 or 1: accumulate, base-field operand, zero result.
+    pub(super) flags: usize,
 }
 
-impl LimbColumns {
-    /// The column of limb `k`'s computed bus address: every limb but an operand's first.
-    pub(super) fn computed(&self, k: usize) -> Option<usize> {
-        let i = Ext::OFFSET_LIMBS.iter().position(|&j| j == k)?;
-        Some(self.addresses + i)
+impl ExtColumns {
+    /// The limbs of operand `i` as found: `a`, `b`, then `c`.
+    pub(super) fn operand(&self, i: usize) -> [Coord; 3] {
+        std::array::from_fn(|k| Col(self.limbs + 3 * i + k))
     }
 
-    /// The bus address of limb `k`: the operand's pointer for its first limb, else what the clock circuit computes.
-    pub(super) fn address(&self, k: usize, pointers: [usize; 3]) -> usize {
-        self.computed(k).unwrap_or(pointers[k / 3])
-    }
-
-    /// What the row leaves in limb `k`: `c`'s are rewritten.
-    pub(super) const fn left(&self, k: usize) -> usize {
-        if k >= 6 { self.new + k - 6 } else { self.limbs + k }
+    /// `c`'s limbs after the row.
+    pub(super) fn result(&self) -> [Coord; 3] {
+        std::array::from_fn(|k| Col(self.new + k))
     }
 }
 
@@ -153,9 +136,6 @@ pub(super) struct Columns {
     /// Optional destination register write.
     pub(super) rd: Option<DestinationColumns>,
 
-    /// Optional destination register used as an address.
-    pub(super) pointer: Option<PointerColumns>,
-
     /// Optional control-flow columns.
     pub(super) control: Option<ControlColumns>,
 
@@ -168,11 +148,8 @@ pub(super) struct Columns {
     /// Optional hash block access.
     pub(super) block: Option<BlockColumns>,
 
-    /// Optional extension-field memory accesses.
-    pub(super) limbs: Option<LimbColumns>,
-
-    /// The flags' bits, one column each, for a table with no class circuit.
-    pub(super) flag_bits: Option<usize>,
+    /// Optional extension-field product.
+    pub(super) ext: Option<ExtColumns>,
 
     /// Circuit verdict bound to public zero.
     pub(super) bad: Option<usize>,
@@ -195,22 +172,20 @@ impl Columns {
             allocator.allocate(1),
             allocator.allocate(1),
         );
+        // An extension-field product's nine limbs start at its first source's value, `b`'s and `c`'s after `a`'s.
+        let limbs = spec.wide.then(|| allocator.allocate(8) - 1);
         let flags = spec.words().any(|w| w == Word::Flags).then(|| allocator.allocate(1));
         let rs2 = spec.reads_rs2.then(|| SourceColumns {
             a2: allocator.allocate(1),
-            v2: allocator.allocate(1),
+            v2: limbs.map_or_else(|| allocator.allocate(1), |l| l + 3),
         });
         // A doubleword load's `rd` receives its cell, which is a column further on.
         let rd = spec.writes_rd.then(|| {
             (
                 allocator.allocate(1),
-                allocator.allocate(1),
-                (!spec.copies).then(|| allocator.allocate(1)),
+                limbs.map_or_else(|| allocator.allocate(1), |l| l + 6),
+                (!spec.copies).then(|| allocator.allocate(if spec.wide { 3 } else { 1 })),
             )
-        });
-        let pointer = spec.reads_rd.then(|| PointerColumns {
-            ad: allocator.allocate(1),
-            vd: allocator.allocate(1),
         });
         let control = spec.control.then(|| ControlColumns {
             dt: allocator.allocate(1),
@@ -219,7 +194,7 @@ impl Columns {
         });
         let imm = spec.words().any(|w| w == Word::Imm).then(|| allocator.allocate(1));
         let (ram, block) = match spec.ram {
-            Ram::None | Ram::Limbs => (None, None),
+            Ram::None => (None, None),
             Ram::Read | Ram::Write => {
                 let (address, cell) = (allocator.allocate(1), allocator.allocate(1));
                 let new = match (spec.ram, rs2) {
@@ -245,13 +220,11 @@ impl Columns {
             vd_old,
             out: out.unwrap_or_else(|| ram.expect("a doubleword load reads a cell").cell),
         });
-        let limbs = (spec.ram == Ram::Limbs).then(|| LimbColumns {
-            limbs: allocator.allocate(Ext::LIMBS),
-            new: allocator.allocate(3),
-            addresses: allocator.allocate(Ext::OFFSET_LIMBS.len()),
+        let ext = limbs.map(|limbs| ExtColumns {
+            limbs,
+            new: rd.expect("a product writes its destination").out,
+            flags: allocator.allocate(3),
         });
-        let n_flag_bits = spec.words().filter(|w| matches!(w, Word::FlagBit(_))).count();
-        let flag_bits = (n_flag_bits > 0).then(|| allocator.allocate(n_flag_bits));
         let bad = spec.words().any(|w| w == Word::Bad).then(|| allocator.allocate(1));
         let (prev, step) = (allocator.allocate(spec.n_accesses()), allocator.allocate(1));
         Self {
@@ -263,13 +236,11 @@ impl Columns {
             flags,
             rs2,
             rd,
-            pointer,
             control,
             imm,
             ram,
             block,
-            limbs,
-            flag_bits,
+            ext,
             bad,
             prev,
             step,
@@ -307,9 +278,6 @@ impl Columns {
                 (_, Some(block)) => block.left(k as usize),
                 _ => missing(),
             },
-            Word::Dest => self.pointer.map_or_else(missing, |p| p.vd),
-            Word::FlagBit(k) => self.flag_bits.map_or_else(missing, |b| b + k as usize),
-            Word::LimbAddress(k) => self.limbs.and_then(|l| l.computed(k as usize)).unwrap_or_else(missing),
             Word::Bad => self.bad.unwrap_or_else(missing),
             Word::HintQ | Word::HintR => return None,
         })

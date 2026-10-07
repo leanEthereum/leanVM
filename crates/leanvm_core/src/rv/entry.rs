@@ -8,7 +8,7 @@
 
 use super::circuits::ClassCircuit;
 use super::instruction::{ExtOp, ImmOp, Instruction, LoadOp, Op, RegOp, ShiftOp, StoreOp};
-use super::register::{Reg, RegisterFile};
+use super::register::{ExtReg, Reg, RegisterFile};
 use super::semantics::{
     Alu, Div, Ext, Hash, InstructionClass, Ld, Load, Mul, Mulh, Outcome, Sd, Shift, Store, WordAccess,
 };
@@ -135,9 +135,9 @@ impl Class {
             Self::Hash => Op::Blake2s { rs1, rs2, last: false },
             Self::Ext => Op::Ext {
                 op: ExtOp::Extmul,
-                rd: Reg::RA,
-                rs1,
-                rs2,
+                rd: ExtReg::F3,
+                rs1: ExtReg::ONE,
+                rs2: ExtReg::ONE,
             },
             Self::Illegal => return None,
         })
@@ -331,7 +331,17 @@ impl Entry {
         let entry = |rs1: Reg, rs2: Reg, rd: Reg, imm: u64| Self::sequential(class, flags, rs1, rs2, rd, imm);
         let zero = Reg::ZERO;
         match op {
-            Op::Reg { rd, rs1, rs2, .. } | Op::Ext { rd, rs1, rs2, .. } => entry(rs1, rs2, rd, 0),
+            Op::Reg { rd, rs1, rs2, .. } => entry(rs1, rs2, rd, 0),
+            // The three numbers are extension registers', but a base-field form's second, an integer register's.
+            Op::Ext { rd, rs1, rs2, .. } => Self {
+                class,
+                flags,
+                a1: rs1.index() as u8,
+                a2: rs2.index() as u8,
+                ad: rd.index() as u8,
+                imm: 0,
+                target: Target::Next,
+            },
             Op::Imm { rd, rs1, imm, .. } => entry(rs1, zero, rd, imm as i64 as u64),
             Op::Shift { rd, rs1, amount, .. } => entry(rs1, zero, rd, amount as u64),
             Op::Load { rd, rs1, offset, .. } => entry(rs1, zero, rd, offset as i64 as u64),
@@ -391,7 +401,19 @@ impl Entry {
         }
 
         // Register numbers, and flags the class's circuit is written for.
-        let operands = self.a1 < 32 && self.a2 < 32 && (1..=RegisterFile::SINK).contains(&self.ad);
+        let operands = match self.class {
+            // Extension registers: the constants are never written, and a base-field operand is an integer register.
+            Class::Ext => {
+                let second = if self.flags & Ext::BASE != 0 {
+                    Reg::COUNT
+                } else {
+                    ExtReg::COUNT
+                };
+                let written = ExtReg::FIRST_WRITABLE..ExtReg::COUNT as u8;
+                (self.a1 as usize) < ExtReg::COUNT && (self.a2 as usize) < second && written.contains(&self.ad)
+            }
+            _ => self.a1 < 32 && self.a2 < 32 && (1..=RegisterFile::SINK).contains(&self.ad),
+        };
         let flags = self.class.legal_flags().contains(&self.flags);
         operands && flags && self.has_consistent_control(pc) && self.has_table_constants()
     }
@@ -448,7 +470,7 @@ impl Entry {
             Class::Load | Class::Ld => self.a2 == 0,
             Class::Store | Class::Sd => self.ad == RegisterFile::SINK,
             Class::Hash => self.ad == RegisterFile::SINK && self.imm == 0,
-            Class::Ext => self.ad < RegisterFile::SINK && self.imm == 0,
+            Class::Ext => self.imm == 0,
             _ => true,
         }
     }
@@ -567,7 +589,6 @@ mod tests {
     fn each_class_defines_exactly_the_flag_words_its_operations_use() {
         // Fixture: every operation once, with registers that make every one well formed.
         //
-        // The extension-field product needs a destination other than x0, so every operation gets ra.
         let (rd, rs1, rs2) = (Reg::RA, Reg::RA, Reg::RA);
         let ops: Vec<Op> = RegOp::ALL
             .map(|op| Op::Reg { op, rd, rs1, rs2 })
@@ -587,7 +608,12 @@ mod tests {
                 rs2,
                 offset: 0,
             }))
-            .chain(ExtOp::ALL.map(|op| Op::Ext { op, rd, rs1, rs2 }))
+            .chain(ExtOp::ALL.map(|op| Op::Ext {
+                op,
+                rd: ExtReg::F3,
+                rs1: ExtReg::ONE,
+                rs2: ExtReg::ONE,
+            }))
             .chain([
                 Op::Lui { rd, imm20: 0 },
                 Op::Auipc { rd, imm20: 0 },
@@ -708,9 +734,9 @@ mod tests {
             0x0000_208b,          // BLAKE2S with function 2
             0x0000_008b | 5 << 7, // BLAKE2S with a destination
             0x0200_000b,          // BLAKE2S with a function-7 bit set
-            0x0000_402b | 5 << 7, // an extension-field product with function 4
-            0x0200_002b | 5 << 7, // an extension-field product with a function-7 bit set
-            0x0000_002b,          // an extension-field product into the address in x0
+            0x8000_002b | 5 << 7, // an extension-field product with the top function-7 bit set
+            0x0000_002b | 2 << 7, // an extension-field product into a constant
+            0x2000_202b | 5 << 7, // a base-field operand past the integer registers
         ];
         for word in illegal {
             assert_eq!(Entry::decode(word, 0), Entry::ILLEGAL, "{word:#010x}");
@@ -731,20 +757,21 @@ mod tests {
         }
 
         #[test]
-        fn extension_field_operations_decode_to_their_flags(op in proptest::sample::select(&ExtOp::ALL[..]), rd in any::<Reg>(), rs1 in any::<Reg>(), rs2 in any::<Reg>()) {
+        fn extension_field_operations_decode_to_their_flags(op in proptest::sample::select(&ExtOp::ALL[..]), rd in any::<ExtReg>(), rs1 in any::<ExtReg>(), rs2 in any::<ExtReg>()) {
             // Invariant: the flags are the function's bits, and every register is read as itself.
             //
-            //     extmul 0, extmac 1 (accumulate), extmulk 2 (base field), extmack 3
+            //     bit 0 accumulates, bit 1 takes a base-field operand, bit 2 requires a zero result
             let e = Entry::decode(op.encode(rd, rs1, rs2).bits(), Region::TEXT.base());
-            if rd == Reg::ZERO {
-                // The address in x0 would be 0, which is unmapped.
+            let flags = ExtOp::ALL.iter().position(|&o| o == op).unwrap() as u64;
+            if rd.index() < 3 || flags & Ext::BASE != 0 && rs2.index() >= 32 {
+                // A constant is never written, and a base-field operand is an integer register.
                 prop_assert_eq!(e, Entry::ILLEGAL);
             } else {
-                let flags = ExtOp::ALL.iter().position(|&o| o == op).unwrap() as u64;
                 prop_assert_eq!((e.class, e.flags), (Class::Ext, flags));
                 prop_assert_eq!((e.a1, e.a2, e.ad), (rs1.index() as u8, rs2.index() as u8, rd.index() as u8));
                 prop_assert!(e.is_well_formed(Region::TEXT.base()));
-                prop_assert!(!Entry { ad: RegisterFile::SINK, ..e }.is_well_formed(Region::TEXT.base()), "an address in the sink");
+                prop_assert!(!Entry { ad: 2, ..e }.is_well_formed(Region::TEXT.base()), "a constant written");
+                prop_assert!(!Entry { a1: 128, ..e }.is_well_formed(Region::TEXT.base()), "no such register");
             }
         }
 

@@ -8,6 +8,7 @@
 use fiat_shamir::merkle::hash_to_scalars;
 use fiat_shamir::{DS_OBSERVE, DS_SQUEEZE, compress, digest_words};
 use leanda::{CELLS, Dual, Hash, LOG_K, M};
+use leanvm_guest::ext::Registers;
 use leanvm_guest::{PublicValues, Run};
 use pcs::ntt::AdditiveNttF64;
 use primitives::field::{F64, F192};
@@ -27,7 +28,8 @@ pub fn blobs(n: usize) -> Run {
     let root = leanda::commit(rows, &mut cells).expect("1..=MAX_ROWS blobs");
     let dual = dual_codeword(&root);
     // The guest commits what its code computes natively: the root and `H(L)`.
-    let checked = leanda::check(dual.as_slice().try_into().unwrap(), rows, &mut cells).expect("codewords");
+    let mut e = Registers::new();
+    let checked = leanda::check(&mut e, dual.as_slice().try_into().unwrap(), rows, &mut cells).expect("codewords");
 
     // The advice: the blob count, `L`, then the encoded blobs.
     let mut advice = vec![n as u64];
@@ -177,7 +179,7 @@ mod tests {
             }
             let row: &[[u64; M]] = &[row.try_into().unwrap()];
             let check = |dual: &[Dual], cells: &mut [[Hash; CELLS]]| {
-                leanda::check(dual.try_into().unwrap(), row, cells).map(|_| ())
+                leanda::check(&mut Registers::new(), dual.try_into().unwrap(), row, cells).map(|_| ())
             };
             assert_eq!(check(&dual, &mut cells), Ok(()));
 

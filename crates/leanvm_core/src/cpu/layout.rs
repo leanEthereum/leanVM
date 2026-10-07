@@ -15,7 +15,7 @@ use crate::class_flock::FlockId;
 use crate::constraints::{BitColumns, Claims};
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
-use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
+use crate::rv::{Class, Entry, ExtReg, ExtRegisterFile, Reg, Region, RegisterFile, RiscvProgram, Syscall};
 use crate::tables::{ClassTable, Clock, N_TABLES, PerTable, Separator, TableId};
 use crate::witness::{Placement, Source, StackShape, Window};
 use crate::{class_flock, pcs, witness};
@@ -41,6 +41,8 @@ pub enum Framework {
     State,
     /// The register file.
     Registers,
+    /// The extension registers.
+    ExtRegisters,
     /// RAM.
     Ram,
     /// The advice.
@@ -49,7 +51,13 @@ pub enum Framework {
 
 impl Framework {
     /// Every framework block, in bus order.
-    pub const ALL: [Self; 4] = [Self::State, Self::Registers, Self::Ram, Self::Advice];
+    pub const ALL: [Self; 5] = [
+        Self::State,
+        Self::Registers,
+        Self::ExtRegisters,
+        Self::Ram,
+        Self::Advice,
+    ];
 
     /// Where the final clock sits in the state's finalizing tuple: the run's last state is `(pc, ts)` at slot zero.
     pub(crate) const FINAL_CLOCK: usize = 2;
@@ -59,6 +67,7 @@ impl Framework {
         match self {
             Self::State => 0,
             Self::Registers => RegisterFile::LOG_CELLS,
+            Self::ExtRegisters => ExtRegisterFile::LOG_CELLS,
             Self::Ram => sizes.log_ram,
             Self::Advice => sizes.log_advice,
         }
@@ -69,12 +78,19 @@ impl Framework {
         // A read-write array: each cell starts at the seed's clock holding `init`.
         //
         // It ends at its last timestamp holding its final word (§sec:memchan).
-        let array = |sep: F64, cell: Coord, init: Option<Coord>, ts: Shared, fin: Shared| {
+        let wide = |sep: F64, cell: Coord, init: Vec<Coord>, ts: Shared, fin: &[Shared]| {
             let seed = [Const(sep), cell.clone(), Const(F64(Clock::SEED_CLOCK))]
                 .into_iter()
                 .chain(init)
                 .collect();
-            (seed, vec![Const(sep), cell, Col(ts.col()), Col(fin.col())])
+            let end = [Const(sep), cell, Col(ts.col())]
+                .into_iter()
+                .chain(fin.iter().map(|f| Col(f.col())))
+                .collect();
+            (seed, end)
+        };
+        let array = |sep: F64, cell: Coord, init: Option<Coord>, ts: Shared, fin: Shared| {
+            wide(sep, cell, init.into_iter().collect(), ts, &[fin])
         };
 
         // Word `z` of a memory region sits at `base + 8z`.
@@ -108,6 +124,31 @@ impl Framework {
                     shift: 0,
                 };
                 array(Separator::Registers.value(), cell, None, Shared::RegTs, Shared::RegFin)
+            }
+            // Extension register `i` is cell `i`: the first three start as `1`, `y` and `y^2`, the others at zero.
+            //
+            // Limb `k`'s initial column is therefore one at cell `k` and zero elsewhere.
+            Self::ExtRegisters => {
+                let cell = IntIndex {
+                    base: F64::ZERO,
+                    shift: 0,
+                };
+                let init = (0..3)
+                    .map(|k| {
+                        let mut limb = vec![F64::ZERO; ExtReg::COUNT];
+                        for (cell, seed) in limb.iter_mut().zip(ExtReg::SEEDS) {
+                            *cell = F64(seed[k]);
+                        }
+                        Coord::Public(PublicColumn::new(Arc::new(limb)))
+                    })
+                    .collect();
+                wide(
+                    Separator::ExtRegisters.value(),
+                    cell,
+                    init,
+                    Shared::ExtTs,
+                    &Shared::EXT_FIN,
+                )
             }
             // RAM starts as the program's image, then zeros, all public.
             Self::Ram => {
@@ -229,13 +270,20 @@ impl Lookup {
                     parallel::map_collect(entries.len(), |i| {
                         TableId::of(entries[i].class).map_or(F64::ZERO, |t| primitives::field::g_pow(t.index()))
                     }),
-                    column(&|_, e| e.flags),
+                    // An extension-field product's three selectors take its flags, immediate and offset slots.
+                    column(&|_, e| if e.class == Class::Ext { e.flags & 1 } else { e.flags }),
                     column(&|_, e| e.a1 as u64),
                     column(&|_, e| e.a2 as u64),
                     column(&|_, e| e.ad as u64),
-                    column(&|_, e| e.imm),
+                    column(&|_, e| if e.class == Class::Ext { e.flags >> 1 & 1 } else { e.imm }),
                     column(&|i, _| p.pc_of(i).wrapping_add(4)),
-                    column(&|i, _| p.dt_of(i)),
+                    column(&|i, e| {
+                        if e.class == Class::Ext {
+                            e.flags >> 2
+                        } else {
+                            p.dt_of(i)
+                        }
+                    }),
                     column(&|_, _| 0),
                     column(&|_, e| e.is_exit() as u64),
                 ]
@@ -257,6 +305,14 @@ pub enum Shared {
     RegFin,
     /// Each register's final timestamp, the seed's if never accessed.
     RegTs,
+    /// Each extension register's final first limb.
+    ExtFin0,
+    /// Each extension register's final second limb.
+    ExtFin1,
+    /// Each extension register's final third limb.
+    ExtFin2,
+    /// Each extension register's final timestamp.
+    ExtTs,
     /// Each RAM word's final value.
     RamFin,
     /// Each RAM word's final timestamp.
@@ -277,9 +333,13 @@ pub enum Shared {
 
 impl Shared {
     /// Every shared column, in global column order.
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 12] = [
         Self::RegFin,
         Self::RegTs,
+        Self::ExtFin0,
+        Self::ExtFin1,
+        Self::ExtFin2,
+        Self::ExtTs,
         Self::RamFin,
         Self::RamTs,
         Self::AdvInit,
@@ -287,6 +347,9 @@ impl Shared {
         Self::AdvTs,
         Self::BytecodeMult,
     ];
+
+    /// The columns of an extension register's final limbs.
+    const EXT_FIN: [Self; 3] = [Self::ExtFin0, Self::ExtFin1, Self::ExtFin2];
 
     /// The column's global index: its position in the declaration.
     pub const fn col(self) -> usize {
@@ -297,6 +360,7 @@ impl Shared {
     pub const fn log_rows(self, sizes: Sizes) -> usize {
         match self {
             Self::RegFin | Self::RegTs => Framework::Registers.log_rows(sizes),
+            Self::ExtFin0 | Self::ExtFin1 | Self::ExtFin2 | Self::ExtTs => Framework::ExtRegisters.log_rows(sizes),
             Self::RamFin | Self::RamTs => Framework::Ram.log_rows(sizes),
             Self::AdvInit | Self::AdvFin | Self::AdvTs => Framework::Advice.log_rows(sizes),
             Self::BytecodeMult => Lookup::Bytecode.log_rows(sizes),
@@ -310,6 +374,10 @@ impl Shared {
         Some(match self {
             Self::RegFin => &trace.reg_fin,
             Self::RegTs => &trace.reg_ts,
+            Self::ExtFin0 => &trace.ext_fin[0],
+            Self::ExtFin1 => &trace.ext_fin[1],
+            Self::ExtFin2 => &trace.ext_fin[2],
+            Self::ExtTs => &trace.ext_ts,
             Self::RamFin => &trace.ram_fin,
             Self::RamTs => &trace.ram_ts,
             Self::AdvInit => &trace.adv_init,

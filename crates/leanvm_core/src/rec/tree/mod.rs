@@ -306,7 +306,7 @@ impl TreeProof {
     /// The header of a tree proof's bytes: the magic `LVMT`, then the tree protocol's version.
     ///
     /// The version is bumped by every change to what a tree proof says.
-    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 10);
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 11);
 
     /// The kind of node that made the proof.
     #[must_use]

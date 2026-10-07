@@ -156,6 +156,95 @@ impl Default for RegisterFile {
     }
 }
 
+/// An extension register, `f0` to `f127`: one element of `E`, three limbs.
+///
+/// The first three hold the constants `1`, `y` and `y^2`, which nothing writes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ExtReg(u8);
+
+impl ExtReg {
+    /// The constant one.
+    pub const ONE: Self = Self(0);
+    /// The constant `y`.
+    pub const Y: Self = Self(1);
+    /// The constant `y^2`.
+    pub const Y2: Self = Self(2);
+    /// The first register an instruction may write.
+    pub const F3: Self = Self(Self::FIRST_WRITABLE);
+
+    /// How many extension registers there are.
+    pub const COUNT: usize = 128;
+
+    /// The bits of an extension register's number.
+    pub const BITS: usize = Self::COUNT.trailing_zeros() as usize;
+
+    /// The first register an instruction may write: those below it are the constants.
+    pub const FIRST_WRITABLE: u8 = 3;
+
+    /// What each register holds as a run starts: the constants, then zeros.
+    pub const SEEDS: [[u64; 3]; 3] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+
+    /// The register of this number, if there is one.
+    pub const fn new(index: u8) -> Option<Self> {
+        if (index as usize) < Self::COUNT {
+            Some(Self(index))
+        } else {
+            None
+        }
+    }
+
+    /// The register's number.
+    pub const fn index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+/// The extension registers of a run.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExtRegisterFile([[u64; 3]; ExtReg::COUNT]);
+
+impl ExtRegisterFile {
+    /// The base-two logarithm of the number of cells.
+    pub const LOG_CELLS: usize = ExtReg::BITS;
+
+    /// The registers as a run starts: the constants, then zeros.
+    pub const fn new() -> Self {
+        let mut cells = [[0; 3]; ExtReg::COUNT];
+        let mut i = 0;
+        while i < ExtReg::SEEDS.len() {
+            cells[i] = ExtReg::SEEDS[i];
+            i += 1;
+        }
+        Self(cells)
+    }
+
+    /// Every cell.
+    pub const fn cells(&self) -> &[[u64; 3]; ExtReg::COUNT] {
+        &self.0
+    }
+
+    /// The value of register `r`.
+    pub const fn get(&self, r: ExtReg) -> [u64; 3] {
+        self.0[r.index()]
+    }
+
+    /// The value of cell `cell`, as a decoded entry names it.
+    pub(super) const fn read(&self, cell: u8) -> [u64; 3] {
+        self.0[cell as usize]
+    }
+
+    /// Write `value` to cell `cell`.
+    pub(super) const fn write(&mut self, cell: u8, value: [u64; 3]) {
+        self.0[cell as usize] = value;
+    }
+}
+
+impl Default for ExtRegisterFile {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A system call: what `ecall` asks for, by the number in its syscall register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Syscall {
@@ -186,6 +275,16 @@ mod tests {
 
         fn arbitrary_with((): ()) -> Self::Strategy {
             (0u8..32).prop_map(Self)
+        }
+    }
+
+    /// Any extension register, for property tests.
+    impl Arbitrary for ExtReg {
+        type Parameters = ();
+        type Strategy = Map<Range<u8>, fn(u8) -> Self>;
+
+        fn arbitrary_with((): ()) -> Self::Strategy {
+            (0u8..Self::COUNT as u8).prop_map(Self)
         }
     }
 

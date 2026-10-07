@@ -31,7 +31,8 @@
 //!
 //! See <https://ethresear.ch/t/leanda-design-and-benchmark/25642>.
 #![no_std]
-use leanvm_guest::{ext, hash_with};
+use leanvm_guest::ext::{ONE, Registers, Y, Y2};
+use leanvm_guest::hash_with;
 use thiserror::Error;
 
 /// A BLAKE2s-256 digest, as four little-endian words.
@@ -65,15 +66,20 @@ pub enum DaError {
 
 /// Check that every row is a codeword, and return the public values: the root and `H(L)`.
 ///
-/// The scratch holds the cell digests: one row of them per row, padding included.
+/// The scratch holds the cell digests: one row of them per row, padding included, and `e` is the extension registers.
 ///
 /// # Errors
 ///
 /// A row count out of range, or the first row that is not a codeword.
-pub fn check(dual: &[Dual; M], rows: &[[u64; M]], cells: &mut [[Hash; CELLS]]) -> Result<[Hash; 2], DaError> {
+pub fn check(
+    e: &mut Registers,
+    dual: &[Dual; M],
+    rows: &[[u64; M]],
+    cells: &mut [[Hash; CELLS]],
+) -> Result<[Hash; 2], DaError> {
     // Membership first: the commitment is only worth computing over codewords.
     for (i, row) in rows.iter().enumerate() {
-        if !is_orthogonal(dual, row) {
+        if !is_orthogonal(e, dual, row) {
             return Err(DaError::NotACodeword { row: i });
         }
     }
@@ -169,15 +175,25 @@ fn hash(words: &[u64]) -> Hash {
 ///
 /// Each term multiplies an element of the extension field by a symbol of the base field.
 ///
-/// The machine runs that as one instruction, which adds the product to the sum in memory:
+/// The machine's product is on its extension registers, so the sum is kept limb by limb of `L`:
 ///
 /// ```text
-///     sum  +=  L_x * w_x       one extmack per symbol
+///     f6 = w_x                   as an element of E
+///     f3 += f6 * L_x,0           f4 += f6 * L_x,1           f5 += f6 * L_x,2
+///     sum = f3 + y * f4 + y^2 * f5
 /// ```
-fn is_orthogonal(dual: &[Dual; M], row: &[u64; M]) -> bool {
-    let mut sum = [0u64; 3];
-    for (l, w) in dual.iter().zip(row) {
-        ext::mul_add_base(&mut sum, l, w);
+///
+/// On the VM the run only goes on if the sum is zero.
+fn is_orthogonal(e: &mut Registers, dual: &[Dual; M], row: &[u64; M]) -> bool {
+    e.mul_base::<3, ONE>(0);
+    e.mul_base::<4, ONE>(0);
+    e.mul_base::<5, ONE>(0);
+    for (l, &w) in dual.iter().zip(row) {
+        e.mul_base::<6, ONE>(w);
+        e.mul_add_base::<3, 6>(l[0]);
+        e.mul_add_base::<4, 6>(l[1]);
+        e.mul_add_base::<5, 6>(l[2]);
     }
-    sum == [0; 3]
+    e.mul_add::<3, Y, 4>();
+    e.mul_add_is_zero::<3, Y2, 5>()
 }

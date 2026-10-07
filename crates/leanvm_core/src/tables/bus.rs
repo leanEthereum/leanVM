@@ -19,12 +19,14 @@ pub(crate) enum Separator {
     Bytecode = 2,
     /// Register cells, inaccessible through memory addresses.
     Registers = 3,
+    /// Extension registers: one element of `E`, three limbs, per cell.
+    ExtRegisters = 4,
 }
 
 impl Separator {
     /// The monomial field element assigned to this domain.
     pub(crate) const fn value(self) -> F64 {
-        // Degrees 0..3 are below the field modulus, so the monomials need no reduction.
+        // Degrees 0..4 are below the field modulus, so the monomials need no reduction.
         F64(1 << self as u8)
     }
 
@@ -110,18 +112,40 @@ impl Accesses<'_> {
         self.write(separator, address, value.clone(), value);
     }
 
-    /// Pull the previous cell value and push its replacement at this access's timestamp.
-    pub(super) fn write(&mut self, separator: Coord, address: Coord, old: Coord, new: Coord) {
-        // Every tuple shares the row's clock, with one distinct slot per access.
+    /// An access to a cell of several words: an extension register's three limbs.
+    pub(super) fn write_wide<const N: usize>(
+        &mut self,
+        separator: Coord,
+        address: Coord,
+        old: [Coord; N],
+        new: [Coord; N],
+    ) {
+        let (i, at) = self.next();
+        let push = [separator.clone(), address.clone(), at]
+            .into_iter()
+            .chain(new)
+            .collect();
+        let pull = [separator, address, Col(self.prev + i)]
+            .into_iter()
+            .chain(old)
+            .collect();
+        self.bus.pair(push, pull);
+    }
+
+    /// The next access's index, and the timestamp it pushes: the row's clock at the access's slot.
+    fn next(&mut self) -> (usize, Coord) {
         let (i, slot) = self.slots.next().expect("one slot per access");
         let at = match slot {
             0 => Col(self.ts),
             _ => Coord::Sum(vec![Col(self.ts), Const(F64(u64::from(slot)))]),
         };
-        self.bus.pair(
-            vec![separator.clone(), address.clone(), at, new],
-            vec![separator, address, Col(self.prev + i), old],
-        );
+        (i, at)
+    }
+
+    /// Pull the previous cell value and push its replacement at this access's timestamp.
+    pub(super) fn write(&mut self, separator: Coord, address: Coord, old: Coord, new: Coord) {
+        // Every tuple shares the row's clock, with one distinct slot per access.
+        self.write_wide(separator, address, [old], [new]);
     }
 
     /// Check that every clock port has exactly one memory tuple.
@@ -136,12 +160,13 @@ mod tests {
 
     #[test]
     fn separators_keep_the_protocol_encodings() {
-        // The Python verifier reads these four field words without Rust's enum discriminants.
+        // The Python verifier reads these five field words without Rust's enum discriminants.
         for (separator, expected) in [
             (Separator::State, 1),
             (Separator::Memory, 2),
             (Separator::Bytecode, 4),
             (Separator::Registers, 8),
+            (Separator::ExtRegisters, 16),
         ] {
             assert_eq!(separator.value(), F64(expected));
             assert!(matches!(separator.coordinate(), Const(value) if value == F64(expected)));

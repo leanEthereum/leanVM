@@ -1,8 +1,8 @@
 //! Circuit port selectors and their values on trace rows.
 
 use super::Clock;
-use crate::cpu::{Payload, RowRef};
-use crate::rv::{Alu, Div, Ext, Fetched};
+use crate::cpu::RowRef;
+use crate::rv::{Alu, Div, Fetched};
 
 /// A circuit port word represented by a virtual table column or a prover hint.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,12 +35,6 @@ pub enum Word {
     Cell(u8),
     /// Indexed cell value after the instruction.
     CellNew(u8),
-    /// Destination register's value, used as an extension-field output pointer.
-    Dest,
-    /// Bit `k` of the flags, a 0 or 1 field element: what a table with no class circuit selects with.
-    FlagBit(u8),
-    /// Computed bus address of an extension-field limb beyond its pointer ([`Ext::bus_address`]).
-    LimbAddress(u8),
     /// Circuit verdict bound to a public zero in the bytecode lookup.
     Bad,
     /// Prover-supplied quotient magnitude, not a table column.
@@ -58,14 +52,9 @@ impl Word {
     ///
     /// # Panics
     ///
-    /// Panics if an indexed word is out of range or needs extension-field data absent from the row.
+    /// Panics if an indexed word is out of range.
     pub(crate) fn value(self, r: RowRef<'_>, at: Fetched<'_>, slots: &[u32]) -> u64 {
         let (row, entry) = (r.row, at.entry);
-        // The operands of an extension-field row, which only its ports read.
-        let ext = || match r.payload {
-            Payload::Ext(ext) => &ext.instance,
-            _ => panic!("{self:?} reads an extension-field row's limbs"),
-        };
         match self {
             Self::Clock => row.ts,
             Self::Prev(i) => r.prev()[i as usize],
@@ -89,14 +78,6 @@ impl Word {
             Self::Address => row.ram.address,
             Self::Cell(k) => r.cell(k as usize),
             Self::CellNew(k) => r.cell_new(k as usize),
-            Self::Dest => ext().pointers[2],
-            Self::FlagBit(k) => entry.flags >> k & 1,
-            Self::LimbAddress(k) => {
-                // Pointer limbs have register ports; only offset limbs have computed addresses.
-                assert!(Ext::OFFSET_LIMBS.contains(&(k as usize)), "a computed limb address");
-                let x = ext();
-                Ext::bus_address(x.pointers, x.flags, k as usize)
-            }
             Self::Bad => 0,
             Self::HintQ | Self::HintR => {
                 // Only hint ports compute the magnitudes supplied to the division circuit.
@@ -116,7 +97,7 @@ impl Word {
 mod tests {
     use super::super::Clock;
     use super::*;
-    use crate::cpu::execute::{ExtRow, HashRow, Row};
+    use crate::cpu::execute::{HashRow, Payload, Row};
     use crate::rv::{Class, Entry, InstructionClass, Region, WordAccess};
     use proptest::prelude::*;
 
@@ -259,54 +240,6 @@ mod tests {
     }
 
     #[test]
-    fn word_extension_ports_bind_pointers_flag_bits_and_limb_addresses() {
-        // The clock circuit's words of an extension-field row: the destination pointer, the flags' two bits, and
-        // where the limbs that are no pointer sit, b's high limbs at register zero in the base-field form.
-        for &flags in Ext::LEGAL {
-            for pointers in [[0x4000_0000, 0x4000_0020, 0x4000_0040], [u64::MAX - 7; 3]] {
-                let row = row();
-                let mut entry = entry();
-                entry.flags = flags;
-                let instance = Ext {
-                    flags,
-                    pointers,
-                    limbs: [0; 9],
-                };
-                let ext = ExtRow {
-                    c: instance.eval(),
-                    instance,
-                    prev: std::array::from_fn(|i| 400 + i as u64),
-                };
-                let r = RowRef {
-                    row: &row,
-                    payload: Payload::Ext(&ext),
-                };
-                assert_eq!(Word::Dest.value(r, at(&entry, 0), &[]), pointers[2]);
-                assert_eq!(Word::FlagBit(0).value(r, at(&entry, 0), &[]), flags & Ext::ACCUMULATE);
-                assert_eq!(Word::FlagBit(1).value(r, at(&entry, 0), &[]), flags >> 1);
-                for (k, p, offset) in [
-                    (1, pointers[0], 8),
-                    (2, pointers[0], 16),
-                    (4, pointers[1], 8),
-                    (5, pointers[1], 16),
-                    (7, pointers[2], 8),
-                    (8, pointers[2], 16),
-                ] {
-                    let expected = if flags & Ext::BASE != 0 && (k == 4 || k == 5) {
-                        0
-                    } else {
-                        p.wrapping_add(offset)
-                    };
-                    assert_eq!(Word::LimbAddress(k).value(r, at(&entry, 0), &[]), expected);
-                }
-                for i in 0..12 {
-                    assert_eq!(Word::Prev(i).value(r, at(&entry, 0), &[]), 400 + u64::from(i));
-                }
-            }
-        }
-    }
-
-    #[test]
     fn word_clock_step_uses_only_the_class_accesses() {
         let mut row = row();
         let entry = entry();
@@ -340,35 +273,6 @@ mod tests {
             Word::Step.value(RowRef::plain(&row), at(&entry, 0), &slots),
             1 << Clock::FAIL_BIT
         );
-    }
-
-    #[test]
-    #[should_panic(expected = "Dest reads an extension-field row's limbs")]
-    fn word_extension_destination_requires_extension_data() {
-        // A class-specific port cannot be supplied by an ordinary row.
-        Word::Dest.value(RowRef::plain(&row()), at(&entry(), 0), &[]);
-    }
-
-    #[test]
-    #[should_panic(expected = "a computed limb address")]
-    fn word_limb_address_rejects_a_pointer_limb() {
-        // Limb zero uses the pointer port, not an address computed by the circuit.
-        let row = row();
-        let instance = Ext {
-            flags: 0,
-            pointers: [0; 3],
-            limbs: [0; 9],
-        };
-        let ext = ExtRow {
-            instance,
-            c: instance.eval(),
-            prev: [0; 12],
-        };
-        let r = RowRef {
-            row: &row,
-            payload: Payload::Ext(&ext),
-        };
-        Word::LimbAddress(0).value(r, at(&entry(), 0), &[]);
     }
 
     #[test]

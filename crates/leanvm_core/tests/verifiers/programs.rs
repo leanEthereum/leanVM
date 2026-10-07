@@ -289,15 +289,17 @@ fn blake2s_precompile_proves_and_verifies() {
 
 /// The extension-field precompile, checked against the host's `GF(2^192)`.
 ///
-/// The image holds sixteen elements `x_i`, then sixteen base-field words `w_i`, then the outputs.
+/// The image holds sixteen elements `x_i`, then sixteen base-field words `w_i`, then the expected result.
+///
+/// Each `x_i` is loaded into `f100 + i` limb by limb, from the constants `1`, `y` and `y^2`. Then, all into `f3`:
 ///
 /// - `sum_i x_i * x_(i+1)`, by `extmac`.
 /// - `sum_i x_i * w_i`, by `extmack`.
-/// - `x_2 * x_0^3`: `x_0` squared in place (`c` is `a` and `b`), times `x_0` into a fresh element, then times `x_2`
-///   into that same element (`c` is `b`), all by `extmul`.
+/// - `x_2 * x_0^3`: a copy of `x_0` squared in place (`c` is `a` and `b`), times `x_0` into a fresh register, then
+///   times `x_2` into that same register (`c` is `b`), all by `extmul`.
 /// - `x_1 * w_1`, by `extmulk`.
 ///
-/// The four outputs are summed into `a0..a2`, limb by limb.
+/// The run ends only if `f3` is the expected element: `extmacz` adds it to the expected one, which must give zero.
 #[test]
 fn extension_field_products_prove_and_verify() {
     const N: usize = 16;
@@ -307,52 +309,6 @@ fn extension_field_products_prove_and_verify() {
     let w: Vec<u64> = (0..N as u64)
         .map(|i| 0xD6E8_FEB8_6659_FD93u64.wrapping_mul(i + 7))
         .collect();
-    // The image: the elements, the words, then four zeroed outputs and a scratch copy of x_0.
-    let (xs, ws, out) = (
-        Region::RAM.base(),
-        Region::RAM.base() + 24 * N as u64,
-        Region::RAM.base() + 32 * N as u64,
-    );
-    let mut image: Vec<u64> = x.as_flattened().to_vec();
-    image.extend(&w);
-    image.extend([0; 12]);
-    image.extend(x[0]);
-
-    let mut a = Asm::new();
-    a.li(Reg::S0, xs).li(Reg::S1, ws).li(Reg::S2, out);
-    // The two inner products, into outputs 0 and 1.
-    a.i(Addi, Reg::S3, Reg::S2, 24);
-    for i in 0..N as i32 - 1 {
-        a.i(Addi, Reg::T0, Reg::S0, 24 * i)
-            .i(Addi, Reg::T1, Reg::S0, 24 * i + 24)
-            .ext(Extmac, Reg::S2, Reg::T0, Reg::T1);
-    }
-    for i in 0..N as i32 {
-        a.i(Addi, Reg::T0, Reg::S0, 24 * i)
-            .i(Addi, Reg::T1, Reg::S1, 8 * i)
-            .ext(Extmack, Reg::S3, Reg::T0, Reg::T1);
-    }
-    // x_2 x_0^3: the scratch copy squared in place, times x_0 into output 2, then x_2 times output 2 into itself.
-    a.i(Addi, Reg::T2, Reg::S2, 96)
-        .i(Addi, Reg::T0, Reg::S2, 48)
-        .i(Addi, Reg::T1, Reg::S0, 48);
-    a.ext(Extmul, Reg::T2, Reg::T2, Reg::T2)
-        .ext(Extmul, Reg::T0, Reg::T2, Reg::S0)
-        .ext(Extmul, Reg::T0, Reg::T1, Reg::T0);
-    // x_1 * w_1 into output 3.
-    a.i(Addi, Reg::T0, Reg::S0, 24)
-        .i(Addi, Reg::T1, Reg::S1, 8)
-        .i(Addi, Reg::T2, Reg::S2, 72);
-    a.ext(Extmulk, Reg::T2, Reg::T0, Reg::T1);
-    // a0..a2: the XOR of the four outputs' limbs 0, 1 and 2, which is their sum in E.
-    for (k, reg) in [Reg::A0, Reg::A1, Reg::A2].into_iter().enumerate() {
-        for e in 0..4 {
-            a.load(Ld, Reg::T0, 24 * e + 8 * k as i32, Reg::S2)
-                .r(Xor, reg, reg, Reg::T0);
-        }
-    }
-    let program =
-        Program::new(&a.exit().finish(), Region::TEXT.base(), image, 7, 0).expect("valid instruction program");
 
     // The same values from the host's fields.
     let e = |v: [u64; 3]| F192::new(v[0], v[1], v[2]);
@@ -361,7 +317,55 @@ fn extension_field_products_prove_and_verify() {
     let cube = e(x[2]) * (e(x[0]) * e(x[0]) * e(x[0]));
     let scaled = e(x[1]).mul_base(F64(w[1]));
     let folded = dot + mixed + cube + scaled;
-    proves_and_verifies("ext", &program, [folded.c0, folded.c1, folded.c2, 0]);
+
+    let program = |expected: F192| {
+        let mut image: Vec<u64> = x.as_flattened().to_vec();
+        image.extend(&w);
+        image.extend([expected.c0, expected.c1, expected.c2]);
+        let (xs, ws) = (0, 24 * N as i32);
+        let (t0, word) = (Reg::T0.index() as u8, Reg::T0);
+        let mut a = Asm::new();
+        a.li(Reg::S0, Region::RAM.base());
+        // An element at word offset `at` of the image, into register `f`: `1 * l_0 + y * l_1 + y^2 * l_2`.
+        let load = |a: &mut Asm, f: u8, at: i32| {
+            for k in 0..3u8 {
+                let op = if k == 0 { Extmulk } else { Extmack };
+                a.load(Ld, word, at + 8 * k as i32, Reg::S0).ext(op, f, k, t0);
+            }
+        };
+        let f = |i: usize| 100 + i as u8;
+        for i in 0..N {
+            load(&mut a, f(i), xs + 24 * i as i32);
+        }
+        // The two inner products.
+        for i in 0..N - 1 {
+            a.ext(Extmac, 3, f(i), f(i + 1));
+        }
+        for i in 0..N {
+            a.load(Ld, word, ws + 8 * i as i32, Reg::S0).ext(Extmack, 3, f(i), t0);
+        }
+        // x_2 x_0^3: a copy of x_0 squared in place, times x_0 into f5, then x_2 times f5 into itself.
+        a.ext(Extmul, 4, f(0), 0)
+            .ext(Extmul, 4, 4, 4)
+            .ext(Extmul, 5, 4, f(0))
+            .ext(Extmul, 5, f(2), 5)
+            .ext(Extmac, 3, 5, 0);
+        // x_1 * w_1.
+        a.load(Ld, word, ws + 8, Reg::S0)
+            .ext(Extmulk, 6, f(1), t0)
+            .ext(Extmac, 3, 6, 0);
+        // The expected element, which the result must cancel.
+        load(&mut a, 7, ws + 8 * N as i32);
+        a.ext(Extmacz, 7, 3, 0);
+        Program::new(&a.exit().finish(), Region::TEXT.base(), image, 7, 0).expect("valid instruction program")
+    };
+    proves_and_verifies("ext", &program(folded), [0; 4]);
+
+    // Any other expected element traps at the check.
+    assert!(matches!(
+        Prover::new(Rate::MIN).prove(&program(folded + F192::ONE), &[]).err(),
+        Some(ProveError::Trap(Trap::NonZero { .. }))
+    ));
 }
 
 /// The advice region: words the prover supplies, read and written like RAM, which the

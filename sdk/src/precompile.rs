@@ -89,26 +89,45 @@ pub(crate) unsafe fn blake2s_chain<const COUNTER: usize, const VALUE: usize>(
     [v0, v1]
 }
 
-/// One extension-field instruction (custom-1, opcode `0x2b`) on the elements at `c`, `a` and `b`.
+/// One extension-field instruction (custom-1, opcode `0x2b`) on the extension registers `fD`, `fA` and `fB`.
 ///
-/// `FUNCT3` is the instruction: bit 0 accumulates into `c`, and bit 1 reads `b` as one base-field word.
+/// `FUNCT3` is the instruction: bit 0 accumulates into `fD`, and bit 2 requires a zero result.
 ///
-/// # Safety
-///
-/// - `a` and `c` point to three readable words, and `c` to three writable ones.
-/// - `b` points to three readable words, or one for a base-field `b`.
-/// - Every word is 8-byte aligned.
+/// A register's number is its five-bit field, then two bits of the function-7 field, `fD`'s lowest.
 #[inline(always)]
-pub unsafe fn ext<const FUNCT3: u32>(c: *mut [u64; 3], a: *const [u64; 3], b: *const u64) {
-    // SAFETY: the caller's pointers name what the instruction reads and writes, and nothing else.
+pub fn ext<const FUNCT3: u32, const D: u8, const A: u8, const B: u8>() {
+    // SAFETY: the instruction reads and writes extension registers alone, which the compiler knows nothing of.
     unsafe {
         core::arch::asm!(
-            ".insn r 0x2b, {f3}, 0, {c}, {a}, {b}",
+            ".4byte {word}",
+            word = const {
+                let (d, a, b) = (D as u32, A as u32, B as u32);
+                0x2b | (d & 31) << 7
+                    | FUNCT3 << 12
+                    | (a & 31) << 15
+                    | (b & 31) << 20
+                    | (d >> 5 | (a >> 5) << 2 | (b >> 5) << 4) << 25
+            },
+            options(nomem, nostack, preserves_flags),
+        );
+    }
+}
+
+/// One extension-field instruction whose second operand is the base-field word `b`, in an integer register.
+///
+/// `FUNCT3` is the instruction, its bit 1 set: bit 0 accumulates into `fD`, and bit 2 requires a zero result.
+#[inline(always)]
+pub fn ext_base<const FUNCT3: u32, const D: u8, const A: u8>(b: u64) {
+    // SAFETY: the instruction reads `b`'s register, and reads and writes extension registers alone.
+    unsafe {
+        core::arch::asm!(
+            ".insn r 0x2b, {f3}, {f7}, x{d}, x{a}, {b}",
             f3 = const FUNCT3,
-            c = in(reg) c,
-            a = in(reg) a,
+            f7 = const { (D as u32) >> 5 | ((A as u32) >> 5) << 2 },
+            d = const { D & 31 },
+            a = const { A & 31 },
             b = in(reg) b,
-            options(nostack, preserves_flags),
+            options(nomem, nostack, preserves_flags),
         );
     }
 }

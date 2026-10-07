@@ -14,7 +14,7 @@ pub use super::instruction::StoreOp::{self, *};
 pub use super::instruction::{Instruction, Op, Opcode};
 pub use super::register::Reg;
 
-use super::register::Syscall;
+use super::register::{ExtReg, Syscall};
 
 /// An instruction whose offset waits for its label.
 #[derive(Clone, Copy, Debug)]
@@ -175,8 +175,16 @@ impl Asm {
         self.emit(Op::Blake2s { rs1, rs2, last })
     }
 
-    /// `op rd, rs1, rs2`: an extension-field multiplication, every register an address.
-    pub fn ext(&mut self, op: ExtOp, rd: Reg, rs1: Reg, rs2: Reg) -> &mut Self {
+    /// `op fd, fs1, fs2`: an extension-field multiplication on extension registers, by number.
+    ///
+    /// A base-field form's `fs2` is an integer register's number.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a number names no extension register.
+    pub fn ext(&mut self, op: ExtOp, rd: u8, rs1: u8, rs2: u8) -> &mut Self {
+        let reg = |i| ExtReg::new(i).expect("an extension register");
+        let (rd, rs1, rs2) = (reg(rd), reg(rs1), reg(rs2));
         self.emit(Op::Ext { op, rd, rs1, rs2 })
     }
 

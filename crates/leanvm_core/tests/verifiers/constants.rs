@@ -7,7 +7,7 @@
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
-use leanvm_core::{Clock, FlockId, Hash, Reg, Region, RegisterFile, Syscall, TableId};
+use leanvm_core::{Clock, ExtReg, FlockId, Hash, Reg, Region, RegisterFile, Syscall, TableId};
 use primitives::field::F64;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
@@ -36,6 +36,8 @@ fn rust_constants() -> String {
     );
     scalar("LIVE_BIT", Clock::LIVE_BIT as u64);
     scalar("LOG_PACKING", F64::DEGREE.ilog2() as u64);
+    scalar("EXT_CONSTANTS", u64::from(ExtReg::FIRST_WRITABLE));
+    scalar("LOG_EXT_REGISTERS", ExtReg::BITS as u64);
     scalar("LOG_REGISTERS", RegisterFile::LOG_CELLS as u64);
     scalar("MAX_LOG_ADVICE", Region::ADVICE.max_log_words() as u64);
     scalar("MAX_LOG_RAM", Region::RAM.max_log_words() as u64);

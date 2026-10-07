@@ -6,7 +6,7 @@ use super::{BAD_SLOT, EXIT_SLOT, Part, PerTable, TableId, Word};
 use crate::constraints::{BitColumns, BitField};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, Scaled};
-use crate::rv::{Ext, Hash, Reg, RegisterFile};
+use crate::rv::{ExtReg, Hash, Reg, RegisterFile};
 use primitives::field::{F64, F192, g_pow};
 use std::sync::OnceLock;
 
@@ -55,7 +55,8 @@ impl ClassTable {
     /// - A read pushes back the value it pulls.
     /// - A register access that changes its cell does so at the entry's destination, which the decoder keeps in `1..=32`.
     ///
-    /// So `x0` keeps its zero seed, which a base-field extension operand's high limbs read.
+    /// So `x0` keeps its zero seed, and an extension register holding a constant keeps it: the decoder never names
+    /// one as a destination.
     ///
     /// # Panics
     ///
@@ -66,7 +67,8 @@ impl ClassTable {
         // Pushes are the state, then the accesses; pulls are the state, the bytecode, then the accesses.
         for (push, pull) in bus.push[1..].iter().zip(&bus.pull[2..]) {
             let memory = matches!(push[0], Const(sep) if sep == Separator::Memory.value());
-            let read = matches!((&pull[3], &push[3]), (Col(old), Col(new)) if old == new);
+            let read =
+                (pull[3..].iter().zip(&push[3..])).all(|pair| matches!(pair, (Col(old), Col(new)) if old == new));
             let at_destination = matches!((&push[1], destination), (Col(at), Col(ad)) if at == ad);
             assert!(
                 memory || read || at_destination,
@@ -80,19 +82,24 @@ impl ClassTable {
     ///
     /// - They are bit columns, packed into a committed word with the other tables' of the same height.
     /// - A register read is below 32, five bits; a cell written may be the sink, 32, six bits.
+    /// - An extension register is below 128, seven bits.
     pub(crate) fn register_bits(&self) -> BitColumns {
         let c = &self.cols;
-        let read = |col| BitField { col, width: Reg::BITS };
-        let written = |col| BitField {
-            col,
-            width: RegisterFile::LOG_CELLS,
+        let (read, written) = match c.ext {
+            Some(_) => (ExtReg::BITS, ExtReg::BITS),
+            None => (Reg::BITS, RegisterFile::LOG_CELLS),
         };
-        let ad = (c.rd.map(|rd| written(rd.ad))).or_else(|| c.pointer.map(|p| read(p.ad)));
+        let read = |col| BitField { col, width: read };
+        let written = |col| BitField { col, width: written };
         BitColumns {
-            fields: [Some(read(c.a1)), c.rs2.map(|r| read(r.a2)), ad]
-                .into_iter()
-                .flatten()
-                .collect(),
+            fields: [
+                Some(read(c.a1)),
+                c.rs2.map(|r| read(r.a2)),
+                c.rd.map(|rd| written(rd.ad)),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
         }
     }
 
@@ -204,23 +211,22 @@ impl ClassTable {
         let c = &self.cols;
         // A row without flags, an `rs2` read, an `rd` write or an immediate reads its constant off the entry.
         // Those constants are zero, `x0`, the sink, and zero.
+        //
+        // An extension-field product's three selectors are the entry's flags, immediate and offset slots.
+        let selector = |k: usize| c.ext.map(|x| Col(x.flags + k));
         let mut entry = vec![
             Separator::Bytecode.coordinate(),
             Col(c.pc),
             Const(g_pow(self.id.index())),
-            c.flags.map_or(Const(F64::ZERO), Col),
+            (c.flags.map(Col).or_else(|| selector(0))).unwrap_or(Const(F64::ZERO)),
             Col(c.a1),
             c.rs2.map_or(Const(F64::ZERO), |r| Col(r.a2)),
-            match (c.rd, c.pointer) {
-                (Some(rd), _) => Col(rd.ad),
-                (_, Some(pointer)) => Col(pointer.ad),
-                _ => Const(F64(RegisterFile::SINK as u64)),
-            },
-            c.imm.map_or(Const(F64::ZERO), Col),
+            c.rd.map_or(Const(F64(RegisterFile::SINK as u64)), |rd| Col(rd.ad)),
+            (c.imm.map(Col).or_else(|| selector(1))).unwrap_or(Const(F64::ZERO)),
             Col(c.pc4),
         ];
-        if let Some(control) = c.control {
-            entry.push(Col(control.dt));
+        if let Some(dt) = c.control.map(|control| Col(control.dt)).or_else(|| selector(2)) {
+            entry.push(dt);
         }
         if let Some(bad) = c.bad {
             entry.resize(BAD_SLOT, Const(F64::ZERO));
@@ -236,6 +242,20 @@ impl ClassTable {
         let c = &self.cols;
         // The accesses' columns are in the order the row makes them.
         let mut accesses = bus.accesses(c.ts, c.prev, self.id.spec().slots());
+        if let (Some(x), Some(r), Some(rd)) = (c.ext, c.rs2, c.rd) {
+            // Each access is one extension register, three limbs.
+            //
+            // A base-field `b` is an integer register, under a separator that is a form in the selector `base`:
+            //
+            //     separator   extension + base·(extension + integer)
+            let (ext, int) = (Separator::ExtRegisters.value(), Separator::Registers.value());
+            let second = Coord::Sum(vec![Const(ext), Scaled(ext + int, x.flags + 1)]);
+            accesses.write_wide(Const(ext), Col(c.a1), x.operand(0), x.operand(0));
+            accesses.write_wide(second, Col(r.a2), x.operand(1), x.operand(1));
+            accesses.write_wide(Const(ext), Col(rd.ad), x.operand(2), x.result());
+            accesses.finish();
+            return;
+        }
         accesses.read(Separator::Registers.coordinate(), Col(c.a1), Col(c.v1));
         if let Some(r) = c.rs2 {
             accesses.read(Separator::Registers.coordinate(), Col(r.a2), Col(r.v2));
@@ -248,10 +268,6 @@ impl ClassTable {
                 Col(rd.vd_old),
                 Col(rd.out),
             );
-        }
-        // An address in `rd` is read and written back as found.
-        if let Some(p) = c.pointer {
-            accesses.read(Separator::Registers.coordinate(), Col(p.ad), Col(p.vd));
         }
         // Misaligned or unmapped addresses name no seeded cell.
         // Doubleword moves share their value column on the read and write sides.
@@ -275,31 +291,11 @@ impl ClassTable {
                 );
             }
         }
-        // The limbs: each operand's first at its pointer, the others at the addresses the clock circuit computes.
-        //
-        // A base-field `b`'s high limbs are reads of `x0`, at the address zero the clock circuit gives them, under a
-        // separator that is a form in the bit `base`, which picks the registers over memory:
-        //
-        //     separator   memory + base·(memory + registers)
-        if let (Some(limbs), Some(r), Some(p), Some(bits)) = (c.limbs, c.rs2, c.pointer, c.flag_bits) {
-            let pointers = [c.v1, r.v2, p.vd];
-            let (memory, registers) = (Separator::Memory.value(), Separator::Registers.value());
-            let base = bits + 1;
-            for k in 0..Ext::LIMBS {
-                let sep = if k / 3 == 1 && k % 3 > 0 {
-                    Coord::Sum(vec![Const(memory), Scaled(memory + registers, base)])
-                } else {
-                    Separator::Memory.coordinate()
-                };
-                let addr = Col(limbs.address(k, pointers));
-                accesses.write(sep, addr, Col(limbs.limbs + k), Col(limbs.left(k)));
-            }
-        }
         accesses.finish();
     }
 
     /// The identities the table proves of every one of its rows, in local column indices: none for a class with a
-    /// circuit, and for the extension-field product its three new limbs.
+    /// circuit, and for the extension-field product its three new limbs and what its selectors require.
     ///
     /// With `d_m = sum_{i + j = m} a_i b_j`, the product's coefficient of `y^m` (products in `K`), the reduction
     /// `y^3 = y + 1`, `y^4 = y^2 + y` has coefficients in `GF(2)`, so each new limb is a sum of `K` products:
@@ -311,31 +307,41 @@ impl ClassTable {
     /// ```
     ///
     /// Each form is the difference of the two sides, which vanishes on a row exactly when the row's new limb is its
-    /// product: degree 2, every coefficient one. A base-field `b`'s high limbs are zero, being reads of `x0`.
+    /// product: degree 2, every coefficient one. Then:
+    ///
+    /// ```text
+    ///     base·b_1 = base·b_2 = 0      a base-field operand is one word
+    ///     zero·c'_i = 0                a checked product is zero
+    /// ```
     pub(crate) fn identities(&self) -> Vec<BusForm> {
-        let c = &self.cols;
-        let (Some(limbs), Some(bits)) = (c.limbs, c.flag_bits) else {
+        let Some(x) = self.cols.ext else {
             return Vec::new();
         };
-        let (a, b, old) = (limbs.limbs, limbs.limbs + 3, limbs.limbs + 6);
-        (0..3)
-            .map(|i| {
-                let mut form = BusForm::new(self.n_committed_columns(), F192::ZERO);
-                form.coeffs[limbs.new + i] = F192::ONE;
-                form.prods.push((bits, old + i, F192::ONE));
-                for (j, k) in (0..3).flat_map(|j| (0..3).map(move |k| (j, k))) {
-                    let lands = match j + k {
-                        3 => i < 2,
-                        4 => i > 0,
-                        m => m == i,
-                    };
-                    if lands {
-                        form.prods.push((a + j, b + k, F192::ONE));
-                    }
+        let (a, b, old) = (x.limbs, x.limbs + 3, x.limbs + 6);
+        let (accumulate, base, zero) = (x.flags, x.flags + 1, x.flags + 2);
+        let product = |i: usize, j: usize| {
+            let mut form = BusForm::new(self.n_committed_columns(), F192::ZERO);
+            form.prods.push((i, j, F192::ONE));
+            form
+        };
+        let limbs = (0..3).map(|i| {
+            let mut form = product(accumulate, old + i);
+            form.coeffs[x.new + i] = F192::ONE;
+            for (j, k) in (0..3).flat_map(|j| (0..3).map(move |k| (j, k))) {
+                let lands = match j + k {
+                    3 => i < 2,
+                    4 => i > 0,
+                    m => m == i,
+                };
+                if lands {
+                    form.prods.push((a + j, b + k, F192::ONE));
                 }
-                form
-            })
-            .collect()
+            }
+            form
+        });
+        let word = (1..3).map(|i| product(base, b + i));
+        let checked = (0..3).map(|i| product(zero, x.new + i));
+        limbs.chain(word).chain(checked).collect()
     }
 }
 
@@ -344,6 +350,7 @@ mod tests {
     use super::super::Clock;
     use super::*;
     use crate::colval::ColVal;
+    use crate::rv::Ext;
 
     fn check_columns(coordinate: &Coord, width: usize) {
         // Every table-side coordinate must use its own local span of columns.
@@ -391,26 +398,42 @@ mod tests {
             wrong in 0usize..3,
             bit in 0u32..64,
         ) {
-            // Invariant: on a row, the identities vanish exactly when the new limbs are the reference's.
-            //
-            // Mutation: one bit of one new limb, which only that limb's identity reads.
+            // Invariant: on a row, the identities vanish exactly when the new limbs are the reference's, a base-field
+            // operand is one word, and a checked product is zero.
             let table = TableId::EXT.class_table();
-            let (cols, bits) = (table.cols.limbs.unwrap(), table.cols.flag_bits.unwrap());
-            let mut limbs = limbs;
+            let x = table.cols.ext.unwrap();
+            let [a, mut b, c]: [[u64; 3]; 3] = std::array::from_fn(|i| std::array::from_fn(|k| limbs[3 * i + k]));
             if flags & Ext::BASE != 0 {
-                (limbs[4], limbs[5]) = (0, 0);
+                (b[1], b[2]) = (0, 0);
             }
+            let new = Ext { flags, a, b, c }.eval();
             let mut row = vec![F64::ZERO; table.n_committed_columns()];
-            row[cols.limbs..cols.limbs + 9].copy_from_slice(&limbs.map(F64));
-            row[cols.new..cols.new + 3].copy_from_slice(&Ext { flags, pointers: [0; 3], limbs }.eval().map(F64));
-            (row[bits], row[bits + 1]) = (F64(flags & 1), F64(flags >> 1));
-            let values = |row: &[F64]| table.identities().iter().map(|form| <F64 as ColVal>::reduce(form.eval_unreduced(row, false))).collect::<Vec<_>>();
-            proptest::prop_assert_eq!(values(&row), vec![F192::ZERO; 3]);
-            row[cols.new + wrong].0 ^= 1 << bit;
-            let values = values(&row);
-            for (i, value) in values.into_iter().enumerate() {
-                proptest::prop_assert_eq!(value == F192::ZERO, i != wrong);
+            for (i, limb) in a.into_iter().chain(b).chain(c).enumerate() {
+                row[x.limbs + i] = F64(limb);
             }
+            row[x.new..x.new + 3].copy_from_slice(&new.map(F64));
+            for k in 0..3 {
+                row[x.flags + k] = F64(flags >> k & 1);
+            }
+            let values = |row: &[F64]| table.identities().iter().map(|form| <F64 as ColVal>::reduce(form.eval_unreduced(row, false))).collect::<Vec<_>>();
+
+            // The product's limbs and the operand's width hold; a checked form holds exactly on a zero result.
+            let honest = values(&row);
+            proptest::prop_assert_eq!(&honest[..5], &[F192::ZERO; 5]);
+            for i in 0..3 {
+                proptest::prop_assert_eq!(honest[5 + i] == F192::ZERO, flags & Ext::ZERO == 0 || new[i] == 0);
+            }
+
+            // Mutation: one bit of one new limb, which only that limb's identity and its check read.
+            row[x.new + wrong].0 ^= 1 << bit;
+            for (i, value) in values(&row)[..3].iter().enumerate() {
+                proptest::prop_assert_eq!(*value == F192::ZERO, i != wrong);
+            }
+            row[x.new + wrong].0 ^= 1 << bit;
+
+            // Mutation: a base-field operand with a high limb.
+            row[x.limbs + 4] = F64(1 << bit);
+            proptest::prop_assert_eq!(values(&row)[3] == F192::ZERO, flags & Ext::BASE == 0);
         }
     }
 }

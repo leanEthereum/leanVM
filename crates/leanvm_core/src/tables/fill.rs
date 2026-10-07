@@ -2,7 +2,7 @@
 
 use super::{ClassTable, Clock, Word};
 use crate::cpu::{Row, RowRef, Trace};
-use crate::rv::{Ext, RiscvProgram};
+use crate::rv::RiscvProgram;
 use parallel::SendPtr;
 use primitives::field::F64;
 use std::ops::Range;
@@ -156,23 +156,35 @@ impl ClassTable {
         let entry = move |r: &Row| &p.entries()[r.index as usize];
         ctx.columns(out, rows, c.pc, move |r| {
             let pc = p.pc_of(r.index as usize);
-            [
-                F64(pc),
-                F64(r.ts),
-                F64(entry(r).a1 as u64),
-                F64(pc.wrapping_add(4)),
-                F64(r.v1),
-            ]
+            [F64(pc), F64(r.ts), F64(entry(r).a1 as u64), F64(pc.wrapping_add(4))]
         });
+        let (hash, ext) = (&ctx.trace.hash, &ctx.trace.ext);
+        // An extension-field product's value columns are its limbs, and its selectors the flags' bits.
+        if let (Some(x), Some(rs2), Some(rd)) = (c.ext, c.rs2, c.rd) {
+            ctx.columns_at(out, rows, [rs2.a2, rd.ad], move |r| {
+                [F64(entry(r).a2 as u64), F64(entry(r).ad as u64)]
+            });
+            ctx.columns(out, ext, x.limbs, |e| {
+                let x = &e.instance;
+                std::array::from_fn::<_, 9, _>(|i| F64([x.a, x.b, x.c][i / 3][i % 3]))
+            });
+            ctx.columns(out, ext, x.new, |e| e.c.map(F64));
+            ctx.columns(out, rows, x.flags, move |r| {
+                let flags = entry(r).flags;
+                std::array::from_fn::<_, 3, _>(|k| F64(flags >> k & 1))
+            });
+        } else {
+            ctx.column(out, rows, c.v1, move |r| F64(r.v1));
+        }
         if let Some(flags) = c.flags {
             ctx.column(out, rows, flags, move |r| F64(entry(r).flags));
         }
-        if let Some(rs2) = c.rs2 {
+        if let Some(rs2) = c.rs2.filter(|_| c.ext.is_none()) {
             ctx.columns_at(out, rows, [rs2.a2, rs2.v2], move |r| {
                 [F64(entry(r).a2 as u64), F64(r.v2)]
             });
         }
-        if let Some(rd) = c.rd {
+        if let Some(rd) = c.rd.filter(|_| c.ext.is_none()) {
             ctx.columns_at(out, rows, [rd.ad, rd.vd_old], move |r| {
                 [F64(entry(r).ad as u64), F64(r.vd_old)]
             });
@@ -180,11 +192,6 @@ impl ClassTable {
             if c.ram.is_none_or(|ram| ram.cell != rd.out) {
                 ctx.column(out, rows, rd.out, move |r| F64(r.out));
             }
-        }
-        let (hash, ext) = (&ctx.trace.hash, &ctx.trace.ext);
-        if let Some(p) = c.pointer {
-            ctx.column(out, rows, p.ad, move |r| F64(entry(r).ad as u64));
-            ctx.column(out, ext, p.vd, |x| F64(x.instance.pointers[2]));
         }
         if let Some(k) = c.control {
             ctx.columns_at(out, rows, [k.dt, k.jump, k.exit], move |r| {
@@ -211,20 +218,6 @@ impl ClassTable {
         if let Some(block) = c.block {
             ctx.columns(out, hash, block.words, |h| h.block.map(F64));
             ctx.columns(out, hash, block.out, |h| h.out.map(F64));
-        }
-        if let Some(limbs) = c.limbs {
-            ctx.columns(out, ext, limbs.limbs, |x| x.instance.limbs.map(F64));
-            ctx.columns(out, ext, limbs.new, |x| x.c.map(F64));
-            ctx.columns(out, ext, limbs.addresses, |x| {
-                let x = &x.instance;
-                Ext::OFFSET_LIMBS.map(|k| F64(Ext::bus_address(x.pointers, x.flags, k)))
-            });
-        }
-        if let Some(bits) = c.flag_bits {
-            ctx.columns(out, rows, bits, move |r| {
-                let flags = entry(r).flags;
-                [F64(flags & 1), F64(flags >> 1 & 1)]
-            });
         }
         if let Some(bad) = c.bad {
             ctx.column(out, rows, bad, move |_| F64::ZERO);

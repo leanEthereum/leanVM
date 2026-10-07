@@ -2,7 +2,7 @@
 
 use super::clock::Clock;
 use super::{N_TABLES, TableId, Word};
-use crate::rv::{Alu, Class, Ext, Hash, Ld, Load, Mul, Mulh, Shift, Store};
+use crate::rv::{Alu, Class, Hash, Ld, Load, Mul, Mulh, Shift, Store};
 use crate::{class_flock, rv};
 use flock::circuit::Circuit;
 use std::ops::Range;
@@ -18,8 +18,6 @@ pub enum Ram {
     Write,
     /// Sixteen hash block words, with four output words rewritten.
     Block,
-    /// Nine extension-field limbs, with the destination's three limbs rewritten.
-    Limbs,
 }
 
 impl Ram {
@@ -29,7 +27,6 @@ impl Ram {
             Self::None => 0..0,
             Self::Read | Self::Write => Clock::RAM_SLOT..Clock::RAM_SLOT + 1,
             Self::Block => Clock::block_slot(0)..Clock::block_slot(Hash::WORDS),
-            Self::Limbs => Clock::limb_slot(0)..Clock::limb_slot(Ext::LIMBS),
         }
     }
 }
@@ -83,8 +80,10 @@ pub struct ClassSpec {
     /// Whether the destination register receives a result, in clock slot 3.
     pub writes_rd: bool,
 
-    /// Whether the destination register supplies an address, in clock slot 3.
-    pub reads_rd: bool,
+    /// Whether the three registers are extension registers, each access one element of `E`.
+    ///
+    /// The second is an integer register on a row whose operand is a base-field word.
+    pub wide: bool,
 
     /// Memory accesses made after the register accesses.
     pub ram: Ram,
@@ -97,12 +96,6 @@ pub struct ClassSpec {
 
     /// Base-two logarithm of the clock circuit's bits per instance.
     pub clock_k_log: usize,
-
-    /// Words the clock circuit reads past the timestamps: what a class with no circuit checks of its operands.
-    pub clock_inputs: &'static [Word],
-
-    /// Words the clock circuit gives past the step.
-    pub clock_outputs: &'static [Word],
 }
 
 impl ClassSpec {
@@ -113,7 +106,7 @@ impl ClassSpec {
         control: true,
         reads_rs2: true,
         writes_rd: true,
-        reads_rd: false,
+        wide: false,
         ram: Ram::None,
         copies: false,
         circuit: Some(ClassCircuit {
@@ -123,8 +116,6 @@ impl ClassSpec {
             fill: Fill::Instance(Alu::witness),
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// Byte, halfword, and word loads with extension to 64 bits.
@@ -134,7 +125,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: false,
         writes_rd: true,
-        reads_rd: false,
+        wide: false,
         ram: Ram::Read,
         copies: false,
         circuit: Some(ClassCircuit {
@@ -144,8 +135,6 @@ impl ClassSpec {
             fill: Fill::Instance(Load::witness),
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// Byte, halfword, and word stores into a memory cell.
@@ -155,7 +144,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: true,
         writes_rd: false,
-        reads_rd: false,
+        wide: false,
         ram: Ram::Write,
         copies: false,
         circuit: Some(ClassCircuit {
@@ -165,8 +154,6 @@ impl ClassSpec {
             fill: Fill::Instance(Store::witness),
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// `ld`: the cell at `v1 + imm` is what `rd` receives.
@@ -176,7 +163,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: false,
         writes_rd: true,
-        reads_rd: false,
+        wide: false,
         ram: Ram::Read,
         copies: true,
         circuit: Some(ClassCircuit {
@@ -186,8 +173,6 @@ impl ClassSpec {
             fill: Fill::Instance(Ld::witness),
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// `sd`: `v2` is what the cell at `v1 + imm` receives.
@@ -197,7 +182,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: true,
         writes_rd: false,
-        reads_rd: false,
+        wide: false,
         ram: Ram::Write,
         copies: true,
         circuit: Some(ClassCircuit {
@@ -207,8 +192,6 @@ impl ClassSpec {
             fill: Fill::Instance(Ld::witness),
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// Logical and arithmetic shifts, including 32-bit word forms.
@@ -218,7 +201,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: true,
         writes_rd: true,
-        reads_rd: false,
+        wide: false,
         ram: Ram::None,
         copies: false,
         circuit: Some(ClassCircuit {
@@ -228,8 +211,6 @@ impl ClassSpec {
             fill: Fill::Instance(Shift::witness),
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// Low half of a register product.
@@ -239,7 +220,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: true,
         writes_rd: true,
-        reads_rd: false,
+        wide: false,
         ram: Ram::None,
         copies: false,
         circuit: Some(ClassCircuit {
@@ -253,8 +234,6 @@ impl ClassSpec {
             },
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// High half of a register product with signedness selectors.
@@ -264,7 +243,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: true,
         writes_rd: true,
-        reads_rd: false,
+        wide: false,
         ram: Ram::None,
         copies: false,
         circuit: Some(ClassCircuit {
@@ -274,8 +253,6 @@ impl ClassSpec {
             fill: Fill::Instance(Mulh::witness),
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// Quotients and remainders with prover-supplied magnitude hints.
@@ -285,7 +262,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: true,
         writes_rd: true,
-        reads_rd: false,
+        wide: false,
         ram: Ram::None,
         copies: false,
         circuit: Some(ClassCircuit {
@@ -295,8 +272,6 @@ impl ClassSpec {
             fill: Fill::Walk,
         }),
         clock_k_log: 9,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
     /// BLAKE2s compression over sixteen memory words, rewriting the four output words.
@@ -306,7 +281,7 @@ impl ClassSpec {
         control: false,
         reads_rs2: true,
         writes_rd: false,
-        reads_rd: false,
+        wide: false,
         ram: Ram::Block,
         copies: false,
         circuit: Some(ClassCircuit {
@@ -331,54 +306,36 @@ impl ClassSpec {
             fill: Fill::Instance(rv::circuits::blake2s_witness),
         }),
         clock_k_log: 11,
-        clock_inputs: &[],
-        clock_outputs: &[],
     };
 
-    /// Extension-field multiplication, optionally accumulating or using a base-field operand.
+    /// Extension-field multiplication on extension registers, optionally accumulating, by a base-field word, or checked.
     ///
     /// No class circuit: the limbs are committed columns, and the table's identities (`ClassTable::identities`) say the product.
-    ///
-    /// The clock circuit splits the flags into their bits and computes the limbs' addresses ([`Ext::clock_circuit`]).
     pub const EXT: Self = Self {
         class: Class::Ext,
         name: "EXT",
         control: false,
         reads_rs2: true,
-        writes_rd: false,
-        reads_rd: true,
-        ram: Ram::Limbs,
+        writes_rd: true,
+        wide: true,
+        ram: Ram::None,
         copies: false,
         circuit: None,
-        clock_k_log: 12,
-        clock_inputs: &[Word::V1, Word::V2, Word::Dest, Word::Flags],
-        clock_outputs: &[
-            Word::FlagBit(0),
-            Word::FlagBit(1),
-            Word::LimbAddress(1),
-            Word::LimbAddress(2),
-            Word::LimbAddress(4),
-            Word::LimbAddress(5),
-            Word::LimbAddress(7),
-            Word::LimbAddress(8),
-        ],
+        clock_k_log: 9,
     };
 
     /// Check that register accesses and copy semantics match the circuit ports.
     pub(super) fn assert_valid(&self) {
         // Invariant: a register access exists exactly when its value is a word of one of the table's circuits, or a column a doubleword load or store moves.
         let has = |word: Word| self.words().any(|w| w == word);
-        assert_eq!(self.reads_rs2 && !self.copies, has(Word::V2), "{}: rs2 read", self.name);
-        assert_eq!(
-            self.writes_rd && !self.copies,
-            has(Word::Out),
-            "{}: rd write",
-            self.name
-        );
-        assert_eq!(self.reads_rd, has(Word::Dest), "{}: rd read", self.name);
+        //
+        // An extension register's limbs are committed columns, which the table's identities relate.
+        let narrow = !self.copies && !self.wide;
+        assert_eq!(self.reads_rs2 && narrow, has(Word::V2), "{}: rs2 read", self.name);
+        assert_eq!(self.writes_rd && narrow, has(Word::Out), "{}: rd write", self.name);
         assert!(
-            !(self.reads_rd && self.writes_rd),
-            "{}: rd is read or written, not both",
+            !self.wide || self.reads_rs2 && self.writes_rd && self.circuit.is_none() && self.ram == Ram::None,
+            "{}: three extension registers",
             self.name
         );
         // A class with branches and jumps gates the bytecode's offset in its circuit, and reads `pc + 4` for its indirect jump.
@@ -392,11 +349,11 @@ impl ClassSpec {
             let moves = match self.ram {
                 Ram::Read => self.writes_rd && !self.reads_rs2,
                 Ram::Write => self.reads_rs2 && !self.writes_rd,
-                Ram::None | Ram::Block | Ram::Limbs => false,
+                Ram::None | Ram::Block => false,
             };
             let ports = [Word::V1, Word::Imm, Word::Address];
             assert!(
-                moves && !self.control && !self.reads_rd && self.ports().eq(ports),
+                moves && !self.control && !self.wide && self.ports().eq(ports),
                 "{}: a copy",
                 self.name
             );
@@ -407,7 +364,7 @@ impl ClassSpec {
     ///
     /// The indices select the first source, second source, and destination register.
     pub const fn registers(&self) -> &'static [usize] {
-        match (self.reads_rs2, self.writes_rd || self.reads_rd) {
+        match (self.reads_rs2, self.writes_rd) {
             (true, true) => &[0, 1, 2],
             (true, false) => &[0, 1],
             (false, true) => &[0, 2],
@@ -472,39 +429,24 @@ impl ClassSpec {
 
     /// The table's clock circuit.
     pub fn clock_circuit(&self) -> Circuit {
-        match self.class {
-            Class::Ext => Ext::clock_circuit(&self.slots()),
-            _ => Clock::circuit(&self.slots()),
-        }
+        Clock::circuit(&self.slots())
     }
 
     /// One instance of [`Self::clock_circuit`]'s witness by word arithmetic, from its input words (the
-    /// [`Self::clock_ports`] before the step), into zeroed buffers: [`Clock::witness`], or EXT's
-    /// ([`Ext::clock_witness`]).
+    /// [`Self::clock_ports`] before the step), into zeroed buffers.
     pub fn clock_witness(&self, slots: &[u32], inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
-        match self.class {
-            Class::Ext => Ext::clock_witness(slots, inputs, z, az, bz),
-            _ => Clock::witness(slots, inputs[0], &inputs[1..], z, az, bz),
-        }
+        Clock::witness(slots, inputs[0], &inputs[1..], z, az, bz);
     }
 
-    /// The clock circuit's port words: the clock, each access's previous timestamp and [`Self::clock_inputs`], then
-    /// the step and [`Self::clock_outputs`].
+    /// The clock circuit's port words: the clock and each access's previous timestamp, then the step.
     pub fn clock_ports(&self) -> Vec<Word> {
         let prev = (0..self.n_accesses()).map(|i| Word::Prev(i as u8));
-        let inputs = std::iter::once(Word::Clock)
-            .chain(prev)
-            .chain(self.clock_inputs.iter().copied());
-        inputs
-            .chain([Word::Step])
-            .chain(self.clock_outputs.iter().copied())
-            .collect()
+        std::iter::once(Word::Clock).chain(prev).chain([Word::Step]).collect()
     }
 
-    /// Every word of the table's circuits: its class circuit's, then its clock circuit's own.
+    /// Every word of the table's class circuit.
     pub(super) fn words(&self) -> impl Iterator<Item = Word> + '_ {
         self.ports()
-            .chain(self.clock_inputs.iter().chain(self.clock_outputs).copied())
     }
 }
 

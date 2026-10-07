@@ -5,7 +5,7 @@
 //! Everything else comes back from the program's entry at the row's index.
 
 use crate::rv::machine::{MemoryAccess, Step};
-use crate::rv::{BlockAccess, Class, Ext, Hash, Limb, Machine, RegisterFile, RiscvProgram, WordAccess};
+use crate::rv::{BlockAccess, Class, Ext, ExtReg, Hash, Machine, RegisterFile, RiscvProgram, WordAccess};
 use crate::tables::{Clock, PerTable, TableId};
 use primitives::field::F64;
 
@@ -90,6 +90,8 @@ impl Recorder for RowCounter {
 pub(super) struct TraceBuilder {
     /// The register file's cells.
     regs: LastAccess,
+    /// When each extension register was last accessed.
+    ext_regs: LastAccess,
     /// RAM's cells, then the advice's, as the machine numbers them.
     ram: LastAccess,
     /// Each table's rows.
@@ -120,6 +122,7 @@ impl TraceBuilder {
     pub(super) fn new(p: &RiscvProgram, advice: &[u64]) -> Self {
         Self {
             regs: LastAccess::new(RegisterFile::CELLS),
+            ext_regs: LastAccess::new(ExtReg::COUNT),
             ram: LastAccess::new((1 << p.log_ram()) + (1 << p.log_advice())),
             rows: PerTable::default(),
             hash: Vec::new(),
@@ -138,12 +141,15 @@ impl TraceBuilder {
 
         // The register accesses the class makes, in column order, each at its slot of the row's clock.
         let cells = [e.a1, e.a2, e.ad].map(|cell| cell as usize);
-        let made = [true, spec.reads_rs2, spec.writes_rd || spec.reads_rd];
+        let made = [true, spec.reads_rs2, spec.writes_rd];
+        // An extension-field product's registers are extension registers, but a base-field operand.
+        let integer = [!spec.wide, !spec.wide || e.flags & Ext::BASE != 0, !spec.wide];
         let mut prev = [0; 4];
         let mut n = 0;
         for (i, slot) in Clock::REG_SLOTS.into_iter().enumerate() {
             if made[i] {
-                prev[n] = self.regs.access(cells[i], ts | u64::from(slot));
+                let last = if integer[i] { &mut self.regs } else { &mut self.ext_regs };
+                prev[n] = last.access(cells[i], ts | u64::from(slot));
                 n += 1;
             }
         }
@@ -173,23 +179,11 @@ impl TraceBuilder {
                     prev: all,
                 });
             }
-            // An extension-field row's limbs, after its register reads: memory cells, or `x0` for a base-field `b`.
-            MemoryAccess::Ext(instance) => {
-                let mut all = [0; 3 + Ext::LIMBS];
-                all[..n].copy_from_slice(&prev[..n]);
-                for k in 0..Ext::LIMBS {
-                    let at = ts | u64::from(Clock::limb_slot(k));
-                    all[n + k] = match Ext::limb(instance.pointers, instance.flags, k) {
-                        Limb::Memory(address) => self.ram.access(cell_of(address), at),
-                        Limb::Zero => self.regs.access(0, at),
-                    };
-                }
-                self.ext.push(ExtRow {
-                    instance: *instance,
-                    c: instance.eval(),
-                    prev: all,
-                });
-            }
+            // An extension-field row's operands as it found them, and what it leaves.
+            MemoryAccess::Ext(instance) => self.ext.push(ExtRow {
+                instance: *instance,
+                c: instance.eval(),
+            }),
         }
 
         self.rows[table].push(Row {
@@ -218,7 +212,7 @@ impl TraceBuilder {
         let outcome = e.evaluate(p.pc_of(index), 0, 0, 0);
         let slots = &self.padding_prev[table];
 
-        // Its accesses' timestamps: in its payload for a hash or an extension-field row, in the row otherwise.
+        // Its accesses' timestamps: in its payload for a hash row, in the row otherwise.
         let mut prev = [0; 4];
         match e.class {
             // A hash row compresses a zero block, and rewrites the result it finds there.
@@ -238,20 +232,17 @@ impl TraceBuilder {
                     prev: all,
                 });
             }
-            // An extension-field row multiplies zeros at address zero, and writes zero over zero.
+            // An extension-field row multiplies zeros, and writes zero over zero.
             Class::Ext => {
                 let instance = Ext {
                     flags: e.flags,
-                    pointers: [0; 3],
-                    limbs: [0; Ext::LIMBS],
+                    ..Ext::default()
                 };
-                let mut all = [0; 3 + Ext::LIMBS];
-                all.copy_from_slice(slots);
                 self.ext.push(ExtRow {
                     instance,
                     c: instance.eval(),
-                    prev: all,
                 });
+                prev[..slots.len()].copy_from_slice(slots);
             }
             _ => prev[..slots.len()].copy_from_slice(slots),
         }
@@ -279,6 +270,8 @@ impl TraceBuilder {
             ext: self.ext,
             reg_fin: m.registers().cells().iter().map(|&r| F64(r)).collect(),
             reg_ts: self.regs.timestamps(),
+            ext_fin: std::array::from_fn(|k| m.ext_registers().cells().iter().map(|r| F64(r[k])).collect()),
+            ext_ts: self.ext_regs.timestamps(),
             ram_fin: m.memory().ram().iter().map(|&w| F64(w)).collect(),
             ram_ts: ram_ts.to_vec(),
             adv_init: self.adv_init,
@@ -315,8 +308,6 @@ pub(crate) struct ExtRow {
     pub(crate) instance: Ext,
     /// `c`'s limbs after the row.
     pub(crate) c: [u64; 3],
-    /// The previous timestamp of every access, the registers' first.
-    pub(crate) prev: [u64; 3 + Ext::LIMBS],
 }
 
 /// One executed instruction, as its table's row records it.
@@ -350,8 +341,6 @@ pub(crate) enum Payload<'a> {
     None,
     /// A hash row's block, and its accesses.
     Hash(&'a HashRow),
-    /// An extension-field row's limbs, and its accesses.
-    Ext(&'a ExtRow),
 }
 
 /// A row and its payload: everything a circuit port or a column reads.
@@ -377,7 +366,6 @@ impl<'a> RowRef<'a> {
         match self.payload {
             Payload::None => &self.row.prev,
             Payload::Hash(hash) => &hash.prev,
-            Payload::Ext(ext) => &ext.prev,
         }
     }
 
@@ -405,8 +393,6 @@ pub(crate) enum Payloads<'a> {
     None,
     /// The hash table's.
     Hash(&'a [HashRow]),
-    /// The extension-field table's.
-    Ext(&'a [ExtRow]),
 }
 
 /// One table's rows, and their payloads.
@@ -424,7 +410,6 @@ impl<'a> TableRows<'a> {
         let payload = match self.payloads {
             Payloads::None => Payload::None,
             Payloads::Hash(hash) => Payload::Hash(&hash[i]),
-            Payloads::Ext(ext) => Payload::Ext(&ext[i]),
         };
         RowRef {
             row: &self.rows[i],
@@ -445,6 +430,10 @@ pub(crate) struct Trace {
     pub(crate) reg_fin: Vec<F64>,
     /// Each register's last timestamp, the seed's if never touched.
     pub(crate) reg_ts: Vec<F64>,
+    /// Each extension register's final limbs, one column per limb.
+    pub(crate) ext_fin: [Vec<F64>; 3],
+    /// Each extension register's final timestamp.
+    pub(crate) ext_ts: Vec<F64>,
     /// RAM after the run.
     pub(crate) ram_fin: Vec<F64>,
     /// Each RAM word's last timestamp.
@@ -472,7 +461,6 @@ impl Trace {
     pub(crate) fn table(&self, t: TableId) -> TableRows<'_> {
         let payloads = match t.class() {
             Class::Hash => Payloads::Hash(&self.hash),
-            Class::Ext => Payloads::Ext(&self.ext),
             _ => Payloads::None,
         };
         TableRows {

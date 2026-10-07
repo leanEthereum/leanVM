@@ -8,6 +8,7 @@
 #![no_main]
 
 use leanda::{CELLS, Dual, M};
+use leanvm_guest::ext::Registers;
 use leanvm_guest::{commit, read, read_slice};
 
 /// The most blobs a run checks: one, which is what one proof holds.
@@ -24,5 +25,6 @@ extern "C" fn main() {
     let blobs = read_slice::<[u64; M]>(n);
     // Scratch for the cell digests of every row, padding included.
     let mut cells = [[[0; 4]; CELLS]; MAX_BLOBS.next_power_of_two()];
-    commit(&leanda::check(dual, blobs, &mut cells).expect("every blob is a codeword"));
+    let mut e = Registers::new();
+    commit(&leanda::check(&mut e, dual, blobs, &mut cells).expect("every blob is a codeword"));
 }

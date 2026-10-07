@@ -45,27 +45,27 @@ The three sizes are constants of the program. The whole map lies in one $2$\,GiB
 
 \paragraph{The BLAKE2s compression.} The custom instruction \texttt{blake2s rs1, rs2} (opcode \texttt{custom-0}, \texttt{0x0b}, R-type, with \texttt{funct7} and \texttt{rd} zero) is the compression function of BLAKE2s~\cite{blake2}, on the $128$-byte \emph{block} at the address $\regs[\mathit{rs1}]$: its words $0$ to $3$ hold the $32$-byte chaining value $h$, its words $8$ to $15$ the $64$-byte message $m$, and the instruction writes the $32$-byte result to its words $4$ to $7$, leaving the rest as it found it. The byte counter $t$ is $\regs[\mathit{rs2}]$, and the finalization word $f_0$ is all ones when \texttt{funct3} is $1$ (the final block) and zero when it is $0$; the last-node flag $f_1$ is always zero. Word $k$ of the block is the cell at the address $\regs[\mathit{rs1}]\oplus 8k$, which is $\regs[\mathit{rs1}]+8k$ when the block is aligned to $128$ bytes, as the guest library ensures; an unaligned block permutes the words, deterministically, which is a guest bug rather than a soundness problem, and a base that is no word address traps like a misaligned load. A guest hashes a message by keeping $h$ and $t$ across the blocks and copying each result into $h$; the instruction reads $h$ and writes the result in different words because a proof's padding rows can rewrite a cell but not update it (\S\ref{sec:e2e-pad}).
 
-\paragraph{The extension-field multiplication.} Four custom instructions multiply in the extension field $\E=\K[y]/(y^3+y+1)$, the field the proof's challenges live in. They are R-type, with opcode \texttt{custom-1} (\texttt{0x2b}) and \texttt{funct7} zero.
+\paragraph{The extension-field multiplication.} Eight custom instructions multiply in the extension field $\E=\K[y]/(y^3+y+1)$, the field the proof's challenges live in. They are R-type, with opcode \texttt{custom-1} (\texttt{0x2b}).
 
-An element of $\E$ is three words in memory, its \emph{limbs}: $c_0+c_1y+c_2y^2$ at the byte addresses $p$, $p+8$ and $p+16$. Each limb is an element of $\K$, read as above.
+They work on $128$ \emph{extension registers}, $\eregs[0]$ to $\eregs[127]$, written \texttt{f0} to \texttt{f127}. Each holds one element of $\E$, three words, its \emph{limbs} $c_0+c_1y+c_2y^2$. Each limb is an element of $\K$, read as above. As a run starts, $\eregs[0]$, $\eregs[1]$ and $\eregs[2]$ hold the constants $1$, $y$ and $y^2$, and the others hold $0$.
 
-The three registers hold addresses: $a$ is the element at $\regs[\mathit{rs1}]$, $b$ the one at $\regs[\mathit{rs2}]$, and $c$ the one at $\regs[\mathit{rd}]$. No register is written.
+A register's number has seven bits: the five of its register field, then two of \texttt{funct7}, bits $0$ and $1$ for \texttt{fd}, $2$ and $3$ for \texttt{fs1}, $4$ and $5$ for \texttt{fs2}; bit $6$ of \texttt{funct7} is zero. Write $a=\eregs[\mathit{fs1}]$, $b=\eregs[\mathit{fs2}]$ and $c=\eregs[\mathit{fd}]$.
 \begin{center}
 \begin{tabular}{@{}cll@{}}
 \hline
 \texttt{funct3} & instruction & effect\\
 \hline
-$0$ & \texttt{extmul rd, rs1, rs2}  & $c = a\cdot b$\\
-$1$ & \texttt{extmac rd, rs1, rs2}  & $c = c+a\cdot b$\\
-$2$ & \texttt{extmulk rd, rs1, rs2} & $c = a\cdot b_0$\\
-$3$ & \texttt{extmack rd, rs1, rs2} & $c = c+a\cdot b_0$\\
+$0$ & \texttt{extmul fd, fs1, fs2}  & $c = a\cdot b$\\
+$1$ & \texttt{extmac fd, fs1, fs2}  & $c = c+a\cdot b$\\
+$2$ & \texttt{extmulk fd, fs1, rs2} & $c = a\cdot \regs[\mathit{rs2}]$\\
+$3$ & \texttt{extmack fd, fs1, rs2} & $c = c+a\cdot \regs[\mathit{rs2}]$\\
 \hline
 \end{tabular}
 \end{center}
-Bit $0$ of \texttt{funct3} adds the product to $c$. Bit $1$ makes $b$ an element of $\K$: the one word $b_0$ at $\regs[\mathit{rs2}]$.
+Bit $0$ of \texttt{funct3} adds the product to $c$. Bit $1$ makes the second operand an element of $\K$: the word in the integer register $\regs[\mathit{rs2}]$, whose number is the five-bit field alone. Bit $2$ gives each of the four a \emph{checked} form, \texttt{extmulz}, \texttt{extmacz}, \texttt{extmulkz} and \texttt{extmackz}: the instruction traps unless its result is zero. So \texttt{extmacz fd, fs1, f0} runs exactly when $\eregs[\mathit{fd}]=\eregs[\mathit{fs1}]$, and leaves $0$ in \texttt{fd}.
 
-Every operand is read before $c$ is written, so $c$ may be $a$ or $b$. For example, \texttt{extmul t0, t0, t0} squares the element at $\regs[5]$ in place.
+Every operand is read before $c$ is written, so \texttt{fd} may be \texttt{fs1} or \texttt{fs2}. For example, \texttt{extmul f5, f5, f5} squares $\eregs[5]$ in place.
 
-Every limb the instruction reads or writes must be an aligned word in RAM or the advice, as for \texttt{ld} and \texttt{sd}. Otherwise it traps.
+No instruction moves an extension register to or from memory. A word $w$ becomes an element as $1\cdot w$, by \texttt{extmulk fd, f0, rs2}, and an element in memory as $1\cdot l_0+y\cdot l_1+y^2\cdot l_2$, from its three limbs in integer registers. An element leaves the registers only through a checked form, against a value the program already has.
 
-A destination of $\regs[0]$ would name the address $0$, which is unmapped. That encoding is undefined, like every other \texttt{custom-1} encoding.
+The constants are never written: a destination below \texttt{f3} is undefined, and so is a base-field form whose \texttt{funct7} names a second operand past $\regs[31]$, like every other \texttt{custom-1} encoding.

@@ -67,6 +67,7 @@
 \newcommand{\pc}{\mathbf{pc}}
 \newcommand{\mem}{\mathbf{m}}           % RAM
 \newcommand{\regs}{\mathbf{x}}          % the register array: x0..x31, then the sink
+\newcommand{\eregs}{\mathbf{e}}         % the extension registers: f0..f127, one element of E each
 \newcommand{\adv}{\mathbf{a}}           % the advice region
 \newcommand{\tbase}{\mathsf{TEXT}}      % where the text sits
 \newcommand{\rbase}{\mathsf{RAM}}       % where RAM sits
@@ -85,6 +86,7 @@
 \newcommand{\meminit}{\mem^{\mathrm{init}}} % RAM before the run, a public column
 \newcommand{\memfin}{\mem^{\mathrm{fin}}}   % committed RAM after the run
 \newcommand{\regfin}{\regs^{\mathrm{fin}}}  % committed registers after the run
+\newcommand{\eregfin}{\eregs^{\mathrm{fin}}} % committed extension registers after the run, a column per limb
 \newcommand{\advinit}{\adv^{\mathrm{init}}} % committed advice before the run
 \newcommand{\advfin}{\adv^{\mathrm{fin}}}   % committed advice after the run
 \newcommand{\mlt}{\mathit{mult}}         % committed multiplicity column of a lookup array: entry x's read count, as a word

@@ -28,6 +28,7 @@
 use std::ops::Range;
 
 use super::entry::Class;
+use super::register::ExtReg;
 use super::register::Reg;
 use super::semantics::{Alu, Div, Ext, Hash, Load, Mul, Mulh, Shift};
 
@@ -366,13 +367,21 @@ impl Instruction {
                 last: f3 == 1,
             },
 
-            // Every register is an address, and the address in x0 would be 0, which is unmapped.
-            Opcode::Custom1 if f7 == 0 && rd != Reg::ZERO => Op::Ext {
-                op: ExtOp::from_fields(f3)?,
-                rd,
-                rs1,
-                rs2,
-            },
+            // Each extension register's number is its five-bit field, then two bits of the function-7 field.
+            //
+            // The constants are never written, and a base-field operand is an integer register.
+            Opcode::Custom1 if f7 >> 6 == 0 => {
+                let op = ExtOp::from_fields(f3)?;
+                let number =
+                    |low: Reg, pair: u32| ExtReg::new((low.index() as u32 | (f7 >> (2 * pair) & 3) << 5) as u8);
+                let (rd, rs1, rs2) = (number(rd, 0)?, number(rs1, 1)?, number(rs2, 2)?);
+                if rd.index() < ExtReg::FIRST_WRITABLE as usize
+                    || op.flags() & Ext::BASE != 0 && rs2.index() >= Reg::COUNT
+                {
+                    return None;
+                }
+                Op::Ext { op, rd, rs1, rs2 }
+            }
 
             _ => return None,
         })
@@ -657,18 +666,27 @@ operations! {
 }
 
 operations! {
-    /// An extension-field multiplication: `op rd, rs1, rs2`, every register an address, as its `funct3`.
+    /// An extension-field multiplication: `op fd, fs1, fs2`, on extension registers, as its `funct3`.
     ///
-    /// Bit 0 of the function accumulates into `rd`, and bit 1 makes `rs2` a base-field element.
+    /// Bit 0 of the function accumulates into `fd`, bit 1 makes the second operand the base-field word in the integer
+    /// register `rs2`, and bit 2 requires the result to be zero.
     ExtOp: u32 {
-        /// `E[rd] = E[rs1] * E[rs2]`.
+        /// `fd = fs1 * fs2`.
         Extmul = "extmul" => 0,
-        /// `E[rd] = E[rd] + E[rs1] * E[rs2]`.
+        /// `fd = fd + fs1 * fs2`.
         Extmac = "extmac" => 1,
-        /// `E[rd] = E[rs1] * K[rs2]`.
+        /// `fd = fs1 * rs2`.
         Extmulk = "extmulk" => 2,
-        /// `E[rd] = E[rd] + E[rs1] * K[rs2]`.
+        /// `fd = fd + fs1 * rs2`.
         Extmack = "extmack" => 3,
+        /// `extmul`, which must give zero.
+        Extmulz = "extmulz" => 4,
+        /// `extmac`, which must give zero: `fd = fs1 * fs2` as it is found.
+        Extmacz = "extmacz" => 5,
+        /// `extmulk`, which must give zero.
+        Extmulkz = "extmulkz" => 6,
+        /// `extmack`, which must give zero.
+        Extmackz = "extmackz" => 7,
     }
 }
 
@@ -826,19 +844,27 @@ impl StoreOp {
 }
 
 impl ExtOp {
-    /// The instruction `op rd, rs1, rs2`.
-    pub const fn encode(self, rd: Reg, rs1: Reg, rs2: Reg) -> Instruction {
-        Instruction::r(Opcode::Custom1, self.fields(), 0, rd, rs1, rs2)
+    /// The instruction `op fd, fs1, fs2`: each number's low five bits in its register field, its high two in the
+    /// function-7 field, `fd`'s lowest.
+    ///
+    /// A base-field form's `rs2` is an integer register, numbered below 32.
+    pub const fn encode(self, rd: ExtReg, rs1: ExtReg, rs2: ExtReg) -> Instruction {
+        let (d, a, b) = (rd.index() as u32, rs1.index() as u32, rs2.index() as u32);
+        Instruction(
+            Opcode::Custom1.bits()
+                | Instruction::RD.place(d & 31)
+                | Instruction::FUNCT3.shift(self.fields())
+                | Instruction::RS1.place(a & 31)
+                | Instruction::RS2.place(b & 31)
+                | Instruction::FUNCT7.shift(d >> 5 | (a >> 5) << 2 | (b >> 5) << 4),
+        )
     }
 
-    /// The extension-field product's flag word.
+    /// The extension-field product's flag word: the function's bits.
     const fn flags(self) -> u64 {
-        match self {
-            Self::Extmul => 0,
-            Self::Extmac => Ext::ACCUMULATE,
-            Self::Extmulk => Ext::BASE,
-            Self::Extmack => Ext::ACCUMULATE | Ext::BASE,
-        }
+        let flags = self.fields() as u64;
+        debug_assert!(flags < 8 && Ext::ACCUMULATE == 1 && Ext::BASE == 2 && Ext::ZERO == 4);
+        flags
     }
 }
 
@@ -909,8 +935,13 @@ pub enum Op {
     Ecall,
     /// `blake2s rs1, rs2`: compress the block at `rs1` with the counter in `rs2`, the final one if `last`.
     Blake2s { rs1: Reg, rs2: Reg, last: bool },
-    /// `op rd, rs1, rs2`, every register an address, `rd` never `x0`.
-    Ext { op: ExtOp, rd: Reg, rs1: Reg, rs2: Reg },
+    /// `op fd, fs1, fs2` on extension registers, `fd` never a constant, a base-field form's `fs2` an integer register.
+    Ext {
+        op: ExtOp,
+        rd: ExtReg,
+        rs1: ExtReg,
+        rs2: ExtReg,
+    },
 }
 
 impl Op {
@@ -962,11 +993,6 @@ mod tests {
     use proptest::sample::select;
     use std::collections::HashSet;
 
-    /// Any register but `x0`.
-    fn nonzero_reg() -> impl Strategy<Value = Reg> {
-        (1u8..32).prop_map(|i| Reg::new(i).expect("below 32"))
-    }
-
     /// Any operation, every operand in its format's range.
     fn any_op() -> impl Strategy<Value = Op> {
         let (reg, imm) = (any::<Reg>, || -2048i32..2048);
@@ -1004,11 +1030,16 @@ mod tests {
             Just(Op::Fence),
             Just(Op::Ecall),
             (reg(), reg(), any::<bool>()).prop_map(|(rs1, rs2, last)| Op::Blake2s { rs1, rs2, last }),
-            (select(&ExtOp::ALL[..]), nonzero_reg(), reg(), reg()).prop_map(|(op, rd, rs1, rs2)| Op::Ext {
-                op,
-                rd,
-                rs1,
-                rs2
+            (select(&ExtOp::ALL[..]), 3u8..128, 0u8..128, 0u8..128).prop_map(|(op, rd, rs1, rs2)| {
+                // A base-field form's second operand is an integer register.
+                let rs2 = if op.flags() & Ext::BASE != 0 { rs2 % 32 } else { rs2 };
+                let reg = |i| ExtReg::new(i).expect("an extension register");
+                Op::Ext {
+                    op,
+                    rd: reg(rd),
+                    rs1: reg(rs1),
+                    rs2: reg(rs2),
+                }
             }),
         ]
     }
@@ -1183,16 +1214,16 @@ mod tests {
             .chain(
                 ExtOp::ALL
                     .iter()
-                    .map(|op| (op.mnemonic(), op.encode(zero, zero, zero).bits())),
+                    .map(|op| (op.mnemonic(), op.encode(ExtReg::F3, ExtReg::ONE, ExtReg::ONE).bits())),
             )
             .collect();
 
-        // rv64im has 58 such operations, 28 + 7 + 6 + 7 + 4 + 6, and the extension field adds 4.
-        assert_eq!(all.len(), 62);
+        // rv64im has 58 such operations, 28 + 7 + 6 + 7 + 4 + 6, and the extension field adds 8.
+        assert_eq!(all.len(), 66);
 
         // A duplicate would make two names emit, or decode to, the same instruction.
         let mnemonics: HashSet<_> = all.iter().map(|&(name, _)| name).collect();
         let encodings: HashSet<_> = all.iter().map(|&(_, bits)| bits).collect();
-        assert_eq!((mnemonics.len(), encodings.len()), (62, 62));
+        assert_eq!((mnemonics.len(), encodings.len()), (66, 66));
     }
 }

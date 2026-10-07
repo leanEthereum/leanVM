@@ -650,12 +650,18 @@ def framework_tuples(layout: Layout, lows: dict[str, MultilinearPoint]) -> dict[
         """A read-write array: every cell starts at the seed's timestamp holding `initial`, and ends at its last timestamp holding its final word."""
         return (separator, index, E(SEED_CLOCK), initial), (separator, index, Column(SHARED[final_ts]), Column(SHARED[final]))
 
+    # An extension register holds three limbs. The first three registers start as 1, y and y^2, the others at zero, so
+    # limb k's initial column is one at cell k and zero elsewhere: the indicator of k's bits.
+    ext_index = int_index_mle(0, 0, lows["ext_registers"])
+    ext_initial = [eq_eval([E(k >> bit & 1) for bit in range(LOG_EXT_REGISTERS)], lows["ext_registers"]) for k in range(3)]
+    ext_final = [Column(SHARED[f"ext_final_{k}"]) for k in range(3)]
     halt_pc = E(TEXT_BASE + 4 * (2**layout.log_bytecode - 1))  # the run ends on the text's last slot, which is never executed
     return {
         # cycle 1, then the halt slot at the announced clock, marked as an exit
         "state": ((SEP_STATE, E(layout.entry_pc), E(CLOCK_START), ZERO), (SEP_STATE, halt_pc, layout.final_clock, ONE)),
         # the registers start at zero, RAM as the statement has it, the advice as the prover has it
         "registers": array(SEP_REG, int_index_mle(0, 0, lows["registers"]), ZERO, "register_final_ts", "register_final"),
+        "ext_registers": ((SEP_EXT, ext_index, E(SEED_CLOCK), *ext_initial), (SEP_EXT, ext_index, Column(SHARED["ext_final_ts"]), *ext_final)),
         "ram": array(SEP_MEM, int_index_mle(RAM_BASE, 3, lows["ram"]), Image(), "ram_final_ts", "ram_final"),
         "advice": array(SEP_MEM, int_index_mle(ADVICE_BASE, 3, lows["advice"]), Column(SHARED["advice_initial"]), "advice_final_ts", "advice_final"),
     }
@@ -803,7 +809,7 @@ def table_sumcheck(
 
 # The bus blocks no instruction table owns, which each side starts with, in this order: the run's boundary, then
 # the read-write arrays.
-FRAMEWORK = ("state", "registers", "ram", "advice")
+FRAMEWORK = ("state", "registers", "ext_registers", "ram", "advice")
 # The read-only arrays, whose table side is a producer pushing each entry as often as it is read.
 LOOKUPS = ("bytecode",)
 # The committed columns no instruction table owns, each with the array whose rows it has: each read-write array's final
@@ -814,6 +820,10 @@ LOOKUPS = ("bytecode",)
 SHARED_COLUMNS = (
     ("register_final", "registers"),
     ("register_final_ts", "registers"),
+    ("ext_final_0", "ext_registers"),
+    ("ext_final_1", "ext_registers"),
+    ("ext_final_2", "ext_registers"),
+    ("ext_final_ts", "ext_registers"),
     ("ram_final", "ram"),
     ("ram_final_ts", "ram"),
     ("advice_initial", "advice"),
@@ -846,6 +856,8 @@ MAX_LOG_ADVICE = 26
 MAX_LOG_ROWS = 32
 LOG_REGISTERS = 6
 REGISTER_BITS = 5  # a register's number: x0..x31
+LOG_EXT_REGISTERS = 7  # the extension registers f0..f127, one element of E each
+EXT_CONSTANTS = 3  # f0, f1 and f2 hold 1, y and y^2, and nothing writes them
 SINK = 32
 SYSCALL_REGISTER, SYS_EXIT = 17, 93  # a7 holds `exit` when the run halts
 OUTPUT_REGISTERS = (10, 11, 12, 13)  # a0..a3, the public output
@@ -878,6 +890,7 @@ def framework_log_rows(log_bytecode: int, log_ram: int, log_advice: int) -> dict
     return {
         "state": 0,
         "registers": LOG_REGISTERS,
+        "ext_registers": LOG_EXT_REGISTERS,
         "ram": log_ram,
         "advice": log_advice,
         "bytecode": log_bytecode,
@@ -913,6 +926,7 @@ SEP_STATE = ONE
 SEP_MEM = GEN
 SEP_BYTECODE = GEN**2
 SEP_REG = GEN**3
+SEP_EXT = GEN**4
 
 # The registers and RAM are read-write, ordered by a clock. A timestamp is the integer 2^40 | cycle << 5 | slot: bit 40,
 # the live bit, is set on every tuple of the run and on the seeds, and clear on a padding row's, whose clock is zero.
@@ -930,12 +944,8 @@ RAM_SLOT = 2
 HASH_WORDS = 16
 HASH_OUT_WORD = 4  # the block's words 4 to 7 receive the result
 HASH_SLOTS = tuple(range(2, 2 + HASH_WORDS))
-EXT_LIMBS = 9  # an extension-field row's limbs: a's, b's, then c's, three each
-EXT_SLOTS = tuple(range(REGISTER_SLOTS[2] + 1, REGISTER_SLOTS[2] + 1 + EXT_LIMBS))  # after its three register reads
-EXT_OFFSET_LIMBS = (1, 2, 4, 5, 7, 8)  # the limbs at no pointer, p + 8 and p + 16, whose addresses the clock circuit computes
-EXT_ACCUMULATE, EXT_BASE = 1, 2  # the flags: add the product to c, and read b as a base-field element
-EXT_LEGAL_FLAGS = frozenset((0, EXT_ACCUMULATE, EXT_BASE, EXT_BASE | EXT_ACCUMULATE))
-EXT_CLOCK_OUTPUTS = ("flag_bit_0", "flag_bit_1", *(f"limb_address_{k}" for k in EXT_OFFSET_LIMBS))  # the flags' bits, then the addresses
+EXT_LIMBS = 9  # an extension-field row's limbs as found: a's, b's, then c's, three each
+EXT_SELECTORS = ("accumulate", "base", "zero")  # the flags' bits, one 0 or 1 column each
 
 
 class Flushes:
@@ -960,8 +970,12 @@ class Flushes:
     def access(self, columns: Sequence[str], separator: Form, address: Form, access: int, slot: int, old: Form, new: Form) -> None:
         """Access `access` of the row, at clock slot `slot`: pull the cell as its previous access left it, at the
         timestamp `prev`, and push it back at this access's own, ts ^ slot. The row's clock circuit orders the two."""
+        self.wide(columns, separator, address, access, slot, (old,), (new,))
+
+    def wide(self, columns: Sequence[str], separator: Form, address: Form, access: int, slot: int, old: Sequence[Form], new: Sequence[Form]) -> None:
+        """An access to a cell of several words: an extension register's three limbs."""
         ts, prev = _cols(columns, "ts", f"prev_{access}")
-        self.pair((separator, address, _col(ts) + _const(slot), new), (separator, address, _col(prev), old))
+        self.pair((separator, address, _col(ts) + _const(slot), *new), (separator, address, _col(prev), *old))
 
 
 # The instruction tables ------------------------------------------------------
@@ -975,19 +989,14 @@ class Flushes:
 # receives or the v2 that the cell receives. The hash class also accesses the sixteen words of its block, the result's
 # four rewritten.
 #
-# The extension-field class has no class circuit. Its row reads rd as an address (`vd`), then nine limbs, committed
-# columns: a's and b's read, c's rewritten. A base-field b's two high limbs are reads of x0. Its table's identities say
-# the product, and its clock circuit splits the flags into their bits and computes the addresses of the limbs at no
-# pointer.
+# The extension-field class (`wide`) has no class circuit. Its three registers are extension registers, each access one
+# element of E, three limbs, committed columns: a and b read, c rewritten. A base-field b is an integer register. Its
+# flags' three bits are columns of their own, in the bytecode's flags, immediate and offset slots, and its table's
+# identities say the product and what the bits require.
 
 CONTROL_COLUMNS = ("dt", "jump", "exit")  # a class with jumps: the bytecode's offset, the circuit's gated jump, the exit
 HASH_COLUMNS = (*(f"cell_{k}" for k in range(HASH_WORDS)), *(f"cell_new_{HASH_OUT_WORD + j}" for j in range(4)))
-EXT_COLUMNS = (
-    *(f"limb_{k}" for k in range(EXT_LIMBS)),
-    *(f"limb_new_{k}" for k in range(6, EXT_LIMBS)),
-    *(f"limb_address_{k}" for k in EXT_OFFSET_LIMBS),
-)
-RAM_COLUMNS = {"none": (), "read": ("address", "cell_0"), "write": ("address", "cell_0", "cell_new_0"), "block": HASH_COLUMNS, "limbs": EXT_COLUMNS}
+RAM_COLUMNS = {"none": (), "read": ("address", "cell_0"), "write": ("address", "cell_0", "cell_new_0"), "block": HASH_COLUMNS}
 
 
 EXIT_SLOT = 11  # public selector: only ECALL can terminate the state channel
@@ -995,37 +1004,60 @@ BAD_SLOT = 10  # where a bytecode tuple holds a row's `bad` word: past every fie
 BYTECODE_PUBLIC_SLOT = 2  # an entry's first field, after the separator and the address
 
 
-def _registers(ram: str, words: Sequence[str | None], copies: bool) -> tuple[bool, bool]:
-    """Whether a row reads rs2 and writes rd: when its circuits take v2 and give out, or when it is a doubleword store
-    reading the v2 it moves, or a doubleword load writing the cell it moves."""
-    return "v2" in words or (copies and ram == "write"), "out" in words or (copies and ram == "read")
+def _registers(ram: str, words: Sequence[str | None], copies: bool, wide: bool) -> tuple[bool, bool]:
+    """Whether a row reads rs2 and writes rd: when its circuits take v2 and give out, when it is a doubleword store
+    reading the v2 it moves, or a doubleword load writing the cell it moves, or when it is an extension-field product."""
+    return wide or "v2" in words or (copies and ram == "write"), wide or "out" in words or (copies and ram == "read")
 
 
-def _class_columns(control: bool, ram: str, words: Sequence[str | None], copies: bool) -> tuple[str, ...]:
-    reads_rs2, writes_rd = _registers(ram, words, copies)
+def _class_columns(control: bool, ram: str, words: Sequence[str | None], copies: bool, wide: bool) -> tuple[str, ...]:
+    if wide:
+        # The nine limbs as found, the two other register numbers, c's new limbs, then the flags' bits.
+        limbs = (*(f"limb_{k}" for k in range(EXT_LIMBS)), "a2", "ad", *(f"limb_new_{k}" for k in range(3)))
+        return ("pc", "ts", "a1", "pc4", *limbs, *EXT_SELECTORS, *(f"prev_{i}" for i in range(len(REGISTER_SLOTS))), "step")
+    reads_rs2, writes_rd = _registers(ram, words, copies, wide)
     # A doubleword store's new cell is its v2 column.
     ram_columns = RAM_COLUMNS[ram][:2] if copies else RAM_COLUMNS[ram]
-    flag_bits = tuple(word for word in words if word and word.startswith("flag_bit_"))
     return (
         "pc", "ts", "a1", "pc4", "v1", *(("flags",) if "flags" in words else ()), *(("a2", "v2") if reads_rs2 else ()),
-        *(("ad", "vd_old") if writes_rd else ()), *(("out",) if "out" in words else ()), *(("ad", "vd") if "vd" in words else ()),
-        *(CONTROL_COLUMNS if control else ()), *(("imm",) if "imm" in words else ()), *ram_columns, *flag_bits, *(("bad",) if "bad" in words else ()),
-        *(f"prev_{i}" for i in range(len(_slots(ram, reads_rs2, writes_rd or "vd" in words)))), "step",
+        *(("ad", "vd_old") if writes_rd else ()), *(("out",) if "out" in words else ()),
+        *(CONTROL_COLUMNS if control else ()), *(("imm",) if "imm" in words else ()), *ram_columns, *(("bad",) if "bad" in words else ()),
+        *(f"prev_{i}" for i in range(len(_slots(ram, reads_rs2, writes_rd)))), "step",
     )  # fmt: skip
 
 
-def _slots(ram: str, reads_rs2: bool, touches_rd: bool) -> tuple[int, ...]:
+def _slots(ram: str, reads_rs2: bool, writes_rd: bool) -> tuple[int, ...]:
     """The clock slots of a row's accesses, in the order of their columns: the registers' it makes, then RAM's."""
-    registers = tuple(slot for slot, made in zip(REGISTER_SLOTS, (True, reads_rs2, touches_rd), strict=True) if made)
+    registers = tuple(slot for slot, made in zip(REGISTER_SLOTS, (True, reads_rs2, writes_rd), strict=True) if made)
     if ram == "block":
         return (*registers, *HASH_SLOTS)
-    if ram == "limbs":
-        return (*registers, *EXT_SLOTS)
     return (*registers, RAM_SLOT) if RAM_COLUMNS[ram] else registers
 
 
-def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str, words: Sequence[str | None], copies: bool) -> Flushes:
-    reads_rs2, writes_rd = _registers(ram, words, copies)
+def _ext_flushes(opcode: int, columns: Sequence[str]) -> Flushes:
+    """An extension-field row's flushes: the state step, the bytecode read, and its three registers, each one access of
+    three limbs. Its flags' bits are the entry's flags, immediate and offset. A base-field b is an integer register,
+    under the separator SEP_EXT + base (SEP_EXT + SEP_REG), which the bit `base` picks."""
+    pc, a1, a2, ad, pc4 = _cols(columns, "pc", "a1", "a2", "ad", "pc4")
+    accumulate, base, zero = _cols(columns, *EXT_SELECTORS)
+    limbs = [_col(index) for index in _cols(columns, *(f"limb_{k}" for k in range(EXT_LIMBS)))]
+    new = [_col(index) for index in _cols(columns, *(f"limb_new_{k}" for k in range(3)))]
+    flushes = Flushes()
+    flushes.state(columns, _col(pc4), _const(ZERO))
+    entry = (_const(_gpow(opcode)), _col(accumulate), _col(a1), _col(a2), _col(ad), _col(base), _col(pc4), _col(zero))
+    entry = (*entry, *[_const(ZERO)] * (EXIT_SLOT - BYTECODE_PUBLIC_SLOT - len(entry)), _const(ZERO))
+    flushes.read((_const(SEP_BYTECODE), _col(pc), *entry))
+    second = _const(SEP_EXT) + _scaled(SEP_EXT + SEP_REG, base)
+    flushes.wide(columns, _const(SEP_EXT), _col(a1), 0, REGISTER_SLOTS[0], limbs[:3], limbs[:3])
+    flushes.wide(columns, second, _col(a2), 1, REGISTER_SLOTS[1], limbs[3:6], limbs[3:6])
+    flushes.wide(columns, _const(SEP_EXT), _col(ad), 2, REGISTER_SLOTS[2], limbs[6:], new)
+    return flushes
+
+
+def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str, words: Sequence[str | None], copies: bool, wide: bool) -> Flushes:
+    if wide:
+        return _ext_flushes(opcode, columns)
+    reads_rs2, writes_rd = _registers(ram, words, copies, wide)
     a1, pc4, v1 = _cols(columns, "a1", "pc4", "v1")
     # A row without flags, an rs2 read, an rd write or an immediate reads their constants off the entry: zero, x0, the
     # sink, and zero.
@@ -1039,8 +1071,6 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
         # What rd receives: the circuit's result (a jump's link), or the cell a doubleword load moves.
         ad, out = _cols(columns, "ad", "cell_0" if copies else "out")
         ad_form, vd = _col(ad), _col(out)
-    if "vd" in words:
-        ad_form = _col(_cols(columns, "ad")[0])
     if "imm" in words:
         imm_form = _col(_cols(columns, "imm")[0])
     if control:
@@ -1065,10 +1095,6 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
         flushes.access(columns, _const(SEP_REG), a2_form, next(accesses), REGISTER_SLOTS[1], v2, v2)
     if writes_rd:
         flushes.access(columns, _const(SEP_REG), ad_form, next(accesses), REGISTER_SLOTS[2], _col(_cols(columns, "vd_old")[0]), vd)
-    if "vd" in words:
-        # An address in rd, read and written back as found.
-        pointer = _col(_cols(columns, "vd")[0])
-        flushes.access(columns, _const(SEP_REG), ad_form, next(accesses), REGISTER_SLOTS[2], pointer, pointer)
     if ram in ("read", "write"):
         # The cell's address is the circuit's word, so an access outside RAM, or a misaligned one, pulls a tuple nothing
         # pushed. A doubleword store leaves its v2 column there, the one its rs2 read pulls.
@@ -1081,21 +1107,6 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
             old = _col(_cols(columns, f"cell_{k}")[0])
             new = _col(_cols(columns, f"cell_new_{k}")[0]) if HASH_OUT_WORD <= k < HASH_OUT_WORD + 4 else old
             flushes.access(columns, _const(SEP_MEM), _col(v1) + _const(8 * k), next(accesses), HASH_SLOTS[k], old, new)
-    if ram == "limbs":
-        # Each operand's first limb is at its pointer, the others at the addresses the clock circuit computes; c's are
-        # rewritten. A base-field b's high limbs are reads of x0, at the address zero the clock circuit gives them,
-        # under the separator SEP_MEM + base (SEP_MEM + SEP_REG), which the bit `base` picks.
-        pointers = (v1, *_cols(columns, "v2", "vd"))
-        (base,) = _cols(columns, "flag_bit_1")
-        for k in range(EXT_LIMBS):
-            operand, limb = divmod(k, 3)
-            separator = _const(SEP_MEM)
-            if operand == 1 and limb:
-                separator += _scaled(SEP_MEM + SEP_REG, base)
-            address = _col(_cols(columns, f"limb_address_{k}")[0]) if limb else _col(pointers[operand])
-            old = _col(_cols(columns, f"limb_{k}")[0])
-            new = _col(_cols(columns, f"limb_new_{k}")[0]) if k >= 6 else old
-            flushes.access(columns, separator, address, next(accesses), EXT_SLOTS[k], old, new)
     return flushes
 
 
@@ -1103,16 +1114,20 @@ def _ext_identities(columns: Sequence[str]) -> tuple[Form, ...]:
     """The extension-field table's identities: with d_m the sum of a_j b_k over j + k = m (products in K), the
     reduction y^3 = y + 1, y^4 = y^2 + y has its coefficients in GF(2), so each new limb is a sum of K products,
     c'_0 = accumulate c_0 + d_0 + d_3, c'_1 = accumulate c_1 + d_1 + d_3 + d_4 and c'_2 = accumulate c_2 + d_2 + d_4.
-    Each form is the difference of the two sides: it vanishes on a row exactly when its new limb is the product."""
-    (keep,) = _cols(columns, "flag_bit_0")
+    Each form is the difference of the two sides: it vanishes on a row exactly when its new limb is the product. Then a
+    base-field b is one word, base b_1 = base b_2 = 0, and a checked product is zero, zero c'_i = 0."""
+    keep, base, zero = _cols(columns, *EXT_SELECTORS)
     limbs = _cols(columns, *(f"limb_{k}" for k in range(EXT_LIMBS)))
+    new = _cols(columns, *(f"limb_new_{k}" for k in range(3)))
     forms = []
     for i in range(3):
-        form = _col(_cols(columns, f"limb_new_{6 + i}")[0]) + _prod(keep, limbs[6 + i])
+        form = _prod(keep, limbs[6 + i]) + _col(new[i])
         for j, k in product(range(3), repeat=2):
             if j + k == i or (j + k == 3 and i < 2) or (j + k == 4 and i > 0):
                 form += _prod(limbs[j], limbs[3 + k])
         forms.append(form)
+    forms += [_prod(base, limbs[3 + i]) for i in (1, 2)]
+    forms += [_prod(zero, new[i]) for i in range(3)]
     return tuple(forms)
 
 
@@ -1128,52 +1143,45 @@ class Table:
     ports: tuple[str | None, ...]  # the circuit's port words in order: a column each, or None for a hint, which is no column
     legal_flags: frozenset[int]
     copies: bool = False  # a doubleword load or store: the word moved is a column of its own, not a circuit word
-    clock_inputs: tuple[str, ...] = ()  # what the clock circuit reads past the timestamps, and gives past the step
-    clock_outputs: tuple[str, ...] = ()
-    clock_gates: Callable[[Sequence[int]], _GateList] = lambda slots: _clock(slots)
+    wide: bool = False  # the extension-field product: its three registers are extension registers, three limbs each
 
     @property
     def words(self) -> tuple[str | None, ...]:
-        """Every word of the table's circuits: its class circuit's, then its clock circuit's own."""
-        return (*self.ports, *self.clock_inputs, *self.clock_outputs)
+        """Every word of the table's class circuit."""
+        return self.ports
 
     @property
     def columns(self) -> tuple[str, ...]:
-        return _class_columns(self.control, self.ram, self.words, self.copies)
+        return _class_columns(self.control, self.ram, self.words, self.copies, self.wide)
 
     @property
     def flushes(self) -> Flushes:
-        return _class_flushes(self.opcode, self.columns, self.control, self.ram, self.words, self.copies)
+        return _class_flushes(self.opcode, self.columns, self.control, self.ram, self.words, self.copies, self.wide)
 
     @property
     def identities(self) -> tuple[Form, ...]:
-        """The forms the table's rows all make zero, over its columns: the extension-field product's three."""
-        return _ext_identities(self.columns) if self.ram == "limbs" else ()
+        """The forms the table's rows all make zero, over its columns: the extension-field product's."""
+        return _ext_identities(self.columns) if self.wide else ()
 
     @property
     def slots(self) -> tuple[int, ...]:
-        return _slots(self.ram, self.reads_rs2, self.writes_rd or self.reads_rd)
+        return _slots(self.ram, self.reads_rs2, self.writes_rd)
 
     @property
     def reads_rs2(self) -> bool:
-        return _registers(self.ram, self.words, self.copies)[0]
+        return _registers(self.ram, self.words, self.copies, self.wide)[0]
 
     @property
     def writes_rd(self) -> bool:
-        return _registers(self.ram, self.words, self.copies)[1]
-
-    @property
-    def reads_rd(self) -> bool:
-        """Whether the row reads rd as an address rather than writing it."""
-        return "vd" in self.words
+        return _registers(self.ram, self.words, self.copies, self.wide)[1]
 
     @cached_property
     def clock(self) -> FlockCircuit:
-        return self.clock_gates(self.slots).circuit()
+        return _clock(self.slots).circuit()
 
     @property
     def clock_ports(self) -> tuple[str, ...]:
-        return ("ts", *(f"prev_{i}" for i in range(len(self.slots))), *self.clock_inputs, "step", *self.clock_outputs)
+        return ("ts", *(f"prev_{i}" for i in range(len(self.slots))), "step")
 
     @property
     def width(self) -> int:
@@ -1183,12 +1191,12 @@ class Table:
     def registers(self) -> tuple[tuple[int, int], ...]:
         """The register numbers a row reads off its entry, a1, then a2 and ad where it has them, each with its width:
         not committed, but packed in this order into a committed word (`register_words`), which the opening reads bit by
-        bit. A register read is below 32, five bits; a cell written may be the sink, 32, six bits."""
-        fields = (("a1", REGISTER_BITS), *((("a2", REGISTER_BITS),) if self.reads_rs2 else ()))
+        bit. A register read is below 32, five bits; a cell written may be the sink, 32, six bits; an extension register
+        is below 128, seven bits."""
+        read, written = (LOG_EXT_REGISTERS, LOG_EXT_REGISTERS) if self.wide else (REGISTER_BITS, LOG_REGISTERS)
+        fields = (("a1", read), *((("a2", read),) if self.reads_rs2 else ()))
         if self.writes_rd:
-            fields += (("ad", LOG_REGISTERS),)
-        elif self.reads_rd:
-            fields += (("ad", REGISTER_BITS),)
+            fields += (("ad", written),)
         return tuple((_cols(self.columns, name)[0], width) for name, width in fields)
 
     def read_registers(self, transcript: Transcript) -> tuple[dict[int, E], tuple[E, ...]]:
@@ -2030,14 +2038,13 @@ def _blake2s() -> _GateList:
     return c
 
 
-def _clock(slots: Sequence[int], inputs: Sequence[int] = (), outputs: Sequence[int] = ()) -> _GateList:
+def _clock(slots: Sequence[int]) -> _GateList:
     """(ts, prev_0, ..., prev_n) -> step, for a row whose accesses are in clock slots `slots`: the next clock is
     ts ^ step, ts one cycle on when the row is live (bit 40) and ts itself on a padding row. Bit 41 of step is set
     when an access is out of order: its previous timestamp disagrees with ts on the live bit, or, on a live row, is
     not strictly below ts ^ slot. Each input reads its bits up to the live bit, the others being forced zero, and ts
-    has its slot bits forced zero too, so ts | slot, which the order check compares with, is ts ^ slot. Ports of the
-    widths `inputs` and `outputs` follow its own, for a table with no class circuit to compute what it needs."""
-    c = _GateList((range(SLOT_BITS, LIVE_BIT + 1), *(LIVE_BIT + 1,) * len(slots), *inputs), (FAIL_BIT + 1, *outputs))
+    has its slot bits forced zero too, so ts | slot, which the order check compares with, is ts ^ slot."""
+    c = _GateList((range(SLOT_BITS, LIVE_BIT + 1), *(LIVE_BIT + 1,) * len(slots)), (FAIL_BIT + 1,))
     ts = c.inputs[0]
     live = ts[LIVE_BIT]
     in_order: list[Wire] = []
@@ -2067,40 +2074,6 @@ def _clock(slots: Sequence[int], inputs: Sequence[int] = (), outputs: Sequence[i
     return c
 
 
-def _increment(c: _GateList, x: Sequence[Wire], bit: int) -> list[Wire]:
-    """x + 2^bit modulo 2^64: the carry enters at `bit` and ripples up, one product per position past it, the carry
-    into bit + 1 being x_bit itself."""
-    out = list(x)
-    carry = c.one
-    for i in range(bit, 64):
-        total = c.xor(out[i], carry)
-        if i + 1 < 64:  # the carry out of the top position falls off the modulus
-            carry = out[i] if i == bit else c.product(out[i], carry)
-        out[i] = total
-    return out
-
-
-def _ext_clock(slots: Sequence[int]) -> _GateList:
-    """(ts, prev_0, ..., prev_11, v1, v2, vd, flags) -> (step, accumulate, base, the addresses of limbs 1, 2, 4, 5, 7
-    and 8): the clock circuit of the extension-field table, which also splits the flags into their two bits, each a
-    whole port, and computes p + 8 and p + 16 for each pointer, a's, then b's, then c's, by incrementers. A base-field
-    b's are gated off to zero, the register number of x0. A pointer off its word leaves its low bits in every limb's
-    address, which then names no cell."""
-    c = _clock(slots, (64, 64, 64, 2), (1, 1, *[64] * len(EXT_OFFSET_LIMBS)))
-    *pointers, (accumulate_bit, base) = c.inputs[1 + len(slots) :]
-    c.output(1, 0, accumulate_bit)
-    c.output(2, 0, base)
-    not_base = c.invert(base)
-    for i, pointer in enumerate(pointers):
-        for j, bit in enumerate((3, 4)):
-            for k, wire in enumerate(_increment(c, pointer, bit)):
-                if i == 1:
-                    c.and_output(3 + 2 * i + j, k, not_base, wire)
-                else:
-                    c.output(3 + 2 * i + j, k, wire)
-    return c
-
-
 HASH_PORTS = ("v2", "flags", *(f"cell_{k}" for k in (*range(4), *range(8, 16))), *(f"cell_new_{HASH_OUT_WORD + j}" for j in range(4)))
 HASH_FINAL = 2**32 - 1
 
@@ -2120,20 +2093,10 @@ TABLES = (
     Table("div", 8, False, "none", _div().circuit(), ("v1", "v2", "flags", None, None, "out", "bad"), frozenset(range(8))),
     # The BLAKE2s precompile: the counter is v2 and the flags are the finalization word, all ones on the last block.
     Table("hash", 9, False, "block", _blake2s().circuit(), HASH_PORTS, frozenset((0, HASH_FINAL))),
-    # The extension-field precompile, with no class circuit: a at v1, b at v2 and c at the address in rd. Its identities
-    # say the product; its clock circuit splits the flags (accumulate, base field) and computes the limbs' addresses.
-    Table(
-        "ext",
-        10,
-        False,
-        "limbs",
-        None,
-        (),
-        EXT_LEGAL_FLAGS,
-        clock_inputs=("v1", "v2", "vd", "flags"),
-        clock_outputs=EXT_CLOCK_OUTPUTS,
-        clock_gates=_ext_clock,
-    ),
+    # The extension-field precompile, on extension registers, with no class circuit: its identities say the product.
+    # Its flags are three bits (accumulate, base field, zero result), which the bytecode holds apart: `accumulate` in its
+    # flags slot, `base` and `zero` in its immediate and offset slots.
+    Table("ext", 10, False, "none", None, (), frozenset(range(8)), wide=True),
 )
 
 TABLE_WIDTHS = tuple(t.width for t in TABLES)
@@ -2191,6 +2154,15 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
         table = tags.get(tag[z])
         if table is None:
             raise VerificationError("a bytecode entry names no class")
+        if table.wide:
+            # Extension registers: the constants are never written, a base-field operand is an integer register, and
+            # the flags' three bits are the entry's flags, immediate and offset.
+            second = 2 ** (REGISTER_BITS if imm[z] else LOG_EXT_REGISTERS)
+            named = a1[z] < 2**LOG_EXT_REGISTERS and a2[z] < second and EXT_CONSTANTS <= ad[z] < 2**LOG_EXT_REGISTERS
+            require(named, "a bytecode entry misnames an extension register")
+            require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
+            require(flags[z] <= 1 and imm[z] <= 1 and dt[z] <= 1 and exit[z] == 0, "a bytecode entry's flags are not its class's")
+            continue
         require(a1[z] < 32 and a2[z] < 32 and 1 <= ad[z] <= SINK, "a bytecode entry misnames a register")
         require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
         require(flags[z] in table.legal_flags, "a bytecode entry's flags are not its class's")
@@ -2207,8 +2179,7 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
             require(dt[z] == 0, "a bytecode entry has invalid control flow")
         # A field the class's table holds at a constant has to be that constant.
         require(table.reads_rs2 or a2[z] == 0, "a bytecode entry reads an rs2 its class does not")
-        require(table.writes_rd or table.reads_rd or ad[z] == SINK, "a bytecode entry writes an rd its class does not")
-        require(not table.reads_rd or ad[z] < SINK, "a bytecode entry reads an address from the sink")
+        require(table.writes_rd or ad[z] == SINK, "a bytecode entry writes an rd its class does not")
         require("imm" in table.words or imm[z] == 0, "a bytecode entry has an immediate its class does not")
 
 
@@ -2481,7 +2452,7 @@ def verify_core(
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
     require(entry_pc % 4 == 0 and TEXT_BASE <= entry_pc < halt_pc, "the entry pc is not an instruction of the text")
-    preimage = b"leanvm-rv64im-11" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-12" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 
@@ -2620,6 +2591,8 @@ def protocol_constants() -> str:
         "INITIAL_FOLDING_FACTOR": INITIAL_FOLDING_FACTOR,
         "LOG_PACKING": LOG_PACKING,
         "LIVE_BIT": LIVE_BIT,
+        "EXT_CONSTANTS": EXT_CONSTANTS,
+        "LOG_EXT_REGISTERS": LOG_EXT_REGISTERS,
         "LOG_REGISTERS": LOG_REGISTERS,
         "MAX_LOG_ADVICE": MAX_LOG_ADVICE,
         "MAX_LOG_RAM": MAX_LOG_RAM,

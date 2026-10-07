@@ -131,8 +131,8 @@ impl FlockId {
         let n_ports = match (self.part, &spec.circuit) {
             (Part::Class, Some(circuit)) => circuit.inputs.len() + circuit.outputs.len(),
             (Part::Class, None) => unreachable!(),
-            // The clock, each access's previous timestamp and the clock's own inputs, then the step and its own outputs.
-            (Part::Clock, _) => spec.n_accesses() + 2 + spec.clock_inputs.len() + spec.clock_outputs.len(),
+            // The clock and each access's previous timestamp, then the step.
+            (Part::Clock, _) => spec.n_accesses() + 2,
         };
         Shape {
             k_log: self.k_log(),
@@ -147,7 +147,7 @@ impl FlockId {
             let (spec, part) = (self.table.spec(), self.part);
             let (circuit, n_inputs) = match &spec.circuit {
                 Some(circuit) if part == Part::Class => (spec.class.circuit(), circuit.inputs.len()),
-                _ => (spec.clock_circuit(), 1 + spec.n_accesses() + spec.clock_inputs.len()),
+                _ => (spec.clock_circuit(), 1 + spec.n_accesses()),
             };
             let shape = self.shape();
             assert_eq!(
@@ -264,21 +264,7 @@ impl FlockId {
         // A clock circuit, and a class with a word-level witness, skip the walk of the gate list;
         // the others walk it 64 instances at a time.
         match (part, fill) {
-            // A clock circuit with ports of its own (EXT's) takes its input words through its ports.
-            (Part::Clock, _) if !spec.clock_inputs.is_empty() => circuit.generate_witness_with_into(
-                z,
-                rows,
-                &rows[0],
-                n_blocks_log,
-                |row, z, az, bz| {
-                    let mut words = [0u64; MAX_INPUT_WORDS];
-                    let words = &mut words[..n_inputs];
-                    input_words(row, words);
-                    spec.clock_witness(&slots, words, z, az, bz);
-                },
-                check,
-            ),
-            // The others read the row's clock and previous timestamps straight off it.
+            // A clock circuit reads the row's clock and previous timestamps straight off it.
             (Part::Clock, _) => circuit.generate_witness_with_into(
                 z,
                 rows,

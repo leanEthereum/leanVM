@@ -53,11 +53,6 @@ impl Clock {
         2 + k as u32
     }
 
-    /// An extension-field row reads its three registers, then accesses its limbs in order: `a`'s, `b`'s, then `c`'s.
-    pub const fn limb_slot(k: usize) -> u32 {
-        Self::REG_SLOTS[2] + 1 + k as u32
-    }
-
     /// Circuit checking that each access follows its cell's previous timestamp.
     ///
     /// - Inputs: row clock, its slot bits forced zero, then one previous timestamp per access.
@@ -68,26 +63,12 @@ impl Clock {
     ///
     /// Panics if an access slot does not fit in five bits.
     pub fn circuit(slots: &[u32]) -> Circuit {
-        Self::builder(slots, &[], &[]).finish()
-    }
-
-    /// [`Self::circuit`] before it is finished, with more input and output ports of these widths past its own, for
-    /// the caller to compute: a table with no class circuit checks what it needs of its operands there.
-    ///
-    /// # Panics
-    ///
-    /// Panics if an access slot does not fit in five bits.
-    pub fn builder(slots: &[u32], inputs: &[usize], outputs: &[usize]) -> Builder {
         // Invariant: the clock's slot bits are structural zeros.
         // So the timestamp an access is ordered at, its slot ORed in, is the one its tuple carries, its slot XORed in.
         let input_bits: Vec<Range<usize>> = std::iter::once(Self::SLOT_BITS as usize..Self::CLOCK_BITS)
             .chain(std::iter::repeat_n(0..Self::CLOCK_BITS, slots.len()))
-            .chain(inputs.iter().map(|&bits| 0..bits))
             .collect();
-        let output_bits: Vec<usize> = std::iter::once(Self::CLOCK_BITS + 1)
-            .chain(outputs.iter().copied())
-            .collect();
-        let mut c = Builder::with_input_ranges(&input_bits, &output_bits);
+        let mut c = Builder::with_input_ranges(&input_bits, &[Self::CLOCK_BITS + 1]);
         let ts = c.input(0);
         let live = ts[Self::LIVE_BIT as usize];
         let mut in_order = Vec::with_capacity(slots.len());
@@ -132,7 +113,7 @@ impl Clock {
             carry = c.and_output(0, bit + 1, timestamp, carry);
         }
         c.output(0, Self::FAIL_BIT as usize, fail);
-        c
+        c.finish()
     }
 
     /// Reference clock transition as an XOR mask, with bit 41 set on an ordering failure.
@@ -172,25 +153,9 @@ impl Clock {
     ///     bits 5..40                               A·z = x_b ^ c_b    B·z = y_b ^ c_b
     /// ```
     pub fn witness(slots: &[u32], ts: u64, prev: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
-        Self::witness_with(slots, ts, prev, [0, 0], [z, az, bz], |_| {});
-    }
-
-    /// [`Self::witness`] for a circuit of [`Self::builder`] with `extra` more input and output ports past its own:
-    /// the clock's words and products, then the products `more` pushes.
-    ///
-    /// The extra ports' words are the caller's to write: the step is word `n + 1 + extra[0]`, the constant the first
-    /// bit of the word `extra[1]` past it.
-    pub(crate) fn witness_with(
-        slots: &[u32],
-        ts: u64,
-        prev: &[u64],
-        extra: [usize; 2],
-        [z, az, bz]: [&mut [u64]; 3],
-        more: impl FnOnce(&mut Products),
-    ) {
         let n = slots.len();
         assert_eq!(prev.len(), n);
-        let step_word = n + 1 + extra[0];
+        let step_word = n + 1;
         const LOW: u64 = (1 << Clock::LIVE_BIT) - 1;
         const READ: u64 = (1 << Clock::CLOCK_BITS) - 1;
         // The clock's slot bits are structural zeros, so its port reads the bits above them.
@@ -206,7 +171,7 @@ impl Clock {
         let live = ts >> Self::LIVE_BIT;
 
         // The constant, then the products, start past the output ports.
-        let mut products = Products::new([z, az, bz], step_word + 1 + extra[1]);
+        let mut products = Products::new([z, az, bz], step_word + 1);
         products.push(1, 1, 1);
 
         let (mut in_order, mut disagree) = (0u32, 0);
@@ -250,7 +215,6 @@ impl Clock {
         let copies = live << Self::SLOT_BITS | fail << Self::FAIL_BIT;
         let ts_bits = cycle << (Self::SLOT_BITS + 1);
         let carry_bits = (carries & run(CYCLES)) << (Self::SLOT_BITS + 1);
-        more(&mut products);
         let [z, az, bz] = products.finish();
         (z[step_word], az[step_word], bz[step_word]) = (
             step,
@@ -263,8 +227,7 @@ impl Clock {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rv::Ext;
-    use crate::tables::{TableId, Word};
+    use crate::tables::TableId;
     use flock::lincheck::LincheckCircuit;
     use primitives::field::F192;
     use primitives::test_util::Rng;
@@ -321,15 +284,13 @@ mod tests {
     fn the_word_witness_is_the_gate_walk() {
         // Invariant: the word-level clock witness writes the tables the 64-lane walk of the clock circuit's gate list writes.
         //
-        // Fixture state: every table's clock circuit (EXT's with its own ports), and one with an access in each of the 32 slots.
+        // Fixture state: every table's clock circuit, and one with an access in each of the 32 slots.
         // Rows: padding rows (clock zero), the first and the last cycle, random cycles, all ones and random words; each previous timestamp at `ts ^ slot`, around it, with the live bit flipped, a padding tuple, a seed, zero, all ones, or a random word.
-        // EXT's operands: pointers at zero, all ones, the sign bit, one limb or two below a wrap of 2^64 or of the sign bit, with every low bit set, aligned random or random; flags every legal word or a random word.
         let mut rng = Rng::new(0xC10C);
         let n_log = 12;
         for spec in TableId::ALL.into_iter().map(|t| Some(t.spec())).chain([None]) {
             let slots = spec.map_or_else(|| (0..Clock::CYCLE as u32).collect(), |spec| spec.slots());
             let circuit = spec.map_or_else(|| Clock::circuit(&slots), |spec| spec.clock_circuit());
-            let operands = spec.map_or(&[][..], |spec| spec.clock_inputs);
             let rows: Vec<Vec<u64>> = (0..1 << n_log)
                 .map(|r| {
                     let ts = match r % 6 {
@@ -357,24 +318,7 @@ mod tests {
                             }
                         })
                         .collect();
-                    let operands: Vec<u64> = (operands.iter())
-                        .map(|&word| match (word, rng.next_u64() % 12) {
-                            (Word::Flags, k) if k < 8 => Ext::LEGAL[k as usize % Ext::LEGAL.len()],
-                            (Word::Flags, _) => rng.next_u64(),
-                            (_, 0) => 0,
-                            (_, 1) => u64::MAX,
-                            (_, 2) => 1 << 63,
-                            (_, 3) => 8u64.wrapping_neg(),
-                            (_, 4) => 16u64.wrapping_neg(),
-                            (_, 5) => (1 << 63) - 8,
-                            (_, 6) => (1 << 63) - 16,
-                            (_, 7) => (1 << 63) - 1,
-                            (_, 8) => 7,
-                            (_, 9) => rng.next_u64() & !7,
-                            _ => rng.next_u64(),
-                        })
-                        .collect();
-                    [vec![ts], prev, operands].concat()
+                    [vec![ts], prev].concat()
                 })
                 .collect();
             let walk = circuit.generate_witness_from(&rows, &rows[0], n_log, |row: &Vec<u64>, words| {
