@@ -4,7 +4,7 @@ use crate::class_flock::FlockId;
 use crate::constraints::ConstraintError;
 use crate::cpu::{CpuError, DeferredClaims, Output, Program, ProvenRun, Prover, UNGROUND_LOG_BYTECODE};
 use crate::leaf::BusError;
-use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
+use crate::pcs::{Commitment, Committed, Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rec::RecError;
 use crate::rec::circuit::{Assignment, Builder, Circuit, Ew, Finished, Kw, Limbs, Unsatisfied};
 use crate::rec::fixed::FixedColumns;
@@ -496,13 +496,13 @@ fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<StackClaim>, Vec<
 // The opening's rows over `source`, its claims free wires holding the given values.
 fn opening_rows(
     shape: StackShape,
-    log_inv_rate: usize,
+    rate: Rate,
     slots: &[StackClaim],
     rings: &[RingSwitch],
     source: ProofSource<'_>,
 ) -> (Circuit, Vec<Unsatisfied>, bool) {
     let (b, (), finished) = replay(source, |r| {
-        let root = infallible(crate::pcs::read_commitment(r));
+        let commitment = infallible(Commitment::read(r, shape, rate));
         let wire = |r: &mut Rows<'_, '_>, v: &F192| r.b.free_e(*v);
         let slot_wires: Vec<StackClaim<Ew>> = (slots.iter())
             .map(|claim| match claim {
@@ -531,42 +531,38 @@ fn opening_rows(
             })
             .collect();
         let ring_wires = ring_wires(r, rings);
-        infallible(crate::pcs::verify(
-            r,
-            &slot_wires,
-            &ring_wires,
-            shape,
-            log_inv_rate,
-            root,
-        ));
+        infallible(commitment.verify(r, &slot_wires, &ring_wires));
     });
     let done = b.finish();
     (done.circuit, done.failures, finished)
 }
 
 // Commit and open, then verify natively and in rows: an honest opening holds in both, and a tampered claim fails both at the terminal check.
-fn check_opening(mu: usize, log_inv_rate: usize, seed: u64) {
+fn check_opening(mu: usize, log_inv_rate: u8, seed: u64) {
     let what = format!("mu {mu}, log_inv_rate {log_inv_rate}");
+    let rate = Rate::new(log_inv_rate).expect("a supported rate");
     let mut rng = Rng::new(seed);
     let shape = StackShape { mu, n_lanes: N_LANES };
     let q: Vec<F64> = (0..shape.committed_len()).map(|_| F64(rng.next_u64())).collect();
     let (slots, rings) = opening_claims(mu, &q, &mut rng);
 
     let mut ps = ProverState::from_label(LABEL);
-    let committed = crate::pcs::commit(&mut ps, &q, shape, log_inv_rate);
-    crate::pcs::open(&mut ps, &committed, &q, &slots, &rings);
+    let committed = Committed::new(&mut ps, &q, shape, rate).expect("a supported witness");
+    committed
+        .open(&mut ps, &q, &slots, &rings)
+        .expect("the committed witness");
     let proof = ps.into_proof();
     let native = |slots: &[StackClaim], rings: &[RingSwitch], proof: &ProofTranscript| {
         let mut vs = VerifierState::from_label(LABEL, proof);
-        let root = crate::pcs::read_commitment(&mut vs).expect("a root");
-        crate::pcs::verify(&mut vs, slots, rings, shape, log_inv_rate, root)?;
+        let commitment = Commitment::read(&mut vs, shape, rate).expect("a root");
+        commitment.verify(&mut vs, slots, rings)?;
         vs.finish().expect("the native verifier reads the whole proof");
         Ok::<_, WhirError>(vs.into_raw_proof())
     };
     let raw = native(&slots, &rings, &proof).expect("the native verifier accepts");
 
     let rows = |slots: &[StackClaim], rings: &[RingSwitch], source: ProofSource<'_>| {
-        opening_rows(shape, log_inv_rate, slots, rings, source)
+        opening_rows(shape, rate, slots, rings, source)
     };
     let (circuit, failures, finished) = rows(&slots, &rings, ProofSource::Proof(&raw));
     assert!(failures.is_empty(), "{what}: {failures:?}");

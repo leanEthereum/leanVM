@@ -13,9 +13,9 @@ use super::layout::RecLayout;
 use super::table::{HashFlock, Table};
 use crate::constraints::{Columns, ConstraintError};
 use crate::leaf::PublicColumns;
-use crate::pcs::{Rate, RingSwitch, StackClaim};
+use crate::pcs::{Commitment, Committed, Rate, RingSwitch, StackClaim};
 use crate::rv::circuits::blake2s_witness;
-use crate::{constraints, pcs, witness};
+use crate::{constraints, witness};
 use ::pcs::verifier::OpeningVerifier;
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, RawProof, VerifierState};
@@ -219,16 +219,13 @@ impl<'a> TableArgument<'a> {
         v: &mut V,
         rate: Rate,
     ) -> Result<MatrixClaim<V::E>, RecError> {
-        let root = pcs::read_commitment(v)?;
+        let commitment = Commitment::read(v, self.layout.shape, rate)?;
         let slots = v.scope("bus and tables", |v| self.verify(v))?;
         let batch = (HashFlock::FLOCK.shape(), self.layout.tau(Table::Hash));
         let [replay] = <[_; 1]>::try_from(v.scope("flock", |v| reduction::verify(&[batch], v))?)
             .unwrap_or_else(|_| unreachable!("a batch of one circuit"));
         let ring = self.layout.hash_window().ring(replay.claim);
-        let log_inv_rate = rate.log_inv_rate().into();
-        v.scope("opening", |v| {
-            pcs::verify(v, &slots, &[ring], self.layout.shape, log_inv_rate, root)
-        })?;
+        v.scope("opening", |v| commitment.verify(v, &slots, &[ring]))?;
         v.finish()?;
         Ok(replay.matrices)
     }
@@ -278,18 +275,20 @@ impl Circuit {
             "the assignment's rows are the circuit's"
         );
         let layout = RecLayout::new(self)?;
-        let log_inv_rate = rate.log_inv_rate().into();
         let mut ps = ProverState::new(iv, statement_seed(&a.statement));
 
         let w = crate::stage!("Build witness", || RecWitness::build(&layout, a));
-        let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, layout.shape, log_inv_rate));
+        let committed = crate::stage!("Commit", || Committed::new(&mut ps, &w.q, layout.shape, rate)
+            .expect("the witness matches its layout"));
         let fixed = fixed.map_or_else(|| Cow::Owned(FixedColumns::of(self, &layout.taus)), Cow::Borrowed);
         let slots = TableArgument::of(&fixed, &a.statement, &layout).prove(&w, &mut ps);
 
         let RecWitness { q, ports, batch } = w;
         drop(ports);
         let ring = crate::stage!("Flock reduction", || batch.prove(&layout, &q, &mut ps));
-        crate::stage!("PCS open", || pcs::open(&mut ps, &committed, &q, &slots, &[ring]));
+        crate::stage!("PCS open", || committed
+            .open(&mut ps, &q, &slots, &[ring])
+            .expect("opening uses the committed witness"));
         Ok(ps.into_proof())
     }
 
@@ -354,7 +353,7 @@ mod tests {
     use super::*;
     use crate::constraints::ConstraintError;
     use crate::leaf::BusError;
-    use crate::pcs::Rate;
+    use crate::pcs::{self, Rate};
     use crate::rec::circuit::{Builder, Dw, Ew, Finished, Kw, PARAM_IV};
     use fiat_shamir::arith::Arith;
     use fiat_shamir::{DS_OBSERVE, DS_SQUEEZE};
@@ -494,7 +493,7 @@ mod tests {
         // Replay the honest verifier up to the bus to read the fingerprint weights of the limbs.
         let layout = RecLayout::new(&circuit).unwrap();
         let mut vs = VerifierState::new(IV, &proof, seed);
-        pcs::read_commitment(&mut vs).unwrap();
+        Commitment::read(&mut vs, layout.shape, Rate::MIN).unwrap();
         let fixed = FixedColumns::of(&circuit, &layout.taus);
         let blocks = BusBlocks::new(&fixed, fixed.public_values(&a.statement), &layout);
         let bus = blocks.verify(&mut vs).unwrap();

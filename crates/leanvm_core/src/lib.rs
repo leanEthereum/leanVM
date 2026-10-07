@@ -39,6 +39,8 @@ mod tables;
 mod witness;
 
 pub use self::pcs::{InvalidRate, Rate};
+/// The shared soundness target of the commitment and the bus argument, in bits.
+pub use ::pcs::whir::SECURITY_BITS;
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
 pub use rec::tree::{
     CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
@@ -75,11 +77,6 @@ pub use tables::{BAD_SLOT, Clock, EXIT_SLOT, Fill, N_TABLES, PerTable, TableId};
 pub fn init_prover() {
     parallel::init();
 }
-
-/// Target soundness of the whole proof, in bits. Every algebraic challenge is
-/// sampled in F192, and the PCS derives a WHIR configuration whose query,
-/// proximity-gap, and OOD-binding terms each clear this target.
-pub const SECURITY_BITS: u32 = 128;
 
 /// Below this many parallelizable items a pass runs serially: the fan-out
 /// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].

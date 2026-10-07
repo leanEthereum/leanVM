@@ -1,70 +1,50 @@
-//! Witness commitment: an inner-product PCS committing over `K = F_{2^64}` and
-//! opening over `E = F_{2^192}` (doc §sec:stacking, §annex:pcs), reusing flock's **WHIR**. An
-//! opening proves `Σ_x q(x)·W(x) = C` against any verifier-evaluable `E`-valued
-//! weight `W` (a point evaluation `q̂(r)` is `W = eq(r,·)`). A batch of claims
-//! `q̂(point_j) = value_j` folds with random `γ`s into one weight and target,
-//! opened in a single WHIR run: the verifier evaluates the weight itself,
-//! so it never travels. flock's ring-switched `q_flock` claims join the same batch
-//! ([`::pcs::stack_open`]).
+//! Base-field witness commitments with one shared opening for point and circuit-validity claims.
 //!
-//! The stacked witness is `2^μ` words, but its tail past the placed columns is
-//! zero, and the L0 interleaving makes that tail whole lanes: lane `l` is the
-//! contiguous block `q[l·2^(μ-LOG_BATCH) ..)`, so only
-//! [`crate::witness::StackShape::n_lanes`] of them are ever encoded, and the
-//! opening's dense weight, its first `LOG_BATCH` rounds and the stack allocation
-//! shrink with them. A leaf image is still `2^LOG_BATCH` words, the absent lanes
-//! contributing the zeros their codeword would have been, but they LEAD the image:
-//! their whole 64-byte blocks are one chaining value every leaf shares, so the
-//! committer hashes them once rather than once per leaf, and only the image's tail
-//! rides the proof. Both sides derive the lane count from the announced layout.
+//! Witness words lie in K = GF(2^64), and challenges lie in E = GF(2^192).
+//! The opening proves an inner product against a weight the verifier reconstructs.
 //!
-//! Security: Johnson list decoding at every supported rate, `2^-1` to `2^-4`, with 128-bit round-by-round soundness.
+//! The 128-bit soundness argument uses Johnson list decoding (doc/leanvm, Annex B).
 //!
-//! - L0 takes no OOD sample, so the commitment binds only to a list of polynomials (§annex:pcs).
-//! - Every challenge drawn after the root and before the opening must hold against each of them, its error multiplied by the list size (§sec:e2e-ledger).
-//! - Each deeper commitment takes one explicit OOD sample, which binds it to one codeword.
-//! - The base-field commitment only shrinks the level-0 symbols to 8 bytes; every random ingredient is sampled from `E`.
+//! - The initial commitment has no out-of-domain sample and binds to a list of polynomials.
+//! - Challenges before the opening pay for that list size (section sec:e2e-ledger).
+//! - Each deeper commitment takes one out-of-domain sample to bind to one codeword.
 
 use crate::witness::StackShape;
-use ::pcs::stack_open;
-use ::pcs::verifier::OpeningVerifier;
-use ::pcs::whir::{self, ProverConfig, ProverData, WhirError, config_for_rate};
 use fiat_shamir::transcript::{ProverState, TranscriptError, Transmitter};
+use pcs::verifier::OpeningVerifier;
+use pcs::whir::config::ConfigError;
+use pcs::whir::{ProverConfig, ProverData, WhirError};
 use primitives::field::F64;
 use thiserror::Error;
 
-pub use ::pcs::ring_switch::{RingSwitch, SliceClaim};
-pub use ::pcs::stack_open::StackClaim;
+pub(crate) use pcs::ring_switch::{RingSwitch, SliceClaim};
+pub(crate) use pcs::stack_open::StackClaim;
+pub(crate) use pcs::whir::INITIAL_FOLDING_FACTOR as LOG_BATCH;
+pub use pcs::whir::{MAX_LOG_N as MAX_MU, MIN_LOG_N as MIN_MU};
 
-/// Row-batch lanes `2^LOG_BATCH`: the Merkle leaf width (`2^LOG_BATCH` F64
-/// = 512 bytes/leaf) IS WHIR's INITIAL folding factor: the L0 commit is
-/// reused, so the two are one knob ([`::pcs::whir::INITIAL_FOLDING_FACTOR`]).
-/// Larger ⇒ far fewer Merkle nodes to hash at the cost of fatter query openings.
-pub(crate) const LOG_BATCH: usize = ::pcs::whir::INITIAL_FOLDING_FACTOR;
-
-/// The commitment's rate, as the base-two logarithm of its inverse.
+/// A supported commitment rate, represented by the base-two logarithm of its inverse.
 ///
-/// A larger value, a lower rate, makes a smaller proof and a slower prover.
-///
-/// Only a rate the commitment supports can be built, so the prover never checks one.
+/// A lower rate trades more prover work for a smaller proof.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Rate(u8);
 
-const _: () = assert!(::pcs::whir::MAX_LOG_INV_RATE <= u8::MAX as usize);
+// Every supported inverse-rate logarithm fits in the public representation.
+const _: () = assert!(pcs::whir::MAX_LOG_INV_RATE <= u8::MAX as usize);
 
 impl Rate {
-    /// The fastest prover, and the largest proof.
-    pub const MIN: Self = Self(::pcs::whir::MIN_LOG_INV_RATE as u8);
+    /// The highest supported rate, favoring prover speed.
+    pub const MIN: Self = Self(pcs::whir::MIN_LOG_INV_RATE as u8);
 
-    /// The smallest proof, and the slowest prover.
-    pub const MAX: Self = Self(::pcs::whir::MAX_LOG_INV_RATE as u8);
+    /// The lowest supported rate, favoring proof size.
+    pub const MAX: Self = Self(pcs::whir::MAX_LOG_INV_RATE as u8);
 
-    /// The rate `2^-log_inv_rate`.
+    /// Constructs a supported rate from its inverse's base-two logarithm.
     ///
     /// # Errors
     ///
-    /// A rate the commitment does not support.
+    /// Returns the rejected logarithm when the rate is unsupported.
     pub const fn new(log_inv_rate: u8) -> Result<Self, InvalidRate> {
+        // The tabulated security profile supports one contiguous range of rates.
         if Self::MIN.0 <= log_inv_rate && log_inv_rate <= Self::MAX.0 {
             Ok(Self(log_inv_rate))
         } else {
@@ -79,121 +59,290 @@ impl Rate {
     }
 }
 
-/// A rate the commitment does not support.
+/// An unsupported commitment rate.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 #[error("log_inv_rate {log_inv_rate} is not in {min}..={max}", min = Rate::MIN.0, max = Rate::MAX.0)]
 pub struct InvalidRate {
-    /// The rejected value.
+    /// The rejected inverse-rate logarithm.
     pub log_inv_rate: u8,
 }
-// The PCS and the unground F192 bus argument both target `SECURITY_BITS`.
-const _: () = assert!(::pcs::whir::SECURITY_BITS == crate::SECURITY_BITS as usize);
-/// Minimum committed-witness log-size, the smallest the WHIR table configures.
-pub const MIN_MU: usize = ::pcs::whir::MIN_LOG_N;
-/// Largest committed size accepted by all verifiers, the largest the WHIR table configures.
-pub const MAX_MU: usize = ::pcs::whir::MAX_LOG_N;
 
-/// The shared WHIR config for a `2^μ`-word witness.
-fn whir_config(mu: usize, log_inv_rate: usize) -> ProverConfig {
-    config_for_rate(mu, log_inv_rate)
-        .unwrap_or_else(|e| panic!("whir config for mu={mu}, log_inv_rate={log_inv_rate}: {e}"))
+/// A witness whose dimensions or length cannot be committed or opened.
+#[derive(Clone, Debug, PartialEq, Eq, Error)]
+pub(crate) enum WitnessError {
+    /// A witness dimension outside the supported opening profile.
+    #[error(transparent)]
+    Config(#[from] ConfigError),
+    /// A lane count outside the initial commitment's leaf width.
+    #[error("{n_lanes} committed lanes, expected 1..={max}")]
+    LaneCount {
+        /// The supplied lane count.
+        n_lanes: usize,
+        /// The largest supported lane count.
+        max: usize,
+    },
+    /// A word count different from the committed shape.
+    #[error("witness has {got} words, expected {expected}")]
+    Length {
+        /// The word count required by the committed shape.
+        expected: usize,
+        /// The supplied word count.
+        got: usize,
+    },
 }
 
-/// A committed `K`-valued witness plus the data needed to open it. The witness
-/// itself is not retained (the caller still owns it and passes it back to
-/// [`open`]), so committing costs no extra full-trace copy.
-pub struct Committed {
-    /// Codeword + Merkle tree retained for opening. Public so the single stacked
-    /// WHIR opening (which also discharges flock's claim over
-    /// this same commitment, §hash_flock) can reuse it.
-    pub prover_data: ProverData,
-    /// `log2` of the witness length in F64 words.
-    pub mu: usize,
-    /// L0 inverse-rate logarithm bound into the transcript before this commitment.
-    pub log_inv_rate: usize,
-}
-
-/// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
-/// [`crate::witness::placements_of`]) and bind its root into the transcript,
-/// before any challenge is sampled. The verifier reads it with
-/// [`read_commitment`].
+/// The encoded witness and authentication tree retained for opening.
 ///
-/// `witness` is the stack truncated to the lane blocks that carry data
-/// ([`crate::witness::StackShape::committed_len`]); the zero tail past them is
-/// neither encoded nor hashed, and the resulting commitment is the same one the
-/// full `2^μ` witness would have produced.
-pub fn commit(ps: &mut ProverState, witness: &[F64], shape: StackShape, log_inv_rate: usize) -> Committed {
-    let mu = shape.mu;
-    assert!(
-        mu >= MIN_MU,
-        "witness must be ≥ 2^{MIN_MU} elements (padded by placements_of)"
-    );
-    assert_eq!(
-        witness.len(),
-        shape.committed_len(),
-        "witness must be the committed lanes"
-    );
-    let (commitment, prover_data) = whir::commit(witness, mu, LOG_BATCH, log_inv_rate);
-    ps.add_root(&commitment.root);
-    Committed {
-        prover_data,
-        mu,
-        log_inv_rate,
+/// The caller retains the witness words, avoiding a second full-witness allocation.
+pub(crate) struct Committed {
+    /// The codeword and its Merkle tree.
+    prover_data: ProverData,
+    /// The full witness dimension and the number of lanes actually encoded.
+    shape: StackShape,
+    /// The validated opening parameters used to produce the initial commitment.
+    config: ProverConfig,
+}
+
+impl Committed {
+    /// Encodes the witness and binds its Merkle root before any dependent challenge.
+    ///
+    /// Only whole lanes containing data are supplied.
+    /// Omitted lanes are zero, giving the same root as a full padded witness.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an unsupported dimension, an invalid lane count, or a mismatched word count.
+    pub(crate) fn new(
+        ps: &mut ProverState,
+        witness: &[F64],
+        shape: StackShape,
+        rate: Rate,
+    ) -> Result<Self, WitnessError> {
+        // Validate the dimension before shifting lengths or allocating the codeword.
+        let log_inv_rate = usize::from(rate.log_inv_rate());
+        let config = pcs::whir::config_for_rate(shape.mu, log_inv_rate)?;
+        let max = 1usize << config.initial_k();
+        if !(1..=max).contains(&shape.n_lanes) {
+            return Err(WitnessError::LaneCount {
+                n_lanes: shape.n_lanes,
+                max,
+            });
+        }
+        let expected = shape.committed_len();
+        if witness.len() != expected {
+            return Err(WitnessError::Length {
+                expected,
+                got: witness.len(),
+            });
+        }
+
+        // The codeword and tree use the same parameters retained for opening.
+        let (commitment, prover_data) = pcs::whir::commit(witness, shape.mu, config.initial_k(), log_inv_rate);
+        ps.add_root(&commitment.root);
+        Ok(Self {
+            prover_data,
+            shape,
+            config,
+        })
+    }
+
+    /// Proves the point evaluations and ring-switched circuit-validity claims together.
+    ///
+    /// Claim values must already be bound by the transcript or the public statement.
+    /// The witness must contain the same words supplied at commitment.
+    ///
+    /// # Errors
+    ///
+    /// Returns the expected and supplied word counts if the witness length differs from the commitment.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the claims are malformed.
+    pub(crate) fn open(
+        &self,
+        ps: &mut ProverState,
+        witness: &[F64],
+        points: &[StackClaim],
+        rings: &[RingSwitch],
+    ) -> Result<(), WitnessError> {
+        // A different lane count would change both the encoded rows and their authentication paths.
+        let expected = self.shape.committed_len();
+        if witness.len() != expected {
+            return Err(WitnessError::Length {
+                expected,
+                got: witness.len(),
+            });
+        }
+
+        // Values are transcript-bound or public, points are challenges or constants, and offsets are public.
+        // The opening samples batching challenges without observing those claims again.
+        pcs::stack_open::open(
+            ps,
+            self.shape.mu,
+            witness,
+            &self.prover_data,
+            &self.config,
+            points,
+            rings,
+        );
+        Ok(())
     }
 }
 
-// The batching challenges are just `sample()`d inside the stacked opener: every
-// claim they combine is already bound: the values rode the stream
-// (`add_scalar`) during the bus / constraint sub-protocols or, for the exit
-// claims, are the seeded statement, the points are prior challenges or Boolean
-// constants, and the offsets are public (reconstructed identically from the
-// announced layout).
-
-/// Verifier counterpart of [`commit`]'s root binding: read the committed root
-/// from the stream at the start of verification, before sampling any challenge.
-///
-/// # Errors
-///
-/// Returns an error past the end of the stream, or on a root that is no digest.
-pub fn read_commitment<V: OpeningVerifier>(v: &mut V) -> Result<V::Root, TranscriptError> {
-    v.next_root()
-}
-
-/// Open the committed witness: discharge the `points` (leanVM's bus / constraint /
-/// exit claims, as block-sparse slot evaluations) AND flock's ring-switched
-/// validity claims (`rings`, one per class) in ONE stacked WHIR.
-/// The points become the opener's `point_claims`; the opening's Merkle data
-/// rides the transcript's phase list, not the scalar stream. The commitment root
-/// was already bound by [`commit`], and the point *values* either rode the
-/// stream or are the statement, so nothing extra is bound here.
-///
-/// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_flock`
-/// sub-block (≥ 1 padding instance, §cpu), so every opening is stacked.
-pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[StackClaim], rings: &[RingSwitch]) {
-    let lane_block = 1usize << (c.mu - LOG_BATCH);
-    assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
-    assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
-    let cfg = whir_config(c.mu, c.log_inv_rate);
-    stack_open::open(ps, c.mu, q, &c.prover_data, &cfg, points, rings);
-}
-
-/// Verify the opening (mirror of [`open`]): flock's ring-switched claim
-/// and every `points` slot evaluation are checked together in the ONE stacked
-/// WHIR against `root`, pulling its Merkle phases off the transcript.
-///
-/// The verifier is the native one or the recursion machine's rows.
-///
-/// # Errors
-///
-/// Returns a size and rate with no configuration, then the stacked opening's refusal.
-pub fn verify<V: OpeningVerifier>(
-    v: &mut V,
-    points: &[StackClaim<V::E>],
-    rings: &[RingSwitch<V::E>],
+/// An initial commitment root and the announced parameters of its witness.
+pub(crate) struct Commitment<R> {
+    /// The Merkle root bound before any dependent challenge.
+    root: R,
+    /// The witness dimension and the number of lanes carried by each opening.
     shape: StackShape,
-    log_inv_rate: usize,
-    root: V::Root,
-) -> Result<(), WhirError> {
-    let cfg = config_for_rate(shape.mu, log_inv_rate)?;
-    stack_open::verify(v, &cfg, shape.mu, shape.n_lanes, root, points, rings)
+    /// The supported rate announced for the initial commitment.
+    rate: Rate,
+}
+
+impl<R: Copy> Commitment<R> {
+    /// Reads and binds the initial root for the announced witness.
+    ///
+    /// The root must be read before any dependent challenge.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stream ends or the root is not a digest.
+    pub(crate) fn read<V: OpeningVerifier<Root = R>>(
+        v: &mut V,
+        shape: StackShape,
+        rate: Rate,
+    ) -> Result<Self, TranscriptError> {
+        // Reading the root binds it into the transcript without drawing a challenge.
+        let root = v.next_root()?;
+        Ok(Self { root, shape, rate })
+    }
+
+    /// Checks the shared opening of point evaluations and circuit-validity claims.
+    ///
+    /// The same arithmetic runs natively and in recursion rows.
+    /// Claim values must already be bound by the transcript or the public statement.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an unsupported witness size, malformed claims, or an invalid opening.
+    pub(crate) fn verify<V: OpeningVerifier<Root = R>>(
+        &self,
+        v: &mut V,
+        points: &[StackClaim<V::E>],
+        rings: &[RingSwitch<V::E>],
+    ) -> Result<(), WhirError> {
+        // Both sides derive the opening profile from the committed witness's dimension and rate.
+        let config = pcs::whir::config_for_rate(self.shape.mu, usize::from(self.rate.log_inv_rate()))?;
+        pcs::stack_open::verify(v, &config, self.shape.mu, self.shape.n_lanes, self.root, points, rings)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Committed, InvalidRate, LOG_BATCH, MAX_MU, MIN_MU, Rate, WitnessError};
+    use crate::witness::StackShape;
+    use fiat_shamir::transcript::ProverState;
+    use pcs::whir::config::ConfigError;
+    use primitives::field::F64;
+
+    #[test]
+    fn only_supported_rates_can_be_constructed() {
+        // Exhaust all 256 representations, including both supported endpoints and their neighbors.
+        for log_inv_rate in u8::MIN..=u8::MAX {
+            let rate = Rate::new(log_inv_rate);
+            if (Rate::MIN.log_inv_rate()..=Rate::MAX.log_inv_rate()).contains(&log_inv_rate) {
+                assert_eq!(rate.expect("a supported rate").log_inv_rate(), log_inv_rate);
+            } else {
+                // The caller receives the exact rejected value for diagnostics.
+                assert_eq!(rate, Err(InvalidRate { log_inv_rate }));
+            }
+        }
+    }
+
+    #[test]
+    fn malformed_witnesses_are_refused_before_root_binding() {
+        let lane_words = 1usize << (MIN_MU - LOG_BATCH);
+        let max_lanes = 1usize << LOG_BATCH;
+
+        // Mutation: dimensions outside the configured window, before any shift or codeword allocation.
+        let sizes = [MIN_MU - 1, MAX_MU + 1, usize::MAX].map(|mu| {
+            (
+                StackShape { mu, n_lanes: 1 },
+                0,
+                WitnessError::Config(ConfigError::SizeOutOfRange { log_n: mu }),
+            )
+        });
+        // Mutation: lane counts outside a leaf and incomplete lane buffers.
+        let lanes = [0, max_lanes + 1, usize::MAX].map(|n_lanes| {
+            (
+                StackShape { mu: MIN_MU, n_lanes },
+                0,
+                WitnessError::LaneCount {
+                    n_lanes,
+                    max: max_lanes,
+                },
+            )
+        });
+        let lengths = [0, lane_words - 1, lane_words + 1].map(|got| {
+            (
+                StackShape { mu: MIN_MU, n_lanes: 1 },
+                got,
+                WitnessError::Length {
+                    expected: lane_words,
+                    got,
+                },
+            )
+        });
+        for (shape, words, error) in sizes.into_iter().chain(lanes).chain(lengths) {
+            let witness = vec![F64::ZERO; words];
+            let mut ps = ProverState::from_label(b"invalid commitment");
+
+            // Refusal reports the invalid parameter and leaves the proof stream untouched.
+            assert_eq!(Committed::new(&mut ps, &witness, shape, Rate::MIN).err(), Some(error));
+            assert_eq!(
+                ps.into_proof(),
+                ProverState::from_label(b"invalid commitment").into_proof()
+            );
+        }
+    }
+
+    #[test]
+    fn opening_requires_the_original_committed_length() {
+        // Fixture state: one committed lane, with space for two lanes in the supplied buffer.
+        let shape = StackShape { mu: MIN_MU, n_lanes: 1 };
+        let lane_words = shape.committed_len();
+        let witness = vec![F64::ZERO; 2 * lane_words];
+        let committed = Committed::new(
+            &mut ProverState::from_label(b"committed length"),
+            &witness[..lane_words],
+            shape,
+            Rate::MIN,
+        )
+        .expect("a supported witness");
+
+        // The retained shape and codeword describe one lane at the configured encoding rate.
+        assert_eq!(committed.shape.committed_len(), lane_words);
+        assert_eq!(
+            committed.prover_data.codeword.len(),
+            lane_words << committed.config.log_inv_rates()[0]
+        );
+
+        // Mutation: omit the lane, cut it short, or supply a second whole lane.
+        for words in [0, lane_words - 1, 2 * lane_words] {
+            let mut ps = ProverState::from_label(b"invalid opening");
+            assert_eq!(
+                committed.open(&mut ps, &witness[..words], &[], &[]),
+                Err(WitnessError::Length {
+                    expected: lane_words,
+                    got: words
+                }),
+            );
+
+            // Length refusal precedes claim validation and all opening transcript writes.
+            assert_eq!(
+                ps.into_proof(),
+                ProverState::from_label(b"invalid opening").into_proof()
+            );
+        }
+    }
 }

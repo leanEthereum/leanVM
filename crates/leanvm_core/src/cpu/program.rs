@@ -13,7 +13,7 @@ use super::witness::Witness;
 use super::{Output, Proof};
 use crate::class_flock::FlockId;
 use crate::constraints::{Claims, Columns};
-use crate::pcs::Rate;
+use crate::pcs::{Committed, Rate};
 use crate::rv::{ElfError, Guest, Machine, ProgramError, Region, RiscvProgram};
 use crate::tables::{ClassTable, Clock, PerTable, TableId};
 use crate::{constraints, leaf, pcs};
@@ -229,14 +229,14 @@ impl Program {
         let mut ps = ProverState::new(self.fs_seed(), output.words().map(F64));
 
         // Announce the sizes, then commit, before any challenge.
-        let log_inv_rate = rate.log_inv_rate().into();
         let announcement = Announcement {
             taus: w.layout.taus,
             rate,
             ts_final: w.ts_final,
         };
         announcement.write(&mut ps);
-        let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate));
+        let committed = crate::stage!("Commit", || Committed::new(&mut ps, &w.q, w.layout.shape, rate)
+            .expect("the witness matches its layout"));
 
         // The bus, then the linear tables' columns at its point, then the one batch over the other tables and the
         // producers, all reading the stack's windows in place.
@@ -317,7 +317,9 @@ impl Program {
         });
         drop(reductions);
         let rings = l.rings(slices, &table_claims.producers, &table_claims.summed, F192::ZERO);
-        crate::stage!("PCS open", || pcs::open(&mut ps, &committed, &w.q, &slots, &rings));
+        crate::stage!("PCS open", || committed
+            .open(&mut ps, &w.q, &slots, &rings)
+            .expect("opening uses the committed witness"));
         Proof(ps.into_proof())
     }
 
