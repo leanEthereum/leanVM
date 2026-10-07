@@ -31,10 +31,6 @@ mod tables;
 mod witness;
 
 pub use self::pcs::{InvalidRate, Rate};
-/// The proof's soundness target, in bits.
-///
-/// WHIR parameters and the bus soundness check share this target.
-pub const SECURITY_BITS: u32 = ::pcs::whir::SECURITY_BITS as u32;
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
 pub use rec::tree::{
     CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
@@ -56,6 +52,11 @@ pub use leaf::{BusError, N_TUPLE_BITS};
 pub use rv::{Alu, Class, Guest, Hash, Machine, Reg, RegisterFile, Syscall};
 #[doc(hidden)]
 pub use tables::{BAD_SLOT, Clock, EXIT_SLOT, Fill, N_TABLES, PerTable, TableId};
+
+/// The proof's soundness target, in bits.
+///
+/// WHIR parameters and the bus soundness check share this target.
+pub const SECURITY_BITS: u32 = ::pcs::whir::SECURITY_BITS as u32;
 
 /// Prepare the process for proving: spawn the worker pool up front.
 ///
