@@ -15,8 +15,6 @@ use std::collections::VecDeque;
 pub(super) struct Lowered {
     /// The instructions.
     pub(super) text: Vec<u32>,
-    /// RAM's first words.
-    pub(super) image: Vec<u64>,
     /// The base-two logarithm of RAM's words.
     pub(super) log_ram: usize,
     /// The elements hinted after the recorded advice, in order, three words each.
@@ -693,6 +691,16 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
         .li(reg::LEAF[1], block(1) + 32)
         .li(reg::NODE, block(2))
         .li(reg::BLOCK_BYTES, 64);
+    // The image is empty: the program writes its constants itself, so two verifier programs differ by their text alone.
+    for (k, word) in CHAIN_IV.into_iter().enumerate() {
+        l.a.li(reg::T[0], word).store(Sd, reg::T[0], 8 * k as i32, reg::NODE);
+    }
+    for (i, &word) in g.consts.iter().enumerate() {
+        if word != 0 {
+            l.a.li(reg::T[0], word);
+            l.sd(reg::T[0], Loc::Const(i));
+        }
+    }
     for (i, op) in g.ops.iter().enumerate() {
         for e in reads(op) {
             let next = l.uses[e as usize].pop_front();
@@ -705,12 +713,8 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
         "a program ends on its output"
     );
 
-    let mut image = g.consts.clone();
-    image.resize(blocks + 2 * 16, 0);
-    image.extend(CHAIN_IV);
     Lowered {
         text: l.a.finish(),
-        image,
         log_ram,
         spills: l.spills,
     }

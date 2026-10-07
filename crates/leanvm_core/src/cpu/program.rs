@@ -116,6 +116,15 @@ impl Program {
     /// Refuses more advice than the program's region holds, a run that traps, and one too long for one proof.
     #[doc(hidden)]
     pub fn execute(&self, advice: &[u64]) -> Result<Execution, ProveError> {
+        self.execute_at(advice, PerTable::default())
+    }
+
+    /// [`Self::execute`], each table padded to at least `2^floors` rows.
+    ///
+    /// # Errors
+    ///
+    /// As [`Self::execute`].
+    pub(crate) fn execute_at(&self, advice: &[u64], floors: PerTable<usize>) -> Result<Execution, ProveError> {
         let p = &self.rv;
         let mut m = self.machine(advice)?;
         let mut trace = TraceBuilder::new(p, m.memory().advice());
@@ -124,7 +133,7 @@ impl Program {
 
         // The padding rows, written out rather than executed.
         let base_counts = trace.row_counts();
-        for (first, size, traversals) in self.filler.cycles(&Plan::solve(base_counts)) {
+        for (first, size, traversals) in self.filler.cycles(&Plan::solve_at(base_counts, floors)) {
             for _ in 0..traversals {
                 for index in first..=first + size {
                     trace.pad(p, index);

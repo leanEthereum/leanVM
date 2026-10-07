@@ -11,8 +11,9 @@ mod lower;
 mod record;
 
 use crate::ProgramError;
-use crate::cpu::{Announcement, CpuError, Layout, Output, Program, Proof};
+use crate::cpu::{Announcement, CpuError, DeferredClaims, Layout, Output, Program, Proof};
 use crate::pcs::Rate;
+use crate::rec::circuit::chain;
 use crate::rec::transcript::ProofSource;
 use crate::tables::{PerTable, TableId};
 use fiat_shamir::arith::Verifier;
@@ -26,6 +27,44 @@ pub struct VerifierProgram {
     pub advice: Vec<u64>,
     /// What the run outputs: the hash of every verified output and of the claims each core leaves.
     pub output: [u64; 4],
+    /// What the output is the hash of: each verified run's output, and the claims its proof's core leaves.
+    pub verified: Vec<Verified>,
+}
+
+/// What a verifier program's run establishes of one proof, short of the claims only that proof's program settles.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Verified {
+    /// The output of the run the proof is of.
+    pub output: Output,
+    /// The claims the verifier's core leaves on that run's program and on the circuits.
+    pub claims: DeferredClaims,
+}
+
+/// The hash a verifier program outputs of what it verified: every output's words, then every claim's limbs.
+#[must_use]
+pub fn statement_hash(verified: &[Verified]) -> [u64; 4] {
+    let mut words: Vec<u64> = verified.iter().flat_map(|v| *v.output.words()).collect();
+    for v in verified {
+        v.claims.map(|e| words.extend([e.c0, e.c1, e.c2]));
+    }
+    chain(&words)
+}
+
+/// Settle what a verifier program's run leaves open: `output` is the hash of `verified`, and each claim holds on its program.
+///
+/// A proof of the verifier program with this output, and this check, say every proof it verified is valid.
+///
+/// # Errors
+///
+/// Returns an error if the output is not the hash, or a claim is false.
+pub fn settle(output: Output, verified: &[(&Program, Verified)]) -> Result<(), SettleError> {
+    let all: Vec<Verified> = verified.iter().map(|(_, v)| v.clone()).collect();
+    if *output.words() != statement_hash(&all) {
+        return Err(SettleError::Output);
+    }
+    verified
+        .iter()
+        .try_for_each(|(program, v)| program.check_deferred(&v.claims).map_err(SettleError::Claim))
 }
 
 /// One proof to verify: the program it is of, the shape it announces, and the proof itself or nothing.
@@ -52,7 +91,7 @@ impl VerifierProgram {
     /// Returns an error if a child's heights are not ones its program can announce, or the verifier does not fit a program.
     pub fn build(children: &[Child<'_>]) -> Result<Self, BuildError> {
         let mut g = Gen::new();
-        let (mut words, mut left) = (Vec::new(), Vec::new());
+        let (mut words, mut left, mut verified) = (Vec::new(), Vec::new(), Vec::new());
         for child in children {
             let layout = Layout::announced(child.program.rv(), child.taus)?;
             let output = g.start(
@@ -70,6 +109,10 @@ impl VerifierProgram {
             debug_assert!(g.finished(), "the verifier read the whole proof");
             words.extend(output);
             claims.map(|e| left.push(e));
+            verified.push(Verified {
+                output: child.output,
+                claims: claims.map(|e| g.e(e)),
+            });
         }
 
         // The output binds what was verified: each run's output and every claim its core leaves.
@@ -84,7 +127,7 @@ impl VerifierProgram {
         let program = Program::new(
             &lowered.text,
             crate::rv::Region::TEXT.base(),
-            lowered.image,
+            Vec::new(),
             lowered.log_ram,
             log_advice,
         )?;
@@ -92,6 +135,7 @@ impl VerifierProgram {
             program,
             advice,
             output,
+            verified,
         })
     }
 
@@ -120,6 +164,17 @@ impl VerifierProgram {
 /// The table heights a proof announces: its first scalars.
 fn heights(proof: &Proof) -> PerTable<usize> {
     PerTable::from_fn(|t: TableId| proof.0.stream.get(t.index()).map_or(0, |s| s.c0 as usize))
+}
+
+/// Why what a verifier program's run leaves open does not settle.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+pub enum SettleError {
+    /// The verifier program's output is not the hash of what it is said to have verified.
+    #[error("the output is not the hash of the verified outputs and claims")]
+    Output,
+    /// A claim a verified proof leaves is false.
+    #[error("a deferred claim is false: {0}")]
+    Claim(CpuError),
 }
 
 /// Why a verifier program could not be built.
@@ -195,5 +250,20 @@ mod tests {
         let run = prover.prove(&v.program, &v.advice).expect("the verifier halts");
         assert_eq!(*run.output.words(), v.output);
         assert!(v.program.verify(run.output, &run.proof).is_ok());
+
+        // What the run leaves open is settled against the verified program: the claims are the native core's.
+        assert_eq!(
+            v.verified[0].claims,
+            program.verify_core(output, &proof).expect("an honest proof")
+        );
+        let verified = [(&program, v.verified[0].clone())];
+        assert_eq!(settle(run.output, &verified), Ok(()));
+
+        // Mutation: a claim's value, which the output's hash refuses, and the same with the hash recomputed, which the program refuses.
+        let mut forged = v.verified[0].clone();
+        forged.claims.program.value += primitives::field::F192::ONE;
+        assert!(settle(run.output, &[(&program, forged.clone())]).is_err());
+        let rehashed = Output::new(statement_hash(std::slice::from_ref(&forged)));
+        assert!(settle(rehashed, &[(&program, forged)]).is_err());
     }
 }

@@ -1,4 +1,4 @@
-//! Recursion on the machine itself: prove a leaf program once, then a program verifying copies of its proof.
+//! Recursion on the machine itself: prove a leaf program once, then a tower of programs each verifying copies of the proof below it.
 
 use crate::refuse;
 use crate::workload::{Items, Workload};
@@ -6,12 +6,10 @@ use bench::Plan;
 use leanvm::aggregate::VerifierProgram;
 use leanvm::{Output, Prover};
 
-/// Prove the leaf at `leaf_prover`'s rate, then the verifier of `leaves` copies of its proof at `prover`'s rate, and print both reports.
-pub fn run(leaf: &Workload, leaves: usize, leaf_prover: &Prover, prover: &Prover, plan: Plan) {
+/// Prove the leaf at `leaf_prover`'s rate, then `levels` verifier programs at `prover`'s rate, each verifying
+/// `leaves` copies of the proof below it, and print each one's report.
+pub fn run(leaf: &Workload, leaves: usize, levels: usize, leaf_prover: &Prover, prover: &Prover, plan: Plan) {
     let proven = leaf.prove(leaf_prover);
-    let child = (&leaf.program, leaf_prover.rate(), proven.output, &proven.proof);
-    let verifier = VerifierProgram::of(&vec![child; leaves])
-        .unwrap_or_else(|e| refuse(format_args!("{} has no verifier program: {e}", leaf.title)));
     println!(
         "{}: proof at rate 1/{} of {} cycles, 2^{:.2} committed words",
         leaf.title,
@@ -19,15 +17,25 @@ pub fn run(leaf: &Workload, leaves: usize, leaf_prover: &Prover, prover: &Prover
         proven.stats.cycles(),
         (proven.stats.committed as f64).log2()
     );
-    Workload {
-        title: format!("Verifier of {leaves} proofs of: {}", leaf.title),
-        program: verifier.program,
-        advice: verifier.advice,
-        expected: Some(Output::new(verifier.output)),
-        items: Some(Items {
-            count: leaves,
-            name: "proof",
-        }),
+    let (mut program, mut rate, mut below) = (leaf.program.clone(), leaf_prover.rate(), proven);
+    for level in 1..=levels {
+        let child = (&program, rate, below.output, &below.proof);
+        let verifier = VerifierProgram::of(&vec![child; leaves])
+            .unwrap_or_else(|e| refuse(format_args!("level {level} has no verifier program: {e}")));
+        let workload = Workload {
+            title: format!("Level {level}: verifier of {leaves} proofs of level {}", level - 1),
+            program: verifier.program,
+            advice: verifier.advice,
+            expected: Some(Output::new(verifier.output)),
+            items: Some(Items {
+                count: leaves,
+                name: "proof",
+            }),
+        };
+        workload.run(prover, plan);
+        if level < levels {
+            below = workload.prove(prover);
+            (program, rate) = (workload.program, prover.rate());
+        }
     }
-    .run(prover, plan);
 }

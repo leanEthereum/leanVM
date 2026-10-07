@@ -193,7 +193,12 @@ impl Plan {
     ///
     /// Counting those first makes it one decomposition rather than a fixpoint.
     pub fn solve(base: PerTable<usize>) -> Self {
-        let height = |t: TableId, rows: usize| t.spec().provable_height(rows);
+        Self::solve_at(base, PerTable::default())
+    }
+
+    /// [`Self::solve`], each table taken to at least `2^floors` rows: a run proven at heights another run has.
+    pub fn solve_at(base: PerTable<usize>, floors: PerTable<usize>) -> Self {
+        let height = |t: TableId, rows: usize| t.spec().provable_height(rows).max(1 << floors[t]);
         let mut plan = Self(PerTable::default());
         for t in TableId::ALL.into_iter().filter(|&t| t != JUMP) {
             plan.0[t] = Traversals::delivering(height(t, base[t]) - base[t]);

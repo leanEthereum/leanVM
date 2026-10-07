@@ -133,9 +133,12 @@ enum Command {
         /// The leaf program's size: Fibonacci's steps, or the signatures it verifies.
         #[arg(long, default_value_t = 400, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         n: usize,
-        /// The proofs the verifier program verifies.
+        /// The proofs each verifier program verifies.
         #[arg(long, default_value_t = 2, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         leaves: usize,
+        /// The levels of verifier programs, each verifying proofs of the one below.
+        #[arg(long, default_value_t = 1, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        levels: usize,
     },
     /// Prove the benchmarks CI tracks and print them as Bencher Metric Format JSON.
     ///
@@ -213,9 +216,12 @@ fn main() {
             arity0,
             arity,
         } => aggregate::run(&program.workload(n), leaves, arity0, arity, &leaf_prover, &prover, plan),
-        Command::Recursion { program, n, leaves } => {
-            recursion::run(&program.workload(n), leaves, &leaf_prover, &prover, plan);
-        }
+        Command::Recursion {
+            program,
+            n,
+            leaves,
+            levels,
+        } => recursion::run(&program.workload(n), leaves, levels, &leaf_prover, &prover, plan),
         Command::Bench {
             cycles_only,
             markdown,

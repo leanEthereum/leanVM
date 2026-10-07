@@ -2,6 +2,7 @@
 
 use super::{Output, Program, Proof, ProveError, Stats};
 use crate::pcs::Rate;
+use crate::tables::PerTable;
 
 /// A prover: it proves runs at one commitment rate.
 ///
@@ -55,7 +56,22 @@ impl Prover {
     /// - The advice is longer than the program's region.
     #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = self.rate.log_inv_rate()))]
     pub fn prove(&self, program: &Program, advice: &[u64]) -> Result<ProvenRun, ProveError> {
-        let exec = crate::stage!("Execute program", || program.execute(advice))?;
+        self.prove_at(program, advice, PerTable::default())
+    }
+
+    /// [`Self::prove`], each table padded to at least `2^floors` rows: a proof of the shape another proof has.
+    ///
+    /// # Errors
+    ///
+    /// As [`Self::prove`].
+    #[doc(hidden)]
+    pub fn prove_at(
+        &self,
+        program: &Program,
+        advice: &[u64],
+        floors: PerTable<usize>,
+    ) -> Result<ProvenRun, ProveError> {
+        let exec = crate::stage!("Execute program", || program.execute_at(advice, floors))?;
         program.committed_size(exec.trace.row_counts())?;
         let (proof, stats) = program.prove_execution(&exec, self.rate);
         Ok(ProvenRun {
