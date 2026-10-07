@@ -20,6 +20,7 @@ static ALLOCATOR: bench::Counting<bench::Jemalloc> = bench::Counting(bench::Jema
 static ALLOCATOR: bench::Counting<std::alloc::System> = bench::Counting(std::alloc::System);
 
 mod aggregate;
+mod recursion;
 mod tracked;
 mod workload;
 
@@ -124,6 +125,18 @@ enum Command {
         #[arg(long, default_value_t = 2)]
         arity: usize,
     },
+    /// Prove a leaf program once, then a RISC-V program verifying copies of its proof: recursion on the machine itself.
+    Recursion {
+        /// The leaf program.
+        #[arg(long, value_enum, default_value = "leanxmss")]
+        program: LeafProgram,
+        /// The leaf program's size: Fibonacci's steps, or the signatures it verifies.
+        #[arg(long, default_value_t = 400, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+        /// The proofs the verifier program verifies.
+        #[arg(long, default_value_t = 2, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        leaves: usize,
+    },
     /// Prove the benchmarks CI tracks and print them as Bencher Metric Format JSON.
     ///
     /// A proven case reports `latency`, `proof-size`, `verify`, one `stage.<name>` per
@@ -200,6 +213,9 @@ fn main() {
             arity0,
             arity,
         } => aggregate::run(&program.workload(n), leaves, arity0, arity, &leaf_prover, &prover, plan),
+        Command::Recursion { program, n, leaves } => {
+            recursion::run(&program.workload(n), leaves, &leaf_prover, &prover, plan);
+        }
         Command::Bench {
             cycles_only,
             markdown,

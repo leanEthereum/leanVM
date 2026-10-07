@@ -155,8 +155,8 @@ impl<'a> Gen<'a> {
     /// The register of the constant one, then `y`, then `y^2`.
     const PINNED: [F192; 3] = [F192::ONE, F192::new(0, 1, 0), F192::new(0, 0, 1)];
 
-    /// A recorder reading `source`.
-    pub(super) fn new(source: ProofSource<'a>) -> Self {
+    /// An empty recorder.
+    pub(super) fn new() -> Self {
         let mut g = Self {
             ops: Vec::new(),
             es: (0..3).map(|i| (Home::Pinned(i as u8), Self::PINNED[i])).collect(),
@@ -171,7 +171,7 @@ impl<'a> Gen<'a> {
             seeds: HashMap::new(),
             zero: E(0),
             one: E(0),
-            source,
+            source: ProofSource::Shape,
             offset: 0,
             opening: 0,
             pending: Vec::new(),
@@ -219,7 +219,7 @@ impl<'a> Gen<'a> {
         self.ks[k as usize].0
     }
 
-    fn scratch(&mut self, words: usize) -> Loc {
+    const fn scratch(&mut self, words: usize) -> Loc {
         self.n_scratch += words;
         Loc::Scratch(self.n_scratch - words)
     }
@@ -356,8 +356,10 @@ impl<'a> Gen<'a> {
         self.pending.push(x);
     }
 
-    /// The program's four output words, read off the advice, and the transcript seeded with them after `iv`.
-    pub(super) fn start(&mut self, iv: [u64; 4], output: [u64; 4]) -> [K; 4] {
+    /// Start on the next proof: its run's four output words, read off the advice, and its transcript seeded with them after `iv`.
+    pub(super) fn start(&mut self, source: ProofSource<'a>, iv: [u64; 4], output: [u64; 4]) -> [K; 4] {
+        debug_assert!(self.pending.is_empty(), "the previous proof's transcript is flushed");
+        (self.source, self.offset, self.opening) = (source, 0, 0);
         let at = self.hint(&output);
         let seed = self.pool(&iv);
         self.cv = fiat_shamir::compress(iv.map(F64), output.map(F64));
@@ -512,7 +514,8 @@ impl Verifier for Gen<'_> {
 
     fn sample(&mut self) -> E {
         let pending = std::mem::take(&mut self.pending);
-        self.step(&pending, DS_SQUEEZE, true).expect("a squeeze gives a challenge")
+        self.step(&pending, DS_SQUEEZE, true)
+            .expect("a squeeze gives a challenge")
     }
 
     fn grind_check(&mut self, bits: u32) -> Result<(), TranscriptError> {
@@ -574,7 +577,9 @@ impl Gen<'_> {
         // The value: the leaf's chain from the zero blocks' state, then the path, low bit first.
         let prefix = leaf_words - row_words;
         let zero_blocks = prefix / 8;
-        let image: Vec<u64> = std::iter::repeat_n(0, prefix - zero_blocks * 8).chain(row.iter().copied()).collect();
+        let image: Vec<u64> = std::iter::repeat_n(0, prefix - zero_blocks * 8)
+            .chain(row.iter().copied())
+            .collect();
         let n_blocks = leaf_words / 8;
         let mut h = zero_prefix(zero_blocks);
         let seed = match self.seeds.get(&zero_blocks) {
@@ -591,7 +596,11 @@ impl Gen<'_> {
         }
         let pos = self.k(query.pos);
         for (level, sibling) in path.iter().enumerate() {
-            let m = if pos >> level & 1 == 1 { [*sibling, h] } else { [h, *sibling] };
+            let m = if pos >> level & 1 == 1 {
+                [*sibling, h]
+            } else {
+                [h, *sibling]
+            };
             h = Compression::single(*m.as_flattened().first_chunk().expect("eight words")).output();
         }
         let out = self.new_d(h);
@@ -709,7 +718,8 @@ impl OpeningVerifier for Gen<'_> {
         }
         for s in (1..=top).rev() {
             for j in 0..1 << (s - 1) {
-                let [left, right] = [2 * j, 2 * j + 1].map(|i| nodes[s][i].expect("the largest group covers its level"));
+                let [left, right] =
+                    [2 * j, 2 * j + 1].map(|i| nodes[s][i].expect("the largest group covers its level"));
                 let node = self.parent(left, right);
                 self.tie(&mut nodes[s - 1][j], node);
             }

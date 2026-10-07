@@ -11,56 +11,69 @@ mod lower;
 mod record;
 
 use crate::ProgramError;
-use crate::cpu::{Announcement, CpuError, Layout, Output, Program};
+use crate::cpu::{Announcement, CpuError, Layout, Output, Program, Proof};
 use crate::pcs::Rate;
 use crate::rec::transcript::ProofSource;
-use crate::tables::PerTable;
+use crate::tables::{PerTable, TableId};
 use fiat_shamir::arith::Verifier;
 use record::Gen;
 
-/// A program verifying one proof of `program` at given table heights and rate, and the advice of one such proof.
+/// A program verifying proofs of given shapes, and the advice of one such list of proofs.
 pub struct VerifierProgram {
     /// The verifier.
     pub program: Program,
-    /// The advice: the verified run's output, the proof, and the hints.
+    /// The advice: each verified run's output and proof, and the hints.
     pub advice: Vec<u64>,
-    /// What the run outputs: the hash of the verified output and of the claims the core leaves.
+    /// What the run outputs: the hash of every verified output and of the claims each core leaves.
     pub output: [u64; 4],
 }
 
+/// One proof to verify: the program it is of, the shape it announces, and the proof itself or nothing.
+pub struct Child<'a> {
+    /// The program the proof is of.
+    pub program: &'a Program,
+    /// The base-two logarithm of each table's height.
+    pub taus: PerTable<usize>,
+    /// The proof's rate.
+    pub rate: Rate,
+    /// The output of the run the proof is of.
+    pub output: Output,
+    /// The proof, or its shape alone.
+    pub source: ProofSource<'a>,
+}
+
 impl VerifierProgram {
-    /// The verifier of a proof of `program` whose tables have heights `2^taus`, at `rate`.
+    /// The verifier of these proofs, in order.
     ///
-    /// With a proof as `source`, the advice is that proof's and `output` the run's it proves; with a shape, the
-    /// advice is zeros of the right length and the program is the same.
+    /// With proofs as sources, the advice is theirs; with shapes, it is zeros of the right length and the program is the same.
     ///
     /// # Errors
     ///
-    /// Returns an error if the heights are not ones the program can announce, or the verifier does not fit a program.
-    pub fn build(
-        program: &Program,
-        taus: PerTable<usize>,
-        rate: Rate,
-        output: Output,
-        source: ProofSource<'_>,
-    ) -> Result<Self, BuildError> {
-        let layout = Layout::announced(program.rv(), taus)?;
-        let mut g = Gen::new(source);
-        let words = g.start(program.fs_seed().map(|w| w.0), *output.words());
-        for size in Announcement::sizes(&taus, rate) {
-            g.expect_scalar(size);
+    /// Returns an error if a child's heights are not ones its program can announce, or the verifier does not fit a program.
+    pub fn build(children: &[Child<'_>]) -> Result<Self, BuildError> {
+        let mut g = Gen::new();
+        let (mut words, mut left) = (Vec::new(), Vec::new());
+        for child in children {
+            let layout = Layout::announced(child.program.rv(), child.taus)?;
+            let output = g.start(
+                child.source,
+                child.program.fs_seed().map(|w| w.0),
+                *child.output.words(),
+            );
+            for size in Announcement::sizes(&child.taus, child.rate) {
+                g.expect_scalar(size);
+            }
+            let clock = g.clock();
+            let elements = output.map(|k| g.k_to_e(k));
+            let claims = layout.verify_core(&mut g, clock, &elements, child.rate)?;
+            g.finish().expect("the recorder reads no value");
+            debug_assert!(g.finished(), "the verifier read the whole proof");
+            words.extend(output);
+            claims.map(|e| left.push(e));
         }
-        let clock = g.clock();
-        let elements = words.map(|k| g.k_to_e(k));
-        let claims = layout.verify_core(&mut g, clock, &elements, rate)?;
-        g.finish().expect("the recorder reads no value");
-        debug_assert!(g.finished(), "the verifier read the whole proof");
 
-        // The output binds what was verified: the run's output and every claim the core leaves.
-        let mut left = Vec::new();
-        claims.map(|e| left.push(e));
+        // The output binds what was verified: each run's output and every claim its core leaves.
         let output = g.commit(&words, &left);
-
         let lowered = lower::lower(&g);
         let mut advice = g.advice.clone();
         for &e in &lowered.spills {
@@ -81,6 +94,32 @@ impl VerifierProgram {
             output,
         })
     }
+
+    /// The verifier of these proofs, each a proof at its rate that its program ran to its output.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a proof does not verify, or the verifier does not fit a program.
+    pub fn of(proofs: &[(&Program, Rate, Output, &Proof)]) -> Result<Self, BuildError> {
+        let raws = (proofs.iter())
+            .map(|&(program, _, output, proof)| program.verify_to_raw(output, proof))
+            .collect::<Result<Vec<_>, _>>()?;
+        let children: Vec<Child<'_>> = (proofs.iter().zip(&raws))
+            .map(|(&(program, rate, output, proof), raw)| Child {
+                program,
+                taus: heights(proof),
+                rate,
+                output,
+                source: ProofSource::Proof(raw),
+            })
+            .collect();
+        Self::build(&children)
+    }
+}
+
+/// The table heights a proof announces: its first scalars.
+fn heights(proof: &Proof) -> PerTable<usize> {
+    PerTable::from_fn(|t: TableId| proof.0.stream.get(t.index()).map_or(0, |s| s.c0 as usize))
 }
 
 /// Why a verifier program could not be built.
@@ -100,7 +139,6 @@ mod tests {
     use crate::cpu::{ProvenRun, Prover};
     use crate::rv::asm::*;
     use crate::rv::{Machine, Region};
-    use crate::tables::TableId;
 
     // A program with a loop, so that every framework block is read.
     fn small_program() -> Program {
@@ -116,11 +154,6 @@ mod tests {
         Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
     }
 
-    // The table heights a proof announces: its first scalars.
-    fn heights(proof: &crate::cpu::Proof) -> PerTable<usize> {
-        PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height"))
-    }
-
     #[test]
     fn the_verifier_program_accepts_an_honest_proof_and_its_run_proves() {
         // Fixture: a proof of the small program, and the verifier program of its shape, built from the proof and from the shape alone.
@@ -129,8 +162,15 @@ mod tests {
         let ProvenRun { proof, output, .. } = prover.prove(&program, &[]).expect("the run halts");
         let raw = program.verify_to_raw(output, &proof).expect("an honest proof");
         let taus = heights(&proof);
-        let v = VerifierProgram::build(&program, taus, Rate::MIN, output, ProofSource::Proof(&raw)).expect("a verifier");
-        let shape = VerifierProgram::build(&program, taus, Rate::MIN, output, ProofSource::Shape).expect("a verifier");
+        let child = |source| Child {
+            program: &program,
+            taus,
+            rate: Rate::MIN,
+            output,
+            source,
+        };
+        let v = VerifierProgram::build(&[child(ProofSource::Proof(&raw))]).expect("a verifier");
+        let shape = VerifierProgram::build(&[child(ProofSource::Shape)]).expect("a verifier");
         assert_eq!(v.program.digest(), shape.program.digest(), "the program is the shape's");
 
         // The verifier runs to its exit on the honest proof, and outputs the hash of what it verified.

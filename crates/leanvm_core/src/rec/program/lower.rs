@@ -90,7 +90,7 @@ struct Lower<'g> {
 
 impl Lower<'_> {
     /// The byte address of a location.
-    fn address(&self, loc: Loc) -> u64 {
+    const fn address(&self, loc: Loc) -> u64 {
         match loc {
             Loc::Const(i) => self.consts + 8 * i as u64,
             Loc::Advice(i) => Region::ADVICE.base() + 8 * i as u64,
@@ -107,7 +107,9 @@ impl Lower<'_> {
         let slot = match self.pages.iter().position(|&(p, _)| p == page) {
             Some(slot) => slot,
             None => {
-                let slot = (0..self.pages.len()).min_by_key(|&i| self.pages[i].1).expect("a page register");
+                let slot = (0..self.pages.len())
+                    .min_by_key(|&i| self.pages[i].1)
+                    .expect("a page register");
                 self.a.lui(reg::PAGES[slot], page as u32);
                 self.pages[slot].0 = page;
                 slot
@@ -256,7 +258,9 @@ impl Lower<'_> {
                 fresh
             }
             None if pinned => {
-                let Home::Pinned(f) = self.g.es[d as usize].0 else { unreachable!() };
+                let Home::Pinned(f) = self.g.es[d as usize].0 else {
+                    unreachable!()
+                };
                 let fresh = self.free(keep);
                 self.a.ext(Extmul, fresh, f, 0);
                 fresh
@@ -332,7 +336,7 @@ impl Lower<'_> {
     }
 
     /// The message word `k` of the transcript's block, whose state is in half `phase`.
-    fn transcript_word(&self, k: usize) -> Word {
+    const fn transcript_word(&self, k: usize) -> Word {
         Word::Block(reg::TRANSCRIPT[0], MESSAGE + 8 * (k ^ (4 * self.phase)) as i32)
     }
 
@@ -341,7 +345,9 @@ impl Lower<'_> {
         let t = reg::T[0];
         for (slot, scalar) in [first, last].into_iter().enumerate() {
             for k in 0..3 {
-                let Word::Block(base, offset) = self.transcript_word(4 * slot + k) else { unreachable!() };
+                let Word::Block(base, offset) = self.transcript_word(4 * slot + k) else {
+                    unreachable!()
+                };
                 match scalar {
                     Some(loc) => {
                         self.ld(t, loc.add(k));
@@ -355,14 +361,16 @@ impl Lower<'_> {
         }
         let count = u64::from(first.is_some()) + u64::from(last.is_some());
         for (k, value) in [(3, count), (7, tag)] {
-            let Word::Block(base, offset) = self.transcript_word(k) else { unreachable!() };
+            let Word::Block(base, offset) = self.transcript_word(k) else {
+                unreachable!()
+            };
             self.a.li(t, value).store(Sd, t, offset, base);
         }
         self.a.blake2s(reg::TRANSCRIPT[self.phase], reg::BLOCK_BYTES, true);
     }
 
     /// The word `k` of the half of the transcript's block that is not the state's: a step's result.
-    fn transcript_result(&self, k: usize) -> Word {
+    const fn transcript_result(&self, k: usize) -> Word {
         Word::Block(reg::TRANSCRIPT[0], 32 * (1 - self.phase) as i32 + 8 * k as i32)
     }
 
@@ -469,7 +477,11 @@ impl Lower<'_> {
         let n_blocks = leaf_words / 8;
 
         // The leaf: a chain from the state of its zero blocks, each block's result the next one's chaining value.
-        self.copy(|k| Word::At(seed.add(k)), |k| Word::Block(reg::LEAF[0], 8 * k as i32), 4);
+        self.copy(
+            |k| Word::At(seed.add(k)),
+            |k| Word::Block(reg::LEAF[0], 8 * k as i32),
+            4,
+        );
         let mut phase = 0;
         for index in zero_blocks..n_blocks {
             for k in 0..8 {
@@ -558,6 +570,7 @@ impl Lower<'_> {
                 self.a.ext(Extmacz, SCRATCH, f, 0);
             }
             Op::Init { iv, output } => {
+                self.phase = 0;
                 self.node(|k| Word::At(if k < 4 { iv.add(k) } else { output.add(k - 4) }));
                 self.copy(
                     |k| Word::Block(reg::NODE, RESULT + 8 * k as i32),
@@ -591,7 +604,11 @@ impl Lower<'_> {
             } => self.open_row(pos, levels, row_words, leaf_words, seed, leaf, path, out),
             Op::Parent { left, right, out } => {
                 self.node(|k| Word::At(if k < 4 { left.add(k) } else { right.add(k - 4) }));
-                self.copy(|k| Word::Block(reg::NODE, RESULT + 8 * k as i32), |k| Word::At(out.add(k)), 4);
+                self.copy(
+                    |k| Word::Block(reg::NODE, RESULT + 8 * k as i32),
+                    |k| Word::At(out.add(k)),
+                    4,
+                );
             }
             Op::EqD { a, b } => {
                 for k in 0..4 {
@@ -683,7 +700,10 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
         }
         l.op(op);
     }
-    debug_assert!(matches!(g.ops.last(), Some(Op::Commit { .. })), "a program ends on its output");
+    debug_assert!(
+        matches!(g.ops.last(), Some(Op::Commit { .. })),
+        "a program ends on its output"
+    );
 
     let mut image = g.consts.clone();
     image.resize(blocks + 2 * 16, 0);
