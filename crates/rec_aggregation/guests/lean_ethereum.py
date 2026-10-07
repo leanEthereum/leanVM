@@ -357,45 +357,70 @@ TIP_CELLS = 2 * V  # tip i at cell 2i, beside the unread upper half of its last 
 WOTS_PK_BLOCKS = (2 + V) / 4  # prefix (tweak, pp) + V tips, four cells a block
 
 # ------------------------------------------------------ SPHINCS+ (host-supplied)
-# The scheme's own letters, prefixed SP_ where XMSS has the same one.
+# The scheme's own letters, prefixed SP_ where XMSS has the same one: one tree of
+# height SP_H over WOTS+C keys, each signing a forest of small WOTS keys.
 SP_V = SP_V_PLACEHOLDER
 SP_W = SP_W_PLACEHOLDER
 SP_TARGET_SUM = SP_TARGET_SUM_PLACEHOLDER
-SP_D = SP_D_PLACEHOLDER
-SP_HEIGHTS = SP_HEIGHTS_PLACEHOLDER   # h_lay, one per hypertree layer, top first
-SP_SUFFIX = SP_SUFFIX_PLACEHOLDER     # SP_SUFFIX[lay] = sum of h_j for j >= lay
-SP_A = SP_A_PLACEHOLDER
-SP_K = SP_K_PLACEHOLDER
-SP_H = SP_H_PLACEHOLDER               # the total hypertree height, SP_SUFFIX[0]
+SP_H = SP_H_PLACEHOLDER
 SP_CHAIN_LENGTH = 2 ** SP_W
 SP_CHAIN_STEPS = SP_CHAIN_LENGTH - 1
-SP_DIGITS_PER_WORD = SP_V / 2
-SP_TIP_CELLS = SP_V
-SP_LEAF_BLOCKS = (2 + SP_V) / 4       # prefix (tweak, pp) + V tips, four cells a block
-SP_N_FTS = SP_K - 1                   # the forest drops the last index's tree
-SP_ROOT_BLOCKS = (2 + SP_N_FTS) / 4
-# The message digest is h + k*a bits of a BLAKE2s output: the whole low cell and
-# the low 48 bits of the high one. Decomposing the high cell's low lane covers
-# them, so the buffer holds three lanes and the top 16 are never read.
-SP_BIT_LANES = 3
-SP_BIT_CELLS = SP_BIT_LANES * BASE_FIELD_BITS
-# Native tweak prefixes, including the protocol domain separator and type.
+# The one-time digits are dispatched three at a time, the last chain alone.
+SP_DIGIT_GROUP = 3
+SP_DIGIT_GROUPS = SP_CHAIN_LENGTH ** SP_DIGIT_GROUP
+# The forest: SP_TREES trees of height SP_TREE_HEIGHT, each leaf over two subtrees
+# of height SP_SUBTREE_HEIGHT, whose leaves are WOTS keys of SP_FCHAINS chains with
+# top position SP_FTOP. A codeword is an SP_WORD_BITS-bit index into a table.
+SP_TREES = SP_TREES_PLACEHOLDER
+SP_TREE_HEIGHT = SP_TREE_HEIGHT_PLACEHOLDER
+SP_SUBTREE_HEIGHT = SP_SUBTREE_HEIGHT_PLACEHOLDER
+SP_FCHAINS = SP_FCHAINS_PLACEHOLDER
+SP_FTOP = SP_FTOP_PLACEHOLDER
+SP_WORD_BITS = SP_WORD_BITS_PLACEHOLDER
+SP_WORDS = 2 ** SP_WORD_BITS
+SP_LEAVES = 2 ** SP_TREE_HEIGHT
+SP_KEYS = 2 ** SP_SUBTREE_HEIGHT
+# Digit i of codeword t, at SP_FCHAINS * t + i.
+SP_CODEWORDS = SP_CODEWORDS_PLACEHOLDER
+# Blocks of a hash over n values, P and A before them: four cells a block, the last
+# block half full.
+SP_LEAF_BLOCKS = (SP_V + 2 + 2) // 4
+SP_FKEY_BLOCKS = (2 * SP_TREES + 2 + 2) // 4
+# The message digest: its first cell is the codewords, a byte per subtree, and its
+# second holds bit fields, the index, each tree's leaf, each subtree's WOTS key, and
+# bits nothing uses.
+SP_CELL_BITS = 2 * BASE_FIELD_BITS
+SP_LEAF_OFF = SP_H
+SP_KEY_OFF = SP_LEAF_OFF + SP_TREES * SP_TREE_HEIGHT
+SP_USED_BITS = SP_KEY_OFF + 2 * SP_TREES * SP_SUBTREE_HEIGHT
+SP_UNUSED_BITS = SP_CELL_BITS - SP_USED_BITS
+# An address is a cell whose low lane is lo:32 | hi:24 | type:5 | step:3, its high
+# lane zero. SP_TW_* hold the type.
 SP_TW_CHAIN = SP_TW_CHAIN_PLACEHOLDER
 SP_TW_LEAF = SP_TW_LEAF_PLACEHOLDER
 SP_TW_NODE = SP_TW_NODE_PLACEHOLDER
 SP_TW_ENC = SP_TW_ENC_PLACEHOLDER
-SP_TW_FTS_LEAF = SP_TW_FTS_LEAF_PLACEHOLDER
-SP_TW_FTS_NODE = SP_TW_FTS_NODE_PLACEHOLDER
-SP_TW_FTS_ROOTS = SP_TW_FTS_ROOTS_PLACEHOLDER
 SP_TW_MSG = SP_TW_MSG_PLACEHOLDER
-# Tweak layout: protocol_domain_sep | type | layer | zero | p | tree | index.
-# Each 32-bit field stays within one 64-bit lane.
-SP_LAY_MUL = 2 ** 16
-SP_P_MUL = 2 ** 32
-SP_TAU_POS = BASE_FIELD_BITS
-SP_J_POS = BASE_FIELD_BITS + 32
-SP_CHAIN_MUL = SP_CHAIN_LENGTH * SP_P_MUL   # chain i's tweaks start at p = 2^w * i
-# The encoding counter, LE_32 in the low four bytes of its cell: bounded by
+SP_TW_FCHAIN = SP_TW_FCHAIN_PLACEHOLDER
+SP_TW_FKEY_LEAF = SP_TW_FKEY_LEAF_PLACEHOLDER
+SP_TW_FSUBNODE = SP_TW_FSUBNODE_PLACEHOLDER
+SP_TW_FTREE_LEAF = SP_TW_FTREE_LEAF_PLACEHOLDER
+SP_TW_FNODE = SP_TW_FNODE_PLACEHOLDER
+SP_TW_FKEY = SP_TW_FKEY_PLACEHOLDER
+SP_HI_MUL = 2 ** 32
+SP_STEP_MUL = 2 ** 61
+# Where a forest position sits in `hi`: tree c | leaf s | subtree j | key a | chain i,
+# a subtree node's level and index in place of the key, a tree node's in place of
+# the leaf.
+SP_LEAF_MUL = 2 ** 3 * SP_HI_MUL
+SP_SUBTREE_MUL = 2 ** 7 * SP_HI_MUL
+SP_KEY_MUL = 2 ** 8 * SP_HI_MUL
+SP_FCHAIN_MUL = 2 ** 11 * SP_HI_MUL
+SP_SUBNODE_LEVEL_MUL = 2 ** 8 * SP_HI_MUL
+SP_SUBNODE_MUL = 2 ** 10 * SP_HI_MUL
+SP_FNODE_LEVEL_MUL = 2 ** 3 * SP_HI_MUL
+SP_FNODE_MUL = 2 ** 6 * SP_HI_MUL
+# The encoding counter, LE_32 in the low four bytes of its lane: bounded by
 # decomposing exactly that many bits, so the guest accepts no preimage the native
 # verifier cannot parse.
 SP_COUNTER_BITS = 32
@@ -2329,76 +2354,122 @@ def walk(value, chain_tweaks, pp, md, tips, i: Const, k: Const):
 
 
 # ========================== SPHINCS+ signature verification =========================
+# Every hash input is P | A | M with P, A and each value of M 16 bytes, so each is
+# one cell: a hash's output feeds the next hash where it lands, and a hinted value
+# needs no check of its own, the compression reading only canonical cells.
 
 
 @inline
-def sp_bit_field(bits_ptr, off: Const, n: Const, pos: Const):
-    # The integer held by bits [off, off+n) of the digest, weighed into the
-    # coordinate basis at `pos`: a tweak field placed where the tweak wants it, one
-    # fused multiply-add a bit, whatever lane the bits came from.
-    acc = 0
-    for i in unroll(0, n):
-        acc += bits_ptr[GEN ** (off + i)] * COORD_BASIS[pos + i]
-    return acc
+def sp_shifts(bits, off: Const, n: Const, out):
+    # The integer in the pinned bits [off, off+n) and its right shifts, out[l] the
+    # one by l: a field's value, and the node indices above a leaf.
+    out[n - 1] = bits[off + n - 1]
+    for r in unroll(1, n):
+        out[n - 1 - r] = bits[off + n - 1 - r] + GEN * out[n - r]
+    return
 
 
-def sp_walk(value, tw_base, pp, k: Const):
-    # Walk chain steps k..SP_CHAIN_STEPS-1: value' = Th(P, tw_chain, value).
-    # `tw_base` already carries the type byte, the layer, 2^w*i and the position
-    # (tau, e), so step s's tweak is one addition of a compile-time literal.
-    word = value
-    for s in unroll(k, SP_CHAIN_STEPS):
-        out = StackBuf(WORDS_PER_BLOCK)
-        blake2s([tw_base + s * SP_P_MUL, pp], [word, 0], out, counter=48, final=1)
-        word = out[0]
-    return word, k
+@inline
+def sp_is_child(node, kids, k: Const, bit):
+    # A node is not ordered against its sibling: the two children are hinted in
+    # order, at kids[k] and kids[k + 1], and `node` is checked to be the one `bit`
+    # names, the left one at 0, the right one at 1. One product, stored where the
+    # left child's difference already is, which is the assert.
+    check = StackBuf(1)
+    check[0] = node + kids[k]
+    check[0] = bit * (kids[k] + kids[k + 1])
+    return
 
 
-def sp_ots_leaf(tw_pos, pp, msg):
-    # One layer's one-time verification: the encoding of `msg` under the hinted
-    # counter, the V chains walked from the revealed values, and the leaf they hash
-    # to. `tw_pos` is the position's tweak base (layer, tau, e); this function is
-    # called once per layer, so the V dispatch tables are compiled once for the
-    # whole scheme.
-    ctr = hint_witness("sp_counter")
-    ctr_bits = HeapBuf(GEN ** SP_COUNTER_BITS)
-    hint_decompose_bits(ctr_bits, ctr, SP_COUNTER_BITS)
-    bind_bits(ctr_bits, ctr, SP_COUNTER_BITS)  # LE_32: four counter bytes, twelve of padding
+@inline
+def sp_walk(idx, pp, md, tips, i: Const, k: Const):
+    # Walk WOTS+C chain i from position k to its end, the step leaving position s
+    # carrying s, the tip landing in tips[2i] beside the unread upper half of its
+    # last hash.
+    if const(k == SP_CHAIN_STEPS):
+        hint_witness(tips[2 * i:2 * i + 1], "sp_chain_starts")
+    else:
+        value = hint_witness("sp_chain_starts")
+        for s in unroll(k, SP_CHAIN_STEPS - 1):
+            out = StackBuf(WORDS_PER_BLOCK)
+            blake2s([pp, idx + const(SP_TW_CHAIN + i * SP_HI_MUL + s * SP_STEP_MUL)], [value, 0], out, md=md)
+            value = out[0]
+        blake2s([pp, idx + const(SP_TW_CHAIN + i * SP_HI_MUL + (SP_CHAIN_STEPS - 1) * SP_STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], md=md)
+    return
 
-    # D = Th(P, tw_enc, msg | LE_32(c)), a 52-byte one-block hash.
-    digest = StackBuf(WORDS_PER_BLOCK)
-    blake2s([tw_pos + SP_TW_ENC, pp], [msg, ctr], digest, counter=52, final=1)
 
-    # The codeword, as in XMSS: each digit hinted in the exponent, range checked and
-    # dispatched once, arm k walking the remaining steps; the product of the digits
-    # is the target sum, and the digits weighted by 2^w within each 64-bit lane
-    # reconstruct D, which pins each lane's leftover top bits to zero.
-    tips = StackBuf(SP_TIP_CELLS)
-    digit_product = 1
-    acc_lo = 0
-    acc_hi = 0
-    for i in unroll(0, SP_V):
-        digit = hint_witness("sp_digits")
-        assert log(digit) < SP_CHAIN_LENGTH
-        chain_start = hint_witness("sp_chain_starts")
-        tw_chain = tw_pos + SP_TW_CHAIN + i * SP_CHAIN_MUL
-        tips[i], e = match(log(digit), range(0, SP_CHAIN_LENGTH), lambda k: sp_walk(chain_start, tw_chain, pp, k))
-        digit_product = digit_product * digit
-        term = e * SP_CHAIN_LENGTH ** (i % SP_DIGITS_PER_WORD)
-        if i // SP_DIGITS_PER_WORD == 0:
-            acc_lo = acc_lo + term
+@inline
+def sp_walk_group(idx, pp, md, tips, first: Const, n: Const, k: Const):
+    # The n <= SP_DIGIT_GROUP chains from `first` on, at the digits of k, one
+    # dispatch for all of them. Returns the digits as the encoding digest holds
+    # them, and their sum in the exponent.
+    for r in unroll(0, n):
+        sp_walk(idx, pp, md, tips, first + r, (k // SP_CHAIN_LENGTH ** r) % SP_CHAIN_LENGTH)
+    return const(k * SP_CHAIN_LENGTH ** first), GEN ** (k % SP_CHAIN_LENGTH + (k // SP_CHAIN_LENGTH) % SP_CHAIN_LENGTH + (k // SP_CHAIN_LENGTH ** 2) % SP_CHAIN_LENGTH)
+
+
+def sp_forest_key(at, pp, t: Const):
+    # One opened WOTS key of the forest, at the codeword of table index t: each
+    # chain walked its digit's steps up to the top, and the subtree leaf the tops
+    # hash to. One specialization per codeword, the digits being its constants;
+    # it returns t as the digest holds it, which is how a dispatch that came from
+    # a hint is bound.
+    tips = StackBuf(2 * SP_FCHAINS)
+    for i in unroll(0, SP_FCHAINS):
+        if const(SP_CODEWORDS[SP_FCHAINS * t + i] == 0):
+            hint_witness(tips[2 * i:2 * i + 1], "sp_forest_values")
         else:
-            acc_hi = acc_hi + term
-    assert digit_product == GEN ** SP_TARGET_SUM
-    assert acc_lo + acc_hi * Y_TOWER == digest[0]
-
+            value = hint_witness("sp_forest_values")
+            for s in unroll(SP_FTOP - SP_CODEWORDS[SP_FCHAINS * t + i], SP_FTOP - 1):
+                out = StackBuf(WORDS_PER_BLOCK)
+                blake2s([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + s * SP_STEP_MUL)], [value, 0], out, counter=48, final=1)
+                value = out[0]
+            blake2s([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + (SP_FTOP - 1) * SP_STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], counter=48, final=1)
+    st = StackBuf(WORDS_PER_BLOCK)
+    blake2s([pp, at + SP_TW_FKEY_LEAF], [tips[0], tips[2]], st, counter=64, final=0)
     leaf = StackBuf(WORDS_PER_BLOCK)
-    blake2s([tw_pos + SP_TW_LEAF, pp], tips[0:2], leaf, counter=64, final=0)
-    for q in unroll(1, SP_LEAF_BLOCKS):
-        next_leaf = StackBuf(WORDS_PER_BLOCK)
-        blake2s(tips[4 * q - 2:4 * q], tips[4 * q:4 * q + 2], next_leaf, cv=leaf, counter=64 * (q + 1), final=(q + 1) // SP_LEAF_BLOCKS)
-        leaf = next_leaf
-    return leaf[0]
+    blake2s([tips[4], tips[6]], [tips[8], tips[10]], leaf, cv=st, counter=128, final=1)
+    return leaf[0], t
+
+
+@inline
+def sp_fold(node, at, pp, md, out, slot: Const, index: Const, height: Const, tw: Const, level_mul: Const, node_mul: Const):
+    # Fold leaf `index` of a tree of the forest up its hinted path, into the
+    # tree's two top nodes, out[slot] and out[slot + 2], each beside a cell nothing
+    # reads. No hash joins them: the path's last element is the top node the fold
+    # does not reach. The index is the arm's constant, so the order of each pair
+    # and every node's address are the program's.
+    cur = node
+    for level in unroll(0, height - 2):
+        sibling = hint_witness("sp_forest_nodes")
+        parent = StackBuf(WORDS_PER_BLOCK)
+        if const((index // 2 ** level) % 2 == 0):
+            blake2s([pp, at + const(tw + (level + 1) * level_mul + (index // 2 ** (level + 1)) * node_mul)], [cur, sibling], parent, md=md)
+        else:
+            blake2s([pp, at + const(tw + (level + 1) * level_mul + (index // 2 ** (level + 1)) * node_mul)], [sibling, cur], parent, md=md)
+        cur = parent[0]
+    sibling = hint_witness("sp_forest_nodes")
+    if const((index // 2 ** (height - 2)) % 2 == 0):
+        blake2s([pp, at + const(tw + (height - 1) * level_mul + (index // 2 ** (height - 1)) * node_mul)], [cur, sibling], out[slot + 2 * (index // 2 ** (height - 1)):slot + 2 * (index // 2 ** (height - 1)) + 2], md=md)
+    else:
+        blake2s([pp, at + const(tw + (height - 1) * level_mul + (index // 2 ** (height - 1)) * node_mul)], [sibling, cur], out[slot + 2 * (index // 2 ** (height - 1)):slot + 2 * (index // 2 ** (height - 1)) + 2], md=md)
+    hint_witness(out[slot + 2 - 2 * (index // 2 ** (height - 1)):slot + 3 - 2 * (index // 2 ** (height - 1))], "sp_forest_nodes")
+    return
+
+
+@inline
+def sp_subtree_arm(node, sub_at, pp, md, subtops, c: Const, j: Const, a: Const):
+    # The path of WOTS key `a` in its subtree. Returns `a` as its addresses hold it
+    # and as the digest does, which is what binds the dispatch.
+    sp_fold(node, sub_at, pp, md, subtops, 4 * j, a, SP_SUBTREE_HEIGHT, SP_TW_FSUBNODE, SP_SUBNODE_LEVEL_MUL, SP_SUBNODE_MUL)
+    return const(a * SP_KEY_MUL), const(a) * COORD_BASIS[SP_KEY_OFF + (2 * c + j) * SP_SUBTREE_HEIGHT]
+
+
+@inline
+def sp_tree_arm(node, tree_at, pp, md, tops, c: Const, s: Const):
+    # The path of leaf `s` in tree c, likewise.
+    sp_fold(node, tree_at, pp, md, tops, 4 * c, s, SP_TREE_HEIGHT, SP_TW_FNODE, SP_FNODE_LEVEL_MUL, SP_FNODE_MUL)
+    return const(s * SP_LEAF_MUL), const(s) * COORD_BASIS[SP_LEAF_OFF + c * SP_TREE_HEIGHT]
 
 
 def verify_sig_sphincs(signer):
@@ -2407,93 +2478,155 @@ def verify_sig_sphincs(signer):
     # one statement field for the whole node, a SPHINCS message rides its own slot,
     # and the signer-set digest binds the two together.
     pp = signer[GEN]
+    # The metadata of a chain step and of a node, SET once here, not in every arm.
+    step_md = StackBuf(1)
+    step_md[0] = MD_FINAL + 48
+    node_md = StackBuf(1)
+    node_md[0] = MD_FINAL + 64
 
-    # ---- the message digest, which chooses the few-time key ----
-    # D = Truncate(H(tw_msg | P | rho | root | m)), 96 bytes in two blocks.
-    rho_root = StackBuf(WORDS_PER_BLOCK)
-    hint_witness(rho_root[0:1], "sp_rand")
-    rho_root[1] = signer[1]
+    # ---- the message digest, which chooses the few-time key and what it opens ----
+    # D = H(P | A | m | rho), 80 bytes: the message ends the first block and the
+    # randomizer is the second.
     prefix = StackBuf(WORDS_PER_BLOCK)
-    blake2s([SP_TW_MSG, pp], rho_root, prefix, counter=64, final=0)
+    blake2s([pp, SP_TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], prefix, counter=64, final=0)
+    rho = hint_witness("sp_rand")
     digest = StackBuf(WORDS_PER_BLOCK)
-    blake2s([signer[GEN ** 2], signer[GEN ** 3]], [0, 0], digest, cv=prefix, counter=96, final=1)
+    blake2s([rho, 0], [0, 0], digest, cv=prefix, counter=80, final=1)
 
-    # The index and the k leaf indices are bit fields of that digest, so its bits are
-    # advice-decomposed here and bound lane by lane. Nothing else derives them: every
-    # tweak below is built from these bits.
-    bits = HeapBuf(GEN ** SP_BIT_CELLS)
-    lo = StackBuf(1)
-    hint_f192_limbs(lo, digest[0])
-    hi = (digest[0] + lo[0]) * Y_INV
-    assert_in_k(lo[0], hi)
-    tail = StackBuf(1)
-    hint_f192_limbs(tail, digest[1])
-    tail_hi = (digest[1] + tail[0]) * Y_INV
-    assert_in_k(tail[0], tail_hi)
-    lanes = [lo[0], hi, tail[0]]
-    for lane in unroll(0, SP_BIT_LANES):
-        run = bits * GEN ** (lane * BASE_FIELD_BITS)
-        hint_decompose_bits(run, lanes[lane], BASE_FIELD_BITS)
-        bind_bits(run, lanes[lane], BASE_FIELD_BITS)
+    # The digest's first cell is the sixteen codewords and its second is bit
+    # fields. A field a dispatch takes (a codeword, a tree's leaf, a subtree's
+    # WOTS key) is hinted in the exponent and bound by what its arm returns, the
+    # field as the digest holds it. The index and the unused bits are advice bits,
+    # pinned Boolean. `bound` gathers what the second cell's fields weigh.
+    bits = StackBuf(SP_CELL_BITS)
+    hint_decompose_bits(bits, digest[1], SP_CELL_BITS)
+    for i in unroll(0, SP_H):
+        bits[i] = bits[i] * bits[i]
+    for i in unroll(SP_USED_BITS, SP_CELL_BITS):
+        bits[i] = bits[i] * bits[i]
+    # nodes[l] is idx >> l: the index, then the node above it on each level.
+    nodes = StackBuf(SP_H)
+    sp_shifts(bits, 0, SP_H, nodes)
+    idx = nodes[0]
+    unused = StackBuf(SP_UNUSED_BITS)
+    sp_shifts(bits, SP_USED_BITS, SP_UNUSED_BITS, unused)
+    bound = idx + unused[0] * COORD_BASIS[SP_USED_BITS]
 
-    # The digest is admissible only if its last leaf index is zero, which is what
-    # lets the forest drop that tree.
-    for b in unroll(0, SP_A):
-        assert bits[GEN ** (SP_H + (SP_K - 1) * SP_A + b)] == 0
-
-    # ---- the few-time signature: one opened leaf per tree of the forest ----
-    idx_tau = sp_bit_field(bits, 0, SP_H, SP_TAU_POS)
-    roots = StackBuf(SP_N_FTS)
-    for kappa in unroll(0, SP_N_FTS):
-        leaf_off = SP_H + kappa * SP_A
-        secret = StackBuf(WORDS_PER_BLOCK)
-        hint_witness(secret[0:1], "sp_fts_secrets")
-        fts_leaf = StackBuf(WORDS_PER_BLOCK)
-        node_index = sp_bit_field(bits, leaf_off, SP_A, SP_J_POS)
-        blake2s([SP_TW_FTS_LEAF + kappa * SP_LAY_MUL + idx_tau + node_index, pp], [secret[0], 0], fts_leaf, counter=48, final=1)
-        node = fts_leaf[0]
-        for level in unroll(0, SP_A):
-            sibling = hint_witness("sp_fts_paths")
-            children = order_children(node, sibling, bits[GEN ** (leaf_off + level)])
-            parent = StackBuf(WORDS_PER_BLOCK)
-            if const(level + 1 == SP_A):
-                node_index = 0
+    # ---- the few-time signature: two opened WOTS keys per tree of the forest ----
+    # A tree's top nodes land in tops[4c] and tops[4c + 2].
+    tops = StackBuf(4 * SP_TREES)
+    words = StackBuf(2 * SP_TREES)
+    for c in unroll(0, SP_TREES):
+        if const(c == 0):
+            tree_at = idx
+        else:
+            tree_at = idx + const(c * SP_HI_MUL)
+        # The tree's leaf: g^s, and s where an address holds it, which the
+        # dispatch on the first writes again.
+        leaf_mark = StackBuf(2)
+        hint_witness(leaf_mark, "sp_leaves")
+        assert log(leaf_mark[0]) < SP_LEAVES
+        leaf_at = tree_at + leaf_mark[1]
+        subtops = StackBuf(8)
+        for j in unroll(0, 2):
+            if const(j == 0):
+                sub_at = leaf_at
             else:
-                # The index fits in one lane; clearing its low bit makes division by GEN a right shift.
-                node_index = (node_index + bits[GEN ** (leaf_off + level)] * COORD_BASIS[SP_J_POS]) / GEN
-            blake2s([SP_TW_FTS_NODE + kappa * SP_LAY_MUL + const((level + 1) * SP_P_MUL) + idx_tau + node_index, pp], children, parent)
-            node = parent[0]
-        roots[kappa] = node
-    fts_key = StackBuf(WORDS_PER_BLOCK)
-    blake2s([SP_TW_FTS_ROOTS + idx_tau, pp], roots[0:2], fts_key, counter=64, final=0)
-    for q in unroll(1, SP_ROOT_BLOCKS):
+                sub_at = leaf_at + SP_SUBTREE_MUL
+            key_mark = StackBuf(2)
+            hint_witness(key_mark, "sp_keys")
+            assert log(key_mark[0]) < SP_KEYS
+            word = hint_witness("sp_words")
+            assert log(word) < SP_WORDS
+            key_at = sub_at + key_mark[1]
+            node, words[2 * c + j] = match(log(word), range(0, SP_WORDS), lambda t: sp_forest_key(key_at, pp, t))
+            key_mark[1], key_weight = match(log(key_mark[0]), range(0, SP_KEYS), lambda a: sp_subtree_arm(node, sub_at, pp, node_md[0], subtops, c, j, a))
+            bound = bound + key_weight
+        st = StackBuf(WORDS_PER_BLOCK)
+        blake2s([pp, leaf_at + SP_TW_FTREE_LEAF], [subtops[0], subtops[2]], st, counter=64, final=0)
+        leaf = StackBuf(WORDS_PER_BLOCK)
+        blake2s([subtops[4], subtops[6]], [0, 0], leaf, cv=st, counter=96, final=1)
+        leaf_mark[1], leaf_weight = match(log(leaf_mark[0]), range(0, SP_LEAVES), lambda s: sp_tree_arm(leaf[0], tree_at, pp, node_md[0], tops, c, s))
+        bound = bound + leaf_weight
+    # The codewords, a byte each: eight to a lane, low byte first.
+    lane_0 = words[7]
+    lane_1 = words[15]
+    for k in unroll(1, 8):
+        lane_0 = words[7 - k] + lane_0 * GEN ** 8
+        lane_1 = words[15 - k] + lane_1 * GEN ** 8
+    assert lane_0 + lane_1 * Y_TOWER == digest[0]
+    assert bound == digest[1]
+    # The few-time key: P, A and the 2 * SP_TREES top nodes, four cells a block.
+    forest_key = StackBuf(WORDS_PER_BLOCK)
+    blake2s([pp, idx + SP_TW_FKEY], [tops[0], tops[2]], forest_key, counter=64, final=0)
+    for q in unroll(1, SP_FKEY_BLOCKS):
         next_key = StackBuf(WORDS_PER_BLOCK)
-        blake2s(roots[4 * q - 2:4 * q], roots[4 * q:4 * q + 2], next_key, cv=fts_key, counter=64 * (q + 1), final=(q + 1) // SP_ROOT_BLOCKS)
-        fts_key = next_key
-    signed = fts_key[0]
+        if const(q + 1 == SP_FKEY_BLOCKS):
+            blake2s([tops[8 * q - 4], tops[8 * q - 2]], [0, 0], next_key, cv=forest_key, counter=32 + 32 * SP_TREES, final=1)
+        else:
+            blake2s([tops[8 * q - 4], tops[8 * q - 2]], [tops[8 * q], tops[8 * q + 2]], next_key, cv=forest_key, counter=64 * (q + 1), final=0)
+        forest_key = next_key
 
-    # ---- the hypertree, bottom layer first ----
-    # Layer lay signs what the layer below produced: the few-time key at the bottom,
-    # that layer's root above it, and the public key's root at the top.
-    for step in unroll(0, SP_D):
-        lay = SP_D - 1 - step
-        leaf_index_off = SP_SUFFIX[lay + 1]
-        tau_field = sp_bit_field(bits, SP_SUFFIX[lay], SP_H - SP_SUFFIX[lay], SP_TAU_POS)
-        node_index = sp_bit_field(bits, leaf_index_off, SP_HEIGHTS[lay], SP_J_POS)
-        tw_pos = tau_field + node_index + lay * SP_LAY_MUL
-        node = sp_ots_leaf(tw_pos, pp, signed)
-        for level in unroll(0, SP_HEIGHTS[lay]):
-            sibling = hint_witness("sp_siblings")
-            children = order_children(node, sibling, bits[GEN ** (leaf_index_off + level)])
-            parent = StackBuf(WORDS_PER_BLOCK)
-            if const(level + 1 == SP_HEIGHTS[lay]):
-                node_index = 0
-            else:
-                node_index = (node_index + bits[GEN ** (leaf_index_off + level)] * COORD_BASIS[SP_J_POS]) / GEN
-            blake2s([SP_TW_NODE + lay * SP_LAY_MUL + const((level + 1) * SP_P_MUL) + tau_field + node_index, pp], children, parent)
-            node = parent[0]
-        signed = node
-    assert signed == signer[1]
+    # ---- the one-time signature of the few-time key ----
+    # D = Th(P, A, key | LE_32(c)), 52 bytes. The counter is bounded by decomposing
+    # exactly its bits, so the guest accepts no preimage the native verifier cannot
+    # parse.
+    ctr = hint_witness("sp_counter")
+    ctr_bits = StackBuf(SP_COUNTER_BITS)
+    hint_decompose_bits(ctr_bits, ctr, SP_COUNTER_BITS)
+    ctr_bound = 0
+    for i in unroll(0, SP_COUNTER_BITS):
+        ctr_bits[i] = ctr_bits[i] * ctr_bits[i]
+        ctr_bound = ctr_bits[SP_COUNTER_BITS - 1 - i] + GEN * ctr_bound
+    assert ctr_bound == ctr
+    encoding = StackBuf(WORDS_PER_BLOCK)
+    blake2s([pp, idx + SP_TW_ENC], [forest_key[0], ctr], encoding, counter=52, final=1)
+
+    # The codeword: SP_DIGIT_GROUP digits at a time, hinted in the exponent, range
+    # checked and dispatched once, the arm walking every chain's remaining steps.
+    # The product of what the arms return is the target sum, and the digits, each
+    # group where the digest holds it, reconstruct D.
+    tips = StackBuf(2 * SP_V)
+    digit_product = 1
+    encoded = 0
+    for p in unroll(0, SP_V // SP_DIGIT_GROUP):
+        group = hint_witness("sp_digits")
+        assert log(group) < SP_DIGIT_GROUPS
+        term, digit_sum = match(log(group), range(0, SP_DIGIT_GROUPS), lambda k: sp_walk_group(idx, pp, step_md[0], tips, SP_DIGIT_GROUP * p, SP_DIGIT_GROUP, k))
+        digit_product = digit_product * digit_sum
+        encoded = encoded + term
+    # The chain the groups leave over.
+    group = hint_witness("sp_digits")
+    assert log(group) < SP_CHAIN_LENGTH
+    term, digit_sum = match(log(group), range(0, SP_CHAIN_LENGTH), lambda k: sp_walk_group(idx, pp, step_md[0], tips, SP_V - 1, 1, k))
+    digit_product = digit_product * digit_sum
+    encoded = encoded + term
+    assert digit_product == GEN ** SP_TARGET_SUM
+    assert encoded == encoding[0]
+    # The one-time leaf: P, A and the SP_V tips, four cells a block.
+    leaf = StackBuf(WORDS_PER_BLOCK)
+    blake2s([pp, idx + SP_TW_LEAF], [tips[0], tips[2]], leaf, counter=64, final=0)
+    for q in unroll(1, SP_LEAF_BLOCKS):
+        next_leaf = StackBuf(WORDS_PER_BLOCK)
+        if const(q + 1 == SP_LEAF_BLOCKS):
+            blake2s([tips[8 * q - 4], tips[8 * q - 2]], [0, 0], next_leaf, cv=leaf, counter=32 + 16 * SP_V, final=1)
+        else:
+            blake2s([tips[8 * q - 4], tips[8 * q - 2]], [tips[8 * q], tips[8 * q + 2]], next_leaf, cv=leaf, counter=64 * (q + 1), final=0)
+        leaf = next_leaf
+
+    # ---- the tree: the path from that one-time key to the public key's root ----
+    node = leaf[0]
+    for level in unroll(0, SP_H):
+        kids = StackBuf(2)
+        hint_witness(kids, "sp_siblings")
+        sp_is_child(node, kids, 0, bits[level])
+        parent = StackBuf(WORDS_PER_BLOCK)
+        if const(level + 1 == SP_H):
+            blake2s([pp, SP_TW_NODE + const((level + 1) * SP_HI_MUL)], kids, parent)
+        else:
+            blake2s([pp, SP_TW_NODE + const((level + 1) * SP_HI_MUL) + nodes[level + 1]], kids, parent)
+        node = parent[0]
+    assert node == signer[1]
     return
 
 

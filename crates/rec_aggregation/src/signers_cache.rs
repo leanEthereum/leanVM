@@ -180,6 +180,11 @@ pub fn get_signers_at(n: usize, leaf_index: LeafIndex) -> Vec<CachedSignature> {
     pool[..n].to_vec()
 }
 
+/// The height of the subtree a cached SPHINCS key keeps. A verifier cannot tell
+/// a pruned key from a full one, and a full one takes `2^26` one-time keys to
+/// generate.
+pub const SPHINCS_KEPT_HEIGHT: usize = 12;
+
 /// A SPHINCS signer, generated the same way, with the message it signed.
 /// Signing is stateless, so unlike XMSS there is no leaf index and no key range:
 /// one key answers for every index.
@@ -200,7 +205,7 @@ const SPHINCS_RECORD: usize = sphincs::PUB_KEY_SIZE + sphincs::MESSAGE_LEN + sph
 
 fn compute_sphincs_signer(index: usize) -> CachedSphincsSignature {
     let mut rng = StdRng::seed_from_u64(0x5F1A_C500 ^ index as u64);
-    let (secret_key, public_key) = sphincs::key_gen(&mut rng);
+    let (secret_key, public_key) = sphincs::key_gen(&mut rng, SPHINCS_KEPT_HEIGHT);
     let message = sphincs_message(index);
     let signature = sphincs::sign(&secret_key, &message).expect("sign");
     (public_key, message, signature)
@@ -219,19 +224,25 @@ fn sphincs_footprint() -> u64 {
         sphincs::V,
         sphincs::W,
         sphincs::TARGET_SUM,
-        sphincs::D,
-        sphincs::HEIGHTS,
-        sphincs::A,
-        sphincs::K,
+        sphincs::H,
+        sphincs::FOREST_TREES,
+        sphincs::TREE_HEIGHT,
+        sphincs::SUBTREE_HEIGHT,
+        sphincs::FOREST_CHAINS,
+        SPHINCS_KEPT_HEIGHT,
     )
         .hash(&mut hasher);
-    // The tweakable hash itself, so a change to it invalidates the file.
+    // The tweakable hash and the codeword table, so a change to either
+    // invalidates the file.
     sphincs::th(
         &[0xA5; sphincs::PUBLIC_PARAM_LEN],
-        &sphincs::tweak(1, 2, 3, 4, 5),
+        &sphincs::tweak(1, 2, 3).step(4),
         &[0x3C; 16],
     )
     .hash(&mut hasher);
+    for t in 0..1 << sphincs::CODEWORD_BITS {
+        sphincs::codeword(t).hash(&mut hasher);
+    }
     hasher.finish()
 }
 

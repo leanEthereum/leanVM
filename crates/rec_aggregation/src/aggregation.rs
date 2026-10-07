@@ -138,21 +138,36 @@ const _: () = assert!(xmss::LOG_LIFETIME <= 32);
 // The guest's `WOTS_PK_BLOCKS = (2 + V) / 4` truncates, so a bad `V` would drop
 // the last tips.
 const _: () = assert!((2 + xmss::V).is_multiple_of(4));
-// The SPHINCS side of the same shape. `SP_LEAF_BLOCKS = (2 + V) / 4` and
-// `SP_ROOT_BLOCKS = (2 + NUM_FTS_TREES) / 4` truncate, and a truncated loop
-// would leave the last tips or roots out of the hash while the signature still
-// carries them: revealed values no longer bound by the leaf they belong to.
-const _: () = assert!((2 + sphincs::V).is_multiple_of(4));
-const _: () = assert!((2 + sphincs::NUM_FTS_TREES).is_multiple_of(4));
-// The guest reads the message digest's bits out of three 64-bit lanes, and a
-// dynamically sized `HeapBuf` gets no compile-time index check, so a wider
-// digest would read leaf indices from cells nothing writes.
-const _: () = assert!(sphincs::DIGEST_BITS <= 3 * 64);
-// The guest packs each tweak field into its own 32-bit word: p at bit 32,
-// tau at bit 64, and j at bit 96.
-const _: () = assert!(sphincs::H <= 32);
-const _: () = assert!(sphincs::CHAIN_LEN * sphincs::V < 1 << 32);
-const _: () = assert!(sphincs::A <= 32 && sphincs::HEIGHTS[0] <= 32);
+// The guest takes the SPHINCS message digest's first cell as its sixteen
+// codewords, and reads the index and what the digest leaves unused from the bits
+// of the second, where it weighs each leaf and each WOTS key as one word of a
+// 64-bit lane.
+const _: () = assert!(sphincs::DIGEST_WORD_BYTES == 16 && sphincs::DIGEST_BITS <= 256);
+const _: () = {
+    let mut at = sphincs::H;
+    let mut k = 0;
+    while k < sphincs::FOREST_TREES * (1 + sphincs::SUBTREES) {
+        let bits = if k < sphincs::FOREST_TREES {
+            sphincs::TREE_HEIGHT
+        } else {
+            sphincs::SUBTREE_HEIGHT
+        };
+        assert!(at / 64 == (at + bits - 1) / 64);
+        at += bits;
+        k += 1;
+    }
+};
+// It dispatches the one-time digits `SPHINCS_DIGIT_GROUP` at a time, the last
+// chain alone, and weighs a group as one word of the encoding digest's cell.
+const SPHINCS_DIGIT_GROUP: usize = 3;
+const _: () = assert!(sphincs::W * sphincs::V == 128 && sphincs::V % SPHINCS_DIGIT_GROUP == 1);
+// Its hashes of the one-time leaf and of the few-time key end on half a block.
+const _: () = assert!(sphincs::V.is_multiple_of(4) && (2 * sphincs::FOREST_TREES).is_multiple_of(4));
+// It hashes a tree leaf over two subtrees, and places the forest's positions in
+// an address as `sphincs::forest` packs them: the tree in 3 bits, then the leaf
+// in 4, the subtree in 1, the key in 3 and the chain.
+const _: () = assert!(sphincs::SUBTREES == 2 && sphincs::FOREST_TREES <= 1 << 3);
+const _: () = assert!(sphincs::TREE_HEIGHT <= 4 && sphincs::SUBTREE_HEIGHT <= 3);
 
 /// A count as the guest carries it: in the exponent, `g^n`.
 fn count(n: usize) -> F192 {
@@ -1975,14 +1990,15 @@ fn push_signature_hints(
     Ok(())
 }
 
-/// One SPHINCS signature's witness: the randomizer, the few-time opening, and
-/// per layer the encoding counter, the codeword digits (in the exponent), the
-/// chain values they start from, and the Merkle siblings.
+/// One SPHINCS signature's witness: the randomizer, the forest's opened chain
+/// values, each tree's leaf and each subtree's key as the guest dispatches on
+/// them, the forest's path nodes in signature order, the encoding counter, the
+/// codeword digits (three at a time, in the exponent), the chain values they
+/// start from, and the ordered children of every node on the tree's path.
 ///
-/// The guest derives the index and the leaf indices from the digest itself, so
-/// nothing here carries them; what it does carry is the per-layer message, which
-/// this walk recomputes exactly as the guest will. The signer's own message is
-/// not hinted either: it rides its slot in the coverage table.
+/// The guest derives the index and every tree's choices from the digest itself,
+/// so nothing here carries them. The signer's own message is not hinted either:
+/// it rides its slot in the coverage table.
 fn push_sphincs_hints(
     hints: &mut Hints,
     (pk, message): &SphincsClaim,
@@ -1990,34 +2006,58 @@ fn push_sphincs_hints(
 ) -> Result<(), AggregationError> {
     let pp = &pk.public_param;
     hints.push("sp_rand", vec![pack_16_bytes(&sig.randomizer)]);
-    let (idx, u) = sphincs::message_digest(pp, &pk.root, &sig.randomizer, message);
-    for kappa in 0..sphincs::NUM_FTS_TREES {
-        hints.push("sp_fts_secrets", vec![pack_16_bytes(&sig.fts.secrets[kappa])]);
-        for sibling in &sig.fts.paths[kappa] {
-            hints.push("sp_fts_paths", vec![pack_16_bytes(sibling)]);
+    let subtrees = sig.forest.iter().flat_map(|tree| &tree.subtrees);
+    for value in subtrees.flat_map(|subtree| &subtree.values) {
+        hints.push("sp_forest_values", vec![pack_16_bytes(value)]);
+    }
+    let (idx, marks) = sphincs::message_digest(pp, &sig.randomizer, message);
+    for word in marks.iter().flat_map(|mark| mark.words) {
+        hints.push("sp_words", vec![count(word)]);
+    }
+    // A field the guest dispatches on: in the exponent, and as an address holds it.
+    let mark = |index: usize, field: u32| {
+        let address = sphincs::address(&sphincs::tweak(0, field, 0));
+        vec![count(index), pack_16_bytes(&address)]
+    };
+    for (tree, mark_of) in sig.forest.iter().zip(&marks) {
+        hints.push("sp_leaves", mark(mark_of.leaf, sphincs::leaf_field(mark_of.leaf)));
+        for (subtree, &key) in tree.subtrees.iter().zip(&mark_of.keys) {
+            hints.push("sp_keys", mark(key, sphincs::key_field(key)));
+            for node in &subtree.path {
+                hints.push("sp_forest_nodes", vec![pack_16_bytes(node)]);
+            }
+        }
+        for node in &tree.path {
+            hints.push("sp_forest_nodes", vec![pack_16_bytes(node)]);
         }
     }
-    let mut signed = sphincs::fts_recover(pp, idx, &u, &sig.fts);
-    for lay in (0..sphincs::D).rev() {
-        let pos = sphincs::Pos::new(lay, sphincs::tree_of(idx, lay), sphincs::leaf_of(idx, lay));
-        let counter = sig.counters[lay];
-        let codeword = sphincs::encode(pp, pos, &signed, counter).ok_or(AggregationError::MalformedRawSignature)?;
-        hints.push("sp_counter", vec![F192::new(u64::from(counter), 0, 0)]);
-        for (&digit, opened) in codeword.iter().zip(&sig.ots[lay]) {
-            hints.push("sp_digits", vec![count(digit as usize)]);
-            hints.push("sp_chain_starts", vec![pack_16_bytes(opened)]);
-        }
-        let path = &sig.paths[sphincs::path_range(lay)];
-        for sibling in path {
-            hints.push("sp_siblings", vec![pack_16_bytes(sibling)]);
-        }
-        let leaf = sphincs::ots_leaf(pp, pos, &signed, counter, &sig.ots[lay])
-            .ok_or(AggregationError::MalformedRawSignature)?;
-        signed = sphincs::tree_fold(pp, pos, leaf, path);
+    let forest_key = sphincs::forest_recover(pp, idx as u32, &marks, &sig.forest);
+    let codeword =
+        sphincs::encode(pp, idx as u32, &forest_key, sig.counter).ok_or(AggregationError::MalformedRawSignature)?;
+    hints.push("sp_counter", vec![F192::new(u64::from(sig.counter), 0, 0)]);
+    // The guest dispatches on three digits at a time, and on the last one alone.
+    for group in codeword.chunks(SPHINCS_DIGIT_GROUP) {
+        let index = group
+            .iter()
+            .rev()
+            .fold(0, |index, &digit| index * sphincs::CHAIN_LEN + digit as usize);
+        hints.push("sp_digits", vec![count(index)]);
     }
-    debug_assert_eq!(signed, pk.root, "the hinted walk reaches the public key");
+    for opened in &sig.wots {
+        hints.push("sp_chain_starts", vec![pack_16_bytes(opened)]);
+    }
+    let leaf = sphincs::wots_leaf(pp, idx as u32, &forest_key, sig.counter, &sig.wots)
+        .ok_or(AggregationError::MalformedRawSignature)?;
+    // On the tree's path the guest does not order a node and its sibling: it is
+    // handed the two children in order and checks that the node it holds is the
+    // one its bit names.
+    let root = sphincs::tree_fold_with(pp, idx, leaf, &sig.path, |pair| {
+        hints.push("sp_siblings", vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])]);
+    });
+    debug_assert_eq!(root, pk.root, "the hinted walk reaches the public key");
     Ok(())
 }
+
 #[derive(Clone, Copy, Default)]
 pub(crate) struct DaInput<'a> {
     pub rows: &'a [u64],
@@ -3018,35 +3058,41 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("MAX_RECURSIONS", MAX_RECURSIONS.to_string());
     ps("MAX_LEAF_INDICES", MAX_LEAF_INDICES.to_string());
 
-    // The SPHINCS instance. Its tweaks are derived per signature from the index
-    // the message digest picks, where XMSS's come from one public leaf index, so the
-    // guest receives the shape and the native tweak prefixes.
-    let dsl_list = |values: &[usize]| {
-        let inner: Vec<String> = values.iter().map(usize::to_string).collect();
-        format!("[{}]", inner.join(", "))
-    };
+    // The SPHINCS instance. Its addresses are derived per signature from the
+    // index the message digest picks, where XMSS's come from one public leaf
+    // index, so the guest receives the shape, the codeword table and each hash
+    // type as the address lane holds it.
     ps("SP_V", sphincs::V.to_string());
     ps("SP_W", sphincs::W.to_string());
     ps("SP_TARGET_SUM", sphincs::TARGET_SUM.to_string());
-    ps("SP_D", sphincs::D.to_string());
-    ps("SP_A", sphincs::A.to_string());
-    ps("SP_K", sphincs::K.to_string());
     ps("SP_H", sphincs::H.to_string());
-    ps("SP_HEIGHTS", dsl_list(&sphincs::HEIGHTS));
-    ps("SP_SUFFIX", dsl_list(&sphincs::SUFFIX));
+    ps("SP_TREES", sphincs::FOREST_TREES.to_string());
+    ps("SP_TREE_HEIGHT", sphincs::TREE_HEIGHT.to_string());
+    ps("SP_SUBTREE_HEIGHT", sphincs::SUBTREE_HEIGHT.to_string());
+    ps("SP_FCHAINS", sphincs::FOREST_CHAINS.to_string());
+    ps("SP_FTOP", sphincs::FOREST_CHAIN_TOP.to_string());
+    ps("SP_WORD_BITS", sphincs::CODEWORD_BITS.to_string());
+    let digits: Vec<String> = (0..1 << sphincs::CODEWORD_BITS)
+        .flat_map(sphincs::codeword)
+        .map(|digit| digit.to_string())
+        .collect();
+    ps("SP_CODEWORDS", format!("[{}]", digits.join(", ")));
     for (name, tag) in [
         ("SP_TW_CHAIN", sphincs::TWEAK_CHAIN),
         ("SP_TW_LEAF", sphincs::TWEAK_LEAF),
         ("SP_TW_NODE", sphincs::TWEAK_NODE),
         ("SP_TW_ENC", sphincs::TWEAK_ENC),
-        ("SP_TW_FTS_LEAF", sphincs::TWEAK_FTS_LEAF),
-        ("SP_TW_FTS_NODE", sphincs::TWEAK_FTS_NODE),
-        ("SP_TW_FTS_ROOTS", sphincs::TWEAK_FTS_ROOTS),
         ("SP_TW_MSG", sphincs::TWEAK_MSG),
+        ("SP_TW_FCHAIN", sphincs::TWEAK_FOREST_CHAIN),
+        ("SP_TW_FKEY_LEAF", sphincs::TWEAK_FOREST_KEY_LEAF),
+        ("SP_TW_FSUBNODE", sphincs::TWEAK_FOREST_SUBNODE),
+        ("SP_TW_FTREE_LEAF", sphincs::TWEAK_FOREST_TREE_LEAF),
+        ("SP_TW_FNODE", sphincs::TWEAK_FOREST_NODE),
+        ("SP_TW_FKEY", sphincs::TWEAK_FOREST_KEY),
     ] {
         ps(
             name,
-            dsl_u128(pack_16_bytes(&sphincs::tweak(tag, 0, 0, 0, 0))).to_string(),
+            dsl_u128(pack_16_bytes(&sphincs::address(&sphincs::tweak(tag, 0, 0)))).to_string(),
         );
     }
     rep
@@ -3118,7 +3164,8 @@ mod tests {
     use rand::rngs::StdRng;
 
     use crate::signers_cache::{
-        KEY_START, XMSS_LEAF_INDEX_A, get_signers, get_signers_at, get_sphincs_signers, message, message_for,
+        KEY_START, SPHINCS_KEPT_HEIGHT, XMSS_LEAF_INDEX_A, get_signers, get_signers_at, get_sphincs_signers, message,
+        message_for,
     };
 
     /// A second leaf index inside the cached keys' window; signer `i` holds the same key at both.
@@ -3273,59 +3320,25 @@ mod tests {
         .expect("leaf aggregates")
     }
 
+    /// The guest builds an XMSS tweak as a constant cell plus one weight per set
+    /// leaf index bit, which must be `xmss::make_tweak`'s own bytes.
     #[test]
-    fn keygen_and_verification_hash_domains_are_disjoint() {
-        let xmss_tags = [
-            xmss::TWEAK_TYPE_PRF,
+    fn guest_tweaks_are_the_native_ones() {
+        for tag in [
             xmss::TWEAK_TYPE_CHAIN,
             xmss::TWEAK_TYPE_WOTS_PK,
             xmss::TWEAK_TYPE_MERKLE,
             xmss::TWEAK_TYPE_ENCODING,
-            xmss::TWEAK_TYPE_PARAMETER,
-            xmss::TWEAK_TYPE_FILLER,
-        ];
-        let sphincs_tags = [
-            sphincs::TWEAK_PRF,
-            sphincs::TWEAK_CHAIN,
-            sphincs::TWEAK_LEAF,
-            sphincs::TWEAK_NODE,
-            sphincs::TWEAK_ENC,
-            sphincs::TWEAK_FTS_PRF,
-            sphincs::TWEAK_FTS_LEAF,
-            sphincs::TWEAK_FTS_NODE,
-            sphincs::TWEAK_FTS_ROOTS,
-            sphincs::TWEAK_MSG,
-            sphincs::TWEAK_PARAMETER,
-        ];
-        let domains: BTreeSet<_> = xmss_tags
-            .into_iter()
-            .map(|tag| xmss::make_tweak(tag, 0, 0))
-            .chain(sphincs_tags.into_iter().map(|tag| sphincs::tweak(tag, 0, 0, 0, 0)))
-            .collect();
-        assert_eq!(domains.len(), xmss_tags.len() + sphincs_tags.len());
-    }
-
-    #[test]
-    fn signature_tweaks_align_with_distinct_domains() {
-        for (xmss_tag, sphincs_tag) in [
-            (xmss::TWEAK_TYPE_CHAIN, sphincs::TWEAK_CHAIN),
-            (xmss::TWEAK_TYPE_WOTS_PK, sphincs::TWEAK_LEAF),
-            (xmss::TWEAK_TYPE_MERKLE, sphincs::TWEAK_NODE),
-            (xmss::TWEAK_TYPE_ENCODING, sphincs::TWEAK_ENC),
         ] {
             for position in [0, 1, u32::MAX] {
                 for index in [0, 1, 3, 0xa0b0_c0d0, u32::MAX] {
-                    let xmss_tweak = xmss::make_tweak(xmss_tag, position, index);
-                    let sphincs_tweak = sphincs::tweak(sphincs_tag, 0, 0, position, index);
-                    assert_eq!(&xmss_tweak[1..], &sphincs_tweak[1..]);
-                    assert_ne!(xmss_tweak[0], sphincs_tweak[0]);
-                    let mut guest_tweak = tweak_cell(xmss_tag, position);
+                    let mut guest_tweak = tweak_cell(tag, position);
                     for bit in 0..32 {
                         if index & (1 << bit) != 0 {
                             guest_tweak += tweak_index_weight(bit);
                         }
                     }
-                    assert_eq!(guest_tweak, pack_16_bytes(&xmss_tweak));
+                    assert_eq!(guest_tweak, pack_16_bytes(&xmss::make_tweak(tag, position, index)));
                 }
             }
         }
@@ -3424,7 +3437,7 @@ mod tests {
     fn aggregate_one_key_two_messages() {
         leanvm_core::init_prover();
         let mut rng = StdRng::seed_from_u64(77);
-        let (secret_key, public_key) = sphincs::key_gen(&mut rng);
+        let (secret_key, public_key) = sphincs::key_gen(&mut rng, SPHINCS_KEPT_HEIGHT);
         let raw: Vec<RawSphincs> = [3u8, 9]
             .into_iter()
             .map(|tag| {
@@ -5051,11 +5064,30 @@ def main():
             ("sp_chain_starts", &|h: &mut Hints| {
                 h.entries("sp_chain_starts")[0][0] += F192::ONE;
             }),
-            ("sp_fts_secrets", &|h: &mut Hints| {
-                h.entries("sp_fts_secrets")[0][0] += F192::ONE;
+            ("sp_words (another codeword)", &|h: &mut Hints| {
+                let entries = h.entries("sp_words");
+                entries[0][0] *= F192::from(primitives::field::G);
             }),
-            ("sp_fts_paths", &|h: &mut Hints| {
-                h.entries("sp_fts_paths")[0][0] += F192::ONE;
+            ("sp_leaves (another leaf)", &|h: &mut Hints| {
+                h.entries("sp_leaves")[0][0] *= F192::from(primitives::field::G);
+            }),
+            ("sp_leaves (an address the leaf does not have)", &|h: &mut Hints| {
+                h.entries("sp_leaves")[0][1] += F192::ONE;
+            }),
+            ("sp_keys (another key)", &|h: &mut Hints| {
+                h.entries("sp_keys")[0][0] *= F192::from(primitives::field::G);
+            }),
+            ("sp_forest_values", &|h: &mut Hints| {
+                h.entries("sp_forest_values")[0][0] += F192::ONE;
+            }),
+            ("sp_forest_values (a cell that is not canonical)", &|h: &mut Hints| {
+                h.entries("sp_forest_values")[0][0] += F192::new(0, 0, 1);
+            }),
+            ("sp_forest_nodes", &|h: &mut Hints| {
+                h.entries("sp_forest_nodes")[0][0] += F192::ONE;
+            }),
+            ("sp_forest_nodes (the other top node)", &|h: &mut Hints| {
+                h.entries("sp_forest_nodes")[sphincs::SUBTREE_HEIGHT - 1][0] += F192::ONE;
             }),
             ("sp_siblings", &|h: &mut Hints| {
                 h.entries("sp_siblings")[0][0] += F192::ONE;
@@ -5248,7 +5280,7 @@ def main():
         );
 
         let mut raw_sphincs = get_sphincs_signers(2);
-        raw_sphincs[1].2.ots[2][0][0] ^= 1;
+        raw_sphincs[1].2.wots[0][0] ^= 1;
         assert!(
             aggregate(&[], vec![], raw_sphincs, &[], None, LOG_INV_RATE).is_err(),
             "a forged SPHINCS signature must be rejected"
@@ -5308,7 +5340,7 @@ def main():
     #[test]
     fn malformed_raw_sphincs_signature_is_an_error() {
         let (public_key, signed, mut signature) = get_sphincs_signers(1).pop().expect("one signer");
-        signature.counters[sphincs::D - 1] ^= 1;
+        signature.counter ^= 1;
         assert!(sphincs::verify(&public_key, &signed, &signature).is_err());
         let raw = vec![(public_key, signed, signature)];
         assert_eq!(

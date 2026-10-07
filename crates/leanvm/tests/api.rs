@@ -26,10 +26,10 @@ fn public_api_end_to_end() {
         }
     }
 
-    // 2. Three SPHINCS signatures, each on its own message
+    // 2. Three SPHINCS signatures, each on its own message, by keys pruned to a subtree of height 8
     let mut sphincs_input = Vec::new();
     for signer in 0..3u8 {
-        let (secret_key, pub_key) = sphincs::key_gen(rng);
+        let (secret_key, pub_key) = sphincs::key_gen(rng, 8);
         let message = [signer; sphincs::MESSAGE_LEN];
         let signature = sphincs::sign(&secret_key, &message).unwrap();
         sphincs_input.push((pub_key, message, signature));
