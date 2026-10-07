@@ -5,6 +5,7 @@ pub mod circuit;
 mod error;
 mod fixed;
 mod layout;
+pub mod program;
 pub mod proof;
 pub mod table;
 pub mod transcript;
