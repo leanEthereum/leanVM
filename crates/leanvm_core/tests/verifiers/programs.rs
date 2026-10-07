@@ -1,6 +1,5 @@
-//! RISC-V programs, proven and checked by both verifiers.
+//! RISC-V programs, proven and checked by the native verifier.
 
-use super::python_verifier::PythonStatement;
 use fiat_shamir::transcript::TranscriptError;
 use leanvm_core::asm::*;
 use leanvm_core::{
@@ -43,9 +42,8 @@ fn proves_and_verifies(tag: &str, program: &Program, expected: [u64; 4]) {
 
 fn proves_and_verifies_with(tag: &str, program: &Program, advice: &[u64], expected: [u64; 4]) {
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(program, advice).expect("the run halts");
-    assert_eq!(output, expected);
-    let raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
-    PythonStatement::new(tag, program, output.words()).assert_accepts(&raw);
+    assert_eq!(output, expected, "{tag}");
+    program.verify(output, &proof).expect("honest proof verifies");
 
     // The proof is about this output.
     let mut wrong = *output.words();
@@ -454,18 +452,10 @@ fn a_large_program_grinds_before_the_bus() {
     assert!(program.verify(output, &forged).is_err());
 }
 
-/// Python reads the large program's bytecode table, 2^26 words, which takes it minutes.
 #[test]
-#[ignore = "minutes of Python: run with --ignored"]
-fn python_checks_a_large_programs_grinding() {
-    let (program, proof, forged, output) = large_program();
-    let statement = PythonStatement::new("large", &program, output.words());
-    let mut raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
-    statement.assert_accepts(&raw);
-
-    // The raw proof carries the same stream, so the same forged nonce.
-    raw.stream = forged.0.stream;
-    let refused = statement.verify(&raw);
-    PythonStatement::assert_rejects(&refused, "a nonce short of the work");
-    assert!(String::from_utf8_lossy(&refused.stderr).contains("invalid grinding nonce"));
+fn a_proof_at_the_lowest_rate_verifies() {
+    let (program, expected) = fibonacci();
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MAX).prove(&program, &[]).expect("the run halts");
+    assert_eq!(output, expected);
+    program.verify(output, &proof).expect("honest proof verifies");
 }

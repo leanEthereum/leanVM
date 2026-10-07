@@ -4,9 +4,7 @@
 //!
 //! The blocks name columns by index, so the layout is pure public structure.
 //!
-//! Each enum's declaration order is protocol order.
-//!
-//! The Python verifier mirrors it, so reordering a variant changes the proof layout.
+//! Each enum's declaration order is protocol order: reordering a variant changes the proof layout.
 
 use super::error::CpuError;
 use super::execute::Trace;

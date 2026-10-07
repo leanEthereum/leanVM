@@ -341,7 +341,7 @@ impl Program {
         Ok(self.check_deferred(&claims)?)
     }
 
-    /// Verify a proof, and return it with every query's Merkle path written out, the form the Python verifier reads.
+    /// Verify a proof and expand its Merkle paths for recursion.
     ///
     /// # Errors
     ///

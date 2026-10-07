@@ -1,11 +1,7 @@
-//! The Python verifier of this protocol, pinned against `cpu::Program::verify` on
-//! hand-assembled programs and on Rust guests.
+//! Native verification of hand-assembled RISC-V programs and Rust guests.
 
 mod act4;
-mod constants;
 mod corrupted;
 mod deferred;
 mod guests;
 mod programs;
-mod python_verifier;
-mod whir_query_table;

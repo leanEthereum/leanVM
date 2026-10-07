@@ -1,9 +1,8 @@
 //! Rust guests (`programs/*/guest`), from their ELF files: compiled by `rustc` for
-//! `riscv64im-unknown-none-elf`, loaded, run, proven, and checked by both verifiers.
+//! `riscv64im-unknown-none-elf`, loaded, run, proven, and checked by the native verifier.
 //! The files are built by `programs/build.sh` and checked in, the target needing a
 //! nightly toolchain.
 
-use super::python_verifier::PythonStatement;
 use leanvm_core::{ElfError, Guest, Machine, Program, ProvenRun, Prover, Rate, Region};
 use leanvm_guest::PublicValues;
 use primitives::hash::{digest_words, hash};
@@ -28,8 +27,7 @@ fn proves_and_verifies(tag: &str, elf: &[u8], advice: &[u64], expected: [u64; 4]
     assert_eq!(output, expected);
     // Measuring a run reports what proving it does, without the proof.
     assert_eq!(program.measure(advice), Ok(stats.clone()), "{tag}: measure");
-    let raw = program.verify_to_raw(output, &proof).expect("honest proof verifies");
-    PythonStatement::new(tag, &program, output.words()).assert_accepts(&raw);
+    program.verify(output, &proof).expect("honest proof verifies");
     let mut wrong = *output.words();
     wrong[3] ^= 1;
     assert!(program.verify(wrong.into(), &proof).is_err());

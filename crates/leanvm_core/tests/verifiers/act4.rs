@@ -3,15 +3,13 @@
 //! test on the Sail reference model and builds it again with Sail's results inside,
 //! so that it checks itself. Not checked in: `generate.sh` writes them to the ignored
 //! `conformance/act4/elf/`, or `LEANVM_ACT4` names another directory, which is how CI runs
-//! them. Run on the interpreter, proven, and checked by both verifiers. A test exits
+//! them. Run on the interpreter, proven, and checked by the native verifier. A test exits
 //! with the output zero when every check passes. Both tests are `#[ignore]`d, since
 //! they need the generated files: `cargo test --release -p leanvm_core --test verifiers
 //! -- --ignored act4`.
 
-use super::python_verifier::PythonStatement;
-use leanvm_core::{Guest, Machine, PerTable, Program, ProvenRun, Prover, Rate, Region, Trap};
+use leanvm_core::{Guest, Machine, Program, ProvenRun, Prover, Rate, Region, Trap};
 use std::path::{Path, PathBuf};
-use std::thread::Builder;
 
 /// Every test of the two suites, as `(extension, instruction)`, the file being
 /// `<extension>/<extension>-<instruction>-00.elf`.
@@ -153,36 +151,17 @@ fn act4_on_the_interpreter() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Every test proven and checked by the Rust verifier. Python, far slower per proof,
-/// checks the first test to use each table, which between them reach every table the
-/// suite does, side by side.
+/// Every architectural test proven and checked by the native verifier.
 #[test]
 #[ignore = "needs the ELF files of conformance/act4/generate.sh"]
 fn act4_proven() {
-    let mut covered = PerTable::<bool>::default();
-    let mut python = Vec::new();
     for Test { name, program, .. } in suite() {
-        let ProvenRun {
-            proof, output, stats, ..
-        } = Prover::new(Rate::MIN)
+        let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN)
             .prove(&program, &[])
             .unwrap_or_else(|trap| panic!("{name}: {trap}"));
         assert_eq!(output, PASS, "{name}: the prover's output");
-        let raw = program
-            .verify_to_raw(output, &proof)
+        program
+            .verify(output, &proof)
             .unwrap_or_else(|error| panic!("{name}: {error:?}"));
-        let used = stats.base_counts.map(|rows| rows > 0);
-        if used.iter().any(|(t, &used)| used && !covered[t]) {
-            covered = PerTable::from_fn(|t| covered[t] || used[t]);
-            python.push((name.clone(), PythonStatement::new(&name, &program, output.words()), raw));
-        }
     }
-    std::thread::scope(|scope| {
-        for (name, statement, raw) in &python {
-            Builder::new()
-                .name(name.clone())
-                .spawn_scoped(scope, move || statement.assert_accepts(raw))
-                .unwrap();
-        }
-    });
 }

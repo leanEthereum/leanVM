@@ -242,9 +242,9 @@ impl PrunedMerklePaths {
 ///
 /// The redundant form. Several queries of one phase repeat whatever siblings
 /// they share, which is exactly what makes it simple to consume: recomputing
-/// the root is a walk up one path, with no dedup bookkeeping. The Python
-/// verifier consumes this; the wire format ([`PrunedMerklePaths`]) sends each
-/// shared sibling once.
+/// the root is a walk up one path, with no dedup bookkeeping.
+///
+/// Recursion consumes this form. The wire format ([`PrunedMerklePaths`]) sends each shared sibling once.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RawMerklePath {
     /// Transcript-derived position.

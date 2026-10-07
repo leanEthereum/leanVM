@@ -83,9 +83,8 @@ const DEGREE_E: usize = 192;
 /// identity is what lets a verifier evaluate the batched claim from `Phi`'s
 /// six challenges instead of the 192 weights. Expanding the composition puts a distinct monomial at every Frobenius
 /// exponent `0..64`: writing `k = sum_p k_p·2^(5-p)` for the binary digits of
-/// `k`, the coefficient is `C_k = prod_{p : k_p = 1} f_p^(2^(k mod 2^(5-p)))`,
-/// which is what `python-verifier`'s coefficient table builds. Applying the composed
-/// form directly costs only 63 squarings and six multiplications.
+/// `k`, the coefficient is `C_k = prod_{p : k_p = 1} f_p^(2^(k mod 2^(5-p)))`.
+/// Applying the composed form directly costs only 63 squarings and six multiplications.
 ///
 /// ## Soundness
 ///
@@ -675,10 +674,7 @@ pub(crate) mod tests {
         );
     }
 
-    /// The contract between the native opener and every verifier that batches
-    /// from `Phi`'s coefficients (the Python reference verifier): weighting the COLUMN view by `build_coordinate_weights` must
-    /// equal applying `Phi` to the ROW view and combining with `x^j`. If this
-    /// drifts, that verifier computes a different opening target than the prover.
+    /// Weighting the column view equals applying `Phi` to the row view and combining with `x^j`.
     #[test]
     fn column_weights_match_the_row_side_linearized_map() {
         let mut rng = Rng::new(0xF00D_BEEF_1234_5678);

@@ -1,6 +1,6 @@
 //! Instruction tables: class specifications, local columns, bus tuples, and witness filling.
 //!
-//! Column and port order are protocol data mirrored by the Python verifier.
+//! Column and port order are protocol data.
 //! Circuit words are virtual columns bound to the machine through the bus.
 
 mod bus;

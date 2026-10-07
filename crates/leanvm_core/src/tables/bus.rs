@@ -7,7 +7,7 @@ use std::vec::IntoIter;
 
 /// Domain of a bus tuple, encoded in its first coordinate.
 ///
-/// Explicit discriminants keep the Rust and Python protocol encodings fixed.
+/// Explicit discriminants fix the protocol encoding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub(crate) enum Separator {
@@ -136,7 +136,6 @@ mod tests {
 
     #[test]
     fn separators_keep_the_protocol_encodings() {
-        // The Python verifier reads these four field words without Rust's enum discriminants.
         for (separator, expected) in [
             (Separator::State, 1),
             (Separator::Memory, 2),

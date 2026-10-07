@@ -126,7 +126,7 @@ impl LimbColumns {
 
 /// Local column layout, including shared columns for unchanged doubleword moves.
 ///
-/// Allocation order is protocol data mirrored by the Python verifier.
+/// Allocation order is protocol data.
 #[derive(Clone, Copy)]
 pub(super) struct Columns {
     /// Current instruction address.

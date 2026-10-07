@@ -3,7 +3,8 @@
 //! prover's to choose, so every path the verifier takes through it has to end in
 //! [`CpuError`], not in an index out of bounds.
 
-use leanvm_core::{Proof, ProvenRun, Prover, Rate};
+use leanvm_core::{Clock, CpuError, N_TABLES, Proof, ProvenRun, Prover, Rate};
+use primitives::field::F192;
 use std::panic::AssertUnwindSafe;
 
 struct Rng(u64);
@@ -81,5 +82,32 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
             Ok(Err(_)) => {}
             Err(_) => panic!("round {round}: the verifier panicked instead of rejecting"),
         }
+    }
+}
+
+#[test]
+fn noncanonical_announcements_and_roots_are_refused() {
+    let (program, _) = super::programs::fibonacci();
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+
+    let mut forged = proof.clone();
+    forged.0.stream[0].c1 = 1;
+    assert_eq!(program.verify(output, &forged), Err(CpuError::NonCanonicalSize.into()));
+
+    let mut forged = proof;
+    forged.0.stream[N_TABLES + 2].c2 = 1;
+    assert!(program.verify(output, &forged).is_err());
+}
+
+#[test]
+fn a_final_clock_must_be_live_and_valid() {
+    let (program, _) = super::programs::fibonacci();
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+    let at = N_TABLES + 1;
+    let honest = proof.0.stream[at].c0;
+    for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
+        let mut forged = proof.clone();
+        forged.0.stream[at] = F192::new(clock, 0, 0);
+        assert_eq!(program.verify(output, &forged), Err(CpuError::FinalClock.into()));
     }
 }

@@ -15,10 +15,9 @@ pub struct ProofTranscript<M = PrunedMerklePaths> {
     pub merkle: Vec<M>,
 }
 
-/// The proof the Python verifier consumes: [`ProofTranscript`] with every query's Merkle
-/// path written out, which is the one thing it would otherwise have to
-/// reconstruct. A verifier run yields it as a by-product
-/// ([`VerifierState::into_raw_proof`]), so that expansion is written once, in Rust.
+/// A proof with every query's Merkle path expanded for recursion.
+///
+/// Native verification produces it through [`VerifierState::into_raw_proof`].
 pub type RawProof = ProofTranscript<RawMerklePath>;
 
 impl<M: Serialize + DeserializeOwned> ProofTranscript<M> {

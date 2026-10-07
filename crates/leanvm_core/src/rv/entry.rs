@@ -368,7 +368,7 @@ impl Entry {
 
     /// Whether the entry at `pc` obeys the rules that make the bytecode table RISC-V.
     ///
-    /// Both verifiers check these rules on every entry.
+    /// Program construction checks these rules on every entry.
     ///
     /// The proof system itself is sound for any table, a malformed one included.
     ///

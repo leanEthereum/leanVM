@@ -1,6 +1,6 @@
 //! Shared word gadgets and the instruction circuit interface.
 //!
-//! Rust and Python agree on the port layout and the order products are made in.
+//! Port layout and product order define the circuit.
 //! Only products are committed; XOR, NOT and copying are free.
 
 pub use super::semantics::blake2s_witness;
@@ -22,7 +22,7 @@ pub(super) type Word = Vec<Wire>;
 ///
 /// A gadget makes its products in a fixed order.
 ///
-/// The Python verifier mirrors that order, so a gadget's loop order is part of the circuit.
+/// A gadget's loop order is part of the circuit.
 pub(super) trait WordGadgets {
     /// `x ^ y`, bit by bit; no product.
     fn xor_word(&mut self, x: &[Wire], y: &[Wire]) -> Word;
