@@ -16,14 +16,6 @@
 //! - `rec`: the recursion machine and the aggregation trees (§annex:rec).
 
 pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
-/// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
-/// which is what the CLI's `--tracing` tree shows.
-macro_rules! stage {
-    ($name:literal, $f:expr) => {
-        tracing::info_span!($name).in_scope($f)
-    };
-}
-pub(crate) use stage;
 
 mod class_flock;
 mod colval;
@@ -39,8 +31,10 @@ mod tables;
 mod witness;
 
 pub use self::pcs::{InvalidRate, Rate};
-/// The shared soundness target of the commitment and the bus argument, in bits.
-pub use ::pcs::whir::SECURITY_BITS;
+/// The proof's soundness target, in bits.
+///
+/// WHIR parameters and the bus soundness check share this target.
+pub const SECURITY_BITS: u32 = ::pcs::whir::SECURITY_BITS as u32;
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
 pub use rec::tree::{
     CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,

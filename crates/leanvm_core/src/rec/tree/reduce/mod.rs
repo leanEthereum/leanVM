@@ -14,6 +14,7 @@ use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, Transmitter};
 use primitives::field::{F64, F192, F192Unreduced, mul_base8, mul_unreduced4, mul4};
 use thiserror::Error;
+use tracing::info_span;
 
 mod dense;
 mod matrix;
@@ -81,13 +82,8 @@ impl NodeClaims<F192> {
     pub(crate) fn prove(&self, vars: &DenseVars, tables: &DenseTables) -> ProofTranscript {
         let mut ps = ProverState::from_label(LABEL);
         ps.add_scalars(&self.bound);
-        crate::stage!("Dense reduction", || DenseProver::prove(
-            &mut ps,
-            vars,
-            tables,
-            &self.dense
-        ));
-        crate::stage!("Matrix reduction", || MatrixProver::prove(&mut ps, &self.matrices));
+        info_span!("Dense reduction").in_scope(|| DenseProver::prove(&mut ps, vars, tables, &self.dense));
+        info_span!("Matrix reduction").in_scope(|| MatrixProver::prove(&mut ps, &self.matrices));
         ps.into_proof()
     }
 }

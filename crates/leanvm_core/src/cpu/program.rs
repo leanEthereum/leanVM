@@ -23,6 +23,7 @@ use flock::reduction;
 use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
 use std::cmp::Reverse;
+use tracing::info_span;
 
 /// A validated program, its fill blocks, and the digest of everything public about it.
 ///
@@ -209,7 +210,7 @@ impl Program {
 
     /// Prove a finished run, which a test may have forged.
     pub(super) fn prove_execution(&self, exec: &Execution, rate: Rate) -> (Proof, Stats) {
-        let w = crate::stage!("Build witness", || Witness::build(self, exec));
+        let w = info_span!("Build witness").in_scope(|| Witness::build(self, exec));
         let stats = Stats {
             proven_rows: exec.proven_rows,
             counts: w.layout.taus.map(|t| 1usize << t),
@@ -235,8 +236,8 @@ impl Program {
             ts_final: w.ts_final,
         };
         announcement.write(&mut ps);
-        let committed = crate::stage!("Commit", || Committed::new(&mut ps, &w.q, w.layout.shape, rate)
-            .expect("the witness matches its layout"));
+        let committed = info_span!("Commit")
+            .in_scope(|| Committed::new(&mut ps, &w.q, w.layout.shape, rate).expect("the witness matches its layout"));
 
         // The bus, then the linear tables' columns at its point, then the one batch over the other tables and the
         // producers, all reading the stack's windows in place.
@@ -244,7 +245,7 @@ impl Program {
         let (bus_claims, table_claims) = {
             let l = &w.layout;
             let cols = w.columns();
-            let mut bus = crate::stage!("Prove bus", || {
+            let mut bus = info_span!("Prove bus").in_scope(|| {
                 leaf::prove_balance(
                     &l.push,
                     &l.pull,
@@ -271,7 +272,7 @@ impl Program {
                     }
                 })
                 .collect();
-            let summed = crate::stage!("Prove constraints", || {
+            let summed = info_span!("Prove constraints").in_scope(|| {
                 let producers = std::mem::take(&mut bus.producers);
                 let coefficients: Vec<Vec<F192>> = producers.iter().map(|p| p.coefficients.clone()).collect();
 
@@ -305,7 +306,7 @@ impl Program {
         // Each circuit leaves a validity claim on its packed witness, discharged in the same opening through a ring-switched region.
         // Each producer's multiplicity column is a ring-switched region too.
         let reductions = w.reductions;
-        let slices = crate::stage!("Flock reductions", || {
+        let slices = info_span!("Flock reductions").in_scope(|| {
             let instances: Vec<reduction::Instance<'_>> = (FlockId::ALL.into_iter().zip(&reductions))
                 .map(|(f, tables)| {
                     let window = l.witness_window(f);
@@ -317,9 +318,11 @@ impl Program {
         });
         drop(reductions);
         let rings = l.rings(slices, &table_claims.producers, &table_claims.summed, F192::ZERO);
-        crate::stage!("PCS open", || committed
-            .open(&mut ps, &w.q, &slots, &rings)
-            .expect("opening uses the committed witness"));
+        info_span!("PCS open").in_scope(|| {
+            committed
+                .open(&mut ps, &w.q, &slots, &rings)
+                .expect("opening uses the committed witness");
+        });
         Proof(ps.into_proof())
     }
 

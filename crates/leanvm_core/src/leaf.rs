@@ -32,6 +32,7 @@ pub use layout::{Block, Layout, N_TUPLE_BITS, Producer, fingerprint_weights, lay
 pub use leaves::{build_leaves, producer_columns};
 
 use layout::check_soundness;
+use tracing::info_span;
 
 /// An evaluation claim on a committed column, settled against the witness.
 /// Reconstructed identically by both sides (its value rides the stream).
@@ -226,7 +227,7 @@ pub fn prove_balance(
     // Two independent leaf vectors, built one after another: each `build_leaves`
     // already fans its own blocks out across the whole pool, so nesting an outer
     // split on top would only add a barrier. The all-one padding stays implicit.
-    let leaves = crate::stage!("Bus leaves", || {
+    let leaves = info_span!("Bus leaves").in_scope(|| {
         setup
             .sides
             .each_ref()
@@ -234,7 +235,7 @@ pub fn prove_balance(
     });
     // Both trees run as ONE RLC-batched GKR, the shorter padded, so every claim lands
     // on ONE point ζ.
-    let bus_gkr = crate::stage!("Bus GKR", || { gkr::prove_products(leaves, ps) });
+    let bus_gkr = info_span!("Bus GKR").in_scope(|| gkr::prove_products(leaves, ps));
 
     // Framework blocks keep their per-column claims (deduped: push/pull share ζ);
     // every table block becomes a form for the zerocheck instead, and every producer
@@ -248,7 +249,7 @@ pub fn prove_balance(
     let mut forms = BusSetup::empty_forms(tables, F192::ZERO);
     let mut frameworks = [F192::ZERO; 2];
     let mut open = Openings::default();
-    crate::stage!("Bus decompose", || {
+    info_span!("Bus decompose").in_scope(|| {
         for (s, side) in setup.sides.iter().enumerate() {
             frameworks[s] = side.decompose_prove(&fp, cols, &bus_gkr.point, tables, &mut forms[s], &mut open, ps);
         }

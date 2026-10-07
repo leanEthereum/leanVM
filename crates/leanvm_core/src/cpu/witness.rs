@@ -9,6 +9,7 @@ use crate::tables::{ClassTable, FillContext, PerTable, TableId};
 use flock::Tables;
 use primitives::field::F64;
 use std::mem::MaybeUninit;
+use tracing::info_span;
 
 /// The prover's witness: the stack `q` with every committed column at its placed offset, and the public layout.
 pub(crate) struct Witness {
@@ -81,7 +82,7 @@ impl Witness {
             windows[*i] = unsafe { primitives::write_only(buf) };
         }
 
-        crate::stage!("Fill columns", || {
+        info_span!("Fill columns").in_scope(|| {
             // Each table fills its own columns from the trace, in its global span.
             for (t, table) in ClassTable::all().iter() {
                 let (base, n) = schema.spans[t];
@@ -106,7 +107,7 @@ impl Witness {
         });
 
         // The packed witnesses, one instance per row of their table.
-        let reductions = crate::stage!("Build flock witnesses", || {
+        let reductions = info_span!("Build flock witnesses").in_scope(|| {
             (FlockId::ALL.into_iter())
                 .map(|f| f.tables(trace, p, windows[q_column(f)]))
                 .collect()

@@ -2,6 +2,7 @@
 
 use super::{Output, Program, Proof, ProveError, Stats};
 use crate::pcs::Rate;
+use tracing::info_span;
 
 /// A prover: it proves runs at one commitment rate.
 ///
@@ -55,7 +56,7 @@ impl Prover {
     /// - The advice is longer than the program's region.
     #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = self.rate.log_inv_rate()))]
     pub fn prove(&self, program: &Program, advice: &[u64]) -> Result<ProvenRun, ProveError> {
-        let exec = crate::stage!("Execute program", || program.execute(advice))?;
+        let exec = info_span!("Execute program").in_scope(|| program.execute(advice))?;
         program.committed_size(exec.trace.row_counts())?;
         let (proof, stats) = program.prove_execution(&exec, self.rate);
         Ok(ProvenRun {
