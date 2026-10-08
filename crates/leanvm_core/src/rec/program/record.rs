@@ -6,7 +6,7 @@
 
 use crate::leaf::PublicColumns;
 use crate::rec::ProofSource;
-use crate::rec::hash::{Compression, PARAM_IV, chain, digest_limbs, zero_prefix};
+use crate::rec::hash::{chain, compress, digest_limbs, node, zero_prefix};
 use ::pcs::verifier::OpeningVerifier;
 use ::pcs::whir::{Stratum, strata};
 use fiat_shamir::arith::{Arith, Verifier};
@@ -276,7 +276,8 @@ impl<'a> Gen<'a> {
         e
     }
 
-    fn k_const(&mut self, c: u64) -> K {
+    /// A word that is a constant.
+    pub(super) fn word(&mut self, c: u64) -> K {
         if let Some(&id) = self.k_consts.get(&c) {
             return K(id);
         }
@@ -397,11 +398,16 @@ impl<'a> Gen<'a> {
 
     /// Start on the next proof: its run's four output words, read off the advice, and its transcript seeded with them after `iv`.
     pub(super) fn start(&mut self, source: ProofSource<'a>, iv: [u64; 4], output: [u64; 4]) -> [K; 4] {
-        debug_assert!(self.pending.is_empty(), "the previous proof's transcript is flushed");
-        (self.source, self.offset, self.opening) = (source, 0, 0);
         let at = self.hint(&output);
+        self.seed(source, iv, at, output)
+    }
+
+    /// Start on the next proof, whose run's output is the four words at `at`: its transcript is seeded with them after `iv`.
+    fn seed(&mut self, source: ProofSource<'a>, iv: [u64; 4], at: Loc, output: [u64; 4]) -> [K; 4] {
+        assert!(self.pending.is_empty(), "the previous proof's transcript is flushed");
+        (self.source, self.offset, self.opening) = (source, 0, 0);
         let seed = self.pool(&iv);
-        self.cv = fiat_shamir::compress(iv.map(F64), output.map(F64));
+        self.cv = node(iv, output).map(F64);
         self.ops.push(Op::Init { iv: seed, output: at });
         std::array::from_fn(|i| self.new_k(at.add(i), output[i]))
     }
@@ -447,7 +453,7 @@ impl<'a> Gen<'a> {
         let values: Vec<u64> = words.iter().map(|&k| self.k(k)).collect();
         let out = self.new_d(chain(&values));
         self.ops.push(Op::Chain {
-            words: words.iter().map(|&k| self.ks[k.0 as usize].0).collect(),
+            words: words.iter().map(|&k| self.k_loc(k.0)).collect(),
             out: self.d_loc(out),
         });
         out
@@ -487,11 +493,6 @@ impl<'a> Gen<'a> {
         self.new_e(Home::Mem(at), v)
     }
 
-    /// A word that is a constant.
-    pub(super) fn word(&mut self, c: u64) -> K {
-        self.k_const(c)
-    }
-
     /// The transcript's state as two elements: its first three words, then its fourth.
     pub(super) fn state(&mut self) -> [E; 2] {
         self.flush();
@@ -506,7 +507,7 @@ impl<'a> Gen<'a> {
 
     /// Start on a transcript whose state is the constant `state`, reading `source`: a proof with no statement of its own.
     pub(super) fn start_from(&mut self, source: ProofSource<'a>, state: [u64; 4]) {
-        debug_assert!(self.pending.is_empty(), "the previous transcript is flushed");
+        assert!(self.pending.is_empty(), "the previous transcript is flushed");
         (self.source, self.offset, self.opening) = (source, 0, 0);
         let at = self.pool(&state);
         self.cv = state.map(F64);
@@ -515,15 +516,7 @@ impl<'a> Gen<'a> {
 
     /// Start on the next proof, whose run's output is the digest `output`, its transcript seeded with it after `iv`.
     pub(super) fn start_on(&mut self, source: ProofSource<'a>, iv: [u64; 4], output: D) -> [K; 4] {
-        debug_assert!(self.pending.is_empty(), "the previous proof's transcript is flushed");
-        (self.source, self.offset, self.opening) = (source, 0, 0);
-        let seed = self.pool(&iv);
-        self.cv = fiat_shamir::compress(iv.map(F64), self.d(output).map(F64));
-        self.ops.push(Op::Init {
-            iv: seed,
-            output: self.d_loc(output),
-        });
-        self.d_words(output)
+        self.seed(source, iv, self.d_loc(output), self.d(output))
     }
 
     /// Whether the whole proof was read.
@@ -572,7 +565,7 @@ impl Arith for Gen<'_> {
             if a == self.zero {
                 return d;
             }
-            let k = self.k_const(c.c0);
+            let k = self.word(c.c0);
             return self.emit_mul_k_add(a, k, (d != self.zero).then_some(d));
         }
         let c = self.e_const(c);
@@ -582,8 +575,7 @@ impl Arith for Gen<'_> {
     fn inv(&mut self, a: E) -> E {
         let v = self.e(a);
         let v = if v.is_zero() { F192::ZERO } else { v.inv() };
-        let at = self.hint_element(v);
-        let i = self.new_e(Home::Mem(at), v);
+        let i = self.free_e(v);
         let p = self.mul(a, i);
         let one = self.one;
         self.ops.push(Op::AssertEq { a: p.0, b: one.0 });
@@ -698,6 +690,9 @@ impl Gen<'_> {
         let image: Vec<u64> = std::iter::repeat_n(0, lead).chain(row.iter().copied()).collect();
         // A row of elements has its words three to a 32-byte slot, so that each element is one where it is; a row of
         // words is its hashed blocks, on a 64-byte boundary, hashed where they are.
+        //
+        // Which a leaf is, is read off its size, a row of elements being a multiple of three words: a wrong guess
+        // costs cycles and nothing else, since an element off a 32-byte boundary is built from its limbs.
         let packed = !leaf_words.is_multiple_of(3);
         self.advice.resize(self.advice.len().next_multiple_of(BLOCK), 0);
         let leaf = if packed {
@@ -731,20 +726,19 @@ impl Gen<'_> {
         };
         for (j, m) in image.as_chunks::<8>().0.iter().enumerate() {
             let index = zero_blocks + j;
-            h = Compression::new(h, *m, 64 * (index as u64 + 1), index + 1 == n_blocks).output();
+            h = compress(h, *m, 64 * (index as u64 + 1), index + 1 == n_blocks);
         }
         let pos = self.k(query.pos);
         for (level, sibling) in path.iter().enumerate() {
-            let m = if pos >> level & 1 == 1 {
-                [*sibling, h]
+            h = if pos >> level & 1 == 1 {
+                node(*sibling, h)
             } else {
-                [h, *sibling]
+                node(h, *sibling)
             };
-            h = Compression::single(*m.as_flattened().first_chunk().expect("eight words")).output();
         }
         let out = self.new_d(h);
         self.ops.push(Op::OpenRow {
-            pos: self.ks[query.pos.0 as usize].0,
+            pos: self.k_loc(query.pos.0),
             levels,
             row_words,
             leaf_words,
@@ -761,9 +755,7 @@ impl Gen<'_> {
     }
 
     fn parent(&mut self, left: D, right: D) -> D {
-        let m = [self.d(left), self.d(right)];
-        let value = Compression::single(*m.as_flattened().first_chunk().expect("eight words")).output();
-        let out = self.new_d(value);
+        let out = self.new_d(node(self.d(left), self.d(right)));
         self.ops.push(Op::Parent {
             left: self.d_loc(left),
             right: self.d_loc(right),
@@ -898,9 +890,6 @@ pub(super) const BLOCK: usize = 8;
 pub(super) const fn leaf_slot(i: usize) -> usize {
     i + i / 3
 }
-
-/// The first chaining value of a hash of words: the parameter block's.
-pub(super) const CHAIN_IV: [u64; 4] = PARAM_IV;
 
 /// The proof-of-work tags, for the program's proof of work.
 pub(super) const POW_TAGS: [u64; 2] = [DS_POW_BASE.0, DS_POW_NONCE.0];

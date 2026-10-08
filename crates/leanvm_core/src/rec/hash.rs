@@ -8,35 +8,16 @@ pub type Limbs = [u64; 4];
 /// The parameter IV as four words.
 pub const PARAM_IV: Limbs = words(primitives::hash::PARAM_IV);
 
-/// One BLAKE2s compression, its inputs in the compression circuit's port order: `t`, `f`, `h0..h3`, `m0..m7`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Compression([u64; 14]);
+/// The compression of the message `m` into `h` at byte counter `t`, final if `last`, as the instruction computes it.
+pub fn compress(h: Limbs, m: [u64; 8], t: u64, last: bool) -> Limbs {
+    let flags = if last { Hash::FINAL } else { 0 };
+    Hash { flags, x: t, h, m }.eval()
+}
 
-impl Compression {
-    /// The compression of the message `m` into `h` at byte counter `t`, final if `last`.
-    pub const fn new(h: Limbs, m: [u64; 8], t: u64, last: bool) -> Self {
-        let f = if last { Hash::FINAL } else { 0 };
-        Self([
-            t, f, h[0], h[1], h[2], h[3], m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7],
-        ])
-    }
-
-    /// A one-block message from the parameter IV: its only block, so final.
-    pub const fn single(m: [u64; 8]) -> Self {
-        Self::new(PARAM_IV, m, 64, true)
-    }
-
-    /// The output chaining value, as the precompile computes it.
-    pub fn output(&self) -> Limbs {
-        let i = &self.0;
-        Hash {
-            flags: i[1],
-            x: i[0],
-            h: std::array::from_fn(|w| i[2 + w]),
-            m: std::array::from_fn(|w| i[6 + w]),
-        }
-        .eval()
-    }
+/// The hash of two digests: a one-block message from the parameter IV.
+pub fn node(left: Limbs, right: Limbs) -> Limbs {
+    let m = std::array::from_fn(|k| if k < 4 { left[k] } else { right[k - 4] });
+    compress(PARAM_IV, m, Hash::BLOCK_BYTES, true)
 }
 
 /// The chaining value after `n` zero blocks from the parameter IV, as four words.
@@ -44,18 +25,12 @@ pub fn zero_prefix(n: usize) -> Limbs {
     words(primitives::hash::zero_prefix_state(n))
 }
 
-/// The BLAKE2s hash of the little-endian bytes of `words`, eight words a block.
+/// The BLAKE2s hash of the little-endian bytes of `words`.
 ///
-/// The last block is zero padded and its counter is the message's length in bytes.
-/// So the length is hashed: appending zero words changes the digest.
+/// The length is hashed: appending zero words changes the digest.
 pub fn chain(words: &[u64]) -> Limbs {
-    let n_blocks = words.len().div_ceil(8).max(1);
-    let bytes = 8 * words.len() as u64;
-    (0..n_blocks).fold(PARAM_IV, |h, j| {
-        // The final block retains the message's words and zero-pads its unused slots.
-        let m = std::array::from_fn(|k| words.get(8 * j + k).copied().unwrap_or(0));
-        Compression::new(h, m, (64 * (j as u64 + 1)).min(bytes), j + 1 == n_blocks).output()
-    })
+    let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
+    digest_limbs(&primitives::hash::hash(&bytes))
 }
 
 /// A transcript digest as four words.

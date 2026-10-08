@@ -13,6 +13,7 @@ use crate::rec::hash::{Limbs, digest_limbs};
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, Transmitter};
 use primitives::field::{F64, F192, F192Unreduced, mul_base8, mul_unreduced4, mul4};
+use std::ops::{Index, IndexMut};
 use thiserror::Error;
 
 mod dense;
@@ -54,6 +55,20 @@ pub(crate) struct Reduced<E> {
 /// The prover's dense polynomials, each a table of its values: the bytecode table, the image, the fixed polynomial.
 #[derive(Clone, Debug)]
 pub(crate) struct DenseTables(pub(crate) [Vec<F64>; DensePoly::COUNT]);
+
+impl Index<DensePoly> for DenseTables {
+    type Output = Vec<F64>;
+
+    fn index(&self, poly: DensePoly) -> &Vec<F64> {
+        &self.0[poly as usize]
+    }
+}
+
+impl IndexMut<DensePoly> for DenseTables {
+    fn index_mut(&mut self, poly: DensePoly) -> &mut Vec<F64> {
+        &mut self.0[poly as usize]
+    }
+}
 
 /// The reduction transcript's starting state.
 pub(crate) fn initial_state() -> Limbs {

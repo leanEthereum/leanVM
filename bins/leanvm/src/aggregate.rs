@@ -2,7 +2,7 @@
 
 use crate::refuse;
 use crate::workload::Workload;
-use bench::Plan;
+use bench::{Plan, Timing};
 use clap::ValueEnum;
 use leanvm::aggregate::{Kind, LeafShape, Tree, TreeProof};
 use leanvm::{Prover, Stats};
@@ -32,7 +32,7 @@ impl LeafProgram {
 }
 
 /// One kind of tree proof: its program's run, its proof, and the time to make it.
-fn report(name: &str, proof: &TreeProof, seconds: f64) {
+fn report(name: &str, proof: &TreeProof, time: &Timing) {
     let stats: &Stats = proof.stats();
     println!("{name}");
     println!("  cycles (RISC-V)             : {}", pretty_integer(&stats.cycles()));
@@ -45,11 +45,15 @@ fn report(name: &str, proof: &TreeProof, seconds: f64) {
         "  proof size                  : {:.1} KiB",
         proof.proof().to_bytes().len() as f64 / 1024.0
     );
-    println!("  proving                     : {} s", pretty_f64(seconds));
+    println!(
+        "  proving                     : {} s{}",
+        pretty_f64(time.mean()),
+        time.spread()
+    );
 }
 
 /// Prove the leaf at `leaf_prover`'s rate, then a tree over `leaves` copies of its proof, every tree proof at
-/// `prover`'s rate, and print each kind's report: the first level verifies `arity_0` leaves, a node `arity` children.
+/// `prover`'s rate and timed by `plan`, and print each kind's report: the first level verifies `arity_0` leaves, a node `arity` children.
 pub fn run(
     leaf: &Workload,
     leaves: usize,
@@ -57,7 +61,7 @@ pub fn run(
     arity: usize,
     leaf_prover: &Prover,
     prover: &Prover,
-    _: Plan,
+    plan: Plan,
 ) {
     let proven = leaf.prove(leaf_prover);
     println!(
@@ -76,20 +80,22 @@ pub fn run(
         pretty_f64(start.elapsed().as_secs_f64())
     );
 
+    // One discarded warmup pass, then the plan's measured ones, the last one traced.
     let timed = |f: &dyn Fn() -> TreeProof| {
-        let start = Instant::now();
-        let proof = f();
-        (proof, start.elapsed().as_secs_f64())
+        plan.warm_then_measure(|last| {
+            let _quiet = (!last).then(bench::suppress_tracing);
+            f()
+        })
     };
     let leaf_proof = (proven.output, &proven.proof);
-    let (first, seconds) = timed(&|| {
+    let (first, time) = timed(&|| {
         (tree.prove_first(&vec![leaf_proof; arity_0]))
             .unwrap_or_else(|e| refuse(format_args!("no first-level proof: {e}")))
     });
     report(
         &format!("First level: verifier of {arity_0} leaf proofs"),
         &first,
-        seconds,
+        &time,
     );
 
     // Up the tree over copies, a node over first-level proofs, then nodes over nodes.
@@ -100,10 +106,10 @@ pub fn run(
         } else {
             "node"
         };
-        let (node, seconds) = timed(&|| {
+        let (node, time) = timed(&|| {
             (tree.prove_node(&vec![root.clone(); arity])).unwrap_or_else(|e| refuse(format_args!("no node: {e}")))
         });
-        report(&format!("Node: verifier of {arity} {below} proofs"), &node, seconds);
+        report(&format!("Node: verifier of {arity} {below} proofs"), &node, &time);
         (root, covered) = (node, covered * arity);
     }
     let start = Instant::now();

@@ -1,7 +1,8 @@
 use super::{DenseProver, DenseTables, DenseVars, LABEL, MatrixProver, MatrixReduced, ReduceError};
 use crate::class_flock::FlockId;
 use crate::cpu::Claim;
-use crate::rec::claims::{Bits, DenseClaim, DensePoly, DenseTerm, MatrixClaim};
+use crate::rec::claims::{DenseClaim, DensePoly, MatrixClaim};
+use crate::tables::TableId;
 use fiat_shamir::arith::{Arith, Native};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter, VerifierState};
 use flock::lincheck::MatrixForm;
@@ -12,39 +13,26 @@ use primitives::test_util::Rng;
 fn dense_claims(rng: &mut Rng, tables: &DenseTables, vars: &DenseVars) -> Vec<DenseClaim<F192>> {
     let mut claims = Vec::new();
     for poly in DensePoly::ALL {
-        let table = &tables.0[poly as usize];
+        let table = &tables[poly];
         for _ in 0..2 {
-            let point = rng.ext_vec(vars.0[poly as usize]);
+            let point = rng.ext_vec(vars[poly]);
             let value = mle_eval(table, &point);
             claims.push(DenseClaim::at(poly, point, None, value));
         }
     }
-    let n = vars.0[DensePoly::Fixed as usize];
+    let n = vars[DensePoly::Fixed];
     let low = rng.ext_vec(n - 3);
-    let term = |n_low: usize, bits: usize, top: u64, scale: F192| {
+    // Claims whose points end on Boolean coordinates, the last one a kind, one of them vacuous.
+    let mut term = |n_low: usize, bits: usize, top: u64, scale: F192| {
         let mut point = low[..n_low].to_vec();
         point.extend((0..n - 1 - n_low).map(|i| F192::new((bits >> i & 1) as u64, 0, 0)));
         point.push(F192::new(top, 0, 0));
-        DenseTerm {
-            n_low,
-            bits: Bits {
-                value: bits,
-                len: n - 1 - n_low,
-            },
-            top: Some(F192::new(top, 0, 0)),
-            scale: Some(scale),
-            value: mle_eval(&tables.0[DensePoly::Fixed as usize], &point),
-        }
+        let value = mle_eval(&tables[DensePoly::Fixed], &point);
+        claims.push(DenseClaim::at(DensePoly::Fixed, point, Some(scale), value));
     };
-    claims.push(DenseClaim {
-        poly: DensePoly::Fixed,
-        low: low.clone(),
-        terms: vec![
-            term(n - 3, 1, 0, rng.ext()),
-            term(n - 4, 2, 1, rng.ext()),
-            term(n - 3, 0, 1, F192::ZERO),
-        ],
-    });
+    term(n - 3, 1, 0, rng.ext());
+    term(n - 4, 2, 1, rng.ext());
+    term(n - 3, 0, 1, F192::ZERO);
     claims
 }
 
@@ -60,10 +48,8 @@ fn the_dense_reduction_reduces_to_the_polynomials() {
             // A cheating prover: honest rounds, then values that meet the final identity of the claims as stated.
             let theta = ps.sample();
             let mut p = DenseProver::new(&vars, &tables, claims, theta);
-            let n_terms = claims.iter().map(|c| c.terms.len()).sum();
-            let powers = Native.powers(theta, n_terms);
-            let terms = claims.iter().flat_map(|c| &c.terms);
-            let mut claim = (terms.zip(&powers)).fold(F192::ZERO, |acc, (t, &w)| {
+            let powers = Native.powers(theta, claims.len());
+            let mut claim = (claims.iter().zip(&powers)).fold(F192::ZERO, |acc, (t, &w)| {
                 acc + w * t.scale.unwrap_or(F192::ONE) * t.value
             });
             let point: Vec<F192> = (0..p.rounds())
@@ -98,53 +84,45 @@ fn the_dense_reduction_reduces_to_the_polynomials() {
     let proof = prove(&claims, false);
     let reduced = verify(&claims, &proof).expect("an honest reduction");
     for poly in DensePoly::ALL {
-        let point = &reduced.point[..vars.0[poly as usize]];
+        let point = &reduced.point[..vars[poly]];
         assert_eq!(
             reduced.values[poly as usize],
-            Some(mle_eval(&tables.0[poly as usize], point)),
+            Some(mle_eval(&tables[poly], point)),
             "{poly:?}"
         );
     }
 
     // A false claim: the honest prover's reduction is refused, and a cheating prover's reduces it to a false value.
     let mut false_claims = claims;
-    false_claims[6].terms[1].value += F192::ONE;
+    false_claims[7].value += F192::ONE;
     assert_eq!(verify(&false_claims, &proof).err(), Some(ReduceError::Dense));
     let forged = prove(&false_claims, true);
     let reduced = verify(&false_claims, &forged).expect("the forgery meets the final identity");
     let falsified = DensePoly::ALL.into_iter().filter(|&poly| {
-        let point = &reduced.point[..vars.0[poly as usize]];
-        reduced.values[poly as usize] != Some(mle_eval(&tables.0[poly as usize], point))
+        let point = &reduced.point[..vars[poly]];
+        reduced.values[poly as usize] != Some(mle_eval(&tables[poly], point))
     });
     assert!(falsified.count() > 0, "a false claim reduced to true values");
 }
 
-// A claim on `poly` whose terms each weigh one block: `(n_low, bits)` names the `2^n_low` entries at `bits << n_low`.
-fn block_claim(
+// Claims on `poly` that each weigh one block: `(n_low, bits)` names the `2^n_low` entries at `bits << n_low`.
+fn block_claims(
     rng: &mut Rng,
     tables: &DenseTables,
     vars: &DenseVars,
     poly: DensePoly,
     blocks: &[(usize, usize)],
-) -> DenseClaim<F192> {
-    let n = vars.0[poly as usize];
+) -> Vec<DenseClaim<F192>> {
+    let n = vars[poly];
     let low = rng.ext_vec(n);
-    let mut terms = Vec::new();
-    for &(n_low, bits) in blocks {
-        let mut point = low[..n_low].to_vec();
-        point.extend((0..n - n_low).map(|i| F192::new((bits >> i & 1) as u64, 0, 0)));
-        terms.push(DenseTerm {
-            n_low,
-            bits: Bits {
-                value: bits,
-                len: n - n_low,
-            },
-            top: None,
-            scale: Some(rng.ext()),
-            value: mle_eval(&tables.0[poly as usize], &point),
-        });
-    }
-    DenseClaim { poly, low, terms }
+    (blocks.iter())
+        .map(|&(n_low, bits)| {
+            let mut point = low[..n_low].to_vec();
+            point.extend((0..n - n_low).map(|i| F192::new((bits >> i & 1) as u64, 0, 0)));
+            let value = mle_eval(&tables[poly], &point);
+            DenseClaim::at(poly, point, Some(rng.ext()), value)
+        })
+        .collect()
 }
 
 #[test]
@@ -158,29 +136,24 @@ fn the_dense_reduction_reduces_claims_on_a_prefix() {
     let mut claims: Vec<DenseClaim<F192>> = (0..3)
         .map(|_| {
             let point = rng.ext_vec(3);
-            let value = mle_eval(&tables.0[DensePoly::Bytecode as usize], &point);
+            let value = mle_eval(&tables[DensePoly::Bytecode], &point);
             DenseClaim::at(DensePoly::Bytecode, point, None, value)
         })
         .collect();
-    claims.push(block_claim(&mut rng, &tables, &vars, DensePoly::Image, &[(1, 2)]));
-    claims.push(block_claim(
-        &mut rng,
-        &tables,
-        &vars,
-        DensePoly::Fixed,
-        &[(2, 0xAAA), (5, 7), (2, 0xAAA)],
-    ));
-    claims.push(block_claim(&mut rng, &tables, &vars, DensePoly::Fixed, &[(5, 7)]));
+    claims.extend(block_claims(&mut rng, &tables, &vars, DensePoly::Image, &[(1, 2)]));
+    let blocks = [(2, 0xAAA), (5, 7), (2, 0xAAA)];
+    claims.extend(block_claims(&mut rng, &tables, &vars, DensePoly::Fixed, &blocks));
+    claims.extend(block_claims(&mut rng, &tables, &vars, DensePoly::Fixed, &[(5, 7)]));
     let mut ps = ProverState::from_label(LABEL);
     DenseProver::prove(&mut ps, &vars, &tables, &claims);
     let proof = ps.into_proof();
     let mut vs = VerifierState::from_label(LABEL, &proof);
     let reduced = vars.verify(&mut vs, &claims).expect("an honest reduction");
     for poly in DensePoly::ALL {
-        let point = &reduced.point[..vars.0[poly as usize]];
+        let point = &reduced.point[..vars[poly]];
         assert_eq!(
             reduced.values[poly as usize],
-            Some(mle_eval(&tables.0[poly as usize], point)),
+            Some(mle_eval(&tables[poly], point)),
             "{poly:?}"
         );
     }
@@ -196,14 +169,9 @@ fn matrix_claims(rng: &mut Rng) -> Vec<MatrixClaim<F192>> {
     let (x, r) = (rng.ext_vec(16), rng.ext_vec(16));
     let mut claims = Vec::new();
     let first = FlockId::ALL[0];
-    for (i, f) in [
-        first,
-        first,
-        FlockId::ALL[3],
-        FlockId::clock(crate::tables::TableId::HASH),
-    ]
-    .into_iter()
-    .enumerate()
+    for (i, f) in [first, first, FlockId::ALL[3], FlockId::clock(TableId::HASH)]
+        .into_iter()
+        .enumerate()
     {
         let circuit = f.circuit();
         let k = circuit.k_log();

@@ -331,9 +331,8 @@ mod tests {
             let walk = circuit.generate_witness_from(&rows, &rows[0], n_log, |row: &Vec<u64>, words| {
                 words.copy_from_slice(row);
             });
-            let words = circuit.generate_witness_with(&rows, &rows[0], n_log, |row: &Vec<u64>, z, az, bz| match spec {
-                Some(spec) => spec.clock_witness(&slots, row, z, az, bz),
-                None => Clock::witness(&slots, row[0], &row[1..], z, az, bz),
+            let words = circuit.generate_witness_with(&rows, &rows[0], n_log, |row: &Vec<u64>, z, az, bz| {
+                Clock::witness(&slots, row[0], &row[1..], z, az, bz);
             });
             let name = spec.map_or("every slot", |spec| spec.name);
             assert!(walk.z == words.z, "z, {name}");

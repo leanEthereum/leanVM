@@ -17,39 +17,17 @@ pub enum DensePoly {
     Fixed,
 }
 
-/// Public coordinates of a point: `len` bits, lowest first.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct Bits {
-    /// The bits, as an integer.
-    pub(crate) value: usize,
-    /// How many there are.
-    pub(crate) len: usize,
-}
-
-/// One claim on a dense polynomial `P`, at the shared prefix, then public bits, then the kind: `s P(low, bits, top) = s v`.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct DenseTerm<E> {
-    /// How many of the shared prefix's coordinates the point starts with.
-    pub(crate) n_low: usize,
-    /// The public coordinates after them.
-    pub(crate) bits: Bits,
-    /// The last coordinate, a child's kind, if any.
-    pub(crate) top: Option<E>,
-    /// A factor both sides carry, one when absent: a zero scale makes the claim vacuous.
-    pub(crate) scale: Option<E>,
-    /// The claimed value.
-    pub(crate) value: E,
-}
-
-/// Claims on one dense polynomial at points sharing a prefix, each batched as a claim of its own.
+/// One claim on a dense polynomial `P`: `s P(point) = s v`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DenseClaim<E> {
     /// The polynomial.
     pub(crate) poly: DensePoly,
-    /// The prefix every claim's point starts with a part of.
-    pub(crate) low: Vec<E>,
-    /// The claims.
-    pub(crate) terms: Vec<DenseTerm<E>>,
+    /// The point, one coordinate per variable of the polynomial.
+    pub(crate) point: Vec<E>,
+    /// A factor both sides carry, one when absent: a zero scale makes the claim vacuous.
+    pub(crate) scale: Option<E>,
+    /// The claimed value.
+    pub(crate) value: E,
 }
 
 /// A matrix's coefficient in a matrix claim.
@@ -115,47 +93,24 @@ impl DensePoly {
     pub const ALL: [Self; Self::COUNT] = [Self::Bytecode, Self::Image, Self::Fixed];
 }
 
-impl Bits {
-    /// No coordinates.
-    pub(crate) const NONE: Self = Self { value: 0, len: 0 };
-}
-
-impl<E: Copy> DenseTerm<E> {
-    /// The same claim, each element mapped by `f`.
-    fn map<T>(&self, f: &mut impl FnMut(E) -> T) -> DenseTerm<T> {
-        DenseTerm {
-            n_low: self.n_low,
-            bits: self.bits,
-            top: self.top.map(&mut *f),
-            scale: self.scale.map(&mut *f),
-            value: f(self.value),
-        }
-    }
-}
-
 impl<E: Copy> DenseClaim<E> {
     /// `s P(point) = s v`, the scale `s` one when absent.
-    pub(crate) fn at(poly: DensePoly, point: Vec<E>, scale: Option<E>, value: E) -> Self {
-        let n_low = point.len();
+    pub(crate) const fn at(poly: DensePoly, point: Vec<E>, scale: Option<E>, value: E) -> Self {
         Self {
             poly,
-            low: point,
-            terms: vec![DenseTerm {
-                n_low,
-                bits: Bits::NONE,
-                top: None,
-                scale,
-                value,
-            }],
+            point,
+            scale,
+            value,
         }
     }
 
-    /// The same claims, each element mapped by `f`.
+    /// The same claim, each element mapped by `f`.
     fn map<T>(&self, f: &mut impl FnMut(E) -> T) -> DenseClaim<T> {
         DenseClaim {
             poly: self.poly,
-            low: self.low.iter().map(|&x| f(x)).collect(),
-            terms: self.terms.iter().map(|t| t.map(f)).collect(),
+            point: self.point.iter().map(|&x| f(x)).collect(),
+            scale: self.scale.map(&mut *f),
+            value: f(self.value),
         }
     }
 }

@@ -203,7 +203,7 @@ impl Columns {
             limbs: allocator.allocate(3),
             old: allocator.allocate(3),
         });
-        let flags = spec.words().any(|w| w == Word::Flags).then(|| allocator.allocate(1));
+        let flags = spec.ports().any(|w| w == Word::Flags).then(|| allocator.allocate(1));
         let rs2 = spec.reads_rs2.then(|| SourceColumns {
             a2: allocator.allocate(1),
             v2: match (limbs, element) {
@@ -229,7 +229,7 @@ impl Columns {
             jump: allocator.allocate(1),
             exit: allocator.allocate(1),
         });
-        let imm = spec.words().any(|w| w == Word::Imm).then(|| allocator.allocate(1));
+        let imm = spec.ports().any(|w| w == Word::Imm).then(|| allocator.allocate(1));
         let (ram, block) = match spec.ram {
             Ram::None | Ram::Element => (None, None),
             Ram::Read | Ram::Write => {
@@ -275,7 +275,7 @@ impl Columns {
             new: rd.expect("a product writes its destination").out,
             flags: allocator.allocate(3),
         });
-        let bad = spec.words().any(|w| w == Word::Bad).then(|| allocator.allocate(1));
+        let bad = spec.ports().any(|w| w == Word::Bad).then(|| allocator.allocate(1));
         let (prev, step) = (allocator.allocate(spec.n_accesses()), allocator.allocate(1));
         Self {
             pc,

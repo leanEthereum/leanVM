@@ -10,7 +10,7 @@
 //! A polynomial of fewer variables is bound early, and its share then waits on the rest: each later round multiplies it by its challenge.
 
 use super::{DenseTables, Entry, Msg, ReduceError, TILE, ZERO, xor};
-use crate::rec::claims::{DenseClaim, DensePoly, DenseTerm};
+use crate::rec::claims::{DenseClaim, DensePoly};
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use parallel::Chunks;
@@ -19,11 +19,19 @@ use primitives::multilinear::{eq_table, eq_table_seeded, mle_eval_par};
 use primitives::write_only;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
-use std::ops::Range;
+use std::ops::{Index, Range};
 
 /// Each dense polynomial's variables: the bytecode table's, the image's, the fixed polynomial's.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct DenseVars(pub(crate) [usize; DensePoly::COUNT]);
+
+impl Index<DensePoly> for DenseVars {
+    type Output = usize;
+
+    fn index(&self, poly: DensePoly) -> &usize {
+        &self.0[poly as usize]
+    }
+}
 
 /// What the dense reduction leaves: one point, and each reduced polynomial's value at its prefix.
 ///
@@ -109,11 +117,9 @@ impl DenseVars {
     ) -> Result<DenseReduced<V::E>, ReduceError> {
         let reduced = Self::reduced(claims);
         let theta = v.sample();
-        let n_terms = claims.iter().map(|c| c.terms.len()).sum();
-        let powers = v.powers(theta, n_terms);
+        let powers = v.powers(theta, claims.len());
         let zero = v.zero();
-        let terms = claims.iter().flat_map(|c| &c.terms);
-        let mut claim = (terms.zip(&powers)).fold(zero, |acc, (t, &power)| {
+        let mut claim = (claims.iter().zip(&powers)).fold(zero, |acc, (t, &power)| {
             let value = t.scale.map_or(t.value, |s| v.mul(s, t.value));
             v.mul_add(power, value, acc)
         });
@@ -150,10 +156,9 @@ impl DenseVars {
         point: &[A::E],
     ) -> [Option<A::E>; DensePoly::COUNT] {
         let mut weights = [None; DensePoly::COUNT];
-        let mut powers = powers.iter().copied();
-        for claim in claims {
-            let n = self.0[claim.poly as usize];
-            let xi = claim.weight_at(a, &mut powers, &point[..n]);
+        for (claim, &power) in claims.iter().zip(powers) {
+            let n = self[claim.poly];
+            let xi = claim.weight_at(a, power, &point[..n]);
             let slot = &mut weights[claim.poly as usize];
             *slot = Some(slot.map_or(xi, |w| a.add(w, xi)));
         }
@@ -167,51 +172,25 @@ impl DenseVars {
 }
 
 impl<E: Copy> DenseClaim<E> {
-    /// `sum_t power_t scale_t eq(p_t, r)`, the powers taken in order, the terms sharing their low point's prefix.
-    fn weight_at<A: Arith<E = E>>(&self, a: &mut A, powers: &mut impl Iterator<Item = E>, r: &[E]) -> E {
-        let longest = self.terms.iter().map(|t| t.n_low).max().unwrap_or(0);
-        let one = a.one();
-        let mut prefix = Vec::with_capacity(longest + 1);
-        prefix.push(one);
-        for (j, (&p, &x)) in self.low.iter().zip(r).take(longest).enumerate() {
+    /// `power scale eq(point, r)`.
+    fn weight_at<A: Arith<E = E>>(&self, a: &mut A, power: E, r: &[E]) -> E {
+        assert_eq!(
+            self.point.len(),
+            r.len(),
+            "a claim's point has its polynomial's variables"
+        );
+        let weight = self.scale.map_or(power, |s| a.mul(power, s));
+        (self.point.iter().zip(r)).fold(weight, |acc, (&p, &x)| {
             let s = a.add(p, x);
-            let next = a.times_one_plus(prefix[j], s);
-            prefix.push(next);
-        }
-        let zero = a.zero();
-        self.terms.iter().fold(zero, |acc, t| {
-            let DenseTerm {
-                n_low,
-                bits,
-                top,
-                scale,
-                ..
-            } = *t;
-            let at_bits = n_low + bits.len;
-            assert_eq!(
-                at_bits + usize::from(top.is_some()),
-                r.len(),
-                "a term's point has its polynomial's variables"
-            );
-            let bits_eq = a.eq_bits(bits.value, &r[n_low..at_bits]);
-            let mut eq = a.mul(prefix[n_low], bits_eq);
-            if let Some(top) = top {
-                let s = a.add(top, r[at_bits]);
-                eq = a.times_one_plus(eq, s);
-            }
-            let power = powers.next().expect("a power per term");
-            let weight = scale.map_or(power, |s| a.mul(power, s));
-            a.mul_add(weight, eq, acc)
+            a.times_one_plus(acc, s)
         })
     }
 }
 
-impl DenseTerm<F192> {
-    /// The term at its coefficient, placed in its polynomial's table: its point's trailing Boolean coordinates name a block.
-    fn placed(&self, low: &[F192], coef: F192) -> Placed {
-        let mut point = low[..self.n_low].to_vec();
-        point.extend((0..self.bits.len).map(|i| F192::new((self.bits.value >> i & 1) as u64, 0, 0)));
-        point.extend(self.top);
+impl DenseClaim<F192> {
+    /// The claim at its coefficient, placed in its polynomial's table: its point's trailing Boolean coordinates name a block.
+    fn placed(&self, coef: F192) -> Placed {
+        let mut point = self.point.clone();
         let boolean = |x: &F192| *x == F192::ZERO || *x == F192::ONE;
         let k = point.len() - point.iter().rev().take_while(|x| boolean(x)).count();
         let offset = (point[k..].iter().enumerate())
@@ -241,20 +220,18 @@ impl<'a> DenseProver<'a> {
         let mut placed: Vec<Vec<Placed>> = DensePoly::ALL.map(|_| Vec::new()).into();
         let mut power = F192::ONE;
         for claim in claims {
-            for term in &claim.terms {
-                let coef = term.scale.map_or(power, |s| power * s);
-                if !coef.is_zero() {
-                    placed[claim.poly as usize].push(term.placed(&claim.low, coef));
-                }
-                power *= theta;
+            let coef = claim.scale.map_or(power, |s| power * s);
+            if !coef.is_zero() {
+                placed[claim.poly as usize].push(claim.placed(coef));
             }
+            power *= theta;
         }
         let mut message = ZERO;
         let parts: Vec<Part> = (DensePoly::ALL.into_iter().zip(placed))
             .filter(|&(p, _)| reduced[p as usize])
             .map(|(p, terms)| {
-                let n_vars = vars.0[p as usize];
-                let base = &tables.0[p as usize];
+                let n_vars = vars[p];
+                let base = &tables[p];
                 assert_eq!(base.len(), 1 << n_vars, "a dense table has its variables");
                 let (part, first) = Part::new(n_vars, base, &terms);
                 message = xor(message, first);

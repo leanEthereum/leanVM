@@ -370,7 +370,7 @@ impl ClassSpec {
     /// Check that register accesses and copy semantics match the circuit ports.
     pub(super) fn assert_valid(&self) {
         // Invariant: a register access exists exactly when its value is a word of one of the table's circuits, or a column a doubleword load or store moves.
-        let has = |word: Word| self.words().any(|w| w == word);
+        let has = |word: Word| self.ports().any(|w| w == word);
         //
         // An extension register's limbs are committed columns, which the table's identities relate.
         //
@@ -479,21 +479,10 @@ impl ClassSpec {
         Clock::circuit(&self.slots())
     }
 
-    /// One instance of [`Self::clock_circuit`]'s witness by word arithmetic, from its input words (the
-    /// [`Self::clock_ports`] before the step), into zeroed buffers.
-    pub fn clock_witness(&self, slots: &[u32], inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
-        Clock::witness(slots, inputs[0], &inputs[1..], z, az, bz);
-    }
-
     /// The clock circuit's port words: the clock and each access's previous timestamp, then the step.
     pub fn clock_ports(&self) -> Vec<Word> {
         let prev = (0..self.n_accesses()).map(|i| Word::Prev(i as u8));
         std::iter::once(Word::Clock).chain(prev).chain([Word::Step]).collect()
-    }
-
-    /// Every word of the table's class circuit.
-    pub(super) fn words(&self) -> impl Iterator<Item = Word> + '_ {
-        self.ports()
     }
 }
 

@@ -15,7 +15,6 @@ use crate::pcs::Rate;
 use crate::tables::PerTable;
 use fiat_shamir::transcript::RawProof;
 
-pub use claims::DensePoly;
 pub use statement::Kind;
 
 /// What a recorded verifier reads: the proof when it has one, zeros when it is built from the shape alone.

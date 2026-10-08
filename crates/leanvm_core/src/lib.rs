@@ -42,7 +42,7 @@ pub use self::pcs::{InvalidRate, Rate};
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
 pub use rec::program::BuildError;
 pub use rec::program::tree::{Tree, TreeError, TreeProof};
-pub use rec::{DensePoly, Kind, LeafShape};
+pub use rec::{Kind, LeafShape};
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 
 #[doc(hidden)]

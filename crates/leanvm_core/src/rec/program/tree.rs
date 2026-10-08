@@ -13,8 +13,9 @@
 //! hold of itself. What binds a child to its program is its kind, a word of its statement, and the claim its core
 //! leaves on its bytecode table, which the node moves to the two programs' tables stacked under the kind.
 
-use super::record::{E, Gen, K};
-use super::{BuildError, lower};
+use super::BuildError;
+use super::lower::{Lowered, lower};
+use super::record::{D, E, Gen, K};
 use crate::class_flock::FlockId;
 use crate::cpu::filler::{FillBlocks, Plan};
 use crate::cpu::{
@@ -23,6 +24,7 @@ use crate::cpu::{
 };
 use crate::envelope::Envelope;
 use crate::leaf::N_TUPLE_BITS;
+use crate::log2_ceil_usize;
 use crate::pcs::Rate;
 use crate::rec::LeafShape;
 use crate::rec::ProofSource;
@@ -30,7 +32,7 @@ use crate::rec::claims::{DenseClaim, DensePoly, MatrixClaim, NodeClaims};
 use crate::rec::hash::chain;
 use crate::rec::reduce::{self, DenseTables, DenseVars, Reduced};
 use crate::rec::statement::{Kind, Section, StatementLayout, TreeStatement};
-use crate::rv::{Entry, Region};
+use crate::rv::{Entry, ProgramError, Region};
 use crate::tables::{PerTable, TableId};
 use ::pcs::ring_switch::inverse_frobenius_ladder;
 use fiat_shamir::arith::{Arith, Verifier};
@@ -61,19 +63,21 @@ impl Shape {
             log_advice: self.log_advice.max(other.log_advice),
         }
     }
-
-    /// A program of these sizes, whatever it does: what a layout reads of a program before its deferred claims.
-    fn stand_in(self) -> Result<Program, BuildError> {
-        Ok(padded(&[], self)?)
-    }
 }
 
+/// The entries a program has past its text: its trap, its fill blocks, an illegal slot and its halt slot.
+const OVERHEAD: usize = 1 + FillBlocks::WORDS + 2;
+
+/// How many rounds the two programs' shapes are given to settle.
+const ROUNDS: usize = 8;
+
 /// A text as a program of the shape's sizes: illegal words, which nothing reaches, fill it to the shape's bytecode.
-fn padded(text: &[u32], shape: Shape) -> Result<Program, crate::ProgramError> {
-    // A no-op stands for an empty text: an entry point is an instruction.
+///
+/// A no-op stands for an empty text, an entry point being an instruction: a program of these sizes, whatever it does,
+/// is what a layout reads of a program before its deferred claims.
+fn padded(text: &[u32], shape: Shape) -> Result<Program, ProgramError> {
     let mut text = if text.is_empty() { vec![0x13] } else { text.to_vec() };
-    // The most words whose program, with its trap, its fill blocks, an illegal slot and its halt slot, has the shape's entries.
-    let room = (1usize << shape.log_bytecode).saturating_sub(1 + FillBlocks::WORDS + 2);
+    let room = (1usize << shape.log_bytecode).saturating_sub(OVERHEAD);
     if text.len() < room {
         text.resize(room, 0);
     }
@@ -101,29 +105,44 @@ fn rows(text: &[u32]) -> PerTable<usize> {
     rows
 }
 
-/// A recorded and lowered node: its text, its sizes, its advice, and what it states.
-struct Built {
-    text: Vec<u32>,
-    log_ram: usize,
+/// What a node is recorded over: proofs, or their shapes alone.
+#[derive(Clone, Copy)]
+enum Over<'a> {
+    /// A first-level node over leaf proofs, each with its run's output.
+    Leaves(Option<&'a [(Output, RawProof)]>),
+    /// A node over tree proofs, each with its statement.
+    Children(Option<&'a [(Vec<F192>, RawProof)]>),
+}
+
+impl Over<'_> {
+    const fn shape(kind: Kind) -> Self {
+        match kind {
+            Kind::First => Self::Leaves(None),
+            Kind::Node => Self::Children(None),
+        }
+    }
+
+    const fn proven(self) -> bool {
+        matches!(self, Self::Leaves(Some(_)) | Self::Children(Some(_)))
+    }
+}
+
+/// A recorded node's run: its advice, what it states, and its output.
+struct Recorded {
     advice: Vec<u64>,
     statement: Vec<F192>,
     output: [u64; 4],
 }
 
-impl Built {
-    /// The shape a proof of this node has by itself: its instructions counted by table, each run exactly once.
-    fn shape(&self) -> Shape {
-        let base = rows(&self.text);
-        let filled = Plan::solve(base).filled(base);
-        // The text, its trap, the fill blocks and the halt slot.
-        let entries = Program::new(&self.text, Region::TEXT.base(), Vec::new(), self.log_ram, 0)
-            .map_or(usize::MAX, |p| p.rv().entries().len());
-        Shape {
-            taus: filled.map(|rows| rows.trailing_zeros() as usize),
-            log_bytecode: entries.trailing_zeros() as usize,
-            log_ram: self.log_ram,
-            log_advice: self.advice.len().next_power_of_two().trailing_zeros() as usize,
-        }
+/// The shape a proof of a lowered program has by itself: its instructions counted by table, each run exactly once.
+fn shape_of(lowered: &Lowered, advice: usize) -> Shape {
+    let base = rows(&lowered.text);
+    let filled = Plan::solve(base).filled(base);
+    Shape {
+        taus: filled.map(|rows| rows.trailing_zeros() as usize),
+        log_bytecode: log2_ceil_usize(lowered.text.len() + OVERHEAD),
+        log_ram: lowered.log_ram,
+        log_advice: log2_ceil_usize(advice),
     }
 }
 
@@ -213,6 +232,9 @@ pub enum TreeError {
     /// A proof handed to a prover or to the root does not verify.
     #[error("proof {index} does not verify: {error}")]
     Child { index: usize, error: CpuError },
+    /// A leaf proof of another shape than the tree was built for.
+    #[error("leaf proof {index} has another shape than the tree's leaves")]
+    LeafShape { index: usize },
     /// A tree program's run could not be proven.
     #[error(transparent)]
     Prove(#[from] ProveError),
@@ -231,15 +253,15 @@ pub enum TreeError {
 #[derive(Clone)]
 pub struct Tree<'p> {
     leaf: &'p Program,
-    leaf_taus: PerTable<usize>,
-    leaf_rate: Rate,
+    leaf_shape: LeafShape,
     arity_0: usize,
     arity: usize,
     rate: Rate,
     shape: Shape,
     vars: DenseVars,
     statement: StatementLayout,
-    iv: [F64; 4],
+    /// The transcript seed of both programs' proofs.
+    seed: [F64; 4],
     stand_in: Program,
     programs: [Program; 2],
     /// Each program's instructions by table: every one runs exactly once.
@@ -261,36 +283,37 @@ impl<'p> Tree<'p> {
         arity: usize,
         rate: Rate,
     ) -> Result<Self, TreeError> {
-        let (leaf_taus, leaf_rate) = (shape.taus, shape.rate);
         if arity_0 == 0 || arity < 2 {
             return Err(TreeError::Arity { arity_0, arity });
         }
         // The least shape both programs' proofs fit: each program depends on it, so it is a fixed point.
         let floor = Shape {
             taus: PerTable::from_fn(|t: TableId| t.spec().n_blocks_log(1)),
-            log_bytecode: (1 + FillBlocks::WORDS + 3usize).next_power_of_two().trailing_zeros() as usize,
+            log_bytecode: log2_ceil_usize(1 + OVERHEAD),
             log_ram: 1,
             log_advice: 1,
         };
-        let mut tree = Self::at(leaf, leaf_taus, leaf_rate, arity_0, arity, rate, floor)?;
-        for _ in 0..8 {
-            let natural = Kind::ALL
-                .map(|kind| tree.build(kind, None, None).map(|b| b.shape()))
-                .into_iter()
-                .try_fold(tree.shape, |acc, s| s.map(|s| acc.max(s)))?;
-            if natural == tree.shape {
-                return tree.finish();
+        let mut tree = Self::at(leaf, *shape, arity_0, arity, rate, floor)?;
+        for _ in 0..ROUNDS {
+            let mut natural = tree.shape;
+            let mut texts = Vec::new();
+            for kind in Kind::ALL {
+                let (run, lowered) = tree.record(Over::shape(kind), lower)?;
+                natural = natural.max(shape_of(&lowered, run.advice.len()));
+                texts.push(lowered.text);
             }
-            tree = Self::at(leaf, leaf_taus, leaf_rate, arity_0, arity, rate, natural)?;
+            if natural == tree.shape {
+                return tree.finish(&texts);
+            }
+            tree = Self::at(leaf, *shape, arity_0, arity, rate, natural)?;
         }
         Err(TreeError::Shape)
     }
 
-    /// The tree's parameters at a shape, its programs not built yet.
+    /// The tree's parameters at a shape, its programs not built yet: a stand-in holds their place.
     fn at(
         leaf: &'p Program,
-        leaf_taus: PerTable<usize>,
-        leaf_rate: Rate,
+        leaf_shape: LeafShape,
         arity_0: usize,
         arity: usize,
         rate: Rate,
@@ -299,28 +322,27 @@ impl<'p> Tree<'p> {
         let rv = leaf.rv();
         let vars = DenseVars([
             crate::log2_strict_usize(rv.entries().len()) + N_TUPLE_BITS,
-            crate::log2_ceil_usize(rv.image().len().max(1)),
+            log2_ceil_usize(rv.image().len().max(1)),
             shape.log_bytecode + N_TUPLE_BITS + 1,
         ]);
         let statement = StatementLayout::new(vars.0.into_iter().max().unwrap_or(0));
-        let stand_in = shape.stand_in()?;
+        let stand_in = padded(&[], shape).map_err(BuildError::from)?;
         let mut tree = Self {
             leaf,
-            leaf_taus,
-            leaf_rate,
+            leaf_shape,
             arity_0,
             arity,
             rate,
             shape,
             vars,
             statement,
-            iv: [F64::ZERO; 4],
+            seed: [F64::ZERO; 4],
             programs: [stand_in.clone(), stand_in.clone()],
             rows: [PerTable::default(); 2],
             stand_in,
             tables: DenseTables([Vec::new(), Vec::new(), Vec::new()]),
         };
-        tree.iv = tree.seed();
+        tree.seed = tree.seed();
         Ok(tree)
     }
 
@@ -330,29 +352,27 @@ impl<'p> Tree<'p> {
         h.update(DOMAIN);
         h.update(self.leaf.digest());
         let s = self.shape;
-        let sizes = (self.leaf_taus.values().copied())
+        let sizes = (self.leaf_shape.taus.values().copied())
             .chain([self.arity_0, self.arity, self.statement.len()])
             .chain(s.taus.into_values())
             .chain([s.log_bytecode, s.log_ram, s.log_advice]);
         for x in sizes {
             h.update(&(x as u64).to_le_bytes());
         }
-        h.update(&[self.leaf_rate.log_inv_rate(), self.rate.log_inv_rate()]);
+        h.update(&[self.leaf_shape.rate.log_inv_rate(), self.rate.log_inv_rate()]);
         fiat_shamir::digest_words(&h.finalize())
     }
 
-    /// Build both programs at the settled shape, and the polynomials the root evaluates.
-    fn finish(mut self) -> Result<Self, TreeError> {
-        let texts = [
-            self.build(Kind::First, None, None)?.text,
-            self.build(Kind::Node, None, None)?.text,
-        ];
-        self.rows = [rows(&texts[0]), rows(&texts[1])];
-        let [first, node] = texts.map(|text| padded(&text, self.shape).map_err(BuildError::from));
-        self.programs = [first?, node?];
+    /// The two programs from their texts at the settled shape, and the polynomials the root evaluates.
+    fn finish(mut self, texts: &[Vec<u32>]) -> Result<Self, TreeError> {
+        for kind in Kind::ALL {
+            let text = &texts[kind as usize];
+            self.rows[kind as usize] = rows(text);
+            self.programs[kind as usize] = padded(text, self.shape).map_err(BuildError::from)?;
+        }
         let rv = self.leaf.rv();
         let mut image: Vec<F64> = rv.image().iter().map(|&w| F64(w)).collect();
-        image.resize(1 << self.vars.0[DensePoly::Image as usize], F64::ZERO);
+        image.resize(1 << self.vars[DensePoly::Image], F64::ZERO);
         // The two programs' bytecode tables, the first-level program's then the node program's: the kind is the top variable.
         let stacked: Vec<F64> = (self.programs.iter())
             .flat_map(|p| Lookup::Bytecode.table(p.rv()))
@@ -383,42 +403,32 @@ impl<'p> Tree<'p> {
         &self.programs[kind as usize]
     }
 
-    /// Record and lower one node: over proofs, or over their shapes alone.
-    fn build(
-        &self,
-        kind: Kind,
-        leaves: Option<&[(Output, RawProof)]>,
-        children: Option<&[(Vec<F192>, RawProof)]>,
-    ) -> Result<Built, BuildError> {
+    /// Record one node, over proofs or over their shapes alone, and give the recorder to `then`: to lower it, or not.
+    fn record<T>(&self, over: Over<'_>, then: impl FnOnce(&Gen<'_>) -> T) -> Result<(Recorded, T), BuildError> {
         // The reduction's proof is made while the node is recorded, and outlives the recorder that reads it.
         let reduction;
+        let proven = over.proven();
         let mut g = Gen::new();
         let mut claims = NodeClaims::default();
-        let digest = match kind {
-            Kind::First => {
-                let layout = Layout::announced(self.leaf.rv(), self.leaf_taus)?;
+        let (kind, digest) = match over {
+            Over::Leaves(leaves) => {
+                let LeafShape { taus, rate } = self.leaf_shape;
+                let layout = Layout::announced(self.leaf.rv(), taus)?;
                 let mut outputs = Vec::new();
                 for i in 0..self.arity_0 {
                     let leaf = leaves.map(|l| &l[i]);
                     let source = leaf.map_or(ProofSource::Shape, |l| ProofSource::Proof(&l.1));
                     let output = leaf.map_or([0; 4], |l| *l.0.words());
                     let words = g.start(source, self.leaf.fs_seed().map(|w| w.0), output);
-                    let core = self.core(&mut g, &layout, &self.leaf_taus, self.leaf_rate, words)?;
-                    claims.bound.extend(g.state());
-                    self.leaf_program_claims(&mut g, &core.program, leaves.is_some(), &mut claims);
-                    claims.matrices.extend(
-                        FlockId::ALL
-                            .into_iter()
-                            .zip(&core.circuits)
-                            .map(|(f, c)| MatrixClaim::fresh(f, c)),
-                    );
+                    let program = self.core(&mut g, &layout, &taus, rate, words, &mut claims)?;
+                    self.leaf_program_claims(&mut g, &program, proven, &mut claims);
                     outputs.extend(words);
                 }
                 let header = Kind::First.header(self.arity_0).map(|w| g.word(w));
                 let words: Vec<K> = header.into_iter().chain(outputs).collect();
-                g.chain(&words)
+                (Kind::First, g.chain(&words))
             }
-            Kind::Node => {
+            Over::Children(children) => {
                 let layout = Layout::announced(self.stand_in.rv(), self.shape.taus)?;
                 let mut digests = Vec::new();
                 for i in 0..self.arity {
@@ -436,16 +446,9 @@ impl<'p> Tree<'p> {
                     // The child's run outputs the hash of its statement.
                     let limbs: Vec<K> = statement.words().iter().flat_map(|&w| g.limbs(w)).collect();
                     let output = g.chain(&limbs);
-                    let words = g.start_on(source, self.iv.map(|w| w.0), output);
-                    let core = self.core(&mut g, &layout, &self.shape.taus, self.rate, words)?;
-                    claims.bound.extend(g.state());
-                    self.node_program_claims(&mut g, &core.program, child_kind, children.is_some(), &mut claims);
-                    claims.matrices.extend(
-                        FlockId::ALL
-                            .into_iter()
-                            .zip(&core.circuits)
-                            .map(|(f, c)| MatrixClaim::fresh(f, c)),
-                    );
+                    let words = g.start_on(source, self.seed.map(|w| w.0), output);
+                    let program = self.core(&mut g, &layout, &self.shape.taus, self.rate, words, &mut claims)?;
+                    self.node_program_claims(&mut g, &program, child_kind, proven, &mut claims);
                     self.carried(&statement, child_kind, &mut claims);
                     let [lo, hi] = statement.digest();
                     let digest = g.halves_to_d(lo, hi);
@@ -453,12 +456,11 @@ impl<'p> Tree<'p> {
                 }
                 let header = Kind::Node.header(self.arity).map(|w| g.word(w));
                 let words: Vec<K> = header.into_iter().chain(digests).collect();
-                g.chain(&words)
+                (Kind::Node, g.chain(&words))
             }
         };
 
         // The reduction: a proof made natively from the claims' values, verified here.
-        let proven = leaves.is_some() || children.is_some();
         let source = if proven {
             let values = claims.map(|e| g.e(e));
             reduction = RawProof {
@@ -472,22 +474,23 @@ impl<'p> Tree<'p> {
         g.start_from(source, reduce::initial_state());
         let reduced = claims.verify(&mut g, &self.vars).expect("a recorder refuses nothing");
         g.finish().expect("a recorder reads no value");
-        debug_assert!(g.finished(), "the verifier read the whole reduction");
+        assert!(g.finished(), "the verifier read the whole reduction");
 
         let statement = self.state(&mut g, &reduced, kind, digest);
         let words = statement.words().to_vec();
         let output = g.commit(&[], &words);
-        let lowered = lower::lower(&g);
-        Ok(Built {
-            text: lowered.text,
-            log_ram: lowered.log_ram,
-            advice: g.advice.clone(),
+        let then = then(&g);
+        let recorded = Recorded {
             statement: words.iter().map(|&e| g.e(e)).collect(),
+            advice: g.advice,
             output,
-        })
+        };
+        Ok((recorded, then))
     }
 
     /// The core of one proof whose run output the words `output`: its announcement held to the shape, then every check.
+    ///
+    /// Its final transcript state and its circuits' matrix claims join `claims`; its program claim is returned.
     fn core(
         &self,
         g: &mut Gen<'_>,
@@ -495,23 +498,27 @@ impl<'p> Tree<'p> {
         taus: &PerTable<usize>,
         rate: Rate,
         output: [K; 4],
-    ) -> Result<DeferredClaims<E>, BuildError> {
+        claims: &mut NodeClaims<E>,
+    ) -> Result<Claim<ProgramPoint<E>, E>, BuildError> {
         for size in Announcement::sizes(taus, rate) {
             g.expect_scalar(size);
         }
         let clock = g.clock();
         let elements = output.map(|k| g.k_to_e(k));
-        let claims = layout.verify_core(g, clock, &elements, rate)?;
+        let DeferredClaims { program, circuits } = layout.verify_core(g, clock, &elements, rate)?;
         g.finish().expect("a recorder reads no value");
-        debug_assert!(g.finished(), "the verifier read the whole proof");
-        Ok(claims)
+        assert!(g.finished(), "the verifier read the whole proof");
+        claims.bound.extend(g.state());
+        let fresh = FlockId::ALL.into_iter().zip(&circuits);
+        claims.matrices.extend(fresh.map(|(f, c)| MatrixClaim::fresh(f, c)));
+        Ok(program)
     }
 
     /// A hint of a polynomial's value at a point: the prover's, which a claim then holds it to.
     fn hint(&self, g: &mut Gen<'_>, poly: DensePoly, point: &[E], proven: bool) -> E {
         let value = if proven {
             let at: Vec<F192> = point.iter().map(|&e| g.e(e)).collect();
-            mle_eval_par(&self.tables.0[poly as usize], &at)
+            mle_eval_par(&self.tables[poly], &at)
         } else {
             F192::ZERO
         };
@@ -556,9 +563,9 @@ impl<'p> Tree<'p> {
         claims: &mut NodeClaims<E>,
     ) {
         let p = &program.point;
-        let kbc = self.vars.0[DensePoly::Bytecode as usize] - N_TUPLE_BITS;
+        let kbc = self.vars[DensePoly::Bytecode] - N_TUPLE_BITS;
         let mut total = self.twisted(g, p, (DensePoly::Bytecode, kbc, None), proven, claims);
-        let m = self.vars.0[DensePoly::Image as usize];
+        let m = self.vars[DensePoly::Image];
         let low = p.image_point[..m].to_vec();
         let image = self.hint(g, DensePoly::Image, &low, proven);
         let above = (p.image_point[m..].iter()).fold(p.image_weight, |acc, &x| g.times_one_plus(acc, x));
@@ -588,7 +595,7 @@ impl<'p> Tree<'p> {
     fn carried(&self, statement: &TreeStatement<E>, kind: E, claims: &mut NodeClaims<E>) {
         let point = statement.dense_point();
         for poly in DensePoly::ALL {
-            let n = self.vars.0[poly as usize];
+            let n = self.vars[poly];
             // A first-level proof carries no claim on the stacked tables.
             let scale = (poly == DensePoly::Fixed).then_some(kind);
             claims.dense.push(DenseClaim::at(
@@ -610,7 +617,7 @@ impl<'p> Tree<'p> {
     }
 
     /// The statement a node leaves: its kind, its digest, and the reduced claims.
-    fn state(&self, g: &mut Gen<'_>, reduced: &Reduced<E>, kind: Kind, digest: super::record::D) -> TreeStatement<E> {
+    fn state(&self, g: &mut Gen<'_>, reduced: &Reduced<E>, kind: Kind, digest: D) -> TreeStatement<E> {
         let zero = g.zero();
         let mut s = TreeStatement::filled(self.statement, zero);
         s.section_mut(Section::Kind)[0] = g.constant(F192::new(kind.bit(), 0, 0));
@@ -631,17 +638,18 @@ impl<'p> Tree<'p> {
         Output::new(chain(&limbs))
     }
 
-    /// Prove a node from what it was built over.
-    fn prove(&self, kind: Kind, built: &Built) -> Result<TreeProof, TreeError> {
-        let program = self.program(kind);
-        debug_assert_eq!(
-            padded(&built.text, self.shape).map(|p| *p.digest()).ok(),
-            Some(*program.digest())
-        );
-        let run = Prover::new(self.rate).prove_seeded(program, &built.advice, self.shape.taus, self.iv)?;
-        debug_assert_eq!(*run.output.words(), built.output);
+    /// Prove a node from what it is over: its program is the tree's, so the recording is not lowered again.
+    fn prove(&self, kind: Kind, over: Over<'_>) -> Result<TreeProof, TreeError> {
+        let (run, ()) = self.record(over, |_| ())?;
+        let Recorded {
+            advice,
+            statement,
+            output,
+        } = run;
+        let run = Prover::new(self.rate).prove_seeded(self.program(kind), &advice, self.shape.taus, self.seed)?;
+        debug_assert_eq!(*run.output.words(), output);
         Ok(TreeProof {
-            words: built.statement.clone(),
+            words: statement,
             proof: run.proof,
             stats: run.stats,
         })
@@ -662,12 +670,13 @@ impl<'p> Tree<'p> {
         let raws = (leaves.iter().enumerate())
             .map(
                 |(index, &(output, proof))| match self.leaf.verify_to_raw(output, proof) {
+                    Ok(_) if LeafShape::of(proof) != Ok(self.leaf_shape) => Err(TreeError::LeafShape { index }),
                     Ok(raw) => Ok((output, raw)),
                     Err(error) => Err(TreeError::Child { index, error }),
                 },
             )
             .collect::<Result<Vec<_>, _>>()?;
-        self.prove(Kind::First, &self.build(Kind::First, Some(&raws), None)?)
+        self.prove(Kind::First, Over::Leaves(Some(&raws)))
     }
 
     /// Prove a node over `arity` tree proofs, of either kind.
@@ -685,7 +694,7 @@ impl<'p> Tree<'p> {
         let raws = (children.iter().enumerate())
             .map(|(index, child)| self.read(child, index).map(|(_, raw)| (child.words.clone(), raw)))
             .collect::<Result<Vec<_>, _>>()?;
-        self.prove(Kind::Node, &self.build(Kind::Node, None, Some(&raws))?)
+        self.prove(Kind::Node, Over::Children(Some(&raws)))
     }
 
     /// A tree proof's kind and core: its program's proof verified on the tree's seed, its own claims settled.
@@ -695,7 +704,7 @@ impl<'p> Tree<'p> {
             .flatten()
             .ok_or(TreeError::Kind)?;
         let program = self.program(kind);
-        let settled = (program.replay_seeded(Self::output(&p.words), &p.proof, self.iv))
+        let settled = (program.replay_seeded(Self::output(&p.words), &p.proof, self.seed))
             .and_then(|(claims, raw)| program.check_deferred(&claims).map(|()| raw));
         match settled {
             Ok(raw) => Ok((kind, raw)),
@@ -731,7 +740,7 @@ impl<'p> Tree<'p> {
                 continue;
             }
             let point = &s.dense_point()[..vars[poly as usize]];
-            if mle_eval_par(&self.tables.0[poly as usize], point) != s.dense_value(poly) {
+            if mle_eval_par(&self.tables[poly], point) != s.dense_value(poly) {
                 return Err(TreeError::Claim(match poly {
                     DensePoly::Bytecode => "the leaf program's bytecode",
                     DensePoly::Image => "the leaf program's image",
@@ -800,14 +809,28 @@ mod tests {
         let root = tree.prove_node(&nodes).expect("a root");
         assert_eq!(tree.verify(&root, &outputs), Ok(()));
 
+        // A tree proof's bytes decode to a proof the root's verifier accepts.
+        let decoded = TreeProof::from_bytes(&root.to_bytes()).expect("a tree proof's bytes");
+        assert_eq!(tree.verify(&decoded, &outputs), Ok(()));
+
+        // A leaf proof of another shape is refused before anything is recorded over it.
+        let other = Prover::new(Rate::new(2).unwrap())
+            .prove(&program, &[1])
+            .expect("the leaf halts");
+        assert!(matches!(
+            tree.prove_first(&[(other.output, &other.proof)]),
+            Err(TreeError::LeafShape { index: 0 })
+        ));
+
         // A node built over proofs is the program built from the shape alone, and its run outputs its statement's hash.
         let raw = program
             .verify_to_raw(runs[0].output, &runs[0].proof)
             .expect("an honest proof");
-        let built = (tree.build(Kind::First, Some(&[(runs[0].output, raw)]), None)).expect("a first-level node");
+        let leaves = [(runs[0].output, raw)];
+        let (built, lowered) = (tree.record(Over::Leaves(Some(&leaves)), lower)).expect("a first-level node");
         let first = tree.program(Kind::First);
         assert_eq!(
-            padded(&built.text, tree.shape).expect("a program").digest(),
+            padded(&lowered.text, tree.shape).expect("a program").digest(),
             first.digest()
         );
         assert_eq!(Machine::new(first.rv(), &built.advice).run(), Ok(built.output));
@@ -854,7 +877,7 @@ mod tests {
         // The claims it carries are true, at the all-zero points: only its own program is false.
         let values = tree.statement.range(Section::DenseValues).start;
         for poly in [DensePoly::Bytecode, DensePoly::Image] {
-            words[values + poly as usize] = F192::from(tree.tables.0[poly as usize][0]);
+            words[values + poly as usize] = F192::from(tree.tables[poly][0]);
         }
         let matrices = tree.statement.range(Section::Matrices).start;
         let zeros = vec![F192::ZERO; FlockId::MAX_K_LOG];
@@ -868,19 +891,18 @@ mod tests {
             asm.li(r, w);
         }
         let fake = padded(&asm.exit().finish(), tree.shape).expect("a program of the shape");
-        let proven = (prover.prove_seeded(&fake, &[], tree.shape.taus, tree.iv)).expect("the fake program halts");
+        let proven = (prover.prove_seeded(&fake, &[], tree.shape.taus, tree.seed)).expect("the fake program halts");
         let (_, raw) = fake
-            .replay_seeded(output, &proven.proof, tree.iv)
+            .replay_seeded(output, &proven.proof, tree.seed)
             .expect("its proof verifies as its own");
 
         // Mutation: a prover whose hints and reduction are the fake program's, so that the honest node program runs to its exit.
         let mut evil = tree.clone();
-        evil.tables.0[DensePoly::Fixed as usize] =
-            [Lookup::Bytecode.table(fake.rv()), Lookup::Bytecode.table(fake.rv())].concat();
+        evil.tables[DensePoly::Fixed] = [Lookup::Bytecode.table(fake.rv()), Lookup::Bytecode.table(fake.rv())].concat();
         let children = [(words.clone(), raw.clone()), (words, raw)];
-        let built = evil.build(Kind::Node, None, Some(&children)).expect("a node");
-        let root = tree
-            .prove(Kind::Node, &built)
+        // Its programs are the tree's own.
+        let root = evil
+            .prove(Kind::Node, Over::Children(Some(&children)))
             .expect("the honest node program accepts the fake children");
 
         // The node's own proof verifies, and its digest is that of two such leaves; the claim it carries on the tree

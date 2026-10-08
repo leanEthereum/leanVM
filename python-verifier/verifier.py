@@ -1210,17 +1210,12 @@ class Table:
     wide: bool = False  # the extension-field product: its three registers are extension registers, three limbs each
 
     @property
-    def words(self) -> tuple[str | None, ...]:
-        """Every word of the table's class circuit."""
-        return self.ports
-
-    @property
     def columns(self) -> tuple[str, ...]:
-        return _class_columns(self.control, self.ram, self.words, self.copies, self.wide)
+        return _class_columns(self.control, self.ram, self.ports, self.copies, self.wide)
 
     @property
     def flushes(self) -> Flushes:
-        return _class_flushes(self.opcode, self.columns, self.control, self.ram, self.words, self.copies, self.wide)
+        return _class_flushes(self.opcode, self.columns, self.control, self.ram, self.ports, self.copies, self.wide)
 
     @property
     def identities(self) -> tuple[Form, ...]:
@@ -1233,11 +1228,11 @@ class Table:
 
     @property
     def reads_rs2(self) -> bool:
-        return _registers(self.ram, self.words, self.copies, self.wide)[0]
+        return _registers(self.ram, self.ports, self.copies, self.wide)[0]
 
     @property
     def writes_rd(self) -> bool:
-        return _registers(self.ram, self.words, self.copies, self.wide)[1]
+        return _registers(self.ram, self.ports, self.copies, self.wide)[1]
 
     @cached_property
     def clock(self) -> FlockCircuit:
@@ -2280,7 +2275,7 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
         # A field the class's table holds at a constant has to be that constant.
         require(table.reads_rs2 or a2[z] == 0, "a bytecode entry reads an rs2 its class does not")
         require(table.writes_rd or ad[z] == SINK, "a bytecode entry writes an rd its class does not")
-        require("imm" in table.words or imm[z] == 0, "a bytecode entry has an immediate its class does not")
+        require("imm" in table.ports or imm[z] == 0, "a bytecode entry has an immediate its class does not")
 
 
 def build_layout(

@@ -9,6 +9,7 @@ use std::error::Error;
 use std::fmt::Arguments;
 use std::num::ParseIntError;
 use std::path::PathBuf;
+use tracked::Provers;
 use workload::Workload;
 
 /// jemalloc, or under `system-alloc` the system allocator for a heap profiler that hooks `malloc` (AGENTS.md, Profiling); counted either way.
@@ -29,7 +30,11 @@ struct Cli {
     #[arg(long = "log-inv-rate", value_name = "LOG_INV_RATE", global = true, default_value = "1", value_parser = parse_rate)]
     rate: Rate,
 
-    /// WHIR inverse-rate logarithm of an aggregation tree's leaf proofs (1 through 4); the tree's own proofs take `--log-inv-rate`.
+    /// WHIR inverse-rate logarithm of an aggregation tree's own proofs (1 through 4).
+    #[arg(long = "tree-log-inv-rate", value_name = "LOG_INV_RATE", global = true, default_value = "2", value_parser = parse_rate)]
+    tree_rate: Rate,
+
+    /// WHIR inverse-rate logarithm of an aggregation tree's leaf proofs (1 through 4).
     #[arg(long = "leaf-log-inv-rate", value_name = "LOG_INV_RATE", global = true, default_value = "2", value_parser = parse_rate)]
     leaf_rate: Rate,
 
@@ -180,6 +185,7 @@ fn main() {
     let cli = Cli::parse();
     let prover = Prover::new(cli.rate);
     let leaf_prover = Prover::new(cli.leaf_rate);
+    let tree_prover = Prover::new(cli.tree_rate);
     let plan = Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing {
         bench::init_tracing();
@@ -199,7 +205,15 @@ fn main() {
             leaves,
             arity0,
             arity,
-        } => aggregate::run(&program.workload(n), leaves, arity0, arity, &leaf_prover, &prover, plan),
+        } => aggregate::run(
+            &program.workload(n),
+            leaves,
+            arity0,
+            arity,
+            &leaf_prover,
+            &tree_prover,
+            plan,
+        ),
         Command::Bench {
             cycles_only,
             markdown,
@@ -210,8 +224,11 @@ fn main() {
             markdown,
             markdown_file.as_deref(),
             only.as_deref(),
-            &leaf_prover,
-            &prover,
+            &Provers {
+                run: prover,
+                leaf: leaf_prover,
+                tree: tree_prover,
+            },
             plan,
         ),
     }

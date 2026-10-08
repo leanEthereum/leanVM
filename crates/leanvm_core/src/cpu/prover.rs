@@ -57,25 +57,11 @@ impl Prover {
     /// - The advice is longer than the program's region.
     #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = self.rate.log_inv_rate()))]
     pub fn prove(&self, program: &Program, advice: &[u64]) -> Result<ProvenRun, ProveError> {
-        self.prove_at(program, advice, PerTable::default())
+        self.prove_seeded(program, advice, PerTable::default(), program.fs_seed())
     }
 
-    /// [`Self::prove`], each table padded to at least `2^floors` rows: a proof of the shape another proof has.
-    ///
-    /// # Errors
-    ///
-    /// As [`Self::prove`].
-    #[doc(hidden)]
-    pub fn prove_at(
-        &self,
-        program: &Program,
-        advice: &[u64],
-        floors: PerTable<usize>,
-    ) -> Result<ProvenRun, ProveError> {
-        self.prove_seeded(program, advice, floors, program.fs_seed())
-    }
-
-    /// [`Self::prove_at`], the transcript seeded with `iv` in place of the program's digest.
+    /// [`Self::prove`], each table padded to at least `2^floors` rows, a proof of the shape another proof has, and
+    /// the transcript seeded with `iv` in place of the program's digest.
     pub(crate) fn prove_seeded(
         &self,
         program: &Program,

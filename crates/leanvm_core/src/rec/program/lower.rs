@@ -5,11 +5,14 @@
 //! An element evicted while still needed, and with no place in memory, is stored to the scratch words by `esd` and
 //! loaded back by `eld` when it is needed.
 
-use super::record::{CHAIN_IV, ELEMENT, Gen, Home, Loc, Op, POW_TAGS, leaf_slot};
+use super::record::{ELEMENT, Gen, Home, Loc, Op, POW_TAGS, leaf_slot};
+use crate::rec::hash::PARAM_IV;
 use crate::rv::Region;
 use crate::rv::asm::*;
 use crate::tables::Clock;
+use ::pcs::whir::Stratum;
 use std::collections::VecDeque;
+use std::ops::Range;
 
 /// The lowered program: its text and the size of its RAM.
 pub(super) struct Lowered {
@@ -446,7 +449,7 @@ impl Lower<'_> {
         self.assert_eq(u, Reg::ZERO);
     }
 
-    fn queries(&mut self, challenge: Loc, depth: usize, strata: &[::pcs::whir::Stratum], out: Loc) {
+    fn queries(&mut self, challenge: Loc, depth: usize, strata: &[Stratum], out: Loc) {
         let [t, u] = [reg::T[0], reg::T[1]];
         for (j, s) in strata.iter().enumerate() {
             let at = j * depth;
@@ -486,7 +489,7 @@ impl Lower<'_> {
         path: Loc,
         out: Loc,
     ) {
-        let [t, counter, position, ..] = reg::T;
+        let position = reg::T[2];
         let [mut here, mut next, from] = reg::P;
         let prefix = leaf_words - row_words;
         let zero_blocks = prefix / 8;
@@ -502,33 +505,17 @@ impl Lower<'_> {
             }
             self.pointer(here, leaf);
         }
-        for index in zero_blocks..n_blocks {
-            let m = if packed {
-                if index > zero_blocks {
-                    self.a.i(Addi, here, here, 64);
-                }
-                here
-            } else {
-                for k in 0..8 {
-                    let word = 8 * index + k;
-                    if word < prefix {
-                        self.a.store(Sd, Reg::ZERO, 8 * k as i32, reg::MESSAGE);
-                    } else {
-                        self.ld(t, leaf.add(leaf_slot(word - prefix)));
-                        self.a.store(Sd, t, 8 * k as i32, reg::MESSAGE);
-                    }
-                }
-                reg::MESSAGE
-            };
-            let last = index + 1 == n_blocks;
-            self.a.li(counter, 64 * (index as u64 + 1)).blake2s(
-                if last { next } else { reg::CHAINED },
-                if index == zero_blocks { from } else { reg::CHAINED },
-                m,
-                counter,
-                last,
-            );
-        }
+        let bytes = |index: usize| 64 * (index as u64 + 1);
+        self.chained(zero_blocks..n_blocks, from, next, bytes, |l, index| {
+            if !packed {
+                l.fill(|k| (8 * index + k).checked_sub(prefix).map(|i| leaf.add(leaf_slot(i))));
+                return reg::MESSAGE;
+            }
+            if index > zero_blocks {
+                l.a.i(Addi, here, here, 64);
+            }
+            here
+        });
 
         // The path: each level's block holds the node below it, then its sibling, in the order the position's bit
         // gives, and its hash is written into the next level's block.
@@ -549,35 +536,53 @@ impl Lower<'_> {
         }
     }
 
-    /// The hash of the words at `words`, into the digest at `out`: a chain from the parameter block's state.
-    fn chain(&mut self, words: &[Loc], out: Loc) {
-        let [t, counter, ..] = reg::T;
-        let to = reg::P[0];
-        let n_blocks = words.len().div_ceil(8).max(1);
-        let bytes = 8 * words.len() as u64;
-        self.pointer(to, out);
-        for j in 0..n_blocks {
-            for k in 0..8 {
-                let offset = 8 * k as i32;
-                match words.get(8 * j + k) {
-                    Some(&loc) => {
-                        self.ld(t, loc);
-                        self.a.store(Sd, t, offset, reg::MESSAGE);
-                    }
-                    None => {
-                        self.a.store(Sd, Reg::ZERO, offset, reg::MESSAGE);
-                    }
-                }
-            }
-            let last = j + 1 == n_blocks;
-            self.a.li(counter, (64 * (j as u64 + 1)).min(bytes)).blake2s(
+    /// The message block of the program's own filled with eight words, a zero where `word` gives none.
+    fn fill(&mut self, word: impl Fn(usize) -> Option<Loc>) {
+        let t = reg::T[0];
+        for k in 0..8 {
+            let from = word(k).map_or(Reg::ZERO, |loc| {
+                self.ld(t, loc);
+                t
+            });
+            self.a.store(Sd, from, 8 * k as i32, reg::MESSAGE);
+        }
+    }
+
+    /// A chain of compressions, one per block, from the state at `from` to the result at `to`, the last block final:
+    /// block `j`'s message is where `message` points and its counter `bytes(j)`.
+    fn chained(
+        &mut self,
+        blocks: Range<usize>,
+        from: Reg,
+        to: Reg,
+        bytes: impl Fn(usize) -> u64,
+        mut message: impl FnMut(&mut Self, usize) -> Reg,
+    ) {
+        let counter = reg::T[1];
+        for index in blocks.clone() {
+            let m = message(self, index);
+            let last = index + 1 == blocks.end;
+            self.a.li(counter, bytes(index)).blake2s(
                 if last { to } else { reg::CHAINED },
-                if j == 0 { reg::IV } else { reg::CHAINED },
-                reg::MESSAGE,
+                if index == blocks.start { from } else { reg::CHAINED },
+                m,
                 counter,
                 last,
             );
         }
+    }
+
+    /// The hash of the words at `words`, into the digest at `out`: a chain from the parameter block's state.
+    fn chain(&mut self, words: &[Loc], out: Loc) {
+        let to = reg::P[0];
+        let n_blocks = words.len().div_ceil(8).max(1);
+        let length = 8 * words.len() as u64;
+        self.pointer(to, out);
+        let bytes = |j: usize| (64 * (j as u64 + 1)).min(length);
+        self.chained(0..n_blocks, reg::IV, to, bytes, |l, j| {
+            l.fill(|k| words.get(8 * j + k).copied());
+            reg::MESSAGE
+        });
     }
 
     fn op(&mut self, op: &Op) {
@@ -742,10 +747,11 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
         .li(reg::CHAINED, chained)
         .li(reg::BLOCK_BYTES, 64);
     // The image is empty: the program writes its constants itself, so two verifier programs differ by their text alone.
-    for (k, word) in CHAIN_IV.into_iter().enumerate() {
+    for (k, word) in PARAM_IV.into_iter().enumerate() {
         l.a.li(reg::T[0], word).store(Sd, reg::T[0], 8 * k as i32, reg::IV);
     }
-    for (i, tag) in l.tags.clone().into_iter().enumerate() {
+    for i in 0..l.tags.len() {
+        let tag = l.tags[i];
         l.a.li(reg::T[0], tag);
         l.sd(reg::T[0], Loc::Block(block::TAGS + 8 * i + 7));
     }

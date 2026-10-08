@@ -99,6 +99,16 @@ const THREADS: [(&str, usize); 9] = [
     ("aggregate-leanxmss-100-4to1-8thread", 8),
 ];
 
+/// The provers of a benchmark run, each at its own rate.
+pub struct Provers {
+    /// A program's run.
+    pub run: Prover,
+    /// An aggregation tree's leaves.
+    pub leaf: Prover,
+    /// An aggregation tree's own proofs.
+    pub tree: Prover,
+}
+
 /// An aggregation tree over copies of one case's proof: first-level nodes of `arity_0` leaves,
 /// nodes of `arity` tree proofs. A tree's name ends `<N>to1` when both are `N`: every node
 /// combines `N` proofs into 1; then `-<T>thread` when it is proven on `T` threads (`THREADS`).
@@ -199,10 +209,14 @@ pub fn run(
     markdown: bool,
     markdown_file: Option<&Path>,
     only: Option<&str>,
-    leaf_prover: &Prover,
-    prover: &Prover,
+    provers: &Provers,
     plan: Plan,
 ) {
+    let Provers {
+        run: prover,
+        leaf: leaf_prover,
+        tree: tree_prover,
+    } = provers;
     let report: Vec<_> = if cycles_only {
         let counted: Vec<_> = counted()
             .into_iter()
@@ -214,7 +228,7 @@ pub fn run(
         let trees: Vec<_> = counted_trees()
             .into_iter()
             .map(|tree| {
-                let programs = programs(&tree, leaf_prover.rate(), prover.rate());
+                let programs = programs(&tree, leaf_prover.rate(), tree_prover.rate());
                 (tree, programs)
             })
             .collect();
@@ -267,7 +281,7 @@ pub fn run(
         }
         for (name, tree) in trees {
             let json = threads(name).map_or_else(
-                || bencher_json(&proved_tree(&tree(name), leaf_prover, prover, plan)),
+                || bencher_json(&proved_tree(&tree(name), leaf_prover, tree_prover, plan)),
                 |threads| on_threads(name, threads, only.is_none()),
             );
             benchmarks.extend(parsed(name, &json));
