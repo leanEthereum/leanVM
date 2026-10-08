@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: Bounded generator weighting comparison (${{ matrix.name }})
+    name: Scalar affine reduction comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: d6f5a27384573d96419e056deeaff2c86d27f54f
+          ref: 4e4d28ef3253f76ea1f2c7448a2765bb5948aa49
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare bounded generator-weighting loop on native hardware
+      - name: Compare scalar affine product reduction on native hardware
         run: bash .github/perf-stack/run.sh
