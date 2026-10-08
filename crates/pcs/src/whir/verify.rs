@@ -36,8 +36,8 @@ pub enum WhirError {
     /// A ring-switched region is no aligned slice of the committed cube, or a claim on it does not span it.
     #[error("ring-switched region {index} is no aligned slice of the cube spanned by its claims")]
     Region { index: usize },
-    /// A point claim reaches past the committed cube.
-    #[error("point claim {index} reaches past the committed cube")]
+    /// A point claim is not an aligned slice of the committed cube, or its strided slot is out of range.
+    #[error("point claim {index} has an invalid aligned range or strided slot")]
     PointClaim { index: usize },
     /// The final folded value does not match the claimed evaluation.
     #[error("the final sumcheck claim does not match the opening")]

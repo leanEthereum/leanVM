@@ -21,6 +21,8 @@ the zero padding contributing nothing. An evaluation claim $\widetilde P_i(\zeta
 \]
 a weighted sum over $\widetilde q$ with weight $W(w)=\eq((\zeta,\mathsf{sel}_i),w)$.
 
+\paragraph{Claim geometry.} The opening verifier checks the geometry before drawing its batching challenges. A claim on a $\kappa$-variable slice at offset $o$ requires $\kappa\le M$, $2^\kappa\mid o$, and $o+2^\kappa\le 2^M$. A strided claim with $s$ low selector coordinates and a $\kappa$-variable point requires $s+\kappa\le M$, $2^{s+\kappa}\mid o$, $o+2^{s+\kappa}\le 2^M$, and a slot $j<2^s$; its full point is the low-first $s$ bits of $j$, then the claim's point, then the high bits of $o$. Without these checks the selectors would discard low offset bits or high slot bits and describe a different slice.
+
 \paragraph{Batching.} By the identity above, the claims the protocol raises on the $P_i$ transfer to a list of claims $\langle W_j,\widetilde q\rangle=c_j$ on the stack, with $\E$-valued weights and targets. The verifier then samples $\lambda\in\E$, and it remains to prove
 \[
   \Bigl\langle \sum_j\lambda^{j-1}W_j,\;\widetilde q\Bigr\rangle\qeq\sum_j\lambda^{j-1}c_j

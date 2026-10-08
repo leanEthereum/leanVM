@@ -100,7 +100,7 @@ impl<E: Copy> StackClaim<E> {
 
     /// The b_stack range the claim's weight is supported on.
     ///
-    /// Every range is an aligned dyadic interval (the offset asserts below), so two of them are nested or disjoint and never partially overlap.
+    /// Every well-formed range is an aligned dyadic interval, so two of them are nested or disjoint and never partially overlap.
     /// `Strided` reports its whole block rather than the strided positions inside it.
     /// That is conservative in the direction that matters: it only ever makes a later claim accumulate.
     pub fn range(&self) -> (usize, usize) {
@@ -256,7 +256,7 @@ pub fn open(
 ///
 /// # Errors
 ///
-/// Returns a statement whose regions or claims leave the committed cube, then the WHIR verifier's refusal.
+/// Returns a statement whose regions or claims are not aligned slices of the committed cube, whose strided slot leaves its selector, or the WHIR verifier's refusal.
 pub fn verify<V: OpeningVerifier>(
     v: &mut V,
     config: &VerifierConfig,
@@ -313,7 +313,23 @@ fn check_statement<E: Copy>(
             return Err(WhirError::Region { index });
         }
     }
-    if let Some(index) = point_claims.iter().position(|claim| claim.range().1 > cube) {
+    if let Some(index) = point_claims.iter().position(|claim| {
+        let (offset, slot, stride_log, point_len) = match claim {
+            StackClaim::Point { offset, low_point, .. } => (*offset, 0, 0, low_point.len()),
+            StackClaim::Strided {
+                offset,
+                slot,
+                stride_log,
+                point,
+                ..
+            } => (*offset, *slot, *stride_log, point.len()),
+        };
+        point_len > log_n
+            || stride_log > log_n - point_len
+            || !offset.is_multiple_of(1usize << (stride_log + point_len))
+            || offset >= cube
+            || slot >= 1usize << stride_log
+    }) {
         return Err(WhirError::PointClaim { index });
     }
     Ok(())
@@ -424,6 +440,7 @@ mod tests {
         vc: VerifierConfig,
         log_n: usize,
         root: Hash,
+        stack: Vec<F64>,
         point_claims: Vec<StackClaim>,
         rings: Vec<RingSwitch>,
         fs: ProofTranscript,
@@ -538,6 +555,7 @@ mod tests {
             vc: pc,
             log_n,
             root: cm.root,
+            stack,
             point_claims,
             rings,
             fs: ps.into_proof(),
@@ -561,6 +579,39 @@ mod tests {
             rings,
         )
         .is_ok()
+    }
+
+    #[test]
+    fn stacked_open_rejects_malformed_point_shapes() {
+        let inst = build_instance(1);
+        assert!(verify_instance(&inst, &inst.point_claims, &inst.rings, &inst.fs));
+        let mut accepted = Vec::new();
+        for (name, index) in [("point offset", 0), ("strided offset", 3), ("strided slot", 3)] {
+            let mut claims = inst.point_claims.clone();
+            match &mut claims[index] {
+                StackClaim::Point { offset, low_point, value } => {
+                    *offset += 1;
+                    let eq = eq_table(low_point);
+                    let actual = inner_product_base_ext(&inst.stack[*offset..*offset + eq.len()], &eq);
+                    assert_ne!(*value, actual, "shifted point must claim the wrong value");
+                }
+                StackClaim::Strided { offset, slot, stride_log, point, value } => {
+                    if name == "strided offset" {
+                        *offset += 1;
+                    } else {
+                        *slot += 1 << *stride_log;
+                    }
+                    let actual = eq_table(point).iter().enumerate().fold(F192::ZERO, |acc, (j, &w)| {
+                        acc + w.mul_base(inst.stack[*offset + *slot + (j << *stride_log)])
+                    });
+                    assert_ne!(*value, actual, "shifted strided slice must claim the wrong value");
+                }
+            }
+            if verify_instance(&inst, &claims, &inst.rings, &inst.fs) {
+                accepted.push(name);
+            }
+        }
+        assert!(accepted.is_empty(), "malformed claims accepted with wrong slice values: {accepted:?}");
     }
 
     #[test]
@@ -723,5 +774,42 @@ mod tests {
             .is_err(),
             "tampered crossing-regime ring slice accepted"
         );
+    }
+
+    #[test]
+    fn point_shape_boundaries_are_checked_before_shifts() {
+        let log_n = 4;
+        let rings = [RingSwitch {
+            offset: 0,
+            qflock_vars: log_n,
+            claims: vec![SliceClaim {
+                suffix_point: vec![F192::ZERO; log_n],
+                s_hat_v: vec![F192::ZERO; 64],
+            }],
+        }];
+        let plain = |offset, vars| StackClaim::Point {
+            offset,
+            low_point: vec![F192::ZERO; vars],
+            value: F192::ZERO,
+        };
+        let strided = |offset, slot, stride_log, vars| StackClaim::Strided {
+            offset,
+            slot,
+            stride_log,
+            point: vec![F192::ZERO; vars],
+            value: F192::ZERO,
+        };
+        for claim in [plain(0, log_n), plain(15, 0), strided(0, 15, log_n, 0), strided(8, 1, 1, 2)] {
+            assert_eq!(check_statement(log_n, &[claim], &rings), Ok(()));
+        }
+        for claim in [
+            plain(0, usize::BITS as usize),
+            plain(usize::MAX, 0),
+            strided(0, 0, usize::MAX, 1),
+            strided(0, 16, log_n, 0),
+            strided(8, 0, 2, 3),
+        ] {
+            assert_eq!(check_statement(log_n, &[claim], &rings), Err(WhirError::PointClaim { index: 0 }));
+        }
     }
 }
