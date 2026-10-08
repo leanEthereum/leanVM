@@ -89,11 +89,15 @@ fn noncanonical_announcements_and_roots_are_refused() {
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
 
     let mut forged = proof.clone();
-    forged.0.stream[0].c1 = 1;
+    let mut coefficients = forged.0.stream[0].coefficients();
+    coefficients[1] = F64::new(1);
+    forged.0.stream[0] = F192::new(coefficients);
     assert_eq!(program.verify(output, &forged), Err(CpuError::NonCanonicalSize.into()));
 
     let mut forged = proof;
-    forged.0.stream[N_TABLES + 2].c2 = 1;
+    let mut coefficients = forged.0.stream[N_TABLES + 2].coefficients();
+    coefficients[2] = F64::new(1);
+    forged.0.stream[N_TABLES + 2] = F192::new(coefficients);
     assert!(program.verify(output, &forged).is_err());
 }
 
@@ -102,10 +106,10 @@ fn a_final_clock_must_be_live_and_valid() {
     let (program, _) = super::programs::fibonacci();
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     let at = N_TABLES + 1;
-    let honest = proof.0.stream[at].c0;
+    let honest = proof.0.stream[at].coefficients()[0].to_bits();
     for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
         let mut forged = proof.clone();
-        forged.0.stream[at] = F192::new(clock, 0, 0);
+        forged.0.stream[at] = F192::new([F64::new(clock), F64::new(0), F64::new(0)]);
         assert_eq!(program.verify(output, &forged), Err(CpuError::FinalClock.into()));
     }
 }
