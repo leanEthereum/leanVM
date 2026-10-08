@@ -769,13 +769,10 @@ fn grid_pass_with<const R: usize>(
     };
 
     let n_tasks = lanes.len().div_ceil(group) * per;
-    let new_scratch = || {
-        Box::new(Scratch {
-            raw: [[F192::ZERO; INITIAL_BASIS_CHUNK]; GROUP],
-            fg: [[0; ROW]; GRID],
-            bg: [WeightRow::default(); GRID],
-        })
-    };
+    // Initialize in place: the lane windows must not become a large stack temporary.
+    // SAFETY: Scratch contains only arrays of integer words, including F192 and WeightRow,
+    // and their zero bit patterns are the zero values required for padded lanes.
+    let new_scratch = || unsafe { Box::<Scratch>::new_zeroed().assume_init() };
     let new_acc = || Box::new([ProductRow::default(); GRID]);
     let acc = if lanes.len() * block < FIRST_PASS_PAR_THRESHOLD {
         let (mut scratch, mut acc) = (new_scratch(), new_acc());
