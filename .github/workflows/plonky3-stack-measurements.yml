@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: ARM reduction lane comparison (${{ matrix.name }})
+    name: ARM schoolbook sum comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 6f40fdb7dff3edb4875645afc15f1afc778a25cf
+          ref: 3812cfb0bbcf3d01533bc5a86cb3c0c42a7930ff
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare ARM reduction lane scheduling on native hardware
+      - name: Compare ARM schoolbook sums on native hardware
         run: bash .github/perf-stack/run.sh
