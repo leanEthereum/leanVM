@@ -1,0 +1,22 @@
+[package]
+name = "leanvm-verus"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Verus proofs of leanVM's portable field arithmetic, bit transposes and additive NTT"
+
+# Its own workspace: not a member of the leanVM one, so `cargo build` and the main CI never see it.
+[workspace]
+
+[dependencies]
+vstd = "=0.0.0-2026-10-04-0306"
+
+[dev-dependencies]
+primitives = { path = "../../crates/primitives", features = ["test-util"] }
+pcs = { path = "../../crates/pcs" }
+
+[package.metadata.verus]
+verify = true
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(verus_only)', 'cfg(verus_keep_ghost)'] }

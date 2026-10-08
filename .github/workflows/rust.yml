@@ -161,6 +161,24 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
+  # The Verus proofs of the portable field arithmetic, bit transposes and additive NTT (`verification/verus`, a
+  # workspace of its own), and the tests that hold each verified copy equal to the production function it copies.
+  verus:
+    name: Verus proofs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: verification/verus -> target
+      # Installs the pinned Verus release under ~/.verus, with the Rust toolchain it is built against.
+      - name: Verify
+        run: verification/verus/verify.sh
+      - name: The verified copies match production
+        working-directory: verification/verus
+        run: cargo test --release
+
   msrv:
     name: MSRV
     runs-on: ubuntu-latest
