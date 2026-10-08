@@ -278,7 +278,7 @@ pub fn build_leaves(
     // identity fill would be overwritten in full, and this is the largest buffer in
     // the proof. The `covered` test is what licenses skipping it, so a layout that
     // ever left a hole falls back to filling rather than leaving rows unwritten.
-    // Capacity is rounded to whole four-tuples because `gkr::QuaternaryLayerState`
+    // Capacity is rounded to whole four-tuples because the GKR's layer
     // pads this level to that before reading it, and growing it here would copy it.
     let covered: usize = kappas.iter().map(|&kappa| 1usize << kappa).sum();
     let mut leaves = Vec::with_capacity(explicit.next_multiple_of(4));

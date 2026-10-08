@@ -1,4 +1,7 @@
-//! Streaming stores for x86 buffers written once and read in a later pass. Other targets use ordinary copies.
+//! Cache hints for buffers streamed through once.
+//!
+//! - Streaming stores, for x86 buffers written once and read in a later pass. Other targets use ordinary copies.
+//! - Read prefetches, for a loop whose compute outruns the hardware prefetcher's distance.
 
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
@@ -43,6 +46,30 @@ impl Stream {
         // SAFETY: distinct slices are valid for `size_of_val(src)` bytes each and cannot overlap.
         unsafe { copy_raw(dst.as_mut_ptr().cast(), src.as_ptr().cast(), size_of_val(src)) }
     }
+}
+
+/// Asks the cache for the lines holding `data`, ahead of a read.
+///
+/// It is a hint: it changes no value, never faults, and does nothing off x86.
+#[cfg_attr(
+    not(target_arch = "x86_64"),
+    expect(
+        clippy::missing_const_for_fn,
+        reason = "The x86 implementation issues prefetch instructions."
+    )
+)]
+#[inline(always)]
+pub fn prefetch<T>(data: &[T]) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        let start = data.as_ptr().cast::<i8>();
+        for offset in (0..size_of_val(data)).step_by(64) {
+            // SAFETY: a prefetch reads nothing the program sees, and the address is inside `data`.
+            unsafe { _mm_prefetch::<_MM_HINT_T0>(start.add(offset)) };
+        }
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    let _ = data;
 }
 
 /// # Safety
