@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 2763bc8b5f1b5a809837b6ec31835cc420c4e0bf
+          ref: d9e5daa4422f5c2ffee760d1a842c2bb260b421f
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - name: Compare coordinate gathers and loaded product sums on native hardware
