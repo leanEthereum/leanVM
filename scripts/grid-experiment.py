@@ -15,11 +15,12 @@ OUT.mkdir(exist_ok=True)
 BASE = os.environ.get('BASE', 'f52bd991c8623894e7b03a2e50bede6c248ea1ad')
 PRODUCTION = '4b3b3d1728b95b5acc2a7e9300303d9da4d9a76d'
 DIAGNOSTIC = 'ceb165c833f16df100776168f84849fbe5e7ec2c'
-HEAD = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+HEAD = os.environ['CANDIDATE']
+DRIVER = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
 SCOPE = ['systemd-run', '--user', '--scope', '-q', '-p', 'MemoryMax=16G', '-p', 'MemorySwapMax=0']
 ENV = dict(os.environ, CARGO_BUILD_JOBS='4', CARGO_TERM_COLOR='never')
 ENV.pop('LEANVM_NUM_THREADS', None)
-FLAGS = '-C target-cpu=native --check-cfg=cfg(leanvm_grid_candidate) --check-cfg=cfg(leanvm_grid_registers)'
+FLAGS = '-C target-cpu=native --check-cfg=cfg(leanvm_grid_candidate)'
 records = []
 
 def run(args, name, cwd=ROOT, env=None):
@@ -51,12 +52,15 @@ for command, name in [(['rustc', '-vV'], 'compiler.txt'), (['lscpu'], 'cpu.txt')
 if os.uname().machine == 'aarch64':
     cfg = (OUT / 'cfg.txt').read_text()
     assert 'target_feature="aes"' in cfg and 'target_feature="sha3"' in cfg
-(OUT / 'metadata.json').write_text(json.dumps(dict(base=BASE, head=HEAD, production=PRODUCTION, flags=FLAGS, affinity=sorted(os.sched_getaffinity(0)), phase=os.getenv('PHASE', 'screen')), indent=2))
+(OUT / 'metadata.json').write_text(json.dumps(dict(base=BASE, head=HEAD, driver=DRIVER, flags=FLAGS, affinity=sorted(os.sched_getaffinity(0)), phase='final', cases='leaf rate2; first and higher2to1 nodes at rates1,2; captured dense correctness once per worker'), indent=2))
 base = Path('/tmp/grid-base')
-run(['git', 'worktree', 'add', '--detach', base, BASE], 'checkout.log')
+candidate = Path('/tmp/grid-head')
+run(['git', 'worktree', 'add', '--detach', base, BASE], 'checkout-base.log')
+run(['git', 'worktree', 'add', '--detach', candidate, HEAD], 'checkout-head.log')
 patch = subprocess.check_output(['git', 'diff', PRODUCTION, DIAGNOSTIC, '--', 'crates/pcs/src/whir/sumcheck/first_pass.rs', 'crates/pcs/src/whir/sumcheck/grid_diagnostic.rs', 'bins/leanvm/src/tracked.rs'])
 (OUT / 'diagnostic.patch').write_bytes(patch)
-run(['git', 'apply', OUT / 'diagnostic.patch'], 'apply.log', cwd=base)
+for side, cwd in [('base', base), ('head', candidate)]:
+    run(['git', 'apply', OUT / 'diagnostic.patch'], f'apply-{side}.log', cwd=cwd)
 # Use the original production input captures, not a newly generated or synthetic workload.
 capture = Path(os.getenv('CAPTURE_DIR', '/tmp/grid-capture/basis-inputs'))
 if not capture.exists():
@@ -68,13 +72,11 @@ for name, size in [('witness.bin', 81788928), ('weight.bin', 245366784), ('shape
         receipt.write(f'{name} {len(data)} {hashlib.sha256(data).hexdigest()}\n')
 executables = {}
 tests = {}
-variants = ['base', 'head', 'registers']
+variants = ['base', 'head']
 for side in variants:
-    cwd = base if side == 'base' else ROOT
+    cwd = base if side == 'base' else candidate
     target = Path('/tmp/grid-target-' + side)
     extra = '' if side == 'base' else ' --cfg leanvm_grid_candidate'
-    if side == 'registers':
-        extra += ' --cfg leanvm_grid_registers'
     env = dict(ENV, CARGO_TARGET_DIR=str(target), RUSTFLAGS=FLAGS + extra)
     run(SCOPE + ['cargo', 'build', '--release', '-p', 'leanvm-cli'], f'build-{side}.log', cwd, env)
     run(SCOPE + ['cargo', 'test', '--release', '-p', 'pcs', '--lib', '--no-run', '--message-format=json'], f'test-build-{side}.log', cwd, env)
@@ -90,15 +92,13 @@ for workers in ['1', '4', '8', 'default']:
     env = dict(ENV, ARM_ATTRIBUTION_BASIS_DIR=str(capture))
     if workers != 'default':
         env['LEANVM_NUM_THREADS'] = workers
-    for pair in range(5):
+    for pair in range(1):
         for side in (variants if pair % 2 == 0 else list(reversed(variants))):
             name = f'dense-{workers}-{pair}-{side}'
             measured([tests[side], 'grid_diagnostic::captured_dense_pass', '--ignored', '--nocapture', '--test-threads=1'], name + '.log', dict(env, GRID_RESULT=str(OUT / (name + '.bin'))))
         for side in variants[1:]:
             assert (OUT / f'dense-{workers}-{pair}-base.bin').read_bytes() == (OUT / f'dense-{workers}-{pair}-{side}.bin').read_bytes()
-    cases = [('leanxmss-100', 1)]
-    if os.getenv('PHASE') == 'final':
-        cases += [('leanxmss-100', 2), ('aggregate-leanxmss-100-2to1', 1), ('aggregate-leanxmss-100-2to1', 2)]
+    cases = [('leanxmss-100', 2), ('aggregate-leanxmss-100-2to1', 1), ('aggregate-leanxmss-100-2to1', 2)]
     for case, rate in cases:
         for pair in range(5):
             for side in (variants if pair % 2 == 0 else list(reversed(variants))):

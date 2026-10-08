@@ -6,11 +6,8 @@ on:
         description: Paired upstream baseline
         default: f52bd991c8623894e7b03a2e50bede6c248ea1ad
       head:
-        description: Diagnostic head
-        required: false
-      phase:
-        description: screen or final
-        default: screen
+        description: Exact selected production head
+        required: true
 permissions:
   contents: read
   actions: read
@@ -28,12 +25,11 @@ jobs:
     timeout-minutes: 90
     env:
       BASE: '${{ inputs.base }}'
-      PHASE: '${{ inputs.phase }}'
+      CANDIDATE: '${{ inputs.head }}'
       GH_TOKEN: '${{ github.token }}'
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: '${{ inputs.head }}'
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@1.99.0
       - name: Paired dense-grid experiment
