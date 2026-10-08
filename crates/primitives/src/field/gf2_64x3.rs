@@ -877,6 +877,51 @@ mod tests {
         }
     }
 
+    /// The planar AVX-512 kernels: eight lane-wise sums and products, and an unreduced sum of products.
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    #[test]
+    fn planar_products_match_software() {
+        use core::arch::x86_64::__m512i;
+        use core::mem::transmute;
+        use x86_64::{F192x8, F192x8Sum};
+        // Qword `l` of plane `k` is coefficient `k` of element `l`.
+        let planes = |e: [F192; 8]| {
+            let plane = |k: fn(&F192) -> u64| {
+                // SAFETY: eight words and a 512-bit register have the same size and no invalid values.
+                unsafe { transmute::<[u64; 8], __m512i>(e.each_ref().map(k)) }
+            };
+            F192x8([plane(|e| e.c0), plane(|e| e.c1), plane(|e| e.c2)])
+        };
+        let elements = |p: F192x8| {
+            // SAFETY: as above.
+            let [c0, c1, c2] = p.0.map(|plane| unsafe { transmute::<__m512i, [u64; 8]>(plane) });
+            std::array::from_fn::<F192, 8, _>(|l| F192::new(c0[l], c1[l], c2[l]))
+        };
+        let pairs = operand_pairs(13);
+        // Padded to whole batches, so the last corner pairs are tested too.
+        let pairs = [
+            pairs.as_slice(),
+            &pairs[..pairs.len().next_multiple_of(8) - pairs.len()],
+        ]
+        .concat();
+        for batch in pairs.as_chunks::<8>().0 {
+            let (a, b) = (batch.map(|(a, _)| a), batch.map(|(_, b)| b));
+            let want: [F192; 8] = std::array::from_fn(|i| software::mul(a[i], b[i]));
+            let (a8, b8) = (planes(a), planes(b));
+            // SAFETY: the kernels' target features are enabled at compile time.
+            let (product, sum, total) = unsafe {
+                let mut sum = F192x8Sum::zero();
+                sum.mul_add(a8, b8);
+                sum.mul_add(b8, a8.add(b8));
+                (a8.mul(b8), a8.add(b8), sum.total())
+            };
+            assert_eq!(elements(product), want);
+            assert_eq!(elements(sum), std::array::from_fn(|i| a[i] + b[i]));
+            let want_total = (0..8).fold(F192::ZERO, |s, i| s + want[i] + software::mul(b[i], a[i] + b[i]));
+            assert_eq!(total.reduce(), want_total);
+        }
+    }
+
     /// `frobenius` is the shuffle form of `self^(2^64)`, which `inv` relies on.
     #[test]
     fn frobenius_is_the_64th_squaring() {

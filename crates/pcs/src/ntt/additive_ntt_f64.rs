@@ -82,9 +82,9 @@ impl AdditiveNttF64 {
         }
     }
 
-    /// Standard NTT with basis `{1, x, …, x^(dim-1)}`. Requires `dim ≤ 63` so
-    /// the evaluation domain (and the twiddles) stay inside F_{2^64} without
-    /// wrap; far beyond any codeword size in use.
+    /// Standard NTT with basis `{1, x, …, x^(dim-1)}`. Requires `1 <= dim <= 63` so
+    /// the evaluation domain (and the twiddles) stay inside F_{2^64} without wrap.
+    /// A zero dimension is unsupported: generating its empty first row panics.
     pub fn standard(dim: usize) -> Self {
         assert!(dim <= 63, "standard NTT requires dim ≤ 63");
         let basis: Vec<F64> = (0..dim).map(|i| F64(1u64 << i)).collect();

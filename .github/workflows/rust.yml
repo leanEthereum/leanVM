@@ -161,6 +161,52 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
+  # Verifies annotated kernel copies once per ISA configuration, with explicit trusted intrinsic contracts.
+  # Differential tests detect some copy drift and check supported intrinsic contracts on x86 and ARM64.
+  # They do not prove source equivalence, compiler correctness or hardware semantics.
+  verus:
+    name: Verus proofs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: verification/verus -> target
+      # Installs the pinned Verus release under ~/.verus, with the Rust toolchain it is built against.
+      - name: Verify
+        run: verification/verus/verify.sh
+      - name: The verified copies match production (AVX2)
+        working-directory: verification/verus
+        run: cargo test --release
+      - name: The verified copies match production, and the intrinsics their specifications (this CPU)
+        working-directory: verification/verus
+        env:
+          RUSTFLAGS: -C target-cpu=native
+          CARGO_TARGET_DIR: target/native
+        run: cargo test --release
+      - name: The verified copies match production (portable)
+        working-directory: verification/verus
+        env:
+          RUSTFLAGS: -C target-cpu=x86-64
+          CARGO_TARGET_DIR: target/portable
+        run: cargo test --release
+
+  verus-arm:
+    name: Verus proofs (ARM64 tests)
+    runs-on: ubuntu-24.04-arm
+    env:
+      RUSTFLAGS: -C target-cpu=neoverse-n2 -C target-feature=+aes,+sha3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: verification/verus -> target
+      - name: The verified copies match production, and the intrinsics their specifications
+        working-directory: verification/verus
+        run: cargo test --release
+
   msrv:
     name: MSRV
     runs-on: ubuntu-latest

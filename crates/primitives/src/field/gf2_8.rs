@@ -252,6 +252,8 @@ mod tests {
     use super::*;
     #[cfg(target_arch = "aarch64")]
     use crate::test_util::Rng;
+    #[cfg(target_arch = "aarch64")]
+    use core::arch::aarch64::uint8x16_t;
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
     use core::arch::x86_64::*;
     #[cfg(target_arch = "aarch64")]
@@ -318,6 +320,26 @@ mod tests {
             // SAFETY: a `uint8x16_t` is 16 plain bytes.
             let result: [u8; 16] = unsafe { transmute(result_vec) };
             assert_eq!(result, expected, "a={:02x?}, b={:02x?}", a_arr, b_arr);
+        }
+    }
+
+    /// The 16-lane reduction alone, on every 16-bit polynomial: callers reduce sums of shifted
+    /// products, which are not all products of two bytes.
+    #[cfg(target_arch = "aarch64")]
+    #[test]
+    fn neon_gf8_reduce_vec16_matches_scalar() {
+        for first in (0..=u16::MAX).step_by(16) {
+            let p: [u16; 16] = std::array::from_fn(|i| first + i as u16);
+            let (lo, hi): ([u16; 8], [u16; 8]) = (p[..8].try_into().unwrap(), p[8..].try_into().unwrap());
+            // SAFETY: baseline NEON on registers; eight `u16`s are sixteen plain bytes, each low byte first,
+            // which is the interleaved layout the reduction reads.
+            let got: [u8; 16] = unsafe {
+                transmute(neon::gf8_reduce_vec16(
+                    transmute::<[u16; 8], uint8x16_t>(lo),
+                    transmute::<[u16; 8], uint8x16_t>(hi),
+                ))
+            };
+            assert_eq!(got, p.map(gf8_reduce), "first={first:#06x}");
         }
     }
 
