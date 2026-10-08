@@ -116,6 +116,17 @@ static QUAD_STAGES: LazyLock<[Stage; 3]> = LazyLock::new(|| {
     [Stage::swap(1, |f| f), Stage::swap(2, |f| f), Stage::swap(32, to_qwords)]
 });
 
+/// Stages taking eight registers of one output coefficient, register = byte `o` and offset = value `p`, to octet planes.
+///
+/// Stage `s` swaps register bit `s` with offset bit `s`.
+///
+/// ```text
+///     after the stages     offset = (o, then p bits 3..6)     register = p bits 0..3
+/// ```
+///
+/// So register `x`, qword `l` is the coefficient of value `8l + x`: of octet `l`, one register per position `x`.
+static OCTET_STAGES: LazyLock<[Stage; 3]> = LazyLock::new(|| [1, 2, 4].map(|bit| Stage::swap(bit, |f| f)));
+
 /// Store 24 registers of output bytes, register `o` holding byte `o` of 64 values, as those 64 values.
 ///
 /// # Safety
@@ -387,12 +398,25 @@ impl Imp {
     #[inline]
     #[target_feature(enable = "avx512f", enable = "avx512bw", enable = "avx512vbmi", enable = "gfni")]
     pub(super) fn fold_quads<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]; BLOCK]) -> [[__m512i; 8]; 3] {
+        self.fold_planes::<CHUNKS>(rows, &QUAD_STAGES)
+    }
+
+    /// Fold a full block into octet planes.
+    #[inline]
+    #[target_feature(enable = "avx512f", enable = "avx512bw", enable = "avx512vbmi", enable = "gfni")]
+    pub(super) fn fold_octets<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]; BLOCK]) -> [[__m512i; 8]; 3] {
+        self.fold_planes::<CHUNKS>(rows, &OCTET_STAGES)
+    }
+
+    /// Fold a full block into coefficient planes, one stage per register bit of each coefficient's eight.
+    #[inline]
+    #[target_feature(enable = "avx512f", enable = "avx512bw", enable = "avx512vbmi", enable = "gfni")]
+    fn fold_planes<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]; BLOCK], stages: &[Stage; 3]) -> [[__m512i; 8]; 3] {
         let acc = self.fold_bytes::<CHUNKS>(rows);
         let mut planes = [[_mm512_setzero_si512(); 8]; 3];
         for (i, plane) in planes.iter_mut().enumerate() {
             plane.copy_from_slice(&acc[8 * i..8 * i + 8]);
         }
-        let stages = &*QUAD_STAGES;
         for (s, stage) in stages.iter().enumerate() {
             for plane in &mut planes {
                 stage.apply(1 << s, plane);

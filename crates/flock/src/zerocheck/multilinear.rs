@@ -15,9 +15,9 @@
 //! The rounds run in two regimes, cross-checked in tests against the naive fold-then-sum references:
 //!
 //! - **Bit rounds.** While a folded F192 table would outweigh the packed bits, each pass re-reads the bits.
-//!   A pass folds them on the fly and sends two rounds, the second as a quadratic in the first's challenge.
+//!   A pass folds them on the fly and sends two or three rounds, each later one quadratic in each earlier challenge.
 //! - **Table rounds.** The last bit pass stores the folded tables.
-//!   Each later pass folds the challenges pending on them and sends two rounds, as the bit passes do.
+//!   Each later pass folds the challenges pending on them and sends two rounds, as a two-round bit pass does.
 //!
 //! **Index convention** (matches `fold_in_place_pair`): the **low bit** of the multilinear index
 //! is bound first. So `a_mlv[2k]` is the X=0 value and `a_mlv[2k+1]` is the X=1
@@ -217,30 +217,75 @@ impl FoldedBlock {
     }
 }
 
-/// Two consecutive multilinear rounds from one pass over the packed bits.
-///
-/// Round `t + 1` binds its variable after the verifier samples `rho`, the challenge of round `t`.
-///
-/// Its polynomial is quadratic in that `rho`, so one pass stores its three coefficients per evaluation point.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct RoundPair {
-    /// Round `t`'s `(G(1), G(inf))`.
-    pub first: (F192, F192),
-    /// Round `t + 1` at `Y = 1` and `Y = inf`, each as `[S_0, S_1, S_2]`.
-    ///
-    /// ```text
-    ///     G(Y) = (1 + rho) S_0 + rho S_1 + rho (1 + rho) S_2
-    /// ```
-    second: [[F192; 3]; 2],
+/// Points of `{0, 1, inf}^3`, digit `d` in base 3 the value of a pass's variable `d`, `inf` written 2.
+const POINTS: usize = 27;
+
+/// The base-3 index of the Boolean point whose bit `d` is variable `d`.
+const fn ternary(x: usize) -> usize {
+    (x & 1) + 3 * (x >> 1 & 1) + 9 * (x >> 2 & 1)
 }
 
-impl RoundPair {
-    /// Round `t + 1`'s `(G(1), G(inf))`, once round `t`'s challenge `rho` is known.
-    pub(crate) fn second(&self, rho: F192) -> (F192, F192) {
-        let [one, inf] = self
-            .second
-            .map(|[s0, s1, s2]| s0 + rho * (s0 + s1) + rho * (F192::ONE + rho) * s2);
-        (one, inf)
+/// Two or three consecutive multilinear rounds from one pass.
+///
+/// Round `t + i` waits on the challenges `rho_0..rho_i` of the pass's earlier rounds.
+/// Its values are multilinear in them, so its products are quadratic in each.
+/// So the pass keeps its sums at every point of `{0, 1, inf}` per variable, `inf` the leading coefficient.
+///
+/// ```text
+///     G(Y) = sum_p  prod_d B_{p_d}(rho_d) * S(p, Y)        B_0 = 1 + rho,  B_1 = rho,  B_inf = rho (1 + rho)
+/// ```
+///
+/// `S(p, Y)` sums the pass's later variables over their Boolean points, weighted by their eq challenges.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RoundBatch {
+    /// The rounds of the pass.
+    rounds: usize,
+    /// The sums at each point, by base-3 index, before the eq weights of the pass's variables.
+    sums: [F192; POINTS],
+    /// The eq challenges of the pass's variables after its first.
+    r: [F192; 2],
+}
+
+impl RoundBatch {
+    /// Two rounds from the eight sums of the quad terms, `r_v` the eq challenge of the second variable.
+    fn pair(sums: [F192; 8], r_v: F192) -> Self {
+        // The slots hold the points (1, 0), (1, 1), (inf, 0), (inf, 1), (0, 1), (0, inf), (1, inf), (inf, inf).
+        let mut points = [F192::ZERO; POINTS];
+        for (sum, point) in sums.into_iter().zip([1, 4, 2, 5, 3, 6, 7, 8]) {
+            points[point] = sum;
+        }
+        Self {
+            rounds: 2,
+            sums: points,
+            r: [r_v, F192::ZERO],
+        }
+    }
+
+    /// The rounds the pass sends.
+    pub(crate) const fn rounds(&self) -> usize {
+        self.rounds
+    }
+
+    /// Round `t + i`'s `(G(1), G(inf))`, once the challenges `rhos` of the `i` rounds before it are known.
+    pub(crate) fn round(&self, rhos: &[F192]) -> (F192, F192) {
+        let i = rhos.len();
+        assert!(i < self.rounds, "a round of the pass");
+        // The weights of the earlier variables' points, the latest variable the highest digit.
+        let mut prefix = vec![F192::ONE];
+        for &rho in rhos {
+            let basis = [F192::ONE + rho, rho, rho * (F192::ONE + rho)];
+            prefix = basis.iter().flat_map(|&w| prefix.iter().map(move |&p| p * w)).collect();
+        }
+        // The eq weights of the later variables.
+        let suffix = eq_table(&self.r[i..self.rounds - 1]);
+        let place = 3usize.pow(i as u32);
+        let at = |y: usize| {
+            (suffix.iter().enumerate()).fold(F192::ZERO, |g, (s, &e)| {
+                let sums = &self.sums[3 * place * ternary(s) + place * y..];
+                g + e * (prefix.iter().zip(sums)).fold(F192::ZERO, |acc, (&w, &sum)| acc + w * sum)
+            })
+        };
+        (at(1), at(2))
     }
 }
 
@@ -248,7 +293,7 @@ impl RoundPair {
 ///
 /// The quad is positions `4k + u + 2v`, `u` the first round's variable and `v` the second's.
 ///
-/// Returns the eight products the two rounds sum, in the slots `RoundPair::from_sums` reads.
+/// Returns the eight products the two rounds sum, in the slots a two-round batch reads.
 #[inline(always)]
 fn quad_pair_terms(
     [a0, a1, a2, a3]: [F192; 4],
@@ -261,19 +306,6 @@ fn quad_pair_terms(
     let (p1, p2, p3, q0) = mul_quad((a1, a2, a3, du0), (b1, b2, b3, eu0));
     let (q1, r0, r1, r2) = mul_quad((du1, dv0, dv1, du0 + du1), (eu1, ev0, ev1, eu0 + eu1));
     [(p1 + c1, p3 + c3, q0, q1), (p2 + c2, r0, r1, r2)]
-}
-
-impl RoundPair {
-    /// Both rounds from the eq-weighted sums of the quad terms, `r_v` the eq challenge of the second round's variable.
-    fn from_sums(sums: [F192; 8], r_v: F192) -> Self {
-        // Slots 0, 1 hold round t's G(1) at v = 0, 1, and slots 2, 3 its G(inf).
-        // Round t + 1 reads slots 4, 1, 3 at Y = 1 and 5, 6, 7 at Y = inf.
-        let split_v = |v0: F192, v1: F192| v0 + r_v * (v0 + v1);
-        Self {
-            first: (split_v(sums[0], sums[1]), split_v(sums[2], sums[3])),
-            second: [[sums[4], sums[1], sums[3]], [sums[5], sums[6], sums[7]]],
-        }
-    }
 }
 
 /// Rounds `t` and `t + 1` straight from the packed bits, the folded tables never stored.
@@ -292,7 +324,7 @@ pub(crate) fn bit_round_pair(
     fold: &BitFold,
     r_eq: &[F192],
     padding: &PaddingSpec,
-) -> RoundPair {
+) -> RoundBatch {
     let sums = match fold.n_chunks() {
         8 => bit_round_pair_kernel::<8>(bits, fold, r_eq, padding),
         16 => bit_round_pair_kernel::<16>(bits, fold, r_eq, padding),
@@ -301,7 +333,29 @@ pub(crate) fn bit_round_pair(
         128 => bit_round_pair_kernel::<128>(bits, fold, r_eq, padding),
         n => panic!("no bit-round kernel for {n}-byte rows"),
     };
-    RoundPair::from_sums(sums, r_eq[0])
+    RoundBatch::pair(sums, r_eq[0])
+}
+
+/// Rounds `t`, `t + 1` and `t + 2` straight from the packed bits, the folded tables never stored.
+pub(crate) fn bit_round_triple(
+    bits: PackedWitness<'_>,
+    fold: &BitFold,
+    r_eq: &[F192],
+    padding: &PaddingSpec,
+) -> RoundBatch {
+    let sums = match fold.n_chunks() {
+        8 => bit_round_triple_kernel::<8>(bits, fold, r_eq, padding),
+        16 => bit_round_triple_kernel::<16>(bits, fold, r_eq, padding),
+        32 => bit_round_triple_kernel::<32>(bits, fold, r_eq, padding),
+        64 => bit_round_triple_kernel::<64>(bits, fold, r_eq, padding),
+        128 => bit_round_triple_kernel::<128>(bits, fold, r_eq, padding),
+        n => panic!("no bit-round kernel for {n}-byte rows"),
+    };
+    RoundBatch {
+        rounds: 3,
+        sums,
+        r: [r_eq[0], r_eq[1]],
+    }
 }
 
 /// One round straight from the packed bits, storing the folded `(a, b, c)` tables for the rounds that follow.
@@ -322,13 +376,14 @@ pub(crate) fn bit_round_materialize(
         32 => bit_round_store_kernel::<32>(bits, fold, r_eq, padding, outs),
         64 => bit_round_store_kernel::<64>(bits, fold, r_eq, padding, outs),
         128 => bit_round_store_kernel::<128>(bits, fold, r_eq, padding, outs),
+        256 => bit_round_store_kernel::<256>(bits, fold, r_eq, padding, outs),
         n => panic!("no bit-round kernel for {n}-byte rows"),
     };
     // SAFETY: the kernel writes every slot, padding and tail included.
     (message, out.map(|o| unsafe { o.assume_init() }.into_vec()))
 }
 
-/// The two-round pass, for rows of `CHUNKS` bytes: the eight sums [`RoundPair::from_sums`] reads.
+/// The two-round pass, for rows of `CHUNKS` bytes: the eight sums of a two-round batch.
 ///
 /// Positions group in quads `4k + u + 2v`: `u` is round `t`'s variable and `v` round `t + 1`'s.
 ///
@@ -441,6 +496,185 @@ fn bit_round_pair_kernel<const CHUNKS: usize>(
             b: tail.group(bits.b),
         };
         let group_sums = bit_round_pair_kernel::<CHUNKS>(group, fold, &r_eq[..tail.r_inner], &padding.without_tail());
+        for (s, g) in sums.iter_mut().zip(group_sums) {
+            *s += tail.weight * g;
+        }
+    }
+    sums
+}
+
+/// The sums extending values on `{0, 1}^3` to `{0, 1, inf}^3`, as `(t, t - place, t - 2 place)`.
+///
+/// Variable `d` extends after the lower ones, at the points whose higher variables are still Boolean.
+const EXTEND: [(usize, usize, usize); 19] = {
+    let mut sums = [(0, 0, 0); 19];
+    let (mut n, mut place) = (0, 1);
+    while place < POINTS {
+        let mut t = 0;
+        while t < POINTS {
+            let above = t / (3 * place);
+            if t / place % 3 == 2 && above % 3 != 2 && above / 3 % 3 != 2 {
+                sums[n] = (t, t - place, t - 2 * place);
+                n += 1;
+            }
+            t += 1;
+        }
+        place *= 3;
+    }
+    assert!(n == sums.len());
+    sums
+};
+
+/// The `a b` terms of an octet: every point but `(0, 0, 0)`, which no round reads.
+const AB_TERMS: usize = POINTS - 1;
+
+/// The `eq c` terms of an octet: its Boolean points but 0, the only ones a linear term reaches.
+const C_TERMS: usize = 7;
+
+/// The point each term of an octet lands on, four terms per batched product, the padding on `(0, 0, 0)`.
+const TERMS: [usize; 36] = {
+    let mut terms = [0; 36];
+    let mut k = 0;
+    while k < AB_TERMS + C_TERMS {
+        terms[k] = if k < AB_TERMS { k + 1 } else { ternary(k - AB_TERMS + 1) };
+        k += 1;
+    }
+    terms
+};
+
+/// Values on `{0, 1}^3`, bit `d` of the index variable `d`, at every point of `{0, 1, inf}^3`.
+#[inline(always)]
+fn extend<T: Copy>(f: [T; 8], add: impl Fn(T, T) -> T) -> [T; POINTS] {
+    let mut ext = [f[0]; POINTS];
+    for (x, v) in f.into_iter().enumerate() {
+        ext[ternary(x)] = v;
+    }
+    for (t, one, zero) in EXTEND {
+        ext[t] = add(ext[one], ext[zero]);
+    }
+    ext
+}
+
+/// One octet's terms of three consecutive rounds, at its eq weight `eq`, added to `acc` by point.
+///
+/// The octet is positions `8k + x`, bit `d` of `x` the variable of round `t + d`.
+///
+/// Each value extends from the octet's Boolean points to all 27, so each point's term is one product.
+/// The weight multiplies `a` before the extension, which is linear, so every product carries it.
+/// The linear `c` has no `inf` coefficient: it reaches the Boolean points only.
+#[inline(always)]
+fn octet_terms(eq: F192, a: [F192; 8], b: [F192; 8], c: [F192; 8], acc: &mut [F192Unreduced; POINTS]) {
+    let e = (eq, eq, eq, eq);
+    let lo = mul_quad(e, (a[0], a[1], a[2], a[3]));
+    let hi = mul_quad(e, (a[4], a[5], a[6], a[7]));
+    let ea = extend([lo.0, lo.1, lo.2, lo.3, hi.0, hi.1, hi.2, hi.3], |x, y| x + y);
+    let eb = extend(b, |x, y| x + y);
+    let term = |k: usize| match k {
+        k if k < AB_TERMS => (ea[k + 1], eb[k + 1]),
+        k if k < AB_TERMS + C_TERMS => (eq, c[k - AB_TERMS + 1]),
+        _ => (F192::ZERO, F192::ZERO),
+    };
+    let (lhs, rhs): ([F192; 36], [F192; 36]) = (std::array::from_fn(|k| term(k).0), std::array::from_fn(|k| term(k).1));
+    for ((l, r), d) in lhs
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(rhs.as_chunks::<4>().0)
+        .zip(TERMS.as_chunks::<4>().0)
+    {
+        let p = mul_quad_unreduced((l[0], l[1], l[2], l[3]), (r[0], r[1], r[2], r[3]));
+        for (&d, p) in d.iter().zip([p.0, p.1, p.2, p.3]) {
+            acc[d] ^= p;
+        }
+    }
+}
+
+/// The three-round pass, for rows of `CHUNKS` bytes: its sums by point.
+///
+/// Positions group in octets, bit `d` of a position's index in its octet the variable of round `t + d`.
+/// A third round costs products only: the fold and the bits read are a pair's.
+fn bit_round_triple_kernel<const CHUNKS: usize>(
+    bits: PackedWitness<'_>,
+    fold: &BitFold,
+    r_eq: &[F192],
+    padding: &PaddingSpec,
+) -> [F192; POINTS] {
+    let rows = bits.rows::<CHUNKS>();
+    let n_octets = rows[0].len() / 8;
+    assert!(n_octets >= 1, "three rounds need eight positions");
+    assert_eq!(r_eq.len(), n_octets.trailing_zeros() as usize + 2);
+
+    // `r_eq[..2]` weigh the octet's later variables; the rest weigh the octets.
+    let SplitEq {
+        low: eq_lo,
+        high: eq_hi,
+        ..
+    } = SplitEq::with_low_vars(&r_eq[2..], EQ_LO_VARS);
+    let lo_size = eq_lo.len();
+
+    // An octet covers 2^6 skip bits times its 8 * 2^t bound rows.
+    let octet_log = (64 * CHUNKS).trailing_zeros() as usize;
+    let (octet_in_block_mask, live_octets) = padding_pairs(padding, octet_log - 1);
+    // The octets before the tail, in whole folded blocks of eight.
+    let m = octet_log + n_octets.trailing_zeros() as usize;
+    let tail = padding.tail(m, octet_log, octet_log + 3, r_eq);
+    let head_octets = tail.map_or(n_octets, |t| t.head >> octet_log);
+    let live = |octet: usize| octet < head_octets && (octet & octet_in_block_mask) < live_octets;
+
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi",
+        target_feature = "avx512f",
+        target_feature = "vpclmulqdq"
+    ))]
+    let eq_planes = (lo_size >= BLOCK / 8).then(|| planar::planes(&eq_lo));
+
+    let mut sums = parallel::map_reduce(
+        head_octets.div_ceil(lo_size),
+        || [F192::ZERO; POINTS],
+        |hi| {
+            #[cfg(all(
+                target_arch = "x86_64",
+                target_feature = "gfni",
+                target_feature = "avx512bw",
+                target_feature = "avx512vbmi",
+                target_feature = "avx512f",
+                target_feature = "vpclmulqdq"
+            ))]
+            if let Some(eq_planes) = &eq_planes {
+                // SAFETY: the target features are enabled at compile time.
+                let acc = unsafe { planar::octet_sums(fold, rows, hi * lo_size, eq_planes, live) };
+                return acc.map(|s| eq_hi[hi] * s.reduce());
+            }
+            let mut acc = [F192Unreduced::ZERO; POINTS];
+            let mut f = FoldedBlock::ZERO;
+            // Eight octets per folded block.
+            for lo_first in (0..lo_size).step_by(BLOCK / 8) {
+                let n = (lo_size - lo_first).min(BLOCK / 8);
+                let octet_first = hi * lo_size + lo_first;
+                // A block wholly in padding folds to zero, and the tail is summed apart.
+                if !(octet_first..octet_first + n).any(live) {
+                    continue;
+                }
+                f.fold(fold, rows, 8 * octet_first, 8 * n);
+                for i in 0..n {
+                    let octet = |t: &[F192; BLOCK]| -> [F192; 8] { t[8 * i..8 * i + 8].try_into().expect("an octet") };
+                    octet_terms(eq_lo[lo_first + i], octet(&f.a), octet(&f.b), octet(&f.c), &mut acc);
+                }
+            }
+            acc.map(|s| eq_hi[hi] * s.reduce())
+        },
+        |x, y| std::array::from_fn(|i| x[i] + y[i]),
+    );
+
+    if let Some(tail) = tail {
+        let group = PackedWitness {
+            a: tail.group(bits.a),
+            b: tail.group(bits.b),
+        };
+        let group_sums = bit_round_triple_kernel::<CHUNKS>(group, fold, &r_eq[..tail.r_inner], &padding.without_tail());
         for (s, g) in sums.iter_mut().zip(group_sums) {
             *s += tail.weight * g;
         }
@@ -610,16 +844,16 @@ pub(crate) fn fold_and_round_pair_into(
     r_eq: &[F192],
     padding: &PaddingSpec,
     out_log: usize,
-) -> RoundPair {
+) -> RoundBatch {
     let sums = match *rhos {
         [rho] => fold_and_round_pair_kernel::<1>(ins, outs, [rho, F192::ZERO], r_eq, padding, out_log),
         [rho_0, rho_1] => fold_and_round_pair_kernel::<2>(ins, outs, [rho_0, rho_1], r_eq, padding, out_log),
         _ => panic!("one or two pending challenges"),
     };
-    RoundPair::from_sums(sums, r_eq[0])
+    RoundBatch::pair(sums, r_eq[0])
 }
 
-/// The paired pass for `K` pending challenges, `rhos[..K]`: the eight sums [`RoundPair::from_sums`] reads.
+/// The paired pass for `K` pending challenges, `rhos[..K]`: the eight sums of a two-round batch.
 ///
 /// The identical tail's outputs are copies of its last group's.
 fn fold_and_round_pair_kernel<const K: usize>(
@@ -831,6 +1065,7 @@ mod planar {
     use core::arch::x86_64::__m512i;
     use core::mem::transmute;
 
+    use super::{POINTS, ternary};
     use primitives::bit_fold::{BLOCK, BitFold};
     use primitives::field::gf2_64x3::x86_64::{F192x8, F192x8Sum};
     use primitives::field::{F192, F192Unreduced};
@@ -905,6 +1140,49 @@ mod planar {
                 acc[5].mul_add(dv0, ev0);
                 acc[6].mul_add(dv1, ev1);
                 acc[7].mul_add(du0.add(du1), eu0.add(eu1));
+            }
+        }
+        acc.map(|s| s.total())
+    }
+
+    /// The octet sums over the octets `octet_first..`, eight per `eq` entry.
+    #[inline]
+    #[target_feature(
+        enable = "avx512f",
+        enable = "avx512bw",
+        enable = "avx512vbmi",
+        enable = "gfni",
+        enable = "vpclmulqdq"
+    )]
+    pub(super) fn octet_sums<const CHUNKS: usize>(
+        fold: &BitFold,
+        rows: [&[[u8; CHUNKS]]; 2],
+        octet_first: usize,
+        eq: &[F192x8],
+        live: impl Fn(usize) -> bool,
+    ) -> [F192Unreduced; POINTS] {
+        let mut acc = [F192x8Sum::zero(); POINTS];
+        // Eight octets per folded block, one register of eight.
+        for (b, &e) in eq.iter().enumerate() {
+            let o0 = octet_first + (BLOCK / 8) * b;
+            // A block wholly in padding folds to zero.
+            if !(o0..o0 + BLOCK / 8).any(&live) {
+                continue;
+            }
+            let [ra, rb]: [&[[u8; CHUNKS]; BLOCK]; 2] =
+                rows.map(|t| t[8 * o0..8 * o0 + BLOCK].try_into().expect("a block"));
+            let mut rc = [[0u8; CHUNKS]; BLOCK];
+            super::and_rows(ra, rb, &mut rc);
+            let [pa, pb, pc] = [ra, rb, &rc].map(|t| fold.fold_octets::<CHUNKS>(t));
+            let at = |p: &[[__m512i; 8]; 3], x: usize| F192x8([p[0][x], p[1][x], p[2][x]]);
+            let add = |x: F192x8, y: F192x8| x.add(y);
+            let ea = super::extend(std::array::from_fn(|x| e.mul(at(&pa, x))), add);
+            let eb = super::extend(std::array::from_fn(|x| at(&pb, x)), add);
+            for t in 1..POINTS {
+                acc[t].mul_add(ea[t], eb[t]);
+            }
+            for x in 1..8 {
+                acc[ternary(x)].mul_add(e, at(&pc, x));
             }
         }
         acc.map(|s| s.total())
@@ -1008,8 +1286,8 @@ mod tests {
                 // SAFETY: the pass writes every slot of its outputs.
                 let outs = outs.map(|o| unsafe { o.assume_init() }.into_vec());
                 assert_eq!(outs, [level_a, level_b, level_c], "tables, k={k}, log_out={log_out}");
-                assert_eq!(pair.first, first, "round t, k={k}, log_out={log_out}");
-                assert_eq!(pair.second(rho_t), second, "round t + 1, k={k}, log_out={log_out}");
+                assert_eq!(pair.round(&[]), first, "round t, k={k}, log_out={log_out}");
+                assert_eq!(pair.round(&[rho_t]), second, "round t + 1, k={k}, log_out={log_out}");
             }
         }
     }
@@ -1141,30 +1419,47 @@ mod tests {
             let dense = PaddingSpec::dense(m);
 
             // Level 0 of the naive route: the univariate-skip fold at z.
-            let mut tables = [0, 1, 2].map(|i| fold_at_z_naive(&bits[i], m, K_SKIP, &lagrange));
-            for t in 0..=4 {
+            let level0 = [0, 1, 2].map(|i| fold_at_z_naive(&bits[i], m, K_SKIP, &lagrange));
+            // The naive messages of rounds `t..` with `rho[t..]` bound, from level `t`.
+            let naive_rounds = |mut tables: [Vec<F192>; 3], t: usize, n: usize| -> Vec<(F192, F192)> {
+                (t..t + n)
+                    .map(|j| {
+                        let message = naive_message(&tables, &r_rest[j + 1..]);
+                        let [ta, tb, tc] = &mut tables;
+                        fold_in_place_pair(ta, tb, rho[j]);
+                        fold_in_place_single(tc, rho[j]);
+                        message
+                    })
+                    .collect()
+            };
+            let mut tables = level0;
+            for t in 0..=5 {
                 let fold = BitFold::at_level(&lagrange, &rho[..t]);
                 let r_eq = &r_rest[t + 1..];
-                let expected = naive_message(&tables, r_eq);
+                let expected = naive_rounds(tables.clone(), t, (n_mlv - t).min(3));
 
                 // The storing kernel: this level's message and tables.
                 let (message, stored) = bit_round_materialize(packed(&packed_bits), &fold, r_eq, &dense);
-                assert_eq!(message, expected, "store message, m={m}, t={t}");
+                assert_eq!(message, expected[0], "store message, m={m}, t={t}");
                 for (got, want) in stored.iter().zip(&tables) {
                     assert_eq!(&got[..], &want[..], "stored table, m={m}, t={t}");
                 }
 
-                // Bind rho_{t+1} on the naive side; the pair kernel's second round must land on it.
+                // The batch kernels' later rounds land on the naive side's, once their challenges are bound.
+                if t <= 4 {
+                    let pair = bit_round_pair(packed(&packed_bits), &fold, r_eq, &dense);
+                    let got: Vec<_> = (0..2).map(|i| pair.round(&rho[t..t + i])).collect();
+                    assert_eq!(got, expected[..2], "pair, m={m}, t={t}");
+                }
+                if t <= 4 && t + 3 <= n_mlv {
+                    let triple = bit_round_triple(packed(&packed_bits), &fold, r_eq, &dense);
+                    let got: Vec<_> = (0..3).map(|i| triple.round(&rho[t..t + i])).collect();
+                    assert_eq!(got, expected, "triple, m={m}, t={t}");
+                }
+
                 let [ta, tb, tc] = &mut tables;
                 fold_in_place_pair(ta, tb, rho[t]);
                 fold_in_place_single(tc, rho[t]);
-                let pair = bit_round_pair(packed(&packed_bits), &fold, r_eq, &dense);
-                assert_eq!(pair.first, expected, "pair first round, m={m}, t={t}");
-                assert_eq!(
-                    pair.second(rho[t]),
-                    naive_message(&tables, &r_rest[t + 2..]),
-                    "pair second round, m={m}, t={t}"
-                );
             }
         }
     }
@@ -1192,18 +1487,22 @@ mod tests {
             };
             let lagrange = skip_lagrange_weights(K_SKIP, rng.ext());
             let r_rest = rng.ext_vec(m - K_SKIP);
-            let rho = rng.ext_vec(4);
-            for t in 0..=4 {
+            let rho = rng.ext_vec(5);
+            for t in 0..=5 {
                 let fold = BitFold::at_level(&lagrange, &rho[..t]);
                 let r_eq = &r_rest[t + 1..];
                 let run = |p: &PaddingSpec| {
-                    (
-                        bit_round_pair(packed(&packed_bits), &fold, r_eq, p),
-                        bit_round_materialize(packed(&packed_bits), &fold, r_eq, p),
-                    )
+                    let batches = (t <= 4).then(|| {
+                        (
+                            bit_round_pair(packed(&packed_bits), &fold, r_eq, p),
+                            bit_round_triple(packed(&packed_bits), &fold, r_eq, p),
+                        )
+                    });
+                    (batches, bit_round_materialize(packed(&packed_bits), &fold, r_eq, p))
                 };
-                let ((pair_d, (msg_d, tab_d)), (pair_p, (msg_p, tab_p))) = (run(&PaddingSpec::dense(m)), run(&padding));
-                assert_eq!(pair_d, pair_p, "pair, m={m}, useful={useful}, t={t}");
+                let ((batch_d, (msg_d, tab_d)), (batch_p, (msg_p, tab_p))) =
+                    (run(&PaddingSpec::dense(m)), run(&padding));
+                assert_eq!(batch_d, batch_p, "pair and triple, m={m}, useful={useful}, t={t}");
                 assert_eq!(msg_d, msg_p, "store message, m={m}, useful={useful}, t={t}");
                 for (d, p) in tab_d.iter().zip(&tab_p) {
                     assert_eq!(&d[..], &p[..], "stored table, m={m}, useful={useful}, t={t}");

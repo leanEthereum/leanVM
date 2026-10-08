@@ -25,8 +25,8 @@ use crate::zerocheck::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 use fiat_shamir::arith::{Native, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
 use multilinear::{
-    PackedWitness, RoundPair, bit_round_materialize, bit_round_pair, fold_and_round_pair_into, fold_in_place_pair,
-    fold_in_place_single, round_pair_naive, round_single_naive,
+    PackedWitness, RoundBatch, bit_round_materialize, bit_round_pair, bit_round_triple, fold_and_round_pair_into,
+    fold_in_place_pair, fold_in_place_single, round_pair_naive, round_single_naive,
 };
 use primitives::bit_fold::BitFold;
 use primitives::field::{F8, F192, powers};
@@ -50,15 +50,30 @@ const N_INNER: usize = 7; // 3 small + 4 medium fixed-constant eq dimensions
 /// The fewest variables a zerocheck's cube can have: the univariate skip plus the fixed-constant dimensions.
 pub const MIN_LOG_N: usize = K_SKIP + N_INNER;
 
-/// Passes over the packed bits, two rounds each, before the folded tables are stored.
+/// Passes over the packed bits before the folded tables are stored, by the rounds each sends.
 ///
 /// - A pass re-reads the `a` and `b` bit tables, `2 * 2^m` bits; it derives `c = a AND b`.
 /// - Storing at level `t` writes three F192 tables, `3 * 192 * 2^(m - 6 - t)` bits, then reads them back.
 /// - On x86 a pass is bandwidth-bound with GFNI, and the AVX2 nibble lookups keep it cheap enough for the same choice.
-/// - So storing pays once the tables are well below the bits: level 4, after two passes.
+/// - So storing pays once the tables are well below the bits, after two passes.
+/// - A pass's later rounds cost products only: its fold and its read are the same.
+/// - With AVX-512 a third round's products stay below the read from level 2 on, so the tables wait for level 5.
+/// - Without it they do not: the tables are stored at level 4.
 /// - On aarch64 the byte-table fold is compute-bound, its tables growing with the level.
 /// - There a pass costs more than the stored tables' traffic: store at once.
-const PAIR_PASSES: usize = if cfg!(target_arch = "aarch64") { 0 } else { 2 };
+const BIT_PASSES: &[usize] = if cfg!(target_arch = "aarch64") {
+    &[]
+} else if cfg!(all(
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "avx512vbmi",
+    target_feature = "gfni",
+    target_feature = "vpclmulqdq"
+)) {
+    &[2, 3]
+} else {
+    &[2, 2]
+};
 
 /// Smallest folded table a paired table pass takes.
 ///
@@ -260,7 +275,7 @@ impl Tables {
 /// ```
 ///
 /// While the tables would be larger than the bits, re-reading the bits is the cheaper pass.
-/// Each such pass sends two rounds; the second waits on the first's challenge.
+/// Each such pass sends two or three rounds; each later one waits on the earlier challenges.
 /// A last single-round pass stores the three folded tables for the tail.
 ///
 /// The kernels take the eq challenges of the variables they do not bind.
@@ -276,10 +291,10 @@ struct CircuitProver<'a> {
     claim: F192,
     /// The round message just sent, as coefficients.
     message: [F192; 3],
-    /// The rounds sent from the packed bits in pairs, before the tables are stored: the first [`PAIR_PASSES`] pairs that leave a round after them.
-    paired_bit_rounds: usize,
-    /// The second round of a paired pass, waiting on the first's challenge.
-    pair: Option<RoundPair>,
+    /// The bit passes still to send, by their rounds.
+    bit_passes: &'static [usize],
+    /// The last pass's first round and its rounds, the later ones waiting on the earlier challenges.
+    batch: Option<(usize, RoundBatch)>,
     tables: Option<Tables>,
 }
 
@@ -311,8 +326,8 @@ impl<'a> CircuitProver<'a> {
             chis: Vec::with_capacity(n_mlv),
             claim: F192::ZERO,
             message: [F192::ZERO; 3],
-            paired_bit_rounds: 2 * (0..(n_mlv - 1) / 2).take(PAIR_PASSES).count(),
-            pair: None,
+            bit_passes: Self::bit_passes(n_mlv),
+            batch: None,
             tables: None,
         };
         (prover, round1)
@@ -320,6 +335,15 @@ impl<'a> CircuitProver<'a> {
 
     const fn n_mlv(&self) -> usize {
         self.r.len()
+    }
+
+    /// The bit passes that leave a round after them for the store.
+    fn bit_passes(n_mlv: usize) -> &'static [usize] {
+        let ends = BIT_PASSES.iter().scan(0, |rounds, &k| {
+            *rounds += k;
+            Some(*rounds)
+        });
+        &BIT_PASSES[..ends.take_while(|&end| end < n_mlv).count()]
     }
 
     /// Take the univariate-skip challenge: the running claim is this circuit's `P(z)`.
@@ -336,8 +360,10 @@ impl<'a> CircuitProver<'a> {
     fn round(&mut self) -> [F192; 3] {
         let j = self.chis.len();
         let r_eq = self.r[j];
-        let (g0, g1, g_inf) = if let Some(pair) = self.pair.take() {
-            let (g1, g_inf) = pair.second(self.chis[j - 1]);
+        let (g0, g1, g_inf) = if let Some((first, batch)) = &self.batch
+            && j < first + batch.rounds()
+        {
+            let (g1, g_inf) = batch.round(&self.chis[*first..j]);
             (None, g1, g_inf)
         } else if self.tables.is_none() {
             self.bit_round(j)
@@ -359,14 +385,20 @@ impl<'a> CircuitProver<'a> {
         }
     }
 
-    /// A round straight from the packed bits: the first of a pair, or the one that stores the tables.
+    /// A round straight from the packed bits: the first of a pass, or the one that stores the tables.
     fn bit_round(&mut self, j: usize) -> (Option<F192>, F192, F192) {
         let (bits, padding, r) = (self.bits, self.padding, self.r);
         let fold = BitFold::at_level(&self.lagrange, &self.chis);
-        if j < self.paired_bit_rounds {
-            let pair = bit_round_pair(bits, &fold, &r[j + 1..], &padding);
-            self.pair = Some(pair);
-            return (None, pair.first.0, pair.first.1);
+        if let Some((&rounds, rest)) = self.bit_passes.split_first() {
+            self.bit_passes = rest;
+            let batch = match rounds {
+                2 => bit_round_pair(bits, &fold, &r[j + 1..], &padding),
+                3 => bit_round_triple(bits, &fold, &r[j + 1..], &padding),
+                _ => unreachable!("a bit pass sends two or three rounds"),
+            };
+            self.batch = Some((j, batch));
+            let (g1, g_inf) = batch.round(&[]);
+            return (None, g1, g_inf);
         }
         let ((g1, g_inf), [a, b, c]) = bit_round_materialize(bits, &fold, &r[j + 1..], &padding);
         let room = a.len() / 2;
@@ -399,8 +431,9 @@ impl<'a> CircuitProver<'a> {
             // SAFETY: the pass wrote the first `n_out` slots of each table.
             unsafe { tb.swap_in(n_out) };
             tb.pending.clear();
-            self.pair = Some(pair);
-            return (None, pair.first.0, pair.first.1);
+            self.batch = Some((j, pair));
+            let (g1, g_inf) = pair.round(&[]);
+            return (None, g1, g_inf);
         }
         let [a, b, c] = &mut tb.t;
         for &rho in &tb.pending {

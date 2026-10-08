@@ -69,12 +69,12 @@ impl BitFold {
     ///
     /// # Panics
     ///
-    /// Panics unless a row is 8, 16, 32, 64 or 128 bytes.
+    /// Panics unless a row is 8, 16, 32, 64, 128 or 256 bytes.
     pub fn new(weights: &[F192]) -> Self {
         let n_chunks = weights.len() / 8;
         assert!(
-            weights.len() == 8 * n_chunks && n_chunks.is_power_of_two() && (8..=128).contains(&n_chunks),
-            "a row is 8 to 128 bytes, a power of two"
+            weights.len() == 8 * n_chunks && n_chunks.is_power_of_two() && (8..=256).contains(&n_chunks),
+            "a row is 8 to 256 bytes, a power of two"
         );
         Self {
             n_chunks,
@@ -128,6 +128,26 @@ impl BitFold {
     pub fn fold_quads<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]; BLOCK]) -> [[__m512i; 8]; 3] {
         debug_assert_eq!(CHUNKS, self.n_chunks);
         self.imp.fold_quads(rows)
+    }
+
+    /// Fold 64 consecutive rows into coefficient planes, grouped by octet.
+    ///
+    /// Plane `k`, register `x`, qword `l` is coefficient `k` of row `8l + x`.
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "gfni",
+        target_feature = "avx512bw",
+        target_feature = "avx512vbmi"
+    ))]
+    ///
+    /// # Safety
+    ///
+    /// Requires AVX-512F, BW and VBMI and GFNI, which the target enables wherever this is compiled.
+    #[inline]
+    #[target_feature(enable = "avx512f", enable = "avx512bw", enable = "avx512vbmi", enable = "gfni")]
+    pub fn fold_octets<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]; BLOCK]) -> [[__m512i; 8]; 3] {
+        debug_assert_eq!(CHUNKS, self.n_chunks);
+        self.imp.fold_octets(rows)
     }
 }
 
@@ -257,6 +277,7 @@ mod tests {
         check::<32>(&mut rng);
         check::<64>(&mut rng);
         check::<128>(&mut rng);
+        check::<256>(&mut rng);
     }
 
     #[test]
@@ -337,6 +358,7 @@ mod tests {
             check::<P, 32>(rng);
             check::<P, 64>(rng);
             check::<P, 128>(rng);
+            check::<P, 256>(rng);
             check_map::<P>(rng);
         }
         let mut rng = Rng::new(0xA7_2B17);
