@@ -49,7 +49,7 @@ pub use cpu::{CpuError, DeferredClaims, Lookup, MAX_LOG_ROWS, MalformedClaim, Q_
 #[doc(hidden)]
 pub use leaf::{BusError, N_TUPLE_BITS};
 #[doc(hidden)]
-pub use rv::{Alu, Class, Guest, Hash, Machine, Reg, RegisterFile, Syscall};
+pub use rv::{Add, Branch, Class, Guest, Hash, Jump, Logic, Machine, Reg, RegisterFile, Syscall};
 #[doc(hidden)]
 pub use tables::{BAD_SLOT, Clock, EXIT_SLOT, Fill, N_TABLES, PerTable, TableId};
 

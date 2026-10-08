@@ -176,8 +176,8 @@ impl ClassTable {
             ctx.columns_at(out, rows, [rd.ad, rd.vd_old], move |r| {
                 [F64(entry(r).ad as u64), F64(r.vd_old)]
             });
-            // A doubleword load's result is its cell's column, written with the cell.
-            if c.ram.is_none_or(|ram| ram.cell != rd.out) {
+            // A doubleword load's result is its cell's column, written with the cell, and a jump's link is `pc + 4`.
+            if rd.out != c.pc4 && c.ram.is_none_or(|ram| ram.cell != rd.out) {
                 ctx.column(out, rows, rd.out, move |r| F64(r.out));
             }
         }
@@ -187,14 +187,13 @@ impl ClassTable {
             ctx.column(out, ext, p.vd, |x| F64(x.instance.pointers[2]));
         }
         if let Some(k) = c.control {
-            ctx.columns_at(out, rows, [k.dt, k.jump, k.exit], move |r| {
+            ctx.columns_at(out, rows, [k.dt, k.jump], move |r| {
                 let at = p.fetch(r.index as usize);
-                [
-                    F64(at.dt),
-                    F64(Word::Jump.value(RowRef::plain(r), at, &[])),
-                    F64(at.entry.is_exit() as u64),
-                ]
+                [F64(at.dt), F64(Word::Jump.value(RowRef::plain(r), at, &[]))]
             });
+            if let Some(exit) = k.exit {
+                ctx.column(out, rows, exit, move |r| F64(entry(r).is_exit() as u64));
+            }
         }
         if let Some(imm) = c.imm {
             ctx.column(out, rows, imm, move |r| F64(entry(r).imm));

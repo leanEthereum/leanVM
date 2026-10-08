@@ -291,14 +291,14 @@ impl<'a> Machine<'a> {
 
     /// Write `vd` to the entry's destination and return what it held.
     ///
-    /// A store and a hash always write the sink, which nothing reads.
+    /// A store, a branch and a hash always write the sink, which nothing reads.
     ///
     /// An extension-field product reads `rd` as an address, and writes no register.
     ///
     /// They make no write at all, so their tables have none to prove.
     const fn write_destination(&mut self, entry: &Entry, vd: u64) -> u64 {
         match entry.class {
-            Class::Store | Class::Sd | Class::Hash | Class::Ext => 0,
+            Class::Store | Class::Sd | Class::Branch | Class::Hash | Class::Ext => 0,
             _ => self.registers.replace(entry.ad, vd),
         }
     }
@@ -332,7 +332,7 @@ pub struct Step {
     pub taken: bool,
     /// What the destination held before.
     ///
-    /// Zero for a store, a hash or an extension-field product, which write no register.
+    /// Zero for a store, a branch, a hash or an extension-field product, which write no register.
     pub vd_old: u64,
     /// What the destination holds now: the output.
     pub vd: u64,

@@ -188,11 +188,13 @@ impl ClassTable {
 
     /// Bind the next instruction and clock to the current state.
     ///
-    /// The successor is linear in the row's columns: `pc + 4`, plus the circuit's jump for a class with control flow.
+    /// The successor is linear in the row's columns: `pc + 4`, plus the circuit's jump for a branch or a jump.
+    ///
+    /// Only a jump has an exit selector; a branch's is the constant zero.
     fn flush_state(&self, bus: &mut FlushBuilder) {
         let c = &self.cols;
         let npc = c.control.map_or(Col(c.pc4), |control| control.next_pc(c.pc4));
-        let exit = c.control.map_or(Const(F64::ZERO), |control| Col(control.exit));
+        let exit = c.control.and_then(|k| k.exit).map_or(Const(F64::ZERO), Col);
         bus.state(c.pc, c.ts, c.step, npc, exit);
     }
 
@@ -227,7 +229,7 @@ impl ClassTable {
             entry.push(Col(bad));
         }
         entry.resize(EXIT_SLOT, Const(F64::ZERO));
-        entry.push(c.control.map_or(Const(F64::ZERO), |k| Col(k.exit)));
+        entry.push(c.control.and_then(|k| k.exit).map_or(Const(F64::ZERO), Col));
         entry
     }
 
@@ -240,7 +242,7 @@ impl ClassTable {
         if let Some(r) = c.rs2 {
             accesses.read(Separator::Registers.coordinate(), Col(r.a2), Col(r.v2));
         }
-        // The destination receives the circuit's output, which is the link of a jump that links.
+        // The destination receives the circuit's output, a jump's its link, `pc + 4`, or a doubleword load's cell.
         if let Some(rd) = c.rd {
             accesses.write(
                 Separator::Registers.coordinate(),

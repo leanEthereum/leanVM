@@ -77,7 +77,7 @@ impl RiscvProgram {
         entries.resize((text.len() + 2).next_power_of_two(), Entry::ILLEGAL);
 
         // The decoder only makes well-formed entries, which the bytecode table's rules restate.
-        if !(entries.iter().enumerate()).all(|(i, e)| e.is_well_formed(Region::TEXT.address(i))) {
+        if !entries.iter().all(Entry::is_well_formed) {
             return Err(ProgramError::MalformedEntry);
         }
         Ok(Self {
@@ -184,7 +184,8 @@ impl RiscvProgram {
     ///
     /// Zero for an entry with no fixed target.
     ///
-    /// The ALU's circuit gates it by its decision, and the table adds that to `pc + 4`, the sum in the field being XOR.
+    /// A branch's or a jump's circuit gates it by its decision, and the table adds that to `pc + 4`, the sum in the
+    /// field being XOR.
     pub fn dt_of(&self, index: usize) -> u64 {
         self.target_of(index)
             .map_or(0, |target| target ^ self.pc_of(index).wrapping_add(4))
@@ -279,7 +280,7 @@ mod tests {
             // A power of two of well-formed entries.
             let entries = program.entries();
             prop_assert!(entries.len().is_power_of_two());
-            prop_assert!((entries.iter().enumerate()).all(|(i, e)| e.is_well_formed(program.pc_of(i))));
+            prop_assert!(entries.iter().all(Entry::is_well_formed));
 
             // Each word decoded at its own address, then illegal padding to the end.
             for (i, &word) in text.iter().enumerate() {

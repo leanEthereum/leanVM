@@ -840,7 +840,7 @@ mod tests {
     fn multiplicity_bits_cover_every_read() {
         // Fixture: one table of 2^10 rows, the rest of 2^3.
         let mut taus = PerTable::new([3; N_TABLES]);
-        taus[TableId::ALU] = 10;
+        taus[TableId::ADD] = 10;
         let rows: u64 = taus.values().map(|&tau| 1u64 << tau).sum();
 
         // The bits hold the most reads one entry can get, every row reading it, and no more.

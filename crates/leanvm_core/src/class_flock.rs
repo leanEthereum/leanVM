@@ -41,7 +41,7 @@ pub struct FlockId {
 impl FlockId {
     /// Every packed witness, in protocol order.
     pub const ALL: [Self; N_FLOCKS] = {
-        let mut all = [Self::clock(TableId::ALU); N_FLOCKS];
+        let mut all = [Self::clock(TableId::ALL[0]); N_FLOCKS];
         let mut t = 0;
         while t < N_TABLES {
             let table = TableId::ALL[t];

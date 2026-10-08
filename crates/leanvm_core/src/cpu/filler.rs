@@ -16,7 +16,7 @@
 //!
 //! The rows therefore touch nothing, and the prover writes them out rather than executing them.
 //!
-//! A traversal of the size-`s` block costs exactly `s + 1` rows: `s` of its table, and the jump, on the ALU.
+//! A traversal of the size-`s` block costs exactly `s + 1` rows: `s` of its table, and the jump, on JUMP.
 //!
 //! That is what makes the solve exact, with no cost model and no residual to correct.
 
@@ -27,15 +27,15 @@ use crate::tables::{N_TABLES, PerTable, TableId};
 ///
 /// A fill of `f` rows takes `f / 128` traversals of the largest block, then one per set bit of the remainder.
 ///
-/// The last, a lone jump, is the ALU's only: it makes a gap of a single row reachable.
+/// The last, a lone jump, is JUMP's only: it makes a gap of a single row reachable.
 pub const SIZES: [usize; 9] = [128, 64, 32, 16, 8, 4, 2, 1, 0];
 
-/// The table of the closing jumps, the ALU.
+/// The table of the closing jumps, JUMP.
 ///
 /// Every traversal of every block lands its closing jump there.
 ///
 /// So that table is solved last, absorbing the cost of the whole fill.
-pub const JUMP: TableId = TableId::ALU;
+pub const JUMP: TableId = TableId::JUMP;
 
 /// One block in the text: `size` no-ops of `table`'s class from entry `index`, then the jump back to `index`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -72,7 +72,7 @@ impl FillBlocks {
 
     /// Append every table's blocks to `text`.
     ///
-    /// Each table gets a block per positive size, and the ALU the lone jump too.
+    /// Each table gets a block per positive size, and JUMP the lone jump too.
     pub fn append(text: &mut Vec<u32>) -> Self {
         let mut blocks = Vec::new();
         for t in TableId::ALL {
@@ -141,7 +141,7 @@ impl Traversals {
     fn delivering(fill: usize) -> Self {
         let mut left = fill;
         let out = SIZES.map(|size| {
-            // The lone jump supplies no rows to a non-ALU table.
+            // The lone jump supplies no rows to a table other than JUMP.
             if size == 0 {
                 return 0;
             }
@@ -153,15 +153,15 @@ impl Traversals {
         Self(out)
     }
 
-    /// The ALU's own traversals, landing exactly `gap` rows on it.
+    /// JUMP's own traversals, landing exactly `gap` rows on it.
     ///
-    /// A traversal of the size-`s` block gives the ALU `s + 1` rows: its no-ops and its own closing jump.
+    /// A traversal of the size-`s` block gives JUMP `s + 1` rows: its no-ops and its own closing jump.
     ///
     /// So the sizes to decompose over are `s + 1`, down to the lone jump's 1.
     fn landing_on_jump(gap: usize) -> Self {
         let mut left = gap;
         let out = SIZES.map(|size| {
-            // Each traversal contributes its closing jump to the ALU too.
+            // Each traversal contributes its closing jump to JUMP too.
             let count = left / (size + 1);
             left -= count * (size + 1);
             count
@@ -187,9 +187,9 @@ pub struct Plan(PerTable<Traversals>);
 impl Plan {
     /// The plan taking every table from `base` rows to its provable height: the next power of two at or above its floor.
     ///
-    /// Every table but the ALU is independent: its fill is the distance to that height.
+    /// Every table but JUMP is independent: its fill is the distance to that height.
     ///
-    /// The ALU is not, since every traversal lands a row there, its own included.
+    /// JUMP is not, since every traversal lands a row there, its own included.
     ///
     /// Counting those first makes it one decomposition rather than a fixpoint.
     pub fn solve(base: PerTable<usize>) -> Self {
@@ -199,7 +199,7 @@ impl Plan {
             plan.0[t] = Traversals::delivering(height(t, base[t]) - base[t]);
         }
 
-        // What the ALU already owes: its own rows, plus one per traversal so far.
+        // What JUMP already owes: its own rows, plus one per traversal so far.
         let owed = base[JUMP] + plan.traversals();
         plan.0[JUMP] = Traversals::landing_on_jump(height(JUMP, owed) - owed);
         debug_assert!(
@@ -236,13 +236,13 @@ mod tests {
 
     #[test]
     fn solve_reaches_each_tables_provable_height() {
-        // Fixture: empty, tiny, large and power-of-two runs, then ALU gaps of 3, 2 and 1 rows.
+        // Fixture: empty, tiny, large and power-of-two runs, then JUMP gaps of 3, 2 and 1 rows.
         //
-        // A gap of one row is what the other tables' closing jumps can leave the ALU with.
+        // A gap of one row is what the other tables' closing jumps can leave JUMP with.
         let mut cases: Vec<_> = [0, 1, 125_000, 1 << 17].map(|n| PerTable::new([n; N_TABLES])).into();
-        for alu in [(1 << 17) - 3, (1 << 17) - 2, (1 << 17) - 1] {
+        for jumps in [(1 << 17) - 3, (1 << 17) - 2, (1 << 17) - 1] {
             let mut base = PerTable::new([1 << 10; N_TABLES]);
-            base[JUMP] = alu;
+            base[JUMP] = jumps;
             cases.push(base);
         }
 
@@ -250,7 +250,7 @@ mod tests {
             let plan = Plan::solve(base);
             let got = plan.filled(base);
 
-            // Every table lands on the nearest provable height: what it owed, rounded up, the ALU owing the others' jumps too.
+            // Every table lands on the nearest provable height: what it owed, rounded up, JUMP owing the others' jumps too.
             for t in TableId::ALL {
                 let spec = t.spec();
                 let jumps = if t == JUMP {

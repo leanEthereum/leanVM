@@ -1,6 +1,6 @@
 //! Local column allocation and the aliases used by memory moves.
 
-use super::{ClassSpec, Ram, Word};
+use super::{ClassSpec, Control, Ram, Word};
 use crate::leaf::Coord::{self, Col};
 use crate::rv::{Ext, Hash};
 
@@ -37,7 +37,7 @@ pub(super) struct DestinationColumns {
     pub(super) out: usize,
 }
 
-/// Columns of a class with branches and jumps, the exit included.
+/// Columns of a class with branches or jumps, a jump's exit included.
 #[derive(Clone, Copy)]
 pub(super) struct ControlColumns {
     /// Decoded jump offset, a circuit input.
@@ -46,8 +46,8 @@ pub(super) struct ControlColumns {
     /// The offset when the jump is taken, zero otherwise: a circuit output.
     pub(super) jump: usize,
 
-    /// Selector for the exit instruction.
-    pub(super) exit: usize,
+    /// Selector for the exit instruction: a jump's column, a branch's constant zero.
+    pub(super) exit: Option<usize>,
 }
 
 impl ControlColumns {
@@ -200,22 +200,22 @@ impl Columns {
             a2: allocator.allocate(1),
             v2: allocator.allocate(1),
         });
-        // A doubleword load's `rd` receives its cell, which is a column further on.
+        // A doubleword load's `rd` receives its cell, which is a column further on, and a jump's its link, `pc + 4`.
         let rd = spec.writes_rd.then(|| {
             (
                 allocator.allocate(1),
                 allocator.allocate(1),
-                (!spec.copies).then(|| allocator.allocate(1)),
+                (!spec.copies && spec.control != Control::Jump).then(|| allocator.allocate(1)),
             )
         });
         let pointer = spec.reads_rd.then(|| PointerColumns {
             ad: allocator.allocate(1),
             vd: allocator.allocate(1),
         });
-        let control = spec.control.then(|| ControlColumns {
+        let control = (spec.control != Control::None).then(|| ControlColumns {
             dt: allocator.allocate(1),
             jump: allocator.allocate(1),
-            exit: allocator.allocate(1),
+            exit: (spec.control == Control::Jump).then(|| allocator.allocate(1)),
         });
         let imm = spec.words().any(|w| w == Word::Imm).then(|| allocator.allocate(1));
         let (ram, block) = match spec.ram {
@@ -243,7 +243,7 @@ impl Columns {
         let rd = rd.map(|(ad, vd_old, out)| DestinationColumns {
             ad,
             vd_old,
-            out: out.unwrap_or_else(|| ram.expect("a doubleword load reads a cell").cell),
+            out: out.unwrap_or_else(|| ram.map_or(pc4, |ram| ram.cell)),
         });
         let limbs = (spec.ram == Ram::Limbs).then(|| LimbColumns {
             limbs: allocator.allocate(Ext::LIMBS),

@@ -2,7 +2,7 @@
 
 use super::clock::Clock;
 use super::{N_TABLES, TableId, Word};
-use crate::rv::{Alu, Class, Ext, Hash, Ld, Load, Mul, Mulh, Shift, Store};
+use crate::rv::{Add, Branch, Class, Ext, Hash, Jump, Ld, Load, Logic, Mul, Mulh, Shift, Store};
 use crate::{class_flock, rv};
 use flock::circuit::Circuit;
 use std::ops::Range;
@@ -32,6 +32,21 @@ impl Ram {
             Self::Limbs => Clock::limb_slot(0)..Clock::limb_slot(Ext::LIMBS),
         }
     }
+}
+
+/// Where a class's rows send control.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Control {
+    /// To `pc + 4`.
+    None,
+    /// A branch: to `pc + 4` plus the circuit's jump, the bytecode's offset gated by the decision.
+    ///
+    /// The bytecode's exit selector is the constant zero.
+    Branch,
+    /// A jump: to `pc + 4` plus the circuit's jump, which also takes `pc + 4` for an indirect target.
+    ///
+    /// It links: `rd` receives `pc + 4`, and the bytecode's exit selector is a column.
+    Jump,
 }
 
 /// One instance's `z`, `A·z` and `B·z` from its input words, into zeroed buffers.
@@ -74,8 +89,8 @@ pub struct ClassSpec {
     /// Table name used in diagnostics and reports.
     pub name: &'static str,
 
-    /// Whether branches and jumps move the successor by the circuit's jump.
-    pub control: bool,
+    /// How branches and jumps move the successor.
+    pub control: Control,
 
     /// Whether the second source register is read, in clock slot 1.
     pub reads_rs2: bool,
@@ -106,21 +121,88 @@ pub struct ClassSpec {
 }
 
 impl ClassSpec {
-    /// Arithmetic, comparisons, logic, branches, and jumps.
-    pub const ALU: Self = Self {
-        class: Class::Alu,
-        name: "ALU",
-        control: true,
+    /// Addition, subtraction and comparisons, and the constants `lui` and `auipc` add to `x0`.
+    pub const ADD: Self = Self {
+        class: Class::Add,
+        name: "ADD",
+        control: Control::None,
         reads_rs2: true,
         writes_rd: true,
         reads_rd: false,
         ram: Ram::None,
         copies: false,
         circuit: Some(ClassCircuit {
-            k_log: 10,
-            inputs: &[Word::V1, Word::V2, Word::Imm, Word::Flags, Word::Dt, Word::Pc4],
-            outputs: &[Word::Out, Word::Jump],
-            fill: Fill::Instance(Alu::witness),
+            k_log: 9,
+            inputs: &[Word::V1, Word::V2, Word::Imm, Word::Flags],
+            outputs: &[Word::Out],
+            fill: Fill::Instance(Add::witness),
+        }),
+        clock_k_log: 9,
+        clock_inputs: &[],
+        clock_outputs: &[],
+    };
+
+    /// AND, OR and XOR.
+    pub const LOGIC: Self = Self {
+        class: Class::Logic,
+        name: "LOGIC",
+        control: Control::None,
+        reads_rs2: true,
+        writes_rd: true,
+        reads_rd: false,
+        ram: Ram::None,
+        copies: false,
+        circuit: Some(ClassCircuit {
+            k_log: 9,
+            inputs: &[Word::V1, Word::V2, Word::Imm, Word::Flags],
+            outputs: &[Word::Out],
+            fill: Fill::Instance(Logic::witness),
+        }),
+        clock_k_log: 9,
+        clock_inputs: &[],
+        clock_outputs: &[],
+    };
+
+    /// The conditional branches.
+    ///
+    /// A branch writes no `rd` and has no immediate: its bytecode tuple holds the sink and zero there.
+    pub const BRANCH: Self = Self {
+        class: Class::Branch,
+        name: "BRANCH",
+        control: Control::Branch,
+        reads_rs2: true,
+        writes_rd: false,
+        reads_rd: false,
+        ram: Ram::None,
+        copies: false,
+        circuit: Some(ClassCircuit {
+            k_log: 9,
+            inputs: &[Word::V1, Word::V2, Word::Flags, Word::Dt],
+            outputs: &[Word::Jump],
+            fill: Fill::Instance(Branch::witness),
+        }),
+        clock_k_log: 9,
+        clock_inputs: &[],
+        clock_outputs: &[],
+    };
+
+    /// `jal`, `jalr` and the exit.
+    ///
+    /// A jump reads no `rs2`: its bytecode tuple holds `x0` there.
+    pub const JUMP: Self = Self {
+        class: Class::Jump,
+        name: "JUMP",
+        control: Control::Jump,
+        reads_rs2: false,
+        writes_rd: true,
+        reads_rd: false,
+        ram: Ram::None,
+        copies: false,
+        circuit: Some(ClassCircuit {
+            k_log: 9,
+            inputs: &[Word::V1, Word::Imm, Word::Flags, Word::Dt, Word::Pc4],
+            outputs: &[Word::Jump],
+            fill: Fill::Instance(Jump::witness),
         }),
         clock_k_log: 9,
         clock_inputs: &[],
@@ -131,7 +213,7 @@ impl ClassSpec {
     pub const LOAD: Self = Self {
         class: Class::Load,
         name: "LOAD",
-        control: false,
+        control: Control::None,
         reads_rs2: false,
         writes_rd: true,
         reads_rd: false,
@@ -152,7 +234,7 @@ impl ClassSpec {
     pub const STORE: Self = Self {
         class: Class::Store,
         name: "STORE",
-        control: false,
+        control: Control::None,
         reads_rs2: true,
         writes_rd: false,
         reads_rd: false,
@@ -173,7 +255,7 @@ impl ClassSpec {
     pub const LD: Self = Self {
         class: Class::Ld,
         name: "LD",
-        control: false,
+        control: Control::None,
         reads_rs2: false,
         writes_rd: true,
         reads_rd: false,
@@ -194,7 +276,7 @@ impl ClassSpec {
     pub const SD: Self = Self {
         class: Class::Sd,
         name: "SD",
-        control: false,
+        control: Control::None,
         reads_rs2: true,
         writes_rd: false,
         reads_rd: false,
@@ -215,7 +297,7 @@ impl ClassSpec {
     pub const SHIFT: Self = Self {
         class: Class::Shift,
         name: "SHIFT",
-        control: false,
+        control: Control::None,
         reads_rs2: true,
         writes_rd: true,
         reads_rd: false,
@@ -236,7 +318,7 @@ impl ClassSpec {
     pub const MUL: Self = Self {
         class: Class::Mul,
         name: "MUL",
-        control: false,
+        control: Control::None,
         reads_rs2: true,
         writes_rd: true,
         reads_rd: false,
@@ -261,7 +343,7 @@ impl ClassSpec {
     pub const MULH: Self = Self {
         class: Class::Mulh,
         name: "MULH",
-        control: false,
+        control: Control::None,
         reads_rs2: true,
         writes_rd: true,
         reads_rd: false,
@@ -282,7 +364,7 @@ impl ClassSpec {
     pub const DIV: Self = Self {
         class: Class::Div,
         name: "DIV",
-        control: false,
+        control: Control::None,
         reads_rs2: true,
         writes_rd: true,
         reads_rd: false,
@@ -303,7 +385,7 @@ impl ClassSpec {
     pub const HASH: Self = Self {
         class: Class::Hash,
         name: "HASH",
-        control: false,
+        control: Control::None,
         reads_rs2: true,
         writes_rd: false,
         reads_rd: false,
@@ -343,7 +425,7 @@ impl ClassSpec {
     pub const EXT: Self = Self {
         class: Class::Ext,
         name: "EXT",
-        control: false,
+        control: Control::None,
         reads_rs2: true,
         writes_rd: false,
         reads_rd: true,
@@ -366,11 +448,12 @@ impl ClassSpec {
 
     /// Check that register accesses and copy semantics match the circuit ports.
     pub(super) fn assert_valid(&self) {
-        // Invariant: a register access exists exactly when its value is a word of one of the table's circuits, or a column a doubleword load or store moves.
+        // Invariant: a register access exists exactly when its value is a word of one of the table's circuits, or a
+        // column a doubleword load or store moves, or the link a jump writes.
         let has = |word: Word| self.words().any(|w| w == word);
         assert_eq!(self.reads_rs2 && !self.copies, has(Word::V2), "{}: rs2 read", self.name);
         assert_eq!(
-            self.writes_rd && !self.copies,
+            self.writes_rd && !self.copies && self.control != Control::Jump,
             has(Word::Out),
             "{}: rd write",
             self.name
@@ -381,9 +464,12 @@ impl ClassSpec {
             "{}: rd is read or written, not both",
             self.name
         );
-        // A class with branches and jumps gates the bytecode's offset in its circuit, and reads `pc + 4` for its indirect jump.
+        // A class with branches or jumps gates the bytecode's offset in its circuit, and a jump links, and reads
+        // `pc + 4` for its indirect target.
         assert!(
-            self.control == (has(Word::Dt) && has(Word::Jump)) && self.control == has(Word::Pc4),
+            (self.control != Control::None) == (has(Word::Dt) && has(Word::Jump))
+                && (self.control == Control::Jump) == has(Word::Pc4)
+                && (self.control != Control::Jump || self.writes_rd),
             "{}: control flow",
             self.name
         );
@@ -396,7 +482,7 @@ impl ClassSpec {
             };
             let ports = [Word::V1, Word::Imm, Word::Address];
             assert!(
-                moves && !self.control && !self.reads_rd && self.ports().eq(ports),
+                moves && self.control == Control::None && !self.reads_rd && self.ports().eq(ports),
                 "{}: a copy",
                 self.name
             );

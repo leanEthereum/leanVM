@@ -7,7 +7,7 @@ use std::ops::{Index, IndexMut};
 use std::slice::Iter;
 
 /// Number of instruction tables in the proof layout.
-pub const N_TABLES: usize = 11;
+pub const N_TABLES: usize = 14;
 
 /// An instruction table, named by the class it proves.
 ///
@@ -16,8 +16,14 @@ pub const N_TABLES: usize = 11;
 pub struct TableId(Class);
 
 impl TableId {
-    /// Arithmetic, comparisons, logic, branches and jumps.
-    pub const ALU: Self = Self(Class::Alu);
+    /// Sums, differences and comparisons.
+    pub const ADD: Self = Self(Class::Add);
+    /// AND, OR and XOR.
+    pub const LOGIC: Self = Self(Class::Logic);
+    /// The conditional branches.
+    pub const BRANCH: Self = Self(Class::Branch);
+    /// `jal`, `jalr` and the exit.
+    pub const JUMP: Self = Self(Class::Jump);
     /// Byte, halfword and word loads.
     pub const LOAD: Self = Self(Class::Load);
     /// Byte, halfword and word stores.
@@ -41,7 +47,10 @@ impl TableId {
 
     /// Every table, in protocol order.
     pub const ALL: [Self; N_TABLES] = [
-        Self::ALU,
+        Self::ADD,
+        Self::LOGIC,
+        Self::BRANCH,
+        Self::JUMP,
         Self::LOAD,
         Self::STORE,
         Self::LD,
@@ -76,7 +85,10 @@ impl TableId {
     /// The table's specification.
     pub const fn spec(self) -> &'static ClassSpec {
         match self.0 {
-            Class::Alu => &ClassSpec::ALU,
+            Class::Add => &ClassSpec::ADD,
+            Class::Logic => &ClassSpec::LOGIC,
+            Class::Branch => &ClassSpec::BRANCH,
+            Class::Jump => &ClassSpec::JUMP,
             Class::Load => &ClassSpec::LOAD,
             Class::Store => &ClassSpec::STORE,
             Class::Ld => &ClassSpec::LD,

@@ -211,10 +211,10 @@ impl<'a> Products<'a> {
         }
     }
 
-    /// The next 192 rows, three per bit of three words: row `3i + k` has `A·z` bit `i` of `a[k]` and `B·z` bit `i` of `b[k]`.
+    /// The next 128 rows, two per bit of two words: row `2i + k` has `A·z` bit `i` of `a[k]` and `B·z` bit `i` of `b[k]`.
     #[inline(always)]
-    pub(crate) fn push_interleaved3(&mut self, a: [u64; 3], b: [u64; 3]) {
-        for (a, b) in interleave3(a).into_iter().zip(interleave3(b)) {
+    pub(crate) fn push_interleaved2(&mut self, a: [u64; 2], b: [u64; 2]) {
+        for (a, b) in interleave2(a).into_iter().zip(interleave2(b)) {
             self.push(a, b, 64);
         }
     }
@@ -230,40 +230,34 @@ impl<'a> Products<'a> {
     }
 }
 
-/// The 192 bits `x0_0, x1_0, x2_0, x0_1, ...` of three words, as three words.
+/// The 128 bits `x0_0, x1_0, x0_1, ...` of two words, as two words.
 #[inline(always)]
-fn interleave3([x, y, w]: [u64; 3]) -> [u64; 3] {
-    // Word `j` starts at bit 64j of the sequence, which is bit `64j / 3` of the word at `64j mod 3`.
-    [
-        spread3(x) | spread3(y) << 1 | spread3(w) << 2,
-        spread3(y >> 21) | spread3(w >> 21) << 1 | spread3(x >> 22) << 2,
-        spread3(w >> 42) | spread3(x >> 43) << 1 | spread3(y >> 43) << 2,
-    ]
+fn interleave2([x, y]: [u64; 2]) -> [u64; 2] {
+    // Word `j` holds bits `32j` to `32j + 31` of each.
+    [spread2(x) | spread2(y) << 1, spread2(x >> 32) | spread2(y >> 32) << 1]
 }
 
-/// The low 22 bits of `x` at every third bit, from bit 0.
+/// The low 32 bits of `x` at every other bit, from bit 0.
 #[cfg_attr(
     not(all(target_arch = "x86_64", target_feature = "bmi2")),
     expect(clippy::missing_const_for_fn, reason = "BMI2's bit deposit is a runtime intrinsic.")
 )]
 #[inline(always)]
-fn spread3(x: u64) -> u64 {
+fn spread2(x: u64) -> u64 {
     #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
     {
         // SAFETY: BMI2 is enabled at compile time.
-        unsafe { std::arch::x86_64::_pdep_u64(x, 0x9249_2492_4924_9249) }
+        unsafe { std::arch::x86_64::_pdep_u64(x, 0x5555_5555_5555_5555) }
     }
-    // Without it, bits 0 to 20 spread by halving strides, and bit 21 goes to bit 63.
+    // Without it, the bits spread by halving strides.
     #[cfg(not(all(target_arch = "x86_64", target_feature = "bmi2")))]
     {
-        let top = (x >> 21 & 1) << 63;
-        let mut x = x & 0x1f_ffff;
-        x = (x | x << 32) & 0x001f_0000_0000_ffff;
-        x = (x | x << 16) & 0x001f_0000_ff00_00ff;
-        x = (x | x << 8) & 0x100f_00f0_0f00_f00f;
-        x = (x | x << 4) & 0x10c3_0c30_c30c_30c3;
-        x = (x | x << 2) & 0x1249_2492_4924_9249;
-        x | top
+        let mut x = x & 0xffff_ffff;
+        x = (x | x << 16) & 0x0000_ffff_0000_ffff;
+        x = (x | x << 8) & 0x00ff_00ff_00ff_00ff;
+        x = (x | x << 4) & 0x0f0f_0f0f_0f0f_0f0f;
+        x = (x | x << 2) & 0x3333_3333_3333_3333;
+        (x | x << 1) & 0x5555_5555_5555_5555
     }
 }
 
@@ -275,8 +269,11 @@ mod tests {
     use proptest::test_runner::TestRunner;
 
     /// Every class with a circuit.
-    const CLASSES: [Class; 10] = [
-        Class::Alu,
+    const CLASSES: [Class; 13] = [
+        Class::Add,
+        Class::Logic,
+        Class::Branch,
+        Class::Jump,
         Class::Shift,
         Class::Load,
         Class::Store,
@@ -292,7 +289,7 @@ mod tests {
     fn instance_sizes_are_pinned() {
         // The log of each instance's bits, which the tables fix before any circuit is built.
         let sizes = CLASSES.map(|class| class.circuit().k_log());
-        assert_eq!(sizes, [10, 10, 10, 10, 8, 8, 12, 13, 13, 14]);
+        assert_eq!(sizes, [9, 9, 9, 9, 10, 10, 10, 8, 8, 12, 13, 13, 14]);
     }
 
     #[test]

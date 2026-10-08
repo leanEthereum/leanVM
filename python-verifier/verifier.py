@@ -980,7 +980,9 @@ class Flushes:
 # the product, and its clock circuit splits the flags into their bits and computes the addresses of the limbs at no
 # pointer.
 
-CONTROL_COLUMNS = ("dt", "jump", "exit")  # a class with jumps: the bytecode's offset, the circuit's gated jump, the exit
+# A class's control columns: none; a branch's bytecode offset and the circuit's gated jump; or a jump's, then its exit
+# selector. A branch's bytecode holds zero for the exit selector, so no branch row exits.
+CONTROL_COLUMNS = {"none": (), "branch": ("dt", "jump"), "jump": ("dt", "jump", "exit")}
 HASH_COLUMNS = (*(f"cell_{k}" for k in range(HASH_WORDS)), *(f"cell_new_{HASH_OUT_WORD + j}" for j in range(4)))
 EXT_COLUMNS = (
     *(f"limb_{k}" for k in range(EXT_LIMBS)),
@@ -995,21 +997,21 @@ BAD_SLOT = 10  # where a bytecode tuple holds a row's `bad` word: past every fie
 BYTECODE_PUBLIC_SLOT = 2  # an entry's first field, after the separator and the address
 
 
-def _registers(ram: str, words: Sequence[str | None], copies: bool) -> tuple[bool, bool]:
+def _registers(ram: str, words: Sequence[str | None], copies: bool, control: str) -> tuple[bool, bool]:
     """Whether a row reads rs2 and writes rd: when its circuits take v2 and give out, or when it is a doubleword store
-    reading the v2 it moves, or a doubleword load writing the cell it moves."""
-    return "v2" in words or (copies and ram == "write"), "out" in words or (copies and ram == "read")
+    reading the v2 it moves, or a doubleword load writing the cell it moves, or a jump writing its link."""
+    return "v2" in words or (copies and ram == "write"), "out" in words or (copies and ram == "read") or control == "jump"
 
 
-def _class_columns(control: bool, ram: str, words: Sequence[str | None], copies: bool) -> tuple[str, ...]:
-    reads_rs2, writes_rd = _registers(ram, words, copies)
+def _class_columns(control: str, ram: str, words: Sequence[str | None], copies: bool) -> tuple[str, ...]:
+    reads_rs2, writes_rd = _registers(ram, words, copies, control)
     # A doubleword store's new cell is its v2 column.
     ram_columns = RAM_COLUMNS[ram][:2] if copies else RAM_COLUMNS[ram]
     flag_bits = tuple(word for word in words if word and word.startswith("flag_bit_"))
     return (
         "pc", "ts", "a1", "pc4", "v1", *(("flags",) if "flags" in words else ()), *(("a2", "v2") if reads_rs2 else ()),
         *(("ad", "vd_old") if writes_rd else ()), *(("out",) if "out" in words else ()), *(("ad", "vd") if "vd" in words else ()),
-        *(CONTROL_COLUMNS if control else ()), *(("imm",) if "imm" in words else ()), *ram_columns, *flag_bits, *(("bad",) if "bad" in words else ()),
+        *CONTROL_COLUMNS[control], *(("imm",) if "imm" in words else ()), *ram_columns, *flag_bits, *(("bad",) if "bad" in words else ()),
         *(f"prev_{i}" for i in range(len(_slots(ram, reads_rs2, writes_rd or "vd" in words)))), "step",
     )  # fmt: skip
 
@@ -1024,8 +1026,8 @@ def _slots(ram: str, reads_rs2: bool, touches_rd: bool) -> tuple[int, ...]:
     return (*registers, RAM_SLOT) if RAM_COLUMNS[ram] else registers
 
 
-def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str, words: Sequence[str | None], copies: bool) -> Flushes:
-    reads_rs2, writes_rd = _registers(ram, words, copies)
+def _class_flushes(opcode: int, columns: Sequence[str], control: str, ram: str, words: Sequence[str | None], copies: bool) -> Flushes:
+    reads_rs2, writes_rd = _registers(ram, words, copies, control)
     a1, pc4, v1 = _cols(columns, "a1", "pc4", "v1")
     # A row without flags, an rs2 read, an rd write or an immediate reads their constants off the entry: zero, x0, the
     # sink, and zero.
@@ -1036,18 +1038,21 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
     if reads_rs2:
         a2_form = _col(_cols(columns, "a2")[0])
     if writes_rd:
-        # What rd receives: the circuit's result (a jump's link), or the cell a doubleword load moves.
-        ad, out = _cols(columns, "ad", "cell_0" if copies else "out")
+        # What rd receives: the circuit's result, the cell a doubleword load moves, or a jump's link, pc + 4.
+        ad, out = _cols(columns, "ad", "cell_0" if copies else "pc4" if control == "jump" else "out")
         ad_form, vd = _col(ad), _col(out)
     if "vd" in words:
         ad_form = _col(_cols(columns, "ad")[0])
     if "imm" in words:
         imm_form = _col(_cols(columns, "imm")[0])
-    if control:
-        # The next pc is pc + 4 plus the circuit's jump: the bytecode's offset when a fixed jump is taken, the sum XOR
-        # pc + 4 for an indirect one. Only an exit marks its next state, which only the final state meets.
-        dt, jump, exit = _cols(columns, *CONTROL_COLUMNS)
-        npc, fields, exit_selector = _col(pc4) + _col(jump), (_col(dt),), _col(exit)
+    if control != "none":
+        # The next pc is pc + 4 plus the circuit's jump: a branch's offset when it is taken, a jump's always, plus its
+        # sum XOR pc + 4 when it is indirect.
+        dt, jump = _cols(columns, "dt", "jump")
+        npc, fields = _col(pc4) + _col(jump), (_col(dt),)
+    if control == "jump":
+        # Only an exit marks its next state, which only the final state meets.
+        exit_selector = _col(_cols(columns, "exit")[0])
     flushes = Flushes()
     flushes.state(columns, npc, exit_selector)
     entry = (_const(_gpow(opcode)), flags_form, _col(a1), a2_form, ad_form, imm_form, _col(pc4), *fields)
@@ -1122,7 +1127,7 @@ class Table:
 
     name: str
     opcode: int  # also its index in TABLES, so g^opcode is its bytecode tag
-    control: bool
+    control: str  # how its rows send control: a key of CONTROL_COLUMNS
     ram: str  # how the class uses RAM: a key of RAM_COLUMNS
     circuit: FlockCircuit | None  # None for the class its table proves by identities
     ports: tuple[str | None, ...]  # the circuit's port words in order: a column each, or None for a hint, which is no column
@@ -1156,11 +1161,11 @@ class Table:
 
     @property
     def reads_rs2(self) -> bool:
-        return _registers(self.ram, self.words, self.copies)[0]
+        return _registers(self.ram, self.words, self.copies, self.control)[0]
 
     @property
     def writes_rd(self) -> bool:
-        return _registers(self.ram, self.words, self.copies)[1]
+        return _registers(self.ram, self.words, self.copies, self.control)[1]
 
     @property
     def reads_rd(self) -> bool:
@@ -1676,64 +1681,91 @@ class _GateList:
         return FlockCircuit(self.log_size, self.constant_column, self.bilinear)
 
 
-# The ALU class's selector bits, one-hot where they select. `b` is `v2 ^ imm`, one of the two being zero.
-ALU_SUB, ALU_WORD, ALU_LT, ALU_LTU, ALU_AND, ALU_OR, ALU_XOR, ALU_INDIRECT = range(8)
-ALU_BRANCHES = ALU_EQ, ALU_NE, ALU_BLT, ALU_BGE, ALU_BLTU, ALU_BGEU = range(8, 14)
-ALU_ALWAYS = 14
-ALU_LEGAL_FLAGS = frozenset(
-    sum(1 << bit for bit in bits)
-    for bits in [(), (ALU_SUB,), (ALU_WORD,), (ALU_SUB, ALU_WORD), (ALU_AND,), (ALU_OR,), (ALU_XOR,), (ALU_INDIRECT, ALU_ALWAYS), (ALU_ALWAYS,)]
-    + [(ALU_SUB, bit) for bit in (ALU_LT, ALU_LTU, *ALU_BRANCHES)]
-)
+# The four classes split from the ALU. Their selector bits are one-hot where they select, and `b` is `v2 ^ imm`, one of
+# the two being zero. An adder's comparison subtracts; a jump's one flag says its target is the one it computes (jalr).
+ADD_SUB, ADD_WORD, ADD_LT, ADD_LTU = range(4)
+ADD_LEGAL_FLAGS = frozenset((0, 1 << ADD_SUB, 1 << ADD_WORD, 1 << ADD_SUB | 1 << ADD_WORD, 1 << ADD_SUB | 1 << ADD_LT, 1 << ADD_SUB | 1 << ADD_LTU))
+LOGIC_AND, LOGIC_OR, LOGIC_XOR = range(3)
+LOGIC_LEGAL_FLAGS = frozenset(1 << bit for bit in (LOGIC_AND, LOGIC_OR, LOGIC_XOR))
+BRANCH_CONDITIONS = BRANCH_EQ, BRANCH_NE, BRANCH_LT, BRANCH_GE, BRANCH_LTU, BRANCH_GEU = range(6)
+BRANCH_LEGAL_FLAGS = frozenset(1 << bit for bit in BRANCH_CONDITIONS)
+JUMP_INDIRECT = 0
+JUMP_LEGAL_FLAGS = frozenset((0, 1 << JUMP_INDIRECT))
 
 
-def _alu() -> _GateList:
-    """(v1, v2, imm, flags, dt, pc4) -> (out, jump): add or subtract (and the 32-bit forms), the two comparisons, AND, OR,
-    XOR, the six branch conditions, the jumps. `v1 - b` is `v1 + not(b) + 1`, which borrows exactly when it does not carry
-    out. An indirect jump (jalr) outputs its link pc4 and offsets the successor by its sum XOR pc4, bit 0 left out, so
-    it lands on the sum with bit 0 cleared. `jump` is that offset added to `dt` when the jump is taken and zero
-    otherwise, each bit a product written at its output position."""
-    c = _GateList((64, 64, 64, 15, 64, 64), (64, 64))
-    v1, v2, imm, flags, dt, pc4 = c.inputs
+def _adder() -> _GateList:
+    """(v1, v2, imm, flags) -> out: add or subtract (and the 32-bit forms), or one of the two comparisons.
+    `v1 - b` is `v1 + not(b) + 1`, which borrows exactly when it does not carry out."""
+    c = _GateList((64, 64, 64, 4), (64,))
+    v1, v2, imm, flags = c.inputs
     b = [c.xor(x, y) for x, y in zip(v2, imm)]
-    carry = flags[ALU_SUB]
+    carry = flags[ADD_SUB]
     total: list[Wire] = []
     for x, y in zip(v1, b):
-        y = c.xor(y, flags[ALU_SUB])
+        y = c.xor(y, flags[ADD_SUB])
         xc, yc = c.xor(x, carry), c.xor(y, carry)
         total.append(c.xor(xc, y))
         carry = c.xor(c.product(xc, yc), carry)
     ltu = c.invert(carry)
     lt = c.xor(ltu, c.xor(v1[63], b[63]))
-    diff = [c.xor(x, y) for x, y in zip(v1, b)]
-    ne = reduce(c.either, diff, None)
-    eq = c.invert(ne)
-
-    # `out`: the sum (its low 32 bits sign-extended if asked) unless a selector is set. OR is AND plus XOR.
-    total = total[:32] + [c.mux(flags[ALU_WORD], total[31], bit) for bit in total[32:]]
-    none = reduce(c.xor, (flags[bit] for bit in (ALU_LT, ALU_LTU, ALU_AND, ALU_OR, ALU_XOR)), c.one)
-    and_or, or_xor = c.xor(flags[ALU_AND], flags[ALU_OR]), c.xor(flags[ALU_OR], flags[ALU_XOR])
-    out = [c.product(none, bit) for bit in total]
-    for i in range(64):
-        both = c.product(v1[i], b[i])
-        and_term = c.product(and_or, both)
-        out[i] = c.xor(out[i], c.xor(and_term, c.product(or_xor, diff[i])))
-    lt_term = c.product(flags[ALU_LT], lt)
-    out[0] = c.xor(out[0], c.xor(lt_term, c.product(flags[ALU_LTU], ltu)))
-    offset = list(dt)
-    for i in range(64):
-        moved = c.product(flags[ALU_INDIRECT], c.xor(out[i], pc4[i]))
-        out[i] = c.xor(out[i], moved)
-        if i > 0:
-            offset[i] = c.xor(offset[i], moved)
-
-    taken = flags[ALU_ALWAYS]
-    for bit, holds in zip(ALU_BRANCHES, (eq, ne, lt, c.invert(lt), ltu, c.invert(ltu))):
-        taken = c.xor(taken, c.product(flags[bit], holds))
+    # `out`: the sum (its low 32 bits sign-extended if asked) unless a comparison replaces it by its bit.
+    total = total[:32] + [c.mux(flags[ADD_WORD], total[31], bit) for bit in total[32:]]
+    keeps = c.invert(c.xor(flags[ADD_LT], flags[ADD_LTU]))
+    out = [c.product(keeps, bit) for bit in total]
+    lt_term = c.product(flags[ADD_LT], lt)
+    out[0] = c.xor(out[0], c.xor(lt_term, c.product(flags[ADD_LTU], ltu)))
     for i, wire in enumerate(out):
         c.output(0, i, wire)
-    for i, bit in enumerate(offset):
-        c.and_output(1, i, taken, bit)
+    return c
+
+
+def _logic() -> _GateList:
+    """(v1, v2, imm, flags) -> out: AND, OR or XOR, two products per bit. `p = (v1 ^ or)(b ^ or)` is `v1 & b`, or
+    `not(v1 | b)` when OR is selected, and `out = p ^ or ^ xor * (p ^ v1 ^ b)`."""
+    c = _GateList((64, 64, 64, 3), (64,))
+    v1, v2, imm, flags = c.inputs
+    either, exclusive = flags[LOGIC_OR], flags[LOGIC_XOR]
+    for i, (x, y) in enumerate(zip(v1, v2)):
+        b = c.xor(y, imm[i])
+        p = c.product(c.xor(x, either), c.xor(b, either))
+        xor_term = c.product(exclusive, c.xor(p, c.xor(x, b)))
+        c.output(0, i, c.xor(c.xor(p, either), xor_term))
+    return c
+
+
+def _branch() -> _GateList:
+    """(v1, v2, flags, dt) -> jump: `dt` when the one condition set holds, each bit a product written at its output
+    position, and zero otherwise. Only the carries of `v1 + not(v2) + 1` are made, which borrows exactly when it does
+    not carry out."""
+    c = _GateList((64, 64, 6, 64), (64,))
+    v1, v2, flags, dt = c.inputs
+    carry = c.one
+    for x, y in zip(v1, v2):
+        y = c.invert(y)
+        xc, yc = c.xor(x, carry), c.xor(y, carry)
+        carry = c.xor(c.product(xc, yc), carry)
+    ltu = c.invert(carry)
+    lt = c.xor(ltu, c.xor(v1[63], v2[63]))
+    ne = reduce(c.either, (c.xor(x, y) for x, y in zip(v1, v2)), None)
+    eq = c.invert(ne)
+    taken: Wire = None
+    for bit, holds in zip(BRANCH_CONDITIONS, (eq, ne, lt, c.invert(lt), ltu, c.invert(ltu)), strict=True):
+        taken = c.xor(taken, c.product(flags[bit], holds))
+    for i, bit in enumerate(dt):
+        c.and_output(0, i, taken, bit)
+    return c
+
+
+def _jump() -> _GateList:
+    """(v1, imm, flags, dt, pc4) -> jump: `dt`, plus for an indirect jump (jalr) the target `v1 + imm` XOR pc4, bit 0
+    left out, so that it lands on the target with bit 0 cleared. A jump's link is pc4 itself, which its table writes."""
+    c = _GateList((64, 64, 1, 64, 64), (64,))
+    v1, imm, flags, dt, pc4 = c.inputs
+    target = _add(c, v1, imm)
+    c.output(0, 0, dt[0])
+    for i in range(1, 64):
+        moved = c.product(flags[JUMP_INDIRECT], c.xor(target[i], pc4[i]))
+        c.output(0, i, c.xor(dt[i], moved))
     return c
 
 
@@ -2105,27 +2137,31 @@ HASH_PORTS = ("v2", "flags", *(f"cell_{k}" for k in (*range(4), *range(8, 16))),
 HASH_FINAL = 2**32 - 1
 
 TABLES = (
-    Table("alu", 0, True, "none", _alu().circuit(), ("v1", "v2", "imm", "flags", "dt", "pc4", "out", "jump"), ALU_LEGAL_FLAGS),
+    Table("add", 0, "none", "none", _adder().circuit(), ("v1", "v2", "imm", "flags", "out"), ADD_LEGAL_FLAGS),
+    Table("logic", 1, "none", "none", _logic().circuit(), ("v1", "v2", "imm", "flags", "out"), LOGIC_LEGAL_FLAGS),
+    # A branch writes no rd and has no immediate; a jump reads no rs2, and writes its link, pc + 4, to rd.
+    Table("branch", 2, "branch", "none", _branch().circuit(), ("v1", "v2", "flags", "dt", "jump"), BRANCH_LEGAL_FLAGS),
+    Table("jump", 3, "jump", "none", _jump().circuit(), ("v1", "imm", "flags", "dt", "pc4", "jump"), JUMP_LEGAL_FLAGS),
     # A load's flags are log2 of its width in bytes, then whether it sign-extends; a store's, log2 of its width. A
     # doubleword is LD's or SD's, which have no flags: their circuit is the address alone, the word moved a column.
-    Table("load", 1, False, "read", _load().circuit(), ("v1", "imm", "flags", "cell_0", "address", "out"), frozenset((0, 1, 2, 4, 5, 6))),
-    Table("store", 2, False, "write", _store().circuit(), ("v1", "v2", "imm", "flags", "cell_0", "address", "cell_new_0"), frozenset(range(3))),
-    Table("ld", 3, False, "read", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),
-    Table("sd", 4, False, "write", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),
+    Table("load", 4, "none", "read", _load().circuit(), ("v1", "imm", "flags", "cell_0", "address", "out"), frozenset((0, 1, 2, 4, 5, 6))),
+    Table("store", 5, "none", "write", _store().circuit(), ("v1", "v2", "imm", "flags", "cell_0", "address", "cell_new_0"), frozenset(range(3))),
+    Table("ld", 6, "none", "read", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),
+    Table("sd", 7, "none", "write", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),
     # A shift's flags: right, arithmetic (with right), 32-bit. A product's: 32-bit; its high word's: which operands are signed.
-    Table("shift", 5, False, "none", _shift().circuit(), ("v1", "v2", "imm", "flags", "out"), frozenset((0, 1, 3, 4, 5, 7))),
-    Table("mul", 6, False, "none", _mul().circuit(), ("v1", "v2", "flags", "out"), frozenset((0, 1))),
-    Table("mulh", 7, False, "none", _mulh().circuit(), ("v1", "v2", "flags", "out"), frozenset((0, 1, 3))),
+    Table("shift", 8, "none", "none", _shift().circuit(), ("v1", "v2", "imm", "flags", "out"), frozenset((0, 1, 3, 4, 5, 7))),
+    Table("mul", 9, "none", "none", _mul().circuit(), ("v1", "v2", "flags", "out"), frozenset((0, 1))),
+    Table("mulh", 10, "none", "none", _mulh().circuit(), ("v1", "v2", "flags", "out"), frozenset((0, 1, 3))),
     # A division's flags: signed, remainder, 32-bit. Its two hints are in its witness and in no column.
-    Table("div", 8, False, "none", _div().circuit(), ("v1", "v2", "flags", None, None, "out", "bad"), frozenset(range(8))),
+    Table("div", 11, "none", "none", _div().circuit(), ("v1", "v2", "flags", None, None, "out", "bad"), frozenset(range(8))),
     # The BLAKE2s precompile: the counter is v2 and the flags are the finalization word, all ones on the last block.
-    Table("hash", 9, False, "block", _blake2s().circuit(), HASH_PORTS, frozenset((0, HASH_FINAL))),
+    Table("hash", 12, "none", "block", _blake2s().circuit(), HASH_PORTS, frozenset((0, HASH_FINAL))),
     # The extension-field precompile, with no class circuit: a at v1, b at v2 and c at the address in rd. Its identities
     # say the product; its clock circuit splits the flags (accumulate, base field) and computes the limbs' addresses.
     Table(
         "ext",
-        10,
-        False,
+        13,
+        "none",
         "limbs",
         None,
         (),
@@ -2172,9 +2208,9 @@ def register_words(table_log_heights: Sequence[int]) -> list[list[int]]:
 def check_bytecode(bytecode: Sequence[K]) -> None:
     """The proof system is sound for any decoded table, so what makes one RISC-V is checked here: an entry some table
     can read names two registers to read and a cell other than x0 to write, its successor is pc + 4, its flags are
-    ones its class defines, and only a branch or a jal has a jump offset, a jal linking pc + 4 as a constant added to
-    x0. An entry with no tag can be read by no table: a run reaching one has no proof. It has one form, the illegal
-    entry's, and the halt slot is one."""
+    ones its class defines, only a branch, a jal or the exit has a jump offset, and a jal reads x0 and has no immediate,
+    its link being its table's pc + 4. An entry with no tag can be read by no table: a run reaching one has no proof.
+    It has one form, the illegal entry's, and the halt slot is one."""
     size = len(bytecode) // 2**BUS_BITS
     fields = [[int(word) for word in bytecode[slot * size : (slot + 1) * size]] for slot in range(2**BUS_BITS)]
     tag, flags, a1, a2, ad, imm, pc4, dt = fields[BYTECODE_PUBLIC_SLOT:BAD_SLOT]
@@ -2198,12 +2234,12 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
         if exit[z]:
             halt_pc = TEXT_BASE + 4 * (size - 1)
             require(
-                table.control and flags[z] == 1 << ALU_ALWAYS and a1[z] == a2[z] == imm[z] == 0 and ad[z] == SINK and dt[z] == (halt_pc ^ pc4[z]),
+                table.control == "jump" and flags[z] == 0 and a1[z] == a2[z] == imm[z] == 0 and ad[z] == SINK and dt[z] == (halt_pc ^ pc4[z]),
                 "an exit entry is not ECALL",
             )
-        elif table.control and flags[z] == 1 << ALU_ALWAYS:
-            require(a1[z] == a2[z] == 0 and imm[z] == pc4[z], "a bytecode entry has invalid control flow")
-        elif not (table.control and any(flags[z] & (1 << bit) for bit in ALU_BRANCHES)):
+        elif table.control == "jump" and flags[z] == 0:
+            require(a1[z] == imm[z] == 0, "a bytecode entry has invalid control flow")
+        elif table.control != "branch":
             require(dt[z] == 0, "a bytecode entry has invalid control flow")
         # A field the class's table holds at a constant has to be that constant.
         require(table.reads_rs2 or a2[z] == 0, "a bytecode entry reads an rs2 its class does not")
@@ -2481,7 +2517,7 @@ def verify_core(
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
     require(entry_pc % 4 == 0 and TEXT_BASE <= entry_pc < halt_pc, "the entry pc is not an instruction of the text")
-    preimage = b"leanvm-rv64im-11" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-12" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 

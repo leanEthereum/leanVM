@@ -2,7 +2,7 @@
 
 use super::Clock;
 use crate::cpu::{Payload, RowRef};
-use crate::rv::{Alu, Div, Ext, Fetched};
+use crate::rv::{Class, Div, Ext, Fetched, InstructionClass, Jump};
 
 /// A circuit port word represented by a virtual table column or a prover hint.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,15 +77,25 @@ impl Word {
             Self::Out => row.out,
             Self::Dt => at.dt,
             Self::Pc4 => at.pc4,
-            Self::Jump => Alu {
-                flags: entry.flags,
-                v1: row.v1,
-                v2: row.v2,
-                imm: entry.imm,
-                dt: at.dt,
-                pc4: at.pc4,
-            }
-            .jump(row.taken),
+            // A branch's offset when it is taken; a jump's, which is always taken.
+            Self::Jump => match entry.class {
+                Class::Branch => {
+                    if row.taken {
+                        at.dt
+                    } else {
+                        0
+                    }
+                }
+                Class::Jump => Jump {
+                    flags: entry.flags,
+                    v1: row.v1,
+                    imm: entry.imm,
+                    dt: at.dt,
+                    pc4: at.pc4,
+                }
+                .eval(),
+                class => panic!("{class:?} has no jump"),
+            },
             Self::Address => row.ram.address,
             Self::Cell(k) => r.cell(k as usize),
             Self::CellNew(k) => r.cell_new(k as usize),
@@ -146,7 +156,7 @@ mod tests {
 
     fn entry() -> Entry {
         // A decoded instruction supplies metadata independently of the row's values.
-        Entry::new(Class::Alu.nop().expect("the ALU has a no-op"), Region::TEXT.base())
+        Entry::new(Class::Add.nop().expect("ADD has a no-op"), Region::TEXT.base())
     }
 
     fn at(entry: &Entry, dt: u64) -> Fetched<'_> {
@@ -169,11 +179,14 @@ mod tests {
             for (port, expected) in ports.into_iter().zip(values) {
                 prop_assert_eq!(port.value(RowRef::plain(&row), at(&entry, dt), &[]), expected);
             }
-            // The offset and the link are the bytecode's, and a fixed jump adds that offset only when the row takes it.
-            entry.flags = Alu::ALWAYS;
+            // The offset and the link are the bytecode's: a branch adds that offset only when the row takes it, and a
+            // fixed jump always.
+            entry.class = Class::Branch;
             prop_assert_eq!(Word::Dt.value(RowRef::plain(&row), at(&entry, dt), &[]), dt);
             prop_assert_eq!(Word::Pc4.value(RowRef::plain(&row), at(&entry, dt), &[]), Region::TEXT.base() + 4);
             prop_assert_eq!(Word::Jump.value(RowRef::plain(&row), at(&entry, dt), &[]), if taken { dt } else { 0 });
+            (entry.class, entry.flags) = (Class::Jump, 0);
+            prop_assert_eq!(Word::Jump.value(RowRef::plain(&row), at(&entry, dt), &[]), dt);
             prop_assert_eq!(Word::Address.value(RowRef::plain(&row), at(&entry, 0), &[]), 16);
             prop_assert_eq!(Word::Bad.value(RowRef::plain(&row), at(&entry, 0), &[]), 0);
         }

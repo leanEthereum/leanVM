@@ -29,7 +29,7 @@ use std::ops::Range;
 
 use super::entry::Class;
 use super::register::Reg;
-use super::semantics::{Alu, Div, Ext, Hash, Load, Mul, Mulh, Shift};
+use super::semantics::{Add, Branch, Div, Ext, Hash, Jump, Load, Logic, Mul, Mulh, Shift};
 
 /// Sign-extend the low bits of a 32-bit value to a 64-bit word.
 const fn sign_extend(value: u32, bits: u32) -> u64 {
@@ -682,15 +682,15 @@ impl RegOp {
     /// The class running this operation, and its flag word.
     const fn function(self) -> (Class, u64) {
         match self {
-            Self::Add => (Class::Alu, 0),
-            Self::Sub => (Class::Alu, Alu::SUB),
-            Self::Slt => (Class::Alu, Alu::SUB | Alu::SEL_LT),
-            Self::Sltu => (Class::Alu, Alu::SUB | Alu::SEL_LTU),
-            Self::Xor => (Class::Alu, Alu::SEL_XOR),
-            Self::Or => (Class::Alu, Alu::SEL_OR),
-            Self::And => (Class::Alu, Alu::SEL_AND),
-            Self::Addw => (Class::Alu, Alu::WORD),
-            Self::Subw => (Class::Alu, Alu::SUB | Alu::WORD),
+            Self::Add => (Class::Add, 0),
+            Self::Sub => (Class::Add, Add::SUB),
+            Self::Slt => (Class::Add, Add::SUB | Add::SEL_LT),
+            Self::Sltu => (Class::Add, Add::SUB | Add::SEL_LTU),
+            Self::Xor => (Class::Logic, Logic::XOR),
+            Self::Or => (Class::Logic, Logic::OR),
+            Self::And => (Class::Logic, Logic::AND),
+            Self::Addw => (Class::Add, Add::WORD),
+            Self::Subw => (Class::Add, Add::SUB | Add::WORD),
             Self::Sll => (Class::Shift, 0),
             Self::Srl => (Class::Shift, Shift::RIGHT),
             Self::Sra => (Class::Shift, Shift::RIGHT | Shift::ARITH),
@@ -721,16 +721,16 @@ impl ImmOp {
         Instruction::i(opcode, funct3, rd, rs1, imm)
     }
 
-    /// The ALU's flag word.
-    const fn flags(self) -> u64 {
+    /// The class running this operation, and its flag word.
+    const fn function(self) -> (Class, u64) {
         match self {
-            Self::Addi => 0,
-            Self::Slti => Alu::SUB | Alu::SEL_LT,
-            Self::Sltiu => Alu::SUB | Alu::SEL_LTU,
-            Self::Xori => Alu::SEL_XOR,
-            Self::Ori => Alu::SEL_OR,
-            Self::Andi => Alu::SEL_AND,
-            Self::Addiw => Alu::WORD,
+            Self::Addi => (Class::Add, 0),
+            Self::Slti => (Class::Add, Add::SUB | Add::SEL_LT),
+            Self::Sltiu => (Class::Add, Add::SUB | Add::SEL_LTU),
+            Self::Xori => (Class::Logic, Logic::XOR),
+            Self::Ori => (Class::Logic, Logic::OR),
+            Self::Andi => (Class::Logic, Logic::AND),
+            Self::Addiw => (Class::Add, Add::WORD),
         }
     }
 }
@@ -848,15 +848,15 @@ impl BranchOp {
         Instruction::b(self.fields(), rs1, rs2, offset)
     }
 
-    /// The ALU's condition flag.
+    /// The branch's condition flag.
     const fn condition(self) -> u64 {
         match self {
-            Self::Beq => Alu::BR_EQ,
-            Self::Bne => Alu::BR_NE,
-            Self::Blt => Alu::BR_LT,
-            Self::Bge => Alu::BR_GE,
-            Self::Bltu => Alu::BR_LTU,
-            Self::Bgeu => Alu::BR_GEU,
+            Self::Beq => Branch::EQ,
+            Self::Bne => Branch::NE,
+            Self::Blt => Branch::LT,
+            Self::Bge => Branch::GE,
+            Self::Bltu => Branch::LTU,
+            Self::Bgeu => Branch::GEU,
         }
     }
 }
@@ -940,14 +940,14 @@ impl Op {
     pub const fn function(self) -> (Class, u64) {
         match self {
             Self::Reg { op, .. } => op.function(),
-            Self::Imm { op, .. } => (Class::Alu, op.flags()),
+            Self::Imm { op, .. } => op.function(),
             Self::Shift { op, .. } => (Class::Shift, op.flags()),
             Self::Load { op, .. } => op.function(),
             Self::Store { op, .. } => op.function(),
-            Self::Branch { op, .. } => (Class::Alu, Alu::SUB | op.condition()),
-            Self::Lui { .. } | Self::Auipc { .. } | Self::Fence => (Class::Alu, 0),
-            Self::Jal { .. } | Self::Ecall => (Class::Alu, Alu::ALWAYS),
-            Self::Jalr { .. } => (Class::Alu, Alu::INDIRECT | Alu::ALWAYS),
+            Self::Branch { op, .. } => (Class::Branch, op.condition()),
+            Self::Lui { .. } | Self::Auipc { .. } | Self::Fence => (Class::Add, 0),
+            Self::Jal { .. } | Self::Ecall => (Class::Jump, 0),
+            Self::Jalr { .. } => (Class::Jump, Jump::INDIRECT),
             Self::Blake2s { last, .. } => (Class::Hash, if last { Hash::FINAL } else { 0 }),
             Self::Ext { op, .. } => (Class::Ext, op.flags()),
         }

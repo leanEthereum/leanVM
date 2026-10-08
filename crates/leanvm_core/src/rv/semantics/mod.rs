@@ -22,7 +22,7 @@ mod memory;
 mod multiply;
 mod shift;
 
-pub use alu::Alu;
+pub use alu::{Add, Branch, Jump, Logic};
 pub use divide::Div;
 pub use ext::{Ext, Limb};
 pub use hash::{BlockAccess, Hash, blake2s_witness};
@@ -109,7 +109,7 @@ pub(super) mod tests {
             let w = |x: u32| x as i32 as i64 as u64;
             let (a, b) = (v1 as u32, v2 as u32);
             let shift = |flags| Shift { flags, v1, v2, imm: 0 }.eval();
-            prop_assert_eq!(Alu { flags: Alu::WORD, v1, v2, imm: 0, dt: 0, pc4: 0 }.eval().0, w(a.wrapping_add(b)));
+            prop_assert_eq!(Add { flags: Add::WORD, v1, v2, imm: 0 }.eval(), w(a.wrapping_add(b)));
             prop_assert_eq!(Mul { flags: Mul::WORD, v1, v2 }.eval(), w(a.wrapping_mul(b)));
             prop_assert_eq!(shift(Shift::WORD), w(a << (b & 31)));
             prop_assert_eq!(shift(Shift::WORD | Shift::RIGHT), w(a >> (b & 31)));
