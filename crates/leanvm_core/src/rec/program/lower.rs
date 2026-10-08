@@ -307,6 +307,13 @@ impl Lower<'_> {
     }
 
     fn mul_add(&mut self, out: u32, a: u32, b: u32, d: Option<u32>) {
+        // A sum `1 * b + d` is as well `1 * d + b`: accumulate into the term that is not used again, which needs no copy.
+        let kept = |l: &Self, e: u32| l.live(e) || matches!(l.g.es[e as usize].0, Home::Pinned(_));
+        let sum = self.g.es[a as usize].0 == Home::Pinned(0);
+        let (b, d) = match d {
+            Some(d) if sum && b != d && kept(self, d) && !kept(self, b) => (d, Some(b)),
+            _ => (b, d),
+        };
         let mut keep = self.pins(&[Some(a), Some(b), d]);
         let fa = self.register(a, &keep);
         keep.push(fa);

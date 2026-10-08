@@ -177,28 +177,38 @@ impl<Q, E: Copy> LevelCtx<Q, E> {
     fn basis_at<V: OpeningVerifier<E = E, Query = Q>>(&self, v: &mut V, point: &[E]) -> E {
         assert_eq!(point.len(), self.log_msg_cols, "a point of the level's cube");
         let sks = eval_sk_at_vks(self.log_msg_cols);
-        // `1 + p (1 + s / sigma) = (1 + p) + (p / sigma) s`.
-        let lin: Vec<(E, E)> = (point.iter().zip(&sks))
+        // `1 + p (1 + s / sigma) = (1 + p) (1 + d s)` with `d = p / (sigma (1 + p)) = (1 + 1 / (1 + p)) / sigma`: the
+        // factors `1 + p` are the same for every query, so they multiply the sum once, and a query's product takes two
+        // products a coordinate.
+        //
+        // A coordinate equal to one has no `d`, and the value is then wrong: a challenge is one with negligible probability.
+        let mut scale = v.one();
+        let ds: Vec<E> = (point.iter().zip(&sks))
             .map(|(&p, &sigma)| {
-                let inv = if sigma == F64(0) { F64(0) } else { sigma.inv() };
-                (v.add_const(p, F192::ONE), v.mul_const(p, F192::from(inv)))
+                let sigma_inv = F192::from(if sigma == F64(0) { F64(0) } else { sigma.inv() });
+                let a = v.add_const(p, F192::ONE);
+                scale = v.mul(scale, a);
+                let a_inv = v.inv(a);
+                let d = v.constant(sigma_inv);
+                v.mul_const_add(a_inv, sigma_inv, d)
             })
             .collect();
         let zero = v.zero();
-        (self.queries.iter().zip(&self.weights)).fold(zero, |acc, (query, &w)| {
+        let sum = (self.queries.iter().zip(&self.weights)).fold(zero, |acc, (query, &w)| {
             let mut s = v.query_point(query);
             let mut product = v.one();
-            for (k, &(a, c)) in lin.iter().enumerate() {
+            for (k, &d) in ds.iter().enumerate() {
                 if k > 0 {
                     // The subspace polynomials' recurrence `s_k = s_{k-1}^2 + s_{k-1}(v_{k-1}) s_{k-1}`.
                     let u = v.mul_const(s, F192::from(sks[k - 1]));
                     s = v.mul_add(s, s, u);
                 }
-                let f = v.mul_add(c, s, a);
-                product = v.mul(product, f);
+                let t = v.mul(product, d);
+                product = v.mul_add(t, s, product);
             }
             v.mul_add(w, product, acc)
-        })
+        });
+        v.mul(scale, sum)
     }
 }
 

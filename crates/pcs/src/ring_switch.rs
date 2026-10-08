@@ -247,6 +247,9 @@ impl<E: Copy> RingMap<E> {
         Self { coefficients }
     }
 
+    /// How many slices [`Self::target`] sums before it multiplies by a power of its point.
+    const GROUP: usize = 8;
+
     /// `sum_i x^i Phi(s_i)` for the family's slices `s`: `sum_k (C_k^(2^-k) S(x^(2^-k)))^(2^k)` with `S(u) = sum_i s_i u^i`.
     ///
     /// # Panics
@@ -258,9 +261,18 @@ impl<E: Copy> RingMap<E> {
             .map(|k| {
                 // `x^(2^-k) = x^(2^(64 - k))` in `K`.
                 let xk = (0..(F64::DEGREE - k) % F64::DEGREE).fold(F64(2), |x, _| x.square());
-                let (&last, rest) = slices.split_last().expect("64 slices");
-                let s = (rest.iter().rev()).fold(last, |acc, &sj| a.mul_const_add(acc, F192::from(xk), sj));
-                a.mul(self.coefficients[k], s)
+                // Horner over groups of slices, `S = sum_g u^(G g) (s_(G g) + s_(G g + 1) u + ...)`: a group's sum
+                // starts on its first slice and every other term is added to it, the groups above included.
+                let powers: Vec<F192> = (0..=Self::GROUP)
+                    .scan(F64(1), |p, _| Some(std::mem::replace(p, *p * xk)))
+                    .map(F192::from)
+                    .collect();
+                let s = (slices.chunks(Self::GROUP).rev()).fold(None, |above: Option<E>, group| {
+                    let low = (group.iter().zip(&powers).skip(1))
+                        .fold(group[0], |acc, (&sj, &p)| a.mul_const_add(sj, p, acc));
+                    Some(above.map_or(low, |above| a.mul_const_add(above, powers[group.len()], low)))
+                });
+                a.mul(self.coefficients[k], s.expect("64 slices"))
             })
             .collect();
         Self::close(a, &terms)
