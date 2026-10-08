@@ -19,10 +19,10 @@
 use super::lanes::{Lane, Lanes, Polynomial, Xor};
 use crate::PAR_THRESHOLD;
 use parallel::SendPtr;
-use primitives::F192;
 use primitives::PrimeCharacteristicRing;
 use primitives::multilinear::SplitEq;
 use primitives::stream::{Stream, prefetch};
+use primitives::{F192, F192Unreduced};
 use std::mem::MaybeUninit;
 
 /// Elements of the level one task of a pass reads.
@@ -44,7 +44,7 @@ const AHEAD: usize = 16;
 pub(super) const EQ_LOW_VARS: usize = 12;
 
 /// The sums of a block product's Karatsuba terms, in `Y2` then `Y1`.
-type Sums = [[F192; 6]; 6];
+type Sums = [[F192Unreduced; 6]; 6];
 
 /// A level of the product tree, as the rows its sumcheck folds.
 pub(super) struct Layer {
@@ -165,7 +165,7 @@ impl Grid {
     /// The sum of `task`'s sums over the tasks covering `len` elements, in parallel when the level is large.
     fn sum(len: usize, task: impl Fn(usize) -> Sums + Sync) -> Self {
         let tasks = len.div_ceil(TASK);
-        let zero = [[F192::ZERO; 6]; 6];
+        let zero = [[F192Unreduced::ZERO; 6]; 6];
         let sums = if len / 4 >= PAR_THRESHOLD {
             parallel::map_reduce(tasks, || zero, task, Xor::xor)
         } else {
@@ -174,7 +174,7 @@ impl Grid {
 
         // The terms combine in `Y1`, then in `Y2`.
         let in_y1 = sums.map(<[F192; 3]>::combine);
-        Self(<[[F192; 3]; 3]>::combine(in_y1))
+        Self(<[[F192; 3]; 3]>::combine(in_y1).map(|row| row.map(F192Unreduced::reduce)))
     }
 
     /// The first round's message, its rows weighed by `eq(p, Y2)`.
@@ -205,11 +205,11 @@ impl Grid {
 /// The running sums of block products over a range of blocks, `L::WIDTH` blocks at a time.
 ///
 /// It sums each product's Karatsuba terms, which combine into its coefficients only once, after the sum.
-struct BlockSums<L: Lanes>([[L; 6]; 6]);
+struct BlockSums<L: Lanes>([[L::Wide; 6]; 6]);
 
 impl<L: Lanes> BlockSums<L> {
     fn new() -> Self {
-        Self(std::array::from_fn(|_| std::array::from_fn(|_| L::ZERO)))
+        Self([[L::zero_wide(); 6]; 6])
     }
 
     /// Adds the blocks of `rows`, the first being block `first` of the layer.
@@ -284,7 +284,7 @@ impl<L: Lanes> BlockSums<L> {
         // The terms' operand pairs come first, so no product waits in memory for its sum.
         for (sums, (u, w)) in self.0.iter_mut().zip(left.terms(right, |u, w| (u, w))) {
             for (sum, (x, y)) in sums.iter_mut().zip(u.terms(w, |x, y| (x, y))) {
-                *sum = sum.xor(x * y);
+                *sum = sum.xor(x.mul_wide(y));
             }
         }
     }
@@ -296,7 +296,7 @@ impl<L: Lanes> BlockSums<L> {
     }
 
     fn finish(self) -> Sums {
-        self.0.map(|row| row.map(L::sum_lanes))
+        self.0.map(|row| row.map(L::sum_wide))
     }
 }
 
@@ -501,7 +501,10 @@ mod tests {
                 sums.finish()
             }
         };
-        assert_eq!(sums(true), sums(false));
+        assert_eq!(
+            sums(true).map(|r| r.map(F192Unreduced::reduce)),
+            sums(false).map(|r| r.map(F192Unreduced::reduce))
+        );
 
         let r = [
             F192::new([F64::new(1), F64::new(2), F64::new(3)]),

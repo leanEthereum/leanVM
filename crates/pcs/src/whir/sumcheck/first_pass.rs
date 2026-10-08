@@ -19,7 +19,9 @@ use super::{
 use parallel::SendPtr;
 use primitives::bit_fold;
 use primitives::stream::Stream;
-use primitives::{ExtensionField, F64, F192, F192MixedAccumulator, Field, PackedFieldExtension, PackedValue};
+use primitives::{
+    ExtensionField, F64, F192, F192MixedAccumulator, F192PackedUnreduced, Field, PackedFieldExtension, PackedValue,
+};
 use std::ops::Range;
 
 /// Lanes per group, and points of `{0, 1, inf}^R`, `R` being [`PRECOMPUTED_ROUNDS`].
@@ -329,10 +331,10 @@ impl LaneWeight {
 
 /// Sums of weighted values for one window, using the upstream coefficient layout.
 #[derive(Clone, Copy)]
-pub(super) struct WeightFold([WeightPacking; INITIAL_BASIS_CHUNK / WEIGHT_LANES]);
+pub(super) struct WeightFold([F192PackedUnreduced; INITIAL_BASIS_CHUNK / WEIGHT_LANES]);
 impl Default for WeightFold {
     fn default() -> Self {
-        Self([WeightPacking::ZERO; INITIAL_BASIS_CHUNK / WEIGHT_LANES])
+        Self([F192PackedUnreduced::default(); INITIAL_BASIS_CHUNK / WEIGHT_LANES])
     }
 }
 impl WeightFold {
@@ -344,7 +346,7 @@ impl WeightFold {
             let values = <WeightPacking as PackedFieldExtension<F64, F192>>::from_ext_fn(|lane| {
                 values.get(lane).copied().unwrap_or(F192::ZERO)
             });
-            self.0[group] += weight * values;
+            self.0[group] += weight.mul_unreduced(values);
         }
     }
     /// Add one lane of coefficient-field values through upstream mixed products.
@@ -353,13 +355,14 @@ impl WeightFold {
         let weight = WeightPacking::from(e.0);
         for (group, values) in f.chunks(WEIGHT_LANES).enumerate() {
             let values = CoefficientPacking::from_fn(|lane| values.get(lane).copied().unwrap_or(F64::ZERO));
-            self.0[group] += weight * values;
+            self.0[group] += weight.mul_base_unreduced(values);
         }
     }
     /// Write every accumulated value, including a short final group.
     pub(super) fn write(&self, dst: &mut [F192]) {
         assert!(dst.len() <= INITIAL_BASIS_CHUNK);
         for (&values, out) in self.0.iter().zip(dst.chunks_mut(WEIGHT_LANES)) {
+            let values = values.reduce();
             if out.len() == WEIGHT_LANES {
                 <WeightPacking as PackedFieldExtension<F64, F192>>::to_ext_slice(&values, out);
             } else {

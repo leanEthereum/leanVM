@@ -14,9 +14,33 @@ use super::claims::{DensePoly, NodeClaims};
 use crate::rec::circuit::{Limbs, digest_limbs};
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, Transmitter};
-use primitives::{F64, F192, mul_base8, mul4};
+use primitives::multilinear::sum_unreduced;
+use primitives::{
+    ExtensionField, F64, F192, F192MixedAccumulator, F192PackedUnreduced, F192Unreduced, Field, PackedFieldExtension,
+    PackedValue, mul_base8,
+};
+
+/// Extension lanes selected by the upstream coefficient field.
+type Packing = <F192 as ExtensionField<F64>>::ExtensionPacking;
+/// Pairs covered by one packed product.
+const LANES: usize = <<F64 as Field>::Packing as PackedValue>::WIDTH;
 use thiserror::Error;
 use tracing::info_span;
+
+/// Broadcast one extension element into the upstream coefficient packing.
+fn broadcast(value: F192) -> Packing {
+    Packing::from(value)
+}
+
+/// Load each lane through the extension over the coefficient field.
+fn pack(values: impl Fn(usize) -> F192) -> Packing {
+    <Packing as PackedFieldExtension<F64, F192>>::from_ext_fn(values)
+}
+
+/// Write every upstream lane to its scalar output slot.
+fn store(values: Packing, out: &mut [F192]) {
+    <Packing as PackedFieldExtension<F64, F192>>::to_ext_slice(&values, out);
+}
 
 mod dense;
 mod matrix;
@@ -123,32 +147,37 @@ impl Entry for F192 {
     }
 
     fn fold_into(t: &[Self], r: F192, out: &mut [F192]) {
-        let (t8, t_rest) = t.as_chunks::<8>();
-        let (out4, out_rest) = out.as_chunks_mut::<4>();
-        for (o, x) in out4.iter_mut().zip(t8) {
-            let d = mul4([r; 4], [x[0] + x[1], x[2] + x[3], x[4] + x[5], x[6] + x[7]]);
-            *o = [x[0] + d[0], x[2] + d[1], x[4] + d[2], x[6] + d[3]];
+        let weight = broadcast(r);
+        let done = out.len() / LANES * LANES;
+        for start in (0..done).step_by(LANES) {
+            let lo = pack(|lane| t[2 * (start + lane)]);
+            let hi = pack(|lane| t[2 * (start + lane) + 1]);
+            let folded = lo + weight * (lo + hi);
+            store(folded, &mut out[start..start + LANES]);
         }
-        for (o, x) in out_rest.iter_mut().zip(t_rest.as_chunks::<2>().0) {
-            *o = Self::fold(x[0], x[1], r);
+        for (i, o) in out.iter_mut().enumerate().skip(done) {
+            *o = Self::fold(t[2 * i], t[2 * i + 1], r);
         }
     }
 
     fn dot(w: &[F192], t: &[Self]) -> Msg {
-        let (w4, w_rest) = w.as_chunks::<4>();
-        let (t4, t_rest) = t.as_chunks::<4>();
-        let mut m = ZERO;
-        for (a, b) in w4.iter().zip(t4) {
-            let p = mul4(
-                [a[0], a[0] + a[1], a[2], a[2] + a[3]],
-                [b[0], b[0] + b[1], b[2], b[2] + b[3]],
-            );
-            m = xor(m, [p[0] + p[2], p[1] + p[3]]);
+        let mut sum = [F192PackedUnreduced::default(); 2];
+        let pairs = w.len().min(t.len()) / 2;
+        let done = pairs / LANES * LANES;
+        for start in (0..done).step_by(LANES) {
+            let a = pack(|lane| w[2 * (start + lane)]);
+            let b = pack(|lane| w[2 * (start + lane) + 1]);
+            let x = pack(|lane| t[2 * (start + lane)]);
+            let y = pack(|lane| t[2 * (start + lane) + 1]);
+            sum[0] += a.mul_unreduced(x);
+            sum[1] += (a + b).mul_unreduced(x + y);
         }
-        for (a, b) in w_rest.as_chunks::<2>().0.iter().zip(t_rest.as_chunks::<2>().0) {
-            m = xor(m, [(a[0] * b[0]), ((a[0] + a[1]) * (b[0] + b[1]))]);
+        let mut sum = sum.map(sum_unreduced);
+        for i in done..pairs {
+            sum[0] += w[2 * i].mul_unreduced(t[2 * i]);
+            sum[1] += (w[2 * i] + w[2 * i + 1]).mul_unreduced(t[2 * i] + t[2 * i + 1]);
         }
-        m
+        sum.map(F192Unreduced::reduce)
     }
 }
 
@@ -170,10 +199,30 @@ impl Entry for F64 {
     }
 
     fn dot(w: &[F192], t: &[Self]) -> Msg {
-        let pairs = w.as_chunks::<2>().0.iter().zip(t.as_chunks::<2>().0);
-        pairs.fold(ZERO, |m, (a, b)| {
-            xor(m, [(a[0] * b[0]), ((a[0] + a[1]) * (b[0] + b[1]))])
-        })
+        let mut sum = [F192MixedAccumulator::new(); 2];
+        let pairs = w.len().min(t.len()) / 2;
+        for start in (0..pairs).step_by(8) {
+            let n = (pairs - start).min(8);
+            let a = std::array::from_fn::<_, 8, _>(|i| if i < n { w[2 * (start + i)] } else { F192::ZERO });
+            let b = std::array::from_fn::<_, 8, _>(|i| {
+                if i < n {
+                    w[2 * (start + i)] + w[2 * (start + i) + 1]
+                } else {
+                    F192::ZERO
+                }
+            });
+            let x = std::array::from_fn::<_, 8, _>(|i| if i < n { t[2 * (start + i)] } else { Self::ZERO });
+            let y = std::array::from_fn::<_, 8, _>(|i| {
+                if i < n {
+                    t[2 * (start + i)] + t[2 * (start + i) + 1]
+                } else {
+                    Self::ZERO
+                }
+            });
+            sum[0].add_dot_product(&a, &x);
+            sum[1].add_dot_product(&b, &y);
+        }
+        sum.map(F192MixedAccumulator::finish)
     }
 }
 

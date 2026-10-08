@@ -29,9 +29,9 @@ transmute_undefined_repr = "allow"
 cognitive_complexity = "allow"
 
 [workspace.dependencies]
-p3-binary-field = { git = "https://github.com/Plonky3/Plonky3", rev = "c04a43c666bed4c0a6c1fb48e6bc0e04ce96ecd6", features = ["wide-poly"] }
-p3-field = { git = "https://github.com/Plonky3/Plonky3", rev = "c04a43c666bed4c0a6c1fb48e6bc0e04ce96ecd6" }
-p3-binary-dft = { git = "https://github.com/Plonky3/Plonky3", rev = "c04a43c666bed4c0a6c1fb48e6bc0e04ce96ecd6" }
+p3-binary-field = { git = "https://github.com/Plonky3/Plonky3", rev = "ffb9078399eb689e45850443081df4214a99b141", features = ["wide-poly"] }
+p3-field = { git = "https://github.com/Plonky3/Plonky3", rev = "ffb9078399eb689e45850443081df4214a99b141" }
+p3-binary-dft = { git = "https://github.com/Plonky3/Plonky3", rev = "ffb9078399eb689e45850443081df4214a99b141" }
 bench = { path = "crates/bench" }
 leanvm = { path = "crates/leanvm" }
 primitives = { path = "crates/primitives" }

@@ -1,16 +1,28 @@
 //! Field elements in vector lanes, so that one kernel serves every target.
 
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use primitives::multilinear::{store_packed, sum_packed};
-use primitives::{F192, PrimeCharacteristicRing};
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+))]
+use primitives::F192PackedUnreduced;
+use primitives::{F192, F192Unreduced, PrimeCharacteristicRing};
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+))]
 use primitives::{F192_LANES, F192Packed, PackedFieldExtension};
 use std::mem::MaybeUninit;
 
 /// The widest Plonky3 extension packing used by this kernel.
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+))]
 pub(super) type Lane = F192Packed;
-#[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+#[cfg(not(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+)))]
 pub(super) type Lane = F192;
 
 /// A value added by XOR: an element or an array of elements.
@@ -110,11 +122,18 @@ impl<T: Xor> Polynomial for [T; 3] {
 
 /// `WIDTH` elements of `E`, with arithmetic supplied by Plonky3.
 pub(super) trait Lanes: Xor + PrimeCharacteristicRing {
+    /// Products added before their coefficient-field reductions.
+    type Wide: Xor;
     const WIDTH: usize;
     fn splat(x: F192) -> Self;
     fn load(values: &[F192]) -> Self;
     fn store(self, out: &mut [MaybeUninit<F192>]);
-    fn sum_lanes(values: Self) -> F192;
+    /// The product in each lane, with upstream reduction deferred.
+    fn mul_wide(self, rhs: Self) -> Self::Wide;
+    /// An empty sum of deferred products.
+    fn zero_wide() -> Self::Wide;
+    /// Sum lanes without reducing, for merging task results.
+    fn sum_wide(values: Self::Wide) -> F192Unreduced;
     /// Child `c` of row `l` is placed in lane `l` of vector `c`.
     fn gather(values: &[F192], stride: usize) -> [Self; 4];
 }
@@ -125,7 +144,13 @@ impl Xor for F192 {
         self + rhs
     }
 }
+impl Xor for F192Unreduced {
+    fn xor(self, rhs: Self) -> Self {
+        self + rhs
+    }
+}
 impl Lanes for F192 {
+    type Wide = F192Unreduced;
     const WIDTH: usize = 1;
     #[inline(always)]
     fn splat(x: F192) -> Self {
@@ -140,7 +165,13 @@ impl Lanes for F192 {
         out[0].write(self);
     }
     #[inline(always)]
-    fn sum_lanes(values: Self) -> F192 {
+    fn mul_wide(self, rhs: Self) -> Self::Wide {
+        self.mul_unreduced(rhs)
+    }
+    fn zero_wide() -> Self::Wide {
+        F192Unreduced::ZERO
+    }
+    fn sum_wide(values: Self::Wide) -> F192Unreduced {
         values
     }
     #[inline(always)]
@@ -149,15 +180,22 @@ impl Lanes for F192 {
     }
 }
 
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+))]
 impl Xor for F192Packed {
     #[inline(always)]
     fn xor(self, rhs: Self) -> Self {
         self + rhs
     }
 }
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+))]
 impl Lanes for F192Packed {
+    type Wide = F192PackedUnreduced;
     const WIDTH: usize = F192_LANES;
     #[inline(always)]
     fn splat(x: F192) -> Self {
@@ -175,7 +213,11 @@ impl Lanes for F192Packed {
     #[inline(always)]
     fn store(self, out: &mut [MaybeUninit<F192>]) {
         if out.len() >= F192_LANES {
-            store_packed(self, out[..F192_LANES].as_mut_array().expect("one packed group"));
+            let mut values = [F192::ZERO; F192_LANES];
+            self.to_ext_slice(&mut values);
+            for (slot, value) in out.iter_mut().zip(values) {
+                slot.write(value);
+            }
         } else {
             // Padding lanes carry no output slot.
             for (i, slot) in out.iter_mut().enumerate() {
@@ -184,12 +226,28 @@ impl Lanes for F192Packed {
         }
     }
     #[inline(always)]
-    fn sum_lanes(values: Self) -> F192 {
-        sum_packed(values)
+    fn mul_wide(self, rhs: Self) -> Self::Wide {
+        self.mul_unreduced(rhs)
+    }
+    fn zero_wide() -> Self::Wide {
+        F192PackedUnreduced::default()
+    }
+    fn sum_wide(values: Self::Wide) -> F192Unreduced {
+        values.sum_lanes()
     }
     #[inline(always)]
     fn gather(values: &[F192], stride: usize) -> [Self; 4] {
         // Child c: [row_0[c], ..., row_(WIDTH-1)[c]].
         std::array::from_fn(|c| Self::from_ext_fn(|row| values[stride * row + c]))
+    }
+}
+
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+))]
+impl Xor for F192PackedUnreduced {
+    fn xor(self, rhs: Self) -> Self {
+        self + rhs
     }
 }

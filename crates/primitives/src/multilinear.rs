@@ -6,7 +6,10 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F192`), so the first
 //! fold of a committed table also lifts it into `E`.
 
-use crate::{Algebra, Field, PackedFieldExtension, PackedValue, PrimeCharacteristicRing};
+use crate::{
+    F192MixedAccumulator, F192PackedUnreduced, F192Unreduced, Field, PackedFieldExtension, PackedValue,
+    PrimeCharacteristicRing,
+};
 use p3_field::ExtensionField;
 
 use std::mem::MaybeUninit;
@@ -374,14 +377,33 @@ pub fn skip_lagrange_weights(k_skip: usize, z: F192) -> Vec<F192> {
 #[inline]
 pub fn inner_product(a: &[F192], b: &[F192]) -> F192 {
     assert_eq!(a.len(), b.len());
-    a.iter().zip(b).fold(F192::ZERO, |acc, (&x, &y)| acc + x * y)
+    let mut sum = F192PackedUnreduced::default();
+    let (a, a_tail) = a.as_chunks::<EXT_LANES>();
+    let (b, b_tail) = b.as_chunks::<EXT_LANES>();
+    for (a, b) in a.iter().zip(b) {
+        sum += load_extension_lanes(a).mul_unreduced(load_extension_lanes(b));
+    }
+    let mut sum = sum_unreduced(sum);
+    for (&a, &b) in a_tail.iter().zip(b_tail) {
+        sum += a.mul_unreduced(b);
+    }
+    sum.reduce()
 }
 
 /// The mixed inner product `sum_i e_i * k_i`, with `k` in `K` and `e` in `E`.
 #[inline]
 pub fn inner_product_base(k: &[F64], e: &[F192]) -> F192 {
     assert_eq!(k.len(), e.len());
-    k.iter().zip(e).fold(F192::ZERO, |acc, (&k, &e)| acc + (e * k))
+    let mut sum = F192MixedAccumulator::new();
+    let (e, e_tail) = e.as_chunks::<8>();
+    let (k, k_tail) = k.as_chunks::<8>();
+    for (e, k) in e.iter().zip(k) {
+        sum.add_dot_product(e, k);
+    }
+    for (&e, &k) in e_tail.iter().zip(k_tail) {
+        sum.add_dot_product(&[e], &[k]);
+    }
+    sum.finish()
 }
 
 /// The table `eq(r, .)` as two smaller tables, `eq(r, x) = low[x mod 2^L] * high[x >> L]`.
@@ -556,9 +578,11 @@ pub fn mul_base8(t: F192, k: [F64; 8]) -> [F192; 8] {
 /// Mixed inner product in groups of eight, using Plonky3's deferred reduction.
 pub fn dot_base(w: &[[F192; 8]], k: &[F64]) -> F192 {
     assert_eq!(k.len(), 8 * w.len());
-    w.iter()
-        .zip(k.as_chunks::<8>().0)
-        .fold(F192::ZERO, |sum, (w, k)| sum + F192::mixed_dot_product(w, k))
+    let mut sum = F192MixedAccumulator::new();
+    for (w, k) in w.iter().zip(k.as_chunks::<8>().0) {
+        sum.add_dot_product(w, k);
+    }
+    sum.finish()
 }
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 /// Pack four extension elements, filling wider backend lanes with zero.
@@ -589,6 +613,29 @@ pub fn store_packed(values: F192Packed, out: &mut [MaybeUninit<F192>; F192_LANES
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 pub fn sum_packed(values: F192Packed) -> F192 {
     unpack_lanes(values).into_iter().sum()
+}
+
+/// Sum upstream polynomial lanes while leaving their coefficient reductions deferred.
+#[inline]
+#[allow(
+    clippy::missing_const_for_fn,
+    reason = "The upstream SIMD horizontal sum cannot be const."
+)]
+pub fn sum_unreduced(product: F192PackedUnreduced) -> F192Unreduced {
+    #[cfg(any(
+        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+        all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+    ))]
+    {
+        product.sum_lanes()
+    }
+    #[cfg(not(any(
+        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+        all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+    )))]
+    {
+        product
+    }
 }
 
 #[cfg(test)]
