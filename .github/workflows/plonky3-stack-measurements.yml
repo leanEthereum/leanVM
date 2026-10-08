@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: Transform schedule comparison (${{ matrix.name }})
+    name: Bounded generator weighting comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 7b6ff27f05bdd5ac79c14c1386e0782490207612
+          ref: d6f5a27384573d96419e056deeaff2c86d27f54f
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare specialized transform schedules and narrow rows on native hardware
+      - name: Compare bounded generator-weighting loop on native hardware
         run: bash .github/perf-stack/run.sh
