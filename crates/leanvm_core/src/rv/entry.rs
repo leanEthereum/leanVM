@@ -137,7 +137,14 @@ impl Class {
                 rs1,
                 rs2,
             },
-            Self::Hash => Op::Blake2s { rs1, rs2, last: false },
+            Self::Hash => Op::Blake2s {
+                rd,
+                rs1,
+                rs2,
+                rs3: rs1,
+                last: false,
+                node: false,
+            },
             Self::Ext => Op::Ext {
                 op: ExtOp::Extmul,
                 rd: ExtReg::F3,
@@ -362,7 +369,12 @@ impl Entry {
             Op::Shift { rd, rs1, amount, .. } => entry(rs1, zero, rd, amount as u64),
             Op::Load { rd, rs1, offset, .. } => entry(rs1, zero, rd, offset as i64 as u64),
             Op::Store { rs1, rs2, offset, .. } => entry(rs1, rs2, zero, offset as i64 as u64),
-            Op::Blake2s { rs1, rs2, .. } => entry(rs1, rs2, zero, 0),
+            // The compression reads four registers: the result's pointer is read, not written, and the fourth is the
+            // entry's immediate.
+            Op::Blake2s { rd, rs1, rs2, rs3, .. } => Self {
+                ad: rd.index() as u8,
+                ..entry(rs1, rs2, zero, rs3.index() as u64)
+            },
             // An element's move names one integer register, the base, and one extension register.
             Op::Eld { rd, rs1, offset } => Self {
                 ad: rd.index() as u8,
@@ -437,6 +449,8 @@ impl Entry {
                 let written = ExtReg::FIRST_WRITABLE..ExtReg::COUNT as u8;
                 (self.a1 as usize) < ExtReg::COUNT && (self.a2 as usize) < second && written.contains(&self.ad)
             }
+            // The compression reads the register its destination names, and a fourth, which its immediate names.
+            Class::Hash => self.a1 < 32 && self.a2 < 32 && self.ad < 32 && self.imm < 32,
             // An element's move: its base an integer register, the other an extension register, the constants never written.
             Class::Eld => self.a1 < 32 && (ExtReg::FIRST_WRITABLE..ExtReg::COUNT as u8).contains(&self.ad),
             Class::Esd => self.a1 < 32 && (self.a2 as usize) < ExtReg::COUNT,
@@ -497,7 +511,6 @@ impl Entry {
         match self.class {
             Class::Load | Class::Ld | Class::Eld => self.a2 == 0,
             Class::Store | Class::Sd | Class::Esd => self.ad == RegisterFile::SINK,
-            Class::Hash => self.ad == RegisterFile::SINK && self.imm == 0,
             Class::Ext => self.imm == 0,
             _ => true,
         }
@@ -649,8 +662,30 @@ mod tests {
                 Op::Jalr { rd, rs1, offset: 0 },
                 Op::Fence,
                 Op::Ecall,
-                Op::Blake2s { rs1, rs2, last: false },
-                Op::Blake2s { rs1, rs2, last: true },
+                Op::Blake2s {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3: rs1,
+                    last: false,
+                    node: false,
+                },
+                Op::Blake2s {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3: rs1,
+                    last: true,
+                    node: false,
+                },
+                Op::Blake2s {
+                    rd,
+                    rs1,
+                    rs2,
+                    rs3: rs1,
+                    last: true,
+                    node: true,
+                },
             ])
             .collect();
 
@@ -695,7 +730,7 @@ mod tests {
         // The forms the sweep below misses: they need rd = x0.
         //
         //     ecall, blake2s, blake2s on the final block
-        for word in [0x73, 0x0000_000b, 0x0000_100b] {
+        for word in [0x73, 0x0000_000b, 0x0200_000b, 0x0600_000b] {
             assert!(Entry::decode(word, Region::TEXT.base()).is_well_formed(Region::TEXT.base()));
         }
 
@@ -731,13 +766,12 @@ mod tests {
         assert_eq!(Class::Illegal.nop(), None);
 
         // Each no-op decodes to its class, reads x0 twice, writes the sink, and has no immediate.
+        //
+        // A compression reads the register its destination names: x0, like the others.
         for class in classes {
             let e = Entry::new(class.nop().expect("a legal class"), Region::TEXT.base());
-            assert_eq!(
-                (e.class, e.a1, e.a2, e.ad, e.imm),
-                (class, 0, 0, RegisterFile::SINK, 0),
-                "{class:?}"
-            );
+            let ad = if class == Class::Hash { 0 } else { RegisterFile::SINK };
+            assert_eq!((e.class, e.a1, e.a2, e.ad, e.imm), (class, 0, 0, ad, 0), "{class:?}");
             assert!(e.is_well_formed(Region::TEXT.base()));
         }
     }
@@ -759,9 +793,8 @@ mod tests {
             0x0000_4023,          // a store of width 4
             0x0000_2063,          // a branch with function 2
             0x0000_1067,          // JALR with a nonzero function
-            0x0000_208b,          // BLAKE2S with function 2
-            0x0000_008b | 5 << 7, // BLAKE2S with a destination
-            0x0200_000b,          // BLAKE2S with a function-7 bit set
+            0x0000_100b,          // BLAKE2S with a function 3
+            0x0400_000b,          // a BLAKE2S node that is not a last block
             0x8000_002b | 5 << 7, // an extension-field product with the top function-7 bit set
             0x0000_002b | 2 << 7, // an extension-field product into a constant
             0x2000_202b | 5 << 7, // a base-field operand past the integer registers

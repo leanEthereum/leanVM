@@ -4,8 +4,8 @@ use super::python_verifier::PythonStatement;
 use fiat_shamir::transcript::TranscriptError;
 use leanvm_core::asm::*;
 use leanvm_core::{
-    BusError, CpuError, Hash, Machine, N_TABLES, Output, Program, Proof, ProveError, ProvenRun, Prover, Rate, Region,
-    Trap, UNGROUND_LOG_BYTECODE,
+    BusError, CpuError, Machine, N_TABLES, Output, Program, Proof, ProveError, ProvenRun, Prover, Rate, Region, Trap,
+    UNGROUND_LOG_BYTECODE,
 };
 use primitives::field::{F64, F192};
 
@@ -227,8 +227,8 @@ fn divisions_prove_and_verify() {
 
 #[test]
 fn blake2s_precompile_proves_and_verifies() {
-    // Hash 100 bytes in two compressions, using a block 128 bytes into RAM.
-    const BLOCK: u64 = Region::RAM.base() + 128;
+    // Hash 100 bytes in two compressions: the state in place, each message block where the image holds it.
+    const STATE: u64 = Region::RAM.base() + 128;
     let data: Vec<u8> = (0..100u32).map(|i| (i * 37 + 11) as u8).collect();
     let words = |bytes: &[u8]| -> Vec<u64> {
         let mut padded = bytes.to_vec();
@@ -242,39 +242,55 @@ fn blake2s_precompile_proves_and_verifies() {
         .chunks(2)
         .map(|w| w[0] as u64 | (w[1] as u64) << 32)
         .collect();
-    // The image: the block (its chaining value seeded, its message the first 64 bytes),
-    // then the second message block.
-    let mut image = vec![0u64; ((BLOCK - Region::RAM.base()) / 8) as usize];
+    // The image: the chaining value, seeded, and room after it; then the two message blocks, each on a 64-byte boundary.
+    let mut image = vec![0u64; ((STATE - Region::RAM.base()) / 8) as usize];
     image.extend(&iv);
     image.extend([0; 4]);
     image.extend(words(&data[..64]));
     image.extend(words(&data[64..]));
-    let second = BLOCK + 128;
+    let message = STATE + 64;
 
+    // The first block updates the state in place; the last writes the digest after it.
     let mut a = Asm::new();
-    a.li(Reg::S0, BLOCK).li(Reg::S1, 64).blake2s(Reg::S0, Reg::S1, false);
-    for k in 0..4 {
-        a.load(Ld, Reg::T0, (Hash::OUT + 8 * k) as i32, Reg::S0)
-            .store(Sd, Reg::T0, (Hash::H + 8 * k) as i32, Reg::S0);
-    }
-    a.li(Reg::T1, second);
-    for k in 0..8 {
-        a.load(Ld, Reg::T0, 8 * k, Reg::T1)
-            .store(Sd, Reg::T0, (Hash::M + 8 * k as u64) as i32, Reg::S0);
-    }
-    a.li(Reg::S1, data.len() as u64).blake2s(Reg::S0, Reg::S1, true);
+    a.li(Reg::S0, STATE)
+        .li(Reg::S2, message)
+        .li(Reg::S1, 64)
+        .blake2s(Reg::S0, Reg::S0, Reg::S2, Reg::S1, false);
+    a.i(Addi, Reg::S2, Reg::S2, 64)
+        .i(Addi, Reg::S3, Reg::S0, 32)
+        .li(Reg::S1, data.len() as u64)
+        .blake2s(Reg::S3, Reg::S0, Reg::S2, Reg::S1, true);
     for (i, reg) in [Reg::A0, Reg::A1, Reg::A2, Reg::A3].into_iter().enumerate() {
-        a.load(Ld, reg, (Hash::OUT + 8 * i as u64) as i32, Reg::S0);
+        a.load(Ld, reg, 8 * i as i32, Reg::S3);
     }
     let program =
-        Program::new(&a.exit().finish(), Region::TEXT.base(), image, 7, 0).expect("valid instruction program");
+        Program::new(&a.exit().finish(), Region::TEXT.base(), image.clone(), 7, 0).expect("valid instruction program");
     let expected: [u64; 4] = words(&primitives::hash::hash(&data))[..4].try_into().unwrap();
     proves_and_verifies("blake2s", &program, expected);
 
-    // A block pointer that is no word address traps, like a misaligned load.
+    // A node: the one-block hash of the message's two halves, in the order its register's low bit says.
+    for bit in [0, 1] {
+        let mut a = Asm::new();
+        a.li(Reg::S0, STATE)
+            .li(Reg::S2, message)
+            .i(Addi, Reg::S3, Reg::S0, 32)
+            .li(Reg::S1, 2 + bit)
+            .blake2s_node(Reg::S3, Reg::S0, Reg::S2, Reg::S1);
+        for (i, reg) in [Reg::A0, Reg::A1, Reg::A2, Reg::A3].into_iter().enumerate() {
+            a.load(Ld, reg, 8 * i as i32, Reg::S3);
+        }
+        let program = Program::new(&a.exit().finish(), Region::TEXT.base(), image.clone(), 7, 0)
+            .expect("valid instruction program");
+        let mut halves = data[..64].to_vec();
+        halves.rotate_left(32 * bit as usize);
+        let expected: [u64; 4] = words(&primitives::hash::hash(&halves))[..4].try_into().unwrap();
+        proves_and_verifies("blake2s node", &program, expected);
+    }
+
+    // A pointer that is no word address traps, like a misaligned load.
     let text = Asm::new()
-        .li(Reg::S0, BLOCK + 4)
-        .blake2s(Reg::S0, Reg::ZERO, true)
+        .li(Reg::S0, STATE + 4)
+        .blake2s(Reg::S0, Reg::S0, Reg::S0, Reg::ZERO, true)
         .exit()
         .finish();
     let program = Program::new(&text, Region::TEXT.base(), vec![], 7, 0).expect("valid instruction program");
@@ -282,7 +298,7 @@ fn blake2s_precompile_proves_and_verifies() {
         Prover::new(Rate::MIN).prove(&program, &[]).err(),
         Some(ProveError::Trap(Trap::Misaligned {
             pc: Region::TEXT.base() + 8,
-            address: BLOCK + 4
+            address: STATE + 4
         }))
     );
 }

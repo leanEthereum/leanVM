@@ -6,7 +6,8 @@
 
 use crate::rv::machine::{MemoryAccess, Step};
 use crate::rv::{
-    BlockAccess, Class, ElementAccess, Ext, ExtReg, Hash, Machine, RegisterFile, RiscvProgram, WordAccess,
+    BlockAccess, Class, ElementAccess, Ext, ExtReg, Hash, InstructionClass, Machine, RegisterFile, RiscvProgram,
+    WordAccess,
 };
 use crate::tables::{Clock, PerTable, Ram, TableId};
 use primitives::field::F64;
@@ -175,19 +176,26 @@ impl TraceBuilder {
                     .access(cell_of(access.address), ts | u64::from(Clock::RAM_SLOT));
                 word = access;
             }
-            // A hash row's block, word `k` at `v1 ^ 8k`.
+            // A hash row's third and fourth registers, then its words: the chaining value's at `v1 ^ 8k`, the
+            // message's at `v2 ^ 8k`, the result's at its pointer `^ 8k`.
             MemoryAccess::Block(h) => {
-                let mut all = [0; 2 + Hash::WORDS];
+                let mut all = [0; 2 + Clock::BLOCK_ACCESSES];
                 all[..n].copy_from_slice(&prev[..n]);
-                for k in 0..Hash::WORDS {
-                    let cell = cell_of(step.v1 ^ (8 * k as u64));
-                    all[n + k] = self.ram.access(cell, ts | u64::from(Clock::block_slot(k)));
+                let mut slot = 0;
+                let mut next = |last: &mut LastAccess, cell: usize| {
+                    all[n + slot] = last.access(cell, ts | u64::from(Clock::block_slot(slot)));
+                    slot += 1;
+                };
+                next(&mut self.regs, e.imm as usize);
+                next(&mut self.regs, e.ad as usize);
+                let words = (0..4)
+                    .map(|k| (step.v1, k))
+                    .chain((0..8).map(|k| (step.v2, k)))
+                    .chain((0..4).map(|k| (h.to, k)));
+                for (base, k) in words {
+                    next(&mut self.ram, cell_of(base ^ (8 * k as u64)));
                 }
-                self.hash.push(HashRow {
-                    block: h.block,
-                    out: h.out,
-                    prev: all,
-                });
+                self.hash.push(HashRow { access: *h, prev: all });
             }
             // An element's three words, at `address ^ 8k`, after its registers.
             MemoryAccess::Element(access) => {
@@ -236,20 +244,22 @@ impl TraceBuilder {
         // Its accesses' timestamps: in its payload for a hash row, in the row otherwise.
         let mut prev = [0; 4];
         match e.class {
-            // A hash row compresses a zero block, and rewrites the result it finds there.
+            // A hash row compresses zeros, and rewrites the result it finds.
             Class::Hash => {
-                let block = [0; Hash::WORDS];
-                let mut h = BlockAccess::from(Hash {
+                let hash = Hash {
                     flags: e.flags,
-                    t: 0,
-                    block,
-                });
-                h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
-                let mut all = [0; 2 + Hash::WORDS];
+                    ..Hash::default()
+                };
+                let out = hash.eval();
+                let mut all = [0; 2 + Clock::BLOCK_ACCESSES];
                 all.copy_from_slice(slots);
                 self.hash.push(HashRow {
-                    block: h.block,
-                    out: h.out,
+                    access: BlockAccess {
+                        hash,
+                        to: 0,
+                        old: out,
+                        out,
+                    },
                     prev: all,
                 });
             }
@@ -315,22 +325,10 @@ impl TraceBuilder {
 
 /// What a hash row adds to a row.
 pub(crate) struct HashRow {
-    /// The block's words as the row found them.
-    pub(crate) block: [u64; Hash::WORDS],
-    /// The four words the compression writes.
-    pub(crate) out: [u64; 4],
-    /// The previous timestamp of every access, the registers' first.
-    pub(crate) prev: [u64; 2 + Hash::WORDS],
-}
-
-impl HashRow {
-    /// Word `k` of the block after the row.
-    pub(crate) const fn word_after(&self, k: usize) -> u64 {
-        match k.wrapping_sub(Hash::OUT as usize / 8) {
-            j if j < 4 => self.out[j],
-            _ => self.block[k],
-        }
-    }
+    /// What the row read and wrote.
+    pub(crate) access: BlockAccess,
+    /// The previous timestamps of its twenty accesses.
+    pub(crate) prev: [u64; 2 + Clock::BLOCK_ACCESSES],
 }
 
 /// What an extension-field row adds to a row.
@@ -412,9 +410,18 @@ impl<'a> RowRef<'a> {
     }
 
     /// Cell `k` before the row: a hash row's block word, or the one cell of a load or a store.
+    /// A compression's fourth register's value.
+    pub(crate) const fn third(self) -> u64 {
+        match self.payload {
+            Payload::Hash(hash) => hash.access.hash.x,
+            _ => 0,
+        }
+    }
+
     pub(crate) const fn cell(self, k: usize) -> u64 {
         match self.payload {
-            Payload::Hash(hash) => hash.block[k],
+            Payload::Hash(hash) if k < 4 => hash.access.hash.h[k],
+            Payload::Hash(hash) => hash.access.hash.m[k - 4],
             _ => self.row.ram.old,
         }
     }
@@ -422,7 +429,7 @@ impl<'a> RowRef<'a> {
     /// Cell `k` after the row.
     pub(crate) const fn cell_new(self, k: usize) -> u64 {
         match self.payload {
-            Payload::Hash(hash) => hash.word_after(k),
+            Payload::Hash(hash) => hash.access.out[k],
             _ => self.row.ram.new,
         }
     }

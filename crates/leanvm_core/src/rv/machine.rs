@@ -10,7 +10,7 @@ use super::entry::{Class, Entry};
 use super::program::RiscvProgram;
 use super::region::Region;
 use super::register::{ExtRegisterFile, Reg, RegisterFile, Syscall};
-use super::semantics::{BlockAccess, ElementAccess, Ext, Hash, Load, WordAccess};
+use super::semantics::{BlockAccess, ElementAccess, Ext, Hash, InstructionClass, Load, WordAccess};
 use thiserror::Error;
 
 /// Why a run stops without halting: a fault of the ISA.
@@ -156,7 +156,7 @@ impl<'a> Machine<'a> {
             _ => None,
         };
         let block = match entry.class {
-            Class::Hash => Some(self.block(pc, v1)?),
+            Class::Hash => Some(self.block(pc, v1, v2, self.registers.read(entry.ad))?),
             _ => None,
         };
         let element = match entry.class {
@@ -182,7 +182,10 @@ impl<'a> Machine<'a> {
                 self.memory.set(cell, access.new);
                 MemoryAccess::Word(access)
             }
-            (_, _, Some(cells), _) => MemoryAccess::Block(Box::new(self.compress(&cells, v2, entry.flags))),
+            (_, _, Some(cells), _) => {
+                let (x, to) = (self.registers.read(entry.imm as u8), self.registers.read(entry.ad));
+                MemoryAccess::Block(Box::new(self.compress(&cells, x, to, entry.flags)))
+            }
             (_, _, _, Some(instance)) => {
                 self.ext.write(entry.ad, instance.eval());
                 MemoryAccess::Ext(Box::new(instance))
@@ -292,12 +295,17 @@ impl<'a> Machine<'a> {
         self.memory.cell(address).ok_or(Trap::Unmapped { pc, address })
     }
 
-    /// The cells of the hash block at `base`, word `k` at `base ^ 8k`.
+    /// The cells of a compression: the chaining value's four words, the message's eight, then the result's four,
+    /// word `k` of each at its pointer `^ 8k`.
     ///
-    /// The base must be a word address, and every word of the block mapped.
-    fn block(&self, pc: u64, base: u64) -> Result<[usize; Hash::WORDS], Trap> {
-        let mut cells = [0; Hash::WORDS];
-        for (k, cell) in cells.iter_mut().enumerate() {
+    /// Each must be a word address, and every word mapped.
+    fn block(&self, pc: u64, h: u64, m: u64, to: u64) -> Result<[usize; 16], Trap> {
+        let mut cells = [0; 16];
+        let words = (0..4)
+            .map(|k| (h, k))
+            .chain((0..8).map(|k| (m, k)))
+            .chain((0..4).map(|k| (to, k)));
+        for (cell, (base, k)) in cells.iter_mut().zip(words) {
             *cell = self.cell(pc, base ^ (8 * k as u64), 3)?;
         }
         Ok(cells)
@@ -325,12 +333,22 @@ impl<'a> Machine<'a> {
         }
     }
 
-    /// Compress the block in `cells` and write the result to its result words.
-    fn compress(&mut self, cells: &[usize; Hash::WORDS], t: u64, flags: u64) -> BlockAccess {
-        let block = cells.map(|cell| self.memory.get(cell));
-        let access = BlockAccess::from(Hash { flags, t, block });
-        let result = &cells[Hash::OUT as usize / 8..][..4];
-        for (&cell, &word) in result.iter().zip(&access.out) {
+    /// Compress the words in `cells`, every one read first, and write the result to its words.
+    fn compress(&mut self, cells: &[usize; 16], x: u64, to: u64, flags: u64) -> BlockAccess {
+        let words = cells.map(|cell| self.memory.get(cell));
+        let hash = Hash {
+            flags,
+            x,
+            h: std::array::from_fn(|k| words[k]),
+            m: std::array::from_fn(|k| words[4 + k]),
+        };
+        let access = BlockAccess {
+            hash,
+            to,
+            old: std::array::from_fn(|k| words[12 + k]),
+            out: hash.eval(),
+        };
+        for (&cell, &word) in cells[12..].iter().zip(&access.out) {
             self.memory.set(cell, word);
         }
         access
@@ -576,29 +594,52 @@ mod tests {
     }
 
     #[test]
-    fn a_hash_compresses_its_block_in_place() {
-        // Fixture: a block at RAM's base, h = 1..4 and m = 9..16, a final compression.
-        let block: [u64; Hash::WORDS] = std::array::from_fn(|k| if (4..8).contains(&k) { 0 } else { k as u64 + 1 });
-        let text = exiting(|a| {
-            a.li(Reg::T0, Region::RAM.base())
-                .li(Reg::T1, 64)
-                .blake2s(Reg::T0, Reg::T1, true);
-        });
-        let program = RiscvProgram::new(&text, Region::TEXT.base(), block.to_vec(), LOG_RAM, 0).unwrap();
-        let mut m = Machine::new(&program, &[]);
-        m.run().unwrap();
+    fn a_hash_reads_three_places_and_writes_one() {
+        // Fixture: h = 1..4 at RAM's base, room for the result after it, m = 9..16 from word 8, a final compression.
+        let block: [u64; 16] = std::array::from_fn(|k| if (4..8).contains(&k) { 0 } else { k as u64 + 1 });
+        let run = |f: &dyn Fn(&mut Asm)| {
+            let text = exiting(|a| {
+                a.li(Reg::T0, Region::RAM.base())
+                    .li(Reg::T1, Region::RAM.base() + 64)
+                    .li(Reg::T2, Region::RAM.base() + 32)
+                    .li(Reg::T3, 64);
+                f(a);
+            });
+            let program = RiscvProgram::new(&text, Region::TEXT.base(), block.to_vec(), LOG_RAM, 0).unwrap();
+            let mut m = Machine::new(&program, &[]);
+            m.run().unwrap();
+            m.memory().ram()[..16].to_vec()
+        };
+        let (h, m) = ([1, 2, 3, 4], [9, 10, 11, 12, 13, 14, 15, 16]);
+        let hash = |flags, x| Hash { flags, x, h, m }.eval();
 
-        // Only the result words changed, to the reference compression.
-        let expected = Hash {
-            flags: Hash::FINAL,
-            t: 64,
-            block,
+        // Only the result's words change, to the reference compression.
+        let ram = run(&|a| {
+            a.blake2s(Reg::T2, Reg::T0, Reg::T1, Reg::T3, true);
+        });
+        assert_eq!(ram[4..8], hash(Hash::FINAL, 64));
+        assert_eq!((&ram[..4], &ram[8..]), (&block[..4], &block[8..]));
+
+        // The result may go where the chaining value is: every word is read first.
+        let ram = run(&|a| {
+            a.blake2s(Reg::T0, Reg::T0, Reg::T1, Reg::T3, true);
+        });
+        assert_eq!(ram[..4], hash(Hash::FINAL, 64));
+
+        // A node orders the message's halves by its register's low bit, and counts one block.
+        for bit in [0, 1] {
+            let ram = run(&|a| {
+                a.li(Reg::T3, 6 + bit).blake2s_node(Reg::T2, Reg::T0, Reg::T1, Reg::T3);
+            });
+            let swapped: [u64; 8] = std::array::from_fn(|k| m[(k + 4 * bit as usize) % 8]);
+            let expected = Hash {
+                flags: Hash::FINAL,
+                x: 64,
+                h,
+                m: swapped,
+            };
+            assert_eq!(ram[4..8], expected.eval(), "bit {bit}");
         }
-        .eval();
-        let ram = m.memory().ram();
-        assert_eq!(ram[4..8], expected);
-        assert_eq!(ram[..4], block[..4]);
-        assert_eq!(ram[8..16], block[8..16]);
     }
 
     #[test]
@@ -719,11 +760,12 @@ mod tests {
 
         // A hash block at no word address, and one below RAM.
         let unaligned_block = exiting(|a| {
-            a.li(Reg::T0, Region::RAM.base() + 4).blake2s(Reg::T0, Reg::ZERO, false);
+            a.li(Reg::T0, Region::RAM.base() + 4)
+                .blake2s(Reg::T0, Reg::T0, Reg::T0, Reg::ZERO, false);
         });
         let below_block = exiting(|a| {
             a.li(Reg::T0, Region::RAM.base() - 128)
-                .blake2s(Reg::T0, Reg::ZERO, false);
+                .blake2s(Reg::T0, Reg::T0, Reg::T0, Reg::ZERO, false);
         });
         // Both bases take two instructions to form, so the hash is the third.
         let pc = Region::TEXT.base() + 8;
@@ -763,16 +805,14 @@ mod tests {
 
     #[test]
     fn a_trapping_hash_writes_nothing() {
-        // Fixture: RAM of 8 words, all 7, and a block at its base.
-        //
-        //     words 0..8    in RAM, the result words 4..8 among them
-        //     words 8..16   past RAM
-        let text = Asm::new().blake2s(Reg::T0, Reg::ZERO, false).finish();
+        // Fixture: RAM of 8 words, all 7: the chaining value and the result in its first words, the message past it.
+        let text = Asm::new().blake2s(Reg::T0, Reg::T0, Reg::T1, Reg::ZERO, false).finish();
         let program = RiscvProgram::new(&text, Region::TEXT.base(), vec![7; 8], 3, 0).unwrap();
         let mut m = Machine::new(&program, &[]);
         m.registers.set(Reg::T0, Region::RAM.base());
+        m.registers.set(Reg::T1, Region::RAM.base() + 64);
 
-        // The step traps on the block's ninth word, before writing the result.
+        // The step traps on the message's first word, before writing the result.
         assert_eq!(
             m.step(),
             Err(Trap::Unmapped {

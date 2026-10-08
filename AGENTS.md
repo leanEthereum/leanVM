@@ -89,7 +89,7 @@ The benchmarks we care about:
 
 - `cargo leanvm fibonacci --n 2000000 --log-inv-rate 1 --repeat 3` (Fibonacci mod 2^64, on registers)
 - `cargo leanvm guest programs/hash/hash.elf --advice 50000 --repeat 3` (the hash precompile, from a Rust guest)
-- `cargo leanvm leanxmss --n 400 --repeat 3`, `leansphincs --n 104`, `leanda --blobs 1`, `falcon --n 28`, `stateproof --n 21`, `shielded --n 1035` (the Ethereum workloads and Falcon-512, the most one proof holds)
+- `cargo leanvm leanxmss --n 400 --repeat 3`, `leansphincs --n 104`, `leanda --blobs 1`, `falcon --n 28`, `stateproof --n 21`, `shielded --n 1020` (the Ethereum workloads and Falcon-512, the most one proof holds)
 - `cargo leanvm aggregate --program leanxmss --n 400 --leaves 16 --arity0 4 --arity 4 --repeat 3` (an aggregation tree: each kind of node's rows, committed words and times, then the whole tree; the leaves are proven at `--leaf-log-inv-rate`, 2 by default, the tree's own proofs at `--log-inv-rate`)
 - `cargo leanvm bench --cycles-only --markdown` (every program above, flock aside: RISC-V cycles and committed words, exact, no proof: `cpu::Program::measure`, which CI's `Counts` workflow, `counts.yml`, puts in each run's summary; and two aggregation trees over leanXMSS-400 leaves at `--leaf-log-inv-rate`, 2 to 1 (`cargo leanvm aggregate`'s default shape) and 4 to 1 (the tree above), each kind of node's rows per table and committed words, from its circuits alone: `LeafShape::measured` gives the leaf shape a measured run's proofs announce, so the tree's key needs no proof)
 - `BENCH_REPEAT=3 FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench hash_batch` (flock alone, on its hand-optimized circuit)

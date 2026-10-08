@@ -7,7 +7,7 @@
 //! a constant that drifts changes what each side ACCEPTS, and only a statement they both
 //! reject would show it. So the two lists are rendered the same way and diffed here.
 
-use leanvm_core::{Clock, ExtReg, FlockId, Hash, Reg, Region, RegisterFile, Syscall, TableId};
+use leanvm_core::{Clock, ExtReg, FlockId, Reg, Region, RegisterFile, Syscall, TableId};
 use primitives::field::F64;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
@@ -28,8 +28,7 @@ fn rust_constants() -> String {
     scalar("FAIL_BIT", Clock::FAIL_BIT as u64);
     scalar("FLOCK_K_SKIP", flock::zerocheck::K_SKIP as u64);
     scalar("FLOCK_MIN_LOG_SIZE", leanvm_core::MIN_CUBE_LOG as u64);
-    scalar("HASH_OUT_WORD", Hash::OUT / 8);
-    scalar("HASH_WORDS", Hash::WORDS as u64);
+    scalar("HASH_ACCESSES", Clock::BLOCK_ACCESSES as u64);
     scalar(
         "INITIAL_FOLDING_FACTOR",
         pcs::whir::config::INITIAL_FOLDING_FACTOR as u64,

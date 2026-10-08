@@ -126,6 +126,13 @@ impl Lower<'_> {
         self.a.store(Sd, rs, offset, base);
     }
 
+    /// A compression on a block of sixteen words at `base`: its chaining value first, its result after it, then its message.
+    fn block_hash(&mut self, base: Reg, counter: Reg, last: bool) {
+        let (to, message) = (Reg::RA, Reg::SP);
+        self.a.i(Xori, to, base, 32).i(Xori, message, base, 64);
+        self.a.blake2s(to, base, message, counter, last);
+    }
+
     /// Trap unless the two registers are equal.
     fn assert_eq(&mut self, x: Reg, y: Reg) {
         self.a.word(BranchOp::Beq.encode(x, y, 8).bits()).word(0);
@@ -360,7 +367,7 @@ impl Lower<'_> {
             };
             self.a.li(t, value).store(Sd, t, offset, base);
         }
-        self.a.blake2s(reg::TRANSCRIPT[self.phase], reg::BLOCK_BYTES, true);
+        self.block_hash(reg::TRANSCRIPT[self.phase], reg::BLOCK_BYTES, true);
     }
 
     /// The word `k` of the half of the transcript's block that is not the state's: a step's result.
@@ -384,7 +391,7 @@ impl Lower<'_> {
     /// A one-block hash of the eight words `message` gives: the block's chaining value is the parameter block's.
     fn node(&mut self, message: impl Fn(usize) -> Word) {
         self.copy(message, |k| Word::Block(reg::NODE, MESSAGE + 8 * k as i32), 8);
-        self.a.blake2s(reg::NODE, reg::BLOCK_BYTES, true);
+        self.block_hash(reg::NODE, reg::BLOCK_BYTES, true);
     }
 
     fn grind(&mut self, nonce: Loc, bits: u32) {
@@ -405,7 +412,7 @@ impl Lower<'_> {
                 .collect();
             self.copy(|k| words[k], |k| Word::Block(reg::NODE, MESSAGE + 8 * k as i32), 7);
             self.a.li(t, POW_TAGS[1]).store(Sd, t, MESSAGE + 56, reg::NODE);
-            self.a.blake2s(reg::NODE, reg::BLOCK_BYTES, true);
+            self.block_hash(reg::NODE, reg::BLOCK_BYTES, true);
             self.a.load(Ld, t, RESULT, reg::NODE).shift(Slli, t, t, 64 - bits);
             self.assert_eq(t, Reg::ZERO);
         }
@@ -489,7 +496,7 @@ impl Lower<'_> {
                 }
             }
             self.a.li(counter, 64 * (index as u64 + 1));
-            self.a.blake2s(reg::LEAF[phase], counter, index + 1 == n_blocks);
+            self.block_hash(reg::LEAF[phase], counter, index + 1 == n_blocks);
             phase ^= 1;
         }
 
@@ -512,7 +519,7 @@ impl Lower<'_> {
                 |k| Word::Block(there, MESSAGE + 32 + 8 * k as i32),
                 4,
             );
-            self.a.blake2s(reg::NODE, reg::BLOCK_BYTES, true);
+            self.block_hash(reg::NODE, reg::BLOCK_BYTES, true);
             node = Word::Block(reg::NODE, RESULT);
         }
         self.copy(|k| node.add(k), |k| Word::At(out.add(k)), 4);
@@ -541,7 +548,7 @@ impl Lower<'_> {
                 }
             }
             self.a.li(counter, (64 * (j as u64 + 1)).min(bytes));
-            self.a.blake2s(reg::LEAF[phase], counter, j + 1 == n_blocks);
+            self.block_hash(reg::LEAF[phase], counter, j + 1 == n_blocks);
             phase ^= 1;
         }
         self.copy(

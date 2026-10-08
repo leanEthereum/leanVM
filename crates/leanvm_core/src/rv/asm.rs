@@ -168,11 +168,32 @@ impl Asm {
         if lo == 0 { self } else { self.i(Addi, rd, rd, lo as i32) }
     }
 
-    /// `blake2s rs1, rs2`: compress the block at `rs1` with the counter `rs2`.
+    /// `blake2s rd, rs1, rs2, rs3`: compress the message at `rs2` into the chaining value at `rs1`, with the counter
+    /// `rs3`, and write the result at `rd`.
     ///
     /// `last` marks the final block.
-    pub fn blake2s(&mut self, rs1: Reg, rs2: Reg, last: bool) -> &mut Self {
-        self.emit(Op::Blake2s { rs1, rs2, last })
+    pub fn blake2s(&mut self, rd: Reg, rs1: Reg, rs2: Reg, rs3: Reg, last: bool) -> &mut Self {
+        self.emit(Op::Blake2s {
+            rd,
+            rs1,
+            rs2,
+            rs3,
+            last,
+            node: false,
+        })
+    }
+
+    /// `blake2s.node rd, rs1, rs2, rs3`: the one-block hash of the two digests at `rs2`, swapped if `rs3`'s low bit
+    /// is set, from the chaining value at `rs1`, the result at `rd`.
+    pub fn blake2s_node(&mut self, rd: Reg, rs1: Reg, rs2: Reg, rs3: Reg) -> &mut Self {
+        self.emit(Op::Blake2s {
+            rd,
+            rs1,
+            rs2,
+            rs3,
+            last: true,
+            node: true,
+        })
     }
 
     /// `op fd, fs1, fs2`: an extension-field multiplication on extension registers, by number.

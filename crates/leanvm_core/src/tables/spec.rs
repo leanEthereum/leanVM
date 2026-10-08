@@ -2,7 +2,7 @@
 
 use super::clock::Clock;
 use super::{N_TABLES, TableId, Word};
-use crate::rv::{Alu, Class, Hash, Ld, Load, Mul, Mulh, Shift, Store};
+use crate::rv::{Alu, Class, Ld, Load, Mul, Mulh, Shift, Store};
 use crate::{class_flock, rv};
 use flock::circuit::Circuit;
 use std::ops::Range;
@@ -16,7 +16,7 @@ pub enum Ram {
     Read,
     /// One cell read and rewritten.
     Write,
-    /// Sixteen hash block words, with four output words rewritten.
+    /// A compression's two more registers, then its sixteen words: twelve read, the result's four rewritten.
     Block,
     /// The three words of an element, read by a load of it and rewritten by a store.
     Element,
@@ -28,7 +28,7 @@ impl Ram {
         match self {
             Self::None => 0..0,
             Self::Read | Self::Write => Clock::RAM_SLOT..Clock::RAM_SLOT + 1,
-            Self::Block => Clock::block_slot(0)..Clock::block_slot(Hash::WORDS),
+            Self::Block => Clock::block_slot(0)..Clock::block_slot(Clock::BLOCK_ACCESSES),
             Self::Element => Clock::ELEMENT_SLOT..Clock::ELEMENT_SLOT + 3,
         }
     }
@@ -277,7 +277,9 @@ impl ClassSpec {
         clock_k_log: 9,
     };
 
-    /// BLAKE2s compression over sixteen memory words, rewriting the four output words.
+    /// BLAKE2s compression: a chaining value and a message read at two pointers, the result written at a third.
+    ///
+    /// Its four registers are read: the pointers are bus addresses, and the fourth is the circuit's counter.
     pub const HASH: Self = Self {
         class: Class::Hash,
         name: "HASH",
@@ -290,25 +292,25 @@ impl ClassSpec {
         circuit: Some(ClassCircuit {
             k_log: 14,
             inputs: &[
-                Word::V2,
+                Word::V3,
                 Word::Flags,
                 Word::Cell(0),
                 Word::Cell(1),
                 Word::Cell(2),
                 Word::Cell(3),
+                Word::Cell(4),
+                Word::Cell(5),
+                Word::Cell(6),
+                Word::Cell(7),
                 Word::Cell(8),
                 Word::Cell(9),
                 Word::Cell(10),
                 Word::Cell(11),
-                Word::Cell(12),
-                Word::Cell(13),
-                Word::Cell(14),
-                Word::Cell(15),
             ],
-            outputs: &[Word::CellNew(4), Word::CellNew(5), Word::CellNew(6), Word::CellNew(7)],
+            outputs: &[Word::CellNew(0), Word::CellNew(1), Word::CellNew(2), Word::CellNew(3)],
             fill: Fill::Instance(rv::circuits::blake2s_witness),
         }),
-        clock_k_log: 11,
+        clock_k_log: 12,
     };
 
     /// `eld`: the three words at `v1 + imm` are what the extension register `fd` receives.
@@ -371,7 +373,9 @@ impl ClassSpec {
         let has = |word: Word| self.words().any(|w| w == word);
         //
         // An extension register's limbs are committed columns, which the table's identities relate.
-        let narrow = !self.copies && !self.wide;
+        //
+        // A compression's second register is a pointer, a bus address and no word of its circuit.
+        let narrow = !self.copies && !self.wide && self.ram != Ram::Block;
         assert_eq!(self.reads_rs2 && narrow, has(Word::V2), "{}: rs2 read", self.name);
         assert_eq!(self.writes_rd && narrow, has(Word::Out), "{}: rd write", self.name);
         assert!(

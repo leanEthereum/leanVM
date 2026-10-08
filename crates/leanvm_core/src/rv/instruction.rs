@@ -365,10 +365,15 @@ impl Instruction {
             Opcode::System if self == Self::ECALL => Op::Ecall,
 
             // The compression has no destination, and function 1 marks the final block.
-            Opcode::Custom0 if f7 == 0 && rd == Reg::ZERO && f3 <= 1 => Op::Blake2s {
+            // The compression has four registers: the function-7 field holds the fourth, then whether the block is the
+            // last and whether it is a node, which is one block.
+            Opcode::Custom0 if f3 == 0 && f7 & 3 != 2 => Op::Blake2s {
+                rd,
                 rs1,
                 rs2,
-                last: f3 == 1,
+                rs3: Self::reg(f7 >> 2),
+                last: f7 & 1 == 1,
+                node: f7 & 2 == 2,
             },
 
             // Each extension register's number is its five-bit field, then two bits of the function-7 field.
@@ -956,8 +961,16 @@ pub enum Op {
     Fence,
     /// `ecall`, which the machine runs only as its exit.
     Ecall,
-    /// `blake2s rs1, rs2`: compress the block at `rs1` with the counter in `rs2`, the final one if `last`.
-    Blake2s { rs1: Reg, rs2: Reg, last: bool },
+    /// `blake2s rd, rs1, rs2, rs3`: compress the message at `rs2` into the chaining value at `rs1`, the result to `rd`, the
+    /// counter in `rs3`; the final block if `last`; a node, the message's halves ordered by `rs3`'s low bit, if `node`.
+    Blake2s {
+        rd: Reg,
+        rs1: Reg,
+        rs2: Reg,
+        rs3: Reg,
+        last: bool,
+        node: bool,
+    },
     /// `eld fd, offset(rs1)`: the extension register `fd` receives the three words at `rs1 + offset`, `fd` never a constant.
     Eld { rd: ExtReg, rs1: Reg, offset: i32 },
     /// `esd fs2, offset(rs1)`: the three words at `rs1 + offset` receive the extension register `fs2`.
@@ -987,7 +1000,17 @@ impl Op {
             Self::Jalr { rd, rs1, offset } => Instruction::i(Opcode::Jalr, 0, rd, rs1, offset),
             Self::Fence => Instruction::i(Opcode::MiscMem, 0, Reg::ZERO, Reg::ZERO, 0),
             Self::Ecall => Instruction::ECALL,
-            Self::Blake2s { rs1, rs2, last } => Instruction::r(Opcode::Custom0, last as u32, 0, Reg::ZERO, rs1, rs2),
+            Self::Blake2s {
+                rd,
+                rs1,
+                rs2,
+                rs3,
+                last,
+                node,
+            } => {
+                let funct7 = (rs3.index() as u32) << 2 | (node as u32) << 1 | last as u32;
+                Instruction::r(Opcode::Custom0, 0, funct7, rd, rs1, rs2)
+            }
             Self::Ext { op, rd, rs1, rs2 } => op.encode(rd, rs1, rs2),
             Self::Eld { rd, rs1, offset } => {
                 let d = rd.index() as u32;
@@ -1027,7 +1050,10 @@ impl Op {
             Self::Lui { .. } | Self::Auipc { .. } | Self::Fence => (Class::Alu, 0),
             Self::Jal { .. } | Self::Ecall => (Class::Alu, Alu::ALWAYS),
             Self::Jalr { .. } => (Class::Alu, Alu::INDIRECT | Alu::ALWAYS),
-            Self::Blake2s { last, .. } => (Class::Hash, if last { Hash::FINAL } else { 0 }),
+            Self::Blake2s { last, node, .. } => {
+                let last = if last { Hash::FINAL } else { 0 };
+                (Class::Hash, if node { Hash::NODE | last } else { last })
+            }
             Self::Ext { op, .. } => (Class::Ext, op.flags()),
             Self::Eld { .. } => (Class::Eld, 0),
             Self::Esd { .. } => (Class::Esd, 0),
@@ -1079,7 +1105,14 @@ mod tests {
             (reg(), reg(), imm()).prop_map(|(rd, rs1, offset)| Op::Jalr { rd, rs1, offset }),
             Just(Op::Fence),
             Just(Op::Ecall),
-            (reg(), reg(), any::<bool>()).prop_map(|(rs1, rs2, last)| Op::Blake2s { rs1, rs2, last }),
+            (reg(), reg(), reg(), reg(), 0u8..3).prop_map(|(rd, rs1, rs2, rs3, kind)| Op::Blake2s {
+                rd,
+                rs1,
+                rs2,
+                rs3,
+                last: kind > 0,
+                node: kind == 2,
+            }),
             (select(&ExtOp::ALL[..]), 3u8..128, 0u8..128, 0u8..128).prop_map(|(op, rd, rs1, rs2)| {
                 // A base-field form's second operand is an integer register.
                 let rs2 = if op.flags() & Ext::BASE != 0 { rs2 % 32 } else { rs2 };

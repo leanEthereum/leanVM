@@ -21,6 +21,8 @@ pub enum Word {
     V1,
     /// Second source register's value.
     V2,
+    /// A compression's fourth register's value: its counter, or a node's bit.
+    V3,
     /// Result written to the destination register.
     Out,
     /// Decoded jump offset: the fixed target XOR `pc + 4`, zero for an entry with none.
@@ -63,6 +65,7 @@ impl Word {
             Self::Imm => entry.imm,
             Self::V1 => row.v1,
             Self::V2 => row.v2,
+            Self::V3 => r.third(),
             Self::Out => row.out,
             Self::Dt => at.dt,
             Self::Pc4 => at.pc4,
@@ -98,6 +101,7 @@ mod tests {
     use super::super::Clock;
     use super::*;
     use crate::cpu::execute::{HashRow, Payload, Row};
+    use crate::rv::{BlockAccess, Hash};
     use crate::rv::{Class, Entry, InstructionClass, Region, WordAccess};
     use proptest::prelude::*;
 
@@ -212,29 +216,36 @@ mod tests {
     }
 
     #[test]
-    fn word_hash_cells_replace_only_the_four_output_words() {
-        // The compression writes words 4..8, preserving the chaining input and message.
+    fn word_hash_cells_are_the_words_read_then_the_result() {
+        // The compression's words: the chaining value's four, the message's eight, and the result's four.
         let row = row();
         let entry = entry();
         let hash = HashRow {
-            block: std::array::from_fn(|i| 100 + i as u64),
-            out: [200, 201, 202, 203],
+            access: BlockAccess {
+                hash: Hash {
+                    flags: 0,
+                    x: 77,
+                    h: std::array::from_fn(|i| 100 + i as u64),
+                    m: std::array::from_fn(|i| 104 + i as u64),
+                },
+                to: 0,
+                old: [0; 4],
+                out: [200, 201, 202, 203],
+            },
             prev: std::array::from_fn(|i| 300 + i as u64),
         };
         let r = RowRef {
             row: &row,
             payload: Payload::Hash(&hash),
         };
-        for k in 0..16 {
+        assert_eq!(Word::V3.value(r, at(&entry, 0), &[]), 77);
+        for k in 0..12 {
             assert_eq!(Word::Cell(k).value(r, at(&entry, 0), &[]), 100 + u64::from(k));
-            let expected = if (4..8).contains(&k) {
-                196 + u64::from(k)
-            } else {
-                100 + u64::from(k)
-            };
-            assert_eq!(Word::CellNew(k).value(r, at(&entry, 0), &[]), expected);
         }
-        for i in 0..18 {
+        for k in 0..4 {
+            assert_eq!(Word::CellNew(k).value(r, at(&entry, 0), &[]), 200 + u64::from(k));
+        }
+        for i in 0..20 {
             assert_eq!(Word::Prev(i).value(r, at(&entry, 0), &[]), 300 + u64::from(i));
         }
     }

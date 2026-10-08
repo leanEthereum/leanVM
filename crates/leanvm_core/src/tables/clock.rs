@@ -51,7 +51,11 @@ impl Clock {
     /// The first of an element's three words' slots, after the registers'.
     pub const ELEMENT_SLOT: u32 = Self::REG_SLOTS[2] + 1;
 
-    /// A hash row reads its two registers, then accesses its block's words in order.
+    /// A hash row's accesses past its first two registers: two more registers, then sixteen words.
+    pub const BLOCK_ACCESSES: usize = 18;
+
+    /// A hash row reads its first two registers, then its third and fourth, then accesses its words in order: the
+    /// chaining value's four, the message's eight, the result's four.
     pub const fn block_slot(k: usize) -> u32 {
         2 + k as u32
     }

@@ -2,7 +2,6 @@
 
 use super::{ClassSpec, Ram, Word};
 use crate::leaf::Coord::{self, Col};
-use crate::rv::Hash;
 
 /// The `rs2` read's columns: the register's number and what it held.
 #[derive(Clone, Copy)]
@@ -60,24 +59,29 @@ pub(super) struct MemoryColumns {
     pub(super) new: usize,
 }
 
-/// Columns for a hash block and its four output words.
+/// Columns of a compression: its two more registers, its twelve words read, and its result.
 #[derive(Clone, Copy)]
 pub(super) struct BlockColumns {
-    /// First hash block word column.
+    /// The fourth register's number, the entry's immediate.
+    pub(super) a3: usize,
+
+    /// The fourth register's value: the counter, or a node's bit.
+    pub(super) v3: usize,
+
+    /// The destination register's number: it is read, as the result's pointer.
+    pub(super) ad: usize,
+
+    /// The result's pointer.
+    pub(super) vd: usize,
+
+    /// The chaining value's four words, then the message's eight.
     pub(super) words: usize,
 
-    /// Result value, or a shared memory-cell column.
-    pub(super) out: usize,
-}
+    /// The result's four words as found.
+    pub(super) old: usize,
 
-impl BlockColumns {
-    /// What the row leaves in word `k` of its block.
-    pub(super) const fn left(&self, k: usize) -> usize {
-        match k.wrapping_sub(Hash::OUT as usize / 8) {
-            j if j < 4 => self.out + j,
-            _ => self.words + k,
-        }
-    }
+    /// The result's four words.
+    pub(super) out: usize,
 }
 
 /// Columns of a move of one element between memory and an extension register.
@@ -238,11 +242,22 @@ impl Columns {
                 (Some(MemoryColumns { address, cell, new }), None)
             }
             Ram::Block => {
-                let words = allocator.allocate(Hash::WORDS);
+                let (a3, v3, ad, vd) = (
+                    allocator.allocate(1),
+                    allocator.allocate(1),
+                    allocator.allocate(1),
+                    allocator.allocate(1),
+                );
+                let words = allocator.allocate(12);
                 (
                     None,
                     Some(BlockColumns {
+                        a3,
+                        v3,
+                        ad,
+                        vd,
                         words,
+                        old: allocator.allocate(4),
                         out: allocator.allocate(4),
                     }),
                 )
@@ -300,6 +315,7 @@ impl Columns {
             Word::V1 => self.v1,
             Word::Pc4 => self.pc4,
             Word::V2 => self.rs2.map_or_else(missing, |r| r.v2),
+            Word::V3 => self.block.map_or_else(missing, |b| b.v3),
             Word::Out => self.rd.map_or_else(missing, |rd| rd.out),
             Word::Dt => self.control.map_or_else(missing, |c| c.dt),
             Word::Jump => self.control.map_or_else(missing, |c| c.jump),
@@ -315,7 +331,7 @@ impl Columns {
             },
             Word::CellNew(k) => match (self.ram, self.block) {
                 (Some(ram), _) => ram.new,
-                (_, Some(block)) => block.left(k as usize),
+                (_, Some(block)) => block.out + k as usize,
                 _ => missing(),
             },
             Word::Bad => self.bad.unwrap_or_else(missing),

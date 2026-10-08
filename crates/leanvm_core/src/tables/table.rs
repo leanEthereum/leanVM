@@ -6,7 +6,7 @@ use super::{BAD_SLOT, EXIT_SLOT, Part, PerTable, TableId, Word};
 use crate::constraints::{BitColumns, BitField};
 use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, Scaled};
-use crate::rv::{ExtReg, Hash, Reg, RegisterFile};
+use crate::rv::{ExtReg, Reg, RegisterFile};
 use primitives::field::{F64, F192, g_pow};
 use std::sync::OnceLock;
 
@@ -96,7 +96,8 @@ impl ClassTable {
             fields: [
                 Some(field(c.a1, first)),
                 c.rs2.map(|r| field(r.a2, read)),
-                c.rd.map(|rd| field(rd.ad, written)),
+                // A compression reads the register its destination names.
+                (c.rd.map(|rd| field(rd.ad, written))).or_else(|| c.block.map(|b| field(b.ad, Reg::BITS))),
             ]
             .into_iter()
             .flatten()
@@ -222,8 +223,13 @@ impl ClassTable {
             (c.flags.map(Col).or_else(|| selector(0))).unwrap_or(Const(F64::ZERO)),
             Col(c.a1),
             c.rs2.map_or(Const(F64::ZERO), |r| Col(r.a2)),
-            c.rd.map_or(Const(F64(RegisterFile::SINK as u64)), |rd| Col(rd.ad)),
-            (c.imm.map(Col).or_else(|| selector(1))).unwrap_or(Const(F64::ZERO)),
+            (c.rd.map(|rd| Col(rd.ad)).or_else(|| c.block.map(|b| Col(b.ad))))
+                .unwrap_or(Const(F64(RegisterFile::SINK as u64))),
+            (c.imm
+                .map(Col)
+                .or_else(|| selector(1))
+                .or_else(|| c.block.map(|b| Col(b.a3))))
+            .unwrap_or(Const(F64::ZERO)),
             Col(c.pc4),
         ];
         if let Some(dt) = c.control.map(|control| Col(control.dt)).or_else(|| selector(2)) {
@@ -299,16 +305,20 @@ impl ClassTable {
                 Col(ram.new),
             );
         }
-        // The hash's block: word `k` at `v1 ^ 8k`, which is `v1 + 8k` in the field.
-        if let Some(block) = c.block {
-            for k in 0..Hash::WORDS {
-                let addr = Coord::Sum(vec![Col(c.v1), Const(F64(8 * k as u64))]);
-                accesses.write(
-                    Separator::Memory.coordinate(),
-                    addr,
-                    Col(block.words + k),
-                    Col(block.left(k)),
-                );
+        // A compression: its third and fourth registers, read, then its words, word `k` of each at its pointer
+        // `^ 8k`, which is the pointer `+ 8k` in the field: the chaining value at `v1`, the message at `v2`, both
+        // read, and the result at `vd`, rewritten.
+        if let (Some(block), Some(r)) = (c.block, c.rs2) {
+            accesses.read(Separator::Registers.coordinate(), Col(block.a3), Col(block.v3));
+            accesses.read(Separator::Registers.coordinate(), Col(block.ad), Col(block.vd));
+            let at = |pointer: usize, k: usize| Coord::Sum(vec![Col(pointer), Const(F64(8 * k as u64))]);
+            let memory = Separator::Memory.coordinate();
+            for k in 0..12 {
+                let addr = if k < 4 { at(c.v1, k) } else { at(r.v2, k - 4) };
+                accesses.read(memory.clone(), addr, Col(block.words + k));
+            }
+            for k in 0..4 {
+                accesses.write(memory.clone(), at(block.vd, k), Col(block.old + k), Col(block.out + k));
             }
         }
         accesses.finish();

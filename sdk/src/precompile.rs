@@ -6,7 +6,8 @@ use core::mem::MaybeUninit;
 
 /// The BLAKE2s compression of message block `m` onto chaining value `h`, `t` bytes into
 /// the message, `last` on the final block: one `blake2s` instruction (custom-0, opcode
-/// `0x0b`, `funct3` the finalization flag, the counter in `rs2`).
+/// `0x0b`, four registers: the result's pointer, the chaining value's, the message's, and
+/// the counter; `funct2` bit 0 the finalization flag).
 #[inline(always)]
 pub fn blake2s_compress(h: &[u64; 4], m: &[u64; 8], t: u64, last: bool) -> [u64; 4] {
     // Built here and nowhere else: a block kept in the hasher is copied whenever the hasher moves.
@@ -32,10 +33,11 @@ pub fn blake2s_compress(h: &[u64; 4], m: &[u64; 8], t: u64, last: bool) -> [u64;
 pub(crate) unsafe fn blake2s_compress_in_place(base: *mut Block, t: u64, last: bool) {
     // SAFETY: the caller's; the instruction reads `h` and `m` and writes `out`.
     unsafe {
+        let (h, out, m) = (&raw const (*base).h, &raw mut (*base).out, &raw const (*base).m);
         if last {
-            core::arch::asm!(".insn r 0x0b, 1, 0, x0, {0}, {1}", in(reg) base, in(reg) t, options(nostack));
+            core::arch::asm!(".insn r4 0x0b, 0, 1, {0}, {1}, {2}, {3}", in(reg) out, in(reg) h, in(reg) m, in(reg) t, options(nostack));
         } else {
-            core::arch::asm!(".insn r 0x0b, 0, 0, x0, {0}, {1}", in(reg) base, in(reg) t, options(nostack));
+            core::arch::asm!(".insn r4 0x0b, 0, 0, {0}, {1}, {2}, {3}", in(reg) out, in(reg) h, in(reg) m, in(reg) t, options(nostack));
         }
     }
 }
@@ -69,13 +71,15 @@ pub(crate) unsafe fn blake2s_chain<const COUNTER: usize, const VALUE: usize>(
             "sw {c}, {counter}({base})",
             "sd {v0}, {value}({base})",
             "sd {v1}, {value}+8({base})",
-            ".insn r 0x0b, 1, 0, x0, {base}, {t}",
+            ".insn r4 0x0b, 0, 1, {out}, {base}, {m}, {t}",
             "ld {v0}, 32({base})",
             "ld {v1}, 40({base})",
             "addi {c}, {c}, 1",
             "bne {c}, {end}, 1b",
             "2:",
             base = in(reg) base,
+            out = in(reg) &raw mut (*base).out,
+            m = in(reg) &raw const (*base).m,
             t = in(reg) t,
             c = inout(reg) u64::from(first) => _,
             end = in(reg) u64::from(end),

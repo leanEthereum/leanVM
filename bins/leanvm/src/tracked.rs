@@ -56,7 +56,7 @@ fn counted() -> Vec<Case> {
         Case::new("leanda-1", Workload::leanda(1)),
         Case::new("falcon-28", Workload::falcon(28)),
         Case::new("stateproof-21", Workload::stateproof(21)),
-        Case::new("shielded-1035", Workload::shielded(1035)),
+        Case::new("shielded-1020", Workload::shielded(1020)),
     ]
 }
 

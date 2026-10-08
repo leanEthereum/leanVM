@@ -233,8 +233,18 @@ impl ClassTable {
             }
         }
         if let Some(block) = c.block {
-            ctx.columns(out, hash, block.words, |h| h.block.map(F64));
-            ctx.columns(out, hash, block.out, |h| h.out.map(F64));
+            ctx.columns_at(out, rows, [block.a3, block.ad], move |r| {
+                [F64(entry(r).imm), F64(entry(r).ad as u64)]
+            });
+            ctx.columns_at(out, hash, [block.v3, block.vd], |h| {
+                [F64(h.access.hash.x), F64(h.access.to)]
+            });
+            ctx.columns(out, hash, block.words, |h| {
+                let hash = &h.access.hash;
+                std::array::from_fn::<_, 12, _>(|k| F64(if k < 4 { hash.h[k] } else { hash.m[k - 4] }))
+            });
+            ctx.columns(out, hash, block.old, |h| h.access.old.map(F64));
+            ctx.columns(out, hash, block.out, |h| h.access.out.map(F64));
         }
         if let Some(bad) = c.bad {
             ctx.column(out, rows, bad, move |_| F64::ZERO);

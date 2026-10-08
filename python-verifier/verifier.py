@@ -941,9 +941,11 @@ SEED_CLOCK = 1 << LIVE_BIT
 CLOCK_START = SEED_CLOCK | CYCLE  # cycle 1, strictly after the seeds
 REGISTER_SLOTS = (0, 1, 3)
 RAM_SLOT = 2
-HASH_WORDS = 16
-HASH_OUT_WORD = 4  # the block's words 4 to 7 receive the result
-HASH_SLOTS = tuple(range(2, 2 + HASH_WORDS))
+HASH_FINAL = 2**32 - 1  # the finalization word of a last block
+HASH_NODE = 1 << 32  # a node: the message's halves ordered by the fourth register's low bit, the counter one block's
+HASH_BLOCK_BYTES = 64
+HASH_ACCESSES = 18  # a compression's accesses past its first two registers: two more registers, then sixteen words
+HASH_SLOTS = tuple(range(2, 2 + HASH_ACCESSES))
 ELEMENT_SLOTS = tuple(range(REGISTER_SLOTS[2] + 1, REGISTER_SLOTS[2] + 4))  # an element's three words, after the registers
 EXT_LIMBS = 9  # an extension-field row's limbs as found: a's, b's, then c's, three each
 EXT_SELECTORS = ("accumulate", "base", "zero")  # the flags' bits, one 0 or 1 column each
@@ -996,7 +998,10 @@ class Flushes:
 # identities say the product and what the bits require.
 
 CONTROL_COLUMNS = ("dt", "jump", "exit")  # a class with jumps: the bytecode's offset, the circuit's gated jump, the exit
-HASH_COLUMNS = (*(f"cell_{k}" for k in range(HASH_WORDS)), *(f"cell_new_{HASH_OUT_WORD + j}" for j in range(4)))
+# A compression's third and fourth registers (the fourth register's number is the entry's immediate, and its
+# destination's is read), its twelve words read (the chaining value's four, the message's eight), then its result's four
+# words, as found and as left.
+HASH_COLUMNS = ("a3", "v3", "ad", "vd", *(f"cell_{k}" for k in range(12)), *(f"cell_old_{k}" for k in range(4)), *(f"cell_new_{k}" for k in range(4)))
 RAM_COLUMNS = {
     "none": (),
     "read": ("address", "cell_0"),
@@ -1020,6 +1025,8 @@ def _registers(ram: str, words: Sequence[str | None], copies: bool, wide: bool) 
     reading the v2 it moves, or a doubleword load writing the cell it moves, or when it is an extension-field product."""
     if ram in ELEMENT:
         return ram == "element_write", ram == "element_read"
+    if ram == "block":
+        return True, False  # a compression's second register is a pointer, and its destination is read
     return wide or "v2" in words or (copies and ram == "write"), wide or "out" in words or (copies and ram == "read")
 
 
@@ -1119,6 +1126,9 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
         ad_form, vd = _col(ad), _col(out)
     if "imm" in words:
         imm_form = _col(_cols(columns, "imm")[0])
+    if ram == "block":
+        # A compression reads the register its destination names, and a fourth, which its immediate names.
+        ad_form, imm_form = (_col(index) for index in _cols(columns, "ad", "a3"))
     if control:
         # The next pc is pc + 4 plus the circuit's jump: the bytecode's offset when a fixed jump is taken, the sum XOR
         # pc + 4 for an indirect one. Only an exit marks its next state, which only the final state meets.
@@ -1148,11 +1158,19 @@ def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str,
         address, cell, cell_new = _cols(columns, "address", "cell_0", new)
         flushes.access(columns, _const(SEP_MEM), _col(address), next(accesses), RAM_SLOT, _col(cell), _col(cell_new))
     if ram == "block":
-        # Word k of the block is the cell at v1 ^ 8k, which is v1 + 8k in the field; the result's words are rewritten.
-        for k in range(HASH_WORDS):
-            old = _col(_cols(columns, f"cell_{k}")[0])
-            new = _col(_cols(columns, f"cell_new_{k}")[0]) if HASH_OUT_WORD <= k < HASH_OUT_WORD + 4 else old
-            flushes.access(columns, _const(SEP_MEM), _col(v1) + _const(8 * k), next(accesses), HASH_SLOTS[k], old, new)
+        # Its third and fourth registers, read, then its words, word k of each at its pointer ^ 8k, which is the pointer
+        # + 8k in the field: the chaining value at v1 and the message at v2, read, and the result at vd, rewritten.
+        v2, v3, pointer = _cols(columns, "v2", "v3", "vd")
+        slots = iter(HASH_SLOTS)
+        flushes.access(columns, _const(SEP_REG), imm_form, next(accesses), next(slots), _col(v3), _col(v3))
+        flushes.access(columns, _const(SEP_REG), ad_form, next(accesses), next(slots), _col(pointer), _col(pointer))
+        for k in range(12):
+            base, offset = (v1, k) if k < 4 else (v2, k - 4)
+            word = _col(_cols(columns, f"cell_{k}")[0])
+            flushes.access(columns, _const(SEP_MEM), _col(base) + _const(8 * offset), next(accesses), next(slots), word, word)
+        for k in range(4):
+            old, new = (_col(index) for index in _cols(columns, f"cell_old_{k}", f"cell_new_{k}"))
+            flushes.access(columns, _const(SEP_MEM), _col(pointer) + _const(8 * k), next(accesses), next(slots), old, new)
     return flushes
 
 
@@ -1243,6 +1261,8 @@ class Table:
         fields = (("a1", read if self.wide else REGISTER_BITS), *((("a2", read),) if self.reads_rs2 else ()))
         if self.writes_rd:
             fields += (("ad", written),)
+        elif self.ram == "block":
+            fields += (("ad", REGISTER_BITS),)
         return tuple((_cols(self.columns, name)[0], width) for name, width in fields)
 
     def read_registers(self, transcript: Transcript) -> tuple[dict[int, E], tuple[E, ...]]:
@@ -2053,12 +2073,27 @@ def _div() -> _GateList:
 
 
 def _blake2s() -> _GateList:
-    """(t, f0, h[4], m[8]) -> out[4]: the BLAKE2s compression on the 32-bit halves of the words. Every G is six 32-bit
-    additions, its two three-operand ones chained, and nothing but the carries is a product."""
-    c = _GateList((64, 32, *[64] * 12), (64,) * 4)
-    t, f0 = c.inputs[0], c.inputs[1]
-    halves = [list(word[32 * i : 32 * i + 32]) for word in c.inputs[2:] for i in range(2)]
-    h, m = halves[:8], halves[8:]
+    """(x, flags, h[4], m[8]) -> out[4]: the BLAKE2s compression on the 32-bit halves of the words. Every G is six
+    32-bit additions, its two three-operand ones chained, and nothing but the carries is a product. The flags are the
+    finalization word, then the node selector. A node's products come first: its message's halves are swapped when x's
+    low bit is set, each bit moving by swap (low ^ high), and its counter is one block's, each bit of x moving by
+    node (x ^ 64)."""
+    c = _GateList((64, 33, *[64] * 12), (64,) * 4)
+    x, flags = c.inputs[0], c.inputs[1]
+    f0, node = flags[:32], flags[32]
+    h = [list(word[32 * i : 32 * i + 32]) for word in c.inputs[2:6] for i in range(2)]
+    swap = c.product(node, x[0])
+    words = [list(word) for word in c.inputs[6:]]
+    for k in range(4):
+        for bit in range(64):
+            moved = c.product(swap, c.xor(words[k][bit], words[k + 4][bit]))
+            words[k][bit] = c.xor(words[k][bit], moved)
+            words[k + 4][bit] = c.xor(words[k + 4][bit], moved)
+    m = [word[32 * i : 32 * i + 32] for word in words for i in range(2)]
+    t = []
+    for bit in range(64):
+        block = c.one if HASH_BLOCK_BYTES >> bit & 1 else None
+        t.append(c.xor(x[bit], c.product(node, c.xor(x[bit], block))))
 
     def literal(x: int) -> list[Wire]:
         return [c.one if x >> i & 1 else None for i in range(32)]
@@ -2120,8 +2155,7 @@ def _clock(slots: Sequence[int]) -> _GateList:
     return c
 
 
-HASH_PORTS = ("v2", "flags", *(f"cell_{k}" for k in (*range(4), *range(8, 16))), *(f"cell_new_{HASH_OUT_WORD + j}" for j in range(4)))
-HASH_FINAL = 2**32 - 1
+HASH_PORTS = ("v3", "flags", *(f"cell_{k}" for k in range(12)), *(f"cell_new_{k}" for k in range(4)))
 
 TABLES = (
     Table("alu", 0, True, "none", _alu().circuit(), ("v1", "v2", "imm", "flags", "dt", "pc4", "out", "jump"), ALU_LEGAL_FLAGS),
@@ -2138,7 +2172,7 @@ TABLES = (
     # A division's flags: signed, remainder, 32-bit. Its two hints are in its witness and in no column.
     Table("div", 8, False, "none", _div().circuit(), ("v1", "v2", "flags", None, None, "out", "bad"), frozenset(range(8))),
     # The BLAKE2s precompile: the counter is v2 and the flags are the finalization word, all ones on the last block.
-    Table("hash", 9, False, "block", _blake2s().circuit(), HASH_PORTS, frozenset((0, HASH_FINAL))),
+    Table("hash", 9, False, "block", _blake2s().circuit(), HASH_PORTS, frozenset((0, HASH_FINAL, HASH_NODE | HASH_FINAL))),
     # The moves of an element between memory and an extension register: the circuit is the address alone, as LD's.
     Table("eld", 10, False, "element_read", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),
     Table("esd", 11, False, "element_write", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),
@@ -2221,6 +2255,12 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
             require(a1[z] < 32 and named, "a bytecode entry misnames an extension register")
             require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
             require(flags[z] == 0 and dt[z] == 0 and exit[z] == 0, "a bytecode entry's flags are not its class's")
+            continue
+        if table.ram == "block":
+            # A compression reads four registers: its destination names one, and its immediate the fourth.
+            require(a1[z] < 32 and a2[z] < 32 and ad[z] < 32 and imm[z] < 32, "a bytecode entry misnames a register")
+            require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
+            require(flags[z] in table.legal_flags and dt[z] == 0 and exit[z] == 0, "a bytecode entry's flags are not its class's")
             continue
         require(a1[z] < 32 and a2[z] < 32 and 1 <= ad[z] <= SINK, "a bytecode entry misnames a register")
         require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
@@ -2511,7 +2551,7 @@ def verify_core(
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
     require(entry_pc % 4 == 0 and TEXT_BASE <= entry_pc < halt_pc, "the entry pc is not an instruction of the text")
-    preimage = b"leanvm-rv64im-13" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-14" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 
@@ -2645,8 +2685,7 @@ def protocol_constants() -> str:
         "CLOCK_START": CLOCK_START,
         "FLOCK_K_SKIP": FLOCK_K_SKIP,
         "FLOCK_MIN_LOG_SIZE": FLOCK_MIN_LOG_SIZE,
-        "HASH_OUT_WORD": HASH_OUT_WORD,
-        "HASH_WORDS": HASH_WORDS,
+        "HASH_ACCESSES": HASH_ACCESSES,
         "INITIAL_FOLDING_FACTOR": INITIAL_FOLDING_FACTOR,
         "LOG_PACKING": LOG_PACKING,
         "LIVE_BIT": LIVE_BIT,

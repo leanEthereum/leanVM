@@ -29,15 +29,11 @@ impl Compression {
     /// The output chaining value, as the precompile computes it.
     pub fn output(&self) -> Limbs {
         let i = &self.0;
-        let block: [u64; 16] = std::array::from_fn(|w| match w {
-            0..4 => i[2 + w],
-            4..8 => 0,
-            _ => i[6 + w - 8],
-        });
         Hash {
             flags: i[1],
-            t: i[0],
-            block,
+            x: i[0],
+            h: std::array::from_fn(|w| i[2 + w]),
+            m: std::array::from_fn(|w| i[6 + w]),
         }
         .eval()
     }

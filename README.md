@@ -122,7 +122,7 @@ cargo leanvm leansphincs --n 104 --repeat 3
 cargo leanvm leanda --blobs 1 --repeat 3
 cargo leanvm falcon --n 28 --repeat 3
 cargo leanvm stateproof --n 21 --repeat 3
-cargo leanvm shielded --n 1035 --repeat 3
+cargo leanvm shielded --n 1020 --repeat 3
 ```
 
 The report gives the RISC-V cycles per signature, per blob, per read or per spend, the rows per table and the committed witness, then the proving and verifying times.

@@ -40,7 +40,7 @@ use primitives::hash::Hasher;
 use primitives::multilinear::{eq_table, mle_eval_par};
 use thiserror::Error;
 
-const DOMAIN: &[u8] = b"leanvm-program-tree-1";
+const DOMAIN: &[u8] = b"leanvm-program-tree-2";
 
 /// The shape both tree programs' proofs have: their tables' heights and their programs' sizes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -149,7 +149,7 @@ impl TreeProof {
     }
 
     /// The header of a tree proof's bytes: the magic `LVMT`, then the tree protocol's version.
-    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 13);
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 14);
 
     /// The proof's bytes: its statement's words, then its program's proof.
     #[must_use]
