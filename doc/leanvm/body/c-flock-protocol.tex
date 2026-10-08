@@ -288,10 +288,10 @@ Circuit & ports (in $\to$ out) & $\kblock$ & $\jconst$ & $\wedge$ wires & positi
 \texttt{MUL}   & $3\to1$  & $12$ & $256$   & $2{,}175$  & $2{,}432$\\
 \texttt{MULH}  & $3\to1$  & $13$ & $256$   & $4{,}545$  & $4{,}802$\\
 \texttt{DIV}   & $5\to2$  & $13$ & $448$   & $5{,}156$  & $5{,}605$\\
-\texttt{HASH}  & $14\to4$ & $14$ & $1{,}152$ & $14{,}878$ & $16{,}031$\\
+\texttt{HASH}  & $14\to4$ & $14$ & $1{,}152$ & $15{,}199$ & $16{,}352$\\
 \hline
 clock, three accesses & $4\to1$ & $9$ & $320$ & $154$ & $440$\\
-clock, \texttt{HASH}'s eighteen & $19\to1$ & $11$ & $1{,}280$ & $754$ & $2{,}000$\\
+clock, \texttt{HASH}'s twenty & $21\to1$ & $12$ & $1{,}408$ & $834$ & $2{,}208$\\
 \hline
 \end{tabular}
 \end{center}
@@ -312,7 +312,7 @@ whose right side is a sum of rows of bits each affine in the inputs. Its column 
 
 Carry-save steps then compress the rows. A step replaces three rows by their sum row, the position-wise $\oplus$, and their carry row, the position-wise majority shifted up one place: a majority costs one product where at least two of the three rows have a bit, except that where exactly two do and the carry row is still free at that position, one of the two bits moves into it for nothing. Each step takes the three rows that end lowest. After $64$ steps two rows remain, and the adder above finishes. The low word of the product keeps $64$ positions of every row and drops the carry out of the top one, which is \texttt{MUL}'s $2{,}175$ products; the high word keeps all $128$, which is \texttt{MULH}'s, its signed forms correcting the product of the operands' magnitudes. \texttt{DIV} multiplies the divisor by the hinted quotient the same way and adds the remainder.
 
-\paragraph{The compression.} \texttt{HASH} is the BLAKE2s compression itself: the ten rounds' $80$ G functions, each six $32$-bit additions on the halves of the ports' words, a three-operand addition being two of them chained, and XORs and rotations, which are free. Only the carries are products, $31$ per addition.
+\paragraph{The compression.} \texttt{HASH} is the BLAKE2s compression itself: the ten rounds' $80$ G functions, each six $32$-bit additions on the halves of the ports' words, a three-operand addition being two of them chained, and XORs and rotations, which are free. Only the carries are products, $31$ per addition, and the $321$ that order a node's message and choose its counter (\S\ref{sec:tables}).
 
 \paragraph{Batch size.} The zerocheck of \S\ref{flock:zerocheck} fixes seven coordinates of its point beyond the $\kskip$ skipped ones, so it needs $\kbool\ge13$, and lincheck works on batches of at least eight blocks, $\kbatch\ge3$. For the circuits of $\kblock\ge10$ the second bound is the binding one, and for the clock circuits of $\kblock=9$ and \texttt{LD}'s and \texttt{SD}'s circuit of $\kblock=8$ the first: a table's batches have one instance per row, so every table has at least $2^{4}$ rows, \texttt{LD} and \texttt{SD} at least $2^{5}$, \texttt{HASH} and \texttt{EXT} at least eight (\S\ref{sec:tables}). A circuit's lincheck has $\kblock-\kskip$ rounds, from $2$ to $8$, and the batch runs $\klcmax=8$.
 

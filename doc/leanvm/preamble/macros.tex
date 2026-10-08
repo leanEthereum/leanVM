@@ -180,21 +180,17 @@
 \newcommand{\sfam}[1]{s^{\mathrm{rs}}_{#1}} % the family's slice #1
 
 % ---------- recursion (Annex E) ----------
-\newcommand{\rcirc}{\mathfrak{C}}         % a recursion circuit: rows over the recursion machine's tables, and their wires
-\newcommand{\rgid}{\mathsf{sl}}           % a slot's index among all tables' slots
-\newcommand{\slotkey}{\mathsf{key}}       % the bus key a recursion slot pulls at
-\newcommand{\slotnext}{\mathsf{next}}     % the key of the next slot of the slot's wire, where it pushes
-\newcommand{\rfirst}{\rcirc_{\mathrm{first}}} % the first-level node's circuit, verifying RISC-V proofs
-\newcommand{\rnode}{\rcirc_{\mathrm{node}}}   % the node's circuit, verifying recursion proofs
-\newcommand{\arityz}{\mathsf{n}_0}        % RISC-V proofs a first-level node verifies
-\newcommand{\arity}{\mathsf{n}}           % recursion proofs a node verifies
+\newcommand{\rcirc}{\mathsf{V}}           % a verifier program: a leanVM verifier as RISC-V instructions
+\newcommand{\rfirst}{\rcirc_{\mathrm{first}}} % the first-level program, verifying proofs of the leaf program
+\newcommand{\rnode}{\rcirc_{\mathrm{node}}}   % the node program, verifying proofs of either tree program
+\newcommand{\arityz}{\mathsf{n}_0}        % leaf proofs a first-level node verifies
+\newcommand{\arity}{\mathsf{n}}           % tree proofs a node verifies
 \newcommand{\kbit}{\mathsf{k}}            % a tree proof's kind: 0 for the first level, 1 for a node
 \newcommand{\tdig}{\mathsf{dig}}          % a tree proof's digest of its leaves' outputs
-\newcommand{\bctab}{\mathsf{T}}           % the program's stacked bytecode table
+\newcommand{\bctab}{\mathsf{T}}           % the leaf program's stacked bytecode table
 \newcommand{\imgpoly}{\mathsf{I}}         % RAM's image, zero padded to a power of two
-\newcommand{\fixnode}{W_{\mathrm{node}}}  % the nodes' fixed polynomial: both circuits' fixed columns
-\newcommand{\fixdim}{\kappa_{\mathrm{fix}}} % variables of one circuit's stack of fixed columns
-\newcommand{\taufix}{\tau^{\mathrm{node}}} % the table heights both tree circuits share
+\newcommand{\fixnode}{\mathsf{T}_{\mathrm{node}}}  % the two tree programs' bytecode tables, stacked under the kind
+\newcommand{\taufix}{\tau^{\mathrm{node}}} % the shape both tree programs' proofs share
 \newcommand{\fdense}{\mathbf{x}_{\mathrm{d}}} % the point of a tree proof's dense claims
 \newcommand{\frow}{\mathbf{x}_{\mathrm{r}}}   % the row point of a tree proof's matrix claims
 \newcommand{\fcol}{\mathbf{x}_{\mathrm{c}}}   % the column point of a tree proof's matrix claims
