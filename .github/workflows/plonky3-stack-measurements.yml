@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: ARM butterfly reduction comparison (${{ matrix.name }})
+    name: Corrected scalar folding comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 98f57b94cb23a1ace8ac1b9d54ece373a3bc0688
+          ref: 41812cb5ced23e3b9ff63304c942b4519b8db49d
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare ARM butterfly reductions on native hardware
+      - name: Compare corrected scalar folding with a known answer on native hardware
         run: bash .github/perf-stack/run.sh
