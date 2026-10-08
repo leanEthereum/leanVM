@@ -551,12 +551,7 @@ pub fn mul2(a: [F192; 2], b: [F192; 2]) -> [F192; 2] {
 /// Four independent products.
 #[inline]
 pub fn mul4(a: [F192; 4], b: [F192; 4]) -> [F192; 4] {
-    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-    {
-        unpack4(pack4(a) * pack4(b))
-    }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
-    std::array::from_fn(|i| a[i] * b[i])
+    F192::mul4(a, b)
 }
 /// Eight products by coefficient-field scalars.
 #[inline]
@@ -584,16 +579,7 @@ pub fn dot_base(w: &[[F192; 8]], k: &[F64]) -> F192 {
     }
     sum.finish()
 }
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-/// Pack four extension elements, filling wider backend lanes with zero.
-pub fn pack4(values: [F192; 4]) -> F192Packed {
-    F192Packed::from_ext_fn(|i| values.get(i).copied().unwrap_or(F192::ZERO))
-}
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-/// Extract four extension elements.
-pub fn unpack4(value: F192Packed) -> [F192; 4] {
-    std::array::from_fn(|i| value.extract(i))
-}
+
 /// Pack one complete group of extension elements.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 pub fn pack_lanes(values: [F192; F192_LANES]) -> F192Packed {
@@ -603,11 +589,6 @@ pub fn pack_lanes(values: [F192; F192_LANES]) -> F192Packed {
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 pub fn unpack_lanes(value: F192Packed) -> [F192; F192_LANES] {
     std::array::from_fn(|i| value.extract(i))
-}
-/// Initialize a complete group of scalar output slots.
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-pub fn store_packed(values: F192Packed, out: &mut [MaybeUninit<F192>; F192_LANES]) {
-    out.write_copy_of_slice(&unpack_lanes(values));
 }
 /// Sum all extension elements in the backend packing.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
