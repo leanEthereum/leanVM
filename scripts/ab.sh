@@ -4,7 +4,7 @@
 #
 #   scripts/ab.sh [--base REF] [--rounds N] [--out DIR] [--testbed NAME] [--pr N] [--ci] BENCHMARK...
 #
-# A benchmark is a case of `proven()` in bins/leanvm/src/tracked.rs (`hash-50000`), proven by the
+# A benchmark is a case of `proven()` in bins/leanvm/src/tracked/mod.rs (`hash-50000`), proven by the
 # CLI; a `benches/` target named in `target_of` below (`kernels`), run with `--json`; or `counts`,
 # the exact counts counts.yml compares (`bench --cycles-only`, once a side). Each is built on both
 # sides and run N times a side (`--rounds`, default `ROUNDS` or 5) in the order base, head, head,
