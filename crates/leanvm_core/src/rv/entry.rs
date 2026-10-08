@@ -39,6 +39,10 @@ pub enum Class {
     Div,
     /// The BLAKE2s compression, a custom instruction.
     Hash,
+    /// A load of an element of `E` into an extension register.
+    Eld,
+    /// A store of an extension register's element.
+    Esd,
     /// The multiplication in the extension field, by an element of it or of the base field: a custom instruction.
     Ext,
     /// No table runs it, so reaching one is a trap.
@@ -64,6 +68,7 @@ impl Class {
             Self::Div => Div::LEGAL,
             Self::Hash => Hash::LEGAL,
             Self::Ext => Ext::LEGAL,
+            Self::Eld | Self::Esd => Ld::LEGAL,
             Self::Illegal => &[],
         }
     }
@@ -139,6 +144,16 @@ impl Class {
                 rs1: ExtReg::ONE,
                 rs2: ExtReg::ONE,
             },
+            Self::Eld => Op::Eld {
+                rd: ExtReg::F3,
+                rs1,
+                offset: 0,
+            },
+            Self::Esd => Op::Esd {
+                rs2: ExtReg::ONE,
+                rs1,
+                offset: 0,
+            },
             Self::Illegal => return None,
         })
     }
@@ -161,6 +176,7 @@ impl Class {
             Self::Mulh => Mulh::circuit(),
             Self::Div => Div::circuit(),
             Self::Hash => Hash::circuit(),
+            Self::Eld | Self::Esd => Ld::circuit(),
             Self::Ext => panic!("the extension-field product has no circuit"),
             Self::Illegal => panic!("the illegal class has no circuit"),
         }
@@ -304,7 +320,7 @@ impl Entry {
                 };
                 (0, false, Some(access))
             }
-            Class::Hash | Class::Ext | Class::Illegal => (0, false, None),
+            Class::Hash | Class::Ext | Class::Eld | Class::Esd | Class::Illegal => (0, false, None),
         };
         Outcome { out, taken, access }
     }
@@ -347,6 +363,15 @@ impl Entry {
             Op::Load { rd, rs1, offset, .. } => entry(rs1, zero, rd, offset as i64 as u64),
             Op::Store { rs1, rs2, offset, .. } => entry(rs1, rs2, zero, offset as i64 as u64),
             Op::Blake2s { rs1, rs2, .. } => entry(rs1, rs2, zero, 0),
+            // An element's move names one integer register, the base, and one extension register.
+            Op::Eld { rd, rs1, offset } => Self {
+                ad: rd.index() as u8,
+                ..entry(rs1, zero, zero, offset as i64 as u64)
+            },
+            Op::Esd { rs2, rs1, offset } => Self {
+                a2: rs2.index() as u8,
+                ..entry(rs1, zero, zero, offset as i64 as u64)
+            },
             Op::Fence => entry(zero, zero, zero, 0),
             Op::Ecall => Self::EXIT,
 
@@ -412,6 +437,9 @@ impl Entry {
                 let written = ExtReg::FIRST_WRITABLE..ExtReg::COUNT as u8;
                 (self.a1 as usize) < ExtReg::COUNT && (self.a2 as usize) < second && written.contains(&self.ad)
             }
+            // An element's move: its base an integer register, the other an extension register, the constants never written.
+            Class::Eld => self.a1 < 32 && (ExtReg::FIRST_WRITABLE..ExtReg::COUNT as u8).contains(&self.ad),
+            Class::Esd => self.a1 < 32 && (self.a2 as usize) < ExtReg::COUNT,
             _ => self.a1 < 32 && self.a2 < 32 && (1..=RegisterFile::SINK).contains(&self.ad),
         };
         let flags = self.class.legal_flags().contains(&self.flags);
@@ -467,8 +495,8 @@ impl Entry {
     /// That a doubleword load or store has no flags is its legal flag word, zero.
     const fn has_table_constants(&self) -> bool {
         match self.class {
-            Class::Load | Class::Ld => self.a2 == 0,
-            Class::Store | Class::Sd => self.ad == RegisterFile::SINK,
+            Class::Load | Class::Ld | Class::Eld => self.a2 == 0,
+            Class::Store | Class::Sd | Class::Esd => self.ad == RegisterFile::SINK,
             Class::Hash => self.ad == RegisterFile::SINK && self.imm == 0,
             Class::Ext => self.imm == 0,
             _ => true,

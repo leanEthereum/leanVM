@@ -48,6 +48,9 @@ impl Clock {
     /// Clock slot reserved for a single load or store.
     pub const RAM_SLOT: u32 = 2;
 
+    /// The first of an element's three words' slots, after the registers'.
+    pub const ELEMENT_SLOT: u32 = Self::REG_SLOTS[2] + 1;
+
     /// A hash row reads its two registers, then accesses its block's words in order.
     pub const fn block_slot(k: usize) -> u32 {
         2 + k as u32

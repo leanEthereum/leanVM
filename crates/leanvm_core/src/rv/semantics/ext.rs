@@ -71,6 +71,27 @@ impl Ext {
     }
 }
 
+/// A move of one element between memory and an extension register: `eld` or `esd`.
+///
+/// The element's limbs are the three words at `address ^ 8k`, which are `address + 8k` for an element on a 32-byte
+/// boundary; elsewhere the words are permuted, deterministically.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ElementAccess {
+    /// The address of the element's first limb.
+    pub address: u64,
+    /// The limbs moved.
+    pub limbs: [u64; 3],
+    /// What the destination held: the register for a load, the three words for a store.
+    pub old: [u64; 3],
+}
+
+impl ElementAccess {
+    /// The address of limb `k`.
+    pub const fn limb_address(address: u64, k: usize) -> u64 {
+        address ^ (8 * k as u64)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

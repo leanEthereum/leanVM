@@ -89,6 +89,8 @@ pub enum Opcode {
     Custom0 = 0x0b,
     /// The custom-1 space, which holds the extension-field multiplication.
     Custom1 = 0x2b,
+    /// The custom-2 space, which holds the moves between memory and the extension registers.
+    Custom2 = 0x5b,
     /// `FENCE`.
     MiscMem = 0x0f,
     /// Register-immediate arithmetic.
@@ -116,11 +118,12 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    /// Every opcode the machine uses: rv64im's, and the two custom spaces.
-    pub const ALL: [Self; 15] = [
+    /// Every opcode the machine uses: rv64im's, and the three custom spaces.
+    pub const ALL: [Self; 16] = [
         Self::Load,
         Self::Custom0,
         Self::Custom1,
+        Self::Custom2,
         Self::MiscMem,
         Self::OpImm,
         Self::Auipc,
@@ -143,6 +146,7 @@ impl Opcode {
             0x03 => Self::Load,
             0x0b => Self::Custom0,
             0x2b => Self::Custom1,
+            0x5b => Self::Custom2,
             0x0f => Self::MiscMem,
             0x13 => Self::OpImm,
             0x17 => Self::Auipc,
@@ -370,6 +374,25 @@ impl Instruction {
             // Each extension register's number is its five-bit field, then two bits of the function-7 field.
             //
             // The constants are never written, and a base-field operand is an integer register.
+            // A load of an element has a load's fields and a store of one a store's: the extension register's number
+            // is its five-bit field, then the function's two low bits, whose third tells the two apart.
+            Opcode::Custom2 if f3 < 4 => {
+                let rd = ExtReg::new((rd.index() as u32 | f3 << 5) as u8)?;
+                if rd.index() < ExtReg::FIRST_WRITABLE as usize {
+                    return None;
+                }
+                Op::Eld {
+                    rd,
+                    rs1,
+                    offset: self.imm_i() as i32,
+                }
+            }
+            Opcode::Custom2 => Op::Esd {
+                rs2: ExtReg::new((rs2.index() as u32 | (f3 & 3) << 5) as u8)?,
+                rs1,
+                offset: self.imm_s() as i32,
+            },
+
             Opcode::Custom1 if f7 >> 6 == 0 => {
                 let op = ExtOp::from_fields(f3)?;
                 let number =
@@ -935,6 +958,10 @@ pub enum Op {
     Ecall,
     /// `blake2s rs1, rs2`: compress the block at `rs1` with the counter in `rs2`, the final one if `last`.
     Blake2s { rs1: Reg, rs2: Reg, last: bool },
+    /// `eld fd, offset(rs1)`: the extension register `fd` receives the three words at `rs1 + offset`, `fd` never a constant.
+    Eld { rd: ExtReg, rs1: Reg, offset: i32 },
+    /// `esd fs2, offset(rs1)`: the three words at `rs1 + offset` receive the extension register `fs2`.
+    Esd { rs2: ExtReg, rs1: Reg, offset: i32 },
     /// `op fd, fs1, fs2` on extension registers, `fd` never a constant, a base-field form's `fs2` an integer register.
     Ext {
         op: ExtOp,
@@ -962,6 +989,27 @@ impl Op {
             Self::Ecall => Instruction::ECALL,
             Self::Blake2s { rs1, rs2, last } => Instruction::r(Opcode::Custom0, last as u32, 0, Reg::ZERO, rs1, rs2),
             Self::Ext { op, rd, rs1, rs2 } => op.encode(rd, rs1, rs2),
+            Self::Eld { rd, rs1, offset } => {
+                let d = rd.index() as u32;
+                Instruction(
+                    Opcode::Custom2.bits()
+                        | Instruction::RD.place(d & 31)
+                        | Instruction::FUNCT3.shift(d >> 5)
+                        | Instruction::RS1.place(rs1.index() as u32)
+                        | Instruction::IMM_I.place(offset as u32),
+                )
+            }
+            Self::Esd { rs2, rs1, offset } => {
+                let (s, o) = (rs2.index() as u32, offset as u32);
+                Instruction(
+                    Opcode::Custom2.bits()
+                        | Instruction::RD.place(o)
+                        | Instruction::FUNCT3.shift(4 | s >> 5)
+                        | Instruction::RS1.place(rs1.index() as u32)
+                        | Instruction::RS2.place(s & 31)
+                        | Instruction::FUNCT7.place(o >> Instruction::RD.width),
+                )
+            }
         }
     }
 
@@ -981,6 +1029,8 @@ impl Op {
             Self::Jalr { .. } => (Class::Alu, Alu::INDIRECT | Alu::ALWAYS),
             Self::Blake2s { last, .. } => (Class::Hash, if last { Hash::FINAL } else { 0 }),
             Self::Ext { op, .. } => (Class::Ext, op.flags()),
+            Self::Eld { .. } => (Class::Eld, 0),
+            Self::Esd { .. } => (Class::Esd, 0),
         }
     }
 }

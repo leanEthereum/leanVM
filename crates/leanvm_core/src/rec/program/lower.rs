@@ -5,7 +5,7 @@
 //! No instruction moves a register to memory, so an element evicted while still needed is hinted: the advice holds its
 //! limbs, the program checks them against the register before giving it up, and reloads them when it needs them.
 
-use super::record::{CHAIN_IV, Gen, Home, Loc, Op, POW_TAGS};
+use super::record::{CHAIN_IV, ELEMENT, Gen, Home, Loc, Op, POW_TAGS, leaf_slot};
 use crate::rv::Region;
 use crate::rv::asm::*;
 use crate::tables::Clock;
@@ -17,8 +17,6 @@ pub(super) struct Lowered {
     pub(super) text: Vec<u32>,
     /// The base-two logarithm of RAM's words.
     pub(super) log_ram: usize,
-    /// The elements hinted after the recorded advice, in order, three words each.
-    pub(super) spills: Vec<u32>,
 }
 
 /// Integer registers the program keeps for one purpose.
@@ -76,7 +74,8 @@ struct Lower<'g> {
     held: [Option<u32>; REGISTERS as usize],
     /// Where each evicted element's hint is.
     spilled: Vec<Option<Loc>>,
-    spills: Vec<u32>,
+    /// The scratch words in use, the recorder's then the stored elements'.
+    n_scratch: usize,
     /// The page each page register holds, and when it was last used.
     pages: [(u64, u64); reg::PAGES.len()],
     tick: u64,
@@ -151,26 +150,24 @@ impl Lower<'_> {
         }
     }
 
-    /// Load the element at `loc` into register `f`: `1 * l_0 + y * l_1 + y^2 * l_2`.
+    /// Load the element at `loc`, on a 32-byte boundary, into register `f`.
     fn load(&mut self, f: u8, loc: Loc) {
-        // A constant's zero limbs need no instruction.
-        let known = match loc {
-            Loc::Const(i) => Some([self.g.consts[i], self.g.consts[i + 1], self.g.consts[i + 2]]),
-            _ => None,
-        };
-        let t = reg::T[0];
-        let mut op = Extmulk;
-        for k in 0..3 {
-            if known.is_some_and(|limbs| limbs[k] == 0) {
-                continue;
-            }
-            self.ld(t, loc.add(k));
-            self.a.ext(op, f, k as u8, t.index() as u8);
-            op = Extmack;
-        }
-        if op == Extmulk {
-            self.a.ext(Extmulk, f, 0, Reg::ZERO.index() as u8);
-        }
+        debug_assert!(
+            self.address(loc).is_multiple_of(8 * ELEMENT as u64),
+            "an element's slot"
+        );
+        let (base, offset) = self.word(loc);
+        self.a.eld(f, offset, base);
+    }
+
+    /// Store register `f` at `loc`, on a 32-byte boundary.
+    fn store(&mut self, f: u8, loc: Loc) {
+        debug_assert!(
+            self.address(loc).is_multiple_of(8 * ELEMENT as u64),
+            "an element's slot"
+        );
+        let (base, offset) = self.word(loc);
+        self.a.esd(f, offset, base);
     }
 
     /// Whether the element is used after the operation being lowered.
@@ -186,16 +183,15 @@ impl Lower<'_> {
         }
     }
 
-    /// Give up the register of an element: hint it first if it is still needed and has no home.
+    /// Give up the register of an element: store it first if it is still needed and has no home.
     fn release(&mut self, f: u8) {
         let Some(e) = self.held[f as usize].take() else { return };
         self.at[e as usize] = None;
         if self.live(e) && self.home(e).is_none() {
-            let loc = Loc::Advice(self.g.advice.len() + 3 * self.spills.len());
-            self.spills.push(e);
+            let loc = Loc::Scratch(self.n_scratch.next_multiple_of(ELEMENT));
+            self.n_scratch = self.n_scratch.next_multiple_of(ELEMENT) + ELEMENT;
             self.spilled[e as usize] = Some(loc);
-            self.load(SCRATCH, loc);
-            self.a.ext(Extmacz, SCRATCH, f, 0);
+            self.store(f, loc);
         }
     }
 
@@ -488,7 +484,7 @@ impl Lower<'_> {
                 if word < prefix {
                     self.a.store(Sd, Reg::ZERO, offset, reg::LEAF[0]);
                 } else {
-                    self.ld(t, leaf.add(word - prefix));
+                    self.ld(t, leaf.add(leaf_slot(word - prefix)));
                     self.a.store(Sd, t, offset, reg::LEAF[0]);
                 }
             }
@@ -564,8 +560,7 @@ impl Lower<'_> {
             Op::AssertEq { a, b } => self.assert_equal(a, b),
             Op::Limbs { e, at } => {
                 let f = self.register(e, &[]);
-                self.load(SCRATCH, at);
-                self.a.ext(Extmacz, SCRATCH, f, 0);
+                self.store(f, at);
             }
             Op::Init { iv, output } => {
                 self.phase = 0;
@@ -660,8 +655,6 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
     // RAM: the constants, the three hash blocks on 128-byte boundaries, then the scratch words.
     let blocks = g.consts.len().next_multiple_of(16);
     let scratch = blocks + 3 * 16;
-    let words = scratch + g.n_scratch;
-    let log_ram = words.next_power_of_two().trailing_zeros() as usize;
     let ram = Region::RAM.base();
     let block = |i: usize| ram + 8 * (blocks + 16 * i) as u64;
 
@@ -678,7 +671,7 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
         at: vec![None; g.es.len()],
         held: [None; REGISTERS as usize],
         spilled: vec![None; g.es.len()],
-        spills: Vec::new(),
+        n_scratch: g.n_scratch,
         pages: [(u64::MAX, 0); reg::PAGES.len()],
         tick: 0,
         phase: 0,
@@ -713,9 +706,9 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
         "a program ends on its output"
     );
 
+    let log_ram = (scratch + l.n_scratch).next_power_of_two().trailing_zeros() as usize;
     Lowered {
         text: l.a.finish(),
         log_ram,
-        spills: l.spills,
     }
 }

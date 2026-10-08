@@ -7,7 +7,7 @@ use std::ops::{Index, IndexMut};
 use std::slice::Iter;
 
 /// Number of instruction tables in the proof layout.
-pub const N_TABLES: usize = 11;
+pub const N_TABLES: usize = 13;
 
 /// An instruction table, named by the class it proves.
 ///
@@ -36,7 +36,11 @@ impl TableId {
     pub const DIV: Self = Self(Class::Div);
     /// The BLAKE2s compression.
     pub const HASH: Self = Self(Class::Hash);
-    /// The extension-field product.
+    /// The loads of an element into an extension register.
+    pub const ELD: Self = Self(Class::Eld);
+    /// The stores of an extension register's element.
+    pub const ESD: Self = Self(Class::Esd);
+    /// The extension-field products.
     pub const EXT: Self = Self(Class::Ext);
 
     /// Every table, in protocol order.
@@ -51,6 +55,8 @@ impl TableId {
         Self::MULH,
         Self::DIV,
         Self::HASH,
+        Self::ELD,
+        Self::ESD,
         Self::EXT,
     ];
 
@@ -86,6 +92,8 @@ impl TableId {
             Class::Mulh => &ClassSpec::MULH,
             Class::Div => &ClassSpec::DIV,
             Class::Hash => &ClassSpec::HASH,
+            Class::Eld => &ClassSpec::ELD,
+            Class::Esd => &ClassSpec::ESD,
             Class::Ext => &ClassSpec::EXT,
             Class::Illegal => unreachable!(),
         }

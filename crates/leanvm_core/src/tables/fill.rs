@@ -1,6 +1,7 @@
 //! Sequential registration and parallel execution of column writers.
 
 use super::{ClassTable, Clock, Word};
+use crate::cpu::execute::ElementRow;
 use crate::cpu::{Row, RowRef, Trace};
 use crate::rv::RiscvProgram;
 use parallel::SendPtr;
@@ -176,15 +177,31 @@ impl ClassTable {
         } else {
             ctx.column(out, rows, c.v1, move |r| F64(r.v1));
         }
+        // An element's move: its register's number, the address, the limbs moved and what the destination held.
+        if let Some(e) = c.element {
+            let moves: &[ElementRow] = &ctx.trace.elements[self.id];
+            let number = c
+                .rs2
+                .map(|r| r.a2)
+                .or_else(|| c.rd.map(|rd| rd.ad))
+                .expect("an extension register");
+            let second = c.rs2.is_some();
+            ctx.column(out, rows, number, move |r| {
+                F64(if second { entry(r).a2 } else { entry(r).ad } as u64)
+            });
+            ctx.column(out, moves, e.address, |m| F64(m.access.address));
+            ctx.columns(out, moves, e.limbs, |m| m.access.limbs.map(F64));
+            ctx.columns(out, moves, e.old, |m| m.access.old.map(F64));
+        }
         if let Some(flags) = c.flags {
             ctx.column(out, rows, flags, move |r| F64(entry(r).flags));
         }
-        if let Some(rs2) = c.rs2.filter(|_| c.ext.is_none()) {
+        if let Some(rs2) = c.rs2.filter(|_| c.ext.is_none() && c.element.is_none()) {
             ctx.columns_at(out, rows, [rs2.a2, rs2.v2], move |r| {
                 [F64(entry(r).a2 as u64), F64(r.v2)]
             });
         }
-        if let Some(rd) = c.rd.filter(|_| c.ext.is_none()) {
+        if let Some(rd) = c.rd.filter(|_| c.ext.is_none() && c.element.is_none()) {
             ctx.columns_at(out, rows, [rd.ad, rd.vd_old], move |r| {
                 [F64(entry(r).ad as u64), F64(r.vd_old)]
             });

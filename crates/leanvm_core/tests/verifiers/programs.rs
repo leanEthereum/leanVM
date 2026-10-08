@@ -287,6 +287,42 @@ fn blake2s_precompile_proves_and_verifies() {
     );
 }
 
+/// The moves of an element between memory and an extension register.
+///
+/// The image holds `x` and `y`, each on a 32-byte boundary. The run loads both, multiplies them, stores the product,
+/// and outputs its three words: the only way an extension register's value reaches an integer one.
+#[test]
+fn element_moves_prove_and_verify() {
+    let (x, y) = ([0x0123_4567_89AB_CDEF, 5, 1 << 63], [3, u64::MAX, 0x1B]);
+    let image = vec![x[0], x[1], x[2], 0, y[0], y[1], y[2], 0];
+    let mut a = Asm::new();
+    a.li(Reg::S0, Region::RAM.base())
+        .eld(3, 0, Reg::S0)
+        .eld(100, 32, Reg::S0)
+        .ext(Extmul, 127, 3, 100)
+        .esd(127, 64, Reg::S0);
+    for (k, reg) in [Reg::A0, Reg::A1, Reg::A2].into_iter().enumerate() {
+        a.load(Ld, reg, 64 + 8 * k as i32, Reg::S0);
+    }
+    let program =
+        Program::new(&a.exit().finish(), Region::TEXT.base(), image, 4, 0).expect("valid instruction program");
+    let e = |v: [u64; 3]| F192::new(v[0], v[1], v[2]);
+    let product = e(x) * e(y);
+    proves_and_verifies("element", &program, [product.c0, product.c1, product.c2, 0]);
+
+    // An element off its words traps, like a misaligned load.
+    let text = Asm::new()
+        .li(Reg::S0, Region::RAM.base() + 4)
+        .eld(3, 0, Reg::S0)
+        .exit()
+        .finish();
+    let program = Program::new(&text, Region::TEXT.base(), vec![], 4, 0).expect("valid instruction program");
+    assert!(matches!(
+        Prover::new(Rate::MIN).prove(&program, &[]).err(),
+        Some(ProveError::Trap(Trap::Misaligned { .. }))
+    ));
+}
+
 /// The extension-field precompile, checked against the host's `GF(2^192)`.
 ///
 /// The image holds sixteen elements `x_i`, then sixteen base-field words `w_i`, then the expected result.

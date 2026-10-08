@@ -118,11 +118,7 @@ impl VerifierProgram {
         // The output binds what was verified: each run's output and every claim its core leaves.
         let output = g.commit(&words, &left);
         let lowered = lower::lower(&g);
-        let mut advice = g.advice.clone();
-        for &e in &lowered.spills {
-            let v = g.e(record::E(e));
-            advice.extend([v.c0, v.c1, v.c2]);
-        }
+        let advice = g.advice.clone();
         let log_advice = advice.len().next_power_of_two().trailing_zeros() as usize;
         let program = Program::new(
             &lowered.text,
@@ -238,7 +234,10 @@ mod tests {
         );
 
         // Mutation: one bit of each of a few advice words, across the proof: the verifier traps.
-        for at in [4, 40, v.advice.len() / 3, v.advice.len() / 2, v.advice.len() - 1] {
+        //
+        // A slot's fourth word is padding, which nothing reads, so each word taken is a slot's first.
+        for at in [4, 40, v.advice.len() / 3, v.advice.len() / 2, v.advice.len() - 4] {
+            let at = at - at % 4;
             let mut forged = v.advice.clone();
             forged[at] ^= 1;
             let mut m = Machine::new(v.program.rv(), &forged);

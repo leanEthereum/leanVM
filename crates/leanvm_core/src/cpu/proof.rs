@@ -17,7 +17,7 @@ impl Proof {
     /// The header of a proof's bytes: the magic `LVMP`, then the protocol version.
     ///
     /// The version is bumped by every change to what a proof says.
-    const ENVELOPE: Envelope = Envelope::new(*b"LVMP", 14);
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMP", 15);
 
     /// The proof's bytes.
     #[must_use]

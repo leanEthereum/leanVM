@@ -5,8 +5,10 @@
 //! Everything else comes back from the program's entry at the row's index.
 
 use crate::rv::machine::{MemoryAccess, Step};
-use crate::rv::{BlockAccess, Class, Ext, ExtReg, Hash, Machine, RegisterFile, RiscvProgram, WordAccess};
-use crate::tables::{Clock, PerTable, TableId};
+use crate::rv::{
+    BlockAccess, Class, ElementAccess, Ext, ExtReg, Hash, Machine, RegisterFile, RiscvProgram, WordAccess,
+};
+use crate::tables::{Clock, PerTable, Ram, TableId};
 use primitives::field::F64;
 
 /// A finished run: its output, its rows, and what it left behind.
@@ -100,6 +102,8 @@ pub(super) struct TraceBuilder {
     hash: Vec<HashRow>,
     /// The extension-field table's payloads, one per row.
     ext: Vec<ExtRow>,
+    /// Each element-moving table's moves, row by row.
+    elements: PerTable<Vec<ElementRow>>,
     /// Each table's access slots, which a padding row's accesses pull as their previous timestamps.
     padding_prev: PerTable<Vec<u64>>,
     /// The advice before the run, which is committed.
@@ -127,6 +131,7 @@ impl TraceBuilder {
             rows: PerTable::default(),
             hash: Vec::new(),
             ext: Vec::new(),
+            elements: PerTable::default(),
             padding_prev: PerTable::from_fn(|t: TableId| t.spec().slots().into_iter().map(u64::from).collect()),
             adv_init: advice.iter().map(|&w| F64(w)).collect(),
         }
@@ -143,7 +148,12 @@ impl TraceBuilder {
         let cells = [e.a1, e.a2, e.ad].map(|cell| cell as usize);
         let made = [true, spec.reads_rs2, spec.writes_rd];
         // An extension-field product's registers are extension registers, but a base-field operand.
-        let integer = [!spec.wide, !spec.wide || e.flags & Ext::BASE != 0, !spec.wide];
+        let element = spec.ram == Ram::Element;
+        let integer = [
+            !spec.wide,
+            !element && (!spec.wide || e.flags & Ext::BASE != 0),
+            !spec.wide && !element,
+        ];
         let mut prev = [0; 4];
         let mut n = 0;
         for (i, slot) in Clock::REG_SLOTS.into_iter().enumerate() {
@@ -178,6 +188,17 @@ impl TraceBuilder {
                     out: h.out,
                     prev: all,
                 });
+            }
+            // An element's three words, at `address ^ 8k`, after its registers.
+            MemoryAccess::Element(access) => {
+                let mut all = [0; 5];
+                all[..n].copy_from_slice(&prev[..n]);
+                for k in 0..3 {
+                    let cell = cell_of(ElementAccess::limb_address(access.address, k));
+                    all[n + k] = self.ram.access(cell, ts | u64::from(Clock::ELEMENT_SLOT + k as u32));
+                }
+                word.address = access.address;
+                self.elements[table].push(ElementRow { access, prev: all });
             }
             // An extension-field row's operands as it found them, and what it leaves.
             MemoryAccess::Ext(instance) => self.ext.push(ExtRow {
@@ -244,6 +265,15 @@ impl TraceBuilder {
                 });
                 prev[..slots.len()].copy_from_slice(slots);
             }
+            // An element's move finds zeros at address zero, and leaves them.
+            Class::Eld | Class::Esd => {
+                let mut all = [0; 5];
+                all.copy_from_slice(slots);
+                self.elements[table].push(ElementRow {
+                    access: ElementAccess::default(),
+                    prev: all,
+                });
+            }
             _ => prev[..slots.len()].copy_from_slice(slots),
         }
 
@@ -268,6 +298,7 @@ impl TraceBuilder {
             rows: self.rows,
             hash: self.hash,
             ext: self.ext,
+            elements: self.elements,
             reg_fin: m.registers().cells().iter().map(|&r| F64(r)).collect(),
             reg_ts: self.regs.timestamps(),
             ext_fin: std::array::from_fn(|k| m.ext_registers().cells().iter().map(|r| F64(r[k])).collect()),
@@ -311,6 +342,14 @@ pub(crate) struct ExtRow {
 }
 
 /// One executed instruction, as its table's row records it.
+/// One move of an element: what it moved, and its five accesses' previous timestamps.
+pub(crate) struct ElementRow {
+    /// The move.
+    pub(crate) access: ElementAccess,
+    /// The previous timestamps: the base register's, the extension register's, then the three words'.
+    pub(crate) prev: [u64; 5],
+}
+
 pub(crate) struct Row {
     /// The entry executed.
     pub(crate) index: u32,
@@ -341,6 +380,8 @@ pub(crate) enum Payload<'a> {
     None,
     /// A hash row's block, and its accesses.
     Hash(&'a HashRow),
+    /// An element's move.
+    Element(&'a ElementRow),
 }
 
 /// A row and its payload: everything a circuit port or a column reads.
@@ -366,6 +407,7 @@ impl<'a> RowRef<'a> {
         match self.payload {
             Payload::None => &self.row.prev,
             Payload::Hash(hash) => &hash.prev,
+            Payload::Element(element) => &element.prev,
         }
     }
 
@@ -393,6 +435,8 @@ pub(crate) enum Payloads<'a> {
     None,
     /// The hash table's.
     Hash(&'a [HashRow]),
+    /// An element-moving table's moves.
+    Element(&'a [ElementRow]),
 }
 
 /// One table's rows, and their payloads.
@@ -410,6 +454,7 @@ impl<'a> TableRows<'a> {
         let payload = match self.payloads {
             Payloads::None => Payload::None,
             Payloads::Hash(hash) => Payload::Hash(&hash[i]),
+            Payloads::Element(elements) => Payload::Element(&elements[i]),
         };
         RowRef {
             row: &self.rows[i],
@@ -426,6 +471,8 @@ pub(crate) struct Trace {
     pub(crate) hash: Vec<HashRow>,
     /// The extension-field table's payloads, row `i`'s at `i`.
     pub(crate) ext: Vec<ExtRow>,
+    /// Each element-moving table's moves, row by row.
+    pub(crate) elements: PerTable<Vec<ElementRow>>,
     /// The registers after the run.
     pub(crate) reg_fin: Vec<F64>,
     /// Each register's last timestamp, the seed's if never touched.
@@ -461,6 +508,7 @@ impl Trace {
     pub(crate) fn table(&self, t: TableId) -> TableRows<'_> {
         let payloads = match t.class() {
             Class::Hash => Payloads::Hash(&self.hash),
+            Class::Eld | Class::Esd => Payloads::Element(&self.elements[t]),
             _ => Payloads::None,
         };
         TableRows {

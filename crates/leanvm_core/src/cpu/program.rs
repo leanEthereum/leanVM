@@ -42,7 +42,7 @@ const _: () = assert!(cfg!(target_endian = "little"));
 
 impl Program {
     /// The domain separator of the digest, versioned with the statement's format.
-    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-12";
+    const DIGEST_DOMAIN: &'static [u8] = b"leanvm-rv64im-13";
 
     /// The cycles between two checks of a running trace against one commitment.
     const SIZE_CHECK_PERIOD: u64 = 1 << 16;
@@ -1104,6 +1104,35 @@ mod tests {
         for (k, word) in x.c.into_iter().enumerate() {
             forged.trace.ext_fin[k][8] = F64(word);
         }
+        let w = Witness::build(&program, &forged);
+        let unmatched = unmatched(&w);
+        assert_eq!(unmatched.len(), 4, "{unmatched:?}");
+        assert_unbalanced(&program, w, forged.output.into());
+    }
+
+    #[test]
+    fn a_forged_element_load_unbalances_the_bus() {
+        // Invariant: a load of an element gives its register what the three words hold.
+        //
+        // Fixture state: `f3` loaded from RAM's first words, (3, 5, 7).
+        let text = Asm::new()
+            .li(Reg::S0, Region::RAM.base())
+            .eld(3, 0, Reg::S0)
+            .exit()
+            .finish();
+        let program = Program::new(&text, Region::TEXT.base(), vec![3, 5, 7], 3, 0).expect("valid instruction program");
+        assert!(unmatched_run(&program, &program.execute(&[]).unwrap()).is_empty());
+
+        // Mutation: the row moves a first limb of 2, and `f3` follows it: one column is both tuples', so the
+        // register's side agrees and the word's does not.
+        //
+        //     the row pulls (2), which nothing pushed, and leaves the seed's 3
+        //     the row pushes (2), which nothing pulls, and the final 3 is left unpushed
+        let mut forged = program.execute(&[]).unwrap();
+        let eld = TableId::ELD;
+        let at = forged.trace.rows[eld].iter().position(|r| r.ts != 0).unwrap();
+        forged.trace.elements[eld][at].access.limbs[0] = 2;
+        forged.trace.ext_fin[0][3] = F64(2);
         let w = Witness::build(&program, &forged);
         let unmatched = unmatched(&w);
         assert_eq!(unmatched.len(), 4, "{unmatched:?}");

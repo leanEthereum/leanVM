@@ -188,6 +188,26 @@ impl Asm {
         self.emit(Op::Ext { op, rd, rs1, rs2 })
     }
 
+    /// `eld fd, offset(rs1)`: load the element at `rs1 + offset` into extension register `fd`, by number.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number names no extension register.
+    pub fn eld(&mut self, rd: u8, offset: i32, rs1: Reg) -> &mut Self {
+        let rd = ExtReg::new(rd).expect("an extension register");
+        self.emit(Op::Eld { rd, rs1, offset })
+    }
+
+    /// `esd fs2, offset(rs1)`: store extension register `fs2`, by number, at `rs1 + offset`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number names no extension register.
+    pub fn esd(&mut self, rs2: u8, offset: i32, rs1: Reg) -> &mut Self {
+        let rs2 = ExtReg::new(rs2).expect("an extension register");
+        self.emit(Op::Esd { rs2, rs1, offset })
+    }
+
     /// `ecall`.
     pub fn ecall(&mut self) -> &mut Self {
         self.emit(Op::Ecall)

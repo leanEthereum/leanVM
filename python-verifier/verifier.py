@@ -944,6 +944,7 @@ RAM_SLOT = 2
 HASH_WORDS = 16
 HASH_OUT_WORD = 4  # the block's words 4 to 7 receive the result
 HASH_SLOTS = tuple(range(2, 2 + HASH_WORDS))
+ELEMENT_SLOTS = tuple(range(REGISTER_SLOTS[2] + 1, REGISTER_SLOTS[2] + 4))  # an element's three words, after the registers
 EXT_LIMBS = 9  # an extension-field row's limbs as found: a's, b's, then c's, three each
 EXT_SELECTORS = ("accumulate", "base", "zero")  # the flags' bits, one 0 or 1 column each
 
@@ -996,7 +997,14 @@ class Flushes:
 
 CONTROL_COLUMNS = ("dt", "jump", "exit")  # a class with jumps: the bytecode's offset, the circuit's gated jump, the exit
 HASH_COLUMNS = (*(f"cell_{k}" for k in range(HASH_WORDS)), *(f"cell_new_{HASH_OUT_WORD + j}" for j in range(4)))
-RAM_COLUMNS = {"none": (), "read": ("address", "cell_0"), "write": ("address", "cell_0", "cell_new_0"), "block": HASH_COLUMNS}
+RAM_COLUMNS = {
+    "none": (),
+    "read": ("address", "cell_0"),
+    "write": ("address", "cell_0", "cell_new_0"),
+    "block": HASH_COLUMNS,
+    "element_read": (),
+    "element_write": (),
+}
 
 
 EXIT_SLOT = 11  # public selector: only ECALL can terminate the state channel
@@ -1004,13 +1012,23 @@ BAD_SLOT = 10  # where a bytecode tuple holds a row's `bad` word: past every fie
 BYTECODE_PUBLIC_SLOT = 2  # an entry's first field, after the separator and the address
 
 
+ELEMENT = ("element_read", "element_write")  # a load of an element into an extension register, and a store of one
+
+
 def _registers(ram: str, words: Sequence[str | None], copies: bool, wide: bool) -> tuple[bool, bool]:
     """Whether a row reads rs2 and writes rd: when its circuits take v2 and give out, when it is a doubleword store
     reading the v2 it moves, or a doubleword load writing the cell it moves, or when it is an extension-field product."""
+    if ram in ELEMENT:
+        return ram == "element_write", ram == "element_read"
     return wide or "v2" in words or (copies and ram == "write"), wide or "out" in words or (copies and ram == "read")
 
 
 def _class_columns(control: bool, ram: str, words: Sequence[str | None], copies: bool, wide: bool) -> tuple[str, ...]:
+    if ram in ELEMENT:
+        # The address, the limbs moved, what the destination held, then the extension register's number.
+        moved = ("address", *(f"limb_{k}" for k in range(3)), *(f"limb_old_{k}" for k in range(3)))
+        number = "a2" if ram == "element_write" else "ad"
+        return ("pc", "ts", "a1", "pc4", "v1", *moved, number, "imm", *(f"prev_{i}" for i in range(5)), "step")
     if wide:
         # The nine limbs as found, the two other register numbers, c's new limbs, then the flags' bits.
         limbs = (*(f"limb_{k}" for k in range(EXT_LIMBS)), "a2", "ad", *(f"limb_new_{k}" for k in range(3)))
@@ -1031,7 +1049,33 @@ def _slots(ram: str, reads_rs2: bool, writes_rd: bool) -> tuple[int, ...]:
     registers = tuple(slot for slot, made in zip(REGISTER_SLOTS, (True, reads_rs2, writes_rd), strict=True) if made)
     if ram == "block":
         return (*registers, *HASH_SLOTS)
+    if ram in ELEMENT:
+        return (*registers, *ELEMENT_SLOTS)
     return (*registers, RAM_SLOT) if RAM_COLUMNS[ram] else registers
+
+
+def _element_flushes(opcode: int, columns: Sequence[str], ram: str) -> Flushes:
+    """A move of one element between memory and an extension register: the state step, the bytecode read, the base
+    register, the extension register (read by a store, rewritten by a load), then the element's three words at
+    address ^ 8k, which is address + 8k in the field (read by a load, rewritten by a store). The limbs moved are one set
+    of columns on both tuples."""
+    store = ram == "element_write"
+    pc, a1, pc4, v1, address, imm = _cols(columns, "pc", "a1", "pc4", "v1", "address", "imm")
+    (number,) = _cols(columns, "a2" if store else "ad")
+    limbs = [_col(index) for index in _cols(columns, *(f"limb_{k}" for k in range(3)))]
+    old = [_col(index) for index in _cols(columns, *(f"limb_old_{k}" for k in range(3)))]
+    flushes = Flushes()
+    flushes.state(columns, _col(pc4), _const(ZERO))
+    a2_form, ad_form = (_col(number), _const(SINK)) if store else (_const(ZERO), _col(number))
+    entry = (_const(_gpow(opcode)), _const(ZERO), _col(a1), a2_form, ad_form, _col(imm), _col(pc4))
+    entry = (*entry, *[_const(ZERO)] * (EXIT_SLOT - BYTECODE_PUBLIC_SLOT - len(entry)), _const(ZERO))
+    flushes.read((_const(SEP_BYTECODE), _col(pc), *entry))
+    flushes.access(columns, _const(SEP_REG), _col(a1), 0, REGISTER_SLOTS[0], _col(v1), _col(v1))
+    flushes.wide(columns, _const(SEP_EXT), _col(number), 1, REGISTER_SLOTS[1 if store else 2], limbs if store else old, limbs)
+    for k in range(3):
+        word = _col(address) + _const(8 * k)
+        flushes.access(columns, _const(SEP_MEM), word, 2 + k, ELEMENT_SLOTS[k], old[k] if store else limbs[k], limbs[k])
+    return flushes
 
 
 def _ext_flushes(opcode: int, columns: Sequence[str]) -> Flushes:
@@ -1057,6 +1101,8 @@ def _ext_flushes(opcode: int, columns: Sequence[str]) -> Flushes:
 def _class_flushes(opcode: int, columns: Sequence[str], control: bool, ram: str, words: Sequence[str | None], copies: bool, wide: bool) -> Flushes:
     if wide:
         return _ext_flushes(opcode, columns)
+    if ram in ELEMENT:
+        return _element_flushes(opcode, columns, ram)
     reads_rs2, writes_rd = _registers(ram, words, copies, wide)
     a1, pc4, v1 = _cols(columns, "a1", "pc4", "v1")
     # A row without flags, an rs2 read, an rd write or an immediate reads their constants off the entry: zero, x0, the
@@ -1193,8 +1239,8 @@ class Table:
         not committed, but packed in this order into a committed word (`register_words`), which the opening reads bit by
         bit. A register read is below 32, five bits; a cell written may be the sink, 32, six bits; an extension register
         is below 128, seven bits."""
-        read, written = (LOG_EXT_REGISTERS, LOG_EXT_REGISTERS) if self.wide else (REGISTER_BITS, LOG_REGISTERS)
-        fields = (("a1", read), *((("a2", read),) if self.reads_rs2 else ()))
+        read, written = (LOG_EXT_REGISTERS, LOG_EXT_REGISTERS) if self.wide or self.ram in ELEMENT else (REGISTER_BITS, LOG_REGISTERS)
+        fields = (("a1", read if self.wide else REGISTER_BITS), *((("a2", read),) if self.reads_rs2 else ()))
         if self.writes_rd:
             fields += (("ad", written),)
         return tuple((_cols(self.columns, name)[0], width) for name, width in fields)
@@ -2093,10 +2139,13 @@ TABLES = (
     Table("div", 8, False, "none", _div().circuit(), ("v1", "v2", "flags", None, None, "out", "bad"), frozenset(range(8))),
     # The BLAKE2s precompile: the counter is v2 and the flags are the finalization word, all ones on the last block.
     Table("hash", 9, False, "block", _blake2s().circuit(), HASH_PORTS, frozenset((0, HASH_FINAL))),
+    # The moves of an element between memory and an extension register: the circuit is the address alone, as LD's.
+    Table("eld", 10, False, "element_read", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),
+    Table("esd", 11, False, "element_write", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),
     # The extension-field precompile, on extension registers, with no class circuit: its identities say the product.
     # Its flags are three bits (accumulate, base field, zero result), which the bytecode holds apart: `accumulate` in its
     # flags slot, `base` and `zero` in its immediate and offset slots.
-    Table("ext", 10, False, "none", None, (), frozenset(range(8)), wide=True),
+    Table("ext", 12, False, "none", None, (), frozenset(range(8)), wide=True),
 )
 
 TABLE_WIDTHS = tuple(t.width for t in TABLES)
@@ -2162,6 +2211,16 @@ def check_bytecode(bytecode: Sequence[K]) -> None:
             require(named, "a bytecode entry misnames an extension register")
             require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
             require(flags[z] <= 1 and imm[z] <= 1 and dt[z] <= 1 and exit[z] == 0, "a bytecode entry's flags are not its class's")
+            continue
+        if table.ram in ELEMENT:
+            # Its base is an integer register and the other an extension register, a constant never written.
+            if table.ram == "element_read":
+                named = a2[z] == 0 and EXT_CONSTANTS <= ad[z] < 2**LOG_EXT_REGISTERS
+            else:
+                named = a2[z] < 2**LOG_EXT_REGISTERS and ad[z] == SINK
+            require(a1[z] < 32 and named, "a bytecode entry misnames an extension register")
+            require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
+            require(flags[z] == 0 and dt[z] == 0 and exit[z] == 0, "a bytecode entry's flags are not its class's")
             continue
         require(a1[z] < 32 and a2[z] < 32 and 1 <= ad[z] <= SINK, "a bytecode entry misnames a register")
         require(pc4[z] == TEXT_BASE + 4 * z + 4, "a bytecode entry's successor is not pc + 4")
@@ -2452,7 +2511,7 @@ def verify_core(
     # Everything public and fixed is one digest, which seeds the transcript; every variable-length part is length-framed.
     halt_pc = TEXT_BASE + 4 * (len(bytecode) // 2**BUS_BITS - 1)
     require(entry_pc % 4 == 0 and TEXT_BASE <= entry_pc < halt_pc, "the entry pc is not an instruction of the text")
-    preimage = b"leanvm-rv64im-12" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
+    preimage = b"leanvm-rv64im-13" + pack("<Q", len(bytecode)) + b"".join(word.to_bytes() for word in bytecode)
     preimage += pack("<5Q", entry_pc, halt_pc, log_ram, log_advice, len(image)) + pack(f"<{len(image)}Q", *image)
     transcript = Transcript(proof, blake2s_hash(preimage), [K(word) for word in output])
 

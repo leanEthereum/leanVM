@@ -80,6 +80,22 @@ impl BlockColumns {
     }
 }
 
+/// Columns of a move of one element between memory and an extension register.
+///
+/// The limbs moved are one set of columns on both tuples: what the load's register receives is what its words hold,
+/// and what the store's words receive is what its register holds.
+#[derive(Clone, Copy)]
+pub(super) struct ElementColumns {
+    /// The address of the first limb, the circuit's word.
+    pub(super) address: usize,
+
+    /// The three limbs moved.
+    pub(super) limbs: usize,
+
+    /// What the destination held, three limbs: the register for a load, the words for a store.
+    pub(super) old: usize,
+}
+
 /// Columns of an extension-field product: its operands' limbs, the result's, and its selectors.
 ///
 /// All are committed columns, which the table's identities relate.
@@ -148,6 +164,9 @@ pub(super) struct Columns {
     /// Optional hash block access.
     pub(super) block: Option<BlockColumns>,
 
+    /// Optional move of an element.
+    pub(super) element: Option<ElementColumns>,
+
     /// Optional extension-field product.
     pub(super) ext: Option<ExtColumns>,
 
@@ -174,16 +193,30 @@ impl Columns {
         );
         // An extension-field product's nine limbs start at its first source's value, `b`'s and `c`'s after `a`'s.
         let limbs = spec.wide.then(|| allocator.allocate(8) - 1);
+        // An element's move: the address, the limbs moved, then what the destination held.
+        let element = (spec.ram == Ram::Element).then(|| ElementColumns {
+            address: allocator.allocate(1),
+            limbs: allocator.allocate(3),
+            old: allocator.allocate(3),
+        });
         let flags = spec.words().any(|w| w == Word::Flags).then(|| allocator.allocate(1));
         let rs2 = spec.reads_rs2.then(|| SourceColumns {
             a2: allocator.allocate(1),
-            v2: limbs.map_or_else(|| allocator.allocate(1), |l| l + 3),
+            v2: match (limbs, element) {
+                (Some(l), _) => l + 3,
+                (_, Some(e)) => e.limbs,
+                _ => allocator.allocate(1),
+            },
         });
         // A doubleword load's `rd` receives its cell, which is a column further on.
         let rd = spec.writes_rd.then(|| {
             (
                 allocator.allocate(1),
-                limbs.map_or_else(|| allocator.allocate(1), |l| l + 6),
+                match (limbs, element) {
+                    (Some(l), _) => l + 6,
+                    (_, Some(e)) => e.old,
+                    _ => allocator.allocate(1),
+                },
                 (!spec.copies).then(|| allocator.allocate(if spec.wide { 3 } else { 1 })),
             )
         });
@@ -194,7 +227,7 @@ impl Columns {
         });
         let imm = spec.words().any(|w| w == Word::Imm).then(|| allocator.allocate(1));
         let (ram, block) = match spec.ram {
-            Ram::None => (None, None),
+            Ram::None | Ram::Element => (None, None),
             Ram::Read | Ram::Write => {
                 let (address, cell) = (allocator.allocate(1), allocator.allocate(1));
                 let new = match (spec.ram, rs2) {
@@ -218,7 +251,9 @@ impl Columns {
         let rd = rd.map(|(ad, vd_old, out)| DestinationColumns {
             ad,
             vd_old,
-            out: out.unwrap_or_else(|| ram.expect("a doubleword load reads a cell").cell),
+            out: out.unwrap_or_else(|| {
+                element.map_or_else(|| ram.expect("a doubleword load reads a cell").cell, |e| e.limbs)
+            }),
         });
         let ext = limbs.map(|limbs| ExtColumns {
             limbs,
@@ -240,6 +275,7 @@ impl Columns {
             imm,
             ram,
             block,
+            element,
             ext,
             bad,
             prev,
@@ -267,7 +303,11 @@ impl Columns {
             Word::Out => self.rd.map_or_else(missing, |rd| rd.out),
             Word::Dt => self.control.map_or_else(missing, |c| c.dt),
             Word::Jump => self.control.map_or_else(missing, |c| c.jump),
-            Word::Address => self.ram.map_or_else(missing, |r| r.address),
+            Word::Address => match (self.ram, self.element) {
+                (Some(ram), _) => ram.address,
+                (_, Some(element)) => element.address,
+                _ => missing(),
+            },
             Word::Cell(k) => match (self.ram, self.block) {
                 (Some(ram), _) => ram.cell,
                 (_, Some(block)) => block.words + k as usize,

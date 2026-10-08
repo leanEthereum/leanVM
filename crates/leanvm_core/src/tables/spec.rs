@@ -18,6 +18,8 @@ pub enum Ram {
     Write,
     /// Sixteen hash block words, with four output words rewritten.
     Block,
+    /// The three words of an element, read by a load of it and rewritten by a store.
+    Element,
 }
 
 impl Ram {
@@ -27,6 +29,7 @@ impl Ram {
             Self::None => 0..0,
             Self::Read | Self::Write => Clock::RAM_SLOT..Clock::RAM_SLOT + 1,
             Self::Block => Clock::block_slot(0)..Clock::block_slot(Hash::WORDS),
+            Self::Element => Clock::ELEMENT_SLOT..Clock::ELEMENT_SLOT + 3,
         }
     }
 }
@@ -308,6 +311,44 @@ impl ClassSpec {
         clock_k_log: 11,
     };
 
+    /// `eld`: the three words at `v1 + imm` are what the extension register `fd` receives.
+    pub const ELD: Self = Self {
+        class: Class::Eld,
+        name: "ELD",
+        control: false,
+        reads_rs2: false,
+        writes_rd: true,
+        wide: false,
+        ram: Ram::Element,
+        copies: true,
+        circuit: Some(ClassCircuit {
+            k_log: 8,
+            inputs: &[Word::V1, Word::Imm],
+            outputs: &[Word::Address],
+            fill: Fill::Instance(Ld::witness),
+        }),
+        clock_k_log: 10,
+    };
+
+    /// `esd`: the extension register `fs2` is what the three words at `v1 + imm` receive.
+    pub const ESD: Self = Self {
+        class: Class::Esd,
+        name: "ESD",
+        control: false,
+        reads_rs2: true,
+        writes_rd: false,
+        wide: false,
+        ram: Ram::Element,
+        copies: true,
+        circuit: Some(ClassCircuit {
+            k_log: 8,
+            inputs: &[Word::V1, Word::Imm],
+            outputs: &[Word::Address],
+            fill: Fill::Instance(Ld::witness),
+        }),
+        clock_k_log: 10,
+    };
+
     /// Extension-field multiplication on extension registers, optionally accumulating, by a base-field word, or checked.
     ///
     /// No class circuit: the limbs are committed columns, and the table's identities (`ClassTable::identities`) say the product.
@@ -349,6 +390,8 @@ impl ClassSpec {
             let moves = match self.ram {
                 Ram::Read => self.writes_rd && !self.reads_rs2,
                 Ram::Write => self.reads_rs2 && !self.writes_rd,
+                // An element's move is a load or a store by which register it names.
+                Ram::Element => self.writes_rd != self.reads_rs2,
                 Ram::None | Ram::Block => false,
             };
             let ports = [Word::V1, Word::Imm, Word::Address];

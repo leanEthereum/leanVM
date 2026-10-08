@@ -78,7 +78,7 @@ pub(super) enum Op {
     MulKAdd { out: u32, a: u32, k: u32, d: Option<u32> },
     /// `a = b`.
     AssertEq { a: u32, b: u32 },
-    /// The element at `at` is `e`: a hint, which gives `e`'s limbs as words.
+    /// `e` stored at `at`, which gives its limbs as words.
     Limbs { e: u32, at: Loc },
     /// The transcript's first state: the compression of the seed and the output's four words.
     Init { iv: Loc, output: Loc },
@@ -224,6 +224,18 @@ impl<'a> Gen<'a> {
         Loc::Scratch(self.n_scratch - words)
     }
 
+    /// Scratch words for one element, on a 32-byte boundary: where the element instructions find its limbs.
+    const fn scratch_element(&mut self) -> Loc {
+        self.n_scratch = self.n_scratch.next_multiple_of(ELEMENT);
+        self.scratch(ELEMENT)
+    }
+
+    /// An element among the hints, on a 32-byte boundary.
+    fn hint_element(&mut self, v: F192) -> Loc {
+        self.advice.resize(self.advice.len().next_multiple_of(ELEMENT), 0);
+        self.hint(&[v.c0, v.c1, v.c2, 0])
+    }
+
     fn pool(&mut self, words: &[u64]) -> Loc {
         self.consts.extend_from_slice(words);
         Loc::Const(self.consts.len() - words.len())
@@ -242,7 +254,8 @@ impl<'a> Gen<'a> {
         if let Some(&id) = self.e_consts.get(&limbs) {
             return E(id);
         }
-        let loc = self.pool(&limbs);
+        self.consts.resize(self.consts.len().next_multiple_of(ELEMENT), 0);
+        let loc = self.pool(&[c.c0, c.c1, c.c2, 0]);
         let e = self.new_e(Home::Mem(loc), c);
         self.e_consts.insert(limbs, e.0);
         e
@@ -302,10 +315,10 @@ impl<'a> Gen<'a> {
         out
     }
 
-    /// `e`'s limbs as words: a hint, held to `e`.
+    /// `e`'s limbs as words: `e` stored to scratch words.
     fn limbs(&mut self, e: E) -> [K; 3] {
         let v = self.e(e);
-        let at = self.hint(&[v.c0, v.c1, v.c2]);
+        let at = self.scratch_element();
         self.ops.push(Op::Limbs { e: e.0, at });
         std::array::from_fn(|i| self.new_k(at.add(i), [v.c0, v.c1, v.c2][i]))
     }
@@ -316,7 +329,7 @@ impl<'a> Gen<'a> {
             ProofSource::Shape => F192::ZERO,
         };
         self.offset += 1;
-        let at = self.hint(&[v.c0, v.c1, v.c2]);
+        let at = self.hint_element(v);
         self.new_e(Home::Mem(at), v)
     }
 
@@ -329,7 +342,7 @@ impl<'a> Gen<'a> {
         };
         self.cv = fiat_shamir::step(self.cv, &values, tag);
         let challenge = squeeze.then(|| {
-            let loc = self.scratch(3);
+            let loc = self.scratch_element();
             let [c0, c1, c2, _] = self.cv.map(|w| w.0);
             (loc, self.new_e(Home::Mem(loc), F192::new(c0, c1, c2)))
         });
@@ -460,7 +473,7 @@ impl Arith for Gen<'_> {
     fn inv(&mut self, a: E) -> E {
         let v = self.e(a);
         let v = if v.is_zero() { F192::ZERO } else { v.inv() };
-        let at = self.hint(&[v.c0, v.c1, v.c2]);
+        let at = self.hint_element(v);
         let i = self.new_e(Home::Mem(at), v);
         let p = self.mul(a, i);
         let one = self.one;
@@ -572,7 +585,13 @@ impl Gen<'_> {
         );
         let levels = query.depth - s.bits;
         let (row, path) = self.next_opening(leaf_words, row_words, levels);
-        let (leaf, siblings) = (self.hint(&row), self.hint(path.as_flattened()));
+        // The row's words three to a 32-byte slot, so that three of them that are an element are one where they are.
+        self.advice.resize(self.advice.len().next_multiple_of(ELEMENT), 0);
+        let mut slots = vec![0; leaf_slot(row.len())];
+        for (i, &word) in row.iter().enumerate() {
+            slots[leaf_slot(i)] = word;
+        }
+        let (leaf, siblings) = (self.hint(&slots), self.hint(path.as_flattened()));
 
         // The value: the leaf's chain from the zero blocks' state, then the path, low bit first.
         let prefix = leaf_words - row_words;
@@ -614,7 +633,9 @@ impl Gen<'_> {
             path: siblings,
             out: self.d_loc(out),
         });
-        let words = (0..row_words).map(|i| self.new_k(leaf.add(i), row[i])).collect();
+        let words = (0..row_words)
+            .map(|i| self.new_k(leaf.add(leaf_slot(i)), row[i]))
+            .collect();
         (out, words)
     }
 
@@ -750,6 +771,14 @@ impl OpeningVerifier for Gen<'_> {
     fn query_point(&mut self, query: &Query) -> E {
         self.k_to_e(query.pos)
     }
+}
+
+/// The words of an element's slot: its three limbs, on a 32-byte boundary.
+pub(super) const ELEMENT: usize = 4;
+
+/// Where word `i` of an opened row is among its hint's words: three words to a slot.
+pub(super) const fn leaf_slot(i: usize) -> usize {
+    i + i / 3
 }
 
 /// The first chaining value of a hash of words: the parameter block's.

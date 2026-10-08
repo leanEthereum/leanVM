@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/07-instruction-tables.tex
 \section{The instruction tables}\label{sec:tables}
 
-The instructions are grouped into eleven \emph{classes}, and each class has its own table (\S\ref{sec:bytecode}). All eleven tables are the same table: a row does the plumbing that every instruction needs, the state step, the bytecode read, the register accesses and the memory accesses, and what the class computes is a Boolean circuit proven by Flock (Annex~\ref{annex:flock}), one instance per row, whose words the row puts on the bus. The exception is \texttt{EXT}, the extension-field product, which is of degree two over $\K$: its table has no class circuit and states the product as identities instead. A second circuit per table, its clock circuit (\S\ref{sec:clock}), orders the row's accesses in time. The tables differ in which words their circuit has, where the class sends control, and how it touches memory. Every tuple a table with a class circuit flushes is linear in its columns, so that table settles at the bus's point, all but its register numbers, which the table sumcheck folds (\S\ref{sec:leafstack}, \S\ref{sec:regpack}).
+The instructions are grouped into eleven \emph{classes}, and each class has its own table (\S\ref{sec:bytecode}). All thirteen tables are the same table: a row does the plumbing that every instruction needs, the state step, the bytecode read, the register accesses and the memory accesses, and what the class computes is a Boolean circuit proven by Flock (Annex~\ref{annex:flock}), one instance per row, whose words the row puts on the bus. The exception is \texttt{EXT}, the extension-field product, which is of degree two over $\K$: its table has no class circuit and states the product as identities instead. A second circuit per table, its clock circuit (\S\ref{sec:clock}), orders the row's accesses in time. The tables differ in which words their circuit has, where the class sends control, and how it touches memory. Every tuple a table with a class circuit flushes is linear in its columns, so that table settles at the bus's point, all but its register numbers, which the table sumcheck folds (\S\ref{sec:leafstack}, \S\ref{sec:regpack}).
 
 A read of a lookup array (\S\ref{sec:lookup}) is the single flush \pull\ $\tup{\sep,\addr,\val_0,\val_1,\dots}$; the array's producer pushes the entry back as often as it is read.
 
@@ -49,7 +49,7 @@ Tables of one height share a word. In table order, each table joins the first \e
 
 \subsection{The classes}\label{sec:tab-classes}
 
-The instructions of rv64im and the custom ones are decoded into the eleven classes below, an entry's flags selecting one function of its class (\S\ref{sec:e2e-bc}); \texttt{lui}, \texttt{auipc} and \texttt{jal}'s link $\pc+4$ are constants added to $\regs[0]$, \texttt{fence} is an addition of zeros, and \texttt{ecall} a jump to the halt slot. The reference for every function is the specification~\cite{riscv}; \S\ref{flock:classes} gives the circuits.
+The instructions of rv64im and the custom ones are decoded into the thirteen classes below, an entry's flags selecting one function of its class (\S\ref{sec:e2e-bc}); \texttt{lui}, \texttt{auipc} and \texttt{jal}'s link $\pc+4$ are constants added to $\regs[0]$, \texttt{fence} is an addition of zeros, and \texttt{ecall} a jump to the halt slot. The reference for every function is the specification~\cite{riscv}; \S\ref{flock:classes} gives the circuits.
 
 \paragraph{\texttt{ALU}} (arithmetic, comparisons, bitwise logic, branches and jumps). Ports $v_1,v_2,\mathit{imm},\mathit{flags},\Delta,\pc^{+}\to\mathit{out},\mathit{jump}$. The second operand is $v_2\oplus\mathit{imm}$, the decoder making one of the two zero. The bytecode's $\Delta$ is the fixed target XOR $\pc^{+}$, so that $\pc^{+}+\Delta$ is the target, and $0$ for an entry with none. With $b\in\{0,1\}$ whether the jump is taken, a wire of the circuit, the circuit gives $\mathit{jump}=b\,\Delta$, bit by bit. This is the one class with control flow, and its successor is linear in the row's columns:
 \[
@@ -74,6 +74,16 @@ A \texttt{jal} links $\pc^{+}$ as its immediate added to $\regs[0]$, so $\mathit
   &\acc{2+k}\tup{\dsep{MEM},v_1+\intk{8k};\,\mathit{out}^{\mathrm{old}}_{k-4}\to\mathit{out}_{k-4}}\quad(4\le k<8).
 \end{align*}
 The result cannot be written over the chaining value, because a padding row must rewrite what it writes (\S\ref{sec:e2e-pad}) and no chaining value is a fixed point of the compression.
+
+\paragraph{\texttt{ELD}, \texttt{ESD}} (\texttt{eld}, \texttt{esd}). A move of one element between memory and an extension register (\S\ref{sec:vm}). The circuit is \texttt{LD}'s, the address $\mathit{addr}=v_1+\mathit{imm}$ alone, and the three limbs moved, $l_0,l_1,l_2$, are committed columns that both tuples carry, as a doubleword's cell is. With $o_0,o_1,o_2$ what the destination held, a load reads its base register, the three words and rewrites its extension register,
+\[
+  \acc{0}\tup{\dsep{REG},a_1;\,v_1},\qquad \acc{3}\tup{\dsep{EREG},a_d;\,o_0,o_1,o_2\to l_0,l_1,l_2},\qquad \acc{4+k}\tup{\dsep{MEM},\mathit{addr}+\intk{8k};\,l_k}\quad(k<3),
+\]
+and a store reads its base register and its extension register and rewrites the three words,
+\[
+  \acc{0}\tup{\dsep{REG},a_1;\,v_1},\qquad \acc{1}\tup{\dsep{EREG},a_2;\,l_0,l_1,l_2},\qquad \acc{4+k}\tup{\dsep{MEM},\mathit{addr}+\intk{8k};\,o_k\to l_k}\quad(k<3).
+\]
+Limb $k$'s address is $\mathit{addr}\oplus 8k$, the field sum, a column plus a constant as for a \texttt{blake2s} block. So the register receives what the words hold, and the words what the register holds, by the bus alone. Both tables' flushes are linear, and each has five accesses.
 
 \paragraph{\texttt{EXT}} (\texttt{extmul}, \texttt{extmac}, \texttt{extmulk}, \texttt{extmack} and their checked forms). No class circuit: the table states the product as identities, and its clock circuit is the clock's alone.
 
@@ -105,4 +115,4 @@ No entry has $a_d<3$ (\S\ref{sec:e2e-bc}), every other access is a read, and a r
 
 A padding row multiplies zeros. It writes $0$ over $0$, so each of its accesses pulls the tuple it pushes, and its identities hold: its entry is \texttt{extmul f3, f0, f0}, whose three selectors are zero.
 
-\paragraph{Sizes.} A circuit's instance occupies $2^{\kblock}$ bits: $8$ for \texttt{LD} and \texttt{SD}, $10$ for \texttt{ALU}, \texttt{LOAD}, \texttt{STORE} and \texttt{SHIFT}, $12$ for \texttt{MUL}, $13$ for \texttt{MULH} and \texttt{DIV}, and $14$ for \texttt{HASH}, \texttt{EXT} having none; $9$ for the clock circuit of a row with three accesses, every class's but \texttt{HASH}'s, and $11$ for \texttt{HASH}'s eighteen (\S\ref{flock:classes}). Flock proves a batch of at least $2^{13}$ bits and at least eight instances, so a table has at least $2^{3}$ rows, and at least $2^{13-\kblock}$ for the smallest of its circuits: $2^{5}$ for \texttt{LD} and \texttt{SD}, $2^{3}$ for \texttt{HASH}, and $2^{4}$ for the others. Padding rows (\S\ref{sec:e2e-pad}) supply them.
+\paragraph{Sizes.} A circuit's instance occupies $2^{\kblock}$ bits: $8$ for \texttt{LD} and \texttt{SD}, $10$ for \texttt{ALU}, \texttt{LOAD}, \texttt{STORE} and \texttt{SHIFT}, $12$ for \texttt{MUL}, $13$ for \texttt{MULH} and \texttt{DIV}, and $14$ for \texttt{HASH}, \texttt{EXT} having none; $8$ for \texttt{ELD} and \texttt{ESD}, which share \texttt{LD}'s circuit; $9$ for the clock circuit of a row with three accesses, $10$ for \texttt{ELD}'s and \texttt{ESD}'s five, and $11$ for \texttt{HASH}'s eighteen (\S\ref{flock:classes}). Flock proves a batch of at least $2^{13}$ bits and at least eight instances, so a table has at least $2^{3}$ rows, and at least $2^{13-\kblock}$ for the smallest of its circuits: $2^{5}$ for \texttt{LD} and \texttt{SD}, $2^{3}$ for \texttt{HASH}, and $2^{4}$ for the others. Padding rows (\S\ref{sec:e2e-pad}) supply them.

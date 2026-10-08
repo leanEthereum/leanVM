@@ -10,7 +10,7 @@ use super::entry::{Class, Entry};
 use super::program::RiscvProgram;
 use super::region::Region;
 use super::register::{ExtRegisterFile, Reg, RegisterFile, Syscall};
-use super::semantics::{BlockAccess, Ext, Hash, Load, WordAccess};
+use super::semantics::{BlockAccess, ElementAccess, Ext, Hash, Load, WordAccess};
 use thiserror::Error;
 
 /// Why a run stops without halting: a fault of the ISA.
@@ -137,6 +137,8 @@ impl<'a> Machine<'a> {
         let (v1, v2) = match entry.class {
             Class::Ext if entry.flags & Ext::BASE != 0 => (0, self.registers.read(entry.a2)),
             Class::Ext => (0, 0),
+            // A store of an element names an extension register as its second.
+            Class::Esd => (self.registers.read(entry.a1), 0),
             _ => (self.registers.read(entry.a1), self.registers.read(entry.a2)),
         };
 
@@ -157,6 +159,17 @@ impl<'a> Machine<'a> {
             Class::Hash => Some(self.block(pc, v1)?),
             _ => None,
         };
+        let element = match entry.class {
+            Class::Eld | Class::Esd => {
+                let address = WordAccess::word_address(v1, entry.imm);
+                let mut cells = [0; 3];
+                for (k, cell) in cells.iter_mut().enumerate() {
+                    *cell = self.cell(pc, ElementAccess::limb_address(address, k), 3)?;
+                }
+                Some((address, cells))
+            }
+            _ => None,
+        };
         let product = match entry.class {
             Class::Ext => Some(self.product(pc, &entry, v2)?),
             _ => None,
@@ -173,6 +186,23 @@ impl<'a> Machine<'a> {
             (_, _, _, Some(instance)) => {
                 self.ext.write(entry.ad, instance.eval());
                 MemoryAccess::Ext(Box::new(instance))
+            }
+            // A load moves the three words to the register, a store the register to the three words.
+            _ if element.is_some() => {
+                let (address, cells) = element.expect("an element's move");
+                let words = cells.map(|cell| self.memory.get(cell));
+                let (limbs, old) = if entry.class == Class::Eld {
+                    let old = self.ext.read(entry.ad);
+                    self.ext.write(entry.ad, words);
+                    (words, old)
+                } else {
+                    let limbs = self.ext.read(entry.a2);
+                    for (cell, limb) in cells.into_iter().zip(limbs) {
+                        self.memory.set(cell, limb);
+                    }
+                    (limbs, words)
+                };
+                MemoryAccess::Element(ElementAccess { address, limbs, old })
             }
             _ => MemoryAccess::None,
         };
@@ -315,7 +345,7 @@ impl<'a> Machine<'a> {
     /// They make no write at all, so their tables have none to prove.
     const fn write_destination(&mut self, entry: &Entry, vd: u64) -> u64 {
         match entry.class {
-            Class::Store | Class::Sd | Class::Hash | Class::Ext => 0,
+            Class::Store | Class::Sd | Class::Hash | Class::Ext | Class::Eld | Class::Esd => 0,
             _ => self.registers.replace(entry.ad, vd),
         }
     }
@@ -330,6 +360,8 @@ pub enum MemoryAccess {
     Word(WordAccess),
     /// A whole block: the hash.
     Block(Box<BlockAccess>),
+    /// An element moved between memory and an extension register.
+    Element(ElementAccess),
     /// An extension-field product: the instance as the row found its operands.
     Ext(Box<Ext>),
 }

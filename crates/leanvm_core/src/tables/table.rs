@@ -85,17 +85,18 @@ impl ClassTable {
     /// - An extension register is below 128, seven bits.
     pub(crate) fn register_bits(&self) -> BitColumns {
         let c = &self.cols;
-        let (read, written) = match c.ext {
-            Some(_) => (ExtReg::BITS, ExtReg::BITS),
-            None => (Reg::BITS, RegisterFile::LOG_CELLS),
+        // An element's move names an integer register, its base, then an extension register.
+        let (first, read, written) = match (c.ext, c.element) {
+            (Some(_), _) => (ExtReg::BITS, ExtReg::BITS, ExtReg::BITS),
+            (_, Some(_)) => (Reg::BITS, ExtReg::BITS, ExtReg::BITS),
+            _ => (Reg::BITS, Reg::BITS, RegisterFile::LOG_CELLS),
         };
-        let read = |col| BitField { col, width: read };
-        let written = |col| BitField { col, width: written };
+        let field = |col, width| BitField { col, width };
         BitColumns {
             fields: [
-                Some(read(c.a1)),
-                c.rs2.map(|r| read(r.a2)),
-                c.rd.map(|rd| written(rd.ad)),
+                Some(field(c.a1, first)),
+                c.rs2.map(|r| field(r.a2, read)),
+                c.rd.map(|rd| field(rd.ad, written)),
             ]
             .into_iter()
             .flatten()
@@ -257,6 +258,25 @@ impl ClassTable {
             return;
         }
         accesses.read(Separator::Registers.coordinate(), Col(c.a1), Col(c.v1));
+        if let Some(e) = c.element {
+            // The extension register, read by a store and rewritten by a load, then the element's three words at
+            // `address ^ 8k`, which is `address + 8k` in the field: read by a load, rewritten by a store.
+            let ext = Separator::ExtRegisters.coordinate();
+            let limbs: [Coord; 3] = std::array::from_fn(|k| Col(e.limbs + k));
+            let old: [Coord; 3] = std::array::from_fn(|k| Col(e.old + k));
+            let (register, words) = match (c.rs2, c.rd) {
+                (Some(r), _) => ((Col(r.a2), limbs.clone()), old),
+                (_, Some(rd)) => ((Col(rd.ad), old), limbs.clone()),
+                _ => unreachable!("an element's move names an extension register"),
+            };
+            accesses.write_wide(ext, register.0, register.1, limbs.clone());
+            for (k, word) in words.into_iter().enumerate() {
+                let addr = Coord::Sum(vec![Col(e.address), Const(F64(8 * k as u64))]);
+                accesses.write(Separator::Memory.coordinate(), addr, word, limbs[k].clone());
+            }
+            accesses.finish();
+            return;
+        }
         if let Some(r) = c.rs2 {
             accesses.read(Separator::Registers.coordinate(), Col(r.a2), Col(r.v2));
         }
