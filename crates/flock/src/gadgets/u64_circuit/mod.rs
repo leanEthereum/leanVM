@@ -6,12 +6,11 @@
 //!     z[128 ..)        the result, 64 or 128 bits, then the constant, then the products
 //! ```
 
-use super::InstanceTables;
 use super::add::Adder;
 use super::mul::Multiplier;
 use crate::circuit::{Builder, Circuit};
 use crate::reduction::Block;
-use crate::witness::Witness;
+use crate::witness::{InstanceRows, Witness};
 
 /// The first slot of `a`.
 pub(crate) const A_BASE: usize = 0;
@@ -108,17 +107,17 @@ impl U64Circuit {
         let n = self.op.out_bits();
         self.circuit
             .witness_by_instance(pairs, &(0, 0), n_blocks_log, |&(a, b), z, az, bz| {
-                let mut tables = InstanceTables { z, az, bz };
+                let mut rows = InstanceRows::new(z, az, bz);
                 // The operation's products, by word arithmetic.
                 let out = match &self.plan {
-                    Plan::Add(adder) => adder.witness(a, b, &mut tables),
-                    Plan::Mul(multiplier) => multiplier.witness_into(a, b, &mut tables),
+                    Plan::Add(adder) => adder.witness(a, b, &mut rows),
+                    Plan::Mul(multiplier) => multiplier.witness_into(a, b, &mut rows),
                 };
                 // The ports and the constant, each a row against the constant.
-                tables.unit_rows(A_BASE, u128::from(a), 64);
-                tables.unit_rows(B_BASE, u128::from(b), 64);
-                tables.unit_rows(OUT_BASE, out, n);
-                tables.unit_rows(self.circuit.const_pos(), 1, 1);
+                rows.affine(A_BASE, u128::from(a), 64);
+                rows.affine(B_BASE, u128::from(b), 64);
+                rows.affine(OUT_BASE, out, n);
+                rows.constant(self.circuit.const_pos());
             })
     }
 }

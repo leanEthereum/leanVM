@@ -9,8 +9,8 @@
 //! Every other wire is affine, so the circuit pays 63 products: the carry out of bit 63 falls off the modulus.
 //! The witness is the native sum, whose carries are `(a + b) ^ a ^ b`.
 
-use super::InstanceTables;
 use crate::circuit::{Builder, Wire};
+use crate::witness::InstanceRows;
 
 /// The carries into bits 1 to 63.
 const CARRIES: u128 = (u64::MAX >> 1) as u128;
@@ -41,11 +41,11 @@ impl Adder {
     }
 
     /// Write the carries' rows and return the sum.
-    pub(super) fn witness(&self, a: u64, b: u64, tables: &mut InstanceTables<'_>) -> u128 {
+    pub(super) fn witness(&self, a: u64, b: u64, rows: &mut InstanceRows<'_>) -> u128 {
         let sum = a.wrapping_add(b);
         // Bit `i` of `sum ^ a ^ b` is the carry into position `i`.
         let carry_in = sum ^ a ^ b;
-        tables.products(self.slot, CARRIES, u128::from(a ^ carry_in), u128::from(b ^ carry_in));
+        rows.products(self.slot, CARRIES, u128::from(a ^ carry_in), u128::from(b ^ carry_in));
         u128::from(sum)
     }
 }

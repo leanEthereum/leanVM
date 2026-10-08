@@ -4,6 +4,10 @@
 use parallel::Chunks;
 use primitives::stream::Stream;
 
+mod rows;
+
+pub(crate) use rows::InstanceRows;
+
 /// The bytes of packed words, on a little-endian target.
 pub(crate) const fn packed_bytes(words: &[u64]) -> &[u8] {
     const _: () = assert!(

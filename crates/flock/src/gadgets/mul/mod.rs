@@ -41,8 +41,8 @@ use std::arch::x86_64::{
 };
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
-use super::InstanceTables;
 use crate::circuit::{Builder, Wire};
+use crate::witness::InstanceRows;
 
 /// The rows `(a_i ? b : NOT b)` for `i < 64`, then the `a` and `b` rows.
 const N_ROWS: usize = 66;
@@ -236,11 +236,11 @@ impl Multiplier {
     /// Only product slots are written, so the plan composes with other arithmetic.
     /// The caller fills the operand ports, the output ports and the constant.
     pub fn witness(&self, a: u64, b: u64, z: &mut [u64], az: &mut [u64], bz: &mut [u64]) -> u128 {
-        self.witness_into(a, b, &mut InstanceTables { z, az, bz })
+        self.witness_into(a, b, &mut InstanceRows::new(z, az, bz))
     }
 
     /// Write the complement selector, the carry-save products and the final carries.
-    pub(super) fn witness_into(&self, a: u64, b: u64, tables: &mut InstanceTables<'_>) -> u128 {
+    pub(super) fn witness_into(&self, a: u64, b: u64, tables: &mut InstanceRows<'_>) -> u128 {
         // A wrapping product needs only the low half of every row.
         if self.width == u128::from(u64::MAX) {
             return u128::from(self.witness_low(a, b, tables));
@@ -278,7 +278,7 @@ impl Multiplier {
     }
 
     /// The same plan modulo `2^64`, on words: a 64-bit shift clips the rows for free.
-    fn witness_low(&self, a: u64, b: u64, tables: &mut InstanceTables<'_>) -> u64 {
+    fn witness_low(&self, a: u64, b: u64, tables: &mut InstanceRows<'_>) -> u64 {
         let mut rows = [0u64; N_ROWS];
         for (i, row) in rows[..64].iter_mut().enumerate() {
             let v = b ^ ((a >> i) & 1).wrapping_sub(1);

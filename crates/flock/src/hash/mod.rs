@@ -68,7 +68,7 @@ use primitives::hash::{G_LANES, IV, PARAM_IV, SIGMA};
 use crate::gf2::{ADD3_BITS, CARRY_BITS_PER_ADD, Marginal, MatrixSide, RowValues, WireWord};
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
-use crate::witness::{Batch, Witness};
+use crate::witness::{Batch, InstanceRows, Witness};
 
 pub use crate::zerocheck::K_SKIP;
 
@@ -206,17 +206,17 @@ impl Compression {
     /// No `c` table is built: `C = I`, so `c` is `z`.
     fn write_rows(&self, rows: &mut InstanceRows<'_>) {
         // Phase 1: the constant wire and the free inputs.
-        rows.constant();
+        rows.constant(Z_CONST_POS);
         for (w, &word) in self.h.iter().enumerate() {
-            rows.affine_word(Blake2sCircuit::h_bit(w, 0), word);
+            rows.affine(Blake2sCircuit::h_bit(w, 0), u128::from(word), WORD_BITS);
         }
         for (i, &word) in self.m.iter().enumerate() {
-            rows.affine_word(Blake2sCircuit::m_bit(i, 0), word);
+            rows.affine(Blake2sCircuit::m_bit(i, 0), u128::from(word), WORD_BITS);
         }
-        rows.affine_word(COUNTER_LO_BASE, self.t as u32);
-        rows.affine_word(COUNTER_HI_BASE, (self.t >> 32) as u32);
-        rows.affine_word(FINAL_BASE, self.f0);
-        rows.affine_word(LAST_NODE_BASE, self.f1);
+        rows.affine(COUNTER_LO_BASE, u128::from(self.t as u32), WORD_BITS);
+        rows.affine(COUNTER_HI_BASE, u128::from((self.t >> 32) as u32), WORD_BITS);
+        rows.affine(FINAL_BASE, u128::from(self.f0), WORD_BITS);
+        rows.affine(LAST_NODE_BASE, u128::from(self.f1), WORD_BITS);
 
         // Phase 2: the ten rounds, each G's rows built in registers then ORed in at its block.
         let mut v = self.initial_state();
@@ -237,7 +237,8 @@ impl Compression {
                 let d_2 = (d_1 ^ a_2).rotate_right(8);
                 let c_2 = rec.add::<REC_C2>(c_1, d_2);
                 let b_2 = (b_1 ^ c_2).rotate_right(7);
-                rows.g_block(g, &rec);
+                let [z, az, bz] = [&rec.z, &rec.a, &rec.b].map(BitRecord::words);
+                rows.packed(Blake2sCircuit::g_slot(g, 0), z, az, bz);
 
                 v[la] = a_2;
                 v[lb] = b_2;
@@ -248,7 +249,11 @@ impl Compression {
 
         // Phase 3: the finalization words `out[w] = h[w] ^ v[w] ^ v[w + 8]`.
         for w in 0..8 {
-            rows.affine_word(Blake2sCircuit::out_bit(w, 0), self.h[w] ^ v[w] ^ v[w + 8]);
+            rows.affine(
+                Blake2sCircuit::out_bit(w, 0),
+                u128::from(self.h[w] ^ v[w] ^ v[w + 8]),
+                WORD_BITS,
+            );
         }
     }
 }
@@ -273,7 +278,7 @@ impl Blake2sCircuit {
                 z,
                 blocks,
                 &Compression::PADDING,
-                |block, z, a, b| block.write_rows(&mut InstanceRows { z, a, b }),
+                |block, z, a, b| block.write_rows(&mut InstanceRows::new(z, a, b)),
                 |_, _| {},
             )
         })
@@ -508,60 +513,7 @@ impl LincheckCircuit for Blake2sCircuit {
     }
 }
 
-/// One instance's three tables, which a compression ORs its rows into.
-///
-/// Each table is `K / 64` packed words, zeroed before the compression writes.
-struct InstanceRows<'a> {
-    /// The witness bits.
-    z: &'a mut [u64],
-
-    /// The left factor of every row, `A z`.
-    a: &'a mut [u64],
-
-    /// The right factor of every row, `B z`.
-    b: &'a mut [u64],
-}
-
-impl InstanceRows<'_> {
-    /// The constant wire: `1 * 1 = 1`.
-    #[inline]
-    fn constant(&mut self) {
-        let (word, bit) = (Z_CONST_POS / 64, Z_CONST_POS % 64);
-        for table in [&mut *self.z, &mut *self.a, &mut *self.b] {
-            table[word] |= 1 << bit;
-        }
-    }
-
-    /// A 32-bit input or affine word from slot `at`: `z = A z = value`, `B z = 1`.
-    #[inline]
-    const fn affine_word(&mut self, at: usize, value: u32) {
-        Self::or_word(self.z, at, value);
-        Self::or_word(self.a, at, value);
-        Self::or_word(self.b, at, u32::MAX);
-    }
-
-    /// One G call's rows, built in registers, ORed in at its block of slots.
-    #[inline]
-    fn g_block(&mut self, g: usize, rec: &GRecords) {
-        let at = Blake2sCircuit::g_slot(g, 0);
-        rec.z.flush(self.z, at);
-        rec.a.flush(self.a, at);
-        rec.b.flush(self.b, at);
-    }
-
-    /// OR `value` into `table` from bit `at`, straddling two words when it must.
-    #[inline(always)]
-    const fn or_word(table: &mut [u64], at: usize, value: u32) {
-        let (word, shift) = (at / 64, at % 64);
-        table[word] |= (value as u64) << shift;
-        // Past bit 32 of a word, the value's high bits spill into the next.
-        if shift > 32 {
-            table[word + 1] |= (value as u64) >> (64 - shift);
-        }
-    }
-}
-
-/// A record of `64 NW` bits built in registers, then ORed into the block once.
+/// A record of `64 NW` bits built in registers, then ORed into the tables once.
 struct BitRecord<const NW: usize> {
     w: [u64; NW],
 }
@@ -586,19 +538,10 @@ impl<const NW: usize> BitRecord<NW> {
         }
     }
 
-    /// OR the record into `buf` from bit `base_bit`.
+    /// The record's words, low first.
     #[inline(always)]
-    fn flush(&self, buf: &mut [u64], base_bit: usize) {
-        let bi = base_bit >> 6;
-        let s = base_bit & 63;
-        // Each word's high bits spill into the next.
-        let mut spill = 0u64;
-        for j in 0..NW {
-            buf[bi + j] |= (self.w[j] << s) | spill;
-            // `(x >> 1) >> (63 - s)` is `x >> (64 - s)` without a shift by 64 at `s = 0`.
-            spill = (self.w[j] >> 1) >> (63 - s);
-        }
-        buf[bi + NW] |= spill;
+    const fn words(&self) -> &[u64; NW] {
+        &self.w
     }
 }
 
