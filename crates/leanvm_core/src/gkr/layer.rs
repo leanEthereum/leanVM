@@ -227,13 +227,20 @@ impl<L: Lanes> BlockSums<L> {
                 prefetch(ahead);
             }
 
-            // A group's blocks share a high weight, since the low table is a whole number of groups.
             let q = first + start;
-            let low = L::load(&eq.low[q & (eq.low.len() - 1)..]);
-            self.add_group(
-                blocks[start..start + L::WIDTH].as_flattened(),
-                low * L::splat(eq.high[q >> eq.low_log()]),
-            );
+            let weight = if eq.low.len() >= L::WIDTH {
+                // Full groups fit inside one low-table block and share its high weight.
+                let low = L::load(&eq.low[q & (eq.low.len() - 1)..]);
+                low * L::splat(eq.high[q >> eq.low_log()])
+            } else {
+                // Small split tables can cross a high-weight boundary within one group.
+                let mut weights = [F192::ZERO; 8];
+                for (lane, weight) in weights[..L::WIDTH].iter_mut().enumerate() {
+                    *weight = eq.at(q + lane);
+                }
+                L::load(&weights)
+            };
+            self.add_group(blocks[start..start + L::WIDTH].as_flattened(), weight);
         }
         let q = first + L::WIDTH * groups;
 
@@ -241,9 +248,9 @@ impl<L: Lanes> BlockSums<L> {
         let tail = &rows[BLOCK * (q - first)..];
         if !tail.is_empty() {
             // Missing rows are ones, and missing blocks weigh zero.
-            let mut padded = [F192::ONE; BLOCK * 4];
+            let mut padded = [F192::ONE; BLOCK * 8];
             padded[..tail.len()].copy_from_slice(tail);
-            let mut weights = [F192::ZERO; 4];
+            let mut weights = [F192::ZERO; 8];
             for (block, weight) in weights[..tail.len().div_ceil(BLOCK)].iter_mut().enumerate() {
                 *weight = eq.at(q + block);
             }
@@ -328,7 +335,7 @@ impl<L: Lanes> Fold<L> {
     fn block(&self, block: &[F192; BLOCK], out: &mut [MaybeUninit<F192>; 4]) {
         let [r0, r1] = self.r;
         for c in (0..4).step_by(L::WIDTH) {
-            let row = |r: usize| L::load(&block[4 * r + c..]);
+            let row = |r: usize| L::load(&block[4 * r + c..4 * r + 4]);
             let low = row(0) + r0 * (row(0) + row(1));
             let high = row(2) + r0 * (row(2) + row(3));
             (low + r1 * (low + high)).store(&mut out[c..]);

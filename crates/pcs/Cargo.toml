@@ -10,6 +10,7 @@ publish = false
 workspace = true
 
 [dependencies]
+p3-binary-dft.workspace = true
 parallel.workspace = true
 primitives.workspace = true
 fiat_shamir.workspace = true

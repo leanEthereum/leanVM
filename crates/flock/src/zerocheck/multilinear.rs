@@ -812,31 +812,27 @@ mod planar {
     use core::arch::x86_64::__m512i;
     use core::mem::transmute;
 
-    use primitives::F192x4;
+    use primitives::F192Packed;
     use primitives::bit_fold::{BLOCK, BitFold};
-    use primitives::multilinear::{pack4, sum4};
+    use primitives::multilinear::{pack_lanes, sum_packed};
     use primitives::{F64, F192, PrimeCharacteristicRing};
 
-    type Planes8 = [F192x4; 2];
+    type Planes8 = F192Packed;
     fn from_planes(planes: [__m512i; 3]) -> Planes8 {
         // SAFETY: every register is eight words with no invalid bit patterns.
         let limbs = planes.map(|p| unsafe { transmute::<__m512i, [u64; 8]>(p) });
-        std::array::from_fn(|half| {
-            pack4(std::array::from_fn(|i| {
-                F192::new(std::array::from_fn(|c| F64::new(limbs[c][4 * half + i])))
-            }))
-        })
+        pack_lanes(std::array::from_fn(|i| {
+            F192::new(std::array::from_fn(|c| F64::new(limbs[c][i])))
+        }))
     }
     fn add8(a: Planes8, b: Planes8) -> Planes8 {
-        std::array::from_fn(|i| a[i] + b[i])
+        a + b
     }
     fn mul8(a: Planes8, b: Planes8) -> Planes8 {
-        std::array::from_fn(|i| a[i] * b[i])
+        a * b
     }
     fn add_product(sum: &mut Planes8, a: Planes8, b: Planes8) {
-        for i in 0..2 {
-            sum[i] += a[i] * b[i];
-        }
+        *sum += a * b;
     }
 
     /// Eight consecutive values per entry, in planes.
@@ -881,7 +877,7 @@ mod planar {
         eq: &[Planes8],
         live: impl Fn(usize) -> bool,
     ) -> [F192; 8] {
-        let mut acc = [[F192x4::ZERO; 2]; 8];
+        let mut acc = [F192Packed::ZERO; 8];
         // Sixteen quads per folded block, two registers of eight.
         for (b, eq) in eq.as_chunks::<2>().0.iter().enumerate() {
             let q0 = quad_first + (BLOCK / 4) * b;
@@ -916,18 +912,18 @@ mod planar {
                 add_product(&mut acc[7], add8(du0, du1), add8(eu0, eu1));
             }
         }
-        acc.map(|s| s.into_iter().map(sum4).sum())
+        acc.map(sum_packed)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::zerocheck::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
     use crate::zerocheck::round1::tests::pack_bits;
     use crate::zerocheck::round1::{
         c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges,
     };
+    use p3_binary_dft::{BasisNtt as AdditiveNttGf8, RijndaelLde};
     use primitives::F8;
     use primitives::PHI_8_TABLE_192;
     use primitives::PrimeCharacteristicRing;
@@ -1084,9 +1080,9 @@ mod tests {
             let b_packed = pack_bits(&b);
             let c_packed = pack_bits(&c);
 
-            let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
-            let ntt_l = AdditiveNttGf8::new(K_SKIP, F8::from_byte(1u8 << K_SKIP));
-            let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
+            let ntt_s = AdditiveNttGf8::polynomial(K_SKIP, F8::ZERO);
+            let ntt_l = AdditiveNttGf8::polynomial(K_SKIP, F8::from_byte(1u8 << K_SKIP));
+            let inv_table = RijndaelLde::new(ntt_s.log_domain_size(), ntt_s.shift(), ntt_l.shift());
             let (_round1_ab, round1_c) = round1_shift_reduce_extract_c_packed_padded(
                 &a_packed,
                 &b_packed,

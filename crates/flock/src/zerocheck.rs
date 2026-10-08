@@ -23,13 +23,13 @@
 
 use primitives::PrimeCharacteristicRing;
 
-use crate::zerocheck::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 use fiat_shamir::arith::{Native, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
 use multilinear::{
     PackedWitness, RoundPair, bit_round_materialize, bit_round_pair, fold_and_round_pair_into, fold_in_place_pair,
     fold_in_place_single, round_pair_naive, round_single_naive,
 };
+use p3_binary_dft::RijndaelLde;
 use primitives::bit_fold::BitFold;
 use primitives::multilinear::skip_lagrange_weights;
 use primitives::{F8, F192, powers};
@@ -37,7 +37,6 @@ use round1::{c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded
 use thiserror::Error;
 
 pub(crate) mod multilinear;
-mod ntt;
 pub(crate) mod round1;
 mod skip_domain;
 
@@ -287,7 +286,7 @@ struct CircuitProver<'a> {
 
 impl<'a> CircuitProver<'a> {
     /// The prover and its round-1 message: `P` on the coset, `P^{AB}` and `P^C` summed.
-    fn new(input: &ZerocheckInput<'a>, r: &'a [F192], inv_table: &InvNttTableByteSingleGf8) -> (Self, Vec<F192>) {
+    fn new(input: &ZerocheckInput<'a>, r: &'a [F192], inv_table: &RijndaelLde) -> (Self, Vec<F192>) {
         let ZerocheckInput { bits, c, m, padding } = *input;
         assert!(m >= MIN_LOG_N, "prove requires m >= k_skip + N_INNER (= {MIN_LOG_N})");
         let cube_bytes = (1usize << m) / 8;
@@ -467,9 +466,7 @@ pub(crate) fn prove(inputs: &[ZerocheckInput<'_>], ps: &mut ProverState) -> Vec<
     let lambdas = powers(ps.sample(), inputs.len());
 
     let span = tracing::info_span!("Round 1").entered();
-    let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
-    let ntt_l = AdditiveNttGf8::new(K_SKIP, F8::from_byte(1u8 << K_SKIP));
-    let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
+    let inv_table = RijndaelLde::new(K_SKIP, F8::ZERO, F8::from_byte(1u8 << K_SKIP));
     let mut round1 = vec![F192::ZERO; 1 << K_SKIP];
     let provers: Vec<_> = (inputs.iter().zip(&lambdas))
         .map(|(input, &lambda)| {

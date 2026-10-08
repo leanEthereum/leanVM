@@ -7,50 +7,14 @@
 //! - The E-valued encodes of deeper WHIR levels reuse it, one F64 lane per F192 coefficient.
 //! - Large transforms are bound by memory bandwidth, so the driver minimizes sweeps of the buffer.
 
-use primitives::{Field, PackedValue, PrimeCharacteristicRing};
+use p3_binary_dft::{BasisNtt, ButterflyField};
+use primitives::PrimeCharacteristicRing;
 
 use parallel::SendPtr;
 use primitives::F64;
 use primitives::log2_strict_usize;
 use primitives::stream::Stream;
 use std::cell::RefCell;
-
-/// Table of the normalized subspace polynomials at the basis.
-///
-/// - Row `i` holds `s_i(b_j)` for every basis element `b_j` with `j >= i`.
-/// - Each row is scaled so that its first entry is one.
-fn generate_evals_from_subspace(basis: &[F64]) -> Vec<Vec<F64>> {
-    let l = basis.len();
-    let mut evals: Vec<Vec<F64>> = Vec::with_capacity(l);
-    evals.push(basis.to_vec());
-    for i in 1..l {
-        let mut row = Vec::with_capacity(l - i);
-        for k in 1..evals[i - 1].len() {
-            let val = evals[i - 1][k] * (evals[i - 1][k] + evals[i - 1][0]);
-            row.push(val);
-        }
-        evals.push(row);
-    }
-    for row in evals.iter_mut() {
-        let inv = row[0].invert_or_zero();
-        for v in row.iter_mut() {
-            *v *= inv;
-        }
-    }
-    evals
-}
-
-/// `Σ_j bit_j(idx) · basis[j]`.
-#[inline]
-fn span_get(basis: &[F64], idx: usize) -> F64 {
-    let mut acc = F64::ZERO;
-    for (j, &b) in basis.iter().enumerate() {
-        if (idx >> j) & 1 == 1 {
-            acc += b;
-        }
-    }
-    acc
-}
 
 /// Receives a finished block of codeword rows, as `(first_row, rows)`.
 pub(crate) type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
@@ -61,27 +25,22 @@ pub(crate) type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
 /// lived inside this very subfield).
 #[derive(Clone, Debug)]
 pub struct AdditiveNttF64 {
-    evals: Vec<Vec<F64>>,
+    ntt: BasisNtt<F64>,
 }
 
 impl AdditiveNttF64 {
-    fn new(basis: &[F64]) -> Self {
-        Self {
-            evals: generate_evals_from_subspace(basis),
-        }
-    }
-
     /// Standard NTT with basis `{1, x, …, x^(dim-1)}`. Requires `dim ≤ 63` so
     /// the evaluation domain (and the twiddles) stay inside F_{2^64} without
     /// wrap; far beyond any codeword size in use.
     pub fn standard(dim: usize) -> Self {
         assert!(dim <= 63, "standard NTT requires dim ≤ 63");
-        let basis: Vec<F64> = (0..dim).map(|i| F64::new(1u64 << i)).collect();
-        Self::new(&basis)
+        Self {
+            ntt: BasisNtt::polynomial(dim, F64::ZERO),
+        }
     }
 
     pub(crate) const fn log_domain_size(&self) -> usize {
-        self.evals.len()
+        self.ntt.log_domain_size()
     }
 
     /// Twiddle of one block at one layer.
@@ -89,8 +48,7 @@ impl AdditiveNttF64 {
     /// - It is `s_i(sum_j bit_j(block) * b_(i+1+j))`, with `i = L - layer - 1` on a `2^L`-point domain.
     /// - The normalized `s_i` is F_2-linear, so this is a subset sum of row `i` of the table.
     pub(crate) fn twiddle(&self, layer: usize, block: usize) -> F64 {
-        let v = &self.evals[self.log_domain_size() - layer - 1];
-        span_get(&v[1..], block)
+        self.ntt.twiddle(layer, block)
     }
 
     /// The seven twiddles a radix-8 group needs, breadth-first: layer `layer`,
@@ -100,22 +58,7 @@ impl AdditiveNttF64 {
     /// the block's own contribution plus a fixed correction per sub-block index:
     /// one scan of the three basis rows replaces seven.
     pub(crate) fn twiddles_radix8(&self, layer: usize, block: usize) -> [F64; 7] {
-        let l = self.log_domain_size();
-        let (v0, v1, v2) = (
-            &self.evals[l - layer - 1],
-            &self.evals[l - layer - 2],
-            &self.evals[l - layer - 3],
-        );
-        let (mut t0, mut a, mut c) = (F64::ZERO, F64::ZERO, F64::ZERO);
-        for j in 0..layer {
-            if (block >> j) & 1 == 1 {
-                t0 += v0[1 + j];
-                a += v1[2 + j];
-                c += v2[3 + j];
-            }
-        }
-        let (d, e0, e1) = (v1[1], v2[1], v2[2]);
-        [t0, a, a + d, c, c + e0, c + e1, c + e0 + e1]
+        self.ntt.twiddles_radix8(layer, block)
     }
 
     /// RS-encode a message already stored in the codeword's first replica.
@@ -982,33 +925,11 @@ pub(crate) fn transposed_butterfly_lanes(top: &mut [F64], bot: &mut [F64], twidd
 /// Apply one butterfly per lane through the external field backend.
 #[inline]
 fn lane_butterflies<const TRANSPOSED: bool>(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
-    assert_eq!(top.len(), bot.len());
-    if twiddle.is_zero() {
-        for (u, v) in top.iter_mut().zip(bot) {
-            if TRANSPOSED {
-                *u += *v;
-            } else {
-                *v += *u;
-            }
-        }
-        return;
-    }
-    type Packing = <F64 as Field>::Packing;
-    let width = Packing::WIDTH;
-    let t = Packing::from(twiddle);
-    for start in (0..top.len()).step_by(width) {
-        let pack = |row: &[F64]| Packing::from_fn(|i| row.get(start + i).copied().unwrap_or(F64::ZERO));
-        let (u, v) = (pack(top), pack(bot));
-        let (u, v) = if TRANSPOSED {
-            let s = u + v;
-            (s, v + s * t)
-        } else {
-            let s = u + v * t;
-            (s, v + s)
-        };
-        let count = width.min(top.len() - start);
-        top[start..start + count].copy_from_slice(&u.as_slice()[..count]);
-        bot[start..start + count].copy_from_slice(&v.as_slice()[..count]);
+    // The transpose is the inverse butterfly with its two rows exchanged.
+    if TRANSPOSED {
+        F64::butterfly::<true>(bot, top, twiddle);
+    } else {
+        F64::butterfly::<false>(top, bot, twiddle);
     }
 }
 

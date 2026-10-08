@@ -13,9 +13,9 @@ use crate::{Algebra, PrimeCharacteristicRing};
 use std::mem::MaybeUninit;
 
 use self::PHI_8_TABLE_192 as PHI_8_TABLE;
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use crate::F192x4;
 use crate::{F8, F64, F192};
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+use crate::{F192_LANES, F192Packed};
 use std::sync::LazyLock;
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
@@ -520,30 +520,34 @@ pub fn dot_base(w: &[[F192; 8]], k: &[F64]) -> F192 {
         .fold(F192::ZERO, |sum, (w, k)| sum + F192::mixed_dot_product(w, k))
 }
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-/// Pack four extension elements using the backend's four-lane representation.
-pub fn pack4(values: [F192; 4]) -> F192x4 {
-    F192x4::from_ext_fn(|i| values[i])
+/// Pack four extension elements, filling wider backend lanes with zero.
+pub fn pack4(values: [F192; 4]) -> F192Packed {
+    F192Packed::from_ext_fn(|i| values.get(i).copied().unwrap_or(F192::ZERO))
 }
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 /// Extract four extension elements.
-pub fn unpack4(value: F192x4) -> [F192; 4] {
+pub fn unpack4(value: F192Packed) -> [F192; 4] {
     std::array::from_fn(|i| value.extract(i))
 }
+/// Pack one complete group of extension elements.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-/// Transpose a four-by-four matrix of extension values.
-pub fn transpose4(rows: [F192x4; 4]) -> [F192x4; 4] {
-    let rows = rows.map(unpack4);
-    std::array::from_fn(|i| pack4(std::array::from_fn(|j| rows[j][i])))
+pub fn pack_lanes(values: [F192; F192_LANES]) -> F192Packed {
+    F192Packed::from_ext_slice(&values)
 }
+/// Extract every element of the backend packing.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-/// Initialize four scalar output slots from a backend packing.
-pub fn store4(values: F192x4, out: &mut [MaybeUninit<F192>; 4]) {
-    out.write_copy_of_slice(&unpack4(values));
+pub fn unpack_lanes(value: F192Packed) -> [F192; F192_LANES] {
+    std::array::from_fn(|i| value.extract(i))
 }
+/// Initialize a complete group of scalar output slots.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-/// Sum the four extension lanes.
-pub fn sum4(values: F192x4) -> F192 {
-    unpack4(values).into_iter().sum()
+pub fn store_packed(values: F192Packed, out: &mut [MaybeUninit<F192>; F192_LANES]) {
+    out.write_copy_of_slice(&unpack_lanes(values));
+}
+/// Sum all extension elements in the backend packing.
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+pub fn sum_packed(values: F192Packed) -> F192 {
+    unpack_lanes(values).into_iter().sum()
 }
 
 #[cfg(test)]

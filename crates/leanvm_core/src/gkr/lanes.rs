@@ -1,15 +1,15 @@
 //! Field elements in vector lanes, so that one kernel serves every target.
 
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use primitives::multilinear::{pack4, store4, sum4, transpose4};
+use primitives::multilinear::{store_packed, sum_packed};
 use primitives::{F192, PrimeCharacteristicRing};
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use primitives::{F192x4, PackedFieldExtension};
+use primitives::{F192_LANES, F192Packed, PackedFieldExtension};
 use std::mem::MaybeUninit;
 
 /// The widest Plonky3 extension packing used by this kernel.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-pub(super) type Lane = F192x4;
+pub(super) type Lane = F192Packed;
 #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
 pub(super) type Lane = F192;
 
@@ -150,35 +150,46 @@ impl Lanes for F192 {
 }
 
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-impl Xor for F192x4 {
+impl Xor for F192Packed {
     #[inline(always)]
     fn xor(self, rhs: Self) -> Self {
         self + rhs
     }
 }
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-impl Lanes for F192x4 {
-    const WIDTH: usize = 4;
+impl Lanes for F192Packed {
+    const WIDTH: usize = F192_LANES;
     #[inline(always)]
     fn splat(x: F192) -> Self {
         Self::from(x)
     }
     #[inline(always)]
     fn load(values: &[F192]) -> Self {
-        Self::from_ext_slice(&values[..4])
+        // A final child row may contain fewer values than the backend width.
+        if values.len() >= F192_LANES {
+            Self::from_ext_slice(&values[..F192_LANES])
+        } else {
+            Self::from_ext_fn(|i| values.get(i).copied().unwrap_or(F192::ZERO))
+        }
     }
     #[inline(always)]
     fn store(self, out: &mut [MaybeUninit<F192>]) {
-        store4(self, out[..4].as_mut_array().expect("four slots"));
+        if out.len() >= F192_LANES {
+            store_packed(self, out[..F192_LANES].as_mut_array().expect("one packed group"));
+        } else {
+            // Padding lanes carry no output slot.
+            for (i, slot) in out.iter_mut().enumerate() {
+                slot.write(self.extract(i));
+            }
+        }
     }
     #[inline(always)]
     fn sum_lanes(values: Self) -> F192 {
-        sum4(values)
+        sum_packed(values)
     }
     #[inline(always)]
     fn gather(values: &[F192], stride: usize) -> [Self; 4] {
-        transpose4(std::array::from_fn(|row| {
-            pack4(std::array::from_fn(|c| values[stride * row + c]))
-        }))
+        // Child c: [row_0[c], ..., row_(WIDTH-1)[c]].
+        std::array::from_fn(|c| Self::from_ext_fn(|row| values[stride * row + c]))
     }
 }

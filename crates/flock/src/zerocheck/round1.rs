@@ -50,9 +50,9 @@
 use primitives::{Field, PackedValue, PrimeCharacteristicRing};
 
 use super::{K_SKIP, N_INNER, PaddingSpec};
-use crate::zerocheck::ntt::InvNttTableByteSingleGf8;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use core::arch::x86_64::*;
+use p3_binary_dft::RijndaelLde;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use primitives::bit_fold::avx2;
 #[cfg(all(
@@ -165,10 +165,19 @@ pub(crate) const EQ_HIGH_VARS: usize = 7;
 /// Extend a length-`ell` F192 vector from S to Λ with the original GF8
 /// butterflies lifted through φ₈. Only the returned vector is allocated;
 /// the Boolean A/B lookup table remains the bulk-row path.
-pub(crate) fn ntt_extend_vec(in_s: &[F192], inv_table: &InvNttTableByteSingleGf8) -> Vec<F192> {
-    assert_eq!(in_s.len(), inv_table.ell);
+pub(crate) fn ntt_extend_vec(in_s: &[F192], inv_table: &RijndaelLde) -> Vec<F192> {
+    assert_eq!(in_s.len(), inv_table.row_len());
     let mut out = in_s.to_vec();
-    inv_table.extend_lifted(&mut out);
+    // The protocol's AES embedding lies in the base field.
+    let embed = |byte| phi8_192(byte).coefficients()[0];
+    inv_table
+        .source()
+        .map(embed)
+        .transform_algebra::<F192, true>(&mut out, 1);
+    inv_table
+        .target()
+        .map(embed)
+        .transform_algebra::<F192, false>(&mut out, 1);
     out
 }
 
@@ -225,7 +234,7 @@ fn convert_table() -> &'static ConvertTable {
 fn shift_reduce_inner_ab(
     a_packed: &[u8],
     b_packed: &[u8],
-    inv_table: &InvNttTableByteSingleGf8,
+    inv_table: &RijndaelLde,
     chunk_byte_base: usize,
     b_med: usize,
     out: &mut [u8; 64],
@@ -260,7 +269,7 @@ fn shift_reduce_inner_ab(
 fn shift_reduce_inner_ab_scalar(
     a_packed: &[u8],
     b_packed: &[u8],
-    inv_table: &InvNttTableByteSingleGf8,
+    inv_table: &RijndaelLde,
     chunk_byte_base: usize,
     b_med: usize,
     out: &mut [u8; 64],
@@ -556,7 +565,7 @@ fn accumulate_x_outer<const FULL: bool>(
     a_packed: &[u8],
     b_packed: &[u8],
     c_packed: &[u8],
-    inv_table: &InvNttTableByteSingleGf8,
+    inv_table: &RijndaelLde,
     state: &mut WorkerState,
 ) {
     let n_b_med = if FULL { 1 << N_MEDIUM } else { n_b_med };
@@ -602,7 +611,7 @@ fn process_one_x_hi(
     a_packed: &[u8],
     b_packed: &[u8],
     c_packed: &[u8],
-    inv_table: &InvNttTableByteSingleGf8,
+    inv_table: &RijndaelLde,
     eq_lo_scaled: &[F192],
     eq_hi_val: F192,
     state: &mut WorkerState,
@@ -708,7 +717,7 @@ pub(crate) fn round1_shift_reduce_extract_c_packed_padded(
     c_packed: &[u8],
     m: usize,
     r_rest: &[F192],
-    inv_table: &InvNttTableByteSingleGf8,
+    inv_table: &RijndaelLde,
     padding: &PaddingSpec,
 ) -> (Vec<F192>, Vec<F192>) {
     // The bits of one `x_outer` window, the smallest cube.
@@ -723,7 +732,7 @@ pub(crate) fn round1_shift_reduce_extract_c_packed_padded(
     assert_eq!(b_packed.len(), total_bytes);
     assert_eq!(c_packed.len(), total_bytes);
     assert_eq!(r_rest.len(), m - K_SKIP);
-    assert_eq!(inv_table.k, K_SKIP);
+    assert_eq!(inv_table.log_domain_size(), K_SKIP);
 
     let tail = padding.tail(m, WINDOW_LOG, WINDOW_LOG, r_rest);
     let n_windows = tail.map_or(1 << (m - WINDOW_LOG), |t| t.head >> WINDOW_LOG);
@@ -799,7 +808,7 @@ pub(crate) fn round1_shift_reduce_extract_c_packed_padded(
 pub(crate) mod tests {
     use super::*;
     use crate::zerocheck::PaddingSpec;
-    use crate::zerocheck::ntt::AdditiveNttGf8;
+    use p3_binary_dft::BasisNtt as AdditiveNttGf8;
     use primitives::PrimeCharacteristicRing;
     use primitives::multilinear::eq_table;
     use primitives::test_util::Rng;
@@ -841,9 +850,9 @@ pub(crate) mod tests {
         for k in 3..=7 {
             for beta_s in [F8::ZERO, F8::from_byte(0xff)] {
                 let beta_l = beta_s + F8::from_byte(1u8 << k);
-                let ntt_s = AdditiveNttGf8::new(k, beta_s);
-                let ntt_l = AdditiveNttGf8::new(k, beta_l);
-                let table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
+                let ntt_s = AdditiveNttGf8::polynomial(k, beta_s);
+                let ntt_l = AdditiveNttGf8::polynomial(k, beta_l);
+                let table = RijndaelLde::new(ntt_s.log_domain_size(), ntt_s.shift(), ntt_l.shift());
                 let matrix = lagrange_extension_matrix(k, beta_s, beta_l);
                 for _ in 0..4 {
                     let input = rng.ext_vec(1 << k);
@@ -865,9 +874,9 @@ pub(crate) mod tests {
     fn lifted_extension_preserves_tower_basis() {
         for k in 3..=7 {
             let ell = 1usize << k;
-            let ntt_s = AdditiveNttGf8::new(k, F8::ZERO);
-            let ntt_l = AdditiveNttGf8::new(k, F8::from_byte(ell as u8));
-            let table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
+            let ntt_s = AdditiveNttGf8::polynomial(k, F8::ZERO);
+            let ntt_l = AdditiveNttGf8::polynomial(k, F8::from_byte(ell as u8));
+            let table = RijndaelLde::new(ntt_s.log_domain_size(), ntt_s.shift(), ntt_l.shift());
             let matrix = lagrange_extension_matrix(k, F8::ZERO, F8::from_byte(ell as u8));
             // Each of the 192 tower-coordinate bits, including both limb
             // boundaries, and every evaluation position at each supported size.
@@ -915,8 +924,8 @@ pub(crate) mod tests {
         let n_chunks_x = 1usize << (m - K_SKIP);
 
         // NTT for evaluating-on-Λ via inv-on-S then fwd-on-Λ.
-        let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
-        let ntt_l = AdditiveNttGf8::new(K_SKIP, F8::from_byte(ell as u8));
+        let ntt_s = AdditiveNttGf8::polynomial(K_SKIP, F8::ZERO);
+        let ntt_l = AdditiveNttGf8::polynomial(K_SKIP, F8::from_byte(ell as u8));
 
         let eq_full = eq_table(r_rest);
 
@@ -1027,9 +1036,9 @@ pub(crate) mod tests {
             seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
             (seed >> 33) as u8
         };
-        let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
-        let ntt_l = AdditiveNttGf8::new(K_SKIP, F8::from_byte(1u8 << K_SKIP));
-        let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
+        let ntt_s = AdditiveNttGf8::polynomial(K_SKIP, F8::ZERO);
+        let ntt_l = AdditiveNttGf8::polynomial(K_SKIP, F8::from_byte(1u8 << K_SKIP));
+        let inv_table = RijndaelLde::new(ntt_s.log_domain_size(), ntt_s.shift(), ntt_l.shift());
 
         // One medium-position worth of packed bytes: 8 K-rows × N_CHUNKS.
         let n_bytes = 8 * N_CHUNKS;
@@ -1126,10 +1135,10 @@ pub(crate) mod tests {
             .collect()
     }
 
-    fn make_inv_table() -> InvNttTableByteSingleGf8 {
-        let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
-        let ntt_l = AdditiveNttGf8::new(K_SKIP, F8::from_byte(1u8 << K_SKIP));
-        InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l)
+    fn make_inv_table() -> RijndaelLde {
+        let ntt_s = AdditiveNttGf8::polynomial(K_SKIP, F8::ZERO);
+        let ntt_l = AdditiveNttGf8::polynomial(K_SKIP, F8::from_byte(1u8 << K_SKIP));
+        RijndaelLde::new(ntt_s.log_domain_size(), ntt_s.shift(), ntt_l.shift())
     }
 
     /// **The defining cross-check**: `C_s · (opt_AB + opt_C) == naive_AB + naive_C`,

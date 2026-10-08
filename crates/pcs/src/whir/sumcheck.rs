@@ -13,11 +13,11 @@ use core::ops::AddAssign;
 use fiat_shamir::transcript::Transmitter;
 use first_pass::{LaneWeight, WeightFold};
 use parallel::SendPtr;
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use primitives::F192x4;
 use primitives::multilinear::eq_table;
 use primitives::stream::Stream;
 use primitives::{F64, F192};
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+use primitives::{F192_LANES, F192Packed};
 use std::mem::MaybeUninit;
 use std::ops::Add;
 use std::sync::Arc;
@@ -193,7 +193,7 @@ impl RoundWitness for F192 {
         acc.add(e, xs);
     }
 
-    /// Four pairs at a time in vector lanes, where the target has them.
+    /// Packed pairs at a time in vector lanes, where the target has them.
     #[inline(always)]
     fn fold_pairs(
         n: usize,
@@ -204,17 +204,17 @@ impl RoundWitness for F192 {
     ) {
         #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
         let done = {
-            let r4 = F192x4::from(r);
-            for i in (0..n / 4 * 4).step_by(4) {
+            let r4 = F192Packed::from(r);
+            for i in (0..n / F192_LANES * F192_LANES).step_by(F192_LANES) {
                 let (a, b) = (lanes(&x0, i), lanes(&x1, i));
-                for (k, v) in primitives::multilinear::unpack4(a + r4 * (a + b))
+                for (k, v) in primitives::multilinear::unpack_lanes(a + r4 * (a + b))
                     .into_iter()
                     .enumerate()
                 {
                     out(i + k, v);
                 }
             }
-            n / 4 * 4
+            n / F192_LANES * F192_LANES
         };
         #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
         let done = 0;
@@ -238,7 +238,7 @@ impl RoundWitness for F192 {
 
 /// Sums over a run of pairs: of `x0·y0`, of `(x0 + x1)·(y0 + y1)`, and of `x1·y1` when asked (zero otherwise).
 ///
-/// Four pairs at a time in vector lanes, where the target has them.
+/// Packed pairs at a time in vector lanes, where the target has them.
 #[inline(always)]
 fn pair_sums<const ODD: bool>(
     n: usize,
@@ -249,8 +249,8 @@ fn pair_sums<const ODD: bool>(
 ) -> [F192; 3] {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
     let (done, mut sums) = {
-        let (mut u_0, mut u_2, mut odd) = (F192x4::ZERO, F192x4::ZERO, F192x4::ZERO);
-        for i in (0..n / 4 * 4).step_by(4) {
+        let (mut u_0, mut u_2, mut odd) = (F192Packed::ZERO, F192Packed::ZERO, F192Packed::ZERO);
+        for i in (0..n / F192_LANES * F192_LANES).step_by(F192_LANES) {
             let (a0, a1, b0, b1) = (lanes(&x0, i), lanes(&x1, i), lanes(&y0, i), lanes(&y1, i));
             u_0 += a0 * b0;
             u_2 += (a0 + a1) * (b0 + b1);
@@ -259,11 +259,11 @@ fn pair_sums<const ODD: bool>(
             }
         }
         (
-            n / 4 * 4,
+            n / F192_LANES * F192_LANES,
             [
-                primitives::multilinear::sum4(u_0),
-                primitives::multilinear::sum4(u_2),
-                primitives::multilinear::sum4(odd),
+                primitives::multilinear::sum_packed(u_0),
+                primitives::multilinear::sum_packed(u_2),
+                primitives::multilinear::sum_packed(odd),
             ],
         )
     };
@@ -279,11 +279,11 @@ fn pair_sums<const ODD: bool>(
     sums
 }
 
-/// Four consecutive values, one per lane.
+/// One complete group of consecutive values.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 #[inline(always)]
-fn lanes(v: &impl Fn(usize) -> F192, i: usize) -> F192x4 {
-    primitives::multilinear::pack4(std::array::from_fn(|k| v(i + k)))
+fn lanes(v: &impl Fn(usize) -> F192, i: usize) -> F192Packed {
+    primitives::multilinear::pack_lanes(std::array::from_fn(|k| v(i + k)))
 }
 
 /// Round message over a witness `f` and an E basis `b`. Mirror of
