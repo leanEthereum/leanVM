@@ -216,7 +216,7 @@ Resident memory (`peak-memory`) therefore mixes what the code needs with what je
 
 A buffer every slot of which the caller writes before reading skips the zero-fill: it is `Box::new_uninit_slice` (or a `Vec`'s `spare_capacity_mut`), written through its `MaybeUninit` slots and made a vector by `assume_init` (or `set_len`) only once every slot is written. A kernel typed over `&mut [T]` that writes before it reads takes those slots through `primitives::write_only` (`T: Copy`).
 
-The first WHIR pass retains its regenerated ring-switch weight at every pool size on the portable byte-table backend. SIMD backends retain it only on small pools; larger pools refill it during the first fold. Weight generation uses bounded aligned windows, capped by the lane block, to amortize map visits and retained-output publication. The first pass initializes its per-worker lane-window scratch directly on the heap, including the zeros needed for padded lanes, rather than constructing a large stack temporary.
+The first WHIR pass retains its regenerated ring-switch weight at every pool size on the portable byte-table backend. SIMD backends retain it only on small pools; larger pools refill it during the first fold. Weight generation uses bounded aligned windows, capped by the lane block, to amortize map visits and retained-output publication. The ARM EOR3 byte-table backend uses longer windows; scalar and x86 byte-sliced backends keep smaller scratch. The first pass initializes its per-worker lane-window scratch directly on the heap, including the zeros needed for padded lanes, rather than constructing a large stack temporary.
 
 ## The thread pool (`parallel`)
 
