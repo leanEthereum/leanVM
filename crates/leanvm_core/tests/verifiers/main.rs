@@ -2,6 +2,7 @@
 //! hand-assembled programs and on Rust guests.
 
 mod act4;
+mod assumptions;
 mod constants;
 mod corrupted;
 mod deferred;

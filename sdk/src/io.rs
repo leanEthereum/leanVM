@@ -3,17 +3,20 @@
 //! prover fills before the run, at the addresses `link.ld` fixes, and the run's output is
 //! the BLAKE2s digest of everything committed, in order, which the verifier recomputes from
 //! the public values.
+//!
+//! `verify_proof` records an assumption: that a run of a program exits with a given output. The run's output then
+//! folds its assumptions, in order, into that digest, and its proof holds once each assumption is proven.
 
 use crate::Blake2s;
 #[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
-use crate::blake2s::{Block, IV};
+use crate::blake2s::{ASSUMING_IV, Block, IV};
 #[cfg(not(all(target_arch = "riscv64", target_os = "none")))]
 use alloc::vec::Vec;
 #[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
 use core::mem::MaybeUninit;
 
 #[cfg(all(target_arch = "riscv64", target_os = "none"))]
-pub use vm::{commit, read, read_slice, read_unchecked};
+pub use vm::{commit, read, read_slice, read_unchecked, verify_proof};
 
 /// A type made of 64-bit words and nothing else, so that any words are one.
 ///
@@ -49,11 +52,17 @@ const fn assert_words<T>() {
     );
 }
 
-/// The public values a run commits, and the output they make: their BLAKE2s digest.
+/// The public values a run commits and the proofs it assumes, and the output they make.
 ///
-/// On the VM, `commit` feeds the run's own; off it, this is how a host computes the output
-/// a guest must give.
-pub struct PublicValues(Blake2s);
+/// On the VM, `commit` and `verify_proof` feed the run's own; off it, this is how a host computes the output a guest
+/// must give.
+#[derive(Clone)]
+pub struct PublicValues {
+    /// The committed values' hash.
+    values: Blake2s,
+    /// The assumptions' hash, once one is recorded.
+    assumptions: Option<Blake2s>,
+}
 
 impl Default for PublicValues {
     fn default() -> Self {
@@ -63,20 +72,41 @@ impl Default for PublicValues {
 
 impl PublicValues {
     pub const fn new() -> Self {
-        Self(Blake2s::new())
+        Self {
+            values: Blake2s::new(),
+            assumptions: None,
+        }
     }
 
     /// Commit a value.
     #[inline(always)]
     pub fn commit<T: Words>(&mut self, value: &T) -> &mut Self {
         // SAFETY: `T` is words only (`Words`).
-        self.0.update_words(unsafe { as_words_unchecked(value) });
+        self.values.update_words(unsafe { as_words_unchecked(value) });
         self
     }
 
-    /// The output: the digest of everything committed.
+    /// Assume a proof: that a run of the program of digest `program` exits with `output`.
+    pub fn verify_proof(&mut self, program: &[u64; 4], output: &[u64; 4]) -> &mut Self {
+        (self.assumptions.get_or_insert_with(Blake2s::assuming))
+            .update_words(program)
+            .update_words(output);
+        self
+    }
+
+    /// The output: the digest of everything committed if nothing was assumed, else the BLAKE2s personalized by
+    /// `assuming` of each assumption's program digest and output, in order, then of that digest.
     pub fn digest(self) -> [u64; 4] {
-        self.0.finalize_words()
+        let committed = self.values.finalize_words();
+        self.assumptions.map_or(committed, |mut assumptions| {
+            assumptions.update_words(&committed);
+            assumptions.finalize_words()
+        })
+    }
+
+    /// The digest of everything committed alone: what the run states once its assumptions are proven.
+    pub fn committed(self) -> [u64; 4] {
+        self.values.finalize_words()
     }
 }
 
@@ -182,15 +212,72 @@ impl Public {
     }
 }
 
+/// The assumptions' BLAKE2s personalized by `assuming`, in progress, as `verify_proof` keeps it: the block the
+/// instruction reads, and the bytes compressed, 64 an assumption.
+///
+/// An assumption is one whole block, compressed at once since the committed digest always follows it.
+#[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
+struct Assumptions {
+    block: Block,
+    done: u64,
+}
+
+#[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
+impl Assumptions {
+    /// Nothing assumed.
+    const fn new() -> Self {
+        Self {
+            block: Block {
+                h: ASSUMING_IV,
+                out: MaybeUninit::uninit(),
+                m: [0; 8],
+            },
+            done: 0,
+        }
+    }
+
+    /// Assume that a run of the program of digest `program` exits with `output`.
+    #[inline(always)]
+    fn assume(&mut self, program: &[u64; 4], output: &[u64; 4]) {
+        let ([p0, p1, p2, p3], [o0, o1, o2, o3]) = (*program, *output);
+        self.block.m = [p0, p1, p2, p3, o0, o1, o2, o3];
+        self.done += 64;
+        self.block.h = self.block.compress(self.done, false);
+    }
+
+    /// The output of a run whose committed values have digest `committed`: that digest if nothing was assumed, else
+    /// the last block, the digest zero-padded, compressed as last.
+    #[inline(always)]
+    fn finish(&mut self, committed: [u64; 4]) -> [u64; 4] {
+        if self.done == 0 {
+            return committed;
+        }
+        let [c0, c1, c2, c3] = committed;
+        self.block.m = [c0, c1, c2, c3, 0, 0, 0, 0];
+        self.block.compress(self.done + 32, true)
+    }
+}
+
 #[cfg(all(target_arch = "riscv64", target_os = "none"))]
 pub(crate) mod vm {
-    use super::{Public, Words, as_words_unchecked, assert_words};
+    use super::{Assumptions, Public, Words, as_words_unchecked, assert_words};
 
     /// The output `_start` loads into `a0..a3` when the run ends.
     pub(crate) static mut OUTPUT: [u64; 4] = [0; 4];
-    /// What the run has committed so far, streamed through the instruction's own block.
-    // SAFETY: only the address of the static's message is taken, nothing is read.
-    static mut PUBLIC: Public = Public::new(unsafe { (&raw mut PUBLIC.block.m).cast() });
+    /// What the run states: what it commits and what it assumes, in one static so that `finish` reaches both from one
+    /// address.
+    #[repr(C)]
+    struct Statement {
+        /// What the run has committed so far, streamed through the instruction's own block.
+        public: Public,
+        /// The proofs the run has assumed so far.
+        assumptions: Assumptions,
+    }
+    static mut STATEMENT: Statement = Statement {
+        // SAFETY: only the address of the static's message is taken, nothing is read.
+        public: Public::new(unsafe { (&raw mut STATEMENT.public.block.m).cast() }),
+        assumptions: Assumptions::new(),
+    };
     /// The advice words read so far.
     static mut READ: usize = 0;
 
@@ -259,17 +346,38 @@ pub(crate) mod vm {
     /// Make a value public: the run's output is the digest of everything committed, in order.
     #[inline(always)]
     pub fn commit<T: Words>(value: &T) {
-        // SAFETY: one hart, no interrupts: nothing else touches `PUBLIC`, which is reached only by its address;
-        // `T` is words only (`Words`).
-        unsafe { Public::commit(&raw mut PUBLIC, as_words_unchecked(value)) }
+        // SAFETY: one hart, no interrupts: nothing else touches `STATEMENT`, whose `Public` is reached only by its
+        // address; `T` is words only (`Words`).
+        unsafe { Public::commit(&raw mut STATEMENT.public, as_words_unchecked(value)) }
     }
 
-    /// Called by `_start` once `main` returns: the output is the digest of what was committed.
+    /// Assume a proof: that a run of the program of digest `program` (its four little-endian words) exits with
+    /// `output`.
+    ///
+    /// Nothing is checked here: the run's output folds the assumption in, so its proof holds only once a proof of the
+    /// assumption is given, which an aggregation tree that resolves assumptions checks.
+    #[inline(always)]
+    pub fn verify_proof(program: &[u64; 4], output: &[u64; 4]) {
+        // SAFETY: one hart, no interrupts: nothing else touches `STATEMENT`, so this reference is the only one to its
+        // assumptions.
+        unsafe {
+            let assumptions = &raw mut STATEMENT.assumptions;
+            (*assumptions).assume(program, output);
+        }
+    }
+
+    /// Called by `_start` once `main` returns: the output is the digest of what was committed, folded with the
+    /// assumptions if any.
     pub(crate) extern "C" fn finish() {
-        // SAFETY: as in `commit`; the run is over, so nothing touches `PUBLIC` after.
-        let digest = unsafe { Public::finish(&raw mut PUBLIC) };
+        // SAFETY: as in `commit`; the run is over, so nothing touches `STATEMENT` after.
+        let digest = unsafe { Public::finish(&raw mut STATEMENT.public) };
+        // SAFETY: as in `verify_proof`.
+        let output = unsafe {
+            let assumptions = &raw mut STATEMENT.assumptions;
+            (*assumptions).finish(digest)
+        };
         // SAFETY: as above, for `OUTPUT`.
-        unsafe { core::ptr::write_volatile(&raw mut OUTPUT, digest) }
+        unsafe { core::ptr::write_volatile(&raw mut OUTPUT, output) }
     }
 }
 
@@ -341,5 +449,73 @@ mod tests {
                 assert_eq!(committed(&words[..len], n), expected, "{len} words, {n} at a time");
             }
         }
+    }
+
+    fn words<const N: usize>(rng: &mut Rng) -> [u64; N] {
+        core::array::from_fn(|_| rng.next_u64())
+    }
+
+    #[test]
+    fn verify_proof_outputs_what_public_values_computes() {
+        // Invariant: the run's output, the assumptions `verify_proof` compresses as they come folded with the committed
+        // digest at `finish`, is the output `PublicValues` gives a host for the same commits and assumptions in the
+        // same order; with none it is the committed digest itself.
+        //
+        // Fixture: 0 to 3 assumptions, each after a piece of commits (none, a word, more than a block), then a last
+        // piece.
+        let mut rng = Rng::new(0xA5);
+        for k in 0..=3 {
+            for gap in [0, 1, 9] {
+                let pieces: [[u64; 9]; 4] = core::array::from_fn(|_| words(&mut rng));
+                let assumed: [([u64; 4], [u64; 4]); 3] = core::array::from_fn(|_| (words(&mut rng), words(&mut rng)));
+                let mut host = PublicValues::new();
+                let mut public = MaybeUninit::<Public>::uninit();
+                let this = public.as_mut_ptr();
+                let mut assumptions = Assumptions::new();
+                // SAFETY: as in `committed`.
+                unsafe { this.write(Public::new((&raw mut (*this).block.m).cast())) };
+                for (i, piece) in pieces[..=k].iter().enumerate() {
+                    for word in &piece[..gap] {
+                        host.commit(word);
+                    }
+                    // SAFETY: as above.
+                    unsafe { Public::commit(this, &piece[..gap]) };
+                    if let Some((program, output)) = assumed[..k].get(i) {
+                        host.verify_proof(program, output);
+                        assumptions.assume(program, output);
+                    }
+                }
+                // SAFETY: as above.
+                let committed = unsafe { Public::finish(this) };
+                assert_eq!(
+                    committed,
+                    host.clone().committed(),
+                    "{k} assumptions, {gap} words apart"
+                );
+                let output = assumptions.finish(committed);
+                assert_eq!(output, host.digest(), "{k} assumptions, {gap} words apart");
+                assert_eq!(output == committed, k == 0, "{k} assumptions, {gap} words apart");
+            }
+        }
+    }
+
+    #[test]
+    fn the_fold_is_blake2s_personalized_by_assuming() {
+        // Known answer of Python's `hashlib.blake2s(data, person=b"assuming")`, `data` the little-endian bytes of the
+        // assumptions (program 1..=4, output 5..=8) and (program 9..=12, output 13..=16), then of the digest of the
+        // committed word 9.
+        let mut public = PublicValues::new();
+        (public.commit(&9u64))
+            .verify_proof(&[1, 2, 3, 4], &[5, 6, 7, 8])
+            .verify_proof(&[9, 10, 11, 12], &[13, 14, 15, 16]);
+        assert_eq!(
+            public.digest(),
+            [
+                0x613C_8F3E_AD6F_C257,
+                0xFED2_8109_C6B2_258F,
+                0x5DE1_3A9F_3A32_FB3C,
+                0x7570_1487_CBB9_E973
+            ]
+        );
     }
 }

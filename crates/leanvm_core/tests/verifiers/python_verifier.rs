@@ -73,6 +73,17 @@ impl PythonStatement {
         self.command(raw, prelude).output().expect("run native Python verifier")
     }
 
+    /// The verifier run with `--assumptions`, a file of these words: the output the statement was written with is then
+    /// the digest of the run's committed values.
+    pub fn verify_assuming(&self, raw: &RawProof, assumptions: &[u64]) -> Output {
+        let path = self.directory.join("assumptions.bin");
+        let encoded: Vec<u8> = assumptions.iter().flat_map(|w| w.to_le_bytes()).collect();
+        std::fs::write(&path, encoded).expect("write the assumptions");
+        (self.command(raw, None).arg("--assumptions").arg(path))
+            .output()
+            .expect("run native Python verifier")
+    }
+
     /// The claims Python's `verify_core` leaves on `raw`, as it renders them, once it
     /// has checked them.
     pub fn deferred(&self, raw: &RawProof) -> String {

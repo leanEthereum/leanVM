@@ -2602,6 +2602,31 @@ def verify_execution(
     return claims
 
 
+def assuming(committed: Sequence[int], assumptions: Sequence[tuple[Sequence[int], Sequence[int]]]) -> list[int]:
+    """The output of a run that commits values of digest `committed` and assumes these proofs, in order, each a program's
+    digest and the output its run exits with. It is `committed` when the run assumes none, and otherwise the BLAKE2s-256
+    personalized by `assuming` of each assumption's program digest and output words, then of `committed`'s, every word
+    little-endian."""
+    if not assumptions:
+        return list(committed)
+    words = [word for program, output in assumptions for word in (*program, *output)] + list(committed)
+    digest = hashlib.blake2s(pack(f"<{len(words)}Q", *words), person=b"assuming").digest()
+    return list(unpack("<4Q", digest))
+
+
+def load_assumptions(path: Path) -> list[tuple[tuple[int, ...], tuple[int, ...]]]:
+    """The assumptions in `path`: little-endian 64-bit words, eight per assumption, its program digest's four then its
+    output's four."""
+    encoded = path.read_bytes()
+    require(len(encoded) % 64 == 0, "the assumptions are not a whole number of eight-word entries")
+    words = unpack(f"<{len(encoded) // 8}Q", encoded)
+    return [(words[i : i + 4], words[i + 4 : i + 8]) for i in range(0, len(words), 8)]
+
+
+def _hex_words(words: Sequence[int]) -> str:
+    return " ".join(f"{word:016x}" for word in words)
+
+
 def protocol_constants() -> str:
     """Every constant this verifier shares with the Rust one, as sorted `name value` lines. The two are written out
     twice on purpose, so something has to hold them together: `leanvm_core`'s `constants_match_the_python_verifier`
@@ -2682,6 +2707,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("stream", type=Path, help="the proof's scalar stream, 24-byte little-endian field elements")
     parser.add_argument("merkle_openings", type=Path, help="every Merkle opening: its leaf's words, then its sibling digests")
     parser.add_argument("--deferred", action="store_true", help="print the deferred claims before the verdict, one field a line")
+    parser.add_argument(
+        "--assumptions",
+        type=Path,
+        help="the proofs the run assumes, in order, as little-endian 64-bit words, each one's program digest then its output: the output words in public are then its committed values' digest",
+    )
     arguments = parser.parse_args(argv)
     try:
         encoded_bytecode = arguments.bytecode.read_bytes()
@@ -2691,13 +2721,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         require(len(encoded_public) % 8 == 0 and len(encoded_public) >= 8 * 8, "the public words are malformed")
         entry_pc, log_ram, log_advice, image_length, *rest = unpack(f"<{len(encoded_public) // 8}Q", encoded_public)
         require(len(rest) == image_length + 4, "the public words are malformed")
-        image, output = rest[:image_length], rest[image_length:]
+        image, committed = rest[:image_length], rest[image_length:]
+        assumptions = [] if arguments.assumptions is None else load_assumptions(arguments.assumptions)
         proof = Proof.load(arguments.stream, arguments.merkle_openings)
-        claims = verify_execution(bytecode, entry_pc, log_ram, log_advice, image, output, proof)
+        claims = verify_execution(bytecode, entry_pc, log_ram, log_advice, image, assuming(committed, assumptions), proof)
     except (OSError, ValueError, KeyError, VerificationError) as exc:
         parser.exit(1, f"verification failed: {exc}\n")
     if arguments.deferred:
         print(claims.render())
+    for program, output in assumptions:
+        print(f"unresolved assumption: program {_hex_words(program)} output {_hex_words(output)}")
     print("verification succeeded")
     return 0
 

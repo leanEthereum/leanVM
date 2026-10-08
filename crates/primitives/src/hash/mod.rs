@@ -90,6 +90,15 @@ pub const PARAM_IV: [u32; 8] = {
     h
 };
 
+/// The initial chaining value of an unkeyed BLAKE2s-256 personalized by `person`, the parameter block's last eight
+/// bytes.
+pub const fn personal_iv(person: &[u8; 8]) -> [u32; 8] {
+    let mut h = PARAM_IV;
+    h[6] ^= u32::from_le_bytes([person[0], person[1], person[2], person[3]]);
+    h[7] ^= u32::from_le_bytes([person[4], person[5], person[6], person[7]]);
+    h
+}
+
 /// The BLAKE2s compression: absorb block `m` at byte counter `t` into `h`.
 ///
 /// `last` sets the final-block flag.
@@ -154,8 +163,17 @@ pub struct Hasher {
 
 impl Hasher {
     pub const fn new() -> Self {
+        Self::from_iv(PARAM_IV)
+    }
+
+    /// The hasher of BLAKE2s-256 personalized by `person`.
+    pub const fn personal(person: &[u8; 8]) -> Self {
+        Self::from_iv(personal_iv(person))
+    }
+
+    const fn from_iv(h: [u32; 8]) -> Self {
         Self {
-            h: PARAM_IV,
+            h,
             buf: [0u8; BLOCK_LEN],
             buf_len: 0,
             counter: 0,
@@ -356,6 +374,26 @@ mod tests {
         // Whole blocks take the fast path, and 65 bytes pins the held-back buffer.
         for (input, digest) in test_vectors() {
             assert_eq!(hash(&input), digest, "{} bytes", input.len());
+        }
+    }
+
+    #[test]
+    fn a_personalized_hash_is_blake2s_with_that_personalization() {
+        // Known answers of Python's `hashlib.blake2s(data, person=b"assuming")`: a short message, and one past a block.
+        let known = [
+            (
+                b"abc".to_vec(),
+                "c4761cb6f70aeb25ec8075dc3c50fa154f26b1927a10f86d2cd7920aa0e1a7a6",
+            ),
+            (
+                (0..100).collect(),
+                "7aaae64f0ae218506ce106174943684995bb3b1de17feaa7d603594612bcec32",
+            ),
+        ];
+        for (input, digest) in known {
+            let got = Hasher::personal(b"assuming").update(&input).finalize();
+            let hex: String = got.iter().map(|b| format!("{b:02x}")).collect();
+            assert_eq!(hex, digest, "{} bytes", input.len());
         }
     }
 

@@ -10,7 +10,7 @@ use super::filler::{FillBlocks, Plan};
 use super::layout::{Announcement, Lookup, Schema, Sizes};
 use super::reduce::TableClaims;
 use super::witness::Witness;
-use super::{Output, Proof};
+use super::{Assumption, Output, Proof};
 use crate::class_flock::FlockId;
 use crate::constraints::{Claims, Columns};
 use crate::pcs::{Committed, Rate};
@@ -332,6 +332,10 @@ impl Program {
     ///
     /// It is the verifier's core, then the settlement of the claims the core leaves.
     ///
+    /// A run that assumed proofs exits with its committed values' digest and its assumptions folded together
+    /// ([`Output::assuming`]), so its proof verifies here only against that folded output, and what it shows is
+    /// conditional: [`Program::verify_assuming`] says so.
+    ///
     /// # Errors
     ///
     /// The proof is not one of this program and this output.
@@ -339,6 +343,31 @@ impl Program {
     pub fn verify(&self, output: Output, proof: &Proof) -> Result<(), VerifyError> {
         let claims = self.verify_core(output, proof)?;
         Ok(self.check_deferred(&claims)?)
+    }
+
+    /// Check that the proof shows this program, run on some advice, committing values of digest `committed` while
+    /// assuming these proofs, in order.
+    ///
+    /// The proof alone does not show the assumptions: it returns them, all unresolved, and the run's statement holds
+    /// only once each is proven. An aggregation tree that resolves assumptions verifies the proof and theirs as one.
+    ///
+    /// # Errors
+    ///
+    /// The proof is not one of this program exiting with `committed` folded with these assumptions.
+    pub fn verify_assuming<'a>(
+        &self,
+        committed: Output,
+        assumptions: &'a [Assumption],
+        proof: &Proof,
+    ) -> Result<&'a [Assumption], VerifyError> {
+        self.verify(committed.assuming(assumptions), proof)?;
+        Ok(assumptions)
+    }
+
+    /// The program's digest as the four little-endian words a guest names it by in an assumption.
+    #[must_use]
+    pub fn digest_words(&self) -> [u64; 4] {
+        primitives::hash::digest_words(&self.digest)
     }
 
     /// Verify a proof, and return it with every query's Merkle path written out, the form the Python verifier reads.

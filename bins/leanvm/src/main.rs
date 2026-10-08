@@ -20,6 +20,7 @@ static ALLOCATOR: bench::Counting<bench::Jemalloc> = bench::Counting(bench::Jema
 static ALLOCATOR: bench::Counting<std::alloc::System> = bench::Counting(std::alloc::System);
 
 mod aggregate;
+mod defer;
 mod tracked;
 mod workload;
 
@@ -124,6 +125,14 @@ enum Command {
         #[arg(long, default_value_t = 2)]
         arity: usize,
     },
+    /// Prove two Fibonacci runs and a guest that assumes them, then the tree that resolves its assumptions.
+    ///
+    /// The three runs are proven at `--leaf-log-inv-rate`, the tree proof at `--log-inv-rate`.
+    Defer {
+        /// The first Fibonacci run's `n`: the guest gives `F(n + 2)` from the runs on `n` and `n + 1`.
+        #[arg(long, default_value_t = 1000)]
+        n: u64,
+    },
     /// Prove the benchmarks CI tracks and print them as Bencher Metric Format JSON.
     ///
     /// A proven case reports `latency`, `proof-size`, `verify`, one `stage.<name>` per
@@ -200,6 +209,7 @@ fn main() {
             arity0,
             arity,
         } => aggregate::run(&program.workload(n), leaves, arity0, arity, &leaf_prover, &prover, plan),
+        Command::Defer { n } => defer::run(n, &leaf_prover, &prover, plan),
         Command::Bench {
             cycles_only,
             markdown,

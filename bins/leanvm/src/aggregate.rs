@@ -34,12 +34,12 @@ fn ms(t: &Timing) -> String {
     format!("{} ms{}", pretty_f64(t.mean() * 1000.0), t.spread())
 }
 
-fn secs(t: &Timing) -> String {
+pub fn secs(t: &Timing) -> String {
     format!("{} s{}", pretty_f64(t.mean()), t.spread())
 }
 
 /// One kind of node: its circuit, its proof, and its times.
-fn report(name: &str, tree: &Tree<'_>, kind: Kind, proof: &TreeProof, prove: &Timing, verify: &Timing) {
+pub fn report(name: &str, tree: &Tree<'_>, kind: Kind, proof: &TreeProof, prove: &Timing, verify: &Timing) {
     let stats = tree.stats(kind);
     let rows: Vec<String> = (stats.tables.iter())
         .map(|t| format!("{} {} (2^{})", t.name, pretty_integer(&t.rows), t.height_log))

@@ -1,6 +1,6 @@
 //! The tree's two circuits, and the heights they share.
 //!
-//! - A first-level node verifies RISC-V proofs of the program, turns their program claims into point claims, and reduces every claim.
+//! - A first-level node verifies RISC-V proofs of the program, and of the proofs each assumes, turns their program claims into point claims, and reduces every claim.
 //! - A node verifies recursion proofs of either kind, and reduces their fresh claims with the claims they carry.
 //!
 //! Both circuits have the same heights, so a node verifies a child of either kind with one set of rows.
@@ -11,10 +11,10 @@ use super::reduce::{DenseTables, DenseVars, Reduced};
 use super::statement::{Kind, Section, StatementLayout, TreeStatement, digest_halves_rows};
 use super::{TreeError, reduce};
 use crate::class_flock::FlockId;
-use crate::cpu::{Claim, ProgramPoint};
+use crate::cpu::{Claim, Lookup, Program, ProgramPoint};
 use crate::leaf::N_TUPLE_BITS;
 use crate::pcs::Rate;
-use crate::rec::circuit::{Builder, Dw, Ew, Finished, Kw};
+use crate::rec::circuit::{ASSUMING_IV, Builder, Dw, Ew, Finished, Kw};
 use crate::rec::fixed::FixedColumns;
 use crate::rec::table::{HashFlock, PerRecTable};
 use crate::rec::transcript::{ProofSource, Transcript};
@@ -27,12 +27,37 @@ use primitives::hash::Hasher;
 use primitives::multilinear::mle_eval_par;
 
 /// The domain of every tree proof's transcript.
-const DOMAIN: &[u8] = b"leanvm-tree-6";
+const DOMAIN: &[u8] = b"leanvm-tree-8";
 
-/// What fixes a tree's circuits: the leaves' shape, the arities, the rate, and the nodes' heights.
+/// Where one program's tables sit in the dense polynomials: alone, or as one half of a stack of two.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Slot {
+    /// The bytecode table's entry variables.
+    kbc: usize,
+    /// The image's variables.
+    m: usize,
+    /// The half it fills when the leaves' program and the assumed one share the polynomials: their top variable.
+    half: Option<usize>,
+}
+
+/// The proofs each leaf of a tree assumes: their shape, how many, and where their program sits.
+pub(crate) struct Assumed<'p> {
+    /// Their shape: the program, its tables' heights, its rate.
+    pub(crate) shape: ProofShape<'p>,
+    /// How many each leaf assumes.
+    pub(crate) count: usize,
+    /// Where their program sits in the dense polynomials.
+    slot: Slot,
+}
+
+/// What fixes a tree's circuits: the leaves' shape, the proofs they assume, the arities, the rate, and the nodes' heights.
 pub(crate) struct Design<'p> {
     /// The leaves' shape: the program, its tables' heights, its rate.
     pub(crate) leaf: ProofShape<'p>,
+    /// Where the leaves' program sits in the dense polynomials.
+    slot: Slot,
+    /// The proofs each leaf assumes, if any.
+    pub(crate) assumed: Option<Assumed<'p>>,
     /// The leaves a first-level node verifies.
     pub(crate) arity_0: usize,
     /// The children a node verifies.
@@ -53,12 +78,16 @@ pub(crate) struct Design<'p> {
     pub(crate) iv: [F64; 4],
 }
 
-/// A leaf as a first-level node's prover holds it: its proof as its verifier read it, and its output.
+/// A leaf as a first-level node's prover holds it: its proof as its verifier read it, and what it states.
 pub(crate) struct LeafWitness {
     /// The proof, its Merkle paths written out.
     pub(crate) raw: RawProof,
-    /// The output it proves.
+    /// The output it proves, its run's exit output.
     pub(crate) output: [u64; 4],
+    /// The digest of its run's committed values: its output when it assumes nothing.
+    pub(crate) committed: [u64; 4],
+    /// The proofs it assumes, in order, each assuming nothing.
+    pub(crate) assumed: Vec<Self>,
 }
 
 /// A child as a node's prover holds it: its statement, its proof as its verifier read it, and its circuit's fixed columns.
@@ -105,12 +134,14 @@ impl<T> NodeInputs<'_, T> {
         }
     }
 
-    /// A dense polynomial's value at a point, as a hint: only the prover's tables give it, zero from the shapes.
-    fn hint(&self, b: &mut Builder, poly: DensePoly, point: &[Ew]) -> Ew {
+    /// A dense polynomial's value at a point then public bits, as a hint: only the prover's tables give it, zero from
+    /// the shapes.
+    fn hint(&self, b: &mut Builder, poly: DensePoly, point: &[Ew], bits: Bits) -> Ew {
         let value = match self {
             Self::Shape => F192::ZERO,
             Self::Prove { tables, .. } => {
-                let at: Vec<F192> = point.iter().map(|&w| b.e(w)).collect();
+                let bit = |i: usize| F192::new((bits.value >> i & 1) as u64, 0, 0);
+                let at: Vec<F192> = (point.iter().map(|&w| b.e(w))).chain((0..bits.len).map(bit)).collect();
                 mle_eval_par(&tables.0[poly as usize], &at)
             }
         };
@@ -126,6 +157,33 @@ impl NodeClaims<Ew> {
     }
 }
 
+impl Slot {
+    /// The slot of a program's tables, in the given half of a stack of two if any.
+    fn of(program: &Program, half: Option<usize>) -> Self {
+        let rv = program.rv();
+        Self {
+            kbc: crate::log2_strict_usize(rv.entries().len()),
+            m: crate::log2_ceil_usize(rv.image().len().max(1)),
+            half,
+        }
+    }
+
+    /// The public coordinates that place a point of `n` coordinates on this program's tables in a polynomial of `vars`:
+    /// zeros past the program's own variables, then its half.
+    fn bits(self, n: usize, vars: usize) -> Bits {
+        self.half.map_or_else(
+            || {
+                assert_eq!(n, vars, "a program alone fills its polynomial");
+                Bits::NONE
+            },
+            |half| Bits {
+                value: half << (vars - 1 - n),
+                len: vars - n,
+            },
+        )
+    }
+}
+
 impl<'p> Design<'p> {
     /// The design at the given heights of both circuits.
     ///
@@ -134,6 +192,7 @@ impl<'p> Design<'p> {
     /// Returns an error if the heights admit no recursion proof.
     pub(crate) fn new(
         leaf: ProofShape<'p>,
+        assumed: Option<(ProofShape<'p>, usize)>,
         arity_0: usize,
         arity: usize,
         rate: Rate,
@@ -141,15 +200,27 @@ impl<'p> Design<'p> {
     ) -> Result<Self, TreeError> {
         let child = RecShape::new(taus, rate).map_err(|_| TreeError::TooLarge)?;
         let fixed = FixedLayout::new(&taus);
-        let rv = leaf.program().rv();
+        let stacked = assumed.as_ref().map(|_| 0);
+        let slot = Slot::of(leaf.program(), stacked);
+        let assumed = assumed.map(|(shape, count)| Assumed {
+            slot: Slot::of(shape.program(), Some(1)),
+            shape,
+            count,
+        });
+        // Two programs stack their tables, each padded to the larger, under one more variable.
+        let slots = [Some(slot), assumed.as_ref().map(|a| a.slot)];
+        let most = |f: fn(&Slot) -> usize| slots.iter().flatten().map(f).max().unwrap_or(0);
+        let halves = usize::from(assumed.is_some());
         let vars = DenseVars([
-            crate::log2_strict_usize(rv.entries().len()) + N_TUPLE_BITS,
-            crate::log2_ceil_usize(rv.image().len().max(1)),
+            most(|s| s.kbc) + N_TUPLE_BITS + halves,
+            most(|s| s.m) + halves,
             fixed.kappa() + 1,
         ]);
         let statement = StatementLayout::new(vars.0.into_iter().max().unwrap_or(0));
         let mut design = Self {
             leaf,
+            slot,
+            assumed,
             arity_0,
             arity,
             rate,
@@ -172,33 +243,87 @@ impl<'p> Design<'p> {
         let mut h = Hasher::new();
         h.update(DOMAIN);
         h.update(self.leaf.program().digest());
+        let count = self.assumed.as_ref().map_or(0, |a| a.count);
         let sizes = (self.leaf.taus().values().copied())
-            .chain([self.arity_0, self.arity, self.statement.len()])
+            .chain([self.arity_0, self.arity, self.statement.len(), count])
             .chain(self.taus.into_values());
         for x in sizes {
             h.update(&(x as u64).to_le_bytes());
         }
         h.update(&[self.leaf.rate().log_inv_rate(), self.rate.log_inv_rate()]);
+        if let Some(a) = &self.assumed {
+            h.update(a.shape.program().digest());
+            for &x in a.shape.taus().values() {
+                h.update(&(x as u64).to_le_bytes());
+            }
+            h.update(&[a.shape.rate().log_inv_rate()]);
+        }
         fiat_shamir::digest_words(&h.finalize())
     }
 
-    /// The first level's rows, verifying its leaves.
+    /// The dense polynomials the root's claims are settled against: the bytecode tables, the images, the fixed one.
+    ///
+    /// With assumed proofs, the leaves' program's table is the lower half of each of the first two, the assumed
+    /// program's the upper.
+    pub(crate) fn tables(&self, fixed: Vec<F64>) -> DenseTables {
+        let programs: Vec<&Program> = [
+            Some(self.leaf.program()),
+            self.assumed.as_ref().map(|a| a.shape.program()),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        let stack = |poly: DensePoly, table: fn(&Program) -> Vec<F64>| -> Vec<F64> {
+            let half = (1 << self.vars.0[poly as usize]) / programs.len();
+            (programs.iter())
+                .flat_map(|&p| {
+                    let mut t = table(p);
+                    t.resize(half, F64::ZERO);
+                    t
+                })
+                .collect()
+        };
+        DenseTables([
+            stack(DensePoly::Bytecode, |p| Lookup::Bytecode.table(p.rv())),
+            stack(DensePoly::Image, |p| p.rv().image().iter().map(|&w| F64(w)).collect()),
+            fixed,
+        ])
+    }
+
+    /// The first level's rows, verifying its leaves and the proofs they assume.
+    ///
+    /// A leaf that assumes proofs states its committed values' digest: the rows verify each assumed proof, fold the
+    /// assumed program's digest and each one's output with that digest as the leaf's guest did, and hold the fold to
+    /// the output the leaf's proof states.
     pub(crate) fn first(&self, inputs: &NodeInputs<'_, LeafWitness>) -> NodeRows {
         let mut b = Builder::new();
         let mut claims = NodeClaims::default();
         let mut outputs = Vec::with_capacity(self.arity_0);
         for i in 0..self.arity_0 {
             let leaf = inputs.item(i);
-            let output = leaf.map_or([0; 4], |l| l.output).map(|o| b.free_k(o));
-            let source = leaf.map_or(ProofSource::Shape, |l| ProofSource::Proof(&l.raw));
-            let core = b.scope(format!("leaf {i}"), |b| self.leaf.verify_core(b, output, source));
-            claims.bind_state(&mut b, core.state);
-            b.scope(format!("leaf {i} program"), |b| {
-                self.program_claims(b, &core.claims.program, inputs, &mut claims);
+            let output = b.scope(format!("leaf {i}"), |b| {
+                self.verified(b, (&self.leaf, self.slot), leaf, inputs, &mut claims)
             });
-            let fresh = FlockId::ALL.into_iter().zip(&core.claims.circuits);
-            claims.matrices.extend(fresh.map(|(f, c)| MatrixClaim::fresh(f, c)));
-            outputs.push(output);
+            let stated = self.assumed.as_ref().map_or(output, |a| {
+                let assumed: Vec<[Kw; 4]> = (0..a.count)
+                    .map(|j| {
+                        let proof = leaf.map(|l| &l.assumed[j]);
+                        b.scope(format!("leaf {i} assumption {j}"), |b| {
+                            self.verified(b, (&a.shape, a.slot), proof, inputs, &mut claims)
+                        })
+                    })
+                    .collect();
+                let committed = leaf.map_or([0; 4], |l| l.committed).map(|w| b.free_k(w));
+                b.scope(format!("leaf {i} assumptions"), |b| {
+                    let program = a.shape.program().digest_words().map(|w| b.k_const(w));
+                    let folded = assuming_rows(b, committed, program, &assumed);
+                    for (w, o) in b.d_to_k(folded).into_iter().zip(output) {
+                        b.eq_k(w, o);
+                    }
+                });
+                committed
+            });
+            outputs.push(stated);
         }
         let digest = Kind::First.digest_rows(&mut b, &outputs);
         NodeRows {
@@ -207,6 +332,28 @@ impl<'p> Design<'p> {
             digest,
             claims,
         }
+    }
+
+    /// One RISC-V proof's core in rows, of a program of this shape and slot, its claims added to the node's: returns
+    /// its output's wires.
+    fn verified(
+        &self,
+        b: &mut Builder,
+        (shape, slot): (&ProofShape<'_>, Slot),
+        proof: Option<&LeafWitness>,
+        inputs: &NodeInputs<'_, LeafWitness>,
+        claims: &mut NodeClaims<Ew>,
+    ) -> [Kw; 4] {
+        let output = proof.map_or([0; 4], |l| l.output).map(|o| b.free_k(o));
+        let source = proof.map_or(ProofSource::Shape, |l| ProofSource::Proof(&l.raw));
+        let core = shape.verify_core(b, output, source);
+        claims.bind_state(b, core.state);
+        b.scope("program", |b| {
+            self.program_claims(b, &core.claims.program, slot, inputs, claims);
+        });
+        let fresh = FlockId::ALL.into_iter().zip(&core.claims.circuits);
+        claims.matrices.extend(fresh.map(|(f, c)| MatrixClaim::fresh(f, c)));
+        output
     }
 
     /// The node's rows, verifying its children, of either kind.
@@ -267,7 +414,7 @@ impl<'p> Design<'p> {
         rows.reduce(self, ProofSource::Shape)
     }
 
-    /// A leaf's program claim as point claims on the bytecode table and RAM's image.
+    /// A proof's program claim as point claims on the bytecode table and RAM's image, in its program's slot.
     ///
     /// - Bit `i`'s share is `phi^i(T(phi^(-i)(chi), alpha))`, by its hinted value `D_i` at the point `(phi^(-i)(chi), alpha)`.
     /// - The image's share is its value at the point's low coordinates, the image being zero above them.
@@ -275,30 +422,36 @@ impl<'p> Design<'p> {
         &self,
         b: &mut Builder,
         program: &Claim<ProgramPoint<Ew>, Ew>,
+        slot: Slot,
         inputs: &NodeInputs<'_, LeafWitness>,
         claims: &mut NodeClaims<Ew>,
     ) {
         let p = &program.point;
-        let kbc = self.vars.0[DensePoly::Bytecode as usize] - N_TUPLE_BITS;
-        let (chi, alpha) = p.bytecode.split_at(kbc);
+        let (chi, alpha) = p.bytecode.split_at(slot.kbc);
         let ladders: Vec<Vec<Ew>> = chi.iter().map(|&x| inverse_frobenius_ladder(b, x, 1)).collect();
         let mut total = b.zero();
+        let vars = self.vars.0[DensePoly::Bytecode as usize];
         for (i, &mu) in p.twist.iter().enumerate() {
             let point: Vec<Ew> = ladders.iter().map(|l| l[i]).chain(alpha.iter().copied()).collect();
-            let d = inputs.hint(b, DensePoly::Bytecode, &point);
+            let bits = slot.bits(point.len(), vars);
+            let d = inputs.hint(b, DensePoly::Bytecode, &point, bits);
             let twisted = (0..i).fold(d, |x, _| b.square(x));
             total = b.mul_add(mu, twisted, total);
             claims.bound.push(d);
-            claims.dense.push(DenseClaim::at(DensePoly::Bytecode, point, None, d));
+            claims
+                .dense
+                .push(DenseClaim::at_bits(DensePoly::Bytecode, point, bits, d));
         }
-        let m = self.vars.0[DensePoly::Image as usize];
-        let low = p.image_point[..m].to_vec();
-        let image = inputs.hint(b, DensePoly::Image, &low);
-        let above = (p.image_point[m..].iter()).fold(p.image_weight, |acc, &x| b.times_one_plus(acc, x));
+        let low = p.image_point[..slot.m].to_vec();
+        let bits = slot.bits(slot.m, self.vars.0[DensePoly::Image as usize]);
+        let image = inputs.hint(b, DensePoly::Image, &low, bits);
+        let above = (p.image_point[slot.m..].iter()).fold(p.image_weight, |acc, &x| b.times_one_plus(acc, x));
         total = b.mul_add(above, image, total);
         b.eq_e(total, program.value);
         claims.bound.push(image);
-        claims.dense.push(DenseClaim::at(DensePoly::Image, low, None, image));
+        claims
+            .dense
+            .push(DenseClaim::at_bits(DensePoly::Image, low, bits, image));
     }
 
     /// A child's hinted fixed-column evaluations as claims on the fixed polynomial, in its circuit's half.
@@ -411,4 +564,14 @@ impl NodeRows {
         }
         self.b.finish()
     }
+}
+
+/// The output a run committing values of digest `committed` exits with, having assumed runs of the program of digest
+/// `program` exiting with `outputs`, in order: `Output::assuming`, in rows, one hash row per assumption and one more.
+pub(crate) fn assuming_rows(b: &mut Builder, committed: [Kw; 4], program: [Kw; 4], outputs: &[[Kw; 4]]) -> Dw {
+    let words: Vec<Kw> = (outputs.iter())
+        .flat_map(|o| program.into_iter().chain(*o))
+        .chain(committed)
+        .collect();
+    b.chain_from(ASSUMING_IV, &words)
 }

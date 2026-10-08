@@ -12,7 +12,7 @@ mod builder;
 mod compression;
 
 pub use builder::Builder;
-pub(crate) use compression::digest_limbs;
+pub(crate) use compression::{ASSUMING_IV, digest_limbs};
 pub use compression::{Compression, PARAM_IV, chain, zero_prefix};
 
 use super::table::{PerRecTable, Table};

@@ -35,7 +35,7 @@ pub use error::{CpuError, DecodeError, ProveError, VerifyError};
 pub(crate) use execute::{Payload, Payloads, Row, RowRef, Trace};
 pub(crate) use layout::Announcement;
 pub use layout::{Layout, Lookup, Q_BASE};
-pub use output::Output;
+pub use output::{Assumption, Output};
 pub use program::{Program, Stats};
 pub use proof::Proof;
 pub use prover::{ProvenRun, Prover};

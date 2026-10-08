@@ -1,10 +1,14 @@
 //! BLAKE2s compression on words, as a hash row computes it, and the hashes the circuit builds from it.
 
 use super::Limbs;
+use crate::cpu::Assumption;
 use crate::rv::{Hash, InstructionClass};
 
 /// The parameter IV as four words.
 pub const PARAM_IV: Limbs = words(primitives::hash::PARAM_IV);
+
+/// The IV of the hash that folds a run's assumptions into its output, as four words.
+pub(crate) const ASSUMING_IV: Limbs = words(primitives::hash::personal_iv(&Assumption::PERSONALIZATION));
 
 /// One BLAKE2s compression, its inputs in the compression circuit's port order: `t`, `f`, `h0..h3`, `m0..m7`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

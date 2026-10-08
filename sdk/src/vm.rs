@@ -3,8 +3,8 @@
 use core::arch::global_asm;
 use core::panic::PanicInfo;
 
-// The run starts here: a stack, `main`, the output made from what was committed, then
-// `exit` with it in `a0..a3`.
+// The run starts here: a stack, `main`, the output made from what was committed and
+// assumed, then `exit` with it in `a0..a3`.
 global_asm!(
     ".section .text._start",
     ".globl _start",

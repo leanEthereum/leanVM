@@ -26,6 +26,14 @@
 //!
 //! What a program reads there, it must check itself.
 //!
+//! # Assumptions
+//!
+//! A guest may verify another leanVM proof: `leanvm_guest::verify_proof(program, output)` records an [`Assumption`],
+//! that a run of that program exits with that output, and folds it into the run's output ([`Output::assuming`]).
+//!
+//! The run's own proof then shows its committed values only under its assumptions: [`Program::verify_assuming`]
+//! checks it and returns them, unresolved. An aggregation tree resolves them, verifying the assumed proofs too.
+//!
 //! # Examples
 //!
 //! ```no_run
@@ -44,8 +52,8 @@
 //! Many proofs of one program aggregate into one proof through the aggregation module.
 
 pub use leanvm_core::{
-    DecodeError, ElfError, InvalidRate, Output, Program, ProgramError, Proof, ProveError, ProvenRun, Prover, Rate,
-    Region, Stats, Trap, VerifyError, asm,
+    Assumption, DecodeError, ElfError, InvalidRate, Output, Program, ProgramError, Proof, ProveError, ProvenRun,
+    Prover, Rate, Region, Stats, Trap, VerifyError, asm,
 };
 
 /// Aggregation trees: many proofs of one program, verified as one.
@@ -66,9 +74,17 @@ pub use leanvm_core::{
 /// - claims that only the root's verifier evaluates.
 ///
 /// A tree over one leaf, with `arity_0 = 1`, is a single proof's recursion.
+///
+/// # Assumptions
+///
+/// A guest that verifies proofs with `leanvm_guest::verify_proof` assumes them: its proof alone shows its run only
+/// under those assumptions ([`crate::Program::verify_assuming`]). A tree built with [`aggregate::Tree::assuming`]
+/// resolves them: its first level verifies, beside each leaf's proof, the proofs that leaf's run assumed, and checks
+/// that they are exactly the assumptions its output folds in, in order. Its root then states each leaf's committed
+/// values' digest, with nothing left assumed.
 pub mod aggregate {
     pub use leanvm_core::{
-        CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
-        TreeShape, Unsatisfied,
+        AssumedProofs, CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError,
+        TreeProof, TreeShape, Unsatisfied,
     };
 }

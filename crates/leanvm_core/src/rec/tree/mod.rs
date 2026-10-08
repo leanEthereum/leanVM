@@ -3,7 +3,7 @@
 //! ```text
 //!                 node                  verifies arity recursion proofs of either kind
 //!               /      \
-//!        first-level   first-level      each verifies arity_0 RISC-V proofs
+//!        first-level   first-level      each verifies arity_0 RISC-V proofs, and the proofs each assumes
 //!          /  \          /  \
 //!       leaf  leaf    leaf  leaf
 //! ```
@@ -15,9 +15,13 @@
 //! - each flock circuit's two matrices at one row point and one column point.
 //!
 //! Each node reduces the claims its children leave and carry to one of each, and only the root's verifier evaluates them.
+//!
+//! A tree may resolve assumptions: each leaf's run then assumed a fixed number of runs of one other program, a
+//! first-level node verifies their proofs beside the leaf's, and the leaf's output in the digest is its committed
+//! values' digest. The two programs then share the bytecode and image polynomials, one half each.
 
 use crate::class_flock::FlockId;
-use crate::cpu::{Announcement, DecodeError, Lookup, Output, Program, Proof, ProvenRun, Stats, VerifyError};
+use crate::cpu::{Announcement, Assumption, DecodeError, Output, Program, Proof, ProvenRun, Stats, VerifyError};
 use crate::envelope::Envelope;
 use crate::pcs::Rate;
 use crate::rec::circuit::{Circuit, Finished};
@@ -29,7 +33,7 @@ use crate::rec::verifier::ProofShape;
 use crate::tables::PerTable;
 use design::{ChildWitness, Design, LeafWitness, NodeInputs, NodeRows};
 use fiat_shamir::transcript::{ProofTranscript, RawProof};
-use primitives::field::{F64, F192};
+use primitives::field::F192;
 use primitives::multilinear::{eq_table, mle_eval_par};
 use reduce::DenseTables;
 use statement::TreeStatement;
@@ -67,13 +71,26 @@ pub struct LeafShape {
     rate: Rate,
 }
 
-/// One leaf of a tree: a proof of a run, and the output it proves.
+/// One leaf of a tree: a proof of a run, the output it states, and the proofs its run assumes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Leaf<'a> {
     /// The proof of the run.
     proof: &'a Proof,
-    /// The output the proof claims.
+    /// The output the leaf states: the proof's output, or with assumptions, the run's committed values' digest.
     output: Output,
+    /// The leaves of the runs it assumes, in order: none for a run that assumes nothing.
+    assumed: &'a [Self],
+}
+
+/// The proofs each leaf of a tree assumes: runs of one program, as many for each leaf.
+#[derive(Clone, Copy)]
+pub struct AssumedProofs<'p> {
+    /// The program they are runs of.
+    pub program: &'p Program,
+    /// The shape of their proofs.
+    pub leaf: LeafShape,
+    /// How many each leaf assumes.
+    pub count: usize,
 }
 
 /// How a tree is shaped.
@@ -189,6 +206,42 @@ pub enum TreeError {
         /// Why its verifier refuses it.
         error: VerifyError,
     },
+    /// A leaf assumes another number of proofs than the tree's leaves do.
+    #[error("leaf {index} assumes {got} proofs, and the tree's leaves assume {expected}")]
+    Assumptions {
+        /// The leaf's index among its node's.
+        index: usize,
+        /// How many the tree's leaves assume.
+        expected: usize,
+        /// How many it is given.
+        got: usize,
+    },
+    /// A proof a leaf assumes announces another shape than the tree's assumed proofs.
+    #[error("leaf {leaf}'s assumed proof {index} has another shape than the tree's")]
+    ForeignAssumption {
+        /// The leaf's index among its node's.
+        leaf: usize,
+        /// The assumed proof's index among the leaf's.
+        index: usize,
+    },
+    /// A proof a leaf assumes does not verify, or itself assumes proofs.
+    #[error("leaf {leaf}'s assumed proof {index}: {error}")]
+    Assumption {
+        /// The leaf's index among its node's.
+        leaf: usize,
+        /// The assumed proof's index among the leaf's.
+        index: usize,
+        /// Why its verifier refuses it.
+        error: VerifyError,
+    },
+    /// A proof a leaf assumes itself assumes proofs: a tree resolves one level of assumptions.
+    #[error("leaf {leaf}'s assumed proof {index} itself assumes proofs")]
+    NestedAssumption {
+        /// The leaf's index among its node's.
+        leaf: usize,
+        /// The assumed proof's index among the leaf's.
+        index: usize,
+    },
     /// A child proof does not verify.
     #[error("child {index}: {error}")]
     Child {
@@ -290,10 +343,25 @@ impl TreeShape {
 }
 
 impl<'a> Leaf<'a> {
-    /// The leaf of a proof and the output it proves.
+    /// The leaf of a proof and the output it proves, of a run that assumes nothing.
     #[must_use]
     pub const fn new(proof: &'a Proof, output: Output) -> Self {
-        Self { proof, output }
+        Self {
+            proof,
+            output,
+            assumed: &[],
+        }
+    }
+
+    /// The leaf of a proof of a run that committed values of digest `committed` and assumed the runs of `assumed`, in
+    /// order: its proof states `committed` folded with them ([`Output::assuming`]), and the leaf states `committed`.
+    #[must_use]
+    pub const fn assuming(proof: &'a Proof, committed: Output, assumed: &'a [Self]) -> Self {
+        Self {
+            proof,
+            output: committed,
+            assumed,
+        }
     }
 }
 
@@ -307,7 +375,7 @@ impl TreeProof {
     /// The header of a tree proof's bytes: the magic `LVMT`, then the tree protocol's version.
     ///
     /// The version is bumped by every change to what a tree proof says.
-    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 10);
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 11);
 
     /// The kind of node that made the proof.
     #[must_use]
@@ -381,6 +449,23 @@ impl<'p> Tree<'p> {
     /// - A leaf shape no proof of the program has.
     /// - Circuits that fit no commitment.
     pub fn new(program: &'p Program, shape: TreeShape) -> Result<Self, TreeError> {
+        Self::build(program, shape, None)
+    }
+
+    /// The tree over proofs of a program whose runs each assumed `assumed.count` runs of `assumed.program`, which
+    /// resolves those assumptions: its first level verifies the assumed proofs beside each leaf's, so its root
+    /// states each leaf's committed values' digest, the assumptions proven.
+    ///
+    /// It is [`Tree::new`] when the leaves assume no proof.
+    ///
+    /// # Errors
+    ///
+    /// As [`Tree::new`], and an assumed proofs' shape no proof of their program has.
+    pub fn assuming(program: &'p Program, shape: TreeShape, assumed: AssumedProofs<'p>) -> Result<Self, TreeError> {
+        Self::build(program, shape, (assumed.count > 0).then_some(assumed))
+    }
+
+    fn build(program: &'p Program, shape: TreeShape, assumed: Option<AssumedProofs<'p>>) -> Result<Self, TreeError> {
         let TreeShape {
             leaf: leaves,
             arity_0,
@@ -390,14 +475,16 @@ impl<'p> Tree<'p> {
         if arity_0 == 0 || arity < 2 {
             return Err(TreeError::Arity { arity_0, arity });
         }
-        let leaf = || ProofShape::new(program, leaves.taus, leaves.rate).map_err(|e| TreeError::LeafShape(e.into()));
-        let (design, circuits) = Self::converge(|taus| Design::new(leaf()?, arity_0, arity, rate, taus))?;
+        let of = |program, s: LeafShape| {
+            ProofShape::new(program, s.taus, s.rate).map_err(|e| TreeError::LeafShape(e.into()))
+        };
+        let design = |taus| {
+            let assumed = assumed.map(|a| Ok((of(a.program, a.leaf)?, a.count))).transpose()?;
+            Design::new(of(program, leaves)?, assumed, arity_0, arity, rate, taus)
+        };
+        let (design, circuits) = Self::converge(design)?;
         let columns = circuits.each_ref().map(|c| FixedColumns::of(c, &design.taus));
-        let fixed = design.fixed.polynomial([&columns[0], &columns[1]]);
-        let rv = program.rv();
-        let mut image: Vec<F64> = rv.image().iter().map(|&w| F64(w)).collect();
-        image.resize(1 << design.vars.0[DensePoly::Image as usize], F64::ZERO);
-        let tables = DenseTables([Lookup::Bytecode.table(rv), image, fixed]);
+        let tables = design.tables(design.fixed.polynomial([&columns[0], &columns[1]]));
         Ok(Self {
             shape,
             design,
@@ -438,11 +525,11 @@ impl<'p> Tree<'p> {
         &self.circuits[kind as usize]
     }
 
-    /// Prove a first-level node over its leaves, each a RISC-V proof and its output, in order.
+    /// Prove a first-level node over its leaves, each a RISC-V proof, its output and the proofs it assumes, in order.
     ///
     /// # Errors
     ///
-    /// The wrong number of leaves, a leaf of another shape, or a leaf that does not verify.
+    /// The wrong number of leaves or of assumed proofs, a proof of another shape, or a proof that does not verify.
     pub fn prove_first(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, TreeError> {
         let d = &self.design;
         if leaves.len() != d.arity_0 {
@@ -451,20 +538,53 @@ impl<'p> Tree<'p> {
                 got: leaves.len(),
             });
         }
-        let shape = LeafShape::new(*d.leaf.taus(), d.leaf.rate());
-        let program = d.leaf.program();
+        let expected = d.assumed.as_ref().map_or(0, |a| a.count);
         let items = (leaves.iter().enumerate())
-            .map(|(index, &Leaf { proof, output })| {
-                if LeafShape::announced(proof) != Some(shape) {
-                    return Err(TreeError::ForeignLeaf { index });
+            .map(|(index, leaf)| {
+                if leaf.assumed.len() != expected {
+                    return Err(TreeError::Assumptions {
+                        index,
+                        expected,
+                        got: leaf.assumed.len(),
+                    });
                 }
-                let raw = (program.verify_to_raw(output, proof)).map_err(|error| TreeError::Leaf {
-                    index,
-                    error: error.into(),
+                let (assumed, assumptions) = match &d.assumed {
+                    None => (Vec::new(), Vec::new()),
+                    Some(a) => {
+                        let program = a.shape.program().digest_words();
+                        let witnesses = (leaf.assumed.iter().enumerate())
+                            .map(|(j, inner)| {
+                                if !inner.assumed.is_empty() {
+                                    return Err(TreeError::NestedAssumption { leaf: index, index: j });
+                                }
+                                Self::witness(&a.shape, inner.proof, inner.output).map_err(|error| {
+                                    error.map_or(TreeError::ForeignAssumption { leaf: index, index: j }, |error| {
+                                        TreeError::Assumption {
+                                            leaf: index,
+                                            index: j,
+                                            error,
+                                        }
+                                    })
+                                })
+                            })
+                            .collect::<Result<Vec<_>, _>>()?;
+                        let assumptions = (leaf.assumed.iter())
+                            .map(|inner| Assumption::new(program, inner.output))
+                            .collect();
+                        (witnesses, assumptions)
+                    }
+                };
+                let exit = leaf.output.assuming(&assumptions);
+                let witness = Self::witness(&d.leaf, leaf.proof, exit).map_err(|error| {
+                    error.map_or(TreeError::ForeignLeaf { index }, |error| TreeError::Leaf {
+                        index,
+                        error,
+                    })
                 })?;
                 Ok(LeafWitness {
-                    raw,
-                    output: *output.words(),
+                    committed: *leaf.output.words(),
+                    assumed,
+                    ..witness
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -474,6 +594,21 @@ impl<'p> Tree<'p> {
         };
         let rows = info_span!("Build circuit").in_scope(|| d.first(&inputs));
         self.prove_rows(rows, Kind::First)
+    }
+
+    /// A RISC-V proof of this shape's program and shape, verified against `output`: the witness its rows take, or why
+    /// not, `None` for a proof of another shape.
+    fn witness(shape: &ProofShape<'_>, proof: &Proof, output: Output) -> Result<LeafWitness, Option<VerifyError>> {
+        if LeafShape::announced(proof) != Some(LeafShape::new(*shape.taus(), shape.rate())) {
+            return Err(None);
+        }
+        let raw = (shape.program().verify_to_raw(output, proof)).map_err(|error| Some(error.into()))?;
+        Ok(LeafWitness {
+            raw,
+            output: *output.words(),
+            committed: *output.words(),
+            assumed: Vec::new(),
+        })
     }
 
     /// Prove a node over its children, tree proofs of either kind, in order.
