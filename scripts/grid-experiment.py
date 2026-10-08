@@ -61,6 +61,8 @@ patch = subprocess.check_output(['git', 'diff', PRODUCTION, DIAGNOSTIC, '--', 'c
 (OUT / 'diagnostic.patch').write_bytes(patch)
 for side, cwd in [('base', base), ('head', candidate)]:
     run(['git', 'apply', OUT / 'diagnostic.patch'], f'apply-{side}.log', cwd=cwd)
+    fixture = Path('crates/pcs/src/whir/sumcheck/grid_diagnostic.rs')
+    shutil.copyfile(ROOT / fixture, cwd / fixture)
 # Use the original production input captures, not a newly generated or synthetic workload.
 capture = Path(os.getenv('CAPTURE_DIR', '/tmp/grid-capture/basis-inputs'))
 if not capture.exists():
@@ -98,6 +100,11 @@ for workers in ['1', '4', '8', 'default']:
             measured([tests[side], 'grid_diagnostic::captured_dense_pass', '--ignored', '--nocapture', '--test-threads=1'], name + '.log', dict(env, GRID_RESULT=str(OUT / (name + '.bin'))))
         for side in variants[1:]:
             assert (OUT / f'dense-{workers}-{pair}-base.bin').read_bytes() == (OUT / f'dense-{workers}-{pair}-{side}.bin').read_bytes()
+    for pair in range(5):
+        for side in (variants if pair % 2 == 0 else list(reversed(variants))):
+            name = f'tail3-{workers}-{pair}-{side}'
+            measured([tests[side], 'grid_diagnostic::captured_dense_pass', '--ignored', '--nocapture', '--test-threads=1'], name + '.log', dict(env, GRID_TAIL3='1', GRID_RESULT=str(OUT / (name + '.bin'))))
+        assert (OUT / f'tail3-{workers}-{pair}-base.bin').read_bytes() == (OUT / f'tail3-{workers}-{pair}-head.bin').read_bytes()
     cases = [('leanxmss-100', 2), ('aggregate-leanxmss-100-2to1', 1), ('aggregate-leanxmss-100-2to1', 2)]
     for case, rate in cases:
         for pair in range(5):

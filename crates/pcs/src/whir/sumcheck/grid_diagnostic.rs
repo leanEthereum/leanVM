@@ -1,5 +1,21 @@
 use super::*;
 
+// Independent bit-serial K product, including reduction by x^64+x^4+x^3+x+1.
+fn scalar_mul(mut a: u64, mut b: u64) -> u64 {
+    let mut product = 0;
+    for _ in 0..64 {
+        if b & 1 != 0 {
+            product ^= a;
+        }
+        let carry = a >> 63;
+        a <<= 1;
+        if carry != 0 {
+            a ^= 0x1b;
+        }
+        b >>= 1;
+    }
+    product
+}
 #[test]
 #[ignore = "requires ARM_ATTRIBUTION_BASIS_DIR from a non-timed staged production proof"]
 fn captured_basis_components() {
@@ -30,22 +46,6 @@ fn captured_basis_components() {
     fn unpack(row: &WeightRow, x: usize) -> F192 {
         let pair = if x.is_multiple_of(2) { &row.lo } else { &row.hi };
         F192::new(pair[x & !1], pair[x | 1], row.c2[x])
-    }
-    // Independent bit-serial K product, including reduction by x^64+x^4+x^3+x+1.
-    fn scalar_mul(mut a: u64, mut b: u64) -> u64 {
-        let mut product = 0;
-        for _ in 0..64 {
-            if b & 1 != 0 {
-                product ^= a;
-            }
-            let carry = a >> 63;
-            a <<= 1;
-            if carry != 0 {
-                a ^= 0x1b;
-            }
-            b >>= 1;
-        }
-        product
     }
 
     #[inline(never)]
@@ -297,10 +297,48 @@ fn captured_dense_pass() {
             .collect(),
     );
     assert_eq!(f.len(), n);
+    let tail3 = std::env::var_os("GRID_TAIL3").is_some();
+    if tail3 {
+        assert_eq!(n / block, 39, "the production opening has a seven-lane R3 tail");
+        let Basis::Dense(weights) = &b else { unreachable!() };
+        for sample in 0..64 {
+            let x = sample * (block / ROW - 1) / 63 * ROW;
+            let mut ks = Vec::with_capacity(7 * ROW);
+            let mut es = Vec::with_capacity(7 * ROW);
+            for lane in 32..39 {
+                ks.extend_from_slice(&f[lane * block + x..lane * block + x + ROW]);
+                es.extend_from_slice(&weights[lane * block + x..lane * block + x + ROW]);
+            }
+            let actual = grid_pass_with::<3>(&ks, ROW, &Basis::Dense(es), 0..7, None);
+            for (point, &actual) in actual.iter().enumerate() {
+                let mut expected = F192::ZERO;
+                for offset in 0..ROW {
+                    let (mut k, mut e) = (0, F192::ZERO);
+                    for lane in 0..7 {
+                        if (0..3).all(|bit| {
+                            let digit = point / 3usize.pow(bit) % 3;
+                            digit == 2 || digit == (lane >> bit) & 1
+                        }) {
+                            let at = (32 + lane) * block + x + offset;
+                            k ^= f[at].0;
+                            e += weights[at];
+                        }
+                    }
+                    expected += F192::new(scalar_mul(e.c0, k), scalar_mul(e.c1, k), scalar_mul(e.c2, k));
+                }
+                assert_eq!(actual, expected, "captured R3 tail sample={sample}, point={point}");
+            }
+        }
+        eprintln!("captured_R3_tail_reference checked=true sampled_rows=64");
+    }
     let mut result = None;
     for sample in 0..6 {
         let start = std::time::Instant::now();
-        let grid = initial_rounds(std::hint::black_box(&f), block, initial_k, std::hint::black_box(&b)).grid;
+        let grid = if tail3 {
+            grid_pass_with::<3>(std::hint::black_box(&f), block, std::hint::black_box(&b), 32..39, None)
+        } else {
+            initial_rounds(std::hint::black_box(&f), block, initial_k, std::hint::black_box(&b)).grid
+        };
         eprintln!(
             "dense_pass sample={sample} elapsed_ns={} grid={grid:?}",
             start.elapsed().as_nanos()
