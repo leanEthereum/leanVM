@@ -1,12 +1,14 @@
-//! The univariate skip's domain, and the interpolations at the skip challenge that its verifiers and its prover share.
+//! The univariate skip's domain, and the interpolations at the skip challenge its verifiers and its prover share.
 
-use super::K_SKIP;
 use fiat_shamir::arith::Arith;
 use primitives::field::{F192, PHI_8_TABLE_192};
 use primitives::multilinear::window_denominator;
 
-/// The skip domain `S`, the first `2^k_skip` nodes of the phi_8 table: an `F_2`-subspace of `K`, since phi_8 is linear on its index.
+use super::K_SKIP;
+
+/// The skip domain `S`: the first `2^k_skip` nodes of the phi_8 table.
 ///
+/// It is a subspace over GF(2), since phi_8 is linear on its index.
 /// Its coset `Lambda = S + phi_8(2^k_skip)` holds the zerocheck's first message.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SkipDomain {
@@ -41,11 +43,14 @@ impl SkipDomain {
     ///
     /// Adding a basis element `a` to a subspace takes `V` to `V(X)^2 + V(a) V(X)`, since `V(X + a) = V(X) + V(a)`.
     fn vanishing_coefficients(self) -> Vec<F192> {
+        // The zero subspace's polynomial is `X`.
         let mut c = vec![F192::ZERO; self.k_skip + 1];
         c[0] = F192::ONE;
+        // Add the basis elements `phi_8(2^j)` one at a time.
         for j in 0..self.k_skip {
             let a = PHI_8_TABLE_192[1 << j];
             let at_a = Self::linearized(&c, a);
+            // `V(X)^2` shifts every coefficient up a power; `V(a) V(X)` scales them in place.
             for k in (0..=j + 1).rev() {
                 let squared = if k == 0 { F192::ZERO } else { c[k - 1].square() };
                 c[k] = squared + at_a * c[k];
@@ -67,6 +72,7 @@ impl SkipDomain {
     /// `V_S(z)`: `k_skip` squarings and as many products by constants of `K`.
     pub fn vanishing<A: Arith>(self, a: &mut A, z: A::E) -> A::E {
         let c = self.vanishing_coefficients();
+        // `z^(2^j)` for every `j`, by squaring.
         let mut powers = vec![z];
         for j in 0..self.k_skip {
             powers.push(a.square(powers[j]));
@@ -100,9 +106,14 @@ impl SkipDomain {
 
     /// The first round's message, known on `Lambda` and zero on `S`, interpolated at `z` over the window `S + Lambda`.
     ///
-    /// Its value is `D_2l · V_S(z) · V_Lambda(z) · sum_i values_i / (z + lambda_i)`, `l` the domain's size, with `V_Lambda(z) = V_S(z) + V_S(phi_8(l))`.
+    /// Its value, `l` the domain's size:
+    ///
+    /// ```text
+    ///     D_2l * V_S(z) * V_Lambda(z) * sum_i values_i / (z + lambda_i)        V_Lambda(z) = V_S(z) + V_S(phi_8(l))
+    /// ```
     pub(crate) fn first_round_at<A: Arith>(self, a: &mut A, z: A::E, vanishing: A::E, values: &[A::E]) -> A::E {
         let size = self.size();
+        // The coset's vanishing polynomial is the domain's shifted by a constant, `V_S` being linear.
         let lambda = &PHI_8_TABLE_192[size..2 * size];
         let offset = Self::linearized(&self.vanishing_coefficients(), lambda[0]);
         let on_lambda = a.add_const(vanishing, offset);
@@ -112,12 +123,12 @@ impl SkipDomain {
         Self::lagrange_with(a, scaled, &inverses, values)
     }
 
-    /// `D_l · V_S(z)`, `l` the domain's size: the scale of the Lagrange sum over `S`.
+    /// `D_l * V_S(z)`, `l` the domain's size: the scale of the Lagrange sum over `S`.
     pub(crate) fn lagrange_scale<A: Arith>(self, a: &mut A, vanishing: A::E) -> A::E {
         a.mul_const(vanishing, window_denominator(self.size()))
     }
 
-    /// `sum_i L_i(z) values_i` over `S`, `L_i` its Lagrange basis: `D_l · V_S(z) · sum_i values_i / (z + s_i)`.
+    /// `sum_i L_i(z) values_i` over `S`, `L_i` its Lagrange basis: `D_l * V_S(z) * sum_i values_i / (z + s_i)`.
     pub fn lagrange_at<A: Arith>(self, a: &mut A, z: A::E, vanishing: A::E, values: &[A::E]) -> A::E {
         let scaled = self.lagrange_scale(a, vanishing);
         let inverses = self.inverses(a, z);
@@ -132,14 +143,17 @@ mod tests {
     use primitives::multilinear::skip_lagrange_weights;
     use primitives::test_util::Rng;
 
-    // The first round, known on `Lambda` and zero on `S`, is the whole window's interpolant, at random points.
     #[test]
     fn the_first_round_is_the_whole_windows_interpolant() {
+        // Invariant: the first round, known on Lambda and zero on S, is the whole window's interpolant.
+        //
+        // Fixture state: every domain size, random values on Lambda, four random points each.
         let mut rng = Rng::new(0x0C0B_14ED);
         for k_skip in 0..8 {
             let domain = SkipDomain::new(k_skip);
             let values = rng.ext_vec(domain.size());
             for z in rng.ext_vec(4) {
+                // The window's Lagrange weights at `z`, zero on S, so only Lambda's half counts.
                 let window = skip_lagrange_weights(k_skip + 1, z)[domain.size()..]
                     .iter()
                     .zip(&values)
@@ -154,14 +168,17 @@ mod tests {
         }
     }
 
-    // The vanishing polynomial and the Lagrange sum over `S` are the skip domain's, at random points.
     #[test]
     fn the_lagrange_sum_is_the_skip_domains() {
+        // Invariant: the vanishing polynomial and the Lagrange sum over S are the domain's, by their definitions.
+        //
+        // Fixture state: every domain size, four random points each.
         let mut rng = Rng::new(0x5_1EB);
         for k_skip in 0..8 {
             let domain = SkipDomain::new(k_skip);
             let values = rng.ext_vec(domain.size());
             for z in rng.ext_vec(4) {
+                // `V_S(z)` as the product over the nodes.
                 let vanishing = (PHI_8_TABLE_192[..domain.size()].iter()).fold(F192::ONE, |acc, &s| acc * (z + s));
                 assert_eq!(domain.vanishing(&mut Native, z), vanishing, "k_skip {k_skip}");
                 let lagrange = (skip_lagrange_weights(k_skip, z).iter().zip(&values))

@@ -1,84 +1,95 @@
-//! Boolean circuits as gate lists over word ports: what [`crate::gadgets`] and the
-//! VM's instruction classes are written in.
+//! Boolean circuits as gate lists over word ports: the language of the gadgets and of the VM's instruction classes.
 //!
-//! ## Witness layout per block
+//! One instance's witness, `2^k_log` bits:
 //!
 //! ```text
-//!   z[0 .. 64·P)            = the ports, a whole number of 64-bit words each:
-//!                             inputs (free), then outputs (committed copies)
-//!   z[64·P]                 = 1                  (constant wire)
-//!   z[64·P + 1 .. useful)   = the circuit's products, in the order they are made
-//!   z[useful .. 2^k_log)    = padding (forced to 0 by empty rows)
+//!     z[0 .. 64 P)              the ports, whole 64-bit words each: inputs (free), then outputs (committed copies)
+//!     z[64 P]                   1, the constant wire
+//!     z[64 P + 1 .. useful)     the products, in the order they are made
+//!     z[useful .. 2^k_log)      zero padding, forced by empty rows
 //! ```
 //!
-//! A port bit with no gate is an empty row too, hence zero: an output narrower than
-//! its words, a single bit say, is that value as a 64-bit word. A caller that binds
-//! ports to something outside (memory words, in the VM) relies on exactly this.
+//! A port bit no gate drives is an empty row too, hence zero.
+//! So an output narrower than its words, a single bit say, is that value as a 64-bit word.
+//! A caller binding ports to something outside, memory words in the VM, relies on exactly this.
 //!
-//! A circuit is one gate list, where a wire is the gate driving it and each
-//! committed wire is a row. As in the BLAKE2s circuit, no matrix is ever built: the
-//! verifier walks the list forwards and the prover backwards (doc/leanvm, Annex
-//! C "Evaluating the matrices"). Across implementations what has to agree is the
-//! port layout and the order products are made in, which fixes their slots; the
-//! order of the free XORs is nobody's business.
+//! Each committed wire is one constraint row `a * b = z`.
+//! No matrix is ever built: the verifier walks the list forwards and the prover backwards (doc/leanvm, Annex C).
+//!
+//! What two implementations must agree on is the port layout and the order products are made in.
+//! The order of the free XORs is nobody's business.
+
+use std::ops::Range;
+
+use primitives::bits::transpose_64x64;
+use primitives::field::F192;
 
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
-use crate::witness::{
-    GroupTables, Tables, Witness, drive_witness_batched, drive_witness_groups, drive_witness_packed_and_lincheck,
-    with_z,
-};
-use primitives::bits::transpose_64x64;
-use primitives::field::F192;
-use std::ops::Range;
+use crate::witness::{Batch, GroupTables, Tables, Witness};
 
-/// Instances one word-wide walk of the gate list computes.
-///
-/// One per bit of a `u64`, so a gate is one word operation for all of them.
+/// Instances one word-wide walk of the gate list computes: one per bit of a word.
 const LANES: usize = 64;
 
-/// The gate driving a wire, or `None` for a structural zero.
+/// A wire: the index of the gate driving it, or `None` for a structural zero.
 pub type Wire = Option<u32>;
 
-#[derive(Clone, Copy)]
+/// One gate of the list; a gate's index is its wire.
+#[derive(Clone, Copy, Debug)]
 enum Gate {
-    /// The committed free wire at `slot`: an input bit, or the constant. Row `z[slot]·1 = z[slot]`.
+    /// A committed free wire at a slot: an input bit, or the constant.
+    ///
+    /// Its row is `z[slot] * 1 = z[slot]`.
     Free(u32),
-    /// `w_x ⊕ w_y`, uncommitted.
+
+    /// The sum of two wires, uncommitted: no row.
     Xor(u32, u32),
-    /// Row `w_x · w_y = z[slot]`.
+
+    /// The product of two wires, committed at a slot.
+    ///
+    /// Its row is `x * y = z[slot]`.
     And(u32, u32, u32),
-    /// Row `w_x · 1 = z[slot]`: an affine wire committed, which is how a result leaves the circuit.
+
+    /// An affine wire committed at a slot, which is how a result leaves the circuit.
+    ///
+    /// Its row is `x * 1 = z[slot]`.
     Copy(u32, u32),
 }
 
 /// A gate list under construction.
+#[derive(Debug)]
 pub struct Builder {
+    /// The gates so far, in order.
     gates: Vec<Gate>,
+    /// The slot the next product takes.
     next_slot: usize,
+    /// The constant wire.
     one: Wire,
+    /// Each input port's wires, low bit first.
     inputs: Vec<Vec<Wire>>,
-    /// Each output port's first bit and width.
+    /// Each output port's first slot and width in bits.
     outputs: Vec<(usize, usize)>,
+    /// Words the input ports span.
     n_input_words: usize,
 }
 
 impl Builder {
-    /// Ports of the given widths in bits, each rounded up to whole words: the inputs,
-    /// whose bits are free wires, then the outputs.
+    /// A circuit with input and output ports of the given widths in bits, each rounded up to whole words.
+    ///
+    /// Every input bit is a free wire.
     pub fn new(input_bits: &[usize], output_bits: &[usize]) -> Self {
         let inputs: Vec<Range<usize>> = input_bits.iter().map(|&bits| 0..bits).collect();
         Self::with_input_ranges(&inputs, output_bits)
     }
 
-    /// Ports as above, each input port given as the range of its free bits, and as wide as the range's end.
+    /// The same, each input port given as the range of its free bits, and as wide as the range's end.
     ///
     /// An input bit below its range is a structural zero: its empty row forces it to zero.
     pub fn with_input_ranges(inputs: &[Range<usize>], output_bits: &[usize]) -> Self {
-        let input_bits: Vec<usize> = inputs.iter().map(|bits| bits.end).collect();
-        let words = |bits: &[usize]| bits.iter().map(|b| b.div_ceil(64)).sum::<usize>();
-        let n_input_words = words(&input_bits);
-        let const_pos = 64 * (n_input_words + words(output_bits));
+        // The constant wire sits right after the ports.
+        let words = |bits: &mut dyn Iterator<Item = usize>| bits.map(|b| b.div_ceil(64)).sum::<usize>();
+        let n_input_words = words(&mut inputs.iter().map(|bits| bits.end));
+        let const_pos = 64 * (n_input_words + words(&mut output_bits.iter().copied()));
         let mut c = Self {
             gates: Vec::new(),
             next_slot: const_pos + 1,
@@ -88,6 +99,8 @@ impl Builder {
             n_input_words,
         };
         c.one = Some(c.push(Gate::Free(const_pos as u32)));
+
+        // Each input port: a free wire per bit of its range, a structural zero below it.
         let mut base = 0;
         for bits in inputs {
             let wires = (0..bits.end)
@@ -96,6 +109,8 @@ impl Builder {
             c.inputs.push(wires);
             base += 64 * bits.end.div_ceil(64);
         }
+
+        // Each output port: its slots, which gates fill later.
         for &bits in output_bits {
             c.outputs.push((base, bits));
             base += 64 * bits.div_ceil(64);
@@ -103,17 +118,18 @@ impl Builder {
         c
     }
 
+    /// Append a gate, returning its wire.
     fn push(&mut self, gate: Gate) -> u32 {
         self.gates.push(gate);
         (self.gates.len() - 1) as u32
     }
 
-    /// The constant 1.
+    /// The constant one.
     pub const fn one(&self) -> Wire {
         self.one
     }
 
-    /// Input port `port`'s bits, low first.
+    /// An input port's wires, low bit first.
     pub fn input(&self, port: usize) -> Vec<Wire> {
         self.inputs[port].clone()
     }
@@ -123,18 +139,21 @@ impl Builder {
         self.next_slot
     }
 
+    /// `x + y`: free, no slot.
     pub fn xor(&mut self, x: Wire, y: Wire) -> Wire {
         match (x, y) {
             (Some(x), Some(y)) => Some(self.push(Gate::Xor(x, y))),
+            // Adding a structural zero is the other wire.
             _ => x.or(y),
         }
     }
 
+    /// `1 + x`: free, no slot.
     pub fn not(&mut self, x: Wire) -> Wire {
         self.xor(x, self.one)
     }
 
-    /// One product, and one slot, unless an operand is a structural zero.
+    /// `x * y`: one product and one slot, unless an operand is a structural zero.
     pub fn and(&mut self, x: Wire, y: Wire) -> Wire {
         let (x, y) = (x?, y?);
         let slot = self.next_slot as u32;
@@ -142,21 +161,23 @@ impl Builder {
         Some(self.push(Gate::And(x, y, slot)))
     }
 
+    /// `x OR y = x + y + x y`: one product.
     pub fn or(&mut self, x: Wire, y: Wire) -> Wire {
         let both = self.and(x, y);
         let either = self.xor(x, y);
         self.xor(either, both)
     }
 
-    /// `if s { x } else { y }`, one product.
+    /// `if s { x } else { y } = y + s (x + y)`: one product.
     pub fn mux(&mut self, s: Wire, x: Wire, y: Wire) -> Wire {
         let d = self.xor(x, y);
         let picked = self.and(s, d);
         self.xor(picked, y)
     }
 
-    /// Commits `wire` as bit `bit` of output port `port`. A structural zero needs no
-    /// gate: the empty row is what forces the bit to zero.
+    /// Commit `wire` as bit `bit` of output port `port`.
+    ///
+    /// A structural zero needs no gate: its empty row forces the bit to zero.
     pub fn output(&mut self, port: usize, bit: usize, wire: Wire) {
         let slot = self.output_slot(port, bit);
         if let Some(wire) = wire {
@@ -164,7 +185,7 @@ impl Builder {
         }
     }
 
-    /// One product, committed as bit `bit` of output port `port` rather than at the next slot.
+    /// `x * y`, committed as bit `bit` of output port `port` rather than at the next slot.
     ///
     /// The port bit is the product's row, so the output costs no copy.
     pub fn and_output(&mut self, port: usize, bit: usize, x: Wire, y: Wire) -> Wire {
@@ -173,16 +194,20 @@ impl Builder {
         Some(self.push(Gate::And(x, y, slot)))
     }
 
+    /// The slot of bit `bit` of output port `port`.
     fn output_slot(&self, port: usize, bit: usize) -> u32 {
         let (base, bits) = self.outputs[port];
         assert!(bit < bits, "output port {port} has {bits} bits");
         (base + bit) as u32
     }
 
+    /// The finished circuit, its instances padded to the next power of two.
     pub fn finish(self) -> Circuit {
+        // Every slot so far is a port, the constant or a product; the rest of the power of two is padding.
         let useful_bits = self.next_slot;
+        let output_words: usize = self.outputs.iter().map(|&(_, bits)| bits.div_ceil(64)).sum();
         Circuit {
-            const_pos: 64 * (self.n_input_words + self.outputs.iter().map(|o| o.1.div_ceil(64)).sum::<usize>()),
+            const_pos: 64 * (self.n_input_words + output_words),
             k_log: useful_bits.next_power_of_two().trailing_zeros() as usize,
             useful_bits,
             n_input_words: self.n_input_words,
@@ -191,16 +216,23 @@ impl Builder {
     }
 }
 
+/// A finished gate list: an R1CS over GF(2) whose matrices are never built.
+#[derive(Debug)]
 pub struct Circuit {
+    /// The gates, in order; a gate's index is its wire.
     gates: Vec<Gate>,
+    /// The constant wire's slot.
     const_pos: usize,
+    /// The base-two logarithm of the bits per instance.
     k_log: usize,
+    /// The slots before the zero padding.
     useful_bits: usize,
+    /// Words the input ports span.
     n_input_words: usize,
 }
 
 impl Circuit {
-    /// `log2` of the bits one instance occupies.
+    /// The base-two logarithm of the bits one instance occupies.
     pub const fn k_log(&self) -> usize {
         self.k_log
     }
@@ -211,15 +243,17 @@ impl Circuit {
         self.useful_bits
     }
 
-    /// The constant wire's position.
+    /// The constant wire's slot.
     pub const fn const_pos(&self) -> usize {
         self.const_pos
     }
 
+    /// Words the input ports span.
     pub const fn n_input_words(&self) -> usize {
         self.n_input_words
     }
 
+    /// The circuit as the reduction sees it.
     pub fn block(&self) -> Block<'_> {
         Block {
             k_log: self.k_log,
@@ -228,14 +262,19 @@ impl Circuit {
         }
     }
 
-    /// One instance's `z`, `A·z` and `B·z`, by one walk of the gate list on bits.
-    /// `inputs` are the input ports' words; the buffers come zeroed.
+    /// One instance's `z`, `A z` and `B z`, by one walk of the gate list on bits.
+    ///
+    /// It is the reference every generator is pinned to.
+    ///
+    /// `inputs` are the input ports' words, and the three buffers come zeroed.
     pub fn witness_instance(&self, inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
         assert_eq!(inputs.len(), self.n_input_words);
-        let set = |buf: &mut [u64], slot: u32, v: bool| buf[slot as usize / 64] |= (v as u64) << (slot % 64);
+        let set = |buf: &mut [u64], slot: u32, v: bool| buf[slot as usize / 64] |= u64::from(v) << (slot % 64);
+        // Wire `i` is gate `i`'s value.
         let mut wires: Vec<bool> = Vec::with_capacity(self.gates.len());
         for &gate in &self.gates {
             let v = match gate {
+                // An input bit or the constant: `z * 1 = z`.
                 Gate::Free(s) => {
                     let v = s as usize == self.const_pos || (inputs[s as usize / 64] >> (s % 64)) & 1 == 1;
                     set(z, s, v);
@@ -243,7 +282,9 @@ impl Circuit {
                     set(bz, s, true);
                     v
                 }
+                // Free: no row.
                 Gate::Xor(x, y) => wires[x as usize] ^ wires[y as usize],
+                // A product: `x * y = z`.
                 Gate::And(x, y, s) => {
                     let (x, y) = (wires[x as usize], wires[y as usize]);
                     set(z, s, x & y);
@@ -251,6 +292,7 @@ impl Circuit {
                     set(bz, s, y);
                     x & y
                 }
+                // A committed copy: `x * 1 = z`.
                 Gate::Copy(x, s) => {
                     let v = wires[x as usize];
                     set(z, s, v);
@@ -263,41 +305,39 @@ impl Circuit {
         }
     }
 
-    /// Walks the gate list once for 64 instances, bit `l` of every word being instance `l`.
+    /// Walk the gate list once for 64 instances, bit `l` of every word being instance `l`.
     ///
     /// ```text
     ///     Xor(x, y)      wire = x ^ y
-    ///     And(x, y, s)   wire = x & y     z[s] = x & y    A·z[s] = x    B·z[s] = y
+    ///     And(x, y, s)   wire = x & y     z[s] = x & y    A z[s] = x    B z[s] = y
     /// ```
     ///
-    /// Reads the input bits by slot and writes `z`, `A·z` and `B·z` by slot.
-    ///
-    /// A slot no gate drives is never written, so it keeps the zero the scratch starts with.
+    /// Reads the input bits by slot and writes `z`, `A z` and `B z` by slot.
+    /// A slot no gate drives is never written, so it keeps the scratch's zero.
     fn walk_lanes(&self, lanes: &mut Lanes) {
         let Lanes {
             inputs, wires, z, a, b, ..
         } = lanes;
-        // Wire `i` is gate `i`'s value, pushed in gate order.
         wires.clear();
         for &gate in &self.gates {
             let v = match gate {
-                // An input bit or the constant: its row is `z[s] · 1 = z[s]`.
+                // An input bit or the constant: `z * 1 = z`.
                 Gate::Free(s) => {
                     let s = s as usize;
                     let v = if s == self.const_pos { u64::MAX } else { inputs[s] };
                     (z[s], a[s], b[s]) = (v, v, u64::MAX);
                     v
                 }
-                // Free in the R1CS: no row, no slot.
+                // Free: no row, no slot.
                 Gate::Xor(x, y) => wires[x as usize] ^ wires[y as usize],
-                // A product: its row is `x · y = z[s]`.
+                // A product: `x * y = z`.
                 Gate::And(x, y, s) => {
                     let (x, y) = (wires[x as usize], wires[y as usize]);
                     let s = s as usize;
                     (z[s], a[s], b[s]) = (x & y, x, y);
                     x & y
                 }
-                // A committed copy of an affine wire: its row is `x · 1 = z[s]`.
+                // A committed copy: `x * 1 = z`.
                 Gate::Copy(x, s) => {
                     let v = wires[x as usize];
                     let s = s as usize;
@@ -309,43 +349,38 @@ impl Circuit {
         }
     }
 
-    /// The witness of `rows` of input words, padded with all-zero inputs to `2^n_blocks_log` instances.
+    /// The witness of rows of input words, padded with all-zero inputs to `2^n_blocks_log` instances.
     #[cfg(any(test, feature = "bench"))]
-    pub fn generate_witness<const N: usize>(&self, rows: &[[u64; N]], n_blocks_log: usize) -> Witness {
+    pub fn witness<const N: usize>(&self, rows: &[[u64; N]], n_blocks_log: usize) -> Witness {
         assert_eq!(N, self.n_input_words);
-        self.generate_witness_from(rows, &[0; N], n_blocks_log, |row, words| words.copy_from_slice(row))
+        self.witness_by_walk(rows, &[0; N], n_blocks_log, |row, words| words.copy_from_slice(row))
     }
 
-    /// The same tables for the caller's own rows.
+    /// The witness of the caller's rows, by walking the gate list 64 instances at a time.
     ///
     /// - `input_words(row, words)` writes a row's input port words.
     /// - `padding` fills the instances past the rows.
     ///
-    /// The gate list is walked for 64 instances at a time.
-    ///
     /// The tables are bit for bit those of the one-instance walk.
-    ///
-    /// ```text
-    ///     rows ──transpose──▶ input bits by slot ──walk──▶ z, A·z, B·z by slot
-    ///                                                     │
-    ///          ◀──transpose── instance-major tables ◀─────┤
-    ///          ◀──byte q──── stripe of instances 8q..8q+8 ┘
-    /// ```
-    pub fn generate_witness_from<S: Sync>(
+    pub fn witness_by_walk<S: Sync>(
         &self,
         rows: &[S],
         padding: &S,
         n_blocks_log: usize,
         input_words: impl Fn(&S, &mut [u64]) + Sync,
     ) -> Witness {
-        with_z(n_blocks_log, self.k_log, |z| {
-            self.generate_witness_from_into(z, rows, padding, n_blocks_log, input_words, |_, _| {})
-        })
+        self.batch(n_blocks_log)
+            .witness(|z| self.witness_by_walk_into(z, rows, padding, n_blocks_log, input_words, |_, _| {}))
     }
 
-    /// [`Self::generate_witness_from`] with `z` written into the caller's buffer, and `check(row, z)` shown each
-    /// instance's `z` words while they are in cache.
-    pub fn generate_witness_from_into<S: Sync>(
+    /// The same, with `z` written into the caller's buffer.
+    ///
+    /// `check(row, z)` sees each instance's bits while they are in cache.
+    ///
+    /// ```text
+    ///     rows  --transpose-->  input bits by slot  --walk-->  z, A z, B z by slot  --transpose-->  instance-major
+    /// ```
+    pub fn witness_by_walk_into<S: Sync>(
         &self,
         z: &mut [u64],
         rows: &[S],
@@ -358,18 +393,15 @@ impl Circuit {
         // A batch below 64 instances is walked in full and stored in part.
         let lanes = LANES.min(1 << n_blocks_log);
         let n_in = self.n_input_words;
-        // Packed words per instance.
         let words = (1usize << self.k_log) / 64;
         // Slot groups past the useful bits hold only zeros, so they skip the transpose.
         let live_words = self.useful_bits.div_ceil(64);
-        drive_witness_groups(
+        self.batch(n_blocks_log).fill_groups(
             z,
-            n_blocks_log,
-            self.k_log,
             lanes,
             || Lanes::new(self),
             |s: &mut Lanes, first: usize, t: GroupTables<'_>| {
-                // Phase 1: each lane's input words, a padding row past the batch's rows.
+                // Phase 1: each lane's input words, the padding row past the batch's rows.
                 for (l, row_words) in s.rows.chunks_exact_mut(n_in).enumerate() {
                     input_words(rows.get(first + l).unwrap_or(padding), row_words);
                 }
@@ -402,70 +434,63 @@ impl Circuit {
                         }
                     }
                 }
-
-                // Phase 5: lincheck's stripes, straight from the slot words.
-                //
-                // The stripe of instances 8q..8q+8 holds slot s of instance 8q+x at byte s, bit x.
-                // That byte is byte q of slot s's word.
-                let k = words * 64;
-                for (q, stripe) in t.stripes.chunks_exact_mut(k).enumerate() {
-                    for (byte, &word) in stripe.iter_mut().zip(&s.z) {
-                        *byte = (word >> (8 * q)) as u8;
-                    }
-                }
             },
             |i, z| check(rows.get(i).unwrap_or(padding), z),
         )
     }
 
-    /// The walk's tables with the caller's own rows, padding row and way to
-    /// fill an instance, for a circuit whose witness is cheaper as word arithmetic.
-    pub fn generate_witness_with<S: Sync>(
-        &self,
-        rows: &[S],
-        padding: &S,
-        n_blocks_log: usize,
-        instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
-    ) -> Witness {
-        with_z(n_blocks_log, self.k_log, |z| {
-            self.generate_witness_with_into(z, rows, padding, n_blocks_log, instance, |_, _| {})
-        })
-    }
-
-    /// [`Self::generate_witness_with`] with `z` written into the caller's buffer, and `check(row, z)` shown each
-    /// instance's `z` words while they are in cache.
-    pub fn generate_witness_with_into<S: Sync>(
-        &self,
-        z: &mut [u64],
-        rows: &[S],
-        padding: &S,
-        n_blocks_log: usize,
-        instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
-        check: impl Fn(&S, &[u64]) + Sync,
-    ) -> Tables {
-        drive_witness_packed_and_lincheck(z, rows, Some(padding), n_blocks_log, self.k_log, instance, |i, z| {
-            check(rows.get(i).unwrap_or(padding), z);
-        })
-    }
-
-    /// Build native witnesses eight instances at a time.
+    /// The witness of the caller's rows, one instance at a time.
     ///
-    /// The callback fills three zeroed instance-major buffers for each group.
-    pub fn generate_witness_batched<S: Sync>(
+    /// It suits a circuit whose witness is cheaper as word arithmetic.
+    ///
+    /// `instance(row, z, a, b)` sets one instance's bits in three zeroed buffers.
+    pub fn witness_by_instance<S: Sync>(
+        &self,
+        rows: &[S],
+        padding: &S,
+        n_blocks_log: usize,
+        instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
+    ) -> Witness {
+        self.batch(n_blocks_log)
+            .witness(|z| self.witness_by_instance_into(z, rows, padding, n_blocks_log, instance, |_, _| {}))
+    }
+
+    /// The same, with `z` written into the caller's buffer.
+    ///
+    /// `check(row, z)` sees each instance's bits while they are in cache.
+    pub fn witness_by_instance_into<S: Sync>(
+        &self,
+        z: &mut [u64],
+        rows: &[S],
+        padding: &S,
+        n_blocks_log: usize,
+        instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
+        check: impl Fn(&S, &[u64]) + Sync,
+    ) -> Tables {
+        self.batch(n_blocks_log)
+            .fill_instances(z, rows, padding, instance, |i, z| {
+                check(rows.get(i).unwrap_or(padding), z);
+            })
+    }
+
+    /// The witness of the caller's rows, eight instances at a time.
+    ///
+    /// `batch(rows, z, a, b)` sets eight instances' bits in three zeroed instance-major buffers.
+    pub fn witness_by_batch8<S: Sync>(
         &self,
         rows: &[S],
         padding: &S,
         n_blocks_log: usize,
         batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
     ) -> Witness {
-        with_z(n_blocks_log, self.k_log, |z| {
-            self.generate_witness_batched_into(z, rows, padding, n_blocks_log, batch, |_, _| {})
-        })
+        self.batch(n_blocks_log)
+            .witness(|z| self.witness_by_batch8_into(z, rows, padding, n_blocks_log, batch, |_, _| {}))
     }
 
-    /// [`Self::generate_witness_batched`] with `z` written into the caller's buffer, and `check(row, z)` shown each
-    /// instance's `z` words while they are in cache.
-    pub fn generate_witness_batched_into<S: Sync>(
+    /// The same, with `z` written into the caller's buffer.
+    ///
+    /// `check(row, z)` sees each instance's bits while they are in cache.
+    pub fn witness_by_batch8_into<S: Sync>(
         &self,
         z: &mut [u64],
         rows: &[S],
@@ -474,19 +499,28 @@ impl Circuit {
         batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
         check: impl Fn(&S, &[u64]) + Sync,
     ) -> Tables {
-        // Eight adjacent instances occupy one lincheck byte stripe.
-        drive_witness_batched(z, rows, padding, n_blocks_log, self.k_log, batch, |i, z| {
+        self.batch(n_blocks_log).fill_batches8(z, rows, padding, batch, |i, z| {
             check(rows.get(i).unwrap_or(padding), z);
         })
+    }
+
+    /// A batch of `2^n_blocks_log` of this circuit's instances.
+    const fn batch(&self, n_blocks_log: usize) -> Batch {
+        Batch {
+            n_blocks_log,
+            k_log: self.k_log,
+        }
     }
 
     /// The matrix-vector products `(A_0 w, B_0 w)`, by one forward walk.
     pub fn row_values(&self, w: &[F192]) -> (Vec<F192>, Vec<F192>) {
         let k = self.n_cols();
         assert_eq!(w.len(), k);
+        // The constant column's weight is what `B` takes wherever its row reads the constant.
         let wc = w[self.const_pos];
         let mut ra = vec![F192::ZERO; k];
         let mut rb = vec![F192::ZERO; k];
+        // Wire `i` carries gate `i`'s column combination: an XOR adds, a committed wire is its own column.
         let mut wires: Vec<F192> = Vec::with_capacity(self.gates.len());
         for &gate in &self.gates {
             let v = match gate {
@@ -525,9 +559,9 @@ struct Lanes {
     wires: Vec<u64>,
     /// `z` by slot, one word per slot of an instance.
     z: Vec<u64>,
-    /// `A·z` by slot.
+    /// `A z` by slot.
     a: Vec<u64>,
-    /// `B·z` by slot.
+    /// `B z` by slot.
     b: Vec<u64>,
 }
 
@@ -556,31 +590,37 @@ impl LincheckCircuit for Circuit {
         self.const_pos
     }
 
-    /// `(A_0 + α B_0)ᵀ u`, by one backward walk: every gate, in reverse, hands
-    /// its wire's adjoint to its operands or deposits it on its slot.
+    /// `(A_0 + alpha B_0)^T u`, by one backward walk.
+    ///
+    /// Every gate, in reverse, hands its wire's adjoint to its operands or deposits it on its slot.
     fn fold_alpha_batched(&self, alpha: F192, u: &[F192]) -> Vec<F192> {
         assert_eq!(u.len(), self.n_cols());
         let c = self.const_pos;
         let mut m = vec![F192::ZERO; u.len()];
+        // The adjoint of each wire: the row weight its consumers have handed back so far.
         let mut adj = vec![F192::ZERO; self.gates.len()];
         for (i, &gate) in self.gates.iter().enumerate().rev() {
             let g = adj[i];
             match gate {
+                // `A` reads the slot itself, `B` the constant.
                 Gate::Free(s) => {
                     let s = s as usize;
                     m[s] += g + u[s];
                     m[c] += alpha * u[s];
                 }
+                // An XOR passes its adjoint to both operands.
                 Gate::Xor(x, y) => {
                     adj[x as usize] += g;
                     adj[y as usize] += g;
                 }
+                // `A` reads `x`, `B` reads `y`; the slot's own column collects its consumers' adjoint.
                 Gate::And(x, y, s) => {
                     let s = s as usize;
                     m[s] += g;
                     adj[x as usize] += u[s];
                     adj[y as usize] += alpha * u[s];
                 }
+                // `A` reads `x`, `B` the constant.
                 Gate::Copy(x, s) => {
                     let s = s as usize;
                     m[s] += g;
@@ -594,18 +634,15 @@ impl LincheckCircuit for Circuit {
 
     fn bilinear_form(&self, alpha: F192, u: &[F192], w: &[F192]) -> Option<F192> {
         let (ra, rb) = self.row_values(w);
-        Some(
-            u.iter()
-                .zip(ra.iter().zip(&rb))
-                .fold(F192::ZERO, |acc, (&u, (&a, &b))| acc + u * (a + alpha * b)),
-        )
+        Some((u.iter().zip(ra.iter().zip(&rb))).fold(F192::ZERO, |acc, (&u, (&a, &b))| acc + u * (a + alpha * b)))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use primitives::test_util::Rng;
+
+    use super::*;
 
     /// A random circuit over the builder's whole vocabulary.
     ///
@@ -652,7 +689,7 @@ mod tests {
 
     #[test]
     fn bitsliced_witness_is_the_gate_walk() {
-        // Invariant: the 64-lane walk writes the four tables the one-instance walk writes.
+        // Invariant: the 64-lane walk writes the three tables the one-instance walk writes.
         let mut rng = Rng::new(0xB175);
         for round in 0..40 {
             let circuit = random_circuit(&mut rng);
@@ -671,14 +708,13 @@ mod tests {
             let padding = row();
 
             // The same batch through both generators, every table compared.
-            let walk = circuit.generate_witness_with(&rows, &padding, n_log, |row, z, az, bz| {
+            let walk = circuit.witness_by_instance(&rows, &padding, n_log, |row, z, az, bz| {
                 circuit.witness_instance(row, z, az, bz);
             });
-            let sliced = circuit.generate_witness_from(&rows, &padding, n_log, |row, words| words.copy_from_slice(row));
+            let sliced = circuit.witness_by_walk(&rows, &padding, n_log, |row, words| words.copy_from_slice(row));
             assert!(walk.z == sliced.z, "z, round {round}");
-            assert!(walk.az == sliced.az, "A·z, round {round}");
-            assert!(walk.bz == sliced.bz, "B·z, round {round}");
-            assert!(walk.stripes == sliced.stripes, "lincheck stripes, round {round}");
+            assert!(walk.az == sliced.az, "A z, round {round}");
+            assert!(walk.bz == sliced.bz, "B z, round {round}");
         }
     }
 }

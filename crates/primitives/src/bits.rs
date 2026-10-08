@@ -131,6 +131,24 @@ fn bit_transpose_64bytes_portable(input: &[u8; 64], output: &mut [u8; 64]) {
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
 #[target_feature(enable = "avx512f,avx512vbmi,gfni")]
 unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
+    // SAFETY: each load and store is one 64-byte array.
+    unsafe {
+        let rows = bit_transpose_zmm(_mm512_loadu_si512(input.as_ptr().cast()));
+        _mm512_storeu_si512(output.as_mut_ptr().cast(), rows);
+    }
+}
+
+/// The same transpose on a register: qword `x` is input row `x`, and byte `8b + t` of the result is output row `b`, byte `t`.
+///
+/// One byte permute and one affine map, so a caller that gathers its rows into a register never stores them first.
+///
+/// # Safety
+///
+/// The CPU must have the enabled target features.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
+#[inline]
+#[target_feature(enable = "avx512f,avx512vbmi,gfni")]
+pub fn bit_transpose_zmm(rows: __m512i) -> __m512i {
     // Word `b`, byte `j`: input row `7 - j`, column `b`.
     const IDX: [u8; 64] = {
         let mut idx = [0u8; 64];
@@ -141,16 +159,10 @@ unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
         }
         idx
     };
-    // SAFETY: each load and store is one 64-byte array.
-    unsafe {
-        let columns = _mm512_permutexvar_epi8(
-            _mm512_loadu_si512(IDX.as_ptr().cast()),
-            _mm512_loadu_si512(input.as_ptr().cast()),
-        );
-        let unit = _mm512_set1_epi64(0x8040_2010_0804_0201_u64 as i64);
-        let rows = _mm512_gf2p8affine_epi64_epi8::<0>(unit, columns);
-        _mm512_storeu_si512(output.as_mut_ptr().cast(), rows);
-    }
+    // SAFETY: the index array is 64 bytes.
+    let columns = _mm512_permutexvar_epi8(unsafe { _mm512_loadu_si512(IDX.as_ptr().cast()) }, rows);
+    let unit = _mm512_set1_epi64(0x8040_2010_0804_0201_u64 as i64);
+    _mm512_gf2p8affine_epi64_epi8::<0>(unit, columns)
 }
 
 /// Gather each byte column of the eight 8-byte rows into a word, in the row order `order` picks.

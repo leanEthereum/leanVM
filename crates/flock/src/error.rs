@@ -1,17 +1,19 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! Errors of the R1CS reduction (zerocheck + lincheck + PCS opening).
+//! Why a reduction is refused.
+
+use thiserror::Error;
 
 use crate::lincheck::LincheckError;
 use crate::zerocheck::ZerocheckError;
-use thiserror::Error;
 
-/// Why a flock reduction is rejected, by the step that rejects it.
+/// Why a flock reduction is refused, by the step that refuses it.
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
 pub enum FlockError {
-    /// The zerocheck rejects.
+    /// The zerocheck refuses.
     #[error("zerocheck: {0}")]
     Zerocheck(ZerocheckError),
-    /// The lincheck rejects.
+
+    /// The lincheck refuses.
     #[error("lincheck: {0}")]
     Lincheck(LincheckError),
 }

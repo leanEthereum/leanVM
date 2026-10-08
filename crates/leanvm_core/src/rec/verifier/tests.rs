@@ -14,9 +14,9 @@ use crate::rv::Region;
 use crate::rv::asm::*;
 use crate::tables::{Fill, N_TABLES, PerTable, TableId};
 use crate::witness::StackShape;
+use ::flock::FlockError;
 use ::flock::Witness;
 use ::flock::reduction::{self, Block, Instance, ReductionReplay, Shape};
-use ::flock::verifier::FlockError;
 use ::flock::zerocheck::K_SKIP;
 use ::pcs::whir::{WhirError, inner_product_base_ext, strata};
 use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, TranscriptError, VerifierState};
@@ -293,9 +293,9 @@ fn batch<const N: usize>(f: FlockId, rows: &[[u64; N]]) -> Batch {
     let n_blocks_log = spec.n_blocks_log(rows.len());
     let witness = match spec.circuit.as_ref().map(|c| c.fill) {
         Some(Fill::Instance(instance)) => {
-            circuit.generate_witness_with(rows, &[0; N], n_blocks_log, |row, z, az, bz| instance(row, z, az, bz))
+            circuit.witness_by_instance(rows, &[0; N], n_blocks_log, |row, z, az, bz| instance(row, z, az, bz))
         }
-        _ => circuit.generate_witness(rows, n_blocks_log),
+        _ => circuit.witness(rows, n_blocks_log),
     };
     Batch {
         block: circuit.block(),

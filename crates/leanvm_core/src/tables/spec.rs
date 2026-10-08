@@ -428,7 +428,7 @@ impl ClassSpec {
         1 << self.n_blocks_log(1)
     }
 
-    /// `log2` of the batch proving `n_rows` of the table's rows: a power of two, at least flock's stripe floor and at
+    /// `log2` of the batch proving `n_rows` of the table's rows: a power of two, at least flock's floor of eight instances and at
     /// least what the zerocheck's cube needs for each of the table's circuits.
     pub const fn n_blocks_log(&self, n_rows: usize) -> usize {
         let smallest = match &self.circuit {

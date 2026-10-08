@@ -1,265 +1,249 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-prover), MIT OR Apache-2.0.
-//! The packed witness drivers every circuit's witness generation runs through.
+//! The packed witness tables, and the parallel drivers every witness generator fills them through.
 
 use parallel::Chunks;
-use primitives::bits::bit_transpose_64bytes;
 use primitives::stream::Stream;
 
-/// The bytes of the `u64` words on a little-endian target.
+/// The bytes of packed words, on a little-endian target.
 pub(crate) const fn packed_bytes(words: &[u64]) -> &[u8] {
     const _: () = assert!(
         cfg!(target_endian = "little"),
         "packed witness bytes assume little-endian"
     );
-    // SAFETY: `u64` has no padding or invalid bit patterns, and `u8`'s
-    // alignment divides `u64`'s, so the words are a valid `8 · len` byte slice.
+    // SAFETY: `u64` has no padding or invalid bit patterns, and `u8`'s alignment divides `u64`'s.
+    // So the words are a valid byte slice of eight times their length.
     unsafe { core::slice::from_raw_parts(words.as_ptr().cast::<u8>(), words.len() * 8) }
 }
 
 /// One circuit's witness over a batch of instances, as the prover holds it.
 ///
-/// `z`, `A·z` and `B·z` pack 64 bits a word, `2^k_log / 64` words per instance, instance-major.
+/// Each table packs 64 bits a word, `2^k_log / 64` words per instance, instance-major.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Witness {
     /// The witness bits.
     pub z: Vec<u64>,
-    /// `A·z`.
+
+    /// The left factor of every constraint, `A z`.
     pub az: Vec<u64>,
-    /// `B·z`.
+
+    /// The right factor of every constraint, `B z`.
     pub bz: Vec<u64>,
-    /// `z` again in lincheck's byte stripes: `2^k_log` bytes per eight instances.
-    pub stripes: Vec<u8>,
 }
 
-/// A circuit's witness over a batch but `z`, which the caller's buffer holds: what the `_into` generators return.
+/// A witness whose bits live in the caller's buffer: the two factor tables.
+///
+/// A committed batch's bits are its column of the commitment, written there in place.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Tables {
-    /// `A·z`.
+    /// The left factor of every constraint, `A z`.
     pub az: Vec<u64>,
-    /// `B·z`.
+
+    /// The right factor of every constraint, `B z`.
     pub bz: Vec<u64>,
-    /// `z` again in lincheck's byte stripes: `2^k_log` bytes per eight instances.
-    pub stripes: Vec<u8>,
 }
 
-/// One group's share of the four witness tables, in its worker's scratch.
+/// One group of instances' share of the three tables, in its worker's scratch.
+///
+/// Each table holds the group's instances one after another, `2^k_log / 64` words each.
 pub(crate) struct GroupTables<'a> {
-    /// `z`, `A·z` and `B·z`: `2^k_log / 64` packed words per instance, instance-major.
+    /// The witness bits.
     pub z: &'a mut [u64],
+
+    /// `A z`.
     pub a: &'a mut [u64],
+
+    /// `B z`.
     pub b: &'a mut [u64],
-    /// Lincheck's byte stripes: `2^k_log` bytes per 8 instances.
-    pub stripes: &'a mut [u8],
 }
 
-/// The four witness tables of `2^n_blocks_log` instances, built `group` instances at a time, `z` into the caller's buffer.
-///
-/// - The fill closure writes every word and byte of the group starting at the instance it is given.
-/// - Each worker keeps one scratch state, built once and reused across its groups.
-/// - `check(i, z)` sees instance `i`'s `z` words while its group is still in cache.
-///
-/// A group builds in its worker's buffers, which stay in cache, then streams out.
-///
-/// Building in place instead would fetch every output line before writing it.
-pub(crate) fn drive_witness_groups<St, I, F>(
-    z: &mut [u64],
-    n_blocks_log: usize,
-    k_log: usize,
-    group: usize,
-    init: I,
-    fill: F,
-    check: impl Fn(usize, &[u64]) + Sync,
-) -> Tables
-where
-    St: Send,
-    I: Fn() -> St + Sync,
-    F: Fn(&mut St, usize, GroupTables<'_>) + Sync,
-{
-    let k = 1usize << k_log;
-    let n_total = 1usize << n_blocks_log;
-    assert!(
-        n_total >= 8 && n_total.is_multiple_of(8),
-        "lincheck stripe layout requires n_total ≥ 8 and divisible by 8"
-    );
-    assert!(
-        group.is_multiple_of(8) && n_total.is_multiple_of(group),
-        "a group of {group} instances must tile 2^{n_blocks_log} in whole stripes"
-    );
+/// The shape of a batch: `2^n_blocks_log` instances of `2^k_log` bits each.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Batch {
+    /// The base-two logarithm of the instance count.
+    pub n_blocks_log: usize,
 
-    let total_words = n_total * (k / 64);
-    assert_eq!(z.len(), total_words, "z holds every instance's words");
-    let mut a = Box::<[u64]>::new_uninit_slice(total_words);
-    let mut b = Box::<[u64]>::new_uninit_slice(total_words);
-    let mut all_stripes = Box::<[u8]>::new_uninit_slice((n_total / 8) * k);
+    /// The base-two logarithm of the bits per instance.
+    pub k_log: usize,
+}
 
-    // A group's share: its packed words in each table, and one stripe per 8 instances.
-    let group_words = group * (k / 64);
-    let group_bytes = (group / 8) * k;
-    let z_chunks = Chunks::new(z, group_words);
-    let a_chunks = Chunks::new(&mut a, group_words);
-    let b_chunks = Chunks::new(&mut b, group_words);
-    let stripe_chunks = Chunks::new(&mut all_stripes, group_bytes);
-    debug_assert_eq!(z_chunks.count(), stripe_chunks.count());
+impl Batch {
+    /// Packed words per instance.
+    const fn words(self) -> usize {
+        (1 << self.k_log) / 64
+    }
 
-    parallel::map_reduce_with_state(
-        z_chunks.count(),
-        || (vec![0u64; 3 * group_words], vec![0u8; group_bytes], init()),
-        || (),
-        |(scratch, stripes, state), (), g| {
-            // Build the group in the worker's buffers.
-            let (z_grp, rest) = scratch.split_at_mut(group_words);
-            let (a_grp, b_grp) = rest.split_at_mut(group_words);
-            fill(
-                state,
-                g * group,
-                GroupTables {
-                    z: z_grp,
-                    a: a_grp,
-                    b: b_grp,
-                    stripes,
-                },
-            );
-            for (i, z) in z_grp.chunks_exact(k / 64).enumerate() {
-                check(g * group + i, z);
-            }
+    /// Packed words per table.
+    const fn total_words(self) -> usize {
+        self.words() << self.n_blocks_log
+    }
 
-            let stream = Stream::new();
-            // SAFETY: each group `g` takes chunk `g` of each table exactly once, and
-            // all four tables stay borrowed for the whole dispatch.
-            unsafe {
-                stream.copy(z_chunks.get(g), z_grp);
-                stream.write(a_chunks.get(g), a_grp);
-                stream.write(b_chunks.get(g), b_grp);
-                stream.write(stripe_chunks.get(g), stripes);
-            }
-        },
-        |(), ()| (),
-    );
-
-    // SAFETY: group `g` wrote chunk `g` of every table in full, and the chunk counts match.
-    unsafe {
-        Tables {
-            az: a.assume_init().into_vec(),
-            bz: b.assume_init().into_vec(),
-            stripes: all_stripes.assume_init().into_vec(),
+    /// A whole witness: the bits are allocated here, then the driver fills them and builds the factor tables.
+    pub(crate) fn witness(self, drive: impl FnOnce(&mut [u64]) -> Tables) -> Witness {
+        let mut z = Box::<[u64]>::new_uninit_slice(self.total_words());
+        // SAFETY: every driver writes all of the bits and reads none of them first.
+        let Tables { az, bz } = drive(unsafe { primitives::write_only(&mut z) });
+        Witness {
+            // SAFETY: the driver wrote every word.
+            z: unsafe { z.assume_init() }.into_vec(),
+            az,
+            bz,
         }
     }
-}
 
-/// The four tables of `2^n_blocks_log` instances of `2^k_log` bits, `z` allocated here, from a driver that writes the other three.
-pub(crate) fn with_z(n_blocks_log: usize, k_log: usize, drive: impl FnOnce(&mut [u64]) -> Tables) -> Witness {
-    let mut z = Box::<[u64]>::new_uninit_slice((1usize << n_blocks_log) * ((1usize << k_log) / 64));
-    // SAFETY: every driver writes all of `z` and reads none of it first.
-    let Tables { az, bz, stripes } = drive(unsafe { primitives::write_only(&mut z) });
-    Witness {
-        // SAFETY: the driver wrote every word.
-        z: unsafe { z.assume_init() }.into_vec(),
-        az,
-        bz,
-        stripes,
+    /// Fill the tables `group` instances at a time, the bits into `z`.
+    ///
+    /// - `fill(state, first, tables)` writes every word of the group whose first instance is `first`.
+    /// - Each worker builds its `state` once, by `init`, and reuses it across its groups.
+    /// - `check(i, z)` sees instance `i`'s bits while its group is still in cache.
+    ///
+    /// A group builds in its worker's scratch, which stays in cache, then streams out.
+    /// Building in place instead would fetch every output line before writing it.
+    ///
+    /// # Panics
+    ///
+    /// When groups do not tile the batch, or `z` is not one table long.
+    pub(crate) fn fill_groups<St, I, F>(
+        self,
+        z: &mut [u64],
+        group: usize,
+        init: I,
+        fill: F,
+        check: impl Fn(usize, &[u64]) + Sync,
+    ) -> Tables
+    where
+        St: Send,
+        I: Fn() -> St + Sync,
+        F: Fn(&mut St, usize, GroupTables<'_>) + Sync,
+    {
+        let words = self.words();
+        assert!(
+            (1usize << self.n_blocks_log).is_multiple_of(group),
+            "a group of {group} instances must tile 2^{} of them",
+            self.n_blocks_log
+        );
+        assert_eq!(z.len(), self.total_words(), "z holds every instance's words");
+        let mut a = Box::<[u64]>::new_uninit_slice(z.len());
+        let mut b = Box::<[u64]>::new_uninit_slice(z.len());
+
+        // Each group owns one chunk of every table.
+        let group_words = group * words;
+        let z_chunks = Chunks::new(z, group_words);
+        let a_chunks = Chunks::new(&mut a, group_words);
+        let b_chunks = Chunks::new(&mut b, group_words);
+
+        parallel::map_reduce_with_state(
+            z_chunks.count(),
+            || (vec![0u64; 3 * group_words], init()),
+            || (),
+            |(scratch, state), (), g| {
+                // Phase 1: build the group in the worker's scratch.
+                let (z_grp, rest) = scratch.split_at_mut(group_words);
+                let (a_grp, b_grp) = rest.split_at_mut(group_words);
+                fill(
+                    state,
+                    g * group,
+                    GroupTables {
+                        z: z_grp,
+                        a: a_grp,
+                        b: b_grp,
+                    },
+                );
+
+                // Phase 2: show each instance's bits while they are hot.
+                for (i, z) in z_grp.chunks_exact(words).enumerate() {
+                    check(g * group + i, z);
+                }
+
+                // Phase 3: publish the group without reading the destination first.
+                let stream = Stream::new();
+                // SAFETY: group `g` takes chunk `g` of each table exactly once.
+                // All three tables stay borrowed for the whole dispatch.
+                unsafe {
+                    stream.copy(z_chunks.get(g), z_grp);
+                    stream.write(a_chunks.get(g), a_grp);
+                    stream.write(b_chunks.get(g), b_grp);
+                }
+            },
+            |(), ()| (),
+        );
+
+        // SAFETY: group `g` wrote chunk `g` of both tables in full, and the chunks cover them.
+        unsafe {
+            Tables {
+                az: a.assume_init().into_vec(),
+                bz: b.assume_init().into_vec(),
+            }
+        }
     }
-}
 
-/// Drive the parallel chunked witness build for `n_blocks` instances padded
-/// to `2^n_blocks_log` slots, one instance at a time, `z` into the caller's buffer.
-///
-/// `per_block(initial, z_u64, a_u64, b_u64)` populates one block's worth of
-/// `(z, a, b)` data: 3 zero-initialized `u64`-buffers of length `K / 64`.
-/// `K` is derived from `k_log`. `initial_states.len()` may be less than
-/// `2^n_blocks_log`.
-///
-/// `padding` controls what fills the trailing `2^n_blocks_log −
-/// initial_states.len()` slots:
-/// - `None`: leave them all-zero (trivial constraint satisfaction).
-/// - `Some(p)`: build a real block from `p` in every padding slot. Encoders
-///   that pin a constant wire need this so the constant column is all-ones
-///   across *every* batched instance (see `lincheck's `LincheckCircuit::const_pin_col``).
-pub(crate) fn drive_witness_packed_and_lincheck<S: Sync, F>(
-    z: &mut [u64],
-    initial_states: &[S],
-    padding: Option<&S>,
-    n_blocks_log: usize,
-    k_log: usize,
-    per_block: F,
-    check: impl Fn(usize, &[u64]) + Sync,
-) -> Tables
-where
-    F: Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
-{
-    let u64_per_block = (1usize << k_log) / 64;
-    let n_blocks = initial_states.len();
-    assert!(
-        n_blocks <= 1 << n_blocks_log,
-        "{n_blocks} blocks > 2^{n_blocks_log} slots"
-    );
+    /// Fill the tables one instance at a time, eight per group.
+    ///
+    /// - `instance(row, z, a, b)` sets one instance's bits in three zeroed buffers of `2^k_log / 64` words.
+    /// - The instances past `rows` take `padding`: a real instance, so the constant wire is one in every instance.
+    ///
+    /// # Panics
+    ///
+    /// When there are more rows than instances.
+    pub(crate) fn fill_instances<S: Sync>(
+        self,
+        z: &mut [u64],
+        rows: &[S],
+        padding: &S,
+        instance: impl Fn(&S, &mut [u64], &mut [u64], &mut [u64]) + Sync,
+        check: impl Fn(usize, &[u64]) + Sync,
+    ) -> Tables {
+        assert!(rows.len() <= 1 << self.n_blocks_log, "more rows than instances");
+        let words = self.words();
+        self.fill_groups(
+            z,
+            8,
+            || (),
+            |(), first, t| {
+                // An instance only sets bits, so the group starts from zero.
+                for table in [&mut *t.z, &mut *t.a, &mut *t.b] {
+                    table.fill(0);
+                }
+                // Each instance owns `words` consecutive words of each table.
+                let tables = (t.z.chunks_exact_mut(words))
+                    .zip(t.a.chunks_exact_mut(words))
+                    .zip(t.b.chunks_exact_mut(words));
+                for (l, ((z, a), b)) in tables.enumerate() {
+                    instance(rows.get(first + l).unwrap_or(padding), z, a, b);
+                }
+            },
+            check,
+        )
+    }
 
-    // Eight blocks per group, the lincheck stripe of one group being their bit transpose.
-    drive_witness_groups(
-        z,
-        n_blocks_log,
-        k_log,
-        8,
-        || (),
-        |(), first, t| {
-            // A block only sets bits, so it starts from zero.
-            t.z.fill(0);
-            t.a.fill(0);
-            t.b.fill(0);
-            for k_in in 0..8 {
-                let init: &S = match (initial_states.get(first + k_in), padding) {
-                    (Some(state), _) => state,
-                    // Fill the padding slot with a real block so its constant
-                    // wire is set (see `padding` docs above).
-                    (None, Some(p)) => p,
-                    // No padding block, leave this slot zero.
-                    (None, None) => continue,
-                };
-                let range = k_in * u64_per_block..(k_in + 1) * u64_per_block;
-                per_block(init, &mut t.z[range.clone()], &mut t.a[range.clone()], &mut t.b[range]);
-            }
-
-            // Bit-transpose 8 z chunks into the lincheck stripe.
-            for (i, out) in t.stripes.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-                let rows: [[u8; 8]; 8] = std::array::from_fn(|l| t.z[l * u64_per_block + i].to_le_bytes());
-                bit_transpose_64bytes(rows.as_flattened().try_into().expect("64 bytes"), out);
-            }
-        },
-        check,
-    )
-}
-
-/// Build native witnesses eight instances at a time, then pack their byte stripe; `z` into the caller's buffer.
-pub(crate) fn drive_witness_batched<S: Sync>(
-    z: &mut [u64],
-    rows: &[S],
-    padding: &S,
-    n_blocks_log: usize,
-    k_log: usize,
-    batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
-    check: impl Fn(usize, &[u64]) + Sync,
-) -> Tables {
-    assert!(rows.len() <= 1 << n_blocks_log, "more rows than instances");
-    let words = (1usize << k_log) / 64;
-    drive_witness_groups(
-        z,
-        n_blocks_log,
-        k_log,
-        8,
-        || (),
-        |(), first, t| {
-            // The callback ORs product runs into a fresh group of eight instances.
-            t.z.fill(0);
-            t.a.fill(0);
-            t.b.fill(0);
-            let inputs = std::array::from_fn(|l| rows.get(first + l).unwrap_or(padding));
-            batch(inputs, t.z, t.a, t.b);
-
-            // Each output stripe carries one witness bit from each of the eight instances.
-            for (i, out) in t.stripes.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-                let bits: [[u8; 8]; 8] = std::array::from_fn(|l| t.z[l * words + i].to_le_bytes());
-                bit_transpose_64bytes(bits.as_flattened().try_into().expect("eight word lanes"), out);
-            }
-        },
-        check,
-    )
+    /// Fill the tables eight instances at a time.
+    ///
+    /// `batch(rows, z, a, b)` sets the eight instances' bits in three zeroed group buffers, instance-major.
+    ///
+    /// # Panics
+    ///
+    /// When there are more rows than instances.
+    pub(crate) fn fill_batches8<S: Sync>(
+        self,
+        z: &mut [u64],
+        rows: &[S],
+        padding: &S,
+        batch: impl Fn([&S; 8], &mut [u64], &mut [u64], &mut [u64]) + Sync,
+        check: impl Fn(usize, &[u64]) + Sync,
+    ) -> Tables {
+        assert!(rows.len() <= 1 << self.n_blocks_log, "more rows than instances");
+        self.fill_groups(
+            z,
+            8,
+            || (),
+            |(), first, t| {
+                // The callback ORs product runs into a fresh group.
+                for table in [&mut *t.z, &mut *t.a, &mut *t.b] {
+                    table.fill(0);
+                }
+                let inputs = std::array::from_fn(|l| rows.get(first + l).unwrap_or(padding));
+                batch(inputs, t.z, t.a, t.b);
+            },
+            check,
+        )
+    }
 }

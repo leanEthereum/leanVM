@@ -180,7 +180,7 @@ pub(super) mod tests {
     /// Check a class's word-level witness: on every instance, the tables it writes are the ones the walk of the circuit's gate list writes.
     ///
     /// The instances are `edges`, then 4096 random ones: every other one an instance the decoder can make, the rest edge-biased words in every input port, flags included.
-    /// Each instance is checked alone against the bit-by-bit walk, then the whole batch's packed tables and lincheck stripes against the 64-lane walk.
+    /// Each instance is checked alone against the bit-by-bit walk, then the whole batch's packed tables against the 64-lane walk.
     pub(super) fn word_witness_is_the_walk<C: Ports + Arbitrary>(witness: InstanceWitness, edges: Vec<Vec<u64>>) {
         let circuit = C::circuit();
         let n_in = circuit.n_input_words();
@@ -212,11 +212,10 @@ pub(super) mod tests {
         }
 
         let n_log = rows.len().next_power_of_two().trailing_zeros() as usize;
-        let walk = circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
-        let words = circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| witness(row, z, az, bz));
+        let walk = circuit.witness_by_walk(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
+        let words = circuit.witness_by_instance(&rows, &rows[0], n_log, |row, z, az, bz| witness(row, z, az, bz));
         assert!(walk.z == words.z, "z");
         assert!(walk.az == words.az, "A·z");
         assert!(walk.bz == words.bz, "B·z");
-        assert!(walk.stripes == words.stripes, "lincheck stripes");
     }
 }

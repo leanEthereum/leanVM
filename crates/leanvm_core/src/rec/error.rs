@@ -7,7 +7,7 @@ use crate::leaf::BusError;
 use crate::pcs;
 use ::pcs::whir::WhirError;
 use fiat_shamir::transcript::TranscriptError;
-use flock::verifier::FlockError;
+use flock::FlockError;
 use thiserror::Error;
 
 /// Why a proof of the recursion machine is refused, or cannot be made.

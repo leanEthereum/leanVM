@@ -19,10 +19,10 @@ use crate::{constraints, witness};
 use ::pcs::verifier::OpeningVerifier;
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, RawProof, VerifierState};
+use flock::FlockError;
 use flock::Tables;
 use flock::lincheck::MatrixClaim;
 use flock::reduction::{self, Instance};
-use flock::verifier::FlockError;
 use parallel::SendPtr;
 use primitives::field::{F64, F192};
 use std::borrow::Cow;
@@ -74,7 +74,7 @@ impl HashFlock {
                 }
             }
         };
-        let tables = Self::circuit().generate_witness_with_into(
+        let tables = Self::circuit().witness_by_instance_into(
             z,
             hash,
             &Compression::PADDING,
@@ -110,7 +110,6 @@ impl HashBatch {
             z,
             az: &self.tables.az,
             bz: &self.tables.bz,
-            stripes: &self.tables.stripes,
         };
         let [reduced] = <[_; 1]>::try_from(reduction::prove(&[instance], ps)).expect("one circuit");
         window.ring(reduced)

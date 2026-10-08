@@ -439,10 +439,9 @@ mod tests {
 
         // Prove the batch, optionally flipping one witness bit first, and verify.
         let accepts = |tamper: Option<usize>| {
-            let mut witness = ALU.generate_witness(&rows, n_log);
+            let mut witness = ALU.witness(&rows, n_log);
             if let Some(bit) = tamper {
                 witness.z[bit / 64] ^= 1 << (bit % 64);
-                witness.stripes[bit] ^= 1;
             }
             let mut ps = ProverState::from_label(LABEL);
             let instance = Instance::of(block, n_log, &witness);

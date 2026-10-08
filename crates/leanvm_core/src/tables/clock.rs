@@ -377,10 +377,10 @@ mod tests {
                     [vec![ts], prev, operands].concat()
                 })
                 .collect();
-            let walk = circuit.generate_witness_from(&rows, &rows[0], n_log, |row: &Vec<u64>, words| {
+            let walk = circuit.witness_by_walk(&rows, &rows[0], n_log, |row: &Vec<u64>, words| {
                 words.copy_from_slice(row);
             });
-            let words = circuit.generate_witness_with(&rows, &rows[0], n_log, |row: &Vec<u64>, z, az, bz| match spec {
+            let words = circuit.witness_by_instance(&rows, &rows[0], n_log, |row: &Vec<u64>, z, az, bz| match spec {
                 Some(spec) => spec.clock_witness(&slots, row, z, az, bz),
                 None => Clock::witness(&slots, row[0], &row[1..], z, az, bz),
             });
@@ -388,7 +388,6 @@ mod tests {
             assert!(walk.z == words.z, "z, {name}");
             assert!(walk.az == words.az, "A·z, {name}");
             assert!(walk.bz == words.bz, "B·z, {name}");
-            assert!(walk.stripes == words.stripes, "lincheck stripes, {name}");
         }
     }
 

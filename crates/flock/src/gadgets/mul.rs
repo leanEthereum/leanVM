@@ -1,61 +1,71 @@
-//! Multiplication.
+//! Multiplication of 64-bit words, wrapping or widening.
 //!
 //! ## Partial products are free
 //!
-//! A schoolbook multiplier pays one product per partial product `a_i·b_j`, then
-//! one per carry to sum them. Over GF(2) the first half is avoidable: with
-//! `e_ij = ¬(a_i ⊕ b_j)`, `2·a_i·b_j = a_i + b_j − 1 + e_ij`. Summed, with
-//! `M = 2^64 − 1` and `¬a = M − a` the 64-bit complement,
+//! A schoolbook multiplier pays one product per partial product `a_i b_j`, then one per carry to sum them.
+//! Over GF(2) the first half is avoidable.
+//! With `e_ij = NOT(a_i XOR b_j)`, an integer identity holds bit by bit:
 //!
 //! ```text
-//!   2ab = Σ_i (a_i ? b : ¬b)·2^i + ¬a + ¬b + (a + b)·2^64 + 1 − 2^128
+//!     2 a_i b_j = a_i + b_j - 1 + e_ij
 //! ```
 //!
-//! Every row there is affine in the inputs. Its column 0,
-//! `¬(a_0 ⊕ b_0) + ¬a_0 + ¬b_0 + 1`, is `2 + 2g` with `g = ¬a_0·¬b_0`, so after
-//! that one product the identity halves: `a·b mod 2^N` is `1 + g` plus the other
-//! columns shifted down a place. That is 66 rows of affine bits, with `1` and
-//! `g` in the empty low bits of two of them.
+//! Summed over `i` and `j`, with `M = 2^64 - 1` and `NOT a = M - a` the complement:
+//!
+//! ```text
+//!     2 a b = sum_i (a_i ? b : NOT b) 2^i + NOT a + NOT b + (a + b) 2^64 + 1 - 2^128
+//! ```
+//!
+//! Every row there is affine in the inputs.
+//! Its column 0 is `2 + 2g`, with `g = NOT a_0 * NOT b_0` the one product it costs.
+//! After it the identity halves: `a b mod 2^N` is `1 + g` plus the other columns shifted down a place.
+//! That is 66 rows of affine bits, with `1` and `g` in the empty low bits of two of them.
 //!
 //! ## Compression
 //!
-//! A carry-save step turns three rows into their XOR and their majority shifted
-//! up a place. The majority `(x ⊕ z)(y ⊕ z) ⊕ z` is one product at each position
-//! where at least two rows have a bit, except where exactly two do and the carry
-//! row is still free there: one of the two bits moves into it instead. Taking
-//! the three rows that end lowest each time, the 64 steps cost as few products
-//! as summing column by column, and a ripple-carry addition finishes the last
-//! two rows. The top position's majority would carry out of the modulus, so it
-//! is never a product.
+//! A carry-save step turns three rows into their XOR and their majority shifted up a place.
+//! The majority `(x + z)(y + z) + z` is one product at each position where at least two rows have a bit.
+//! The exception: where exactly two do and the carry row is still free there, one of the two bits moves into it.
 //!
-//! Every step is word arithmetic on `u128` rows and its products are one run of
-//! slots, so an instance's witness is a few shifts and masks per step.
+//! Taking the three rows that end lowest each time, the 64 steps cost as few products as summing column by column.
+//! A ripple-carry addition finishes the last two rows.
+//! The top position's majority would carry out of the modulus, so it is never a product.
+//!
+//! Every step is word arithmetic on 128-bit rows, and its products are one run of slots.
+//! So an instance's witness is a few shifts and masks per step.
 
-use super::Instance;
-use crate::circuit::{Builder, Wire};
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use std::arch::x86_64::{
-    _mm_cvtsi64_si128, _mm256_add_epi64, _mm256_and_si256, _mm256_loadu_si256, _mm256_or_si256, _mm256_sll_epi64,
-    _mm256_srl_epi64, _mm256_storeu_si256, _mm256_xor_si256,
+    __m256i, _mm_cvtsi64_si128, _mm256_add_epi64, _mm256_and_si256, _mm256_loadu_si256, _mm256_or_si256,
+    _mm256_set1_epi64x, _mm256_sll_epi64, _mm256_srl_epi64, _mm256_storeu_si256, _mm256_xor_si256,
 };
+use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
-/// The rows `(a_i ? b : ¬b)` for `i < 64`, then the `a` and `b` rows.
+use super::InstanceTables;
+use crate::circuit::{Builder, Wire};
+
+/// The rows `(a_i ? b : NOT b)` for `i < 64`, then the `a` and `b` rows.
 const N_ROWS: usize = 66;
+
+/// The row of `NOT a`'s high bits and `a`.
 const A_ROW: usize = 64;
+
+/// The row of `NOT b`'s high bits and `b`.
 const B_ROW: usize = 65;
 
-/// One carry-save step: rows `x`, `y`, `z` become the sum row, stored in `x`,
-/// and the carry row, stored in `y`.
-#[derive(Clone, Copy)]
+/// One carry-save step: rows `x`, `y`, `z` become the sum row, stored in `x`, and the carry row, stored in `y`.
+#[derive(Clone, Copy, Debug)]
 struct Csa {
     x: usize,
     y: usize,
     z: usize,
     /// Positions whose majority is a product, one run of slots from `slot`.
     products: u128,
-    /// Positions where the pair's `y` (or `z`) bit moves to the carry row.
+    /// Positions where the pair's `y` bit moves to the carry row instead.
     move_y: u128,
+    /// Positions where the pair's `z` bit moves to the carry row instead.
     move_z: u128,
+    /// The first product's slot.
     slot: usize,
 }
 
@@ -64,24 +74,31 @@ const fn ends(row: u128) -> (u32, u32) {
     (127 - row.leading_zeros(), row.trailing_zeros())
 }
 
+/// Whether the set bits of `mask` are one run, so its products take consecutive slots.
 fn is_run(mask: u128) -> bool {
     let run = mask.checked_shr(mask.trailing_zeros()).unwrap_or(0);
     run & run.wrapping_add(1) == 0
 }
 
+/// A built multiplier: the plan its witness replays as word arithmetic.
+#[derive(Debug)]
 pub struct Multiplier {
+    /// The slot of `g = NOT a_0 * NOT b_0`.
     g_slot: usize,
+    /// The carry-save steps, in order.
     steps: Vec<Csa>,
-    /// The two rows the steps leave, and where adding them makes a product.
+    /// The two rows the steps leave.
     last: (usize, usize),
+    /// The positions where adding the last two rows makes a product.
     carries: u128,
+    /// The first of those products' slots.
     carry_slot: usize,
-    /// Positions below `N`.
+    /// The positions below the product's width.
     width: u128,
 }
 
 impl Multiplier {
-    /// The low `n` bits of `a·b`, as wires.
+    /// The low `n` bits of `a b`, as wires.
     pub fn build(c: &mut Builder, a: &[Wire], b: &[Wire], n: usize) -> (Vec<Wire>, Self) {
         let width = u128::MAX >> (128 - n);
         let one = c.one();
@@ -90,8 +107,8 @@ impl Multiplier {
         let g_slot = c.next_slot();
         let g = c.and(not_a[0], not_b[0]);
 
-        // Each row's wire per position, all shifted down a place: row 0's bit 0
-        // is what `g` and the constant 1 replace.
+        // Phase 1: each row's wire per position, all shifted down a place.
+        // Row 0's bit 0 is what `g` and the constant one replace.
         let mut rows = vec![vec![None; n]; N_ROWS];
         for i in 0..64usize {
             for (j, &bj) in b.iter().enumerate() {
@@ -100,7 +117,7 @@ impl Multiplier {
                 }
             }
         }
-        // `(¬a ≫ 1) + a·2^63`, and the same for `b`.
+        // `(NOT a >> 1) + a 2^63`, and the same for `b`.
         for (row, low, high) in [(A_ROW, &not_a, a), (B_ROW, &not_b, b)] {
             let len = 64.min(n - 63);
             rows[row][..63].copy_from_slice(&low[1..]);
@@ -117,6 +134,7 @@ impl Multiplier {
             .map(|row| (0..n).filter(|&p| row[p].is_some()).fold(0, |m, p| m | (1 << p)))
             .collect();
 
+        // Phase 2: carry-save steps on the three rows that end lowest, until two rows remain.
         let mut live: Vec<usize> = (0..N_ROWS).collect();
         let mut steps = Vec::new();
         while live.len() > 2 {
@@ -126,12 +144,13 @@ impl Multiplier {
             live.retain(|r| ![x, y, z].contains(r));
             live.extend([x, y]);
 
+            // A position with two bits or more makes a carry; one product, unless a bit can move instead.
             let (px, py, pz) = (present[x], present[y], present[z]);
             let pairs = ((px & py) | (px & pz) | (py & pz)) & (width >> 1);
             let triples = px & py & pz;
             let (mut products, mut moves) = (0u128, 0u128);
             for p in (0..n - 1).filter(|&p| (pairs >> p) & 1 == 1) {
-                // The carry row is free at `p` unless `p − 1` has a product.
+                // The carry row is free at `p` unless `p - 1` has a product.
                 if (triples >> p) & 1 == 0 && (products << 1) >> p & 1 == 0 {
                     moves |= 1 << p;
                 } else {
@@ -153,6 +172,7 @@ impl Multiplier {
             for p in 0..n {
                 let (wx, wy, wz) = (rows[x][p], rows[y][p], rows[z][p]);
                 if (products >> p) & 1 == 1 {
+                    // A full adder: the majority is the product, the sum is free.
                     let xz = c.xor(wx, wz);
                     let yz = c.xor(wy, wz);
                     let maj = c.and(xz, yz);
@@ -176,6 +196,7 @@ impl Multiplier {
             steps.push(step);
         }
 
+        // Phase 3: a ripple-carry addition of the last two rows.
         let &[x, y] = live.as_slice() else {
             unreachable!("the steps stop at two rows")
         };
@@ -210,36 +231,34 @@ impl Multiplier {
         (product, multiplier)
     }
 
-    /// Write the multiplication's product rows into zeroed packed buffers.
+    /// Write the multiplication's product rows into zeroed packed buffers, and return the product.
     ///
-    /// Return the product reduced to the circuit's width.
-    ///
-    /// The operand ports, output ports and constant are filled by the caller.
+    /// Only product slots are written, so the plan composes with other arithmetic.
+    /// The caller fills the operand ports, the output ports and the constant.
     pub fn witness(&self, a: u64, b: u64, z: &mut [u64], az: &mut [u64], bz: &mut [u64]) -> u128 {
-        // Only product slots are written, so this plan composes with other arithmetic.
-        self.witness_into(a, b, &mut Instance { z, az, bz })
+        self.witness_into(a, b, &mut InstanceTables { z, az, bz })
     }
 
-    /// Write the complement selector and the carry-save products.
-    pub(super) fn witness_into(&self, a: u64, b: u64, witness: &mut Instance) -> u128 {
-        // Wrapping products need only the low half of every carry-save row.
-        if self.width == u64::MAX as u128 {
-            return self.witness_low(a, b, witness) as u128;
+    /// Write the complement selector, the carry-save products and the final carries.
+    pub(super) fn witness_into(&self, a: u64, b: u64, tables: &mut InstanceTables<'_>) -> u128 {
+        // A wrapping product needs only the low half of every row.
+        if self.width == u128::from(u64::MAX) {
+            return u128::from(self.witness_low(a, b, tables));
         }
         let (na, nb) = (!a, !b);
         let mut rows = [0u128; N_ROWS];
         for (i, row) in rows[..64].iter_mut().enumerate() {
-            let v = (b ^ ((a >> i) & 1).wrapping_sub(1)) as u128;
+            let v = u128::from(b ^ ((a >> i) & 1).wrapping_sub(1));
             *row = if i == 0 { v >> 1 } else { v << (i - 1) };
         }
-        rows[A_ROW] = ((na >> 1) as u128) | ((a as u128) << 63) | (1 << 127);
-        rows[B_ROW] = ((nb >> 1) as u128) | ((b as u128) << 63);
+        rows[A_ROW] = u128::from(na >> 1) | (u128::from(a) << 63) | (1 << 127);
+        rows[B_ROW] = u128::from(nb >> 1) | (u128::from(b) << 63);
         rows[2] |= 1;
-        rows[3] |= (na & nb & 1) as u128;
+        rows[3] |= u128::from(na & nb & 1);
         for row in &mut rows {
             *row &= self.width;
         }
-        witness.products(self.g_slot, 1, na as u128, nb as u128);
+        tables.products(self.g_slot, 1, u128::from(na), u128::from(nb));
 
         for s in &self.steps {
             let (rx, ry, rz) = (rows[s.x], rows[s.y], rows[s.z]);
@@ -247,73 +266,19 @@ impl Multiplier {
             let moved = (ry & s.move_y) | (rz & s.move_z);
             rows[s.x] = rx ^ ry ^ rz ^ moved;
             rows[s.y] = ((((xz & yz) ^ rz) & s.products) << 1) | moved;
-            witness.products(s.slot, s.products, xz, yz);
+            tables.products(s.slot, s.products, xz, yz);
         }
 
+        // The native sum's XOR with its operands recovers the final carry-in bits.
         let (rx, ry) = (rows[self.last.0], rows[self.last.1]);
         let sum = rx.wrapping_add(ry) & self.width;
         let carry_in = sum ^ rx ^ ry;
-        witness.products(self.carry_slot, self.carries, rx ^ carry_in, ry ^ carry_in);
+        tables.products(self.carry_slot, self.carries, rx ^ carry_in, ry ^ carry_in);
         sum
     }
 
-    /// Write four wrapping multiplication witnesses into word-major packed tables.
-    ///
-    /// Each packed word contains four independent instances in adjacent lanes.
-    /// The caller fills their ports and constant before converting to instance-major storage.
-    pub fn witness_batch4(
-        &self,
-        a: [u64; 4],
-        b: [u64; 4],
-        z: &mut [[u64; 4]],
-        az: &mut [[u64; 4]],
-        bz: &mut [[u64; 4]],
-    ) -> [u64; 4] {
-        assert_eq!(self.width, u64::MAX as u128, "batched multiplication wraps at 64 bits");
-
-        // Independent word lanes share every mask and shift in the carry-save plan.
-        let mut rows = [[0u64; 4]; N_ROWS];
-        for (i, row) in rows[..64].iter_mut().enumerate() {
-            let bit = and4(shr4(a, i), [1; 4]);
-            let v = xor4(b, add4(bit, [u64::MAX; 4]));
-            *row = if i == 0 { shr4(v, 1) } else { shl4(v, i - 1) };
-        }
-        let (na, nb) = (xor4(a, [u64::MAX; 4]), xor4(b, [u64::MAX; 4]));
-        rows[A_ROW] = or4(shr4(na, 1), shl4(a, 63));
-        rows[B_ROW] = or4(shr4(nb, 1), shl4(b, 63));
-        rows[2] = or4(rows[2], [1; 4]);
-        rows[3] = or4(rows[3], and4(and4(na, nb), [1; 4]));
-        products4(z, az, bz, self.g_slot, 1, na, nb);
-
-        // Product runs remain vector words until the whole witness is packed.
-        for s in &self.steps {
-            let (rx, ry, rz) = (rows[s.x], rows[s.y], rows[s.z]);
-            let (xz, yz) = (xor4(rx, rz), xor4(ry, rz));
-            let moved = or4(and4(ry, [s.move_y as u64; 4]), and4(rz, [s.move_z as u64; 4]));
-            rows[s.x] = xor4(xor4(xor4(rx, ry), rz), moved);
-            rows[s.y] = or4(shl4(and4(xor4(and4(xz, yz), rz), [s.products as u64; 4]), 1), moved);
-            products4(z, az, bz, s.slot, s.products as u64, xz, yz);
-        }
-
-        // Native lane additions recover the final carries without a bitwise gate walk.
-        let (rx, ry) = (rows[self.last.0], rows[self.last.1]);
-        let sum = add4(rx, ry);
-        let carry = xor4(xor4(sum, rx), ry);
-        products4(
-            z,
-            az,
-            bz,
-            self.carry_slot,
-            self.carries as u64,
-            xor4(rx, carry),
-            xor4(ry, carry),
-        );
-        sum
-    }
-
-    /// Evaluate the same carry-save plan modulo 2^64.
-    fn witness_low(&self, a: u64, b: u64, witness: &mut Instance) -> u64 {
-        // Affine partial rows are clipped automatically by 64-bit shifts.
+    /// The same plan modulo `2^64`, on words: a 64-bit shift clips the rows for free.
+    fn witness_low(&self, a: u64, b: u64, tables: &mut InstanceTables<'_>) -> u64 {
         let mut rows = [0u64; N_ROWS];
         for (i, row) in rows[..64].iter_mut().enumerate() {
             let v = b ^ ((a >> i) & 1).wrapping_sub(1);
@@ -323,113 +288,242 @@ impl Multiplier {
         rows[B_ROW] = (!b >> 1) | (b << 63);
         rows[2] |= 1;
         rows[3] |= !a & !b & 1;
-        witness.products(self.g_slot, 1, !a as u128, !b as u128);
+        tables.products(self.g_slot, 1, u128::from(!a), u128::from(!b));
 
-        // Each step replaces three rows by the same sum and carry modulo 2^64.
+        // Each step replaces three rows by the same sum and carry.
         for s in &self.steps {
             let (rx, ry, rz) = (rows[s.x], rows[s.y], rows[s.z]);
             let (xz, yz) = (rx ^ rz, ry ^ rz);
             let moved = (ry & s.move_y as u64) | (rz & s.move_z as u64);
             rows[s.x] = rx ^ ry ^ rz ^ moved;
             rows[s.y] = ((((xz & yz) ^ rz) & s.products as u64) << 1) | moved;
-            witness.products(s.slot, s.products, xz as u128, yz as u128);
+            tables.products(s.slot, s.products, u128::from(xz), u128::from(yz));
         }
 
         // The native sum's XOR with its operands recovers the final carry-in bits.
         let (rx, ry) = (rows[self.last.0], rows[self.last.1]);
         let sum = rx.wrapping_add(ry);
         let carry_in = sum ^ rx ^ ry;
-        witness.products(
+        tables.products(
             self.carry_slot,
             self.carries,
-            (rx ^ carry_in) as u128,
-            (ry ^ carry_in) as u128,
+            u128::from(rx ^ carry_in),
+            u128::from(ry ^ carry_in),
         );
         sum
     }
-}
 
-/// Write a contiguous product run across four independent word lanes.
-#[inline(always)]
-fn products4(
-    z: &mut [[u64; 4]],
-    az: &mut [[u64; 4]],
-    bz: &mut [[u64; 4]],
-    slot: usize,
-    mask: u64,
-    left: [u64; 4],
-    right: [u64; 4],
-) {
-    if mask == 0 {
-        return;
-    }
+    /// Write four wrapping multiplications' rows into word-major tables, and return the four products.
+    ///
+    /// Word `w` of each table holds word `w` of the four instances, side by side.
+    /// The caller fills their ports and constant, then converts to instance-major storage.
+    ///
+    /// # Panics
+    ///
+    /// When the multiplier is not 64 bits wide.
+    pub fn witness_batch4(
+        &self,
+        a: [u64; 4],
+        b: [u64; 4],
+        z: &mut [[u64; 4]],
+        az: &mut [[u64; 4]],
+        bz: &mut [[u64; 4]],
+    ) -> [u64; 4] {
+        assert_eq!(
+            self.width,
+            u128::from(u64::MAX),
+            "batched multiplication wraps at 64 bits"
+        );
+        let (a, b) = (U64x4::new(a), U64x4::new(b));
+        let mut tables = Tables4 { z, az, bz };
 
-    // Each vector lane packs the same product positions into the same two word offsets.
-    let low = mask.trailing_zeros();
-    let left = shr4(and4(left, [mask; 4]), low as usize);
-    let right = shr4(and4(right, [mask; 4]), low as usize);
-    let product = and4(left, right);
-    let (word, shift) = (slot / 64, slot % 64);
-    for (buf, bits) in [(z, product), (az, left), (bz, right)] {
-        buf[word] = or4(buf[word], shl4(bits, shift));
-        buf[word + 1] = or4(buf[word + 1], shr4(shr4(bits, 1), 63 - shift));
-    }
-}
-
-/// Apply a binary operation to four independent word lanes.
-macro_rules! binary4 {
-    ($name:ident, $intrinsic:ident, $scalar:expr) => {
-        #[inline(always)]
-        fn $name(left: [u64; 4], right: [u64; 4]) -> [u64; 4] {
-            #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
-            // SAFETY: the target enables AVX2 and each unaligned access spans exactly four words.
-            unsafe {
-                let left = _mm256_loadu_si256(left.as_ptr().cast());
-                let right = _mm256_loadu_si256(right.as_ptr().cast());
-                let mut out = [0; 4];
-                _mm256_storeu_si256(out.as_mut_ptr().cast(), $intrinsic(left, right));
-                out
-            }
-            #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
-            // Scalar lanes preserve the same integer operation on portable targets.
-            std::array::from_fn(|i| ($scalar)(left[i], right[i]))
+        // Every lane shares every mask and shift of the plan.
+        let mut rows = [U64x4::splat(0); N_ROWS];
+        for (i, row) in rows[..64].iter_mut().enumerate() {
+            let v = b ^ ((a >> i) & U64x4::splat(1)).wrapping_add(U64x4::splat(u64::MAX));
+            *row = if i == 0 { v >> 1 } else { v << (i - 1) };
         }
-    };
+        let (na, nb) = (!a, !b);
+        rows[A_ROW] = (na >> 1) | (a << 63);
+        rows[B_ROW] = (nb >> 1) | (b << 63);
+        rows[2] = rows[2] | U64x4::splat(1);
+        rows[3] = rows[3] | (na & nb & U64x4::splat(1));
+        tables.products(self.g_slot, 1, na, nb);
+
+        for s in &self.steps {
+            let (rx, ry, rz) = (rows[s.x], rows[s.y], rows[s.z]);
+            let (xz, yz) = (rx ^ rz, ry ^ rz);
+            let moved = (ry & U64x4::splat(s.move_y as u64)) | (rz & U64x4::splat(s.move_z as u64));
+            rows[s.x] = rx ^ ry ^ rz ^ moved;
+            rows[s.y] = ((((xz & yz) ^ rz) & U64x4::splat(s.products as u64)) << 1) | moved;
+            tables.products(s.slot, s.products as u64, xz, yz);
+        }
+
+        // Native lane additions recover the final carries.
+        let (rx, ry) = (rows[self.last.0], rows[self.last.1]);
+        let sum = rx.wrapping_add(ry);
+        let carry = sum ^ rx ^ ry;
+        tables.products(self.carry_slot, self.carries as u64, rx ^ carry, ry ^ carry);
+        sum.to_array()
+    }
 }
 
-binary4!(xor4, _mm256_xor_si256, |a: u64, b: u64| a ^ b);
-binary4!(and4, _mm256_and_si256, |a: u64, b: u64| a & b);
-binary4!(or4, _mm256_or_si256, |a: u64, b: u64| a | b);
-binary4!(add4, _mm256_add_epi64, |a: u64, b: u64| a.wrapping_add(b));
+/// Four independent words, side by side: one AVX2 register on x86, an array elsewhere.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+#[derive(Clone, Copy, Debug)]
+struct U64x4(__m256i);
 
-/// Shift four independent word lanes left by fewer than 64 positions.
-#[inline(always)]
-fn shl4(words: [u64; 4], shift: usize) -> [u64; 4] {
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
-    // SAFETY: the target enables AVX2 and each unaligned access spans exactly four words.
-    unsafe {
-        let words = _mm256_loadu_si256(words.as_ptr().cast());
-        let count = _mm_cvtsi64_si128(shift as i64);
+/// Four independent words, side by side: one AVX2 register on x86, an array elsewhere.
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+#[derive(Clone, Copy, Debug)]
+struct U64x4([u64; 4]);
+
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+impl U64x4 {
+    fn new(words: [u64; 4]) -> Self {
+        // SAFETY: the load reads exactly the four words.
+        Self(unsafe { _mm256_loadu_si256(words.as_ptr().cast()) })
+    }
+
+    fn to_array(self) -> [u64; 4] {
         let mut out = [0; 4];
-        _mm256_storeu_si256(out.as_mut_ptr().cast(), _mm256_sll_epi64(words, count));
+        // SAFETY: the store writes exactly the four words.
+        unsafe { _mm256_storeu_si256(out.as_mut_ptr().cast(), self.0) };
         out
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
-    words.map(|v| v << shift)
+
+    fn splat(v: u64) -> Self {
+        // SAFETY: the target enables AVX2.
+        Self(unsafe { _mm256_set1_epi64x(v as i64) })
+    }
+
+    /// Lane-wise addition modulo `2^64`.
+    fn wrapping_add(self, rhs: Self) -> Self {
+        // SAFETY: the target enables AVX2.
+        Self(unsafe { _mm256_add_epi64(self.0, rhs.0) })
+    }
 }
 
-/// Shift four independent word lanes right by fewer than 64 positions.
-#[inline(always)]
-fn shr4(words: [u64; 4], shift: usize) -> [u64; 4] {
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
-    // SAFETY: the target enables AVX2 and each unaligned access spans exactly four words.
-    unsafe {
-        let words = _mm256_loadu_si256(words.as_ptr().cast());
-        let count = _mm_cvtsi64_si128(shift as i64);
-        let mut out = [0; 4];
-        _mm256_storeu_si256(out.as_mut_ptr().cast(), _mm256_srl_epi64(words, count));
-        out
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+impl U64x4 {
+    const fn new(words: [u64; 4]) -> Self {
+        Self(words)
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
-    words.map(|v| v >> shift)
+
+    const fn to_array(self) -> [u64; 4] {
+        self.0
+    }
+
+    const fn splat(v: u64) -> Self {
+        Self([v; 4])
+    }
+
+    /// Lane-wise addition modulo `2^64`.
+    fn wrapping_add(self, rhs: Self) -> Self {
+        Self(std::array::from_fn(|i| self.0[i].wrapping_add(rhs.0[i])))
+    }
+}
+
+impl BitXor for U64x4 {
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitxor(self, rhs: Self) -> Self {
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        // SAFETY: the target enables AVX2.
+        return Self(unsafe { _mm256_xor_si256(self.0, rhs.0) });
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+        Self(std::array::from_fn(|i| self.0[i] ^ rhs.0[i]))
+    }
+}
+
+impl BitAnd for U64x4 {
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitand(self, rhs: Self) -> Self {
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        // SAFETY: the target enables AVX2.
+        return Self(unsafe { _mm256_and_si256(self.0, rhs.0) });
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+        Self(std::array::from_fn(|i| self.0[i] & rhs.0[i]))
+    }
+}
+
+impl BitOr for U64x4 {
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitor(self, rhs: Self) -> Self {
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        // SAFETY: the target enables AVX2.
+        return Self(unsafe { _mm256_or_si256(self.0, rhs.0) });
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+        Self(std::array::from_fn(|i| self.0[i] | rhs.0[i]))
+    }
+}
+
+impl Not for U64x4 {
+    type Output = Self;
+
+    #[inline(always)]
+    fn not(self) -> Self {
+        self ^ Self::splat(u64::MAX)
+    }
+}
+
+/// Every lane shifted left by the same amount, below 64.
+impl Shl<usize> for U64x4 {
+    type Output = Self;
+
+    #[inline(always)]
+    fn shl(self, shift: usize) -> Self {
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        // SAFETY: the target enables AVX2.
+        return Self(unsafe { _mm256_sll_epi64(self.0, _mm_cvtsi64_si128(shift as i64)) });
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+        Self(self.0.map(|x| x << shift))
+    }
+}
+
+/// Every lane shifted right by the same amount, below 64.
+impl Shr<usize> for U64x4 {
+    type Output = Self;
+
+    #[inline(always)]
+    fn shr(self, shift: usize) -> Self {
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        // SAFETY: the target enables AVX2.
+        return Self(unsafe { _mm256_srl_epi64(self.0, _mm_cvtsi64_si128(shift as i64)) });
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+        Self(self.0.map(|x| x >> shift))
+    }
+}
+
+/// Four instances' tables, word-major: word `w` of each holds the four instances' word `w`.
+struct Tables4<'a> {
+    z: &'a mut [[u64; 4]],
+    az: &'a mut [[u64; 4]],
+    bz: &'a mut [[u64; 4]],
+}
+
+impl Tables4<'_> {
+    /// Product rows from `slot`, one per set position of `mask`, in every lane.
+    #[inline(always)]
+    fn products(&mut self, slot: usize, mask: u64, left: U64x4, right: U64x4) {
+        if mask == 0 {
+            return;
+        }
+        // The mask is one run of positions, so a shift packs it into consecutive slots.
+        let low = mask.trailing_zeros() as usize;
+        let left = (left & U64x4::splat(mask)) >> low;
+        let right = (right & U64x4::splat(mask)) >> low;
+        let product = left & right;
+        // The run spans at most two words from `slot`; the split shifts never shift by 64.
+        let (word, shift) = (slot / 64, slot % 64);
+        for (buf, bits) in [(&mut *self.z, product), (&mut *self.az, left), (&mut *self.bz, right)] {
+            buf[word] = (U64x4::new(buf[word]) | (bits << shift)).to_array();
+            buf[word + 1] = (U64x4::new(buf[word + 1]) | ((bits >> 1) >> (63 - shift))).to_array();
+        }
+    }
 }

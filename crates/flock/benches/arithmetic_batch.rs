@@ -1,13 +1,15 @@
-//! Standalone batch u64 arithmetic proving, isolated from the VM: wrapping
-//! addition, and multiplication wrapping (a `u64` result) or widening (a `u128`).
+//! Standalone batch u64 arithmetic proving, isolated from the VM.
+//!
+//! The operations: wrapping addition, and multiplication wrapping (a `u64` result) or widening (a `u128`).
 //!
 //! ```text
 //! BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=20 cargo bench -p flock --features bench --bench arithmetic_batch -- mul_wrapping
 //! ```
 //!
-//! With `--json` it prints, in place of the reports, each operation's proving time (witness
-//! excluded, as in `hash_batch`) as Bencher Metric Format JSON, for CI: benchmark
-//! `flock-<operation>-batch-<n>` (`flock-mul-wrapping-batch-262144`), measure `latency`.
+//! With `--json` it prints, in place of the reports, each operation's proving time as Bencher Metric Format JSON.
+//! CI reads it.
+//! The time excludes the witness, as in the hash benchmark.
+//! Each benchmark is named `flock-<operation>-batch-<n>`, `flock-mul-wrapping-batch-262144` say, measure `latency`.
 //!
 //! ```text
 //! FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench arithmetic_batch -- --json
@@ -29,8 +31,9 @@ use primitives::{field::F64, pretty_integer, test_util::Rng};
 #[global_allocator]
 static ALLOCATOR: bench::Counting<bench::Jemalloc> = bench::Counting(bench::Jemalloc);
 
-/// Every operation whose name contains one of the arguments, or all of them with
-/// none. `cargo bench` passes flags of its own (`--bench`), which are skipped.
+/// Every operation whose name contains one of the arguments, or all of them with none.
+///
+/// The flags `cargo bench` passes of its own, `--bench` say, are skipped.
 fn main() {
     bench::init_tracing_from_env();
     let json = std::env::args().any(|arg| arg == "--json");
@@ -55,8 +58,9 @@ fn main() {
     }
 }
 
-/// Proves `op`'s batch, printing its report unless `quiet`, and returns the batch size and the
-/// proving time, witness excluded.
+/// Prove `op`'s batch, printing its report unless `quiet`.
+///
+/// Returns the batch size and the proving time, witness excluded.
 fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
     let (title, unit) = match op {
         U64Op::WrappingAdd => ("Wrapping u64 addition", "sums"),
@@ -76,7 +80,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
     let circuit = U64Circuit::new(op);
     let setup_ms = t.elapsed().as_secs_f64() * 1e3;
     let block = circuit.block();
-    let mu = circuit.k_log() + n_log - F64::DEGREE.ilog2() as usize;
+    let mu = circuit.k_log() + n_log - 64usize.ilog2() as usize;
     assert!(
         mu >= 15,
         "FLOCK_N_LOG too small: need a committed witness with mu >= 15"
@@ -92,7 +96,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
         let _span = tracing::info_span!("Flock prove", n_log).entered();
         let t_pass = Instant::now();
         let t = Instant::now();
-        let witness = circuit.generate_witness(&pairs, n_log);
+        let witness = circuit.witness(&pairs, n_log);
         // SAFETY: `F64` is `repr(transparent)` over `u64`.
         let q_flock = |z: &[u64]| -> &[F64] { unsafe { std::slice::from_raw_parts(z.as_ptr().cast(), z.len()) } };
         let witness_s = t.elapsed().as_secs_f64();

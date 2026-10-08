@@ -36,12 +36,12 @@ fn main() {
             .collect();
 
         let (_, walk) = plan.warm_then_measure(|_| {
-            circuit.generate_witness_with(&rows, &rows[0], n_log, |row, z, az, bz| {
+            circuit.witness_by_instance(&rows, &rows[0], n_log, |row, z, az, bz| {
                 circuit.witness_instance(row, z, az, bz);
             });
         });
         let (_, sliced) = plan.warm_then_measure(|_| {
-            circuit.generate_witness_from(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
+            circuit.witness_by_walk(&rows, &rows[0], n_log, |row, words| words.copy_from_slice(row));
         });
 
         // Wall time per instance, all threads.

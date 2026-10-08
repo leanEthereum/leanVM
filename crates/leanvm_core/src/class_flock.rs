@@ -175,7 +175,7 @@ impl FlockId {
 
 /// `log2` of the batch proving a table's rows on one circuit, given `log2` of its bits per instance.
 ///
-/// - At least flock's stripe floor of eight instances.
+/// - At least flock's floor of eight instances.
 /// - At least what the zerocheck's cube of `2^13` bits needs.
 pub const fn batch_log(k_log: usize, n_rows: usize) -> usize {
     let natural = min_n_blocks_log(if n_rows > 1 { n_rows } else { 1 });
@@ -265,7 +265,7 @@ impl FlockId {
         // the others walk it 64 instances at a time.
         match (part, fill) {
             // A clock circuit with ports of its own (EXT's) takes its input words through its ports.
-            (Part::Clock, _) if !spec.clock_inputs.is_empty() => circuit.generate_witness_with_into(
+            (Part::Clock, _) if !spec.clock_inputs.is_empty() => circuit.witness_by_instance_into(
                 z,
                 rows,
                 &rows[0],
@@ -279,7 +279,7 @@ impl FlockId {
                 check,
             ),
             // The others read the row's clock and previous timestamps straight off it.
-            (Part::Clock, _) => circuit.generate_witness_with_into(
+            (Part::Clock, _) => circuit.witness_by_instance_into(
                 z,
                 rows,
                 &rows[0],
@@ -291,9 +291,9 @@ impl FlockId {
                 check,
             ),
             (Part::Class, Fill::Walk) => {
-                circuit.generate_witness_from_into(z, rows, &rows[0], n_blocks_log, input_words, check)
+                circuit.witness_by_walk_into(z, rows, &rows[0], n_blocks_log, input_words, check)
             }
-            (Part::Class, Fill::Instance(instance)) => circuit.generate_witness_with_into(
+            (Part::Class, Fill::Instance(instance)) => circuit.witness_by_instance_into(
                 z,
                 rows,
                 &rows[0],
@@ -306,8 +306,8 @@ impl FlockId {
                 },
                 check,
             ),
-            // Eight rows share a native arithmetic call before their byte stripe is packed.
-            (Part::Class, Fill::Batch8(batch)) => circuit.generate_witness_batched_into(
+            // Eight rows share a native arithmetic call.
+            (Part::Class, Fill::Batch8(batch)) => circuit.witness_by_batch8_into(
                 z,
                 rows,
                 &rows[0],

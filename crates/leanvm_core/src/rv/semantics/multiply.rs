@@ -343,14 +343,12 @@ mod tests {
                 rows.extend((0..151).map(|_| [rng.next_u64(), rng.next_u64(), flag]));
                 let padding = [u64::MAX, 1 << 63, flag];
 
-                // Exact equality checks the committed bits, both factors and the byte stripes.
-                let walk = circuit.generate_witness_from(&rows, &padding, 8, |row, words| words.copy_from_slice(row));
-                let native =
-                    circuit.generate_witness_with(&rows, &padding, 8, |row, z, az, bz| witness(row, z, az, bz));
+                // Exact equality checks the committed bits and both factors.
+                let walk = circuit.witness_by_walk(&rows, &padding, 8, |row, words| words.copy_from_slice(row));
+                let native = circuit.witness_by_instance(&rows, &padding, 8, |row, z, az, bz| witness(row, z, az, bz));
                 assert_eq!(native.z, walk.z, "committed bits, flags {flag}");
                 assert_eq!(native.az, walk.az, "left factors, flags {flag}");
                 assert_eq!(native.bz, walk.bz, "right factors, flags {flag}");
-                assert_eq!(native.stripes, walk.stripes, "byte stripes, flags {flag}");
             }
         }
     }
@@ -367,8 +365,8 @@ mod tests {
         rows.extend((0..151).map(|i| [rng.next_u64(), rng.next_u64(), i & 1]));
         let padding = [u64::MAX, 1 << 63, 1];
         let circuit = Mul::circuit();
-        let generic = circuit.generate_witness_from(&rows, &padding, 8, |row, words| words.copy_from_slice(row));
-        let batched = circuit.generate_witness_batched(&rows, &padding, 8, |rows, z, az, bz| {
+        let generic = circuit.witness_by_walk(&rows, &padding, 8, |row, words| words.copy_from_slice(row));
+        let batched = circuit.witness_by_batch8(&rows, &padding, 8, |rows, z, az, bz| {
             // Padding occupies incomplete groups as well as complete trailing groups.
             let inputs = rows.map(|row| row.as_slice());
             Mul::witness_batch(&inputs, z, az, bz);
@@ -376,7 +374,6 @@ mod tests {
         assert_eq!(batched.z, generic.z, "committed bits");
         assert_eq!(batched.az, generic.az, "left factors");
         assert_eq!(batched.bz, generic.bz, "right factors");
-        assert_eq!(batched.stripes, generic.stripes, "byte stripes");
     }
 
     #[test]

@@ -10,7 +10,7 @@ use crate::rv::Trap;
 use crate::tables::Part;
 use ::pcs::whir::WhirError;
 use fiat_shamir::transcript::TranscriptError;
-use flock::verifier::FlockError;
+use flock::FlockError;
 use thiserror::Error;
 
 /// Why a run has no proof.

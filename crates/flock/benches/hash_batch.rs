@@ -10,8 +10,8 @@
 //! BENCH_TRACING=1 FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench hash_batch
 //! ```
 //!
-//! With `-- --json` it prints, in place of the report, the proving time (witness
-//! excluded, as in the report's throughput) as Bencher Metric Format JSON, for CI.
+//! With `-- --json` it prints, in place of the report, the proving time as Bencher Metric Format JSON, for CI.
+//! The time excludes the witness, as the report's throughput does.
 //!
 //! ```text
 //! FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench hash_batch -- --json
@@ -22,7 +22,7 @@ use std::time::Instant;
 use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use flock::Witness;
-use flock::hash::{BLOCK, Compression, K_LOG, generate_witness, pinned_compression};
+use flock::hash::{BLOCK, Compression, K_LOG, pinned_compression, witness};
 use flock::reduction::{Instance, min_n_blocks_log};
 use pcs::ring_switch::RingSwitch;
 use pcs::stack_open;
@@ -43,7 +43,7 @@ fn main() {
         .checked_shl(requested_n_log as u32)
         .expect("FLOCK_N_LOG exceeds the platform usize width");
     let n_log = min_n_blocks_log(n);
-    let mu = K_LOG + n_log - F64::DEGREE.ilog2() as usize;
+    let mu = K_LOG + n_log - 64usize.ilog2() as usize;
     assert!(
         mu >= 15,
         "FLOCK_N_LOG too small: need a committed witness with mu >= 15"
@@ -56,14 +56,13 @@ fn main() {
 
     let config = config_for_rate(mu, LOG_INV_RATE_0).expect("WHIR configuration");
 
-    // One full prove pass: witness generation, commitment, the reduction (zerocheck
-    // then lincheck), and the stacked opening. Deterministic in `blocks`, so every pass is the
-    // same work on the same shape and their timings are directly comparable.
+    // One full prove pass: witness generation, commitment, the reduction, and the stacked opening.
+    // It is deterministic in `blocks`, so every pass is the same work and their timings compare directly.
     let prove_pass = || {
         let _span = tracing::info_span!("Flock prove", n_log).entered();
         let t_pass = Instant::now();
         let t = Instant::now();
-        let witness = generate_witness(&blocks, n_log);
+        let witness = witness(&blocks, n_log);
         let witness_s = t.elapsed().as_secs_f64();
         // The committed column is the packed words themselves, viewed in place.
         // SAFETY: `F64` is `repr(transparent)` over `u64`.
@@ -102,15 +101,15 @@ fn main() {
         let open_s = t.elapsed().as_secs_f64();
         let prove_s = t_prove.elapsed().as_secs_f64();
 
-        // `pass_s` closes over everything the closure does, so whatever the four
-        // stages do not name shows up as "other" rather than vanishing.
+        // The pass's time covers everything the closure does.
+        // So whatever the four stages do not name shows up as "other" rather than vanishing.
         let proof = ps.into_proof();
         let pass_s = t_pass.elapsed().as_secs_f64();
         (proof, [witness_s, commit_s, reduction_s, open_s, prove_s, pass_s])
     };
 
-    // The per-stage timings ride alongside the pass result, so one `Plan` drives
-    // the warmup, the cooldown, and the repetition for all of them.
+    // The per-stage timings ride alongside the pass result.
+    // So one plan drives the warmup, the cooldown, and the repetition for all of them.
     let plan = Plan::from_env();
     let mut stages: [Timing; 6] = std::array::from_fn(|_| Timing::default());
     let (transcript, _) = plan.warm_then_measure(|final_pass| {
@@ -168,8 +167,8 @@ fn main() {
         return;
     }
 
-    // Every share is against the whole pass, never against the sum of the named
-    // stages, so the "other" line carries the real remainder.
+    // Every share is against the whole pass, never against the sum of the named stages.
+    // So the "other" line carries the real remainder.
     let pass_s = pass.mean();
     let share = |s: f64| format!("{:>5.1}%", 100.0 * s / pass_s);
     let ms = |t: &Timing| format!("{:>8.1} ms{:<9}{}", t.mean() * 1e3, t.spread(), share(t.mean()));

@@ -324,9 +324,9 @@ mod tests {
             .collect();
 
         // Both generators on the same batch, every table compared.
-        let walk = BLAKE2S.generate_witness(&rows, n_log);
+        let walk = BLAKE2S.witness(&rows, n_log);
         let fast =
-            BLAKE2S.generate_witness_with(&rows, &[0; 14], n_log, |row, z, az, bz| blake2s_witness(row, z, az, bz));
+            BLAKE2S.witness_by_instance(&rows, &[0; 14], n_log, |row, z, az, bz| blake2s_witness(row, z, az, bz));
         assert!(walk == fast, "the witness tables");
     }
 
