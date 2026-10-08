@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: Packed cubic schedule comparison (${{ matrix.name }})
+    name: Scalar carryless folding comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 978ce83ac549800999d817497330f53b50d2ce56
+          ref: 4f52094912a6f34135e5414c07f4ee1e67d66f9f
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare packed cubic product schedules on native hardware
+      - name: Compare scalar carryless folding on native hardware
         run: bash .github/perf-stack/run.sh
