@@ -22,7 +22,7 @@ use std::time::Instant;
 use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use flock::Witness;
-use flock::hash::{BLOCK, Compression, K_LOG, pinned_compression, witness};
+use flock::hash::{BLOCK, Blake2sCircuit, Compression, K_LOG};
 use flock::reduction::{Instance, min_n_blocks_log};
 use pcs::ring_switch::RingSwitch;
 use pcs::stack_open;
@@ -51,7 +51,7 @@ fn main() {
 
     let mut rng = Rng::new(0x9E37_79B9_7F4A_7C15 ^ n as u64);
     let blocks: Vec<Compression> = (0..n)
-        .map(|_| pinned_compression(std::array::from_fn(|_| rng.next_u32())))
+        .map(|_| Compression::single(std::array::from_fn(|_| rng.next_u32())))
         .collect();
 
     let config = config_for_rate(mu, LOG_INV_RATE_0).expect("WHIR configuration");
@@ -62,7 +62,7 @@ fn main() {
         let _span = tracing::info_span!("Flock prove", n_log).entered();
         let t_pass = Instant::now();
         let t = Instant::now();
-        let witness = witness(&blocks, n_log);
+        let witness = Blake2sCircuit::witness(&blocks, n_log);
         let witness_s = t.elapsed().as_secs_f64();
         // The committed column is the packed words themselves, viewed in place.
         // SAFETY: `F64` is `repr(transparent)` over `u64`.

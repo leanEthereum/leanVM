@@ -8,7 +8,9 @@ use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
 use primitives::field::F192;
 use primitives::test_util::Rng;
 
-use crate::hash::{BLOCK, Compression, K_LOG, param_iv, witness};
+use primitives::hash::PARAM_IV;
+
+use crate::hash::{BLOCK, Blake2sCircuit, Compression, K_LOG};
 use crate::reduction::{self, Instance, min_n_blocks_log};
 use crate::zerocheck::K_SKIP;
 
@@ -20,13 +22,13 @@ fn blocks_for(n: usize, seed: u64) -> Vec<Compression> {
     (0..n)
         .map(|i| {
             let h = if i == 0 {
-                param_iv()
+                PARAM_IV
             } else {
                 std::array::from_fn(|_| rng.next_u32())
             };
             let m = std::array::from_fn(|_| rng.next_u32());
             let f0 = if i % 3 == 0 { u32::MAX } else { 0 };
-            (h, m, 64 * (i as u64 + 1), f0, 0)
+            Compression::new(h, m, 64 * (i as u64 + 1), f0, 0)
         })
         .collect()
 }
@@ -35,7 +37,7 @@ fn blocks_for(n: usize, seed: u64) -> Vec<Compression> {
 fn prove(n: usize, tamper: Option<usize>) -> (usize, ProofTranscript) {
     let n_log = min_n_blocks_log(n);
     let blocks = blocks_for(n, 0xB2_5E_ED ^ n as u64);
-    let mut witness = witness(&blocks, n_log);
+    let mut witness = Blake2sCircuit::witness(&blocks, n_log);
     if let Some(bit) = tamper {
         witness.z[bit / 64] ^= 1 << (bit % 64);
     }

@@ -6,9 +6,9 @@
 //!     z[128 ..)        the result, 64 or 128 bits, then the constant, then the products
 //! ```
 
+use super::InstanceTables;
 use super::add::Adder;
 use super::mul::Multiplier;
-use super::{InstanceTables, or_bits};
 use crate::circuit::{Builder, Circuit};
 use crate::reduction::Block;
 use crate::witness::Witness;
@@ -42,15 +42,6 @@ impl U64Op {
             Self::WrappingAdd | Self::WrappingMul => 64,
             Self::WideningMul => 128,
         }
-    }
-}
-
-impl InstanceTables<'_> {
-    /// `width` rows from `slot` whose right factor is the constant: `A z = z = v`, `B z = 1`.
-    fn unit_rows(&mut self, slot: usize, v: u128, width: usize) {
-        or_bits(self.z, slot, v);
-        or_bits(self.az, slot, v);
-        or_bits(self.bz, slot, u128::MAX >> (128 - width));
     }
 }
 

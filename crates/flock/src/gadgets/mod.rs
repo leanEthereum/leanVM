@@ -29,24 +29,36 @@ impl InstanceTables<'_> {
         if mask != 0 {
             // The mask is one run of positions, so a shift packs it into consecutive slots.
             let shift = mask.trailing_zeros();
-            or_bits(self.z, slot, (left & right & mask) >> shift);
-            or_bits(self.az, slot, (left & mask) >> shift);
-            or_bits(self.bz, slot, (right & mask) >> shift);
+            Self::or_bits(self.z, slot, (left & right & mask) >> shift);
+            Self::or_bits(self.az, slot, (left & mask) >> shift);
+            Self::or_bits(self.bz, slot, (right & mask) >> shift);
         }
     }
-}
 
-/// OR the 128 bits of `v` into `buf` from bit `at` on.
-#[inline(always)]
-fn or_bits(buf: &mut [u64], at: usize, v: u128) {
-    let s = at % 64;
-    // `v` spans at most three words from `at`; the split shifts never shift by 64.
-    let words = [
-        (v << s) as u64,
-        ((v >> 1) >> (63 - s)) as u64,
-        ((v >> 1) >> (127 - s)) as u64,
-    ];
-    for (w, x) in buf[at / 64..].iter_mut().zip(words) {
-        *w |= x;
+    /// `width` rows from `slot` against the constant.
+    ///
+    /// ```text
+    ///     A z = z = v      B z = 1
+    /// ```
+    #[cfg(any(test, feature = "bench"))]
+    fn unit_rows(&mut self, slot: usize, v: u128, width: usize) {
+        Self::or_bits(self.z, slot, v);
+        Self::or_bits(self.az, slot, v);
+        Self::or_bits(self.bz, slot, u128::MAX >> (128 - width));
+    }
+
+    /// OR the 128 bits of `v` into `table` from bit `at` on.
+    #[inline(always)]
+    fn or_bits(table: &mut [u64], at: usize, v: u128) {
+        let s = at % 64;
+        // `v` spans at most three words from `at`; the split shifts never shift by 64.
+        let words = [
+            (v << s) as u64,
+            ((v >> 1) >> (63 - s)) as u64,
+            ((v >> 1) >> (127 - s)) as u64,
+        ];
+        for (w, x) in table[at / 64..].iter_mut().zip(words) {
+            *w |= x;
+        }
     }
 }
