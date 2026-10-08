@@ -10,7 +10,6 @@ use super::commit::ligero_commit_ext;
 use super::sample_queries_ordered;
 use super::sumcheck::{Basis, InitialRounds, SumcheckProver, send_msg};
 use crate::merkle::Hash;
-use crate::ntt::AdditiveNttF64;
 use crate::whir::config::ProverConfig;
 use crate::whir::induce::{
     eval_sk_at_vks, induce_sumcheck_enforced_sum, induce_sumcheck_evaluate_at_residual, induce_sumcheck_poly,
@@ -171,13 +170,11 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     let log_msg_cols_1 = n1 - log_num_interleaved_1;
     let log_inv_rate_1 = config.log_inv_rates()[1];
     let span = tracing::info_span!("Commit", level = 1).entered();
-    let ntt_1 = AdditiveNttF64::standard(log_msg_cols_1 + log_inv_rate_1);
     let wtns_1 = ligero_commit_ext(
-        sc_prover.f_ext(),
+        sc_prover.shared_ext().clone(),
         log_msg_cols_1,
         log_num_interleaved_1,
         log_inv_rate_1,
-        &ntt_1,
     );
     drop(span);
     ps.add_root(&wtns_1.root());
@@ -255,17 +252,18 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             let span = tracing::info_span!("Final level").entered();
             // Final level: stored (sorted-unique) only, no local induce; the
             // verifier fans these to ordered for its last-level induce.
+            let opened_last = wtns_prev.open(&queries_last);
             ps.hint_merkle(PrunedMerklePaths::prune(
                 &wtns_prev.tree,
                 wtns_prev.block_len,
                 &queries_last,
-                |q| ext_row_words(wtns_prev.row(q)),
+                |q| ext_row_words(opened_last.row(q)),
             ));
             // Tie the last commitment into the running claim through the same
             // intro/glue step as every other level, then finish the remaining
             // sumcheck rounds. This closes on one weight evaluation instead of
             // a sweep over the residual cube.
-            let rows_last: Vec<Vec<F192>> = queries_last.iter().map(|&q| wtns_prev.row(q).to_vec()).collect();
+            let rows_last: Vec<Vec<F192>> = queries_last.iter().map(|&q| opened_last.row(q).to_vec()).collect();
             let enforced_sum_last = induce_sumcheck_enforced_sum(&rows_last, &level_rs, &queries_last, &weights_last);
             let n_res = sc_prover.f_ext().len().trailing_zeros() as usize;
             let basis_last = induce_sumcheck_evaluate_at_residual(
@@ -298,13 +296,11 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let log_msg_cols_next = n_next - log_num_interleaved_next;
         let log_inv_rate_next = config.log_inv_rates()[i + 2];
         let span = tracing::info_span!("Commit", level = i + 2).entered();
-        let ntt_next = AdditiveNttF64::standard(log_msg_cols_next + log_inv_rate_next);
         let wtns_next = ligero_commit_ext(
-            sc_prover.f_ext(),
+            sc_prover.shared_ext().clone(),
             log_msg_cols_next,
             log_num_interleaved_next,
             log_inv_rate_next,
-            &ntt_next,
         );
         drop(span);
         ps.add_root(&wtns_next.root());
@@ -319,12 +315,13 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let weights_i = powers(lambda_i, num_queries_i);
         let span = tracing::info_span!("Open", level = i + 1).entered();
         // Ordered rows for the local induce; sorted-unique rows + octopus stored.
-        let opened_rows_i: Vec<Vec<F192>> = queries_i.iter().map(|&q| wtns_prev.row(q).to_vec()).collect();
+        let opened_i = wtns_prev.open(&queries_i);
+        let opened_rows_i: Vec<Vec<F192>> = queries_i.iter().map(|&q| opened_i.row(q).to_vec()).collect();
         ps.hint_merkle(PrunedMerklePaths::prune(
             &wtns_prev.tree,
             wtns_prev.block_len,
             &queries_i,
-            |q| ext_row_words(wtns_prev.row(q)),
+            |q| ext_row_words(opened_i.row(q)),
         ));
         drop(span);
 

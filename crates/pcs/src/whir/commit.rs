@@ -8,8 +8,9 @@
 
 use crate::merkle::{Hash, MerkleBuilder};
 use crate::ntt::AdditiveNttF64;
-use crate::whir::ntt_ext::encode_interleaved_ext;
+use crate::whir::ntt_ext::{encode_rows_ext, rows_at_ext};
 use primitives::field::{F64, F192};
+use std::sync::Arc;
 
 /// Public commitment for an `F64` message: the L0 Merkle root.
 #[derive(Clone, Debug)]
@@ -76,50 +77,75 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     (Commitment { root }, ProverData { codeword, merkle_tree })
 }
 
-/// Codeword + Merkle tree for one deeper WHIR commitment level.
-/// `mat[pos * num_interleaved + lane]`; each row (one `pos` across all lanes)
-/// is one Merkle leaf of `num_interleaved * 16` bytes.
+/// One deeper WHIR commitment level: its message and Merkle tree.
+///
+/// The codeword is not kept.
+/// Each row is one Merkle leaf of `num_interleaved` E values, and an opened row is evaluated again from the message.
 pub(crate) struct LigeroWitness {
-    pub(crate) mat: Vec<F192>,
+    msg: Arc<Vec<F192>>,
+    ntt: AdditiveNttF64,
     pub tree: Vec<Hash>,
     pub(crate) block_len: usize,
-    pub(crate) num_interleaved: usize,
+    num_interleaved: usize,
 }
 
 impl LigeroWitness {
     #[inline]
-    pub(super) fn row(&self, pos: usize) -> &[F192] {
-        let start = pos * self.num_interleaved;
-        &self.mat[start..start + self.num_interleaved]
-    }
-
-    #[inline]
     pub(super) fn root(&self) -> Hash {
         self.tree[self.tree.len() - 1]
+    }
+
+    /// The codeword rows at `positions`, each evaluated once however often it repeats.
+    pub(super) fn open(&self, positions: &[usize]) -> OpenedRows {
+        let mut unique = positions.to_vec();
+        unique.sort_unstable();
+        unique.dedup();
+        let rows = rows_at_ext(&self.ntt, &self.msg, self.num_interleaved, &unique);
+        OpenedRows {
+            positions: unique,
+            rows,
+            width: self.num_interleaved,
+        }
+    }
+}
+
+/// Codeword rows of one level, by position.
+pub(super) struct OpenedRows {
+    /// The positions, ascending.
+    positions: Vec<usize>,
+    /// Their rows, one after another.
+    rows: Vec<F192>,
+    width: usize,
+}
+
+impl OpenedRows {
+    /// The row at `position`.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless the row was opened.
+    pub(super) fn row(&self, position: usize) -> &[F192] {
+        let index = self.positions.binary_search(&position).expect("an opened position");
+        &self.rows[index * self.width..][..self.width]
     }
 }
 
 /// Commit an extension-field polynomial at one recursive WHIR level.
 ///
 /// - Each lane of the row-major message is RS-encoded with base-field twiddles.
-/// - The codeword is then Merkle-committed, one leaf per row.
+/// - Each row is hashed as one Merkle leaf as the encode finishes it, and dropped.
 pub(crate) fn ligero_commit_ext(
-    poly: &[F192],
+    poly: Arc<Vec<F192>>,
     log_msg_cols: usize,
     log_num_interleaved: usize,
     log_inv_rate: usize,
-    ntt: &AdditiveNttF64,
 ) -> LigeroWitness {
     let msg_cols = 1usize << log_msg_cols;
     let num_interleaved = 1usize << log_num_interleaved;
     let block_len = msg_cols << log_inv_rate;
     let log_block_len = log_msg_cols + log_inv_rate;
     assert_eq!(poly.len(), num_interleaved * msg_cols);
-    assert!(log_block_len <= ntt.log_domain_size());
-
-    let codeword_len = block_len * num_interleaved;
-    // The encode builds the replicas itself, so the codeword starts unwritten.
-    let mut mat = Box::new_uninit_slice(codeword_len);
+    let ntt = AdditiveNttF64::standard(log_block_len);
 
     // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
     let row_words = 3 * num_interleaved;
@@ -131,18 +157,15 @@ pub(crate) fn ligero_commit_ext(
         lanes = num_interleaved
     )
     .in_scope(|| {
-        // SAFETY: the encode writes every matrix element before reading it.
-        let mat = unsafe { primitives::write_only(&mut mat) };
-        encode_interleaved_ext(ntt, mat, poly, num_interleaved, log_inv_rate, &|row, rows| {
+        encode_rows_ext(&ntt, &poly, num_interleaved, log_inv_rate, &|row, rows| {
             builder.absorb(row, rows);
         });
     });
-    // SAFETY: the encode wrote the whole matrix.
-    let mat = unsafe { mat.assume_init() }.into_vec();
     let tree = tracing::info_span!("Merkle").in_scope(|| builder.finish());
 
     LigeroWitness {
-        mat,
+        msg: poly,
+        ntt,
         tree,
         block_len,
         num_interleaved,

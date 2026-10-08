@@ -18,6 +18,7 @@ use primitives::multilinear::eq_table;
 use primitives::stream::Stream;
 use std::mem::MaybeUninit;
 use std::ops::Add;
+use std::sync::Arc;
 
 mod first_pass;
 
@@ -713,10 +714,10 @@ fn fold_and_msg_blocks<T: RoundWitness>(
 
 /// Two-phase witness: the committed K-message (borrowed from the caller, it
 /// is only read until the first fold) before the first fold, an owned
-/// E-vector afterwards.
+/// E-vector afterwards, shared with the level commitment that keeps it.
 enum Witness<'a> {
     Base(&'a [F64]),
-    Ext(Vec<F192>),
+    Ext(Arc<Vec<F192>>),
 }
 
 /// Running sumcheck over the committed base witness and subsequent extension-field folds.
@@ -803,9 +804,9 @@ impl<'a> SumcheckProver<'a> {
         let rs = if deferred { &self.lane_rs[..] } else { &[r][..] };
         let (nf, nb, msg) = match &self.f {
             Witness::Base(f) => fold_and_msg_blocks(f, &self.combined_basis, rs, block, last),
-            Witness::Ext(f) => fold_and_msg_blocks(f, &self.combined_basis, rs, block, last),
+            Witness::Ext(f) => fold_and_msg_blocks(&f[..], &self.combined_basis, rs, block, last),
         };
-        drop(std::mem::replace(&mut self.f, Witness::Ext(nf)));
+        drop(std::mem::replace(&mut self.f, Witness::Ext(Arc::new(nf))));
         drop(std::mem::replace(&mut self.combined_basis, Basis::Dense(nb)));
         self.quad = RoundQuad::from_msg(msg, self.t_r);
         msg
@@ -821,11 +822,11 @@ impl<'a> SumcheckProver<'a> {
         let _span = tracing::info_span!("Sumcheck round", round = self.round, log_size).entered();
         let (nf, nb, msg) = match &self.f {
             Witness::Base(f) => fold_and_msg_lsb(f, self.combined_basis.dense(), r),
-            Witness::Ext(f) => fold_and_msg_lsb(f, self.combined_basis.dense(), r),
+            Witness::Ext(f) => fold_and_msg_lsb(&f[..], self.combined_basis.dense(), r),
         };
         // Swap the folded buffers in and drop the consumed ones.
         // Why: the allocator then serves the next round's fold from their memory.
-        drop(std::mem::replace(&mut self.f, Witness::Ext(nf)));
+        drop(std::mem::replace(&mut self.f, Witness::Ext(Arc::new(nf))));
         drop(std::mem::replace(&mut self.combined_basis, Basis::Dense(nb)));
         self.quad = RoundQuad::from_msg(msg, self.t_r);
         msg
@@ -841,7 +842,7 @@ impl<'a> SumcheckProver<'a> {
             }
             Witness::Ext(f) => {
                 assert_eq!(b_new.len(), f.len());
-                round_msg_lsb(f, &b_new)
+                round_msg_lsb(&f[..], &b_new)
             }
         };
         self.pending.push((b_new, h_new, RoundQuad::from_msg(msg, h_new)));
@@ -895,6 +896,11 @@ impl<'a> SumcheckProver<'a> {
     /// The folded witness (post-first-fold: always E). Panics if called
     /// before the first fold (the base phase never reaches a commit).
     pub(super) fn f_ext(&self) -> &[F192] {
+        self.shared_ext()
+    }
+
+    /// The folded witness, shared: a later fold replaces it here but leaves it to its other holders.
+    pub(super) fn shared_ext(&self) -> &Arc<Vec<F192>> {
         match &self.f {
             Witness::Ext(f) => f,
             Witness::Base(_) => panic!("witness still in base phase (no fold yet)"),

@@ -22,6 +22,7 @@ use parallel::SendPtr;
 use primitives::field::F64;
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
 use primitives::field::gf2_64::aarch64::reduce_pair_pmull4;
+use primitives::field::gf2_64::{mul_wide, reduce};
 use primitives::log2_strict_usize;
 use primitives::stream::Stream;
 use std::cell::RefCell;
@@ -172,31 +173,157 @@ impl AdditiveNttF64 {
         self.transform(data, num_ntts, log_inv_rate, Some(msg), Some(on_rows));
     }
 
-    /// RS-encode a message held in a buffer of its own, handing `on_rows` every finished block of rows.
+    /// RS-encode a message held in a buffer of its own, handing `on_rows` every row of the codeword and keeping none.
     ///
-    /// - The result equals encoding in place.
-    /// - Every codeword word is written before it is read, so the codeword may start uninitialized.
-    /// - The blocks are as for the in-place encode.
+    /// - Replica `c` of the codeword is the message transformed from layer `r` on, under the twiddles of block `c`.
+    /// - The rows go over in blocks as for the in-place encode, each once.
+    /// - Nothing is written back to memory: a caller that needs a row again evaluates it with [`Self::rows_at`].
+    ///
+    /// # Plan
+    ///
+    /// ```text
+    ///     replica fits L3 sub-block:  one task per run of replicas, each built in scratch from the message
+    ///     larger replica:             one replica at a time, in a buffer that stays in L3
+    ///                                 gathered passes from the message, then deep sub-blocks in place
+    /// ```
     ///
     /// # Panics
     ///
-    /// Panics unless the codeword is exactly `2^r` messages long.
-    pub(crate) fn encode_interleaved_with(
-        &self,
-        data: &mut [F64],
-        msg: &[F64],
-        num_ntts: usize,
-        log_inv_rate: usize,
-        on_rows: &RowSink<'_>,
-    ) {
-        assert_eq!(
-            msg.len() << log_inv_rate,
-            data.len(),
-            "the codeword is 2^log_inv_rate messages"
-        );
-        // Read-only from here on: the pointer only feeds the first pass's reads.
-        let msg = SendPtr(msg.as_ptr().cast_mut());
-        self.transform(data, num_ntts, log_inv_rate, Some(msg), Some(on_rows));
+    /// Panics unless the message is a power-of-two number of rows.
+    pub(crate) fn encode_rows_with(&self, msg: &[F64], num_ntts: usize, log_inv_rate: usize, on_rows: &RowSink<'_>) {
+        assert!(num_ntts > 0);
+        assert_eq!(msg.len() % num_ntts, 0);
+        let log_rows = log2_strict_usize(msg.len() / num_ntts);
+        let start = log_inv_rate;
+        let log_d = log_rows + start;
+        assert!(log_d <= self.log_domain_size());
+        let fit = |words: usize| (words / num_ntts).max(1).ilog2() as usize;
+
+        if log_rows <= fit(L3_WORDS) {
+            // A task takes whole replicas, enough of them for `2^MIN_TASK_LOG` rows.
+            let log_group = MIN_TASK_LOG.saturating_sub(log_rows).min(start);
+            parallel::for_each(1 << (start - log_group), |task| {
+                with_scratch(msg.len() << log_group, |scratch| {
+                    let first = task << log_group;
+                    for (i, replica) in scratch.chunks_exact_mut(msg.len()).enumerate() {
+                        replica.copy_from_slice(msg);
+                        self.run_layers(replica, log_d, num_ntts, start, log_d, start, first + i);
+                    }
+                    on_rows(first << log_rows, scratch);
+                });
+            });
+            return;
+        }
+
+        // Deep sub-blocks fit L2, and a replica cuts into several per worker, since each one ends in a barrier.
+        // The layers above them run as gathered passes.
+        let fit2 = fit(L2_WORDS);
+        let log_tasks = (REPLICA_SUBS_PER_WORKER * parallel::num_threads())
+            .next_power_of_two()
+            .ilog2() as usize;
+        let log_sub = fit2.min(log_rows.saturating_sub(log_tasks)).max(1);
+        let deep_start = log_d - log_sub;
+        let mut replica = Box::new_uninit_slice(msg.len());
+        // SAFETY: the first gathered pass of every replica writes each word before any pass reads it.
+        let replica = unsafe { primitives::write_only(&mut replica) };
+        let src = SendPtr(msg.as_ptr().cast_mut());
+        for c in 0..1usize << start {
+            let mut src = Some(src);
+            let mut layer = start;
+            while layer < deep_start {
+                let g = (deep_start - layer).min(fit2);
+                let first_block = c << (layer - start);
+                self.gathered_pass(replica, log_d, num_ntts, layer, g, first_block, src.take(), false);
+                layer += g;
+            }
+            let first_sub = c << (deep_start - start);
+            parallel::chunks_mut(replica, num_ntts << log_sub, |i, sub| {
+                self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, first_sub + i);
+                on_rows((first_sub + i) << log_sub, sub);
+            });
+        }
+    }
+
+    /// The rows at `positions` of the codeword [`Self::encode_rows_with`] encodes `msg` into, from the message alone.
+    ///
+    /// - Each lane is a polynomial in the novel basis, its coefficients the lane's words in row order.
+    /// - Basis polynomial `i` at a point is the product of the normalized subspace polynomials of the bits set in `i`.
+    /// - Position `p` is the point whose bits are those of `p`, so each row is one evaluation per lane.
+    ///
+    /// # Algorithm
+    ///
+    /// An index splits into its low bits and the rest, `i = i_hi · 2^L + i_lo`:
+    ///
+    /// ```text
+    ///     row(p) = Σ_hi  (Π_{k >= L, bit k of i} s_k(p))  ·  Σ_lo low_p[i_lo] · msg[i]
+    ///                    \_______ one K scalar _______/
+    /// ```
+    ///
+    /// - Each position's low table is built once, `2^L` words of K.
+    /// - A task reads `2^L` message rows once for every position, its sums unreduced until each row is scaled.
+    pub(crate) fn rows_at(&self, msg: &[F64], num_ntts: usize, positions: &[usize]) -> Vec<F64> {
+        /// Low index bits tabulated per position: at most 2^10 words, 8 KiB of K a position.
+        const LOW_BITS: usize = 10;
+        /// Fewest low bits, so that a task reads whole runs of rows.
+        const MIN_LOW_BITS: usize = 6;
+        assert!(num_ntts > 0);
+        assert_eq!(msg.len() % num_ntts, 0);
+        let log_rows = log2_strict_usize(msg.len() / num_ntts);
+        // Four tasks per worker where the message has rows enough.
+        let log_tasks = (4 * parallel::num_threads()).next_power_of_two().ilog2() as usize;
+        let low = log_rows
+            .saturating_sub(log_tasks)
+            .clamp(MIN_LOW_BITS, LOW_BITS)
+            .min(log_rows);
+        assert!(positions.iter().all(|&p| p >> self.log_domain_size() == 0));
+
+        // Each position's subspace polynomials, then its products over the low bits.
+        //
+        //     low_p[0] = 1,   low_p[j + 2^k] = low_p[j] · s_k(p)   for j < 2^k
+        let factors: Vec<Vec<F64>> = positions
+            .iter()
+            .map(|&p| (0..log_rows).map(|k| span_get(&self.evals[k], p >> k)).collect())
+            .collect();
+        let tables: Vec<Vec<F64>> = factors
+            .iter()
+            .map(|s| {
+                let mut table = vec![F64::ONE; 1 << low];
+                for (k, &s_k) in s[..low].iter().enumerate() {
+                    let (lo, hi) = table.split_at_mut(1 << k);
+                    for (h, &l) in hi[..1 << k].iter_mut().zip(lo.iter()) {
+                        *h = l * s_k;
+                    }
+                }
+                table
+            })
+            .collect();
+
+        let width = positions.len() * num_ntts;
+        parallel::map_reduce(
+            1 << (log_rows - low),
+            || vec![F64::ZERO; width],
+            |hi| {
+                let rows = &msg[(hi << low) * num_ntts..][..num_ntts << low];
+                let mut out = vec![F64::ZERO; width];
+                let mut sums = vec![0u128; num_ntts];
+                for ((s, table), out) in factors.iter().zip(&tables).zip(out.chunks_exact_mut(num_ntts)) {
+                    dot_columns(table, rows, &mut sums);
+                    let scale = (s[low..].iter().enumerate())
+                        .filter(|&(k, _)| (hi >> k) & 1 == 1)
+                        .fold(F64::ONE, |acc, (_, &s_k)| acc * s_k);
+                    for (o, &sum) in out.iter_mut().zip(&sums) {
+                        *o = F64(reduce(sum)) * scale;
+                    }
+                }
+                out
+            },
+            |mut acc, part| {
+                for (a, &b) in acc.iter_mut().zip(&part) {
+                    *a += b;
+                }
+                acc
+            },
+        )
     }
 
     /// Run layers `start..d` of a `2^d`-row transform in as few sweeps of the buffer as possible.
@@ -212,7 +339,6 @@ impl AdditiveNttF64 {
     ///     gathered pass:  one task per row group of 2^g rows, 2^(d - layer - g) apart
     ///                     gathered into L2 scratch, all g layers run there, written back
     ///     deep pass:      one task per contiguous sub-block, its layers run in place
-    ///                     (or in scratch, when a separate message has to be copied in)
     /// ```
     ///
     /// - When every layer fits one L3-sized sub-block, the deep pass is the whole transform: one sweep.
@@ -295,15 +421,12 @@ impl AdditiveNttF64 {
         let mut layer = start;
         while layer < deep_start {
             let g = (deep_start - layer).min(fit2);
-            self.gathered_pass(data, log_d, num_ntts, layer, g, msg.take(), stream);
+            self.gathered_pass(data, log_d, num_ntts, layer, g, 0, msg.take(), stream);
             layer += g;
         }
 
-        // Phase 2: replicas a deep-only plan cannot build inside its tasks.
-        //
-        //     message is block 0 of the buffer  ->  a task could overwrite it while others still copy it
-        //     no layer left to run              ->  no deep task would write the buffer at all
-        if let Some(m) = msg.take_if(|m| std::ptr::eq(m.0, data.as_mut_ptr()) || deep_start == log_d) {
+        // Phase 2: a deep-only plan builds its replicas up front, since its tasks transform in place.
+        if let Some(m) = msg {
             replicate(data, m, data.len() >> start);
         }
 
@@ -315,47 +438,16 @@ impl AdditiveNttF64 {
         let fuse = log_group < deep_start && deep_start < log_d;
         let deep_rows = on_rows.filter(|_| fuse);
 
-        // Phase 3: the deep pass, one task per run of contiguous sub-blocks.
+        // Phase 3: the deep pass, one task per run of contiguous sub-blocks, each run in place.
         if deep_start < log_d {
             let sub_len = num_ntts << log_sub;
-            let block_len = data.len() >> start;
             parallel::chunks_mut(data, sub_len << log_group, |task_idx, task| {
                 let first_sub = task_idx << log_group;
-                match msg {
-                    // A separate message: build the sub-blocks in scratch, then write them out once.
-                    //
-                    // Streamed out whole, the codeword is written without ever being read.
-                    Some(m) => with_scratch(task.len(), |scratch| {
-                        for (i, sub) in scratch.chunks_exact_mut(sub_len).enumerate() {
-                            // A sub-block sits at the same offset in every replica.
-                            //
-                            //     sub-block at offset off of its replica  <-  message words [off, off + sub_len)
-                            let off = ((first_sub + i) * sub_len) % block_len;
-                            // SAFETY:
-                            // - The external message is valid for one whole replica of words.
-                            // - It is disjoint from the codeword.
-                            // - This sub-block ends inside its replica, so the read stays in bounds.
-                            sub.copy_from_slice(unsafe { std::slice::from_raw_parts(m.add(off), sub_len) });
-                            self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, first_sub + i);
-                        }
-                        if let Some(f) = deep_rows {
-                            f(first_sub << log_sub, scratch);
-                        }
-                        if stream {
-                            Stream::new().copy(task, scratch);
-                        } else {
-                            task.copy_from_slice(scratch);
-                        }
-                    }),
-                    // The replicas are already in place: run the layers where they are.
-                    None => {
-                        for (i, sub) in task.chunks_exact_mut(sub_len).enumerate() {
-                            self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, first_sub + i);
-                        }
-                        if let Some(f) = deep_rows {
-                            f(first_sub << log_sub, task);
-                        }
-                    }
+                for (i, sub) in task.chunks_exact_mut(sub_len).enumerate() {
+                    self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, first_sub + i);
+                }
+                if let Some(f) = deep_rows {
+                    f(first_sub << log_sub, task);
                 }
             });
         }
@@ -394,6 +486,11 @@ impl AdditiveNttF64 {
     ///
     /// - Every block's rows come from the message.
     /// - One task takes one residue across all blocks, block 0 last.
+    ///
+    /// # Part of the domain
+    ///
+    /// - The buffer holds whole layer-`layer` blocks of the domain, from block `first_block` on.
+    /// - That block index picks the twiddles.
     #[allow(clippy::too_many_arguments)]
     fn gathered_pass(
         &self,
@@ -402,15 +499,17 @@ impl AdditiveNttF64 {
         num_ntts: usize,
         layer: usize,
         g: usize,
+        first_block: usize,
         msg: Option<SendPtr<F64>>,
         stream: bool,
     ) {
         // A group is 2^g rows, `step` rows apart.
         let log_step = log_d - layer - g;
         let (rows, step) = (1usize << g, 1usize << log_step);
+        let blocks = data.len() / (num_ntts << (log_d - layer));
         // With a message, a task is one residue across every block.
         // Without one, a task is one (block, residue) pair.
-        let n_tasks = if msg.is_some() { step } else { step << layer };
+        let n_tasks = if msg.is_some() { step } else { step * blocks };
         let base = SendPtr(data.as_mut_ptr());
         parallel::for_each_chunk(n_tasks, |lo, hi| {
             // One L2-resident scratch of 2^g rows serves every group of the task.
@@ -436,7 +535,15 @@ impl AdditiveNttF64 {
                         dst.copy_from_slice(src);
                     }
                     // Transform: a (layer + g)-layer domain whose sub-block index is the global block.
-                    self.run_layers(scratch, layer + g, num_ntts, layer, layer + g, layer, block);
+                    self.run_layers(
+                        scratch,
+                        layer + g,
+                        num_ntts,
+                        layer,
+                        layer + g,
+                        layer,
+                        first_block + block,
+                    );
                     // Scatter: every row returns to its place.
                     for (i, src) in scratch.chunks_exact(num_ntts).enumerate() {
                         // SAFETY: this group alone owns these rows of the codeword.
@@ -450,7 +557,7 @@ impl AdditiveNttF64 {
                 for t in lo..hi {
                     if msg.is_some() {
                         // Block 0 may be the message itself, so it is transformed last.
-                        for block in (0..1usize << layer).rev() {
+                        for block in (0..blocks).rev() {
                             group(block, t);
                         }
                     } else {
@@ -632,6 +739,58 @@ fn radix8_butterflies(rows: &mut [&mut [F64]; 8], t: &[F64; 7]) {
     butterfly_lanes(r6, r7, t[6]);
 }
 
+/// Column sums of rows weighted by a table, unreduced: `sums[w] = Σ_j table[j] · rows[j][w]`.
+///
+/// The rows are `sums.len()` words each, one per table entry.
+fn dot_columns(table: &[F64], rows: &[F64], sums: &mut [u128]) {
+    let width = sums.len();
+    debug_assert_eq!(rows.len(), table.len() * width);
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    let done = {
+        let vectors = width / 8;
+        for c in 0..vectors {
+            // SAFETY: the target features are enabled at compile time, and words `8c..8c + 8` lie inside every row.
+            let column = unsafe { dot_column_avx512(table, rows.as_ptr().add(8 * c), width) };
+            sums[8 * c..][..8].copy_from_slice(&column);
+        }
+        8 * vectors
+    };
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+    let done = 0;
+    for (w, sum) in sums.iter_mut().enumerate().skip(done) {
+        *sum = (table.iter().zip(rows[w..].iter().step_by(width))).fold(0, |acc, (t, x)| acc ^ mul_wide(t.0, x.0));
+    }
+}
+
+/// [`dot_columns`] over eight words of every row, the first at `column`, rows `width` words apart.
+///
+/// # Safety
+///
+/// - Requires VPCLMULQDQ and AVX-512F.
+/// - `column` must address eight readable words in each of `table.len()` rows.
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+#[inline]
+#[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
+unsafe fn dot_column_avx512(table: &[F64], column: *const F64, width: usize) -> [u128; 8] {
+    // SAFETY:
+    // - The caller supplies eight readable words in every row.
+    // - This function's target features cover every intrinsic below.
+    unsafe {
+        // Products of the even words, then of the odd words, one 128-bit sum per 128-bit lane.
+        let (mut even, mut odd) = (_mm512_setzero_si512(), _mm512_setzero_si512());
+        for (j, t) in table.iter().enumerate() {
+            let x = _mm512_loadu_si512(column.add(j * width).cast());
+            let t = _mm512_set1_epi64(t.0 as i64);
+            even = _mm512_xor_si512(even, _mm512_clmulepi64_epi128::<0x00>(t, x));
+            odd = _mm512_xor_si512(odd, _mm512_clmulepi64_epi128::<0x10>(t, x));
+        }
+        let (mut e, mut o) = ([0u128; 4], [0u128; 4]);
+        _mm512_storeu_si512(e.as_mut_ptr().cast(), even);
+        _mm512_storeu_si512(o.as_mut_ptr().cast(), odd);
+        std::array::from_fn(|w| if w % 2 == 0 { e[w / 2] } else { o[w / 2] })
+    }
+}
+
 /// Transpose a lane-major message into the row-major order the encoder reads.
 ///
 /// # Layout
@@ -742,6 +901,9 @@ const MIN_TASK_LOG: usize = 6;
 /// - Such a sub-block spills from L2 into L3.
 /// - That costs extra L3 traffic, but saves a whole sweep of DRAM.
 const L3_WORDS: usize = 1 << 18;
+
+/// Deep sub-blocks a row-only encode cuts each replica into, per worker, when a replica outgrows L3.
+const REPLICA_SUBS_PER_WORKER: usize = 8;
 
 /// Buffers of at least this many words get streaming stores for data a pass does not read back.
 ///
