@@ -59,12 +59,10 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     let tree = MerkleBuilder::new(n_positions, n_lanes, 1usize << log_batch_size);
     tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes).in_scope(|| {
         // SAFETY: every codeword element is written before it is read.
-        // The transpose covers every word of the message region (its tiles are asserted to).
-        // The encode writes every other replica from it before transforming that region in place.
+        // `encode_lane_major_with` writes every word of an uninitialized codeword before it reads it.
         let codeword = unsafe { primitives::write_only(&mut codeword) };
-        crate::ntt::transpose_lane_major(&mut codeword[..message.len()], message, n_lanes, log_rows);
         let ntt = AdditiveNttF64::standard(k_code);
-        ntt.encode_interleaved_in_place_with(codeword, n_lanes, log_inv_rate, &|row, rows| {
+        ntt.encode_lane_major_with(codeword, message, n_lanes, log_inv_rate, &|row, rows| {
             tree.absorb(row, rows);
         });
     });

@@ -3,4 +3,4 @@
 
 pub(crate) mod additive_ntt_f64;
 pub use additive_ntt_f64::AdditiveNttF64;
-pub(crate) use additive_ntt_f64::{RowSink, transpose_lane_major};
+pub(crate) use additive_ntt_f64::RowSink;
