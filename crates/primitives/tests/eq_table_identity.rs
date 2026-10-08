@@ -1,4 +1,4 @@
-//! `eq_table` feeds the verifier (via the leanvm_core constraint and GKR paths and
+//! `eq_table` feeds the verifier (via the leanvm constraint and GKR paths and
 //! flock's univariate skip), so its rewrite must be bit-identical to the
 //! two-multiply form, not merely algebraically equal.
 //!

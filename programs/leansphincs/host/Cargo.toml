@@ -15,5 +15,5 @@ leansphincs = { path = "../guest" }
 parallel.workspace = true
 
 [dev-dependencies]
-leanvm_core.workspace = true
+leanvm.workspace = true
 primitives.workspace = true

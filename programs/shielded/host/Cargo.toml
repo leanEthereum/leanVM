@@ -14,5 +14,5 @@ shielded = { path = "../guest" }
 leanvm_guest.workspace = true
 
 [dev-dependencies]
-leanvm_core.workspace = true
+leanvm.workspace = true
 proptest.workspace = true

@@ -30,12 +30,11 @@ cognitive_complexity = "allow"
 
 [workspace.dependencies]
 bench = { path = "crates/bench" }
-leanvm = { path = "crates/leanvm" }
+leanvm = { path = "crates/leanvm_core" }
 primitives = { path = "crates/primitives" }
 fiat_shamir = { path = "crates/fiat_shamir" }
 pcs = { path = "crates/pcs" }
 flock = { path = "crates/flock" }
-leanvm_core = { path = "crates/leanvm_core" }
 parallel = { path = "crates/parallel" }
 leanvm_guest = { path = "sdk" }
 leanxmss-host = { path = "programs/leanxmss/host" }

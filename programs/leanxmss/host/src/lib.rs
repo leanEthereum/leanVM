@@ -65,7 +65,7 @@ const fn words_of_signature(signature: &Signature) -> &[u64] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use leanvm_core::{Machine, Program, Trap};
+    use leanvm::{Machine, Program, Trap};
     use leanxmss::XmssVerifyError::{InvalidEncoding, InvalidMerklePath};
     use leanxmss::{PublicKey, Signature};
     use primitives::hash::{digest_words, hash};

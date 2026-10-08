@@ -1,8 +1,8 @@
 //! RISC-V programs, proven and checked by the native verifier.
 
 use fiat_shamir::transcript::TranscriptError;
-use leanvm_core::asm::*;
-use leanvm_core::{
+use leanvm::asm::*;
+use leanvm::{
     BusError, CpuError, Hash, Machine, N_TABLES, Output, Program, Proof, ProveError, ProvenRun, Prover, Rate, Region,
     Trap, UNGROUND_LOG_BYTECODE,
 };

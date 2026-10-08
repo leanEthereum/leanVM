@@ -3,7 +3,7 @@
 //! prover's to choose, so every path the verifier takes through it has to end in
 //! [`CpuError`], not in an index out of bounds.
 
-use leanvm_core::{Clock, CpuError, N_TABLES, Proof, ProvenRun, Prover, Rate};
+use leanvm::{Clock, CpuError, N_TABLES, Proof, ProvenRun, Prover, Rate};
 use primitives::field::F192;
 use std::panic::AssertUnwindSafe;
 

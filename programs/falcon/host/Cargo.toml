@@ -16,6 +16,6 @@ parallel.workspace = true
 tide-fn-dsa = "0.4"
 
 [dev-dependencies]
-leanvm_core.workspace = true
+leanvm.workspace = true
 primitives.workspace = true
 proptest.workspace = true

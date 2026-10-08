@@ -976,7 +976,7 @@ name = "falcon-host"
 version = "0.1.0"
 dependencies = [
  "falcon",
- "leanvm_core",
+ "leanvm",
  "leanvm_guest",
  "parallel",
  "primitives",
@@ -1443,7 +1443,7 @@ version = "0.1.0"
 dependencies = [
  "fiat_shamir",
  "leanda",
- "leanvm_core",
+ "leanvm",
  "leanvm_guest",
  "pcs",
  "primitives",
@@ -1462,7 +1462,7 @@ name = "leansphincs-host"
 version = "0.1.0"
 dependencies = [
  "leansphincs",
- "leanvm_core",
+ "leanvm",
  "leanvm_guest",
  "parallel",
  "primitives",
@@ -1472,7 +1472,16 @@ dependencies = [
 name = "leanvm"
 version = "0.1.0"
 dependencies = [
- "leanvm_core",
+ "bench",
+ "fiat_shamir",
+ "flock",
+ "leanvm_guest",
+ "parallel",
+ "pcs",
+ "primitives",
+ "proptest",
+ "thiserror",
+ "tracing",
 ]
 
 [[package]]
@@ -1496,22 +1505,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "leanvm_core"
-version = "0.1.0"
-dependencies = [
- "bench",
- "fiat_shamir",
- "flock",
- "leanvm_guest",
- "parallel",
- "pcs",
- "primitives",
- "proptest",
- "thiserror",
- "tracing",
-]
-
-[[package]]
 name = "leanvm_guest"
 version = "0.1.0"
 dependencies = [
@@ -1530,7 +1523,7 @@ dependencies = [
 name = "leanxmss-host"
 version = "0.1.0"
 dependencies = [
- "leanvm_core",
+ "leanvm",
  "leanvm_guest",
  "leanxmss",
  "parallel",
@@ -2227,7 +2220,7 @@ dependencies = [
 name = "shielded-host"
 version = "0.1.0"
 dependencies = [
- "leanvm_core",
+ "leanvm",
  "leanvm_guest",
  "proptest",
  "shielded",
@@ -2285,7 +2278,7 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "alloy-trie",
- "leanvm_core",
+ "leanvm",
  "leanvm_guest",
  "proptest",
  "serde",

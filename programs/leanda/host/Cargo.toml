@@ -17,4 +17,4 @@ pcs.workspace = true
 primitives.workspace = true
 
 [dev-dependencies]
-leanvm_core.workspace = true
+leanvm.workspace = true

@@ -201,7 +201,7 @@ pub fn open(
 
     // 2. The ONE batching challenge: the family takes its first power, the point claims the rest. Nothing is
     //    observed first: every claim value reached the caller through a binding stream read, so the challenge
-    //    already depends on all of them (`leanvm_core::pcs::open`).
+    //    already depends on all of them (`leanvm::pcs::open`).
     let lambdas = powers(ps.sample(), 1 + point_claims.len());
     let lambdas_pd = &lambdas[1..];
     let rs_outputs: Vec<_> = (claims.iter().zip(powers(family.gamma_rs(), n_rs)))

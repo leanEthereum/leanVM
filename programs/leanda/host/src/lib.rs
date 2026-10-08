@@ -117,7 +117,7 @@ const fn as_field(words: &mut [u64]) -> &mut [F64] {
 mod tests {
     use super::*;
     use leanda::{DaError, Hash};
-    use leanvm_core::{Machine, Program, Trap};
+    use leanvm::{Machine, Program, Trap};
 
     fn hex(words: &[u64]) -> String {
         words

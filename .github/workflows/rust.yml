@@ -113,10 +113,10 @@ jobs:
       - name: Test the kernels
         if: steps.cpu.outputs.run == 'true'
         run: cargo test --release -p primitives -p pcs -p flock
-      # The bus's leaf and GKR kernels reach these arms through `leanvm_core`, so their tests run here too.
+      # The bus's leaf and GKR kernels reach these arms through `leanvm`, so their tests run here too.
       - name: Test the bus kernels
         if: steps.cpu.outputs.run == 'true'
-        run: cargo test --release -p leanvm_core --lib -- gkr::tests leaf::tests
+        run: cargo test --release -p leanvm --lib -- gkr::tests leaf::tests
 
   clippy-guests:
     name: Clippy (RISC-V guests)

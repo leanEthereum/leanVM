@@ -3,7 +3,7 @@
 //! The files are built by `programs/build.sh` and checked in, the target needing a
 //! nightly toolchain.
 
-use leanvm_core::{ElfError, Guest, Machine, Program, ProvenRun, Prover, Rate, Region};
+use leanvm::{ElfError, Guest, Machine, Program, ProvenRun, Prover, Rate, Region};
 use leanvm_guest::PublicValues;
 use primitives::hash::{digest_words, hash};
 

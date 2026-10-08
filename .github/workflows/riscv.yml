@@ -43,4 +43,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Run the tests
-        run: cargo test --release -p leanvm_core --test verifiers -- --ignored act4
+        run: cargo test --release -p leanvm --test verifiers -- --ignored act4

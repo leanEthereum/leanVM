@@ -18,5 +18,5 @@ serde_json = "1"
 [dev-dependencies]
 alloy-primitives = "1"
 alloy-trie = "0.9"
-leanvm_core.workspace = true
+leanvm.workspace = true
 proptest.workspace = true
