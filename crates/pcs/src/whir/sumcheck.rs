@@ -45,8 +45,9 @@ const ROUND_CHUNK: usize = 2048;
 
 /// Words of the initial weight one fill call writes: a chunk, aligned to its size.
 ///
-/// A lane block below this size is filled whole.
-pub(crate) const INITIAL_BASIS_CHUNK: usize = 1024;
+/// A lane block below this size is filled whole. Full-byte maps use longer runs
+/// before switching maps; the smaller byte-sliced maps keep their compact scratch.
+pub(crate) const INITIAL_BASIS_CHUNK: usize = if primitives::bit_fold::PORTABLE { 1024 } else { 256 };
 
 /// Elements a stored (dense) weight's lane fold stages in L1 before publishing them.
 const DENSE_STAGE: usize = 128;
