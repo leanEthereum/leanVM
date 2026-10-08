@@ -45,7 +45,13 @@ pub fn key_gen(seed: [u8; 32], leaf_index: LeafIndex) -> (SecretKey, PublicKey) 
         chains.walk(i, 0..CHAIN_LENGTH - 1, secret(&seed, pp, leaf_index, i))
     });
     // Its path is all fillers, which the root is the fold of.
-    let merkle_root = merkle_root(pp, leaf_index, leaf, &filler_path(&seed, pp, leaf_index));
+    let merkle_root = merkle_root(
+        &mut merkle_template(pp),
+        leaf_index,
+        &parent_indices(leaf_index),
+        leaf,
+        &filler_path(&seed, pp, leaf_index),
+    );
     let public_key = PublicKey {
         merkle_root,
         public_param,

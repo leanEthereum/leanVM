@@ -89,6 +89,55 @@ pub(crate) unsafe fn blake2s_chain<const COUNTER: usize, const VALUE: usize>(
     [v0, v1]
 }
 
+/// [`blake2s_chain`] with the counter a whole word at message byte `COUNTER`, going up by `step` a step: for each `c`
+/// in `first, first + step, ..` up to `end`, the word at message byte `COUNTER` becomes `c`. A field in a word's high
+/// half then costs a 64-bit store a step rather than a 32-bit one.
+///
+/// One loop of eight instructions a step, the compression one of them: the counter doubles as the loop's.
+///
+/// # Safety
+///
+/// As for [`blake2s_chain`], the word at message byte `COUNTER` aligned and inside the message; `end` is `first`
+/// plus a multiple of `step` (otherwise the loop does not end).
+#[inline(always)]
+pub(crate) unsafe fn blake2s_chain_word<const COUNTER: usize, const VALUE: usize>(
+    base: *mut Block,
+    t: u64,
+    first: u64,
+    end: u64,
+    step: u64,
+    value: [u64; 2],
+) -> [u64; 2] {
+    let [mut v0, mut v1] = value;
+    // SAFETY: as in `blake2s_chain`, with a 64-bit counter word.
+    unsafe {
+        core::arch::asm!(
+            "beq {c}, {end}, 2f",
+            "1:",
+            "sd {c}, {counter}({base})",
+            "sd {v0}, {value}({base})",
+            "sd {v1}, {value}+8({base})",
+            ".insn r 0x0b, 1, 0, x0, {base}, {t}",
+            "ld {v0}, 32({base})",
+            "ld {v1}, 40({base})",
+            "add {c}, {c}, {step}",
+            "bne {c}, {end}, 1b",
+            "2:",
+            base = in(reg) base,
+            t = in(reg) t,
+            c = inout(reg) first => _,
+            end = in(reg) end,
+            step = in(reg) step,
+            v0 = inout(reg) v0,
+            v1 = inout(reg) v1,
+            counter = const 64 + COUNTER,
+            value = const 64 + VALUE,
+            options(nostack),
+        );
+    }
+    [v0, v1]
+}
+
 /// One extension-field instruction (custom-1, opcode `0x2b`) on the elements at `c`, `a` and `b`.
 ///
 /// `FUNCT3` is the instruction: bit 0 accumulates into `c`, and bit 1 reads `b` as one base-field word.

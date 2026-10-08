@@ -252,6 +252,61 @@ impl<const W: usize> Template<W> {
             [d0, d1]
         })
     }
+
+    /// [`Self::chain`] with the counter a whole word at message byte `COUNTER`, going up by `step` a hash: for each
+    /// `c` in `first, first + step, ..` up to `end`, write `c` as the word at message byte `COUNTER` and `value` at
+    /// message byte `VALUE`, then `value` becomes the digest's first two words. Returns the last `value`, or `value`
+    /// itself if `first == end`.
+    ///
+    /// A counter in a word's high half, with the rest of the word fixed in `first`, then costs a 64-bit store a hash
+    /// rather than a 32-bit one: the loop is the same eight instructions. `end` must be `first` plus a multiple of
+    /// `step`, or the chain never ends.
+    #[inline(always)]
+    pub fn chain_word<const COUNTER: usize, const VALUE: usize>(
+        &mut self,
+        first: u64,
+        end: u64,
+        step: u64,
+        value: [u64; 2],
+    ) -> [u64; 2] {
+        const {
+            assert!(
+                COUNTER.is_multiple_of(8) && COUNTER + 8 <= 8 * W,
+                "a word inside the message"
+            );
+        };
+        const {
+            assert!(
+                VALUE.is_multiple_of(8) && VALUE + 16 <= 8 * W,
+                "two words inside the message"
+            );
+        };
+        #[cfg(all(target_arch = "riscv64", target_os = "none"))]
+        // SAFETY: the block is this template's, its chaining value and message initialized, and the fields inside the
+        // message (checked above).
+        unsafe {
+            crate::precompile::blake2s_chain_word::<COUNTER, VALUE>(
+                &mut self.block,
+                8 * W as u64,
+                first,
+                end,
+                step,
+                value,
+            )
+        }
+        #[cfg(not(all(target_arch = "riscv64", target_os = "none")))]
+        {
+            let (mut c, mut value) = (first, value);
+            while c != end {
+                self.write(COUNTER, c);
+                self.write(VALUE, value);
+                let [d0, d1, ..] = self.digest();
+                value = [d0, d1];
+                c = c.wrapping_add(step);
+            }
+            value
+        }
+    }
 }
 
 /// What [`Template::write`] takes: an integer or an array of them, whose bytes are all initialized.

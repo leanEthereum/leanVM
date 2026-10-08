@@ -8,29 +8,51 @@
 #![no_std]
 #![no_main]
 
-use leanvm_guest::{commit, read, read_unchecked};
-use leanxmss::{LeafIndex, Message, PublicKey, Signature};
+use leanvm_guest::{Words, commit, read, read_slice};
+use leanxmss::{LeafIndex, Message, PublicKey, Signature, Verifier};
 
 leanvm_guest::advice_words!(1 << 16);
+
+/// What a signature is checked against, and what the guest commits: nine words.
+#[repr(C)]
+struct Claim {
+    public_key: PublicKey,
+    leaf_index: u64,
+    message: Message,
+}
+
+/// One signature's advice: the claim, then the signature.
+#[repr(C)]
+struct Entry {
+    claim: Claim,
+    signature: Signature,
+}
+
+// SAFETY: `repr(C)` words, with no padding, and any words are one (see the fields' definitions).
+unsafe impl Words for Claim {}
+// SAFETY: as for `Claim`.
+unsafe impl Words for Entry {}
 
 #[unsafe(no_mangle)]
 extern "C" fn main() {
     let n = *read::<u64>();
-    for _ in 0..n {
-        // Read in place. SAFETY: both types are `repr(C)` words, with no padding, and any
-        // words are one (see their definitions).
-        let public_key = unsafe { read_unchecked::<PublicKey>() };
-        let leaf_index = *read::<u64>();
-        let message = read::<Message>();
-        let signature = unsafe { read_unchecked::<Signature>() };
+    let mut verifier = Verifier::new();
+    // Read in place, all at once: one bounds check for the batch rather than one per field.
+    for entry in read_slice::<Entry>(usize::try_from(n).expect("a count of entries")) {
+        let Entry { claim, signature } = entry;
+        let Claim {
+            public_key,
+            leaf_index,
+            message,
+        } = claim;
 
         // A leaf index past `2^32 - 1` would be committed whole but verified truncated.
-        let leaf = LeafIndex::try_from(leaf_index).expect("a leaf index below 2^32");
-        leanxmss::verify(public_key, leaf, message, signature).expect("every signature verifies");
+        let leaf = LeafIndex::try_from(*leaf_index).expect("a leaf index below 2^32");
+        verifier
+            .verify(public_key, leaf, message, signature)
+            .expect("every signature verifies");
 
-        commit(&public_key.merkle_root);
-        commit(&public_key.public_param);
-        commit(&leaf_index);
-        commit(message);
+        // The claim's words are the key's, the leaf index and the message's, in that order.
+        commit(claim);
     }
 }

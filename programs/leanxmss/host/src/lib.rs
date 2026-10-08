@@ -191,6 +191,45 @@ mod tests {
     }
 
     #[test]
+    fn the_verifier_recomputes_its_path_indices_when_the_leaf_index_changes() {
+        // Invariant: the Merkle tweak indices kept from one signature serve only the next at the same leaf index.
+        //
+        // Fixture state: signers at leaf indices 1234, 7, 7, 1234, so the kept indices go stale twice.
+        let signed: Vec<_> = [1234, 7, 7, 1234]
+            .into_iter()
+            .enumerate()
+            .map(|(i, leaf_index)| {
+                let (sk, pk) = leanxmss::key_gen(seed(i), leaf_index);
+                (pk, leaf_index, sk.sign(&MESSAGE).unwrap())
+            })
+            .collect();
+        let mut verifier = leanxmss::Verifier::new();
+        let mut advice = vec![signed.len() as u64];
+        let mut public = PublicValues::new();
+        for (pk, leaf_index, signature) in &signed {
+            assert_eq!(
+                verifier.verify(pk, *leaf_index, &MESSAGE, signature),
+                Ok(()),
+                "natively"
+            );
+            advice.extend(words_of_key(pk));
+            advice.push((*leaf_index).into());
+            advice.extend(MESSAGE);
+            advice.extend(words_of_signature(signature));
+            public
+                .commit(&pk.merkle_root)
+                .commit(&pk.public_param)
+                .commit(&u64::from(*leaf_index))
+                .commit(&MESSAGE);
+        }
+        let run = Run {
+            advice,
+            expected: public.digest(),
+        };
+        assert_eq!(on_the_vm(&run), Ok(run.expected), "on the VM");
+    }
+
+    #[test]
     fn leanxmss_outputs_the_blake2s_of_its_claims() {
         // Invariant: the output is BLAKE2s-256 of the claims (key, leaf index, message: 9 words) back to back.
         //

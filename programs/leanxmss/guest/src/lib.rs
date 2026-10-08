@@ -127,21 +127,74 @@ pub fn verify(
     message: &Message,
     signature: &Signature,
 ) -> Result<(), XmssVerifyError> {
-    let pp = &pk.public_param;
-    // The digits say where each chain was opened.
-    let digits = encode(pp, leaf_index, message, &signature.randomness).ok_or(XmssVerifyError::InvalidEncoding)?;
-    // Walk each chain the rest of the way, chain `i` from value `digit_i` to value 7: its end is the leaf's. The leaf
-    // takes the chains one by one, unrolled, so each digit's shift and each position are constants.
-    let mut chains = Chains::new(pp, leaf_index);
-    let leaf = wots_leaf(pp, leaf_index, |i| {
-        chains.walk(i, digits.get(i)..CHAIN_LENGTH - 1, signature.chain_tips[i])
-    });
-    // The chain ends are the one-time public key: its leaf, folded up to the root.
-    let root = merkle_root(pp, leaf_index, leaf, &signature.merkle_proof);
-    if root == pk.merkle_root {
-        Ok(())
-    } else {
-        Err(XmssVerifyError::InvalidMerklePath)
+    Verifier::new().verify(pk, leaf_index, message, signature)
+}
+
+/// A verifier of many signatures, which keeps what depends on the leaf index alone for the next signature at the same
+/// one (signers attesting to one slot all sign at one leaf index), and its hash templates, whose fixed words it writes
+/// once.
+pub struct Verifier {
+    /// The leaf index `parents` is for, or one no `LeafIndex` is before the first signature.
+    leaf_index: u64,
+    /// The tweak index at each Merkle level: the parent's index, `leaf_index >> (level + 1)`.
+    parents: [u64; LOG_LIFETIME],
+    /// The chain step's template, its tweak at leaf index `leaf_index`: a signature writes only its parameter.
+    chains: Chains,
+    /// The Merkle node's template: a signature writes only its parameter, and each level its tweak's fields.
+    node: Template<8>,
+}
+
+impl Default for Verifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Verifier {
+    pub fn new() -> Self {
+        Self {
+            leaf_index: u64::MAX,
+            parents: [0; LOG_LIFETIME],
+            chains: Chains::new(&[0; 2], 0),
+            node: merkle_template(&[0; 2]),
+        }
+    }
+
+    /// [`verify`], reusing the Merkle tweak indices of the previous signature if it had the same leaf index.
+    pub fn verify(
+        &mut self,
+        pk: &PublicKey,
+        leaf_index: LeafIndex,
+        message: &Message,
+        signature: &Signature,
+    ) -> Result<(), XmssVerifyError> {
+        let pp = &pk.public_param;
+        // The digits say where each chain was opened.
+        let digits = encode(pp, leaf_index, message, &signature.randomness).ok_or(XmssVerifyError::InvalidEncoding)?;
+        // Walk each chain the rest of the way, chain `i` from value `digit_i` to value 7: its end is the leaf's. The
+        // leaf takes the chains one by one, unrolled, so each position is a constant.
+        let bits = u64::from(leaf_index);
+        if self.leaf_index != bits {
+            self.leaf_index = bits;
+            self.parents = parent_indices(leaf_index);
+            self.chains.step.set(1, [bits << 32]);
+        }
+        let Self {
+            parents, chains, node, ..
+        } = self;
+        chains.step.set(2, *pp);
+        node.set(2, *pp);
+        let (mut remaining, mut counter) = (Remaining::new(digits), Chains::counter());
+        let leaf = wots_leaf(pp, leaf_index, |i| {
+            chains.walk_to_end(&mut counter, remaining.next(i), signature.chain_tips[i])
+        });
+        // The chain ends are the one-time public key: its leaf, folded up to the root.
+        let root = merkle_root(node, leaf_index, parents, leaf, &signature.merkle_proof);
+        if root == pk.merkle_root {
+            Ok(())
+        } else {
+            Err(XmssVerifyError::InvalidMerklePath)
+        }
     }
 }
 
@@ -174,6 +227,18 @@ const fn digest([d0, d1, ..]: [u64; 4]) -> Digest {
     [d0, d1]
 }
 
+/// `x`, which the compiler can no longer see through, so a running shift stays one shift a step rather than folding
+/// into each step's own constant shift.
+#[inline(always)]
+fn opaque(mut x: u64) -> u64 {
+    #[cfg(all(target_arch = "riscv64", target_os = "none"))]
+    // SAFETY: an empty instruction sequence, which leaves `x` as it is.
+    unsafe {
+        core::arch::asm!("/* {0} */", inout(reg) x, options(pure, nomem, nostack, preserves_flags));
+    }
+    x
+}
+
 /// Where the payload starts in a one-block message `tweak | pp | payload`.
 const PAYLOAD: usize = 4;
 /// Bytes 4..8 of a tweak: its position.
@@ -203,10 +268,35 @@ impl Digits {
         let s = (low & EVEN) + (low >> W & EVEN) + (high & EVEN) + (high >> W & EVEN);
         // Two fields to a 12-bit field: at most 56.
         let s = (s & LOW6) + (s >> 6 & LOW6);
-        // The six fields, folded into the lowest.
+        // The six fields, folded into the lowest. The sum is under 2^11, so an 11-bit mask (one `andi`) takes it.
         let s = s + (s >> 12);
         let s = s + (s >> 24);
-        (s + (s >> 48)) & 0xFFF
+        (s + (s >> 48)) & 0x7FF
+    }
+}
+
+/// What remains of each chain, in order: `7 - digit` steps, times `2^32`, where a position sits in a tweak's first
+/// word. A chain's start is then its end less this, with no constant to add.
+///
+/// A word is read in three runs of its complement, its digits 0 to 9, 10, and 11 to 20, each run moved down a digit
+/// at a time, so a chain costs one shift and one mask: digit 10 straddles bit 32, which the run shifted up by 32 loses.
+struct Remaining([u64; 6]);
+
+impl Remaining {
+    const fn new(Digits([low, high]): Digits) -> Self {
+        let (low, high) = (!low, !high);
+        Self([low << 32, low << 2, low >> 1, high << 32, high << 2, high >> 1])
+    }
+
+    /// Chain `i`'s steps times `2^32`, the chains taken in order.
+    #[inline(always)]
+    fn next(&mut self, i: usize) -> u64 {
+        let j = i % (V / 2);
+        let run = &mut self.0[3 * (i / (V / 2)) + usize::from(j >= 10) + usize::from(j > 10)];
+        // The complement's digit is `7 - digit`.
+        let steps = *run & ((CHAIN_LENGTH as u64 - 1) << 32);
+        *run = opaque(*run >> W);
+        steps
     }
 }
 
@@ -231,12 +321,43 @@ struct Chains {
     step: Template<6>,
 }
 
+/// The tweak's first word as [`Chains::walk_to_end`] counts it, apart from the template so that it stays in registers.
+struct Counter {
+    /// The tweak's first word at the next chain's end: the position `8i + 7` of chain `i`.
+    end: u64,
+    /// One position, `2^32` in the tweak's first word.
+    one: u64,
+    /// One chain's positions, `8 * 2^32`.
+    eight: u64,
+}
+
 impl Chains {
     fn new(pp: &PublicParam, leaf_index: LeafIndex) -> Self {
         let [t0, t1] = tweak(TWEAK_CHAIN, 0, leaf_index);
         Self {
             step: Template::new([t0, t1, pp[0], pp[1], 0, 0]),
         }
+    }
+
+    /// The counter at chain 0's end.
+    fn counter() -> Counter {
+        Counter {
+            end: tweak(TWEAK_CHAIN, CHAIN_LENGTH as u32 - 1, 0)[0],
+            one: opaque(1 << 32),
+            eight: opaque((CHAIN_LENGTH as u64) << 32),
+        }
+    }
+
+    /// Walk the next chain to its end, `steps` the steps left (times `2^32`), the chains taken in order.
+    ///
+    /// The tweak's whole first word is the counter: one 64-bit store a step, rather than a 32-bit store of the
+    /// position. Its value at each chain's end is kept as a running sum, as its constant would take a shift.
+    #[inline(always)]
+    fn walk_to_end(&mut self, counter: &mut Counter, steps: u64, value: Digest) -> Digest {
+        let end = counter.end;
+        counter.end = opaque(end + counter.eight);
+        self.step
+            .chain_word::<0, { 8 * PAYLOAD }>(end - steps, end, counter.one, value)
     }
 
     /// Walk chain `i` from value number `values.start` to value number `values.end`.
@@ -266,35 +387,67 @@ fn wots_leaf(pp: &PublicParam, leaf_index: LeafIndex, mut end: impl FnMut(usize)
     }))
 }
 
-/// Fold a leaf, at index `leaf_index`, up its authentication path: each node `tweak | pp | left | right`.
+/// Fold a leaf, at index `leaf_index`, up its authentication path: each node `tweak | pp | left | right`, `parents`
+/// the tweak index at each level.
 ///
-/// Unrolled, so each level's tweak position and shifts are constants and the loop bookkeeping is gone. Across levels
-/// only the tweak's position and index fields change, so each is one 32-bit store.
-fn merkle_root(pp: &PublicParam, leaf_index: LeafIndex, leaf: Digest, path: &[Digest; LOG_LIFETIME]) -> Digest {
+/// Unrolled, so each level's shifts are constants and the loop bookkeeping is gone. Across levels only the tweak's
+/// fields change: its first word, the position in its high half, is one 64-bit store of a running sum, and its index
+/// one 32-bit store.
+fn merkle_root(
+    node: &mut Template<8>,
+    leaf_index: LeafIndex,
+    parents: &[u64; LOG_LIFETIME],
+    leaf: Digest,
+    path: &[Digest; LOG_LIFETIME],
+) -> Digest {
     const { assert!(LOG_LIFETIME == 32, "one node a level below") };
-    let [t0, t1] = tweak(TWEAK_MERKLE, 0, 0);
-    let mut node = Template::new([t0, t1, pp[0], pp[1], 0, 0, 0, 0]);
     let (bits, mut child) = (u64::from(leaf_index), leaf);
+    let (mut first, one) = (tweak(TWEAK_MERKLE, 0, 0)[0], opaque(1 << 32));
     macro_rules! levels {
-        ($($level:literal)*) => { $( child = merkle_node::<$level>(&mut node, bits, child, &path[$level]); )* };
+        ($($level:literal)*) => { $( first = opaque(first + one); child = merkle_node::<$level>(node, bits, first, parents, child, &path[$level]); )* };
     }
     levels!(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31);
     child
 }
 
+/// The Merkle node's template under a parameter: its tweak's fields are written at each level.
+fn merkle_template(pp: &PublicParam) -> Template<8> {
+    let [t0, t1] = tweak(TWEAK_MERKLE, 0, 0);
+    Template::new([t0, t1, pp[0], pp[1], 0, 0, 0, 0])
+}
+
+/// The tweak index at each Merkle level for a leaf index: the parent's index, `leaf_index >> (level + 1)`.
+#[inline(always)]
+fn parent_indices(leaf_index: LeafIndex) -> [u64; LOG_LIFETIME] {
+    core::array::from_fn(|level| u64::from(leaf_index) >> (level + 1))
+}
+
 /// Bytes 12..16 of a tweak: its index.
 const TWEAK_INDEX: usize = 12;
 
-/// The parent of `child` at level `LEVEL`, the leaves being level 0, and its `sibling`, `bits` the leaf index.
+/// The parent of `child` at level `LEVEL`, the leaves being level 0, and its `sibling`, `bits` the leaf index, `first`
+/// the tweak's first word at this level and `parents` the tweak index at each level.
 ///
 /// Bit `LEVEL` of the leaf index is the child's side: the child and the sibling go to the slots it picks, with no
-/// branch. The side is kept in bytes, a multiple of a word, so turning it into an address takes no shift.
+/// branch. The side is kept in bytes, a multiple of a word, so turning it into an address takes no shift: from level 5
+/// up it is bit 4 of a lower level's parent index.
 #[inline(always)]
-fn merkle_node<const LEVEL: usize>(node: &mut Template<8>, bits: u64, child: Digest, sibling: &Digest) -> Digest {
-    let side = (bits << 4 >> LEVEL & 16) as usize;
+fn merkle_node<const LEVEL: usize>(
+    node: &mut Template<8>,
+    bits: u64,
+    first: u64,
+    parents: &[u64; LOG_LIFETIME],
+    child: Digest,
+    sibling: &Digest,
+) -> Digest {
+    let side = if LEVEL >= 5 {
+        parents[LEVEL.saturating_sub(5)] & 16
+    } else {
+        bits << 4 >> LEVEL & 16
+    } as usize;
     // The parent is at the next level up, at half the index.
-    node.write(TWEAK_POSITION, (LEVEL + 1) as u32);
-    node.write(TWEAK_INDEX, (bits >> (LEVEL + 1)) as u32);
+    node.write(0, first);
+    node.write(TWEAK_INDEX, parents[LEVEL] as u32);
     node.write(8 * PAYLOAD + side, child);
     node.write(8 * PAYLOAD + 16 - side, *sibling);
     digest(node.digest())
