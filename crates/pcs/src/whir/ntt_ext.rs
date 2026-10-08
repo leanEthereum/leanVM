@@ -110,10 +110,10 @@ mod tests {
         //     (8, 4, 2)              12              whole replicas built in scratch
         //     (12, 16, 1)            48              whole replicas built in scratch
         //     (14, 16, 4)            48              whole replicas built in scratch
-        //     (15, 16, 2)            48              one replica at a time: a gathered pass, then deep sub-blocks
-        //     (17, 16, 4)            48              one replica at a time, sixteen of them
+        //     (15, 16, 2)            48              rounds of replicas: a gathered pass, then deep sub-blocks
+        //     (17, 16, 4)            48              sixteen replicas: one a round on x86, eight on aarch64
         //     (16, 2, 1)             6               whole replicas built in scratch, two tasks
-        //     (12, 1024, 1)          3072            one replica at a time: two gathered passes, then deep sub-blocks
+        //     (12, 1024, 1)          3072            one replica a round: two gathered passes, then deep sub-blocks
         //     (4, 2, 4)              6               rate = log_d: no layer left, copies only
         let mut rng = Rng::new(0xE192);
         for (log_d, lanes, rate) in [

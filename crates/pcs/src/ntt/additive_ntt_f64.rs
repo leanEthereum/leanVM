@@ -183,7 +183,7 @@ impl AdditiveNttF64 {
     ///
     /// ```text
     ///     replica fits L3 sub-block:  one task per run of replicas, each built in scratch from the message
-    ///     larger replica:             one replica at a time, in a buffer that stays in L3
+    ///     larger replica:             one or more replicas a round, in one buffer reused by every round
     ///                                 gathered passes from the message, then deep sub-blocks in place
     /// ```
     ///
@@ -215,29 +215,38 @@ impl AdditiveNttF64 {
             return;
         }
 
-        // Deep sub-blocks fit L2, and a replica cuts into several per worker, since each one ends in a barrier.
+        // A round builds a run of consecutive replicas.
+        // Its gathered pass reads each message row once for all of them.
+        let log_batch = ((REPLICA_ROUND_WORDS / msg.len()).max(1).ilog2() as usize).min(start);
+        // Deep sub-blocks fit L2, and a round cuts into several per worker, since each one ends in a barrier.
         // The layers above them run as gathered passes.
         let fit2 = fit(L2_WORDS);
-        let log_tasks = (REPLICA_SUBS_PER_WORKER * parallel::num_threads())
+        let log_tasks = (ROUND_SUBS_PER_WORKER * parallel::num_threads())
             .next_power_of_two()
             .ilog2() as usize;
-        let log_sub = fit2.min(log_rows.saturating_sub(log_tasks)).max(1);
+        let log_sub = fit2
+            .min((log_rows + log_batch).saturating_sub(log_tasks))
+            .clamp(1, log_rows);
         let deep_start = log_d - log_sub;
-        let mut replica = Box::new_uninit_slice(msg.len());
-        // SAFETY: the first gathered pass of every replica writes each word before any pass reads it.
-        let replica = unsafe { primitives::write_only(&mut replica) };
+        let mut round = Box::new_uninit_slice(msg.len() << log_batch);
+        // SAFETY: every round writes each word, by its first gathered pass or a copy, before any pass reads it.
+        let round = unsafe { primitives::write_only(&mut round) };
         let src = SendPtr(msg.as_ptr().cast_mut());
-        for c in 0..1usize << start {
+        for first in (0..1usize << start).step_by(1 << log_batch) {
             let mut src = Some(src);
             let mut layer = start;
             while layer < deep_start {
                 let g = (deep_start - layer).min(fit2);
-                let first_block = c << (layer - start);
-                self.gathered_pass(replica, log_d, num_ntts, layer, g, first_block, src.take(), false);
+                let first_block = first << (layer - start);
+                self.gathered_pass(round, log_d, num_ntts, layer, g, first_block, src.take(), false);
                 layer += g;
             }
-            let first_sub = c << (deep_start - start);
-            parallel::chunks_mut(replica, num_ntts << log_sub, |i, sub| {
+            // Sub-blocks as large as a replica leave no gathered layer: the round starts as copies of the message.
+            if let Some(m) = src {
+                replicate(round, m, msg.len());
+            }
+            let first_sub = first << (deep_start - start);
+            parallel::chunks_mut(round, num_ntts << log_sub, |i, sub| {
                 self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, first_sub + i);
                 on_rows((first_sub + i) << log_sub, sub);
             });
@@ -755,7 +764,20 @@ fn dot_columns(table: &[F64], rows: &[F64], sums: &mut [u128]) {
         }
         8 * vectors
     };
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    let done = {
+        let vectors = width / 8;
+        for c in 0..vectors {
+            // SAFETY: the target feature is enabled at compile time, and words `8c..8c + 8` lie inside every row.
+            let column = unsafe { dot_column_neon(table, rows.as_ptr().add(8 * c), width) };
+            sums[8 * c..][..8].copy_from_slice(&column);
+        }
+        8 * vectors
+    };
+    #[cfg(not(any(
+        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"),
+        all(target_arch = "aarch64", target_feature = "aes")
+    )))]
     let done = 0;
     for (w, sum) in sums.iter_mut().enumerate().skip(done) {
         *sum = (table.iter().zip(rows[w..].iter().step_by(width))).fold(0, |acc, (t, x)| acc ^ mul_wide(t.0, x.0));
@@ -788,6 +810,61 @@ unsafe fn dot_column_avx512(table: &[F64], column: *const F64, width: usize) -> 
         _mm512_storeu_si512(e.as_mut_ptr().cast(), even);
         _mm512_storeu_si512(o.as_mut_ptr().cast(), odd);
         std::array::from_fn(|w| if w % 2 == 0 { e[w / 2] } else { o[w / 2] })
+    }
+}
+
+/// Unreduced column sums over eight words of every row, the first at `column`, rows `width` words apart.
+///
+/// - Each 128-bit load holds two words.
+/// - `PMULL` multiplies the low one by the row's table entry, `PMULL2` the high one.
+/// - Two rows go per step, so one three-way XOR folds both of a word's products into its sum.
+///
+/// # Safety
+///
+/// - Requires the `aes` target feature.
+/// - `column` must address eight readable words in each of `table.len()` rows.
+#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+#[inline]
+#[target_feature(enable = "aes")]
+unsafe fn dot_column_neon(table: &[F64], column: *const F64, width: usize) -> [u128; 8] {
+    use primitives::field::neon::xor3_u64;
+    // SAFETY:
+    // - The caller supplies eight readable words in every row.
+    // - This function's target feature covers every intrinsic below.
+    unsafe {
+        // Row j's eight words as four vectors, each word times the row's table entry t_j.
+        //
+        //     x[v] = [w_2v, w_2v+1]   ->   (t_j * w_2v, t_j * w_2v+1)
+        let products = |j: usize| {
+            let row = column.add(j * width).cast::<u64>();
+            let t = vdupq_n_u64(table[j].0);
+            std::array::from_fn::<_, 4, _>(|v| {
+                let x = vld1q_u64(row.add(2 * v));
+                let lo = vmull_p64(vgetq_lane_u64::<0>(t), vgetq_lane_u64::<0>(x));
+                let hi = vmull_high_p64(vreinterpretq_p64_u64(t), vreinterpretq_p64_u64(x));
+                (vreinterpretq_u64_p128(lo), vreinterpretq_u64_p128(hi))
+            })
+        };
+        // One 128-bit sum per word of the column.
+        let mut sums = [vdupq_n_u64(0); 8];
+        // Rows two at a time: each sum takes both rows' products in one three-way XOR.
+        let pairs = table.len() / 2;
+        for j in 0..pairs {
+            let (a, b) = (products(2 * j), products(2 * j + 1));
+            for v in 0..4 {
+                sums[2 * v] = xor3_u64(sums[2 * v], a[v].0, b[v].0);
+                sums[2 * v + 1] = xor3_u64(sums[2 * v + 1], a[v].1, b[v].1);
+            }
+        }
+        // An odd last row goes alone.
+        if table.len() % 2 == 1 {
+            let a = products(table.len() - 1);
+            for v in 0..4 {
+                sums[2 * v] = veorq_u64(sums[2 * v], a[v].0);
+                sums[2 * v + 1] = veorq_u64(sums[2 * v + 1], a[v].1);
+            }
+        }
+        sums.map(|s| vreinterpretq_p128_u64(s))
     }
 }
 
@@ -902,8 +979,19 @@ const MIN_TASK_LOG: usize = 6;
 /// - That costs extra L3 traffic, but saves a whole sweep of DRAM.
 const L3_WORDS: usize = 1 << 18;
 
-/// Deep sub-blocks a row-only encode cuts each replica into, per worker, when a replica outgrows L3.
-const REPLICA_SUBS_PER_WORKER: usize = 8;
+/// Words a row-only encode builds per round when a replica outgrows L3.
+///
+/// - A round takes as many whole replicas as fit, and at least one.
+/// - Each round ends in two barriers, and its gathered pass reads the whole message.
+/// - Several replicas a round share both, which measured faster on aarch64.
+/// - x86 keeps one replica a round, which stays in L3.
+#[cfg(target_arch = "aarch64")]
+const REPLICA_ROUND_WORDS: usize = 1 << 22;
+#[cfg(not(target_arch = "aarch64"))]
+const REPLICA_ROUND_WORDS: usize = 0;
+
+/// Deep sub-blocks a row-only encode cuts each round into, per worker, when a replica outgrows L3.
+const ROUND_SUBS_PER_WORKER: usize = 8;
 
 /// Buffers of at least this many words get streaming stores for data a pass does not read back.
 ///
