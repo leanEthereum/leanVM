@@ -231,6 +231,7 @@ fn convert_table() -> &'static ConvertTable {
 // The output is the F8 representative that the protocol embeds into F192.
 
 /// Sum eight weighted rows through Plonky3's packed AES field.
+#[inline(always)]
 fn shift_reduce_inner_ab(
     a_packed: &[u8],
     b_packed: &[u8],
