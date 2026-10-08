@@ -226,10 +226,45 @@ pub fn open(
     // On a small pool the first pass also writes each chunk out, and the first fold reads it back rather than filling
     // it again.
     let lane_block = 1usize << (log_n - config.initial_k());
-    let weight = StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, rings, &rs_outputs);
+    let weight = tracing::info_span!(
+        "Stack weight setup",
+        stack_words = stack.len(),
+        lane_block,
+        point_claims = point_claims.len(),
+        ring_claims = n_rs,
+    ).in_scope(|| StackWeight::new(stack.len(), lane_block, point_claims, lambdas_pd, rings, &rs_outputs));
+    #[cfg(any(not(leanvm_basis_staged), leanvm_basis_check))]
     let fill = |start: usize, dst: &mut [F192]| weight.fill(start, dst);
-    let (initial, basis) = tracing::info_span!("Basis")
-        .in_scope(|| super::whir::initial_rounds_virtual(stack, lane_block, config.initial_k(), &fill));
+    // Keep this boundary identical: setup remains outside Basis. The staged diagnostic
+    // changes only the schedule inside it, and keeps the same weights for the first fold.
+    let (initial, basis) = tracing::info_span!(
+        "Basis",
+        stack_words = stack.len(),
+        witness_bytes = size_of_val(stack),
+        weight_bytes = stack.len() * size_of::<F192>(),
+        lane_block,
+        lanes = stack.len() / lane_block,
+        initial_k = config.initial_k(),
+        staged = cfg!(leanvm_basis_staged),
+    ).in_scope(|| {
+        #[cfg(not(leanvm_basis_staged))]
+        {
+            super::whir::initial_rounds_virtual(stack, lane_block, config.initial_k(), &fill)
+        }
+        #[cfg(leanvm_basis_staged)]
+        {
+            let basis = super::whir::Basis::Dense(weight.materialize(stack.len()));
+            let initial = tracing::info_span!("Basis staged grid")
+                .in_scope(|| super::whir::initial_rounds(stack, lane_block, config.initial_k(), &basis));
+            (initial, basis)
+        }
+    });
+    #[cfg(all(leanvm_basis_staged, leanvm_basis_check))]
+    if let super::whir::Basis::Dense(kept) = &basis {
+        tracing::info_span!("Basis staged reference check").in_scope(|| {
+            initial.assert_matches_virtual(stack, lane_block, config.initial_k(), &fill, kept);
+        });
+    }
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    stack is borrowed by the prover; no copy).

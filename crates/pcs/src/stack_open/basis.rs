@@ -102,19 +102,23 @@ impl<'a> StackWeight<'a> {
         assert_eq!(claims.len(), lambdas.len());
         // A fill writes one chunk, or one whole lane block when blocks are smaller.
         let chunk_log = lane_block.min(INITIAL_BASIS_CHUNK).ilog2() as usize;
+        let span = tracing::info_span!("Point high eq tables", claims = claims.len(), chunk_log).entered();
         let weights: Vec<_> = claims
             .iter()
             .zip(lambdas)
             .map(|(claim, &lambda)| PointWeight::new(claim, lambda, chunk_log))
             .collect();
+        drop(span);
 
         // Index the claims by the lane blocks they touch, so a fill visits only those.
+        let span = tracing::info_span!("Point lane index", lanes = stack_len / lane_block).entered();
         let mut by_lane = vec![Vec::new(); stack_len / lane_block];
         for (index, weight) in weights.iter().enumerate() {
             for lane in &mut by_lane[weight.offset / lane_block..weight.end.div_ceil(lane_block)] {
                 lane.push(index);
             }
         }
+        drop(span);
 
         // Each ring's outputs are its own run of the outputs, in ring order.
         let mut first = 0;
@@ -127,6 +131,14 @@ impl<'a> StackWeight<'a> {
             })
             .collect();
         assert_eq!(first, rs_outputs.len());
+        tracing::info!(
+            point_claims = weights.len(),
+            point_high_bytes = weights.iter().map(|weight| weight.high.len() * size_of::<F192>()).sum::<usize>(),
+            point_claim_elements = weights.iter().map(|weight| (weight.end - weight.offset) / weight.stride).sum::<usize>(),
+            lane_index_entries = by_lane.iter().map(Vec::len).sum::<usize>(),
+            ring_claim_elements = rings.iter().map(|ring| (1usize << ring.qflock_vars) * ring.claims.len()).sum::<usize>(),
+            "Basis weight shape"
+        );
 
         Self {
             weights,
@@ -137,9 +149,15 @@ impl<'a> StackWeight<'a> {
     }
 
     /// Writes the weight of words `start..start + dst.len()`, one aligned fill chunk.
+    #[inline]
     pub(super) fn fill(&self, start: usize, dst: &mut [F192]) {
         dst.fill(F192::ZERO);
+        self.fill_ring(start, dst);
+        self.fill_points(start, dst);
+    }
 
+    #[inline]
+    fn fill_ring(&self, start: usize, dst: &mut [F192]) {
         // The ring-switched regions this chunk meets.
         for &(offset, end, outputs) in &self.regions {
             let lo = start.max(offset);
@@ -148,11 +166,39 @@ impl<'a> StackWeight<'a> {
                 combine_deferred_chunk(outputs, lo - offset, &mut dst[lo - start..hi - start]);
             }
         }
+    }
 
+    #[inline]
+    fn fill_points(&self, start: usize, dst: &mut [F192]) {
         // The point claims of this chunk's lane block.
         let mut scratch = [MaybeUninit::uninit(); INITIAL_BASIS_CHUNK];
         for &index in &self.by_lane[start / self.lane_block] {
             self.weights[index].add(start, dst, &mut scratch);
         }
+    }
+
+    /// Attribution-only schedule: identical weights, but whole-vector phases rather than hot chunks.
+    #[cfg(leanvm_basis_staged)]
+    pub(super) fn materialize(&self, stack_len: usize) -> Vec<F192> {
+        let chunk = self.lane_block.min(INITIAL_BASIS_CHUNK);
+        let mut dense = tracing::info_span!(
+            "Basis staged allocation zero",
+            output_bytes = stack_len * size_of::<F192>(),
+        ).in_scope(|| vec![F192::ZERO; stack_len]);
+        tracing::info_span!(
+            "Basis staged Phi application",
+            regions = self.regions.len(),
+            claim_elements = self.regions.iter().map(|(start, end, claims)| (end - start) * claims.len()).sum::<usize>(),
+        ).in_scope(|| {
+            parallel::chunks_mut(&mut dense, chunk, |index, dst| self.fill_ring(index * chunk, dst));
+        });
+        tracing::info_span!(
+            "Basis staged point eq",
+            claims = self.weights.len(),
+            claim_elements = self.weights.iter().map(|weight| (weight.end - weight.offset) / weight.stride).sum::<usize>(),
+        ).in_scope(|| {
+            parallel::chunks_mut(&mut dense, chunk, |index, dst| self.fill_points(index * chunk, dst));
+        });
+        dense
     }
 }

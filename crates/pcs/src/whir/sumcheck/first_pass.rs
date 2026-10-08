@@ -597,6 +597,22 @@ pub(crate) struct InitialRounds {
 }
 
 impl InitialRounds {
+    /// Compare every grid element and every kept weight on the real opening, outside timed Basis.
+    #[cfg(all(leanvm_basis_staged, leanvm_basis_check))]
+    pub(crate) fn assert_matches_virtual(
+        &self,
+        f: &[F64],
+        block: usize,
+        initial_k: usize,
+        fill: &BasisFill<'_>,
+        weights: &[F192],
+    ) {
+        let (reference, kept) = initial_rounds_kept(f, block, initial_k, fill);
+        assert_eq!(self.rounds, reference.rounds);
+        assert_eq!(self.grid, reference.grid, "staged grid differs from fused first pass");
+        assert_eq!(weights, kept, "staged weights differ from fused first pass");
+    }
+
     /// Lane round `j`'s message, given the challenges `rs` of the rounds before it.
     pub(super) fn message(&self, j: usize, rs: &[F192]) -> SumcheckMessage {
         assert!(j < self.rounds && rs.len() == j);
@@ -636,6 +652,16 @@ pub(crate) fn initial_rounds_virtual<'a>(
     initial_k: usize,
     fill: &'a BasisFill<'a>,
 ) -> (InitialRounds, Basis<'a>) {
+    tracing::info!(
+        keep_weight = bit_fold::PORTABLE || parallel::num_threads() <= KEEP_WEIGHT_MAX_THREADS,
+        kept_bytes = if bit_fold::PORTABLE || parallel::num_threads() <= KEEP_WEIGHT_MAX_THREADS {
+            f.len() * size_of::<F192>()
+        } else {
+            0
+        },
+        portable_map = bit_fold::PORTABLE,
+        "Basis retention"
+    );
     if bit_fold::PORTABLE || parallel::num_threads() <= KEEP_WEIGHT_MAX_THREADS {
         let (rounds, kept) = initial_rounds_kept(f, block, initial_k, fill);
         (rounds, Basis::Dense(kept))
@@ -649,7 +675,8 @@ pub(crate) fn initial_rounds_virtual<'a>(
 
 /// [`initial_rounds`] over a regenerated weight, which it also writes out whole.
 fn initial_rounds_kept(f: &[F64], block: usize, initial_k: usize, fill: &BasisFill<'_>) -> (InitialRounds, Vec<F192>) {
-    let mut kept = Box::<[F192]>::new_uninit_slice(f.len());
+    let mut kept = tracing::info_span!("Basis kept allocation", bytes = f.len() * size_of::<F192>())
+        .in_scope(|| Box::<[F192]>::new_uninit_slice(f.len()));
     let rounds = first_pass(
         f,
         block,
@@ -769,14 +796,46 @@ fn grid_pass_with<const R: usize>(
     };
 
     let n_tasks = lanes.len().div_ceil(group) * per;
+    let _span = tracing::info_span!(
+        "Basis grid pass",
+        rounds = R,
+        group,
+        points,
+        lanes = lanes.len(),
+        block,
+        chunk,
+        tasks = n_tasks,
+        virtual_weight = matches!(b, Basis::Virtual(_)),
+        keep_weight = keep.is_some(),
+        witness_bytes = lanes.len() * block * size_of::<F64>(),
+        weight_bytes = lanes.len() * block * size_of::<F192>(),
+        scratch_bytes = size_of::<Scratch>(),
+        accumulator_bytes = size_of::<Acc>(),
+        grid_rows = n_tasks * chunk.div_ceil(ROW),
+        mixed_products = n_tasks * chunk.div_ceil(ROW) * ROW * points,
+        clmul_backend = if cfg!(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")) {
+            "vpclmul512"
+        } else if cfg!(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")) {
+            "vpclmul256"
+        } else if cfg!(all(target_arch = "x86_64", target_feature = "pclmulqdq")) {
+            "pclmul128"
+        } else if cfg!(all(target_arch = "aarch64", target_feature = "aes")) {
+            "pmull128"
+        } else {
+            "portable"
+        },
+    ).entered();
     let new_scratch = || {
+        let _span = tracing::info_span!("Basis scratch allocation zero", bytes = size_of::<Scratch>()).entered();
         Box::new(Scratch {
             raw: [[F192::ZERO; INITIAL_BASIS_CHUNK]; GROUP],
             fg: [[0; ROW]; GRID],
             bg: [WeightRow::default(); GRID],
         })
     };
-    let new_acc = || Box::new([ProductRow::default(); GRID]);
+    let new_acc = || tracing::info_span!("Basis accumulator allocation zero", bytes = size_of::<Acc>())
+        .in_scope(|| Box::new([ProductRow::default(); GRID]));
+    let accumulation_span = tracing::info_span!("Basis fill pack accumulate").entered();
     let acc = if lanes.len() * block < FIRST_PASS_PAR_THRESHOLD {
         let (mut scratch, mut acc) = (new_scratch(), new_acc());
         for t in 0..n_tasks {
@@ -797,7 +856,9 @@ fn grid_pass_with<const R: usize>(
             },
         )
     };
-    acc[..points].iter().map(ProductRow::sum).collect()
+    drop(accumulation_span);
+    tracing::info_span!("Basis final sum", points)
+        .in_scope(|| acc[..points].iter().map(ProductRow::sum).collect())
 }
 
 /// A lane's eq weight `e`, as the fold's products read it: `e·y^k` for each coefficient `k`

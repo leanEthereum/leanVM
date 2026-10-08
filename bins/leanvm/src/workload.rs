@@ -193,6 +193,9 @@ impl Workload {
             let _quiet = (!last).then(bench::suppress_tracing);
             self.program.verify(output, &proof).expect("the proof verifies");
         });
+        if let Some(path) = std::env::var_os("ARM_ATTRIBUTION_PROOF") {
+            std::fs::write(path, proof.to_bytes()).expect("write diagnostic proof");
+        }
 
         let cycles = stats.cycles();
         let seconds = prove_time.mean();

@@ -169,16 +169,35 @@ fn sliced_hi_bits(n: usize) -> usize {
 pub(crate) fn deferred_weight(point: &[F192], scale: F192, coordinate_weights: &[F192]) -> DeferredWeight {
     let n = point.len();
     let n_lo = if n >= 6 { n - sliced_hi_bits(n) } else { split_n_lo(n) };
+    let span = tracing::info_span!(
+        "Deferred weight setup",
+        variables = n,
+        low_elements = 1usize << n_lo,
+        high_elements = 1usize << (n - n_lo),
+        sliced = n_lo >= 6,
+        portable_map = primitives::bit_fold::PORTABLE,
+        eq_bytes = ((1usize << n_lo) + (1usize << (n - n_lo))) * size_of::<F192>(),
+        sliced_bytes = if n_lo >= 6 { (1usize << n_lo) / BLOCK * size_of::<Sliced>() } else { 0 },
+    ).entered();
+    let eq_span = tracing::info_span!("Deferred eq tables").entered();
     let (eq_lo, mut eq_hi) = (eq_table(&point[..n_lo]), eq_table(&point[n_lo..]));
     for e in &mut eq_hi {
         *e *= scale;
     }
+    drop(eq_span);
+    let map_span = tracing::info_span!("Phi map construction").entered();
     let map = F192Map::new(coordinate_weights);
+    drop(map_span);
     let sliced = (n_lo >= 6).then(|| {
+        let slice_span = tracing::info_span!("Phi input slicing").entered();
         let blocks = eq_lo.as_chunks::<BLOCK>().0.iter().map(Sliced::new).collect();
+        drop(slice_span);
+        let composed_span = tracing::info_span!("Phi composed maps", maps = eq_hi.len()).entered();
         let maps = parallel::map_collect(eq_hi.len(), |hi| map.after_mul(eq_hi[hi]));
+        drop(composed_span);
         (blocks, maps)
     });
+    drop(span);
     DeferredWeight {
         eq_lo,
         eq_hi,

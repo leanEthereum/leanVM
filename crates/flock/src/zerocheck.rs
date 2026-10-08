@@ -301,6 +301,7 @@ impl<'a> CircuitProver<'a> {
         // must be in "naive" convention so the verifier doesn't need to know
         // about this internal optimization; we restore the C_s factor here.
         let (ab, c) = round1_shift_reduce_extract_c_packed_padded(bits.a, bits.b, c, m, r, inv_table, &padding);
+        let _output = tracing::info_span!("Round1 class output", lanes = 1 << K_SKIP).entered();
         let c_s = c_s();
         let round1 = ab.iter().zip(&c).map(|(x, y)| c_s * (*x + *y)).collect();
         let prover = Self {
@@ -464,14 +465,28 @@ pub(crate) fn prove(inputs: &[ZerocheckInput<'_>], ps: &mut ProverState) -> Vec<
     let r_rest = equality_tail(n_mlv + K_SKIP, |n| ps.sample_vec(n));
     let lambdas = powers(ps.sample(), inputs.len());
 
-    let span = tracing::info_span!("Round 1").entered();
+    let span = tracing::info_span!("Round 1", classes = inputs.len()).entered();
+    let table_span = tracing::info_span!("Round1 table setup", k_skip = K_SKIP, table_bytes = 256 << K_SKIP).entered();
     let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
     let ntt_l = AdditiveNttGf8::new(K_SKIP, F8(1u8 << K_SKIP));
     let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
+    drop(table_span);
     let mut round1 = vec![F192::ZERO; 1 << K_SKIP];
     let provers: Vec<_> = (inputs.iter().zip(&lambdas))
-        .map(|(input, &lambda)| {
+        .enumerate()
+        .map(|(class, (input, &lambda))| {
+            let _class = tracing::info_span!(
+                "Round1 class",
+                class,
+                m = input.m,
+                k_log = input.padding.k_log,
+                useful_bits = input.padding.useful_bits_per_block,
+                live_blocks = input.padding.live_blocks,
+                cube_bytes = input.bits.a.len(),
+            )
+            .entered();
             let (prover, own) = CircuitProver::new(input, &r_rest[..input.m - K_SKIP], &inv_table);
+            let _mix = tracing::info_span!("Round1 class mix", lanes = 1 << K_SKIP).entered();
             for (x, y) in round1.iter_mut().zip(&own) {
                 *x += lambda * *y;
             }
