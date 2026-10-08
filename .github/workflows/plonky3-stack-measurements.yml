@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: Four-product comparison (${{ matrix.name }})
+    name: Radix-eight comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 5ed0431d5fcbbfba59be8c6ccafb63fe8bd1e43b
+          ref: 425599a05650729e82adde2d36afda29b523754c
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare upstream four-product layouts on native hardware
+      - name: Compare upstream nonzero-twiddle layouts on native hardware
         run: bash .github/perf-stack/run.sh
