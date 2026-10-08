@@ -1,4 +1,4 @@
-//! BLAKE2s compression on words, as a hash row computes it, and the hashes the circuit builds from it.
+//! BLAKE2s compression on words, as a hash row computes it, and the hashes a verifier program builds from it.
 
 use crate::rv::{Hash, InstructionClass};
 

@@ -1,19 +1,19 @@
 //! The claims a node reduces: on the dense polynomials, and on the flock circuits' matrices.
 //!
-//! Every claim is generic over its elements: values for the prover, wires for the rows.
+//! Every claim is generic over its elements: values for the prover, the recorder's names for a verifier program.
 
 use crate::class_flock::FlockId;
 use crate::cpu::Claim;
 use flock::lincheck::MatrixForm;
 
-/// The polynomials the program and the tree's circuits fix, on which tree proofs carry claims.
+/// The polynomials the leaf program and the tree's programs fix, on which tree proofs carry claims.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DensePoly {
     /// The program's stacked bytecode table.
     Bytecode,
     /// RAM's image, zero padded to a power of two.
     Image,
-    /// The nodes' fixed polynomial `W_node`: the first level's circuit's fixed columns, then the node circuit's.
+    /// The tree programs' tables: the first-level program's stacked bytecode table, then the node program's.
     Fixed,
 }
 

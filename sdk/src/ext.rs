@@ -6,7 +6,7 @@
 //!
 //! These are the fields the proof system works in, so a guest computes in the field its proof is over.
 //!
-//! The machine has 128 extension registers, `f0` to `f127`, one element each, and one instruction on them:
+//! The machine has 128 extension registers, `f0` to `f127`, one element each, and one instruction computing on them:
 //!
 //! ```text
 //!     fd = fa * fb        or  fd = fd + fa * fb        b an extension register, or a base-field word

@@ -11,7 +11,7 @@
 //! process of its own (`THREADS`). A case's name is what a PR's results are matched by, so
 //! renaming one or changing its input shows it as new.
 //!
-//! An aggregation tree is tracked the same way: each kind of node's circuit counted without a
+//! An aggregation tree is tracked the same way: each kind of node's program counted without a
 //! proof (the leaf's run measured gives the shape its proofs announce), and one node of each
 //! kind proven over copies of one leaf proof.
 
@@ -214,8 +214,8 @@ pub fn run(
         let trees: Vec<_> = counted_trees()
             .into_iter()
             .map(|tree| {
-                let circuits = circuits(&tree, leaf_prover.rate(), prover.rate());
-                (tree, circuits)
+                let programs = programs(&tree, leaf_prover.rate(), prover.rate());
+                (tree, programs)
             })
             .collect();
         let tables = table(&counted) + &tree_table(&trees);
@@ -230,13 +230,13 @@ pub fn run(
                 .and_then(|mut file| file.write_all(tables.as_bytes()))
                 .unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
         }
-        let circuits = trees
+        let programs = trees
             .iter()
-            .flat_map(|(tree, circuits)| (circuits.iter()).map(|(kind, stats)| (tree.node(*kind).0, counts(stats))));
+            .flat_map(|(tree, programs)| (programs.iter()).map(|(kind, stats)| (tree.node(*kind).0, counts(stats))));
         counted
             .iter()
             .map(|(case, stats)| (case.name.to_string(), counts(stats)))
-            .chain(circuits)
+            .chain(programs)
             .collect()
     } else {
         let cases: Vec<_> = proven()
@@ -320,7 +320,7 @@ fn counts(stats: &Stats) -> Vec<(&'static str, Metric)> {
 
 /// Each kind of node's program, without a proof: the leaf's run, measured, gives the shape its
 /// proofs announce at `leaf_rate`; the tree's proofs are at `rate`.
-fn circuits(tree: &Aggregation, leaf_rate: Rate, rate: Rate) -> [(Kind, Stats); 2] {
+fn programs(tree: &Aggregation, leaf_rate: Rate, rate: Rate) -> [(Kind, Stats); 2] {
     let shape = LeafShape::measured(&tree.leaf.measure(), leaf_rate);
     let built = tree.tree(shape, rate);
     Kind::ALL.map(|kind| (kind, built.stats(kind)))

@@ -7,7 +7,7 @@
 //!
 //! Every proof states the same words (`TreeStatement`): its kind, a digest of its leaves' outputs, and one claim on
 //! each polynomial only the root's verifier evaluates. A node reduces the claims its children leave and carry
-//! (`tree::reduce`), so the statement does not grow.
+//! (`rec::reduce`), so the statement does not grow.
 //!
 //! A tree program's transcript is seeded with the tree's seed, not its own digest, which the node program could not
 //! hold of itself. What binds a child to its program is its kind, a word of its statement, and the claim its core
@@ -758,6 +758,9 @@ mod tests {
     use crate::rv::Machine;
     use crate::rv::asm::*;
 
+    /// One advice word in this many is forged.
+    const TAMPER_STRIDE: usize = 1;
+
     // A program with a loop and an image, whose output is the advice's first word XOR a constant.
     fn leaf_program() -> Program {
         let text = Asm::new()
@@ -809,17 +812,15 @@ mod tests {
         );
         assert_eq!(Machine::new(first.rv(), &built.advice).run(), Ok(built.output));
 
-        // Mutation: one bit of each of a few advice words, across the proof: the program traps.
+        // Mutation: one bit of an advice word, for words across the whole proof: the program traps.
         //
         // A word the program writes before reading it, or never reads, is zero in the advice, so each word taken is not.
-        for from in [4, 40, built.advice.len() / 3, built.advice.len() / 2] {
-            let at = (from..built.advice.len())
-                .find(|&i| built.advice[i] != 0)
-                .expect("a word of the proof");
+        let words = (0..built.advice.len()).filter(|&i| built.advice[i] != 0);
+        for at in words.step_by(TAMPER_STRIDE) {
             let mut forged = built.advice.clone();
-            forged[at] ^= 1;
+            forged[at] ^= 1 << (at % 64);
             let outcome = Machine::new(first.rv(), &forged).run();
-            assert!(outcome != Ok(built.output), "advice word {at}: {outcome:?}");
+            assert!(outcome.is_err(), "advice word {at}: {outcome:?}");
         }
 
         // The root binds the outputs and their order.

@@ -39,7 +39,7 @@ pub struct Query {
 /// Where words sit in the program's memory, as a word index of a region.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) enum Loc {
-    /// The constants, in the image.
+    /// The constants, which the program writes to RAM as it starts.
     Const(usize),
     /// The advice: the proof and the hints.
     Advice(usize),

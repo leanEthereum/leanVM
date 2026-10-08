@@ -2,8 +2,8 @@
 //!
 //! An element lives in an extension register while it is used, and nowhere else unless it came from memory.
 //!
-//! No instruction moves a register to memory, so an element evicted while still needed is hinted: the advice holds its
-//! limbs, the program checks them against the register before giving it up, and reloads them when it needs them.
+//! An element evicted while still needed, and with no place in memory, is stored to the scratch words by `esd` and
+//! loaded back by `eld` when it is needed.
 
 use super::record::{CHAIN_IV, ELEMENT, Gen, Home, Loc, Op, POW_TAGS, leaf_slot};
 use crate::rv::Region;
@@ -11,7 +11,7 @@ use crate::rv::asm::*;
 use crate::tables::Clock;
 use std::collections::VecDeque;
 
-/// The lowered program: its text, its image, and where the hints of evicted elements go in the advice.
+/// The lowered program: its text and the size of its RAM.
 pub(super) struct Lowered {
     /// The instructions.
     pub(super) text: Vec<u32>,
@@ -58,7 +58,7 @@ mod reg {
 
 /// The first extension register an element is allocated, after the constants and one scratch register.
 const FIRST: u8 = 4;
-/// The scratch extension register: where a hint is loaded to be checked.
+/// The scratch extension register: where a check that keeps both its operands leaves its zero.
 const SCRATCH: u8 = 3;
 /// How many extension registers there are.
 const REGISTERS: u8 = 128;
@@ -82,7 +82,7 @@ struct Lower<'g> {
     at: Vec<Option<u8>>,
     /// The element each register holds.
     held: [Option<u32>; REGISTERS as usize],
-    /// Where each evicted element's hint is.
+    /// Where each evicted element was stored.
     spilled: Vec<Option<Loc>>,
     /// The scratch words in use, the recorder's then the stored elements'.
     n_scratch: usize,

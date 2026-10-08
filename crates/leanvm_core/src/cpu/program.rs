@@ -549,7 +549,9 @@ mod tests {
     use crate::pcs::Rate;
     use crate::rv::asm::*;
     use crate::rv::semantics::Outcome;
-    use crate::rv::{Alu, Class, Machine, ProgramError, Reg, RegisterFile, Trap};
+    use crate::rv::{
+        Alu, BlockAccess, Class, ElementAccess, InstructionClass, Machine, ProgramError, Reg, RegisterFile, Trap,
+    };
     use crate::tables::{ClassSpec, ClassTable, Clock, Separator};
     use std::panic::AssertUnwindSafe;
 
@@ -1165,6 +1167,95 @@ mod tests {
         let unmatched = unmatched(&w);
         assert_eq!(unmatched.len(), 4, "{unmatched:?}");
         assert_unbalanced(&program, w, forged.output.into());
+    }
+
+    #[test]
+    fn a_forged_compression_unbalances_the_bus() {
+        // Invariant: a compression hashes what its pointers name, with the counter its register holds, and writes
+        // its result over what the result's words held.
+        //
+        // Fixture state: the chaining value at RAM's base, the result after it, the message a block on.
+        let text = Asm::new()
+            .li(Reg::S0, Region::RAM.base())
+            .i(Addi, Reg::S1, Reg::S0, 32)
+            .i(Addi, Reg::S2, Reg::S0, 64)
+            .li(Reg::S3, 64)
+            .blake2s(Reg::S1, Reg::S0, Reg::S2, Reg::S3, true)
+            .exit()
+            .finish();
+        let image = (1..=16).collect();
+        let program = Program::new(&text, Region::TEXT.base(), image, 5, 0).expect("valid instruction program");
+        assert!(unmatched_run(&program, &program.execute(&[]).unwrap()).is_empty());
+
+        // Mutation: one thing the row reads, its result following it so that the circuit holds.
+        let forgeries: [fn(&mut BlockAccess); 5] = [
+            |a| a.hash.m[0] ^= 1,
+            |a| a.hash.h[3] ^= 1,
+            |a| a.hash.x ^= 1 << 8,
+            |a| a.old[0] ^= 1,
+            |a| a.to ^= 32,
+        ];
+        for (i, forge) in forgeries.into_iter().enumerate() {
+            let mut forged = program.execute(&[]).unwrap();
+            let hash = TableId::HASH;
+            let at = forged.trace.rows[hash].iter().position(|r| r.ts != 0).unwrap();
+            let access = &mut forged.trace.hash[at].access;
+            forge(access);
+            access.out = access.hash.eval();
+            let w = Witness::build(&program, &forged);
+            assert!(!unmatched(&w).is_empty(), "forgery {i} balances");
+            assert_unbalanced(&program, w, forged.output.into());
+        }
+    }
+
+    #[test]
+    fn a_forged_element_store_unbalances_the_bus() {
+        // Invariant: a store of an element writes its register's limbs over what the three words held.
+        //
+        // Fixture state: `f3` loaded from RAM's first words, then stored 32 bytes on.
+        let text = Asm::new()
+            .li(Reg::S0, Region::RAM.base())
+            .eld(3, 0, Reg::S0)
+            .esd(3, 32, Reg::S0)
+            .exit()
+            .finish();
+        let program = Program::new(&text, Region::TEXT.base(), vec![3, 5, 7], 3, 0).expect("valid instruction program");
+        assert!(unmatched_run(&program, &program.execute(&[]).unwrap()).is_empty());
+
+        // Mutation: a limb moved that the register does not hold, then a word found that the cell did not hold.
+        let forgeries: [fn(&mut ElementAccess); 2] = [|a| a.limbs[1] ^= 1, |a| a.old[2] ^= 1];
+        for (i, forge) in forgeries.into_iter().enumerate() {
+            let mut forged = program.execute(&[]).unwrap();
+            let esd = TableId::ESD;
+            let at = forged.trace.rows[esd].iter().position(|r| r.ts != 0).unwrap();
+            forge(&mut forged.trace.elements[esd][at].access);
+            let w = Witness::build(&program, &forged);
+            assert!(!unmatched(&w).is_empty(), "forgery {i} balances");
+            assert_unbalanced(&program, w, forged.output.into());
+        }
+    }
+
+    #[test]
+    fn a_forged_extension_selector_unbalances_the_bus() {
+        // Invariant: an extension-field row's selectors are its bytecode entry's, which holds them in its flags,
+        // immediate and jump-offset slots.
+        //
+        // Mutation: one selector of the last row, `f8 = f4 * f4`, flipped: the row reads an entry the program lacks.
+        let program = extension_products();
+        let exec = program.execute(&[]).unwrap();
+        let ext = TableId::EXT;
+        let row = exec.trace.rows[ext].iter().rposition(|r| r.ts != 0).unwrap();
+        let bus = ext.class_table().flushes();
+        for slot in [3, 7, 9] {
+            let Coord::Col(selector) = bus.pull[1][slot] else {
+                panic!("EXT binds a selector to a column");
+            };
+            let mut w = Witness::build(&program, &exec);
+            column_mut(&mut w, Schema::get().spans[ext].0 + selector)[row].0 ^= 1;
+            let left = unmatched(&w);
+            assert!(!left.is_empty(), "the selector in slot {slot} is free");
+            assert_unbalanced(&program, w, exec.output.into());
+        }
     }
 
     #[test]

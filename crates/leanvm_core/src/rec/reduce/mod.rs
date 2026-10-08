@@ -1,6 +1,6 @@
 //! A node's claim reduction: the claims its verified proofs leave, fresh and carried, become one of each kind.
 //!
-//! It is a small proof of its own, made natively by the node's prover and verified in the node's rows:
+//! It is a small proof of its own, made natively by the node's prover and verified by the node's program:
 //!
 //! - its transcript first binds every verified proof's final state and every hint the claims rest on;
 //! - the dense reduction takes every claim on the dense polynomials to one point;

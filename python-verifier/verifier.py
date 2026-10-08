@@ -932,7 +932,7 @@ SEP_EXT = GEN**4
 # the live bit, is set on every tuple of the run and on the seeds, and clear on a padding row's, whose clock is zero.
 # Access `slot` of a row with clock ts carries the timestamp ts ^ slot. A row reads rs1 and rs2, then writes rd last,
 # after the RAM access of a load or a store; a row that skips an access leaves its slot unused. A hash row reads its
-# two registers, then the sixteen words of its block.
+# four registers, then its twelve words, and writes its result's four last.
 LIVE_BIT = 40
 SLOT_BITS = 5
 CYCLE = 1 << SLOT_BITS
@@ -2171,7 +2171,8 @@ TABLES = (
     Table("mulh", 7, False, "none", _mulh().circuit(), ("v1", "v2", "flags", "out"), frozenset((0, 1, 3))),
     # A division's flags: signed, remainder, 32-bit. Its two hints are in its witness and in no column.
     Table("div", 8, False, "none", _div().circuit(), ("v1", "v2", "flags", None, None, "out", "bad"), frozenset(range(8))),
-    # The BLAKE2s precompile: the counter is v2 and the flags are the finalization word, all ones on the last block.
+    # The BLAKE2s precompile: the counter is v3, the fourth register, and the flags are the finalization word, all ones
+    # on the last block, then the node bit.
     Table("hash", 9, False, "block", _blake2s().circuit(), HASH_PORTS, frozenset((0, HASH_FINAL, HASH_NODE | HASH_FINAL))),
     # The moves of an element between memory and an extension register: the circuit is the address alone, as LD's.
     Table("eld", 10, False, "element_read", _word_address().circuit(), ("v1", "imm", "address"), frozenset((0,)), copies=True),

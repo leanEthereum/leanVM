@@ -1,6 +1,6 @@
 //! What every proof of a tree states, in one layout whatever its place in the tree.
 //!
-//! - Its kind: what its circuit verifies.
+//! - Its kind: what its program verifies.
 //! - The digest of the leaves' outputs under it.
 //! - One claim on each dense polynomial, at prefixes of one point.
 //! - Each flock circuit's two matrices at prefixes of one row point and one column point.
@@ -11,12 +11,12 @@ use crate::rec::hash::{Limbs, chain};
 use primitives::field::F192;
 use std::ops::Range;
 
-/// What a tree proof's circuit verifies.
+/// What a tree proof's program verifies.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Kind {
     /// RISC-V proofs of the tree's program: a node of the first level.
     First,
-    /// Recursion proofs of either kind: a node above the first level.
+    /// Tree proofs of either kind: a node above the first level.
     Node,
 }
 
@@ -48,7 +48,7 @@ pub(crate) enum Section {
     Matrices,
 }
 
-/// A tree proof's statement, every word an `E` element: a value, or the wire holding it.
+/// A tree proof's statement, every word an `E` element: a value, or the recorder's name for it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct TreeStatement<E = F192> {
     layout: StatementLayout,
@@ -59,7 +59,7 @@ impl Kind {
     /// Both kinds, by their statement word.
     pub const ALL: [Self; 2] = [Self::First, Self::Node];
 
-    /// Its statement word: the bit that selects its circuit's half of the nodes' fixed polynomial.
+    /// Its statement word: the bit that selects its program's half of the tree programs' stacked tables.
     pub(crate) const fn bit(self) -> u64 {
         self as u64
     }

@@ -503,8 +503,7 @@ impl Entry {
     ///
     /// - A load reads no `rs2`, so its second register is `x0`.
     /// - A store writes no `rd`, so its destination is the sink.
-    /// - A hash writes no `rd` and has no immediate.
-    /// - An extension-field product reads `rd` as an address, so it names a register, and has no immediate.
+    /// - A store of an element writes no register, so its destination is the sink.
     ///
     /// That a doubleword load or store has no flags is its legal flag word, zero.
     const fn has_table_constants(&self) -> bool {
