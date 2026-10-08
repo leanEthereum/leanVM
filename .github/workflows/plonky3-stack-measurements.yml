@@ -6,15 +6,15 @@ permissions:
   contents: read
 jobs:
   measure:
-    name: Strided ARM coordinate-load comparison
+    name: Byte-extension adapter inlining comparison (arm64)
     runs-on: [size-attester7870-arm64, self-hosted-ghr]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: Plonky3/Plonky3
-          ref: 34e38d3db576d79eec90b7495d0ca5953553a10b
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare strided coordinate loads and their product sums
-        run: bash .github/perf-stack/run.sh
+      - name: Compare the byte adapter in full proofs
+        run: |
+          cp .github/perf-stack/run-inline-byte.sh /tmp/run-inline-byte.sh
+          bash /tmp/run-inline-byte.sh
