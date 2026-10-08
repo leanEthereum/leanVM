@@ -8,11 +8,13 @@
 //! It is written once over the opening verifier's operations, so the native verifier and the recursion machine's rows run the same steps.
 //! Every query opens a full row whose path follows the query's bits, so the rows never depend on which rows are opened.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::verifier::OpeningVerifier;
 use crate::whir::config::{ConfigError, VerifierConfig};
 use crate::whir::induce::eval_sk_at_vks;
 use fiat_shamir::transcript::TranscriptError;
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 use thiserror::Error;
 
 /// Why a WHIR opening is rejected.
@@ -180,7 +182,11 @@ impl<Q, E: Copy> LevelCtx<Q, E> {
         // `1 + p (1 + s / sigma) = (1 + p) + (p / sigma) s`.
         let lin: Vec<(E, E)> = (point.iter().zip(&sks))
             .map(|(&p, &sigma)| {
-                let inv = if sigma == F64(0) { F64(0) } else { sigma.inv() };
+                let inv = if sigma == F64::new(0) {
+                    F64::new(0)
+                } else {
+                    sigma.invert_or_zero()
+                };
                 (v.add_const(p, F192::ONE), v.mul_const(p, F192::from(inv)))
             })
             .collect();

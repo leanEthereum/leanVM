@@ -5,12 +5,14 @@
 //!
 //! The dual codeword `L` then follows from the root, by Fiat-Shamir.
 
+use primitives::PrimeCharacteristicRing;
+
 use fiat_shamir::merkle::hash_to_scalars;
 use fiat_shamir::{DS_OBSERVE, DS_SQUEEZE, compress, digest_words};
 use leanda::{CELLS, Dual, Hash, LOG_K, M};
 use leanvm_guest::{PublicValues, Run};
 use pcs::ntt::AdditiveNttF64;
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 
 /// The guest (`../guest`), built by `programs/build.sh`.
 pub const ELF: &[u8] = include_bytes!("../../leanda.elf");
@@ -83,11 +85,23 @@ fn dual_codeword(root: &Hash) -> Vec<Dual> {
     // The scheme's own chain, from `BLAKE2s(LABEL)`: one compression per absorbed scalar and per sample.
     let mut cv = digest_words(&primitives::hash::hash(LABEL));
     for x in hash_to_scalars(&root) {
-        cv = compress(cv, [F64(x.c0), F64(x.c1), F64(x.c2), DS_OBSERVE]);
+        cv = compress(
+            cv,
+            [
+                F64::new(x.coefficients()[0].to_bits()),
+                F64::new(x.coefficients()[1].to_bits()),
+                F64::new(x.coefficients()[2].to_bits()),
+                DS_OBSERVE,
+            ],
+        );
     }
     let z: [F192; LOG_K] = std::array::from_fn(|_| {
         cv = compress(cv, [F64::ZERO, F64::ZERO, F64::ZERO, DS_SQUEEZE]);
-        F192::new(cv[0].0, cv[1].0, cv[2].0)
+        F192::new([
+            F64::new(cv[0].to_bits()),
+            F64::new(cv[1].to_bits()),
+            F64::new(cv[2].to_bits()),
+        ])
     });
 
     // The tensor, built by doubling: after step `j` its first `2^(j+1)` entries are set.
@@ -102,7 +116,16 @@ fn dual_codeword(root: &Hash) -> Vec<Dual> {
         }
     }
     // The NTT is K-linear, so an F192 codeword is three K-codewords, one per limb.
-    let mut limbs: Vec<u64> = tensor.iter().flat_map(|t| [t.c0, t.c1, t.c2]).collect();
+    let mut limbs: Vec<u64> = tensor
+        .iter()
+        .flat_map(|t| {
+            [
+                t.coefficients()[0].to_bits(),
+                t.coefficients()[1].to_bits(),
+                t.coefficients()[2].to_bits(),
+            ]
+        })
+        .collect();
     AdditiveNttF64::standard(LOG_K + 1).encode_interleaved_in_place(as_field(&mut limbs), 3, 1);
     limbs.as_chunks::<3>().0.to_vec()
 }
@@ -118,6 +141,7 @@ mod tests {
     use super::*;
     use leanda::{DaError, Hash};
     use leanvm_core::{Machine, Program, Trap};
+    use primitives::PrimeCharacteristicRing;
 
     fn hex(words: &[u64]) -> String {
         words
@@ -169,11 +193,10 @@ mod tests {
             //     L_0 w_0 + sum_{x >= 1} L_x w_x = 0   =>   L_0 = (sum_{x >= 1} L_x w_x) / w_0
             let (first, tail) = dual.split_first_mut().unwrap();
             for (c, limb) in first.iter_mut().enumerate() {
-                let rest = tail
-                    .iter()
-                    .zip(&row[1..])
-                    .fold(F64::ZERO, |acc, (dual, &value)| acc + F64(dual[c]) * F64(value));
-                *limb = (rest * F64(row[0]).inv()).0;
+                let rest = tail.iter().zip(&row[1..]).fold(F64::ZERO, |acc, (dual, &value)| {
+                    acc + F64::new(dual[c]) * F64::new(value)
+                });
+                *limb = (rest * F64::new(row[0]).invert_or_zero()).to_bits();
             }
             let row: &[[u64; M]] = &[row.try_into().unwrap()];
             let check = |dual: &[Dual], cells: &mut [[Hash; CELLS]]| {

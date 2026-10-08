@@ -1,4 +1,5 @@
 use super::{BLOCK, F192};
+use crate::PrimeCharacteristicRing;
 
 /// The fold of one row through the byte tables: one lookup and one XOR per byte.
 #[inline(always)]
@@ -65,9 +66,9 @@ impl Imp {
     pub(super) fn apply_add_f192(&self, xs: &[F192; BLOCK], out: &mut [F192]) {
         for (o, x) in out.iter_mut().zip(xs) {
             let mut row = [0u8; 24];
-            row[..8].copy_from_slice(&x.c0.to_le_bytes());
-            row[8..16].copy_from_slice(&x.c1.to_le_bytes());
-            row[16..].copy_from_slice(&x.c2.to_le_bytes());
+            row[..8].copy_from_slice(&x.coefficients()[0].to_bits().to_le_bytes());
+            row[8..16].copy_from_slice(&x.coefficients()[1].to_bits().to_le_bytes());
+            row[16..].copy_from_slice(&x.coefficients()[2].to_bits().to_le_bytes());
             *o += fold_row_lookup(&self.tables, &row);
         }
     }

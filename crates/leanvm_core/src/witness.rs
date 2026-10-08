@@ -4,8 +4,10 @@
 //! `q̂(ζ, sel_i) = c` on the stack, where `sel_i` is the high-bit selector of
 //! the column's offset.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::pcs::{RingSwitch, SliceClaim, StackClaim};
-use primitives::field::F64;
+use primitives::F64;
 
 /// What a column is, before it is placed.
 #[derive(Clone, Copy, Debug)]

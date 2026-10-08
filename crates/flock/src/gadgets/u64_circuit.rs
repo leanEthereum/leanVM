@@ -115,8 +115,9 @@ mod tests {
     use crate::lincheck::LincheckCircuit;
     use crate::reduction::{self, Instance};
     use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
-    use primitives::field::F192;
+    use primitives::PrimeCharacteristicRing;
     use primitives::test_util::Rng;
+    use primitives::{F64, F192};
 
     const OPS: [U64Op; 3] = [U64Op::WrappingAdd, U64Op::WrappingMul, U64Op::WideningMul];
 
@@ -299,7 +300,7 @@ mod tests {
                 zerocheck_len + 2 * n_lincheck + 64 * f + 3,
             ] {
                 let mut bad = proof.clone();
-                bad.stream[word].c0 ^= 1;
+                bad.stream[word] += F192::new([F64::new(1), F64::ZERO, F64::ZERO]);
                 assert!(
                     accepts(&bad).is_none(),
                     "a wrong claim of circuit {f} (word {word}) must reject"

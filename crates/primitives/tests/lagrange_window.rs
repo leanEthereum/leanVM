@@ -4,9 +4,11 @@
 //! and `b ↦ a ^ b` only permutes the window. Should `PHI_8_BASIS` ever stop being the image of a
 //! basis, the identity dies silently and every flock skip round is quietly wrong, so it is pinned
 //! here against the per-node computation it replaced.
-use primitives::field::{F192, PHI_8_TABLE_192 as PHI_8_TABLE};
+use primitives::PrimeCharacteristicRing;
+
 use primitives::multilinear::{barycentric_sum, skip_lagrange_weights, window_denominator};
 use primitives::test_util::Rng;
+use primitives::{F192, PHI_8_TABLE_192 as PHI_8_TABLE};
 
 /// The pre-change denominator: `∏_{k≠i} (nodes[i] + nodes[k])`, inverted, one per node.
 fn per_node(nodes: &[F192], i: usize) -> F192 {
@@ -16,7 +18,7 @@ fn per_node(nodes: &[F192], i: usize) -> F192 {
             denominator *= nodes[i] + nodes[k];
         }
     }
-    denominator.inv()
+    denominator.invert_or_zero()
 }
 
 #[test]

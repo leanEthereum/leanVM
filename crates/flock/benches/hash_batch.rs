@@ -28,7 +28,7 @@ use pcs::ring_switch::RingSwitch;
 use pcs::stack_open;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
 use pcs::whir::{commit, config_for_rate};
-use primitives::{field::F64, pretty_integer, test_util::Rng};
+use primitives::{F64, pretty_integer, test_util::Rng};
 
 #[global_allocator]
 static ALLOCATOR: bench::Counting<bench::Jemalloc> = bench::Counting(bench::Jemalloc);
@@ -43,7 +43,7 @@ fn main() {
         .checked_shl(requested_n_log as u32)
         .expect("FLOCK_N_LOG exceeds the platform usize width");
     let n_log = min_n_blocks_log(n);
-    let mu = K_LOG + n_log - F64::DEGREE.ilog2() as usize;
+    let mu = K_LOG + n_log - 64usize.ilog2() as usize;
     assert!(
         mu >= 15,
         "FLOCK_N_LOG too small: need a committed witness with mu >= 15"

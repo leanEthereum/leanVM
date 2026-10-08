@@ -17,7 +17,9 @@
 //! the assertion that the backward walk's marginal, contracted against the
 //! column weights, equals the forward walk's bilinear form.
 
-use primitives::field::F192;
+use primitives::PrimeCharacteristicRing;
+
+use primitives::F192;
 
 /// Bits per word.
 pub(crate) const WORD_BITS: usize = 32;

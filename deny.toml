@@ -30,6 +30,8 @@ allow = [
 confidence-threshold = 0.9
 # The Falcon host's round-3 signer (public domain), which builds benchmark inputs and is never linked by the prover.
 exceptions = [
+    # Plonky3's challenger depends on this public-domain Keccak implementation.
+    { name = "tiny-keccak", version = "=2.0.2", allow = ["CC0-1.0"] },
     { name = "tide-fn-dsa", allow = ["Unlicense"] },
     { name = "tide-fn-dsa-comm", allow = ["Unlicense"] },
     { name = "tide-fn-dsa-kgen", allow = ["Unlicense"] },

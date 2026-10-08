@@ -55,11 +55,13 @@
 //!   weight. It never materializes a dense vector per claim.
 //! - The verifier never materializes the vector: its MLE at the WHIR final point is the closed form of doc `leanvm` Annex A (`rs:weight`), with the Frobenius moved onto the point every claim shares (`rs:cost`), so a claim costs `64 L` E-multiplications and 63 squarings after one precomputation per opening, and claims at prefixes of one point share their products.
 
+use primitives::PrimeCharacteristicRing;
+
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::Challenger;
 use primitives::bit_fold::{BLOCK, F192Map, Sliced};
-use primitives::field::{F64, F192};
 use primitives::multilinear::eq_table;
+use primitives::{F64, F192};
 use std::cmp::Reverse;
 
 /// Frobenius shifts in the order in which the two-term maps are composed.
@@ -116,10 +118,10 @@ const DEGREE_E: usize = 192;
 pub(crate) fn build_coordinate_weights(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> Vec<F192> {
     // b_w has only bit w set: bits 0..64 are K's power basis, and bits 64/128
     // shift it by Y / Y^2.
-    let basis = |w: usize| match w / F64::DEGREE {
-        0 => F192::new(1u64 << (w % F64::DEGREE), 0, 0),
-        1 => F192::new(0, 1u64 << (w % F64::DEGREE), 0),
-        _ => F192::new(0, 0, 1u64 << (w % F64::DEGREE)),
+    let basis = |w: usize| match w / 64 {
+        0 => F192::new([F64::new(1u64 << (w % 64)), F64::new(0), F64::new(0)]),
+        1 => F192::new([F64::new(0), F64::new(1u64 << (w % 64)), F64::new(0)]),
+        _ => F192::new([F64::new(0), F64::new(0), F64::new(1u64 << (w % 64))]),
     };
     (0..DEGREE_E)
         .map(|w| apply_composed_map(basis(w), challenges))
@@ -241,7 +243,7 @@ impl<E: Copy> RingMap<E> {
                 .collect();
             prefixes.extend(extended);
         }
-        let mut coefficients = vec![a.one(); F64::DEGREE];
+        let mut coefficients = vec![a.one(); 64];
         for (k, c) in prefixes {
             coefficients[k] = c;
         }
@@ -254,11 +256,11 @@ impl<E: Copy> RingMap<E> {
     ///
     /// If there are not 64 slices.
     pub fn target<A: Arith<E = E>>(&self, a: &mut A, slices: &[E]) -> E {
-        assert_eq!(slices.len(), F64::DEGREE, "a family has 64 slices");
-        let terms: Vec<E> = (0..F64::DEGREE)
+        assert_eq!(slices.len(), 64, "a family has 64 slices");
+        let terms: Vec<E> = (0..64)
             .map(|k| {
                 // `x^(2^-k) = x^(2^(64 - k))` in `K`.
-                let xk = (0..(F64::DEGREE - k) % F64::DEGREE).fold(F64(2), |x, _| x.square());
+                let xk = (0..(64 - k) % 64).fold(F64::new(2), |x, _| x.square());
                 let (&last, rest) = slices.split_last().expect("64 slices");
                 let s = (rest.iter().rev()).fold(last, |acc, &sj| a.mul_const_add(acc, F192::from(xk), sj));
                 a.mul(self.coefficients[k], s)
@@ -319,7 +321,7 @@ impl<E: Copy> RingMap<E> {
 ///
 /// Squaring from `v^(2^128) = v^(2^-64)`, two Frobenius maps, climbs to `v^(2^-lowest)`.
 pub fn inverse_frobenius_ladder<A: Arith>(a: &mut A, v: A::E, lowest: usize) -> Vec<A::E> {
-    let mut ladder = vec![v; F64::DEGREE];
+    let mut ladder = vec![v; 64];
     let lowest = lowest.max(1);
     let mut power = a.frobenius2(v);
     for slot in ladder[lowest..].iter_mut().rev() {
@@ -352,8 +354,8 @@ impl<E: Copy> SliceClaim<E> {
     /// If more than 64 slices are given.
     pub fn zero_padded(suffix_point: Vec<E>, slices: impl IntoIterator<Item = E>, zero: E) -> Self {
         let mut s_hat_v: Vec<E> = slices.into_iter().collect();
-        assert!(s_hat_v.len() <= F64::DEGREE, "a claim has at most 64 slices");
-        s_hat_v.resize(F64::DEGREE, zero);
+        assert!(s_hat_v.len() <= 64, "a claim has at most 64 slices");
+        s_hat_v.resize(64, zero);
         Self { suffix_point, s_hat_v }
     }
 }
@@ -439,9 +441,9 @@ impl<E: Copy + PartialEq> RingShare<'_, E> {
     pub fn target<A: Arith<E = E>>(&self, a: &mut A) -> E {
         let claims = self.rings.iter().flat_map(|ring| &ring.claims);
         let zero = a.zero();
-        let mut family = vec![zero; F64::DEGREE];
+        let mut family = vec![zero; 64];
         for (claim, &scale) in claims.zip(&self.scales) {
-            assert_eq!(claim.s_hat_v.len(), F64::DEGREE, "a ring-switched claim has 64 slices");
+            assert_eq!(claim.s_hat_v.len(), 64, "a ring-switched claim has 64 slices");
             for (f, &s) in family.iter_mut().zip(&claim.s_hat_v) {
                 *f = a.mul_add(scale, s, *f);
             }
@@ -467,7 +469,7 @@ impl<E: Copy + PartialEq> RingShare<'_, E> {
             .map(|&q| inverse_frobenius_ladder(a, q, 1))
             .collect();
         let zero = a.zero();
-        let mut sums = vec![vec![zero; F64::DEGREE]; self.rings.len()];
+        let mut sums = vec![vec![zero; 64]; self.rings.len()];
         for group in PrefixGroup::of(self.rings) {
             let at = self.map.prefix_terms(a, group.lead, &ladders, &group.lengths);
             for member in group.members {
@@ -558,8 +560,9 @@ pub(crate) mod tests {
     };
     use fiat_shamir::arith::Native;
     use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
-    use primitives::field::F64;
+    use primitives::F64;
     use primitives::test_util::Rng;
+    use primitives::{Field, PrimeCharacteristicRing};
     use std::collections::HashSet;
 
     /// Total degree of the six-challenge composed batching map. This is the
@@ -590,19 +593,19 @@ pub(crate) mod tests {
         parallel::map_collect(suffix_tensor.len(), |i| {
             let elem = suffix_tensor[i];
             let mut acc = F192::ZERO;
-            let mut c0 = elem.c0;
+            let mut c0 = elem.coefficients()[0].to_bits();
             while c0 != 0 {
                 let w = c0.trailing_zeros() as usize;
                 acc += coordinate_weights[w];
                 c0 &= c0 - 1;
             }
-            let mut c1 = elem.c1;
+            let mut c1 = elem.coefficients()[1].to_bits();
             while c1 != 0 {
                 let w = c1.trailing_zeros() as usize;
                 acc += coordinate_weights[64 | w];
                 c1 &= c1 - 1;
             }
-            let mut c2 = elem.c2;
+            let mut c2 = elem.coefficients()[2].to_bits();
             while c2 != 0 {
                 let w = c2.trailing_zeros() as usize;
                 acc += coordinate_weights[128 | w];
@@ -635,20 +638,20 @@ pub(crate) mod tests {
     /// Pack bit `64 * y + i` of `bits` into bit `i` of word `y`.
     fn pack_witness(bits: &[bool]) -> Vec<F64> {
         let word = |c: &[bool]| c.iter().rev().fold(0, |acc, &b| acc << 1 | b as u64);
-        bits.chunks(F64::DEGREE).map(|c| F64(word(c))).collect()
+        bits.chunks(64).map(|c| F64::new(word(c))).collect()
     }
 
     #[test]
     fn a_family_at_unrelated_points_is_one_ring_switch() {
         let mut rng = Rng::new(0xdec0_de01_2345_6789);
         let n = 9;
-        let packed = pack_witness(&rng.bits(1 << (n + F64::DEGREE.ilog2() as usize)));
+        let packed = pack_witness(&rng.bits(1 << (n + 64usize.ilog2() as usize)));
         let challenges = std::array::from_fn(|_| rng.ext());
         let coordinate_weights = build_coordinate_weights(&challenges);
         let gamma_rs = rng.ext();
         let points: Vec<Vec<F192>> = (0..3).map(|_| rng.ext_vec(n)).collect();
 
-        let mut slices = vec![F192::ZERO; F64::DEGREE];
+        let mut slices = vec![F192::ZERO; 64];
         let mut dense = vec![F192::ZERO; packed.len()];
         let mut weights = Vec::new();
         let mut scale = F192::ONE;
@@ -680,14 +683,14 @@ pub(crate) mod tests {
         let mut rng = Rng::new(0xF00D_BEEF_1234_5678);
         for _ in 0..4 {
             let challenges = std::array::from_fn(|_| rng.ext());
-            let s_hat_v = rng.ext_vec(F64::DEGREE);
+            let s_hat_v = rng.ext_vec(64);
 
             // Column side: sum_w weights[w] * t_w over the transposed K columns.
             let columns = transpose_s_hat(&s_hat_v);
             let lhs = inner_product_base_ext(&columns, &build_coordinate_weights(&challenges));
 
             // Row side: sum_j x^j * Phi(y_j).
-            let x = F192::new(2, 0, 0);
+            let x = F192::new([F64::new(2), F64::new(0), F64::new(0)]);
             let mut rhs = F192::ZERO;
             let mut x_pow = F192::ONE;
             for y in &s_hat_v {
@@ -705,11 +708,11 @@ pub(crate) mod tests {
     /// true for every challenge tuple.
     #[test]
     fn composed_map_has_full_frobenius_support() {
-        let mut monomials = [None; F64::DEGREE];
+        let mut monomials = [None; 64];
         monomials[0] = Some([0u64; COMPOSITION_SHIFTS.len()]);
         for (stage, &shift) in COMPOSITION_SHIFTS.iter().enumerate() {
             let previous = monomials;
-            for (i, exponents) in previous.into_iter().enumerate().take(F64::DEGREE - shift) {
+            for (i, exponents) in previous.into_iter().enumerate().take(64 - shift) {
                 if let Some(mut exponents) = exponents {
                     for exponent in &mut exponents {
                         *exponent <<= shift;
@@ -720,7 +723,7 @@ pub(crate) mod tests {
             }
         }
         let monomials: HashSet<_> = monomials.into_iter().map(Option::unwrap).collect();
-        assert_eq!(monomials.len(), F64::DEGREE);
+        assert_eq!(monomials.len(), 64);
         assert_eq!(
             monomials.iter().map(|exponents| exponents.iter().sum::<u64>()).max(),
             Some(RING_SWITCH_SOUNDNESS_DEGREE as u64)
@@ -728,11 +731,11 @@ pub(crate) mod tests {
 
         let mut rng = Rng::new(0x1234_5678_9abc_def0);
         let challenges: [F192; COMPOSITION_SHIFTS.len()] = std::array::from_fn(|_| rng.ext());
-        let mut coefficients = [F192::ZERO; F64::DEGREE];
+        let mut coefficients = [F192::ZERO; 64];
         coefficients[0] = F192::ONE;
         for (&challenge, &shift) in challenges.iter().zip(COMPOSITION_SHIFTS.iter()) {
             let previous = coefficients;
-            for (i, mut coefficient) in previous.into_iter().enumerate().take(F64::DEGREE - shift) {
+            for (i, mut coefficient) in previous.into_iter().enumerate().take(64 - shift) {
                 if coefficient == F192::ZERO {
                     continue;
                 }
@@ -771,11 +774,11 @@ pub(crate) mod tests {
     /// MLE at the suffix point (direct bit-extract loop, no fold kernel).
     pub(crate) fn s_hat_v_reference(packed: &[F64], suffix_point: &[F192]) -> Vec<F192> {
         let eq_suffix = eq_table(suffix_point);
-        (0..F64::DEGREE)
+        (0..64)
             .map(|i| {
                 let mut acc = F192::ZERO;
                 for (word, &w) in packed.iter().zip(eq_suffix.iter()) {
-                    if (word.0 >> i) & 1 == 1 {
+                    if (word.to_bits() >> i) & 1 == 1 {
                         acc += w;
                     }
                 }
@@ -792,8 +795,8 @@ pub(crate) mod tests {
         let bits = rng.bits(1usize << m);
         let packed = pack_witness(&bits);
         let point = rng.ext_vec(m);
-        let prefix_weights = eq_table(&point[..F64::DEGREE.ilog2() as usize]);
-        let suffix_point = &point[F64::DEGREE.ilog2() as usize..];
+        let prefix_weights = eq_table(&point[..64usize.ilog2() as usize]);
+        let suffix_point = &point[64usize.ilog2() as usize..];
 
         let s_ref = s_hat_v_reference(&packed, suffix_point);
         let eq_full = eq_table(&point);
@@ -870,7 +873,7 @@ pub(crate) mod tests {
         let mut rng = Rng::new(seed);
         let bits = rng.bits(1usize << m);
         let packed = pack_witness(&bits);
-        let log_n = m - F64::DEGREE.ilog2() as usize;
+        let log_n = m - 64usize.ilog2() as usize;
         let pc = test_config_for(log_n);
         let (cm, pd) = commit(&packed, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
 
@@ -878,9 +881,9 @@ pub(crate) mod tests {
         let prefix_weights: Vec<F192> = if generalized_weights {
             // Synthetic non-eq weights (e.g. standing in for phi_8 Lagrange
             // weights): any 64 E-values work.
-            rng.ext_vec(F64::DEGREE)
+            rng.ext_vec(64)
         } else {
-            eq_table(&rng.ext_vec(F64::DEGREE.ilog2() as usize))
+            eq_table(&rng.ext_vec(64usize.ilog2() as usize))
         };
         let claim = inner_product_ext(&prefix_weights, &s_hat_v_reference(&packed, &suffix_point));
 
@@ -1008,7 +1011,7 @@ pub(crate) mod tests {
 
         // Plain slice flip: caught by the claim check.
         let mut s = e.rs_s_hat_v.clone();
-        s[5].c1 ^= 1;
+        s[5] += F192::new([F64::ZERO, F64::ONE, F64::ZERO]);
         let bad = with(s, e.claim, e.fs.clone());
         assert!(!verify_e2e_dense(&bad), "flipped slice accepted");
         assert!(!verify_e2e_succinct(&bad), "flipped slice accepted (succinct)");
@@ -1023,7 +1026,7 @@ pub(crate) mod tests {
         assert!(!w0.is_zero() && !d.is_zero());
         let mut s = e.rs_s_hat_v.clone();
         s[1] += d;
-        s[0] += w1 * d * w0.inv();
+        s[0] += w1 * d * w0.invert_or_zero();
         let bad = with(s, e.claim, e.fs.clone());
         assert_eq!(
             inner_product_ext(&bad.prefix_weights, &bad.rs_s_hat_v),

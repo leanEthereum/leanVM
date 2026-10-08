@@ -1,3 +1,5 @@
+use primitives::PrimeCharacteristicRing;
+
 use super::*;
 use crate::merkle::Hash;
 use crate::whir::config::tests::test_config_for;
@@ -6,8 +8,8 @@ use crate::whir::induce::{
     induce_use_ntt_heuristic,
 };
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, VerifierState};
-use primitives::field::powers;
 use primitives::multilinear::{eq_eval, eq_table, inner_product};
+use primitives::powers;
 use primitives::test_util::Rng;
 use std::collections::HashSet;
 use std::panic::AssertUnwindSafe;
@@ -27,7 +29,7 @@ struct Instance {
 fn prove_instance(log_n: usize, seed: u64) -> Instance {
     let pc = test_config_for(log_n);
     let mut rng = Rng::new(seed);
-    let witness: Vec<F64> = (0..1usize << log_n).map(|_| F64(rng.next_u64())).collect();
+    let witness: Vec<F64> = (0..1usize << log_n).map(|_| F64::new(rng.next_u64())).collect();
     let (cm, pd) = commit(&witness, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
     let point: Vec<F192> = (0..log_n).map(|_| rng.ext()).collect();
     let b_initial = eq_table(&point);
@@ -149,12 +151,12 @@ fn tampered_proofs_are_rejected() {
             ("L0 opened row", |p, r| {
                 let rows = &mut p.merkle[0].leaf_data;
                 let row = (r as usize) % rows.len();
-                rows[row][0].0 ^= 1;
+                rows[row][0] += F64::ONE;
             }),
             ("final-level opened row", |p, r| {
                 let rows = &mut p.merkle.last_mut().unwrap().leaf_data;
                 let row = (r as usize) % rows.len();
-                rows[row][0].0 ^= 1;
+                rows[row][0] += F64::ONE;
             }),
             ("merkle proof node", |p, r| {
                 let sibs = &mut p.merkle[0].sibling_hashes;
@@ -201,7 +203,7 @@ fn tampered_stream_words_reject_without_panicking() {
         Err(WhirError::Transcript(TranscriptError::ExceededStream { len: 1 })),
     );
     for idx in 0..inst.fs.stream.len() {
-        for tamper in [F192::ONE, F192::new(0, 0, 1)] {
+        for tamper in [F192::ONE, F192::new([F64::new(0), F64::new(0), F64::new(1)])] {
             let mut bad = inst.fs.clone();
             bad.stream[idx] += tamper;
             let verdict = std::panic::catch_unwind(AssertUnwindSafe(|| verify_closed_form(&inst, &bad)));
@@ -230,7 +232,7 @@ fn truncated_lanes_match_an_explicit_zero_tail() {
         for &n_lanes in lanes {
             let mut rng = Rng::new(0x5AFE + n_lanes as u64);
             let used = n_lanes * lane_block;
-            let mut witness: Vec<F64> = (0..1usize << log_n).map(|_| F64(rng.next_u64())).collect();
+            let mut witness: Vec<F64> = (0..1usize << log_n).map(|_| F64::new(rng.next_u64())).collect();
             let mut b_initial: Vec<F192> = (0..1usize << log_n).map(|_| rng.ext()).collect();
             witness[used..].fill(F64::ZERO);
             b_initial[used..].fill(F192::ZERO);
@@ -345,7 +347,7 @@ fn induce_via_ntt_matches_dense() {
         }
         let n_queries = qs.len();
         let rows: Vec<Vec<F64>> = (0..n_queries)
-            .map(|_| (0..lanes).map(|_| F64(rng.next_u64())).collect())
+            .map(|_| (0..lanes).map(|_| F64::new(rng.next_u64())).collect())
             .collect();
         let v_challenges: Vec<F192> = (0..lanes_log).map(|_| rng.ext()).collect();
         let weights = powers(rng.ext(), n_queries);
@@ -387,7 +389,7 @@ fn the_residual_closed_form_is_the_induced_basis() {
         assert_eq!(at.len(), 1 << yr_log_n);
         for (y, &got) in at.iter().enumerate() {
             let mut point = prefix.clone();
-            point.extend((0..yr_log_n).map(|j| F192::from(F64(((y >> j) & 1) as u64))));
+            point.extend((0..yr_log_n).map(|j| F192::from(F64::new(((y >> j) & 1) as u64))));
             assert_eq!(got, dense_mle(&basis, &point), "yr_log_n={yr_log_n}, y={y}");
         }
     }

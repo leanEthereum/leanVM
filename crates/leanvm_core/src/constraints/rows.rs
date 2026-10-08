@@ -1,11 +1,13 @@
 //! The constraint message passes a row at a time, for targets where the tiles of
 //! [`super::table_message`] and its folds do not pay.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::Summand;
 use crate::PAR_THRESHOLD;
 use crate::colval::ColVal;
 use parallel::Chunks;
-use primitives::field::{F192, F192Unreduced};
+use primitives::F192;
 use std::mem::MaybeUninit;
 use std::ops::Deref;
 
@@ -20,7 +22,7 @@ pub(super) fn table_message<T: ColVal, C: Deref<Target = [T]> + Sync>(
 ) -> [F192; 2] {
     let ncols = cols.len();
     // The X² coefficient is Q(hi + lo); linear and constant terms cannot contribute.
-    let summand = |i: usize, scratch: &mut [T]| -> [F192Unreduced; 2] {
+    let summand = |i: usize, scratch: &mut [T]| -> [F192; 2] {
         let e = eqr[i];
         let (endpoint, slope) = scratch.split_at_mut(ncols);
         for (ci, c) in cols.iter().enumerate() {
@@ -28,27 +30,24 @@ pub(super) fn table_message<T: ColVal, C: Deref<Target = [T]> + Sync>(
             endpoint[ci] = if at_one { hi } else { lo };
             slope[ci] = lo + hi;
         }
-        [
-            e.mul_unreduced(summand.eval(endpoint, false)),
-            e.mul_unreduced(summand.eval(slope, true)),
-        ]
+        [(e * summand.eval(endpoint, false)), (e * summand.eval(slope, true))]
     };
-    let xor = |a: [F192Unreduced; 2], b: [F192Unreduced; 2]| [a[0] ^ b[0], a[1] ^ b[1]];
-    let acc = if half >= PAR_THRESHOLD {
+    let xor = |a: [F192; 2], b: [F192; 2]| [a[0] + b[0], a[1] + b[1]];
+
+    if half >= PAR_THRESHOLD {
         // The `2 * ncols` scratch is per-worker, not per-row: `map_reduce_with_state`
         // creates it once and threads it through every row that worker claims.
         parallel::map_reduce_with_state(
             half,
             || vec![T::ZERO; 2 * ncols],
-            || [F192Unreduced::ZERO; 2],
+            || [F192::ZERO; 2],
             |scratch, acc, i| *acc = xor(*acc, summand(i, scratch)),
             xor,
         )
     } else {
         let mut scratch = vec![T::ZERO; 2 * ncols];
-        (0..half).fold([F192Unreduced::ZERO; 2], |acc, i| xor(acc, summand(i, &mut scratch)))
-    };
-    acc.map(F192Unreduced::reduce)
+        (0..half).fold([F192::ZERO; 2], |acc, i| xor(acc, summand(i, &mut scratch)))
+    }
 }
 
 /// Fold two row pairs and accumulate their next-round summand before publishing the rows.
@@ -59,7 +58,7 @@ fn folded_message(
     at_one: bool,
     fold: impl Fn(usize, &mut [F192], &mut [F192]) + Sync,
 ) -> [F192; 2] {
-    let accumulate = |scratch: &mut Vec<F192>, acc: &mut [F192Unreduced; 2], i: usize| {
+    let accumulate = |scratch: &mut Vec<F192>, acc: &mut [F192; 2], i: usize| {
         // Layout: [next low row | next high row | their difference].
         let (lo, rest) = scratch.split_at_mut(ncols);
         let (hi, slope) = rest.split_at_mut(ncols);
@@ -69,27 +68,27 @@ fn folded_message(
         }
         let endpoint = if at_one { &*hi } else { &*lo };
         // The quadratic coefficient depends only on the difference of the endpoint rows.
-        acc[0] ^= eqr[i].mul_unreduced(summand.eval(endpoint, false));
-        acc[1] ^= eqr[i].mul_unreduced(summand.eval(slope, true));
+        acc[0] += eqr[i] * summand.eval(endpoint, false);
+        acc[1] += eqr[i] * summand.eval(slope, true);
     };
-    let acc = if eqr.len() >= PAR_THRESHOLD {
+
+    if eqr.len() >= PAR_THRESHOLD {
         parallel::map_reduce_with_state(
             eqr.len(),
             || vec![F192::ZERO; 3 * ncols],
-            || [F192Unreduced::ZERO; 2],
+            || [F192::ZERO; 2],
             accumulate,
-            |a, b| [a[0] ^ b[0], a[1] ^ b[1]],
+            |a, b| [a[0] + b[0], a[1] + b[1]],
         )
     } else {
         // Reuse scratch across the small final rounds without dispatching workers.
         let mut scratch = vec![F192::ZERO; 3 * ncols];
-        let mut acc = [F192Unreduced::ZERO; 2];
+        let mut acc = [F192::ZERO; 2];
         for i in 0..eqr.len() {
             accumulate(&mut scratch, &mut acc, i);
         }
         acc
-    };
-    acc.map(F192Unreduced::reduce)
+    }
 }
 
 /// [`super::fold_columns_and_message`]'s row pairs, `half / 2` of them, written into every slot of `out`.

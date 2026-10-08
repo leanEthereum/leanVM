@@ -7,7 +7,7 @@ use super::whir::sample_queries_ordered;
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::merkle::Hash;
 use fiat_shamir::transcript::{Receiver, TranscriptError, VerifierState};
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 
 /// A verifier of the stacked opening: its commitments, its queries, and the rows they open.
 pub trait OpeningVerifier: Verifier {
@@ -83,14 +83,18 @@ impl OpeningVerifier for VerifierState<'_> {
     }
 
     fn mul_k_add(&mut self, a: F192, k: F64, d: F192) -> F192 {
-        a.mul_base(k) + d
+        (a * k) + d
     }
 
     fn e_of_limbs(&mut self, limbs: [F64; 3]) -> F192 {
-        F192::new(limbs[0].0, limbs[1].0, limbs[2].0)
+        F192::new([
+            F64::new(limbs[0].to_bits()),
+            F64::new(limbs[1].to_bits()),
+            F64::new(limbs[2].to_bits()),
+        ])
     }
 
     fn query_point(&mut self, query: &usize) -> F192 {
-        F192::new(*query as u64, 0, 0)
+        F192::new([F64::new(*query as u64), F64::new(0), F64::new(0)])
     }
 }

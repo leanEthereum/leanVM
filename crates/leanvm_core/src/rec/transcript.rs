@@ -1,9 +1,11 @@
 //! A Fiat-Shamir transcript replayed in rows: every absorb and squeeze is a hash row on the wires it binds.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::circuit::{Builder, Dw, Ew, Kw, Limbs, digest_limbs, zero_prefix};
 use fiat_shamir::transcript::RawProof;
 use fiat_shamir::{DS_OBSERVE, DS_POW_BASE, DS_POW_NONCE, DS_SQUEEZE, MAX_GRINDING_BITS, MAX_PENDING};
-use primitives::field::F192;
+use primitives::F192;
 
 /// What the circuit reads: the proof when it has one, zeros when it is built from the shape alone.
 ///
@@ -81,7 +83,7 @@ impl<'a> Transcript<'a> {
     fn flush(&mut self, b: &mut Builder) {
         if !self.pending.is_empty() {
             let pending = std::mem::take(&mut self.pending);
-            self.cv = b.step(self.cv, &pending, DS_OBSERVE.0).0;
+            self.cv = b.step(self.cv, &pending, DS_OBSERVE.to_bits()).0;
         }
     }
 
@@ -103,7 +105,7 @@ impl<'a> Transcript<'a> {
     /// A challenge: the first three words of the step absorbing the pending scalars under `SQUEEZE`, whose output becomes the state.
     pub fn sample(&mut self, b: &mut Builder) -> Ew {
         let pending = std::mem::take(&mut self.pending);
-        let (cv, ch) = b.step(self.cv, &pending, DS_SQUEEZE.0);
+        let (cv, ch) = b.step(self.cv, &pending, DS_SQUEEZE.to_bits());
         self.cv = cv;
         ch
     }
@@ -152,22 +154,22 @@ impl<'a> Transcript<'a> {
         if bits == 0 {
             b.eq_e_const(nonce, F192::ZERO);
         } else {
-            let (base, _) = b.step(self.cv, &[], DS_POW_BASE.0);
-            let nonce_tag = b.k_const(DS_POW_NONCE.0);
+            let (base, _) = b.step(self.cv, &[], DS_POW_BASE.to_bits());
+            let nonce_tag = b.k_const(DS_POW_NONCE.to_bits());
             let (digest, _) = b.compress(base, nonce, nonce_tag);
             let [word, ..] = b.d_to_k(digest);
             for bit in b.split(word).into_iter().take(bits as usize) {
                 b.eq_k_const(bit, 0);
             }
         }
-        self.cv = b.step(self.cv, &[nonce], DS_POW_NONCE.0).0;
+        self.cv = b.step(self.cv, &[nonce], DS_POW_NONCE.to_bits()).0;
     }
 
     /// The next query's opening, its image padded with zeros to `leaf_words` and its path cut or padded to `depth` siblings.
     fn next_opening(&mut self, leaf_words: usize, depth: usize) -> MerkleOpening {
         let opening = match self.source {
             ProofSource::Proof(p) => p.merkle.get(self.opening).map(|o| MerkleOpening {
-                image: o.leaf_data.iter().map(|w| w.0).collect(),
+                image: o.leaf_data.iter().map(|w| w.to_bits()).collect(),
                 path: o.path.iter().map(digest_limbs).collect(),
             }),
             ProofSource::Shape => None,
@@ -229,19 +231,23 @@ mod tests {
     use crate::rec::circuit::{Circuit, Unsatisfied};
     use fiat_shamir::merkle::{Hash, RawMerklePath, hash_leaf, hash_pair};
     use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
-    use primitives::field::F64;
+    use primitives::F64;
+    use primitives::PrimeCharacteristicRing;
 
     const LABEL: &[u8] = b"rec-transcript-test";
     const POLY: [F192; 4] = [
-        F192::new(5, 0, 0),
-        F192::new(6, 1, 0),
-        F192::new(7, 0, 9),
-        F192::new(8, 8, 8),
+        F192::new([F64::new(5), F64::new(0), F64::new(0)]),
+        F192::new([F64::new(6), F64::new(1), F64::new(0)]),
+        F192::new([F64::new(7), F64::new(0), F64::new(9)]),
+        F192::new([F64::new(8), F64::new(8), F64::new(8)]),
     ];
 
     fn native() -> (RawProof, [F192; 3]) {
         let mut ps = ProverState::from_label(LABEL);
-        ps.add_scalars(&[F192::new(1, 2, 3), F192::new(u64::MAX, 7, 0)]);
+        ps.add_scalars(&[
+            F192::new([F64::new(1), F64::new(2), F64::new(3)]),
+            F192::new([F64::new(u64::MAX), F64::new(7), F64::new(0)]),
+        ]);
         let c0 = ps.sample();
         ps.add_round_poly(&POLY, false);
         let r = ps.sample();
@@ -307,7 +313,7 @@ mod tests {
             stream: Vec::new(),
             merkle: vec![RawMerklePath {
                 leaf_index: 0,
-                leaf_data: leaf.map(F64).to_vec(),
+                leaf_data: leaf.map(F64::new).to_vec(),
                 path: path.to_vec(),
             }],
         };

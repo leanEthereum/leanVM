@@ -4,7 +4,7 @@
 //! [`CpuError`], not in an index out of bounds.
 
 use leanvm_core::{Clock, CpuError, N_TABLES, Proof, ProvenRun, Prover, Rate};
-use primitives::field::F192;
+use primitives::{F64, F192};
 use std::panic::AssertUnwindSafe;
 
 struct Rng(u64);
@@ -29,11 +29,9 @@ fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
         0 => {
             let scalar = &mut forged.0.stream[rng.below(proof.0.stream.len())];
             let bit = 1u64 << (rng.next() % 64);
-            match rng.next() % 3 {
-                0 => scalar.c0 ^= bit,
-                1 => scalar.c1 ^= bit,
-                _ => scalar.c2 ^= bit,
-            }
+            let mut coefficients = scalar.coefficients();
+            coefficients[(rng.next() % 3) as usize] += F64::new(bit);
+            *scalar = F192::new(coefficients);
         }
         // At least one scalar short, so the stream really is cut.
         1 => forged.0.stream.truncate(rng.below(proof.0.stream.len())),
@@ -41,7 +39,7 @@ fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
             let paths = &mut forged.0.merkle[rng.below(proof.0.merkle.len())];
             let row = rng.below(paths.leaf_data.len());
             let word = rng.below(paths.leaf_data[row].len());
-            paths.leaf_data[row][word].0 ^= 1 << (rng.next() % 64);
+            paths.leaf_data[row][word] += F64::new(1 << (rng.next() % 64));
         }
         3 => {
             let paths = &mut forged.0.merkle[rng.below(proof.0.merkle.len())];
@@ -91,11 +89,15 @@ fn noncanonical_announcements_and_roots_are_refused() {
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
 
     let mut forged = proof.clone();
-    forged.0.stream[0].c1 = 1;
+    let mut coefficients = forged.0.stream[0].coefficients();
+    coefficients[1] = F64::new(1);
+    forged.0.stream[0] = F192::new(coefficients);
     assert_eq!(program.verify(output, &forged), Err(CpuError::NonCanonicalSize.into()));
 
     let mut forged = proof;
-    forged.0.stream[N_TABLES + 2].c2 = 1;
+    let mut coefficients = forged.0.stream[N_TABLES + 2].coefficients();
+    coefficients[2] = F64::new(1);
+    forged.0.stream[N_TABLES + 2] = F192::new(coefficients);
     assert!(program.verify(output, &forged).is_err());
 }
 
@@ -104,10 +106,10 @@ fn a_final_clock_must_be_live_and_valid() {
     let (program, _) = super::programs::fibonacci();
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     let at = N_TABLES + 1;
-    let honest = proof.0.stream[at].c0;
+    let honest = proof.0.stream[at].coefficients()[0].to_bits();
     for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
         let mut forged = proof.clone();
-        forged.0.stream[at] = F192::new(clock, 0, 0);
+        forged.0.stream[at] = F192::new([F64::new(clock), F64::new(0), F64::new(0)]);
         assert_eq!(program.verify(output, &forged), Err(CpuError::FinalClock.into()));
     }
 }

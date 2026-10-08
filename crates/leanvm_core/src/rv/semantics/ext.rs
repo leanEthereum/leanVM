@@ -16,9 +16,11 @@
 //! products of limbs, in `K`: the table proves the product by three identities of degree 2 over `K`
 //! (`tables::ClassTable::identities`), and its clock circuit computes the limbs' addresses ([`Ext::clock_circuit`]).
 
+use primitives::F64;
+
 use crate::tables::Clock;
 use flock::circuit::{Builder, Circuit, Wire};
-use primitives::field::F192;
+use primitives::F192;
 
 /// One extension-field instance: `extmul`, `extmac`, `extmulk` or `extmack`, on `rd, rs1, rs2`.
 ///
@@ -100,14 +102,18 @@ impl Ext {
     pub fn eval(&self) -> [u64; 3] {
         debug_assert!(Self::LEGAL.contains(&self.flags));
         let l = &self.limbs;
-        let element = |i: usize| F192::new(l[3 * i], l[3 * i + 1], l[3 * i + 2]);
+        let element = |i: usize| F192::new([F64::new(l[3 * i]), F64::new(l[3 * i + 1]), F64::new(l[3 * i + 2])]);
 
         // The product, then the old `c` added on an accumulation.
         let mut c = element(0) * element(1);
         if self.flags & Self::ACCUMULATE != 0 {
             c += element(2);
         }
-        [c.c0, c.c1, c.c2]
+        [
+            c.coefficients()[0].to_bits(),
+            c.coefficients()[1].to_bits(),
+            c.coefficients()[2].to_bits(),
+        ]
     }
 
     /// The table's clock circuit: the clock circuit of its twelve accesses, which also splits the flags into their

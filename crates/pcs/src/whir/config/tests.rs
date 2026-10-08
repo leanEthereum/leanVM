@@ -37,7 +37,6 @@ use super::{
     RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR, SECURITY_BITS, WHIR_QUERIES, config_for_rate, derive_ladder,
     derive_ladder_shape, validate_log_inv_rate,
 };
-use primitives::field::F64;
 use std::fmt::Write;
 use thiserror::Error;
 
@@ -54,7 +53,7 @@ pub(crate) enum DerivationError {
     #[error(transparent)]
     Ladder(#[from] LadderError),
     /// A witness smaller than one packed word.
-    #[error("witness log size {m} is below the packed-word log size {packing}", packing = F64::DEGREE.ilog2() as usize)]
+    #[error("witness log size {m} is below the packed-word log size {packing}", packing = 64usize.ilog2() as usize)]
     WitnessBelowPacking { m: usize },
     /// No parameter choice at this level reaches the soundness target.
     #[error("no level {level} parameters reach the soundness target at rate 2^-{log_inv_rate}")]
@@ -193,7 +192,7 @@ pub(crate) fn default_config(
 
 /// The configuration the derivation gives a `2^log_n`-word witness at L0 rate `2^-log_inv_rate`, which the table must hold.
 fn derive_config(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, DerivationError> {
-    WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + F64::DEGREE.ilog2() as usize, log_inv_rate)?.to_config()
+    WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + 64usize.ilog2() as usize, log_inv_rate)?.to_config()
 }
 
 /// Shared config for a `2^log_n`-word witness, preferring the production profile at [`LOG_INV_RATE_0`] and falling back to [`default_config`] below its feasibility floor.
@@ -604,7 +603,7 @@ impl WhirSecurityConfig {
     /// Validate that the config is internally consistent and matches the
     /// declared analysis. Returns the first violation found, if any.
     fn validate(&self) -> Result<(), DerivationError> {
-        if self.log_n + F64::DEGREE.ilog2() as usize != self.m {
+        if self.log_n + 64usize.ilog2() as usize != self.m {
             return Err(DerivationError::PackingMismatch {
                 log_n: self.log_n,
                 m: self.m,
@@ -780,7 +779,7 @@ impl WhirSecurityConfig {
         let target_bits = SECURITY_BITS;
         let query_grind: usize = QUERY_GRINDING_BITS;
         let log_n = m
-            .checked_sub(F64::DEGREE.ilog2() as usize)
+            .checked_sub(64usize.ilog2() as usize)
             .ok_or(DerivationError::WitnessBelowPacking { m })?;
         let initial_k = INITIAL_FOLDING_FACTOR;
 
@@ -861,7 +860,7 @@ fn johnson_bound_uses_theorem_parameter_and_reduced_rate() {
 fn production_profile_is_128_bit_johnson_with_query_grinding() {
     let mut min_pg_bits = f64::INFINITY;
     for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-        for m in 22 + F64::DEGREE.ilog2() as usize..=28 + F64::DEGREE.ilog2() as usize {
+        for m in 22 + 64usize.ilog2() as usize..=28 + 64usize.ilog2() as usize {
             let cfg = WhirSecurityConfig::derive_config_with_log_inv_rate(m, log_inv_rate).unwrap();
             assert_eq!(cfg.target_security_bits, 128);
             assert_eq!(cfg.levels[0].log_inv_rate, log_inv_rate);
@@ -895,7 +894,7 @@ fn l0_list_bits_bound_every_l0_list() {
         .flat_map(|log_inv_rate| (MIN_LOG_N..=MAX_LOG_N).map(move |log_n| (log_inv_rate, log_n)))
         .map(|(log_inv_rate, log_n)| {
             let cfg =
-                WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + F64::DEGREE.ilog2() as usize, log_inv_rate)
+                WhirSecurityConfig::derive_config_with_log_inv_rate(log_n + 64usize.ilog2() as usize, log_inv_rate)
                     .unwrap_or_else(|e| panic!("rate 2^-{log_inv_rate}, log_n {log_n}: {e}"));
             let l0 = &cfg.levels[0];
             johnson_interleaved_list_log2(l0.log_inv_rate, l0.log_msg_cols, l0.eta)

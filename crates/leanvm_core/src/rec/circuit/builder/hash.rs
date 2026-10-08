@@ -1,10 +1,13 @@
 //! Hashing: one `HASH` row per compression, a transcript step, a Merkle node or a block of a long message.
 
+use primitives::F64;
+use primitives::PrimeCharacteristicRing;
+
 use super::Builder;
 use crate::rec::circuit::{Compression, Dw, Ew, Kw, Limbs, PARAM_IV};
 use crate::rec::table::Table;
 use crate::rv::Hash;
-use primitives::field::F192;
+use primitives::F192;
 
 /// Input wires of one hash row, before its output and individual message-word slots.
 #[derive(Clone, Copy)]
@@ -35,7 +38,16 @@ impl Builder {
     pub fn compress(&mut self, acc: Dw, x: Ew, ds: Kw) -> (Dw, Ew) {
         let bit = self.k_zero();
         let (a, xv, dv) = (self.d(acc), self.e(x), self.k(ds));
-        let m = [a[0], a[1], a[2], a[3], xv.c0, xv.c1, xv.c2, dv];
+        let m = [
+            a[0],
+            a[1],
+            a[2],
+            a[3],
+            xv.coefficients()[0].to_bits(),
+            xv.coefficients()[1].to_bits(),
+            xv.coefficients()[2].to_bits(),
+            dv,
+        ];
         self.single_block(acc, bit, x, ds, m)
     }
 
@@ -64,7 +76,16 @@ impl Builder {
             }
             None => self.d_const([0, 0, 0, count]),
         };
-        let m = [a.c0, a.c1, a.c2, count, b.c0, b.c1, b.c2, tag];
+        let m = [
+            a.coefficients()[0].to_bits(),
+            a.coefficients()[1].to_bits(),
+            a.coefficients()[2].to_bits(),
+            count,
+            b.coefficients()[0].to_bits(),
+            b.coefficients()[1].to_bits(),
+            b.coefficients()[2].to_bits(),
+            tag,
+        ];
         let head = HashHead {
             h,
             tf: self.d_const([64, Hash::FINAL, 0, 0]),
@@ -85,7 +106,7 @@ impl Builder {
         let m = [
             left[0], left[1], left[2], left[3], right[0], right[1], right[2], right[3],
         ];
-        let x = self.free_e(F192::new(m[4], m[5], m[6]));
+        let x = self.free_e(F192::new([F64::new(m[4]), F64::new(m[5]), F64::new(m[6])]));
         let ds = self.free_k(m[7]);
         self.single_block(acc, bit, x, ds, m).0
     }
@@ -108,7 +129,7 @@ impl Builder {
             tf: self.d_const([t, if last { Hash::FINAL } else { 0 }, 0, 0]),
             mux: self.free_d([v[0], v[1], v[2], v[3]]),
             bit: self.free_k(0),
-            x: self.free_e(F192::new(v[4], v[5], v[6])),
+            x: self.free_e(F192::new([F64::new(v[4]), F64::new(v[5]), F64::new(v[6])])),
             ds: self.free_k(v[7]),
         };
         self.hash_row(head, m.map(|w| w.0), compression).0
@@ -145,7 +166,7 @@ impl Builder {
     fn hash_row(&mut self, head: HashHead, words: [u32; 8], compression: Compression) -> (Dw, Ew) {
         let out = compression.output();
         let o = self.free_d(out);
-        let ch = self.free_e(F192::new(out[0], out[1], out[2]));
+        let ch = self.free_e(F192::new([F64::new(out[0]), F64::new(out[1]), F64::new(out[2])]));
         let HashHead { h, tf, mux, bit, x, ds } = head;
         let mut slots = [0u32; Table::Hash.n_slots()];
         slots[..8].copy_from_slice(&[h.0, tf.0, mux.0, bit.0, x.0, ds.0, o.0, ch.0]);

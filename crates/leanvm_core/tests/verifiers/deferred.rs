@@ -4,7 +4,8 @@ use leanvm_core::asm::*;
 use leanvm_core::{
     ConstraintError, CpuError, DeferredClaims, MalformedClaim, Program, ProvenRun, Prover, Rate, Region,
 };
-use primitives::field::F192;
+use primitives::F192;
+use primitives::PrimeCharacteristicRing;
 
 // Reads its RAM image, so that the image's share of the program claim is not zero.
 fn image_program(image: Vec<u64>) -> Program {

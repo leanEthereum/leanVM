@@ -1,10 +1,12 @@
 //! Sequential registration and parallel execution of column writers.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::{ClassTable, Clock, Word};
 use crate::cpu::{Row, RowRef, Trace};
 use crate::rv::{Ext, RiscvProgram};
 use parallel::SendPtr;
-use primitives::field::F64;
+use primitives::F64;
 use std::ops::Range;
 
 /// Trace inputs and queued writers for one table's columns.
@@ -157,73 +159,73 @@ impl ClassTable {
         ctx.columns(out, rows, c.pc, move |r| {
             let pc = p.pc_of(r.index as usize);
             [
-                F64(pc),
-                F64(r.ts),
-                F64(entry(r).a1 as u64),
-                F64(pc.wrapping_add(4)),
-                F64(r.v1),
+                F64::new(pc),
+                F64::new(r.ts),
+                F64::new(entry(r).a1 as u64),
+                F64::new(pc.wrapping_add(4)),
+                F64::new(r.v1),
             ]
         });
         if let Some(flags) = c.flags {
-            ctx.column(out, rows, flags, move |r| F64(entry(r).flags));
+            ctx.column(out, rows, flags, move |r| F64::new(entry(r).flags));
         }
         if let Some(rs2) = c.rs2 {
             ctx.columns_at(out, rows, [rs2.a2, rs2.v2], move |r| {
-                [F64(entry(r).a2 as u64), F64(r.v2)]
+                [F64::new(entry(r).a2 as u64), F64::new(r.v2)]
             });
         }
         if let Some(rd) = c.rd {
             ctx.columns_at(out, rows, [rd.ad, rd.vd_old], move |r| {
-                [F64(entry(r).ad as u64), F64(r.vd_old)]
+                [F64::new(entry(r).ad as u64), F64::new(r.vd_old)]
             });
             // A doubleword load's result is its cell's column, written with the cell.
             if c.ram.is_none_or(|ram| ram.cell != rd.out) {
-                ctx.column(out, rows, rd.out, move |r| F64(r.out));
+                ctx.column(out, rows, rd.out, move |r| F64::new(r.out));
             }
         }
         let (hash, ext) = (&ctx.trace.hash, &ctx.trace.ext);
         if let Some(p) = c.pointer {
-            ctx.column(out, rows, p.ad, move |r| F64(entry(r).ad as u64));
-            ctx.column(out, ext, p.vd, |x| F64(x.instance.pointers[2]));
+            ctx.column(out, rows, p.ad, move |r| F64::new(entry(r).ad as u64));
+            ctx.column(out, ext, p.vd, |x| F64::new(x.instance.pointers[2]));
         }
         if let Some(k) = c.control {
             ctx.columns_at(out, rows, [k.dt, k.jump, k.exit], move |r| {
                 let at = p.fetch(r.index as usize);
                 [
-                    F64(at.dt),
-                    F64(Word::Jump.value(RowRef::plain(r), at, &[])),
-                    F64(at.entry.is_exit() as u64),
+                    F64::new(at.dt),
+                    F64::new(Word::Jump.value(RowRef::plain(r), at, &[])),
+                    F64::new(at.entry.is_exit() as u64),
                 ]
             });
         }
         if let Some(imm) = c.imm {
-            ctx.column(out, rows, imm, move |r| F64(entry(r).imm));
+            ctx.column(out, rows, imm, move |r| F64::new(entry(r).imm));
         }
         if let Some(ram) = c.ram {
             ctx.columns_at(out, rows, [ram.address, ram.cell], move |r| {
-                [F64(r.ram.address), F64(r.ram.old)]
+                [F64::new(r.ram.address), F64::new(r.ram.old)]
             });
             // A load leaves its cell, and a doubleword store's new cell is its `v2` column.
             if ram.new != ram.cell && c.rs2.is_none_or(|rs2| rs2.v2 != ram.new) {
-                ctx.column(out, rows, ram.new, move |r| F64(r.ram.new));
+                ctx.column(out, rows, ram.new, move |r| F64::new(r.ram.new));
             }
         }
         if let Some(block) = c.block {
-            ctx.columns(out, hash, block.words, |h| h.block.map(F64));
-            ctx.columns(out, hash, block.out, |h| h.out.map(F64));
+            ctx.columns(out, hash, block.words, |h| h.block.map(F64::new));
+            ctx.columns(out, hash, block.out, |h| h.out.map(F64::new));
         }
         if let Some(limbs) = c.limbs {
-            ctx.columns(out, ext, limbs.limbs, |x| x.instance.limbs.map(F64));
-            ctx.columns(out, ext, limbs.new, |x| x.c.map(F64));
+            ctx.columns(out, ext, limbs.limbs, |x| x.instance.limbs.map(F64::new));
+            ctx.columns(out, ext, limbs.new, |x| x.c.map(F64::new));
             ctx.columns(out, ext, limbs.addresses, |x| {
                 let x = &x.instance;
-                Ext::OFFSET_LIMBS.map(|k| F64(Ext::bus_address(x.pointers, x.flags, k)))
+                Ext::OFFSET_LIMBS.map(|k| F64::new(Ext::bus_address(x.pointers, x.flags, k)))
             });
         }
         if let Some(bits) = c.flag_bits {
             ctx.columns(out, rows, bits, move |r| {
                 let flags = entry(r).flags;
-                [F64(flags & 1), F64(flags >> 1 & 1)]
+                [F64::new(flags & 1), F64::new(flags >> 1 & 1)]
             });
         }
         if let Some(bad) = c.bad {
@@ -232,12 +234,12 @@ impl ClassTable {
         let table = ctx.trace.table(self.id);
         let n = self.id.spec().n_accesses();
         for i in 0..n {
-            ctx.indexed(out, [c.prev + i], move |j| [F64(table.row(j).prev()[i])]);
+            ctx.indexed(out, [c.prev + i], move |j| [F64::new(table.row(j).prev()[i])]);
         }
         let slots = self.id.spec().slots();
         ctx.indexed(out, [c.step], move |j| {
             let r = table.row(j);
-            [F64(Clock { timestamp: r.row.ts }.step(&r.prev()[..n], &slots))]
+            [F64::new(Clock { timestamp: r.row.ts }.step(&r.prev()[..n], &slots))]
         });
         ctx.finish();
     }
@@ -250,6 +252,7 @@ mod tests {
     use crate::cpu::execute::Execution;
     use crate::rv::Region;
     use crate::rv::asm::Asm;
+    use primitives::PrimeCharacteristicRing;
 
     fn fixture() -> (Program, Execution) {
         // A real trace supplies the context.
@@ -265,14 +268,16 @@ mod tests {
         let (program, execution) = fixture();
         let rows: Vec<u64> = (0..FILL_ROWS as u64 + 7).collect();
         let mut context = FillContext::new(&execution.trace, program.rv(), rows.len(), 3);
-        let mut columns: [Vec<F64>; 3] = std::array::from_fn(|_| vec![F64(u64::MAX); rows.len()]);
+        let mut columns: [Vec<F64>; 3] = std::array::from_fn(|_| vec![F64::new(u64::MAX); rows.len()]);
         let mut windows = columns.each_mut().map(Vec::as_mut_slice);
-        context.columns_at(&mut windows, &rows, [2, 0], |&value| [F64(value + 2), F64(value)]);
-        context.column(&mut windows, &rows, 1, |&value| F64(value + 1));
+        context.columns_at(&mut windows, &rows, [2, 0], |&value| {
+            [F64::new(value + 2), F64::new(value)]
+        });
+        context.column(&mut windows, &rows, 1, |&value| F64::new(value + 1));
         context.finish();
         for (column, values) in columns.iter().enumerate() {
             for (row, value) in values.iter().enumerate() {
-                assert_eq!(*value, F64((row + column) as u64));
+                assert_eq!(*value, F64::new((row + column) as u64));
             }
         }
     }
@@ -286,8 +291,8 @@ mod tests {
         let mut context = FillContext::new(&execution.trace, program.rv(), 1, 1);
         let mut window = [F64::ZERO];
         let mut windows = [&mut window[..]];
-        context.column(&mut windows, &rows, 0, |&value| F64(value));
-        context.column(&mut windows, &rows, 0, |&value| F64(value));
+        context.column(&mut windows, &rows, 0, |&value| F64::new(value));
+        context.column(&mut windows, &rows, 0, |&value| F64::new(value));
     }
 
     #[test]
@@ -306,6 +311,6 @@ mod tests {
         let rows = [0u64, 1];
         let mut context = FillContext::new(&execution.trace, program.rv(), 2, 1);
         let mut window = [F64::ZERO];
-        context.column(&mut [&mut window[..]], &rows, 0, |&value| F64(value));
+        context.column(&mut [&mut window[..]], &rows, 0, |&value| F64::new(value));
     }
 }

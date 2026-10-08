@@ -9,7 +9,7 @@
 use crate::merkle::{Hash, MerkleBuilder};
 use crate::ntt::AdditiveNttF64;
 use crate::whir::ntt_ext::{encode_rows_ext, rows_at_ext};
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 use std::sync::Arc;
 
 /// Public commitment for an `F64` message: the L0 Merkle root.

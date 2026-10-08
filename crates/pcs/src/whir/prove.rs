@@ -6,6 +6,8 @@
 //! The recursive prover: the lane fold, then one commit, query phase and induce
 //! per level, down to the residual sent in the clear.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::commit::ligero_commit_ext;
 use super::sample_queries_ordered;
 use super::sumcheck::{Basis, InitialRounds, SumcheckProver, send_msg};
@@ -17,8 +19,8 @@ use crate::whir::induce::{
 };
 use fiat_shamir::merkle::PrunedMerklePaths;
 use fiat_shamir::transcript::Transmitter;
-use primitives::field::{F64, F192, powers};
 use primitives::multilinear::eq_table;
+use primitives::{F64, F192, powers};
 
 /// Prover side of the OOD claims taken right after a level's root enters the
 /// transcript: sample `z`, evaluate the folded witness there, send the claim
@@ -37,7 +39,15 @@ fn send_ood(sc: &mut SumcheckProver<'_>, ps: &mut impl Transmitter, n_vars: usiz
 
 /// An `E` row as the `F64` words its Merkle leaf is hashed from.
 fn ext_row_words(row: &[F192]) -> Vec<F64> {
-    row.iter().flat_map(|v| [F64(v.c0), F64(v.c1), F64(v.c2)]).collect()
+    row.iter()
+        .flat_map(|v| {
+            [
+                F64::new(v.coefficients()[0].to_bits()),
+                F64::new(v.coefficients()[1].to_bits()),
+                F64::new(v.coefficients()[2].to_bits()),
+            ]
+        })
+        .collect()
 }
 
 /// Prove `Σ_x witness(x) · b_initial(x) = target` against the L0 commitment

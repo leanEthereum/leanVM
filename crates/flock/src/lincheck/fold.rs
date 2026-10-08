@@ -1,7 +1,12 @@
 //! The partial fold of the packed witness at the outer half of the claim point, one kernel per target.
 
+use primitives::PrimeCharacteristicRing;
+
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use core::arch::x86_64::*;
+#[cfg(target_arch = "aarch64")]
+use primitives::F64;
+use primitives::F192;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use primitives::bit_fold::avx2;
 #[cfg(all(
@@ -11,9 +16,6 @@ use primitives::bit_fold::avx2;
     target_feature = "avx512vbmi"
 ))]
 use primitives::bit_fold::gfni::{OUT_BYTES, store_f192, weight_matrices};
-use primitives::field::F192;
-#[cfg(target_arch = "aarch64")]
-use primitives::field::neon::xor3_u64;
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
 
@@ -95,8 +97,8 @@ unsafe fn process_block_neon_single(
     let mut acc2 = [0u64; 8];
     for i in 0..8 {
         let out = &*out_ptr.add(i);
-        acc01[i] = vld1q_u64(&out.c0);
-        acc2[i] = out.c2;
+        acc01[i] = vld1q_u64([out.coefficients()[0].to_bits(), out.coefficients()[1].to_bits()].as_ptr());
+        acc2[i] = out.coefficients()[2].to_bits();
     }
 
     // The 8 z index bytes of a stripe are consecutive, so fetch them with one
@@ -118,8 +120,14 @@ unsafe fn process_block_neon_single(
         for i in 0..8 {
             let e0 = &*ta0.add(((w0 >> (8 * i)) & 0xff) as usize);
             let e1 = &*ta1.add(((w1 >> (8 * i)) & 0xff) as usize);
-            acc01[i] = xor3_u64(acc01[i], vld1q_u64(&e0.c0), vld1q_u64(&e1.c0));
-            acc2[i] ^= e0.c2 ^ e1.c2;
+            acc01[i] = veorq_u64(
+                acc01[i],
+                veorq_u64(
+                    vld1q_u64([e0.coefficients()[0].to_bits(), e0.coefficients()[1].to_bits()].as_ptr()),
+                    vld1q_u64([e1.coefficients()[0].to_bits(), e1.coefficients()[1].to_bits()].as_ptr()),
+                ),
+            );
+            acc2[i] ^= e0.coefficients()[2].to_bits() ^ e1.coefficients()[2].to_bits();
         }
         t += 2;
     }
@@ -128,15 +136,19 @@ unsafe fn process_block_neon_single(
         let w = (tile_bytes_ptr.add(t * k + bs) as *const u64).read_unaligned();
         for i in 0..8 {
             let entry = &*ta.add(((w >> (8 * i)) & 0xff) as usize);
-            acc01[i] = veorq_u64(acc01[i], vld1q_u64(&entry.c0));
-            acc2[i] ^= entry.c2;
+            acc01[i] = veorq_u64(
+                acc01[i],
+                vld1q_u64([entry.coefficients()[0].to_bits(), entry.coefficients()[1].to_bits()].as_ptr()),
+            );
+            acc2[i] ^= entry.coefficients()[2].to_bits();
         }
     }
 
     for i in 0..8 {
         let out = &mut *out_ptr.add(i);
-        vst1q_u64(&mut out.c0, acc01[i]);
-        out.c2 = acc2[i];
+        let mut limbs = [0u64; 2];
+        vst1q_u64(limbs.as_mut_ptr(), acc01[i]);
+        *out = F192::new([F64::new(limbs[0]), F64::new(limbs[1]), F64::new(acc2[i])]);
     }
 }
 

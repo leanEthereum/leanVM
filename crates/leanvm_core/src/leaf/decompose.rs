@@ -1,13 +1,15 @@
 //! A side's leaf claim, decomposed into the tables' forms, the framework blocks' column claims and the producers' weights.
 
+use primitives::{Field, PrimeCharacteristicRing};
+
 use super::{ColumnClaim, Coord, Fingerprint, Openings, Producer, PublicColumn, PublicColumns, Side, SparseColumn};
 use crate::colval::ColVal;
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 use crate::colval::PackedCoeffs;
 use fiat_shamir::arith::{Arith, Native};
 use fiat_shamir::transcript::{ProverState, Transmitter};
-use primitives::field::{F64, F192};
 use primitives::multilinear::mle_eval;
+use primitives::{F64, F192};
 use std::collections::HashSet;
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -31,7 +33,10 @@ pub fn producer_affine_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta
             Coord::Const(v) => constant = a.mul_const_add(weight, F192::from(*v), constant),
             Coord::IntIndex { base, shift } => {
                 constant = a.mul_const_add(weight, F192::from(*base), constant);
-                affine.push((weight, (0..p.kappa).map(|k| F64(1 << (k as u32 + shift))).collect()));
+                affine.push((
+                    weight,
+                    (0..p.kappa).map(|k| F64::new(1 << (k as u32 + shift))).collect(),
+                ));
             }
             Coord::Public(_) => {}
             _ => unreachable!("a producer's tuple is public"),
@@ -82,7 +87,7 @@ pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], 
         assert_eq!(vals.len(), eq.len());
         let mut slices = [F192::ZERO; 64];
         for (&e, v) in eq.iter().zip(vals.iter()) {
-            let mut bits = v.0;
+            let mut bits = v.to_bits();
             while bits != 0 {
                 slices[bits.trailing_zeros() as usize] += e;
                 bits &= bits - 1;
@@ -90,9 +95,9 @@ pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], 
         }
         // Running `2^i`-th powers of the weight and of each bit's element.
         let mut weight = weight;
-        let mut basis: [F64; 64] = std::array::from_fn(|k| F64(1 << k));
+        let mut basis: [F64; 64] = std::array::from_fn(|k| F64::new(1 << k));
         for &mu in twist {
-            let sum = (slices.iter().zip(&basis)).fold(F192::ZERO, |s, (b, &g)| s + b.mul_base(g));
+            let sum = (slices.iter().zip(&basis)).fold(F192::ZERO, |s, (b, &g)| s + (*b * g));
             total += mu * weight * sum;
             weight = weight.square();
             basis.iter_mut().for_each(|g| *g = *g * *g);
@@ -206,24 +211,23 @@ impl BusForm {
         out
     }
 
-    /// The form at one point, unreduced: `evals` are the columns' values there.
+    /// The form at one point: `evals` are the columns' values there.
     /// This is what the zerocheck evaluates, per row while a table is unfolded and
-    /// at the sumcheck point after, so a table's several forms share one reduction
-    /// rather than paying one per term.
+    /// at the sumcheck point after; field products and dot products use Plonky3.
     /// `quadratic` selects only degree-two terms, for a sumcheck round coefficient.
-    pub fn eval_unreduced<T: ColVal>(&self, evals: &[T], quadratic: bool) -> T::Unreduced {
+    pub fn eval<T: ColVal>(&self, evals: &[T], quadratic: bool) -> F192 {
         let linear = if quadratic {
-            T::lift(F192::ZERO)
+            F192::ZERO
         } else {
-            T::dot_unreduced(&self.coeffs, evals) ^ T::lift(self.constant)
+            T::dot_products(&self.coeffs, evals) + self.constant
         };
         self.add_products(evals, linear)
     }
 
     /// `acc` plus the form's products at `evals`.
     #[inline(always)]
-    fn add_products<T: ColVal>(&self, evals: &[T], acc: T::Unreduced) -> T::Unreduced {
-        (self.prods.iter()).fold(acc, |acc, &(a, b, c)| acc ^ (evals[a] * evals[b]).mul_e_unreduced(c))
+    fn add_products<T: ColVal>(&self, evals: &[T], acc: F192) -> F192 {
+        (self.prods.iter()).fold(acc, |acc, &(a, b, c)| acc + (evals[a] * evals[b]).mul_e(c))
     }
 
     /// What the form sums to over the table's rows against `eq(ζ, ·)`, the target the
@@ -265,16 +269,16 @@ impl PackedForm {
         }
     }
 
-    /// [`BusForm::eval_unreduced`], on AVX-512 its linear part one batched dot product
+    /// [`BusForm::eval`], on AVX-512 its linear part one batched dot product
     /// where `evals` is a row padded to the packed width.
     #[inline(always)]
-    pub fn eval_unreduced<T: ColVal>(&self, evals: &[T], quadratic: bool) -> T::Unreduced {
+    pub fn eval<T: ColVal>(&self, evals: &[T], quadratic: bool) -> F192 {
         #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
         if !quadratic && evals.len() == self.packed.width() {
-            let linear = T::dot_packed(&self.packed, evals) ^ T::lift(self.form.constant);
+            let linear = T::dot_packed(&self.packed, evals) + self.form.constant;
             return self.form.add_products(evals, linear);
         }
-        self.form.eval_unreduced(evals, quadratic)
+        self.form.eval(evals, quadratic)
     }
 }
 

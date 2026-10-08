@@ -7,62 +7,14 @@
 //! - The E-valued encodes of deeper WHIR levels reuse it, one F64 lane per F192 coefficient.
 //! - Large transforms are bound by memory bandwidth, so the driver minimizes sweeps of the buffer.
 
-#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-use core::arch::aarch64::*;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "vpclmulqdq",
-    target_feature = "avx2",
-    not(target_feature = "avx512f")
-))]
-use core::arch::x86_64::*;
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-use core::arch::x86_64::*;
+use p3_binary_dft::{BasisNtt, ButterflyField};
+use primitives::PrimeCharacteristicRing;
+
 use parallel::SendPtr;
-use primitives::field::F64;
-#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-use primitives::field::gf2_64::aarch64::reduce_pair_pmull4;
-use primitives::field::gf2_64::{mul_wide, reduce};
+use primitives::F64;
 use primitives::log2_strict_usize;
 use primitives::stream::Stream;
 use std::cell::RefCell;
-
-/// Table of the normalized subspace polynomials at the basis.
-///
-/// - Row `i` holds `s_i(b_j)` for every basis element `b_j` with `j >= i`.
-/// - Each row is scaled so that its first entry is one.
-fn generate_evals_from_subspace(basis: &[F64]) -> Vec<Vec<F64>> {
-    let l = basis.len();
-    let mut evals: Vec<Vec<F64>> = Vec::with_capacity(l);
-    evals.push(basis.to_vec());
-    for i in 1..l {
-        let mut row = Vec::with_capacity(l - i);
-        for k in 1..evals[i - 1].len() {
-            let val = evals[i - 1][k] * (evals[i - 1][k] + evals[i - 1][0]);
-            row.push(val);
-        }
-        evals.push(row);
-    }
-    for row in evals.iter_mut() {
-        let inv = row[0].inv();
-        for v in row.iter_mut() {
-            *v *= inv;
-        }
-    }
-    evals
-}
-
-/// `Σ_j bit_j(idx) · basis[j]`.
-#[inline]
-fn span_get(basis: &[F64], idx: usize) -> F64 {
-    let mut acc = F64::ZERO;
-    for (j, &b) in basis.iter().enumerate() {
-        if (idx >> j) & 1 == 1 {
-            acc += b;
-        }
-    }
-    acc
-}
 
 /// Receives a finished block of codeword rows, as `(first_row, rows)`.
 pub(crate) type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
@@ -73,27 +25,22 @@ pub(crate) type RowSink<'a> = dyn Fn(usize, &[F64]) + Sync + 'a;
 /// lived inside this very subfield).
 #[derive(Clone, Debug)]
 pub struct AdditiveNttF64 {
-    evals: Vec<Vec<F64>>,
+    ntt: BasisNtt<F64>,
 }
 
 impl AdditiveNttF64 {
-    fn new(basis: &[F64]) -> Self {
-        Self {
-            evals: generate_evals_from_subspace(basis),
-        }
-    }
-
     /// Standard NTT with basis `{1, x, …, x^(dim-1)}`. Requires `dim ≤ 63` so
     /// the evaluation domain (and the twiddles) stay inside F_{2^64} without
     /// wrap; far beyond any codeword size in use.
     pub fn standard(dim: usize) -> Self {
         assert!(dim <= 63, "standard NTT requires dim ≤ 63");
-        let basis: Vec<F64> = (0..dim).map(|i| F64(1u64 << i)).collect();
-        Self::new(&basis)
+        Self {
+            ntt: BasisNtt::polynomial(dim, F64::ZERO),
+        }
     }
 
     pub(crate) const fn log_domain_size(&self) -> usize {
-        self.evals.len()
+        self.ntt.log_domain_size()
     }
 
     /// Twiddle of one block at one layer.
@@ -101,33 +48,17 @@ impl AdditiveNttF64 {
     /// - It is `s_i(sum_j bit_j(block) * b_(i+1+j))`, with `i = L - layer - 1` on a `2^L`-point domain.
     /// - The normalized `s_i` is F_2-linear, so this is a subset sum of row `i` of the table.
     pub(crate) fn twiddle(&self, layer: usize, block: usize) -> F64 {
-        let v = &self.evals[self.log_domain_size() - layer - 1];
-        span_get(&v[1..], block)
+        self.ntt.twiddle(layer, block)
     }
 
     /// The seven twiddles a radix-8 group needs, breadth-first: layer `layer`,
     /// then `layer + 1` (one per half), then `layer + 2` (one per quarter).
     ///
-    /// `span_get` is F_2-linear in the block index, so the six deeper twiddles are
+    /// The normalized subspace map is F_2-linear in the block index, so the six deeper twiddles are
     /// the block's own contribution plus a fixed correction per sub-block index:
     /// one scan of the three basis rows replaces seven.
     pub(crate) fn twiddles_radix8(&self, layer: usize, block: usize) -> [F64; 7] {
-        let l = self.log_domain_size();
-        let (v0, v1, v2) = (
-            &self.evals[l - layer - 1],
-            &self.evals[l - layer - 2],
-            &self.evals[l - layer - 3],
-        );
-        let (mut t0, mut a, mut c) = (F64::ZERO, F64::ZERO, F64::ZERO);
-        for j in 0..layer {
-            if (block >> j) & 1 == 1 {
-                t0 += v0[1 + j];
-                a += v1[2 + j];
-                c += v2[3 + j];
-            }
-        }
-        let (d, e0, e1) = (v1[1], v2[1], v2[2]);
-        [t0, a, a + d, c, c + e0, c + e1, c + e0 + e1]
+        self.ntt.twiddles_radix8(layer, block)
     }
 
     /// RS-encode a message already stored in the codeword's first replica.
@@ -291,7 +222,14 @@ impl AdditiveNttF64 {
         //     low_p[0] = 1,   low_p[j + 2^k] = low_p[j] · s_k(p)   for j < 2^k
         let factors: Vec<Vec<F64>> = positions
             .iter()
-            .map(|&p| (0..log_rows).map(|k| span_get(&self.evals[k], p >> k)).collect())
+            .map(|&p| {
+                (0..log_rows)
+                    .map(|k| {
+                        // s_k(b_k) = 1; higher basis bits form the upstream butterfly twiddle.
+                        self.twiddle(self.log_domain_size() - k - 1, p >> (k + 1)) + F64::from_bool((p >> k) & 1 != 0)
+                    })
+                    .collect()
+            })
             .collect();
         let tables: Vec<Vec<F64>> = factors
             .iter()
@@ -314,14 +252,14 @@ impl AdditiveNttF64 {
             |hi| {
                 let rows = &msg[(hi << low) * num_ntts..][..num_ntts << low];
                 let mut out = vec![F64::ZERO; width];
-                let mut sums = vec![0u128; num_ntts];
+                let mut sums = vec![F64::ZERO; num_ntts];
                 for ((s, table), out) in factors.iter().zip(&tables).zip(out.chunks_exact_mut(num_ntts)) {
-                    dot_columns(table, rows, &mut sums);
+                    F64::columnwise_dot_product(table, rows, &mut sums);
                     let scale = (s[low..].iter().enumerate())
                         .filter(|&(k, _)| (hi >> k) & 1 == 1)
                         .fold(F64::ONE, |acc, (_, &s_k)| acc * s_k);
                     for (o, &sum) in out.iter_mut().zip(&sums) {
-                        *o = F64(reduce(sum)) * scale;
+                        *o = sum * scale;
                     }
                 }
                 out
@@ -730,142 +668,7 @@ fn butterfly_interleaved_fused_3layer(block: &mut [F64], t: &[F64; 7], eighth: u
 /// The twelve butterflies of one radix-8 row group, with its seven twiddles breadth-first.
 #[inline(always)]
 fn radix8_butterflies(rows: &mut [&mut [F64]; 8], t: &[F64; 7]) {
-    let [r0, r1, r2, r3, r4, r5, r6, r7] = rows;
-    // Layer L: rows 4 apart, one twiddle for the whole block.
-    butterfly_lanes(r0, r4, t[0]);
-    butterfly_lanes(r1, r5, t[0]);
-    butterfly_lanes(r2, r6, t[0]);
-    butterfly_lanes(r3, r7, t[0]);
-    // Layer L+1: rows 2 apart, one twiddle per half.
-    butterfly_lanes(r0, r2, t[1]);
-    butterfly_lanes(r1, r3, t[1]);
-    butterfly_lanes(r4, r6, t[2]);
-    butterfly_lanes(r5, r7, t[2]);
-    // Layer L+2: adjacent rows, one twiddle per quarter.
-    butterfly_lanes(r0, r1, t[3]);
-    butterfly_lanes(r2, r3, t[4]);
-    butterfly_lanes(r4, r5, t[5]);
-    butterfly_lanes(r6, r7, t[6]);
-}
-
-/// Column sums of rows weighted by a table, unreduced: `sums[w] = Σ_j table[j] · rows[j][w]`.
-///
-/// The rows are `sums.len()` words each, one per table entry.
-fn dot_columns(table: &[F64], rows: &[F64], sums: &mut [u128]) {
-    let width = sums.len();
-    debug_assert_eq!(rows.len(), table.len() * width);
-    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-    let done = {
-        let vectors = width / 8;
-        for c in 0..vectors {
-            // SAFETY: the target features are enabled at compile time, and words `8c..8c + 8` lie inside every row.
-            let column = unsafe { dot_column_avx512(table, rows.as_ptr().add(8 * c), width) };
-            sums[8 * c..][..8].copy_from_slice(&column);
-        }
-        8 * vectors
-    };
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    let done = {
-        let vectors = width / 8;
-        for c in 0..vectors {
-            // SAFETY: the target feature is enabled at compile time, and words `8c..8c + 8` lie inside every row.
-            let column = unsafe { dot_column_neon(table, rows.as_ptr().add(8 * c), width) };
-            sums[8 * c..][..8].copy_from_slice(&column);
-        }
-        8 * vectors
-    };
-    #[cfg(not(any(
-        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"),
-        all(target_arch = "aarch64", target_feature = "aes")
-    )))]
-    let done = 0;
-    for (w, sum) in sums.iter_mut().enumerate().skip(done) {
-        *sum = (table.iter().zip(rows[w..].iter().step_by(width))).fold(0, |acc, (t, x)| acc ^ mul_wide(t.0, x.0));
-    }
-}
-
-/// [`dot_columns`] over eight words of every row, the first at `column`, rows `width` words apart.
-///
-/// # Safety
-///
-/// - Requires VPCLMULQDQ and AVX-512F.
-/// - `column` must address eight readable words in each of `table.len()` rows.
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-#[inline]
-#[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
-unsafe fn dot_column_avx512(table: &[F64], column: *const F64, width: usize) -> [u128; 8] {
-    // SAFETY:
-    // - The caller supplies eight readable words in every row.
-    // - This function's target features cover every intrinsic below.
-    unsafe {
-        // Products of the even words, then of the odd words, one 128-bit sum per 128-bit lane.
-        let (mut even, mut odd) = (_mm512_setzero_si512(), _mm512_setzero_si512());
-        for (j, t) in table.iter().enumerate() {
-            let x = _mm512_loadu_si512(column.add(j * width).cast());
-            let t = _mm512_set1_epi64(t.0 as i64);
-            even = _mm512_xor_si512(even, _mm512_clmulepi64_epi128::<0x00>(t, x));
-            odd = _mm512_xor_si512(odd, _mm512_clmulepi64_epi128::<0x10>(t, x));
-        }
-        let (mut e, mut o) = ([0u128; 4], [0u128; 4]);
-        _mm512_storeu_si512(e.as_mut_ptr().cast(), even);
-        _mm512_storeu_si512(o.as_mut_ptr().cast(), odd);
-        std::array::from_fn(|w| if w % 2 == 0 { e[w / 2] } else { o[w / 2] })
-    }
-}
-
-/// Unreduced column sums over eight words of every row, the first at `column`, rows `width` words apart.
-///
-/// - Each 128-bit load holds two words.
-/// - `PMULL` multiplies the low one by the row's table entry, `PMULL2` the high one.
-/// - Two rows go per step, so one three-way XOR folds both of a word's products into its sum.
-///
-/// # Safety
-///
-/// - Requires the `aes` target feature.
-/// - `column` must address eight readable words in each of `table.len()` rows.
-#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-#[inline]
-#[target_feature(enable = "aes")]
-unsafe fn dot_column_neon(table: &[F64], column: *const F64, width: usize) -> [u128; 8] {
-    use primitives::field::neon::xor3_u64;
-    // SAFETY:
-    // - The caller supplies eight readable words in every row.
-    // - This function's target feature covers every intrinsic below.
-    unsafe {
-        // Row j's eight words as four vectors, each word times the row's table entry t_j.
-        //
-        //     x[v] = [w_2v, w_2v+1]   ->   (t_j * w_2v, t_j * w_2v+1)
-        let products = |j: usize| {
-            let row = column.add(j * width).cast::<u64>();
-            let t = vdupq_n_u64(table[j].0);
-            std::array::from_fn::<_, 4, _>(|v| {
-                let x = vld1q_u64(row.add(2 * v));
-                let lo = vmull_p64(vgetq_lane_u64::<0>(t), vgetq_lane_u64::<0>(x));
-                let hi = vmull_high_p64(vreinterpretq_p64_u64(t), vreinterpretq_p64_u64(x));
-                (vreinterpretq_u64_p128(lo), vreinterpretq_u64_p128(hi))
-            })
-        };
-        // One 128-bit sum per word of the column.
-        let mut sums = [vdupq_n_u64(0); 8];
-        // Rows two at a time: each sum takes both rows' products in one three-way XOR.
-        let pairs = table.len() / 2;
-        for j in 0..pairs {
-            let (a, b) = (products(2 * j), products(2 * j + 1));
-            for v in 0..4 {
-                sums[2 * v] = xor3_u64(sums[2 * v], a[v].0, b[v].0);
-                sums[2 * v + 1] = xor3_u64(sums[2 * v + 1], a[v].1, b[v].1);
-            }
-        }
-        // An odd last row goes alone.
-        if table.len() % 2 == 1 {
-            let a = products(table.len() - 1);
-            for v in 0..4 {
-                sums[2 * v] = veorq_u64(sums[2 * v], a[v].0);
-                sums[2 * v + 1] = veorq_u64(sums[2 * v + 1], a[v].1);
-            }
-        }
-        sums.map(|s| vreinterpretq_p128_u64(s))
-    }
+    F64::butterfly_radix8::<false>(rows, t);
 }
 
 /// Transpose a lane-major message into the row-major order the encoder reads.
@@ -1101,387 +904,21 @@ pub(crate) fn transposed_butterfly_lanes(top: &mut [F64], bot: &mut [F64], twidd
     lane_butterflies::<true>(top, bot, twiddle);
 }
 
-/// One lane's butterfly, forward or transposed.
-#[inline(always)]
-fn butterfly_one<const TRANSPOSED: bool>(u: &mut F64, v: &mut F64, t: F64) {
-    if TRANSPOSED {
-        let s = *u + *v;
-        *u = s;
-        *v += s * t;
-    } else {
-        *u += *v * t;
-        *v += *u;
-    }
-}
-
-/// The butterflies of every lane of a row pair, forward or transposed.
-///
-/// On NEON this processes eight lanes per iteration. Four independent pair
-/// reductions stay in the vector register file, exposing their PMULL chains
-/// in parallel and amortizing the loop branch and constant setup. The pair
-/// kernel handles a short even tail, and the scalar path handles an odd tail.
+/// Apply one butterfly per lane through the external field backend.
 #[inline]
 fn lane_butterflies<const TRANSPOSED: bool>(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
-    debug_assert_eq!(top.len(), bot.len());
-    if twiddle == F64::ZERO {
-        if TRANSPOSED {
-            for (u, v) in top.iter_mut().zip(bot) {
-                *u += *v;
-            }
-        } else {
-            for (u, v) in top.iter().zip(bot) {
-                *v += *u;
-            }
-        }
-        return;
-    }
-    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-    let done = {
-        let vectors = top.len() / 8;
-        // SAFETY: the target features are enabled at compile time and each
-        // iteration reads and writes exactly eight elements from both rows.
-        unsafe {
-            for i in 0..vectors {
-                butterfly_lanes_avx512::<TRANSPOSED>(
-                    top.as_mut_ptr().add(8 * i),
-                    bot.as_mut_ptr().add(8 * i),
-                    twiddle.0,
-                );
-            }
-        }
-        8 * vectors
-    };
-    #[cfg(all(
-        target_arch = "x86_64",
-        target_feature = "vpclmulqdq",
-        target_feature = "avx2",
-        not(target_feature = "avx512f")
-    ))]
-    let done = {
-        let vectors = top.len() / 4;
-        // SAFETY: the target features are enabled at compile time and each
-        // iteration reads and writes exactly four elements from both rows.
-        unsafe {
-            for i in 0..vectors {
-                butterfly_lanes_avx2::<TRANSPOSED>(top.as_mut_ptr().add(4 * i), bot.as_mut_ptr().add(4 * i), twiddle.0);
-            }
-        }
-        4 * vectors
-    };
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    let done = {
-        let vectors = top.len() / 8;
-        let mut lane = 8 * vectors;
-        // SAFETY: aes target feature is enabled at compile time; the kernels
-        // read and write lanes [8i, 8i+8), then pairs below the rows' length.
-        unsafe {
-            for i in 0..vectors {
-                butterfly_lanes_neon_8::<TRANSPOSED>(
-                    top.as_mut_ptr().add(8 * i),
-                    bot.as_mut_ptr().add(8 * i),
-                    twiddle.0,
-                );
-            }
-            while lane + 2 <= top.len() {
-                butterfly_lane_pair_neon::<TRANSPOSED>(
-                    top.as_mut_ptr().add(lane),
-                    bot.as_mut_ptr().add(lane),
-                    twiddle.0,
-                );
-                lane += 2;
-            }
-        }
-        lane
-    };
-    #[cfg(not(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")
-    )))]
-    let done = 0;
-    for (u, v) in top[done..].iter_mut().zip(&mut bot[done..]) {
-        butterfly_one::<TRANSPOSED>(u, v, twiddle);
-    }
-}
-
-/// Four F64 butterflies with a shared twiddle, for a machine with VPCLMULQDQ but no AVX-512.
-///
-/// ```text
-///     reduce:     p = lo + hi * x^64,  x^64 = x^4 + x^3 + x + 1
-///                 p mod f = lo ^ g(hi ^ spill),  g(y) = y ^ y<<1 ^ y<<3 ^ y<<4
-///                 spill = n ^ n>>1 ^ n>>3 with n = hi>>60, the bits g pushes past x^63
-/// ```
-///
-/// - The reduction takes no further carry-less multiply, the scarce unit.
-/// - The spill is one byte-shuffle lookup of the top nibble.
-/// - The left shifts of g are doublings, which issue on more ports than shifts.
-///
-/// # Safety
-///
-/// - Requires VPCLMULQDQ and AVX2.
-/// - Each pointer must address four readable and writable words.
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "vpclmulqdq",
-    target_feature = "avx2",
-    not(target_feature = "avx512f")
-))]
-#[inline]
-#[target_feature(enable = "vpclmulqdq", enable = "avx2")]
-unsafe fn butterfly_lanes_avx2<const TRANSPOSED: bool>(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    // SAFETY:
-    // - The caller supplies two valid four-word rows.
-    // - This function's target features cover every intrinsic below.
-    unsafe {
-        let u = _mm256_loadu_si256(top.cast());
-        let v = _mm256_loadu_si256(bot.cast());
-        let tw = _mm256_set1_epi64x(twiddle as i64);
-
-        // The row multiplied by the twiddle, and the row the product is added to.
-        let (m, acc) = if TRANSPOSED {
-            (_mm256_xor_si256(u, v), v)
-        } else {
-            (v, u)
-        };
-
-        // Products m * t, one 128-bit product per 128-bit lane, then back to lane order.
-        let even = _mm256_clmulepi64_epi128::<0x00>(m, tw);
-        let odd = _mm256_clmulepi64_epi128::<0x11>(m, tw);
-        let lo = _mm256_unpacklo_epi64(even, odd);
-        let hi = _mm256_unpackhi_epi64(even, odd);
-
-        // The spill of every top nibble.
-        const SPILL: [u8; 16] = {
-            let mut table = [0u8; 16];
-            let mut n = 0;
-            while n < 16 {
-                table[n] = (n ^ (n >> 1) ^ (n >> 3)) as u8;
-                n += 1;
-            }
-            table
-        };
-        let table = _mm256_broadcastsi128_si256(_mm_loadu_si128(SPILL.as_ptr().cast()));
-        let spill = _mm256_shuffle_epi8(table, _mm256_srli_epi64::<60>(hi));
-        // Both hi and spill are multiplied by the same constant, so fold them first.
-        let x = _mm256_xor_si256(hi, spill);
-        let x2 = _mm256_add_epi64(x, x);
-        let x8 = {
-            let x4 = _mm256_add_epi64(x2, x2);
-            _mm256_add_epi64(x4, x4)
-        };
-        let x16 = _mm256_add_epi64(x8, x8);
-        let gx = _mm256_xor_si256(_mm256_xor_si256(x, x2), _mm256_xor_si256(x8, x16));
-        let product = _mm256_xor_si256(lo, gx);
-
-        let sum = _mm256_xor_si256(acc, product);
-        let (new_u, new_v) = if TRANSPOSED {
-            (m, sum)
-        } else {
-            (sum, _mm256_xor_si256(v, sum))
-        };
-        _mm256_storeu_si256(top.cast(), new_u);
-        _mm256_storeu_si256(bot.cast(), new_v);
-    }
-}
-
-/// Eight F64 butterflies as four independent NEON lane-pair reductions.
-/// Loading all four bottom vectors before reducing them gives the out-of-order
-/// core four independent PMULL chains to schedule, while one call amortizes
-/// loop control and the duplicated twiddle/reduction constants over 8 lanes.
-///
-/// # Safety
-/// Requires the `aes` target feature; `top`/`bot` must each point at eight
-/// readable+writable F64 values.
-#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-#[inline]
-#[target_feature(enable = "aes")]
-unsafe fn butterfly_lanes_neon_8<const TRANSPOSED: bool>(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    // SAFETY: caller guarantees the two eight-element regions; F64 is
-    // repr(transparent) over u64 and this function carries the aes feature.
-    unsafe {
-        let v0 = vld1q_u64(bot.cast());
-        let v1 = vld1q_u64(bot.cast::<u64>().add(2));
-        let v2 = vld1q_u64(bot.cast::<u64>().add(4));
-        let v3 = vld1q_u64(bot.cast::<u64>().add(6));
-        let u0 = vld1q_u64(top.cast());
-        let u1 = vld1q_u64(top.cast::<u64>().add(2));
-        let u2 = vld1q_u64(top.cast::<u64>().add(4));
-        let u3 = vld1q_u64(top.cast::<u64>().add(6));
-        let tw = vdupq_n_u64(twiddle);
-        // The rows multiplied by the twiddle, and the rows the products are added to.
-        let ((m0, a0), (m1, a1), (m2, a2), (m3, a3)) = if TRANSPOSED {
-            (
-                (veorq_u64(u0, v0), v0),
-                (veorq_u64(u1, v1), v1),
-                (veorq_u64(u2, v2), v2),
-                (veorq_u64(u3, v3), v3),
-            )
-        } else {
-            ((v0, u0), (v1, u1), (v2, u2), (v3, u3))
-        };
-
-        let p00: uint64x2_t = core::mem::transmute(vmull_p64(vgetq_lane_u64::<0>(m0), twiddle));
-        let p01: uint64x2_t = core::mem::transmute(vmull_high_p64(
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(m0),
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(tw),
-        ));
-        let p10: uint64x2_t = core::mem::transmute(vmull_p64(vgetq_lane_u64::<0>(m1), twiddle));
-        let p11: uint64x2_t = core::mem::transmute(vmull_high_p64(
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(m1),
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(tw),
-        ));
-        let p20: uint64x2_t = core::mem::transmute(vmull_p64(vgetq_lane_u64::<0>(m2), twiddle));
-        let p21: uint64x2_t = core::mem::transmute(vmull_high_p64(
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(m2),
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(tw),
-        ));
-        let p30: uint64x2_t = core::mem::transmute(vmull_p64(vgetq_lane_u64::<0>(m3), twiddle));
-        let p31: uint64x2_t = core::mem::transmute(vmull_high_p64(
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(m3),
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(tw),
-        ));
-
-        let sum0 = veorq_u64(a0, reduce_pair_pmull4(p00, p01));
-        let sum1 = veorq_u64(a1, reduce_pair_pmull4(p10, p11));
-        let sum2 = veorq_u64(a2, reduce_pair_pmull4(p20, p21));
-        let sum3 = veorq_u64(a3, reduce_pair_pmull4(p30, p31));
-        // Forward: u' = u + v * t, then v' = v + u'. Transposed: u' = u + v, then v' = v + u' * t.
-        let ((new_u0, new_v0), (new_u1, new_v1), (new_u2, new_v2), (new_u3, new_v3)) = if TRANSPOSED {
-            ((m0, sum0), (m1, sum1), (m2, sum2), (m3, sum3))
-        } else {
-            (
-                (sum0, veorq_u64(v0, sum0)),
-                (sum1, veorq_u64(v1, sum1)),
-                (sum2, veorq_u64(v2, sum2)),
-                (sum3, veorq_u64(v3, sum3)),
-            )
-        };
-
-        vst1q_u64(top.cast(), new_u0);
-        vst1q_u64(top.cast::<u64>().add(2), new_u1);
-        vst1q_u64(top.cast::<u64>().add(4), new_u2);
-        vst1q_u64(top.cast::<u64>().add(6), new_u3);
-        vst1q_u64(bot.cast(), new_v0);
-        vst1q_u64(bot.cast::<u64>().add(2), new_v1);
-        vst1q_u64(bot.cast::<u64>().add(4), new_v2);
-        vst1q_u64(bot.cast::<u64>().add(6), new_v3);
-    }
-}
-
-/// Eight F64 butterflies with a shared twiddle, one per 64-bit lane of an AVX-512 register.
-///
-/// # Algorithm
-///
-/// ```text
-///     products:   even lanes 0,2,4,6 -> CLMUL 0x00      odd lanes 1,3,5,7 -> CLMUL 0x11
-///                 each 128-bit lane then holds one whole 128-bit product
-///
-///     unpack:     lo = [ lo(p_0), lo(p_1), ..., lo(p_7) ]     hi = [ hi(p_0), ..., hi(p_7) ]
-///
-///     reduce:     p = lo + hi * x^64,  x^64 = x^4 + x^3 + x + 1
-///                 p mod f = lo ^ g(hi ^ spill),  g(y) = y ^ y<<1 ^ y<<3 ^ y<<4
-///                 spill = hi>>63 ^ hi>>61 ^ hi>>60, the bits g pushes past x^63
-/// ```
-///
-/// - The unpacks stay inside 128-bit lanes, so no shuffle crosses lanes.
-/// - The reduction takes shifts and three-way XORs, `vpternlogq 0x96`, instead of two more carry-less multiplies.
-/// - Zen 5 has one carry-less multiplier per core, so those two would dominate the kernel.
-///
-/// # Safety
-///
-/// - Requires VPCLMULQDQ and AVX-512F.
-/// - Each pointer must address eight readable and writable words.
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
-#[inline]
-#[target_feature(enable = "vpclmulqdq", enable = "avx512f", enable = "avx2")]
-unsafe fn butterfly_lanes_avx512<const TRANSPOSED: bool>(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    // SAFETY:
-    // - The caller supplies two valid eight-word rows.
-    // - This function's target features cover every intrinsic below.
-    unsafe {
-        // Load both rows and broadcast the twiddle to every lane.
-        let u = _mm512_loadu_si512(top.cast());
-        let v = _mm512_loadu_si512(bot.cast());
-        let tw = _mm512_set1_epi64(twiddle as i64);
-        // The row multiplied by the twiddle, and the row the product is added to.
-        let (m, acc) = if TRANSPOSED {
-            (_mm512_xor_si512(u, v), v)
-        } else {
-            (v, u)
-        };
-
-        // Products m * t: even lanes, then odd lanes, one 128-bit product per 128-bit lane.
-        let even = _mm512_clmulepi64_epi128::<0x00>(m, tw);
-        let odd = _mm512_clmulepi64_epi128::<0x11>(m, tw);
-        // Back to lane order: qword i of lo / hi is the low / high half of lane i's product.
-        let lo = _mm512_unpacklo_epi64(even, odd);
-        let hi = _mm512_unpackhi_epi64(even, odd);
-
-        // Reduce modulo x^64 + x^4 + x^3 + x + 1 with shifts and three-way XORs.
-        const XOR3: i32 = 0x96;
-        // The bits of hi * (x^4 + x^3 + x + 1) that land past x^63.
-        let spill = _mm512_ternarylogic_epi64::<XOR3>(
-            _mm512_srli_epi64::<63>(hi),
-            _mm512_srli_epi64::<61>(hi),
-            _mm512_srli_epi64::<60>(hi),
-        );
-        // Both hi and spill are multiplied by the same constant, so fold them first.
-        let x = _mm512_xor_si512(hi, spill);
-        // g(x) = x ^ x<<1 ^ x<<3 ^ x<<4, split across two three-way XORs.
-        let fx = _mm512_ternarylogic_epi64::<XOR3>(x, _mm512_slli_epi64::<1>(x), _mm512_slli_epi64::<3>(x));
-        // acc + m * t, with the product's lo and g(x) folded in one step.
-        let sum = _mm512_ternarylogic_epi64::<XOR3>(acc, lo, _mm512_xor_si512(fx, _mm512_slli_epi64::<4>(x)));
-        // Forward: u' = u + v * t, then v' = v + u'. Transposed: u' = u + v, then v' = v + u' * t.
-        let (new_u, new_v) = if TRANSPOSED {
-            (m, sum)
-        } else {
-            (sum, _mm512_xor_si512(v, sum))
-        };
-        _mm512_storeu_si512(top.cast(), new_u);
-        _mm512_storeu_si512(bot.cast(), new_v);
-    }
-}
-
-/// Two F64 butterflies with a shared twiddle, NEON-resident end to end.
-/// The two products issue as PMULL/PMULL2 on the loaded row (no lane
-/// extraction) and reduce through the all-PMULL lane-pair fold
-/// ([`primitives::field::gf2_64::aarch64::reduce_pair_pmull4`]), replacing the
-/// old 10-op shift-XOR fold chain.
-///
-/// # Safety
-/// Requires the `aes` target feature; `top`/`bot` must each point at two
-/// readable+writable F64 values.
-#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-#[inline]
-#[target_feature(enable = "aes")]
-unsafe fn butterfly_lane_pair_neon<const TRANSPOSED: bool>(top: *mut F64, bot: *mut F64, twiddle: u64) {
-    // SAFETY: caller guarantees the pointees; F64 is repr(transparent) u64.
-    unsafe {
-        let u = vld1q_u64(top as *const u64);
-        let v = vld1q_u64(bot as *const u64);
-        let m = if TRANSPOSED { veorq_u64(u, v) } else { v };
-        // Products m_lane * twiddle: PMULL on the low lanes, PMULL2 on the
-        // highs (the dup is loop-invariant and hoisted after inlining).
-        let tw = vdupq_n_u64(twiddle);
-        let p0: uint64x2_t = core::mem::transmute(vmull_p64(vgetq_lane_u64::<0>(m), twiddle));
-        let p1: uint64x2_t = core::mem::transmute(vmull_high_p64(
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(m),
-            core::mem::transmute::<uint64x2_t, poly64x2_t>(tw),
-        ));
-        let prod = reduce_pair_pmull4(p0, p1);
-        let (new_u, new_v) = if TRANSPOSED {
-            (m, veorq_u64(v, prod))
-        } else {
-            let new_u = veorq_u64(u, prod);
-            (new_u, veorq_u64(v, new_u))
-        };
-        vst1q_u64(top as *mut u64, new_u);
-        vst1q_u64(bot as *mut u64, new_v);
+    // The transpose is the inverse butterfly with its two rows exchanged.
+    if TRANSPOSED {
+        F64::butterfly::<true>(bot, top, twiddle);
+    } else {
+        F64::butterfly::<false>(top, bot, twiddle);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::PrimeCharacteristicRing;
     use primitives::test_util::Rng;
     use std::sync::Mutex;
 
@@ -1526,7 +963,7 @@ mod tests {
         let mut rng = Rng::new(1);
         for log_d in [1usize, 3, 6, 10] {
             let n = 1usize << log_d;
-            let orig: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
+            let orig: Vec<F64> = (0..n).map(|_| F64::new(rng.next_u64())).collect();
 
             let mut a = orig.clone();
             forward_scalar_from_layer(&ntt, &mut a, 1, 0);
@@ -1564,7 +1001,7 @@ mod tests {
             (12, 2048, 1),
         ] {
             let ntt = AdditiveNttF64::standard(log_d);
-            let original: Vec<F64> = (0..lanes << log_d).map(|_| F64(rng.next_u64())).collect();
+            let original: Vec<F64> = (0..lanes << log_d).map(|_| F64::new(rng.next_u64())).collect();
 
             // Reference: one butterfly at a time.
             let mut want = original.clone();
@@ -1605,7 +1042,7 @@ mod tests {
         ] {
             let ntt = AdditiveNttF64::standard(log_d);
             let msg_len = (lanes << log_d) >> log_inv_rate;
-            let msg: Vec<F64> = (0..msg_len).map(|_| F64(rng.next_u64())).collect();
+            let msg: Vec<F64> = (0..msg_len).map(|_| F64::new(rng.next_u64())).collect();
 
             // Reference: 2^rate explicit copies, then the scalar transform from the rate layer.
             let mut want = vec![F64::ZERO; msg_len << log_inv_rate];
@@ -1656,7 +1093,7 @@ mod tests {
             let log_d = log_rows + log_inv_rate;
             let ntt = AdditiveNttF64::standard(log_d);
             let rows = 1usize << log_rows;
-            let msg: Vec<F64> = (0..rows * n_lanes).map(|_| F64(rng.next_u64())).collect();
+            let msg: Vec<F64> = (0..rows * n_lanes).map(|_| F64::new(rng.next_u64())).collect();
 
             let mut got = vec![F64::ZERO; msg.len() << log_inv_rate];
             transpose_lane_major(&mut got[..msg.len()], &msg, n_lanes, log_rows);
@@ -1691,7 +1128,7 @@ mod tests {
         let (log_d, lanes) = (7, 8192);
         let ntt = AdditiveNttF64::standard(log_d);
         let mut rng = Rng::new(0x13);
-        let soa: Vec<F64> = (0..lanes << log_d).map(|_| F64(rng.next_u64())).collect();
+        let soa: Vec<F64> = (0..lanes << log_d).map(|_| F64::new(rng.next_u64())).collect();
 
         // The whole interleaved buffer through the planner.
         let mut got = soa.clone();
@@ -1719,7 +1156,7 @@ mod tests {
             let mut per_lane: Vec<Vec<F64>> = vec![vec![F64::ZERO; n]; lanes];
             for pos in 0..n {
                 for lane in 0..lanes {
-                    let v = F64(rng.next_u64());
+                    let v = F64::new(rng.next_u64());
                     soa[pos * lanes + lane] = v;
                     per_lane[lane][pos] = v;
                 }

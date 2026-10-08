@@ -88,12 +88,14 @@
 //!   `byte_idx` and apply it across all `i_inner` with one lookup + one XOR
 //!   per byte.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::reduction::Shape;
 use crate::zerocheck::{SkipDomain, ZerocheckReplay};
 use fiat_shamir::arith::{Arith, Native, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
 use fold::partial_fold_packed_z_best;
-use primitives::field::F192;
+use primitives::F192;
 use primitives::multilinear::{eq_table, inner_product, skip_lagrange_weights};
 use sumcheck::{sumcheck_bind_both_and_eval_next, sumcheck_bind_top_in_place_par, sumcheck_round_eval_par};
 use thiserror::Error;
@@ -240,7 +242,7 @@ fn outer_product(hi: &[F192], lo: &[F192]) -> Vec<F192> {
 /// The weight circuit `f`'s four terms take in a batch, `α^{4f}`: circuit `f`'s
 /// `A`, `B`, `C` and pin terms ride `α^{4f}`, `α^{4f+1}`, `α^{4f+2}`, `α^{4f+3}`.
 fn circuit_weights(alpha: F192, n: usize) -> Vec<F192> {
-    primitives::field::powers(alpha.square().square(), n)
+    primitives::powers(alpha.square().square(), n)
 }
 
 /// One circuit's witness in a batched lincheck: its packed `z` in the lincheck
@@ -687,6 +689,8 @@ impl MatrixClaim {
 mod tests {
     use super::*;
     use fiat_shamir::transcript::{ProverState, VerifierState};
+    use primitives::F64;
+    use primitives::PrimeCharacteristicRing;
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
     use primitives::bit_fold::avx2;
     use primitives::test_util::Rng;
@@ -1311,9 +1315,9 @@ mod tests {
         for (label, hi) in [("lo", false), ("hi", true)] {
             let mut bad = proof_t.clone();
             if hi {
-                bad.stream[zp_word].c1 ^= 1;
+                bad.stream[zp_word] += F192::new([F64::ZERO, F64::new(1), F64::ZERO]);
             } else {
-                bad.stream[zp_word].c0 ^= 1;
+                bad.stream[zp_word] += F192::new([F64::new(1), F64::ZERO, F64::ZERO]);
             }
             let mut ch = VerifierState::from_label(b"flock-test-v0", &bad);
             let res = verify(k_log, k_skip, &circuit, &x_ab, [v_a, v_b, v_c], &mut ch);

@@ -12,6 +12,7 @@ use crate::hash::{BLOCK, Compression, K_LOG, K_SKIP, generate_witness, param_iv}
 use crate::reduction::{self, Instance, min_n_blocks_log};
 use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
 use primitives::test_util::Rng;
+use primitives::{F64, F192, PrimeCharacteristicRing};
 
 const LABEL: &[u8] = b"flock-blake2s-reduction-test";
 
@@ -116,7 +117,7 @@ fn blake2s_reduction_rejects_proof_mutations() {
     ];
     for (label, word) in regions {
         let mut bad = transcript.clone();
-        bad.stream[word].c0 ^= 1;
+        bad.stream[word] += F192::new([F64::new(1), F64::ZERO, F64::ZERO]);
         assert!(!verify(n_log, &bad), "flipping {label} must make the reduction reject");
     }
 }

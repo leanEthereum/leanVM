@@ -4,8 +4,8 @@
 
 use rand::{RngCore, SeedableRng, rngs::StdRng};
 
-use crate::field::F192;
 use crate::hash::OUT_LEN;
+use crate::{F64, F192};
 
 /// A seeded [`StdRng`] plus the draws this repo's tests actually need.
 pub struct Rng(StdRng);
@@ -36,7 +36,11 @@ impl Rng {
     }
 
     pub fn ext(&mut self) -> F192 {
-        F192::new(self.next_u64(), self.next_u64(), self.next_u64())
+        F192::new([
+            F64::new(self.next_u64()),
+            F64::new(self.next_u64()),
+            F64::new(self.next_u64()),
+        ])
     }
 
     pub fn ext_vec(&mut self, n: usize) -> Vec<F192> {

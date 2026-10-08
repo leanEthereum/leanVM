@@ -9,6 +9,8 @@
 //! A table with a class circuit has no identities and linear bus forms, so the bus point settles all but its register
 //! numbers: its summand is its forms' part on them alone, which the batch folds so that their bits share its point.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::layout::Layout;
 use crate::colval::ColVal;
 use crate::constraints::{Air, BitColumns, Residual, Summand};
@@ -16,7 +18,7 @@ use crate::leaf;
 use crate::leaf::{BusForm, BusProof, BusVerify, PackedForm, Producer};
 use crate::tables::ClassTable;
 use fiat_shamir::arith::{Arith, Native};
-use primitives::field::F192;
+use primitives::F192;
 
 /// The two bus sides' weights in the batch, `1` and `xi`, shared by every table.
 ///
@@ -184,19 +186,19 @@ impl Summand for Term {
     #[inline(always)]
     fn eval<T: ColVal>(&self, cols: &[T], quadratic: bool) -> F192 {
         match self {
-            Self::Table(bus) => T::reduce(bus.eval_unreduced(cols, quadratic)),
+            Self::Table(bus) => bus.eval(cols, quadratic),
             // `sum_i c_i * (1 + b_i * P'_i)`, whose quadratic part is the products.
             Self::Producer(s) => {
                 let n = s.coefficients.len();
-                let products = (0..n).fold(T::lift(F192::ZERO), |acc, i| {
-                    acc ^ (cols[i] * cols[n + i]).mul_e_unreduced(s.coefficients[i])
+                let products = (0..n).fold(F192::ZERO, |acc, i| {
+                    acc + (cols[i] * cols[n + i]).mul_e(s.coefficients[i])
                 });
                 let constant = if quadratic {
                     F192::ZERO
                 } else {
                     s.coefficients.iter().fold(F192::ZERO, |a, &b| a + b)
                 };
-                T::reduce(products) + constant
+                products + constant
             }
         }
     }

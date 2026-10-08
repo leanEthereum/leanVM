@@ -28,14 +28,16 @@
 //! cargo bench -p pcs --bench throughput -- --json
 //! ```
 
+use primitives::PrimeCharacteristicRing;
+
 use bench::{Metric, Plan, Timing, bencher_json, env_usize};
 use fiat_shamir::transcript::ProverState;
 use pcs::ntt::AdditiveNttF64;
 use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext, recursive_prover_with_basis};
-use primitives::field::{F64, F192};
 use primitives::multilinear::eq_table;
 use primitives::pretty_integer;
 use primitives::test_util::Rng;
+use primitives::{F64, F192};
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -55,7 +57,7 @@ fn main() {
     // Random F64 witness (the committed polynomial) and a random E evaluation point.
     let mut rng = Rng::new(0x0192_0000 ^ log_n as u64);
     let n = 1usize << log_n;
-    let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
+    let witness: Vec<F64> = (0..n).map(|_| F64::new(rng.next_u64())).collect();
     let point: Vec<F192> = rng.ext_vec(log_n);
     let b_initial = eq_table(&point);
     let target = inner_product_base_ext(&witness, &b_initial);

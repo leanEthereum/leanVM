@@ -5,6 +5,8 @@
 //!
 //! Both circuits have the same heights, so a node verifies a child of either kind with one set of rows.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::claims::{Bits, DenseClaim, DensePoly, DenseTerm, MatrixClaim, NodeClaims};
 use super::fixed::FixedLayout;
 use super::reduce::{DenseTables, DenseVars, Reduced};
@@ -22,9 +24,9 @@ use crate::rec::verifier::{FixedHint, ProofShape, RecShape, Rows, infallible};
 use ::pcs::ring_switch::inverse_frobenius_ladder;
 use fiat_shamir::arith::Arith;
 use fiat_shamir::transcript::RawProof;
-use primitives::field::{F64, F192};
 use primitives::hash::Hasher;
 use primitives::multilinear::mle_eval_par;
+use primitives::{F64, F192};
 
 /// The domain of every tree proof's transcript.
 const DOMAIN: &[u8] = b"leanvm-tree-6";
@@ -212,7 +214,7 @@ impl<'p> Design<'p> {
     /// The node's rows, verifying its children, of either kind.
     pub(crate) fn node(&self, inputs: &NodeInputs<'_, ChildWitness<'_>>) -> NodeRows {
         let mut b = Builder::new();
-        let iv = b.d_const(self.iv.map(|w| w.0));
+        let iv = b.d_const(self.iv.map(|w| w.to_bits()));
         let zeros = matches!(inputs, NodeInputs::Shape).then(|| FixedColumns::zeros(&self.taus));
         let mut claims = NodeClaims::default();
         let mut digests = Vec::with_capacity(self.arity);
@@ -371,7 +373,7 @@ impl Reduced<Ew> {
     fn statement(&self, b: &mut Builder, layout: StatementLayout, kind: Kind, digest: Dw) -> TreeStatement<Ew> {
         let zero = b.zero();
         let mut s = TreeStatement::filled(layout, zero);
-        s.section_mut(Section::Kind)[0] = b.e_const(F192::new(kind.bit(), 0, 0));
+        s.section_mut(Section::Kind)[0] = b.e_const(F192::new([F64::new(kind.bit()), F64::new(0), F64::new(0)]));
         s.section_mut(Section::Digest)
             .copy_from_slice(&digest_halves_rows(b, digest));
         s.section_mut(Section::DensePoint)[..self.dense.point.len()].copy_from_slice(&self.dense.point);

@@ -7,15 +7,17 @@
 //! running claim every level's queries are batched into. The first lane rounds
 //! come out of one pass, in [`first_pass`].
 
-use core::ops::BitXorAssign;
+use primitives::PrimeCharacteristicRing;
+
+use core::ops::AddAssign;
 use fiat_shamir::transcript::Transmitter;
 use first_pass::{LaneWeight, WeightFold};
 use parallel::SendPtr;
-use primitives::field::{F64, F192, F192Unreduced};
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use primitives::field::{F192x4, F192x4Unreduced};
 use primitives::multilinear::eq_table;
 use primitives::stream::Stream;
+use primitives::{F64, F192};
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+use primitives::{F192_LANES, F192Packed};
 use std::mem::MaybeUninit;
 use std::ops::Add;
 use std::sync::Arc;
@@ -108,15 +110,9 @@ impl RoundQuad {
     }
 }
 
-/// Sumcheck witness element: `F64` before the first fold (each product against
-/// the E basis is a mixed `mul_base`, 2 PMULL), `F192` after it (full E
-/// products, 3 PMULL). The associated accumulator is the matching
-/// deferred-reduction type.
+/// Sumcheck witness element: `F64` before the first fold, `F192` after it.
 trait RoundWitness: Copy + Sync + Add<Output = Self> {
-    type Acc: Copy + Send + BitXorAssign;
-    const ZERO_ACC: Self::Acc;
-    fn mul_basis_unreduced(self, b: F192) -> Self::Acc;
-    fn reduce(acc: Self::Acc) -> F192;
+    fn mul_basis(self, b: F192) -> F192;
     /// Characteristic-two interpolation `x0·(1+r) + x1·r = x0 + r·(x0+x1)`,
     /// lifting the witness into E. One product rather than two, bit-identical
     /// to the two-product form and still just one reduction.
@@ -142,7 +138,7 @@ trait RoundWitness: Copy + Sync + Add<Output = Self> {
         }
     }
 
-    /// A round message's unreduced coefficients over a run of witness pairs and the weight pairs beside them.
+    /// A round message's summed coefficients over a run of witness pairs and the weight pairs beside them.
     #[inline(always)]
     fn pair_terms(
         n: usize,
@@ -150,34 +146,28 @@ trait RoundWitness: Copy + Sync + Add<Output = Self> {
         x1: impl Fn(usize) -> Self,
         y0: impl Fn(usize) -> F192,
         y1: impl Fn(usize) -> F192,
-    ) -> (Self::Acc, Self::Acc) {
-        let (mut u_0, mut u_2) = (Self::ZERO_ACC, Self::ZERO_ACC);
+    ) -> (F192, F192) {
+        let (mut u_0, mut u_2) = (F192::ZERO, F192::ZERO);
         for i in 0..n {
-            u_0 ^= x0(i).mul_basis_unreduced(y0(i));
-            u_2 ^= (x0(i) + x1(i)).mul_basis_unreduced(y0(i) + y1(i));
+            u_0 += x0(i).mul_basis(y0(i));
+            u_2 += (x0(i) + x1(i)).mul_basis(y0(i) + y1(i));
         }
         (u_0, u_2)
     }
 }
 
 impl RoundWitness for F64 {
-    type Acc = F192Unreduced;
-    const ZERO_ACC: Self::Acc = F192Unreduced::ZERO;
     #[inline]
-    fn mul_basis_unreduced(self, b: F192) -> Self::Acc {
-        b.mul_base_unreduced(self)
-    }
-    #[inline]
-    fn reduce(acc: Self::Acc) -> F192 {
-        acc.reduce()
+    fn mul_basis(self, b: F192) -> F192 {
+        b * self
     }
     #[inline]
     fn fold_pair(x0: Self, x1: Self, r: F192) -> F192 {
-        F192::from(x0) + r.mul_base(x0 + x1)
+        F192::from(x0) + (r * (x0 + x1))
     }
     #[inline]
     fn fold_lone(x0: Self, r: F192) -> F192 {
-        F192::from(x0) + r.mul_base(x0)
+        F192::from(x0) + (r * x0)
     }
     #[inline]
     fn add_weighted_lane(acc: &mut WeightFold, e: &LaneWeight, xs: &[Self]) {
@@ -186,15 +176,9 @@ impl RoundWitness for F64 {
 }
 
 impl RoundWitness for F192 {
-    type Acc = F192Unreduced;
-    const ZERO_ACC: Self::Acc = F192Unreduced::ZERO;
     #[inline]
-    fn mul_basis_unreduced(self, b: F192) -> Self::Acc {
-        self.mul_unreduced(b)
-    }
-    #[inline]
-    fn reduce(acc: Self::Acc) -> F192 {
-        acc.reduce()
+    fn mul_basis(self, b: F192) -> F192 {
+        self * b
     }
     #[inline]
     fn fold_pair(x0: Self, x1: Self, r: F192) -> F192 {
@@ -209,7 +193,7 @@ impl RoundWitness for F192 {
         acc.add(e, xs);
     }
 
-    /// Four pairs at a time in vector lanes, where the target has them.
+    /// Packed pairs at a time in vector lanes, where the target has them.
     #[inline(always)]
     fn fold_pairs(
         n: usize,
@@ -220,14 +204,17 @@ impl RoundWitness for F192 {
     ) {
         #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
         let done = {
-            let r4 = F192x4::splat(r);
-            for i in (0..n / 4 * 4).step_by(4) {
+            let r4 = F192Packed::from(r);
+            for i in (0..n / F192_LANES * F192_LANES).step_by(F192_LANES) {
                 let (a, b) = (lanes(&x0, i), lanes(&x1, i));
-                for (k, v) in (a + r4 * (a + b)).to_array().into_iter().enumerate() {
+                for (k, v) in primitives::multilinear::unpack_lanes(a + r4 * (a + b))
+                    .into_iter()
+                    .enumerate()
+                {
                     out(i + k, v);
                 }
             }
-            n / 4 * 4
+            n / F192_LANES * F192_LANES
         };
         #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
         let done = 0;
@@ -243,15 +230,15 @@ impl RoundWitness for F192 {
         x1: impl Fn(usize) -> Self,
         y0: impl Fn(usize) -> Self,
         y1: impl Fn(usize) -> Self,
-    ) -> (Self::Acc, Self::Acc) {
+    ) -> (F192, F192) {
         let [u_0, u_2, _] = pair_sums::<false>(n, x0, x1, y0, y1);
         (u_0, u_2)
     }
 }
 
-/// Unreduced sums over a run of pairs: of `x0·y0`, of `(x0 + x1)·(y0 + y1)`, and of `x1·y1` when asked (zero otherwise).
+/// Sums over a run of pairs: of `x0·y0`, of `(x0 + x1)·(y0 + y1)`, and of `x1·y1` when asked (zero otherwise).
 ///
-/// Four pairs at a time in vector lanes, where the target has them.
+/// Packed pairs at a time in vector lanes, where the target has them.
 #[inline(always)]
 fn pair_sums<const ODD: bool>(
     n: usize,
@@ -259,41 +246,44 @@ fn pair_sums<const ODD: bool>(
     x1: impl Fn(usize) -> F192,
     y0: impl Fn(usize) -> F192,
     y1: impl Fn(usize) -> F192,
-) -> [F192Unreduced; 3] {
+) -> [F192; 3] {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
     let (done, mut sums) = {
-        let (mut u_0, mut u_2, mut odd) = (
-            F192x4Unreduced::zero(),
-            F192x4Unreduced::zero(),
-            F192x4Unreduced::zero(),
-        );
-        for i in (0..n / 4 * 4).step_by(4) {
+        let (mut u_0, mut u_2, mut odd) = (F192Packed::ZERO, F192Packed::ZERO, F192Packed::ZERO);
+        for i in (0..n / F192_LANES * F192_LANES).step_by(F192_LANES) {
             let (a0, a1, b0, b1) = (lanes(&x0, i), lanes(&x1, i), lanes(&y0, i), lanes(&y1, i));
-            u_0 ^= a0.mul_unreduced(b0);
-            u_2 ^= (a0 + a1).mul_unreduced(b0 + b1);
+            u_0 += a0 * b0;
+            u_2 += (a0 + a1) * (b0 + b1);
             if ODD {
-                odd ^= a1.mul_unreduced(b1);
+                odd += a1 * b1;
             }
         }
-        (n / 4 * 4, [u_0.sum(), u_2.sum(), odd.sum()])
+        (
+            n / F192_LANES * F192_LANES,
+            [
+                primitives::multilinear::sum_packed(u_0),
+                primitives::multilinear::sum_packed(u_2),
+                primitives::multilinear::sum_packed(odd),
+            ],
+        )
     };
     #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
-    let (done, mut sums) = (0, [F192Unreduced::ZERO; 3]);
+    let (done, mut sums) = (0, [F192::ZERO; 3]);
     for i in done..n {
-        sums[0] ^= x0(i).mul_unreduced(y0(i));
-        sums[1] ^= (x0(i) + x1(i)).mul_unreduced(y0(i) + y1(i));
+        sums[0] += x0(i) * y0(i);
+        sums[1] += (x0(i) + x1(i)) * (y0(i) + y1(i));
         if ODD {
-            sums[2] ^= x1(i).mul_unreduced(y1(i));
+            sums[2] += x1(i) * y1(i);
         }
     }
     sums
 }
 
-/// Four consecutive values, one per lane.
+/// One complete group of consecutive values.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 #[inline(always)]
-fn lanes(v: &impl Fn(usize) -> F192, i: usize) -> F192x4 {
-    F192x4::new(std::array::from_fn(|k| v(i + k)))
+fn lanes(v: &impl Fn(usize) -> F192, i: usize) -> F192Packed {
+    primitives::multilinear::pack_lanes(std::array::from_fn(|k| v(i + k)))
 }
 
 /// Round message over a witness `f` and an E basis `b`. Mirror of
@@ -308,7 +298,7 @@ fn round_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192]) -> SumcheckMessage {
     debug_assert_eq!(b.len(), n);
 
     let half = n / 2;
-    let task = |t: usize| -> (T::Acc, T::Acc) {
+    let task = |t: usize| -> (F192, F192) {
         let base = t * ROUND_CHUNK;
         let (f, b) = (&f[2 * base..], &b[2 * base..]);
         T::pair_terms(
@@ -319,11 +309,8 @@ fn round_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192]) -> SumcheckMessage {
             |j| b[2 * j + 1],
         )
     };
-    let (u_0, u_2) = accumulate_msg(half.div_ceil(ROUND_CHUNK), half, T::ZERO_ACC, task);
-    SumcheckMessage {
-        u_0: T::reduce(u_0),
-        u_2: T::reduce(u_2),
-    }
+    let (u_0, u_2) = accumulate_msg(half.div_ceil(ROUND_CHUNK), half, F192::ZERO, task);
+    SumcheckMessage { u_0, u_2 }
 }
 
 /// Build the round message and the full inner product in one pass. For an OOD
@@ -335,7 +322,7 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
 
     let half = n / 2;
     // The message, and the odd elements' products: with the even ones', the inner product.
-    let task = |t: usize| -> [F192Unreduced; 3] {
+    let task = |t: usize| -> [F192; 3] {
         let base = t * ROUND_CHUNK;
         let (f, b) = (&f[2 * base..], &b[2 * base..]);
         pair_sums::<true>(
@@ -347,24 +334,24 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
         )
     };
     let n_tasks = half.div_ceil(ROUND_CHUNK);
-    let xor = |mut a: [F192Unreduced; 3], c: [F192Unreduced; 3]| {
-        a.iter_mut().zip(c).for_each(|(a, c)| *a ^= c);
+    let xor = |mut a: [F192; 3], c: [F192; 3]| {
+        a.iter_mut().zip(c).for_each(|(a, c)| *a += c);
         a
     };
     let [u_0, u_2, odd] = if half < PAR_THRESHOLD {
-        (0..n_tasks).map(task).fold([F192Unreduced::ZERO; 3], xor)
+        (0..n_tasks).map(task).fold([F192::ZERO; 3], xor)
     } else {
-        parallel::map_reduce(n_tasks, || [F192Unreduced::ZERO; 3], task, xor)
+        parallel::map_reduce(n_tasks, || [F192::ZERO; 3], task, xor)
     };
-    let (u_0, u_2, y) = (u_0.reduce(), u_2.reduce(), (u_0 ^ odd).reduce());
+    let (u_0, u_2, y) = ((u_0), (u_2), (u_0 + odd));
     (SumcheckMessage { u_0, u_2 }, y)
 }
 
-/// Unreduced `(u_0, u_2)` over the already-folded E buffers, pair by pair. A
+/// The sums `(u_0, u_2)` over the already-folded E buffers, pair by pair. A
 /// trailing odd element contributes nothing, exactly as in the pre-fold
 /// message: at the last round `half = 1` and the message is zero.
 #[inline]
-fn fold_msg_terms(nf: &[F192], nb: &[F192]) -> (F192Unreduced, F192Unreduced) {
+fn fold_msg_terms(nf: &[F192], nb: &[F192]) -> (F192, F192) {
     F192::pair_terms(
         nf.len() / 2,
         |k| nf[2 * k],
@@ -403,14 +390,7 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
             nb.set_len(half);
         }
         let (u_0, u_2) = fold_msg_terms(&nf, &nb);
-        return (
-            nf,
-            nb,
-            SumcheckMessage {
-                u_0: u_0.reduce(),
-                u_2: u_2.reduce(),
-            },
-        );
+        return (nf, nb, SumcheckMessage { u_0: (u_0), u_2: (u_2) });
     }
 
     // Parallel path: `half` is a power of two >= PAR_THRESHOLD and ROUND_CHUNK is a
@@ -424,7 +404,7 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
     let nb_base = SendPtr(nb.as_mut_ptr());
     let (u_0, u_2) = parallel::map_reduce(
         half.div_ceil(ROUND_CHUNK),
-        || (F192Unreduced::ZERO, F192Unreduced::ZERO),
+        || (F192::ZERO, F192::ZERO),
         |ci| {
             let base = ci * ROUND_CHUNK;
             let len = ROUND_CHUNK.min(half - base);
@@ -438,21 +418,14 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
             unsafe { fold_msg_terms(fc.assume_init_ref(), bc.assume_init_ref()) }
         },
         |(mut a0, mut a2), (c0, c2)| {
-            a0 ^= c0;
-            a2 ^= c2;
+            a0 += c0;
+            a2 += c2;
             (a0, a2)
         },
     );
     // SAFETY: the tasks wrote every slot of both, one output per pair or group of input blocks.
     let (nf, nb) = unsafe { (nf.assume_init().into_vec(), nb.assume_init().into_vec()) };
-    (
-        nf,
-        nb,
-        SumcheckMessage {
-            u_0: u_0.reduce(),
-            u_2: u_2.reduce(),
-        },
-    )
+    (nf, nb, SumcheckMessage { u_0: (u_0), u_2: (u_2) })
 }
 
 // Lane rounds: the L0 fold binds whole lanes, not adjacent words
@@ -467,10 +440,10 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
 // is the ordinary adjacent-pair fold.
 
 /// Sum the per-task `(u_0, u_2)` accumulators, sequentially for the small
-/// instances where dispatch costs more than the work. Unreduced accumulators
+/// instances where dispatch costs more than the work. Field accumulators
 /// combine by XOR and `reduce` is linear, so both paths land on the same message.
 #[inline]
-fn accumulate_msg<A: Copy + Send + BitXorAssign>(
+fn accumulate_msg<A: Copy + Send + AddAssign>(
     n_tasks: usize,
     n_pairs: usize,
     zero: A,
@@ -481,8 +454,8 @@ fn accumulate_msg<A: Copy + Send + BitXorAssign>(
         let mut u_2 = zero;
         for t in 0..n_tasks {
             let (t0, t2) = task(t);
-            u_0 ^= t0;
-            u_2 ^= t2;
+            u_0 += t0;
+            u_2 += t2;
         }
         (u_0, u_2)
     } else {
@@ -491,8 +464,8 @@ fn accumulate_msg<A: Copy + Send + BitXorAssign>(
             || (zero, zero),
             task,
             |(mut a0, mut a2), (c0, c2)| {
-                a0 ^= c0;
-                a2 ^= c2;
+                a0 += c0;
+                a2 += c2;
                 (a0, a2)
             },
         )
@@ -501,7 +474,7 @@ fn accumulate_msg<A: Copy + Send + BitXorAssign>(
 
 /// `(u_0, u_2)` over one pair of blocks, elementwise.
 #[inline]
-fn msg_terms_pair<T: RoundWitness>(f0: &[T], f1: &[T], b0: &[F192], b1: &[F192]) -> (T::Acc, T::Acc) {
+fn msg_terms_pair<T: RoundWitness>(f0: &[T], f1: &[T], b0: &[F192], b1: &[F192]) -> (F192, F192) {
     let n = f0.len();
     assert!(f1.len() == n && b0.len() == n && b1.len() == n);
     T::pair_terms(n, |i| f0[i], |i| f1[i], |i| b0[i], |i| b1[i])
@@ -511,10 +484,10 @@ fn msg_terms_pair<T: RoundWitness>(f0: &[T], f1: &[T], b0: &[F192], b1: &[F192])
 /// `h(0)` and `h(inf)` collect the same `Σ f0·b0`, so this is NOT a no-op the way
 /// a trailing odd element is in an adjacent-pair round.
 #[inline]
-fn msg_terms_lone<T: RoundWitness>(f0: &[T], b0: &[F192]) -> (T::Acc, T::Acc) {
-    let mut u = T::ZERO_ACC;
+fn msg_terms_lone<T: RoundWitness>(f0: &[T], b0: &[F192]) -> (F192, F192) {
+    let mut u = F192::ZERO;
     for (&x0, &y0) in f0.iter().zip(b0) {
-        u ^= x0.mul_basis_unreduced(y0);
+        u += x0.mul_basis(y0);
     }
     (u, u)
 }
@@ -649,7 +622,7 @@ fn fold_and_msg_blocks<T: RoundWitness>(
                 }
             }
         } else {
-            // One unreduced sum per output over its input blocks; absent ones are the zero padding.
+            // One summed sum per output over its input blocks; absent ones are the zero padding.
             let (mut acc_f, mut acc_b) = (WeightFold::default(), WeightFold::default());
             for (l, e) in eq_weights.iter().enumerate() {
                 let src = src0 + l * block;
@@ -671,14 +644,14 @@ fn fold_and_msg_blocks<T: RoundWitness>(
         }
     };
 
-    let task = |t: usize| -> (F192Unreduced, F192Unreduced) {
+    let task = |t: usize| -> (F192, F192) {
         let (i, c) = (t / per, t % per);
         let x0 = c * ROUND_CHUNK;
         let len = ROUND_CHUNK.min(block - x0);
         let stream = Stream::new();
         let mut stage = [[F192::ZERO; STAGE_MAX]; 4];
         let mut raw = [[F192::ZERO; STAGE_MAX]; 2];
-        let mut acc = (F192Unreduced::ZERO, F192Unreduced::ZERO);
+        let mut acc = (F192::ZERO, F192::ZERO);
         for s in (0..len).step_by(stage_len) {
             let n = stage_len.min(len - s);
             let [lo_f, lo_b, hi_f, hi_b] = &mut stage;
@@ -694,22 +667,15 @@ fn fold_and_msg_blocks<T: RoundWitness>(
             } else {
                 msg_terms_lone(&lo_f[..n], &lo_b[..n])
             };
-            acc.0 ^= u_0;
-            acc.1 ^= u_2;
+            acc.0 += u_0;
+            acc.1 += u_2;
         }
         acc
     };
-    let (u_0, u_2) = accumulate_msg(n_out.div_ceil(2) * per, f.len() / 2, F192Unreduced::ZERO, task);
+    let (u_0, u_2) = accumulate_msg(n_out.div_ceil(2) * per, f.len() / 2, F192::ZERO, task);
     // SAFETY: the tasks wrote every slot of both, one output per pair or group of input blocks.
     let (nf, nb) = unsafe { (nf.assume_init().into_vec(), nb.assume_init().into_vec()) };
-    (
-        nf,
-        nb,
-        SumcheckMessage {
-            u_0: u_0.reduce(),
-            u_2: u_2.reduce(),
-        },
-    )
+    (nf, nb, SumcheckMessage { u_0: (u_0), u_2: (u_2) })
 }
 
 /// Two-phase witness: the committed K-message (borrowed from the caller, it
@@ -912,6 +878,7 @@ impl<'a> SumcheckProver<'a> {
 mod tests {
     use super::*;
     use crate::whir::config::INITIAL_FOLDING_FACTOR;
+    use primitives::PrimeCharacteristicRing;
     use primitives::multilinear::inner_product;
     use primitives::test_util::Rng;
 
@@ -924,7 +891,7 @@ mod tests {
         assert!(block > 0 && f.len().is_multiple_of(block));
         let n_blocks = f.len() / block;
         let per = block.div_ceil(ROUND_CHUNK);
-        let task = |t: usize| -> (T::Acc, T::Acc) {
+        let task = |t: usize| -> (F192, F192) {
             let (i, c) = (t / per, t % per);
             let x0 = c * ROUND_CHUNK;
             let len = ROUND_CHUNK.min(block - x0);
@@ -936,11 +903,8 @@ mod tests {
                 msg_terms_lone(&f[lo..lo + len], &b[lo..lo + len])
             }
         };
-        let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, T::ZERO_ACC, task);
-        SumcheckMessage {
-            u_0: T::reduce(u_0),
-            u_2: T::reduce(u_2),
-        }
+        let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, F192::ZERO, task);
+        SumcheckMessage { u_0, u_2 }
     }
 
     #[test]
@@ -951,7 +915,7 @@ mod tests {
         for block in [1, 16, INITIAL_BASIS_CHUNK, 4 * INITIAL_BASIS_CHUNK, 2 * ROUND_CHUNK] {
             // An odd lane count leaves a lone block, folded against the absent zero lanes.
             for lanes in [1, 2, 3, 37] {
-                let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
+                let f: Vec<F64> = (0..block * lanes).map(|_| F64::new(rng.next_u64())).collect();
                 let weight = rng.ext_vec(f.len());
                 let r = rng.ext();
                 // The last lane round is the one whose output is a single block.
@@ -984,7 +948,7 @@ mod tests {
                     .into_iter()
                     .filter(|&l| l >= 1 && l <= full)
                 {
-                    let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
+                    let f: Vec<F64> = (0..block * lanes).map(|_| F64::new(rng.next_u64())).collect();
                     let weight = rng.ext_vec(f.len());
                     let rs = rng.ext_vec(initial_k);
                     let label = format!("initial_k={initial_k}, block={block}, lanes={lanes}");
@@ -1034,7 +998,7 @@ mod tests {
             for &n_lanes in lanes {
                 let used = n_lanes * block;
                 let mut f = vec![F64::ZERO; 1 << log_n];
-                f[..used].iter_mut().for_each(|w| *w = F64(rng.next_u64()));
+                f[..used].iter_mut().for_each(|w| *w = F64::new(rng.next_u64()));
                 let mut b = vec![F192::ZERO; 1 << log_n];
                 b[..used].copy_from_slice(&rng.ext_vec(used));
 

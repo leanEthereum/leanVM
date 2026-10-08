@@ -1,9 +1,11 @@
 //! The univariate skip's domain, and the interpolations at the skip challenge that its verifiers and its prover share.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::K_SKIP;
 use fiat_shamir::arith::Arith;
-use primitives::field::{F192, PHI_8_TABLE_192};
 use primitives::multilinear::window_denominator;
+use primitives::{F192, PHI_8_TABLE_192};
 
 /// The skip domain `S`, the first `2^k_skip` nodes of the phi_8 table: an `F_2`-subspace of `K`, since phi_8 is linear on its index.
 ///
@@ -129,6 +131,7 @@ impl SkipDomain {
 mod tests {
     use super::*;
     use fiat_shamir::arith::Native;
+    use primitives::PrimeCharacteristicRing;
     use primitives::multilinear::skip_lagrange_weights;
     use primitives::test_util::Rng;
 

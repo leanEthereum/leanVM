@@ -82,6 +82,8 @@
 //! witness bits. Pinning them to a caller's values is the embedding
 //! protocol's job, via PCS openings at fixed indices.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::gf2::{
     ADD3_BITS, CARRY_BITS_PER_ADD, MatrixSide, RowValues, WireWord, back_add, back_add3_fused, walk_add,
     walk_add3_fused, wire_from_const, wire_from_slot_base, wire_rotl, wire_rotr, wire_xor,
@@ -89,7 +91,7 @@ use crate::gf2::{
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
 use crate::witness::{Witness, drive_witness_packed_and_lincheck, with_z};
-use primitives::field::F192;
+use primitives::F192;
 use primitives::hash::{G_LANES, IV, SIGMA};
 
 /// Block dim: one BLAKE2s compression occupies `2^K_LOG = 16,384` z slots.
@@ -715,6 +717,8 @@ pub const BLOCK: Block<'static> = Block {
 mod tests {
     use super::*;
     use crate::lincheck::LincheckCircuit;
+    use primitives::F64;
+    use primitives::PrimeCharacteristicRing;
     use primitives::hash::compress;
     use primitives::test_util::Rng;
 
@@ -751,7 +755,13 @@ mod tests {
     fn constrained_rows_tile_the_layout() {
         let mut rng = Rng::new(0x7113D);
         let w: Vec<F192> = (0..K)
-            .map(|_| F192::new(rng.next_u64(), rng.next_u64(), rng.next_u64()))
+            .map(|_| {
+                F192::new([
+                    F64::new(rng.next_u64()),
+                    F64::new(rng.next_u64()),
+                    F64::new(rng.next_u64()),
+                ])
+            })
             .collect();
         let (va, vb) = row_values_walk(&w);
         let mut expected = vec![false; K];

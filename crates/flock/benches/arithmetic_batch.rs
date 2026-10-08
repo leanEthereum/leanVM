@@ -24,7 +24,7 @@ use pcs::ring_switch::RingSwitch;
 use pcs::stack_open;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
 use pcs::whir::{commit, config_for_rate};
-use primitives::{field::F64, pretty_integer, test_util::Rng};
+use primitives::{F64, pretty_integer, test_util::Rng};
 
 #[global_allocator]
 static ALLOCATOR: bench::Counting<bench::Jemalloc> = bench::Counting(bench::Jemalloc);
@@ -76,7 +76,7 @@ fn bench(op: U64Op, quiet: bool) -> (usize, Timing) {
     let circuit = U64Circuit::new(op);
     let setup_ms = t.elapsed().as_secs_f64() * 1e3;
     let block = circuit.block();
-    let mu = circuit.k_log() + n_log - F64::DEGREE.ilog2() as usize;
+    let mu = circuit.k_log() + n_log - 64usize.ilog2() as usize;
     assert!(
         mu >= 15,
         "FLOCK_N_LOG too small: need a committed witness with mu >= 15"

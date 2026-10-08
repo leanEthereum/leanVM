@@ -7,6 +7,8 @@
 //!
 //! A circuit of fewer variables waits on the rest in each phase, as the dense reduction's smaller polynomials do.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::{FoldTable, Msg, ReduceError, ZERO, xor};
 use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::rec::tree::claims::{Coefficient, ColWeight, MatrixClaim, RowWeight};
@@ -15,7 +17,7 @@ use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use flock::lincheck::{LincheckCircuit, build_quirky_eq_table};
 use flock::zerocheck::{K_SKIP, SkipDomain};
 use parallel::Chunks;
-use primitives::field::{F192, F192Unreduced};
+use primitives::F192;
 use primitives::multilinear::eq_table;
 
 /// What the matrix reduction leaves: the row and column points, and each circuit's `A` and `B` at its prefixes of them.
@@ -325,7 +327,7 @@ fn each_mut<T: Send>(items: &mut [T], f: impl Fn(usize, &mut T) -> Msg + Sync) -
         // SAFETY: each item is taken once, and the items outlive the dispatch.
         f(i, &mut unsafe { chunks.get(i) }[0])
     };
-    parallel::map_reduce(chunks.count(), || ZERO, task, xor).map(F192Unreduced::reduce)
+    parallel::map_reduce(chunks.count(), || ZERO, task, xor)
 }
 
 impl ColumnPhase {

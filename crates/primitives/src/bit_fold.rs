@@ -13,7 +13,10 @@
 //! - AVX-512 with GFNI: an 8x8 bit matrix per (input byte, output byte), applied to 64 rows by one instruction.
 //! - AVX2: the same byte-sliced shape 32 rows wide, each map one affine instruction with GFNI, else two nibble lookups.
 
-use crate::field::F192;
+use crate::PrimeCharacteristicRing;
+
+use crate::{F64, F192, Field, PackedFieldExtension, PackedValue};
+use p3_field::ExtensionField;
 
 use crate::multilinear::eq_table;
 
@@ -161,14 +164,21 @@ impl F192Map {
 
     /// The map `x -> self(x * c)`, itself GF(2)-linear.
     pub fn after_mul(&self, c: F192) -> Self {
+        type Packing = <F192 as ExtensionField<F64>>::ExtensionPacking;
+        const LANES: usize = <<F64 as Field>::Packing as PackedValue>::WIDTH;
+        let multiplier = Packing::from(c);
         let mut weights = [F192::ZERO; 192];
         for (chunk, w) in weights.chunks_mut(BLOCK).enumerate() {
-            let xs: [F192; BLOCK] = std::array::from_fn(|i| {
-                let bit = BLOCK * chunk + i;
-                let mut words = [0u64; 3];
-                words[bit / 64] = 1 << (bit % 64);
-                F192::new(words[0], words[1], words[2]) * c
-            });
+            let mut xs = [F192::ZERO; BLOCK];
+            for (group, dst) in xs.chunks_mut(LANES).enumerate() {
+                let basis = <Packing as PackedFieldExtension<F64, F192>>::from_ext_fn(|lane| {
+                    let bit = BLOCK * chunk + LANES * group + lane;
+                    let mut words = [F64::ZERO; 3];
+                    words[bit / 64] = F64::new(1 << (bit % 64));
+                    F192::new(words)
+                });
+                <Packing as PackedFieldExtension<F64, F192>>::to_ext_slice(&(basis * multiplier), dst);
+            }
             self.apply_add(&xs, w);
         }
         Self::new(&weights)
@@ -224,6 +234,7 @@ pub mod avx2;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::PrimeCharacteristicRing;
     use crate::test_util::Rng;
 
     #[test]
@@ -270,7 +281,11 @@ mod tests {
             let mut out = before.clone();
             map.apply_add(&xs, &mut out);
             for p in 0..len {
-                let words = [xs[p].c0, xs[p].c1, xs[p].c2];
+                let words = [
+                    xs[p].coefficients()[0].to_bits(),
+                    xs[p].coefficients()[1].to_bits(),
+                    xs[p].coefficients()[2].to_bits(),
+                ];
                 let image = (0..192)
                     .filter(|&b| words[b / 64] >> (b % 64) & 1 == 1)
                     .fold(F192::ZERO, |acc, b| acc + weights[b]);
@@ -324,7 +339,11 @@ mod tests {
             let mut out = [F192::ZERO; 7];
             map.apply_add_f192(&xs, &mut out);
             for (p, &o) in out.iter().enumerate() {
-                let words = [xs[p].c0, xs[p].c1, xs[p].c2];
+                let words = [
+                    xs[p].coefficients()[0].to_bits(),
+                    xs[p].coefficients()[1].to_bits(),
+                    xs[p].coefficients()[2].to_bits(),
+                ];
                 let image = (0..192)
                     .filter(|&b| words[b / 64] >> (b % 64) & 1 == 1)
                     .fold(F192::ZERO, |acc, b| acc + weights[b]);

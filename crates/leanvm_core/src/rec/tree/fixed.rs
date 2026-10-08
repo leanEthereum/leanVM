@@ -2,9 +2,11 @@
 //!
 //! The two circuits share their heights, so their stacks have one layout, and one more variable, the kind's bit, selects the circuit.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::rec::fixed::{FixedColumn, FixedColumns};
 use crate::rec::table::PerRecTable;
-use primitives::field::F64;
+use primitives::F64;
 
 /// Where each fixed column sits in one circuit's stack: the circuit's fixed polynomial over `kappa_fix` variables.
 ///

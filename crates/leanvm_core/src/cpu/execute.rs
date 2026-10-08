@@ -4,10 +4,12 @@
 //!
 //! Everything else comes back from the program's entry at the row's index.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::rv::machine::{MemoryAccess, Step};
 use crate::rv::{BlockAccess, Class, Ext, Hash, Limb, Machine, RegisterFile, RiscvProgram, WordAccess};
 use crate::tables::{Clock, PerTable, TableId};
-use primitives::field::F64;
+use primitives::F64;
 
 /// A finished run: its output, its rows, and what it left behind.
 pub struct Execution {
@@ -43,7 +45,7 @@ impl LastAccess {
 
     /// Every cell's last timestamp, as field words.
     fn timestamps(&self) -> Vec<F64> {
-        self.0.iter().map(|&t| F64(t)).collect()
+        self.0.iter().map(|&t| F64::new(t)).collect()
     }
 }
 
@@ -125,7 +127,7 @@ impl TraceBuilder {
             hash: Vec::new(),
             ext: Vec::new(),
             padding_prev: PerTable::from_fn(|t: TableId| t.spec().slots().into_iter().map(u64::from).collect()),
-            adv_init: advice.iter().map(|&w| F64(w)).collect(),
+            adv_init: advice.iter().map(|&w| F64::new(w)).collect(),
         }
     }
 
@@ -277,12 +279,12 @@ impl TraceBuilder {
             rows: self.rows,
             hash: self.hash,
             ext: self.ext,
-            reg_fin: m.registers().cells().iter().map(|&r| F64(r)).collect(),
+            reg_fin: m.registers().cells().iter().map(|&r| F64::new(r)).collect(),
             reg_ts: self.regs.timestamps(),
-            ram_fin: m.memory().ram().iter().map(|&w| F64(w)).collect(),
+            ram_fin: m.memory().ram().iter().map(|&w| F64::new(w)).collect(),
             ram_ts: ram_ts.to_vec(),
             adv_init: self.adv_init,
-            adv_fin: m.memory().advice().iter().map(|&w| F64(w)).collect(),
+            adv_fin: m.memory().advice().iter().map(|&w| F64::new(w)).collect(),
             adv_ts: adv_ts.to_vec(),
             ts_final,
         }
@@ -464,7 +466,7 @@ impl Trace {
     pub(crate) fn count_reads(&self, counts: &mut [F64]) {
         counts.fill(F64::ZERO);
         for row in self.rows.values().flatten() {
-            counts[row.index as usize].0 += 1;
+            counts[row.index as usize] = F64::new(counts[row.index as usize].to_bits() + (1));
         }
     }
 

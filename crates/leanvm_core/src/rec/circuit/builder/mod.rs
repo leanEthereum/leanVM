@@ -1,5 +1,8 @@
 //! Circuit construction, wire equalities, constants, and public statements.
 
+use primitives::F64;
+use primitives::PrimeCharacteristicRing;
+
 mod arith;
 mod bits;
 mod hash;
@@ -8,7 +11,7 @@ use super::{
     Assignment, Circuit, Compression, Dw, Ew, Finished, Kw, Limbs, PubSource, TableSlots, Unsatisfied, WireKind,
 };
 use crate::rec::table::{PerRecTable, Table};
-use primitives::field::F192;
+use primitives::F192;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
 
@@ -227,7 +230,7 @@ impl Builder {
     /// The value of an `E` wire.
     pub fn e(&self, w: Ew) -> F192 {
         let [c0, c1, c2, _] = self.values[w.0 as usize];
-        F192::new(c0, c1, c2)
+        F192::new([F64::new(c0), F64::new(c1), F64::new(c2)])
     }
 
     /// The value of a `K` wire.
@@ -244,7 +247,15 @@ impl Builder {
     ///
     /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn free_e(&mut self, value: F192) -> Ew {
-        Ew(self.wire(WireKind::E, [value.c0, value.c1, value.c2, 0]))
+        Ew(self.wire(
+            WireKind::E,
+            [
+                value.coefficients()[0].to_bits(),
+                value.coefficients()[1].to_bits(),
+                value.coefficients()[2].to_bits(),
+                0,
+            ],
+        ))
     }
 
     /// A free `K` value.
@@ -307,7 +318,15 @@ impl Builder {
     ///
     /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn e_const(&mut self, value: F192) -> Ew {
-        Ew(self.constant(WireKind::E, [value.c0, value.c1, value.c2, 0]))
+        Ew(self.constant(
+            WireKind::E,
+            [
+                value.coefficients()[0].to_bits(),
+                value.coefficients()[1].to_bits(),
+                value.coefficients()[2].to_bits(),
+                0,
+            ],
+        ))
     }
 
     /// The constant `K` word `value`.

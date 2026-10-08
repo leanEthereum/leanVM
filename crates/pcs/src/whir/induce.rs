@@ -7,18 +7,20 @@
 //! dense per-query expansion, its succinct residual evaluator, and the sparse
 //! transposed-NTT fast path with the dispatch between them.
 
+use primitives::{Field, PrimeCharacteristicRing};
+
 use crate::ntt::AdditiveNttF64;
 use crate::ntt::additive_ntt_f64::transposed_butterfly_lanes;
 use parallel::SendPtr;
-use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, inner_product, inner_product_base};
+use primitives::{F64, F192};
 use std::collections::HashMap;
 
 // LCH novel-basis evaluations over K (mirror of whir's extension-field block)
 //
 // The subspace-polynomial recurrence runs entirely over the K evaluation
 // domain (F64 values); results are lifted into E with `mul_base` only where
-// they scale E-accumulators. Standard basis only (v_i = x^i = F64(1 << i)).
+// they scale E-accumulators. Standard basis only (v_i = x^i = F64::new(1 << i)).
 
 #[inline]
 fn next_s(s: F64, s_at_root: F64) -> F64 {
@@ -33,7 +35,7 @@ pub fn eval_sk_at_vks(log_n: usize) -> Vec<F64> {
     if log_n == 0 {
         return sks_vks;
     }
-    let mut layer: Vec<F64> = (1..=log_n).map(|i| F64(1u64 << i)).collect();
+    let mut layer: Vec<F64> = (1..=log_n).map(|i| F64::new(1u64 << i)).collect();
     let mut cur_len = log_n;
     for i in 0..log_n {
         for j in 0..cur_len {
@@ -87,7 +89,7 @@ impl RowElem for F192 {
 fn invert_sks(sks_vks: &[F64]) -> Vec<F64> {
     sks_vks
         .iter()
-        .map(|&v| if v.is_zero() { F64::ZERO } else { v.inv() })
+        .map(|&v| if v.is_zero() { F64::ZERO } else { v.invert_or_zero() })
         .collect()
 }
 
@@ -110,7 +112,7 @@ fn invert_sks(sks_vks: &[F64]) -> Vec<F64> {
 ///
 /// - Each query's low table is built once, `2^L` words of K.
 /// - Each task owns `2^L` outputs, so no worker keeps a full-length accumulator.
-/// - A task's sums stay unreduced until each output is written.
+/// - A task accumulates its sums before writing each output.
 pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     log_msg_cols: usize,
     sks_vks: &[F64],
@@ -121,7 +123,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
 ) -> (Vec<F192>, F192) {
     /// Low bits of an output index, tabulated per query: 2^10 words, 8 KiB of K a query.
     const LOW_BITS: usize = 10;
-    /// Outputs one pass over the queries accumulates: 128 unreduced sums, 6 KiB.
+    /// Outputs one pass over the queries accumulates: 128 extension-field sums.
     const SUB: usize = 128;
 
     let n = 1usize << log_msg_cols;
@@ -138,7 +140,7 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
     //     low_i[0] = 1,   low_i[j + 2^k] = low_i[j] · s_k(q_i)   for j < 2^k
     let per_query: Vec<(Vec<F64>, Vec<F64>)> = parallel::map_collect(n_queries, |i| {
         let mut sks_at_x = vec![F64::ZERO; log_msg_cols];
-        normalized_sks_at(F64(queries[i] as u64), sks_vks, &inv_sks_vks, &mut sks_at_x);
+        normalized_sks_at(F64::new(queries[i] as u64), sks_vks, &inv_sks_vks, &mut sks_at_x);
         let mut table = vec![F64::ONE; 1 << low];
         for (k, &s) in sks_at_x[..low].iter().enumerate() {
             let (lo, hi) = table.split_at_mut(1 << k);
@@ -168,20 +170,20 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
                     .iter()
                     .enumerate()
                     .filter(|&(k, _)| (hi_index >> k) & 1 == 1)
-                    .fold(w, |acc, (_, &s)| acc.mul_base(s))
+                    .fold(w, |acc, (_, &s)| acc * s)
             })
             .collect();
         // Every query adds its scaled low table, 128 outputs at a time.
         for (sub_index, out) in out.chunks_mut(SUB).enumerate() {
             let at = sub_index * SUB;
-            let mut acc = [F192Unreduced::ZERO; SUB];
+            let mut acc = [F192::ZERO; SUB];
             for ((_, table), &scalar) in per_query.iter().zip(&scalars) {
                 for (a, &t) in acc.iter_mut().zip(&table[at..at + out.len()]) {
-                    *a ^= scalar.mul_base_unreduced(t);
+                    *a += scalar * t;
                 }
             }
             for (o, a) in out.iter_mut().zip(acc) {
-                o.write(a.reduce());
+                o.write(a);
             }
         }
     });
@@ -214,7 +216,7 @@ pub(crate) fn induce_sumcheck_enforced_sum<T: RowElem>(
 /// (mirror of `whir::induce_sumcheck_evaluate_at_residual`). Replaces the
 /// dense basis + `partial_eval_lsb` in the verifier via the closed form:
 ///   `MLE(basis_poly)(p) = Σ_i w_i · Π_k (1 + p[k] · (1 + W-hat_k(q_i)))`
-/// where `q_i = F64(queries[i])` and the K-valued `W-hat_k(q_i)` lifts into E
+/// where `q_i = F64::new(queries[i])` and the K-valued `W-hat_k(q_i)` lifts into E
 /// through the char-2 factor. `ris_for_basis` is the fixed residual prefix
 /// (length `log_msg_cols - yr_log_n`); returns evaluations at the `2^yr_log_n`
 /// points `ris_for_basis ++ y_bits`.
@@ -242,7 +244,7 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
     }
     let compute_query = |&q: &usize| -> PerQuery {
         let mut sks_at_x = vec![F64::ZERO; log_msg_cols];
-        normalized_sks_at(F64(q as u64), sks_vks, &inv_sks_vks, &mut sks_at_x);
+        normalized_sks_at(F64::new(q as u64), sks_vks, &inv_sks_vks, &mut sks_at_x);
         // Prefix product: Π_{k<prefix_len} (1 + ris[k] · (1 + W-hat_k(q)))
         let mut prefix_prod = F192::ONE;
         for k in 0..prefix_len {
@@ -630,7 +632,7 @@ mod tests {
                     let (top, bot) = chunk.split_at_mut(half);
                     for (a, b) in top.iter_mut().zip(bot.iter_mut()) {
                         let s = *a + *b;
-                        (*a, *b) = (s, s.mul_base(t) + *b);
+                        (*a, *b) = (s, (s * t) + *b);
                     }
                 }
             }

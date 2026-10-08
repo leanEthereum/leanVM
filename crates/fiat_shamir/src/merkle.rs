@@ -2,7 +2,7 @@
 //! Digest encoding and Merkle openings carried by proofs.
 
 use crate::transcript::TranscriptError;
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 use serde::{Deserialize, Serialize};
 
 pub type Hash = [u8; 32];
@@ -15,8 +15,8 @@ pub type Hash = [u8; 32];
 pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
     let word_at = |offset: usize| u64::from_le_bytes(hash[offset..offset + 8].try_into().unwrap());
     [
-        F192::new(word_at(0), word_at(8), 0),
-        F192::new(word_at(16), word_at(24), 0),
+        F192::new([F64::new(word_at(0)), F64::new(word_at(8)), F64::new(0)]),
+        F192::new([F64::new(word_at(16)), F64::new(word_at(24)), F64::new(0)]),
     ]
 }
 
@@ -25,13 +25,13 @@ pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
 /// 128-bit, so a nonzero one is not a digest at all.
 #[inline]
 pub fn scalars_to_hash(scalars: &[F192; 2]) -> Result<Hash, TranscriptError> {
-    if scalars.iter().any(|s| s.c2 != 0) {
+    if scalars.iter().any(|s| s.coefficients()[2].to_bits() != 0) {
         return Err(TranscriptError::NonCanonicalEncoding);
     }
     let mut hash = [0u8; 32];
     for (i, s) in scalars.iter().enumerate() {
-        hash[16 * i..16 * i + 8].copy_from_slice(&s.c0.to_le_bytes());
-        hash[16 * i + 8..16 * i + 16].copy_from_slice(&s.c1.to_le_bytes());
+        hash[16 * i..16 * i + 8].copy_from_slice(&s.coefficients()[0].to_bits().to_le_bytes());
+        hash[16 * i + 8..16 * i + 16].copy_from_slice(&s.coefficients()[1].to_bits().to_le_bytes());
     }
     Ok(hash)
 }
@@ -62,7 +62,7 @@ fn leaf_image(row: &[F64], leaf_words: usize) -> Vec<F64> {
 fn hash_words(image: &[F64]) -> Hash {
     let mut bytes = vec![0u8; 8 * image.len()];
     for (dst, word) in bytes.as_chunks_mut::<8>().0.iter_mut().zip(image) {
-        *dst = word.0.to_le_bytes();
+        *dst = word.to_bits().to_le_bytes();
     }
     hash_leaf(&bytes)
 }
@@ -267,6 +267,8 @@ impl RawMerklePath {
     }
 }
 
+use primitives::PrimeCharacteristicRing;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -288,7 +290,7 @@ mod tests {
     fn prune_open_roundtrip() {
         let (num_leaves, width, height) = (8usize, 4usize, 3usize);
         let rows: Vec<Vec<F64>> = (0..num_leaves)
-            .map(|q| (0..width).map(|j| F64((q * width + j) as u64)).collect())
+            .map(|q| (0..width).map(|j| F64::new((q * width + j) as u64)).collect())
             .collect();
         let tree = tree_of(&rows);
         let root = tree[tree.len() - 1];
@@ -310,7 +312,7 @@ mod tests {
     fn malformed_phases_are_rejected() {
         let (num_leaves, width) = (8usize, 4usize);
         let rows: Vec<Vec<F64>> = (0..num_leaves)
-            .map(|q| (0..width).map(|j| F64((q * width + j) as u64)).collect())
+            .map(|q| (0..width).map(|j| F64::new((q * width + j) as u64)).collect())
             .collect();
         let tree = tree_of(&rows);
         let root = tree[tree.len() - 1];
@@ -335,11 +337,11 @@ mod tests {
         );
 
         let mut bad_row = good.clone();
-        bad_row.leaf_data[0][0] = F64(bad_row.leaf_data[0][0].0 ^ 1);
+        bad_row.leaf_data[0][0] = F64::new(bad_row.leaf_data[0][0].to_bits() ^ 1);
         assert!(open(&bad_row, &queries, width, num_leaves).is_none(), "tampered row");
 
         let mut wide = good.clone();
-        wide.leaf_data[0].push(F64(0));
+        wide.leaf_data[0].push(F64::new(0));
         assert!(open(&wide, &queries, width, num_leaves).is_none(), "wrong row width");
 
         assert!(
@@ -360,7 +362,14 @@ mod tests {
         let scalars = hash_to_scalars(&hash);
         assert_eq!(scalars_to_hash(&scalars), Ok(hash));
         assert_eq!(
-            scalars_to_hash(&[F192::new(scalars[0].c0, scalars[0].c1, 1), scalars[1]]),
+            scalars_to_hash(&[
+                F192::new([
+                    F64::new(scalars[0].coefficients()[0].to_bits()),
+                    F64::new(scalars[0].coefficients()[1].to_bits()),
+                    F64::new(1)
+                ]),
+                scalars[1]
+            ]),
             Err(TranscriptError::NonCanonicalEncoding)
         );
     }

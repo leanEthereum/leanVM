@@ -1,3 +1,5 @@
+use primitives::PrimeCharacteristicRing;
+
 use super::recursion::RecRows;
 use super::{ProofShape, RecShape, Rows, infallible};
 use crate::class_flock::FlockId;
@@ -20,8 +22,8 @@ use ::flock::verifier::FlockError;
 use ::flock::zerocheck::K_SKIP;
 use ::pcs::whir::{WhirError, inner_product_base_ext, strata};
 use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, TranscriptError, VerifierState};
-use primitives::field::{F64, F192};
 use primitives::test_util::Rng;
+use primitives::{F64, F192};
 use std::sync::OnceLock;
 
 // A program with a loop, so that every framework block is read.
@@ -55,7 +57,9 @@ fn fixture() -> &'static Fixture {
         let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
         let native = program.verify_core(output, &proof).expect("an honest proof");
         let raw = program.verify_to_raw(output, &proof).expect("an honest proof");
-        let taus = PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height"));
+        let taus = PerTable::from_fn(|t: TableId| {
+            usize::try_from(proof.0.stream[t.index()].coefficients()[0].to_bits()).expect("a height")
+        });
         Fixture {
             program,
             raw,
@@ -113,7 +117,7 @@ fn a_tampered_proof_fails_where_the_native_verifier_does() {
 
     // The GKR's root, read right after the announcement and the commitment's two halves.
     let mut forged = f.raw.clone();
-    forged.stream[N_TABLES + 4].c1 ^= 1;
+    forged.stream[N_TABLES + 4] += F192::new([F64::ZERO, F64::new(1), F64::ZERO]);
     assert!(first(&forged).starts_with("bus and tables"), "{}", first(&forged));
 
     // A sibling and a leaf word of the first and the last opening.
@@ -127,7 +131,7 @@ fn a_tampered_proof_fails_where_the_native_verifier_does() {
         );
         let mut forged = f.raw.clone();
         let last = forged.merkle[opening].leaf_data.len() - 1;
-        forged.merkle[opening].leaf_data[last].0 ^= 1;
+        forged.merkle[opening].leaf_data[last] = F64::new(forged.merkle[opening].leaf_data[last].to_bits() ^ (1));
         assert!(
             first(&forged).starts_with("opening / whir / rows"),
             "{}",
@@ -168,17 +172,51 @@ fn a_forged_announcement_is_refused_first() {
         f.failures(&forged).into_iter().next().unwrap_or_default()
     };
     for t in 0..N_TABLES {
-        let failure = forge(&|p| p.stream[t].c0 += 1);
+        let failure = forge(&|p| {
+            let mut coefficients = p.stream[t].coefficients();
+            coefficients[0] = F64::new(coefficients[0].to_bits() + 1);
+            p.stream[t] = F192::new(coefficients);
+        });
         assert!(failure.starts_with("announcement"), "height {t}: {failure}");
     }
     let edits: [(&str, F192); 7] = [
-        ("the rate", F192::new(2, 0, 0)),
-        ("a slot bit", F192::new(ts.c0 | 1, 0, 0)),
-        ("no live bit", F192::new(ts.c0 & !(1 << 40), 0, 0)),
-        ("a failure bit", F192::new(ts.c0 | 1 << 41, 0, 0)),
-        ("the top bit", F192::new(ts.c0 | 1 << 63, 0, 0)),
-        ("the second limb", F192::new(ts.c0, 1, 0)),
-        ("the third limb", F192::new(ts.c0, 0, 1)),
+        ("the rate", F192::new([F64::new(2), F64::new(0), F64::new(0)])),
+        (
+            "a slot bit",
+            F192::new([F64::new(ts.coefficients()[0].to_bits() | 1), F64::new(0), F64::new(0)]),
+        ),
+        (
+            "no live bit",
+            F192::new([
+                F64::new(ts.coefficients()[0].to_bits() & !(1 << 40)),
+                F64::new(0),
+                F64::new(0),
+            ]),
+        ),
+        (
+            "a failure bit",
+            F192::new([
+                F64::new(ts.coefficients()[0].to_bits() | 1 << 41),
+                F64::new(0),
+                F64::new(0),
+            ]),
+        ),
+        (
+            "the top bit",
+            F192::new([
+                F64::new(ts.coefficients()[0].to_bits() | 1 << 63),
+                F64::new(0),
+                F64::new(0),
+            ]),
+        ),
+        (
+            "the second limb",
+            F192::new([F64::new(ts.coefficients()[0].to_bits()), F64::new(1), F64::new(0)]),
+        ),
+        (
+            "the third limb",
+            F192::new([F64::new(ts.coefficients()[0].to_bits()), F64::new(0), F64::new(1)]),
+        ),
     ];
     for (i, (what, value)) in edits.into_iter().enumerate() {
         let at = if i == 0 { N_TABLES } else { clock };
@@ -186,7 +224,9 @@ fn a_forged_announcement_is_refused_first() {
         assert!(failure.starts_with("announcement"), "{what}: {failure}");
     }
     // A live clock at slot zero passes the announcement, and the bus refuses the wrong one.
-    let failure = forge(&|p| p.stream[clock] = F192::new(ts.c0 + 32, 0, 0));
+    let failure = forge(&|p| {
+        p.stream[clock] = F192::new([F64::new(ts.coefficients()[0].to_bits() + 32), F64::new(0), F64::new(0)]);
+    });
     assert!(failure.starts_with("bus and tables"), "a later clock: {failure}");
 }
 
@@ -204,7 +244,9 @@ fn a_large_programs_rows_check_its_grinding() {
     let f = Fixture {
         native: program.verify_core(output, &proof).expect("an honest proof"),
         raw: program.verify_to_raw(output, &proof).expect("an honest proof"),
-        taus: PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height")),
+        taus: PerTable::from_fn(|t: TableId| {
+            usize::try_from(proof.0.stream[t.index()].coefficients()[0].to_bits()).expect("a height")
+        }),
         program,
         output,
     };
@@ -221,7 +263,11 @@ fn a_large_programs_rows_check_its_grinding() {
     let forged = (1..64)
         .map(|step| {
             let mut forged = proof.clone();
-            forged.0.stream[N_TABLES + 4].c0 += step;
+            {
+                let mut coefficients = forged.0.stream[N_TABLES + 4].coefficients();
+                coefficients[0] = F64::new(coefficients[0].to_bits() + (step));
+                forged.0.stream[N_TABLES + 4] = F192::new(coefficients);
+            }
             forged
         })
         .find(|forged| f.program.verify_core(f.output, forged).err() == Some(missed.clone()))
@@ -246,7 +292,7 @@ fn a_non_boolean_merkle_selector_is_refused() {
         failures,
     } = b.finish();
     assert!(failures.is_empty(), "{failures:?}");
-    let iv = [F64(7); 4];
+    let iv = [F64::new(7); 4];
     let statement = a.statement().to_vec();
     let prove = |a: &Assignment| circuit.prove(a, iv, Rate::MIN).expect("the circuit fits");
     let verify = |proof: &ProofTranscript| circuit.verify_to_raw(&statement, iv, Rate::MIN, proof).map(|_| ());
@@ -261,7 +307,7 @@ fn a_non_boolean_merkle_selector_is_refused() {
 const LABEL: &[u8] = b"rec-verifier-test";
 
 fn label_cv() -> Limbs {
-    fiat_shamir::digest_words(&primitives::hash::hash(LABEL)).map(|w| w.0)
+    fiat_shamir::digest_words(&primitives::hash::hash(LABEL)).map(|w| w.to_bits())
 }
 
 // A rows transcript from the test label over `source`, and what `f` builds on it.
@@ -342,7 +388,7 @@ fn check_reductions(batches: &[Batch]) {
     // The first scalar of the zerocheck's first round, the last circuit's `c` claim, the last lincheck round's top
     // coefficient, the first circuit's first slice and its form's value.
     let n = batches.len();
-    let tail = n * (F64::DEGREE + 1);
+    let tail = n * (64 + 1);
     let n_rounds = (circuits.iter())
         .map(|(shape, _)| shape.k_log - K_SKIP)
         .max()
@@ -354,7 +400,7 @@ fn check_reductions(batches: &[Batch]) {
         (lincheck_start - 1, "zerocheck"),
         (len - tail - 1, "lincheck"),
         (len - tail, "lincheck"),
-        (len - tail + F64::DEGREE, "lincheck"),
+        (len - tail + 64, "lincheck"),
     ];
     for (index, stage) in tampers {
         let mut forged = proof.clone();
@@ -381,15 +427,15 @@ fn check_reductions(batches: &[Batch]) {
             let longest = replays.iter().max_by_key(|r| rounds(r)).expect("a batch");
             let r_rounds: Vec<F192> = longest.matrices.form.r_inner_rest.iter().rev().copied().collect();
             let alpha_4 = replays[0].matrices.form.alpha.square().square();
-            let weights = primitives::field::powers(alpha_4, n);
+            let weights = primitives::powers(alpha_4, n);
             (replays.iter().zip(weights))
                 .map(|(replay, w)| r_rounds[rounds(replay)..].iter().fold(w, |acc, &r| acc * r))
                 .collect()
         };
-        let delta = F192::new(7, 0, 0);
+        let delta = F192::new([F64::new(7), F64::new(0), F64::new(0)]);
         let mut forged = proof;
-        forged.stream[len - tail + F64::DEGREE] += delta * lifts[1];
-        forged.stream[len - tail + 2 * F64::DEGREE + 1] += delta * lifts[0];
+        forged.stream[len - tail + 64] += delta * lifts[1];
+        forged.stream[len - tail + 2 * 64 + 1] += delta * lifts[0];
         let moved = native(&forged).expect("the batch's identity holds");
         for (f, replay) in moved.iter().enumerate() {
             let matrices = &replay.matrices;
@@ -428,8 +474,13 @@ const N_LANES: usize = 37;
 // The 64 bit slices of the packed words `q` at `point`.
 fn slices(q: &[F64], point: &[F192]) -> Vec<F192> {
     let eq = primitives::multilinear::eq_table(point);
-    (0..F64::DEGREE)
-        .map(|i| (q.iter().zip(&eq)).fold(F192::ZERO, |acc, (w, &e)| if w.0 >> i & 1 == 1 { acc + e } else { acc }))
+    (0..64)
+        .map(|i| {
+            (q.iter().zip(&eq)).fold(
+                F192::ZERO,
+                |acc, (w, &e)| if w.to_bits() >> i & 1 == 1 { acc + e } else { acc },
+            )
+        })
         .collect()
 }
 
@@ -466,7 +517,7 @@ fn opening_claims(mu: usize, q: &[F64], rng: &mut Rng) -> (Vec<StackClaim>, Vec<
     for (offset, slot, stride_log) in [(4 * lane, 5, 3), (6 * lane, 0, 0)] {
         let point = rng.ext_vec(mu - 6 - stride_log);
         let value = (eq(&point).iter().enumerate()).fold(F192::ZERO, |acc, (j, e)| {
-            acc + e.mul_base(q[offset + slot + (j << stride_log)])
+            acc + (*e * (q[offset + slot + (j << stride_log)]))
         });
         slots.push(StackClaim::Strided {
             offset,
@@ -543,7 +594,7 @@ fn check_opening(mu: usize, log_inv_rate: u8, seed: u64) {
     let rate = Rate::new(log_inv_rate).expect("a supported rate");
     let mut rng = Rng::new(seed);
     let shape = StackShape { mu, n_lanes: N_LANES };
-    let q: Vec<F64> = (0..shape.committed_len()).map(|_| F64(rng.next_u64())).collect();
+    let q: Vec<F64> = (0..shape.committed_len()).map(|_| F64::new(rng.next_u64())).collect();
     let (slots, rings) = opening_claims(mu, &q, &mut rng);
 
     let mut ps = ProverState::from_label(LABEL);
@@ -599,7 +650,7 @@ fn check_opening(mu: usize, log_inv_rate: u8, seed: u64) {
     }
     let mut forged = raw;
     let mid = forged.stream.len() / 2;
-    forged.stream[mid].c1 ^= 1;
+    forged.stream[mid] += F192::new([F64::ZERO, F64::new(1), F64::ZERO]);
     assert!(
         !rows(&slots, &rings, ProofSource::Proof(&forged)).1.is_empty(),
         "{what}: a forged scalar passes"
@@ -637,10 +688,10 @@ fn recursion_rows(
 #[test]
 fn a_recursion_proof_in_rows_is_its_verifier() {
     let mut b = Builder::new();
-    let x = b.free_e(F192::new(3, 5, 7));
-    let y = b.e_const(F192::new(11, 13, 17));
+    let x = b.free_e(F192::new([F64::new(3), F64::new(5), F64::new(7)]));
+    let y = b.e_const(F192::new([F64::new(11), F64::new(13), F64::new(17)]));
     let mut acc = b.d_const([1, 2, 3, 4]);
-    let observe = b.k_const(fiat_shamir::DS_OBSERVE.0);
+    let observe = b.k_const(fiat_shamir::DS_OBSERVE.to_bits());
     let mut e = x;
     for _ in 0..40 {
         e = b.mul_add(e, y, x);
@@ -656,7 +707,7 @@ fn a_recursion_proof_in_rows_is_its_verifier() {
         failures,
     } = b.finish();
     assert!(failures.is_empty(), "{failures:?}");
-    let iv = label_cv().map(F64);
+    let iv = label_cv().map(F64::new);
     let proof = circuit.prove(&a, iv, Rate::MIN).expect("the circuit fits");
     let raw = circuit
         .verify_to_raw(a.statement(), iv, Rate::MIN, &proof)
@@ -689,7 +740,7 @@ fn a_recursion_proof_in_rows_is_its_verifier() {
 
     // A tampered scalar, and a statement word the proof is not of.
     let mut forged = raw.clone();
-    forged.stream[7].c1 ^= 1;
+    forged.stream[7] += F192::new([F64::ZERO, F64::new(1), F64::ZERO]);
     let (b, _) = recursion_rows(&circuit, a.statement(), &columns, ProofSource::Proof(&forged));
     assert!(!b.finish().failures.is_empty(), "a forged scalar passes");
     let mut statement = a.statement().to_vec();

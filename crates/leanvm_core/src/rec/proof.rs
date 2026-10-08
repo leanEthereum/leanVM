@@ -24,7 +24,7 @@ use flock::lincheck::MatrixClaim;
 use flock::reduction::{self, Instance};
 use flock::verifier::FlockError;
 use parallel::SendPtr;
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 use std::borrow::Cow;
 use std::mem::MaybeUninit;
 use tracing::info_span;
@@ -32,7 +32,7 @@ use tracing::info_span;
 /// The transcript's public input for a statement: the hash of its words' limbs, in order.
 pub fn statement_seed(statement: &[Limbs]) -> [F64; 4] {
     let limbs: Vec<u64> = statement.iter().flatten().copied().collect();
-    chain(&limbs).map(F64)
+    chain(&limbs).map(F64::new)
 }
 
 /// The hash table's flock batch, one instance per row, but its `z`, which is the stack's packed-witness window.
@@ -70,7 +70,7 @@ impl HashFlock {
             if j < hash.len() && std::ptr::eq(&hash[j], row) {
                 for (ptr, &word) in port_ptrs.iter().zip(z) {
                     // SAFETY: row `j` is visited once, and each port buffer holds every row.
-                    unsafe { ptr.0.add(j).write(F64(word)) };
+                    unsafe { ptr.0.add(j).write(F64::new(word)) };
                 }
             }
         };
@@ -85,7 +85,7 @@ impl HashFlock {
         if hash.len() < 1 << tau {
             let padding = &z[hash.len() << Self::stride_log()..];
             for (port, &word) in ports.iter_mut().zip(padding) {
-                port[hash.len()..].fill(MaybeUninit::new(F64(word)));
+                port[hash.len()..].fill(MaybeUninit::new(F64::new(word)));
             }
         }
         HashBatch {
@@ -360,9 +360,10 @@ mod tests {
     use crate::rec::circuit::{Builder, Dw, Ew, Finished, Kw, PARAM_IV};
     use fiat_shamir::arith::Arith;
     use fiat_shamir::{DS_OBSERVE, DS_SQUEEZE};
+    use primitives::{Field, PrimeCharacteristicRing};
     use std::panic::AssertUnwindSafe;
 
-    const IV: [F64; 4] = [F64(1), F64(2), F64(3), F64(4)];
+    const IV: [F64; 4] = [F64::new(1), F64::new(2), F64::new(3), F64::new(4)];
 
     fn prove_run(circuit: &Circuit, a: &Assignment) -> ProofTranscript {
         circuit
@@ -385,23 +386,23 @@ mod tests {
     // A circuit using every table and every slot kind.
     fn every_kind() -> (Circuit, Assignment, Wires) {
         let mut b = Builder::new();
-        let x = b.free_e(F192::new(3, 5, 7));
+        let x = b.free_e(F192::new([F64::new(3), F64::new(5), F64::new(7)]));
         let one = b.one();
         let zero = b.zero();
-        let y = b.e_const(F192::new(11, 13, 17));
+        let y = b.e_const(F192::new([F64::new(11), F64::new(13), F64::new(17)]));
         let product = b.mul_add(x, y, one);
-        let scaled = b.mul_const(product, F192::from(F64(9)));
+        let scaled = b.mul_const(product, F192::from(F64::new(9)));
         let k = b.free_k(0xdead_beef);
         let r = b.mul_k_add(scaled, k, x);
         // A free wire in one slot only.
-        let hint = b.free_e(F192::new(1, 2, 3));
+        let hint = b.free_e(F192::new([F64::new(1), F64::new(2), F64::new(3)]));
         b.mul_add(hint, y, zero);
 
         // Two transcript steps, then a Merkle path with a right and a left turn.
         let start = b.d_const([9, 8, 7, 6]);
-        let observe = b.k_const(DS_OBSERVE.0);
+        let observe = b.k_const(DS_OBSERVE.to_bits());
         let (acc, _) = b.compress(start, r, observe);
-        let squeeze = b.k_const(DS_SQUEEZE.0);
+        let squeeze = b.k_const(DS_SQUEEZE.to_bits());
         let (acc, challenge) = b.compress(acc, zero, squeeze);
         let w = b.free_k(0b1101_0110 | 1 << 40);
         let bits = b.split(w);
@@ -424,7 +425,7 @@ mod tests {
         let back = b.k_to_e(limbs);
         b.eq_e(back, challenge);
         let embedded = b.k_to_e1(k);
-        let seven = b.e_const(F192::new(0, 7, 0));
+        let seven = b.e_const(F192::new([F64::new(0), F64::new(7), F64::new(0)]));
         let zero = b.zero();
         let kk = b.mul_k_add(seven, k, zero);
         let kk_again = b.mul(seven, embedded);
@@ -503,27 +504,31 @@ mod tests {
         let wt: Vec<F192> = (1..5).map(|j| bus.weights[j]).collect();
 
         // Solve `sum_j wt_j·delta_j = 0` over `K` with `delta_3 = 1`: three `K`-linear equations, by elimination.
-        let limb = |x: F192, r: usize| F64([x.c0, x.c1, x.c2][r]);
+        let limb = |x: F192, r: usize| {
+            F64::new(
+                [
+                    x.coefficients()[0].to_bits(),
+                    x.coefficients()[1].to_bits(),
+                    x.coefficients()[2].to_bits(),
+                ][r],
+            )
+        };
         let mut m: Vec<[F64; 4]> = (0..3).map(|r| std::array::from_fn(|j| limb(wt[j], r))).collect();
         for c in 0..3 {
             let p = (c..3).find(|&r| !m[r][c].is_zero()).expect("a pivot");
             m.swap(c, p);
-            let inv = m[c][c].inv();
+            let inv = m[c][c].invert_or_zero();
             m[c] = m[c].map(|v| v * inv);
             for r in (0..3).filter(|&r| r != c) {
                 let f = m[r][c];
                 m[r] = std::array::from_fn(|k| m[r][k] + m[c][k] * f);
             }
         }
-        let delta = [m[0][3], m[1][3], m[2][3], F64(1)];
-        assert!(
-            (0..4)
-                .fold(F192::ZERO, |acc, j| acc + wt[j].mul_base(delta[j]))
-                .is_zero()
-        );
+        let delta = [m[0][3], m[1][3], m[2][3], F64::new(1)];
+        assert!((0..4).fold(F192::ZERO, |acc, j| acc + (wt[j] * delta[j])).is_zero());
         let mut forged = a.statement;
         for (l, dl) in forged[0].iter_mut().zip(delta) {
-            *l ^= dl.0;
+            *l ^= dl.to_bits();
         }
 
         // Under the honest seed the bus accepts the forged words; seeded with them, the proof is refused.
@@ -569,9 +574,9 @@ mod tests {
     #[test]
     fn an_equality_the_run_breaks_is_refused_by_the_verifier() {
         let mut b = Builder::new();
-        let x = b.free_e(F192::new(3, 5, 7));
-        let y = b.free_e(F192::new(4, 5, 7));
-        let c = b.e_const(F192::new(2, 0, 1));
+        let x = b.free_e(F192::new([F64::new(3), F64::new(5), F64::new(7)]));
+        let y = b.free_e(F192::new([F64::new(4), F64::new(5), F64::new(7)]));
+        let c = b.e_const(F192::new([F64::new(2), F64::new(0), F64::new(1)]));
         let p = b.mul(x, c);
         let q = b.mul(y, c);
         b.expose_e(p);
@@ -600,13 +605,13 @@ mod tests {
     #[test]
     fn padding_rows_are_inert() {
         let mut b = Builder::new();
-        let mut e = b.free_e(F192::new(2, 3, 4));
+        let mut e = b.free_e(F192::new([F64::new(2), F64::new(3), F64::new(4)]));
         let mut acc = b.d_const([1, 2, 3, 4]);
-        let ds = b.k_const(DS_OBSERVE.0);
+        let ds = b.k_const(DS_OBSERVE.to_bits());
         for i in 0..3u64 {
-            let c = b.e_const(F192::new(i + 5, 1, 0));
+            let c = b.e_const(F192::new([F64::new(i + 5), F64::new(1), F64::new(0)]));
             e = b.mul_add(e, c, e);
-            e = b.mul_const(e, F192::from(F64(i + 3)));
+            e = b.mul_const(e, F192::from(F64::new(i + 3)));
             let w = b.free_k(i * 0x1234_5678);
             b.split(w);
             b.d_to_k(acc);

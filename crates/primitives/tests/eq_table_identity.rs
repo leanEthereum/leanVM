@@ -7,7 +7,9 @@
 //!
 //! These agree by distributivity in characteristic 2, and F192 stores a
 //! canonical reduced `(c0, c1, c2)`, so the bit patterns must match exactly.
-use primitives::field::F192;
+use primitives::PrimeCharacteristicRing;
+
+use primitives::F192;
 use primitives::test_util::Rng;
 
 /// Verbatim copy of the pre-change implementation.

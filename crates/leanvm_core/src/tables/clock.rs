@@ -266,7 +266,8 @@ mod tests {
     use crate::rv::Ext;
     use crate::tables::{TableId, Word};
     use flock::lincheck::LincheckCircuit;
-    use primitives::field::F192;
+    use primitives::F192;
+    use primitives::PrimeCharacteristicRing;
     use primitives::test_util::Rng;
 
     #[test]

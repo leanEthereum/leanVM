@@ -6,7 +6,8 @@ use leanvm_core::{
     BusError, CpuError, Hash, Machine, N_TABLES, Output, Program, Proof, ProveError, ProvenRun, Prover, Rate, Region,
     Trap, UNGROUND_LOG_BYTECODE,
 };
-use primitives::field::{F64, F192};
+use primitives::PrimeCharacteristicRing;
+use primitives::{F64, F192};
 
 const STEPS: u64 = 2000;
 
@@ -353,13 +354,22 @@ fn extension_field_products_prove_and_verify() {
         Program::new(&a.exit().finish(), Region::TEXT.base(), image, 7, 0).expect("valid instruction program");
 
     // The same values from the host's fields.
-    let e = |v: [u64; 3]| F192::new(v[0], v[1], v[2]);
+    let e = |v: [u64; 3]| F192::new([F64::new(v[0]), F64::new(v[1]), F64::new(v[2])]);
     let dot = (0..N - 1).fold(F192::ZERO, |acc, i| acc + e(x[i]) * e(x[i + 1]));
-    let mixed = (0..N).fold(F192::ZERO, |acc, i| acc + e(x[i]).mul_base(F64(w[i])));
+    let mixed = (0..N).fold(F192::ZERO, |acc, i| acc + (e(x[i]) * F64::new(w[i])));
     let cube = e(x[2]) * (e(x[0]) * e(x[0]) * e(x[0]));
-    let scaled = e(x[1]).mul_base(F64(w[1]));
+    let scaled = e(x[1]) * F64::new(w[1]);
     let folded = dot + mixed + cube + scaled;
-    proves_and_verifies("ext", &program, [folded.c0, folded.c1, folded.c2, 0]);
+    proves_and_verifies(
+        "ext",
+        &program,
+        [
+            folded.coefficients()[0].to_bits(),
+            folded.coefficients()[1].to_bits(),
+            folded.coefficients()[2].to_bits(),
+            0,
+        ],
+    );
 }
 
 /// The advice region: words the prover supplies, read and written like RAM, which the
@@ -436,7 +446,11 @@ fn large_program() -> (Program, Proof, Proof, Output) {
     let forged = (1..64)
         .map(|step| {
             let mut forged = proof.clone();
-            forged.0.stream[N_TABLES + 4].c0 += step;
+            {
+                let mut coefficients = forged.0.stream[N_TABLES + 4].coefficients();
+                coefficients[0] = F64::new(coefficients[0].to_bits() + (step));
+                forged.0.stream[N_TABLES + 4] = F192::new(coefficients);
+            }
             forged
         })
         .find(|forged| program.verify(output, forged) == Err(missed.clone().into()))

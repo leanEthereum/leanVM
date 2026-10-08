@@ -4,6 +4,8 @@
 //! lookups feed two EOR3 accumulators. The high limb uses an eight-byte load,
 //! never an overread of the final table entry.
 
+use crate::F64;
+
 use super::{BLOCK, F192};
 use core::arch::aarch64::{
     vcombine_u64, vdup_n_u64, vdupq_n_u64, veor3q_u64, veorq_u64, vgetq_lane_u64, vld1_u64, vld1q_u64,
@@ -34,11 +36,11 @@ fn fold_row<const CHUNKS: usize>(tables: &[[Entry; 256]], row: &[u8; CHUNKS]) ->
             lo = veorq_u64(lo, vld1q_u64(a));
             hi = veorq_u64(hi, vcombine_u64(vld1_u64(a.add(2)), vdup_n_u64(0)));
         }
-        F192 {
-            c0: vgetq_lane_u64::<0>(lo),
-            c1: vgetq_lane_u64::<1>(lo),
-            c2: vgetq_lane_u64::<0>(hi),
-        }
+        F192::new([
+            F64::new(vgetq_lane_u64::<0>(lo)),
+            F64::new(vgetq_lane_u64::<1>(lo)),
+            F64::new(vgetq_lane_u64::<0>(hi)),
+        ])
     }
 }
 
@@ -59,7 +61,11 @@ impl Imp {
                     let low = v.isolate_lowest_one();
                     let w = weights[low.trailing_zeros() as usize];
                     let prev = sums[v ^ low];
-                    sums[v] = [prev[0] ^ w.c0, prev[1] ^ w.c1, prev[2] ^ w.c2];
+                    sums[v] = [
+                        prev[0] ^ w.coefficients()[0].to_bits(),
+                        prev[1] ^ w.coefficients()[1].to_bits(),
+                        prev[2] ^ w.coefficients()[2].to_bits(),
+                    ];
                 }
                 sums
             })
@@ -91,9 +97,9 @@ impl Imp {
     pub(super) fn apply_add_f192(&self, xs: &[F192; BLOCK], out: &mut [F192]) {
         for (o, x) in out.iter_mut().zip(xs) {
             let mut row = [0u8; 24];
-            row[..8].copy_from_slice(&x.c0.to_le_bytes());
-            row[8..16].copy_from_slice(&x.c1.to_le_bytes());
-            row[16..].copy_from_slice(&x.c2.to_le_bytes());
+            row[..8].copy_from_slice(&x.coefficients()[0].to_bits().to_le_bytes());
+            row[8..16].copy_from_slice(&x.coefficients()[1].to_bits().to_le_bytes());
+            row[16..].copy_from_slice(&x.coefficients()[2].to_bits().to_le_bytes());
             *o += fold_row(&self.tables, &row);
         }
     }

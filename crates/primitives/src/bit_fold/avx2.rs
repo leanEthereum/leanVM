@@ -16,6 +16,8 @@
 //!
 //! Loading the registers in bit-reversed order makes every transpose land rows in their natural order.
 
+use crate::PrimeCharacteristicRing;
+
 use core::arch::x86_64::*;
 use core::fmt::Debug;
 
@@ -65,7 +67,14 @@ impl Product for Gfni {
     fn maps(w: &[F192; 8]) -> [u64; OUT_BYTES] {
         let mut out = [0u64; OUT_BYTES];
         for (i, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-            let words = w.map(|w| [w.c0, w.c1, w.c2][i].to_le_bytes());
+            let words = w.map(|w| {
+                [
+                    w.coefficients()[0].to_bits(),
+                    w.coefficients()[1].to_bits(),
+                    w.coefficients()[2].to_bits(),
+                ][i]
+                    .to_le_bytes()
+            });
             let mut t = [0u8; 64];
             bit_transpose_64bytes(words.as_flattened().try_into().expect("eight words"), &mut t);
             for (m, word) in out.iter_mut().zip(t.as_chunks::<8>().0) {
@@ -110,7 +119,15 @@ impl Product for Shuffle {
                 sum[v] = sum[v ^ low] + w[low.trailing_zeros() as usize];
             }
             for (row, s) in rows.iter_mut().zip(sum) {
-                row[..OUT_BYTES].copy_from_slice([s.c0, s.c1, s.c2].map(u64::to_le_bytes).as_flattened());
+                row[..OUT_BYTES].copy_from_slice(
+                    [
+                        s.coefficients()[0].to_bits(),
+                        s.coefficients()[1].to_bits(),
+                        s.coefficients()[2].to_bits(),
+                    ]
+                    .map(u64::to_le_bytes)
+                    .as_flattened(),
+                );
             }
         }
         // SAFETY: the impl exists only when the crate is built with AVX2.
@@ -351,7 +368,15 @@ impl<P: Product> Fold<P> {
     pub fn slice(xs: &[F192; BLOCK]) -> Sliced {
         let rows: [[u8; 32]; BLOCK] = std::array::from_fn(|i| {
             let mut row = [0u8; 32];
-            row[..OUT_BYTES].copy_from_slice([xs[i].c0, xs[i].c1, xs[i].c2].map(u64::to_le_bytes).as_flattened());
+            row[..OUT_BYTES].copy_from_slice(
+                [
+                    xs[i].coefficients()[0].to_bits(),
+                    xs[i].coefficients()[1].to_bits(),
+                    xs[i].coefficients()[2].to_bits(),
+                ]
+                .map(u64::to_le_bytes)
+                .as_flattened(),
+            );
             row
         });
         // SAFETY: the module is compiled only with AVX2 enabled.

@@ -7,7 +7,7 @@ use super::program::Program;
 use crate::class_flock::FlockId;
 use crate::tables::{ClassTable, FillContext, PerTable, TableId};
 use flock::Tables;
-use primitives::field::F64;
+use primitives::F64;
 use std::mem::MaybeUninit;
 use tracing::info_span;
 

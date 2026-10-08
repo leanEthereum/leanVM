@@ -17,7 +17,7 @@ use crate::tables::{Clock, Fill, N_CIRCUITS, N_TABLES, Part, PerTable, TableId};
 use flock::Tables;
 use flock::circuit::Circuit;
 use flock::reduction::{Instance, Shape, min_n_blocks_log};
-use primitives::field::F64;
+use primitives::F64;
 use std::sync::OnceLock;
 
 /// The zerocheck's cube has at least this many variables (flock's univariate skip
@@ -117,7 +117,7 @@ impl FlockId {
 
     /// `log2` of an instance's packed words: the stride between consecutive instances' same-port words.
     pub const fn stride_log(self) -> usize {
-        self.k_log() - F64::DEGREE.ilog2() as usize
+        self.k_log() - 64usize.ilog2() as usize
     }
 
     /// What the verifier's replay of the witness's reduction reads of its circuit short of its matrices.

@@ -1,12 +1,36 @@
-//! Shared primitives: field kernels, bit transposes, multilinear helpers, and
+//! Shared primitives: Plonky3 fields, bit transposes, multilinear helpers, and
 //! small integer utilities.
 
 pub mod bit_fold;
 pub mod bits;
-pub mod field;
+pub use multilinear::{G, PHI_8_TABLE_192, dot_base, g_pow, int_index_mle, mul_base8, mul2, mul4, phi8_192, powers};
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+))]
+pub use p3_binary_field::{PackedPoly192 as F192Packed, PackedPoly192Unreduced as F192PackedUnreduced};
+/// Number of extension elements in Plonky3's selected polynomial packing.
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+))]
+pub const F192_LANES: usize = <<F64 as Field>::Packing as PackedValue>::WIDTH;
+pub use p3_binary_field::{
+    Poly64 as F64, Poly192 as F192, Poly192MixedAccumulator as F192MixedAccumulator, Poly192Unreduced as F192Unreduced,
+    Rijndael8b as F8,
+};
+pub use p3_field::extension::HasFrobenius;
+pub use p3_field::{Algebra, ExtensionField, Field, PackedFieldExtension, PackedValue, PrimeCharacteristicRing};
 pub mod hash;
 pub mod multilinear;
 pub mod stream;
+
+/// Unreduced products in the scalar coefficient packing.
+#[cfg(not(any(
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
+    all(target_arch = "aarch64", target_endian = "little", target_feature = "aes")
+)))]
+pub type F192PackedUnreduced = F192Unreduced;
 
 use std::mem::MaybeUninit;
 

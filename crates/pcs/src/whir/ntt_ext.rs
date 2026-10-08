@@ -23,7 +23,7 @@
 //! A row of the codeword is evaluated the same way, one K lane per coefficient.
 
 use crate::ntt::{AdditiveNttF64, RowSink};
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 
 // An E element is exactly three K words, with no padding, so the two views line up.
 const _: () = assert!(size_of::<F192>() == 3 * size_of::<F64>());
@@ -54,7 +54,7 @@ pub(crate) fn rows_at_ext(ntt: &AdditiveNttF64, msg: &[F192], num_ntts: usize, p
     rows.as_chunks::<3>()
         .0
         .iter()
-        .map(|&[c0, c1, c2]| F192::new(c0.0, c1.0, c2.0))
+        .map(|&[c0, c1, c2]| F192::new([c0, c1, c2]))
         .collect()
 }
 
@@ -69,6 +69,7 @@ const fn words(msg: &[F192]) -> &[F64] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::PrimeCharacteristicRing;
     use primitives::log2_strict_usize;
     use primitives::test_util::Rng;
     use std::sync::Mutex;
@@ -86,7 +87,7 @@ mod tests {
                     for lane in 0..num_ntts {
                         // Butterfly: u' = u + v * t, then v' = v + u'.
                         let (top, bot) = (row * num_ntts + lane, (row + half) * num_ntts + lane);
-                        let new_u = data[top] + data[bot].mul_base(twiddle);
+                        let new_u = data[top] + (data[bot] * twiddle);
                         data[bot] += new_u;
                         data[top] = new_u;
                     }
