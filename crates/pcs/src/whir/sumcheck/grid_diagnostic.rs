@@ -252,9 +252,9 @@ fn captured_basis_components() {
                 grid.k[at] = input.k[lane];
                 grid.e[at] = WeightRow::pack(&input.e[lane]);
             }
-            #[cfg(leanvm_grid_candidate)]
+            #[cfg(all(leanvm_grid_candidate, target_arch = "aarch64", target_feature = "aes"))]
             accumulate_grid::<4>(&mut grid.k, &mut grid.e, acc);
-            #[cfg(not(leanvm_grid_candidate))]
+            #[cfg(not(all(leanvm_grid_candidate, target_arch = "aarch64", target_feature = "aes")))]
             {
                 extend_grid::<_, 4>(&mut grid.k, |a, b| std::array::from_fn(|i| a[i] ^ b[i]));
                 extend_grid::<_, 4>(&mut grid.e, WeightRow::add);

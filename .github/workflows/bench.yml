@@ -19,8 +19,6 @@ jobs:
         include:
           - arch: x86-64
             runner: size-attester7870-x64
-          - arch: arm64
-            runner: size-attester7870-arm64
     runs-on: [self-hosted-ghr, '${{ matrix.runner }}']
     timeout-minutes: 90
     env:
@@ -32,8 +30,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@1.99.0
-      - name: Paired dense-grid experiment
-        run: python3 scripts/grid-experiment.py
+      - name: Paired Xeon loop-restoration control
+        run: python3 scripts/grid-x86-control.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
