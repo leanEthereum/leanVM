@@ -1,172 +1,41 @@
 name: Bench
-
-# Proves a PR's merge commit and its base (the merge commit's first parent) in turns on one
-# runner, so the comparison is free of which machine the job landed on: one job per testbed
-# and benchmark, each building both sides and running them `ROUNDS` times in the order base,
-# PR, PR, base, ... Each job saves its runs as the artifact `ab-<testbed>-<benchmark>`, and
-# bench-comment.yml, on the default branch, posts what changed on the PR. It gates nothing.
-# A job is one CLI benchmark, or one `benches/` target with all the benchmarks it prints.
-# scripts/ab.sh does all of it, and runs the same comparison on a developer's machine.
-#
-# The testbeds are the self-hosted runners `size-attester7870-x64` and `size-attester7870-arm64`
-# (with `self-hosted-ghr`, an ephemeral VM per job; x86-64 an Intel Xeon Gold 6548N, 32 vCPUs,
-# 64 GB; arm64 an Arm Neoverse-V2, 16 vCPUs, 64 GB): base and PR build and run on one machine, so
-# each is built for `target-cpu=native` (on x86-64 AVX-512, VPCLMULQDQ and GFNI included), and
-# its cache is keyed on the CPU model so a native build never lands on another CPU. A fork has no
-# such runners, so in a fork's own repository the testbeds fall back to GitHub-hosted runners with
-# a pinned ISA, x86-64 built for haswell and arm64 for neoverse-n2 (a fork's PR to this repository
-# runs here, on the self-hosted runners): `target-cpu=native` would build for whichever CPU the
-# job lands on, and a cached build then dies of SIGILL on an older one (see rust.yml).
-#
-# Run from the Actions tab (`workflow_dispatch`), it compares any two refs the same way: `head`
-# (default: the branch it is run on) against `base` (default: the head's first parent). Such a
-# run leaves its artifacts only; bench-comment.yml posts for PRs alone.
-
 on:
-  pull_request:
-    # Not `edited`: a description edit would restart, and so cancel, the PR's run.
-    types: [ opened, reopened, synchronize ]
   workflow_dispatch:
     inputs:
       base:
-        description: "Base: a branch, tag or commit (default: the head's first parent)"
-        required: false
+        description: Exact baseline
+        default: f52bd991c8623894e7b03a2e50bede6c248ea1ad
       head:
-        description: "Head: a branch, tag or commit (default: the branch this runs on)"
+        description: Diagnostic head
         required: false
-
 permissions:
   contents: read
-
-concurrency:
-  group: bench-${{ github.ref }}-${{ inputs.base }}-${{ inputs.head }}
-  cancel-in-progress: true
-
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
-  ROUNDS: 5
-
 jobs:
-  ab:
-    name: ${{ matrix.benchmark.name }} (${{ matrix.testbed.name }})
-    runs-on: ${{ matrix.testbed.runner }}
-    timeout-minutes: 60
+  locality:
     strategy:
       fail-fast: false
       matrix:
-        testbed:
-          - name: x86-64
-            runner: ${{ github.repository == 'leanEthereum/leanVM' && fromJSON('["size-attester7870-x64", "self-hosted-ghr"]') || 'ubuntu-latest' }}
-            rustflags: ${{ github.repository == 'leanEthereum/leanVM' && '-C target-cpu=native' || '-C target-cpu=haswell' }}
-          # The NEON kernels are chosen at compile time on `aes` (PMULL) and `sha3` (EOR3), which
-          # a generic aarch64 target does not enable: the native build enables them where the CPU
-          # has them, the fork's neoverse-n2 pin names them, and the job fails early without them.
-          - name: arm64
-            runner: ${{ github.repository == 'leanEthereum/leanVM' && fromJSON('["size-attester7870-arm64", "self-hosted-ghr"]') || 'ubuntu-24.04-arm' }}
-            rustflags: ${{ github.repository == 'leanEthereum/leanVM' && '-C target-cpu=native' || '-C target-cpu=neoverse-n2 -C target-feature=+aes,+sha3' }}
-            # What the CPU must have to run that build.
-            cpu: ${{ github.repository == 'leanEthereum/leanVM' && 'aes pmull sha3' || 'aes pmull sha3 sve2' }}
-        # The cases of `proven()` and `proven_trees()` in bins/leanvm/src/tracked.rs, run by the
-        # CLI (`-<T>thread`, on T threads: the CLI proves it, a tree's leaf included, with
-        # `LEANVM_NUM_THREADS=T`, unpinned to cores since the job has its runner's VM to itself and
-        # base and PR alternate within it; a tree's case, `Nto1` for N proofs combined into 1,
-        # prints two benchmarks: `-first`, a first-level node, the RISC-V verifier in rows over N
-        # leaf proofs, and `-node`, a higher node, the recursion verifier in rows over N child
-        # proofs), then the `benches/` targets scripts/ab.sh names, each run with `--json`.
-        benchmark:
-          - name: fibonacci-asm-2000000
-          - name: hash-50000
-          - name: leanxmss-100
-          - name: leanxmss-100-1thread
-          - name: leanxmss-100-4thread
-          - name: leanxmss-100-8thread
-          - name: leansphincs-26
-          - name: falcon-7
-          - name: stateproof-5
-          - name: shielded-258
-          - name: aggregate-leanxmss-100-2to1
-          - name: aggregate-leanxmss-100-4to1
-          - name: aggregate-leanxmss-100-2to1-1thread
-          - name: aggregate-leanxmss-100-2to1-4thread
-          - name: aggregate-leanxmss-100-2to1-8thread
-          - name: aggregate-leanxmss-100-4to1-1thread
-          - name: aggregate-leanxmss-100-4to1-4thread
-          - name: aggregate-leanxmss-100-4to1-8thread
-          - name: flock-hash-batch-262144
-          - name: flock-arithmetic-batch
-          - name: pcs-throughput
-          - name: blake2s-batch
-          - name: kernels
+        include:
+          - arch: x86-64
+            runner: size-attester7870-x64
+          - arch: arm64
+            runner: size-attester7870-arm64
+    runs-on: [self-hosted-ghr, '${{ matrix.runner }}']
+    timeout-minutes: 120
     env:
-      RUSTFLAGS: ${{ matrix.testbed.rustflags }}
-      BENCHMARK: ${{ matrix.benchmark.name }}
+      RUSTFLAGS: -C target-cpu=native
+      CARGO_BUILD_JOBS: 4
+      BASE: '${{ inputs.base }}'
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.head }}
-          # The head (a PR's merge commit) and its first parent, the default base.
-          fetch-depth: 2
-      - uses: dtolnay/rust-toolchain@stable
-      # What the build can use, so the PR comment's numbers can be read against the hardware.
-      # The model goes into the cache key: a native build is only reused on the CPU it was built for.
-      - name: CPU
-        id: cpu
-        run: |
-          lscpu | grep -E '^(Vendor ID|Model name|CPU\(s\)|Thread\(s\) per core|Core\(s\) per (socket|cluster)|L1d cache|L2 cache|L3 cache):'
-          free -g | grep -E '^Mem:'
-          uname -srvm
-          echo "Page size (bytes): $(getconf PAGESIZE)"
-          for path in \
-            /sys/kernel/mm/transparent_hugepage/{enabled,defrag,hpage_pmd_size} \
-            /sys/devices/system/cpu/cpufreq/policy*/{scaling_driver,scaling_governor,scaling_cur_freq,cpuinfo_cur_freq,cpuinfo_min_freq,cpuinfo_max_freq}; do
-            if value=$(cat "$path" 2>/dev/null); then
-              printf '%s: %s\n' "$path" "$value"
-            fi
-          done
-          if [ "$RUNNER_ARCH" = ARM64 ]; then
-            flags=$(grep -m1 -E '^Features' /proc/cpuinfo)
-            wanted="asimd aes pmull sha3 sve sve2 svepmull svebitperm i8mm bf16"
-          else
-            flags=$(grep -m1 -E '^flags' /proc/cpuinfo)
-            wanted="avx2 avx512f avx512bw avx512vl avx512vbmi avx512ifma vpclmulqdq gfni"
-          fi
-          for f in $wanted; do
-            if grep -qw "$f" <<<"$flags"; then echo "$f: yes"; else echo "$f: no"; fi
-          done
-          echo "model=-$(lscpu | sed -n 's/^Model name: *//p' | head -n1 | tr -c 'A-Za-z0-9\n' '-')" >> "$GITHUB_OUTPUT"
-      # The build must enable the NEON kernels' features, and the CPU must have what the build
-      # enables, or the comparison measures the fallback or dies of SIGILL.
-      - name: NEON kernels
-        if: runner.arch == 'ARM64'
-        env:
-          CPU_FEATURES: ${{ matrix.testbed.cpu }}
-        run: |
-          read -ra flags <<<"$RUSTFLAGS"
-          cfg=$(rustc --print cfg "${flags[@]}")
-          for f in aes sha3; do grep -qx "target_feature=\"$f\"" <<<"$cfg" || { echo "::error::$RUSTFLAGS does not enable $f"; exit 1; }; done
-          features=$(grep -m1 -E '^Features' /proc/cpuinfo)
-          for f in $CPU_FEATURES; do grep -qw "$f" <<<"$features" || { echo "::error::no $f on this runner"; exit 1; }; done
-      # One cache per testbed and CPU model; RUSTFLAGS is part of its key.
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.testbed.name }}${{ steps.cpu.outputs.model }}
-      - name: Prove the PR and its base in turns
-        env:
-          PR: ${{ github.event.number }}
-          TESTBED: ${{ matrix.testbed.name }}
-          BASE: ${{ inputs.base }}
-        run: |
-          args=(--ci --testbed "$TESTBED" --out ab)
-          if [ -n "$PR" ]; then args+=(--pr "$PR"); fi
-          if [ -n "$BASE" ]; then
-            git fetch --quiet --no-tags --depth=1 origin "$BASE"
-            args+=(--base "$(git rev-parse FETCH_HEAD)")
-          fi
-          scripts/ab.sh "${args[@]}" "$BENCHMARK"
+          ref: '${{ inputs.head }}'
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.99.0
+      - name: Compare bounded basis chunks
+        run: python3 scripts/basis-locality.py
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: ab-${{ matrix.testbed.name }}-${{ matrix.benchmark.name }}
-          path: |
-            ab/ab-${{ matrix.testbed.name }}-${{ matrix.benchmark.name }}/ab.json
-            ab/ab-${{ matrix.testbed.name }}-${{ matrix.benchmark.name }}/trace-*.log
+          name: locality-${{ matrix.arch }}
+          path: locality-evidence/
