@@ -9,9 +9,11 @@ pub use p3_binary_field::PackedPoly192 as F192Packed;
 /// Number of extension elements in Plonky3's selected polynomial packing.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 pub const F192_LANES: usize = <<F64 as Field>::Packing as PackedValue>::WIDTH;
-pub use p3_binary_field::{Poly64 as F64, Poly192 as F192, Rijndael8b as F8};
+pub use p3_binary_field::{
+    Poly64 as F64, Poly192 as F192, Poly192MixedAccumulator as F192MixedAccumulator, Rijndael8b as F8,
+};
 pub use p3_field::extension::HasFrobenius;
-pub use p3_field::{Algebra, Field, PackedFieldExtension, PackedValue, PrimeCharacteristicRing};
+pub use p3_field::{Algebra, ExtensionField, Field, PackedFieldExtension, PackedValue, PrimeCharacteristicRing};
 pub mod hash;
 pub mod multilinear;
 pub mod stream;

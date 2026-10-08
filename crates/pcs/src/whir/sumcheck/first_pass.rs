@@ -19,7 +19,7 @@ use super::{
 use parallel::SendPtr;
 use primitives::bit_fold;
 use primitives::stream::Stream;
-use primitives::{F64, F192, dot_base};
+use primitives::{ExtensionField, F64, F192, F192MixedAccumulator, Field, PackedFieldExtension, PackedValue};
 use std::ops::Range;
 
 /// Lanes per group, and points of `{0, 1, inf}^R`, `R` being [`PRECOMPUTED_ROUNDS`].
@@ -61,33 +61,49 @@ fn extend_grid<T: Copy, const R: usize>(grid: &mut [T; GRID], add: impl Fn(&T, &
     }
 }
 
-/// One row of multilinear weights.
+/// Coefficient values packed by the upstream field backend.
+type CoefficientPacking = <F64 as Field>::Packing;
+/// Extension values carried in those coefficient lanes.
+type WeightPacking = <F192 as ExtensionField<F64>>::ExtensionPacking;
+/// Values per upstream packing.
+const WEIGHT_LANES: usize = CoefficientPacking::WIDTH;
+/// Packings needed for one row.
+const WEIGHT_PACKS: usize = ROW / WEIGHT_LANES;
+const _: () = assert!(ROW.is_multiple_of(WEIGHT_LANES));
+
+/// One row of multilinear weights in the upstream packing's coordinate layout.
 #[derive(Clone, Copy, Default)]
-struct WeightRow([F192; ROW]);
+struct WeightRow([WeightPacking; WEIGHT_PACKS]);
 impl WeightRow {
-    /// Copy a row, padding its tail with zero.
+    /// Pack a row once, padding its tail with zero.
     fn pack(w: &[F192]) -> Self {
-        let mut row = Self::default();
-        row.0[..w.len()].copy_from_slice(w);
-        row
+        assert!(w.len() <= ROW);
+        Self(std::array::from_fn(|group| {
+            <WeightPacking as PackedFieldExtension<F64, F192>>::from_ext_fn(|lane| {
+                w.get(group * WEIGHT_LANES + lane).copied().unwrap_or(F192::ZERO)
+            })
+        }))
     }
     fn add(&self, other: &Self) -> Self {
         Self(std::array::from_fn(|i| self.0[i] + other.0[i]))
     }
 }
 
-/// A row's sum of mixed products.
+/// A row's polynomial sums, reduced only when the complete grid is consumed.
 #[derive(Clone, Copy, Default)]
-struct ProductRow(F192);
+struct ProductRow(F192MixedAccumulator);
 impl ProductRow {
     fn mul_acc(&mut self, w: &WeightRow, k: &[u64; ROW]) {
-        self.0 += dot_base(&[w.0], &k.map(F64::new));
+        for (group, &values) in w.0.iter().enumerate() {
+            let weights = CoefficientPacking::from_fn(|lane| F64::new(k[group * WEIGHT_LANES + lane]));
+            self.0.add_packed_dot_product(values, weights);
+        }
     }
     fn add(&mut self, other: &Self) {
-        self.0 += other.0;
+        self.0.merge(other.0);
     }
-    const fn sum(&self) -> F192 {
-        self.0
+    fn sum(&self) -> F192 {
+        self.0.finish()
     }
 }
 
@@ -311,32 +327,47 @@ impl LaneWeight {
     }
 }
 
-/// Sums of weighted values for one window.
+/// Sums of weighted values for one window, using the upstream coefficient layout.
 #[derive(Clone, Copy)]
-pub(super) struct WeightFold([F192; INITIAL_BASIS_CHUNK]);
+pub(super) struct WeightFold([WeightPacking; INITIAL_BASIS_CHUNK / WEIGHT_LANES]);
 impl Default for WeightFold {
     fn default() -> Self {
-        Self([F192::ZERO; INITIAL_BASIS_CHUNK])
+        Self([WeightPacking::ZERO; INITIAL_BASIS_CHUNK / WEIGHT_LANES])
     }
 }
 impl WeightFold {
-    /// Add one lane of extension values.
+    /// Add one lane of extension values through upstream packed products.
     pub(super) fn add(&mut self, e: &LaneWeight, b: &[F192]) {
-        assert!(b.len() <= self.0.len());
-        for (sum, &value) in self.0.iter_mut().zip(b) {
-            *sum += e.0 * value;
+        assert!(b.len() <= INITIAL_BASIS_CHUNK);
+        let weight = WeightPacking::from(e.0);
+        for (group, values) in b.chunks(WEIGHT_LANES).enumerate() {
+            let values = <WeightPacking as PackedFieldExtension<F64, F192>>::from_ext_fn(|lane| {
+                values.get(lane).copied().unwrap_or(F192::ZERO)
+            });
+            self.0[group] += weight * values;
         }
     }
-    /// Add one lane of coefficient-field values.
+    /// Add one lane of coefficient-field values through upstream mixed products.
     pub(super) fn add_base(&mut self, e: &LaneWeight, f: &[F64]) {
-        assert!(f.len() <= self.0.len());
-        for (sum, &value) in self.0.iter_mut().zip(f) {
-            *sum += e.0 * value;
+        assert!(f.len() <= INITIAL_BASIS_CHUNK);
+        let weight = WeightPacking::from(e.0);
+        for (group, values) in f.chunks(WEIGHT_LANES).enumerate() {
+            let values = CoefficientPacking::from_fn(|lane| values.get(lane).copied().unwrap_or(F64::ZERO));
+            self.0[group] += weight * values;
         }
     }
-    /// Write the accumulated window.
+    /// Write every accumulated value, including a short final group.
     pub(super) fn write(&self, dst: &mut [F192]) {
-        dst.copy_from_slice(&self.0[..dst.len()]);
+        assert!(dst.len() <= INITIAL_BASIS_CHUNK);
+        for (&values, out) in self.0.iter().zip(dst.chunks_mut(WEIGHT_LANES)) {
+            if out.len() == WEIGHT_LANES {
+                <WeightPacking as PackedFieldExtension<F64, F192>>::to_ext_slice(&values, out);
+            } else {
+                let mut tail = [F192::ZERO; WEIGHT_LANES];
+                <WeightPacking as PackedFieldExtension<F64, F192>>::to_ext_slice(&values, &mut tail);
+                out.copy_from_slice(&tail[..out.len()]);
+            }
+        }
     }
 }
 
@@ -349,21 +380,6 @@ mod tests {
 
     #[test]
     fn grid_extension_products_match_scalar_definition() {
-        fn scalar_mul(mut a: u64, mut b: u64) -> u64 {
-            let mut p = 0;
-            for _ in 0..64 {
-                if b & 1 != 0 {
-                    p ^= a;
-                }
-                let carry = a >> 63;
-                a <<= 1;
-                if carry != 0 {
-                    a ^= 0x1b;
-                }
-                b >>= 1;
-            }
-            p
-        }
         let mut rng = Rng::new(0x671D);
         for rounds in 1..=PRECOMPUTED_ROUNDS {
             for block in [1, 2, 4, 8, 16] {
@@ -386,11 +402,7 @@ mod tests {
                                         e += weight[(start + lane) * block + x];
                                     }
                                 }
-                                want += F192::new([
-                                    F64::new(scalar_mul(e.coefficients()[0].to_bits(), k)),
-                                    F64::new(scalar_mul(e.coefficients()[1].to_bits(), k)),
-                                    F64::new(scalar_mul(e.coefficients()[2].to_bits(), k)),
-                                ]);
+                                want += F192::new(e.coefficients().map(|coordinate| coordinate * F64::new(k)));
                             }
                         }
                         assert_eq!(

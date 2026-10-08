@@ -6,9 +6,8 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F192`), so the first
 //! fold of a committed table also lifts it into `E`.
 
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use crate::PackedFieldExtension;
-use crate::{Algebra, PrimeCharacteristicRing};
+use crate::{Algebra, Field, PackedFieldExtension, PackedValue, PrimeCharacteristicRing};
+use p3_field::ExtensionField;
 
 use std::mem::MaybeUninit;
 
@@ -17,6 +16,25 @@ use crate::{F8, F64, F192};
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 use crate::{F192_LANES, F192Packed};
 use std::sync::LazyLock;
+
+/// Coefficient lanes selected by the upstream field backend.
+type BasePacking = <F64 as Field>::Packing;
+/// Extension values stored across those coefficient lanes.
+type ExtPacking = <F192 as ExtensionField<F64>>::ExtensionPacking;
+/// Number of values covered by one upstream mixed or extension product.
+const EXT_LANES: usize = BasePacking::WIDTH;
+
+/// Load a complete group using the extension over `F64`, including the scalar packing.
+#[inline]
+fn load_extension_lanes(values: &[F192]) -> ExtPacking {
+    <ExtPacking as PackedFieldExtension<F64, F192>>::from_ext_slice(values)
+}
+
+/// Store every lane using the same coefficient field as the load.
+#[inline]
+fn store_extension_lanes(values: ExtPacking, out: &mut [F192]) {
+    <ExtPacking as PackedFieldExtension<F64, F192>>::to_ext_slice(&values, out);
+}
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
 /// char-2 form of `(1−t)·lo + t·hi`.
@@ -82,9 +100,17 @@ pub fn fill_eq_table_uninit(r: &[F192], seed: F192, out: &mut [MaybeUninit<F192>
     let rows = parallel::recommended_chunk_size(high.len());
     parallel::chunks_mut(out, rows * low.len(), |c, chunk| {
         for (row, &w) in chunk.chunks_exact_mut(low.len()).zip(&high[c * rows..]) {
-            for (dst, src) in row.as_chunks_mut::<4>().0.iter_mut().zip(low.as_chunks::<4>().0) {
-                let p = mul4([w; 4], *src);
-                dst.iter_mut().zip(p).for_each(|(d, p)| _ = d.write(p));
+            let weight = ExtPacking::from(w);
+            for (dst, src) in row
+                .as_chunks_mut::<EXT_LANES>()
+                .0
+                .iter_mut()
+                .zip(low.as_chunks::<EXT_LANES>().0)
+            {
+                let product = weight * load_extension_lanes(src);
+                let mut values = [F192::ZERO; EXT_LANES];
+                store_extension_lanes(product, &mut values);
+                dst.write_copy_of_slice(&values);
             }
         }
     });
@@ -106,13 +132,16 @@ fn fill_eq_doubling(r: &[F192], seed: F192, out: &mut [MaybeUninit<F192>]) {
         let (lo, hi) = out[..2 * half].split_at_mut(half);
         // SAFETY: the low half was initialized at earlier levels.
         let lo = unsafe { &mut *(lo as *mut [MaybeUninit<F192>] as *mut [F192]) };
-        let (lo4, lo_tail) = lo.as_chunks_mut::<4>();
-        let (hi4, hi_tail) = hi.as_chunks_mut::<4>();
-        for (l, h) in lo4.iter_mut().zip(hi4) {
-            let p = mul4([rk; 4], *l);
-            for k in 0..4 {
-                h[k].write(p[k]);
-                l[k] += p[k];
+        let (lo_packed, lo_tail) = lo.as_chunks_mut::<EXT_LANES>();
+        let (hi_packed, hi_tail) = hi.as_chunks_mut::<EXT_LANES>();
+        let weight = ExtPacking::from(rk);
+        for (l, h) in lo_packed.iter_mut().zip(hi_packed) {
+            let product = weight * load_extension_lanes(l);
+            let mut values = [F192::ZERO; EXT_LANES];
+            store_extension_lanes(product, &mut values);
+            h.write_copy_of_slice(&values);
+            for (value, product) in l.iter_mut().zip(values) {
+                *value += product;
             }
         }
         for (l, h) in lo_tail.iter_mut().zip(hi_tail) {
@@ -175,14 +204,14 @@ pub fn fold_high_inplace(table: &mut Vec<F192>, chi: F192) {
     table.truncate(half);
 }
 
-/// `lo[i] = interp(lo[i], hi[i], chi)`, four products per batch.
+/// `lo[i] = interp(lo[i], hi[i], chi)`, using every lane of the upstream packing.
 fn interp_into(lo: &mut [F192], hi: &[F192], chi: F192) {
-    let ((lo4, lo_tail), (hi4, hi_tail)) = (lo.as_chunks_mut::<4>(), hi.as_chunks::<4>());
-    for (l, h) in lo4.iter_mut().zip(hi4) {
-        let p = mul4([chi; 4], std::array::from_fn(|i| l[i] + h[i]));
-        for i in 0..4 {
-            l[i] += p[i];
-        }
+    let ((lo_packed, lo_tail), (hi_packed, hi_tail)) = (lo.as_chunks_mut::<EXT_LANES>(), hi.as_chunks::<EXT_LANES>());
+    let weight = ExtPacking::from(chi);
+    for (l, h) in lo_packed.iter_mut().zip(hi_packed) {
+        let low = load_extension_lanes(l);
+        let high = load_extension_lanes(h);
+        store_extension_lanes(low + weight * (low + high), l);
     }
     for (l, h) in lo_tail.iter_mut().zip(hi_tail) {
         *l = interp(*l, *h, chi);
@@ -510,7 +539,19 @@ pub fn mul4(a: [F192; 4], b: [F192; 4]) -> [F192; 4] {
 /// Eight products by coefficient-field scalars.
 #[inline]
 pub fn mul_base8(t: F192, k: [F64; 8]) -> [F192; 8] {
-    k.map(|k| t * k)
+    let width = EXT_LANES;
+    let mut out = [F192::ZERO; 8];
+    let packed_t = ExtPacking::from(t);
+    let done = 8 / width * width;
+    for start in (0..done).step_by(width) {
+        // One upstream mixed product fills every lane of the selected coefficient packing.
+        let coefficients = BasePacking::from_fn(|lane| k[start + lane]);
+        store_extension_lanes(packed_t * coefficients, &mut out[start..start + width]);
+    }
+    for i in done..8 {
+        out[i] = t * k[i];
+    }
+    out
 }
 /// Mixed inner product in groups of eight, using Plonky3's deferred reduction.
 pub fn dot_base(w: &[[F192; 8]], k: &[F64]) -> F192 {
