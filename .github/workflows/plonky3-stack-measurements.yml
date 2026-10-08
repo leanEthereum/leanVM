@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: Branch-free radix-eight comparison (${{ matrix.name }})
+    name: Inlined power-weighted comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: b83a7df2cd3d45b0cb7885cc53f845a1099aaf65
+          ref: 76214728af7ef7a5346e8e8481aa5e7e1a1d8076
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare branch-free upstream butterflies on native hardware
+      - name: Compare inlined power-weighted sums on native hardware
         run: bash .github/perf-stack/run.sh
