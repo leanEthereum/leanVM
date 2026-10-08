@@ -39,7 +39,7 @@ pub enum Word {
     Dest,
     /// Bit `k` of the flags, a 0 or 1 field element: what a table with no class circuit selects with.
     FlagBit(u8),
-    /// Computed bus address of an extension-field limb beyond its pointer ([`Ext::bus_address`]).
+    /// Computed bus address of an extension-field limb beyond its pointer (`Ext::bus_address`).
     LimbAddress(u8),
     /// Circuit verdict bound to a public zero in the bytecode lookup.
     Bad,

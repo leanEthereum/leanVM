@@ -1059,7 +1059,6 @@ dependencies = [
 name = "flock"
 version = "0.1.0"
 dependencies = [
- "bench",
  "fiat_shamir",
  "parallel",
  "pcs",

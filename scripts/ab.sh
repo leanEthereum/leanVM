@@ -25,11 +25,9 @@
 set -euo pipefail
 
 # The `benches/` targets, by benchmark name: package, target, then any build flags. Any other name is a CLI case.
-# flock's targets need its `bench` feature, which an older base lacks: `--all-features` asks for it only where it exists.
 target_of() {
   case $1 in
-    flock-hash-batch-262144) echo flock hash_batch --all-features ;;
-    flock-arithmetic-batch) echo flock arithmetic_batch --all-features ;;
+    flock-class-batch) echo leanvm class_batch ;;
     pcs-throughput) echo pcs throughput ;;
     blake2s-batch) echo primitives hash_throughput ;;
     kernels) echo primitives kernels ;;

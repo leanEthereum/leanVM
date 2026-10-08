@@ -93,8 +93,7 @@ jobs:
           - name: aggregate-leanxmss-100-4to1-1thread
           - name: aggregate-leanxmss-100-4to1-4thread
           - name: aggregate-leanxmss-100-4to1-8thread
-          - name: flock-hash-batch-262144
-          - name: flock-arithmetic-batch
+          - name: flock-class-batch
           - name: pcs-throughput
           - name: blake2s-batch
           - name: kernels

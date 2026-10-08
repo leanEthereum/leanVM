@@ -240,7 +240,7 @@ impl Multiplier {
     }
 
     /// Write the complement selector, the carry-save products and the final carries.
-    pub(super) fn witness_into(&self, a: u64, b: u64, tables: &mut InstanceRows<'_>) -> u128 {
+    fn witness_into(&self, a: u64, b: u64, tables: &mut InstanceRows<'_>) -> u128 {
         // A wrapping product needs only the low half of every row.
         if self.width == u128::from(u64::MAX) {
             return u128::from(self.witness_low(a, b, tables));

@@ -6,13 +6,6 @@
 struct BitsMut<'a>(&'a mut [u64]);
 
 impl BitsMut<'_> {
-    /// Set bit `at`.
-    #[cfg(any(test, feature = "bench"))]
-    #[inline(always)]
-    const fn set(&mut self, at: usize) {
-        self.0[at / 64] |= 1 << (at % 64);
-    }
-
     /// OR the bits of `words`, low word first, in from bit `at`.
     ///
     /// ```text
@@ -68,28 +61,6 @@ impl<'a> InstanceRows<'a> {
         }
     }
 
-    /// The constant wire's row at `slot`: `1 * 1 = 1`.
-    #[cfg(any(test, feature = "bench"))]
-    #[inline]
-    pub(crate) const fn constant(&mut self, slot: usize) {
-        self.z.set(slot);
-        self.az.set(slot);
-        self.bz.set(slot);
-    }
-
-    /// `width` rows from `slot` against the constant, `value` the wires they commit.
-    ///
-    /// ```text
-    ///     A z = z = value      B z = 1
-    /// ```
-    #[cfg(any(test, feature = "bench"))]
-    #[inline]
-    pub(crate) fn affine(&mut self, slot: usize, value: u128, width: usize) {
-        self.z.or(slot, value);
-        self.az.or(slot, value);
-        self.bz.or(slot, u128::MAX >> (128 - width));
-    }
-
     /// Product rows from `slot`, one per set position of `mask`, packed down to consecutive slots.
     ///
     /// ```text
@@ -104,15 +75,6 @@ impl<'a> InstanceRows<'a> {
             self.az.or(slot, (left & mask) >> shift);
             self.bz.or(slot, (right & mask) >> shift);
         }
-    }
-
-    /// Rows already packed elsewhere, one word list per table, ORed in from `slot`.
-    #[cfg(any(test, feature = "bench"))]
-    #[inline]
-    pub(crate) fn packed(&mut self, slot: usize, z: &[u64], az: &[u64], bz: &[u64]) {
-        self.z.or_words(slot, z);
-        self.az.or_words(slot, az);
-        self.bz.or_words(slot, bz);
     }
 }
 

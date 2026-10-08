@@ -22,8 +22,11 @@ proptest.workspace = true
 leanvm_guest.workspace = true
 bench.workspace = true
 primitives = { workspace = true, features = ["test-util"] }
-flock = { workspace = true, features = ["bench"] }
 
 [[bench]]
 name = "class_witness"
+harness = false
+
+[[bench]]
+name = "class_batch"
 harness = false

@@ -14,21 +14,14 @@
 //! Both sumchecks batch every circuit under shared challenges.
 //! The reduction reads a circuit's shape as plain numbers, and reaches its matrices only by walking its gate list.
 //!
-//! Circuits are gate lists over word ports, with u64 addition and multiplication as gadgets.
+//! Circuits are gate lists over word ports, with u64 multiplication as a gadget.
 //! The leanVM's instruction classes are written in them.
-//!
-//! The hand-optimized BLAKE2s circuit is flock's throughput benchmark and nothing else.
-//! It and the standalone u64 circuits build only for tests and the `bench` feature.
 
 #![warn(unreachable_pub)]
 
 pub mod circuit;
 mod error;
 pub mod gadgets;
-#[cfg(any(test, feature = "bench"))]
-mod gf2;
-#[cfg(any(test, feature = "bench"))]
-pub mod hash;
 pub mod lincheck;
 pub mod reduction;
 mod witness;

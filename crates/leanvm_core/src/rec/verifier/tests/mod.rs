@@ -295,7 +295,7 @@ fn batch<const N: usize>(f: FlockId, rows: &[[u64; N]]) -> Batch {
         Some(Fill::Instance(instance)) => {
             circuit.witness_by_instance(rows, &[0; N], n_blocks_log, |row, z, az, bz| instance(row, z, az, bz))
         }
-        _ => circuit.witness(rows, n_blocks_log),
+        _ => circuit.witness_by_walk(rows, &[0; N], n_blocks_log, |row, words| words.copy_from_slice(row)),
     };
     Batch {
         block: circuit.block(),

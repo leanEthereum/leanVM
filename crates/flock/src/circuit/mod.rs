@@ -238,7 +238,6 @@ impl Circuit {
     }
 
     /// The bits of an instance that carry data; the rest are zero.
-    #[cfg(any(test, feature = "bench"))]
     pub const fn useful_bits(&self) -> usize {
         self.useful_bits
     }
@@ -347,13 +346,6 @@ impl Circuit {
             };
             wires.push(v);
         }
-    }
-
-    /// The witness of rows of input words, padded with all-zero inputs to `2^n_blocks_log` instances.
-    #[cfg(any(test, feature = "bench"))]
-    pub fn witness<const N: usize>(&self, rows: &[[u64; N]], n_blocks_log: usize) -> Witness {
-        assert_eq!(N, self.n_input_words);
-        self.witness_by_walk(rows, &[0; N], n_blocks_log, |row, words| words.copy_from_slice(row))
     }
 
     /// The witness of the caller's rows, by walking the gate list 64 instances at a time.

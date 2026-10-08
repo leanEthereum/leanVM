@@ -439,7 +439,7 @@ mod tests {
 
         // Prove the batch, optionally flipping one witness bit first, and verify.
         let accepts = |tamper: Option<usize>| {
-            let mut witness = ALU.witness(&rows, n_log);
+            let mut witness = ALU.witness_by_walk(&rows, &[0; 6], n_log, |row, words| words.copy_from_slice(row));
             if let Some(bit) = tamper {
                 witness.z[bit / 64] ^= 1 << (bit % 64);
             }

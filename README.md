@@ -136,26 +136,13 @@ cargo leanvm bench --cycles-only --markdown
 
 It prints a markdown table of the RISC-V cycles, per item and in all, and the committed witness words, for these three and the other benchmarks, then one of the recursion circuits of two aggregation trees over leanXMSS proofs (`cargo leanvm aggregate`; the leaves at `--leaf-log-inv-rate`, 2 by default, the tree's proofs at `--log-inv-rate`), 2 to 1 and 4 to 1 (`aggregate-leanxmss-400-2to1` and `aggregate-leanxmss-400-4to1`: every node combines 2, or 4, proofs into 1): each kind of node's rows per table and committed words, `-first` for a first-level node (the RISC-V verifier in rows over its leaf proofs) and `-node` for a higher node (the recursion verifier in rows over its child proofs). CI adds them to each run's summary, compares the same counts on every PR with the PR's base, comments with the ones that changed, and fails a PR that raises any of them; without `--markdown` it prints them as JSON (Bencher Metric Format), `--markdown-file <path>` appending the tables to a file from the same pass, and without `--cycles-only` it proves each program, and one node of each kind of both trees over leanXMSS-100 leaves, too.
 
-### hashing
+### flock
 
 ```bash
-BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo bench -p flock --features bench --bench hash_batch
+BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo bench -p leanvm --bench class_batch -- hash
 ```
 
-```
-Flock BLAKE2s batch proving, 262,144 compressions (2^18 slots)
-  setup (preprocessing, excluded) :      0.0 ms
-  witness-gen                     :     64.6 ms ± 7.8%   10.6%
-  commit                          :    101.2 ms ± 0.4%   16.6%
-  zerocheck                       :    238.3 ms ± 3.9%   39.0%
-  lincheck                        :     20.3 ms ± 12.2%   3.3%
-  pcs opening                     :    186.0 ms ± 2.9%   30.5%
-  other                           :      0.0 ms           0.0%
-  ------------------------------------------
-  prove TOTAL (witness excluded)  :    545.8 ms ± 1.1%   89.4%
-  verify                          :      1.9 ms
-  throughput                      :        480,319 compressions/s ± 1.1%
-```
+Each instruction class's circuit proven alone by flock, on `2^FLOCK_N_LOG` random instances: the VM's own circuit and witness generator, the commitment, the zerocheck and lincheck, and the opening, each timed, then the verifying time and the instances proven per second. An argument keeps the classes whose name contains it (`hash`, `mul`, ...); none runs every class with a circuit.
 
 ## SNARK machinery
 
