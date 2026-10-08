@@ -262,17 +262,6 @@ pub enum Columns<'a> {
     E(Vec<Vec<F192>>),
 }
 
-/// Start of each table's disjoint range of `η`-powers.
-pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
-    n_constraints
-        .scan(0usize, |off, n| {
-            let start = *off;
-            *off += n;
-            Some(start)
-        })
-        .collect()
-}
-
 /// An active round: one endpoint evaluation and the quadratic coefficient.
 ///
 /// Generic in the column element: `K` before a table's columns are folded, `E` after.

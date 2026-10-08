@@ -10,7 +10,7 @@
 //! A polynomial of fewer variables is bound early, and its share then waits on the rest: each later round multiplies it by its challenge.
 
 use super::{DenseTables, Entry, Msg, ReduceError, TILE, ZERO, xor};
-use crate::rec::tree::claims::{DenseClaim, DensePoly, DenseTerm};
+use crate::rec::claims::{DenseClaim, DensePoly, DenseTerm};
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use parallel::Chunks;

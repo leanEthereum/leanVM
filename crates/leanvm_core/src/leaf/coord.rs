@@ -1,6 +1,5 @@
 //! A tuple coordinate as a function of its block's row, and the public columns a coordinate reads.
 
-use crate::rec::FixedColumn;
 use fiat_shamir::arith::{Arith, Native};
 use fiat_shamir::transcript::VerifierState;
 use primitives::field::{F64, F192};
@@ -42,33 +41,21 @@ pub enum Coord {
     Sum(Vec<Self>),
 }
 
-/// A public column's words, and which fixed column of a recursion circuit they are, if any.
+/// A public column's words.
 #[derive(Clone, Debug)]
 pub struct PublicColumn {
     /// The words.
     pub values: Arc<Vec<F64>>,
-    /// The recursion circuit's fixed column the words are, whose evaluation a recursive verifier takes as a hint.
-    pub(crate) fixed: Option<FixedColumn>,
 }
 
 impl PublicColumn {
-    /// A column that is no recursion circuit's fixed column.
+    /// The column of these words.
     pub const fn new(values: Arc<Vec<F64>>) -> Self {
-        Self { values, fixed: None }
-    }
-
-    /// A recursion circuit's fixed column.
-    pub(crate) const fn fixed(values: Arc<Vec<F64>>, column: FixedColumn) -> Self {
-        Self {
-            values,
-            fixed: Some(column),
-        }
+        Self { values }
     }
 }
 
 /// Arithmetic that evaluates public columns.
-///
-/// A recursive verifier takes a fixed column's evaluation as a hint rather than computing it.
 pub(crate) trait PublicColumns: Arith {
     /// The multilinear extension of a public column at `point`, lowest coordinate first.
     fn column_mle(&mut self, column: &PublicColumn, point: &[Self::E]) -> Self::E {

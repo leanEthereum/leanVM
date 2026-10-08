@@ -1,7 +1,9 @@
 //! BLAKE2s compression on words, as a hash row computes it, and the hashes the circuit builds from it.
 
-use super::Limbs;
 use crate::rv::{Hash, InstructionClass};
+
+/// A digest: four words.
+pub type Limbs = [u64; 4];
 
 /// The parameter IV as four words.
 pub const PARAM_IV: Limbs = words(primitives::hash::PARAM_IV);
@@ -11,9 +13,6 @@ pub const PARAM_IV: Limbs = words(primitives::hash::PARAM_IV);
 pub struct Compression([u64; 14]);
 
 impl Compression {
-    /// The inputs of a padding row: all zero.
-    pub(crate) const PADDING: Self = Self([0; 14]);
-
     /// The compression of the message `m` into `h` at byte counter `t`, final if `last`.
     pub const fn new(h: Limbs, m: [u64; 8], t: u64, last: bool) -> Self {
         let f = if last { Hash::FINAL } else { 0 };
@@ -25,11 +24,6 @@ impl Compression {
     /// A one-block message from the parameter IV: its only block, so final.
     pub const fn single(m: [u64; 8]) -> Self {
         Self::new(PARAM_IV, m, 64, true)
-    }
-
-    /// The inputs, in the compression circuit's port order.
-    pub const fn inputs(&self) -> &[u64; 14] {
-        &self.0
     }
 
     /// The output chaining value, as the precompile computes it.

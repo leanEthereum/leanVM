@@ -13,7 +13,7 @@
 //! - `tables`: the instruction tables, one per class (columns, bus tuples, clock circuits).
 //! - `class_flock`: the glue to flock: each circuit proven over its own packed witness, in the same commitment.
 //! - `cpu`: whole-program assembly and the prove/verify entry points.
-//! - `rec`: the recursion machine and the aggregation trees (§annex:rec).
+//! - `rec`: the verifier as a RISC-V program and the aggregation trees of such programs (§annex:rec).
 
 pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
 /// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
@@ -40,12 +40,9 @@ mod witness;
 
 pub use self::pcs::{InvalidRate, Rate};
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
-pub use rec::program::tree::{ProgramTree, ProgramTreeError, ProgramTreeProof};
-pub use rec::program::{BuildError, SettleError, Verified, VerifierProgram, settle, statement_hash};
-pub use rec::tree::{
-    CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
-    TreeShape, Unsatisfied,
-};
+pub use rec::program::BuildError;
+pub use rec::program::tree::{Tree, TreeError, TreeProof};
+pub use rec::{DensePoly, Kind, LeafShape};
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 
 #[doc(hidden)]

@@ -1,17 +1,17 @@
-//! The verifier's arithmetic and transcript, written once for the native verifier and for its replay in rows.
+//! The verifier's arithmetic and transcript, written once for the native verifier and for the recorder that turns it into a RISC-V program.
 //!
 //! Code generic over these traits never reads a value: it takes the same steps whatever the proof holds.
 //!
 //! - Natively an element is an `F192`, a read comes off the proof, and a failed equality is an error.
-//! - In rows an element is a wire, a read is a free wire bound by a hash row, and an equality joins two wires.
+//! - Recorded, an element is a value of the program, a read comes off its advice, and an equality is a check it makes.
 
 use crate::transcript::{Challenger, Receiver, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::multilinear::mle_eval_par;
 
-/// Arithmetic over `E`, on values or on the wires that hold them.
+/// Arithmetic over `E`, on values or on the recorded values a program computes.
 pub trait Arith {
-    /// An element of `E`: a value, or a wire, two of which are equal when they are one wire.
+    /// An element of `E`: a value, or a recorded one, two of which are equal when they are one.
     type E: Copy + PartialEq;
 
     /// The constant `c`.
@@ -109,7 +109,7 @@ pub trait Arith {
     /// `eq(bits, point)` for public bits, lowest first: `prod_j (bit_j ? z_j : 1 + z_j)`.
     ///
     /// The product runs from the highest coordinate down.
-    /// Why: selectors of nearby offsets share their high bits, so in rows their common partial products are made once.
+    /// Why: selectors of nearby offsets share their high bits, so a recorder makes their common partial products once.
     fn eq_bits(&mut self, bits: usize, point: &[Self::E]) -> Self::E {
         let one = self.one();
         (point.iter().enumerate()).rev().fold(one, |acc, (j, &z)| {

@@ -18,7 +18,7 @@
 use crate::refuse;
 use crate::workload::{Items, Workload};
 use bench::{Heap, Metric, Plan, Timing, bencher_json};
-use leanvm::aggregate::{CircuitStats, Kind, Leaf, LeafShape, Tree, TreeError, TreeProof, TreeShape};
+use leanvm::aggregate::{Kind, LeafShape, Tree, TreeError, TreeProof};
 use leanvm::{Output, ProvenRun, Prover, Rate, Stats};
 use primitives::pretty_integer;
 use serde_json::{Map, Value};
@@ -121,18 +121,13 @@ impl Aggregation {
 
     /// The tree over the leaf's proofs shaped `shape`, every tree proof at `rate`.
     fn tree(&self, shape: LeafShape, rate: Rate) -> Tree<'_> {
-        let shape = TreeShape {
-            leaf: shape,
-            arity_0: self.arity_0,
-            arity: self.arity,
-            rate,
-        };
-        Tree::new(&self.leaf.program, shape).unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
+        Tree::new(&self.leaf.program, &shape, self.arity_0, self.arity, rate)
+            .unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
     }
 
     /// A kind of node's benchmark name, and what the markdown table calls it: `<name>-first`, a
-    /// first-level node (the RISC-V verifier in rows over `arity_0` leaf proofs), and
-    /// `<name>-node`, a higher node (the recursion verifier in rows over `arity` child proofs).
+    /// first-level node (the program verifying `arity_0` leaf proofs), and `<name>-node`, a
+    /// higher node (the program verifying `arity` tree proofs).
     fn node(&self, kind: Kind) -> (String, String) {
         match kind {
             Kind::First => (
@@ -235,9 +230,9 @@ pub fn run(
                 .and_then(|mut file| file.write_all(tables.as_bytes()))
                 .unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
         }
-        let circuits = trees.iter().flat_map(|(tree, circuits)| {
-            (circuits.iter()).map(|(kind, stats)| (tree.node(*kind).0, circuit_counts(stats)))
-        });
+        let circuits = trees
+            .iter()
+            .flat_map(|(tree, circuits)| (circuits.iter()).map(|(kind, stats)| (tree.node(*kind).0, counts(stats))));
         counted
             .iter()
             .map(|(case, stats)| (case.name.to_string(), counts(stats)))
@@ -323,30 +318,12 @@ fn counts(stats: &Stats) -> Vec<(&'static str, Metric)> {
     ]
 }
 
-/// Each kind of node's circuit, without a proof: the leaf's run, measured, gives the shape its
+/// Each kind of node's program, without a proof: the leaf's run, measured, gives the shape its
 /// proofs announce at `leaf_rate`; the tree's proofs are at `rate`.
-fn circuits(tree: &Aggregation, leaf_rate: Rate, rate: Rate) -> [(Kind, CircuitStats); 2] {
+fn circuits(tree: &Aggregation, leaf_rate: Rate, rate: Rate) -> [(Kind, Stats); 2] {
     let shape = LeafShape::measured(&tree.leaf.measure(), leaf_rate);
     let built = tree.tree(shape, rate);
     Kind::ALL.map(|kind| (kind, built.stats(kind)))
-}
-
-/// `rows` (the circuit's own), `proven-rows` (the tables' heights, powers of two) and
-/// `committed` (the witness words): exact, the same on every machine.
-fn circuit_counts(stats: &CircuitStats) -> Vec<(&'static str, Metric)> {
-    let (rows, proven) = circuit_rows(stats);
-    vec![
-        ("rows", Metric::exact(rows)),
-        ("proven-rows", Metric::exact(proven)),
-        ("committed", Metric::exact(stats.committed)),
-    ]
-}
-
-/// A circuit's rows, and its tables' heights, summed over its tables.
-fn circuit_rows(stats: &CircuitStats) -> (usize, usize) {
-    let rows = stats.tables.iter().map(|t| t.rows).sum();
-    let proven = stats.tables.iter().map(|t| 1 << t.height_log).sum();
-    (rows, proven)
 }
 
 /// A verification takes milliseconds, so one pass says little about it.
@@ -420,7 +397,7 @@ fn proved_tree(
     let built = tree.tree(LeafShape::of(&proof).expect("an honest announcement"), prover.rate());
     // The leaf's stages.
     bench::take_stages();
-    let leaves = vec![Leaf::new(&proof, output); tree.arity_0];
+    let leaves = vec![(output, &proof); tree.arity_0];
     let outputs = vec![output; tree.arity_0];
     let (first, first_report) = proved_node(&built, &outputs, plan, || built.prove_first(&leaves));
     let children = vec![first; tree.arity];
@@ -518,25 +495,21 @@ fn table(counted: &[(Case, Stats)]) -> String {
     table
 }
 
-/// Each tree's circuits as a markdown table, with the rows per table and their heights.
-fn tree_table(trees: &[(Aggregation, [(Kind, CircuitStats); 2])]) -> String {
+/// Each tree's programs as a markdown table, with the rows per table.
+fn tree_table(trees: &[(Aggregation, [(Kind, Stats); 2])]) -> String {
     let mut table = String::from(
-        "\n| recursion circuit | rows | proven rows | committed words | tables |\n|---|---:|---:|---:|---|\n",
+        "\n| recursion program | RISC-V cycles | proven rows | committed words | tables |\n|---|---:|---:|---:|---|\n",
     );
-    for (tree, circuits) in trees {
-        for (kind, stats) in circuits {
-            let (rows, proven) = circuit_rows(stats);
-            let tables: Vec<String> = (stats.tables.iter())
-                .map(|t| format!("{} {} (2^{})", t.name, pretty_integer(&t.rows), t.height_log))
-                .collect();
+    for (tree, programs) in trees {
+        for (kind, stats) in programs {
             writeln!(
                 table,
                 "| {} | {} | {} | 2^{:.2} | {} |",
                 tree.node(*kind).1,
-                pretty_integer(&rows),
-                pretty_integer(&proven),
+                pretty_integer(&stats.cycles()),
+                pretty_integer(&stats.proven_rows),
                 (stats.committed as f64).log2(),
-                tables.join("  ")
+                stats.details()
             )
             .unwrap();
         }

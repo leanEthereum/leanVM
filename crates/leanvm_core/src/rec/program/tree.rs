@@ -18,17 +18,18 @@ use super::{BuildError, lower};
 use crate::class_flock::FlockId;
 use crate::cpu::filler::{FillBlocks, Plan};
 use crate::cpu::{
-    Announcement, Claim, CpuError, DeferredClaims, Layout, Lookup, Output, Program, ProgramPoint, Proof, ProveError,
-    Prover, Stats,
+    Announcement, Claim, CpuError, DecodeError, DeferredClaims, Layout, Lookup, Output, Program, ProgramPoint, Proof,
+    ProveError, Prover, Stats,
 };
+use crate::envelope::Envelope;
 use crate::leaf::N_TUPLE_BITS;
 use crate::pcs::Rate;
-use crate::rec::circuit::chain;
-use crate::rec::transcript::ProofSource;
-use crate::rec::tree::LeafShape;
-use crate::rec::tree::claims::{DenseClaim, DensePoly, MatrixClaim, NodeClaims};
-use crate::rec::tree::reduce::{self, DenseTables, DenseVars, Reduced};
-use crate::rec::tree::statement::{Kind, Section, StatementLayout, TreeStatement};
+use crate::rec::LeafShape;
+use crate::rec::ProofSource;
+use crate::rec::claims::{DenseClaim, DensePoly, MatrixClaim, NodeClaims};
+use crate::rec::hash::chain;
+use crate::rec::reduce::{self, DenseTables, DenseVars, Reduced};
+use crate::rec::statement::{Kind, Section, StatementLayout, TreeStatement};
 use crate::rv::{Entry, Region};
 use crate::tables::{PerTable, TableId};
 use ::pcs::ring_switch::inverse_frobenius_ladder;
@@ -89,6 +90,17 @@ fn matrices_at(f: FlockId, rows: &[F192], cols: &[F192]) -> [F192; 2] {
     [dot(&ra), dot(&rb)]
 }
 
+/// A verifier program's instructions by table: each runs exactly once, its traps aside, which never run.
+fn rows(text: &[u32]) -> PerTable<usize> {
+    let mut rows = PerTable::<usize>::default();
+    for (i, &word) in text.iter().enumerate() {
+        if let Some(t) = TableId::of(Entry::decode(word, Region::TEXT.address(i)).class) {
+            rows[t] += 1;
+        }
+    }
+    rows
+}
+
 /// A recorded and lowered node: its text, its sizes, its advice, and what it states.
 struct Built {
     text: Vec<u32>,
@@ -101,12 +113,7 @@ struct Built {
 impl Built {
     /// The shape a proof of this node has by itself: its instructions counted by table, each run exactly once.
     fn shape(&self) -> Shape {
-        let mut base = PerTable::<usize>::default();
-        for (i, &word) in self.text.iter().enumerate() {
-            if let Some(t) = TableId::of(Entry::decode(word, Region::TEXT.address(i)).class) {
-                base[t] += 1;
-            }
-        }
+        let base = rows(&self.text);
         let filled = Plan::solve(base).filled(base);
         // The text, its trap, the fill blocks and the halt slot.
         let entries = Program::new(&self.text, Region::TEXT.base(), Vec::new(), self.log_ram, 0)
@@ -122,13 +129,13 @@ impl Built {
 
 /// One proof of a tree: its statement and the proof of the program run that makes it.
 #[derive(Clone, Debug)]
-pub struct ProgramTreeProof {
+pub struct TreeProof {
     words: Vec<F192>,
     proof: Proof,
     stats: Stats,
 }
 
-impl ProgramTreeProof {
+impl TreeProof {
     /// The proof of the tree program's run.
     #[must_use]
     pub const fn proof(&self) -> &Proof {
@@ -141,6 +148,46 @@ impl ProgramTreeProof {
         &self.stats
     }
 
+    /// The header of a tree proof's bytes: the magic `LVMT`, then the tree protocol's version.
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 13);
+
+    /// The proof's bytes: its statement's words, then its program's proof.
+    #[must_use]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut body = (self.words.len() as u32).to_le_bytes().to_vec();
+        for w in &self.words {
+            for limb in [w.c0, w.c1, w.c2] {
+                body.extend(limb.to_le_bytes());
+            }
+        }
+        body.extend(self.proof.to_bytes());
+        Self::ENVELOPE.seal(&body)
+    }
+
+    /// The tree proof these bytes encode, its run's cost left empty.
+    ///
+    /// # Errors
+    ///
+    /// - Bytes that are no tree proof.
+    /// - A tree proof of another protocol version.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
+        let body = Self::ENVELOPE.open(bytes)?;
+        let (count, rest) = body.split_first_chunk::<4>().ok_or(DecodeError::Malformed)?;
+        let n = u32::from_le_bytes(*count) as usize;
+        let len = (n.checked_mul(24))
+            .filter(|&len| len <= rest.len())
+            .ok_or(DecodeError::Malformed)?;
+        let (words, proof) = rest.split_at(len);
+        let word = |chunk: &[u8]| u64::from_le_bytes(chunk.try_into().expect("eight bytes"));
+        Ok(Self {
+            words: (words.as_chunks::<24>().0.iter())
+                .map(|w| F192::new(word(&w[..8]), word(&w[8..16]), word(&w[16..])))
+                .collect(),
+            proof: Proof::from_bytes(proof)?,
+            stats: Stats::default(),
+        })
+    }
+
     /// The kind of tree proof this states it is, if one.
     #[must_use]
     pub fn kind(&self) -> Option<Kind> {
@@ -150,7 +197,7 @@ impl ProgramTreeProof {
 
 /// Why a tree could not be built, or a proof of it made or accepted.
 #[derive(Clone, Debug, PartialEq, Eq, Error)]
-pub enum ProgramTreeError {
+pub enum TreeError {
     /// The tree's arities: at least one leaf per first-level proof and two children per node.
     #[error("a tree verifies at least 1 leaf per first-level proof and 2 children per node, not {arity_0} and {arity}")]
     Arity { arity_0: usize, arity: usize },
@@ -182,7 +229,7 @@ pub enum ProgramTreeError {
 
 /// A tree over proofs of one program, at one leaf shape.
 #[derive(Clone)]
-pub struct ProgramTree<'p> {
+pub struct Tree<'p> {
     leaf: &'p Program,
     leaf_taus: PerTable<usize>,
     leaf_rate: Rate,
@@ -195,10 +242,12 @@ pub struct ProgramTree<'p> {
     iv: [F64; 4],
     stand_in: Program,
     programs: [Program; 2],
+    /// Each program's instructions by table: every one runs exactly once.
+    rows: [PerTable<usize>; 2],
     tables: DenseTables,
 }
 
-impl<'p> ProgramTree<'p> {
+impl<'p> Tree<'p> {
     /// The tree over proofs of `leaf` of the shape `shape`: each first-level proof verifies `arity_0` of them, each
     /// node `arity` tree proofs, every tree proof at `rate`.
     ///
@@ -211,10 +260,10 @@ impl<'p> ProgramTree<'p> {
         arity_0: usize,
         arity: usize,
         rate: Rate,
-    ) -> Result<Self, ProgramTreeError> {
+    ) -> Result<Self, TreeError> {
         let (leaf_taus, leaf_rate) = (shape.taus, shape.rate);
         if arity_0 == 0 || arity < 2 {
-            return Err(ProgramTreeError::Arity { arity_0, arity });
+            return Err(TreeError::Arity { arity_0, arity });
         }
         // The least shape both programs' proofs fit: each program depends on it, so it is a fixed point.
         let floor = Shape {
@@ -234,7 +283,7 @@ impl<'p> ProgramTree<'p> {
             }
             tree = Self::at(leaf, leaf_taus, leaf_rate, arity_0, arity, rate, natural)?;
         }
-        Err(ProgramTreeError::Shape)
+        Err(TreeError::Shape)
     }
 
     /// The tree's parameters at a shape, its programs not built yet.
@@ -246,7 +295,7 @@ impl<'p> ProgramTree<'p> {
         arity: usize,
         rate: Rate,
         shape: Shape,
-    ) -> Result<Self, ProgramTreeError> {
+    ) -> Result<Self, TreeError> {
         let rv = leaf.rv();
         let vars = DenseVars([
             crate::log2_strict_usize(rv.entries().len()) + N_TUPLE_BITS,
@@ -267,6 +316,7 @@ impl<'p> ProgramTree<'p> {
             statement,
             iv: [F64::ZERO; 4],
             programs: [stand_in.clone(), stand_in.clone()],
+            rows: [PerTable::default(); 2],
             stand_in,
             tables: DenseTables([Vec::new(), Vec::new(), Vec::new()]),
         };
@@ -292,11 +342,12 @@ impl<'p> ProgramTree<'p> {
     }
 
     /// Build both programs at the settled shape, and the polynomials the root evaluates.
-    fn finish(mut self) -> Result<Self, ProgramTreeError> {
+    fn finish(mut self) -> Result<Self, TreeError> {
         let texts = [
             self.build(Kind::First, None, None)?.text,
             self.build(Kind::Node, None, None)?.text,
         ];
+        self.rows = [rows(&texts[0]), rows(&texts[1])];
         let [first, node] = texts.map(|text| padded(&text, self.shape).map_err(BuildError::from));
         self.programs = [first?, node?];
         let rv = self.leaf.rv();
@@ -308,6 +359,22 @@ impl<'p> ProgramTree<'p> {
             .collect();
         self.tables = DenseTables([Lookup::Bytecode.table(rv), image, stacked]);
         Ok(self)
+    }
+
+    /// The cost of a kind of tree proof's run, with no proof: its cycles, its tables' heights, its committed words.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the shape does not fit one commitment, which building the tree refuses.
+    #[must_use]
+    pub fn stats(&self, kind: Kind) -> Stats {
+        let counts = self.shape.taus.map(|tau| 1usize << tau);
+        Stats {
+            proven_rows: counts.values().sum(),
+            counts,
+            base_counts: self.rows[kind as usize],
+            committed: (self.program(kind).committed_size(counts)).expect("a shape one commitment holds"),
+        }
     }
 
     /// The program of a kind of tree proof.
@@ -565,7 +632,7 @@ impl<'p> ProgramTree<'p> {
     }
 
     /// Prove a node from what it was built over.
-    fn prove(&self, kind: Kind, built: &Built) -> Result<ProgramTreeProof, ProgramTreeError> {
+    fn prove(&self, kind: Kind, built: &Built) -> Result<TreeProof, TreeError> {
         let program = self.program(kind);
         debug_assert_eq!(
             padded(&built.text, self.shape).map(|p| *p.digest()).ok(),
@@ -573,7 +640,7 @@ impl<'p> ProgramTree<'p> {
         );
         let run = Prover::new(self.rate).prove_seeded(program, &built.advice, self.shape.taus, self.iv)?;
         debug_assert_eq!(*run.output.words(), built.output);
-        Ok(ProgramTreeProof {
+        Ok(TreeProof {
             words: built.statement.clone(),
             proof: run.proof,
             stats: run.stats,
@@ -585,9 +652,9 @@ impl<'p> ProgramTree<'p> {
     /// # Errors
     ///
     /// Returns an error on another number of proofs, or one that does not verify.
-    pub fn prove_first(&self, leaves: &[(Output, &Proof)]) -> Result<ProgramTreeProof, ProgramTreeError> {
+    pub fn prove_first(&self, leaves: &[(Output, &Proof)]) -> Result<TreeProof, TreeError> {
         if leaves.len() != self.arity_0 {
-            return Err(ProgramTreeError::Count {
+            return Err(TreeError::Count {
                 expected: self.arity_0,
                 got: leaves.len(),
             });
@@ -596,7 +663,7 @@ impl<'p> ProgramTree<'p> {
             .map(
                 |(index, &(output, proof))| match self.leaf.verify_to_raw(output, proof) {
                     Ok(raw) => Ok((output, raw)),
-                    Err(error) => Err(ProgramTreeError::Child { index, error }),
+                    Err(error) => Err(TreeError::Child { index, error }),
                 },
             )
             .collect::<Result<Vec<_>, _>>()?;
@@ -608,9 +675,9 @@ impl<'p> ProgramTree<'p> {
     /// # Errors
     ///
     /// Returns an error on another number of proofs, or one that does not verify.
-    pub fn prove_node(&self, children: &[ProgramTreeProof]) -> Result<ProgramTreeProof, ProgramTreeError> {
+    pub fn prove_node(&self, children: &[TreeProof]) -> Result<TreeProof, TreeError> {
         if children.len() != self.arity {
-            return Err(ProgramTreeError::Count {
+            return Err(TreeError::Count {
                 expected: self.arity,
                 got: children.len(),
             });
@@ -622,17 +689,17 @@ impl<'p> ProgramTree<'p> {
     }
 
     /// A tree proof's kind and core: its program's proof verified on the tree's seed, its own claims settled.
-    fn read(&self, p: &ProgramTreeProof, index: usize) -> Result<(Kind, RawProof), ProgramTreeError> {
+    fn read(&self, p: &TreeProof, index: usize) -> Result<(Kind, RawProof), TreeError> {
         let kind = (p.words.len() == self.statement.len())
             .then(|| Kind::of_word(p.words[0]))
             .flatten()
-            .ok_or(ProgramTreeError::Kind)?;
+            .ok_or(TreeError::Kind)?;
         let program = self.program(kind);
         let settled = (program.replay_seeded(Self::output(&p.words), &p.proof, self.iv))
             .and_then(|(claims, raw)| program.check_deferred(&claims).map(|()| raw));
         match settled {
             Ok(raw) => Ok((kind, raw)),
-            Err(error) => Err(ProgramTreeError::Child { index, error }),
+            Err(error) => Err(TreeError::Child { index, error }),
         }
     }
 
@@ -651,11 +718,11 @@ impl<'p> ProgramTree<'p> {
     /// # Errors
     ///
     /// Returns what refuses it.
-    pub fn verify(&self, root: &ProgramTreeProof, outputs: &[Output]) -> Result<(), ProgramTreeError> {
+    pub fn verify(&self, root: &TreeProof, outputs: &[Output]) -> Result<(), TreeError> {
         let (kind, _) = self.read(root, 0)?;
         let s = TreeStatement::new(self.statement, root.words.clone());
         if outputs.is_empty() || s.digest_words() != self.digest(outputs) {
-            return Err(ProgramTreeError::Outputs);
+            return Err(TreeError::Outputs);
         }
         let vars = &self.vars.0;
         for poly in DensePoly::ALL {
@@ -665,7 +732,7 @@ impl<'p> ProgramTree<'p> {
             }
             let point = &s.dense_point()[..vars[poly as usize]];
             if mle_eval_par(&self.tables.0[poly as usize], point) != s.dense_value(poly) {
-                return Err(ProgramTreeError::Claim(match poly {
+                return Err(TreeError::Claim(match poly {
                     DensePoly::Bytecode => "the leaf program's bytecode",
                     DensePoly::Image => "the leaf program's image",
                     DensePoly::Fixed => "the tree programs' bytecode",
@@ -679,7 +746,7 @@ impl<'p> ProgramTree<'p> {
         if held.into_iter().all(|h| h) {
             Ok(())
         } else {
-            Err(ProgramTreeError::Claim("a circuit's matrices"))
+            Err(TreeError::Claim("a circuit's matrices"))
         }
     }
 }
@@ -688,6 +755,7 @@ impl<'p> ProgramTree<'p> {
 mod tests {
     use super::*;
     use crate::cpu::ProvenRun;
+    use crate::rv::Machine;
     use crate::rv::asm::*;
 
     // A program with a loop and an image, whose output is the advice's first word XOR a constant.
@@ -714,35 +782,54 @@ mod tests {
             .map(|i| prover.prove(&program, &[100 + i]).expect("the run halts"))
             .collect();
         let shape = LeafShape::of(&runs[0].proof).expect("a proof's shape");
-        let tree = ProgramTree::new(&program, &shape, 1, 2, Rate::MIN).expect("a tree");
+        let tree = Tree::new(&program, &shape, 1, 2, Rate::MIN).expect("a tree");
         let outputs: Vec<Output> = runs.iter().map(|r| r.output).collect();
 
         // The first level, then a node over first-level proofs, then a node over nodes: a program verifying itself.
-        let firsts: Vec<ProgramTreeProof> = (runs.iter())
+        let firsts: Vec<TreeProof> = (runs.iter())
             .map(|r| tree.prove_first(&[(r.output, &r.proof)]).expect("a first-level proof"))
             .collect();
         assert_eq!(tree.verify(&firsts[0], &outputs[..1]), Ok(()));
-        let nodes: Vec<ProgramTreeProof> = (firsts.chunks(2))
+        let nodes: Vec<TreeProof> = (firsts.chunks(2))
             .map(|pair| tree.prove_node(pair).expect("a node"))
             .collect();
         assert_eq!(tree.verify(&nodes[0], &outputs[..2]), Ok(()));
         let root = tree.prove_node(&nodes).expect("a root");
         assert_eq!(tree.verify(&root, &outputs), Ok(()));
 
+        // A node built over proofs is the program built from the shape alone, and its run outputs its statement's hash.
+        let raw = program
+            .verify_to_raw(runs[0].output, &runs[0].proof)
+            .expect("an honest proof");
+        let built = (tree.build(Kind::First, Some(&[(runs[0].output, raw)]), None)).expect("a first-level node");
+        let first = tree.program(Kind::First);
+        assert_eq!(
+            padded(&built.text, tree.shape).expect("a program").digest(),
+            first.digest()
+        );
+        assert_eq!(Machine::new(first.rv(), &built.advice).run(), Ok(built.output));
+
+        // Mutation: one bit of each of a few advice words, across the proof: the program traps.
+        //
+        // A slot's fourth word is padding, which nothing reads, so each word taken is a slot's first.
+        for at in [4, 40, built.advice.len() / 3, built.advice.len() / 2] {
+            let mut forged = built.advice.clone();
+            forged[at - at % 4] ^= 1;
+            let outcome = Machine::new(first.rv(), &forged).run();
+            assert!(outcome != Ok(built.output), "advice word {at}: {outcome:?}");
+        }
+
         // The root binds the outputs and their order.
         let mut swapped = outputs.clone();
         swapped.swap(0, 3);
-        assert_eq!(tree.verify(&root, &swapped), Err(ProgramTreeError::Outputs));
-        assert_eq!(tree.verify(&root, &outputs[..2]), Err(ProgramTreeError::Outputs));
+        assert_eq!(tree.verify(&root, &swapped), Err(TreeError::Outputs));
+        assert_eq!(tree.verify(&root, &outputs[..2]), Err(TreeError::Outputs));
 
         // Mutation: a carried claim's value, which moves the statement's hash, so the root's proof no longer verifies.
         let mut forged = root;
         let at = tree.statement.range(Section::DenseValues).start;
         forged.words[at] += F192::ONE;
-        assert!(matches!(
-            tree.verify(&forged, &outputs),
-            Err(ProgramTreeError::Child { .. })
-        ));
+        assert!(matches!(tree.verify(&forged, &outputs), Err(TreeError::Child { .. })));
     }
 
     #[test]
@@ -752,7 +839,7 @@ mod tests {
         let prover = Prover::new(Rate::MIN);
         let run = prover.prove(&program, &[7]).expect("the run halts");
         let shape = LeafShape::of(&run.proof).expect("a proof's shape");
-        let tree = ProgramTree::new(&program, &shape, 1, 2, Rate::MIN).expect("a tree");
+        let tree = Tree::new(&program, &shape, 1, 2, Rate::MIN).expect("a tree");
 
         // Fixture: a program of the tree's shape that verifies nothing, and outputs the hash of a first-level
         // statement over the leaf's output, proven on the tree's seed.
@@ -771,7 +858,7 @@ mod tests {
             let [a, b] = matrices_at(f, &zeros, &zeros);
             (words[matrices + 2 * f.index()], words[matrices + 2 * f.index() + 1]) = (a, b);
         }
-        let output = ProgramTree::output(&words);
+        let output = Tree::output(&words);
         let mut asm = Asm::new();
         for (r, &w) in Reg::OUTPUTS.into_iter().zip(output.words()) {
             asm.li(r, w);
@@ -797,7 +884,7 @@ mod tests {
         assert!(tree.read(&root, 0).is_ok());
         assert!(matches!(
             tree.verify(&root, &[run.output, run.output]),
-            Err(ProgramTreeError::Claim(_))
+            Err(TreeError::Claim(_))
         ));
     }
 }

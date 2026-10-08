@@ -5,7 +5,7 @@
 
 //! The succinct verifier: it replays the transcript and checks the terminal claim through closed forms, never materializing a weight.
 //!
-//! It is written once over the opening verifier's operations, so the native verifier and the recursion machine's rows run the same steps.
+//! It is written once over the opening verifier's operations, so the native verifier and the recorder of a verifier program run the same steps.
 //! Every query opens a full row whose path follows the query's bits, so the rows never depend on which rows are opened.
 
 use crate::verifier::OpeningVerifier;
@@ -449,7 +449,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
 impl<K: Copy> BaseRows<K> {
     /// The level-0 enforced sum over `K` rows: `sum_i w_i <row_i, eq(v, .)>`.
     ///
-    /// Each row's inner product is its own, so the first query's weight, one, costs no product in rows.
+    /// Each row's inner product is its own, so the first query's weight, one, costs a recorded program no product.
     fn enforced_sum<V: OpeningVerifier<K = K>>(&self, v: &mut V, point: &[V::E], weights: &[V::E]) -> V::E {
         let rows = &self.0;
         let eq = v.eq_table_prefix(point, rows[0].len());

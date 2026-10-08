@@ -1,12 +1,13 @@
-//! Aggregation: prove a leaf program once, then a tree over copies of its proof, and report each kind of node and the whole tree.
+//! Aggregation: prove a leaf program once, then a tree of verifier programs over copies of its proof, and report each kind of node and the root.
 
 use crate::refuse;
 use crate::workload::Workload;
-use bench::{Plan, Timing};
+use bench::Plan;
 use clap::ValueEnum;
-use leanvm::Prover;
-use leanvm::aggregate::{Kind, Leaf, LeafShape, Tree, TreeProof, TreeShape};
+use leanvm::aggregate::{Kind, LeafShape, Tree, TreeProof};
+use leanvm::{Prover, Stats};
 use primitives::{pretty_f64, pretty_integer};
+use std::time::Instant;
 
 /// The leaf program.
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -30,22 +31,11 @@ impl LeafProgram {
     }
 }
 
-fn ms(t: &Timing) -> String {
-    format!("{} ms{}", pretty_f64(t.mean() * 1000.0), t.spread())
-}
-
-fn secs(t: &Timing) -> String {
-    format!("{} s{}", pretty_f64(t.mean()), t.spread())
-}
-
-/// One kind of node: its circuit, its proof, and its times.
-fn report(name: &str, tree: &Tree<'_>, kind: Kind, proof: &TreeProof, prove: &Timing, verify: &Timing) {
-    let stats = tree.stats(kind);
-    let rows: Vec<String> = (stats.tables.iter())
-        .map(|t| format!("{} {} (2^{})", t.name, pretty_integer(&t.rows), t.height_log))
-        .collect();
+/// One kind of tree proof: its program's run, its proof, and the time to make it.
+fn report(name: &str, proof: &TreeProof, seconds: f64) {
+    let stats: &Stats = proof.stats();
     println!("{name}");
-    println!("  rows                        : {}", rows.join("  "));
+    println!("  cycles (RISC-V)             : {}", pretty_integer(&stats.cycles()));
     println!(
         "  committed words             : {} (2^{:.3})",
         pretty_integer(&stats.committed),
@@ -53,15 +43,13 @@ fn report(name: &str, tree: &Tree<'_>, kind: Kind, proof: &TreeProof, prove: &Ti
     );
     println!(
         "  proof size                  : {:.1} KiB",
-        proof.to_bytes().len() as f64 / 1024.0
+        proof.proof().to_bytes().len() as f64 / 1024.0
     );
-    println!("  proving                     : {}", secs(prove));
-    println!("  verifying as a root         : {}", ms(verify));
+    println!("  proving                     : {} s", pretty_f64(seconds));
 }
 
-/// Prove the leaf at `leaf_prover`'s rate, then the tree of `leaves` over copies of its proof, every tree proof at `prover`'s rate, and print the report.
-///
-/// The tree's first level verifies `arity_0` leaves, each node `arity` children.
+/// Prove the leaf at `leaf_prover`'s rate, then a tree over `leaves` copies of its proof, every tree proof at
+/// `prover`'s rate, and print each kind's report: the first level verifies `arity_0` leaves, a node `arity` children.
 pub fn run(
     leaf: &Workload,
     leaves: usize,
@@ -69,101 +57,60 @@ pub fn run(
     arity: usize,
     leaf_prover: &Prover,
     prover: &Prover,
-    plan: Plan,
+    _: Plan,
 ) {
-    let rate = prover.rate();
-    let title = &leaf.title;
+    let proven = leaf.prove(leaf_prover);
+    println!(
+        "{}: proof at rate 1/{} of {} cycles, 2^{:.2} committed words",
+        leaf.title,
+        1 << leaf_prover.rate().log_inv_rate(),
+        pretty_integer(&proven.stats.cycles()),
+        (proven.stats.committed as f64).log2()
+    );
+    let shape = LeafShape::measured(&proven.stats, leaf_prover.rate());
+    let start = Instant::now();
+    let tree = Tree::new(&leaf.program, &shape, arity_0, arity, prover.rate())
+        .unwrap_or_else(|e| refuse(format_args!("{} has no tree: {e}", leaf.title)));
+    println!(
+        "the tree's two programs     : built in {} s",
+        pretty_f64(start.elapsed().as_secs_f64())
+    );
 
-    // The leaf's run, measured, gives the shape its proofs announce: the tree is checked before anything is proven.
-    let stats = leaf.measure();
-    let shape = TreeShape {
-        leaf: LeafShape::measured(&stats, leaf_prover.rate()),
-        arity_0,
-        arity,
-        rate,
+    let timed = |f: &dyn Fn() -> TreeProof| {
+        let start = Instant::now();
+        let proof = f();
+        (proof, start.elapsed().as_secs_f64())
     };
-    shape.root_kind(leaves).unwrap_or_else(|e| refuse(format_args!("{e}")));
-
-    let (proved, leaf_time) = plan.warm_then_measure(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
-        leaf.prove(leaf_prover)
+    let leaf_proof = (proven.output, &proven.proof);
+    let (first, seconds) = timed(&|| {
+        (tree.prove_first(&vec![leaf_proof; arity_0]))
+            .unwrap_or_else(|e| refuse(format_args!("no first-level proof: {e}")))
     });
-    let (proof, output) = (&proved.proof, proved.output);
-    let quiet = Plan::new(plan.repeat, 0);
-
-    let (tree, setup) = Plan::new(1, 0).measure_quiet(|_| {
-        let _span = tracing::info_span!("Tree setup").entered();
-        Tree::new(&leaf.program, shape).unwrap_or_else(|e| refuse(format_args!("{e}")))
-    });
-    let leaves_proofs = vec![Leaf::new(proof, output); leaves];
-
-    println!(
-        "Aggregation tree over {leaves} x {title}, first level {arity_0}, arity {arity}, leaves at log-inv-rate {}, tree proofs at {}",
-        leaf_prover.rate().log_inv_rate(),
-        rate.log_inv_rate()
-    );
-    println!("leaf");
-    println!(
-        "  committed words             : {} (2^{:.3})",
-        pretty_integer(&stats.committed),
-        (stats.committed as f64).log2()
-    );
-    println!(
-        "  proof size                  : {:.1} KiB",
-        proof.to_bytes().len() as f64 / 1024.0
-    );
-    println!("  proving                     : {}", secs(&leaf_time));
-    println!("tree setup (both circuits, the fixed polynomials): {}", secs(&setup));
-
-    let firsts = vec![Leaf::new(proof, output); arity_0];
-    let (first, first_time) = plan.warm_then_measure(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
-        tree.prove_first(&firsts).expect("honest leaves")
-    });
-    let outputs = vec![output; arity_0];
-    let (_, first_verify) = quiet.measure_quiet(|_| tree.verify(&first, &outputs).expect("a first-level root"));
     report(
-        &format!("first-level node, {arity_0} leaves"),
-        &tree,
-        Kind::First,
+        &format!("First level: verifier of {arity_0} leaf proofs"),
         &first,
-        &first_time,
-        &first_verify,
+        seconds,
     );
 
-    if leaves > arity_0 {
-        let children = vec![first; arity];
-        let (node, node_time) = plan.warm_then_measure(|last| {
-            let _quiet = (!last).then(bench::suppress_tracing);
-            tree.prove_node(&children).expect("honest children")
+    // Up the tree over copies, a node over first-level proofs, then nodes over nodes.
+    let (mut root, mut covered) = (first, arity_0);
+    while covered < leaves {
+        let below = if root.kind() == Some(Kind::First) {
+            "first-level"
+        } else {
+            "node"
+        };
+        let (node, seconds) = timed(&|| {
+            (tree.prove_node(&vec![root.clone(); arity])).unwrap_or_else(|e| refuse(format_args!("no node: {e}")))
         });
-        let outputs = vec![output; arity_0 * arity];
-        let (_, node_verify) = quiet.measure_quiet(|_| tree.verify(&node, &outputs).expect("a root"));
-        report(
-            &format!("node, {arity} children"),
-            &tree,
-            Kind::Node,
-            &node,
-            &node_time,
-            &node_verify,
-        );
+        report(&format!("Node: verifier of {arity} {below} proofs"), &node, seconds);
+        (root, covered) = (node, covered * arity);
     }
-
-    let (root, whole) = Plan::new(1, 0).measure_quiet(|_| {
-        let _span = tracing::info_span!("Prove tree", leaves).entered();
-        tree.prove(&leaves_proofs)
-            .unwrap_or_else(|e| refuse(format_args!("{e}")))
-    });
-    let outputs = vec![output; leaves];
-    let (_, root_verify) = quiet.measure_quiet(|_| tree.verify(&root, &outputs).expect("the root verifies"));
-    println!("whole tree");
+    let start = Instant::now();
+    (tree.verify(&root, &vec![proven.output; covered]))
+        .unwrap_or_else(|e| refuse(format_args!("the root does not verify: {e}")));
     println!(
-        "  proving every node          : {}, after the leaf proofs",
-        secs(&whole)
-    );
-    println!("  verifying the root          : {}", ms(&root_verify));
-    println!(
-        "  peak memory                 : {} GiB",
-        pretty_f64(bench::peak_rss_bytes() as f64 / (1u64 << 30) as f64)
+        "root over {covered} leaves           : verified in {} ms",
+        pretty_f64(start.elapsed().as_secs_f64() * 1000.0)
     );
 }

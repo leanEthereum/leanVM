@@ -252,7 +252,7 @@ pub fn open(
 /// `log_n` is the committed stack's log size in `F64` words, and `root` the L0 commitment's root.
 /// The family takes the batching challenge's power one, and point claim `i` its power `i + 1`.
 ///
-/// The verifier is the native one or the recursion machine's rows, which run the same steps.
+/// The verifier is the native one or the recorder of a verifier program, which run the same steps.
 ///
 /// # Errors
 ///

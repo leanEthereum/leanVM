@@ -236,7 +236,7 @@ impl Shape {
 /// It reads only the circuits' shapes: their matrices' forms are left as claims
 /// for the built circuits to settle.
 ///
-/// The verifier's arithmetic is the native one or the recursion machine's rows, which run the same steps.
+/// The verifier's arithmetic is the native one or the recorder of a verifier program, which run the same steps.
 ///
 /// # Errors
 ///

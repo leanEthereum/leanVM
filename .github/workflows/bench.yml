@@ -71,8 +71,8 @@ jobs:
         # CLI (`-<T>thread`, on T threads: the CLI proves it, a tree's leaf included, with
         # `LEANVM_NUM_THREADS=T`, unpinned to cores since the job has its runner's VM to itself and
         # base and PR alternate within it; a tree's case, `Nto1` for N proofs combined into 1,
-        # prints two benchmarks: `-first`, a first-level node, the RISC-V verifier in rows over N
-        # leaf proofs, and `-node`, a higher node, the recursion verifier in rows over N child
+        # prints two benchmarks: `-first`, a first-level node, the program verifying N
+        # leaf proofs, and `-node`, a higher node, the program verifying N tree
         # proofs), then the `benches/` targets scripts/ab.sh names, each run with `--json`.
         benchmark:
           - name: fibonacci-asm-2000000

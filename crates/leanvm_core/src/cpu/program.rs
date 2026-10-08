@@ -450,7 +450,7 @@ impl Program {
     /// # Errors
     ///
     /// Refuses a stack larger than one commitment.
-    pub(super) fn committed_size(&self, row_counts: PerTable<usize>) -> Result<usize, ProveError> {
+    pub(crate) fn committed_size(&self, row_counts: PerTable<usize>) -> Result<usize, ProveError> {
         let taus = PerTable::from_fn(|t: TableId| crate::log2_strict_usize(t.spec().provable_height(row_counts[t])));
         let (placements, shape) = Sizes::of(&self.rv).stack(&taus);
         if shape.mu > pcs::MAX_MU {
@@ -485,7 +485,7 @@ impl Program {
 }
 
 /// What a run costs: its rows per table, and its committed witness size.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Stats {
     /// The rows proven, padding rows included.

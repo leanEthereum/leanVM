@@ -13,7 +13,7 @@ mod table;
 mod word;
 
 pub use clock::Clock;
-pub use id::{N_TABLES, PerTable, TableId, TableKey};
+pub use id::{N_TABLES, PerTable, TableId};
 pub use spec::{BAD_SLOT, ClassSpec, EXIT_SLOT, Fill, N_CIRCUITS, Ram};
 pub use table::ClassTable;
 pub use word::Word;

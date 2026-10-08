@@ -20,7 +20,6 @@ static ALLOCATOR: bench::Counting<bench::Jemalloc> = bench::Counting(bench::Jema
 static ALLOCATOR: bench::Counting<std::alloc::System> = bench::Counting(std::alloc::System);
 
 mod aggregate;
-mod recursion;
 mod tracked;
 mod workload;
 
@@ -107,7 +106,7 @@ enum Command {
         #[arg(long, default_value_t = 1, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         blobs: usize,
     },
-    /// Prove a leaf program once, then an aggregation tree over copies of its proof.
+    /// Prove a leaf program once, then an aggregation tree of RISC-V verifier programs over copies of its proof.
     Aggregate {
         /// The leaf program.
         #[arg(long, value_enum, default_value = "leanxmss")]
@@ -123,24 +122,6 @@ enum Command {
         arity0: usize,
         /// The children each node verifies.
         #[arg(long, default_value_t = 2)]
-        arity: usize,
-    },
-    /// Prove a leaf program once, then a tree of RISC-V verifier programs over copies of its proof: recursion on the machine itself.
-    Recursion {
-        /// The leaf program.
-        #[arg(long, value_enum, default_value = "leanxmss")]
-        program: LeafProgram,
-        /// The leaf program's size: Fibonacci's steps, or the signatures it verifies.
-        #[arg(long, default_value_t = 400, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
-        n: usize,
-        /// The leaves the tree covers at least: the first level's arity times a power of the nodes' arity.
-        #[arg(long, default_value_t = 4)]
-        leaves: usize,
-        /// The leaves each first-level program run verifies.
-        #[arg(long, default_value_t = 2, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
-        arity0: usize,
-        /// The children each node verifies.
-        #[arg(long, default_value_t = 2, value_parser = RangedU64ValueParser::<usize>::new().range(2..))]
         arity: usize,
     },
     /// Prove the benchmarks CI tracks and print them as Bencher Metric Format JSON.
@@ -219,13 +200,6 @@ fn main() {
             arity0,
             arity,
         } => aggregate::run(&program.workload(n), leaves, arity0, arity, &leaf_prover, &prover, plan),
-        Command::Recursion {
-            program,
-            n,
-            leaves,
-            arity0,
-            arity,
-        } => recursion::run(&program.workload(n), leaves, arity0, arity, &leaf_prover, &prover, plan),
         Command::Bench {
             cycles_only,
             markdown,

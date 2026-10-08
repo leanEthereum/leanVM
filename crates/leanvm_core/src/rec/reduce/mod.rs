@@ -9,7 +9,7 @@
 //! Each is a sumcheck: if an input claim is false, an output claim is false but with probability about `(claims + 2 rounds) / |E|`.
 
 use super::claims::{DensePoly, NodeClaims};
-use crate::rec::circuit::{Limbs, digest_limbs};
+use crate::rec::hash::{Limbs, digest_limbs};
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, Transmitter};
 use primitives::field::{F64, F192, F192Unreduced, mul_base8, mul_unreduced4, mul4};
@@ -17,6 +17,8 @@ use thiserror::Error;
 
 mod dense;
 mod matrix;
+#[cfg(test)]
+mod tests;
 
 pub(crate) use dense::{DenseProver, DenseReduced, DenseVars};
 pub(crate) use matrix::{MatrixProver, MatrixReduced};

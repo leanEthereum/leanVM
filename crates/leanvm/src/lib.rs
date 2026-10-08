@@ -60,6 +60,8 @@ pub use leanvm_core::{
 ///       leaf  leaf    leaf  leaf
 /// ```
 ///
+/// A tree proof is a proof of a RISC-V program that verifies other proofs: the machine proves its own verifier.
+///
 /// Every tree proof states the same few hundred words:
 ///
 /// - a digest of its leaves' outputs,
@@ -67,8 +69,5 @@ pub use leanvm_core::{
 ///
 /// A tree over one leaf, with `arity_0 = 1`, is a single proof's recursion.
 pub mod aggregate {
-    pub use leanvm_core::{
-        BuildError, CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, ProgramTree, ProgramTreeError,
-        ProgramTreeProof, TableStats, Tree, TreeError, TreeProof, TreeShape, Unsatisfied, VerifierProgram,
-    };
+    pub use leanvm_core::{BuildError, Kind, LeafShape, Tree, TreeError, TreeProof};
 }

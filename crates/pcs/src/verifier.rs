@@ -1,7 +1,7 @@
-//! What the opening's verifier reads beyond scalars, written once for the native verifier and for its replay in rows.
+//! What the opening's verifier reads beyond scalars, written once for the native verifier and for the recorder that turns it into a RISC-V program.
 //!
 //! - Natively a root is a digest, a query an index, and a committed word a `K` value.
-//! - In rows they are the wires holding them, and an opened row is authenticated by hash rows.
+//! - Recorded, they are the values a program computes, and an opened row is authenticated by the compression instruction.
 
 use super::whir::sample_queries_ordered;
 use fiat_shamir::arith::Verifier;

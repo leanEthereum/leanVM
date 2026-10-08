@@ -181,7 +181,7 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[StackClaim
 /// and every `points` slot evaluation are checked together in the ONE stacked
 /// WHIR against `root`, pulling its Merkle phases off the transcript.
 ///
-/// The verifier is the native one or the recursion machine's rows.
+/// The verifier is the native one or the recorder of a verifier program.
 ///
 /// # Errors
 ///

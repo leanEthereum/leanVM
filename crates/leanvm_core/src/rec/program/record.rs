@@ -5,8 +5,8 @@
 //! The operations depend on the shape alone, the values on the proof: a program built from a shape is the one built from a proof.
 
 use crate::leaf::PublicColumns;
-use crate::rec::circuit::{Compression, PARAM_IV, chain, digest_limbs, zero_prefix};
-use crate::rec::transcript::ProofSource;
+use crate::rec::ProofSource;
+use crate::rec::hash::{Compression, PARAM_IV, chain, digest_limbs, zero_prefix};
 use ::pcs::verifier::OpeningVerifier;
 use ::pcs::whir::{Stratum, strata};
 use fiat_shamir::arith::{Arith, Verifier};

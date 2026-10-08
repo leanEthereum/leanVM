@@ -7,7 +7,7 @@
 
 use super::claims::DensePoly;
 use crate::class_flock::{FlockId, N_FLOCKS};
-use crate::rec::circuit::{Builder, Dw, Ew, Kw, Limbs, chain};
+use crate::rec::hash::{Limbs, chain};
 use primitives::field::F192;
 use std::ops::Range;
 
@@ -91,13 +91,6 @@ impl Kind {
             .collect();
         chain(&words)
     }
-
-    /// The digest of the items' wires, in rows.
-    pub(crate) fn digest_rows(self, b: &mut Builder, items: &[[Kw; 4]]) -> Dw {
-        let header = self.header(items.len()).map(|w| b.k_const(w));
-        let words: Vec<Kw> = header.into_iter().chain(items.iter().flatten().copied()).collect();
-        b.chain(&words)
-    }
 }
 
 impl Section {
@@ -176,14 +169,6 @@ impl<E: Copy> TreeStatement<E> {
         &self.words
     }
 
-    /// The same statement, each word mapped by `f`.
-    pub(crate) fn map<T>(&self, f: impl FnMut(&E) -> T) -> TreeStatement<T> {
-        TreeStatement {
-            layout: self.layout,
-            words: self.words.iter().map(f).collect(),
-        }
-    }
-
     /// The kind's word.
     pub(crate) fn kind(&self) -> E {
         self.section(Section::Kind)[0]
@@ -228,19 +213,4 @@ impl TreeStatement {
         let [lo, hi] = self.digest();
         [lo.c0, lo.c1, hi.c0, hi.c1]
     }
-}
-
-impl TreeStatement<Ew> {
-    /// The digest as one wire, its halves' top limbs held to zero.
-    pub(crate) fn digest_wire(&self, b: &mut Builder) -> Dw {
-        let [lo, hi] = self.digest();
-        b.halves_to_d(lo, hi)
-    }
-}
-
-/// A digest's wire as two halves, in rows.
-pub(crate) fn digest_halves_rows(b: &mut Builder, d: Dw) -> [Ew; 2] {
-    let [w0, w1, w2, w3] = b.d_to_k(d);
-    let zero = b.k_const(0);
-    [b.k_to_e([w0, w1, zero]), b.k_to_e([w2, w3, zero])]
 }

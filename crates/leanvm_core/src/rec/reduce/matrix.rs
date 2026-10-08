@@ -9,7 +9,7 @@
 
 use super::{FoldTable, Msg, ReduceError, ZERO, xor};
 use crate::class_flock::{FlockId, N_FLOCKS};
-use crate::rec::tree::claims::{Coefficient, ColWeight, MatrixClaim, RowWeight};
+use crate::rec::claims::{Coefficient, ColWeight, MatrixClaim, RowWeight};
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use flock::lincheck::{LincheckCircuit, build_quirky_eq_table};
@@ -62,7 +62,7 @@ fn waiting<A: Arith>(a: &mut A, x: &[A::E], k: usize) -> A::E {
 
 /// The value cached under `key`, or `value()` cached under it.
 ///
-/// Claims at one point share their weights' factors: natively their elements are equal, in rows they are the same wires.
+/// Claims at one point share their weights' factors: natively their elements are equal, in a recorded program they are the same values.
 fn shared<K: PartialEq, E: Copy>(cache: &mut Vec<(K, E)>, key: K, value: impl FnOnce() -> E) -> E {
     if let Some(&(_, v)) = cache.iter().find(|(k, _)| *k == key) {
         return v;
