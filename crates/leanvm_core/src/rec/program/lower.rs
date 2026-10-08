@@ -25,14 +25,18 @@ mod reg {
 
     /// Scratch.
     pub(super) const T: [Reg; 6] = [Reg::T0, Reg::T1, Reg::T2, Reg::T3, Reg::T4, Reg::T5];
-    /// The transcript's block, and the same 32 bytes on.
-    pub(super) const TRANSCRIPT: [Reg; 2] = [Reg::S0, Reg::S1];
-    /// The leaf chain's block, and the same 32 bytes on.
-    pub(super) const LEAF: [Reg; 2] = [Reg::S2, Reg::S3];
-    /// The one-block hashes' block, whose chaining value is the parameter block's.
-    pub(super) const NODE: Reg = Reg::S4;
+    /// Pointers a compression is given, computed where they are used.
+    pub(super) const P: [Reg; 3] = [Reg::RA, Reg::SP, Reg::GP];
+    /// The transcript's state where no challenge holds it, then the two registers that follow it into a challenge.
+    pub(super) const STATE: [Reg; 3] = [Reg::S0, Reg::S1, Reg::S2];
+    /// A message built from words that are elsewhere.
+    pub(super) const MESSAGE: Reg = Reg::S3;
+    /// The parameter block's state: a one-block hash's chaining value.
+    pub(super) const IV: Reg = Reg::S4;
     /// The constant 64, a one-block hash's counter.
     pub(super) const BLOCK_BYTES: Reg = Reg::S5;
+    /// A chain's state between its blocks.
+    pub(super) const CHAINED: Reg = Reg::TP;
     /// Registers each holding the base of one page of memory.
     pub(super) const PAGES: [Reg; 14] = [
         Reg::A0,
@@ -59,9 +63,15 @@ const SCRATCH: u8 = 3;
 /// How many extension registers there are.
 const REGISTERS: u8 = 128;
 
-/// A hash block's words: the chaining value, the result, then the message.
-const MESSAGE: i32 = 64;
-const RESULT: i32 = 32;
+/// The program's own hash blocks, as words of [`Loc::Block`]: the parameter block's state, the transcript's state, a
+/// message, a chain's state, then one message per tag of a step that absorbs nothing.
+mod block {
+    pub(super) const IV: usize = 0;
+    pub(super) const STATE: usize = 4;
+    pub(super) const MESSAGE: usize = 8;
+    pub(super) const CHAINED: usize = 16;
+    pub(super) const TAGS: usize = 24;
+}
 
 struct Lower<'g> {
     g: &'g Gen<'g>,
@@ -79,9 +89,12 @@ struct Lower<'g> {
     /// The page each page register holds, and when it was last used.
     pages: [(u64, u64); reg::PAGES.len()],
     tick: u64,
-    /// Which half of the transcript's block holds its state.
-    phase: usize,
+    /// The register pointing at the transcript's state.
+    state: Reg,
+    /// The tags with a message block of their own.
+    tags: Vec<u64>,
     consts: u64,
+    blocks: u64,
     scratch: u64,
 }
 
@@ -92,6 +105,7 @@ impl Lower<'_> {
             Loc::Const(i) => self.consts + 8 * i as u64,
             Loc::Advice(i) => Region::ADVICE.base() + 8 * i as u64,
             Loc::Scratch(i) => self.scratch + 8 * i as u64,
+            Loc::Block(i) => self.blocks + 8 * i as u64,
         }
     }
 
@@ -126,11 +140,18 @@ impl Lower<'_> {
         self.a.store(Sd, rs, offset, base);
     }
 
-    /// A compression on a block of sixteen words at `base`: its chaining value first, its result after it, then its message.
-    fn block_hash(&mut self, base: Reg, counter: Reg, last: bool) {
-        let (to, message) = (Reg::RA, Reg::SP);
-        self.a.i(Xori, to, base, 32).i(Xori, message, base, 64);
-        self.a.blake2s(to, base, message, counter, last);
+    /// Point `r` at `loc`.
+    fn pointer(&mut self, r: Reg, loc: Loc) {
+        let (base, offset) = self.word(loc);
+        self.a.i(Addi, r, base, offset);
+    }
+
+    /// The memory home of an element read off the proof.
+    fn placed(&self, e: u32) -> Loc {
+        match self.g.es[e as usize].0 {
+            Home::Mem(loc) => loc,
+            home => unreachable!("a scalar of the proof has a place, not {home:?}"),
+        }
     }
 
     /// Trap unless the two registers are equal.
@@ -336,66 +357,56 @@ impl Lower<'_> {
         }
     }
 
-    /// The message word `k` of the transcript's block, whose state is in half `phase`.
-    const fn transcript_word(&self, k: usize) -> Word {
-        Word::Block(reg::TRANSCRIPT[0], MESSAGE + 8 * (k ^ (4 * self.phase)) as i32)
-    }
-
-    /// One transcript step from the state in half `phase`: its message, then the compression, the result in the other half.
-    fn step_block(&mut self, first: Option<Loc>, last: Option<Loc>, tag: u64) {
-        let t = reg::T[0];
-        for (slot, scalar) in [first, last].into_iter().enumerate() {
+    /// Point a register at the message of a transcript step, and return it.
+    ///
+    /// The scalars are hashed where the advice has them: the program writes what the prover does not choose, their count,
+    /// the tag, and the zeros of an absent first scalar.
+    fn step_message(&mut self, block: Option<Loc>, count: usize, tag: u64) -> Reg {
+        let (m, t) = (reg::P[0], reg::T[0]);
+        let Some(block) = block else {
+            let i = self.tags.iter().position(|&x| x == tag).expect("a tag's block");
+            self.pointer(m, Loc::Block(block::TAGS + 8 * i));
+            return m;
+        };
+        self.pointer(m, block);
+        if count == 1 {
             for k in 0..3 {
-                let Word::Block(base, offset) = self.transcript_word(4 * slot + k) else {
-                    unreachable!()
-                };
-                match scalar {
-                    Some(loc) => {
-                        self.ld(t, loc.add(k));
-                        self.a.store(Sd, t, offset, base);
-                    }
-                    None => {
-                        self.a.store(Sd, Reg::ZERO, offset, base);
-                    }
-                }
+                self.a.store(Sd, Reg::ZERO, 8 * k, m);
             }
         }
-        let count = u64::from(first.is_some()) + u64::from(last.is_some());
-        for (k, value) in [(3, count), (7, tag)] {
-            let Word::Block(base, offset) = self.transcript_word(k) else {
-                unreachable!()
-            };
-            self.a.li(t, value).store(Sd, t, offset, base);
-        }
-        self.block_hash(reg::TRANSCRIPT[self.phase], reg::BLOCK_BYTES, true);
+        self.a.li(t, count as u64).store(Sd, t, 24, m);
+        self.a.li(t, tag).store(Sd, t, 56, m);
+        m
     }
 
-    /// The word `k` of the half of the transcript's block that is not the state's: a step's result.
-    const fn transcript_result(&self, k: usize) -> Word {
-        Word::Block(reg::TRANSCRIPT[0], 32 * (1 - self.phase) as i32 + 8 * k as i32)
+    /// A transcript step: its new state where its challenge is read, or back in the program's own block.
+    fn step(&mut self, block: Option<Loc>, count: usize, tag: u64, challenge: Option<Loc>) {
+        let m = self.step_message(block, count, tag);
+        let to = match challenge {
+            Some(loc) => {
+                let to = if self.state == reg::STATE[1] {
+                    reg::STATE[2]
+                } else {
+                    reg::STATE[1]
+                };
+                self.pointer(to, loc);
+                to
+            }
+            None => reg::STATE[0],
+        };
+        self.a.blake2s(to, self.state, m, reg::BLOCK_BYTES, true);
+        self.state = to;
     }
 
-    fn step(&mut self, first: Option<Loc>, last: Option<Loc>, tag: u64, challenge: Option<Loc>) {
-        self.step_block(first, last, tag);
-        self.phase ^= 1;
-        if let Some(to) = challenge {
-            let phase = self.phase;
-            self.copy(
-                |k| Word::Block(reg::TRANSCRIPT[0], 32 * phase as i32 + 8 * k as i32),
-                |k| Word::At(to.add(k)),
-                3,
-            );
-        }
+    /// A one-block hash of the eight words `message` gives, written where `to` points.
+    fn node(&mut self, message: impl Fn(usize) -> Word, to: Reg) {
+        self.copy(message, |k| Word::Block(reg::MESSAGE, 8 * k as i32), 8);
+        self.a.blake2s(to, reg::IV, reg::MESSAGE, reg::BLOCK_BYTES, true);
     }
 
-    /// A one-block hash of the eight words `message` gives: the block's chaining value is the parameter block's.
-    fn node(&mut self, message: impl Fn(usize) -> Word) {
-        self.copy(message, |k| Word::Block(reg::NODE, MESSAGE + 8 * k as i32), 8);
-        self.block_hash(reg::NODE, reg::BLOCK_BYTES, true);
-    }
-
-    fn grind(&mut self, nonce: Loc, bits: u32) {
+    fn grind(&mut self, block: Loc, bits: u32) {
         let t = reg::T[0];
+        let nonce = block.add(ELEMENT);
         if bits == 0 {
             // No work: the nonce is zero.
             for k in 0..3 {
@@ -404,22 +415,24 @@ impl Lower<'_> {
             }
         } else {
             // The base is a step that leaves the state where it is; the work is on the hash of the base and the nonce.
-            self.step_block(None, None, POW_TAGS[0]);
-            let base = |s: &Self, k: usize| s.transcript_result(k);
-            let words: Vec<Word> = (0..4)
-                .map(|k| base(self, k))
-                .chain((0..3).map(|k| Word::At(nonce.add(k))))
-                .collect();
-            self.copy(|k| words[k], |k| Word::Block(reg::NODE, MESSAGE + 8 * k as i32), 7);
-            self.a.li(t, POW_TAGS[1]).store(Sd, t, MESSAGE + 56, reg::NODE);
-            self.block_hash(reg::NODE, reg::BLOCK_BYTES, true);
-            self.a.load(Ld, t, RESULT, reg::NODE).shift(Slli, t, t, 64 - bits);
+            let m = self.step_message(None, 0, POW_TAGS[0]);
+            self.a.blake2s(reg::MESSAGE, self.state, m, reg::BLOCK_BYTES, true);
+            self.copy(
+                |k| Word::At(nonce.add(k)),
+                |k| Word::Block(reg::MESSAGE, 32 + 8 * k as i32),
+                3,
+            );
+            self.a.li(t, POW_TAGS[1]).store(Sd, t, 56, reg::MESSAGE);
+            self.a
+                .blake2s(reg::CHAINED, reg::IV, reg::MESSAGE, reg::BLOCK_BYTES, true);
+            self.a.load(Ld, t, 0, reg::CHAINED).shift(Slli, t, t, 64 - bits);
             self.assert_eq(t, Reg::ZERO);
         }
-        self.step(None, Some(nonce), POW_TAGS[1], None);
+        self.step(Some(block), 1, POW_TAGS[1], None);
     }
 
-    fn clock(&mut self, at: Loc) {
+    fn clock(&mut self, e: u32) {
+        let at = self.placed(e);
         let [t, u, one] = [reg::T[0], reg::T[1], reg::T[2]];
         // The high limbs are zero, the word's bits from the live one up are exactly the live bit, and its slot bits are zero.
         for k in 1..3 {
@@ -469,93 +482,102 @@ impl Lower<'_> {
         leaf_words: usize,
         seed: Loc,
         leaf: Loc,
+        packed: bool,
         path: Loc,
         out: Loc,
     ) {
-        let [t, counter, bit, here, there, position] = reg::T;
+        let [t, counter, position, ..] = reg::T;
+        let [mut here, mut next, from] = reg::P;
         let prefix = leaf_words - row_words;
         let zero_blocks = prefix / 8;
         let n_blocks = leaf_words / 8;
 
-        // The leaf: a chain from the state of its zero blocks, each block's result the next one's chaining value.
-        self.copy(
-            |k| Word::At(seed.add(k)),
-            |k| Word::Block(reg::LEAF[0], 8 * k as i32),
-            4,
-        );
-        let mut phase = 0;
-        for index in zero_blocks..n_blocks {
-            for k in 0..8 {
-                let offset = MESSAGE + 8 * (k ^ (4 * phase)) as i32;
-                let word = 8 * index + k;
-                if word < prefix {
-                    self.a.store(Sd, Reg::ZERO, offset, reg::LEAF[0]);
-                } else {
-                    self.ld(t, leaf.add(leaf_slot(word - prefix)));
-                    self.a.store(Sd, t, offset, reg::LEAF[0]);
-                }
+        // The leaf: a chain from the state of its zero blocks, its last result written where the path starts.
+        self.pointer(next, if levels > 0 { path } else { out });
+        self.pointer(from, seed);
+        if packed {
+            // The words before the row are zero, whatever the advice holds.
+            for k in 0..prefix - 8 * zero_blocks {
+                self.sd(Reg::ZERO, leaf.add(k));
             }
-            self.a.li(counter, 64 * (index as u64 + 1));
-            self.block_hash(reg::LEAF[phase], counter, index + 1 == n_blocks);
-            phase ^= 1;
+            self.pointer(here, leaf);
+        }
+        for index in zero_blocks..n_blocks {
+            let m = if packed {
+                if index > zero_blocks {
+                    self.a.i(Addi, here, here, 64);
+                }
+                here
+            } else {
+                for k in 0..8 {
+                    let word = 8 * index + k;
+                    if word < prefix {
+                        self.a.store(Sd, Reg::ZERO, 8 * k as i32, reg::MESSAGE);
+                    } else {
+                        self.ld(t, leaf.add(leaf_slot(word - prefix)));
+                        self.a.store(Sd, t, 8 * k as i32, reg::MESSAGE);
+                    }
+                }
+                reg::MESSAGE
+            };
+            let last = index + 1 == n_blocks;
+            self.a.li(counter, 64 * (index as u64 + 1)).blake2s(
+                if last { next } else { reg::CHAINED },
+                if index == zero_blocks { from } else { reg::CHAINED },
+                m,
+                counter,
+                last,
+            );
         }
 
-        // The path: at each level the node goes left or right of its sibling by the position's bit.
-        let mut node = Word::Block(reg::LEAF[0], 32 * phase as i32);
+        // The path: each level's block holds the node below it, then its sibling, in the order the position's bit
+        // gives, and its hash is written into the next level's block.
         if levels > 0 {
             self.ld(position, pos);
         }
         for level in 0..levels {
-            self.a
-                .i(Andi, bit, position, 1)
-                .shift(Slli, bit, bit, 5)
-                .shift(Srli, position, position, 1)
-                .r(Add, here, reg::NODE, bit)
-                .r(Sub, there, reg::NODE, bit);
-            let from = node;
-            self.copy(|k| from.add(k), |k| Word::Block(here, MESSAGE + 8 * k as i32), 4);
-            self.copy(
-                |k| Word::At(path.add(4 * level + k)),
-                |k| Word::Block(there, MESSAGE + 32 + 8 * k as i32),
-                4,
-            );
-            self.block_hash(reg::NODE, reg::BLOCK_BYTES, true);
-            node = Word::Block(reg::NODE, RESULT);
+            (here, next) = (next, here);
+            if level + 1 == levels {
+                self.pointer(next, out);
+            } else {
+                self.a.i(Addi, next, here, 64);
+            }
+            self.a.blake2s_node(next, reg::IV, here, position);
+            if level + 1 < levels {
+                self.a.shift(Srli, position, position, 1);
+            }
         }
-        self.copy(|k| node.add(k), |k| Word::At(out.add(k)), 4);
     }
 
     /// The hash of the words at `words`, into the digest at `out`: a chain from the parameter block's state.
     fn chain(&mut self, words: &[Loc], out: Loc) {
         let [t, counter, ..] = reg::T;
-        for (k, word) in CHAIN_IV.into_iter().enumerate() {
-            self.a.li(t, word).store(Sd, t, 8 * k as i32, reg::LEAF[0]);
-        }
+        let to = reg::P[0];
         let n_blocks = words.len().div_ceil(8).max(1);
         let bytes = 8 * words.len() as u64;
-        let mut phase = 0;
+        self.pointer(to, out);
         for j in 0..n_blocks {
             for k in 0..8 {
-                let offset = MESSAGE + 8 * (k ^ (4 * phase)) as i32;
+                let offset = 8 * k as i32;
                 match words.get(8 * j + k) {
                     Some(&loc) => {
                         self.ld(t, loc);
-                        self.a.store(Sd, t, offset, reg::LEAF[0]);
+                        self.a.store(Sd, t, offset, reg::MESSAGE);
                     }
                     None => {
-                        self.a.store(Sd, Reg::ZERO, offset, reg::LEAF[0]);
+                        self.a.store(Sd, Reg::ZERO, offset, reg::MESSAGE);
                     }
                 }
             }
-            self.a.li(counter, (64 * (j as u64 + 1)).min(bytes));
-            self.block_hash(reg::LEAF[phase], counter, j + 1 == n_blocks);
-            phase ^= 1;
+            let last = j + 1 == n_blocks;
+            self.a.li(counter, (64 * (j as u64 + 1)).min(bytes)).blake2s(
+                if last { to } else { reg::CHAINED },
+                if j == 0 { reg::IV } else { reg::CHAINED },
+                reg::MESSAGE,
+                counter,
+                last,
+            );
         }
-        self.copy(
-            |k| Word::Block(reg::LEAF[0], 32 * phase as i32 + 8 * k as i32),
-            |k| Word::At(out.add(k)),
-            4,
-        );
     }
 
     fn op(&mut self, op: &Op) {
@@ -571,22 +593,20 @@ impl Lower<'_> {
                 self.store(f, at);
             }
             Op::Init { iv, output } => {
-                self.phase = 0;
-                self.node(|k| Word::At(if k < 4 { iv.add(k) } else { output.add(k - 4) }));
-                self.copy(
-                    |k| Word::Block(reg::NODE, RESULT + 8 * k as i32),
-                    |k| Word::Block(reg::TRANSCRIPT[0], 8 * k as i32),
-                    4,
+                self.state = reg::STATE[0];
+                self.node(
+                    |k| Word::At(if k < 4 { iv.add(k) } else { output.add(k - 4) }),
+                    reg::STATE[0],
                 );
             }
             Op::Step {
-                first,
-                last,
+                block,
+                count,
                 tag,
                 challenge,
-            } => self.step(first, last, tag, challenge),
-            Op::Grind { nonce, bits } => self.grind(nonce, bits),
-            Op::Clock { at } => self.clock(at),
+            } => self.step(block, count, tag, challenge),
+            Op::Grind { block, bits } => self.grind(block, bits),
+            Op::Clock { e } => self.clock(e),
             Op::Queries {
                 challenge,
                 depth,
@@ -600,16 +620,14 @@ impl Lower<'_> {
                 leaf_words,
                 seed,
                 leaf,
+                packed,
                 path,
                 out,
-            } => self.open_row(pos, levels, row_words, leaf_words, seed, leaf, path, out),
+            } => self.open_row(pos, levels, row_words, leaf_words, seed, leaf, packed, path, out),
             Op::Parent { left, right, out } => {
-                self.node(|k| Word::At(if k < 4 { left.add(k) } else { right.add(k - 4) }));
-                self.copy(
-                    |k| Word::Block(reg::NODE, RESULT + 8 * k as i32),
-                    |k| Word::At(out.add(k)),
-                    4,
-                );
+                let to = reg::P[0];
+                self.pointer(to, out);
+                self.node(|k| Word::At(if k < 4 { left.add(k) } else { right.add(k - 4) }), to);
             }
             Op::EqD { a, b } => {
                 for k in 0..4 {
@@ -619,24 +637,24 @@ impl Lower<'_> {
                 }
             }
             Op::Root { lo, hi, out } => {
-                for (half, loc) in [lo, hi].into_iter().enumerate() {
+                for (half, loc) in [lo, hi].map(|e| self.placed(e)).into_iter().enumerate() {
                     self.copy(|k| Word::At(loc.add(k)), |k| Word::At(out.add(2 * half + k)), 2);
                     self.ld(reg::T[0], loc.add(2));
                     self.assert_eq(reg::T[0], Reg::ZERO);
                 }
             }
             Op::InitState { state } => {
-                self.phase = 0;
+                self.state = reg::STATE[0];
                 self.copy(
                     |k| Word::At(state.add(k)),
-                    |k| Word::Block(reg::TRANSCRIPT[0], 8 * k as i32),
+                    |k| Word::Block(reg::STATE[0], 8 * k as i32),
                     4,
                 );
             }
             Op::State { out } => {
-                let phase = self.phase as i32;
+                let state = self.state;
                 self.copy(
-                    |k| Word::Block(reg::TRANSCRIPT[0], 32 * phase + 8 * k as i32),
+                    |k| Word::Block(state, 8 * k as i32),
                     |k| Word::At(if k < 3 { out[0].add(k) } else { out[1] }),
                     4,
                 );
@@ -663,15 +681,6 @@ enum Word {
     Block(Reg, i32),
 }
 
-impl Word {
-    const fn add(self, k: usize) -> Self {
-        match self {
-            Self::At(loc) => Self::At(loc.add(k)),
-            Self::Block(base, offset) => Self::Block(base, offset + 8 * k as i32),
-        }
-    }
-}
-
 /// The elements an operation reads.
 fn reads(op: &Op) -> impl Iterator<Item = u32> {
     let (x, y, z) = match *op {
@@ -686,11 +695,22 @@ fn reads(op: &Op) -> impl Iterator<Item = u32> {
 
 /// Lower the recorded verifier to a program.
 pub(super) fn lower(g: &Gen<'_>) -> Lowered {
-    // RAM: the constants, the three hash blocks on 128-byte boundaries, then the scratch words.
-    let blocks = g.consts.len().next_multiple_of(16);
-    let scratch = blocks + 3 * 16;
+    // A step that absorbs nothing hashes a block of its own, which holds its tag alone.
+    let mut tags = Vec::new();
+    for op in &g.ops {
+        let tag = match *op {
+            Op::Step { block: None, tag, .. } => tag,
+            Op::Grind { bits, .. } if bits > 0 => POW_TAGS[0],
+            _ => continue,
+        };
+        if !tags.contains(&tag) {
+            tags.push(tag);
+        }
+    }
+    // RAM: the constants, the hash blocks on a 64-byte boundary, then the scratch words.
+    let blocks = g.consts.len().next_multiple_of(8);
+    let scratch = blocks + block::TAGS + 8 * tags.len();
     let ram = Region::RAM.base();
-    let block = |i: usize| ram + 8 * (blocks + 16 * i) as u64;
 
     let mut uses = vec![VecDeque::new(); g.es.len()];
     for (i, op) in g.ops.iter().enumerate() {
@@ -708,19 +728,26 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
         n_scratch: g.n_scratch,
         pages: [(u64::MAX, 0); reg::PAGES.len()],
         tick: 0,
-        phase: 0,
+        state: reg::STATE[0],
+        tags,
         consts: ram,
+        blocks: ram + 8 * blocks as u64,
         scratch: ram + 8 * scratch as u64,
     };
-    l.a.li(reg::TRANSCRIPT[0], block(0))
-        .li(reg::TRANSCRIPT[1], block(0) + 32)
-        .li(reg::LEAF[0], block(1))
-        .li(reg::LEAF[1], block(1) + 32)
-        .li(reg::NODE, block(2))
+    let [state, message, iv, chained] =
+        [block::STATE, block::MESSAGE, block::IV, block::CHAINED].map(|i| l.address(Loc::Block(i)));
+    l.a.li(reg::STATE[0], state)
+        .li(reg::MESSAGE, message)
+        .li(reg::IV, iv)
+        .li(reg::CHAINED, chained)
         .li(reg::BLOCK_BYTES, 64);
     // The image is empty: the program writes its constants itself, so two verifier programs differ by their text alone.
     for (k, word) in CHAIN_IV.into_iter().enumerate() {
-        l.a.li(reg::T[0], word).store(Sd, reg::T[0], 8 * k as i32, reg::NODE);
+        l.a.li(reg::T[0], word).store(Sd, reg::T[0], 8 * k as i32, reg::IV);
+    }
+    for (i, tag) in l.tags.clone().into_iter().enumerate() {
+        l.a.li(reg::T[0], tag);
+        l.sd(reg::T[0], Loc::Block(block::TAGS + 8 * i + 7));
     }
     for (i, &word) in g.consts.iter().enumerate() {
         if word != 0 {

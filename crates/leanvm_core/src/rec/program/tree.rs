@@ -811,10 +811,13 @@ mod tests {
 
         // Mutation: one bit of each of a few advice words, across the proof: the program traps.
         //
-        // A slot's fourth word is padding, which nothing reads, so each word taken is a slot's first.
-        for at in [4, 40, built.advice.len() / 3, built.advice.len() / 2] {
+        // A word the program writes before reading it, or never reads, is zero in the advice, so each word taken is not.
+        for from in [4, 40, built.advice.len() / 3, built.advice.len() / 2] {
+            let at = (from..built.advice.len())
+                .find(|&i| built.advice[i] != 0)
+                .expect("a word of the proof");
             let mut forged = built.advice.clone();
-            forged[at - at % 4] ^= 1;
+            forged[at] ^= 1;
             let outcome = Machine::new(first.rv(), &forged).run();
             assert!(outcome != Ok(built.output), "advice word {at}: {outcome:?}");
         }

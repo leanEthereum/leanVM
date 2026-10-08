@@ -45,6 +45,8 @@ pub(super) enum Loc {
     Advice(usize),
     /// The program's scratch words, in RAM.
     Scratch(usize),
+    /// The program's own fixed words, in RAM: its hash blocks.
+    Block(usize),
 }
 
 impl Loc {
@@ -54,6 +56,7 @@ impl Loc {
             Self::Const(i) => Self::Const(i + k),
             Self::Advice(i) => Self::Advice(i + k),
             Self::Scratch(i) => Self::Scratch(i + k),
+            Self::Block(i) => Self::Block(i + k),
         }
     }
 }
@@ -67,6 +70,8 @@ pub(super) enum Home {
     Mem(Loc),
     /// Nowhere: an instruction computed it.
     Computed,
+    /// Nowhere yet: a scalar of the proof, placed when the transcript takes it.
+    Unplaced,
 }
 
 /// One step of the verifier.
@@ -82,17 +87,18 @@ pub(super) enum Op {
     Limbs { e: u32, at: Loc },
     /// The transcript's first state: the compression of the seed and the output's four words.
     Init { iv: Loc, output: Loc },
-    /// A transcript step absorbing up to two scalars, its challenge copied to `challenge`.
+    /// A transcript step absorbing the `count` scalars of the message block at `block`, its new state, whose first
+    /// words are its challenge, written at `challenge` if it has one.
     Step {
-        first: Option<Loc>,
-        last: Option<Loc>,
+        block: Option<Loc>,
+        count: usize,
         tag: u64,
         challenge: Option<Loc>,
     },
-    /// A proof of work on the nonce at `nonce`, then the step that binds it.
-    Grind { nonce: Loc, bits: u32 },
-    /// The announced clock at `at` is live, at slot zero, with nothing above its live bit.
-    Clock { at: Loc },
+    /// A proof of work on the nonce, the one scalar of the message block at `block`, then the step that binds it.
+    Grind { block: Loc, bits: u32 },
+    /// The announced clock, element `e`, is live, at slot zero, with nothing above its live bit.
+    Clock { e: u32 },
     /// Query positions cut from the challenge at `challenge`, `depth` bits each, each moved into its stratum.
     Queries {
         challenge: Loc,
@@ -108,6 +114,8 @@ pub(super) enum Op {
         leaf_words: usize,
         seed: Loc,
         leaf: Loc,
+        /// Whether the leaf's hashed words are where they are hashed, whole blocks of them.
+        packed: bool,
         path: Loc,
         out: Loc,
     },
@@ -115,8 +123,8 @@ pub(super) enum Op {
     Parent { left: Loc, right: Loc, out: Loc },
     /// Two digests are one.
     EqD { a: Loc, b: Loc },
-    /// A root read as two scalars, their top limbs zero.
-    Root { lo: Loc, hi: Loc, out: Loc },
+    /// A root read as two scalars, elements `lo` and `hi`, their top limbs zero.
+    Root { lo: u32, hi: u32, out: Loc },
     /// The transcript's state set to a constant: the start of a transcript with no statement of its own.
     InitState { state: Loc },
     /// The transcript's state, copied out as two elements: three words, then the fourth.
@@ -207,7 +215,8 @@ impl<'a> Gen<'a> {
     }
 
     fn new_d(&mut self, value: [u64; 4]) -> D {
-        let loc = self.scratch(4);
+        // On a 32-byte boundary: a compression writes it where it is.
+        let loc = self.scratch_element();
         self.ds.push((loc, value));
         D(self.ds.len() as u32 - 1)
     }
@@ -277,14 +286,6 @@ impl<'a> Gen<'a> {
         k
     }
 
-    /// The memory home of a scalar read off the proof.
-    fn advice_of(&self, x: E) -> Loc {
-        match self.es[x.0 as usize].0 {
-            Home::Mem(loc @ Loc::Advice(_)) => loc,
-            home => unreachable!("only a scalar of the proof is absorbed, not {home:?}"),
-        }
-    }
-
     fn emit_mul_add(&mut self, a: E, b: E, d: Option<E>) -> E {
         // The factors of a product commute.
         let (a, b) = (E(a.0.min(b.0)), E(a.0.max(b.0)));
@@ -338,17 +339,33 @@ impl<'a> Gen<'a> {
             ProofSource::Shape => F192::ZERO,
         };
         self.offset += 1;
-        let at = self.hint_element(v);
-        self.new_e(Home::Mem(at), v)
+        self.new_e(Home::Unplaced, v)
+    }
+
+    /// Give the scalars of one step their place, a message block among the hints, and return it.
+    ///
+    /// A block is two element slots on a 64-byte boundary, the last scalar in the second, so the step hashes it
+    /// where it is.
+    fn place(&mut self, scalars: &[E]) -> Loc {
+        self.advice.resize(self.advice.len().next_multiple_of(BLOCK), 0);
+        let block = self.hint(&[0; BLOCK]);
+        let Loc::Advice(base) = block else { unreachable!() };
+        for (i, &x) in scalars.iter().enumerate() {
+            let slot = ELEMENT * (i + MAX_PENDING - scalars.len());
+            let (home, v) = &mut self.es[x.0 as usize];
+            assert!(
+                matches!(home, Home::Unplaced),
+                "a scalar of the proof is absorbed, once"
+            );
+            *home = Home::Mem(block.add(slot));
+            self.advice[base + slot..][..3].copy_from_slice(&[v.c0, v.c1, v.c2]);
+        }
+        block
     }
 
     fn step(&mut self, scalars: &[E], tag: F64, squeeze: bool) -> Option<E> {
         let values: Vec<F192> = scalars.iter().map(|&s| self.e(s)).collect();
-        let (first, last) = match *scalars {
-            [a, b] => (Some(self.advice_of(a)), Some(self.advice_of(b))),
-            [b] => (None, Some(self.advice_of(b))),
-            _ => (None, None),
-        };
+        let block = (!scalars.is_empty()).then(|| self.place(scalars));
         self.cv = fiat_shamir::step(self.cv, &values, tag);
         let challenge = squeeze.then(|| {
             let loc = self.scratch_element();
@@ -356,8 +373,8 @@ impl<'a> Gen<'a> {
             (loc, self.new_e(Home::Mem(loc), F192::new(c0, c1, c2)))
         });
         self.ops.push(Op::Step {
-            first,
-            last,
+            block,
+            count: scalars.len(),
             tag: tag.0,
             challenge: challenge.map(|c| c.0),
         });
@@ -401,7 +418,7 @@ impl<'a> Gen<'a> {
     pub(super) fn clock(&mut self) -> E {
         let x = self.take();
         self.observe(x);
-        self.ops.push(Op::Clock { at: self.advice_of(x) });
+        self.ops.push(Op::Clock { e: x.0 });
         x
     }
 
@@ -457,8 +474,8 @@ impl<'a> Gen<'a> {
         let (l, h) = (self.e(lo), self.e(hi));
         let out = self.new_d([l.c0, l.c1, h.c0, h.c1]);
         self.ops.push(Op::Root {
-            lo: self.advice_of(lo),
-            hi: self.advice_of(hi),
+            lo: lo.0,
+            hi: hi.0,
             out: self.d_loc(out),
         });
         out
@@ -627,10 +644,8 @@ impl Verifier for Gen<'_> {
         assert!(bits <= MAX_GRINDING_BITS, "grinding past the digest's low word");
         self.flush();
         let nonce = self.take();
-        self.ops.push(Op::Grind {
-            nonce: self.advice_of(nonce),
-            bits,
-        });
+        let block = self.place(&[nonce]);
+        self.ops.push(Op::Grind { block, bits });
         self.cv = fiat_shamir::step(self.cv, &[self.e(nonce)], DS_POW_NONCE);
         Ok(())
     }
@@ -677,25 +692,38 @@ impl Gen<'_> {
         );
         let levels = query.depth - s.bits;
         let (row, path) = self.next_opening(leaf_words, row_words, levels);
-        // The row's words three to a 32-byte slot, so that three of them that are an element are one where they are.
-        self.advice.resize(self.advice.len().next_multiple_of(ELEMENT), 0);
-        let mut slots = vec![0; leaf_slot(row.len())];
-        for (i, &word) in row.iter().enumerate() {
-            slots[leaf_slot(i)] = word;
-        }
-        let (leaf, siblings) = (self.hint(&slots), self.hint(path.as_flattened()));
-
-        // The value: the leaf's chain from the zero blocks' state, then the path, low bit first.
         let prefix = leaf_words - row_words;
         let zero_blocks = prefix / 8;
-        let image: Vec<u64> = std::iter::repeat_n(0, prefix - zero_blocks * 8)
-            .chain(row.iter().copied())
+        let lead = prefix - zero_blocks * 8;
+        let image: Vec<u64> = std::iter::repeat_n(0, lead).chain(row.iter().copied()).collect();
+        // A row of elements has its words three to a 32-byte slot, so that each element is one where it is; a row of
+        // words is its hashed blocks, on a 64-byte boundary, hashed where they are.
+        let packed = !leaf_words.is_multiple_of(3);
+        self.advice.resize(self.advice.len().next_multiple_of(BLOCK), 0);
+        let leaf = if packed {
+            self.hint(&image)
+        } else {
+            let mut slots = vec![0; leaf_slot(row.len())];
+            for (i, &word) in row.iter().enumerate() {
+                slots[leaf_slot(i)] = word;
+            }
+            self.hint(&slots)
+        };
+        // Each level of the path is a block: room for the node below it, then its sibling.
+        self.advice.resize(self.advice.len().next_multiple_of(BLOCK), 0);
+        let blocks: Vec<u64> = path
+            .iter()
+            .flat_map(|sibling| [0; 4].into_iter().chain(*sibling))
             .collect();
+        let siblings = self.hint(&blocks);
+
+        // The value: the leaf's chain from the zero blocks' state, then the path, low bit first.
         let n_blocks = leaf_words / 8;
         let mut h = zero_prefix(zero_blocks);
         let seed = match self.seeds.get(&zero_blocks) {
             Some(&seed) => seed,
             None => {
+                self.consts.resize(self.consts.len().next_multiple_of(ELEMENT), 0);
                 let seed = self.pool(&h);
                 self.seeds.insert(zero_blocks, seed);
                 seed
@@ -722,11 +750,12 @@ impl Gen<'_> {
             leaf_words,
             seed,
             leaf,
+            packed,
             path: siblings,
             out: self.d_loc(out),
         });
         let words = (0..row_words)
-            .map(|i| self.new_k(leaf.add(leaf_slot(i)), row[i]))
+            .map(|i| self.new_k(leaf.add(if packed { lead + i } else { leaf_slot(i) }), row[i]))
             .collect();
         (out, words)
     }
@@ -844,7 +873,8 @@ impl OpeningVerifier for Gen<'_> {
     fn e_of_limbs(&mut self, limbs: [K; 3]) -> E {
         // Three words in a row are an element where they are.
         let [(l0, v0), (l1, v1), (l2, v2)] = limbs.map(|k| self.ks[k.0 as usize]);
-        if l1 == l0.add(1) && l2 == l0.add(2) {
+        let aligned = matches!(l0, Loc::Advice(i) | Loc::Scratch(i) if i.is_multiple_of(ELEMENT));
+        if aligned && l1 == l0.add(1) && l2 == l0.add(2) {
             return self.new_e(Home::Mem(l0), F192::new(v0, v1, v2));
         }
         let (one, y, y2) = (E(0), E(1), E(2));
@@ -860,6 +890,9 @@ impl OpeningVerifier for Gen<'_> {
 
 /// The words of an element's slot: its three limbs, on a 32-byte boundary.
 pub(super) const ELEMENT: usize = 4;
+
+/// The words of a message block: eight, on a 64-byte boundary.
+pub(super) const BLOCK: usize = 8;
 
 /// Where word `i` of an opened row is among its hint's words: three words to a slot.
 pub(super) const fn leaf_slot(i: usize) -> usize {
