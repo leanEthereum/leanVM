@@ -6,15 +6,15 @@ permissions:
   contents: read
 jobs:
   measure:
-    name: Scalar ARM Karatsuba comparison
+    name: ARM ternary fold comparison
     runs-on: [size-attester7870-arm64, self-hosted-ghr]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 5bb6830ee4e7326bc6e7b4c142575f71e4c0970d
+          ref: 911d996aef92606864cc0bb069e3f0d9895d8248
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare scalar scheduling in register chains and array sweeps
+      - name: Compare ternary folds in register chains and array sweeps
         run: bash .github/perf-stack/run.sh
