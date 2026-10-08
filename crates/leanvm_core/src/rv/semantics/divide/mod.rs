@@ -3,7 +3,7 @@
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
 use flock::circuit::{Builder, Circuit, Wire};
-use flock::gadgets::mul::Multiplier;
+use flock::gadgets::Multiplier;
 
 /// One division instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

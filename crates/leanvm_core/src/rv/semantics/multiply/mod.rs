@@ -3,7 +3,7 @@
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
 use flock::circuit::{Builder, Circuit};
-use flock::gadgets::mul::Multiplier;
+use flock::gadgets::Multiplier;
 use std::sync::OnceLock;
 
 /// One low multiplication instance.
