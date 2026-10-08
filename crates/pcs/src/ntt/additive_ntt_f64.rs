@@ -54,7 +54,7 @@ impl AdditiveNttF64 {
     /// The seven twiddles a radix-8 group needs, breadth-first: layer `layer`,
     /// then `layer + 1` (one per half), then `layer + 2` (one per quarter).
     ///
-    /// `span_get` is F_2-linear in the block index, so the six deeper twiddles are
+    /// The normalized subspace map is F_2-linear in the block index, so the six deeper twiddles are
     /// the block's own contribution plus a fixed correction per sub-block index:
     /// one scan of the three basis rows replaces seven.
     pub(crate) fn twiddles_radix8(&self, layer: usize, block: usize) -> [F64; 7] {
@@ -222,7 +222,14 @@ impl AdditiveNttF64 {
         //     low_p[0] = 1,   low_p[j + 2^k] = low_p[j] · s_k(p)   for j < 2^k
         let factors: Vec<Vec<F64>> = positions
             .iter()
-            .map(|&p| (0..log_rows).map(|k| span_get(&self.evals[k], p >> k)).collect())
+            .map(|&p| {
+                (0..log_rows)
+                    .map(|k| {
+                        // s_k(b_k) = 1; higher basis bits form the upstream butterfly twiddle.
+                        self.twiddle(self.log_domain_size() - k - 1, p >> (k + 1)) + F64::from_bool((p >> k) & 1 != 0)
+                    })
+                    .collect()
+            })
             .collect();
         let tables: Vec<Vec<F64>> = factors
             .iter()
@@ -247,7 +254,7 @@ impl AdditiveNttF64 {
                 let mut out = vec![F64::ZERO; width];
                 let mut sums = vec![F64::ZERO; num_ntts];
                 for ((s, table), out) in factors.iter().zip(&tables).zip(out.chunks_exact_mut(num_ntts)) {
-                    dot_columns(table, rows, &mut sums);
+                    F64::columnwise_dot_product(table, rows, &mut sums);
                     let scale = (s[low..].iter().enumerate())
                         .filter(|&(k, _)| (hi >> k) & 1 == 1)
                         .fold(F64::ONE, |acc, (_, &s_k)| acc * s_k);
@@ -677,16 +684,6 @@ fn radix8_butterflies(rows: &mut [&mut [F64]; 8], t: &[F64; 7]) {
     butterfly_lanes(r2, r3, t[4]);
     butterfly_lanes(r4, r5, t[5]);
     butterfly_lanes(r6, r7, t[6]);
-}
-
-/// Column sums through upstream field multiplication.
-fn dot_columns(table: &[F64], rows: &[F64], sums: &mut [F64]) {
-    let width = sums.len();
-    assert_eq!(rows.len(), table.len() * width);
-    for (column, sum) in sums.iter_mut().enumerate() {
-        *sum = table.iter().zip(rows[column..].iter().step_by(width))
-            .fold(F64::ZERO, |sum, (&weight, &value)| sum + weight * value);
-    }
 }
 
 /// Transpose a lane-major message into the row-major order the encoder reads.
