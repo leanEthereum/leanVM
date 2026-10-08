@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: Corrected scalar folding comparison (${{ matrix.name }})
+    name: Coordinate gather comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 41812cb5ced23e3b9ff63304c942b4519b8db49d
+          ref: 2763bc8b5f1b5a809837b6ec31835cc420c4e0bf
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare corrected scalar folding with a known answer on native hardware
+      - name: Compare coordinate gathers and loaded product sums on native hardware
         run: bash .github/perf-stack/run.sh
