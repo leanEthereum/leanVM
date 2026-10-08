@@ -435,6 +435,7 @@ unsafe fn fused_apply_one_k<const K: i32>(
 }
 
 #[cfg(target_arch = "aarch64")]
+#[cfg_attr(leanvm_round1_neon_tiled, allow(dead_code))]
 #[inline(always)]
 fn shift_reduce_inner_ab_fused_neon(
     a_packed: &[u8],
@@ -503,6 +504,58 @@ fn shift_reduce_inner_ab_fused_neon(
     }
 }
 
+// Temporary quarter-first schedule experiment. The table and arithmetic are
+// identical to the baseline; only the order of independent lane work changes.
+#[cfg(all(target_arch = "aarch64", leanvm_round1_neon_tiled))]
+#[inline(always)]
+fn shift_reduce_inner_ab_tiled_neon(
+    a_packed: &[u8],
+    b_packed: &[u8],
+    inv_table: &InvNttTableByteSingleGf8,
+    chunk_byte_base: usize,
+    b_med: usize,
+    out: &mut [u8; 64],
+) {
+    let byte_base_b = chunk_byte_base + b_med * N_CHUNKS * 8;
+    let table_base = inv_table.data_ptr();
+    // SAFETY: the production entry point checks the same table and witness
+    // lengths as the baseline fused kernel. Quarter < 4 and b < 8 keep every
+    // permuted load within its 64-byte table row; stores cover exactly out.
+    unsafe {
+        for quarter in 0..4 {
+            let mut acc_lo = vdupq_n_u16(0);
+            let mut acc_hi = vdupq_n_u16(0);
+            macro_rules! step {
+                ($k:literal) => {{
+                    let off = byte_base_b + $k * N_CHUNKS;
+                    let row = |input: &[u8], b: usize| {
+                        let index = *input.as_ptr().add(off + b) as usize;
+                        vld1q_u8(table_base.add(index * ELL + (quarter ^ (b >> 1)) * 16))
+                    };
+                    let apply = |input: &[u8]| {
+                        let mut value = row(input, 1);
+                        value = veorq_u8(value, row(input, 3));
+                        value = veorq_u8(value, row(input, 5));
+                        value = veorq_u8(value, row(input, 7));
+                        value = vextq_u8::<8>(value, value);
+                        value = veorq_u8(value, row(input, 0));
+                        value = veorq_u8(value, row(input, 2));
+                        value = veorq_u8(value, row(input, 4));
+                        veorq_u8(value, row(input, 6))
+                    };
+                    let y = gf8_mul_vec16(apply(a_packed), apply(b_packed));
+                    acc_lo = veorq_u16(acc_lo, vshll_n_u8::<$k>(vget_low_u8(y)));
+                    acc_hi = veorq_u16(acc_hi, vshll_n_u8::<$k>(vget_high_u8(y)));
+                }};
+            }
+            step!(0); step!(1); step!(2); step!(3);
+            step!(4); step!(5); step!(6); step!(7);
+            let reduced = gf8_reduce_vec16(vreinterpretq_u8_u16(acc_lo), vreinterpretq_u8_u16(acc_hi));
+            vst1q_u8(out.as_mut_ptr().add(quarter * 16), reduced);
+        }
+    }
+}
+
 /// Dispatch helper: picks the widest SIMD kernel this target has, otherwise scalar.
 #[inline]
 fn shift_reduce_inner_ab(
@@ -515,6 +568,9 @@ fn shift_reduce_inner_ab(
 ) {
     #[cfg(target_arch = "aarch64")]
     {
+        #[cfg(leanvm_round1_neon_tiled)]
+        shift_reduce_inner_ab_tiled_neon(a_packed, b_packed, inv_table, chunk_byte_base, b_med, out);
+        #[cfg(not(leanvm_round1_neon_tiled))]
         shift_reduce_inner_ab_fused_neon(a_packed, b_packed, inv_table, chunk_byte_base, b_med, out);
     }
     #[cfg(all(target_arch = "x86_64", target_feature = "gfni", target_feature = "avx512bw"))]
@@ -1239,12 +1295,12 @@ pub(crate) mod tests {
     use primitives::multilinear::eq_table;
     use primitives::test_util::Rng;
 
-    // Temporary attribution harness. Inputs have the traced class's exact
-    // padding/tail shape, but deterministic synthetic bytes, not a witness dump.
+    // Temporary attribution harness. ROUND1_INPUT_DIR replays captured witness
+    // bytes and challenges; otherwise required shape fields select synthetic data.
     // Component working sets are deliberately separate; their timings must not
     // be subtracted from or added up to predict the fused production sweep.
     #[test]
-    #[ignore = "temporary native-hardware Round1 attribution; requires traced shape environment"]
+    #[ignore = "temporary native-hardware Round1 attribution; requires captured input or traced shape"]
     fn diagnostic_round1_components() {
         use std::hint::black_box;
         use std::time::Instant;
@@ -1255,41 +1311,63 @@ pub(crate) mod tests {
         let optional = |name: &str, default: usize| -> usize {
             std::env::var(name).map_or(default, |v| v.parse().unwrap())
         };
-        let m = required("ROUND1_M");
-        let padding = PaddingSpec {
-            k_log: required("ROUND1_K_LOG"),
-            useful_bits_per_block: required("ROUND1_USEFUL_BITS"),
-            live_blocks: required("ROUND1_LIVE_BLOCKS"),
+        let input_dir = std::env::var_os("ROUND1_INPUT_DIR").map(std::path::PathBuf::from);
+        let (m, padding) = if let Some(dir) = &input_dir {
+            let shape = std::fs::read_to_string(dir.join("shape.txt")).expect("read captured shape");
+            let shape: Vec<usize> = shape.split_whitespace().map(|v| v.parse().unwrap()).collect();
+            assert_eq!(shape.len(), 4, "capture shape is m k_log useful_bits live_blocks");
+            (shape[0], PaddingSpec { k_log: shape[1], useful_bits_per_block: shape[2], live_blocks: shape[3] })
+        } else {
+            (required("ROUND1_M"), PaddingSpec {
+                k_log: required("ROUND1_K_LOG"),
+                useful_bits_per_block: required("ROUND1_USEFUL_BITS"),
+                live_blocks: required("ROUND1_LIVE_BLOCKS"),
+            })
         };
         let repeats = optional("ROUND1_REPEATS", 5);
         let sample_limit = optional("ROUND1_SAMPLE_WINDOWS", 256);
         assert!(m >= K_SKIP + N_INNER && padding.k_log <= m);
         assert!(padding.useful_bits_per_block <= 1 << padding.k_log);
         assert!(repeats > 0 && sample_limit > 0);
-        let mut rng = Rng::new(0x524f_554e_4431);
         let bytes = (1usize << m) / 8;
-        let block_bytes = (1usize << padding.k_log) / 8;
-        assert!(block_bytes > 0);
-        let mut a = pack_bits(&rng.bits(1 << m));
-        let mut b = pack_bits(&rng.bits(1 << m));
-        for packed in [&mut a, &mut b] {
-            for block in packed.chunks_exact_mut(block_bytes) {
-                let full = padding.useful_bits_per_block / 8;
-                let bits = padding.useful_bits_per_block % 8;
-                if bits > 0 {
-                    block[full] &= (1u8 << bits) - 1;
+        let (a, b, c, r) = if let Some(dir) = &input_dir {
+            let load = |name| std::fs::read(dir.join(name)).expect("read Round1 capture");
+            let raw_r = load("r.bin");
+            assert_eq!(raw_r.len(), (m - K_SKIP) * 24, "captured challenge length");
+            let r: Vec<_> = raw_r.chunks_exact(24).map(|bytes| {
+                let limb = |i| u64::from_le_bytes(bytes[i..i + 8].try_into().unwrap());
+                F192::new(limb(0), limb(8), limb(16))
+            }).collect();
+            (load("a.bin"), load("b.bin"), load("c.bin"), r)
+        } else {
+            let mut rng = Rng::new(0x524f_554e_4431);
+            let block_bytes = (1usize << padding.k_log) / 8;
+            assert!(block_bytes > 0);
+            let mut a = pack_bits(&rng.bits(1 << m));
+            let mut b = pack_bits(&rng.bits(1 << m));
+            for packed in [&mut a, &mut b] {
+                for block in packed.chunks_exact_mut(block_bytes) {
+                    let full = padding.useful_bits_per_block / 8;
+                    let bits = padding.useful_bits_per_block % 8;
+                    if bits > 0 {
+                        block[full] &= (1u8 << bits) - 1;
+                    }
+                    block[full + usize::from(bits > 0)..].fill(0);
                 }
-                block[full + usize::from(bits > 0)..].fill(0);
-            }
-            if padding.live_blocks < bytes / block_bytes {
-                let tail_start = padding.live_blocks * block_bytes;
-                for start in ((tail_start + block_bytes)..bytes).step_by(block_bytes) {
-                    packed.copy_within(tail_start..tail_start + block_bytes, start);
+                if padding.live_blocks < bytes / block_bytes {
+                    let tail_start = padding.live_blocks * block_bytes;
+                    for start in ((tail_start + block_bytes)..bytes).step_by(block_bytes) {
+                        packed.copy_within(tail_start..tail_start + block_bytes, start);
+                    }
                 }
             }
+            let c: Vec<u8> = a.iter().zip(&b).map(|(a, b)| a & b).collect();
+            let r = build_protocol_r_rest(m, &rng.ext_vec(m - K_SKIP - N_INNER));
+            (a, b, c, r)
+        };
+        for input in [&a, &b, &c] {
+            assert_eq!(input.len(), bytes, "packed input length");
         }
-        let c: Vec<u8> = a.iter().zip(&b).map(|(a, b)| a & b).collect();
-        let r = build_protocol_r_rest(m, &rng.ext_vec(m - K_SKIP - N_INNER));
         let table = make_inv_table();
         let tail = padding.tail(m, K_SKIP + N_INNER, K_SKIP + N_INNER, &r);
         let windows = tail.map_or(1 << (m - K_SKIP - N_INNER), |t| t.head >> (K_SKIP + N_INNER));
@@ -1361,8 +1439,9 @@ pub(crate) mod tests {
             }
             eprintln!("round1_diag component={label} units_per_repeat={units} repeats={repeats} elapsed_ns={}", start.elapsed().as_nanos());
         };
-        eprintln!("round1_diag m={m} k_log={} useful_bits={} live_blocks={} head_windows={windows} sample_windows={samples} sample_medium={medium_count} worker_bytes={} synthetic=true",
-            padding.k_log, padding.useful_bits_per_block, padding.live_blocks, core::mem::size_of::<WorkerState>());
+        eprintln!("round1_diag m={m} k_log={} useful_bits={} live_blocks={} head_windows={windows} sample_windows={samples} sample_medium={medium_count} worker_bytes={} synthetic={} neon_tiled={}",
+            padding.k_log, padding.useful_bits_per_block, padding.live_blocks, core::mem::size_of::<WorkerState>(),
+            input_dir.is_none(), cfg!(all(target_arch = "aarch64", leanvm_round1_neon_tiled)));
         measure("production_round1", windows, &mut || {
             black_box(round1_shift_reduce_extract_c_packed_padded(black_box(&a), black_box(&b), black_box(&c), m, &r, &table, &padding));
         });
@@ -1937,6 +2016,11 @@ pub(crate) mod tests {
                 out_scalar, out_fused,
                 "fused-neon disagrees with scalar at (base={chunk_byte_base}, b_med={b_med})"
             );
+            #[cfg(leanvm_round1_neon_tiled)]
+            {
+                shift_reduce_inner_ab_tiled_neon(&a_packed, &b_packed, &table, chunk_byte_base, b_med, &mut out_fused);
+                assert_eq!(out_scalar, out_fused, "quarter-first NEON at (base={chunk_byte_base}, b_med={b_med})");
+            }
         }
     }
 }

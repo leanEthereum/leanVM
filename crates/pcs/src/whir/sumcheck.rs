@@ -46,7 +46,7 @@ const ROUND_CHUNK: usize = 2048;
 /// Words of the initial weight one fill call writes: a chunk, aligned to its size.
 ///
 /// A lane block below this size is filled whole.
-pub(crate) const INITIAL_BASIS_CHUNK: usize = 256;
+pub(crate) const INITIAL_BASIS_CHUNK: usize = if cfg!(leanvm_basis_chunk1024) { 1024 } else { 256 };
 
 /// Elements a stored (dense) weight's lane fold stages in L1 before publishing them.
 const DENSE_STAGE: usize = 128;

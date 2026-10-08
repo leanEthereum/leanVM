@@ -126,6 +126,13 @@ impl<'a> StackWeight<'a> {
             .iter()
             .map(|ring| {
                 let outputs = &rs_outputs[first..first + ring.claims.len()];
+                tracing::info!(
+                    offset = ring.offset,
+                    end = ring.offset + (1usize << ring.qflock_vars),
+                    first_claim = first,
+                    claims = ring.claims.len(),
+                    "Basis ring region"
+                );
                 first += ring.claims.len();
                 (ring.offset, ring.offset + (1usize << ring.qflock_vars), outputs)
             })

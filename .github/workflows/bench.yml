@@ -8,6 +8,9 @@ on:
       head:
         description: Diagnostic head
         required: false
+      phase:
+        description: attribution or followup
+        default: attribution
 permissions:
   contents: read
 jobs:
@@ -27,6 +30,7 @@ jobs:
       CARGO_BUILD_JOBS: 4
       LEANVM_NUM_THREADS: 1
       BASE: '${{ inputs.base }}'
+      ATTRIBUTION_PHASE: '${{ inputs.phase }}'
     steps:
       - uses: actions/checkout@v4
         with:
