@@ -33,6 +33,9 @@ fn capture_locality(bytes: &[u8]) {
     if let Some(path) = std::env::var_os("LOCALITY_PROOF") {
         static INDEX: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let index = INDEX.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if index == 0 {
+            eprintln!("locality actual workers: {}", parallel::num_threads());
+        }
         std::fs::write(std::path::PathBuf::from(path).with_extension(format!("{index}.bin")), bytes).unwrap();
     }
 }
