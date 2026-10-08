@@ -3,6 +3,7 @@
 use super::{Output, Program, Proof, ProveError, Stats};
 use crate::pcs::Rate;
 use crate::tables::PerTable;
+use primitives::field::F64;
 
 /// A prover: it proves runs at one commitment rate.
 ///
@@ -71,9 +72,20 @@ impl Prover {
         advice: &[u64],
         floors: PerTable<usize>,
     ) -> Result<ProvenRun, ProveError> {
+        self.prove_seeded(program, advice, floors, program.fs_seed())
+    }
+
+    /// [`Self::prove_at`], the transcript seeded with `iv` in place of the program's digest.
+    pub(crate) fn prove_seeded(
+        &self,
+        program: &Program,
+        advice: &[u64],
+        floors: PerTable<usize>,
+        iv: [F64; 4],
+    ) -> Result<ProvenRun, ProveError> {
         let exec = crate::stage!("Execute program", || program.execute_at(advice, floors))?;
         program.committed_size(exec.trace.row_counts())?;
-        let (proof, stats) = program.prove_execution(&exec, self.rate);
+        let (proof, stats) = program.prove_execution_seeded(&exec, self.rate, iv);
         Ok(ProvenRun {
             proof,
             output: Output::new(exec.output),

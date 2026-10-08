@@ -217,7 +217,13 @@ impl Program {
     }
 
     /// Prove a finished run, which a test may have forged.
+    #[cfg(test)]
     pub(super) fn prove_execution(&self, exec: &Execution, rate: Rate) -> (Proof, Stats) {
+        self.prove_execution_seeded(exec, rate, self.fs_seed())
+    }
+
+    /// Prove a finished run on a transcript seeded with `iv`: the program's digest, or a tree's seed.
+    pub(super) fn prove_execution_seeded(&self, exec: &Execution, rate: Rate, iv: [F64; 4]) -> (Proof, Stats) {
         let w = crate::stage!("Build witness", || Witness::build(self, exec));
         let stats = Stats {
             proven_rows: exec.proven_rows,
@@ -225,7 +231,7 @@ impl Program {
             base_counts: exec.base_counts,
             committed: w.committed_size(),
         };
-        (self.prove_witness(w, Output::new(exec.output), rate), stats)
+        (self.prove_witness_seeded(w, Output::new(exec.output), rate, iv), stats)
     }
 
     /// Prove a built witness, which a test may have forged.
@@ -233,9 +239,15 @@ impl Program {
     /// # Panics
     ///
     /// Panics if the witness's bus does not balance: an honest run's always does.
+    #[cfg(test)]
     fn prove_witness(&self, w: Witness, output: Output, rate: Rate) -> Proof {
-        // The public statement, the program's digest and the output, seeds the transcript.
-        let mut ps = ProverState::new(self.fs_seed(), output.words().map(F64));
+        self.prove_witness_seeded(w, output, rate, self.fs_seed())
+    }
+
+    /// [`Self::prove_witness`], the transcript seeded with `iv` in place of the program's digest.
+    fn prove_witness_seeded(&self, w: Witness, output: Output, rate: Rate, iv: [F64; 4]) -> Proof {
+        // The public statement, the seed and the output, seeds the transcript.
+        let mut ps = ProverState::new(iv, output.words().map(F64));
 
         // Announce the sizes, then commit, before any challenge.
         let log_inv_rate = rate.log_inv_rate().into();
@@ -375,8 +387,24 @@ impl Program {
     /// The verifier's core, and the proof it replayed with its Merkle paths written out.
     #[tracing::instrument(name = "Verify core", skip_all)]
     fn replay(&self, output: Output, proof: &Proof) -> Result<(DeferredClaims, RawProof), CpuError> {
+        self.replay_seeded(output, proof, self.fs_seed())
+    }
+
+    /// The verifier's core on a transcript seeded with `iv` in place of the program's digest, and the proof it replayed.
+    ///
+    /// The seed then says nothing of the program: the claims the core leaves are what binds it.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first stage that refuses the proof.
+    pub(crate) fn replay_seeded(
+        &self,
+        output: Output,
+        proof: &Proof,
+        iv: [F64; 4],
+    ) -> Result<(DeferredClaims, RawProof), CpuError> {
         // The public statement seeds the transcript, as on the prover's side.
-        let mut vs = VerifierState::new(self.fs_seed(), &proof.0, output.words().map(F64));
+        let mut vs = VerifierState::new(iv, &proof.0, output.words().map(F64));
 
         // The announced sizes, then the layout they describe, then the core.
         let announcement = Announcement::read(&mut vs)?;

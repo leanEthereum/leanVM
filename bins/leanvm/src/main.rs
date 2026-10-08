@@ -125,7 +125,7 @@ enum Command {
         #[arg(long, default_value_t = 2)]
         arity: usize,
     },
-    /// Prove a leaf program once, then a RISC-V program verifying copies of its proof: recursion on the machine itself.
+    /// Prove a leaf program once, then a tree of RISC-V verifier programs over copies of its proof: recursion on the machine itself.
     Recursion {
         /// The leaf program.
         #[arg(long, value_enum, default_value = "leanxmss")]
@@ -133,12 +133,15 @@ enum Command {
         /// The leaf program's size: Fibonacci's steps, or the signatures it verifies.
         #[arg(long, default_value_t = 400, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         n: usize,
-        /// The proofs each verifier program verifies.
-        #[arg(long, default_value_t = 2, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        /// The leaves the tree covers at least: the first level's arity times a power of the nodes' arity.
+        #[arg(long, default_value_t = 4)]
         leaves: usize,
-        /// The levels of verifier programs, each verifying proofs of the one below.
-        #[arg(long, default_value_t = 1, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
-        levels: usize,
+        /// The leaves each first-level program run verifies.
+        #[arg(long, default_value_t = 2, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        arity0: usize,
+        /// The children each node verifies.
+        #[arg(long, default_value_t = 2, value_parser = RangedU64ValueParser::<usize>::new().range(2..))]
+        arity: usize,
     },
     /// Prove the benchmarks CI tracks and print them as Bencher Metric Format JSON.
     ///
@@ -220,8 +223,9 @@ fn main() {
             program,
             n,
             leaves,
-            levels,
-        } => recursion::run(&program.workload(n), leaves, levels, &leaf_prover, &prover, plan),
+            arity0,
+            arity,
+        } => recursion::run(&program.workload(n), leaves, arity0, arity, &leaf_prover, &prover, plan),
         Command::Bench {
             cycles_only,
             markdown,

@@ -78,7 +78,7 @@ impl Kind {
     }
 
     /// Its digest's first block: its tag and how many items follow, then zeros.
-    const fn header(self, count: usize) -> [u64; 8] {
+    pub(crate) const fn header(self, count: usize) -> [u64; 8] {
         [self.tag(), count as u64, 0, 0, 0, 0, 0, 0]
     }
 

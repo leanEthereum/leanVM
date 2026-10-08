@@ -35,11 +35,11 @@ use reduce::DenseTables;
 use statement::TreeStatement;
 use thiserror::Error;
 
-mod claims;
+pub(crate) mod claims;
 mod design;
 mod fixed;
-mod reduce;
-mod statement;
+pub(crate) mod reduce;
+pub(crate) mod statement;
 mod stats;
 #[cfg(test)]
 mod tests;
@@ -61,9 +61,9 @@ const MAX_ROUNDS: usize = 8;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LeafShape {
     /// Each table's base-two logarithm of rows.
-    taus: PerTable<usize>,
+    pub(crate) taus: PerTable<usize>,
     /// The commitment's rate.
-    rate: Rate,
+    pub(crate) rate: Rate,
 }
 
 /// One leaf of a tree: a proof of a run, and the output it proves.

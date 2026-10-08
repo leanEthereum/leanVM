@@ -9,6 +9,7 @@
 
 mod lower;
 mod record;
+pub mod tree;
 
 use crate::ProgramError;
 use crate::cpu::{Announcement, CpuError, DeferredClaims, Layout, Output, Program, Proof};

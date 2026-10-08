@@ -40,6 +40,7 @@ mod witness;
 
 pub use self::pcs::{InvalidRate, Rate};
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
+pub use rec::program::tree::{ProgramTree, ProgramTreeError, ProgramTreeProof};
 pub use rec::program::{BuildError, SettleError, Verified, VerifierProgram, settle, statement_hash};
 pub use rec::tree::{
     CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,

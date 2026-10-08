@@ -117,8 +117,14 @@ pub(super) enum Op {
     EqD { a: Loc, b: Loc },
     /// A root read as two scalars, their top limbs zero.
     Root { lo: Loc, hi: Loc, out: Loc },
-    /// The program's output: the hash of these words.
-    Commit { words: Vec<Loc> },
+    /// The transcript's state set to a constant: the start of a transcript with no statement of its own.
+    InitState { state: Loc },
+    /// The transcript's state, copied out as two elements: three words, then the fourth.
+    State { out: [Loc; 2] },
+    /// The hash of these words, into the digest at `out`.
+    Chain { words: Vec<Loc>, out: Loc },
+    /// The program's output, the digest at `digest`, and its exit.
+    Exit { digest: Loc },
 }
 
 /// The recorder: the verifier's operations, and every value they compute on this proof.
@@ -315,9 +321,12 @@ impl<'a> Gen<'a> {
         out
     }
 
-    /// `e`'s limbs as words: `e` stored to scratch words.
-    fn limbs(&mut self, e: E) -> [K; 3] {
+    /// `e`'s limbs as words: the words it sits in, or scratch words it is stored to.
+    pub(super) fn limbs(&mut self, e: E) -> [K; 3] {
         let v = self.e(e);
+        if let Home::Mem(at) = self.es[e.0 as usize].0 {
+            return std::array::from_fn(|i| self.new_k(at.add(i), [v.c0, v.c1, v.c2][i]));
+        }
         let at = self.scratch_element();
         self.ops.push(Op::Limbs { e: e.0, at });
         std::array::from_fn(|i| self.new_k(at.add(i), [v.c0, v.c1, v.c2][i]))
@@ -405,16 +414,99 @@ impl<'a> Gen<'a> {
     /// Hash these words and the limbs of these elements into the program's output, and return it.
     pub(super) fn commit(&mut self, words: &[K], elements: &[E]) -> [u64; 4] {
         self.flush();
-        let mut locs: Vec<Loc> = words.iter().map(|&k| self.ks[k.0 as usize].0).collect();
-        let mut values: Vec<u64> = words.iter().map(|&k| self.k(k)).collect();
+        let mut all = words.to_vec();
         for &e in elements {
-            for k in self.limbs(e) {
-                locs.push(self.ks[k.0 as usize].0);
-                values.push(self.k(k));
-            }
+            all.extend(self.limbs(e));
         }
-        self.ops.push(Op::Commit { words: locs });
-        chain(&values)
+        let digest = self.chain(&all);
+        self.ops.push(Op::Exit {
+            digest: self.d_loc(digest),
+        });
+        self.d(digest)
+    }
+
+    /// The hash of these words.
+    pub(super) fn chain(&mut self, words: &[K]) -> D {
+        let values: Vec<u64> = words.iter().map(|&k| self.k(k)).collect();
+        let out = self.new_d(chain(&values));
+        self.ops.push(Op::Chain {
+            words: words.iter().map(|&k| self.ks[k.0 as usize].0).collect(),
+            out: self.d_loc(out),
+        });
+        out
+    }
+
+    /// A digest's four words.
+    pub(super) fn d_words(&mut self, d: D) -> [K; 4] {
+        let (loc, value) = self.ds[d.0 as usize];
+        std::array::from_fn(|i| self.new_k(loc.add(i), value[i]))
+    }
+
+    /// A digest as two elements, two words each with a zero top limb.
+    pub(super) fn d_halves(&mut self, d: D) -> [E; 2] {
+        let w = self.d_words(d);
+        let (one, y) = (E(0), E(1));
+        [0, 2].map(|i| {
+            let low = self.emit_mul_k_add(one, w[i], None);
+            self.emit_mul_k_add(y, w[i + 1], Some(low))
+        })
+    }
+
+    /// The digest two elements of the advice are the halves of: their top limbs are zero.
+    pub(super) fn halves_to_d(&mut self, lo: E, hi: E) -> D {
+        let (l, h) = (self.e(lo), self.e(hi));
+        let out = self.new_d([l.c0, l.c1, h.c0, h.c1]);
+        self.ops.push(Op::Root {
+            lo: self.advice_of(lo),
+            hi: self.advice_of(hi),
+            out: self.d_loc(out),
+        });
+        out
+    }
+
+    /// A free element: the prover's, among the hints.
+    pub(super) fn free_e(&mut self, v: F192) -> E {
+        let at = self.hint_element(v);
+        self.new_e(Home::Mem(at), v)
+    }
+
+    /// A word that is a constant.
+    pub(super) fn word(&mut self, c: u64) -> K {
+        self.k_const(c)
+    }
+
+    /// The transcript's state as two elements: its first three words, then its fourth.
+    pub(super) fn state(&mut self) -> [E; 2] {
+        self.flush();
+        let out = [self.scratch_element(), self.scratch_element()];
+        self.ops.push(Op::State { out });
+        let [w0, w1, w2, w3] = self.cv.map(|w| w.0);
+        [
+            self.new_e(Home::Mem(out[0]), F192::new(w0, w1, w2)),
+            self.new_e(Home::Mem(out[1]), F192::new(w3, 0, 0)),
+        ]
+    }
+
+    /// Start on a transcript whose state is the constant `state`, reading `source`: a proof with no statement of its own.
+    pub(super) fn start_from(&mut self, source: ProofSource<'a>, state: [u64; 4]) {
+        debug_assert!(self.pending.is_empty(), "the previous transcript is flushed");
+        (self.source, self.offset, self.opening) = (source, 0, 0);
+        let at = self.pool(&state);
+        self.cv = state.map(F64);
+        self.ops.push(Op::InitState { state: at });
+    }
+
+    /// Start on the next proof, whose run's output is the digest `output`, its transcript seeded with it after `iv`.
+    pub(super) fn start_on(&mut self, source: ProofSource<'a>, iv: [u64; 4], output: D) -> [K; 4] {
+        debug_assert!(self.pending.is_empty(), "the previous proof's transcript is flushed");
+        (self.source, self.offset, self.opening) = (source, 0, 0);
+        let seed = self.pool(&iv);
+        self.cv = fiat_shamir::compress(iv.map(F64), self.d(output).map(F64));
+        self.ops.push(Op::Init {
+            iv: seed,
+            output: self.d_loc(output),
+        });
+        self.d_words(output)
     }
 
     /// Whether the whole proof was read.
@@ -671,14 +763,7 @@ impl OpeningVerifier for Gen<'_> {
         let (lo, hi) = (self.take(), self.take());
         self.observe(lo);
         self.observe(hi);
-        let (l, h) = (self.e(lo), self.e(hi));
-        let out = self.new_d([l.c0, l.c1, h.c0, h.c1]);
-        self.ops.push(Op::Root {
-            lo: self.advice_of(lo),
-            hi: self.advice_of(hi),
-            out: self.d_loc(out),
-        });
-        Ok(out)
+        Ok(self.halves_to_d(lo, hi))
     }
 
     fn sample_queries(&mut self, depth: usize, count: usize) -> Vec<Query> {

@@ -518,7 +518,8 @@ impl Lower<'_> {
         self.copy(|k| node.add(k), |k| Word::At(out.add(k)), 4);
     }
 
-    fn commit(&mut self, words: &[Loc]) {
+    /// The hash of the words at `words`, into the digest at `out`: a chain from the parameter block's state.
+    fn chain(&mut self, words: &[Loc], out: Loc) {
         let [t, counter, ..] = reg::T;
         for (k, word) in CHAIN_IV.into_iter().enumerate() {
             self.a.li(t, word).store(Sd, t, 8 * k as i32, reg::LEAF[0]);
@@ -543,11 +544,11 @@ impl Lower<'_> {
             self.a.blake2s(reg::LEAF[phase], counter, j + 1 == n_blocks);
             phase ^= 1;
         }
-        // The output registers, then the exit: they are page registers until here.
-        for (k, r) in Reg::OUTPUTS.into_iter().enumerate() {
-            self.a.load(Ld, r, 32 * phase as i32 + 8 * k as i32, reg::LEAF[0]);
-        }
-        self.a.exit();
+        self.copy(
+            |k| Word::Block(reg::LEAF[0], 32 * phase as i32 + 8 * k as i32),
+            |k| Word::At(out.add(k)),
+            4,
+        );
     }
 
     fn op(&mut self, op: &Op) {
@@ -617,7 +618,33 @@ impl Lower<'_> {
                     self.assert_eq(reg::T[0], Reg::ZERO);
                 }
             }
-            Op::Commit { ref words } => self.commit(words),
+            Op::InitState { state } => {
+                self.phase = 0;
+                self.copy(
+                    |k| Word::At(state.add(k)),
+                    |k| Word::Block(reg::TRANSCRIPT[0], 8 * k as i32),
+                    4,
+                );
+            }
+            Op::State { out } => {
+                let phase = self.phase as i32;
+                self.copy(
+                    |k| Word::Block(reg::TRANSCRIPT[0], 32 * phase + 8 * k as i32),
+                    |k| Word::At(if k < 3 { out[0].add(k) } else { out[1] }),
+                    4,
+                );
+            }
+            Op::Chain { ref words, out } => self.chain(words, out),
+            Op::Exit { digest } => {
+                // The output registers, then the exit: they are page registers until here.
+                for k in 0..4 {
+                    self.ld(reg::T[k], digest.add(k));
+                }
+                for (k, r) in Reg::OUTPUTS.into_iter().enumerate() {
+                    self.a.i(Addi, r, reg::T[k], 0);
+                }
+                self.a.exit();
+            }
         }
     }
 }
@@ -702,7 +729,7 @@ pub(super) fn lower(g: &Gen<'_>) -> Lowered {
         l.op(op);
     }
     debug_assert!(
-        matches!(g.ops.last(), Some(Op::Commit { .. })),
+        matches!(g.ops.last(), Some(Op::Exit { .. })),
         "a program ends on its output"
     );
 
