@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: Scalar carryless folding comparison (${{ matrix.name }})
+    name: Sparse twiddle traversal comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 4f52094912a6f34135e5414c07f4ee1e67d66f9f
+          ref: 743ed5fccfd68df6dc121cade7f0f948ad8545cc
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare scalar carryless folding on native hardware
+      - name: Compare sparse twiddle traversal on native hardware
         run: bash .github/perf-stack/run.sh
