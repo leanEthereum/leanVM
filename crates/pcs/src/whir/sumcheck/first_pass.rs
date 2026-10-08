@@ -885,9 +885,17 @@ impl LaneWeight {
 /// Unreduced sums `Σ e·x` over lanes, for a window of up to `INITIAL_BASIS_CHUNK` values.
 /// Each row of `ROW` values holds six vectors of four 128-bit sums: coefficients 0 and 1
 /// of the even values, the same of the odd ones, then coefficient 2 of both.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
+#[cfg_attr(not(leanvm_basis_chunk1024), derive(Default))]
 #[repr(C, align(64))]
 pub(super) struct WeightFold([[[u64; ROW]; 6]; INITIAL_BASIS_CHUNK / ROW]);
+
+#[cfg(leanvm_basis_chunk1024)]
+impl Default for WeightFold {
+    fn default() -> Self {
+        Self([[[0; ROW]; 6]; INITIAL_BASIS_CHUNK / ROW])
+    }
+}
 
 /// `xs` by rows of `ROW`, the last one zero-padded.
 #[inline(always)]
