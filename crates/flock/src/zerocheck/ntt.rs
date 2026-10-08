@@ -1,7 +1,9 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! The additive NTT over GF(2^8), and the table that collapses the round-1 extension through it.
 
-use primitives::field::F8;
+use primitives::PrimeCharacteristicRing;
+
+use primitives::F8;
 
 mod inv_table;
 pub(crate) use inv_table::InvNttTableByteSingleGf8;
@@ -26,7 +28,7 @@ fn compute_twiddles(k: usize, beta: F8) -> Vec<F8> {
 
     // Layer 0: 2^{k-1} points beta + {0, 2, 4, ..., 2(write_at-1)}.
     let mut write_at = 1usize << (k - 1);
-    let mut layer: Vec<F8> = (0..write_at).map(|i| beta + F8((2 * i) as u8)).collect();
+    let mut layer: Vec<F8> = (0..write_at).map(|i| beta + F8::from_byte((2 * i) as u8)).collect();
     let mut s_at_root = F8::ONE;
 
     // Write layer 0 directly (s_at_root = 1 ⇒ no scaling needed).
@@ -41,7 +43,7 @@ fn compute_twiddles(k: usize, beta: F8) -> Vec<F8> {
         }
         s_at_root = next_s_root;
 
-        let s_inv = s_at_root.inv();
+        let s_inv = s_at_root.invert_or_zero();
         for j in 0..write_at {
             twiddles[write_at - 1 + j] = s_inv * layer[j];
         }
@@ -146,10 +148,11 @@ impl AdditiveNttGf8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::PrimeCharacteristicRing;
     use primitives::test_util::Rng;
 
     fn rand_vec(rng: &mut Rng, n: usize) -> Vec<F8> {
-        (0..n).map(|_| F8((rng.next_u64() & 0xff) as u8)).collect()
+        (0..n).map(|_| F8::from_byte((rng.next_u64() & 0xff) as u8)).collect()
     }
 
     #[test]
@@ -171,7 +174,7 @@ mod tests {
     fn nonzero_beta_roundtrip() {
         let mut rng = Rng::new(45);
         for beta_v in [0x01u8, 0x42, 0xCA, 0xFF] {
-            let beta = F8(beta_v);
+            let beta = F8::from_byte(beta_v);
             for k in 1..=6 {
                 let ntt = AdditiveNttGf8::new(k, beta);
                 let original = rand_vec(&mut rng, 1 << k);

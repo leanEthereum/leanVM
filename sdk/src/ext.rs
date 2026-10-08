@@ -60,47 +60,23 @@ fn apply<const FUNCT3: u32>(c: &mut [u64; 3], a: &[u64; 3], b: *const u64) {
     }
 }
 
-/// The products by their definitions, for a host.
+/// Native field products delegated to the external polynomial-basis backend.
 #[cfg(not(all(target_arch = "riscv64", target_os = "none")))]
 mod portable {
-    /// The product in `E`: schoolbook in `y`, then `y^3 = y + 1` and `y^4 = y^2 + y`.
+    use p3_binary_field::{Poly64, Poly192};
+
     pub fn mul(a: &[u64; 3], b: &[u64; 3]) -> [u64; 3] {
-        // The five coefficients of y^0 to y^4.
-        let mut d = [0u64; 5];
-        for i in 0..3 {
-            for j in 0..3 {
-                d[i + j] ^= mul_base(a[i], b[j]);
-            }
-        }
-        [d[0] ^ d[3], d[1] ^ d[3] ^ d[4], d[2] ^ d[4]]
-    }
-
-    /// The product in `K`: the carry-less product, reduced.
-    fn mul_base(a: u64, b: u64) -> u64 {
-        // One partial product `a * x^i` per set bit `i` of `b`.
-        let wide = (0..64).fold(0u128, |p, i| p ^ (u128::from(a) * u128::from(b >> i & 1)) << i);
-        reduce(wide)
-    }
-
-    /// Reduce a carry-less product of degree below 127 modulo `x^64 + x^4 + x^3 + x + 1`.
-    ///
-    /// ```text
-    ///   hi * x^64 = f(hi),     f(v) = v ^ v<<1 ^ v<<3 ^ v<<4
-    ///   the 4 bits f shifts past x^63 fold back once more
-    /// ```
-    const fn reduce(p: u128) -> u64 {
-        let (lo, hi) = (p as u64, (p >> 64) as u64);
-        // Folding the spill into `hi` first merges the two folds, as `f` is linear.
-        let v = hi ^ (hi >> 63) ^ (hi >> 61) ^ (hi >> 60);
-        lo ^ v ^ (v << 1) ^ (v << 3) ^ (v << 4)
+        let element = |words: &[u64; 3]| Poly192::new(words.map(Poly64::new));
+        (element(a) * element(b)).coefficients().map(Poly64::to_bits)
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
-    use primitives::field::{F64, F192};
     use primitives::test_util::Rng;
+    use primitives::{F64, F192};
 
     #[test]
     fn the_portable_field_is_the_proof_systems() {
@@ -116,8 +92,14 @@ mod tests {
                 [word(i + 3), word(i + 4), word(i + 5)],
                 [word(i + 6), 7, 9],
             );
-            let e = |v: [u64; 3]| F192::new(v[0], v[1], v[2]);
-            let limbs = |v: F192| [v.c0, v.c1, v.c2];
+            let e = |v: [u64; 3]| F192::new([F64::new(v[0]), F64::new(v[1]), F64::new(v[2])]);
+            let limbs = |v: F192| {
+                [
+                    v.coefficients()[0].to_bits(),
+                    v.coefficients()[1].to_bits(),
+                    v.coefficients()[2].to_bits(),
+                ]
+            };
 
             // The four forms, each against the host's field.
             let mut c = old;
@@ -126,10 +108,10 @@ mod tests {
             mul_add(&mut c, &a, &b);
             assert_eq!(c, [0; 3], "c + c is zero");
             mul_base(&mut c, &a, &b[0]);
-            assert_eq!(c, limbs(e(a).mul_base(F64(b[0]))));
+            assert_eq!(c, limbs(e(a) * F64::new(b[0])));
             let mut c = old;
             mul_add_base(&mut c, &a, &b[0]);
-            assert_eq!(c, limbs(e(old) + e(a).mul_base(F64(b[0]))));
+            assert_eq!(c, limbs(e(old) + (e(a) * F64::new(b[0]))));
         }
     }
 }

@@ -18,10 +18,12 @@
 //! Storage: 256 × ell bytes (16 KB at k=6, 32 KB at k=7), which fits in L1.
 //! Lookups per row: n_chunks (= ell/8), each load is `ell` contiguous bytes.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::AdditiveNttGf8;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 use core::arch::x86_64::*;
-use primitives::field::{F8, F64, F192, phi8_192};
+use primitives::{F8, F64, F192, phi8_192};
 
 #[derive(Clone, Debug)]
 pub(crate) struct InvNttTableByteSingleGf8 {
@@ -92,7 +94,7 @@ impl InvNttTableByteSingleGf8 {
                 .twiddles
                 .iter()
                 .chain(&ntt_l.twiddles)
-                .map(|&t| F64(phi8_192(t).c0))
+                .map(|&t| F64::new(phi8_192(t).coefficients()[0].to_bits()))
                 .collect(),
         }
     }
@@ -119,7 +121,7 @@ impl InvNttTableByteSingleGf8 {
                 } else {
                     for (a, b) in lo.iter_mut().zip(hi) {
                         *b += *a;
-                        *a += b.mul_base(lambda);
+                        *a += *b * lambda;
                     }
                 }
             }
@@ -138,21 +140,12 @@ impl InvNttTableByteSingleGf8 {
                     }
                 } else {
                     for (a, b) in lo.iter_mut().zip(hi) {
-                        *a += b.mul_base(lambda);
+                        *a += *b * lambda;
                         *b += *a;
                     }
                 }
             }
         }
-    }
-
-    /// Raw pointer to the table data (`256 × ell` bytes, row-major). Used by
-    /// the URM fused inner kernel, which can't go through the safe slice API
-    /// without losing the register-fused layout.
-    #[cfg(target_arch = "aarch64")]
-    #[inline]
-    pub(crate) const fn data_ptr(&self) -> *const u8 {
-        self.data.as_ptr() as *const u8
     }
 
     /// Apply M to a single byte-packed row, in place.
@@ -442,6 +435,7 @@ impl Vec128 for Sse2 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::PrimeCharacteristicRing;
     use primitives::test_util::Rng;
 
     /// Naive reference: unpack `bytes` into `ell` GF(2)-valued F8 elements
@@ -466,7 +460,7 @@ mod tests {
     fn matches_naive() {
         for k in [3usize, 4, 6] {
             let ntt_s = AdditiveNttGf8::new(k, F8::ZERO);
-            let ntt_l = AdditiveNttGf8::new(k, F8(1 << k));
+            let ntt_l = AdditiveNttGf8::new(k, F8::from_byte(1 << k));
             let table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
             let mut rng = Rng::new(100 + k as u64);
             let mut out = vec![F8::ZERO; table.ell];
@@ -485,7 +479,7 @@ mod tests {
     fn apply_simd_matches_apply_scalar() {
         for &k in &[4usize, 5, 6] {
             let ntt_s = AdditiveNttGf8::new(k, F8::ZERO);
-            let ntt_l = AdditiveNttGf8::new(k, F8(1u8 << k));
+            let ntt_l = AdditiveNttGf8::new(k, F8::from_byte(1u8 << k));
             let table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
 
             let mut rng = Rng::new(100 + k as u64);

@@ -3,7 +3,7 @@
 use crate::FiatShamirState;
 use crate::merkle::{Hash, PrunedMerklePaths, RawMerklePath, hash_to_scalars, scalars_to_hash};
 use bincode::{DefaultOptions, Options};
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -280,7 +280,7 @@ impl Transmitter for ProverState {
     /// no-work nonce `0`.
     fn grind(&mut self, bits: u32) {
         let nonce = self.fs.grind_pow(bits);
-        self.stream.push(F192::new(nonce, 0, 0));
+        self.stream.push(F192::new([F64::new(nonce), F64::new(0), F64::new(0)]));
     }
 }
 
@@ -383,18 +383,20 @@ impl Challenger for VerifierState<'_> {
     }
 }
 
+use primitives::PrimeCharacteristicRing;
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn f(k: u64) -> F192 {
-        F192::new(k, k ^ 0x1234, k.rotate_left(17))
+        F192::new([F64::new(k), F64::new(k ^ 0x1234), F64::new(k.rotate_left(17))])
     }
 
     #[test]
     fn prover_verifier_lockstep() {
         let iv = crate::digest_words(&primitives::hash::hash(b"lbl"));
-        let pi = std::array::from_fn(|i| F64(7 + i as u64));
+        let pi = std::array::from_fn(|i| F64::new(7 + i as u64));
         let mut ps = ProverState::new(iv, pi);
         let c1 = ps.sample();
         ps.add_scalar(f(42));

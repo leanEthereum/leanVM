@@ -1,7 +1,9 @@
 //! Blocks and producers, the fingerprint over their tuples' slots, and where they stack in a side's leaf vector.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::{BusError, Coord, PublicColumn};
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 
 /// A flushing rule: `2^kappa` rows, each a tuple of coordinates. Every one of them is a
 /// row the program executed, since a table's height is its row count (§sec:e2e-pad), so a

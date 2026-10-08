@@ -1,9 +1,14 @@
-//! Shared primitives: field kernels, bit transposes, multilinear helpers, and
+//! Shared primitives: Plonky3 fields, bit transposes, multilinear helpers, and
 //! small integer utilities.
 
 pub mod bit_fold;
 pub mod bits;
-pub mod field;
+pub use multilinear::{G, PHI_8_TABLE_192, dot_base, g_pow, int_index_mle, mul_base8, mul2, mul4, phi8_192, powers};
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+pub use p3_binary_field::PackedPoly192 as F192x4;
+pub use p3_binary_field::{Poly64 as F64, Poly192 as F192, Rijndael8b as F8};
+pub use p3_field::extension::HasFrobenius;
+pub use p3_field::{Algebra, Field, PackedFieldExtension, PackedValue, PrimeCharacteristicRing};
 pub mod hash;
 pub mod multilinear;
 pub mod stream;

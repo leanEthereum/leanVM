@@ -9,12 +9,14 @@
 //! fingerprint challenges `α, β` are `E`-valued, so a leaf accumulates via the mixed
 //! `mul_base` product (2 PMULL per coordinate).
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::gkr;
 use crate::gkr::GkrError;
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
-use primitives::field::{F64, F192, F192Unreduced, Weights8, dot_base};
 use primitives::multilinear::eq_table;
+use primitives::{F64, F192, dot_base};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
@@ -356,43 +358,41 @@ fn tables_and_prods_at(
             let sums = parallel::map_reduce_with_state(
                 (1usize << tau).div_ceil(ROWS),
                 || (Vec::with_capacity(ROWS / 8), Vec::with_capacity(ROWS)),
-                || vec![F192Unreduced::ZERO; n_acc],
-                |(packed, products): &mut (Vec<Weights8>, Vec<F64>), acc, chunk| {
+                || vec![F192::ZERO; n_acc],
+                |(packed, products): &mut (Vec<[F192; 8]>, Vec<F64>), acc, chunk| {
                     let lo = chunk * ROWS;
                     let weights = &eq[lo..(lo + ROWS).min(1 << tau)];
                     let span = |c: usize| &cols[base + c][lo..lo + weights.len()];
                     let (blocks, tail) = weights.as_chunks::<8>();
                     let split = 8 * blocks.len();
                     packed.clear();
-                    packed.extend(blocks.iter().map(Weights8::new));
+                    packed.extend(blocks.iter().copied());
                     let dot = |k: &[F64]| {
                         tail.iter()
                             .zip(&k[split..])
-                            .fold(dot_base(packed, &k[..split]), |acc, (&w, &v)| {
-                                acc ^ w.mul_base_unreduced(v)
-                            })
+                            .fold(dot_base(packed, &k[..split]), |acc, (&w, &v)| acc + (w * v))
                     };
                     for (c, slot) in acc[..n_cols].iter_mut().enumerate() {
-                        *slot ^= dot(span(c));
+                        *slot += dot(span(c));
                     }
                     for (&(a, b), slot) in pairs.iter().zip(&mut acc[n_cols..]) {
                         products.clear();
                         products.extend(span(a).iter().zip(span(b)).map(|(&x, &y)| x * y));
-                        *slot ^= dot(products);
+                        *slot += dot(products);
                     }
                 },
                 |mut left, right| {
                     for (slot, part) in left.iter_mut().zip(right) {
-                        *slot ^= part;
+                        *slot += part;
                     }
                     left
                 },
             );
-            let evals = sums[..n_cols].iter().map(|s| s.reduce()).collect();
+            let evals = sums[..n_cols].to_vec();
             let prods = pairs
                 .iter()
                 .zip(&sums[n_cols..])
-                .map(|(&(a, b), s)| (a, b, s.reduce()))
+                .map(|(&(a, b), s)| (a, b, *s))
                 .collect();
             (evals, prods)
         })
@@ -505,6 +505,7 @@ pub(crate) mod tests {
     use crate::rv::Region;
     use crate::tables::PerTable;
     use fiat_shamir::transcript::{ProverState, VerifierState};
+    use primitives::{Field, PrimeCharacteristicRing};
     use std::collections::HashMap;
     use std::sync::Arc;
 
@@ -519,9 +520,12 @@ pub(crate) mod tests {
         cols: &[&[F64]],
     ) -> Vec<(&'static str, usize, usize)> {
         let alphas: Vec<F192> = (0..N_TUPLE_BITS as u64)
-            .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
+            .map(|i| F192::new([F64::new(3 + i), F64::new(5 + 7 * i), F64::new(11)]))
             .collect();
-        let (w, beta) = (fingerprint_weights(&alphas), F192::new(13, 17, 19));
+        let (w, beta) = (
+            fingerprint_weights(&alphas),
+            F192::new([F64::new(13), F64::new(17), F64::new(19)]),
+        );
         let side = |blocks: &[Block]| {
             let mut at = Vec::new();
             for (b, block) in blocks.iter().enumerate() {
@@ -534,11 +538,17 @@ pub(crate) mod tests {
         for (p, producer) in producers.iter().enumerate() {
             let leaves = tuple_leaves(&producer.coords, producer.kappa, cols, &w, beta);
             for (x, leaf) in leaves.into_iter().enumerate() {
-                let m = cols[producer.col][x].0 & ((1u64 << producer.bits) - 1);
+                let m = cols[producer.col][x].to_bits() & ((1u64 << producer.bits) - 1);
                 pushed.extend(std::iter::repeat_n((leaf, push.len() + p, x), m as usize));
             }
         }
-        let key = |leaf: &F192| (leaf.c0, leaf.c1, leaf.c2);
+        let key = |leaf: &F192| {
+            (
+                leaf.coefficients()[0].to_bits(),
+                leaf.coefficients()[1].to_bits(),
+                leaf.coefficients()[2].to_bits(),
+            )
+        };
         let mut counts: HashMap<_, i64> = HashMap::new();
         for (leaf, ..) in &pushed {
             *counts.entry(key(leaf)).or_default() += 1;
@@ -560,12 +570,12 @@ pub(crate) mod tests {
     fn a_tables_virtual_coordinates_join_the_known_part() {
         // Table 0 pushes `(sep, base ^ (z << 3), public[z], col[z])`; a framework block pulls the same tuples.
         let kappa = 3;
-        let column: Vec<F64> = (0..1u64 << kappa).map(|z| F64(z * 0x9e37_79b9 + 5)).collect();
-        let public = Arc::new((0..1u64 << kappa).map(|z| F64(z ^ 0xabcd)).collect::<Vec<_>>());
+        let column: Vec<F64> = (0..1u64 << kappa).map(|z| F64::new(z * 0x9e37_79b9 + 5)).collect();
+        let public = Arc::new((0..1u64 << kappa).map(|z| F64::new(z ^ 0xabcd)).collect::<Vec<_>>());
         let coords = vec![
-            Coord::Const(F64(7)),
+            Coord::Const(F64::new(7)),
             Coord::IntIndex {
-                base: F64(0x4000),
+                base: F64::new(0x4000),
                 shift: 3,
             },
             Coord::Public(PublicColumn::new(public)),
@@ -601,10 +611,12 @@ pub(crate) mod tests {
         let column = SparseColumn::new(9, &[(0, &words[..4]), (5, &words[4..17]), (300, &words[17..])]);
         assert_eq!(
             column.dense()[5..18],
-            words[4..17].iter().map(|&w| F64(w)).collect::<Vec<_>>()
+            words[4..17].iter().map(|&w| F64::new(w)).collect::<Vec<_>>()
         );
         assert_eq!(column.dense().iter().filter(|w| !w.is_zero()).count(), words.len());
-        let point: Vec<F192> = (0..9).map(|i| F192::new(3 + i, 5 * i + 1, 7)).collect();
+        let point: Vec<F192> = (0..9)
+            .map(|i| F192::new([F64::new(3 + i), F64::new(5 * i + 1), F64::new(7)]))
+            .collect();
         assert_eq!(
             column.eval(&point),
             primitives::multilinear::mle_eval(column.dense(), &point)
@@ -621,16 +633,16 @@ pub(crate) mod tests {
         let cols: Vec<Vec<F64>> = (0..3u64)
             .map(|c| {
                 (0..rows)
-                    .map(|z| F64((z + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ (c << 40)))
+                    .map(|z| F64::new((z + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ (c << 40)))
                     .collect()
             })
             .collect();
         let cols: Vec<&[F64]> = cols.iter().map(Vec::as_slice).collect();
         let coords = || {
             vec![
-                Coord::Const(F64(7)),
+                Coord::Const(F64::new(7)),
                 Coord::IntIndex {
-                    base: F64(0x4000),
+                    base: F64::new(0x4000),
                     shift: 3,
                 },
                 Coord::Col(0),
@@ -650,10 +662,17 @@ pub(crate) mod tests {
         }];
         let lay = layout(&blocks, &producers);
         let alphas: Vec<F192> = (0..N_TUPLE_BITS as u64)
-            .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
+            .map(|i| F192::new([F64::new(3 + i), F64::new(5 + 7 * i), F64::new(11)]))
             .collect();
         let w = fingerprint_weights(&alphas);
-        let (leaves, products) = build_leaves(&blocks, &producers, &lay, &cols, &w, F192::new(13, 17, 19));
+        let (leaves, products) = build_leaves(
+            &blocks,
+            &producers,
+            &lay,
+            &cols,
+            &w,
+            F192::new([F64::new(13), F64::new(17), F64::new(19)]),
+        );
         assert_eq!(leaves.len(), (1 << 11) + 8 + 2 * 16 + 4 + 2 + 1);
         assert_eq!(products, gkr::next_level(&leaves));
     }

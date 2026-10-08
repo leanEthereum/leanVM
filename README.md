@@ -42,6 +42,8 @@ Expect leanVM to change significantly:
 
 **note**: Prior to binary fields leanVM used [KoalaBear](https://crates.io/crates/p3-koala-bear) and [Poseidon](https://eprint.iacr.org/2019/458). The historical design is in [this branch](https://github.com/leanEthereum/leanVM/tree/koalabear).
 
+Binary-field arithmetic uses Plonky3’s `Poly64`, `Poly192`, and `Rijndael8b`, pinned in `Cargo.toml` to commit [`eab7f0e3662500cde47cb0b6dad61afc99e3deac`](https://github.com/Plonky3/Plonky3/commit/eab7f0e3662500cde47cb0b6dad61afc99e3deac). The proof keeps its polynomial basis and little-endian word encoding; the fixed GF(2⁸) embedding is a protocol lookup table in `primitives::multilinear`.
+
 ## programs
 
 A program is a guest: a `no_std` Rust program built for `riscv64im-unknown-none-elf` against the SDK in [`sdk`](./sdk/src/lib.rs). Its `main` does all its I/O: `leanvm_guest::read::<T>()` takes the next value from the advice (a region of memory the prover fills, which the statement says nothing about), in place with no copy or decoding, and `leanvm_guest::commit(&value)` makes a value public. The run's output is the BLAKE2s digest of everything committed, in order, which a verifier recomputes from the public values. Everything else in a guest is ordinary Rust. The SDK's linker script fixes the memory map. Each program lives in its own folder, `programs/<name>/guest`, a standalone package that `cargo build --release` builds there (a dated nightly toolchain, pinned by its `rust-toolchain.toml`, for `-Zbuild-std`); a program whose advice takes work to make also has a host, `programs/<name>/host`, its code off the VM. `programs/build.sh` builds every guest and refreshes its checked-in `programs/<name>/<name>.elf`; then prove and verify a run:

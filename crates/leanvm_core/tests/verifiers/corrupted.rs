@@ -4,7 +4,7 @@
 //! [`CpuError`], not in an index out of bounds.
 
 use leanvm_core::{Clock, CpuError, N_TABLES, Proof, ProvenRun, Prover, Rate};
-use primitives::field::F192;
+use primitives::{F64, F192};
 use std::panic::AssertUnwindSafe;
 
 struct Rng(u64);
@@ -29,11 +29,9 @@ fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
         0 => {
             let scalar = &mut forged.0.stream[rng.below(proof.0.stream.len())];
             let bit = 1u64 << (rng.next() % 64);
-            match rng.next() % 3 {
-                0 => scalar.c0 ^= bit,
-                1 => scalar.c1 ^= bit,
-                _ => scalar.c2 ^= bit,
-            }
+            let mut coefficients = scalar.coefficients();
+            coefficients[(rng.next() % 3) as usize] += F64::new(bit);
+            *scalar = F192::new(coefficients);
         }
         // At least one scalar short, so the stream really is cut.
         1 => forged.0.stream.truncate(rng.below(proof.0.stream.len())),
@@ -41,7 +39,7 @@ fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
             let paths = &mut forged.0.merkle[rng.below(proof.0.merkle.len())];
             let row = rng.below(paths.leaf_data.len());
             let word = rng.below(paths.leaf_data[row].len());
-            paths.leaf_data[row][word].0 ^= 1 << (rng.next() % 64);
+            paths.leaf_data[row][word] += F64::new(1 << (rng.next() % 64));
         }
         3 => {
             let paths = &mut forged.0.merkle[rng.below(proof.0.merkle.len())];

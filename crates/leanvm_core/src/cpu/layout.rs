@@ -6,6 +6,8 @@
 //!
 //! Each enum's declaration order is protocol order: reordering a variant changes the proof layout.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::error::CpuError;
 use super::execute::Trace;
 use super::{MAX_LOG_ROWS, UNGROUND_LOG_BYTECODE};
@@ -21,7 +23,7 @@ use Coord::{Col, Const, IntIndex, Sparse};
 use fiat_shamir::MAX_GRINDING_BITS;
 use fiat_shamir::arith::Arith;
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 use std::sync::{Arc, OnceLock};
 
 // The largest text grinds within the proof of work's window.
@@ -68,7 +70,7 @@ impl Framework {
         //
         // It ends at its last timestamp holding its final word (§sec:memchan).
         let array = |sep: F64, cell: Coord, init: Option<Coord>, ts: Shared, fin: Shared| {
-            let seed = [Const(sep), cell.clone(), Const(F64(Clock::SEED_CLOCK))]
+            let seed = [Const(sep), cell.clone(), Const(F64::new(Clock::SEED_CLOCK))]
                 .into_iter()
                 .chain(init)
                 .collect();
@@ -77,7 +79,7 @@ impl Framework {
 
         // Word `z` of a memory region sits at `base + 8z`.
         let word = |base: u64| IntIndex {
-            base: F64(base),
+            base: F64::new(base),
             shift: 3,
         };
 
@@ -88,14 +90,14 @@ impl Framework {
             Self::State => (
                 vec![
                     Separator::State.coordinate(),
-                    Const(F64(p.entry_pc())),
-                    Const(F64(Clock::CLOCK_START)),
+                    Const(F64::new(p.entry_pc())),
+                    Const(F64::new(Clock::CLOCK_START)),
                     Const(F64::ZERO),
                 ],
                 vec![
                     Separator::State.coordinate(),
-                    Const(F64(p.halt_pc())),
-                    Const(F64(ts_final)),
+                    Const(F64::new(p.halt_pc())),
+                    Const(F64::new(ts_final)),
                     Const(F64::ONE),
                 ],
             ),
@@ -187,7 +189,7 @@ impl Lookup {
             // Entry `i` at its byte address, four bytes after the preceding one, then the program's public columns.
             Self::Bytecode => {
                 let pc = Coord::IntIndex {
-                    base: F64(Region::TEXT.base()),
+                    base: F64::new(Region::TEXT.base()),
                     shift: 2,
                 };
                 [Separator::Bytecode.coordinate(), pc]
@@ -220,12 +222,12 @@ impl Lookup {
             Self::Bytecode => {
                 let entries = p.entries();
                 let column = |f: &(dyn Fn(usize, &Entry) -> u64 + Sync)| {
-                    parallel::map_collect(entries.len(), |i| F64(f(i, &entries[i])))
+                    parallel::map_collect(entries.len(), |i| F64::new(f(i, &entries[i])))
                 };
                 vec![
                     // An illegal entry's tag is zero, which is no table's: nothing can read it.
                     parallel::map_collect(entries.len(), |i| {
-                        TableId::of(entries[i].class).map_or(F64::ZERO, |t| primitives::field::g_pow(t.index()))
+                        TableId::of(entries[i].class).map_or(F64::ZERO, |t| primitives::g_pow(t.index()))
                     }),
                     column(&|_, e| e.flags),
                     column(&|_, e| e.a1 as u64),
@@ -446,7 +448,7 @@ impl RegisterWord {
         for t in TableId::ALL {
             let room = words
                 .iter_mut()
-                .find(|(word, used)| taus[word.tables[0]] == taus[t] && used + bits[t] <= F64::DEGREE);
+                .find(|(word, used)| taus[word.tables[0]] == taus[t] && used + bits[t] <= 64);
             match room {
                 Some((word, used)) => {
                     word.tables.push(t);
@@ -481,7 +483,7 @@ impl RegisterWord {
             let (packed, _) = tables.iter().fold((0, 0), |(packed, shift), (bits, cols)| {
                 (packed | bits.packed(cols, x) << shift, shift + bits.n_slices())
             });
-            F64(packed)
+            F64::new(packed)
         });
     }
 
@@ -676,11 +678,11 @@ impl Layout {
         //
         // Each is the final registers at the Boolean point naming the register.
         // Both parties know the value, so the claim is computed rather than sent.
-        let exit = a.constant(F192::from(F64(Syscall::Exit.number())));
+        let exit = a.constant(F192::from(F64::new(Syscall::Exit.number())));
         let mut register_claim = |reg: Reg, value: A::E| ColumnClaim {
             col: Shared::RegFin.col(),
             point: (0..RegisterFile::LOG_CELLS)
-                .map(|b| a.constant(F192::from(F64(((reg.index() >> b) & 1) as u64))))
+                .map(|b| a.constant(F192::from(F64::new(((reg.index() >> b) & 1) as u64))))
                 .collect(),
             value,
         };
@@ -718,7 +720,7 @@ impl Announcement {
     /// A height, not a row count: every table's rows are real, filled to a power of two.
     pub(crate) fn sizes(taus: &PerTable<usize>, rate: Rate) -> impl Iterator<Item = F192> {
         let rate = usize::from(rate.log_inv_rate());
-        (taus.values().copied().chain([rate])).map(|size| F192::new(size as u64, 0, 0))
+        (taus.values().copied().chain([rate])).map(|size| F192::new([F64::new(size as u64), F64::new(0), F64::new(0)]))
     }
 
     /// Write the announcement onto the scalar stream, which binds it into the transcript.
@@ -726,7 +728,7 @@ impl Announcement {
         for size in Self::sizes(&self.taus, self.rate) {
             ps.add_scalar(size);
         }
-        ps.add_scalar(F192::new(self.ts_final, 0, 0));
+        ps.add_scalar(F192::new([F64::new(self.ts_final), F64::new(0), F64::new(0)]));
     }
 
     /// Read an announcement off the scalar stream, binding it, and check every value is in range.
@@ -752,10 +754,10 @@ impl Announcement {
     pub(crate) fn decode(scalars: &[F192; Self::LEN]) -> Result<Self, CpuError> {
         // A size is a canonical integer in the first coordinate.
         let size = |x: &F192| -> Result<usize, CpuError> {
-            if x.c1 != 0 || x.c2 != 0 {
+            if x.coefficients()[1].to_bits() != 0 || x.coefficients()[2].to_bits() != 0 {
                 return Err(CpuError::NonCanonicalSize);
             }
-            usize::try_from(x.c0).map_err(|_| CpuError::NonCanonicalSize)
+            usize::try_from(x.coefficients()[0].to_bits()).map_err(|_| CpuError::NonCanonicalSize)
         };
         let mut taus = PerTable::default();
         for (t, x) in TableId::ALL.into_iter().zip(scalars) {
@@ -765,8 +767,9 @@ impl Announcement {
 
         // A live clock at slot zero: neither a padding row's clock nor a failed row's can end the run.
         let ts_final = scalars[N_TABLES + 1];
-        let live = ts_final.c0 >> Clock::LIVE_BIT == 1 && ts_final.c0.is_multiple_of(Clock::CYCLE);
-        if !live || ts_final.c1 != 0 || ts_final.c2 != 0 {
+        let live = ts_final.coefficients()[0].to_bits() >> Clock::LIVE_BIT == 1
+            && ts_final.coefficients()[0].to_bits().is_multiple_of(Clock::CYCLE);
+        if !live || ts_final.coefficients()[1].to_bits() != 0 || ts_final.coefficients()[2].to_bits() != 0 {
             return Err(CpuError::FinalClock);
         }
 
@@ -779,7 +782,7 @@ impl Announcement {
         Ok(Self {
             taus,
             rate,
-            ts_final: ts_final.c0,
+            ts_final: ts_final.coefficients()[0].to_bits(),
         })
     }
 

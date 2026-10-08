@@ -12,12 +12,12 @@ use crate::zerocheck::{self, K_SKIP, PaddingSpec, SkipDomain, ZerocheckClaim, Ze
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::ProverState;
 use pcs::ring_switch::SliceClaim;
-use primitives::field::{F64, F192};
+use primitives::F192;
 
 // A claim's `2^K_SKIP` slices are a ring-switch claim on `q_flock` only if that
 // matches the packing width.
 const _: () = assert!(
-    K_SKIP == F64::DEGREE.ilog2() as usize,
+    K_SKIP == 64usize.ilog2() as usize,
     "the univariate skip must match the PCS packing width"
 );
 

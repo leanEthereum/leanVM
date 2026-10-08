@@ -15,12 +15,14 @@
 //! cargo bench -p primitives --bench kernels -- --json
 //! ```
 
+use primitives::PrimeCharacteristicRing;
+
 use std::hint::black_box;
 
 use bench::{Metric, Plan, Timing, bencher_json};
 use primitives::bits::{bit_transpose_64bytes, transpose_64x64};
-use primitives::field::{F64, F192, mul4};
 use primitives::test_util::Rng;
+use primitives::{F64, F192, mul4};
 
 /// Operands per array, few enough that a sweep's inputs and outputs stay in L1.
 const N: usize = 256;
@@ -28,7 +30,7 @@ const N: usize = 256;
 fn main() {
     let plan = Plan::from_env();
     let mut rng = Rng::new(0x006B_6572_6E65_6C73);
-    let k: Vec<F64> = (0..2 * N).map(|_| F64(rng.next_u64())).collect();
+    let k: Vec<F64> = (0..2 * N).map(|_| F64::new(rng.next_u64())).collect();
     let e: Vec<F192> = rng.ext_vec(2 * N);
     let (ka, kb) = k.split_at(N);
     let (ea, eb) = e.split_at(N);
@@ -47,11 +49,11 @@ fn main() {
         ),
         (
             "f64-square",
-            time(plan, 1 << 25, |ops| sweep(ka, &mut k_out, ops, F64::square)),
+            time(plan, 1 << 25, |ops| sweep(ka, &mut k_out, ops, |x| x.square())),
         ),
         (
             "f64-inv",
-            time(plan, 1 << 18, |ops| sweep(ka, &mut k_out, ops, F64::inv)),
+            time(plan, 1 << 18, |ops| sweep(ka, &mut k_out, ops, F64::invert_or_zero)),
         ),
         (
             "f192-mul-throughput",
@@ -71,11 +73,11 @@ fn main() {
         ),
         (
             "f192-square",
-            time(plan, 1 << 23, |ops| sweep(ea, &mut e_out, ops, F192::square)),
+            time(plan, 1 << 23, |ops| sweep(ea, &mut e_out, ops, |x| x.square())),
         ),
         (
             "f192-inv",
-            time(plan, 1 << 18, |ops| sweep(ea, &mut e_out, ops, F192::inv)),
+            time(plan, 1 << 18, |ops| sweep(ea, &mut e_out, ops, F192::invert_or_zero)),
         ),
         (
             "transpose-64bytes",

@@ -19,7 +19,8 @@
 use super::lanes::{Lane, Lanes, Polynomial, Xor};
 use crate::PAR_THRESHOLD;
 use parallel::SendPtr;
-use primitives::field::{F192, F192Unreduced};
+use primitives::F192;
+use primitives::PrimeCharacteristicRing;
 use primitives::multilinear::SplitEq;
 use primitives::stream::{Stream, prefetch};
 use std::mem::MaybeUninit;
@@ -42,8 +43,8 @@ const AHEAD: usize = 16;
 /// 2^12 entries of `E` is 96 KiB, which every task reads from L2.
 pub(super) const EQ_LOW_VARS: usize = 12;
 
-/// The sums of a block product's Karatsuba terms, in `Y2` then `Y1`, unreduced.
-type Sums = [[F192Unreduced; 6]; 6];
+/// The sums of a block product's Karatsuba terms, in `Y2` then `Y1`.
+type Sums = [[F192; 6]; 6];
 
 /// A level of the product tree, as the rows its sumcheck folds.
 pub(super) struct Layer {
@@ -164,7 +165,7 @@ impl Grid {
     /// The sum of `task`'s sums over the tasks covering `len` elements, in parallel when the level is large.
     fn sum(len: usize, task: impl Fn(usize) -> Sums + Sync) -> Self {
         let tasks = len.div_ceil(TASK);
-        let zero = [[F192Unreduced::ZERO; 6]; 6];
+        let zero = [[F192::ZERO; 6]; 6];
         let sums = if len / 4 >= PAR_THRESHOLD {
             parallel::map_reduce(tasks, || zero, task, Xor::xor)
         } else {
@@ -172,7 +173,7 @@ impl Grid {
         };
 
         // The terms combine in `Y1`, then in `Y2`.
-        let in_y1 = sums.map(|terms| <[F192; 3]>::combine(terms.map(F192Unreduced::reduce)));
+        let in_y1 = sums.map(<[F192; 3]>::combine);
         Self(<[[F192; 3]; 3]>::combine(in_y1))
     }
 
@@ -204,11 +205,11 @@ impl Grid {
 /// The running sums of block products over a range of blocks, `L::WIDTH` blocks at a time.
 ///
 /// It sums each product's Karatsuba terms, which combine into its coefficients only once, after the sum.
-struct BlockSums<L: Lanes>([[L::Wide; 6]; 6]);
+struct BlockSums<L: Lanes>([[L; 6]; 6]);
 
 impl<L: Lanes> BlockSums<L> {
     fn new() -> Self {
-        Self(std::array::from_fn(|_| std::array::from_fn(|_| L::zero_wide())))
+        Self(std::array::from_fn(|_| std::array::from_fn(|_| L::ZERO)))
     }
 
     /// Adds the blocks of `rows`, the first being block `first` of the layer.
@@ -276,7 +277,7 @@ impl<L: Lanes> BlockSums<L> {
         // The terms' operand pairs come first, so no product waits in memory for its sum.
         for (sums, (u, w)) in self.0.iter_mut().zip(left.terms(right, |u, w| (u, w))) {
             for (sum, (x, y)) in sums.iter_mut().zip(u.terms(w, |x, y| (x, y))) {
-                *sum = sum.xor(x.mul_wide(y));
+                *sum = sum.xor(x * y);
             }
         }
     }
@@ -288,7 +289,7 @@ impl<L: Lanes> BlockSums<L> {
     }
 
     fn finish(self) -> Sums {
-        self.0.map(|row| row.map(L::sum))
+        self.0.map(|row| row.map(L::sum_lanes))
     }
 }
 
@@ -338,12 +339,19 @@ impl<L: Lanes> Fold<L> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::F64;
     use primitives::multilinear::interp;
 
     /// The level with `len` stored elements, distinct and nonzero.
     fn level(len: usize) -> Vec<F192> {
         (0..len)
-            .map(|i| F192::new((17 * i + 1) as u64, (i * i + 3) as u64, (5 * i + 7) as u64))
+            .map(|i| {
+                F192::new([
+                    F64::new((17 * i + 1) as u64),
+                    F64::new((i * i + 3) as u64),
+                    F64::new((5 * i + 7) as u64),
+                ])
+            })
             .collect()
     }
 
@@ -368,10 +376,15 @@ mod tests {
                 }
                 let values = level(len);
                 let layer = Layer::new(values.clone());
-                let point: Vec<F192> = (0..vars).map(|i| F192::new(31 + i as u64, 7, 11)).collect();
+                let point: Vec<F192> = (0..vars)
+                    .map(|i| F192::new([F64::new(31 + i as u64), F64::new(7), F64::new(11)]))
+                    .collect();
                 let eq = SplitEq::with_low_vars(&point, 2);
                 let grid = layer.grid(&eq);
-                let (p, r) = (F192::new(5, 6, 7), F192::new(9, 10, 11));
+                let (p, r) = (
+                    F192::new([F64::new(5), F64::new(6), F64::new(7)]),
+                    F192::new([F64::new(9), F64::new(10), F64::new(11)]),
+                );
 
                 // The dense quartic at `x`, from the rows' children at the two variables' values.
                 let dense = |y1: F192, y2: Option<F192>| {
@@ -394,7 +407,12 @@ mod tests {
 
                 // A message holds `X^1..X^4`; the constant is the value at zero.
                 let eval = |c: [F192; 4], c0: F192, x: F192| c.iter().rev().fold(F192::ZERO, |s, &k| (s + k) * x) + c0;
-                for x in [F192::ONE, F192::Y, F192::Y.square(), F192::new(3, 1, 4)] {
+                for x in [
+                    F192::ONE,
+                    F192::new([F64::ZERO, F64::ONE, F64::ZERO]),
+                    F192::new([F64::ZERO, F64::ONE, F64::ZERO]).square(),
+                    F192::new([F64::new(3), F64::new(1), F64::new(4)]),
+                ] {
                     assert_eq!(eval(grid.first_round(p), first(F192::ZERO), x), first(x), "len={len}");
                     assert_eq!(
                         eval(grid.second_round(r), second(F192::ZERO), x),
@@ -411,7 +429,10 @@ mod tests {
         // Invariant: row q after the fold is block q's children at (r0, r1), ones where implicit.
         //
         // Fixture state: lengths around the lane width and the task size, so every tail path runs.
-        let r = [F192::new(2, 3, 4), F192::new(5, 6, 7)];
+        let r = [
+            F192::new([F64::new(2), F64::new(3), F64::new(4)]),
+            F192::new([F64::new(5), F64::new(6), F64::new(7)]),
+        ];
         for len in [4, 8, 12, 16, 20, 60, 64, 68, 1020, 1024, 1028, 4096 + 36, 1 << 15] {
             let values = level(len);
             let mut layer = Layer::new(values.clone());
@@ -436,11 +457,19 @@ mod tests {
         for len in [64, 200, 4 * PAR_THRESHOLD * 4 + 52] {
             let rows = (len / 4).next_power_of_two().max(16);
             let vars = rows.ilog2() as usize - 4;
-            let point: Vec<F192> = (0..vars).map(|i| F192::new(3 + i as u64, 1, 2)).collect();
+            let point: Vec<F192> = (0..vars)
+                .map(|i| F192::new([F64::new(3 + i as u64), F64::new(1), F64::new(2)]))
+                .collect();
             let eq = SplitEq::with_low_vars(&point, EQ_LOW_VARS);
             let mut layer = Layer::new(level(len));
             let fused = layer
-                .fold([F192::Y, F192::new(8, 9, 10)], Some(&eq))
+                .fold(
+                    [
+                        F192::new([F64::ZERO, F64::ONE, F64::ZERO]),
+                        F192::new([F64::new(8), F64::new(9), F64::new(10)]),
+                    ],
+                    Some(&eq),
+                )
                 .expect("a weight was given");
             assert_eq!(fused.0, layer.grid(&eq).0, "len={len}");
         }
@@ -450,7 +479,9 @@ mod tests {
     fn lanes_match_the_portable_element() {
         // Invariant: the target's lanes compute the same sums and folds as the portable element.
         let values = level(16 * 4 * 3 + 36);
-        let point: Vec<F192> = (0..4).map(|i| F192::new(9 + i as u64, 2, 5)).collect();
+        let point: Vec<F192> = (0..4)
+            .map(|i| F192::new([F64::new(9 + i as u64), F64::new(2), F64::new(5)]))
+            .collect();
         let eq = SplitEq::with_low_vars(&point, 2);
         let sums = |wide: bool| {
             if wide {
@@ -465,7 +496,10 @@ mod tests {
         };
         assert_eq!(sums(true), sums(false));
 
-        let r = [F192::new(1, 2, 3), F192::Y];
+        let r = [
+            F192::new([F64::new(1), F64::new(2), F64::new(3)]),
+            F192::new([F64::ZERO, F64::ONE, F64::ZERO]),
+        ];
         let rows = (values.len() / 4).div_ceil(4);
         let mut wide = vec![MaybeUninit::uninit(); 4 * rows];
         let mut narrow = wide.clone();

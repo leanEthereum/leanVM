@@ -16,7 +16,7 @@
 //!   and opened rows, `b_initial`, betas, alphas, `yr`: `F192` (24 bytes)
 //! - the RS-encoding evaluation domain and all LCH twiddles stay in K, so the
 //!   deeper-level (E-valued) encodes use K-twiddles via the mixed product
-//!   [`F192::mul_base`] (3 PMULL) instead of a full E multiplication.
+//!   Plonky3's mixed `F192 * F64` product instead of a full E multiplication.
 //!
 //! Soundness note: the parameters ([`config_for_rate`]) come from an analysis of the actual
 //! challenge field size `q = 2^192`; the committed alphabet remains `K = GF(2^64)`.
@@ -30,6 +30,8 @@
 //!     verify    the succinct verifier
 //! ```
 
+use primitives::PrimeCharacteristicRing;
+
 mod commit;
 pub mod config;
 mod induce;
@@ -41,8 +43,8 @@ mod tests;
 mod verify;
 
 use fiat_shamir::transcript::Challenger;
-use primitives::field::{F64, F192};
 use primitives::multilinear::inner_product_base;
+use primitives::{F64, F192};
 
 pub use config::{
     INITIAL_FOLDING_FACTOR, L0_LIST_BITS, LOG_INV_RATE_0, MAX_LOG_INV_RATE, MAX_LOG_N, MIN_LOG_INV_RATE, MIN_LOG_N,
@@ -66,12 +68,7 @@ pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
     if witness.len() < PAR_THRESHOLD {
         return inner_product_base(witness, b);
     }
-    parallel::map_reduce(
-        witness.len(),
-        || F192::ZERO,
-        |i| b[i].mul_base(witness[i]),
-        |a, v| a + v,
-    )
+    parallel::map_reduce(witness.len(), || F192::ZERO, |i| b[i] * witness[i], |a, v| a + v)
 }
 
 /// Where a query of a batch lands: the top `bits` bits of its position are `index`, the rest uniform.
@@ -113,7 +110,11 @@ pub(crate) fn sample_queries_ordered(ch: &mut impl Challenger, block_len: usize,
         let v = ch.sample();
         for j in 0..per.min(count - out.len()) {
             let off = j * d;
-            let limbs = [v.c0, v.c1, v.c2];
+            let limbs = [
+                v.coefficients()[0].to_bits(),
+                v.coefficients()[1].to_bits(),
+                v.coefficients()[2].to_bits(),
+            ];
             let (li, sh) = (off / 64, off % 64);
             let mut chunk = limbs[li] >> sh;
             if sh + d > 64 {

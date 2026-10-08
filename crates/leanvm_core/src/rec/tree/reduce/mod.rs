@@ -8,11 +8,13 @@
 //!
 //! Each is a sumcheck: if an input claim is false, an output claim is false but with probability about `(claims + 2 rounds) / |E|`.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::claims::{DensePoly, NodeClaims};
 use crate::rec::circuit::{Limbs, digest_limbs};
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, Transmitter};
-use primitives::field::{F64, F192, F192Unreduced, mul_base8, mul_unreduced4, mul4};
+use primitives::{F64, F192, mul_base8, mul4};
 use thiserror::Error;
 use tracing::info_span;
 
@@ -88,15 +90,15 @@ impl NodeClaims<F192> {
     }
 }
 
-/// A round's message, `h(0)` and the leading coefficient, unreduced.
-type Msg = [F192Unreduced; 2];
+/// A round's message, `h(0)` and the leading coefficient.
+type Msg = [F192; 2];
 
 /// The zero message.
-const ZERO: Msg = [F192Unreduced::ZERO; 2];
+const ZERO: Msg = [F192::ZERO; 2];
 
 /// The sum of two messages.
 fn xor([a, b]: Msg, [c, d]: Msg) -> Msg {
-    [a ^ c, b ^ d]
+    [a + c, b + d]
 }
 
 /// The entries a pass keeps in L1 at once.
@@ -137,14 +139,14 @@ impl Entry for F192 {
         let (t4, t_rest) = t.as_chunks::<4>();
         let mut m = ZERO;
         for (a, b) in w4.iter().zip(t4) {
-            let p = mul_unreduced4(
+            let p = mul4(
                 [a[0], a[0] + a[1], a[2], a[2] + a[3]],
                 [b[0], b[0] + b[1], b[2], b[2] + b[3]],
             );
-            m = xor(m, [p[0] ^ p[2], p[1] ^ p[3]]);
+            m = xor(m, [p[0] + p[2], p[1] + p[3]]);
         }
         for (a, b) in w_rest.as_chunks::<2>().0.iter().zip(t_rest.as_chunks::<2>().0) {
-            m = xor(m, [a[0].mul_unreduced(b[0]), (a[0] + a[1]).mul_unreduced(b[0] + b[1])]);
+            m = xor(m, [(a[0] * b[0]), ((a[0] + a[1]) * (b[0] + b[1]))]);
         }
         m
     }
@@ -152,7 +154,7 @@ impl Entry for F192 {
 
 impl Entry for F64 {
     fn fold(a: Self, b: Self, r: F192) -> F192 {
-        F192::from(a) + r.mul_base(a + b)
+        F192::from(a) + (r * (a + b))
     }
 
     fn fold_into(t: &[Self], r: F192, out: &mut [F192]) {
@@ -170,13 +172,7 @@ impl Entry for F64 {
     fn dot(w: &[F192], t: &[Self]) -> Msg {
         let pairs = w.as_chunks::<2>().0.iter().zip(t.as_chunks::<2>().0);
         pairs.fold(ZERO, |m, (a, b)| {
-            xor(
-                m,
-                [
-                    a[0].mul_base_unreduced(b[0]),
-                    (a[0] + a[1]).mul_base_unreduced(b[0] + b[1]),
-                ],
-            )
+            xor(m, [(a[0] * b[0]), ((a[0] + a[1]) * (b[0] + b[1]))])
         })
     }
 }

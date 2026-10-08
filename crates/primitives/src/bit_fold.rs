@@ -13,7 +13,9 @@
 //! - AVX-512 with GFNI: an 8x8 bit matrix per (input byte, output byte), applied to 64 rows by one instruction.
 //! - AVX2: the same byte-sliced shape 32 rows wide, each map one affine instruction with GFNI, else two nibble lookups.
 
-use crate::field::F192;
+use crate::PrimeCharacteristicRing;
+
+use crate::{F64, F192};
 
 use crate::multilinear::eq_table;
 
@@ -167,7 +169,7 @@ impl F192Map {
                 let bit = BLOCK * chunk + i;
                 let mut words = [0u64; 3];
                 words[bit / 64] = 1 << (bit % 64);
-                F192::new(words[0], words[1], words[2]) * c
+                F192::new([F64::new(words[0]), F64::new(words[1]), F64::new(words[2])]) * c
             });
             self.apply_add(&xs, w);
         }
@@ -224,6 +226,7 @@ pub mod avx2;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::PrimeCharacteristicRing;
     use crate::test_util::Rng;
 
     #[test]
@@ -270,7 +273,11 @@ mod tests {
             let mut out = before.clone();
             map.apply_add(&xs, &mut out);
             for p in 0..len {
-                let words = [xs[p].c0, xs[p].c1, xs[p].c2];
+                let words = [
+                    xs[p].coefficients()[0].to_bits(),
+                    xs[p].coefficients()[1].to_bits(),
+                    xs[p].coefficients()[2].to_bits(),
+                ];
                 let image = (0..192)
                     .filter(|&b| words[b / 64] >> (b % 64) & 1 == 1)
                     .fold(F192::ZERO, |acc, b| acc + weights[b]);
@@ -324,7 +331,11 @@ mod tests {
             let mut out = [F192::ZERO; 7];
             map.apply_add_f192(&xs, &mut out);
             for (p, &o) in out.iter().enumerate() {
-                let words = [xs[p].c0, xs[p].c1, xs[p].c2];
+                let words = [
+                    xs[p].coefficients()[0].to_bits(),
+                    xs[p].coefficients()[1].to_bits(),
+                    xs[p].coefficients()[2].to_bits(),
+                ];
                 let image = (0..192)
                     .filter(|&b| words[b / 64] >> (b % 64) & 1 == 1)
                     .fold(F192::ZERO, |acc, b| acc + weights[b]);

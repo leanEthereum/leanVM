@@ -21,6 +21,8 @@
 //! puts all three claims at ONE point and leaves lincheck a single family of
 //! bit slices per circuit for ring switching (doc/leanvm Annex C).
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::zerocheck::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 use fiat_shamir::arith::{Native, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
@@ -29,8 +31,8 @@ use multilinear::{
     fold_in_place_single, round_pair_naive, round_single_naive,
 };
 use primitives::bit_fold::BitFold;
-use primitives::field::{F8, F192, powers};
 use primitives::multilinear::skip_lagrange_weights;
+use primitives::{F8, F192, powers};
 use round1::{c_s, medium_challenges, round1_shift_reduce_extract_c_packed_padded, small_challenges};
 use thiserror::Error;
 
@@ -344,7 +346,7 @@ impl<'a> CircuitProver<'a> {
         } else {
             self.table_round(j)
         };
-        let g0 = g0.unwrap_or_else(|| (self.claim + r_eq * g1) * (F192::ONE + r_eq).inv());
+        let g0 = g0.unwrap_or_else(|| (self.claim + r_eq * g1) * (F192::ONE + r_eq).invert_or_zero());
         // G(X) = G(0)·(1+X) + G(1)·X + G(inf)·X·(1+X).
         self.message = [g0, g0 + g1 + g_inf, g_inf];
         self.message
@@ -466,7 +468,7 @@ pub(crate) fn prove(inputs: &[ZerocheckInput<'_>], ps: &mut ProverState) -> Vec<
 
     let span = tracing::info_span!("Round 1").entered();
     let ntt_s = AdditiveNttGf8::new(K_SKIP, F8::ZERO);
-    let ntt_l = AdditiveNttGf8::new(K_SKIP, F8(1u8 << K_SKIP));
+    let ntt_l = AdditiveNttGf8::new(K_SKIP, F8::from_byte(1u8 << K_SKIP));
     let inv_table = InvNttTableByteSingleGf8::new(&ntt_s, &ntt_l);
     let mut round1 = vec![F192::ZERO; 1 << K_SKIP];
     let provers: Vec<_> = (inputs.iter().zip(&lambdas))
@@ -608,6 +610,8 @@ pub(crate) fn verify<V: Verifier>(log_ns: &[usize], v: &mut V) -> Result<Zeroche
 mod tests {
     use super::*;
     use fiat_shamir::transcript::VerifierState;
+    use primitives::F64;
+    use primitives::PrimeCharacteristicRing;
     use primitives::test_util::Rng;
     use round1::tests::pack_bits;
 
@@ -823,7 +827,7 @@ mod tests {
         ];
         for (label, word) in mutations {
             let mut bad = proof_t.clone();
-            bad.stream[word].c0 ^= 1;
+            bad.stream[word] += F192::new([F64::new(1), F64::ZERO, F64::ZERO]);
             let mut ch = VerifierState::from_label(b"flock-test-v0", &bad);
             match verify_one(m, &mut ch) {
                 Err(ZerocheckError::TerminalMismatch) => {}
@@ -902,13 +906,17 @@ mod tests {
         let alpha_honest = Challenger::sample(&mut ch_honest);
 
         // Product-preserving tamper: â' = â·t, b̂' = b̂·t⁻¹ ⇒ â'·b̂' = â·b̂.
-        let t = F192::new(0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210, 0x55aa_aa55_0123_4567);
+        let t = F192::new([
+            F64::new(0x0123_4567_89ab_cdef),
+            F64::new(0xfedc_ba98_7654_3210),
+            F64::new(0x55aa_aa55_0123_4567),
+        ]);
         assert!(t != F192::ZERO && t != F192::ONE, "t must be nontrivial");
         // The finals are the LAST three stream words of this standalone proof, `ĉ` last.
         let n = proof_t.stream.len();
         let mut bad = proof_t.clone();
         bad.stream[n - 3] *= t;
-        bad.stream[n - 2] *= t.inv();
+        bad.stream[n - 2] *= t.invert_or_zero();
         assert_ne!(bad.stream[n - 3], proof_t.stream[n - 3], "tamper must change â");
         assert_ne!(bad.stream[n - 2], proof_t.stream[n - 2], "tamper must change b̂");
         assert_eq!(

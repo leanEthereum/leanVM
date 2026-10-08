@@ -11,3 +11,6 @@ workspace = true
 
 [dev-dependencies]
 primitives = { workspace = true, features = ["test-util"] }
+
+[target.'cfg(not(all(target_arch = "riscv64", target_os = "none")))'.dependencies]
+p3-binary-field = { git = "https://github.com/Plonky3/Plonky3", rev = "eab7f0e3662500cde47cb0b6dad61afc99e3deac" }

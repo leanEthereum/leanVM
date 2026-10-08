@@ -61,7 +61,7 @@ impl<'p> ProofShape<'p> {
     ///
     /// The rows check everything the native core checks, and leave its deferred claims as wires.
     pub fn verify_core(&self, b: &mut Builder, output: [Kw; 4], source: ProofSource<'_>) -> CoreRows {
-        let iv = b.d_const(self.program.fs_seed().map(|w| w.0));
+        let iv = b.d_const(self.program.fs_seed().map(|w| w.to_bits()));
         let first = b.k_to_e([output[0], output[1], output[2]]);
         let mut t = Transcript::new(b, iv, (first, output[3]), source);
         let mut r = Rows::new(b, &mut t);

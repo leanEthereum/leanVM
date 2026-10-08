@@ -21,8 +21,9 @@ use self::layer::{EQ_LOW_VARS, Grid, Layer};
 use crate::PAR_THRESHOLD;
 use fiat_shamir::arith::Verifier;
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
-use primitives::field::{F192, mul2};
+use primitives::PrimeCharacteristicRing;
 use primitives::multilinear::{SplitEq, interp};
+use primitives::{F192, mul2};
 use std::mem::MaybeUninit;
 use thiserror::Error;
 
@@ -305,6 +306,7 @@ pub fn verify_products<V: Verifier>(v: &mut V, mu: usize) -> Result<Products<V::
 mod tests {
     use super::*;
     use fiat_shamir::transcript::VerifierState;
+    use primitives::F64;
 
     /// The multilinear extension of `table` at `point`, folding the lowest variable first.
     fn mle(table: &[F192], point: &[F192]) -> F192 {
@@ -347,7 +349,7 @@ mod tests {
         // Fixture state: the second tree is the first reversed, so the two share their product.
         for mu in 0..=12 {
             let first: Vec<F192> = (0..1usize << mu)
-                .map(|row| F192::new((1 + row) as u64, row as u64, 0))
+                .map(|row| F192::new([F64::new((1 + row) as u64), F64::new(row as u64), F64::new(0)]))
                 .collect();
             let reversed = first.iter().rev().copied().collect();
             roundtrip(b"radix-four-gkr-test", &[first, reversed], mu);
@@ -367,14 +369,20 @@ mod tests {
             let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1];
             let mut leaves: [Vec<F192>; 2] = std::array::from_fn(|tree| {
                 (0..lengths[tree])
-                    .map(|row| F192::new((3 + row + tree * 10_007) as u64, row as u64, tree as u64))
+                    .map(|row| {
+                        F192::new([
+                            F64::new((3 + row + tree * 10_007) as u64),
+                            F64::new(row as u64),
+                            F64::new(tree as u64),
+                        ])
+                    })
                     .collect()
             });
 
             // The second tree's last leaf makes up the difference, so the two share their product.
             let product = |leaves: &[F192]| leaves.iter().fold(F192::ONE, |p, &v| p * v);
             let last = leaves[1].len() - 1;
-            leaves[1][last] = product(&leaves[0]) * product(&leaves[1][..last]).inv();
+            leaves[1][last] = product(&leaves[0]) * product(&leaves[1][..last]).invert_or_zero();
 
             let dense = leaves.each_ref().map(|tree| {
                 let mut padded = tree.clone();
@@ -392,7 +400,9 @@ mod tests {
         //
         // Fixture state: lengths around the lane width and across the parallel threshold.
         for len in [1, 3, 4, 5, 15, 16, 17, 63, 64, 65, 4 * PAR_THRESHOLD * 4 + 7] {
-            let current: Vec<F192> = (0..len).map(|i| F192::new(i as u64 + 2, 3 * i as u64, 1)).collect();
+            let current: Vec<F192> = (0..len)
+                .map(|i| F192::new([F64::new(i as u64 + 2), F64::new(3 * i as u64), F64::new(1)]))
+                .collect();
             let want: Vec<F192> = (0..len.div_ceil(4)).map(|row| padded_product(&current, row)).collect();
             assert_eq!(next_level(&current), want, "len={len}");
         }

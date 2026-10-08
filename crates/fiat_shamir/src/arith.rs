@@ -5,9 +5,11 @@
 //! - Natively an element is an `F192`, a read comes off the proof, and a failed equality is an error.
 //! - In rows an element is a wire, a read is a free wire bound by a hash row, and an equality joins two wires.
 
+use primitives::{Field, HasFrobenius, PrimeCharacteristicRing};
+
 use crate::transcript::{Challenger, Receiver, TranscriptError, VerifierState};
-use primitives::field::{F64, F192};
 use primitives::multilinear::mle_eval_par;
+use primitives::{F64, F192};
 
 /// Arithmetic over `E`, on values or on the wires that hold them.
 pub trait Arith {
@@ -170,7 +172,7 @@ pub trait Arith {
     fn int_index(&mut self, base: F64, shift: u32, point: &[Self::E]) -> Self::E {
         let base = self.constant(F192::from(base));
         (point.iter().enumerate()).fold(base, |acc, (i, &z)| {
-            self.mul_const_add(z, F192::from(F64(1 << (i as u32 + shift))), acc)
+            self.mul_const_add(z, F192::from(F64::new(1 << (i as u32 + shift))), acc)
         })
     }
 }
@@ -270,7 +272,7 @@ impl Arith for Native {
     }
 
     fn inv(&mut self, a: F192) -> F192 {
-        if a.is_zero() { F192::ZERO } else { a.inv() }
+        if a.is_zero() { F192::ZERO } else { a.invert_or_zero() }
     }
 
     fn frobenius2(&mut self, a: F192) -> F192 {
@@ -302,7 +304,7 @@ impl Arith for VerifierState<'_> {
     }
 
     fn inv(&mut self, a: F192) -> F192 {
-        if a.is_zero() { F192::ZERO } else { a.inv() }
+        if a.is_zero() { F192::ZERO } else { a.invert_or_zero() }
     }
 
     fn frobenius2(&mut self, a: F192) -> F192 {

@@ -54,13 +54,15 @@
 //! `lambda` is drawn after the map, so the family's error is fixed by then and is the
 //! constant term of the batched error, which is what lets it take `lambda^0 = 1`.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::ring_switch::{self, RingFamily, RingSwitch, SliceClaim};
 use super::verifier::OpeningVerifier;
 use super::whir::{ProverConfig, ProverData, VerifierConfig, WhirError, recursive_verifier_with_basis_succinct};
 use basis::StackWeight;
 use fiat_shamir::arith::{Arith, Native};
 use fiat_shamir::transcript::Transmitter;
-use primitives::field::{F64, F192, powers};
+use primitives::{F64, F192, powers};
 
 mod basis;
 
@@ -328,6 +330,7 @@ mod tests {
     use basis::StackWeight;
     use fiat_shamir::merkle::Hash;
     use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
+    use primitives::PrimeCharacteristicRing;
     use primitives::multilinear::eq_table;
     use primitives::test_util::Rng;
 
@@ -338,7 +341,7 @@ mod tests {
         let mut rng = Rng::new(0xBA515);
         for (lane_vars, lanes) in [(6usize, 1usize), (6, 3), (10, 15), (10, 37)] {
             let lane_block = 1 << lane_vars;
-            let stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64(rng.next_u64())).collect();
+            let stack: Vec<F64> = (0..lanes * lane_block).map(|_| F64::new(rng.next_u64())).collect();
             let qflock_vars = lane_vars + usize::from(lanes > 1);
             let qflock_len = 1 << qflock_vars;
             let offset = if stack.len() >= 2 * qflock_len { qflock_len } else { 0 };
@@ -349,7 +352,7 @@ mod tests {
                 claims: (0..2)
                     .map(|_| SliceClaim {
                         suffix_point: rng.ext_vec(qflock_vars),
-                        s_hat_v: rng.ext_vec(F64::DEGREE),
+                        s_hat_v: rng.ext_vec(64),
                     })
                     .collect(),
             };
@@ -451,10 +454,10 @@ mod tests {
         let mut rng = Rng::new(seed);
 
         // Three random columns, the packed bit-witness region, then filler.
-        let mut stack: Vec<F64> = (0..3 * col_len).map(|_| F64(rng.next_u64())).collect();
-        stack.extend((0..1usize << qflock_vars).map(|_| F64(rng.next_u64())));
+        let mut stack: Vec<F64> = (0..3 * col_len).map(|_| F64::new(rng.next_u64())).collect();
+        stack.extend((0..1usize << qflock_vars).map(|_| F64::new(rng.next_u64())));
         while stack.len() < 1 << log_n {
-            stack.push(F64(rng.next_u64()));
+            stack.push(F64::new(rng.next_u64()));
         }
         assert_eq!(stack.len(), 1 << log_n);
 
@@ -482,7 +485,7 @@ mod tests {
             let eq = eq_table(&point);
             let mut value = F192::ZERO;
             for (j, &ej) in eq.iter().enumerate() {
-                value += ej.mul_base(stack[qflock_offset + slot + (j << stride_log)]);
+                value += ej * (stack[qflock_offset + slot + (j << stride_log)]);
             }
             point_claims.push(StackClaim::Strided {
                 offset: qflock_offset,
@@ -644,8 +647,8 @@ mod tests {
         let qflock_offset = 1usize << 13;
         let mut rng = Rng::new(3);
 
-        let mut stack: Vec<F64> = (0..1usize << 13).map(|_| F64(rng.next_u64())).collect();
-        stack.extend((0..1usize << qflock_vars).map(|_| F64(rng.next_u64())));
+        let mut stack: Vec<F64> = (0..1usize << 13).map(|_| F64::new(rng.next_u64())).collect();
+        stack.extend((0..1usize << qflock_vars).map(|_| F64::new(rng.next_u64())));
         assert_eq!(stack.len(), 1 << log_n);
 
         // One point claim on the low column.

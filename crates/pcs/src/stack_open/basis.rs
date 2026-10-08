@@ -1,6 +1,8 @@
+use primitives::PrimeCharacteristicRing;
+
 use std::mem::MaybeUninit;
 
-use primitives::field::F192;
+use primitives::F192;
 use primitives::multilinear::{eq_table_seeded, fill_eq_table_uninit};
 
 use super::StackClaim;

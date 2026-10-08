@@ -5,11 +5,13 @@
 //!
 //! Two circuits of the same heights differ exactly where these columns do, so the columns name the circuit.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::bus::SlotKey;
 use super::circuit::{Circuit, Limbs, PubSource};
 use super::table::{PerRecTable, Table};
 use crate::leaf::PublicColumn;
-use primitives::field::F64;
+use primitives::F64;
 use std::sync::Arc;
 
 /// How many slots all tables have together.
@@ -102,7 +104,7 @@ impl FixedColumns {
         for (z, source) in circuit.pubs.iter().enumerate() {
             if let PubSource::Const(v) = *source {
                 for (column, &v) in constants.iter_mut().zip(&v) {
-                    column[z] = F64(v);
+                    column[z] = F64::new(v);
                 }
             }
         }
@@ -134,7 +136,7 @@ impl FixedColumns {
         std::array::from_fn(|j| {
             let mut column = self.get(FixedColumn::Constant(j)).to_vec();
             for (cell, word) in column.iter_mut().zip(statement) {
-                *cell = F64(word[j]);
+                *cell = F64::new(word[j]);
             }
             PublicColumn::new(Arc::new(column))
         })

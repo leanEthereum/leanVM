@@ -10,9 +10,10 @@ publish = false
 workspace = true
 
 [dependencies]
+p3-binary-field.workspace = true
+p3-field.workspace = true
 parallel.workspace = true
 rand = { workspace = true, optional = true }
-serde.workspace = true
 
 [features]
 # Shared test fixtures (`test_util`) used by this and other crates' tests.
@@ -20,6 +21,8 @@ serde.workspace = true
 test-util = ["dep:rand"]
 
 [dev-dependencies]
+proptest.workspace = true
+bincode.workspace = true
 primitives = { path = ".", features = ["test-util"] }
 bench.workspace = true
 

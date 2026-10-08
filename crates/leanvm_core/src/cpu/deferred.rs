@@ -23,7 +23,7 @@ use crate::tables::{N_TABLES, Part};
 use fiat_shamir::arith::Arith;
 use flock::lincheck::{LincheckError, MatrixClaim, MatrixForm};
 use flock::verifier::FlockError;
-use primitives::field::F192;
+use primitives::F192;
 use thiserror::Error;
 
 /// One fixed polynomial `f` claimed to take `value` at `point`.
@@ -239,6 +239,7 @@ mod tests {
     use super::*;
     use crate::rv::Region;
     use crate::rv::asm::*;
+    use primitives::PrimeCharacteristicRing;
     use primitives::multilinear::{eq_table, mle_eval};
     use primitives::test_util::Rng;
 
@@ -266,7 +267,7 @@ mod tests {
         // `c(x) = T(x, alpha)`, raised to `2^i` entry by entry: bit `i`'s public column.
         let eq = eq_table(&chi);
         let mut c: Vec<F192> = (0..rv.entries().len())
-            .map(|x| (0..1 << N_TUPLE_BITS).fold(F192::ZERO, |acc, s| acc + weights[s].mul_base(table[(s << kbc) + x])))
+            .map(|x| (0..1 << N_TUPLE_BITS).fold(F192::ZERO, |acc, s| acc + (weights[s] * (table[(s << kbc) + x]))))
             .collect();
         let frobenius = |y: F192, times: usize| (0..times).fold(y, |y, _| y.square());
         let bits = 7;

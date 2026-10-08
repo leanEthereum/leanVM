@@ -29,6 +29,8 @@ transmute_undefined_repr = "allow"
 cognitive_complexity = "allow"
 
 [workspace.dependencies]
+p3-binary-field = { git = "https://github.com/Plonky3/Plonky3", rev = "eab7f0e3662500cde47cb0b6dad61afc99e3deac" }
+p3-field = { git = "https://github.com/Plonky3/Plonky3", rev = "eab7f0e3662500cde47cb0b6dad61afc99e3deac" }
 bench = { path = "crates/bench" }
 leanvm = { path = "crates/leanvm" }
 primitives = { path = "crates/primitives" }

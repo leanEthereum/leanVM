@@ -3,6 +3,8 @@
 //! The hash table's first columns are ports of its rows' packed BLAKE2s witnesses, which flock proves.
 //! The public table commits nothing: its blocks are the framework's.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::circuit::{Assignment, WireKind};
 use crate::class_flock::{self, FlockId};
 use crate::leaf::{BusForm, Coord};
@@ -10,7 +12,7 @@ use crate::tables::{PerTable, TableId, TableKey};
 use Coord::{Col, Prod, Sum};
 use WireKind::{D, E, K};
 use flock::circuit::Circuit;
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 
 /// The recursion machine's tables, in protocol order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -176,7 +178,7 @@ impl Table {
             // A word is its bits, each Boolean.
             Self::Split => {
                 let word: Vec<(usize, F192)> = std::iter::once((0, F192::ONE))
-                    .chain((0..64).map(|i| (1 + i, F192::from(F64(1 << i)))))
+                    .chain((0..64).map(|i| (1 + i, F192::from(F64::new(1 << i)))))
                     .collect();
                 std::iter::once(form(&word, Vec::new()))
                     .chain((1..65).map(boolean))
@@ -206,7 +208,7 @@ impl Table {
         for (c, source) in self.committed_sources().into_iter().enumerate() {
             let column = &mut windows[self.n_ports() + c];
             for (z, cell) in column[..height].iter_mut().enumerate() {
-                *cell = F64(a.value(self, z, source.slot)[source.limb]);
+                *cell = F64::new(a.value(self, z, source.slot)[source.limb]);
             }
             column[height..].fill(F64::ZERO);
         }
@@ -368,6 +370,7 @@ impl HashFlock {
 mod tests {
     use super::*;
     use crate::tables::{ClassSpec, Word};
+    use primitives::PrimeCharacteristicRing;
     use proptest::prelude::*;
 
     fn eval(c: &Coord, cols: &[F64]) -> F64 {
@@ -381,23 +384,23 @@ mod tests {
     }
 
     fn out(t: Table, cols: &[F64]) -> [u64; 4] {
-        t.slot(3).0.map(|c| eval(&c, cols).0)
+        t.slot(3).0.map(|c| eval(&c, cols).to_bits())
     }
 
     proptest! {
         #[test]
         fn emul_and_exk_outputs_are_e_arithmetic(w in proptest::array::uniform9(any::<u64>())) {
-            let cols = w.map(F64);
-            let e = |c: usize| F192::new(w[c], w[c + 1], w[c + 2]);
-            let limbs = |x: F192| [x.c0, x.c1, x.c2, 0];
+            let cols = w.map(F64::new);
+            let e = |c: usize| F192::new([F64::new(w[c]), F64::new(w[c + 1]), F64::new(w[c + 2])]);
+            let limbs = |x: F192| [x.coefficients()[0].to_bits(), x.coefficients()[1].to_bits(), x.coefficients()[2].to_bits(), 0];
             prop_assert_eq!(out(Table::Emul, &cols), limbs(e(0) * e(3) + e(6)));
-            prop_assert_eq!(out(Table::Exk, &cols[..7]), limbs(e(0).mul_base(F64(w[3])) + e(4)));
+            prop_assert_eq!(out(Table::Exk, &cols[..7]), limbs((e(0) * F64::new(w[3])) + e(4)));
         }
     }
 
     #[test]
     fn every_slot_form_fits_its_kind() {
-        let zero = |c: &Coord| matches!(c, Coord::Const(v) if v.0 == 0);
+        let zero = |c: &Coord| matches!(c, Coord::Const(v) if v.to_bits() == 0);
         for t in Table::OWNED {
             for (s, &kind) in t.slot_kinds().iter().enumerate() {
                 let used = match kind {

@@ -9,14 +9,16 @@
 //! lowest variable first.
 //! A polynomial of fewer variables is bound early, and its share then waits on the rest: each later round multiplies it by its challenge.
 
+use primitives::{Field, PrimeCharacteristicRing};
+
 use super::{DenseTables, Entry, Msg, ReduceError, TILE, ZERO, xor};
 use crate::rec::tree::claims::{DenseClaim, DensePoly, DenseTerm};
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use parallel::Chunks;
-use primitives::field::{F64, F192, F192Unreduced, mul_unreduced4};
 use primitives::multilinear::{eq_table, eq_table_seeded, mle_eval_par};
 use primitives::write_only;
+use primitives::{F64, F192, mul4};
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -210,7 +212,10 @@ impl DenseTerm<F192> {
     /// The term at its coefficient, placed in its polynomial's table: its point's trailing Boolean coordinates name a block.
     fn placed(&self, low: &[F192], coef: F192) -> Placed {
         let mut point = low[..self.n_low].to_vec();
-        point.extend((0..self.bits.len).map(|i| F192::new((self.bits.value >> i & 1) as u64, 0, 0)));
+        point.extend(
+            (0..self.bits.len)
+                .map(|i| F192::new([F64::new((self.bits.value >> i & 1) as u64), F64::new(0), F64::new(0)])),
+        );
         point.extend(self.top);
         let boolean = |x: &F192| *x == F192::ZERO || *x == F192::ONE;
         let k = point.len() - point.iter().rev().take_while(|x| boolean(x)).count();
@@ -264,7 +269,7 @@ impl<'a> DenseProver<'a> {
         Self {
             point: Vec::with_capacity(parts.iter().map(|p| p.n_vars).max().unwrap_or(0)),
             parts,
-            message: message.map(F192Unreduced::reduce),
+            message,
         }
     }
 
@@ -286,7 +291,7 @@ impl<'a> DenseProver<'a> {
         self.point.push(r);
         let point = &self.point;
         let message = (self.parts.iter_mut().filter(|p| p.n_vars > i)).fold(ZERO, |acc, p| xor(acc, p.bind(point)));
-        self.message = message.map(F192Unreduced::reduce);
+        self.message = message;
     }
 
     /// Each reduced polynomial's value at its prefix of the point.
@@ -467,13 +472,13 @@ impl Source<'_> {
         match *self {
             Self::Blocks(_) => touching.iter().fold(ZERO, |m, b| xor(m, b.message(a, t))),
             Self::Write(_) => {
-                let mut acc = [F192Unreduced::ZERO; TILE];
+                let mut acc = [F192::ZERO; TILE];
                 let acc = &mut acc[..w.len()];
                 for b in touching {
                     b.add_to(a, acc);
                 }
                 for (w, x) in w.iter_mut().zip(acc) {
-                    *w = x.reduce();
+                    *w = *x;
                 }
                 T::dot(w, t)
             }
@@ -528,9 +533,9 @@ fn fold_round<T: Entry>(
         w[0] = match source {
             Source::Blocks(_) => unreachable!("a factored level's prefix is whole pairs"),
             Source::Write(blocks) => {
-                let mut acc = [F192Unreduced::ZERO];
+                let mut acc = [F192::ZERO];
                 blocks.iter().for_each(|b| b.add_to(k, &mut acc));
-                acc[0].reduce()
+                acc[0]
             }
             Source::Fold(table) => F192::fold(table[2 * k], table[2 * k + 1], r),
         };
@@ -612,7 +617,7 @@ impl Block {
     }
 
     /// `acc[y] += Xi(a + y)` over the block.
-    fn add_to(&self, a: usize, acc: &mut [F192Unreduced]) {
+    fn add_to(&self, a: usize, acc: &mut [F192]) {
         self.runs(a, acc.len(), |h, x, run| {
             let acc = &mut acc[run.start - a..run.end - a];
             for (low, high) in &self.groups {
@@ -620,12 +625,12 @@ impl Block {
                 let (quads, rest) = low.as_chunks::<4>();
                 let (acc_quads, acc_rest) = acc.as_chunks_mut::<4>();
                 for (s, &q) in acc_quads.iter_mut().zip(quads) {
-                    for (s, p) in s.iter_mut().zip(mul_unreduced4([e; 4], q)) {
-                        *s ^= p;
+                    for (s, p) in s.iter_mut().zip(mul4([e; 4], q)) {
+                        *s += p;
                     }
                 }
                 for (s, &l) in acc_rest.iter_mut().zip(rest) {
-                    *s ^= e.mul_unreduced(l);
+                    *s += e * l;
                 }
             }
         });
@@ -638,8 +643,8 @@ impl Block {
         self.runs(a, t.len(), |h, x, run| {
             let t = &t[run.start - a..run.end - a];
             for (low, high) in &self.groups {
-                let [c0, c2] = T::dot(&low[x..x + t.len()], t).map(F192Unreduced::reduce);
-                m = xor(m, [high[h].mul_unreduced(c0), high[h].mul_unreduced(c2)]);
+                let [c0, c2] = T::dot(&low[x..x + t.len()], t);
+                m = xor(m, [(high[h] * c0), (high[h] * c2)]);
             }
         });
         m

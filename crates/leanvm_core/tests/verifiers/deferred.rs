@@ -1,10 +1,11 @@
 //! The claims the verifier's core leaves on the program and the circuits: they bind what the full verifier checks whole.
 
+use primitives::PrimeCharacteristicRing;
 use leanvm_core::asm::*;
 use leanvm_core::{
     ConstraintError, CpuError, DeferredClaims, MalformedClaim, Program, ProvenRun, Prover, Rate, Region,
 };
-use primitives::field::F192;
+use primitives::F192;
 
 // Reads its RAM image, so that the image's share of the program claim is not zero.
 fn image_program(image: Vec<u64>) -> Program {

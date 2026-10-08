@@ -19,7 +19,7 @@ use crate::rec::table::PerRecTable;
 use crate::rec::transcript::{ProofSource, Transcript};
 use ::flock::lincheck::MatrixForm;
 use fiat_shamir::arith::Arith;
-use primitives::field::F192;
+use primitives::F192;
 use primitives::multilinear::mle_eval_par;
 
 /// What fixes the rows verifying a recursion proof: its circuit's heights and the commitment's rate.

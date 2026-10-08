@@ -70,7 +70,7 @@ pub fn chain(words: &[u64]) -> Limbs {
 
 /// A transcript digest as four words.
 pub(crate) fn digest_limbs(d: &[u8; 32]) -> Limbs {
-    fiat_shamir::digest_words(d).map(|w| w.0)
+    fiat_shamir::digest_words(d).map(|w| w.to_bits())
 }
 
 /// Four words from eight little-endian 32-bit halves.

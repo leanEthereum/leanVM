@@ -22,14 +22,16 @@
 //! port layout and the order products are made in, which fixes their slots; the
 //! order of the free XORs is nobody's business.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
 use crate::witness::{
     GroupTables, Tables, Witness, drive_witness_batched, drive_witness_groups, drive_witness_packed_and_lincheck,
     with_z,
 };
+use primitives::F192;
 use primitives::bits::transpose_64x64;
-use primitives::field::F192;
 use std::ops::Range;
 
 /// Instances one word-wide walk of the gate list computes.

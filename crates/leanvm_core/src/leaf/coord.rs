@@ -1,9 +1,11 @@
 //! A tuple coordinate as a function of its block's row, and the public columns a coordinate reads.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::rec::FixedColumn;
 use fiat_shamir::arith::{Arith, Native};
 use fiat_shamir::transcript::VerifierState;
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 use std::sync::{Arc, OnceLock};
 
 /// One tuple coordinate as a function of the block's row `z`.
@@ -124,7 +126,7 @@ impl SparseColumn {
                 // The largest aligned block starting here that the stretch still fills.
                 let aligned = if at == 0 { usize::MAX } else { 1 << at.trailing_zeros() };
                 let size = aligned.min(1 << words.len().ilog2());
-                blocks.push((at, words[..size].iter().map(|&w| F64(w)).collect()));
+                blocks.push((at, words[..size].iter().map(|&w| F64::new(w)).collect()));
                 (at, words) = (at + size, &words[size..]);
             }
         }

@@ -5,10 +5,12 @@
 //! - One claim on each dense polynomial, at prefixes of one point.
 //! - Each flock circuit's two matrices at prefixes of one row point and one column point.
 
+use primitives::F64;
+
 use super::claims::DensePoly;
 use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::rec::circuit::{Builder, Dw, Ew, Kw, Limbs, chain};
-use primitives::field::F192;
+use primitives::F192;
 use std::ops::Range;
 
 /// What a tree proof's circuit verifies.
@@ -66,7 +68,9 @@ impl Kind {
 
     /// The kind a statement word names.
     pub(crate) fn of_word(word: F192) -> Option<Self> {
-        Self::ALL.into_iter().find(|k| F192::new(k.bit(), 0, 0) == word)
+        Self::ALL
+            .into_iter()
+            .find(|k| F192::new([F64::new(k.bit()), F64::new(0), F64::new(0)]) == word)
     }
 
     /// The first word of its digest's message.
@@ -226,7 +230,12 @@ impl TreeStatement {
     /// The digest's words.
     pub(crate) fn digest_words(&self) -> Limbs {
         let [lo, hi] = self.digest();
-        [lo.c0, lo.c1, hi.c0, hi.c1]
+        [
+            lo.coefficients()[0].to_bits(),
+            lo.coefficients()[1].to_bits(),
+            hi.coefficients()[0].to_bits(),
+            hi.coefficients()[1].to_bits(),
+        ]
     }
 }
 

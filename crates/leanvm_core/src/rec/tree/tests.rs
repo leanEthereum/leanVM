@@ -1,3 +1,5 @@
+use primitives::PrimeCharacteristicRing;
+
 use super::claims::{Bits, DenseClaim, DenseTerm, MatrixClaim, NodeClaims};
 use super::reduce::{DenseProver, DenseVars, LABEL, MatrixProver, MatrixReduced, ReduceError};
 use super::statement::{Section, digest_halves_rows};
@@ -313,7 +315,7 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
     let (fake, assignment) = fake_first(&f.tree, &f.firsts[0], &fake_outputs);
     assert_eq!(fake.heights(), d.taus, "the fake has the nodes' heights");
     let words: Vec<F192> = (assignment.statement().iter())
-        .map(|l| F192::new(l[0], l[1], l[2]))
+        .map(|l| F192::new([F64::new(l[0]), F64::new(l[1]), F64::new(l[2])]))
         .collect();
     let child = TreeProof {
         kind: Kind::First,
@@ -325,7 +327,18 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
         f.tree.read(&child).is_err(),
         "natively, the fake is no first-level node"
     );
-    let limbs: Vec<[u64; 4]> = child.words.iter().map(|w| [w.c0, w.c1, w.c2, 0]).collect();
+    let limbs: Vec<[u64; 4]> = child
+        .words
+        .iter()
+        .map(|w| {
+            [
+                w.coefficients()[0].to_bits(),
+                w.coefficients()[1].to_bits(),
+                w.coefficients()[2].to_bits(),
+                0,
+            ]
+        })
+        .collect();
     let raw = fake
         .verify_to_raw(&limbs, d.iv, d.rate, &child.proof)
         .expect("the fake proves its own circuit");
@@ -371,7 +384,7 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
     let root = TreeProof {
         kind: Kind::Node,
         words: (assignment.statement().iter())
-            .map(|l| F192::new(l[0], l[1], l[2]))
+            .map(|l| F192::new([F64::new(l[0]), F64::new(l[1]), F64::new(l[2])]))
             .collect(),
         proof: (f.tree.circuit(Kind::Node).prove(&assignment, d.iv, d.rate)).expect("the node fits"),
         rate: d.rate,
@@ -392,9 +405,9 @@ enum Forge {
 
 // Move the first two values against each other along `sum_i weights_i values_i`, which stays as it was.
 fn shift(values: &mut [F192], weights: &[F192]) {
-    let delta = F192::new(1, 2, 3);
+    let delta = F192::new([F64::new(1), F64::new(2), F64::new(3)]);
     values[0] += delta;
-    values[1] += delta * weights[0] * weights[1].inv();
+    values[1] += delta * weights[0] * weights[1].invert_or_zero();
 }
 
 // The honest reduction of `claims`, its dense or its matrix outputs moved along their final identity.
@@ -478,7 +491,7 @@ fn forged_first(f: &Fixture, forge: Forge) -> TreeProof {
     TreeProof {
         kind: Kind::First,
         words: (assignment.statement().iter())
-            .map(|l| F192::new(l[0], l[1], l[2]))
+            .map(|l| F192::new([F64::new(l[0]), F64::new(l[1]), F64::new(l[2])]))
             .collect(),
         proof: (f.tree.circuit(Kind::First).prove(&assignment, d.iv, d.rate)).expect("the node fits"),
         rate: d.rate,
@@ -569,15 +582,17 @@ fn dense_claims(rng: &mut Rng, tables: &DenseTables, vars: &DenseVars) -> Vec<De
     let low = rng.ext_vec(n - 3);
     let term = |n_low: usize, bits: usize, top: u64, scale: F192| {
         let mut point = low[..n_low].to_vec();
-        point.extend((0..n - 1 - n_low).map(|i| F192::new((bits >> i & 1) as u64, 0, 0)));
-        point.push(F192::new(top, 0, 0));
+        point.extend(
+            (0..n - 1 - n_low).map(|i| F192::new([F64::new((bits >> i & 1) as u64), F64::new(0), F64::new(0)])),
+        );
+        point.push(F192::new([F64::new(top), F64::new(0), F64::new(0)]));
         DenseTerm {
             n_low,
             bits: Bits {
                 value: bits,
                 len: n - 1 - n_low,
             },
-            top: Some(F192::new(top, 0, 0)),
+            top: Some(F192::new([F64::new(top), F64::new(0), F64::new(0)])),
             scale: Some(scale),
             value: mle_eval(&tables.0[DensePoly::Fixed as usize], &point),
         }
@@ -598,7 +613,7 @@ fn dense_claims(rng: &mut Rng, tables: &DenseTables, vars: &DenseVars) -> Vec<De
 fn the_dense_reduction_reduces_to_the_polynomials() {
     let mut rng = Rng::new(17);
     let vars = DenseVars([3, 6, 7]);
-    let tables = DenseTables(vars.0.map(|n| (0..1 << n).map(|_| F64(rng.next_u64())).collect()));
+    let tables = DenseTables(vars.0.map(|n| (0..1 << n).map(|_| F64::new(rng.next_u64())).collect()));
     let claims = dense_claims(&mut rng, &tables, &vars);
     let prove = |claims: &[DenseClaim<F192>], forge: bool| {
         let mut ps = ProverState::from_label(LABEL);
@@ -629,7 +644,7 @@ fn the_dense_reduction_reduces_to_the_polynomials() {
                 .collect();
             let mut values = p.finals();
             let rest = (values.iter().zip(&weights).skip(1)).fold(F192::ZERO, |acc, (&v, &w)| acc + v * w);
-            values[0] = (claim + rest) * weights[0].inv();
+            values[0] = (claim + rest) * weights[0].invert_or_zero();
             ps.add_scalars(&values);
         } else {
             DenseProver::prove(&mut ps, &vars, &tables, claims);
@@ -678,7 +693,7 @@ fn block_claim(
     let mut terms = Vec::new();
     for &(n_low, bits) in blocks {
         let mut point = low[..n_low].to_vec();
-        point.extend((0..n - n_low).map(|i| F192::new((bits >> i & 1) as u64, 0, 0)));
+        point.extend((0..n - n_low).map(|i| F192::new([F64::new((bits >> i & 1) as u64), F64::new(0), F64::new(0)])));
         terms.push(DenseTerm {
             n_low,
             bits: Bits {
@@ -700,7 +715,7 @@ fn the_dense_reduction_reduces_claims_on_a_prefix() {
     // rounds; the bytecode's has three, written out at once.
     let mut rng = Rng::new(23);
     let vars = DenseVars([3, 5, 14]);
-    let tables = DenseTables(vars.0.map(|n| (0..1 << n).map(|_| F64(rng.next_u64())).collect()));
+    let tables = DenseTables(vars.0.map(|n| (0..1 << n).map(|_| F64::new(rng.next_u64())).collect()));
     let mut claims: Vec<DenseClaim<F192>> = (0..3)
         .map(|_| {
             let point = rng.ext_vec(3);

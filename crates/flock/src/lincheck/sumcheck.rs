@@ -1,7 +1,9 @@
 //! The product sumcheck's rounds: a round message, a bind, and the two fused.
 
+use primitives::PrimeCharacteristicRing;
+
 use parallel::SendPtr;
-use primitives::field::F192;
+use primitives::F192;
 
 /// Length above which the inner product / element-wise kernels fan out to the
 /// pool. Below it, sequential beats dispatch overhead.

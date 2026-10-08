@@ -65,7 +65,15 @@ impl Builder {
     /// The limbs of `e`.
     pub fn e_to_k(&mut self, e: Ew) -> [Kw; 3] {
         let v = self.e(e);
-        let w = self.cast_row(&[(ELEMENT, e.0)], [v.c0, v.c1, v.c2, 0]);
+        let w = self.cast_row(
+            &[(ELEMENT, e.0)],
+            [
+                v.coefficients()[0].to_bits(),
+                v.coefficients()[1].to_bits(),
+                v.coefficients()[2].to_bits(),
+                0,
+            ],
+        );
         std::array::from_fn(|i| Kw(w[WORDS + i]))
     }
 
@@ -92,7 +100,15 @@ impl Builder {
     /// The digest whose first three words are `e`'s limbs and whose last is `k`.
     pub fn e_and_k_to_d(&mut self, e: Ew, k: Kw) -> Dw {
         let v = self.e(e);
-        let w = self.cast_row(&[(ELEMENT, e.0), (WORDS + 3, k.0)], [v.c0, v.c1, v.c2, self.k(k)]);
+        let w = self.cast_row(
+            &[(ELEMENT, e.0), (WORDS + 3, k.0)],
+            [
+                v.coefficients()[0].to_bits(),
+                v.coefficients()[1].to_bits(),
+                v.coefficients()[2].to_bits(),
+                self.k(k),
+            ],
+        );
         Dw(w[DIGEST])
     }
 
@@ -106,10 +122,18 @@ impl Builder {
     /// The digest whose two 128-bit halves are `lo` and `hi`, each with a zero top limb.
     pub fn halves_to_d(&mut self, lo: Ew, hi: Ew) -> Dw {
         let (l, h) = (self.e(lo), self.e(hi));
-        if l.c2 != 0 || h.c2 != 0 {
+        if l.coefficients()[2].to_bits() != 0 || h.coefficients()[2].to_bits() != 0 {
             self.fail("a digest half has a top limb");
         }
-        let w = self.cast_row(&[(HALVES, lo.0), (HALVES + 1, hi.0)], [l.c0, l.c1, h.c0, h.c1]);
+        let w = self.cast_row(
+            &[(HALVES, lo.0), (HALVES + 1, hi.0)],
+            [
+                l.coefficients()[0].to_bits(),
+                l.coefficients()[1].to_bits(),
+                h.coefficients()[0].to_bits(),
+                h.coefficients()[1].to_bits(),
+            ],
+        );
         Dw(w[DIGEST])
     }
 }

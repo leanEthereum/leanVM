@@ -16,6 +16,8 @@
 //!
 //! Each node reduces the claims its children leave and carry to one of each, and only the root's verifier evaluates them.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::class_flock::FlockId;
 use crate::cpu::{Announcement, DecodeError, Lookup, Output, Program, Proof, ProvenRun, Stats, VerifyError};
 use crate::envelope::Envelope;
@@ -29,8 +31,8 @@ use crate::rec::verifier::ProofShape;
 use crate::tables::PerTable;
 use design::{ChildWitness, Design, LeafWitness, NodeInputs, NodeRows};
 use fiat_shamir::transcript::{ProofTranscript, RawProof};
-use primitives::field::{F64, F192};
 use primitives::multilinear::{eq_table, mle_eval_par};
+use primitives::{F64, F192};
 use reduce::DenseTables;
 use statement::TreeStatement;
 use thiserror::Error;
@@ -343,7 +345,15 @@ impl TreeProof {
         let mut bytes = vec![self.rate.log_inv_rate()];
         bytes.extend(n_words.to_le_bytes());
         for w in &self.words {
-            bytes.extend([w.c0, w.c1, w.c2].iter().flat_map(|l| l.to_le_bytes()));
+            bytes.extend(
+                [
+                    w.coefficients()[0].to_bits(),
+                    w.coefficients()[1].to_bits(),
+                    w.coefficients()[2].to_bits(),
+                ]
+                .iter()
+                .flat_map(|l| l.to_le_bytes()),
+            );
         }
         bytes.extend(self.proof.to_bytes());
         bytes
@@ -358,7 +368,7 @@ impl TreeProof {
         let words: Vec<F192> = (words.as_chunks::<24>().0.iter())
             .map(|w| {
                 let limb = |i: usize| u64::from_le_bytes(w[8 * i..8 * i + 8].try_into().expect("eight bytes"));
-                F192::new(limb(0), limb(1), limb(2))
+                F192::new([F64::new(limb(0)), F64::new(limb(1)), F64::new(limb(2))])
             })
             .collect();
         Some(Self {
@@ -395,7 +405,7 @@ impl<'p> Tree<'p> {
         let columns = circuits.each_ref().map(|c| FixedColumns::of(c, &design.taus));
         let fixed = design.fixed.polynomial([&columns[0], &columns[1]]);
         let rv = program.rv();
-        let mut image: Vec<F64> = rv.image().iter().map(|&w| F64(w)).collect();
+        let mut image: Vec<F64> = rv.image().iter().map(|&w| F64::new(w)).collect();
         image.resize(1 << design.vars.0[DensePoly::Image as usize], F64::ZERO);
         let tables = DenseTables([Lookup::Bytecode.table(rv), image, fixed]);
         Ok(Self {
@@ -575,7 +585,18 @@ impl<'p> Tree<'p> {
 
     /// Verify a tree proof's recursion proof, short of its claims, returning it as its verifier read it.
     fn read(&self, p: &TreeProof) -> Result<RawProof, VerifyError> {
-        let limbs: Vec<[u64; 4]> = p.words.iter().map(|w| [w.c0, w.c1, w.c2, 0]).collect();
+        let limbs: Vec<[u64; 4]> = p
+            .words
+            .iter()
+            .map(|w| {
+                [
+                    w.coefficients()[0].to_bits(),
+                    w.coefficients()[1].to_bits(),
+                    w.coefficients()[2].to_bits(),
+                    0,
+                ]
+            })
+            .collect();
         let raw = self.circuit(p.kind).verify_to_raw_with(
             &limbs,
             self.design.iv,
@@ -604,7 +625,7 @@ impl<'p> Tree<'p> {
             .prove_with(&assignment, d.iv, d.rate, Some(&self.columns[kind as usize]))
             .map_err(|_| TreeError::TooLarge)?;
         let words = (assignment.statement().iter())
-            .map(|l| F192::new(l[0], l[1], l[2]))
+            .map(|l| F192::new([F64::new(l[0]), F64::new(l[1]), F64::new(l[2])]))
             .collect();
         Ok(TreeProof {
             kind,

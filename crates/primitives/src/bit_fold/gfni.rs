@@ -10,6 +10,8 @@
 //!
 //! A stage swaps one bit of the byte offset inside a register with one bit of the register index.
 
+use crate::PrimeCharacteristicRing;
+
 use core::arch::x86_64::*;
 use std::sync::LazyLock;
 

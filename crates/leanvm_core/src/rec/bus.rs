@@ -17,7 +17,7 @@ use crate::leaf::{Block, BusError, BusForm, BusProof, BusVerify, Coord, PackedFo
 use crate::{constraints, leaf};
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::ProverState;
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 
 /// A slot's key on the bus: its index among all tables' slots in the high 32 bits, its row in the low 32.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -59,7 +59,7 @@ impl SlotKey {
 
     /// The key as a `K` word.
     pub(crate) const fn to_f64(self) -> F64 {
-        F64(self.0)
+        F64::new(self.0)
     }
 
     /// A slot's keys down its rows, as a column: the key at row `z` is row zero's XOR `z`.
@@ -181,6 +181,6 @@ impl<A: Arith> Residual<A> for TableResidual<'_, A::E> {
 impl Summand for TableSummand {
     #[inline(always)]
     fn eval<V: ColVal>(&self, cols: &[V], quadratic: bool) -> F192 {
-        V::reduce(self.0.eval_unreduced(cols, quadratic))
+        self.0.eval(cols, quadratic)
     }
 }

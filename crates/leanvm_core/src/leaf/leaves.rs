@@ -1,29 +1,11 @@
 //! The prover's leaf vectors: one leaf per row of a block, the producers' bits raised to their powers.
 
+use primitives::PrimeCharacteristicRing;
+
 use super::{Block, Coord, Layout, Producer};
 use crate::{PAR_THRESHOLD, gkr};
 use parallel::Chunks;
-#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use primitives::field::MixedSums8;
-use primitives::field::{F64, F192};
-#[cfg(not(any(
-    all(target_arch = "aarch64", target_feature = "aes"),
-    all(
-        target_arch = "x86_64",
-        target_feature = "pclmulqdq",
-        not(target_feature = "vpclmulqdq")
-    )
-)))]
-use primitives::field::{F192Unreduced, mul2, mul4};
-#[cfg(any(
-    all(target_arch = "aarch64", target_feature = "aes"),
-    all(
-        target_arch = "x86_64",
-        target_feature = "pclmulqdq",
-        not(target_feature = "vpclmulqdq")
-    )
-))]
-use primitives::field::{F192x1, F192x1Unreduced};
+use primitives::{F64, F192, mul2, mul4};
 use std::mem::MaybeUninit;
 use std::ops::Range;
 
@@ -41,12 +23,12 @@ enum Term<'a> {
 /// its `α`-power.
 fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &mut F192) {
     match c {
-        Coord::Const(v) => *constant += w.mul_base(*v),
+        Coord::Const(v) => *constant += w * *v,
         Coord::Col(i) => terms.push(Term::Col(*i, w)),
         Coord::Prod(i, j) => terms.push(Term::Prod(*i, *j, w)),
-        Coord::Scaled(c, i) => terms.push(Term::Col(*i, w.mul_base(*c))),
+        Coord::Scaled(c, i) => terms.push(Term::Col(*i, w * *c)),
         Coord::IntIndex { base, shift } => {
-            *constant += w.mul_base(*base);
+            *constant += w * *base;
             terms.push(Term::IntIndex(w, *shift));
         }
         Coord::Public(column) => terms.push(Term::Public(column.values.as_slice(), w)),
@@ -80,64 +62,31 @@ fn fill_tuple(
     for (i, c) in coords.iter().enumerate() {
         push_terms(c, w[i], &mut terms, &mut const_part);
     }
-    #[cfg(not(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(
-            target_arch = "x86_64",
-            target_feature = "pclmulqdq",
-            not(target_feature = "vpclmulqdq")
-        )
-    )))]
-    let row = |z: usize| -> F192 {
-        // The α-weighted coordinate sum defers its reductions: each mixed
-        // product contributes its three raw limb products (3 PMULL, no
-        // reduction tail), one combined reduction per row at the end,
-        // bit-identical to summing reduced `mul_base` terms.
-        let mut acc = F192Unreduced::ZERO;
-        for t in &terms {
-            acc ^= match t {
-                Term::Col(i, c) => c.mul_base_unreduced(cols[*i][z]),
-                Term::Prod(i, j, c) => c.mul_base_unreduced(cols[*i][z] * cols[*j][z]),
-                Term::IntIndex(c, shift) => c.mul_base_unreduced(F64((z as u64) << shift)),
-                Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
-            };
-        }
-        const_part + acc.reduce()
-    };
-    // Eight rows at once: each term's coefficient meets eight words in one batched
-    // product, and the eight sums reduce together. Elsewhere one row at a time.
-    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
     let rows8 = |z: usize| -> [F192; 8] {
-        let mut sums = MixedSums8::new();
+        let mut sums = [const_part; 8];
         for t in &terms {
             let (c, k) = match t {
                 Term::Col(i, c) => (c, *cols[*i][z..z + 8].as_array().unwrap()),
                 Term::Prod(i, j, c) => (c, std::array::from_fn(|r| cols[*i][z + r] * cols[*j][z + r])),
-                Term::IntIndex(c, shift) => (c, std::array::from_fn(|r| F64(((z + r) as u64) << shift))),
+                Term::IntIndex(c, shift) => (c, std::array::from_fn(|r| F64::new(((z + r) as u64) << shift))),
                 Term::Public(vals, c) => (c, *vals[z..z + 8].as_array().unwrap()),
             };
-            sums.add(*c, k);
+            for (sum, value) in sums.iter_mut().zip(primitives::mul_base8(*c, k)) {
+                *sum += value;
+            }
         }
-        sums.reduce().map(|s| const_part + s)
+        sums
     };
-    #[cfg(not(any(
-        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"),
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(
-            target_arch = "x86_64",
-            target_feature = "pclmulqdq",
-            not(target_feature = "vpclmulqdq")
-        )
-    )))]
-    let rows8 = |z: usize| -> [F192; 8] { std::array::from_fn(|r| row(z + r)) };
-    #[cfg(not(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(
-            target_arch = "x86_64",
-            target_feature = "pclmulqdq",
-            not(target_feature = "vpclmulqdq")
-        )
-    )))]
+    let row = |z: usize| -> F192 {
+        terms.iter().fold(const_part, |acc, t| {
+            acc + match t {
+                Term::Col(i, c) => *c * cols[*i][z],
+                Term::Prod(i, j, c) => *c * (cols[*i][z] * cols[*j][z]),
+                Term::IntIndex(c, shift) => *c * F64::new((z as u64) << shift),
+                Term::Public(vals, c) => *c * vals[z],
+            }
+        })
+    };
     let fill = |base: usize, dst: &mut [MaybeUninit<F192>], products: Option<&mut [MaybeUninit<F192>]>| {
         let (groups, tail) = dst.as_chunks_mut::<8>();
         let tail_start = base + 8 * groups.len();
@@ -156,65 +105,6 @@ fn fill_tuple(
         }
         for (r, slot) in tail.iter_mut().enumerate() {
             slot.write(row(tail_start + r));
-        }
-    };
-    // One row at a time with every value in vector registers from its load to its store: the
-    // terms' products summed unreduced and reduced once, and four rows' product formed from them.
-    #[cfg(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(
-            target_arch = "x86_64",
-            target_feature = "pclmulqdq",
-            not(target_feature = "vpclmulqdq")
-        )
-    ))]
-    let constant = F192x1::new(const_part);
-    #[cfg(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(
-            target_arch = "x86_64",
-            target_feature = "pclmulqdq",
-            not(target_feature = "vpclmulqdq")
-        )
-    ))]
-    let row = |z: usize| -> F192x1 {
-        let mut acc = F192x1Unreduced::zero();
-        for t in &terms {
-            let (c, k) = match t {
-                Term::Col(i, c) => (c, cols[*i][z]),
-                Term::Prod(i, j, c) => (c, cols[*i][z] * cols[*j][z]),
-                Term::IntIndex(c, shift) => (c, F64((z as u64) << shift)),
-                Term::Public(vals, c) => (c, vals[z]),
-            };
-            acc ^= F192x1::load(c).mul_base_unreduced(k);
-        }
-        constant + acc.reduce()
-    };
-    #[cfg(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(
-            target_arch = "x86_64",
-            target_feature = "pclmulqdq",
-            not(target_feature = "vpclmulqdq")
-        )
-    ))]
-    let fill = |base: usize, dst: &mut [MaybeUninit<F192>], products: Option<&mut [MaybeUninit<F192>]>| {
-        if let Some(products) = products {
-            let (quads, tail) = dst.as_chunks_mut::<4>();
-            debug_assert!(tail.is_empty() && products.len() == quads.len());
-            for ((q, [o0, o1, o2, o3]), product) in quads.iter_mut().enumerate().zip(products) {
-                let z = base + 4 * q;
-                let (a, b, c, d) = (row(z), row(z + 1), row(z + 2), row(z + 3));
-                a.store(o0);
-                b.store(o1);
-                c.store(o2);
-                d.store(o3);
-                ((a * b) * (c * d)).store(product);
-            }
-        } else {
-            for (r, slot) in dst.iter_mut().enumerate() {
-                row(base + r).store(slot);
-            }
         }
     };
     if dst.len() >= PAR_THRESHOLD {
@@ -318,7 +208,7 @@ pub fn build_leaves(
             parallel::chunks_mut2(dst, &mut q, PRODUCER_CHUNK, |ci, dst, q| {
                 let mult = &mult[ci * PRODUCER_CHUNK..];
                 for ((slot, q), m) in dst.iter_mut().zip(q.iter_mut()).zip(mult) {
-                    slot.write(if (m.0 >> bit) & 1 == 1 { *q } else { F192::ONE });
+                    slot.write(if (m.to_bits() >> bit) & 1 == 1 { *q } else { F192::ONE });
                     *q = q.square();
                 }
             });
@@ -358,7 +248,7 @@ pub fn producer_columns(p: &Producer, cols: &[&[F64]], w: &[F192], beta: F192) -
     let mult = cols[p.col];
     let bits = (0..p.bits).map(|bit| {
         let mut column = Vec::with_capacity(1 << p.kappa);
-        column.extend(mult.iter().map(|m| F192::from(F64((m.0 >> bit) & 1))));
+        column.extend(mult.iter().map(|m| F192::from(F64::new((m.to_bits() >> bit) & 1))));
         column
     });
     let mut public = Vec::with_capacity(p.bits);

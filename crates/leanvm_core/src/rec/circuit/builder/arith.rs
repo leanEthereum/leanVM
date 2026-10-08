@@ -1,9 +1,11 @@
 //! Arithmetic over `E`: the `EMUL` and `EXK` rows, with the units and repeated rows folded away.
 
+use primitives::{Field, PrimeCharacteristicRing};
+
 use super::{Builder, row_key};
 use crate::rec::circuit::{Ew, Kw};
 use crate::rec::table::Table;
-use primitives::field::{F64, F192};
+use primitives::{F64, F192};
 
 impl Builder {
     fn emul(&mut self, a: Ew, b: Ew, d: Ew) -> Ew {
@@ -79,7 +81,7 @@ impl Builder {
         if let Some(&c) = self.arith.get(&key) {
             return Ew(c);
         }
-        let c = self.free_e(self.e(a).mul_base(F64(self.k(k))) + self.e(d));
+        let c = self.free_e((self.e(a) * F64::new(self.k(k))) + self.e(d));
         self.row(Table::Exk, &[a.0, k.0, d.0, c.0]);
         self.arith.insert(key, c.0);
         c
@@ -87,8 +89,8 @@ impl Builder {
 
     /// `a·c + d` for a constant `c`, through the cheaper table when `c` is in `K`.
     pub fn mul_const_add(&mut self, a: Ew, c: F192, d: Ew) -> Ew {
-        if c.c1 == 0 && c.c2 == 0 {
-            let k = self.k_const(c.c0);
+        if c.coefficients()[1].to_bits() == 0 && c.coefficients()[2].to_bits() == 0 {
+            let k = self.k_const(c.coefficients()[0].to_bits());
             return self.mul_k_add(a, k, d);
         }
         let c = self.e_const(c);
@@ -98,7 +100,7 @@ impl Builder {
     /// `1 / a`, zero for zero: a hint the prover supplies, held to `a·(1/a) = 1`.
     pub fn inv(&mut self, a: Ew) -> Ew {
         let v = self.e(a);
-        let i = self.free_e(if v.is_zero() { F192::ZERO } else { v.inv() });
+        let i = self.free_e(if v.is_zero() { F192::ZERO } else { v.invert_or_zero() });
         let p = self.mul(a, i);
         self.eq_e_const(p, F192::ONE);
         i
@@ -118,7 +120,7 @@ mod tests {
     #[test]
     fn units_emit_no_row() {
         let mut b = Builder::new();
-        let x = b.free_e(F192::new(3, 5, 7));
+        let x = b.free_e(F192::new([F64::new(3), F64::new(5), F64::new(7)]));
         let k = b.free_k(9);
         let (zero, one) = (b.zero(), b.one());
         let (k0, k1) = (b.k_const(0), b.k_const(1));
@@ -140,9 +142,9 @@ mod tests {
     fn a_repeated_row_is_the_earlier_one() {
         let mut b = Builder::new();
         let (x, y, z) = (
-            b.free_e(F192::new(3, 5, 7)),
-            b.free_e(F192::new(2, 0, 9)),
-            b.free_e(F192::new(4, 1, 0)),
+            b.free_e(F192::new([F64::new(3), F64::new(5), F64::new(7)])),
+            b.free_e(F192::new([F64::new(2), F64::new(0), F64::new(9)])),
+            b.free_e(F192::new([F64::new(4), F64::new(1), F64::new(0)])),
         );
         let k = b.free_k(9);
         let xy = b.mul_add(x, y, z);

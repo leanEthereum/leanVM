@@ -6,20 +6,17 @@
 //! `K`-valued (`F64`) while randomness is `E`-valued (`F192`), so the first
 //! fold of a committed table also lifts it into `E`.
 
-use std::mem::MaybeUninit;
-use std::ops::Range;
-
-use crate::field::gf2_64::{reduce, software::clmul};
-use crate::field::{
-    F64, F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE, Weights8, dot_base, mul_base8, mul_unreduced4, mul4,
-};
-#[cfg(any(
-    all(target_arch = "aarch64", target_feature = "aes"),
-    all(target_arch = "x86_64", target_feature = "pclmulqdq")
-))]
-use crate::field::{F192x1, F192x1Unreduced};
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-use crate::field::{F192x4, F192x4Unreduced};
+use crate::PackedFieldExtension;
+use crate::{Algebra, PrimeCharacteristicRing};
+
+use std::mem::MaybeUninit;
+
+use self::PHI_8_TABLE_192 as PHI_8_TABLE;
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+use crate::F192x4;
+use crate::{F8, F64, F192};
+use std::sync::LazyLock;
 
 /// Multilinear interpolation in one variable over `E`: `lo + t·(lo+hi)`, the
 /// char-2 form of `(1−t)·lo + t·hi`.
@@ -32,7 +29,7 @@ pub fn interp(lo: F192, hi: F192, t: F192) -> F192 {
 /// `mul_base` (`lo + t·(lo+hi)` with `lo, hi ∈ K`).
 #[inline]
 pub fn interp_k(lo: F64, hi: F64, t: F192) -> F192 {
-    F192::from(lo) + t.mul_base(lo + hi)
+    F192::from(lo) + (t * (lo + hi))
 }
 
 /// `eq(r, x) = ∏_i (1 + r_i + x_i)`. For Boolean `r`, this is the indicator
@@ -233,32 +230,14 @@ pub fn window_denominator(size: usize) -> F192 {
     DENOMINATORS[size.trailing_zeros() as usize]
 }
 
-/// [`window_denominator`] for every window size, at compile time. The nodes lie in `F64`, so the
-/// product and its inverse (Fermat, `a^(2^64 - 2)`) stay there.
-const DENOMINATORS: [F192; 9] = {
-    const fn mul(a: u64, b: u64) -> u64 {
-        reduce(clmul(a, b))
-    }
-    let mut out = [F192::ZERO; 9];
-    let mut log = 0;
-    while log < out.len() {
-        let mut product = 1;
-        let mut k = 1;
-        while k < 1 << log {
-            product = mul(product, PHI_8_TABLE[k].c0);
-            k += 1;
-        }
-        let (mut inverse, mut bit) = (1, 1);
-        while bit < 64 {
-            product = mul(product, product);
-            inverse = mul(inverse, product);
-            bit += 1;
-        }
-        out[log] = F192::new(inverse, 0, 0);
-        log += 1;
-    }
-    out
-};
+/// Barycentric weights for every power-of-two window, computed once.
+static DENOMINATORS: LazyLock<[F192; 9]> = LazyLock::new(|| {
+    std::array::from_fn(|log| {
+        (1..1 << log)
+            .fold(F192::ONE, |product, k| product * PHI_8_TABLE[k])
+            .invert_or_zero()
+    })
+});
 
 /// `scale · Σ_i values[i] · ∏_{k≠i} (p + nodes[k])`, in one pass of three products a node and no
 /// inverse; `sum` and `prefix` hold the sum and the product of the differences over the nodes seen so
@@ -288,7 +267,7 @@ pub fn poly_eval(coeffs: &[F192], point: F192) -> F192 {
 ///     f(point) = sum_h eq(point_high, h) * sum_l eq(point_low, l) * f[h * 2^L + l]
 /// ```
 ///
-/// Each row's inner sum is one [`dot_base`] against the packed low table, reduced once.
+/// Each row's inner sum uses [`dot_base`] against the grouped low table.
 /// The table is read once and never lifted into `E`.
 pub fn mle_eval(table: &[F64], point: &[F192]) -> F192 {
     debug_assert_eq!(table.len(), 1 << point.len());
@@ -302,7 +281,7 @@ pub fn mle_eval(table: &[F64], point: &[F192]) -> F192 {
     let low = packed_eq(&point[..low_vars]);
     let rows = table
         .chunks_exact(1 << low_vars)
-        .map(|row| dot_base(&low, row).reduce())
+        .map(|row| dot_base(&low, row))
         .collect();
     fold_ladder(rows, &point[low_vars..])
 }
@@ -317,7 +296,7 @@ pub fn mle_eval_par(table: &[F64], point: &[F192]) -> F192 {
     let low_vars = point.len().min(MLE_LOW_VARS);
     let low = packed_eq(&point[..low_vars]);
     let high = eq_table(&point[low_vars..]);
-    let eval = |row: usize| high[row] * dot_base(&low, &table[row << low_vars..(row + 1) << low_vars]).reduce();
+    let eval = |row: usize| high[row] * (dot_base(&low, &table[row << low_vars..(row + 1) << low_vars]));
     parallel::map_reduce(high.len(), || F192::ZERO, eval, |a, b| a + b)
 }
 
@@ -325,8 +304,8 @@ pub fn mle_eval_par(table: &[F64], point: &[F192]) -> F192 {
 const MLE_LOW_VARS: usize = 10;
 
 /// `eq(r, .)` packed eight weights at a time for [`dot_base`]. Needs `r.len() >= 3`.
-fn packed_eq(r: &[F192]) -> Vec<Weights8> {
-    eq_table(r).as_chunks::<8>().0.iter().map(Weights8::new).collect()
+fn packed_eq(r: &[F192]) -> Vec<[F192; 8]> {
+    eq_table(r).as_chunks::<8>().0.to_vec()
 }
 
 /// Bind the remaining variables of a half-folded `E`-table, LSB-first.
@@ -373,7 +352,7 @@ pub fn inner_product(a: &[F192], b: &[F192]) -> F192 {
 #[inline]
 pub fn inner_product_base(k: &[F64], e: &[F192]) -> F192 {
     assert_eq!(k.len(), e.len());
-    k.iter().zip(e).fold(F192::ZERO, |acc, (&k, &e)| acc + e.mul_base(k))
+    k.iter().zip(e).fold(F192::ZERO, |acc, (&k, &e)| acc + (e * k))
 }
 
 /// The table `eq(r, .)` as two smaller tables, `eq(r, x) = low[x mod 2^L] * high[x >> L]`.
@@ -425,149 +404,252 @@ impl SplitEq {
     pub fn at(&self, x: usize) -> F192 {
         self.low[x & (self.low.len() - 1)] * self.high[x >> self.low_log]
     }
+}
 
-    /// `sum_x eq(r, x) * terms(x)` over a range of `x`, four coefficients at once.
-    ///
-    /// - The closure returns the unreduced products at `x`, already scaled by the low weight it is given.
-    /// - Each run of `x` sharing a high weight is reduced once and scaled by it once.
-    #[inline]
-    pub fn weighted_sum(
-        &self,
-        range: Range<usize>,
-        mut terms: impl FnMut(usize, F192) -> [F192Unreduced; 4],
-    ) -> [F192Unreduced; 4] {
-        let mask = self.low.len() - 1;
-        let mut total = [F192Unreduced::ZERO; 4];
-        let mut x = range.start;
-        while x < range.end {
-            // The run of `x` in this high block.
-            let high = x >> self.low_log;
-            let run_end = ((high + 1) << self.low_log).min(range.end);
-            let mut run = [F192Unreduced::ZERO; 4];
-            for y in x..run_end {
-                let t = terms(y, self.low[y & mask]);
-                for (acc, t) in run.iter_mut().zip(t) {
-                    *acc ^= t;
-                }
-            }
-            let scaled = mul_unreduced4([self.high[high]; 4], run.map(F192Unreduced::reduce));
-            for (acc, t) in total.iter_mut().zip(scaled) {
-                *acc ^= t;
-            }
-            x = run_end;
-        }
-        total
+/// `[x^0, x^1, …, x^{n-1}]`: the weights of a random linear combination batched
+/// with the powers of one challenge, rather than `n` independent ones.
+pub fn powers(x: F192, n: usize) -> Vec<F192> {
+    let mut out = Vec::with_capacity(n);
+    let mut p = F192::ONE;
+    for _ in 0..n {
+        out.push(p);
+        p *= x;
     }
+    out
+}
 
-    /// [`Self::weighted_sum`], four `x` at a time in lanes.
-    ///
-    /// - `terms(state, x, w)` returns the unreduced products at `x`, already scaled by the low weight `w`.
-    /// - `terms4(state, x, w)` does the same for `x..x + 4` at once, lane `j` for `x + j`, and serves every four of a run below `wide_end`.
-    /// - Both are handed `state`; each run of `x` sharing a high weight is reduced once and scaled by it once.
+/// `g^i = x^i` in the monomial basis of `K` by square-and-multiply (`O(log i)`).
+///
+/// A table's tag in the bytecode is `g` raised to its index.
+#[inline]
+pub fn g_pow(i: usize) -> F64 {
+    let mut result = F64::ONE;
+    let mut base = G; // x = g
+    let mut e = i;
+    while e > 0 {
+        if e & 1 == 1 {
+            result *= base;
+        }
+        base = base * base;
+        e >>= 1;
+    }
+    result
+}
+
+/// The fixed generator `g = x ∈ K`, with `ord(g) = 2^64 - 1` (pinned by a
+/// field test), larger than every index any admissible
+/// instance uses (the verifier's instance caps, §cpu). For `k < 64`, `g^k` is
+/// the monomial `x^k` (bit `k`).
+pub const G: F64 = F64::new(2);
+
+/// MLE of the integer column `[base ^ (z << shift)]_z`, entry `z` being the element
+/// whose bits are that integer's: `base + Σ_k ζ_k·x^{k+shift}`, linear, since bit `k`
+/// contributes the monomial `x^k` (§sec:idxcol). What addresses the registers, RAM
+/// and the bytecode: with `base` a multiple of the region's size, the XOR is the sum.
+pub fn int_index_mle(base: F64, shift: u32, zeta: &[F192]) -> F192 {
+    zeta.iter().enumerate().fold(F192::from(base), |acc, (k, z)| {
+        acc + (*z * F64::new(1 << (k as u32 + shift)))
+    })
+}
+
+/// φ₈(2ᵏ) for k ∈ [0,8): the images of the GF(2⁸) polynomial basis. All in
+/// `F64` (`c1 == c2 == 0`).
+const PHI_8_BASIS: [u64; 8] = [
+    0x0000000000000001,
+    0x033ce8beddc8a656,
+    0x512620375ed2a108,
+    0x0c9e636090aafc01,
+    0xba4f3cd82801769c,
+    0xba26e7904adb4a47,
+    0x467698598926dc01,
+    0x4418ae808b28bdd0,
+];
+
+const fn build_phi8_table_192() -> [F192; 256] {
+    let mut table = [F192::ZERO; 256];
+    let mut value = 1;
+    while value < table.len() {
+        let mut c0 = 0u64;
+        let mut bit = 0;
+        while bit < PHI_8_BASIS.len() {
+            if value & (1 << bit) != 0 {
+                c0 ^= PHI_8_BASIS[bit];
+            }
+            bit += 1;
+        }
+        table[value] = F192::new([F64::new(c0), F64::new(0), F64::new(0)]);
+        value += 1;
+    }
+    table
+}
+
+/// The unique GF(2^8) subfield embedded in F192. It lies in the F64 base, so
+/// both higher extension coordinates are zero.
+pub static PHI_8_TABLE_192: [F192; 256] = build_phi8_table_192();
+
+#[inline]
+pub fn phi8_192(a: F8) -> F192 {
+    PHI_8_TABLE_192[a.to_byte() as usize]
+}
+
+/// Two independent products.
+#[inline]
+pub fn mul2(a: [F192; 2], b: [F192; 2]) -> [F192; 2] {
+    std::array::from_fn(|i| a[i] * b[i])
+}
+/// Four independent products.
+#[inline]
+pub fn mul4(a: [F192; 4], b: [F192; 4]) -> [F192; 4] {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-    #[inline]
-    pub fn weighted_sum_lanes<S: ?Sized>(
-        &self,
-        range: Range<usize>,
-        wide_end: usize,
-        state: &mut S,
-        mut terms: impl FnMut(&mut S, usize, F192) -> [F192Unreduced; 4],
-        mut terms4: impl FnMut(&mut S, usize, F192x4) -> [F192x4Unreduced; 4],
-    ) -> [F192Unreduced; 4] {
-        let mask = self.low.len() - 1;
-        let mut total = [F192Unreduced::ZERO; 4];
-        let mut x = range.start;
-        while x < range.end {
-            // The run of `x` in this high block.
-            let high = x >> self.low_log;
-            let run_end = ((high + 1) << self.low_log).min(range.end);
-            let mut wide = [F192x4Unreduced::zero(); 4];
-            let mut y = x;
-            while y + 4 <= run_end.min(wide_end) {
-                let weights = F192x4::new(std::array::from_fn(|j| self.low[(y + j) & mask]));
-                for (acc, t) in wide.iter_mut().zip(terms4(state, y, weights)) {
-                    *acc ^= t;
-                }
-                y += 4;
-            }
-            let mut run = wide.map(F192x4Unreduced::sum);
-            for y in y..run_end {
-                let t = terms(state, y, self.low[y & mask]);
-                for (acc, t) in run.iter_mut().zip(t) {
-                    *acc ^= t;
-                }
-            }
-            let scaled = mul_unreduced4([self.high[high]; 4], run.map(F192Unreduced::reduce));
-            for (acc, t) in total.iter_mut().zip(scaled) {
-                *acc ^= t;
-            }
-            x = run_end;
-        }
-        total
+    {
+        unpack4(pack4(a) * pack4(b))
     }
-
-    /// [`Self::weighted_sum`] with its values in vector registers: the terms, the weights and the
-    /// sums are [`F192x1`] values, which an [`F192`]'s integer words would move out of at every sum.
-    #[cfg(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(target_arch = "x86_64", target_feature = "pclmulqdq")
-    ))]
-    #[inline]
-    pub fn weighted_sum_x1(
-        &self,
-        range: Range<usize>,
-        mut terms: impl FnMut(usize, F192x1) -> (F192x1Unreduced, F192x1Unreduced, F192x1Unreduced, F192x1Unreduced),
-    ) -> [F192Unreduced; 4] {
-        let mask = self.low.len() - 1;
-        let zero = F192x1Unreduced::zero();
-        let mut total = (zero, zero, zero, zero);
-        let mut x = range.start;
-        while x < range.end {
-            // The run of `x` in this high block.
-            let high = x >> self.low_log;
-            let run_end = ((high + 1) << self.low_log).min(range.end);
-            let mut run = (zero, zero, zero, zero);
-            for y in x..run_end {
-                let t = terms(y, F192x1::load(&self.low[y & mask]));
-                run = (run.0 ^ t.0, run.1 ^ t.1, run.2 ^ t.2, run.3 ^ t.3);
-            }
-            let scale = F192x1::load(&self.high[high]);
-            let scaled = |sum: F192x1Unreduced| scale.mul_unreduced(sum.reduce());
-            total = (
-                total.0 ^ scaled(run.0),
-                total.1 ^ scaled(run.1),
-                total.2 ^ scaled(run.2),
-                total.3 ^ scaled(run.3),
-            );
-            x = run_end;
-        }
-        [total.0.into(), total.1.into(), total.2.into(), total.3.into()]
-    }
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+    std::array::from_fn(|i| a[i] * b[i])
+}
+/// Eight products by coefficient-field scalars.
+#[inline]
+pub fn mul_base8(t: F192, k: [F64; 8]) -> [F192; 8] {
+    k.map(|k| t * k)
+}
+/// Mixed inner product in groups of eight, using Plonky3's deferred reduction.
+pub fn dot_base(w: &[[F192; 8]], k: &[F64]) -> F192 {
+    assert_eq!(k.len(), 8 * w.len());
+    w.iter()
+        .zip(k.as_chunks::<8>().0)
+        .fold(F192::ZERO, |sum, (w, k)| sum + F192::mixed_dot_product(w, k))
+}
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+/// Pack four extension elements using the backend's four-lane representation.
+pub fn pack4(values: [F192; 4]) -> F192x4 {
+    F192x4::from_ext_fn(|i| values[i])
+}
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+/// Extract four extension elements.
+pub fn unpack4(value: F192x4) -> [F192; 4] {
+    std::array::from_fn(|i| value.extract(i))
+}
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+/// Transpose a four-by-four matrix of extension values.
+pub fn transpose4(rows: [F192x4; 4]) -> [F192x4; 4] {
+    let rows = rows.map(unpack4);
+    std::array::from_fn(|i| pack4(std::array::from_fn(|j| rows[j][i])))
+}
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+/// Initialize four scalar output slots from a backend packing.
+pub fn store4(values: F192x4, out: &mut [MaybeUninit<F192>; 4]) {
+    out.write_copy_of_slice(&unpack4(values));
+}
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+/// Sum the four extension lanes.
+pub fn sum4(values: F192x4) -> F192 {
+    unpack4(values).into_iter().sum()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::PrimeCharacteristicRing;
+    type ReferenceVector = ([u64; 3], [u64; 3], [u64; 3], [u64; 3]);
+    const VECTORS: [ReferenceVector; 4] = [
+        (
+            [0x950e87d7f5606615, 0x2c61275c9e6b6cf8, 0x1f00bca0042db923],
+            [0x6dbca290a9eab706, 0x4c10a4fe30cffdda, 0xf26fff4cc4fd394d],
+            [0x888a0fc35abaf5f6, 0x68a84cbc132b0649, 0x9fdeaf613003cabe],
+            [0x8fba131ad5d46b8c, 0x1c170457f537a805, 0x3632cc098ca15135],
+        ),
+        (
+            [0x6814a2bc786a6d2d, 0xa26b351e6c8042c5, 0x54760e7fbc051c6c],
+            [0xd4c08880a5a4666d, 0x29610ae0eed8f1e7, 0xc34bd8e2fe5213e5],
+            [0x2ad322ebf2f9043b, 0x8ac800aa67154c80, 0x6d0f76651d3c4d0c],
+            [0xcf800ef2b83bb43a, 0xefe1c6cd064dd44c, 0x57dc5c7a60e2981b],
+        ),
+        (
+            [0x6c50afb6e9fb123d, 0x6f28d015a2aa0b9d, 0x4e385994ebac94af],
+            [0x194f9545adba52ce, 0xc675ce05588f882f, 0x57de8c051d4b7ef2],
+            [0xea6b9f9d23d4a1ff, 0xd82aa6058c431457, 0x5fd4d8fda2f1e74a],
+            [0x8f30fe43aa05b396, 0xe3593591eccd9efe, 0x7c5a1b128788c51f],
+        ),
+        (
+            [0xd998efd82733e933, 0x6df216c33f8f3201, 0x11dc6f3fcb57d5d8],
+            [0x8860a84722025e05, 0x33176469aa6ef630, 0x607507ebc5b864d7],
+            [0xfa3a0d66cdfbc1b3, 0xbd47bd3343aad307, 0xdaf50186477f6a77],
+            [0x69c8d8c24f416884, 0x4b597d648a162147, 0x95603a5d95c9512a],
+        ),
+    ];
+
+    proptest::proptest! {
+        #[test]
+        fn batched_products_keep_lane_order(a in proptest::prelude::any::<[[u64; 3]; 4]>(), b in proptest::prelude::any::<[[u64; 3]; 4]>()) {
+            let a = a.map(|x| F192::new(x.map(F64::new)));
+            let b = b.map(|x| F192::new(x.map(F64::new)));
+            proptest::prop_assert_eq!(mul4(a, b), std::array::from_fn(|i| a[i] * b[i]));
+        }
+    }
+
+    #[test]
+    fn upstream_fields_preserve_protocol_representation() {
+        for (a, b, product, square) in VECTORS {
+            let a = F192::new(a.map(F64::new));
+            let b = F192::new(b.map(F64::new));
+            assert_eq!((a * b).coefficients().map(F64::to_bits), product);
+            assert_eq!(a.square().coefficients().map(F64::to_bits), square);
+            let bytes: Vec<u8> = a
+                .coefficients()
+                .iter()
+                .flat_map(|x| x.to_bits().to_le_bytes())
+                .collect();
+            assert_eq!(bincode::serialize(&a).unwrap(), bytes);
+            assert_eq!(bincode::deserialize::<F192>(&bytes).unwrap(), a);
+            assert_eq!(mul4([a; 4], [b; 4]), [a * b; 4]);
+        }
+        for (a, b, c) in [
+            (0x01090913877ed8ed, 0x66ab35ac2768468f, 0x50c4519dc383744a),
+            (0xa7715ae18f12a3b5, 0x05743059f43fa4f5, 0xeb64cd9cd9cda6df),
+            (0xbd3efb4705e79ddd, 0x3aff618604de4ae0, 0xc3d7a95fa9cb59bb),
+        ] {
+            assert_eq!(F64::new(a) * F64::new(b), F64::new(c));
+        }
+        assert_eq!(std::mem::size_of::<F192>(), 24);
+        assert_eq!(std::mem::align_of::<F192>(), std::mem::align_of::<u64>());
+    }
+
+    #[test]
+    fn protocol_byte_embedding_preserves_products() {
+        for a in 0..=255 {
+            for b in 0..=255 {
+                let (a, b) = (F8::from_byte(a), F8::from_byte(b));
+                assert_eq!(phi8_192(a * b), phi8_192(a) * phi8_192(b));
+                assert_eq!(phi8_192(a + b), phi8_192(a) + phi8_192(b));
+            }
+        }
+    }
 
     #[test]
     fn parallel_mle_matches_folding() {
         for n in [0, 1, 2, 3, 4, 5, 9, 11, 12, 13, 16] {
             let table: Vec<_> = (0..1 << n)
-                .map(|i: u64| F64(i.wrapping_mul(0x9E37_79B9_7F4A_7C15)))
+                .map(|i: u64| F64::new(i.wrapping_mul(0x9E37_79B9_7F4A_7C15)))
                 .collect();
             // The plain fold, one variable at a time, is the reference.
             let fold = |point: &[F192]| match point.split_first() {
                 None => F192::from(table[0]),
                 Some((&p0, rest)) => fold_ladder(fold_low_k(&table, p0), rest),
             };
-            let point: Vec<_> = (0..n).map(|i| F192::new(17 + i, 231 + 3 * i, 97 + 7 * i)).collect();
+            let point: Vec<_> = (0..n)
+                .map(|i| F192::new([F64::new(17 + i), F64::new(231 + 3 * i), F64::new(97 + 7 * i)]))
+                .collect();
             assert_eq!(mle_eval(&table, &point), fold(&point));
             assert_eq!(mle_eval_par(&table, &point), fold(&point));
-            let point: Vec<_> = (0..n).map(|i| F192::from(F64(i % 2))).collect();
+            let point: Vec<_> = (0..n).map(|i| F192::from(F64::new(i % 2))).collect();
             assert_eq!(mle_eval(&table, &point), fold(&point));
             assert_eq!(mle_eval_par(&table, &point), fold(&point));
             // An odd length leaves a scalar tail after the batched folds.
-            let chi = point.first().copied().unwrap_or(F192::Y) + F192::Y;
+            let chi = point
+                .first()
+                .copied()
+                .unwrap_or(F192::new([F64::ZERO, F64::ONE, F64::ZERO]))
+                + F192::new([F64::ZERO, F64::ONE, F64::ZERO]);
             if n > 0 {
                 let half = table.len() / 2;
                 let want: Vec<_> = (0..half).map(|i| interp_k(table[i], table[i + half], chi)).collect();
@@ -587,55 +669,14 @@ mod tests {
         // over a range equals the dense one, whether it crosses a high block or not.
         //
         // Fixture state: 14 variables, split 12 low and 2 high, then 7 low and 7 high.
-        let r: Vec<F192> = (0..14u64).map(|i| F192::new(3 * i + 1, i + 7, 5 * i + 2)).collect();
+        let r: Vec<F192> = (0..14u64)
+            .map(|i| F192::new([F64::new(3 * i + 1), F64::new(i + 7), F64::new(5 * i + 2)]))
+            .collect();
         let dense = eq_table(&r);
         for split in [SplitEq::with_low_vars(&r, 12), SplitEq::with_high_vars(&r, 7)] {
             assert_eq!(split.low_log() + split.high_log(), r.len());
             for x in [0, 1, 127, 128, 4095, 4096, 4097, 12_345, (1 << 14) - 1] {
                 assert_eq!(split.at(x), dense[x], "x={x}");
-            }
-
-            // Terms of one coefficient: x itself, as a field element, scaled by the weight.
-            let value = |x: usize| F192::new(x as u64, 1, 0);
-            let terms = |x: usize, w: F192| {
-                let mut t = [F192Unreduced::ZERO; 4];
-                t[0] = w.mul_unreduced(value(x));
-                t
-            };
-            #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-            let terms4 = |_: &mut (), x: usize, w: F192x4| {
-                let mut t = [F192x4Unreduced::zero(); 4];
-                t[0] = w.mul_unreduced(F192x4::new(std::array::from_fn(|j| value(x + j))));
-                t
-            };
-            for range in [0..10, 4090..4100, 100..9000, 0..1 << 14] {
-                let want = range.clone().fold(F192::ZERO, |sum, x| sum + dense[x] * value(x));
-                assert_eq!(split.weighted_sum(range.clone(), terms)[0].reduce(), want, "{range:?}");
-                // Scalar terms only, lanes where they fit, and lanes stopped partway.
-                #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-                for wide_end in [0, range.end, range.start + 7] {
-                    let got = split.weighted_sum_lanes(range.clone(), wide_end, &mut (), |_, x, w| terms(x, w), terms4);
-                    assert_eq!(got[0].reduce(), want, "{range:?} {wide_end}");
-                }
-                #[cfg(any(
-                    all(target_arch = "aarch64", target_feature = "aes"),
-                    all(target_arch = "x86_64", target_feature = "pclmulqdq")
-                ))]
-                {
-                    let zero = F192x1Unreduced::zero();
-                    let got = split.weighted_sum_x1(range.clone(), |x, w| {
-                        let shifted = F192x1::new(value(x) + F192::Y);
-                        (
-                            w.mul_unreduced(F192x1::new(value(x))),
-                            zero,
-                            zero,
-                            w.mul_unreduced(shifted),
-                        )
-                    });
-                    let shifted = range.clone().fold(want, |sum, x| sum + dense[x] * F192::Y);
-                    assert_eq!([got[0].reduce(), got[3].reduce()], [want, shifted], "{range:?}");
-                    assert!(got[1..3].iter().all(|u| u.reduce() == F192::ZERO));
-                }
             }
         }
 

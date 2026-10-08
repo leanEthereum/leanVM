@@ -1,7 +1,9 @@
 //! State, bytecode, and memory tuples for the offline bus.
 
+use primitives::PrimeCharacteristicRing;
+
 use crate::leaf::Coord::{self, Col, Const};
-use primitives::field::F64;
+use primitives::F64;
 use std::iter::Enumerate;
 use std::vec::IntoIter;
 
@@ -25,7 +27,7 @@ impl Separator {
     /// The monomial field element assigned to this domain.
     pub(crate) const fn value(self) -> F64 {
         // Degrees 0..3 are below the field modulus, so the monomials need no reduction.
-        F64(1 << self as u8)
+        F64::new(1 << self as u8)
     }
 
     /// A constant bus coordinate identifying this domain.
@@ -116,7 +118,7 @@ impl Accesses<'_> {
         let (i, slot) = self.slots.next().expect("one slot per access");
         let at = match slot {
             0 => Col(self.ts),
-            _ => Coord::Sum(vec![Col(self.ts), Const(F64(u64::from(slot)))]),
+            _ => Coord::Sum(vec![Col(self.ts), Const(F64::new(u64::from(slot)))]),
         };
         self.bus.pair(
             vec![separator.clone(), address.clone(), at, new],
@@ -142,8 +144,8 @@ mod tests {
             (Separator::Bytecode, 4),
             (Separator::Registers, 8),
         ] {
-            assert_eq!(separator.value(), F64(expected));
-            assert!(matches!(separator.coordinate(), Const(value) if value == F64(expected)));
+            assert_eq!(separator.value(), F64::new(expected));
+            assert!(matches!(separator.coordinate(), Const(value) if value == F64::new(expected)));
         }
     }
 

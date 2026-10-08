@@ -5,6 +5,8 @@
 //!
 //! No row depends on a value: a circuit built from a proof equals the one built from its shape.
 
+use primitives::F64;
+
 use super::circuit::{Builder, Dw, Ew, Kw};
 use super::transcript::Transcript;
 use crate::leaf::{PublicColumn, PublicColumns};
@@ -12,7 +14,7 @@ use ::pcs::verifier::OpeningVerifier;
 use ::pcs::whir::{Stratum, strata};
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::TranscriptError;
-use primitives::field::F192;
+use primitives::F192;
 use recursion::FixedHints;
 use std::fmt::Debug;
 
@@ -78,8 +80,8 @@ impl Arith for Builder {
     /// `v + c2 (Y + Y^2) + c1 Y^2` for `v = c0 + c1 Y + c2 Y^2`.
     fn frobenius2(&mut self, a: Ew) -> Ew {
         let [_, c1, c2] = self.e_to_k(a);
-        let y_y2 = self.e_const(F192::new(0, 1, 1));
-        let y2 = self.e_const(F192::new(0, 0, 1));
+        let y_y2 = self.e_const(F192::new([F64::new(0), F64::new(1), F64::new(1)]));
+        let y2 = self.e_const(F192::new([F64::new(0), F64::new(0), F64::new(1)]));
         let u = self.mul_k_add(y_y2, c2, a);
         self.mul_k_add(y2, c1, u)
     }

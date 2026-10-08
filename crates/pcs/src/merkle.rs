@@ -26,7 +26,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 pub use fiat_shamir::merkle::{Hash, hash_leaf, hash_pair};
 use parallel::SendPtr;
-use primitives::field::F64;
+use primitives::F64;
 use primitives::hash::{BATCH, BLOCK_LEN, OUT_LEN, hash_many, hash_many_dyn_from_state, zero_prefix_state};
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
@@ -373,6 +373,7 @@ const fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::PrimeCharacteristicRing;
 
     impl MerkleBuilder {
         /// Absorb all rows, in parallel blocks.
@@ -471,7 +472,7 @@ mod tests {
             (16, 3, 5),
         ] {
             let data: Vec<F64> = (0..row_words * num_leaves)
-                .map(|i| F64(i.wrapping_mul(0x9E37_79B9_7F4A_7C15) as u64 | 1))
+                .map(|i| F64::new(i.wrapping_mul(0x9E37_79B9_7F4A_7C15) as u64 | 1))
                 .collect();
             let want = merkle_tree_sequential(
                 data.chunks(row_words).map(|row| {
@@ -493,7 +494,9 @@ mod tests {
     fn blocks_of_any_size_build_one_tree() {
         // Invariant: the tree does not depend on the block size the encoder picks.
         let (num_leaves, row_words) = (1usize << 12, 6usize);
-        let data: Vec<F64> = (0..row_words * num_leaves).map(|i| F64(i as u64 * 7 + 1)).collect();
+        let data: Vec<F64> = (0..row_words * num_leaves)
+            .map(|i| F64::new(i as u64 * 7 + 1))
+            .collect();
         let want = merkle_tree_padded_rows(&data, num_leaves, row_words, row_words);
         for log_block in [0usize, 3, 5, 6, 9, 12] {
             let builder = MerkleBuilder::new(num_leaves, row_words, row_words);

@@ -32,13 +32,15 @@
 //! §sec:air. Both sides take `n = max τ_t` from the announced heights, so there
 //! are no rounds in which no table has joined.
 
+use primitives::{Field, PrimeCharacteristicRing};
+
 use crate::PAR_THRESHOLD;
 use crate::colval::{ColVal, padded_width};
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter, VerifierState};
 use parallel::Chunks;
-use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{SplitEq, eq_table, poly_eval, shrink_eq_high};
+use primitives::{F64, F192};
 use std::ops::Deref;
 use thiserror::Error;
 
@@ -152,7 +154,7 @@ impl BitColumns {
     /// Panics if a value does not fit its width.
     pub fn packed(&self, cols: &[&[F64]], x: usize) -> u64 {
         let (packed, _) = self.fields.iter().fold((0, 0), |(packed, shift), f| {
-            let value = cols[f.col][x].0;
+            let value = cols[f.col][x].to_bits();
             assert!(value >> f.width == 0, "a bit column's value fits its width");
             (packed | value << shift, shift + f.width)
         });
@@ -182,7 +184,7 @@ impl BitColumns {
                     |h| {
                         let mut run = vec![F192::ZERO; values];
                         for (x, value) in col[h << low..(h + 1) << low].iter().enumerate() {
-                            run[value.0 as usize] += eq.low[x];
+                            run[value.to_bits() as usize] += eq.low[x];
                         }
                         run.iter_mut().for_each(|b| *b *= eq.high[h]);
                         run
@@ -250,7 +252,7 @@ impl BitColumns {
     fn combine<A: Arith>(a: &mut A, bits: &[A::E]) -> A::E {
         let zero = a.zero();
         (bits.iter().enumerate()).fold(zero, |acc, (b, &bit)| {
-            a.mul_const_add(bit, F192::from(F64(1 << b)), acc)
+            a.mul_const_add(bit, F192::from(F64::new(1 << b)), acc)
         })
     }
 }
@@ -297,7 +299,7 @@ fn table_message<T: ColVal, C: Deref<Target = [T]> + Sync>(
         return rows::table_message(cols, summand, half, eqr, at_one);
     }
     let width = padded_width(cols.len());
-    let block = |scratch: &mut Vec<T>, acc: &mut [F192Unreduced; 2], b: usize| {
+    let block = |scratch: &mut Vec<T>, acc: &mut [F192; 2], b: usize| {
         let (start, rows) = (b * BLOCK, BLOCK.min(half - b * BLOCK));
         let (lo, rest) = scratch.split_at_mut(BLOCK * width);
         let (hi, slope) = rest.split_at_mut(BLOCK * width);
@@ -335,28 +337,28 @@ const ROWS: bool = !cfg!(all(
 fn message_over_blocks<T: ColVal>(
     rows: usize,
     scratch_len: usize,
-    block: impl Fn(&mut Vec<T>, &mut [F192Unreduced; 2], usize) + Sync,
+    block: impl Fn(&mut Vec<T>, &mut [F192; 2], usize) + Sync,
 ) -> [F192; 2] {
     let blocks = rows.div_ceil(BLOCK);
-    let acc = if rows >= PAR_THRESHOLD {
+
+    if rows >= PAR_THRESHOLD {
         // The scratch is per worker, not per block: `map_reduce_with_state` creates it
         // once and threads it through every block that worker claims.
         parallel::map_reduce_with_state(
             blocks,
             || vec![T::ZERO; scratch_len],
-            || [F192Unreduced::ZERO; 2],
+            || [F192::ZERO; 2],
             block,
-            |a, b| [a[0] ^ b[0], a[1] ^ b[1]],
+            |a, b| [a[0] + b[0], a[1] + b[1]],
         )
     } else {
         let mut scratch = vec![T::ZERO; scratch_len];
-        let mut acc = [F192Unreduced::ZERO; 2];
+        let mut acc = [F192::ZERO; 2];
         for b in 0..blocks {
             block(&mut scratch, &mut acc, b);
         }
         acc
-    };
-    acc.map(F192Unreduced::reduce)
+    }
 }
 
 /// Add one block's summands: `lo` and `hi` hold its rows at stride `width`, padded
@@ -369,7 +371,7 @@ fn block_summand<T: ColVal>(
     hi: &[T],
     slope: &mut [T],
     at_one: bool,
-    acc: &mut [F192Unreduced; 2],
+    acc: &mut [F192; 2],
 ) {
     let width = slope.len();
     for (r, &e) in eqr.iter().enumerate() {
@@ -379,8 +381,8 @@ fn block_summand<T: ColVal>(
         }
         let endpoint = if at_one { h } else { l };
         // The quadratic coefficient depends only on the difference of the endpoint rows.
-        acc[0] ^= e.mul_unreduced(summand.eval(endpoint, false));
-        acc[1] ^= e.mul_unreduced(summand.eval(slope, true));
+        acc[0] += e * summand.eval(endpoint, false);
+        acc[1] += e * summand.eval(slope, true);
     }
 }
 
@@ -390,7 +392,7 @@ fn round_polynomial([endpoint, quadratic]: [F192; 2], zeta: F192, claim: F192, w
     let (p0, p1) = if zeta.is_zero() {
         (claim + waiting, endpoint)
     } else {
-        (endpoint, (claim + waiting + eq_z * endpoint) * zeta.inv())
+        (endpoint, (claim + waiting + eq_z * endpoint) * zeta.invert_or_zero())
     };
     let h2 = eq_z * quadratic + p0 + p1 + quadratic;
     [eq_z * p0, claim + h2 + quadratic, h2, quadratic]
@@ -751,9 +753,10 @@ pub fn verify<V: Verifier, S: Residual<V>>(
 mod tests {
     use super::*;
     use fiat_shamir::transcript::ProofTranscript;
-    use primitives::field::powers;
     use primitives::multilinear::{fold_high_inplace, fold_high_k, mle_eval};
+    use primitives::powers;
     use primitives::test_util::Rng;
+    use primitives::{Field, PrimeCharacteristicRing};
     use proptest::prelude::*;
 
     impl Final {
@@ -886,11 +889,14 @@ mod tests {
     fn round_coefficients_match_full_evaluations() {
         fn check<T: ColVal + Into<F192>>(cols: &[Vec<T>]) {
             let synth = Synth {
-                pows: powers(F192::new(3, 5, 7), 3),
+                pows: powers(F192::new([F64::new(3), F64::new(5), F64::new(7)]), 3),
                 attached: true,
                 constant: F192::ONE,
             };
-            let eq = eq_table(&[F192::new(11, 13, 17), F192::new(19, 23, 29)]);
+            let eq = eq_table(&[
+                F192::new([F64::new(11), F64::new(13), F64::new(17)]),
+                F192::new([F64::new(19), F64::new(23), F64::new(29)]),
+            ]);
             let full_eval = |r| {
                 (0..4).fold(F192::ZERO, |sum, i| {
                     let v: Vec<_> = cols
@@ -900,33 +906,51 @@ mod tests {
                     sum + eq[i] * synth.eval(&v, false)
                 })
             };
-            let waiting = F192::new(43, 47, 53);
-            for zeta in [F192::ZERO, F192::ONE, F192::new(59, 61, 67)] {
+            let waiting = F192::new([F64::new(43), F64::new(47), F64::new(53)]);
+            for zeta in [
+                F192::ZERO,
+                F192::ONE,
+                F192::new([F64::new(59), F64::new(61), F64::new(67)]),
+            ] {
                 let claim = (F192::ONE + zeta) * full_eval(F192::ZERO) + zeta * full_eval(F192::ONE) + waiting;
                 for rows in [false, true] {
                     let message = table_message(cols, &synth, 4, &eq, zeta.is_zero(), rows);
                     let h = round_polynomial(message, zeta, claim, waiting);
-                    for r in [F192::ZERO, F192::ONE, F192::new(31, 37, 41)] {
+                    for r in [
+                        F192::ZERO,
+                        F192::ONE,
+                        F192::new([F64::new(31), F64::new(37), F64::new(41)]),
+                    ] {
                         assert_eq!(poly_eval(&h, r), (F192::ONE + zeta + r) * full_eval(r) + r * waiting);
                     }
                 }
             }
         }
         let base: Vec<Vec<F64>> = (0..4)
-            .map(|j| (0..8).map(|i| F64(13 * i + 17 * j + 1)).collect())
+            .map(|j| (0..8).map(|i| F64::new(13 * i + 17 * j + 1)).collect())
             .collect();
         check(&base);
         let ext: Vec<Vec<F192>> = base
             .iter()
-            .map(|c| c.iter().map(|v| F192::new(v.0, 3 * v.0, 7 * v.0)).collect())
+            .map(|c| {
+                c.iter()
+                    .map(|v| {
+                        F192::new([
+                            F64::new(v.to_bits()),
+                            F64::new(3 * v.to_bits()),
+                            F64::new(7 * v.to_bits()),
+                        ])
+                    })
+                    .collect()
+            })
             .collect();
         check(&ext);
     }
 
     fn good_table(tau: usize, salt: u64) -> Vec<Vec<F64>> {
         let n = 1usize << tau;
-        let a: Vec<F64> = (0..n).map(|i| F64(i as u64 + salt)).collect();
-        let b: Vec<F64> = (0..n).map(|i| F64(3 * i as u64 + 1 + salt)).collect();
+        let a: Vec<F64> = (0..n).map(|i| F64::new(i as u64 + salt)).collect();
+        let b: Vec<F64> = (0..n).map(|i| F64::new(3 * i as u64 + 1 + salt)).collect();
         let ab: Vec<F64> = a.iter().zip(&b).map(|(&x, &y)| x * y).collect();
         vec![a.clone(), b, ab, a]
     }
@@ -954,9 +978,19 @@ mod tests {
     /// The eq point and `η` are the caller's; the tests fix them.
     fn xi_zeta(taus: &[usize]) -> (F192, Vec<F192>) {
         let n = taus.iter().copied().max().unwrap_or(0);
-        let xi = F192::new(0x9e37_79b9_7f4a_7c15, 0x1234_5678_9abc_def0, 7);
+        let xi = F192::new([
+            F64::new(0x9e37_79b9_7f4a_7c15),
+            F64::new(0x1234_5678_9abc_def0),
+            F64::new(7),
+        ]);
         let zeta = (0..n)
-            .map(|i| F192::new(i as u64 + 3, 0x5555 * (i as u64 + 1), i as u64 + 11))
+            .map(|i| {
+                F192::new([
+                    F64::new(i as u64 + 3),
+                    F64::new(0x5555 * (i as u64 + 1)),
+                    F64::new(i as u64 + 11),
+                ])
+            })
             .collect();
         (xi, zeta)
     }
@@ -996,11 +1030,11 @@ mod tests {
             // Base tables have zero extension coordinates; extension tables use the entire field.
             let columns: Vec<Vec<Vec<F192>>> = taus.iter().enumerate().map(|(t, &tau)| {
                 (0..4).map(|_| (0..1 << tau).map(|_| {
-                    if kinds >> t & 1 == 0 { F192::from(F64(rng.next_u64())) } else { rng.ext() }
+                    if kinds >> t & 1 == 0 { F192::from(F64::new(rng.next_u64())) } else { rng.ext() }
                 }).collect()).collect()
             }).collect();
             let base: Vec<Vec<Vec<F64>>> = columns.iter().map(|table| {
-                table.iter().map(|c| c.iter().map(|v| F64(v.c0)).collect()).collect()
+                table.iter().map(|c| c.iter().map(|v| F64::new(v.coefficients()[0].to_bits())).collect()).collect()
             }).collect();
             // Both oracles receive fresh extension buffers and identical borrowed base values.
             let views = || columns.iter().enumerate().map(|(t, c)| {
@@ -1026,7 +1060,11 @@ mod tests {
         // Fixture state: ragged tables include constant tables and tables joining after several rounds.
         for taus in [&[5, 3, 5, 0, 1][..], &[14, 12, 8, 1][..]] {
             let (xi, mut zeta) = xi_zeta(taus);
-            for endpoint in [F192::ZERO, F192::ONE, F192::new(7, 11, 13)] {
+            for endpoint in [
+                F192::ZERO,
+                F192::ONE,
+                F192::new([F64::new(7), F64::new(11), F64::new(13)]),
+            ] {
                 // Exercise recovery of either endpoint, including the zero equality coordinate.
                 zeta.fill(endpoint);
                 let airs = airs_for(taus, true, xi);
@@ -1039,7 +1077,17 @@ mod tests {
                                     Columns::E(
                                         table
                                             .iter()
-                                            .map(|c| c.iter().map(|&v| F192::new(v.0, 3 * v.0, 7 * v.0)).collect())
+                                            .map(|c| {
+                                                c.iter()
+                                                    .map(|&v| {
+                                                        F192::new([
+                                                            F64::new(v.to_bits()),
+                                                            F64::new(3 * v.to_bits()),
+                                                            F64::new(7 * v.to_bits()),
+                                                        ])
+                                                    })
+                                                    .collect()
+                                            })
                                             .collect(),
                                     )
                                 } else {
@@ -1048,7 +1096,9 @@ mod tests {
                             })
                             .collect()
                     };
-                    let sigma: Vec<_> = (0..taus.len()).map(|i| F192::new(i as u64 + 1, 3, 5)).collect();
+                    let sigma: Vec<_> = (0..taus.len())
+                        .map(|i| F192::new([F64::new(i as u64 + 1), F64::new(3), F64::new(5)]))
+                        .collect();
                     let mut reference = ProverState::from_label(b"fused-constraint-test");
                     let expected = prove_reference(&airs, views(), &zeta, &sigma, &mut reference);
                     let stream = reference.into_proof().stream;
@@ -1082,7 +1132,7 @@ mod tests {
                 bits: BitColumns::default(),
                 summand: Constant,
             }];
-            let zeta = vec![F192::new(3, 5, 7); tau];
+            let zeta = vec![F192::new([F64::new(3), F64::new(5), F64::new(7)]); tau];
             let mut ps = ProverState::from_label(b"constant-column-free-test");
             let claims = prove(&airs, vec![Columns::K(vec![])], &zeta, &[F192::ONE], &mut ps);
             let proof = ps.into_proof();
@@ -1197,7 +1247,7 @@ mod tests {
         // Fixture state: column 0 holds integers below 8, sent as its three bits' evaluations.
         let tau = 5;
         let mut cols = good_table(tau, 0);
-        cols[0] = (0..1u64 << tau).map(|i| F64(i * 5 % 8)).collect();
+        cols[0] = (0..1u64 << tau).map(|i| F64::new(i * 5 % 8)).collect();
         cols[2] = cols[0].iter().zip(&cols[1]).map(|(&a, &b)| a * b).collect();
         cols[3] = cols[0].clone();
         let (xi, zeta) = xi_zeta(&[tau]);
@@ -1212,7 +1262,7 @@ mod tests {
 
         // Each slice is its bit's evaluation at the table's point.
         for (b, &slice) in claims[0].slices.iter().enumerate() {
-            let bit: Vec<F64> = cols[0].iter().map(|v| F64(v.0 >> b & 1)).collect();
+            let bit: Vec<F64> = cols[0].iter().map(|v| F64::new(v.to_bits() >> b & 1)).collect();
             assert_eq!(slice, mle_eval(&bit, &claims[0].chi));
         }
         let verdict = |proof: &ProofTranscript| {

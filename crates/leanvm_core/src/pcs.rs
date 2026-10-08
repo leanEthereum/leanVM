@@ -14,7 +14,7 @@ use fiat_shamir::transcript::{ProverState, TranscriptError, Transmitter};
 use pcs::verifier::OpeningVerifier;
 use pcs::whir::config::ConfigError;
 use pcs::whir::{ProverConfig, ProverData, WhirError};
-use primitives::field::F64;
+use primitives::F64;
 use thiserror::Error;
 
 pub(crate) use pcs::ring_switch::{RingSwitch, SliceClaim};
@@ -243,7 +243,8 @@ mod tests {
     use crate::witness::StackShape;
     use fiat_shamir::transcript::ProverState;
     use pcs::whir::config::ConfigError;
-    use primitives::field::F64;
+    use primitives::F64;
+    use primitives::PrimeCharacteristicRing;
 
     #[test]
     fn only_supported_rates_can_be_constructed() {
