@@ -95,8 +95,19 @@ pub const PARAM_IV: [u32; 8] = {
 /// `last` sets the final-block flag.
 ///
 /// The last-node flag stays zero: nothing here uses the tree mode.
+///
+/// On x86-64 it is a register-allocated kernel, elsewhere the portable code.
 #[inline]
 pub fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
+    #[cfg(target_arch = "x86_64")]
+    x86::compress(h, m, t, last);
+    #[cfg(not(target_arch = "x86_64"))]
+    compress_portable(h, m, t, last);
+}
+
+/// The compression as written in RFC 7693, and the reference the x86-64 kernel is checked against.
+#[cfg_attr(target_arch = "x86_64", allow(dead_code))]
+fn compress_portable(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
     let mut v = [0u32; 16];
     v[..8].copy_from_slice(h);
     v[8..].copy_from_slice(&IV);
@@ -296,7 +307,7 @@ pub fn hash_many_dyn(data: &[u8], len: usize, out: &mut [u8]) {
 mod tests {
     use super::batch::Scalar8;
     use super::*;
-    use crate::test_util::test_vectors;
+    use crate::test_util::{Rng, test_vectors};
     #[cfg(target_arch = "aarch64")]
     use arm::Neon;
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
@@ -333,6 +344,25 @@ mod tests {
                         );
                     }
                 }
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(target_arch = "x86_64")]
+    fn compress_matches_portable() {
+        // Counters around each 32-bit carry, both flags, random states and blocks.
+        let mut rng = Rng::new(7);
+        let mut counters = vec![0, 64, (1 << 32) - 64, 1 << 32, u64::MAX - 63, u64::MAX];
+        counters.extend((0..64).map(|_| rng.next_u64()));
+        for t in counters {
+            for last in [false, true] {
+                let h: [u32; 8] = std::array::from_fn(|_| rng.next_u32());
+                let m: [u32; 16] = std::array::from_fn(|_| rng.next_u32());
+                let (mut got, mut want) = (h, h);
+                compress(&mut got, &m, t, last);
+                compress_portable(&mut want, &m, t, last);
+                assert_eq!(got, want, "t={t} last={last}");
             }
         }
     }
@@ -391,12 +421,14 @@ mod tests {
         fn check<S: Lanes32>(name: &str) {
             // One batch size per driver path:
             //
-            //     1, WIDTH - 1    scalar only
+            //     1               scalar only
+            //     WIDTH - 1       one padded group
             //     WIDTH           one group
-            //     WIDTH + 1       a group and a tail
-            //     last            two sets, a group and a tail
+            //     WIDTH + 1       a group and a scalar tail
+            //     WIDTH + 3       a group and an overlapping group
+            //     last            two sets, a group and a scalar tail
             let sets = 2 * S::GROUPS * S::WIDTH + S::WIDTH + 1;
-            for n in [1usize, S::WIDTH - 1, S::WIDTH, S::WIDTH + 1, sets] {
+            for n in [1usize, S::WIDTH - 1, S::WIDTH, S::WIDTH + 1, S::WIDTH + 3, sets] {
                 for len in [64usize, 128, 192, 1024] {
                     let data: Vec<u8> = (0..n * len).map(|i| ((i * 37 + 11) & 0xff) as u8).collect();
                     let mut got = vec![0u8; n * OUT_LEN];

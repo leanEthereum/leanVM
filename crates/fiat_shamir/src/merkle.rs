@@ -3,7 +3,7 @@
 
 use crate::transcript::TranscriptError;
 use primitives::field::{F64, F192};
-use primitives::hash::{BATCH, BLOCK_LEN, OUT_LEN, hash_many_dyn_from_state, zero_prefix_state};
+use primitives::hash::{BATCH, BLOCK_LEN, OUT_LEN, hash_many, hash_many_dyn_from_state, zero_prefix_state};
 use serde::{Deserialize, Serialize};
 use std::mem::MaybeUninit;
 
@@ -229,6 +229,13 @@ fn hash_words(image: &[F64]) -> Hash {
     hash_leaf(&bytes)
 }
 
+/// Hash each pair of children into its parent, all pairs together.
+fn hash_pairs(pairs: &[[Hash; 2]]) -> Vec<Hash> {
+    let mut parents = vec![[0u8; 32]; pairs.len()];
+    hash_many::<{ 2 * OUT_LEN }>(pairs.as_flattened().as_flattened(), parents.as_flattened_mut());
+    parents
+}
+
 /// Query positions with duplicates removed, ascending: the order a phase stores
 /// its rows in, and the order the octopus is built and checked against.
 fn sorted_unique(queries: &[usize]) -> Vec<usize> {
@@ -353,6 +360,7 @@ impl PrunedMerklePaths {
         for _ in 0..height {
             let mut level = Vec::with_capacity(2 * nodes.len());
             let mut parents = Vec::with_capacity(nodes.len());
+            let mut pairs = Vec::with_capacity(nodes.len());
             let mut i = 0;
             while i < nodes.len() {
                 let idx = nodes[i].0;
@@ -364,13 +372,14 @@ impl PrunedMerklePaths {
                 } else {
                     (*supplied.next()?, nodes[i].1)
                 };
-                parents.push((idx >> 1, hash_pair(&left, &right)));
+                parents.push(idx >> 1);
+                pairs.push([left, right]);
                 level.push((idx & !1, left));
                 level.push((idx | 1, right));
                 i += if paired { 2 } else { 1 };
             }
             known.push(level);
-            nodes = parents;
+            nodes = parents.into_iter().zip(hash_pairs(&pairs)).collect();
         }
         // The last fold leaves exactly the root, and nothing may be left over.
         if supplied.next().is_some() || nodes[0].1 != *root {

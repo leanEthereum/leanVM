@@ -1,7 +1,10 @@
-//! The x86-64 backends: the AVX2 and AVX-512 batches.
+//! The x86-64 backends: the scalar compression, and the AVX2 and AVX-512 batches.
 
+mod gpr;
 #[cfg(target_feature = "avx512f")]
 mod zmm;
+
+pub(super) use gpr::compress;
 
 #[cfg(target_feature = "avx2")]
 use super::batch::Lanes32;
@@ -26,6 +29,8 @@ pub(super) struct Avx2(__m256i);
 #[cfg(target_feature = "avx2")]
 impl Lanes32 for Avx2 {
     const WIDTH: usize = 8;
+    // One group waits on its G chains, and a third would spill the 16 registers.
+    const GROUPS: usize = 2;
 
     #[inline(always)]
     unsafe fn load(p: *const u32) -> Self {
