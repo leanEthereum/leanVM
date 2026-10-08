@@ -3,14 +3,13 @@
 use super::deferred::MalformedClaim;
 use crate::constraints::ConstraintError;
 use crate::leaf::BusError;
-use crate::pcs;
 use crate::pcs::Rate;
 use crate::rec::RecError;
 use crate::rv::Trap;
 use crate::tables::Part;
-use ::pcs::whir::WhirError;
 use fiat_shamir::transcript::TranscriptError;
 use flock::FlockError;
+use pcs::whir::WhirError;
 use thiserror::Error;
 
 /// Why a run has no proof.
@@ -63,7 +62,7 @@ pub enum CpuError {
     #[error("the announced final clock is not a live clock")]
     FinalClock,
     /// The announced heights stack to a witness the commitment does not take.
-    #[error("the witness has 2^{mu} words, outside 2^{min}..=2^{max}", min = pcs::MIN_MU, max = pcs::MAX_MU)]
+    #[error("the witness has 2^{mu} words, outside 2^{min}..=2^{max}", min = crate::pcs::MIN_MU, max = crate::pcs::MAX_MU)]
     WitnessSize {
         /// The stack's base-two logarithm of words.
         mu: usize,

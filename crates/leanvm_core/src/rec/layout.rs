@@ -6,8 +6,8 @@ use super::table::{HashFlock, PerRecTable, Table};
 use crate::constraints::{Air, BitColumns, Claims};
 use crate::leaf::ColumnClaim;
 use crate::pcs::StackClaim;
+use crate::witness;
 use crate::witness::{Placement, Source, StackShape, Window};
-use crate::{pcs, witness};
 use std::ops::Range;
 
 /// Each table's height and every column's place in the stack.
@@ -61,7 +61,7 @@ impl RecLayout {
             return Err(RecError::TooManyRows { table, tau });
         }
         let (placements, shape) = witness::placements_of(&Self::sources(&taus));
-        if shape.mu > pcs::MAX_MU {
+        if shape.mu > crate::pcs::MAX_MU {
             return Err(RecError::TooLong { mu: shape.mu });
         }
         Ok(Self {

@@ -16,7 +16,7 @@ use crate::constraints::{Claims, Columns};
 use crate::pcs::{Committed, Rate};
 use crate::rv::{ElfError, Guest, Machine, ProgramError, Region, RiscvProgram};
 use crate::tables::{ClassTable, Clock, PerTable, TableId};
-use crate::{constraints, leaf, pcs};
+use crate::{constraints, leaf};
 use fiat_shamir::arith::Native;
 use fiat_shamir::transcript::{Challenger, ProverState, RawProof, Transmitter, VerifierState};
 use flock::reduction;
@@ -421,7 +421,7 @@ impl Program {
     pub(super) fn committed_size(&self, row_counts: PerTable<usize>) -> Result<usize, ProveError> {
         let taus = PerTable::from_fn(|t: TableId| crate::log2_strict_usize(t.spec().provable_height(row_counts[t])));
         let (placements, shape) = Sizes::of(&self.rv).stack(&taus);
-        if shape.mu > pcs::MAX_MU {
+        if shape.mu > crate::pcs::MAX_MU {
             return Err(ProveError::TooLong);
         }
         Ok(crate::witness::committed_len(&placements))
@@ -730,7 +730,7 @@ mod tests {
         assert_eq!(program.run(&mut m, &mut counter), Err(ProveError::TooLong));
         let counts = counter.row_counts();
         let rows: usize = counts.values().sum();
-        assert!(rows < 1 << pcs::MAX_MU, "{rows} rows counted");
+        assert!(rows < 1 << crate::pcs::MAX_MU, "{rows} rows counted");
         assert_eq!(program.committed_size(counts), Err(ProveError::TooLong));
 
         // A period earlier, no table had more than these rows, and they fit.

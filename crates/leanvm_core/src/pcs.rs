@@ -22,6 +22,11 @@ pub(crate) use pcs::stack_open::StackClaim;
 pub(crate) use pcs::whir::INITIAL_FOLDING_FACTOR as LOG_BATCH;
 pub use pcs::whir::{MAX_LOG_N as MAX_MU, MIN_LOG_N as MIN_MU};
 
+/// The proof's soundness target, in bits.
+///
+/// WHIR parameters and the bus soundness check share this target.
+pub const SECURITY_BITS: u32 = pcs::whir::SECURITY_BITS as u32;
+
 /// A supported commitment rate, represented by the base-two logarithm of its inverse.
 ///
 /// A lower rate trades more prover work for a smaller proof.

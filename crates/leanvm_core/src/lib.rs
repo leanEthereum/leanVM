@@ -75,7 +75,7 @@ mod rv;
 mod tables;
 mod witness;
 
-pub use self::pcs::{InvalidRate, Rate};
+pub use crate::pcs::{InvalidRate, Rate, SECURITY_BITS};
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
 #[doc(hidden)]
 pub use rec::tree::{
@@ -85,7 +85,7 @@ pub use rec::tree::{
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 
 #[doc(hidden)]
-pub use self::pcs::{MAX_MU, MIN_MU};
+pub use crate::pcs::{MAX_MU, MIN_MU};
 #[doc(hidden)]
 pub use class_flock::{FlockId, MIN_CUBE_LOG, N_FLOCKS};
 #[doc(hidden)]
@@ -98,11 +98,6 @@ pub use leaf::{BusError, N_TUPLE_BITS};
 pub use rv::{Alu, Class, Guest, Hash, Machine, Reg, RegisterFile, Syscall};
 #[doc(hidden)]
 pub use tables::{BAD_SLOT, Clock, EXIT_SLOT, Fill, N_TABLES, PerTable, TableId};
-
-/// The proof's soundness target, in bits.
-///
-/// WHIR parameters and the bus soundness check share this target.
-pub const SECURITY_BITS: u32 = ::pcs::whir::SECURITY_BITS as u32;
 
 /// Prepare the process for proving: spawn the worker pool up front.
 ///

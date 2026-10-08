@@ -8,10 +8,10 @@
 use super::circuit::{Builder, Dw, Ew, Kw};
 use super::transcript::Transcript;
 use crate::leaf::{PublicColumn, PublicColumns};
-use ::pcs::verifier::OpeningVerifier;
-use ::pcs::whir::{Stratum, strata};
 use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::TranscriptError;
+use pcs::verifier::OpeningVerifier;
+use pcs::whir::{Stratum, strata};
 use primitives::field::F192;
 use recursion::FixedHints;
 use std::fmt::Debug;

@@ -16,7 +16,7 @@ use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
 use crate::tables::{ClassTable, Clock, N_TABLES, PerTable, Separator, TableId};
 use crate::witness::{Placement, Source, StackShape, Window};
-use crate::{class_flock, pcs, witness};
+use crate::{class_flock, witness};
 use Coord::{Col, Const, IntIndex, Sparse};
 use fiat_shamir::MAX_GRINDING_BITS;
 use fiat_shamir::arith::Arith;
@@ -805,7 +805,7 @@ impl Layout {
         Self::check_heights(&taus)?;
         // The caps bound each height alone; the stacked size they imply is checked here.
         let layout = Self::new(p, taus, 0);
-        if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&layout.shape.mu) {
+        if !(crate::pcs::MIN_MU..=crate::pcs::MAX_MU).contains(&layout.shape.mu) {
             return Err(CpuError::WitnessSize { mu: layout.shape.mu });
         }
         Ok(layout)

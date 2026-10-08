@@ -81,7 +81,7 @@ pub const N_TUPLE_BITS: usize = 4;
 ///
 /// The fingerprint and the GKR challenges are drawn after the root, which binds the prover only to a list of polynomials.
 /// Each challenge must hold against every member, so its error is multiplied by the list size (§sec:e2e-ledger).
-pub(super) const BUS_SOUNDNESS_BITS: u32 = crate::SECURITY_BITS + ::pcs::whir::L0_LIST_BITS as u32;
+pub(super) const BUS_SOUNDNESS_BITS: u32 = crate::SECURITY_BITS + pcs::whir::L0_LIST_BITS as u32;
 
 /// Conservative sum of the degree bounds for every random-challenge failure in
 /// the bus argument. A side's product has at most `factors` linear factors, counted

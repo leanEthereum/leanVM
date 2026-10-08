@@ -10,9 +10,9 @@ use crate::leaf::PublicColumns;
 use crate::pcs::{Commitment, Rate, StackClaim};
 use crate::tables::{ClassTable, N_TABLES};
 use crate::{constraints, leaf};
-use ::pcs::verifier::OpeningVerifier;
 use fiat_shamir::arith::Verifier;
 use flock::reduction;
+use pcs::verifier::OpeningVerifier;
 
 /// What the bus and the table sumcheck leave to the rest of the verifier.
 pub(crate) struct TableReduction<E> {
