@@ -48,6 +48,13 @@
 //! The sweep is fixed at `K_SKIP = 6` (ell=64, n_chunks=8, N_INNER=7).
 
 use primitives::PrimeCharacteristicRing;
+#[cfg(target_arch = "aarch64")]
+use primitives::{ExtensionField, Field, PackedFieldExtension, PackedValue};
+
+#[cfg(target_arch = "aarch64")]
+type ConvertPacking = <F192 as ExtensionField<F64>>::ExtensionPacking;
+#[cfg(target_arch = "aarch64")]
+const CONVERT_WIDTH: usize = <<F64 as Field>::Packing as PackedValue>::WIDTH;
 
 use super::{K_SKIP, N_INNER, PaddingSpec};
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
@@ -291,8 +298,14 @@ fn shift_reduce_inner_ab_scalar(
     target_feature = "avx512vbmi"
 )))]
 struct Convert {
+    #[cfg(not(target_arch = "aarch64"))]
     ab: [F192; ELL],
+    #[cfg(not(target_arch = "aarch64"))]
     c: [F192; ELL],
+    #[cfg(target_arch = "aarch64")]
+    ab: [ConvertPacking; ELL / CONVERT_WIDTH],
+    #[cfg(target_arch = "aarch64")]
+    c: [ConvertPacking; ELL / CONVERT_WIDTH],
 }
 
 #[cfg(not(all(
@@ -304,8 +317,14 @@ struct Convert {
 impl Convert {
     const fn new() -> Self {
         Self {
+            #[cfg(not(target_arch = "aarch64"))]
             ab: [F192::ZERO; ELL],
+            #[cfg(target_arch = "aarch64")]
+            ab: [ConvertPacking::ZERO; ELL / CONVERT_WIDTH],
+            #[cfg(not(target_arch = "aarch64"))]
             c: [F192::ZERO; ELL],
+            #[cfg(target_arch = "aarch64")]
+            c: [ConvertPacking::ZERO; ELL / CONVERT_WIDTH],
         }
     }
 
@@ -332,18 +351,18 @@ impl Convert {
                     converted_c[lane] += cf_c;
                 }
             }
-            use primitives::{ExtensionField, Field, PackedFieldExtension, PackedValue};
-            type Packing = <F192 as ExtensionField<F64>>::ExtensionPacking;
-            const WIDTH: usize = <<F64 as Field>::Packing as PackedValue>::WIDTH;
-            let weight = Packing::from(eq_lo);
-            for start in (0..ELL).step_by(WIDTH) {
-                let range = start..start + WIDTH;
-                let ab = Packing::from_ext_slice(&converted_ab[range.clone()]) * weight;
-                let c = Packing::from_ext_slice(&converted_c[range.clone()]) * weight;
-                let ab = Packing::from_ext_slice(&self.ab[range.clone()]) + ab;
-                let c = Packing::from_ext_slice(&self.c[range.clone()]) + c;
-                ab.to_ext_slice(&mut self.ab[range.clone()]);
-                c.to_ext_slice(&mut self.c[range]);
+            // Keep the history in Plonky3's coordinate packing across windows:
+            // only the newly converted rows need gathering before their products.
+            let weight = ConvertPacking::from(eq_lo);
+            for (index, (ab, c)) in converted_ab
+                .as_chunks::<CONVERT_WIDTH>()
+                .0
+                .iter()
+                .zip(converted_c.as_chunks::<CONVERT_WIDTH>().0.iter())
+                .enumerate()
+            {
+                self.ab[index] += <ConvertPacking as PackedFieldExtension<F64, F192>>::from_ext_slice(ab) * weight;
+                self.c[index] += <ConvertPacking as PackedFieldExtension<F64, F192>>::from_ext_slice(c) * weight;
             }
         }
         #[cfg(not(target_arch = "aarch64"))]
@@ -378,8 +397,26 @@ impl Convert {
         }
     }
 
-    const fn values(&self) -> ([F192; ELL], [F192; ELL]) {
-        (self.ab, self.c)
+    fn values(&self) -> ([F192; ELL], [F192; ELL]) {
+        #[cfg(target_arch = "aarch64")]
+        {
+            let (mut ab, mut c) = ([F192::ZERO; ELL], [F192::ZERO; ELL]);
+            for ((out_ab, out_c), (in_ab, in_c)) in ab
+                .as_chunks_mut::<CONVERT_WIDTH>()
+                .0
+                .iter_mut()
+                .zip(c.as_chunks_mut::<CONVERT_WIDTH>().0.iter_mut())
+                .zip(self.ab.iter().zip(&self.c))
+            {
+                <ConvertPacking as PackedFieldExtension<F64, F192>>::to_ext_slice(in_ab, out_ab);
+                <ConvertPacking as PackedFieldExtension<F64, F192>>::to_ext_slice(in_c, out_c);
+            }
+            (ab, c)
+        }
+        #[cfg(not(target_arch = "aarch64"))]
+        {
+            (self.ab, self.c)
+        }
     }
 }
 
