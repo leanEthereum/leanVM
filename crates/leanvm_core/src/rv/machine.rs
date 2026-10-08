@@ -7,7 +7,7 @@
 //! A run that faults stops with a trap, and no proof can follow it.
 
 use super::entry::{Class, Entry};
-use super::program::RiscvProgram;
+use super::program::{Marker, RiscvProgram};
 use super::region::Region;
 use super::register::{Reg, RegisterFile, Syscall};
 use super::semantics::{BlockAccess, Ext, Hash, Limb, Load, WordAccess};
@@ -45,6 +45,20 @@ pub enum Trap {
         /// The system call number found.
         syscall: u64,
     },
+    /// A hint's code ran [`Machine::HINT_STEPS`] steps without reaching its `hint.exit`.
+    #[error("the hint at pc {pc:#x} runs too long")]
+    HintTooLong {
+        /// The address of its `hint.enter`.
+        pc: u64,
+    },
+    /// A hint writes a word that is no aligned word of the advice, or one the run has already accessed or hinted.
+    #[error("the hint at pc {pc:#x} writes {address:#x}, which is no advice word the run has left untouched")]
+    HintDestination {
+        /// The address of its `hint.enter`.
+        pc: u64,
+        /// The word's address.
+        address: u64,
+    },
 }
 
 /// The interpreter's state: the program, the registers, memory and `pc`.
@@ -60,9 +74,18 @@ pub struct Machine<'a> {
     pc: u64,
     /// Whether the last step jumped to the halt slot.
     exited: bool,
+    /// While a hint's code runs, unproven: every memory word it wrote and what that word held, to rewind.
+    undo: Option<Vec<(usize, u64)>>,
+    /// The advice words the proof has accessed or a hint has written, one bit each, which no hint may write.
+    touched: Vec<u64>,
+    /// Every advice word a hint wrote: its index in the advice, and its value.
+    hints: Vec<(usize, u64)>,
 }
 
 impl<'a> Machine<'a> {
+    /// The steps a hint's code may run before it is taken to never end.
+    pub const HINT_STEPS: u64 = 1 << 32;
+
     /// The machine about to run `program`, the advice's first words being `advice`.
     ///
     /// # Panics
@@ -75,6 +98,9 @@ impl<'a> Machine<'a> {
             memory: Memory::new(program, advice),
             pc: program.entry_pc(),
             exited: false,
+            undo: None,
+            touched: vec![0; (1usize << program.log_advice()).div_ceil(64)],
+            hints: Vec::new(),
         }
     }
 
@@ -98,6 +124,14 @@ impl<'a> Machine<'a> {
         self.pc
     }
 
+    /// Every advice word a hint wrote, in order: its index in the advice, and its value.
+    ///
+    /// The proof's advice is the one the run started on with these words in place: no step before a hint accessed its
+    /// words, so the run is a run of the decoded program on that advice.
+    pub fn hints(&self) -> &[(usize, u64)] {
+        &self.hints
+    }
+
     /// Whether the run has reached the halt slot by an `ecall`.
     pub const fn halted(&self) -> bool {
         self.exited && self.pc == self.program.halt_pc()
@@ -115,6 +149,11 @@ impl<'a> Machine<'a> {
         let entry = self.program.entries()[index];
         if entry.class == Class::Illegal {
             return Err(Trap::Illegal { pc });
+        }
+
+        // A hint's code runs first, unproven, then the opening runs as the proof sees it.
+        if self.program.marker(index) == Some(Marker::Enter) {
+            self.hint(pc, entry.ad)?;
         }
 
         // Read both registers; an instruction with fewer reads x0.
@@ -142,11 +181,21 @@ impl<'a> Machine<'a> {
             _ => None,
         };
 
+        // The proof sees these words from now on, so no hint may write them.
+        if self.undo.is_none() {
+            for &cell in cell.iter().chain(block.iter().flatten()) {
+                self.touch(cell);
+            }
+            for &cell in limbs.iter().flat_map(|(_, cells)| cells.iter().flatten()) {
+                self.touch(cell);
+            }
+        }
+
         // Compute, then apply the memory access.
         let outcome = entry.evaluate(pc, v1, v2, cell.map_or(0, |cell| self.memory.get(cell)));
         let memory = match (cell, outcome.access, block, limbs) {
             (Some(cell), Some(access), _, _) => {
-                self.memory.set(cell, access.new);
+                self.write(cell, access.new);
                 MemoryAccess::Word(access)
             }
             (_, _, Some(cells), _) => MemoryAccess::Block(Box::new(self.compress(&cells, v2, entry.flags))),
@@ -241,6 +290,92 @@ impl<'a> Machine<'a> {
         self.memory.cell(address).ok_or(Trap::Unmapped { pc, address })
     }
 
+    /// Run the hint `hint.enter` opens at `pc`, `rd` its register: the code after it with `rd = 1`, unproven, to its
+    /// `hint.exit`. Then rewind every register, word and `pc`, and write the words the hint named to the advice.
+    ///
+    /// A hint inside a hint's code is run the same way, its words rewound with the outer code's.
+    fn hint(&mut self, pc: u64, rd: u8) -> Result<(), Trap> {
+        let (registers, exited) = (self.registers.clone(), self.exited);
+        let outer = self.undo.replace(Vec::new());
+        self.registers.replace(rd, 1);
+        self.pc = pc.wrapping_add(4);
+        let ended = self.run_hint(pc);
+
+        // Rewind, the last write first.
+        let undo = std::mem::replace(&mut self.undo, outer).expect("a hint's code keeps its writes");
+        for &(cell, old) in undo.iter().rev() {
+            self.memory.set(cell, old);
+        }
+        (self.registers, self.exited, self.pc) = (registers, exited, pc);
+
+        // Every word goes to an advice word no step and no hint has touched, all checked before any is written.
+        let (address, words) = ended?;
+        let ram = 1 << self.memory.log_ram;
+        let cells = (0..words.len() as u64)
+            .map(|k| {
+                let to = address.wrapping_add(8 * k);
+                let fault = Trap::HintDestination { pc, address: to };
+                let cell = (to.is_multiple_of(8).then(|| self.memory.cell(to)).flatten())
+                    .filter(|&cell| cell >= ram)
+                    .ok_or(fault)?;
+                if self.undo.is_none() && self.is_touched(cell - ram) {
+                    return Err(fault);
+                }
+                Ok(cell)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        for (cell, word) in cells.into_iter().zip(words) {
+            if self.undo.is_none() {
+                self.touch(cell);
+                self.hints.push((cell - ram, word));
+            }
+            self.write(cell, word);
+        }
+        Ok(())
+    }
+
+    /// Step a hint's code to its `hint.exit`, and return where its words go and what they are.
+    fn run_hint(&mut self, pc: u64) -> Result<(u64, Vec<u64>), Trap> {
+        for _ in 0..Self::HINT_STEPS {
+            let at = self.pc;
+            if let Some(Marker::Exit { rd, rs1, rs2 }) = self.program.index_of(at).and_then(|i| self.program.marker(i))
+            {
+                let [to, from, n] = [rd, rs1, rs2].map(|r| self.registers.read(r));
+                if n > 1 << self.memory.log_advice {
+                    return Err(Trap::HintDestination { pc, address: to });
+                }
+                let words = (0..n)
+                    .map(|k| Ok(self.memory.get(self.cell(at, from.wrapping_add(8 * k), 3)?)))
+                    .collect::<Result<_, Trap>>()?;
+                return Ok((to, words));
+            }
+            self.step()?;
+        }
+        Err(Trap::HintTooLong { pc })
+    }
+
+    /// Write `value` to `cell`, kept to rewind while a hint's code runs.
+    #[inline(always)]
+    fn write(&mut self, cell: usize, value: u64) {
+        if let Some(undo) = &mut self.undo {
+            undo.push((cell, self.memory.get(cell)));
+        }
+        self.memory.set(cell, value);
+    }
+
+    /// Mark `cell` as touched if it is an advice word.
+    #[inline(always)]
+    fn touch(&mut self, cell: usize) {
+        if let Some(i) = cell.checked_sub(1 << self.memory.log_ram) {
+            self.touched[i / 64] |= 1 << (i % 64);
+        }
+    }
+
+    /// Whether advice word `i` is touched.
+    fn is_touched(&self, i: usize) -> bool {
+        self.touched[i / 64] >> (i % 64) & 1 == 1
+    }
+
     /// The cells of the hash block at `base`, word `k` at `base ^ 8k`.
     ///
     /// The base must be a word address, and every word of the block mapped.
@@ -273,7 +408,7 @@ impl<'a> Machine<'a> {
             limbs: cells.map(|cell| cell.map_or(0, |cell| self.memory.get(cell))),
         };
         for (cell, word) in cells[6..].iter().zip(instance.eval()) {
-            self.memory.set(cell.expect("c is in memory"), word);
+            self.write(cell.expect("c is in memory"), word);
         }
         instance
     }
@@ -284,7 +419,7 @@ impl<'a> Machine<'a> {
         let access = BlockAccess::from(Hash { flags, t, block });
         let result = &cells[Hash::OUT as usize / 8..][..4];
         for (&cell, &word) in result.iter().zip(&access.out) {
-            self.memory.set(cell, word);
+            self.write(cell, word);
         }
         access
     }
@@ -1024,5 +1159,159 @@ mod tests {
                 prop_assert_eq!(ram, mem, "{:#010x}: RAM", word);
             }
         }
+    }
+
+    /// The hint fixtures' advice: 2^3 words.
+    const LOG_ADVICE: usize = 3;
+
+    /// The last advice word, where the hint fixtures' hints go.
+    const TOP: u64 = Region::ADVICE.base() + 8 * ((1 << LOG_ADVICE) - 1);
+
+    /// `a1 = sqrt(x)` by a hint the program checks: the hint's code counts up to the root and hands it over XORed
+    /// with `tamper`, then the proven code squares it back and falls off its text unless that is `x`.
+    fn root_by_hint(x: u64, tamper: u64) -> Vec<u32> {
+        Asm::new()
+            .li(Reg::A0, x)
+            .li(Reg::T1, TOP)
+            .hint_enter(Reg::T0)
+            .branch(Beq, Reg::T0, Reg::ZERO, "check")
+            .li(Reg::T2, 0)
+            .label("count")
+            .i(Addi, Reg::T5, Reg::T2, 1)
+            .r(Mul, Reg::T6, Reg::T5, Reg::T5)
+            .branch(Bltu, Reg::A0, Reg::T6, "found")
+            .i(Addi, Reg::T2, Reg::T5, 0)
+            .jal(Reg::ZERO, "count")
+            .label("found")
+            .li(Reg::T3, tamper)
+            .r(Xor, Reg::T2, Reg::T2, Reg::T3)
+            .li(Reg::T3, Region::RAM.base())
+            .store(Sd, Reg::T2, 0, Reg::T3)
+            .li(Reg::T4, 1)
+            .hint_exit(Reg::T1, Reg::T3, Reg::T4)
+            .label("check")
+            .load(Ld, Reg::A1, 0, Reg::T1)
+            .r(Mul, Reg::T2, Reg::A1, Reg::A1)
+            .branch(Bne, Reg::T2, Reg::A0, "fail")
+            .exit()
+            .label("fail")
+            .finish()
+    }
+
+    /// `text` as the proof decodes it: each `hint.enter rd` the `addi rd, x0, 0` it decodes to, each `hint.exit` an
+    /// illegal word.
+    fn without_markers(text: &[u32]) -> Vec<u32> {
+        let plain = |word: u32| match Instruction::from_bits(word).decode() {
+            Some(Op::HintEnter { rd }) => Op::Imm {
+                op: Addi,
+                rd,
+                rs1: Reg::ZERO,
+                imm: 0,
+            }
+            .encode()
+            .bits(),
+            Some(Op::HintExit { .. }) => 0,
+            _ => word,
+        };
+        text.iter().map(|&word| plain(word)).collect()
+    }
+
+    #[test]
+    fn a_hinted_run_is_a_run_of_the_decoded_program_on_its_advice() {
+        // Invariant: the hint's words land in advice no step accessed before them, and everything else its code did
+        // is rewound, so the run is the decoded program's on the advice it started from with those words in place.
+        // That is the run the proof is of, whatever the hint held.
+        let text = root_by_hint(49, 0);
+        let hinted = RiscvProgram::new(&text, Region::TEXT.base(), vec![], LOG_RAM, LOG_ADVICE).unwrap();
+        let mut m = Machine::new(&hinted, &[]);
+        assert_eq!(m.run(), Ok([49, 7, 0, 0]));
+        assert_eq!(m.hints(), [(7, 7)]);
+        assert_eq!(m.memory().ram()[0], 0, "the hint's store is rewound");
+
+        let plain = RiscvProgram::new(
+            &without_markers(&text),
+            Region::TEXT.base(),
+            vec![],
+            LOG_RAM,
+            LOG_ADVICE,
+        )
+        .unwrap();
+        assert_eq!(plain.entries(), hinted.entries());
+        let mut replay = Machine::new(&plain, &[0, 0, 0, 0, 0, 0, 0, 7]);
+        assert_eq!(replay.run(), Ok([49, 7, 0, 0]));
+        assert_eq!(replay.registers(), m.registers());
+        assert_eq!(replay.memory().ram(), m.memory().ram());
+        assert_eq!(replay.memory().advice(), m.memory().advice());
+
+        // A wrong root fails the program's own check: the run traps where it falls off its text.
+        let tampered =
+            RiscvProgram::new(&root_by_hint(49, 1), Region::TEXT.base(), vec![], LOG_RAM, LOG_ADVICE).unwrap();
+        let end = Region::TEXT.address(text.len());
+        assert_eq!(Machine::new(&tampered, &[]).run(), Err(Trap::Illegal { pc: end }));
+    }
+
+    #[test]
+    fn a_hint_writes_only_advice_words_the_run_has_not_touched() {
+        // Fixture: a hint of one word to `to`, read by the proven code after it, and before it if `seen`.
+        let run = |to: u64, seen: bool| {
+            let mut a = Asm::new();
+            a.li(Reg::T1, to);
+            if seen {
+                a.load(Ld, Reg::A1, 0, Reg::T1);
+            }
+            a.hint_enter(Reg::T0)
+                .branch(Beq, Reg::T0, Reg::ZERO, "done")
+                .li(Reg::T3, Region::RAM.base())
+                .li(Reg::T4, 1)
+                .hint_exit(Reg::T1, Reg::T3, Reg::T4)
+                .label("done")
+                .exit();
+            let text = a.finish();
+            let program = RiscvProgram::new(&text, Region::TEXT.base(), vec![9], LOG_RAM, LOG_ADVICE).unwrap();
+            let enter = Region::TEXT.address(text.iter().position(|&w| w & 0x7f == 0x5b).unwrap());
+            (Machine::new(&program, &[]).run(), enter)
+        };
+        assert!(run(TOP, false).0.is_ok());
+        for (to, seen) in [
+            (TOP, true),
+            (TOP - 4, false),
+            (Region::RAM.base(), false),
+            (TOP + 8, false),
+        ] {
+            let (ran, pc) = run(to, seen);
+            assert_eq!(ran, Err(Trap::HintDestination { pc, address: to }), "{to:#x}");
+        }
+    }
+
+    #[test]
+    fn a_hint_inside_a_hints_code_is_rewound_with_it() {
+        // Fixture: the outer hint's code takes 5 from an inner hint to the word below the top, and hands over 6.
+        let text = Asm::new()
+            .li(Reg::T1, TOP)
+            .hint_enter(Reg::T0)
+            .branch(Beq, Reg::T0, Reg::ZERO, "outer")
+            .li(Reg::S1, TOP - 8)
+            .li(Reg::T3, Region::RAM.base())
+            .li(Reg::T4, 1)
+            .hint_enter(Reg::S0)
+            .branch(Beq, Reg::S0, Reg::ZERO, "inner")
+            .li(Reg::T2, 5)
+            .store(Sd, Reg::T2, 0, Reg::T3)
+            .hint_exit(Reg::S1, Reg::T3, Reg::T4)
+            .label("inner")
+            .load(Ld, Reg::T2, 0, Reg::S1)
+            .i(Addi, Reg::T2, Reg::T2, 1)
+            .store(Sd, Reg::T2, 0, Reg::T3)
+            .hint_exit(Reg::T1, Reg::T3, Reg::T4)
+            .label("outer")
+            .load(Ld, Reg::A0, 0, Reg::T1)
+            .exit()
+            .finish();
+        let program = RiscvProgram::new(&text, Region::TEXT.base(), vec![], LOG_RAM, LOG_ADVICE).unwrap();
+        let mut m = Machine::new(&program, &[]);
+        assert_eq!(m.run(), Ok([6, 0, 0, 0]));
+        assert_eq!(m.hints(), [(7, 6)]);
+        assert_eq!(m.memory().advice(), [0, 0, 0, 0, 0, 0, 0, 6]);
+        assert_eq!(m.memory().ram()[0], 0);
     }
 }

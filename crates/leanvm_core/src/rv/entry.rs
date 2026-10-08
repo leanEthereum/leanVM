@@ -340,6 +340,10 @@ impl Entry {
             Op::Fence => entry(zero, zero, zero, 0),
             Op::Ecall => Self::EXIT,
 
+            // A hint is advice: the proof sees its opening write zero and never reaches its close.
+            Op::HintEnter { rd } => entry(zero, zero, rd, 0),
+            Op::HintExit { .. } => Self::ILLEGAL,
+
             // LUI and AUIPC: a constant added to x0.
             Op::Lui { rd, imm20 } => entry(zero, zero, rd, (imm20 << 12) as i32 as i64 as u64),
             Op::Auipc { rd, imm20 } => entry(zero, zero, rd, pc.wrapping_add((imm20 << 12) as i32 as i64 as u64)),
@@ -597,6 +601,8 @@ mod tests {
                 Op::Ecall,
                 Op::Blake2s { rs1, rs2, last: false },
                 Op::Blake2s { rs1, rs2, last: true },
+                Op::HintEnter { rd },
+                Op::HintExit { rd, rs1, rs2 },
             ])
             .collect();
 
@@ -711,6 +717,9 @@ mod tests {
             0x0000_402b | 5 << 7, // an extension-field product with function 4
             0x0200_002b | 5 << 7, // an extension-field product with a function-7 bit set
             0x0000_002b,          // an extension-field product into the address in x0
+            0x0000_005b,          // a hint's opening into x0
+            0x0003_02db,          // a hint's opening reading a register
+            0x0000_205b | 5 << 7, // a hint marker with function 2
         ];
         for word in illegal {
             assert_eq!(Entry::decode(word, 0), Entry::ILLEGAL, "{word:#010x}");

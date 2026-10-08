@@ -270,7 +270,12 @@ impl TraceBuilder {
     }
 
     /// The finished trace: the rows, and what the machine `m` left in each array when the clock stopped at `ts_final`.
-    pub(super) fn finish(self, p: &RiscvProgram, m: &Machine<'_>, ts_final: u64) -> Trace {
+    ///
+    /// The advice committed as the run's start holds the words its hints wrote, which no step before them accessed.
+    pub(super) fn finish(mut self, p: &RiscvProgram, m: &Machine<'_>, ts_final: u64) -> Trace {
+        for &(i, word) in m.hints() {
+            self.adv_init[i] = F64(word);
+        }
         let ram_last = self.ram.timestamps();
         let (ram_ts, adv_ts) = ram_last.split_at(1 << p.log_ram());
         Trace {

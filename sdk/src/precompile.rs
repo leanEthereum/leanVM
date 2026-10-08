@@ -1,5 +1,5 @@
-//! The machine's custom instructions, the precompiles: each proven as one row rather than
-//! as the RISC-V instructions it replaces. They exist on the VM only.
+//! The machine's custom instructions: the precompiles, each proven as one row rather than
+//! as the RISC-V instructions it replaces, and a hint's two markers. They exist on the VM only.
 
 use crate::blake2s::Block;
 use core::mem::MaybeUninit;
@@ -110,5 +110,36 @@ pub unsafe fn ext<const FUNCT3: u32>(c: *mut [u64; 3], a: *const [u64; 3], b: *c
             b = in(reg) b,
             options(nostack, preserves_flags),
         );
+    }
+}
+
+/// `hint.enter` (custom-2, opcode `0x5b`, `funct3 = 0`): false, as the proof runs it. The executor first runs the code
+/// it opens with it true, unproven, to that code's [`hint_exit`], then rewinds the run to it.
+#[inline(always)]
+pub(crate) fn hint_enter() -> bool {
+    let entered: u64;
+    // SAFETY: the instruction writes its register and nothing else the proof sees; it stays a barrier to memory, so
+    // the hint's words are read after it.
+    unsafe { core::arch::asm!(".insn r 0x5b, 0, 0, {0}, x0, x0", out(reg) entered, options(nostack)) };
+    entered != 0
+}
+
+/// `hint.exit` (custom-2, `funct3 = 1`): the `n` words at `from` become the advice words at `to`, and the hint's code
+/// ends. The proof never reaches it: its entry is illegal.
+///
+/// # Safety
+///
+/// `from` points to `n` readable words.
+#[inline(always)]
+pub(crate) unsafe fn hint_exit(to: *const u64, from: *const u64, n: usize) -> ! {
+    // SAFETY: the caller's; the executor reads the words and leaves the code.
+    unsafe {
+        core::arch::asm!(
+            ".insn r 0x5b, 1, 0, {0}, {1}, {2}",
+            in(reg) to,
+            in(reg) from,
+            in(reg) n,
+            options(noreturn, nostack),
+        )
     }
 }

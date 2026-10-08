@@ -53,6 +53,8 @@ cargo leanvm guest programs/preimage/preimage.elf --advice 5,0x6f6c6c6568
 
 The statement a proof makes is the program (an ELF file) and its four output words, the digest of what it committed; everything a guest reads from its advice it has to check itself, which is what makes a proof a proof of knowledge (`preimage` commits the digest of a message only the prover has).
 
+A guest can also ask for advice while it runs: `leanvm_guest::hint(|| f(x))` is `f(x)` computed outside the proof (the prover runs it on the interpreter, unproven, then rewinds), and its value lands in the advice, so the guest checks it like any other advice, an inverse by one product rather than an exponentiation (`programs/inverse`). Off the VM, `hint` runs its closure, so the same library runs natively.
+
 ## benchmarks
 
 **machine**: M4 Max MacBook Pro (12 performance cores, 4 efficiency cores, 48GB RAM)

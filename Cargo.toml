@@ -2,7 +2,7 @@
 members = ["crates/*", "bins/*", "sdk", "programs/*/host"]
 # Each guest is its own workspace, for another target. A host depends on its guest's library by path, which
 # would make the guest a member: `exclude` takes no globs, so each is named.
-exclude = ["programs/leanxmss/guest", "programs/leansphincs/guest", "programs/leanda/guest", "programs/falcon/guest", "programs/stateproof/guest", "programs/shielded/guest"]
+exclude = ["programs/leanxmss/guest", "programs/leansphincs/guest", "programs/leanda/guest", "programs/falcon/guest", "programs/stateproof/guest", "programs/shielded/guest", "programs/inverse/guest"]
 resolver = "3"
 
 [workspace.package]

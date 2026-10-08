@@ -1,8 +1,8 @@
 //! What a guest reads and what it proves: `read` takes values from the advice, in place,
 //! and `commit` makes values public. There are no system calls: the advice is memory the
-//! prover fills before the run, at the addresses `link.ld` fixes, and the run's output is
-//! the BLAKE2s digest of everything committed, in order, which the verifier recomputes from
-//! the public values.
+//! prover fills, at the addresses `link.ld` fixes, before the run or, for a hint, as the
+//! guest asks; and the run's output is the BLAKE2s digest of everything committed, in order,
+//! which the verifier recomputes from the public values.
 
 use crate::Blake2s;
 #[cfg(any(test, all(target_arch = "riscv64", target_os = "none")))]
@@ -191,8 +191,10 @@ pub(crate) mod vm {
     /// What the run has committed so far, streamed through the instruction's own block.
     // SAFETY: only the address of the static's message is taken, nothing is read.
     static mut PUBLIC: Public = Public::new(unsafe { (&raw mut PUBLIC.block.m).cast() });
-    /// The advice words read so far.
+    /// The advice words read so far, from its start.
     static mut READ: usize = 0;
+    /// The advice words hints have taken, from its end.
+    static mut HINTED: usize = 0;
 
     unsafe extern "C" {
         /// The advice region's bounds (`link.ld`).
@@ -206,8 +208,9 @@ pub(crate) mod vm {
         // is address arithmetic rather than `offset_from`, which asks for one allocation.
         let (start, end) = (&raw const __advice, &raw const __advice_top);
         let words = (end as usize - start as usize) / size_of::<u64>();
-        // SAFETY: the linker script reserves the region, it holds whole words, and nothing
-        // in this crate writes it.
+        // SAFETY: the linker script reserves the region and it holds whole words. Nothing in
+        // this crate writes it, and the executor writes a hint's words before the proven code
+        // reads them, where the proof has them from the start.
         unsafe { core::slice::from_raw_parts(start, words) }
     }
 
@@ -249,11 +252,34 @@ pub(crate) mod vm {
         // SAFETY: one hart, no interrupts: nothing else touches `READ`.
         let start = unsafe { READ };
         let end = start.checked_add(words).expect("the values fit the advice");
-        let taken = advice().get(start..end).expect("the values fit the advice");
+        // SAFETY: as above, for `HINTED`.
+        let unhinted = advice().len() - unsafe { HINTED };
+        let taken = (advice().get(start..end))
+            .filter(|_| end <= unhinted)
+            .expect("the values fit the advice");
         // SAFETY: as above.
         unsafe { READ = end };
         // SAFETY: the words are aligned to 8, as `T` is, and any words are a `T` (the caller's).
         unsafe { core::slice::from_raw_parts(taken.as_ptr().cast(), n) }
+    }
+
+    /// Where a hint of `T` goes: the words below the hints before it, which the executor
+    /// writes when the guest asks for it.
+    ///
+    /// A hint meeting what `read` has taken panics, so the run has no proof.
+    #[inline(always)]
+    pub(crate) fn reserve<T: Words>() -> *const T {
+        const { assert_words::<T>() };
+        // SAFETY: one hart, no interrupts: nothing else touches `READ` or `HINTED`.
+        let (read, hinted) = unsafe { (READ, HINTED) };
+        let end = advice().len() - hinted;
+        let start = (end.checked_sub(size_of::<T>() / 8))
+            .filter(|&start| start >= read)
+            .expect("the hints fit the advice");
+        // SAFETY: as above.
+        unsafe { HINTED = advice().len() - start };
+        // SAFETY: `start` is a word of the region.
+        unsafe { advice().as_ptr().add(start).cast() }
     }
 
     /// Make a value public: the run's output is the digest of everything committed, in order.

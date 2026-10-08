@@ -88,6 +88,8 @@ pub enum Opcode {
     Custom0 = 0x0b,
     /// The custom-1 space, which holds the extension-field multiplication.
     Custom1 = 0x2b,
+    /// The custom-2 space, which holds a hint's two markers.
+    Custom2 = 0x5b,
     /// `FENCE`.
     MiscMem = 0x0f,
     /// Register-immediate arithmetic.
@@ -115,11 +117,12 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    /// Every opcode the machine uses: rv64im's, and the two custom spaces.
-    pub const ALL: [Self; 15] = [
+    /// Every opcode the machine uses: rv64im's, and the three custom spaces.
+    pub const ALL: [Self; 16] = [
         Self::Load,
         Self::Custom0,
         Self::Custom1,
+        Self::Custom2,
         Self::MiscMem,
         Self::OpImm,
         Self::Auipc,
@@ -142,6 +145,7 @@ impl Opcode {
             0x03 => Self::Load,
             0x0b => Self::Custom0,
             0x2b => Self::Custom1,
+            0x5b => Self::Custom2,
             0x0f => Self::MiscMem,
             0x13 => Self::OpImm,
             0x17 => Self::Auipc,
@@ -373,6 +377,12 @@ impl Instruction {
                 rs1,
                 rs2,
             },
+
+            // A hint opens with a write of its own register and closes naming three.
+            Opcode::Custom2 if f7 == 0 && f3 == 0 && rd != Reg::ZERO && rs1 == Reg::ZERO && rs2 == Reg::ZERO => {
+                Op::HintEnter { rd }
+            }
+            Opcode::Custom2 if f7 == 0 && f3 == 1 => Op::HintExit { rd, rs1, rs2 },
 
             _ => return None,
         })
@@ -911,6 +921,13 @@ pub enum Op {
     Blake2s { rs1: Reg, rs2: Reg, last: bool },
     /// `op rd, rs1, rs2`, every register an address, `rd` never `x0`.
     Ext { op: ExtOp, rd: Reg, rs1: Reg, rs2: Reg },
+    /// `hint.enter rd`, `rd` never `x0`: `rd = 0`, which is all the proof sees. Before it, the executor runs the code
+    /// that follows with `rd = 1`, unproven, to its `hint.exit`, then rewinds everything but the advice words the hint
+    /// wrote.
+    HintEnter { rd: Reg },
+    /// `hint.exit rd, rs1, rs2`, which only a hint's unproven code reaches, and which ends it: the `rs2` words at `rs1`
+    /// become the advice words at the address in `rd`. The proof never runs it, so its entry is illegal.
+    HintExit { rd: Reg, rs1: Reg, rs2: Reg },
 }
 
 impl Op {
@@ -931,6 +948,8 @@ impl Op {
             Self::Ecall => Instruction::ECALL,
             Self::Blake2s { rs1, rs2, last } => Instruction::r(Opcode::Custom0, last as u32, 0, Reg::ZERO, rs1, rs2),
             Self::Ext { op, rd, rs1, rs2 } => op.encode(rd, rs1, rs2),
+            Self::HintEnter { rd } => Instruction::r(Opcode::Custom2, 0, 0, rd, Reg::ZERO, Reg::ZERO),
+            Self::HintExit { rd, rs1, rs2 } => Instruction::r(Opcode::Custom2, 1, 0, rd, rs1, rs2),
         }
     }
 
@@ -945,11 +964,12 @@ impl Op {
             Self::Load { op, .. } => op.function(),
             Self::Store { op, .. } => op.function(),
             Self::Branch { op, .. } => (Class::Alu, Alu::SUB | op.condition()),
-            Self::Lui { .. } | Self::Auipc { .. } | Self::Fence => (Class::Alu, 0),
+            Self::Lui { .. } | Self::Auipc { .. } | Self::Fence | Self::HintEnter { .. } => (Class::Alu, 0),
             Self::Jal { .. } | Self::Ecall => (Class::Alu, Alu::ALWAYS),
             Self::Jalr { .. } => (Class::Alu, Alu::INDIRECT | Alu::ALWAYS),
             Self::Blake2s { last, .. } => (Class::Hash, if last { Hash::FINAL } else { 0 }),
             Self::Ext { op, .. } => (Class::Ext, op.flags()),
+            Self::HintExit { .. } => (Class::Illegal, 0),
         }
     }
 }
@@ -1010,6 +1030,8 @@ mod tests {
                 rs1,
                 rs2
             }),
+            nonzero_reg().prop_map(|rd| Op::HintEnter { rd }),
+            (reg(), reg(), reg()).prop_map(|(rd, rs1, rs2)| Op::HintExit { rd, rs1, rs2 }),
         ]
     }
 

@@ -1280,6 +1280,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "inverse"
+version = "0.1.0"
+dependencies = [
+ "leanvm_guest",
+]
+
+[[package]]
+name = "inverse-host"
+version = "0.1.0"
+dependencies = [
+ "inverse",
+ "leanvm_core",
+ "leanvm_guest",
+ "primitives",
+]
+
+[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

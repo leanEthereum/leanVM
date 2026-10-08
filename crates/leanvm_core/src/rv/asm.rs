@@ -180,6 +180,16 @@ impl Asm {
         self.emit(Op::Ext { op, rd, rs1, rs2 })
     }
 
+    /// `hint.enter rd`: `rd = 0` in the proof, `rd = 1` in the hint's unproven code that follows.
+    pub fn hint_enter(&mut self, rd: Reg) -> &mut Self {
+        self.emit(Op::HintEnter { rd })
+    }
+
+    /// `hint.exit rd, rs1, rs2`: the hint's `rs2` words at `rs1` become the advice words at the address in `rd`.
+    pub fn hint_exit(&mut self, rd: Reg, rs1: Reg, rs2: Reg) -> &mut Self {
+        self.emit(Op::HintExit { rd, rs1, rs2 })
+    }
+
     /// `ecall`.
     pub fn ecall(&mut self) -> &mut Self {
         self.emit(Op::Ecall)

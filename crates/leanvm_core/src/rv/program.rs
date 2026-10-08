@@ -1,6 +1,7 @@
 //! A decoded program: its text, its entry point, and its memory sizes.
 
 use super::entry::{Entry, Target};
+use super::instruction::{Instruction, Op, Opcode};
 use super::region::Region;
 use thiserror::Error;
 
@@ -23,6 +24,35 @@ pub struct RiscvProgram {
     log_ram: usize,
     /// The advice holds 2^log_advice words.
     log_advice: usize,
+    /// The hint marker at each entry, empty for a text with none: what the executor runs and the proof never sees.
+    markers: Vec<Option<Marker>>,
+}
+
+/// A hint's marker, decoded to an entry the proof treats as any other (`Op::HintEnter`, `Op::HintExit`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Marker {
+    /// `hint.enter`: the hint's code follows.
+    Enter,
+    /// `hint.exit rd, rs1, rs2`: the hint's code ends, its words named by these registers.
+    Exit { rd: u8, rs1: u8, rs2: u8 },
+}
+
+impl Marker {
+    /// The marker instruction `word` is, if any.
+    fn of(word: u32) -> Option<Self> {
+        if word & 0x7f != Opcode::Custom2.bits() {
+            return None;
+        }
+        match Instruction::from_bits(word).decode()? {
+            Op::HintEnter { .. } => Some(Self::Enter),
+            Op::HintExit { rd, rs1, rs2 } => Some(Self::Exit {
+                rd: rd.index() as u8,
+                rs1: rs1.index() as u8,
+                rs2: rs2.index() as u8,
+            }),
+            _ => None,
+        }
+    }
 }
 
 /// Why words, an entry point and sizes form no program.
@@ -80,12 +110,19 @@ impl RiscvProgram {
         if !(entries.iter().enumerate()).all(|(i, e)| e.is_well_formed(Region::TEXT.address(i))) {
             return Err(ProgramError::MalformedEntry);
         }
+
+        // The markers, kept only for a text that has one.
+        let mut markers: Vec<Option<Marker>> = text.iter().map(|&word| Marker::of(word)).collect();
+        if markers.iter().all(Option::is_none) {
+            markers = Vec::new();
+        }
         Ok(Self {
             entries,
             entry_pc,
             image,
             log_ram,
             log_advice,
+            markers,
         })
     }
 
@@ -147,6 +184,12 @@ impl RiscvProgram {
     /// The base-two logarithm of the advice's size in words.
     pub const fn log_advice(&self) -> usize {
         self.log_advice
+    }
+
+    /// The hint marker at entry `index`, if any.
+    #[inline(always)]
+    pub(crate) fn marker(&self, index: usize) -> Option<Marker> {
+        self.markers.get(index).copied().flatten()
     }
 
     /// The address of entry `index`.
