@@ -13,4 +13,4 @@ workspace = true
 primitives = { workspace = true, features = ["test-util"] }
 
 [target.'cfg(not(all(target_arch = "riscv64", target_os = "none")))'.dependencies]
-p3-binary-field = { git = "https://github.com/Plonky3/Plonky3", rev = "02b02337f09a9b2ddddba53ba2279bca22695958", features = ["wide-poly"] }
+p3-binary-field = { git = "https://github.com/Plonky3/Plonky3", rev = "a07032c1db40bb01766fb9ab00afd94ad5588fe2", features = ["wide-poly"] }

@@ -90,7 +90,7 @@ dependencies = [
 [[package]]
 name = "p3-binary-field"
 version = "0.8.0"
-source = "git+https://github.com/Plonky3/Plonky3?rev=02b02337f09a9b2ddddba53ba2279bca22695958#02b02337f09a9b2ddddba53ba2279bca22695958"
+source = "git+https://github.com/Plonky3/Plonky3?rev=a07032c1db40bb01766fb9ab00afd94ad5588fe2#a07032c1db40bb01766fb9ab00afd94ad5588fe2"
 dependencies = [
  "num-bigint",
  "p3-challenger",
@@ -106,7 +106,7 @@ dependencies = [
 [[package]]
 name = "p3-challenger"
 version = "0.8.0"
-source = "git+https://github.com/Plonky3/Plonky3?rev=02b02337f09a9b2ddddba53ba2279bca22695958#02b02337f09a9b2ddddba53ba2279bca22695958"
+source = "git+https://github.com/Plonky3/Plonky3?rev=a07032c1db40bb01766fb9ab00afd94ad5588fe2#a07032c1db40bb01766fb9ab00afd94ad5588fe2"
 dependencies = [
  "p3-field",
  "p3-keccak",
@@ -120,7 +120,7 @@ dependencies = [
 [[package]]
 name = "p3-field"
 version = "0.8.0"
-source = "git+https://github.com/Plonky3/Plonky3?rev=02b02337f09a9b2ddddba53ba2279bca22695958#02b02337f09a9b2ddddba53ba2279bca22695958"
+source = "git+https://github.com/Plonky3/Plonky3?rev=a07032c1db40bb01766fb9ab00afd94ad5588fe2#a07032c1db40bb01766fb9ab00afd94ad5588fe2"
 dependencies = [
  "itertools",
  "num-bigint",
@@ -135,7 +135,7 @@ dependencies = [
 [[package]]
 name = "p3-keccak"
 version = "0.8.0"
-source = "git+https://github.com/Plonky3/Plonky3?rev=02b02337f09a9b2ddddba53ba2279bca22695958#02b02337f09a9b2ddddba53ba2279bca22695958"
+source = "git+https://github.com/Plonky3/Plonky3?rev=a07032c1db40bb01766fb9ab00afd94ad5588fe2#a07032c1db40bb01766fb9ab00afd94ad5588fe2"
 dependencies = [
  "cpufeatures",
  "p3-symmetric",
@@ -146,12 +146,12 @@ dependencies = [
 [[package]]
 name = "p3-maybe-rayon"
 version = "0.8.0"
-source = "git+https://github.com/Plonky3/Plonky3?rev=02b02337f09a9b2ddddba53ba2279bca22695958#02b02337f09a9b2ddddba53ba2279bca22695958"
+source = "git+https://github.com/Plonky3/Plonky3?rev=a07032c1db40bb01766fb9ab00afd94ad5588fe2#a07032c1db40bb01766fb9ab00afd94ad5588fe2"
 
 [[package]]
 name = "p3-symmetric"
 version = "0.8.0"
-source = "git+https://github.com/Plonky3/Plonky3?rev=02b02337f09a9b2ddddba53ba2279bca22695958#02b02337f09a9b2ddddba53ba2279bca22695958"
+source = "git+https://github.com/Plonky3/Plonky3?rev=a07032c1db40bb01766fb9ab00afd94ad5588fe2#a07032c1db40bb01766fb9ab00afd94ad5588fe2"
 dependencies = [
  "itertools",
  "p3-field",
@@ -163,7 +163,7 @@ dependencies = [
 [[package]]
 name = "p3-util"
 version = "0.8.0"
-source = "git+https://github.com/Plonky3/Plonky3?rev=02b02337f09a9b2ddddba53ba2279bca22695958#02b02337f09a9b2ddddba53ba2279bca22695958"
+source = "git+https://github.com/Plonky3/Plonky3?rev=a07032c1db40bb01766fb9ab00afd94ad5588fe2#a07032c1db40bb01766fb9ab00afd94ad5588fe2"
 dependencies = [
  "p3-maybe-rayon",
  "serde",

@@ -668,22 +668,7 @@ fn butterfly_interleaved_fused_3layer(block: &mut [F64], t: &[F64; 7], eighth: u
 /// The twelve butterflies of one radix-8 row group, with its seven twiddles breadth-first.
 #[inline(always)]
 fn radix8_butterflies(rows: &mut [&mut [F64]; 8], t: &[F64; 7]) {
-    let [r0, r1, r2, r3, r4, r5, r6, r7] = rows;
-    // Layer L: rows 4 apart, one twiddle for the whole block.
-    butterfly_lanes(r0, r4, t[0]);
-    butterfly_lanes(r1, r5, t[0]);
-    butterfly_lanes(r2, r6, t[0]);
-    butterfly_lanes(r3, r7, t[0]);
-    // Layer L+1: rows 2 apart, one twiddle per half.
-    butterfly_lanes(r0, r2, t[1]);
-    butterfly_lanes(r1, r3, t[1]);
-    butterfly_lanes(r4, r6, t[2]);
-    butterfly_lanes(r5, r7, t[2]);
-    // Layer L+2: adjacent rows, one twiddle per quarter.
-    butterfly_lanes(r0, r1, t[3]);
-    butterfly_lanes(r2, r3, t[4]);
-    butterfly_lanes(r4, r5, t[5]);
-    butterfly_lanes(r6, r7, t[6]);
+    F64::butterfly_radix8::<false>(rows, t);
 }
 
 /// Transpose a lane-major message into the row-major order the encoder reads.

@@ -47,7 +47,7 @@
 //!
 //! The sweep is fixed at `K_SKIP = 6` (ell=64, n_chunks=8, N_INNER=7).
 
-use primitives::{Field, PackedValue, PrimeCharacteristicRing};
+use primitives::PrimeCharacteristicRing;
 
 use super::{K_SKIP, N_INNER, PaddingSpec};
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
@@ -239,29 +239,17 @@ fn shift_reduce_inner_ab(
     b_med: usize,
     out: &mut [u8; 64],
 ) {
-    type Packing = <F8 as Field>::Packing;
-    let mut sum = [Packing::ZERO; 64 / Packing::WIDTH];
-    let mut a_col = [F8::ZERO; ELL];
-    let mut b_col = [F8::ZERO; ELL];
     let byte_base = chunk_byte_base + b_med * N_CHUNKS * 8;
-    for k in 0..8 {
-        let offset = byte_base + k * N_CHUNKS;
-        inv_table.apply(&a_packed[offset..offset + N_CHUNKS], &mut a_col);
-        inv_table.apply(&b_packed[offset..offset + N_CHUNKS], &mut b_col);
-        let weight = Packing::from(F8::from_byte(1 << k));
-        for (i, acc) in sum.iter_mut().enumerate() {
-            let start = i * Packing::WIDTH;
-            let (a, b) = (
-                Packing::from_slice(&a_col[start..start + Packing::WIDTH]),
-                Packing::from_slice(&b_col[start..start + Packing::WIDTH]),
-            );
-            *acc += *a * *b * weight;
-        }
-    }
-    for (chunk, sum) in out.chunks_mut(Packing::WIDTH).zip(sum) {
-        for (byte, value) in chunk.iter_mut().zip(sum.as_slice()) {
-            *byte = value.to_byte();
-        }
+    let weights = std::array::from_fn::<_, 8, _>(|k| F8::from_byte(1 << k));
+    let mut columns = [F8::ZERO; ELL];
+    inv_table.weighted_product_sum(
+        &a_packed[byte_base..byte_base + 8 * N_CHUNKS],
+        &b_packed[byte_base..byte_base + 8 * N_CHUNKS],
+        &weights,
+        &mut columns,
+    );
+    for (byte, value) in out.iter_mut().zip(columns) {
+        *byte = value.to_byte();
     }
 }
 
@@ -344,9 +332,18 @@ impl Convert {
                     converted_c[lane] += cf_c;
                 }
             }
-            for lane in 0..ELL {
-                self.ab[lane] += converted_ab[lane] * eq_lo;
-                self.c[lane] += converted_c[lane] * eq_lo;
+            use primitives::{ExtensionField, Field, PackedFieldExtension, PackedValue};
+            type Packing = <F192 as ExtensionField<F64>>::ExtensionPacking;
+            const WIDTH: usize = <<F64 as Field>::Packing as PackedValue>::WIDTH;
+            let weight = Packing::from(eq_lo);
+            for start in (0..ELL).step_by(WIDTH) {
+                let range = start..start + WIDTH;
+                let ab = Packing::from_ext_slice(&converted_ab[range.clone()]) * weight;
+                let c = Packing::from_ext_slice(&converted_c[range.clone()]) * weight;
+                let ab = Packing::from_ext_slice(&self.ab[range.clone()]) + ab;
+                let c = Packing::from_ext_slice(&self.c[range.clone()]) + c;
+                ab.to_ext_slice(&mut self.ab[range.clone()]);
+                c.to_ext_slice(&mut self.c[range]);
             }
         }
         #[cfg(not(target_arch = "aarch64"))]
