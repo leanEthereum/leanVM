@@ -18,6 +18,7 @@ SCOPE = ['systemd-run', '--user', '--scope', '-q', '-p', 'MemoryMax=16G', '-p', 
 BASE = os.environ.get('BASE') or '5cfcc744c059bbb134294f2c07c2d442ec7fb8ef'
 ENV = dict(os.environ, LEANVM_NUM_THREADS='1', CARGO_BUILD_JOBS='4', CARGO_TERM_COLOR='never')
 FOLLOWUP = os.environ.get('ATTRIBUTION_PHASE') == 'followup'
+COMPONENTS = os.environ.get('ATTRIBUTION_PHASE') == 'components'
 
 def command(args, name, cwd=ROOT, env=ENV, required=True):
     measured = name.startswith(('components-', 'perf-')) or name == 'stream.jsonl'
@@ -54,12 +55,15 @@ for args, name in [(['rustc', '-vV'], 'rustc.txt'), (['rustc', '--print', 'cfg',
     command(args, name)
 
 baseline = Path('/tmp/arm-attribution-baseline')
-if not FOLLOWUP:
+if not FOLLOWUP and not COMPONENTS:
     command(['git', 'worktree', 'add', '--detach', baseline, BASE], 'baseline-checkout.log')
 binaries = {}
 variants = [('trace', ROOT, ''), ('tiled', ROOT, ' --cfg leanvm_round1_neon_tiled'), ('chunk1024', ROOT, ' --cfg leanvm_basis_chunk1024'), ('staged', ROOT, ' --cfg leanvm_basis_staged')] if FOLLOWUP else [('base', baseline, ''), ('trace', ROOT, ''), ('staged', ROOT, ' --cfg leanvm_basis_staged --cfg leanvm_basis_check')]
+if COMPONENTS:
+    variants = [('trace', ROOT, ''), ('staged', ROOT, ' --cfg leanvm_basis_staged')]
 check_cfg = ' --check-cfg=cfg(leanvm_basis_staged) --check-cfg=cfg(leanvm_basis_check) --check-cfg=cfg(leanvm_round1_neon_tiled) --check-cfg=cfg(leanvm_basis_chunk1024)'
 test_exes = {}
+pcs_test_exe = None
 for side, cwd, extra in variants:
     target = Path('/tmp/arm-attribution-target-' + side)
     environment = dict(ENV, CARGO_TARGET_DIR=str(target), RUSTFLAGS=ENV.get('RUSTFLAGS', '') + extra + check_cfg)
@@ -78,6 +82,18 @@ for side, cwd, extra in variants:
                     exes.append(msg['executable'])
         assert len(exes) == 1, exes
         test_exes[side] = exes[0]
+    if COMPONENTS and side == 'trace':
+        command(SCOPE + ['cargo', 'test', '--release', '-p', 'pcs', '--lib', '--no-run', '--message-format=json'], 'build-components-pcs.log', env=environment)
+        exes = []
+        for line in (OUT / 'build-components-pcs.log').read_text().splitlines():
+            if line.startswith('{'):
+                msg = json.loads(line)
+                if msg.get('reason') == 'compiler-artifact' and msg.get('executable') and msg.get('profile', {}).get('test'):
+                    exes.append(msg['executable'])
+        assert len(exes) == 1, exes
+        pcs_test_exe = exes[0]
+        command(['objdump', '-d', '-C', pcs_test_exe], 'assembly-components-pcs.txt', required=False)
+        command(['objdump', '-d', '-C', test_exes['trace']], 'assembly-components-flock.txt', required=False)
 
 records = []
 def save():
@@ -112,13 +128,13 @@ def run(side, pair, tracing=True, extra_env=None):
 
 # Both binaries use identical workload, worker count, compiler and native flags.
 # Every process excludes its internal warmup. Alternating pairs measure added spans.
-for pair in range(5):
+for pair in range(1 if COMPONENTS else 5):
     for side in (list(binaries) if pair % 2 == 0 else list(reversed(binaries))):
         if not run(side, pair):
             if not run(side, str(pair) + '-retry'):
                 raise RuntimeError('repeated overloaded sample')
 # No-subscriber controls separate tracing output/collection from code shape effects.
-for pair in range(0 if FOLLOWUP else 5):
+for pair in range(0 if FOLLOWUP or COMPONENTS else 5):
     for side in (['base', 'trace'] if pair % 2 == 0 else ['trace', 'base']):
         run(side, 'quiet-' + str(pair), tracing=False)
 
@@ -152,11 +168,19 @@ with open('/tmp/leanvm-bench.lock', 'a') as lock:
         (OUT / 'perf-unavailable.txt').write_text('perf executable not installed; no runner policy changes attempted\n')
 for shape in shapes[:3]:
     for sample in range(5):
-        for side in (list(test_exes) if sample % 2 == 0 else list(reversed(test_exes))):
-            env = dict(ENV, ROUND1_INPUT_DIR=str(capture / ('class' + shape['class'])), ROUND1_REPEATS='1', ROUND1_SAMPLE_WINDOWS='256')
-            with open('/tmp/leanvm-bench.lock', 'a') as lock:
-                fcntl.flock(lock, fcntl.LOCK_EX)
-                command(SCOPE + [test_exes[side], 'zerocheck::round1::tests::diagnostic_round1_components', '--exact', '--ignored', '--nocapture'], f'components-{side}-class{shape["class"]}-{sample}.log', env=env)
+        sizes = ([64, 256] if sample % 2 == 0 else [256, 64]) if COMPONENTS else [256]
+        for size in sizes:
+            for side in (list(test_exes) if sample % 2 == 0 else list(reversed(test_exes))):
+                env = dict(ENV, ROUND1_INPUT_DIR=str(capture / ('class' + shape['class'])), ROUND1_REPEATS='1', ROUND1_SAMPLE_WINDOWS=str(size))
+                with open('/tmp/leanvm-bench.lock', 'a') as lock:
+                    fcntl.flock(lock, fcntl.LOCK_EX)
+                    command(SCOPE + [test_exes[side], 'zerocheck::round1::tests::diagnostic_round1_components', '--exact', '--ignored', '--nocapture'], f'components-{side}-class{shape["class"]}-{sample}-windows{size}.log', env=env)
+if COMPONENTS:
+    basis_capture = OUT / 'basis-inputs'
+    run('staged', 'basis-capture', extra_env={'ARM_ATTRIBUTION_BASIS_DIR': str(basis_capture)})
+    with open('/tmp/leanvm-bench.lock', 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        command(SCOPE + [pcs_test_exe, 'whir::sumcheck::first_pass::tests::captured_basis_components', '--exact', '--ignored', '--nocapture', '--test-threads=1'], 'components-pcs-grid.log', env=dict(ENV, ARM_ATTRIBUTION_BASIS_DIR=str(basis_capture)))
 
 # Last invocation is a genuine production proof and verification, not a component bypass.
 run('trace', 'final-proof')

@@ -9,7 +9,7 @@ on:
         description: Diagnostic head
         required: false
       phase:
-        description: attribution or followup
+        description: attribution, followup, or components
         default: attribution
 permissions:
   contents: read

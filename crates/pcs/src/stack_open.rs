@@ -265,6 +265,44 @@ pub fn open(
             initial.assert_matches_virtual(stack, lane_block, config.initial_k(), &fill, kept);
         });
     }
+    // Diagnostic builds only: capture after the timed Basis span, never from a measured invocation.
+    #[cfg(leanvm_basis_staged)]
+    if let Some(directory) = std::env::var_os("ARM_ATTRIBUTION_BASIS_DIR") {
+        use std::io::{BufWriter, Write};
+        let super::whir::Basis::Dense(kept) = &basis else {
+            unreachable!("the staged diagnostic keeps its weight");
+        };
+        let directory = std::path::Path::new(&directory);
+        std::fs::create_dir_all(directory).expect("create Basis capture directory");
+        // The CLI also proves during warmup; the last completed opening replaces that capture.
+        let create = |name: &str| {
+            BufWriter::with_capacity(
+                1 << 20,
+                std::fs::File::create(directory.join(name)).expect("create Basis capture file"),
+            )
+        };
+        let mut shape = create("shape.bin");
+        for value in [stack.len(), lane_block, config.initial_k()] {
+            shape.write_all(&(value as u64).to_le_bytes()).expect("write Basis shape");
+        }
+        shape.flush().expect("flush Basis shape");
+        let mut witness = create("witness.bin");
+        for value in stack {
+            witness.write_all(&value.0.to_le_bytes()).expect("write Basis witness");
+        }
+        witness.flush().expect("flush Basis witness");
+        let mut weights = create("weight.bin");
+        for value in kept {
+            for coefficient in [value.c0, value.c1, value.c2] {
+                weights.write_all(&coefficient.to_le_bytes()).expect("write Basis weight");
+            }
+        }
+        weights.flush().expect("flush Basis weight");
+        eprintln!(
+            "basis_capture words={} lane_block={} initial_k={} directory={}",
+            stack.len(), lane_block, config.initial_k(), directory.display(),
+        );
+    }
 
     // 4. One WHIR over the full stack against the combined claim (the
     //    stack is borrowed by the prover; no copy).
