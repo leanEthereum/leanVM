@@ -26,6 +26,10 @@ use primitives::log2_strict_usize;
 use primitives::stream::Stream;
 use std::cell::RefCell;
 
+mod codeword;
+pub use codeword::Codeword;
+pub(crate) use codeword::{Message, Opened};
+
 /// Table of the normalized subspace polynomials at the basis.
 ///
 /// - Row `i` holds `s_i(b_j)` for every basis element `b_j` with `j >= i`.
@@ -155,50 +159,6 @@ impl AdditiveNttF64 {
         self.transform(data, num_ntts, log_inv_rate, Some(msg), None);
     }
 
-    /// Encode in place, handing `on_rows` every finished block of rows.
-    ///
-    /// - It is called as `on_rows(first_row, rows)`, from pool tasks.
-    /// - Each row is handed over exactly once.
-    /// - Blocks are aligned, and all of one power-of-two size.
-    /// - A block is handed over while its rows are still in cache.
-    pub(crate) fn encode_interleaved_in_place_with(
-        &self,
-        data: &mut [F64],
-        num_ntts: usize,
-        log_inv_rate: usize,
-        on_rows: &RowSink<'_>,
-    ) {
-        let msg = SendPtr(data.as_mut_ptr());
-        self.transform(data, num_ntts, log_inv_rate, Some(msg), Some(on_rows));
-    }
-
-    /// RS-encode a message held in a buffer of its own, handing `on_rows` every finished block of rows.
-    ///
-    /// - The result equals encoding in place.
-    /// - Every codeword word is written before it is read, so the codeword may start uninitialized.
-    /// - The blocks are as for the in-place encode.
-    ///
-    /// # Panics
-    ///
-    /// Panics unless the codeword is exactly `2^r` messages long.
-    pub(crate) fn encode_interleaved_with(
-        &self,
-        data: &mut [F64],
-        msg: &[F64],
-        num_ntts: usize,
-        log_inv_rate: usize,
-        on_rows: &RowSink<'_>,
-    ) {
-        assert_eq!(
-            msg.len() << log_inv_rate,
-            data.len(),
-            "the codeword is 2^log_inv_rate messages"
-        );
-        // Read-only from here on: the pointer only feeds the first pass's reads.
-        let msg = SendPtr(msg.as_ptr().cast_mut());
-        self.transform(data, num_ntts, log_inv_rate, Some(msg), Some(on_rows));
-    }
-
     /// Run layers `start..d` of a `2^d`-row transform in as few sweeps of the buffer as possible.
     ///
     /// A large transform is bound by memory bandwidth, so its cost is its number of sweeps.
@@ -234,6 +194,12 @@ impl AdditiveNttF64 {
     ///
     /// - Each deep task's sub-blocks are final, and hand their rows to `on_rows` while they are in L2.
     /// - Without a split deep pass, the rows go over in parallel blocks at the end.
+    ///
+    /// # Pending layers
+    ///
+    /// - A deep task handing over rows of replicas in place finishes them in scratch only.
+    /// - The buffer then stays as the layers before the deep pass left it.
+    /// - Returns the first layer the buffer has not run: `log_d` when it is final.
     fn transform(
         &self,
         data: &mut [F64],
@@ -241,7 +207,7 @@ impl AdditiveNttF64 {
         start: usize,
         msg: Option<SendPtr<F64>>,
         on_rows: Option<&RowSink<'_>>,
-    ) {
+    ) -> usize {
         // The buffer is 2^log_d rows of `num_ntts` words.
         assert!(num_ntts > 0);
         assert_eq!(data.len() % num_ntts, 0);
@@ -314,6 +280,13 @@ impl AdditiveNttF64 {
         // A lone task runs on this thread, so its rows go over in parallel afterwards.
         let fuse = log_group < deep_start && deep_start < log_d;
         let deep_rows = on_rows.filter(|_| fuse);
+        // Tasks that hand over rows of replicas already in place finish them in scratch and leave the buffer as it is.
+        // That saves the deep pass its write sweep; the deep layers are then still to run on the buffer.
+        let pending = if msg.is_none() && deep_rows.is_some() {
+            deep_start
+        } else {
+            log_d
+        };
 
         // Phase 3: the deep pass, one task per run of contiguous sub-blocks.
         if deep_start < log_d {
@@ -321,11 +294,11 @@ impl AdditiveNttF64 {
             let block_len = data.len() >> start;
             parallel::chunks_mut(data, sub_len << log_group, |task_idx, task| {
                 let first_sub = task_idx << log_group;
-                match msg {
+                match (msg, deep_rows) {
                     // A separate message: build the sub-blocks in scratch, then write them out once.
                     //
                     // Streamed out whole, the codeword is written without ever being read.
-                    Some(m) => with_scratch(task.len(), |scratch| {
+                    (Some(m), _) => with_scratch(task.len(), |scratch| {
                         for (i, sub) in scratch.chunks_exact_mut(sub_len).enumerate() {
                             // A sub-block sits at the same offset in every replica.
                             //
@@ -347,13 +320,18 @@ impl AdditiveNttF64 {
                             task.copy_from_slice(scratch);
                         }
                     }),
-                    // The replicas are already in place: run the layers where they are.
-                    None => {
-                        for (i, sub) in task.chunks_exact_mut(sub_len).enumerate() {
+                    // The replicas are in place and their rows go to the sink: finish them in scratch only.
+                    (None, Some(f)) => with_scratch(task.len(), |scratch| {
+                        scratch.copy_from_slice(task);
+                        for (i, sub) in scratch.chunks_exact_mut(sub_len).enumerate() {
                             self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, first_sub + i);
                         }
-                        if let Some(f) = deep_rows {
-                            f(first_sub << log_sub, task);
+                        f(first_sub << log_sub, scratch);
+                    }),
+                    // The replicas are in place: run the layers where they are.
+                    (None, None) => {
+                        for (i, sub) in task.chunks_exact_mut(sub_len).enumerate() {
+                            self.run_layers(sub, log_d, num_ntts, deep_start, log_d, deep_start, first_sub + i);
                         }
                     }
                 }
@@ -366,6 +344,7 @@ impl AdditiveNttF64 {
             let log_rows = log_d - log_tasks.min(log_d);
             parallel::chunks_mut(data, num_ntts << log_rows, |i, rows| f(i << log_rows, rows));
         }
+        pending
     }
 
     /// Run layers `layer..layer + g` in one sweep of the buffer, one row group at a time.
@@ -1327,19 +1306,25 @@ mod tests {
         }
     }
 
+    /// Every row of a codeword, finished.
+    fn finished(codeword: &Codeword, rows: usize) -> Vec<F64> {
+        let opened = codeword.open(&(0..rows).collect::<Vec<_>>());
+        (0..rows).flat_map(|q| opened.row(q).to_vec()).collect()
+    }
+
     #[test]
-    fn fused_encode_matches_replicate_then_transform() {
-        // Invariant: encoding in place equals replicating the message, then transforming.
+    fn codeword_matches_replicate_then_transform() {
+        // Invariant: a codeword's rows equal replicating the message, then transforming.
         //
-        // The in-place encode never materializes the replicas up front.
-        // Its message is the buffer's own first replica, which the plan must overwrite last.
+        // The encode never materializes the replicas up front.
+        // Its deep pass leaves its layers pending, and an opening runs them.
         // The plans are those of the budgets used off Apple silicon.
         //
         //     (log_d, lanes, rate)   plan
-        //     (9, 8, 1)              replicate first, then deep pass only
-        //     (12, 64, 2)            one gathered pass reading the first replica
-        //     (14, 8, 1)             one gathered pass reading the first replica
-        //     (14, 64, 2)            one gathered pass reading the first replica
+        //     (9, 8, 1)              deep sub-blocks built in scratch from the message
+        //     (12, 64, 2)            one gathered pass reading the message, deep layers pending
+        //     (14, 8, 1)             one gathered pass reading the message, deep layers pending
+        //     (14, 64, 2)            one gathered pass reading the message, deep layers pending
         //     (12, 2048, 1)          two gathered passes, with streaming stores
         //     (4, 8, 4)              rate = log_d: no layer left, rows handed over at the end
         //
@@ -1362,13 +1347,12 @@ mod tests {
             replicate_rows(&mut want, &msg);
             forward_scalar_from_layer(&ntt, &mut want, lanes, log_inv_rate);
 
-            // Under test: only the first replica holds the message, the rest is zero.
-            let mut got = vec![F64::ZERO; msg_len << log_inv_rate];
-            got[..msg_len].copy_from_slice(&msg);
+            // Under test: the codeword, finished row by row.
             let blocks = Mutex::new(Vec::new());
-            ntt.encode_interleaved_in_place_with(&mut got, lanes, log_inv_rate, &|row, rows| {
+            let codeword = Codeword::encode(ntt.clone(), Message::Rows(&msg), lanes, log_inv_rate, &|row, rows| {
                 blocks.lock().unwrap().push((row, rows.to_vec()));
             });
+            let got = finished(&codeword, 1 << log_d);
             assert_eq!(got, want, "log_d={log_d}, lanes={lanes}, rate={log_inv_rate}");
 
             let mut blocks = blocks.into_inner().unwrap();
@@ -1390,7 +1374,7 @@ mod tests {
     /// Every lane of the codeword must be exactly the single-lane RS codeword of
     /// that lane's contiguous message block, which is what makes a commitment over
     /// `n_lanes` lanes equal to the `2^log_batch_size`-lane one with a zero tail.
-    /// The shapes cover the transposing fused first pass, its fallback, and lane
+    /// The shapes cover pending deep layers, plans without them, and lane
     /// counts that are not powers of two (the padding-free commit's whole point).
     #[test]
     fn lane_major_msg_encode_matches_per_lane_reference() {
@@ -1408,9 +1392,8 @@ mod tests {
             let rows = 1usize << log_rows;
             let msg: Vec<F64> = (0..rows * n_lanes).map(|_| F64(rng.next_u64())).collect();
 
-            let mut got = vec![F64::ZERO; msg.len() << log_inv_rate];
-            transpose_lane_major(&mut got[..msg.len()], &msg, n_lanes, log_rows);
-            ntt.encode_interleaved_in_place(&mut got, n_lanes, log_inv_rate);
+            let codeword = Codeword::encode(ntt.clone(), Message::Lanes(&msg), n_lanes, log_inv_rate, &|_, _| {});
+            let got = finished(&codeword, 1 << log_d);
 
             let block_len = 1usize << log_d;
             for lane in 0..n_lanes {

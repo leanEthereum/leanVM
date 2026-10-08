@@ -10,7 +10,7 @@ use super::commit::ligero_commit_ext;
 use super::sample_queries_ordered;
 use super::sumcheck::{Basis, InitialRounds, SumcheckProver, send_msg};
 use crate::merkle::Hash;
-use crate::ntt::AdditiveNttF64;
+use crate::ntt::{AdditiveNttF64, Codeword};
 use crate::whir::config::ProverConfig;
 use crate::whir::induce::{
     eval_sk_at_vks, induce_sumcheck_enforced_sum, induce_sumcheck_evaluate_at_residual, induce_sumcheck_poly,
@@ -36,9 +36,14 @@ fn send_ood(sc: &mut SumcheckProver<'_>, ps: &mut impl Transmitter, n_vars: usiz
     }
 }
 
-/// An `E` row as the `F64` words its Merkle leaf is hashed from.
-fn ext_row_words(row: &[F192]) -> Vec<F64> {
-    row.iter().flat_map(|v| [F64(v.c0), F64(v.c1), F64(v.c2)]).collect()
+/// An `E` row from the `F64` words its Merkle leaf is hashed from.
+fn ext_row(words: &[F64]) -> Vec<F192> {
+    words
+        .as_chunks::<3>()
+        .0
+        .iter()
+        .map(|&[c0, c1, c2]| F192::new(c0.0, c1.0, c2.0))
+        .collect()
 }
 
 /// Prove `Σ_x witness(x) · b_initial(x) = target` against the L0 commitment
@@ -70,7 +75,7 @@ pub fn recursive_prover_with_basis(
     witness: &[F64],
     b_initial: Vec<F192>,
     target: F192,
-    l0_codeword: &[F64],
+    l0_codeword: &Codeword,
     l0_tree: &[Hash],
     ps: &mut impl Transmitter,
 ) {
@@ -97,7 +102,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     witness: &[F64],
     b_initial: Basis<'_>,
     target: F192,
-    l0_codeword: &[F64],
+    l0_codeword: &Codeword,
     l0_tree: &[Hash],
     initial: Option<InitialRounds>,
     ps: &mut impl Transmitter,
@@ -136,13 +141,12 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     // block `n_lanes-1-t`, so a row IS the tail of the leaf image: the absent lanes
     // are the image's leading zeros (`MerkleBuilder` shares their hash prefix, and only
     // this tail rides the proof).
-    let l0_row = |q: usize| -> Vec<F64> { l0_codeword[q * n_lanes..(q + 1) * n_lanes].to_vec() };
-    // The same row for the induce, which folds a lane-ASCENDING row against the
-    // lane eq table: reversing the image puts block `b` at index `b` and the absent
-    // lanes' zeros at the end, where they contribute nothing.
-    let l0_fold_row = |q: usize| -> Vec<F64> {
+    // The induce folds a lane-ASCENDING row against the lane eq table: reversing the
+    // image puts block `b` at index `b` and the absent lanes' zeros at the end, where
+    // they contribute nothing.
+    let fold_row = |image: &[F64]| -> Vec<F64> {
         let mut row = vec![F64::ZERO; num_interleaved_0];
-        for (t, &word) in l0_codeword[q * n_lanes..(q + 1) * n_lanes].iter().enumerate() {
+        for (t, &word) in image.iter().enumerate() {
             row[n_lanes - 1 - t] = word;
         }
         row
@@ -177,7 +181,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         log_msg_cols_1,
         log_num_interleaved_1,
         log_inv_rate_1,
-        &ntt_1,
+        ntt_1,
     );
     drop(span);
     ps.add_root(&wtns_1.root());
@@ -198,10 +202,13 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     let weights_0 = powers(lambda_0, num_queries_0);
     let span = tracing::info_span!("Open", level = 0).entered();
     // Ordered (dup-possible) rows for the local induce math ...
-    let opened_rows_0: Vec<Vec<F64>> = queries_0.iter().map(|&q| l0_fold_row(q)).collect();
+    let opened_0 = l0_codeword.open(&queries_0);
+    let opened_rows_0: Vec<Vec<F64>> = queries_0.iter().map(|&q| fold_row(opened_0.row(q))).collect();
     // ... but the stored proof carries the sorted-unique rows + one octopus over
     // the sorted-unique positions (the verifier re-fans them to ordered).
-    ps.hint_merkle(PrunedMerklePaths::prune(l0_tree, block_len_0, &queries_0, l0_row));
+    ps.hint_merkle(PrunedMerklePaths::prune(l0_tree, block_len_0, &queries_0, |q| {
+        opened_0.row(q).to_vec()
+    }));
     drop(span);
 
     // Induce basis_0 from the L0 opens. L0 dominates the induce phase, where
@@ -255,17 +262,18 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             let span = tracing::info_span!("Final level").entered();
             // Final level: stored (sorted-unique) only, no local induce; the
             // verifier fans these to ordered for its last-level induce.
+            let opened_last = wtns_prev.open(&queries_last);
             ps.hint_merkle(PrunedMerklePaths::prune(
                 &wtns_prev.tree,
                 wtns_prev.block_len,
                 &queries_last,
-                |q| ext_row_words(wtns_prev.row(q)),
+                |q| opened_last.row(q).to_vec(),
             ));
             // Tie the last commitment into the running claim through the same
             // intro/glue step as every other level, then finish the remaining
             // sumcheck rounds. This closes on one weight evaluation instead of
             // a sweep over the residual cube.
-            let rows_last: Vec<Vec<F192>> = queries_last.iter().map(|&q| wtns_prev.row(q).to_vec()).collect();
+            let rows_last: Vec<Vec<F192>> = queries_last.iter().map(|&q| ext_row(opened_last.row(q))).collect();
             let enforced_sum_last = induce_sumcheck_enforced_sum(&rows_last, &level_rs, &queries_last, &weights_last);
             let n_res = sc_prover.f_ext().len().trailing_zeros() as usize;
             let basis_last = induce_sumcheck_evaluate_at_residual(
@@ -304,7 +312,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
             log_msg_cols_next,
             log_num_interleaved_next,
             log_inv_rate_next,
-            &ntt_next,
+            ntt_next,
         );
         drop(span);
         ps.add_root(&wtns_next.root());
@@ -319,12 +327,13 @@ pub(crate) fn recursive_prover_with_prepared_basis(
         let weights_i = powers(lambda_i, num_queries_i);
         let span = tracing::info_span!("Open", level = i + 1).entered();
         // Ordered rows for the local induce; sorted-unique rows + octopus stored.
-        let opened_rows_i: Vec<Vec<F192>> = queries_i.iter().map(|&q| wtns_prev.row(q).to_vec()).collect();
+        let opened_i = wtns_prev.open(&queries_i);
+        let opened_rows_i: Vec<Vec<F192>> = queries_i.iter().map(|&q| ext_row(opened_i.row(q))).collect();
         ps.hint_merkle(PrunedMerklePaths::prune(
             &wtns_prev.tree,
             wtns_prev.block_len,
             &queries_i,
-            |q| ext_row_words(wtns_prev.row(q)),
+            |q| opened_i.row(q).to_vec(),
         ));
         drop(span);
 

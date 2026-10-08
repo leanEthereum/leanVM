@@ -21,44 +21,34 @@
 //!
 //! Every butterfly acts on each coefficient alone, so the encode runs as the base transform over `3n` lanes.
 
-use crate::ntt::{AdditiveNttF64, RowSink};
+use crate::ntt::{AdditiveNttF64, Codeword, Message, RowSink};
 use primitives::field::{F64, F192};
 
 // An E element is exactly three K words, with no padding, so the two views line up.
 const _: () = assert!(size_of::<F192>() == 3 * size_of::<F64>());
 const _: () = assert!(align_of::<F192>() == align_of::<F64>());
 
-/// RS-encode a row-major E-valued message into a codeword, overwriting all of it.
+/// RS-encode a row-major E-valued message into a codeword of K words.
 ///
 /// - The codeword is `2^r` copies of the message, each transformed from layer `r` on.
 /// - Here `r` is the log inverse rate.
-/// - The codeword may start uninitialized.
+/// - A row of `n` E lanes is `3n` K words.
 /// - `on_rows` gets every finished block of rows, as K words.
 ///
 /// # Panics
 ///
 /// Panics unless the lane count is a power of two.
 pub(crate) fn encode_interleaved_ext(
-    ntt: &AdditiveNttF64,
-    mat: &mut [F192],
+    ntt: AdditiveNttF64,
     msg: &[F192],
     num_ntts: usize,
     log_inv_rate: usize,
     on_rows: &RowSink<'_>,
-) {
+) -> Codeword {
     assert!(num_ntts.is_power_of_two());
-    // View both buffers as K words: each row of n E lanes becomes 3n K lanes.
-    //
-    // SAFETY:
-    // - An E element is laid out as three K words, and a K element as one word.
-    // - So each view covers exactly the same memory as the slice it came from.
-    let (mat, msg) = unsafe {
-        (
-            std::slice::from_raw_parts_mut(mat.as_mut_ptr().cast::<F64>(), 3 * mat.len()),
-            std::slice::from_raw_parts(msg.as_ptr().cast::<F64>(), 3 * msg.len()),
-        )
-    };
-    ntt.encode_interleaved_with(mat, msg, 3 * num_ntts, log_inv_rate, on_rows);
+    // SAFETY: an E element is laid out as three K words, so the view covers exactly the message.
+    let msg = unsafe { std::slice::from_raw_parts(msg.as_ptr().cast::<F64>(), 3 * msg.len()) };
+    Codeword::encode(ntt, Message::Rows(msg), 3 * num_ntts, log_inv_rate, on_rows)
 }
 
 #[cfg(test)]
@@ -101,10 +91,10 @@ mod tests {
         //     (log_d, lanes, rate)   K words a row   plan
         //     (3, 1, 1)              3               deep sub-blocks built in scratch
         //     (8, 4, 2)              12              deep sub-blocks built in scratch
-        //     (12, 16, 1)            48              one gathered pass reading the message
-        //     (14, 16, 4)            48              one gathered pass reading the message
+        //     (12, 16, 1)            48              one gathered pass reading the message, deep layers pending
+        //     (14, 16, 4)            48              one gathered pass reading the message, deep layers pending
         //     (15, 16, 7)            48              deep sub-blocks built in scratch
-        //     (16, 2, 1)             6               one gathered pass reading the message
+        //     (16, 2, 1)             6               one gathered pass reading the message, deep layers pending
         //     (12, 1024, 1)          3072            two gathered passes, with streaming stores
         //     (4, 2, 4)              6               rate = log_d: no layer left, copies only
         let mut rng = Rng::new(0xE192);
@@ -123,9 +113,22 @@ mod tests {
             // Reference: 2^rate explicit copies, then the E-valued transform from the rate layer.
             let mut want: Vec<F192> = msg.iter().copied().cycle().take(msg.len() << rate).collect();
             forward_scalar(&ntt, &mut want, lanes, rate);
-            // Under test: a zeroed codeword, filled by the encode alone.
-            let mut got = vec![F192::ZERO; want.len()];
-            encode_interleaved_ext(&ntt, &mut got, &msg, lanes, rate, &|_, _| {});
+            // Under test: every row of the codeword, finished.
+            let codeword = encode_interleaved_ext(ntt, &msg, lanes, rate, &|_, _| {});
+            let rows: Vec<usize> = (0..1 << log_d).collect();
+            let opened = codeword.open(&rows);
+            let got: Vec<F192> = rows
+                .iter()
+                .flat_map(|&q| {
+                    opened
+                        .row(q)
+                        .as_chunks::<3>()
+                        .0
+                        .iter()
+                        .map(|&[c0, c1, c2]| F192::new(c0.0, c1.0, c2.0))
+                        .collect::<Vec<_>>()
+                })
+                .collect();
             assert_eq!(got, want, "log_d={log_d}, lanes={lanes}, rate={rate}");
         }
     }
