@@ -14,15 +14,15 @@ jobs:
             runner: [size-attester7870-x64, self-hosted-ghr]
           - name: arm64
             runner: [size-attester7870-arm64, self-hosted-ghr]
-    name: Scalar affine reduction comparison (${{ matrix.name }})
+    name: Packed cubic schedule comparison (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           repository: Plonky3/Plonky3
-          ref: 4e4d28ef3253f76ea1f2c7448a2765bb5948aa49
+          ref: 978ce83ac549800999d817497330f53b50d2ce56
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - name: Compare scalar affine product reduction on native hardware
+      - name: Compare packed cubic product schedules on native hardware
         run: bash .github/perf-stack/run.sh
