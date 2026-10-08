@@ -62,10 +62,7 @@
 use primitives::field::F192;
 use primitives::hash::{G_LANES, IV, SIGMA};
 
-use crate::gf2::{
-    ADD3_BITS, CARRY_BITS_PER_ADD, MatrixSide, RowValues, WireWord, back_add, back_add3_fused, walk_add,
-    walk_add3_fused, wire_from_const, wire_from_slot_base, wire_rotl, wire_rotr, wire_xor,
-};
+use crate::gf2::{ADD3_BITS, CARRY_BITS_PER_ADD, Marginal, MatrixSide, RowValues, WireWord};
 use crate::lincheck::LincheckCircuit;
 use crate::reduction::Block;
 use crate::witness::{Batch, Witness};
@@ -219,251 +216,188 @@ pub(crate) const fn padding_block() -> Compression {
     pinned_compression([0u32; 16])
 }
 
-/// One forward pass of the circuit against column weights `w`, storing every row's operand pair.
-///
-/// The row assignment it encodes is the one of doc/leanvm, Annex C, "Evaluating the matrices".
-fn forward_walk(sink: &mut RowValues, w: &[F192]) {
-    // Phase 1: the constant and the free inputs, each a row `[slot] * [constant]`.
-    sink.bconst(Z_CONST_POS, w[Z_CONST_POS]);
-    for (base, len) in [
-        (CV_BASE, 8 * WORD_BITS),
-        (MSG_BASE, 16 * WORD_BITS),
-        (COUNTER_LO_BASE, 4 * WORD_BITS),
-    ] {
-        for (offset, &value) in w[base..base + len].iter().enumerate() {
-            sink.bconst(base + offset, value);
-        }
-    }
-
-    // Phase 2: the initial state as affine words of the inputs and the constant.
-    let mut state: [WireWord; 16] = std::array::from_fn(|_| [F192::ZERO; WORD_BITS]);
-    for (wd, slot) in state[..8].iter_mut().enumerate() {
-        *slot = wire_from_slot_base(w, h_bit(wd, 0));
-    }
-    for i in 0..4 {
-        state[8 + i] = wire_from_const(w, IV[i], Z_CONST_POS);
-    }
-    for (i, base) in [COUNTER_LO_BASE, COUNTER_HI_BASE, FINAL_BASE, LAST_NODE_BASE]
-        .into_iter()
-        .enumerate()
-    {
-        state[12 + i] = wire_xor(
-            &wire_from_const(w, IV[4 + i], Z_CONST_POS),
-            &wire_from_slot_base(w, base),
-        );
-    }
-
-    // Phase 3: the ten rounds; only the additions make rows, the XORs and rotations stay affine.
-    for (r, sigma) in SIGMA.iter().enumerate() {
-        for g_in_round in 0..N_G_PER_ROUND {
-            let g = r * N_G_PER_ROUND + g_in_round;
-            let [la, lb, lc, ld] = G_LANES[g_in_round];
-            let (a, b, c, d) = (state[la], state[lb], state[lc], state[ld]);
-            let mx = wire_from_slot_base(w, m_bit(sigma[2 * g_in_round], 0));
-            let my = wire_from_slot_base(w, m_bit(sigma[2 * g_in_round + 1], 0));
-
-            let a_1 = walk_add3_fused(sink, w, &a, &b, &mx, g_slot(g, G_ADD3_A1));
-            let d_1 = wire_rotr(&wire_xor(&d, &a_1), 16);
-            let c_1 = walk_add(sink, w, &c, &d_1, g_slot(g, G_ADD_C1));
-            let b_1 = wire_rotr(&wire_xor(&b, &c_1), 12);
-            let a_2 = walk_add3_fused(sink, w, &a_1, &b_1, &my, g_slot(g, G_ADD3_A2));
-            let d_2 = wire_rotr(&wire_xor(&d_1, &a_2), 8);
-            let c_2 = walk_add(sink, w, &c_1, &d_2, g_slot(g, G_ADD_C2));
-            let b_2 = wire_rotr(&wire_xor(&b_1, &c_2), 7);
-
-            state[la] = a_2;
-            state[lb] = b_2;
-            state[lc] = c_2;
-            state[ld] = d_2;
-        }
-    }
-
-    // Phase 4: the finalization `out[w] = h[w] ^ v[w] ^ v[w + 8]`, the only committed affine words.
-    for wd in 0..8 {
-        let out = wire_xor(
-            &wire_xor(&state[wd], &state[wd + 8]),
-            &wire_from_slot_base(w, h_bit(wd, 0)),
-        );
-        for (i, &bit) in out.iter().enumerate() {
-            sink.bconst(out_bit(wd, i), bit);
-        }
-    }
-}
-
-/// `(u^T A_0 w, u^T B_0 w)`, by one forward walk.
-pub(crate) fn bilinear_walk_pair(u: &[F192], w: &[F192]) -> (F192, F192) {
-    assert_eq!(u.len(), K);
-    assert_eq!(w.len(), K);
-    let (a, b) = row_values_walk(w);
-    // Contract each row's value with its row weight.
-    let mut va = F192::ZERO;
-    let mut vb = F192::ZERO;
-    for ((&ui, &ai), &bi) in u.iter().zip(&a).zip(&b) {
-        va += ui * ai;
-        vb += ui * bi;
-    }
-    (va, vb)
-}
-
-/// The matrix-vector products `(A_0 w, B_0 w)`, every row's inner product with `w`, by one forward walk.
-///
-/// That takes additions linear in the circuit, and neither matrix is built.
-pub(crate) fn row_values_walk(w: &[F192]) -> (Vec<F192>, Vec<F192>) {
-    assert_eq!(w.len(), K);
-    let mut sink = RowValues::new(K, w[Z_CONST_POS]);
-    forward_walk(&mut sink, w);
-    (sink.a, sink.b)
-}
-
-/// `u^T A_0 w + alpha u^T B_0 w`, the batched form the lincheck's verifier reads.
-pub(crate) fn bilinear_walk(alpha: F192, u: &[F192], w: &[F192]) -> F192 {
-    let (va, vb) = bilinear_walk_pair(u, w);
-    va + alpha * vb
-}
-
-/// One matrix's column marginal `D_0^T u`, by one backward walk of the circuit.
-///
-/// ```text
-///     M[j] = sum_k D_0(k, j) u[k],     j < K
-/// ```
-fn marginal_walk_side(side: MatrixSide, u: &[F192]) -> Vec<F192> {
-    assert_eq!(u.len(), K);
-    let mut m = vec![F192::ZERO; K];
-    // The row weights whose `B` side is the lone constant wire: the free inputs and the `out` words, added at the end.
-    let mut u_bconst = F192::ZERO;
-
-    // Phase 1: the free-input rows, `A = [slot]`, `B = [constant]`.
-    for (base, len) in [
-        (CV_BASE, 8 * WORD_BITS),
-        (MSG_BASE, 16 * WORD_BITS),
-        (COUNTER_LO_BASE, 4 * WORD_BITS),
-    ] {
-        for s in base..base + len {
-            let (a, b) = side.split(u[s]);
-            m[s] += a;
-            u_bconst += b;
-        }
-    }
-
-    // Phase 2: the finalization rows, `A = h[w] ^ v[w] ^ v[w + 8]`, `B = [constant]`.
-    // Their `A` side seeds the lane adjoints, and reaches the `h` leaf directly.
-    let mut adj: [WireWord; 16] = std::array::from_fn(|_| [F192::ZERO; WORD_BITS]);
-    for wd in 0..8 {
-        for i in 0..WORD_BITS {
-            let (a, b) = side.split(u[out_bit(wd, i)]);
-            adj[wd][i] += a;
-            adj[wd + 8][i] += a;
-            m[h_bit(wd, i)] += a;
-            u_bconst += b;
-        }
-    }
-
-    // Phase 3: the ten rounds backwards.
-    // Within one G the reverse topological order is b_2, c_2, d_2, a_2, b_1, c_1, d_1, a_1.
-    // So every lane's adjoint is complete before the gadget that produced it is transposed.
-    for (r, sigma) in SIGMA.iter().enumerate().rev() {
-        for g_in_round in (0..N_G_PER_ROUND).rev() {
-            let g = r * N_G_PER_ROUND + g_in_round;
-            let [la, lb, lc, ld] = G_LANES[g_in_round];
-            let (mut aa2, ab2, mut ac2, mut ad2) = (adj[la], adj[lb], adj[lc], adj[ld]);
-
-            // b_2 = rotr(b_1 ^ c_2, 7)
-            let t = wire_rotl(&ab2, 7);
-            let mut ab1 = t;
-            ac2 = wire_xor(&ac2, &t);
-            // c_2 = c_1 + d_2
-            let (mut ac1, ad2_c2) = back_add(&mut m, u, &ac2, g_slot(g, G_ADD_C2), side);
-            ad2 = wire_xor(&ad2, &ad2_c2);
-            // d_2 = rotr(d_1 ^ a_2, 8)
-            let t = wire_rotl(&ad2, 8);
-            let mut ad1 = t;
-            aa2 = wire_xor(&aa2, &t);
-            // a_2 = a_1 + b_1 + my
-            let (mut aa1, ab1_a2, amy) = back_add3_fused(&mut m, u, &aa2, g_slot(g, G_ADD3_A2), side);
-            ab1 = wire_xor(&ab1, &ab1_a2);
-            let my_base = m_bit(sigma[2 * g_in_round + 1], 0);
-            for i in 0..WORD_BITS {
-                m[my_base + i] += amy[i];
-            }
-            // b_1 = rotr(b ^ c_1, 12)
-            let t = wire_rotl(&ab1, 12);
-            let mut ab = t;
-            ac1 = wire_xor(&ac1, &t);
-            // c_1 = c + d_1
-            let (ac, ad1_c1) = back_add(&mut m, u, &ac1, g_slot(g, G_ADD_C1), side);
-            ad1 = wire_xor(&ad1, &ad1_c1);
-            // d_1 = rotr(d ^ a_1, 16)
-            let ad = wire_rotl(&ad1, 16);
-            aa1 = wire_xor(&aa1, &ad);
-            // a_1 = a + b + mx
-            let (aa, ab_a1, amx) = back_add3_fused(&mut m, u, &aa1, g_slot(g, G_ADD3_A1), side);
-            ab = wire_xor(&ab, &ab_a1);
-            let mx_base = m_bit(sigma[2 * g_in_round], 0);
-            for i in 0..WORD_BITS {
-                m[mx_base + i] += amx[i];
-            }
-
-            adj[la] = aa;
-            adj[lb] = ab;
-            adj[lc] = ac;
-            adj[ld] = ad;
-        }
-    }
-
-    // Phase 4: the initial state, whose set constant bits read the constant wire.
-    for wd in 0..8 {
-        for i in 0..WORD_BITS {
-            m[h_bit(wd, i)] += adj[wd][i];
-        }
-    }
-    let mut const_adj = F192::ZERO;
-    for i in 0..4 {
-        for (b, &bit) in adj[8 + i].iter().enumerate() {
-            if (IV[i] >> b) & 1 == 1 {
-                const_adj += bit;
-            }
-        }
-    }
-    for (i, base) in [COUNTER_LO_BASE, COUNTER_HI_BASE, FINAL_BASE, LAST_NODE_BASE]
-        .into_iter()
-        .enumerate()
-    {
-        for b in 0..WORD_BITS {
-            m[base + b] += adj[12 + i][b];
-            if (IV[4 + i] >> b) & 1 == 1 {
-                const_adj += adj[12 + i][b];
-            }
-        }
-    }
-
-    // The constant row itself, plus the `B` side every non-product row shares.
-    m[Z_CONST_POS] += const_adj + u[Z_CONST_POS] + u_bconst;
-    m
-}
-
-/// The two column marginals `(A_0^T u, B_0^T u)`, by one backward walk per matrix.
-pub(crate) fn marginal_walk_pair(u: &[F192]) -> (Vec<F192>, Vec<F192>) {
-    (
-        marginal_walk_side(MatrixSide::A, u),
-        marginal_walk_side(MatrixSide::B, u),
-    )
-}
-
-/// The batched column marginal `(A_0 + alpha B_0)^T u` the lincheck's prover reads.
-pub(crate) fn marginal_walk(alpha: F192, u: &[F192]) -> Vec<F192> {
-    let (mut a, b) = marginal_walk_pair(u);
-    for (a, b) in a.iter_mut().zip(b) {
-        *a += alpha * b;
-    }
-    a
-}
-
 /// The BLAKE2s circuit as the lincheck reads it: walked forwards for the verifier, backwards for the prover.
 ///
 /// Neither side ever builds the substituted matrices.
-pub(crate) struct WalkLincheckCircuit;
+/// The row assignment both walks encode is the one of doc/leanvm, Annex C, "Evaluating the matrices".
+pub(crate) struct Blake2sCircuit;
 
-impl LincheckCircuit for WalkLincheckCircuit {
+impl Blake2sCircuit {
+    /// The matrix-vector products `(A_0 w, B_0 w)`, every row's inner product with `w`, by one forward walk.
+    ///
+    /// That takes additions linear in the circuit, and neither matrix is built.
+    pub(crate) fn row_values(w: &[F192]) -> (Vec<F192>, Vec<F192>) {
+        assert_eq!(w.len(), K);
+        let mut rows = RowValues::new(w, Z_CONST_POS);
+        Self::walk_forward(&mut rows);
+        (rows.a, rows.b)
+    }
+
+    /// One forward pass of the circuit against the column weights, storing every row's operand pair.
+    fn walk_forward(rows: &mut RowValues<'_>) {
+        // Phase 1: the constant and the free inputs, each a row `[slot] * [constant]`.
+        for (base, len) in [
+            (Z_CONST_POS, 1),
+            (CV_BASE, 8 * WORD_BITS),
+            (MSG_BASE, 16 * WORD_BITS),
+            (COUNTER_LO_BASE, 4 * WORD_BITS),
+        ] {
+            for slot in base..base + len {
+                rows.bconst(slot, rows.column(slot));
+            }
+        }
+
+        // Phase 2: the initial state as affine words of the inputs and the constant.
+        let mut state = [WireWord::ZERO; 16];
+        for (wd, lane) in state[..8].iter_mut().enumerate() {
+            *lane = rows.committed(h_bit(wd, 0));
+        }
+        for i in 0..4 {
+            state[8 + i] = rows.constant(IV[i]);
+        }
+        for (i, base) in [COUNTER_LO_BASE, COUNTER_HI_BASE, FINAL_BASE, LAST_NODE_BASE]
+            .into_iter()
+            .enumerate()
+        {
+            state[12 + i] = rows.constant(IV[4 + i]) ^ rows.committed(base);
+        }
+
+        // Phase 3: the ten rounds; only the additions make rows, the XORs and rotations stay affine.
+        for (r, sigma) in SIGMA.iter().enumerate() {
+            for g_in_round in 0..N_G_PER_ROUND {
+                let g = r * N_G_PER_ROUND + g_in_round;
+                let [la, lb, lc, ld] = G_LANES[g_in_round];
+                let (a, b, c, d) = (state[la], state[lb], state[lc], state[ld]);
+                let mx = rows.committed(m_bit(sigma[2 * g_in_round], 0));
+                let my = rows.committed(m_bit(sigma[2 * g_in_round + 1], 0));
+
+                let a_1 = rows.add3(&a, &b, &mx, g_slot(g, G_ADD3_A1));
+                let d_1 = (d ^ a_1).rotate_right(16);
+                let c_1 = rows.add(&c, &d_1, g_slot(g, G_ADD_C1));
+                let b_1 = (b ^ c_1).rotate_right(12);
+                let a_2 = rows.add3(&a_1, &b_1, &my, g_slot(g, G_ADD3_A2));
+                let d_2 = (d_1 ^ a_2).rotate_right(8);
+                let c_2 = rows.add(&c_1, &d_2, g_slot(g, G_ADD_C2));
+                let b_2 = (b_1 ^ c_2).rotate_right(7);
+
+                state[la] = a_2;
+                state[lb] = b_2;
+                state[lc] = c_2;
+                state[ld] = d_2;
+            }
+        }
+
+        // Phase 4: the finalization `out[w] = h[w] ^ v[w] ^ v[w + 8]`, the only committed affine words.
+        for wd in 0..8 {
+            let out = state[wd] ^ state[wd + 8] ^ rows.committed(h_bit(wd, 0));
+            for (i, &bit) in out.bits().iter().enumerate() {
+                rows.bconst(out_bit(wd, i), bit);
+            }
+        }
+    }
+
+    /// One matrix's column marginal `D_0^T u`, by one backward walk of the circuit.
+    ///
+    /// ```text
+    ///     M[j] = sum_k D_0(k, j) u[k],     j < K
+    /// ```
+    fn marginal(side: MatrixSide, u: &[F192]) -> Vec<F192> {
+        assert_eq!(u.len(), K);
+        let mut m = Marginal::new(side, u);
+        // The row weights whose `B` side is the lone constant wire: the free inputs and the `out` words, added at the end.
+        let mut u_bconst = F192::ZERO;
+
+        // Phase 1: the free-input rows, `A = [slot]`, `B = [constant]`.
+        for (base, len) in [
+            (CV_BASE, 8 * WORD_BITS),
+            (MSG_BASE, 16 * WORD_BITS),
+            (COUNTER_LO_BASE, 4 * WORD_BITS),
+        ] {
+            for s in base..base + len {
+                let (a, b) = m.row(s);
+                m.deposit(s, a);
+                u_bconst += b;
+            }
+        }
+
+        // Phase 2: the finalization rows, `A = h[w] ^ v[w] ^ v[w + 8]`, `B = [constant]`.
+        // Their `A` side seeds the lane adjoints, and reaches the `h` leaf directly.
+        let mut adj = [WireWord::ZERO; 16];
+        for wd in 0..8 {
+            let seed = WireWord::from_fn(|i| {
+                let (a, b) = m.row(out_bit(wd, i));
+                u_bconst += b;
+                a
+            });
+            adj[wd] ^= seed;
+            adj[wd + 8] ^= seed;
+            m.deposit_word(h_bit(wd, 0), &seed);
+        }
+
+        // Phase 3: the ten rounds backwards.
+        // Within one G the reverse topological order is b_2, c_2, d_2, a_2, b_1, c_1, d_1, a_1.
+        // So every lane's adjoint is complete before the gadget that produced it is transposed.
+        for (r, sigma) in SIGMA.iter().enumerate().rev() {
+            for g_in_round in (0..N_G_PER_ROUND).rev() {
+                let g = r * N_G_PER_ROUND + g_in_round;
+                let [la, lb, lc, ld] = G_LANES[g_in_round];
+                let (mut aa2, ab2, mut ac2, mut ad2) = (adj[la], adj[lb], adj[lc], adj[ld]);
+
+                // b_2 = rotr(b_1 ^ c_2, 7)
+                let mut ab1 = ab2.rotate_left(7);
+                ac2 ^= ab1;
+                // c_2 = c_1 + d_2
+                let (mut ac1, ad2_c2) = m.add(&ac2, g_slot(g, G_ADD_C2));
+                ad2 ^= ad2_c2;
+                // d_2 = rotr(d_1 ^ a_2, 8)
+                let mut ad1 = ad2.rotate_left(8);
+                aa2 ^= ad1;
+                // a_2 = a_1 + b_1 + my
+                let (mut aa1, ab1_a2, amy) = m.add3(&aa2, g_slot(g, G_ADD3_A2));
+                ab1 ^= ab1_a2;
+                m.deposit_word(m_bit(sigma[2 * g_in_round + 1], 0), &amy);
+                // b_1 = rotr(b ^ c_1, 12)
+                let mut ab = ab1.rotate_left(12);
+                ac1 ^= ab;
+                // c_1 = c + d_1
+                let (ac, ad1_c1) = m.add(&ac1, g_slot(g, G_ADD_C1));
+                ad1 ^= ad1_c1;
+                // d_1 = rotr(d ^ a_1, 16)
+                let ad = ad1.rotate_left(16);
+                aa1 ^= ad;
+                // a_1 = a + b + mx
+                let (aa, ab_a1, amx) = m.add3(&aa1, g_slot(g, G_ADD3_A1));
+                ab ^= ab_a1;
+                m.deposit_word(m_bit(sigma[2 * g_in_round], 0), &amx);
+
+                adj[la] = aa;
+                adj[lb] = ab;
+                adj[lc] = ac;
+                adj[ld] = ad;
+            }
+        }
+
+        // Phase 4: the initial state, whose set constant bits read the constant wire.
+        for (wd, lane) in adj[..8].iter().enumerate() {
+            m.deposit_word(h_bit(wd, 0), lane);
+        }
+        let mut const_adj = (0..4).fold(F192::ZERO, |acc, i| acc + adj[8 + i].at_constant(IV[i]));
+        for (i, base) in [COUNTER_LO_BASE, COUNTER_HI_BASE, FINAL_BASE, LAST_NODE_BASE]
+            .into_iter()
+            .enumerate()
+        {
+            m.deposit_word(base, &adj[12 + i]);
+            const_adj += adj[12 + i].at_constant(IV[4 + i]);
+        }
+
+        // The constant row itself, plus the `B` side every non-product row shares.
+        let constant_row = m.weight(Z_CONST_POS);
+        m.deposit(Z_CONST_POS, const_adj + constant_row + u_bconst);
+        m.into_columns()
+    }
+}
+
+impl LincheckCircuit for Blake2sCircuit {
     fn n_cols(&self) -> usize {
         K
     }
@@ -472,12 +406,20 @@ impl LincheckCircuit for WalkLincheckCircuit {
         Z_CONST_POS
     }
 
-    fn fold_alpha_batched(&self, alpha: F192, eq_inner: &[F192]) -> Vec<F192> {
-        marginal_walk(alpha, eq_inner)
+    /// `(A_0 + alpha B_0)^T u`, one backward walk per matrix.
+    fn fold_alpha_batched(&self, alpha: F192, u: &[F192]) -> Vec<F192> {
+        let mut a = Self::marginal(MatrixSide::A, u);
+        for (a, b) in a.iter_mut().zip(Self::marginal(MatrixSide::B, u)) {
+            *a += alpha * b;
+        }
+        a
     }
 
+    /// `u^T A_0 w + alpha u^T B_0 w`, by one forward walk contracted with the row weights.
     fn bilinear_form(&self, alpha: F192, u: &[F192], w: &[F192]) -> Option<F192> {
-        Some(bilinear_walk(alpha, u, w))
+        assert_eq!(u.len(), K);
+        let (a, b) = Self::row_values(w);
+        Some((u.iter().zip(a.iter().zip(&b))).fold(F192::ZERO, |acc, (&u, (&a, &b))| acc + u * (a + alpha * b)))
     }
 }
 
@@ -737,7 +679,7 @@ pub fn witness(blocks: &[Compression], n_blocks_log: usize) -> Witness {
 pub const BLOCK: Block<'static> = Block {
     k_log: K_LOG,
     useful_bits: USEFUL_BITS,
-    circuit: &WalkLincheckCircuit,
+    circuit: &Blake2sCircuit,
 };
 
 #[cfg(test)]
@@ -754,7 +696,7 @@ mod tests {
         (0..1usize << n_blocks_log).all(|t| {
             // The forward walk gives each row's two factors; no matrix is built.
             let block: Vec<F192> = z[t * K..(t + 1) * K].iter().map(|&b| bit(b)).collect();
-            let (a, b) = row_values_walk(&block);
+            let (a, b) = Blake2sCircuit::row_values(&block);
             (0..K).all(|k| a[k] * b[k] == block[k])
         })
     }
@@ -780,7 +722,7 @@ mod tests {
         let w: Vec<F192> = (0..K)
             .map(|_| F192::new(rng.next_u64(), rng.next_u64(), rng.next_u64()))
             .collect();
-        let (va, vb) = row_values_walk(&w);
+        let (va, vb) = Blake2sCircuit::row_values(&w);
 
         // Fixture state: the regions of the layout, none claimed twice.
         let mut expected = vec![false; K];
@@ -867,7 +809,7 @@ mod tests {
     fn const_pin_all_zero_rejected() {
         // Invariant: every row is homogeneous, so the all-zero witness satisfies them.
         // The lincheck's constant-wire pin rules it out, which is why padding instances are real compressions.
-        assert_eq!(WalkLincheckCircuit.const_pin_col(), Z_CONST_POS);
+        assert_eq!(Blake2sCircuit.const_pin_col(), Z_CONST_POS);
         let z_zero = vec![false; K << 3];
         assert!(satisfies(&z_zero, 3), "homogeneous rows accept zero without the pin");
         let z = witness_bits(&[padding_block()], 3);
