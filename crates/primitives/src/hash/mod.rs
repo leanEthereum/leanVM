@@ -307,7 +307,9 @@ pub fn hash_many_dyn(data: &[u8], len: usize, out: &mut [u8]) {
 mod tests {
     use super::batch::Scalar8;
     use super::*;
-    use crate::test_util::{Rng, test_vectors};
+    #[cfg(target_arch = "x86_64")]
+    use crate::test_util::Rng;
+    use crate::test_util::test_vectors;
     #[cfg(target_arch = "aarch64")]
     use arm::Neon;
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
