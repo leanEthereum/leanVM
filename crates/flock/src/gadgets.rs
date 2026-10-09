@@ -106,8 +106,7 @@ impl Multiplier {
     /// `N` is 64 for the low word, or 128 for the whole product.
     pub fn build<const N: usize>(c: &mut Builder, a: &[Wire; 64], b: &[Wire; 64]) -> ([Wire; N], Self) {
         const { assert!(64 <= N && N <= 128, "a product of two words has 64 to 128 bits") };
-        let n = N;
-        let width = u128::MAX >> (128 - n);
+        let width = u128::MAX >> (128 - N);
         let not_a: [Wire; 64] = std::array::from_fn(|i| c.not(a[i]));
         let not_b: [Wire; 64] = std::array::from_fn(|i| c.not(b[i]));
         let g_slot = c.next_slot();
@@ -115,29 +114,29 @@ impl Multiplier {
 
         // Phase 1: each row's wire per position, all shifted down a place.
         // Row 0's bit 0 is what `g` and the constant one replace.
-        let mut rows = vec![vec![Wire::ZERO; n]; N_ROWS];
+        let mut rows = vec![vec![Wire::ZERO; N]; N_ROWS];
         for i in 0..64usize {
             for (j, &bj) in b.iter().enumerate() {
-                if let Some(p) = (i + j).checked_sub(1).filter(|&p| p < n) {
+                if let Some(p) = (i + j).checked_sub(1).filter(|&p| p < N) {
                     rows[i][p] = c.xor(bj, not_a[i]);
                 }
             }
         }
         // `(NOT a >> 1) + a 2^63`, and the same for `b`.
         for (row, low, high) in [(A_ROW, &not_a, a), (B_ROW, &not_b, b)] {
-            let len = 64.min(n - 63);
+            let len = 64.min(N - 63);
             rows[row][..63].copy_from_slice(&low[1..]);
             rows[row][63..63 + len].copy_from_slice(&high[..len]);
         }
         rows[2][0] = Wire::ONE;
         rows[3][0] = g;
         // Half of the constant `2^128`, which survives only mod `2^128`.
-        if n == 128 {
+        if N == 128 {
             rows[A_ROW][127] = Wire::ONE;
         }
         let mut present: Vec<u128> = rows
             .iter()
-            .map(|row| (0..n).filter(|&p| !row[p].is_zero()).fold(0, |m, p| m | (1 << p)))
+            .map(|row| (0..N).filter(|&p| !row[p].is_zero()).fold(0, |m, p| m | (1 << p)))
             .collect();
 
         // Phase 2: carry-save steps on the three rows that end lowest, until two rows remain.
@@ -155,7 +154,7 @@ impl Multiplier {
             let pairs = ((px & py) | (px & pz) | (py & pz)) & (width >> 1);
             let triples = px & py & pz;
             let (mut products, mut moves) = (0u128, 0u128);
-            for p in (0..n - 1).filter(|&p| (pairs >> p) & 1 == 1) {
+            for p in (0..N - 1).filter(|&p| (pairs >> p) & 1 == 1) {
                 // The carry row is free at `p` unless `p - 1` has a product.
                 if (triples >> p) & 1 == 0 && (products << 1) >> p & 1 == 0 {
                     moves |= 1 << p;
@@ -174,8 +173,8 @@ impl Multiplier {
                 slot: c.next_slot(),
             };
 
-            let (mut sum, mut carry) = (vec![Wire::ZERO; n], vec![Wire::ZERO; n]);
-            for p in 0..n {
+            let (mut sum, mut carry) = (vec![Wire::ZERO; N], vec![Wire::ZERO; N]);
+            for p in 0..N {
                 let (wx, wy, wz) = (rows[x][p], rows[y][p], rows[z][p]);
                 if (products >> p) & 1 == 1 {
                     // A full adder: the majority is the product, the sum is free.
@@ -211,7 +210,7 @@ impl Multiplier {
         let mut carry = Wire::ZERO;
         let mut product = [Wire::ZERO; N];
         for (p, (&wx, &wy)) in rows[x].iter().zip(&rows[y]).enumerate() {
-            let out = if p + 1 < n && [wx, wy, carry].iter().filter(|w| !w.is_zero()).count() >= 2 {
+            let out = if p + 1 < N && [wx, wy, carry].iter().filter(|w| !w.is_zero()).count() >= 2 {
                 carries |= 1 << p;
                 let xc = c.xor(wx, carry);
                 let yc = c.xor(wy, carry);
