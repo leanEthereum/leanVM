@@ -46,7 +46,7 @@ fn fibonacci_guest() {
     }
     proves_and_verifies(
         "fibonacci",
-        include_bytes!("../../../../../programs/fibonacci/fibonacci.elf"),
+        include_bytes!("../../../../programs/fibonacci/fibonacci.elf"),
         &[5000],
         committed(&[&[5000, a]]),
     );
@@ -61,7 +61,7 @@ fn blake2s_guest() {
     let message: Vec<u8> = (0..length).map(|i| (i % 251) as u8).collect();
     proves_and_verifies(
         "blake2s",
-        include_bytes!("../../../../../programs/blake2s/blake2s.elf"),
+        include_bytes!("../../../../programs/blake2s/blake2s.elf"),
         &[length],
         committed(&[&[length], &digest_words(&hash(&message))]),
     );
@@ -75,7 +75,7 @@ fn hash_guest() {
     let message: Vec<u8> = (0..length).map(|i| (i % 251) as u8).collect();
     proves_and_verifies(
         "hash",
-        include_bytes!("../../../../../programs/hash/hash.elf"),
+        include_bytes!("../../../../programs/hash/hash.elf"),
         &[length],
         committed(&[&[length], &digest_words(&hash(&message))]),
     );
@@ -89,12 +89,9 @@ fn the_hash_guests_agree_with_the_host_at_every_block_boundary() {
     let guests = [
         (
             "blake2s",
-            include_bytes!("../../../../../programs/blake2s/blake2s.elf").as_slice(),
+            include_bytes!("../../../../programs/blake2s/blake2s.elf").as_slice(),
         ),
-        (
-            "hash",
-            include_bytes!("../../../../../programs/hash/hash.elf").as_slice(),
-        ),
+        ("hash", include_bytes!("../../../../programs/hash/hash.elf").as_slice()),
     ];
     for (name, elf) in guests {
         let program = Program::from_elf(elf).expect("a guest");
@@ -122,7 +119,7 @@ fn preimage_guest() {
     }));
     proves_and_verifies(
         "preimage",
-        include_bytes!("../../../../../programs/preimage/preimage.elf"),
+        include_bytes!("../../../../programs/preimage/preimage.elf"),
         &advice,
         committed(&[&digest_words(&hash(&message))]),
     );
@@ -154,7 +151,7 @@ fn numbers_guest() {
     let mixed = ((base as i32) / (exponent as i32 | 1)) as i64 % 1000;
     proves_and_verifies(
         "numbers",
-        include_bytes!("../../../../../programs/numbers/numbers.elf"),
+        include_bytes!("../../../../programs/numbers/numbers.elf"),
         &[base, exponent, modulus],
         committed(&[&[base, exponent, modulus], &[pow_mod, gcd, signed as u64, mixed as u64]]),
     );
@@ -163,7 +160,7 @@ fn numbers_guest() {
 /// What is not a guest is refused by name, not run.
 #[test]
 fn malformed_elf_files_are_refused() {
-    let elf = include_bytes!("../../../../../programs/fibonacci/fibonacci.elf");
+    let elf = include_bytes!("../../../../programs/fibonacci/fibonacci.elf");
     assert!(Guest::from_elf(elf).is_ok());
     assert!(Guest::from_elf(&elf[..40]).is_err(), "a truncated header");
     for (at, value, what) in [
@@ -204,7 +201,7 @@ fn malformed_elf_files_are_refused() {
 
 #[test]
 fn malformed_elf_layouts_are_refused() {
-    let elf = include_bytes!("../../../../../programs/fibonacci/fibonacci.elf");
+    let elf = include_bytes!("../../../../programs/fibonacci/fibonacci.elf");
     let word_at = |at: usize| u64::from_le_bytes(elf[at..at + 8].try_into().unwrap());
     let ph = word_at(32) as usize;
     let data = ph + 56;
@@ -285,7 +282,7 @@ fn malformed_elf_layouts_are_refused() {
 
 #[test]
 fn elf_metadata_is_not_part_of_the_program_identity() {
-    let elf = include_bytes!("../../../../../programs/fibonacci/fibonacci.elf");
+    let elf = include_bytes!("../../../../programs/fibonacci/fibonacci.elf");
     let program = Program::from_elf(elf).unwrap();
     let mut metadata = elf.to_vec();
     metadata[9..16].fill(0xa5);

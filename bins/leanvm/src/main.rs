@@ -131,7 +131,7 @@ enum Command {
     /// and the proving passes' `heap-peak` and `allocations`, as the global allocator counts
     /// them; an aggregation tree's case reports them for its first-level node and its node.
     ///
-    /// The lists are `bins/leanvm/src/tracked/mod.rs`.
+    /// The lists are `bins/leanvm/src/tracked.rs`.
     Bench {
         /// Count every program, and two aggregation trees' circuits, at the README's sizes
         /// without proving: the exact counts only.

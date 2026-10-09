@@ -1,6 +1,6 @@
 #!/bin/sh
 # Generate ACT4's self-checking I and M tests for leanVM into elf/ (elf/I, elf/M; not
-# checked in), which leanvm_core/tests/verifiers/act4/mod.rs loads. `generate.sh DIR` writes them to DIR
+# checked in), which leanvm_core/tests/verifiers/act4.rs loads. `generate.sh DIR` writes them to DIR
 # instead. Needs Docker, and network access to build the image (Dockerfile) that
 # pins every tool; ACT4_IMAGE names an image already built from it instead.
 set -eu

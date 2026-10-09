@@ -54,7 +54,7 @@ impl Rng {
 /// jq -r '.[] | select(.hash == "blake2s" and .key == "") | .out' blake2-kat.json
 /// ```
 pub fn test_vectors() -> impl Iterator<Item = (Vec<u8>, [u8; OUT_LEN])> {
-    let lines: Vec<&str> = include_str!("../hash/test_vectors.txt").lines().collect();
+    let lines: Vec<&str> = include_str!("hash/test_vectors.txt").lines().collect();
     assert_eq!(lines.len(), 256, "the vector file is truncated");
     lines.into_iter().enumerate().map(|(n, line)| {
         let input = (0..n).map(|i| i as u8).collect();

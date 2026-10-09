@@ -67,7 +67,7 @@ jobs:
             rustflags: ${{ github.repository == 'leanEthereum/leanVM' && '-C target-cpu=native' || '-C target-cpu=neoverse-n2 -C target-feature=+aes,+sha3' }}
             # What the CPU must have to run that build.
             cpu: ${{ github.repository == 'leanEthereum/leanVM' && 'aes pmull sha3' || 'aes pmull sha3 sve2' }}
-        # The cases of `proven()` and `proven_trees()` in bins/leanvm/src/tracked/mod.rs, run by the
+        # The cases of `proven()` and `proven_trees()` in bins/leanvm/src/tracked.rs, run by the
         # CLI (`-<T>thread`, on T threads: the CLI proves it, a tree's leaf included, with
         # `LEANVM_NUM_THREADS=T`, unpinned to cores since the job has its runner's VM to itself and
         # base and PR alternate within it; a tree's case, `Nto1` for N proofs combined into 1,

@@ -95,7 +95,7 @@ impl Workload {
         let title = format!("BLAKE2s of {} bytes", pretty_integer(&length));
         Self::hosted(
             title,
-            include_bytes!("../../../../programs/hash/hash.elf"),
+            include_bytes!("../../../programs/hash/hash.elf"),
             run,
             length,
             "byte",
