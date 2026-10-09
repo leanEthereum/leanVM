@@ -2,7 +2,7 @@ name: Benchmark website
 
 on:
   schedule:
-    - cron: '23 */6 * * *'
+    - cron: '23 0 * * *' # Daily at 00:23 UTC.
   workflow_dispatch:
 
 permissions: {}
