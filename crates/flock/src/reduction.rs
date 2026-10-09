@@ -12,8 +12,7 @@ use primitives::field::F192;
 use crate::error::FlockError;
 use crate::lincheck::{self, LincheckCircuit, LincheckInput, MatrixClaim, MatrixForm, QuirkyPoint};
 use crate::witness::{Tables, Witness, packed_bytes};
-use crate::zerocheck::multilinear::PackedWitness;
-use crate::zerocheck::{self, K_SKIP, Padding, SkipDomain, ZerocheckInput};
+use crate::zerocheck::{self, K_SKIP, PackedWitness, Padding, SkipDomain, ZerocheckInput};
 
 // A claim's `2^K_SKIP` slices are a ring-switch claim on the packed witness only if they are one word's bits.
 const _: () = assert!(
