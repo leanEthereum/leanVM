@@ -101,8 +101,12 @@ pub struct Multiplier {
 }
 
 impl Multiplier {
-    /// The low `n` bits of `a b`, as wires.
-    pub fn build(c: &mut Builder, a: &[Wire], b: &[Wire], n: usize) -> (Vec<Wire>, Self) {
+    /// The low `N` bits of `a b`, as wires.
+    ///
+    /// `N` is 64 for the low word, or 128 for the whole product.
+    pub fn build<const N: usize>(c: &mut Builder, a: &[Wire; 64], b: &[Wire; 64]) -> ([Wire; N], Self) {
+        const { assert!(64 <= N && N <= 128, "a product of two words has 64 to 128 bits") };
+        let n = N;
         let width = u128::MAX >> (128 - n);
         let not_a: [Wire; 64] = std::array::from_fn(|i| c.not(a[i]));
         let not_b: [Wire; 64] = std::array::from_fn(|i| c.not(b[i]));
@@ -205,7 +209,7 @@ impl Multiplier {
         let carry_slot = c.next_slot();
         let mut carries = 0u128;
         let mut carry = Wire::ZERO;
-        let mut product = Vec::with_capacity(n);
+        let mut product = [Wire::ZERO; N];
         for (p, (&wx, &wy)) in rows[x].iter().zip(&rows[y]).enumerate() {
             let out = if p + 1 < n && [wx, wy, carry].iter().filter(|w| !w.is_zero()).count() >= 2 {
                 carries |= 1 << p;
@@ -218,7 +222,7 @@ impl Multiplier {
                 let xy = c.xor(wx, wy);
                 c.xor(xy, std::mem::take(&mut carry))
             };
-            product.push(out);
+            product[p] = out;
         }
         assert!(is_run(carries), "the final carries must be one run of slots");
 

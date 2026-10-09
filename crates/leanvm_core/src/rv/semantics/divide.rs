@@ -1,7 +1,7 @@
 //! The division: quotients and remainders, and the hints its circuit checks.
 
 use super::{InstructionClass, sext32};
-use crate::rv::circuits::{ClassCircuit, Word, WordGadgets};
+use crate::rv::circuits::{ClassCircuit, WordGadgets};
 use flock::circuit::{Builder, Circuit, Wire};
 use flock::gadgets::Multiplier;
 
@@ -103,15 +103,15 @@ impl ClassCircuit for Div {
     /// The one overflow, `-2^63 / -1`, needs no special case on magnitudes.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 3, 64, 64], &[64, 1]);
-        let (v1, v2, f, q, r) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
+        let [v1, v2] = [0, 1].map(|port| c.input::<64>(port));
+        let f = c.input::<3>(2);
+        let [q, r] = [3, 4].map(|port| c.input::<64>(port));
         let (signed, rem, word) = (f[0], f[1], f[2]);
 
         // A word division divides the low 32 bits, extended as the division is signed or not.
-        let mut extend = |x: &[Wire]| -> Word {
+        let mut extend = |x: &[Wire; 64]| -> [Wire; 64] {
             let sign = c.and(signed, x[31]);
-            (0..64)
-                .map(|i| if i < 32 { x[i] } else { c.mux(word, sign, x[i]) })
-                .collect()
+            std::array::from_fn(|i| if i < 32 { x[i] } else { c.mux(word, sign, x[i]) })
         };
         let (n, d) = (extend(&v1), extend(&v2));
 
@@ -120,14 +120,16 @@ impl ClassCircuit for Div {
         let (n_abs, d_abs) = (c.negate_if(n_negative, &n), c.negate_if(d_negative, &d));
 
         // Check |n| = q * |d| + r: the product fits 64 bits, the sum does not carry, and it equals |n|.
-        let (product, _) = Multiplier::build(&mut c, &q, &d_abs, 128);
-        let overflows = c.any(&product[64..]);
-        let (sum, carries) = c.add_with_carry(&product[..64], &r, Wire::ZERO);
+        let (product, _) = Multiplier::build::<128>(&mut c, &q, &d_abs);
+        let low: [Wire; 64] = std::array::from_fn(|i| product[i]);
+        let high: [Wire; 64] = std::array::from_fn(|i| product[64 + i]);
+        let overflows = c.any(&high);
+        let (sum, carries) = c.add_with_carry(&low, &r, Wire::ZERO);
         let difference = c.xor_word(&sum, &n_abs);
         let differs = c.any(&difference);
 
         // Check r < |d|: r - |d| = r + !|d| + 1 carries out exactly when r >= |d|.
-        let d_inverted: Word = d_abs.iter().map(|&bit| c.not(bit)).collect();
+        let d_inverted = d_abs.map(|bit| c.not(bit));
         let (_, too_large) = c.add_with_carry(&r, &d_inverted, Wire::ONE);
 
         // Any failed check is bad, unless the divisor is zero.
@@ -143,13 +145,11 @@ impl ClassCircuit for Div {
         let (q_signed, r_signed) = (c.negate_if(q_negative, &q), c.negate_if(n_negative, &r));
 
         // The output: the quotient or the remainder, or the zero divisor's result.
-        let out: Word = (0..64)
-            .map(|i| {
-                let result = c.mux(rem, r_signed[i], q_signed[i]);
-                let by_zero = c.mux(rem, n[i], Wire::ONE);
-                c.mux(d_nonzero, result, by_zero)
-            })
-            .collect();
+        let out = std::array::from_fn(|i| {
+            let result = c.mux(rem, r_signed[i], q_signed[i]);
+            let by_zero = c.mux(rem, n[i], Wire::ONE);
+            c.mux(d_nonzero, result, by_zero)
+        });
         let out = c.sext32_if(word, &out);
 
         c.output_word(0, &out);

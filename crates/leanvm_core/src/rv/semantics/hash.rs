@@ -1,7 +1,7 @@
 //! The BLAKE2s compression instruction, and its access to its block.
 
 use super::InstructionClass;
-use crate::rv::circuits::{ClassCircuit, Products, Word, WordGadgets};
+use crate::rv::circuits::{ClassCircuit, Products, WordGadgets};
 use flock::circuit::{Builder, Circuit, Wire};
 use primitives::hash::{G_LANES, IV, SIGMA};
 
@@ -97,21 +97,22 @@ impl ClassCircuit for Hash {
     /// The state is never committed: only the carries are products, and the result is copied out.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&INPUT_BITS, &[64, 64, 64, 64]);
-        let half = |c: &Builder, port: usize, i: usize| -> Word { c.input(port)[32 * (i % 2)..][..32].to_vec() };
-        let literal = |x: u32| -> Word { (0..32).map(|i| Wire::constant(x >> i & 1 == 1)).collect() };
-        let rotr = |w: &[Wire], r: usize| -> Word { (0..32).map(|i| w[(i + r) % 32]).collect() };
+        let half = |x: &[Wire; 64], i: usize| -> [Wire; 32] { std::array::from_fn(|j| x[32 * (i % 2) + j]) };
+        let literal = |x: u32| -> [Wire; 32] { std::array::from_fn(|i| Wire::constant(x >> i & 1 == 1)) };
+        let rotr = |w: &[Wire; 32], r: usize| -> [Wire; 32] { std::array::from_fn(|i| w[(i + r) % 32]) };
 
         // The inputs as 32-bit words: the counter, the finalization word, h and m.
-        let (t, f0) = (c.input(0), c.input(1));
-        let h: Vec<Word> = (0..8).map(|i| half(&c, 2 + i / 2, i)).collect();
-        let m: Vec<Word> = (0..16).map(|i| half(&c, 6 + i / 2, i)).collect();
+        let t = c.input::<64>(0);
+        let f0 = c.input::<32>(1);
+        let h: Vec<[Wire; 32]> = (0..8).map(|i| half(&c.input(2 + i / 2), i)).collect();
+        let m: Vec<[Wire; 32]> = (0..16).map(|i| half(&c.input(6 + i / 2), i)).collect();
 
         // The working vector: h, the IV, with the counter and the finalization word XORed in.
         let mut v = h.clone();
         v.extend(IV[..4].iter().map(|&x| literal(x)));
-        for (i, x) in [&t[..32], &t[32..], &f0, &[Wire::ZERO; 32]].into_iter().enumerate() {
+        for (i, x) in [half(&t, 0), half(&t, 1), f0, [Wire::ZERO; 32]].into_iter().enumerate() {
             let iv = literal(IV[4 + i]);
-            v.push(c.xor_word(&iv, x));
+            v.push(c.xor_word(&iv, &x));
         }
 
         // Ten rounds of eight G's.

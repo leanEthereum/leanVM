@@ -192,13 +192,15 @@ impl ClassCircuit for Load {
     /// - The output keeps the access's width, extended by its top bit if the load is signed.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 3, 64], &[64, 64]);
-        let (v1, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3));
+        let [v1, imm] = [0, 1].map(|port| c.input::<64>(port));
+        let flags = c.input::<3>(2);
+        let cell = c.input::<64>(3);
         let address = c.add_wrapping(&v1, &imm);
-        let [ge2, ge4] = c.width_thresholds(&flags[..2]);
+        let [ge2, ge4] = c.width_thresholds([flags[0], flags[1]]);
         let bus = c.bus_address(&address, [ge2, ge4]);
 
         // At most 4 bytes are loaded, so only the low half of the shifted cell is read.
-        let value = c.shift_bytes(&cell, &address[..3], false, 32);
+        let value = c.shift_bytes::<32>(&cell, [address[0], address[1], address[2]], false);
 
         // The extension: the value's top bit, where the width places it, if the load is signed.
         //
@@ -241,14 +243,16 @@ impl ClassCircuit for Store {
     /// The cell's other bytes are kept.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 64, 2, 64], &[64, 64]);
-        let (v1, v2, imm, flags, cell) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4));
+        let [v1, v2, imm] = [0, 1, 2].map(|port| c.input::<64>(port));
+        let flags = c.input::<2>(3);
+        let cell = c.input::<64>(4);
         let address = c.add_wrapping(&v1, &imm);
-        let [ge2, ge4] = c.width_thresholds(&flags);
+        let [ge2, ge4] = c.width_thresholds(flags);
         let bus = c.bus_address(&address, [ge2, ge4]);
 
         // At most 4 bytes are stored, so the high half of `v2` is never written.
-        let low: Vec<Wire> = (0..64).map(|i| if i < 32 { v2[i] } else { Wire::ZERO }).collect();
-        let value = c.shift_bytes(&low, &address[..3], true, 64);
+        let low: [Wire; 64] = std::array::from_fn(|i| if i < 32 { v2[i] } else { Wire::ZERO });
+        let value = c.shift_bytes::<64>(&low, [address[0], address[1], address[2]], true);
 
         // Byte j is written when it shares the access's block of 2^log_width bytes.
         //
@@ -285,7 +289,7 @@ impl ClassCircuit for Ld {
     /// [`Sd`] shares it.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64], &[64]);
-        let (v1, imm) = (c.input(0), c.input(1));
+        let [v1, imm] = [0, 1].map(|port| c.input::<64>(port));
         let address = c.add_wrapping(&v1, &imm);
         c.output_word(0, &address);
         c.finish()

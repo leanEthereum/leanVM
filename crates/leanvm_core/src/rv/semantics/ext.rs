@@ -130,7 +130,8 @@ impl Ext {
             .collect::<Vec<_>>();
         let mut c = Clock::builder(slots, &[64, 64, 64, 2], &ports);
         let first = 1 + slots.len();
-        let [a, b, d, flags] = std::array::from_fn(|i| c.input(first + i));
+        let [a, b, d] = [0, 1, 2].map(|i| c.input::<64>(first + i));
+        let flags = c.input::<2>(first + 3);
         let (accumulate, base) = (flags[0], flags[1]);
         c.output(1, 0, accumulate);
         c.output(2, 0, base);
@@ -217,8 +218,8 @@ impl Ext {
 ///     sum_i     = x_i ^ carry_i
 ///     carry_i+1 = x_i & carry_i        carry_bit = 1, so carry_bit+1 = x_bit is free
 /// ```
-fn increment(c: &mut Builder, x: &[Wire], bit: usize) -> Vec<Wire> {
-    let mut out = x.to_vec();
+fn increment(c: &mut Builder, x: &[Wire; 64], bit: usize) -> [Wire; 64] {
+    let mut out = *x;
     let mut carry = Wire::ONE;
     for (i, wire) in out.iter_mut().enumerate().skip(bit) {
         let sum = c.xor(*wire, carry);

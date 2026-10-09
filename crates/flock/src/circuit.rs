@@ -193,8 +193,16 @@ impl Builder {
     }
 
     /// An input port's wires, low bit first.
-    pub fn input(&self, port: usize) -> Vec<Wire> {
-        self.inputs[port].clone()
+    ///
+    /// # Panics
+    ///
+    /// Panics if the port is not `N` bits wide.
+    pub fn input<const N: usize>(&self, port: usize) -> [Wire; N] {
+        let wires = &self.inputs[port];
+        wires
+            .as_slice()
+            .try_into()
+            .unwrap_or_else(|_| panic!("input port {port} has {} bits, not {N}", wires.len()))
     }
 
     /// The slot the next product takes.
@@ -709,14 +717,14 @@ mod tests {
 
     /// A random circuit over the builder's whole vocabulary.
     ///
-    /// A narrow input port and an undriven output bit are structural zeros.
+    /// The low bits of one input port and an undriven output bit are structural zeros.
     fn random_circuit(rng: &mut Rng) -> Circuit {
-        // Ports: three input words, one of them narrow, and two outputs.
+        // Ports: three input words, one free only above its low bits, and two outputs, one narrow.
         let narrow = 1 + (rng.next_u32() % 63) as usize;
-        let mut c = Builder::new(&[64, narrow, 64], &[64, narrow]);
+        let mut c = Builder::with_input_ranges(&[0..64, narrow..64, 0..64], &[64, narrow]);
 
         // Operands to draw from: every input bit, a structural zero and the constant.
-        let mut pool: Vec<Wire> = (0..3).flat_map(|port| c.input(port)).collect();
+        let mut pool: Vec<Wire> = (0..3).flat_map(|port| c.input::<64>(port)).collect();
         pool.extend([Wire::ZERO, Wire::ONE]);
 
         // 200 to 1000 random gates, each result an operand for the next.

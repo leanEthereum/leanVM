@@ -1,7 +1,7 @@
 //! The ALU: sums, differences, comparisons, bitwise logic, branches and jumps.
 
 use super::{InstructionClass, sext32};
-use crate::rv::circuits::{ClassCircuit, Products, Word, WordGadgets};
+use crate::rv::circuits::{ClassCircuit, Products, WordGadgets};
 use flock::circuit::{Builder, Circuit, Wire};
 
 /// One ALU instance: add, subtract, compare, bitwise logic, branches and jumps.
@@ -167,7 +167,9 @@ impl ClassCircuit for Alu {
     /// - `jump` is that offset gated by the decision, so the successor `pc + 4 + jump` is linear in the row's columns.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 64, 15, 64, 64], &[64, 64]);
-        let (v1, v2, imm, f, dt, pc4) = (c.input(0), c.input(1), c.input(2), c.input(3), c.input(4), c.input(5));
+        let [v1, v2, imm] = [0, 1, 2].map(|port| c.input::<64>(port));
+        let f = c.input::<15>(3);
+        let [dt, pc4] = [4, 5].map(|port| c.input::<64>(port));
         let flag = |bit: u64| f[bit.trailing_zeros() as usize];
         let b = c.xor_word(&v2, &imm);
 
@@ -175,7 +177,7 @@ impl ClassCircuit for Alu {
         //
         // It borrows exactly when that sum does not carry out.
         let sub = flag(Self::SUB);
-        let b_or_not: Word = b.iter().map(|&bit| c.xor(bit, sub)).collect();
+        let b_or_not = b.map(|bit| c.xor(bit, sub));
         let (sum, carry_out) = c.add_with_carry(&v1, &b_or_not, sub);
 
         // The comparisons, from the borrow and the signs.

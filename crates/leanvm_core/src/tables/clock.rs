@@ -88,13 +88,13 @@ impl Clock {
             .chain(outputs.iter().copied())
             .collect();
         let mut c = Builder::with_input_ranges(&input_bits, &output_bits);
-        let ts = c.input(0);
+        let ts = c.input::<{ Self::CLOCK_BITS }>(0);
         let live = ts[Self::LIVE_BIT as usize];
         let mut in_order = Vec::with_capacity(slots.len());
         let mut disagree = Wire::ZERO;
         for (i, &slot) in slots.iter().enumerate() {
             assert!(slot < 1 << Self::SLOT_BITS, "slot {slot} does not fit its bits");
-            let prev = c.input(1 + i);
+            let prev = c.input::<{ Self::CLOCK_BITS }>(1 + i);
             // Strict ordering is the carry of current + !previous over the low 40 bits.
             // Equal timestamps produce no carry, rejecting a read of its own push.
             let mut carry = Wire::ZERO;
