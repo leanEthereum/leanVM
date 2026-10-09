@@ -1,7 +1,7 @@
 //! Timestamp encoding and the circuit that orders a row's memory accesses.
 
 use crate::rv::circuits::Products;
-use flock::circuit::{Builder, Circuit};
+use flock::circuit::{Builder, Circuit, Wire};
 use std::ops::Range;
 
 /// A row timestamp, including its live bit and access slot.
@@ -91,13 +91,13 @@ impl Clock {
         let ts = c.input(0);
         let live = ts[Self::LIVE_BIT as usize];
         let mut in_order = Vec::with_capacity(slots.len());
-        let mut disagree = None;
+        let mut disagree = Wire::ZERO;
         for (i, &slot) in slots.iter().enumerate() {
             assert!(slot < 1 << Self::SLOT_BITS, "slot {slot} does not fit its bits");
             let prev = c.input(1 + i);
             // Strict ordering is the carry of current + !previous over the low 40 bits.
             // Equal timestamps produce no carry, rejecting a read of its own push.
-            let mut carry = None;
+            let mut carry = Wire::ZERO;
             for (bit, &p) in prev[..Self::LIVE_BIT as usize].iter().enumerate() {
                 let not_prev = c.not(p);
                 carry = if bit >= Self::SLOT_BITS as usize {
@@ -115,7 +115,7 @@ impl Clock {
             let differs = c.xor(prev[Self::LIVE_BIT as usize], live);
             disagree = c.or(disagree, differs);
         }
-        let ordered = in_order.into_iter().reduce(|x, y| c.and(x, y)).flatten();
+        let ordered = in_order.into_iter().reduce(|x, y| c.and(x, y)).unwrap_or(Wire::ZERO);
         let unordered = c.not(ordered);
         let late = c.and(live, unordered);
         let fail = c.or(late, disagree);

@@ -2,7 +2,7 @@
 
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, Products, Word, WordGadgets};
-use flock::circuit::{Builder, Circuit};
+use flock::circuit::{Builder, Circuit, Wire};
 
 /// One ALU instance: add, subtract, compare, bitwise logic, branches and jumps.
 ///
@@ -197,7 +197,7 @@ impl ClassCircuit for Alu {
         //     xor = v1 ^ b
         let sum = c.sext32_if(flag(Self::WORD), &sum);
         let selectors = [Self::SEL_LT, Self::SEL_LTU, Self::SEL_AND, Self::SEL_OR, Self::SEL_XOR];
-        let none = selectors.iter().fold(c.one(), |acc, &s| c.xor(acc, flag(s)));
+        let none = selectors.iter().fold(Wire::ONE, |acc, &s| c.xor(acc, flag(s)));
         let and_or = c.xor(flag(Self::SEL_AND), flag(Self::SEL_OR));
         let or_xor = c.xor(flag(Self::SEL_OR), flag(Self::SEL_XOR));
         let mut out = c.and_word(none, &sum);

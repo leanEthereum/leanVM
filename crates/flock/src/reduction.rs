@@ -339,7 +339,7 @@ mod tests {
 
     /// `a + b mod 2^64`: the carry into bit `i + 1` is `maj(a_i, b_i, c_i) = (a_i + c_i)(b_i + c_i) + c_i`.
     fn ripple_carry(c: &mut Builder, a: &[Wire], b: &[Wire]) -> Vec<Wire> {
-        let mut carry = None;
+        let mut carry = Wire::ZERO;
         let mut sum = Vec::with_capacity(64);
         for i in 0..64 {
             let ac = c.xor(a[i], carry);

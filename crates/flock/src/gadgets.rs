@@ -104,15 +104,14 @@ impl Multiplier {
     /// The low `n` bits of `a b`, as wires.
     pub fn build(c: &mut Builder, a: &[Wire], b: &[Wire], n: usize) -> (Vec<Wire>, Self) {
         let width = u128::MAX >> (128 - n);
-        let one = c.one();
-        let not_a: [Wire; 64] = std::array::from_fn(|i| c.xor(a[i], one));
-        let not_b: [Wire; 64] = std::array::from_fn(|i| c.xor(b[i], one));
+        let not_a: [Wire; 64] = std::array::from_fn(|i| c.not(a[i]));
+        let not_b: [Wire; 64] = std::array::from_fn(|i| c.not(b[i]));
         let g_slot = c.next_slot();
         let g = c.and(not_a[0], not_b[0]);
 
         // Phase 1: each row's wire per position, all shifted down a place.
         // Row 0's bit 0 is what `g` and the constant one replace.
-        let mut rows = vec![vec![None; n]; N_ROWS];
+        let mut rows = vec![vec![Wire::ZERO; n]; N_ROWS];
         for i in 0..64usize {
             for (j, &bj) in b.iter().enumerate() {
                 if let Some(p) = (i + j).checked_sub(1).filter(|&p| p < n) {
@@ -126,15 +125,15 @@ impl Multiplier {
             rows[row][..63].copy_from_slice(&low[1..]);
             rows[row][63..63 + len].copy_from_slice(&high[..len]);
         }
-        rows[2][0] = one;
+        rows[2][0] = Wire::ONE;
         rows[3][0] = g;
         // Half of the constant `2^128`, which survives only mod `2^128`.
         if n == 128 {
-            rows[A_ROW][127] = one;
+            rows[A_ROW][127] = Wire::ONE;
         }
         let mut present: Vec<u128> = rows
             .iter()
-            .map(|row| (0..n).filter(|&p| row[p].is_some()).fold(0, |m, p| m | (1 << p)))
+            .map(|row| (0..n).filter(|&p| !row[p].is_zero()).fold(0, |m, p| m | (1 << p)))
             .collect();
 
         // Phase 2: carry-save steps on the three rows that end lowest, until two rows remain.
@@ -171,7 +170,7 @@ impl Multiplier {
                 slot: c.next_slot(),
             };
 
-            let (mut sum, mut carry) = (vec![None; n], vec![None; n]);
+            let (mut sum, mut carry) = (vec![Wire::ZERO; n], vec![Wire::ZERO; n]);
             for p in 0..n {
                 let (wx, wy, wz) = (rows[x][p], rows[y][p], rows[z][p]);
                 if (products >> p) & 1 == 1 {
@@ -205,10 +204,10 @@ impl Multiplier {
         };
         let carry_slot = c.next_slot();
         let mut carries = 0u128;
-        let mut carry = None;
+        let mut carry = Wire::ZERO;
         let mut product = Vec::with_capacity(n);
         for (p, (&wx, &wy)) in rows[x].iter().zip(&rows[y]).enumerate() {
-            let out = if p + 1 < n && [wx, wy, carry].iter().flatten().count() >= 2 {
+            let out = if p + 1 < n && [wx, wy, carry].iter().filter(|w| !w.is_zero()).count() >= 2 {
                 carries |= 1 << p;
                 let xc = c.xor(wx, carry);
                 let yc = c.xor(wy, carry);
@@ -217,7 +216,7 @@ impl Multiplier {
                 c.xor(xc, wy)
             } else {
                 let xy = c.xor(wx, wy);
-                c.xor(xy, carry.take())
+                c.xor(xy, std::mem::take(&mut carry))
             };
             product.push(out);
         }

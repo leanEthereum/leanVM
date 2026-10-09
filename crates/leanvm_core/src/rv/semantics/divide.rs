@@ -122,14 +122,13 @@ impl ClassCircuit for Div {
         // Check |n| = q * |d| + r: the product fits 64 bits, the sum does not carry, and it equals |n|.
         let (product, _) = Multiplier::build(&mut c, &q, &d_abs, 128);
         let overflows = c.any(&product[64..]);
-        let (sum, carries) = c.add_with_carry(&product[..64], &r, None);
+        let (sum, carries) = c.add_with_carry(&product[..64], &r, Wire::ZERO);
         let difference = c.xor_word(&sum, &n_abs);
         let differs = c.any(&difference);
 
         // Check r < |d|: r - |d| = r + !|d| + 1 carries out exactly when r >= |d|.
         let d_inverted: Word = d_abs.iter().map(|&bit| c.not(bit)).collect();
-        let one = c.one();
-        let (_, too_large) = c.add_with_carry(&r, &d_inverted, one);
+        let (_, too_large) = c.add_with_carry(&r, &d_inverted, Wire::ONE);
 
         // Any failed check is bad, unless the divisor is zero.
         let d_nonzero = c.any(&d);
@@ -147,7 +146,7 @@ impl ClassCircuit for Div {
         let out: Word = (0..64)
             .map(|i| {
                 let result = c.mux(rem, r_signed[i], q_signed[i]);
-                let by_zero = c.mux(rem, n[i], one);
+                let by_zero = c.mux(rem, n[i], Wire::ONE);
                 c.mux(d_nonzero, result, by_zero)
             })
             .collect();

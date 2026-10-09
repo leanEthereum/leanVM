@@ -219,7 +219,7 @@ impl Ext {
 /// ```
 fn increment(c: &mut Builder, x: &[Wire], bit: usize) -> Vec<Wire> {
     let mut out = x.to_vec();
-    let mut carry = c.one();
+    let mut carry = Wire::ONE;
     for (i, wire) in out.iter_mut().enumerate().skip(bit) {
         let sum = c.xor(*wire, carry);
         // The carry out of the top position falls off the modulus.

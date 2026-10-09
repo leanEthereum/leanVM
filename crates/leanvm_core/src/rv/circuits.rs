@@ -77,7 +77,7 @@ impl WordGadgets for Builder {
     }
 
     fn any(&mut self, x: &[Wire]) -> Wire {
-        x.iter().fold(None, |acc, &bit| self.or(acc, bit))
+        x.iter().fold(Wire::ZERO, |acc, &bit| self.or(acc, bit))
     }
 
     fn add_with_carry(&mut self, x: &[Wire], y: &[Wire], carry_in: Wire) -> (Word, Wire) {
@@ -97,7 +97,7 @@ impl WordGadgets for Builder {
     }
 
     fn add_wrapping(&mut self, x: &[Wire], y: &[Wire]) -> Word {
-        let (mut carry, width) = (None, x.len());
+        let (mut carry, width) = (Wire::ZERO, x.len());
         let mut sum = Vec::with_capacity(width);
         for (i, (&x, &y)) in x.iter().zip(y).enumerate() {
             // The sum bit is x ^ y ^ c.
@@ -117,7 +117,7 @@ impl WordGadgets for Builder {
     fn negate_if(&mut self, negative: Wire, x: &[Wire]) -> Word {
         // Two's complement: (x ^ negative) + negative.
         let flipped: Word = x.iter().map(|&bit| self.xor(bit, negative)).collect();
-        self.add_with_carry(&flipped, &[None; 64], negative).0
+        self.add_with_carry(&flipped, &[Wire::ZERO; 64], negative).0
     }
 
     fn sext32_if(&mut self, word: Wire, x: &[Wire]) -> Word {
@@ -144,7 +144,7 @@ impl WordGadgets for Builder {
         (0..64)
             .map(|i| match i {
                 0 | 1 => self.and(address[i], thresholds[i]),
-                2 => None,
+                2 => Wire::ZERO,
                 _ => address[i],
             })
             .collect()
@@ -157,9 +157,9 @@ impl WordGadgets for Builder {
             let by = 8 << stage;
             let from = |x: &[Wire], i: usize| {
                 if left {
-                    i.checked_sub(by).and_then(|j| x[j])
+                    i.checked_sub(by).map_or(Wire::ZERO, |j| x[j])
                 } else {
-                    x.get(i + by).copied().flatten()
+                    x.get(i + by).copied().unwrap_or(Wire::ZERO)
                 }
             };
             let made = if stage + 1 == amount.len() { bits } else { 64 };

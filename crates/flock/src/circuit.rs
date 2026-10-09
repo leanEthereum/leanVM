@@ -31,29 +31,85 @@ use crate::witness::{Batch, GroupTables, Tables, Witness};
 /// Instances one word-wide walk of the gate list computes: one per bit of a word.
 const LANES: usize = 64;
 
-/// A wire: the index of the gate driving it, or `None` for a structural zero.
-pub type Wire = Option<u32>;
+/// A bit of a circuit: the output of one gate, or the structural zero.
+///
+/// The zero has no gate.
+///
+/// Its empty constraint row forces it to 0, so it costs nothing.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct Wire(Option<GateId>);
 
-/// One gate of the list; a gate's index is its wire.
+impl Wire {
+    /// The structural zero.
+    pub const ZERO: Self = Self(None);
+
+    /// The constant one.
+    ///
+    /// Every circuit makes its constant first, so it is always the first gate.
+    pub const ONE: Self = Self(Some(GateId(0)));
+
+    /// The constant 0 or 1.
+    pub const fn constant(bit: bool) -> Self {
+        if bit { Self::ONE } else { Self::ZERO }
+    }
+
+    /// Whether this is the structural zero.
+    pub const fn is_zero(self) -> bool {
+        self.0.is_none()
+    }
+}
+
+/// The position of a gate in the list.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct GateId(u32);
+
+impl GateId {
+    /// The position as an index into a per-gate table.
+    const fn index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+/// The position of a committed bit in an instance's witness.
+#[derive(Clone, Copy, Debug)]
+struct Slot(u32);
+
+impl Slot {
+    /// A slot from its position in the witness.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the position does not fit in 32 bits.
+    fn new(position: usize) -> Self {
+        Self(u32::try_from(position).expect("a slot fits in 32 bits"))
+    }
+
+    /// The position as an index into the witness.
+    const fn index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+/// One gate of the list.
 #[derive(Clone, Copy, Debug)]
 enum Gate {
-    /// A committed free wire at a slot: an input bit, or the constant.
+    /// A committed free bit: an input bit, or the constant.
     ///
     /// Its row is `z[slot] * 1 = z[slot]`.
-    Free(u32),
+    Free(Slot),
 
-    /// The sum of two wires, uncommitted: no row.
-    Xor(u32, u32),
+    /// The sum of two gates, uncommitted: no row.
+    Xor(GateId, GateId),
 
-    /// The product of two wires, committed at a slot.
+    /// The product of two gates, committed at a slot.
     ///
     /// Its row is `x * y = z[slot]`.
-    And(u32, u32, u32),
+    And(GateId, GateId, Slot),
 
-    /// An affine wire committed at a slot, which is how a result leaves the circuit.
+    /// An affine bit committed at a slot, which is how a result leaves the circuit.
     ///
     /// Its row is `x * 1 = z[slot]`.
-    Copy(u32, u32),
+    Copy(GateId, Slot),
 }
 
 /// A gate list under construction.
@@ -63,8 +119,6 @@ pub struct Builder {
     gates: Vec<Gate>,
     /// The slot the next product takes.
     next_slot: usize,
-    /// The constant wire.
-    one: Wire,
     /// Each input port's wires, low bit first.
     inputs: Vec<Vec<Wire>>,
     /// Each output port's first slot and width in bits.
@@ -86,25 +140,31 @@ impl Builder {
     ///
     /// An input bit below its range is a structural zero: its empty row forces it to zero.
     pub fn with_input_ranges(inputs: &[Range<usize>], output_bits: &[usize]) -> Self {
-        // The constant wire sits right after the ports.
+        // The constant sits right after the ports.
         let words = |bits: &mut dyn Iterator<Item = usize>| bits.map(|b| b.div_ceil(64)).sum::<usize>();
         let n_input_words = words(&mut inputs.iter().map(|bits| bits.end));
         let const_pos = 64 * (n_input_words + words(&mut output_bits.iter().copied()));
+
+        // The constant is the first gate, which is what makes it the one wire.
         let mut c = Self {
-            gates: Vec::new(),
+            gates: vec![Gate::Free(Slot::new(const_pos))],
             next_slot: const_pos + 1,
-            one: None,
             inputs: Vec::new(),
             outputs: Vec::new(),
             n_input_words,
         };
-        c.one = Some(c.push(Gate::Free(const_pos as u32)));
 
         // Each input port: a free wire per bit of its range, a structural zero below it.
         let mut base = 0;
         for bits in inputs {
             let wires = (0..bits.end)
-                .map(|i| bits.contains(&i).then(|| c.push(Gate::Free((base + i) as u32))))
+                .map(|i| {
+                    if bits.contains(&i) {
+                        c.push(Gate::Free(Slot::new(base + i)))
+                    } else {
+                        Wire::ZERO
+                    }
+                })
                 .collect();
             c.inputs.push(wires);
             base += 64 * bits.end.div_ceil(64);
@@ -119,14 +179,17 @@ impl Builder {
     }
 
     /// Append a gate, returning its wire.
-    fn push(&mut self, gate: Gate) -> u32 {
+    fn push(&mut self, gate: Gate) -> Wire {
+        let id = u32::try_from(self.gates.len()).expect("a gate list fits in 32 bits");
         self.gates.push(gate);
-        (self.gates.len() - 1) as u32
+        Wire(Some(GateId(id)))
     }
 
-    /// The constant one.
-    pub const fn one(&self) -> Wire {
-        self.one
+    /// Take the next product slot.
+    fn take_slot(&mut self) -> Slot {
+        let slot = Slot::new(self.next_slot);
+        self.next_slot += 1;
+        slot
     }
 
     /// An input port's wires, low bit first.
@@ -141,24 +204,26 @@ impl Builder {
 
     /// `x + y`: free, no slot.
     pub fn xor(&mut self, x: Wire, y: Wire) -> Wire {
-        match (x, y) {
-            (Some(x), Some(y)) => Some(self.push(Gate::Xor(x, y))),
-            // Adding a structural zero is the other wire.
-            _ => x.or(y),
+        match (x.0, y.0) {
+            (Some(a), Some(b)) => self.push(Gate::Xor(a, b)),
+            // Adding the zero leaves the other wire.
+            (None, _) => y,
+            (_, None) => x,
         }
     }
 
     /// `1 + x`: free, no slot.
     pub fn not(&mut self, x: Wire) -> Wire {
-        self.xor(x, self.one)
+        self.xor(x, Wire::ONE)
     }
 
-    /// `x * y`: one product and one slot, unless an operand is a structural zero.
+    /// `x * y`: one product and one slot, unless an operand is the zero.
     pub fn and(&mut self, x: Wire, y: Wire) -> Wire {
-        let (x, y) = (x?, y?);
-        let slot = self.next_slot as u32;
-        self.next_slot += 1;
-        Some(self.push(Gate::And(x, y, slot)))
+        let (Some(x), Some(y)) = (x.0, y.0) else {
+            return Wire::ZERO;
+        };
+        let slot = self.take_slot();
+        self.push(Gate::And(x, y, slot))
     }
 
     /// `x OR y = x + y + x y`: one product.
@@ -177,11 +242,11 @@ impl Builder {
 
     /// Commit `wire` as bit `bit` of output port `port`.
     ///
-    /// A structural zero needs no gate: its empty row forces the bit to zero.
+    /// The zero needs no gate: its empty row forces the bit to zero.
     pub fn output(&mut self, port: usize, bit: usize, wire: Wire) {
         let slot = self.output_slot(port, bit);
-        if let Some(wire) = wire {
-            self.push(Gate::Copy(wire, slot));
+        if let Some(x) = wire.0 {
+            self.push(Gate::Copy(x, slot));
         }
     }
 
@@ -190,15 +255,17 @@ impl Builder {
     /// The port bit is the product's row, so the output costs no copy.
     pub fn and_output(&mut self, port: usize, bit: usize, x: Wire, y: Wire) -> Wire {
         let slot = self.output_slot(port, bit);
-        let (x, y) = (x?, y?);
-        Some(self.push(Gate::And(x, y, slot)))
+        let (Some(x), Some(y)) = (x.0, y.0) else {
+            return Wire::ZERO;
+        };
+        self.push(Gate::And(x, y, slot))
     }
 
     /// The slot of bit `bit` of output port `port`.
-    fn output_slot(&self, port: usize, bit: usize) -> u32 {
+    fn output_slot(&self, port: usize, bit: usize) -> Slot {
         let (base, bits) = self.outputs[port];
         assert!(bit < bits, "output port {port} has {bits} bits");
-        (base + bit) as u32
+        Slot::new(base + bit)
     }
 
     /// The finished circuit, its instances padded to the next power of two.
@@ -268,24 +335,28 @@ impl Circuit {
     /// `inputs` are the input ports' words, and the three buffers come zeroed.
     pub fn witness_instance(&self, inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
         assert_eq!(inputs.len(), self.n_input_words);
-        let set = |buf: &mut [u64], slot: u32, v: bool| buf[slot as usize / 64] |= u64::from(v) << (slot % 64);
+        let set = |buf: &mut [u64], slot: Slot, v: bool| {
+            let i = slot.index();
+            buf[i / 64] |= u64::from(v) << (i % 64);
+        };
         // Wire `i` is gate `i`'s value.
         let mut wires: Vec<bool> = Vec::with_capacity(self.gates.len());
         for &gate in &self.gates {
             let v = match gate {
                 // An input bit or the constant: `z * 1 = z`.
                 Gate::Free(s) => {
-                    let v = s as usize == self.const_pos || (inputs[s as usize / 64] >> (s % 64)) & 1 == 1;
+                    let i = s.index();
+                    let v = i == self.const_pos || (inputs[i / 64] >> (i % 64)) & 1 == 1;
                     set(z, s, v);
                     set(az, s, v);
                     set(bz, s, true);
                     v
                 }
                 // Free: no row.
-                Gate::Xor(x, y) => wires[x as usize] ^ wires[y as usize],
+                Gate::Xor(x, y) => wires[x.index()] ^ wires[y.index()],
                 // A product: `x * y = z`.
                 Gate::And(x, y, s) => {
-                    let (x, y) = (wires[x as usize], wires[y as usize]);
+                    let (x, y) = (wires[x.index()], wires[y.index()]);
                     set(z, s, x & y);
                     set(az, s, x);
                     set(bz, s, y);
@@ -293,7 +364,7 @@ impl Circuit {
                 }
                 // A committed copy: `x * 1 = z`.
                 Gate::Copy(x, s) => {
-                    let v = wires[x as usize];
+                    let v = wires[x.index()];
                     set(z, s, v);
                     set(az, s, v);
                     set(bz, s, true);
@@ -322,24 +393,24 @@ impl Circuit {
             let v = match gate {
                 // An input bit or the constant: `z * 1 = z`.
                 Gate::Free(s) => {
-                    let s = s as usize;
+                    let s = s.index();
                     let v = if s == self.const_pos { u64::MAX } else { inputs[s] };
                     (z[s], a[s], b[s]) = (v, v, u64::MAX);
                     v
                 }
                 // Free: no row, no slot.
-                Gate::Xor(x, y) => wires[x as usize] ^ wires[y as usize],
+                Gate::Xor(x, y) => wires[x.index()] ^ wires[y.index()],
                 // A product: `x * y = z`.
                 Gate::And(x, y, s) => {
-                    let (x, y) = (wires[x as usize], wires[y as usize]);
-                    let s = s as usize;
+                    let (x, y) = (wires[x.index()], wires[y.index()]);
+                    let s = s.index();
                     (z[s], a[s], b[s]) = (x & y, x, y);
                     x & y
                 }
                 // A committed copy: `x * 1 = z`.
                 Gate::Copy(x, s) => {
-                    let v = wires[x as usize];
-                    let s = s as usize;
+                    let v = wires[x.index()];
+                    let s = s.index();
                     (z[s], a[s], b[s]) = (v, v, u64::MAX);
                     v
                 }
@@ -517,19 +588,19 @@ impl Circuit {
         for &gate in &self.gates {
             let v = match gate {
                 Gate::Free(s) => {
-                    let s = s as usize;
+                    let s = s.index();
                     (ra[s], rb[s]) = (w[s], wc);
                     w[s]
                 }
-                Gate::Xor(x, y) => wires[x as usize] + wires[y as usize],
+                Gate::Xor(x, y) => wires[x.index()] + wires[y.index()],
                 Gate::And(x, y, s) => {
-                    let s = s as usize;
-                    (ra[s], rb[s]) = (wires[x as usize], wires[y as usize]);
+                    let s = s.index();
+                    (ra[s], rb[s]) = (wires[x.index()], wires[y.index()]);
                     w[s]
                 }
                 Gate::Copy(x, s) => {
-                    let s = s as usize;
-                    (ra[s], rb[s]) = (wires[x as usize], wc);
+                    let s = s.index();
+                    (ra[s], rb[s]) = (wires[x.index()], wc);
                     w[s]
                 }
             };
@@ -596,27 +667,27 @@ impl LincheckCircuit for Circuit {
             match gate {
                 // `A` reads the slot itself, `B` the constant.
                 Gate::Free(s) => {
-                    let s = s as usize;
+                    let s = s.index();
                     m[s] += g + u[s];
                     m[c] += alpha * u[s];
                 }
                 // An XOR passes its adjoint to both operands.
                 Gate::Xor(x, y) => {
-                    adj[x as usize] += g;
-                    adj[y as usize] += g;
+                    adj[x.index()] += g;
+                    adj[y.index()] += g;
                 }
                 // `A` reads `x`, `B` reads `y`; the slot's own column collects its consumers' adjoint.
                 Gate::And(x, y, s) => {
-                    let s = s as usize;
+                    let s = s.index();
                     m[s] += g;
-                    adj[x as usize] += u[s];
-                    adj[y as usize] += alpha * u[s];
+                    adj[x.index()] += u[s];
+                    adj[y.index()] += alpha * u[s];
                 }
                 // `A` reads `x`, `B` the constant.
                 Gate::Copy(x, s) => {
-                    let s = s as usize;
+                    let s = s.index();
                     m[s] += g;
-                    adj[x as usize] += u[s];
+                    adj[x.index()] += u[s];
                     m[c] += alpha * u[s];
                 }
             }
@@ -646,7 +717,7 @@ mod tests {
 
         // Operands to draw from: every input bit, a structural zero and the constant.
         let mut pool: Vec<Wire> = (0..3).flat_map(|port| c.input(port)).collect();
-        pool.extend([None, c.one()]);
+        pool.extend([Wire::ZERO, Wire::ONE]);
 
         // 200 to 1000 random gates, each result an operand for the next.
         for _ in 0..200 + rng.next_u32() % 800 {

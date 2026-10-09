@@ -208,7 +208,7 @@ impl ClassCircuit for Load {
         let (w1, w2, w4) = (c.not(ge2), c.xor(ge2, ge4), ge4);
         let sign = [(w1, 7), (w2, 15), (w4, 31)]
             .into_iter()
-            .fold(None, |acc, (width, bit)| {
+            .fold(Wire::ZERO, |acc, (width, bit)| {
                 let term = c.and(width, value[bit]);
                 c.xor(acc, term)
             });
@@ -247,7 +247,7 @@ impl ClassCircuit for Store {
         let bus = c.bus_address(&address, [ge2, ge4]);
 
         // At most 4 bytes are stored, so the high half of `v2` is never written.
-        let low: Vec<Wire> = (0..64).map(|i| if i < 32 { v2[i] } else { None }).collect();
+        let low: Vec<Wire> = (0..64).map(|i| if i < 32 { v2[i] } else { Wire::ZERO }).collect();
         let value = c.shift_bytes(&low, &address[..3], true, 64);
 
         // Byte j is written when it shares the access's block of 2^log_width bytes.

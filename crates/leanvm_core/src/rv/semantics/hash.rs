@@ -98,7 +98,7 @@ impl ClassCircuit for Hash {
     fn circuit() -> Circuit {
         let mut c = Builder::new(&INPUT_BITS, &[64, 64, 64, 64]);
         let half = |c: &Builder, port: usize, i: usize| -> Word { c.input(port)[32 * (i % 2)..][..32].to_vec() };
-        let literal = |c: &Builder, x: u32| -> Word { (0..32).map(|i| c.one().filter(|_| x >> i & 1 == 1)).collect() };
+        let literal = |x: u32| -> Word { (0..32).map(|i| Wire::constant(x >> i & 1 == 1)).collect() };
         let rotr = |w: &[Wire], r: usize| -> Word { (0..32).map(|i| w[(i + r) % 32]).collect() };
 
         // The inputs as 32-bit words: the counter, the finalization word, h and m.
@@ -108,9 +108,9 @@ impl ClassCircuit for Hash {
 
         // The working vector: h, the IV, with the counter and the finalization word XORed in.
         let mut v = h.clone();
-        v.extend(IV[..4].iter().map(|&x| literal(&c, x)));
-        for (i, x) in [&t[..32], &t[32..], &f0, &[None; 32]].into_iter().enumerate() {
-            let iv = literal(&c, IV[4 + i]);
+        v.extend(IV[..4].iter().map(|&x| literal(x)));
+        for (i, x) in [&t[..32], &t[32..], &f0, &[Wire::ZERO; 32]].into_iter().enumerate() {
+            let iv = literal(IV[4 + i]);
             v.push(c.xor_word(&iv, x));
         }
 
