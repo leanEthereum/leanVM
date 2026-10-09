@@ -93,7 +93,7 @@ use crate::witness::{
     write_lin_word_ab_packed,
 };
 use pcs::pack::{LOG_PACKING, PACKING_WIDTH};
-use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
+use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchPart};
 use primitives::field::F192;
 
 // ---------------------------------------------------------------------------
@@ -740,53 +740,34 @@ pub fn qflock_kappa(n_blocks: usize) -> usize {
     K_LOG + min_n_blocks_log(n_blocks.max(1)) - LOG_PACKING
 }
 
-/// One reduction claim as a tower [`RingSwitchClaim`]: the `2^k_skip` slices and
-/// the suffix point they live at, which is the WHOLE multilinear tail of the
-/// quirky point (`q_flock` has `2^qflock_vars` words, and the packing prefix is
-/// exactly the skipped coordinates, so nothing is split off into it).
-fn ring_claim(claim: &SliceClaim, qflock_vars: usize) -> RingSwitchClaim {
+/// The reduction's claim as a [`RingSwitchClaim`] on `q_flock`, which sits at
+/// `offset` in the committed stack, so the PCS discharges flock's validity in the
+/// same opening as the embedder's own claims. The `2^k_skip` slices live at the
+/// WHOLE multilinear tail of the quirky point (`q_flock` has `2^qflock_kappa`
+/// words, and the packing prefix is exactly the skipped coordinates, so nothing is
+/// split off into it). Prover and verifier build the same statement.
+pub fn ring_switch_claim(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchClaim {
     assert_eq!(
         claim.suffix_point.len(),
-        qflock_vars,
+        qflock_kappa(n_blocks),
         "ring-switch suffix must span the q_flock cube"
     );
     assert_eq!(claim.s_hat_v.len(), PACKING_WIDTH);
     RingSwitchClaim {
-        suffix_point: claim.suffix_point.clone(),
+        parts: vec![RingSwitchPart {
+            offset,
+            suffix_point: claim.suffix_point.clone(),
+            scale: F192::ONE,
+        }],
         s_hat_v: Some(claim.s_hat_v.clone()),
     }
 }
 
-/// Package the prover's reduction claim as a [`RingSwitchOpen`], so the PCS
-/// discharges flock's validity in the same opening as the embedder's own point
-/// claims. `offset` is `q_flock`'s slot in the committed stack; the opener
-/// slices `q_flock` from there.
-pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) -> RingSwitchOpen {
-    let qflock_vars = qflock_kappa(n_blocks);
+/// [`ring_switch_claim`] as the whole ring-switched side of an opening, for a
+/// stack whose only packed bits are `q_flock`'s.
+pub fn ring_switch_open(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchOpen {
     RingSwitchOpen {
-        offset,
-        qflock_vars,
-        claims: vec![ring_claim(reduced, qflock_vars)],
-    }
-}
-
-/// Verifier counterpart of [`ring_switch_open`]: package the recovered claim as
-/// a [`RingSwitchVerify`], the same statement data. The transmitted opening
-/// travels separately.
-pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
-    let qflock_vars = qflock_kappa(n_blocks);
-    assert_eq!(
-        claim.suffix_point.len(),
-        qflock_vars,
-        "ring-switch suffix must span the q_flock cube"
-    );
-    RingSwitchVerify {
-        offset,
-        qflock_vars,
-        claims: vec![RingSwitchVerifyClaim {
-            suffix_point: &claim.suffix_point,
-            s_hat_v: claim.s_hat_v.as_slice().try_into().expect("ring-switch has 64 slices"),
-        }],
+        claims: vec![ring_switch_claim(n_blocks, offset, claim)],
     }
 }
 

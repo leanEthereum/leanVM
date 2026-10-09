@@ -6,7 +6,7 @@
 //! value columns and `q_flock`'s slots are point-evals of the same committed
 //! stack), and flock's R1CS validity is discharged by the same stacked WHIR:
 //! the reduction's two tower-field claims pass through
-//! [`ring_switch_open`] / [`ring_switch_verify`] and join the batch-mixed
+//! [`ring_switch_claim`] and join the batch-mixed
 //! opening ([`::pcs::stack_open`]).
 //!
 //! ## The mapping
@@ -41,7 +41,7 @@ use primitives::field::{F64, F192};
 use primitives::stream::Stream;
 
 pub use flock::hash::{
-    SliceClaim, min_n_blocks_log as n_blocks_log, qflock_kappa, ring_switch_open, ring_switch_verify,
+    SliceClaim, min_n_blocks_log as n_blocks_log, qflock_kappa, ring_switch_claim, ring_switch_open,
 };
 
 /// BLAKE2s's final-block flag `f0`, which RFC 7693 sets to all ones on the last
@@ -417,7 +417,7 @@ mod tests {
             let mut vs = VerifierState::from_label(label, &bundle);
             let root = crate::pcs::read_commitment(&mut vs).map_err(|_| "root")?;
             let replay = verify_reduction(blocks.len(), &mut vs).map_err(|_| "reduction")?;
-            let ring = ring_switch_verify(blocks.len(), offset, &replay.claim);
+            let ring = ring_switch_open(blocks.len(), offset, &replay.claim);
             crate::pcs::verify(
                 &mut vs,
                 points,

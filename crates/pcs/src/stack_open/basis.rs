@@ -3,7 +3,7 @@ use std::mem::MaybeUninit;
 use primitives::field::{F64, F192};
 use primitives::multilinear::fill_eq_table_uninit;
 
-use super::{RingSwitchOpen, StackClaim};
+use super::StackClaim;
 use crate::ring_switch::{DeferredRingSwitchOutput, combine_deferred_chunk};
 use crate::whir::{INITIAL_BASIS_CHUNK, SumcheckMessage, build_initial_basis};
 
@@ -77,7 +77,6 @@ pub(super) fn build(
     lane_block: usize,
     claims: &[StackClaim],
     lambdas: &[F192],
-    ring: &RingSwitchOpen,
     rs_outputs: &[DeferredRingSwitchOutput],
 ) -> (Vec<F192>, SumcheckMessage) {
     assert_eq!(claims.len(), lambdas.len());
@@ -93,14 +92,9 @@ pub(super) fn build(
             lane.push(index);
         }
     }
-    let ring_end = ring.offset + (1 << ring.qflock_vars);
     build_initial_basis(stack, lane_block, |start, dst| {
         dst.fill(F192::ZERO);
-        let lo = start.max(ring.offset);
-        let hi = (start + dst.len()).min(ring_end);
-        if lo < hi {
-            combine_deferred_chunk(rs_outputs, lo - ring.offset, &mut dst[lo - start..hi - start]);
-        }
+        combine_deferred_chunk(rs_outputs, start, dst);
         let mut scratch = [MaybeUninit::uninit(); INITIAL_BASIS_CHUNK];
         for &index in &by_lane[start / lane_block] {
             weights[index].add(start, dst, &mut scratch);

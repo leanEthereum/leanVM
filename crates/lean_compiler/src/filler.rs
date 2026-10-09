@@ -6,7 +6,7 @@
 //! matches, so the verifier has to be told each table's real row count and divide those
 //! tuples back out. That correction was the most delicate part of the bus argument, and
 //! it existed only for the instruction tables; unread memory cells and unexecuted
-//! program entries already need nothing, their seed and finalize tuples cancelling.
+//! program entries need nothing, a lookup array being indifferent to what reads it.
 //!
 //! So run the difference off instead. Every program carries, past `main`'s halt, one
 //! block per table per size in `leanvm_core::cpu::filler::SIZES`: that many dummy

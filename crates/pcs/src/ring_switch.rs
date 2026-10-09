@@ -154,6 +154,41 @@ fn apply_composed_map(mut value: F192, challenges: &[F192; COMPOSITION_SHIFTS.le
     value
 }
 
+/// The composed map as a linearized polynomial: `Phi(a) = sum_k c_k·a^(2^k)`,
+/// `k < 64`, by running the composition on the coefficient table. A stage of shift
+/// `d` sends coefficient `c_s` to `f·c_s^(2^d)` at `s + d`.
+pub fn frobenius_coefficients(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> [F192; PACKING_WIDTH] {
+    let mut coefficients = [F192::ZERO; PACKING_WIDTH];
+    coefficients[0] = F192::ONE;
+    for (&challenge, &shift) in challenges.iter().zip(COMPOSITION_SHIFTS.iter()) {
+        for slot in (0..PACKING_WIDTH).step_by(2 * shift) {
+            let raised = (0..shift).fold(coefficients[slot], |v, _| v.square());
+            coefficients[slot + shift] = challenge * raised;
+        }
+    }
+    coefficients
+}
+
+/// `MLE(Phi(scale·eq(z, .)))(query)` from the map's Frobenius coefficients:
+/// Frobenius passes through `eq` on the cube, so the weight is
+/// `sum_k c_k·scale^(2^k)·prod_n (1 + z_n^(2^k) + query_n)`. Same value as
+/// [`eval_rs_eq`], at a multiplication and a squaring per coordinate per term.
+pub fn eval_weight(z_vals: &[F192], query: &[F192], scale: F192, coefficients: &[F192; PACKING_WIDTH]) -> F192 {
+    assert_eq!(z_vals.len(), query.len());
+    let mut z = z_vals.to_vec();
+    let mut scale = scale;
+    let mut total = F192::ZERO;
+    for &c in coefficients {
+        total += z
+            .iter()
+            .zip(query)
+            .fold(c * scale, |acc, (&zv, &q)| acc * (F192::ONE + zv + q));
+        z.iter_mut().for_each(|v| *v = v.square());
+        scale = scale.square();
+    }
+    total
+}
+
 /// Sample the composed map's challenges after every ring-switch message has
 /// been bound.
 pub fn sample_map_challenges(ch: &mut impl Challenger) -> [F192; COMPOSITION_SHIFTS.len()] {
@@ -295,6 +330,55 @@ fn fold_one_slot_ext(elem: F192, tables: &FoldByteTable) -> F192 {
     acc
 }
 
+/// One aligned slice of the stack a ring-switched claim reads: the packed words
+/// `stack[offset .. offset + 2^|suffix_point|]`, weighted by `scale·eq(suffix_point, ·)`.
+///
+/// A claim over several parts is ONE weight `W = Σ_p scale_p·eq(z_p, ·)` supported
+/// on their slices, with one family of 64 slices `Σ_y bit_i(stack[y])·W(y)`. The
+/// batching map is only `F_2`-linear, so a scale cannot be pulled out of it: it
+/// belongs to the weight, which is what lets several bit-MLE claims sharing their
+/// packing prefix ride one family.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RingSwitchPart {
+    /// Must be a multiple of `2^|suffix_point|`.
+    pub offset: usize,
+    pub suffix_point: Vec<F192>,
+    pub scale: F192,
+}
+
+/// The factored weight `scale·eq(z, ·)` of one part, at its offset.
+#[derive(Clone)]
+struct DeferredPart {
+    offset: usize,
+    eq_lo: Vec<F192>,
+    eq_hi: Vec<F192>,
+}
+
+impl DeferredPart {
+    fn new(part: &RingSwitchPart) -> Self {
+        let (mut eq_lo, eq_hi) = build_eq_split_ext(&part.suffix_point);
+        if part.scale != F192::ONE {
+            eq_lo.iter_mut().for_each(|e| *e *= part.scale);
+        }
+        Self {
+            offset: part.offset,
+            eq_lo,
+            eq_hi,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.eq_lo.len() * self.eq_hi.len()
+    }
+
+    /// The weight at word `y` of the part.
+    #[inline(always)]
+    fn at(&self, y: usize) -> F192 {
+        let lo_bits = self.eq_lo.len().trailing_zeros();
+        self.eq_lo[y & (self.eq_lo.len() - 1)] * self.eq_hi[y >> lo_bits]
+    }
+}
+
 /// Deferred, lambda-baked ring-switch output used by the stacked opener.
 ///
 /// Keeping the split eq factors and the tiny byte table avoids materializing
@@ -302,8 +386,7 @@ fn fold_one_slot_ext(elem: F192, tables: &FoldByteTable) -> F192 {
 /// claim's batching scalar, so combining several claims needs only additions.
 pub(crate) struct DeferredRingSwitchOutput {
     pub(crate) batched_sumcheck_claim: F192,
-    eq_lo: Vec<F192>,
-    eq_hi: Vec<F192>,
+    parts: Vec<DeferredPart>,
     table: Box<FoldByteTable>,
 }
 
@@ -319,30 +402,23 @@ pub(crate) fn prove_finish_deferred(
     let scaled_weights: Vec<F192> = coordinate_weights.iter().map(|&x| lambda * x).collect();
     DeferredRingSwitchOutput {
         batched_sumcheck_claim: lambda * sumcheck_claim,
-        eq_lo: state.eq_lo,
-        eq_hi: state.eq_hi,
+        parts: state.parts,
         table: build_fold_byte_table_ext(&scaled_weights),
     }
 }
 
-/// Fold several deferred claims into `out[start..]` of their combined dense
-/// basis, accumulating, so `out` arrives zeroed. No per-claim dense vector is
-/// allocated or read back. `start` is an offset into the basis, which lets a
-/// caller cover it one cache-resident window at a time.
+/// Fold several deferred claims into `out`, the window of their combined dense
+/// basis starting at stack word `start`, accumulating, so `out` arrives zeroed. No
+/// per-claim dense vector is allocated or read back, which lets a caller cover the
+/// basis one cache-resident window at a time.
 pub(crate) fn combine_deferred_chunk(outputs: &[DeferredRingSwitchOutput], start: usize, out: &mut [F192]) {
     for claim in outputs {
-        let block_len = claim.eq_lo.len();
-        assert!(start + out.len() <= block_len * claim.eq_hi.len());
-        let mut done = 0;
-        while done < out.len() {
-            let index = start + done;
-            let lo = index % block_len;
-            let len = (block_len - lo).min(out.len() - done);
-            let e_hi = claim.eq_hi[index / block_len];
-            for (slot, &e_lo) in out[done..done + len].iter_mut().zip(&claim.eq_lo[lo..lo + len]) {
-                *slot += fold_one_slot_ext(e_lo * e_hi, &claim.table);
+        for part in &claim.parts {
+            let lo = start.max(part.offset);
+            let hi = (start + out.len()).min(part.offset + part.len());
+            for index in lo..hi {
+                out[index - start] += fold_one_slot_ext(part.at(index - part.offset), &claim.table);
             }
-            done += len;
         }
     }
 }
@@ -382,42 +458,48 @@ pub enum VerifyError {
 #[derive(Clone)]
 pub struct RingSwitchProveState {
     s_hat_v: Vec<F192>,
-    eq_lo: Vec<F192>,
-    eq_hi: Vec<F192>,
+    parts: Vec<DeferredPart>,
 }
 
-/// Phase 1 of the ring-switch prover: get `s_hat_v`, the 64 bit-slice values at
-/// `suffix_point`, and return the scratch for finalization. The caller samples the
-/// possibly shared map afterwards.
+/// Phase 1 of the ring-switch prover: get `s_hat_v`, the claim's 64 slices over
+/// its `parts` of the packed `stack`, and return the scratch for finalization. The
+/// caller samples the possibly shared map afterwards.
 ///
 /// The slices are NOT sent here: the caller has already bound them (flock sends
 /// its family itself, see `flock::hash`), which is what lets this
 /// phase touch no transcript at all. `precomputed_s_hat_v` is `None` only for a
 /// caller that wants them folded out of the witness instead.
 pub fn prove_prepare(
-    packed_witness: &[F64],
-    suffix_point: &[F192],
+    stack: &[F64],
+    parts: &[RingSwitchPart],
     precomputed_s_hat_v: Option<&[F192]>,
 ) -> RingSwitchProveState {
-    assert_eq!(
-        packed_witness.len(),
-        1usize << suffix_point.len(),
-        "packed witness must have 2^|suffix_point| words"
-    );
-    let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
+    let parts: Vec<DeferredPart> = parts.iter().map(DeferredPart::new).collect();
+    for part in &parts {
+        assert!(
+            part.offset.is_multiple_of(part.len()),
+            "a part must be an aligned slice"
+        );
+        assert!(
+            part.offset + part.len() <= stack.len(),
+            "a part must fit inside the stack"
+        );
+    }
     let s_hat_v = match precomputed_s_hat_v {
         Some(v) => {
             assert_eq!(v.len(), PACKING_WIDTH);
             v.to_vec()
         }
-        None => {
-            let mask = eq_lo.len() - 1;
-            let shift = eq_lo.len().trailing_zeros();
-            let full: Vec<F192> = parallel::map_collect(packed_witness.len(), |y| eq_lo[y & mask] * eq_hi[y >> shift]);
-            fold_1b_rows(packed_witness, &full)
-        }
+        None => parts
+            .iter()
+            .map(|part| {
+                let full: Vec<F192> = parallel::map_collect(part.len(), |y| part.at(y));
+                fold_1b_rows(&stack[part.offset..part.offset + part.len()], &full)
+            })
+            .reduce(xor_accs)
+            .expect("a ring-switched claim has at least one part"),
     };
-    RingSwitchProveState { s_hat_v, eq_lo, eq_hi }
+    RingSwitchProveState { s_hat_v, parts }
 }
 
 /// Phase 2 of the ring-switch verifier: given the shared coordinate weights,
@@ -462,10 +544,12 @@ pub fn verify_finish(s_hat_v: &[F192], coordinate_weights: &[F192]) -> F192 {
 ///
 /// * `z_vals`: the ring-switch suffix point,
 ///   length L = m - 6.
+/// * `scale`: the part's scale, which rides the weight's second factor:
+///   `Theta` starts at `1 (x) scale`.
 /// * `query`: the WHIR final challenges, length L, same coordinate order.
 /// * `coordinate_weights`: the 192 coordinate batching weights, the same ones
 ///   passed to [`verify_finish`].
-pub fn eval_rs_eq(z_vals: &[F192], query: &[F192], coordinate_weights: &[F192]) -> F192 {
+pub fn eval_rs_eq(z_vals: &[F192], query: &[F192], scale: F192, coordinate_weights: &[F192]) -> F192 {
     assert_eq!(
         z_vals.len(),
         query.len(),
@@ -477,7 +561,7 @@ pub fn eval_rs_eq(z_vals: &[F192], query: &[F192], coordinate_weights: &[F192]) 
         "eval_rs_eq: coordinate_weights length must be 192"
     );
 
-    let mut eval = TensorAlgebraE::from_vertical(F192::ONE);
+    let mut eval = TensorAlgebraE::from_vertical(scale);
     for (&z_i, &q_i) in z_vals.iter().zip(query.iter()) {
         let vert_scaled = eval.clone().scale_vertical(z_i);
         let hztl_scaled = eval.clone().scale_horizontal(q_i);
@@ -499,6 +583,15 @@ mod tests {
     use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
+    /// The single part covering a whole packed witness, unscaled.
+    fn whole(suffix_point: &[F192]) -> RingSwitchPart {
+        RingSwitchPart {
+            offset: 0,
+            suffix_point: suffix_point.to_vec(),
+            scale: F192::ONE,
+        }
+    }
+
     /// Pack bit `64 * y + i` of `bits` into bit `i` of word `y`.
     fn pack_witness(bits: &[bool]) -> Vec<F64> {
         let word = |c: &[bool]| c.iter().rev().fold(0, |acc, &b| acc << 1 | b as u64);
@@ -516,13 +609,9 @@ mod tests {
         let coordinate_weights = rng.ext_vec(DEGREE_E);
         let lambdas = [rng.ext(), rng.ext()];
         let states = (0..2)
-            .map(|_| {
-                let (eq_lo, eq_hi) = build_eq_split_ext(&point);
-                RingSwitchProveState {
-                    s_hat_v: rng.ext_vec(PACKING_WIDTH),
-                    eq_lo,
-                    eq_hi,
-                }
+            .map(|_| RingSwitchProveState {
+                s_hat_v: rng.ext_vec(PACKING_WIDTH),
+                parts: vec![DeferredPart::new(&whole(&point))],
             })
             .collect::<Vec<_>>();
 
@@ -713,7 +802,7 @@ mod tests {
             "prefix x suffix split must factor the MLE"
         );
         assert_eq!(
-            prove_prepare(&packed, suffix_point, None).s_hat_v,
+            prove_prepare(&packed, &[whole(suffix_point)], None).s_hat_v,
             s_ref,
             "the witness fold must reproduce the reference slices"
         );
@@ -747,7 +836,16 @@ mod tests {
         let eq_query = build_eq_table_ext(&query);
         let dense = inner_product_ext(&rs_eq_ind, &eq_query);
 
-        assert_eq!(eval_rs_eq(&z, &query, &coordinate_weights), dense);
+        assert_eq!(eval_rs_eq(&z, &query, F192::ONE, &coordinate_weights), dense);
+        // A scale rides inside the map, which is not E-linear.
+        let scale = rng.ext();
+        let scaled: Vec<F192> = build_eq_table_ext(&z).iter().map(|&e| scale * e).collect();
+        let dense = inner_product_ext(&fold_dense(&scaled, &coordinate_weights), &eq_query);
+        assert_eq!(eval_rs_eq(&z, &query, scale, &coordinate_weights), dense);
+        assert_eq!(
+            eval_weight(&z, &query, scale, &frobenius_coefficients(&challenges)),
+            dense
+        );
     }
 
     // -- end-to-end: reduction + whir opening --------------------------
@@ -790,7 +888,7 @@ mod tests {
         // Drive the production two-phase API with a single claim: prepare the
         // slices, sample the shared map, finish with a batching scalar of one.
         let mut ps = fiat_shamir::transcript::ProverState::from_label(E2E_DOMAIN);
-        let state = prove_prepare(&packed, &suffix_point, None);
+        let state = prove_prepare(&packed, &[whole(&suffix_point)], None);
         let rs_s_hat_v = state.s_hat_v.clone();
         let coordinate_weights = build_coordinate_weights(&sample_map_challenges(&mut ps));
         let out = prove_finish_deferred(state, &coordinate_weights, F192::ONE);
@@ -857,7 +955,7 @@ mod tests {
             1 << e.vc.initial_k,
             sumcheck_claim,
             &e.root,
-            |point| eval_rs_eq(&z, point, &coordinate_weights),
+            |point| eval_rs_eq(&z, point, F192::ONE, &coordinate_weights),
             &mut vs,
         )
         .is_ok()

@@ -75,10 +75,9 @@ LAYER_FS1 = 1
 LAYER_CURSOR = 2
 LAYER_PUSH = 3
 LAYER_PULL = 4
-LAYER_COUNT = 5
-LAYER_ROW = 6
-LAYER_POS = 7
-LAYER_SLOTS = 8
+LAYER_ROW = 5
+LAYER_POS = 6
+LAYER_SLOTS = 7
 # One OOD sample of a WHIR level.
 OOD_BETA = 0
 OOD_Y = 1
@@ -87,36 +86,34 @@ OOD_C2 = 3
 OOD_SLOTS = 4
 
 # ---------------------------------------------------- the bus: sides and blocks
-# GKR sides. The layer counts mu_s are hinted and certified from the block kappas;
-# GKR_ROUNDS_CAP caps the per-tree round positions (triangle rounds plus one slot
-# per layer) and GKR_POINTS_CAP the point triangle (rows x MU_CAP).
+# The bus carries the VM state alone. GKR sides: the layer count mu is certified
+# from the block kappas; GKR_ROUNDS_CAP caps the per-tree round positions (triangle
+# rounds plus one slot per layer) and GKR_POINTS_CAP the point triangle (rows x
+# MU_CAP).
 PUSH_SIDE = 0
 PULL_SIDE = 1
-COUNT_SIDE = 2
-N_GKR_SIDES = 3
+N_GKR_SIDES = 2
 GKR_ROUNDS_CAP = GKR_ROUNDS_CAP_PLACEHOLDER
 MU_CAP = MU_CAP_PLACEHOLDER
 GKR_POINTS_CAP = GKR_POINTS_CAP_PLACEHOLDER
-# Bus blocks, flattened across the 3 sides (side s covers blocks
+# Bus blocks, flattened across the 2 sides (side s covers blocks
 # [SIDE_BLOCK_START[s], SIDE_BLOCK_START[s+1])). The block STRUCTURE is
 # protocol-fixed and baked: each block's coord range [BLOCK_COORD_OFF,
 # +BLOCK_COORD_COUNT), per coord its COORD_TYPE kind (mirroring leaf.rs::Coord),
 # COORD_CONST (the const value, a product's or gcol's g^k, else 0), and the kappa
-# SOURCE map (BLOCK_KAPPA_SRC/ADJ: 0 = const adj, 1 = log_mem, 2+t = tau_t). The
-# block SHAPES are all reconstructed at runtime from the certified logs: kappa
-# directly, the selector bits by pinned advice-decompositions. BLOCK_TABLE names
-# the table a block's flush belongs to, or NO_TABLE for the framework blocks
-# (boundary, memory seed/finalize, bytecode seed/finalize); it is also what marks a
-# block as owned, an owned block's fingerprint being settled by the table sumcheck
-# off its table's column evaluations.
+# SOURCE map (BLOCK_KAPPA_SRC/ADJ: 0 = const adj, 2+t = tau_t). The block SHAPES
+# are all reconstructed at runtime from the certified logs: kappa directly, the
+# selector bits by pinned advice-decompositions. BLOCK_TABLE names the table a
+# block's flush belongs to, or NO_TABLE for the boundary state, whose tuple is
+# public; an owned block's fingerprint is settled by the table sumcheck off its
+# table's column evaluations.
 COORD_KIND_CONST = 0
 COORD_KIND_COL = 1
 COORD_KIND_GCOL = 2
-COORD_KIND_INDEX = 3
-COORD_KIND_PUBLIC = 4
 COORD_KIND_PROD = 5
 NO_TABLE = NO_TABLE_PLACEHOLDER
 SIDE_BLOCK_START = SIDE_BLOCK_START_PLACEHOLDER
+N_PUSH_BLOCKS = N_PUSH_BLOCKS_PLACEHOLDER  # = SIDE_BLOCK_START[PULL_SIDE]
 N_BLOCKS = N_BLOCKS_PLACEHOLDER
 BLOCK_KAPPA_SRC = BLOCK_KAPPA_SRC_PLACEHOLDER
 BLOCK_KAPPA_ADJ = BLOCK_KAPPA_ADJ_PLACEHOLDER
@@ -126,47 +123,65 @@ BLOCK_COORD_OFF = BLOCK_COORD_OFF_PLACEHOLDER
 BLOCK_COORD_COUNT = BLOCK_COORD_COUNT_PLACEHOLDER
 COORD_TYPE = COORD_TYPE_PLACEHOLDER
 COORD_CONST = COORD_CONST_PLACEHOLDER
-# Claim dedup: push/pull share their GKR point, so a column read by two blocks with
-# the same kappa (across OR within the sides) is streamed and opened ONCE.
-# COORD_FRESH = 1 on the first occurrence (read the stream, fill pool slot
-# COORD_CLAIM_SLOT), 0 on a duplicate (reuse that slot). The count side has its own
-# point, so its claims never dedup against the pair's.
-COORD_FRESH = COORD_FRESH_PLACEHOLDER
-COORD_CLAIM_SLOT = COORD_CLAIM_SLOT_PLACEHOLDER
-# A TABLE block's coordinates, flattened into TERMS: coord c is
+# A coordinate of a TABLE block or of a read, flattened into TERMS: coord c is
 # Σ_{j < COORD_TERM_COUNT[c]} term(COORD_TERM_OFF[c] + j), each term a TERM_TYPE
 # kind over that table's LOCAL column indices TERM_COL_A/TERM_COL_B, scaled by
 # TERM_CONST. Those coords raise no claim (the table sumcheck settles them), which
 # is what lets one carry a value the row DERIVES from its columns: an XOR/MUL
-# result, a DEREF store, a JUMP successor. A framework coord has no terms.
+# result, a DEREF store, a JUMP successor. A boundary coord has no terms.
 COORD_TERM_OFF = COORD_TERM_OFF_PLACEHOLDER
 COORD_TERM_COUNT = COORD_TERM_COUNT_PLACEHOLDER
 TERM_TYPE = TERM_TYPE_PLACEHOLDER
 TERM_CONST = TERM_CONST_PLACEHOLDER
 TERM_COL_A = TERM_COL_A_PLACEHOLDER
 TERM_COL_B = TERM_COL_B_PLACEHOLDER
-N_BUS_CLAIMS = N_BUS_CLAIMS_PLACEHOLDER
 INDEX_MLE_FACTORS = INDEX_MLE_FACTORS_PLACEHOLDER  # 1 + g^(2^i)
-# Committed-coordinate claims (Col/GCol coords across all sides) and the deferred
-# bytecode values (Public coords).
+# Pooled claims on committed columns: every table column, the three public-input
+# memory limbs, then the memory's three limbs at its read-checking point.
 N_CLAIMS = N_CLAIMS_PLACEHOLDER
-# A bus tuple's coordinates index the 2^N_TUPLE_BITS fingerprint slots (doc
-# sec:gp). The stacked bytecode has BYTECODE_COLS encoding columns, stacked along
-# LOG2_BYTECODE_COLS selector bits into ONE multilinear; push and pull share their
-# GKR point, so the columns are opened ONCE.
+MEM_CLAIM_BASE = N_CLAIMS - 3
+# A tuple's coordinates, on the bus and in a read, index the 2^N_TUPLE_BITS
+# fingerprint slots (doc sec:gp). The stacked bytecode's encoding columns sit at
+# their tuple slots, stacked along LOG2_BYTECODE_COLS selector bits into ONE
+# multilinear, so a bytecode read's entry is that polynomial at (r, alpha).
 N_TUPLE_BITS = 4
 N_TUPLE_SLOTS = 16
-BYTECODE_COLS = BYTECODE_COLS_PLACEHOLDER
 LOG2_BYTECODE_COLS = LOG2_BYTECODE_COLS_PLACEHOLDER
+
+# ------------------------------------------------- the lookups (doc sec:shout)
+# Read p of the flattened list belongs to table READ_TABLE[p] (table t's reads are
+# [TABLE_READ_BASE[t], TABLE_READ_BASE[t+1])) and looks up array READ_ARRAY[p]; its
+# tuple (1, address, 0, entry...) is the coord range [READ_COORD_OFF[p],
+# +READ_COORD_COUNT[p]) of the arrays above. Its address is committed one-hot in
+# N_CHUNKS chunks of m bits, m announced: chunk table N_CHUNKS*p + i is chunk i of
+# read p, and table t's chunk tables stack along SLAB_BITS[t] selector bits into
+# the packed column HOT_COMMITTED_COL[t]. A cycle sumcheck round polynomial has
+# CYCLE_COEFFS coefficients.
+ARRAY_MEM = 0
+ARRAY_BC = 1
+ENTRY_SLOT = 3
+N_CHUNKS = N_CHUNKS_PLACEHOLDER
+LOG_N_CHUNKS = LOG_N_CHUNKS_PLACEHOLDER
+MAX_CHUNK_BITS = MAX_CHUNK_BITS_PLACEHOLDER
+ADDRESS_BITS = N_CHUNKS * MAX_CHUNK_BITS
+CYCLE_COEFFS = CYCLE_COEFFS_PLACEHOLDER
+N_READS = N_READS_PLACEHOLDER
+READ_ARRAY = READ_ARRAY_PLACEHOLDER
+READ_COORD_OFF = READ_COORD_OFF_PLACEHOLDER
+READ_COORD_COUNT = READ_COORD_COUNT_PLACEHOLDER
+TABLE_READ_BASE = TABLE_READ_BASE_PLACEHOLDER
+SLAB_BITS = SLAB_BITS_PLACEHOLDER
+MAX_SLAB_BITS = MAX_SLAB_BITS_PLACEHOLDER
+HOT_COMMITTED_COL = HOT_COMMITTED_COL_PLACEHOLDER
+LOG_PACKING = 6  # bits packed per committed word; also every table's tau floor
 
 # --------------------------------------------------------------- the six tables
 # The table sumcheck's batch carries EVERY committed column of a table, because its
-# bus forms read the flushed ones and its constraint the rest; TABLE_COLS_CAP caps
-# the evaluation frame. ETA_OFFSET[t] starts table t's disjoint range of zc_xi
-# powers; the three bus forms take ETA_FORM_BASE + side, the SAME three powers for
-# every table, and that sharing is what makes the batch's target derivable from the
-# three leaf claims. FLOORS[t] is the table's tau floor (BLAKE2s is sized to
-# flock's instance count, >= 2^3).
+# forms read the flushed and looked-up ones and its constraint the rest;
+# TABLE_COLS_CAP caps the evaluation frame. ETA_OFFSET[t] starts table t's disjoint
+# range of zc_xi powers; the two bus forms take ETA_FORM_BASE + side and the read
+# form ETA_FORM_BASE + 2, the SAME three powers for every table, and that sharing
+# is what ties the batch's target to the two leaf claims and to read-checking.
 TABLE_XOR = 0
 TABLE_MUL = 1
 TABLE_SET = 2
@@ -174,7 +189,6 @@ TABLE_DEREF = 3
 TABLE_JUMP = 4
 TABLE_BLAKE2s = 5
 N_TABLES = N_TABLES_PLACEHOLDER
-FLOORS = [0, 0, 0, 0, 0, 3]
 N_TABLE_COLS = N_TABLE_COLS_PLACEHOLDER
 TABLE_COLS_CAP = TABLE_COLS_CAP_PLACEHOLDER
 ETA_OFFSET = ETA_OFFSET_PLACEHOLDER
@@ -210,8 +224,8 @@ SLOT_STRIDE_LOG = SLOT_STRIDE_LOG_PLACEHOLDER  # = K_LOG - LOG_PACKING (=8); the
 LIG_MIN_LOG_SIZE = LIG_MIN_LOG_SIZE_PLACEHOLDER
 LIG_N_LOG_SIZES = LIG_N_LOG_SIZES_PLACEHOLDER
 LIG_N_RATES = LIG_N_RATES_PLACEHOLDER
-# Committed-column kappa sources (0 = const COL_KAPPA_ADJ, 1 = log_mem, 2+t = tau_t)
-# and the PCS floor for the stacked size.
+# Committed-column kappa sources (0 = const COL_KAPPA_ADJ, 1 = log_mem, 2+t = tau_t,
+# 2+N_TABLES+t = tau_t + m - LOG_PACKING) and the PCS floor for the stacked size.
 N_COMMITTED_COLS = N_COMMITTED_COLS_PLACEHOLDER
 N_COLUMN_LOGS = N_COLUMN_LOGS_PLACEHOLDER
 COL_KAPPA_SRC = COL_KAPPA_SRC_PLACEHOLDER
@@ -262,7 +276,7 @@ LIG_MIN_SHIFT_INV = LIG_MIN_SHIFT_INV_PLACEHOLDER
 # committed column it must open (a virtual BLAKE2s value claim maps to QFLOCK),
 # CLAIM_QFLOCK_SLOT_BITS holds the fixed packed-slot bits of every logical claim
 # (zero for a non-virtual one), and QFLOCK_COMMITTED_COL is the ring-switch target.
-POINT_BUF_ZETA = 0
+POINT_BUF_MEM = 0
 POINT_BUF_RHO = 1
 POINT_BUF_PI = 2
 POINT_BUF_QFLOCK_RHO = 3
@@ -872,6 +886,88 @@ def sumcheck_round5(state_0, state_1, msg_cursor, claim, prev_challenge):
     return fs[0], fs[1], msg_cursor, c0 + y * (c1 + y * (c2 + y * (c3 + y * c4))), y
 
 
+def sumcheck_round3(state_0, state_1, msg_cursor, claim):
+    # One PLAIN degree-2 round: c0 and c2 are sent, the split fixing c1.
+    fs = [state_0, state_1]
+    fs, c0, msg_cursor = fs_next(fs, msg_cursor)
+    fs, c2, msg_cursor = fs_next(fs, msg_cursor)
+    c1 = claim + c2
+    fs, y = squeeze(fs)
+    return fs[0], fs[1], msg_cursor, c0 + y * (c1 + y * c2), y
+
+
+def sumcheck_round_cycle(state_0, state_1, msg_cursor, claim):
+    # One PLAIN round of the cycle sumcheck: every coefficient but c1 is sent, the
+    # split fixing it, and the polynomial is read at the challenge by Horner.
+    fs = [state_0, state_1]
+    fs, c0, msg_cursor = fs_next(fs, msg_cursor)
+    tail = StackBuf(CYCLE_COEFFS)
+    total = 0
+    for i in unroll(2, CYCLE_COEFFS):
+        fs, c, msg_cursor = fs_next(fs, msg_cursor)
+        tail[i] = c
+        total += c
+    fs, y = squeeze(fs)
+    high = 0
+    for i in unroll(2, CYCLE_COEFFS):
+        high = (high + tail[CYCLE_COEFFS + 1 - i]) * y
+    return fs[0], fs[1], msg_cursor, c0 + y * (claim + total + high), y
+
+
+def plain_rounds(fs0, fs1, cursor, claim, point, g_n):
+    # g_n plain degree-2 rounds binding the HIGHEST variable first: round j's
+    # challenge lands at point[g^(n-1-j)]. Returns the walked state and the claim.
+    rounds = HeapBuf((g_n * GEN) ** ROUND_SLOTS)
+    rounds[GEN ** ROUND_FS0] = fs0
+    rounds[GEN ** ROUND_FS1] = fs1
+    rounds[GEN ** ROUND_CURSOR] = cursor
+    rounds[GEN ** ROUND_CLAIM] = claim
+    for xk in mul_range(1, g_n):
+        rd = rounds * xk ** ROUND_SLOTS
+        nfs0, nfs1, ncur, nclaim, rk = sumcheck_round3(rd[GEN ** ROUND_FS0], rd[GEN ** ROUND_FS1], rd[GEN ** ROUND_CURSOR], rd[GEN ** ROUND_CLAIM])
+        point[g_n * INV_GEN / xk] = rk
+        nxt = rd * GEN ** ROUND_SLOTS
+        nxt[GEN ** ROUND_FS0] = nfs0
+        nxt[GEN ** ROUND_FS1] = nfs1
+        nxt[GEN ** ROUND_CURSOR] = ncur
+        nxt[GEN ** ROUND_CLAIM] = nclaim
+    last = rounds * g_n ** ROUND_SLOTS
+    return last[GEN ** ROUND_FS0], last[GEN ** ROUND_FS1], last[GEN ** ROUND_CURSOR], last[GEN ** ROUND_CLAIM]
+
+
+def index_mle_at(point, count_g):
+    # The index column's MLE at point[0..count): prod_t (1 + point_t * (1 + g^(2^t))).
+    factors = HeapBuf(SIZE_BITS)
+    for t in unroll(0, SIZE_BITS):
+        factors[GEN ** t] = INDEX_MLE_FACTORS[t]
+    chain = HeapBuf(SIZE_BITS + 1)
+    chain[GEN ** 0] = 1
+    for xt in mul_range(1, count_g):
+        chain[xt * GEN] = chain[xt] * (1 + point[xt] * factors[xt])
+    return chain[count_g]
+
+
+def ring_switch_target(slices, map_challenges):
+    # sum_i x^i * Phi(slices[i]) over the 64 packing rows, Phi applied stage by
+    # stage: the running x-power and the running sum ride one two-slot chain.
+    rs_chain = HeapBuf((BASE_FIELD_BITS + 1) * PAIR_SLOTS)
+    rs_chain[GEN ** 0] = GEN ** 0  # x^i
+    rs_chain[GEN ** 1] = 0         # the running sum
+    for x_round in mul_range(1, GEN ** BASE_FIELD_BITS):
+        lin_eval = slices[x_round]
+        for stage in unroll(0, len(RING_MAP_SHIFTS)):
+            frobenius = lin_eval
+            for k in unroll(0, RING_MAP_SHIFTS[stage]):
+                frobenius *= frobenius
+            lin_eval += map_challenges[GEN ** stage] * frobenius
+        row = rs_chain * x_round ** PAIR_SLOTS
+        x_pow = row[GEN ** 0]
+        row[GEN ** PAIR_SLOTS] = x_pow * 2
+        row[GEN ** (PAIR_SLOTS + 1)] = row[GEN ** 1] + x_pow * lin_eval
+    rs_end = rs_chain * (GEN ** BASE_FIELD_BITS) ** PAIR_SLOTS
+    return rs_end[GEN ** 1]
+
+
 def batch_sumcheck(fs0, fs1, msgs, running, point, n_rounds: Const):
     # The rounds of a claim-batching sumcheck: two hinted values per round
     # (g(1) and g(inf)), the split fixing the third against the running claim, and
@@ -1324,28 +1420,23 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
 
 
 def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
-    # ONE GKR grand product over push, pull and count, RLC-batched. Push and pull
-    # have equal depth (matched blocks) and the count tree is padded with identity
-    # leaves up to it (product unchanged), so a single sumcheck serves all three.
-    # Radix four contracts two binary levels per layer, each batched by a fresh λ
-    # squeezed at its start. All three trees reduce to the one shared point `zeta`,
-    # which this fills, returning their three leaf values with the walked
-    # Fiat-Shamir state and stream cursor.
+    # ONE GKR grand product over push and pull, RLC-batched. They have equal depth
+    # (matched blocks), so a single sumcheck serves both. Radix four contracts two
+    # binary levels per layer, each batched by a fresh λ squeezed at its start. Both
+    # trees reduce to the one shared point `zeta`, which this fills, returning their
+    # two leaf values with the walked Fiat-Shamir state and stream cursor. ONE root
+    # is sent for both sides, so an unbalanced bus cannot even be stated.
     layers = HeapBuf((g_bus_mu * GEN ** 2) ** LAYER_SLOTS)  # mu + 2 layers
     rounds = HeapBuf(GKR_ROUNDS_CAP * ROUND_SLOTS)
     gkr_pts = HeapBuf(GKR_POINTS_CAP)
     assert log(g_bus_mu) < COUNT_BITS
     fs = [fs0, fs1]
     fs, root_push, cursor = fs_next(fs, cursor)
-    root_pull = root_push
-    fs, root_count, cursor = fs_next(fs, cursor)
-    assert root_count != 0  # count-tree root nonzero: no read count self-cancels
     layers[GEN ** LAYER_FS0] = fs[0]
     layers[GEN ** LAYER_FS1] = fs[1]
     layers[GEN ** LAYER_CURSOR] = cursor
     layers[GEN ** LAYER_PUSH] = root_push
-    layers[GEN ** LAYER_PULL] = root_pull
-    layers[GEN ** LAYER_COUNT] = root_count
+    layers[GEN ** LAYER_PULL] = root_push
     layers[GEN ** LAYER_ROW] = gkr_pts
     layers[GEN ** LAYER_POS] = GEN ** 0
 
@@ -1364,7 +1455,7 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
         tail_fs = [layers[GEN ** LAYER_FS0], layers[GEN ** LAYER_FS1]]
         tail_fs, lam = squeeze(tail_fs)
         tcur = layers[GEN ** LAYER_CURSOR]
-        tclaim = layers[GEN ** LAYER_PUSH] + lam * (layers[GEN ** LAYER_PULL] + lam * layers[GEN ** LAYER_COUNT])
+        tclaim = layers[GEN ** LAYER_PUSH] + lam * layers[GEN ** LAYER_PULL]
         nextrow = layers[GEN ** LAYER_ROW] * GEN ** MU_CAP
         evals = StackBuf(2 * N_GKR_SIDES)  # the two children of each side, in side order
         for i in unroll(0, 2 * N_GKR_SIDES):
@@ -1398,7 +1489,7 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
         head[GEN ** ROUND_FS0] = layer_fs[0]
         head[GEN ** ROUND_FS1] = layer_fs[1]
         head[GEN ** ROUND_CURSOR] = layer[GEN ** LAYER_CURSOR]
-        head[GEN ** ROUND_CLAIM] = layer[GEN ** LAYER_PUSH] + lam * (layer[GEN ** LAYER_PULL] + lam * layer[GEN ** LAYER_COUNT])
+        head[GEN ** ROUND_CLAIM] = layer[GEN ** LAYER_PUSH] + lam * layer[GEN ** LAYER_PULL]
         for x_round in mul_range(1, x_layer):
             rd = rounds * (round_pos * x_round) ** ROUND_SLOTS
             nfs0, nfs1, ncur, nclaim, rk = sumcheck_round5(rd[GEN ** ROUND_FS0], rd[GEN ** ROUND_FS1], rd[GEN ** ROUND_CURSOR], rd[GEN ** ROUND_CLAIM], point_row[x_round])
@@ -1441,80 +1532,116 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
     final_point_row = last[GEN ** LAYER_ROW]
     for xt in mul_range(1, g_bus_mu):
         zeta[xt] = final_point_row[xt]  # the ONE shared point
-    return fs[0], fs[1], cursor, last[GEN ** LAYER_PUSH], last[GEN ** LAYER_PULL], last[GEN ** LAYER_COUNT]
+    return fs[0], fs[1], cursor, last[GEN ** LAYER_PUSH], last[GEN ** LAYER_PULL]
 
 
-def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count):
-    # Settle the bus against the six tables, in four steps: certify each side's
-    # leaf-cube tiling, decompose the three GKR leaf values over it, run the ONE
-    # table sumcheck they all reduce to, and bind the public input. Pooled claims
-    # land in claim_pool/claim_cplen_g and the reduced point in `chi`; the batch's
-    # round count g^n, the deferred bytecode share and the PI point come back.
+def verify_reads(fs0, fs1, cursor, g_log_mem, fp_w, lam_rd, chi_mem, chi_bc, ra_evals, claim_pool, claim_cplen_g):
+    # Read-checking (doc sec:shout), one sumcheck per array over its addresses:
+    # every read's fingerprint, summed over its table's rows against eq(zeta, .),
+    # equals the array's own fingerprint (1, g^k, 0, entry_k) read through the
+    # one-hot rows. The reads' side is the table sumcheck's, through `lam_rd` and
+    # the returned total; this side leaves ra_p(r, zeta) per read in `ra_evals`, for
+    # the cycle sumcheck, and the array at its point `chi_mem` / `chi_bc`: the memory's
+    # three limbs are pooled claims, the bytecode's entry is the deferred share.
+    fs = [fs0, fs1]
+    fs, lam = squeeze(fs)
+    lam_pow = 1
+    for p in unroll(0, N_READS):
+        lam_rd[GEN ** p] = lam_pow
+        lam_pow = lam_pow * lam
+    fs, sum_mem, cursor = fs_next(fs, cursor)
+    fs, sum_bc, cursor = fs_next(fs, cursor)
+
+    # ---- the memory ----
+    f0, f1, cursor, claim = plain_rounds(fs[0], fs[1], cursor, sum_mem, chi_mem, g_log_mem)
+    fs = [f0, f1]
+    # A chunk point is read past the address bits, where it is zero.
+    for xk in mul_range(1, GEN ** ADDRESS_BITS / g_log_mem):
+        chi_mem[g_log_mem * xk] = 0
+    ra_sum = 0
+    for p in unroll(0, N_READS):
+        if READ_ARRAY[p] == ARRAY_MEM:
+            fs, e, cursor = fs_next(fs, cursor)
+            ra_evals[GEN ** p] = e
+            ra_sum += lam_rd[GEN ** p] * e
+    entry = 0
+    for i in unroll(0, 3):
+        fs, limb, cursor = fs_next(fs, cursor)
+        claim_pool[GEN ** (MEM_CLAIM_BASE + i)] = limb
+        claim_cplen_g[GEN ** (MEM_CLAIM_BASE + i)] = g_log_mem
+        entry += fp_w[GEN ** (ENTRY_SLOT + i)] * limb
+    assert claim == ra_sum * (fp_w[GEN ** 0] + fp_w[GEN ** 1] * index_mle_at(chi_mem, g_log_mem) + entry)
+
+    # ---- the bytecode ----
+    f0, f1, cursor, claim = plain_rounds(fs[0], fs[1], cursor, sum_bc, chi_bc, GEN ** BYTECODE_LOG)
+    fs = [f0, f1]
+    for k in unroll(BYTECODE_LOG, ADDRESS_BITS):
+        chi_bc[GEN ** k] = 0
+    ra_sum = 0
+    for p in unroll(0, N_READS):
+        if READ_ARRAY[p] == ARRAY_BC:
+            fs, e, cursor = fs_next(fs, cursor)
+            ra_evals[GEN ** p] = e
+            ra_sum += lam_rd[GEN ** p] * e
+    # The entry is ONE evaluation of the stacked polynomial, its slots being the
+    # tuple's and the weights eq(alpha, .), so it IS that polynomial at (chi_bc, alpha)
+    # (doc sec:e2e-bc): one hinted value, exported as a deferred claim.
+    bc_share = hint_witness("bytecode_val")
+    assert claim == ra_sum * (fp_w[GEN ** 0] + fp_w[GEN ** 1] * index_mle_at(chi_bc, GEN ** BYTECODE_LOG) + bc_share)
+    return fs[0], fs[1], cursor, sum_mem + sum_bc, bc_share
+
+
+def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, lam_rd, read_total, claim_pool, claim_cplen_g, chi, claim_push, claim_pull):
+    # Settle the bus and the reads against the six tables, in four steps: certify
+    # the leaf-cube tiling, decompose the two GKR leaf values over it, run the ONE
+    # table sumcheck they and the reads all reduce to, and bind the public input.
+    # Pooled claims land in claim_pool/claim_cplen_g and the reduced point in `chi`;
+    # the batch's round count g^n and the PI point come back.
     #
-    # Bus-leaf packing offsets, for the selector certification. Each side's blocks
+    # Bus-leaf packing offsets, for the selector certification. A side's blocks
     # tile its leaf cube, block b at offset_b; the hinted order is only
     # PERMUTATION-checked and offsets accumulate as g^offset = Π_{earlier} g^(2^κ).
     # The decompose below pins each block's selector bits against this offset,
     # forcing κ-alignment, and no sort or tie-break check is needed: alignment plus
     # consecutive offsets force a valid tiling, and the grand product is
     # position-independent, so any tiling is sound. Pull's blocks mirror push's and
-    # share zeta, so only push and count need offsets (pull's slots go unread).
+    # share zeta, so only push needs offsets (pull's slots go unread).
     fs = [fs0, fs1]
     gkr_claims = StackBuf(N_GKR_SIDES)
     gkr_claims[PUSH_SIDE] = claim_push
     gkr_claims[PULL_SIDE] = claim_pull
-    gkr_claims[COUNT_SIDE] = claim_count
-    sort_order = HeapBuf(N_BLOCKS)
-    hint_witness(sort_order[0:N_BLOCKS], "sort_order")
-    block_side_tab = HeapBuf(N_BLOCKS)  # global block -> its side
-    for b in unroll(0, N_BLOCKS):
-        block_side_tab[GEN ** b] = BLOCK_SIDE[b]
-    block_off_g = HeapBuf(N_BLOCKS)  # g^offset per block, keyed by global index
-    for cert in unroll(0, 2):
-        s = COUNT_SIDE * cert  # PUSH_SIDE (0), then COUNT_SIDE (2)
-        g_off = GEN ** 0
-        for r in unroll(SIDE_BLOCK_START[s], SIDE_BLOCK_START[s + 1]):
-            global_g = sort_order[GEN ** r]       # g^{global block index at this rank}
-            assert log(global_g) < N_BLOCKS       # a valid block index
-            assert block_side_tab[global_g] == s  # ...belonging to THIS side
-            # write-once: a repeat collides, and an omission fails the decompose's
-            # offset read below
-            block_off_g[global_g] = g_off
-            g_off *= g_squares[block_kappa[global_g]]
+    sort_order = HeapBuf(N_PUSH_BLOCKS)
+    hint_witness(sort_order[0:N_PUSH_BLOCKS], "sort_order")
+    block_off_g = HeapBuf(N_PUSH_BLOCKS)  # g^offset per push block
+    g_off = GEN ** 0
+    for r in unroll(0, N_PUSH_BLOCKS):
+        block_g = sort_order[GEN ** r]  # g^{block index at this rank}
+        assert log(block_g) < N_PUSH_BLOCKS  # a valid push block
+        # write-once: a repeat collides, and an omission fails the decompose's
+        # offset read below
+        block_off_g[block_g] = g_off
+        g_off *= g_squares[block_kappa[block_g]]
 
-    # ---- 3x leaf decomposition (claims pooled; bytecode Public DEFERRED) ----
-    # Reconstruct Ṽ₀(ζ) per side and assert it equals the GKR leaf value. The
-    # committed-coordinate values ride the stream (observed, pooled); Index
-    # coordinates use the factored index MLE; and the program's whole share of a
-    # bytecode leaf is ONE evaluation of the stacked polynomial, since its slots are
-    # aligned with the tuple and the weights are eq(α⃗, ·), so the share IS that
-    # polynomial at (ζ_lo, α⃗) (doc sec:e2e-bc): one hinted value, exported as a
-    # deferred claim, with no per-coordinate values and no selector challenge.
+    # ---- 2x leaf decomposition ----
+    # Reconstruct Ṽ₀(ζ) per side less its tables' blocks. The boundary block's tuple
+    # is public, so its fingerprint is evaluated outright.
     #
     # Pull's blocks mirror push's (same kappas, same offsets, generator-asserted
-    # pairing) and share zeta, so each pull block REUSES its push twin's eq_hi and
-    # Index-MLE value instead of recomputing them; its column values are mostly
-    # deduped pool reads (COORD_FRESH). The identity check against pull's own GKR
-    # claim still binds everything.
-    bc_share = hint_witness("bytecode_val")
-    idxc_tab = HeapBuf(SIZE_BITS)  # INDEX_MLE_FACTORS[t] = 1 + g^(2^t)
-    for t in unroll(0, SIZE_BITS):
-        idxc_tab[GEN ** t] = INDEX_MLE_FACTORS[t]
+    # pairing) and share zeta, so each pull block REUSES its push twin's eq_hi
+    # instead of recomputing it.
     bus_table_total = StackBuf(N_GKR_SIDES)  # per side, what its tables' blocks owe
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
-    block_index_mle = HeapBuf(N_BLOCKS)      # per push block with an Index coord
     for s in unroll(0, N_GKR_SIDES):
         acc = 0
         selector_sum = 0
         for b in unroll(SIDE_BLOCK_START[s], SIDE_BLOCK_START[s + 1]):
-            block_has_public = 0
             kappa_g = block_kappa[GEN ** b]
             assert log(kappa_g) < SIZE_BITS
             if s == PULL_SIDE:
                 eq_hi = block_eq_hi[b - SIDE_BLOCK_START[PULL_SIDE]]
             else:
                 # eq_hi over the ζ coords above κ against the selector bits, whose
-                # run is mu_s − κ = g^mu_s / g^κ long. Selector bits = offset >> κ:
+                # run is mu − κ = g^mu / g^κ long. Selector bits = offset >> κ:
                 # advice-decompose the offset and read it shifted by κ. Rebuilding
                 # g^offset from those high bits alone (weights g^(2^(κ+k))) and
                 # asserting it equals block_off_g pins the bits AND the κ-alignment
@@ -1538,65 +1665,19 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
                 assert goff_chain[sel_len_g] == block_off_g[GEN ** b]  # bits == offset >> κ, κ-aligned
             selector_sum += eq_hi
             block_eq_hi[b] = eq_hi
-            # A TABLE's block streams no value here: the table sumcheck settles its
-            # fingerprint from that table's column evaluations. Only the framework
-            # blocks (boundary, memory, bytecode) still decompose.
+            # A TABLE's block decomposes into nothing here: the table sumcheck
+            # settles its fingerprint from that table's column evaluations.
             if BLOCK_TABLE[b] == NO_TABLE:
-                # inner fingerprint Σ_i w_i · coord_i(ζ_lo); the count side weighs
-                # slot 0 alone (α⃗ = 0), γ = 0.
                 inner_sum = 0
                 for i in unroll(0, BLOCK_COORD_COUNT[b]):
-                    ci = BLOCK_COORD_OFF[b] + i  # a compile-time index, so `ci` costs nothing
-                    if COORD_TYPE[ci] == COORD_KIND_CONST:
-                        coord_val = COORD_CONST[ci]
-                    if COORD_TYPE[ci] == COORD_KIND_COL:
-                        if COORD_FRESH[ci] == 1:
-                            fs, coord_val, cursor = fs_next(fs, cursor)
-                            claim_pool[GEN ** COORD_CLAIM_SLOT[ci]] = coord_val
-                            claim_cplen_g[GEN ** COORD_CLAIM_SLOT[ci]] = kappa_g  # cplen = block kappa
-                        else:
-                            coord_val = claim_pool[GEN ** COORD_CLAIM_SLOT[ci]]
-                    if COORD_TYPE[ci] == COORD_KIND_GCOL:
-                        if COORD_FRESH[ci] == 1:
-                            fs, rawv, cursor = fs_next(fs, cursor)
-                            claim_pool[GEN ** COORD_CLAIM_SLOT[ci]] = rawv
-                            claim_cplen_g[GEN ** COORD_CLAIM_SLOT[ci]] = kappa_g
-                        else:
-                            rawv = claim_pool[GEN ** COORD_CLAIM_SLOT[ci]]
-                        coord_val = COORD_CONST[ci] * rawv
-                    if COORD_TYPE[ci] == COORD_KIND_INDEX:
-                        if s == PULL_SIDE:
-                            coord_val = block_index_mle[GEN ** (b - SIDE_BLOCK_START[PULL_SIDE])]
-                        else:
-                            # Index-coord MLE: prod_t (1 + zeta_t * (1 + g^(2^t)))
-                            idx_chain = HeapBuf(MU_CAP + 2)
-                            idx_chain[GEN ** 0] = 1
-                            for xt in mul_range(1, kappa_g):
-                                idx_chain[xt * GEN] = idx_chain[xt] * (1 + zeta[xt] * idxc_tab[xt])
-                            coord_val = idx_chain[kappa_g]
-                            if s == PUSH_SIDE:
-                                block_index_mle[GEN ** b] = coord_val
-                    if COORD_TYPE[ci] == COORD_KIND_PUBLIC:
-                        # The public slots carry no value of their own here: their
-                        # alpha-weighted sum IS bc_share, added once per block below
-                        # (push and pull share zeta, so both get the same one).
-                        coord_val = 0
-                        block_has_public = 1
-                    if s == COUNT_SIDE:
-                        inner_sum += coord_val
-                    else:
-                        inner_sum += fp_w[GEN ** i] * coord_val
-                inner_sum += block_has_public * bc_share  # the bytecode blocks' public slots
-                if s == COUNT_SIDE:
-                    acc += eq_hi * inner_sum
-                else:
-                    acc += eq_hi * (beta + inner_sum)
+                    inner_sum += fp_w[GEN ** i] * COORD_CONST[BLOCK_COORD_OFF[b] + i]
+                acc += eq_hi * (beta + inner_sum)
         acc += 1 + selector_sum
         # What the tables' blocks owe this side: its GKR leaf value less the
-        # framework decomposition. DERIVED, not read: a transmitted total would be a
-        # free value in its own check. The table sumcheck's target pins it below.
+        # boundary and the padding. DERIVED, not read: a transmitted total would be
+        # a free value in its own check. The table sumcheck's target pins it below.
         bus_table_total[s] = acc + gkr_claims[s]
-    claim_idx = N_BUS_CLAIMS  # AIR/PI/pin claims pool after the deduped bus claims
+    claim_idx = 0
 
     # ---- ONE table sumcheck for all six tables ----
     # Mirrors leanvm_core::constraints::verify. zc_xi ONCE, each table folding its own
@@ -1625,11 +1706,12 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     for k in unroll(1, N_ETA_POWS):
         zc_xi_pows[k] = zc_xi_pows[k - 1] * zc_xi
     # The eq point is the bus GKR's zeta, NOT a fresh one, which is what lets the
-    # batch settle the bus forms alongside the constraints. It is also why no target
-    # is read: what the three sides' tables owe, each in its own shared power of
+    # batch settle the bus and read forms alongside the constraints. What the two
+    # sides' tables owe and what the reads sum to, each in its own shared power of
     # zc_xi, IS the sum the batch must reach, and zc_xi is squeezed after those
-    # totals are fixed, so hitting one number forces all three side equations.
-    bus_target = 0
+    # totals are fixed, so hitting one number forces all three equations. The read
+    # total is the one transmitted, and no freer for it: read-checking pins it too.
+    bus_target = zc_xi_pows[ETA_FORM_BASE + N_GKR_SIDES] * read_total
     for sd in unroll(0, N_GKR_SIDES):
         bus_target += zc_xi_pows[ETA_FORM_BASE + sd] * bus_table_total[sd]
     # n vanilla sumcheck rounds: the round polynomial arrives whole, so a round is
@@ -1677,20 +1759,20 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
             claim_idx += 1
         # The table's AIR constraint at the final point (col_evals is indexed by
         # local column index; the formulas mirror tables.rs eval_constraint). Every
-        # value relation now rides the bus as a degree-2 coordinate, so only JUMP's
-        # is-nonzero indicator is left with an identity of its own.
+        # value relation rides a flush or a read as a degree-2 coordinate, so only
+        # JUMP's is-nonzero indicator is left with an identity of its own.
         constraint_eval = 0
         if t == TABLE_JUMP:
             # `b = c*w` and `c*(b+1) = 0`. The condition is K-valued, its memory read
             # carrying literal zeros above the low limb, so both identities are
             # single-lane (tables.rs jump_identity). Local columns: v_cond at 5, w at
-            # 12, the indicator b at 13.
+            # 8, the indicator b at 9.
             c = col_evals[5]
-            b = col_evals[13]
-            constraint_eval = zc_xi_pows[ETA_OFFSET[t] + 0] * (b + c * col_evals[12])
+            b = col_evals[9]
+            constraint_eval = zc_xi_pows[ETA_OFFSET[t] + 0] * (b + c * col_evals[8])
             constraint_eval += zc_xi_pows[ETA_OFFSET[t] + 1] * (c * (b + 1))
-        # The table's three bus forms, evaluated at the SAME column evaluations:
-        # Σ_b eq_hi(b) · (γ + Σ_i α^i · coord_i), the coords read off col_evals at
+        # The table's two bus forms, evaluated at the SAME column evaluations:
+        # Σ_b eq_hi(b) · (β + Σ_i w_i · coord_i), the coords read off col_evals at
         # their local index. This is what replaces opening those columns at ζ.
         for sd in unroll(0, N_GKR_SIDES):
             form = 0
@@ -1700,9 +1782,8 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
                         inner = 0
                         for i in unroll(0, BLOCK_COORD_COUNT[b]):
                             # Each coord is the sum of its terms, over this table's
-                            # column evaluations. A product term (an address, an
-                            # arithmetic result) is degree 2, which the batch's
-                            # round polynomial already allows.
+                            # column evaluations. A product term is degree 2, which
+                            # the batch's round polynomial already allows.
                             ci = BLOCK_COORD_OFF[b] + i  # a compile-time index, so `ci` costs nothing
                             cv = 0
                             for j in unroll(0, COORD_TERM_COUNT[ci]):
@@ -1715,15 +1796,30 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
                                     cv += TERM_CONST[tj] * col_evals[TERM_COL_A[tj]]
                                 if TERM_TYPE[tj] == COORD_KIND_PROD:
                                     cv += TERM_CONST[tj] * (col_evals[TERM_COL_A[tj]] * col_evals[TERM_COL_B[tj]])
-                            if sd == COUNT_SIDE:
-                                inner += cv
-                            else:
-                                inner += fp_w[GEN ** i] * cv
-                        if sd == COUNT_SIDE:
-                            form += block_eq_hi[b] * inner
-                        else:
-                            form += block_eq_hi[b] * (beta + inner)
+                            inner += fp_w[GEN ** i] * cv
+                        form += block_eq_hi[b] * (beta + inner)
             constraint_eval += zc_xi_pows[ETA_FORM_BASE + sd] * form
+        # Its read form: Σ_p λ^p · Σ_i w_i · coord_i over its reads' tuples (1,
+        # address, 0, entry...), an address or a derived entry being a product term.
+        form = 0
+        for p in unroll(TABLE_READ_BASE[t], TABLE_READ_BASE[t + 1]):
+            inner = 0
+            for i in unroll(0, READ_COORD_COUNT[p]):
+                ci = READ_COORD_OFF[p] + i
+                cv = 0
+                for j in unroll(0, COORD_TERM_COUNT[ci]):
+                    tj = COORD_TERM_OFF[ci] + j
+                    if TERM_TYPE[tj] == COORD_KIND_CONST:
+                        cv += TERM_CONST[tj]
+                    if TERM_TYPE[tj] == COORD_KIND_COL:
+                        cv += col_evals[TERM_COL_A[tj]]
+                    if TERM_TYPE[tj] == COORD_KIND_GCOL:
+                        cv += TERM_CONST[tj] * col_evals[TERM_COL_A[tj]]
+                    if TERM_TYPE[tj] == COORD_KIND_PROD:
+                        cv += TERM_CONST[tj] * (col_evals[TERM_COL_A[tj]] * col_evals[TERM_COL_B[tj]])
+                inner += fp_w[GEN ** i] * cv
+            form += lam_rd[GEN ** p] * inner
+        constraint_eval += zc_xi_pows[ETA_FORM_BASE + N_GKR_SIDES] * form
         air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval  # cprod[n - tau] * peq[tau]
     assert air_acc == claim
 
@@ -1741,7 +1837,207 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     claim_idx += 1
     claim_pool[GEN ** claim_idx] = 0
     claim_idx += 1
-    return fs[0], fs[1], cursor, g_zc_n, bc_share, rm
+    return fs[0], fs[1], cursor, g_zc_n, rm
+
+
+def verify_one_hot(fs0, fs1, cursor, zeta, g_zc_n, dims_g, g_m, chi_mem, chi_bc, ra_evals, chi_cyc, pos, sel, hot_slices):
+    # The cycle sumcheck (doc sec:shout), over each table's rows: a read's ra is
+    # the product of its chunks, and every chunk row is one-hot. Then every
+    # chunk evaluation it leaves is reduced to ONE claim on the packed one-hot bits:
+    # the cycle point lands in `chi_cyc`, the chunk-cube point in `pos` (its m
+    # position coordinates) and `sel` (its selector coordinates), the 64 slices in
+    # `hot_slices`, and the batching challenge lam_hot comes back.
+    fs = [fs0, fs1]
+
+    # ---- the one-hot point: r_hot, then r_hot_bar = 1 + r_hot and c_hot = prod r_h (1 + r_h) ----
+    # A multilinear f is one-hot exactly when f(X) f(1 + X) = prod_h X_h (1 + X_h)
+    # (doc lem:onehot), tested at r_hot.
+    r_hot = HeapBuf(MAX_CHUNK_BITS)
+    r_hot_bar = HeapBuf(MAX_CHUNK_BITS)
+    assert log(g_m) < MAX_CHUNK_BITS + 1
+    pts = HeapBuf((g_m * GEN) ** ACC_SLOTS)
+    pts[GEN ** ACC_FS0] = fs[0]
+    pts[GEN ** ACC_FS1] = fs[1]
+    pts[GEN ** ACC_VALUE] = 1
+    for xk in mul_range(1, g_m):
+        row = pts * xk ** ACC_SLOTS
+        row_fs = [row[GEN ** ACC_FS0], row[GEN ** ACC_FS1]]
+        row_fs, rv = squeeze(row_fs)
+        r_hot[xk] = rv
+        r_hot_bar[xk] = 1 + rv
+        nxt = row * GEN ** ACC_SLOTS
+        nxt[GEN ** ACC_FS0] = row_fs[0]
+        nxt[GEN ** ACC_FS1] = row_fs[1]
+        nxt[GEN ** ACC_VALUE] = row[GEN ** ACC_VALUE] * (rv * (1 + rv))
+    pts_last = pts * g_m ** ACC_SLOTS
+    fs = [pts_last[GEN ** ACC_FS0], pts_last[GEN ** ACC_FS1]]
+    c_hot = pts_last[GEN ** ACC_VALUE]
+
+    # r_sel: chunk table c of a table weighs eq(r_sel, c), a read what its chunk 0 does.
+    r_sel = HeapBuf(MAX_SLAB_BITS)
+    for k in unroll(0, MAX_SLAB_BITS):
+        fs, rv = squeeze(fs)
+        r_sel[GEN ** k] = rv
+    # eq(r_sel, N_CHUNKS * p) = sel_chunk_0 * eq_sel_read[p], with eq_sel_read over the read's bits.
+    sel_chunk_0 = GEN ** 0
+    for k in unroll(0, LOG_N_CHUNKS):
+        sel_chunk_0 = sel_chunk_0 * (1 + r_sel[GEN ** k])
+    eq_sel_read = HeapBuf(2 * 2 ** (MAX_SLAB_BITS - LOG_N_CHUNKS) - 2)
+    eqtree(r_sel * GEN ** LOG_N_CHUNKS, eq_sel_read, MAX_SLAB_BITS - LOG_N_CHUNKS)
+    # lam_cyc-powers: table t's reads take lam_cyc^(2t), its one-hot tests lam_cyc^(2t + 1).
+    fs, lam_cyc = squeeze(fs)
+    lam_cyc_pows = HeapBuf(2 * N_TABLES)
+    lam_cyc_pow = 1
+    for i in unroll(0, 2 * N_TABLES):
+        lam_cyc_pows[GEN ** i] = lam_cyc_pow
+        lam_cyc_pow = lam_cyc_pow * lam_cyc
+
+    # ---- the batched sumcheck: table t joins at round n - tau_t, as in the table sumcheck ----
+    target = 0
+    for t in unroll(0, N_TABLES):
+        # Its reads' ra values, and c_hot for every row of every chunk table.
+        reads_sum = 0
+        eq_sum = 0
+        for p in unroll(TABLE_READ_BASE[t], TABLE_READ_BASE[t + 1]):
+            eq_p = eq_sel_read[GEN ** (2 ** (MAX_SLAB_BITS - LOG_N_CHUNKS) - 2 + p - TABLE_READ_BASE[t])]
+            reads_sum += eq_p * ra_evals[GEN ** p]
+            eq_sum += eq_p
+        target += lam_cyc_pows[GEN ** (2 * t)] * sel_chunk_0 * reads_sum + lam_cyc_pows[GEN ** (2 * t + 1)] * c_hot * eq_sum
+    rounds = HeapBuf((g_zc_n * GEN) ** ROUND_SLOTS)
+    cprod = HeapBuf(g_zc_n * GEN)  # the challenges bound so far, multiplied
+    rounds[GEN ** ROUND_FS0] = fs[0]
+    rounds[GEN ** ROUND_FS1] = fs[1]
+    rounds[GEN ** ROUND_CURSOR] = cursor
+    rounds[GEN ** ROUND_CLAIM] = target
+    cprod[GEN ** 0] = 1
+    for xk in mul_range(1, g_zc_n):
+        rd = rounds * xk ** ROUND_SLOTS
+        nfs0, nfs1, ncur, nclaim, rk = sumcheck_round_cycle(rd[GEN ** ROUND_FS0], rd[GEN ** ROUND_FS1], rd[GEN ** ROUND_CURSOR], rd[GEN ** ROUND_CLAIM])
+        chi_cyc[g_zc_n * INV_GEN / xk] = rk
+        nxt = rd * GEN ** ROUND_SLOTS
+        nxt[GEN ** ROUND_FS0] = nfs0
+        nxt[GEN ** ROUND_FS1] = nfs1
+        nxt[GEN ** ROUND_CURSOR] = ncur
+        nxt[GEN ** ROUND_CLAIM] = nclaim
+        cprod[xk * GEN] = cprod[xk] * rk
+    rounds_last = rounds * g_zc_n ** ROUND_SLOTS
+    fs = [rounds_last[GEN ** ROUND_FS0], rounds_last[GEN ** ROUND_FS1]]
+    cursor = rounds_last[GEN ** ROUND_CURSOR]
+    claim = rounds_last[GEN ** ROUND_CLAIM]
+    # The selector rounds: the same sumcheck, on over the chunk tables, every
+    # table's extended by zeros to MAX_SLAB_BITS selector bits.
+    chi_sel = HeapBuf(MAX_SLAB_BITS)
+    for j in unroll(0, MAX_SLAB_BITS):
+        f0, f1, cursor, claim, rk = sumcheck_round_cycle(fs[0], fs[1], cursor, claim)
+        fs = [f0, f1]
+        chi_sel[GEN ** (MAX_SLAB_BITS - 1 - j)] = rk
+    peq = HeapBuf(g_zc_n * GEN)  # peq[g^tau] = eq(zeta[..tau], chi_cyc[..tau])
+    eq_prefix_chain(peq, 1, zeta, chi_cyc, g_zc_n)
+    # Per table, its chunk tables at chi_sel: at their chunk points chunk by chunk,
+    # at r_hot, at r_hot_bar. chunk_0 is the indicator of a read's chunk 0 there.
+    chunk_0 = GEN ** 0
+    for k in unroll(0, LOG_N_CHUNKS):
+        chunk_0 = chunk_0 * (1 + chi_sel[GEN ** k])
+    at_sel = GEN ** 0
+    for k in unroll(0, MAX_SLAB_BITS):
+        at_sel = at_sel * (1 + r_sel[GEN ** k] + chi_sel[GEN ** k])
+    hot_v = HeapBuf((N_CHUNKS + 2) * N_TABLES)
+    acc = 0
+    for t in unroll(0, N_TABLES):
+        tau_g = dims_g[GEN ** (t + 1)]
+        product = chunk_0
+        for i in unroll(0, N_CHUNKS):
+            fs, v, cursor = fs_next(fs, cursor)
+            hot_v[GEN ** ((N_CHUNKS + 2) * t + i)] = v
+            product = product * v
+        fs, gv, cursor = fs_next(fs, cursor)
+        hot_v[GEN ** ((N_CHUNKS + 2) * t + N_CHUNKS)] = gv
+        fs, hv, cursor = fs_next(fs, cursor)
+        hot_v[GEN ** ((N_CHUNKS + 2) * t + N_CHUNKS + 1)] = hv
+        summand = lam_cyc_pows[GEN ** (2 * t)] * product + lam_cyc_pows[GEN ** (2 * t + 1)] * (gv * hv)
+        acc += cprod[g_zc_n / tau_g] * peq[tau_g] * summand  # cprod[n - tau] * peq[tau]
+    assert at_sel * acc == claim
+
+    # ---- one opening per table ----
+    # Table t's values are all its chunk cube T_t(position, chunk table) against a
+    # weight; a sumcheck over the cube batches them. The cubes are zero-extended to
+    # MAX_SLAB_BITS selector bits, bound first, top down.
+    fs, lam_cube = squeeze(fs)
+    lam_cube_pows = HeapBuf((N_CHUNKS + 2) * N_TABLES)
+    lam_cube_pow = 1
+    running = 0
+    for i in unroll(0, (N_CHUNKS + 2) * N_TABLES):
+        lam_cube_pows[GEN ** i] = lam_cube_pow
+        running += lam_cube_pow * hot_v[GEN ** i]
+        lam_cube_pow = lam_cube_pow * lam_cube
+    for j in unroll(0, MAX_SLAB_BITS):
+        f0, f1, cursor, running, rk = sumcheck_round3(fs[0], fs[1], cursor, running)
+        fs = [f0, f1]
+        sel[GEN ** (MAX_SLAB_BITS - 1 - j)] = rk
+    f0, f1, cursor, claim = plain_rounds(fs[0], fs[1], cursor, running, pos, g_m)
+    fs = [f0, f1]
+    cube_evals = StackBuf(N_TABLES)
+    for t in unroll(0, N_TABLES):
+        fs, ev, cursor = fs_next(fs, cursor)
+        cube_evals[t] = ev
+    # The weights at the cube point: eq of the position against r_hot, r_hot_bar, and each
+    # array's chunk points (chunk i of an array's point sits at its cells i*m..).
+    eq_chains = HeapBuf((2 + 2 * N_CHUNKS) * (MAX_CHUNK_BITS + 1))
+    eq_prefix_chain(eq_chains, 1, r_hot, pos, g_m)
+    eq_prefix_chain(eq_chains * GEN ** (MAX_CHUNK_BITS + 1), 1, r_hot_bar, pos, g_m)
+    at_r_hot = eq_chains[g_m]
+    at_r_hot_bar = eq_chains[GEN ** (MAX_CHUNK_BITS + 1) * g_m]
+    at_chunk = StackBuf(2 * N_CHUNKS)
+    mem_chunk = chi_mem
+    bc_chunk = chi_bc
+    for i in unroll(0, N_CHUNKS):
+        chain_mem = eq_chains * GEN ** ((2 + i) * (MAX_CHUNK_BITS + 1))
+        eq_prefix_chain(chain_mem, 1, mem_chunk, pos, g_m)
+        at_chunk[ARRAY_MEM * N_CHUNKS + i] = chain_mem[g_m]
+        chain_bc = eq_chains * GEN ** ((2 + N_CHUNKS + i) * (MAX_CHUNK_BITS + 1))
+        eq_prefix_chain(chain_bc, 1, bc_chunk, pos, g_m)
+        at_chunk[ARRAY_BC * N_CHUNKS + i] = chain_bc[g_m]
+        mem_chunk = mem_chunk * g_m
+        bc_chunk = bc_chunk * g_m
+    # eq of chi_sel against a chunk table's index, and against its read's.
+    eq_ct = HeapBuf(2 * 2 ** MAX_SLAB_BITS - 2)
+    eqtree(chi_sel, eq_ct, MAX_SLAB_BITS)
+    eq_rd = HeapBuf(2 * 2 ** (MAX_SLAB_BITS - LOG_N_CHUNKS) - 2)
+    eqtree(chi_sel * GEN ** LOG_N_CHUNKS, eq_rd, MAX_SLAB_BITS - LOG_N_CHUNKS)
+    acc = 0
+    for t in unroll(0, N_TABLES):
+        # A table's cube is zero past its own selector bits.
+        pad = GEN ** 0
+        for k in unroll(SLAB_BITS[t], MAX_SLAB_BITS):
+            pad = pad * (1 + sel[GEN ** k])
+        one_hot = lam_cube_pows[GEN ** ((N_CHUNKS + 2) * t + N_CHUNKS)] * at_r_hot + lam_cube_pows[GEN ** ((N_CHUNKS + 2) * t + N_CHUNKS + 1)] * at_r_hot_bar
+        weight = 0
+        for c in unroll(N_CHUNKS * TABLE_READ_BASE[t], N_CHUNKS * TABLE_READ_BASE[t + 1]):
+            local = c - N_CHUNKS * TABLE_READ_BASE[t]
+            w_f = lam_cube_pows[GEN ** ((N_CHUNKS + 2) * t + c % N_CHUNKS)] * eq_rd[GEN ** (2 ** (MAX_SLAB_BITS - LOG_N_CHUNKS) - 2 + local // N_CHUNKS)]
+            term = w_f * at_chunk[READ_ARRAY[c // N_CHUNKS] * N_CHUNKS + c % N_CHUNKS] + eq_ct[GEN ** (2 ** MAX_SLAB_BITS - 2 + local)] * one_hot
+            weight += eq_weight(sel, SLAB_BITS[t], local, 0) * term
+        acc += pad * pad * weight * cube_evals[t]
+    assert acc == claim
+
+    # ---- one family of slices for all tables ----
+    # Table t's packed bits at (chi_cyc, pos, sel) are cube_evals[t]. Their packing
+    # prefix is chi_cyc's low LOG_PACKING coordinates for every table, so the claims
+    # share their 64 slices once each is scaled by lam_hot^t into the weight.
+    fs, lam_hot = squeeze(fs)
+    for i in unroll(0, BASE_FIELD_BITS):
+        fs, w, cursor = fs_next(fs, cursor)
+        hot_slices[GEN ** i] = w
+    prefix = HeapBuf(2 * BASE_FIELD_BITS - 2)
+    eqtree(chi_cyc, prefix, LOG_PACKING)
+    bound = 0
+    for b in unroll(0, BASE_FIELD_BITS):
+        bound += prefix[GEN ** (BASE_FIELD_BITS - 2 + b)] * hot_slices[GEN ** b]
+    scaled = 0
+    for i in unroll(0, N_TABLES):
+        scaled = scaled * lam_hot + cube_evals[N_TABLES - 1 - i]  # Horner in lam_hot
+    assert bound == scaled
+    return fs[0], fs[1], cursor, lam_hot
 
 
 def verify_flock(fs0, fs1, cursor, tau_blake2s_g, zerocheck_chis, lincheck_rs, z_partial):
@@ -1937,12 +2233,13 @@ def column_selector(offset, point, kappa: Const):
     return selector
 
 
-def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_blake2s_g, claim_cplen_g, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, inner_total, yr_at_tail, sumcheck_target):
+def check_opening_terminal(chi, rm, chi_mem, chi_cyc, pos, sel, lam_hot, g_zc_n, g_log_mem, g_m, dims_g, claim_cplen_g, lam_cl, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, inner_total, yr_at_tail, sumcheck_target):
     # Evaluate each transparent weight at the complete point in witness order.
     # A claim is its low point followed by the certified column's selector bits;
     # q_flock slots prepend their fixed slot bits to the low point.
-    zeta_eq_chain = HeapBuf(SIZE_BITS + 1)
-    eq_prefix_chain(zeta_eq_chain, 1, zeta, point, g_bus_mu)
+    tau_blake2s_g = dims_g[GEN ** (TABLE_BLAKE2s + 1)]
+    mem_eq_chain = HeapBuf(SIZE_BITS + 1)
+    eq_prefix_chain(mem_eq_chain, 1, chi_mem, point, g_log_mem)
     chi_eq_chain = HeapBuf(SIZE_BITS + 1)
     eq_prefix_chain(chi_eq_chain, 1, chi, point, g_zc_n)
     chi_slot_eq_chain = HeapBuf(SIZE_BITS + 1)
@@ -1968,8 +2265,8 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_blake
         else:
             cplen_g = claim_cplen_g[GEN ** j]
         nlow = cplen_g
-        if CLAIM_POINT_BUF[j] == POINT_BUF_ZETA:
-            low_eq = zeta_eq_chain[cplen_g]
+        if CLAIM_POINT_BUF[j] == POINT_BUF_MEM:
+            low_eq = mem_eq_chain[cplen_g]
         if CLAIM_POINT_BUF[j] == POINT_BUF_RHO:
             low_eq = chi_eq_chain[cplen_g]
         if CLAIM_POINT_BUF[j] == POINT_BUF_QFLOCK_RHO:
@@ -1981,6 +2278,7 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_blake
         assert nlow == col_kappas[GEN ** CLAIM_COMMITTED_COL[j]]
         inner_sum += lam_pool[GEN ** j] * low_eq * selectors[CLAIM_COMMITTED_COL[j]]
 
+    # flock's ring-switched weight Phi(eq(z, .)) on q_flock's region.
     qflockv_g = tau_blake2s_g * GEN ** SLOT_STRIDE_LOG
     assert qflockv_g == col_kappas[GEN ** QFLOCK_COMMITTED_COL]
     prod_chains = HeapBuf((qflockv_g * GEN) ** BASE_FIELD_BITS)
@@ -1992,6 +2290,59 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_blake
     for k in unroll(0, BASE_FIELD_BITS):
         rs_weight += c_table[GEN ** k] * prod_final[GEN ** k]
     inner_sum += rs_weight * selectors[QFLOCK_COMMITTED_COL]
+
+    # The one-hot bits' weight sum_t Phi(lam_hot^t * eq(z_t, .)), part t on table t's
+    # packed column at z_t = (pos, chi_cyc above the packing prefix, sel). Phi is only
+    # F2-linear, so the scale rides the weight: row k of the telescoped product
+    # carries (lam_hot^t)^(2^k). Every part starts with the same coordinates read at
+    # the same point, the position then the rows, so ONE chain serves them all and
+    # table t leaves it after its own tau_t - LOG_PACKING rows for its selector bits.
+    rows_max_g = g_zc_n * INV_GEN ** LOG_PACKING
+    shared_g = g_m * rows_max_g
+    z_shared = HeapBuf(shared_g)
+    for xk in mul_range(1, g_m):
+        z_shared[xk] = pos[xk]
+    z_rows = z_shared * g_m
+    chi_cyc_hi = chi_cyc * GEN ** LOG_PACKING
+    for xk in mul_range(1, rows_max_g):
+        z_rows[xk] = chi_cyc_hi[xk]
+    hot_chains = HeapBuf((shared_g * GEN) ** BASE_FIELD_BITS)
+    for k in unroll(0, BASE_FIELD_BITS):
+        hot_chains[GEN ** k] = 1
+    rs_eq_run(hot_chains, z_shared, point, shared_g)
+    # The Frobenius powers the selector coordinates and the scales need, once.
+    sel_frob = HeapBuf(MAX_SLAB_BITS * BASE_FIELD_BITS)  # sel_j^(2^k) at j * 64 + k
+    for j in unroll(0, MAX_SLAB_BITS):
+        power = sel[GEN ** j]
+        for k in unroll(0, BASE_FIELD_BITS):
+            sel_frob[GEN ** (j * BASE_FIELD_BITS + k)] = power
+            if k != BASE_FIELD_BITS - 1:
+                power = power * power
+    scales = HeapBuf(N_TABLES * BASE_FIELD_BITS)  # (lam_hot^t)^(2^k) at t * 64 + k
+    power = lam_hot
+    for k in unroll(0, BASE_FIELD_BITS):
+        scales[GEN ** k] = 1
+        for t in unroll(1, N_TABLES):
+            scales[GEN ** (t * BASE_FIELD_BITS + k)] = scales[GEN ** ((t - 1) * BASE_FIELD_BITS + k)] * power
+        if k != BASE_FIELD_BITS - 1:
+            power = power * power
+    hot_weight = 0
+    for t in unroll(0, N_TABLES):
+        split_g = g_m * dims_g[GEN ** (t + 1)] * INV_GEN ** LOG_PACKING  # the coordinates below the selector bits
+        assert split_g * GEN ** SLAB_BITS[t] == col_kappas[GEN ** HOT_COMMITTED_COL[t]]
+        row = hot_chains * split_g ** BASE_FIELD_BITS
+        sel_point = point * split_g
+        one_plus = StackBuf(MAX_SLAB_BITS)
+        for j in unroll(0, SLAB_BITS[t]):
+            one_plus[j] = 1 + sel_point[GEN ** j]
+        part = 0
+        for k in unroll(0, BASE_FIELD_BITS):
+            term = row[GEN ** k] * scales[GEN ** (t * BASE_FIELD_BITS + k)]
+            for j in unroll(0, SLAB_BITS[t]):
+                term = term * (sel_frob[GEN ** (j * BASE_FIELD_BITS + k)] + one_plus[j])
+            part += c_table[GEN ** k] * term
+        hot_weight += part * selectors[HOT_COMMITTED_COL[t]]
+    inner_sum += lam_cl * hot_weight
     assert inner_sum * yr_at_tail == sumcheck_target
 
 
@@ -2002,9 +2353,9 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # sub-proof's entry of every witness stream and the body lowers once. The
     # exponent tables are shared read-only; the deferred claims go to `defer_out`.
     #
-    # The pool holds every committed-coordinate claim's value in decompose order
-    # (the points are the GKR zetas, resolvable from the baked block structure) and
-    # its certified low dimension, which the terminal pins its lengths against.
+    # The pool holds every pooled claim's value (the table columns at chi, the
+    # public-input limbs, the memory at its read-checking point) and its certified
+    # low dimension, which the terminal pins its lengths against.
     claim_pool = HeapBuf(N_CLAIMS)
     claim_cplen_g = HeapBuf(N_CLAIMS)
 
@@ -2022,8 +2373,8 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # g^j -> j lookup. Every table's rows are real rows (the prover's fill blocks
     # bring each count up to a power of two), so a height is all there is to
     # announce.
-    sizes = StackBuf(N_TABLES + 1)
-    for i in unroll(0, N_TABLES + 1):
+    sizes = StackBuf(N_TABLES + 2)
+    for i in unroll(0, N_TABLES + 2):
         fs, x, cursor = fs_next(fs, cursor)
         sizes[i] = x
     fs, log_inv_rate, cursor = fs_next(fs, cursor)
@@ -2037,23 +2388,32 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     for t in unroll(0, N_TABLES):
         g_tau = g_power_of_word(sizes[t + 1], g_squares, LOG_WORD_BITS)
         assert log(g_tau) < COUNT_BITS
-        # A table's floor: flock sizes its BLAKE2s argument to at least 2^3 instances.
-        assert log(g_tau / GEN ** FLOORS[t]) < COUNT_BITS
+        # A table's floor: its one-hot bits are packed a whole word of rows at a
+        # time (flock's own floor for BLAKE2s, 2^3 instances, sits below it).
+        assert log(g_tau / GEN ** LOG_PACKING) < COUNT_BITS
         dims_g[GEN ** (t + 1)] = g_tau
+    # The chunk width m of the one-hot addresses: N_CHUNKS chunks of m bits cover
+    # every address of both arrays. A wider chunk than needed is sound, costing only
+    # the prover commitment.
+    g_m = g_power_of_word(sizes[N_TABLES + 1], g_squares, LOG_WORD_BITS)
+    assert log(g_m) < MAX_CHUNK_BITS + 1
+    assert log(g_m ** N_CHUNKS / g_log_mem) < COUNT_BITS
+    assert log(g_m ** N_CHUNKS / GEN ** BYTECODE_LOG) < COUNT_BITS
     # kappa_base maps a kappa source index to its certified announced log (source 0
-    # = const via the baked adj). Each block's kappa then DERIVES from its
-    # structural source as a compile-time offset off a certified log: no hint, and
-    # nothing left free.
-    kappa_base = HeapBuf(N_TABLES + 2)
+    # = const via the baked adj, 2+N_TABLES+t = a chunk table of table t, packed).
+    # Each block's and column's kappa then DERIVES from its structural source as a
+    # compile-time offset off a certified log: no hint, and nothing left free.
+    kappa_base = HeapBuf(2 * N_TABLES + 2)
     kappa_base[GEN ** 0] = 1
     kappa_base[GEN ** 1] = g_log_mem
     for t in unroll(0, N_TABLES):
         kappa_base[GEN ** (2 + t)] = dims_g[GEN ** (t + 1)]
+        kappa_base[GEN ** (2 + N_TABLES + t)] = dims_g[GEN ** (t + 1)] * g_m * INV_GEN ** LOG_PACKING
     block_kappa = HeapBuf(N_BLOCKS)
     for b in unroll(0, N_BLOCKS):
         block_kappa[GEN ** b] = kappa_base[GEN ** BLOCK_KAPPA_SRC[b]] * GEN ** BLOCK_KAPPA_ADJ[b]
     # The ONE bus depth, COMPUTED (not hinted): mu = log2_ceil(Σ_b 2^κ_b) over
-    # PUSH's blocks; pull matches by pairing, the count tree is padded to it.
+    # PUSH's blocks; pull matches by pairing.
     push_total = GEN ** 0
     for b in unroll(SIDE_BLOCK_START[PUSH_SIDE], SIDE_BLOCK_START[PUSH_SIDE + 1]):
         push_total *= g_squares[block_kappa[GEN ** b]]  # g^(sum of 2^kappa)
@@ -2071,8 +2431,9 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
 
     # ---- bus challenges (F192 provides the soundness margin without grinding) ----
     # A tuple is fingerprinted multilinearly: slot x weighs eq(alphas, x), so a leaf
-    # factor has total degree N_TUPLE_BITS in the challenges and the aligned bytecode
-    # polynomial is read off at the challenge vector itself (doc sec:gp, sec:e2e-bc).
+    # factor has total degree N_TUPLE_BITS in the challenges and a bytecode read's
+    # entry is the aligned bytecode polynomial at the challenge vector itself (doc
+    # sec:gp, sec:e2e-bc). The reads share the weights.
     bus_alpha = HeapBuf(N_TUPLE_BITS)
     for t in unroll(0, N_TUPLE_BITS):
         fs, av = squeeze(fs)
@@ -2082,13 +2443,29 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
         fp_w[GEN ** x] = eq_weight(bus_alpha, N_TUPLE_BITS, x, 0)
     fs, beta = squeeze(fs)
 
-    # ---- ONE GKR grand product: push, pull, and count RLC-batched ----
-    fs0, fs1, cursor, claim_push, claim_pull, claim_count = verify_bus_gkr(fs[0], fs[1], cursor, g_bus_mu, zeta)
+    # ---- ONE GKR grand product: push and pull RLC-batched ----
+    fs0, fs1, cursor, claim_push, claim_pull = verify_bus_gkr(fs[0], fs[1], cursor, g_bus_mu, zeta)
+    fs = [fs0, fs1]
+
+    # ---- read-checking: every read against its array ----
+    lam_rd = HeapBuf(N_READS)
+    chi_mem = HeapBuf(ADDRESS_BITS)
+    chi_bc = HeapBuf(ADDRESS_BITS)
+    ra_evals = HeapBuf(N_READS)
+    fs0, fs1, cursor, read_total, bc_share = verify_reads(fs[0], fs[1], cursor, g_log_mem, fp_w, lam_rd, chi_mem, chi_bc, ra_evals, claim_pool, claim_cplen_g)
     fs = [fs0, fs1]
 
     # ---- the bus leaves, the table sumcheck, and the public-input claim ----
     chi = HeapBuf(SIZE_BITS)  # chi[i] = the challenge that bound variable i
-    fs0, fs1, cursor, g_zc_n, bc_share, rm = verify_tables(fs[0], fs[1], cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count)
+    fs0, fs1, cursor, g_zc_n, rm = verify_tables(fs[0], fs[1], cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, lam_rd, read_total, claim_pool, claim_cplen_g, chi, claim_push, claim_pull)
+    fs = [fs0, fs1]
+
+    # ---- the one-hot addresses, down to one claim on their packed bits ----
+    chi_cyc = HeapBuf(SIZE_BITS)       # the cycle point
+    pos = HeapBuf(MAX_CHUNK_BITS)    # the chunk-cube point: position coordinates...
+    sel = HeapBuf(MAX_SLAB_BITS)     # ...and selector coordinates
+    hot_slices = HeapBuf(BASE_FIELD_BITS)
+    fs0, fs1, cursor, lam_hot = verify_one_hot(fs[0], fs[1], cursor, zeta, g_zc_n, dims_g, g_m, chi_mem, chi_bc, ra_evals, chi_cyc, pos, sel, hot_slices)
     fs = [fs0, fs1]
 
     # ---- flock zerocheck and lincheck (the matrix evaluation is DEFERRED) ----
@@ -2100,11 +2477,11 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     fs = [fs0, fs1]
 
     # ---- stacked mixed opening: ring-switch front + claim combination ----
-    # The ring-switch slices are z_partial, read and bound above; this block only
-    # binds them to the commitment. Compose six two-term F2-linear maps with shifts
-    # 32,16,8,4,2,1: their expansion has all 64 Frobenius terms soundness needs,
-    # while direct application costs 63 squarings and only six general
-    # multiplications.
+    # The ring-switch slices are z_partial and hot_slices, read and bound above;
+    # this block only binds them to the commitment. Compose six two-term F2-linear
+    # maps with shifts 32,16,8,4,2,1: their expansion has all 64 Frobenius terms
+    # soundness needs, while direct application costs 63 squarings and only six
+    # general multiplications.
     map_challenges = HeapBuf(6)  # len(RING_MAP_SHIFTS)
     c_table = HeapBuf(BASE_FIELD_BITS)
     z_vals = HeapBuf(QFLOCK_VARS_CAP)
@@ -2123,25 +2500,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
             for k in unroll(0, shift):
                 coefficient *= coefficient
             c_table[GEN ** (slot * 2 * shift + shift)] = map_challenge * coefficient
-    # Evaluate the claim and combine its 64 packing rows: the running x-power and
-    # the running sum ride one two-slot chain.
-    rs_chain = HeapBuf(((2 ** K_SKIP) + 1) * PAIR_SLOTS)
-    rs_chain[GEN ** 0] = GEN ** 0  # x^i
-    rs_chain[GEN ** 1] = 0         # the running sum
-    for x_round in mul_range(1, GEN ** (2 ** K_SKIP)):
-        lin_eval = z_partial[x_round]
-        for stage in unroll(0, len(RING_MAP_SHIFTS)):
-            frobenius = lin_eval
-            for k in unroll(0, RING_MAP_SHIFTS[stage]):
-                frobenius *= frobenius
-            lin_eval += map_challenges[GEN ** stage] * frobenius
-        row = rs_chain * x_round ** PAIR_SLOTS
-        x_pow = row[GEN ** 0]
-        row[GEN ** PAIR_SLOTS] = x_pow * 2
-        row[GEN ** (PAIR_SLOTS + 1)] = row[GEN ** 1] + x_pow * lin_eval
-    rs_end = rs_chain * (GEN ** (2 ** K_SKIP)) ** PAIR_SLOTS
-    transposed_claim = rs_end[GEN ** 1]
-    # Suffix point for the transparent weight.
+    # Suffix point for flock's transparent weight.
     for t in unroll(0, LINCHECK_ROUNDS):
         z_vals[GEN ** t] = lincheck_rs[GEN ** (LINCHECK_ROUNDS - 1 - t)]
     zv_lo = z_vals * GEN ** LINCHECK_ROUNDS
@@ -2152,12 +2511,13 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # compressions than a challenge per claim, and none for the values themselves,
     # `fs_next` having bound every one it read and the public-input ones deriving
     # from the seeded statement and rm, so `lam_cl` already depends on all of
-    # them. Disjoint power ranges, as for the zc_xi-powers above:
-    # the ring-switch claim takes lam_cl^0, the pool lam_cl^1 onward.
+    # them. Disjoint power ranges, as for the zc_xi-powers above: flock's
+    # ring-switched claim takes lam_cl^0, the one-hot bits' lam_cl^1, the pool
+    # lam_cl^2 onward.
     fs, lam_cl = squeeze(fs)
-    target = transposed_claim
+    target = ring_switch_target(z_partial, map_challenges) + lam_cl * ring_switch_target(hot_slices, map_challenges)
     lam_pool = HeapBuf(N_CLAIMS)
-    lam_pow = lam_cl
+    lam_pow = lam_cl * lam_cl
     for j in unroll(0, N_CLAIMS):
         lam_pool[GEN ** j] = lam_pow
         target += lam_pow * claim_pool[GEN ** j]
@@ -2181,11 +2541,11 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # is outside the recursively verified proof and intentionally unconstrained.
 
     # ---- generalized eval_b terminal (runtime claim shapes) ----
-    check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_blake2s_g, claim_cplen_g, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, inner_total, yr_at_tail, sumcheck_target)
+    check_opening_terminal(chi, rm, chi_mem, chi_cyc, pos, sel, lam_hot, g_zc_n, g_log_mem, g_m, dims_g, claim_cplen_g, lam_cl, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, inner_total, yr_at_tail, sumcheck_target)
 
     # ---- export this sub-proof's deferred-claim data to the caller (FRESH_*) ----
     for k in unroll(0, BYTECODE_LOG):
-        defer_out[GEN ** k] = zeta[GEN ** k]
+        defer_out[GEN ** k] = chi_bc[GEN ** k]
     for k in unroll(0, LOG2_BYTECODE_COLS):
         defer_out[GEN ** (BYTECODE_LOG + k)] = bus_alpha[GEN ** k]
     defer_out[GEN ** FRESH_BC_VALUE] = bc_share

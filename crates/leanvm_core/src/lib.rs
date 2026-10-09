@@ -1,7 +1,7 @@
 //! leanVM: arithmetization of a minimal zkVM (see `doc/leanvm/main.tex`).
 //!
 //! Machine words are `c0 + c1*y + c2*y² ∈ E = K[y]/(y³ + y + 1)`.
-//! Addresses, pc/fp, read counters, and logical indices live in
+//! Addresses, pc/fp, and logical indices live in
 //! `K = GF(2^64)`; indices are powers of a fixed generator `g`, so incrementing
 //! one is a multiplication by `g`, a free virtual operation. Every physical
 //! witness column is K-valued (an E-valued word is three K-lane columns) and is
@@ -12,10 +12,11 @@
 //! - [`pcs`]: `K`-committed witness, `E`-opened, via the stacked WHIR (§sec:stacking, §annex:pcs).
 //! - [`witness`]: `K`-valued columns stacked into one committed witness.
 //! - [`gkr`]: the grand product via GKR (§sec:gkr), balancing the bus.
-//! - [`leaf`]: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
+//! - [`leaf`]: the shared bus, carrying the VM state: grand-product balance, reduced to the tables' forms (§sec:gp through §sec:leafstack).
+//! - [`shout`]: the memory and bytecode lookups, by Shout over binary fields (§sec:shout).
 //! - [`constraints`]: one table sumcheck over all six tables'
-//!   degree-2 identities plus their three bus forms (§sec:air).
-//! - [`tables`]: the six instruction tables (columns, flushes, constraints).
+//!   degree-2 identities plus their bus and read forms (§sec:air).
+//! - [`tables`]: the six instruction tables (columns, flushes, reads, constraints).
 //! - [`cpu`]: whole-program assembly, control flow, and the prove/verify entry points.
 //! - [`hash_flock`]: the `BLAKE2s` glue: flock's R1CS validity proof over the same commitment.
 //! - [`vmhash`]: VM-native hashing (one-block compression and standard BLAKE2s slice hashing).
@@ -27,6 +28,7 @@ pub mod gkr;
 pub mod hash_flock;
 pub mod leaf;
 pub mod pcs;
+pub mod shout;
 pub mod tables;
 pub mod transcript;
 pub mod vmhash;

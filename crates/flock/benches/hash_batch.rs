@@ -23,7 +23,7 @@ use bench::{Metric, Plan, Timing, bencher_json};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use flock::hash::{
     Blake2sSetup, Compression, K_LOG, generate_witness_with_ab_packed_and_lincheck, min_n_blocks_log,
-    pinned_compression, ring_switch_open, ring_switch_verify,
+    pinned_compression, ring_switch_open,
 };
 use pcs::pack::LOG_PACKING;
 use pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
@@ -134,7 +134,7 @@ fn main() {
         let mut vs = VerifierState::from_label(b"flock-blake2s-batch", &transcript);
         let root = vs.next_root().expect("commitment root");
         let replay = setup.verify_reduction(&mut vs).expect("Flock reduction verifies");
-        let ring = ring_switch_verify(n, 0, &replay.claim);
+        let ring = ring_switch_open(n, 0, &replay.claim);
         assert!(
             verify_opening_batch_mixed_whir_stacked(
                 &mut vs,

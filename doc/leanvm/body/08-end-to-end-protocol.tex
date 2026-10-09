@@ -22,7 +22,7 @@ Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$\\
 \hline
 \end{tabular}
 \end{center}
-So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand, and $P(z,0,0,0,0)=P(z,0,0,1,1)=0$.
+So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand, and $P(z,0,0,0,0)=P(z,0,0,1,1)=0$. The slots are those of a read's tuple (\S\ref{sec:shout}), whose fingerprint weighs slot $\iota$ by $\eq(\alpha,\iota)$: the entry's whole share of the bytecode's fingerprint at a point $r$ is the one evaluation $\mle{P}(r,\alpha)$.
 
 \subsection{Public input}\label{sec:e2e-pi}
 
@@ -38,7 +38,7 @@ and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$,
 
 \subsection{Filling the tables}\label{sec:e2e-pad}
 
-A table is proven over a power-of-two number of rows. The prover reaches one by running extra instructions, in execution cycles disjoint from the program's own run. Proposition~\ref{prop:walk} about bus balance splits the rows into two groups:
+A table is proven over a power-of-two number of rows, at least $64$ (\S\ref{sec:shout-open}). The prover reaches one by running extra instructions, in execution cycles disjoint from the program's own run. Proposition~\ref{prop:walk} about bus balance splits the rows into two groups:
 \begin{itemize}
 \item one walk from $(\pc_0,\fp_0)$ to $(\pc_{\mathrm{final}},\fp_{\mathrm{final}})$
 \item closed walks
@@ -56,12 +56,12 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 \paragraph{Setup.}
 
 
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input, the bytecode and Flock's BLAKE2s R1CS matrices. The prover sends the memory log-size $\kmem$ and the six table log-heights $\tau_j$; the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input, the bytecode and Flock's BLAKE2s R1CS matrices. The prover sends the memory log-size $\kmem$, the six table log-heights $\tau_j$ and the chunk width $\kchunk$; the verifier checks them against the caps ($16\le\kmem\le32$, $6\le\tau_j\le32$, $\kchunk\le4$, $\nchunk\,\kchunk\ge\max(\kmem,\kbc)$) and derives the layout of every stack (PCS and GKR leaves).
 
 \paragraph{Commitment.}
 
 \begin{enumerate}
-\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, the two finalize (memory / bytecode) counts, and Flock's packed witness $\qflock$ (\S\ref{sec:tab-blake2s}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
+\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, each table's packed one-hot bits $\hot_j$ (\S\ref{sec:shout-open}), and Flock's packed witness $\qflock$ (\S\ref{sec:tab-blake2s}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
 \item \textbf{Verifier.} Receives the commitment to $q$.
 \end{enumerate}
 
@@ -69,16 +69,24 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends the fingerprint challenge $\alpha\in\E^{4}$ and the multiset challenge $\beta\in\E$ (\S\ref{sec:gp}).
-\item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
-\item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
-\item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta,\alpha)$ (\S\ref{sec:e2e-bc}). Three blocks per side belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
+\item \textbf{Prover.} Forms the push and pull leaf vectors of the VM state (\S\ref{sec:leafstack}), stacked into blocks and padded with $1$s. Sends one bus root $R$.
+\item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over both trees. The verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). The pass yields two leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
+\item \textbf{Verifier.} Decomposes each leaf claim (\S\ref{sec:leafstack}): it forms the block selectors and the boundary state's fingerprint itself, which leaves what the tables owe. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
 \end{enumerate}
 
-\paragraph{Table sumcheck.} One run proves the six tables' constraints together with their share of the bus (\S\ref{sec:air}).
+\paragraph{Read-checking.} Every read of the memory and of the bytecode against its array (\S\ref{sec:shout}).
 \begin{enumerate}
-\item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
-\item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
-\item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{BLAKE2S}'s eighteen value limbs are columns of its table but live in $\qflock$, not the stack, so their claims route there (\S\ref{sec:tab-blake2s}).
+\item \textbf{Verifier.} Samples and sends $\lrd\in\E$.
+\item \textbf{Prover.} Sends the two sums $S_{\dsep{MEM}}$ and $S_{\dsep{BC}}$.
+\item \textbf{Prover \& Verifier.} For the memory: a sumcheck of $\kmem$ rounds and degree $2$, to a point $\fcp{mem}$. The prover sends $\mle{\ra_p}(\fcp{mem},\zeta_{<\tau_p})$ for every read $p$ of the memory, then the three $\mle{\mem_i}(\fcp{mem})$, which enter the claim pool. The verifier checks the sumcheck's final value against them and the index column (\S\ref{sec:idxcol}).
+\item \textbf{Prover \& Verifier.} For the bytecode: the same over $\kbc$ rounds, to a point $\fcp{bc}$. The prover sends $\mle{\ra_p}(\fcp{bc},\zeta_{<\tau_p})$ for every read $p$ of the bytecode; the verifier evaluates $\mle{P}(\fcp{bc},\alpha)$ itself (\S\ref{sec:e2e-bc}).
+\end{enumerate}
+
+\paragraph{Table sumcheck.} One run proves the six tables' constraints together with their share of the bus and of the reads (\S\ref{sec:air}).
+\begin{enumerate}
+\item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the next $\nside$ weight the bus forms, one per side, and the last weights the read form, each shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
+\item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the two leaf claims and $S_{\dsep{MEM}}+S_{\dsep{BC}}$. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
+\item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$, $B^{s}_j$ and $\rfp^{\mathrm{rd}}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{BLAKE2S}'s eighteen value limbs are columns of its table but live in $\qflock$, not the stack, so their claims route there (\S\ref{sec:tab-blake2s}).
 \end{enumerate}
 
 \paragraph{Public input.}
@@ -88,18 +96,28 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Verifier.} Computes $c_0,c_1$ from the public input and pools $(c_0,c_1,0)$ as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}). The prover sends nothing.
 \end{enumerate}
 
+\paragraph{One-hot addresses.} The chunk tables behind the reads (\S\ref{sec:shout-cycle}, \S\ref{sec:shout-open}).
+\begin{enumerate}
+\item \textbf{Verifier.} Samples and sends the one-hot point $\rhot\in\E^{\kchunk}$, then $\rsel\in\E^{\varsigma}$ and $\lcyc\in\E$.
+\item \textbf{Prover \& Verifier.} Run the cycle sumcheck \eqref{eq:cycle}, $\taumax$ rounds batched like the table sumcheck, to a point $\fcp{cyc}$, then $\varsigma$ rounds over the chunk tables, to a point $\fcp{sel}$. A round polynomial has degree $\max(\nchunk,2)+2$, one coefficient of which the round check pins. The prover sends each table's $\nchunk+2$ values $f_{j,c}$, $g_j$, $h_j$, and the verifier checks that they reproduce the final value.
+\item \textbf{Verifier.} Samples and sends $\lcube\in\E$.
+\item \textbf{Prover \& Verifier.} Run the sumcheck over the chunk cubes, degree $2$, to a point $\fcp{cube}$. The prover sends the $\ntab$ values $t_j$, and the verifier checks the final value.
+\item \textbf{Verifier.} Samples and sends $\lhot\in\E$.
+\item \textbf{Prover.} Sends the $64$ slices $s_b$. The verifier checks them against $\sum_j\lhot^{\,j-1}t_j$ at the packing prefix $\fcp{cyc}_{<6}$.
+\end{enumerate}
+
 \paragraph{BLAKE2s validity.}
 
 \begin{enumerate}
-\item \textbf{Prover \& Verifier.} Reduce the executed BLAKE2s constraints to one evaluation claim on $\qflock$ (\S\ref{sec:tab-blake2s}, Annex~\ref{annex:flock}).
-\item \textbf{Prover \& Verifier.} The ring switching of \S\ref{sec:ringswitch} reduces that bit-witness claim to a weighted-sum claim on the $\qflock$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}); it joins the pool.
+\item \textbf{Prover \& Verifier.} Reduce the executed BLAKE2s constraints to $64$ slice claims on $\qflock$ (\S\ref{sec:tab-blake2s}, Annex~\ref{annex:flock}).
 \end{enumerate}
 
 \paragraph{Opening.}
 
 \begin{enumerate}
-\item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qflock$ region.)
-\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
+\item \textbf{Prover \& Verifier.} The ring switching of \S\ref{sec:ringswitch} reduces each of the two families of slices, flock's and the one-hot bits', to a weighted-sum claim on its region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}), under one shared map $\Phi$; both join the pool.
+\item \textbf{Prover \& Verifier.} Each other pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness.
+\item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the two ring-switched claims first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
-\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, flock's reduction, and the PCS opening.
+\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, every sumcheck's rounds and final value, the one-hot slices, flock's reduction, and the PCS opening.
 \end{enumerate}

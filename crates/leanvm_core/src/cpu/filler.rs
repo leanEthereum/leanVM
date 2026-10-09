@@ -37,10 +37,10 @@ pub const PAD_TABLE: usize = 2;
 /// largest block and then one per set bit of the remainder.
 pub const SIZES: [usize; 8] = [128, 64, 32, 16, 8, 4, 2, 1];
 
-/// Least rows a table can be proven over. Only `BLAKE2s` has one above `1`: flock sizes
-/// its argument to at least eight instances, so filling that table below the floor
-/// would leave it padded up to it, which is the padding this exists to avoid.
-pub const MIN_ROWS: [usize; N_TABLES] = [1, 1, 1, 1, 1, 8];
+/// Least rows a table can be proven over: a table's one-hot address bits are packed
+/// along its rows, a whole `K` word of them at a time (`crate::shout`), and flock's
+/// own floor for `BLAKE2s`, eight instances, sits below that.
+pub const MIN_ROWS: [usize; N_TABLES] = [1 << crate::shout::LOG_PACKING; N_TABLES];
 
 /// The `JUMP` table's index in [`crate::cpu::Stats::TABLES`]. Every traversal of every
 /// block lands its closing jump here, so this table is solved last, absorbing the cost

@@ -28,7 +28,7 @@
 use crate::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::F64;
 
-pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim as SlotClaim};
+pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim as SlotClaim};
 use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
 use ::pcs::whir::ProverConfig;
 use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
@@ -160,7 +160,7 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim]
 pub fn verify(
     vs: &mut VerifierState,
     points: &[SlotClaim],
-    ring: &RingSwitchVerify<'_>,
+    ring: &RingSwitchOpen,
     shape: crate::witness::StackShape,
     log_inv_rate: usize,
     root: &[u8; 32],

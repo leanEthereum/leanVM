@@ -30,7 +30,7 @@ pub struct Execution {
     /// exemption: a range-check touch only links its two cells, reading neither,
     /// and an arithmetic back-solve writes its operand before reading it.
     pub unconstrained_reads: Vec<u32>,
-    pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
+    pub(crate) trace: Trace, // rows, emitted in the same walk
 }
 
 /// Why a run has no execution the interpreter can find: the program, on this public
@@ -203,13 +203,12 @@ impl Program {
             .max(1 << MIN_LOG_MEM);
         let mut g = GPow::new(seed);
 
-        // Dense write-once data memory (read path stays a vector for speed), the
-        // per-cell access count (g^{count}, default g^0 = 1), and each cell's state.
+        // Dense write-once data memory (read path stays a vector for speed) and each
+        // cell's state.
         let n0 = self.main_frame.max(2) as usize;
         let mut m = Mem {
             cells: vec![F192::ZERO; n0],
             state: vec![State::Unwritten; n0],
-            count: vec![F64::ONE; n0],
             links: HashMap::new(),
             unwritten_reads: Vec::new(),
             program: self,
@@ -219,9 +218,6 @@ impl Program {
         // Seed the public input into m[0], m[1] (addresses g^0, g^1, §sec:e2e-pi).
         m.put(0, public_input[0])?;
         m.put(1, public_input[1])?;
-
-        // Per-pc bytecode execution count (g^{count}).
-        let mut bytecode_count: Vec<F64> = vec![F64::ONE; self.prog.len()];
 
         let mut next_free = self.main_frame;
         let (mut pc, mut fp) = (0u32, 0u32);
@@ -254,7 +250,7 @@ impl Program {
         let mut unconstrained_reads: Vec<u32> = Vec::new();
 
         // Per-opcode trace rows, accumulated during the walk and assembled into the
-        // `Trace` once the run finishes (alongside the final count columns).
+        // `Trace` once the run finishes.
         let mut xor: Vec<Xrow> = Vec::new();
         let mut mul: Vec<Xrow> = Vec::new();
         let mut set: Vec<Srow> = Vec::new();
@@ -271,12 +267,11 @@ impl Program {
             Written,
         }
 
-        // The three dense per-cell vectors, kept in lockstep. Every method on the hot
+        // The two dense per-cell vectors, kept in lockstep. Every method on the hot
         // path is `#[inline(always)]`: they sit in the interpreter's opcode loop.
         struct Mem<'a> {
             cells: Vec<F192>,
             state: Vec<State>,
-            count: Vec<F64>,
             /// The cells a `DEREF` linked each cell to.
             links: HashMap<u32, Vec<u32>>,
             /// Cells an instruction read before anything wrote them.
@@ -301,7 +296,6 @@ impl Program {
                     let n = idx + 1;
                     self.cells.resize(n, F192::ZERO);
                     self.state.resize(n, State::Unwritten);
-                    self.count.resize(n, F64::ONE);
                 }
             }
             #[inline(always)]
@@ -377,17 +371,6 @@ impl Program {
                     hint: self.dbg_hint,
                 };
                 ExecError::new(self.program, self.dbg_pc, fault)
-            }
-            // Read the running access count and advance it by ×g (the free increment).
-            // ×g is ×x, i.e. `mul_by_g`, a shift+fold rather than a PMULL; this runs on every
-            // memory access (several million per run), so the cheap form matters.
-            #[inline(always)]
-            fn bump_access_count(&mut self, cell: u32) -> F64 {
-                self.ensure(cell as usize);
-                let cell_idx = cell as usize;
-                let count = self.count[cell_idx];
-                self.count[cell_idx] = mul_by_g(count);
-                count
             }
         }
         // Bounded discrete log for `hint_decompose_bits_exponent`: find n < 2^nbits
@@ -702,12 +685,6 @@ impl Program {
                 g.grow_to(need);
             }
 
-            let bytecode_read = {
-                let v = bytecode_count[pc as usize];
-                bytecode_count[pc as usize] = mul_by_g(v);
-                v
-            };
-
             // Loaded once: the shared Xor/Mul arm needs the discriminant again,
             // and `Op` is wide enough that re-reading it costs a second load.
             let op = self.prog[pc as usize];
@@ -742,17 +719,7 @@ impl Program {
                     let vb = m.read(ab);
                     let vc = if is_xor { va + vb } else { va * vb };
                     m.put(ac, vc)?;
-                    let ra = m.bump_access_count(aa);
-                    let rb = m.bump_access_count(ab);
-                    let rc = m.bump_access_count(ac);
-                    let row = Xrow {
-                        pc,
-                        fp,
-                        ra,
-                        rb,
-                        rc,
-                        bytecode_read,
-                    };
+                    let row = Xrow { pc, fp };
                     if is_xor {
                         xor.push(row);
                     } else {
@@ -763,13 +730,7 @@ impl Program {
                 Op::Set { o, k } => {
                     let a = fp + o;
                     m.put(a, k)?;
-                    let r = m.bump_access_count(a);
-                    set.push(Srow {
-                        pc,
-                        fp,
-                        r,
-                        bytecode_read,
-                    });
+                    set.push(Srow { pc, fp });
                     pc += 1;
                 }
                 Op::Deref { o1, o2, o3, mode } => {
@@ -806,17 +767,8 @@ impl Program {
                             m.put(a2, v)?;
                         }
                     }
-                    let r1 = m.bump_access_count(a1);
-                    let r2 = m.bump_access_count(a2);
-                    let r3 = m.bump_access_count(a3);
-                    deref.push(Drow {
-                        pc,
-                        fp,
-                        r1,
-                        r2,
-                        r3,
-                        bytecode_read,
-                    });
+                    m.ensure(a1.max(a2).max(a3) as usize);
+                    deref.push(Drow { pc, fp, target: a2 });
                     pc += 1;
                 }
                 Op::Jump { oc, od, of } => {
@@ -834,18 +786,8 @@ impl Program {
                     // flow, only recorded as a witness column, so it is not
                     // computed here at all: `JumpTable::fill` batch-inverts every
                     // row's condition at once (§the trace rows in `cpu::trace`).
-                    let rc = m.bump_access_count(ac);
-                    let rd = m.bump_access_count(ad);
-                    let rf = m.bump_access_count(af);
                     let taken = !c.is_zero();
-                    jump.push(Jrow {
-                        pc,
-                        fp,
-                        rc,
-                        rd,
-                        rf,
-                        bytecode_read,
-                    });
+                    jump.push(Jrow { pc, fp });
                     if taken {
                         pc = g.log(d).filter(|&t| (t as usize) < self.prog.len()).ok_or_else(|| {
                             fail(Fault::NotAGPower {
@@ -894,23 +836,7 @@ impl Program {
                     let outputs = [F192::new(vc[0].0, vc[1].0, 0), F192::new(vc[2].0, vc[3].0, 0)];
                     m.put(ac, outputs[0])?;
                     m.put(ac + 1, outputs[1])?;
-                    let ra = [m.bump_access_count(aa0), m.bump_access_count(aa1)];
-                    let rb = [m.bump_access_count(ab0), m.bump_access_count(ab1)];
-                    let rcv = [m.bump_access_count(acv), m.bump_access_count(acv + 1)];
-                    let rc = [m.bump_access_count(ac), m.bump_access_count(ac + 1)];
-                    // Last, matching the flush order, so an md cell aliasing another
-                    // operand still pairs each read with its own count.
-                    let rmd = m.bump_access_count(amd);
-                    blake2s.push(Brow {
-                        pc,
-                        fp,
-                        ra,
-                        rb,
-                        rcv,
-                        rc,
-                        rmd,
-                        bytecode_read,
-                    });
+                    blake2s.push(Brow { pc, fp });
                     pc += 1;
                 }
             }
@@ -965,7 +891,6 @@ impl Program {
         let cells = m.cells.len().next_power_of_two().max(1 << MIN_LOG_MEM);
         assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
         m.cells.resize(cells, F192::ZERO);
-        m.count.resize(cells, F64::ONE);
         let trace = Trace {
             xor,
             mul,
@@ -973,8 +898,6 @@ impl Program {
             deref,
             jump,
             blake2s,
-            mem_count: m.count,
-            bytecode_count,
         };
         Ok(Execution {
             mem: m.cells,

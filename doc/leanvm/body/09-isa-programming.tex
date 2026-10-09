@@ -44,7 +44,7 @@ To check that $\loc{o_1}$ and $\loc{o_2}$ are both in $\K$, it suffices to emit 
 
 The range check \emph{in the exponent} proves $x\in\{\gen^{0},\dots,\gen^{k-1}\}$, i.e.\ $\log_{\gen}x<k$, in 3 cycles:
 \begin{enumerate}
-\item \texttt{DEREF} through $x$: the dereferenced address $x\cdot\gen^{0}$ rides the memory interaction, which balances only for the $2^{\kmem}$ addresses $\gen^{0},\dots,\gen^{2^{\kmem}-1}$ (\S\ref{sec:memchan}): the bus itself proves $x=\gen^{e}$ with $e<2^{\kmem}$;
+\item \texttt{DEREF} through $x$: the dereferenced address $x\cdot\gen^{0}$ is a memory read, which is correct only at the $2^{\kmem}$ addresses $\gen^{0},\dots,\gen^{2^{\kmem}-1}$ (Corollary~\ref{cor:addrrange}): the lookup itself proves $x=\gen^{e}$ with $e<2^{\kmem}$;
 \item \texttt{MUL} $x\cdot y$ into a write-once cell holding the constant $\gen^{k-1}$: the runner back-solves the complement $y=\gen^{k-1-e}$ (\S\ref{sec:prog-hints}), and the double write asserts $x\cdot y=\gen^{k-1}$;
 \item \texttt{DEREF} through $y$: proves $y=\gen^{f}$, $f<2^{\kmem}$.
 \end{enumerate}

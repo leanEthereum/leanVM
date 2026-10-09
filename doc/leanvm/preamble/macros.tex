@@ -15,7 +15,7 @@
 % ---------- fields ----------
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Ftwo}{\mathbb{F}_2}
-\newcommand{\K}{K}            % F_{2^64}:  addresses, counters, committed lanes
+\newcommand{\K}{K}            % F_{2^64}:  addresses, committed lanes
 \newcommand{\E}{E}            % F_{2^192} = K[y]/(y^3+y+1): words and challenges
 \newcommand{\gen}{\mathsf{g}} % generator of K^*, order 2^64 - 1
 
@@ -63,18 +63,14 @@
 \newcommand{\mem}{\mathbf{m}}
 \newcommand{\addr}{\mathit{addr}}
 \newcommand{\val}{\mathit{val}}
-\newcommand{\cnt}{\mathit{count}}
 \newcommand{\md}{\mathrm{md}}       % BLAKE2s metadata: byte counter, final and last-node flags
-\newcommand{\cntfin}{\mathit{count}^{\mathrm{fin}}}  % committed finalize-count column
-\newcommand{\rcnts}{\mathcal{N}}          % multiset of read counts at one (address, value)
 \newcommand{\mset}[1]{\{\!\{#1\}\!\}}     % a multiset (plain braces stay sets)
 \newcommand{\lut}{\mathbf{L}}             % a lookup array (memory, or the program)
-\newcommand{\sep}{\dsep{sep}}             % the domain separator of a generic lookup array
 \newcommand{\ncomp}{N_{\mathrm{comp}}}    % components of a lookup entry (its width)
 \newcommand{\push}{\textsc{push}}
 \newcommand{\pull}{\textsc{pull}}
 \newcommand{\tup}[1]{( #1 )}
-\newcommand{\rdf}[1]{\dsep{read}\,\tup{#1}}   % a pull/push pair differing only in the count
+\newcommand{\rdf}[2]{\dsep{read}_{\dsep{#1}}\,\tup{#2}}   % a read of array #1: its address, then the entry it must hold
 \newcommand{\dsep}[1]{\mathsf{#1}}
 \newcommand{\opc}[1]{\mathsf{op}_{\mathsf{#1}}}
 \newcommand{\srcsel}[1]{\mathsf{src}(#1)}
@@ -82,9 +78,9 @@
 \newcommand{\nmem}{N_{\mathrm{mem}}}    % memory length
 \newcommand{\kbc}{\kappa_{\mathrm{bc}}}   % log program length: nprog = 2^kbc 
 \newcommand{\kmem}{\kappa_{\mathrm{mem}}}  % log memory length: nmem = 2^kmem
-\newcommand{\nread}{N_{\mathrm{read}}}   % total read flushes in a proof
+\newcommand{\nread}{N_{\mathrm{read}}}   % reads one row of each table makes, all tables together
 \newcommand{\ntab}{N_{\mathrm{tab}}}     % number of tables (fixed by the arithmetization)
-\newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull, count
+\newcommand{\nside}{N_{\mathrm{side}}}   % grand-product sides: push, pull
 \newcommand{\taumax}{\tau_{\max}}      % rounds of the table sumcheck: the tallest table's log height
 \newcommand{\ncol}[1]{N_{\mathrm{col},#1}}  % columns of table #1
 \newcommand{\ncons}[1]{N_{\mathrm{cons},#1}}  % constraints of table #1
@@ -93,6 +89,26 @@
 \newcommand{\btup}{\mathbf{f}}          % a bus tuple
 \newcommand{\bpull}{\mathsf{pull}}        % the state a row pulls from the bus
 \newcommand{\bpush}{\mathsf{push}}        % the state a row pushes onto the bus
+
+% ---------- lookups (\S\ref{sec:shout}) ----------
+% A batching challenge is a lambda everywhere; the subscript says of what.
+\newcommand{\nchunk}{N_{\mathrm{chunk}}}      % chunks an address is cut into
+\newcommand{\kchunk}{\kappa_{\mathrm{chunk}}} % bits of one chunk
+\newcommand{\ra}{\mathsf{ra}}                 % a read's one-hot address table
+\newcommand{\hot}{\mathsf{hot}}               % a table's packed one-hot bits
+\newcommand{\cubetab}{\mathsf{T}}             % a table's chunk tables at the cycle point, over its chunk cube
+\newcommand{\rfp}{\mathsf{R}}                 % a read's fingerprint, a degree-2 form in its row's columns
+\newcommand{\afp}{\mathsf{A}}                 % an array's fingerprint, entry by entry
+\newcommand{\lrd}{\lambda_{\mathrm{rd}}}       % batches the reads
+\newcommand{\lcyc}{\lambda_{\mathrm{cyc}}}     % batches the cycle sumcheck's claims
+\newcommand{\lcube}{\lambda_{\mathrm{cube}}}   % batches a table's chunk evaluations
+\newcommand{\lhot}{\lambda_{\mathrm{hot}}}     % batches the tables' packed-bit claims
+\newcommand{\rsel}{r_{\mathrm{sel}}}          % weighs a table's chunk tables in the cycle sumcheck
+\newcommand{\rhot}{r_{\mathrm{hot}}}          % the one-hot test's point
+\newcommand{\rhotb}{\bar r_{\mathrm{hot}}}     % its flip, 1 + rhot
+\newcommand{\chot}{c_{\mathrm{hot}}}          % the test's right side, prod_h rhot_h (1 + rhot_h)
+\newcommand{\vone}{\mathbf{1}}                % the all-ones tuple
+\newcommand{\fcp}[1]{\fc^{\mathrm{#1}}}       % the point a named sumcheck ends on: mem, bc, cyc, cube
 
 % ---------- codes and the PCS (Annex B) ----------
 % Letters that the main matter already spends on something else are routed

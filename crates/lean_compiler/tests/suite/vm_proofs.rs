@@ -75,7 +75,7 @@ fn a_tampered_reduction_word_is_rejected() {
 /// A proof is bound to its exact program. The two programs here have the same shape,
 /// so the same layout and announced sizes, and differ in one constant; the program
 /// digest seeds the transcript, so it diverges at the first squeeze. This is
-/// the adaptive-statement forgery that the bytecode bus's single-point check does not,
+/// the adaptive-statement forgery that the bytecode lookup's single-point check does not,
 /// on its own, prevent.
 #[test]
 fn a_proof_does_not_verify_against_another_program() {
@@ -109,27 +109,27 @@ fn a_proof_roundtrips_through_bytes() {
     let decoded: Proof = bincode::deserialize(&bytes).expect("proof deserializes");
     verify(&program, &pi, &decoded).expect("a deserialized proof verifies");
 
-    // The announced sizes lead the stream: memory log, the table log heights, then
-    // the PCS rate.
+    // The announced sizes lead the stream: memory log, the table log heights, the
+    // chunk width of the one-hot addresses, then the PCS rate.
+    let n_tables = leanvm_core::cpu::Stats::TABLES.len();
     let mut bad_rate = decoded.clone();
-    bad_rate.stream[1 + leanvm_core::cpu::Stats::TABLES.len()] = F192::new(5, 0, 0);
+    bad_rate.stream[2 + n_tables] = F192::new(5, 0, 0);
     assert!(
         matches!(verify(&program, &pi, &bad_rate), Err(CpuError::PublicInput)),
         "the announced PCS rate must be in 1..=4"
     );
 
-    // A BLAKE2s height below flock's instance floor describes a layout the
-    // arithmetization cannot express, and all three verifiers reject it there.
-    let blake2s = leanvm_core::cpu::Stats::TABLES
-        .iter()
-        .position(|&t| t == "BLAKE2S")
-        .unwrap();
-    let mut sub_floor = decoded;
-    sub_floor.stream[1 + blake2s] = F192::new(2, 0, 0);
-    assert!(
-        matches!(verify(&program, &pi, &sub_floor), Err(CpuError::PublicInput)),
-        "the announced BLAKE2s height must reach flock's instance floor"
-    );
+    // A table shorter than one packed word of rows, or chunks too narrow to cover
+    // the memory's addresses, describe a layout the arithmetization cannot express,
+    // and all three verifiers reject them there.
+    for (word, value) in [(1, 5), (1 + n_tables, 1)] {
+        let mut bad = decoded.clone();
+        bad.stream[word] = F192::new(value, 0, 0);
+        assert!(
+            matches!(verify(&program, &pi, &bad), Err(CpuError::PublicInput)),
+            "announced size {word} must be rejected at {value}"
+        );
+    }
 }
 
 /// An unsupported rate is an error, not a panic.

@@ -153,6 +153,18 @@ The inner sum is $\eq(r^{2^k},r')$, since $\eq(u,\cdot\,)$ is its own multilinea
 \ \ }
 \]
 
+\subsection{Several regions, one family}\label{rs:parts}
+
+Nothing above used that the weight is a single $\eq$. Let $W:\cube{\nflock}\to\E$ be any weight and $s_i=\sum_uQ_i(u)\,W(u)$ its $64$ slices: \eqref{eq:complete} holds with $\Phi(W(u))$ in place of $\Phi(\eq(r,u))$, and the soundness argument only ever saw the errors $\delta_i$. The one-hot bits of the lookups (\S\ref{sec:shout-open}) use this with
+\[
+  W(u)=\sum_j c_j\,[\,u\in\text{region }j\,]\;\eq(r_j,u),
+\]
+a sum over disjoint regions of the stack, each read at its own point $r_j$ and scaled by its own $c_j\in\E$: several evaluation claims sharing their packing prefix ride one family of slices. A scale cannot be pulled out of $\Phi$, which is only $\F_2$-linear, but Frobenius passes through it as through $\eq$: $\Phi(c\,\eq(r,u))=\sum_kc_k\,c^{2^k}\eq(r^{2^k},u)$, so region $j$ contributes
+\[
+  \sum_{k=0}^{63}c_k\,c_j^{\,2^k}\prod_{n}\bigl(1+r_{j,n}^{2^k}+r'_n\bigr)
+\]
+to $\mle{W}(r')$, times the selector of the region (\S\ref{sec:stacking}). Flock's claim is the case of one region and $c_j=1$. One $\Phi$ serves every family of slices of the proof, drawn once all of them are fixed.
+
 \subsection{Cost}\label{rs:cost}
 
 One application of $\Phi$ takes $63$ squarings and $6$ multiplications: the Frobenius ladder climbs $32+16+8+4+2+1$ steps, and each stage multiplies once by its challenge. The same recurrence run on the coefficient table gives the $c_k$ of \eqref{eq:ck}: stage $p$ raises its $2^p$ entries to the $2^{2^{5-p}}$ power and multiplies each by $f_p$; the raising is $32$ squarings whatever $p$ is.

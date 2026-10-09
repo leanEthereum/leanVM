@@ -16,7 +16,7 @@ The fields are
 
 `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^3 + y + 1) = GF(2^192)`.
 
-Machine **words** (the contents of a memory cell, an immediate, a hashed value, the `JUMP` condition) are elements of `E`. **Addresses**, the program counter, the frame pointer, read counters, operands, opcodes, and domain separators live in the 64-bit subfield `K = GF(2^64)`. There are no runtime integers.
+Machine **words** (the contents of a memory cell, an immediate, a hashed value, the `JUMP` condition) are elements of `E`. **Addresses**, the program counter, the frame pointer, operands, and opcodes live in the 64-bit subfield `K = GF(2^64)`. There are no runtime integers.
 
 - `+` is field addition = bitwise **XOR** (192-bit on words, so `x + x == 0`),
 - `*` is multiplication in `E`; for g-powers and addresses it stays within `K`,
@@ -382,7 +382,7 @@ A **runtime** bound costs one extra `MUL` for `g^{k-1} = n·g⁻¹` and is other
 
 Cost: **3 cycles** (leanVM's DEREF range-check trick, in the exponent) plus one amortized `SET` per distinct bound per frame:
 
-1. `DEREF` through `x`: the dereferenced address must be one of the memory's `2^h` g-power addresses, so the memory bus itself proves `x = g^e`, `e < 2^h`;
+1. `DEREF` through `x`: the dereferenced address must be one of the memory's `2^h` g-power addresses, so the memory lookup itself proves `x = g^e`, `e < 2^h`;
 2. `MUL x·y` into the write-once cell holding `g^{k-1}`: the runner back-solves the complement `y = g^{k-1-e}` (the one unknown operand of a known product), and the double-write asserts `x·y = g^{k-1}`;
 3. `DEREF` through `y`: bounds the complement; a "negative" `k-1-e` would wrap to `≈ 2^64`, far beyond any memory size, so together `e ≤ k-1`.
 

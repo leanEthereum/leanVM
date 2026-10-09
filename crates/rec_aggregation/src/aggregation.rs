@@ -76,7 +76,6 @@ pub struct XmssClaimGroup {
 /// Why the guest reads every `q_flock` slot claim's instance point off `chi`: a
 /// virtual value column is referenced only by its own table's bus blocks, which
 /// the table sumcheck settles, so no framework block can raise one at `zeta`.
-const VALCOL_FRAMEWORK: &str = "a framework block must not reference a virtual value column";
 const RECURSION_AGG_LABEL: &[u8] = b"leanvm/recursion-aggregation/v1";
 
 /// The most earlier aggregates one [`aggregate`] call can take, so the arity of
@@ -131,7 +130,7 @@ const _: () = assert!(SIGNERS_COUNT_BITS + 6 + SIGNERS_WINDOW.ilog2() <= 64);
 // reads it off the stacked table, which is `N_BYTECODE_SELECTORS` wide. Two constants
 // that happen to agree: were they to drift, a leaf's claim point would be one length in
 // the guest and another in the statement, and nothing else would notice.
-const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BYTECODE_SELECTORS);
+const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::shout::N_BYTECODE_SELECTORS);
 // The leaf index fills a tweak's four-byte index field, so a longer lifetime would
 // need a weight per bit that `xmss::make_tweak` cannot express.
 const _: () = assert!(xmss::LOG_LIFETIME <= 32);
@@ -813,9 +812,9 @@ fn bytecode_window() -> Range<usize> {
     WINDOW
         .get_or_init(|| {
             let table = stacked_bytecode();
-            let kbc = bytecode_vars() - leanvm_core::leaf::N_BYTECODE_SELECTORS;
+            let kbc = bytecode_vars() - leanvm_core::shout::N_BYTECODE_SELECTORS;
             let live = |s: usize| table[s << kbc..(s + 1) << kbc].iter().any(|v| *v != F64::ZERO);
-            let slots = 1 << leanvm_core::leaf::N_BYTECODE_SELECTORS;
+            let slots = 1 << leanvm_core::shout::N_BYTECODE_SELECTORS;
             let start = (0..slots).find(|&s| live(s)).expect("the bytecode is not all zero");
             let end = (0..slots).rfind(|&s| live(s)).expect("the bytecode is not all zero") + 1;
             start..end
@@ -866,7 +865,7 @@ fn fold_lsb_base(table: &[F64], challenge: F192) -> Vec<F192> {
 /// variables are bound. A closed form, so the row rounds never have to carry the
 /// slot half of a `2^kbcv` weight table.
 fn slot_weights(points: &[Vec<F192>], lambdas: &[F192], r_row: &[F192], kbc: usize) -> Vec<F192> {
-    let slots = leanvm_core::leaf::N_BYTECODE_SELECTORS;
+    let slots = leanvm_core::shout::N_BYTECODE_SELECTORS;
     let mut weights = vec![F192::ZERO; 1 << slots];
     for (point, &lambda) in points.iter().zip(lambdas) {
         let row_weight: F192 = (0..kbc).fold(lambda, |acc, k| acc * (F192::ONE + point[k] + r_row[k]));
@@ -1080,9 +1079,9 @@ fn aggregate_deferred_claims(
     // stacked table is structurally zero and contributes nothing to any round
     // message, and folding LSB-first pairs entries within a slot, so the window's
     // blocks stay aligned all the way down.
-    let n_slots = 1 << leanvm_core::leaf::N_BYTECODE_SELECTORS;
+    let n_slots = 1 << leanvm_core::shout::N_BYTECODE_SELECTORS;
     let slot_window = bytecode_window();
-    let kbc = kbcv - leanvm_core::leaf::N_BYTECODE_SELECTORS;
+    let kbc = kbcv - leanvm_core::shout::N_BYTECODE_SELECTORS;
     let mut wt = weighted_eq_table(
         &points,
         &gbc,
@@ -1114,7 +1113,7 @@ fn aggregate_deferred_claims(
     bt_slots[slot_window.clone()].copy_from_slice(&bt);
     let wt_slots = slot_weights(&points, &gbc, &r_bc, kbc);
     let (mut bt, mut wt) = (bt_slots, wt_slots);
-    for _ in 0..leanvm_core::leaf::N_BYTECODE_SELECTORS {
+    for _ in 0..leanvm_core::shout::N_BYTECODE_SELECTORS {
         let msg = round_msg(&[(&bt, &wt, F192::ONE)]);
         let r = absorb_round(&mut transcript, &mut bscr, &mut r_bc, &mut brun, msg);
         fold_lsb(&mut bt, r);
@@ -1340,12 +1339,12 @@ fn blake2s_value_columns() -> Vec<usize> {
 
 /// One entry of the guest's claim pool.
 enum ClaimSite {
-    /// A committed column read by a framework bus block.
-    Framework { column: usize },
     /// A table column; `is_virtual` marks the q_flock-backed value
     /// columns, whose claim is a strided slot rather than a plain column.
     TableColumn { column: usize, is_virtual: bool },
     /// One of the three PI memory limbs (MEM_LO, MEM_HI, MEM_TOP).
+    PublicInputLimb { column: usize },
+    /// One of the memory's three limbs at its read-checking point.
     MemoryLimb { column: usize },
 }
 
@@ -1356,8 +1355,6 @@ fn coord_kind(c: &Coord) -> usize {
         Coord::Const(_) => 0,
         Coord::Col(_) => 1,
         Coord::GCol(..) => 2,
-        Coord::Index => 3,
-        Coord::Public(_) => 4,
         Coord::Prod(..) => 5,
         Coord::Sum(..) => 6,
     }
@@ -1373,9 +1370,9 @@ fn coord_scale(c: &Coord) -> F192 {
     }
 }
 
-/// Flatten one table-block coordinate into the guest's term arrays, in local
-/// column indices. A [`Coord::Sum`]'s children are its terms; every other kind is
-/// one term. `Index`/`Public` never reach a table block.
+/// Flatten one coordinate of a table's block or read into the guest's term
+/// arrays, in local column indices. A [`Coord::Sum`]'s children are its terms;
+/// every other kind is one term.
 fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
     let (column_a, column_b) = match c {
         Coord::Const(_) => (0, 0),
@@ -1387,7 +1384,6 @@ fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
             }
             return;
         }
-        Coord::Index | Coord::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
     };
     terms.push(Term {
         kind: coord_kind(c),
@@ -1397,39 +1393,11 @@ fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
     });
 }
 
-/// Visit the claim pool in the exact order the guest indexes it: the framework
-/// bus claims (deduped by `(column, kappa)`, as `leaf.rs` pools them), then every
-/// table's committed columns, then the PI memory triple. The placeholder map's
-/// claim descriptors follow this order.
-fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl FnMut(ClaimSite)) {
-    let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
-    let valcols = blake2s_value_columns();
-    // Only the framework blocks raise claims: a table's coords are settled inside
-    // the table sumcheck.
-    let is_framework: Vec<bool> = leanvm_core::cpu::block_kappa_sources(kbc)
-        .into_iter()
-        .map(|(src, _)| src < 2)
-        .collect();
-    let mut seen: std::collections::HashSet<(usize, usize)> = Default::default();
-    let mut bi = 0usize;
-    for blocks in sides.iter() {
-        for blk in blocks.iter() {
-            let framework = is_framework[bi];
-            bi += 1;
-            if !framework {
-                continue;
-            }
-            for c in &blk.coords {
-                if let Coord::Col(i) | Coord::GCol(i, _) = c {
-                    if !seen.insert((*i, blk.kappa)) {
-                        continue; // deduped: pooled once at its first occurrence
-                    }
-                    assert!(!valcols.contains(i), "{VALCOL_FRAMEWORK}");
-                    visit(ClaimSite::Framework { column: *i });
-                }
-            }
-        }
-    }
+/// Visit the claim pool in the exact order the guest indexes it: every table's
+/// committed columns, then the PI memory triple, then the memory at its
+/// read-checking point (`cpu::finish_claims`). The placeholder map's claim
+/// descriptors follow this order.
+fn walk_claims(layout: &leanvm_core::cpu::Layout, mut visit: impl FnMut(ClaimSite)) {
     let sch = leanvm_core::cpu::schema();
     for (t, table) in leanvm_core::tables::tables().iter().enumerate() {
         for c in 0..table.n_committed_columns() {
@@ -1440,11 +1408,15 @@ fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl Fn
             });
         }
     }
-    for &column in &[
+    let limbs = [
         leanvm_core::cpu::MEM_LO,
         leanvm_core::cpu::MEM_HI,
         leanvm_core::cpu::MEM_TOP,
-    ] {
+    ];
+    for column in limbs {
+        visit(ClaimSite::PublicInputLimb { column });
+    }
+    for column in limbs {
         visit(ClaimSite::MemoryLimb { column });
     }
 }
@@ -1458,17 +1430,18 @@ fn gen_verify(
     summary: leanvm_core::cpu::VerifySummary,
 ) -> Result<(SubHints, DeferredSubproof), AggregationError> {
     let proof_stream = &summary.raw.stream;
+    let n_tables = leanvm_core::tables::N_TABLES;
     let layout = leanvm_core::cpu::layout(
         &program.prog,
         proof_stream[0].c0 as usize,
         std::array::from_fn(|i| proof_stream[1 + i].c0 as usize),
+        proof_stream[1 + n_tables].c0 as usize,
         public_input,
     );
-    let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
-    let side_layouts = sides.map(leanvm_core::leaf::layout);
+    let push_layout = leanvm_core::leaf::layout(&layout.push);
     // Fixed capacities: every buffer/stride placeholder is a global cap so
     // the placeholder map is SHAPE-INDEPENDENT (the definition of generic).
-    assert!(side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof_stream.len() <= STREAM_CAP);
+    assert!(push_layout.mu <= MU_CAP && proof_stream.len() <= STREAM_CAP);
     // The guest holds one opening arm per candidate committed size, so a child
     // outside that window has no arm to dispatch to. `min_log_committed` keeps
     // every aggregate above the low end, leaving only the ceiling reachable.
@@ -1479,8 +1452,7 @@ fn gen_verify(
     }
 
     // ---- typed extraction: proof structs + the verifier's summary ----
-    // Push and pull share the bytecode point.
-    let kbc = summary.bytecode_claim.point.len() - leanvm_core::leaf::N_BYTECODE_SELECTORS;
+    let kbc = summary.bytecode_claim.point.len() - leanvm_core::shout::N_BYTECODE_SELECTORS;
 
     let taus = layout.taus;
     // Flock replay data, all named struct fields.
@@ -1534,32 +1506,25 @@ fn gen_verify(
     let matpart = lrun + pinw + lc_sq * c_point_eq * c_slice_value;
 
     // ---- hints ----
-    // The program's whole share of a bytecode leaf: ONE value, the stacked
-    // polynomial at (ζ_lo, α⃗), the slot coordinates of the claim's own point being
-    // the fingerprint challenges (§sec:e2e-bc).
+    // The entry a bytecode read looks up, at read-checking's point: ONE value, the
+    // stacked polynomial at (r, α⃗), the slot coordinates of the claim's own point
+    // being the fingerprint challenges (§sec:e2e-bc).
     let bytecode_value = summary.bytecode_claim.value;
     let bcv = vec![bytecode_value];
 
     // ---- per-sub HINT data (the placeholder map is built once, elsewhere) ----
-    // Per side, the packing order read straight off `leaf::layout`'s offsets:
-    // sort_order[side_base + rank] = g^{side-local index of the rank-r block}.
-    // The guest only perm-checks it and derives offsets; any aligned tiling is
-    // sound, so this canonical order just has to match the committed leaf.
-    let mut sort_order: Vec<F192> = Vec::new();
-    let mut gbase = 0usize;
-    for (s, blocks) in sides.iter().enumerate() {
-        let mut order: Vec<usize> = (0..blocks.len()).collect();
-        order.sort_by_key(|&i| side_layouts[s].offsets[i]);
-        for &i in &order {
-            sort_order.push(F192::new(g_pow(gbase + i).0, 0, 0)); // g^{global block index}
-        }
-        gbase += blocks.len();
-    }
+    // The push side's packing order read straight off `leaf::layout`'s offsets:
+    // sort_order[rank] = g^{index of the rank-r block}. The guest only perm-checks
+    // it and derives offsets; any aligned tiling is sound, so this canonical order
+    // just has to match the committed leaf. Pull mirrors push.
+    let mut order: Vec<usize> = (0..layout.push.len()).collect();
+    order.sort_by_key(|&i| push_layout.offsets[i]);
+    let sort_order: Vec<F192> = order.iter().map(|&i| F192::new(g_pow(i).0, 0, 0)).collect();
     // The stacked commitment uses witness::placements_of: committed columns
     // sorted by descending kappa, then by their native column index. Transport
     // compact committed-column indices; the guest certifies the permutation,
     // ordering, and accumulated offsets before using them as claim selectors.
-    let col_sources = leanvm_core::cpu::col_kappa_sources(kbc);
+    let col_sources = leanvm_core::cpu::col_kappa_sources();
     let committed_globals: Vec<usize> = col_sources
         .iter()
         .enumerate()
@@ -2381,8 +2346,6 @@ pub(crate) fn aggregate_tampered(
 struct CoordinateDescriptor {
     kind: usize,
     constant: u128,
-    fresh: usize,
-    claim_slot: usize,
     terms: Range<usize>,
 }
 
@@ -2439,9 +2402,10 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         &stand_in,
         20,
         [10; leanvm_core::tables::N_TABLES],
+        leanvm_core::cpu::chunk_bits(20, kbc),
         [F192::ZERO, F192::ZERO],
     );
-    let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
+    let sides: [&[Block]; 2] = [&layout.push, &layout.pull];
     let lcrounds = flock::hash::K_LOG - 6;
 
     // ---- flattened block/coord descriptors (structural) ----
@@ -2449,66 +2413,62 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     let mut block_coords = Vec::new();
     let mut coordinates = Vec::new();
     let mut terms = Vec::new();
-    let (mut nclaims, mut nbcv, mut nblocks) = (0usize, 0usize, 0usize);
-    // Claim dedup (mirrors leaf.rs): per coord, fresh = first (group, col,
-    // kappa) occurrence gets the next pool slot; duplicates point at it.
-    let mut slot_of: std::collections::HashMap<(usize, usize), usize> = Default::default();
-    // A TABLE block's coordinates, flattened into terms: the guest rebuilds each as
-    // `Σ_terms`, so a derived value (an XOR/MUL result, a DEREF store, a JUMP
-    // successor) costs terms rather than columns. A framework coordinate has none:
-    // it decomposes into pooled claims instead.
-    // The table sumcheck settles table claims; only framework blocks stream column values.
+    let mut nblocks = 0usize;
+    // A coordinate of a TABLE block or of a read, flattened into terms: the guest
+    // rebuilds each as `Σ_terms`, so a derived value (an XOR/MUL result, a DEREF
+    // store, a JUMP successor) costs terms rather than columns. The boundary
+    // block's coordinates are constants and have none.
     let sch_pm = leanvm_core::cpu::schema();
-    let owner_pm: Vec<Option<usize>> = leanvm_core::cpu::block_kappa_sources(kbc)
+    let owner_pm: Vec<Option<usize>> = leanvm_core::cpu::block_kappa_sources()
         .into_iter()
         .map(|(src, _)| src.checked_sub(2))
         .collect();
+    let describe = |c: &Coord, owner: Option<usize>, terms: &mut Vec<Term>| {
+        let start = terms.len();
+        match owner {
+            Some(t) => push_coord_terms(c, sch_pm.base[t], terms),
+            None => assert!(matches!(c, Coord::Const(_)), "a boundary tuple is public"),
+        }
+        CoordinateDescriptor {
+            kind: coord_kind(c),
+            constant: dsl_u128(coord_scale(c)),
+            terms: start..terms.len(),
+        }
+    };
     for blocks in sides.iter() {
         for blk in blocks.iter() {
             block_coords.push(coordinates.len()..coordinates.len() + blk.coords.len());
-            let owner = owner_pm[nblocks];
-            nblocks += 1;
             for c in &blk.coords {
-                // One COORD_FRESH/COORD_CLAIM_SLOT entry PER coord (the guest
-                // indexes them by global coord offset); only a framework block's
-                // Col/GCol raises a claim.
-                let (mut fresh, mut slot) = (0usize, 0usize);
-                if let (Coord::Col(i) | Coord::GCol(i, _), None) = (c, owner) {
-                    let key = (*i, blk.kappa);
-                    if let Some(&known) = slot_of.get(&key) {
-                        slot = known;
-                    } else {
-                        slot_of.insert(key, nclaims);
-                        fresh = 1;
-                        slot = nclaims;
-                        nclaims += 1;
-                    }
-                }
-                let start = terms.len();
-                if let Some(t) = owner {
-                    push_coord_terms(c, sch_pm.base[t], &mut terms);
-                }
-                nbcv += usize::from(matches!(c, Coord::Public(_)));
-                coordinates.push(CoordinateDescriptor {
-                    kind: coord_kind(c),
-                    constant: dsl_u128(coord_scale(c)),
-                    fresh,
-                    claim_slot: slot,
-                    terms: start..terms.len(),
-                });
+                coordinates.push(describe(c, owner_pm[nblocks], &mut terms));
             }
+            nblocks += 1;
         }
         sblk.push(nblocks);
+    }
+    // The reads, flattened in table order: each one's tuple is a coordinate range
+    // of the same arrays.
+    let mut read_coords = Vec::new();
+    let mut read_arrays = Vec::new();
+    let mut table_read_base = vec![0usize];
+    for (t, reads) in layout.shout.reads.iter().enumerate() {
+        for read in reads {
+            read_coords.push(coordinates.len()..coordinates.len() + read.tuple.len());
+            read_arrays.push(read.array as usize);
+            for c in &read.tuple {
+                coordinates.push(describe(c, Some(t), &mut terms));
+            }
+        }
+        table_read_base.push(read_arrays.len());
     }
     let evtot: usize = leanvm_core::tables::tables()
         .iter()
         .map(|t| t.n_committed_columns())
         .sum();
-    let ncl = nclaims + evtot + 3; // bus + constraint + the three PI memory-limb claims
+    let ncl = evtot + 6; // the table columns, the PI memory limbs, the memory at its read point
 
     // ---- claim descriptor buffer ids (structural) ----
     let valcols = blake2s_value_columns();
-    let col_sources_pm = leanvm_core::cpu::col_kappa_sources(kbc);
+    let col_sources_pm = leanvm_core::cpu::col_kappa_sources();
     let mut compact_col_pm = vec![usize::MAX; col_sources_pm.len()];
     let mut n_committed = 0usize;
     for (global, source) in col_sources_pm.iter().enumerate() {
@@ -2519,19 +2479,15 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     }
     let qflock_compact = compact_col_pm[leanvm_core::cpu::QFLOCK];
     assert_ne!(qflock_compact, usize::MAX, "QFLOCK must be committed");
-    // Buffer codes are the guest's POINT_BUF_*: zeta, chi, pi, qflock-chi.
+    // Buffer codes are the guest's POINT_BUF_*: mem, chi, pi, qflock-chi.
     let mut claims = Vec::new();
-    walk_claims(&layout, kbc, |site| {
+    walk_claims(&layout, |site| {
         let descriptor = match site {
-            ClaimSite::Framework { column, .. } => {
-                let column = compact_col_pm[column];
-                assert_ne!(column, usize::MAX, "framework claim must target a committed column");
-                ClaimDescriptor {
-                    buffer: 0,
-                    column,
-                    qflock_slot: 0,
-                }
-            }
+            ClaimSite::MemoryLimb { column } => ClaimDescriptor {
+                buffer: 0,
+                column: compact_col_pm[column],
+                qflock_slot: 0,
+            },
             ClaimSite::TableColumn { column, is_virtual, .. } => ClaimDescriptor {
                 buffer: if is_virtual { 3 } else { 1 },
                 column: if is_virtual {
@@ -2545,7 +2501,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                     0
                 },
             },
-            ClaimSite::MemoryLimb { column } => ClaimDescriptor {
+            ClaimSite::PublicInputLimb { column } => ClaimDescriptor {
                 buffer: 2,
                 column: compact_col_pm[column],
                 qflock_slot: 0,
@@ -2575,7 +2531,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("GKR_POINTS_CAP", ((MU_CAP + 1) * MU_CAP).to_string());
     ps("SIDE_BLOCK_START", literals(&sblk));
     ps("N_BLOCKS", nblocks.to_string());
-    let bks = leanvm_core::cpu::block_kappa_sources(kbc);
+    ps("N_PUSH_BLOCKS", sblk[1].to_string());
+    let bks = leanvm_core::cpu::block_kappa_sources();
     // Push and pull emit bus blocks in matched pairs, so their baked kappa-source
     // segments are identical; the guest computes only push's side total and
     // aliases pull's mu to push's on this basis.
@@ -2599,15 +2556,35 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("BLOCK_COORD_COUNT", literals(block_coords.iter().map(|r| r.len())));
     ps("COORD_TYPE", literals(coordinates.iter().map(|c| c.kind)));
     ps("COORD_CONST", literals(coordinates.iter().map(|c| c.constant)));
-    ps("COORD_FRESH", literals(coordinates.iter().map(|c| c.fresh)));
-    ps("COORD_CLAIM_SLOT", literals(coordinates.iter().map(|c| c.claim_slot)));
     ps("COORD_TERM_OFF", literals(coordinates.iter().map(|c| c.terms.start)));
     ps("COORD_TERM_COUNT", literals(coordinates.iter().map(|c| c.terms.len())));
     ps("TERM_TYPE", literals(terms.iter().map(|t| t.kind)));
     ps("TERM_CONST", literals(terms.iter().map(|t| t.constant)));
     ps("TERM_COL_A", literals(terms.iter().map(|t| t.column_a)));
     ps("TERM_COL_B", literals(terms.iter().map(|t| t.column_b)));
-    ps("N_BUS_CLAIMS", nclaims.to_string());
+    // The lookups' shape (`leanvm_core::shout`).
+    let n_chunks = leanvm_core::shout::N_CHUNKS;
+    let slab_bits: Vec<usize> = layout
+        .shout
+        .reads
+        .iter()
+        .map(|reads| (n_chunks * reads.len()).next_power_of_two().ilog2() as usize)
+        .collect();
+    ps("N_CHUNKS", n_chunks.to_string());
+    ps("LOG_N_CHUNKS", n_chunks.trailing_zeros().to_string());
+    ps("MAX_CHUNK_BITS", leanvm_core::shout::MAX_CHUNK_BITS.to_string());
+    ps("CYCLE_COEFFS", leanvm_core::shout::CYCLE_COEFFS.to_string());
+    ps("N_READS", read_arrays.len().to_string());
+    ps("READ_ARRAY", literals(&read_arrays));
+    ps("READ_COORD_OFF", literals(read_coords.iter().map(|r| r.start)));
+    ps("READ_COORD_COUNT", literals(read_coords.iter().map(|r| r.len())));
+    ps("TABLE_READ_BASE", literals(&table_read_base));
+    ps("MAX_SLAB_BITS", slab_bits.iter().max().unwrap().to_string());
+    ps("SLAB_BITS", literals(&slab_bits));
+    ps(
+        "HOT_COMMITTED_COL",
+        literals((0..layout.taus.len()).map(|t| compact_col_pm[leanvm_core::cpu::HOT + t])),
+    );
     let idxc: Vec<u128> = (0..34)
         .map(|i| {
             let mut g2k = F192::new(G.0, 0, 0);
@@ -2622,8 +2599,8 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("N_TABLES", layout.taus.len().to_string());
     // The table sumcheck's xi layout, from the native verifier's own numbers:
     // a disjoint range of identities per table, then THREE powers shared by every
-    // table, one per bus side. Sharing is what lets the target be derived from the
-    // three leaf claims instead of trusted (leanvm_core::cpu::xi_form_base).
+    // table, one per bus side and one for the reads. Sharing is what ties the target
+    // to the two leaf claims and to read-checking (leanvm_core::cpu::xi_form_base).
     let n_id: Vec<usize> = leanvm_core::tables::tables()
         .iter()
         .map(|t| t.n_constraints())
@@ -2770,7 +2747,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("LIG_MAX_VANISH_LEN", maxsvk.to_string());
     ps("LIG_MAX_OOD_SAMPLES", maxood.to_string());
     ps("LIG_MIN_LOG_SIZE", minm.to_string());
-    let cks: Vec<(usize, usize)> = leanvm_core::cpu::col_kappa_sources(kbc).into_iter().flatten().collect();
+    let cks: Vec<(usize, usize)> = leanvm_core::cpu::col_kappa_sources().into_iter().flatten().collect();
     ps("N_COMMITTED_COLS", cks.len().to_string());
     ps("N_COLUMN_LOGS", (MU_MAX + 1).to_string());
     ps("COL_KAPPA_SRC", literals(cks.iter().map(|&(s, _)| s)));
@@ -2922,13 +2899,11 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("QFLOCK_COMMITTED_COL", qflock_compact.to_string());
     ps("QFLOCK_VARS_CAP", (33 + slot_stride_log).to_string());
     ps("BYTECODE_LOG", kbc.to_string());
-    // The stacked bytecode: nbcv/2 encoding columns per side, aligned with the bus
-    // tuple, so their slots span the fingerprint's own bits. The defer region is
+    // The stacked bytecode: its encoding columns are aligned with a read's tuple,
+    // so their slots span the fingerprint's own bits. The defer region is
     // 2*kbc points + sel bits + 2 reduced + alpha + z_skip + 2*lcrounds rounds
     // + 64 z_partial + 1 matpart.
-    let bc_cols = nbcv / 2;
     let log2_bc_cols = leanvm_core::leaf::N_TUPLE_BITS;
-    ps("BYTECODE_COLS", bc_cols.to_string());
     ps("LOG2_BYTECODE_COLS", log2_bc_cols.to_string());
     ps("DEFER_SIZE", (kbc + log2_bc_cols + 2 * lcrounds + 68).to_string());
     ps("BYTECODE_VARS", (kbc + log2_bc_cols).to_string());

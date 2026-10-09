@@ -3,22 +3,22 @@
 
 Each instruction has its own table.
 
-Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\sep,\addr,\cnt,\val_0,\val_1, \dots }$, \push\ $\tup{\sep,\addr,\gen\cdot\cnt,\val_0,\val_1, \dots}$: every flush below but the state's.
+A row interacts in two ways: it flushes its state on the bus, and it reads the two arrays (\S\ref{sec:shout}). Write $\rdf{L}{\addr;\val_0,\val_1, \dots}$ for a read of array $\dsep{L}\in\{\dsep{MEM},\dsep{BC}\}$ at address $\addr$, asserting that the entry there is $(\val_0,\val_1,\dots)$, coordinates left out being zero.
 
 \subsection{\texttt{XOR}}\label{sec:tab-xor}
 
 \texttt{XOR}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A}+\loc{o_B}$, the $192$-bit field sum (in $\E$).
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1,2\}}$ and $(v_{B,i})_{i\in\{0,1,2\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1,2\}}$ and $(v_{B,i})_{i\in\{0,1,2\}}$.
 \item \textbf{Constraints:} none.
-\item \textbf{Flushes:}
+\item \textbf{Flushes and reads:}
   \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{XOR},o_A,o_B,o_C,0,0}$.
+  \item \textbf{State:} \pull\ $\tup{\pc,\fp}$, \push\ $\tup{\gen\cdot\pc,\fp}$.
+  \item \textbf{Bytecode:} $\rdf{BC}{\pc;\opc{XOR},o_A,o_B,o_C}$.
   \item \textbf{Memory:}
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1},v_{X,2}}\quad(X\in\{A,B\}),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,v_{A,0}+v_{B,0},v_{A,1}+v_{B,1},v_{A,2}+v_{B,2}}.
+      &\rdf{MEM}{\fp\cdot o_X;v_{X,0},v_{X,1},v_{X,2}}\quad(X\in\{A,B\}),\\
+      &\rdf{MEM}{\fp\cdot o_C;v_{A,0}+v_{B,0},v_{A,1}+v_{B,1},v_{A,2}+v_{B,2}}.
     \end{align*}
   \end{itemize}
 \end{itemize}
@@ -27,13 +27,13 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
 
 \texttt{MUL\_NATIVE}\ $[o_A,o_B,o_C]$ asserts $\loc{o_C}=\loc{o_A} \cdot \loc{o_B}$, the $192$-bit field multiplication (in $\E$).
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1,2\}}$ and $(v_{B,i})_{i\in\{0,1,2\}}$; memory counts $r_A,r_B,r_C$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_A,o_B,o_C$; the two read values $(v_{A,i})_{i\in\{0,1,2\}}$ and $(v_{B,i})_{i\in\{0,1,2\}}$.
 \item \textbf{Constraints:} none.
-\item \textbf{Flushes:}
+\item \textbf{Flushes and reads:}
   \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{MUL},o_A,o_B,o_C,0,0}$.
-  \item \textbf{Memory} (the destination carries $v_Av_B$ in $\E$, of degree two). With $y^3=y+1$, put
+  \item \textbf{State:} \pull\ $\tup{\pc,\fp}$, \push\ $\tup{\gen\cdot\pc,\fp}$.
+  \item \textbf{Bytecode:} $\rdf{BC}{\pc;\opc{MUL},o_A,o_B,o_C}$.
+  \item \textbf{Memory} (the destination holds $v_Av_B$ in $\E$, of degree two). With $y^3=y+1$, put
     \[
     p_0=v_{A,0}v_{B,0},\quad
     p_1=v_{A,0}v_{B,1}+v_{A,1}v_{B,0},\quad
@@ -45,8 +45,8 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
     \]
     twelve products over the nine pairs $v_{A,i}v_{B,j}$:
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_X,r_X,v_{X,0},v_{X,1},v_{X,2}}\quad(X\in\{A,B\}),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_C,r_C,p_0+p_3,p_1+p_3+p_4,p_2+p_4}.
+      &\rdf{MEM}{\fp\cdot o_X;v_{X,0},v_{X,1},v_{X,2}}\quad(X\in\{A,B\}),\\
+      &\rdf{MEM}{\fp\cdot o_C;p_0+p_3,p_1+p_3+p_4,p_2+p_4}.
     \end{align*}
   \end{itemize}
 \end{itemize}
@@ -55,13 +55,13 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
 
 \texttt{SET\_CONSTANT}\ $[o,k_0,k_1,k_2]$ asserts $\loc{o}=k_0+k_1y+k_2y^{2}$.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operand $o$; immediate $(k_i)_{i\in\{0,1,2\}}$; memory count $r$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operand $o$; immediate $(k_i)_{i\in\{0,1,2\}}$.
 \item \textbf{Constraints:} none.
-\item \textbf{Flushes:}
+\item \textbf{Flushes and reads:}
   \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{SET},o,k_0,k_1,k_2,0}$.
-  \item \textbf{Memory:} $\rdf{\dsep{MEM},\fp\cdot o,r,k_0,k_1,k_2}$.
+  \item \textbf{State:} \pull\ $\tup{\pc,\fp}$, \push\ $\tup{\gen\cdot\pc,\fp}$.
+  \item \textbf{Bytecode:} $\rdf{BC}{\pc;\opc{SET},o,k_0,k_1,k_2}$.
+  \item \textbf{Memory:} $\rdf{MEM}{\fp\cdot o;k_0,k_1,k_2}$.
   \end{itemize}
 \end{itemize}
 
@@ -75,17 +75,17 @@ Write $\rdf{\sep,\addr,\cnt,\val_0,\val_1, \dots}$ for the pair \pull\ $\tup{\se
 \end{itemize}
 The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\ref{sec:vm}): the local cell $v_3$, the return address $\gen^{2}\cdot\pc$, or the frame pointer $\fp$. The mode is two boolean flags $(f_{\pc},f_{\fp})$: $(0,0)$ for $\texttt{deref\_cell}[o_3]$, $(1,0)$ for $\texttt{deref\_pc}$, $(0,1)$ for $\texttt{deref\_fp}$.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_1,o_2,o_3$; flags $f_{\pc},f_{\fp}$; pointer $p$ (a single $\K$-limb); the local value $(v_{3,i})_{i\in\{0,1,2\}}$; memory counts $r_1,r_2,r_3$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_1,o_2,o_3$; flags $f_{\pc},f_{\fp}$; pointer $p$ (a single $\K$-limb); the local value $(v_{3,i})_{i\in\{0,1,2\}}$.
 \item \textbf{Constraints:} none.
-\item \textbf{Flushes:}
+\item \textbf{Flushes and reads:}
   \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{DRF},o_1,o_2,o_3,f_{\pc},f_{\fp}}$.
+  \item \textbf{State:} \pull\ $\tup{\pc,\fp}$, \push\ $\tup{\gen\cdot\pc,\fp}$.
+  \item \textbf{Bytecode:} $\rdf{BC}{\pc;\opc{DRF},o_1,o_2,o_3,f_{\pc},f_{\fp}}$.
   \item \textbf{Memory}, the target giving $v_3$, $\gen^{2}\cdot\pc$ or $\fp$ at the three flag settings:
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_1,r_1,p,0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_3,r_3,v_{3,0},v_{3,1},v_{3,2}},\\
-      &\rdf{\dsep{MEM},p\cdot o_2,r_2,\bar f\,v_{3,0}+f_{\pc}\,(\gen^{2}\cdot\pc)+f_{\fp}\,\fp,\ \bar f\,v_{3,1},\ \bar f\,v_{3,2}},
+      &\rdf{MEM}{\fp\cdot o_1;p,0,0},\\
+      &\rdf{MEM}{\fp\cdot o_3;v_{3,0},v_{3,1},v_{3,2}},\\
+      &\rdf{MEM}{p\cdot o_2;\bar f\,v_{3,0}+f_{\pc}\,(\gen^{2}\cdot\pc)+f_{\fp}\,\fp,\ \bar f\,v_{3,1},\ \bar f\,v_{3,2}},
       \qquad \bar f=1+f_{\pc}+f_{\fp}.
     \end{align*}
   \end{itemize}
@@ -96,17 +96,17 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 \texttt{JUMP}\ $[o_c,o_d,o_f]$ performs a conditional jump on whether the condition $v_{\mathrm{cond}}=\loc{o_c}$ is nonzero. It transfers to $\pc\gets v_{\pc} = \loc{o_d}$, $\fp\gets v_{\fp} = \loc{o_f}$ when $v_{\mathrm{cond}}\neq0$, and defaults to $\pc\gets\gen\cdot\pc$, $\fp\gets\fp$ otherwise. $v_{\mathrm{cond}}, v_{\fp}, v_{\pc}$ must be $\K$-valued. The branch is taken according to a boolean indicator column $b=[\,v_{\mathrm{cond}}\neq0\,]$, certified by a prover-supplied inverse $w$ and 2 constraints:
 
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_c,o_d,o_f$; the condition $v_{\mathrm{cond}}$, the destination $v_{\pc}$ and the frame $v_{\fp}$; inverse $w$ (honest prover sets $w = v_{\mathrm{cond}}^{-1}$ if $v_{\mathrm{cond}}\neq0$, otherwise $w=0$); boolean indicator $b$; memory counts $r_c,r_d,r_f$; bytecode count $r_{\mathrm{bc}}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_c,o_d,o_f$; the condition $v_{\mathrm{cond}}$, the destination $v_{\pc}$ and the frame $v_{\fp}$; inverse $w$ (honest prover sets $w = v_{\mathrm{cond}}^{-1}$ if $v_{\mathrm{cond}}\neq0$, otherwise $w=0$); boolean indicator $b$.
 \item \textbf{Constraints:}  $b=v_{\mathrm{cond}}\cdot w$ and $v_{\mathrm{cond}}\,(b+1)=0$
-\item \textbf{Flushes:}
+\item \textbf{Flushes and reads:}
   \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},b\,v_{\pc}+b\,(\gen\cdot\pc)+\gen\cdot\pc,\;b\,v_{\fp}+b\,\fp+\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{JMP},o_c,o_d,o_f,0,0}$.
+  \item \textbf{State:} \pull\ $\tup{\pc,\fp}$, \push\ $\tup{b\,v_{\pc}+b\,(\gen\cdot\pc)+\gen\cdot\pc,\;b\,v_{\fp}+b\,\fp+\fp}$.
+  \item \textbf{Bytecode:} $\rdf{BC}{\pc;\opc{JMP},o_c,o_d,o_f}$.
   \item \textbf{Memory:}
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_c,r_c,v_{\mathrm{cond}},0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_d,r_d,v_{\pc},0,0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_f,r_f,v_{\fp},0,0}.
+      &\rdf{MEM}{\fp\cdot o_c;v_{\mathrm{cond}},0,0},\\
+      &\rdf{MEM}{\fp\cdot o_d;v_{\pc},0,0},\\
+      &\rdf{MEM}{\fp\cdot o_f;v_{\fp},0,0}.
     \end{align*}
   \end{itemize}
 \end{itemize}
@@ -117,22 +117,22 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 
 Flock~\cite{Flock26} proves the compression relation with a batched R1CS over a Boolean witness (Annex~\ref{annex:flock}). The witness is packed into $\qflock$ via Ring-Switching (Annex~\ref{annex:rs}), with $64$ bits per $\K$-element.
 
-The message, result, chaining value and metadata are all committed in $\qflock$: the two low limbs $z_0,z_1$ of each of the nine cells $z\in\{m_0,\dots,m_3,\mathit{cv}_0,\mathit{cv}_1,\mathit{out}_0,\mathit{out}_1,\md\}$, eighteen in all. Linking these values to the memory interaction implicitly forces the top limb of every memory cell accessed by BLAKE2s to be zero. The generalized R1CS matrices take the chaining value, byte counter, and the two finalization flags as free input: the memory interactions via the bus bind all four.
+The message, result, chaining value and metadata are all committed in $\qflock$: the two low limbs $z_0,z_1$ of each of the nine cells $z\in\{m_0,\dots,m_3,\mathit{cv}_0,\mathit{cv}_1,\mathit{out}_0,\mathit{out}_1,\md\}$, eighteen in all. Reading them from memory with a zero top limb forces the top limb of every memory cell accessed by BLAKE2s to be zero. The generalized R1CS matrices take the chaining value, byte counter, and the two finalization flags as free input: the memory reads bind all four.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}$; one memory count $r_z$ per cell $z$; bytecode count $r_{\mathrm{bc}}$. The eighteen limbs are committed in $\qflock$, no duplicate columns needed. The nine addresses are the products $\gen^{k}\fp\cdot o$, $k\in\{0,1\}$.
+\item \textbf{Columns:} $\pc,\fp$; operands $o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}$. The eighteen limbs are committed in $\qflock$, no duplicate columns needed. The nine addresses are the products $\gen^{k}\fp\cdot o$, $k\in\{0,1\}$.
 \item \textbf{Constraints:} none. The compression relation is handled by Flock.
-\item \textbf{Flushes:}
+\item \textbf{Flushes and reads:}
   \begin{itemize}
-  \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{B2S},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}}$.
+  \item \textbf{State:} \pull\ $\tup{\pc,\fp}$, \push\ $\tup{\gen\cdot\pc,\fp}$.
+  \item \textbf{Bytecode:} $\rdf{BC}{\pc;\opc{B2S},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{cv}},o_{\mathit{out}},o_{\md}}$.
   \item \textbf{Memory:}
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r_{m_i},m_{i,0},m_{i,1},0}\quad(i=0,\dots,3),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{cv}},r_{\mathit{cv}_0},\mathit{cv}_{0,0},\mathit{cv}_{0,1},0},\\
-      &\rdf{\dsep{MEM},\gen\cdot\fp\cdot o_{\mathit{cv}},r_{\mathit{cv}_1},\mathit{cv}_{1,0},\mathit{cv}_{1,1},0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{out}},r_{\mathit{out}_0},\mathit{out}_{0,0},\mathit{out}_{0,1},0},\\
-      &\rdf{\dsep{MEM},\gen\cdot\fp\cdot o_{\mathit{out}},r_{\mathit{out}_1},\mathit{out}_{1,0},\mathit{out}_{1,1},0},\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\md},r_{\md},\md_0,\md_1,0}.
+      &\rdf{MEM}{\fp\cdot o_{m_i};m_{i,0},m_{i,1},0}\quad(i=0,\dots,3),\\
+      &\rdf{MEM}{\fp\cdot o_{\mathit{cv}};\mathit{cv}_{0,0},\mathit{cv}_{0,1},0},\\
+      &\rdf{MEM}{\gen\cdot\fp\cdot o_{\mathit{cv}};\mathit{cv}_{1,0},\mathit{cv}_{1,1},0},\\
+      &\rdf{MEM}{\fp\cdot o_{\mathit{out}};\mathit{out}_{0,0},\mathit{out}_{0,1},0},\\
+      &\rdf{MEM}{\gen\cdot\fp\cdot o_{\mathit{out}};\mathit{out}_{1,0},\mathit{out}_{1,1},0},\\
+      &\rdf{MEM}{\fp\cdot o_{\md};\md_0,\md_1,0}.
     \end{align*}
   \end{itemize}
 \end{itemize}
