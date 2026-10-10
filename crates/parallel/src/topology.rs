@@ -78,18 +78,22 @@ fn default_topology() -> Topology {
     }
 }
 
-/// Performance-core count: `hw.perflevel0.logicalcpu` on Apple silicon (where
-/// `available_parallelism` counts the efficiency cores too, and those are handled
+/// Performance-core count: on Apple silicon every logical CPU outside the
+/// efficiency cores (`available_parallelism` counts those too, and they are handled
 /// separately), else the platform's parallelism.
 fn perf_cores() -> usize {
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-    if let Some(n) = sysctl_usize(c"hw.perflevel0.logicalcpu") {
-        return n;
+    if let Some(n) = sysctl_usize(c"hw.logicalcpu") {
+        return n.saturating_sub(efficiency_cores()).max(1);
     }
     std::thread::available_parallelism().map_or(1, |n| n.get())
 }
 
 /// Efficiency-core count on Apple silicon, else `0`.
+///
+/// Only the performance levels macOS names `Efficiency` count: on chips whose
+/// second level is a performance cluster (the M5 Pro and Max name theirs
+/// `Super` and `Performance`) `hw.perflevel1` is not an efficiency cluster.
 #[cfg_attr(
     not(all(target_arch = "aarch64", target_os = "macos")),
     expect(
@@ -99,10 +103,43 @@ fn perf_cores() -> usize {
 )]
 fn efficiency_cores() -> usize {
     #[cfg(all(target_arch = "aarch64", target_os = "macos"))]
-    if let Some(n) = sysctl_usize(c"hw.perflevel1.logicalcpu") {
-        return n;
+    {
+        let levels = sysctl_usize(c"hw.nperflevels").unwrap_or(0);
+        let mut total = 0;
+        for level in 0..levels {
+            let name = std::ffi::CString::new(format!("hw.perflevel{level}.name")).ok();
+            let count = std::ffi::CString::new(format!("hw.perflevel{level}.logicalcpu")).ok();
+            if let (Some(name), Some(count)) = (name, count)
+                && sysctl_string(&name).as_deref() == Some(b"Efficiency".as_slice())
+            {
+                total += sysctl_usize(&count).unwrap_or(0);
+            }
+        }
+        total
     }
+    #[cfg(not(all(target_arch = "aarch64", target_os = "macos")))]
     0
+}
+
+/// Read a string `sysctl` by name, without its terminating nul. Any failure
+/// reads as "unknown".
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+fn sysctl_string(name: &CStr) -> Option<Vec<u8>> {
+    let mut value = [0_u8; 64];
+    let mut len = value.len();
+    // SAFETY: a read-only sysctl into a local buffer whose size `len` states;
+    // the new-value pointer is null, so nothing is written into the kernel.
+    let rc = unsafe {
+        libc::sysctlbyname(
+            name.as_ptr(),
+            value.as_mut_ptr().cast(),
+            &raw mut len,
+            core::ptr::null_mut(),
+            0,
+        )
+    };
+    let bytes = value.get(..len)?;
+    (rc == 0).then(|| bytes.strip_suffix(&[0]).unwrap_or(bytes).to_vec())
 }
 
 /// Read an integer `sysctl` by name through the syscall, never a spawned

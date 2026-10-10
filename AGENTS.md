@@ -227,6 +227,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 - **Nested dispatch panics**, because it would deadlock the dispatch lock.
 - **Both core clusters share one queue** (P at `USER_INTERACTIVE`, E at `UTILITY`); guided self-scheduling means a slow core claims fewer batches. Do not add a second pool: that was `primitives::epool`, now deleted.
 - **The default holds back one performance worker when efficiency workers exist.**
+- **Efficiency cores are the performance levels macOS names `Efficiency`**, not `hw.perflevel1` as such: the M5 Pro and Max have no efficiency cluster (`Super` and `Performance`), and every core outside an `Efficiency` level is a performance worker.
 
 `LEANVM_NUM_THREADS` sets the **performance**-worker count, leaving E-workers in place. `1` = strictly sequential.
 
