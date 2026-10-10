@@ -487,6 +487,63 @@ pub fn eval_rs_eq(z_vals: &[F192], query: &[F192], coordinate_weights: &[F192]) 
     eval.fold_vertical(coordinate_weights)
 }
 
+// ---------------------------------------------------------------------------
+// The reduction as its own sumcheck, for a PCS that answers plain evaluations
+// ---------------------------------------------------------------------------
+
+/// `rs_eq_ind` in full: `weights[y] = Phi(eq(suffix_point, y))`, for a prover running the reduction's sumcheck itself.
+pub fn dense_weights(suffix_point: &[F192], challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> Vec<F192> {
+    let table = build_fold_byte_table_ext(&build_coordinate_weights(challenges));
+    let (eq_lo, eq_hi) = build_eq_split_ext(suffix_point);
+    let (mask, shift) = (eq_lo.len() - 1, eq_lo.len().trailing_zeros());
+    parallel::map_collect(1 << suffix_point.len(), |y| {
+        fold_one_slot_ext(eq_lo[y & mask] * eq_hi[y >> shift], &table)
+    })
+}
+
+/// [`verify_finish`] without the 192 coordinate weights: `sum_j x^j * Phi(s_hat_v[j])`, the row view of the same sum.
+pub fn batched_claim(s_hat_v: &[F192], challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> F192 {
+    assert_eq!(s_hat_v.len(), PACKING_WIDTH);
+    s_hat_v.iter().enumerate().fold(F192::ZERO, |acc, (j, &s)| {
+        acc + apply_composed_map(s, challenges).mul_base(F64(1 << j))
+    })
+}
+
+/// `Phi` as a linearized polynomial: `Phi(v) = sum_k coefficients[k] * v^(2^k)`.
+fn frobenius_coefficients(challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> [F192; PACKING_WIDTH] {
+    let mut coefficients = [None; PACKING_WIDTH];
+    coefficients[0] = Some(F192::ONE);
+    for (&challenge, &shift) in challenges.iter().zip(&COMPOSITION_SHIFTS) {
+        for k in 0..PACKING_WIDTH - shift {
+            // Only the exponents the earlier maps reached; this one adds `shift` to each.
+            if let (Some(c), None) = (coefficients[k], coefficients[k + shift]) {
+                coefficients[k + shift] = Some(challenge * (0..shift).fold(c, |c, _| c.square()));
+            }
+        }
+    }
+    coefficients.map(|c| c.expect("the six shifts reach every exponent below 64"))
+}
+
+/// [`eval_rs_eq`] from the six challenges, with no tensor algebra.
+///
+/// `eq(z, y)` has coefficients in `F_2` at a boolean `y`, so Frobenius moves onto the point:
+///
+/// ```text
+///     MLE(rs_eq_ind)(q) = sum_y eq(q, y) sum_k C_k eq(z, y)^(2^k) = sum_k C_k eq(q, z^(2^k))
+/// ```
+pub fn eval_weights(suffix_point: &[F192], query: &[F192], challenges: &[F192; COMPOSITION_SHIFTS.len()]) -> F192 {
+    assert_eq!(suffix_point.len(), query.len());
+    let mut conjugate = suffix_point.to_vec();
+    let mut acc = F192::ZERO;
+    for (k, c) in frobenius_coefficients(challenges).into_iter().enumerate() {
+        if k > 0 {
+            conjugate.iter_mut().for_each(|z| *z = z.square());
+        }
+        acc += c * primitives::multilinear::eq_eval(&conjugate, query);
+    }
+    acc
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -508,6 +565,24 @@ mod tests {
     /// Number of Frobenius terms the composed batching map expands to: the
     /// F_2-dimension of `K`.
     const LINEARIZED_TERMS: usize = PACKING_WIDTH;
+
+    /// The standalone sumcheck's three views of one reduction agree with the tensor-algebra ones.
+    #[test]
+    fn standalone_views_match() {
+        let mut rng = Rng::new(0x57A2_DA10);
+        let challenges: [F192; 6] = std::array::from_fn(|_| rng.ext());
+        let coordinate_weights = build_coordinate_weights(&challenges);
+        let s_hat_v = rng.ext_vec(PACKING_WIDTH);
+        assert_eq!(
+            batched_claim(&s_hat_v, &challenges),
+            verify_finish(&s_hat_v, &coordinate_weights)
+        );
+        let (point, query) = (rng.ext_vec(9), rng.ext_vec(9));
+        let want = eval_rs_eq(&point, &query, &coordinate_weights);
+        assert_eq!(eval_weights(&point, &query, &challenges), want);
+        let dense = dense_weights(&point, &challenges);
+        assert_eq!(inner_product_ext(&dense, &build_eq_table_ext(&query)), want);
+    }
 
     #[test]
     fn deferred_batch_matches_materialized_weights() {
