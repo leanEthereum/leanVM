@@ -1,11 +1,11 @@
 //! The prover's side of the log's argument.
 
-use super::rounds::{Poly, linear, rounds};
+use super::rounds::{cube, cubic_times, is_zero, linear, mul2, quadratic_times, rounds};
 use super::verify::{Opened, cube_point, opening};
-use super::{CELL_BITS, CELLS, GROUPS, Link, LinkShare, LogOpening, LogShape, Slot, WRITE};
+use super::{CELL_BITS, CELLS, GROUPS, Link, LinkShare, LogOpening, LogShape, WRITE};
 use fiat_shamir::arith::{Arith, Native};
 use fiat_shamir::transcript::Transmitter;
-use primitives::field::{F64, F192, F192Unreduced, G};
+use primitives::field::{F64, F192, F192Unreduced, G, g_pow};
 use primitives::multilinear::{eq_table, mle_eval_par};
 
 /// Rows per task of a scan.
@@ -61,37 +61,58 @@ impl LogWitness {
         log
     }
 
-    /// Call `visit(j, before, after)` on each row: each group's cell before the row, and the written cell after.
-    fn replay(&self, mut visit: impl FnMut(usize, [u64; GROUPS], u64)) {
+    /// The registers before each chunk of `len` rows: each chunk's writes are summed in parallel, then chained.
+    fn snapshots(&self, len: usize) -> Vec<[u64; CELLS]> {
+        let deltas = parallel::map_collect(self.inc.len() / len, |c| {
+            let mut delta = [0u64; CELLS];
+            for j in c * len..(c + 1) * len {
+                delta[self.cell(WRITE, j)] ^= self.inc[j].0;
+            }
+            delta
+        });
         let mut registers = [0u64; CELLS];
-        for j in 0..self.inc.len() {
-            let before = std::array::from_fn(|g| registers[self.cell(g, j)]);
-            let written = &mut registers[self.cell(WRITE, j)];
-            *written ^= self.inc[j].0;
-            visit(j, before, *written);
-        }
+        (deltas.iter())
+            .map(|delta| {
+                let start = registers;
+                registers.iter_mut().zip(delta).for_each(|(r, d)| *r ^= d);
+                start
+            })
+            .collect()
     }
 }
 
 /// The log's bus leaves: a live row's `beta + sum_i w_i slot_i`, a dead row's one.
+///
+/// Each chunk of rows replays the register file from its snapshot, in parallel with the others.
 pub(crate) fn leaves(shape: &LogShape, w: &LogWitness, weights: &[F192], beta: F192) -> Vec<F192> {
-    let mut leaves = vec![F192::ONE; w.inc.len()];
-    let mut time = F64::ONE;
-    w.replay(|j, before, after| {
-        if j < w.live {
-            leaves[j] = (shape.slots.iter().zip(weights)).fold(beta, |leaf, (slot, &weight)| {
-                let word = match *slot {
-                    Slot::Flagged { base, delta } if w.flag[j] => base + delta,
-                    Slot::Flagged { base, .. } => base,
-                    Slot::Time => time,
-                    Slot::Address(g) => F64(w.cells[g][j].into()),
-                    Slot::Read(g) => F64(before[g]),
-                    Slot::Written => F64(after),
-                };
-                leaf + weight.mul_base(word)
-            });
+    let rows = w.inc.len();
+    let len = rows.min(TASK_ROWS);
+    let snapshots = w.snapshots(len);
+    // The slots' weights by role, so that a row's leaf is a few products.
+    let link = Link::new(&mut Native, shape, weights);
+    let constant = beta + link.constant;
+    let mut leaves = vec![F192::ONE; rows];
+    parallel::chunks_mut(&mut leaves, len, |c, out| {
+        let mut registers = snapshots[c];
+        let mut time = g_pow(c * len);
+        for (leaf, j) in out.iter_mut().zip(c * len..) {
+            let before: [u64; GROUPS] = std::array::from_fn(|g| registers[w.cell(g, j)]);
+            let written = &mut registers[w.cell(WRITE, j)];
+            *written ^= w.inc[j].0;
+            if j < w.live {
+                let mut x = constant + link.time.mul_base(time);
+                for g in 0..GROUPS {
+                    x += link.address[g].mul_base(F64(w.cells[g][j].into()));
+                    x += link.value[g].mul_base(F64(before[g]));
+                }
+                x += link.inc.mul_base(w.inc[j]);
+                if w.flag[j] {
+                    x += link.flag;
+                }
+                *leaf = x;
+            }
+            time *= G;
         }
-        time *= G;
     });
     leaves
 }
@@ -335,18 +356,33 @@ struct Cycle<'a> {
     ek: &'a [F192; CELLS],
 }
 
-/// The read-write rows' entries.
+/// The read-write rows' entries: the summand is `U (A Val + B + EW inc + E0 flag)`.
+///
+/// The three groups share `Val`, so their weights fold into `A` and `B`, each a sum of table lookups.
 struct ReadWrite;
 
 impl ReadWrite {
+    /// `u(j)`.
     const U: usize = 0;
-    const E: usize = 1;
-    const VAL: usize = 4;
+    /// `sum_g value_g E_g(j)`.
+    const A: usize = 1;
+    /// `map sum_g address_g E_g(j)`.
+    const B: usize = 2;
+    /// `Val(fc_cell, j)`.
+    const VAL: usize = 3;
+    /// `inc_weight E_write(j)`.
+    const EW: usize = 4;
+    /// `inc(j)`.
     const INC: usize = 5;
-    const FLAG: usize = 6;
+    /// `flag_weight E_0(j)`.
+    const E0: usize = 6;
+    /// `flag(j)`.
+    const FLAG: usize = 7;
+    /// Entries per row.
+    const N: usize = 8;
 }
 
-/// The evaluation rows' entries.
+/// The evaluation rows' entries: the summand is `INC (LT WRITE + LIVE OUT + EQ FLAG) + EQ (Y + sum_g X_g^3)`.
 struct Evaluation;
 
 impl Evaluation {
@@ -356,50 +392,46 @@ impl Evaluation {
     const EQ: usize = 3;
     const X: usize = 4;
     const Y: usize = 7;
+    /// The flag, times its check's weight.
     const FLAG: usize = 8;
     const LIVE: usize = 9;
     const OUT: usize = 10;
+    /// Entries per row.
+    const N: usize = 11;
 }
 
 impl Cycle<'_> {
-    /// Group `g`'s inner factor `value_g Val + address_g map + c_g`, at a pair's two ends.
-    fn inner(&self, g: usize, val: (F192, F192), inc: (F192, F192), flag: (F192, F192)) -> (F192, F192) {
-        let link = self.link;
-        let at = |val: F192, inc: F192, flag: F192| {
-            let mut x = link.value[g] * val + link.address[g] * self.map;
-            if g == WRITE {
-                x += link.inc * inc;
-            }
-            if g == 0 {
-                x += link.flag * flag;
-            }
-            x
-        };
-        let lo = at(val.0, inc.0, flag.0);
-        (lo, lo + at(val.0 + val.1, inc.0 + inc.1, flag.0 + flag.1))
-    }
-
-    /// The read-write sumcheck's cycle rounds: `u sum_g E_g inner_g`. Returns the cycle point and `Val` there.
+    /// The read-write sumcheck's cycle rounds. Returns the cycle point and `Val` there.
     fn read_write(&self, ps: &mut impl Transmitter, u: &[F192], val: &[F192]) -> (Vec<F192>, F192) {
         type R = ReadWrite;
-        let w = self.w;
+        let (w, link, ek) = (self.w, self.link, self.ek);
+        // Each group's weights at every cell, so that a row's entries are lookups and sums.
+        let scaled = |s: F192| ek.map(|e| s * e);
+        let value: [[F192; CELLS]; GROUPS] = std::array::from_fn(|g| scaled(link.value[g]));
+        let address: [[F192; CELLS]; GROUPS] = std::array::from_fn(|g| scaled(link.address[g] * self.map));
+        let (inc, flag) = (scaled(link.inc), scaled(link.flag));
         let row = |j: usize| {
-            let mut row = [F192::ZERO; 7];
+            let cells: [usize; GROUPS] = std::array::from_fn(|g| w.cell(g, j));
+            let mut row = [F192::ZERO; R::N];
             row[R::U] = u[j];
-            (0..GROUPS).for_each(|g| row[R::E + g] = self.ek[w.cell(g, j)]);
-            (row[R::VAL], row[R::INC], row[R::FLAG]) = (val[j], F192::from(w.inc[j]), w.flag_at(j));
+            row[R::A] = value[0][cells[0]] + value[1][cells[1]] + value[2][cells[2]];
+            row[R::B] = address[0][cells[0]] + address[1][cells[1]] + address[2][cells[2]];
+            (row[R::VAL], row[R::EW], row[R::INC]) = (val[j], inc[cells[WRITE]], F192::from(w.inc[j]));
+            (row[R::E0], row[R::FLAG]) = (flag[cells[0]], w.flag_at(j));
             row
         };
-        let pair = |lo: &[F192; 7], hi: &[F192; 7]| {
+        let pair = |lo: &[F192; R::N], hi: &[F192; R::N]| {
             let at = |k| linear(lo, hi, k);
-            let mut sum = Poly::<4>([F192::ZERO; 4]);
-            for g in 0..GROUPS {
-                let mut term = Poly::linear(at(R::E + g));
-                term.times(self.inner(g, at(R::VAL), at(R::INC), at(R::FLAG)));
-                sum.add(term);
+            let mut q = mul2(at(R::A), at(R::VAL));
+            let b = at(R::B);
+            (q[0], q[1]) = (q[0] + b.0, q[1] + b.1);
+            for (weight, x) in [(R::EW, R::INC), (R::E0, R::FLAG)] {
+                if !is_zero(at(x)) {
+                    let t = mul2(at(weight), at(x));
+                    q.iter_mut().zip(t).for_each(|(q, t)| *q += t);
+                }
             }
-            sum.times(at(R::U));
-            sum.unreduced()
+            quadratic_times((q, at(R::U)))
         };
         let log_rows = w.inc.len().ilog2() as usize;
         let (point, last) = rounds(ps, log_rows, LogShape::READ_WRITE_COEFFS, row, pair);
@@ -425,34 +457,42 @@ impl Cycle<'_> {
         let (w, live) = (self.w, self.w.live);
         let row = |j: usize| {
             let cell = |g: usize| w.cell(g, j);
-            let mut row = [F192::ZERO; 11];
+            let mut row = [F192::ZERO; R::N];
             (row[R::LT], row[R::WRITE], row[R::INC], row[R::EQ]) =
                 (lt[j], self.ek[cell(WRITE)], F192::from(w.inc[j]), eq_j[j]);
             (0..GROUPS).for_each(|g| row[R::X + g] = x[g][cell(g)]);
             row[R::Y] = (0..GROUPS).fold(F192::ZERO, |acc, g| acc + y[g][cell(g)]);
-            row[R::FLAG] = w.flag_at(j);
+            row[R::FLAG] = if w.flag[j] { lw.ptr } else { F192::ZERO };
             row[R::LIVE] = if j < live { F192::ONE } else { F192::ZERO };
             row[R::OUT] = psi[cell(WRITE)];
             row
         };
-        let pair = |lo: &[F192; 11], hi: &[F192; 11]| {
+        let pair = |lo: &[F192; R::N], hi: &[F192; R::N]| {
             let at = |k| linear(lo, hi, k);
-            let mut value = Poly::<5>::linear(at(R::LT));
-            value.times(at(R::WRITE));
-            value.times(at(R::INC));
-            let mut checks = Poly::linear(at(R::Y));
-            (0..GROUPS).for_each(|g| checks.add(Poly::cube(at(R::X + g))));
-            let mut flag = Poly::linear(at(R::FLAG));
-            flag.times(at(R::INC));
-            flag.scale(lw.ptr);
-            checks.add(flag);
-            checks.times(at(R::EQ));
-            value.add(checks);
-            let mut out = Poly::linear(at(R::LIVE));
-            out.times(at(R::OUT));
-            out.times(at(R::INC));
-            value.add(out);
-            value.unreduced()
+            let eq = at(R::EQ);
+            // The zero checks, weighted by `eq`: the collisions' cubes and `y`.
+            let mut c = cube(at(R::X));
+            for g in 1..GROUPS {
+                let t = cube(at(R::X + g));
+                c.iter_mut().zip(t).for_each(|(c, t)| *c += t);
+            }
+            let y = at(R::Y);
+            (c[0], c[1]) = (c[0] + y.0, c[1] + y.1);
+            let mut sums = cubic_times(c, eq);
+            // The increment's terms: `Val`'s, the outputs', and the flag's check.
+            let inc = at(R::INC);
+            if !is_zero(inc) {
+                let mut q = mul2(at(R::LT), at(R::WRITE));
+                for (a, b) in [(R::LIVE, R::OUT), (R::EQ, R::FLAG)] {
+                    if !is_zero(at(b)) {
+                        let t = mul2(at(a), at(b));
+                        q.iter_mut().zip(t).for_each(|(q, t)| *q += t);
+                    }
+                }
+                let t = quadratic_times((q, inc));
+                sums.iter_mut().zip(t).for_each(|(s, t)| *s ^= t);
+            }
+            sums
         };
         rounds(ps, shape.log_rows, LogShape::EVALUATION_COEFFS, row, pair).0
     }

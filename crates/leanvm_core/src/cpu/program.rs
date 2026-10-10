@@ -7,7 +7,7 @@ use super::deferred::DeferredClaims;
 use super::error::{CpuError, ProveError, VerifyError};
 use super::execute::{Execution, Recorder, RowCounter, TraceBuilder};
 use super::filler::{FillBlocks, Plan};
-use super::layout::{Announcement, Lookup, ProgramView, RegisterLog, Schema, Sizes};
+use super::layout::{Announcement, Lookup, PaddingTuples, ProgramView, RegisterLog, Schema, Sizes};
 use super::reduce::TableClaims;
 use super::witness::Witness;
 use super::{Output, Proof};
@@ -37,6 +37,8 @@ pub struct Program {
     pub(super) digest: [u8; 32],
     /// Where each fill block sits in the text.
     pub(super) filler: FillBlocks,
+    /// The register cycles the fill blocks' padding rows pull.
+    pub(super) padding: PaddingTuples,
 }
 
 // Why: the digest reads tables of words as bytes, which is their little-endian image only on a little-endian target.
@@ -102,8 +104,17 @@ impl Program {
         text.push(0);
         let filler = FillBlocks::append(&mut text);
         let rv = RiscvProgram::new(&text, entry_pc, image, log_ram, log_advice)?;
-        let digest = Self::digest_of(&ProgramView { rv: &rv, fill: &filler });
-        Ok(Self { rv, digest, filler })
+        let padding = PaddingTuples::new(&rv, &filler);
+        let digest = Self::digest_of(&ProgramView {
+            rv: &rv,
+            padding: &padding,
+        });
+        Ok(Self {
+            rv,
+            digest,
+            filler,
+            padding,
+        })
     }
 
     /// Run the program on `advice`, recording every row, then write out the padding rows.
@@ -407,11 +418,11 @@ impl Program {
         &self.rv
     }
 
-    /// The program as the layout reads it: its decoded text and its fill blocks.
+    /// The program as the layout reads it: its decoded text and its padding tuples.
     pub(crate) const fn view(&self) -> ProgramView<'_> {
         ProgramView {
             rv: &self.rv,
-            fill: &self.filler,
+            padding: &self.padding,
         }
     }
 

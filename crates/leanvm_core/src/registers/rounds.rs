@@ -10,50 +10,47 @@ use primitives::field::{F192, F192Unreduced};
 /// Rows per task of a pass.
 const TASK_ROWS: usize = 1 << 12;
 
-/// A round polynomial in coefficients, of degree below `D`.
-#[derive(Clone, Copy)]
-pub(super) struct Poly<const D: usize>(pub(super) [F192; D]);
+/// `(a_0 + X a_1)(b_0 + X b_1)` by Karatsuba: three products.
+#[inline(always)]
+pub(super) fn mul2((a0, a1): (F192, F192), (b0, b1): (F192, F192)) -> [F192; 3] {
+    let (low, high) = (a0 * b0, a1 * b1);
+    [low, (a0 + a1) * (b0 + b1) + low + high, high]
+}
 
-impl<const D: usize> Poly<D> {
-    /// `c + X d`.
-    pub(super) const fn linear((c, d): (F192, F192)) -> Self {
-        let mut p = [F192::ZERO; D];
-        (p[0], p[1]) = (c, d);
-        Self(p)
-    }
+/// `q (u_0 + X u_1)` for a quadratic `q`, its coefficients unreduced.
+#[inline(always)]
+pub(super) fn quadratic_times((q, (u0, u1)): ([F192; 3], (F192, F192))) -> [F192Unreduced; 4] {
+    [
+        q[0].mul_unreduced(u0),
+        q[0].mul_unreduced(u1) ^ q[1].mul_unreduced(u0),
+        q[1].mul_unreduced(u1) ^ q[2].mul_unreduced(u0),
+        q[2].mul_unreduced(u1),
+    ]
+}
 
-    /// `(c + X d)^3`: in characteristic 2 every binomial coefficient of a cube is one.
-    pub(super) fn cube((c, d): (F192, F192)) -> Self {
-        let (c2, d2) = (c.square(), d.square());
-        let mut p = [F192::ZERO; D];
-        (p[0], p[1], p[2], p[3]) = (c2 * c, c2 * d, c * d2, d2 * d);
-        Self(p)
-    }
+/// `c (u_0 + X u_1)` for a cubic `c`, its coefficients unreduced.
+#[inline(always)]
+pub(super) fn cubic_times(c: [F192; 4], (u0, u1): (F192, F192)) -> [F192Unreduced; 5] {
+    [
+        c[0].mul_unreduced(u0),
+        c[0].mul_unreduced(u1) ^ c[1].mul_unreduced(u0),
+        c[1].mul_unreduced(u1) ^ c[2].mul_unreduced(u0),
+        c[2].mul_unreduced(u1) ^ c[3].mul_unreduced(u0),
+        c[3].mul_unreduced(u1),
+    ]
+}
 
-    /// Times `c + X d`.
-    #[inline(always)]
-    pub(super) fn times(&mut self, (c, d): (F192, F192)) {
-        let mut out = [F192::ZERO; D];
-        for k in 0..D {
-            out[k] += self.0[k] * c;
-            if k + 1 < D {
-                out[k + 1] += self.0[k] * d;
-            }
-        }
-        self.0 = out;
-    }
+/// `(c + X d)^3`: in characteristic 2 every binomial coefficient of a cube is one.
+#[inline(always)]
+pub(super) fn cube((c, d): (F192, F192)) -> [F192; 4] {
+    let (c2, d2) = (c.square(), d.square());
+    [c2 * c, c2 * d, c * d2, d2 * d]
+}
 
-    pub(super) fn add(&mut self, other: Self) {
-        self.0.iter_mut().zip(other.0).for_each(|(x, y)| *x += y);
-    }
-
-    pub(super) fn scale(&mut self, s: F192) {
-        self.0.iter_mut().for_each(|x| *x *= s);
-    }
-
-    pub(super) fn unreduced(self) -> [F192Unreduced; D] {
-        self.0.map(F192Unreduced::from)
-    }
+/// Whether a pair's linear polynomial is zero, so that its product terms can be skipped.
+#[inline(always)]
+pub(super) fn is_zero((c, d): (F192, F192)) -> bool {
+    c.is_zero() && d.is_zero()
 }
 
 /// Row `k` of a pair as the linear polynomial `lo + X (lo + hi)`.

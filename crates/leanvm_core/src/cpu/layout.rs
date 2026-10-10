@@ -23,6 +23,7 @@ use Coord::{Col, Const, IntIndex, Public, Sparse};
 use fiat_shamir::MAX_GRINDING_BITS;
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192, g_pow};
+use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
 // The largest text grinds within the proof of work's window.
@@ -301,7 +302,7 @@ impl Lookup {
             }
             // One entry per distinct tuple, by slot.
             Self::Padding => {
-                let entries = padding_tuples(p);
+                let entries = &p.padding.tuples;
                 let width = entries.iter().map(Vec::len).max().unwrap_or(0);
                 let rows = entries.len().next_power_of_two();
                 (0..width)
@@ -316,12 +317,36 @@ impl Lookup {
     }
 }
 
-/// The distinct register cycles the fill blocks' padding rows pull, sorted.
-pub(crate) fn padding_tuples(p: &ProgramView<'_>) -> Vec<Vec<F64>> {
-    let mut tuples: Vec<Vec<F64>> = (p.fill.entries()).map(|index| padding_tuple(p.rv, index)).collect();
-    tuples.sort_unstable_by_key(|t| t.iter().map(|w| w.0).collect::<Vec<_>>());
-    tuples.dedup();
-    tuples
+/// The register cycles the fill blocks' padding rows pull, which the padding producer pushes.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct PaddingTuples {
+    /// The distinct tuples, sorted.
+    tuples: Vec<Vec<F64>>,
+    /// Each fill entry's tuple, by its index in the text.
+    of: HashMap<usize, usize>,
+}
+
+impl PaddingTuples {
+    /// The padding tuples of `p`'s fill blocks.
+    pub(crate) fn new(p: &RiscvProgram, fill: &FillBlocks) -> Self {
+        let pulled: Vec<(usize, Vec<F64>)> = fill.entries().map(|index| (index, padding_tuple(p, index))).collect();
+        let key = |t: &[F64]| t.iter().map(|w| w.0).collect::<Vec<_>>();
+        let mut tuples: Vec<Vec<F64>> = pulled.iter().map(|(_, t)| t.clone()).collect();
+        tuples.sort_unstable_by_key(|t| key(t));
+        tuples.dedup();
+        let of = (pulled.iter())
+            .map(|(index, t)| {
+                let entry = tuples.binary_search_by_key(&key(t), |e| key(e));
+                (*index, entry.expect("a pulled tuple is listed"))
+            })
+            .collect();
+        Self { tuples, of }
+    }
+
+    /// How many distinct tuples there are.
+    pub(crate) const fn len(&self) -> usize {
+        self.tuples.len()
+    }
 }
 
 /// The register cycle a padding row of entry `index` pulls.
@@ -334,20 +359,9 @@ fn padding_tuple(p: &RiscvProgram, index: usize) -> Vec<F64> {
 
 /// How often each padding tuple is pulled, as integer words: once by each padding row.
 pub(crate) fn padding_multiplicities(p: &ProgramView<'_>, trace: &Trace) -> Vec<F64> {
-    let tuples = padding_tuples(p);
-    let mut counts = vec![F64::ZERO; tuples.len().next_power_of_two()];
-    // A fill entry's padding rows pull the same tuple, so they are counted per entry first.
-    let mut rows = std::collections::BTreeMap::new();
+    let mut counts = vec![F64::ZERO; p.padding.len().next_power_of_two()];
     for row in trace.rows.values().flatten().filter(|r| r.time == 0) {
-        *rows.entry(row.index as usize).or_insert(0u64) += 1;
-    }
-    for (index, n) in rows {
-        let tuple = padding_tuple(p.rv, index);
-        let key = |t: &[F64]| t.iter().map(|w| w.0).collect::<Vec<_>>();
-        let entry = tuples
-            .binary_search_by_key(&key(&tuple), |t| key(t))
-            .expect("a padding tuple");
-        counts[entry].0 += n;
+        counts[p.padding.of[&(row.index as usize)]].0 += 1;
     }
     counts
 }
@@ -490,7 +504,7 @@ impl Sizes {
             log_bytecode: crate::log2_strict_usize(rv.entries().len()),
             log_ram: rv.log_ram(),
             log_advice: rv.log_advice(),
-            log_padding: padding_tuples(p).len().next_power_of_two().trailing_zeros() as usize,
+            log_padding: p.padding.len().next_power_of_two().trailing_zeros() as usize,
             log_cycles,
         }
     }
@@ -661,13 +675,13 @@ impl Schema {
     }
 }
 
-/// A program as the layout reads it: its decoded text and its fill blocks.
+/// A program as the layout reads it: its decoded text and its padding tuples.
 #[derive(Clone, Copy)]
 pub struct ProgramView<'a> {
     /// The decoded program.
-    pub rv: &'a RiscvProgram,
-    /// Where each fill block sits in the text.
-    pub fill: &'a FillBlocks,
+    pub(crate) rv: &'a RiscvProgram,
+    /// The register cycles its fill blocks' padding rows pull.
+    pub(crate) padding: &'a PaddingTuples,
 }
 
 /// The public proof structure: everything the verifier rebuilds from the program and the announced sizes.
