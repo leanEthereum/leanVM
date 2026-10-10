@@ -894,9 +894,9 @@ pub(super) mod tests {
     /// An adjacent-pair round's message the naive way.
     fn pair_message(f: &[F192], b: &[F192]) -> SumcheckMessage {
         let (mut u_0, mut u_2) = (F192::ZERO, F192::ZERO);
-        for (f, b) in f.chunks_exact(2).zip(b.chunks_exact(2)) {
-            u_0 += f[0] * b[0];
-            u_2 += (f[0] + f[1]) * (b[0] + b[1]);
+        for (&[f0, f1], &[b0, b1]) in f.as_chunks::<2>().0.iter().zip(b.as_chunks::<2>().0) {
+            u_0 += f0 * b0;
+            u_2 += (f0 + f1) * (b0 + b1);
         }
         SumcheckMessage { u_0, u_2 }
     }
