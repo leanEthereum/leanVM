@@ -175,29 +175,37 @@ impl DeferredWeight {
     ///
     /// # Algorithm
     ///
-    /// - Each weight's factored eq tables are built in turn.
-    /// - Then every composed map of every weight is one task of a single dispatch, so one large claim does not run alone.
+    /// - Each weight's factored eq tables are one task of a first dispatch.
+    /// - Then every composed map of every weight is one task of a second, so one large claim does not run alone.
     ///
     /// It dispatches on the thread pool, so it must not run inside a parallel dispatch.
     pub(crate) fn batch<'a>(claims: impl IntoIterator<Item = (&'a [F192], F192, F192Map)>) -> Vec<Self> {
+        let (specs, maps): (Vec<_>, Vec<_>) = claims
+            .into_iter()
+            .map(|(point, scale, map)| ((point, scale), map))
+            .unzip();
+
         // Phase 1: the factored tables, and the sliced blocks where the low table is whole 64-entry blocks.
-        let mut weights: Vec<Self> = (claims.into_iter())
-            .map(|(point, scale, map)| {
-                let n = point.len();
-                // Six or more variables: the low table is at least one 64-entry block, so the fast path applies.
-                // Fewer: two small tables split near half.
-                let n_lo = if n >= 6 { n - sliced_hi_bits(n) } else { split_n_lo(n) };
-                let (eq_lo, eq_hi) = (eq_table(&point[..n_lo]), eq_table_seeded(&point[n_lo..], scale));
-                let sliced = (n_lo >= 6).then(|| {
-                    let blocks = eq_lo.as_chunks::<BLOCK>().0.iter().map(Sliced::new).collect();
-                    (blocks, Vec::new())
-                });
-                Self {
-                    eq_lo,
-                    eq_hi,
-                    map,
-                    sliced,
-                }
+        // Why it may dispatch: a low table has at most 14 variables, below the size an eq table builds in parallel.
+        let tables = parallel::map_collect(specs.len(), |i| {
+            let (point, scale) = specs[i];
+            let n = point.len();
+            // Six or more variables: the low table is at least one 64-entry block, so the fast path applies.
+            // Fewer: two small tables split near half.
+            let n_lo = if n >= 6 { n - sliced_hi_bits(n) } else { split_n_lo(n) };
+            let (eq_lo, eq_hi) = (eq_table(&point[..n_lo]), eq_table_seeded(&point[n_lo..], scale));
+            let sliced = (n_lo >= 6).then(|| {
+                let blocks = eq_lo.as_chunks::<BLOCK>().0.iter().map(Sliced::new).collect();
+                (blocks, Vec::new())
+            });
+            (eq_lo, eq_hi, sliced)
+        });
+        let mut weights: Vec<Self> = (tables.into_iter().zip(maps))
+            .map(|((eq_lo, eq_hi, sliced), map)| Self {
+                eq_lo,
+                eq_hi,
+                map,
+                sliced,
             })
             .collect();
 

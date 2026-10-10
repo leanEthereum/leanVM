@@ -571,46 +571,35 @@ impl<'a> StackWeight<'a> {
 
     /// The ring-switched claims' weights folded over the lanes by the eq weights `eq`.
     ///
-    /// A region fills whole lanes or lies inside one.
-    ///
-    /// Either way, its folded weight is one GF(2)-linear map of an in-lane eq table:
+    /// - A kept region's words are scaled by their lane's eq weight as each folded chunk is written.
+    /// - A wider region fills whole lanes, so its folded weight is one GF(2)-linear map of an in-lane eq table:
     ///
     /// ```text
-    ///     whole lanes:  sum_l e_l · Phi(c · eq(r_hi, l) · eq(r_lo, x))  =  Psi(eq(r_lo, x))
-    ///                   Psi(u) = sum_l e_l · Phi(c · eq(r_hi, l) · u)
-    ///
-    ///     inside l:     e_l · Phi(c · eq(r, x))                         =  Psi(eq(r, x))
-    ///                   Psi(u) = e_l · Phi(c · u)
+    ///     sum_l e_l · Phi(c · eq(r_hi, l) · eq(r_lo, x))  =  Psi(eq(r_lo, x))
+    ///     Psi(u) = sum_l e_l · Phi(c · eq(r_hi, l) · u)
     /// ```
-    fn folded_pieces(&self, eq: &[F192]) -> Vec<RingPiece> {
+    ///
+    /// # Returns
+    ///
+    /// The kept regions to fold, then one weight per group of folded lanes of every wider region.
+    fn folded_pieces(&self, eq: &[F192]) -> (Vec<KeptFold<'_>>, Vec<RingPiece>) {
         let block_log = self.lane_block.ilog2() as usize;
         let per = eq.len();
         let n_lanes = self.stack_len / self.lane_block;
-        let mut folded = Vec::new();
-        // Each deferred piece's window, in-lane point and map, before its weight is built.
-        let mut windows = Vec::new();
-        let mut specs = Vec::new();
+        let mut kept = Vec::new();
+        // Each group's window, the in-lane point and the terms of its map.
+        let mut groups = Vec::new();
         for (claim, piece) in self.ring_claims.iter().zip(&self.pieces) {
             let first_lane = claim.offset >> block_log;
             match &piece.weight {
                 // A kept region lies in one group: its folded words are its lanes' words, each scaled by its lane's eq weight.
                 RingWeight::Kept(words) => {
-                    let (group, in_lane) = (first_lane / per, claim.offset % self.lane_block);
                     let len = words.len().min(self.lane_block);
-                    let lanes = words.len() / len;
-                    let start = group * self.lane_block + in_lane;
-                    let values = dense(len, |at, chunk| {
-                        for (lane, lane_words) in words.chunks_exact(len).enumerate().take(lanes) {
-                            let e = eq[(first_lane + lane) % per];
-                            for (d, &w) in chunk.iter_mut().zip(&lane_words[at..]) {
-                                *d += e * w;
-                            }
-                        }
-                    });
-                    folded.push(RingPiece {
-                        start,
-                        end: start + len,
-                        weight: RingWeight::Kept(values),
+                    kept.push(KeptFold {
+                        start: first_lane / per * self.lane_block + claim.offset % self.lane_block,
+                        len,
+                        first_lane,
+                        words,
                     });
                 }
                 // Whole lanes: each lane's scale is the eq of its index at the claim's high coordinates.
@@ -625,21 +614,52 @@ impl<'a> StackWeight<'a> {
                         let terms: Vec<(F192, F192)> = in_group
                             .map(|lane| (eq[lane - group * per], scales[lane - first_lane]))
                             .collect();
-                        windows.push((group * self.lane_block, (group + 1) * self.lane_block));
-                        specs.push((low, F192::ONE, self.phi.sum_after_mul(&terms)));
+                        groups.push((group * self.lane_block, low, terms));
                     }
                 }
                 RingWeight::Deferred(_) => unreachable!("a region inside one lane is kept"),
             }
         }
-        let deferred =
-            (windows.into_iter().zip(DeferredWeight::batch(specs))).map(|((start, end), weight)| RingPiece {
+
+        // Every group's map is one task, then every group's weight one claim of a batch.
+        let maps = parallel::map_collect(groups.len(), |g| self.phi.sum_after_mul(&groups[g].2));
+        let weights = DeferredWeight::batch((groups.iter().zip(maps)).map(|((_, low, _), map)| (*low, F192::ONE, map)));
+        let deferred = (groups.iter().zip(weights))
+            .map(|(&(start, ..), weight)| RingPiece {
                 start,
-                end,
+                end: start + self.lane_block,
                 weight: RingWeight::Deferred(weight),
-            });
-        folded.extend(deferred);
-        folded
+            })
+            .collect();
+        (kept, deferred)
+    }
+}
+
+/// A kept region's words, folded over its lanes as each chunk of the folded weight is written.
+struct KeptFold<'a> {
+    /// The folded index of its first word.
+    start: usize,
+    /// Its words in one lane.
+    len: usize,
+    /// The lane its region starts in.
+    first_lane: usize,
+    /// Its kept words, lane after lane.
+    words: &'a [F192],
+}
+
+impl KeptFold<'_> {
+    /// Adds its folded words to the chunk of `dst.len()` folded words at `start`, lane `l` scaled by `eq[l mod |eq|]`.
+    fn add_to(&self, start: usize, eq: &[F192], dst: &mut [F192]) {
+        let (lo, hi) = (start.max(self.start), (start + dst.len()).min(self.start + self.len));
+        if lo < hi {
+            let dst = &mut dst[lo - start..hi - start];
+            for (lane, words) in self.words.chunks_exact(self.len).enumerate() {
+                let e = eq[(self.first_lane + lane) % eq.len()];
+                for (d, &w) in dst.iter_mut().zip(&words[lo - self.start..]) {
+                    *d += e * w;
+                }
+            }
+        }
     }
 }
 
@@ -668,7 +688,7 @@ impl InitialWeight for StackWeight<'_> {
         assert!(per <= MAX_FOLDED_LANES, "the first fold binds at most four lane bits");
         let n_lanes = self.stack_len / self.lane_block;
         let n_groups = n_lanes.div_ceil(per);
-        let pieces = self.folded_pieces(&eq);
+        let (kept, pieces) = self.folded_pieces(&eq);
 
         // The point claims meeting each group of folded lanes, each once, with the in-lane words it covers.
         let by_group: Vec<Vec<(usize, Range<usize>)>> = (0..n_groups)
@@ -692,7 +712,10 @@ impl InitialWeight for StackWeight<'_> {
             let (group, x) = (start / self.lane_block, start % self.lane_block);
             dst.fill(F192::ZERO);
 
-            // The ring-switched claims, already folded.
+            // The ring-switched claims: kept regions folded here, the others already folded.
+            for region in &kept {
+                region.add_to(start, &eq, dst);
+            }
             for piece in &pieces {
                 piece.add_to(start, dst);
             }
