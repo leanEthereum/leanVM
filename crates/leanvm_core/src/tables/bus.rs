@@ -1,7 +1,7 @@
 //! State, bytecode, and memory tuples for the offline bus.
 
-use crate::leaf::Coord::{self, Col, Const};
-use primitives::field::F64;
+use crate::leaf::Coord::{self, Col, Const, Scaled};
+use primitives::field::{F64, G};
 use std::iter::Enumerate;
 use std::vec::IntoIter;
 
@@ -17,14 +17,18 @@ pub(crate) enum Separator {
     Memory = 1,
     /// Reads of the public decoded instruction table.
     Bytecode = 2,
-    /// Register cells, inaccessible through memory addresses.
+    /// The register log's cycles, inaccessible through memory addresses.
     Registers = 3,
+    /// A cycle whose destination register is read as a pointer and written nothing.
+    Pointer = 4,
+    /// The one cell holding zero, which a base-field extension operand's high limbs read.
+    Zero = 5,
 }
 
 impl Separator {
     /// The monomial field element assigned to this domain.
     pub(crate) const fn value(self) -> F64 {
-        // Degrees 0..3 are below the field modulus, so the monomials need no reduction.
+        // Degrees 0..5 are below the field modulus, so the monomials need no reduction.
         F64(1 << self as u8)
     }
 
@@ -57,18 +61,21 @@ impl FlushBuilder {
         self.pull.push(pull);
     }
 
-    /// Pull the current instruction and clock, then push the derived successor.
+    /// Pull the current instruction, clock and time, then push the derived successor: the time one cycle on, and the
+    /// clock stepped by its circuit on a row that touches memory, unchanged on another.
     ///
     /// The exit marker binds the last row to the final state.
-    pub(super) fn state(&mut self, pc: usize, ts: usize, step: usize, npc: Coord, exit: Coord) {
+    pub(super) fn state(&mut self, pc: usize, ts: usize, step: Option<usize>, time: usize, npc: Coord, exit: Coord) {
+        let next_ts = step.map_or(Col(ts), |step| Coord::Sum(vec![Col(ts), Col(step)]));
         self.pair(
+            vec![Separator::State.coordinate(), npc, next_ts, Scaled(G, time), exit],
             vec![
                 Separator::State.coordinate(),
-                npc,
-                Coord::Sum(vec![Col(ts), Col(step)]),
-                exit,
+                Col(pc),
+                Col(ts),
+                Col(time),
+                Const(F64::ZERO),
             ],
-            vec![Separator::State.coordinate(), Col(pc), Col(ts), Const(F64::ZERO)],
         );
     }
 
@@ -105,11 +112,6 @@ pub(super) struct Accesses<'a> {
 }
 
 impl Accesses<'_> {
-    /// Read a cell and put back the same value at the new timestamp.
-    pub(super) fn read(&mut self, separator: Coord, address: Coord, value: Coord) {
-        self.write(separator, address, value.clone(), value);
-    }
-
     /// Pull the previous cell value and push its replacement at this access's timestamp.
     pub(super) fn write(&mut self, separator: Coord, address: Coord, old: Coord, new: Coord) {
         // Every tuple shares the row's clock, with one distinct slot per access.
@@ -141,6 +143,8 @@ mod tests {
             (Separator::Memory, 2),
             (Separator::Bytecode, 4),
             (Separator::Registers, 8),
+            (Separator::Pointer, 16),
+            (Separator::Zero, 32),
         ] {
             assert_eq!(separator.value(), F64(expected));
             assert!(matches!(separator.coordinate(), Const(value) if value == F64(expected)));
@@ -153,7 +157,7 @@ mod tests {
         // A clock port without a corresponding memory tuple cannot be left unbound.
         let mut bus = FlushBuilder::new();
         let mut accesses = bus.accesses(0, 1, vec![0, 3]);
-        accesses.read(Separator::Registers.coordinate(), Col(2), Col(3));
+        accesses.write(Separator::Memory.coordinate(), Col(2), Col(3), Col(3));
         accesses.finish();
     }
 
@@ -163,6 +167,6 @@ mod tests {
         // Every tuple needs its own previous-timestamp port and clock slot.
         let mut bus = FlushBuilder::new();
         bus.accesses(0, 1, vec![])
-            .read(Separator::Registers.coordinate(), Col(2), Col(3));
+            .write(Separator::Memory.coordinate(), Col(2), Col(3), Col(3));
     }
 }

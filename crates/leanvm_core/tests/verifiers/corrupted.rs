@@ -95,7 +95,7 @@ fn noncanonical_announcements_and_roots_are_refused() {
     assert_eq!(program.verify(output, &forged), Err(CpuError::NonCanonicalSize.into()));
 
     let mut forged = proof;
-    forged.0.stream[N_TABLES + 2].c2 = 1;
+    forged.0.stream[N_TABLES + 4].c2 = 1;
     assert!(program.verify(output, &forged).is_err());
 }
 
@@ -103,11 +103,31 @@ fn noncanonical_announcements_and_roots_are_refused() {
 fn a_final_clock_must_be_live_and_valid() {
     let (program, _) = super::programs::fibonacci();
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
-    let at = N_TABLES + 1;
+    let at = N_TABLES + 2;
     let honest = proof.0.stream[at].c0;
     for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
         let mut forged = proof.clone();
         forged.0.stream[at] = F192::new(clock, 0, 0);
         assert_eq!(program.verify(output, &forged), Err(CpuError::FinalClock.into()));
     }
+}
+
+#[test]
+fn a_forged_cycle_count_is_refused() {
+    let (program, _) = super::programs::fibonacci();
+    let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+
+    // The cycles close the bus at the final time and bound the register log's live rows.
+    let at = N_TABLES + 3;
+    let honest = proof.0.stream[at].c0;
+    for cycles in [honest - 1, honest + 1, 1 << 40] {
+        let mut forged = proof.clone();
+        forged.0.stream[at] = F192::new(cycles, 0, 0);
+        assert!(program.verify(output, &forged).is_err(), "{cycles} cycles");
+    }
+
+    // A run has at least its exit.
+    let mut forged = proof;
+    forged.0.stream[at] = F192::ZERO;
+    assert_eq!(program.verify(output, &forged), Err(CpuError::Cycles.into()));
 }

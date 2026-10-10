@@ -40,24 +40,6 @@ impl Clock {
     /// The cycles a run may take: past them the cycle count would carry into the live bit.
     pub const MAX_CYCLES: u64 = (1 << (Self::LIVE_BIT - Self::SLOT_BITS)) - 1;
 
-    /// A row's clock slots: `rs1`, `rs2`, then `rd` last, after the RAM access if there is one.
-    ///
-    /// A row that skips an access leaves its slot unused.
-    pub const REG_SLOTS: [u32; 3] = [0, 1, 3];
-
-    /// Clock slot reserved for a single load or store.
-    pub const RAM_SLOT: u32 = 2;
-
-    /// A hash row reads its two registers, then accesses its block's words in order.
-    pub const fn block_slot(k: usize) -> u32 {
-        2 + k as u32
-    }
-
-    /// An extension-field row reads its three registers, then accesses its limbs in order: `a`'s, `b`'s, then `c`'s.
-    pub const fn limb_slot(k: usize) -> u32 {
-        Self::REG_SLOTS[2] + 1 + k as u32
-    }
-
     /// Circuit checking that each access follows its cell's previous timestamp.
     ///
     /// - Inputs: row clock, its slot bits forced zero, then one previous timestamp per access.
@@ -326,7 +308,11 @@ mod tests {
         // EXT's operands: pointers at zero, all ones, the sign bit, one limb or two below a wrap of 2^64 or of the sign bit, with every low bit set, aligned random or random; flags every legal word or a random word.
         let mut rng = Rng::new(0xC10C);
         let n_log = 12;
-        for spec in TableId::ALL.into_iter().map(|t| Some(t.spec())).chain([None]) {
+        let specs = TableId::ALL
+            .into_iter()
+            .map(TableId::spec)
+            .filter(|spec| spec.has_clock());
+        for spec in specs.map(Some).chain([None]) {
             let slots = spec.map_or_else(|| (0..Clock::CYCLE as u32).collect(), |spec| spec.slots());
             let circuit = spec.map_or_else(|| Clock::circuit(&slots), |spec| spec.clock_circuit());
             let operands = spec.map_or(&[][..], |spec| spec.clock_inputs);

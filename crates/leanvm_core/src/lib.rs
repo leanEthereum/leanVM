@@ -71,6 +71,7 @@ mod gkr;
 mod leaf;
 mod pcs;
 mod rec;
+mod registers;
 mod rv;
 mod tables;
 mod witness;

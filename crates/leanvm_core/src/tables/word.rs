@@ -125,22 +125,17 @@ mod tests {
         Row {
             index: 0,
             ts: Clock::CLOCK_START,
+            time: 14,
             v1: 11,
             v2: 12,
             out: 13,
             taken: true,
-            vd_old: 14,
             ram: WordAccess {
                 address: 16,
                 old: 17,
                 new: 18,
             },
-            prev: [
-                Clock::SEED_CLOCK,
-                Clock::SEED_CLOCK | 1,
-                Clock::SEED_CLOCK | 2,
-                Clock::SEED_CLOCK | 3,
-            ],
+            prev: [Clock::SEED_CLOCK],
         }
     }
 
@@ -253,7 +248,7 @@ mod tests {
             };
             assert_eq!(Word::CellNew(k).value(r, at(&entry, 0), &[]), expected);
         }
-        for i in 0..18 {
+        for i in 0..16 {
             assert_eq!(Word::Prev(i).value(r, at(&entry, 0), &[]), 300 + u64::from(i));
         }
     }
@@ -261,7 +256,7 @@ mod tests {
     #[test]
     fn word_extension_ports_bind_pointers_flag_bits_and_limb_addresses() {
         // The clock circuit's words of an extension-field row: the destination pointer, the flags' two bits, and
-        // where the limbs that are no pointer sit, b's high limbs at register zero in the base-field form.
+        // where the limbs that are no pointer sit, b's high limbs at the zero cell's address in the base-field form.
         for &flags in Ext::LEGAL {
             for pointers in [[0x4000_0000, 0x4000_0020, 0x4000_0040], [u64::MAX - 7; 3]] {
                 let row = row();
@@ -299,7 +294,7 @@ mod tests {
                     };
                     assert_eq!(Word::LimbAddress(k).value(r, at(&entry, 0), &[]), expected);
                 }
-                for i in 0..12 {
+                for i in 0..9 {
                     assert_eq!(Word::Prev(i).value(r, at(&entry, 0), &[]), 400 + u64::from(i));
                 }
             }
@@ -310,29 +305,24 @@ mod tests {
     fn word_clock_step_uses_only_the_class_accesses() {
         let mut row = row();
         let entry = entry();
-        let slots = [0, 1, 3];
-        // The unused fourth timestamp must not reject an otherwise ordered row.
-        row.prev[3] = u64::MAX;
+        let slots = [0];
         // Cycle 1 -> 2 flips both low cycle bits, so the XOR step is 3 * 32.
         assert_eq!(
             Word::Step.value(RowRef::plain(&row), at(&entry, 0), &slots),
             3 * Clock::CYCLE
         );
-        for i in 0..3 {
-            assert_eq!(
-                Word::Prev(i).value(RowRef::plain(&row), at(&entry, 0), &slots),
-                row.prev[i as usize]
-            );
-        }
+        assert_eq!(
+            Word::Prev(0).value(RowRef::plain(&row), at(&entry, 0), &slots),
+            row.prev[0]
+        );
         // Reading one's own push is unordered, even when its value could balance the bus.
-        row.prev[1] = row.ts ^ 1;
+        row.prev[0] = row.ts;
         assert_eq!(
             Word::Step.value(RowRef::plain(&row), at(&entry, 0), &slots),
             (3 * Clock::CYCLE) | (1 << Clock::FAIL_BIT)
         );
-        // Padding accesses cancel themselves without advancing the clock.
-        row.ts = 0;
-        row.prev[..3].copy_from_slice(&[0, 1, 3]);
+        // A padding access cancels itself without advancing the clock.
+        (row.ts, row.prev[0]) = (0, 0);
         assert_eq!(Word::Step.value(RowRef::plain(&row), at(&entry, 0), &slots), 0);
         // A padding row cannot pull a seeded, live tuple.
         row.prev[0] = Clock::SEED_CLOCK;
@@ -362,7 +352,7 @@ mod tests {
         let ext = ExtRow {
             instance,
             c: instance.eval(),
-            prev: [0; 12],
+            prev: [0; 9],
         };
         let r = RowRef {
             row: &row,

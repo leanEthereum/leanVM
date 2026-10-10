@@ -7,21 +7,22 @@
 //! Each enum's declaration order is protocol order: reordering a variant changes the proof layout.
 
 use super::error::CpuError;
-use super::execute::Trace;
+use super::execute::{Trace, padding_row};
+use super::filler::FillBlocks;
 use super::{MAX_LOG_ROWS, UNGROUND_LOG_BYTECODE};
 use crate::class_flock::FlockId;
 use crate::constraints::{BitColumns, Claims};
 use crate::leaf::{Block, ColumnClaim, Coord, Producer, PublicColumn, SparseColumn};
 use crate::pcs::{Rate, RingSwitch, SliceClaim, StackClaim};
-use crate::rv::{Entry, Reg, Region, RegisterFile, RiscvProgram, Syscall};
+use crate::registers::{CELL_BITS, GROUPS, LogOpening, LogShape, Slot};
+use crate::rv::{Entry, Reg, Region, RiscvProgram};
 use crate::tables::{ClassTable, Clock, N_TABLES, PerTable, Separator, TableId};
 use crate::witness::{Placement, Source, StackShape, Window};
 use crate::{class_flock, witness};
-use Coord::{Col, Const, IntIndex, Sparse};
+use Coord::{Col, Const, IntIndex, Public, Sparse};
 use fiat_shamir::MAX_GRINDING_BITS;
-use fiat_shamir::arith::Arith;
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
-use primitives::field::{F64, F192};
+use primitives::field::{F64, F192, g_pow};
 use std::sync::{Arc, OnceLock};
 
 // The largest text grinds within the proof of work's window.
@@ -31,32 +32,34 @@ const _: () = assert!(Region::TEXT.max_log_words() - UNGROUND_LOG_BYTECODE <= MA
 ///
 /// Each has a push block and a pull block of the same height.
 ///
-/// - The push block seeds an array, or starts the run.
+/// - The push block seeds a memory array, or starts the run.
 /// - The pull block finalizes it, or ends the run, with committed columns.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Framework {
-    /// The run's boundary: it starts at the entry point on cycle 1 and ends on the halt slot.
+    /// The run's boundary: it starts at the entry point on cycle 1 and time one, and ends on the halt slot.
     State,
-    /// The register file.
-    Registers,
     /// RAM.
     Ram,
     /// The advice.
     Advice,
+    /// The zero cell, which a base-field extension operand's high limbs read.
+    Zero,
 }
 
 impl Framework {
     /// Every framework block, in bus order.
-    pub const ALL: [Self; 4] = [Self::State, Self::Registers, Self::Ram, Self::Advice];
+    pub const ALL: [Self; 4] = [Self::State, Self::Ram, Self::Advice, Self::Zero];
 
-    /// Where the final clock sits in the state's finalizing tuple: the run's last state is `(pc, ts)` at slot zero.
+    /// Where the final clock sits in the state's finalizing tuple: the run's last state is `(pc, ts, time)`.
     pub(crate) const FINAL_CLOCK: usize = 2;
+
+    /// Where the final time sits in the state's finalizing tuple: `g^cycles`, from the announced cycles.
+    pub(crate) const FINAL_TIME: usize = 3;
 
     /// The base-two logarithm of the block's rows: one per cell of its array.
     pub const fn log_rows(self, sizes: Sizes) -> usize {
         match self {
-            Self::State => 0,
-            Self::Registers => RegisterFile::LOG_CELLS,
+            Self::State | Self::Zero => 0,
             Self::Ram => sizes.log_ram,
             Self::Advice => sizes.log_advice,
         }
@@ -84,29 +87,24 @@ impl Framework {
         match self {
             // The run starts at the entry point and ends on the halt slot, marked by the exit.
             //
-            // A wrong clock leaves the end unmatched, and so does a padding row's exit, whose clock is zero.
+            // A wrong clock or time leaves the end unmatched, and so does a padding row's exit, whose time is zero.
+            // The end's time is zero here: the verifier adds the announced cycles' share itself.
             Self::State => (
                 vec![
                     Separator::State.coordinate(),
                     Const(F64(p.entry_pc())),
                     Const(F64(Clock::CLOCK_START)),
+                    Const(F64::ONE),
                     Const(F64::ZERO),
                 ],
                 vec![
                     Separator::State.coordinate(),
                     Const(F64(p.halt_pc())),
                     Const(F64(ts_final)),
+                    Const(F64::ZERO),
                     Const(F64::ONE),
                 ],
             ),
-            // Register `i` is cell `i`, starting at zero.
-            Self::Registers => {
-                let cell = IntIndex {
-                    base: F64::ZERO,
-                    shift: 0,
-                };
-                array(Separator::Registers.value(), cell, None, Shared::RegTs, Shared::RegFin)
-            }
             // RAM starts as the program's image, then zeros, all public.
             Self::Ram => {
                 let image = Sparse(Arc::new(SparseColumn::new(p.log_ram(), &[(0, p.image())])));
@@ -126,6 +124,58 @@ impl Framework {
                 Shared::AdvTs,
                 Shared::AdvFin,
             ),
+            // One cell at address zero, seeded and finalized holding zero: nothing writes it.
+            Self::Zero => {
+                let (sep, cell) = (Separator::Zero.coordinate(), Const(F64::ZERO));
+                (
+                    vec![sep.clone(), cell.clone(), Const(F64(Clock::SEED_CLOCK))],
+                    vec![sep, cell, Col(Shared::ZeroTs.col())],
+                )
+            }
+        }
+    }
+}
+
+/// The register log (§sec:regchan): a row per cycle, which the tables' rows pull at their time.
+pub struct RegisterLog;
+
+impl RegisterLog {
+    /// The fewest rows the log has: its packed flags fill a word.
+    pub const MIN_LOG_ROWS: usize = CELL_BITS;
+
+    /// The log's height for a run of `cycles` cycles.
+    pub const fn log_rows(cycles: usize) -> usize {
+        let log = cycles.next_power_of_two().trailing_zeros() as usize;
+        if log > Self::MIN_LOG_ROWS {
+            log
+        } else {
+            Self::MIN_LOG_ROWS
+        }
+    }
+
+    /// The log's shape at `2^log_rows` rows.
+    ///
+    /// A table's row pulls the cycle `(sep, a1, time, a2, ad, v1, v2, vd)`: the log pushes the same tuples.
+    pub(crate) fn shape(log_rows: usize) -> LogShape {
+        LogShape {
+            log_rows,
+            slots: vec![
+                Slot::Flagged {
+                    base: Separator::Registers.value(),
+                    delta: Separator::Registers.value() + Separator::Pointer.value(),
+                },
+                Slot::Address(0),
+                Slot::Time,
+                Slot::Address(1),
+                Slot::Address(2),
+                Slot::Read(0),
+                Slot::Read(1),
+                Slot::Written,
+            ],
+            outputs: std::iter::once(&Reg::SYSCALL)
+                .chain(&Reg::OUTPUTS)
+                .map(|r| r.index())
+                .collect(),
         }
     }
 }
@@ -139,16 +189,19 @@ impl Framework {
 pub enum Lookup {
     /// The program: one entry per instruction slot.
     Bytecode,
+    /// The register cycles padding rows pull: they are at time zero, which no log row has.
+    Padding,
 }
 
 impl Lookup {
     /// Every lookup array, in producer order.
-    pub const ALL: [Self; 1] = [Self::Bytecode];
+    pub const ALL: [Self; 2] = [Self::Bytecode, Self::Padding];
 
     /// The base-two logarithm of the array's entries.
     pub const fn log_rows(self, sizes: Sizes) -> usize {
         match self {
             Self::Bytecode => sizes.log_bytecode,
+            Self::Padding => sizes.log_padding,
         }
     }
 
@@ -156,6 +209,7 @@ impl Lookup {
     pub const fn multiplicity(self) -> Shared {
         match self {
             Self::Bytecode => Shared::BytecodeMult,
+            Self::Padding => Shared::PaddingMult,
         }
     }
 
@@ -163,42 +217,47 @@ impl Lookup {
     pub const fn grinding_bits(self, sizes: Sizes) -> u32 {
         match self {
             Self::Bytecode => sizes.log_bytecode.saturating_sub(UNGROUND_LOG_BYTECODE) as u32,
+            Self::Padding => 0,
         }
     }
 
     /// How many bits of its multiplicities the array's producer puts on the bus.
     ///
-    /// Enough for the most reads tables of these heights can make of it.
+    /// Enough for the most reads tables of these heights can make of it: every row reads the bytecode once, and a
+    /// padding row pulls one padding tuple.
     ///
     /// Completeness only: no read count is too large for soundness.
     pub fn multiplicity_bits(self, taus: &PerTable<usize>) -> usize {
-        match self {
-            // Every row reads the bytecode once.
-            Self::Bytecode => {
-                let rows: u64 = taus.values().map(|&tau| 1u64 << tau).sum();
-                (u64::BITS - rows.leading_zeros()) as usize
-            }
-        }
+        let rows: u64 = taus.values().map(|&tau| 1u64 << tau).sum();
+        (u64::BITS - rows.leading_zeros()) as usize
+    }
+
+    /// Whether the verifier leaves the producer's public columns to the program's claim, else evaluates them itself.
+    ///
+    /// The padding tuples are few, so evaluating them is cheaper than deferring.
+    pub const fn deferred(self) -> bool {
+        matches!(self, Self::Bytecode)
     }
 
     /// The tuple the array's producer pushes for each entry, none of it committed.
-    pub fn tuple(self, p: &RiscvProgram) -> Vec<Coord> {
+    pub fn tuple(self, p: &ProgramView<'_>) -> Vec<Coord> {
+        let column = |c: Vec<F64>| Public(PublicColumn::new(Arc::new(c)));
         match self {
             // Entry `i` at its byte address, four bytes after the preceding one, then the program's public columns.
             Self::Bytecode => {
-                let pc = Coord::IntIndex {
+                let pc = IntIndex {
                     base: F64(Region::TEXT.base()),
                     shift: 2,
                 };
                 [Separator::Bytecode.coordinate(), pc]
                     .into_iter()
-                    .chain(
-                        self.columns(p)
-                            .into_iter()
-                            .map(|c| Coord::Public(PublicColumn::new(Arc::new(c)))),
-                    )
+                    .chain(self.columns(p).into_iter().map(column))
                     .collect()
             }
+            // Each slot's column, the time zero.
+            Self::Padding => (self.columns(p).into_iter().enumerate())
+                .map(|(slot, c)| if slot == 2 { Const(F64::ZERO) } else { column(c) })
+                .collect(),
         }
     }
 
@@ -209,52 +268,100 @@ impl Lookup {
     /// For the bytecode, it is what an outer verifier is handed in place of a structured program.
     ///
     /// It is also what the program digest binds.
-    pub fn table(self, p: &RiscvProgram) -> Vec<F64> {
-        crate::leaf::stacked_bytecode_table(self.log_rows(Sizes::of(p)), &self.tuple(p))
+    pub fn table(self, p: &ProgramView<'_>) -> Vec<F64> {
+        let log_rows = crate::log2_strict_usize(p.rv.entries().len());
+        crate::leaf::stacked_bytecode_table(log_rows, &self.tuple(p))
     }
 
     /// The array's public columns over its entries, in tuple order after the address.
-    pub fn columns(self, p: &RiscvProgram) -> Vec<Vec<F64>> {
+    pub fn columns(self, p: &ProgramView<'_>) -> Vec<Vec<F64>> {
         match self {
             // The program's columns, in bytecode slot order.
             Self::Bytecode => {
-                let entries = p.entries();
+                let rv = p.rv;
+                let entries = rv.entries();
                 let column = |f: &(dyn Fn(usize, &Entry) -> u64 + Sync)| {
                     parallel::map_collect(entries.len(), |i| F64(f(i, &entries[i])))
                 };
                 vec![
                     // An illegal entry's tag is zero, which is no table's: nothing can read it.
                     parallel::map_collect(entries.len(), |i| {
-                        TableId::of(entries[i].class).map_or(F64::ZERO, |t| primitives::field::g_pow(t.index()))
+                        TableId::of(entries[i].class).map_or(F64::ZERO, |t| g_pow(t.index()))
                     }),
                     column(&|_, e| e.flags),
                     column(&|_, e| e.a1 as u64),
                     column(&|_, e| e.a2 as u64),
                     column(&|_, e| e.ad as u64),
                     column(&|_, e| e.imm),
-                    column(&|i, _| p.pc_of(i).wrapping_add(4)),
-                    column(&|i, _| p.dt_of(i)),
+                    column(&|i, _| rv.pc_of(i).wrapping_add(4)),
+                    column(&|i, _| rv.dt_of(i)),
                     column(&|_, _| 0),
                     column(&|_, e| e.is_exit() as u64),
                 ]
+            }
+            // One entry per distinct tuple, by slot.
+            Self::Padding => {
+                let entries = padding_tuples(p);
+                let width = entries.iter().map(Vec::len).max().unwrap_or(0);
+                let rows = entries.len().next_power_of_two();
+                (0..width)
+                    .map(|slot| {
+                        (0..rows)
+                            .map(|e| entries.get(e).map_or(F64::ZERO, |t| t[slot]))
+                            .collect()
+                    })
+                    .collect()
             }
         }
     }
 }
 
+/// The distinct register cycles the fill blocks' padding rows pull, sorted.
+pub(crate) fn padding_tuples(p: &ProgramView<'_>) -> Vec<Vec<F64>> {
+    let mut tuples: Vec<Vec<F64>> = (p.fill.entries()).map(|index| padding_tuple(p.rv, index)).collect();
+    tuples.sort_unstable_by_key(|t| t.iter().map(|w| w.0).collect::<Vec<_>>());
+    tuples.dedup();
+    tuples
+}
+
+/// The register cycle a padding row of entry `index` pulls.
+fn padding_tuple(p: &RiscvProgram, index: usize) -> Vec<F64> {
+    let padding = padding_row(p, index);
+    let table = TableId::of(p.entries()[index].class).expect("a fill block's class has a table");
+    let table = table.class_table();
+    table.register_tuple(&table.row_columns(p, padding.view()))
+}
+
+/// How often each padding tuple is pulled, as integer words: once by each padding row.
+pub(crate) fn padding_multiplicities(p: &ProgramView<'_>, trace: &Trace) -> Vec<F64> {
+    let tuples = padding_tuples(p);
+    let mut counts = vec![F64::ZERO; tuples.len().next_power_of_two()];
+    // A fill entry's padding rows pull the same tuple, so they are counted per entry first.
+    let mut rows = std::collections::BTreeMap::new();
+    for row in trace.rows.values().flatten().filter(|r| r.time == 0) {
+        *rows.entry(row.index as usize).or_insert(0u64) += 1;
+    }
+    for (index, n) in rows {
+        let tuple = padding_tuple(p.rv, index);
+        let key = |t: &[F64]| t.iter().map(|w| w.0).collect::<Vec<_>>();
+        let entry = tuples
+            .binary_search_by_key(&key(&tuple), |t| key(t))
+            .expect("a padding tuple");
+        counts[entry].0 += n;
+    }
+    counts
+}
+
 /// The committed columns no table owns, first in the global column order.
 ///
-/// What is committed is what each array holds after the run, and each cell's last timestamp (§sec:memchan).
+/// What is committed of memory is what each array holds after the run, and each cell's last timestamp (§sec:memchan).
 ///
 /// - The program is public, not committed: only the multiplicities of its reads are.
-/// - The registers start at zero and RAM at the program's image, both public.
+/// - RAM starts at the program's image, public.
 /// - The advice is the one array whose initial words are committed too: they are the prover's.
+/// - The register log is committed whole: its cells' one-hot words, its increments, and its flags (§sec:regchan).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Shared {
-    /// Each register's final value.
-    RegFin,
-    /// Each register's final timestamp, the seed's if never accessed.
-    RegTs,
     /// Each RAM word's final value.
     RamFin,
     /// Each RAM word's final timestamp.
@@ -265,25 +372,35 @@ pub enum Shared {
     AdvFin,
     /// Each advice word's final timestamp.
     AdvTs,
+    /// The zero cell's final timestamp.
+    ZeroTs,
     /// How often each bytecode entry is read (§sec:lookup).
     ///
     /// Entry `x`'s word is the integer `m_x`.
     ///
     /// Its bits are the producer's one-bit columns, opened by ring switching.
     BytecodeMult,
+    /// How often each padding tuple is pulled.
+    PaddingMult,
+    /// The register log: each group's one-hot cell words, then the increments, `2^log_rows` words each.
+    RegisterLog,
+    /// The register log's flags, 64 rows a word.
+    RegisterFlags,
 }
 
 impl Shared {
     /// Every shared column, in global column order.
-    pub const ALL: [Self; 8] = [
-        Self::RegFin,
-        Self::RegTs,
+    pub const ALL: [Self; 10] = [
         Self::RamFin,
         Self::RamTs,
         Self::AdvInit,
         Self::AdvFin,
         Self::AdvTs,
+        Self::ZeroTs,
         Self::BytecodeMult,
+        Self::PaddingMult,
+        Self::RegisterLog,
+        Self::RegisterFlags,
     ];
 
     /// The column's global index: its position in the declaration.
@@ -291,29 +408,33 @@ impl Shared {
         self as usize
     }
 
-    /// The base-two logarithm of the column's rows: one per cell or entry of its array.
+    /// The base-two logarithm of the column's rows: one per cell or entry of its array, or per row of the log.
     pub const fn log_rows(self, sizes: Sizes) -> usize {
         match self {
-            Self::RegFin | Self::RegTs => Framework::Registers.log_rows(sizes),
             Self::RamFin | Self::RamTs => Framework::Ram.log_rows(sizes),
             Self::AdvInit | Self::AdvFin | Self::AdvTs => Framework::Advice.log_rows(sizes),
+            Self::ZeroTs => Framework::Zero.log_rows(sizes),
             Self::BytecodeMult => Lookup::Bytecode.log_rows(sizes),
+            Self::PaddingMult => Lookup::Padding.log_rows(sizes),
+            // Three cell words and the increment per row.
+            Self::RegisterLog => sizes.log_cycles + 2,
+            Self::RegisterFlags => sizes.log_cycles - CELL_BITS,
         }
     }
 
     /// The column's values as the run left them.
     ///
-    /// A multiplicity column has none: it is counted from the rows.
+    /// A multiplicity column and the log's have none: they are built from the rows.
     pub(super) fn values(self, trace: &Trace) -> Option<&[F64]> {
         Some(match self {
-            Self::RegFin => &trace.reg_fin,
-            Self::RegTs => &trace.reg_ts,
             Self::RamFin => &trace.ram_fin,
             Self::RamTs => &trace.ram_ts,
             Self::AdvInit => &trace.adv_init,
             Self::AdvFin => &trace.adv_fin,
             Self::AdvTs => &trace.adv_ts,
-            Self::BytecodeMult => return None,
+            Self::ZeroTs | Self::BytecodeMult | Self::PaddingMult | Self::RegisterLog | Self::RegisterFlags => {
+                return None;
+            }
         })
     }
 }
@@ -333,7 +454,7 @@ const _: () = {
 
 /// The index of the first packed flock witness, right after the shared columns.
 ///
-/// Each table has two packed witnesses: every class circuit's in table order, then every clock circuit's.
+/// Every class circuit's in table order, then the clock circuit's of every table whose rows touch memory.
 ///
 /// Each is the sole copy of its circuit's words, committed in the same stack as every other column.
 pub const Q_BASE: usize = Shared::ALL.len();
@@ -346,7 +467,7 @@ pub(crate) const fn q_column(f: FlockId) -> usize {
     Q_BASE + f.index()
 }
 
-/// The program's sizes the layout depends on.
+/// The sizes the layout depends on: the program's, and the register log's height.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Sizes {
     /// The base-two logarithm of the program's entries.
@@ -355,15 +476,22 @@ pub struct Sizes {
     pub log_ram: usize,
     /// The base-two logarithm of the advice's words.
     pub log_advice: usize,
+    /// The base-two logarithm of the padding tuples.
+    pub log_padding: usize,
+    /// The base-two logarithm of the register log's rows.
+    pub log_cycles: usize,
 }
 
 impl Sizes {
-    /// The sizes of `p`.
-    pub fn of(p: &RiscvProgram) -> Self {
+    /// The sizes of `p` with a register log of `2^log_cycles` rows.
+    pub fn of(p: &ProgramView<'_>, log_cycles: usize) -> Self {
+        let rv = p.rv;
         Self {
-            log_bytecode: crate::log2_strict_usize(p.entries().len()),
-            log_ram: p.log_ram(),
-            log_advice: p.log_advice(),
+            log_bytecode: crate::log2_strict_usize(rv.entries().len()),
+            log_ram: rv.log_ram(),
+            log_advice: rv.log_advice(),
+            log_padding: padding_tuples(p).len().next_power_of_two().trailing_zeros() as usize,
+            log_cycles,
         }
     }
 
@@ -398,7 +526,7 @@ impl Sizes {
         for (t, table) in ClassTable::all().iter() {
             let base = sources.len();
             sources.resize(base + table.n_committed_columns(), Source::Committed(taus[t]));
-            for f in FlockId::class(t).into_iter().chain([FlockId::clock(t)]) {
+            for f in FlockId::class(t).into_iter().chain(FlockId::clock(t)) {
                 for (port, c) in table.word_columns(f.part()) {
                     sources[base + c] = Source::Port {
                         column: q_column(f),
@@ -533,9 +661,18 @@ impl Schema {
     }
 }
 
+/// A program as the layout reads it: its decoded text and its fill blocks.
+#[derive(Clone, Copy)]
+pub struct ProgramView<'a> {
+    /// The decoded program.
+    pub rv: &'a RiscvProgram,
+    /// Where each fill block sits in the text.
+    pub fill: &'a FillBlocks,
+}
+
 /// The public proof structure: everything the verifier rebuilds from the program and the announced sizes.
 pub struct Layout {
-    /// The push side's blocks: the framework's, then each table's.
+    /// The push side's blocks: the framework's, the register log's, then each table's.
     pub push: Vec<Block>,
     /// The pull side's blocks: the framework's, then each table's.
     pub pull: Vec<Block>,
@@ -549,20 +686,21 @@ pub struct Layout {
     pub shape: StackShape,
     /// Each table's base-two logarithm of rows.
     pub taus: PerTable<usize>,
+    /// The register log's shape.
+    pub(crate) log: LogShape,
     /// The committed register words.
     pub(crate) registers: Vec<RegisterWord>,
 }
 
 impl Layout {
-    /// The layout of a run of `p` with table heights `2^taus`, ending on clock `ts_final`.
+    /// The layout of a run of `program` with table heights `2^taus`, ending on clock `ts_final`, with a register log
+    /// of `2^log_cycles` rows.
     ///
     /// A table's height is its row count: the fill blocks bring every count to a power of two.
-    ///
-    /// So every row was executed, and no flush has padding tuples to divide back out of the bus.
-    pub fn new(p: &RiscvProgram, taus: PerTable<usize>, ts_final: u64) -> Self {
-        let sizes = Sizes::of(p);
+    pub fn new(program: &ProgramView<'_>, taus: PerTable<usize>, ts_final: u64, log_cycles: usize) -> Self {
+        let (p, sizes) = (program.rv, Sizes::of(program, log_cycles));
 
-        // The framework's blocks open both sides, one push and one pull block each.
+        // The framework's blocks open both sides, one push and one pull block each, then the register log pushes.
         let (mut push, mut pull) = (Vec::new(), Vec::new());
         for block in Framework::ALL {
             let kappa = block.log_rows(sizes);
@@ -570,6 +708,7 @@ impl Layout {
             push.push(Block::framework(kappa, seed));
             pull.push(Block::framework(kappa, finalize));
         }
+        push.push(Block::log(0, log_cycles));
 
         // Each table declares its flushes in local column indices, offset here to its global span.
         let schema = Schema::get();
@@ -586,9 +725,10 @@ impl Layout {
             .into_iter()
             .map(|lookup| Producer {
                 kappa: lookup.log_rows(sizes),
-                coords: lookup.tuple(p),
+                coords: lookup.tuple(program),
                 col: lookup.multiplicity().col(),
                 bits: lookup.multiplicity_bits(&taus),
+                deferred: lookup.deferred(),
             })
             .collect();
 
@@ -600,9 +740,24 @@ impl Layout {
             grinding: Lookup::Bytecode.grinding_bits(sizes),
             placements,
             shape,
+            log: RegisterLog::shape(log_cycles),
             registers: RegisterWord::of(&taus),
             taus,
         }
+    }
+
+    /// The pull side the prover's leaves take: the final state at the time `cycles` cycles reach.
+    ///
+    /// The verifier's pull side holds zero there, and adds the announced time's share itself.
+    pub(crate) fn pull_closed(&self, cycles: usize) -> Vec<Block> {
+        let mut pull = self.pull.clone();
+        pull[Framework::State as usize].coords[Framework::FINAL_TIME] = Const(g_pow(cycles));
+        pull
+    }
+
+    /// A committed column's window in the stack.
+    pub(crate) fn window(&self, col: usize) -> Window {
+        self.placements[col].window().expect("a committed column has a window")
     }
 
     /// Packed witness `f`'s window in the stack.
@@ -624,11 +779,13 @@ impl Layout {
     /// - Each packed witness, with its reduction's claim.
     /// - Each producer's multiplicity column, its bits' evaluations as the slices, then zeros up to 64.
     /// - Each register word, its tables' register numbers' bits as the slices, then zeros up to 64.
+    /// - The register log's cell words and its flags, with their slices at the log's two points.
     pub(crate) fn rings<E: Copy>(
         &self,
         witnesses: impl IntoIterator<Item = SliceClaim<E>>,
         multiplicities: &[Claims<E>],
         tables: &[Claims<E>],
+        log: &LogOpening<E>,
         zero: E,
     ) -> Vec<RingSwitch<E>> {
         let witnesses = (FlockId::ALL.into_iter().zip(witnesses)).map(|(f, claim)| self.witness_window(f).ring(claim));
@@ -642,23 +799,36 @@ impl Layout {
                 .expect("a register word is committed");
             window.ring(word.claim(tables, zero))
         });
-        witnesses.chain(producers).chain(registers).collect()
+        let (window, n) = (self.window(Shared::RegisterLog.col()), self.log.log_rows);
+        let cells = log.cells.iter().enumerate().map(|(g, claims)| RingSwitch {
+            offset: window.offset + (g << n),
+            qflock_vars: n,
+            claims: claims.to_vec(),
+        });
+        let flags = self.window(Shared::RegisterFlags.col());
+        let flags = RingSwitch {
+            offset: flags.offset,
+            qflock_vars: flags.n_vars,
+            claims: log.flag.to_vec(),
+        };
+        (witnesses.chain(producers).chain(registers).chain(cells))
+            .chain([flags])
+            .collect()
     }
 
     /// Every claim the opening discharges, located in the stack, in the order that feeds the batch's weights.
     ///
     /// - The bus's framework claims.
     /// - The batch's per-table column claims.
-    /// - The exit's claims: the run halted on `exit`, returning `output` (§sec:e2e-pi).
+    /// - The register log's increments at its two points.
     ///
     /// Prover and verifiers all assemble them here, so no claim can shift by one.
-    pub(crate) fn opening_claims<A: Arith>(
+    pub(crate) fn opening_claims<E: Copy>(
         &self,
-        a: &mut A,
-        bus_claims: Vec<ColumnClaim<A::E>>,
-        table_claims: &[Claims<A::E>],
-        output: &[A::E; 4],
-    ) -> Vec<StackClaim<A::E>> {
+        bus_claims: Vec<ColumnClaim<E>>,
+        table_claims: &[Claims<E>],
+        log: &LogOpening<E>,
+    ) -> Vec<StackClaim<E>> {
         let schema = Schema::get();
         let mut claims = bus_claims;
         claims.reserve(schema.n - N_SHARED);
@@ -672,27 +842,27 @@ impl Layout {
             }));
         }
 
-        // The exit: the syscall register holds `exit`, and the output registers the output.
-        //
-        // Each is the final registers at the Boolean point naming the register.
-        // Both parties know the value, so the claim is computed rather than sent.
-        let exit = a.constant(F192::from(F64(Syscall::Exit.number())));
-        let mut register_claim = |reg: Reg, value: A::E| ColumnClaim {
-            col: Shared::RegFin.col(),
-            point: (0..RegisterFile::LOG_CELLS)
-                .map(|b| a.constant(F192::from(F64(((reg.index() >> b) & 1) as u64))))
-                .collect(),
-            value,
-        };
-        claims.push(register_claim(Reg::SYSCALL, exit));
-        claims.extend((Reg::OUTPUTS.into_iter().zip(output)).map(|(reg, &value)| register_claim(reg, value)));
+        // The register log's increments: the column's last quarter, past the three groups' cell words.
+        let window = self.window(Shared::RegisterLog.col());
+        let inc = window.offset + (GROUPS << self.log.log_rows);
+        let mut stacked: Vec<StackClaim<E>> = log
+            .inc
+            .iter()
+            .map(|(point, value)| StackClaim::Point {
+                offset: inc,
+                low_point: point.clone(),
+                value: *value,
+            })
+            .collect();
 
         // A port's claim is folded at the table's height, not its packed witness's, and joins the one opening.
         //
         // A register number's has no place in the stack: its bits' claim is its table's ring-switched region.
-        (claims.into_iter())
+        let mut out: Vec<StackClaim<E>> = (claims.into_iter())
             .filter_map(|c| self.placements[c.col].claim(c.point, c.value))
-            .collect()
+            .collect();
+        out.append(&mut stacked);
+        out
     }
 }
 
@@ -703,30 +873,35 @@ impl Layout {
 pub(crate) struct Announcement {
     /// Each table's base-two logarithm of rows.
     pub(crate) taus: PerTable<usize>,
+    /// The register log's base-two logarithm of rows.
+    pub(crate) log_cycles: usize,
     /// The commitment's rate.
     pub(crate) rate: Rate,
     /// The clock the run ended on: the final state's timestamp (§sec:state).
     pub(crate) ts_final: u64,
+    /// The run's cycles: the register log's live rows.
+    pub(crate) cycles: u64,
 }
 
 impl Announcement {
-    /// The scalars it takes on the stream: each table's height, the rate, then the final clock.
-    pub(crate) const LEN: usize = N_TABLES + 2;
+    /// The scalars it takes on the stream: each table's height, the log's, the rate, the final clock, the cycles.
+    pub(crate) const LEN: usize = N_TABLES + 4;
 
-    /// The scalars announcing each table's height, then the rate's, each an integer in the first coordinate.
+    /// The scalars announcing each table's height, the log's, then the rate's, each an integer in the first coordinate.
     ///
     /// A height, not a row count: every table's rows are real, filled to a power of two.
-    pub(crate) fn sizes(taus: &PerTable<usize>, rate: Rate) -> impl Iterator<Item = F192> {
+    pub(crate) fn sizes(taus: &PerTable<usize>, log_cycles: usize, rate: Rate) -> impl Iterator<Item = F192> {
         let rate = usize::from(rate.log_inv_rate());
-        (taus.values().copied().chain([rate])).map(|size| F192::new(size as u64, 0, 0))
+        (taus.values().copied().chain([log_cycles, rate])).map(|size| F192::new(size as u64, 0, 0))
     }
 
     /// Write the announcement onto the scalar stream, which binds it into the transcript.
     pub(super) fn write(&self, ps: &mut ProverState) {
-        for size in Self::sizes(&self.taus, self.rate) {
+        for size in Self::sizes(&self.taus, self.log_cycles, self.rate) {
             ps.add_scalar(size);
         }
         ps.add_scalar(F192::new(self.ts_final, 0, 0));
+        ps.add_scalar(F192::new(self.cycles, 0, 0));
     }
 
     /// Read an announcement off the scalar stream, binding it, and check every value is in range.
@@ -748,7 +923,8 @@ impl Announcement {
     ///
     /// # Errors
     ///
-    /// Refuses a non-canonical size, a final clock that is not live, a table height or a rate outside its range.
+    /// Refuses a non-canonical size, a final clock that is not live, a height or a rate outside its range, or cycles
+    /// the log does not hold.
     pub(crate) fn decode(scalars: &[F192; Self::LEN]) -> Result<Self, CpuError> {
         // A size is a canonical integer in the first coordinate.
         let size = |x: &F192| -> Result<usize, CpuError> {
@@ -761,16 +937,23 @@ impl Announcement {
         for (t, x) in TableId::ALL.into_iter().zip(scalars) {
             taus[t] = size(x)?;
         }
-        let log_inv_rate = size(&scalars[N_TABLES])?;
+        let log_cycles = size(&scalars[N_TABLES])?;
+        let log_inv_rate = size(&scalars[N_TABLES + 1])?;
 
         // A live clock at slot zero: neither a padding row's clock nor a failed row's can end the run.
-        let ts_final = scalars[N_TABLES + 1];
+        let ts_final = scalars[N_TABLES + 2];
         let live = ts_final.c0 >> Clock::LIVE_BIT == 1 && ts_final.c0.is_multiple_of(Clock::CYCLE);
         if !live || ts_final.c1 != 0 || ts_final.c2 != 0 {
             return Err(CpuError::FinalClock);
         }
 
-        Layout::check_heights(&taus)?;
+        Layout::check_heights(&taus, log_cycles)?;
+
+        // The run has a cycle, its exit, and the log holds every cycle.
+        let cycles = size(&scalars[N_TABLES + 3])?;
+        if cycles == 0 || cycles > 1 << log_cycles {
+            return Err(CpuError::Cycles);
+        }
 
         // A rate the commitment supports.
         let rate = (u8::try_from(log_inv_rate).ok())
@@ -778,33 +961,39 @@ impl Announcement {
             .ok_or(CpuError::Rate { log_inv_rate })?;
         Ok(Self {
             taus,
+            log_cycles,
             rate,
             ts_final: ts_final.c0,
+            cycles: cycles as u64,
         })
     }
 
-    /// The layout the announced heights describe for `p`, its final clock zero.
+    /// The layout the announced heights describe for `program`, its final clock and time zero.
     ///
-    /// The verifier adds the announced clock's share itself.
+    /// The verifier adds the announced clock's and time's shares itself.
     ///
     /// # Errors
     ///
     /// Refuses heights whose stacked witness the commitment does not take.
-    pub(super) fn layout(&self, p: &RiscvProgram) -> Result<Layout, CpuError> {
-        Layout::announced(p, self.taus)
+    pub(super) fn layout(&self, program: &ProgramView<'_>) -> Result<Layout, CpuError> {
+        Layout::announced(program, self.taus, self.log_cycles)
     }
 }
 
 impl Layout {
-    /// The layout a verifier rebuilds from announced heights, its final clock zero.
+    /// The layout a verifier rebuilds from announced heights, its final clock and time zero.
     ///
     /// # Errors
     ///
-    /// Refuses a height outside its table's range, or heights whose stacked witness the commitment does not take.
-    pub(crate) fn announced(p: &RiscvProgram, taus: PerTable<usize>) -> Result<Self, CpuError> {
-        Self::check_heights(&taus)?;
+    /// Refuses a height outside its range, or heights whose stacked witness the commitment does not take.
+    pub(crate) fn announced(
+        program: &ProgramView<'_>,
+        taus: PerTable<usize>,
+        log_cycles: usize,
+    ) -> Result<Self, CpuError> {
+        Self::check_heights(&taus, log_cycles)?;
         // The caps bound each height alone; the stacked size they imply is checked here.
-        let layout = Self::new(p, taus, 0);
+        let layout = Self::new(program, taus, 0, log_cycles);
         if !(crate::pcs::MIN_MU..=crate::pcs::MAX_MU).contains(&layout.shape.mu) {
             return Err(CpuError::WitnessSize { mu: layout.shape.mu });
         }
@@ -813,8 +1002,12 @@ impl Layout {
 
     /// Check each table's height lies between flock's instance floor and the public cap.
     ///
-    /// A table's rows are its class's runs, unbounded by the program's size, so it has a cap of its own.
-    fn check_heights(taus: &PerTable<usize>) -> Result<(), CpuError> {
+    /// A table's rows are its class's runs, unbounded by the program's size, so it has a cap of its own, and so has the
+    /// register log.
+    pub(crate) fn check_heights(taus: &PerTable<usize>, log_cycles: usize) -> Result<(), CpuError> {
+        if !(RegisterLog::MIN_LOG_ROWS..=MAX_LOG_ROWS).contains(&log_cycles) {
+            return Err(CpuError::LogHeight { log_rows: log_cycles });
+        }
         for (t, &log_rows) in taus.iter() {
             let min = t.spec().n_blocks_log(1);
             if !(min..=MAX_LOG_ROWS).contains(&log_rows) {

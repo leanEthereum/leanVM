@@ -5,7 +5,6 @@ use super::{N_TABLES, TableId, Word};
 use crate::rv::{Alu, Class, Ext, Hash, Ld, Load, Mul, Mulh, Shift, Store};
 use crate::{class_flock, rv};
 use flock::circuit::Circuit;
-use std::ops::Range;
 
 /// How a class uses RAM.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,13 +22,13 @@ pub enum Ram {
 }
 
 impl Ram {
-    /// Clock slots occupied by this memory access shape.
-    const fn slots(self) -> Range<u32> {
+    /// The accesses a row makes, each at the clock slot of its index.
+    pub const fn accesses(self) -> usize {
         match self {
-            Self::None => 0..0,
-            Self::Read | Self::Write => Clock::RAM_SLOT..Clock::RAM_SLOT + 1,
-            Self::Block => Clock::block_slot(0)..Clock::block_slot(Hash::WORDS),
-            Self::Limbs => Clock::limb_slot(0)..Clock::limb_slot(Ext::LIMBS),
+            Self::None => 0,
+            Self::Read | Self::Write => 1,
+            Self::Block => Hash::WORDS,
+            Self::Limbs => Ext::LIMBS,
         }
     }
 }
@@ -77,16 +76,16 @@ pub struct ClassSpec {
     /// Whether branches and jumps move the successor by the circuit's jump.
     pub control: bool,
 
-    /// Whether the second source register is read, in clock slot 1.
+    /// Whether the second source register is read.
     pub reads_rs2: bool,
 
-    /// Whether the destination register receives a result, in clock slot 3.
+    /// Whether the destination register receives a result.
     pub writes_rd: bool,
 
-    /// Whether the destination register supplies an address, in clock slot 3.
+    /// Whether the destination register supplies an address.
     pub reads_rd: bool,
 
-    /// Memory accesses made after the register accesses.
+    /// The row's memory accesses.
     pub ram: Ram,
 
     /// Whether a doubleword is moved unchanged through a shared column.
@@ -95,8 +94,8 @@ pub struct ClassSpec {
     /// The class's flock circuit, or none for a class whose table proves it by identities (`ClassTable::identities`).
     pub circuit: Option<ClassCircuit>,
 
-    /// Base-two logarithm of the clock circuit's bits per instance.
-    pub clock_k_log: usize,
+    /// Base-two logarithm of the clock circuit's bits per instance, for a class that touches memory.
+    pub clock_k_log: Option<usize>,
 
     /// Words the clock circuit reads past the timestamps: what a class with no circuit checks of its operands.
     pub clock_inputs: &'static [Word],
@@ -122,7 +121,7 @@ impl ClassSpec {
             outputs: &[Word::Out, Word::Jump],
             fill: Fill::Instance(Alu::witness),
         }),
-        clock_k_log: 9,
+        clock_k_log: None,
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -143,7 +142,7 @@ impl ClassSpec {
             outputs: &[Word::Address, Word::Out],
             fill: Fill::Instance(Load::witness),
         }),
-        clock_k_log: 9,
+        clock_k_log: Some(8),
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -164,7 +163,7 @@ impl ClassSpec {
             outputs: &[Word::Address, Word::CellNew(0)],
             fill: Fill::Instance(Store::witness),
         }),
-        clock_k_log: 9,
+        clock_k_log: Some(8),
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -185,7 +184,7 @@ impl ClassSpec {
             outputs: &[Word::Address],
             fill: Fill::Instance(Ld::witness),
         }),
-        clock_k_log: 9,
+        clock_k_log: Some(8),
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -206,7 +205,7 @@ impl ClassSpec {
             outputs: &[Word::Address],
             fill: Fill::Instance(Ld::witness),
         }),
-        clock_k_log: 9,
+        clock_k_log: Some(8),
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -227,7 +226,7 @@ impl ClassSpec {
             outputs: &[Word::Out],
             fill: Fill::Instance(Shift::witness),
         }),
-        clock_k_log: 9,
+        clock_k_log: None,
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -252,7 +251,7 @@ impl ClassSpec {
                 Fill::Walk
             },
         }),
-        clock_k_log: 9,
+        clock_k_log: None,
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -273,7 +272,7 @@ impl ClassSpec {
             outputs: &[Word::Out],
             fill: Fill::Instance(Mulh::witness),
         }),
-        clock_k_log: 9,
+        clock_k_log: None,
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -294,7 +293,7 @@ impl ClassSpec {
             outputs: &[Word::Out, Word::Bad],
             fill: Fill::Walk,
         }),
-        clock_k_log: 9,
+        clock_k_log: None,
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -330,7 +329,7 @@ impl ClassSpec {
             outputs: &[Word::CellNew(4), Word::CellNew(5), Word::CellNew(6), Word::CellNew(7)],
             fill: Fill::Instance(rv::circuits::blake2s_witness),
         }),
-        clock_k_log: 11,
+        clock_k_log: Some(11),
         clock_inputs: &[],
         clock_outputs: &[],
     };
@@ -350,7 +349,7 @@ impl ClassSpec {
         ram: Ram::Limbs,
         copies: false,
         circuit: None,
-        clock_k_log: 12,
+        clock_k_log: Some(12),
         clock_inputs: &[Word::V1, Word::V2, Word::Dest, Word::Flags],
         clock_outputs: &[
             Word::FlagBit(0),
@@ -403,22 +402,14 @@ impl ClassSpec {
         }
     }
 
-    /// Indices of accessed registers, in previous-timestamp column order.
-    ///
-    /// The indices select the first source, second source, and destination register.
-    pub const fn registers(&self) -> &'static [usize] {
-        match (self.reads_rs2, self.writes_rd || self.reads_rd) {
-            (true, true) => &[0, 1, 2],
-            (true, false) => &[0, 1],
-            (false, true) => &[0, 2],
-            (false, false) => &[0],
-        }
+    /// Memory accesses per row, each ordered by the clock circuit.
+    pub const fn n_accesses(&self) -> usize {
+        self.ram.accesses()
     }
 
-    /// Accesses per row: the registers', then RAM's.
-    pub const fn n_accesses(&self) -> usize {
-        let ram = self.ram.slots();
-        self.registers().len() + (ram.end - ram.start) as usize
+    /// Whether the table has a clock circuit: exactly when its rows touch memory.
+    pub const fn has_clock(&self) -> bool {
+        self.clock_k_log.is_some()
     }
 
     /// Smallest power-of-two height accepted by each of the table's circuits.
@@ -431,9 +422,11 @@ impl ClassSpec {
     /// `log2` of the batch proving `n_rows` of the table's rows: a power of two, at least flock's floor of eight instances and at
     /// least what the zerocheck's cube needs for each of the table's circuits.
     pub const fn n_blocks_log(&self, n_rows: usize) -> usize {
-        let smallest = match &self.circuit {
-            Some(circuit) if circuit.k_log < self.clock_k_log => circuit.k_log,
-            _ => self.clock_k_log,
+        let smallest = match (&self.circuit, self.clock_k_log) {
+            (Some(circuit), Some(clock)) if circuit.k_log < clock => circuit.k_log,
+            (_, Some(clock)) => clock,
+            (Some(circuit), None) => circuit.k_log,
+            (None, None) => panic!("a table has a circuit"),
         };
         class_flock::batch_log(smallest, n_rows)
     }
@@ -449,13 +442,9 @@ impl ClassSpec {
         rows.is_power_of_two() && rows >= self.min_rows()
     }
 
-    /// The clock slots of the row's accesses, in the order of their columns.
+    /// The clock slots of the row's accesses, in the order of their columns: access `k` at slot `k`.
     pub fn slots(&self) -> Vec<u32> {
-        self.registers()
-            .iter()
-            .map(|&i| Clock::REG_SLOTS[i])
-            .chain(self.ram.slots())
-            .collect()
+        (0..self.n_accesses() as u32).collect()
     }
 
     /// Whether the class is a flock circuit; otherwise its table's identities prove it.
@@ -470,8 +459,9 @@ impl ClassSpec {
             .copied()
     }
 
-    /// The table's clock circuit.
+    /// The table's clock circuit, for a table that has one.
     pub fn clock_circuit(&self) -> Circuit {
+        assert!(self.has_clock(), "{} has no clock circuit", self.name);
         match self.class {
             Class::Ext => Ext::clock_circuit(&self.slots()),
             _ => Clock::circuit(&self.slots()),
@@ -489,8 +479,11 @@ impl ClassSpec {
     }
 
     /// The clock circuit's port words: the clock, each access's previous timestamp and [`Self::clock_inputs`], then
-    /// the step and [`Self::clock_outputs`].
+    /// the step and [`Self::clock_outputs`]; none for a table with no clock circuit.
     pub fn clock_ports(&self) -> Vec<Word> {
+        if !self.has_clock() {
+            return Vec::new();
+        }
         let prev = (0..self.n_accesses()).map(|i| Word::Prev(i as u8));
         let inputs = std::iter::once(Word::Clock)
             .chain(prev)

@@ -30,9 +30,6 @@ pub(super) struct DestinationColumns {
     /// Destination register number.
     pub(super) ad: usize,
 
-    /// Destination value before the write.
-    pub(super) vd_old: usize,
-
     /// Result value, or a shared memory-cell column.
     pub(super) out: usize,
 }
@@ -90,6 +87,16 @@ impl BlockColumns {
     }
 }
 
+/// The clock circuit's columns of a table whose rows touch memory.
+#[derive(Clone, Copy)]
+pub(super) struct ClockColumns {
+    /// The first access's previous timestamp, the others following it.
+    pub(super) prev: usize,
+
+    /// XOR mask advancing the row timestamp.
+    pub(super) step: usize,
+}
+
 /// Columns for extension-field operands, output, and computed limb locations.
 ///
 /// The limbs and `c`'s new limbs are committed columns, which the table's identities relate; the addresses are the
@@ -132,8 +139,11 @@ pub(super) struct Columns {
     /// Current instruction address.
     pub(super) pc: usize,
 
-    /// Current row timestamp.
+    /// Current row timestamp, which orders memory accesses.
     pub(super) ts: usize,
+
+    /// The row's time, `g^cycle`, at which its register cycle is pulled.
+    pub(super) time: usize,
 
     /// First source register number.
     pub(super) a1: usize,
@@ -177,37 +187,27 @@ pub(super) struct Columns {
     /// Circuit verdict bound to public zero.
     pub(super) bad: Option<usize>,
 
-    /// The first access's previous timestamp, the others following it.
-    pub(super) prev: usize,
+    /// The clock circuit's columns, for a table whose rows touch memory.
+    pub(super) clock: Option<ClockColumns>,
 
-    /// XOR mask advancing the row timestamp.
-    pub(super) step: usize,
+    /// Number of local columns.
+    len: usize,
 }
 
 impl Columns {
     /// Allocate the fixed layout in protocol order, retaining aliases for doubleword moves.
     pub(super) fn new(spec: &ClassSpec) -> Self {
         let mut allocator = ColumnAllocator::default();
-        let (pc, ts, a1, pc4, v1) = (
-            allocator.allocate(1),
-            allocator.allocate(1),
-            allocator.allocate(1),
-            allocator.allocate(1),
-            allocator.allocate(1),
-        );
+        let [pc, ts, time, a1, pc4, v1] = std::array::from_fn(|_| allocator.allocate(1));
         let flags = spec.words().any(|w| w == Word::Flags).then(|| allocator.allocate(1));
         let rs2 = spec.reads_rs2.then(|| SourceColumns {
             a2: allocator.allocate(1),
             v2: allocator.allocate(1),
         });
         // A doubleword load's `rd` receives its cell, which is a column further on.
-        let rd = spec.writes_rd.then(|| {
-            (
-                allocator.allocate(1),
-                allocator.allocate(1),
-                (!spec.copies).then(|| allocator.allocate(1)),
-            )
-        });
+        let rd = spec
+            .writes_rd
+            .then(|| (allocator.allocate(1), (!spec.copies).then(|| allocator.allocate(1))));
         let pointer = spec.reads_rd.then(|| PointerColumns {
             ad: allocator.allocate(1),
             vd: allocator.allocate(1),
@@ -240,9 +240,8 @@ impl Columns {
                 )
             }
         };
-        let rd = rd.map(|(ad, vd_old, out)| DestinationColumns {
+        let rd = rd.map(|(ad, out)| DestinationColumns {
             ad,
-            vd_old,
             out: out.unwrap_or_else(|| ram.expect("a doubleword load reads a cell").cell),
         });
         let limbs = (spec.ram == Ram::Limbs).then(|| LimbColumns {
@@ -253,10 +252,14 @@ impl Columns {
         let n_flag_bits = spec.words().filter(|w| matches!(w, Word::FlagBit(_))).count();
         let flag_bits = (n_flag_bits > 0).then(|| allocator.allocate(n_flag_bits));
         let bad = spec.words().any(|w| w == Word::Bad).then(|| allocator.allocate(1));
-        let (prev, step) = (allocator.allocate(spec.n_accesses()), allocator.allocate(1));
+        let clock = spec.has_clock().then(|| ClockColumns {
+            prev: allocator.allocate(spec.n_accesses()),
+            step: allocator.allocate(1),
+        });
         Self {
             pc,
             ts,
+            time,
             a1,
             pc4,
             v1,
@@ -271,14 +274,14 @@ impl Columns {
             limbs,
             flag_bits,
             bad,
-            prev,
-            step,
+            clock,
+            len: allocator.next,
         }
     }
 
     /// Number of local columns, including aliases to circuit words.
     pub(super) const fn len(&self) -> usize {
-        self.step + 1
+        self.len
     }
 
     /// The word's column, if it has one: a hint has none.
@@ -286,8 +289,8 @@ impl Columns {
         let missing = || -> usize { panic!("the class has no {word:?} word") };
         Some(match word {
             Word::Clock => self.ts,
-            Word::Prev(i) => self.prev + i as usize,
-            Word::Step => self.step,
+            Word::Prev(i) => self.clock.map_or_else(missing, |c| c.prev + i as usize),
+            Word::Step => self.clock.map_or_else(missing, |c| c.step),
             Word::Flags => self.flags.unwrap_or_else(missing),
             Word::Imm => self.imm.unwrap_or_else(missing),
             Word::V1 => self.v1,

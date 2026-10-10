@@ -2,9 +2,10 @@
 
 use super::MAX_LOG_ROWS;
 use super::execute::Execution;
-use super::layout::{Layout, Lookup, Schema, Shared, q_column};
+use super::layout::{Layout, Lookup, RegisterLog, Schema, Shared, padding_multiplicities, q_column};
 use super::program::Program;
 use crate::class_flock::FlockId;
+use crate::registers::{GROUPS, LogWitness};
 use crate::tables::{ClassTable, FillContext, PerTable, TableId};
 use flock::Tables;
 use primitives::field::F64;
@@ -23,6 +24,8 @@ pub(crate) struct Witness {
     pub(crate) layout: Layout,
     /// The clock the run ended on, which the prover announces.
     pub(crate) ts_final: u64,
+    /// The register log's rows, its dead rows included.
+    pub(crate) log: LogWitness,
     /// Every circuit's flock batch but its `z`, which is its committed column, in [`FlockId::ALL`] order; freed right
     /// after the batched reduction.
     pub(crate) reductions: Vec<Tables>,
@@ -60,8 +63,12 @@ impl Witness {
             tau
         });
 
+        // The register log at its height, its dead rows naming its first row's cells and writing nothing.
+        let log = trace.registers.padded(1 << RegisterLog::log_rows(trace.registers.live));
+
         // The public layout comes first: it fixes each column's length, so each is allocated once.
-        let layout = Layout::new(p, taus, trace.ts_final);
+        let view = program.view();
+        let layout = Layout::new(&view, taus, trace.ts_final, log.inc.len().ilog2() as usize);
 
         // The stack is written exactly once: one window per committed column, each filled in place.
         let mut q = Box::new_uninit_slice(layout.shape.committed_len());
@@ -99,6 +106,17 @@ impl Witness {
 
             // What the run did not leave, the multiplicities, is counted from its rows.
             trace.count_reads(windows[Lookup::Bytecode.multiplicity().col()]);
+            windows[Lookup::Padding.multiplicity().col()].copy_from_slice(&padding_multiplicities(&view, trace));
+            windows[Shared::ZeroTs.col()][0] = F64(trace.zero_ts);
+
+            // The register log's column: each group's one-hot cell words, then the increments; then its flags.
+            let rows = log.inc.len();
+            let (words, inc) = windows[Shared::RegisterLog.col()].split_at_mut(GROUPS * rows);
+            for (g, out) in words.chunks_exact_mut(rows).enumerate() {
+                log.cell_words(g, out);
+            }
+            inc.copy_from_slice(&log.inc);
+            log.flag_words(windows[Shared::RegisterFlags.col()]);
 
             // The tables' register numbers, packed into their words.
             for word in &layout.registers {
@@ -129,6 +147,7 @@ impl Witness {
             virt,
             layout,
             ts_final: trace.ts_final,
+            log,
             reductions,
         }
     }

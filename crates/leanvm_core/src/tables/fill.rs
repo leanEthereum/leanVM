@@ -159,6 +159,7 @@ impl ClassTable {
             [
                 F64(pc),
                 F64(r.ts),
+                F64(r.time),
                 F64(entry(r).a1 as u64),
                 F64(pc.wrapping_add(4)),
                 F64(r.v1),
@@ -173,9 +174,7 @@ impl ClassTable {
             });
         }
         if let Some(rd) = c.rd {
-            ctx.columns_at(out, rows, [rd.ad, rd.vd_old], move |r| {
-                [F64(entry(r).ad as u64), F64(r.vd_old)]
-            });
+            ctx.column(out, rows, rd.ad, move |r| F64(entry(r).ad as u64));
             // A doubleword load's result is its cell's column, written with the cell.
             if c.ram.is_none_or(|ram| ram.cell != rd.out) {
                 ctx.column(out, rows, rd.out, move |r| F64(r.out));
@@ -229,16 +228,18 @@ impl ClassTable {
         if let Some(bad) = c.bad {
             ctx.column(out, rows, bad, move |_| F64::ZERO);
         }
-        let table = ctx.trace.table(self.id);
-        let n = self.id.spec().n_accesses();
-        for i in 0..n {
-            ctx.indexed(out, [c.prev + i], move |j| [F64(table.row(j).prev()[i])]);
+        if let Some(clock) = c.clock {
+            let table = ctx.trace.table(self.id);
+            let n = self.id.spec().n_accesses();
+            for i in 0..n {
+                ctx.indexed(out, [clock.prev + i], move |j| [F64(table.row(j).prev()[i])]);
+            }
+            let slots = self.id.spec().slots();
+            ctx.indexed(out, [clock.step], move |j| {
+                let r = table.row(j);
+                [F64(Clock { timestamp: r.row.ts }.step(&r.prev()[..n], &slots))]
+            });
         }
-        let slots = self.id.spec().slots();
-        ctx.indexed(out, [c.step], move |j| {
-            let r = table.row(j);
-            [F64(Clock { timestamp: r.row.ts }.step(&r.prev()[..n], &slots))]
-        });
         ctx.finish();
     }
 }

@@ -1,13 +1,15 @@
-//! What a run of the program on the reference interpreter records for the memory argument.
+//! What a run of the program on the reference interpreter records for the register log and the memory argument.
 //!
-//! A row carries what its accesses saw, its clock, and per access the timestamp its cell was last accessed at.
+//! A row carries what its accesses saw, its time and clock, and per memory access the timestamp its cell was last
+//! accessed at.
 //!
 //! Everything else comes back from the program's entry at the row's index.
 
+use crate::registers::LogWitness;
 use crate::rv::machine::{MemoryAccess, Step};
 use crate::rv::{BlockAccess, Class, Ext, Hash, Limb, Machine, RegisterFile, RiscvProgram, WordAccess};
 use crate::tables::{Clock, PerTable, TableId};
-use primitives::field::F64;
+use primitives::field::{F64, G};
 
 /// A finished run: its output, its rows, and what it left behind.
 pub struct Execution {
@@ -54,6 +56,11 @@ pub(super) trait Recorder {
 
     /// The rows recorded so far, per table.
     fn row_counts(&self) -> PerTable<usize>;
+
+    /// The cycles recorded so far: the register log's live rows.
+    fn cycles(&self) -> usize {
+        self.row_counts().values().sum()
+    }
 }
 
 /// The rows a run makes per table, and nothing else.
@@ -86,20 +93,24 @@ impl Recorder for RowCounter {
     }
 }
 
-/// A trace being recorded: the rows so far, and each cell's last access timestamp.
+/// A trace being recorded: the rows so far, the register log, and each memory cell's last access timestamp.
 pub(super) struct TraceBuilder {
-    /// The register file's cells.
-    regs: LastAccess,
     /// RAM's cells, then the advice's, as the machine numbers them.
     ram: LastAccess,
+    /// The zero cell, which a base-field extension operand's high limbs read.
+    zero: LastAccess,
     /// Each table's rows.
     rows: PerTable<Vec<Row>>,
     /// The hash table's payloads, one per row.
     hash: Vec<HashRow>,
     /// The extension-field table's payloads, one per row.
     ext: Vec<ExtRow>,
-    /// Each table's access slots, which a padding row's accesses pull as their previous timestamps.
-    padding_prev: PerTable<Vec<u64>>,
+    /// The register log: a row per cycle.
+    registers: LogWitness,
+    /// The register file as the register log leaves it.
+    register_file: [u64; RegisterFile::CELLS],
+    /// The next row's time, `g^cycle`.
+    time: F64,
     /// The advice before the run, which is committed.
     adv_init: Vec<F64>,
 }
@@ -113,81 +124,76 @@ impl Recorder for TraceBuilder {
     fn row_counts(&self) -> PerTable<usize> {
         PerTable::from_fn(|t| self.rows[t].len())
     }
+
+    fn cycles(&self) -> usize {
+        self.registers.live
+    }
 }
 
 impl TraceBuilder {
     /// The trace of a run of `p` about to start on this advice region.
     pub(super) fn new(p: &RiscvProgram, advice: &[u64]) -> Self {
         Self {
-            regs: LastAccess::new(RegisterFile::CELLS),
             ram: LastAccess::new((1 << p.log_ram()) + (1 << p.log_advice())),
+            zero: LastAccess::new(1),
             rows: PerTable::default(),
             hash: Vec::new(),
             ext: Vec::new(),
-            padding_prev: PerTable::from_fn(|t: TableId| t.spec().slots().into_iter().map(u64::from).collect()),
+            registers: LogWitness::default(),
+            register_file: [0; RegisterFile::CELLS],
+            time: F64::ONE,
             adv_init: advice.iter().map(|&w| F64(w)).collect(),
         }
     }
 
-    /// Record the row of `step`, executed at clock `ts`.
+    /// Record the row of `step`, executed at clock `ts`: its register cycle, then its memory accesses in order.
     #[inline(always)]
     fn record_row(&mut self, p: &RiscvProgram, m: &Machine<'_>, step: Step, ts: u64) {
         let e = &p.entries()[step.index];
         let table = TableId::of(e.class).expect("every class that runs has a table");
         let spec = table.spec();
 
-        // The register accesses the class makes, in column order, each at its slot of the row's clock.
-        let cells = [e.a1, e.a2, e.ad].map(|cell| cell as usize);
-        let made = [true, spec.reads_rs2, spec.writes_rd || spec.reads_rd];
-        let mut prev = [0; 4];
-        let mut n = 0;
-        for (i, slot) in Clock::REG_SLOTS.into_iter().enumerate() {
-            if made[i] {
-                prev[n] = self.regs.access(cells[i], ts | u64::from(slot));
-                n += 1;
-            }
-        }
+        // A class with no `rs2` reads `x0`, and one with no write writes zero to the sink; the entry says so.
+        // A pointer read is the write group's, flagged, writing back what it found.
+        let written = match (spec.writes_rd, spec.reads_rd) {
+            (true, _) => step.out,
+            (_, true) => self.register_file[e.ad as usize],
+            _ => 0,
+        };
+        self.cycle([e.a1, e.a2, e.ad], written, spec.reads_rd);
 
-        // The memory access, after the register accesses; the machine made it, so each address names a cell.
+        // The memory accesses, access `k` at slot `k` of the row's clock; the machine made them, so each names a cell.
         let cell_of = |address: u64| m.memory().cell(address).expect("an access the machine made");
         let mut word = WordAccess::default();
+        let mut prev = [0; 1];
         match step.memory {
             MemoryAccess::None => {}
             MemoryAccess::Word(access) => {
-                prev[n] = self
-                    .ram
-                    .access(cell_of(access.address), ts | u64::from(Clock::RAM_SLOT));
+                prev[0] = self.ram.access(cell_of(access.address), ts);
                 word = access;
             }
             // A hash row's block, word `k` at `v1 ^ 8k`.
             MemoryAccess::Block(h) => {
-                let mut all = [0; 2 + Hash::WORDS];
-                all[..n].copy_from_slice(&prev[..n]);
-                for k in 0..Hash::WORDS {
-                    let cell = cell_of(step.v1 ^ (8 * k as u64));
-                    all[n + k] = self.ram.access(cell, ts | u64::from(Clock::block_slot(k)));
-                }
+                let prev = std::array::from_fn(|k| self.ram.access(cell_of(step.v1 ^ (8 * k as u64)), ts | k as u64));
                 self.hash.push(HashRow {
                     block: h.block,
                     out: h.out,
-                    prev: all,
+                    prev,
                 });
             }
-            // An extension-field row's limbs, after its register reads: memory cells, or `x0` for a base-field `b`.
+            // An extension-field row's limbs: memory cells, or the zero cell for a base-field `b`'s high limbs.
             MemoryAccess::Ext(instance) => {
-                let mut all = [0; 3 + Ext::LIMBS];
-                all[..n].copy_from_slice(&prev[..n]);
-                for k in 0..Ext::LIMBS {
-                    let at = ts | u64::from(Clock::limb_slot(k));
-                    all[n + k] = match Ext::limb(instance.pointers, instance.flags, k) {
+                let prev = std::array::from_fn(|k| {
+                    let at = ts | k as u64;
+                    match Ext::limb(instance.pointers, instance.flags, k) {
                         Limb::Memory(address) => self.ram.access(cell_of(address), at),
-                        Limb::Zero => self.regs.access(0, at),
-                    };
-                }
+                        Limb::Zero => self.zero.access(0, at),
+                    }
+                });
                 self.ext.push(ExtRow {
                     instance: *instance,
                     c: instance.eval(),
-                    prev: all,
+                    prev,
                 });
             }
         }
@@ -195,81 +201,39 @@ impl TraceBuilder {
         self.rows[table].push(Row {
             index: step.index as u32,
             ts,
+            time: self.time.0,
             v1: step.v1,
             v2: step.v2,
             out: step.out,
             taken: step.taken,
-            vd_old: step.vd_old,
             ram: word,
             prev,
         });
+        self.time *= G;
     }
 
-    /// Write out a padding row of entry `index`, at clock zero.
-    ///
-    /// It touches nothing: every read holds zero, and every write rewrites what it writes.
-    ///
-    /// Its circuit instance is an honest one, on those zeros.
-    ///
-    /// An access in slot `k` pushes the timestamp `0 ^ k` and pulls that same timestamp, so the two tuples cancel.
-    pub(super) fn pad(&mut self, p: &RiscvProgram, index: usize) {
-        let e = &p.entries()[index];
-        let table = TableId::of(e.class).expect("a fill block's class has a table");
-        let outcome = e.evaluate(p.pc_of(index), 0, 0, 0);
-        let slots = &self.padding_prev[table];
-
-        // Its accesses' timestamps: in its payload for a hash or an extension-field row, in the row otherwise.
-        let mut prev = [0; 4];
-        match e.class {
-            // A hash row compresses a zero block, and rewrites the result it finds there.
-            Class::Hash => {
-                let block = [0; Hash::WORDS];
-                let mut h = BlockAccess::from(Hash {
-                    flags: e.flags,
-                    t: 0,
-                    block,
-                });
-                h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
-                let mut all = [0; 2 + Hash::WORDS];
-                all.copy_from_slice(slots);
-                self.hash.push(HashRow {
-                    block: h.block,
-                    out: h.out,
-                    prev: all,
-                });
-            }
-            // An extension-field row multiplies zeros at address zero, and writes zero over zero.
-            Class::Ext => {
-                let instance = Ext {
-                    flags: e.flags,
-                    pointers: [0; 3],
-                    limbs: [0; Ext::LIMBS],
-                };
-                let mut all = [0; 3 + Ext::LIMBS];
-                all.copy_from_slice(slots);
-                self.ext.push(ExtRow {
-                    instance,
-                    c: instance.eval(),
-                    prev: all,
-                });
-            }
-            _ => prev[..slots.len()].copy_from_slice(slots),
+    /// Append the register log's cycle: cells read, read, written, the written value, and whether it is a pointer read.
+    fn cycle(&mut self, cells: [u8; 3], written: u64, pointer: bool) {
+        for (group, &cell) in self.registers.cells.iter_mut().zip(&cells) {
+            group.push(cell);
         }
-
-        self.rows[table].push(Row {
-            index: index as u32,
-            ts: 0,
-            v1: 0,
-            v2: 0,
-            out: outcome.out,
-            taken: outcome.taken,
-            vd_old: outcome.out,
-            ram: outcome.access.unwrap_or_default(),
-            prev,
-        });
+        let old = std::mem::replace(&mut self.register_file[cells[2] as usize], written);
+        self.registers.inc.push(F64(old ^ written));
+        self.registers.flag.push(pointer);
+        self.registers.live += 1;
     }
 
-    /// The finished trace: the rows, and what the machine `m` left in each array when the clock stopped at `ts_final`.
+    /// Write out a padding row of entry `index`.
+    pub(super) fn pad(&mut self, p: &RiscvProgram, index: usize) {
+        let padding = padding_row(p, index);
+        let table = TableId::of(p.entries()[index].class).expect("a fill block's class has a table");
+        self.hash.extend(padding.hash);
+        self.ext.extend(padding.ext);
+        self.rows[table].push(padding.row);
+    }
+
+    /// The finished trace: the rows, the register log, and what the machine `m` left in each memory array when the
+    /// clock stopped at `ts_final`.
     pub(super) fn finish(self, p: &RiscvProgram, m: &Machine<'_>, ts_final: u64) -> Trace {
         let ram_last = self.ram.timestamps();
         let (ram_ts, adv_ts) = ram_last.split_at(1 << p.log_ram());
@@ -277,16 +241,88 @@ impl TraceBuilder {
             rows: self.rows,
             hash: self.hash,
             ext: self.ext,
-            reg_fin: m.registers().cells().iter().map(|&r| F64(r)).collect(),
-            reg_ts: self.regs.timestamps(),
+            registers: self.registers,
             ram_fin: m.memory().ram().iter().map(|&w| F64(w)).collect(),
             ram_ts: ram_ts.to_vec(),
             adv_init: self.adv_init,
             adv_fin: m.memory().advice().iter().map(|&w| F64(w)).collect(),
             adv_ts: adv_ts.to_vec(),
+            zero_ts: self.zero.0[0],
             ts_final,
         }
     }
+}
+
+/// A padding row and its payload.
+pub(crate) struct PaddingRow {
+    pub(crate) row: Row,
+    pub(crate) hash: Option<HashRow>,
+    pub(crate) ext: Option<ExtRow>,
+}
+
+impl PaddingRow {
+    /// The row with its payload.
+    pub(crate) const fn view(&self) -> RowRef<'_> {
+        let payload = match (&self.hash, &self.ext) {
+            (Some(hash), _) => Payload::Hash(hash),
+            (_, Some(ext)) => Payload::Ext(ext),
+            _ => Payload::None,
+        };
+        RowRef {
+            row: &self.row,
+            payload,
+        }
+    }
+}
+
+/// The padding row of entry `index`, at time and clock zero.
+///
+/// - Its register cycle is at time zero, which no log row has: it pulls a public padding tuple.
+/// - Its memory access in slot `k` pushes the timestamp `0 ^ k` and pulls that same timestamp, so the two cancel.
+///
+/// Its circuit instance is an honest one, on zeros.
+pub(crate) fn padding_row(p: &RiscvProgram, index: usize) -> PaddingRow {
+    let e = &p.entries()[index];
+    let outcome = e.evaluate(p.pc_of(index), 0, 0, 0);
+    // A hash row compresses a zero block, and rewrites the result it finds there.
+    let hash = (e.class == Class::Hash).then(|| {
+        let mut h = BlockAccess::from(Hash {
+            flags: e.flags,
+            t: 0,
+            block: [0; Hash::WORDS],
+        });
+        h.block[Hash::OUT as usize / 8..][..4].copy_from_slice(&h.out);
+        HashRow {
+            block: h.block,
+            out: h.out,
+            prev: std::array::from_fn(|k| k as u64),
+        }
+    });
+    // An extension-field row multiplies zeros at address zero, and writes zero over zero.
+    let ext = (e.class == Class::Ext).then(|| {
+        let instance = Ext {
+            flags: e.flags,
+            pointers: [0; 3],
+            limbs: [0; Ext::LIMBS],
+        };
+        ExtRow {
+            instance,
+            c: instance.eval(),
+            prev: std::array::from_fn(|k| k as u64),
+        }
+    });
+    let row = Row {
+        index: index as u32,
+        ts: 0,
+        time: 0,
+        v1: 0,
+        v2: 0,
+        out: outcome.out,
+        taken: outcome.taken,
+        ram: outcome.access.unwrap_or_default(),
+        prev: [0],
+    };
+    PaddingRow { row, hash, ext }
 }
 
 /// What a hash row adds to a row.
@@ -295,8 +331,8 @@ pub(crate) struct HashRow {
     pub(crate) block: [u64; Hash::WORDS],
     /// The four words the compression writes.
     pub(crate) out: [u64; 4],
-    /// The previous timestamp of every access, the registers' first.
-    pub(crate) prev: [u64; 2 + Hash::WORDS],
+    /// The previous timestamp of every access.
+    pub(crate) prev: [u64; Hash::WORDS],
 }
 
 impl HashRow {
@@ -315,8 +351,8 @@ pub(crate) struct ExtRow {
     pub(crate) instance: Ext,
     /// `c`'s limbs after the row.
     pub(crate) c: [u64; 3],
-    /// The previous timestamp of every access, the registers' first.
-    pub(crate) prev: [u64; 3 + Ext::LIMBS],
+    /// The previous timestamp of every access.
+    pub(crate) prev: [u64; Ext::LIMBS],
 }
 
 /// One executed instruction, as its table's row records it.
@@ -325,6 +361,8 @@ pub(crate) struct Row {
     pub(crate) index: u32,
     /// The row's clock, zero on a padding row.
     pub(crate) ts: u64,
+    /// The row's time, `g^cycle`, zero on a padding row.
+    pub(crate) time: u64,
     /// The first register's value.
     pub(crate) v1: u64,
     /// The second register's value.
@@ -333,14 +371,12 @@ pub(crate) struct Row {
     pub(crate) out: u64,
     /// Whether the class took the jump.
     pub(crate) taken: bool,
-    /// What the destination held before the write, if the class makes one.
-    pub(crate) vd_old: u64,
     /// A load's or a store's cell access; zeros for another class.
     pub(crate) ram: WordAccess,
-    /// The previous timestamps of the register accesses the class makes, then of its RAM access.
+    /// The previous timestamp of a load's or a store's access.
     ///
-    /// Unused on a hash or an extension-field row, whose payload records every access.
-    pub(crate) prev: [u64; 4],
+    /// Unused on another row: a hash or an extension-field row's payload records every access.
+    pub(crate) prev: [u64; 1],
 }
 
 /// What a row records beyond the fields every row has.
@@ -441,10 +477,8 @@ pub(crate) struct Trace {
     pub(crate) hash: Vec<HashRow>,
     /// The extension-field table's payloads, row `i`'s at `i`.
     pub(crate) ext: Vec<ExtRow>,
-    /// The registers after the run.
-    pub(crate) reg_fin: Vec<F64>,
-    /// Each register's last timestamp, the seed's if never touched.
-    pub(crate) reg_ts: Vec<F64>,
+    /// The register log: a row per cycle.
+    pub(crate) registers: LogWitness,
     /// RAM after the run.
     pub(crate) ram_fin: Vec<F64>,
     /// Each RAM word's last timestamp.
@@ -455,6 +489,8 @@ pub(crate) struct Trace {
     pub(crate) adv_fin: Vec<F64>,
     /// Each advice word's last timestamp.
     pub(crate) adv_ts: Vec<F64>,
+    /// The zero cell's last timestamp.
+    pub(crate) zero_ts: u64,
     /// The clock the run ended on: the final state's timestamp.
     pub(crate) ts_final: u64,
 }

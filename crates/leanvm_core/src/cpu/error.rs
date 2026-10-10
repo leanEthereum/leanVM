@@ -5,6 +5,7 @@ use crate::constraints::ConstraintError;
 use crate::leaf::BusError;
 use crate::pcs::Rate;
 use crate::rec::RecError;
+use crate::registers::RegisterError;
 use crate::rv::Trap;
 use crate::tables::Part;
 use fiat_shamir::transcript::TranscriptError;
@@ -61,6 +62,15 @@ pub enum CpuError {
     /// The announced final clock is not live: bit 40 alone above the cycle, and slot zero.
     #[error("the announced final clock is not a live clock")]
     FinalClock,
+    /// The register log's announced height is outside what the arithmetization expresses.
+    #[error("the register log announces 2^{log_rows} rows, outside its range")]
+    LogHeight {
+        /// The announced base-two logarithm of rows.
+        log_rows: usize,
+    },
+    /// The announced cycles are none, or more than the register log holds.
+    #[error("the announced cycles do not fit the register log")]
+    Cycles,
     /// The announced heights stack to a witness the commitment does not take.
     #[error("the witness has 2^{mu} words, outside 2^{min}..=2^{max}", min = crate::pcs::MIN_MU, max = crate::pcs::MAX_MU)]
     WitnessSize {
@@ -70,6 +80,9 @@ pub enum CpuError {
     /// The proof stream is malformed.
     #[error(transparent)]
     Transcript(#[from] TranscriptError),
+    /// The register log's argument is rejected.
+    #[error("the register log: {0}")]
+    Registers(RegisterError),
     /// The memory and lookup bus does not balance.
     #[error("the bus: {0}")]
     Bus(BusError),

@@ -53,6 +53,11 @@ pub struct Block {
 pub struct FillBlocks(Vec<Block>);
 
 impl FillBlocks {
+    /// Every entry of every block: its no-ops, then its closing jump.
+    pub fn entries(&self) -> impl Iterator<Item = usize> + '_ {
+        self.0.iter().flat_map(|b| b.index..=b.index + b.size)
+    }
+
     /// The words the blocks take in the text: each block's no-ops, then its closing jump.
     pub const WORDS: usize = {
         let mut words = 0;

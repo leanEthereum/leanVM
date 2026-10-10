@@ -8,22 +8,39 @@ use crate::class_flock::FlockId;
 use crate::constraints::Claims;
 use crate::leaf::PublicColumns;
 use crate::pcs::{Commitment, Rate, StackClaim};
+use crate::registers::{self, LinkShare, LogOpening, Statement};
+use crate::rv::Syscall;
 use crate::tables::{ClassTable, N_TABLES};
 use crate::{constraints, leaf};
-use fiat_shamir::arith::Verifier;
+use fiat_shamir::arith::{Arith, Verifier};
 use flock::reduction;
 use pcs::verifier::OpeningVerifier;
+use primitives::field::{F64, F192, G};
 
 /// What the bus and the table sumcheck leave to the rest of the verifier.
 pub(crate) struct TableReduction<E> {
-    /// The opening's point claims: the bus's framework claims, each table's columns, then the exit's.
+    /// The opening's point claims: the bus's framework claims, each table's columns, then the register log's.
     pub(crate) slots: Vec<StackClaim<E>>,
+    /// What the register log leaves the opening.
+    pub(crate) log: LogOpening<E>,
     /// Each producer's multiplicity bits at its point, which the opening ring-switches.
     pub(crate) producers: Vec<Claims<E>>,
     /// Each table's claims in the table sumcheck, whose register numbers' bits the opening ring-switches.
     pub(crate) tables: Vec<Claims<E>>,
     /// The claim on the program's bytecode table and RAM image.
     pub(crate) program: Claim<ProgramPoint<E>, E>,
+}
+
+/// `g^n` for the count `n` given by its bits: `prod_b (1 + n_b (g^(2^b) + 1))`.
+fn generator_power<A: Arith>(a: &mut A, bits: &[A::E]) -> A::E {
+    let mut power = G;
+    bits.iter().fold(a.one(), |acc, &bit| {
+        let step = a.mul_const(bit, F192::from(power + F64::ONE));
+        let one = a.one();
+        let factor = a.add(step, one);
+        power = power * power;
+        a.mul(acc, factor)
+    })
 }
 
 /// The claims the tables' columns are left with, prover and verifiers alike.
@@ -63,11 +80,12 @@ impl Layout {
         &self,
         v: &mut V,
         clock: V::E,
+        cycles: &[V::E],
         output: &[V::E; 4],
         rate: Rate,
     ) -> Result<DeferredClaims<V::E>, CpuError> {
         let commitment = Commitment::read(v, self.shape, rate)?;
-        let reduced = v.scope("bus and tables", |v| self.reduce_tables(v, clock, output))?;
+        let reduced = v.scope("bus and tables", |v| self.reduce_tables(v, clock, cycles, output))?;
 
         // Flock's reductions, batched over every class circuit then every clock circuit, each leaving its matrices' form to its circuit.
         let batches = FlockId::batches(&self.taus);
@@ -81,7 +99,7 @@ impl Layout {
         // The one opening, its ring-switched regions each packed witness, each producer's multiplicity column and each table's register numbers.
         v.scope("opening", |v| {
             let zero = v.zero();
-            let rings = self.rings(slices, &reduced.producers, &reduced.tables, zero);
+            let rings = self.rings(slices, &reduced.producers, &reduced.tables, &reduced.log, zero);
             commitment.verify(v, &reduced.slots, &rings)
         })
         .map_err(CpuError::Open)?;
@@ -92,9 +110,11 @@ impl Layout {
         })
     }
 
-    /// Verify the bus and the table sumcheck of a run that ends on the given clock and returns the given output.
+    /// Verify the bus, the table sumcheck and the register log of a run that ends on the given clock after `cycles`
+    /// cycles, by their bits, and returns the given output.
     ///
-    /// The layout's own final clock is zero: a leaf is affine in each coordinate, so the clock's share joins the pull side's total here.
+    /// The layout's own final clock and time are zero: a leaf is affine in each coordinate, so their shares join the
+    /// pull side's total here.
     ///
     /// A table with a class circuit puts linear forms on the bus, so its columns' values at the bus's point settle its share.
     ///
@@ -102,11 +122,12 @@ impl Layout {
     ///
     /// # Errors
     ///
-    /// Returns the bus's or the table sumcheck's refusal.
+    /// Returns the bus's, the table sumcheck's or the register log's refusal.
     pub(crate) fn reduce_tables<V: Verifier + PublicColumns>(
         &self,
         v: &mut V,
         clock: V::E,
+        cycles: &[V::E],
         output: &[V::E; 4],
     ) -> Result<TableReduction<V::E>, CpuError> {
         let mut bus = leaf::verify_balance(
@@ -123,6 +144,10 @@ impl Layout {
             bus.weights[Framework::FINAL_CLOCK],
         );
         bus.totals[1] = v.mul_add(per_tick, clock, bus.totals[1]);
+        let end = bus.selectors[1][Framework::State as usize];
+        let time = generator_power(v, cycles);
+        let per_time = v.mul(end, bus.weights[Framework::FINAL_TIME]);
+        bus.totals[1] = v.mul_add(per_time, time, bus.totals[1]);
 
         // Each settled table's columns at the bus point `zeta[..tau]`, which the opening checks, short of its register
         // numbers, which the batch folds.
@@ -173,10 +198,28 @@ impl Layout {
         let table_sumcheck = constraints::verify(v, batch.airs(), &bus.point, target).map_err(CpuError::Constraint)?;
         drop(batch);
         let program = Claim::from_table_sumcheck(v, &bus, &table_sumcheck, powers);
+
+        // The register log's argument, from its share of the bus: the run exits, its output in `a0..a3`.
+        let share = bus.logs.pop().expect("the register log's share");
+        let share = LinkShare {
+            point: share.point,
+            value: share.value,
+            weights: bus.weights.clone(),
+            beta: bus.beta,
+        };
+        let exit = v.constant(F192::from(F64(Syscall::Exit.number())));
+        let outputs = [&[exit][..], output].concat();
+        let statement = Statement {
+            live: cycles,
+            outputs: &outputs,
+        };
+        let log = registers::verify(v, &self.log, statement, &share).map_err(CpuError::Registers)?;
+
         let claims = TableClaims::new(settled, table_sumcheck.claims);
-        let slots = self.opening_claims(v, bus.claims, &claims.columns, output);
+        let slots = self.opening_claims(bus.claims, &claims.columns, &log);
         Ok(TableReduction {
             slots,
+            log,
             producers: claims.producers,
             tables: claims.summed,
             program,

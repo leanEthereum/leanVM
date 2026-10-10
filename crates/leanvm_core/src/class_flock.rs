@@ -1,7 +1,7 @@
 //! Bridge to flock for the instruction tables.
 //!
-//! Each class's circuit and each table's clock circuit is proven over one packed witness of its own. The
-//! extension-field product has no class circuit, so its table has its clock circuit's alone.
+//! Each class's circuit and the clock circuit of each table whose rows touch memory is proven over one packed witness
+//! of its own. The extension-field product has no class circuit, so its table has its clock circuit's alone.
 //!
 //! That witness is one more committed column of the stacked witness: instance `j` of
 //! the batch is row `j` of the circuit's table, and flock's R1CS validity is discharged
@@ -24,12 +24,25 @@ use std::sync::OnceLock;
 /// plus its fixed-point dimensions), which floors the batch of a small circuit.
 pub const MIN_CUBE_LOG: usize = flock::zerocheck::MIN_LOG_N;
 
-/// The most input ports a circuit with a word-level witness has: EXT's clock circuit's seventeen.
-const MAX_INPUT_WORDS: usize = 17;
+/// The most input ports a circuit with a word-level witness has: EXT's clock circuit's fourteen.
+const MAX_INPUT_WORDS: usize = 14;
 
-/// The packed witnesses: every class circuit in table order (the tables that have one come first), then every
-/// table's clock circuit.
-pub const N_FLOCKS: usize = N_CIRCUITS + N_TABLES;
+/// The tables with a clock circuit: those whose rows touch memory.
+pub const N_CLOCKS: usize = {
+    let mut n = 0;
+    let mut t = 0;
+    while t < N_TABLES {
+        if TableId::ALL[t].spec().has_clock() {
+            n += 1;
+        }
+        t += 1;
+    }
+    n
+};
+
+/// The packed witnesses: every class circuit in table order (the tables that have one come first), then the clock
+/// circuit of every table whose rows touch memory, in table order.
+pub const N_FLOCKS: usize = N_CIRCUITS + N_CLOCKS;
 
 /// One packed witness: a table's class circuit, or its clock circuit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -41,14 +54,19 @@ pub struct FlockId {
 impl FlockId {
     /// Every packed witness, in protocol order.
     pub const ALL: [Self; N_FLOCKS] = {
-        let mut all = [Self::clock(TableId::ALU); N_FLOCKS];
+        let mut all = [Self {
+            table: TableId::ALU,
+            part: Part::Class,
+        }; N_FLOCKS];
         let mut t = 0;
         while t < N_TABLES {
             let table = TableId::ALL[t];
             if let Some(class) = Self::class(table) {
                 all[class.index()] = class;
             }
-            all[Self::clock(table).index()] = Self::clock(table);
+            if let Some(clock) = Self::clock(table) {
+                all[clock.index()] = clock;
+            }
             t += 1;
         }
         all
@@ -79,11 +97,15 @@ impl FlockId {
         }
     }
 
-    /// The clock circuit of `table`.
-    pub const fn clock(table: TableId) -> Self {
-        Self {
-            table,
-            part: Part::Clock,
+    /// The clock circuit of `table`, if its rows touch memory.
+    pub const fn clock(table: TableId) -> Option<Self> {
+        if table.spec().has_clock() {
+            Some(Self {
+                table,
+                part: Part::Clock,
+            })
+        } else {
+            None
         }
     }
 
@@ -101,7 +123,18 @@ impl FlockId {
     pub const fn index(self) -> usize {
         match self.part {
             Part::Class => self.table.index(),
-            Part::Clock => N_CIRCUITS + self.table.index(),
+            Part::Clock => {
+                // The clock circuits before it, in table order.
+                let mut rank = 0;
+                let mut t = 0;
+                while t < self.table.index() {
+                    if TableId::ALL[t].spec().has_clock() {
+                        rank += 1;
+                    }
+                    t += 1;
+                }
+                N_CIRCUITS + rank
+            }
         }
     }
 
@@ -111,7 +144,10 @@ impl FlockId {
         match (self.part, &spec.circuit) {
             (Part::Class, Some(circuit)) => circuit.k_log,
             (Part::Class, None) => unreachable!(),
-            (Part::Clock, _) => spec.clock_k_log,
+            (Part::Clock, _) => match spec.clock_k_log {
+                Some(k_log) => k_log,
+                None => unreachable!(),
+            },
         }
     }
 

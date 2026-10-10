@@ -43,7 +43,7 @@ pub struct Ext {
     pub pointers: [u64; 3],
     /// The nine limbs as found: `a`'s, `b`'s, then `c`'s.
     ///
-    /// A base-field `b` has two zero limbs, which the row reads from `x0`.
+    /// A base-field `b` has two zero limbs, which the row reads from the zero cell.
     pub limbs: [u64; Self::LIMBS],
 }
 
@@ -52,7 +52,7 @@ pub struct Ext {
 pub enum Limb {
     /// The memory word at this byte address.
     Memory(u64),
-    /// The register `x0`, which holds zero: a high limb of a base-field `b`.
+    /// The zero cell, which holds zero: a high limb of a base-field `b`.
     Zero,
 }
 
@@ -76,7 +76,7 @@ impl Ext {
     ///     address:  pa   pa+8  pa+16  pb   pb+8  pb+16  pc   pc+8  pc+16
     /// ```
     ///
-    /// A base-field `b` reads `b_1` and `b_2` from `x0` instead.
+    /// A base-field `b` reads `b_1` and `b_2` from the zero cell instead.
     ///
     /// The addresses wrap modulo `2^64`, as RISC-V addresses do.
     pub const fn limb(pointers: [u64; 3], flags: u64, k: usize) -> Limb {
@@ -88,7 +88,7 @@ impl Ext {
         }
     }
 
-    /// The bus address of limb `k`: the register number zero for a limb read from `x0`.
+    /// The bus address of limb `k`: zero for a limb read from the zero cell.
     pub const fn bus_address(pointers: [u64; 3], flags: u64, k: usize) -> u64 {
         match Self::limb(pointers, flags, k) {
             Limb::Zero => 0,
@@ -110,18 +110,18 @@ impl Ext {
         [c.c0, c.c1, c.c2]
     }
 
-    /// The table's clock circuit: the clock circuit of its twelve accesses, which also splits the flags into their
+    /// The table's clock circuit: the clock circuit of its nine accesses, which also splits the flags into their
     /// two bits and computes the bus addresses of the limbs that are no pointer.
     ///
     /// ```text
-    ///     inputs    ts, prev_0 .. prev_11, v1, v2, vd, flags
+    ///     inputs    ts, prev_0 .. prev_8, v1, v2, vd, flags
     ///     outputs   step, accumulate, base, then the addresses of limbs 1, 2, 4, 5, 7 and 8
     /// ```
     ///
     /// `accumulate` and `base` are the flags' bits 0 and 1, each a whole port, so each is a 0 or 1 field element.
     ///
-    /// The addresses are `p + 8` and `p + 16` for each pointer, by incrementers, `b`'s gated off to zero, the
-    /// register number of `x0`, for a base-field `b`. A pointer off its word leaves its low bits in every limb's
+    /// The addresses are `p + 8` and `p + 16` for each pointer, by incrementers, `b`'s gated off to zero, the zero
+    /// cell's address, for a base-field `b`. A pointer off its word leaves its low bits in every limb's
     /// address, which then names no cell.
     pub fn clock_circuit(slots: &[u32]) -> Circuit {
         let ports = [1, 1]
@@ -322,12 +322,12 @@ mod tests {
     }
 
     #[test]
-    fn a_base_field_operand_reads_its_high_limbs_from_x0() {
+    fn a_base_field_operand_reads_its_high_limbs_from_the_zero_cell() {
         // Fixture: b at 0x4000_0118, as an extension and as a base-field element.
         //
         //     limb:      b_0          b_1          b_2
         //     extension  0x4000_0118  0x4000_0120  0x4000_0128
-        //     base       0x4000_0118  x0           x0
+        //     base       0x4000_0118  zero         zero
         let pointers = [0x4000_0000, 0x4000_0118, 0x4000_0200];
         let limbs = |flags| (3..6).map(|k| Ext::limb(pointers, flags, k)).collect::<Vec<_>>();
         let memory = |a| Limb::Memory(a);

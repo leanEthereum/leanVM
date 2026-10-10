@@ -12,13 +12,12 @@
 //! Lincheck's `C` is the identity, whose form is closed and stays in the core.
 
 use super::batch::FormPowers;
-use super::layout::Lookup;
+use super::layout::{Lookup, ProgramView};
 use super::{CpuError, Program};
 use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::constraints::{ConstraintError, Final};
 use crate::leaf;
 use crate::leaf::{BusVerify, N_TUPLE_BITS, SparseColumn};
-use crate::rv::RiscvProgram;
 use crate::tables::{N_TABLES, Part};
 use fiat_shamir::arith::Arith;
 use flock::FlockError;
@@ -128,7 +127,8 @@ pub enum MalformedClaim {
 
 impl ProgramPoint {
     /// The value of the program's fixed polynomials at this point, if the point has the program's shape.
-    fn evaluate(&self, rv: &RiscvProgram) -> Option<F192> {
+    fn evaluate(&self, view: &ProgramView<'_>) -> Option<F192> {
+        let rv = view.rv;
         let kbc = crate::log2_strict_usize(rv.entries().len());
         // A multiplicity is one word, so it has at most 64 bits.
         if self.bytecode.len() != kbc + N_TUPLE_BITS || self.image_point.len() != rv.log_ram() || self.twist.len() > 64
@@ -137,7 +137,7 @@ impl ProgramPoint {
         }
         let (chi, alphas) = self.bytecode.split_at(kbc);
         let weights = leaf::fingerprint_weights(alphas);
-        let bytecode = leaf::producer_public_twist(&Lookup::Bytecode.tuple(rv), &weights, chi, &self.twist);
+        let bytecode = leaf::producer_public_twist(&Lookup::Bytecode.tuple(view), &weights, chi, &self.twist);
         let image = SparseColumn::new(rv.log_ram(), &[(0, rv.image())]);
         Some(bytecode + self.image_weight * image.eval(&self.image_point))
     }
@@ -154,9 +154,9 @@ impl<E: Copy> Claim<ProgramPoint<E>, E> {
         table_sumcheck: &Final<E>,
         powers: FormPowers<E>,
     ) -> Self {
-        let [coefficients] = &bus.producers[..] else {
-            unreachable!("one lookup array, the bytecode")
-        };
+        // The bytecode's producer is the first, whose program columns the claim takes: the padding producer's are the
+        // verifier's own.
+        let coefficients = &bus.producers[Lookup::Bytecode as usize];
         // The producer's air follows the tables'.
         let air = N_TABLES;
         let (weight, producer) = (table_sumcheck.weights[air], &table_sumcheck.claims[air]);
@@ -211,7 +211,7 @@ impl Program {
         }
 
         let program = (claims.program.point)
-            .evaluate(self.rv())
+            .evaluate(&self.view())
             .ok_or(CpuError::MalformedClaim(MalformedClaim::ProgramPoint))?;
         if program != claims.program.value {
             return Err(CpuError::Constraint(ConstraintError::FinalMismatch));
@@ -260,8 +260,8 @@ mod tests {
         let mut rng = Rng::new(5);
         let (chi, alphas) = (rng.ext_vec(kbc), rng.ext_vec(N_TUPLE_BITS));
         let weights = leaf::fingerprint_weights(&alphas);
-        let tuple = Lookup::Bytecode.tuple(rv);
-        let table = Lookup::Bytecode.table(rv);
+        let tuple = Lookup::Bytecode.tuple(&program.view());
+        let table = Lookup::Bytecode.table(&program.view());
 
         // `c(x) = T(x, alpha)`, raised to `2^i` entry by entry: bit `i`'s public column.
         let eq = eq_table(&chi);
