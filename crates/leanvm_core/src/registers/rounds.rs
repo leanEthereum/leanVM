@@ -49,7 +49,7 @@ pub(super) fn cube((c, d): (F192, F192)) -> [F192; 4] {
 
 /// Whether a pair's linear polynomial is zero, so that its product terms can be skipped.
 #[inline(always)]
-pub(super) fn is_zero((c, d): (F192, F192)) -> bool {
+pub(super) const fn is_zero((c, d): (F192, F192)) -> bool {
     c.is_zero() && d.is_zero()
 }
 

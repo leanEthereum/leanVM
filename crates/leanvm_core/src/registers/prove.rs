@@ -101,9 +101,9 @@ pub(crate) fn leaves(shape: &LogShape, w: &LogWitness, weights: &[F192], beta: F
             *written ^= w.inc[j].0;
             if j < w.live {
                 let mut x = constant + link.time.mul_base(time);
-                for g in 0..GROUPS {
+                for (g, &read) in before.iter().enumerate() {
                     x += link.address[g].mul_base(F64(w.cells[g][j].into()));
-                    x += link.value[g].mul_base(F64(before[g]));
+                    x += link.value[g].mul_base(F64(read));
                 }
                 x += link.inc.mul_base(w.inc[j]);
                 if w.flag[j] {
