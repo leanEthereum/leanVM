@@ -22,6 +22,7 @@ use Coord::{Const, Public};
 use fiat_shamir::MAX_GRINDING_BITS;
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use primitives::field::{F64, F192, g_pow};
+use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
 // The largest text grinds within the proof of work's window.
@@ -266,7 +267,7 @@ impl Lookup {
             }
             // One entry per distinct tuple, by slot.
             Self::Padding => {
-                let entries = padding_tuples(p);
+                let entries = &p.padding.tuples;
                 let width = entries.iter().map(Vec::len).max().unwrap_or(0);
                 let rows = entries.len().next_power_of_two();
                 (0..width)
@@ -281,52 +282,66 @@ impl Lookup {
     }
 }
 
-/// The distinct tuples the padding rows pull from the logs, and a base-field extension operand's two absent limbs.
-pub(crate) fn padding_tuples(p: &ProgramView<'_>) -> Vec<Vec<F64>> {
-    let mut tuples: Vec<Vec<F64>> = p
-        .fill
-        .entries()
-        .flat_map(|index| {
-            let padding = padding_row(p.rv, index);
-            let table = TableId::of(p.rv.entries()[index].class).expect("a fill block's class has a table");
-            let table = table.class_table();
-            table.link_tuples(&table.row_columns(p.rv, padding.view()))
-        })
-        .chain([ABSENT_LIMB.to_vec()])
-        .collect();
-    tuples.sort_unstable_by_key(|t| t.iter().map(|w| w.0).collect::<Vec<_>>());
-    tuples.dedup();
-    tuples
+/// The tuples the fill blocks' padding rows pull, which the padding producer pushes, and the absent limb.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct PaddingTuples {
+    /// The distinct tuples, sorted.
+    tuples: Vec<Vec<F64>>,
+    /// Each fill entry's tuples, by its index in the text.
+    of: HashMap<usize, Vec<usize>>,
+    /// The absent limb's tuple.
+    absent: usize,
+}
+
+impl PaddingTuples {
+    /// The padding tuples of `p`'s fill blocks.
+    pub(crate) fn new(p: &RiscvProgram, fill: &FillBlocks) -> Self {
+        let pulled: Vec<(usize, Vec<Vec<F64>>)> = fill
+            .entries()
+            .map(|index| {
+                let padding = padding_row(p, index);
+                let table = TableId::of(p.entries()[index].class).expect("a fill block's class has a table");
+                let table = table.class_table();
+                (index, table.link_tuples(&table.row_columns(p, padding.view())))
+            })
+            .collect();
+        let key = |t: &[F64]| t.iter().map(|w| w.0).collect::<Vec<_>>();
+        let mut tuples: Vec<Vec<F64>> = (pulled.iter().flat_map(|(_, t)| t.iter().cloned()))
+            .chain([ABSENT_LIMB.to_vec()])
+            .collect();
+        tuples.sort_unstable_by_key(|t| key(t));
+        tuples.dedup();
+        let entry = |t: &[F64]| {
+            tuples
+                .binary_search_by_key(&key(t), |e| key(e))
+                .expect("a listed tuple")
+        };
+        let of = (pulled.iter())
+            .map(|(index, t)| (*index, t.iter().map(|t| entry(t)).collect()))
+            .collect();
+        let absent = entry(&ABSENT_LIMB);
+        Self { tuples, of, absent }
+    }
+
+    /// How many distinct tuples there are.
+    pub(crate) const fn len(&self) -> usize {
+        self.tuples.len()
+    }
 }
 
 /// How often each padding tuple is pulled, as integer words: by the padding rows, and by the absent limbs.
 pub(crate) fn padding_multiplicities(p: &ProgramView<'_>, trace: &Trace) -> Vec<F64> {
-    let tuples = padding_tuples(p);
-    let key = |t: &[F64]| t.iter().map(|w| w.0).collect::<Vec<_>>();
-    let entry = |t: &[F64]| {
-        tuples
-            .binary_search_by_key(&key(t), |e| key(e))
-            .expect("a padding tuple")
-    };
-    let mut counts = vec![F64::ZERO; tuples.len().next_power_of_two()];
-    // A fill entry's padding rows pull the same tuples, so they are counted per entry first.
-    let mut rows = std::collections::BTreeMap::new();
+    let mut counts = vec![F64::ZERO; p.padding.len().next_power_of_two()];
     for row in trace.rows.values().flatten().filter(|r| r.time == 0) {
-        *rows.entry(row.index as usize).or_insert(0u64) += 1;
-    }
-    for (index, n) in rows {
-        let padding = padding_row(p.rv, index);
-        let table = TableId::of(p.rv.entries()[index].class).expect("a fill block's class has a table");
-        let table = table.class_table();
-        for tuple in table.link_tuples(&table.row_columns(p.rv, padding.view())) {
-            counts[entry(&tuple)].0 += n;
+        for &entry in &p.padding.of[&(row.index as usize)] {
+            counts[entry].0 += 1;
         }
     }
     // A live base-field extension row's two high limbs pull the absent limb.
     let base = (trace.rows[TableId::EXT].iter().zip(&trace.ext))
         .filter(|(row, ext)| row.time != 0 && ext.instance.flags & crate::rv::Ext::BASE != 0)
         .count() as u64;
-    counts[entry(&ABSENT_LIMB)].0 += 2 * base;
+    counts[p.padding.absent].0 += 2 * base;
     counts
 }
 
@@ -426,7 +441,7 @@ impl Sizes {
             log_bytecode: crate::log2_strict_usize(p.entries().len()),
             log_ram: p.log_ram(),
             log_advice: p.log_advice(),
-            log_padding: padding_tuples(program).len().next_power_of_two().trailing_zeros() as usize,
+            log_padding: program.padding.len().next_power_of_two().trailing_zeros() as usize,
             chunks: regions(p).chunks(),
             logs,
         }
@@ -476,9 +491,9 @@ impl Sizes {
 #[derive(Clone, Copy)]
 pub struct ProgramView<'a> {
     /// The decoded text.
-    pub rv: &'a RiscvProgram,
-    /// The fill blocks in it.
-    pub fill: &'a FillBlocks,
+    pub(crate) rv: &'a RiscvProgram,
+    /// The tuples its fill blocks' padding rows pull.
+    pub(crate) padding: &'a PaddingTuples,
 }
 
 /// One committed register word: the register numbers of tables of one height, one word per row (§sec:regpack).

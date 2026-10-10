@@ -222,6 +222,9 @@ impl TraceBuilder {
         for (group, &cell) in self.registers.cells.iter_mut().zip(&cells) {
             group.push(u32::from(cell));
         }
+        self.registers
+            .reads
+            .push(cells.map(|cell| self.register_file[cell as usize]));
         let old = std::mem::replace(&mut self.register_file[cells[2] as usize], written);
         self.registers.inc.push(F64(old ^ written));
         self.registers.flag.push(pointer);
@@ -236,6 +239,7 @@ impl TraceBuilder {
             Some(z) => self.regions.advice.cell(z, low),
         };
         self.memory.cells[0].push(cell as u32);
+        self.memory.reads.push([old, 0, 0]);
         self.memory.inc.push(F64(old ^ new));
         self.memory.live += 1;
         self.position *= G;

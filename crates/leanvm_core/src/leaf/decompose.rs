@@ -577,7 +577,16 @@ impl Side<'_> {
                     debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
                     v
                 }
-                Fresh::Log(log) => inner_product(&eq_table(zeta_lo), &logs[log]),
+                Fresh::Log(log) => {
+                    let (eq, leaves) = (eq_table(zeta_lo), &logs[log]);
+                    let len = eq.len().min(1 << 12);
+                    parallel::map_reduce(
+                        eq.len() / len,
+                        || F192::ZERO,
+                        |c| inner_product(&eq[c * len..][..len], &leaves[c * len..][..len]),
+                        |a, b| a + b,
+                    )
+                }
             };
             ps.add_scalar(v);
             Ok::<_, Infallible>(v)

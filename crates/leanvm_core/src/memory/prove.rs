@@ -1,11 +1,11 @@
 //! The prover's side of a log's argument.
 
-use super::rounds::{Poly, linear, rounds};
+use super::rounds::{Poly, cube, cubic_times, is_zero, linear, mul2, quadratic_times, rounds};
 use super::verify::{Evaluation, Opened, cube_point, opening};
 use super::{CHUNK, CHUNK_BITS, ImageClaim, Kind, Link, LinkShare, LogOpening, LogShape, Slot};
 use fiat_shamir::arith::Native;
 use fiat_shamir::transcript::Transmitter;
-use primitives::field::{F64, F192, F192Unreduced, G};
+use primitives::field::{F64, F192, F192Unreduced, G, g_pow};
 use primitives::multilinear::{eq_table, mle_eval_par};
 
 /// Rows per task of a scan.
@@ -23,6 +23,8 @@ pub(crate) struct LogWitness {
     pub(crate) inc: Vec<F64>,
     /// Each row's flag, for a log whose rows carry one.
     pub(crate) flag: Vec<bool>,
+    /// Each live row's groups' cells as the row found them, which the executor records.
+    pub(crate) reads: Vec<[u64; 3]>,
     /// The cells before the run.
     pub(crate) initial: Vec<F64>,
     /// The rows that are accesses, first.
@@ -67,26 +69,21 @@ impl LogWitness {
         }
         log
     }
-
-    /// Call `visit(j, before, after)` on each row: each group's cell before the row, and the written cell after.
-    pub(crate) fn replay(&self, shape: &LogShape, mut visit: impl FnMut(usize, [u64; 3], u64)) {
-        let mut memory: Vec<u64> = self.initial.iter().map(|w| w.0).collect();
-        for j in 0..self.inc.len() {
-            let before = std::array::from_fn(|g| self.cells.get(g).map_or(0, |c| memory[c[j] as usize]));
-            let written = &mut memory[self.cells[shape.write()][j] as usize];
-            *written ^= self.inc[j].0;
-            visit(j, before, *written);
-        }
-    }
 }
 
 /// A log's bus leaves: a live row's `beta + sum_i w_i slot_i`, a dead row's one.
+///
+/// Every live row's reads are recorded, so each leaf stands alone and the rows are taken in parallel.
 pub(crate) fn leaves(shape: &LogShape, w: &LogWitness, weights: &[F192], beta: F192) -> Vec<F192> {
-    let mut leaves = vec![F192::ONE; w.inc.len()];
-    let mut time = F64::ONE;
-    w.replay(shape, |j, before, after| {
-        if j < w.live {
-            leaves[j] = (shape.slots.iter().zip(weights)).fold(beta, |leaf, (slot, &weight)| {
+    let rows = w.inc.len();
+    let len = rows.min(TASK_ROWS);
+    let mut leaves = vec![F192::ONE; rows];
+    parallel::chunks_mut(&mut leaves, len, |c, out| {
+        let mut time = g_pow(c * len);
+        for (leaf, j) in out.iter_mut().zip(c * len..).take_while(|&(_, j)| j < w.live) {
+            let before = w.reads[j];
+            let after = before[shape.write()] ^ w.inc[j].0;
+            *leaf = (shape.slots.iter().zip(weights)).fold(beta, |leaf, (slot, &weight)| {
                 let word = match *slot {
                     Slot::Const(c) => c,
                     Slot::Flagged { base, delta } if w.flag[j] => base + delta,
@@ -98,8 +95,8 @@ pub(crate) fn leaves(shape: &LogShape, w: &LogWitness, weights: &[F192], beta: F
                 };
                 leaf + weight.mul_base(word)
             });
+            time *= G;
         }
-        time *= G;
     });
     leaves
 }
@@ -423,14 +420,21 @@ struct Cycle<'a> {
 }
 
 /// The registers' read-write rows.
+/// The registers' read-write rows: the summand is `U (A Val + B + EW inc + E0 flag)`.
+///
+/// The three groups share `Val`, so their weights fold into `A` and `B`, each a sum of table lookups.
 struct RegisterReadWrite;
 
 impl RegisterReadWrite {
     const U: usize = 0;
-    const E: usize = 1;
-    const VAL: usize = 4;
+    const A: usize = 1;
+    const B: usize = 2;
+    const VAL: usize = 3;
+    const EW: usize = 4;
     const INC: usize = 5;
-    const FLAG: usize = 6;
+    const E0: usize = 6;
+    const FLAG: usize = 7;
+    const N: usize = 8;
 }
 
 /// Memory's read-write rows, for `C` chunks.
@@ -453,9 +457,11 @@ impl RegisterEvaluation {
     const EQ: usize = 3;
     const X: usize = 4;
     const Y: usize = 7;
+    /// The flag, times its check's weight.
     const FLAG: usize = 8;
     const LIVE: usize = 9;
     const OUT: usize = 10;
+    const N: usize = 11;
 }
 
 /// Memory's evaluation rows, for `C` chunks.
@@ -504,24 +510,34 @@ impl Cycle<'_> {
 
     fn register_read_write(&self, ps: &mut impl Transmitter, u: &[F192], val: &[F192]) -> (Vec<F192>, F192) {
         type R = RegisterReadWrite;
-        let (w, ek) = (self.w, &self.eks[0]);
+        let (w, link, ek) = (self.w, self.link, &self.eks[0]);
+        // Each group's weights at every cell, so that a row's entries are lookups and sums.
+        let scaled = |s: F192| ek.map(|e| s * e);
+        let value: [[F192; CHUNK]; 3] = std::array::from_fn(|g| scaled(link.value[g]));
+        let address: [[F192; CHUNK]; 3] = std::array::from_fn(|g| scaled(link.address[g] * self.map));
+        let (inc, flag) = (scaled(link.inc), scaled(link.flag));
         let row = |j: usize| {
-            let mut row = [F192::ZERO; 7];
+            let cells: [usize; 3] = std::array::from_fn(|g| w.chunk(g, 0, j));
+            let mut row = [F192::ZERO; R::N];
             row[R::U] = u[j];
-            (0..3).for_each(|g| row[R::E + g] = ek[w.chunk(g, 0, j)]);
-            (row[R::VAL], row[R::INC], row[R::FLAG]) = (val[j], F192::from(w.inc[j]), w.flag_at(j));
+            row[R::A] = value[0][cells[0]] + value[1][cells[1]] + value[2][cells[2]];
+            row[R::B] = address[0][cells[0]] + address[1][cells[1]] + address[2][cells[2]];
+            (row[R::VAL], row[R::EW], row[R::INC]) = (val[j], inc[cells[2]], F192::from(w.inc[j]));
+            (row[R::E0], row[R::FLAG]) = (flag[cells[0]], w.flag_at(j));
             row
         };
-        let pair = |lo: &[F192; 7], hi: &[F192; 7]| {
+        let pair = |lo: &[F192; R::N], hi: &[F192; R::N]| {
             let at = |k| linear(lo, hi, k);
-            let mut sum = Poly::<4>([F192::ZERO; 4]);
-            for g in 0..3 {
-                let mut term = Poly::linear(at(R::E + g));
-                term.times(self.inner(g, at(R::VAL), at(R::INC), at(R::FLAG)));
-                sum.add(term);
+            let mut q = mul2(at(R::A), at(R::VAL));
+            let b = at(R::B);
+            (q[0], q[1]) = (q[0] + b.0, q[1] + b.1);
+            for (weight, x) in [(R::EW, R::INC), (R::E0, R::FLAG)] {
+                if !is_zero(at(x)) {
+                    let t = mul2(at(weight), at(x));
+                    q.iter_mut().zip(t).for_each(|(q, t)| *q += t);
+                }
             }
-            sum.times(at(R::U));
-            sum.unreduced()
+            quadratic_times((q, at(R::U)))
         };
         let (point, last) = rounds(ps, self.shape.log_rows, self.shape.read_write_coeffs(), row, pair);
         (point, last[R::VAL])
@@ -594,34 +610,41 @@ impl Cycle<'_> {
         let (w, live) = (self.w, self.w.live);
         let row = |j: usize| {
             let cell = |g: usize| w.chunk(g, 0, j);
-            let mut row = [F192::ZERO; 11];
+            let mut row = [F192::ZERO; R::N];
             (row[R::LT], row[R::WRITE], row[R::INC], row[R::EQ]) =
                 (t.lt[j], self.eks[0][cell(2)], F192::from(w.inc[j]), t.eq_j[j]);
             (0..3).for_each(|g| row[R::X + g] = t.x[g][cell(g)]);
             row[R::Y] = (0..3).fold(F192::ZERO, |acc, g| acc + t.y[g][cell(g)]);
-            row[R::FLAG] = w.flag_at(j);
+            row[R::FLAG] = if w.flag[j] { lw.ptr } else { F192::ZERO };
             row[R::LIVE] = if j < live { F192::ONE } else { F192::ZERO };
             row[R::OUT] = psi[cell(2)];
             row
         };
-        let pair = |lo: &[F192; 11], hi: &[F192; 11]| {
+        let pair = |lo: &[F192; R::N], hi: &[F192; R::N]| {
             let at = |k| linear(lo, hi, k);
-            let mut value = Poly::<5>::linear(at(R::LT));
-            value.times(at(R::WRITE));
-            value.times(at(R::INC));
-            let mut checks = Poly::linear(at(R::Y));
-            (0..3).for_each(|g| checks.add(Poly::cube(at(R::X + g))));
-            let mut flag = Poly::linear(at(R::FLAG));
-            flag.times(at(R::INC));
-            flag.scale(lw.ptr);
-            checks.add(flag);
-            checks.times(at(R::EQ));
-            value.add(checks);
-            let mut out = Poly::linear(at(R::LIVE));
-            out.times(at(R::OUT));
-            out.times(at(R::INC));
-            value.add(out);
-            value.unreduced()
+            // The zero checks, weighted by `eq`: the collisions' cubes and `y`.
+            let mut c = cube(at(R::X));
+            for g in 1..3 {
+                let t = cube(at(R::X + g));
+                c.iter_mut().zip(t).for_each(|(c, t)| *c += t);
+            }
+            let y = at(R::Y);
+            (c[0], c[1]) = (c[0] + y.0, c[1] + y.1);
+            let mut sums = cubic_times(c, at(R::EQ));
+            // The increment's terms: `Val`'s, the outputs', and the flag's check.
+            let inc = at(R::INC);
+            if !is_zero(inc) {
+                let mut q = mul2(at(R::LT), at(R::WRITE));
+                for (a, b) in [(R::LIVE, R::OUT), (R::EQ, R::FLAG)] {
+                    if !is_zero(at(b)) {
+                        let t = mul2(at(a), at(b));
+                        q.iter_mut().zip(t).for_each(|(q, t)| *q += t);
+                    }
+                }
+                let t = quadratic_times((q, inc));
+                sums.iter_mut().zip(t).for_each(|(s, t)| *s ^= t);
+            }
+            sums
         };
         rounds(ps, self.shape.log_rows, self.shape.evaluation_coeffs(), row, pair).0
     }

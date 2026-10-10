@@ -7,7 +7,7 @@ use super::deferred::DeferredClaims;
 use super::error::{CpuError, ProveError, VerifyError};
 use super::execute::{Execution, Recorder, RowCounter, TraceBuilder};
 use super::filler::{FillBlocks, Plan};
-use super::layout::{Announcement, Log, Lookup, ProgramView, Schema, Sizes, regions};
+use super::layout::{Announcement, Log, Lookup, PaddingTuples, ProgramView, Schema, Sizes, regions};
 use super::reduce::TableClaims;
 use super::witness::Witness;
 use super::{Output, Proof};
@@ -38,6 +38,8 @@ pub struct Program {
     pub(super) digest: [u8; 32],
     /// Where each fill block sits in the text.
     pub(super) filler: FillBlocks,
+    /// The tuples the fill blocks' padding rows pull.
+    pub(super) padding: PaddingTuples,
 }
 
 // Why: the digest reads tables of words as bytes, which is their little-endian image only on a little-endian target.
@@ -103,12 +105,20 @@ impl Program {
         text.push(0);
         let filler = FillBlocks::append(&mut text);
         let rv = RiscvProgram::new(&text, entry_pc, image, log_ram, log_advice)?;
-        let view = ProgramView { rv: &rv, fill: &filler };
         if regions(&rv).chunks() > MAX_CHUNKS {
             return Err(ProgramError::MemoryTooLarge);
         }
-        let digest = Self::digest_of(&view);
-        Ok(Self { digest, rv, filler })
+        let padding = PaddingTuples::new(&rv, &filler);
+        let digest = Self::digest_of(&ProgramView {
+            rv: &rv,
+            padding: &padding,
+        });
+        Ok(Self {
+            digest,
+            rv,
+            filler,
+            padding,
+        })
     }
 
     /// Run the program on `advice`, recording every row, then write out the padding rows.
@@ -408,11 +418,11 @@ impl Program {
         &self.rv
     }
 
-    /// The program as the layout reads it: its decoded text and its fill blocks.
+    /// The program as the layout reads it: its decoded text and its padding tuples.
     pub(crate) const fn view(&self) -> ProgramView<'_> {
         ProgramView {
             rv: &self.rv,
-            fill: &self.filler,
+            padding: &self.padding,
         }
     }
 
@@ -680,7 +690,16 @@ mod tests {
 
     /// Make a log's row `j` write `forged` where it wrote `honest`, every later read of the cell following it.
     fn rewrite(log: &mut LogWitness, j: usize, honest: u64, forged: u64) {
-        log.inc[j].0 ^= honest ^ forged;
+        let (delta, write) = (honest ^ forged, log.cells.len() - 1);
+        let cell = log.cells[write][j];
+        log.inc[j].0 ^= delta;
+        for later in j + 1..log.live {
+            for (g, cells) in log.cells.iter().enumerate() {
+                if cells[later] == cell {
+                    log.reads[later][g] ^= delta;
+                }
+            }
+        }
     }
 
     /// The first row of the run among `rows`, past the padding rows at time zero.

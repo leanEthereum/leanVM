@@ -422,9 +422,11 @@ mod tests {
                 (0, false)
             };
             let new = if is_live && !flag { rng.next_u64() } else { regs[rd] };
-            w.cells[0].push(rng.below(33) as u32);
-            w.cells[1].push(rng.below(33) as u32);
+            let (r1, r2) = (rng.below(33), rng.below(33));
+            w.cells[0].push(r1 as u32);
+            w.cells[1].push(r2 as u32);
             w.cells[2].push(rd as u32);
+            w.reads.push([regs[r1], regs[r2], regs[rd]]);
             w.inc.push(F64(std::mem::replace(&mut regs[rd], new) ^ new));
             w.flag.push(flag);
         }
@@ -473,6 +475,7 @@ mod tests {
                 cells[cell]
             };
             w.cells[0].push(cell as u32);
+            w.reads.push([cells[cell], 0, 0]);
             w.inc.push(F64(std::mem::replace(&mut cells[cell], new) ^ new));
         }
         let slots = vec![
@@ -488,6 +491,15 @@ mod tests {
             kind: Kind::Memory(regions),
         };
         (shape, w)
+    }
+
+    /// Recompute each row's reads from the increments, after a test has changed them.
+    fn replay_reads(shape: &LogShape, w: &mut LogWitness) {
+        let mut cells: Vec<u64> = w.initial.iter().map(|x| x.0).collect();
+        for j in 0..w.live {
+            w.reads[j] = std::array::from_fn(|g| w.cells.get(g).map_or(0, |c| cells[c[j] as usize]));
+            cells[w.cells[shape.write()][j] as usize] ^= w.inc[j].0;
+        }
     }
 
     /// The output cells' values after the log's live rows.
@@ -602,6 +614,7 @@ mod tests {
         let (shape, mut w) = registers(&mut rng, 9, 500);
         let j = w.flag.iter().position(|&f| f).expect("a flagged row");
         w.inc[j] = F64(1);
+        replay_reads(&shape, &mut w);
         assert_eq!(run(&shape, &w, |_, _| {}), Err(MemoryError::Evaluation));
     }
 
