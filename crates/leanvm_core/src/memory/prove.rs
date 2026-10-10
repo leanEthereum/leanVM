@@ -373,7 +373,13 @@ fn cell_rounds(
         ps.add_round_poly(&sums.map(F192Unreduced::reduce), false);
         let r = ps.sample();
         fc_cell.push(r);
-        let fold = |t: &[F192]| -> Vec<F192> { t.chunks_exact(2).map(|p| p[0] + r * (p[0] + p[1])).collect() };
+        let fold = |t: &[F192]| -> Vec<F192> {
+            t.as_chunks::<2>()
+                .0
+                .iter()
+                .map(|&[lo, hi]| lo + r * (lo + hi))
+                .collect()
+        };
         map = map.iter().map(|t| fold(t)).collect();
         starts = parallel::map_collect(starts.len(), |t| fold(&starts[t]));
     }
