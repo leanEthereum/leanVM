@@ -71,7 +71,7 @@ use parallel::SendPtr;
 use pcs::ring_switch::SliceClaim;
 use primitives::bits::bit_transpose_64bytes;
 use primitives::field::F192;
-use primitives::multilinear::{eq_table, inner_product, skip_lagrange_weights};
+use primitives::multilinear::{eq_table, skip_lagrange_weights};
 use thiserror::Error;
 
 use crate::reduction::Shape;
@@ -93,13 +93,8 @@ pub trait LincheckCircuit: Sync {
     /// That closes the all-zero witness, and requires the wire to be one in every instance, padding included.
     fn const_pin_col(&self) -> usize;
 
-    /// The batched bilinear form `u^T A_0 w + alpha u^T B_0 w`, without the length-`2^k_log` marginal.
-    ///
-    /// A circuit that walks its gates answers in time linear in the circuit.
-    /// `None` lets the verifier fall back on the marginal.
-    fn bilinear_form(&self, _alpha: F192, _u: &[F192], _w: &[F192]) -> Option<F192> {
-        None
-    }
+    /// The matrix-vector products `(A_0 w, B_0 w)`, by additions alone: the verifier's form takes them.
+    fn matrix_rows(&self, w: &[F192]) -> (Vec<F192>, Vec<F192>);
 }
 
 /// A claim point with a univariate-skip coordinate.
@@ -167,15 +162,19 @@ pub enum LincheckError {
 ///     out[i_skip + i_rest 2^k_skip] = L_(i_skip)(z_skip) * eq(x_inner_rest, i_rest)
 /// ```
 pub fn build_quirky_eq_table(z_skip: F192, x_inner_rest: &[F192], k_skip: usize) -> Vec<F192> {
-    outer_product(&eq_table(x_inner_rest), &skip_lagrange_weights(k_skip, z_skip))
+    outer_product(
+        &mut Native,
+        &eq_table(x_inner_rest),
+        &skip_lagrange_weights(k_skip, z_skip),
+    )
 }
 
 /// `out[i_lo + i_hi lo.len()] = lo[i_lo] * hi[i_hi]`: `lo` varies fastest.
-fn outer_product(hi: &[F192], lo: &[F192]) -> Vec<F192> {
+fn outer_product<A: Arith>(a: &mut A, hi: &[A::E], lo: &[A::E]) -> Vec<A::E> {
     // Sized up front: a flattened iterator cannot report its length.
     let mut out = Vec::with_capacity(hi.len() * lo.len());
     for &h in hi {
-        out.extend(lo.iter().map(|&l| l * h));
+        out.extend(lo.iter().map(|&l| a.mul(l, h)));
     }
     out
 }
@@ -575,17 +574,25 @@ impl<E: Copy> MatrixForm<E> {
 }
 
 impl MatrixForm {
-    /// The form against a circuit's matrices.
+    /// The form against a circuit's matrices, on `a`: the native verifier's `Portable`, or a prover's replay.
     ///
-    /// A circuit that walks its gates evaluates it in time linear in the circuit.
-    /// Any other folds its matrices into the batched marginal, then takes one inner product.
-    pub fn evaluate(&self, circuit: &dyn LincheckCircuit) -> F192 {
+    /// The row weights `u = eq_rows (x) lagrange` are never built: each block of `2^k_skip` rows takes the Lagrange
+    /// weights, and the blocks their eq weights.
+    pub fn evaluate<A: Arith<E = F192>>(&self, a: &mut A, circuit: &dyn LincheckCircuit) -> F192 {
         let k_skip = self.s_hat_v.len().ilog2() as usize;
-        let eq_inner = build_quirky_eq_table(self.z_skip, &self.x_inner_rest, k_skip);
-        let w_col = outer_product(&eq_table(&self.r_inner_rest), &self.s_hat_v);
-        circuit
-            .bilinear_form(self.alpha, &eq_inner, &w_col)
-            .unwrap_or_else(|| inner_product(&circuit.fold_alpha_batched(self.alpha, &eq_inner), &w_col))
+        let lagrange = SkipDomain::new(k_skip).lagrange_weights(a, self.z_skip);
+        let eq_rows = a.eq_table(&self.x_inner_rest);
+        let eq_cols = a.eq_table(&self.r_inner_rest);
+        let w = outer_product(a, &eq_cols, &self.s_hat_v);
+        let (ra, rb) = circuit.matrix_rows(&w);
+        let n = ra.len().min(eq_rows.len() << k_skip);
+        let rows: Vec<F192> = (ra[..n].iter().zip(&rb))
+            .map(|(&ra, &rb)| a.mul_add(self.alpha, rb, ra))
+            .collect();
+        let blocks: Vec<F192> = (rows.chunks(lagrange.len()))
+            .map(|block| a.dot(&lagrange[..block.len()], block))
+            .collect();
+        a.dot(&eq_rows[..blocks.len()], &blocks)
     }
 }
 
@@ -602,12 +609,12 @@ pub struct MatrixClaim<E = F192> {
 }
 
 impl MatrixClaim {
-    /// Settle the claim against a circuit's matrices.
+    /// Settle the claim against a circuit's matrices, on `a`.
     ///
     /// # Errors
     ///
     /// The circuit's width if it is not the form's, and a sumcheck mismatch when the form misses the value.
-    pub fn check(&self, circuit: &dyn LincheckCircuit) -> Result<(), LincheckError> {
+    pub fn check<A: Arith<E = F192>>(&self, a: &mut A, circuit: &dyn LincheckCircuit) -> Result<(), LincheckError> {
         // The form's column point and slices fix the circuit's width.
         let n_cols = self.form.s_hat_v.len() << self.form.r_inner_rest.len();
         if circuit.n_cols() != n_cols {
@@ -617,7 +624,7 @@ impl MatrixClaim {
             });
         }
         // The terminal identity holds exactly when the form takes the claimed value.
-        if self.form.evaluate(circuit) == self.value {
+        if self.form.evaluate(a, circuit) == self.value {
             Ok(())
         } else {
             Err(LincheckError::SumcheckMismatch)
@@ -1142,6 +1149,7 @@ mod neon {
 mod tests {
     use std::collections::HashSet;
 
+    use fiat_shamir::arith::Portable;
     use fiat_shamir::transcript::{ProofTranscript, VerifierState};
     use primitives::test_util::Rng;
 
@@ -1201,6 +1209,13 @@ mod tests {
             }
             out
         }
+
+        /// `M w`.
+        fn product(&self, w: &[F192]) -> Vec<F192> {
+            (self.rows.iter())
+                .map(|row| row.iter().fold(F192::ZERO, |acc, &c| acc + w[c]))
+                .collect()
+        }
     }
 
     /// A circuit over materialized matrices, by the naive row scatter.
@@ -1221,6 +1236,10 @@ mod tests {
         fn fold_alpha_batched(&self, alpha: F192, eq_inner: &[F192]) -> Vec<F192> {
             let (a, b) = (self.a_0.marginal(eq_inner), self.b_0.marginal(eq_inner));
             a.iter().zip(&b).map(|(&x, &y)| x + alpha * y).collect()
+        }
+
+        fn matrix_rows(&self, w: &[F192]) -> (Vec<F192>, Vec<F192>) {
+            (self.a_0.product(w), self.b_0.product(w))
         }
     }
 
@@ -1299,7 +1318,7 @@ mod tests {
             let matrices = verify_deferred(domain, &zc, &[shape], &mut vs)?
                 .pop()
                 .expect("one circuit");
-            matrices.check(&self.circuit)?;
+            matrices.check(&mut Portable, &self.circuit)?;
             Ok(LincheckClaim {
                 r_inner_rest: matrices.form.r_inner_rest,
                 s_hat_v: matrices.form.s_hat_v,
@@ -1349,6 +1368,41 @@ mod tests {
                 }
                 assert_eq!(slice, want, "slice {s}, m={m}, k_log={k_log}, k_skip={k_skip}");
             }
+        }
+    }
+
+    #[test]
+    fn a_matrix_form_is_its_bilinear_form() {
+        // The form summed a skip block at a time is `sum_i u_i (A w + alpha B w)_i` with `u` and `w` built whole.
+        for (k_log, k_skip) in [(6, 0), (6, 3), (6, 6), (9, 4)] {
+            let mut rng = Rng::new(88 + (k_log * 10 + k_skip) as u64);
+            let k = 1 << k_log;
+            let circuit = SparseCircuit {
+                a_0: SparseMatrix::random(k, 3 * k, &mut rng),
+                b_0: SparseMatrix::random(k, 3 * k, &mut rng),
+            };
+            let form = MatrixForm {
+                alpha: rng.ext(),
+                z_skip: rng.ext(),
+                x_inner_rest: rng.ext_vec(k_log - k_skip),
+                r_inner_rest: rng.ext_vec(k_log - k_skip),
+                s_hat_v: rng.ext_vec(1 << k_skip),
+            };
+            let u = build_quirky_eq_table(form.z_skip, &form.x_inner_rest, k_skip);
+            let w = outer_product(&mut Native, &eq_table(&form.r_inner_rest), &form.s_hat_v);
+            let (ra, rb) = circuit.matrix_rows(&w);
+            let want = (u.iter().zip(ra.iter().zip(&rb)))
+                .fold(F192::ZERO, |acc, (&u, (&ra, &rb))| acc + u * (ra + form.alpha * rb));
+            assert_eq!(
+                form.evaluate(&mut Portable, &circuit),
+                want,
+                "k_log={k_log}, k_skip={k_skip}"
+            );
+            assert_eq!(
+                form.evaluate(&mut Native, &circuit),
+                want,
+                "k_log={k_log}, k_skip={k_skip}"
+            );
         }
     }
 

@@ -20,7 +20,7 @@ use crate::leaf;
 use crate::leaf::{BusVerify, N_TUPLE_BITS, SparseColumn};
 use crate::rv::RiscvProgram;
 use crate::tables::{N_TABLES, Part};
-use fiat_shamir::arith::Arith;
+use fiat_shamir::arith::{Arith, Portable};
 use flock::FlockError;
 use flock::lincheck::{LincheckError, MatrixClaim, MatrixForm};
 use primitives::field::F192;
@@ -128,7 +128,7 @@ pub enum MalformedClaim {
 
 impl ProgramPoint {
     /// The value of the program's fixed polynomials at this point, if the point has the program's shape.
-    fn evaluate(&self, rv: &RiscvProgram) -> Option<F192> {
+    fn evaluate<A: Arith<E = F192>>(&self, a: &mut A, rv: &RiscvProgram) -> Option<F192> {
         let kbc = crate::log2_strict_usize(rv.entries().len());
         // A multiplicity is one word, so it has at most 64 bits.
         if self.bytecode.len() != kbc + N_TUPLE_BITS || self.image_point.len() != rv.log_ram() || self.twist.len() > 64
@@ -136,10 +136,11 @@ impl ProgramPoint {
             return None;
         }
         let (chi, alphas) = self.bytecode.split_at(kbc);
-        let weights = leaf::fingerprint_weights(alphas);
-        let bytecode = leaf::producer_public_twist(&Lookup::Bytecode.tuple(rv), &weights, chi, &self.twist);
-        let image = SparseColumn::new(rv.log_ram(), &[(0, rv.image())]);
-        Some(bytecode + self.image_weight * image.eval(&self.image_point))
+        // The fingerprint weights are the eq weights of the slots at `alphas`.
+        let weights = a.eq_table(alphas);
+        let bytecode = leaf::producer_public_twist(a, &Lookup::Bytecode.tuple(rv), &weights, chi, &self.twist);
+        let image = SparseColumn::new(rv.log_ram(), &[(0, rv.image())]).eval(a, &self.image_point);
+        Some(a.mul_add(self.image_weight, image, bytecode))
     }
 }
 
@@ -200,9 +201,15 @@ impl Program {
     ///
     /// - A malformed claim: one whose shape no proof of this program gives.
     /// - A false claim: the stage whose identity it completes, the table constraints or the circuit's lincheck.
-    #[tracing::instrument(name = "Check deferred", skip_all)]
     #[doc(hidden)]
     pub fn check_deferred(&self, claims: &DeferredClaims) -> Result<(), CpuError> {
+        let _portable = primitives::portable::enter();
+        self.settle(&mut Portable, claims)
+    }
+
+    /// [`Self::check_deferred`] on `a`.
+    #[tracing::instrument(name = "Check deferred", skip_all)]
+    pub(super) fn settle<A: Arith<E = F192>>(&self, a: &mut A, claims: &DeferredClaims) -> Result<(), CpuError> {
         if claims.circuits.len() != N_FLOCKS {
             return Err(CpuError::MalformedClaim(MalformedClaim::CircuitCount {
                 expected: N_FLOCKS,
@@ -211,7 +218,7 @@ impl Program {
         }
 
         let program = (claims.program.point)
-            .evaluate(self.rv())
+            .evaluate(a, self.rv())
             .ok_or(CpuError::MalformedClaim(MalformedClaim::ProgramPoint))?;
         if program != claims.program.value {
             return Err(CpuError::Constraint(ConstraintError::FinalMismatch));
@@ -222,7 +229,7 @@ impl Program {
             if !f.shape().fits(&claim.point) {
                 return Err(CpuError::MalformedClaim(MalformedClaim::MatrixForm { table, part }));
             }
-            if claim.point.evaluate(f.circuit()) != claim.value {
+            if claim.point.evaluate(a, f.circuit()) != claim.value {
                 return Err(CpuError::Flock {
                     table,
                     part,
@@ -274,7 +281,11 @@ mod tests {
         for i in 0..bits {
             let d = eq.iter().zip(&c).fold(F192::ZERO, |acc, (&e, &v)| acc + e * v);
             let unit: Vec<F192> = (0..=i).map(|j| if j == i { F192::ONE } else { F192::ZERO }).collect();
-            assert_eq!(leaf::producer_public_twist(&tuple, &weights, &chi, &unit), d, "bit {i}");
+            assert_eq!(
+                leaf::producer_public_twist(&mut Portable, &tuple, &weights, &chi, &unit),
+                d,
+                "bit {i}"
+            );
             let twisted: Vec<F192> = chi
                 .iter()
                 .map(|&z| frobenius(z, 192 - i))
@@ -286,6 +297,9 @@ mod tests {
         }
         let twist = rng.ext_vec(bits);
         let batched = (twist.iter().zip(&per_bit)).fold(F192::ZERO, |acc, (&mu, &d)| acc + mu * d);
-        assert_eq!(leaf::producer_public_twist(&tuple, &weights, &chi, &twist), batched);
+        assert_eq!(
+            leaf::producer_public_twist(&mut Portable, &tuple, &weights, &chi, &twist),
+            batched
+        );
     }
 }

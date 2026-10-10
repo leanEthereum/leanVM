@@ -199,6 +199,7 @@ pub struct F192x1Unreduced([uint64x2_t; 3]);
 impl F192x1 {
     #[inline(always)]
     pub fn new(e: F192) -> Self {
+        crate::portable::kernel();
         let (c01, c22) = split(e);
         Self { c01, c22 }
     }
@@ -206,6 +207,7 @@ impl F192x1 {
     /// The element at `e`, loaded into its registers.
     #[inline(always)]
     pub fn load(e: &F192) -> Self {
+        crate::portable::kernel();
         let words = (e as *const F192).cast::<u64>();
         // SAFETY: `e` is three words, `c0` and `c1` adjacent under `repr(C)`.
         unsafe {

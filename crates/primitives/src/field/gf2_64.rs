@@ -17,6 +17,42 @@ pub const R64: u64 = 0x1B;
 #[repr(transparent)]
 pub struct F64(pub u64);
 
+/// `$v` squared `$n` times by `$square`: a macro, so that it is `const` when the square is.
+macro_rules! squarings {
+    ($square:expr, $v:expr, $n:expr) => {{
+        let mut v = $v;
+        let mut i = 0;
+        while i < $n {
+            v = $square(v);
+            i += 1;
+        }
+        v
+    }};
+}
+
+/// `$x^(2^64 - 2)` by Itoh-Tsujii, with the product `$mul` and the square `$square`: a macro, so that it is `const`
+/// when they are.
+///
+/// With `t_k = x^(2^k - 1)`, the inverse is `t_63^2`.
+/// Step `t_(a+b) = t_a^(2^b) * t_b` costs `b` squarings and one multiply.
+/// The addition chain 1, 2, 3, 6, 12, 24, 48, 60, 63 spends 63 squarings and 8 multiplies.
+macro_rules! itoh_tsujii {
+    ($x:expr, $mul:expr, $square:expr) => {{
+        // Each step reads t_k = x^(2^k - 1).
+        let t1 = $x;
+        let t2 = $mul(squarings!($square, t1, 1), t1);
+        let t3 = $mul(squarings!($square, t2, 1), t1);
+        let t6 = $mul(squarings!($square, t3, 3), t3);
+        let t12 = $mul(squarings!($square, t6, 6), t6);
+        let t24 = $mul(squarings!($square, t12, 12), t12);
+        let t48 = $mul(squarings!($square, t24, 24), t24);
+        let t60 = $mul(squarings!($square, t48, 12), t12);
+        let t63 = $mul(squarings!($square, t60, 3), t3);
+        // (x^(2^63 - 1))^2 = x^(2^64 - 2).
+        squarings!($square, t63, 1)
+    }};
+}
+
 impl F64 {
     /// Degree over GF(2), the number of binary coefficients in one element.
     pub const DEGREE: usize = 64;
@@ -49,30 +85,25 @@ impl F64 {
     }
 
     /// Multiplicative inverse `x^(2^64 - 2)`, mapping zero to zero.
-    ///
-    /// Itoh-Tsujii: with `t_k = x^(2^k - 1)`, the inverse is `t_63^2`.
-    /// Step `t_(a+b) = t_a^(2^b) * t_b` costs `b` squarings and one multiply.
-    /// The addition chain 1, 2, 3, 6, 12, 24, 48, 60, 63 spends 63 squarings and 8 multiplies.
     pub fn inv(self) -> Self {
-        // Square `v` a total of `n` times.
-        let sq = |mut v: Self, n: u32| {
-            for _ in 0..n {
-                v = v.square();
-            }
-            v
-        };
-        // Each step reads t_k = x^(2^k - 1).
-        let t1 = self;
-        let t2 = sq(t1, 1) * t1;
-        let t3 = sq(t2, 1) * t1;
-        let t6 = sq(t3, 3) * t3;
-        let t12 = sq(t6, 6) * t6;
-        let t24 = sq(t12, 12) * t12;
-        let t48 = sq(t24, 24) * t24;
-        let t60 = sq(t48, 12) * t12;
-        let t63 = sq(t60, 3) * t3;
-        // (x^(2^63 - 1))^2 = x^(2^64 - 2).
-        sq(t63, 1)
+        itoh_tsujii!(self, Mul::mul, Self::square)
+    }
+
+    /// The product, with no SIMD intrinsic or assembly: the verifier's (see [`crate::portable`]).
+    #[inline]
+    pub const fn mul_portable(self, rhs: Self) -> Self {
+        Self(reduce(portable::clmul(self.0, rhs.0)))
+    }
+
+    /// The square, with no SIMD intrinsic or assembly.
+    #[inline]
+    pub const fn square_portable(self) -> Self {
+        Self(reduce(portable::spread(self.0)))
+    }
+
+    /// The inverse, zero for zero, with no SIMD intrinsic or assembly.
+    pub const fn inv_portable(self) -> Self {
+        itoh_tsujii!(self, Self::mul_portable, Self::square_portable)
     }
 }
 
@@ -99,11 +130,13 @@ impl Mul for F64 {
     fn mul(self, rhs: Self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
+            crate::portable::kernel();
             // SAFETY: aes target feature is enabled at compile time.
             unsafe { aarch64::mul_shift_tail(self, rhs) }
         }
         #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
         {
+            crate::portable::kernel();
             // SAFETY: pclmulqdq is enabled at compile time.
             unsafe { Self(x86_64::mul(self.0, rhs.0)) }
         }
@@ -112,7 +145,7 @@ impl Mul for F64 {
             all(target_arch = "x86_64", target_feature = "pclmulqdq")
         )))]
         {
-            Self(reduce(mul_wide(self.0, rhs.0)))
+            self.mul_portable(rhs)
         }
     }
 }
@@ -139,11 +172,13 @@ impl MulAssign for F64 {
 pub fn mul_wide(a: u64, b: u64) -> u128 {
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     {
+        crate::portable::kernel();
         // SAFETY: aes is enabled at compile time; the reinterpret is between 128-bit values.
         unsafe { core::mem::transmute::<core::arch::aarch64::uint64x2_t, u128>(aarch64::pmull(a, b)) }
     }
     #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
     {
+        crate::portable::kernel();
         // SAFETY: pclmulqdq is enabled at compile time.
         unsafe { x86_64::clmul(a, b) }
     }
@@ -152,7 +187,7 @@ pub fn mul_wide(a: u64, b: u64) -> u128 {
         all(target_arch = "x86_64", target_feature = "pclmulqdq")
     )))]
     {
-        software::clmul(a, b)
+        portable::clmul(a, b)
     }
 }
 
@@ -161,6 +196,7 @@ pub fn mul_wide(a: u64, b: u64) -> u128 {
 pub fn square_wide(a: u64) -> u128 {
     #[cfg(all(target_arch = "x86_64", target_feature = "bmi2"))]
     {
+        crate::portable::kernel();
         // SAFETY: bmi2 is enabled at compile time.
         unsafe { x86_64::spread(a) }
     }
@@ -352,19 +388,55 @@ pub mod x86_64 {
     }
 }
 
-pub mod software {
-    /// Portable 64x64 carry-less product, used by fallback paths and as the reference.
-    pub const fn clmul(a: u64, b: u64) -> u128 {
-        let mut acc = 0u128;
-        let mut i = 0;
-        // Schoolbook: XOR in `b * x^i` for every set bit `i` of `a`.
-        while i < 64 {
-            if (a >> i) & 1 != 0 {
-                acc ^= (b as u128) << i;
-            }
-            i += 1;
+/// The portable products: integer code with no SIMD intrinsic or assembly, the same on every target.
+pub mod portable {
+    /// The bits `i < 128` with `i % 5 == class`.
+    const fn class(class: u32) -> u128 {
+        let (mut mask, mut bit) = (0, class);
+        while bit < 128 {
+            mask |= 1 << bit;
+            bit += 5;
         }
-        acc
+        mask
+    }
+
+    const CLASSES: [u128; 5] = [class(0), class(1), class(2), class(3), class(4)];
+
+    /// The 64x64 carry-less product, by integer products of operands with holes.
+    ///
+    /// Each operand splits into five parts, part `i` its bits at positions `i` modulo 5, at most 13 of them.
+    /// A column of the integer product of two parts then sums at most 13 ones, so its carries stay in the four columns
+    /// above it and never reach the next column of its class: that column's low bit is the XOR of its terms, the
+    /// carry-less product's bit. The products of parts whose classes add to `k` modulo 5 give class `k`.
+    #[inline]
+    pub const fn clmul(a: u64, b: u64) -> u128 {
+        let mut product = 0;
+        let mut k = 0;
+        while k < 5 {
+            let mut sum = 0;
+            let mut i = 0;
+            while i < 5 {
+                sum ^= (a as u128 & CLASSES[i]) * (b as u128 & CLASSES[(k + 5 - i) % 5]);
+                i += 1;
+            }
+            product |= sum & CLASSES[k];
+            k += 1;
+        }
+        product
+    }
+
+    /// The carry-less square: bit `i` moves to bit `2i`.
+    pub const fn spread(a: u64) -> u128 {
+        // A 32-bit half's bits onto the even bits of a word, by halving shifts.
+        const fn half(x: u32) -> u64 {
+            let mut x = x as u64;
+            x = (x | x << 16) & 0x0000_FFFF_0000_FFFF;
+            x = (x | x << 8) & 0x00FF_00FF_00FF_00FF;
+            x = (x | x << 4) & 0x0F0F_0F0F_0F0F_0F0F;
+            x = (x | x << 2) & 0x3333_3333_3333_3333;
+            (x | x << 1) & 0x5555_5555_5555_5555
+        }
+        half(a as u32) as u128 | (half((a >> 32) as u32) as u128) << 64
     }
 }
 
@@ -385,9 +457,14 @@ mod tests {
     /// Operands that exercise the reduction's spill: the top bits set, all bits set, and the identities.
     const CORNERS: [u64; 6] = [0, 1, u64::MAX, 1 << 63, 0xF000_0000_0000_0000, R64];
 
+    /// The carry-less product bit by bit, the reference every other is checked against.
+    fn schoolbook(a: u64, b: u64) -> u128 {
+        (0..64).filter(|i| a >> i & 1 == 1).fold(0, |p, i| p ^ (b as u128) << i)
+    }
+
     /// Reference product: schoolbook multiply, then bit-by-bit long division by the modulus.
     fn reference_mul(a: u64, b: u64) -> u64 {
-        let mut p = software::clmul(a, b);
+        let mut p = schoolbook(a, b);
         // Clear bits 127..64 from the top, each with one shifted copy of x^64 + 0x1B.
         for bit in (64..128).rev() {
             if (p >> bit) & 1 != 0 {
@@ -401,6 +478,7 @@ mod tests {
     fn python_vectors() {
         for (a, b, c) in VECTORS {
             assert_eq!(F64(a) * F64(b), F64(c));
+            assert_eq!(F64(a).mul_portable(F64(b)), F64(c));
             assert_eq!(reference_mul(a, b), c);
         }
     }
@@ -413,18 +491,21 @@ mod tests {
         let corners = CORNERS.iter().flat_map(|&a| CORNERS.iter().map(move |&b| (a, b)));
         for (a, b) in random.chain(corners) {
             let want = reference_mul(a, b);
-            // The dispatched product and the portable composition agree with the reference.
+            // The dispatched and the portable products agree with the reference.
             assert_eq!((F64(a) * F64(b)).0, want);
-            assert_eq!(reduce(software::clmul(a, b)), want);
-            // The widening product is the carry-less product on every backend.
-            assert_eq!(mul_wide(a, b), software::clmul(a, b));
-            // The bit spread is the carry-less square, and squaring is the self-product.
-            assert_eq!(square_wide(a), software::clmul(a, a));
+            assert_eq!(F64(a).mul_portable(F64(b)).0, want);
+            // The widening products are the carry-less product on every backend.
+            assert_eq!(portable::clmul(a, b), schoolbook(a, b));
+            assert_eq!(mul_wide(a, b), schoolbook(a, b));
+            // The bit spreads are the carry-less square, and squaring is the self-product.
+            assert_eq!(portable::spread(a), schoolbook(a, a));
+            assert_eq!(square_wide(a), schoolbook(a, a));
             assert_eq!(F64(a).square(), F64(reference_mul(a, a)));
+            assert_eq!(F64(a).square_portable(), F64(reference_mul(a, a)));
         }
     }
 
-    /// Every NEON mul variant agrees with the software reference.
+    /// Every NEON mul variant agrees with the reference.
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     #[test]
     fn neon_variants_match_software() {
@@ -454,9 +535,11 @@ mod tests {
         let elements = (0..200).map(|_| rng.next_u64()).chain(CORNERS.into_iter().skip(1));
         for a in elements.map(F64) {
             assert_eq!(a * a.inv(), F64::ONE);
+            assert_eq!(a.inv_portable(), a.inv());
         }
         // Zero has no inverse and maps to zero by convention.
         assert_eq!(F64::ZERO.inv(), F64::ZERO);
+        assert_eq!(F64::ZERO.inv_portable(), F64::ZERO);
     }
 
     /// x is primitive: x^((2^64−1)/q) ≠ 1 for every prime q | 2^64 − 1.

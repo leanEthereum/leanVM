@@ -3,13 +3,79 @@
 //! Absorption maintains a framed chaining value. Domain-separated terminal nodes produce output
 //! blocks without exposing that chaining value. Consecutive calls concatenate within each mode;
 //! switching back to absorption binds the number of output bytes actually consumed.
+//!
+//! A duplex compresses by its [`Hashing`]: the prover's the build's fastest kernels ([`Native`]), the native
+//! verifier's the portable code ([`Portable`]). Both give the same bytes.
 
 pub mod arith;
 pub mod merkle;
 pub mod transcript;
 
+use arith::{Native, Portable};
+use merkle::{Hash, LeafHasher};
 use primitives::field::{F64, F192};
+use primitives::hash::{OUT_LEN, hash_many, portable};
+use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 use std::sync::atomic::{AtomicU64, Ordering};
+
+/// How a transcript hashes: its duplex's compressions and its Merkle openings' digests.
+pub trait Hashing {
+    /// The BLAKE2s compression of `m` into `h` at byte counter `t`, final if `last`.
+    fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool);
+
+    /// One-shot BLAKE2s-256.
+    fn hash(data: &[u8]) -> Hash;
+
+    /// The leaf digest of each `row_bytes` row in a `leaf_bytes` image, as the committer hashed it.
+    fn hash_leaves(rows: &[u8], row_bytes: usize, leaf_bytes: usize) -> Vec<Hash>;
+
+    /// Each pair of children's parent.
+    fn hash_pairs(pairs: &[[Hash; 2]]) -> Vec<Hash>;
+}
+
+/// The prover's: the build's kernels, and the leaves and pairs batched.
+impl Hashing for Native {
+    fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
+        primitives::hash::compress(h, m, t, last);
+    }
+
+    fn hash(data: &[u8]) -> Hash {
+        primitives::hash::hash(data)
+    }
+
+    fn hash_leaves(rows: &[u8], row_bytes: usize, leaf_bytes: usize) -> Vec<Hash> {
+        let mut hashes: Box<[MaybeUninit<Hash>]> = Box::new_uninit_slice(rows.len() / row_bytes);
+        LeafHasher::new(row_bytes, leaf_bytes).hash(rows, &mut hashes);
+        // SAFETY: the hasher wrote one digest per row.
+        unsafe { hashes.assume_init() }.into_vec()
+    }
+
+    fn hash_pairs(pairs: &[[Hash; 2]]) -> Vec<Hash> {
+        let mut parents = vec![[0u8; OUT_LEN]; pairs.len()];
+        hash_many::<{ 2 * OUT_LEN }>(pairs.as_flattened().as_flattened(), parents.as_flattened_mut());
+        parents
+    }
+}
+
+/// The native verifier's: the portable code, one hash at a time.
+impl Hashing for Portable {
+    fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
+        portable::compress(h, m, t, last);
+    }
+
+    fn hash(data: &[u8]) -> Hash {
+        portable::hash(data)
+    }
+
+    fn hash_leaves(rows: &[u8], row_bytes: usize, leaf_bytes: usize) -> Vec<Hash> {
+        merkle::hash_leaves_portable(rows, row_bytes, leaf_bytes)
+    }
+
+    fn hash_pairs(pairs: &[[Hash; 2]]) -> Vec<Hash> {
+        pairs.iter().map(|pair| portable::hash(pair.as_flattened())).collect()
+    }
+}
 
 /// A 32-byte digest as four little-endian field words.
 pub fn digest_words(digest: &[u8; 32]) -> [F64; 4] {
@@ -59,9 +125,9 @@ pub const fn absorb_tweak(first: bool, last: bool, len: usize, previous: u64) ->
     (role << 56) | ((len as u64) << 49) | previous
 }
 
-fn compress_block(mut cv: [u32; 8], block: &[u8; 64], tweak: u64) -> [u32; 8] {
+fn compress_block<H: Hashing>(mut cv: [u32; 8], block: &[u8; 64], tweak: u64) -> [u32; 8] {
     let words = std::array::from_fn(|i| u32::from_le_bytes(block[4 * i..4 * i + 4].try_into().unwrap()));
-    primitives::hash::compress(&mut cv, &words, tweak, true);
+    H::compress(&mut cv, &words, tweak, true);
     cv
 }
 
@@ -69,7 +135,7 @@ fn words(cv: [u32; 8]) -> [F64; 4] {
     std::array::from_fn(|i| F64(u64::from(cv[2 * i]) | u64::from(cv[2 * i + 1]) << 32))
 }
 
-fn pow_bits_ok(base: [F64; 4], nonce: F192, bits: u32) -> bool {
+fn pow_bits_ok<H: Hashing>(base: [F64; 4], nonce: F192, bits: u32) -> bool {
     let mut input = [0u8; 64];
     let values = [
         base[0].0, base[1].0, base[2].0, base[3].0, nonce.c0, nonce.c1, nonce.c2, POW_TAG,
@@ -77,7 +143,7 @@ fn pow_bits_ok(base: [F64; 4], nonce: F192, bits: u32) -> bool {
     for (slot, value) in input.as_chunks_mut::<8>().0.iter_mut().zip(values) {
         *slot = value.to_le_bytes();
     }
-    let digest = primitives::hash::hash(&input);
+    let digest = H::hash(&input);
     u64::from_le_bytes(digest[..8].try_into().unwrap()) & ((1u64 << bits) - 1) == 0
 }
 
@@ -87,7 +153,7 @@ fn pow_bits_ok(base: [F64; 4], nonce: F192, bits: u32) -> bool {
 /// event. Positive squeeze calls concatenate until absorption or a nonce event. Cloning preserves
 /// pending input and unused output bytes; it does not expose an injectable chaining value.
 #[derive(Clone)]
-pub struct Duplex {
+pub struct Duplex<H = Native> {
     cv: [u32; 8],
     pending: [u8; 64],
     n_pending: usize,
@@ -95,9 +161,10 @@ pub struct Duplex {
     previous: u64,
     squeezed: u64,
     output: [u8; 32],
+    hashing: PhantomData<H>,
 }
 
-impl Duplex {
+impl<H: Hashing> Duplex<H> {
     /// Bind both the protocol/domain digest and public-statement digest before any output.
     pub fn new(domain: [F64; 4], statement: [F64; 4]) -> Self {
         let mut input = [0u8; 64];
@@ -110,19 +177,20 @@ impl Duplex {
             *slot = word.0.to_le_bytes();
         }
         Self {
-            cv: compress_block(primitives::hash::PARAM_IV, &input, SEED),
+            cv: compress_block::<H>(primitives::hash::PARAM_IV, &input, SEED),
             pending: [0; 64],
             n_pending: 0,
             first: true,
             previous: 0,
             squeezed: 0,
             output: [0; 32],
+            hashing: PhantomData,
         }
     }
 
     /// A labeled protocol with the zero statement digest.
     pub fn from_label(label: &[u8]) -> Self {
-        Self::new(digest_words(&primitives::hash::hash(label)), [F64::ZERO; 4])
+        Self::new(digest_words(&H::hash(label)), [F64::ZERO; 4])
     }
 
     /// Absorb an arbitrary byte string, preserving full blocks until their finality is known.
@@ -136,7 +204,7 @@ impl Duplex {
         }
         while !input.is_empty() {
             if self.n_pending == 64 {
-                self.cv = compress_block(
+                self.cv = compress_block::<H>(
                     self.cv,
                     &self.pending,
                     absorb_tweak(self.first, false, 64, self.previous),
@@ -158,7 +226,7 @@ impl Duplex {
         }
         let mut block = self.pending;
         block[self.n_pending..].fill(0);
-        compress_block(
+        compress_block::<H>(
             self.cv,
             &block,
             absorb_tweak(self.first, true, self.n_pending, self.previous),
@@ -170,7 +238,7 @@ impl Duplex {
             return;
         }
         self.pending[self.n_pending..].fill(0);
-        self.cv = compress_block(
+        self.cv = compress_block::<H>(
             self.cv,
             &self.pending,
             absorb_tweak(self.first, true, self.n_pending, self.previous),
@@ -200,7 +268,7 @@ impl Duplex {
             if offset == 0 {
                 let mut block = [0u8; 64];
                 block[..8].copy_from_slice(&(self.squeezed / 32).to_le_bytes());
-                let digest = compress_block(self.cv, &block, OUTPUT);
+                let digest = compress_block::<H>(self.cv, &block, OUTPUT);
                 for (slot, word) in self.output.as_chunks_mut::<4>().0.iter_mut().zip(digest) {
                     *slot = word.to_le_bytes();
                 }
@@ -247,14 +315,14 @@ impl Duplex {
     pub fn commitment(&self) -> [F64; 4] {
         let mut block = [0u8; 64];
         block[..8].copy_from_slice(&self.squeezed.to_le_bytes());
-        words(compress_block(self.finalized(), &block, COMMIT))
+        words(compress_block::<H>(self.finalized(), &block, COMMIT))
     }
 
     fn pow_base(&self, bits: u32) -> [F64; 4] {
         let mut block = [0u8; 64];
         block[..8].copy_from_slice(&self.squeezed.to_le_bytes());
         block[8..16].copy_from_slice(&u64::from(bits).to_le_bytes());
-        words(compress_block(self.finalized(), &block, POW_BASE))
+        words(compress_block::<H>(self.finalized(), &block, POW_BASE))
     }
 
     fn absorb_nonce(&mut self, nonce: F192, bits: u32) {
@@ -269,7 +337,7 @@ impl Duplex {
         {
             *slot = value.to_le_bytes();
         }
-        self.cv = compress_block(self.cv, &block, NONCE);
+        self.cv = compress_block::<H>(self.cv, &block, NONCE);
         self.squeezed = 0;
     }
 
@@ -289,7 +357,7 @@ impl Duplex {
             if (1u64 << bits) < PARALLEL_GRIND_MIN_HASHES {
                 let mut n = 0u64;
                 loop {
-                    if pow_bits_ok(base, F192::new(n, 0, 0), bits) {
+                    if pow_bits_ok::<H>(base, F192::new(n, 0, 0), bits) {
                         break n;
                     }
                     n = n.checked_add(1).expect("grinding exhausted nonce space");
@@ -345,7 +413,7 @@ impl Duplex {
         let ok = if bits == 0 {
             nonce == F192::ZERO
         } else {
-            pow_bits_ok(self.pow_base(bits), nonce, bits)
+            pow_bits_ok::<H>(self.pow_base(bits), nonce, bits)
         };
         self.absorb_nonce(nonce, bits);
         ok
@@ -373,7 +441,7 @@ mod tests {
     fn independent_full_run_known_answers() {
         let domain = digest_words(&primitives::hash::hash(b"duplex-kat"));
         let statement = digest_words(&std::array::from_fn(|i| i as u8));
-        let mut duplex = Duplex::new(domain, statement);
+        let mut duplex: Duplex = Duplex::new(domain, statement);
         duplex.absorb(&(0..131).collect::<Vec<u8>>());
         let mut first = [0u8; 97];
         duplex.squeeze(&mut first);
@@ -460,8 +528,23 @@ mod tests {
         assert_ne!(challenge(b"x", 31), challenge(b"x", 32));
         let d = [F64(1); 4];
         let s = [F64(2); 4];
-        assert_ne!(Duplex::new(d, s).sample(), Duplex::new(s, d).sample());
-        assert_ne!(Duplex::new(d, s).sample(), Duplex::new(d, d).sample());
+        let duplex = Duplex::<Native>::new;
+        assert_ne!(duplex(d, s).sample(), duplex(s, d).sample());
+        assert_ne!(duplex(d, s).sample(), duplex(d, d).sample());
+    }
+
+    #[test]
+    fn the_portable_duplex_is_the_native_one() {
+        fn run<H: Hashing>() -> (Vec<F192>, [F64; 4], bool) {
+            let mut duplex = Duplex::<H>::from_label(b"duplex-backends");
+            duplex.absorb(&(0..200).collect::<Vec<u8>>());
+            let mut samples = duplex.sample_vec(5);
+            duplex.observe(F192::new(1, 2, 3));
+            let pow = duplex.verify_pow_field(F192::new(7, 0, 0), 3);
+            samples.push(duplex.sample());
+            (samples, duplex.commitment(), pow)
+        }
+        assert_eq!(run::<Portable>(), run::<Native>());
     }
 
     #[test]
@@ -506,7 +589,7 @@ mod tests {
             let nonce = prover.grind_pow(bits);
             let base = initial.pow_base(bits);
             let expected = (0..=nonce)
-                .find(|&n| pow_bits_ok(base, F192::new(n, 0, 0), bits))
+                .find(|&n| pow_bits_ok::<Native>(base, F192::new(n, 0, 0), bits))
                 .unwrap();
             assert_eq!(nonce, expected);
             let mut verifier = initial.clone();
@@ -517,7 +600,7 @@ mod tests {
         let base = initial.pow_base(bits);
         let nonce = (0..u64::MAX)
             .map(|n| F192::new(n, 1, 2))
-            .find(|&n| pow_bits_ok(base, n, bits))
+            .find(|&n| pow_bits_ok::<Native>(base, n, bits))
             .unwrap();
         let mut verifier = initial.clone();
         assert!(verifier.verify_pow_field(nonce, bits));

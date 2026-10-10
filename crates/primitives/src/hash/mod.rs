@@ -100,37 +100,59 @@ pub const PARAM_IV: [u32; 8] = {
 #[inline]
 pub fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
     #[cfg(target_arch = "x86_64")]
-    x86::compress(h, m, t, last);
+    {
+        crate::portable::kernel();
+        x86::compress(h, m, t, last);
+    }
     #[cfg(not(target_arch = "x86_64"))]
-    compress_portable(h, m, t, last);
+    portable::compress(h, m, t, last);
 }
 
-/// The compression as written in RFC 7693, and the reference the x86-64 kernel is checked against.
-#[cfg_attr(target_arch = "x86_64", allow(dead_code))]
-fn compress_portable(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
-    let mut v = [0u32; 16];
-    v[..8].copy_from_slice(h);
-    v[8..].copy_from_slice(&IV);
-    v[12] ^= t as u32;
-    v[13] ^= (t >> 32) as u32;
-    if last {
-        v[14] = !v[14];
-    }
-    for round in &SIGMA {
-        for (g, &[a, b, c, d]) in G_LANES.iter().enumerate() {
-            let (mx, my) = (m[round[2 * g]], m[round[2 * g + 1]]);
-            v[a] = v[a].wrapping_add(v[b]).wrapping_add(mx);
-            v[d] = (v[d] ^ v[a]).rotate_right(16);
-            v[c] = v[c].wrapping_add(v[d]);
-            v[b] = (v[b] ^ v[c]).rotate_right(12);
-            v[a] = v[a].wrapping_add(v[b]).wrapping_add(my);
-            v[d] = (v[d] ^ v[a]).rotate_right(8);
-            v[c] = v[c].wrapping_add(v[d]);
-            v[b] = (v[b] ^ v[c]).rotate_right(7);
+/// The hashes the verifier takes: the compression as RFC 7693 writes it, with no SIMD intrinsic or assembly.
+pub mod portable {
+    use super::{G_LANES, IV, OUT_LEN, SIGMA};
+
+    /// The compression as written in RFC 7693, and the reference the x86-64 kernel is checked against.
+    pub fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
+        let mut v = [0u32; 16];
+        v[..8].copy_from_slice(h);
+        v[8..].copy_from_slice(&IV);
+        v[12] ^= t as u32;
+        v[13] ^= (t >> 32) as u32;
+        if last {
+            v[14] = !v[14];
+        }
+        for round in &SIGMA {
+            for (g, &[a, b, c, d]) in G_LANES.iter().enumerate() {
+                let (mx, my) = (m[round[2 * g]], m[round[2 * g + 1]]);
+                v[a] = v[a].wrapping_add(v[b]).wrapping_add(mx);
+                v[d] = (v[d] ^ v[a]).rotate_right(16);
+                v[c] = v[c].wrapping_add(v[d]);
+                v[b] = (v[b] ^ v[c]).rotate_right(12);
+                v[a] = v[a].wrapping_add(v[b]).wrapping_add(my);
+                v[d] = (v[d] ^ v[a]).rotate_right(8);
+                v[c] = v[c].wrapping_add(v[d]);
+                v[b] = (v[b] ^ v[c]).rotate_right(7);
+            }
+        }
+        for i in 0..8 {
+            h[i] ^= v[i] ^ v[i + 8];
         }
     }
-    for i in 0..8 {
-        h[i] ^= v[i] ^ v[i + 8];
+
+    /// [`super::hash`], by [`compress`].
+    pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {
+        super::hash_with(compress, data)
+    }
+
+    /// [`super::zero_prefix_state`], by [`compress`].
+    pub fn zero_prefix_state(n_blocks: usize) -> [u32; 8] {
+        super::zero_prefix_state_with(compress, n_blocks)
+    }
+
+    /// [`super::hash_from_state`], by [`compress`].
+    pub fn hash_from_state(data: &[u8], state: &[u32; 8], t_offset: u64) -> [u8; OUT_LEN] {
+        super::hash_from_state_with(compress, data, state, t_offset)
     }
 }
 
@@ -150,7 +172,8 @@ fn state_bytes(h: &[u32; 8]) -> [u8; OUT_LEN] {
     out
 }
 
-/// Streaming BLAKE2s-256.
+/// Streaming BLAKE2s-256, by the portable compression: the program's and the tree's digests, which the verifier
+/// recomputes, take it.
 ///
 /// The final block carries the final flag, so a full buffer is held back until more input arrives.
 #[derive(Clone)]
@@ -178,7 +201,7 @@ impl Hasher {
             if self.buf_len == BLOCK_LEN {
                 // More input follows, so this buffered block is not the last.
                 self.counter += BLOCK_LEN as u64;
-                compress(&mut self.h, &block_words(&self.buf), self.counter, false);
+                portable::compress(&mut self.h, &block_words(&self.buf), self.counter, false);
                 self.buf_len = 0;
             }
             let take = (BLOCK_LEN - self.buf_len).min(data.len());
@@ -194,7 +217,7 @@ impl Hasher {
         let mut block = self.buf;
         block[self.buf_len..].fill(0);
         let t = self.counter + self.buf_len as u64;
-        compress(&mut h, &block_words(&block), t, true);
+        portable::compress(&mut h, &block_words(&block), t, true);
         state_bytes(&h)
     }
 }
@@ -207,19 +230,33 @@ impl Default for Hasher {
 
 /// One-shot unkeyed BLAKE2s-256.
 pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {
-    // Whole blocks, the shape hashed in bulk, need no buffering.
-    if !data.is_empty() && data.len().is_multiple_of(BLOCK_LEN) {
-        let mut h = PARAM_IV;
-        let n = data.len() / BLOCK_LEN;
-        for (b, block) in data.as_chunks::<BLOCK_LEN>().0.iter().enumerate() {
-            let t = ((b + 1) * BLOCK_LEN) as u64;
-            compress(&mut h, &block_words(block), t, b + 1 == n);
+    hash_with(compress, data)
+}
+
+/// [`hash`] by `compress`.
+#[inline]
+fn hash_with(compress: impl Fn(&mut [u32; 8], &[u32; 16], u64, bool), data: &[u8]) -> [u8; OUT_LEN] {
+    let (blocks, tail) = data.as_chunks::<BLOCK_LEN>();
+    // The last block is the zero-padded tail, or the last whole block if there is no tail: an empty message is one zero block.
+    let (whole, last, last_len) = match blocks.split_last() {
+        Some((last, whole)) if tail.is_empty() => (whole, *last, BLOCK_LEN),
+        _ => {
+            let mut last = [0; BLOCK_LEN];
+            last[..tail.len()].copy_from_slice(tail);
+            (blocks, last, tail.len())
         }
-        return state_bytes(&h);
+    };
+    let mut h = PARAM_IV;
+    for (b, block) in whole.iter().enumerate() {
+        compress(&mut h, &block_words(block), ((b + 1) * BLOCK_LEN) as u64, false);
     }
-    let mut hasher = Hasher::new();
-    hasher.update(data);
-    hasher.finalize()
+    compress(
+        &mut h,
+        &block_words(&last),
+        (whole.len() * BLOCK_LEN + last_len) as u64,
+        true,
+    );
+    state_bytes(&h)
 }
 
 /// A digest as the four little-endian words it packs.
@@ -258,6 +295,12 @@ pub fn hash_many<const LEN: usize>(data: &[u8], out: &mut [u8]) {
 ///
 /// Digests are unchanged: a prefix's compressions depend on nothing after them.
 pub fn zero_prefix_state(n_blocks: usize) -> [u32; 8] {
+    zero_prefix_state_with(compress, n_blocks)
+}
+
+/// [`zero_prefix_state`] by `compress`.
+#[inline]
+fn zero_prefix_state_with(compress: impl Fn(&mut [u32; 8], &[u32; 16], u64, bool), n_blocks: usize) -> [u32; 8] {
     let mut h = PARAM_IV;
     for b in 0..n_blocks {
         compress(&mut h, &[0u32; 16], ((b + 1) * BLOCK_LEN) as u64, false);
@@ -270,6 +313,17 @@ pub fn zero_prefix_state(n_blocks: usize) -> [u32; 8] {
 /// - `data` is the rest of the image, a nonzero whole number of blocks.
 /// - `t_offset` counts the bytes already absorbed into `state`.
 pub fn hash_from_state(data: &[u8], state: &[u32; 8], t_offset: u64) -> [u8; OUT_LEN] {
+    hash_from_state_with(compress, data, state, t_offset)
+}
+
+/// [`hash_from_state`] by `compress`.
+#[inline]
+fn hash_from_state_with(
+    compress: impl Fn(&mut [u32; 8], &[u32; 16], u64, bool),
+    data: &[u8],
+    state: &[u32; 8],
+    t_offset: u64,
+) -> [u8; OUT_LEN] {
     assert!(
         !data.is_empty() && data.len().is_multiple_of(BLOCK_LEN),
         "a continued image is whole blocks"
@@ -287,6 +341,7 @@ pub fn hash_from_state(data: &[u8], state: &[u32; 8], t_offset: u64) -> [u8; OUT
 ///
 /// Each digest equals the hash of its full image.
 pub fn hash_many_dyn_from_state(data: &[u8], len: usize, state: &[u32; 8], t_offset: u64, out: &mut [u8]) {
+    crate::portable::kernel();
     assert!(
         len > 0 && len.is_multiple_of(BLOCK_LEN),
         "batched inputs are whole blocks"
@@ -344,6 +399,15 @@ mod tests {
                             want,
                             "scalar, zero_blocks={zero_blocks} rest_blocks={rest_blocks}"
                         );
+                        assert_eq!(
+                            portable::hash_from_state(
+                                &rest[i * rlen..(i + 1) * rlen],
+                                &portable::zero_prefix_state(zero_blocks),
+                                zlen as u64
+                            ),
+                            want,
+                            "portable, zero_blocks={zero_blocks} rest_blocks={rest_blocks}"
+                        );
                     }
                 }
             }
@@ -363,7 +427,7 @@ mod tests {
                 let m: [u32; 16] = std::array::from_fn(|_| rng.next_u32());
                 let (mut got, mut want) = (h, h);
                 compress(&mut got, &m, t, last);
-                compress_portable(&mut want, &m, t, last);
+                portable::compress(&mut want, &m, t, last);
                 assert_eq!(got, want, "t={t} last={last}");
             }
         }
@@ -385,9 +449,10 @@ mod tests {
 
     #[test]
     fn matches_official_vectors() {
-        // Whole blocks take the fast path, and 65 bytes pins the held-back buffer.
+        // Whole blocks, a padded tail, and 65 bytes, one byte past a block.
         for (input, digest) in test_vectors() {
             assert_eq!(hash(&input), digest, "{} bytes", input.len());
+            assert_eq!(portable::hash(&input), digest, "portable, {} bytes", input.len());
         }
     }
 

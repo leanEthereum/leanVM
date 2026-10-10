@@ -9,10 +9,10 @@ use crate::rv::Region;
 use crate::rv::asm::*;
 use crate::tables::TableId;
 use design::NodeRows;
-use fiat_shamir::arith::{Arith, Native};
+use fiat_shamir::arith::{Arith, Native, Portable};
 use fiat_shamir::transcript::{Challenger, ProverState, Transmitter, VerifierState};
 use flock::lincheck::MatrixForm;
-use primitives::multilinear::mle_eval;
+use primitives::multilinear::{eq_table, mle_eval};
 use primitives::test_util::Rng;
 use std::sync::OnceLock;
 
@@ -257,7 +257,7 @@ fn a_proven_circuit_is_the_shapes() {
         "the leaves build another circuit"
     );
 
-    let raw = |p: &TreeProof| f.tree.read(p).expect("an honest child");
+    let raw = |p: &TreeProof| f.tree.read(Portable, p).expect("an honest child");
     let statements = f
         .firsts
         .each_ref()
@@ -322,7 +322,7 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
         rate: d.rate,
     };
     assert!(
-        f.tree.read(&child).is_err(),
+        f.tree.read(Portable, &child).is_err(),
         "natively, the fake is no first-level node"
     );
     let limbs: Vec<[u64; 4]> = child.words.iter().map(|w| [w.c0, w.c1, w.c2, 0]).collect();
@@ -376,7 +376,9 @@ fn a_fake_child_circuit_is_refused_at_the_root() {
         proof: (f.tree.circuit(Kind::Node).prove(&assignment, d.iv, d.rate)).expect("the node fits"),
         rate: d.rate,
     };
-    f.tree.read(&root).expect("the root's recursion proof verifies");
+    f.tree
+        .read(Portable, &root)
+        .expect("the root's recursion proof verifies");
     assert_eq!(
         f.tree.verify(&root, &outputs),
         Err(TreeError::Claim(FalseClaim::Dense(DensePoly::Fixed)))
@@ -755,7 +757,7 @@ fn matrix_claims(rng: &mut Rng) -> Vec<MatrixClaim<F192>> {
             r_inner_rest: r[..k - k_skip].to_vec(),
             s_hat_v: rng.ext_vec(1 << k_skip),
         };
-        let value = form.evaluate(circuit);
+        let value = form.evaluate(&mut Portable, circuit);
         claims.push(MatrixClaim::fresh(f, &Claim { point: form, value }));
         if i == 0 {
             continue;

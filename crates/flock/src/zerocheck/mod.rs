@@ -28,7 +28,7 @@ use thiserror::Error;
 use crate::lincheck::QuirkyPoint;
 use multilinear::{PackedWitness, RoundPair, bind_low, bit_pass, bit_pass_storing, single_round, table_pass};
 use ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
-use round1::{Round1, c_s, medium_challenges, small_challenges};
+use round1::{MEDIUM_CHALLENGES, Round1, c_s, small_challenges};
 
 pub(crate) mod multilinear;
 mod ntt;
@@ -71,7 +71,7 @@ fn equality_tail(m: usize, sample: impl FnOnce(usize) -> Vec<F192>) -> Vec<F192>
     let outer = sample(m - MIN_LOG_N);
     small_challenges()
         .into_iter()
-        .chain(medium_challenges())
+        .chain(MEDIUM_CHALLENGES)
         .chain(outer)
         .collect()
 }
@@ -499,7 +499,7 @@ pub(crate) fn verify<V: Verifier>(log_ns: &[usize], v: &mut V) -> Result<Zeroche
     let outer = v.sample_vec(m - MIN_LOG_N);
     let lambda = v.sample();
     let lambdas = v.powers(lambda, log_ns.len());
-    let fixed: Vec<V::E> = (small_challenges().into_iter().chain(medium_challenges()))
+    let fixed: Vec<V::E> = (small_challenges().into_iter().chain(MEDIUM_CHALLENGES))
         .map(|c| v.constant(c))
         .collect();
 

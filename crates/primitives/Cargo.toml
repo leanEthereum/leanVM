@@ -18,6 +18,9 @@ serde.workspace = true
 # Shared test fixtures (`test_util`) used by this and other crates' tests.
 # Kept off the default build so `rand` stays out of the production graph.
 test-util = ["dep:rand"]
+# The portable verifier's guard: every SIMD or assembly kernel panics inside a `portable::Section`.
+# Enabled by the CLI's tests, so `cargo testall` runs it while no benchmark build pays for its check.
+guard = []
 
 [dev-dependencies]
 primitives = { path = ".", features = ["test-util"] }

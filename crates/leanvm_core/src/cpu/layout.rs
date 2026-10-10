@@ -20,7 +20,7 @@ use crate::{class_flock, witness};
 use Coord::{Col, Const, IntIndex, Sparse};
 use fiat_shamir::MAX_GRINDING_BITS;
 use fiat_shamir::arith::Arith;
-use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::transcript::{ProverState, Receiver, Transmitter};
 use primitives::field::{F64, F192};
 use std::sync::{Arc, OnceLock};
 
@@ -214,19 +214,20 @@ impl Lookup {
     }
 
     /// The array's public columns over its entries, in tuple order after the address.
+    ///
+    /// On the calling thread: the verifier builds them too.
     pub fn columns(self, p: &RiscvProgram) -> Vec<Vec<F64>> {
         match self {
             // The program's columns, in bytecode slot order.
             Self::Bytecode => {
                 let entries = p.entries();
-                let column = |f: &(dyn Fn(usize, &Entry) -> u64 + Sync)| {
-                    parallel::map_collect(entries.len(), |i| F64(f(i, &entries[i])))
+                let column = |f: &dyn Fn(usize, &Entry) -> u64| -> Vec<F64> {
+                    (entries.iter().enumerate()).map(|(i, e)| F64(f(i, e))).collect()
                 };
+                let tags = PerTable::from_fn(|t: TableId| primitives::field::g_pow(t.index()));
                 vec![
                     // An illegal entry's tag is zero, which is no table's: nothing can read it.
-                    parallel::map_collect(entries.len(), |i| {
-                        TableId::of(entries[i].class).map_or(F64::ZERO, |t| primitives::field::g_pow(t.index()))
-                    }),
+                    column(&|_, e| TableId::of(e.class).map_or(0, |t| tags[t].0)),
                     column(&|_, e| e.flags),
                     column(&|_, e| e.a1 as u64),
                     column(&|_, e| e.a2 as u64),
@@ -736,7 +737,7 @@ impl Announcement {
     /// # Errors
     ///
     /// Refuses a short stream, then what decoding refuses.
-    pub(super) fn read(vs: &mut VerifierState) -> Result<Self, CpuError> {
+    pub(super) fn read(vs: &mut impl Receiver) -> Result<Self, CpuError> {
         let mut scalars = [F192::ZERO; Self::LEN];
         for x in &mut scalars {
             *x = vs.next_scalar()?;

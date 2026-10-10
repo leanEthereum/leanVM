@@ -17,7 +17,8 @@ use crate::pcs::{Committed, Rate};
 use crate::rv::{ElfError, Guest, Machine, ProgramError, Region, RiscvProgram};
 use crate::tables::{ClassTable, Clock, PerTable, TableId};
 use crate::{constraints, leaf};
-use fiat_shamir::arith::Native;
+use fiat_shamir::Hashing;
+use fiat_shamir::arith::{Arith, Native, Portable};
 use fiat_shamir::transcript::{Challenger, ProverState, RawProof, Transmitter, VerifierState};
 use flock::reduction;
 use primitives::field::{F64, F192};
@@ -349,8 +350,27 @@ impl Program {
     #[tracing::instrument(name = "Verify", skip_all)]
     #[doc(hidden)]
     pub fn verify_to_raw(&self, output: Output, proof: &Proof) -> Result<RawProof, CpuError> {
-        let (claims, raw) = self.replay(output, proof)?;
-        self.check_deferred(&claims)?;
+        let _portable = primitives::portable::enter();
+        self.replay_to_raw(Portable, output, proof)
+    }
+
+    /// [`Self::verify_to_raw`] on the prover's arithmetic: an aggregator's replay of a leaf it is handed.
+    ///
+    /// It feeds the aggregator's proof, which its own verifier checks, and nobody's trust, so it takes the fast path.
+    #[tracing::instrument(name = "Verify", skip_all)]
+    pub(crate) fn replay_native(&self, output: Output, proof: &Proof) -> Result<RawProof, CpuError> {
+        self.replay_to_raw(Native, output, proof)
+    }
+
+    /// The core, then the claims it leaves settled, all on `arith`.
+    fn replay_to_raw<A: Arith<E = F192> + Hashing + Copy>(
+        &self,
+        mut arith: A,
+        output: Output,
+        proof: &Proof,
+    ) -> Result<RawProof, CpuError> {
+        let (claims, raw) = self.replay(arith, output, proof)?;
+        self.settle(&mut arith, &claims)?;
         Ok(raw)
     }
 
@@ -365,14 +385,20 @@ impl Program {
     /// Returns the first stage that refuses the proof.
     #[doc(hidden)]
     pub fn verify_core(&self, output: Output, proof: &Proof) -> Result<DeferredClaims, CpuError> {
-        self.replay(output, proof).map(|(claims, _)| claims)
+        let _portable = primitives::portable::enter();
+        self.replay(Portable, output, proof).map(|(claims, _)| claims)
     }
 
-    /// The verifier's core, and the proof it replayed with its Merkle paths written out.
+    /// The verifier's core on `arith`, and the proof it replayed with its Merkle paths written out.
     #[tracing::instrument(name = "Verify core", skip_all)]
-    fn replay(&self, output: Output, proof: &Proof) -> Result<(DeferredClaims, RawProof), CpuError> {
+    fn replay<A: Arith<E = F192> + Hashing>(
+        &self,
+        arith: A,
+        output: Output,
+        proof: &Proof,
+    ) -> Result<(DeferredClaims, RawProof), CpuError> {
         // The public statement seeds the transcript, as on the prover's side.
-        let mut vs = VerifierState::new(self.fs_seed(), &proof.0, output.words().map(F64));
+        let mut vs = VerifierState::with_arith(arith, self.fs_seed(), &proof.0, output.words().map(F64));
 
         // The announced sizes, then the layout they describe, then the core.
         let announcement = Announcement::read(&mut vs)?;
@@ -430,7 +456,9 @@ impl Program {
     /// The digest of `rv`'s public statement.
     ///
     /// Every variable-length part is length-framed, so the preimage parses one way.
+    /// The verifier checks a proof against it, so it is computed as the verifier computes (`primitives::portable`).
     fn digest_of(rv: &RiscvProgram) -> [u8; 32] {
+        let _portable = primitives::portable::enter();
         let bytes = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
         let table = Lookup::Bytecode.table(rv);
         let table_bytes: Vec<u8> = table.iter().flat_map(|w| w.0.to_le_bytes()).collect();
@@ -509,6 +537,7 @@ impl Stats {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cpu::Prover;
     use crate::cpu::execute::Row;
     use crate::cpu::filler::JUMP;
     use crate::cpu::layout::{Framework, Shared};
@@ -704,6 +733,22 @@ mod tests {
             "unmatched (side, block, row): {:?}",
             &unmatched[..unmatched.len().min(12)]
         );
+    }
+
+    /// The public verifier is the portable one: in a portable section it verifies, where the prover's replay on
+    /// `Native` reaches a kernel the guard refuses (when the build arms it, as the workspace's tests do).
+    #[test]
+    fn the_public_verifier_is_the_portable_one() {
+        let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
+        let run = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+        let _portable = primitives::portable::enter();
+        program.verify(run.output, &run.proof).expect("an honest proof");
+        program.verify_to_raw(run.output, &run.proof).expect("an honest proof");
+        if primitives::portable::GUARDED {
+            let replay = std::panic::catch_unwind(AssertUnwindSafe(|| program.replay_native(run.output, &run.proof)));
+            assert!(replay.is_err(), "the prover's replay ran in a portable section");
+        }
     }
 
     #[test]

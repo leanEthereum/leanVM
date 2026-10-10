@@ -5,6 +5,7 @@
 //! - Natively an element is an `F192`, a read comes off the proof, and a failed equality is an error.
 //! - In rows an element is a wire, a read is a free wire bound by a hash row, and an equality joins two wires.
 
+use crate::Hashing;
 use crate::transcript::{Challenger, Receiver, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 use primitives::multilinear::mle_eval_par;
@@ -166,6 +167,13 @@ pub trait Arith {
         out
     }
 
+    /// `sum_i a_i b_i`, of two vectors of one length.
+    fn dot(&mut self, a: &[Self::E], b: &[Self::E]) -> Self::E {
+        assert_eq!(a.len(), b.len(), "two vectors of one length");
+        let zero = self.zero();
+        (a.iter().zip(b)).fold(zero, |acc, (&x, &y)| self.mul_add(x, y, acc))
+    }
+
     /// The integer index column `base ^ (z << shift)` at `point`: `base + sum_i point_i 2^(i + shift)`.
     fn int_index(&mut self, base: F64, shift: u32, point: &[Self::E]) -> Self::E {
         let base = self.constant(F192::from(base));
@@ -282,7 +290,14 @@ impl Arith for Native {
     }
 }
 
-impl Arith for VerifierState<'_> {
+/// Plain `F192` arithmetic with no SIMD intrinsic, no assembly and no pool dispatch: the native verifier's.
+///
+/// The verifier's transcript computes through it, and so does every check the native verifier makes off the transcript.
+/// See `primitives::portable`.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Portable;
+
+impl Arith for Portable {
     type E = F192;
 
     fn constant(&mut self, c: F192) -> F192 {
@@ -290,7 +305,94 @@ impl Arith for VerifierState<'_> {
     }
 
     fn mul_add(&mut self, a: F192, b: F192, d: F192) -> F192 {
-        a * b + d
+        a.mul_portable(b) + d
+    }
+
+    fn add(&mut self, a: F192, d: F192) -> F192 {
+        a + d
+    }
+
+    /// A constant of `K`, as most are, takes the cheaper product by a word.
+    fn mul_const_add(&mut self, a: F192, c: F192, d: F192) -> F192 {
+        if c.c1 == 0 && c.c2 == 0 {
+            a.mul_base_portable(F64(c.c0)) + d
+        } else {
+            a.mul_portable(c) + d
+        }
+    }
+
+    fn inv(&mut self, a: F192) -> F192 {
+        a.inv_portable()
+    }
+
+    fn frobenius2(&mut self, a: F192) -> F192 {
+        a.frobenius().frobenius()
+    }
+
+    fn square(&mut self, a: F192) -> F192 {
+        a.square_portable()
+    }
+
+    /// One product an entry: a vertex's high child is it times `r`, and its low child `v (1 + r) = v + v r` reuses the
+    /// product.
+    fn eq_table_prefix(&mut self, point: &[F192], len: usize) -> Vec<F192> {
+        assert!(len <= 1 << point.len(), "a prefix of the cube");
+        let mut table = Vec::with_capacity(len);
+        table.push(F192::ONE);
+        for (i, &r) in point.iter().enumerate() {
+            let (old, need) = (table.len(), len.min(2 << i));
+            for j in 0..old {
+                let high = table[j].mul_portable(r);
+                table[j] += high;
+                if old + j < need {
+                    table.push(high);
+                }
+            }
+        }
+        table.truncate(len);
+        table
+    }
+
+    /// By the words' bits: `sum_x eq(point, x) v_x = sum_k x^k sum_x eq(point, x) bit_k(v_x)`.
+    ///
+    /// A row of `2^low` words sums its low eq weights into one slice per bit, by additions alone; a nonzero slice then
+    /// takes its row's high eq weight, and each bit's sum its power of `x`. `low` balances the low table's `2^low`
+    /// products against the rows' up to `64` each.
+    fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
+        assert_eq!(values.len(), 1 << point.len(), "a column has a word per vertex");
+        let low = (point.len() + F64::DEGREE.ilog2() as usize).div_ceil(2);
+        let (low, high) = point.split_at(low.min(point.len()));
+        let (eq_low, eq_high) = (self.eq_table(low), self.eq_table(high));
+        let mut bits = [F192::ZERO; F64::DEGREE];
+        for (row, &weight) in values.chunks_exact(eq_low.len()).zip(&eq_high) {
+            let mut slices = [F192::ZERO; F64::DEGREE];
+            for (&e, v) in eq_low.iter().zip(row) {
+                let mut word = v.0;
+                while word != 0 {
+                    slices[word.trailing_zeros() as usize] += e;
+                    word &= word - 1;
+                }
+            }
+            for (bit, slice) in bits.iter_mut().zip(slices) {
+                if !slice.is_zero() {
+                    *bit += weight.mul_portable(slice);
+                }
+            }
+        }
+        (bits.iter().enumerate()).fold(F192::ZERO, |acc, (k, b)| acc + b.mul_base_portable(F64(1 << k)))
+    }
+}
+
+/// The transcript computes with its arithmetic: [`Portable`] for the native verifier, [`Native`] for a prover's replay.
+impl<A: Arith<E = F192>> Arith for VerifierState<'_, A> {
+    type E = F192;
+
+    fn constant(&mut self, c: F192) -> F192 {
+        c
+    }
+
+    fn mul_add(&mut self, a: F192, b: F192, d: F192) -> F192 {
+        self.arith.mul_add(a, b, d)
     }
 
     fn add(&mut self, a: F192, d: F192) -> F192 {
@@ -298,23 +400,31 @@ impl Arith for VerifierState<'_> {
     }
 
     fn mul_const_add(&mut self, a: F192, c: F192, d: F192) -> F192 {
-        a * c + d
+        self.arith.mul_const_add(a, c, d)
     }
 
     fn inv(&mut self, a: F192) -> F192 {
-        if a.is_zero() { F192::ZERO } else { a.inv() }
+        self.arith.inv(a)
     }
 
     fn frobenius2(&mut self, a: F192) -> F192 {
-        a.frobenius().frobenius()
+        self.arith.frobenius2(a)
+    }
+
+    fn square(&mut self, a: F192) -> F192 {
+        self.arith.square(a)
+    }
+
+    fn eq_table_prefix(&mut self, point: &[F192], len: usize) -> Vec<F192> {
+        self.arith.eq_table_prefix(point, len)
     }
 
     fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
-        mle_eval_par(values, point)
+        self.arith.public_mle(values, point)
     }
 }
 
-impl Verifier for VerifierState<'_> {
+impl<A: Arith<E = F192> + Hashing> Verifier for VerifierState<'_, A> {
     fn next_scalar(&mut self) -> Result<F192, TranscriptError> {
         Receiver::next_scalar(self)
     }
@@ -342,5 +452,57 @@ impl Verifier for VerifierState<'_> {
 
     fn finish(&mut self) -> Result<(), TranscriptError> {
         VerifierState::finish(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use primitives::multilinear::mle_eval;
+
+    #[test]
+    fn the_portable_public_mle_is_the_dispatched_one() {
+        // Below, at and past one row of the low eq table, words dense and sparse.
+        let mut state = 0x9e37_79b9_7f4a_7c15_u64;
+        let mut next = || {
+            state = state
+                .wrapping_mul(0x5851_f42d_4c95_7f2d)
+                .wrapping_add(0x1405_7b7e_f767_814f);
+            state
+        };
+        for n in [0, 1, 2, 3, 7, 8, 10, 12, 13, 15, 17] {
+            let point: Vec<F192> = (0..n).map(|_| F192::new(next(), next(), next())).collect();
+            for sparse in [false, true] {
+                let values: Vec<F64> = (0..1 << n)
+                    .map(|_| F64(if sparse { next() & 0x8001 } else { next() }))
+                    .collect();
+                assert_eq!(
+                    Portable.public_mle(&values, &point),
+                    mle_eval(&values, &point),
+                    "{n} variables"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_portable_eq_table_is_the_default_one() {
+        let mut state = 0x2545_f491_4f6c_dd1d_u64;
+        let mut next = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for n in 0..8 {
+            let point: Vec<F192> = (0..n).map(|_| F192::new(next(), next(), next())).collect();
+            for len in 0..=1 << n {
+                assert_eq!(
+                    Portable.eq_table_prefix(&point, len),
+                    Native.eq_table_prefix(&point, len),
+                    "{n} variables, {len} vertices"
+                );
+            }
+        }
     }
 }

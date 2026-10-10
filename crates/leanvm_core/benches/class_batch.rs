@@ -197,7 +197,10 @@ impl ClassBatch {
         let replay = reduction::verify(&[(block.shape(), self.n_log)], &mut vs)
             .expect("the reduction verifies")
             .remove(0);
-        replay.matrices.check(block.circuit).expect("the matrices settle");
+        replay
+            .matrices
+            .check(&mut vs, block.circuit)
+            .expect("the matrices settle");
         let ring = RingSwitch {
             offset: 0,
             qflock_vars: self.mu,

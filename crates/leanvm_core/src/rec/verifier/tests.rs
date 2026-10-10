@@ -14,6 +14,7 @@ use crate::rv::Region;
 use crate::rv::asm::*;
 use crate::tables::{Fill, N_TABLES, PerTable, TableId};
 use crate::witness::StackShape;
+use fiat_shamir::arith::Portable;
 use fiat_shamir::transcript::{ProofTranscript, ProverState, RawProof, TranscriptError, VerifierState};
 use flock::FlockError;
 use flock::Witness;
@@ -325,7 +326,7 @@ fn check_reductions(batches: &[Batch]) {
     let replays = native(&proof).expect("an honest batch");
     for (batch, replay) in batches.iter().zip(&replays) {
         assert_eq!(
-            replay.matrices.form.evaluate(batch.block.circuit),
+            replay.matrices.form.evaluate(&mut Portable, batch.block.circuit),
             replay.matrices.value
         );
     }
@@ -392,7 +393,7 @@ fn check_reductions(batches: &[Batch]) {
         let moved = native(&forged).expect("the batch's identity holds");
         for (f, replay) in moved.iter().enumerate() {
             let matrices = &replay.matrices;
-            let settles = matrices.form.evaluate(batches[f].block.circuit) == matrices.value;
+            let settles = matrices.form.evaluate(&mut Portable, batches[f].block.circuit) == matrices.value;
             assert_eq!(settles, f > 1, "circuit {f}'s moved claim");
         }
     }
@@ -667,7 +668,7 @@ fn a_recursion_proof_in_rows_is_its_verifier() {
     let form = rows.matrix.point.map(|w| b.e(w));
     let hash = HashFlock::FLOCK.circuit();
     assert_eq!(
-        form.evaluate(hash),
+        form.evaluate(&mut Portable, hash),
         b.e(rows.matrix.value),
         "the hash rows' matrix claim settles"
     );

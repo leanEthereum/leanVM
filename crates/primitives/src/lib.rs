@@ -6,6 +6,7 @@ pub mod bits;
 pub mod field;
 pub mod hash;
 pub mod multilinear;
+pub mod portable;
 pub mod stream;
 
 use std::mem::MaybeUninit;

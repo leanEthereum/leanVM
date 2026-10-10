@@ -205,6 +205,26 @@ fn nested_dispatch_panics_rather_than_deadlocking() {
     });
 }
 
+/// A serial section refuses even a dispatch the pool would run inline, so a stray one fails on any pool and size.
+#[test]
+#[should_panic = "parallel dispatch inside a serial section"]
+fn a_serial_section_refuses_every_dispatch() {
+    let _serial = parallel::serial();
+    parallel::for_each(1, |_| {});
+}
+
+#[test]
+fn a_serial_section_ends_with_its_guard() {
+    assert!(
+        std::panic::catch_unwind(|| {
+            let _serial = parallel::serial();
+            panic!("inside");
+        })
+        .is_err()
+    );
+    assert_eq!(parallel::map_collect(scaled(1_000), |i| i).len(), scaled(1_000));
+}
+
 #[test]
 fn find_first_returns_the_global_minimum() {
     for n in SIZES {

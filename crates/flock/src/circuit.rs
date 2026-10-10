@@ -703,9 +703,9 @@ impl LincheckCircuit for Circuit {
         m
     }
 
-    fn bilinear_form(&self, alpha: F192, u: &[F192], w: &[F192]) -> Option<F192> {
-        let (ra, rb) = self.row_values(w);
-        Some((u.iter().zip(ra.iter().zip(&rb))).fold(F192::ZERO, |acc, (&u, (&a, &b))| acc + u * (a + alpha * b)))
+    /// One forward walk.
+    fn matrix_rows(&self, w: &[F192]) -> (Vec<F192>, Vec<F192>) {
+        self.row_values(w)
     }
 }
 

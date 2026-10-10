@@ -6,7 +6,8 @@
 //! - In rows they are the wires holding them, and an opened row is authenticated by hash rows.
 
 use super::whir::sample_queries_ordered;
-use fiat_shamir::arith::Verifier;
+use fiat_shamir::Hashing;
+use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::merkle::Hash;
 use fiat_shamir::transcript::{Receiver, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
@@ -63,7 +64,7 @@ pub trait OpeningVerifier: Verifier {
     fn query_point(&mut self, query: &Self::Query) -> Self::E;
 }
 
-impl OpeningVerifier for VerifierState<'_> {
+impl<A: Arith<E = F192> + Hashing> OpeningVerifier for VerifierState<'_, A> {
     type Root = Hash;
     type K = F64;
     type Query = usize;
@@ -92,7 +93,7 @@ impl OpeningVerifier for VerifierState<'_> {
     }
 
     fn mul_k_add(&mut self, a: F192, k: F64, d: F192) -> F192 {
-        a.mul_base(k) + d
+        self.mul_const_add(a, F192::from(k), d)
     }
 
     fn e_of_limbs(&mut self, limbs: [F64; 3]) -> F192 {

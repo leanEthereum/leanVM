@@ -312,6 +312,19 @@ pub struct RingMap<E> {
     coefficients: Vec<E>,
 }
 
+/// `x^(2^-k)` for each `k < 64`, at compile time: `x^(2^(64 - k))`, since 64 squarings are the identity on `K`.
+static X_ROOTS: [F64; F64::DEGREE] = {
+    let mut roots = [F64::G; F64::DEGREE];
+    let (mut power, mut i) = (F64::G, 1);
+    while i < F64::DEGREE {
+        // `x^(2^i)`, which is `x^(2^-(64 - i))`.
+        power = power.square_portable();
+        roots[F64::DEGREE - i] = power;
+        i += 1;
+    }
+    roots
+};
+
 impl<E: Copy> RingMap<E> {
     /// The map of the six challenges `f_0..f_5`, in drawing order.
     ///
@@ -355,11 +368,9 @@ impl<E: Copy> RingMap<E> {
         assert_eq!(slices.len(), F64::DEGREE, "a family has 64 slices");
         let terms: Vec<E> = (0..F64::DEGREE)
             .map(|k| {
-                // `x^(2^-k) = x^(2^(64 - k))`, since 64 squarings are the identity on `K`.
-                let xk = (0..(F64::DEGREE - k) % F64::DEGREE).fold(F64(2), |x, _| x.square());
                 // `S(x^(2^-k))` by Horner's rule, from the last slice down.
                 let (&last, rest) = slices.split_last().expect("64 slices");
-                let s = (rest.iter().rev()).fold(last, |acc, &sj| a.mul_const_add(acc, F192::from(xk), sj));
+                let s = (rest.iter().rev()).fold(last, |acc, &sj| a.mul_const_add(acc, F192::from(X_ROOTS[k]), sj));
                 a.mul(self.coefficients[k], s)
             })
             .collect();

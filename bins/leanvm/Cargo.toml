@@ -37,3 +37,7 @@ tracing.workspace = true
 clap = { version = "4", features = ["derive"] }
 # The pinned cases' benchmarks, merged with this process's.
 serde_json = "1"
+
+[dev-dependencies]
+# Arms the portable verifier's guard in every workspace test build (`primitives::portable`), and in no benchmark's.
+primitives = { workspace = true, features = ["guard"] }

@@ -78,7 +78,7 @@ pub(crate) trait PublicColumns: Arith {
 
 impl PublicColumns for Native {}
 
-impl PublicColumns for VerifierState<'_> {}
+impl<A: Arith<E = F192>> PublicColumns for VerifierState<'_, A> {}
 
 impl Coord {
     /// Whether the coordinate is linear in the columns: it multiplies no column by another.
@@ -146,14 +146,13 @@ impl SparseColumn {
     }
 
     /// The column's multilinear extension at `point`.
-    pub(crate) fn eval(&self, point: &[F192]) -> F192 {
+    pub(crate) fn eval<A: Arith<E = F192>>(&self, a: &mut A, point: &[F192]) -> F192 {
         assert_eq!(point.len(), self.log_len);
         self.blocks.iter().fold(F192::ZERO, |acc, (at, words)| {
             let k = words.len().ilog2() as usize;
-            let selector = point[k..].iter().enumerate().fold(F192::ONE, |s, (j, &z)| {
-                s * if (at >> (k + j)) & 1 == 1 { z } else { z + F192::ONE }
-            });
-            acc + selector * primitives::multilinear::mle_eval(words, &point[..k])
+            let selector = a.eq_bits(at >> k, &point[k..]);
+            let block = a.public_mle(words, &point[..k]);
+            a.mul_add(selector, block, acc)
         })
     }
 }

@@ -326,7 +326,7 @@ mod tests {
     #[test]
     fn rows_preserve_long_runs_partial_blocks_and_nonce_resets() {
         const RUNS: [(usize, usize); 7] = [(0, 1), (1, 2), (2, 3), (3, 4), (8, 5), (9, 17), (17, 65)];
-        let mut native = Duplex::from_label(LABEL);
+        let mut native: Duplex = Duplex::from_label(LABEL);
         let mut raw = RawProof {
             stream: Vec::new(),
             merkle: Vec::new(),

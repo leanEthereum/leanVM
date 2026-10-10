@@ -40,19 +40,16 @@ pub fn powers(x: F192, n: usize) -> Vec<F192> {
     out
 }
 
-/// `g^i = x^i` in the monomial basis of `K` by square-and-multiply (`O(log i)`).
+/// `g^i = x^i` in the monomial basis of `K` by square-and-multiply (`O(log i)`), by the portable products.
 ///
-/// A table's tag in the bytecode is `g` raised to its index.
-#[inline]
-pub fn g_pow(i: usize) -> F64 {
-    let mut result = F64::ONE;
-    let mut base = G; // x = g
-    let mut e = i;
+/// A table's tag in the bytecode is `g` raised to its index, which the verifier's layout computes too.
+pub const fn g_pow(i: usize) -> F64 {
+    let (mut result, mut base, mut e) = (F64::ONE, G, i);
     while e > 0 {
         if e & 1 == 1 {
-            result *= base;
+            result = result.mul_portable(base);
         }
-        base = base * base;
+        base = base.square_portable();
         e >>= 1;
     }
     result

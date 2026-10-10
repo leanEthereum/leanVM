@@ -28,9 +28,10 @@ use crate::rec::transcript::ProofSource;
 use crate::rec::verifier::ProofShape;
 use crate::tables::PerTable;
 use design::{ChildWitness, Design, LeafWitness, NodeInputs, NodeRows};
+use fiat_shamir::Hashing;
+use fiat_shamir::arith::{Arith, Native, Portable};
 use fiat_shamir::transcript::{ProofTranscript, RawProof};
 use primitives::field::{F64, F192};
-use primitives::multilinear::{eq_table, mle_eval_par};
 use reduce::DenseTables;
 use statement::TreeStatement;
 use thiserror::Error;
@@ -458,7 +459,7 @@ impl<'p> Tree<'p> {
                 if LeafShape::announced(proof) != Some(shape) {
                     return Err(TreeError::ForeignLeaf { index });
                 }
-                let raw = (program.verify_to_raw(output, proof)).map_err(|error| TreeError::Leaf {
+                let raw = (program.replay_native(output, proof)).map_err(|error| TreeError::Leaf {
                     index,
                     error: error.into(),
                 })?;
@@ -490,7 +491,7 @@ impl<'p> Tree<'p> {
             });
         }
         let raws = (children.iter().enumerate())
-            .map(|(index, c)| self.read(c).map_err(|error| TreeError::Child { index, error }))
+            .map(|(index, c)| self.read(Native, c).map_err(|error| TreeError::Child { index, error }))
             .collect::<Result<Vec<_>, _>>()?;
         let statements: Vec<TreeStatement> = (children.iter())
             .map(|c| TreeStatement::new(d.statement, c.words.clone()))
@@ -539,6 +540,7 @@ impl<'p> Tree<'p> {
     /// Returns the first check that refuses.
     #[tracing::instrument(name = "Verify tree", skip_all)]
     pub fn verify(&self, root: &TreeProof, outputs: &[Output]) -> Result<(), TreeError> {
+        let _portable = primitives::portable::enter();
         let d = &self.design;
         if root.rate != d.rate {
             return Err(TreeError::Rate {
@@ -554,7 +556,7 @@ impl<'p> Tree<'p> {
                 got: root.kind,
             });
         }
-        self.read(root).map_err(TreeError::Root)?;
+        self.read(Portable, root).map_err(TreeError::Root)?;
         let statement = TreeStatement::new(d.statement, root.words.clone());
         if statement.digest_words() != self.digest(outputs) {
             return Err(TreeError::Outputs);
@@ -573,10 +575,13 @@ impl<'p> Tree<'p> {
         level[0]
     }
 
-    /// Verify a tree proof's recursion proof, short of its claims, returning it as its verifier read it.
-    fn read(&self, p: &TreeProof) -> Result<RawProof, VerifyError> {
+    /// Verify a tree proof's recursion proof on `arith`, short of its claims, returning it as its verifier read it.
+    ///
+    /// The root's verifier reads on [`Portable`]; a node's prover replays its children on [`Native`].
+    fn read<A: Arith<E = F192> + Hashing>(&self, arith: A, p: &TreeProof) -> Result<RawProof, VerifyError> {
         let limbs: Vec<[u64; 4]> = p.words.iter().map(|w| [w.c0, w.c1, w.c2, 0]).collect();
         let raw = self.circuit(p.kind).verify_to_raw_with(
+            arith,
             &limbs,
             self.design.iv,
             self.design.rate,
@@ -617,6 +622,7 @@ impl<'p> Tree<'p> {
     /// Evaluate every claim a root's statement carries.
     #[tracing::instrument(name = "Settle claims", skip_all)]
     fn settle(&self, s: &TreeStatement, kind: Kind) -> Result<(), TreeError> {
+        let a = &mut Portable;
         let vars = &self.design.vars.0;
         for poly in DensePoly::ALL {
             // A first-level node reduces no claim on the fixed polynomial.
@@ -624,26 +630,23 @@ impl<'p> Tree<'p> {
                 continue;
             }
             let point = &s.dense_point()[..vars[poly as usize]];
-            if mle_eval_par(&self.tables.0[poly as usize], point) != s.dense_value(poly) {
+            if a.public_mle(&self.tables.0[poly as usize], point) != s.dense_value(poly) {
                 return Err(TreeError::Claim(FalseClaim::Dense(poly)));
             }
         }
-        let held = parallel::map_collect(FlockId::ALL.len(), |f| {
-            let f = FlockId::ALL[f];
+        for f in FlockId::ALL {
             let circuit = f.circuit();
             let k = circuit.k_log();
-            let (ra, rb) = circuit.row_values(&eq_table(&s.cols()[..k]));
-            let u = eq_table(&s.rows()[..k]);
-            let dot = |r: &[F192]| u.iter().zip(r).fold(F192::ZERO, |acc, (&x, &y)| acc + x * y);
-            [dot(&ra), dot(&rb)] == s.matrices(f)
-        });
-        (FlockId::ALL.into_iter().zip(held))
-            .find(|&(_, h)| !h)
-            .map_or(Ok(()), |(f, _)| {
-                Err(TreeError::Claim(FalseClaim::Matrix {
+            let cols = a.eq_table(&s.cols()[..k]);
+            let (ra, rb) = circuit.row_values(&cols);
+            let u = a.eq_table(&s.rows()[..k]);
+            if [a.dot(&u, &ra), a.dot(&u, &rb)] != s.matrices(f) {
+                return Err(TreeError::Claim(FalseClaim::Matrix {
                     table: f.table().name(),
                     part: f.part(),
-                }))
-            })
+                }));
+            }
+        }
+        Ok(())
     }
 }

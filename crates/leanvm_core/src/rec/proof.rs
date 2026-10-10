@@ -16,7 +16,10 @@ use crate::leaf::PublicColumns;
 use crate::pcs::{Commitment, Committed, Rate, RingSwitch, StackClaim};
 use crate::rv::circuits::blake2s_witness;
 use crate::{constraints, witness};
-use fiat_shamir::arith::Verifier;
+use fiat_shamir::Hashing;
+#[cfg(test)]
+use fiat_shamir::arith::Portable;
+use fiat_shamir::arith::{Arith, Native, Verifier};
 use fiat_shamir::transcript::{Challenger, ProofTranscript, ProverState, RawProof, VerifierState};
 use flock::FlockError;
 use flock::Tables;
@@ -29,10 +32,10 @@ use std::borrow::Cow;
 use std::mem::MaybeUninit;
 use tracing::info_span;
 
-/// The transcript's public input for a statement: the hash of its words' limbs, in order.
-pub fn statement_seed(statement: &[Limbs]) -> [F64; 4] {
+/// The transcript's public input for a statement: the hash of its words' limbs, in order, by `H`.
+pub fn statement_seed<H: Hashing>(statement: &[Limbs]) -> [F64; 4] {
     let limbs: Vec<u64> = statement.iter().flatten().copied().collect();
-    chain(&limbs).map(F64)
+    chain::<H>(&limbs).map(F64)
 }
 
 /// The hash table's flock batch, one instance per row, but its `z`, which is the stack's packed-witness window.
@@ -275,7 +278,7 @@ impl Circuit {
             "the assignment's rows are the circuit's"
         );
         let layout = RecLayout::new(self)?;
-        let mut ps = ProverState::new(iv, statement_seed(&a.statement));
+        let mut ps = ProverState::new(iv, statement_seed::<Native>(&a.statement));
 
         let w = info_span!("Build witness").in_scope(|| RecWitness::build(&layout, a));
         let committed = info_span!("Commit")
@@ -294,7 +297,7 @@ impl Circuit {
         Ok(ps.into_proof())
     }
 
-    /// [`Self::verify_to_raw_with`], building the circuit's fixed columns itself.
+    /// [`Self::verify_to_raw_with`], portable, building the circuit's fixed columns itself.
     #[cfg(test)]
     pub(crate) fn verify_to_raw(
         &self,
@@ -303,31 +306,51 @@ impl Circuit {
         rate: Rate,
         proof: &ProofTranscript,
     ) -> Result<RawProof, RecError> {
-        self.verify_seeded(statement, iv, statement_seed(statement), rate, proof, None)
+        let _portable = primitives::portable::enter();
+        self.verify_seeded(
+            Portable,
+            statement,
+            iv,
+            statement_seed::<Portable>(statement),
+            rate,
+            proof,
+            None,
+        )
     }
 
-    /// Verify a proof with the circuit's fixed columns at its heights, returning it as its verifier read it, every
-    /// Merkle path written out.
+    /// Verify a proof on `arith` with the circuit's fixed columns at its heights, returning it as its verifier read it,
+    /// every Merkle path written out.
     ///
     /// That is what a recursive verifier replays.
     ///
     /// # Errors
     ///
     /// Returns the first check that refuses the proof.
-    pub(crate) fn verify_to_raw_with(
+    pub(crate) fn verify_to_raw_with<A: Arith<E = F192> + Hashing>(
         &self,
+        arith: A,
         statement: &[Limbs],
         iv: [F64; 4],
         rate: Rate,
         proof: &ProofTranscript,
         fixed: &FixedColumns,
     ) -> Result<RawProof, RecError> {
-        self.verify_seeded(statement, iv, statement_seed(statement), rate, proof, Some(fixed))
+        self.verify_seeded(
+            arith,
+            statement,
+            iv,
+            statement_seed::<A>(statement),
+            rate,
+            proof,
+            Some(fixed),
+        )
     }
 
     /// Verify a proof whose transcript absorbed the given public input in place of the statement.
-    fn verify_seeded(
+    #[expect(clippy::too_many_arguments, reason = "the verifier's inputs, each of its own kind")]
+    fn verify_seeded<A: Arith<E = F192> + Hashing>(
         &self,
+        arith: A,
         statement: &[Limbs],
         iv: [F64; 4],
         public_input: [F64; 4],
@@ -342,10 +365,12 @@ impl Circuit {
             });
         }
         let layout = RecLayout::new(self)?;
-        let mut vs = VerifierState::new(iv, proof, public_input);
+        let mut vs = VerifierState::with_arith(arith, iv, proof, public_input);
         let fixed = fixed.map_or_else(|| Cow::Owned(FixedColumns::of(self, &layout.taus)), Cow::Borrowed);
         let matrices = TableArgument::of(&fixed, statement, &layout).verify_core(&mut vs, rate)?;
-        matrices.check(HashFlock::circuit()).map_err(FlockError::Lincheck)?;
+        matrices
+            .check(&mut vs, HashFlock::circuit())
+            .map_err(FlockError::Lincheck)?;
         Ok(vs.into_raw_proof())
     }
 }
@@ -489,7 +514,7 @@ mod tests {
         } = b.finish();
         assert!(failures.is_empty(), "{failures:?}");
         let proof = prove_run(&circuit, &a);
-        let seed = statement_seed(&a.statement);
+        let seed = statement_seed::<Portable>(&a.statement);
 
         // Replay the honest verifier up to the bus to read the fingerprint weights of the limbs.
         let layout = RecLayout::new(&circuit).unwrap();
@@ -527,7 +552,7 @@ mod tests {
         // Under the honest seed the bus accepts the forged words; seeded with them, the proof is refused.
         assert!(
             circuit
-                .verify_seeded(&forged, IV, seed, Rate::MIN, &proof, None)
+                .verify_seeded(Portable, &forged, IV, seed, Rate::MIN, &proof, None)
                 .is_ok()
         );
         assert!(matches!(

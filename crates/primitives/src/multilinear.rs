@@ -9,7 +9,7 @@
 use std::mem::MaybeUninit;
 use std::ops::Range;
 
-use crate::field::gf2_64::{reduce, software::clmul};
+use crate::field::gf2_64::{portable::clmul, reduce};
 use crate::field::{
     F64, F192, F192Unreduced, PHI_8_TABLE_192 as PHI_8_TABLE, Weights8, dot_base, mul_base8, mul_unreduced4, mul4,
 };

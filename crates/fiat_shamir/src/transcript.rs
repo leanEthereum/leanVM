@@ -1,7 +1,8 @@
 //! Fiat-Shamir proof transport. `add_scalar` and `next_scalar` transmit and bind together, which is the only way anything enters the state: a transmitted value needs no separate absorb, a value derived from transmitted ones needs none either, and the statement rides the seed the state starts from. So there is no absorb-only method at all. Merkle hints are authenticated by their trees and are not absorbed separately.
 
-use crate::Duplex;
+use crate::arith::{Arith, Native, Portable};
 use crate::merkle::{Hash, PrunedMerklePaths, RawMerklePath, hash_to_scalars, scalars_to_hash};
+use crate::{Duplex, Hashing};
 use bincode::{DefaultOptions, Options};
 use primitives::field::{F64, F192};
 use serde::de::DeserializeOwned;
@@ -188,28 +189,47 @@ impl ProverState {
 
 /// Verifier side: reads scalars from a received [`ProofTranscript`] (borrowed) and pulls
 /// opening phases in order.
-pub struct VerifierState<'a> {
-    fs: Duplex,
+///
+/// Its backend `A` computes and hashes: the native verifier's [`Portable`], or [`Native`] where a prover replays a
+/// proof it is handed, which feeds its own proof and nobody's trust.
+pub struct VerifierState<'a, A = Portable> {
+    fs: Duplex<A>,
     stream: &'a [F192],
     offset: usize,
     merkle: &'a [PrunedMerklePaths],
     phase: usize,
     raw_openings: Vec<RawMerklePath>,
+    /// The arithmetic it computes with.
+    pub(crate) arith: A,
 }
 
 impl<'a> VerifierState<'a> {
     /// `iv` and `public_input` seed the duplex (see [`Duplex::new`]).
     /// They must match the prover's, or the two states diverge and verification fails.
     pub fn new(iv: [F64; 4], proof: &'a ProofTranscript, public_input: [F64; 4]) -> Self {
-        Self::from_fs(Duplex::new(iv, public_input), proof)
+        Self::with_arith(Portable, iv, proof, public_input)
     }
 
     /// A protocol with no public input of its own, seeded from `label` alone.
     pub fn from_label(label: &[u8], proof: &'a ProofTranscript) -> Self {
-        Self::from_fs(Duplex::from_label(label), proof)
+        Self::from_fs(Duplex::from_label(label), proof, Portable)
+    }
+}
+
+impl<'a> VerifierState<'a, Native> {
+    /// [`VerifierState::new`] on the prover's arithmetic, for a prover replaying a proof it is handed.
+    pub fn native(iv: [F64; 4], proof: &'a ProofTranscript, public_input: [F64; 4]) -> Self {
+        Self::with_arith(Native, iv, proof, public_input)
+    }
+}
+
+impl<'a, A: Hashing> VerifierState<'a, A> {
+    /// [`VerifierState::new`], computing with `arith`.
+    pub fn with_arith(arith: A, iv: [F64; 4], proof: &'a ProofTranscript, public_input: [F64; 4]) -> Self {
+        Self::from_fs(Duplex::new(iv, public_input), proof, arith)
     }
 
-    fn from_fs(fs: Duplex, proof: &'a ProofTranscript) -> Self {
+    fn from_fs(fs: Duplex<A>, proof: &'a ProofTranscript, arith: A) -> Self {
         Self {
             fs,
             stream: &proof.stream,
@@ -217,6 +237,7 @@ impl<'a> VerifierState<'a> {
             merkle: &proof.merkle,
             phase: 0,
             raw_openings: Vec::new(),
+            arith,
         }
     }
 
@@ -294,7 +315,7 @@ impl Transmitter for ProverState {
     }
 }
 
-impl<'a> Receiver for VerifierState<'a> {
+impl<'a, A: Arith<E = F192> + Hashing> Receiver for VerifierState<'a, A> {
     /// Verifier mirror of [`Transmitter::hint_merkle`]: pull the next opening
     /// phase, authenticate every queried row against `root`, and return the rows
     /// in `queries` order.
@@ -314,7 +335,7 @@ impl<'a> Receiver for VerifierState<'a> {
         let paths: &'a PrunedMerklePaths = self.merkle.get(phase).ok_or(TranscriptError::MissingHint { phase })?;
         self.phase += 1;
         let openings = paths
-            .open(root, num_leaves, queries, row_words, leaf_words)
+            .open::<A>(root, num_leaves, queries, row_words, leaf_words)
             .ok_or(TranscriptError::InvalidMerkleOpening { phase })?;
         let rows = openings.iter().map(|o| o.leaf_data.clone()).collect();
         self.raw_openings.extend(openings);
@@ -342,16 +363,12 @@ impl<'a> Receiver for VerifierState<'a> {
             coeffs[i] = self.take_raw()?;
         }
         let sum_from = |from: usize| coeffs[from..].iter().fold(F192::ZERO, |acc, &c| acc + c);
-        coeffs[fixed] = eq.map_or_else(
-            || {
-                // An ordinary round reconstructs its linear coefficient from the claimed sum.
-                claim + sum_from(2)
-            },
-            |r| {
-                // An equality-weighted round reconstructs its constant coefficient using the weighting challenge.
-                claim + r * sum_from(1)
-            },
-        );
+        coeffs[fixed] = match eq {
+            // An ordinary round reconstructs its linear coefficient from the claimed sum.
+            None => claim + sum_from(2),
+            // An equality-weighted round reconstructs its constant coefficient using the weighting challenge.
+            Some(r) => self.arith.mul_add(r, sum_from(1), claim),
+        };
         for (i, &c) in coeffs.iter().enumerate() {
             if i != fixed {
                 self.bind(c);
@@ -384,7 +401,7 @@ impl Challenger for ProverState {
     }
 }
 
-impl Challenger for VerifierState<'_> {
+impl<A: Hashing> Challenger for VerifierState<'_, A> {
     fn sample(&mut self) -> F192 {
         self.fs.sample()
     }

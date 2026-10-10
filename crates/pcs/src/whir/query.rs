@@ -33,38 +33,67 @@ use std::collections::HashMap;
 /// The subspace polynomials' normalizers on the standard basis, `s_k(v_k)` for `k <= log_n`, and their inverses.
 ///
 /// Each is nonzero: `v_k` lies outside the span of `v_0, ..., v_(k-1)`, where `s_k` vanishes.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct Normalizers {
     /// `s_k(v_k)`, for `k = 0..=log_n`.
-    at_roots: Vec<F64>,
+    at_roots: &'static [F64],
     /// `1 / s_k(v_k)`.
-    inverses: Vec<F64>,
+    inverses: &'static [F64],
 }
+
+/// `s_k(v_k)` for every `k < 64`, at compile time: a domain's normalizers are a prefix of them.
+static AT_ROOTS: [F64; 64] = {
+    // The recurrence `s_(k+1)(x) = s_k(x) (s_k(x) + s_k(v_k))`, run on every basis vector above the current one.
+    //
+    // At step `k`, `row[j]` holds `s_k(v_j)` for `j > k`, and entry `k + 1` is the next normalizer.
+    let mut at_roots = [F64::ONE; 64];
+    let mut row = [F64::ZERO; 64];
+    let mut j = 1;
+    while j < 64 {
+        row[j] = F64(1 << j);
+        j += 1;
+    }
+    let mut k = 0;
+    while k + 1 < 64 {
+        let mut j = k + 1;
+        while j < 64 {
+            row[j] = row[j].mul_portable(F64(row[j].0 ^ at_roots[k].0));
+            j += 1;
+        }
+        at_roots[k + 1] = row[k + 1];
+        k += 1;
+    }
+    at_roots
+};
+
+/// `1 / s_k(v_k)` for every `k < 64`.
+static INVERSES: [F64; 64] = {
+    let mut inverses = AT_ROOTS;
+    let mut k = 0;
+    while k < 64 {
+        inverses[k] = inverses[k].inv_portable();
+        k += 1;
+    }
+    inverses
+};
 
 impl Normalizers {
     /// The normalizers of a domain of `2^log_n` points.
     pub(crate) fn new(log_n: usize) -> Self {
-        // The recurrence `s_(k+1)(x) = s_k(x) (s_k(x) + s_k(v_k))`, run on every basis vector above the current one.
-        //
-        // Row `k` holds `s_k(v_j)` for `j > k`; its first entry gives the next normalizer.
-        let mut at_roots = vec![F64::ONE; log_n + 1];
-        let mut row: Vec<F64> = (1..=log_n).map(|i| F64(1u64 << i)).collect();
-        for k in 0..log_n {
-            row = row.iter().map(|&s| s * (s + at_roots[k])).collect();
-            at_roots[k + 1] = row.remove(0);
+        Self {
+            at_roots: &AT_ROOTS[..=log_n],
+            inverses: &INVERSES[..=log_n],
         }
-        let inverses = at_roots.iter().map(|s| s.inv()).collect();
-        Self { at_roots, inverses }
     }
 
     /// `s_k(v_k)`, for `k = 0..=log_n`.
-    pub(crate) fn at_roots(&self) -> &[F64] {
-        &self.at_roots
+    pub(crate) const fn at_roots(&self) -> &[F64] {
+        self.at_roots
     }
 
     /// `1 / s_k(v_k)`, for `k = 0..=log_n`.
-    pub(crate) fn inverses(&self) -> &[F64] {
-        &self.inverses
+    pub(crate) const fn inverses(&self) -> &[F64] {
+        self.inverses
     }
 
     /// The normalized `s_k(x) / s_k(v_k)`, for `k < out.len()`.

@@ -80,7 +80,7 @@ fn encode(payload: &[u64]) -> Vec<u64> {
 fn dual_codeword(root: &Hash) -> Vec<Dual> {
     // The challenges: the root's two halves observed, then 14 samples in `GF(2^192)`.
     let root: [u8; 32] = std::array::from_fn(|i| (root[i / 8] >> (8 * (i % 8))) as u8);
-    let mut duplex = Duplex::from_label(LABEL);
+    let mut duplex: Duplex = Duplex::from_label(LABEL);
     for x in hash_to_scalars(&root) {
         duplex.observe(x);
     }

@@ -51,7 +51,7 @@ pub fn producer_affine_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta
             constant = a.square(constant);
             for (weight, monomials) in &mut affine {
                 *weight = a.square(*weight);
-                monomials.iter_mut().for_each(|m| *m = *m * *m);
+                monomials.iter_mut().for_each(|m| *m = m.square_portable());
             }
         }
     }
@@ -72,8 +72,14 @@ pub fn producer_affine_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta
 /// ```
 ///
 /// That is one pass over the columns, then a fixed cost per coordinate, bit and power.
-pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], twist: &[F192]) -> F192 {
-    let eq = primitives::multilinear::eq_table(chi);
+pub(crate) fn producer_public_twist<A: Arith<E = F192>>(
+    a: &mut A,
+    coords: &[Coord],
+    w: &[F192],
+    chi: &[F192],
+    twist: &[F192],
+) -> F192 {
+    let eq = a.eq_table(chi);
     let mut total = F192::ZERO;
     for (c, &weight) in coords.iter().zip(w) {
         let Coord::Public(PublicColumn { values: vals, .. }) = c else {
@@ -92,10 +98,11 @@ pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], 
         let mut weight = weight;
         let mut basis: [F64; 64] = std::array::from_fn(|k| F64(1 << k));
         for &mu in twist {
-            let sum = (slices.iter().zip(&basis)).fold(F192::ZERO, |s, (b, &g)| s + b.mul_base(g));
-            total += mu * weight * sum;
-            weight = weight.square();
-            basis.iter_mut().for_each(|g| *g = *g * *g);
+            let sum = (slices.iter().zip(&basis)).fold(F192::ZERO, |s, (&b, &g)| a.mul_const_add(b, F192::from(g), s));
+            let mu_weight = a.mul(mu, weight);
+            total = a.mul_add(mu_weight, sum, total);
+            weight = a.square(weight);
+            basis.iter_mut().for_each(|g| *g = g.square_portable());
         }
     }
     total
@@ -523,6 +530,8 @@ impl Side<'_> {
             Ok::<_, Infallible>(v)
         });
         let Ok(framework) = framework;
-        (open.sparse.drain(..)).fold(framework, |acc, s| acc + s.weight * s.column.eval(&s.point))
+        (open.sparse.drain(..)).fold(framework, |acc, s| {
+            acc + s.weight * s.column.eval(&mut Native, &s.point)
+        })
     }
 }

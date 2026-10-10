@@ -121,6 +121,7 @@ impl Builder {
 mod tests {
     use super::*;
     use crate::rec::circuit::{chain, digest_limbs};
+    use fiat_shamir::arith::{Native, Portable};
 
     #[test]
     fn the_chain_in_rows_is_the_native_chain() {
@@ -129,11 +130,12 @@ mod tests {
             let mut b = Builder::new();
             let wires: Vec<Kw> = words.iter().map(|&w| b.free_k(w)).collect();
             let h = b.chain(&wires);
-            assert_eq!(b.d(h), chain(&words), "{n} words");
+            assert_eq!(b.d(h), chain::<Portable>(&words), "{n} words");
+            assert_eq!(chain::<Native>(&words), chain::<Portable>(&words), "{n} words");
             // The native chain is BLAKE2s of the words' bytes, so its length is hashed.
             let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
             assert_eq!(
-                chain(&words),
+                chain::<Portable>(&words),
                 digest_limbs(&primitives::hash::hash(&bytes)),
                 "{n} words"
             );

@@ -504,6 +504,7 @@ pub(crate) mod tests {
     use crate::pcs::MAX_MU;
     use crate::rv::Region;
     use crate::tables::PerTable;
+    use fiat_shamir::arith::Portable;
     use fiat_shamir::transcript::{ProverState, VerifierState};
     use std::collections::HashMap;
     use std::sync::Arc;
@@ -606,7 +607,7 @@ pub(crate) mod tests {
         assert_eq!(column.dense().iter().filter(|w| !w.is_zero()).count(), words.len());
         let point: Vec<F192> = (0..9).map(|i| F192::new(3 + i, 5 * i + 1, 7)).collect();
         assert_eq!(
-            column.eval(&point),
+            column.eval(&mut Portable, &point),
             primitives::multilinear::mle_eval(column.dense(), &point)
         );
     }

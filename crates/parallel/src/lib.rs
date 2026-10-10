@@ -1,7 +1,8 @@
-//! Fixed-size thread pool for flat data-parallel kernels. Workers claim ranges from one shared counter, which also balances heterogeneous cores. Dispatches cannot nest. Task panics are resumed on the dispatcher after all workers stop.
+//! Fixed-size thread pool for flat data-parallel kernels. Workers claim ranges from one shared counter, which also balances heterogeneous cores. Dispatches cannot nest, and a [`serial`] section refuses them. Task panics are resumed on the dispatcher after all workers stop.
 
 use std::any::Any;
 use std::cell::{Cell, UnsafeCell};
+use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 use std::ops::Deref;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
@@ -47,7 +48,35 @@ const CHUNK_FLOOR: usize = 64;
 
 thread_local! {
     static WORKER_ID: Cell<usize> = const { Cell::new(0) };
-    static IN_TASK: Cell<bool> = const { Cell::new(false) };
+    /// Why a dispatch from this thread would be a bug, if it would: set inside a pool task and inside [`serial`].
+    static REFUSED: Cell<Option<&'static str>> = const { Cell::new(None) };
+}
+
+/// Refuse every dispatch from this thread while the returned guard lives: one panics, whatever the pool's size.
+///
+/// The native verifier holds one, so that a dispatch it reaches fails every test that verifies a proof, rather than
+/// only those whose sizes cross a kernel's threshold or whose pool has more than one worker.
+#[must_use = "dispatch is refused only while the guard lives"]
+pub fn serial() -> Serial {
+    let previous = REFUSED.get();
+    REFUSED.set(Some(previous.unwrap_or("parallel dispatch inside a serial section")));
+    Serial {
+        previous,
+        _thread: PhantomData,
+    }
+}
+
+/// A [`serial`] section: dropping it restores the previous refusal, on return and on unwinding alike.
+pub struct Serial {
+    previous: Option<&'static str>,
+    /// The refusal is this thread's, so the guard stays on it.
+    _thread: PhantomData<*const ()>,
+}
+
+impl Drop for Serial {
+    fn drop(&mut self) {
+        REFUSED.set(self.previous);
+    }
 }
 
 /// A type-erased work unit. The `&dyn Fn`'s lifetime is erased to `'static`; it
@@ -231,7 +260,7 @@ fn drain(pool: &Pool) {
     let f = unsafe { job.f.as_ref() };
     let task_count = job.n_tasks;
     let worker_count = num_threads();
-    IN_TASK.set(true); // catches nested dispatch; see `for_each_chunk`
+    REFUSED.set(Some("nested parallel dispatch from inside a pool task")); // see `for_each_chunk`
     // Catch a task panic so it cannot unwind across `worker_main` (skipping the
     // `entered` decrement and hanging the join) or poison the dispatch lock.
     let result = catch_unwind(AssertUnwindSafe(|| {
@@ -250,7 +279,7 @@ fn drain(pool: &Pool) {
             f(start, (start + batch).min(task_count));
         }
     }));
-    IN_TASK.set(false);
+    REFUSED.set(None);
     if let Err(payload) = result {
         pool.panic.lock().unwrap().get_or_insert(payload); // keep the first
     }
@@ -266,9 +295,11 @@ fn drain(pool: &Pool) {
 /// # Panics
 /// If called from inside a pool task: that would deadlock on the dispatch lock, so
 /// it panics rather than silently serializing. Fan out over the outermost
-/// independent unit and keep the levels below it sequential.
+/// independent unit and keep the levels below it sequential. Also if called inside [`serial`].
 pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
-    assert!(!IN_TASK.get(), "nested parallel dispatch from inside a pool task");
+    if let Some(why) = REFUSED.get() {
+        panic!("{why}");
+    }
 
     let worker_count = num_threads();
     if worker_count <= 1 || n_tasks <= 1 {

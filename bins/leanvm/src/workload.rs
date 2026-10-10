@@ -234,7 +234,8 @@ impl Workload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use leanvm::Rate;
+    use leanvm::aggregate::{Leaf, LeafShape, Tree, TreeShape};
+    use leanvm::{Proof, Rate};
 
     #[test]
     fn the_workloads_prove() {
@@ -260,5 +261,57 @@ mod tests {
             assert_eq!(stats.base_counts, exec.base_counts, "{}", workload.title);
             assert_eq!(stats.proven_rows, exec.proven_rows, "{}", workload.title);
         }
+    }
+
+    /// Verification is portable and single-threaded: every native verifier holds a `primitives::portable::Section`, in
+    /// which this crate's tests (the `guard` feature) make a pool dispatch and every SIMD or assembly kernel panic.
+    /// A verifier that reached either fails here, and so does a guard that stopped refusing them.
+    #[test]
+    fn verification_is_portable_and_single_threaded() {
+        const { assert!(primitives::portable::GUARDED, "the CLI's tests arm the guard") };
+        let refused = |f: fn()| {
+            std::panic::catch_unwind(|| {
+                let _portable = primitives::portable::enter();
+                f();
+            })
+            .is_err()
+        };
+        assert!(refused(|| parallel::for_each(1, |_| {})));
+        #[cfg(any(
+            all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+            all(target_arch = "aarch64", target_feature = "aes")
+        ))]
+        assert!(refused(|| {
+            let y = std::hint::black_box(primitives::field::F192::Y);
+            std::hint::black_box(y * y);
+        }));
+        #[cfg(target_arch = "x86_64")]
+        assert!(refused(|| _ = std::hint::black_box(hash(b"leanvm"))));
+
+        // A leaf proof, a tampered copy of it, and a two-leaf tree over it, each verified in the guard.
+        let leaf = Workload::fibonacci(1_000);
+        let prover = Prover::new(Rate::MIN);
+        let proved = leaf.prove(&prover);
+        leaf.program
+            .verify(proved.output, &proved.proof)
+            .expect("an honest proof");
+        let mut bytes = proved.proof.to_bytes();
+        let middle = bytes.len() / 2;
+        bytes[middle] ^= 1;
+        if let Ok(tampered) = Proof::from_bytes(&bytes) {
+            assert!(leaf.program.verify(proved.output, &tampered).is_err());
+        }
+        let shape = TreeShape {
+            leaf: LeafShape::measured(&leaf.measure(), Rate::MIN),
+            arity_0: 2,
+            arity: 2,
+            rate: Rate::MIN,
+        };
+        let tree = Tree::new(&leaf.program, shape).expect("a tree");
+        let root = tree
+            .prove(&[Leaf::new(&proved.proof, proved.output); 2])
+            .expect("honest leaves");
+        tree.verify(&root, &[proved.output; 2]).expect("the root");
+        assert!(tree.verify(&root, &[proved.output, Output::new([1, 2, 3, 4])]).is_err());
     }
 }
