@@ -40,7 +40,7 @@ use fiat_shamir::arith::{Arith, Verifier};
 use fiat_shamir::transcript::Challenger;
 use primitives::bit_fold::{BLOCK, F192Map, Sliced};
 use primitives::field::{F64, F192};
-use primitives::multilinear::{eq_table, eq_table_seeded};
+use primitives::multilinear::{EQ_PAR_LEN, eq_table, eq_table_seeded};
 use std::cmp::Reverse;
 
 /// The Frobenius shifts `d_p = 2^(5 - p)` of the six two-term maps, in the order they compose.
@@ -157,10 +157,15 @@ pub(crate) struct DeferredWeight {
     /// The map `Phi`.
     map: F192Map,
     /// The fast path, present when the low table is whole 64-entry blocks.
-    ///
-    /// - The low table's blocks, transposed once into the layout the map reads.
-    /// - One map per high entry, `v -> Phi(eq_hi[hi] * v)`: word `lo + |eq_lo| * hi` is that map of `eq_lo[lo]`.
-    sliced: Option<(Vec<Sliced>, Vec<F192Map>)>,
+    sliced: Option<SlicedWeight>,
+}
+
+/// A weight's fast path: word `lo + |eq_lo| * hi` is the map of high entry `hi` applied to `eq_lo[lo]`.
+struct SlicedWeight {
+    /// The low table's blocks, transposed once into the layout the map reads.
+    blocks: Vec<Sliced>,
+    /// One map per high entry, `v -> Phi(eq_hi[hi] * v)`.
+    maps: Vec<F192Map>,
 }
 
 /// The number of high variables of a sliced weight: none up to 14 variables, then one per extra variable, at most 8.
@@ -186,20 +191,31 @@ impl DeferredWeight {
             .unzip();
 
         // Phase 1: the factored tables, and the sliced blocks where the low table is whole 64-entry blocks.
-        // Why it may dispatch: a low table has at most 14 variables, below the size an eq table builds in parallel.
-        let tables = parallel::map_collect(specs.len(), |i| {
+        // A low table large enough to build in parallel is built here, the others one task each.
+        let n_lo = |n: usize| if n >= 6 { n - sliced_hi_bits(n) } else { split_n_lo(n) };
+        let wide = |i: usize| 1usize << n_lo(specs[i].0.len()) >= EQ_PAR_LEN;
+        let mut wide_tables = (0..specs.len())
+            .filter(|&i| wide(i))
+            .map(|i| {
+                let (point, scale) = specs[i];
+                Self::tables(point, n_lo(point.len()), scale, |eq_lo| {
+                    let blocks = eq_lo.as_chunks::<BLOCK>().0;
+                    parallel::map_collect(blocks.len(), |b| Sliced::new(&blocks[b]))
+                })
+            })
+            .collect::<Vec<_>>()
+            .into_iter();
+        let narrow = parallel::map_collect(specs.len(), |i| {
             let (point, scale) = specs[i];
-            let n = point.len();
-            // Six or more variables: the low table is at least one 64-entry block, so the fast path applies.
-            // Fewer: two small tables split near half.
-            let n_lo = if n >= 6 { n - sliced_hi_bits(n) } else { split_n_lo(n) };
-            let (eq_lo, eq_hi) = (eq_table(&point[..n_lo]), eq_table_seeded(&point[n_lo..], scale));
-            let sliced = (n_lo >= 6).then(|| {
-                let blocks = eq_lo.as_chunks::<BLOCK>().0.iter().map(Sliced::new).collect();
-                (blocks, Vec::new())
-            });
-            (eq_lo, eq_hi, sliced)
+            (!wide(i)).then(|| {
+                Self::tables(point, n_lo(point.len()), scale, |eq_lo| {
+                    eq_lo.as_chunks::<BLOCK>().0.iter().map(Sliced::new).collect()
+                })
+            })
         });
+        let tables = narrow
+            .into_iter()
+            .map(|t| t.unwrap_or_else(|| wide_tables.next().expect("one per wide claim")));
         let mut weights: Vec<Self> = (tables.into_iter().zip(maps))
             .map(|((eq_lo, eq_hi, sliced), map)| Self {
                 eq_lo,
@@ -220,11 +236,27 @@ impl DeferredWeight {
         })
         .into_iter();
         for w in &mut weights {
-            if let Some((_, composed)) = &mut w.sliced {
-                composed.extend(maps.by_ref().take(w.eq_hi.len()));
+            if let Some(sliced) = &mut w.sliced {
+                sliced.maps.extend(maps.by_ref().take(w.eq_hi.len()));
             }
         }
         weights
+    }
+
+    /// The factored tables of `scale * eq(point, .)` split after `n_lo` variables, the low one sliced by `slice` from six variables.
+    fn tables(
+        point: &[F192],
+        n_lo: usize,
+        scale: F192,
+        slice: impl FnOnce(&[F192]) -> Vec<Sliced>,
+    ) -> (Vec<F192>, Vec<F192>, Option<SlicedWeight>) {
+        // Six or more variables: the low table is at least one 64-entry block, so the fast path applies.
+        let (eq_lo, eq_hi) = (eq_table(&point[..n_lo]), eq_table_seeded(&point[n_lo..], scale));
+        let sliced = (n_lo >= 6).then(|| SlicedWeight {
+            blocks: slice(&eq_lo),
+            maps: Vec::new(),
+        });
+        (eq_lo, eq_hi, sliced)
     }
 
     /// The number of words the weight spans, `2^|point|`.
@@ -247,7 +279,7 @@ impl DeferredWeight {
             let first = start + b * BLOCK;
             match &self.sliced {
                 // An aligned block lies under one high entry: its pre-transposed low block through that entry's map.
-                Some((blocks, maps)) if first.is_multiple_of(BLOCK) => {
+                Some(SlicedWeight { blocks, maps }) if first.is_multiple_of(BLOCK) => {
                     maps[first / block_len].apply_sliced_add(&blocks[first % block_len / BLOCK], out);
                 }
                 // Otherwise form each word's `eq` product, then map the block.
@@ -656,6 +688,7 @@ impl<'a, E: PartialEq> PrefixGroup<'a, E> {
 pub(crate) mod tests {
     use super::*;
     use fiat_shamir::arith::Native;
+    use primitives::multilinear::eq_eval;
     use primitives::test_util::Rng;
     use std::collections::HashSet;
 
@@ -863,6 +896,36 @@ pub(crate) mod tests {
                 let dense = (rs_eq_ind.iter().zip(&eq_query)).fold(F192::ZERO, |acc, (&w, &e)| acc + w * e);
                 let scaled_terms: Vec<F192> = terms.iter().map(|&t| t * scale).collect();
                 assert_eq!(RingMap::close(&mut Native, &scaled_terms), dense, "prefix length {len}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_batch_builds_wide_and_narrow_claims_alike() {
+        // Invariant: every word of a batched weight is `Phi(scale * eq(point, index))`, whatever the claim's size.
+        //
+        // Fixture state: a 24-variable claim, whose 16-variable low table builds in parallel, beside a 7-variable one.
+        let mut rng = Rng::new(0xB47C);
+        let map = F192Map::new(&build_coordinate_weights(&std::array::from_fn(|_| rng.ext())));
+        let points = [rng.ext_vec(24), rng.ext_vec(7)];
+        let scales = [rng.ext(), rng.ext()];
+        let claims = (points.iter().zip(scales)).map(|(point, scale)| (point.as_slice(), scale, map.clone()));
+        let weights = DeferredWeight::batch(claims);
+
+        for ((weight, point), scale) in weights.iter().zip(&points).zip(scales) {
+            // Windows at the start, straddling a block, and at the end.
+            for start in [0, 61, weight.len() - 64] {
+                let mut got = [F192::ZERO; BLOCK];
+                weight.add_to(start, &mut got);
+                let eq: [F192; BLOCK] = std::array::from_fn(|i| {
+                    let bits: Vec<F192> = (0..point.len())
+                        .map(|b| F192::new(((start + i) >> b & 1) as u64, 0, 0))
+                        .collect();
+                    scale * eq_eval(point, &bits)
+                });
+                let mut want = [F192::ZERO; BLOCK];
+                map.apply_add(&eq, &mut want);
+                assert_eq!(got, want, "{} variables, start {start}", point.len());
             }
         }
     }

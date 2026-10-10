@@ -93,8 +93,8 @@ pub fn fill_eq_table_uninit(r: &[F192], seed: F192, out: &mut [MaybeUninit<F192>
     });
 }
 
-/// Tables below this size are built on the calling thread.
-const EQ_PAR_LEN: usize = 1 << 16;
+/// Tables below this size are built on the calling thread, so a pool task may build them.
+pub const EQ_PAR_LEN: usize = 1 << 16;
 
 /// The variables of the L1-resident factor of a large `eq` table.
 const EQ_LOW_VARS: usize = 10;
