@@ -85,7 +85,7 @@ impl Layout {
             commitment.verify(v, &reduced.slots, &rings)
         })
         .map_err(CpuError::Open)?;
-        v.finish()?;
+        v.check_eof()?;
         Ok(DeferredClaims {
             program: reduced.program,
             circuits,
@@ -135,7 +135,7 @@ impl Layout {
                 continue;
             }
             let (registers, n) = (table.summed_columns(), table.n_committed_columns());
-            let mut sent = v.next_scalars(n - registers.len())?.into_iter();
+            let mut sent = v.prover_messages(n - registers.len())?.into_iter();
             let zero = v.zero();
             let evals: Vec<V::E> = (0..n)
                 .map(|c| {
@@ -166,7 +166,7 @@ impl Layout {
         // The challenge `xi` comes after the `R_s` are fixed, so hitting that one number forces each side's share.
         //
         // RAM's image is left out of it, and the program claim makes up for it.
-        let xi = v.sample();
+        let xi = v.verifier_message();
         let powers = FormPowers::new(v, xi);
         let target = powers.combine(v, bus.totals);
         let batch = VerifierBatch::new(v, self, &bus, powers);

@@ -5,8 +5,7 @@
 //!
 //! The dual codeword `L` then follows from the root, by Fiat-Shamir.
 
-use fiat_shamir::Duplex;
-use fiat_shamir::merkle::hash_to_scalars;
+use fiat_shamir::{ProverState, SessionId};
 use leanda::{CELLS, Dual, Hash, LOG_K, M};
 use leanvm_guest::{PublicValues, Run};
 use pcs::ntt::AdditiveNttF64;
@@ -15,8 +14,8 @@ use primitives::field::{F64, F192};
 /// The guest (`../guest`), built by `programs/build.sh`.
 pub const ELF: &[u8] = include_bytes!("../../leanda.elf");
 
-/// Transcript label, so a membership challenge is never any other challenge.
-const LABEL: &[u8] = b"leanDA/rs-membership/v2";
+/// The transcript's session tag, so a membership challenge is never any other challenge.
+const SESSION_TAG: &[u8] = b"leanDA/rs-membership/v3";
 
 /// `n` blobs of 128 KiB, encoded and committed to.
 pub fn blobs(n: usize) -> Run {
@@ -78,13 +77,9 @@ fn encode(payload: &[u64]) -> Vec<u64> {
 ///
 /// The code is self-dual at rate 1/2, so `L` is orthogonal to every codeword.
 fn dual_codeword(root: &Hash) -> Vec<Dual> {
-    // The challenges: the root's two halves observed, then 14 samples in `GF(2^192)`.
-    let root: [u8; 32] = std::array::from_fn(|i| (root[i / 8] >> (8 * (i % 8))) as u8);
-    let mut duplex = Duplex::from_label(LABEL);
-    for x in hash_to_scalars(&root) {
-        duplex.observe(x);
-    }
-    let z: [F192; LOG_K] = std::array::from_fn(|_| duplex.sample());
+    // The challenges: the root is the instance, then 14 draws in `GF(2^192)`.
+    let mut transcript = ProverState::new(&SessionId::new(SESSION_TAG), root);
+    let z: [F192; LOG_K] = std::array::from_fn(|_| transcript.verifier_message());
 
     // The tensor, built by doubling: after step `j` its first `2^(j+1)` entries are set.
     //
@@ -125,9 +120,9 @@ mod tests {
 
     #[test]
     fn commitment_and_membership_vector_match_references() {
-        // The root is the leanDA reference commitment. The v2 membership vector
-        // uses independent duplex bytes and direct normalized-subspace polynomial
-        // evaluation, rather than an NTT, at the two domain halves' boundaries.
+        // The root is the leanDA reference commitment.
+        // The v3 membership vector's challenges come from the session-and-instance transcript.
+        // Its values at the two domain halves' boundaries are this implementation's, pinned against change.
         //
         // Fixture state: 3 blobs, padded to 4 rows, so the padding digests are covered too.
         let codewords = encode(&payload(3));
@@ -139,9 +134,9 @@ mod tests {
             "dcb553cafc216cbb85fa63840f171bca8638fc1be264c99fe96a50af23c4693f"
         );
         for (point, expected) in [
-            (16383, [0x1357383568abeda3, 0x5f76c1f9ed363579, 0x3da7c438c9dfdeec]),
-            (16384, [0x141cdae81908d221, 0x38fac066e975ca0d, 0xc0111b30f8793653]),
-            (32767, [0x37d7bbbcbc4b6324, 0x6d685cdd9cc622fd, 0x9114383dd4cae603]),
+            (16383, [0x0f03a5f28c1e0bd3, 0x8587e876e66ceee1, 0xc0eeed62346a0c40]),
+            (16384, [0x9563133c50ed8280, 0x7b4f15c45064d339, 0x1bfa806d230ef1bc]),
+            (32767, [0x8e3ccaf83e05b099, 0xa26d33d947aa5c9b, 0x3b219b3d607f6d68]),
         ] {
             assert_eq!(dual[point], expected, "membership vector at {point}");
         }

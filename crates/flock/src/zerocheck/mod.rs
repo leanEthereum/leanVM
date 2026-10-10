@@ -18,8 +18,8 @@
 //! The prover never reads `c`: an honest witness has `c = a AND b`, which it derives from the bits it reads.
 //! A dishonest `c` changes nothing it sends, and the lincheck catches the claims (doc/leanvm Annex C).
 
-use fiat_shamir::arith::{Native, Verifier};
-use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
+use fiat_shamir::arith::{Native, RoundPolynomial, Verifier};
+use fiat_shamir::{ProverState, TranscriptError};
 use primitives::bit_fold::BitFold;
 use primitives::field::{F8, F192, powers};
 use primitives::multilinear::skip_lagrange_weights;
@@ -384,8 +384,8 @@ pub(crate) fn prove(inputs: &[ZerocheckInput<'_>], ps: &mut ProverState) -> Vec<
     let n_mlv = inputs.iter().map(|i| i.m).max().expect("a batch has a circuit") - K_SKIP;
 
     // Phase 1: the eq point, fixed inner coordinates then sampled outer ones, and the batching challenge.
-    let r = equality_tail(n_mlv + K_SKIP, |n| ps.sample_vec(n));
-    let lambdas = powers(ps.sample(), inputs.len());
+    let r = equality_tail(n_mlv + K_SKIP, |n| ps.verifier_messages(n));
+    let lambdas = powers(ps.verifier_message(), inputs.len());
 
     // Phase 2: round 1, each circuit's message on the coset Lambda, combined by the batching powers.
     let span = tracing::info_span!("Round 1").entered();
@@ -405,10 +405,10 @@ pub(crate) fn prove(inputs: &[ZerocheckInput<'_>], ps: &mut ProverState) -> Vec<
         })
         .collect();
     drop(span);
-    ps.add_scalars(&round1);
+    ps.prover_messages(&round1);
 
     // Phase 3: the skip challenge sets each circuit's running claim.
-    let z = ps.sample();
+    let z = ps.verifier_message();
     let mut provers: Vec<CircuitProver<'_>> = (provers.into_iter())
         .map(|(mut prover, own)| {
             prover.start(z, &own);
@@ -430,22 +430,25 @@ pub(crate) fn prove(inputs: &[ZerocheckInput<'_>], ps: &mut ProverState) -> Vec<
                 *m += lambda * c;
             }
         }
-        ps.add_round_poly(&message, true);
-        let chi = ps.sample();
+        RoundPolynomial {
+            coeffs: message.to_vec(),
+        }
+        .send(ps, true);
+        let chi = ps.verifier_message();
         for prover in provers.iter_mut().filter(|p| j < p.n_mlv()) {
             prover.bind(chi);
         }
     }
     drop(span);
 
-    // Phase 5: the claims ride the stream before the lincheck's challenge, which batches them.
+    // Phase 5: the claims are sent before the lincheck's challenge, which batches them.
     // Drawn after them, it cannot be steered by them.
     provers
         .into_iter()
         .map(|prover| {
             let mlv_challenges = prover.chis.clone();
             let (a_eval, b_eval, c_eval) = prover.finish();
-            ps.add_scalars(&[a_eval, b_eval, c_eval]);
+            ps.prover_messages(&[a_eval, b_eval, c_eval]);
             ZerocheckClaim {
                 z,
                 mlv_challenges,
@@ -496,8 +499,8 @@ pub(crate) fn verify<V: Verifier>(log_ns: &[usize], v: &mut V) -> Result<Zeroche
     let m = log_ns.iter().copied().max().expect("a batch has a circuit");
 
     // Phase 1: the eq point, the batching challenge, then the fixed coordinates as the verifier holds them.
-    let outer = v.sample_vec(m - MIN_LOG_N);
-    let lambda = v.sample();
+    let outer = v.verifier_messages(m - MIN_LOG_N);
+    let lambda = v.verifier_message();
     let lambdas = v.powers(lambda, log_ns.len());
     let fixed: Vec<V::E> = (small_challenges().into_iter().chain(medium_challenges()))
         .map(|c| v.constant(c))
@@ -505,8 +508,8 @@ pub(crate) fn verify<V: Verifier>(log_ns: &[usize], v: &mut V) -> Result<Zeroche
 
     // Phase 2: round 1, interpolated at the skip challenge.
     let domain = SkipDomain::FLOCK;
-    let round1 = v.next_scalars(domain.size())?;
-    let z = v.sample();
+    let round1 = v.prover_messages(domain.size())?;
+    let z = v.verifier_message();
     let vanishing = domain.vanishing(v, z);
     let mut claim = domain.first_round_at(v, z, vanishing, &round1);
 
@@ -514,8 +517,8 @@ pub(crate) fn verify<V: Verifier>(log_ns: &[usize], v: &mut V) -> Result<Zeroche
     // The split `G_{j-1}(chi) = (1 + r_eq) G_j(0) + r_eq G_j(1)` absorbs the eq factor of each bound variable.
     let mut mlv_challenges = Vec::with_capacity(m - K_SKIP);
     for &r_eq in fixed.iter().chain(&outer) {
-        let g = v.next_round_poly(3, claim, Some(r_eq))?;
-        let chi = v.sample();
+        let g = RoundPolynomial::read(v, 3, claim, Some(r_eq))?.coeffs;
+        let chi = v.verifier_message();
         mlv_challenges.push(chi);
         claim = v.poly_eval(&g, chi);
     }
@@ -524,7 +527,7 @@ pub(crate) fn verify<V: Verifier>(log_ns: &[usize], v: &mut V) -> Result<Zeroche
     let mut terminal = v.zero();
     let mut evals = Vec::with_capacity(log_ns.len());
     for &weight in &lambdas {
-        let [a, b, c] = [v.next_scalar()?, v.next_scalar()?, v.next_scalar()?];
+        let [a, b, c] = [v.prover_message()?, v.prover_message()?, v.prover_message()?];
         let value = v.mul_add(a, b, c);
         terminal = v.mul_add(weight, value, terminal);
         evals.push([a, b, c]);
@@ -540,7 +543,7 @@ pub(crate) fn verify<V: Verifier>(log_ns: &[usize], v: &mut V) -> Result<Zeroche
 
 #[cfg(test)]
 mod tests {
-    use fiat_shamir::transcript::{ProofTranscript, VerifierState};
+    use fiat_shamir::{Encoding, FromNarg, ProofTranscript, SessionId, VerifierState};
     use primitives::test_util::Rng;
 
     use super::*;
@@ -563,7 +566,7 @@ mod tests {
             m,
             padding: Padding::dense(m),
         };
-        let mut ps = ProverState::from_label(LABEL);
+        let mut ps = ProverState::new(&SessionId::new(LABEL), &0u64);
         let claim = prove(&[input], &mut ps).pop().expect("one circuit");
         (claim, ps.into_proof())
     }
@@ -617,9 +620,9 @@ mod tests {
             let (claim, proof) = prove_one(&packed, m);
 
             // The stream is round 1, two words per multilinear round, then the three claims.
-            assert_eq!(proof.stream.len(), (1 << K_SKIP) + 2 * (m - K_SKIP) + 3, "m={m}");
+            assert_eq!(proof.narg.len() / 24, (1 << K_SKIP) + 2 * (m - K_SKIP) + 3, "m={m}");
 
-            let mut vs = VerifierState::from_label(LABEL, &proof);
+            let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
             let replayed = verify_one(m, &mut vs).unwrap_or_else(|e| panic!("m={m}: {e:?}"));
             assert_eq!(claim, replayed, "m={m}");
             assert!(all_true(&claim, &bits), "m={m}");
@@ -641,7 +644,7 @@ mod tests {
                     c[i] = !c[i];
                 }
                 let (_, proof) = prove_one(&packed, m);
-                let mut vs = VerifierState::from_label(LABEL, &proof);
+                let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
                 let claim = verify_one(m, &mut vs).expect("the shape is valid");
                 assert!(!all_true(&claim, &[a, b, c]), "m={m}, seed={seed}");
             }
@@ -665,8 +668,8 @@ mod tests {
             ("c", ell + 2 * n_mlv + 2),
         ] {
             let mut bad = proof.clone();
-            bad.stream[word] += F192::ONE;
-            let mut vs = VerifierState::from_label(LABEL, &bad);
+            bad.narg[24 * word] ^= 1;
+            let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &bad);
             match verify_one(m, &mut vs) {
                 Err(ZerocheckError::TerminalMismatch) => {}
                 Err(e) => panic!("{label}: refused on its shape, {e:?}"),
@@ -684,12 +687,12 @@ mod tests {
 
         // Mutation: drop the three claims, so the replay runs out of words.
         let mut short = proof.clone();
-        short.stream.truncate(short.stream.len() - 3);
-        let mut vs = VerifierState::from_label(LABEL, &short);
+        short.narg.truncate(short.narg.len() - 3 * 24);
+        let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &short);
         assert!(matches!(verify_one(m, &mut vs), Err(ZerocheckError::Transcript(_))));
 
         // Mutation: claim a cube below the skip and the fixed coordinates.
-        let mut vs = VerifierState::from_label(LABEL, &proof);
+        let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
         assert!(matches!(
             verify_one(MIN_LOG_N - 1, &mut vs),
             Err(ZerocheckError::LogNTooSmall { .. })
@@ -708,20 +711,23 @@ mod tests {
         let (_, packed) = honest(&mut rng, m);
         let (claim, proof) = prove_one(&packed, m);
 
-        let mut vs = VerifierState::from_label(LABEL, &proof);
+        let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
         verify_one(m, &mut vs).expect("honest");
-        let alpha = Challenger::sample(&mut vs);
+        let alpha = Verifier::verifier_message(&mut vs);
 
         let t = F192::new(0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210, 0x55aa_aa55_0123_4567);
-        let n = proof.stream.len();
+        let n = proof.narg.len() / 24;
+        let at = |i: usize| 24 * i..24 * i + 24;
         let mut bad = proof.clone();
-        bad.stream[n - 3] *= t;
-        bad.stream[n - 2] *= t.inv();
-        assert_eq!(bad.stream[n - 3] * bad.stream[n - 2], claim.a_eval * claim.b_eval);
+        let a = F192::from_narg(&mut &bad.narg[at(n - 3)]).unwrap() * t;
+        let b = F192::from_narg(&mut &bad.narg[at(n - 2)]).unwrap() * t.inv();
+        bad.narg[at(n - 3)].copy_from_slice(&a.encode());
+        bad.narg[at(n - 2)].copy_from_slice(&b.encode());
+        assert_eq!(a * b, claim.a_eval * claim.b_eval);
 
-        let mut vs = VerifierState::from_label(LABEL, &bad);
+        let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &bad);
         verify_one(m, &mut vs).expect("the terminal identity still holds");
-        assert_ne!(Challenger::sample(&mut vs), alpha, "the claims are not bound");
+        assert_ne!(Verifier::verifier_message(&mut vs), alpha, "the claims are not bound");
     }
 
     /// One circuit of a test batch: its cube, its packed `a` and `b`, and its three bit vectors.
@@ -776,17 +782,17 @@ mod tests {
                 }
             })
             .collect();
-        let mut ps = ProverState::from_label(LABEL);
+        let mut ps = ProverState::new(&SessionId::new(LABEL), &0u64);
         let claims = prove(&inputs, &mut ps);
         let proof = ps.into_proof();
 
         // Replay the challenges by hand, folding each circuit's tables naively alongside.
-        let mut vs = VerifierState::from_label(LABEL, &proof);
+        let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
         let n_mlv = circuits.iter().map(|c| c.m).max().unwrap() - K_SKIP;
-        let r = equality_tail(n_mlv + K_SKIP, |n| Challenger::sample_vec(&mut vs, n));
-        let lambdas = powers(Challenger::sample(&mut vs), circuits.len());
-        let round1 = vs.next_scalars(1 << K_SKIP).unwrap();
-        let z = Challenger::sample(&mut vs);
+        let r = equality_tail(n_mlv + K_SKIP, |n| Verifier::verifier_messages(&mut vs, n));
+        let lambdas = powers(Verifier::verifier_message(&mut vs), circuits.len());
+        let round1 = vs.prover_messages(1 << K_SKIP).unwrap();
+        let z = Verifier::verifier_message(&mut vs);
         let mut tables: Vec<[Vec<F192>; 3]> = circuits
             .iter()
             .map(|c| c.dense.clone().map(|bits| at_z(&bits, z)))
@@ -825,9 +831,9 @@ mod tests {
                 }
                 own.push(coeffs);
             }
-            let message = vs.next_round_poly(3, claim, Some(r[j])).unwrap();
+            let message = RoundPolynomial::read(&mut vs, 3, claim, Some(r[j])).unwrap().coeffs;
             assert_eq!(message, expected, "round {j}");
-            let chi = Challenger::sample(&mut vs);
+            let chi = Verifier::verifier_message(&mut vs);
             claim = primitives::multilinear::poly_eval(&message, chi);
             for (f, t) in tables.iter_mut().enumerate() {
                 if t[0].len() > 1 {
@@ -843,14 +849,18 @@ mod tests {
 
         // The claims: each circuit's fully folded tables.
         for (f, ([a, b, c], claim)) in tables.iter().zip(&claims).enumerate() {
-            assert_eq!(vs.next_scalars(3).unwrap(), [a[0], b[0], c[0]], "circuit {f}");
+            assert_eq!(
+                vs.prover_messages::<F192>(3).unwrap(),
+                [a[0], b[0], c[0]],
+                "circuit {f}"
+            );
             assert_eq!(
                 [claim.a_eval, claim.b_eval, claim.c_eval],
                 [a[0], b[0], c[0]],
                 "circuit {f}"
             );
         }
-        vs.finish().unwrap();
+        vs.check_eof().unwrap();
     }
 
     #[test]
@@ -899,9 +909,9 @@ mod tests {
                         },
                     })
                     .collect();
-                let mut ps = ProverState::from_label(LABEL);
+                let mut ps = ProverState::new(&SessionId::new(LABEL), &0u64);
                 let claims = prove(&inputs, &mut ps);
-                (claims, ps.into_proof().stream)
+                (claims, ps.into_proof().narg)
             };
             assert_eq!(run(true), run(false), "trial {trial}, live {lives:?}");
         }

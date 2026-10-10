@@ -17,6 +17,7 @@ use crate::rec::layout::RecLayout;
 use crate::rec::proof::TableArgument;
 use crate::rec::table::PerRecTable;
 use crate::rec::transcript::{ProofSource, Transcript};
+use fiat_shamir::SessionId;
 use fiat_shamir::arith::Arith;
 use flock::lincheck::MatrixForm;
 use primitives::field::F192;
@@ -91,22 +92,23 @@ impl RecShape {
 
     /// The verifier of a proof of this shape as rows, reading the proof from the given source.
     ///
-    /// The transcript starts from the seed and the hash of the statement's limbs, as the native verifier's does.
+    /// The transcript starts from the session, then absorbs the statement as its instance, as the native verifier does.
     ///
     /// The fixed columns are the proven circuit's, which only a prover holds: its hints are their evaluations.
     pub(crate) fn verify(
         &self,
         b: &mut Builder,
-        iv: Dw,
+        session: &SessionId,
         statement: &[[Kw; 4]],
         columns: &FixedColumns,
         source: ProofSource<'_>,
     ) -> RecRows {
-        let limbs: Vec<Kw> = statement.iter().flatten().copied().collect();
-        let seed = b.chain(&limbs);
-        let [w0, w1, w2, w3] = b.d_to_k(seed);
-        let first = b.k_to_e([w0, w1, w2]);
-        let mut t = Transcript::new(b, iv, (first, w3), source);
+        // The instance: the statement's limbs, their count first.
+        let count = b.k_const(4 * statement.len() as u64);
+        let instance: Vec<Kw> = std::iter::once(count)
+            .chain(statement.as_flattened().iter().copied())
+            .collect();
+        let mut t = Transcript::new(b, session, &instance, source);
         let mut hints = FixedHints {
             columns,
             statement,
@@ -121,7 +123,7 @@ impl RecShape {
         RecRows {
             matrix: matrices.into(),
             hints: hints.hints,
-            state: t.commitment(b),
+            state: t.digest(b),
         }
     }
 }

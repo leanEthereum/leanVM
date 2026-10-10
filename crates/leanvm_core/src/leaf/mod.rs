@@ -12,7 +12,7 @@
 use crate::gkr;
 use crate::gkr::GkrError;
 use fiat_shamir::arith::Verifier;
-use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
+use fiat_shamir::{ProverState, TranscriptError};
 use primitives::field::{F64, F192, F192Unreduced, Weights8, dot_base};
 use primitives::multilinear::eq_table;
 use std::collections::HashMap;
@@ -35,7 +35,7 @@ use layout::check_soundness;
 use tracing::info_span;
 
 /// An evaluation claim on a committed column, settled against the witness.
-/// Reconstructed identically by both sides (its value rides the stream).
+/// Reconstructed identically by both sides (its value is a message).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ColumnClaim<E = F192> {
     pub col: usize,
@@ -216,13 +216,13 @@ pub fn prove_balance(
     let setup = BusSetup::new(push, pull, producers, grinding).expect("the size caps keep every bus layout sound");
     // No grinding sends no nonce.
     if setup.grinding > 0 {
-        ps.grind(setup.grinding);
+        ps.challenge_pow(setup.grinding);
     }
-    let alphas = ps.sample_vec(N_TUPLE_BITS);
+    let alphas = ps.verifier_messages(N_TUPLE_BITS);
     let fp = Fingerprint {
         w: fingerprint_weights(&alphas),
         alphas,
-        beta: ps.sample(),
+        beta: ps.verifier_message(),
     };
     // Two independent leaf vectors, built one after another: each `build_leaves`
     // already fans its own blocks out across the whole pool, so nesting an outer
@@ -425,7 +425,7 @@ pub struct BusVerify<E = F192> {
 }
 
 /// Verify the bus balances, oracle-free (the prover's committed values arrive on
-/// the stream and are certified by `pcs`). Returns the per-column claims to open.
+/// the proof and are certified by `pcs`). Returns the per-column claims to open.
 ///
 /// # Errors
 ///
@@ -440,13 +440,13 @@ pub fn verify_balance<V: Verifier + PublicColumns>(
 ) -> Result<BusVerify<V::E>, BusError> {
     let setup = BusSetup::new(push, pull, producers, grinding)?;
     if setup.grinding > 0 {
-        v.grind_check(setup.grinding)?;
+        v.check_pow(setup.grinding)?;
     }
-    let alphas = v.sample_vec(N_TUPLE_BITS);
+    let alphas = v.verifier_messages(N_TUPLE_BITS);
     let fp = Fingerprint {
         w: v.eq_table(&alphas),
         alphas,
-        beta: v.sample(),
+        beta: v.verifier_message(),
     };
     let bus_gkr = gkr::verify_products(v, setup.mu())?;
     // Every row of every table is a real row (`cpu::filler`), so the two sides balance
@@ -467,7 +467,7 @@ pub fn verify_balance<V: Verifier + PublicColumns>(
     let mut open = Openings::default();
     for (s, side) in setup.sides.iter().enumerate() {
         let framework = side.decompose(v, &fp, &bus_gkr.point, tables, &mut forms[s], &mut open, |v, _, _| {
-            v.next_scalar()
+            v.prover_message()
         })?;
         // What the tables owe this side: DERIVED, never read. A transmitted total
         // would be a free variable in its own check and would settle nothing; the
@@ -504,7 +504,7 @@ pub(crate) mod tests {
     use crate::pcs::MAX_MU;
     use crate::rv::Region;
     use crate::tables::PerTable;
-    use fiat_shamir::transcript::{ProverState, VerifierState};
+    use fiat_shamir::{ProverState, SessionId, VerifierState};
     use std::collections::HashMap;
     use std::sync::Arc;
 
@@ -575,10 +575,10 @@ pub(crate) mod tests {
         let pull = [Block::framework(kappa, coords)];
         let tables = [(0, 1)];
 
-        let mut ps = ProverState::from_label(b"leaf-virtual-coordinates");
+        let mut ps = ProverState::new(&SessionId::new(b"leaf-virtual-coordinates"), &0u64);
         let bus = prove_balance(&push, &pull, &[], 0, &[&column], &tables, &mut ps);
         let proof = ps.into_proof();
-        let mut vs = VerifierState::from_label(b"leaf-virtual-coordinates", &proof);
+        let mut vs = VerifierState::new(&SessionId::new(b"leaf-virtual-coordinates"), &0u64, &proof);
         let verified = verify_balance(&mut vs, &push, &pull, &[], 0, &tables).expect("an honest bus balances");
 
         // What the verifier derives the tables owe is what their forms sum to, the virtual coordinates aside.

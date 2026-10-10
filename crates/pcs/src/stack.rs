@@ -47,9 +47,9 @@ use std::ops::Range;
 use super::ring_switch::{DeferredWeight, RingFamily, RingSwitch};
 use super::verifier::OpeningVerifier;
 use super::whir::{Config, INITIAL_BASIS_CHUNK, InitialWeight, ProverData, WhirError};
+use crate::merkle::Hash;
+use fiat_shamir::ProverState;
 use fiat_shamir::arith::{Arith, Native};
-use fiat_shamir::merkle::Hash;
-use fiat_shamir::transcript::Transmitter;
 use primitives::bit_fold::F192Map;
 use primitives::field::{F64, F192, powers};
 use primitives::multilinear::{eq_table, eq_table_seeded, fill_eq_table_uninit};
@@ -223,7 +223,7 @@ impl CommittedStack {
     /// # Panics
     ///
     /// Panics on a statement the verifier would refuse.
-    pub fn open(&self, ps: &mut impl Transmitter, stack: &[F64], statement: Statement<'_>) {
+    pub fn open(&self, ps: &mut ProverState, stack: &[F64], statement: Statement<'_>) {
         if let Err(error) = statement.check(self.log_n, stack.len()) {
             panic!("a malformed statement: {error}");
         }
@@ -231,7 +231,7 @@ impl CommittedStack {
 
         // The family's challenges, then lambda.
         let family = RingFamily::sample(ps);
-        let lambdas = powers(ps.sample(), 1 + statement.points.len());
+        let lambdas = powers(ps.verifier_message(), 1 + statement.points.len());
 
         // The target: the family's at lambda^0, then each point claim's value at its own power.
         let points = (statement.points.iter()).zip(&lambdas[1..]);
@@ -294,7 +294,7 @@ impl<R: Copy> StackCommitment<R> {
 
         // The family's challenges, then lambda, as the prover drew them.
         let family = RingFamily::draw(v);
-        let lambda = v.sample();
+        let lambda = v.verifier_message();
         let lambdas = v.powers(lambda, 1 + statement.points.len());
         let share = family.share(v, statement.rings);
 
@@ -754,12 +754,12 @@ impl InitialWeight for StackWeight<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::merkle::Hash;
     use crate::ring_switch::SliceClaim;
     use crate::ring_switch::tests::s_hat_v_reference;
     use crate::whir::config::tests::{default_config, test_config_for};
     use crate::whir::inner_product_base_ext;
-    use fiat_shamir::merkle::Hash;
-    use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
+    use fiat_shamir::{ProofTranscript, ProverState, SessionId, VerifierState};
     use primitives::bit_fold::BLOCK;
     use primitives::test_util::Rng;
 
@@ -876,7 +876,7 @@ mod tests {
             let lane_block = 1 << lane_vars;
             let stack_len = lanes * lane_block;
             let (rings, claims, lambdas) = statement(&mut rng, lane_vars, lanes);
-            let family = RingFamily::sample(&mut ProverState::from_label(DOMAIN));
+            let family = RingFamily::sample(&mut ProverState::new(&SessionId::new(DOMAIN), &0u64));
             let dense = dense_weight(stack_len, &rings, &claims, &lambdas, &family);
             let statement = Statement {
                 points: &claims,
@@ -1077,7 +1077,7 @@ mod tests {
             "test shape must keep the residual cube above q_flock (yr_log_n = {yr_log_n})"
         );
         let committed = CommittedStack::new(&stack, log_n, pc.clone());
-        let mut ps = ProverState::from_label(DOMAIN);
+        let mut ps = ProverState::new(&SessionId::new(DOMAIN), &0u64);
         let statement = Statement {
             points: &point_claims,
             rings: &rings,
@@ -1100,7 +1100,7 @@ mod tests {
         rings: &[RingSwitch],
         fs: &ProofTranscript,
     ) -> bool {
-        let mut vs = VerifierState::from_label(DOMAIN, fs);
+        let mut vs = VerifierState::new(&SessionId::new(DOMAIN), &0u64, fs);
         let commitment = StackCommitment::new(inst.root, inst.log_n, 1 << inst.vc.initial_k(), inst.vc.clone());
         let statement = Statement {
             points: point_claims,
@@ -1111,7 +1111,7 @@ mod tests {
 
     #[test]
     fn stacked_open_roundtrip_and_tampering() {
-        // Invariant: an honest opening verifies, and a tampered claim, slice, point or stream word is refused.
+        // Invariant: an honest opening verifies, and a tampered claim, slice, point or message byte is refused.
         let inst = build_instance(1);
         assert!(
             verify_instance(&inst, &inst.point_claims, &inst.rings, &inst.fs),
@@ -1159,22 +1159,22 @@ mod tests {
             );
         }
 
-        // Every scalar the opening sends is WHIR's, on the stream: a tampered one is refused.
-        for idx in [17usize, inst.fs.stream.len() - 1] {
+        // Every message the opening sends is WHIR's: a tampered byte is refused.
+        for idx in [17 * 24, inst.fs.narg.len() - 1] {
             let mut bad_fs = inst.fs.clone();
-            bad_fs.stream[idx] += F192::ONE;
+            bad_fs.narg[idx] ^= 1;
             assert!(
                 !verify_instance(&inst, &inst.point_claims, &inst.rings, &bad_fs),
-                "tampered stream word {idx} accepted"
+                "tampered message byte {idx} accepted"
             );
         }
 
-        // A truncated stream is refused, never a panic.
+        // A truncated proof is refused, never a panic.
         let mut short_fs = inst.fs.clone();
-        short_fs.stream.pop();
+        short_fs.narg.pop();
         assert!(
             !verify_instance(&inst, &inst.point_claims, &inst.rings, &short_fs),
-            "short stream accepted"
+            "short proof accepted"
         );
     }
 
@@ -1227,12 +1227,12 @@ mod tests {
             points: &point_claims,
             rings: std::slice::from_ref(ring),
         };
-        let mut ps = ProverState::from_label(DOMAIN);
+        let mut ps = ProverState::new(&SessionId::new(DOMAIN), &0u64);
         committed.open(&mut ps, &stack, statement(&ring));
         let fs = ps.into_proof();
 
         let commitment = StackCommitment::new(committed.root(), log_n, 1 << pc.initial_k(), pc);
-        let mut vs = VerifierState::from_label(DOMAIN, &fs);
+        let mut vs = VerifierState::new(&SessionId::new(DOMAIN), &0u64, &fs);
         assert!(
             commitment.verify(&mut vs, statement(&ring)).is_ok(),
             "honest crossing-regime opening rejected"
@@ -1241,7 +1241,7 @@ mod tests {
         // And the crossing-regime ring claim is still bound: flip a slice.
         let mut bad_ring = ring.clone();
         bad_ring.claims[0].s_hat_v[7] += F192::ONE;
-        let mut vs = VerifierState::from_label(DOMAIN, &fs);
+        let mut vs = VerifierState::new(&SessionId::new(DOMAIN), &0u64, &fs);
         assert!(
             commitment.verify(&mut vs, statement(&bad_ring)).is_err(),
             "tampered crossing-regime ring slice accepted"

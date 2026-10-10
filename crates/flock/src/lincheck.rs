@@ -65,8 +65,8 @@
 //!     q(inf) = sum_i (comb_lo[i] + comb_hi[i]) * (z_lo[i] + z_hi[i])      the leading coefficient
 //! ```
 
-use fiat_shamir::arith::{Arith, Native, Verifier};
-use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
+use fiat_shamir::arith::{Arith, Native, RoundPolynomial, Verifier};
+use fiat_shamir::{ProverState, TranscriptError};
 use parallel::SendPtr;
 use pcs::ring_switch::SliceClaim;
 use primitives::bits::bit_transpose_64bytes;
@@ -309,7 +309,7 @@ impl CircuitProver {
 /// The verifier leaves that value as a claim on the circuit.
 pub(crate) fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<LincheckClaim> {
     // Phase 1: `alpha` batches each circuit's `a`, `b`, `c` checks and pin, and the circuits.
-    let alpha = ps.sample();
+    let alpha = ps.verifier_message();
     let weights = circuit_weights(alpha, inputs.len());
     let mut provers: Vec<CircuitProver> = inputs.iter().map(|input| CircuitProver::new(input, alpha)).collect();
 
@@ -329,8 +329,11 @@ pub(crate) fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<L
                 *m += weight * c;
             }
         }
-        ps.add_round_poly(&message, false);
-        let r = ps.sample();
+        RoundPolynomial {
+            coeffs: message.to_vec(),
+        }
+        .send(ps, false);
+        let r = ps.verifier_message();
         r_rounds.push(r);
         for prover in &mut provers {
             if t < prover.rounds {
@@ -371,8 +374,8 @@ pub(crate) fn prove(inputs: &[LincheckInput<'_>], ps: &mut ProverState) -> Vec<L
                 &claim.r_inner_rest,
                 &claim.s_hat_v,
             );
-            ps.add_scalars(&claim.s_hat_v);
-            ps.add_scalars(&[value]);
+            ps.prover_messages(&claim.s_hat_v);
+            ps.prover_messages(&[value]);
             claim
         })
         .collect()
@@ -407,7 +410,7 @@ pub(crate) fn verify_deferred<V: Verifier>(
     let rests: Vec<usize> = shapes.iter().map(|shape| shape.k_log - k_skip).collect();
 
     // Phase 1: the target the batched claims and pins set, circuit `f` at `alpha^(4f)`, its pin's target one.
-    let alpha = v.sample();
+    let alpha = v.verifier_message();
     let alpha_sq = v.square(alpha);
     let beta = v.mul(alpha_sq, alpha);
     let alpha_4 = v.square(alpha_sq);
@@ -424,8 +427,8 @@ pub(crate) fn verify_deferred<V: Verifier>(
     let n_rounds = rests.iter().copied().max().expect("a batch has a circuit");
     let mut r_rounds = Vec::with_capacity(n_rounds);
     for _ in 0..n_rounds {
-        let q = v.next_round_poly(3, running, None)?;
-        let challenge = v.sample();
+        let q = RoundPolynomial::read(v, 3, running, None)?.coeffs;
+        let challenge = v.verifier_message();
         running = v.poly_eval(&q, challenge);
         r_rounds.push(challenge);
     }
@@ -442,8 +445,8 @@ pub(crate) fn verify_deferred<V: Verifier>(
     let mut total = v.zero();
     let mut claims = Vec::with_capacity(shapes.len());
     for ((shape, &rest), &weight) in shapes.iter().zip(&rests).zip(&weights) {
-        let z_partial = v.next_scalars(domain.size())?;
-        let value = v.next_scalar()?;
+        let z_partial = v.prover_messages(domain.size())?;
+        let value = v.prover_message()?;
         let r_inner_rest: Vec<V::E> = r_rounds[..rest].iter().rev().copied().collect();
         let x_inner_rest = &zc.mlv_challenges[..rest];
         let own = closed.add_to(v, value, shape.const_pin_col, x_inner_rest, &r_inner_rest, &z_partial);
@@ -1142,7 +1145,7 @@ mod neon {
 mod tests {
     use std::collections::HashSet;
 
-    use fiat_shamir::transcript::{ProofTranscript, VerifierState};
+    use fiat_shamir::{ProofTranscript, SessionId, VerifierState};
     use primitives::test_util::Rng;
 
     use super::*;
@@ -1277,7 +1280,7 @@ mod tests {
                 circuit: &self.circuit,
                 x_ab: &self.x_ab,
             };
-            let mut ps = ProverState::from_label(LABEL);
+            let mut ps = ProverState::new(&SessionId::new(LABEL), &0u64);
             let claim = prove(&[input], &mut ps).pop().expect("one circuit");
             (claim, ps.into_proof())
         }
@@ -1295,7 +1298,7 @@ mod tests {
                 k_log: self.k_log,
                 const_pin_col: PIN_COL,
             };
-            let mut vs = VerifierState::from_label(LABEL, proof);
+            let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, proof);
             let matrices = verify_deferred(domain, &zc, &[shape], &mut vs)?
                 .pop()
                 .expect("one circuit");
@@ -1358,7 +1361,7 @@ mod tests {
         //
         // Mutation: add 1 to one coordinate limb of a slice whose matrices' column is nonzero.
         //
-        //     stream   [2 per round, k_log - k_skip rounds][64 slices][form value]
+        //     messages   [2 per round, k_log - k_skip rounds][64 slices][form value]
         let (m, k_log, k_skip) = (12, 6, 2);
         let mut rng = Rng::new(66);
         let f = Fixture::new(m, k_log, k_skip, 5, &mut rng);
@@ -1369,9 +1372,9 @@ mod tests {
             .find(|&i| row_a[i] != F192::ZERO || row_b[i] != F192::ZERO)
             .expect("some column is nonzero");
         let word = 2 * (k_log - k_skip) + column % (1 << k_skip);
-        for (limb, delta) in [("low", F192::ONE), ("middle", F192::new(0, 1, 0))] {
+        for (limb, offset) in [("low", 0), ("middle", 8)] {
             let mut bad = proof.clone();
-            bad.stream[word] += delta;
+            bad.narg[24 * word + offset] ^= 1;
             assert!(
                 matches!(f.verify(k_skip, &bad), Err(LincheckError::SumcheckMismatch)),
                 "a {limb} limb moved"
@@ -1388,7 +1391,7 @@ mod tests {
 
         // Mutation: drop the form value, so the replay runs out of words.
         let mut short = proof.clone();
-        short.stream.pop();
+        short.narg.truncate(short.narg.len() - 24);
         assert!(matches!(f.verify(k_skip, &short), Err(LincheckError::Transcript(_))));
 
         // Mutation: a skip wider than the instance.

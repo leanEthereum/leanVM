@@ -31,7 +31,7 @@
 //! ```
 
 use bench::{Metric, Plan, Timing, bencher_json, env_usize};
-use fiat_shamir::transcript::ProverState;
+use fiat_shamir::{ProverState, SessionId};
 use pcs::ntt::AdditiveNttF64;
 use pcs::ring_switch::{RingSwitch, SliceClaim};
 use pcs::stack::{CommittedStack, StackClaim, Statement};
@@ -87,7 +87,7 @@ fn main() {
         let committed = tracing::info_span!("Commit").in_scope(|| CommittedStack::new(&witness, log_n, pc.clone()));
         commit_t.push(t.elapsed().as_secs_f64());
 
-        let mut ch = ProverState::from_label(b"pcs-throughput");
+        let mut ch = ProverState::new(&SessionId::new(b"pcs-throughput"), &0u64);
         let t = Instant::now();
         tracing::info_span!("PCS open").in_scope(|| {
             let statement = Statement {

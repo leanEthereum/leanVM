@@ -20,7 +20,7 @@
 //!
 //! A test checks every table entry against it, so changing a constant it reads fails until the table is regenerated.
 
-use fiat_shamir::MAX_GRINDING_BITS;
+use fiat_shamir::ProofOfWork;
 use thiserror::Error;
 
 // The production profile: Johnson list decoding at rates 2^-1 to 2^-4, 128-bit round-by-round soundness over `E`.
@@ -124,7 +124,7 @@ pub(crate) fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), ConfigErr
 /// The query count then only has to close the remaining `SECURITY_BITS - QUERY_GRINDING_BITS` bits.
 pub const QUERY_GRINDING_BITS: usize = 17;
 
-const _: () = assert!(QUERY_GRINDING_BITS <= MAX_GRINDING_BITS as usize);
+const _: () = assert!(QUERY_GRINDING_BITS <= ProofOfWork::MAX_BITS as usize);
 
 /// Variables the L0 lane fold binds: the log of the L0 interleaving, so a leaf holds `2^6` lanes.
 pub const INITIAL_FOLDING_FACTOR: usize = 6;
@@ -200,7 +200,7 @@ impl Config {
         // - An OOD weight `eq(z, .)` is a full tensor that does not, so L0 can take none.
         assert_eq!(ood_samples[0], 0, "L0 takes no OOD sample");
         assert!(
-            grinding_bits.iter().all(|&g| g <= MAX_GRINDING_BITS as usize),
+            grinding_bits.iter().all(|&g| g <= ProofOfWork::MAX_BITS as usize),
             "a proof of work grinds at most the digest's low word"
         );
         Self {

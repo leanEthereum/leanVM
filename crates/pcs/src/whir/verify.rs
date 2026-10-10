@@ -16,7 +16,8 @@
 use crate::verifier::OpeningVerifier;
 use crate::whir::config::{Config, ConfigError};
 use crate::whir::query::Normalizers;
-use fiat_shamir::transcript::TranscriptError;
+use fiat_shamir::TranscriptError;
+use fiat_shamir::arith::RoundPolynomial;
 use primitives::field::F192;
 use thiserror::Error;
 
@@ -188,7 +189,7 @@ pub(crate) fn verify<V: OpeningVerifier>(
 impl<E: Copy> Quad<E> {
     /// The next round's quadratic, its linear coefficient fixed by the running claim.
     fn recv<V: OpeningVerifier<E = E>>(v: &mut V, claim: E) -> Result<Self, TranscriptError> {
-        let h = v.next_round_poly(3, claim, None)?;
+        let h = RoundPolynomial::read(v, 3, claim, None)?.coeffs;
         Ok(Self {
             c: h[0],
             b: h[1],
@@ -215,8 +216,8 @@ impl<E: Copy> Quad<E> {
 impl<E: Copy> Ood<E> {
     /// Draw an out-of-domain point, then read its value and its intro round.
     fn replay<V: OpeningVerifier<E = E>>(v: &mut V, n_vars: usize) -> Result<Self, TranscriptError> {
-        let z = v.sample_vec(n_vars);
-        let y = v.next_scalar()?;
+        let z = v.verifier_messages(n_vars);
+        let y = v.prover_message()?;
         let intro = Quad::recv(v, y)?;
         Ok(Self { z, y, intro })
     }
@@ -387,11 +388,11 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
     ///
     /// # Errors
     ///
-    /// Returns an error past the end of the stream.
+    /// Returns an error past the end of the proof.
     fn fold_rounds(&mut self, v: &mut V, k: usize) -> Result<Vec<V::E>, TranscriptError> {
         let mut rs = Vec::with_capacity(k);
         for _ in 0..k {
-            let ri = v.sample();
+            let ri = v.verifier_message();
             self.t_r = self.quad.eval(v, ri);
             self.quad = Quad::recv(v, self.t_r)?;
             rs.push(ri);
@@ -413,7 +414,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
     ///
     /// # Errors
     ///
-    /// Returns a failed proof of work, a missing or unauthenticated opening, or the end of the stream.
+    /// Returns a failed proof of work, a missing or unauthenticated opening, or the end of the proof.
     fn query(
         &mut self,
         v: &mut V,
@@ -422,9 +423,9 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         log_msg_cols: usize,
         enforced: impl FnOnce(&mut V, &[V::Query], &[V::E]) -> Result<V::E, TranscriptError>,
     ) -> Result<(), TranscriptError> {
-        v.grind_check(phase.grinding)?;
+        v.check_pow(phase.grinding)?;
         let queries = phase.sample(v);
-        let lambda = v.sample();
+        let lambda = v.verifier_message();
         let weights = v.powers(lambda, phase.count);
         let sum = v.scope("rows", |v| enforced(v, &queries, &weights))?;
         let intro = Quad::recv(v, sum)?;
@@ -470,7 +471,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         n_current: usize,
         weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
     ) -> Result<(), WhirError> {
-        let yr = v.next_scalars(1 << n_current)?;
+        let yr = v.prover_messages(1 << n_current)?;
         let phase = self.phase(self.config.level_steps(), oracle.depth());
         self.query(v, phase, Vec::new(), n_current, |v, queries, weights| {
             let rows = oracle.open_e_rows(v, queries)?;
@@ -478,7 +479,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         })?;
         let mut ris_tail = Vec::with_capacity(n_current);
         for j in 0..n_current {
-            let ri = v.sample();
+            let ri = v.verifier_message();
             self.t_r = self.quad.eval(v, ri);
             ris_tail.push(ri);
             if j + 1 < n_current {

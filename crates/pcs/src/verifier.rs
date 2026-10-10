@@ -6,9 +6,9 @@
 //! - In rows they are the wires holding them, and an opened row is authenticated by hash rows.
 
 use super::whir::sample_queries_ordered;
+use crate::merkle::{Hash, PrunedMerklePaths};
 use fiat_shamir::arith::Verifier;
-use fiat_shamir::merkle::Hash;
-use fiat_shamir::transcript::{Receiver, TranscriptError, VerifierState};
+use fiat_shamir::{TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 
 /// A verifier of the stacked opening: its commitments, its queries, and the rows they open.
@@ -26,7 +26,7 @@ pub trait OpeningVerifier: Verifier {
     ///
     /// # Errors
     ///
-    /// Returns an error past the end of the stream, or on a root that is no canonical digest.
+    /// Returns an error past the end of the proof.
     fn next_root(&mut self) -> Result<Self::Root, TranscriptError>;
 
     /// Sample `count` query indices of `depth` bits, in transcript order.
@@ -69,7 +69,7 @@ impl OpeningVerifier for VerifierState<'_> {
     type Query = usize;
 
     fn next_root(&mut self) -> Result<Hash, TranscriptError> {
-        Receiver::next_root(self)
+        self.prover_message()
     }
 
     fn sample_queries(&mut self, depth: usize, count: usize) -> Vec<usize> {
@@ -84,10 +84,19 @@ impl OpeningVerifier for VerifierState<'_> {
         row_words: usize,
         leaf_words: usize,
     ) -> Result<Vec<Vec<F64>>, TranscriptError> {
-        let mut rows = self.next_merkle_batch(root, 1 << depth, queries, row_words, leaf_words)?;
-        for row in &mut rows {
-            row.drain(..leaf_words - row_words);
-        }
+        // The hint holds one row per distinct query, which the verifier counts itself.
+        let mut distinct = queries.to_vec();
+        distinct.sort_unstable();
+        distinct.dedup();
+        let openings = self.prover_hint_with(|hint| {
+            let paths = PrunedMerklePaths::from_hint(hint, distinct.len(), row_words)?;
+            paths.open(root, 1 << depth, queries, row_words, leaf_words)
+        })?;
+
+        // Each opening's leaf image, its zero prefix dropped.
+        let rows = (openings.into_iter())
+            .map(|o| o.leaf_data[leaf_words - row_words..].to_vec())
+            .collect();
         Ok(rows)
     }
 

@@ -10,8 +10,9 @@
 use super::{FoldTable, Msg, ReduceError, ZERO, xor};
 use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::rec::tree::claims::{Coefficient, ColWeight, MatrixClaim, RowWeight};
+use fiat_shamir::ProverState;
+use fiat_shamir::arith::RoundPolynomial;
 use fiat_shamir::arith::{Arith, Verifier};
-use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use flock::lincheck::{LincheckCircuit, build_quirky_eq_table};
 use flock::zerocheck::{K_SKIP, SkipDomain};
 use parallel::Chunks;
@@ -79,15 +80,15 @@ impl<E: Copy + PartialEq> MatrixReduced<E> {
     ///
     /// Returns a malformed stream, or the final identity's failure.
     pub(crate) fn verify<V: Verifier<E = E>>(v: &mut V, claims: &[MatrixClaim<E>]) -> Result<Self, ReduceError> {
-        let theta = v.sample();
+        let theta = v.verifier_message();
         let powers = v.powers(theta, claims.len());
         let zero = v.zero();
         let mut claim = (claims.iter().zip(&powers)).fold(zero, |acc, (c, &p)| v.mul_add(p, c.value, acc));
         let phase = |v: &mut V, claim: &mut E| -> Result<Vec<E>, ReduceError> {
             (0..FlockId::MAX_K_LOG)
                 .map(|_| {
-                    let h = v.next_round_poly(3, *claim, None)?;
-                    let x = v.sample();
+                    let h = RoundPolynomial::read(v, 3, *claim, None)?.coeffs;
+                    let x = v.verifier_message();
                     *claim = v.poly_eval(&h, x);
                     Ok(x)
                 })
@@ -96,7 +97,7 @@ impl<E: Copy + PartialEq> MatrixReduced<E> {
         let rows = phase(v, &mut claim)?;
         let cols = phase(v, &mut claim)?;
         let values = (0..N_FLOCKS)
-            .map(|_| Ok([v.next_scalar()?, v.next_scalar()?]))
+            .map(|_| Ok([v.prover_message()?, v.prover_message()?]))
             .collect::<Result<Vec<_>, ReduceError>>()?;
         let weights = Self::final_weights(v, claims, &powers, &rows, &cols);
         let total = (values.iter().zip(&weights)).fold(zero, |acc, ([a, b], [wa, wb])| {
@@ -225,23 +226,23 @@ impl ColWeight<F192> {
 impl MatrixProver {
     /// Prove the reduction of the claims, which must be true of the circuits' matrices.
     pub(crate) fn prove(ps: &mut ProverState, claims: &[MatrixClaim<F192>]) {
-        let theta = ps.sample();
+        let theta = ps.verifier_message();
         let mut rows = Self::new(claims, theta);
         let r: Vec<F192> = (0..FlockId::MAX_K_LOG)
             .map(|i| {
-                ps.add_scalars(&rows.message());
-                let x = ps.sample();
+                ps.prover_messages(&rows.message());
+                let x = ps.verifier_message();
                 rows.bind(i, x);
                 x
             })
             .collect();
         let mut cols = rows.columns(claims, &r);
         for i in 0..FlockId::MAX_K_LOG {
-            ps.add_scalars(&cols.message());
-            let x = ps.sample();
+            ps.prover_messages(&cols.message());
+            let x = ps.verifier_message();
             cols.bind(i, x);
         }
-        ps.add_scalars(&cols.finals());
+        ps.prover_messages(&cols.finals());
     }
 
     /// The row phase of the claims under the batching challenge `theta`: each claim's tables, one walk of its circuit each.

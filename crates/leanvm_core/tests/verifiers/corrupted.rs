@@ -1,10 +1,9 @@
 //! A corrupted proof is refused, and refused the way a verifier must refuse: with an
 //! error, never with a panic and never with acceptance. Everything here is the
 //! prover's to choose, so every path the verifier takes through it has to end in
-//! [`CpuError`], not in an index out of bounds.
+//! an error, not in an index out of bounds.
 
 use leanvm::{Clock, CpuError, N_TABLES, Proof, ProvenRun, Prover, Rate};
-use primitives::field::F192;
 use std::panic::AssertUnwindSafe;
 
 struct Rng(u64);
@@ -21,35 +20,34 @@ impl Rng {
     }
 }
 
-/// One corruption of `proof`, chosen by `round`: a scalar's bit, a truncated stream,
-/// a leaf word, a sibling digest, or a missing Merkle hint.
+/// Where each hint's bytes start and end, past its 4-byte length.
+fn hints(proof: &Proof) -> Vec<std::ops::Range<usize>> {
+    let hints = &proof.0.hints;
+    let mut ranges = Vec::new();
+    let mut at = 0;
+    while at < hints.len() {
+        let len = u32::from_le_bytes(hints[at..at + 4].try_into().unwrap()) as usize;
+        ranges.push(at + 4..at + 4 + len);
+        at += 4 + len;
+    }
+    ranges
+}
+
+/// One corruption of `proof`, chosen by `round`: a message bit, a cut message string, a hint bit, cut hints, or a
+/// missing hint.
 fn corrupt(proof: &Proof, round: usize, rng: &mut Rng) -> Proof {
     let mut forged = proof.clone();
+    let (narg, hints) = (&mut forged.0.narg, &mut forged.0.hints);
     match round % 5 {
-        0 => {
-            let scalar = &mut forged.0.stream[rng.below(proof.0.stream.len())];
-            let bit = 1u64 << (rng.next() % 64);
-            match rng.next() % 3 {
-                0 => scalar.c0 ^= bit,
-                1 => scalar.c1 ^= bit,
-                _ => scalar.c2 ^= bit,
-            }
-        }
-        // At least one scalar short, so the stream really is cut.
-        1 => forged.0.stream.truncate(rng.below(proof.0.stream.len())),
-        2 => {
-            let paths = &mut forged.0.merkle[rng.below(proof.0.merkle.len())];
-            let row = rng.below(paths.leaf_data.len());
-            let word = rng.below(paths.leaf_data[row].len());
-            paths.leaf_data[row][word].0 ^= 1 << (rng.next() % 64);
-        }
-        3 => {
-            let paths = &mut forged.0.merkle[rng.below(proof.0.merkle.len())];
-            let hash = rng.below(paths.sibling_hashes.len());
-            paths.sibling_hashes[hash][rng.below(32)] ^= 1;
-        }
+        0 => narg[rng.below(proof.0.narg.len())] ^= 1 << (rng.next() % 8),
+        // At least one byte short, so the messages really are cut.
+        1 => narg.truncate(rng.below(proof.0.narg.len())),
+        2 => hints[rng.below(proof.0.hints.len())] ^= 1 << (rng.next() % 8),
+        3 => hints.truncate(rng.below(proof.0.hints.len())),
         _ => {
-            forged.0.merkle.remove(rng.below(proof.0.merkle.len()));
+            let ranges = self::hints(proof);
+            let range = &ranges[rng.below(ranges.len())];
+            hints.drain(range.start - 4..range.end);
         }
     }
     forged
@@ -62,11 +60,7 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
     assert_eq!(output, expected);
     program.verify(output, &proof).expect("the honest proof verifies");
     assert!(
-        proof
-            .0
-            .merkle
-            .iter()
-            .all(|p| !p.leaf_data.is_empty() && !p.sibling_hashes.is_empty()),
+        hints(&proof).iter().all(|h| !h.is_empty()),
         "the corruptions below index into every opening"
     );
 
@@ -86,28 +80,26 @@ fn a_corrupted_proof_is_rejected_and_never_panics() {
 }
 
 #[test]
-fn noncanonical_announcements_and_roots_are_refused() {
+fn a_noncanonical_announcement_is_refused() {
     let (program, _) = super::programs::fibonacci();
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
 
-    let mut forged = proof.clone();
-    forged.0.stream[0].c1 = 1;
-    assert_eq!(program.verify(output, &forged), Err(CpuError::NonCanonicalSize.into()));
-
+    // The first height, with its second limb set: bytes 8..16 of the first message.
     let mut forged = proof;
-    forged.0.stream[N_TABLES + 2].c2 = 1;
-    assert!(program.verify(output, &forged).is_err());
+    forged.0.narg[8] = 1;
+    assert_eq!(program.verify(output, &forged), Err(CpuError::NonCanonicalSize.into()));
 }
 
 #[test]
 fn a_final_clock_must_be_live_and_valid() {
     let (program, _) = super::programs::fibonacci();
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
-    let at = N_TABLES + 1;
-    let honest = proof.0.stream[at].c0;
+    // The clock is message N_TABLES + 1, after the heights and the rate.
+    let at = 24 * (N_TABLES + 1);
+    let honest = u64::from_le_bytes(proof.0.narg[at..at + 8].try_into().unwrap());
     for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
         let mut forged = proof.clone();
-        forged.0.stream[at] = F192::new(clock, 0, 0);
+        forged.0.narg[at..at + 8].copy_from_slice(&clock.to_le_bytes());
         assert_eq!(program.verify(output, &forged), Err(CpuError::FinalClock.into()));
     }
 }

@@ -8,8 +8,8 @@
 use super::circuit::{Builder, Dw, Ew, Kw};
 use super::transcript::Transcript;
 use crate::leaf::{PublicColumn, PublicColumns};
+use fiat_shamir::TranscriptError;
 use fiat_shamir::arith::{Arith, Verifier};
-use fiat_shamir::transcript::TranscriptError;
 use pcs::verifier::OpeningVerifier;
 use pcs::whir::{Stratum, strata};
 use primitives::field::F192;
@@ -147,20 +147,16 @@ impl PublicColumns for Rows<'_, '_> {
 }
 
 impl Verifier for Rows<'_, '_> {
-    fn next_scalar(&mut self) -> Result<Ew, TranscriptError> {
-        Ok(self.t.next_scalar(self.b))
+    fn prover_message(&mut self) -> Result<Ew, TranscriptError> {
+        Ok(self.t.prover_message(self.b))
     }
 
-    fn next_round_poly(&mut self, n_coeffs: usize, claim: Ew, eq: Option<Ew>) -> Result<Vec<Ew>, TranscriptError> {
-        Ok(self.t.next_round_poly(self.b, n_coeffs, claim, eq))
+    fn verifier_message(&mut self) -> Ew {
+        self.t.verifier_message(self.b)
     }
 
-    fn sample(&mut self) -> Ew {
-        self.t.sample(self.b)
-    }
-
-    fn grind_check(&mut self, bits: u32) -> Result<(), TranscriptError> {
-        self.t.grind_check(self.b, bits);
+    fn check_pow(&mut self, bits: u32) -> Result<(), TranscriptError> {
+        self.t.check_pow(self.b, bits);
         Ok(())
     }
 
@@ -169,7 +165,9 @@ impl Verifier for Rows<'_, '_> {
         Ok(())
     }
 
-    fn finish(&mut self) -> Result<(), TranscriptError> {
+    fn check_eof(&mut self) -> Result<(), TranscriptError> {
+        // A recorded failure, not a constraint: in rows the proof is only the witness, so nothing is left to read.
+        // It catches an honest prover's mismatch with the native verifier, and protects nothing else.
         if !self.t.finished() {
             self.scope("transcript", |r| {
                 r.b.fail("the proof has data the verifier never reads");
@@ -193,7 +191,7 @@ impl OpeningVerifier for Rows<'_, '_> {
     type Query = Vec<Kw>;
 
     fn next_root(&mut self) -> Result<Dw, TranscriptError> {
-        Ok(self.t.next_root(self.b))
+        Ok(self.t.prover_root(self.b))
     }
 
     /// Each challenge's 192 bits `c0 | c1 << 64 | c2 << 128`, split, then cut into queries.
@@ -201,7 +199,7 @@ impl OpeningVerifier for Rows<'_, '_> {
         let per = 192 / depth;
         let mut out = Vec::with_capacity(count);
         while out.len() < count {
-            let v = self.sample();
+            let v = self.verifier_message();
             let n = per.min(count - out.len());
             let limbs = self.b.e_to_k(v);
             let mut bits = Vec::with_capacity(192);
@@ -245,12 +243,25 @@ impl OpeningVerifier for Rows<'_, '_> {
     }
 }
 
-/// Each query's row, hashed up its own low levels to its stratum's node, every node then tied to `root`.
+/// Each query's row, its opening read from the next hint, then authenticated against the root.
+fn authenticate(
+    r: &mut Rows<'_, '_>,
+    root: Dw,
+    queries: &[Vec<Kw>],
+    row_words: usize,
+    leaf_words: usize,
+) -> Vec<Vec<Kw>> {
+    r.t.read_openings(r.b, root, queries, row_words, leaf_words);
+    authenticate_queued(r, root, queries, row_words, leaf_words)
+}
+
+/// Each query's row, hashed up its own low levels to its stratum's node, every node then tied to the root.
 ///
 /// A query of stratum `(s, j)` is hashed up its `depth - s` low levels to node `j` of the top subtree's level `s`.
-/// The batch's largest group reaches every node of the subtree's bottom level, which is hashed once up to the root; every other query's node is the subtree's.
+/// The batch's largest group reaches every node of the subtree's bottom level, which is hashed once up to the root.
+/// Every other query's node is the subtree's.
 /// So each leaf sits `depth` levels below the root, as the shape fixes.
-fn authenticate(
+fn authenticate_queued(
     r: &mut Rows<'_, '_>,
     root: Dw,
     queries: &[Vec<Kw>],

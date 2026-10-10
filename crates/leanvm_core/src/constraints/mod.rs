@@ -9,7 +9,7 @@
 //! all the bus needs; the extension-field table also folds its three identities,
 //! at powers of their own past those two. The forms' sums are the values the bus is
 //! owed, so the target is those rather than zero. The verifier derives it from the
-//! bus claims, and never reads it off the stream.
+//! bus claims, and never reads it off the proof.
 //!
 //! Tables of different heights are combined by back-loaded batching: table `t`'s
 //! summand is lifted onto the common `n`-cube by `∏_{i ≥ τ_t} X_i`, which leaves
@@ -34,8 +34,9 @@
 
 use crate::PAR_THRESHOLD;
 use crate::colval::{ColVal, padded_width};
+use fiat_shamir::arith::RoundPolynomial;
 use fiat_shamir::arith::{Arith, Verifier};
-use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter, VerifierState};
+use fiat_shamir::{ProverState, TranscriptError, VerifierState};
 use parallel::Chunks;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{SplitEq, eq_table, poly_eval, shrink_eq_high};
@@ -219,8 +220,8 @@ impl BitColumns {
             .filter(|&(c, _)| self.field_of(c).is_none())
             .map(|(_, &e)| e)
             .collect();
-        ps.add_scalars(&sent);
-        ps.add_scalars(&slices);
+        ps.prover_messages(&sent);
+        ps.prover_messages(&slices);
         Claims {
             chi: chi.to_vec(),
             evals,
@@ -230,8 +231,8 @@ impl BitColumns {
 
     /// Read the evaluations `send` sent, rebuilding each bit column's from its bits.
     fn receive<V: Verifier>(&self, v: &mut V, chi: &[V::E], n_sent: usize) -> Result<Claims<V::E>, TranscriptError> {
-        let mut sent = v.next_scalars(n_sent - self.fields.len())?.into_iter();
-        let slices = v.next_scalars(self.n_slices())?;
+        let mut sent = v.prover_messages(n_sent - self.fields.len())?.into_iter();
+        let slices = v.prover_messages(self.n_slices())?;
         let mut evals = Vec::with_capacity(n_sent);
         for c in 0..n_sent {
             evals.push(self.field_of(c).map_or_else(
@@ -464,8 +465,8 @@ fn prove_with<S: Summand>(
         }
         // Bind the current message before sampling the challenge used by its fold.
         let h = round_polynomial(msg, zeta[m], claim, u);
-        ps.add_round_poly(&h, false);
-        let rk = ps.sample();
+        RoundPolynomial { coeffs: h.to_vec() }.send(ps, false);
+        let rk = ps.verifier_message();
         claim = poly_eval(&h, rk);
         chi[m] = rk;
         k *= rk;
@@ -687,7 +688,7 @@ pub struct Final<E = F192> {
 ///
 /// # Errors
 ///
-/// Returns an error if the bus point is shorter than the tallest table, or the stream is malformed.
+/// Returns an error if the bus point is shorter than the tallest table, or the proof is malformed.
 pub fn verify<V: Verifier, S: Residual<V>>(
     v: &mut V,
     airs: &[Air<S>],
@@ -712,8 +713,8 @@ pub fn verify<V: Verifier, S: Residual<V>>(
     for j in 0..n {
         let m = n - 1 - j;
         // The running claim fixes the linear coefficient.
-        let h = v.next_round_poly(4, claim, None)?;
-        let rk = v.sample();
+        let h = RoundPolynomial::read(v, 4, claim, None)?.coeffs;
+        let rk = v.verifier_message();
         chi[m] = rk;
         claim = v.poly_eval(&h, rk);
         // A table active in the round takes `eq = 1 + zeta_m + r`, one that sits it out takes `r`.
@@ -750,7 +751,7 @@ pub fn verify<V: Verifier, S: Residual<V>>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fiat_shamir::transcript::ProofTranscript;
+    use fiat_shamir::{ProofTranscript, SessionId};
     use primitives::field::powers;
     use primitives::multilinear::{fold_high_inplace, fold_high_k, mle_eval};
     use primitives::test_util::Rng;
@@ -818,8 +819,8 @@ mod tests {
             shrink_eq_high(&mut eqr);
             let h = round_polynomial(msg, zeta[m], claim, u);
             // Bind the message before drawing the challenge for its fold.
-            ps.add_round_poly(&h, false);
-            let rk = ps.sample();
+            RoundPolynomial { coeffs: h.to_vec() }.send(ps, false);
+            let rk = ps.verifier_message();
             claim = poly_eval(&h, rk);
             chi[m] = rk;
             k *= rk;
@@ -965,14 +966,14 @@ mod tests {
         let (xi, zeta) = xi_zeta(taus);
         let airs = airs_for(taus, false, xi);
         let zeros = vec![F192::ZERO; taus.len()];
-        let mut ps = ProverState::from_label(b"zc-test");
+        let mut ps = ProverState::new(&SessionId::new(b"zc-test"), &0u64);
         let views = cols
             .iter()
             .map(|t| Columns::K(t.iter().map(|c| &c[..]).collect()))
             .collect();
         let pclaims = prove(&airs, views, &zeta, &zeros, &mut ps);
         let proof = ps.into_proof();
-        let mut vs = VerifierState::from_label(b"zc-test", &proof);
+        let mut vs = VerifierState::new(&SessionId::new(b"zc-test"), &0u64, &proof);
         let vclaims = verify(&mut vs, &airs, &zeta, F192::ZERO).and_then(Final::settle);
         if let Ok(vc) = &vclaims {
             assert_eq!(&pclaims, vc);
@@ -1008,15 +1009,15 @@ mod tests {
                 else { Columns::E(c.iter().map(|c| c.to_vec()).collect()) }
             }).collect();
             // Identical transcript seeds expose any changed message or challenge, in either pass shape.
-            let mut original = ProverState::from_label(b"arbitrary-constraint-test");
+            let mut original = ProverState::new(&SessionId::new(b"arbitrary-constraint-test"), &0u64);
             let expected = prove_reference(&airs, views(), &zeta, &sigma, &mut original);
-            let stream = original.into_proof().stream;
+            let stream = original.into_proof().narg;
             for rows in [false, true] {
-                let mut fused = ProverState::from_label(b"arbitrary-constraint-test");
+                let mut fused = ProverState::new(&SessionId::new(b"arbitrary-constraint-test"), &0u64);
                 let actual = prove_with(&airs, views(), &zeta, &sigma, &mut fused, rows);
                 // Invariant: even a false statement produces the same messages before rejection.
                 prop_assert_eq!(&actual, &expected);
-                prop_assert_eq!(&fused.into_proof().stream, &stream);
+                prop_assert_eq!(&fused.into_proof().narg, &stream);
             }
         }
     }
@@ -1049,15 +1050,15 @@ mod tests {
                             .collect()
                     };
                     let sigma: Vec<_> = (0..taus.len()).map(|i| F192::new(i as u64 + 1, 3, 5)).collect();
-                    let mut reference = ProverState::from_label(b"fused-constraint-test");
+                    let mut reference = ProverState::new(&SessionId::new(b"fused-constraint-test"), &0u64);
                     let expected = prove_reference(&airs, views(), &zeta, &sigma, &mut reference);
-                    let stream = reference.into_proof().stream;
+                    let stream = reference.into_proof().narg;
                     for rows in [false, true] {
-                        let mut fused = ProverState::from_label(b"fused-constraint-test");
+                        let mut fused = ProverState::new(&SessionId::new(b"fused-constraint-test"), &0u64);
                         let actual = prove_with(&airs, views(), &zeta, &sigma, &mut fused, rows);
                         // Invariant: reordering exact field operations preserves all messages and final claims.
                         assert_eq!(actual, expected);
-                        assert_eq!(fused.into_proof().stream, stream);
+                        assert_eq!(fused.into_proof().narg, stream);
                     }
                 }
             }
@@ -1083,18 +1084,18 @@ mod tests {
                 summand: Constant,
             }];
             let zeta = vec![F192::new(3, 5, 7); tau];
-            let mut ps = ProverState::from_label(b"constant-column-free-test");
+            let mut ps = ProverState::new(&SessionId::new(b"constant-column-free-test"), &0u64);
             let claims = prove(&airs, vec![Columns::K(vec![])], &zeta, &[F192::ONE], &mut ps);
             let proof = ps.into_proof();
             // No column evaluations are transmitted, but the constant still binds every round.
-            let mut vs = VerifierState::from_label(b"constant-column-free-test", &proof);
+            let mut vs = VerifierState::new(&SessionId::new(b"constant-column-free-test"), &0u64, &proof);
             assert_eq!(
                 verify(&mut vs, &airs, &zeta, F192::ONE)
                     .and_then(Final::settle)
                     .unwrap(),
                 claims
             );
-            vs.finish().unwrap();
+            vs.check_eof().unwrap();
         }
     }
 
@@ -1144,14 +1145,14 @@ mod tests {
         let settle = |sig: &[F192], cols: &[Vec<Vec<F64>>]| -> Result<Vec<Claims>, ConstraintError> {
             let airs = airs_for(&taus, true, xi);
             let target = sig.iter().fold(F192::ZERO, |a, &b| a + b);
-            let mut ps = ProverState::from_label(b"zc-test");
+            let mut ps = ProverState::new(&SessionId::new(b"zc-test"), &0u64);
             let views = cols
                 .iter()
                 .map(|t| Columns::K(t.iter().map(|c| &c[..]).collect()))
                 .collect();
             let pclaims = prove(&airs, views, &zeta, sig, &mut ps);
             let proof = ps.into_proof();
-            let mut vs = VerifierState::from_label(b"zc-test", &proof);
+            let mut vs = VerifierState::new(&SessionId::new(b"zc-test"), &0u64, &proof);
             let out = verify(&mut vs, &airs, &zeta, target).and_then(Final::settle);
             if let Ok(vc) = &out {
                 assert_eq!(&pclaims, vc);
@@ -1179,10 +1180,10 @@ mod tests {
         assert!(ok.is_ok());
         let (xi, zeta) = xi_zeta(&taus);
         let airs = airs_for(&taus, false, xi);
-        for i in 0..proof.stream.len() {
+        for i in 0..proof.narg.len() / 24 {
             let mut bad = proof.clone();
-            bad.stream[i] += F192::ONE;
-            let mut vs = VerifierState::from_label(b"zc-test", &bad);
+            bad.narg[24 * i] ^= 1;
+            let mut vs = VerifierState::new(&SessionId::new(b"zc-test"), &0u64, &bad);
             assert!(
                 verify(&mut vs, &airs, &zeta, F192::ZERO)
                     .and_then(Final::settle)
@@ -1206,7 +1207,7 @@ mod tests {
             fields: vec![BitField { col: 0, width: 3 }],
         };
         let views = vec![Columns::K(cols.iter().map(|c| &c[..]).collect())];
-        let mut ps = ProverState::from_label(b"zc-bits");
+        let mut ps = ProverState::new(&SessionId::new(b"zc-bits"), &0u64);
         let claims = prove(&airs, views, &zeta, &[F192::ZERO], &mut ps);
         let proof = ps.into_proof();
 
@@ -1216,15 +1217,15 @@ mod tests {
             assert_eq!(slice, mle_eval(&bit, &claims[0].chi));
         }
         let verdict = |proof: &ProofTranscript| {
-            let mut vs = VerifierState::from_label(b"zc-bits", proof);
+            let mut vs = VerifierState::new(&SessionId::new(b"zc-bits"), &0u64, proof);
             verify(&mut vs, &airs, &zeta, F192::ZERO).and_then(Final::settle)
         };
         assert_eq!(verdict(&proof), Ok(claims));
 
         // Mutation: one slice moved, which the column's rebuilt evaluation carries into the final identity.
-        for at in proof.stream.len() - 3..proof.stream.len() {
+        for at in proof.narg.len() / 24 - 3..proof.narg.len() / 24 {
             let mut bad = proof.clone();
-            bad.stream[at] += F192::ONE;
+            bad.narg[24 * at] ^= 1;
             assert_eq!(verdict(&bad), Err(ConstraintError::FinalMismatch), "slice {at}");
         }
     }

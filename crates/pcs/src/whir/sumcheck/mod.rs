@@ -8,7 +8,8 @@
 //! The first lane rounds' messages come from one pass over the witness and the initial weight, in a submodule.
 
 use core::ops::BitXorAssign;
-use fiat_shamir::transcript::Transmitter;
+use fiat_shamir::ProverState;
+use fiat_shamir::arith::RoundPolynomial;
 use first_pass::{LaneWeight, WeightFold};
 use parallel::SendPtr;
 use primitives::field::{F64, F192, F192Unreduced};
@@ -69,8 +70,11 @@ pub(crate) struct SumcheckMessage {
 }
 
 /// Sends the constant and quadratic coefficients; the claim fixes the linear one, so it is not sent.
-pub(super) fn send_msg(ps: &mut impl Transmitter, m: SumcheckMessage, claim: F192) {
-    ps.add_round_poly(&[m.u_0, claim + m.u_2, m.u_2], false);
+pub(super) fn send_msg(ps: &mut ProverState, m: SumcheckMessage, claim: F192) {
+    RoundPolynomial {
+        coeffs: vec![m.u_0, claim + m.u_2, m.u_2],
+    }
+    .send(ps, false);
 }
 
 /// A round's quadratic `c + b X + a X^2`: the prover's copy of the verifier's running round.

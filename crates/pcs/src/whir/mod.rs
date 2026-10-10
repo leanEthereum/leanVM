@@ -29,7 +29,7 @@ mod query;
 mod sumcheck;
 mod verify;
 
-use fiat_shamir::transcript::Challenger;
+use fiat_shamir::Challenger;
 use primitives::field::{F64, F192};
 use primitives::multilinear::inner_product_base;
 
@@ -111,7 +111,7 @@ pub(crate) fn sample_queries_ordered(ch: &mut impl Challenger, block_len: usize,
     let per = 192 / d;
     let mut out = Vec::with_capacity(count);
     while out.len() < count {
-        let v = ch.sample();
+        let v: F192 = ch.verifier_message();
         for j in 0..per.min(count - out.len()) {
             let off = j * d;
             let limbs = [v.c0, v.c1, v.c2];
@@ -134,10 +134,10 @@ pub(crate) fn sample_queries_ordered(ch: &mut impl Challenger, block_len: usize,
 mod tests {
     use super::sumcheck::tests::Table;
     use super::*;
-    use crate::merkle::Hash;
+    use crate::merkle::{Hash, PrunedMerklePaths};
     use crate::whir::config::tests::test_config_for;
     use crate::whir::query::QueryBatch;
-    use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, VerifierState};
+    use fiat_shamir::{ProofTranscript, ProverState, SessionId, TranscriptError, VerifierState};
     use primitives::multilinear::{eq_eval, eq_table, inner_product};
     use primitives::test_util::Rng;
     use std::panic::AssertUnwindSafe;
@@ -162,7 +162,7 @@ mod tests {
         let point: Vec<F192> = (0..log_n).map(|_| rng.ext()).collect();
         let b_initial = eq_table(&point);
         let target = inner_product_base_ext(&witness, &b_initial);
-        let mut ps = ProverState::from_label(b"whir-test");
+        let mut ps = ProverState::new(&SessionId::new(b"whir-test"), &0u64);
         let weight = Table {
             weight: b_initial.to_vec(),
             block: 1 << (log_n - pc.initial_k()),
@@ -189,7 +189,7 @@ mod tests {
         fs: &ProofTranscript,
         eval_b_at: impl Fn(&[F192]) -> F192,
     ) -> Result<(), WhirError> {
-        let mut vs = VerifierState::from_label(b"whir-test", fs);
+        let mut vs = VerifierState::new(&SessionId::new(b"whir-test"), &0u64, fs);
         verify(
             &mut vs,
             &inst.vc,
@@ -273,73 +273,83 @@ mod tests {
             let inst = prove_instance(log_n, seed);
             assert!(verify_both_agree(&inst, &inst.fs, "honest proof"));
 
-            let mut rng = Rng::new(seed ^ 0xABCD);
-            // One Merkle phase per level, in level order: phase 0 opens L0, the
-            // last phase opens the final level.
-            type Tamper = fn(&mut ProofTranscript, u64);
+            // One hint per level, in level order: hint 0 opens L0, the last hint opens the final level.
+            //
+            //     hint = [4-byte length | rows' words | siblings]
+            type Tamper = fn(&mut ProofTranscript);
             let tampers: &[(&str, Tamper)] = &[
-                ("L0 opened row", |p, r| {
-                    let rows = &mut p.merkle[0].leaf_data;
-                    let row = (r as usize) % rows.len();
-                    rows[row][0].0 ^= 1;
+                ("L0 opened row", |p| {
+                    let start = hint_starts(&p.hints)[0];
+                    p.hints[start] ^= 1;
                 }),
-                ("final-level opened row", |p, r| {
-                    let rows = &mut p.merkle.last_mut().unwrap().leaf_data;
-                    let row = (r as usize) % rows.len();
-                    rows[row][0].0 ^= 1;
+                ("final-level opened row", |p| {
+                    let start = *hint_starts(&p.hints).last().unwrap();
+                    p.hints[start] ^= 1;
                 }),
-                ("merkle proof node", |p, r| {
-                    let sibs = &mut p.merkle[0].sibling_hashes;
-                    let idx = (r as usize) % sibs.len();
-                    sibs[idx][0] ^= 1;
+                ("merkle proof node", |p| {
+                    let end = hint_starts(&p.hints)[1] - 4;
+                    p.hints[end - 1] ^= 1;
                 }),
             ];
             for (what, tamper) in tampers {
                 let mut bad_fs = inst.fs.clone();
-                tamper(&mut bad_fs, rng.next_u64());
+                tamper(&mut bad_fs);
                 assert!(
                     !verify_both_agree(&inst, &bad_fs, what),
                     "tampered {what} accepted at log_n={log_n}"
                 );
             }
-            // Every transmitted scalar (sumcheck messages, level roots, OOD
-            // claims, `yr`, both kinds of grinding nonce) is one stream word, so
-            // one sweep covers what used to be five per-field tampers: a bound
-            // word re-rolls the challenges after it, a nonce word fails its PoW.
-            let n_stream = inst.fs.stream.len();
-            assert!(n_stream > 0, "WHIR transmitted nothing");
-            for idx in (0..n_stream).step_by(1 + n_stream / 24) {
+            // Every message (sumcheck messages, level roots, OOD claims, `yr`, the nonces) is NARG bytes.
+            //
+            // A bound byte re-rolls the challenges after it, a nonce byte fails its proof of work.
+            let n_bytes = inst.fs.narg.len();
+            assert!(n_bytes > 0, "WHIR sent nothing");
+            for idx in (0..n_bytes).step_by(1 + n_bytes / 24) {
                 let mut bad_fs = inst.fs.clone();
-                bad_fs.stream[idx] += F192::ONE;
+                bad_fs.narg[idx] ^= 1;
                 assert!(
-                    !verify_both_agree(&inst, &bad_fs, "stream word"),
-                    "tampered stream word {idx} accepted at log_n={log_n}"
+                    !verify_both_agree(&inst, &bad_fs, "message byte"),
+                    "tampered message byte {idx} accepted at log_n={log_n}"
                 );
             }
         }
     }
 
+    // The first hint's bytes, past its 4-byte length.
+    fn first_hint(fs: &ProofTranscript) -> &[u8] {
+        let len = u32::from_le_bytes(fs.hints[..4].try_into().unwrap()) as usize;
+        &fs.hints[4..4 + len]
+    }
+
+    // Where each hint's bytes start, past its 4-byte length.
+    fn hint_starts(hints: &[u8]) -> Vec<usize> {
+        let mut starts = Vec::new();
+        let mut at = 0;
+        while at < hints.len() {
+            let len = u32::from_le_bytes(hints[at..at + 4].try_into().unwrap()) as usize;
+            starts.push(at + 4);
+            at += 4 + len;
+        }
+        starts
+    }
+
     #[test]
-    fn tampered_stream_words_reject_without_panicking() {
-        // Invariant: every stream word is the prover's, so a tampered one is refused, never a panic.
-        //
-        // That covers a level root's limbs and every digest half: a non-canonical half is refused before any decoding.
+    fn tampered_messages_reject_without_panicking() {
+        // Invariant: every message byte is the prover's, so a tampered one is refused, never a panic.
         let inst = prove_instance(12, 11);
         let mut short = inst.fs.clone();
-        short.stream.truncate(1);
+        short.narg.truncate(1);
         assert_eq!(
             verify_with(&inst, &short, |point| eq_eval(&inst.point, point)),
-            Err(WhirError::Transcript(TranscriptError::ExceededStream { len: 1 })),
+            Err(WhirError::Transcript(TranscriptError::Malformed { index: 0 })),
         );
-        for idx in 0..inst.fs.stream.len() {
-            for tamper in [F192::ONE, F192::new(0, 0, 1)] {
-                let mut bad = inst.fs.clone();
-                bad.stream[idx] += tamper;
-                let verdict = std::panic::catch_unwind(AssertUnwindSafe(|| verify_closed_form(&inst, &bad)));
-                match verdict {
-                    Ok(accepted) => assert!(!accepted, "tampered stream word {idx} accepted"),
-                    Err(_) => panic!("verifier panicked on tampered stream word {idx}"),
-                }
+        for idx in (0..inst.fs.narg.len()).step_by(5) {
+            let mut bad = inst.fs.clone();
+            bad.narg[idx] ^= 0x80;
+            let verdict = std::panic::catch_unwind(AssertUnwindSafe(|| verify_closed_form(&inst, &bad)));
+            match verdict {
+                Ok(accepted) => assert!(!accepted, "tampered message byte {idx} accepted"),
+                Err(_) => panic!("verifier panicked on tampered message byte {idx}"),
             }
         }
     }
@@ -367,7 +377,7 @@ mod tests {
 
                 let prove_with = |msg: &[F64], b: &[F192]| {
                     let pd = commit(msg, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
-                    let mut ps = ProverState::from_label(b"whir-test");
+                    let mut ps = ProverState::new(&SessionId::new(b"whir-test"), &0u64);
                     let weight = Table {
                         weight: b.to_vec(),
                         block: lane_block,
@@ -379,7 +389,7 @@ mod tests {
                 let (root_full, fs_full) = prove_with(&witness, &b_initial);
                 assert_eq!(root_trunc, root_full, "root differs at n_lanes = {n_lanes}");
                 assert_eq!(
-                    fs_trunc.stream, fs_full.stream,
+                    fs_trunc.narg, fs_full.narg,
                     "the protocol itself must not change at n_lanes = {n_lanes}"
                 );
 
@@ -387,9 +397,11 @@ mod tests {
                 // truncated one stores each L0 row as the committed lanes alone, which is
                 // exactly the full image with its leading padding zeros dropped.
                 let leaf_words = 1usize << pc.initial_k();
-                for (thin, full) in fs_trunc.merkle[0].leaf_data.iter().zip(&fs_full.merkle[0].leaf_data) {
-                    assert_eq!(thin.len(), n_lanes);
-                    assert_eq!(full.len(), leaf_words);
+                let (thin, full) = (first_hint(&fs_trunc), first_hint(&fs_full));
+                let distinct = (full.len() - thin.len()) / (8 * (leaf_words - n_lanes).max(1));
+                let thin = PrunedMerklePaths::from_hint(thin, distinct, n_lanes).unwrap();
+                let full = PrunedMerklePaths::from_hint(full, distinct, leaf_words).unwrap();
+                for (thin, full) in thin.leaf_data.iter().zip(&full.leaf_data) {
                     assert_eq!(thin[..], full[leaf_words - n_lanes..], "stored row is the image tail");
                     assert!(
                         full[..leaf_words - n_lanes].iter().all(|w| *w == F64::ZERO),
@@ -399,7 +411,7 @@ mod tests {
 
                 // The verifier evaluates the weight over the whole `2^log_n` cube.
                 let verify = |fs: &ProofTranscript| {
-                    let mut vs = VerifierState::from_label(b"whir-test", fs);
+                    let mut vs = VerifierState::new(&SessionId::new(b"whir-test"), &0u64, fs);
                     verify(&mut vs, &pc, log_n, n_lanes, target, root_trunc, |_, point| {
                         dense_mle(&b_initial, point)
                     })
@@ -410,8 +422,12 @@ mod tests {
                 // so a row of any other width is rejected rather than zero-extended to
                 // something that happens to hash.
                 if n_lanes < leaf_words {
+                    // One more word in the first hint: 8 bytes inserted after the first row.
                     let mut bad_fs = fs_trunc.clone();
-                    bad_fs.merkle[0].leaf_data[0].push(F64::ZERO);
+                    let len = u32::from_le_bytes(bad_fs.hints[..4].try_into().unwrap()) + 8;
+                    bad_fs.hints[..4].copy_from_slice(&len.to_le_bytes());
+                    let at = 4 + 8 * n_lanes;
+                    bad_fs.hints.splice(at..at, [0; 8]);
                     assert!(
                         verify(&bad_fs).is_err(),
                         "a wrong-width row was accepted at n_lanes = {n_lanes}"
@@ -465,7 +481,7 @@ mod tests {
                 let target = inner_product_base_ext(&witness, &weight[..used]);
 
                 let pd = commit(&witness, log_n, pc.initial_k(), log_inv_rate);
-                let mut ps = ProverState::from_label(b"whir-test");
+                let mut ps = ProverState::new(&SessionId::new(b"whir-test"), &0u64);
                 let table = Table {
                     weight: weight[..used].to_vec(),
                     block: lane_block,
@@ -474,7 +490,7 @@ mod tests {
                 let fs = ps.into_proof();
 
                 let check = |target: F192| {
-                    let mut vs = VerifierState::from_label(b"whir-test", &fs);
+                    let mut vs = VerifierState::new(&SessionId::new(b"whir-test"), &0u64, &fs);
                     verify(&mut vs, &pc, log_n, n_lanes, target, pd.root(), |_, point| {
                         dense_mle(&weight, point)
                     })
