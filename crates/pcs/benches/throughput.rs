@@ -34,7 +34,7 @@ use bench::{Metric, Plan, Timing, bencher_json, env_usize};
 use fiat_shamir::transcript::ProverState;
 use pcs::ntt::AdditiveNttF64;
 use pcs::ring_switch::{RingSwitch, SliceClaim};
-use pcs::stack_open::{CommittedStack, StackClaim, Statement};
+use pcs::stack::{CommittedStack, StackClaim, Statement};
 use pcs::whir::{LOG_INV_RATE_0, config_for_rate, inner_product_base_ext};
 use primitives::field::{F64, F192};
 use primitives::multilinear::eq_table;

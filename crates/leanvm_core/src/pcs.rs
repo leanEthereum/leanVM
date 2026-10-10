@@ -11,7 +11,7 @@
 
 use crate::witness::StackShape;
 use fiat_shamir::transcript::{ProverState, TranscriptError, Transmitter};
-use pcs::stack_open::{CommittedStack, StackCommitment, Statement};
+use pcs::stack::{CommittedStack, StackCommitment, Statement};
 use pcs::verifier::OpeningVerifier;
 use pcs::whir::WhirError;
 use pcs::whir::config::ConfigError;
@@ -19,7 +19,7 @@ use primitives::field::F64;
 use thiserror::Error;
 
 pub(crate) use pcs::ring_switch::{RingSwitch, SliceClaim};
-pub(crate) use pcs::stack_open::StackClaim;
+pub(crate) use pcs::stack::StackClaim;
 pub(crate) use pcs::whir::INITIAL_FOLDING_FACTOR as LOG_BATCH;
 pub use pcs::whir::{MAX_LOG_N as MAX_MU, MIN_LOG_N as MIN_MU};
 

@@ -17,10 +17,7 @@ use super::commit::{ProverData, ligero_commit_ext};
 use super::sample_queries_ordered;
 use super::sumcheck::{InitialWeight, SumcheckProver, send_msg};
 use crate::whir::config::Config;
-use crate::whir::induce::{
-    eval_sk_at_vks, induce_basis_on_cube, induce_sumcheck_enforced_sum, induce_sumcheck_poly,
-    induce_sumcheck_poly_auto_base,
-};
+use crate::whir::query::QueryBatch;
 use fiat_shamir::merkle::PrunedMerklePaths;
 use fiat_shamir::transcript::Transmitter;
 use primitives::field::{F64, F192, powers};
@@ -177,19 +174,11 @@ pub(crate) fn prove(
     ps.hint_merkle(PrunedMerklePaths::prune(l0_tree, block_len_0, &queries_0, l0_row));
     drop(span);
 
-    // Induce the L0 consistency weight and its claimed sum from the opened rows.
-    // Why the dispatch: at L0's large domain and query count, the transposed NTT beats the dense expansion.
-    let sks_vks_n1 = eval_sk_at_vks(n1);
+    // Induce the L0 consistency weight, and its claimed sum from the opened rows.
     let span = tracing::info_span!("Induce", level = 0).entered();
-    let (basis_0_induced, enforced_sum_0) = induce_sumcheck_poly_auto_base(
-        n1,
-        log_inv_rate_0,
-        &sks_vks_n1,
-        &opened_rows_0,
-        &r_lane_fold,
-        &queries_0,
-        &weights_0,
-    );
+    let batch_0 = QueryBatch::new(&queries_0, &weights_0);
+    let enforced_sum_0 = batch_0.claimed_sum(&opened_rows_0, &r_lane_fold);
+    let basis_0_induced = batch_0.induced_weight(n1, log_inv_rate_0);
     drop(span);
 
     // Introduce the consistency claim, then batch the level's pending claims with powers of `lambda_0`.
@@ -234,12 +223,13 @@ pub(crate) fn prove(
                 |q| ext_row_words(opened_last.row(q)),
             ));
             // Tie the last oracle into the running claim by the same intro and batching step as every level.
-            // - The consistency weight is the induced basis on the residual cube, evaluated in closed form.
+            // - The consistency weight is the induced weight on the residual cube.
             // - The residual rounds then discharge the batched claim.
             let rows_last: Vec<Vec<F192>> = queries_last.iter().map(|&q| opened_last.row(q).to_vec()).collect();
-            let enforced_sum_last = induce_sumcheck_enforced_sum(&rows_last, &level_rs, &queries_last, &weights_last);
+            let batch_last = QueryBatch::new(&queries_last, &weights_last);
+            let enforced_sum_last = batch_last.claimed_sum(&rows_last, &level_rs);
             let n_res = sc_prover.f_ext().len().trailing_zeros() as usize;
-            let basis_last = induce_basis_on_cube(n_res, &eval_sk_at_vks(n_res), &queries_last, &weights_last);
+            let basis_last = batch_last.induced_weight(n_res, config.log_inv_rates()[i + 1]);
             let intro_msg_last = sc_prover.introduce_new(basis_last, enforced_sum_last);
             send_msg(ps, intro_msg_last, enforced_sum_last);
             sc_prover.glue_pending(lambda_last);
@@ -290,10 +280,10 @@ pub(crate) fn prove(
         ));
         drop(span);
 
-        let sks_vks_i = eval_sk_at_vks(n_next);
         let span = tracing::info_span!("Induce", level = i + 1).entered();
-        let (basis_i_induced, enforced_sum_i) =
-            induce_sumcheck_poly(n_next, &sks_vks_i, &opened_rows_i, &level_rs, &queries_i, &weights_i);
+        let batch_i = QueryBatch::new(&queries_i, &weights_i);
+        let enforced_sum_i = batch_i.claimed_sum(&opened_rows_i, &level_rs);
+        let basis_i_induced = batch_i.induced_weight(n_next, config.log_inv_rates()[i + 1]);
         drop(span);
 
         let span = tracing::info_span!("Introduce", level = i + 1).entered();

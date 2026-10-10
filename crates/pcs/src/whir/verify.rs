@@ -15,9 +15,9 @@
 
 use crate::verifier::OpeningVerifier;
 use crate::whir::config::{Config, ConfigError};
-use crate::whir::induce::eval_sk_at_vks;
+use crate::whir::query::Normalizers;
 use fiat_shamir::transcript::TranscriptError;
-use primitives::field::{F64, F192};
+use primitives::field::F192;
 use thiserror::Error;
 
 /// Why a WHIR opening is rejected.
@@ -232,13 +232,11 @@ impl<Q, E: Copy> LevelCtx<Q, E> {
     /// Here `q_i` is query `i`'s position read as an element of `K`, and `s_k` the `k`-th subspace polynomial.
     fn basis_at<V: OpeningVerifier<E = E, Query = Q>>(&self, v: &mut V, point: &[E]) -> E {
         assert_eq!(point.len(), self.log_msg_cols, "a point of the level's cube");
-        let sks = eval_sk_at_vks(self.log_msg_cols);
+        let normalizers = Normalizers::new(self.log_msg_cols);
+        let sks = normalizers.at_roots();
         // Each factor is affine in `s`: `1 + p (1 + s / sigma) = (1 + p) + (p / sigma) s`.
-        let lin: Vec<(E, E)> = (point.iter().zip(&sks))
-            .map(|(&p, &sigma)| {
-                let inv = if sigma == F64(0) { F64(0) } else { sigma.inv() };
-                (v.add_const(p, F192::ONE), v.mul_const(p, F192::from(inv)))
-            })
+        let lin: Vec<(E, E)> = (point.iter().zip(normalizers.inverses()))
+            .map(|(&p, &inv)| (v.add_const(p, F192::ONE), v.mul_const(p, F192::from(inv))))
             .collect();
         let zero = v.zero();
         (self.queries.iter().zip(&self.weights)).fold(zero, |acc, (query, &w)| {

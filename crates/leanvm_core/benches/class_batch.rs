@@ -29,7 +29,7 @@ use flock::circuit::Circuit;
 use flock::reduction::{self, Instance};
 use leanvm::{Fill, MIN_MU, TableId, Word};
 use pcs::ring_switch::RingSwitch;
-use pcs::stack_open::{CommittedStack, StackCommitment, Statement};
+use pcs::stack::{CommittedStack, StackCommitment, Statement};
 use pcs::whir::{Config, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, config_for_rate};
 use primitives::field::F64;
 use primitives::pretty_integer;

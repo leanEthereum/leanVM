@@ -10,6 +10,6 @@
 pub mod merkle;
 pub mod ntt;
 pub mod ring_switch;
-pub mod stack_open;
+pub mod stack;
 pub mod verifier;
 pub mod whir;

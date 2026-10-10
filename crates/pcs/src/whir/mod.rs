@@ -24,8 +24,8 @@
 
 mod commit;
 pub mod config;
-mod induce;
 mod prove;
+mod query;
 mod sumcheck;
 mod verify;
 
@@ -40,7 +40,6 @@ pub use config::{
 };
 
 pub(crate) use commit::{ProverData, commit};
-pub use induce::eval_sk_at_vks;
 pub(crate) use prove::prove;
 pub(crate) use sumcheck::{INITIAL_BASIS_CHUNK, InitialWeight};
 pub use verify::WhirError;
@@ -137,14 +136,10 @@ mod tests {
     use super::*;
     use crate::merkle::Hash;
     use crate::whir::config::tests::test_config_for;
-    use crate::whir::induce::{
-        induce_basis_on_cube, induce_sumcheck_poly, induce_sumcheck_poly_via_ntt_base, induce_use_ntt_heuristic,
-    };
+    use crate::whir::query::QueryBatch;
     use fiat_shamir::transcript::{ProofTranscript, ProverState, TranscriptError, VerifierState};
-    use primitives::field::powers;
     use primitives::multilinear::{eq_eval, eq_table, inner_product};
     use primitives::test_util::Rng;
-    use std::collections::HashSet;
     use std::panic::AssertUnwindSafe;
 
     struct Instance {
@@ -247,18 +242,18 @@ mod tests {
         // Invariant: at log_n = 18 the L0 induce takes the sparse transposed NTT, and the proof still verifies.
         //
         // Fixture state: L0 has 2^12 message columns, enough queries to trip the dispatch; at log_n = 16 it stays dense.
-        let pc = config_for_rate(18, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 18");
+        let takes_transposed = |log_n: usize| {
+            let pc = config_for_rate(log_n, LOG_INV_RATE_0).unwrap();
+            let positions = vec![0; pc.queries()[0]];
+            let weights = vec![F192::ZERO; positions.len()];
+            QueryBatch::new(&positions, &weights).takes_transposed(log_n - pc.initial_k(), pc.log_inv_rates()[0])
+        };
         assert!(
-            induce_use_ntt_heuristic(18 - pc.initial_k(), pc.log_inv_rates()[0], pc.queries()[0]),
+            takes_transposed(18),
             "shape must select the sparse transposed-NTT induce at L0"
         );
         // And the smaller roundtrips stay on the dense path (cols < 12).
-        let pc16 = config_for_rate(16, LOG_INV_RATE_0).unwrap();
-        assert!(!induce_use_ntt_heuristic(
-            16 - pc16.initial_k(),
-            pc16.log_inv_rates()[0],
-            pc16.queries()[0]
-        ));
+        assert!(!takes_transposed(16));
         let inst = prove_instance(18, 8);
         assert!(verify_dense_weight(&inst, &inst.fs), "honest proof rejected");
         assert!(
@@ -424,90 +419,6 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn induce_via_ntt_matches_dense() {
-        // Invariant: the pruned transposed NTT induce is the dense one.
-        //
-        // Fixture state: zero rate, a rate overlapping or exhausting the sparse prefix, empty inputs, repeated queries.
-        let mut rng = Rng::new(9);
-        for (log_msg_cols, log_inv_rate, lanes_log, n_queries) in [
-            (12usize, 1usize, 5usize, 130usize),
-            (6, 2, 3, 40),
-            (6, 0, 2, 16),
-            (12, 0, 1, 16),
-            (8, 4, 1, 16),
-            (5, 7, 1, 16),
-            (1, 11, 1, 16),
-            (0, 12, 0, 16),
-            (0, 1, 0, 2),
-            (6, 2, 1, 0),
-            (5, 7, 1, 0),
-            (12, 1, 1, 0),
-        ] {
-            let block_len = 1usize << (log_msg_cols + log_inv_rate);
-            let lanes = 1usize << lanes_log;
-            // Include both domain endpoints, then append repeats after the
-            // sorted distinct queries to cover accumulation across sparse windows.
-            let mut qs: Vec<usize> = Vec::new();
-            let mut seen = HashSet::new();
-            if n_queries > 0 {
-                qs.push(0);
-                seen.insert(0);
-            }
-            if n_queries > 1 {
-                qs.push(block_len - 1);
-                seen.insert(block_len - 1);
-            }
-            while qs.len() < n_queries {
-                let q = (rng.next_u64() as usize) % block_len;
-                if seen.insert(q) {
-                    qs.push(q);
-                }
-            }
-            qs.sort_unstable();
-            if let Some(&first) = qs.first() {
-                qs.push(first);
-                qs.push(first);
-            }
-            let n_queries = qs.len();
-            let rows: Vec<Vec<F64>> = (0..n_queries)
-                .map(|_| (0..lanes).map(|_| F64(rng.next_u64())).collect())
-                .collect();
-            let v_challenges: Vec<F192> = (0..lanes_log).map(|_| rng.ext()).collect();
-            let weights = powers(rng.ext(), n_queries);
-
-            let sks_vks = eval_sk_at_vks(log_msg_cols);
-            let dense = induce_sumcheck_poly(log_msg_cols, &sks_vks, &rows, &v_challenges, &qs, &weights);
-            let via_ntt =
-                induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, &rows, &v_challenges, &qs, &weights);
-            assert_eq!(
-                dense.1, via_ntt.1,
-                "enforced_sum mismatch: cols={log_msg_cols}, rate={log_inv_rate}"
-            );
-            assert_eq!(
-                &*dense.0, &*via_ntt.0,
-                "basis_poly mismatch: cols={log_msg_cols}, rate={log_inv_rate}, queries={n_queries}"
-            );
-        }
-    }
-
-    #[test]
-    fn the_closed_form_on_the_cube_is_the_induced_basis() {
-        // Invariant: the closed form on the Boolean cube, the prover's last level, is the induced basis.
-        let mut rng = Rng::new(0x5E51);
-        let (log_msg_cols, log_inv_rate, lanes_log, n_queries) = (7usize, 2usize, 2usize, 37usize);
-        let block_len = 1usize << (log_msg_cols + log_inv_rate);
-        // Fixture state: queries in transcript order, repeats allowed, as the verifier samples them.
-        let queries: Vec<usize> = (0..n_queries).map(|_| rng.next_u64() as usize % block_len).collect();
-        let rows: Vec<Vec<F192>> = (0..n_queries).map(|_| rng.ext_vec(1 << lanes_log)).collect();
-        let v_challenges = rng.ext_vec(lanes_log);
-        let weights = powers(rng.ext(), n_queries);
-        let sks_vks = eval_sk_at_vks(log_msg_cols);
-        let (basis, _) = induce_sumcheck_poly(log_msg_cols, &sks_vks, &rows, &v_challenges, &queries, &weights);
-
-        assert_eq!(induce_basis_on_cube(log_msg_cols, &sks_vks, &queries, &weights), basis);
     }
 
     #[test]
