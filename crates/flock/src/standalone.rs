@@ -18,9 +18,9 @@ use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, Ve
 use pcs::pack::LOG_PACKING;
 use pcs::ring_switch;
 use primitives::field::{F64, F192};
-use primitives::multilinear::poly_eval;
+use primitives::multilinear::{eq_table, lagrange_weights_naive, poly_eval};
 
-use crate::lincheck::{self, LincheckCircuit};
+use crate::lincheck::{self, LincheckCircuit, RowPoint};
 use crate::zerocheck::{self, PaddingSpec};
 
 /// `polynomial(point) = value`, the point low variable first.
@@ -43,6 +43,7 @@ pub struct Claims {
 pub enum VerifyError {
     Zerocheck(zerocheck::VerifyError),
     Lincheck(lincheck::VerifyError),
+    MatrixSkip,
     RingSwitch,
     Transcript(fiat_shamir::transcript::Error),
 }
@@ -61,11 +62,37 @@ pub struct Witness<'a> {
     pub z_lincheck: &'a [u8],
 }
 
+/// The zerocheck's claims, whichever way its first six variables were bound.
+struct RowClaims {
+    /// The univariate-skip challenge, when the zerocheck skipped.
+    z: Option<F192>,
+    /// The multilinear coordinates: all `m` of them, or the `m - 6` past the skip.
+    point: Vec<F192>,
+    evals: [F192; 3],
+}
+
+impl RowClaims {
+    /// Split at the block: the row point lincheck runs at, and the instance point.
+    fn split(&self, k_log: usize) -> (RowPoint<'_>, &[F192]) {
+        match self.z {
+            None => (RowPoint::Multilinear(&self.point[..k_log]), &self.point[k_log..]),
+            Some(z) => {
+                let (rest, outer) = self.point.split_at(k_log - LOG_PACKING);
+                (RowPoint::Skip { z, rest }, outer)
+            }
+        }
+    }
+}
+
 /// Prove the batch. The caller has bound the statement and both commitments into `ps`.
+///
+/// `skip` runs the zerocheck with its univariate skip: a faster prover, for 64 scalars in place of six rounds, and a
+/// matrix claim whose six low row variables then take a sumcheck of their own to become multilinear.
 pub fn prove(
     circuit: &dyn LincheckCircuit,
     useful_bits: usize,
     n_log: usize,
+    skip: bool,
     witness: Witness<'_>,
     ps: &mut ProverState,
 ) -> Claims {
@@ -75,8 +102,26 @@ pub fn prove(
         k_log,
         useful_bits_per_block: useful_bits,
     };
-    let zc = tracing::info_span!("Zerocheck")
-        .in_scope(|| zerocheck::prove_multilinear(witness.a, witness.b, witness.z, m, &padding, ps));
+    let zc = tracing::info_span!("Zerocheck").in_scope(|| {
+        if skip {
+            let bytes = crate::witness::packed_bytes;
+            let zc =
+                zerocheck::prove_packed_padded(bytes(witness.a), bytes(witness.b), bytes(witness.z), m, &padding, ps);
+            RowClaims {
+                z: Some(zc.z),
+                point: zc.mlv_challenges,
+                evals: [zc.a_eval, zc.b_eval, zc.c_eval],
+            }
+        } else {
+            let zc = zerocheck::prove_multilinear(witness.a, witness.b, witness.z, m, &padding, ps);
+            RowClaims {
+                z: None,
+                point: zc.point,
+                evals: [zc.a_eval, zc.b_eval, zc.c_eval],
+            }
+        }
+    });
+    let (rows, x_outer) = zc.split(k_log);
     let lc = tracing::info_span!("Lincheck").in_scope(|| {
         lincheck::prove_multilinear(
             witness.z_lincheck,
@@ -85,13 +130,36 @@ pub fn prove(
             LOG_PACKING,
             useful_bits,
             circuit,
-            &zc.point,
+            rows,
+            x_outer,
             ps,
         )
     });
 
+    let matrix = match rows {
+        RowPoint::Multilinear(x_inner) => matrix_claim(x_inner, &lc, lc.matrix_eval),
+        RowPoint::Skip { z, rest } => tracing::info_span!("Matrix skip").in_scope(|| {
+            // The matrices at each boolean value of the skipped row variables, one backward walk apiece.
+            let (eq_rest, eq_cols) = (eq_table(rest), eq_table(&lc.r_cols));
+            let at_rows: Vec<F192> = (0..1 << LOG_PACKING)
+                .map(|i| {
+                    let mut rows = vec![F192::ZERO; 1 << k_log];
+                    for (j, &e) in eq_rest.iter().enumerate() {
+                        rows[i | j << LOG_PACKING] = e;
+                    }
+                    ring_switch::inner_product_ext(&circuit.fold_alpha_batched(lc.alpha, &rows), &eq_cols)
+                })
+                .collect();
+            let weights = lagrange_weights_naive(LOG_PACKING, z);
+            let (rho, _, value, _) = lincheck::product_sumcheck(weights, at_rows, 0, ps);
+            ps.add_scalar(value);
+            let x_inner: Vec<F192> = rho.iter().chain(rest).copied().collect();
+            matrix_claim(&x_inner, &lc, value)
+        }),
+    };
+
     let _span = tracing::info_span!("Ring switch").entered();
-    let suffix = suffix_point(&lc.r_cols, &zc.point[k_log..]);
+    let suffix = suffix_point(&lc.r_cols, x_outer);
     let challenges = ring_switch::sample_map_challenges(ps);
     let weights = ring_switch::dense_weights(&suffix, &challenges);
     let packed = parallel::map_collect(witness.z.len(), |i| F192::from(F64(witness.z[i])));
@@ -100,45 +168,81 @@ pub fn prove(
 
     Claims {
         witness: Claim { point, value },
-        matrix: matrix_claim(&zc.point[..k_log], &lc),
+        matrix,
     }
 }
 
-/// Verify a proof down to its two claims: it holds if both are true of the committed polynomials.
-pub fn verify(k_log: usize, pin_col: usize, n_log: usize, vs: &mut VerifierState<'_>) -> Result<Claims, VerifyError> {
-    let m = k_log + n_log;
-    let zc = zerocheck::verify_multilinear(m, vs).map_err(VerifyError::Zerocheck)?;
-    let lc = lincheck::verify_multilinear(
-        k_log,
-        LOG_PACKING,
-        pin_col,
-        &zc.point,
-        zc.a_eval,
-        zc.b_eval,
-        zc.c_eval,
-        vs,
-    )
-    .map_err(VerifyError::Lincheck)?;
-
-    let suffix = suffix_point(&lc.r_cols, &zc.point[k_log..]);
-    let challenges = ring_switch::sample_map_challenges(vs);
-    let mut running = ring_switch::batched_claim(&lc.slices, &challenges);
-    let mut point = Vec::with_capacity(suffix.len());
-    for _ in 0..suffix.len() {
-        let q = vs.next_round_poly(3, running, None).map_err(VerifyError::Transcript)?;
+/// The verifier's side of [`lincheck::product_sumcheck`]: `n` rounds from `claim`, then the value the prover says
+/// its second table takes at the point. Returns the point, low variable first, the final claim and that value.
+fn verify_product_rounds(
+    n: usize,
+    mut claim: F192,
+    vs: &mut VerifierState<'_>,
+) -> Result<(Vec<F192>, F192, F192), VerifyError> {
+    let mut point = Vec::with_capacity(n);
+    for _ in 0..n {
+        let q = vs.next_round_poly(3, claim, None).map_err(VerifyError::Transcript)?;
         let r = vs.sample();
-        running = poly_eval(&q, r);
+        claim = poly_eval(&q, r);
         point.push(r);
     }
     point.reverse();
     let value = vs.next_scalar().map_err(VerifyError::Transcript)?;
-    if running != ring_switch::eval_weights(&suffix, &point, &challenges) * value {
+    Ok((point, claim, value))
+}
+
+/// Verify a proof down to its two claims: it holds if both are true of the committed polynomials.
+pub fn verify(
+    k_log: usize,
+    pin_col: usize,
+    n_log: usize,
+    skip: bool,
+    vs: &mut VerifierState<'_>,
+) -> Result<Claims, VerifyError> {
+    let m = k_log + n_log;
+    let zc = if skip {
+        let zc = zerocheck::verify(m, vs).map_err(VerifyError::Zerocheck)?;
+        RowClaims {
+            z: Some(zc.z),
+            point: zc.mlv_challenges,
+            evals: [zc.a_eval, zc.b_eval, zc.c_eval],
+        }
+    } else {
+        let zc = zerocheck::verify_multilinear(m, vs).map_err(VerifyError::Zerocheck)?;
+        RowClaims {
+            z: None,
+            point: zc.point,
+            evals: [zc.a_eval, zc.b_eval, zc.c_eval],
+        }
+    };
+    let (rows, x_outer) = zc.split(k_log);
+    let [v_a, v_b, v_c] = zc.evals;
+    let lc = lincheck::verify_multilinear(k_log, LOG_PACKING, pin_col, rows, v_a, v_b, v_c, vs)
+        .map_err(VerifyError::Lincheck)?;
+
+    let matrix = match rows {
+        RowPoint::Multilinear(x_inner) => matrix_claim(x_inner, &lc, lc.matrix_eval),
+        RowPoint::Skip { z, rest } => {
+            let (rho, claim, value) = verify_product_rounds(LOG_PACKING, lc.matrix_eval, vs)?;
+            if claim != lincheck::skip_weight(z, &rho) * value {
+                return Err(VerifyError::MatrixSkip);
+            }
+            let x_inner: Vec<F192> = rho.iter().chain(rest).copied().collect();
+            matrix_claim(&x_inner, &lc, value)
+        }
+    };
+
+    let suffix = suffix_point(&lc.r_cols, x_outer);
+    let challenges = ring_switch::sample_map_challenges(vs);
+    let target = ring_switch::batched_claim(&lc.slices, &challenges);
+    let (point, claim, value) = verify_product_rounds(suffix.len(), target, vs)?;
+    if claim != ring_switch::eval_weights(&suffix, &point, &challenges) * value {
         return Err(VerifyError::RingSwitch);
     }
 
     Ok(Claims {
         witness: Claim { point, value },
-        matrix: matrix_claim(&zc.point[..k_log], &lc),
+        matrix,
     })
 }
 
@@ -147,10 +251,10 @@ fn suffix_point(r_cols: &[F192], x_outer: &[F192]) -> Vec<F192> {
     r_cols[LOG_PACKING..].iter().chain(x_outer).copied().collect()
 }
 
-fn matrix_claim(x_inner: &[F192], lc: &lincheck::MultilinearClaim) -> Claim {
+fn matrix_claim(x_inner: &[F192], lc: &lincheck::MultilinearClaim, value: F192) -> Claim {
     Claim {
         point: x_inner.iter().chain(&lc.r_cols).copied().chain([lc.alpha]).collect(),
-        value: lc.matrix_eval,
+        value,
     }
 }
 
@@ -239,13 +343,13 @@ mod tests {
         Compression, K_LOG, USEFUL_BITS, WalkLincheckCircuit, Z_CONST_POS, bilinear_walk,
         generate_witness_with_ab_packed_and_lincheck, pinned_compression,
     };
-    use primitives::multilinear::{eq_table, mle_eval};
+    use primitives::multilinear::mle_eval;
     use primitives::test_rng::Rng;
 
     const LABEL: &[u8] = b"standalone-flock-test";
 
     /// Prove `2^n_log` compressions, flipping witness bit `tamper` first, and return the verifier's verdict.
-    fn run(n_log: usize, tamper: Option<usize>) -> (Vec<u64>, usize, Result<Claims, VerifyError>) {
+    fn run(n_log: usize, skip: bool, tamper: Option<usize>) -> (Vec<u64>, usize, Result<Claims, VerifyError>) {
         let mut rng = Rng::new(0x57A2 + n_log as u64);
         let blocks: Vec<Compression> = (0..1 << n_log)
             .map(|_| pinned_compression(std::array::from_fn(|_| rng.next_u32())))
@@ -263,10 +367,10 @@ mod tests {
             z_lincheck: &z_lincheck,
         };
         let mut ps = ProverState::from_label(LABEL);
-        let claims = prove(&WalkLincheckCircuit, USEFUL_BITS, n_log, witness, &mut ps);
+        let claims = prove(&WalkLincheckCircuit, USEFUL_BITS, n_log, skip, witness, &mut ps);
         let proof = ps.into_proof();
         let mut vs = VerifierState::from_label(LABEL, &proof);
-        let verdict = verify(K_LOG, Z_CONST_POS, n_log, &mut vs);
+        let verdict = verify(K_LOG, Z_CONST_POS, n_log, skip, &mut vs);
         if tamper.is_none() {
             assert_eq!(verdict.as_ref(), Ok(&claims));
             assert!(vs.finish().is_ok());
@@ -285,18 +389,26 @@ mod tests {
     #[test]
     fn honest_proof_leaves_true_claims() {
         let n_log = 3;
-        let (z, scalars, verdict) = run(n_log, None);
-        assert!(claims_hold(&z, &verdict.unwrap()));
         let (m, mu) = (K_LOG + n_log, K_LOG + n_log - LOG_PACKING);
-        assert_eq!(scalars, (2 * m + 2) + (2 * K_LOG + 64 + 1) + (2 * mu + 1));
+        let after_zerocheck = (2 * K_LOG + 64 + 1) + (2 * mu + 1);
+        for (skip, zerocheck) in [(false, 2 * m + 2), (true, 64 + 2 * mu + 2 + 2 * LOG_PACKING + 1)] {
+            let (z, scalars, verdict) = run(n_log, skip, None);
+            assert!(claims_hold(&z, &verdict.unwrap()), "skip={skip}");
+            assert_eq!(scalars, zerocheck + after_zerocheck, "skip={skip}");
+        }
     }
 
     /// One flipped witness bit, wherever it sits, is rejected or leaves a false claim.
     #[test]
     fn tampered_witness_is_caught() {
-        for bit in [Z_CONST_POS, 5, (3 << K_LOG) + 2000, (7 << K_LOG) + 15_999] {
-            let (z, _, verdict) = run(3, Some(bit));
-            assert!(!verdict.is_ok_and(|claims| claims_hold(&z, &claims)), "bit {bit}");
+        for skip in [false, true] {
+            for bit in [Z_CONST_POS, 5, (3 << K_LOG) + 2000, (7 << K_LOG) + 15_999] {
+                let (z, _, verdict) = run(3, skip, Some(bit));
+                assert!(
+                    !verdict.is_ok_and(|claims| claims_hold(&z, &claims)),
+                    "skip={skip} bit {bit}"
+                );
+            }
         }
     }
 

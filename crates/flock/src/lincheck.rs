@@ -1353,6 +1353,38 @@ pub struct MultilinearClaim {
     pub matrix_eval: F192,
 }
 
+/// The row point the zerocheck left its claims at, over the `k_log` variables of a block.
+#[derive(Clone, Copy, Debug)]
+pub enum RowPoint<'a> {
+    /// Every variable multilinear.
+    Multilinear(&'a [F192]),
+    /// The low `k_skip` variables collapsed to the univariate-skip challenge `z`, the rest multilinear.
+    Skip { z: F192, rest: &'a [F192] },
+}
+
+impl RowPoint<'_> {
+    /// The weight of every row.
+    fn table(&self, k_skip: usize) -> Vec<F192> {
+        match *self {
+            RowPoint::Multilinear(x) => build_eq(x),
+            RowPoint::Skip { z, rest } => build_quirky_eq_table(z, rest, k_skip),
+        }
+    }
+
+    /// The multilinear extension of [`Self::table`] at `r`.
+    fn eval(&self, r: &[F192], k_skip: usize) -> F192 {
+        match *self {
+            RowPoint::Multilinear(x) => eq_eval(x, r),
+            RowPoint::Skip { z, rest } => skip_weight(z, &r[..k_skip]) * eq_eval(rest, &r[k_skip..]),
+        }
+    }
+}
+
+/// The skip variables' Lagrange weights at `z`, as a multilinear polynomial at `r`: `sum_i L_i(z) eq(r, i)`.
+pub fn skip_weight(z: F192, r: &[F192]) -> F192 {
+    inner_product_ext(&lagrange_weights_naive(r.len(), z), &build_eq(r))
+}
+
 /// `eq(index, point)` for a boolean `index`.
 fn eq_index(index: usize, point: &[F192]) -> F192 {
     point.iter().enumerate().fold(F192::ONE, |acc, (k, &x)| {
@@ -1400,7 +1432,7 @@ pub(crate) fn product_sumcheck(
     (point, a[0], b[0], snapshot)
 }
 
-/// Lincheck at a plain multilinear point `x` of `m` coordinates: `k_log` product-sumcheck rounds over the columns.
+/// Lincheck at the row point `rows` and instance point `x_outer`: `k_log` product-sumcheck rounds over the columns.
 ///
 /// It differs from [`prove_padded_capture_s_hat_v`] in running every column round, so the terminal identity reads the matrices at one point.
 /// The slices are the witness table once its `k_skip` low variables are all that is left.
@@ -1411,18 +1443,19 @@ pub fn prove_multilinear(
     k_skip: usize,
     useful_bits: usize,
     circuit: &dyn LincheckCircuit,
-    x: &[F192],
+    rows: RowPoint<'_>,
+    x_outer: &[F192],
     ps: &mut ProverState,
 ) -> MultilinearClaim {
     assert!(k_skip <= k_log && k_log <= m && k_log >= 1);
-    assert_eq!(x.len(), m);
+    assert_eq!(x_outer.len(), m - k_log);
     assert_eq!(circuit.n_cols(), 1 << k_log);
-    let (x_inner, x_outer) = x.split_at(k_log);
 
     let alpha = ps.sample();
     let alpha_sq = alpha.square();
     let beta = alpha_sq * alpha;
-    let eq_inner = build_eq(x_inner);
+    let eq_inner = rows.table(k_skip);
+    assert_eq!(eq_inner.len(), 1 << k_log);
     let mut comb = tracing::info_span!("Fold circuit").in_scope(|| circuit.fold_alpha_batched(alpha, &eq_inner));
     for (c, e) in comb.iter_mut().zip(&eq_inner) {
         *c += alpha_sq * *e;
@@ -1434,7 +1467,7 @@ pub fn prove_multilinear(
     let (r_cols, comb, _, slices) =
         tracing::info_span!("Sumcheck").in_scope(|| product_sumcheck(comb, z_vec, 1 << k_skip, ps));
     // The comb at the point, less the two terms the verifier evaluates itself.
-    let matrix_eval = comb + alpha_sq * eq_eval(x_inner, &r_cols) + beta * eq_index(circuit.const_pin_col(), &r_cols);
+    let matrix_eval = comb + alpha_sq * rows.eval(&r_cols, k_skip) + beta * eq_index(circuit.const_pin_col(), &r_cols);
     ps.add_scalars(&slices);
     ps.add_scalar(matrix_eval);
     MultilinearClaim {
@@ -1445,14 +1478,14 @@ pub fn prove_multilinear(
     }
 }
 
-/// Verify [`prove_multilinear`] against the zerocheck's `(v_a, v_b, v_c)` at `x`.
+/// Verify [`prove_multilinear`] against the zerocheck's `(v_a, v_b, v_c)` at `rows`.
 ///
 /// The returned slices still have to be bound to the witness commitment, and `matrix_eval` to the matrices'.
 pub fn verify_multilinear(
     k_log: usize,
     k_skip: usize,
     pin_col: usize,
-    x: &[F192],
+    rows: RowPoint<'_>,
     v_a: F192,
     v_b: F192,
     v_c: F192,
@@ -1461,7 +1494,6 @@ pub fn verify_multilinear(
     if k_skip > k_log {
         return Err(VerifyError::KSkipExceedsKLog { k_skip, k_log });
     }
-    let x_inner = &x[..k_log];
     let alpha = vs.sample();
     let alpha_sq = alpha.square();
     let beta = alpha_sq * alpha;
@@ -1478,7 +1510,7 @@ pub fn verify_multilinear(
     let matrix_eval = vs.next_scalar().map_err(VerifyError::Transcript)?;
 
     let z_eval = inner_product_ext(&build_eq(&r_cols[..k_skip]), &slices);
-    let comb = matrix_eval + alpha_sq * eq_eval(x_inner, &r_cols) + beta * eq_index(pin_col, &r_cols);
+    let comb = matrix_eval + alpha_sq * rows.eval(&r_cols, k_skip) + beta * eq_index(pin_col, &r_cols);
     if running != comb * z_eval {
         return Err(VerifyError::ConsistencyFailed {
             which: "sumcheck-final",
@@ -2000,14 +2032,24 @@ mod tests {
                 k_skip,
                 k,
                 &circuit,
-                &x,
+                RowPoint::Multilinear(&x[..k_log]),
+                &x[k_log..],
                 &mut ps,
             );
             let proof = ps.into_proof();
             assert_eq!(proof.stream.len(), 2 * k_log + (1 << k_skip) + 1);
             let verify = |v_a| {
                 let mut vs = VerifierState::from_label(b"flock-test-v0", &proof);
-                verify_multilinear(k_log, k_skip, PIN_COL, &x, v_a, v_b, v_c, &mut vs)
+                verify_multilinear(
+                    k_log,
+                    k_skip,
+                    PIN_COL,
+                    RowPoint::Multilinear(&x[..k_log]),
+                    v_a,
+                    v_b,
+                    v_c,
+                    &mut vs,
+                )
             };
             assert_eq!(verify(v_a), Ok(claim.clone()));
             assert!(verify(v_a + F192::ONE).is_err());

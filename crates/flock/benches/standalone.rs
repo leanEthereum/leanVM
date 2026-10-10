@@ -6,6 +6,7 @@
 //! ```
 //!
 //! `FLOCK_MATRIX=0` leaves the matrices uncommitted and their claim unopened: the table is `2^29` words.
+//! `FLOCK_SKIP=1` runs the zerocheck with its univariate skip.
 //! `BENCH_TRACING=1` prints the final pass's span tree.
 
 use std::time::Instant;
@@ -41,6 +42,7 @@ fn main() {
     bench::init_tracing_from_env();
     let n = 1usize << env_usize("FLOCK_N_LOG", 13);
     let n_log = min_n_blocks_log(n);
+    let skip = env_usize("FLOCK_SKIP", 0) == 1;
     let mut rng = Rng::new(0x9E37_79B9_7F4A_7C15 ^ n as u64);
     let blocks: Vec<Compression> = (0..n)
         .map(|_| pinned_compression(std::array::from_fn(|_| rng.next_u32())))
@@ -86,7 +88,7 @@ fn main() {
             b: &b,
             z_lincheck: &z_lincheck,
         };
-        let claims = standalone::prove(&WalkLincheckCircuit, USEFUL_BITS, n_log, witness, &mut ps);
+        let claims = standalone::prove(&WalkLincheckCircuit, USEFUL_BITS, n_log, skip, witness, &mut ps);
         let proof = ps.into_proof();
         timed(&mut secs, t);
         drop((a, b, z_lincheck));
@@ -118,7 +120,7 @@ fn main() {
     let (claims, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|_| {
         let mut vs = VerifierState::from_label(&label, &proof);
         let root = vs.next_root().expect("witness root");
-        let claims = standalone::verify(K_LOG, Z_CONST_POS, n_log, &mut vs).expect("the sumchecks verify");
+        let claims = standalone::verify(K_LOG, Z_CONST_POS, n_log, skip, &mut vs).expect("the sumchecks verify");
         vs.finish().expect("proof fully consumed");
         (root, claims)
     });
@@ -131,9 +133,10 @@ fn main() {
     });
 
     println!(
-        "\nStandalone Flock, {} BLAKE2s compressions (2^{} constraints)",
+        "\nStandalone Flock, {} BLAKE2s compressions (2^{} constraints), {}",
         pretty_integer(n),
-        K_LOG + n_log
+        K_LOG + n_log,
+        if skip { "univariate skip" } else { "no skip" }
     );
     println!("  setup, matrices committed once    : {:>8.1} ms", setup_s * 1e3);
     for (name, timing) in STAGES.iter().zip(&stages) {
