@@ -19,6 +19,9 @@
 //! the matrices only through [`lincheck::LincheckCircuit`], whose one live impl
 //! walks the circuit rather than reading any matrix.
 //!
+//! [`standalone`] runs the same reduction with no embedding protocol: every round multilinear, the matrices
+//! behind a commitment instead of a walk, and two plain evaluation claims left to open.
+//!
 //! BLAKE2s is a 32-bit ARX round whose XORs and rotations are free over GF(2),
 //! so its only nonlinear constraints are the product bits of the modular ADDs.
 //! The private `gf2` module owns that part: the wire word and the two adder
@@ -33,6 +36,7 @@ pub mod lincheck;
 /// [`hash::matrices`] build, with the unit tests.
 #[cfg(test)]
 mod reduction_tests;
+pub mod standalone;
 pub mod verifier;
 mod witness;
 pub mod zerocheck;

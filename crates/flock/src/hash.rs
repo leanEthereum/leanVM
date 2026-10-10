@@ -530,6 +530,35 @@ pub fn marginal_walk(alpha: F192, u: &[F192]) -> Vec<F192> {
     a
 }
 
+/// The two matrices as one dense table of bits, for a commitment to them: `A_0`, then `A_0 + B_0`
+/// ([`crate::standalone::stacked_matrix_index`]). `2^(2 K_LOG + 1)` words.
+///
+/// A forward walk is GF(2)-linear in its column weights, so one walk reads 192 columns at once: column `j` of the
+/// chunk carries the weight whose only set bit is `j`, and bit `j` of a row's value is that row's entry.
+pub fn stacked_matrices() -> Vec<primitives::field::F64> {
+    use primitives::field::F64;
+    const CHUNK: usize = 192;
+    let mut table = vec![F64::ZERO; 2 << (2 * K_LOG)];
+    let (a_table, ab_table) = table.split_at_mut(1 << (2 * K_LOG));
+    parallel::chunks_mut2(a_table, ab_table, CHUNK * K, |chunk, a_dst, ab_dst| {
+        let mut w = vec![F192::ZERO; K];
+        for (j, col) in (chunk * CHUNK..K).take(CHUNK).enumerate() {
+            let mut limbs = [0u64; 3];
+            limbs[j / 64] = 1 << (j % 64);
+            w[col] = F192::new(limbs[0], limbs[1], limbs[2]);
+        }
+        let (a, b) = row_values_walk(&w);
+        let bit = |v: F192, j: usize| F64(([v.c0, v.c1, v.c2][j / 64] >> (j % 64)) & 1);
+        for (j, (a_col, ab_col)) in a_dst.chunks_mut(K).zip(ab_dst.chunks_mut(K)).enumerate() {
+            for row in 0..K {
+                a_col[row] = bit(a[row], j);
+                ab_col[row] = bit(a[row] + b[row], j);
+            }
+        }
+    });
+    table
+}
+
 /// Walk-capable [`crate::lincheck::LincheckCircuit`] over the BLAKE2s R1CS:
 /// `bilinear_form` answers lincheck's verifier in O(circuit) field ops, so the
 /// verifier never materializes the substituted matrices' column
