@@ -83,11 +83,12 @@ fn main() {
     plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
 
+        let mut ch = ProverState::from_label(b"pcs-throughput");
         let t = Instant::now();
-        let committed = tracing::info_span!("Commit").in_scope(|| CommittedStack::new(&witness, log_n, pc.clone()));
+        let committed =
+            tracing::info_span!("Commit").in_scope(|| CommittedStack::new(&mut ch, &witness, log_n, pc.clone()));
         commit_t.push(t.elapsed().as_secs_f64());
 
-        let mut ch = ProverState::from_label(b"pcs-throughput");
         let t = Instant::now();
         tracing::info_span!("PCS open").in_scope(|| {
             let statement = Statement {

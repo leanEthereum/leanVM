@@ -1,7 +1,7 @@
 //! A tuple coordinate as a function of its block's row, and the public columns a coordinate reads.
 
 use crate::rec::FixedColumn;
-use fiat_shamir::arith::{Arith, Native};
+use fiat_shamir::arith::{Native, PublicMle};
 use fiat_shamir::transcript::VerifierState;
 use primitives::field::{F64, F192};
 use std::sync::{Arc, OnceLock};
@@ -69,7 +69,7 @@ impl PublicColumn {
 /// Arithmetic that evaluates public columns.
 ///
 /// A recursive verifier takes a fixed column's evaluation as a hint rather than computing it.
-pub(crate) trait PublicColumns: Arith {
+pub(crate) trait PublicColumns: PublicMle {
     /// The multilinear extension of a public column at `point`, lowest coordinate first.
     fn column_mle(&mut self, column: &PublicColumn, point: &[Self::E]) -> Self::E {
         self.public_mle(&column.values, point)

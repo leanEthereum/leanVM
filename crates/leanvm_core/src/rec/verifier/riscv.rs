@@ -66,7 +66,12 @@ impl<'p> ProofShape<'p> {
         let mut t = Transcript::new(b, iv, (first, output[3]), source);
         let mut r = Rows::new(b, &mut t);
 
-        let clock = r.scope("announcement", |r| self.read_announcement(r));
+        let clock = {
+            r.begin_scope(fiat_shamir::arith::Stage::Announcement);
+            let scoped_result = self.read_announcement(&mut r);
+            r.end_scope();
+            scoped_result
+        };
         let output = output.map(|o| r.b.k_to_e1(o));
         let claims = infallible(self.layout.verify_core(&mut r, clock, &output, self.rate));
         CoreRows {

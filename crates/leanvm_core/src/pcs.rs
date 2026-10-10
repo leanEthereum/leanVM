@@ -3,14 +3,12 @@
 //! Witness words lie in K = GF(2^64), and challenges lie in E = GF(2^192).
 //! The opening proves an inner product against a weight the verifier reconstructs.
 //!
-//! The 128-bit soundness argument uses Johnson list decoding (doc/leanvm, Annex B).
-//!
-//! - The initial commitment has no out-of-domain sample and binds to a list of polynomials.
-//! - Challenges before the opening pay for that list size (section sec:e2e-ledger).
-//! - Each deeper commitment takes one out-of-domain sample to bind to one codeword.
+//! The immutable commitment includes the root, shape, original transcript context, and one out-of-domain point/value anchor.
+//! Each opening binds that complete record before batching the point and circuit-validity claims.
+//! The security-bit constant is a parameter-selection target, not a proved concrete security level for the deployed hash and Fiat-Shamir composition (doc/leanvm, Annex B).
 
 use crate::witness::StackShape;
-use fiat_shamir::transcript::{ProverState, TranscriptError, Transmitter};
+use fiat_shamir::transcript::ProverState;
 use pcs::stack::{CommittedStack, StackCommitment, Statement};
 use pcs::verifier::OpeningVerifier;
 use pcs::whir::WhirError;
@@ -23,9 +21,9 @@ pub(crate) use pcs::stack::StackClaim;
 pub(crate) use pcs::whir::INITIAL_FOLDING_FACTOR as LOG_BATCH;
 pub use pcs::whir::{MAX_LOG_N as MAX_MU, MIN_LOG_N as MIN_MU};
 
-/// The proof's soundness target, in bits.
+/// The proof's parameter-selection target, in bits.
 ///
-/// WHIR parameters and the bus soundness check share this target.
+/// WHIR parameters and the bus soundness check share this design target.
 pub const SECURITY_BITS: u32 = pcs::whir::SECURITY_BITS as u32;
 
 /// A supported commitment rate, represented by the base-two logarithm of its inverse.
@@ -101,7 +99,7 @@ pub(crate) enum WitnessError {
 ///
 /// The caller retains the witness words, avoiding a second full-witness allocation.
 pub(crate) struct Committed {
-    /// The committed stack: its codeword, Merkle tree and opening parameters.
+    /// The codeword, tree, immutable anchored record and opening parameters.
     stack: CommittedStack,
     /// The full witness dimension and the number of lanes actually encoded.
     shape: StackShape,
@@ -141,8 +139,7 @@ impl Committed {
         }
 
         // The codeword and tree use the same parameters retained for opening.
-        let stack = CommittedStack::new(witness, shape.mu, config);
-        ps.add_root(&stack.root());
+        let stack = CommittedStack::new(ps, witness, shape.mu, config);
         Ok(Self { stack, shape })
     }
 
@@ -181,32 +178,26 @@ impl Committed {
     }
 }
 
-/// An initial commitment root and the announced parameters of its witness.
-pub(crate) struct Commitment<R> {
-    /// The Merkle root bound before any dependent challenge.
-    root: R,
-    /// The witness dimension and the number of lanes carried by each opening.
-    shape: StackShape,
-    /// The supported rate announced for the initial commitment.
-    rate: Rate,
+/// An immutable anchored commitment and its validated opening configuration.
+pub(crate) struct Commitment<E, R, K> {
+    stack: StackCommitment<E, R, K>,
 }
 
-impl<R: Copy> Commitment<R> {
-    /// Reads and binds the initial root for the announced witness.
-    ///
-    /// The root must be read before any dependent challenge.
+impl<E: Copy, R: Copy, K: Copy> Commitment<E, R, K> {
+    /// Reads and binds the complete commitment before any opening statement.
     ///
     /// # Errors
     ///
-    /// Returns an error if the stream ends or the root is not a digest.
-    pub(crate) fn read<V: OpeningVerifier<Root = R>>(
+    /// Returns an invalid public shape, incompatible commitment context, or malformed stream.
+    pub(crate) fn read<V: OpeningVerifier<E = E, Root = R, K = K>>(
         v: &mut V,
         shape: StackShape,
         rate: Rate,
-    ) -> Result<Self, TranscriptError> {
-        // Reading the root binds it into the transcript without drawing a challenge.
-        let root = v.next_root()?;
-        Ok(Self { root, shape, rate })
+    ) -> Result<Self, WhirError> {
+        let log_inv_rate = usize::from(rate.log_inv_rate());
+        let config = pcs::whir::config_for_rate(shape.mu, log_inv_rate)?;
+        let stack = StackCommitment::receive(v, shape.mu, shape.n_lanes, config)?;
+        Ok(Self { stack })
     }
 
     /// Checks the shared opening of point evaluations and circuit-validity claims.
@@ -217,16 +208,16 @@ impl<R: Copy> Commitment<R> {
     /// # Errors
     ///
     /// Returns an error for an unsupported witness size, malformed claims, or an invalid opening.
-    pub(crate) fn verify<V: OpeningVerifier<Root = R>>(
+    pub(crate) fn verify<V: OpeningVerifier<E = E, Root = R, K = K>>(
         &self,
         v: &mut V,
         points: &[StackClaim<V::E>],
         rings: &[RingSwitch<V::E>],
-    ) -> Result<(), WhirError> {
-        // Both sides derive the opening profile from the committed witness's dimension and rate.
-        let config = pcs::whir::config_for_rate(self.shape.mu, usize::from(self.rate.log_inv_rate()))?;
-        let stack = StackCommitment::new(self.root, self.shape.mu, self.shape.n_lanes, config);
-        stack.verify(v, Statement { points, rings })
+    ) -> Result<(), WhirError>
+    where
+        E: PartialEq,
+    {
+        self.stack.verify(v, Statement { points, rings })
     }
 }
 
@@ -312,9 +303,6 @@ mod tests {
             Rate::MIN,
         )
         .expect("a supported witness");
-
-        // The retained shape describes one lane.
-        assert_eq!(committed.shape.committed_len(), lane_words);
 
         // Mutation: omit the lane, cut it short, or supply a second whole lane.
         for words in [0, lane_words - 1, 2 * lane_words] {

@@ -2,7 +2,10 @@
 
 use super::circuit::{Builder, Dw, Ew, Kw, Limbs, PARAM_IV, digest_limbs, zero_prefix};
 use fiat_shamir::transcript::RawProof;
-use fiat_shamir::{COMMIT, MAX_GRINDING_BITS, MAX_SQUEEZE_BYTES, NONCE, OUTPUT, POW_BASE, POW_TAG, SEED, absorb_tweak};
+use fiat_shamir::{
+    COMMIT, MAX_GRINDING_BITS, MAX_SQUEEZE_BYTES, NONCE, OUTPUT, POW_BASE, POW_TAG, SEED, TranscriptContext,
+    absorb_tweak,
+};
 use primitives::field::F192;
 
 /// What the circuit reads: the proof when it has one, zeros when it is built from the shape alone.
@@ -73,6 +76,24 @@ impl<'a> Transcript<'a> {
         let zero_e = b.e_const(F192::ZERO);
         let zero_k = b.k_const(0);
         Self::new(b, domain, (zero_e, zero_k), source)
+    }
+
+    /// Capture the logical duplex state without emitting rows or changing either transport cursor.
+    ///
+    /// Only live input words are included. As in the native duplex, the output buffer is a derivable cache for privately constructed valid states, not independent logical state.
+    pub fn context(&self) -> TranscriptContext<Kw, Dw> {
+        let mut pending = [None; 8];
+        for (slot, &word) in pending.iter_mut().zip(&self.pending[..self.n_pending]) {
+            *slot = Some(word);
+        }
+        TranscriptContext {
+            state: self.cv,
+            pending,
+            pending_bytes: self.n_pending * 8,
+            first: self.first,
+            previous: self.previous,
+            squeezed: self.squeezed,
+        }
     }
 
     /// A terminal commitment to the complete transcript, including consumed output bytes.
@@ -293,9 +314,11 @@ impl<'a> Transcript<'a> {
 mod tests {
     use super::*;
     use crate::rec::circuit::{Circuit, Unsatisfied};
+    use crate::rec::verifier::Rows;
     use fiat_shamir::Duplex;
     use fiat_shamir::merkle::{Hash, RawMerklePath, hash_leaf, hash_pair};
     use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
+    use pcs::verifier::OpeningVerifier;
     use primitives::field::F64;
 
     const LABEL: &[u8] = b"rec-transcript-test";
@@ -344,20 +367,32 @@ mod tests {
                 raw.stream.push(F192::ZERO);
             }
         }
-        let replay = |source| {
+        let replay = |source, capture| {
             let mut b = Builder::new();
             let mut transcript = Transcript::from_label(&mut b, LABEL, source);
             let mut challenges = Vec::new();
+            if capture {
+                let _ = Rows::new(&mut b, &mut transcript).context();
+            }
             for (stage, (absorbed, sampled)) in RUNS.into_iter().enumerate() {
                 for _ in 0..absorbed {
                     transcript.next_scalar(&mut b);
+                    if capture {
+                        let _ = Rows::new(&mut b, &mut transcript).context();
+                    }
                 }
                 for _ in 0..sampled {
                     let challenge = transcript.sample(&mut b);
                     challenges.push(b.e(challenge));
+                    if capture {
+                        let _ = Rows::new(&mut b, &mut transcript).context();
+                    }
                 }
                 if stage == 3 {
                     transcript.grind_check(&mut b, 0);
+                    if capture {
+                        let _ = Rows::new(&mut b, &mut transcript).context();
+                    }
                 }
             }
             assert!(transcript.finished());
@@ -365,11 +400,16 @@ mod tests {
             let commitment = b.d(commitment);
             (b.finish(), challenges, commitment)
         };
-        let (rows, actual, commitment) = replay(ProofSource::Proof(&raw));
+        let (plain, reference, reference_commitment) = replay(ProofSource::Proof(&raw), false);
+        let (rows, actual, commitment) = replay(ProofSource::Proof(&raw), true);
+        assert_eq!(rows.circuit, plain.circuit);
+        assert_eq!(actual, reference);
+        assert_eq!(commitment, reference_commitment);
         assert_eq!(actual, expected);
         assert_eq!(commitment, native.commitment().map(|word| word.0));
         assert!(rows.failures.is_empty(), "{:?}", rows.failures);
-        assert_eq!(rows.circuit, replay(ProofSource::Shape).0.circuit);
+        assert_eq!(rows.circuit, replay(ProofSource::Shape, true).0.circuit);
+        assert_eq!(rows.circuit, replay(ProofSource::Shape, false).0.circuit);
     }
 
     // The native transcript above, in rows: the claims are the sums the scalars read make.

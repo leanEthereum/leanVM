@@ -1,0 +1,201 @@
+--- /dev/null
++++ b/Aeneas/Std/Scalar/WrappingOps/ShiftRhs.lean
+@@ -0,0 +1,94 @@
++module
++public import Aeneas.Std.Scalar.Core
++public section
++namespace Aeneas.Std
++
++/-- A release MIR shift masks the original RHS bit pattern, regardless of its integer type. -/
++class WrappingShiftRhs (Rhs : Type) where
++  bits : Rhs → Nat
++
++instance {ty} : WrappingShiftRhs (UScalar ty) where
++  bits := UScalar.val
++
++instance {ty} : WrappingShiftRhs (IScalar ty) where
++  bits := fun s => s.bv.toNat
++
++@[simp] theorem WrappingShiftRhs.bits_unsigned {ty} (s : UScalar ty) :
++    WrappingShiftRhs.bits s = s.val := rfl
++
++@[simp] theorem WrappingShiftRhs.bits_signed {ty} (s : IScalar ty) :
++    WrappingShiftRhs.bits s = s.bv.toNat := rfl
++
++/-- This uses every RHS bit before masking; it never narrows the RHS to `u32`. -/
++@[expose] def WrappingShiftRhs.amount {Rhs} [WrappingShiftRhs Rhs] (width : Nat) (s : Rhs) : Nat :=
++  WrappingShiftRhs.bits s % width
++
++@[simp] theorem WrappingShiftRhs.amount_unsigned {ty} (width : Nat) (s : UScalar ty) :
++    WrappingShiftRhs.amount width s = s.val % width := rfl
++
++@[simp] theorem WrappingShiftRhs.amount_signed {ty} (width : Nat) (s : IScalar ty) :
++    WrappingShiftRhs.amount width s = s.bv.toNat % width := rfl
++
++/-- The modulo formulation is exactly the low-bit mask of a power-of-two LHS width. -/
++theorem WrappingShiftRhs.amount_eq_mask {Rhs} [WrappingShiftRhs Rhs] (k : Nat) (s : Rhs) :
++    WrappingShiftRhs.amount (2 ^ k) s = WrappingShiftRhs.bits s &&& (2 ^ k - 1) := by
++  simp [WrappingShiftRhs.amount]
++
++theorem UScalarTy.numBits_eq_pow_log2 (ty : UScalarTy) :
++    ty.numBits = 2 ^ (Nat.log2 ty.numBits) := by
++  cases ty <;> rcases System.Platform.numBits_eq with h | h <;>
++    norm_num [UScalarTy.numBits, h] <;> decide
++
++theorem IScalarTy.numBits_eq_pow_log2 (ty : IScalarTy) :
++    ty.numBits = 2 ^ (Nat.log2 ty.numBits) := by
++  cases ty <;> rcases System.Platform.numBits_eq with h | h <;>
++    norm_num [IScalarTy.numBits, h] <;> decide
++
++theorem WrappingShiftRhs.amount_unsigned_lhs_mask {Rhs} [WrappingShiftRhs Rhs]
++    (lhs : UScalarTy) (s : Rhs) :
++    WrappingShiftRhs.amount lhs.numBits s = WrappingShiftRhs.bits s &&& (lhs.numBits - 1) := by
++  rw [lhs.numBits_eq_pow_log2]
++  exact WrappingShiftRhs.amount_eq_mask _ s
++
++theorem WrappingShiftRhs.amount_signed_lhs_mask {Rhs} [WrappingShiftRhs Rhs]
++    (lhs : IScalarTy) (s : Rhs) :
++    WrappingShiftRhs.amount lhs.numBits s = WrappingShiftRhs.bits s &&& (lhs.numBits - 1) := by
++  rw [lhs.numBits_eq_pow_log2]
++  exact WrappingShiftRhs.amount_eq_mask _ s
++
++private theorem unsigned_width_dvd_256 (ty : UScalarTy) : ty.numBits ∣ 256 := by
++  cases ty <;> rcases System.Platform.numBits_eq with h | h <;>
++    norm_num [UScalarTy.numBits, h]
++
++private theorem signed_width_dvd_256 (ty : IScalarTy) : ty.numBits ∣ 256 := by
++  cases ty <;> rcases System.Platform.numBits_eq with h | h <;>
++    norm_num [IScalarTy.numBits, h]
++
++private theorem signed_width_ge_eight (ty : IScalarTy) : 8 ≤ ty.numBits := by
++  cases ty <;> rcases System.Platform.numBits_eq with h | h <;>
++    norm_num [IScalarTy.numBits, h]
++
++private theorem signed_bits_emod {n width : Nat} (s : BitVec n) (h : width ∣ 2 ^ n) :
++    ((s.toNat % width : Nat) : Int) = s.toInt % (width : Int) := by
++  have hd : ((2 ^ n : Nat) : Int) % (width : Int) = 0 :=
++    Int.emod_eq_zero_of_dvd (by exact_mod_cast h)
++  rw [BitVec.toInt_eq_msb_cond]
++  split
++  · rw [Int.sub_emod, hd, sub_zero, Int.emod_emod, Int.natCast_emod]
++  · simp only [Int.natCast_emod]
++
++/-- Signed negative RHS values have the same masked amount as their original two's-complement bits. -/
++theorem WrappingShiftRhs.signed_amount_unsigned_lhs (lhs : UScalarTy) {rhs} (s : IScalar rhs) :
++    ((WrappingShiftRhs.amount lhs.numBits s : Nat) : Int) = s.val % (lhs.numBits : Int) := by
++  apply signed_bits_emod
++  exact dvd_trans (unsigned_width_dvd_256 lhs)
++    (show 256 ∣ 2 ^ rhs.numBits from Nat.pow_dvd_pow 2 (signed_width_ge_eight rhs))
++
++/-- The same signed-RHS identity covers arithmetic right shifts of signed LHS values. -/
++theorem WrappingShiftRhs.signed_amount_signed_lhs (lhs : IScalarTy) {rhs} (s : IScalar rhs) :
++    ((WrappingShiftRhs.amount lhs.numBits s : Nat) : Int) = s.val % (lhs.numBits : Int) := by
++  apply signed_bits_emod
++  exact dvd_trans (signed_width_dvd_256 lhs)
++    (show 256 ∣ 2 ^ rhs.numBits from Nat.pow_dvd_pow 2 (signed_width_ge_eight rhs))
++
++end Aeneas.Std
+--- a/Aeneas/Std/Scalar/WrappingOps/Shl.lean
++++ b/Aeneas/Std/Scalar/WrappingOps/Shl.lean
+@@ -1,6 +1,7 @@
+ module
+ public import Aeneas.Std.Scalar.Core
+ public import Aeneas.Std.Scalar.Elab
++public import Aeneas.Std.Scalar.WrappingOps.ShiftRhs
+ public section
+ 
+ namespace Aeneas.Std
+@@ -19,11 +20,21 @@
+ def IScalar.wrapping_shl {ty} (x : IScalar ty) (s : U32) : IScalar ty :=
+   ⟨ x.bv.shiftLeft (s.val % ty.numBits) ⟩
+ 
++@[expose] def UScalar.wrapping_shl_rhs {ty Rhs} [WrappingShiftRhs Rhs]
++    (x : UScalar ty) (s : Rhs) : UScalar ty :=
++  ⟨x.bv.shiftLeft (WrappingShiftRhs.amount ty.numBits s)⟩
++
++@[expose] def IScalar.wrapping_shl_rhs {ty Rhs} [WrappingShiftRhs Rhs]
++    (x : IScalar ty) (s : Rhs) : IScalar ty :=
++  ⟨x.bv.shiftLeft (WrappingShiftRhs.amount ty.numBits s)⟩
++
+ uscalar @[step_pure_def]
+-def «%S».wrapping_shl (x : «%S») (s : U32) : «%S» := @UScalar.wrapping_shl UScalarTy.«%S» x s
++def «%S».wrapping_shl {Rhs} [WrappingShiftRhs Rhs] (x : «%S») (s : Rhs) : «%S» :=
++  UScalar.wrapping_shl_rhs x s
+ 
+ iscalar @[step_pure_def]
+-def «%S».wrapping_shl (x : «%S») (s : U32) : «%S» := @IScalar.wrapping_shl IScalarTy.«%S» x s
++def «%S».wrapping_shl {Rhs} [WrappingShiftRhs Rhs] (x : «%S») (s : Rhs) : «%S» :=
++  IScalar.wrapping_shl_rhs x s
+ 
+ /- [core::num::{_}::wrapping_shl] -/
+ uscalar @[expose, step_pure_def]
+@@ -52,7 +63,7 @@
+ 
+ uscalar @[simp, bvify, grind =, agrind =] theorem «%S».wrapping_shl_bv_eq (x : «%S») (s : U32) :
+   («%S».wrapping_shl x s).bv = x.bv.shiftLeft (s.val % %BitWidth) := by
+-  simp [«%S».wrapping_shl]
++  simp [«%S».wrapping_shl, UScalar.wrapping_shl_rhs]
+ 
+ uscalar @[simp, bvify, grind =, agrind =] theorem core.num.«%S».wrapping_shl_bv_eq (x : «%S») (s : U32) :
+   (core.num.«%S».wrapping_shl x s).bv = x.bv.shiftLeft (s.val % %BitWidth) := by
+@@ -64,7 +75,7 @@
+ 
+ iscalar @[simp, bvify, grind =, agrind =] theorem «%S».wrapping_shl_bv_eq (x : «%S») (s : U32) :
+   («%S».wrapping_shl x s).bv = x.bv.shiftLeft (s.val % %BitWidth) := by
+-  simp [«%S».wrapping_shl]
++  simp [«%S».wrapping_shl, IScalar.wrapping_shl_rhs]
+ 
+ iscalar @[simp, bvify, grind =, agrind =] theorem core.num.«%S».wrapping_shl_bv_eq (x : «%S») (s : U32) :
+   (core.num.«%S».wrapping_shl x s).bv = x.bv.shiftLeft (s.val % %BitWidth) := by
+--- a/Aeneas/Std/Scalar/WrappingOps/Shr.lean
++++ b/Aeneas/Std/Scalar/WrappingOps/Shr.lean
+@@ -1,6 +1,7 @@
+ module
+ public import Aeneas.Std.Scalar.Core
+ public import Aeneas.Std.Scalar.Elab
++public import Aeneas.Std.Scalar.WrappingOps.ShiftRhs
+ public section
+ 
+ namespace Aeneas.Std
+@@ -20,11 +21,21 @@
+ def IScalar.wrapping_shr {ty} (x : IScalar ty) (s : U32) : IScalar ty :=
+   ⟨ x.bv.sshiftRight (s.val % ty.numBits) ⟩
+ 
++@[expose] def UScalar.wrapping_shr_rhs {ty Rhs} [WrappingShiftRhs Rhs]
++    (x : UScalar ty) (s : Rhs) : UScalar ty :=
++  ⟨x.bv.ushiftRight (WrappingShiftRhs.amount ty.numBits s)⟩
++
++@[expose] def IScalar.wrapping_shr_rhs {ty Rhs} [WrappingShiftRhs Rhs]
++    (x : IScalar ty) (s : Rhs) : IScalar ty :=
++  ⟨x.bv.sshiftRight (WrappingShiftRhs.amount ty.numBits s)⟩
++
+ uscalar @[step_pure_def]
+-def «%S».wrapping_shr (x : «%S») (s : U32) : «%S» := @UScalar.wrapping_shr UScalarTy.«%S» x s
++def «%S».wrapping_shr {Rhs} [WrappingShiftRhs Rhs] (x : «%S») (s : Rhs) : «%S» :=
++  UScalar.wrapping_shr_rhs x s
+ 
+ iscalar @[step_pure_def]
+-def «%S».wrapping_shr (x : «%S») (s : U32) : «%S» := @IScalar.wrapping_shr IScalarTy.«%S» x s
++def «%S».wrapping_shr {Rhs} [WrappingShiftRhs Rhs] (x : «%S») (s : Rhs) : «%S» :=
++  IScalar.wrapping_shr_rhs x s
+ 
+ /- [core::num::{_}::wrapping_shr] -/
+ uscalar @[expose, step_pure_def]
+@@ -53,7 +64,7 @@
+ 
+ uscalar @[simp, bvify, grind =, agrind =] theorem «%S».wrapping_shr_bv_eq (x : «%S») (s : U32) :
+   («%S».wrapping_shr x s).bv = x.bv.ushiftRight (s.val % %BitWidth) := by
+-  simp [«%S».wrapping_shr]
++  simp [«%S».wrapping_shr, UScalar.wrapping_shr_rhs]
+ 
+ uscalar @[simp, bvify, grind =, agrind =] theorem core.num.«%S».wrapping_shr_bv_eq (x : «%S») (s : U32) :
+   (core.num.«%S».wrapping_shr x s).bv = x.bv.ushiftRight (s.val % %BitWidth) := by
+@@ -65,7 +76,7 @@
+ 
+ iscalar @[simp, bvify, grind =, agrind =] theorem «%S».wrapping_shr_bv_eq (x : «%S») (s : U32) :
+   («%S».wrapping_shr x s).bv = x.bv.sshiftRight (s.val % %BitWidth) := by
+-  simp [«%S».wrapping_shr]
++  simp [«%S».wrapping_shr, IScalar.wrapping_shr_rhs]
+ 
+ iscalar @[simp, bvify, grind =, agrind =] theorem core.num.«%S».wrapping_shr_bv_eq (x : «%S») (s : U32) :
+   (core.num.«%S».wrapping_shr x s).bv = x.bv.sshiftRight (s.val % %BitWidth) := by

@@ -27,7 +27,7 @@ use primitives::hash::Hasher;
 use primitives::multilinear::mle_eval_par;
 
 /// The domain of every tree proof's transcript.
-const DOMAIN: &[u8] = b"leanvm-tree-10";
+const DOMAIN: &[u8] = b"leanvm-tree-11";
 
 /// What fixes a tree's circuits: the leaves' shape, the arities, the rate, and the nodes' heights.
 pub(crate) struct Design<'p> {

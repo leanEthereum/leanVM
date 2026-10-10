@@ -31,7 +31,7 @@
 //!
 //! # Prover and verifier
 //!
-//! - The prover keeps each claim's weight factored and adds every claim's weight into one dense weight.
+//! - The prover keeps weights factored, fills first-pass chunks and folds lane groups in closed form.
 //! - The verifier evaluates the weight's multilinear extension in closed form (`rs:weight`).
 //! - It moves the Frobenius onto the opening's point (`rs:cost`), so one ladder per coordinate serves every claim.
 //! - Claims whose points are prefixes of one another share one pass of products.
@@ -324,18 +324,26 @@ impl<E: Copy> RingMap<E> {
     pub fn new<A: Arith<E = E>>(a: &mut A, challenges: &[E; COMPOSITION_SHIFTS.len()]) -> Self {
         // Invariant: `prefixes` holds `(k, C_k^(2^-k))` for every `k` made of the shifts seen so far.
         let mut prefixes = vec![(0usize, a.one())];
-        for (&f, &shift) in challenges.iter().zip(&COMPOSITION_SHIFTS) {
+        for p in 0..COMPOSITION_SHIFTS.len() {
+            let f = challenges[p];
+            let shift = COMPOSITION_SHIFTS[p];
             // `ladder[j] = f^(2^-j)` for `j >= shift`, which covers every new index `k + shift`.
             let ladder = inverse_frobenius_ladder(a, f, shift);
-            let extended: Vec<(usize, E)> = prefixes
-                .iter()
-                .map(|&(k, c)| (k + shift, a.mul(c, ladder[k + shift])))
-                .collect();
+            let mut extended = Vec::with_capacity(prefixes.len());
+            let mut i = 0;
+            while i < prefixes.len() {
+                let (k, c) = prefixes[i];
+                extended.push((k + shift, a.mul(c, ladder[k + shift])));
+                i += 1;
+            }
             prefixes.extend(extended);
         }
         let mut coefficients = vec![a.one(); F64::DEGREE];
-        for (k, c) in prefixes {
+        let mut i = 0;
+        while i < prefixes.len() {
+            let (k, c) = prefixes[i];
             coefficients[k] = c;
+            i += 1;
         }
         Self { coefficients }
     }
@@ -353,16 +361,23 @@ impl<E: Copy> RingMap<E> {
     /// If there are not exactly 64 slices.
     pub fn target<A: Arith<E = E>>(&self, a: &mut A, slices: &[E]) -> E {
         assert_eq!(slices.len(), F64::DEGREE, "a family has 64 slices");
-        let terms: Vec<E> = (0..F64::DEGREE)
-            .map(|k| {
-                // `x^(2^-k) = x^(2^(64 - k))`, since 64 squarings are the identity on `K`.
-                let xk = (0..(F64::DEGREE - k) % F64::DEGREE).fold(F64(2), |x, _| x.square());
-                // `S(x^(2^-k))` by Horner's rule, from the last slice down.
-                let (&last, rest) = slices.split_last().expect("64 slices");
-                let s = (rest.iter().rev()).fold(last, |acc, &sj| a.mul_const_add(acc, F192::from(xk), sj));
-                a.mul(self.coefficients[k], s)
-            })
-            .collect();
+        let mut terms = Vec::with_capacity(F64::DEGREE);
+        for k in 0..F64::DEGREE {
+            // `x^(2^-k) = x^(2^(64 - k))`, since 64 squarings are the identity on `K`.
+            let mut xk = F64(2);
+            for _ in 0..(F64::DEGREE - k) % F64::DEGREE {
+                xk = xk.square();
+            }
+            // `S(x^(2^-k))` by Horner's rule, from the last slice down.
+            let (&last, rest) = slices.split_last().expect("64 slices");
+            let mut s = last;
+            let mut i = rest.len();
+            while i > 0 {
+                i -= 1;
+                s = a.mul_const_add(s, F192::from(xk), rest[i]);
+            }
+            terms.push(a.mul(self.coefficients[k], s));
+        }
         Self::close(a, &terms)
     }
 
@@ -395,30 +410,40 @@ impl<E: Copy> RingMap<E> {
         ladders: &[Vec<E>],
         lengths: &[usize],
     ) -> Vec<Vec<E>> {
-        let longest = lengths.iter().copied().max().unwrap_or(0);
+        let mut longest = 0;
+        let mut i = 0;
+        while i < lengths.len() {
+            longest = longest.max(lengths[i]);
+            i += 1;
+        }
         assert!(
             longest <= z.len() && longest <= ladders.len(),
             "a claim's point is a prefix of the query"
         );
         let mut out = vec![Vec::new(); lengths.len()];
-        // Copies the current terms into every output whose length is `n`.
-        let take = |n: usize, terms: &[E], out: &mut [Vec<E>]| {
-            for (slot, _) in out.iter_mut().zip(lengths).filter(|&(_, &len)| len == n) {
-                *slot = terms.to_vec();
-            }
-        };
         // One pass serves every length: extending a prefix by a coordinate multiplies each term by one factor.
         let mut terms = self.coefficients.clone();
-        take(0, &terms, &mut out);
-        for (n, (&zn, ladder)) in z.iter().zip(ladders).take(longest).enumerate() {
+        Self::save_prefix(0, &terms, lengths, &mut out);
+        for n in 0..longest {
+            let zn = z[n];
+            let ladder = &ladders[n];
             // Term `k` times `1 + z_n + q_n^(2^-k)`.
-            for (term, &power) in terms.iter_mut().zip(ladder) {
-                let s = a.add(power, zn);
-                *term = a.times_one_plus(*term, s);
+            for k in 0..terms.len().min(ladder.len()) {
+                let s = a.add(ladder[k], zn);
+                terms[k] = a.times_one_plus(terms[k], s);
             }
-            take(n + 1, &terms, &mut out);
+            Self::save_prefix(n + 1, &terms, lengths, &mut out);
         }
         out
+    }
+
+    /// Copies the current terms into every output whose prefix length is `n`.
+    fn save_prefix(n: usize, terms: &[E], lengths: &[usize], out: &mut [Vec<E>]) {
+        for i in 0..out.len().min(lengths.len()) {
+            if lengths[i] == n {
+                out[i] = terms.to_vec();
+            }
+        }
     }
 
     /// `sum_k terms[k]^(2^k)`, by the linearized Horner rule `acc <- acc^2 + terms[k]` from the last term down.
@@ -430,7 +455,13 @@ impl<E: Copy> RingMap<E> {
     /// If `terms` is empty.
     pub fn close<A: Arith<E = E>>(a: &mut A, terms: &[E]) -> E {
         let (&last, rest) = terms.split_last().expect("the map has 64 terms");
-        rest.iter().rev().fold(last, |acc, &term| a.mul_add(acc, acc, term))
+        let mut acc = last;
+        let mut i = rest.len();
+        while i > 0 {
+            i -= 1;
+            acc = a.mul_add(acc, acc, rest[i]);
+        }
+        acc
     }
 }
 
@@ -442,9 +473,12 @@ pub fn inverse_frobenius_ladder<A: Arith>(a: &mut A, v: A::E, lowest: usize) -> 
     let mut ladder = vec![v; F64::DEGREE];
     let lowest = lowest.max(1);
     let mut power = a.frobenius2(v);
-    for slot in ladder[lowest..].iter_mut().rev() {
+    let slots = &mut ladder[lowest..];
+    let mut i = slots.len();
+    while i > 0 {
+        i -= 1;
         power = a.square(power);
-        *slot = power;
+        slots[i] = power;
     }
     ladder
 }
@@ -562,14 +596,25 @@ impl<E: Copy + PartialEq> RingShare<'_, E> {
     ///
     /// If a claim does not carry 64 slices.
     pub fn target<A: Arith<E = E>>(&self, a: &mut A) -> E {
-        let claims = self.rings.iter().flat_map(|ring| &ring.claims);
         let zero = a.zero();
         let mut family = vec![zero; F64::DEGREE];
-        for (claim, &scale) in claims.zip(&self.scales) {
-            assert_eq!(claim.s_hat_v.len(), F64::DEGREE, "a ring-switched claim has 64 slices");
-            for (f, &s) in family.iter_mut().zip(&claim.s_hat_v) {
-                *f = a.mul_add(scale, s, *f);
+        let mut ring = 0;
+        let mut claim_index = 0;
+        while ring < self.rings.len() && claim_index < self.scales.len() {
+            let mut within_ring = 0;
+            while within_ring < self.rings[ring].claims.len() && claim_index < self.scales.len() {
+                let claim = &self.rings[ring].claims[within_ring];
+                let scale = self.scales[claim_index];
+                assert_eq!(claim.s_hat_v.len(), F64::DEGREE, "a ring-switched claim has 64 slices");
+                let mut i = 0;
+                while i < F64::DEGREE {
+                    family[i] = a.mul_add(scale, claim.s_hat_v[i], family[i]);
+                    i += 1;
+                }
+                within_ring += 1;
+                claim_index += 1;
             }
+            ring += 1;
         }
         self.map.target(a, &family)
     }
@@ -594,29 +639,45 @@ impl<E: Copy + PartialEq> RingShare<'_, E> {
     ///
     /// If a region has more variables than `x` has coordinates, or a claim's point is longer than every region.
     pub fn weight_at<A: Arith<E = E>>(&self, a: &mut A, x: &[E]) -> E {
-        let max_vars = self.rings.iter().map(|ring| ring.qflock_vars).max().unwrap_or(0);
-        let ladders: Vec<Vec<E>> = x[..max_vars]
-            .iter()
-            .map(|&q| inverse_frobenius_ladder(a, q, 1))
-            .collect();
+        let mut max_vars = 0;
+        for r in 0..self.rings.len() {
+            max_vars = max_vars.max(self.rings[r].qflock_vars);
+        }
+        let coordinates = &x[..max_vars];
+        let mut ladders = Vec::with_capacity(coordinates.len());
+        let mut n = 0;
+        while n < coordinates.len() {
+            ladders.push(inverse_frobenius_ladder(a, coordinates[n], 1));
+            n += 1;
+        }
         let zero = a.zero();
         // Phase 1: every prefix group's terms, each claim's scaled and summed into its region.
         let mut sums = vec![vec![zero; F64::DEGREE]; self.rings.len()];
-        for group in PrefixGroup::of(self.rings) {
+        let groups = PrefixGroup::of(self.rings);
+        let mut g = 0;
+        while g < groups.len() {
+            let group = &groups[g];
             let at = self.map.prefix_terms(a, group.lead, &ladders, &group.lengths);
-            for member in group.members {
+            for m in 0..group.members.len() {
+                let member = group.members[m];
                 let scale = self.scales[member.claim];
-                for (s, &term) in sums[member.ring].iter_mut().zip(&at[member.length]) {
-                    *s = a.mul_add(scale, term, *s);
+                let sum = &mut sums[member.ring];
+                let terms = &at[member.length];
+                for k in 0..sum.len().min(terms.len()) {
+                    sum[k] = a.mul_add(scale, terms[k], sum[k]);
                 }
             }
+            g += 1;
         }
         // Phase 2: close each region's sum and select the region's place in the stack.
         let mut weight = zero;
-        for (ring, sum) in self.rings.iter().zip(&sums) {
-            let part = RingMap::close(a, sum);
+        let mut r = 0;
+        while r < self.rings.len() {
+            let ring = &self.rings[r];
+            let part = RingMap::close(a, &sums[r]);
             let sel_eq = a.eq_bits(ring.offset >> ring.qflock_vars, &x[ring.qflock_vars..]);
             weight = a.mul_add(sel_eq, part, weight);
+            r += 1;
         }
         weight
     }
@@ -651,34 +712,51 @@ impl<'a, E: PartialEq> PrefixGroup<'a, E> {
     ///
     /// A claim joins the first group whose lead its point is a prefix of, and otherwise opens a new group.
     pub fn of(rings: &'a [RingSwitch<E>]) -> Vec<Self> {
-        let mut claims: Vec<(usize, usize, &'a [E])> = rings
-            .iter()
-            .enumerate()
-            .flat_map(|(r, ring)| ring.claims.iter().map(move |claim| (r, claim.suffix_point.as_slice())))
-            .enumerate()
-            .map(|(i, (r, point))| (i, r, point))
-            .collect();
+        // Count known inner lengths once so indexed collection reserves the full claim list.
+        let mut total = 0;
+        let mut r = 0;
+        while r < rings.len() {
+            total += rings[r].claims.len();
+            r += 1;
+        }
+        let mut claims: Vec<(usize, usize, &'a [E])> = Vec::with_capacity(total);
+        let mut claim_index = 0;
+        let mut r = 0;
+        while r < rings.len() {
+            let ring = &rings[r];
+            for c in 0..ring.claims.len() {
+                claims.push((claim_index, r, ring.claims[c].suffix_point.as_slice()));
+                claim_index += 1;
+            }
+            r += 1;
+        }
         // Longest first, so a group's lead is its longest point; the stable sort keeps claim order among ties.
         claims.sort_by_key(|&(_, _, point)| Reverse(point.len()));
         let mut groups: Vec<Self> = Vec::new();
-        for (claim, ring, point) in claims {
-            let g = groups
-                .iter()
-                .position(|g| g.lead.starts_with(point))
-                .unwrap_or_else(|| {
-                    groups.push(Self {
-                        lead: point,
-                        lengths: Vec::new(),
-                        members: Vec::new(),
-                    });
-                    groups.len() - 1
+        let mut i = 0;
+        while i < claims.len() {
+            let (claim, ring, point) = claims[i];
+            let mut g = 0;
+            while g < groups.len() && !groups[g].lead.starts_with(point) {
+                g += 1;
+            }
+            if g == groups.len() {
+                groups.push(Self {
+                    lead: point,
+                    lengths: Vec::new(),
+                    members: Vec::new(),
                 });
+            }
             let group = &mut groups[g];
-            let length = group.lengths.iter().position(|&n| n == point.len()).unwrap_or_else(|| {
+            let mut length = 0;
+            while length < group.lengths.len() && group.lengths[length] != point.len() {
+                length += 1;
+            }
+            if length == group.lengths.len() {
                 group.lengths.push(point.len());
-                group.lengths.len() - 1
-            });
+            }
             group.members.push(PrefixMember { claim, ring, length });
+            i += 1;
         }
         groups
     }
@@ -687,6 +765,7 @@ impl<'a, E: PartialEq> PrefixGroup<'a, E> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
     use fiat_shamir::arith::Native;
     use primitives::multilinear::eq_eval;
     use primitives::test_util::Rng;

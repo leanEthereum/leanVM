@@ -50,7 +50,14 @@ impl Normalizers {
         let mut at_roots = vec![F64::ONE; log_n + 1];
         let mut row: Vec<F64> = (1..=log_n).map(|i| F64(1u64 << i)).collect();
         for k in 0..log_n {
-            row = row.iter().map(|&s| s * (s + at_roots[k])).collect();
+            let mut next_row = Vec::with_capacity(row.len());
+            let mut i = 0;
+            while i < row.len() {
+                let s = row[i];
+                next_row.push(s * (s + at_roots[k]));
+                i += 1;
+            }
+            row = next_row;
             at_roots[k + 1] = row.remove(0);
         }
         let inverses = at_roots.iter().map(|s| s.inv()).collect();

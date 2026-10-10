@@ -19,18 +19,20 @@ use std::sync::OnceLock;
 // A program whose output is its one advice word, after a loop that reads every framework block.
 fn program() -> &'static Program {
     static PROGRAM: OnceLock<Program> = OnceLock::new();
-    PROGRAM.get_or_init(|| {
-        let text = Asm::new()
-            .li(Reg::T0, Region::ADVICE.base())
-            .load(Ld, Reg::A0, 0, Reg::T0)
-            .li(Reg::T1, 9)
-            .label("loop")
-            .i(Addi, Reg::T1, Reg::T1, -1)
-            .branch(Bne, Reg::T1, Reg::ZERO, "loop")
-            .exit()
-            .finish();
-        Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
-    })
+    PROGRAM.get_or_init(|| program_with_image(vec![3, 5]))
+}
+
+fn program_with_image(image: Vec<u64>) -> Program {
+    let text = Asm::new()
+        .li(Reg::T0, Region::ADVICE.base())
+        .load(Ld, Reg::A0, 0, Reg::T0)
+        .li(Reg::T1, 9)
+        .label("loop")
+        .i(Addi, Reg::T1, Reg::T1, -1)
+        .branch(Bne, Reg::T1, Reg::ZERO, "loop")
+        .exit()
+        .finish();
+    Program::new(&text, Region::TEXT.base(), image, 2, 0).expect("a valid program")
 }
 
 // Four leaves of distinct outputs, a tree of first level 2 and arity 2 over them, and its proofs.
@@ -88,6 +90,32 @@ impl Fixture {
     fn pairs(&self) -> Vec<Leaf<'_>> {
         self.leaves.iter().map(|(p, o)| Leaf::new(p, *o)).collect()
     }
+}
+
+#[test]
+fn legacy_and_foreign_tree_proofs_are_refused_before_the_body() {
+    let current = TreeProof::ENVELOPE.seal(&[]);
+    let expected = u16::from_le_bytes(current[4..6].try_into().unwrap());
+    for found in 0..=14 {
+        let bytes = Envelope::new(*b"LVMT", found).seal(&[0xff]);
+        assert_eq!(
+            TreeProof::from_bytes(&bytes),
+            Err(DecodeError::UnsupportedVersion { found, expected })
+        );
+    }
+    assert_eq!(
+        TreeProof::from_bytes(&Envelope::new(*b"LVMP", expected).seal(&[0xff])),
+        Err(DecodeError::Malformed)
+    );
+}
+
+#[test]
+fn proofs_cannot_move_to_another_program_or_tree_context() {
+    let f = fixture();
+    let other = program_with_image(vec![3, 6]);
+    assert!(other.verify(f.leaves[0].1, &f.leaves[0].0).is_err());
+    let tree = Tree::new(&other, f.tree.shape).expect("the same tree shape for another program");
+    assert!(tree.verify(&f.root, &f.outputs()).is_err());
 }
 
 #[test]

@@ -43,6 +43,9 @@ pub enum WhirError {
         /// The index of the level that does not fit.
         level: usize,
     },
+    /// The immutable commitment record has a different shape or domain context.
+    #[error("the immutable commitment record does not match its public context")]
+    CommitmentMismatch,
     /// The opening has no ring-switched claim.
     #[error("the opening has no ring-switched claim")]
     NoRingClaim,
@@ -153,6 +156,19 @@ struct BaseRows<K>(Vec<Vec<K>>);
 /// A later level's rows a query batch opened, one per query, of elements of `E`.
 struct ExtRows<E>(Vec<Vec<E>>);
 
+/// A caller's terminal weight, evaluated once with static dispatch.
+/// The consumed provider keeps borrowed statement data within verification's lifetime without allocating a callback.
+pub(crate) trait WeightAt<V: OpeningVerifier> {
+    fn call(self, v: &mut V, point: &[V::E]) -> V::E;
+}
+
+/// A query batch whose rows scope has begun but whose sum is not yet replayed.
+struct PendingQuery<Q, E> {
+    queries: Vec<Q>,
+    weights: Vec<E>,
+    lambda: E,
+}
+
 /// Verify `sum_x f(x) * w(x) = target` for the witness `f` of `2^log_n` words committed at `root`.
 ///
 /// It takes no dense weight: `weight_at` evaluates the multilinear extension of `w` once, at the terminal point.
@@ -180,9 +196,52 @@ pub(crate) fn verify<V: OpeningVerifier>(
     n_lanes: usize,
     target: V::E,
     root: V::Root,
-    weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
+    weight_at: impl WeightAt<V>,
 ) -> Result<(), WhirError> {
+    // The typed wrapper checks shape before reading its record frame; keep
+    // direct internal callers safe too, without duplicating record binding.
+    check_config_shape(config, log_n)?;
     WhirReplay::run(v, config, log_n, n_lanes, target, root, weight_at)
+}
+
+/// Check all source-dependent dimensions before shifts, reads or challenges.
+pub(crate) fn check_config_shape(config: &Config, log_n: usize) -> Result<(), WhirError> {
+    let bits = usize::BITS as usize;
+    let initial_k = config.initial_k();
+    if log_n >= bits || log_n <= initial_k {
+        return Err(WhirError::InvalidShape { level: 0 });
+    }
+    let mut remaining = log_n - initial_k;
+    if !remaining
+        .checked_add(config.log_inv_rates()[0])
+        .is_some_and(|depth| depth < bits)
+    {
+        return Err(WhirError::InvalidShape { level: 0 });
+    }
+    let mut level = 0;
+    let mut result = Ok(());
+    while level < config.level_ks().len() && result.is_ok() {
+        let k = config.level_ks()[level];
+        // An extension-field row holds three base words per interleaved value.
+        if k >= bits - 2 {
+            result = Err(WhirError::InvalidShape { level });
+        } else {
+            match remaining.checked_sub(k) {
+                None => result = Err(WhirError::InvalidShape { level }),
+                Some(next) => {
+                    remaining = next;
+                    if !remaining
+                        .checked_add(config.log_inv_rates()[level + 1])
+                        .is_some_and(|depth| depth > 0 && depth < bits)
+                    {
+                        result = Err(WhirError::InvalidShape { level });
+                    }
+                }
+            }
+        }
+        level += 1;
+    }
+    result
 }
 
 impl<E: Copy> Quad<E> {
@@ -235,14 +294,21 @@ impl<Q, E: Copy> LevelCtx<Q, E> {
         let normalizers = Normalizers::new(self.log_msg_cols);
         let sks = normalizers.at_roots();
         // Each factor is affine in `s`: `1 + p (1 + s / sigma) = (1 + p) + (p / sigma) s`.
-        let lin: Vec<(E, E)> = (point.iter().zip(normalizers.inverses()))
-            .map(|(&p, &inv)| (v.add_const(p, F192::ONE), v.mul_const(p, F192::from(inv))))
-            .collect();
+        let inverses = normalizers.inverses();
+        let mut lin = Vec::with_capacity(point.len());
+        for k in 0..point.len() {
+            let p = point[k];
+            let a = v.add_const(p, F192::ONE);
+            let c = v.mul_const(p, F192::from(inverses[k]));
+            lin.push((a, c));
+        }
         let zero = v.zero();
-        (self.queries.iter().zip(&self.weights)).fold(zero, |acc, (query, &w)| {
-            let mut s = v.query_point(query);
+        let mut acc = zero;
+        for i in 0..self.queries.len().min(self.weights.len()) {
+            let mut s = v.query_point(&self.queries[i]);
             let mut product = v.one();
-            for (k, &(a, c)) in lin.iter().enumerate() {
+            for k in 0..lin.len() {
+                let (a, c) = lin[k];
                 if k > 0 {
                     // The subspace polynomials' recurrence `s_k = s_{k-1}^2 + s_{k-1}(v_{k-1}) s_{k-1}`.
                     let u = v.mul_const(s, F192::from(sks[k - 1]));
@@ -251,8 +317,9 @@ impl<Q, E: Copy> LevelCtx<Q, E> {
                 let f = v.mul_add(c, s, a);
                 product = v.mul(product, f);
             }
-            v.mul_add(w, product, acc)
-        })
+            acc = v.mul_add(self.weights[i], product, acc);
+        }
+        acc
     }
 }
 
@@ -278,7 +345,14 @@ impl<R> Oracle<R> {
         let leaf_words = 3 << self.log_num_interleaved;
         let rows = v.open_rows(&self.root, self.depth(), queries, leaf_words, leaf_words)?;
         let rows = (rows.into_iter())
-            .map(|words| words.chunks(3).map(|c| v.e_of_limbs([c[0], c[1], c[2]])).collect())
+            .map(|words| {
+                let mut row = Vec::with_capacity(words.len().div_ceil(3));
+                for i in 0..words.len().div_ceil(3) {
+                    let at = 3 * i;
+                    row.push(v.e_of_limbs([words[at], words[at + 1], words[at + 2]]));
+                }
+                row
+            })
             .collect();
         Ok(ExtRows(rows))
     }
@@ -299,7 +373,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         n_lanes: usize,
         target: V::E,
         root: V::Root,
-        weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
+        weight_at: impl WeightAt<V>,
     ) -> Result<(), WhirError> {
         let initial_k = config.initial_k();
         let max = 1usize << initial_k;
@@ -326,13 +400,17 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         let phase = w.phase(0, n_current + config.log_inv_rates()[0]);
         // The proof stores the committed lanes, the image's tail, lane-descending.
         // Reversed, block `b` sits at index `b`.
-        w.query(v, phase, oods, n_current, |v, queries, weights| {
-            let mut rows = v.open_rows(&root, phase.depth, queries, n_lanes, max)?;
-            for row in &mut rows {
-                row.reverse();
+        let batch = Self::begin_query(v, phase)?;
+        let sum = match v.open_rows(&root, phase.depth, &batch.queries, n_lanes, max) {
+            Ok(mut rows) => {
+                for row in &mut rows {
+                    row.reverse();
+                }
+                Ok(BaseRows(rows).enforced_sum(v, &lane_fold, &batch.weights))
             }
-            Ok(BaseRows(rows).enforced_sum(v, &lane_fold, weights))
-        })?;
+            Err(error) => Err(error),
+        };
+        w.finish_query(v, batch, oods, n_current, sum)?;
 
         let mut oracle = w.oracle(root_1, 0, n_current)?;
         for i in 0..config.level_steps() {
@@ -350,10 +428,12 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
                 .map(|_| Ood::replay(v, n_current))
                 .collect::<Result<_, _>>()?;
             let phase = w.phase(i + 1, oracle.depth());
-            w.query(v, phase, oods, n_current, |v, queries, weights| {
-                let rows = oracle.open_e_rows(v, queries)?;
-                Ok(rows.enforced_sum(v, &level_rs, weights))
-            })?;
+            let batch = Self::begin_query(v, phase)?;
+            let sum = match oracle.open_e_rows(v, &batch.queries) {
+                Ok(rows) => Ok(rows.enforced_sum(v, &level_rs, &batch.weights)),
+                Err(error) => Err(error),
+            };
+            w.finish_query(v, batch, oods, n_current, sum)?;
             oracle = w.oracle(root, i + 1, n_current)?;
         }
         unreachable!("the configuration has at least one level")
@@ -400,33 +480,40 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         Ok(rs)
     }
 
-    /// One query batch, then the batching of the level's claims.
+    /// Begin a query batch's rows scope after checking grinding and drawing its challenges.
     ///
-    /// Transcript order:
-    ///
-    /// 1. check the proof of work,
-    /// 2. draw the queries, then the batching challenge `lambda`,
-    /// 3. `enforced` opens the queries and returns their `lambda`-weighted sum at the level's fold point,
-    /// 4. read the consistency claims' intro round.
-    ///
-    /// The running claim keeps `lambda^0`, each OOD claim takes the next power, and the query batch the one after.
-    ///
-    /// # Errors
-    ///
-    /// Returns a failed proof of work, a missing or unauthenticated opening, or the end of the stream.
-    fn query(
-        &mut self,
-        v: &mut V,
-        phase: QueryPhase,
-        oods: Vec<Ood<V::E>>,
-        log_msg_cols: usize,
-        enforced: impl FnOnce(&mut V, &[V::Query], &[V::E]) -> Result<V::E, TranscriptError>,
-    ) -> Result<(), TranscriptError> {
+    /// The caller opens rows and computes their weighted sum before `finish_query` ends the scope.
+    fn begin_query(v: &mut V, phase: QueryPhase) -> Result<PendingQuery<V::Query, V::E>, TranscriptError> {
         v.grind_check(phase.grinding)?;
         let queries = phase.sample(v);
         let lambda = v.sample();
         let weights = v.powers(lambda, phase.count);
-        let sum = v.scope("rows", |v| enforced(v, &queries, &weights))?;
+        v.begin_scope(fiat_shamir::arith::Stage::Rows);
+        Ok(PendingQuery {
+            queries,
+            weights,
+            lambda,
+        })
+    }
+
+    /// End the rows scope even on opening failure, then replay and batch the level's claims.
+    ///
+    /// The running claim keeps `lambda^0`, each OOD claim takes the next power, and the query batch the one after.
+    fn finish_query(
+        &mut self,
+        v: &mut V,
+        batch: PendingQuery<V::Query, V::E>,
+        oods: Vec<Ood<V::E>>,
+        log_msg_cols: usize,
+        sum: Result<V::E, TranscriptError>,
+    ) -> Result<(), TranscriptError> {
+        v.end_scope();
+        let sum = sum?;
+        let PendingQuery {
+            queries,
+            weights,
+            lambda,
+        } = batch;
         let intro = Quad::recv(v, sum)?;
 
         // Batch the OOD claims, then the query batch, each at the next power of the level's challenge.
@@ -468,14 +555,16 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         oracle: &Oracle<V::Root>,
         level_rs: &[V::E],
         n_current: usize,
-        weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
+        weight_at: impl WeightAt<V>,
     ) -> Result<(), WhirError> {
         let yr = v.next_scalars(1 << n_current)?;
         let phase = self.phase(self.config.level_steps(), oracle.depth());
-        self.query(v, phase, Vec::new(), n_current, |v, queries, weights| {
-            let rows = oracle.open_e_rows(v, queries)?;
-            Ok(rows.enforced_sum(v, level_rs, weights))
-        })?;
+        let batch = Self::begin_query(v, phase)?;
+        let sum = match oracle.open_e_rows(v, &batch.queries) {
+            Ok(rows) => Ok(rows.enforced_sum(v, level_rs, &batch.weights)),
+            Err(error) => Err(error),
+        };
+        self.finish_query(v, batch, Vec::new(), n_current, sum)?;
         let mut ris_tail = Vec::with_capacity(n_current);
         for j in 0..n_current {
             let ri = v.sample();
@@ -485,7 +574,10 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
                 self.quad = Quad::recv(v, self.t_r)?;
             }
         }
-        v.scope("terminal", |v| self.terminal(v, &yr, &ris_tail, weight_at))
+        v.begin_scope(fiat_shamir::arith::Stage::Terminal);
+        let result = self.terminal(v, &yr, &ris_tail, weight_at);
+        v.end_scope();
+        result
     }
 
     /// Check `weight * <yr, eq(ris_tail)> = t_r`.
@@ -501,12 +593,13 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         v: &mut V,
         yr: &[V::E],
         ris_tail: &[V::E],
-        weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
+        weight_at: impl WeightAt<V>,
     ) -> Result<(), WhirError> {
         let tail = ris_tail.len();
         let zero = v.zero();
         let mut weight = zero;
-        for ctx in &self.levels {
+        for i in 0..self.levels.len() {
+            let ctx = &self.levels[i];
             let folded = ctx.log_msg_cols - tail;
             let mut point = self.ris[ctx.ris_start..ctx.ris_start + folded].to_vec();
             point.extend_from_slice(ris_tail);
@@ -529,7 +622,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         let mut full_point = self.ris.clone();
         full_point.extend_from_slice(ris_tail);
         full_point.rotate_left(self.config.initial_k());
-        let caller = weight_at(v, &full_point);
+        let caller = weight_at.call(v, &full_point);
         let weight = v.add(weight, caller);
         let folded_yr = v.mle(yr, ris_tail);
         let lhs = v.mul(weight, folded_yr);

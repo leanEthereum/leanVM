@@ -66,24 +66,38 @@ impl Layout {
         output: &[V::E; 4],
         rate: Rate,
     ) -> Result<DeferredClaims<V::E>, CpuError> {
-        let commitment = Commitment::read(v, self.shape, rate)?;
-        let reduced = v.scope("bus and tables", |v| self.reduce_tables(v, clock, output))?;
+        let commitment = Commitment::read(v, self.shape, rate).map_err(CpuError::Open)?;
+        let reduced = {
+            v.begin_scope(fiat_shamir::arith::Stage::BusAndTables);
+            let scoped_result = self.reduce_tables(v, clock, output);
+            v.end_scope();
+            scoped_result
+        }?;
 
         // Flock's reductions, batched over every class circuit then every clock circuit, each leaving its matrices' form to its circuit.
         let batches = FlockId::batches(&self.taus);
-        let replays = v
-            .scope("flock", |v| reduction::verify(&batches, v))
-            .map_err(CpuError::Reductions)?;
+        let replays = {
+            v.begin_scope(fiat_shamir::arith::Stage::Flock);
+            let scoped_result = reduction::verify(&batches, v);
+            v.end_scope();
+            scoped_result
+        }
+        .map_err(CpuError::Reductions)?;
         let (slices, circuits): (Vec<_>, Vec<_>) = (replays.into_iter())
             .map(|replay| (replay.claim, replay.matrices.into()))
             .unzip();
 
         // The one opening, its ring-switched regions each packed witness, each producer's multiplicity column and each table's register numbers.
-        v.scope("opening", |v| {
-            let zero = v.zero();
-            let rings = self.rings(slices, &reduced.producers, &reduced.tables, zero);
-            commitment.verify(v, &reduced.slots, &rings)
-        })
+        {
+            v.begin_scope(fiat_shamir::arith::Stage::Opening);
+            let scoped_result = {
+                let zero = v.zero();
+                let rings = self.rings(slices, &reduced.producers, &reduced.tables, zero);
+                commitment.verify(v, &reduced.slots, &rings)
+            };
+            v.end_scope();
+            scoped_result
+        }
         .map_err(CpuError::Open)?;
         v.finish()?;
         Ok(DeferredClaims {

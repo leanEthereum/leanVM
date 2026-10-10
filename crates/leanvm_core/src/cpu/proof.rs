@@ -17,7 +17,7 @@ impl Proof {
     /// The header of a proof's bytes: the magic `LVMP`, then the protocol version.
     ///
     /// The version is bumped by every change to what a proof says.
-    const ENVELOPE: Envelope = Envelope::new(*b"LVMP", 15);
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMP", 17);
 
     /// The proof's bytes.
     #[must_use]
@@ -54,6 +54,23 @@ mod tests {
     use crate::pcs::Rate;
     use crate::rv::Region;
     use crate::rv::asm::{Addi, Asm, Reg};
+
+    #[test]
+    fn legacy_and_foreign_proofs_are_refused_before_the_body() {
+        let current = Proof::ENVELOPE.seal(&[]);
+        let expected = u16::from_le_bytes(current[4..6].try_into().unwrap());
+        for found in 0..=16 {
+            let bytes = Envelope::new(*b"LVMP", found).seal(&[0xff]);
+            assert_eq!(
+                Proof::from_bytes(&bytes),
+                Err(DecodeError::UnsupportedVersion { found, expected })
+            );
+        }
+        assert_eq!(
+            Proof::from_bytes(&Envelope::new(*b"LVMT", expected).seal(&[0xff])),
+            Err(DecodeError::Malformed)
+        );
+    }
 
     #[test]
     fn a_proof_survives_its_bytes() {

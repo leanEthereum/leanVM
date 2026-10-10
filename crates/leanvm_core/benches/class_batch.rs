@@ -23,7 +23,7 @@ use std::num::NonZeroUsize;
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
-use fiat_shamir::transcript::{ProofTranscript, ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
 use flock::Witness;
 use flock::circuit::Circuit;
 use flock::reduction::{self, Instance};
@@ -159,8 +159,7 @@ impl ClassBatch {
 
         let mut ps = ProverState::from_label(b"flock-class-batch");
         let t = Instant::now();
-        let committed = CommittedStack::new(as_field(&witness.z), self.mu, self.config.clone());
-        ps.add_root(&committed.root());
+        let committed = CommittedStack::new(&mut ps, as_field(&witness.z), self.mu, self.config.clone());
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
@@ -193,7 +192,8 @@ impl ClassBatch {
     fn verify(&self, proof: &ProofTranscript) {
         let block = self.circuit.block();
         let mut vs = VerifierState::from_label(b"flock-class-batch", proof);
-        let root = vs.next_root().expect("commitment root");
+        let commitment = StackCommitment::receive(&mut vs, self.mu, 1 << INITIAL_FOLDING_FACTOR, self.config.clone())
+            .expect("immutable anchored commitment");
         let replay = reduction::verify(&[(block.shape(), self.n_log)], &mut vs)
             .expect("the reduction verifies")
             .remove(0);
@@ -203,7 +203,6 @@ impl ClassBatch {
             qflock_vars: self.mu,
             claims: vec![replay.claim],
         };
-        let commitment = StackCommitment::new(root, self.mu, 1 << INITIAL_FOLDING_FACTOR, self.config.clone());
         let rings = [ring];
         commitment
             .verify(

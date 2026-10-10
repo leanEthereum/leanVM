@@ -254,17 +254,23 @@ pub fn prove(instances: &[Instance<'_>], ps: &mut ProverState) -> Vec<SliceClaim
 pub fn verify<V: Verifier>(circuits: &[(Shape, usize)], v: &mut V) -> Result<Vec<ReductionReplay<V::E>>, FlockError> {
     // Phase 1: the zerocheck's point and evaluations.
     let log_ns: Vec<usize> = circuits.iter().map(|(shape, n)| shape.k_log + n).collect();
-    let zc = v
-        .scope("zerocheck", |v| zerocheck::verify(&log_ns, v))
-        .map_err(FlockError::Zerocheck)?;
+    let zc = {
+        v.begin_scope(fiat_shamir::arith::Stage::Zerocheck);
+        let scoped_result = zerocheck::verify(&log_ns, v);
+        v.end_scope();
+        scoped_result
+    }
+    .map_err(FlockError::Zerocheck)?;
 
     // Phase 2: the lincheck, each circuit's matrices left as a claim.
     let shapes: Vec<Shape> = circuits.iter().map(|&(shape, _)| shape).collect();
-    let matrices = v
-        .scope("lincheck", |v| {
-            lincheck::verify_deferred(SkipDomain::FLOCK, &zc, &shapes, v)
-        })
-        .map_err(FlockError::Lincheck)?;
+    let matrices = {
+        v.begin_scope(fiat_shamir::arith::Stage::Lincheck);
+        let scoped_result = { lincheck::verify_deferred(SkipDomain::FLOCK, &zc, &shapes, v) };
+        v.end_scope();
+        scoped_result
+    }
+    .map_err(FlockError::Lincheck)?;
 
     // Each witness claim: the lincheck's inner coordinates, then the zerocheck's outer ones.
     Ok((matrices.into_iter().zip(&log_ns))

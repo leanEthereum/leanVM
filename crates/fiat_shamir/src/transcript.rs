@@ -1,6 +1,7 @@
 //! Fiat-Shamir proof transport. `add_scalar` and `next_scalar` transmit and bind together, which is the only way anything enters the state: a transmitted value needs no separate absorb, a value derived from transmitted ones needs none either, and the statement rides the seed the state starts from. So there is no absorb-only method at all. Merkle hints are authenticated by their trees and are not absorbed separately.
 
 use crate::Duplex;
+use crate::TranscriptContext;
 use crate::merkle::{Hash, PrunedMerklePaths, RawMerklePath, hash_to_scalars, scalars_to_hash};
 use bincode::{DefaultOptions, Options};
 use primitives::field::{F64, F192};
@@ -84,6 +85,9 @@ pub trait Challenger {
 /// The prover half of a transmitting sub-protocol (WHIR and its sumchecks):
 /// push an opening phase, send a scalar, or grind.
 pub trait Transmitter: Challenger {
+    /// Copy the exact context without changing the transcript.
+    fn context(&self) -> TranscriptContext<F64, Hash>;
+
     fn hint_merkle(&mut self, paths: PrunedMerklePaths);
     fn add_scalar(&mut self, x: F192);
     fn add_scalars(&mut self, xs: &[F192]);
@@ -131,7 +135,11 @@ pub trait Receiver: Challenger {
     ) -> Result<Vec<Vec<F64>>, TranscriptError>;
     fn next_scalar(&mut self) -> Result<F192, TranscriptError>;
     fn next_scalars(&mut self, n: usize) -> Result<Vec<F192>, TranscriptError> {
-        (0..n).map(|_| self.next_scalar()).collect()
+        let mut scalars = Vec::with_capacity(n);
+        for _ in 0..n {
+            scalars.push(self.next_scalar()?);
+        }
+        Ok(scalars)
     }
 
     /// Mirror of [`Transmitter::add_root`]. Both halves are prover-chosen, so a
@@ -178,6 +186,11 @@ impl ProverState {
         }
     }
 
+    /// Copy the exact logical duplex state without changing the transcript.
+    pub fn context(&self) -> TranscriptContext<F64, [F64; 4]> {
+        self.fs.context()
+    }
+
     pub fn into_proof(self) -> ProofTranscript {
         ProofTranscript {
             stream: self.stream,
@@ -218,6 +231,11 @@ impl<'a> VerifierState<'a> {
             phase: 0,
             raw_openings: Vec::new(),
         }
+    }
+
+    /// Copy the exact logical duplex state without changing the transcript.
+    pub fn context(&self) -> TranscriptContext<F64, [F64; 4]> {
+        self.fs.context()
     }
 
     /// Advance the wire cursor by one **without** binding or recording: the read
@@ -262,6 +280,22 @@ impl<'a> VerifierState<'a> {
 }
 
 impl Transmitter for ProverState {
+    fn context(&self) -> TranscriptContext<F64, Hash> {
+        let context = Self::context(self);
+        let mut state = [0u8; 32];
+        for (slot, word) in state.as_chunks_mut::<8>().0.iter_mut().zip(context.state) {
+            *slot = word.0.to_le_bytes();
+        }
+        TranscriptContext {
+            state,
+            pending: context.pending,
+            pending_bytes: context.pending_bytes,
+            first: context.first,
+            previous: context.previous,
+            squeezed: context.squeezed,
+        }
+    }
+
     /// Hand the next opening phase's Merkle data to the verifier. Not absorbed:
     /// its binding is the Merkle structure itself.
     fn hint_merkle(&mut self, paths: PrunedMerklePaths) {
@@ -338,24 +372,31 @@ impl<'a> Receiver for VerifierState<'a> {
         assert!(n_coeffs >= 2, "a round polynomial has at least two coefficients");
         let fixed = usize::from(eq.is_none());
         let mut coeffs = vec![F192::ZERO; n_coeffs];
-        for i in (0..n_coeffs).filter(|&i| i != fixed) {
-            coeffs[i] = self.take_raw()?;
-        }
-        let sum_from = |from: usize| coeffs[from..].iter().fold(F192::ZERO, |acc, &c| acc + c);
-        coeffs[fixed] = eq.map_or_else(
-            || {
-                // An ordinary round reconstructs its linear coefficient from the claimed sum.
-                claim + sum_from(2)
-            },
-            |r| {
-                // An equality-weighted round reconstructs its constant coefficient using the weighting challenge.
-                claim + r * sum_from(1)
-            },
-        );
-        for (i, &c) in coeffs.iter().enumerate() {
+        let mut i = 0;
+        while i < n_coeffs {
             if i != fixed {
-                self.bind(c);
+                coeffs[i] = self.take_raw()?;
             }
+            i += 1;
+        }
+        let mut sum = F192::ZERO;
+        let mut i = fixed + 1;
+        while i < n_coeffs {
+            sum += coeffs[i];
+            i += 1;
+        }
+        match eq {
+            // An ordinary round reconstructs its linear coefficient from the claimed sum.
+            None => coeffs[fixed] = claim + sum,
+            // An equality-weighted round reconstructs its constant coefficient using the weighting challenge.
+            Some(r) => coeffs[fixed] = claim + r * sum,
+        }
+        let mut i = 0;
+        while i < n_coeffs {
+            if i != fixed {
+                self.bind(coeffs[i]);
+            }
+            i += 1;
         }
         Ok(coeffs)
     }

@@ -431,12 +431,12 @@ fn large_program() -> (Program, Proof, Proof, Output) {
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     assert_eq!(output, [7, 0, 0, 0]);
 
-    // The nonce follows the announcement and the root; replace it with the next one that misses the work.
+    // The nonce follows the announcements and complete commitment record.
     let missed = CpuError::Bus(BusError::Transcript(TranscriptError::PowFailed { bits: 1 }));
     let forged = (1..64)
         .map(|step| {
             let mut forged = proof.clone();
-            forged.0.stream[N_TABLES + 4].c0 += step;
+            forged.0.stream[N_TABLES + 8].c0 += step;
             forged
         })
         .find(|forged| program.verify(output, forged) == Err(missed.clone().into()))
@@ -449,7 +449,10 @@ fn a_large_program_grinds_before_the_bus() {
     let (program, proof, forged, output) = large_program();
     assert!(program.verify(output, &proof).is_ok());
     // The nonce that misses the work is refused at the bus.
-    assert!(program.verify(output, &forged).is_err());
+    assert_eq!(
+        program.verify(output, &forged),
+        Err(CpuError::Bus(BusError::Transcript(TranscriptError::PowFailed { bits: 1 })).into())
+    );
 }
 
 #[test]

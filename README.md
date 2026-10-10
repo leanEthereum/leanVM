@@ -25,7 +25,7 @@
 
 leanVM is designed for security:
 
- * 128-bit ROM (64-bit QROM) soundness
+ * a 128-bit ROM (64-bit QROM) soundness target, not a proved deployed security level
  * no proximity gap conjecture
  * end-to-end formal verification
  * a traditional hash function
@@ -180,3 +180,15 @@ Each instruction class's circuit proven alone by flock, on `2^FLOCK_N_LOG` rando
 - [WHIR](https://eprint.iacr.org/2024/1586) PCS, aka [Ligerito](https://eprint.iacr.org/2025/1187)
 - [Flock](https://github.com/succinctlabs/flock/tree/main) hash proving
 - [Binius](https://github.com/IrreducibleOSS/binius)/[Binius64](https://github.com/binius-zk/binius64) ring switching, M3 arithmetisation, and more (see [DP23](https://eprint.iacr.org/2023/1784) and [DP24](https://eprint.iacr.org/2024/504))
+
+### Immutable PCS commitment anchors
+
+PCS commitment identity is now the complete immutable Merkle root, public shape, exact pre-commit transcript chaining value, normalized pending bytes and byte count, first-block flag and previous and current squeeze cursors, commitment-time extension-field point and advertised MLE value. Capturing that context does not flush, hash, sample, allocate or emit recursive rows. A valid duplex state's cached output is derivable from its chaining value and cursor; snapshots are read-only and cannot inject arbitrary states. `whir::commit` binds the `whir-anchor-v1` marker, dimension/interleaving/rate tuple and occupied lane count before the root and the one anchor challenge. `whir::receive_commitment` checks the same context, derives that point once and reads its value. CPU proofs use `LVMP17` and the `leanvm-rv64im-15` program domain; tree proofs use `LVMT15` and the `leanvm-tree-11` domain. These identities are reserved above upstream and every audited open proposal, including relocated tree decoders. Root-only legacy proofs are not accepted.
+
+Every stacked opening and the public `whir::open_with_basis` / `whir::verify_with_basis` advanced interfaces require this complete record. Their `whir-opening-v1` frame binds and compares its shape, root, original chaining value, pending-byte metadata and normalized buffer, point and advertised value before any opening batching challenge. Root and chaining-value scalars retain the deployed two-word/two-word digest packing. Cursor metadata precedes pending bytes, packed as three little endian words per scalar with canonical final padding. This permits opening the same immutable record in a fresh session without receiving it again or resampling its point. Root-only WHIR kernels are private protocol building blocks, not alternate public PCS verification paths. Advanced callers must bind their public opening claims before entry. Omitted lanes remain mandated zero, and the anchor's linear weight is restricted to the occupied prefix in both native and row arithmetic.
+
+Advanced verifier weights implement `whir::WeightAt<V>` and its consuming `evaluate(self, verifier, point)` method. The verifier dispatches statically and invokes the weight once at the terminal point, after rotating the fold challenges into witness-coordinate order. Named weight values borrow their existing inputs; this interface does not allocate or change proof fields, transcript operations, scopes or rejection order. The stacked verifier's public API is unchanged.
+
+The separate Lean investigation proves ideal interactive uniform anchor candidate uniqueness with a commitment fixed list, including arbitrary malicious advertised values and cross session reuse. Its anchor ambiguity term is separate from opening, Fiat Shamir, Merkle and concrete cryptographic losses. This branch normally merges the framed byte duplex deployed by #552 at `f11f84f585680cf10f676bb4d9ae1a67e26547ca`, the mode modeled by proof PR #551's `DuplexRefinement`, `DuplexFraming` and `WHIRNativeSecurity` chain. The conditional `2^-42` endpoint retains the unproved adaptive DMV coupling and stated resource premises and concerns its modeled unanchored native event. It does not automatically cover this cutover's new anchor frames, cursor-based anchor sampling or updated source-event refinement. This cutover does not claim a proved whole system security level, successful efficient knowledge extraction, deterministic BLAKE2s security or universal Rust to Lean equivalence. It preserves the current range-only selector guards rather than adopting the separate malformed selector proposal.
+
+The current public stacked receiver still uses range-only guards for plain and strided point selectors. Malformed alignment or strided slots are not covered by the valid-shape formal correspondence and may be accepted by that deployed guard. This change preserves that existing behavior; it does not silently adopt the separate selector-validation proposal.

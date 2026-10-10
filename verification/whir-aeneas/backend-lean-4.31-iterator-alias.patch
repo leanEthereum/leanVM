@@ -1,0 +1,12 @@
+diff --git a/Aeneas/Std/VecIter.lean b/Aeneas/Std/VecIter.lean
+--- a/Aeneas/Std/VecIter.lean
++++ b/Aeneas/Std/VecIter.lean
+@@ -8,7 +8,7 @@ namespace Aeneas.Std
+ open Result
+ 
+ @[expose, rust_type "alloc::vec::into_iter::IntoIter" (keepParams := [true, false])]
+-def alloc.vec.into_iter.IntoIter (T : Type) : Type := alloc.vec.Vec T
++abbrev alloc.vec.into_iter.IntoIter (T : Type) : Type := alloc.vec.Vec T
+ 
+ @[expose, rust_fun
+   "alloc::vec::into_iter::{core::iter::traits::iterator::Iterator<alloc::vec::into_iter::IntoIter<@T, @A>, @T>}::next"

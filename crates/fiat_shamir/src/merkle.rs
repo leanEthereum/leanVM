@@ -27,14 +27,14 @@ pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
 /// 128-bit, so a nonzero one is not a digest at all.
 #[inline]
 pub fn scalars_to_hash(scalars: &[F192; 2]) -> Result<Hash, TranscriptError> {
-    if scalars.iter().any(|s| s.c2 != 0) {
+    if scalars[0].c2 != 0 || scalars[1].c2 != 0 {
         return Err(TranscriptError::NonCanonicalEncoding);
     }
     let mut hash = [0u8; 32];
-    for (i, s) in scalars.iter().enumerate() {
-        hash[16 * i..16 * i + 8].copy_from_slice(&s.c0.to_le_bytes());
-        hash[16 * i + 8..16 * i + 16].copy_from_slice(&s.c1.to_le_bytes());
-    }
+    hash[..8].copy_from_slice(&scalars[0].c0.to_le_bytes());
+    hash[8..16].copy_from_slice(&scalars[0].c1.to_le_bytes());
+    hash[16..24].copy_from_slice(&scalars[1].c0.to_le_bytes());
+    hash[24..32].copy_from_slice(&scalars[1].c1.to_le_bytes());
     Ok(hash)
 }
 
@@ -184,6 +184,14 @@ impl LeafHasher {
     }
 }
 
+#[inline]
+fn hash_packed_leaves(hasher: &LeafHasher, rows: &[u8], n: usize) -> Vec<Hash> {
+    let mut hashes = Box::new_uninit_slice(n);
+    hasher.hash(rows, &mut hashes);
+    // SAFETY: the hasher wrote one digest per packed leaf.
+    unsafe { hashes.assume_init() }.into_vec()
+}
+
 /// A zeroed staging buffer of `STAGE_TILE_BYTES`.
 struct Tile([u64; STAGE_TILE_BYTES / 8]);
 
@@ -318,10 +326,8 @@ impl PrunedMerklePaths {
         let bytes: Vec<u8> = (self.leaf_data.iter().flatten())
             .flat_map(|word| word.0.to_le_bytes())
             .collect();
-        let mut hashes = Box::new_uninit_slice(self.leaf_data.len());
-        LeafHasher::new(8 * row_words, 8 * leaf_words).hash(&bytes, &mut hashes);
-        // SAFETY: the hasher wrote one digest per row.
-        Some((sorted, unsafe { hashes.assume_init() }.into_vec()))
+        let hasher = LeafHasher::new(8 * row_words, 8 * leaf_words);
+        Some((sorted, hash_packed_leaves(&hasher, &bytes, self.leaf_data.len())))
     }
 
     /// Verifier side: authenticate this phase against `root` and expand it into
@@ -356,60 +362,94 @@ impl PrunedMerklePaths {
         // sibling only where that sibling is not itself a queried subtree.
         let mut supplied = self.sibling_hashes.iter();
         let mut known: Vec<Vec<(usize, Hash)>> = Vec::with_capacity(height);
-        let mut nodes: Vec<(usize, Hash)> = sorted.iter().copied().zip(leaf_hashes).collect();
-        for _ in 0..height {
+        let node_count = sorted.len().min(leaf_hashes.len());
+        let mut nodes = Vec::with_capacity(node_count);
+        let mut node_slot = 0;
+        while node_slot < node_count {
+            nodes.push((sorted[node_slot], leaf_hashes[node_slot]));
+            node_slot += 1;
+        }
+        drop(leaf_hashes);
+        let mut missing_sibling = false;
+        let mut lvl = 0;
+        while lvl < height && !missing_sibling {
             let mut level = Vec::with_capacity(2 * nodes.len());
             let mut parents = Vec::with_capacity(nodes.len());
             let mut pairs = Vec::with_capacity(nodes.len());
             let mut i = 0;
-            while i < nodes.len() {
+            while i < nodes.len() && !missing_sibling {
                 let idx = nodes[i].0;
                 let paired = idx & 1 == 0 && nodes.get(i + 1).is_some_and(|&(j, _)| j == (idx | 1));
-                let (left, right) = if paired {
-                    (nodes[i].1, nodes[i + 1].1)
-                } else if idx & 1 == 0 {
-                    (nodes[i].1, *supplied.next()?)
+                let pair = if paired {
+                    Some((nodes[i].1, nodes[i + 1].1))
                 } else {
-                    (*supplied.next()?, nodes[i].1)
+                    match supplied.next() {
+                        Some(&sibling) if idx & 1 == 0 => Some((nodes[i].1, sibling)),
+                        Some(&sibling) => Some((sibling, nodes[i].1)),
+                        None => {
+                            missing_sibling = true;
+                            None
+                        }
+                    }
                 };
-                parents.push(idx >> 1);
-                pairs.push([left, right]);
-                level.push((idx & !1, left));
-                level.push((idx | 1, right));
-                i += if paired { 2 } else { 1 };
+                if let Some((left, right)) = pair {
+                    parents.push(idx >> 1);
+                    pairs.push([left, right]);
+                    level.push((idx & !1, left));
+                    level.push((idx | 1, right));
+                    i += if paired { 2 } else { 1 };
+                }
             }
-            known.push(level);
-            nodes = parents.into_iter().zip(hash_pairs(&pairs)).collect();
+            if !missing_sibling {
+                known.push(level);
+                nodes = parents.into_iter().zip(hash_pairs(&pairs)).collect();
+                lvl += 1;
+            }
         }
         // The last fold leaves exactly the root, and nothing may be left over.
-        if supplied.next().is_some() || nodes[0].1 != *root {
+        if missing_sibling || supplied.next().is_some() || nodes[0].1 != *root {
             return None;
         }
 
-        let per_distinct: Vec<Vec<Hash>> = sorted
-            .iter()
-            .map(|&leaf| {
-                (0..height)
-                    .map(|lvl| {
-                        let level = &known[lvl];
-                        let pos = level.binary_search_by_key(&((leaf >> lvl) ^ 1), |&(j, _)| j).ok()?;
-                        Some(level[pos].1)
-                    })
-                    .collect::<Option<Vec<_>>>()
-            })
-            .collect::<Option<Vec<_>>>()?;
-
-        queries
-            .iter()
-            .map(|q| {
-                let slot = sorted.binary_search(q).ok()?;
-                Some(RawMerklePath {
-                    leaf_index: *q,
+        let mut per_distinct = Vec::with_capacity(sorted.len());
+        let mut missing_path = false;
+        let mut leaf_slot = 0;
+        while leaf_slot < sorted.len() && !missing_path {
+            let leaf = sorted[leaf_slot];
+            let mut path = Vec::with_capacity(height);
+            let mut level_slot = 0;
+            while level_slot < height && !missing_path {
+                let level = &known[level_slot];
+                match level.binary_search_by_key(&((leaf >> level_slot) ^ 1), |&(j, _)| j) {
+                    Ok(pos) => path.push(level[pos].1),
+                    Err(_) => missing_path = true,
+                }
+                level_slot += 1;
+            }
+            if !missing_path {
+                per_distinct.push(path);
+                leaf_slot += 1;
+            }
+        }
+        if missing_path {
+            return None;
+        }
+        let mut paths = Vec::with_capacity(queries.len());
+        let mut missing_query = false;
+        let mut query_slot = 0;
+        while query_slot < queries.len() && !missing_query {
+            let q = queries[query_slot];
+            match sorted.binary_search(&q) {
+                Ok(slot) => paths.push(RawMerklePath {
+                    leaf_index: q,
                     leaf_data: leaf_image(&self.leaf_data[slot], leaf_words),
                     path: per_distinct[slot].clone(),
-                })
-            })
-            .collect()
+                }),
+                Err(_) => missing_query = true,
+            }
+            query_slot += 1;
+        }
+        if missing_query { None } else { Some(paths) }
     }
 }
 

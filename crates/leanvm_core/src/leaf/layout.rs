@@ -77,10 +77,9 @@ pub fn fingerprint_weights(alphas: &[F192]) -> Vec<F192> {
 /// fourteen, lives in the `2^4` slots of the bytecode encoding (§sec:m3, §sec:e2e-bc).
 pub const N_TUPLE_BITS: usize = 4;
 
-/// Bits the bus must clear: the target, plus what the commitment's list costs.
+/// Conservative bus parameter target, including the initial list-size margin.
 ///
-/// The fingerprint and the GKR challenges are drawn after the root, which binds the prover only to a list of polynomials.
-/// Each challenge must hold against every member, so its error is multiplied by the list size (§sec:e2e-ledger).
+/// The immutable anchor is sampled before these challenges, but the parameter calculation retains the list-size multiplier. This margin is not a proof of the deployed transcript's concrete security level (§sec:e2e-ledger).
 pub(super) const BUS_SOUNDNESS_BITS: u32 = crate::SECURITY_BITS + pcs::whir::L0_LIST_BITS as u32;
 
 /// Conservative sum of the degree bounds for every random-challenge failure in

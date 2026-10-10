@@ -8,7 +8,8 @@
 use super::circuit::{Builder, Dw, Ew, Kw};
 use super::transcript::Transcript;
 use crate::leaf::{PublicColumn, PublicColumns};
-use fiat_shamir::arith::{Arith, Verifier};
+use fiat_shamir::TranscriptContext;
+use fiat_shamir::arith::{Arith, PublicMle, Stage, Verifier};
 use fiat_shamir::transcript::TranscriptError;
 use pcs::verifier::OpeningVerifier;
 use pcs::whir::{Stratum, strata};
@@ -97,6 +98,8 @@ impl Arith for Builder {
     }
 }
 
+impl PublicMle for Builder {}
+
 impl Arith for Rows<'_, '_> {
     type E = Ew;
 
@@ -137,6 +140,8 @@ impl Arith for Rows<'_, '_> {
     }
 }
 
+impl PublicMle for Rows<'_, '_> {}
+
 impl PublicColumns for Rows<'_, '_> {
     fn column_mle(&mut self, column: &PublicColumn, point: &[Ew]) -> Ew {
         match (self.fixed.as_deref_mut(), column.fixed) {
@@ -171,18 +176,32 @@ impl Verifier for Rows<'_, '_> {
 
     fn finish(&mut self) -> Result<(), TranscriptError> {
         if !self.t.finished() {
-            self.scope("transcript", |r| {
-                r.b.fail("the proof has data the verifier never reads");
-            });
+            self.begin_scope(Stage::Transcript);
+            self.b.fail("the proof has data the verifier never reads");
+            self.end_scope();
         }
         Ok(())
     }
 
-    fn scope<T>(&mut self, name: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
+    fn begin_scope(&mut self, stage: Stage) {
+        let name = match stage {
+            Stage::Announcement => "announcement",
+            Stage::BusAndTables => "bus and tables",
+            Stage::Flock => "flock",
+            Stage::Lincheck => "lincheck",
+            Stage::Opening => "opening",
+            Stage::Rows => "rows",
+            Stage::Target => "target",
+            Stage::Terminal => "terminal",
+            Stage::Transcript => "transcript",
+            Stage::Whir => "whir",
+            Stage::Zerocheck => "zerocheck",
+        };
         self.b.enter(name);
-        let out = f(self);
+    }
+
+    fn end_scope(&mut self) {
         self.b.leave();
-        out
     }
 }
 
@@ -191,6 +210,20 @@ impl OpeningVerifier for Rows<'_, '_> {
     type K = Kw;
     /// A query's index bits, lowest first.
     type Query = Vec<Kw>;
+
+    fn context(&mut self) -> TranscriptContext<Kw, Dw> {
+        self.t.context()
+    }
+
+    fn zero_k(&mut self) -> Kw {
+        self.b.k_const(0)
+    }
+
+    fn root_scalars(&mut self, root: Dw) -> [Ew; 2] {
+        let [w0, w1, w2, w3] = self.b.d_to_k(root);
+        let zero = self.b.k_const(0);
+        [self.e_of_limbs([w0, w1, zero]), self.e_of_limbs([w2, w3, zero])]
+    }
 
     fn next_root(&mut self) -> Result<Dw, TranscriptError> {
         Ok(self.t.next_root(self.b))

@@ -1,0 +1,3827 @@
+{
+  "aeneas_version": "d119a474-dirty",
+  "charon_version": "0.1.281",
+  "crate": "pcs",
+  "functions": [
+    {
+      "def_id": 54,
+      "lean_name": "core.option.Option.Insts.CoreCmpPartialEqOption.eq",
+      "lean_file": "WhirAeneas/Generated/Verifier/FunsExternal_Template.lean",
+      "rust_name": "core::option::{impl core::cmp::PartialEq<core::option::Option<T>> for core::option::Option<T>}::eq",
+      "is_local": false,
+      "source": {
+        "file": "/rustc/library/core/src/option.rs",
+        "begin_line": 2441,
+        "end_line": 2441
+      },
+      "is_opaque": true,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 23,
+      "lean_name": "core.slice.Slice.first",
+      "lean_file": "WhirAeneas/Generated/Verifier/FunsExternal_Template.lean",
+      "rust_name": "core::slice::{[T]}::first",
+      "is_local": false,
+      "source": {
+        "file": "/rustc/library/core/src/slice/mod.rs",
+        "begin_line": 157,
+        "end_line": 157
+      },
+      "is_opaque": true,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 324,
+      "lean_name": "core.slice.Slice.rotate_left",
+      "lean_file": "WhirAeneas/Generated/Verifier/FunsExternal_Template.lean",
+      "rust_name": "core::slice::{[T]}::rotate_left",
+      "is_local": false,
+      "source": {
+        "file": "/rustc/library/core/src/slice/mod.rs",
+        "begin_line": 3905,
+        "end_line": 3905
+      },
+      "is_opaque": true,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 82,
+      "lean_name": "alloc.vec.Vec.truncate",
+      "lean_file": "WhirAeneas/Generated/Verifier/FunsExternal_Template.lean",
+      "rust_name": "alloc::vec::{alloc::vec::Vec<T>}::truncate",
+      "is_local": false,
+      "source": {
+        "file": "/rustc/library/alloc/src/vec/mod.rs",
+        "begin_line": 1816,
+        "end_line": 1816
+      },
+      "is_opaque": true,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 84,
+      "lean_name": "alloc.vec.Vec.Insts.CoreIterTraitsCollectExtend.extend",
+      "lean_file": "WhirAeneas/Generated/Verifier/FunsExternal_Template.lean",
+      "rust_name": "alloc::vec::{impl core::iter::traits::collect::Extend<T> for alloc::vec::Vec<T>}::extend",
+      "is_local": false,
+      "source": {
+        "file": "/rustc/library/alloc/src/vec/mod.rs",
+        "begin_line": 4107,
+        "end_line": 4107
+      },
+      "is_opaque": true,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 63,
+      "lean_name": "PcsSource.primitives.field.gf2_64x3.F192.Insts.CoreConvertFromF64.from",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64x3::{impl core::convert::From<primitives::field::gf2_64::F64> for primitives::field::gf2_64x3::F192}::from",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64x3/mod.rs",
+        "begin_line": 193,
+        "end_line": 193
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 32,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.public_mle.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::public_mle",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 41,
+        "end_line": 43
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.public_mle.default"
+    },
+    {
+      "def_id": 32,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.public_mle.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::public_mle",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 41,
+        "end_line": 43
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.public_mle.default"
+    },
+    {
+      "def_id": 32,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.public_mle.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::public_mle",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 36,
+        "end_line": 36
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 33,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.zero.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::zero",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 48,
+        "end_line": 48
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 34,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.one.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::one",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 53,
+        "end_line": 53
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 35,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.mul.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::mul",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 58,
+        "end_line": 58
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 36,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.square.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::square",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 64,
+        "end_line": 64
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 37,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.mul_const.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::mul_const",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 69,
+        "end_line": 69
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 38,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.add_const.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::add_const",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 75,
+        "end_line": 75
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 39,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.product.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::product",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 84,
+        "end_line": 86
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.product.default"
+    },
+    {
+      "def_id": 39,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.product.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::product",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 84,
+        "end_line": 86
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.product.default"
+    },
+    {
+      "def_id": 39,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.product.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::product",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 81,
+        "end_line": 81
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 40,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.poly_eval.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::poly_eval",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 95,
+        "end_line": 98
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.poly_eval.default"
+    },
+    {
+      "def_id": 40,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.poly_eval.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::poly_eval",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 95,
+        "end_line": 98
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.poly_eval.default"
+    },
+    {
+      "def_id": 40,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.poly_eval.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::poly_eval",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 91,
+        "end_line": 91
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 41,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.interp.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::interp",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 103,
+        "end_line": 103
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 42,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.times_one_plus.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::times_one_plus",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 109,
+        "end_line": 109
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 43,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_eval.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_eval",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 118,
+        "end_line": 121
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_eval.default"
+    },
+    {
+      "def_id": 43,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_eval.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_eval",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 118,
+        "end_line": 121
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_eval.default"
+    },
+    {
+      "def_id": 43,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_eval.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_eval",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 114,
+        "end_line": 114
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 44,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_bits.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_bits",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 133,
+        "end_line": 140
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_bits.default"
+    },
+    {
+      "def_id": 44,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_bits.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_bits",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 133,
+        "end_line": 140
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_bits.default"
+    },
+    {
+      "def_id": 44,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_bits.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_bits",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 129,
+        "end_line": 129
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 45,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_table",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 145,
+        "end_line": 145
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 46,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default_loop0_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_table_prefix",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 161,
+        "end_line": 164
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default"
+    },
+    {
+      "def_id": 46,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default_loop0_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_table_prefix",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 161,
+        "end_line": 164
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default"
+    },
+    {
+      "def_id": 46,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default_loop0_loop1.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_table_prefix",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 166,
+        "end_line": 169
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 2, "pos": [ 0, 1 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default"
+    },
+    {
+      "def_id": 46,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default_loop0_loop1",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_table_prefix",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 166,
+        "end_line": 169
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 2, "pos": [ 0, 1 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default"
+    },
+    {
+      "def_id": 46,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_table_prefix",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 155,
+        "end_line": 172
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default"
+    },
+    {
+      "def_id": 46,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_table_prefix",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 155,
+        "end_line": 172
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default"
+    },
+    {
+      "def_id": 46,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.eq_table_prefix.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::eq_table_prefix",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 150,
+        "end_line": 150
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 47,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default_loop0_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::mle",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 185,
+        "end_line": 188
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default"
+    },
+    {
+      "def_id": 47,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default_loop0_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::mle",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 185,
+        "end_line": 188
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default"
+    },
+    {
+      "def_id": 47,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::mle",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 181,
+        "end_line": 190
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default"
+    },
+    {
+      "def_id": 47,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::mle",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 181,
+        "end_line": 190
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default"
+    },
+    {
+      "def_id": 47,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.mle.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::mle",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 178,
+        "end_line": 178
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 48,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.powers.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::powers",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 198,
+        "end_line": 201
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.powers.default"
+    },
+    {
+      "def_id": 48,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.powers.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::powers",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 198,
+        "end_line": 201
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.powers.default"
+    },
+    {
+      "def_id": 48,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.powers.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::powers",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 195,
+        "end_line": 195
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 49,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.int_index.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::int_index",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 209,
+        "end_line": 211
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.int_index.default"
+    },
+    {
+      "def_id": 49,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.int_index.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::int_index",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 209,
+        "end_line": 211
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Arith.int_index.default"
+    },
+    {
+      "def_id": 49,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith.int_index.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Arith::int_index",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 206,
+        "end_line": 206
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 50,
+      "lean_name": "PcsSource.fiat_shamir.arith.Verifier.next_scalars.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Verifier::next_scalars",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 297,
+        "end_line": 301
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Verifier.next_scalars.default"
+    },
+    {
+      "def_id": 50,
+      "lean_name": "PcsSource.fiat_shamir.arith.Verifier.next_scalars.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Verifier::next_scalars",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 297,
+        "end_line": 301
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Verifier.next_scalars.default"
+    },
+    {
+      "def_id": 50,
+      "lean_name": "PcsSource.fiat_shamir.arith.Verifier.next_scalars.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Verifier::next_scalars",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 295,
+        "end_line": 295
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": true
+    },
+    {
+      "def_id": 51,
+      "lean_name": "PcsSource.fiat_shamir.arith.Verifier.sample_vec.default_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Verifier::sample_vec",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 306,
+        "end_line": 308
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Verifier.sample_vec.default"
+    },
+    {
+      "def_id": 51,
+      "lean_name": "PcsSource.fiat_shamir.arith.Verifier.sample_vec.default_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Verifier::sample_vec",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 306,
+        "end_line": 308
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.fiat_shamir.arith.Verifier.sample_vec.default"
+    },
+    {
+      "def_id": 51,
+      "lean_name": "PcsSource.fiat_shamir.arith.Verifier.sample_vec.default",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::arith::Verifier::sample_vec",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 304,
+        "end_line": 304
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 347,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.Insts.CoreCloneClone.clone",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{impl core::clone::Clone for primitives::field::gf2_64::F64}::clone",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 16,
+        "end_line": 16
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 345,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.Insts.CoreCmpPartialEqF64.eq",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{impl core::cmp::PartialEq<primitives::field::gf2_64::F64> for primitives::field::gf2_64::F64}::eq",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 16,
+        "end_line": 16
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 354,
+      "lean_name": "PcsSource.primitives.field.gf2_64.reduce",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::reduce",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 187,
+        "end_line": 187
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 358,
+      "lean_name": "PcsSource.primitives.field.gf2_64.software.clmul_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::software::clmul",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 361,
+        "end_line": 366
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.primitives.field.gf2_64.software.clmul"
+    },
+    {
+      "def_id": 358,
+      "lean_name": "PcsSource.primitives.field.gf2_64.software.clmul_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::software::clmul",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 361,
+        "end_line": 366
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.primitives.field.gf2_64.software.clmul"
+    },
+    {
+      "def_id": 358,
+      "lean_name": "PcsSource.primitives.field.gf2_64.software.clmul",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::software::clmul",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 357,
+        "end_line": 357
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": true
+    },
+    {
+      "def_id": 353,
+      "lean_name": "PcsSource.primitives.field.gf2_64.mul_wide",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::mul_wide",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 139,
+        "end_line": 139
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 369,
+      "lean_name": "PcsSource.primitives.field.gf2_64.square_wide",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::square_wide",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 161,
+        "end_line": 161
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 359,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.square",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{primitives::field::gf2_64::F64}::square",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 40,
+        "end_line": 40
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 351,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.Insts.CoreOpsArithMulF64F64.mul",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{impl core::ops::arith::Mul<primitives::field::gf2_64::F64, primitives::field::gf2_64::F64> for primitives::field::gf2_64::F64}::mul",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 99,
+        "end_line": 99
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 357,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.inv.closure.Insts.CoreOpsFunctionFnPairF64U32F64.call_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{primitives::field::gf2_64::F64}::inv::{impl core::ops::function::Fn<(primitives::field::gf2_64::F64, u32), primitives::field::gf2_64::F64> for primitives::field::gf2_64::{primitives::field::gf2_64::F64}::inv::{closure}}::call",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 59,
+        "end_line": 61
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.primitives.field.gf2_64.F64.inv.closure.Insts.CoreOpsFunctionFnPairF64U32F64.call"
+    },
+    {
+      "def_id": 357,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.inv.closure.Insts.CoreOpsFunctionFnPairF64U32F64.call_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{primitives::field::gf2_64::F64}::inv::{impl core::ops::function::Fn<(primitives::field::gf2_64::F64, u32), primitives::field::gf2_64::F64> for primitives::field::gf2_64::{primitives::field::gf2_64::F64}::inv::{closure}}::call",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 59,
+        "end_line": 61
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.primitives.field.gf2_64.F64.inv.closure.Insts.CoreOpsFunctionFnPairF64U32F64.call"
+    },
+    {
+      "def_id": 357,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.inv.closure.Insts.CoreOpsFunctionFnPairF64U32F64.call",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{primitives::field::gf2_64::F64}::inv::{impl core::ops::function::Fn<(primitives::field::gf2_64::F64, u32), primitives::field::gf2_64::F64> for primitives::field::gf2_64::{primitives::field::gf2_64::F64}::inv::{closure}}::call",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 58,
+        "end_line": 58
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 346,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.inv",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{primitives::field::gf2_64::F64}::inv",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 56,
+        "end_line": 56
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 350,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.Insts.CoreOpsArithAddF64F64.add",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{impl core::ops::arith::Add<primitives::field::gf2_64::F64, primitives::field::gf2_64::F64> for primitives::field::gf2_64::F64}::add",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 83,
+        "end_line": 83
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 95,
+      "lean_name": "PcsSource.primitives.field.gf2_64x3.F192.new",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64x3::{primitives::field::gf2_64x3::F192}::new",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64x3/mod.rs",
+        "begin_line": 50,
+        "end_line": 50
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 91,
+      "lean_name": "PcsSource.whir.commit.CommitmentShape.valid.closure.Insts.CoreOpsFunctionFnOnceTupleUsizeBool.call_once",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::{pcs::whir::commit::CommitmentShape}::valid::{impl core::ops::function::FnOnce<(usize,), bool> for pcs::whir::commit::{pcs::whir::commit::CommitmentShape}::valid::{closure}}::call_once",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 38,
+        "end_line": 38
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 20,
+      "lean_name": "PcsSource.whir.commit.CommitmentShape.valid",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::{pcs::whir::commit::CommitmentShape}::valid",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 32,
+        "end_line": 41
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 114,
+      "lean_name": "PcsSource.whir.anchor.anchor_eq_at_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::anchor::anchor_eq_at",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/anchor.rs",
+        "begin_line": 118,
+        "end_line": 146
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.anchor.anchor_eq_at"
+    },
+    {
+      "def_id": 114,
+      "lean_name": "PcsSource.whir.anchor.anchor_eq_at_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::anchor::anchor_eq_at",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/anchor.rs",
+        "begin_line": 118,
+        "end_line": 146
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.anchor.anchor_eq_at"
+    },
+    {
+      "def_id": 114,
+      "lean_name": "PcsSource.whir.anchor.anchor_eq_at",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::anchor::anchor_eq_at",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/anchor.rs",
+        "begin_line": 105,
+        "end_line": 148
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 59,
+      "lean_name": "PcsSource.whir.commit.commitment_constants",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::commitment_constants",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 92,
+        "end_line": 102
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 98,
+      "lean_name": "PcsSource.whir.verify.WhirError.Insts.CoreConvertFromTranscriptError.from",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{impl core::convert::From<fiat_shamir::transcript::TranscriptError> for pcs::whir::verify::WhirError}::from",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 22,
+        "end_line": 22
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 251,
+      "lean_name": "PcsSource.whir.commit.verify_record_constants.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError.call_once",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_constants::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_constants::{closure}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::call_once",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 154,
+        "end_line": 154
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 60,
+      "lean_name": "PcsSource.whir.commit.verify_record_constants_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_constants",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 151,
+        "end_line": 158
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.commit.verify_record_constants"
+    },
+    {
+      "def_id": 60,
+      "lean_name": "PcsSource.whir.commit.verify_record_constants_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_constants",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 151,
+        "end_line": 158
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.commit.verify_record_constants"
+    },
+    {
+      "def_id": 60,
+      "lean_name": "PcsSource.whir.commit.verify_record_constants",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_constants",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 149,
+        "end_line": 158
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": true
+    },
+    {
+      "def_id": 252,
+      "lean_name": "PcsSource.whir.commit.verify_record_values.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError.call_once",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_values::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_values::{closure}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::call_once",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 164,
+        "end_line": 164
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 61,
+      "lean_name": "PcsSource.whir.commit.verify_record_values_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_values",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 162,
+        "end_line": 168
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.commit.verify_record_values"
+    },
+    {
+      "def_id": 61,
+      "lean_name": "PcsSource.whir.commit.verify_record_values_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_values",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 162,
+        "end_line": 168
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.commit.verify_record_values"
+    },
+    {
+      "def_id": 61,
+      "lean_name": "PcsSource.whir.commit.verify_record_values",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_values",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 160,
+        "end_line": 168
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": true
+    },
+    {
+      "def_id": 253,
+      "lean_name": "PcsSource.whir.commit.verify_record_pending.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError.call_once",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_pending::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_pending::{closure}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::call_once",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 179,
+        "end_line": 179
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 64,
+      "lean_name": "PcsSource.whir.commit.verify_record_pending_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_pending",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 175,
+        "end_line": 184
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.commit.verify_record_pending"
+    },
+    {
+      "def_id": 64,
+      "lean_name": "PcsSource.whir.commit.verify_record_pending_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_pending",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 175,
+        "end_line": 184
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.commit.verify_record_pending"
+    },
+    {
+      "def_id": 64,
+      "lean_name": "PcsSource.whir.commit.verify_record_pending",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_pending",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 170,
+        "end_line": 184
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": true
+    },
+    {
+      "def_id": 94,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding.closure_1.Insts.CoreOpsFunctionFnOnceTupleWhirError.call_once",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_binding::{closure#1}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::call_once",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 212,
+        "end_line": 212
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 93,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError.call_once",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_binding::{closure}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::call_once",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 208,
+        "end_line": 208
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 26,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 200,
+        "end_line": 205
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.commit.verify_record_binding"
+    },
+    {
+      "def_id": 26,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 200,
+        "end_line": 205
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.commit.verify_record_binding"
+    },
+    {
+      "def_id": 26,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 187,
+        "end_line": 214
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 21,
+      "lean_name": "PcsSource.whir.config.ProverConfig.impl.initial_k",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::config::{pcs::whir::config::ProverConfig}::initial_k",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 174,
+        "end_line": 176
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 110,
+      "lean_name": "PcsSource.whir.config.ProverConfig.level_steps",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::config::{pcs::whir::config::ProverConfig}::level_steps",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 179,
+        "end_line": 181
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 112,
+      "lean_name": "PcsSource.whir.config.ProverConfig.impl.level_ks",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::config::{pcs::whir::config::ProverConfig}::level_ks",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 184,
+        "end_line": 186
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 22,
+      "lean_name": "PcsSource.whir.config.ProverConfig.impl.log_inv_rates",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::config::{pcs::whir::config::ProverConfig}::log_inv_rates",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 189,
+        "end_line": 191
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 261,
+      "lean_name": "PcsSource.whir.config.ProverConfig.impl.queries",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::config::{pcs::whir::config::ProverConfig}::queries",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 194,
+        "end_line": 196
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 260,
+      "lean_name": "PcsSource.whir.config.ProverConfig.impl.grinding_bits",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::config::{pcs::whir::config::ProverConfig}::grinding_bits",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 201,
+        "end_line": 203
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 103,
+      "lean_name": "PcsSource.whir.config.ProverConfig.impl.ood_samples",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::config::{pcs::whir::config::ProverConfig}::ood_samples",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 208,
+        "end_line": 210
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 344,
+      "lean_name": "PcsSource.whir.induce.next_s",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::induce::next_s",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/induce.rs",
+        "begin_line": 24,
+        "end_line": 26
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 340,
+      "lean_name": "PcsSource.whir.induce.eval_sk_at_vks_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::induce::eval_sk_at_vks",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/induce.rs",
+        "begin_line": 37,
+        "end_line": 39
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.induce.eval_sk_at_vks"
+    },
+    {
+      "def_id": 340,
+      "lean_name": "PcsSource.whir.induce.eval_sk_at_vks_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::induce::eval_sk_at_vks",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/induce.rs",
+        "begin_line": 37,
+        "end_line": 39
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.induce.eval_sk_at_vks"
+    },
+    {
+      "def_id": 340,
+      "lean_name": "PcsSource.whir.induce.eval_sk_at_vks_loop1_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::induce::eval_sk_at_vks",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/induce.rs",
+        "begin_line": 42,
+        "end_line": 49
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 2, "pos": [ 1, 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.induce.eval_sk_at_vks"
+    },
+    {
+      "def_id": 340,
+      "lean_name": "PcsSource.whir.induce.eval_sk_at_vks_loop1_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::induce::eval_sk_at_vks",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/induce.rs",
+        "begin_line": 42,
+        "end_line": 49
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 2, "pos": [ 1, 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.induce.eval_sk_at_vks"
+    },
+    {
+      "def_id": 340,
+      "lean_name": "PcsSource.whir.induce.eval_sk_at_vks_loop1.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::induce::eval_sk_at_vks",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/induce.rs",
+        "begin_line": 41,
+        "end_line": 51
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 1 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.induce.eval_sk_at_vks"
+    },
+    {
+      "def_id": 340,
+      "lean_name": "PcsSource.whir.induce.eval_sk_at_vks_loop1",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::induce::eval_sk_at_vks",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/induce.rs",
+        "begin_line": 41,
+        "end_line": 51
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 1 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.induce.eval_sk_at_vks"
+    },
+    {
+      "def_id": 340,
+      "lean_name": "PcsSource.whir.induce.eval_sk_at_vks",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::induce::eval_sk_at_vks",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/induce.rs",
+        "begin_line": 30,
+        "end_line": 53
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 68,
+      "lean_name": "PcsSource.whir.verify.AnchoredWeight.Insts.PcsWhirVerifyWeightAt.evaluate",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{impl pcs::whir::verify::WeightAt<V, Clause0_Clause0_Clause0_E, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E> for pcs::whir::verify::AnchoredWeight<'_0, W, Clause0_Clause0_Clause0_E>}::evaluate",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 134,
+        "end_line": 138
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 266,
+      "lean_name": "PcsSource.whir.verify.base_enforced_sum_loop0_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::base_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 657,
+        "end_line": 659
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.base_enforced_sum"
+    },
+    {
+      "def_id": 266,
+      "lean_name": "PcsSource.whir.verify.base_enforced_sum_loop0_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::base_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 657,
+        "end_line": 659
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.base_enforced_sum"
+    },
+    {
+      "def_id": 266,
+      "lean_name": "PcsSource.whir.verify.base_enforced_sum_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::base_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 654,
+        "end_line": 661
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.base_enforced_sum"
+    },
+    {
+      "def_id": 266,
+      "lean_name": "PcsSource.whir.verify.base_enforced_sum_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::base_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 654,
+        "end_line": 661
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.base_enforced_sum"
+    },
+    {
+      "def_id": 266,
+      "lean_name": "PcsSource.whir.verify.base_enforced_sum",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::base_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 649,
+        "end_line": 663
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 107,
+      "lean_name": "PcsSource.whir.verify.enforce_base_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::enforce_base",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 158,
+        "end_line": 161
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.enforce_base"
+    },
+    {
+      "def_id": 107,
+      "lean_name": "PcsSource.whir.verify.enforce_base_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::enforce_base",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 158,
+        "end_line": 161
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.enforce_base"
+    },
+    {
+      "def_id": 107,
+      "lean_name": "PcsSource.whir.verify.enforce_base",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::enforce_base",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 147,
+        "end_line": 163
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 320,
+      "lean_name": "PcsSource.whir.verify.ext_enforced_sum_loop0_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::ext_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 673,
+        "end_line": 675
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.ext_enforced_sum"
+    },
+    {
+      "def_id": 320,
+      "lean_name": "PcsSource.whir.verify.ext_enforced_sum_loop0_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::ext_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 673,
+        "end_line": 675
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.ext_enforced_sum"
+    },
+    {
+      "def_id": 320,
+      "lean_name": "PcsSource.whir.verify.ext_enforced_sum_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::ext_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 671,
+        "end_line": 677
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.ext_enforced_sum"
+    },
+    {
+      "def_id": 320,
+      "lean_name": "PcsSource.whir.verify.ext_enforced_sum_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::ext_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 671,
+        "end_line": 677
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.ext_enforced_sum"
+    },
+    {
+      "def_id": 320,
+      "lean_name": "PcsSource.whir.verify.ext_enforced_sum",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::ext_enforced_sum",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 666,
+        "end_line": 679
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 269,
+      "lean_name": "PcsSource.whir.verify.Oracle.depth",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Oracle<R>}::depth",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 392,
+        "end_line": 394
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 319,
+      "lean_name": "PcsSource.whir.verify.Oracle.open_e_rows_loop0_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Oracle<R>}::open_e_rows",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 409,
+        "end_line": 412
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.Oracle.open_e_rows"
+    },
+    {
+      "def_id": 319,
+      "lean_name": "PcsSource.whir.verify.Oracle.open_e_rows_loop0_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Oracle<R>}::open_e_rows",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 409,
+        "end_line": 412
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.Oracle.open_e_rows"
+    },
+    {
+      "def_id": 319,
+      "lean_name": "PcsSource.whir.verify.Oracle.open_e_rows_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Oracle<R>}::open_e_rows",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 405,
+        "end_line": 414
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.Oracle.open_e_rows"
+    },
+    {
+      "def_id": 319,
+      "lean_name": "PcsSource.whir.verify.Oracle.open_e_rows_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Oracle<R>}::open_e_rows",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 405,
+        "end_line": 414
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.Oracle.open_e_rows"
+    },
+    {
+      "def_id": 319,
+      "lean_name": "PcsSource.whir.verify.Oracle.open_e_rows",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Oracle<R>}::open_e_rows",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 397,
+        "end_line": 416
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 270,
+      "lean_name": "PcsSource.whir.verify.enforce_ext",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::enforce_ext",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 165,
+        "end_line": 173
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 333,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.terminal.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError.call_once",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::terminal::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V>[TraitClause0]}::terminal::{closure}<'c, V, T2, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E, Clause1_Clause0_Root, Clause1_Clause0_K, Clause1_Clause0_Query, Clause1_Clause0_Clause0_Clause0_E>}::call_once",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 642,
+        "end_line": 642
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 335,
+      "lean_name": "PcsSource.whir.verify.folded_coordinate",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::folded_coordinate",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 354,
+        "end_line": 360
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 322,
+      "lean_name": "PcsSource.whir.verify.oods_weight_loop0_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::oods_weight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 371,
+        "end_line": 376
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.oods_weight"
+    },
+    {
+      "def_id": 322,
+      "lean_name": "PcsSource.whir.verify.oods_weight_loop0_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::oods_weight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 371,
+        "end_line": 376
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.oods_weight"
+    },
+    {
+      "def_id": 322,
+      "lean_name": "PcsSource.whir.verify.oods_weight_loop0.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::oods_weight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 365,
+        "end_line": 379
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.oods_weight"
+    },
+    {
+      "def_id": 322,
+      "lean_name": "PcsSource.whir.verify.oods_weight_loop0",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::oods_weight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 365,
+        "end_line": 379
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.oods_weight"
+    },
+    {
+      "def_id": 322,
+      "lean_name": "PcsSource.whir.verify.oods_weight",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::oods_weight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 363,
+        "end_line": 381
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": true
+    },
+    {
+      "def_id": 342,
+      "lean_name": "PcsSource.whir.verify.query_product_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::query_product",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 304,
+        "end_line": 312
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.query_product"
+    },
+    {
+      "def_id": 342,
+      "lean_name": "PcsSource.whir.verify.query_product_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::query_product",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 304,
+        "end_line": 312
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.query_product"
+    },
+    {
+      "def_id": 342,
+      "lean_name": "PcsSource.whir.verify.query_product",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::query_product",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 302,
+        "end_line": 314
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 341,
+      "lean_name": "PcsSource.whir.verify.level_factors_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::level_factors",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 292,
+        "end_line": 297
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.level_factors"
+    },
+    {
+      "def_id": 341,
+      "lean_name": "PcsSource.whir.verify.level_factors_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::level_factors",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 292,
+        "end_line": 297
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.level_factors"
+    },
+    {
+      "def_id": 341,
+      "lean_name": "PcsSource.whir.verify.level_factors",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::level_factors",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 290,
+        "end_line": 299
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 334,
+      "lean_name": "PcsSource.whir.verify.level_basis_at_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::level_basis_at",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 323,
+        "end_line": 328
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.level_basis_at"
+    },
+    {
+      "def_id": 334,
+      "lean_name": "PcsSource.whir.verify.level_basis_at_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::level_basis_at",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 323,
+        "end_line": 328
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.level_basis_at"
+    },
+    {
+      "def_id": 334,
+      "lean_name": "PcsSource.whir.verify.level_basis_at",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::level_basis_at",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 317,
+        "end_line": 330
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 321,
+      "lean_name": "PcsSource.whir.verify.levels_weight_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::levels_weight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 341,
+        "end_line": 349
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.levels_weight"
+    },
+    {
+      "def_id": 321,
+      "lean_name": "PcsSource.whir.verify.levels_weight_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::levels_weight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 341,
+        "end_line": 349
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.levels_weight"
+    },
+    {
+      "def_id": 321,
+      "lean_name": "PcsSource.whir.verify.levels_weight",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::levels_weight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 333,
+        "end_line": 351
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 271,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.terminal",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::terminal",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 623,
+        "end_line": 643
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 268,
+      "lean_name": "PcsSource.whir.verify.Quad.fold",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Quad<E>}::fold",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 262,
+        "end_line": 268
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 99,
+      "lean_name": "PcsSource.whir.verify.Quad.recv",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Quad<E>}::recv",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 247,
+        "end_line": 254
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 108,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.finish_query_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::finish_query",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 568,
+        "end_line": 577
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.WhirReplay.finish_query"
+    },
+    {
+      "def_id": 108,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.finish_query_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::finish_query",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 568,
+        "end_line": 577
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.WhirReplay.finish_query"
+    },
+    {
+      "def_id": 108,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.finish_query",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::finish_query",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 552,
+        "end_line": 589
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 262,
+      "lean_name": "PcsSource.whir.verify.QueryPhase.sample",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::QueryPhase}::sample",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 385,
+        "end_line": 387
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 106,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.begin_query",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::begin_query",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 542,
+        "end_line": 549
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 105,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.phase",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::phase",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 508,
+        "end_line": 515
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 255,
+      "lean_name": "PcsSource.whir.verify.Quad.eval",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Quad<E>}::eval",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 256,
+        "end_line": 259
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 113,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.last_level_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::last_level",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 606,
+        "end_line": 620
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.WhirReplay.last_level"
+    },
+    {
+      "def_id": 113,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.last_level_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::last_level",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 606,
+        "end_line": 620
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.WhirReplay.last_level"
+    },
+    {
+      "def_id": 113,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.last_level",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::last_level",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 592,
+        "end_line": 620
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 102,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.fold_rounds_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::fold_rounds",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 531,
+        "end_line": 539
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.WhirReplay.fold_rounds"
+    },
+    {
+      "def_id": 102,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.fold_rounds_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::fold_rounds",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 531,
+        "end_line": 539
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.WhirReplay.fold_rounds"
+    },
+    {
+      "def_id": 102,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.fold_rounds",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::fold_rounds",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 529,
+        "end_line": 539
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 109,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.oracle",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::oracle",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 518,
+        "end_line": 526
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 259,
+      "lean_name": "PcsSource.whir.verify.Ood.replay",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::Ood<E>}::replay",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 273,
+        "end_line": 278
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 104,
+      "lean_name": "PcsSource.whir.verify.replay_oods_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::replay_oods",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 283,
+        "end_line": 287
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.replay_oods"
+    },
+    {
+      "def_id": 104,
+      "lean_name": "PcsSource.whir.verify.replay_oods_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::replay_oods",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 283,
+        "end_line": 287
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.replay_oods"
+    },
+    {
+      "def_id": 104,
+      "lean_name": "PcsSource.whir.verify.replay_oods",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::replay_oods",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 281,
+        "end_line": 287
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": true
+    },
+    {
+      "def_id": 111,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.middle_level",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::middle_level",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 485,
+        "end_line": 505
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 67,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.run_loop.body",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::run",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 461,
+        "end_line": 472
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.whir.verify.WhirReplay.run"
+    },
+    {
+      "def_id": 67,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.run_loop",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::run",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 461,
+        "end_line": 472
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.whir.verify.WhirReplay.run"
+    },
+    {
+      "def_id": 67,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.run",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::run",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 423,
+        "end_line": 483
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 30,
+      "lean_name": "PcsSource.whir.verify.verify_protocol_with_basis",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::verify_protocol_with_basis",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 233,
+        "end_line": 243
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.whir.verify.verify_with_basis",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::verify_with_basis",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 189,
+        "end_line": 222
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    }
+  ],
+  "types": [
+    {
+      "def_id": 19,
+      "lean_name": "PcsSource.primitives.field.gf2_64x3.F192",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "primitives::field::gf2_64x3::F192",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64x3/mod.rs",
+        "begin_line": 34,
+        "end_line": 34
+      }
+    },
+    {
+      "def_id": 20,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "primitives::field::gf2_64::F64",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 18,
+        "end_line": 18
+      }
+    },
+    {
+      "def_id": 21,
+      "lean_name": "PcsSource.fiat_shamir.arith.Stage",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "fiat_shamir::arith::Stage",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 218,
+        "end_line": 218
+      }
+    },
+    {
+      "def_id": 16,
+      "lean_name": "PcsSource.fiat_shamir.transcript.TranscriptError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "fiat_shamir::transcript::TranscriptError",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/transcript.rs",
+        "begin_line": 45,
+        "end_line": 45
+      }
+    },
+    {
+      "def_id": 15,
+      "lean_name": "PcsSource.fiat_shamir.TranscriptContext",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "fiat_shamir::TranscriptContext",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/lib.rs",
+        "begin_line": 66,
+        "end_line": 66
+      }
+    },
+    {
+      "def_id": 89,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.inv.closure",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "primitives::field::gf2_64::{primitives::field::gf2_64::F64}::inv::{closure}",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 58,
+        "end_line": 58
+      }
+    },
+    {
+      "def_id": 23,
+      "lean_name": "PcsSource.whir.commit.CommitmentShape.valid.closure",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::commit::{pcs::whir::commit::CommitmentShape}::valid::{closure}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 38,
+        "end_line": 38
+      }
+    },
+    {
+      "def_id": 9,
+      "lean_name": "PcsSource.whir.commit.CommitmentShape",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::commit::CommitmentShape",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 23,
+        "end_line": 28
+      }
+    },
+    {
+      "def_id": 6,
+      "lean_name": "PcsSource.whir.commit.Commitment",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::commit::Commitment",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 46,
+        "end_line": 52
+      }
+    },
+    {
+      "def_id": 22,
+      "lean_name": "PcsSource.whir.config.ConfigError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::config::ConfigError",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 48,
+        "end_line": 55
+      }
+    },
+    {
+      "def_id": 8,
+      "lean_name": "PcsSource.whir.verify.WhirError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::WhirError",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 23,
+        "end_line": 51
+      }
+    },
+    {
+      "def_id": 35,
+      "lean_name": "PcsSource.whir.commit.verify_record_constants.closure",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::commit::verify_record_constants::{closure}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 154,
+        "end_line": 154
+      }
+    },
+    {
+      "def_id": 36,
+      "lean_name": "PcsSource.whir.commit.verify_record_values.closure",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::commit::verify_record_values::{closure}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 164,
+        "end_line": 164
+      }
+    },
+    {
+      "def_id": 37,
+      "lean_name": "PcsSource.whir.commit.verify_record_pending.closure",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::commit::verify_record_pending::{closure}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 179,
+        "end_line": 179
+      }
+    },
+    {
+      "def_id": 26,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding.closure_1",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding::{closure#1}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 212,
+        "end_line": 212
+      }
+    },
+    {
+      "def_id": 25,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding.closure",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding::{closure}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 208,
+        "end_line": 208
+      }
+    },
+    {
+      "def_id": 5,
+      "lean_name": "PcsSource.whir.config.ProverConfig",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::config::ProverConfig",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 125,
+        "end_line": 132
+      }
+    },
+    {
+      "def_id": 38,
+      "lean_name": "PcsSource.whir.verify.Quad",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::Quad",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 55,
+        "end_line": 59
+      }
+    },
+    {
+      "def_id": 41,
+      "lean_name": "PcsSource.whir.verify.Ood",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::Ood",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 62,
+        "end_line": 66
+      }
+    },
+    {
+      "def_id": 39,
+      "lean_name": "PcsSource.whir.verify.LevelCtx",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::LevelCtx",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 69,
+        "end_line": 78
+      }
+    },
+    {
+      "def_id": 40,
+      "lean_name": "PcsSource.whir.verify.OodCtx",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::OodCtx",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 81,
+        "end_line": 85
+      }
+    },
+    {
+      "def_id": 44,
+      "lean_name": "PcsSource.whir.verify.Oracle",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::Oracle",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 88,
+        "end_line": 93
+      }
+    },
+    {
+      "def_id": 42,
+      "lean_name": "PcsSource.whir.verify.QueryPhase",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::QueryPhase",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 97,
+        "end_line": 101
+      }
+    },
+    {
+      "def_id": 28,
+      "lean_name": "PcsSource.whir.verify.WhirReplay",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::WhirReplay",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 104,
+        "end_line": 113
+      }
+    },
+    {
+      "def_id": 79,
+      "lean_name": "PcsSource.whir.verify.BaseRows",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::BaseRows",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 116,
+        "end_line": 116
+      }
+    },
+    {
+      "def_id": 87,
+      "lean_name": "PcsSource.whir.verify.ExtRows",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::ExtRows",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 119,
+        "end_line": 119
+      }
+    },
+    {
+      "def_id": 14,
+      "lean_name": "PcsSource.whir.verify.AnchoredWeight",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::AnchoredWeight",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 126,
+        "end_line": 131
+      }
+    },
+    {
+      "def_id": 43,
+      "lean_name": "PcsSource.whir.verify.QueryBatch",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::QueryBatch",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 141,
+        "end_line": 145
+      }
+    },
+    {
+      "def_id": 88,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.terminal.closure",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::terminal::{closure}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 642,
+        "end_line": 642
+      }
+    }
+  ],
+  "globals": [
+    {
+      "def_id": 14,
+      "lean_name": "PcsSource.primitives.field.gf2_64x3.F192.ZERO",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64x3::{primitives::field::gf2_64x3::F192}::ZERO",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64x3/mod.rs",
+        "begin_line": 44,
+        "end_line": 44
+      },
+      "can_fail": false
+    },
+    {
+      "def_id": 15,
+      "lean_name": "PcsSource.primitives.field.gf2_64x3.F192.ONE",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64x3::{primitives::field::gf2_64x3::F192}::ONE",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64x3/mod.rs",
+        "begin_line": 45,
+        "end_line": 45
+      },
+      "can_fail": false
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.fiat_shamir.MAX_PENDING",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "fiat_shamir::MAX_PENDING",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/lib.rs",
+        "begin_line": 62,
+        "end_line": 62
+      },
+      "can_fail": false
+    },
+    {
+      "def_id": 37,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.ZERO",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{primitives::field::gf2_64::F64}::ZERO",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 24,
+        "end_line": 24
+      },
+      "can_fail": false
+    },
+    {
+      "def_id": 38,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.ONE",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{primitives::field::gf2_64::F64}::ONE",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 25,
+        "end_line": 25
+      },
+      "can_fail": false
+    },
+    {
+      "def_id": 19,
+      "lean_name": "PcsSource.whir.commit.ANCHOR_DOMAIN",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::ANCHOR_DOMAIN",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 87,
+        "end_line": 87
+      },
+      "can_fail": true
+    },
+    {
+      "def_id": 10,
+      "lean_name": "PcsSource.whir.commit.OPENING_DOMAIN",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::OPENING_DOMAIN",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 90,
+        "end_line": 90
+      },
+      "can_fail": true
+    }
+  ],
+  "trait_decls": [
+    {
+      "def_id": 6,
+      "lean_name": "PcsSource.fiat_shamir.arith.Arith",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "fiat_shamir::arith::Arith",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 13,
+        "end_line": 13
+      }
+    },
+    {
+      "def_id": 7,
+      "lean_name": "PcsSource.fiat_shamir.arith.Verifier",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "fiat_shamir::arith::Verifier",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/arith.rs",
+        "begin_line": 233,
+        "end_line": 233
+      }
+    },
+    {
+      "def_id": 4,
+      "lean_name": "PcsSource.verifier.OpeningVerifier",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::verifier::OpeningVerifier",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/verifier.rs",
+        "begin_line": 14,
+        "end_line": 62
+      }
+    },
+    {
+      "def_id": 5,
+      "lean_name": "PcsSource.whir.verify.WeightAt",
+      "lean_file": "WhirAeneas/Generated/Verifier/Types.lean",
+      "rust_name": "pcs::whir::verify::WeightAt",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 122,
+        "end_line": 124
+      }
+    }
+  ],
+  "trait_impls": [
+    {
+      "def_id": 6,
+      "lean_name": "PcsSource.core.option.Option.Insts.CoreCmpPartialEqOption",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "core::option::{impl core::cmp::PartialEq<core::option::Option<T>> for core::option::Option<T>}",
+      "is_local": false,
+      "source": {
+        "file": "/rustc/library/core/src/option.rs",
+        "begin_line": 2439,
+        "end_line": 2439
+      },
+      "impl_trait_def_id": 9,
+      "impl_trait_rust_name": "core::cmp::PartialEq",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 63,
+      "lean_name": "PcsSource.primitives.field.gf2_64.F64.Insts.CoreCloneClone",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "primitives::field::gf2_64::{impl core::clone::Clone for primitives::field::gf2_64::F64}",
+      "is_local": false,
+      "source": {
+        "file": "crates/primitives/src/field/gf2_64.rs",
+        "begin_line": 16,
+        "end_line": 16
+      },
+      "impl_trait_def_id": 0,
+      "impl_trait_rust_name": "core::clone::Clone",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 15,
+      "lean_name": "PcsSource.whir.commit.CommitmentShape.valid.closure.Insts.CoreOpsFunctionFnOnceTupleUsizeBool",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::{pcs::whir::commit::CommitmentShape}::valid::{impl core::ops::function::FnOnce<(usize,), bool> for pcs::whir::commit::{pcs::whir::commit::CommitmentShape}::valid::{closure}}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 38,
+        "end_line": 38
+      },
+      "impl_trait_def_id": 12,
+      "impl_trait_rust_name": "core::ops::function::FnOnce",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 19,
+      "lean_name": "PcsSource.whir.verify.WhirError.Insts.CoreConvertFromTranscriptError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{impl core::convert::From<fiat_shamir::transcript::TranscriptError> for pcs::whir::verify::WhirError}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 26,
+        "end_line": 26
+      },
+      "impl_trait_def_id": 10,
+      "impl_trait_rust_name": "core::convert::From",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 34,
+      "lean_name": "PcsSource.whir.commit.verify_record_constants.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_constants::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_constants::{closure}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 154,
+        "end_line": 154
+      },
+      "impl_trait_def_id": 12,
+      "impl_trait_rust_name": "core::ops::function::FnOnce",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 35,
+      "lean_name": "PcsSource.whir.commit.verify_record_values.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_values::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_values::{closure}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 164,
+        "end_line": 164
+      },
+      "impl_trait_def_id": 12,
+      "impl_trait_rust_name": "core::ops::function::FnOnce",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 36,
+      "lean_name": "PcsSource.whir.commit.verify_record_pending.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_pending::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_pending::{closure}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 179,
+        "end_line": 179
+      },
+      "impl_trait_def_id": 12,
+      "impl_trait_rust_name": "core::ops::function::FnOnce",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 17,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding.closure_1.Insts.CoreOpsFunctionFnOnceTupleWhirError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_binding::{closure#1}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 212,
+        "end_line": 212
+      },
+      "impl_trait_def_id": 12,
+      "impl_trait_rust_name": "core::ops::function::FnOnce",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 16,
+      "lean_name": "PcsSource.whir.commit.verify_record_binding.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::commit::verify_record_binding::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::commit::verify_record_binding::{closure}<V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/commit.rs",
+        "begin_line": 208,
+        "end_line": 208
+      },
+      "impl_trait_def_id": 12,
+      "impl_trait_rust_name": "core::ops::function::FnOnce",
+      "impl_trait_is_builtin": true
+    },
+    {
+      "def_id": 13,
+      "lean_name": "PcsSource.whir.verify.AnchoredWeight.Insts.PcsWhirVerifyWeightAt",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{impl pcs::whir::verify::WeightAt<V, Clause0_Clause0_Clause0_E, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E> for pcs::whir::verify::AnchoredWeight<'_0, W, Clause0_Clause0_Clause0_E>}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 133,
+        "end_line": 139
+      },
+      "impl_trait_def_id": 5,
+      "impl_trait_rust_name": "pcs::whir::verify::WeightAt",
+      "impl_trait_is_builtin": false
+    },
+    {
+      "def_id": 57,
+      "lean_name": "PcsSource.whir.verify.WhirReplay.terminal.closure.Insts.CoreOpsFunctionFnOnceTupleWhirError",
+      "lean_file": "WhirAeneas/Generated/Verifier/Funs.lean",
+      "rust_name": "pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E>}::terminal::{impl core::ops::function::FnOnce<(), pcs::whir::verify::WhirError> for pcs::whir::verify::{pcs::whir::verify::WhirReplay<'c, V>[TraitClause0]}::terminal::{closure}<'c, V, T2, Clause0_Root, Clause0_K, Clause0_Query, Clause0_Clause0_Clause0_E, Clause1_Clause0_Root, Clause1_Clause0_K, Clause1_Clause0_Query, Clause1_Clause0_Clause0_Clause0_E>}",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 642,
+        "end_line": 642
+      },
+      "impl_trait_def_id": 12,
+      "impl_trait_rust_name": "core::ops::function::FnOnce",
+      "impl_trait_is_builtin": true
+    }
+  ]
+}

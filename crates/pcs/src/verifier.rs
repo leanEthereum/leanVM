@@ -6,8 +6,9 @@
 //! - In rows they are the wires holding them, and an opened row is authenticated by hash rows.
 
 use super::whir::sample_queries_ordered;
+use fiat_shamir::TranscriptContext;
 use fiat_shamir::arith::Verifier;
-use fiat_shamir::merkle::Hash;
+use fiat_shamir::merkle::{Hash, hash_to_scalars};
 use fiat_shamir::transcript::{Receiver, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 
@@ -22,7 +23,16 @@ pub trait OpeningVerifier: Verifier {
     /// A query's index.
     type Query;
 
-    /// Read the next commitment's root, bound into the transcript.
+    /// Copy the exact context without changing the transcript.
+    fn context(&mut self) -> TranscriptContext<Self::K, Self::Root>;
+
+    /// A zero word for canonical padding when a context is packed into a record frame.
+    fn zero_k(&mut self) -> Self::K;
+
+    /// A digest's two canonical 128-bit halves, each with a zero top limb.
+    fn root_scalars(&mut self, root: Self::Root) -> [Self::E; 2];
+
+    /// The next commitment's root, bound into the transcript.
     ///
     /// # Errors
     ///
@@ -67,6 +77,30 @@ impl OpeningVerifier for VerifierState<'_> {
     type Root = Hash;
     type K = F64;
     type Query = usize;
+
+    fn context(&mut self) -> TranscriptContext<F64, Hash> {
+        let context = Self::context(self);
+        let mut state = [0u8; 32];
+        for (slot, word) in state.as_chunks_mut::<8>().0.iter_mut().zip(context.state) {
+            *slot = word.0.to_le_bytes();
+        }
+        TranscriptContext {
+            state,
+            pending: context.pending,
+            pending_bytes: context.pending_bytes,
+            first: context.first,
+            previous: context.previous,
+            squeezed: context.squeezed,
+        }
+    }
+
+    fn zero_k(&mut self) -> F64 {
+        F64::ZERO
+    }
+
+    fn root_scalars(&mut self, root: Hash) -> [F192; 2] {
+        hash_to_scalars(&root)
+    }
 
     fn next_root(&mut self) -> Result<Hash, TranscriptError> {
         Receiver::next_root(self)

@@ -1,0 +1,8 @@
+diff --git a/Aeneas/Std/String.lean b/Aeneas/Std/String.lean
+--- a/Aeneas/Std/String.lean
++++ b/Aeneas/Std/String.lean
+@@ -29,2 +29,2 @@
+-/-- TODO: we shouldn't use `decide +native` but it seems we can't reduce it otherwise. -/
+-def toStr (s : String) (h : s.toByteArray.size ≤ U32.max := by decide +native) : Str :=
++/-- String literals use ordinary kernel reduction after unfolding the scalar bound. -/
++def toStr (s : String) (h : s.toByteArray.size ≤ U32.max := by rw [U32.max_eq]; decide) : Str :=

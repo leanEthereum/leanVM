@@ -32,14 +32,6 @@ pub trait Arith {
     /// `a^(2^128)`: two Frobenius maps of `E` over `K`, which take `a` to `a^(2^-64)`.
     fn frobenius2(&mut self, a: Self::E) -> Self::E;
 
-    /// The multilinear extension of public `K` words at `point`, lowest coordinate first.
-    fn public_mle(&mut self, values: &[F64], point: &[Self::E]) -> Self::E {
-        assert_eq!(values.len(), 1 << point.len(), "a column has a word per vertex");
-        let eq = self.eq_table(point);
-        let zero = self.zero();
-        (eq.iter().zip(values)).fold(zero, |acc, (&e, &v)| self.mul_const_add(e, F192::from(v), acc))
-    }
-
     /// The constant zero.
     fn zero(&mut self) -> Self::E {
         self.constant(F192::ZERO)
@@ -76,13 +68,23 @@ pub trait Arith {
     /// `prod_i factors_i`.
     fn product(&mut self, factors: &[Self::E]) -> Self::E {
         let one = self.one();
-        factors.iter().fold(one, |acc, &f| self.mul(acc, f))
+        let mut acc = one;
+        for &f in factors {
+            acc = self.mul(acc, f);
+        }
+        acc
     }
 
     /// `sum_i c_i x^i`, by Horner, constant first.
     fn poly_eval(&mut self, coeffs: &[Self::E], x: Self::E) -> Self::E {
         let zero = self.zero();
-        coeffs.iter().rev().fold(zero, |acc, &c| self.mul_add(acc, x, c))
+        let mut acc = zero;
+        let mut i = coeffs.len();
+        while i > 0 {
+            i -= 1;
+            acc = self.mul_add(acc, x, coeffs[i]);
+        }
+        acc
     }
 
     /// The line through `(0, lo)` and `(1, hi)` at `t`: `lo + t·(lo + hi)`.
@@ -100,10 +102,12 @@ pub trait Arith {
     fn eq_eval(&mut self, x: &[Self::E], y: &[Self::E]) -> Self::E {
         assert_eq!(x.len(), y.len(), "two points of one cube");
         let one = self.one();
-        x.iter().zip(y).fold(one, |acc, (&u, &v)| {
-            let s = self.add(u, v);
-            self.times_one_plus(acc, s)
-        })
+        let mut acc = one;
+        for i in 0..x.len() {
+            let s = self.add(x[i], y[i]);
+            acc = self.times_one_plus(acc, s);
+        }
+        acc
     }
 
     /// `eq(bits, point)` for public bits, lowest first: `prod_j (bit_j ? z_j : 1 + z_j)`.
@@ -112,13 +116,17 @@ pub trait Arith {
     /// Why: selectors of nearby offsets share their high bits, so in rows their common partial products are made once.
     fn eq_bits(&mut self, bits: usize, point: &[Self::E]) -> Self::E {
         let one = self.one();
-        (point.iter().enumerate()).rev().fold(one, |acc, (j, &z)| {
-            if bits >> j & 1 == 1 {
-                self.mul(acc, z)
+        let mut acc = one;
+        let mut j = point.len();
+        while j > 0 {
+            j -= 1;
+            acc = if bits >> j & 1 == 1 {
+                self.mul(acc, point[j])
             } else {
-                self.times_one_plus(acc, z)
-            }
-        })
+                self.times_one_plus(acc, point[j])
+            };
+        }
+        acc
     }
 
     /// `eq(point, x)` for every vertex `x`, lowest coordinate first.
@@ -129,17 +137,26 @@ pub trait Arith {
     /// `eq(point, x)` for the first `len` vertices `x`, lowest coordinate first, with no work for the others.
     fn eq_table_prefix(&mut self, point: &[Self::E], len: usize) -> Vec<Self::E> {
         assert!(len <= 1 << point.len(), "a prefix of the cube");
-        let mut table = vec![self.one()];
-        for (i, &r) in point.iter().enumerate() {
+        let mut table = Vec::with_capacity(1);
+        table.push(self.one());
+        let mut i = 0;
+        while i < point.len() {
+            let r = point[i];
             let need = len.min(2 << i);
-            let high: Vec<Self::E> = table[..need.saturating_sub(table.len())]
-                .iter()
-                .map(|&v| self.mul(v, r))
-                .collect();
-            for v in &mut table {
-                *v = self.times_one_plus(*v, r);
+            let count = need.saturating_sub(table.len());
+            let mut high = Vec::with_capacity(count);
+            let mut j = 0;
+            while j < count {
+                high.push(self.mul(table[j], r));
+                j += 1;
+            }
+            let mut j = 0;
+            while j < table.len() {
+                table[j] = self.times_one_plus(table[j], r);
+                j += 1;
             }
             table.extend(high);
+            i += 1;
         }
         table.truncate(len);
         table
@@ -150,7 +167,14 @@ pub trait Arith {
         assert_eq!(values.len(), 1 << point.len(), "a value per vertex");
         let mut folded = values.to_vec();
         for &x in point {
-            folded = folded.chunks(2).map(|pair| self.interp(pair[0], pair[1], x)).collect();
+            let len = folded.len();
+            let mut next = Vec::with_capacity(len / 2 + len % 2);
+            let mut i = 0;
+            while i < len {
+                next.push(self.interp(folded[i], folded[i + 1], x));
+                i += 2;
+            }
+            folded = next;
         }
         folded[0]
     }
@@ -169,10 +193,43 @@ pub trait Arith {
     /// The integer index column `base ^ (z << shift)` at `point`: `base + sum_i point_i 2^(i + shift)`.
     fn int_index(&mut self, base: F64, shift: u32, point: &[Self::E]) -> Self::E {
         let base = self.constant(F192::from(base));
-        (point.iter().enumerate()).fold(base, |acc, (i, &z)| {
-            self.mul_const_add(z, F192::from(F64(1 << (i as u32 + shift))), acc)
-        })
+        let mut acc = base;
+        for (i, &z) in point.iter().enumerate() {
+            acc = self.mul_const_add(z, F192::from(F64(1 << (i as u32 + shift))), acc);
+        }
+        acc
     }
+}
+
+/// Arithmetic that also evaluates multilinear extensions of public columns.
+pub trait PublicMle: Arith {
+    /// The multilinear extension of public `K` words at `point`, lowest coordinate first.
+    fn public_mle(&mut self, values: &[F64], point: &[Self::E]) -> Self::E {
+        assert_eq!(values.len(), 1 << point.len(), "a column has a word per vertex");
+        let eq = self.eq_table(point);
+        let zero = self.zero();
+        let mut acc = zero;
+        for i in 0..eq.len().min(values.len()) {
+            acc = self.mul_const_add(eq[i], F192::from(values[i]), acc);
+        }
+        acc
+    }
+}
+
+/// Named stages of the generic verifier, independent of its native or row representation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Stage {
+    Announcement,
+    BusAndTables,
+    Flock,
+    Lincheck,
+    Opening,
+    Rows,
+    Target,
+    Terminal,
+    Transcript,
+    Whir,
+    Zerocheck,
 }
 
 /// A verifier: arithmetic, a transcript to read and sample, and equalities to check.
@@ -223,13 +280,15 @@ pub trait Verifier: Arith {
     /// Returns an error when the proof holds data past what was read and the verifier checks values.
     fn finish(&mut self) -> Result<(), TranscriptError>;
 
-    /// Run `f` as a named stage of the verifier.
+    /// Start a named stage of the verifier.
     ///
-    /// A verifier that records its failed checks rather than refusing reports each under its stages' names.
-    fn scope<T>(&mut self, name: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
-        let _ = name;
-        f(self)
-    }
+    /// A verifier that records failed checks reports them under the active stages.
+    /// The caller must evaluate the stage's result, end the stage, then propagate errors.
+    /// A panicking body leaves the stage active.
+    fn begin_scope(&mut self, stage: Stage);
+
+    /// End the most recently started stage.
+    fn end_scope(&mut self);
 
     /// The next `n` scalars.
     ///
@@ -237,12 +296,20 @@ pub trait Verifier: Arith {
     ///
     /// Returns an error past the end of the stream.
     fn next_scalars(&mut self, n: usize) -> Result<Vec<Self::E>, TranscriptError> {
-        (0..n).map(|_| self.next_scalar()).collect()
+        let mut out = Vec::new();
+        for _ in 0..n {
+            out.push(self.next_scalar()?);
+        }
+        Ok(out)
     }
 
     /// `n` challenges.
     fn sample_vec(&mut self, n: usize) -> Vec<Self::E> {
-        (0..n).map(|_| self.sample()).collect()
+        let mut out = Vec::with_capacity(n);
+        for _ in 0..n {
+            out.push(self.sample());
+        }
+        out
     }
 }
 
@@ -276,7 +343,9 @@ impl Arith for Native {
     fn frobenius2(&mut self, a: F192) -> F192 {
         a.frobenius().frobenius()
     }
+}
 
+impl PublicMle for Native {
     fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
         mle_eval_par(values, point)
     }
@@ -308,7 +377,9 @@ impl Arith for VerifierState<'_> {
     fn frobenius2(&mut self, a: F192) -> F192 {
         a.frobenius().frobenius()
     }
+}
 
+impl PublicMle for VerifierState<'_> {
     fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
         mle_eval_par(values, point)
     }
@@ -343,4 +414,10 @@ impl Verifier for VerifierState<'_> {
     fn finish(&mut self) -> Result<(), TranscriptError> {
         VerifierState::finish(self)
     }
+
+    #[inline]
+    fn begin_scope(&mut self, _: Stage) {}
+
+    #[inline]
+    fn end_scope(&mut self) {}
 }

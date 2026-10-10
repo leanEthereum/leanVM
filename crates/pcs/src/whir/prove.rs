@@ -71,7 +71,7 @@ fn ext_row_words(row: &[F192]) -> Vec<F64> {
 /// # Transcript
 ///
 /// Each level's Merkle openings travel as one hint, which is not absorbed.
-/// The caller has already transmitted the L0 root.
+/// The typed caller has already bound the complete immutable L0 record and statement.
 pub(crate) fn prove(
     config: &Config,
     log_n: usize,
@@ -101,11 +101,10 @@ pub(crate) fn prove(
     assert_eq!(l0_codeword.len(), block_len_0 * n_lanes);
     assert_eq!(l0_tree.len(), 2 * block_len_0 - 1);
 
-    // Invariant: nothing is absorbed on entry, since the state already determines the commitment and the target.
-    // - The commitment was bound when its root was transmitted.
-    // - The target is `sum_i lambda^i * claim_i`, its claim values bound when read and `lambda` drawn from the state.
-    // So a caller must transmit its root before opening against it: that makes the fold challenges depend on it.
-
+    // The typed stack wrapper binds the whole immutable record and public statement
+    // before drawing opening challenges. This private kernel does not bind either again.
+    // Its weight includes the commitment-time anchor, restricted to the occupied lanes.
+    //
     // A codeword row interleaves the committed lanes only, lane `t` being stack block `n_lanes - 1 - t`.
     // So a row is the tail of the leaf image, whose leading zeros are the absent lanes, and only it rides the proof.
     let l0_row = |q: usize| -> Vec<F64> { l0_codeword[q * n_lanes..(q + 1) * n_lanes].to_vec() };
