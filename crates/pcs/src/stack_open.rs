@@ -427,7 +427,15 @@ impl<'a> PointWeight<'a> {
 struct RingPiece {
     start: usize,
     end: usize,
-    weight: DeferredWeight,
+    weight: RingWeight,
+}
+
+/// A ring-switched claim's weight over its window.
+enum RingWeight {
+    /// Every word in memory, the first one at index zero.
+    Kept(Vec<F192>),
+    /// The factored form, its map applied whenever a word is read.
+    Deferred(DeferredWeight),
 }
 
 impl RingPiece {
@@ -435,9 +443,34 @@ impl RingPiece {
     fn add_to(&self, start: usize, dst: &mut [F192]) {
         let (lo, hi) = (start.max(self.start), (start + dst.len()).min(self.end));
         if lo < hi {
-            self.weight.add_to(lo - self.start, &mut dst[lo - start..hi - start]);
+            let dst = &mut dst[lo - start..hi - start];
+            match &self.weight {
+                RingWeight::Kept(words) => {
+                    for (d, &w) in dst.iter_mut().zip(&words[lo - self.start..]) {
+                        *d += w;
+                    }
+                }
+                RingWeight::Deferred(weight) => weight.add_to(lo - self.start, dst),
+            }
         }
     }
+}
+
+/// A region spanning at most this many lanes keeps its weight in memory.
+///
+/// Why: its lane fold is then one product per word.
+///
+/// The closed form costs one map application per folded word, which pays only over regions spanning more lanes.
+const KEEP_MAX_LANES: usize = 2;
+
+/// Words one task of a dense weight build writes, a whole number of 64-entry blocks.
+const DENSE_CHUNK: usize = 1 << 12;
+
+/// Every word of `len` built in parallel, each chunk written by `fill(start, chunk)` into zeros.
+fn dense(len: usize, fill: impl Fn(usize, &mut [F192]) + Sync) -> Vec<F192> {
+    let mut words = vec![F192::ZERO; len];
+    parallel::chunks_mut(&mut words, DENSE_CHUNK, |i, chunk| fill(i * DENSE_CHUNK, chunk));
+    words
 }
 
 /// One ring-switched claim: its region, its point, and its scale `gamma_rs^j`.
@@ -505,14 +538,23 @@ impl<'a> StackWeight<'a> {
             })
             .collect();
 
-        // Each claim's weight on its region: Phi of its scaled eq table.
+        // Each claim's weight on its region: Phi of its scaled eq table, kept in memory where its region is narrow.
         let phi = family.map();
+        let block_log = lane_block.ilog2() as usize;
         let weights = DeferredWeight::batch(ring_claims.iter().map(|claim| (claim.point, claim.scale, phi.clone())));
         let pieces = (ring_claims.iter().zip(weights))
-            .map(|(claim, weight)| RingPiece {
-                start: claim.offset,
-                end: claim.offset + (1 << claim.vars),
-                weight,
+            .map(|(claim, weight)| {
+                let lanes = 1usize << claim.vars.saturating_sub(block_log);
+                let weight = if lanes <= KEEP_MAX_LANES {
+                    RingWeight::Kept(dense(weight.len(), |start, chunk| weight.add_to(start, chunk)))
+                } else {
+                    RingWeight::Deferred(weight)
+                };
+                RingPiece {
+                    start: claim.offset,
+                    end: claim.offset + (1 << claim.vars),
+                    weight,
+                }
             })
             .collect();
 
@@ -544,41 +586,60 @@ impl<'a> StackWeight<'a> {
         let block_log = self.lane_block.ilog2() as usize;
         let per = eq.len();
         let n_lanes = self.stack_len / self.lane_block;
-        // Each piece's window, in-lane point and map, before its weight is built.
+        let mut folded = Vec::new();
+        // Each deferred piece's window, in-lane point and map, before its weight is built.
         let mut windows = Vec::new();
         let mut specs = Vec::new();
-        for claim in &self.ring_claims {
+        for (claim, piece) in self.ring_claims.iter().zip(&self.pieces) {
             let first_lane = claim.offset >> block_log;
-            if claim.vars >= block_log {
-                // Whole lanes: each lane's scale is the eq of its index at the claim's high coordinates.
-                let (low, high) = claim.point.split_at(block_log);
-                let scales = eq_table_seeded(high, claim.scale);
-                let lanes = first_lane..first_lane + scales.len();
-
-                // One map per group of folded lanes, over the group's lanes in the region.
-                for group in lanes.start / per..lanes.end.div_ceil(per) {
-                    let in_group = lanes.start.max(group * per)..lanes.end.min((group + 1) * per).min(n_lanes);
-                    let terms: Vec<(F192, F192)> = in_group
-                        .map(|lane| (eq[lane - group * per], scales[lane - first_lane]))
-                        .collect();
-                    windows.push((group * self.lane_block, (group + 1) * self.lane_block));
-                    specs.push((low, F192::ONE, self.phi.sum_after_mul(&terms)));
+            match &piece.weight {
+                // A kept region lies in one group: its folded words are its lanes' words, each scaled by its lane's eq weight.
+                RingWeight::Kept(words) => {
+                    let (group, in_lane) = (first_lane / per, claim.offset % self.lane_block);
+                    let len = words.len().min(self.lane_block);
+                    let lanes = words.len() / len;
+                    let start = group * self.lane_block + in_lane;
+                    let values = dense(len, |at, chunk| {
+                        for (lane, lane_words) in words.chunks_exact(len).enumerate().take(lanes) {
+                            let e = eq[(first_lane + lane) % per];
+                            for (d, &w) in chunk.iter_mut().zip(&lane_words[at..]) {
+                                *d += e * w;
+                            }
+                        }
+                    });
+                    folded.push(RingPiece {
+                        start,
+                        end: start + len,
+                        weight: RingWeight::Kept(values),
+                    });
                 }
-            } else {
-                // Inside one lane: that lane's eq weight scales the map.
-                let (group, lane) = (first_lane / per, first_lane % per);
-                let start = group * self.lane_block + claim.offset % self.lane_block;
-                windows.push((start, start + (1 << claim.vars)));
-                specs.push((
-                    claim.point,
-                    F192::ONE,
-                    self.phi.sum_after_mul(&[(eq[lane], claim.scale)]),
-                ));
+                // Whole lanes: each lane's scale is the eq of its index at the claim's high coordinates.
+                RingWeight::Deferred(_) if claim.vars >= block_log => {
+                    let (low, high) = claim.point.split_at(block_log);
+                    let scales = eq_table_seeded(high, claim.scale);
+                    let lanes = first_lane..first_lane + scales.len();
+
+                    // One map per group of folded lanes, over the group's lanes in the region.
+                    for group in lanes.start / per..lanes.end.div_ceil(per) {
+                        let in_group = lanes.start.max(group * per)..lanes.end.min((group + 1) * per).min(n_lanes);
+                        let terms: Vec<(F192, F192)> = in_group
+                            .map(|lane| (eq[lane - group * per], scales[lane - first_lane]))
+                            .collect();
+                        windows.push((group * self.lane_block, (group + 1) * self.lane_block));
+                        specs.push((low, F192::ONE, self.phi.sum_after_mul(&terms)));
+                    }
+                }
+                RingWeight::Deferred(_) => unreachable!("a region inside one lane is kept"),
             }
         }
-        (windows.into_iter().zip(DeferredWeight::batch(specs)))
-            .map(|((start, end), weight)| RingPiece { start, end, weight })
-            .collect()
+        let deferred =
+            (windows.into_iter().zip(DeferredWeight::batch(specs))).map(|((start, end), weight)| RingPiece {
+                start,
+                end,
+                weight: RingWeight::Deferred(weight),
+            });
+        folded.extend(deferred);
+        folded
     }
 }
 
@@ -686,13 +747,20 @@ mod tests {
     /// Ring regions span lanes or lie inside one; point claims are plain or strided.
     fn statement(rng: &mut Rng, lane_vars: usize, lanes: usize) -> (Vec<RingSwitch>, Vec<StackClaim>, Vec<F192>) {
         let lane_block = 1 << lane_vars;
-        // Regions: the second quarter of the last lane up to lane 1, two lanes from lane 2, and lane 4 whole.
+        // Regions: the second quarter of the last lane up to lane 1, two lanes from lane 2, and lane 4 whole: all kept.
         let mut regions = vec![((lanes.min(2) - 1) * lane_block + lane_block / 4, lane_vars - 2)];
         if lanes >= 4 {
             regions.push((2 * lane_block, lane_vars + 1));
         }
         if lanes >= 5 {
             regions.push((4 * lane_block, lane_vars));
+        }
+        // Wider regions, folded in closed form rather than kept: four lanes, then sixteen.
+        if lanes >= 8 {
+            regions.push((4 * lane_block, lane_vars + 2));
+        }
+        if lanes >= 32 {
+            regions.push((16 * lane_block, lane_vars + 4));
         }
         let rings = (regions.iter())
             .map(|&(offset, vars)| RingSwitch {
