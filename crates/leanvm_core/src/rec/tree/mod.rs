@@ -17,7 +17,7 @@
 //! Each node reduces the claims its children leave and carry to one of each, and only the root's verifier evaluates them.
 
 use crate::class_flock::FlockId;
-use crate::cpu::{Announcement, DecodeError, Lookup, Output, Program, Proof, ProvenRun, Stats, VerifyError};
+use crate::cpu::{Announcement, DecodeError, Log, Lookup, Output, Program, Proof, ProvenRun, Stats, VerifyError};
 use crate::envelope::Envelope;
 use crate::pcs::Rate;
 use crate::rec::circuit::{Circuit, Finished};
@@ -63,6 +63,8 @@ const MAX_ROUNDS: usize = 8;
 pub struct LeafShape {
     /// Each table's base-two logarithm of rows.
     taus: PerTable<usize>,
+    /// Each memory log's base-two logarithm of rows.
+    logs: [usize; 2],
     /// The commitment's rate.
     rate: Rate,
 }
@@ -234,9 +236,9 @@ pub enum TreeError {
 }
 
 impl LeafShape {
-    /// The shape of proofs with these table heights at this rate.
-    pub(crate) const fn new(taus: PerTable<usize>, rate: Rate) -> Self {
-        Self { taus, rate }
+    /// The shape of proofs with these table and log heights at this rate.
+    pub(crate) const fn new(taus: PerTable<usize>, logs: [usize; 2], rate: Rate) -> Self {
+        Self { taus, logs, rate }
     }
 
     /// The shape a proof announces.
@@ -254,14 +256,18 @@ impl LeafShape {
     #[must_use]
     pub fn measured(stats: &Stats, rate: Rate) -> Self {
         // Every proven table height is a power of two, so its logarithm is exact.
-        Self::new(stats.counts.map(|rows| rows.ilog2() as usize), rate)
+        Self::new(
+            stats.counts.map(|rows| rows.ilog2() as usize),
+            stats.live.map(Log::log_rows),
+            rate,
+        )
     }
 
     /// The shape a proof's first scalars announce, if they are a valid announcement.
     fn announced(proof: &Proof) -> Option<Self> {
         let scalars = proof.0.stream.get(..Announcement::LEN)?.try_into().ok()?;
         let announcement = Announcement::decode(scalars).ok()?;
-        Some(Self::new(announcement.taus, announcement.rate))
+        Some(Self::new(announcement.taus, announcement.logs, announcement.rate))
     }
 }
 
@@ -390,14 +396,16 @@ impl<'p> Tree<'p> {
         if arity_0 == 0 || arity < 2 {
             return Err(TreeError::Arity { arity_0, arity });
         }
-        let leaf = || ProofShape::new(program, leaves.taus, leaves.rate).map_err(|e| TreeError::LeafShape(e.into()));
+        let leaf = || {
+            ProofShape::new(program, leaves.taus, leaves.logs, leaves.rate).map_err(|e| TreeError::LeafShape(e.into()))
+        };
         let (design, circuits) = Self::converge(|taus| Design::new(leaf()?, arity_0, arity, rate, taus))?;
         let columns = circuits.each_ref().map(|c| FixedColumns::of(c, &design.taus));
         let fixed = design.fixed.polynomial([&columns[0], &columns[1]]);
         let rv = program.rv();
         let mut image: Vec<F64> = rv.image().iter().map(|&w| F64(w)).collect();
         image.resize(1 << design.vars.0[DensePoly::Image as usize], F64::ZERO);
-        let tables = DenseTables([Lookup::Bytecode.table(rv), image, fixed]);
+        let tables = DenseTables([Lookup::Bytecode.table(&program.view()), image, fixed]);
         Ok(Self {
             shape,
             design,
@@ -451,7 +459,7 @@ impl<'p> Tree<'p> {
                 got: leaves.len(),
             });
         }
-        let shape = LeafShape::new(*d.leaf.taus(), d.leaf.rate());
+        let shape = LeafShape::new(*d.leaf.taus(), d.leaf.logs(), d.leaf.rate());
         let program = d.leaf.program();
         let items = (leaves.iter().enumerate())
             .map(|(index, &Leaf { proof, output })| {

@@ -23,6 +23,11 @@ impl Rng {
         self.0.next_u64()
     }
 
+    /// A value below `n`.
+    pub fn below(&mut self, n: usize) -> usize {
+        (self.next_u64() % n as u64) as usize
+    }
+
     pub fn next_u8(&mut self) -> u8 {
         self.next_u32() as u8
     }

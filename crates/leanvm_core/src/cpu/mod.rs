@@ -1,6 +1,6 @@
 //! Proving a run of a RISC-V program, and verifying the proof (`doc/leanvm/main.tex`).
 //!
-//! The machine is RISC-V: `pc`, register numbers, addresses and timestamps are integers.
+//! The machine is RISC-V: `pc`, register numbers and addresses are integers.
 //!
 //! Each is read as the field element of `K = F64` with those bits.
 //!
@@ -34,7 +34,7 @@ pub use deferred::{Claim, DeferredClaims, MalformedClaim, ProgramPoint};
 pub use error::{CpuError, DecodeError, ProveError, VerifyError};
 pub(crate) use execute::{Payload, Payloads, Row, RowRef, Trace};
 pub(crate) use layout::Announcement;
-pub use layout::{Layout, Lookup, Q_BASE};
+pub use layout::{Layout, Log, Lookup, Q_BASE};
 pub use output::Output;
 pub use program::{Program, Stats};
 pub use proof::Proof;

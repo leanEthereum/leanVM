@@ -3,7 +3,7 @@
 //! prover's to choose, so every path the verifier takes through it has to end in
 //! [`CpuError`], not in an index out of bounds.
 
-use leanvm::{Clock, CpuError, N_TABLES, Proof, ProvenRun, Prover, Rate};
+use leanvm::{CpuError, N_TABLES, Proof, ProvenRun, Prover, Rate};
 use primitives::field::F192;
 use std::panic::AssertUnwindSafe;
 
@@ -100,14 +100,25 @@ fn noncanonical_announcements_and_roots_are_refused() {
 }
 
 #[test]
-fn a_final_clock_must_be_live_and_valid() {
+fn a_forged_live_count_is_refused() {
     let (program, _) = super::programs::fibonacci();
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
-    let at = N_TABLES + 1;
-    let honest = proof.0.stream[at].c0;
-    for clock in [0, honest ^ Clock::SEED_CLOCK, honest | 1 << Clock::FAIL_BIT] {
-        let mut forged = proof.clone();
-        forged.0.stream[at] = F192::new(clock, 0, 0);
-        assert_eq!(program.verify(output, &forged), Err(CpuError::FinalClock.into()));
+
+    // Each log's live rows close the bus at the final time and position, and bound its prefix of live rows.
+    for at in [N_TABLES + 3, N_TABLES + 4] {
+        let honest = proof.0.stream[at].c0;
+        for live in [honest - 1, honest + 1, 1 << 40] {
+            let mut forged = proof.clone();
+            forged.0.stream[at] = F192::new(live, 0, 0);
+            assert!(
+                program.verify(output, &forged).is_err(),
+                "live rows {live} at scalar {at}"
+            );
+        }
     }
+
+    // A run has at least its exit.
+    let mut forged = proof;
+    forged.0.stream[N_TABLES + 3] = F192::ZERO;
+    assert_eq!(program.verify(output, &forged), Err(CpuError::LiveRows.into()));
 }

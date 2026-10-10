@@ -1,6 +1,6 @@
 //! The prover's leaf vectors: one leaf per row of a block, the producers' bits raised to their powers.
 
-use super::{Block, Coord, Layout, Producer};
+use super::{Block, Coord, Layout, Owner, Producer};
 use crate::{PAR_THRESHOLD, gkr};
 use parallel::Chunks;
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
@@ -258,6 +258,7 @@ pub fn build_leaves(
     producers: &[Producer],
     lay: &Layout,
     cols: &[&[F64]],
+    logs: &[Vec<F192>],
     w: &[F192],
     beta: F192,
 ) -> (Vec<F192>, Vec<F192>) {
@@ -296,6 +297,13 @@ pub fn build_leaves(
     for (b, blk) in blocks.iter().enumerate() {
         let (off, len) = (lay.offsets[b], 1usize << blk.kappa);
         let dst = &mut slots[off..off + len];
+        // A log's leaves are its own; their products are formed with the small blocks'.
+        if let Owner::Log(log) = blk.owner {
+            parallel::chunks_mut_zip(dst, &logs[log], PRODUCER_CHUNK, |_, dst, src| {
+                dst.iter_mut().zip(src).for_each(|(d, &s)| _ = d.write(s));
+            });
+            continue;
+        }
         // A block of eight rows or more starts at a multiple of its size, so its
         // four-tuples are its own.
         if blk.kappa >= 3 {
