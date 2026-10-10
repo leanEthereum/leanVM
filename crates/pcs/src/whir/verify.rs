@@ -3,13 +3,18 @@
 // Modifications copyright 2026 Succinct Labs, Benedikt Bunz, William Wang
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! The succinct verifier: it replays the transcript and checks the terminal claim through closed forms, never materializing a weight.
+//! The succinct WHIR verifier.
 //!
-//! It is written once over the opening verifier's operations, so the native verifier and the recursion machine's rows run the same steps.
-//! Every query opens a full row whose path follows the query's bits, so the rows never depend on which rows are opened.
+//! It replays the transcript and checks the terminal claim through closed forms, never building a weight.
+//!
+//! It is written once over the opening verifier's operations.
+//! So the native verifier and the recursion machine's rows run the same steps.
+//!
+//! Every query opens a full row along the path its bits name.
+//! So the recursion machine's rows never depend on which codeword rows are opened.
 
 use crate::verifier::OpeningVerifier;
-use crate::whir::config::{ConfigError, VerifierConfig};
+use crate::whir::config::{Config, ConfigError};
 use crate::whir::induce::eval_sk_at_vks;
 use fiat_shamir::transcript::TranscriptError;
 use primitives::field::{F64, F192};
@@ -26,19 +31,33 @@ pub enum WhirError {
     Config(#[from] ConfigError),
     /// The announced layout stores no lanes, or more than a leaf holds.
     #[error("{n_lanes} committed lanes, and a leaf holds 1 to {max}")]
-    LaneCount { n_lanes: usize, max: usize },
+    LaneCount {
+        /// The announced number of committed lanes.
+        n_lanes: usize,
+        /// The lanes a leaf holds.
+        max: usize,
+    },
     /// A level of the configuration does not fit the witness.
     #[error("level {level} of the configuration does not fit the witness")]
-    InvalidShape { level: usize },
+    InvalidShape {
+        /// The index of the level that does not fit.
+        level: usize,
+    },
     /// The opening has no ring-switched claim.
     #[error("the opening has no ring-switched claim")]
     NoRingClaim,
     /// A ring-switched region is no aligned slice of the committed cube, or a claim on it does not span it.
     #[error("ring-switched region {index} is no aligned slice of the cube spanned by its claims")]
-    Region { index: usize },
+    Region {
+        /// The region's position in the statement.
+        index: usize,
+    },
     /// A point claim reaches past the committed cube.
     #[error("point claim {index} reaches past the committed cube")]
-    PointClaim { index: usize },
+    PointClaim {
+        /// The claim's position in the statement.
+        index: usize,
+    },
     /// The final folded value does not match the claimed evaluation.
     #[error("the final sumcheck claim does not match the opening")]
     TerminalMismatch,
@@ -47,25 +66,33 @@ pub enum WhirError {
 /// A round's quadratic `c + b X + a X^2`.
 #[derive(Clone, Copy)]
 struct Quad<E> {
+    /// The constant coefficient.
     c: E,
+    /// The linear coefficient.
     b: E,
+    /// The quadratic coefficient.
     a: E,
 }
 
 /// An out-of-domain claim on a level's oracle: its point, its value, and its intro round.
 struct Ood<E> {
+    /// The sampled point.
     z: Vec<E>,
+    /// The claimed value of the folded witness at `z`.
     y: E,
+    /// The claim's first round polynomial.
     intro: Quad<E>,
 }
 
 /// What a level's query batch leaves for the terminal weight.
 struct LevelCtx<Q, E> {
+    /// Variables of the folded witness the batch's claims are on.
     log_msg_cols: usize,
+    /// The query positions, in query order.
     queries: Vec<Q>,
     /// One power of the level's batching challenge per query.
     weights: Vec<E>,
-    /// Where the level's fold challenges start among all of them.
+    /// Where the fold challenges after the batch start among all of them.
     ris_start: usize,
     /// The level's power in the running claim.
     beta: E,
@@ -73,36 +100,50 @@ struct LevelCtx<Q, E> {
 
 /// What an out-of-domain claim leaves for the terminal weight.
 struct OodCtx<E> {
+    /// The claim's point.
     z: Vec<E>,
+    /// Where the fold challenges after the claim start among all of them.
     ris_start: usize,
+    /// The claim's power in the running claim.
     beta: E,
 }
 
 /// The oracle the next query batch opens.
 struct Oracle<R> {
+    /// Its Merkle root.
     root: R,
+    /// Log of the elements of `E` in one row.
     log_num_interleaved: usize,
+    /// Log of the message length of each lane.
     log_msg_cols: usize,
+    /// Its code's inverse-rate logarithm.
     log_inv_rate: usize,
 }
 
 /// One level's query batch: its grinding, its index width and its count.
 #[derive(Clone, Copy)]
 struct QueryPhase {
+    /// Proof-of-work bits checked before the queries are drawn.
     grinding: u32,
+    /// Bits of a query position.
     depth: usize,
+    /// Queries in the batch.
     count: usize,
 }
 
 /// The succinct WHIR verifier's state.
 struct WhirReplay<'c, V: OpeningVerifier> {
-    config: &'c VerifierConfig,
-    /// The running claim and its round's quadratic.
+    /// The opening's configuration.
+    config: &'c Config,
+    /// The running claim.
     t_r: V::E,
+    /// The current round's quadratic.
     quad: Quad<V::E>,
-    /// Every fold challenge, in round order.
+    /// Every fold challenge so far, in round order.
     ris: Vec<V::E>,
+    /// Every query batch's contribution to the terminal weight.
     levels: Vec<LevelCtx<V::Query, V::E>>,
+    /// Every OOD claim's contribution to the terminal weight.
     oods: Vec<OodCtx<V::E>>,
 }
 
@@ -112,21 +153,29 @@ struct BaseRows<K>(Vec<Vec<K>>);
 /// A later level's rows a query batch opened, one per query, of elements of `E`.
 struct ExtRows<E>(Vec<Vec<E>>);
 
-/// Succinct verifier for the recursive prover, against a weight `b` over the `2^log_n` committed words.
+/// Verify `sum_x f(x) * w(x) = target` for the witness `f` of `2^log_n` words committed at `root`.
 ///
-/// It takes no dense weight: `weight_at` evaluates b's multilinear extension once, at the final fold point indexed by witness coordinate.
-/// The fold challenges arrive in round order, and the first `initial_k` rounds, the lane fold, bind the witness's top `initial_k` coordinates.
-/// So the point is rotated left by `initial_k` before the closure sees it.
+/// It takes no dense weight: `weight_at` evaluates the multilinear extension of `w` once, at the terminal point.
+/// That point is indexed by witness coordinate.
 ///
-/// Per-level induced bases are never materialized: a level's enforced sum is recomputed from its opened rows, and its basis taken in closed form at the terminal point.
-/// The L0 rows the proof stores are the committed lanes, `n_lanes` of them, which the caller derives from the announced layout.
+/// # Why the point is rotated
+///
+/// - The fold challenges arrive in round order.
+/// - The first `initial_k` rounds, the lane fold, bind the witness's top `initial_k` coordinates.
+/// - So the point is rotated left by `initial_k` before `weight_at` sees it.
+///
+/// # What is never built
+///
+/// - A level's induced weight: its sum is recomputed from its opened rows, its value taken in closed form.
+/// - The absent lanes: the L0 rows the proof stores are the `n_lanes` committed ones.
 ///
 /// # Errors
 ///
-/// Returns a lane count a leaf cannot hold, a configuration that does not fit the witness, a malformed stream, or a terminal claim the opening does not reproduce.
-pub(crate) fn recursive_verifier_with_basis_succinct<V: OpeningVerifier>(
+/// - A lane count a leaf cannot hold, or a configuration that does not fit the witness.
+/// - A malformed stream, or a terminal claim the opening does not reproduce.
+pub(crate) fn verify<V: OpeningVerifier>(
     v: &mut V,
-    config: &VerifierConfig,
+    config: &Config,
     log_n: usize,
     n_lanes: usize,
     target: V::E,
@@ -147,12 +196,13 @@ impl<E: Copy> Quad<E> {
         })
     }
 
+    /// The quadratic at `x`, by Horner's rule.
     fn eval<V: OpeningVerifier<E = E>>(self, v: &mut V, x: E) -> E {
         let u = v.mul_add(self.a, x, self.b);
         v.mul_add(u, x, self.c)
     }
 
-    /// `self + s·other`.
+    /// `self + s * other`.
     fn fold<V: OpeningVerifier<E = E>>(self, v: &mut V, other: Self, s: E) -> Self {
         Self {
             c: v.mul_add(s, other.c, self.c),
@@ -173,11 +223,17 @@ impl<E: Copy> Ood<E> {
 }
 
 impl<Q, E: Copy> LevelCtx<Q, E> {
-    /// The level's induced basis at `point`: `sum_i w_i prod_k (1 + p_k (1 + s_k(q_i) / s_k(v_k)))`, `q_i` the query index in `K`.
+    /// The multilinear extension of the level's induced basis at `point`, in closed form.
+    ///
+    /// ```text
+    ///     sum_i w_i prod_k (1 + p_k (1 + s_k(q_i) / s_k(v_k)))
+    /// ```
+    ///
+    /// Here `q_i` is query `i`'s position read as an element of `K`, and `s_k` the `k`-th subspace polynomial.
     fn basis_at<V: OpeningVerifier<E = E, Query = Q>>(&self, v: &mut V, point: &[E]) -> E {
         assert_eq!(point.len(), self.log_msg_cols, "a point of the level's cube");
         let sks = eval_sk_at_vks(self.log_msg_cols);
-        // `1 + p (1 + s / sigma) = (1 + p) + (p / sigma) s`.
+        // Each factor is affine in `s`: `1 + p (1 + s / sigma) = (1 + p) + (p / sigma) s`.
         let lin: Vec<(E, E)> = (point.iter().zip(&sks))
             .map(|(&p, &sigma)| {
                 let inv = if sigma == F64(0) { F64(0) } else { sigma.inv() };
@@ -231,12 +287,16 @@ impl<R> Oracle<R> {
 }
 
 impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
-    /// The succinct WHIR verifier.
+    /// Replay the whole opening, then check the terminal claim.
     ///
     /// The caller's weight is evaluated once, at the terminal point indexed by witness coordinate.
+    ///
+    /// # Errors
+    ///
+    /// Returns the errors listed on the opening's entry point.
     fn run(
         v: &mut V,
-        config: &'c VerifierConfig,
+        config: &'c Config,
         log_n: usize,
         n_lanes: usize,
         target: V::E,
@@ -266,7 +326,8 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
             .map(|_| Ood::replay(v, n_current))
             .collect::<Result<_, _>>()?;
         let phase = w.phase(0, n_current + config.log_inv_rates()[0]);
-        // The proof stores the committed lanes, the image's tail; the image is lane-descending.
+        // The proof stores the committed lanes, the image's tail, lane-descending.
+        // Reversed, block `b` sits at index `b`.
         w.query(v, phase, oods, n_current, |v, queries, weights| {
             let mut rows = v.open_rows(&root, phase.depth, queries, n_lanes, max)?;
             for row in &mut rows {
@@ -310,6 +371,10 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
     }
 
     /// The oracle a level's fold commits, on the variables left after it.
+    ///
+    /// # Errors
+    ///
+    /// Returns the level when the oracle's interleaving exceeds the variables left.
     fn oracle(&self, root: V::Root, level: usize, n_current: usize) -> Result<Oracle<V::Root>, WhirError> {
         let k = self.config.level_ks()[level];
         Ok(Oracle {
@@ -320,7 +385,11 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         })
     }
 
-    /// `k` fold rounds: each draws a challenge, evaluates the running quadratic, and reads the next.
+    /// `k` fold rounds: each draws a challenge, evaluates the running quadratic there, and reads the next one.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error past the end of the stream.
     fn fold_rounds(&mut self, v: &mut V, k: usize) -> Result<Vec<V::E>, TranscriptError> {
         let mut rs = Vec::with_capacity(k);
         for _ in 0..k {
@@ -333,9 +402,20 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         Ok(rs)
     }
 
-    /// One query batch: grind, draw the queries and their batching challenge, open them, then batch the level's claims.
+    /// One query batch, then the batching of the level's claims.
     ///
-    /// `enforced` opens the queries and returns their weighted sum at the level's fold point.
+    /// Transcript order:
+    ///
+    /// 1. check the proof of work,
+    /// 2. draw the queries, then the batching challenge `lambda`,
+    /// 3. `enforced` opens the queries and returns their `lambda`-weighted sum at the level's fold point,
+    /// 4. read the consistency claims' intro round.
+    ///
+    /// The running claim keeps `lambda^0`, each OOD claim takes the next power, and the query batch the one after.
+    ///
+    /// # Errors
+    ///
+    /// Returns a failed proof of work, a missing or unauthenticated opening, or the end of the stream.
     fn query(
         &mut self,
         v: &mut V,
@@ -351,7 +431,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         let sum = v.scope("rows", |v| enforced(v, &queries, &weights))?;
         let intro = Quad::recv(v, sum)?;
 
-        // The OOD claims, then the query batch, each at the next power of the level's challenge.
+        // Batch the OOD claims, then the query batch, each at the next power of the level's challenge.
         let ris_start = self.ris.len();
         let mut scalar = v.one();
         for ood in oods {
@@ -378,6 +458,12 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
     }
 
     /// The last level: its residual polynomial, its query batch, the residual rounds, then the terminal check.
+    ///
+    /// The last residual round reads no polynomial: the terminal check evaluates `yr` at the final point instead.
+    ///
+    /// # Errors
+    ///
+    /// Returns a malformed stream or a terminal mismatch.
     fn last_level(
         mut self,
         v: &mut V,
@@ -404,7 +490,14 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         v.scope("terminal", |v| self.terminal(v, &yr, &ris_tail, weight_at))
     }
 
-    /// `weight · <yr, eq(ris_tail)> = t_r`, the weight every level's basis, every OOD claim and the caller's at the full point.
+    /// Check `weight * <yr, eq(ris_tail)> = t_r`.
+    ///
+    /// `weight` is the batched weight at the full point.
+    /// It sums each level's induced basis and each OOD claim's `eq(z, .)`, each at its power, and the caller's weight.
+    ///
+    /// # Errors
+    ///
+    /// Returns a terminal mismatch.
     fn terminal(
         &self,
         v: &mut V,
@@ -432,9 +525,9 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
             }
             weight = v.add(weight, scalar);
         }
-        // `ris ++ ris_tail` is the fold challenges in ROUND order, and the first `initial_k` rounds are the lane fold,
-        // which binds the committed witness's TOP `initial_k` variables (lane `l` is the stack block `q[l·H ..)`).
-        // Rotating by `initial_k` re-indexes the point by witness variable, so the caller's weight is in witness coordinates.
+        // Why rotate: `ris ++ ris_tail` is the fold challenges in round order.
+        // - The first `initial_k` rounds are the lane fold, which binds the witness's top `initial_k` variables.
+        // - Rotating left by `initial_k` indexes the point by witness variable, as the caller's weight expects.
         let mut full_point = self.ris.clone();
         full_point.extend_from_slice(ris_tail);
         full_point.rotate_left(self.config.initial_k());
@@ -447,9 +540,10 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
 }
 
 impl<K: Copy> BaseRows<K> {
-    /// The level-0 enforced sum over `K` rows: `sum_i w_i <row_i, eq(v, .)>`.
+    /// The level-0 enforced sum over rows of `K`: `sum_i w_i <row_i, eq(point, .)>`.
     ///
-    /// Each row's inner product is its own, so the first query's weight, one, costs no product in rows.
+    /// Each row's inner product is taken alone, then scaled by its weight.
+    /// So the first query's weight, one, costs no product in rows.
     fn enforced_sum<V: OpeningVerifier<K = K>>(&self, v: &mut V, point: &[V::E], weights: &[V::E]) -> V::E {
         let rows = &self.0;
         let eq = v.eq_table_prefix(point, rows[0].len());
@@ -462,7 +556,7 @@ impl<K: Copy> BaseRows<K> {
 }
 
 impl<E: Copy> ExtRows<E> {
-    /// A later level's enforced sum over `E` rows: `sum_l eq(v, l) sum_i w_i row_i[l]`.
+    /// A later level's enforced sum over rows of `E`: `sum_l eq(point, l) sum_i w_i row_i[l]`.
     fn enforced_sum<V: OpeningVerifier<E = E>>(&self, v: &mut V, point: &[E], weights: &[E]) -> E {
         let rows = &self.0;
         let eq = v.eq_table_prefix(point, rows[0].len());

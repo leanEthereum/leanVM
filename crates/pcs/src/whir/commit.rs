@@ -3,44 +3,63 @@
 // Modifications copyright 2026 Succinct Labs, Benedikt Bunz, William Wang
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! The commitments: the L0 base encode of the `F64` message, and each deeper
-//! level's extension-field encode, both Merkle-committed one leaf per row.
+//! The WHIR commitments, each Merkle-committed one leaf per codeword row.
+//!
+//! - L0 encodes the witness's words of `K`.
+//! - Every deeper level encodes a folded witness over `E`, with twiddles in `K`.
 
 use crate::merkle::{Hash, MerkleBuilder};
 use crate::ntt::AdditiveNttF64;
-use crate::whir::ntt_ext::{encode_rows_ext, rows_at_ext};
 use primitives::field::{F64, F192};
 use std::sync::Arc;
 
-/// Public commitment for an `F64` message: the L0 Merkle root.
-#[derive(Clone, Debug)]
-pub struct Commitment {
-    pub root: Hash,
-}
-
-/// Prover-side state retained after commit for the opening phase. The message
-/// itself is not stored; the caller retains it for opening.
-pub struct ProverData {
-    pub codeword: Vec<F64>,
-    pub merkle_tree: Vec<Hash>,
-}
-
-/// Commit to the `F64` message of a `2^log_n`-word witness: the message is its
-/// leading `n_lanes` lane blocks of `2^(log_n - log_batch_size)` words each, one
-/// RS codeword per lane, Merkle-committed one leaf per codeword position, the
-/// leaf being that position across all `2^log_batch_size` lanes
-/// (`2^log_batch_size * 8` bytes).
+/// The L0 commitment as its prover keeps it: the codeword and its Merkle tree.
 ///
-/// `n_lanes` is read off the message length, and `n_lanes < 2^log_batch_size` is
-/// the padding-free case: the stacked witness's zero tail is whole lanes, so those
-/// lanes are never encoded. Their codeword is zero (the encoding is linear), so the
-/// leaf image is the one a full-width commitment would have hashed, with those
-/// zeros LEADING it: lane `t` of the codeword is message block `n_lanes-1-t`, which
-/// puts them at the front of the image where their whole blocks are one BLAKE2s
-/// chaining value every leaf shares. Only the image's tail, the committed lanes,
-/// rides the proof, so a verifier derives `n_lanes` from the announced layout to
-/// read a row and supplies the prefix itself.
-pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> (Commitment, ProverData) {
+/// The message itself is not kept: the caller holds it for opening.
+pub(crate) struct ProverData {
+    /// The committed lanes' codeword, row-major: position `q` holds `n_lanes` words, lane-descending.
+    pub(crate) codeword: Vec<F64>,
+    /// Every node of the Merkle tree, the root last.
+    pub(crate) merkle_tree: Vec<Hash>,
+}
+
+impl ProverData {
+    /// The Merkle root.
+    pub(crate) fn root(&self) -> Hash {
+        *self.merkle_tree.last().expect("a tree has a root")
+    }
+}
+
+/// Commit to the words of `K` of a `2^log_n`-word witness, one RS codeword per lane.
+///
+/// # Layout
+///
+/// - `message` is the witness's leading `n_lanes` lane blocks, each `2^(log_n - log_batch_size)` words.
+/// - `n_lanes` is read off the message length and lies in `1..=2^log_batch_size`.
+/// - Each lane is RS-encoded at rate `2^-log_inv_rate`.
+/// - A leaf is one codeword position across all `2^log_batch_size` lanes, `8 * 2^log_batch_size` bytes.
+///
+/// # Absent lanes
+///
+/// The stacked witness's zero tail is whole lanes, so those lanes are never encoded.
+/// The encoding is linear, so their codeword is zero.
+///
+/// The leaf image is therefore the one a full-width commitment would hash, with those zeros leading it:
+///
+/// ```text
+///     codeword lane t  =  message block n_lanes - 1 - t
+///     leaf image       =  [ 2^log_batch_size - n_lanes zeros | block n_lanes-1, ..., block 0 ]
+/// ```
+///
+/// - The leading zeros' whole BLAKE2s blocks are one chaining value that every leaf shares.
+/// - Only the image's tail, the committed lanes, rides the proof.
+/// - A verifier derives `n_lanes` from the announced layout to read a row, and supplies the zeros itself.
+///
+/// # Panics
+///
+/// - If `log_inv_rate` is 0, or the witness is no wider than the interleaving.
+/// - If the message is not between one and `2^log_batch_size` whole lane blocks.
+pub(crate) fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> ProverData {
     assert!(log_inv_rate >= 1, "log_inv_rate must be >= 1 for a non-trivial RS code");
     assert!(log_n > log_batch_size, "witness must be wider than the interleaving");
     let log_rows = log_n - log_batch_size;
@@ -59,9 +78,10 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     // Leaves are hashed as the encode finishes each block of rows.
     let tree = MerkleBuilder::new(n_positions, n_lanes, 1usize << log_batch_size);
     tracing::info_span!("NTT", kind = "base encode", log_domain = k_code, lanes = n_lanes).in_scope(|| {
-        // SAFETY: every codeword element is written before it is read.
-        // The transpose covers every word of the message region (its tiles are asserted to).
-        // The encode writes every other replica from it before transforming that region in place.
+        // SAFETY: every codeword word is written before it is read.
+        // - The transpose writes every word of the message region, the first `message.len()` words.
+        // - Its tiling asserts that it covers the whole region.
+        // - The encode fills every other replica from that region before transforming it in place.
         let codeword = unsafe { primitives::write_only(&mut codeword) };
         crate::ntt::transpose_lane_major(&mut codeword[..message.len()], message, n_lanes, log_rows);
         let ntt = AdditiveNttF64::standard(k_code);
@@ -69,27 +89,32 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
             tree.absorb(row, rows);
         });
     });
-    // SAFETY: the encode wrote the whole codeword.
+    // SAFETY: the transpose and the encode above wrote every word of the codeword.
     let codeword = unsafe { codeword.assume_init() }.into_vec();
     let merkle_tree = tracing::info_span!("Merkle").in_scope(|| tree.finish());
-    let root = *merkle_tree.last().expect("merkle tree non-empty");
-
-    (Commitment { root }, ProverData { codeword, merkle_tree })
+    ProverData { codeword, merkle_tree }
 }
 
 /// One deeper WHIR commitment level: its message and Merkle tree.
 ///
-/// The codeword is not kept.
-/// Each row is one Merkle leaf of `num_interleaved` E values, and an opened row is evaluated again from the message.
+/// Each codeword row is one Merkle leaf of `num_interleaved` elements of `E`.
+///
+/// The codeword is not kept: an opened row is evaluated again from the message.
 pub(crate) struct LigeroWitness {
+    /// The folded witness this level commits, row-major, `num_interleaved` values a row.
     msg: Arc<Vec<F192>>,
+    /// The transform over the level's codeword domain.
     ntt: AdditiveNttF64,
+    /// Every node of the Merkle tree, the root last.
     pub tree: Vec<Hash>,
+    /// Codeword positions, one leaf each.
     pub(crate) block_len: usize,
+    /// Elements of `E` in one row.
     num_interleaved: usize,
 }
 
 impl LigeroWitness {
+    /// The Merkle root.
     #[inline]
     pub(super) fn root(&self) -> Hash {
         self.tree[self.tree.len() - 1]
@@ -100,7 +125,7 @@ impl LigeroWitness {
         let mut unique = positions.to_vec();
         unique.sort_unstable();
         unique.dedup();
-        let rows = rows_at_ext(&self.ntt, &self.msg, self.num_interleaved, &unique);
+        let rows = self.ntt.rows_at_ext(&self.msg, self.num_interleaved, &unique);
         OpenedRows {
             positions: unique,
             rows,
@@ -115,6 +140,7 @@ pub(super) struct OpenedRows {
     positions: Vec<usize>,
     /// Their rows, one after another.
     rows: Vec<F192>,
+    /// Elements of `E` in one row.
     width: usize,
 }
 
@@ -130,10 +156,15 @@ impl OpenedRows {
     }
 }
 
-/// Commit an extension-field polynomial at one recursive WHIR level.
+/// Commit a polynomial over `E` at one recursive WHIR level.
 ///
-/// - Each lane of the row-major message is RS-encoded with base-field twiddles.
-/// - Each row is hashed as one Merkle leaf as the encode finishes it, and dropped.
+/// - `poly` is row-major: `2^log_msg_cols` rows of `2^log_num_interleaved` values.
+/// - Each lane, one column of that layout, is RS-encoded at rate `2^-log_inv_rate` with twiddles in `K`.
+/// - Each codeword row is hashed as one Merkle leaf as the encode finishes it, then dropped.
+///
+/// # Panics
+///
+/// Panics unless `poly` holds exactly `2^(log_msg_cols + log_num_interleaved)` values.
 pub(crate) fn ligero_commit_ext(
     poly: Arc<Vec<F192>>,
     log_msg_cols: usize,
@@ -147,7 +178,7 @@ pub(crate) fn ligero_commit_ext(
     assert_eq!(poly.len(), num_interleaved * msg_cols);
     let ntt = AdditiveNttF64::standard(log_block_len);
 
-    // One leaf per row, its F192s as K words: hashed as the encode finishes each block.
+    // One leaf per row, each element of `E` as its three words of `K`.
     let row_words = 3 * num_interleaved;
     let builder = MerkleBuilder::new(block_len, row_words, row_words);
     tracing::info_span!(
@@ -157,7 +188,7 @@ pub(crate) fn ligero_commit_ext(
         lanes = num_interleaved
     )
     .in_scope(|| {
-        encode_rows_ext(&ntt, &poly, num_interleaved, log_inv_rate, &|row, rows| {
+        ntt.encode_rows_ext(&poly, num_interleaved, log_inv_rate, &|row, rows| {
             builder.absorb(row, rows);
         });
     });

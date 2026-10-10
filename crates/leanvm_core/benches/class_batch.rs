@@ -29,8 +29,8 @@ use flock::circuit::Circuit;
 use flock::reduction::{self, Instance};
 use leanvm::{Fill, MIN_MU, TableId, Word};
 use pcs::ring_switch::RingSwitch;
-use pcs::stack_open;
-use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, ProverConfig, commit, config_for_rate};
+use pcs::stack_open::{CommittedStack, StackCommitment, Statement};
+use pcs::whir::{Config, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, config_for_rate};
 use primitives::field::F64;
 use primitives::pretty_integer;
 use primitives::test_util::Rng;
@@ -89,7 +89,7 @@ struct ClassBatch {
     rows: Vec<Row>,
     n_log: usize,
     mu: usize,
-    config: ProverConfig,
+    config: Config,
 }
 
 impl ClassBatch {
@@ -159,8 +159,8 @@ impl ClassBatch {
 
         let mut ps = ProverState::from_label(b"flock-class-batch");
         let t = Instant::now();
-        let (commitment, prover_data) = commit(as_field(&witness.z), self.mu, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-        ps.add_root(&commitment.root);
+        let committed = CommittedStack::new(as_field(&witness.z), self.mu, self.config.clone());
+        ps.add_root(&committed.root());
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
@@ -175,7 +175,15 @@ impl ClassBatch {
             claims: vec![claim],
         };
         let z = as_field(&witness.z);
-        stack_open::open(&mut ps, self.mu, z, &prover_data, &self.config, &[], &[ring]);
+        let rings = [ring];
+        committed.open(
+            &mut ps,
+            z,
+            Statement {
+                points: &[],
+                rings: &rings,
+            },
+        );
         let opening_s = t.elapsed().as_secs_f64();
 
         (ps.into_proof(), [witness_s, commit_s, reduction_s, opening_s])
@@ -195,8 +203,17 @@ impl ClassBatch {
             qflock_vars: self.mu,
             claims: vec![replay.claim],
         };
-        let fold = 1 << INITIAL_FOLDING_FACTOR;
-        stack_open::verify(&mut vs, &self.config, self.mu, fold, root, &[], &[ring]).expect("the opening verifies");
+        let commitment = StackCommitment::new(root, self.mu, 1 << INITIAL_FOLDING_FACTOR, self.config.clone());
+        let rings = [ring];
+        commitment
+            .verify(
+                &mut vs,
+                Statement {
+                    points: &[],
+                    rings: &rings,
+                },
+            )
+            .expect("the opening verifies");
         vs.finish().expect("transcript fully consumed");
     }
 

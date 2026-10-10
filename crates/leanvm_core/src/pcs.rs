@@ -11,9 +11,10 @@
 
 use crate::witness::StackShape;
 use fiat_shamir::transcript::{ProverState, TranscriptError, Transmitter};
+use pcs::stack_open::{CommittedStack, StackCommitment, Statement};
 use pcs::verifier::OpeningVerifier;
+use pcs::whir::WhirError;
 use pcs::whir::config::ConfigError;
-use pcs::whir::{ProverConfig, ProverData, WhirError};
 use primitives::field::F64;
 use thiserror::Error;
 
@@ -100,12 +101,10 @@ pub(crate) enum WitnessError {
 ///
 /// The caller retains the witness words, avoiding a second full-witness allocation.
 pub(crate) struct Committed {
-    /// The codeword and its Merkle tree.
-    prover_data: ProverData,
+    /// The committed stack: its codeword, Merkle tree and opening parameters.
+    stack: CommittedStack,
     /// The full witness dimension and the number of lanes actually encoded.
     shape: StackShape,
-    /// The validated opening parameters used to produce the initial commitment.
-    config: ProverConfig,
 }
 
 impl Committed {
@@ -142,13 +141,9 @@ impl Committed {
         }
 
         // The codeword and tree use the same parameters retained for opening.
-        let (commitment, prover_data) = pcs::whir::commit(witness, shape.mu, config.initial_k(), log_inv_rate);
-        ps.add_root(&commitment.root);
-        Ok(Self {
-            prover_data,
-            shape,
-            config,
-        })
+        let stack = CommittedStack::new(witness, shape.mu, config);
+        ps.add_root(&stack.root());
+        Ok(Self { stack, shape })
     }
 
     /// Proves the point evaluations and ring-switched circuit-validity claims together.
@@ -181,15 +176,7 @@ impl Committed {
 
         // Values are transcript-bound or public, points are challenges or constants, and offsets are public.
         // The opening samples batching challenges without observing those claims again.
-        pcs::stack_open::open(
-            ps,
-            self.shape.mu,
-            witness,
-            &self.prover_data,
-            &self.config,
-            points,
-            rings,
-        );
+        self.stack.open(ps, witness, Statement { points, rings });
         Ok(())
     }
 }
@@ -238,7 +225,8 @@ impl<R: Copy> Commitment<R> {
     ) -> Result<(), WhirError> {
         // Both sides derive the opening profile from the committed witness's dimension and rate.
         let config = pcs::whir::config_for_rate(self.shape.mu, usize::from(self.rate.log_inv_rate()))?;
-        pcs::stack_open::verify(v, &config, self.shape.mu, self.shape.n_lanes, self.root, points, rings)
+        let stack = StackCommitment::new(self.root, self.shape.mu, self.shape.n_lanes, config);
+        stack.verify(v, Statement { points, rings })
     }
 }
 
@@ -325,12 +313,8 @@ mod tests {
         )
         .expect("a supported witness");
 
-        // The retained shape and codeword describe one lane at the configured encoding rate.
+        // The retained shape describes one lane.
         assert_eq!(committed.shape.committed_len(), lane_words);
-        assert_eq!(
-            committed.prover_data.codeword.len(),
-            lane_words << committed.config.log_inv_rates()[0]
-        );
 
         // Mutation: omit the lane, cut it short, or supply a second whole lane.
         for words in [0, lane_words - 1, 2 * lane_words] {

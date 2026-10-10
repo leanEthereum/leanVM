@@ -1,15 +1,15 @@
-//! Weighted sums of packed bit rows, the fold that turns witness bits into F192 values.
+//! Weighted sums of packed bit rows: the fold that turns witness bits into values of `E = GF(2^192)`.
 //!
-//! A row is `8 * CHUNKS` bits and every bit carries a fixed F192 weight:
+//! A row is `CHUNKS` bytes, so `8 * CHUNKS` bits, and every bit carries a fixed weight `w_s` in `E`:
 //!
 //! ```text
 //!     fold(row) = sum_{s : bit s of row is set} w_s
 //! ```
 //!
-//! The map is GF(2)-linear in the row's bits, so it splits into one 8-bit piece per byte.
+//! The fold is `F_2`-linear in the row's bits, so it splits into one 8-bit piece per byte.
 //!
 //! - Portable: a 256-entry subset-sum table per byte, one lookup per byte.
-//! - ARM with SHA3: the same compact three-limb byte tables, with pairs of lookups accumulated by NEON EOR3.
+//! - ARM with SHA3: the same byte tables, stored as three 64-bit limbs, with pairs of lookups summed by NEON EOR3.
 //! - AVX-512 with GFNI: an 8x8 bit matrix per (input byte, output byte), applied to 64 rows by one instruction.
 //! - AVX2: the same byte-sliced shape 32 rows wide, each map one affine instruction with GFNI, else two nibble lookups.
 
@@ -49,11 +49,8 @@ use gfni::{self as imp, Imp};
 ))]
 use avx2::{self as imp, Imp};
 
-/// Rows folded per call.
+/// Rows folded, or values mapped, per call.
 pub const BLOCK: usize = 64;
-
-/// Whether folds and maps use full-byte subset-sum tables rather than the x86 byte-sliced backends.
-pub const PORTABLE: bool = cfg!(not(all(target_arch = "x86_64", target_feature = "avx2")));
 
 /// The weights of every bit of a row, prepared for folding.
 #[derive(Clone, Debug)]
@@ -65,11 +62,11 @@ pub struct BitFold {
 }
 
 impl BitFold {
-    /// Prepare `weights`, one per bit of a row.
+    /// Prepares `weights`, one per bit of a row, bit `s` being bit `s % 8` of byte `s / 8`.
     ///
     /// # Panics
     ///
-    /// Panics unless a row is 8, 16, 32, 64 or 128 bytes.
+    /// Panics unless a row is 8, 16, 32, 64 or 128 bytes, that is 64 to 1024 weights.
     pub fn new(weights: &[F192]) -> Self {
         let n_chunks = weights.len() / 8;
         assert!(
@@ -82,13 +79,17 @@ impl BitFold {
         }
     }
 
-    /// The fold of a position at multilinear level `t`, once `rho_1..rho_t` are bound.
+    /// The fold of a position at multilinear level `t`, once the `t` challenges `rho` are bound.
     ///
     /// Position `q` covers the `2^t` consecutive rows `q * 2^t + u`, so its weights are a tensor:
     ///
     /// ```text
-    ///     w[64 u + s] = eq(rho, u) * L_s(z)        u in 0..2^t, s in 0..64
+    ///     w[n u + s] = eq(rho, u) * lagrange[s]        u in 0..2^t, s in 0..n, n = lagrange.len()
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics unless the `2^t * n` weights make a row of 8 to 128 bytes, a power of two.
     pub fn at_level(lagrange: &[F192], rho: &[F192]) -> Self {
         let weights: Vec<F192> = eq_table(rho)
             .iter()
@@ -102,7 +103,11 @@ impl BitFold {
         self.n_chunks
     }
 
-    /// Fold up to 64 consecutive rows into `out[..rows.len()]`.
+    /// Folds up to 64 consecutive rows into `out[..rows.len()]`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if there are more than 64 rows.
     #[inline]
     pub fn fold_block<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]], out: &mut [F192; BLOCK]) {
         debug_assert_eq!(CHUNKS, self.n_chunks);
@@ -110,7 +115,7 @@ impl BitFold {
         self.imp.fold_block(rows, out);
     }
 
-    /// Fold 64 consecutive rows into coefficient planes, grouped by quad.
+    /// Folds 64 consecutive rows into coefficient planes, grouped by quad.
     ///
     /// Plane `k`, register `u + 2v + 4g`, qword `l` is coefficient `k` of row `4 (8g + l) + u + 2v`.
     #[cfg(all(
@@ -131,9 +136,10 @@ impl BitFold {
     }
 }
 
-/// A GF(2)-linear map from F192 to F192, given by the image of each of its 192 coordinate bits.
+/// An `F_2`-linear map `E -> E`, given by the image of each of the 192 coordinate bits.
 ///
-/// It is [`BitFold`] on the 24 bytes of an F192, whose input transpose is the inverse of the output's.
+/// It is the row fold on a value's 24 bytes taken as one row.
+/// Input and output are both 24-byte values, so the byte-sliced backends' input transpose is their output's inverse.
 #[derive(Clone, Debug)]
 pub struct F192Map {
     imp: Imp,
@@ -152,29 +158,44 @@ impl F192Map {
         }
     }
 
-    /// Add the image of each of `xs` to `out`.
+    /// Adds the images of the first `out.len()` values of `xs` into `out`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out` is longer than 64.
     #[inline]
     pub fn apply_add(&self, xs: &[F192; BLOCK], out: &mut [F192]) {
         assert!(out.len() <= BLOCK);
         self.imp.apply_add_f192(xs, out);
     }
 
-    /// The map `x -> self(x * c)`, itself GF(2)-linear.
+    /// The map `x -> self(x * c)`, itself `F_2`-linear.
     pub fn after_mul(&self, c: F192) -> Self {
+        self.sum_after_mul(&[(F192::ONE, c)])
+    }
+
+    /// The map `x -> sum_j post_j * self(x * pre_j)` over the pairs `(post_j, pre_j)`, itself `F_2`-linear.
+    pub fn sum_after_mul(&self, terms: &[(F192, F192)]) -> Self {
         let mut weights = [F192::ZERO; 192];
-        for (chunk, w) in weights.chunks_mut(BLOCK).enumerate() {
-            let xs: [F192; BLOCK] = std::array::from_fn(|i| {
-                let bit = BLOCK * chunk + i;
-                let mut words = [0u64; 3];
-                words[bit / 64] = 1 << (bit % 64);
-                F192::new(words[0], words[1], words[2]) * c
-            });
-            self.apply_add(&xs, w);
+        for &(post, pre) in terms {
+            for (chunk, w) in weights.chunks_mut(BLOCK).enumerate() {
+                // The image of each coordinate bit `b`: `self(b * pre)`, then scaled by `post`.
+                let xs: [F192; BLOCK] = std::array::from_fn(|i| coordinate(BLOCK * chunk + i) * pre);
+                let mut images = [F192::ZERO; BLOCK];
+                self.apply_add(&xs, &mut images);
+                for (w, image) in w.iter_mut().zip(images) {
+                    *w += post * image;
+                }
+            }
         }
         Self::new(&weights)
     }
 
-    /// Add the image of each value of `xs` to `out`.
+    /// Adds the images of the first `out.len()` values of the block `xs` into `out`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out` is longer than 64.
     #[inline]
     pub fn apply_sliced_add(&self, xs: &Sliced, out: &mut [F192]) {
         assert!(out.len() <= BLOCK);
@@ -182,12 +203,19 @@ impl F192Map {
     }
 }
 
+/// The element whose only set coordinate bit is `bit`: bit `bit % 64` of coefficient `bit / 64`.
+const fn coordinate(bit: usize) -> F192 {
+    let mut words = [0u64; 3];
+    words[bit / 64] = 1 << (bit % 64);
+    F192::new(words[0], words[1], words[2])
+}
+
 /// A block of values in the layout the map reads, so that a block mapped many times is transposed once.
 #[derive(Clone, Debug)]
 pub struct Sliced(imp::Sliced);
 
 impl Sliced {
-    /// The block `xs`.
+    /// The block `xs`, transposed into the map's layout on the backends that have one.
     #[cfg_attr(
         not(all(target_arch = "x86_64", target_feature = "avx2")),
         expect(clippy::missing_const_for_fn, reason = "The SIMD layouts transpose the block.")
@@ -294,10 +322,10 @@ mod tests {
         assert_eq!(got, expected);
     }
 
-    /// Every AVX2 product this target compiles folds and maps as the definition does, not only the dispatched one.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
     #[test]
     fn avx2_products_match_definition() {
+        // Invariant: every AVX2 product this target compiles matches the definition, not only the dispatched one.
         fn check<P: avx2::Product, const CHUNKS: usize>(rng: &mut Rng) {
             let weights: Vec<F192> = (0..8 * CHUNKS).map(|_| rng.ext()).collect();
             let fold = avx2::Fold::<P>::new(&weights);

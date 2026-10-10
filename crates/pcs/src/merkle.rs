@@ -1,57 +1,68 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Binary Merkle tree with BLAKE2s, built in cache-resident subtree blocks.
 //!
-//! The committer's half. What a proof carries lives in [`fiat_shamir::merkle`].
+//! This is the committer's half: the opening paths a proof carries, and their check, live with the transcript.
 //!
-//! Layout for `n = 2^k` leaves, level `j` counted from the leaves:
+//! # Layout
+//!
+//! For `n = 2^k` leaves, level `j` counted from the leaves:
 //!
 //! ```text
 //!     tree[0 .. n]                  level 0, the leaf digests
 //!     tree[n .. 3n/2]               level 1
 //!     ...
 //!     tree[2n - 2]                  the root
+//!
+//!     level j starts at 2n - 2n / 2^j
 //! ```
 //!
-//! A node depends only on the aligned run of leaves below it.
+//! # Why blocks
 //!
-//! So one task hashes a block of leaves and climbs its subtree while the digests are in L1.
-//!
-//! The encoder hands blocks over as it finishes them, so leaves are hashed while the rows are in L2.
-//!
-//! Above the blocks, the last block to finish a unit of nodes climbs it, so no pass waits on a barrier.
+//! - A node depends only on the aligned run of leaves below it.
+//! - So one task hashes a block of leaves and climbs its subtree while the digests are in L1.
+//! - The encoder hands blocks over as it finishes them, so leaves are hashed while the rows are in L2.
+//! - Above the blocks, the last block to finish a unit of nodes climbs it, so no pass waits on a barrier.
 
 use std::mem::MaybeUninit;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
+use fiat_shamir::merkle::LeafHasher;
 pub use fiat_shamir::merkle::{Hash, hash_leaf, hash_pair};
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{BATCH, BLOCK_LEN, OUT_LEN, hash_many, hash_many_dyn_from_state, zero_prefix_state};
+use primitives::hash::{BATCH, OUT_LEN, hash_many};
 
-/// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
+/// Nodes of one level that a unit gathers above the blocks: 32 KiB of digests, which stay in L1.
+///
+/// The last block to finish its part of a unit climbs the whole unit.
 const UNIT: usize = 1 << 10;
-
-/// Staging tile for leaves whose zero padding does not end on a block boundary.
-const STAGE_TILE_BYTES: usize = 16 << 10;
 
 /// A Merkle tree filled one aligned block of leaves at a time, from any thread.
 ///
-/// Leaf `i` is `zeros(leaf_words - row_words) ‖ row_i`.
-///
-/// Blocks must all have the same power-of-two size, and together cover every leaf once.
+/// - Leaf `i` hashes the image `zeros(leaf_words - row_words) || row_i`.
+/// - Blocks must all have the same power-of-two size, and together cover every leaf once.
 pub(crate) struct MerkleBuilder {
+    /// The flat tree being written.
     nodes: Nodes,
+    /// How a row becomes its leaf digest.
     leaves: LeafHasher,
+    /// Which blocks have arrived, and which units above them are complete.
     progress: Progress,
 }
 
 impl MerkleBuilder {
-    /// An empty tree of `num_leaves` leaves of `leaf_words`, each committing `row_words`.
+    /// An empty tree of `num_leaves` leaves, each a `leaf_words`-word image committing a `row_words`-word row.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless `num_leaves` is a power of two and `0 < row_words <= leaf_words`.
+    /// Also panics if a leaf with padding needs staging and its image exceeds the 16 KiB tile.
     pub(crate) fn new(num_leaves: usize, row_words: usize, leaf_words: usize) -> Self {
         Self::with_bytes(num_leaves, 8 * row_words, 8 * leaf_words)
     }
 
+    /// An empty tree as above, its rows and leaf images sized in bytes.
     fn with_bytes(num_leaves: usize, row_bytes: usize, leaf_bytes: usize) -> Self {
         assert!(num_leaves.is_power_of_two(), "num_leaves must be power of 2");
         Self {
@@ -61,39 +72,43 @@ impl MerkleBuilder {
         }
     }
 
-    /// Hash the leaves `first_leaf ..` of the rows in `rows`, and climb their subtree.
+    /// Hash the rows in `rows` as the leaves from `first_leaf` on, and climb their subtree.
     ///
     /// # Panics
     ///
-    /// Panics unless the block is aligned, sized like every other, and new.
+    /// Panics unless the block is a power of two of whole rows, aligned and inside the tree.
+    /// Also panics unless it is sized like every other block, and new.
     pub(crate) fn absorb(&self, first_leaf: usize, rows: &[F64]) {
         self.absorb_bytes(first_leaf, words_as_bytes(rows));
     }
 
+    /// Absorb a block of rows given as bytes.
     fn absorb_bytes(&self, first_leaf: usize, rows: &[u8]) {
         let n = rows.len() / self.leaves.row_bytes();
         assert_eq!(rows.len(), n * self.leaves.row_bytes(), "whole rows");
         self.progress.claim(first_leaf, n);
-        // SAFETY: the claim makes these leaves, and their subtree up to the unit, ours alone.
+        // SAFETY: the claim makes these leaves ours alone, and with them their subtree up to where it joins a unit.
         unsafe {
             self.leaves.hash(rows, self.nodes.level_mut(0, first_leaf, n));
             self.complete(0, first_leaf, n);
         }
     }
 
-    /// Climb `n` finished nodes of `level` from node `first`, then hand them to their unit.
+    /// Climb `n` finished nodes of `level` from node `first`, then hand the result to its unit.
     ///
-    /// The unit's last arrival climbs the unit in turn, up to the root.
+    /// - A whole level climbs straight to the root.
+    /// - Otherwise the climb stops at the last level whose hashing still fills a whole batch.
+    /// - The unit's last arrival climbs the unit in turn, and so on up to the root.
     ///
     /// # Safety
     ///
-    /// The nodes are initialized, and no other caller holds them.
+    /// The nodes are initialized, and no other caller holds them or their subtree.
     unsafe fn complete(&self, level: usize, first: usize, n: usize) {
         if n == self.nodes.width(level) {
             // SAFETY: forwarded, and the whole level climbs to the root.
             return unsafe { self.nodes.climb(level, 0, n, n.ilog2() as usize) };
         }
-        // Climb while every level still fills whole batches.
+        // Climb while each level's parents still fill a whole hash batch.
         let height = (n / BATCH).max(1).ilog2() as usize;
         // SAFETY: forwarded.
         unsafe { self.nodes.climb(level, first, n, height) };
@@ -101,7 +116,7 @@ impl MerkleBuilder {
 
         let unit = UNIT.min(self.nodes.width(level));
         if self.progress.arrive(level, first / unit, n, unit) {
-            // SAFETY: every node of the unit is written, and only its last arrival gets here.
+            // SAFETY: every node of the unit is written, and only its last arrival gets here, after seeing every write.
             unsafe { self.complete(level, first - first % unit, unit) };
         }
     }
@@ -113,19 +128,23 @@ impl MerkleBuilder {
     /// Panics unless every leaf was absorbed.
     pub(crate) fn finish(self) -> Vec<Hash> {
         assert!(self.progress.all_claimed(), "every leaf absorbed");
-        // SAFETY: every block was absorbed once, and the last arrivals climbed every level above.
+        // SAFETY: every block was absorbed once, and the last arrivals climbed every level above the blocks.
         unsafe { self.nodes.assume_init() }
     }
 }
 
 /// The flat tree, written at disjoint nodes by concurrent climbs.
 struct Nodes {
+    /// The `2n - 1` nodes, level after level from the leaves.
     tree: Vec<MaybeUninit<Hash>>,
+    /// The tree's first node, through which concurrent climbs write.
     base: SendPtr<MaybeUninit<Hash>>,
+    /// Leaves `n`, a power of two.
     num_leaves: usize,
 }
 
 impl Nodes {
+    /// An uninitialized tree over `num_leaves` leaves.
     fn new(num_leaves: usize) -> Self {
         let mut tree = Box::new_uninit_slice(2 * num_leaves - 1).into_vec();
         let base = SendPtr(tree.as_mut_ptr());
@@ -158,7 +177,7 @@ impl Nodes {
     ///
     /// # Safety
     ///
-    /// The nodes are initialized, and nothing else touches their subtree.
+    /// The nodes are initialized, and nothing else touches their subtree up to `height` levels above.
     unsafe fn climb(&self, level: usize, first: usize, n: usize, height: usize) {
         let (mut first, mut n) = (first, n);
         for j in level..level + height {
@@ -169,6 +188,8 @@ impl Nodes {
         }
     }
 
+    /// The finished tree.
+    ///
     /// # Safety
     ///
     /// Every node is written.
@@ -182,12 +203,14 @@ impl Nodes {
 struct Progress {
     /// One flag per block, sized by the first block to arrive.
     blocks: OnceLock<Box<[AtomicBool]>>,
-    /// Per level, one counter per unit.
+    /// Per level, one counter of finished nodes per unit.
     units: Box<[Box<[AtomicUsize]>]>,
+    /// Leaves in the tree.
     num_leaves: usize,
 }
 
 impl Progress {
+    /// No block arrived, and every counter at zero.
     fn new(num_leaves: usize) -> Self {
         let counters = |width: usize| (0..width.div_ceil(UNIT)).map(|_| AtomicUsize::new(0)).collect();
         Self {
@@ -201,7 +224,7 @@ impl Progress {
     ///
     /// # Panics
     ///
-    /// Panics unless the block is aligned, sized like every other, and new.
+    /// Panics unless the block is of power-of-two size, aligned, inside the tree, sized like every other, and new.
     fn claim(&self, first: usize, n: usize) {
         assert!(
             n.is_power_of_two() && first.is_multiple_of(n),
@@ -221,11 +244,12 @@ impl Progress {
 
     /// Count `n` more finished nodes of unit `u` on `level`, true for the unit's last arrival.
     ///
-    /// AcqRel: the last arrival sees every node the others wrote.
+    /// Why AcqRel: the last arrival sees every node the others wrote.
     fn arrive(&self, level: usize, u: usize, n: usize, unit: usize) -> bool {
         self.units[level][u].fetch_add(n, Ordering::AcqRel) + n == unit
     }
 
+    /// Whether every block has arrived.
     fn all_claimed(&self) -> bool {
         self.blocks
             .get()
@@ -233,138 +257,14 @@ impl Progress {
     }
 }
 
-/// How rows become leaf digests, chosen once from the leaf shape.
-///
-/// Whole blocks of leading zeros are one chaining value, absorbed once for every leaf.
-enum LeafHasher {
-    /// Past the shared prefix, each row is its own whole-block image.
-    Direct {
-        row_bytes: usize,
-        state: [u32; 8],
-        t_offset: u64,
-    },
-    /// The rest of the padding does not fill a block, so rows are zero-extended in a tile first.
-    ///
-    /// The copy also aligns each image to whole cache lines, which the hasher's loads want.
-    Staged {
-        row_bytes: usize,
-        image: usize,
-        state: [u32; 8],
-        t_offset: u64,
-    },
-    /// Leaves of no whole block: one at a time, zero-extended to `leaf_bytes`.
-    Single { row_bytes: usize, leaf_bytes: usize },
-}
-
-impl LeafHasher {
-    fn new(row_bytes: usize, leaf_bytes: usize) -> Self {
-        assert!(0 < row_bytes && row_bytes <= leaf_bytes, "a leaf holds its row");
-        if !leaf_bytes.is_multiple_of(BLOCK_LEN) {
-            assert!(
-                row_bytes == leaf_bytes || leaf_bytes <= STAGE_TILE_BYTES,
-                "a padded leaf fits the tile"
-            );
-            return Self::Single { row_bytes, leaf_bytes };
-        }
-        let zero_blocks = (leaf_bytes - row_bytes) / BLOCK_LEN;
-        let (state, t_offset) = (zero_prefix_state(zero_blocks), (zero_blocks * BLOCK_LEN) as u64);
-        let image = leaf_bytes - zero_blocks * BLOCK_LEN;
-        if image == row_bytes {
-            Self::Direct {
-                row_bytes,
-                state,
-                t_offset,
-            }
-        } else {
-            assert!(image <= STAGE_TILE_BYTES, "a padded leaf fits the tile");
-            Self::Staged {
-                row_bytes,
-                image,
-                state,
-                t_offset,
-            }
-        }
-    }
-
-    const fn row_bytes(&self) -> usize {
-        match *self {
-            Self::Direct { row_bytes, .. } | Self::Staged { row_bytes, .. } | Self::Single { row_bytes, .. } => {
-                row_bytes
-            }
-        }
-    }
-
-    /// Hash one leaf per row into `out`.
-    fn hash(&self, rows: &[u8], out: &mut [MaybeUninit<Hash>]) {
-        match *self {
-            Self::Direct {
-                row_bytes,
-                state,
-                t_offset,
-            } => {
-                hash_many_dyn_from_state(rows, row_bytes, &state, t_offset, digests_as_bytes(out));
-            }
-            Self::Staged {
-                row_bytes,
-                image,
-                state,
-                t_offset,
-            } => {
-                // Whole batches per tile.
-                let per_tile = STAGE_TILE_BYTES / image;
-                let per_tile = if per_tile >= BATCH {
-                    per_tile - per_tile % BATCH
-                } else {
-                    per_tile
-                };
-                let mut tile = Tile::new();
-                for (out, rows) in out.chunks_mut(per_tile).zip(rows.chunks(per_tile * row_bytes)) {
-                    let images = tile.extend(rows, row_bytes, image);
-                    hash_many_dyn_from_state(images, image, &state, t_offset, digests_as_bytes(out));
-                }
-            }
-            Self::Single { row_bytes, leaf_bytes } if row_bytes == leaf_bytes => {
-                for (slot, row) in out.iter_mut().zip(rows.chunks_exact(row_bytes)) {
-                    slot.write(hash_leaf(row));
-                }
-            }
-            Self::Single { row_bytes, leaf_bytes } => {
-                let mut tile = Tile::new();
-                for (slot, row) in out.iter_mut().zip(rows.chunks_exact(row_bytes)) {
-                    slot.write(hash_leaf(tile.extend(row, row_bytes, leaf_bytes)));
-                }
-            }
-        }
-    }
-}
-
-/// A zeroed staging buffer.
-struct Tile([u64; STAGE_TILE_BYTES / 8]);
-
-impl Tile {
-    const fn new() -> Self {
-        Self([0; STAGE_TILE_BYTES / 8])
-    }
-
-    /// Lay each `row_bytes` row at the end of its own `image`-byte slot, and return the slots.
-    ///
-    /// The bytes before each row are never written, so they stay zero.
-    fn extend(&mut self, rows: &[u8], row_bytes: usize, image: usize) -> &[u8] {
-        // SAFETY: any byte pattern is a u64.
-        let tile: &mut [u8] = unsafe { std::slice::from_raw_parts_mut(self.0.as_mut_ptr().cast(), STAGE_TILE_BYTES) };
-        let n = rows.len() / row_bytes;
-        for (slot, row) in tile.chunks_exact_mut(image).zip(rows.chunks_exact(row_bytes)) {
-            slot[image - row_bytes..].copy_from_slice(row);
-        }
-        &tile[..n * image]
-    }
-}
-
+/// The words' little-endian byte image, which is how a leaf hashes them.
 const fn words_as_bytes(words: &[F64]) -> &[u8] {
-    // SAFETY: F64 is repr(transparent) over u64, so on this LE target the slice is its words' byte image.
+    const _: () = assert!(cfg!(target_endian = "little"), "a leaf hashes its words little-endian");
+    // SAFETY: `F64` is `repr(transparent)` over `u64`, and the target is little-endian, so the bytes are the image.
     unsafe { std::slice::from_raw_parts(words.as_ptr().cast(), std::mem::size_of_val(words)) }
 }
 
+/// The digest slots as the bytes a hasher writes.
 const fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
     // SAFETY: a digest is 32 bytes with no padding, and the hasher only writes.
     unsafe { std::slice::from_raw_parts_mut(out.as_mut_ptr().cast(), out.len() * OUT_LEN) }
@@ -389,7 +289,7 @@ mod tests {
         }
     }
 
-    /// The tree over `num_leaves` rows of `row_words`, each hashed as `zeros(leaf_words - row_words) ‖ row`.
+    /// The tree over `num_leaves` rows of `row_words`, each hashed as `zeros(leaf_words - row_words) || row`.
     fn merkle_tree_padded_rows(data: &[F64], num_leaves: usize, row_words: usize, leaf_words: usize) -> Vec<Hash> {
         assert_eq!(data.len(), row_words * num_leaves);
         let builder = MerkleBuilder::new(num_leaves, row_words, leaf_words);

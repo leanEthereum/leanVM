@@ -4,23 +4,35 @@
 // Modifications copyright 2026 Succinct Labs, Benedikt Bunz, William Wang
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// Ported from bolt-rs (https://github.com/bcc-research/bolt-rs,
-// `whir_recursive.rs`).
+// Ported from bolt-rs (https://github.com/bcc-research/bolt-rs, `whir_recursive.rs`).
 
-//! The WHIR configuration: the protocol's constants, and the per-level parameters of each opening.
+//! The WHIR configuration: the protocol's constants and the per-level parameters of one opening.
 //!
-//! [`config_for_rate`] builds those parameters from integers alone: the level ladder, and the query counts `WHIR_QUERIES` tabulates, so neither the prover nor a verifier computes in floating point.
-//! The table is what the floating-point soundness analysis (the PCS annex, Theorem `thm:rbr`) derives at every size and rate it covers.
-//! That analysis lives in the test-only `tests` module, and its test `the_table_is_the_derivation` checks every entry, so changing a constant it reads fails that test until the table is regenerated (AGENTS.md, "One protocol, native and recursive verification").
+//! # Integers only
+//!
+//! An opening's parameters are built from integers alone: the level ladder and a table of query counts.
+//! So neither the prover nor a verifier computes in floating point.
+//!
+//! # Where the table comes from
+//!
+//! The table is what the soundness analysis of Annex B (Theorem `thm:rbr`) derives at every size and rate it covers.
+//! That analysis runs in floating point, in the test module only.
+//!
+//! A test checks every table entry against it, so changing a constant it reads fails until the table is regenerated.
 
 use fiat_shamir::MAX_GRINDING_BITS;
 use thiserror::Error;
 
-// The production WHIR configuration: Johnson list decoding at rates 2^-1 to 2^-4 and 128-bit round-by-round soundness over F192.
-// L0 takes no OOD sample, so the commitment binds only to a list, whose size every challenge before the opening pays; every later level takes one OOD sample.
+// The production profile: Johnson list decoding at rates 2^-1 to 2^-4, 128-bit round-by-round soundness over `E`.
+//
+// L0 takes no OOD sample, so its commitment binds only to a list.
+// Every challenge drawn before the opening pays for that list's size.
+//
+// Every later level takes one OOD sample.
 
-/// Round-by-round soundness target (bits): every verifier-challenge transition
-/// must have conditional failure probability at most `2^-SECURITY_BITS`.
+/// Round-by-round soundness target, in bits.
+///
+/// Every transition a verifier challenge makes fails with conditional probability at most `2^-SECURITY_BITS`.
 pub const SECURITY_BITS: usize = 128;
 
 /// Bits a challenge drawn after the commitment loses to the commitment's list.
@@ -35,46 +47,71 @@ pub const SECURITY_BITS: usize = 128;
 /// A test pins it to the derivation.
 pub const L0_LIST_BITS: usize = 12;
 
-/// L0 code rate index: `rho_0 = 2^-LOG_INV_RATE_0` (rate 1/2).
+/// The default L0 inverse-rate logarithm: `rho_0 = 2^-LOG_INV_RATE_0`, rate 1/2.
 pub const LOG_INV_RATE_0: usize = 1;
 
-/// CLI-selectable L0 rates are `2^-r` for `r = 1, 2, 3, 4`.
+/// The smallest supported L0 inverse-rate logarithm: rate `2^-1`.
 pub const MIN_LOG_INV_RATE: usize = 1;
+/// The largest supported L0 inverse-rate logarithm: rate `2^-4`.
 pub const MAX_LOG_INV_RATE: usize = 4;
 
-/// Why [`config_for_rate`] has no configuration for a witness size and a rate.
+/// Why no configuration exists for a witness size and a rate.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 #[non_exhaustive]
 pub enum ConfigError {
     /// An L0 rate outside the supported range.
     #[error("log_inv_rate {log_inv_rate} is not in {MIN_LOG_INV_RATE}..={MAX_LOG_INV_RATE}")]
-    RateOutOfRange { log_inv_rate: usize },
+    RateOutOfRange {
+        /// The requested L0 inverse-rate logarithm.
+        log_inv_rate: usize,
+    },
     /// A witness size outside the tabulated range.
     #[error("log_n {log_n} is not in {MIN_LOG_N}..={MAX_LOG_N}")]
-    SizeOutOfRange { log_n: usize },
+    SizeOutOfRange {
+        /// The log of the requested witness size, in words.
+        log_n: usize,
+    },
 }
 
-/// Why the level ladder has no shape for a witness size. No size [`config_for_rate`] accepts gets here; the test-only derivation and its fallback ladder, which take any size, can.
+/// Why the level ladder has no shape for a witness size.
+///
+/// No size inside the tabulated window reaches this error.
+/// The test-only derivation and its fallback ladder take any size, and can.
 ///
 /// `level` counts from L0, the commitment's own code.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub(crate) enum LadderError {
     /// No variable is left after the initial fold.
     #[error("log_n {log_n} does not exceed the initial fold {initial_k}")]
-    TooFewVariables { log_n: usize, initial_k: usize },
+    TooFewVariables {
+        /// The log of the witness size, in words.
+        log_n: usize,
+        /// Variables the initial fold binds.
+        initial_k: usize,
+    },
     /// The witness is too small for two fold levels.
     #[error("log_n {log_n} gives fewer than two fold levels")]
-    TooFewLevels { log_n: usize },
+    TooFewLevels {
+        /// The log of the witness size, in words.
+        log_n: usize,
+    },
     /// A fold smaller than the RS domain reduction it pays for.
     #[error("level {level} folds {fold} variables, below the RS domain reduction {reduction}")]
     FoldBelowReduction {
+        /// The level whose rate the fold sets.
         level: usize,
+        /// Variables the previous level folds.
         fold: usize,
+        /// Bits the total RS domain loses at that step.
         reduction: usize,
     },
 }
 
-/// Validate a production WHIR inverse-rate logarithm.
+/// Check that an L0 inverse-rate logarithm is in the supported range.
+///
+/// # Errors
+///
+/// Returns the rate when it lies outside `MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE`.
 pub(crate) fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), ConfigError> {
     if !(MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(ConfigError::RateOutOfRange { log_inv_rate });
@@ -82,63 +119,67 @@ pub(crate) fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), ConfigErr
     Ok(())
 }
 
-/// Per-level query-phase proof-of-work budget. These bits are ground after the
-/// level commitment and before its query positions are sampled, so the query
-/// count only needs to close the remaining `SECURITY_BITS - 17` bits.
+/// Proof-of-work bits each level grinds before its query positions are sampled.
+///
+/// The query count then only has to close the remaining `SECURITY_BITS - QUERY_GRINDING_BITS` bits.
 pub const QUERY_GRINDING_BITS: usize = 17;
 
 const _: () = assert!(QUERY_GRINDING_BITS <= MAX_GRINDING_BITS as usize);
 
+/// Variables the L0 lane fold binds: the log of the L0 interleaving, so a leaf holds `2^6` lanes.
 pub const INITIAL_FOLDING_FACTOR: usize = 6;
+/// Variables each recursive level folds.
 pub const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
 
-/// Logarithmic reduction of the total Reed--Solomon domain after the initial
-/// fold. With the production six-variable initial fold, `3` changes the
-/// inverse-rate logarithm by `6 - 3 = 3` at the first recursive level.
+/// Bits the total Reed-Solomon domain loses after the initial fold.
+///
+/// A fold of `k` variables raises the inverse-rate logarithm by `k` minus this reduction.
+/// With the six-variable initial fold, the first recursive level's inverse-rate logarithm is `6 - 3 = 3` above L0's.
 pub const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
 
-/// After each subsequent fold, shrink the total Reed--Solomon domain by one
-/// bit. This mirrors WHIR's recursive-domain schedule; unlike the initial
-/// reduction, it is deliberately fixed rather than a tuning parameter.
+/// Bits the total Reed-Solomon domain loses after each subsequent fold.
+///
+/// This is WHIR's recursive-domain schedule, held fixed rather than tuned.
 pub const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
 
 const _: () = assert!(RS_DOMAIN_INITIAL_REDUCTION_FACTOR <= INITIAL_FOLDING_FACTOR);
 const _: () = assert!(RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR <= SUBSEQUENT_FOLDING_FACTOR);
 
-/// Folding stops once at most this many variables remain: the residual
-/// polynomial (`yr`, at most `2^RESIDUAL_MAX_LOG` coefficients) is sent in
-/// clear instead of committed and folded further.
+/// Folding stops once at most this many variables remain.
+///
+/// The residual polynomial `yr`, at most `2^RESIDUAL_MAX_LOG` values, is then sent in the clear.
 pub const RESIDUAL_MAX_LOG: usize = 5;
 
-// A verifier rotates the terminal point left by the lane fold to index it by
-// witness coordinate, and the residual segment is what the last lane challenges
-// rotate past, so the residual may never be longer than that fold.
-const _: () = assert!(RESIDUAL_MAX_LOG <= INITIAL_FOLDING_FACTOR);
-
-/// Shape plus per-level soundness parameters for one WHIR opening. Prover
-/// and verifier read exactly the same numbers, hence the single struct and the
-/// [`VerifierConfig`] alias.
+/// One WHIR opening's shape and per-level soundness parameters.
 ///
-/// Built only in this crate, from the table (or, in tests, by the soundness derivation and the test-support ladder), and checked once there.
-/// The prover and the verifier index the per-level vectors without checking them again.
+/// The prover and the verifier read exactly the same numbers.
+///
+/// It is built only in this crate, from the query table, and checked once at construction.
+/// Both sides then index its per-level vectors without checking them again.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ProverConfig {
+pub struct Config {
+    /// Variables the L0 lane fold binds.
     initial_k: usize,
+    /// Variables each recursive level folds, L1 first.
     level_ks: Vec<usize>,
+    /// Inverse-rate logarithm of each level's code, L0 first.
     log_inv_rates: Vec<usize>,
+    /// Query count of each level, L0 first.
     queries: Vec<usize>,
+    /// Proof-of-work bits of each level's query phase, L0 first.
     grinding_bits: Vec<usize>,
+    /// Out-of-domain samples of each level, L0 first.
     ood_samples: Vec<usize>,
 }
 
-pub type VerifierConfig = ProverConfig;
-
-impl ProverConfig {
+impl Config {
     /// A config of `level_ks.len()` recursive levels after the lane fold.
     ///
     /// # Panics
     ///
-    /// Panics unless there is a lane fold and at least one recursive level, every per-level vector covers L0 to the last level, and L0 takes no OOD sample.
+    /// - If the lane fold binds no variable, or there is no recursive level.
+    /// - If a per-level vector does not cover L0 to the last level.
+    /// - If L0 takes an OOD sample, or a level grinds more bits than the digest's low word holds.
     fn new(
         initial_k: usize,
         level_ks: Vec<usize>,
@@ -154,9 +195,9 @@ impl ProverConfig {
         assert_eq!(queries.len(), levels);
         assert_eq!(grinding_bits.len(), levels);
         assert_eq!(ood_samples.len(), levels);
-        // The lane rounds fold the truncated witness against a weight over the whole
-        // `2^log_n` cube. Every claim weight vanishes on the absent lanes, but an OOD
-        // weight `eq(z, .)` is a full tensor that does not, so L0 can take none.
+        // Why: the lane rounds fold the truncated witness against a weight over the whole `2^log_n` cube.
+        // - Every claim weight vanishes on the absent lanes.
+        // - An OOD weight `eq(z, .)` is a full tensor that does not, so L0 can take none.
         assert_eq!(ood_samples[0], 0, "L0 takes no OOD sample");
         assert!(
             grinding_bits.iter().all(|&g| g <= MAX_GRINDING_BITS as usize),
@@ -192,21 +233,23 @@ impl ProverConfig {
         &self.log_inv_rates
     }
 
-    /// Per-level query counts (L0, L1, ..., L_r), from the per-level soundness analysis.
+    /// Per-level query counts (L0, L1, ..., L_r), from the soundness analysis.
     pub fn queries(&self) -> &[usize] {
         &self.queries
     }
 
     /// Per-level query-phase grinding bits (L0, L1, ..., L_r).
     ///
-    /// Each level grinds after its commitment and before its query positions are sampled.
+    /// Each level grinds right before its query positions are sampled.
+    /// That is after the next level's root and OOD claims, or after the residual at the last level.
     pub fn grinding_bits(&self) -> &[usize] {
         &self.grinding_bits
     }
 
-    /// Per-level out-of-domain samples (L0, L1, ..., L_r), taken right after the level's root enters the transcript.
+    /// Per-level out-of-domain samples (L0, L1, ..., L_r).
     ///
-    /// L0 takes none: the commitment binds only to a list, which every challenge before the opening pays for.
+    /// Each is drawn right after the level's root enters the transcript.
+    /// L0 takes none: its commitment binds only to a list, which every challenge before the opening pays for.
     pub fn ood_samples(&self) -> &[usize] {
         &self.ood_samples
     }
@@ -214,15 +257,26 @@ impl ProverConfig {
 
 /// Level-ladder shape: the per-level inverse-rate logarithms and folds, index 0 being L0.
 struct LadderShape {
+    /// Inverse-rate logarithm of each level's code, L0 first.
     log_inv_rates: Vec<usize>,
+    /// Variables each level folds, the lane fold first.
     k_levels: Vec<usize>,
 }
 
-/// Descend the level ladder, folding [`SUBSEQUENT_FOLDING_FACTOR`] variables per
-/// level until at most [`RESIDUAL_MAX_LOG`] remain. `next_rate` picks each new
-/// level's inverse-rate logarithm from `(new level, previous rate, fold just taken,
-/// message dimension the new level carries)`, which is the only thing that separates the
-/// production ladder from the test-support one.
+/// Descend the level ladder, `SUBSEQUENT_FOLDING_FACTOR` variables a level, until `RESIDUAL_MAX_LOG` or fewer remain.
+///
+/// `next_rate` picks each new level's inverse-rate logarithm from four integers:
+///
+/// ```text
+///     (new level, previous rate, fold just taken, message dimension the new level carries)
+/// ```
+///
+/// It is the only thing that separates the production ladder from the test-support one.
+///
+/// # Errors
+///
+/// - A ladder error when nothing is left after the lane fold, or when fewer than two levels result.
+/// - Whatever `next_rate` returns.
 fn derive_ladder<E: From<LadderError>>(
     log_n: usize,
     initial_k: usize,
@@ -255,10 +309,14 @@ fn derive_ladder<E: From<LadderError>>(
     Ok(shape)
 }
 
-/// Production ladder: the total RS domain loses
-/// [`RS_DOMAIN_INITIAL_REDUCTION_FACTOR`] bits after the initial fold, then
-/// exactly one bit per subsequent fold, so a fold of `k` variables raises the
-/// inverse-rate logarithm by `k - reduction`.
+/// The production ladder.
+///
+/// The total RS domain loses `RS_DOMAIN_INITIAL_REDUCTION_FACTOR` bits after the initial fold, then one bit a fold.
+/// So a fold of `k` variables raises the inverse-rate logarithm by `k - reduction`.
+///
+/// # Errors
+///
+/// Returns a ladder error for a size with no ladder, or a fold below the reduction it pays for.
 fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> Result<LadderShape, LadderError> {
     let mut domain_reduction = RS_DOMAIN_INITIAL_REDUCTION_FACTOR;
     derive_ladder(
@@ -279,12 +337,15 @@ fn derive_ladder_shape(log_n: usize, initial_k: usize, log_inv_rate: usize) -> R
     )
 }
 
-/// Smallest committed witness, `2^MIN_LOG_N` words, that [`config_for_rate`] configures: the production ladder's floor, with one level of margin.
+/// Log of the smallest configured witness, in words: the production ladder's floor, with one level of margin.
 pub const MIN_LOG_N: usize = 15;
-/// Largest committed witness, `2^MAX_LOG_N` words, that [`config_for_rate`] configures.
+/// Log of the largest configured witness, in words.
 pub const MAX_LOG_N: usize = 28;
 
-/// Per-level query counts (L0, L1, ...) of the production opening, at `[log_inv_rate - MIN_LOG_INV_RATE][log_n - MIN_LOG_N]`: what the soundness derivation chooses, pinned to it by `the_table_is_the_derivation`.
+/// Per-level query counts (L0, L1, ...) of the production opening.
+///
+/// The entry for a rate and a size is at `[log_inv_rate - MIN_LOG_INV_RATE][log_n - MIN_LOG_N]`.
+/// Each entry is what the soundness derivation chooses, and a test pins it to that derivation.
 const WHIR_QUERIES: [[&[usize]; MAX_LOG_N - MIN_LOG_N + 1]; MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1] = [
     // Rate 2^-1.
     [
@@ -356,14 +417,19 @@ const WHIR_QUERIES: [[&[usize]; MAX_LOG_N - MIN_LOG_N + 1]; MAX_LOG_INV_RATE - M
     ],
 ];
 
-/// The shared prover/verifier config for a `K`-witness of `2^log_n` F64 words at L0 inverse-rate logarithm `log_inv_rate`.
+/// The configuration prover and verifier share for a witness of `2^log_n` words of `K` at L0 rate `2^-log_inv_rate`.
 ///
-/// The production 128-bit Johnson/OOD profile: the ladder, then the tabulated query counts, [`QUERY_GRINDING_BITS`] at every level, and one OOD sample at every level past L0.
+/// It is the production 128-bit Johnson profile:
+///
+/// - the level ladder,
+/// - the tabulated query counts,
+/// - `QUERY_GRINDING_BITS` at every level,
+/// - one OOD sample at every level past L0.
 ///
 /// # Errors
 ///
-/// A rate outside `MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE`, or a size outside `MIN_LOG_N..=MAX_LOG_N`.
-pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig, ConfigError> {
+/// Returns a rate outside `MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE`, or a size outside `MIN_LOG_N..=MAX_LOG_N`.
+pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<Config, ConfigError> {
     validate_log_inv_rate(log_inv_rate)?;
     if !(MIN_LOG_N..=MAX_LOG_N).contains(&log_n) {
         return Err(ConfigError::SizeOutOfRange { log_n });
@@ -372,7 +438,7 @@ pub fn config_for_rate(log_n: usize, log_inv_rate: usize) -> Result<ProverConfig
         .expect("the tabulated window always has a ladder");
     let levels = shape.k_levels.len();
     let queries = WHIR_QUERIES[log_inv_rate - MIN_LOG_INV_RATE][log_n - MIN_LOG_N];
-    Ok(ProverConfig::new(
+    Ok(Config::new(
         INITIAL_FOLDING_FACTOR,
         shape.k_levels[1..].to_vec(),
         shape.log_inv_rates,

@@ -77,11 +77,11 @@ run() {
   local -a scope=()
   if [ "$ci" = true ]; then scope=(systemd-run --user --scope -q -p MemoryMax=16G -p MemorySwapMax=0); fi
   if [ "$1" = counts ]; then
-    "${scope[@]}" "$exe" bench --cycles-only
+    ${scope[@]+"${scope[@]}"} "$exe" bench --cycles-only
   elif [ -n "$(target_of "$1")" ]; then
-    "${scope[@]}" "$exe" --json
+    ${scope[@]+"${scope[@]}"} "$exe" --json
   else
-    "${scope[@]}" "$exe" bench --only "$1" --repeat 1 --cooldown 0
+    ${scope[@]+"${scope[@]}"} "$exe" bench --only "$1" --repeat 1 --cooldown 0
   fi
 }
 

@@ -3,7 +3,9 @@
 
 use crate::transcript::TranscriptError;
 use primitives::field::{F64, F192};
+use primitives::hash::{BATCH, BLOCK_LEN, OUT_LEN, hash_many_dyn_from_state, zero_prefix_state};
 use serde::{Deserialize, Serialize};
+use std::mem::MaybeUninit;
 
 pub type Hash = [u8; 32];
 
@@ -49,6 +51,166 @@ pub fn hash_pair(left: &Hash, right: &Hash) -> Hash {
     buf[..32].copy_from_slice(left);
     buf[32..].copy_from_slice(right);
     primitives::hash::hash(&buf)
+}
+
+/// Bytes of the staging tile for leaves whose zero padding does not end on a hash block boundary.
+const STAGE_TILE_BYTES: usize = 16 << 10;
+
+/// How rows become leaf digests: each leaf image is `zeros(leaf_bytes - row_bytes) || row`.
+///
+/// The image's whole hash blocks of leading zeros are one chaining value, computed once for every leaf.
+///
+/// The committer and the native verifier hash leaves through it alike.
+pub struct LeafHasher(LeafShape);
+
+/// The hashing plan for one leaf shape, chosen once.
+enum LeafShape {
+    /// The padding is whole blocks, so past the shared prefix each row is its own image, hashed where it lies.
+    Direct {
+        /// Bytes of a row.
+        row_bytes: usize,
+        /// The chaining value after the zero blocks.
+        state: [u32; 8],
+        /// Bytes the zero blocks account for, the hash counter's start.
+        t_offset: u64,
+    },
+    /// Some padding remains past the zero blocks, so rows are zero-extended in a tile first.
+    ///
+    /// The copy also aligns each image to whole cache lines, which the hasher's loads want.
+    Staged {
+        /// Bytes of a row.
+        row_bytes: usize,
+        /// Bytes of the image past the zero blocks: the remaining padding, then the row.
+        image: usize,
+        /// The chaining value after the zero blocks.
+        state: [u32; 8],
+        /// Bytes the zero blocks account for, the hash counter's start.
+        t_offset: u64,
+    },
+    /// Leaves of no whole number of blocks: one at a time, zero-extended to `leaf_bytes`.
+    Single {
+        /// Bytes of a row.
+        row_bytes: usize,
+        /// Bytes of a leaf image.
+        leaf_bytes: usize,
+    },
+}
+
+impl LeafHasher {
+    /// The hasher for rows of `row_bytes` in leaf images of `leaf_bytes`.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless `0 < row_bytes <= leaf_bytes`, and a staged image fits the tile.
+    pub fn new(row_bytes: usize, leaf_bytes: usize) -> Self {
+        assert!(0 < row_bytes && row_bytes <= leaf_bytes, "a leaf holds its row");
+        if !leaf_bytes.is_multiple_of(BLOCK_LEN) {
+            assert!(
+                row_bytes == leaf_bytes || leaf_bytes <= STAGE_TILE_BYTES,
+                "a padded leaf fits the tile"
+            );
+            return Self(LeafShape::Single { row_bytes, leaf_bytes });
+        }
+        let zero_blocks = (leaf_bytes - row_bytes) / BLOCK_LEN;
+        let (state, t_offset) = (zero_prefix_state(zero_blocks), (zero_blocks * BLOCK_LEN) as u64);
+        let image = leaf_bytes - zero_blocks * BLOCK_LEN;
+        if image == row_bytes {
+            Self(LeafShape::Direct {
+                row_bytes,
+                state,
+                t_offset,
+            })
+        } else {
+            assert!(image <= STAGE_TILE_BYTES, "a padded leaf fits the tile");
+            Self(LeafShape::Staged {
+                row_bytes,
+                image,
+                state,
+                t_offset,
+            })
+        }
+    }
+
+    /// Bytes of a row.
+    pub const fn row_bytes(&self) -> usize {
+        match self.0 {
+            LeafShape::Direct { row_bytes, .. }
+            | LeafShape::Staged { row_bytes, .. }
+            | LeafShape::Single { row_bytes, .. } => row_bytes,
+        }
+    }
+
+    /// Hash one leaf per row into `out`.
+    pub fn hash(&self, rows: &[u8], out: &mut [MaybeUninit<Hash>]) {
+        match self.0 {
+            LeafShape::Direct {
+                row_bytes,
+                state,
+                t_offset,
+            } => {
+                hash_many_dyn_from_state(rows, row_bytes, &state, t_offset, digests_as_bytes(out));
+            }
+            LeafShape::Staged {
+                row_bytes,
+                image,
+                state,
+                t_offset,
+            } => {
+                // Images per tile: whole hash batches where the tile holds at least one batch.
+                let per_tile = STAGE_TILE_BYTES / image;
+                let per_tile = if per_tile >= BATCH {
+                    per_tile - per_tile % BATCH
+                } else {
+                    per_tile
+                };
+                let mut tile = Tile::new();
+                for (out, rows) in out.chunks_mut(per_tile).zip(rows.chunks(per_tile * row_bytes)) {
+                    let images = tile.extend(rows, row_bytes, image);
+                    hash_many_dyn_from_state(images, image, &state, t_offset, digests_as_bytes(out));
+                }
+            }
+            LeafShape::Single { row_bytes, leaf_bytes } if row_bytes == leaf_bytes => {
+                for (slot, row) in out.iter_mut().zip(rows.chunks_exact(row_bytes)) {
+                    slot.write(hash_leaf(row));
+                }
+            }
+            LeafShape::Single { row_bytes, leaf_bytes } => {
+                let mut tile = Tile::new();
+                for (slot, row) in out.iter_mut().zip(rows.chunks_exact(row_bytes)) {
+                    slot.write(hash_leaf(tile.extend(row, row_bytes, leaf_bytes)));
+                }
+            }
+        }
+    }
+}
+
+/// A zeroed staging buffer of `STAGE_TILE_BYTES`.
+struct Tile([u64; STAGE_TILE_BYTES / 8]);
+
+impl Tile {
+    const fn new() -> Self {
+        Self([0; STAGE_TILE_BYTES / 8])
+    }
+
+    /// Lay each `row_bytes` row at the end of its own `image`-byte slot, and return the slots.
+    ///
+    /// - Invariant: one tile serves one `(row_bytes, image)` shape.
+    /// - So the bytes before each row are never written, and stay zero.
+    fn extend(&mut self, rows: &[u8], row_bytes: usize, image: usize) -> &[u8] {
+        // SAFETY: the view covers exactly the tile's bytes, and any bytes written form valid u64 words.
+        let tile: &mut [u8] = unsafe { std::slice::from_raw_parts_mut(self.0.as_mut_ptr().cast(), STAGE_TILE_BYTES) };
+        let n = rows.len() / row_bytes;
+        for (slot, row) in tile.chunks_exact_mut(image).zip(rows.chunks_exact(row_bytes)) {
+            slot[image - row_bytes..].copy_from_slice(row);
+        }
+        &tile[..n * image]
+    }
+}
+
+/// The digest slots as the bytes a hasher writes.
+const fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
+    // SAFETY: a digest is 32 bytes with no padding, and the hasher only writes.
+    unsafe { std::slice::from_raw_parts_mut(out.as_mut_ptr().cast(), out.len() * OUT_LEN) }
 }
 
 /// Restore a stored row's omitted zero prefix.
@@ -142,12 +304,17 @@ impl PrunedMerklePaths {
         if sorted.len() != self.leaf_data.len() || row_words > leaf_words {
             return None;
         }
-        let hashes = self
-            .leaf_data
-            .iter()
-            .map(|row| (row.len() == row_words).then(|| hash_words(&leaf_image(row, leaf_words))))
-            .collect::<Option<Vec<_>>>()?;
-        Some((sorted, hashes))
+        if self.leaf_data.iter().any(|row| row.len() != row_words) {
+            return None;
+        }
+        // The rows, one after another, hashed as the committer hashed them: zero prefix shared, leaves batched.
+        let bytes: Vec<u8> = (self.leaf_data.iter().flatten())
+            .flat_map(|word| word.0.to_le_bytes())
+            .collect();
+        let mut hashes = Box::new_uninit_slice(self.leaf_data.len());
+        LeafHasher::new(8 * row_words, 8 * leaf_words).hash(&bytes, &mut hashes);
+        // SAFETY: the hasher wrote one digest per row.
+        Some((sorted, unsafe { hashes.assume_init() }.into_vec()))
     }
 
     /// Verifier side: authenticate this phase against `root` and expand it into

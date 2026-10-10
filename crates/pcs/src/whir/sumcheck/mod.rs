@@ -3,9 +3,9 @@
 // Modifications copyright 2026 Succinct Labs, Benedikt Bunz, William Wang
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! The opening's sumcheck prover: its round messages, the fold kernels, and the
-//! running claim every level's queries are batched into. The first lane rounds
-//! come out of one pass, in [`first_pass`].
+//! The opening's sumcheck prover: round messages, fold kernels, and the running claim each level's queries join.
+//!
+//! The first lane rounds' messages come from one pass over the witness and the initial weight, in a submodule.
 
 use core::ops::BitXorAssign;
 use fiat_shamir::transcript::Transmitter;
@@ -17,75 +17,72 @@ use primitives::field::{F192x4, F192x4Unreduced};
 use primitives::multilinear::eq_table;
 use primitives::stream::Stream;
 use std::mem::MaybeUninit;
-use std::ops::Add;
 use std::sync::Arc;
 
 mod first_pass;
 
-pub(crate) use first_pass::{InitialRounds, initial_rounds, initial_rounds_virtual};
+use first_pass::{InitialRounds, first_pass};
 
-// Tuning constants
-//
-// Prover-side work sizes, gathered here so they can be found and tuned together.
+// Tuning constants: prover-side work sizes, kept in one place so they are tuned together.
 // The round messages do not depend on them.
 
-/// Lane rounds whose messages come out of [`first_pass`].
+/// Lane rounds whose messages the first pass precomputes.
 const PRECOMPUTED_ROUNDS: usize = 4;
 
 /// Work items below which a loop runs on the calling thread, where dispatch costs more than the work.
 const PAR_THRESHOLD: usize = 4096;
 
-/// [`PAR_THRESHOLD`] for the first pass, counted in words over all its lanes.
+/// The same threshold for the first pass, counted in words over all its lanes.
 const FIRST_PASS_PAR_THRESHOLD: usize = 8192;
 
-/// Elements per task wherever a round is chunked: the fused adjacent-pair fold,
-/// and the lane rounds, whose block is the whole L0 message divided by the
-/// interleaving and so has to be fed to the pool from inside a block pair rather
-/// than across them.
+/// Elements per task wherever a round is chunked: the adjacent-pair fold and the lane rounds.
+///
+/// A lane block is the whole witness divided by the lane count, so its tasks must split inside a block pair.
 const ROUND_CHUNK: usize = 2048;
 
-/// Words of the initial weight one fill call writes: a chunk, aligned to its size.
+/// Words of the initial weight one fill call writes: one chunk, aligned to its size.
 ///
-/// A lane block below this size is filled whole.
+/// A lane block smaller than this is filled whole.
 pub(crate) const INITIAL_BASIS_CHUNK: usize = 256;
 
-/// Elements a stored (dense) weight's lane fold stages in L1 before publishing them.
-const DENSE_STAGE: usize = 128;
-
-/// SIMD pool sizes up to which the first pass writes out a regenerated weight for the first fold.
-const KEEP_WEIGHT_MAX_THREADS: usize = 4;
-// Stateful sumcheck over E with a two-phase (Base then Ext) witness
+// Sumcheck over `E`, the witness in `K` until the first fold and in `E` after it.
 //
-// Each round sends (u_0, u_2) of the quadratic
-// q(X) = u_0 + u_1 X + u_2 X^2 with q(0) + q(1) = T_r, verifier derives
-// u_1 = T_r + u_2 (char 2), round eval q(r) = u_0 + r T_r + (r + r^2) u_2.
+// A round's polynomial is `h(X) = u_0 + u_1 X + u_2 X^2`, with `h(0) + h(1) = T_r` the running claim.
+// The prover sends `u_0` and `u_2`; in characteristic 2 the verifier derives `u_1 = T_r + u_2`, and then:
 //
-// Round 0 pairs the K-witness with the E-basis via `mul_base`; the first fold
-// lifts the witness into E and all later rounds are pure E.
+//     h(r) = u_0 + r T_r + (r + r^2) u_2
+//
+// The lane rounds pair the `K` witness with the `E` weight by mixed products; their fold lifts the witness to `E`.
 
-/// (u_0, u_2) per round in E.
+/// One round's message, both coefficients in `E`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct SumcheckMessage {
+    /// `h(0)`, the constant coefficient.
     u_0: F192,
+    /// The coefficient of `X^2`, also written `h(inf)`.
     u_2: F192,
 }
 
-/// Transmit the constant and quadratic coefficients; the claim fixes the linear coefficient.
+/// Sends the constant and quadratic coefficients; the claim fixes the linear one, so it is not sent.
 pub(super) fn send_msg(ps: &mut impl Transmitter, m: SumcheckMessage, claim: F192) {
     ps.add_round_poly(&[m.u_0, claim + m.u_2, m.u_2], false);
 }
 
-/// Round-quadratic in coefficient form `c + b X + a X^2`, the prover's copy of the verifier's running round.
+/// A round's quadratic `c + b X + a X^2`: the prover's copy of the verifier's running round.
 #[derive(Clone, Copy, Debug)]
 pub(super) struct RoundQuad {
-    c: F192, // u_0
-    b: F192, // u_1 (X coeff), derived from T_r and u_2
-    a: F192, // u_2 (X^2 coeff)
+    /// `u_0`, the constant coefficient.
+    c: F192,
+    /// `u_1`, the linear coefficient, derived from the claim and `u_2`.
+    b: F192,
+    /// `u_2`, the quadratic coefficient.
+    a: F192,
 }
 
 impl RoundQuad {
-    /// The quadratic a round message stands for, given the claim it answers:
-    /// `h(0) + h(1) = claim` fixes the linear coefficient.
+    /// The quadratic a message stands for, given the claim `t_r` it answers.
+    ///
+    /// `h(0) + h(1) = t_r` fixes the linear coefficient.
     #[inline]
     pub(super) fn from_msg(msg: SumcheckMessage, t_r: F192) -> Self {
         Self {
@@ -94,10 +91,12 @@ impl RoundQuad {
             a: msg.u_2,
         }
     }
+    /// `h(r)`, by Horner's rule.
     #[inline]
     pub(super) fn eval(&self, r: F192) -> F192 {
         (self.a * r + self.b) * r + self.c
     }
+    /// `p1 + alpha * p2`, coefficient by coefficient: two claims' quadratics batched by `alpha`.
     #[inline]
     pub(super) fn fold(p1: &Self, p2: &Self, alpha: F192) -> Self {
         Self {
@@ -108,150 +107,56 @@ impl RoundQuad {
     }
 }
 
-/// Sumcheck witness element: `F64` before the first fold (each product against
-/// the E basis is a mixed `mul_base`, 2 PMULL), `F192` after it (full E
-/// products, 3 PMULL). The associated accumulator is the matching
-/// deferred-reduction type.
-trait RoundWitness: Copy + Sync + Add<Output = Self> {
-    type Acc: Copy + Send + BitXorAssign;
-    const ZERO_ACC: Self::Acc;
-    fn mul_basis_unreduced(self, b: F192) -> Self::Acc;
-    fn reduce(acc: Self::Acc) -> F192;
-    /// Characteristic-two interpolation `x0·(1+r) + x1·r = x0 + r·(x0+x1)`,
-    /// lifting the witness into E. One product rather than two, bit-identical
-    /// to the two-product form and still just one reduction.
-    fn fold_pair(x0: Self, x1: Self, r: F192) -> F192;
-    /// [`Self::fold_pair`] against an absent partner: the lane rounds pair the
-    /// last committed lane with the stacked witness's zero padding, so the
-    /// interpolation collapses to `x0·(1+r)`.
-    fn fold_lone(x0: Self, r: F192) -> F192;
-    /// Add `e·x` over one lane's window `xs` to a fold of several lane bits at once.
-    fn add_weighted_lane(acc: &mut WeightFold, e: &LaneWeight, xs: &[Self]);
-
-    /// The fold of each pair of a run, handed out with its index.
-    #[inline(always)]
-    fn fold_pairs(
-        n: usize,
-        x0: impl Fn(usize) -> Self,
-        x1: impl Fn(usize) -> Self,
-        r: F192,
-        mut out: impl FnMut(usize, F192),
-    ) {
-        for i in 0..n {
-            out(i, Self::fold_pair(x0(i), x1(i), r));
-        }
-    }
-
-    /// A round message's unreduced coefficients over a run of witness pairs and the weight pairs beside them.
-    #[inline(always)]
-    fn pair_terms(
-        n: usize,
-        x0: impl Fn(usize) -> Self,
-        x1: impl Fn(usize) -> Self,
-        y0: impl Fn(usize) -> F192,
-        y1: impl Fn(usize) -> F192,
-    ) -> (Self::Acc, Self::Acc) {
-        let (mut u_0, mut u_2) = (Self::ZERO_ACC, Self::ZERO_ACC);
-        for i in 0..n {
-            u_0 ^= x0(i).mul_basis_unreduced(y0(i));
-            u_2 ^= (x0(i) + x1(i)).mul_basis_unreduced(y0(i) + y1(i));
-        }
-        (u_0, u_2)
-    }
-}
-
-impl RoundWitness for F64 {
-    type Acc = F192Unreduced;
-    const ZERO_ACC: Self::Acc = F192Unreduced::ZERO;
-    #[inline]
-    fn mul_basis_unreduced(self, b: F192) -> Self::Acc {
-        b.mul_base_unreduced(self)
-    }
-    #[inline]
-    fn reduce(acc: Self::Acc) -> F192 {
-        acc.reduce()
-    }
-    #[inline]
-    fn fold_pair(x0: Self, x1: Self, r: F192) -> F192 {
-        F192::from(x0) + r.mul_base(x0 + x1)
-    }
-    #[inline]
-    fn fold_lone(x0: Self, r: F192) -> F192 {
-        F192::from(x0) + r.mul_base(x0)
-    }
-    #[inline]
-    fn add_weighted_lane(acc: &mut WeightFold, e: &LaneWeight, xs: &[Self]) {
-        acc.add_base(e, xs);
-    }
-}
-
-impl RoundWitness for F192 {
-    type Acc = F192Unreduced;
-    const ZERO_ACC: Self::Acc = F192Unreduced::ZERO;
-    #[inline]
-    fn mul_basis_unreduced(self, b: F192) -> Self::Acc {
-        self.mul_unreduced(b)
-    }
-    #[inline]
-    fn reduce(acc: Self::Acc) -> F192 {
-        acc.reduce()
-    }
-    #[inline]
-    fn fold_pair(x0: Self, x1: Self, r: F192) -> F192 {
-        x0 + r * (x0 + x1)
-    }
-    #[inline]
-    fn fold_lone(x0: Self, r: F192) -> F192 {
-        x0 + r * x0
-    }
-    #[inline]
-    fn add_weighted_lane(acc: &mut WeightFold, e: &LaneWeight, xs: &[Self]) {
-        acc.add(e, xs);
-    }
-
-    /// Four pairs at a time in vector lanes, where the target has them.
-    #[inline(always)]
-    fn fold_pairs(
-        n: usize,
-        x0: impl Fn(usize) -> Self,
-        x1: impl Fn(usize) -> Self,
-        r: F192,
-        mut out: impl FnMut(usize, Self),
-    ) {
-        #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-        let done = {
-            let r4 = F192x4::splat(r);
-            for i in (0..n / 4 * 4).step_by(4) {
-                let (a, b) = (lanes(&x0, i), lanes(&x1, i));
-                for (k, v) in (a + r4 * (a + b)).to_array().into_iter().enumerate() {
-                    out(i + k, v);
-                }
-            }
-            n / 4 * 4
-        };
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
-        let done = 0;
-        for i in done..n {
-            out(i, Self::fold_pair(x0(i), x1(i), r));
-        }
-    }
-
-    #[inline(always)]
-    fn pair_terms(
-        n: usize,
-        x0: impl Fn(usize) -> Self,
-        x1: impl Fn(usize) -> Self,
-        y0: impl Fn(usize) -> Self,
-        y1: impl Fn(usize) -> Self,
-    ) -> (Self::Acc, Self::Acc) {
-        let [u_0, u_2, _] = pair_sums::<false>(n, x0, x1, y0, y1);
-        (u_0, u_2)
-    }
-}
-
-/// Unreduced sums over a run of pairs: of `x0·y0`, of `(x0 + x1)·(y0 + y1)`, and of `x1·y1` when asked (zero otherwise).
+/// Folds each pair of a run at `r`, handing `x0 + r * (x0 + x1)` to `out` with its index.
 ///
-/// Four pairs at a time in vector lanes, where the target has them.
+/// That is the line through `x0` at 0 and `x1` at 1, evaluated at `r`.
+/// It takes four pairs at a time in vector lanes where the target has them.
+#[inline(always)]
+fn fold_pairs(
+    n: usize,
+    x0: impl Fn(usize) -> F192,
+    x1: impl Fn(usize) -> F192,
+    r: F192,
+    mut out: impl FnMut(usize, F192),
+) {
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+    let done = {
+        let r4 = F192x4::splat(r);
+        for i in (0..n / 4 * 4).step_by(4) {
+            let (a, b) = (lanes(&x0, i), lanes(&x1, i));
+            for (k, v) in (a + r4 * (a + b)).to_array().into_iter().enumerate() {
+                out(i + k, v);
+            }
+        }
+        n / 4 * 4
+    };
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+    let done = 0;
+    for i in done..n {
+        let (a, b) = (x0(i), x1(i));
+        out(i, a + r * (a + b));
+    }
+}
+
+/// A round message's unreduced coefficients over a run of witness pairs `(x0, x1)` and weight pairs `(y0, y1)`.
+///
+/// The sum of `x0 * y0` is `h(0)`, and the sum of `(x0 + x1) * (y0 + y1)` is `h(inf)`.
+#[inline(always)]
+fn pair_terms(
+    n: usize,
+    x0: impl Fn(usize) -> F192,
+    x1: impl Fn(usize) -> F192,
+    y0: impl Fn(usize) -> F192,
+    y1: impl Fn(usize) -> F192,
+) -> (F192Unreduced, F192Unreduced) {
+    let [u_0, u_2, _] = pair_sums::<false>(n, x0, x1, y0, y1);
+    (u_0, u_2)
+}
+
+/// Unreduced sums over a run of pairs: of `x0 * y0`, of `(x0 + x1) * (y0 + y1)`, and of `x1 * y1`.
+///
+/// The third sum is computed only when `ODD` is set, and is zero otherwise.
+/// It takes four pairs at a time in vector lanes where the target has them.
 #[inline(always)]
 fn pair_sums<const ODD: bool>(
     n: usize,
@@ -296,22 +201,20 @@ fn lanes(v: &impl Fn(usize) -> F192, i: usize) -> F192x4 {
     F192x4::new(std::array::from_fn(|k| v(i + k)))
 }
 
-/// Round message over a witness `f` and an E basis `b`. Mirror of
-/// `whir::round_msg_lsb`.
+/// The round message over a witness `f` and a weight `b`, both in `E`, pairing adjacent words.
 ///
-/// Deferred reduction: XOR-accumulate the raw lane products (no reduction tail
-/// per term) and reduce once per accumulator. Reduction commutes with XOR, so
-/// the message is bit-identical to reducing every term.
-fn round_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192]) -> SumcheckMessage {
+/// Products accumulate unreduced, combined by XOR, and each sum is reduced once.
+/// Reduction is linear, so the message equals the one with every product reduced.
+fn round_msg_lsb(f: &[F192], b: &[F192]) -> SumcheckMessage {
     let n = f.len();
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
 
     let half = n / 2;
-    let task = |t: usize| -> (T::Acc, T::Acc) {
+    let task = |t: usize| {
         let base = t * ROUND_CHUNK;
         let (f, b) = (&f[2 * base..], &b[2 * base..]);
-        T::pair_terms(
+        pair_terms(
             ROUND_CHUNK.min(half - base),
             |j| f[2 * j],
             |j| f[2 * j + 1],
@@ -319,15 +222,16 @@ fn round_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192]) -> SumcheckMessage {
             |j| b[2 * j + 1],
         )
     };
-    let (u_0, u_2) = accumulate_msg(half.div_ceil(ROUND_CHUNK), half, T::ZERO_ACC, task);
+    let (u_0, u_2) = accumulate_msg(half.div_ceil(ROUND_CHUNK), half, task);
     SumcheckMessage {
-        u_0: T::reduce(u_0),
-        u_2: T::reduce(u_2),
+        u_0: u_0.reduce(),
+        u_2: u_2.reduce(),
     }
 }
 
-/// Build the round message and the full inner product in one pass. For an OOD
-/// basis `b = eq(z, ·)`, the inner product is the claimed MLE evaluation.
+/// The round message and the full inner product `sum_x f(x) * b(x)`, in one pass.
+///
+/// For an out-of-domain weight `b = eq(z, .)`, the inner product is the claimed evaluation `MLE(f)(z)`.
 fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192) {
     let n = f.len();
     debug_assert!(n.is_power_of_two() && n >= 2);
@@ -360,12 +264,12 @@ fn round_msg_and_eval_lsb_ext(f: &[F192], b: &[F192]) -> (SumcheckMessage, F192)
     (SumcheckMessage { u_0, u_2 }, y)
 }
 
-/// Unreduced `(u_0, u_2)` over the already-folded E buffers, pair by pair. A
-/// trailing odd element contributes nothing, exactly as in the pre-fold
-/// message: at the last round `half = 1` and the message is zero.
+/// Unreduced `(u_0, u_2)` over folded `E` buffers, pairing adjacent words.
+///
+/// A trailing odd word adds nothing, so when the fold leaves a single word the message is zero.
 #[inline]
 fn fold_msg_terms(nf: &[F192], nb: &[F192]) -> (F192Unreduced, F192Unreduced) {
-    F192::pair_terms(
+    pair_terms(
         nf.len() / 2,
         |k| nf[2 * k],
         |k| nf[2 * k + 1],
@@ -374,10 +278,12 @@ fn fold_msg_terms(nf: &[F192], nb: &[F192]) -> (F192Unreduced, F192Unreduced) {
     )
 }
 
-/// Fused fold + next-round message: the witness folds into E, the basis folds
-/// in E, and the next-round message is built over the freshly folded E values
-/// in the same pass. Mirror of `whir::fold_and_msg_lsb`.
-fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
+/// Folds the witness and the weight at `r` by adjacent pairs, and builds the next round's message in the same pass.
+///
+/// # Returns
+///
+/// The folded witness, the folded weight, and the message over them.
+fn fold_and_msg_lsb(f: &[F192], b: &[F192], r: F192) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
     let n = f.len();
     debug_assert!(n.is_power_of_two() && n >= 2);
     debug_assert_eq!(b.len(), n);
@@ -386,8 +292,8 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
     // Fold a window of pairs of the witness and of the weight.
     let fold = |base: usize, fc: &mut [MaybeUninit<F192>], bc: &mut [MaybeUninit<F192>]| {
         let (f, b) = (&f[2 * base..], &b[2 * base..]);
-        T::fold_pairs(fc.len(), |j| f[2 * j], |j| f[2 * j + 1], r, |j, v| _ = fc[j].write(v));
-        F192::fold_pairs(bc.len(), |j| b[2 * j], |j| b[2 * j + 1], r, |j, v| _ = bc[j].write(v));
+        fold_pairs(fc.len(), |j| f[2 * j], |j| f[2 * j + 1], r, |j, v| _ = fc[j].write(v));
+        fold_pairs(bc.len(), |j| b[2 * j], |j| b[2 * j + 1], r, |j, v| _ = bc[j].write(v));
     };
     if half < PAR_THRESHOLD {
         let mut nf = Vec::with_capacity(half);
@@ -413,13 +319,11 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
         );
     }
 
-    // Parallel path: `half` is a power of two >= PAR_THRESHOLD and ROUND_CHUNK is a
-    // power of two, so every chunk has even length and starts at an even
-    // global index (message pairs never straddle a chunk boundary).
+    // Parallel path: `half` and `ROUND_CHUNK` are powers of two, and `half >= PAR_THRESHOLD >= ROUND_CHUNK`.
+    // So every chunk is whole and starts at an even index: no message pair straddles two chunks.
     let mut nf = Box::new_uninit_slice(half);
     let mut nb = Box::new_uninit_slice(half);
-    // The fold writes and the message accumulate share one pass per chunk, so
-    // the freshly folded values are still in L1 when they are multiplied.
+    // Why: each chunk folds, then accumulates its message, so the folded values are still in L1 when multiplied.
     let nf_base = SendPtr(nf.as_mut_ptr());
     let nb_base = SendPtr(nb.as_mut_ptr());
     let (u_0, u_2) = parallel::map_reduce(
@@ -443,7 +347,7 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
             (a0, a2)
         },
     );
-    // SAFETY: the tasks wrote every slot of both, one output per pair or group of input blocks.
+    // SAFETY: the tasks wrote every slot of both, one output per pair of inputs.
     let (nf, nb) = unsafe { (nf.assume_init().into_vec(), nb.assume_init().into_vec()) };
     (
         nf,
@@ -455,83 +359,89 @@ fn fold_and_msg_lsb<T: RoundWitness>(f: &[T], b: &[F192], r: F192) -> (Vec<F192>
     )
 }
 
-// Lane rounds: the L0 fold binds whole lanes, not adjacent words
+// Lane rounds: the first `initial_k` rounds bind whole lanes, not adjacent words.
 //
-// The committed witness is stored lane-major (lane `l` is the contiguous stack
-// block `q[l·H .. (l+1)·H)`, `H = 2^(log_n − initial_k)`), because that is what
-// makes the stacked witness's zero padding whole lanes and lets the commitment
-// leave them out entirely. The first `initial_k` sumcheck rounds are therefore
-// the lane fold: round `j` binds lane bit `j`, pairing block `2i` with block
-// `2i+1`, and an odd block count pairs the last one with the absent zero
-// padding. After them the buffer is one `H`-element block and every later round
-// is the ordinary adjacent-pair fold.
+// The committed witness is lane-major: lane `l` is the stack block `q[l * H .. (l + 1) * H)`.
+// Here `H = 2^(log_n - initial_k)`, and the layout makes the stack's zero padding whole lanes the commitment omits.
+//
+// - Round `j` binds lane bit `j`, pairing block `2i` with block `2i + 1` of the current buffer.
+// - With an odd block count, the last block pairs with the absent zero padding.
+// - After these rounds one `H`-word block is left, and every later round folds adjacent pairs.
 
-/// Sum the per-task `(u_0, u_2)` accumulators, sequentially for the small
-/// instances where dispatch costs more than the work. Unreduced accumulators
-/// combine by XOR and `reduce` is linear, so both paths land on the same message.
+/// The sum of the tasks' `(u_0, u_2)` accumulators, on the calling thread when there are few pairs.
+///
+/// Unreduced accumulators combine by XOR and reduction is linear, so both paths give the same message.
 #[inline]
-fn accumulate_msg<A: Copy + Send + BitXorAssign>(
+fn accumulate_msg<A: Copy + Send + BitXorAssign + Default>(
     n_tasks: usize,
     n_pairs: usize,
-    zero: A,
     task: impl Fn(usize) -> (A, A) + Sync,
 ) -> (A, A) {
+    let xor = |(mut a0, mut a2): (A, A), (c0, c2): (A, A)| {
+        a0 ^= c0;
+        a2 ^= c2;
+        (a0, a2)
+    };
     if n_pairs < PAR_THRESHOLD {
-        let mut u_0 = zero;
-        let mut u_2 = zero;
-        for t in 0..n_tasks {
-            let (t0, t2) = task(t);
-            u_0 ^= t0;
-            u_2 ^= t2;
-        }
-        (u_0, u_2)
+        (0..n_tasks).map(task).fold((A::default(), A::default()), xor)
     } else {
-        parallel::map_reduce(
-            n_tasks,
-            || (zero, zero),
-            task,
-            |(mut a0, mut a2), (c0, c2)| {
-                a0 ^= c0;
-                a2 ^= c2;
-                (a0, a2)
-            },
-        )
+        parallel::map_reduce(n_tasks, || (A::default(), A::default()), task, xor)
     }
 }
 
-/// `(u_0, u_2)` over one pair of blocks, elementwise.
+/// Unreduced `(u_0, u_2)` over one pair of blocks, word `i` of one against word `i` of the other.
+///
+/// # Panics
+///
+/// If the four slices differ in length.
 #[inline]
-fn msg_terms_pair<T: RoundWitness>(f0: &[T], f1: &[T], b0: &[F192], b1: &[F192]) -> (T::Acc, T::Acc) {
+fn msg_terms_pair(f0: &[F192], f1: &[F192], b0: &[F192], b1: &[F192]) -> (F192Unreduced, F192Unreduced) {
     let n = f0.len();
     assert!(f1.len() == n && b0.len() == n && b1.len() == n);
-    T::pair_terms(n, |i| f0[i], |i| f1[i], |i| b0[i], |i| b1[i])
+    pair_terms(n, |i| f0[i], |i| f1[i], |i| b0[i], |i| b1[i])
 }
 
-/// [`msg_terms_pair`] against an absent partner block. With `f1 = b1 = 0` both
-/// `h(0)` and `h(inf)` collect the same `Σ f0·b0`, so this is NOT a no-op the way
-/// a trailing odd element is in an adjacent-pair round.
+/// Unreduced `(u_0, u_2)` over a block whose partner is the absent zero padding.
+///
+/// With `f1 = b1 = 0`, both `h(0)` and `h(inf)` are `sum f0 * b0`.
+/// So a lone block is not a no-op, unlike a trailing odd word in an adjacent-pair round.
 #[inline]
-fn msg_terms_lone<T: RoundWitness>(f0: &[T], b0: &[F192]) -> (T::Acc, T::Acc) {
-    let mut u = T::ZERO_ACC;
+fn msg_terms_lone(f0: &[F192], b0: &[F192]) -> (F192Unreduced, F192Unreduced) {
+    let mut u = F192Unreduced::ZERO;
     for (&x0, &y0) in f0.iter().zip(b0) {
-        u ^= x0.mul_basis_unreduced(y0);
+        u ^= x0.mul_unreduced(y0);
     }
     (u, u)
 }
 
-/// The opening's initial weight, regenerated one aligned chunk at a time.
+/// The opening's initial weight, never stored whole.
 ///
-/// Called as `fill(start, out)`, it writes the weights of words `start..start + out.len()`.
-pub(crate) type BasisFill<'a> = dyn Fn(usize, &mut [F192]) + Sync + 'a;
+/// - The first pass reads it one aligned chunk at a time.
+/// - The first fold reads it folded over its lane bits, which its claims give in closed form.
+pub(crate) trait InitialWeight: Sync {
+    /// Writes the weights of words `start..start + out.len()` into `out`.
+    ///
+    /// The window is one chunk of `INITIAL_BASIS_CHUNK` words, aligned to its size.
+    /// When a lane block is smaller than a chunk, the window is one whole block.
+    fn fill(&self, start: usize, out: &mut [F192]);
+
+    /// The weight folded over its lowest `|rs|` lane bits at the challenges `rs`, absent lanes counting as zero.
+    ///
+    /// ```text
+    ///     word x of output block o  =  sum_j eq(rs, j) * w((o * 2^|rs| + j) * block + x)
+    /// ```
+    ///
+    /// - `block` is the lane block length, and bit `i` of `j` meets `rs[i]`.
+    /// - The output has `ceil(n_lanes / 2^|rs|)` blocks.
+    fn fold_lanes(&self, rs: &[F192]) -> Vec<F192>;
+}
 
 /// The weight the opening's sumcheck folds against.
 pub(crate) enum Basis<'a> {
-    /// One E value per word, in memory.
+    /// The initial weight, read by the first pass and folded by the first fold.
+    Initial(&'a dyn InitialWeight),
+    /// One E value per word, in memory: every weight after the first fold.
     Dense(Vec<F192>),
-    /// Regenerated when read, by chunks of the initial fill size.
-    ///
-    /// Only the first pass and the first fold read it.
-    Virtual(&'a BasisFill<'a>),
 }
 
 impl Basis<'_> {
@@ -539,172 +449,102 @@ impl Basis<'_> {
     ///
     /// # Panics
     ///
-    /// Panics before the first fold has folded a regenerated weight.
+    /// Panics before the first fold.
     fn dense(&self) -> &Vec<F192> {
         match self {
             Basis::Dense(b) => b,
-            Basis::Virtual(_) => panic!("the regenerated weight is read by the first fold only"),
+            Basis::Initial(_) => panic!("the initial weight is read folded"),
         }
     }
 
     /// The weight in memory, to update.
+    ///
+    /// # Panics
+    ///
+    /// Panics before the first fold.
     fn dense_mut(&mut self) -> &mut Vec<F192> {
         match self {
             Basis::Dense(b) => b,
-            Basis::Virtual(_) => panic!("the regenerated weight is read by the first fold only"),
+            Basis::Initial(_) => panic!("the initial weight is read folded"),
         }
     }
 }
 
-/// A window of the weight: sliced from memory, or refilled into a scratch of its own.
-fn window<'r>(b: &'r Basis<'_>, raw: &'r mut [F192; INITIAL_BASIS_CHUNK], at: usize, len: usize) -> &'r [F192] {
-    match b {
-        Basis::Dense(b) => &b[at..at + len],
-        Basis::Virtual(fill) => {
-            fill(at, &mut raw[..len]);
-            &raw[..len]
-        }
-    }
-}
+/// Words a lane round's fold stages in L1 before publishing them.
+const STAGE: usize = INITIAL_BASIS_CHUNK;
 
-/// Fused lane fold + next-round message. Mirror of [`fold_and_msg_lsb`] for the
-/// block pairing: `rs` binds the next `rs.len()` lane bits, so `2^rs.len()` input
-/// blocks fold into each output block, and a task owns one output *pair*, because
-/// that is the smallest unit the next round's message is local to.
+/// One lane round's witness fold, and the next round's message against the already folded weight `nb`.
 ///
-/// `last` says this is the final lane round, so the round after it pairs adjacent
-/// elements of the single output block rather than another pair of blocks. Which
-/// pairing comes next is what lets the message be built here, while the folded
-/// values are still in L1.
-fn fold_and_msg_blocks<T: RoundWitness>(
-    f: &[T],
-    b: &Basis<'_>,
-    rs: &[F192],
+/// # Arguments
+///
+/// - `n_out`: the number of output blocks, each of `block` words.
+/// - `nb`: the folded weight, `n_out * block` words.
+/// - `last`: the next round pairs adjacent words of the single output block, not two blocks.
+/// - `fold_window(out_blk, x0, stage)`: writes the folded witness of words `x0..x0 + stage.len()` of block `out_blk`.
+///
+/// A task owns one `ROUND_CHUNK` window of one output pair of blocks, the unit the next message is local to.
+///
+/// The witness folds into an L1 stage, which the message reads, and the stage goes out by streaming stores.
+/// Why: nothing reads the destination again before the next round.
+///
+/// # Panics
+///
+/// If `nb` is not `n_out * block` words, or if `last` is set with more than one output block.
+fn fold_witness_and_msg(
+    n_out: usize,
     block: usize,
+    nb: &[F192],
     last: bool,
-) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
-    if let Basis::Dense(b) = b {
-        assert_eq!(b.len(), f.len());
-    }
-    assert!(block > 0 && f.len().is_multiple_of(block));
-    assert!(!rs.is_empty());
-    let n_in = f.len() / block;
-    let n_out = n_in.div_ceil(1 << rs.len());
-    // Adjacent pairing next round is only possible once the lanes have collapsed
-    // to a single block.
+    fold_window: impl Fn(usize, usize, &mut [F192]) + Sync,
+) -> (Vec<F192>, SumcheckMessage) {
+    assert_eq!(nb.len(), n_out * block);
+    // Adjacent pairing next round is only possible once the lanes have collapsed to a single block.
     assert!(!last || n_out == 1);
-    // Several bits at once fold each output against the input blocks' eq weights.
-    let eq = eq_table(rs);
-    let eq_weights: Vec<LaneWeight> = if rs.len() > 1 {
-        eq.iter().map(|&e| LaneWeight::new(e)).collect()
-    } else {
-        Vec::new()
-    };
 
     let mut nf = Box::new_uninit_slice(n_out * block);
-    let mut nb = Box::new_uninit_slice(n_out * block);
     let nf_base = SendPtr(nf.as_mut_ptr());
-    let nb_base = SendPtr(nb.as_mut_ptr());
-
     let per = block.div_ceil(ROUND_CHUNK);
-    // Fold into an L1-resident stage rather than straight into `nf`/`nb`. The
-    // message reads the folded values back, and reading them here instead of out
-    // of the destination is what lets the destination be published with
-    // streaming stores: nothing else touches it until the next round, by which
-    // time a buffer this size is long evicted, so the fetch an ordinary store
-    // would make of every line it overwrites is pure waste.
-    //
-    // A regenerated weight is refilled one fill chunk at a time, the unit its fill is written for.
-    const STAGE_MAX: usize = INITIAL_BASIS_CHUNK;
-    let stage_len = match b {
-        Basis::Dense(_) => DENSE_STAGE,
-        Basis::Virtual(_) => STAGE_MAX,
-    };
-    let fold_block = |stage: &mut [F192],
-                      stage_b: &mut [F192],
-                      raw: &mut [[F192; STAGE_MAX]; 2],
-                      out_blk: usize,
-                      x0: usize,
-                      stream: &Stream| {
-        let len = stage.len();
-        let src0 = eq.len() * out_blk * block + x0;
-        let [raw_lo, raw_hi] = raw;
-        let b_lo = window(b, raw_lo, src0, len);
-        // Sliced, not indexed: runs of one length let the bounds checks fall out
-        // and the pair fold vectorise, as the adjacent-pair kernel's do.
-        let f_lo = &f[src0..src0 + len];
-        if let [r] = *rs {
-            if 2 * out_blk + 1 < n_in {
-                let src1 = src0 + block;
-                let b_hi = window(b, raw_hi, src1, len);
-                let f_hi = &f[src1..src1 + len];
-                T::fold_pairs(len, |i| f_lo[i], |i| f_hi[i], r, |i, v| stage[i] = v);
-                F192::fold_pairs(len, |i| b_lo[i], |i| b_hi[i], r, |i, v| stage_b[i] = v);
-            } else {
-                for (d, &x0) in stage.iter_mut().zip(f_lo) {
-                    *d = T::fold_lone(x0, r);
-                }
-                for (d, &y0) in stage_b.iter_mut().zip(b_lo) {
-                    *d = F192::fold_lone(y0, r);
-                }
-            }
-        } else {
-            // One unreduced sum per output over its input blocks; absent ones are the zero padding.
-            let (mut acc_f, mut acc_b) = (WeightFold::default(), WeightFold::default());
-            for (l, e) in eq_weights.iter().enumerate() {
-                let src = src0 + l * block;
-                if src >= f.len() {
-                    break;
-                }
-                let b_l = if l == 0 { b_lo } else { window(b, raw_hi, src, len) };
-                T::add_weighted_lane(&mut acc_f, e, &f[src..src + len]);
-                acc_b.add(e, b_l);
-            }
-            acc_f.write(stage);
-            acc_b.write(stage_b);
-        }
-        // SAFETY: distinct (out_blk, x0) name disjoint in-bounds windows of `nf`
-        // and `nb`, which stay borrowed for the whole dispatch.
-        unsafe {
-            stream.write(nf_base.slice(out_blk * block + x0, len), stage);
-            stream.write(nb_base.slice(out_blk * block + x0, len), stage_b);
-        }
-    };
-
-    let task = |t: usize| -> (F192Unreduced, F192Unreduced) {
+    let task = |t: usize| {
         let (i, c) = (t / per, t % per);
         let x0 = c * ROUND_CHUNK;
         let len = ROUND_CHUNK.min(block - x0);
         let stream = Stream::new();
-        let mut stage = [[F192::ZERO; STAGE_MAX]; 4];
-        let mut raw = [[F192::ZERO; STAGE_MAX]; 2];
+        let mut stage = [[F192::ZERO; STAGE]; 2];
         let mut acc = (F192Unreduced::ZERO, F192Unreduced::ZERO);
-        for s in (0..len).step_by(stage_len) {
-            let n = stage_len.min(len - s);
-            let [lo_f, lo_b, hi_f, hi_b] = &mut stage;
-            fold_block(&mut lo_f[..n], &mut lo_b[..n], &mut raw, 2 * i, x0 + s, &stream);
+        for s in (0..len).step_by(STAGE) {
+            let n = STAGE.min(len - s);
+            let [lo, hi] = &mut stage;
+            // Fold one output block's window into the stage, then publish it.
+            let fold = |out_blk: usize, stage: &mut [F192]| -> &[F192] {
+                let at = out_blk * block + x0 + s;
+                fold_window(out_blk, x0 + s, stage);
+                // SAFETY: distinct `(out_blk, x0 + s)` name disjoint in-bounds windows of `nf`.
+                // `nf` stays borrowed for the whole dispatch.
+                unsafe { stream.write(nf_base.slice(at, n), stage) };
+                &nb[at..at + n]
+            };
+            let lo_b = fold(2 * i, &mut lo[..n]);
+            // The next round pairs output block `2i` with `2i + 1`, or a lone last block with zeros.
             let (u_0, u_2) = if 2 * i + 1 < n_out {
-                fold_block(&mut hi_f[..n], &mut hi_b[..n], &mut raw, 2 * i + 1, x0 + s, &stream);
-                msg_terms_pair(&lo_f[..n], &hi_f[..n], &lo_b[..n], &hi_b[..n])
+                let hi_b = fold(2 * i + 1, &mut hi[..n]);
+                msg_terms_pair(&lo[..n], &hi[..n], lo_b, hi_b)
             } else if last {
-                // `ROUND_CHUNK`, `STAGE` and `block` are powers of two, so every
-                // slice has even length and starts even: no message pair
-                // straddles one.
-                fold_msg_terms(&lo_f[..n], &lo_b[..n])
+                // `ROUND_CHUNK`, `STAGE` and `block` are powers of two, so every slice starts at an even word.
+                // Its length is even too unless the block is one word, so no message pair straddles two slices.
+                fold_msg_terms(&lo[..n], lo_b)
             } else {
-                msg_terms_lone(&lo_f[..n], &lo_b[..n])
+                msg_terms_lone(&lo[..n], lo_b)
             };
             acc.0 ^= u_0;
             acc.1 ^= u_2;
         }
         acc
     };
-    let (u_0, u_2) = accumulate_msg(n_out.div_ceil(2) * per, f.len() / 2, F192Unreduced::ZERO, task);
-    // SAFETY: the tasks wrote every slot of both, one output per pair or group of input blocks.
-    let (nf, nb) = unsafe { (nf.assume_init().into_vec(), nb.assume_init().into_vec()) };
+    let (u_0, u_2) = accumulate_msg(n_out.div_ceil(2) * per, nb.len() / 2, task);
+    // SAFETY: the tasks wrote every window of every output block once.
+    let nf = unsafe { nf.assume_init() }.into_vec();
     (
         nf,
-        nb,
         SumcheckMessage {
             u_0: u_0.reduce(),
             u_2: u_2.reduce(),
@@ -712,53 +552,92 @@ fn fold_and_msg_blocks<T: RoundWitness>(
     )
 }
 
-/// Two-phase witness: the committed K-message (borrowed from the caller, it
-/// is only read until the first fold) before the first fold, an owned
-/// E-vector afterwards, shared with the level commitment that keeps it.
+/// Folds the `K` witness over its lowest `|rs|` lane bits, and builds the next round's message against `nb`.
+///
+/// Output block `o` is `sum_j eq(rs, j) * f_(o * 2^|rs| + j)`, absent lanes counting as zero padding.
+fn fold_lanes_base(f: &[F64], block: usize, rs: &[F192], nb: &[F192], last: bool) -> (Vec<F192>, SumcheckMessage) {
+    let n_lanes = f.len() / block;
+    let weights: Vec<LaneWeight> = eq_table(rs).into_iter().map(LaneWeight::new).collect();
+    let n_out = n_lanes.div_ceil(weights.len());
+    fold_witness_and_msg(n_out, block, nb, last, |out_blk, x0, stage| {
+        let mut acc = WeightFold::default();
+        let first = out_blk * weights.len();
+        for (e, lane) in weights.iter().zip(first..n_lanes) {
+            let src = lane * block + x0;
+            acc.add_base(e, &f[src..src + stage.len()]);
+        }
+        acc.write(stage);
+    })
+}
+
+/// Writes window `x0..x0 + stage.len()` of output block `out_blk` of `src` folded by one lane bit at `r`.
+///
+/// Block `2 out_blk` folds with block `2 out_blk + 1`, or with the absent zero padding when it is the last.
+#[inline]
+fn fold_block_pair(src: &[F192], block: usize, r: F192, out_blk: usize, x0: usize, stage: &mut [F192]) {
+    let n = stage.len();
+    let lo = &src[2 * out_blk * block + x0..][..n];
+    if (2 * out_blk + 1) * block < src.len() {
+        let hi = &src[(2 * out_blk + 1) * block + x0..][..n];
+        fold_pairs(n, |i| lo[i], |i| hi[i], r, |i, v| stage[i] = v);
+    } else {
+        // No partner block: `x + r * (x + 0)`.
+        for (d, &x) in stage.iter_mut().zip(lo) {
+            *d = x + r * x;
+        }
+    }
+}
+
+/// The two-phase witness: the committed `K` words until the first fold, an `E` vector after it.
 enum Witness<'a> {
+    /// The caller's committed words, read only until the first fold.
     Base(&'a [F64]),
+    /// The folded witness, shared with the level commitment that keeps it.
     Ext(Arc<Vec<F192>>),
 }
 
-/// Running sumcheck over the committed base witness and subsequent extension-field folds.
+/// The running sumcheck over the committed base witness and its folds in `E`.
 pub(super) struct SumcheckProver<'a> {
+    /// The witness, in `K` until the first fold and in `E` after it.
     f: Witness<'a>,
-    /// Single combined basis poly: `glue_pending(lambda)` folds each claim
-    /// introduced since the last glue in as `combined_basis += lambda^tau *
-    /// b_new`, `tau` counting from 1 (the running claim is `tau = 0`).
+    /// The one combined weight: batching adds each new claim `tau` as `lambda^tau * b_new`.
+    ///
+    /// `tau` counts from 1, the running claim keeping `lambda^0 = 1`.
     combined_basis: Basis<'a>,
-    /// The running claim and its quadratic; `h(0) + h(1) = t_r` fixes the linear coefficient.
+    /// The running claim: `h(0) + h(1) = t_r` fixes the linear coefficient.
     t_r: F192,
+    /// The current round's quadratic.
     quad: RoundQuad,
+    /// The number of rounds folded so far.
     round: usize,
     /// The first pass's sums, which give the first lane rounds' messages.
     initial: InitialRounds,
     /// The lane challenges drawn while those rounds defer their fold.
     lane_rs: Vec<F192>,
-    /// The level's claims, in Protocol 1 step 1 order: the OOD claims, then the
-    /// query batch. Drained by `glue_pending`.
+    /// The level's new claims, each its weight, claimed sum and quadratic, until the next batching.
+    ///
+    /// They come in Protocol 1 step 1 order: the out-of-domain claims, then the query batch.
     pending: Vec<(Vec<F192>, F192, RoundQuad)>,
 }
 
 impl<'a> SumcheckProver<'a> {
-    /// `block` is the lane block size `2^(log_n - initial_k)`: the first
-    /// `initial_k` rounds are the lane fold, so round 0's message already pairs
-    /// whole blocks rather than adjacent words.
+    /// The sumcheck of `sum_x f(x) * w(x) = h1`, and its first message.
+    ///
+    /// `block` is the lane block length `2^(log_n - initial_k)`.
+    /// The first `initial_k` rounds are the lane fold, so round 0's message already pairs whole blocks.
     pub(super) fn new(
         f: &'a [F64],
-        b1: Basis<'a>,
+        w: &'a dyn InitialWeight,
         h1: F192,
         block: usize,
         initial_k: usize,
-        initial: Option<InitialRounds>,
     ) -> (Self, SumcheckMessage) {
-        let _span = tracing::info_span!("Sumcheck round", round = 0, log_size = f.len().ilog2()).entered();
-        let initial = initial.unwrap_or_else(|| initial_rounds(f, block, initial_k, &b1));
+        let initial = tracing::info_span!("First pass").in_scope(|| first_pass(f, block, initial_k, w));
         assert!(initial.rounds <= initial_k);
         let msg = initial.message(0, &[]);
         let inst = Self {
             f: Witness::Base(f),
-            combined_basis: b1,
+            combined_basis: Basis::Initial(w),
             t_r: h1,
             quad: RoundQuad::from_msg(msg, h1),
             round: 0,
@@ -775,55 +654,65 @@ impl<'a> SumcheckProver<'a> {
         self.t_r
     }
 
-    /// One lane round: fold block `2i` with block `2i+1` (the last one with the
-    /// absent zero padding when the block count is odd) and build the message for
-    /// the round after it, which is another lane round unless this was the last.
+    /// The base-two logarithm of the witness's length, rounded down, for the round spans.
     ///
-    /// The first pass's rounds defer their fold: their messages are interpolated,
-    /// and the last of them folds all their lane bits at once.
+    /// A lane round's length is `n_lanes * block`, generally not a power of two.
+    fn log_size(&self) -> u32 {
+        match &self.f {
+            Witness::Base(f) => f.len().ilog2(),
+            Witness::Ext(f) => f.len().ilog2(),
+        }
+    }
+
+    /// One lane round at challenge `r`: folds block `2i` with block `2i + 1` and returns the next round's message.
+    ///
+    /// - With an odd block count, the last block folds with the absent zero padding.
+    /// - `last` says the next round pairs adjacent words rather than blocks.
+    /// - During the first pass's rounds the fold waits, and each message is interpolated from the pass's sums.
+    /// - The last of those rounds folds all their lane bits at once.
     pub(super) fn fold_lane(&mut self, r: F192, block: usize, last: bool) -> SumcheckMessage {
         self.t_r = self.quad.eval(r);
         self.round += 1;
-        // `ilog2` rather than `trailing_zeros`: a lane round's length is
-        // `n_lanes * block`, so it is generally not a power of two, and the two
-        // kinds of round have to report a comparable number.
-        let log_size = match &self.f {
-            Witness::Base(f) => f.len().ilog2(),
-            Witness::Ext(f) => f.len().ilog2(),
-        };
-        let _span = tracing::info_span!("Sumcheck round", round = self.round, log_size).entered();
-        let deferred = self.round <= self.initial.rounds;
-        if deferred {
-            self.lane_rs.push(r);
-            if self.round < self.initial.rounds {
-                let msg = self.initial.message(self.round, &self.lane_rs);
-                self.quad = RoundQuad::from_msg(msg, self.t_r);
-                return msg;
+        let _span = tracing::info_span!("Sumcheck round", round = self.round, log_size = self.log_size()).entered();
+        let (nf, nb, msg) = match (&self.f, &self.combined_basis) {
+            (Witness::Base(f), Basis::Initial(w)) => {
+                self.lane_rs.push(r);
+                if self.round < self.initial.rounds {
+                    let msg = self.initial.message(self.round, &self.lane_rs);
+                    self.quad = RoundQuad::from_msg(msg, self.t_r);
+                    return msg;
+                }
+                // The weight folds in closed form, the witness by its lanes' eq weights.
+                let nb = tracing::info_span!("Fold weight").in_scope(|| w.fold_lanes(&self.lane_rs));
+                let (nf, msg) = fold_lanes_base(f, block, &self.lane_rs, &nb, last);
+                (nf, nb, msg)
             }
-        }
-        let rs = if deferred { &self.lane_rs[..] } else { &[r][..] };
-        let (nf, nb, msg) = match &self.f {
-            Witness::Base(f) => fold_and_msg_blocks(f, &self.combined_basis, rs, block, last),
-            Witness::Ext(f) => fold_and_msg_blocks(&f[..], &self.combined_basis, rs, block, last),
+            (Witness::Ext(f), Basis::Dense(b)) => {
+                let n_out = (f.len() / block).div_ceil(2);
+                let nb = fold_blocks(b, block, r);
+                let (nf, msg) = fold_witness_and_msg(n_out, block, &nb, last, |out_blk, x0, stage| {
+                    fold_block_pair(f, block, r, out_blk, x0, stage);
+                });
+                (nf, nb, msg)
+            }
+            _ => unreachable!("the first fold lifts the witness and folds the initial weight together"),
         };
-        drop(std::mem::replace(&mut self.f, Witness::Ext(Arc::new(nf))));
-        drop(std::mem::replace(&mut self.combined_basis, Basis::Dense(nb)));
+        self.f = Witness::Ext(Arc::new(nf));
+        self.combined_basis = Basis::Dense(nb);
         self.quad = RoundQuad::from_msg(msg, self.t_r);
         msg
     }
 
+    /// One adjacent-pair round at challenge `r`: folds the witness and the weight, and returns the next message.
+    ///
+    /// # Panics
+    ///
+    /// Panics before the first fold.
     pub(super) fn fold(&mut self, r: F192) -> SumcheckMessage {
         self.t_r = self.quad.eval(r);
         self.round += 1;
-        let log_size = match &self.f {
-            Witness::Base(f) => f.len().ilog2(),
-            Witness::Ext(f) => f.len().ilog2(),
-        };
-        let _span = tracing::info_span!("Sumcheck round", round = self.round, log_size).entered();
-        let (nf, nb, msg) = match &self.f {
-            Witness::Base(f) => fold_and_msg_lsb(f, self.combined_basis.dense(), r),
-            Witness::Ext(f) => fold_and_msg_lsb(&f[..], self.combined_basis.dense(), r),
-        };
+        let _span = tracing::info_span!("Sumcheck round", round = self.round, log_size = self.log_size()).entered();
+        let (nf, nb, msg) = fold_and_msg_lsb(self.f_ext(), self.combined_basis.dense(), r);
         // Swap the folded buffers in and drop the consumed ones.
         // Why: the allocator then serves the next round's fold from their memory.
         drop(std::mem::replace(&mut self.f, Witness::Ext(Arc::new(nf))));
@@ -832,42 +721,44 @@ impl<'a> SumcheckProver<'a> {
         msg
     }
 
-    /// Introduce a fresh basis poly with claimed sum `h_new`; sends the
-    /// (u_0, u_2) for `Σ_x f(x) · b_new(x)` at the current dim.
+    /// Adds a claim with weight `b_new` and claimed sum `h_new`, and returns its message at the current round.
+    ///
+    /// The message is that of `sum_x f(x) * b_new(x)`; the claim joins the running one at the next batching.
+    ///
+    /// # Panics
+    ///
+    /// Before the first fold, or if `b_new` is not as long as the witness.
     pub(super) fn introduce_new(&mut self, b_new: Vec<F192>, h_new: F192) -> SumcheckMessage {
-        let msg = match &self.f {
-            Witness::Base(f) => {
-                assert_eq!(b_new.len(), f.len());
-                round_msg_lsb(f, &b_new)
-            }
-            Witness::Ext(f) => {
-                assert_eq!(b_new.len(), f.len());
-                round_msg_lsb(&f[..], &b_new)
-            }
-        };
+        let f = self.f_ext();
+        assert_eq!(b_new.len(), f.len());
+        let msg = round_msg_lsb(f, &b_new);
         self.pending.push((b_new, h_new, RoundQuad::from_msg(msg, h_new)));
         msg
     }
 
-    /// Introduce `b_new` and compute its claimed inner product in the same
-    /// pass as the round message. OOD claims only occur after the first fold,
-    /// when the witness has already been lifted from K to E.
+    /// Adds a claim with weight `b_new`, computing its claimed sum in the same pass as its message.
+    ///
+    /// Out-of-domain claims come only after the first fold, when the witness is already in `E`.
+    ///
+    /// # Panics
+    ///
+    /// Before the first fold, or if `b_new` is not as long as the witness.
     pub(super) fn introduce_new_with_eval(&mut self, b_new: Vec<F192>) -> (SumcheckMessage, F192) {
-        let f = match &self.f {
-            Witness::Ext(f) => f,
-            Witness::Base(_) => panic!("OOD claim introduced before the first fold"),
-        };
+        let f = self.f_ext();
         assert_eq!(b_new.len(), f.len());
         let (msg, h_new) = round_msg_and_eval_lsb_ext(f, &b_new);
         self.pending.push((b_new, h_new, RoundQuad::from_msg(msg, h_new)));
         (msg, h_new)
     }
 
-    /// Batch every claim introduced since the last glue into the running one
-    /// with powers of the level's single batching challenge (PCS annex,
-    /// Protocol 1 step 1): claim `tau` (counting from 1) contributes
-    /// `combined_basis[j] += lambda^tau * b_new[j]`, `T_r += lambda^tau *
-    /// h_new`. The running claim keeps `lambda^0 = 1`.
+    /// Batches every claim added since the last batching into the running one, by powers of `lambda`.
+    ///
+    /// Claim `tau`, counting from 1, adds `lambda^tau * b_new` to the weight and `lambda^tau * h_new` to the claim.
+    /// The running claim keeps `lambda^0 = 1` (PCS annex, Protocol 1 step 1).
+    ///
+    /// # Panics
+    ///
+    /// If no claim was added.
     pub(super) fn glue_pending(&mut self, lambda: F192) {
         let pending = std::mem::take(&mut self.pending);
         assert!(!pending.is_empty(), "glue without introduce_new");
@@ -893,13 +784,20 @@ impl<'a> SumcheckProver<'a> {
         }
     }
 
-    /// The folded witness (post-first-fold: always E). Panics if called
-    /// before the first fold (the base phase never reaches a commit).
+    /// The folded witness, always in `E`.
+    ///
+    /// # Panics
+    ///
+    /// Before the first fold; the base phase never reaches a commitment.
     pub(super) fn f_ext(&self) -> &[F192] {
         self.shared_ext()
     }
 
     /// The folded witness, shared: a later fold replaces it here but leaves it to its other holders.
+    ///
+    /// # Panics
+    ///
+    /// Before the first fold.
     pub(super) fn shared_ext(&self) -> &Arc<Vec<F192>> {
         match &self.f {
             Witness::Ext(f) => f,
@@ -908,76 +806,109 @@ impl<'a> SumcheckProver<'a> {
     }
 }
 
+/// An `E` vector of blocks folded by one lane bit at `r`: block `2i` with `2i + 1`, a lone last block with zeros.
+fn fold_blocks(b: &[F192], block: usize, r: F192) -> Vec<F192> {
+    let n_out = (b.len() / block).div_ceil(2);
+    let mut out = vec![F192::ZERO; n_out * block];
+    let chunk = block.min(ROUND_CHUNK);
+    let per = block / chunk;
+    let fold = |i: usize, dst: &mut [F192]| fold_block_pair(b, block, r, i / per, (i % per) * chunk, dst);
+    if out.len() < PAR_THRESHOLD {
+        out.chunks_mut(chunk).enumerate().for_each(|(i, dst)| fold(i, dst));
+    } else {
+        parallel::chunks_mut(&mut out, chunk, fold);
+    }
+    out
+}
+
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use crate::whir::config::INITIAL_FOLDING_FACTOR;
     use primitives::multilinear::inner_product;
     use primitives::test_util::Rng;
 
-    /// Round message for a lane round, over `f.len() / block` blocks: the reference the first pass is tested against.
-    fn round_msg_blocks<T: RoundWitness>(f: &[T], b: &[F192], block: usize) -> SumcheckMessage {
-        // Real asserts, not debug ones: the crate is only ever built in release, and a
-        // block count that truncates drops the trailing block from BOTH u_0 and u_2,
-        // which is a well-formed but wrong round message rather than a panic.
-        assert_eq!(b.len(), f.len());
-        assert!(block > 0 && f.len().is_multiple_of(block));
-        let n_blocks = f.len() / block;
-        let per = block.div_ceil(ROUND_CHUNK);
-        let task = |t: usize| -> (T::Acc, T::Acc) {
-            let (i, c) = (t / per, t % per);
-            let x0 = c * ROUND_CHUNK;
-            let len = ROUND_CHUNK.min(block - x0);
-            let lo = 2 * i * block + x0;
-            if 2 * i + 1 < n_blocks {
-                let hi = lo + block;
-                msg_terms_pair(&f[lo..lo + len], &f[hi..hi + len], &b[lo..lo + len], &b[hi..hi + len])
+    /// An initial weight held whole, its lane fold the definition: the tests' stand-in for a regenerated one.
+    pub(in crate::whir) struct Table {
+        /// The weight, one value per word.
+        pub(in crate::whir) weight: Vec<F192>,
+        /// The lane block length.
+        pub(in crate::whir) block: usize,
+    }
+
+    impl InitialWeight for Table {
+        fn fill(&self, start: usize, out: &mut [F192]) {
+            out.copy_from_slice(&self.weight[start..start + out.len()]);
+        }
+
+        fn fold_lanes(&self, rs: &[F192]) -> Vec<F192> {
+            let eq = eq_table(rs);
+            let lanes = self.weight.len() / self.block;
+            let mut out = vec![F192::ZERO; lanes.div_ceil(eq.len()) * self.block];
+            for (word, o) in out.iter_mut().enumerate() {
+                let (group, x) = (word / self.block, word % self.block);
+                for (lane, &e) in (group * eq.len()..lanes).zip(&eq) {
+                    *o += e * self.weight[lane * self.block + x];
+                }
+            }
+            out
+        }
+    }
+
+    /// One lane bit folded the naive way: block `2i` with block `2i + 1`, the last with zeros.
+    fn fold_lane_bit(v: &[F192], block: usize, r: F192) -> Vec<F192> {
+        let lanes = v.len() / block;
+        let mut out = vec![F192::ZERO; lanes.div_ceil(2) * block];
+        for (word, o) in out.iter_mut().enumerate() {
+            let (pair, x) = (word / block, word % block);
+            let lo = v[2 * pair * block + x];
+            let hi = if 2 * pair + 1 < lanes {
+                v[(2 * pair + 1) * block + x]
             } else {
-                msg_terms_lone(&f[lo..lo + len], &b[lo..lo + len])
-            }
-        };
-        let (u_0, u_2) = accumulate_msg(n_blocks.div_ceil(2) * per, f.len() / 2, T::ZERO_ACC, task);
-        SumcheckMessage {
-            u_0: T::reduce(u_0),
-            u_2: T::reduce(u_2),
+                F192::ZERO
+            };
+            *o = lo + r * (lo + hi);
         }
+        out
+    }
+
+    /// A lane round's message the naive way: `h(0)` and `h(inf)` summed over block pairs, the last against zeros.
+    fn lane_message(f: &[F192], b: &[F192], block: usize) -> SumcheckMessage {
+        let lanes = f.len() / block;
+        let (mut u_0, mut u_2) = (F192::ZERO, F192::ZERO);
+        for pair in 0..lanes.div_ceil(2) {
+            for x in 0..block {
+                let lo = 2 * pair * block + x;
+                let (f1, b1) = if 2 * pair + 1 < lanes {
+                    (f[lo + block], b[lo + block])
+                } else {
+                    (F192::ZERO, F192::ZERO)
+                };
+                u_0 += f[lo] * b[lo];
+                u_2 += (f[lo] + f1) * (b[lo] + b1);
+            }
+        }
+        SumcheckMessage { u_0, u_2 }
+    }
+
+    /// An adjacent-pair round's message the naive way.
+    fn pair_message(f: &[F192], b: &[F192]) -> SumcheckMessage {
+        let (mut u_0, mut u_2) = (F192::ZERO, F192::ZERO);
+        for (f, b) in f.chunks_exact(2).zip(b.chunks_exact(2)) {
+            u_0 += f[0] * b[0];
+            u_2 += (f[0] + f[1]) * (b[0] + b[1]);
+        }
+        SumcheckMessage { u_0, u_2 }
     }
 
     #[test]
-    fn a_regenerated_weight_folds_like_the_stored_one() {
-        // Invariant: the first lane round writes the same fold and message from either weight.
-        let mut rng = Rng::new(0xF111);
-        // Fixture state: blocks below, at and above one fill chunk and one task chunk.
-        for block in [1, 16, INITIAL_BASIS_CHUNK, 4 * INITIAL_BASIS_CHUNK, 2 * ROUND_CHUNK] {
-            // An odd lane count leaves a lone block, folded against the absent zero lanes.
-            for lanes in [1, 2, 3, 37] {
-                let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
-                let weight = rng.ext_vec(f.len());
-                let r = rng.ext();
-                // The last lane round is the one whose output is a single block.
-                let last = lanes <= 2;
-
-                // The stored weight, and the same weight refilled from it chunk by chunk.
-                let stored = Basis::Dense(weight.to_vec());
-                let fill = |start: usize, out: &mut [F192]| out.copy_from_slice(&weight[start..start + out.len()]);
-                let regenerated = Basis::Virtual(&fill);
-
-                let (nf_s, nb_s, msg_s) = fold_and_msg_blocks(&f, &stored, &[r], block, last);
-                let (nf_r, nb_r, msg_r) = fold_and_msg_blocks(&f, &regenerated, &[r], block, last);
-                assert_eq!(&*nf_s, &*nf_r, "fold, block={block}, lanes={lanes}");
-                assert_eq!(&*nb_s, &*nb_r, "weight fold, block={block}, lanes={lanes}");
-                assert_eq!(msg_s, msg_r, "message, block={block}, lanes={lanes}");
-            }
-        }
-    }
-
-    #[test]
-    fn precomputed_lane_rounds_match_round_by_round_folds() {
-        // Invariant: the first pass's interpolated messages and its many-bit fold are the
-        // messages and the witness of folding one lane bit a round, from either weight.
+    fn the_lane_rounds_are_one_bit_folds() {
+        // Invariant: the first pass's interpolated messages and many-bit fold match folding one lane bit a round.
+        // Invariant: so do the later lane rounds' single-bit folds.
         let mut rng = Rng::new(0xBA515);
         for initial_k in [1, 2, 3, PRECOMPUTED_ROUNDS, INITIAL_FOLDING_FACTOR] {
             let full = 1usize << initial_k;
+            // Fixture state: blocks below and above one fill chunk and one task chunk.
             for block in [1, 16, INITIAL_BASIS_CHUNK, 2 * ROUND_CHUNK] {
                 // Partial groups and odd counts meet the absent zero lanes.
                 for lanes in [1, 2, 3, 5, full - 1, full, 37]
@@ -985,37 +916,35 @@ mod tests {
                     .filter(|&l| l >= 1 && l <= full)
                 {
                     let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
-                    let weight = rng.ext_vec(f.len());
+                    let table = Table {
+                        weight: rng.ext_vec(f.len()),
+                        block,
+                    };
                     let rs = rng.ext_vec(initial_k);
                     let label = format!("initial_k={initial_k}, block={block}, lanes={lanes}");
 
-                    let mut expected = vec![round_msg_blocks(&f, &weight, block)];
-                    let stored = Basis::Dense(weight.to_vec());
-                    let (mut nf, mut nb, msg) = fold_and_msg_blocks(&f, &stored, &rs[..1], block, initial_k == 1);
-                    expected.push(msg);
-                    for (j, r) in rs.iter().enumerate().skip(1) {
-                        let msg;
-                        (nf, nb, msg) = fold_and_msg_blocks(
-                            &nf,
-                            &Basis::Dense(nb),
-                            std::slice::from_ref(r),
-                            block,
-                            j + 1 == initial_k,
-                        );
-                        expected.push(msg);
+                    // The reference: lift, then one naive lane fold a round, the last handing over to adjacent pairs.
+                    let mut nf: Vec<F192> = f.iter().map(|&w| F192::from(w)).collect();
+                    let mut nb = table.weight.clone();
+                    let mut expected = vec![lane_message(&nf, &nb, block)];
+                    for (j, &r) in rs.iter().enumerate() {
+                        nf = fold_lane_bit(&nf, block, r);
+                        nb = fold_lane_bit(&nb, block, r);
+                        expected.push(if j + 1 == initial_k {
+                            pair_message(&nf, &nb)
+                        } else {
+                            lane_message(&nf, &nb, block)
+                        });
                     }
 
-                    let fill = |start: usize, out: &mut [F192]| out.copy_from_slice(&weight[start..start + out.len()]);
-                    for basis in [Basis::Dense(weight.to_vec()), Basis::Virtual(&fill)] {
-                        let (mut sc, msg) = SumcheckProver::new(&f, basis, F192::ZERO, block, initial_k, None);
-                        let mut actual = vec![msg];
-                        for (j, &r) in rs.iter().enumerate() {
-                            actual.push(sc.fold_lane(r, block, j + 1 == initial_k));
-                        }
-                        assert_eq!(actual, expected, "messages, {label}");
-                        assert_eq!(sc.f_ext(), &*nf, "witness, {label}");
-                        assert_eq!(&**sc.combined_basis.dense(), &*nb, "weight, {label}");
+                    let (mut sc, msg) = SumcheckProver::new(&f, &table, F192::ZERO, block, initial_k);
+                    let mut actual = vec![msg];
+                    for (j, &r) in rs.iter().enumerate() {
+                        actual.push(sc.fold_lane(r, block, j + 1 == initial_k));
                     }
+                    assert_eq!(actual, expected, "messages, {label}");
+                    assert_eq!(sc.f_ext(), &*nf, "witness, {label}");
+                    assert_eq!(&**sc.combined_basis.dense(), &*nb, "weight, {label}");
                 }
             }
         }
@@ -1023,12 +952,12 @@ mod tests {
 
     #[test]
     fn the_folds_bind_the_rotated_point() {
-        // Invariant: after every round, the witness and the weight are their multilinear extensions at the round
-        // challenges rotated left by the lane fold, which is the point the verifier hands its weight closure.
+        // Invariant: at the end, the witness and the weight are their MLEs at the challenges rotated by `initial_k`.
+        // Why: that rotated point is the one the verifier evaluates its weight at.
         let mut rng = Rng::new(0x707A7E);
         let dense_mle = |table: &[F192], point: &[F192]| inner_product(table, &eq_table(point));
-        // Fixture state: `log_n = 15` puts the lane block over the fold's task chunk; the lane counts below the
-        // interleaving leave absent lanes, zero in the dense tables.
+        // Fixture state: `log_n = 15` makes the lane block longer than one fold task.
+        // Fixture state: lane counts below `2^initial_k` leave absent lanes, zero in the dense tables.
         for (log_n, initial_k, lanes) in [(9usize, 3usize, &[1usize, 5, 8][..]), (15, 3, &[3, 8][..])] {
             let block = 1usize << (log_n - initial_k);
             for &n_lanes in lanes {
@@ -1038,14 +967,11 @@ mod tests {
                 let mut b = vec![F192::ZERO; 1 << log_n];
                 b[..used].copy_from_slice(&rng.ext_vec(used));
 
-                let (mut sc, _) = SumcheckProver::new(
-                    &f[..used],
-                    Basis::Dense(b[..used].to_vec()),
-                    F192::ZERO,
+                let table = Table {
+                    weight: b[..used].to_vec(),
                     block,
-                    initial_k,
-                    None,
-                );
+                };
+                let (mut sc, _) = SumcheckProver::new(&f[..used], &table, F192::ZERO, block, initial_k);
                 let rounds = rng.ext_vec(log_n);
                 for (j, &r) in rounds[..initial_k].iter().enumerate() {
                     sc.fold_lane(r, block, j + 1 == initial_k);
