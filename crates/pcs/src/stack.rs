@@ -86,16 +86,16 @@ impl<E: Copy> StackClaim<E> {
         }
     }
 
-    /// The claim's slice: its first word, and the base-two logarithm of its length.
-    const fn support(&self) -> (usize, usize) {
+    /// The claim's slice: its first word, and the base-two logarithm of its length, `None` if that overflows.
+    const fn support(&self) -> (usize, Option<usize>) {
         match self {
-            Self::Point { offset, low_point, .. } => (*offset, low_point.len()),
+            Self::Point { offset, low_point, .. } => (*offset, Some(low_point.len())),
             Self::Strided {
                 offset,
                 stride_log,
                 point,
                 ..
-            } => (*offset, *stride_log + point.len()),
+            } => (*offset, stride_log.checked_add(point.len())),
         }
     }
 
@@ -106,9 +106,9 @@ impl<E: Copy> StackClaim<E> {
         let (offset, vars) = self.support();
         let slot_fits = match self {
             Self::Point { .. } => true,
-            Self::Strided { slot, stride_log, .. } => 1usize.checked_shl(*stride_log as u32).is_some_and(|s| *slot < s),
+            Self::Strided { slot, stride_log, .. } => pow2(*stride_log).is_some_and(|s| *slot < s),
         };
-        slot_fits && is_aligned_slice(offset, vars, committed)
+        slot_fits && vars.is_some_and(|vars| is_aligned_slice(offset, vars, committed))
     }
 
     /// The claim's weight at a point `x` of the stack cube.
@@ -145,11 +145,19 @@ impl<E: Copy> StackClaim<E> {
 
 /// Whether `[offset, offset + 2^vars)` is aligned to its length and inside the first `committed` words.
 ///
-/// Shifts are checked, so an absurd width is refused rather than wrapped.
+/// Widths are checked whole, so an absurd one is refused rather than wrapped.
 fn is_aligned_slice(offset: usize, vars: usize, committed: usize) -> bool {
-    1usize
-        .checked_shl(vars as u32)
+    pow2(vars)
         .is_some_and(|len| offset.is_multiple_of(len) && offset.checked_add(len).is_some_and(|end| end <= committed))
+}
+
+/// `2^log`, or `None` if it does not fit a `usize`.
+const fn pow2(log: usize) -> Option<usize> {
+    if log < usize::BITS as usize {
+        Some(1 << log)
+    } else {
+        None
+    }
 }
 
 /// What an opening proves about one committed stack.
@@ -971,6 +979,21 @@ mod tests {
             check(&[strided(4)], &rings),
             Err(WhirError::PointClaim { index: 0 })
         ));
+
+        // A stride or slice width past the word is refused, not wrapped to a small one: `2^32` would read as `0`.
+        let wide = |stride_log: usize, point: usize| StackClaim::Strided {
+            offset: 0,
+            slot: 0,
+            stride_log,
+            point: vec![F192::ZERO; point],
+            value: F192::ZERO,
+        };
+        for (stride_log, point) in [(1 << 32, 0), (usize::BITS as usize, 0), (usize::MAX, 1)] {
+            assert!(matches!(
+                check(&[wide(stride_log, point)], &rings),
+                Err(WhirError::PointClaim { index: 0 })
+            ));
+        }
     }
 
     struct Instance {
