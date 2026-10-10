@@ -26,6 +26,14 @@
 //!
 //! What a program reads there, it must check itself.
 //!
+//! # Zero knowledge
+//!
+//! A plain proof is no secret: a verifier who can guess the advice recomputes the proof and compares.
+//!
+//! A prover made with [`Prover::zk`] makes zero-knowledge proofs, which reveal nothing of the advice or the run beyond the statement and the run's shape (each table's height and the rate).
+//!
+//! A program whose advice is private must therefore prove at a fixed public shape.
+//!
 //! # Examples
 //!
 //! ```no_run
@@ -74,6 +82,7 @@ mod rec;
 mod rv;
 mod tables;
 mod witness;
+mod zk;
 
 pub use crate::pcs::{InvalidRate, Rate, SECURITY_BITS};
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
@@ -83,6 +92,7 @@ pub use rec::tree::{
     TreeShape, Unsatisfied,
 };
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
+pub use zk::randomness::Randomness;
 
 #[doc(hidden)]
 pub use crate::pcs::{MAX_MU, MIN_MU};

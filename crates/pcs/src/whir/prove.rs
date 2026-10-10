@@ -13,6 +13,7 @@
 //!     last level  k fold rounds, the residual in the clear, its queries, then the residual rounds
 //! ```
 
+use super::Hiding;
 use super::commit::{ProverData, ligero_commit_ext};
 use super::sample_queries_ordered;
 use super::sumcheck::{InitialWeight, SumcheckProver, send_msg};
@@ -68,10 +69,22 @@ fn ext_row_words(row: &[F192]) -> Vec<F64> {
 /// - A weight nonzero out there gives a proof that fails at the terminal check.
 /// - The stacked opening meets this by keeping every claim's support inside the placed stack.
 ///
+/// # Hiding
+///
+/// With `hiding`, `l0` is a hiding commitment padded as the configuration is, and the opening reveals the running claim and the padding's lane fold after the lane fold (the module docs of [`crate::stack`]).
+///
 /// # Transcript
 ///
 /// Each level's Merkle openings travel as one hint, which is not absorbed.
 /// The caller has already transmitted the L0 root.
+///
+/// # Panics
+///
+/// Panics on a shape the commitment does not have, or on a padding of another length than the opening's: the configuration's with `hiding`, none without.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
 pub(crate) fn prove(
     config: &Config,
     log_n: usize,
@@ -79,6 +92,7 @@ pub(crate) fn prove(
     weight: &dyn InitialWeight,
     target: F192,
     l0: &ProverData,
+    hiding: Option<Hiding>,
     ps: &mut impl Transmitter,
 ) {
     let (l0_codeword, l0_tree) = (&l0.codeword[..], &l0.merkle_tree[..]);
@@ -100,6 +114,12 @@ pub(crate) fn prove(
     );
     assert_eq!(l0_codeword.len(), block_len_0 * n_lanes);
     assert_eq!(l0_tree.len(), 2 * block_len_0 - 1);
+    let pad_k = if hiding.is_some() { config.padding() } else { 0 };
+    assert_eq!(
+        l0.pads.len(),
+        pad_k * n_lanes,
+        "the commitment's padding is the opening's"
+    );
 
     // Invariant: nothing is absorbed on entry, since the state already determines the commitment and the target.
     // - The commitment was bound when its root was transmitted.
@@ -129,11 +149,27 @@ pub(crate) fn prove(
     send_msg(ps, start_msg, target);
 
     let mut r_lane_fold = Vec::with_capacity(initial_k);
+    let mut g1 = Vec::new();
     for j in 0..initial_k {
         let r_j = ps.sample();
         let msg = sumcheck_span.in_scope(|| sc_prover.fold_lane(r_j, lane_block, j + 1 == initial_k));
-        send_msg(ps, msg, sc_prover.claim());
         r_lane_fold.push(r_j);
+        if j + 1 == initial_k
+            && let Some(h) = hiding
+        {
+            // The running claim in the clear, which every later message is public after.
+            if h.hidden_claim {
+                ps.set_hidden(false);
+                ps.add_scalar(sc_prover.claim());
+            }
+            // The padding's lane fold `g_1[j] = Σ_u eq(fold, u) pad_u[j]`, with level 0's lane eq table.
+            let eq = eq_table(&r_lane_fold);
+            g1 = (0..pad_k)
+                .map(|j| (0..n_lanes).fold(F192::ZERO, |acc, u| acc + eq[u].mul_base(l0.pads[u * pad_k + j])))
+                .collect();
+            ps.add_scalars(&g1);
+        }
+        send_msg(ps, msg, sc_prover.claim());
     }
     drop(sumcheck_span);
 
@@ -177,8 +213,12 @@ pub(crate) fn prove(
     // Induce the L0 consistency weight, and its claimed sum from the opened rows.
     let span = tracing::info_span!("Induce", level = 0).entered();
     let batch_0 = QueryBatch::new(&queries_0, &weights_0);
-    let enforced_sum_0 = batch_0.claimed_sum(&opened_rows_0, &r_lane_fold);
+    let mut enforced_sum_0 = batch_0.claimed_sum(&opened_rows_0, &r_lane_fold);
     let basis_0_induced = batch_0.induced_weight(n1, log_inv_rate_0);
+    // The rows fold the padded codeword: take the padding's share off each query, the weight unchanged.
+    if hiding.is_some() {
+        enforced_sum_0 += batch_0.padding_correction(n1, log_inv_rate_0, &g1);
+    }
     drop(span);
 
     // Introduce the consistency claim, then batch the level's pending claims with powers of `lambda_0`.

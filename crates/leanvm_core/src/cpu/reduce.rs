@@ -67,6 +67,23 @@ impl Layout {
         rate: Rate,
     ) -> Result<DeferredClaims<V::E>, CpuError> {
         let commitment = Commitment::read(v, self.shape, rate)?;
+        self.verify_committed(v, &commitment, clock, output)
+    }
+
+    /// The verifier's core past the commitment's root: the bus and the tables, the flock reductions and the opening.
+    ///
+    /// A zero-knowledge layout's opening is the hiding one, whose lane rounds end the hidden transcript.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first stage that refuses the proof.
+    pub(crate) fn verify_committed<V: OpeningVerifier + PublicColumns>(
+        &self,
+        v: &mut V,
+        commitment: &Commitment<V::Root>,
+        clock: V::E,
+        output: &[V::E; 4],
+    ) -> Result<DeferredClaims<V::E>, CpuError> {
         let reduced = v.scope("bus and tables", |v| self.reduce_tables(v, clock, output))?;
 
         // Flock's reductions, batched over every class circuit then every clock circuit, each leaving its matrices' form to its circuit.

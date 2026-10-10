@@ -587,6 +587,17 @@ impl MatrixForm {
             .bilinear_form(self.alpha, &eq_inner, &w_col)
             .unwrap_or_else(|| inner_product(&circuit.fold_alpha_batched(self.alpha, &eq_inner), &w_col))
     }
+
+    /// The form's weight on each bit slice: [`Self::evaluate`] is `sum_i s_hat_v[i] weights[i]`, the form being linear in its slices, and the weights depend on its other, public, coordinates alone.
+    pub fn slice_weights(&self, circuit: &dyn LincheckCircuit) -> Vec<F192> {
+        let n_slices = self.s_hat_v.len();
+        let eq_inner = build_quirky_eq_table(self.z_skip, &self.x_inner_rest, n_slices.ilog2() as usize);
+        let marginal = circuit.fold_alpha_batched(self.alpha, &eq_inner);
+        let eq_rest = eq_table(&self.r_inner_rest);
+        (0..n_slices)
+            .map(|i| (eq_rest.iter().enumerate()).fold(F192::ZERO, |acc, (j, &e)| acc + e * marginal[j * n_slices + i]))
+            .collect()
+    }
 }
 
 /// What the deferred replay leaves to the circuit: the terminal identity holds exactly when the form takes the value.

@@ -20,7 +20,8 @@ use crate::leaf;
 use crate::leaf::{BusVerify, N_TUPLE_BITS, SparseColumn};
 use crate::rv::RiscvProgram;
 use crate::tables::{N_TABLES, Part};
-use fiat_shamir::arith::Arith;
+use crate::zk::sym::{Recorder, Sym};
+use fiat_shamir::arith::{Arith, Verifier};
 use flock::FlockError;
 use flock::lincheck::{LincheckError, MatrixClaim, MatrixForm};
 use primitives::field::F192;
@@ -229,6 +230,86 @@ impl Program {
                     error: FlockError::Lincheck(LincheckError::SumcheckMismatch),
                 });
             }
+        }
+        Ok(())
+    }
+
+    /// Settle the claims a zero-knowledge proof's core left, as constraints of the outer proof.
+    ///
+    /// Every point is a challenge, so each claim's expected value is a public linear function of its hidden parts: the program claim's twist and image weight, each circuit claim's bit slices.
+    ///
+    /// # Errors
+    ///
+    /// As [`Self::check_deferred`], a claim being malformed also when a coordinate that must be public is hidden.
+    pub(crate) fn check_deferred_hidden<T>(
+        &self,
+        r: &mut Recorder<T>,
+        claims: &DeferredClaims<Sym>,
+    ) -> Result<(), CpuError>
+    where
+        Recorder<T>: Verifier<E = Sym>,
+    {
+        if claims.circuits.len() != N_FLOCKS {
+            return Err(CpuError::MalformedClaim(MalformedClaim::CircuitCount {
+                expected: N_FLOCKS,
+                got: claims.circuits.len(),
+            }));
+        }
+
+        let point = &claims.program.point;
+        let malformed = CpuError::MalformedClaim(MalformedClaim::ProgramPoint);
+        let rv = self.rv();
+        let kbc = crate::log2_strict_usize(rv.entries().len());
+        let (Some(bytecode), Some(image_point)) = (
+            Recorder::<T>::publics(&point.bytecode),
+            Recorder::<T>::publics(&point.image_point),
+        ) else {
+            return Err(malformed);
+        };
+        if bytecode.len() != kbc + N_TUPLE_BITS || image_point.len() != rv.log_ram() || point.twist.len() > 64 {
+            return Err(malformed);
+        }
+        let (chi, alphas) = bytecode.split_at(kbc);
+        let weights = leaf::fingerprint_weights(alphas);
+        let terms = leaf::producer_twist_terms(&Lookup::Bytecode.tuple(rv), &weights, chi, point.twist.len());
+        let image = SparseColumn::new(rv.log_ram(), &[(0, rv.image())]).eval(&image_point);
+        let mut expected = r.mul_const(point.image_weight, image);
+        for (&mu, &d) in point.twist.iter().zip(&terms) {
+            expected = r.mul_const_add(mu, d, expected);
+        }
+        r.ensure_eq(expected, claims.program.value, || {
+            CpuError::Constraint(ConstraintError::FinalMismatch)
+        })?;
+
+        for (f, claim) in FlockId::ALL.into_iter().zip(&claims.circuits) {
+            let (table, part) = (f.table().name(), f.part());
+            let form = &claim.point;
+            let malformed = CpuError::MalformedClaim(MalformedClaim::MatrixForm { table, part });
+            let (Some([alpha, z_skip]), Some(x_inner_rest), Some(r_inner_rest)) = (
+                Recorder::<T>::publics(&[form.alpha, form.z_skip]).map(|v| [v[0], v[1]]),
+                Recorder::<T>::publics(&form.x_inner_rest),
+                Recorder::<T>::publics(&form.r_inner_rest),
+            ) else {
+                return Err(malformed);
+            };
+            let public = MatrixForm {
+                alpha,
+                z_skip,
+                x_inner_rest,
+                r_inner_rest,
+                s_hat_v: vec![F192::ZERO; form.s_hat_v.len()],
+            };
+            if !f.shape().fits(&public) {
+                return Err(malformed);
+            }
+            let zero = r.zero();
+            let expected = (form.s_hat_v.iter().zip(public.slice_weights(f.circuit())))
+                .fold(zero, |acc, (&s, w)| r.mul_const_add(s, w, acc));
+            r.ensure_eq(expected, claim.value, || CpuError::Flock {
+                table,
+                part,
+                error: FlockError::Lincheck(LincheckError::SumcheckMismatch),
+            })?;
         }
         Ok(())
     }

@@ -571,6 +571,8 @@ impl<E: Copy + PartialEq> RingShare<'_, E> {
                 *f = a.mul_add(scale, s, *f);
             }
         }
+        // Each slice enters every one of the map's 64 terms.
+        let family: Vec<E> = family.into_iter().map(|f| a.bind(f)).collect();
         self.map.target(a, &family)
     }
 

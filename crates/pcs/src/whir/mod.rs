@@ -29,21 +29,85 @@ mod query;
 mod sumcheck;
 mod verify;
 
-use fiat_shamir::transcript::Challenger;
+use crate::verifier::OpeningVerifier;
+use fiat_shamir::transcript::{Challenger, Transmitter};
 use primitives::field::{F64, F192};
 use primitives::multilinear::inner_product_base;
 
 pub use config::{
     Config, INITIAL_FOLDING_FACTOR, L0_LIST_BITS, LOG_INV_RATE_0, MAX_LOG_INV_RATE, MAX_LOG_N, MIN_LOG_INV_RATE,
-    MIN_LOG_N, QUERY_GRINDING_BITS, RESIDUAL_MAX_LOG, RS_DOMAIN_INITIAL_REDUCTION_FACTOR, SECURITY_BITS,
-    SUBSEQUENT_FOLDING_FACTOR, config_for_rate,
+    MIN_LOG_N, MIN_LOG_N_HIDING, QUERY_GRINDING_BITS, RESIDUAL_MAX_LOG, RS_DOMAIN_INITIAL_REDUCTION_FACTOR,
+    SECURITY_BITS, SUBSEQUENT_FOLDING_FACTOR, config_for_rate, config_for_rate_hiding,
 };
 
-pub(crate) use commit::{ProverData, commit};
+#[cfg(test)]
+pub(crate) use commit::commit;
+pub use commit::{ProverData, commit_hiding};
 pub(crate) use prove::prove;
-pub(crate) use sumcheck::{INITIAL_BASIS_CHUNK, InitialWeight};
+pub(crate) use sumcheck::{DenseWeight, INITIAL_BASIS_CHUNK, InitialWeight};
 pub use verify::WhirError;
 pub(crate) use verify::verify;
+
+/// The opening of a commitment made by [`commit_hiding`].
+///
+/// After the lane fold's last challenge the prover sends the padding's fold `g_1`, the configuration's [`Config::padding`] scalars, and level 0's queries take it off the folded codeword (the module docs of [`crate::stack`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Hiding {
+    /// The scalars before the lane fold's end travelled under one-time keys: first turn hiding off and send the running claim in the clear, which the verifier checks against the one it holds and continues from.
+    pub hidden_claim: bool,
+}
+
+/// Prove `sum_x witness(x) * w(x) = target` against a hiding commitment `l0`, for a weight `w` held whole.
+///
+/// It exists for a zero-knowledge proof's key commitment: its weight, the outer proof's linear claims on the keys, is neither a point claim nor a ring-switched one, so no [`crate::stack::Statement`] states it.
+/// The arguments are those of the stacked opening's WHIR run, `weight` covering the committed lanes.
+///
+/// # Panics
+///
+/// Panics on a weight of another length than the witness, or as the opening does.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The proof kernel keeps its independent inputs explicit."
+)]
+pub fn open_hiding(
+    config: &Config,
+    log_n: usize,
+    witness: &[F64],
+    weight: Vec<F192>,
+    target: F192,
+    l0: &ProverData,
+    hiding: Hiding,
+    ps: &mut impl Transmitter,
+) {
+    assert_eq!(weight.len(), witness.len(), "a weight per committed word");
+    let weight = DenseWeight {
+        weight,
+        block: 1 << (log_n - config.initial_k()),
+    };
+    prove(config, log_n, witness, &weight, target, l0, Some(hiding), ps);
+}
+
+/// Verify an opening made by [`open_hiding`], the weight's multilinear extension evaluated once by `weight_at`, at the terminal point.
+///
+/// # Errors
+///
+/// As the WHIR verifier.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The verifier keeps its independent inputs explicit, as the prover does."
+)]
+pub fn verify_hiding<V: OpeningVerifier>(
+    v: &mut V,
+    config: &Config,
+    log_n: usize,
+    n_lanes: usize,
+    target: V::E,
+    root: V::Root,
+    hiding: Hiding,
+    weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
+) -> Result<(), WhirError> {
+    verify(v, config, log_n, n_lanes, target, root, Some(hiding), weight_at)
+}
 
 /// The inner product `sum_i b[i] · witness[i]` of a weight in `E` and a witness in `K`.
 pub fn inner_product_base_ext(witness: &[F64], b: &[F192]) -> F192 {
@@ -167,7 +231,7 @@ mod tests {
             weight: b_initial.to_vec(),
             block: 1 << (log_n - pc.initial_k()),
         };
-        prove(&pc, log_n, &witness, &weight, target, &pd, &mut ps);
+        prove(&pc, log_n, &witness, &weight, target, &pd, None, &mut ps);
         Instance {
             vc: pc,
             log_n,
@@ -197,6 +261,7 @@ mod tests {
             1 << inst.vc.initial_k(),
             inst.target,
             inst.root,
+            None,
             |_, point| eval_b_at(point),
         )
     }
@@ -372,7 +437,7 @@ mod tests {
                         weight: b.to_vec(),
                         block: lane_block,
                     };
-                    prove(&pc, log_n, msg, &weight, target, &pd, &mut ps);
+                    prove(&pc, log_n, msg, &weight, target, &pd, None, &mut ps);
                     (pd.root(), ps.into_proof())
                 };
                 let (root_trunc, fs_trunc) = prove_with(&witness[..used], &b_initial[..used]);
@@ -400,7 +465,7 @@ mod tests {
                 // The verifier evaluates the weight over the whole `2^log_n` cube.
                 let verify = |fs: &ProofTranscript| {
                     let mut vs = VerifierState::from_label(b"whir-test", fs);
-                    verify(&mut vs, &pc, log_n, n_lanes, target, root_trunc, |_, point| {
+                    verify(&mut vs, &pc, log_n, n_lanes, target, root_trunc, None, |_, point| {
                         dense_mle(&b_initial, point)
                     })
                 };
@@ -470,12 +535,12 @@ mod tests {
                     weight: weight[..used].to_vec(),
                     block: lane_block,
                 };
-                prove(&pc, log_n, &witness, &table, target, &pd, &mut ps);
+                prove(&pc, log_n, &witness, &table, target, &pd, None, &mut ps);
                 let fs = ps.into_proof();
 
                 let check = |target: F192| {
                     let mut vs = VerifierState::from_label(b"whir-test", &fs);
-                    verify(&mut vs, &pc, log_n, n_lanes, target, pd.root(), |_, point| {
+                    verify(&mut vs, &pc, log_n, n_lanes, target, pd.root(), None, |_, point| {
                         dense_mle(&weight, point)
                     })
                 };
@@ -483,6 +548,81 @@ mod tests {
                 assert_eq!(check(target), Ok(()), "{label}");
                 assert!(check(target + F192::ONE).is_err(), "{label}");
             }
+        }
+    }
+
+    /// The novel basis at the point of codeword position `p` (the field element `F64(p)`): `X_j(p)` for `j < 2^m`, then `W_m(p)`.
+    ///
+    /// `X_j` is the product of the normalized subspace polynomials `W_b = s_b / s_b(v_b)` over the bits `b` of `j`, `s_b = s_{b-1} (s_{b-1} + s_{b-1}(v_{b-1}))`.
+    fn novel_basis_at(p: usize, m: usize) -> (Vec<F64>, F64) {
+        let sks = super::query::Normalizers::new(m).at_roots().to_vec();
+        let mut s = F64(p as u64);
+        let mut w = Vec::with_capacity(m + 1);
+        for b in 0..=m {
+            if b > 0 {
+                s *= s + sks[b - 1];
+            }
+            w.push(s * sks[b].inv());
+        }
+        let mut x = vec![F64::ONE];
+        for &w_b in &w[..m] {
+            let high: Vec<F64> = x.iter().map(|&v| v * w_b).collect();
+            x.extend(high);
+        }
+        (x, w[m])
+    }
+
+    /// Every lane of a hiding commitment is its `2^m + k` coefficients evaluated at every domain point: `Σ_j msg_j X_j(x) + W_m(x + s) Σ_j pad_j X_j(x)`, `s = F64(2^(m + r))`.
+    ///
+    /// The shapes take the encode's plans: replicas copied before a deep pass, and a gathered first pass at the rate layer (many lanes), at `r = 1` and beyond, the padding at most a whole lane.
+    #[test]
+    fn a_hiding_commitment_encodes_the_padded_lanes() {
+        let mut rng = Rng::new(0x9AD);
+        for (m, log_inv_rate, log_batch_size, n_lanes, k) in [
+            (3usize, 1usize, 2usize, 3usize, 8usize),
+            (5, 2, 3, 7, 5),
+            (6, 4, 1, 2, 64),
+            (9, 1, 3, 5, 37),
+            (8, 1, 11, 2048, 13),
+            (8, 2, 11, 2048, 9),
+        ] {
+            let log_n = m + log_batch_size;
+            let msg: Vec<F64> = (0..n_lanes << m).map(|_| F64(rng.next_u64())).collect();
+            let pads: Vec<F64> = (0..n_lanes * k).map(|_| F64(rng.next_u64())).collect();
+            let pd = commit_hiding(&msg, log_n, log_batch_size, log_inv_rate, &pads);
+            assert_eq!(pd.pads, pads);
+            // Every lane of a narrow commitment; the ends and a spread of a wide one's.
+            let lanes: Vec<usize> = (0..n_lanes)
+                .filter(|&u| n_lanes < 64 || u % 97 == 0 || u + 1 == n_lanes)
+                .collect();
+            let s = 1usize << (m + log_inv_rate);
+            for p in 0..s {
+                let (x, _) = novel_basis_at(p, m);
+                let (_, w_m_shifted) = novel_basis_at(p ^ s, m);
+                for &u in &lanes {
+                    let at = |coeffs: &[F64]| coeffs.iter().zip(&x).fold(F64::ZERO, |acc, (&c, &x_j)| acc + c * x_j);
+                    let want = at(&msg[u << m..(u + 1) << m]) + w_m_shifted * at(&pads[u * k..(u + 1) * k]);
+                    assert_eq!(
+                        pd.codeword[p * n_lanes + n_lanes - 1 - u],
+                        want,
+                        "lane {u}, position {p}, m={m}, rate={log_inv_rate}, n_lanes={n_lanes}, k={k}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// No domain point escapes the padding: a zero message padded by the constant one is nonzero everywhere.
+    ///
+    /// Padded by `W_m` alone, the first `2^m` points would show the message unmasked to any query landing there.
+    #[test]
+    fn a_hiding_commitment_pads_every_point() {
+        for (m, log_inv_rate) in [(3usize, 1usize), (6, 2), (10, 1), (8, 4)] {
+            let pd = commit_hiding(&vec![F64::ZERO; 1 << m], m + 1, 1, log_inv_rate, &[F64::ONE]);
+            assert!(
+                pd.codeword.iter().all(|&w| w != F64::ZERO),
+                "an unpadded point at m={m}, rate={log_inv_rate}"
+            );
         }
     }
 }

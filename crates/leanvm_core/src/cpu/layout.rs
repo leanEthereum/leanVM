@@ -723,9 +723,7 @@ impl Announcement {
 
     /// Write the announcement onto the scalar stream, which binds it into the transcript.
     pub(super) fn write(&self, ps: &mut ProverState) {
-        for size in Self::sizes(&self.taus, self.rate) {
-            ps.add_scalar(size);
-        }
+        Self::write_shape(&self.taus, self.rate, ps);
         ps.add_scalar(F192::new(self.ts_final, 0, 0));
     }
 
@@ -750,7 +748,47 @@ impl Announcement {
     ///
     /// Refuses a non-canonical size, a final clock that is not live, a table height or a rate outside its range.
     pub(crate) fn decode(scalars: &[F192; Self::LEN]) -> Result<Self, CpuError> {
-        // A size is a canonical integer in the first coordinate.
+        let (taus, log_inv_rate) = Self::decode_sizes(&scalars[..=N_TABLES])?;
+
+        // A live clock at slot zero: neither a padding row's clock nor a failed row's can end the run.
+        let ts_final = scalars[N_TABLES + 1];
+        let live = ts_final.c0 >> Clock::LIVE_BIT == 1 && ts_final.c0.is_multiple_of(Clock::CYCLE);
+        if !live || ts_final.c1 != 0 || ts_final.c2 != 0 {
+            return Err(CpuError::FinalClock);
+        }
+
+        Layout::check_heights(&taus)?;
+        Ok(Self {
+            taus,
+            rate: Self::decode_rate(log_inv_rate)?,
+            ts_final: ts_final.c0,
+        })
+    }
+
+    /// Write a zero-knowledge proof's announcement: its shape alone, each table's height then the rate, its final clock being hidden.
+    pub(crate) fn write_shape(taus: &PerTable<usize>, rate: Rate, ps: &mut ProverState) {
+        for size in Self::sizes(taus, rate) {
+            ps.add_scalar(size);
+        }
+    }
+
+    /// Read a zero-knowledge proof's announcement, its shape, and check it as [`Self::decode`] does.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a short stream, a non-canonical size, a table height or a rate outside its range.
+    pub(crate) fn read_shape<V>(v: &mut V) -> Result<(PerTable<usize>, Rate), CpuError>
+    where
+        V: fiat_shamir::arith::Verifier<E = F192>,
+    {
+        let scalars = v.next_scalars(N_TABLES + 1)?;
+        let (taus, log_inv_rate) = Self::decode_sizes(&scalars)?;
+        Layout::check_heights(&taus)?;
+        Ok((taus, Self::decode_rate(log_inv_rate)?))
+    }
+
+    /// Each table's height, then the rate's logarithm, each a canonical integer in the first coordinate.
+    fn decode_sizes(scalars: &[F192]) -> Result<(PerTable<usize>, usize), CpuError> {
         let size = |x: &F192| -> Result<usize, CpuError> {
             if x.c1 != 0 || x.c2 != 0 {
                 return Err(CpuError::NonCanonicalSize);
@@ -761,26 +799,14 @@ impl Announcement {
         for (t, x) in TableId::ALL.into_iter().zip(scalars) {
             taus[t] = size(x)?;
         }
-        let log_inv_rate = size(&scalars[N_TABLES])?;
+        Ok((taus, size(&scalars[N_TABLES])?))
+    }
 
-        // A live clock at slot zero: neither a padding row's clock nor a failed row's can end the run.
-        let ts_final = scalars[N_TABLES + 1];
-        let live = ts_final.c0 >> Clock::LIVE_BIT == 1 && ts_final.c0.is_multiple_of(Clock::CYCLE);
-        if !live || ts_final.c1 != 0 || ts_final.c2 != 0 {
-            return Err(CpuError::FinalClock);
-        }
-
-        Layout::check_heights(&taus)?;
-
-        // A rate the commitment supports.
-        let rate = (u8::try_from(log_inv_rate).ok())
+    /// A rate the commitment supports.
+    fn decode_rate(log_inv_rate: usize) -> Result<Rate, CpuError> {
+        (u8::try_from(log_inv_rate).ok())
             .and_then(|r| Rate::new(r).ok())
-            .ok_or(CpuError::Rate { log_inv_rate })?;
-        Ok(Self {
-            taus,
-            rate,
-            ts_final: ts_final.c0,
-        })
+            .ok_or(CpuError::Rate { log_inv_rate })
     }
 
     /// The layout the announced heights describe for `p`, its final clock zero.
@@ -791,24 +817,31 @@ impl Announcement {
     ///
     /// Refuses heights whose stacked witness the commitment does not take.
     pub(super) fn layout(&self, p: &RiscvProgram) -> Result<Layout, CpuError> {
-        Layout::announced(p, self.taus)
+        Layout::announced(p, self.taus, false)
     }
 }
 
 impl Layout {
-    /// The layout a verifier rebuilds from announced heights, its final clock zero.
+    /// The layout a verifier rebuilds from announced heights, its final clock zero, in the stack a zero-knowledge proof commits when `hiding`.
     ///
     /// # Errors
     ///
     /// Refuses a height outside its table's range, or heights whose stacked witness the commitment does not take.
-    pub(crate) fn announced(p: &RiscvProgram, taus: PerTable<usize>) -> Result<Self, CpuError> {
+    pub(crate) fn announced(p: &RiscvProgram, taus: PerTable<usize>, hiding: bool) -> Result<Self, CpuError> {
         Self::check_heights(&taus)?;
-        // The caps bound each height alone; the stacked size they imply is checked here.
         let layout = Self::new(p, taus, 0);
+        let layout = if hiding { layout.hiding() } else { layout };
+        // The caps bound each height alone; the stacked size they imply is checked here.
         if !(crate::pcs::MIN_MU..=crate::pcs::MAX_MU).contains(&layout.shape.mu) {
             return Err(CpuError::WitnessSize { mu: layout.shape.mu });
         }
         Ok(layout)
+    }
+
+    /// The same columns, in the stack a zero-knowledge proof commits: lanes long enough to hide, then a random lane.
+    pub(crate) fn hiding(self) -> Self {
+        let shape = StackShape::hiding(witness::committed_len(&self.placements));
+        Self { shape, ..self }
     }
 
     /// Check each table's height lies between flock's instance floor and the public cap.

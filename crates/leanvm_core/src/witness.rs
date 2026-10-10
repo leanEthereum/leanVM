@@ -100,19 +100,45 @@ impl Placement {
 /// commits `committed_len()` words and never encodes or hashes the zero tail past
 /// them. Only the prover needs `n_lanes`; the verifier's view of the commitment is
 /// the same `2^mu`-word witness either way.
+///
+/// A zero-knowledge proof commits one more lane after them, of uniform words (`random_lane`).
 #[derive(Clone, Copy, Debug)]
 pub struct StackShape {
     pub mu: usize,
     pub n_lanes: usize,
+    pub random_lane: bool,
 }
 
 impl StackShape {
-    /// Words actually committed: the placed columns rounded up to a whole lane.
+    /// The lanes committed: the data's, then the random lane if there is one.
+    pub const fn committed_lanes(&self) -> usize {
+        self.n_lanes + self.random_lane as usize
+    }
+
+    /// Words actually committed: the placed columns rounded up to a whole lane, then the random lane.
     pub fn committed_len(&self) -> usize {
         // Both fields are `pub`, and in release the shift below would mask an
         // underflowed amount into a plausible wrong length rather than panic.
         assert!(self.mu >= crate::pcs::LOG_BATCH, "a stack is at least one lane block");
-        self.n_lanes << (self.mu - crate::pcs::LOG_BATCH)
+        self.committed_lanes() << (self.mu - crate::pcs::LOG_BATCH)
+    }
+
+    /// The shape a zero-knowledge proof commits for `placed` words: its lanes long enough for one random lane to hide the opening ([`::pcs::whir::config::MIN_LOG_N_HIDING`]), and room for that lane.
+    pub fn hiding(placed: usize) -> Self {
+        let mut mu = crate::log2_ceil_usize(placed.max(1))
+            .max(crate::pcs::MIN_MU)
+            .max(::pcs::whir::config::MIN_LOG_N_HIDING);
+        loop {
+            let n_lanes = placed.div_ceil(1 << (mu - crate::pcs::LOG_BATCH)).max(1);
+            if n_lanes < 1 << crate::pcs::LOG_BATCH {
+                return Self {
+                    mu,
+                    n_lanes,
+                    random_lane: true,
+                };
+            }
+            mu += 1;
+        }
     }
 }
 
@@ -186,7 +212,14 @@ pub fn placements_of(sources: &[Source]) -> (Vec<Placement>, StackShape) {
     // The columns tile from 0, so the padding is the tail: round it up to a whole
     // lane and the lanes past that are never committed at all.
     let n_lanes = placed.div_ceil(1 << (mu - crate::pcs::LOG_BATCH)).max(1);
-    (placements, StackShape { mu, n_lanes })
+    (
+        placements,
+        StackShape {
+            mu,
+            n_lanes,
+            random_lane: false,
+        },
+    )
 }
 
 /// Chunk width for the bulk writes below: big enough to amortize the dispatch,

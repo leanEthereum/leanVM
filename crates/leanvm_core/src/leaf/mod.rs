@@ -26,8 +26,8 @@ mod leaves;
 
 pub(crate) use coord::PublicColumns;
 pub use coord::{Coord, PublicColumn, SparseColumn};
-pub(crate) use decompose::producer_public_twist;
 pub use decompose::{BusForm, PackedForm, SparseShare, producer_affine_evals};
+pub(crate) use decompose::{producer_public_twist, producer_twist_terms};
 pub use layout::{Block, Layout, N_TUPLE_BITS, Producer, fingerprint_weights, layout, stacked_bytecode_table};
 pub use leaves::{build_leaves, producer_columns};
 

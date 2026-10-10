@@ -196,7 +196,8 @@ impl Workload {
 
         let cycles = stats.cycles();
         let seconds = prove_time.mean();
-        println!("{}", self.title);
+        let zk = if prover.is_zk() { ", zero knowledge" } else { "" };
+        println!("{}{zk}", self.title);
         println!(
             "  advice                      : {} words",
             pretty_integer(&self.advice.len())

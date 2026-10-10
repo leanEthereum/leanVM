@@ -32,6 +32,13 @@ pub trait Arith {
     /// `a^(2^128)`: two Frobenius maps of `E` over `K`, which take `a` to `a^(2^-64)`.
     fn frobenius2(&mut self, a: Self::E) -> Self::E;
 
+    /// The same element, which the caller reuses many times.
+    ///
+    /// A recording arithmetic may give it a variable of its own, so that what reuses it stays short; by default it is returned as it is.
+    fn bind(&mut self, a: Self::E) -> Self::E {
+        a
+    }
+
     /// The multilinear extension of public `K` words at `point`, lowest coordinate first.
     fn public_mle(&mut self, values: &[F64], point: &[Self::E]) -> Self::E {
         assert_eq!(values.len(), 1 << point.len(), "a column has a word per vertex");
@@ -229,6 +236,13 @@ pub trait Verifier: Arith {
     fn scope<T>(&mut self, name: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
         let _ = name;
         f(self)
+    }
+
+    /// Whether the scalars read from now on travel under one-time-pad keys.
+    ///
+    /// A verifier that holds values reads no padded proof, so by default this does nothing.
+    fn set_hidden(&mut self, hidden: bool) {
+        let _ = hidden;
     }
 
     /// The next `n` scalars.

@@ -9,9 +9,9 @@ use std::fmt::{self, Debug, Formatter};
 ///
 /// The program checks it against the output.
 ///
-/// It travels as bytes.
+/// It travels as bytes. A zero-knowledge proof says the same and reveals nothing else of the run than its public shape.
 #[derive(Clone, PartialEq, Eq)]
-pub struct Proof(#[doc(hidden)] pub ProofTranscript);
+pub struct Proof(#[doc(hidden)] pub ProofTranscript, pub(crate) bool);
 
 impl Proof {
     /// The header of a proof's bytes: the magic `LVMP`, then the protocol version.
@@ -19,10 +19,29 @@ impl Proof {
     /// The version is bumped by every change to what a proof says.
     const ENVELOPE: Envelope = Envelope::new(*b"LVMP", 15);
 
+    /// The header of a zero-knowledge proof's bytes: the magic `LVMZ`, then its protocol version.
+    ///
+    /// The magic is the envelope's zero-knowledge bit: a proof of either kind is refused as the other.
+    const ZK_ENVELOPE: Envelope = Envelope::new(*b"LVMZ", Self::ZK_VERSION);
+
+    /// The zero-knowledge protocol's version, which also separates its transcript's seed.
+    pub(crate) const ZK_VERSION: u16 = 15;
+
+    /// Whether the proof is zero knowledge.
+    #[must_use]
+    pub const fn is_zk(&self) -> bool {
+        self.1
+    }
+
+    /// The envelope a proof of this kind travels in.
+    const fn envelope(zk: bool) -> Envelope {
+        if zk { Self::ZK_ENVELOPE } else { Self::ENVELOPE }
+    }
+
     /// The proof's bytes.
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
-        Self::ENVELOPE.seal(&self.0.to_bytes())
+        Self::envelope(self.1).seal(&self.0.to_bytes())
     }
 
     /// The proof these bytes encode.
@@ -32,10 +51,11 @@ impl Proof {
     /// - Bytes that are no proof.
     /// - A proof of another protocol version.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
-        // The header first: a foreign version is refused before its body is read.
-        let body = Self::ENVELOPE.open(bytes)?;
+        // The magic picks the kind, then the header is checked whole: a foreign version is refused before its body is read.
+        let zk = bytes.starts_with(&Self::ZK_ENVELOPE.magic());
+        let body = Self::envelope(zk).open(bytes)?;
         ProofTranscript::from_bytes(body)
-            .map(Self)
+            .map(|t| Self(t, zk))
             .ok_or(DecodeError::Malformed)
     }
 }

@@ -73,8 +73,14 @@ pub fn producer_affine_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta
 ///
 /// That is one pass over the columns, then a fixed cost per coordinate, bit and power.
 pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], twist: &[F192]) -> F192 {
+    (producer_twist_terms(coords, w, chi, twist.len()).iter().zip(twist))
+        .fold(F192::ZERO, |acc, (&d, &mu)| acc + mu * d)
+}
+
+/// The program columns' share of a producer's public half at `chi`, for each of `n_bits` twist weights: the `D_i` of [`producer_public_twist`].
+pub(crate) fn producer_twist_terms(coords: &[Coord], w: &[F192], chi: &[F192], n_bits: usize) -> Vec<F192> {
     let eq = primitives::multilinear::eq_table(chi);
-    let mut total = F192::ZERO;
+    let mut terms = vec![F192::ZERO; n_bits];
     for (c, &weight) in coords.iter().zip(w) {
         let Coord::Public(PublicColumn { values: vals, .. }) = c else {
             continue;
@@ -91,14 +97,14 @@ pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], 
         // Running `2^i`-th powers of the weight and of each bit's element.
         let mut weight = weight;
         let mut basis: [F64; 64] = std::array::from_fn(|k| F64(1 << k));
-        for &mu in twist {
+        for term in &mut terms {
             let sum = (slices.iter().zip(&basis)).fold(F192::ZERO, |s, (b, &g)| s + b.mul_base(g));
-            total += mu * weight * sum;
+            *term += weight * sum;
             weight = weight.square();
             basis.iter_mut().for_each(|g| *g = *g * *g);
         }
     }
-    total
+    terms
 }
 
 /// One table's bus contribution on one side, as a form over that table's committed

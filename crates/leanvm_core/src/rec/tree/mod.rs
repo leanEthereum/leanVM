@@ -258,7 +258,12 @@ impl LeafShape {
     }
 
     /// The shape a proof's first scalars announce, if they are a valid announcement.
+    ///
+    /// A zero-knowledge proof has none: no node verifies one yet.
     fn announced(proof: &Proof) -> Option<Self> {
+        if proof.is_zk() {
+            return None;
+        }
         let scalars = proof.0.stream.get(..Announcement::LEN)?.try_into().ok()?;
         let announcement = Announcement::decode(scalars).ok()?;
         Some(Self::new(announcement.taus, announcement.rate))

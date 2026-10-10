@@ -80,6 +80,15 @@ impl Normalizers {
     }
 }
 
+/// `W_m(s)` for `s = F64(2^(m + r))`, the first basis element past a `2^(m + r)`-point domain.
+///
+/// A hiding commitment's padding is `W_m(X + s) = W_m(X) + W_m(s)` times its polynomial: `W_m` vanishes on the domain's first `2^m` points and maps it onto the span of `W_m(F64(2^b))`, `m <= b < m + r`, which `W_m(s)` lies outside, so the factor vanishes nowhere on the domain.
+pub(crate) fn padding_shift(log_msg_cols: usize, log_inv_rate: usize) -> F64 {
+    let mut w = vec![F64::ZERO; log_msg_cols + 1];
+    Normalizers::new(log_msg_cols).normalized_at(F64(1 << (log_msg_cols + log_inv_rate)), &mut w);
+    w[log_msg_cols]
+}
+
 /// An entry of an opened row: a word of `K` at L0, an element of `E` at every deeper level.
 pub(crate) trait RowElem: Copy + Sync {
     /// The inner product `sum_l row[l] * eq[l]`, in `E`.
@@ -147,6 +156,35 @@ impl<'a> QueryBatch<'a> {
         } else {
             self.expanded(log_msg_cols)
         }
+    }
+
+    /// What a padding whose lane fold is `g1` adds to the batch's claimed sum over lanes of `2^m` words at rate `2^-r`, `s` as in [`padding_shift`]:
+    ///
+    /// ```text
+    ///     sum_i w_i W_m(q_i + s) sum_{j < k} g1[j] X_j(q_i)
+    /// ```
+    pub(crate) fn padding_correction(&self, log_msg_cols: usize, log_inv_rate: usize, g1: &[F192]) -> F192 {
+        let normalizers = Normalizers::new(log_msg_cols);
+        let shift = padding_shift(log_msg_cols, log_inv_rate);
+        let mut w = vec![F64::ZERO; log_msg_cols + 1];
+        let mut g = Vec::with_capacity(g1.len());
+        (self.positions.iter().zip(self.weights)).fold(F192::ZERO, |acc, (&q, &weight)| {
+            normalizers.normalized_at(F64(q as u64), &mut w);
+            // `sum_j g1[j] X_j`, folding the top bit of `j` at a time: `X_j` is the product of the `W_b` over the bits `b` of `j`.
+            g.clear();
+            g.extend_from_slice(g1);
+            while g.len() > 1 {
+                let half = g.len().next_power_of_two() >> 1;
+                let w_b = w[half.trailing_zeros() as usize];
+                let (lo, hi) = g.split_at_mut(half);
+                for (l, &h) in lo.iter_mut().zip(hi.iter()) {
+                    *l += h.mul_base(w_b);
+                }
+                g.truncate(half);
+            }
+            let p = g.first().copied().unwrap_or(F192::ZERO);
+            acc + weight * p.mul_base(w[log_msg_cols] + shift)
+        })
     }
 
     /// Whether the transposed encode computes the induced weight.

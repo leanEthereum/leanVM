@@ -95,6 +95,28 @@ pub enum CpuError {
     /// A deferred claim has no shape a proof of the program gives.
     #[error("the deferred claims: {0}")]
     MalformedClaim(MalformedClaim),
+    /// A zero-knowledge proof's padded transcript needs more keys than the key commitment holds.
+    #[error("the padded transcript takes {keys} keys, more than the {max} the key commitment holds")]
+    TooManyKeys {
+        /// The keys the transcript takes.
+        keys: usize,
+        /// The keys the commitment holds.
+        max: usize,
+    },
+    /// A zero-knowledge proof's outer constraint system is larger than its mask allows.
+    #[error("the outer constraint system has 2^{log_rows} rows, more than 2^{max}")]
+    OuterSize {
+        /// The system's base-two logarithm of rows.
+        log_rows: usize,
+        /// The largest it may have.
+        max: usize,
+    },
+    /// The key commitment's opening is rejected.
+    #[error("the key opening: {0}")]
+    KeyOpen(WhirError),
+    /// A zero-knowledge proof settles its deferred claims inside its outer proof, so it has no core to carry them out.
+    #[error("a zero-knowledge proof has no core to carry its claims out")]
+    ZkCore,
 }
 
 /// Why bytes decode to no proof.

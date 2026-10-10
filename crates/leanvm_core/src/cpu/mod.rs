@@ -29,6 +29,7 @@ mod proof;
 mod prover;
 mod reduce;
 mod witness;
+mod zk;
 
 pub use deferred::{Claim, DeferredClaims, MalformedClaim, ProgramPoint};
 pub use error::{CpuError, DecodeError, ProveError, VerifyError};

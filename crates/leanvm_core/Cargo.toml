@@ -16,6 +16,8 @@ pcs.workspace = true
 flock.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
+rand_chacha.workspace = true
+rand_core.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true

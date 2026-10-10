@@ -27,6 +27,11 @@ impl Envelope {
         Self { magic, version }
     }
 
+    /// The kind of proof the envelope carries.
+    pub(crate) const fn magic(&self) -> [u8; 4] {
+        self.magic
+    }
+
     /// The body, behind the header.
     pub(crate) fn seal(&self, body: &[u8]) -> Vec<u8> {
         // One allocation for the header and the body together.

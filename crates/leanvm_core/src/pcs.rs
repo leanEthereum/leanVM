@@ -97,6 +97,23 @@ pub(crate) enum WitnessError {
     },
 }
 
+/// The opening profile of a stack: the hiding one for a zero-knowledge proof's stack, whose last lane is random.
+fn config(shape: StackShape, rate: Rate) -> Result<pcs::whir::Config, ConfigError> {
+    let log_inv_rate = usize::from(rate.log_inv_rate());
+    if shape.random_lane {
+        pcs::whir::config_for_rate_hiding(shape.mu, log_inv_rate)
+    } else {
+        pcs::whir::config_for_rate(shape.mu, log_inv_rate)
+    }
+}
+
+/// The padding coefficients a hiding commitment of a `2^μ`-word witness takes per lane.
+pub(crate) fn padding(mu: usize, log_inv_rate: usize) -> usize {
+    pcs::whir::config_for_rate_hiding(mu, log_inv_rate)
+        .unwrap_or_else(|e| panic!("hiding config for mu={mu}, log_inv_rate={log_inv_rate}: {e}"))
+        .padding()
+}
+
 /// The encoded witness and authentication tree retained for opening.
 ///
 /// The caller retains the witness words, avoiding a second full-witness allocation.
@@ -122,15 +139,33 @@ impl Committed {
         shape: StackShape,
         rate: Rate,
     ) -> Result<Self, WitnessError> {
+        Self::new_padded(ps, witness, shape, rate, &[])
+    }
+
+    /// [`Self::new`] with each committed lane padded past its power of two by `pads`: the hiding commitment of doc `leanvm` Annex B.
+    ///
+    /// A zero-knowledge proof's stack, whose last lane is random, takes [`padding`] uniform words per committed lane, any other stack none.
+    ///
+    /// # Errors
+    ///
+    /// As [`Self::new`].
+    ///
+    /// # Panics
+    ///
+    /// Panics unless `pads` is the padding of every committed lane.
+    pub(crate) fn new_padded(
+        ps: &mut ProverState,
+        witness: &[F64],
+        shape: StackShape,
+        rate: Rate,
+        pads: &[F64],
+    ) -> Result<Self, WitnessError> {
         // Validate the dimension before shifting lengths or allocating the codeword.
-        let log_inv_rate = usize::from(rate.log_inv_rate());
-        let config = pcs::whir::config_for_rate(shape.mu, log_inv_rate)?;
+        let config = config(shape, rate)?;
         let max = 1usize << config.initial_k();
-        if !(1..=max).contains(&shape.n_lanes) {
-            return Err(WitnessError::LaneCount {
-                n_lanes: shape.n_lanes,
-                max,
-            });
+        let n_lanes = shape.committed_lanes();
+        if !(1..=max).contains(&n_lanes) {
+            return Err(WitnessError::LaneCount { n_lanes, max });
         }
         let expected = shape.committed_len();
         if witness.len() != expected {
@@ -141,7 +176,7 @@ impl Committed {
         }
 
         // The codeword and tree use the same parameters retained for opening.
-        let stack = CommittedStack::new(witness, shape.mu, config);
+        let stack = CommittedStack::new_padded(witness, shape.mu, config, pads);
         ps.add_root(&stack.root());
         Ok(Self { stack, shape })
     }
@@ -224,8 +259,8 @@ impl<R: Copy> Commitment<R> {
         rings: &[RingSwitch<V::E>],
     ) -> Result<(), WhirError> {
         // Both sides derive the opening profile from the committed witness's dimension and rate.
-        let config = pcs::whir::config_for_rate(self.shape.mu, usize::from(self.rate.log_inv_rate()))?;
-        let stack = StackCommitment::new(self.root, self.shape.mu, self.shape.n_lanes, config);
+        let config = config(self.shape, self.rate)?;
+        let stack = StackCommitment::new(self.root, self.shape.mu, self.shape.committed_lanes(), config);
         stack.verify(v, Statement { points, rings })
     }
 }
@@ -260,7 +295,11 @@ mod tests {
         // Mutation: dimensions outside the configured window, before any shift or codeword allocation.
         let sizes = [MIN_MU - 1, MAX_MU + 1, usize::MAX].map(|mu| {
             (
-                StackShape { mu, n_lanes: 1 },
+                StackShape {
+                    mu,
+                    n_lanes: 1,
+                    random_lane: false,
+                },
                 0,
                 WitnessError::Config(ConfigError::SizeOutOfRange { log_n: mu }),
             )
@@ -268,7 +307,11 @@ mod tests {
         // Mutation: lane counts outside a leaf and incomplete lane buffers.
         let lanes = [0, max_lanes + 1, usize::MAX].map(|n_lanes| {
             (
-                StackShape { mu: MIN_MU, n_lanes },
+                StackShape {
+                    mu: MIN_MU,
+                    n_lanes,
+                    random_lane: false,
+                },
                 0,
                 WitnessError::LaneCount {
                     n_lanes,
@@ -278,7 +321,11 @@ mod tests {
         });
         let lengths = [0, lane_words - 1, lane_words + 1].map(|got| {
             (
-                StackShape { mu: MIN_MU, n_lanes: 1 },
+                StackShape {
+                    mu: MIN_MU,
+                    n_lanes: 1,
+                    random_lane: false,
+                },
                 got,
                 WitnessError::Length {
                     expected: lane_words,
@@ -302,7 +349,11 @@ mod tests {
     #[test]
     fn opening_requires_the_original_committed_length() {
         // Fixture state: one committed lane, with space for two lanes in the supplied buffer.
-        let shape = StackShape { mu: MIN_MU, n_lanes: 1 };
+        let shape = StackShape {
+            mu: MIN_MU,
+            n_lanes: 1,
+            random_lane: false,
+        };
         let lane_words = shape.committed_len();
         let witness = vec![F64::ZERO; 2 * lane_words];
         let committed = Committed::new(

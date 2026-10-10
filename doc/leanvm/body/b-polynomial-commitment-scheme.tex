@@ -41,6 +41,8 @@ $\ntmap_d$     & $q_d$        & linearized map of the NTT ($q$ is the witness st
 $\bfarr$       & $B$          & butterfly array\\
 $\mpoly$       & $P$          & message polynomial ($P_i$ is a committed column)\\
 $e_c$          & $\beta_c$    & the fixed $\Ftwo$-basis, as in Annex \ref{annex:rs}\\
+$\npad$, $\padc_u$ & (none)   & padding size, row $u$'s padding (\S\ref{sec:pcs-zk})\\
+$\padfold$, $\rlane$ & (none) & folded padding, random row (\S\ref{sec:pcs-zk})\\
 \hline
 \end{tabular}
 \end{center}
@@ -308,6 +310,50 @@ The committed $f$ is the stack of \S\ref{sec:stacking}: $\nstack$ field elements
 \end{itemize}
 
 Conclusion: at commitment, both the FFT and the Merkle leaf hashing cost are proportional to $\nstack$ (not its next power of two). Unfortunately we still pay for the padding inside the $\nstack$ field elements, because some instruction counts are not powers of two. This could be prevented using the Jagged PCS \cite{jagged_pcs}.
+
+%=====================================================================
+\subsection{The hiding commitment}\label{sec:pcs-zk}
+%=====================================================================
+
+A leaf proved in zero knowledge commits to its stack and opens it with the hiding variant of Protocol~\ref{fig:protocol} below, after VEIL~\cite{DHRR26}: every committed row of $\orc^{(0)}$ is padded past its power of two, and one committed row is uniformly random. Only level $0$ changes; every deeper level commits an unpadded fold and runs as before. Write $\kappa := \kappa_0$ and $\rexp := \rexp_0$, so that $\dom_0 = \subsp_{\kappa + \rexp}$, and set
+\[
+\npad := \nq_0 + 2, \qquad \padshift := e_{\kappa + \rexp},
+\]
+the first basis element past $\dom_0$.
+
+\paragraph{Commit.} For each committed row $u$ the prover draws a uniform padding $\padc_u \in \K^{\npad}$ and sends
+\[
+\orc^{(0)}[u, \cdot] := \Bigl(\mpoly_{f(u, \cdot)}(x) + \Wn{\kappa}(x + \padshift) \sum_{j < \npad} \padc_u[j]\, \novel_j(x)\Bigr)_{x \in \dom_0}.
+\]
+Its last committed row $\rlane$, $\langle \rlane \rangle = \nrows - 1$, holds uniform elements of $\K$ and is padded like the others; no input claim's weight touches it.
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+\item \emph{The code.} $\Wn{\kappa}$ is $\Ftwo$-linear (Lemma~\ref{lem:subspace}), so $\Wn{\kappa}(X + \padshift) = \Wn{\kappa}(X) + \Wn{\kappa}(\padshift)$, and $\Wn{\kappa} \novel_j = \novel_{2^\kappa + j}$ for $j < 2^\kappa$. A row is therefore the encoding of $2^\kappa + \npad$ novel-basis coefficients ($\npad \le 2^\kappa$), a codeword of $\cpad_0 := \RS[\E, \dom_0, 2^\kappa + \npad]$ on the same domain. The additive NTT computes it with one more butterfly layer, the one at layer $\rexp - 1$ that pairs the message with the padding: the replica of the message on the coset $c + \subsp_\kappa$ of $\dom_0$ starts as the message plus $\Wn{\kappa}(c + \padshift)$ times the padding, which the encoder adds as its first pass reads the message.
+\item \emph{No point is left unpadded.} $\Wn{\kappa}$ vanishes on $\subsp_\kappa$, the first $2^\kappa$ points of $\dom_0$, so a padding by $\novel_{2^\kappa + j} = \Wn{\kappa} \novel_j$ alone would leave every query landing there unmasked. $\Wn{\kappa}$ maps $\dom_0$ onto the span of $\Wn{\kappa}(e_\kappa), \dots, \Wn{\kappa}(e_{\kappa + \rexp - 1})$ and is injective on $\langle e_\kappa, \dots, e_{63} \rangle$, so $\Wn{\kappa}(\padshift)$ lies outside that span, and $\Wn{\kappa}(x + \padshift) \neq 0$ for every $x \in \dom_0$.
+\item \emph{Decoding.} A polynomial of degree below $2^\kappa + \npad$ is uniquely $\mpoly_g + \Wn{\kappa}(X + \padshift) R$ with $\deg R < \npad$ (division by $\Wn{\kappa}(X + \padshift)$, of degree $2^\kappa$), and a row $U$ of a codeword of $\cpad_0$ decodes to that $g$. The claims are on $g$; the padding is no part of the committed polynomial.
+\end{itemize}
+
+\paragraph{Open.} Right after the last lane-fold challenge $\fc_{\ell_0}$, with $c' = \rc{\ell_0}$ fixed and before the next round polynomial:
+\begin{enumerate}[itemsep=1pt,topsep=2pt]
+\item In the zero-knowledge proof every scalar the prover sent so far travelled under a one-time key, and $\mathbf{V}$ holds $c'$ only as an expression of keyed values. $\mathbf{P}$ sends $c'$ in the clear, $\mathbf{V}$ checks it against that expression and continues from it, and every later scalar travels in the clear.
+\item $\mathbf{P}$ sends the paddings folded as the rows are, $\padfold := \sum_{u} \eq(\fc, u)\, \padc_u \in \E^{\npad}$.
+\item At level $0$, step 3(c) takes the padding off each folded column:
+\[
+c_q := \sum_{u} \eq(\fc, u)\, \orc^{(0)}[u, x_q] + \Wn{\kappa}(x_q + \padshift) \sum_{j < \npad} \padfold[j]\, \novel_j(x_q)
+\]
+(the subtraction, in characteristic $2$), which is $\Enc_0(f^{(1)})[x_q]$ for an honest prover. $\mathbf{V}$ evaluates $\Wn{\kappa}(x_q)$ and the $\novel_j(x_q)$ by the recurrence of Lemma~\ref{lem:subspace}, adds the constant $\Wn{\kappa}(\padshift)$, and folds the sum one bit of $j$ at a time: $\kappa$ squarings and fewer than $\npad$ products per query.
+\end{enumerate}
+Everything else is Protocol~\ref{fig:protocol}; the induced level-$1$ claims are on the $2^\kappa$ coefficients of $f^{(1)}$ as before.
+
+\paragraph{Soundness.} Theorem~\ref{thm:rbr} holds with level $0$'s code $\cpad_0$, of dimension $2^\kappa + \npad$ and rate $\rate_0 = (2^\kappa + \npad)\, 2^{-\kappa - \rexp}$, in every level-$0$ term: $L_0$, $\epsilon_0$, $\rad_0$ and the query term. The deeper levels keep theirs. The proof reads Protocol~\ref{fig:protocol} with $\cpad_0$ at level $0$ and changes in one place, the query step of level $0$, where $c$ becomes the corrected word $c^\star := \orc^{(0)}_\fc + \Wn{\kappa}(\cdot + \padshift)\, \mpoly_{\padfold}$, $\mpoly_{\padfold} := \sum_{j < \npad} \padfold[j] \novel_j$. If $\Enc_0(g^\ast)$ agrees with $c^\star$ on at least $(1 - \rad_0)\blen_0$ columns, then $\Enc_0(g^\ast) + \Wn{\kappa}(\cdot + \padshift)\, \mpoly_{\padfold}$ is a codeword of $\cpad_0$ within $\rad_0$ of $\orc^{(0)}_\fc$ that decodes to $g^\ast$, which therefore violates the residual claim; otherwise all $\nq_0$ queries land in the agreement set with probability less than $(1 - \rad_0)^{\nq_0}$, as before. $\padfold$ and $c'$ are prover messages and add no error term, and the random row is one more row of the stack, with no claim on it.
+
+The query counts are rederived by the analysis of Theorem~\ref{thm:rbr} for every size and rate, with level $0$'s rate the padded one, at the fixed point $\npad = \nq_0 + 2$: the derivation starts from the unpadded $\nq_0 + 2$ and rederives until $\nq_0$ no longer moves, which it does since a larger padding never needs fewer queries. They differ from the unpadded counts only at rate $1/2$, by a few level-$0$ queries, and most at the smallest stack. The padded code's list bound $L_0$, rederived with its own slack, stays within the $2^{12}$ every challenge before the opening pays (\S\ref{sec:e2e-ledger}). The hiding variant needs $\kappa \ge 14$, a stack of at least $2^{20}$ elements, for the reason below.
+
+\paragraph{Zero knowledge.} The argument is for an honest verifier and statistical, then Fiat-Shamir in the random-oracle model. Every scalar sent before the lane fold's end is uniform, each under its own key. What the opening reveals besides is simulated in three parts.
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+\item \emph{Level-$0$ answers.} For distinct $x_1, \dots, x_t \in \dom_0$ with $t \le \npad$, the map $\padc \mapsto \bigl(\Wn{\kappa}(x_i + \padshift) \sum_{j < \npad} \padc[j] \novel_j(x_i)\bigr)_i$ is onto $\K^t$: the $\novel_j$, $j < \npad$, span the polynomials of degree below $\npad$, which take any $t \le \npad$ values at $t$ points, and every factor is nonzero. So any $\npad$ symbols of a padded row are uniform whatever its message, the $(\nq_0 + 1)$-wise independence of the padded code~\cite{DHRR26,Dia25}, and a query message opens at most $\nq_0$ distinct columns.
+\item \emph{Roots.} Given the opened columns, one more symbol of each row is still uniform ($\nq_0 + 1 \le \npad$), so each unopened leaf keeps one spare uniform symbol of $\K$ per row, $64$ bits of fresh entropy, and the root and the authentication paths are simulated in the random-oracle model with no salt.
+\item \emph{After the lane fold.} No claim touches $\rlane$, so the lane fold gives $f^{(1)} = \sum_{u} \eq(\fc, u)\, f(u, \cdot)$ the term $\eq(\fc, \rlane)\, f(\rlane, \cdot)$, a nonzero multiple in $\E$ of a uniform vector of $\K^{2^\kappa}$ unless some $\fc_j$ is $0$ or $1$, which has probability at most $2\ell_0/|\E|$. Every later message is a linear functional of $f^{(1)}$, or for a root a random-oracle hash of the encoding of a fold of it: $c'$, the round and intro polynomials, the OOD answers, the values $c_q$, the opened rows of the levels past $0$, and $\ffinal$. An $\E$-valued functional is three $\K$-linear functionals of $f(\rlane, \cdot)$, and the configurations keep their number at most $2^{\kappa - 1}$, three per $\E$ scalar revealed, which is what fixes $\kappa \ge 14$; under that condition the random row makes them uniform, as VEIL's random column does~\cite[Lemma~4.7]{DHRR26}. The opened level-$0$ columns and $\padfold$ together determine the $c_q$, and reveal nothing more of the messages. This last step adapts VEIL's lemma to an $\E$-fold of $\K$-valued rows, with a random row of $\K$ and fold coefficients in $\E$: it is argued here, not proven.
+\end{itemize}
 
 
 %=====================================================================

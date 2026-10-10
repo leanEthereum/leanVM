@@ -541,7 +541,11 @@ fn check_opening(mu: usize, log_inv_rate: u8, seed: u64) {
     let what = format!("mu {mu}, log_inv_rate {log_inv_rate}");
     let rate = Rate::new(log_inv_rate).expect("a supported rate");
     let mut rng = Rng::new(seed);
-    let shape = StackShape { mu, n_lanes: N_LANES };
+    let shape = StackShape {
+        mu,
+        n_lanes: N_LANES,
+        random_lane: false,
+    };
     let q: Vec<F64> = (0..shape.committed_len()).map(|_| F64(rng.next_u64())).collect();
     let (slots, rings) = opening_claims(mu, &q, &mut rng);
 

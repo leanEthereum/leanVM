@@ -436,6 +436,35 @@ pub(crate) trait InitialWeight: Sync {
     fn fold_lanes(&self, rs: &[F192]) -> Vec<F192>;
 }
 
+/// An initial weight held whole, its lane fold the definition.
+///
+/// A zero-knowledge proof's key commitment opens against one (`super::open_hiding`), and the tests stand it in for a regenerated weight.
+pub(crate) struct DenseWeight {
+    /// The weight, one value per word.
+    pub(crate) weight: Vec<F192>,
+    /// The lane block length.
+    pub(crate) block: usize,
+}
+
+impl InitialWeight for DenseWeight {
+    fn fill(&self, start: usize, out: &mut [F192]) {
+        out.copy_from_slice(&self.weight[start..start + out.len()]);
+    }
+
+    fn fold_lanes(&self, rs: &[F192]) -> Vec<F192> {
+        let eq = eq_table(rs);
+        let lanes = self.weight.len() / self.block;
+        let mut out = vec![F192::ZERO; lanes.div_ceil(eq.len()) * self.block];
+        for (word, o) in out.iter_mut().enumerate() {
+            let (group, x) = (word / self.block, word % self.block);
+            for (lane, &e) in (group * eq.len()..lanes).zip(&eq) {
+                *o += e * self.weight[lane * self.block + x];
+            }
+        }
+        out
+    }
+}
+
 /// The weight the opening's sumcheck folds against.
 pub(crate) enum Basis<'a> {
     /// The initial weight, read by the first pass and folded by the first fold.
@@ -828,32 +857,7 @@ pub(super) mod tests {
     use primitives::multilinear::inner_product;
     use primitives::test_util::Rng;
 
-    /// An initial weight held whole, its lane fold the definition: the tests' stand-in for a regenerated one.
-    pub(in crate::whir) struct Table {
-        /// The weight, one value per word.
-        pub(in crate::whir) weight: Vec<F192>,
-        /// The lane block length.
-        pub(in crate::whir) block: usize,
-    }
-
-    impl InitialWeight for Table {
-        fn fill(&self, start: usize, out: &mut [F192]) {
-            out.copy_from_slice(&self.weight[start..start + out.len()]);
-        }
-
-        fn fold_lanes(&self, rs: &[F192]) -> Vec<F192> {
-            let eq = eq_table(rs);
-            let lanes = self.weight.len() / self.block;
-            let mut out = vec![F192::ZERO; lanes.div_ceil(eq.len()) * self.block];
-            for (word, o) in out.iter_mut().enumerate() {
-                let (group, x) = (word / self.block, word % self.block);
-                for (lane, &e) in (group * eq.len()..lanes).zip(&eq) {
-                    *o += e * self.weight[lane * self.block + x];
-                }
-            }
-            out
-        }
-    }
+    pub(in crate::whir) use super::DenseWeight as Table;
 
     /// One lane bit folded the naive way: block `2i` with block `2i + 1`, the last with zeros.
     fn fold_lane_bit(v: &[F192], block: usize, r: F192) -> Vec<F192> {

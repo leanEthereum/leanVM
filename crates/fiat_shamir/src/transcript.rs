@@ -89,6 +89,11 @@ pub trait Transmitter: Challenger {
     fn add_scalars(&mut self, xs: &[F192]);
     fn grind(&mut self, bits: u32);
 
+    /// Whether the scalars sent from now on travel under one-time-pad keys.
+    ///
+    /// A prover holding no keys hides nothing.
+    fn set_hidden(&mut self, hidden: bool);
+
     /// Transmit a root as its two scalars, not as a byte string. Sending it is what binds it: no verifier absorbs a root
     /// separately (see [`Receiver::next_root`], its mirror).
     fn add_root(&mut self, root: &Hash) {
@@ -157,6 +162,14 @@ pub struct ProverState {
     fs: Duplex,
     stream: Vec<F192>,
     merkle: Vec<PrunedMerklePaths>,
+    pad: Option<Pad>,
+}
+
+/// One-time-pad keys, one per hidden scalar, used in order.
+struct Pad {
+    keys: Vec<F192>,
+    next: usize,
+    hidden: bool,
 }
 
 impl ProverState {
@@ -175,6 +188,29 @@ impl ProverState {
             fs,
             stream: Vec::new(),
             merkle: Vec::new(),
+            pad: None,
+        }
+    }
+
+    /// Hide each scalar sent while [`Transmitter::set_hidden`] holds under the next of these keys: the stream and the transcript carry `x + key`.
+    ///
+    /// # Panics
+    ///
+    /// If keys were already given.
+    pub fn set_keys(&mut self, keys: Vec<F192>) {
+        assert!(self.pad.is_none(), "a prover takes its keys once");
+        self.pad = Some(Pad {
+            keys,
+            next: 0,
+            hidden: false,
+        });
+    }
+
+    /// The proof so far, which a verifier replays from the same seed.
+    pub fn snapshot(&self) -> ProofTranscript {
+        ProofTranscript {
+            stream: self.stream.clone(),
+            merkle: self.merkle.clone(),
         }
     }
 
@@ -269,9 +305,18 @@ impl Transmitter for ProverState {
     }
 
     /// Transmit a scalar into the proof AND bind it into the state (the two are
-    /// inseparable: you cannot send without binding).
+    /// inseparable: you cannot send without binding). A hidden scalar travels
+    /// under its key.
     #[inline]
     fn add_scalar(&mut self, x: F192) {
+        let x = match &mut self.pad {
+            Some(pad) if pad.hidden => {
+                let key = *pad.keys.get(pad.next).expect("a key per hidden scalar");
+                pad.next += 1;
+                x + key
+            }
+            _ => x,
+        };
         self.fs.observe(x);
         self.stream.push(x);
     }
@@ -291,6 +336,18 @@ impl Transmitter for ProverState {
     fn grind(&mut self, bits: u32) {
         let nonce = self.fs.grind_pow(bits);
         self.stream.push(F192::new(nonce, 0, 0));
+    }
+
+    fn set_hidden(&mut self, hidden: bool) {
+        if let Some(pad) = &mut self.pad {
+            pad.hidden = hidden;
+        }
+    }
+
+    /// A root is public: it is never sent under a key.
+    fn add_root(&mut self, root: &Hash) {
+        assert!(!self.pad.as_ref().is_some_and(|p| p.hidden), "a root is never hidden");
+        self.add_scalars(&hash_to_scalars(root));
     }
 }
 

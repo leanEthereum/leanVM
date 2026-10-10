@@ -30,11 +30,19 @@ pub(crate) struct Witness {
 
 impl Witness {
     /// The witness of a finished run.
+    #[cfg(test)]
+    pub(crate) fn build(program: &Program, exec: &Execution) -> Self {
+        Self::build_for(program, exec, false)
+    }
+
+    /// The witness of a finished run, in the stack a zero-knowledge proof commits when `hiding`.
+    ///
+    /// A hiding stack's last lane is left zero, for the prover to fill with its randomness.
     ///
     /// # Panics
     ///
     /// Panics if a table's rows are not a power of two at flock's floor: the fill blocks failed to fill it.
-    pub(crate) fn build(program: &Program, exec: &Execution) -> Self {
+    pub(crate) fn build_for(program: &Program, exec: &Execution, hiding: bool) -> Self {
         let (p, trace, schema) = (&program.rv, &exec.trace, Schema::get());
 
         // Every table's rows are real, filled to a power of two at flock's floor, so its height is its row count.
@@ -62,6 +70,7 @@ impl Witness {
 
         // The public layout comes first: it fixes each column's length, so each is allocated once.
         let layout = Layout::new(p, taus, trace.ts_final);
+        let layout = if hiding { layout.hiding() } else { layout };
 
         // The stack is written exactly once: one window per committed column, each filled in place.
         let mut q = Box::new_uninit_slice(layout.shape.committed_len());
