@@ -19,8 +19,9 @@ mod layer;
 use self::lanes::{Lane, Lanes};
 use self::layer::{EQ_LOW_VARS, Grid, Layer};
 use crate::PAR_THRESHOLD;
+use fiat_shamir::arith::RoundPolynomial;
 use fiat_shamir::arith::Verifier;
-use fiat_shamir::transcript::{Challenger, ProverState, TranscriptError, Transmitter};
+use fiat_shamir::{ProverState, TranscriptError};
 use primitives::field::{F192, mul2};
 use primitives::multilinear::{SplitEq, interp};
 use std::mem::MaybeUninit;
@@ -142,8 +143,8 @@ impl LayerPair {
     /// Sends one round's two messages as their combination by `lambda`, and returns the round's challenge.
     fn send(&self, messages: [[F192; 4]; 2], ps: &mut ProverState) -> F192 {
         let [first, second] = messages;
-        ps.add_scalars(&std::array::from_fn::<_, 4, _>(|k| first[k] + self.lambda * second[k]));
-        ps.sample()
+        ps.prover_messages(&std::array::from_fn::<_, 4, _>(|k| first[k] + self.lambda * second[k]));
+        ps.verifier_message()
     }
 
     /// Reduces the claims on the level two above at `point` to claims on this level.
@@ -182,9 +183,9 @@ impl LayerPair {
         // The one row left: its four children are the claims on this level.
         let children = self.layers.each_ref().map(Layer::children);
         for row in &children {
-            ps.add_scalars(row);
+            ps.prover_messages(row);
         }
-        let (low, high) = (ps.sample(), ps.sample());
+        let (low, high) = (ps.verifier_message(), ps.verifier_message());
         let values = children.map(|[a, b, c, d]| interp(interp(a, b, low), interp(c, d, low), high));
         let point = [low, high].into_iter().chain(challenges).collect();
         (point, values)
@@ -207,8 +208,8 @@ pub fn prove_products(trees: [(Vec<F192>, Vec<F192>); 2], ps: &mut ProverState) 
     let mut trees = trees.map(|(leaves, first)| Tree::new(leaves, first, mu));
     let roots = trees.each_ref().map(|tree| tree.root(mu));
     assert_eq!(roots[0], roots[1], "the bus needs the two products to agree");
-    ps.add_scalar(roots[0]);
-    let mut lambda = ps.sample();
+    ps.prover_message(&roots[0]);
+    let mut lambda = ps.verifier_message();
     let mut point = Vec::new();
     let mut values = roots;
 
@@ -217,11 +218,11 @@ pub fn prove_products(trees: [(Vec<F192>, Vec<F192>); 2], ps: &mut ProverState) 
     if !mu.is_multiple_of(2) {
         let children = tops.map(|top| Tree::children_of_root(&top));
         for pair in &children {
-            ps.add_scalars(pair);
+            ps.prover_messages(pair);
         }
-        let r = ps.sample();
+        let r = ps.verifier_message();
         values = children.map(|[left, right]| interp(left, right, r));
-        lambda = ps.sample();
+        lambda = ps.verifier_message();
         point = vec![r];
     }
 
@@ -231,7 +232,7 @@ pub fn prove_products(trees: [(Vec<F192>, Vec<F192>); 2], ps: &mut ProverState) 
             lambda,
         };
         (point, values) = pair.prove(&point, ps);
-        lambda = ps.sample();
+        lambda = ps.verifier_message();
     }
 
     Products { point, values }
@@ -245,8 +246,8 @@ pub fn prove_products(trees: [(Vec<F192>, Vec<F192>); 2], ps: &mut ProverState) 
 pub fn verify_products<V: Verifier>(v: &mut V, mu: usize) -> Result<Products<V::E>, GkrError> {
     // One root for both balancing trees, so their equality is structural.
     // There is no unbalanced pair a prover could state, and nothing for the caller to check.
-    let root = v.next_scalar()?;
-    let mut lambda = v.sample();
+    let root = v.prover_message()?;
+    let mut lambda = v.verifier_message();
     let mut point = Vec::new();
     let mut values = [root; 2];
 
@@ -258,16 +259,16 @@ pub fn verify_products<V: Verifier>(v: &mut V, mu: usize) -> Result<Products<V::
         if layer % 2 == 1 {
             let mut children = [[root; 2]; 2];
             for value in children.iter_mut().flatten() {
-                *value = v.next_scalar()?;
+                *value = v.prover_message()?;
             }
             let products = children.map(|[left, right]| v.mul(left, right));
             let expected = v.poly_eval(&products, lambda);
             v.ensure_eq(claim, expected, || GkrError::LayerMismatch { layer })?;
-            let r = v.sample();
+            let r = v.verifier_message();
             for (value, [left, right]) in values.iter_mut().zip(children) {
                 *value = v.interp(left, right, r);
             }
-            lambda = v.sample();
+            lambda = v.verifier_message();
             point = vec![r];
             layer -= 1;
             continue;
@@ -276,24 +277,24 @@ pub fn verify_products<V: Verifier>(v: &mut V, mu: usize) -> Result<Products<V::
         // A radix-four layer: one quartic per variable of the level above.
         let mut challenges = Vec::with_capacity(point.len());
         for &eq_point in &point {
-            let message = v.next_round_poly(5, claim, Some(eq_point))?;
-            let r = v.sample();
+            let message = RoundPolynomial::read(v, 5, claim, Some(eq_point))?.coeffs;
+            let r = v.verifier_message();
             challenges.push(r);
             claim = v.poly_eval(&message, r);
         }
         let mut children = [[root; 4]; 2];
         for value in children.iter_mut().flatten() {
-            *value = v.next_scalar()?;
+            *value = v.prover_message()?;
         }
         let products = children.map(|row| v.product(&row));
         let expected = v.poly_eval(&products, lambda);
         v.ensure_eq(claim, expected, || GkrError::LayerMismatch { layer })?;
-        let (low, high) = (v.sample(), v.sample());
+        let (low, high) = (v.verifier_message(), v.verifier_message());
         for (value, [a, b, c, d]) in values.iter_mut().zip(children) {
             let (left, right) = (v.interp(a, b, low), v.interp(c, d, low));
             *value = v.interp(left, right, high);
         }
-        lambda = v.sample();
+        lambda = v.verifier_message();
         point = [low, high].into_iter().chain(challenges).collect();
         layer -= 2;
     }
@@ -304,7 +305,7 @@ pub fn verify_products<V: Verifier>(v: &mut V, mu: usize) -> Result<Products<V::
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fiat_shamir::transcript::VerifierState;
+    use fiat_shamir::{SessionId, VerifierState};
 
     /// The multilinear extension of `table` at `point`, folding the lowest variable first.
     fn mle(table: &[F192], point: &[F192]) -> F192 {
@@ -322,8 +323,8 @@ mod tests {
     }
 
     /// Proves the two trees, checks each leaf claim against its dense extension, and verifies the proof.
-    fn roundtrip(label: &[u8], leaves: &[Vec<F192>; 2], mu: usize) -> Vec<F192> {
-        let mut ps = ProverState::from_label(label);
+    fn roundtrip(label: &[u8], leaves: &[Vec<F192>; 2], mu: usize) -> Vec<u8> {
+        let mut ps = ProverState::new(&SessionId::new(label), &0u64);
         let proved = prove_products(leaves.each_ref().map(|l| (l.clone(), next_level(l))), &mut ps);
         for (tree, leaves) in leaves.iter().enumerate() {
             let mut dense = leaves.clone();
@@ -332,12 +333,12 @@ mod tests {
         }
 
         let proof = ps.into_proof();
-        let mut vs = VerifierState::from_label(label, &proof);
+        let mut vs = VerifierState::new(&SessionId::new(label), &0u64, &proof);
         let verified = verify_products(&mut vs, mu).expect("GKR verifies");
         assert_eq!(verified.point, proved.point);
         assert_eq!(verified.values, proved.values);
-        vs.finish().expect("proof stream is consumed");
-        proof.stream
+        vs.check_eof().expect("the proof is read to its end");
+        proof.narg
     }
 
     #[test]
@@ -362,7 +363,7 @@ mod tests {
         //
         //     sparse:  [v_0, ..., v_{n-1}]
         //     dense:   [v_0, ..., v_{n-1}, 1, ..., 1]
-        //     -> the same proof stream, word for word
+        //     -> the same proof, byte for byte
         for mu in 3..=12 {
             let lengths = [(1usize << mu) - 3, (1usize << (mu - 1)) + 1];
             let mut leaves: [Vec<F192>; 2] = std::array::from_fn(|tree| {

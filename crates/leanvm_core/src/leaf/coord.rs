@@ -1,8 +1,8 @@
 //! A tuple coordinate as a function of its block's row, and the public columns a coordinate reads.
 
 use crate::rec::FixedColumn;
+use fiat_shamir::VerifierState;
 use fiat_shamir::arith::{Arith, Native};
-use fiat_shamir::transcript::VerifierState;
 use primitives::field::{F64, F192};
 use std::sync::{Arc, OnceLock};
 

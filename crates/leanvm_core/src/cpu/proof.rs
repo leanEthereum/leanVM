@@ -2,7 +2,7 @@
 
 use super::DecodeError;
 use crate::envelope::Envelope;
-use fiat_shamir::transcript::ProofTranscript;
+use fiat_shamir::ProofTranscript;
 use std::fmt::{self, Debug, Formatter};
 
 /// A proof that a program, run on some advice, exits with an output.
@@ -17,7 +17,7 @@ impl Proof {
     /// The header of a proof's bytes: the magic `LVMP`, then the protocol version.
     ///
     /// The version is bumped by every change to what a proof says.
-    const ENVELOPE: Envelope = Envelope::new(*b"LVMP", 15);
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMP", 16);
 
     /// The proof's bytes.
     #[must_use]

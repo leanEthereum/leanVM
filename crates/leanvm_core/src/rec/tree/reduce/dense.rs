@@ -11,8 +11,9 @@
 
 use super::{DenseTables, Entry, Msg, ReduceError, TILE, ZERO, xor};
 use crate::rec::tree::claims::{DenseClaim, DensePoly, DenseTerm};
+use fiat_shamir::ProverState;
+use fiat_shamir::arith::RoundPolynomial;
 use fiat_shamir::arith::{Arith, Verifier};
-use fiat_shamir::transcript::{Challenger, ProverState, Transmitter};
 use parallel::Chunks;
 use primitives::field::{F64, F192, F192Unreduced, mul_unreduced4};
 use primitives::multilinear::{eq_table, eq_table_seeded, mle_eval_par};
@@ -108,7 +109,7 @@ impl DenseVars {
         claims: &[DenseClaim<V::E>],
     ) -> Result<DenseReduced<V::E>, ReduceError> {
         let reduced = Self::reduced(claims);
-        let theta = v.sample();
+        let theta = v.verifier_message();
         let n_terms = claims.iter().map(|c| c.terms.len()).sum();
         let powers = v.powers(theta, n_terms);
         let zero = v.zero();
@@ -121,15 +122,15 @@ impl DenseVars {
         let rounds = self.rounds(reduced);
         let mut point = Vec::with_capacity(rounds);
         for _ in 0..rounds {
-            let h = v.next_round_poly(3, claim, None)?;
-            let r = v.sample();
+            let h = RoundPolynomial::read(v, 3, claim, None)?.coeffs;
+            let r = v.verifier_message();
             claim = v.poly_eval(&h, r);
             point.push(r);
         }
         let mut values = [None; DensePoly::COUNT];
         for (value, reduced) in values.iter_mut().zip(reduced) {
             if reduced {
-                *value = Some(v.next_scalar()?);
+                *value = Some(v.prover_message()?);
             }
         }
         let weights = self.final_weights(v, claims, &powers, &point);
@@ -225,14 +226,14 @@ impl DenseTerm<F192> {
 impl<'a> DenseProver<'a> {
     /// Prove the reduction of the claims, which must be true of the tables.
     pub(crate) fn prove(ps: &mut ProverState, vars: &DenseVars, tables: &'a DenseTables, claims: &[DenseClaim<F192>]) {
-        let theta = ps.sample();
+        let theta = ps.verifier_message();
         let mut prover = Self::new(vars, tables, claims, theta);
         for i in 0..prover.rounds() {
-            ps.add_scalars(&prover.message());
-            let r = ps.sample();
+            ps.prover_messages(&prover.message());
+            let r = ps.verifier_message();
             prover.bind(i, r);
         }
-        ps.add_scalars(&prover.finals());
+        ps.prover_messages(&prover.finals());
     }
 
     /// The prover of the claims under the batching challenge `theta`.

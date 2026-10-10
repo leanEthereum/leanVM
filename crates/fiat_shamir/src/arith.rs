@@ -5,7 +5,10 @@
 //! - Natively an element is an `F192`, a read comes off the proof, and a failed equality is an error.
 //! - In rows an element is a wire, a read is a free wire bound by a hash row, and an equality joins two wires.
 
-use crate::transcript::{Challenger, Receiver, TranscriptError, VerifierState};
+use crate::duplex::DuplexSponge;
+use crate::error::TranscriptError;
+use crate::prover::ProverState;
+use crate::verifier::VerifierState;
 use primitives::field::{F64, F192};
 use primitives::multilinear::mle_eval_par;
 
@@ -175,39 +178,26 @@ pub trait Arith {
     }
 }
 
-/// A verifier: arithmetic, a transcript to read and sample, and equalities to check.
+/// A verifier: arithmetic, a transcript to read and draw from, and equalities to check.
+///
+/// Natively the transcript is the proof's; in rows it is the circuit's replay of it.
 pub trait Verifier: Arith {
-    /// The next scalar of the stream, bound into the transcript.
+    /// The next prover message, an element of `E`, read and absorbed.
     ///
     /// # Errors
     ///
-    /// Returns an error past the end of the stream.
-    fn next_scalar(&mut self) -> Result<Self::E, TranscriptError>;
+    /// Returns an error past the end of the proof.
+    fn prover_message(&mut self) -> Result<Self::E, TranscriptError>;
 
-    /// A sumcheck round's coefficients, constant first, one of them fixed by the claim.
-    ///
-    /// - With an eq weight `r` the claim fixes the constant: `c_0 = claim + r·sum_{i>=1} c_i`.
-    /// - Without, it fixes the linear coefficient: `c_1 = claim + sum_{i>=2} c_i`.
+    /// A verifier message: a uniform element of `E`, drawn from the sponge.
+    fn verifier_message(&mut self) -> Self::E;
+
+    /// Check `bits` of proof of work before the next verifier message.
     ///
     /// # Errors
     ///
-    /// Returns an error past the end of the stream.
-    fn next_round_poly(
-        &mut self,
-        n_coeffs: usize,
-        claim: Self::E,
-        eq: Option<Self::E>,
-    ) -> Result<Vec<Self::E>, TranscriptError>;
-
-    /// A challenge.
-    fn sample(&mut self) -> Self::E;
-
-    /// Read a nonce, check it clears a proof of work of the given bits, then bind it.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error past the end of the stream, or on a nonce short of the work when the verifier checks values.
-    fn grind_check(&mut self, bits: u32) -> Result<(), TranscriptError>;
+    /// Returns an error past the end of the proof, or on a nonce short of the work when the verifier checks values.
+    fn check_pow(&mut self, bits: u32) -> Result<(), TranscriptError>;
 
     /// Check two elements are equal, refusing with the given error when they differ.
     ///
@@ -221,7 +211,7 @@ pub trait Verifier: Arith {
     /// # Errors
     ///
     /// Returns an error when the proof holds data past what was read and the verifier checks values.
-    fn finish(&mut self) -> Result<(), TranscriptError>;
+    fn check_eof(&mut self) -> Result<(), TranscriptError>;
 
     /// Run `f` as a named stage of the verifier.
     ///
@@ -231,18 +221,101 @@ pub trait Verifier: Arith {
         f(self)
     }
 
-    /// The next `n` scalars.
+    /// The next `n` prover messages.
     ///
     /// # Errors
     ///
-    /// Returns an error past the end of the stream.
-    fn next_scalars(&mut self, n: usize) -> Result<Vec<Self::E>, TranscriptError> {
-        (0..n).map(|_| self.next_scalar()).collect()
+    /// Returns an error past the end of the proof.
+    fn prover_messages(&mut self, n: usize) -> Result<Vec<Self::E>, TranscriptError> {
+        (0..n).map(|_| self.prover_message()).collect()
     }
 
-    /// `n` challenges.
-    fn sample_vec(&mut self, n: usize) -> Vec<Self::E> {
-        (0..n).map(|_| self.sample()).collect()
+    /// `n` verifier messages.
+    fn verifier_messages(&mut self, n: usize) -> Vec<Self::E> {
+        (0..n).map(|_| self.verifier_message()).collect()
+    }
+}
+
+/// One sumcheck round's polynomial, as its coefficients, constant first.
+///
+/// The prover sends all of them but one: the round's claim fixes the last.
+///
+/// - Plain round: `h(0) + h(1) = claim`, and `h(0) + h(1) = sum_{i>=1} c_i`, so the claim fixes `c_1`.
+/// - Round with its eq weight `r` factored out: `claim = c_0 + r * sum_{i>=1} c_i`, which fixes `c_0`.
+///
+/// Either way the fixed coefficient is a sum, and no inverse is needed.
+///
+/// The fixed coefficient is a function of the claim and the sent ones, so binding it would add nothing.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RoundPolynomial<E> {
+    /// The coefficients, constant first.
+    pub coeffs: Vec<E>,
+}
+
+impl<E> RoundPolynomial<E> {
+    /// The index of the coefficient the claim fixes: the constant with an eq weight, else the linear one.
+    const fn fixed(weighted: bool) -> usize {
+        if weighted { 0 } else { 1 }
+    }
+}
+
+impl RoundPolynomial<F192> {
+    /// Send every coefficient but the one the claim fixes.
+    ///
+    /// `weighted` says whether the round's eq weight was factored out.
+    ///
+    /// # Panics
+    ///
+    /// Panics on fewer than two coefficients.
+    pub fn send<H: DuplexSponge>(&self, ps: &mut ProverState<H>, weighted: bool) {
+        assert!(
+            self.coeffs.len() >= 2,
+            "a round polynomial has at least two coefficients"
+        );
+        let fixed = Self::fixed(weighted);
+        for (i, c) in self.coeffs.iter().enumerate() {
+            if i != fixed {
+                ps.prover_message(c);
+            }
+        }
+    }
+}
+
+impl<E: Copy> RoundPolynomial<E> {
+    /// Read a round polynomial of `n_coeffs` coefficients: the sent ones, then the fixed one from `claim`.
+    ///
+    /// `eq` is the round's eq weight `r`, when it was factored out.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error past the end of the proof.
+    ///
+    /// # Panics
+    ///
+    /// Panics on fewer than two coefficients.
+    pub fn read<V: Verifier<E = E>>(
+        v: &mut V,
+        n_coeffs: usize,
+        claim: E,
+        eq: Option<E>,
+    ) -> Result<Self, TranscriptError> {
+        assert!(n_coeffs >= 2, "a round polynomial has at least two coefficients");
+
+        // Read the sent coefficients, then put the fixed one in its place.
+        let fixed = Self::fixed(eq.is_some());
+        let mut coeffs = v.prover_messages(n_coeffs - 1)?;
+        coeffs.insert(fixed, claim);
+
+        // The coefficients past the fixed one, summed.
+        let zero = v.zero();
+        let tail = coeffs[fixed + 1..].iter().fold(zero, |acc, &c| v.add(acc, c));
+
+        // c_1 = claim + sum_{i>=2} c_i, or c_0 = claim + r * sum_{i>=1} c_i.
+        coeffs[fixed] = match eq {
+            None => v.add(claim, tail),
+            Some(r) => v.mul_add(r, tail, claim),
+        };
+        Ok(Self { coeffs })
     }
 }
 
@@ -282,7 +355,7 @@ impl Arith for Native {
     }
 }
 
-impl Arith for VerifierState<'_> {
+impl<H: DuplexSponge> Arith for VerifierState<'_, H> {
     type E = F192;
 
     fn constant(&mut self, c: F192) -> F192 {
@@ -314,33 +387,24 @@ impl Arith for VerifierState<'_> {
     }
 }
 
-impl Verifier for VerifierState<'_> {
-    fn next_scalar(&mut self) -> Result<F192, TranscriptError> {
-        Receiver::next_scalar(self)
+impl<H: DuplexSponge> Verifier for VerifierState<'_, H> {
+    fn prover_message(&mut self) -> Result<F192, TranscriptError> {
+        Self::prover_message(self)
     }
 
-    fn next_round_poly(
-        &mut self,
-        n_coeffs: usize,
-        claim: F192,
-        eq: Option<F192>,
-    ) -> Result<Vec<F192>, TranscriptError> {
-        Receiver::next_round_poly(self, n_coeffs, claim, eq)
+    fn verifier_message(&mut self) -> F192 {
+        Self::verifier_message(self)
     }
 
-    fn sample(&mut self) -> F192 {
-        Challenger::sample(self)
-    }
-
-    fn grind_check(&mut self, bits: u32) -> Result<(), TranscriptError> {
-        Receiver::grind_check(self, bits)
+    fn check_pow(&mut self, bits: u32) -> Result<(), TranscriptError> {
+        Self::check_pow(self, bits)
     }
 
     fn ensure_eq<Er>(&mut self, a: F192, b: F192, err: impl FnOnce() -> Er) -> Result<(), Er> {
         if a == b { Ok(()) } else { Err(err()) }
     }
 
-    fn finish(&mut self) -> Result<(), TranscriptError> {
-        VerifierState::finish(self)
+    fn check_eof(&mut self) -> Result<(), TranscriptError> {
+        Self::check_eof(self)
     }
 }

@@ -1,6 +1,6 @@
 //! RISC-V programs, proven and checked by the native verifier.
 
-use fiat_shamir::transcript::TranscriptError;
+use fiat_shamir::TranscriptError;
 use leanvm::asm::*;
 use leanvm::{
     BusError, CpuError, Hash, Machine, N_TABLES, Output, Program, Proof, ProveError, ProvenRun, Prover, Rate, Region,
@@ -431,12 +431,13 @@ fn large_program() -> (Program, Proof, Proof, Output) {
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     assert_eq!(output, [7, 0, 0, 0]);
 
-    // The nonce follows the announcement and the root; replace it with the next one that misses the work.
+    // The nonce follows the announcement and the root; replace it with one that misses the work.
     let missed = CpuError::Bus(BusError::Transcript(TranscriptError::PowFailed { bits: 1 }));
+    let nonce = 24 * (N_TABLES + 2) + 32;
     let forged = (1..64)
         .map(|step| {
             let mut forged = proof.clone();
-            forged.0.stream[N_TABLES + 4].c0 += step;
+            forged.0.narg[nonce] ^= step;
             forged
         })
         .find(|forged| program.verify(output, forged) == Err(missed.clone().into()))

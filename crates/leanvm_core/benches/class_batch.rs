@@ -23,7 +23,7 @@ use std::num::NonZeroUsize;
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
-use fiat_shamir::transcript::{ProofTranscript, ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::{ProofTranscript, ProverState, SessionId, VerifierState};
 use flock::Witness;
 use flock::circuit::Circuit;
 use flock::reduction::{self, Instance};
@@ -157,10 +157,10 @@ impl ClassBatch {
         let witness = self.witness();
         let witness_s = t.elapsed().as_secs_f64();
 
-        let mut ps = ProverState::from_label(b"flock-class-batch");
+        let mut ps = ProverState::new(&SessionId::new(b"flock-class-batch"), &0u64);
         let t = Instant::now();
         let committed = CommittedStack::new(as_field(&witness.z), self.mu, self.config.clone());
-        ps.add_root(&committed.root());
+        ps.prover_message(&committed.root());
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
@@ -192,8 +192,8 @@ impl ClassBatch {
     /// Replay `proof`, panicking on any refusal.
     fn verify(&self, proof: &ProofTranscript) {
         let block = self.circuit.block();
-        let mut vs = VerifierState::from_label(b"flock-class-batch", proof);
-        let root = vs.next_root().expect("commitment root");
+        let mut vs = VerifierState::new(&SessionId::new(b"flock-class-batch"), &0u64, proof);
+        let root: [u8; 32] = vs.prover_message().expect("commitment root");
         let replay = reduction::verify(&[(block.shape(), self.n_log)], &mut vs)
             .expect("the reduction verifies")
             .remove(0);
@@ -214,7 +214,7 @@ impl ClassBatch {
                 },
             )
             .expect("the opening verifies");
-        vs.finish().expect("transcript fully consumed");
+        vs.check_eof().expect("transcript fully consumed");
     }
 
     /// Time the batch's proving and verifying, printing a report unless `quiet`.

@@ -7,7 +7,7 @@ use crate::pcs::Rate;
 use crate::rec::RecError;
 use crate::rv::Trap;
 use crate::tables::Part;
-use fiat_shamir::transcript::TranscriptError;
+use fiat_shamir::TranscriptError;
 use flock::FlockError;
 use pcs::whir::WhirError;
 use thiserror::Error;

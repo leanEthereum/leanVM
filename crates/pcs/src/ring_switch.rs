@@ -36,8 +36,8 @@
 //! - It moves the Frobenius onto the opening's point (`rs:cost`), so one ladder per coordinate serves every claim.
 //! - Claims whose points are prefixes of one another share one pass of products.
 
+use fiat_shamir::Challenger;
 use fiat_shamir::arith::{Arith, Verifier};
-use fiat_shamir::transcript::Challenger;
 use primitives::bit_fold::{BLOCK, F192Map, Sliced};
 use primitives::field::{F64, F192};
 use primitives::multilinear::{EQ_PAR_LEN, eq_table, eq_table_seeded};
@@ -142,7 +142,7 @@ fn apply_composed_map(mut value: F192, challenges: &[F192; COMPOSITION_SHIFTS.le
 ///
 /// Call it only once every slice the map batches is bound to the transcript.
 pub(crate) fn sample_map_challenges(ch: &mut impl Challenger) -> [F192; COMPOSITION_SHIFTS.len()] {
-    std::array::from_fn(|_| ch.sample())
+    std::array::from_fn(|_| ch.verifier_message())
 }
 
 /// One claim's weight `Phi(scale * eq(point, .))`, kept factored rather than stored.
@@ -505,7 +505,7 @@ pub struct RingFamily<E = F192> {
 impl RingFamily {
     /// Draws the family's challenges on the prover's side: `gamma_rs`, then the six of `Phi`.
     pub fn sample(ch: &mut impl Challenger) -> Self {
-        let gamma_rs = ch.sample();
+        let gamma_rs = ch.verifier_message();
         Self {
             gamma_rs,
             map_challenges: sample_map_challenges(ch),
@@ -526,8 +526,8 @@ impl RingFamily {
 impl<E: Copy> RingFamily<E> {
     /// Draws the family's challenges on the verifier's side, in the prover's order.
     pub fn draw<V: Verifier<E = E>>(v: &mut V) -> Self {
-        let gamma_rs = v.sample();
-        let map = v.sample_vec(COMPOSITION_SHIFTS.len());
+        let gamma_rs = v.verifier_message();
+        let map = v.verifier_messages(COMPOSITION_SHIFTS.len());
         Self {
             gamma_rs,
             map_challenges: std::array::from_fn(|i| map[i]),

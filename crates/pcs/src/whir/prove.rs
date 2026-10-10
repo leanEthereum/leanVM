@@ -16,10 +16,10 @@
 use super::commit::{ProverData, ligero_commit_ext};
 use super::sample_queries_ordered;
 use super::sumcheck::{InitialWeight, SumcheckProver, send_msg};
+use crate::merkle::PrunedMerklePaths;
 use crate::whir::config::Config;
 use crate::whir::query::QueryBatch;
-use fiat_shamir::merkle::PrunedMerklePaths;
-use fiat_shamir::transcript::Transmitter;
+use fiat_shamir::ProverState;
 use primitives::field::{F64, F192, powers};
 use primitives::multilinear::eq_table;
 
@@ -33,11 +33,11 @@ use primitives::multilinear::eq_table;
 ///
 /// The claims stay pending until the level's batching challenge is drawn, after its query positions.
 /// The verifier replays the same steps in the same order.
-fn send_ood(sc: &mut SumcheckProver<'_>, ps: &mut impl Transmitter, n_vars: usize, count: usize) {
+fn send_ood(sc: &mut SumcheckProver<'_>, ps: &mut ProverState, n_vars: usize, count: usize) {
     for _ in 0..count {
-        let z = ps.sample_vec(n_vars);
+        let z = ps.verifier_messages(n_vars);
         let (intro, y) = sc.introduce_new_with_eval(eq_table(&z));
-        ps.add_scalar(y);
+        ps.prover_message(&y);
         send_msg(ps, intro, y);
     }
 }
@@ -79,7 +79,7 @@ pub(crate) fn prove(
     weight: &dyn InitialWeight,
     target: F192,
     l0: &ProverData,
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
 ) {
     let (l0_codeword, l0_tree) = (&l0.codeword[..], &l0.merkle_tree[..]);
     let r = config.level_steps();
@@ -130,7 +130,7 @@ pub(crate) fn prove(
 
     let mut r_lane_fold = Vec::with_capacity(initial_k);
     for j in 0..initial_k {
-        let r_j = ps.sample();
+        let r_j = ps.verifier_message();
         let msg = sumcheck_span.in_scope(|| sc_prover.fold_lane(r_j, lane_block, j + 1 == initial_k));
         send_msg(ps, msg, sc_prover.claim());
         r_lane_fold.push(r_j);
@@ -151,27 +151,27 @@ pub(crate) fn prove(
         log_inv_rate_1,
     );
     drop(span);
-    ps.add_root(&wtns_1.root());
+    ps.prover_message(&wtns_1.root());
 
     // L1's OOD claims bind its Johnson list before the L0 queries are drawn.
     // Each claimed evaluation is introduced into the running sumcheck.
     send_ood(&mut sc_prover, ps, n1, ood_count(1));
 
     // Phase 3: L0's query phase, after its proof of work.
-    ps.grind(config.grinding_bits()[0] as u32);
+    ps.challenge_pow(config.grinding_bits()[0] as u32);
 
     let num_queries_0 = config.queries()[0];
     let queries_0 = sample_queries_ordered(ps, block_len_0, num_queries_0);
     // One batching challenge for the whole level, drawn once every claim it batches is fixed.
     // Those claims are the OOD claims above and the queries at these positions.
-    let lambda_0 = ps.sample();
+    let lambda_0 = ps.verifier_message();
     let weights_0 = powers(lambda_0, num_queries_0);
     let span = tracing::info_span!("Open", level = 0).entered();
     // The induce takes the rows in query order, repeats included.
     let opened_rows_0: Vec<Vec<F64>> = queries_0.iter().map(|&q| l0_fold_row(q)).collect();
     // The proof stores each distinct row once, with one pruned path set over the distinct positions.
     // The verifier expands them back to query order.
-    ps.hint_merkle(PrunedMerklePaths::prune(l0_tree, block_len_0, &queries_0, l0_row));
+    ps.prover_hint(&PrunedMerklePaths::prune(l0_tree, block_len_0, &queries_0, l0_row).to_hint());
     drop(span);
 
     // Induce the L0 consistency weight, and its claimed sum from the opened rows.
@@ -197,7 +197,7 @@ pub(crate) fn prove(
         let mut level_rs = Vec::with_capacity(k_i);
         let sumcheck_span = tracing::info_span!("Sumcheck");
         for _ in 0..k_i {
-            let ri = ps.sample();
+            let ri = ps.verifier_message();
             let msg = sumcheck_span.in_scope(|| sc_prover.fold(ri));
             send_msg(ps, msg, sc_prover.claim());
             level_rs.push(ri);
@@ -205,23 +205,23 @@ pub(crate) fn prove(
         drop(sumcheck_span);
 
         if i == r - 1 {
-            ps.add_scalars(sc_prover.f_ext());
+            ps.prover_messages(sc_prover.f_ext());
             // Last level: send the residual `yr` in the clear, then grind before its queries.
-            ps.grind(config.grinding_bits()[i + 1] as u32);
+            ps.challenge_pow(config.grinding_bits()[i + 1] as u32);
             let num_queries_last = config.queries()[i + 1];
             let queries_last = sample_queries_ordered(ps, wtns_prev.block_len, num_queries_last);
             // The batching challenge is drawn after `yr` and the queries are bound, as the verifier draws it.
-            let lambda_last = ps.sample();
+            let lambda_last = ps.verifier_message();
             let weights_last = powers(lambda_last, num_queries_last);
             let span = tracing::info_span!("Final level").entered();
             // The proof stores each distinct row once; the verifier expands them back to query order.
             let opened_last = wtns_prev.open(&queries_last);
-            ps.hint_merkle(PrunedMerklePaths::prune(
-                &wtns_prev.tree,
-                wtns_prev.block_len,
-                &queries_last,
-                |q| ext_row_words(opened_last.row(q)),
-            ));
+            ps.prover_hint(
+                &PrunedMerklePaths::prune(&wtns_prev.tree, wtns_prev.block_len, &queries_last, |q| {
+                    ext_row_words(opened_last.row(q))
+                })
+                .to_hint(),
+            );
             // Tie the last oracle into the running claim by the same intro and batching step as every level.
             // - The consistency weight is the induced weight on the residual cube.
             // - The residual rounds then discharge the batched claim.
@@ -234,7 +234,7 @@ pub(crate) fn prove(
             send_msg(ps, intro_msg_last, enforced_sum_last);
             sc_prover.glue_pending(lambda_last);
             for j in 0..n_res {
-                let ri = ps.sample();
+                let ri = ps.verifier_message();
                 let msg = sc_prover.fold(ri);
                 // Why skip the last message: the verifier evaluates `yr` at the final point instead.
                 if j + 1 < n_res {
@@ -258,26 +258,26 @@ pub(crate) fn prove(
             log_inv_rate_next,
         );
         drop(span);
-        ps.add_root(&wtns_next.root());
+        ps.prover_message(&wtns_next.root());
 
         send_ood(&mut sc_prover, ps, n_next, ood_count(i + 2));
 
         // This level's query phase, after its proof of work, then its batching challenge.
-        ps.grind(config.grinding_bits()[i + 1] as u32);
+        ps.challenge_pow(config.grinding_bits()[i + 1] as u32);
         let num_queries_i = config.queries()[i + 1];
         let queries_i = sample_queries_ordered(ps, wtns_prev.block_len, num_queries_i);
-        let lambda_i = ps.sample();
+        let lambda_i = ps.verifier_message();
         let weights_i = powers(lambda_i, num_queries_i);
         let span = tracing::info_span!("Open", level = i + 1).entered();
         // Rows in query order for the induce; the proof stores each distinct row once.
         let opened_i = wtns_prev.open(&queries_i);
         let opened_rows_i: Vec<Vec<F192>> = queries_i.iter().map(|&q| opened_i.row(q).to_vec()).collect();
-        ps.hint_merkle(PrunedMerklePaths::prune(
-            &wtns_prev.tree,
-            wtns_prev.block_len,
-            &queries_i,
-            |q| ext_row_words(opened_i.row(q)),
-        ));
+        ps.prover_hint(
+            &PrunedMerklePaths::prune(&wtns_prev.tree, wtns_prev.block_len, &queries_i, |q| {
+                ext_row_words(opened_i.row(q))
+            })
+            .to_hint(),
+        );
         drop(span);
 
         let span = tracing::info_span!("Induce", level = i + 1).entered();

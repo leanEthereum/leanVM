@@ -105,17 +105,11 @@ impl Builder {
         let w = self.cast_row(&[(HALVES, lo.0), (HALVES + 1, hi.0)], [l.c0, l.c1, h.c0, h.c1]);
         Dw(w[DIGEST])
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    impl Builder {
-        pub(crate) fn k_to_d(&mut self, k: [Kw; 4]) -> Dw {
-            let v = k.map(|w| self.k(w));
-            let given: [(usize, u32); 4] = std::array::from_fn(|i| (WORDS + i, k[i].0));
-            Dw(self.cast_row(&given, v)[DIGEST])
-        }
+    /// The digest with words `k`.
+    pub fn k_to_d(&mut self, k: [Kw; 4]) -> Dw {
+        let v = k.map(|w| self.k(w));
+        let given: [(usize, u32); 4] = std::array::from_fn(|i| (WORDS + i, k[i].0));
+        Dw(self.cast_row(&given, v)[DIGEST])
     }
 }

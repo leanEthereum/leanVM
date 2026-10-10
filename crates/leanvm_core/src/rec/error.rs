@@ -4,7 +4,7 @@ use super::layout::RecLayout;
 use super::table::Table;
 use crate::constraints::ConstraintError;
 use crate::leaf::BusError;
-use fiat_shamir::transcript::TranscriptError;
+use fiat_shamir::TranscriptError;
 use flock::FlockError;
 use pcs::whir::WhirError;
 use thiserror::Error;

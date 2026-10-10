@@ -22,7 +22,7 @@ pub struct ProofShape<'p> {
 pub struct CoreRows {
     /// The claims on the program's fixed polynomials and on each circuit's matrices, which the core does not settle.
     pub claims: DeferredClaims<Ew>,
-    /// The transcript's final state, which binds every scalar the proof sent.
+    /// A digest the transcript draws once the proof is read, which binds every message the proof sent.
     pub state: Dw,
 }
 
@@ -61,9 +61,7 @@ impl<'p> ProofShape<'p> {
     ///
     /// The rows check everything the native core checks, and leave its deferred claims as wires.
     pub fn verify_core(&self, b: &mut Builder, output: [Kw; 4], source: ProofSource<'_>) -> CoreRows {
-        let iv = b.d_const(self.program.fs_seed().map(|w| w.0));
-        let first = b.k_to_e([output[0], output[1], output[2]]);
-        let mut t = Transcript::new(b, iv, (first, output[3]), source);
+        let mut t = Transcript::new(b, &self.program.session(), &output, source);
         let mut r = Rows::new(b, &mut t);
 
         let clock = r.scope("announcement", |r| self.read_announcement(r));
@@ -71,7 +69,7 @@ impl<'p> ProofShape<'p> {
         let claims = infallible(self.layout.verify_core(&mut r, clock, &output, self.rate));
         CoreRows {
             claims,
-            state: t.commitment(b),
+            state: t.digest(b),
         }
     }
 
@@ -80,10 +78,10 @@ impl<'p> ProofShape<'p> {
     /// Returns the clock, which closes the run's last state on the bus.
     fn read_announcement(&self, r: &mut Rows<'_, '_>) -> Ew {
         for size in Announcement::sizes(&self.taus, self.rate) {
-            let x = infallible(r.next_scalar());
+            let x = infallible(r.prover_message());
             r.b.eq_e_const(x, size);
         }
-        let clock = infallible(r.next_scalar());
+        let clock = infallible(r.prover_message());
         let [word, high, top] = r.b.e_to_k(clock);
         r.b.eq_k_const(high, 0);
         r.b.eq_k_const(top, 0);

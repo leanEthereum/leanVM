@@ -4,8 +4,8 @@
 //! Each circuit's R1CS validity reduces to one claim on its packed witness, ready for ring switching.
 //! A circuit supplies only its block: its shape, and the walks behind its matrices.
 
+use fiat_shamir::ProverState;
 use fiat_shamir::arith::Verifier;
-use fiat_shamir::transcript::ProverState;
 use pcs::ring_switch::SliceClaim;
 use primitives::field::F192;
 
@@ -288,7 +288,7 @@ mod tests {
     //! The circuits are built from the builder and the multiplier gadget, their witnesses by the generic walk.
     //! Only the commitment's opening is left out: it is generic in the claims.
 
-    use fiat_shamir::transcript::{ProofTranscript, ProverState, VerifierState};
+    use fiat_shamir::{ProofTranscript, ProverState, SessionId, VerifierState};
     use primitives::field::F192;
     use primitives::test_util::Rng;
 
@@ -370,17 +370,17 @@ mod tests {
         circuit.witness_by_walk(pairs, &[0; 2], n_log, |row, words| words.copy_from_slice(row))
     }
 
-    /// Prove one circuit's batch, then replay it: the verifier's claim, its matrices settled, the stream consumed.
+    /// Prove one circuit's batch, then replay it: the verifier's claim, its matrices settled, the proof read to its end.
     fn accepts(block: Block<'_>, n_log: usize, witness: &Witness, tamper: impl FnOnce(&mut ProofTranscript)) -> bool {
         const LABEL: &[u8] = b"flock-u64-reduction-test";
-        let mut ps = ProverState::from_label(LABEL);
+        let mut ps = ProverState::new(&SessionId::new(LABEL), &0u64);
         let claims = reduction::prove(&[Instance::of(block, n_log, witness)], &mut ps);
         let mut proof = ps.into_proof();
         tamper(&mut proof);
-        let mut vs = VerifierState::from_label(LABEL, &proof);
+        let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
         reduction::verify(&[(block.shape(), n_log)], &mut vs)
             .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
-            && vs.finish().is_ok()
+            && vs.check_eof().is_ok()
     }
 
     #[test]
@@ -408,7 +408,7 @@ mod tests {
 
     #[test]
     fn a_moved_proof_word_is_refused() {
-        // Invariant: every region of the stream is checked, by the zerocheck's terminal identity or by the lincheck.
+        // Invariant: every region of the proof is checked, by the zerocheck's terminal identity or by the lincheck.
         //
         // Fixture state: eight widening products, so a cube of 2^16 bits and 10 multilinear rounds.
         //
@@ -429,7 +429,7 @@ mod tests {
             ("lincheck first round", zerocheck_len),
             ("lincheck first slice", zerocheck_len + 2 * lincheck_rounds),
         ] {
-            let moved = |proof: &mut ProofTranscript| proof.stream[word] += F192::ONE;
+            let moved = |proof: &mut ProofTranscript| proof.narg[24 * word] ^= 1;
             assert!(!accepts(circuit.block(), n_log, &witness, moved), "{label}");
         }
     }
@@ -457,16 +457,16 @@ mod tests {
             let instances: Vec<Instance<'_>> = (tables.iter().zip(&blocks))
                 .map(|(witness, &(block, n_blocks_log))| Instance::of(block, n_blocks_log, witness))
                 .collect();
-            let mut ps = ProverState::from_label(LABEL);
+            let mut ps = ProverState::new(&SessionId::new(LABEL), &0u64);
             let claims = reduction::prove(&instances, &mut ps);
             (ps.into_proof(), claims)
         };
         let accepts = |proof: &ProofTranscript| {
-            let mut vs = VerifierState::from_label(LABEL, proof);
+            let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, proof);
             let shapes: Vec<_> = blocks.iter().map(|(block, n)| (block.shape(), *n)).collect();
             let replays = reduction::verify(&shapes, &mut vs).ok()?;
             let settled = (replays.iter().zip(&blocks)).all(|(r, (block, _))| r.matrices.check(block.circuit).is_ok());
-            (settled && vs.finish().is_ok()).then_some(replays)
+            (settled && vs.check_eof().is_ok()).then_some(replays)
         };
 
         // Each claim is its witness's slices: word `w` is position `w` past the skip, bit `i` its slice `i`.
@@ -508,7 +508,7 @@ mod tests {
                 zerocheck_len + 2 * n_lincheck + 65 * f + 3,
             ] {
                 let mut bad = proof.clone();
-                bad.stream[word] += F192::ONE;
+                bad.narg[24 * word] ^= 1;
                 assert!(accepts(&bad).is_none(), "circuit {f}, word {word}");
             }
         }

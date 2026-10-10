@@ -18,14 +18,14 @@ use crate::tables::{ClassTable, Clock, N_TABLES, PerTable, Separator, TableId};
 use crate::witness::{Placement, Source, StackShape, Window};
 use crate::{class_flock, witness};
 use Coord::{Col, Const, IntIndex, Sparse};
-use fiat_shamir::MAX_GRINDING_BITS;
+use fiat_shamir::ProofOfWork;
 use fiat_shamir::arith::Arith;
-use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::{ProverState, VerifierState};
 use primitives::field::{F64, F192};
 use std::sync::{Arc, OnceLock};
 
 // The largest text grinds within the proof of work's window.
-const _: () = assert!(Region::TEXT.max_log_words() - UNGROUND_LOG_BYTECODE <= MAX_GRINDING_BITS as usize);
+const _: () = assert!(Region::TEXT.max_log_words() - UNGROUND_LOG_BYTECODE <= ProofOfWork::MAX_BITS as usize);
 
 /// The bus blocks no table owns, which each side of the bus starts with.
 ///
@@ -710,7 +710,7 @@ pub(crate) struct Announcement {
 }
 
 impl Announcement {
-    /// The scalars it takes on the stream: each table's height, the rate, then the final clock.
+    /// The messages it takes: each table's height, the rate, then the final clock.
     pub(crate) const LEN: usize = N_TABLES + 2;
 
     /// The scalars announcing each table's height, then the rate's, each an integer in the first coordinate.
@@ -721,15 +721,15 @@ impl Announcement {
         (taus.values().copied().chain([rate])).map(|size| F192::new(size as u64, 0, 0))
     }
 
-    /// Write the announcement onto the scalar stream, which binds it into the transcript.
+    /// Send the announcement, which binds it into the transcript.
     pub(super) fn write(&self, ps: &mut ProverState) {
         for size in Self::sizes(&self.taus, self.rate) {
-            ps.add_scalar(size);
+            ps.prover_message(&size);
         }
-        ps.add_scalar(F192::new(self.ts_final, 0, 0));
+        ps.prover_message(&F192::new(self.ts_final, 0, 0));
     }
 
-    /// Read an announcement off the scalar stream, binding it, and check every value is in range.
+    /// Read an announcement off the proof, binding it, and check every value is in range.
     ///
     /// The checks run before any reduction, so an out-of-range announcement costs nothing.
     ///
@@ -739,7 +739,7 @@ impl Announcement {
     pub(super) fn read(vs: &mut VerifierState) -> Result<Self, CpuError> {
         let mut scalars = [F192::ZERO; Self::LEN];
         for x in &mut scalars {
-            *x = vs.next_scalar()?;
+            *x = vs.prover_message()?;
         }
         Self::decode(&scalars)
     }

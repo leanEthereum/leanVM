@@ -4,8 +4,8 @@ use super::{ColumnClaim, Coord, Fingerprint, Openings, Producer, PublicColumn, P
 use crate::colval::ColVal;
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 use crate::colval::PackedCoeffs;
+use fiat_shamir::ProverState;
 use fiat_shamir::arith::{Arith, Native};
-use fiat_shamir::transcript::{ProverState, Transmitter};
 use primitives::field::{F64, F192};
 use primitives::multilinear::mle_eval;
 use std::collections::HashSet;
@@ -417,7 +417,7 @@ impl Side<'_> {
             // The block's leaf `beta + sum_i w_i c_i` at `zeta_lo`.
             //
             // A column's value is the recorded claim's, else a fresh one, recorded.
-            // The push ORDER is the stream order, so every coordinate that needs a column value goes through here.
+            // The push ORDER is the message order, so every coordinate that needs a column value goes through here.
             let mut leaf = beta;
             for (i, c) in blk.coords.iter().enumerate() {
                 leaf = match c {
@@ -467,16 +467,16 @@ impl Side<'_> {
     }
 
     /// Prover-side decomposition: reads the real columns, writing each FRESH
-    /// committed value onto the stream and recording the matching claim
+    /// committed value to the proof and recording the matching claim
     /// (block/coord order); duplicates reuse the recorded value.
     ///
     /// The fresh column MLE evaluations run in a parallel first pass: within one
     /// decomposition no challenge is sampled between claims (`zeta`,
     /// `alpha`, `beta` are fixed arguments and each claim's point is
     /// `zeta[..kappa]` of its block), so the values are independent of the
-    /// transcript and only their `add_scalar` ORDER matters. The second pass
+    /// transcript and only the ORDER of their messages matters. The second pass
     /// replays them through the transcript in the original block/coord order,
-    /// keeping the stream byte-identical to the serial form.
+    /// keeping the proof byte-identical to the serial form.
     #[expect(
         clippy::too_many_arguments,
         reason = "the side's fingerprint, columns, point and the claims it extends"
@@ -519,7 +519,7 @@ impl Side<'_> {
                 .expect("job enumeration matches the decomposition's column order");
             debug_assert_eq!((jc, jk), (col, zeta_lo.len()), "job/coord order drift");
             debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
-            ps.add_scalar(v);
+            ps.prover_message(&v);
             Ok::<_, Infallible>(v)
         });
         let Ok(framework) = framework;
