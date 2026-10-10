@@ -15,7 +15,8 @@ MEASURED = "2026-01-02T01:00:00Z"
 
 
 def desktop_fixture(plan, testbed, benchmark):
-    machine = {"name": f"Test {testbed}", "arch": testbed, "os": "Linux test", "cpu": f"Test {testbed}",
+    machine = {"name": f"Test {testbed}", "arch": site.TESTBED_ARCH[testbed],
+               "os": "macOS test" if testbed.startswith("macos-") else "Linux test", "cpu": f"Test {testbed}",
                "logical_cpus": 16, "memory_bytes": 64 * 1024 ** 3}
     machine["id"] = site.machine_id(machine)
     count = site.workload(site.expected_results(benchmark)[0])[4] or 16
@@ -474,6 +475,57 @@ class SnapshotTests(unittest.TestCase):
                 site.validate(snapshot)
         original["results"][0]["peak_memory_bytes"] = 2 ** 53 - 1
         self.assertEqual(site.validate(original), original)
+
+    def add_macos(self):
+        self.plan["desktop"]["testbeds"].append("macos-arm64")
+        for path in self.artifacts.glob("snapshot-result-desktop-*/result.json"):
+            self.save(path, dict(site.load(path), plan_id=site.digest(self.plan)))
+        for benchmark in self.plan["desktop"]["benchmarks"]:
+            directory = self.artifacts / f"snapshot-result-desktop-macos-arm64-{benchmark}"
+            directory.mkdir()
+            self.save(directory / "result.json", desktop_fixture(self.plan, "macos-arm64", benchmark))
+        return self.artifacts / "snapshot-result-desktop-macos-arm64-leanxmss-100-4thread" / "result.json"
+
+    def test_optional_macos_testbed_is_planned_and_published_only_when_requested(self):
+        self.assertEqual(self.plan["desktop"]["testbeds"], ["x86-64", "arm64"])
+        plan = site.make_plan("example/leanVM", "a" * 40, 123, 3, ["macos-arm64"])
+        self.assertEqual(plan["desktop"]["testbeds"], ["x86-64", "arm64", "macos-arm64"])
+        for testbeds in (["x86-64", "arm64", "other"], ["arm64", "x86-64", "macos-arm64"],
+                         ["x86-64", "arm64", "macos-arm64", "macos-arm64"]):
+            with self.subTest(testbeds=testbeds):
+                with self.assertRaises(ValueError):
+                    site.validate_plan(dict(deepcopy(plan), desktop=dict(plan["desktop"], testbeds=testbeds)))
+        path = self.add_macos()
+        snapshot = self.publish()
+        rows = [row for row in snapshot["results"] if row["machine"]["os"] == "macOS test"]
+        self.assertEqual(len(rows), sum(row["machine"]["arch"] == "x86-64" for row in snapshot["results"]))
+        self.assertTrue(all(row["machine"]["arch"] == "arm64" for row in rows))
+        self.assertTrue(all("macOS process RSS" in row["peak_memory_method"] and "bytes on macOS" in row["peak_memory_method"]
+                            for row in rows))
+        path.parent.joinpath("result.json").unlink()
+        path.parent.rmdir()
+        self.assert_refused_without_mutation()
+
+    def test_named_counts_label_efficiency_workers_but_fixed16_refuses_them(self):
+        path = self.add_macos()
+        document = site.load(path)
+        for sample in document["samples"]:
+            metrics = sample["results"]["leanxmss-100-4thread"]
+            metrics["threads"]["value"] = 8
+            metrics["efficiency-threads"]["value"] = 4
+        self.save(path, document)
+        rows = {row["threads"]["label"]: row for row in self.publish()["results"] if row["machine"]["os"] == "macOS test"}
+        self.assertEqual(rows["8 threads (4 performance + 4 efficiency)"]["threads"]["count"], 8)
+        for mutation in ("unbalanced", "round"):
+            with self.subTest(mutation=mutation):
+                changed = deepcopy(document)
+                if mutation == "unbalanced":
+                    changed["samples"][0]["results"]["leanxmss-100-4thread"]["threads"]["value"] = 9
+                else:
+                    changed["samples"][0]["results"]["leanxmss-100-4thread"]["efficiency-threads"]["value"] = 0
+                    changed["samples"][0]["results"]["leanxmss-100-4thread"]["threads"]["value"] = 4
+                self.save(path, changed)
+                self.assert_refused_without_mutation()
 
     def test_only_honest_unpublished_bootstrap_is_allowed(self):
         empty = {"schema_version": 3, "generated_at": None, "snapshot": None, "results": []}

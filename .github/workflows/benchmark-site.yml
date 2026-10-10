@@ -54,6 +54,7 @@ jobs:
     outputs:
       sha: ${{ steps.plan.outputs.sha }}
       benchmarks: ${{ steps.plan.outputs.benchmarks }}
+      testbeds: ${{ steps.plan.outputs.testbeds }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,15 +64,30 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts -p test_benchmark_site.py
           python3 -m unittest discover -s scripts -p test_mobile_bench_report.py
+      # The Linux testbeds are always planned. An Apple silicon Mac joins the plan only when the
+      # repository variable BENCHMARK_MACOS_RUNNER names a label of a self-hosted macOS runner, so
+      # a snapshot never waits on a runner that does not exist.
       - name: Pin the source and complete benchmark suite
         id: plan
+        env:
+          MACOS_RUNNER: ${{ vars.BENCHMARK_MACOS_RUNNER }}
         run: |
           sha=$(git rev-parse HEAD)
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          optional=()
+          if [ -n "$MACOS_RUNNER" ]; then optional=(--optional-testbed macos-arm64); fi
           benchmarks=$(python3 scripts/benchmark_site.py plan \
             --repository "$GITHUB_REPOSITORY" --commit "$sha" \
-            --run-id "$GITHUB_RUN_ID" --output plan.json)
+            --run-id "$GITHUB_RUN_ID" "${optional[@]}" --output plan.json)
           echo "benchmarks=$benchmarks" >> "$GITHUB_OUTPUT"
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          runners = {"x86-64": ["size-attester7870-x64", "self-hosted-ghr"],
+                     "arm64": ["size-attester7870-arm64", "self-hosted-ghr"],
+                     "macos-arm64": ["self-hosted", "macOS", "ARM64", os.environ["MACOS_RUNNER"]]}
+          testbeds = json.load(open("plan.json"))["desktop"]["testbeds"]
+          print("testbeds=" + json.dumps([{"name": name, "runner": runners[name]} for name in testbeds]))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: snapshot-plan
@@ -90,11 +106,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        testbed:
-          - name: x86-64
-            runner: [size-attester7870-x64, self-hosted-ghr]
-          - name: arm64
-            runner: [size-attester7870-arm64, self-hosted-ghr]
+        testbed: ${{ fromJSON(needs.prepare.outputs.testbeds) }}
         benchmark: ${{ fromJSON(needs.prepare.outputs.benchmarks) }}
     env:
       RUSTFLAGS: -C target-cpu=native
@@ -117,10 +129,13 @@ jobs:
           import json
           import platform
           import subprocess
-          cpu = json.loads(subprocess.check_output(["lscpu", "--json"], text=True))
-          model = next(item["data"] for item in cpu["lscpu"] if item["field"] == "Model name:")
+          if platform.system() == "Darwin":
+              model = subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string"], text=True).strip()
+          else:
+              cpu = json.loads(subprocess.check_output(["lscpu", "--json"], text=True))
+              model = next(item["data"] for item in cpu["lscpu"] if item["field"] == "Model name:")
           print("model=" + hashlib.sha256((platform.machine() + model).encode()).hexdigest()[:16])
-          if platform.machine() == "aarch64":
+          if platform.machine() in ("aarch64", "arm64"):
               cfg = subprocess.check_output(["rustc", "--print", "cfg", "-C", "target-cpu=native"], text=True)
               for feature in ("aes", "sha3"):
                   if f'target_feature="{feature}"' not in cfg.splitlines():

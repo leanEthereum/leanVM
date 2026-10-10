@@ -21,6 +21,9 @@ MAX_JSON = 8 * 1024 * 1024
 SHA = re.compile(r"[0-9a-f]{40}")
 REPOSITORY = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 TESTBEDS = ("x86-64", "arm64")
+# Planned only when the workflow has a runner for it (`BENCHMARK_MACOS_RUNNER`).
+OPTIONAL_TESTBEDS = ("macos-arm64",)
+TESTBED_ARCH = {"x86-64": "x86-64", "arm64": "arm64", "macos-arm64": "arm64"}
 PROGRAMS = {
     "fibonacci-asm-2000000": ("Fibonacci", "2,000,000 steps modulo 2^64", "bins/leanvm/src/workload.rs"),
     "hash-50000": ("BLAKE2s guest", "Hash 50,000 bytes through the precompile", "programs/hash/guest/src/main.rs"),
@@ -145,9 +148,14 @@ def validate_source(source):
     require(source == provenance(source["repository"], source["commit"], source["run_id"]), "invalid snapshot provenance")
 
 
-def make_plan(repository, commit, run_id, rounds=5):
+def planned_testbeds(optional=()):
+    require(set(optional) <= set(OPTIONAL_TESTBEDS), "unknown optional testbed")
+    return [*TESTBEDS, *(name for name in OPTIONAL_TESTBEDS if name in optional)]
+
+
+def make_plan(repository, commit, run_id, rounds=5, optional=()):
     plan = {"schema_version": 2, "created_at": now(), "snapshot": provenance(repository, commit, run_id),
-            "rounds": rounds, "desktop": {"testbeds": list(TESTBEDS), "benchmarks": expected_benchmarks()},
+            "rounds": rounds, "desktop": {"testbeds": planned_testbeds(optional), "benchmarks": expected_benchmarks()},
             "mobile": {"platforms": ["ios", "android"], "functions": list(mobile_report.FUNCTIONS),
                        "warmup": 1, "iterations": 3}}
     return validate_plan(plan)
@@ -159,7 +167,9 @@ def validate_plan(plan):
     instant(plan["created_at"])
     validate_source(plan["snapshot"])
     integer(plan["rounds"], 100)
-    require(plan["desktop"] == {"testbeds": list(TESTBEDS), "benchmarks": expected_benchmarks()}, "incomplete desktop plan")
+    testbeds = plan["desktop"].get("testbeds")
+    require(isinstance(testbeds, list) and testbeds == planned_testbeds(testbeds[len(TESTBEDS):]), "incomplete desktop plan")
+    require(plan["desktop"] == {"testbeds": testbeds, "benchmarks": expected_benchmarks()}, "incomplete desktop plan")
     require(plan["mobile"] == {"platforms": ["ios", "android"], "functions": list(mobile_report.FUNCTIONS),
                                "warmup": 1, "iterations": 3}, "incomplete mobile plan")
     return plan
@@ -185,7 +195,19 @@ def validate_machine(machine, desktop=False):
     require(machine["id"] == machine_id(machine), "machine identity mismatch")
 
 
+def sysctl(name):
+    return subprocess.check_output(["sysctl", "-n", name], text=True).strip()
+
+
 def hardware(testbed):
+    if testbed == "macos-arm64":
+        require(platform.system() == "Darwin" and platform.machine() == "arm64", "testbed requires an Apple silicon Mac")
+        cpu = text(sysctl("machdep.cpu.brand_string"))
+        machine = {"name": cpu, "cpu": cpu, "arch": "arm64", "os": f"macOS {platform.mac_ver()[0]}",
+                   "logical_cpus": int(sysctl("hw.logicalcpu")), "memory_bytes": int(sysctl("hw.memsize"))}
+        machine["id"] = machine_id(machine)
+        validate_machine(machine, desktop=True)
+        return machine
     require(platform.system() == "Linux", "desktop measurement requires a Linux native runner")
     arch = {"x86_64": "x86-64", "aarch64": "arm64"}.get(platform.machine())
     require(arch == testbed, "runner architecture does not match testbed")
@@ -217,16 +239,26 @@ def validate_metrics(results, benchmark):
         verify = metrics["verify"]
         require(positive(verify["lower_value"]) <= positive(verify["value"]) <= positive(verify["upper_value"]), "invalid verification timing")
         positive(metrics["proof-size"]["value"])
-        require(integer(metrics["threads"]["value"], 1024) == explicit, "measured thread count mismatch")
+        threads, efficiency = pool_threads(metrics)
+        require(threads - efficiency == explicit, "measured thread count mismatch")
         if explicit == 16:
-            require(metrics["performance-threads"]["value"] == 16
-                    and metrics["efficiency-threads"]["value"] == 0, "fixed16 pool topology mismatch")
+            require(efficiency == 0, "fixed16 pool topology mismatch")
         integer(metrics["peak-memory"]["value"], mobile_report.MAX_SAFE_INTEGER)
+
+
+def pool_threads(metrics):
+    """The pool's total and efficiency workers. `LEANVM_NUM_THREADS` names the performance
+    workers, so a named 1/4/8 case on a host with efficiency cores runs those on top."""
+    threads = integer(metrics["threads"]["value"], 1024)
+    performance = integer(metrics["performance-threads"]["value"], 1024)
+    efficiency = metrics["efficiency-threads"]["value"]
+    require(type(efficiency) is int and efficiency >= 0 and performance + efficiency == threads, "inconsistent pool topology")
+    return threads, efficiency
 
 
 def run_desktop(plan, testbed, benchmark, executable):
     validate_plan(plan)
-    require(testbed in TESTBEDS and benchmark in plan["desktop"]["benchmarks"], "unplanned desktop case")
+    require(testbed in plan["desktop"]["testbeds"] and benchmark in plan["desktop"]["benchmarks"], "unplanned desktop case")
     source = plan["snapshot"]
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     require(head == source["commit"], "checkout revision does not match plan")
@@ -270,7 +302,7 @@ def desktop_rows(document, plan, testbed, benchmark):
     require(document["testbed"] == testbed and document["benchmark"] == benchmark, "desktop case mismatch")
     machine = document["machine"]
     validate_machine(machine, desktop=True)
-    require(machine["arch"] == testbed, "desktop architecture mismatch")
+    require(machine["arch"] == TESTBED_ARCH[testbed], "desktop architecture mismatch")
     count = integer(document["threads"], 1024)
     explicit = workload(expected_results(benchmark)[0])[4]
     require(explicit == count, "named thread count mismatch")
@@ -290,19 +322,26 @@ def desktop_rows(document, plan, testbed, benchmark):
     rows = []
     for name in expected_results(benchmark):
         title, description, path, category, _ = workload(name)
+        pools = {pool_threads(sample["results"][name]) for sample in samples}
+        require(len(pools) == 1, "inconsistent pool across rounds")
+        threads, efficiency = pools.pop()
+        label = None
+        if efficiency:
+            label = f"{threads} threads ({threads - efficiency} performance + {efficiency} efficiency)"
         timings = [sample["results"][name]["latency"]["value"] / 1e9 for sample in samples]
         peak_memory = max(sample["results"][name]["peak-memory"]["value"] for sample in samples)
+        units = ("bytes on macOS" if machine["os"].startswith("macOS ") else "KiB converted to bytes")
         memory_method = (
-            "Maximum Linux process RSS high-water mark across independent rounds, from CLI BMF peak-memory.value "
-            "in bytes (getrusage(RUSAGE_SELF).ru_maxrss, KiB converted to bytes). Includes process setup and prior work."
+            f"Maximum {machine['os'].split()[0]} process RSS high-water mark across independent rounds, from CLI BMF "
+            f"peak-memory.value in bytes (getrusage(RUSAGE_SELF).ru_maxrss, {units}). Includes process setup and prior work."
         )
         if category == "aggregation":
             memory_method += " Aggregation includes leaf preparation; higher-node peaks can include preceding first-level work."
         verification = {"verified_proofs": len(samples), "total_proofs": len(samples),
                         "method": "Successful leanvm bench process and proof verification timing for every independent round",
                         "verify_seconds": [sample["results"][name]["verify"]["value"] / 1e9 for sample in samples]}
-        rows.append(row(title, description, path, category, count, timings, machine, plan["snapshot"],
-                        samples[-1]["measured_at"], verification, peak_memory, memory_method))
+        rows.append(row(title, description, path, category, threads, timings, machine, plan["snapshot"],
+                        samples[-1]["measured_at"], verification, peak_memory, memory_method, label))
     return rows
 
 
@@ -413,7 +452,7 @@ def publish(plan, artifacts, output):
     validate_plan(plan)
     artifacts = Path(artifacts)
     expected = {f"snapshot-result-desktop-{testbed}-{benchmark}": (testbed, benchmark)
-                for testbed in TESTBEDS for benchmark in plan["desktop"]["benchmarks"]}
+                for testbed in plan["desktop"]["testbeds"] for benchmark in plan["desktop"]["benchmarks"]}
     mobile = {f"snapshot-result-mobile-{name}": name for name in plan["mobile"]["platforms"]}
     require({entry.name for entry in artifacts.iterdir()} == expected.keys() | mobile.keys(), "missing, duplicate or unexpected result artifacts")
     rows = []
@@ -445,10 +484,11 @@ def main():
     plan.add_argument("--commit", required=True)
     plan.add_argument("--run-id", required=True, type=int)
     plan.add_argument("--rounds", type=int, default=5)
+    plan.add_argument("--optional-testbed", action="append", default=[], choices=OPTIONAL_TESTBEDS)
     plan.add_argument("--output", type=Path, required=True)
     desktop = commands.add_parser("run-desktop", help="Measure one planned case on its native runner")
     desktop.add_argument("--plan", type=Path, required=True)
-    desktop.add_argument("--testbed", choices=TESTBEDS, required=True)
+    desktop.add_argument("--testbed", choices=TESTBEDS + OPTIONAL_TESTBEDS, required=True)
     desktop.add_argument("--benchmark", required=True)
     desktop.add_argument("--executable", type=Path, required=True)
     desktop.add_argument("--output", type=Path, required=True)
@@ -461,7 +501,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "plan":
-            document = make_plan(args.repository, args.commit, args.run_id, args.rounds)
+            document = make_plan(args.repository, args.commit, args.run_id, args.rounds, args.optional_testbed)
             atomic_write(args.output, document, immutable=True)
             print(json.dumps(document["desktop"]["benchmarks"]))
         elif args.command == "run-desktop":
