@@ -45,8 +45,8 @@
 //!
 //! # Implementation
 //!
-//! Machine words, addresses, the pc and timestamps are integers, each read as the element of `K = GF(2^64)` with those bits.
-//! A timestamp is `2^40 | cycle << 5 | slot`, and the clock circuit of each table orders its accesses and steps it (§sec:memchan).
+//! Machine words, addresses and the pc are integers, each read as the element of `K = GF(2^64)` with those bits.
+//! A row's time and memory position are powers `g^j` of a generator, and two logs check the registers and memory (§sec:memchan).
 //! Every committed column is `K`-valued; challenges and transcript scalars live in `E = GF(2^192)`.
 //!
 //! - `pcs`: `K`-committed witness, `E`-opened, via the stacked WHIR (§sec:stacking, §annex:pcs).
@@ -55,7 +55,8 @@
 //! - `leaf`: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
 //! - `constraints`: one table sumcheck over every table's two bus forms, the extension-field identities and the lookup producers (§sec:air).
 //! - `rv`: RISC-V (rv64im): the decoder, each instruction class's function and circuit, and the reference interpreter.
-//! - `tables`: the instruction tables, one per class (columns, bus tuples, clock circuits).
+//! - `tables`: the instruction tables, one per class (columns, bus tuples, the extension-field operand circuit).
+//! - `memory`: the register and memory logs, each a one-hot address per access and an increment (§sec:memchan).
 //! - `class_flock`: the glue to flock: each circuit proven over its own packed witness, in the same commitment.
 //! - `cpu`: whole-program assembly and the prove/verify entry points.
 //! - `rec`: the recursion machine and the aggregation trees (§annex:rec).
@@ -69,6 +70,7 @@ mod cpu;
 mod envelope;
 mod gkr;
 mod leaf;
+mod memory;
 mod pcs;
 mod rec;
 mod rv;
@@ -97,7 +99,7 @@ pub use leaf::{BusError, N_TUPLE_BITS};
 #[doc(hidden)]
 pub use rv::{Alu, Class, Guest, Hash, Machine, Reg, RegisterFile, Syscall};
 #[doc(hidden)]
-pub use tables::{BAD_SLOT, Clock, EXIT_SLOT, Fill, N_TABLES, PerTable, TableId, Word};
+pub use tables::{BAD_SLOT, EXIT_SLOT, Fill, N_TABLES, PerTable, TableId, Word};
 
 /// Prepare the process for proving: spawn the worker pool up front.
 ///

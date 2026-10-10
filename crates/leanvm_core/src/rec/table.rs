@@ -346,7 +346,7 @@ impl HashFlock {
     const SEL: usize = Self::N_PORTS;
 
     /// The packed witness of the BLAKE2s class circuit, which proves every hash row.
-    pub(crate) const FLOCK: FlockId = FlockId::class(TableId::HASH).expect("the HASH class has a circuit");
+    pub(crate) const FLOCK: FlockId = FlockId::of(TableId::HASH);
 
     /// The BLAKE2s compression circuit.
     pub(crate) fn circuit() -> &'static Circuit {

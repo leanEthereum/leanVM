@@ -14,9 +14,9 @@
 //!
 //! The class has no circuit. `y^3 + y + 1` has its coefficients in `GF(2)`, so each limb of a product is a sum of
 //! products of limbs, in `K`: the table proves the product by three identities of degree 2 over `K`
-//! (`tables::ClassTable::identities`), and its clock circuit computes the limbs' addresses ([`Ext::clock_circuit`]).
+//! (`tables::ClassTable::identities`), and its operand circuit computes the limbs' addresses.
 
-use crate::tables::Clock;
+use crate::rv::circuits::Products;
 use flock::circuit::{Builder, Circuit, Wire};
 use primitives::field::F192;
 
@@ -43,7 +43,7 @@ pub struct Ext {
     pub pointers: [u64; 3],
     /// The nine limbs as found: `a`'s, `b`'s, then `c`'s.
     ///
-    /// A base-field `b` has two zero limbs, which the row reads from `x0`.
+    /// A base-field `b`'s two high limbs are zero, and no access.
     pub limbs: [u64; Self::LIMBS],
 }
 
@@ -52,7 +52,7 @@ pub struct Ext {
 pub enum Limb {
     /// The memory word at this byte address.
     Memory(u64),
-    /// The register `x0`, which holds zero: a high limb of a base-field `b`.
+    /// No cell: a high limb of a base-field `b`, which is zero.
     Zero,
 }
 
@@ -65,7 +65,7 @@ impl Ext {
     pub const LEGAL: &'static [u64] = &[0, Self::ACCUMULATE, Self::BASE, Self::BASE | Self::ACCUMULATE];
     /// The limbs the row accesses: three for each of `a`, `b` and `c`.
     pub const LIMBS: usize = 9;
-    /// The limbs whose bus address the clock circuit computes: every limb but the three pointers.
+    /// The limbs whose bus address the operand circuit computes: every limb but the three pointers.
     pub const OFFSET_LIMBS: [usize; 6] = [1, 2, 4, 5, 7, 8];
 
     /// Where limb `k` of an instance with these pointers and flags is read.
@@ -76,7 +76,7 @@ impl Ext {
     ///     address:  pa   pa+8  pa+16  pb   pb+8  pb+16  pc   pc+8  pc+16
     /// ```
     ///
-    /// A base-field `b` reads `b_1` and `b_2` from `x0` instead.
+    /// A base-field `b`'s `b_1` and `b_2` are no access.
     ///
     /// The addresses wrap modulo `2^64`, as RISC-V addresses do.
     pub const fn limb(pointers: [u64; 3], flags: u64, k: usize) -> Limb {
@@ -88,7 +88,7 @@ impl Ext {
         }
     }
 
-    /// The bus address of limb `k`: the register number zero for a limb read from `x0`.
+    /// The bus address of limb `k`: zero for a limb that is no access.
     pub const fn bus_address(pointers: [u64; 3], flags: u64, k: usize) -> u64 {
         match Self::limb(pointers, flags, k) {
             Limb::Zero => 0,
@@ -110,35 +110,31 @@ impl Ext {
         [c.c0, c.c1, c.c2]
     }
 
-    /// The table's clock circuit: the clock circuit of its twelve accesses, which also splits the flags into their
-    /// two bits and computes the bus addresses of the limbs that are no pointer.
+    /// The table's operand circuit: the flags' two bits, and the bus addresses of the limbs that are no pointer.
     ///
     /// ```text
-    ///     inputs    ts, prev_0 .. prev_11, v1, v2, vd, flags
-    ///     outputs   step, accumulate, base, then the addresses of limbs 1, 2, 4, 5, 7 and 8
+    ///     inputs    v1, v2, vd, flags
+    ///     outputs   accumulate, base, then the addresses of limbs 1, 2, 4, 5, 7 and 8
     /// ```
     ///
-    /// `accumulate` and `base` are the flags' bits 0 and 1, each a whole port, so each is a 0 or 1 field element.
-    ///
-    /// The addresses are `p + 8` and `p + 16` for each pointer, by incrementers, `b`'s gated off to zero, the
-    /// register number of `x0`, for a base-field `b`. A pointer off its word leaves its low bits in every limb's
-    /// address, which then names no cell.
-    pub fn clock_circuit(slots: &[u32]) -> Circuit {
-        let ports = [1, 1]
+    /// - `accumulate` and `base` each fill a port, so each is a 0 or 1 field element.
+    /// - The addresses are `p + 8` and `p + 16` for each pointer, `b`'s gated to zero for a base-field `b`.
+    /// - A pointer off its word leaves its low bits in every limb's address, which then names no cell.
+    pub fn operand_circuit() -> Circuit {
+        let outputs = [1, 1]
             .into_iter()
             .chain([64; Self::OFFSET_LIMBS.len()])
             .collect::<Vec<_>>();
-        let mut c = Clock::builder(slots, &[64, 64, 64, 2], &ports);
-        let first = 1 + slots.len();
-        let [a, b, d] = [0, 1, 2].map(|i| c.input::<64>(first + i));
-        let flags = c.input::<2>(first + 3);
+        let mut c = Builder::new(&[64, 64, 64, 2], &outputs);
+        let [a, b, d] = [0, 1, 2].map(|i| c.input::<64>(i));
+        let flags = c.input::<2>(3);
         let (accumulate, base) = (flags[0], flags[1]);
-        c.output(1, 0, accumulate);
-        c.output(2, 0, base);
+        c.output(0, 0, accumulate);
+        c.output(1, 0, base);
         let not_base = c.not(base);
         for (i, pointer) in [a, b, d].iter().enumerate() {
             for (j, bit) in [3, 4].into_iter().enumerate() {
-                let port = 3 + 2 * i + j;
+                let port = 2 + 2 * i + j;
                 for (k, wire) in increment(&mut c, pointer, bit).into_iter().enumerate() {
                     if i == 1 {
                         c.and_output(port, k, not_base, wire);
@@ -151,62 +147,48 @@ impl Ext {
         c.finish()
     }
 
-    /// One instance of [`Self::clock_circuit`]'s witness by word arithmetic: what the walk of its gate list writes,
-    /// into zeroed buffers, from its input words (`ts`, each access's previous timestamp, `v1`, `v2`, `vd`, `flags`).
-    ///
-    /// The clock's words and products are [`Clock::witness`]'s; its own ports and products, `n` being the accesses:
+    /// One instance of the operand circuit's witness by word arithmetic, into zeroed buffers, from `v1, v2, vd, flags`.
     ///
     /// ```text
-    ///     words n + 1 ..= n + 3   v1, v2, vd     z = A·z = the word,              B·z = all ones
-    ///     word n + 4              flags          z = A·z = its two bits,          B·z = 0b11
-    ///     word n + 5              step           the clock's
-    ///     words n + 6, n + 7      accumulate, base, copies of the flag bits:  z = A·z = the bit,  B·z = 1
-    ///     words n + 8 ..= n + 13  p + 8, p + 16 for p = v1, v2, vd: copies,   z = A·z = the sum,  B·z = all ones,
-    ///                             but v2's products:                          A·z = !base on every bit,  B·z = the sum
-    ///     then                    products       after the clock's, the same order: each incrementer's carries
+    ///     words 0 ..= 2    v1, v2, vd    z = A·z = the word,              B·z = all ones
+    ///     word 3           flags         z = A·z = its two bits,          B·z = 0b11
+    ///     words 4, 5       accumulate, base, copies of the flag bits:  z = A·z = the bit,  B·z = 1
+    ///     words 6 ..= 11   p + 8, p + 16 for each pointer: copies,     z = A·z = the sum,  B·z = all ones,
+    ///                      but v2's products:                          A·z = !base on every bit,  B·z = the sum
+    ///     then             the constant, then each incrementer's carries
     /// ```
     ///
     /// Adding `2^bit` to `p` carries `c_i = p_bit & .. & p_{i-1}` into bit `i > bit`, so the products of bits
-    /// `bit + 1 ..= 62` are `A·z = p_i`, `B·z = c_i`, and the carries are those of the native sum.
-    pub fn clock_witness(slots: &[u32], inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
+    /// `bit + 1 ..= 62` are `A·z = p_i`, `B·z = c_i`.
+    pub fn operand_witness(inputs: &[u64], z: &mut [u64], az: &mut [u64], bz: &mut [u64]) {
         const BITS: [u32; 2] = [3, 4];
-        let n = slots.len();
-        let [pointers @ .., flags]: [u64; 4] = inputs[n + 1..].try_into().expect("the clock's inputs, then four");
+        let [pointers @ .., flags]: [u64; 4] = inputs.try_into().expect("three pointers and the flags");
         let base = flags >> 1 & 1;
         let sums = pointers.map(|p| BITS.map(|bit| p.wrapping_add(1 << bit)));
-        let tables = [&mut *z, &mut *az, &mut *bz];
-        Clock::witness_with(
-            slots,
-            inputs[0],
-            &inputs[1..=n],
-            [4, 2 + Self::OFFSET_LIMBS.len()],
-            tables,
-            |products| {
-                for (&p, sums) in pointers.iter().zip(&sums) {
-                    for (bit, sum) in BITS.into_iter().zip(sums) {
-                        let carries = sum ^ p ^ 1 << bit;
-                        let rows = 62 - bit;
-                        let run = (1 << rows) - 1;
-                        products.push(p >> (bit + 1) & run, carries >> (bit + 1) & run, rows);
-                    }
-                }
-            },
-        );
         for (k, &p) in pointers.iter().enumerate() {
-            (z[n + 1 + k], az[n + 1 + k], bz[n + 1 + k]) = (p, p, !0);
+            (z[k], az[k], bz[k]) = (p, p, !0);
         }
-        (z[n + 4], az[n + 4], bz[n + 4]) = (flags & 3, flags & 3, 3);
-        (z[n + 6], az[n + 6], bz[n + 6]) = (flags & 1, flags & 1, 1);
-        (z[n + 7], az[n + 7], bz[n + 7]) = (base, base, 1);
+        (z[3], az[3], bz[3]) = (flags & 3, flags & 3, 3);
+        (z[4], az[4], bz[4]) = (flags & 1, flags & 1, 1);
+        (z[5], az[5], bz[5]) = (base, base, 1);
         let not_base = base.wrapping_sub(1);
         for (k, &sum) in sums.as_flattened().iter().enumerate() {
-            let w = n + 8 + k;
-            (z[w], az[w], bz[w]) = if k / 2 == 1 {
-                (not_base & sum, not_base, sum)
-            } else {
-                (sum, sum, !0)
+            (z[6 + k], az[6 + k], bz[6 + k]) = match k / 2 {
+                1 => (not_base & sum, not_base, sum),
+                _ => (sum, sum, !0),
             };
         }
+        let mut products = Products::new([z, az, bz], 6 + Self::OFFSET_LIMBS.len());
+        products.push(1, 1, 1);
+        for (&p, sums) in pointers.iter().zip(&sums) {
+            for (bit, sum) in BITS.into_iter().zip(sums) {
+                let carries = sum ^ p ^ 1 << bit;
+                let rows = 62 - bit;
+                let run = (1 << rows) - 1;
+                products.push(p >> (bit + 1) & run, carries >> (bit + 1) & run, rows);
+            }
+        }
+        products.finish();
     }
 }
 
@@ -281,24 +263,22 @@ mod tests {
         }
 
         #[test]
-        fn the_clock_circuit_is_its_reference(
+        fn the_operand_circuit_is_its_reference(
             pointers in proptest::array::uniform3(edge_word()),
             flags in proptest::sample::select(Ext::LEGAL),
         ) {
-            // Invariant: past the step, the outputs are the flags' two bits and the bus addresses of the limbs that
-            // are no pointer, wrapping past 2^64 and zero for a base-field b's high limbs.
-            let slots = crate::tables::ClassSpec::EXT.slots();
-            let circuit = Ext::clock_circuit(&slots);
-            let mut inputs = vec![0; 1 + slots.len()];
-            inputs.extend(pointers);
-            inputs.push(flags);
+            // Invariant: the outputs are the flags' two bits and the bus addresses of the limbs that are no pointer,
+            // wrapping past 2^64 and zero for a base-field b's high limbs; the word witness is the gate walk's.
+            let circuit = Ext::operand_circuit();
+            let inputs = [pointers[0], pointers[1], pointers[2], flags];
             let words = 1 << (circuit.k_log() - 6);
-            let (mut z, mut az, mut bz) = (vec![0; words], vec![0; words], vec![0; words]);
-            circuit.witness_instance(&inputs, &mut z, &mut az, &mut bz);
-            let outputs = &z[inputs.len() + 1..inputs.len() + 3 + Ext::OFFSET_LIMBS.len()];
+            let [mut walked, mut computed] = [(); 2].map(|()| (vec![0; words], vec![0; words], vec![0; words]));
+            circuit.witness_instance(&inputs, &mut walked.0, &mut walked.1, &mut walked.2);
+            Ext::operand_witness(&inputs, &mut computed.0, &mut computed.1, &mut computed.2);
             let addresses = Ext::OFFSET_LIMBS.map(|k| Ext::bus_address(pointers, flags, k));
-            prop_assert_eq!(&outputs[..2], &[flags & 1, flags >> 1]);
-            prop_assert_eq!(&outputs[2..], &addresses);
+            prop_assert_eq!(&walked.0[4..6], &[flags & 1, flags >> 1]);
+            prop_assert_eq!(&walked.0[6..12], &addresses);
+            prop_assert_eq!(walked, computed);
         }
     }
 
@@ -322,12 +302,12 @@ mod tests {
     }
 
     #[test]
-    fn a_base_field_operand_reads_its_high_limbs_from_x0() {
+    fn a_base_field_operand_has_no_high_limb_accesses() {
         // Fixture: b at 0x4000_0118, as an extension and as a base-field element.
         //
         //     limb:      b_0          b_1          b_2
         //     extension  0x4000_0118  0x4000_0120  0x4000_0128
-        //     base       0x4000_0118  x0           x0
+        //     base       0x4000_0118  none         none
         let pointers = [0x4000_0000, 0x4000_0118, 0x4000_0200];
         let limbs = |flags| (3..6).map(|k| Ext::limb(pointers, flags, k)).collect::<Vec<_>>();
         let memory = |a| Limb::Memory(a);

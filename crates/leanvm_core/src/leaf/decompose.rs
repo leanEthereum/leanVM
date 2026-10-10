@@ -1,13 +1,16 @@
 //! A side's leaf claim, decomposed into the tables' forms, the framework blocks' column claims and the producers' weights.
 
-use super::{ColumnClaim, Coord, Fingerprint, Openings, Producer, PublicColumn, PublicColumns, Side, SparseColumn};
+use super::{
+    ColumnClaim, Coord, Fingerprint, LogShare, Openings, Owner, Producer, PublicColumn, PublicColumns, Side,
+    SparseColumn,
+};
 use crate::colval::ColVal;
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 use crate::colval::PackedCoeffs;
 use fiat_shamir::arith::{Arith, Native};
 use fiat_shamir::transcript::{ProverState, Transmitter};
 use primitives::field::{F64, F192};
-use primitives::multilinear::mle_eval;
+use primitives::multilinear::{eq_table, inner_product, mle_eval};
 use std::collections::HashSet;
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -23,6 +26,9 @@ use std::sync::Arc;
 /// - A constant stays one, and an integer index column stays affine in the bits.
 pub fn producer_affine_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta: A::E, chi: &[A::E]) -> Vec<A::E> {
     assert_eq!(chi.len(), p.kappa);
+    if !p.deferred {
+        return producer_evals(a, p, w, beta, chi);
+    }
     // Running `2^i`-th powers: the constant, each index coordinate's weight and monomials.
     let mut constant = beta;
     let mut affine: Vec<(A::E, Vec<F64>)> = Vec::new();
@@ -56,6 +62,33 @@ pub fn producer_affine_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta
         }
     }
     evals
+}
+
+/// A small producer's public half at `chi`, its public columns included: `MLE(P_i)(chi) - 1` for each bit `i`.
+///
+/// Each entry's leaf is squared once per bit, so the cost is the entries times the bits.
+fn producer_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta: A::E, chi: &[A::E]) -> Vec<A::E> {
+    let eq = a.eq_table(chi);
+    let mut leaves: Vec<A::E> = (0..1 << p.kappa)
+        .map(|x| {
+            (p.coords.iter().zip(w)).fold(beta, |leaf, (c, &weight)| {
+                let value = match c {
+                    Coord::Const(v) => *v,
+                    Coord::Public(column) => column.values[x],
+                    _ => unreachable!("a small producer's tuple is constants and public columns"),
+                };
+                a.mul_const_add(weight, F192::from(value), leaf)
+            })
+        })
+        .collect();
+    (0..p.bits)
+        .map(|_| {
+            let zero = a.zero();
+            let eval = (eq.iter().zip(&leaves)).fold(zero, |acc, (&e, &l)| a.mul_add(e, l, acc));
+            leaves.iter_mut().for_each(|l| *l = a.square(*l));
+            a.add_const(eval, F192::ONE)
+        })
+        .collect()
 }
 
 /// The program columns' share of a producer's public half at `chi`, under the twist `mu`.
@@ -99,6 +132,15 @@ pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], 
         }
     }
     total
+}
+
+/// What a side's decomposition reads fresh off the stream: a column's value, or a log's leaves', at the bus point.
+#[derive(Clone, Copy, Debug)]
+pub(super) enum Fresh {
+    /// A committed column.
+    Column(usize),
+    /// A memory log's block.
+    Log(usize),
 }
 
 /// One table's bus contribution on one side, as a form over that table's committed
@@ -359,7 +401,7 @@ impl Side<'_> {
         tables: &[(usize, usize)],
         forms: &mut [BusForm<A::E>],
         open: &mut Openings<A::E>,
-        mut fresh: impl FnMut(&mut A, usize, &[A::E]) -> Result<A::E, Er>,
+        mut fresh: impl FnMut(&mut A, Fresh, &[A::E]) -> Result<A::E, Er>,
     ) -> Result<A::E, Er> {
         let (lay, w, beta) = (&self.lay, &fp.w, fp.beta);
         assert_eq!(zeta.len(), lay.mu);
@@ -381,9 +423,20 @@ impl Side<'_> {
             sel_sum = a.add(sel_sum, eq_hi);
             open.selectors.push(eq_hi);
 
+            // A log's block is its leaves' value at ζ, which the log's argument settles.
+            if let Owner::Log(log) = blk.owner {
+                let value = fresh(a, Fresh::Log(log), zeta_lo)?;
+                open.logs.push(LogShare {
+                    point: zeta_lo.to_vec(),
+                    value,
+                });
+                acc = a.mul_add(eq_hi, value, acc);
+                continue;
+            }
+
             // A table's block becomes a linear form the zerocheck will sum; only the
-            // framework blocks (boundary, registers, memory) still open columns at ζ.
-            if let Some(t) = blk.owner {
+            // framework blocks still open columns at ζ.
+            if let Owner::Table(t) = blk.owner {
                 let form = &mut forms[t];
                 let mut constant = beta;
                 let mut known = a.zero();
@@ -430,7 +483,7 @@ impl Side<'_> {
                         let x = match open.known.get(&(*col, kappa)) {
                             Some(&x) => x,
                             None => {
-                                let x = fresh(a, *col, zeta_lo)?;
+                                let x = fresh(a, Fresh::Column(*col), zeta_lo)?;
                                 open.known.insert((*col, kappa), x);
                                 open.claims.push(ColumnClaim {
                                     col: *col,
@@ -489,6 +542,7 @@ impl Side<'_> {
         tables: &[(usize, usize)],
         forms: &mut [BusForm],
         open: &mut Openings<F192>,
+        logs: &[Vec<F192>],
         ps: &mut ProverState,
     ) -> F192 {
         // Pass 1: enumerate the FRESH committed coords exactly as the decomposition
@@ -496,7 +550,7 @@ impl Side<'_> {
         // occurrence per `(col, κ)`), then evaluate the column MLEs in parallel.
         let mut jobs: Vec<(usize, usize)> = Vec::new();
         let mut seen = HashSet::new();
-        for blk in self.blocks.iter().filter(|b| b.owner.is_none()) {
+        for blk in self.blocks.iter().filter(|b| b.owner == Owner::Framework) {
             for c in &blk.coords {
                 if let Coord::Col(i) = c {
                     let key = (*i, blk.kappa);
@@ -513,12 +567,18 @@ impl Side<'_> {
 
         // Pass 2: replay in the original order; duplicates reuse the recorded claim.
         let mut fresh_iter = jobs.iter().zip(vals.iter());
-        let framework = self.decompose(&mut Native, fp, zeta, tables, forms, open, |_, col, zeta_lo| {
-            let (&(jc, jk), &v) = fresh_iter
-                .next()
-                .expect("job enumeration matches the decomposition's column order");
-            debug_assert_eq!((jc, jk), (col, zeta_lo.len()), "job/coord order drift");
-            debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
+        let framework = self.decompose(&mut Native, fp, zeta, tables, forms, open, |_, fresh, zeta_lo| {
+            let v = match fresh {
+                Fresh::Column(col) => {
+                    let (&(jc, jk), &v) = fresh_iter
+                        .next()
+                        .expect("job enumeration matches the decomposition's column order");
+                    debug_assert_eq!((jc, jk), (col, zeta_lo.len()), "job/coord order drift");
+                    debug_assert_eq!(v, mle_eval(cols[col], zeta_lo), "job/coord order drift");
+                    v
+                }
+                Fresh::Log(log) => inner_product(&eq_table(zeta_lo), &logs[log]),
+            };
             ps.add_scalar(v);
             Ok::<_, Infallible>(v)
         });
