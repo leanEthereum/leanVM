@@ -218,8 +218,8 @@ pub fn window_denominator(size: usize) -> F192 {
 }
 
 /// The barycentric weights of `nodes` at `p`: `weights[i] =
-/// ∏_{k≠i} (p + nodes[k]) / ∏_{k≠i} (nodes[i] + nodes[k])`. `O(n²)` multiplies
-/// and, by `window_denominator`, a single inverse.
+/// ∏_{k≠i} (p + nodes[k]) / ∏_{k≠i} (nodes[i] + nodes[k])`. Each numerator is a prefix product times a
+/// suffix product, so `O(n)` multiplies and, by `window_denominator`, a single inverse.
 ///
 /// `nodes` must be an aligned window of the φ₈ table, `nodes[a] = nodes[0] + φ₈(a)`, which is what
 /// every caller passes: a `2^k` prefix, or one of its cosets.
@@ -230,18 +230,18 @@ fn lagrange_weights(nodes: &[F192], p: F192) -> Vec<F192> {
         (0..n).all(|a| nodes[a] == nodes[0] + PHI_8_TABLE[a]),
         "not an aligned φ₈ window"
     );
-    let denominator = window_denominator(n);
-    (0..n)
-        .map(|i| {
-            let mut num = F192::ONE;
-            for k in 0..n {
-                if k != i {
-                    num *= p + nodes[k];
-                }
-            }
-            num * denominator
-        })
-        .collect()
+    let mut weights = Vec::with_capacity(n);
+    let mut prefix = window_denominator(n);
+    for &node in nodes {
+        weights.push(prefix);
+        prefix *= p + node;
+    }
+    let mut suffix = F192::ONE;
+    for (weight, &node) in weights.iter_mut().zip(nodes).rev() {
+        *weight *= suffix;
+        suffix *= p + node;
+    }
+    weights
 }
 
 /// Lagrange evaluation: given distinct `nodes` and a polynomial's `values` there,
@@ -323,7 +323,6 @@ fn fold_ladder(mut cur: Vec<F192>, point: &[F192]) -> F192 {
 }
 
 /// Barycentric weights over the first `2^k_skip` nodes of the GF(2^8) subfield.
-/// O(2^{2·k_skip}) field multiplies, a one-time cost.
 pub fn lagrange_weights_naive(k_skip: usize, z: F192) -> Vec<F192> {
     let ell = 1usize << k_skip;
     assert!(ell <= 256, "k_skip > 8 would exceed PHI_8_TABLE");
