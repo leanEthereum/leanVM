@@ -1,6 +1,7 @@
 //! Keccak in software: the `Keccak-f[1600]` permutation, and keccak256 over it.
 //!
-//! The machine has no Keccak instruction, so this is ordinary code, on the VM and off it alike.
+//! The machine has no Keccak instruction, so this is ordinary code: on the VM the permutation is
+//! `keccak_rv64.S`, the whole state in registers, and off it Rust.
 //!
 //! rv64im has no rotate and no and-not, so a round is shifts, ORs, XORs and ANDs.
 //!
@@ -53,7 +54,7 @@ pub fn keccak256(words: &[u64], len: usize) -> [u64; 4] {
 }
 
 /// The round constants, which break the rounds' symmetry.
-const ROUND_CONSTANTS: [u64; 24] = [
+static ROUND_CONSTANTS: [u64; 24] = [
     0x0000_0000_0000_0001,
     0x0000_0000_0000_8082,
     0x8000_0000_0000_808A,
@@ -83,15 +84,37 @@ const ROUND_CONSTANTS: [u64; 24] = [
 /// The lanes kept complemented through the rounds, `x + 5y` for `be bi go ki mi sa` (lane complementing).
 ///
 /// With them complemented, chi needs one NOT per plane instead of one per lane.
+#[cfg(not(target_arch = "riscv64"))]
 const COMPLEMENTED: [usize; 6] = [1, 2, 8, 12, 17, 20];
 
 /// The `Keccak-f[1600]` permutation, lane `x + 5y` at index `x + 5 * y`.
+pub fn f1600(state: &mut [u64; 25]) {
+    #[cfg(target_arch = "riscv64")]
+    // SAFETY: the routine reads and writes the 25 lanes at `state` and nothing else but its own
+    // stack frame, and restores every register the calling convention preserves.
+    unsafe {
+        leanvm_keccak_f1600(state);
+    }
+    #[cfg(not(target_arch = "riscv64"))]
+    f1600_rust(state);
+}
+
+#[cfg(target_arch = "riscv64")]
+core::arch::global_asm!(include_str!("keccak_rv64.S"), rc = sym ROUND_CONSTANTS);
+
+#[cfg(target_arch = "riscv64")]
+unsafe extern "C" {
+    fn leanvm_keccak_f1600(state: *mut [u64; 25]);
+}
+
+/// The permutation in Rust, off the VM.
 ///
 /// XKCP's 64-bit round, plane by plane:
 ///
 /// - theta, rho and pi are fused into chi's inputs;
 /// - the next round's column parities are summed from chi's outputs.
-pub fn f1600(state: &mut [u64; 25]) {
+#[cfg(not(target_arch = "riscv64"))]
+fn f1600_rust(state: &mut [u64; 25]) {
     let mut a = *state;
     for i in COMPLEMENTED {
         a[i] = !a[i];
@@ -114,6 +137,7 @@ pub fn f1600(state: &mut [u64; 25]) {
 /// Each output plane `y` is chi over the five lanes pi moves to plane `y`.
 ///
 /// Each lane is first XORed with its column's theta term, then rotated by rho.
+#[cfg(not(target_arch = "riscv64"))]
 #[inline(always)]
 fn round(a: &[u64; 25], e: &mut [u64; 25], c: [u64; 5], rc: u64) -> [u64; 5] {
     let d: [u64; 5] = core::array::from_fn(|x| c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1));
