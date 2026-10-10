@@ -6,6 +6,7 @@
 //! - Many independent transforms share one buffer, interleaved row by row.
 //! - The E-valued encodes of deeper WHIR levels reuse it, one F64 lane per F192 coefficient.
 //! - Large transforms are bound by memory bandwidth, so the driver minimizes sweeps of the buffer.
+//! - AVX-512 radix-8 tails of four to seven lanes stay in registers across all three layers, using masked loads and stores. Full tiles, smaller tails and other backends use row-wise butterflies.
 
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
 use core::arch::aarch64::*;
@@ -721,7 +722,7 @@ fn fused_rows<const N: usize>(
 ///     layer L+2   pairs rows  e apart
 /// ```
 ///
-/// - The eight rows stay in L1 across all twelve butterflies.
+/// - AVX-512 keeps eight lanes of all eight rows in registers across the twelve butterflies.
 /// - The seven twiddles are breadth-first: one for layer L, two for L+1, four for L+2.
 fn butterfly_interleaved_fused_3layer(block: &mut [F64], t: &[F64; 7], eighth: usize, num_ntts: usize) {
     fused_rows::<8>(block, eighth, num_ntts, |rows| radix8_butterflies(rows, t));
@@ -730,22 +731,91 @@ fn butterfly_interleaved_fused_3layer(block: &mut [F64], t: &[F64; 7], eighth: u
 /// The twelve butterflies of one radix-8 row group, with its seven twiddles breadth-first.
 #[inline(always)]
 fn radix8_butterflies(rows: &mut [&mut [F64]; 8], t: &[F64; 7]) {
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    let end = {
+        let end = rows[0].len() / 8 * 8;
+        // Keep small tails scalar instead of issuing mostly-empty vector operations.
+        if rows[0].len() - end >= 4 {
+            // SAFETY: fused_rows supplies equal-length disjoint rows; end starts the partial tile.
+            unsafe { radix8_tail_avx512(rows, t, end) };
+            end
+        } else {
+            rows[0].len()
+        }
+    };
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
+    let end = rows[0].len();
+    if end == 0 {
+        return;
+    }
     let [r0, r1, r2, r3, r4, r5, r6, r7] = rows;
     // Layer L: rows 4 apart, one twiddle for the whole block.
-    butterfly_lanes(r0, r4, t[0]);
-    butterfly_lanes(r1, r5, t[0]);
-    butterfly_lanes(r2, r6, t[0]);
-    butterfly_lanes(r3, r7, t[0]);
+    butterfly_lanes(&mut r0[..end], &mut r4[..end], t[0]);
+    butterfly_lanes(&mut r1[..end], &mut r5[..end], t[0]);
+    butterfly_lanes(&mut r2[..end], &mut r6[..end], t[0]);
+    butterfly_lanes(&mut r3[..end], &mut r7[..end], t[0]);
     // Layer L+1: rows 2 apart, one twiddle per half.
-    butterfly_lanes(r0, r2, t[1]);
-    butterfly_lanes(r1, r3, t[1]);
-    butterfly_lanes(r4, r6, t[2]);
-    butterfly_lanes(r5, r7, t[2]);
+    butterfly_lanes(&mut r0[..end], &mut r2[..end], t[1]);
+    butterfly_lanes(&mut r1[..end], &mut r3[..end], t[1]);
+    butterfly_lanes(&mut r4[..end], &mut r6[..end], t[2]);
+    butterfly_lanes(&mut r5[..end], &mut r7[..end], t[2]);
     // Layer L+2: adjacent rows, one twiddle per quarter.
-    butterfly_lanes(r0, r1, t[3]);
-    butterfly_lanes(r2, r3, t[4]);
-    butterfly_lanes(r4, r5, t[5]);
-    butterfly_lanes(r6, r7, t[6]);
+    butterfly_lanes(&mut r0[..end], &mut r1[..end], t[3]);
+    butterfly_lanes(&mut r2[..end], &mut r3[..end], t[4]);
+    butterfly_lanes(&mut r4[..end], &mut r5[..end], t[5]);
+    butterfly_lanes(&mut r6[..end], &mut r7[..end], t[6]);
+}
+
+/// One partial eight-row tile, loaded and stored once for all three layers.
+///
+/// # Safety
+/// The disjoint rows must have equal lengths, with one to seven lanes remaining at lane.
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+#[inline]
+#[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
+unsafe fn radix8_tail_avx512(rows: &mut [&mut [F64]; 8], t: &[F64; 7], lane: usize) {
+    let [r0, r1, r2, r3, r4, r5, r6, r7] = rows;
+    let t0 = _mm512_set1_epi64(t[0].0 as i64);
+    let t1 = _mm512_set1_epi64(t[1].0 as i64);
+    let t2 = _mm512_set1_epi64(t[2].0 as i64);
+    let t3 = _mm512_set1_epi64(t[3].0 as i64);
+    let t4 = _mm512_set1_epi64(t[4].0 as i64);
+    let t5 = _mm512_set1_epi64(t[5].0 as i64);
+    let t6 = _mm512_set1_epi64(t[6].0 as i64);
+    let mask = ((1u16 << (r0.len() - lane)) - 1) as u8;
+    // SAFETY: the mask enables only valid lanes in each disjoint row.
+    unsafe {
+        let mut v0 = _mm512_maskz_loadu_epi64(mask, r0.as_ptr().add(lane).cast());
+        let mut v1 = _mm512_maskz_loadu_epi64(mask, r1.as_ptr().add(lane).cast());
+        let mut v2 = _mm512_maskz_loadu_epi64(mask, r2.as_ptr().add(lane).cast());
+        let mut v3 = _mm512_maskz_loadu_epi64(mask, r3.as_ptr().add(lane).cast());
+        let mut v4 = _mm512_maskz_loadu_epi64(mask, r4.as_ptr().add(lane).cast());
+        let mut v5 = _mm512_maskz_loadu_epi64(mask, r5.as_ptr().add(lane).cast());
+        let mut v6 = _mm512_maskz_loadu_epi64(mask, r6.as_ptr().add(lane).cast());
+        let mut v7 = _mm512_maskz_loadu_epi64(mask, r7.as_ptr().add(lane).cast());
+
+        (v0, v4) = butterfly_registers_avx512::<false>(v0, v4, t0);
+        (v1, v5) = butterfly_registers_avx512::<false>(v1, v5, t0);
+        (v2, v6) = butterfly_registers_avx512::<false>(v2, v6, t0);
+        (v3, v7) = butterfly_registers_avx512::<false>(v3, v7, t0);
+        (v0, v2) = butterfly_registers_avx512::<false>(v0, v2, t1);
+        (v1, v3) = butterfly_registers_avx512::<false>(v1, v3, t1);
+        (v4, v6) = butterfly_registers_avx512::<false>(v4, v6, t2);
+        (v5, v7) = butterfly_registers_avx512::<false>(v5, v7, t2);
+        (v0, v1) = butterfly_registers_avx512::<false>(v0, v1, t3);
+        (v2, v3) = butterfly_registers_avx512::<false>(v2, v3, t4);
+        (v4, v5) = butterfly_registers_avx512::<false>(v4, v5, t5);
+        (v6, v7) = butterfly_registers_avx512::<false>(v6, v7, t6);
+
+        _mm512_mask_storeu_epi64(r0.as_mut_ptr().add(lane).cast(), mask, v0);
+        _mm512_mask_storeu_epi64(r1.as_mut_ptr().add(lane).cast(), mask, v1);
+        _mm512_mask_storeu_epi64(r2.as_mut_ptr().add(lane).cast(), mask, v2);
+        _mm512_mask_storeu_epi64(r3.as_mut_ptr().add(lane).cast(), mask, v3);
+        _mm512_mask_storeu_epi64(r4.as_mut_ptr().add(lane).cast(), mask, v4);
+        _mm512_mask_storeu_epi64(r5.as_mut_ptr().add(lane).cast(), mask, v5);
+        _mm512_mask_storeu_epi64(r6.as_mut_ptr().add(lane).cast(), mask, v6);
+        _mm512_mask_storeu_epi64(r7.as_mut_ptr().add(lane).cast(), mask, v7);
+    }
 }
 
 /// Column sums of rows weighted by a table, unreduced: `sums[w] = Σ_j table[j] · rows[j][w]`.
@@ -1402,42 +1472,43 @@ unsafe fn butterfly_lanes_avx512<const TRANSPOSED: bool>(top: *mut F64, bot: *mu
         let u = _mm512_loadu_si512(top.cast());
         let v = _mm512_loadu_si512(bot.cast());
         let tw = _mm512_set1_epi64(twiddle as i64);
-        // The row multiplied by the twiddle, and the row the product is added to.
+        let (new_u, new_v) = butterfly_registers_avx512::<TRANSPOSED>(u, v, tw);
+        _mm512_storeu_si512(top.cast(), new_u);
+        _mm512_storeu_si512(bot.cast(), new_v);
+    }
+}
+
+/// Register-only form shared by row butterflies and the radix-8 tile.
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+#[inline(always)]
+fn butterfly_registers_avx512<const TRANSPOSED: bool>(u: __m512i, v: __m512i, tw: __m512i) -> (__m512i, __m512i) {
+    // SAFETY: the compile-time gate enables both target features.
+    unsafe {
         let (m, acc) = if TRANSPOSED {
             (_mm512_xor_si512(u, v), v)
         } else {
             (v, u)
         };
-
-        // Products m * t: even lanes, then odd lanes, one 128-bit product per 128-bit lane.
         let even = _mm512_clmulepi64_epi128::<0x00>(m, tw);
         let odd = _mm512_clmulepi64_epi128::<0x11>(m, tw);
-        // Back to lane order: qword i of lo / hi is the low / high half of lane i's product.
         let lo = _mm512_unpacklo_epi64(even, odd);
         let hi = _mm512_unpackhi_epi64(even, odd);
 
-        // Reduce modulo x^64 + x^4 + x^3 + x + 1 with shifts and three-way XORs.
+        // Reduce modulo x^64 + x^4 + x^3 + x + 1; fold hi and its spill before g(x).
         const XOR3: i32 = 0x96;
-        // The bits of hi * (x^4 + x^3 + x + 1) that land past x^63.
         let spill = _mm512_ternarylogic_epi64::<XOR3>(
             _mm512_srli_epi64::<63>(hi),
             _mm512_srli_epi64::<61>(hi),
             _mm512_srli_epi64::<60>(hi),
         );
-        // Both hi and spill are multiplied by the same constant, so fold them first.
         let x = _mm512_xor_si512(hi, spill);
-        // g(x) = x ^ x<<1 ^ x<<3 ^ x<<4, split across two three-way XORs.
         let fx = _mm512_ternarylogic_epi64::<XOR3>(x, _mm512_slli_epi64::<1>(x), _mm512_slli_epi64::<3>(x));
-        // acc + m * t, with the product's lo and g(x) folded in one step.
         let sum = _mm512_ternarylogic_epi64::<XOR3>(acc, lo, _mm512_xor_si512(fx, _mm512_slli_epi64::<4>(x)));
-        // Forward: u' = u + v * t, then v' = v + u'. Transposed: u' = u + v, then v' = v + u' * t.
-        let (new_u, new_v) = if TRANSPOSED {
+        if TRANSPOSED {
             (m, sum)
         } else {
             (sum, _mm512_xor_si512(v, sum))
-        };
-        _mm512_storeu_si512(top.cast(), new_u);
-        _mm512_storeu_si512(bot.cast(), new_v);
+        }
     }
 }
 
@@ -1595,14 +1666,11 @@ mod tests {
         //
         // The handed-over rows must tile the codeword once, each block already final.
         let mut rng = Rng::new(0xE0C0DE);
-        for (log_d, lanes, log_inv_rate) in [
-            (9usize, 8usize, 1usize),
-            (12, 64, 2),
-            (14, 8, 1),
-            (14, 64, 2),
-            (12, 2048, 1),
-            (4, 8, 4),
-        ] {
+        for (log_d, lanes, log_inv_rate) in
+            (1..=17)
+                .map(|lanes| (9, lanes, 1))
+                .chain([(12, 64, 2), (14, 8, 1), (14, 64, 2), (12, 2048, 1), (4, 8, 4)])
+        {
             let ntt = AdditiveNttF64::standard(log_d);
             let msg_len = (lanes << log_d) >> log_inv_rate;
             let msg: Vec<F64> = (0..msg_len).map(|_| F64(rng.next_u64())).collect();
