@@ -28,6 +28,7 @@ use primitives::field::{F8, F192};
 use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
 
 pub mod bit_fold;
+pub mod in_word;
 pub mod multilinear;
 pub mod univariate_skip;
 pub mod univariate_skip_optimized;
@@ -156,8 +157,6 @@ pub fn prove_packed_padded(
     assert_eq!(a_packed.len(), expected_bytes);
     assert_eq!(b_packed.len(), expected_bytes);
     assert_eq!(c_packed.len(), expected_bytes);
-    let n_mlv = m - k_skip;
-
     // ---- Construct the equality tail (with fixed constants in the inner 7 dims) ----
     //
     // r_rest layout:
@@ -195,6 +194,40 @@ pub fn prove_packed_padded(
     }
     let z = ps.sample();
 
+    // The running claim, mirrored from the verifier (same round-1 values, same z).
+    // `(1 + r) G(0) + r G(1) = claim` lets the wire drop `G(0)`, so the prover needs it too.
+    let c_running = interpolate_at_z_combined(&round1, k_skip, z);
+    let bits = PackedWitness {
+        a: a_packed,
+        b: b_packed,
+        c: c_packed,
+    };
+    let lagrange = lagrange_weights_naive(k_skip, z);
+    let (mlv_chis, final_a_eval, final_b_eval, final_c_eval) =
+        prove_word_rounds(bits, &lagrange, c_running, &r_rest, padding, ps);
+
+    ZerocheckClaim {
+        z,
+        mlv_challenges: mlv_chis,
+        a_eval: final_a_eval,
+        b_eval: final_b_eval,
+        c_eval: final_c_eval,
+    }
+}
+
+/// Every round past the 64 bits of a packed word, then the final `(â, b̂)`.
+///
+/// `weights` are the 64 in-word bits' weights once their variables are bound, and `c_running` the claim those rounds left.
+/// Returns the word-variable challenges and `(â, b̂, ĉ)`.
+fn prove_word_rounds(
+    bits: PackedWitness<'_>,
+    weights: &[F192],
+    mut c_running: F192,
+    r_rest: &[F192],
+    padding: &PaddingSpec,
+    ps: &mut ProverState,
+) -> (Vec<F192>, F192, F192, F192) {
+    let n_mlv = r_rest.len();
     // ---- Rounds 2 onwards: straight from the packed bits ----
     //
     // Level `t` is the round with `rho_1..rho_t` already bound.
@@ -209,18 +242,9 @@ pub fn prove_packed_padded(
     // The kernels take the eq challenges of the variables they do not bind.
     // They return the bare `(G(1), G(inf))` that goes on the wire.
     let span = tracing::info_span!("Bit rounds").entered();
-    let bits = PackedWitness {
-        a: a_packed,
-        b: b_packed,
-        c: c_packed,
-    };
-    let lagrange = lagrange_weights_naive(k_skip, z);
-    // The running claim, mirrored from the verifier (same round-1 values, same z).
-    // `(1 + r) G(0) + r G(1) = claim` lets the wire drop `G(0)`, so the prover needs it too.
-    let mut c_running = interpolate_at_z_combined(&round1, k_skip, z);
     let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
     for t in (0..(n_mlv - 1) & !1).step_by(2).take(PAIR_PASSES) {
-        let fold = BitFold::at_level(&lagrange, &mlv_chis);
+        let fold = BitFold::at_level(weights, &mlv_chis);
         let pair = bit_round_pair(bits, &fold, &r_rest[t + 1..], padding);
         let (g1, g_inf) = pair.first;
         c_running = send_round(ps, c_running, r_rest[t], None, g1, g_inf, &mut mlv_chis);
@@ -228,7 +252,7 @@ pub fn prove_packed_padded(
         c_running = send_round(ps, c_running, r_rest[t + 1], None, g1, g_inf, &mut mlv_chis);
     }
     let materialize_level = mlv_chis.len();
-    let fold = BitFold::at_level(&lagrange, &mlv_chis);
+    let fold = BitFold::at_level(weights, &mlv_chis);
     let ((g1, g_inf), [mut a_mlv, mut b_mlv, mut c_mlv]) =
         bit_round_materialize(bits, &fold, &r_rest[materialize_level + 1..], padding);
     c_running = send_round(ps, c_running, r_rest[materialize_level], None, g1, g_inf, &mut mlv_chis);
@@ -342,13 +366,88 @@ pub fn prove_packed_padded(
 
     drop(span);
 
-    ZerocheckClaim {
-        z,
-        mlv_challenges: mlv_chis,
-        a_eval: final_a_eval,
-        b_eval: final_b_eval,
-        c_eval: final_c_eval,
+    (mlv_chis, final_a_eval, final_b_eval, final_c_eval)
+}
+
+/// The claims of [`prove_multilinear`]: `â`, `b̂` and `ĉ` at one multilinear point of `m` coordinates.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MultilinearClaim {
+    pub point: Vec<F192>,
+    pub a_eval: F192,
+    pub b_eval: F192,
+    /// Derived from the terminal identity, as in [`ZerocheckClaim`].
+    pub c_eval: F192,
+}
+
+/// The zerocheck with no univariate skip: `m` multilinear rounds of two scalars each, then `(â, b̂)`.
+///
+/// The six in-word variables take sampled eq challenges and are bound first; the rest is [`prove_packed_padded`]'s tail.
+pub fn prove_multilinear(
+    a: &[u64],
+    b: &[u64],
+    c: &[u64],
+    m: usize,
+    padding: &PaddingSpec,
+    ps: &mut ProverState,
+) -> MultilinearClaim {
+    assert!(m >= K_SKIP + N_INNER);
+    assert!([a, b, c].iter().all(|t| t.len() == 1 << (m - K_SKIP)));
+    let r_in = ps.sample_vec(K_SKIP);
+    let r_rest = equality_tail(m, |n| ps.sample_vec(n));
+
+    let span = tracing::info_span!("In-word rounds").entered();
+    let mut claim = F192::ZERO;
+    let mut point = Vec::with_capacity(m);
+    for i in 0..K_SKIP {
+        let (g1, g_inf) = in_word::round(a, b, c, &point, &r_in[i + 1..], &r_rest);
+        claim = send_round(ps, claim, r_in[i], None, g1, g_inf, &mut point);
     }
+    drop(span);
+
+    let bits = PackedWitness {
+        a: crate::witness::packed_bytes(a),
+        b: crate::witness::packed_bytes(b),
+        c: crate::witness::packed_bytes(c),
+    };
+    let weights = univariate_skip::build_eq(&point);
+    let (chis, a_eval, b_eval, c_eval) = prove_word_rounds(bits, &weights, claim, &r_rest, padding, ps);
+    point.extend(chis);
+    MultilinearClaim {
+        point,
+        a_eval,
+        b_eval,
+        c_eval,
+    }
+}
+
+/// Replay [`prove_multilinear`]. A reduction, like [`verify`]: lincheck is what checks the claims.
+pub fn verify_multilinear(m: usize, vs: &mut VerifierState<'_>) -> Result<MultilinearClaim, VerifyError> {
+    if m < K_SKIP + N_INNER {
+        return Err(VerifyError::LogNTooSmall {
+            log_n: m,
+            k_skip: K_SKIP,
+        });
+    }
+    let mut r = vs.sample_vec(K_SKIP);
+    r.extend(equality_tail(m, |n| vs.sample_vec(n)));
+    let mut claim = F192::ZERO;
+    let mut point = Vec::with_capacity(m);
+    for r_eq in r {
+        let g = vs
+            .next_round_poly(3, claim, Some(r_eq))
+            .map_err(VerifyError::Transcript)?;
+        let chi = vs.sample();
+        claim = primitives::multilinear::poly_eval(&g, chi);
+        point.push(chi);
+    }
+    let a_eval = vs.next_scalar().map_err(VerifyError::Transcript)?;
+    let b_eval = vs.next_scalar().map_err(VerifyError::Transcript)?;
+    Ok(MultilinearClaim {
+        point,
+        a_eval,
+        b_eval,
+        c_eval: claim + a_eval * b_eval,
+    })
 }
 
 /// Replay a zerocheck proof for an instance over `{0,1}^log_n`.
@@ -485,6 +584,34 @@ mod tests {
     fn pack_abc(a: &[bool], b: &[bool], c: &[bool]) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
         use univariate_skip::pack_bits;
         (pack_bits(a), pack_bits(b), pack_bits(c))
+    }
+
+    /// The multilinear variant leaves the true evaluations of `a`, `b`, `c` at its point, on both sides.
+    #[test]
+    fn multilinear_claims_are_the_evaluations() {
+        for m in [13usize, 14, 16] {
+            let mut rng = Rng::new(0x3171 + m as u64);
+            let words = |rng: &mut Rng| (0..1usize << (m - 6)).map(|_| rng.next_u64()).collect::<Vec<_>>();
+            let (a, b) = (words(&mut rng), words(&mut rng));
+            let c: Vec<u64> = a.iter().zip(&b).map(|(x, y)| x & y).collect();
+
+            let mut ps = ProverState::from_label(b"flock-multilinear-test");
+            let claim = prove_multilinear(&a, &b, &c, m, &PaddingSpec::dense(m), &mut ps);
+            let proof = ps.into_proof();
+            assert_eq!(proof.stream.len(), 2 * m + 2);
+            let mut vs = VerifierState::from_label(b"flock-multilinear-test", &proof);
+            assert_eq!(verify_multilinear(m, &mut vs), Ok(claim.clone()));
+
+            let eq = primitives::multilinear::eq_table(&claim.point);
+            let eval = |t: &[u64]| {
+                (0..1usize << m)
+                    .filter(|i| (t[i / 64] >> (i % 64)) & 1 == 1)
+                    .fold(F192::ZERO, |acc, i| acc + eq[i])
+            };
+            assert_eq!(claim.a_eval, eval(&a), "m={m}");
+            assert_eq!(claim.b_eval, eval(&b), "m={m}");
+            assert_eq!(claim.c_eval, eval(&c), "m={m}");
+        }
     }
 
     /// `prove` runs end-to-end at the smallest valid m (= k_skip + N_INNER = 13)
