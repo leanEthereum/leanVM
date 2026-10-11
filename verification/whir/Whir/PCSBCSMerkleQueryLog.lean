@@ -118,15 +118,15 @@ noncomputable def extractionProbability {T : Type} (roots : RootPolicy) {Q : Nat
   exact average (fun C : PrimitiveOracle =>
     if FrozenExtractionBad C roots (toLog (Sampling.execute C p).2) then 1 else 0)
 
-/-- Q is the actual full shared compression-call budget, not the number of
-whole hashes. Q+1 is the independently checked root-announcement cap. The
-root policy retains announced roots across causal public-call boundaries. -/
-theorem multi_extraction_probability {T : Type} (roots : RootPolicy) (Q : Nat)
-    (rootCap : ∀ log, log.length ≤ Q → (roots log).card ≤ Q+1)
+/-- Q counts actual shared compression calls. M is the independently checked
+target-admission cap; it must not be inferred from distinct commitment CVs or
+from a whole-construction cost when the source made primitive requests. -/
+theorem multi_extraction_probability {T : Type} (roots : RootPolicy) (Q M : Nat)
+    (rootCap : ∀ log, log.length ≤ Q → (roots log).card ≤ M)
     (grow : RootsGrow roots) (p : Computation T Q) :
-    extractionProbability roots p ≤ bound Q (Q+1) := by
+    extractionProbability roots p ≤ bound Q M := by
   classical
-  apply le_trans _ (opening_probability_bound roots Q (Q+1) rootCap grow p)
+  apply le_trans _ (opening_probability_bound roots Q M rootCap grow p)
   apply average_mono
   intro C
   by_cases bad : FrozenExtractionBad C roots (toLog (Sampling.execute C p).2)

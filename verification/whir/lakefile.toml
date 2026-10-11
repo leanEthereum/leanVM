@@ -58,3 +58,11 @@ root = "Whir.PCSBCSRoundsSmoke"
 [[lean_exe]]
 name = "whirMerkleLogExtractionSmoke"
 root = "Whir.MerkleQueryLogExtractionSmoke"
+
+[[lean_exe]]
+name = "pcsbcsSourceCoordinateDecoderSmoke"
+root = "Whir.PCSBCSSourceCoordinateDecoderSmoke"
+
+[[lean_exe]]
+name = "pcsbcsPublicLogExtractorSmoke"
+root = "Whir.PCSBCSPublicLogExtractorSmoke"
