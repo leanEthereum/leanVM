@@ -26,6 +26,8 @@ proptest.workspace = true
 leanvm_guest.workspace = true
 bench.workspace = true
 primitives = { workspace = true, features = ["test-util"] }
+# Honest leanXMSS signatures for the recursion circuit verifying them; it depends on `leanvm` only for its own tests.
+leanxmss-host.workspace = true
 
 [[bench]]
 name = "class_witness"

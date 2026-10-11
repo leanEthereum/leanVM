@@ -1475,6 +1475,7 @@ dependencies = [
  "fiat_shamir",
  "flock",
  "leanvm_guest",
+ "leanxmss-host",
  "parallel",
  "pcs",
  "primitives",

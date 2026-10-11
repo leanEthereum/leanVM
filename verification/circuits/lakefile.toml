@@ -14,7 +14,16 @@ name = "LeanVMCircuits"
 name = "checkrec"
 root = "CheckRec"
 
+[[lean_exe]]
+name = "checkxmss"
+root = "CheckXmss"
+
 [[lean_lib]]
 name = "EthCryptographySpecs"
 srcDir = "Spec"
 roots = ["EthCryptographySpecs.Xmss"]
+
+[[lean_lib]]
+name = "LeanSphincsSpec"
+srcDir = "Spec"
+roots = ["LeanSphincs"]

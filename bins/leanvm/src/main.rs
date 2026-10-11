@@ -22,6 +22,7 @@ static ALLOCATOR: bench::Counting<std::alloc::System> = bench::Counting(std::all
 mod aggregate;
 mod tracked;
 mod workload;
+mod xmss;
 
 #[derive(Parser)]
 struct Cli {
@@ -75,6 +76,15 @@ enum Command {
         /// Signatures to verify.
         #[arg(long, default_value_t = 64, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         n: usize,
+    },
+    /// Prove and verify leanXMSS signatures, one key each, on the recursion machine: one circuit verifying them all.
+    LeanxmssRec {
+        /// Signatures to verify.
+        #[arg(long, default_value_t = 64, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+        /// Change a chain element of the last signature and show that the batch has no proof.
+        #[arg(long)]
+        tamper: bool,
     },
     /// Prove and verify a guest checking leanSPHINCS signatures, one key each.
     Leansphincs {
@@ -147,8 +157,8 @@ enum Command {
         #[arg(long, conflicts_with = "cycles_only")]
         only: Option<String>,
     },
-    /// Write the tracked aggregation trees' recursion circuits (with `--features circuits`), each with the builder calls that make it, for
-    /// `verification/circuits`' `checkrec`.
+    /// Write the tracked aggregation trees' recursion circuits and the leanXMSS batch circuits (with `--features circuits`), each
+    /// with the builder calls that make it, for `verification/circuits`' `checkrec` and `checkxmss`.
     Circuits {
         /// The directory to write them to.
         out: PathBuf,
@@ -212,6 +222,7 @@ fn main() {
         Command::Fibonacci { n } => Workload::fibonacci(n).run(&prover, plan),
         Command::Guest { elf, advice } => Workload::guest(&elf, advice).run(&prover, plan),
         Command::Leanxmss { n } => Workload::leanxmss(n).run(&prover, plan),
+        Command::LeanxmssRec { n, tamper } => xmss::run(n, prover.rate(), tamper, plan),
         Command::Leansphincs { n } => Workload::leansphincs(n).run(&prover, plan),
         Command::Falcon { n } => Workload::falcon(n).run(&prover, plan),
         Command::Stateproof { n } => Workload::stateproof(n).run(&prover, plan),

@@ -445,27 +445,11 @@ impl<'p> Tree<'p> {
     /// Panics if building the circuit again gives another circuit.
     #[cfg(feature = "circuit-trace")]
     pub fn circuit_dump(&self, kind: Kind) -> String {
-        use crate::rec::fixed::FixedColumn;
-        use crate::rec::table::Table;
-        use std::fmt::Write;
         let (finished, calls) = crate::rec::circuit::traced(|| self.design.shape(kind));
         let mut circuit = finished.circuit;
         circuit.floor = self.circuit(kind).floor;
         assert_eq!(&circuit, self.circuit(kind), "a circuit is built the same every time");
-        let columns = &self.columns[kind as usize];
-        let mut next = String::from("next\n");
-        for t in Table::ALL {
-            let n = t.n_slots();
-            let rows = circuit.classes.of(t).len() / n;
-            let _ = write!(next, "table {}", rows * n);
-            for z in 0..rows {
-                for s in 0..n {
-                    let _ = write!(next, " {}", columns.get(FixedColumn::Next(t.first_slot() + s))[z].0);
-                }
-            }
-            next.push('\n');
-        }
-        calls + "circuit\n" + &circuit.dump() + &next
+        calls + "circuit\n" + &circuit.dump() + &self.columns[kind as usize].dump_next(&circuit)
     }
 
     /// Prove a first-level node over its leaves, each a RISC-V proof and its output, in order.

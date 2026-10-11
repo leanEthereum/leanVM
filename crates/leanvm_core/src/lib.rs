@@ -41,7 +41,8 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! Many proofs of one program aggregate into one proof through the aggregation module.
+//! Many proofs of one program aggregate into one proof through the aggregation module, and a batch of leanXMSS
+//! signatures is verified in one recursion proof by [`XmssBatch`].
 //!
 //! # Implementation
 //!
@@ -82,6 +83,7 @@ pub use rec::tree::{
     CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
     TreeShape, Unsatisfied,
 };
+pub use rec::xmss::{XmssBatch, XmssClaim, XmssError, XmssProof, XmssSignature};
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 
 #[doc(hidden)]

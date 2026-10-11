@@ -19,6 +19,8 @@
 use crate::refuse;
 use crate::workload::{Items, Workload};
 use bench::{Heap, Metric, Plan, Timing, bencher_json};
+#[cfg(feature = "circuits")]
+use leanvm::XmssBatch;
 use leanvm::aggregate::{CircuitStats, Kind, Leaf, LeafShape, Tree, TreeError, TreeProof, TreeShape};
 use leanvm::{Output, ProvenRun, Prover, Rate, Stats};
 use primitives::pretty_integer;
@@ -339,9 +341,13 @@ fn circuits(tree: &Aggregation, leaf_rate: Rate, rate: Rate) -> [(Kind, CircuitS
     Kind::ALL.map(|kind| (kind, built.stats(kind)))
 }
 
-/// Write each tracked tree's two circuits, as `Tree::circuit_dump` gives them, to `<out>/<name>-first.txt` and `<out>/<name>-node.txt`: the counted trees and the proven trees' leaf size at both arities.
+/// The leanXMSS batch sizes whose recursion circuits `dump` writes: the smallest, and the benchmark's.
+#[cfg(feature = "circuits")]
+const XMSS_DUMPS: [usize; 4] = [1, 2, 3, 400];
+
+/// Write each tracked tree's two circuits, as `Tree::circuit_dump` gives them, to `<out>/<name>-first.txt` and `<out>/<name>-node.txt`: the counted trees and the proven trees' leaf size at both arities. Then the leanXMSS batch circuits of `XMSS_DUMPS` signatures, as `XmssBatch::circuit_dump` gives them, to `<out>/xmss-<n>.txt`.
 ///
-/// CI's `rec-builder-model` workflow has the Lean model of the builder replay each and check it builds the same circuit.
+/// CI's `rec-builder-model` workflow has the Lean model of the builder replay each and check it builds the same circuit, and `checkxmss` checks each leanXMSS circuit is the one `LeanVMCircuits.Xmss.Circuit` authors.
 #[cfg(feature = "circuits")]
 pub fn dump(out: &Path, leaf_rate: Rate, rate: Rate) {
     let proven = [
@@ -357,6 +363,11 @@ pub fn dump(out: &Path, leaf_rate: Rate, rate: Rate) {
             std::fs::write(&path, built.circuit_dump(kind))
                 .unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
         }
+    }
+    for n in XMSS_DUMPS {
+        let batch = XmssBatch::new(n, rate).unwrap_or_else(|e| refuse(format_args!("{e}")));
+        let path = out.join(format!("xmss-{n}.txt"));
+        std::fs::write(&path, batch.circuit_dump()).unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
     }
 }
 

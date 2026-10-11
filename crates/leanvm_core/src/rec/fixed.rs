@@ -129,6 +129,25 @@ impl FixedColumns {
         PublicColumn::fixed(Arc::clone(self.get(column)), column)
     }
 
+    /// `next` and the bus's `next` key of every slot of the circuit's rows, per table, row-major, as `CheckRec` reads them.
+    #[cfg(feature = "circuit-trace")]
+    pub(crate) fn dump_next(&self, circuit: &Circuit) -> String {
+        use std::fmt::Write;
+        let mut next = String::from("next\n");
+        for t in Table::ALL {
+            let n = t.n_slots();
+            let rows = circuit.classes.of(t).len() / n;
+            let _ = write!(next, "table {}", rows * n);
+            for z in 0..rows {
+                for s in 0..n {
+                    let _ = write!(next, " {}", self.get(FixedColumn::Next(t.first_slot() + s))[z].0);
+                }
+            }
+            next.push('\n');
+        }
+        next
+    }
+
     /// The public table's four value columns: the constants, with the statement's words on their rows, which come first.
     pub(crate) fn public_values(&self, statement: &[Limbs]) -> [PublicColumn; 4] {
         std::array::from_fn(|j| {

@@ -11,6 +11,7 @@ pub mod table;
 pub mod transcript;
 pub mod tree;
 pub mod verifier;
+pub mod xmss;
 
 pub use error::RecError;
 pub(crate) use fixed::FixedColumn;

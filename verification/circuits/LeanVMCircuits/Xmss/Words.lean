@@ -65,7 +65,7 @@ def parent (epoch l : ℕ) (pp cur sib : Dig) : Dig :=
 
 /-- The root a path climbs to from a leaf, leaf first. -/
 def climb (epoch : ℕ) (pp : Dig) (path : Fin 32 → Dig) (leaf : Dig) : Dig :=
-  (List.finRange 32).foldl (fun cur l => parent epoch l pp cur (path l)) leaf
+  (List.finRange 32).foldl (fun cur (l : Fin 32) => parent epoch l.val pp cur (path l)) leaf
 
 /-- A signature as words. -/
 structure Sig where
