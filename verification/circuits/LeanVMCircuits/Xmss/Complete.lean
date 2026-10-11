@@ -18,7 +18,7 @@ order from the encoding the verification found: the high bits and the sum of the
 succeeded, and the root exposed is the statement's because the path climbs to it.
 -/
 
-namespace LeanVMCircuits.Xmss
+namespace LeanVMCircuits.Xmss.Complete
 
 open LeanVMCircuits.Rec LeanVMCircuits.Rec.Model
 
@@ -1460,9 +1460,8 @@ theorem sat_empty (st : ℕ → Fin 4 → K) (val : Val) : Sat st ({} : State) v
   ⟨fun _ h => by simp at h, fun _ h => by simp at h, fun _ h => by simp at h, fun _ h => by simp at h,
     fun _ h => by simp at h, fun _ h => by simp at h, fun _ _ h => by simp at h⟩
 
-/-- Completeness: when every signature's statement words encode a public parameter, root, message and epoch with a
-signature `Words.verify` accepts, an assignment satisfies the circuit verifying `n` signatures. -/
-theorem complete (n : ℕ) (st : ℕ → Fin 4 → K)
+/-- The honest assignment of the circuit verifying `n` signatures. -/
+theorem circuit_complete (n : ℕ) (st : ℕ → Fin 4 → K)
     (h : ∀ j < n, ∃ pp root msg epoch, Encodes st j pp root msg epoch ∧
       ∃ sig, Words.verify pp root msg epoch sig = true) :
     ∃ val, Sat st ((Circuit.circuit n).run {}).2 val := by
@@ -1470,5 +1469,19 @@ theorem complete (n : ℕ) (st : ℕ → Fin 4 → K)
     circuit_cg n h {} (fun _ _ => 0) inv_empty closed_empty (sat_empty st _) fun _ _ => rfl
   exact ⟨val', hsat⟩
 
+
+end LeanVMCircuits.Xmss.Complete
+
+namespace LeanVMCircuits.Xmss
+
+open LeanVMCircuits.Rec LeanVMCircuits.Rec.Model
+
+/-- Completeness: when every signature's statement words encode a public parameter, root, message and epoch with a
+signature `Words.verify` accepts, an assignment satisfies the circuit verifying `n` signatures. -/
+theorem complete (n : ℕ) (st : ℕ → Fin 4 → K)
+    (h : ∀ j < n, ∃ pp root msg epoch, Encodes st j pp root msg epoch ∧
+      ∃ sig, Words.verify pp root msg epoch sig = true) :
+    ∃ val, Sat st ((Circuit.circuit n).run {}).2 val :=
+  Complete.circuit_complete n st h
 
 end LeanVMCircuits.Xmss
