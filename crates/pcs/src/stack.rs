@@ -218,7 +218,12 @@ impl CommittedStack {
 
     /// Prove `statement` about `stack`, the words committed.
     ///
-    /// Every claim must already be bound by the transcript: the opening observes none of them.
+    /// The opening observes none of the claims, so the caller must have bound them before it:
+    ///
+    /// - every claim's value is in the transcript or the public statement,
+    /// - every point is an earlier challenge or public.
+    ///
+    /// Each call site expects the workspace's `clippy::disallowed_methods` and says where its claims are bound.
     ///
     /// # Panics
     ///
@@ -279,6 +284,14 @@ impl<R: Copy> StackCommitment<R> {
     /// - The WHIR verifier then evaluates the weight once, at its terminal point.
     ///
     /// The same code runs natively and as the recursion machine's rows.
+    ///
+    /// The opening observes none of the claims, so the caller must have bound them before it:
+    ///
+    /// - every claim's value is in the transcript or the public statement,
+    /// - every point is an earlier challenge or public.
+    ///
+    /// A value the prover picks after the batching challenges breaks soundness.
+    /// Each call site expects the workspace's `clippy::disallowed_methods` and says where its claims are bound.
     ///
     /// # Errors
     ///
@@ -991,6 +1004,10 @@ mod tests {
     /// ```
     ///
     /// The packed region is small, so the verifier's residual cube sits above its coordinates, as in production.
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "the test's statement is fixed before the transcript: public"
+    )]
     fn build_instance(seed: u64) -> Instance {
         let log_n = 14usize;
         let col_vars = 12usize;
@@ -1094,6 +1111,10 @@ mod tests {
         }
     }
 
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "the test's statement is fixed before the transcript: public"
+    )]
     fn verify_instance(
         inst: &Instance,
         point_claims: &[StackClaim],
@@ -1179,6 +1200,10 @@ mod tests {
     }
 
     #[test]
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "the test's statement is fixed before the transcript: public"
+    )]
     fn stacked_open_residual_crosses_qflock() {
         // Invariant: an opening verifies when the residual cube crosses into a ring-switched region.
         //

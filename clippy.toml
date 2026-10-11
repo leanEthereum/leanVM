@@ -1,0 +1,5 @@
+# The stacked opening observes none of its claims: a call is sound only where they are bound before it.
+disallowed-methods = [
+    { path = "pcs::stack::CommittedStack::open", reason = "every claim's value must be bound by the transcript or public, its point an earlier challenge or public; expect this lint where that holds and say where" },
+    { path = "pcs::stack::StackCommitment::verify", reason = "every claim's value must be bound by the transcript or public, its point an earlier challenge or public; expect this lint where that holds and say where" },
+]

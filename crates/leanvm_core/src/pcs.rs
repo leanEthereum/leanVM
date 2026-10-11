@@ -158,6 +158,10 @@ impl Committed {
     /// # Panics
     ///
     /// Panics if the claims are malformed.
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "its callers bind the claims: cpu::Program::prove_witness and rec's Circuit::prove_with"
+    )]
     pub(crate) fn open(
         &self,
         ps: &mut ProverState,
@@ -217,6 +221,10 @@ impl<R: Copy> Commitment<R> {
     /// # Errors
     ///
     /// Returns an error for an unsupported witness size, malformed claims, or an invalid opening.
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "its callers bind the claims: cpu::Layout::verify_core and rec's TableArgument::verify_core"
+    )]
     pub(crate) fn verify<V: OpeningVerifier<Root = R>>(
         &self,
         v: &mut V,
