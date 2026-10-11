@@ -1,7 +1,10 @@
 //! Hashing: one `HASH` row per compression, a transcript step, a Merkle node or a block of a long message.
 
 use super::Builder;
+#[cfg(feature = "circuit-trace")]
+use super::{list, numbers};
 use crate::rec::circuit::{Compression, Dw, Ew, Kw, Limbs, PARAM_IV};
+use crate::rec::clean::{HASH_CH, HASH_DS, HASH_H, HASH_M, HASH_MUX, HASH_OUT, HASH_SEL, HASH_TF, HASH_X};
 use crate::rec::table::Table;
 use crate::rv::Hash;
 use primitives::field::F192;
@@ -33,6 +36,14 @@ impl Builder {
     ///
     /// Returns the digest and its first three words.
     pub fn compress(&mut self, acc: Dw, x: Ew, ds: Kw) -> (Dw, Ew) {
+        traced!(
+            self,
+            format!("compress {} {} {}", acc.0, x.0, ds.0),
+            self.compress_rows(acc, x, ds)
+        )
+    }
+
+    fn compress_rows(&mut self, acc: Dw, x: Ew, ds: Kw) -> (Dw, Ew) {
         let bit = self.k_zero();
         let (a, xv, dv) = (self.d(acc), self.e(x), self.k(ds));
         let m = [a[0], a[1], a[2], a[3], xv.c0, xv.c1, xv.c2, dv];
@@ -41,6 +52,14 @@ impl Builder {
 
     /// One Merkle node: the parent of `acc` and `sibling`, `acc` on the right if `bit` is set.
     pub fn node(&mut self, acc: Dw, bit: Kw, sibling: Limbs) -> Dw {
+        traced!(
+            self,
+            format!("node {} {}", acc.0, bit.0),
+            self.node_rows(acc, bit, sibling)
+        )
+    }
+
+    fn node_rows(&mut self, acc: Dw, bit: Kw, sibling: Limbs) -> Dw {
         let a = self.d(acc);
         let (left, right) = if self.k(bit) == 1 { (sibling, a) } else { (a, sibling) };
         let m = [
@@ -53,6 +72,14 @@ impl Builder {
 
     /// One Merkle node over two wired children: the parent of `left` and `right`.
     pub fn parent(&mut self, left: Dw, right: Dw) -> Dw {
+        traced!(
+            self,
+            format!("parent {} {}", left.0, right.0),
+            self.parent_rows(left, right)
+        )
+    }
+
+    fn parent_rows(&mut self, left: Dw, right: Dw) -> Dw {
         let (l, rv) = (self.d(left), self.d(right));
         let m = [l[0], l[1], l[2], l[3], rv[0], rv[1], rv[2], rv[3]];
         let (x, ds) = self.d_to_e_and_k(right);
@@ -62,6 +89,21 @@ impl Builder {
 
     /// One block of a long message: `m` absorbed into `h` at byte counter `t`, final if `last`.
     pub fn leaf_block(&mut self, h: Dw, m: [Kw; 8], t: u64, last: bool) -> Dw {
+        traced!(
+            self,
+            {
+                format!(
+                    "leaf_block {} {} {t} {}",
+                    h.0,
+                    numbers(m.map(|w| u64::from(w.0))),
+                    u8::from(last)
+                )
+            },
+            self.leaf_block_rows(h, m, t, last)
+        )
+    }
+
+    fn leaf_block_rows(&mut self, h: Dw, m: [Kw; 8], t: u64, last: bool) -> Dw {
         let compression = Compression::new(self.d(h), m.map(|w| self.k(w)), t, last);
         let v = &compression.inputs()[6..];
         let head = HashHead {
@@ -77,6 +119,14 @@ impl Builder {
 
     /// The hash of `words` in rows, as the native chain computes it.
     pub fn chain(&mut self, words: &[Kw]) -> Dw {
+        traced!(
+            self,
+            format!("chain {}", list(words.iter().map(|w| w.0))),
+            self.chain_rows(words)
+        )
+    }
+
+    fn chain_rows(&mut self, words: &[Kw]) -> Dw {
         let n_blocks = words.len().div_ceil(8).max(1);
         let zero = self.k_zero();
         let bytes = 8 * words.len() as u64;
@@ -109,8 +159,19 @@ impl Builder {
         let ch = self.free_e(F192::new(out[0], out[1], out[2]));
         let HashHead { h, tf, mux, bit, x, ds } = head;
         let mut slots = [0u32; Table::Hash.n_slots()];
-        slots[..8].copy_from_slice(&[h.0, tf.0, mux.0, bit.0, x.0, ds.0, o.0, ch.0]);
-        slots[8..].copy_from_slice(&words);
+        for (slot, w) in [
+            (HASH_H, h.0),
+            (HASH_TF, tf.0),
+            (HASH_MUX, mux.0),
+            (HASH_SEL, bit.0),
+            (HASH_X, x.0),
+            (HASH_DS, ds.0),
+            (HASH_OUT, o.0),
+            (HASH_CH, ch.0),
+        ] {
+            slots[slot] = w;
+        }
+        slots[HASH_M..HASH_M + 8].copy_from_slice(&words);
         self.row(Table::Hash, &slots);
         self.hash.push(compression);
         (o, ch)

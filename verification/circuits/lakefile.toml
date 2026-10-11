@@ -1,0 +1,32 @@
+name = "LeanVMCircuits"
+version = "0.1.0"
+defaultTargets = ["LeanVMCircuits", "EthCryptographySpecs", "LeanSphincsSpec"]
+
+[[require]]
+name = "Clean"
+git = "https://github.com/kevaundray/clean.git"
+rev = "b449bf590f93e13827c3c7e747e392d6969aa380"
+
+[[lean_lib]]
+name = "LeanVMCircuits"
+# `LeanVMCircuits` imports every `module` file; the bridges to the vendored specifications import non-module files,
+# so they are roots of their own.
+roots = ["LeanVMCircuits", "LeanVMCircuits.Xmss.Main", "LeanVMCircuits.Sphincs.Main"]
+
+[[lean_exe]]
+name = "checkrec"
+root = "CheckRec"
+
+[[lean_exe]]
+name = "checkxmss"
+root = "CheckXmss"
+
+[[lean_lib]]
+name = "EthCryptographySpecs"
+srcDir = "Spec"
+roots = ["EthCryptographySpecs.Xmss"]
+
+[[lean_lib]]
+name = "LeanSphincsSpec"
+srcDir = "Spec"
+roots = ["LeanSphincs", "LeanSphincs.Kat"]

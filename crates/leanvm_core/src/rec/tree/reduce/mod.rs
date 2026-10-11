@@ -22,7 +22,7 @@ pub(crate) use dense::{DenseProver, DenseReduced, DenseVars};
 pub(crate) use matrix::{MatrixProver, MatrixReduced};
 
 /// The label every node's reduction transcript starts from.
-pub(crate) const LABEL: &[u8] = b"leanvm-tree-reduction-4";
+pub(crate) const LABEL: &[u8] = b"leanvm-tree-reduction-5";
 
 /// Why a node's reduction refuses.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
@@ -49,7 +49,7 @@ pub(crate) struct Reduced<E> {
     pub(crate) matrices: MatrixReduced<E>,
 }
 
-/// The prover's dense polynomials, each a table of its values: the bytecode table, the image, the fixed polynomial.
+/// The prover's dense polynomials, each a table of its values, in `DensePoly` order; one the tree lacks is the zero table of no variables.
 #[derive(Clone, Debug)]
 pub(crate) struct DenseTables(pub(crate) [Vec<F64>; DensePoly::COUNT]);
 

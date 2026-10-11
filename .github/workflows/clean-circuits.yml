@@ -1,0 +1,77 @@
+name: Clean circuits
+
+on:
+  pull_request:
+    paths:
+      - verification/circuits/**
+      - crates/leanvm_core/src/rec/clean.rs
+      - .github/workflows/clean-circuits.yml
+      - rustfmt.toml
+  push:
+    branches: [riscv-exploration, 'kw/clean-*']
+    paths:
+      - verification/circuits/**
+      - crates/leanvm_core/src/rec/clean.rs
+      - .github/workflows/clean-circuits.yml
+      - rustfmt.toml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.0
+          components: rustfmt
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: verification/circuits
+          build: 'false'
+          test: 'false'
+          lint: 'false'
+          use-mathlib-cache: 'false'
+      - name: Build, audit theorem axioms, and recheck every module in the kernel
+        working-directory: verification/circuits
+        run: |
+          lake exe cache get Mathlib.Tactic Mathlib.FieldTheory.Finite.Extension Mathlib.RingTheory.AdjoinRoot Mathlib.Algebra.Polynomial.SpecificDegree
+          lake build
+          lake env lean Audit.lean
+          # The root has no declarations; reject any future declaration there.
+          if grep -nEv '^[[:space:]]*(module|public import LeanVMCircuits[.][A-Za-z0-9_.]+)?[[:space:]]*$' LeanVMCircuits.lean; then
+            echo "::error::LeanVMCircuits.lean must contain only its module header and public imports"
+            exit 1
+          fi
+          # Every `module` file must be imported by the root, so that `lake build` builds it.
+          for source in $(grep -rlx --include='*.lean' 'module' LeanVMCircuits); do
+            module="${source%.lean}"
+            if ! grep -qx "public import ${module//\//.}" LeanVMCircuits.lean; then
+              echo "::error::LeanVMCircuits.lean does not import ${module//\//.}"
+              exit 1
+            fi
+          done
+          # Stock leanchecker replays every matching module concurrently, so check one module at a time.
+          shopt -s globstar nullglob
+          sources=(LeanVMCircuits/**/*.lean)
+          if (( ${#sources[@]} == 0 )); then
+            echo "::error::No library source modules found for kernel checking"
+            exit 1
+          fi
+          for source in "${sources[@]}" Spec/**/*.lean; do
+            module="${source#Spec/}"
+            module="${module%.lean}"
+            if [[ ! -f ".lake/build/lib/lean/${module}.olean" ]]; then
+              echo "::error::Missing compiled module ${module}"
+              exit 1
+            fi
+            lake env leanchecker "${module//\//.}"
+          done
+      - name: Check the deterministic recursion table export
+        working-directory: verification/circuits
+        run: |
+          lake env lean --run GenerateRec.lean /tmp/rec-generated.rs
+          diff -u ../../crates/leanvm_core/src/rec/clean.rs /tmp/rec-generated.rs

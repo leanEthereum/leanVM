@@ -41,7 +41,8 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! Many proofs of one program aggregate into one proof through the aggregation module.
+//! Many proofs of one program aggregate into one proof through the aggregation module, and a batch of leanXMSS or
+//! leanSPHINCS signatures is verified in one recursion proof by [`XmssBatch`] or [`SphincsBatch`].
 //!
 //! # Implementation
 //!
@@ -77,11 +78,15 @@ mod witness;
 
 pub use crate::pcs::{InvalidRate, Rate, SECURITY_BITS};
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
+pub use rec::sphincs::{
+    SphincsBatch, SphincsClaim, SphincsError, SphincsFtsOpening, SphincsLayer, SphincsProof, SphincsSignature,
+};
 #[doc(hidden)]
 pub use rec::tree::{
-    CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
-    TreeShape, Unsatisfied,
+    CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafCircuit, LeafShape, LeafStatement, Leaves, Part, Subtree,
+    TableStats, Tree, TreeError, TreeProof, TreeShape, Unsatisfied,
 };
+pub use rec::xmss::{XmssBatch, XmssClaim, XmssError, XmssProof, XmssSignature};
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 
 #[doc(hidden)]
@@ -118,27 +123,30 @@ pub fn init_prover() {
 /// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].
 pub(crate) const PAR_THRESHOLD: usize = 1 << 11;
 
-/// Aggregation trees: many proofs of one program, verified as one.
+/// Aggregation trees: many leaf proofs, verified as one.
 ///
 /// # Overview
 ///
 /// ```text
-///                 node                  verifies `arity` tree proofs, of either kind
+///                 node                  verifies `arity` tree proofs, of any kind
 ///               /      \
-///        first-level   first-level      each verifies `arity_0` proofs of the program
+///        first-level   first-level      each verifies `arity_0` leaves of one family
 ///          /  \          /  \
 ///       leaf  leaf    leaf  leaf
 /// ```
 ///
+/// A leaf family ([`Leaves`]) is RISC-V proofs of one program, or proofs of one recursion circuit such as an
+/// [`XmssBatch`]'s; one tree may mix families.
+///
 /// Every tree proof states the same few hundred words:
 ///
-/// - a digest of its leaves' outputs,
+/// - a digest of what its leaves state,
 /// - claims that only the root's verifier evaluates.
 ///
 /// A tree over one leaf, with `arity_0 = 1`, is a single proof's recursion.
 pub mod aggregate {
     pub use crate::rec::tree::{
-        CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tree, TreeError, TreeProof,
-        TreeShape, Unsatisfied,
+        CircuitStats, DensePoly, FalseClaim, Kind, Leaf, LeafCircuit, LeafShape, LeafStatement, Leaves, Part, Subtree,
+        TableStats, Tree, TreeError, TreeProof, TreeShape, Unsatisfied,
     };
 }

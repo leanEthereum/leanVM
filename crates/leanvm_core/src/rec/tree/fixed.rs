@@ -1,6 +1,7 @@
-//! The nodes' fixed polynomial `W_node`: each circuit's fixed columns stacked, the first level's circuit's then the node's.
+//! The fixed polynomials: circuits' fixed columns stacked, one stack per circuit, the stacks side by side.
 //!
-//! The two circuits share their heights, so their stacks have one layout, and one more variable, the kind's bit, selects the circuit.
+//! - The nodes' `W_node` holds each kind's circuit, by the kind's code. The kinds' circuits share their heights, so their stacks have one layout, and the code's bits select the circuit.
+//! - The leaves' `W_leaf` holds each leaf circuit, by its slot. Each has its own heights and layout, its stack zero padded to the largest.
 
 use crate::rec::fixed::{FixedColumn, FixedColumns};
 use crate::rec::table::PerRecTable;
@@ -49,18 +50,26 @@ impl FixedLayout {
         self.offsets[column.index()] >> self.tau(column)
     }
 
-    /// The stack of a circuit's fixed columns, zero between them.
-    fn stack(&self, columns: &FixedColumns) -> Vec<F64> {
-        let mut out = vec![F64::ZERO; 1 << self.kappa];
+    /// Write a circuit's fixed columns into its stack `out`, zero until then: zero between and after them.
+    pub(crate) fn write(&self, columns: &FixedColumns, out: &mut [F64]) {
+        assert!(out.len() >= 1 << self.kappa, "the stack holds the layout");
         for (c, &offset) in self.offsets.iter().enumerate() {
             let column = columns.get(FixedColumn::at(c));
             out[offset..offset + column.len()].copy_from_slice(column);
         }
-        out
     }
+}
 
-    /// The fixed polynomial of the two circuits' columns, the first level's half first.
-    pub(crate) fn polynomial(&self, columns: [&FixedColumns; 2]) -> Vec<F64> {
-        columns.map(|c| self.stack(c)).concat()
+/// Circuits' stacks of `2^kappa` words each side by side, zero stacks after them up to `2^bits`: the polynomial of `kappa + bits` variables whose top `bits` select a stack.
+pub(crate) fn side_by_side<'c>(
+    stacks: impl IntoIterator<Item = (&'c FixedLayout, &'c FixedColumns)>,
+    kappa: usize,
+    bits: usize,
+) -> Vec<F64> {
+    let mut out = vec![F64::ZERO; 1 << (kappa + bits)];
+    let mut slots = out.chunks_exact_mut(1 << kappa);
+    for (layout, columns) in stacks {
+        layout.write(columns, slots.next().expect("the selector's bits name every stack"));
     }
+    out
 }

@@ -2,14 +2,17 @@
 
 mod bus;
 pub mod circuit;
+mod clean;
 mod error;
 mod fixed;
 mod layout;
 pub mod proof;
+pub mod sphincs;
 pub mod table;
 pub mod transcript;
 pub mod tree;
 pub mod verifier;
+pub mod xmss;
 
 pub use error::RecError;
 pub(crate) use fixed::FixedColumn;

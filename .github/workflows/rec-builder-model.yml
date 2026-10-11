@@ -1,0 +1,50 @@
+name: Recursion builder model
+
+# The Lean model of the recursion circuit's builder (verification/circuits/LeanVMCircuits/Rec/Builder.lean)
+# replays the builder calls that make each tracked aggregation tree's circuits and the leanXMSS and leanSPHINCS batch
+# circuits, and checks it builds the same circuits; each signature circuit is also checked to be the one Lean authors
+# (LeanVMCircuits/Xmss/Circuit.lean, LeanVMCircuits/Sphincs/Circuit.lean). Any Rust change can change what the
+# circuits call, so every one runs it.
+
+on:
+  pull_request:
+    paths:
+      - crates/**
+      - bins/leanvm/**
+      - programs/**
+      - Cargo.toml
+      - Cargo.lock
+      - verification/circuits/**
+      - .github/workflows/rec-builder-model.yml
+  push:
+    branches: [riscv-exploration, 'kw/clean-circuits-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.0
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: verification/circuits
+          build: 'false'
+          test: 'false'
+          lint: 'false'
+          use-mathlib-cache: 'false'
+      - name: Dump the tracked trees' circuits
+        run: cargo run --release -p leanvm-cli --features circuits -- circuits /tmp/circuits
+      - name: Replay them through the Lean model
+        working-directory: verification/circuits
+        run: |
+          lake exe cache get Mathlib.Tactic Mathlib.FieldTheory.Finite.Extension Mathlib.RingTheory.AdjoinRoot Mathlib.Algebra.Polynomial.SpecificDegree
+          lake build checkrec
+          lake exe checkrec /tmp/circuits/aggregate-*.txt
+          lake build checkxmss
+          lake exe checkxmss /tmp/circuits/xmss-*.txt /tmp/circuits/sphincs-*.txt

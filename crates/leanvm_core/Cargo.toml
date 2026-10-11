@@ -8,6 +8,10 @@ license.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Record the recursion circuit builder's calls, for `cargo leanvm circuits` and `verification/circuits`' `checkrec`. Off in every ordinary build.
+circuit-trace = []
+
 [dependencies]
 parallel.workspace = true
 primitives.workspace = true
@@ -22,6 +26,10 @@ proptest.workspace = true
 leanvm_guest.workspace = true
 bench.workspace = true
 primitives = { workspace = true, features = ["test-util"] }
+# Honest leanXMSS and leanSPHINCS signatures for the recursion circuits verifying them; each depends on `leanvm` only
+# for its own tests.
+leanxmss-host.workspace = true
+leansphincs-host.workspace = true
 
 [[bench]]
 name = "class_witness"

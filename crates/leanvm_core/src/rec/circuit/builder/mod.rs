@@ -1,5 +1,17 @@
 //! Circuit construction, wire equalities, constants, and public statements.
 
+/// `$body`, recorded as the call `$call` when traced (`circuit-trace`) and called from outside the builder's methods.
+macro_rules! traced {
+    ($self:ident, $call:expr, $body:expr) => {{
+        #[cfg(feature = "circuit-trace")]
+        $self.begin(|| $call);
+        let out = $body;
+        #[cfg(feature = "circuit-trace")]
+        $self.end();
+        out
+    }};
+}
+
 mod arith;
 mod bits;
 mod hash;
@@ -9,8 +21,57 @@ use super::{
 };
 use crate::rec::table::{PerRecTable, Table};
 use primitives::field::F192;
+#[cfg(feature = "circuit-trace")]
+use std::cell::RefCell;
 use std::collections::HashMap;
+#[cfg(feature = "circuit-trace")]
+use std::fmt::Write;
 use std::hash::{BuildHasherDefault, Hasher};
+
+#[cfg(feature = "circuit-trace")]
+thread_local! {
+    /// The calls of every builder made while `traced` runs, one line each.
+    static TRACE: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+
+/// Run `f`, returning with its value the calls it made of every builder it created, in order: the methods called from outside a builder, one line each, their wires as numbers.
+///
+/// `CheckRec` replays them through the Lean model of the builder and checks the circuit is the one built here.
+#[cfg(feature = "circuit-trace")]
+pub(crate) fn traced<T>(f: impl FnOnce() -> T) -> (T, String) {
+    TRACE.with(|t| *t.borrow_mut() = Some(String::new()));
+    let out = f();
+    let trace = TRACE.with(|t| t.borrow_mut().take()).unwrap_or_default();
+    (out, trace)
+}
+
+/// A traced builder's calls so far, and how deep inside its own methods it is.
+#[cfg(feature = "circuit-trace")]
+#[derive(Debug, Default)]
+struct Trace {
+    depth: u32,
+    out: String,
+}
+
+/// A list of numbers as its length, then its numbers.
+#[cfg(feature = "circuit-trace")]
+fn list(ws: impl ExactSizeIterator<Item = u32>) -> String {
+    let mut s = ws.len().to_string();
+    for w in ws {
+        let _ = write!(s, " {w}");
+    }
+    s
+}
+
+/// Words as their numbers.
+#[cfg(feature = "circuit-trace")]
+fn numbers(ws: impl IntoIterator<Item = u64>) -> String {
+    let mut s = String::new();
+    for (i, w) in ws.into_iter().enumerate() {
+        let _ = write!(s, "{}{w}", if i == 0 { "" } else { " " });
+    }
+    s
+}
 
 /// The constants arithmetic folds away, once created.
 #[derive(Clone, Copy, Debug, Default)]
@@ -100,6 +161,10 @@ pub struct Builder {
 
     /// Failed checks collected with their enclosing scope names, the first few only.
     failures: Vec<Unsatisfied>,
+
+    /// The calls made of it, when `traced` is running.
+    #[cfg(feature = "circuit-trace")]
+    trace: Option<Box<Trace>>,
 }
 
 impl Builder {
@@ -107,8 +172,33 @@ impl Builder {
     const RECORDED_FAILURES: usize = 64;
 
     /// An empty circuit.
+    #[cfg_attr(not(feature = "circuit-trace"), allow(clippy::unnecessary_struct_initialization))]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            #[cfg(feature = "circuit-trace")]
+            trace: TRACE.with(|t| t.borrow().is_some()).then(Box::default),
+            ..Self::default()
+        }
+    }
+
+    /// Record a call when traced and called from outside the builder's methods.
+    #[cfg(feature = "circuit-trace")]
+    fn begin(&mut self, call: impl FnOnce() -> String) {
+        if let Some(t) = &mut self.trace {
+            if t.depth == 0 {
+                t.out.push_str(&call());
+                t.out.push('\n');
+            }
+            t.depth += 1;
+        }
+    }
+
+    /// Close a call.
+    #[cfg(feature = "circuit-trace")]
+    fn end(&mut self) {
+        if let Some(t) = &mut self.trace {
+            t.depth -= 1;
+        }
     }
 
     /// Run `f` under a name, which an equality that fails reports.
@@ -143,6 +233,10 @@ impl Builder {
     ///
     /// A wire class is numbered by its first slot, so a circuit is the same however it was built.
     pub fn finish(mut self) -> Finished {
+        #[cfg(feature = "circuit-trace")]
+        if let Some(t) = self.trace.take() {
+            TRACE.with(|g| g.borrow_mut().as_mut().map(|g| g.push_str(&t.out)));
+        }
         let (wires, pubs) = self.statement_first();
         let mut number: Vec<Option<u32>> = vec![None; self.values.len()];
         let mut n_classes = 0;
@@ -244,42 +338,82 @@ impl Builder {
     ///
     /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn free_e(&mut self, value: F192) -> Ew {
+        traced!(self, "free_e".into(), self.free_e_rows(value))
+    }
+
+    fn free_e_rows(&mut self, value: F192) -> Ew {
         Ew(self.wire(WireKind::E, [value.c0, value.c1, value.c2, 0]))
     }
 
     /// A free `K` value.
     pub fn free_k(&mut self, value: u64) -> Kw {
+        traced!(self, "free_k".into(), self.free_k_rows(value))
+    }
+
+    fn free_k_rows(&mut self, value: u64) -> Kw {
         Kw(self.wire(WireKind::K, [value, 0, 0, 0]))
     }
 
     /// A free digest.
     pub fn free_d(&mut self, value: Limbs) -> Dw {
+        traced!(self, "free_d".into(), self.free_d_rows(value))
+    }
+
+    fn free_d_rows(&mut self, value: Limbs) -> Dw {
         Dw(self.wire(WireKind::D, value))
     }
 
     /// Hold `a` and `b` equal.
     pub fn eq_e(&mut self, a: Ew, b: Ew) {
+        traced!(self, format!("eq_e {} {}", a.0, b.0), self.eq_e_rows(a, b));
+    }
+
+    fn eq_e_rows(&mut self, a: Ew, b: Ew) {
         self.union(a.0, b.0);
     }
 
     /// Hold `a` and `b` equal.
     pub fn eq_k(&mut self, a: Kw, b: Kw) {
+        traced!(self, format!("eq_k {} {}", a.0, b.0), self.eq_k_rows(a, b));
+    }
+
+    fn eq_k_rows(&mut self, a: Kw, b: Kw) {
         self.union(a.0, b.0);
     }
 
     /// Hold `a` and `b` equal.
     pub fn eq_d(&mut self, a: Dw, b: Dw) {
+        traced!(self, format!("eq_d {} {}", a.0, b.0), self.eq_d_rows(a, b));
+    }
+
+    fn eq_d_rows(&mut self, a: Dw, b: Dw) {
         self.union(a.0, b.0);
     }
 
     /// Hold `a` to a constant.
     pub fn eq_e_const(&mut self, a: Ew, value: F192) {
+        traced!(
+            self,
+            format!("eq_e_const {} {} {} {}", a.0, value.c0, value.c1, value.c2),
+            self.eq_e_const_rows(a, value)
+        );
+    }
+
+    fn eq_e_const_rows(&mut self, a: Ew, value: F192) {
         let c = self.e_const(value);
         self.eq_e(a, c);
     }
 
     /// Hold `a` to a constant.
     pub fn eq_k_const(&mut self, a: Kw, value: u64) {
+        traced!(
+            self,
+            format!("eq_k_const {} {value}", a.0),
+            self.eq_k_const_rows(a, value)
+        );
+    }
+
+    fn eq_k_const_rows(&mut self, a: Kw, value: u64) {
         let c = self.k_const(value);
         self.eq_k(a, c);
     }
@@ -307,26 +441,50 @@ impl Builder {
     ///
     /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn e_const(&mut self, value: F192) -> Ew {
+        traced!(
+            self,
+            format!("e_const {} {} {}", value.c0, value.c1, value.c2),
+            self.e_const_rows(value)
+        )
+    }
+
+    fn e_const_rows(&mut self, value: F192) -> Ew {
         Ew(self.constant(WireKind::E, [value.c0, value.c1, value.c2, 0]))
     }
 
     /// The constant `K` word `value`.
     pub fn k_const(&mut self, value: u64) -> Kw {
+        traced!(self, format!("k_const {value}"), self.k_const_rows(value))
+    }
+
+    fn k_const_rows(&mut self, value: u64) -> Kw {
         Kw(self.constant(WireKind::K, [value, 0, 0, 0]))
     }
 
     /// The constant digest `value`.
     pub fn d_const(&mut self, value: Limbs) -> Dw {
+        traced!(self, format!("d_const {}", numbers(value)), self.d_const_rows(value))
+    }
+
+    fn d_const_rows(&mut self, value: Limbs) -> Dw {
         Dw(self.constant(WireKind::D, value))
     }
 
     /// The constant zero of `E`.
     pub fn zero(&mut self) -> Ew {
+        traced!(self, "zero".into(), self.zero_rows())
+    }
+
+    fn zero_rows(&mut self) -> Ew {
         self.units.e_zero.map_or_else(|| self.e_const(F192::ZERO), Ew)
     }
 
     /// The constant one of `E`.
     pub fn one(&mut self) -> Ew {
+        traced!(self, "one".into(), self.one_rows())
+    }
+
+    fn one_rows(&mut self) -> Ew {
         self.units.e_one.map_or_else(|| self.e_const(F192::ONE), Ew)
     }
 
@@ -344,6 +502,10 @@ impl Builder {
 
     /// Make `w` a word of the statement, which the verifier is handed and the bus holds `w` to.
     pub fn expose_e(&mut self, w: Ew) -> usize {
+        traced!(self, format!("expose_e {}", w.0), self.expose_e_rows(w))
+    }
+
+    fn expose_e_rows(&mut self, w: Ew) -> usize {
         self.expose(w.0)
     }
 }

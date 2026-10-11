@@ -1,7 +1,7 @@
 //! What every proof of a tree states, in one layout whatever its place in the tree.
 //!
 //! - Its kind: what its circuit verifies.
-//! - The digest of the leaves' outputs under it.
+//! - The digest of what the leaves under it state.
 //! - One claim on each dense polynomial, at prefixes of one point.
 //! - Each flock circuit's two matrices at prefixes of one row point and one column point.
 
@@ -14,9 +14,20 @@ use std::ops::Range;
 /// What a tree proof's circuit verifies.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Kind {
-    /// RISC-V proofs of the tree's program: a node of the first level.
-    First,
-    /// Recursion proofs of either kind: a node above the first level.
+    /// Leaves of the tree's leaf family of this index: a node of the first level.
+    First(usize),
+    /// Tree proofs of any kind: a node above the first level.
+    Node,
+}
+
+/// What a digest's first block names: the level, and for a first-level node's, what its leaves are.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Level {
+    /// A first-level node over RISC-V proofs: its items are their outputs.
+    Runs,
+    /// A first-level node over proofs of the recursion circuit of this seed: its items are their statements' hashes.
+    Circuit(Limbs),
+    /// A node: its items are its children's digests.
     Node,
 }
 
@@ -56,35 +67,60 @@ pub(crate) struct TreeStatement<E = F192> {
 }
 
 impl Kind {
-    /// Both kinds, by their statement word.
-    pub const ALL: [Self; 2] = [Self::First, Self::Node];
-
-    /// Its statement word: the bit that selects its circuit's half of the nodes' fixed polynomial.
-    pub(crate) const fn bit(self) -> u64 {
-        self as u64
+    /// Its code, its statement word's value: a first-level node of family 0 is 0, a node 1, of family `i > 0` `i + 1`.
+    ///
+    /// So a tree of one leaf family has the codes 0 and 1, and a tree's codes are `0..families + 1`.
+    pub(crate) const fn code(self) -> usize {
+        match self {
+            Self::First(0) => 0,
+            Self::Node => 1,
+            Self::First(i) => i + 1,
+        }
     }
 
-    /// The kind a statement word names.
+    /// The kind of a code.
+    pub(crate) const fn of_code(code: usize) -> Self {
+        match code {
+            0 => Self::First(0),
+            1 => Self::Node,
+            c => Self::First(c - 1),
+        }
+    }
+
+    /// Its statement word.
+    pub(crate) const fn word(self) -> F192 {
+        F192::new(self.code() as u64, 0, 0)
+    }
+
+    /// The kind a statement word names, if it names one of a tree of at most `2^32` leaf families.
     pub(crate) fn of_word(word: F192) -> Option<Self> {
-        Self::ALL.into_iter().find(|k| F192::new(k.bit(), 0, 0) == word)
+        let code = u32::try_from(word.c0).ok()?;
+        (word.c1 == 0 && word.c2 == 0).then(|| Self::of_code(code as usize))
     }
+}
 
+impl Level {
     /// The first word of its digest's message.
     const fn tag(self) -> u64 {
         match self {
-            Self::First => u64::from_le_bytes(*b"tree-fst"),
+            Self::Runs => u64::from_le_bytes(*b"tree-fst"),
+            Self::Circuit(_) => u64::from_le_bytes(*b"tree-cir"),
             Self::Node => u64::from_le_bytes(*b"tree-nod"),
         }
     }
 
-    /// Its digest's first block: its tag and how many items follow, then zeros.
+    /// Its digest's first block: its tag and how many items follow, then the leaves' circuit's seed if any, then zeros.
     const fn header(self, count: usize) -> [u64; 8] {
-        [self.tag(), count as u64, 0, 0, 0, 0, 0, 0]
+        let [s0, s1, s2, s3] = match self {
+            Self::Circuit(seed) => seed,
+            Self::Runs | Self::Node => [0; 4],
+        };
+        [self.tag(), count as u64, s0, s1, s2, s3, 0, 0]
     }
 
-    /// The digest of the items under a proof of this kind: the leaves' outputs under a node of the first level, its children's digests under a node.
+    /// The digest of the items under a proof of this level.
     ///
-    /// The tag separates the levels and the count fixes the items, so a digest names its whole subtree.
+    /// The tag and the seed separate the levels and the leaf families, and the count fixes the items, so a digest names its whole subtree.
     pub(crate) fn digest(self, items: &[Limbs]) -> Limbs {
         let words: Vec<u64> = (self.header(items.len()).into_iter())
             .chain(items.iter().flatten().copied())

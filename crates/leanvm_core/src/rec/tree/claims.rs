@@ -6,14 +6,18 @@ use crate::class_flock::FlockId;
 use crate::cpu::Claim;
 use flock::lincheck::MatrixForm;
 
-/// The polynomials the program and the tree's circuits fix, on which tree proofs carry claims.
+/// The polynomials the leaves and the tree's circuits fix, on which tree proofs carry claims.
+///
+/// A tree whose leaves fix no such polynomial has none: no claim is ever made on it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DensePoly {
-    /// The program's stacked bytecode table.
+    /// The leaves' program's stacked bytecode table, if RISC-V proofs are leaves.
     Bytecode,
-    /// RAM's image, zero padded to a power of two.
+    /// That program's RAM image, zero padded to a power of two.
     Image,
-    /// The nodes' fixed polynomial `W_node`: the first level's circuit's fixed columns, then the node circuit's.
+    /// The leaves' fixed polynomial `W_leaf`, if proofs of recursion circuits are leaves: each such circuit's fixed columns, stacked.
+    Leaf,
+    /// The nodes' fixed polynomial `W_node`: each kind's circuit's fixed columns, stacked in the order of the kinds' codes.
     Fixed,
 }
 
@@ -26,15 +30,15 @@ pub(crate) struct Bits {
     pub(crate) len: usize,
 }
 
-/// One claim on a dense polynomial `P`, at the shared prefix, then public bits, then the kind: `s P(low, bits, top) = s v`.
+/// One claim on a dense polynomial `P`, at the shared prefix, then public bits, then the kind's bits: `s P(low, bits, top) = s v`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DenseTerm<E> {
     /// How many of the shared prefix's coordinates the point starts with.
     pub(crate) n_low: usize,
     /// The public coordinates after them.
     pub(crate) bits: Bits,
-    /// The last coordinate, a child's kind, if any.
-    pub(crate) top: Option<E>,
+    /// The last coordinates, a child's kind's bits lowest first, if any.
+    pub(crate) top: Vec<E>,
     /// A factor both sides carry, one when absent: a zero scale makes the claim vacuous.
     pub(crate) scale: Option<E>,
     /// The claimed value.
@@ -109,10 +113,10 @@ pub(crate) struct NodeClaims<E> {
 
 impl DensePoly {
     /// How many dense polynomials there are.
-    pub const COUNT: usize = 3;
+    pub const COUNT: usize = 4;
 
     /// Every dense polynomial, in statement order.
-    pub const ALL: [Self; Self::COUNT] = [Self::Bytecode, Self::Image, Self::Fixed];
+    pub const ALL: [Self; Self::COUNT] = [Self::Bytecode, Self::Image, Self::Leaf, Self::Fixed];
 }
 
 impl Bits {
@@ -126,7 +130,7 @@ impl<E: Copy> DenseTerm<E> {
         DenseTerm {
             n_low: self.n_low,
             bits: self.bits,
-            top: self.top.map(&mut *f),
+            top: self.top.iter().map(|&x| f(x)).collect(),
             scale: self.scale.map(&mut *f),
             value: f(self.value),
         }
@@ -143,7 +147,7 @@ impl<E: Copy> DenseClaim<E> {
             terms: vec![DenseTerm {
                 n_low,
                 bits: Bits::NONE,
-                top: None,
+                top: Vec::new(),
                 scale,
                 value,
             }],

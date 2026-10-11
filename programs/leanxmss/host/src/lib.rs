@@ -4,15 +4,15 @@
 //! One message at one leaf index for all signers is the Ethereum shape: validators attest to one block.
 
 use leanvm_guest::{PublicValues, Run, as_words_unchecked};
-use leanxmss::{LeafIndex, Message, PublicKey, Signature};
+pub use leanxmss::{LeafIndex, Message, PublicKey, Signature};
 
 /// The guest (`../guest`), built by `programs/build.sh`.
 pub const ELF: &[u8] = include_bytes!("../../leanxmss.elf");
 
 /// The message every signer signs.
-const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
+pub const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
 /// The leaf index every signer signs at.
-const LEAF_INDEX: LeafIndex = 1234;
+pub const LEAF_INDEX: LeafIndex = 1234;
 
 /// A signer's secret seed: its index, then zeros.
 fn seed(i: usize) -> [u8; 32] {
@@ -21,13 +21,18 @@ fn seed(i: usize) -> [u8; 32] {
     seed
 }
 
-/// `n` signers, each with its own key, sign the message.
-pub fn batch(n: usize) -> Run {
+/// `n` signers, each with its own key, sign [`MESSAGE`] at [`LEAF_INDEX`]: each one's key and signature.
+pub fn signers(n: usize) -> Vec<(PublicKey, Signature)> {
     // Keys and signatures are independent, so they are made in parallel.
-    let signed = parallel::map_collect(n, |i| {
+    parallel::map_collect(n, |i| {
         let (sk, pk) = leanxmss::key_gen(seed(i), LEAF_INDEX);
         (pk, sk.sign(&MESSAGE).expect("a valid encoding"))
-    });
+    })
+}
+
+/// `n` signers, each with its own key, sign the message.
+pub fn batch(n: usize) -> Run {
+    let signed = signers(n);
     // What the guest reads: the count, then key, leaf index, message and signature for each.
     let mut advice = vec![n as u64];
     // What it commits: each claim, key, leaf index and message.

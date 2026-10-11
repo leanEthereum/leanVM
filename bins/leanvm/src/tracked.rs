@@ -19,8 +19,10 @@
 use crate::refuse;
 use crate::workload::{Items, Workload};
 use bench::{Heap, Metric, Plan, Timing, bencher_json};
-use leanvm::aggregate::{CircuitStats, Kind, Leaf, LeafShape, Tree, TreeError, TreeProof, TreeShape};
-use leanvm::{Output, ProvenRun, Prover, Rate, Stats};
+use leanvm::aggregate::{CircuitStats, Kind, Leaf, LeafShape, Leaves, Subtree, Tree, TreeError, TreeProof, TreeShape};
+use leanvm::{ProvenRun, Prover, Rate, Stats};
+#[cfg(feature = "circuits")]
+use leanvm::{SphincsBatch, XmssBatch};
 use primitives::pretty_integer;
 use serde_json::{Map, Value};
 use std::fmt::Write as _;
@@ -121,13 +123,16 @@ impl Aggregation {
 
     /// The tree over the leaf's proofs shaped `shape`, every tree proof at `rate`.
     fn tree(&self, shape: LeafShape, rate: Rate) -> Tree<'_> {
+        let leaves = Leaves::Runs {
+            program: &self.leaf.program,
+            shape,
+        };
         let shape = TreeShape {
-            leaf: shape,
             arity_0: self.arity_0,
             arity: self.arity,
             rate,
         };
-        Tree::new(&self.leaf.program, shape).unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
+        Tree::new(&[leaves], shape).unwrap_or_else(|e| refuse(format_args!("{}: {e}", self.name)))
     }
 
     /// A kind of node's benchmark name, and what the markdown table calls it: `<name>-first`, a
@@ -135,7 +140,7 @@ impl Aggregation {
     /// `<name>-node`, a higher node (the recursion verifier in rows over `arity` child proofs).
     fn node(&self, kind: Kind) -> (String, String) {
         match kind {
-            Kind::First => (
+            Kind::First(_) => (
                 format!("{}-first", self.name),
                 format!("first-level node over {} x {}", self.arity_0, self.leaf.title),
             ),
@@ -336,7 +341,46 @@ fn counts(stats: &Stats) -> Vec<(&'static str, Metric)> {
 fn circuits(tree: &Aggregation, leaf_rate: Rate, rate: Rate) -> [(Kind, CircuitStats); 2] {
     let shape = LeafShape::measured(&tree.leaf.measure(), leaf_rate);
     let built = tree.tree(shape, rate);
-    Kind::ALL.map(|kind| (kind, built.stats(kind)))
+    [Kind::First(0), Kind::Node].map(|kind| (kind, built.stats(kind)))
+}
+
+/// The leanXMSS batch sizes whose recursion circuits `dump` writes: the smallest, and the benchmark's.
+#[cfg(feature = "circuits")]
+const XMSS_DUMPS: [usize; 4] = [1, 2, 3, 400];
+
+/// The leanSPHINCS batch sizes whose recursion circuits `dump` writes: the smallest, and the benchmark's.
+#[cfg(feature = "circuits")]
+const SPHINCS_DUMPS: [usize; 4] = [1, 2, 3, 104];
+
+/// Write each tracked tree's two circuits, as `Tree::circuit_dump` gives them, to `<out>/<name>-first.txt` and `<out>/<name>-node.txt`: the counted trees and the proven trees' leaf size at both arities. Then the leanXMSS batch circuits of `XMSS_DUMPS` signatures, as `XmssBatch::circuit_dump` gives them, to `<out>/xmss-<n>.txt`, and the leanSPHINCS ones of `SPHINCS_DUMPS`, as `SphincsBatch::circuit_dump` gives them, to `<out>/sphincs-<n>.txt`.
+///
+/// CI's `rec-builder-model` workflow has the Lean model of the builder replay each and check it builds the same circuit, and `checkxmss` checks each leanXMSS and leanSPHINCS circuit is the one `LeanVMCircuits.Xmss.Circuit` or `LeanVMCircuits.Sphincs.Circuit` authors.
+#[cfg(feature = "circuits")]
+pub fn dump(out: &Path, leaf_rate: Rate, rate: Rate) {
+    let proven = [
+        Aggregation::new("aggregate-leanxmss-100-2to1", Workload::leanxmss(100), 2, 2),
+        Aggregation::new("aggregate-leanxmss-100-4to1", Workload::leanxmss(100), 4, 4),
+    ];
+    std::fs::create_dir_all(out).unwrap_or_else(|e| refuse(format_args!("{}: {e}", out.display())));
+    for tree in counted_trees().into_iter().chain(proven) {
+        let shape = LeafShape::measured(&tree.leaf.measure(), leaf_rate);
+        let built = tree.tree(shape, rate);
+        for kind in built.kinds() {
+            let path = out.join(format!("{}.txt", tree.node(kind).0));
+            std::fs::write(&path, built.circuit_dump(kind))
+                .unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
+        }
+    }
+    for n in XMSS_DUMPS {
+        let batch = XmssBatch::new(n, rate).unwrap_or_else(|e| refuse(format_args!("{e}")));
+        let path = out.join(format!("xmss-{n}.txt"));
+        std::fs::write(&path, batch.circuit_dump()).unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
+    }
+    for n in SPHINCS_DUMPS {
+        let batch = SphincsBatch::new(n, rate).unwrap_or_else(|e| refuse(format_args!("{e}")));
+        let path = out.join(format!("sphincs-{n}.txt"));
+        std::fs::write(&path, batch.circuit_dump()).unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
+    }
 }
 
 /// `rows` (the circuit's own), `proven-rows` (the tables' heights, powers of two) and
@@ -438,13 +482,13 @@ fn proved_tree(
     // The leaf's stages.
     bench::take_stages();
     let leaves = vec![Leaf::new(&proof, output); tree.arity_0];
-    let outputs = vec![output; tree.arity_0];
-    let (first, first_report) = proved_node(&built, &outputs, plan, || built.prove_first(&leaves));
+    let first_level = Subtree::First(vec![output.into(); tree.arity_0]);
+    let (first, first_report) = proved_node(&built, &first_level, plan, || built.prove_first(&leaves));
     let children = vec![first; tree.arity];
-    let outputs = vec![output; tree.arity_0 * tree.arity];
-    let (_, node_report) = proved_node(&built, &outputs, plan, || built.prove_node(&children));
+    let node_level = Subtree::Node(vec![first_level; tree.arity]);
+    let (_, node_report) = proved_node(&built, &node_level, plan, || built.prove_node(&children));
     vec![
-        (tree.node(Kind::First).0, first_report),
+        (tree.node(Kind::First(0)).0, first_report),
         (tree.node(Kind::Node).0, node_report),
     ]
 }
@@ -452,7 +496,7 @@ fn proved_tree(
 /// One node's proof and its measures.
 fn proved_node(
     tree: &Tree<'_>,
-    outputs: &[Output],
+    expected: &Subtree,
     plan: Plan,
     prove: impl Fn() -> Result<TreeProof, TreeError>,
 ) -> (TreeProof, Vec<(String, Metric)>) {
@@ -465,7 +509,7 @@ fn proved_node(
         proof.expect("honest children")
     });
     let peak_memory = bench::peak_rss_bytes();
-    let (verified, verify_time) = Plan::new(VERIFY_PASSES, 0).measure_quiet(|_| tree.verify(&proof, outputs));
+    let (verified, verify_time) = Plan::new(VERIFY_PASSES, 0).measure_quiet(|_| tree.verify(&proof, expected));
     verified.expect("an honest tree proof verifies");
     let report = measures(
         &time,
