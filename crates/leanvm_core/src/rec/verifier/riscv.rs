@@ -5,15 +5,16 @@ use crate::cpu::{Announcement, CpuError, DeferredClaims, Layout, Program};
 use crate::pcs::Rate;
 use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::transcript::{ProofSource, Transcript};
-use crate::tables::{Clock, PerTable};
-use fiat_shamir::arith::Verifier;
+use crate::tables::PerTable;
+use fiat_shamir::arith::{Arith, Verifier};
 
-/// What fixes the rows of a RISC-V proof's verifier: the program, each table's height, and the commitment's rate.
+/// What fixes the rows of a RISC-V proof's verifier: the program, each table's and log's height, and the rate.
 ///
 /// Two proofs of one shape are verified by one circuit.
 pub struct ProofShape<'p> {
     program: &'p Program,
     taus: PerTable<usize>,
+    logs: [usize; 2],
     rate: Rate,
     layout: Layout,
 }
@@ -27,16 +28,17 @@ pub struct CoreRows {
 }
 
 impl<'p> ProofShape<'p> {
-    /// The shape of a proof of a program, from its tables' base-two logarithms of rows and its rate.
+    /// The shape of a proof of a program, from its tables' and logs' base-two logarithms of rows and its rate.
     ///
     /// # Errors
     ///
     /// Refuses what the native verifier refuses of an announcement: a height out of range, or a witness the commitment does not take.
-    pub fn new(program: &'p Program, taus: PerTable<usize>, rate: Rate) -> Result<Self, CpuError> {
-        let layout = Layout::announced(program.rv(), taus)?;
+    pub fn new(program: &'p Program, taus: PerTable<usize>, logs: [usize; 2], rate: Rate) -> Result<Self, CpuError> {
+        let layout = Layout::announced(&program.view(), taus, logs)?;
         Ok(Self {
             program,
             taus,
+            logs,
             rate,
             layout,
         })
@@ -50,6 +52,11 @@ impl<'p> ProofShape<'p> {
     /// Each table's base-two logarithm of rows.
     pub const fn taus(&self) -> &PerTable<usize> {
         &self.taus
+    }
+
+    /// Each log's base-two logarithm of rows.
+    pub const fn logs(&self) -> [usize; 2] {
+        self.logs
     }
 
     /// The commitment's rate.
@@ -66,36 +73,44 @@ impl<'p> ProofShape<'p> {
         let mut t = Transcript::new(b, iv, (first, output[3]), source);
         let mut r = Rows::new(b, &mut t);
 
-        let clock = r.scope("announcement", |r| self.read_announcement(r));
+        let [registers, memory] = r.scope("announcement", |r| self.read_announcement(r));
         let output = output.map(|o| r.b.k_to_e1(o));
-        let claims = infallible(self.layout.verify_core(&mut r, clock, &output, self.rate));
+        let claims = infallible(
+            self.layout
+                .verify_core(&mut r, [&registers, &memory], &output, self.rate),
+        );
         CoreRows {
             claims,
             state: t.commitment(b),
         }
     }
 
-    /// The announced sizes: every height and the rate the shape's, the final clock a live clock at slot zero.
+    /// The announced sizes: every height and the rate the shape's, then each log's live rows, at most its height.
     ///
-    /// Returns the clock, which closes the run's last state on the bus.
-    fn read_announcement(&self, r: &mut Rows<'_, '_>) -> Ew {
-        for size in Announcement::sizes(&self.taus, self.rate) {
+    /// Returns each log's live rows by their bits, lowest first, one per row bit and one past.
+    fn read_announcement(&self, r: &mut Rows<'_, '_>) -> [Vec<Ew>; 2] {
+        for size in Announcement::sizes(&self.taus, self.logs, self.rate) {
             let x = infallible(r.next_scalar());
             r.b.eq_e_const(x, size);
         }
-        let clock = infallible(r.next_scalar());
-        let [word, high, top] = r.b.e_to_k(clock);
-        r.b.eq_k_const(high, 0);
-        r.b.eq_k_const(top, 0);
-        // Bit 40 set, every bit above it clear, and the slot bits below the cycle clear.
-        let slot_bits = Clock::CYCLE.trailing_zeros() as usize;
-        for (i, bit) in r.b.split(word).into_iter().enumerate() {
-            if i == Clock::LIVE_BIT as usize {
-                r.b.eq_k_const(bit, 1);
-            } else if i > Clock::LIVE_BIT as usize || i < slot_bits {
+        self.logs.map(|log_rows| {
+            let live = infallible(r.next_scalar());
+            let [word, high, top] = r.b.e_to_k(live);
+            r.b.eq_k_const(high, 0);
+            r.b.eq_k_const(top, 0);
+            let bits = r.b.split(word);
+            for &bit in &bits[log_rows + 1..] {
                 r.b.eq_k_const(bit, 0);
             }
-        }
-        clock
+            // A full log has no other bit.
+            let full = r.b.k_to_e1(bits[log_rows]);
+            let bits: Vec<Ew> = bits[..=log_rows].iter().map(|&b| r.b.k_to_e1(b)).collect();
+            for &bit in &bits[..log_rows] {
+                let both = r.mul(full, bit);
+                let zero = r.zero();
+                r.b.eq_e(both, zero);
+            }
+            bits
+        })
     }
 }

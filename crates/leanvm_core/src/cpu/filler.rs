@@ -1,4 +1,4 @@
-//! Filling every table to a power of two with padding rows at clock zero.
+//! Filling every table to a power of two with padding rows at time zero.
 //!
 //! A table is proven over a power of two of rows, so a run has to make up the difference.
 //!
@@ -8,11 +8,10 @@
 //!
 //! So a block is a cycle, and no program code jumps into it.
 //!
-//! Its rows carry the clock zero, which lacks the live bit, so it does not advance.
+//! Its rows carry time and position zero, which no power of the generator is, so neither advances.
 //!
 //! - The state tuples pushed and pulled around the cycle cancel, for any number of traversals.
-//! - Each access pulls the very tuple it pushes, which cancels too (doc §Filling the tables).
-//! - Nothing such a row puts on the bus can meet a tuple of the run, which all have the live bit.
+//! - Each access is at position zero, which no log row has: it pulls a public padding tuple (doc §Filling the tables).
 //!
 //! The rows therefore touch nothing, and the prover writes them out rather than executing them.
 //!
@@ -82,7 +81,7 @@ impl FillBlocks {
                     size,
                     table: t,
                 });
-                // A no-op touches only `x0` and address zero, which a padding row at clock zero never touches for real.
+                // A no-op touches only `x0` and address zero, whose padding tuples are public.
                 let nop = t
                     .class()
                     .nop()
@@ -103,6 +102,11 @@ impl FillBlocks {
             }
         }
         Self(blocks)
+    }
+
+    /// Every entry of every block: its no-ops, then its closing jump.
+    pub fn entries(&self) -> impl Iterator<Item = usize> + '_ {
+        self.0.iter().flat_map(|b| b.index..=b.index + b.size)
     }
 
     /// The block of `table` with `size` no-ops, if it has one.

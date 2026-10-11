@@ -57,7 +57,10 @@ impl Prover {
     #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate = self.rate.log_inv_rate()))]
     pub fn prove(&self, program: &Program, advice: &[u64]) -> Result<ProvenRun, ProveError> {
         let exec = info_span!("Execute program").in_scope(|| program.execute(advice))?;
-        program.committed_size(exec.trace.row_counts())?;
+        program.committed_size(
+            exec.trace.row_counts(),
+            [exec.trace.registers.live, exec.trace.memory.live],
+        )?;
         let (proof, stats) = program.prove_execution(&exec, self.rate);
         Ok(ProvenRun {
             proof,

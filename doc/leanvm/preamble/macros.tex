@@ -73,20 +73,30 @@
 \newcommand{\abase}{\mathsf{ADVICE}}    % where the advice sits
 \newcommand{\sink}{\mathsf{sink}}       % the register cell an instruction with no destination writes
 \newcommand{\kadv}{\kappa_{\mathrm{adv}}}   % log advice length
-\newcommand{\qcls}[1]{q_{\mathsf{#1}}}   % the packed flock witness of one instruction class
-\newcommand{\qclk}[1]{q^{\mathsf{clk}}_{\mathsf{#1}}}   % the packed flock witness of one table's clock circuit
+\newcommand{\qcls}[1]{q_{\mathsf{#1}}}   % the packed flock witness of one table: its class circuit's, or EXT's operand circuit's
 \newcommand{\addr}{\mathit{addr}}
 \newcommand{\val}{\mathit{val}}
-\newcommand{\ts}{\mathbf{ts}}            % the execution clock, an integer below 2^41
+\newcommand{\tm}{\mathit{time}}          % a row's time: g^c on cycle c, zero on a padding row
+\newcommand{\pos}{\mathit{position}}     % a row's memory position: g^m after m accesses, zero on a padding row
+\newcommand{\bpos}{\mathit{bpos}}       % EXT's committed column base times position: what moves a base-field b's accesses
 \newcommand{\exitflag}{\mathit{exit}} % public selector: one only for ecall
-\newcommand{\tsfinal}{\ts_{\mathrm{final}}} % the clock the run ends on, announced by the prover
-\newcommand{\tsprev}{\mathit{prev}}      % the timestamp of a cell's previous access, a port of the clock circuit
-\newcommand{\tsfin}{\mathit{ts}^{\mathrm{fin}}}  % committed column: each cell's last timestamp
-\newcommand{\meminit}{\mem^{\mathrm{init}}} % RAM before the run, a public column
-\newcommand{\memfin}{\mem^{\mathrm{fin}}}   % committed RAM after the run
-\newcommand{\regfin}{\regs^{\mathrm{fin}}}  % committed registers after the run
+\newcommand{\ncyc}{N_{\mathrm{cyc}}}     % the run's cycles: the register log's live rows, announced
+\newcommand{\nacc}{N_{\mathrm{acc}}}     % the run's memory accesses: the memory log's live rows, announced
+\newcommand{\kreg}{\kappa_{\mathrm{reg}}}  % log height of the register log
+\newcommand{\kacc}{\kappa_{\mathrm{acc}}}  % log height of the memory log
+\newcommand{\nlive}{N_{\mathrm{live}}}  % a log's live rows: \ncyc or \nacc
+\newcommand{\klow}{\kappa_{\mathrm{low}}} % a memory cell's bits below its top chunk: a symbol holds 2^klow words
+\newcommand{\nchunk}{N_{\mathrm{chunk}}} % 6-bit chunks of a log's cell: one for the registers, up to four for memory
+\newcommand{\live}{\mathit{live}}        % a log row's live indicator: one below the announced count
+\newcommand{\Val}{\mathit{Val}}          % what a log's cell holds before a row
+\newcommand{\inc}{\mathit{inc}}          % a log row's increment: the written cell's new value plus its old one
+\newcommand{\ra}[1]{\mathit{ra}_{#1}}    % a log row's one-hot cell in group #1
+\newcommand{\wa}{\mathit{wa}}            % a log row's one-hot written cell, its last group's
+\newcommand{\ptr}{\mathit{ptr}}          % a register log row's flag: a pointer read, which writes nothing
+\newcommand{\lw}[1]{\varrho_{#1}}        % a log's batching weights: collision, flag, partial region, outputs, and the image
+\newcommand{\colpt}{r_{\mathrm{col}}}    % the collision check's chunk point
+\newcommand{\colsc}{c_{\mathrm{col}}}    % the collision check's scale: eq(r, k)^3 = c eq(r', k) on Boolean k
 \newcommand{\advinit}{\adv^{\mathrm{init}}} % committed advice before the run
-\newcommand{\advfin}{\adv^{\mathrm{fin}}}   % committed advice after the run
 \newcommand{\mlt}{\mathit{mult}}         % committed multiplicity column of a lookup array: entry x's read count, as a word
 \newcommand{\mbit}[1]{\mathit{mult}_{#1}} % bit #1 of \mlt: a one-bit column of the array's producer
 \newcommand{\nbit}{N_{\mathrm{bit}}}     % bits of \mlt the bus reads: the bit length of \nrd
@@ -103,7 +113,7 @@
 \newcommand{\push}{\textsc{push}}
 \newcommand{\pull}{\textsc{pull}}
 \newcommand{\tup}[1]{( #1 )}
-\newcommand{\acc}[1]{\dsep{access}_{#1}}    % a memory access in clock slot #1: a pull and a push
+\newcommand{\acc}[1]{\dsep{access}_{#1}}    % a row's memory access #1: a pull at its position
 \newcommand{\dsep}[1]{\mathsf{#1}}
 \newcommand{\opc}[1]{\mathsf{op}_{\mathsf{#1}}}
 \newcommand{\nprog}{N_{\mathrm{prog}}}   % program length

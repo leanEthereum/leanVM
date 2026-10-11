@@ -3,16 +3,24 @@
 use super::{BusError, Coord, PublicColumn};
 use primitives::field::{F64, F192};
 
-/// A flushing rule: `2^kappa` rows, each a tuple of coordinates. Every one of them is a
-/// row the program executed, since a table's height is its row count (§sec:e2e-pad), so a
-/// block has no padding rows to divide back out of the product.
+/// Who settles a block's share of its side.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Owner {
+    /// The bus itself, opening the block's columns at the bus point.
+    Framework,
+    /// A table, whose table sumcheck settles the block.
+    Table(usize),
+    /// A memory log, whose argument settles the block's leaves at the bus point.
+    Log(usize),
+}
+
+/// A flushing rule: `2^kappa` rows, each a tuple of coordinates, or a memory log's rows.
 #[derive(Clone, Debug)]
 pub struct Block {
     pub kappa: usize,
+    /// The tuple, empty for a log's block.
     pub coords: Vec<Coord>,
-    /// The table whose block it is, if any. A table's block becomes a form its table
-    /// sumcheck settles; a framework block opens its columns at the bus point.
-    pub owner: Option<usize>,
+    pub owner: Owner,
 }
 
 impl Block {
@@ -21,7 +29,7 @@ impl Block {
         Self {
             kappa,
             coords,
-            owner: None,
+            owner: Owner::Framework,
         }
     }
 
@@ -30,7 +38,16 @@ impl Block {
         Self {
             kappa,
             coords,
-            owner: Some(owner),
+            owner: Owner::Table(owner),
+        }
+    }
+
+    /// The block of memory log `log`, of `2^kappa` rows.
+    pub const fn log(log: usize, kappa: usize) -> Self {
+        Self {
+            kappa,
+            coords: Vec::new(),
+            owner: Owner::Log(log),
         }
     }
 }
@@ -47,6 +64,8 @@ pub struct Producer {
     pub coords: Vec<Coord>,
     pub col: usize,
     pub bits: usize,
+    /// Whether its public columns' share is left to the program's claim, else the verifier evaluates it.
+    pub deferred: bool,
 }
 
 /// Placement of each block in the stacked leaf vector (input order).

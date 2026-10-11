@@ -44,6 +44,9 @@ pub enum ProgramError {
     /// A decoded entry breaks the bytecode table's rules.
     #[error("the decoded text contains a malformed entry")]
     MalformedEntry,
+    /// RAM and the advice name more cells than a memory log's address holds.
+    #[error("RAM and the advice exceed what a memory log addresses")]
+    MemoryTooLarge,
 }
 
 impl RiscvProgram {

@@ -2,7 +2,8 @@ use super::recursion::RecRows;
 use super::{ProofShape, RecShape, Rows, infallible};
 use crate::class_flock::FlockId;
 use crate::constraints::ConstraintError;
-use crate::cpu::{CpuError, DeferredClaims, Output, Program, ProvenRun, Prover, UNGROUND_LOG_BYTECODE};
+use crate::cpu::layout::Announcement;
+use crate::cpu::{CpuError, DeferredClaims, Output, Program, Proof, ProvenRun, Prover, UNGROUND_LOG_BYTECODE};
 use crate::leaf::BusError;
 use crate::pcs::{Commitment, Committed, Rate, RingSwitch, SliceClaim, StackClaim};
 use crate::rec::RecError;
@@ -44,7 +45,17 @@ struct Fixture {
     raw: RawProof,
     output: Output,
     taus: PerTable<usize>,
+    logs: [usize; 2],
     native: DeferredClaims,
+}
+
+// The table and log heights a proof announces.
+fn heights(proof: &Proof) -> (PerTable<usize>, [usize; 2]) {
+    let size = |i: usize| usize::try_from(proof.0.stream[i].c0).expect("a height");
+    (
+        PerTable::from_fn(|t: TableId| size(t.index())),
+        [size(N_TABLES), size(N_TABLES + 1)],
+    )
 }
 
 // Proven once, shared by every test.
@@ -55,12 +66,13 @@ fn fixture() -> &'static Fixture {
         let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
         let native = program.verify_core(output, &proof).expect("an honest proof");
         let raw = program.verify_to_raw(output, &proof).expect("an honest proof");
-        let taus = PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height"));
+        let (taus, logs) = heights(&proof);
         Fixture {
             program,
             raw,
             output,
             taus,
+            logs,
             native,
         }
     })
@@ -69,7 +81,7 @@ fn fixture() -> &'static Fixture {
 impl Fixture {
     // The core's rows over `source`: the builder, holding the wires' values, and the claims the core leaves.
     fn build(&self, source: ProofSource<'_>) -> (Builder, DeferredClaims<Ew>) {
-        let shape = ProofShape::new(&self.program, self.taus, Rate::MIN).expect("an honest shape");
+        let shape = ProofShape::new(&self.program, self.taus, self.logs, Rate::MIN).expect("an honest shape");
         let mut b = Builder::new();
         let output = self.output.words().map(|o| b.free_k(o));
         let core = shape.verify_core(&mut b, output, source);
@@ -113,7 +125,7 @@ fn a_tampered_proof_fails_where_the_native_verifier_does() {
 
     // The GKR's root, read right after the announcement and the commitment's two halves.
     let mut forged = f.raw.clone();
-    forged.stream[N_TABLES + 4].c1 ^= 1;
+    forged.stream[Announcement::LEN + 2].c1 ^= 1;
     assert!(first(&forged).starts_with("bus and tables"), "{}", first(&forged));
 
     // A sibling and a leaf word of the first and the last opening.
@@ -160,34 +172,52 @@ fn a_wrong_sibling_under_the_shared_subtree_is_refused() {
 #[test]
 fn a_forged_announcement_is_refused_first() {
     let f = fixture();
-    let clock = N_TABLES + 1;
-    let ts = f.raw.stream[clock];
     let forge = |edit: &dyn Fn(&mut RawProof)| {
         let mut forged = f.raw.clone();
         edit(&mut forged);
         f.failures(&forged).into_iter().next().unwrap_or_default()
     };
-    for t in 0..N_TABLES {
-        let failure = forge(&|p| p.stream[t].c0 += 1);
-        assert!(failure.starts_with("announcement"), "height {t}: {failure}");
+
+    // The heights and the rate are the shape's, so any other value is refused as announced.
+    //
+    //     [ table heights | log heights | rate | live rows of each log ]
+    for at in 0..N_TABLES + 2 {
+        let failure = forge(&|p| p.stream[at].c0 += 1);
+        assert!(failure.starts_with("announcement"), "size {at}: {failure}");
     }
-    let edits: [(&str, F192); 7] = [
-        ("the rate", F192::new(2, 0, 0)),
-        ("a slot bit", F192::new(ts.c0 | 1, 0, 0)),
-        ("no live bit", F192::new(ts.c0 & !(1 << 40), 0, 0)),
-        ("a failure bit", F192::new(ts.c0 | 1 << 41, 0, 0)),
-        ("the top bit", F192::new(ts.c0 | 1 << 63, 0, 0)),
-        ("the second limb", F192::new(ts.c0, 1, 0)),
-        ("the third limb", F192::new(ts.c0, 0, 1)),
-    ];
-    for (i, (what, value)) in edits.into_iter().enumerate() {
-        let at = if i == 0 { N_TABLES } else { clock };
-        let failure = forge(&|p| p.stream[at] = value);
-        assert!(failure.starts_with("announcement"), "{what}: {failure}");
+    let failure = forge(&|p| p.stream[N_TABLES + 2] = F192::new(2, 0, 0));
+    assert!(failure.starts_with("announcement"), "the rate: {failure}");
+
+    // A live count is an integer its log holds: at most 2^log_rows, so no bit above, and no other bit at 2^log_rows.
+    for (log, at) in [N_TABLES + 3, N_TABLES + 4].into_iter().enumerate() {
+        let (live, log_rows) = (f.raw.stream[at].c0, f.logs[log]);
+        let edits = [
+            ("the second limb", F192::new(live, 1, 0)),
+            ("the third limb", F192::new(live, 0, 1)),
+            ("a bit above the log", F192::new(live | 1 << (log_rows + 1), 0, 0)),
+            ("the full log and more", F192::new(1 << log_rows | 1, 0, 0)),
+            (
+                "the full log and its top",
+                F192::new(1 << log_rows | 1 << (log_rows - 1), 0, 0),
+            ),
+        ];
+        for (what, value) in edits {
+            let failure = forge(&|p| p.stream[at] = value);
+            assert!(failure.starts_with("announcement"), "log {log}, {what}: {failure}");
+        }
+
+        // A count the log holds passes the announcement, and the bus refuses the wrong final position.
+        for value in [live.wrapping_sub(1), live + 1]
+            .into_iter()
+            .filter(|&v| v >> log_rows <= 1)
+        {
+            let failure = forge(&|p| p.stream[at] = F192::new(value, 0, 0));
+            assert!(
+                failure.starts_with("bus and tables"),
+                "log {log}, live {value}: {failure}"
+            );
+        }
     }
-    // A live clock at slot zero passes the announcement, and the bus refuses the wrong one.
-    let failure = forge(&|p| p.stream[clock] = F192::new(ts.c0 + 32, 0, 0));
-    assert!(failure.starts_with("bus and tables"), "a later clock: {failure}");
 }
 
 // A program past the unground bytecode: its rows check the bus's proof of work, which a smaller program's never meet.
@@ -201,10 +231,12 @@ fn a_large_programs_rows_check_its_grinding() {
     }
     let program = Program::new(&a.finish(), Region::TEXT.base(), vec![], 0, 0).expect("a valid program");
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+    let (taus, logs) = heights(&proof);
     let f = Fixture {
         native: program.verify_core(output, &proof).expect("an honest proof"),
         raw: program.verify_to_raw(output, &proof).expect("an honest proof"),
-        taus: PerTable::from_fn(|t: TableId| usize::try_from(proof.0.stream[t.index()].c0).expect("a height")),
+        taus,
+        logs,
         program,
         output,
     };
@@ -407,7 +439,7 @@ fn hash_batch(seed: u64) -> Batch {
 fn ld_batch(seed: u64, n: usize) -> Batch {
     let mut rng = Rng::new(seed);
     let rows: Vec<[u64; 2]> = (0..n).map(|_| [rng.next_u64(), rng.next_u64()]).collect();
-    batch(FlockId::class(TableId::LD).unwrap(), &rows)
+    batch(FlockId::of(TableId::LD), &rows)
 }
 
 #[test]

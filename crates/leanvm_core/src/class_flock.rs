@@ -1,7 +1,7 @@
 //! Bridge to flock for the instruction tables.
 //!
-//! Each class's circuit and each table's clock circuit is proven over one packed witness of its own. The
-//! extension-field product has no class circuit, so its table has its clock circuit's alone.
+//! Each table has one circuit, proven over one packed witness of its own: its class's circuit, or for the
+//! extension-field product, whose table proves the product by identities, its operand circuit.
 //!
 //! That witness is one more committed column of the stacked witness: instance `j` of
 //! the batch is row `j` of the circuit's table, and flock's R1CS validity is discharged
@@ -13,7 +13,7 @@
 
 use crate::cpu::{Payloads, RowRef, Trace};
 use crate::rv::RiscvProgram;
-use crate::tables::{Clock, Fill, N_CIRCUITS, N_TABLES, Part, PerTable, TableId};
+use crate::tables::{Fill, N_TABLES, Part, PerTable, TableId};
 use flock::Tables;
 use flock::circuit::Circuit;
 use flock::reduction::{Instance, Shape, min_n_blocks_log};
@@ -24,31 +24,25 @@ use std::sync::OnceLock;
 /// plus its fixed-point dimensions), which floors the batch of a small circuit.
 pub const MIN_CUBE_LOG: usize = flock::zerocheck::MIN_LOG_N;
 
-/// The most input ports a circuit with a word-level witness has: EXT's clock circuit's seventeen.
-const MAX_INPUT_WORDS: usize = 17;
+/// The most input ports a circuit with a word-level witness has: the hash's fourteen.
+const MAX_INPUT_WORDS: usize = 14;
 
-/// The packed witnesses: every class circuit in table order (the tables that have one come first), then every
-/// table's clock circuit.
-pub const N_FLOCKS: usize = N_CIRCUITS + N_TABLES;
+/// The packed witnesses: one per table, in table order.
+pub const N_FLOCKS: usize = N_TABLES;
 
-/// One packed witness: a table's class circuit, or its clock circuit.
+/// One packed witness: a table's class circuit, or its operand circuit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct FlockId {
     table: TableId,
-    part: Part,
 }
 
 impl FlockId {
     /// Every packed witness, in protocol order.
     pub const ALL: [Self; N_FLOCKS] = {
-        let mut all = [Self::clock(TableId::ALU); N_FLOCKS];
+        let mut all = [Self { table: TableId::ALU }; N_FLOCKS];
         let mut t = 0;
         while t < N_TABLES {
-            let table = TableId::ALL[t];
-            if let Some(class) = Self::class(table) {
-                all[class.index()] = class;
-            }
-            all[Self::clock(table).index()] = Self::clock(table);
+            all[t] = Self::of(TableId::ALL[t]);
             t += 1;
         }
         all
@@ -67,24 +61,9 @@ impl FlockId {
         max
     };
 
-    /// The class circuit of `table`, if its class has one.
-    pub const fn class(table: TableId) -> Option<Self> {
-        if table.spec().has_circuit() {
-            Some(Self {
-                table,
-                part: Part::Class,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// The clock circuit of `table`.
-    pub const fn clock(table: TableId) -> Self {
-        Self {
-            table,
-            part: Part::Clock,
-        }
+    /// The circuit of `table`.
+    pub const fn of(table: TableId) -> Self {
+        Self { table }
     }
 
     /// The table whose rows are the witness's instances.
@@ -94,24 +73,24 @@ impl FlockId {
 
     /// Which of the table's circuits it is.
     pub const fn part(self) -> Part {
-        self.part
+        match self.table.spec().circuit {
+            Some(_) => Part::Class,
+            None => Part::Operands,
+        }
     }
 
     /// Its position in protocol order.
     pub const fn index(self) -> usize {
-        match self.part {
-            Part::Class => self.table.index(),
-            Part::Clock => N_CIRCUITS + self.table.index(),
-        }
+        self.table.index()
     }
 
     /// `log2` of the bits one instance occupies.
     pub const fn k_log(self) -> usize {
         let spec = self.table.spec();
-        match (self.part, &spec.circuit) {
-            (Part::Class, Some(circuit)) => circuit.k_log,
-            (Part::Class, None) => unreachable!(),
-            (Part::Clock, _) => spec.clock_k_log,
+        match (&spec.circuit, &spec.operands) {
+            (Some(circuit), _) => circuit.k_log,
+            (None, Some(operands)) => operands.k_log,
+            (None, None) => panic!("a class has a class circuit or an operand circuit"),
         }
     }
 
@@ -128,11 +107,10 @@ impl FlockId {
     /// The table's spec fixes both, so the replay builds no circuit, and building the circuit checks them.
     pub const fn shape(self) -> Shape {
         let spec = self.table.spec();
-        let n_ports = match (self.part, &spec.circuit) {
-            (Part::Class, Some(circuit)) => circuit.inputs.len() + circuit.outputs.len(),
-            (Part::Class, None) => unreachable!(),
-            // The clock, each access's previous timestamp and the clock's own inputs, then the step and its own outputs.
-            (Part::Clock, _) => spec.n_accesses() + 2 + spec.clock_inputs.len() + spec.clock_outputs.len(),
+        let n_ports = match (&spec.circuit, &spec.operands) {
+            (Some(circuit), _) => circuit.inputs.len() + circuit.outputs.len(),
+            (None, Some(operands)) => operands.inputs.len() + operands.outputs.len(),
+            (None, None) => panic!("a class has a class circuit or an operand circuit"),
         };
         Shape {
             k_log: self.k_log(),
@@ -144,12 +122,13 @@ impl FlockId {
     pub fn circuit(self) -> &'static Circuit {
         static CIRCUITS: [OnceLock<Circuit>; N_FLOCKS] = [const { OnceLock::new() }; N_FLOCKS];
         CIRCUITS[self.index()].get_or_init(|| {
-            let (spec, part) = (self.table.spec(), self.part);
-            let (circuit, n_inputs) = match &spec.circuit {
-                Some(circuit) if part == Part::Class => (spec.class.circuit(), circuit.inputs.len()),
-                _ => (spec.clock_circuit(), 1 + spec.n_accesses() + spec.clock_inputs.len()),
+            let spec = self.table.spec();
+            let (circuit, n_inputs) = match (&spec.circuit, &spec.operands) {
+                (Some(circuit), _) => (spec.class.circuit(), circuit.inputs.len()),
+                (None, Some(operands)) => (crate::rv::Ext::operand_circuit(), operands.inputs.len()),
+                (None, None) => panic!("a class has a class circuit or an operand circuit"),
             };
-            let shape = self.shape();
+            let (shape, part) = (self.shape(), self.part());
             assert_eq!(
                 circuit.k_log(),
                 shape.k_log,
@@ -223,7 +202,7 @@ impl FlockId {
         p: &RiscvProgram,
         window: &mut [F64],
     ) -> Tables {
-        let (part, spec) = (self.part, self.table.spec());
+        let (part, spec) = (self.part(), self.table.spec());
         let n_blocks_log = spec.n_blocks_log(rows.len());
         assert_eq!(
             rows.len(),
@@ -233,13 +212,12 @@ impl FlockId {
         let circuit = self.circuit();
         let ports = self.table.class_table().ports(part);
         let n_inputs = circuit.n_input_words();
-        let slots = spec.slots();
         // The row's input words, one per input port.
         let input_words = |row: &S, words: &mut [u64]| {
             let row = view(row);
             let at = p.fetch(row.row.index as usize);
             for (word, &port) in words.iter_mut().zip(ports) {
-                *word = port.value(row, at, &slots);
+                *word = port.value(row, at);
             }
         };
         // What the circuit computed is what the interpreter did, or the bus would carry one and flock prove the other.
@@ -247,7 +225,7 @@ impl FlockId {
             let row = view(row);
             let at = p.fetch(row.row.index as usize);
             for (k, &port) in ports.iter().enumerate().skip(n_inputs) {
-                let expected = port.value(row, at, &slots);
+                let expected = port.value(row, at);
                 assert_eq!(
                     z[k], expected,
                     "{}'s {part:?} circuit disagrees with the interpreter on {port:?}",
@@ -261,11 +239,10 @@ impl FlockId {
             (Part::Class, Some(class)) => class.fill,
             _ => Fill::Walk,
         };
-        // A clock circuit, and a class with a word-level witness, skip the walk of the gate list;
+        // An operand circuit, and a class with a word-level witness, skip the walk of the gate list;
         // the others walk it 64 instances at a time.
         match (part, fill) {
-            // A clock circuit with ports of its own (EXT's) takes its input words through its ports.
-            (Part::Clock, _) if !spec.clock_inputs.is_empty() => circuit.witness_by_instance_into(
+            (Part::Operands, _) => circuit.witness_by_instance_into(
                 z,
                 rows,
                 &rows[0],
@@ -274,19 +251,7 @@ impl FlockId {
                     let mut words = [0u64; MAX_INPUT_WORDS];
                     let words = &mut words[..n_inputs];
                     input_words(row, words);
-                    spec.clock_witness(&slots, words, z, az, bz);
-                },
-                check,
-            ),
-            // The others read the row's clock and previous timestamps straight off it.
-            (Part::Clock, _) => circuit.witness_by_instance_into(
-                z,
-                rows,
-                &rows[0],
-                n_blocks_log,
-                |row, z, az, bz| {
-                    let row = view(row);
-                    Clock::witness(&slots, row.row.ts, &row.prev()[..slots.len()], z, az, bz);
+                    crate::rv::Ext::operand_witness(words, z, az, bz);
                 },
                 check,
             ),

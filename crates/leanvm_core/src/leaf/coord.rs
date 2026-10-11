@@ -9,7 +9,7 @@ use std::sync::{Arc, OnceLock};
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
 pub enum Coord {
-    /// A public constant (domain separator, opcode, a seed's timestamp).
+    /// A public constant (domain separator, opcode, a position).
     Const(F64),
     /// A committed column, value `col[z]`.
     Col(usize),
@@ -81,6 +81,24 @@ impl PublicColumns for Native {}
 impl PublicColumns for VerifierState<'_> {}
 
 impl Coord {
+    /// The coordinate on a table's row, its columns' values given.
+    ///
+    /// # Panics
+    ///
+    /// Panics on a coordinate no table carries.
+    pub fn value(&self, row: &[F64]) -> F64 {
+        match self {
+            Self::Const(c) => *c,
+            Self::Col(i) => row[*i],
+            Self::Prod(i, j) => row[*i] * row[*j],
+            Self::Scaled(c, i) => *c * row[*i],
+            Self::Sum(terms) => terms.iter().fold(F64::ZERO, |acc, t| acc + t.value(row)),
+            Self::IntIndex { .. } | Self::Public(_) | Self::Sparse(_) => {
+                unreachable!("a table carries no indexed coordinate")
+            }
+        }
+    }
+
     /// Whether the coordinate is linear in the columns: it multiplies no column by another.
     pub fn is_linear(&self) -> bool {
         match self {

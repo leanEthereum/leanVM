@@ -6,19 +6,20 @@
 //!
 //! Each completes an identity the full verifier checks whole:
 //!
-//! - the table sumcheck's final identity, short of the bytecode producer's program columns and of RAM's image in its target;
+//! - the table sumcheck's final identity, short of the bytecode producer's program columns;
+//! - the memory log's evaluation sumcheck, short of RAM's image in its first claim;
 //! - each flock circuit's lincheck terminal identity, short of the bilinear form `u^T (A_0 + alpha B_0) w` of its matrices.
 //!
 //! Lincheck's `C` is the identity, whose form is closed and stays in the core.
 
 use super::batch::FormPowers;
-use super::layout::Lookup;
+use super::layout::{Lookup, ProgramView};
 use super::{CpuError, Program};
 use crate::class_flock::{FlockId, N_FLOCKS};
 use crate::constraints::{ConstraintError, Final};
 use crate::leaf;
 use crate::leaf::{BusVerify, N_TUPLE_BITS, SparseColumn};
-use crate::rv::RiscvProgram;
+use crate::memory::ImageClaim;
 use crate::tables::{N_TABLES, Part};
 use fiat_shamir::arith::Arith;
 use flock::FlockError;
@@ -80,7 +81,7 @@ impl<E: Copy> ProgramPoint<E> {
 pub struct DeferredClaims<E = F192> {
     /// The claim on the program's bytecode table and RAM image.
     pub program: Claim<ProgramPoint<E>, E>,
-    /// One claim per packed witness, class circuits then clock circuits, on its circuit's matrix form.
+    /// One claim per packed witness, in table order, on its circuit's matrix form.
     pub circuits: Vec<Claim<MatrixForm<E>, E>>,
 }
 
@@ -128,7 +129,8 @@ pub enum MalformedClaim {
 
 impl ProgramPoint {
     /// The value of the program's fixed polynomials at this point, if the point has the program's shape.
-    fn evaluate(&self, rv: &RiscvProgram) -> Option<F192> {
+    fn evaluate(&self, view: &ProgramView<'_>) -> Option<F192> {
+        let rv = view.rv;
         let kbc = crate::log2_strict_usize(rv.entries().len());
         // A multiplicity is one word, so it has at most 64 bits.
         if self.bytecode.len() != kbc + N_TUPLE_BITS || self.image_point.len() != rv.log_ram() || self.twist.len() > 64
@@ -137,7 +139,7 @@ impl ProgramPoint {
         }
         let (chi, alphas) = self.bytecode.split_at(kbc);
         let weights = leaf::fingerprint_weights(alphas);
-        let bytecode = leaf::producer_public_twist(&Lookup::Bytecode.tuple(rv), &weights, chi, &self.twist);
+        let bytecode = leaf::producer_public_twist(&Lookup::Bytecode.tuple(view), &weights, chi, &self.twist);
         let image = SparseColumn::new(rv.log_ram(), &[(0, rv.image())]);
         Some(bytecode + self.image_weight * image.eval(&self.image_point))
     }
@@ -148,15 +150,18 @@ impl<E: Copy> Claim<ProgramPoint<E>, E> {
     ///
     /// - The producer's summand `sum_i c_i (1 + b_i P'_i)` takes each program column `P'_i` at weight `c_i b_i`.
     /// - RAM's image is out of the bus target, and reaches the final claim at the target's weight.
+    ///
+    /// The two identities are batched by `lw_img`, drawn after both: each one's error is fixed before it.
     pub(crate) fn from_table_sumcheck<A: Arith<E = E>>(
         a: &mut A,
         bus: &BusVerify<E>,
         table_sumcheck: &Final<E>,
         powers: FormPowers<E>,
+        image: &ImageClaim<E>,
+        lw_img: E,
     ) -> Self {
-        let [coefficients] = &bus.producers[..] else {
-            unreachable!("one lookup array, the bytecode")
-        };
+        // The bytecode's producer is the first, whose program columns the claim takes.
+        let coefficients = &bus.producers[0];
         // The producer's air follows the tables'.
         let air = N_TABLES;
         let (weight, producer) = (table_sumcheck.weights[air], &table_sumcheck.claims[air]);
@@ -167,19 +172,15 @@ impl<E: Copy> Claim<ProgramPoint<E>, E> {
                 a.mul(pushed, b)
             })
             .collect();
-        let mut shares = (0..2).flat_map(|s| bus.sparse[s].iter().map(move |share| (s, share)));
-        let (Some((side, image)), None) = (shares.next(), shares.next()) else {
-            unreachable!("RAM's image is the one sparse column, seeded once")
-        };
-        let sided = a.mul(table_sumcheck.target_weight, powers.side(side));
+        let value = a.mul_add(lw_img, image.value, table_sumcheck.residual);
         Self {
             point: ProgramPoint {
                 bytecode: [&producer.chi[..], &bus.alphas[..]].concat(),
                 twist,
-                image_weight: a.mul(sided, image.weight),
+                image_weight: a.mul(lw_img, image.weight),
                 image_point: image.point.clone(),
             },
-            value: table_sumcheck.residual,
+            value,
         }
     }
 }
@@ -211,7 +212,7 @@ impl Program {
         }
 
         let program = (claims.program.point)
-            .evaluate(self.rv())
+            .evaluate(&self.view())
             .ok_or(CpuError::MalformedClaim(MalformedClaim::ProgramPoint))?;
         if program != claims.program.value {
             return Err(CpuError::Constraint(ConstraintError::FinalMismatch));
@@ -255,13 +256,13 @@ mod tests {
             .exit()
             .finish();
         let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
-        let rv = program.rv();
+        let (rv, view) = (program.rv(), program.view());
         let kbc = crate::log2_strict_usize(rv.entries().len());
         let mut rng = Rng::new(5);
         let (chi, alphas) = (rng.ext_vec(kbc), rng.ext_vec(N_TUPLE_BITS));
         let weights = leaf::fingerprint_weights(&alphas);
-        let tuple = Lookup::Bytecode.tuple(rv);
-        let table = Lookup::Bytecode.table(rv);
+        let tuple = Lookup::Bytecode.tuple(&view);
+        let table = Lookup::Bytecode.table(&view);
 
         // `c(x) = T(x, alpha)`, raised to `2^i` entry by entry: bit `i`'s public column.
         let eq = eq_table(&chi);

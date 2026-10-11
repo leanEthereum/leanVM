@@ -1,8 +1,10 @@
 //! Why a run has no proof, why proof bytes decode to none, and why a proof does not verify.
 
 use super::deferred::MalformedClaim;
+use super::layout::Log;
 use crate::constraints::ConstraintError;
 use crate::leaf::BusError;
+use crate::memory::MemoryError;
 use crate::pcs::Rate;
 use crate::rec::RecError;
 use crate::rv::Trap;
@@ -58,9 +60,15 @@ pub enum CpuError {
         /// The announced base-two logarithm of the inverse rate.
         log_inv_rate: usize,
     },
-    /// The announced final clock is not live: bit 40 alone above the cycle, and slot zero.
-    #[error("the announced final clock is not a live clock")]
-    FinalClock,
+    /// A log's announced height is outside what the arithmetization expresses.
+    #[error("a log announces 2^{log_rows} rows, outside its range")]
+    LogHeight {
+        /// The announced base-two logarithm of rows.
+        log_rows: usize,
+    },
+    /// The announced live rows are none for the register log, or more than a log holds.
+    #[error("a log's announced live rows do not fit it")]
+    LiveRows,
     /// The announced heights stack to a witness the commitment does not take.
     #[error("the witness has 2^{mu} words, outside 2^{min}..=2^{max}", min = crate::pcs::MIN_MU, max = crate::pcs::MAX_MU)]
     WitnessSize {
@@ -76,6 +84,14 @@ pub enum CpuError {
     /// The table constraints do not hold.
     #[error("the table constraints: {0}")]
     Constraint(ConstraintError),
+    /// A memory log's argument is rejected.
+    #[error("the {log:?} log: {error}")]
+    Memory {
+        /// The log.
+        log: Log,
+        /// Why its argument refuses.
+        error: MemoryError,
+    },
     /// The circuits' batched reductions are rejected.
     #[error("the circuits' reductions: {0}")]
     Reductions(FlockError),

@@ -2,11 +2,13 @@
 
 use super::bus::{FlushBuilder, Separator};
 use super::columns::Columns;
+use super::spec::Ram;
 use super::{BAD_SLOT, EXIT_SLOT, Part, PerTable, TableId, Word};
 use crate::constraints::{BitColumns, BitField};
+use crate::cpu::{Payload, RowRef};
 use crate::leaf::BusForm;
-use crate::leaf::Coord::{self, Col, Const, Scaled};
-use crate::rv::{Ext, Hash, Reg, RegisterFile};
+use crate::leaf::Coord::{self, Col, Const, Scaled, Sum};
+use crate::rv::{Ext, Hash, Reg, RegisterFile, RiscvProgram};
 use primitives::field::{F64, F192, g_pow};
 use std::sync::OnceLock;
 
@@ -23,8 +25,8 @@ pub struct ClassTable {
     /// Class circuit ports in input-then-output order.
     class_ports: Vec<Word>,
 
-    /// Clock circuit ports in input-then-output order.
-    clock_ports: Vec<Word>,
+    /// Operand circuit ports in input-then-output order.
+    operand_ports: Vec<Word>,
 }
 
 impl ClassTable {
@@ -43,37 +45,10 @@ impl ClassTable {
             id,
             cols,
             class_ports: spec.ports().collect(),
-            clock_ports: spec.clock_ports(),
+            operand_ports: spec.operand_ports().collect(),
         };
-        table.assert_x0_is_constant();
         table.assert_linear_if_circuit();
         table
-    }
-
-    /// Asserts that no access of the table can change register cell 0, `x0`.
-    ///
-    /// - A read pushes back the value it pulls.
-    /// - A register access that changes its cell does so at the entry's destination, which the decoder keeps in `1..=32`.
-    ///
-    /// So `x0` keeps its zero seed, which a base-field extension operand's high limbs read.
-    ///
-    /// # Panics
-    ///
-    /// Panics if an access that may reach the registers changes its cell elsewhere than at the entry's destination.
-    fn assert_x0_is_constant(&self) {
-        let bus = self.flushes();
-        let destination = &bus.pull[1][Self::DESTINATION_SLOT];
-        // Pushes are the state, then the accesses; pulls are the state, the bytecode, then the accesses.
-        for (push, pull) in bus.push[1..].iter().zip(&bus.pull[2..]) {
-            let memory = matches!(push[0], Const(sep) if sep == Separator::Memory.value());
-            let read = matches!((&pull[3], &push[3]), (Col(old), Col(new)) if old == new);
-            let at_destination = matches!((&push[1], destination), (Col(at), Col(ad)) if at == ad);
-            assert!(
-                memory || read || at_destination,
-                "{} writes a register other than its destination",
-                self.id.spec().name
-            );
-        }
     }
 
     /// The register numbers a row reads off its entry: `a1`, then `a2` and `ad` where the row has them.
@@ -165,7 +140,7 @@ impl ClassTable {
     pub fn ports(&self, part: Part) -> &[Word] {
         match part {
             Part::Class => &self.class_ports,
-            Part::Clock => &self.clock_ports,
+            Part::Operands => &self.operand_ports,
         }
     }
 
@@ -177,27 +152,113 @@ impl ClassTable {
             .filter_map(|(port, &w)| Some((port, self.cols.column(w)?)))
     }
 
-    /// Build the state transition, bytecode lookup, and ordered memory accesses.
+    /// Build the state transition, the bytecode lookup, and the pulls of the logs' accesses.
     pub(crate) fn flushes(&self) -> FlushBuilder {
         let mut bus = FlushBuilder::new();
         self.flush_state(&mut bus);
-        bus.read(self.bytecode_tuple());
-        self.flush_accesses(&mut bus);
+        bus.pull(self.bytecode_tuple());
+        bus.pull(self.register_cycle());
+        self.flush_memory(&mut bus);
         bus
     }
 
-    /// Bind the next instruction and clock to the current state.
+    /// Bind the next instruction, the next cycle and the next memory position to the current state.
     ///
     /// The successor is linear in the row's columns: `pc + 4`, plus the circuit's jump for a class with control flow.
     fn flush_state(&self, bus: &mut FlushBuilder) {
         let c = &self.cols;
         let npc = c.control.map_or(Col(c.pc4), |control| control.next_pc(c.pc4));
         let exit = c.control.map_or(Const(F64::ZERO), |control| Col(control.exit));
-        bus.state(c.pc, c.ts, c.step, npc, exit);
+        bus.state(
+            c.pc,
+            c.time,
+            c.position,
+            npc,
+            self.access_position(self.id.spec().ram.accesses()),
+            exit,
+        );
     }
 
-    /// The bytecode tuple's coordinate holding the cell the entry writes.
-    pub(crate) const DESTINATION_SLOT: usize = 6;
+    /// The memory position of the row's access `k`, or for `k` its accesses past the last.
+    ///
+    /// A base-field extension operand's two high limbs are no access, so the accesses after them move back two.
+    fn access_position(&self, k: usize) -> Coord {
+        let c = &self.cols;
+        let scaled = |k: usize, col: usize| if k == 0 { Col(col) } else { Scaled(g_pow(k), col) };
+        match (self.id.spec().ram, c.limbs) {
+            (Ram::Limbs, Some(limbs)) => match k {
+                0..=3 => scaled(k, c.position),
+                4 | 5 => Sum(vec![scaled(k, c.position), scaled(k, limbs.base_position)]),
+                _ => Sum(vec![
+                    scaled(k, c.position),
+                    Scaled(g_pow(k - 2) + g_pow(k), limbs.base_position),
+                ]),
+            },
+            _ => scaled(k, c.position),
+        }
+    }
+
+    /// The register log's cycle the row is: its register numbers around its position, the values read, then the value
+    /// written.
+    ///
+    /// A row without an `rs2` read reads `x0`, one without a write writes zero to the sink, and a row reading an
+    /// address in `rd` is under the pointer separator, which forbids its write.
+    fn register_cycle(&self) -> Vec<Coord> {
+        let c = &self.cols;
+        let separator = if c.pointer.is_some() {
+            Separator::Pointer
+        } else {
+            Separator::Registers
+        };
+        let (ad, written) = match (c.rd, c.pointer) {
+            (Some(rd), _) => (Col(rd.ad), Col(rd.out)),
+            (_, Some(p)) => (Col(p.ad), Col(p.vd)),
+            _ => (Const(F64(RegisterFile::SINK as u64)), Const(F64::ZERO)),
+        };
+        vec![
+            separator.coordinate(),
+            Col(c.a1),
+            Col(c.time),
+            c.rs2.map_or(Const(F64::ZERO), |r| Col(r.a2)),
+            ad,
+            Col(c.v1),
+            c.rs2.map_or(Const(F64::ZERO), |r| Col(r.v2)),
+            written,
+        ]
+    }
+
+    /// Pull each of the row's memory accesses at its position: the address, the cell before, then after.
+    ///
+    /// Misaligned or unmapped addresses name no cell of the log.
+    fn flush_memory(&self, bus: &mut FlushBuilder) {
+        let c = &self.cols;
+        let mut access = |k: usize, address: Coord, old: usize, new: usize| {
+            bus.pull(vec![
+                Separator::Memory.coordinate(),
+                address,
+                self.access_position(k),
+                Col(old),
+                Col(new),
+            ]);
+        };
+        if let Some(ram) = c.ram {
+            access(0, Col(ram.address), ram.cell, ram.new);
+        }
+        // The hash's block: word `k` at `v1 ^ 8k`, which is `v1 + 8k` in the field.
+        if let Some(block) = c.block {
+            for k in 0..Hash::WORDS {
+                let address = Sum(vec![Col(c.v1), Const(F64(8 * k as u64))]);
+                access(k, address, block.words + k, block.left(k));
+            }
+        }
+        // The limbs: each operand's first at its pointer, the others at the addresses the operand circuit computes.
+        if let (Some(limbs), Some(r), Some(p)) = (c.limbs, c.rs2, c.pointer) {
+            let pointers = [c.v1, r.v2, p.vd];
+            for k in 0..Ext::LIMBS {
+                access(k, Col(limbs.address(k, pointers)), limbs.limbs + k, limbs.left(k));
+            }
+        }
+    }
 
     /// Read the public decoded entry, using constants for absent register and circuit ports.
     fn bytecode_tuple(&self) -> Vec<Coord> {
@@ -231,71 +292,96 @@ impl ClassTable {
         entry
     }
 
-    /// Bind register, cell, block, and limb values to their ordered memory accesses.
-    fn flush_accesses(&self, bus: &mut FlushBuilder) {
-        let c = &self.cols;
-        // The accesses' columns are in the order the row makes them.
-        let mut accesses = bus.accesses(c.ts, c.prev, self.id.spec().slots());
-        accesses.read(Separator::Registers.coordinate(), Col(c.a1), Col(c.v1));
-        if let Some(r) = c.rs2 {
-            accesses.read(Separator::Registers.coordinate(), Col(r.a2), Col(r.v2));
+    /// Every local column of one row: what the table's fill writes for it.
+    pub(crate) fn row_columns(&self, p: &RiscvProgram, r: RowRef<'_>) -> Vec<F64> {
+        let (c, row) = (&self.cols, r.row);
+        let at = p.fetch(row.index as usize);
+        let (e, pc) = (at.entry, p.pc_of(row.index as usize));
+        let mut out = vec![F64::ZERO; self.n_committed_columns()];
+        for (col, value) in [
+            (c.pc, pc),
+            (c.time, row.time),
+            (c.position, row.position),
+            (c.a1, e.a1 as u64),
+            (c.pc4, pc.wrapping_add(4)),
+            (c.v1, row.v1),
+        ] {
+            out[col] = F64(value);
         }
-        // The destination receives the circuit's output, which is the link of a jump that links.
+        let mut set = |col: usize, word: Word| out[col] = F64(word.value(r, at));
+        if let Some(flags) = c.flags {
+            set(flags, Word::Flags);
+        }
+        if let Some(rs2) = c.rs2 {
+            set(rs2.v2, Word::V2);
+        }
         if let Some(rd) = c.rd {
-            accesses.write(
-                Separator::Registers.coordinate(),
-                Col(rd.ad),
-                Col(rd.vd_old),
-                Col(rd.out),
-            );
+            set(rd.out, Word::Out);
         }
-        // An address in `rd` is read and written back as found.
-        if let Some(p) = c.pointer {
-            accesses.read(Separator::Registers.coordinate(), Col(p.ad), Col(p.vd));
+        if let Some(pointer) = c.pointer {
+            set(pointer.vd, Word::Dest);
         }
-        // Misaligned or unmapped addresses name no seeded cell.
-        // Doubleword moves share their value column on the read and write sides.
+        if let Some(k) = c.control {
+            set(k.dt, Word::Dt);
+            set(k.jump, Word::Jump);
+        }
+        if let Some(imm) = c.imm {
+            set(imm, Word::Imm);
+        }
         if let Some(ram) = c.ram {
-            accesses.write(
-                Separator::Memory.coordinate(),
-                Col(ram.address),
-                Col(ram.cell),
-                Col(ram.new),
-            );
+            set(ram.address, Word::Address);
+            set(ram.cell, Word::Cell(0));
+            set(ram.new, Word::CellNew(0));
         }
-        // The hash's block: word `k` at `v1 ^ 8k`, which is `v1 + 8k` in the field.
         if let Some(block) = c.block {
             for k in 0..Hash::WORDS {
-                let addr = Coord::Sum(vec![Col(c.v1), Const(F64(8 * k as u64))]);
-                accesses.write(
-                    Separator::Memory.coordinate(),
-                    addr,
-                    Col(block.words + k),
-                    Col(block.left(k)),
-                );
+                set(block.words + k, Word::Cell(k as u8));
+                set(block.left(k), Word::CellNew(k as u8));
             }
         }
-        // The limbs: each operand's first at its pointer, the others at the addresses the clock circuit computes.
-        //
-        // A base-field `b`'s high limbs are reads of `x0`, at the address zero the clock circuit gives them, under a
-        // separator that is a form in the bit `base`, which picks the registers over memory:
-        //
-        //     separator   memory + base·(memory + registers)
-        if let (Some(limbs), Some(r), Some(p), Some(bits)) = (c.limbs, c.rs2, c.pointer, c.flag_bits) {
-            let pointers = [c.v1, r.v2, p.vd];
-            let (memory, registers) = (Separator::Memory.value(), Separator::Registers.value());
-            let base = bits + 1;
+        if let Some(bits) = c.flag_bits {
+            set(bits, Word::FlagBit(0));
+            set(bits + 1, Word::FlagBit(1));
+        }
+        if let Some(limbs) = c.limbs {
+            for (i, &k) in Ext::OFFSET_LIMBS.iter().enumerate() {
+                set(limbs.addresses + i, Word::LimbAddress(k as u8));
+            }
+        }
+        for (col, number) in [
+            (c.rs2.map(|r| r.a2), e.a2),
+            (c.rd.map(|rd| rd.ad), e.ad),
+            (c.pointer.map(|p| p.ad), e.ad),
+        ] {
+            if let Some(col) = col {
+                out[col] = F64(u64::from(number));
+            }
+        }
+        if let Some(k) = c.control {
+            out[k.exit] = F64(u64::from(e.is_exit()));
+        }
+        if let (Some(limbs), Payload::Ext(ext)) = (c.limbs, r.payload) {
             for k in 0..Ext::LIMBS {
-                let sep = if k / 3 == 1 && k % 3 > 0 {
-                    Coord::Sum(vec![Const(memory), Scaled(memory + registers, base)])
-                } else {
-                    Separator::Memory.coordinate()
-                };
-                let addr = Col(limbs.address(k, pointers));
-                accesses.write(sep, addr, Col(limbs.limbs + k), Col(limbs.left(k)));
+                out[limbs.limbs + k] = F64(ext.instance.limbs[k]);
             }
+            for k in 0..3 {
+                out[limbs.new + k] = F64(ext.c[k]);
+            }
+            out[limbs.base_position] = if e.flags & Ext::BASE != 0 {
+                F64(row.position)
+            } else {
+                F64::ZERO
+            };
         }
-        accesses.finish();
+        out
+    }
+
+    /// The register cycle and memory accesses a row with these columns pulls from the logs.
+    pub(crate) fn link_tuples(&self, row: &[F64]) -> Vec<Vec<F64>> {
+        self.flushes().pull[2..]
+            .iter()
+            .map(|tuple| tuple.iter().map(|c| c.value(row)).collect())
+            .collect()
     }
 
     /// The identities the table proves of every one of its rows, in local column indices: none for a class with a
@@ -311,37 +397,41 @@ impl ClassTable {
     /// ```
     ///
     /// Each form is the difference of the two sides, which vanishes on a row exactly when the row's new limb is its
-    /// product: degree 2, every coefficient one. A base-field `b`'s high limbs are zero, being reads of `x0`.
+    /// product: degree 2, every coefficient one. A base-field `b`'s high limbs are zero, the padding producer's.
+    ///
+    /// A last identity defines `base_position = base position`, the memory positions a base-field `b` skips.
     pub(crate) fn identities(&self) -> Vec<BusForm> {
         let c = &self.cols;
         let (Some(limbs), Some(bits)) = (c.limbs, c.flag_bits) else {
             return Vec::new();
         };
         let (a, b, old) = (limbs.limbs, limbs.limbs + 3, limbs.limbs + 6);
-        (0..3)
-            .map(|i| {
-                let mut form = BusForm::new(self.n_committed_columns(), F192::ZERO);
-                form.coeffs[limbs.new + i] = F192::ONE;
-                form.prods.push((bits, old + i, F192::ONE));
-                for (j, k) in (0..3).flat_map(|j| (0..3).map(move |k| (j, k))) {
-                    let lands = match j + k {
-                        3 => i < 2,
-                        4 => i > 0,
-                        m => m == i,
-                    };
-                    if lands {
-                        form.prods.push((a + j, b + k, F192::ONE));
-                    }
+        // `base_position = base position`, which skips a base-field `b`'s high limbs.
+        let mut base_position = BusForm::new(self.n_committed_columns(), F192::ZERO);
+        base_position.coeffs[limbs.base_position] = F192::ONE;
+        base_position.prods.push((bits + 1, c.position, F192::ONE));
+        let products = (0..3).map(|i| {
+            let mut form = BusForm::new(self.n_committed_columns(), F192::ZERO);
+            form.coeffs[limbs.new + i] = F192::ONE;
+            form.prods.push((bits, old + i, F192::ONE));
+            for (j, k) in (0..3).flat_map(|j| (0..3).map(move |k| (j, k))) {
+                let lands = match j + k {
+                    3 => i < 2,
+                    4 => i > 0,
+                    m => m == i,
+                };
+                if lands {
+                    form.prods.push((a + j, b + k, F192::ONE));
                 }
-                form
-            })
-            .collect()
+            }
+            form
+        });
+        products.chain([base_position]).collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::Clock;
     use super::*;
     use crate::colval::ColVal;
 
@@ -361,19 +451,15 @@ mod tests {
     fn every_table_binds_its_ports_and_accesses_within_its_local_columns() {
         for (_, table) in ClassTable::all().iter() {
             let width = table.n_committed_columns();
-            let accesses = table.id.spec().n_accesses();
-            let slots = table.id.spec().slots();
-            assert_eq!(slots.len(), accesses);
-            assert!(slots.iter().all(|&slot| slot < 1 << Clock::SLOT_BITS));
-            for part in [Part::Class, Part::Clock] {
+            for part in [Part::Class, Part::Operands] {
                 for (_, column) in table.word_columns(part) {
                     assert!(column < width);
                 }
             }
-            // A row pulls state and bytecode, then pulls and pushes one tuple per access.
+            // A row pushes its successor, and pulls its state, its entry, its register cycle and each memory access.
             let bus = table.flushes();
-            assert_eq!(bus.push.len(), 1 + accesses);
-            assert_eq!(bus.pull.len(), 2 + accesses);
+            assert_eq!(bus.push.len(), 1);
+            assert_eq!(bus.pull.len(), 3 + table.id.spec().ram.accesses());
             assert_eq!(bus.pull[1].len(), EXIT_SLOT + 1);
             for tuple in bus.push.iter().chain(&bus.pull) {
                 for coordinate in tuple {
@@ -405,7 +491,7 @@ mod tests {
             row[cols.new..cols.new + 3].copy_from_slice(&Ext { flags, pointers: [0; 3], limbs }.eval().map(F64));
             (row[bits], row[bits + 1]) = (F64(flags & 1), F64(flags >> 1));
             let values = |row: &[F64]| table.identities().iter().map(|form| <F64 as ColVal>::reduce(form.eval_unreduced(row, false))).collect::<Vec<_>>();
-            proptest::prop_assert_eq!(values(&row), vec![F192::ZERO; 3]);
+            proptest::prop_assert_eq!(values(&row), vec![F192::ZERO; 4]);
             row[cols.new + wrong].0 ^= 1 << bit;
             let values = values(&row);
             for (i, value) in values.into_iter().enumerate() {

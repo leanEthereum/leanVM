@@ -2,9 +2,10 @@
 
 use super::MAX_LOG_ROWS;
 use super::execute::Execution;
-use super::layout::{Layout, Lookup, Schema, Shared, q_column};
+use super::layout::{Layout, Log, Lookup, Schema, Shared, padding_multiplicities, q_column};
 use super::program::Program;
 use crate::class_flock::FlockId;
+use crate::memory::LogWitness;
 use crate::tables::{ClassTable, FillContext, PerTable, TableId};
 use flock::Tables;
 use primitives::field::F64;
@@ -21,8 +22,8 @@ pub(crate) struct Witness {
     pub(crate) virt: Vec<(usize, Vec<F64>)>,
     /// The public structure the witness fills.
     pub(crate) layout: Layout,
-    /// The clock the run ended on, which the prover announces.
-    pub(crate) ts_final: u64,
+    /// Each log's rows, its dead rows included.
+    pub(crate) logs: [LogWitness; 2],
     /// Every circuit's flock batch but its `z`, which is its committed column, in [`FlockId::ALL`] order; freed right
     /// after the batched reduction.
     pub(crate) reductions: Vec<Tables>,
@@ -60,8 +61,16 @@ impl Witness {
             tau
         });
 
+        // Each log at its height, its dead rows read cell zero and write nothing.
+        let logs = [&trace.registers, &trace.memory].map(|log| log.padded(1 << Log::log_rows(log.live)));
+
         // The public layout comes first: it fixes each column's length, so each is allocated once.
-        let layout = Layout::new(p, taus, trace.ts_final);
+        let view = program.view();
+        let layout = Layout::new(
+            &view,
+            taus,
+            logs.each_ref().map(|log| crate::log2_strict_usize(log.inc.len())),
+        );
 
         // The stack is written exactly once: one window per committed column, each filled in place.
         let mut q = Box::new_uninit_slice(layout.shape.committed_len());
@@ -91,14 +100,23 @@ impl Witness {
             }
 
             // Every shared column is written: the stack is uninitialized, so one left out would read garbage.
-            for c in Shared::ALL {
-                if let Some(values) = c.values(trace) {
-                    windows[c.col()].copy_from_slice(values);
-                }
-            }
-
-            // What the run did not leave, the multiplicities, is counted from its rows.
+            let advice = &mut windows[Shared::AdvInit.col()];
+            advice[..trace.adv_init.len()].copy_from_slice(&trace.adv_init);
+            advice[trace.adv_init.len()..].fill(F64::ZERO);
             trace.count_reads(windows[Lookup::Bytecode.multiplicity().col()]);
+            windows[Lookup::Padding.multiplicity().col()].copy_from_slice(&padding_multiplicities(&view, trace));
+            // Each log's column: every group's chunks' one-hot words, then the increments, then zeros.
+            for (log, witness) in Log::ALL.iter().zip(&logs) {
+                let (shape, rows) = (&layout.logs[*log as usize], witness.inc.len());
+                let (words, rest) = windows[log.column().col()].split_at_mut(shape.groups() * shape.chunks() * rows);
+                for (slot, out) in words.chunks_exact_mut(rows).enumerate() {
+                    witness.address_words(slot / shape.chunks(), slot % shape.chunks(), out);
+                }
+                let (inc, tail) = rest.split_at_mut(rows);
+                inc.copy_from_slice(&witness.inc);
+                tail.fill(F64::ZERO);
+            }
+            logs[0].flag_words(windows[Shared::RegisterFlags.col()]);
 
             // The tables' register numbers, packed into their words.
             for word in &layout.registers {
@@ -128,7 +146,7 @@ impl Witness {
             q,
             virt,
             layout,
-            ts_final: trace.ts_final,
+            logs,
             reductions,
         }
     }

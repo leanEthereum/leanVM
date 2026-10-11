@@ -674,10 +674,6 @@ pub struct Final<E = F192> {
     /// It is zero when the identity holds as the airs and the target stand.
     /// Otherwise it is what the parts the caller left out owe: an air's through its summand, the target's times its weight.
     pub residual: E,
-    /// What the final claim moves by per unit of target.
-    ///
-    /// It is the product of the round challenges, since each round's claim fixes the linear coefficient of its polynomial.
-    pub target_weight: E,
 }
 
 /// Verify the table sumcheck.
@@ -738,12 +734,10 @@ pub fn verify<V: Verifier, S: Residual<V>>(
         residual = v.mul_add(weight, summand, residual);
         claims.push(table);
     }
-    let target_weight = v.product(&chi);
     Ok(Final {
         claims,
         weights,
         residual,
-        target_weight,
     })
 }
 

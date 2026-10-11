@@ -28,7 +28,7 @@ pub(crate) use coord::PublicColumns;
 pub use coord::{Coord, PublicColumn, SparseColumn};
 pub(crate) use decompose::producer_public_twist;
 pub use decompose::{BusForm, PackedForm, SparseShare, producer_affine_evals};
-pub use layout::{Block, Layout, N_TUPLE_BITS, Producer, fingerprint_weights, layout, stacked_bytecode_table};
+pub use layout::{Block, Layout, N_TUPLE_BITS, Owner, Producer, fingerprint_weights, layout, stacked_bytecode_table};
 pub use leaves::{build_leaves, producer_columns};
 
 use layout::check_soundness;
@@ -74,6 +74,15 @@ struct Openings<E> {
     /// The side's blocks' selectors, in order.
     selectors: Vec<E>,
     sparse: Vec<SparseShare<E>>,
+    /// The memory logs' blocks' leaves at the bus point, in log order.
+    logs: Vec<LogShare<E>>,
+}
+
+/// A memory log's block's leaves at a prefix of the bus point, which the log's argument settles.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LogShare<E = F192> {
+    pub point: Vec<E>,
+    pub value: E,
 }
 
 impl<E: Copy> Openings<E> {
@@ -98,6 +107,7 @@ impl<E> Default for Openings<E> {
             producers: Vec::new(),
             selectors: Vec::new(),
             sparse: Vec::new(),
+            logs: Vec::new(),
         }
     }
 }
@@ -184,6 +194,8 @@ pub struct ProducerProof {
 /// producers' share of the push side.
 pub struct BusProof {
     pub claims: Vec<ColumnClaim>,
+    /// The memory logs' blocks' leaves at the bus point.
+    pub logs: Vec<LogShare>,
     /// The GKR point ζ: the zerocheck reuses it, so no fresh point is sampled.
     pub point: Vec<F192>,
     /// `forms[side][table]`, in `[push, pull]` order.
@@ -204,12 +216,19 @@ pub struct BusProof {
 }
 
 /// Prove the bus balances, after a proof of work of the given bits when there are any.
+///
+/// `logs` gives each memory log's leaves under the fingerprint's weights and shift.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the sides, the columns, the logs and the transcript"
+)]
 pub fn prove_balance(
     push: &[Block],
     pull: &[Block],
     producers: &[Producer],
     grinding: u32,
     cols: &[&[F64]],
+    logs: impl FnOnce(&[F192], F192) -> Vec<Vec<F192>>,
     tables: &[(usize, usize)],
     ps: &mut ProverState,
 ) -> BusProof {
@@ -224,6 +243,9 @@ pub fn prove_balance(
         alphas,
         beta: ps.sample(),
     };
+    // The logs' leaves, under the fingerprint.
+    let logs = logs(&fp.w, fp.beta);
+    let logs = logs.as_slice();
     // Two independent leaf vectors, built one after another: each `build_leaves`
     // already fans its own blocks out across the whole pool, so nesting an outer
     // split on top would only add a barrier. The all-one padding stays implicit.
@@ -231,7 +253,7 @@ pub fn prove_balance(
         setup
             .sides
             .each_ref()
-            .map(|side| build_leaves(side.blocks, side.producers, &side.lay, cols, &fp.w, fp.beta))
+            .map(|side| build_leaves(side.blocks, side.producers, &side.lay, cols, logs, &fp.w, fp.beta))
     });
     // Both trees run as ONE RLC-batched GKR, the shorter padded, so every claim lands
     // on ONE point ζ.
@@ -251,7 +273,7 @@ pub fn prove_balance(
     let mut open = Openings::default();
     info_span!("Bus decompose").in_scope(|| {
         for (s, side) in setup.sides.iter().enumerate() {
-            frameworks[s] = side.decompose_prove(&fp, cols, &bus_gkr.point, tables, &mut forms[s], &mut open, ps);
+            frameworks[s] = side.decompose_prove(&fp, cols, &bus_gkr.point, tables, &mut forms[s], &mut open, logs, ps);
         }
     });
     let (table_evals, prod_sums) = tables_and_prods_at(cols, tables, &forms, &bus_gkr.point);
@@ -305,6 +327,7 @@ pub fn prove_balance(
 
     BusProof {
         claims: open.claims,
+        logs: open.logs,
         point: bus_gkr.point,
         forms,
         evals: table_evals,
@@ -403,6 +426,8 @@ fn tables_and_prods_at(
 /// table forms with their claimed sums.
 pub struct BusVerify<E = F192> {
     pub claims: Vec<ColumnClaim<E>>,
+    /// The memory logs' blocks' leaves at the bus point.
+    pub logs: Vec<LogShare<E>>,
     /// The GKR point ζ, reused as the table sumcheck's eq point.
     pub point: Vec<E>,
     /// `forms[side][table]`, for the zerocheck to settle.
@@ -479,6 +504,7 @@ pub fn verify_balance<V: Verifier + PublicColumns>(
 
     Ok(BusVerify {
         claims: open.claims,
+        logs: open.logs,
         point: bus_gkr.point,
         forms,
         producers: open.producers,
@@ -496,10 +522,10 @@ pub(crate) mod tests {
     use super::layout::{BUS_SOUNDNESS_BITS, soundness_bits};
     use super::leaves::tuple_leaves;
     use super::{
-        Block, BusError, BusSetup, Coord, F64, F192, N_TUPLE_BITS, Producer, PublicColumn, SparseColumn, build_leaves,
-        fingerprint_weights, gkr, layout, prove_balance, verify_balance,
+        Block, BusError, BusSetup, Coord, F64, F192, N_TUPLE_BITS, Owner, Producer, PublicColumn, SparseColumn,
+        build_leaves, fingerprint_weights, gkr, layout, prove_balance, verify_balance,
     };
-    use crate::cpu::layout::Sizes;
+    use crate::cpu::layout::{Log, Sizes};
     use crate::cpu::{Layout, Lookup, Program, UNGROUND_LOG_BYTECODE};
     use crate::pcs::MAX_MU;
     use crate::rv::Region;
@@ -508,25 +534,32 @@ pub(crate) mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
 
-    /// The leaves one side leaves unmatched on the other, as `(side, block, row)`, under
+    /// The leaves one side has in excess of the other, as `(side, block, row)`, under
     /// one fixed fingerprint: what to look at when a bus does not balance. A producer's
     /// entry counts as its multiplicity's worth of leaves, reported as block
-    /// `push.len() + p` for producer `p`.
+    /// `push.len() + p` for producer `p`. A log's block takes the leaves `logs` gives under that fingerprint, a dead
+    /// row's leaf one being no tuple.
     pub(crate) fn unmatched_leaves(
         push: &[Block],
         pull: &[Block],
         producers: &[Producer],
         cols: &[&[F64]],
+        logs: impl FnOnce(&[F192], F192) -> Vec<Vec<F192>>,
     ) -> Vec<(&'static str, usize, usize)> {
         let alphas: Vec<F192> = (0..N_TUPLE_BITS as u64)
             .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
             .collect();
         let (w, beta) = (fingerprint_weights(&alphas), F192::new(13, 17, 19));
+        let logs = logs(&w, beta);
         let side = |blocks: &[Block]| {
             let mut at = Vec::new();
             for (b, block) in blocks.iter().enumerate() {
-                let leaves = tuple_leaves(&block.coords, block.kappa, cols, &w, beta);
-                at.extend(leaves.into_iter().enumerate().map(|(z, leaf)| (leaf, b, z)));
+                let leaves = match block.owner {
+                    Owner::Log(l) => logs[l].clone(),
+                    _ => tuple_leaves(&block.coords, block.kappa, cols, &w, beta),
+                };
+                let live = leaves.into_iter().enumerate().filter(|(_, leaf)| *leaf != F192::ONE);
+                at.extend(live.map(|(z, leaf)| (leaf, b, z)));
             }
             at
         };
@@ -546,14 +579,19 @@ pub(crate) mod tests {
         for (leaf, ..) in &pulled {
             *counts.entry(key(leaf)).or_default() -= 1;
         }
-        let unmatched = |name: &'static str, leaves: &[(F192, usize, usize)]| {
-            leaves
-                .iter()
-                .filter(|(leaf, ..)| counts[&key(leaf)] != 0)
-                .map(|&(_, b, z)| (name, b, z))
-                .collect::<Vec<_>>()
+        // Each tuple's excess, on the side that has it.
+        let mut unmatched = |name: &'static str, leaves: &[(F192, usize, usize)], sign: i64| {
+            let mut out = Vec::new();
+            for &(leaf, b, z) in leaves {
+                let excess = counts.get_mut(&key(&leaf)).expect("a counted leaf");
+                if *excess * sign > 0 {
+                    *excess -= sign;
+                    out.push((name, b, z));
+                }
+            }
+            out
         };
-        [unmatched("push", &pushed), unmatched("pull", &pulled)].concat()
+        [unmatched("push", &pushed, 1), unmatched("pull", &pulled, -1)].concat()
     }
 
     #[test]
@@ -576,7 +614,7 @@ pub(crate) mod tests {
         let tables = [(0, 1)];
 
         let mut ps = ProverState::from_label(b"leaf-virtual-coordinates");
-        let bus = prove_balance(&push, &pull, &[], 0, &[&column], &tables, &mut ps);
+        let bus = prove_balance(&push, &pull, &[], 0, &[&column], |_, _| Vec::new(), &tables, &mut ps);
         let proof = ps.into_proof();
         let mut vs = VerifierState::from_label(b"leaf-virtual-coordinates", &proof);
         let verified = verify_balance(&mut vs, &push, &pull, &[], 0, &tables).expect("an honest bus balances");
@@ -647,13 +685,14 @@ pub(crate) mod tests {
             coords: vec![Coord::Col(1)],
             col: 2,
             bits: 2,
+            deferred: true,
         }];
         let lay = layout(&blocks, &producers);
         let alphas: Vec<F192> = (0..N_TUPLE_BITS as u64)
             .map(|i| F192::new(3 + i, 5 + 7 * i, 11))
             .collect();
         let w = fingerprint_weights(&alphas);
-        let (leaves, products) = build_leaves(&blocks, &producers, &lay, &cols, &w, F192::new(13, 17, 19));
+        let (leaves, products) = build_leaves(&blocks, &producers, &lay, &cols, &[], &w, F192::new(13, 17, 19));
         assert_eq!(leaves.len(), (1 << 11) + 8 + 2 * 16 + 4 + 2 + 1);
         assert_eq!(products, gkr::next_level(&leaves));
     }
@@ -673,7 +712,8 @@ pub(crate) mod tests {
     fn every_layout_one_commitment_holds_keeps_the_margin_with_its_grinding() {
         // Every block of a RISC-V layout at 2^MAX_MU rows, more than any block of a committed layout has.
         let program = Program::new(&[0x0000_0073], Region::TEXT.base(), vec![], 0, 0).unwrap();
-        let layout = Layout::new(program.rv(), PerTable::default(), 0);
+        let view = program.view();
+        let layout = Layout::new(&view, PerTable::default(), [Log::MIN_LOG_ROWS; 2]);
         let widest = |blocks: &[Block]| -> Vec<Block> {
             blocks
                 .iter()
@@ -687,16 +727,21 @@ pub(crate) mod tests {
 
         // The multiplicity column and every table's packed witness share the commitment, so the rows, every one a
         // bytecode read, number below 2^MAX_MU, and a multiplicity has at most MAX_MU bits.
+        //
+        // The padding tuples are the fill blocks', the same for every program, and a row pulls at most sixteen of them.
         let bytecode = |log_entries: usize| {
-            layout
-                .producers
-                .iter()
-                .map(|p| Producer {
+            let [bytecode, padding] = [Lookup::Bytecode, Lookup::Padding].map(|l| layout.producers[l as usize].clone());
+            vec![
+                Producer {
                     kappa: log_entries,
                     bits: MAX_MU,
-                    ..p.clone()
-                })
-                .collect::<Vec<_>>()
+                    ..bytecode
+                },
+                Producer {
+                    bits: MAX_MU + 4,
+                    ..padding
+                },
+            ]
         };
 
         // Every text the region holds keeps the margin with its grinding, and one bit less grinding loses it.
@@ -705,8 +750,7 @@ pub(crate) mod tests {
         for log_bytecode in 0..=Region::TEXT.max_log_words() {
             let sizes = Sizes {
                 log_bytecode,
-                log_ram: 0,
-                log_advice: 0,
+                ..Sizes::of(&view, [0; 2])
             };
             let grinding = Lookup::Bytecode.grinding_bits(sizes);
             assert!(keeps(log_bytecode, grinding), "2^{log_bytecode} entries");
@@ -726,6 +770,7 @@ pub(crate) mod tests {
             coords: tuple.clone(),
             col: 0,
             bits: 30,
+            deferred: true,
         }];
         let pull = [Block::framework(0, tuple)];
 

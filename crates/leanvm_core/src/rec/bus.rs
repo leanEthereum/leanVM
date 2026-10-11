@@ -109,7 +109,16 @@ impl BusBlocks {
 
     /// Prove the bus balances over the global columns.
     pub(crate) fn prove(&self, cols: &[&[F64]], ps: &mut ProverState) -> BusProof {
-        leaf::prove_balance(&self.push, &self.pull, &[], 0, cols, &RecLayout::TABLE_COLUMNS, ps)
+        leaf::prove_balance(
+            &self.push,
+            &self.pull,
+            &[],
+            0,
+            cols,
+            |_, _| Vec::new(),
+            &RecLayout::TABLE_COLUMNS,
+            ps,
+        )
     }
 
     /// Verify the bus balances.
