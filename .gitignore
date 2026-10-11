@@ -3,3 +3,4 @@ target
 __pycache__/
 formal/
 conformance/act4/elf/
+verification/circuits/.lake/

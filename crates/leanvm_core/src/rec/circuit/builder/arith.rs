@@ -1,18 +1,28 @@
 //! Arithmetic over `E`: the `EMUL` and `EXK` rows, with the units and repeated rows folded away.
 
+#[cfg(feature = "circuit-trace")]
+use super::list;
 use super::{Builder, row_key};
 use crate::rec::circuit::{Ew, Kw};
+use crate::rec::clean::{ARITH_A, ARITH_B, ARITH_C, ARITH_D};
 use crate::rec::table::Table;
 use primitives::field::{F64, F192};
 
 impl Builder {
+    /// An `EMUL` or `EXK` row `c = a·b + d`.
+    fn arith_row(&mut self, table: Table, [a, b, d, c]: [u32; 4]) {
+        let mut slots = [0; 4];
+        (slots[ARITH_A], slots[ARITH_B], slots[ARITH_D], slots[ARITH_C]) = (a, b, d, c);
+        self.row(table, &slots);
+    }
+
     fn emul(&mut self, a: Ew, b: Ew, d: Ew) -> Ew {
         let key = row_key(Table::Emul, self.emul_key(a, b, d));
         if let Some(&c) = self.arith.get(&key) {
             return Ew(c);
         }
         let c = self.free_e(self.e(a) * self.e(b) + self.e(d));
-        self.row(Table::Emul, &[a.0, b.0, d.0, c.0]);
+        self.arith_row(Table::Emul, [a.0, b.0, d.0, c.0]);
         self.arith.insert(key, c.0);
         c
     }
@@ -30,6 +40,14 @@ impl Builder {
 
     /// `a·b + d`.
     pub fn mul_add(&mut self, a: Ew, b: Ew, d: Ew) -> Ew {
+        traced!(
+            self,
+            format!("mul_add {} {} {}", a.0, b.0, d.0),
+            self.mul_add_rows(a, b, d)
+        )
+    }
+
+    fn mul_add_rows(&mut self, a: Ew, b: Ew, d: Ew) -> Ew {
         let u = self.units;
         if u.e_zero.is_some_and(|z| z == a.0 || z == b.0) {
             d
@@ -44,12 +62,20 @@ impl Builder {
 
     /// `a·b`.
     pub fn mul(&mut self, a: Ew, b: Ew) -> Ew {
+        traced!(self, format!("mul {} {}", a.0, b.0), self.mul_rows(a, b))
+    }
+
+    fn mul_rows(&mut self, a: Ew, b: Ew) -> Ew {
         let zero = self.zero();
         self.mul_add(a, b, zero)
     }
 
     /// `a + d`.
     pub fn add(&mut self, a: Ew, d: Ew) -> Ew {
+        traced!(self, format!("add {} {}", a.0, d.0), self.add_rows(a, d))
+    }
+
+    fn add_rows(&mut self, a: Ew, d: Ew) -> Ew {
         let zero = self.units.e_zero;
         if zero == Some(d.0) {
             a
@@ -63,11 +89,23 @@ impl Builder {
 
     /// `a^2`.
     pub fn square(&mut self, a: Ew) -> Ew {
+        traced!(self, format!("square {}", a.0), self.square_rows(a))
+    }
+
+    fn square_rows(&mut self, a: Ew) -> Ew {
         self.mul(a, a)
     }
 
     /// `a·k + d`, `k` in `K`.
     pub fn mul_k_add(&mut self, a: Ew, k: Kw, d: Ew) -> Ew {
+        traced!(
+            self,
+            format!("mul_k_add {} {} {}", a.0, k.0, d.0),
+            self.mul_k_add_rows(a, k, d)
+        )
+    }
+
+    fn mul_k_add_rows(&mut self, a: Ew, k: Kw, d: Ew) -> Ew {
         let u = self.units;
         if u.e_zero == Some(a.0) || u.k_zero == Some(k.0) {
             return d;
@@ -80,13 +118,21 @@ impl Builder {
             return Ew(c);
         }
         let c = self.free_e(self.e(a).mul_base(F64(self.k(k))) + self.e(d));
-        self.row(Table::Exk, &[a.0, k.0, d.0, c.0]);
+        self.arith_row(Table::Exk, [a.0, k.0, d.0, c.0]);
         self.arith.insert(key, c.0);
         c
     }
 
     /// `a·c + d` for a constant `c`, through the cheaper table when `c` is in `K`.
     pub fn mul_const_add(&mut self, a: Ew, c: F192, d: Ew) -> Ew {
+        traced!(
+            self,
+            format!("mul_const_add {} {} {} {} {}", a.0, c.c0, c.c1, c.c2, d.0),
+            self.mul_const_add_rows(a, c, d)
+        )
+    }
+
+    fn mul_const_add_rows(&mut self, a: Ew, c: F192, d: Ew) -> Ew {
         if c.c1 == 0 && c.c2 == 0 {
             let k = self.k_const(c.c0);
             return self.mul_k_add(a, k, d);
@@ -97,6 +143,10 @@ impl Builder {
 
     /// `1 / a`, zero for zero: a hint the prover supplies, held to `a·(1/a) = 1`.
     pub fn inv(&mut self, a: Ew) -> Ew {
+        traced!(self, format!("inv {}", a.0), self.inv_rows(a))
+    }
+
+    fn inv_rows(&mut self, a: Ew) -> Ew {
         let v = self.e(a);
         let i = self.free_e(if v.is_zero() { F192::ZERO } else { v.inv() });
         let p = self.mul(a, i);
@@ -106,6 +156,14 @@ impl Builder {
 
     /// `sum_i terms_i`.
     pub fn sum(&mut self, terms: &[Ew]) -> Ew {
+        traced!(
+            self,
+            format!("sum {}", list(terms.iter().map(|w| w.0))),
+            self.sum_rows(terms)
+        )
+    }
+
+    fn sum_rows(&mut self, terms: &[Ew]) -> Ew {
         let zero = self.zero();
         terms.iter().fold(zero, |acc, &t| self.add(acc, t))
     }

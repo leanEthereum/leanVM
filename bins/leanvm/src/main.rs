@@ -147,6 +147,12 @@ enum Command {
         #[arg(long, conflicts_with = "cycles_only")]
         only: Option<String>,
     },
+    /// Write the tracked aggregation trees' recursion circuits (with `--features circuits`), each with the builder calls that make it, for
+    /// `verification/circuits`' `checkrec`.
+    Circuits {
+        /// The directory to write them to.
+        out: PathBuf,
+    },
 }
 
 fn parse_rate(log_inv_rate: &str) -> Result<Rate, Box<dyn Error + Send + Sync>> {
@@ -179,7 +185,7 @@ fn refuse(what: Arguments) -> ! {
 fn main() {
     let cli = Cli::parse();
     let fixed_threads = match &cli.command {
-        Command::Bench { cycles_only: true, .. } => false,
+        Command::Bench { cycles_only: true, .. } | Command::Circuits { .. } => false,
         Command::Bench { only, .. } => only.as_deref().is_some_and(|name| name.ends_with("-16thread")),
         _ => std::env::var_os("LEANVM_NUM_THREADS").is_none(),
     };
@@ -187,7 +193,7 @@ fn main() {
         parallel::init_with_threads(NonZeroUsize::new(16).unwrap())
             .unwrap_or_else(|actual| refuse(format_args!("cannot configure 16 benchmark threads: {actual:?}")));
     }
-    if !matches!(cli.command, Command::Bench { .. }) || fixed_threads {
+    if !matches!(cli.command, Command::Bench { .. } | Command::Circuits { .. }) || fixed_threads {
         let topology = parallel::topology();
         eprintln!(
             "Benchmark pool: {} threads ({} performance, {} efficiency)",
@@ -232,5 +238,9 @@ fn main() {
             &prover,
             plan,
         ),
+        #[cfg(feature = "circuits")]
+        Command::Circuits { out } => tracked::dump(&out, leaf_prover.rate(), prover.rate()),
+        #[cfg(not(feature = "circuits"))]
+        Command::Circuits { .. } => refuse(format_args!("`circuits` needs `--features circuits`")),
     }
 }

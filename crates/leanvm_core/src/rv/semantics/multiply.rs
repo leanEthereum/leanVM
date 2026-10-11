@@ -116,7 +116,7 @@ impl ClassCircuit for Mulh {
                 let inverted = c.not(bit);
                 c.and(negative, inverted)
             });
-            (high, _) = c.add_with_carry(&high, &subtrahend, negative);
+            (high, _) = flock::clean::add_with_carry64(&mut c, &high, &subtrahend, negative);
         }
 
         c.output_word(0, &high);

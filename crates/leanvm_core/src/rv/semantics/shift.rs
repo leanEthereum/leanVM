@@ -2,7 +2,7 @@
 
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, Products, WordGadgets};
-use flock::circuit::{Builder, Circuit, Wire};
+use flock::circuit::{Builder, Circuit};
 
 /// One shifter instance.
 ///
@@ -76,30 +76,7 @@ impl ClassCircuit for Shift {
         let mut c = Builder::new(&[64, 64, 64, 3], &[64]);
         let [v1, v2, imm] = [0, 1, 2].map(|port| c.input::<64>(port));
         let f = c.input::<3>(3);
-        let flag = |bit: u64| f[bit.trailing_zeros() as usize];
-        let (right, arith, word) = (flag(Self::RIGHT), flag(Self::ARITH), flag(Self::WORD));
-
-        // The amount: six bits, or five for a word shift.
-        let mut amount: [Wire; 6] = std::array::from_fn(|i| c.xor(v2[i], imm[i]));
-        let not_word = c.not(word);
-        amount[5] = c.and(not_word, amount[5]);
-
-        // A word shift takes the low 32 bits, extended by the sign if arithmetic, by zero if not.
-        let low_sign = c.and(arith, v1[31]);
-        let x: [Wire; 64] = std::array::from_fn(|i| if i < 32 { v1[i] } else { c.mux(word, low_sign, v1[i]) });
-
-        // What a right shift brings in from the top; arithmetic implies right.
-        let fill = c.and(arith, x[63]);
-
-        // Reverse, shift right stage by stage, reverse back.
-        let mut y = c.reverse_unless(right, &x);
-        for (stage, &bit) in amount.iter().enumerate() {
-            let by = 1 << stage;
-            y = std::array::from_fn(|i| c.mux(bit, if i + by < 64 { y[i + by] } else { fill }, y[i]));
-        }
-        let y = c.reverse_unless(right, &y);
-
-        let out = c.sext32_if(word, &y);
+        let out = flock::clean::shift64(&mut c, &v1, &v2, &imm, &f);
         c.output_word(0, &out);
         c.finish()
     }
@@ -168,6 +145,8 @@ mod tests {
     use crate::rv::semantics::tests::{
         EDGES, Ports, circuit_matches_reference, edge_word, grid, word_witness_is_the_walk,
     };
+    use fiat_shamir::transcript::{ProverState, VerifierState};
+    use flock::reduction::{self, Instance};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -209,6 +188,46 @@ mod tests {
         let amounts: Vec<u64> = (0..=64).chain([u64::MAX]).collect();
         let edges = grid(&[&operands, &amounts, &[0, !63], Shift::LEGAL]);
         word_witness_is_the_walk::<Shift>(Shift::witness, edges);
+    }
+
+    #[test]
+    fn clean_shift_proves_native_witnesses_and_rejects_false_outputs_and_products() {
+        let circuit = Shift::circuit();
+        let block = circuit.block();
+        let n_log = 6;
+        let rows: Vec<[u64; 4]> = (0..1usize << n_log)
+            .map(|i| {
+                let amount = [0, 31, 32, 63, 64, u64::MAX][i / 6 % 6];
+                let imm = 0xffff_ffff_ffff_ffa5;
+                [
+                    [0x8000_0000_8000_0001, 0x7fff_ffff_ffff_ffff, 0, u64::MAX][i % 4],
+                    amount ^ imm,
+                    imm,
+                    Shift::LEGAL[i % Shift::LEGAL.len()],
+                ]
+            })
+            .collect();
+        let accepts = |tamper: Option<usize>| {
+            let mut witness = circuit.witness_by_instance(&rows, &rows[0], n_log, |row, z, az, bz| {
+                Shift::witness(row, z, az, bz);
+            });
+            if let Some(bit) = tamper {
+                witness.z[bit / 64] ^= 1 << (bit % 64);
+            }
+            let label = b"clean-shift-native-witness";
+            let mut ps = ProverState::from_label(label);
+            let claims = reduction::prove(&[Instance::of(block, n_log, &witness)], &mut ps);
+            let proof = ps.into_proof();
+            let mut vs = VerifierState::from_label(label, &proof);
+            reduction::verify(&[(block.shape(), n_log)], &mut vs)
+                .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
+                && vs.finish().is_ok()
+        };
+        assert!(accepts(None));
+        let output = 64 * circuit.n_input_words();
+        for bit in [output + 31, output + 65, circuit.useful_bits() - 1, 64 * 3 + 3] {
+            assert!(!accepts(Some(bit)), "flipping witness bit {bit} must reject");
+        }
     }
 
     impl Ports for Shift {

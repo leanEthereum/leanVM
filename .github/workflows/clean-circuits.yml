@@ -1,0 +1,73 @@
+name: Clean circuits
+
+on:
+  pull_request:
+    paths:
+      - verification/circuits/**
+      - crates/flock/src/clean.rs
+      - crates/leanvm_core/src/rec/clean.rs
+      - .github/workflows/clean-circuits.yml
+      - rustfmt.toml
+  push:
+    branches: [riscv-exploration, 'kw/clean-circuits-*']
+    paths:
+      - verification/circuits/**
+      - crates/flock/src/clean.rs
+      - crates/leanvm_core/src/rec/clean.rs
+      - .github/workflows/clean-circuits.yml
+      - rustfmt.toml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.0
+          components: rustfmt
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: verification/circuits
+          build: 'false'
+          test: 'false'
+          lint: 'false'
+          use-mathlib-cache: 'false'
+      - name: Check source, lowering, artifact, and theorem axioms
+        working-directory: verification/circuits
+        run: |
+          lake exe cache get Mathlib.Tactic Mathlib.FieldTheory.Finite.Extension Mathlib.RingTheory.AdjoinRoot Mathlib.Algebra.Polynomial.SpecificDegree Mathlib.Algebra.MvPolynomial.Eval Mathlib.Algebra.Polynomial.Roots
+          lake build
+          lake env lean Audit.lean
+          test -f .lake/build/lib/lean/LeanVMCircuits.olean
+          # Stock leanchecker replays every matching module concurrently.
+          # The root has no declarations; reject any future declaration there.
+          if grep -nEv '^[[:space:]]*(module|public import LeanVMCircuits[.][A-Za-z0-9_.]+)?[[:space:]]*$' LeanVMCircuits.lean; then
+            echo "::error::LeanVMCircuits.lean must contain only its module header and public imports"
+            exit 1
+          fi
+          shopt -s globstar nullglob
+          sources=(LeanVMCircuits/**/*.lean)
+          if (( ${#sources[@]} == 0 )); then
+            echo "::error::No library source modules found for kernel checking"
+            exit 1
+          fi
+          for source in "${sources[@]}"; do
+            module="${source%.lean}"
+            if [[ ! -f ".lake/build/lib/lean/${module}.olean" ]]; then
+              echo "::error::Missing compiled library module ${module}"
+              exit 1
+            fi
+            lake env leanchecker "${module//\//.}"
+          done
+      - name: Check deterministic production export
+        working-directory: verification/circuits
+        run: |
+          lake env lean --run Generate.lean /tmp/clean-generated.rs
+          diff -u ../../crates/flock/src/clean.rs /tmp/clean-generated.rs
+          lake env lean --run GenerateRec.lean /tmp/rec-generated.rs
+          diff -u ../../crates/leanvm_core/src/rec/clean.rs /tmp/rec-generated.rs

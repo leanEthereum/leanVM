@@ -1,0 +1,15 @@
+name = "LeanVMCircuits"
+version = "0.1.0"
+defaultTargets = ["LeanVMCircuits"]
+
+[[require]]
+name = "Clean"
+git = "https://github.com/kevaundray/clean.git"
+rev = "1dc76b0c1efc14cc4499aee6c840de0cba9ce3ee"
+
+[[lean_lib]]
+name = "LeanVMCircuits"
+
+[[lean_exe]]
+name = "checkrec"
+root = "CheckRec"

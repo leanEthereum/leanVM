@@ -293,7 +293,7 @@ mod tests {
     use primitives::test_util::Rng;
 
     use crate::Witness;
-    use crate::circuit::{Builder, Circuit, Wire};
+    use crate::circuit::{Builder, Circuit};
     use crate::gadgets::Multiplier;
     use crate::reduction::{self, Block, Instance};
     use crate::zerocheck::K_SKIP;
@@ -327,7 +327,7 @@ mod tests {
             let mut c = Builder::new(&[64, 64], &[n]);
             let (a, b) = (c.input(0), c.input(1));
             let out = match self {
-                Self::WrappingAdd => ripple_carry(&mut c, &a, &b).to_vec(),
+                Self::WrappingAdd => crate::clean::wrapping_add64(&mut c, &a, &b).to_vec(),
                 Self::WrappingMul => Multiplier::build::<64>(&mut c, &a, &b).0.to_vec(),
                 Self::WideningMul => Multiplier::build::<128>(&mut c, &a, &b).0.to_vec(),
             };
@@ -336,23 +336,6 @@ mod tests {
             }
             c.finish()
         }
-    }
-
-    /// `a + b mod 2^64`: the carry into bit `i + 1` is `maj(a_i, b_i, c_i) = (a_i + c_i)(b_i + c_i) + c_i`.
-    fn ripple_carry(c: &mut Builder, a: &[Wire; 64], b: &[Wire; 64]) -> [Wire; 64] {
-        let mut carry = Wire::ZERO;
-        let mut sum = [Wire::ZERO; 64];
-        for i in 0..64 {
-            let ac = c.xor(a[i], carry);
-            let bc = c.xor(b[i], carry);
-            sum[i] = c.xor(ac, b[i]);
-            // The carry out of bit 63 falls off the modulus.
-            if i < 63 {
-                let maj = c.and(ac, bc);
-                carry = c.xor(maj, carry);
-            }
-        }
-        sum
     }
 
     /// Every pairing of the carry-heavy edge values, then random pairs.

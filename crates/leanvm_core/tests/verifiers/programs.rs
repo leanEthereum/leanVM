@@ -169,8 +169,65 @@ fn loads_and_stores_prove_and_verify() {
     proves_and_verifies("memory", &program, expected);
 }
 
-/// Every shift and every multiplication, registers and immediates, 64-bit and 32-bit
-/// forms, folded into the output.
+#[test]
+fn clean_adder_memory_addresses_wrap_and_carry() {
+    // The negative immediate overflows u64 addition; the positive one crosses a long carry chain.
+    // Both address the same RAM cell through the actual Ld/Sd production circuit and word witness.
+    let base = Region::RAM.base();
+    let text = Asm::new()
+        .li(Reg::T0, base + 8)
+        .li(Reg::T1, base - 8)
+        .load(Ld, Reg::A0, -8, Reg::T0)
+        .load(Ld, Reg::A1, 8, Reg::T1)
+        .store(Sd, Reg::A1, -8, Reg::T0)
+        .load(Ld, Reg::A2, 8, Reg::T1)
+        .li(Reg::A3, 0)
+        .exit()
+        .finish();
+    let program = Program::new(&text, Region::TEXT.base(), vec![9], 3, 0).expect("valid memory program");
+    proves_and_verifies("clean wrapping adder", &program, [9, 9, 9, 0]);
+}
+
+#[test]
+fn clean_carry_adder_arithmetic_boundaries() {
+    // Carry-in and final carry feed comparison, signed division, and signed high multiplication.
+    let text = Asm::new()
+        .li(Reg::T0, u64::MAX)
+        .li(Reg::T1, 1)
+        .r(Add, Reg::A0, Reg::T0, Reg::T1)
+        .r(Sltu, Reg::A1, Reg::T0, Reg::T1)
+        .li(Reg::T2, 1 << 63)
+        .li(Reg::T3, u64::MAX)
+        .r(Div, Reg::A2, Reg::T2, Reg::T3)
+        .li(Reg::T0, u64::MAX - 1)
+        .li(Reg::T1, 3)
+        .r(Mulh, Reg::A3, Reg::T0, Reg::T1)
+        .exit()
+        .finish();
+    let program = Program::new(&text, Region::TEXT.base(), vec![], 3, 0).expect("valid arithmetic program");
+    proves_and_verifies("clean carry adder", &program, [0, 0, 1 << 63, u64::MAX]);
+}
+
+#[test]
+fn clean_shift_sign_and_mask_boundaries_prove_and_verify() {
+    let text = Asm::new()
+        .li(Reg::S0, 0x8000_0000_8000_0001)
+        .li(Reg::S1, u64::MAX)
+        .r(Sra, Reg::A0, Reg::S0, Reg::S1)
+        .r(Sll, Reg::A1, Reg::S0, Reg::S1)
+        .r(Srlw, Reg::A2, Reg::S0, Reg::S1)
+        .shift(Slliw, Reg::A3, Reg::S0, 0)
+        .exit()
+        .finish();
+    let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid shift program");
+    proves_and_verifies(
+        "clean-shift-boundaries",
+        &program,
+        [u64::MAX, 0x8000_0000_0000_0000, 1, 0xffff_ffff_8000_0001],
+    );
+}
+
+/// Every shift and every multiplication, registers and immediates, 64-bit and 32-bit forms, folded into the output.
 #[test]
 fn shifts_and_multiplications_prove_and_verify() {
     let mut a = Asm::new();

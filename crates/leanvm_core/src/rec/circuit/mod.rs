@@ -12,6 +12,8 @@ mod builder;
 mod compression;
 
 pub use builder::Builder;
+#[cfg(feature = "circuit-trace")]
+pub(crate) use builder::traced;
 pub(crate) use compression::digest_limbs;
 pub use compression::{Compression, PARAM_IV, chain, zero_prefix};
 
@@ -103,6 +105,28 @@ pub struct Circuit {
 }
 
 impl Circuit {
+    #[cfg(feature = "circuit-trace")]
+    /// Its rows and public rows as `CheckRec` reads them: per table in order, its slots' classes; then each public row's source; then the statement's length.
+    pub(crate) fn dump(&self) -> String {
+        use std::fmt::Write;
+        let mut s = String::new();
+        for t in Table::ALL {
+            let _ = write!(s, "table {}", self.classes.of(t).len());
+            for c in self.classes.of(t) {
+                let _ = write!(s, " {c}");
+            }
+            s.push('\n');
+        }
+        for p in &self.pubs {
+            let _ = match p {
+                PubSource::Const([a, b, c, d]) => writeln!(s, "const {a} {b} {c} {d}"),
+                PubSource::Statement(i) => writeln!(s, "statement {i}"),
+            };
+        }
+        let _ = writeln!(s, "statement_len {}", self.statement_len);
+        s
+    }
+
     /// Each table's number of rows.
     pub fn row_counts(&self) -> PerRecTable<usize> {
         PerRecTable::from_fn(|t| self.classes.len(t))

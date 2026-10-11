@@ -28,44 +28,17 @@ pub(super) trait WordGadgets {
     /// `x ^ y`, bit by bit; no product.
     fn xor_word<const N: usize>(&mut self, x: &[Wire; N], y: &[Wire; N]) -> [Wire; N];
 
-    /// `s * x`, bit by bit; one product per bit.
-    fn and_word<const N: usize>(&mut self, s: Wire, x: &[Wire; N]) -> [Wire; N];
-
     /// Whether any bit of `x` is set; one product per OR.
     fn any(&mut self, x: &[Wire]) -> Wire;
 
-    /// `x + y + carry_in`, and the carry out of the top bit; one product per bit.
-    fn add_with_carry<const N: usize>(&mut self, x: &[Wire; N], y: &[Wire; N], carry_in: Wire) -> ([Wire; N], Wire);
-
-    /// `x + y` modulo `2^N`; one product per bit but the top.
-    fn add_wrapping<const N: usize>(&mut self, x: &[Wire; N], y: &[Wire; N]) -> [Wire; N];
-
     /// `-x` if `negative`, else `x`; one product per bit.
-    fn negate_if<const N: usize>(&mut self, negative: Wire, x: &[Wire; N]) -> [Wire; N];
+    fn negate_if(&mut self, negative: Wire, x: &[Wire; 64]) -> [Wire; 64];
 
     /// `x`, bits 32 to 63 replaced by bit 31 when `word` is set; one product per high bit.
     fn sext32_if(&mut self, word: Wire, x: &[Wire; 64]) -> [Wire; 64];
 
     /// Commit `x` as output port `port`.
     fn output_word(&mut self, port: usize, x: &[Wire; 64]);
-
-    /// `x` bit-reversed unless `right` is set; one product per bit.
-    fn reverse_unless(&mut self, right: Wire, x: &[Wire; 64]) -> [Wire; 64];
-
-    /// The width thresholds, from the two bits of the width's logarithm: at least 2, at least 4.
-    ///
-    /// A double word is LD's or SD's, so the two bits are never both set, and their OR is their XOR.
-    fn width_thresholds(&mut self, log_width: [Wire; 2]) -> [Wire; 2];
-
-    /// The bus address: the address, its low two bits kept only where they misalign the access.
-    ///
-    /// It is the reference's bus address, bit by bit. Bit 2 never misaligns, no width here reaching 8 bytes, so it is cleared.
-    fn bus_address(&mut self, address: &[Wire; 64], thresholds: [Wire; 2]) -> [Wire; 64];
-
-    /// `x` shifted by `8 * amount` bits, left or right.
-    ///
-    /// Only the low `BITS` bits of the result are made, the ones the caller reads.
-    fn shift_bytes<const BITS: usize>(&mut self, x: &[Wire; 64], amount: [Wire; 3], left: bool) -> [Wire; BITS];
 }
 
 impl WordGadgets for Builder {
@@ -73,51 +46,14 @@ impl WordGadgets for Builder {
         std::array::from_fn(|i| self.xor(x[i], y[i]))
     }
 
-    fn and_word<const N: usize>(&mut self, s: Wire, x: &[Wire; N]) -> [Wire; N] {
-        x.map(|bit| self.and(s, bit))
-    }
-
     fn any(&mut self, x: &[Wire]) -> Wire {
         x.iter().fold(Wire::ZERO, |acc, &bit| self.or(acc, bit))
     }
 
-    fn add_with_carry<const N: usize>(&mut self, x: &[Wire; N], y: &[Wire; N], carry_in: Wire) -> ([Wire; N], Wire) {
-        let mut carry = carry_in;
-        let sum = std::array::from_fn(|i| {
-            // The sum bit is x ^ y ^ c.
-            let xc = self.xor(x[i], carry);
-            let yc = self.xor(y[i], carry);
-            let sum = self.xor(xc, y[i]);
-
-            // The carry out is maj(x, y, c) = ((x ^ c)(y ^ c)) ^ c.
-            let maj = self.and(xc, yc);
-            carry = self.xor(maj, carry);
-            sum
-        });
-        (sum, carry)
-    }
-
-    fn add_wrapping<const N: usize>(&mut self, x: &[Wire; N], y: &[Wire; N]) -> [Wire; N] {
-        let mut carry = Wire::ZERO;
-        std::array::from_fn(|i| {
-            // The sum bit is x ^ y ^ c.
-            let xc = self.xor(x[i], carry);
-            let yc = self.xor(y[i], carry);
-            let sum = self.xor(xc, y[i]);
-
-            // The carry out of the top bit falls off the modulus, so it is never made.
-            if i + 1 < N {
-                let maj = self.and(xc, yc);
-                carry = self.xor(maj, carry);
-            }
-            sum
-        })
-    }
-
-    fn negate_if<const N: usize>(&mut self, negative: Wire, x: &[Wire; N]) -> [Wire; N] {
+    fn negate_if(&mut self, negative: Wire, x: &[Wire; 64]) -> [Wire; 64] {
         // Two's complement: (x ^ negative) + negative.
         let flipped = x.map(|bit| self.xor(bit, negative));
-        self.add_with_carry(&flipped, &[Wire::ZERO; N], negative).0
+        flock::clean::add_with_carry64(self, &flipped, &[Wire::ZERO; 64], negative).0
     }
 
     fn sext32_if(&mut self, word: Wire, x: &[Wire; 64]) -> [Wire; 64] {
@@ -128,41 +64,6 @@ impl WordGadgets for Builder {
         for (bit, &wire) in x.iter().enumerate() {
             self.output(port, bit, wire);
         }
-    }
-
-    fn reverse_unless(&mut self, right: Wire, x: &[Wire; 64]) -> [Wire; 64] {
-        std::array::from_fn(|i| self.mux(right, x[i], x[63 - i]))
-    }
-
-    fn width_thresholds(&mut self, [low, high]: [Wire; 2]) -> [Wire; 2] {
-        [self.xor(low, high), high]
-    }
-
-    fn bus_address(&mut self, address: &[Wire; 64], thresholds: [Wire; 2]) -> [Wire; 64] {
-        std::array::from_fn(|i| match i {
-            0 | 1 => self.and(address[i], thresholds[i]),
-            2 => Wire::ZERO,
-            _ => address[i],
-        })
-    }
-
-    fn shift_bytes<const BITS: usize>(&mut self, x: &[Wire; 64], amount: [Wire; 3], left: bool) -> [Wire; BITS] {
-        const { assert!(BITS <= 64, "a shifted word has at most 64 bits") };
-
-        // Stage k moves by 8 * 2^k bits when bit k of the amount is set; a vacated bit is zero.
-        let from = |x: &[Wire; 64], i: usize, by: usize| {
-            if left {
-                i.checked_sub(by).map_or(Wire::ZERO, |j| x[j])
-            } else {
-                x.get(i + by).copied().unwrap_or(Wire::ZERO)
-            }
-        };
-        let [by_8, by_16, by_32] = amount;
-        let x: [Wire; 64] = std::array::from_fn(|i| self.mux(by_8, from(x, i, 8), x[i]));
-        let x: [Wire; 64] = std::array::from_fn(|i| self.mux(by_16, from(&x, i, 16), x[i]));
-
-        // The last stage makes only the bits the caller reads.
-        std::array::from_fn(|i| self.mux(by_32, from(&x, i, 32), x[i]))
     }
 }
 

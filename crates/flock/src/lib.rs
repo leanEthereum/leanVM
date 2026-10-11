@@ -20,6 +20,7 @@
 #![warn(unreachable_pub)]
 
 pub mod circuit;
+pub mod clean;
 mod error;
 pub mod gadgets;
 pub mod lincheck;

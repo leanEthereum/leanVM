@@ -124,13 +124,13 @@ impl ClassCircuit for Div {
         let low: [Wire; 64] = std::array::from_fn(|i| product[i]);
         let high: [Wire; 64] = std::array::from_fn(|i| product[64 + i]);
         let overflows = c.any(&high);
-        let (sum, carries) = c.add_with_carry(&low, &r, Wire::ZERO);
+        let (sum, carries) = flock::clean::add_with_carry64(&mut c, &low, &r, Wire::ZERO);
         let difference = c.xor_word(&sum, &n_abs);
         let differs = c.any(&difference);
 
         // Check r < |d|: r - |d| = r + !|d| + 1 carries out exactly when r >= |d|.
         let d_inverted = d_abs.map(|bit| c.not(bit));
-        let (_, too_large) = c.add_with_carry(&r, &d_inverted, Wire::ONE);
+        let (_, too_large) = flock::clean::add_with_carry64(&mut c, &r, &d_inverted, Wire::ONE);
 
         // Any failed check is bad, unless the divisor is zero.
         let d_nonzero = c.any(&d);

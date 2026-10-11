@@ -339,6 +339,27 @@ fn circuits(tree: &Aggregation, leaf_rate: Rate, rate: Rate) -> [(Kind, CircuitS
     Kind::ALL.map(|kind| (kind, built.stats(kind)))
 }
 
+/// Write each tracked tree's two circuits, as `Tree::circuit_dump` gives them, to `<out>/<name>-first.txt` and `<out>/<name>-node.txt`: the counted trees and the proven trees' leaf size at both arities.
+///
+/// CI's `rec-builder-model` workflow has the Lean model of the builder replay each and check it builds the same circuit.
+#[cfg(feature = "circuits")]
+pub fn dump(out: &Path, leaf_rate: Rate, rate: Rate) {
+    let proven = [
+        Aggregation::new("aggregate-leanxmss-100-2to1", Workload::leanxmss(100), 2, 2),
+        Aggregation::new("aggregate-leanxmss-100-4to1", Workload::leanxmss(100), 4, 4),
+    ];
+    std::fs::create_dir_all(out).unwrap_or_else(|e| refuse(format_args!("{}: {e}", out.display())));
+    for tree in counted_trees().into_iter().chain(proven) {
+        let shape = LeafShape::measured(&tree.leaf.measure(), leaf_rate);
+        let built = tree.tree(shape, rate);
+        for kind in Kind::ALL {
+            let path = out.join(format!("{}.txt", tree.node(kind).0));
+            std::fs::write(&path, built.circuit_dump(kind))
+                .unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
+        }
+    }
+}
+
 /// `rows` (the circuit's own), `proven-rows` (the tables' heights, powers of two) and
 /// `committed` (the witness words): exact, the same on every machine.
 fn circuit_counts(stats: &CircuitStats) -> Vec<(&'static str, Metric)> {

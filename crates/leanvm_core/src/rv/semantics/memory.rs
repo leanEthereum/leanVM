@@ -4,7 +4,7 @@
 
 use super::InstructionClass;
 use crate::rv::circuits::{ClassCircuit, Products, WordGadgets};
-use flock::circuit::{Builder, Circuit, Wire};
+use flock::circuit::{Builder, Circuit};
 
 /// One load instance of 1, 2 or 4 bytes: the width and extension in its flags, the address `v1 + imm`, the cell read there.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -195,41 +195,9 @@ impl ClassCircuit for Load {
         let [v1, imm] = [0, 1].map(|port| c.input::<64>(port));
         let flags = c.input::<3>(2);
         let cell = c.input::<64>(3);
-        let address = c.add_wrapping(&v1, &imm);
-        let [ge2, ge4] = c.width_thresholds([flags[0], flags[1]]);
-        let bus = c.bus_address(&address, [ge2, ge4]);
-
-        // At most 4 bytes are loaded, so only the low half of the shifted cell is read.
-        let value = c.shift_bytes::<32>(&cell, [address[0], address[1], address[2]], false);
-
-        // The extension: the value's top bit, where the width places it, if the load is signed.
-        //
-        //     width 1   bit 7
-        //     width 2   bit 15
-        //     width 4   bit 31
-        let (w1, w2, w4) = (c.not(ge2), c.xor(ge2, ge4), ge4);
-        let sign = [(w1, 7), (w2, 15), (w4, 31)]
-            .into_iter()
-            .fold(Wire::ZERO, |acc, (width, bit)| {
-                let term = c.and(width, value[bit]);
-                c.xor(acc, term)
-            });
-        let extension = c.and(flags[2], sign);
-        c.output_word(0, &bus);
-
-        // Each byte of the value above the first is the value's if the width reaches it, else the extension.
-        for (i, &bit) in value.iter().enumerate() {
-            let wire = match i {
-                0..8 => bit,
-                8..16 => c.mux(ge2, bit, extension),
-                _ => c.mux(ge4, bit, extension),
-            };
-            c.output(1, i, wire);
-        }
-
-        // Above the value, past every width here, is the extension.
-        for i in value.len()..64 {
-            c.output(1, i, extension);
+        let output = flock::clean::load64(&mut c, &v1, &imm, &flags, &cell);
+        for (i, wire) in output.into_iter().enumerate() {
+            c.output(i / 64, i % 64, wire);
         }
         c.finish()
     }
@@ -246,36 +214,9 @@ impl ClassCircuit for Store {
         let [v1, v2, imm] = [0, 1, 2].map(|port| c.input::<64>(port));
         let flags = c.input::<2>(3);
         let cell = c.input::<64>(4);
-        let address = c.add_wrapping(&v1, &imm);
-        let [ge2, ge4] = c.width_thresholds(flags);
-        let bus = c.bus_address(&address, [ge2, ge4]);
-
-        // At most 4 bytes are stored, so the high half of `v2` is never written.
-        let low: [Wire; 64] = std::array::from_fn(|i| if i < 32 { v2[i] } else { Wire::ZERO });
-        let value = c.shift_bytes::<64>(&low, [address[0], address[1], address[2]], true);
-
-        // Byte j is written when it shares the access's block of 2^log_width bytes.
-        //
-        // That is: bit k of j equals bit k of the address, wherever the width does not span both.
-        //
-        // No width spans bit 2, so there the byte's bit must equal the address's.
-        let spans: [[Wire; 2]; 3] = std::array::from_fn(|k| {
-            let is_zero = c.not(address[k]);
-            match [ge2, ge4].get(k) {
-                Some(&threshold) => [c.or(is_zero, threshold), c.or(address[k], threshold)],
-                None => [is_zero, address[k]],
-            }
-        });
-        c.output_word(0, &bus);
-
-        // Each byte is the value's if written, else the cell's.
-        for j in 0..8 {
-            let low = c.and(spans[0][j & 1], spans[1][(j >> 1) & 1]);
-            let written = c.and(low, spans[2][j >> 2]);
-            for i in 8 * j..8 * j + 8 {
-                let wire = c.mux(written, value[i], cell[i]);
-                c.output(1, i, wire);
-            }
+        let output = flock::clean::store64(&mut c, &v1, &v2, &imm, &flags, &cell);
+        for (i, wire) in output.into_iter().enumerate() {
+            c.output(i / 64, i % 64, wire);
         }
         c.finish()
     }
@@ -290,7 +231,7 @@ impl ClassCircuit for Ld {
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64], &[64]);
         let [v1, imm] = [0, 1].map(|port| c.input::<64>(port));
-        let address = c.add_wrapping(&v1, &imm);
+        let address = flock::clean::wrapping_add64(&mut c, &v1, &imm);
         c.output_word(0, &address);
         c.finish()
     }
@@ -463,6 +404,8 @@ mod tests {
     use crate::rv::semantics::tests::{
         EDGES, Ports, circuit_matches_reference, edge_word, grid, run, word_witness_is_the_walk,
     };
+    use fiat_shamir::transcript::{ProverState, VerifierState};
+    use flock::reduction::{self, Instance};
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -609,6 +552,71 @@ mod tests {
         0x0123_4567_89ab_cdef,
         0xfedc_ba98_7654_3210,
     ];
+
+    #[test]
+    fn clean_memory_proves_native_witnesses_and_rejects_false_cells_products_and_padding() {
+        fn check<const N: usize>(
+            circuit: &Circuit,
+            rows: &[[u64; N]],
+            native: crate::tables::spec::InstanceWitness,
+            unused_flag: usize,
+        ) {
+            let block = circuit.block();
+            let n_log = 6;
+            let accepts = |tamper: Option<usize>| {
+                let mut witness = circuit.witness_by_instance(rows, &rows[0], n_log, |row, z, az, bz| {
+                    native(row, z, az, bz);
+                });
+                if let Some(bit) = tamper {
+                    witness.z[bit / 64] ^= 1 << (bit % 64);
+                }
+                let label = b"clean-memory-native-witness";
+                let mut ps = ProverState::from_label(label);
+                let claims = reduction::prove(&[Instance::of(block, n_log, &witness)], &mut ps);
+                let proof = ps.into_proof();
+                let mut vs = VerifierState::from_label(label, &proof);
+                reduction::verify(&[(block.shape(), n_log)], &mut vs)
+                    .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
+                    && vs.finish().is_ok()
+            };
+            assert!(accepts(None));
+            let output = 64 * circuit.n_input_words();
+            for bit in [
+                output + 6,
+                output + 64 + 63,
+                circuit.useful_bits() - 1,
+                unused_flag,
+                circuit.useful_bits(),
+            ] {
+                assert!(!accepts(Some(bit)), "flipping witness bit {bit} must reject");
+            }
+        }
+        let loads: Vec<[u64; 4]> = (0..64)
+            .map(|i| {
+                [
+                    [0, u64::MAX - 7, 0x1234_5678_0000][i / 8 % 3] | (i % 8) as u64,
+                    [0, 8, !7][i / 24 % 3],
+                    Load::LEGAL[i % Load::LEGAL.len()],
+                    BYTES[i / 6 % BYTES.len()],
+                ]
+            })
+            .collect();
+        let stores: Vec<[u64; 5]> = (0..64)
+            .map(|i| {
+                let flags = Store::LEGAL[i % Store::LEGAL.len()];
+                let offset = (i / 3 % 8) as u64 & !((1 << flags) - 1);
+                [
+                    [0, u64::MAX - 7, 0x1234_5678_0000][i / 8 % 3] | offset,
+                    BYTES[i / 6 % BYTES.len()],
+                    [0, 8, !7][i / 24 % 3],
+                    flags,
+                    BYTES[i % BYTES.len()],
+                ]
+            })
+            .collect();
+        check(&Load::circuit(), &loads, Load::witness, 64 * 2 + 3);
+        check(&Store::circuit(), &stores, Store::witness, 64 * 3 + 2);
+    }
 
     #[test]
     fn the_word_witnesses_are_the_gate_walk() {

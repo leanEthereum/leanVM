@@ -8,6 +8,10 @@ license.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Record the recursion circuit builder's calls, for `cargo leanvm circuits` and `verification/circuits`' `checkrec`. Off in every ordinary build.
+circuit-trace = []
+
 [dependencies]
 parallel.workspace = true
 primitives.workspace = true

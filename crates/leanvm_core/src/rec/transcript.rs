@@ -449,4 +449,22 @@ mod tests {
         assert!(open(&preimage, &[nodes[1]], &root, 1).is_empty());
         assert!(!open(&preimage, &[nodes[1]], &root, 2).is_empty());
     }
+
+    #[test]
+    fn the_native_constants_are_the_lean_transcriptions() {
+        // `LeanVMCircuits.Rec.Duplex` and `Rec.Merkle` state the transcript and the hashes over these values.
+        use crate::rec::clean::{ABSORB_TWEAKS, DUPLEX_TAGS, PARAM_IV_WORDS, ZERO_PREFIXES};
+        assert_eq!(PARAM_IV, PARAM_IV_WORDS);
+        for (n, &z) in ZERO_PREFIXES.iter().enumerate() {
+            assert_eq!(zero_prefix(n), z, "{n} zero blocks");
+        }
+        assert_eq!([SEED, OUTPUT, COMMIT, POW_BASE, NONCE, POW_TAG], DUPLEX_TAGS);
+        for &(first, last, len, previous, tweak) in ABSORB_TWEAKS {
+            assert_eq!(
+                absorb_tweak(first, last, len, previous),
+                tweak,
+                "{first} {last} {len} {previous}"
+            );
+        }
+    }
 }

@@ -2,7 +2,7 @@
 
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, Products, WordGadgets};
-use flock::circuit::{Builder, Circuit, Wire};
+use flock::circuit::{Builder, Circuit};
 
 /// One ALU instance: add, subtract, compare, bitwise logic, branches and jumps.
 ///
@@ -170,89 +170,8 @@ impl ClassCircuit for Alu {
         let [v1, v2, imm] = [0, 1, 2].map(|port| c.input::<64>(port));
         let f = c.input::<15>(3);
         let [dt, pc4] = [4, 5].map(|port| c.input::<64>(port));
-        let flag = |bit: u64| f[bit.trailing_zeros() as usize];
-        let b = c.xor_word(&v2, &imm);
-
-        // The difference is v1 + !b + 1.
-        //
-        // It borrows exactly when that sum does not carry out.
-        let sub = flag(Self::SUB);
-        let b_or_not = b.map(|bit| c.xor(bit, sub));
-        let (sum, carry_out) = c.add_with_carry(&v1, &b_or_not, sub);
-
-        // The comparisons, from the borrow and the signs.
-        //
-        //     ltu = borrow
-        //     lt  = borrow ^ sign(v1) ^ sign(b)
-        //     eq  = no bit of v1 ^ b set
-        let ltu = c.not(carry_out);
-        let signs = c.xor(v1[63], b[63]);
-        let lt = c.xor(ltu, signs);
-        let diff = c.xor_word(&v1, &b);
-        let ne = c.any(&diff);
-        let eq = c.not(ne);
-
-        // The output: the sum unless a selector is set.
-        //
-        //     and = v1 * b
-        //     or  = v1 * b ^ (v1 ^ b)
-        //     xor = v1 ^ b
-        let sum = c.sext32_if(flag(Self::WORD), &sum);
-        let selectors = [Self::SEL_LT, Self::SEL_LTU, Self::SEL_AND, Self::SEL_OR, Self::SEL_XOR];
-        let none = selectors.iter().fold(Wire::ONE, |acc, &s| c.xor(acc, flag(s)));
-        let and_or = c.xor(flag(Self::SEL_AND), flag(Self::SEL_OR));
-        let or_xor = c.xor(flag(Self::SEL_OR), flag(Self::SEL_XOR));
-        let mut out = c.and_word(none, &sum);
-        for i in 0..64 {
-            let both = c.and(v1[i], b[i]);
-            let and_term = c.and(and_or, both);
-            let xor_term = c.and(or_xor, diff[i]);
-            let logic = c.xor(and_term, xor_term);
-            out[i] = c.xor(out[i], logic);
-        }
-
-        // A comparison is a single bit, the output's bit 0.
-        let lt_term = c.and(flag(Self::SEL_LT), lt);
-        let ltu_term = c.and(flag(Self::SEL_LTU), ltu);
-        let compared = c.xor(lt_term, ltu_term);
-        out[0] = c.xor(out[0], compared);
-
-        // An indirect jump outputs its link, and offsets the successor by the sum's difference from it.
-        //
-        //     out  = out ^ indirect * (out ^ pc4)            = pc4 when indirect
-        //     jump = dt  ^ indirect * (out ^ pc4), bit 0 kept = the sum with bit 0 cleared, XOR pc4
-        let indirect = flag(Self::INDIRECT);
-        let mut offset = dt;
-        for i in 0..64 {
-            let d = c.xor(out[i], pc4[i]);
-            let moved = c.and(indirect, d);
-            out[i] = c.xor(out[i], moved);
-            if i > 0 {
-                offset[i] = c.xor(offset[i], moved);
-            }
-        }
-
-        // The jump: unconditional, or the one branch condition set.
-        let (ge, geu) = (c.not(lt), c.not(ltu));
-        let taken = [
-            (Self::BR_EQ, eq),
-            (Self::BR_NE, ne),
-            (Self::BR_LT, lt),
-            (Self::BR_GE, ge),
-            (Self::BR_LTU, ltu),
-            (Self::BR_GEU, geu),
-        ]
-        .into_iter()
-        .fold(flag(Self::ALWAYS), |acc, (when, holds)| {
-            let term = c.and(flag(when), holds);
-            c.xor(acc, term)
-        });
-
-        // Each bit of the jump is a product written at its output position, so it costs no copy.
+        let out = flock::clean::alu64(&mut c, &v1, &v2, &imm, &f, &dt, &pc4);
         c.output_word(0, &out);
-        for (i, &bit) in offset.iter().enumerate() {
-            c.and_output(1, i, taken, bit);
-        }
         c.finish()
     }
 }
@@ -422,10 +341,10 @@ mod tests {
 
     #[test]
     fn flock_proves_honest_alu_instances_and_refuses_a_flipped_bit() {
-        // Fixture: 16 instances cycling through the legal words.
+        // Native packed witnesses cover every legal operation, including unconditional and indirect jumps.
         const LABEL: &[u8] = b"rv-alu-reduction-test";
         let block = ALU.block();
-        let n_log = 4;
+        let n_log = 5;
         let rows: Vec<[u64; 6]> = (0..1u64 << n_log)
             .map(|i| {
                 [
@@ -441,7 +360,9 @@ mod tests {
 
         // Prove the batch, optionally flipping one witness bit first, and verify.
         let accepts = |tamper: Option<usize>| {
-            let mut witness = ALU.witness_by_walk(&rows, &[0; 6], n_log, |row, words| words.copy_from_slice(row));
+            let mut witness = ALU.witness_by_instance(&rows, &rows[0], n_log, |row, z, az, bz| {
+                Alu::witness(row, z, az, bz);
+            });
             if let Some(bit) = tamper {
                 witness.z[bit / 64] ^= 1 << (bit % 64);
             }
@@ -456,11 +377,13 @@ mod tests {
         };
         assert!(accepts(None));
 
-        // Mutation: an output bit, a bit of the jump, the last product.
+        // False values, committed jump products, private products, unused flags and padding must reject.
         for bit in [
             64 * ALU.n_input_words() + 5,
             64 * (ALU.n_input_words() + 1) + 3,
             ALU.useful_bits() - 1,
+            3 * 64 + 15,
+            (1 << ALU.k_log()) - 1,
         ] {
             assert!(!accepts(Some(bit)), "flipping bit {bit} must reject");
         }
