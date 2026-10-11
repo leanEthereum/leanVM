@@ -406,7 +406,7 @@ theorem signature_good : Good (fun _ => True) Circuit.signature fun s _ s' => s'
         exact (limbs3_one _).symm
       · rw [show s.statement + 4 = s23.statement by omega, ← hx st val hsat, hroot]
         exact (limbs3_two _ _).symm
-      · simp only [Words.verify, henc, beq_iff_eq]
+      · simp only [Words.verify, henc, Option.elim_some, beq_iff_eq]
         rw [climb_eq, ← hleaf, ← hpath]
 
 /-- The circuit of `n` signatures. -/

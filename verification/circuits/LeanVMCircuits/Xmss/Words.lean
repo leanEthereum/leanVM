@@ -75,9 +75,7 @@ structure Sig where
 
 /-- Verification over words: the encoding exists and the chains' leaf climbs to the root. -/
 def verify (pp root : Dig) (msg : W × W × W × W) (epoch : ℕ) (sig : Sig) : Bool :=
-  match encode pp msg sig.rho epoch with
-  | none => false
-  | some x =>
+  (encode pp msg sig.rho epoch).elim false fun x =>
     let ends := List.ofFn fun i : Fin 42 => chainFrom i epoch pp (x.getD i 0) (sig.tips i)
     climb epoch pp sig.path (leaf epoch pp ends) == root
 
