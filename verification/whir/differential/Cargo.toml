@@ -1,0 +1,13 @@
+[package]
+name = "whir-lean-differential"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+publish = false
+
+[workspace]
+
+[dependencies]
+pcs = { path = "../../../crates/pcs" }
+primitives = { path = "../../../crates/primitives" }
+fiat_shamir = { path = "../../../crates/fiat_shamir" }

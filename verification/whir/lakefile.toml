@@ -1,0 +1,68 @@
+name = "whirVerification"
+version = "0.1.0"
+defaultTargets = ["Whir", "whirModel"]
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "5ed2965256430c3649e86755f9576b54eca72435"
+
+[[require]]
+name = "Arklib"
+git = "https://github.com/kevaundray/ArkLib"
+rev = "456f4f85acdde6aeb373794d0c5d0b133c2c11ea"
+
+[[lean_lib]]
+name = "Whir"
+
+[[lean_exe]]
+name = "whirModel"
+root = "Main"
+
+[[lean_exe]]
+name = "whirExtractionSmoke"
+root = "Whir.PCSRewindExtractorFixtures"
+
+[[lean_exe]]
+name = "whirAnchorPrefixSmoke"
+root = "Whir.AnchorPrefixRefinementSmoke"
+
+[[lean_exe]]
+name = "whirCountedExtractionSmoke"
+root = "Whir.CountedCandidateCheckSmoke"
+
+[[lean_exe]]
+name = "whirByteStreamSmoke"
+root = "Whir.AnchoredByteStreamSmoke"
+
+[[lean_exe]]
+name = "whirFreshCallerSmoke"
+root = "Whir.AnchoredSourceFreshCallerSmoke"
+
+[[lean_exe]]
+name = "whirPhysicalSmoke"
+root = "Whir.AnchoredPhysicalSmoke"
+
+[[lean_exe]]
+name = "whirActualSourceStreamSmoke"
+root = "Whir.PublicCompressionCouplingSourceStreamSmoke"
+
+[[lean_exe]]
+name = "whirRoundByRoundDecoderSmoke"
+root = "Whir.PCSRoundByRoundSourceDecoderSmoke"
+
+[[lean_exe]]
+name = "whirBookRoundsSmoke"
+root = "Whir.PCSBCSRoundsSmoke"
+
+[[lean_exe]]
+name = "whirMerkleLogExtractionSmoke"
+root = "Whir.MerkleQueryLogExtractionSmoke"
+
+[[lean_exe]]
+name = "pcsbcsSourceCoordinateDecoderSmoke"
+root = "Whir.PCSBCSSourceCoordinateDecoderSmoke"
+
+[[lean_exe]]
+name = "pcsbcsPublicLogExtractorSmoke"
+root = "Whir.PCSBCSPublicLogExtractorSmoke"
