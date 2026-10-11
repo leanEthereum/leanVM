@@ -1,5 +1,6 @@
 import LeanVMCircuits
 import LeanVMCircuits.Xmss.Main
+import LeanVMCircuits.Sphincs.Main
 
 /-!
 Prints the axioms every listed theorem depends on, and fails if any is outside `propext`, `Classical.choice` and
@@ -182,7 +183,23 @@ run_cmd do
     ``LeanVMCircuits.Xmss.accepted_iff,
     ``LeanVMCircuits.Sphincs.target_eq,
     ``LeanVMCircuits.Sphincs.eq_191,
-    ``LeanVMCircuits.Sphincs.sound] do
+    ``LeanVMCircuits.Sphincs.sound,
+    ``LeanVMCircuits.Sphincs.complete,
+    ``LeanVMCircuits.Sphincs.Spec.tweak_bytes,
+    ``LeanVMCircuits.Sphincs.Spec.th_eq,
+    ``LeanVMCircuits.Sphincs.Spec.hash_short,
+    ``LeanVMCircuits.Sphincs.Spec.encDigest_eq,
+    ``LeanVMCircuits.Sphincs.Spec.messageDigest_eq,
+    ``LeanVMCircuits.Sphincs.Spec.encode_eq,
+    ``LeanVMCircuits.Sphincs.Spec.fold_eq,
+    ``LeanVMCircuits.Sphincs.Spec.layerRoot_eq,
+    ``LeanVMCircuits.Sphincs.Spec.recover_eq,
+    ``LeanVMCircuits.Sphincs.Spec.verify_eq,
+    ``LeanVMCircuits.Sphincs.Spec.counters_lt,
+    ``LeanVMCircuits.Sphincs.Spec.signature_onto,
+    ``LeanVMCircuits.Sphincs.Spec.publicKey_onto,
+    ``LeanVMCircuits.Sphincs.Spec.message_onto,
+    ``LeanVMCircuits.Sphincs.accepted_iff] do
     let axioms ← collectAxioms theoremName
     logInfo m!"{theoremName} depends on axioms: {axioms.toList}"
     for axiomName in axioms do
