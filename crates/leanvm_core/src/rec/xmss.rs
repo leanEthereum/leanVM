@@ -10,7 +10,7 @@
 
 use super::circuit::{Builder, Circuit, Dw, Ew, Finished, Kw, Limbs, Unsatisfied};
 use super::fixed::FixedColumns;
-use super::tree::CircuitStats;
+use super::tree::{CircuitStats, Leaf, LeafCircuit, LeafStatement, Leaves};
 use crate::cpu::{DecodeError, VerifyError};
 use crate::envelope::Envelope;
 use crate::pcs::Rate;
@@ -24,9 +24,9 @@ use tracing::info_span;
 const DOMAIN: &[u8] = b"leanvm-xmss-rec-1";
 
 /// Hash chains, one per encoding digit.
-const V: usize = 42;
+pub(super) const V: usize = 42;
 /// Steps of a chain: its values are `0..=7`.
-const STEPS: usize = 7;
+pub(super) const STEPS: usize = 7;
 /// The Merkle tree's height.
 const LOG_LIFETIME: usize = 32;
 /// Statement words per signature.
@@ -206,6 +206,41 @@ impl XmssBatch {
         CircuitStats::of(&self.circuit)
     }
 
+    /// The leaves of an aggregation tree that are proofs of this batch.
+    #[must_use]
+    pub const fn leaves(&self) -> Leaves<'_> {
+        Leaves::Circuit(self.leaf_circuit())
+    }
+
+    /// A leaf of an aggregation tree: a proof of this batch, and the claims it proves, in order.
+    ///
+    /// # Errors
+    ///
+    /// Claims of another number than the batch's.
+    pub fn leaf<'a>(&self, claims: &[XmssClaim], proof: &'a XmssProof) -> Result<Leaf<'a>, XmssError> {
+        self.count(claims.len(), "claims")?;
+        Ok(Leaf::circuit(
+            &self.leaf_circuit(),
+            statement(claims),
+            &proof.proof,
+            proof.rate,
+        ))
+    }
+
+    /// What a leaf of these claims states, which an aggregation tree's verifier is given.
+    ///
+    /// # Errors
+    ///
+    /// Claims of another number than the batch's.
+    pub fn statement(&self, claims: &[XmssClaim]) -> Result<LeafStatement, XmssError> {
+        self.count(claims.len(), "claims")?;
+        Ok(LeafStatement::circuit(&self.leaf_circuit(), statement(claims)))
+    }
+
+    const fn leaf_circuit(&self) -> LeafCircuit<'_> {
+        LeafCircuit::new(&self.circuit, &self.columns, self.iv, self.rate)
+    }
+
     /// Prove that each signature verifies under its claim, in order.
     ///
     /// # Errors
@@ -314,7 +349,7 @@ const fn tweak0(ty: u64, pos: usize) -> u64 {
 }
 
 /// A statement word exposed, its words; `zeros` of its words past the first `3 - zeros` are held to zero.
-fn statement_words(b: &mut Builder, value: F192, zeros: usize) -> Vec<Kw> {
+pub(super) fn statement_words(b: &mut Builder, value: F192, zeros: usize) -> Vec<Kw> {
     let w = b.free_e(value);
     b.expose_e(w);
     let ks = b.e_to_k(w);
@@ -340,7 +375,7 @@ fn tweak_hash(b: &mut Builder, ty: u64, pos: usize, idx: Kw, pp: &[Kw], payload:
 }
 
 /// The digit bits' product: for each bit `b` of weight `2^k`, times `X^(2^k)` when `b` is one.
-fn digit_product(b: &mut Builder, bits: &[Kw]) -> Ew {
+pub(super) fn digit_product(b: &mut Builder, bits: &[Kw]) -> Ew {
     let mut acc = b.one();
     let z = b.zero();
     for i in 0..V {
@@ -354,7 +389,7 @@ fn digit_product(b: &mut Builder, bits: &[Kw]) -> Ew {
 }
 
 /// The indicators of the eight values of a digit's bits, low first: indicator `v` is one exactly when the digit is `v`.
-fn indicators(b: &mut Builder, digit: [Kw; 3]) -> Vec<Ew> {
+pub(super) fn indicators(b: &mut Builder, digit: [Kw; 3]) -> Vec<Ew> {
     let o = b.one();
     let z = b.zero();
     let mut level = vec![o];

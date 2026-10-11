@@ -21,7 +21,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::ops::Range;
 
-/// Each dense polynomial's variables: the bytecode table's, the image's, the fixed polynomial's.
+/// Each dense polynomial's variables: the bytecode table's, the image's, the leaves' fixed polynomial's, the nodes'.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct DenseVars(pub(crate) [usize; DensePoly::COUNT]);
 
@@ -183,20 +183,20 @@ impl<E: Copy> DenseClaim<E> {
             let DenseTerm {
                 n_low,
                 bits,
-                top,
+                ref top,
                 scale,
                 ..
             } = *t;
             let at_bits = n_low + bits.len;
             assert_eq!(
-                at_bits + usize::from(top.is_some()),
+                at_bits + top.len(),
                 r.len(),
                 "a term's point has its polynomial's variables"
             );
             let bits_eq = a.eq_bits(bits.value, &r[n_low..at_bits]);
             let mut eq = a.mul(prefix[n_low], bits_eq);
-            if let Some(top) = top {
-                let s = a.add(top, r[at_bits]);
+            for (&top, &x) in top.iter().zip(&r[at_bits..]) {
+                let s = a.add(top, x);
                 eq = a.times_one_plus(eq, s);
             }
             let power = powers.next().expect("a power per term");
@@ -211,7 +211,7 @@ impl DenseTerm<F192> {
     fn placed(&self, low: &[F192], coef: F192) -> Placed {
         let mut point = low[..self.n_low].to_vec();
         point.extend((0..self.bits.len).map(|i| F192::new((self.bits.value >> i & 1) as u64, 0, 0)));
-        point.extend(self.top);
+        point.extend(&self.top);
         let boolean = |x: &F192| *x == F192::ZERO || *x == F192::ONE;
         let k = point.len() - point.iter().rev().take_while(|x| boolean(x)).count();
         let offset = (point[k..].iter().enumerate())

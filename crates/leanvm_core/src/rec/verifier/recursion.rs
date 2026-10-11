@@ -39,6 +39,8 @@ pub(crate) struct RecRows {
     pub(crate) hints: Vec<FixedHint>,
     /// The transcript's final state, which binds every scalar the proof sent.
     pub(crate) state: Dw,
+    /// The hash of the statement's limbs, the transcript's public input: `statement_seed` of the statement.
+    pub(crate) seed: Dw,
 }
 
 /// One evaluation of a fixed column, taken as a hint: the column, the point, and the hint.
@@ -122,6 +124,7 @@ impl RecShape {
             matrix: matrices.into(),
             hints: hints.hints,
             state: t.commitment(b),
+            seed,
         }
     }
 }

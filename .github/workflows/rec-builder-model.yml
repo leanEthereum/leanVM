@@ -1,9 +1,10 @@
 name: Recursion builder model
 
 # The Lean model of the recursion circuit's builder (verification/circuits/LeanVMCircuits/Rec/Builder.lean)
-# replays the builder calls that make each tracked aggregation tree's circuits and the leanXMSS batch circuits, and
-# checks it builds the same circuits; each leanXMSS circuit is also checked to be the one Lean authors
-# (LeanVMCircuits/Xmss/Circuit.lean). Any Rust change can change what the circuits call, so every one runs it.
+# replays the builder calls that make each tracked aggregation tree's circuits and the leanXMSS and leanSPHINCS batch
+# circuits, and checks it builds the same circuits; each signature circuit is also checked to be the one Lean authors
+# (LeanVMCircuits/Xmss/Circuit.lean, LeanVMCircuits/Sphincs/Circuit.lean). Any Rust change can change what the
+# circuits call, so every one runs it.
 
 on:
   pull_request:
@@ -46,4 +47,4 @@ jobs:
           lake build checkrec
           lake exe checkrec /tmp/circuits/aggregate-*.txt
           lake build checkxmss
-          lake exe checkxmss /tmp/circuits/xmss-*.txt
+          lake exe checkxmss /tmp/circuits/xmss-*.txt /tmp/circuits/sphincs-*.txt

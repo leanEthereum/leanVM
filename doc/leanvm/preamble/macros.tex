@@ -182,17 +182,20 @@
 \newcommand{\rgid}{\mathsf{sl}}           % a slot's index among all tables' slots
 \newcommand{\slotkey}{\mathsf{key}}       % the bus key a recursion slot pulls at
 \newcommand{\slotnext}{\mathsf{next}}     % the key of the next slot of the slot's wire, where it pushes
-\newcommand{\rfirst}{\rcirc_{\mathrm{first}}} % the first-level node's circuit, verifying RISC-V proofs
+\newcommand{\rfirst}{\rcirc_{\mathrm{first}}} % a first-level node's circuit, verifying leaves of one family
 \newcommand{\rnode}{\rcirc_{\mathrm{node}}}   % the node's circuit, verifying recursion proofs
-\newcommand{\arityz}{\mathsf{n}_0}        % RISC-V proofs a first-level node verifies
+\newcommand{\rleaf}{\rcirc_{\mathrm{leaf}}}   % a leaf circuit: a recursion circuit whose proofs are leaves (a signature batch)
+\newcommand{\arityz}{\mathsf{n}_0}        % leaves a first-level node verifies
 \newcommand{\arity}{\mathsf{n}}           % recursion proofs a node verifies
-\newcommand{\kbit}{\mathsf{k}}            % a tree proof's kind: 0 for the first level, 1 for a node
-\newcommand{\tdig}{\mathsf{dig}}          % a tree proof's digest of its leaves' outputs
+\newcommand{\nfam}{\mathsf{m}}            % a tree's leaf families
+\newcommand{\kbit}{\mathsf{k}}            % a tree proof's kind's code: family 0 is 0, a node 1, family i > 0 is i + 1
+\newcommand{\tdig}{\mathsf{dig}}          % a tree proof's digest of what its leaves state
 \newcommand{\bctab}{\mathsf{T}}           % the program's stacked bytecode table
 \newcommand{\imgpoly}{\mathsf{I}}         % RAM's image, zero padded to a power of two
-\newcommand{\fixnode}{W_{\mathrm{node}}}  % the nodes' fixed polynomial: both circuits' fixed columns
+\newcommand{\fixleaf}{W_{\mathrm{leaf}}}  % the leaves' fixed polynomial: every leaf circuit's fixed columns
+\newcommand{\fixnode}{W_{\mathrm{node}}}  % the nodes' fixed polynomial: every kind's circuit's fixed columns
 \newcommand{\fixdim}{\kappa_{\mathrm{fix}}} % variables of one circuit's stack of fixed columns
-\newcommand{\taufix}{\tau^{\mathrm{node}}} % the table heights both tree circuits share
+\newcommand{\taufix}{\tau^{\mathrm{node}}} % the table heights every tree circuit shares
 \newcommand{\fdense}{\mathbf{x}_{\mathrm{d}}} % the point of a tree proof's dense claims
 \newcommand{\frow}{\mathbf{x}_{\mathrm{r}}}   % the row point of a tree proof's matrix claims
 \newcommand{\fcol}{\mathbf{x}_{\mathrm{c}}}   % the column point of a tree proof's matrix claims

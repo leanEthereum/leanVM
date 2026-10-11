@@ -1,13 +1,14 @@
 import LeanVMCircuits.Xmss.Circuit
+import LeanVMCircuits.Sphincs.Circuit
 
 /-!
-`lake exe checkxmss <dir>/xmss-<n>.txt...`: for each dump of the leanXMSS batch circuit of `n` signatures
-(`cargo leanvm circuits`), replay its builder calls through the Lean model of the builder and check they build the
-dumped circuit, as `checkrec` does; then check the dumped circuit and its bus links are those of the circuit
-`LeanVMCircuits.Xmss.Circuit.circuit n` builds.
+`lake exe checkxmss <dir>/xmss-<n>.txt... <dir>/sphincs-<n>.txt...`: for each dump of the leanXMSS or leanSPHINCS
+batch circuit of `n` signatures (`cargo leanvm circuits`), replay its builder calls through the Lean model of the
+builder and check they build the dumped circuit, as `checkrec` does; then check the dumped circuit and its bus links
+are those of the circuit `LeanVMCircuits.Xmss.Circuit.circuit n` or `LeanVMCircuits.Sphincs.Circuit.circuit n` builds.
 
 The parsing and the printing of a finished circuit are `CheckRec`'s, with a union-find that halves its paths, since
-the leanXMSS circuit holds thousands of wires to the constant zero.
+the signature circuits hold thousands of wires to the constant zero.
 -/
 
 open LeanVMCircuits.Rec.Model
@@ -181,15 +182,17 @@ def same (path : System.FilePath) (what : String) (built : String × List (List 
     IO.eprintln s!"  dumped: {(dl.getD i "").take 200}"
     return false
 
-/-- The number of signatures a dump's name gives: `xmss-<n>.txt`. -/
-def size (path : System.FilePath) : Option ℕ :=
+/-- The authored circuit a dump's name gives, and its name: `xmss-<n>.txt` or `sphincs-<n>.txt`. -/
+def authored (path : System.FilePath) : Option (String × M Unit) :=
   match path.fileStem.map (·.splitOn "-") with
-  | some ["xmss", n] => n.toNat?
+  | some ["xmss", n] => n.toNat?.map fun n => (s!"Xmss.Circuit.circuit {n}", LeanVMCircuits.Xmss.Circuit.circuit n)
+  | some ["sphincs", n] =>
+    n.toNat?.map fun n => (s!"Sphincs.Circuit.circuit {n}", LeanVMCircuits.Sphincs.Circuit.circuit n)
   | _ => none
 
 def check (path : System.FilePath) : IO Bool := do
-  let some n := size path | do
-    IO.eprintln s!"{path}: not named xmss-<n>.txt"; return false
+  let some (name, circuit) := authored path | do
+    IO.eprintln s!"{path}: not named xmss-<n>.txt or sphincs-<n>.txt"; return false
   let text ← IO.FS.readFile path
   let [head, rest] := text.splitOn "circuit\n" | do
     IO.eprintln s!"{path}: not one circuit"; return false
@@ -206,9 +209,9 @@ def check (path : System.FilePath) : IO Bool := do
       s := (call.run.run s).2
     | .error e => IO.eprintln s!"{path}: {e}"; return false
   unless (← same path "replayed" (finish s) dumped dumpedNext) do return false
-  let authored := ((LeanVMCircuits.Xmss.Circuit.circuit n).run {}).2
-  unless (← same path "authored" (finish authored) dumped dumpedNext) do return false
-  IO.println s!"{path}: {calls.length} calls replay to the dumped circuit, which is `Circuit.circuit {n}`, its bus links its classes' cycles"
+  let built := (circuit.run {}).2
+  unless (← same path "authored" (finish built) dumped dumpedNext) do return false
+  IO.println s!"{path}: {calls.length} calls replay to the dumped circuit, which is `{name}`, its bus links its classes' cycles"
   return true
 
 end CheckXmss

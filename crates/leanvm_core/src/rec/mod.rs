@@ -7,6 +7,7 @@ mod error;
 mod fixed;
 mod layout;
 pub mod proof;
+pub mod sphincs;
 pub mod table;
 pub mod transcript;
 pub mod tree;

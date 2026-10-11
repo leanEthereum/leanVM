@@ -3,14 +3,14 @@
 //!
 //! One message for all signers is the Ethereum shape: validators attest to one block.
 
-use leansphincs::{Message, PublicKey, Signature};
+pub use leansphincs::{LayerSignature, Message, PublicKey, Signature};
 use leanvm_guest::{PublicValues, Run, as_words_unchecked};
 
 /// The guest (`../guest`), built by `programs/build.sh`.
 pub const ELF: &[u8] = include_bytes!("../../leansphincs.elf");
 
 /// The message every signer signs.
-const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
+pub const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
 
 /// A signer's secret seed: its index, then zeros.
 fn seed(i: usize) -> [u8; 32] {
@@ -19,13 +19,18 @@ fn seed(i: usize) -> [u8; 32] {
     seed
 }
 
-/// `n` signers, each with its own key, sign the message.
-pub fn batch(n: usize) -> Run {
+/// `n` signers, each with its own key, sign [`MESSAGE`]: each one's key and signature.
+pub fn signers(n: usize) -> Vec<(PublicKey, Signature)> {
     // Keys and signatures are independent, so they are made in parallel.
-    let signed = parallel::map_collect(n, |i| {
+    parallel::map_collect(n, |i| {
         let (sk, pk) = leansphincs::key_gen(seed(i));
         (pk, sk.sign(&MESSAGE).expect("an admissible digest and encodings"))
-    });
+    })
+}
+
+/// `n` signers, each with its own key, sign the message.
+pub fn batch(n: usize) -> Run {
+    let signed = signers(n);
     // What the guest reads: the count, then key, message and signature for each.
     let mut advice = vec![n as u64];
     // What it commits: each claim, key and message.

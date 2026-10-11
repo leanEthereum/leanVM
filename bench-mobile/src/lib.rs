@@ -1,6 +1,6 @@
 //! Fixed mobile workloads, timed by mobench without a nested benchmark harness.
 
-use leanvm::aggregate::{Leaf, LeafShape, Tree, TreeShape};
+use leanvm::aggregate::{Leaf, LeafShape, Leaves, Subtree, Tree, TreeShape};
 use leanvm::{Output, Program, ProvenRun, Prover, Rate};
 use mobench_sdk::registry::BenchFunction;
 use mobench_sdk::timing::{BenchReport, BenchSpec, TimingError};
@@ -202,10 +202,13 @@ pub fn shielded_aggregate(spec: BenchSpec) -> Result<BenchReport, TimingError> {
         fixture.verify(run)?;
     }
     mobench_sdk::record_run_u64("verified_leaves", runs.len() as u64);
+    let family = Leaves::Runs {
+        program: &fixture.program,
+        shape: LeafShape::measured(&stats, fixture.prover.rate()),
+    };
     let tree = Tree::new(
-        &fixture.program,
+        &[family],
         TreeShape {
-            leaf: LeafShape::measured(&stats, fixture.prover.rate()),
             arity_0: AGGREGATION_LEAVES,
             arity: AGGREGATION_LEAVES,
             rate: Rate::new(AGGREGATION_LOG_INV_RATE).map_err(execution_error)?,
@@ -213,7 +216,7 @@ pub fn shielded_aggregate(spec: BenchSpec) -> Result<BenchReport, TimingError> {
     )
     .map_err(execution_error)?;
     let leaves = runs.each_ref().map(|run| Leaf::new(&run.proof, run.output));
-    let outputs = [fixture.expected; AGGREGATION_LEAVES];
+    let expected = Subtree::First(vec![fixture.expected.into(); AGGREGATION_LEAVES]);
     let count = spec.warmup as usize + spec.iterations as usize;
     record_workload();
     mobench_sdk::record_run_u64("aggregation_leaves", leaves.len() as u64);
@@ -232,7 +235,7 @@ pub fn shielded_aggregate(spec: BenchSpec) -> Result<BenchReport, TimingError> {
                 let proofs = proofs.into_inner();
                 let produced = proofs.len();
                 for root in proofs {
-                    tree.verify(&root, &outputs).map_err(execution_error)?;
+                    tree.verify(&root, &expected).map_err(execution_error)?;
                     black_box(root);
                 }
                 mobench_sdk::record_run_u64("verified_proofs", produced as u64);
