@@ -1,6 +1,6 @@
 name = "LeanVMCircuits"
 version = "0.1.0"
-defaultTargets = ["LeanVMCircuits"]
+defaultTargets = ["LeanVMCircuits", "EthCryptographySpecs", "LeanSphincsSpec"]
 
 [[require]]
 name = "Clean"
@@ -9,6 +9,9 @@ rev = "b449bf590f93e13827c3c7e747e392d6969aa380"
 
 [[lean_lib]]
 name = "LeanVMCircuits"
+# `LeanVMCircuits` imports every `module` file; the bridges to the vendored specifications import non-module files,
+# so they are roots of their own.
+roots = ["LeanVMCircuits", "LeanVMCircuits.Xmss.Main"]
 
 [[lean_exe]]
 name = "checkrec"
