@@ -26,4 +26,4 @@ roots = ["EthCryptographySpecs.Xmss"]
 [[lean_lib]]
 name = "LeanSphincsSpec"
 srcDir = "Spec"
-roots = ["LeanSphincs"]
+roots = ["LeanSphincs", "LeanSphincs.Kat"]

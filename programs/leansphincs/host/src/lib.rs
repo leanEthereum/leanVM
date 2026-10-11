@@ -106,6 +106,21 @@ mod tests {
         assert_eq!(leansphincs::verify(&public_key, &message, &signature), Ok(()));
     }
 
+    /// The known answers' key, message and specification bytes of the signature, as hex, for the Lean
+    /// specification's check of them (`verification/circuits/Spec/LeanSphincs/Kat.lean`).
+    ///
+    /// `cargo test -p leansphincs-host print_known_answers -- --ignored --nocapture`
+    #[test]
+    #[ignore = "prints the known answers for the Lean specification"]
+    fn print_known_answers() {
+        let (seed, message) = fixed();
+        let (sk, public_key) = leansphincs::key_gen(seed);
+        let signature = sk.sign(&message).unwrap();
+        println!("public key {}", hex(bytes(words_of_key(&public_key))));
+        println!("message {}", hex(bytes(&message)));
+        println!("signature {}", hex(signature.to_bytes()));
+    }
+
     #[test]
     fn leansphincs_rejects_a_change_anywhere() {
         // Invariant: a verifier binds every part of the signature, on every layer.
