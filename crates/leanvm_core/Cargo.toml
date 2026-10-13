@@ -12,7 +12,7 @@ parallel.workspace = true
 primitives.workspace = true
 fiat_shamir.workspace = true
 pcs.workspace = true
-flock.workspace = true
+keccak_gkr.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]

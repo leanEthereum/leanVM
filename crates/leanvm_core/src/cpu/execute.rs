@@ -187,6 +187,16 @@ impl Program {
     /// witness reaches [`Program::min_log_committed`]. Compilation yields the
     /// `Program`; executing it (here) and proving it are separate later phases.
     pub fn execute(&self, public_input: [F192; 2]) -> Result<Execution, ExecError> {
+        self.execute_with(public_input, &mut |_| {})
+    }
+
+    /// [`Self::execute`], handing `sha3_step` the lanes each `SHA3` row reads, in row order
+    /// and as the row runs.
+    pub(crate) fn execute_with(
+        &self,
+        public_input: [F192; 2],
+        sha3_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
+    ) -> Result<Execution, ExecError> {
         // One interpretation of the program, then the fill. The blocks that bring every
         // table to a power of two are cycles no program code enters (`cpu::filler`), so
         // they run after the chain has halted, by which point the program's own row
@@ -877,9 +887,11 @@ impl Program {
                         }
                     }
                     // No table constraint covers the output (the relation is proven
-                    // by flock, §hash_flock); the interpreter still computes it so
+                    // by the Keccak reduction, §hash_flock); the interpreter still computes it so
                     // the output cells are consistent for any later read.
-                    let output = crate::hash_flock::step_cells(&input);
+                    let lanes = crate::hash_flock::state_of_cells(&input);
+                    sha3_step(&lanes);
+                    let output = crate::hash_flock::cells_of_state(&primitives::hash::step(&lanes));
                     for (c, &v) in output.iter().enumerate() {
                         m.put(cells[STATE_CELLS + c], v)?;
                     }

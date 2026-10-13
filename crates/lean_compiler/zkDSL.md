@@ -464,7 +464,7 @@ Operands:
 
 If `out` was already written, the statement *asserts* the result equals it, write-once turning the hash into a verification, which is exactly what a signature verifier wants.
 
-The step, Keccak-f\[1600\] after XORing the padding's last bit into lane 16, is proven by the flock Keccak R1CS (`crates/flock`, see `doc.pdf` §Keccak); one instruction is one permutation.
+The step, Keccak-f\[1600\] after XORing the padding's last bit into lane 16, is proven by a GKR over the Keccak rounds (`crates/keccak_gkr`); one instruction is one permutation.
 
 ## Hints: `hint_witness(dest, "name")`
 

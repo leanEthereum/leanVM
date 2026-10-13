@@ -45,7 +45,7 @@ pub(crate) struct Jrow {
 
 /// `SHA3` row: the per-cell memory access counts, in the order the table flushes
 /// them (`tables::sha3_cells`): the four `m` cells, the four `tail` cells, the five
-/// `cap` cells, then the thirteen output cells. The fifty flock lanes are those
+/// `cap` cells, then the thirteen output cells. The fifty value lanes are those
 /// cells' lanes, read back from the final memory image.
 pub(crate) struct Brow {
     pub(crate) pc: u32,

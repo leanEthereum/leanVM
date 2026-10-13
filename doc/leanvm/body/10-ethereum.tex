@@ -21,11 +21,10 @@ $32$ bytes & Fiat-Shamir IV\\
 $32$ bytes & signer-set digest\\
 $32$ bytes & DA list digest\\
 $(\kbc+5)\times24$ bytes & deferred bytecode point and value\\
-$34\times24$ bytes & deferred matrix point and two values\\
 \hline
 \end{tabular}
 \end{center}
-The deferred claims let recursion postpone expensive polynomial evaluations until the final verification (\S\ref{sec:deferred-claims}).
+The deferred claim lets recursion postpone an expensive polynomial evaluation until the final verification (\S\ref{sec:deferred-claims}).
 
 The DA list digest is the hash of the concatenated pairs $(\daroot,\davechash)$, each a $32$-byte DA root $\daroot$ followed by a $32$-byte hash $\davechash$ of the membership test vector $\dual$.
 
@@ -51,9 +50,9 @@ The prover supplies the extra claims and assigns each supporting occurrence to a
 
 \subsubsection{Deferred evaluation claims}\label{sec:deferred-claims}
 
-Verifying a child requires evaluations of three fixed polynomials: the bytecode multilinear, in $\kbc+4$ variables (\S\ref{sec:e2e-bc}), and flock's R1CS matrix multilinears $\widetilde A_0,\widetilde B_0$, each in $32$ variables (Annex~\ref{annex:flock}). Computing them inside the guest would be very expensive. Instead, the guest carries evaluation claims in its statement. These expensive computations are moved 'outside of the snark'.
+Verifying a child requires one evaluation of a fixed polynomial: the bytecode multilinear, in $\kbc+4$ variables (\S\ref{sec:e2e-bc}). Computing it inside the guest would be very expensive. Instead, the guest carries one evaluation claim in its statement, a point and a value. This expensive computation is moved 'outside of the snark': only the root's claim is checked, natively, by the final verifier. Nothing else is deferred, the Keccak argument's weights being cheap to evaluate in the guest (\S\ref{keccak:recursion}).
 
-A node combines the claims carried by its children with the new claims produced while verifying them. Two sumchecks reduce these to three evaluations: one of the bytecode polynomial and one of each matrix polynomial, batched. The Fiat-Shamir for batching and sumchecks is seeded by all child and running claims.
+A node with $n$ children combines the claim each child carries with the new claim produced while verifying it, $2n$ claims on the one polynomial. One sumcheck over its $\kbc+4$ variables reduces their random combination to a single evaluation, which is the claim the node carries. A node with no child carries the claim at the all-zeros point. The Fiat-Shamir for the batching and the sumcheck is seeded by every child's statement and both of its claims.
 
 \subsection{Data availability: LeanDA}\label{sec:leanda}
 

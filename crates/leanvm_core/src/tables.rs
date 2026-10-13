@@ -397,9 +397,9 @@ pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::hash_flo
 
 /// SHA3 value-column LOCAL indices in canonical slot order (the input lanes, then
 /// the output lanes; matches `hash_flock::SLOTS`). These columns are VIRTUAL
-/// (never committed): `q_flock` already holds those words at fixed packed slots,
+/// (never committed): `q_flock` already holds those words at fixed slots,
 /// so `cpu` routes their memory-bus evaluation claims straight to `q_flock`
-/// (`slot_claims`): the value the bus flushes IS the flock-proven word.
+/// (`slot_claims`): the value the bus flushes IS the proven word.
 pub const SHA3_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
     let mut c = [0usize; 2 * primitives::hash::STATE_LANES];
     let mut i = 0;
@@ -810,7 +810,7 @@ impl Table for JumpTable {
 /// thirteen output cells are consecutive runs based at `fp·o_T`, `fp·o_C` and
 /// `fp·o_O`. No address is committed: each rides the bus as the product `fp·o_X·g^k`
 /// (§sec:m3). The permutation relating output lanes to input lanes carries no
-/// table constraint either: it is proven by flock's R1CS validity via `q_flock`
+/// table constraint either: it is proven by the Keccak reduction over `q_flock`
 /// (§hash_flock), which leaves this table with no identity of its own.
 ///
 /// A cell carries two lanes with a literal-zero top limb (`memory_128`), except

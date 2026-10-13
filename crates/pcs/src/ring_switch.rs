@@ -32,8 +32,8 @@
 //! - **The 64 slices come in bound**: `s_hat_v[i] = sum_y eq(r_suffix, y) *
 //!   bit_i(packed[y])`, the MLE of the i-th bit-slice at the suffix point, is
 //!   supplied by the caller on both sides, which is where it was transmitted
-//!   and checked (flock sends its family itself and pins it in its lincheck
-//!   terminal). This module therefore reads nothing off the stream and only has
+//!   and checked (the Keccak reduction sends them and checks them against its
+//!   last claim). This module therefore reads nothing off the stream and only has
 //!   to bind the slices to the commitment.
 //!
 //! ## Protocol (prover)
@@ -184,7 +184,7 @@ pub fn inner_product_ext(a: &[F192], b: &[F192]) -> F192 {
 /// Output: `s_hat_v[i] = sum_y bit_i(packed_witness[y]) * suffix_tensor[y]`
 /// for `i in 0..64` (bit i = polynomial-basis coordinate of the u64).
 ///
-/// The prover takes these from lincheck, so this is the reference for tests and the unprepared fallback.
+/// A caller whose reduction already produced these passes them in, so this is the reference for tests and the unprepared fallback.
 pub fn fold_1b_rows(packed_witness: &[F64], suffix_tensor: &[F192]) -> Vec<F192> {
     assert_eq!(packed_witness.len(), suffix_tensor.len());
     parallel::fold_reduce(
@@ -390,8 +390,8 @@ pub struct RingSwitchProveState {
 /// `suffix_point`, and return the scratch for finalization. The caller samples the
 /// possibly shared map afterwards.
 ///
-/// The slices are NOT sent here: the caller has already bound them (flock sends
-/// its family itself, see `flock::hash`), which is what lets this
+/// The slices are NOT sent here: the caller has already bound them (the Keccak
+/// reduction sends them itself), which is what lets this
 /// phase touch no transcript at all. `precomputed_s_hat_v` is `None` only for a
 /// caller that wants them folded out of the witness instead.
 pub fn prove_prepare(

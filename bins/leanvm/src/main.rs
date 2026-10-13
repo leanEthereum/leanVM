@@ -1,4 +1,4 @@
-//! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
+//! Benchmark CLI for signature and blob proofs, recursion, a SHA3 hash chain, and the Fibonacci demo.
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand};
 
 mod benchmark;
 mod fibonacci;
+mod hash;
 mod report;
 
 #[derive(Parser)]
@@ -79,6 +80,15 @@ enum Command {
         )]
         blobs_per_leaf: usize,
     },
+    /// Prove and verify a SHA3 hash chain
+    Hash {
+        /// Number of SHA3 steps.
+        #[arg(long, default_value = "262144")]
+        n: usize,
+        /// Steps per loop iteration; must divide `n`.
+        #[arg(long, default_value = "64")]
+        unroll: usize,
+    },
     /// Prove and verify Fibonacci in the exponent (demo).
     Fibonacci {
         /// Number of recurrence steps.
@@ -113,6 +123,9 @@ fn main() {
                 cli.tracing,
                 plan,
             );
+        }
+        Command::Hash { n, unroll } => {
+            hash::run_hash(n, unroll, cli.log_inv_rate, plan);
         }
         Command::Fibonacci { n } => {
             fibonacci::run_fibonacci(n, cli.log_inv_rate, plan);

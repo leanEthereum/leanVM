@@ -1,5 +1,5 @@
 //! The shared Fiat-Shamir transcript (see [`fiat_shamir`] for the state and
-//! the wrapper states): flock's protocol functions take these same `ps`/`vs`
+//! the wrapper states): the Keccak reduction's functions take these same `ps`/`vs`
 //! states, so the whole stack shares ONE transcript. Scalars ride its stream;
 //! the stacked opening's Merkle data rides its opening phases.
 pub use fiat_shamir::FiatShamirState;

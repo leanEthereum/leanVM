@@ -12,7 +12,7 @@ use leanvm_core::vmhash::compress;
 use primitives::field::{F64, F192};
 
 /// A program that hashes one block and publishes the digest, so its proof carries
-/// flock's sub-proof over a real compression.
+/// the Keccak reduction over a real compression.
 const HASHING: &str = "\
 def main():
     a = StackBuf(2)
@@ -55,17 +55,16 @@ fn a_tampered_opening_is_rejected() {
     );
 }
 
-/// flock's reduction sub-proof (zerocheck, lincheck, ring switch) rides the scalar
+/// The Keccak reduction rides the scalar
 /// stream as raw transport, but its values re-enter the transcript through the verifier's
-/// replay, so a flipped transport word diverges the recovered flock claim.
+/// replay, so a flipped transport word diverges the recovered claims.
 #[test]
 fn a_tampered_reduction_word_is_rejected() {
     let (program, pi, proof) = hashing_proof();
+    let end = verify(&program, &pi, &proof).expect("verifies").flock_stream_end;
     let mut tampered = proof;
-    let n = tampered.stream.len();
-    // The second-to-last word is always meaningful bytes; only the final one may be
-    // zero-padded.
-    tampered.stream[n - 2] += F192::ONE;
+    // One of the last opening's slices.
+    tampered.stream[end - 2] += F192::ONE;
     assert!(
         verify(&program, &pi, &tampered).is_err(),
         "a tampered reduction transport word must be rejected"
@@ -118,7 +117,7 @@ fn a_proof_roundtrips_through_bytes() {
         "the announced PCS rate must be in 1..=4"
     );
 
-    // A SHA3 height below flock's instance floor describes a layout the
+    // A SHA3 height below the Keccak reduction's step floor describes a layout the
     // arithmetization cannot express, and all three verifiers reject it there.
     let sha3 = leanvm_core::cpu::Stats::TABLES
         .iter()

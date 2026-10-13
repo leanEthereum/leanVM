@@ -6,7 +6,7 @@
 //! the digest into `out`.
 //!
 //! Since these DSL scalars are K-embedded F192 cells, a `StackBuf(2)` written
-//! cell-by-cell holds the flock words `[v0, 0, v1, 0]`
+//! cell-by-cell holds the lanes `[v0, 0, v1, 0]`
 //!: the reference `compress` is fed that lane layout.
 
 use lean_compiler::{compile, parse};

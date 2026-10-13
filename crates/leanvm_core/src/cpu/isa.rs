@@ -43,7 +43,8 @@ pub enum Op {
     ///
     /// A fresh hash reads a zero `cap`; a later block reads the previous output's
     /// last five cells there, and XORs its message into the previous output's
-    /// first eight to form `m` and `tail`. The relation is proven by flock.
+    /// first eight to form `m` and `tail`. The relation is proven by the Keccak
+    /// reduction ([`crate::hash_flock`]).
     Sha3 {
         m: [u32; 4],
         tail: u32,

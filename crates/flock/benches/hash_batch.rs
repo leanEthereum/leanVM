@@ -148,6 +148,13 @@ fn main() {
         vs.finish().expect("transcript fully consumed");
     });
 
+    let merkle_bytes: usize = transcript
+        .merkle
+        .iter()
+        .map(|m| 8 * m.leaf_data.iter().map(Vec::len).sum::<usize>() + 32 * m.sibling_hashes.len())
+        .sum();
+    let proof_bytes = 24 * transcript.stream.len() + merkle_bytes;
+
     if std::env::args().any(|arg| arg == "--json") {
         let report = [(
             format!("flock-hash-batch-{n}"),
@@ -191,5 +198,11 @@ fn main() {
         "  throughput                      : {:>14} permutations/s{}",
         pretty_integer(permutations_per_second),
         prove.spread()
+    );
+    println!(
+        "  proof size                      : {:>11.1} KiB  ({} scalars, {:.1} KiB of Merkle openings)",
+        proof_bytes as f64 / 1024.0,
+        transcript.stream.len(),
+        merkle_bytes as f64 / 1024.0
     );
 }

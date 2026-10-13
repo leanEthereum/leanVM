@@ -109,7 +109,7 @@ impl StackClaim {
 /// `qflock_vars` coords.
 ///
 /// `s_hat_v` holds those 64 values. The caller transmits and checks them itself
-/// (flock sends its family and pins it in its own lincheck terminal), so this
+/// (the Keccak reduction sends them and checks them against its last claim), so this
 /// layer only binds them to the commitment. `None` asks the prover to fold the slices from the witness.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RingSwitchClaim {
@@ -572,7 +572,7 @@ mod tests {
             }],
         };
         // The verifier's copy of the same claim: the slices ride the statement,
-        // bound by the caller, as flock binds its family.
+        // bound by the caller, as the upstream reduction binds them.
         let ring_verify = vec![RingSwitchClaim {
             suffix_point,
             s_hat_v: Some(s_hat_v.clone()),

@@ -18,6 +18,7 @@ primitives = { path = "crates/primitives" }
 fiat_shamir = { path = "crates/fiat_shamir" }
 pcs = { path = "crates/pcs" }
 flock = { path = "crates/flock" }
+keccak_gkr = { path = "crates/keccak_gkr" }
 leanvm_core = { path = "crates/leanvm_core" }
 lean_compiler = { path = "crates/lean_compiler" }
 lean_da = { path = "crates/lean_da" }

@@ -4,7 +4,7 @@
 //!
 //! - [`keccak_f`], the Keccak-f\[1600\] permutation. Every hash in leanVM is a
 //!   sponge over it, and it is what the VM's `SHA3` opcode computes and
-//!   `flock::hash` proves.
+//!   `keccak_gkr` proves.
 //! - [`hash`] / [`Hasher`], SHA3-256 over bytes, in the cell encoding that
 //!   makes a VM block eight whole 16-byte cells (plain SHA3-256 up to 128 bytes).
 //! - [`hash_many`], the batched form: `LANES` independent equal-length inputs
@@ -210,7 +210,7 @@ pub const CHUNK: usize = 128;
 pub const CHUNK_LANES: usize = CHUNK / 8;
 
 /// One step of the cell sponge (see [`hash`]): XOR [`END_BIT`] into lane 16 and
-/// permute. This is the relation the VM's `SHA3` opcode computes and flock
+/// permute. This is the relation the VM's `SHA3` opcode computes and `keccak_gkr`
 /// proves. Its caller has already XORed the block's message into lanes `0..16`
 /// (and, for a final block, the padding's first bit), while lane 16 carries the
 /// previous state untouched: the step supplies the one bit every block puts
