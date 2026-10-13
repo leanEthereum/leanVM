@@ -17,7 +17,7 @@
 //! are never built. The two directions a proof needs are walks of this circuit:
 //! [`row_values_walk`] forwards (and [`bilinear_walk_pair`], the same pass
 //! contracted against row weights) and [`marginal_walk`] backwards. See
-//! doc/leanvm, Annex C "Evaluating the matrices".
+//! "Evaluating the matrices" in the Flock annex of `doc/leanvm` at bf7b6b29.
 //!
 //! ## Witness layout per instance (`k_log = 16`, 1024 words of 64 bits)
 //!
@@ -158,7 +158,8 @@ pub fn min_n_blocks_log(n_blocks: usize) -> usize {
 // ---------------------------------------------------------------------------
 // Circuit-walk evaluation: `(uᵀ A_0 w, uᵀ B_0 w)` in O(circuit) field ops,
 // over matrices that are never materialized. The row assignment these walks
-// encode is specified in doc/leanvm, Annex C "Evaluating the matrices".
+// encode is specified in "Evaluating the matrices", in the Flock annex of
+// `doc/leanvm` at bf7b6b29.
 // ---------------------------------------------------------------------------
 
 /// θ, ρ and π on wire lanes.

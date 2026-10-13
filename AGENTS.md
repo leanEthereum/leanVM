@@ -38,7 +38,7 @@ The root `Cargo.toml` is workspace-only: the libraries are in `crates/`, the CLI
 | `rec_aggregation` | recursive signature and DA aggregation: the guest and public entry points |
 | `leanvm`          | the public API: re-exports of `rec_aggregation`, `xmss`, `sphincs`, `lean_da`, and the prover/verifier setup |
 
-`crates/leanvm/src/lib.rs` is the public API and the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there. `crates/leanvm/tests/api.rs` is the end-to-end use of the API; guests are zkDSL under `crates/rec_aggregation/guests/`. The benchmark CLI is its own package, `bins/leanvm` (`leanvm-cli`, binary `leanvm`), run with `cargo leanvm <subcommand>` (a `.cargo/config.toml` alias for `run --release -p leanvm-cli --`): `aggregate`, `recursion` and `fibonacci`, whose drivers live there, over `rec_aggregation::aggregate_with_stats`.
+`crates/leanvm/src/lib.rs` is the public API and the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there. `crates/leanvm/tests/api.rs` is the end-to-end use of the API; guests are zkDSL under `crates/rec_aggregation/guests/`. The benchmark CLI is its own package, `bins/leanvm` (`leanvm-cli`, binary `leanvm`), run with `cargo leanvm <subcommand>` (a `.cargo/config.toml` alias for `run --release -p leanvm-cli --`): `aggregate`, `recursion`, `fibonacci` and `hash`, whose drivers live there, over `rec_aggregation::aggregate_with_stats`.
 
 ## Building / Testing / Formatting
 
@@ -63,7 +63,7 @@ cargo fmt --all                   # max_width = 120
 ruff format --line-length 150 python-verifier/verifier.py   # and `ruff check` it
 ```
 
-Heavy benches are `benches/` targets (`harness = false`), which `cargo test` never builds; run one with `cargo bench -p <crate> --bench <name>`: flock's `hash_batch`, pcs's `throughput`, primitives' `hash_throughput`. All of them, and the CLI, time through `bench::Plan` (one warmup pass, then `BENCH_REPEAT`/`--repeat` measured ones, each after a cooldown, reported as mean ± 95% interval). Slow checks and reports are `#[ignore]`d tests; run them by name with `-- --ignored --nocapture`: `aggregate_three_levels`, `aggregate_statement_binds`, `aggregate_hints_bind`, `aggregate_rejects_a_bad_signature`, `print_whir_query_counts`, `encoding_grinding_bits`.
+Heavy benches are `benches/` targets (`harness = false`), which `cargo test` never builds; run one with `cargo bench -p <crate> --bench <name>`: flock's and keccak_gkr's `hash_batch`, pcs's `throughput`, primitives' `hash_throughput`. All of them, and the CLI, time through `bench::Plan` (one warmup pass, then `BENCH_REPEAT`/`--repeat` measured ones, each after a cooldown, reported as mean ± 95% interval). Slow checks and reports are `#[ignore]`d tests; run them by name with `-- --ignored --nocapture`: `aggregate_three_levels`, `aggregate_statement_binds`, `aggregate_hints_bind`, `aggregate_rejects_a_bad_signature`, `print_whir_query_counts`, `encoding_grinding_bits`.
 
 **Where a proof's time goes is the `tracing` span tree, and only that**: `--tracing` on the CLI, `BENCH_TRACING=1` on the `benches/` targets, `RUST_LOG` to change the level. It records the final measured pass only (`bench::suppress_tracing`). A new stage worth timing gets an `info_span!` (in `leanvm_core`, `stage!`), never an `Instant` behind an env var.
 
@@ -95,6 +95,7 @@ The prover's buffers are plain `Vec`s, and the libraries impose no allocator. A 
 No rayon. Every parallel site is "N independent items, each writing its own disjoint slice", so the pool is a claim counter, not a work-stealing deque: `NUM_THREADS-1` workers plus the dispatcher inline, no per-dispatch allocation. Primitives: `for_each{,_chunk}`, `chunks_mut{,2,_zip}`, `Chunks`, `fill`, `map_collect`, `map_reduce`, `fold_reduce`, `map_reduce_with_state`, `find_first`, `SendPtr`.
 
 - **Nested dispatch panics**, because it would deadlock the dispatch lock.
+- **One site runs beside the pool, not in it:** `hash_flock::while_executing` spawns half the pool's count of plain threads for the length of a program's execution, when the pool is idle; they are gone before the next dispatch. `LEANVM_NUM_THREADS=1` leaves it none.
 - **Both core clusters share one queue** (P at `USER_INTERACTIVE`, E at `UTILITY`); guided self-scheduling means a slow core claims fewer batches. Do not add a second pool: that was `primitives::epool`, now deleted.
 - **The default holds back one performance worker when efficiency workers exist.**
 

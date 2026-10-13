@@ -4597,6 +4597,54 @@ def main():
         );
     }
 
+    /// Each check the guest makes of a child's Keccak reduction fails on the word it reads
+    /// last, in the function that makes it. A later check would catch the same word, the
+    /// transcript having diverged, so this is what notices one of these being dropped.
+    #[test]
+    fn a_tampered_child_reduction_fails_its_own_check() {
+        leanvm_core::init_prover();
+        let signers = get_signers(2 * SMALL_LEAF_SIZE);
+        let children = vec![
+            prove_leaf(&signers[..SMALL_LEAF_SIZE]),
+            prove_leaf(&signers[SMALL_LEAF_SIZE..]),
+        ];
+        let summary = verify(unified_guest(), &children[0].public_input(), &children[0].proof).expect("the child");
+        let end = summary.flock_stream_end;
+        // A layer is its product polynomial, a round pair per pack and segment variable, the
+        // position rounds and three evaluations; the openings behind the last are 15 and 86.
+        let log_steps = summary.raw.stream[leanvm_core::tables::N_TABLES].c0 as usize; // the last table
+        let layer = 47 + 2 * (log_steps - 4 + 2) + 33 + 3;
+        // In the order the guest makes them: a layer's projection then its last check, the
+        // outputs' opening then the inputs'.
+        let checks = [
+            (101 + layer, "keccak_layer"),
+            (102, "keccak_layer"),
+            (87, "verify_keccak"),
+            (2, "verify_keccak"),
+        ];
+        let lines = checks.map(|(back, function)| {
+            let outcome = aggregate_tampered(
+                &children,
+                vec![],
+                vec![],
+                None,
+                DaInput::default(),
+                LOG_INV_RATE,
+                |hints| hints.entries("stream")[0][end - back] += F192::ONE,
+            );
+            let Err(AggregationError::ProofError(ProveError::Execution(error))) = outcome else {
+                panic!("word {back} from the end was not refused by the guest's run");
+            };
+            // A site reads `function (line n)`.
+            let (name, line) = error.site.split_once(" (line ").expect("a source line");
+            assert!(name.starts_with(function), "word {back} from the end failed in {name}");
+            line.trim_end_matches(')').parse::<usize>().expect("a line number")
+        });
+        // Two checks of one function are told apart by their lines: were the first dropped,
+        // its word would fail the second.
+        assert!(lines[0] < lines[1] && lines[2] < lines[3], "{lines:?}");
+    }
+
     type Tamper<'a> = (&'a str, &'a dyn Fn(&mut Hints));
 
     /// Corrupt each security-critical hint and require rejection.

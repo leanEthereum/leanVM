@@ -178,4 +178,41 @@ fn end_to_end(n_instances: usize, depth: usize) {
 fn proof_verifies_against_the_commitment() {
     end_to_end(600, 8);
     end_to_end(512, 12);
+    // The VM's depth, over enough blocks that the input opening folds more than one run.
+    end_to_end(8192, 6);
+}
+
+/// A committed state that does not follow the permutation is rejected, whichever state it
+/// is: the honest prover run on a column with one bit flipped fails the reduction or the
+/// commitment's opening.
+#[test]
+fn a_broken_committed_state_is_rejected() {
+    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+
+    let mut rng = Rng::new(78);
+    let inputs: Vec<[u64; LANES]> = (0..600).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+    let shape = Shape::new(inputs.len(), 6);
+    let mut committed = vec![primitives::field::F64(0); crate::committed_len(shape)];
+    let witness = Witness::generate(shape, &inputs, &mut committed);
+    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
+    let accepts = |committed: &[primitives::field::F64]| {
+        let mut ps = ProverState::from_label(b"keccak-gkr-test");
+        let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
+        ps.add_root(&commitment.root);
+        let openings = crate::prove(&mut ps, &witness, committed);
+        crate::open_commitment(&mut ps, shape, committed, &prover_data, &config, openings);
+        let proof = ps.into_proof();
+        let mut vs = VerifierState::from_label(b"keccak-gkr-test", &proof);
+        let root = vs.next_root().unwrap();
+        crate::verify(&mut vs, shape)
+            .ok()
+            .is_some_and(|openings| crate::verify_commitment(&mut vs, shape, &config, &root, &openings).is_ok())
+    };
+    assert!(accepts(&committed), "the honest column");
+    // A lane of the input, of each state between, and of the output.
+    for slot in [3, 30, 60, 80, 110] {
+        let mut bad = committed.clone();
+        bad[slot * shape.n() + 17].0 ^= 1 << 40;
+        assert!(!accepts(&bad), "slot {slot}");
+    }
 }

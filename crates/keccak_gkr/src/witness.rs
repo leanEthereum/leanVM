@@ -84,10 +84,10 @@ pub struct Slot {
 }
 
 impl Extent {
-    /// An extent for blocks `first .. first + blocks`, every one of which [`block`] must
-    /// write before the extent joins a [`Witness`].
+    /// An extent for blocks `first .. first + blocks`, none of them written yet. A block is
+    /// read only through a [`Witness`], whose builder vouches for the ones [`block`] wrote.
     pub fn new(first: usize, blocks: usize) -> Self {
-        // SAFETY: the caller writes every block before anything reads it.
+        // SAFETY: nothing reads a block that `Witness::from_extents` was not told is written.
         let words = unsafe { primitives::uninit_vec((ROUNDS + 1) * blocks * BLOCK_LEN) };
         Self { first, blocks, words }
     }
@@ -246,7 +246,10 @@ impl Witness {
     /// The witness of extents whose first `written` blocks [`block`] wrote: consecutive from
     /// block 0, the batch's remaining blocks all being `padding`, a one-block extent of no
     /// instance.
-    pub fn from_extents(shape: Shape, extents: Vec<Extent>, written: usize, padding: Option<Extent>) -> Self {
+    ///
+    /// # Safety
+    /// [`block`] has written blocks `0 .. written` of `extents`, and `padding`'s one block.
+    pub unsafe fn from_extents(shape: Shape, extents: Vec<Extent>, written: usize, padding: Option<Extent>) -> Self {
         let mut end = 0;
         for extent in &extents {
             assert_eq!(extent.first, end, "extents are consecutive");

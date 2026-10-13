@@ -109,9 +109,9 @@ fn test_python_verifier() {
     // Python reads the RAW proof: same protocol, each query carrying its own
     // full Merkle path instead of one octopus over the batch. A Rust verify
     // expands the wire form, so the pruning is written once.
-    let raw = verify(&program, &public_input, &proof)
-        .expect("honest proof verifies")
-        .raw;
+    let summary = verify(&program, &public_input, &proof).expect("honest proof verifies");
+    let reduction_end = summary.flock_stream_end;
+    let raw = summary.raw;
 
     let directory = std::env::temp_dir().join(format!("leanvm-python-verifier-test-{}", std::process::id()));
     std::fs::create_dir_all(&directory).expect("create test directory");
@@ -160,6 +160,28 @@ fn test_python_verifier() {
         !output.status.success(),
         "Python accepted a noncanonical commitment root"
     );
+
+    // Each check of the Keccak reduction, tripped by the word it reads last. The reduction
+    // ends with its two openings, 15 scalars for the outputs then 86 for the inputs, behind a
+    // last layer whose three evaluations close its 97 scalars at this height.
+    for (back, check) in [
+        (2, "Keccak input opening ends on the wrong value"),
+        (87, "Keccak output opening ends on the wrong value"),
+        (102, "Keccak layer evaluations do not match the sumcheck"),
+        (198, "Keccak product polynomial does not carry the claim"),
+    ] {
+        let mut tampered = proof.clone();
+        tampered.stream[reduction_end - back] += F192::ONE;
+        assert!(verify(&program, &public_input, &tampered).is_err());
+        let mut raw_tampered = raw.clone();
+        raw_tampered.stream[reduction_end - back] += F192::ONE;
+        let output = python_verify(&directory, &bytecode_path, &public_input_path, &raw_tampered);
+        let error = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            !output.status.success() && error.contains(check),
+            "Python did not fail on `{check}`:\n{error}"
+        );
+    }
 
     println!(
         "zkDSL compiled to {} instructions; proved {} cycles in {} bytes; Python verified in {:.2?}",

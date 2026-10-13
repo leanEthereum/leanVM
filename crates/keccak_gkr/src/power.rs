@@ -98,9 +98,16 @@ impl PowerField {
     /// `sum of a[j] * b[j]` and `sum of (a[j] + a'[j]) * (b[j] + b'[j])` over two pairs of rows,
     /// unreduced.
     pub fn dot_pair(&self, a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 6], [u64; 6]) {
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+        assert!(a.iter().chain(&b).all(|row| row.len() >= 3 * width));
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "vpclmulqdq",
+            target_feature = "gfni"
+        ))]
         if width.is_multiple_of(8) {
-            // SAFETY: the features are enabled at compile time, and every row is `3 * width` words.
+            // SAFETY: the features are enabled at compile time, and the assert above bounds every row.
             return unsafe { x86::dot_pair(a, b, width) };
         }
         dot_pair_portable(a, b, width)
@@ -108,9 +115,16 @@ impl PowerField {
 
     /// `dst[j] = lo[j] + rho * (lo[j] + hi[j])`.
     pub fn fold_row(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], rho: &Element, width: usize) {
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+        assert!(dst.len() >= 3 * width && lo.len() >= 3 * width && hi.len() >= 3 * width);
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "vpclmulqdq",
+            target_feature = "gfni"
+        ))]
         if width.is_multiple_of(8) {
-            // SAFETY: as above.
+            // SAFETY: as in `dot_pair`.
             return unsafe { x86::fold_row(self, dst, lo, hi, rho, width) };
         }
         self.fold_row_portable(dst, lo, hi, rho, width)
@@ -118,9 +132,16 @@ impl PowerField {
 
     /// `dst[j] = wide[j]` reduced, for a row of four-word polynomials laid out by word.
     pub fn reduce_row(&self, dst: &mut [u64], wide: &[u64], width: usize) {
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+        assert!(dst.len() >= 3 * width && wide.len() >= 4 * width);
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "vpclmulqdq",
+            target_feature = "gfni"
+        ))]
         if width.is_multiple_of(8) {
-            // SAFETY: as above.
+            // SAFETY: as in `dot_pair`.
             return unsafe { x86::reduce_row(self, dst, wide, width) };
         }
         self.reduce_row_portable(dst, wide, width)
@@ -135,9 +156,16 @@ impl PowerField {
 
     /// `dst[j] = a[j] * b[j] + c[j]`.
     pub fn mul_row(&self, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+        assert!(dst.len() >= 3 * width && [a, b, c].iter().all(|row| row.len() >= 3 * width));
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "vpclmulqdq",
+            target_feature = "gfni"
+        ))]
         if width.is_multiple_of(8) {
-            // SAFETY: as above.
+            // SAFETY: as in `dot_pair`.
             return unsafe { x86::mul_row(self, dst, a, b, c, width) };
         }
         self.mul_row_portable(dst, a, b, c, width)
@@ -195,7 +223,13 @@ pub fn dot_pair_portable(a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64;
     (zero, infinity)
 }
 
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "vpclmulqdq",
+    target_feature = "gfni"
+))]
 mod x86 {
     use core::arch::x86_64::*;
 

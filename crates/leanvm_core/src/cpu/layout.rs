@@ -464,7 +464,7 @@ impl Program {
         assert_eq!(
             taus[tables::SHA3_TABLE],
             crate::hash_flock::n_blocks_log(row_counts[tables::SHA3_TABLE]),
-            "the SHA3 table must be filled to flock's instance floor"
+            "the SHA3 table must be filled to the Keccak reduction's floor"
         );
         let pi = [exec.mem[0], exec.mem[1]];
         let l = layout(&self.prog, log_mem, taus, pi);

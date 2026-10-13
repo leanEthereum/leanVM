@@ -1,7 +1,8 @@
 //! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
 //! one bit position of one block.
 //!
-//! Each has a portable form and an AVX-512 one (VPCLMULQDQ, GFNI, VBMI), which agree bit for bit.
+//! Each has a portable form and an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), which agree bit for
+//! bit. The vector forms are compiled only where all of those features are.
 
 use primitives::field::gf2_64::mul_wide;
 
@@ -112,12 +113,24 @@ pub fn extend(packs: &[u32; PACKS], out: &mut [u32; SLOTS]) {
 /// The 32 packs of a block position, embedded.
 #[inline(always)]
 pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512bw", target_feature = "gfni"))]
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    ))]
     // SAFETY: the features are enabled at compile time.
     unsafe {
         x86::embed(words)
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512bw", target_feature = "gfni")))]
+    #[cfg(not(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    )))]
     embed_portable(words)
 }
 
@@ -128,12 +141,24 @@ pub fn embed_portable(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
 /// The unprojected `chi` of 32 packs: `ones * (a + c) + b * c`.
 #[inline(always)]
 pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    ))]
     // SAFETY: the features are enabled at compile time.
     unsafe {
         x86::products(a, b, c)
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq")))]
+    #[cfg(not(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    )))]
     products_portable(a, b, c)
 }
 
@@ -146,12 +171,24 @@ pub fn products_portable(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -
 /// `acc[p] += sum over x of weights[x] * e[x + 1][p] * e[x + 2][p]`.
 #[inline(always)]
 pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    ))]
     // SAFETY: the features are enabled at compile time.
     unsafe {
         x86::skip_row(acc, e, weights)
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq")))]
+    #[cfg(not(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    )))]
     skip_row_portable(acc, e, weights)
 }
 
@@ -170,12 +207,24 @@ pub fn skip_row_portable(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u
 /// `sum over a group's packs of weights[.][q] * e[q]`, as three partial products.
 #[inline(always)]
 pub fn fold_group(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    ))]
     // SAFETY: the features are enabled at compile time.
     unsafe {
         x86::fold_group(e, weights)
     }
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq")))]
+    #[cfg(not(all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    )))]
     fold_group_portable(e, weights)
 }
 
@@ -183,7 +232,13 @@ pub fn fold_group_portable(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u1
     std::array::from_fn(|k| (0..GROUP).fold(0, |acc, q| acc ^ mul_wide(e[q] as u64, weights[k][q])))
 }
 
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "vpclmulqdq",
+    target_feature = "gfni"
+))]
 mod x86 {
     use core::arch::x86_64::*;
     use std::sync::LazyLock;
@@ -192,7 +247,6 @@ mod x86 {
 
     /// The matrices sending a pack's low and high byte to each byte of its embedding. An affine
     /// byte map reads output bit `t` off matrix byte `7 - t`.
-    #[cfg(all(target_feature = "avx512bw", target_feature = "gfni"))]
     static MATRICES: LazyLock<[[i64; 3]; 2]> = LazyLock::new(|| {
         std::array::from_fn(|half| {
             std::array::from_fn(|k| {
@@ -208,7 +262,6 @@ mod x86 {
         })
     });
 
-    #[cfg(all(target_feature = "avx512bw", target_feature = "gfni"))]
     #[inline(always)]
     pub unsafe fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
         unsafe {

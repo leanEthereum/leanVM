@@ -127,7 +127,7 @@ fn a_proof_roundtrips_through_bytes() {
     sub_floor.stream[1 + sha3] = F192::new(2, 0, 0);
     assert!(
         matches!(verify(&program, &pi, &sub_floor), Err(CpuError::PublicInput)),
-        "the announced SHA3 height must reach flock's instance floor"
+        "the announced SHA3 height must reach the Keccak reduction's floor"
     );
 }
 

@@ -16,7 +16,7 @@
 //!
 //! C rides the sumcheck rather than being split off at round 1, which is what
 //! puts all three claims at ONE point and leaves lincheck a single family of
-//! bit slices for ring switching (doc/leanvm Annex C).
+//! bit slices for ring switching (the Flock annex of `doc/leanvm` at bf7b6b29).
 //!
 //! Both `prove` and `verify` are wired end-to-end. The prove→verify roundtrip
 //! is tested on honest witnesses; verify also rejects byte-mutated proofs and

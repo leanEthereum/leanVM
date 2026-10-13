@@ -298,12 +298,11 @@ impl Blocks {
                 };
             }
         });
-        PreparedReductionWitness(keccak_gkr::Witness::from_extents(
-            shape,
-            self.extents,
-            written,
-            padding.map(|(extent, _)| extent),
-        ))
+        // SAFETY: `while_executing` ran a block into each of the first `written` slots, in
+        // order, and the padding block was written just above.
+        PreparedReductionWitness(unsafe {
+            keccak_gkr::Witness::from_extents(shape, self.extents, written, padding.map(|(extent, _)| extent))
+        })
     }
 }
 
@@ -369,6 +368,38 @@ mod tests {
         (0..n as u64)
             .map(|i| std::array::from_fn(|l| 0x0101_0101_0101_0101u64.wrapping_mul(i + 1) ^ l as u64))
             .collect()
+    }
+
+    /// The witness built behind a run is the one a single pass over its steps builds: the same
+    /// committed column and the same reduction, whether the steps fill whole blocks, leave a
+    /// partial one, or leave blocks of the batch with no step at all.
+    #[test]
+    fn blocks_built_while_executing_match_one_pass() {
+        for n in [0, 1, 511, 512, 513, 1500, 4099] {
+            let instances = sample_instances(n);
+            let (expected, reference) = build_qflock(&instances);
+            let ((), blocks) = while_executing(|step| {
+                for state in &instances {
+                    step(state);
+                }
+            });
+            let mut q_flock = vec![f(0xdead_beef); expected.len()];
+            let witness = blocks.place(n, &mut q_flock);
+            assert_eq!(q_flock, expected, "{n} steps");
+            let stream = |witness: &PreparedReductionWitness| {
+                let mut ps = ProverState::from_label(b"blocks");
+                let openings = witness.prove(&mut ps, &q_flock);
+                (openings, ps.into_proof())
+            };
+            assert!(stream(&witness) == stream(&reference), "{n} steps");
+        }
+    }
+
+    /// The relation's label names the constants it stands for.
+    #[test]
+    fn relation_label_names_the_depth() {
+        let label = std::str::from_utf8(RELATION_LABEL).unwrap();
+        assert!(label.contains(&format!("depth {DEPTH},")));
     }
 
     /// The cell layout round-trips, and a zero-state step over 64 message bytes

@@ -106,8 +106,9 @@ use primitives::multilinear::{eq_eval, eq_table as build_eq, lagrange_weights_na
 // `&dyn LincheckCircuit` instead of a pair of matrices. The one live impl is
 // `hash::WalkLincheckCircuit`, which walks the circuit in both directions
 // (forwards for the verifier's `bilinear_form`, backwards for the prover's
-// marginal) and never touches a matrix entry. See doc/leanvm, Annex C
-// "Evaluating the matrices".
+// marginal) and never touches a matrix entry. See "Evaluating the matrices" in
+// the Flock annex `doc/leanvm` carried until the VM moved to `keccak_gkr`
+// (commit bf7b6b29).
 
 /// Per-block linear structure consumed by lincheck. Implementations produce
 /// the α-batched column marginal `comb_vec[c] = ξ_A(c) + α · ξ_B(c)` either
@@ -129,7 +130,7 @@ pub trait LincheckCircuit: Sync {
     /// transcript message.
     fn const_pin_col(&self) -> usize;
 
-    /// Optional verifier-side fast path (doc/leanvm, Annex C): the
+    /// Optional verifier-side fast path (the Flock annex of `doc/leanvm` at bf7b6b29): the
     /// α-batched bilinear form
     ///
     ///   `(uᵀ A_0 w) + α·(uᵀ B_0 w)`
