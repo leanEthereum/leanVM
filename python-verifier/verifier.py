@@ -637,17 +637,17 @@ RELATION_LABEL = b"leanVM keccak GKR: step, depth 6, packs of 16 in degree 23, l
 
 # The columns no instruction table owns. They come first in the global column numbering, the tables after.
 NUM_GLOBAL_COLUMNS = 6
-MEMORY_0, MEMORY_1, MEMORY_2, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS, QFLOCK = range(NUM_GLOBAL_COLUMNS)
+MEMORY_0, MEMORY_1, MEMORY_2, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS, QKECCAK = range(NUM_GLOBAL_COLUMNS)
 
 K_BITS = 64
 LOG_PACKING = log2_ceil(K_BITS)  # bits per committed K-element (pcs::pack::LOG_PACKING)
 
 # The Keccak reduction commits a step's state every KECCAK_DEPTH rounds, a lane per slot of
-# q_flock and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
+# q_keccak and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
 KECCAK_DEPTH = 6
 KECCAK_SEGMENTS = 24 // KECCAK_DEPTH
 KECCAK_SEGMENT_BITS = log2_ceil(KECCAK_SEGMENTS)
-QFLOCK_SLOT_BITS = log2_ceil(25 * (KECCAK_SEGMENTS + 1))
+QKECCAK_SLOT_BITS = log2_ceil(25 * (KECCAK_SEGMENTS + 1))
 KECCAK_MIN_STEPS_LOG = 9  # the reduction is sized for at least one block of 512 steps
 KECCAK_BITS = 1600
 KECCAK_LOCAL_BITS = 11  # a bit position is z + 64 * lane, in a cube of 2048
@@ -826,7 +826,7 @@ def _flushes_sha3() -> Flushes:
     flushes.bytecode(pc, cnt_bc, OP_SHA3, tuple(_col(i) for i in (*o_m, o_tail, o_cap, o_out)))
 
     # The thirteen cells read (four addressed ones, then the consecutive tail and cap runs), then
-    # the thirteen written. Each carries its q_flock lanes and zeros above them.
+    # the thirteen written. Each carries its q_keccak lanes and zeros above them.
     def read(cell: int) -> Form:
         if cell < 4:
             return _prod(fp, o_m[cell])
@@ -848,7 +848,7 @@ DEREF_COLUMNS = ("pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v
 JUMP_COLUMNS = ("pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b",)  # fmt: skip
 SHA3_COLUMNS = (
     "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_cap", "o_out",
-    # These fifty value lanes live in q_flock, not here: each is already one of its slots.
+    # These fifty value lanes live in q_keccak, not here: each is already one of its slots.
     *(f"in_{lane}" for lane in range(25)), *(f"out_{lane}" for lane in range(25)),
     # ...and the read counts, committed here like every other column.
     *(f"cnt_{cell}" for cell in range(26)), "cnt_bc",
@@ -863,7 +863,7 @@ TABLES = (
     Table("sha3", OP_SHA3, SHA3_COLUMNS, _flushes_sha3()),
 )
 
-# The SHA3 value lanes in q_flock slot order: the input state's, then the output state's.
+# The SHA3 value lanes in q_keccak slot order: the input state's, then the output state's.
 SHA3_SLOTS = (*(f"in_{lane}" for lane in range(25)), *(f"out_{lane}" for lane in range(25)))
 
 TABLE_WIDTHS = tuple(t.width for t in TABLES)
@@ -892,13 +892,13 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_log_heights: Sequ
         for local in table.count_columns:
             count.append(BusBlock(height, (_col(local),), table.opcode))
 
-    # Every column's log size, in global order: the framework's, q_flock's, then each table's block.
-    qflock_kappa = table_log_heights[OP_SHA3] + QFLOCK_SLOT_BITS
-    kappas = [log_memory, log_memory, log_memory, log_memory, log_bytecode, qflock_kappa]
+    # Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
+    qkeccak_kappa = table_log_heights[OP_SHA3] + QKECCAK_SLOT_BITS
+    kappas = [log_memory, log_memory, log_memory, log_memory, log_bytecode, qkeccak_kappa]
     for table in TABLES:
         kappas += [table_log_heights[table.opcode]] * table.width
 
-    # A SHA3 value lane gets no block of its own: it is committed inside q_flock, one slot of
+    # A SHA3 value lane gets no block of its own: it is committed inside q_keccak, one slot of
     # 2^height words each, the input lanes in the first state's slots and the output lanes in the last's.
     slots = (*range(25), *range(25 * KECCAK_SEGMENTS, 25 * KECCAK_SEGMENTS + 25))
     limbs = {GLOBAL_COLUMN_BASES[OP_SHA3] + _cols(SHA3_COLUMNS, name)[0]: slot for slot, name in zip(slots, SHA3_SLOTS, strict=True)}
@@ -907,7 +907,7 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_log_heights: Sequ
     offsets = dict(zip(blocks, block_offsets))
     stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
     placements = [
-        Placement(kappa, offsets[QFLOCK] + (limbs[column] << kappa)) if column in limbs else Placement(kappa, offsets[column])
+        Placement(kappa, offsets[QKECCAK] + (limbs[column] << kappa)) if column in limbs else Placement(kappa, offsets[column])
         for column, kappa in enumerate(kappas)
     ]
     return Layout(log_memory, log_bytecode, bytecode, tuple(push), tuple(pull), tuple(count), tuple(placements), stack_log, tuple(table_log_heights))
@@ -1260,7 +1260,7 @@ def verify_keccak_layer(transcript: Transcript, log_steps: int, step: int, claim
 def _keccak_slot_weights(log_steps: int, claim: KeccakClaim, first: int) -> list[list[E]]:
     """The weight a claim puts on each (slot, z): its position weights on the slots of the states it speaks of, scaled by the segment."""
     segments = eq_kernel(claim.point[log_steps - 4 :])
-    rows = [[ZERO] * 64 for _ in range(2**QFLOCK_SLOT_BITS)]
+    rows = [[ZERO] * 64 for _ in range(2**QKECCAK_SLOT_BITS)]
     for segment in range(KECCAK_SEGMENTS):
         for j in range(KECCAK_BITS):
             rows[25 * (first + segment) + j // 64][j % 64] = segments[segment] * claim.weights[j]
@@ -1269,7 +1269,7 @@ def _keccak_slot_weights(log_steps: int, claim: KeccakClaim, first: int) -> list
 
 def _keccak_open(transcript: Transcript, log_steps: int, claim: KeccakClaim, first: int, value: E) -> tuple[MultilinearPoint, list[E], E]:
     """A sumcheck over the slot: the point it ends on, the weight the claim puts on each slice there, and what is left to match."""
-    slot, value = sumcheck(transcript, value, 3, [None] * QFLOCK_SLOT_BITS)
+    slot, value = sumcheck(transcript, value, 3, [None] * QKECCAK_SLOT_BITS)
     rows = _keccak_slot_weights(log_steps, claim, first)
     for rho in slot:
         rows = [[lo + rho * (lo + hi) for lo, hi in zip(rows[2 * i], rows[2 * i + 1], strict=True)] for i in range(len(rows) // 2)]
@@ -1278,7 +1278,7 @@ def _keccak_open(transcript: Transcript, log_steps: int, claim: KeccakClaim, fir
 
 def verify_keccak(log_steps: int, transcript: Transcript) -> tuple[ColumnClaim, tuple[MultilinearPoint, list[E]]]:
     """The reduction: a random claim on the committed outputs, KECCAK_DEPTH layers down to the committed
-    inputs. It leaves two openings of q_flock: the column itself at one point, and its 64 slices at another."""
+    inputs. It leaves two openings of q_keccak: the column itself at one point, and its 64 slices at another."""
     pack_bits = log_steps - 4
     r_low = transcript.samples(4)
     point = tuple(transcript.samples(pack_bits + KECCAK_SEGMENT_BITS))
@@ -1293,7 +1293,7 @@ def verify_keccak(log_steps: int, transcript: Transcript) -> tuple[ColumnClaim, 
     slot, weights, value = _keccak_open(transcript, log_steps, first, 1, first.value)
     word = transcript.next_scalar()
     require(weights[0] * word == value, "Keccak output opening ends on the wrong value")
-    outputs = ColumnClaim(QFLOCK, (*r_low, *point[:pack_bits], *slot), word)
+    outputs = ColumnClaim(QKECCAK, (*r_low, *point[:pack_bits], *slot), word)
     # The inputs: the instances of a pack first, then the slot.
     low, value = sumcheck(transcript, claim.value, 3, [None] * 4)
     slot, weights, value = _keccak_open(transcript, log_steps, claim, 0, value)
@@ -1330,7 +1330,7 @@ def _ring_weight(r: MultilinearPoint, r_prime: Sequence[E], coefficients: Sequen
 
 
 def ring_switch(point: MultilinearPoint, s: Sequence[E], transcript: Transcript) -> tuple[E, Callable[[Sequence[E]], E]]:
-    """The 64 claims s[i] = z(i, point) become the one dense claim `sum_u W(u) qflock(u) = target`.
+    """The 64 claims s[i] = z(i, point) become the one dense claim `sum_u W(u) qkeccak(u) = target`.
 
     Draw Phi once they are fixed, then take the target `T = sum_i x^i Phi(s_i)` against the
     MLE-friendly weight `W(u) = Phi(eq(point, u))`. Returns the target and W as a closure."""
@@ -1406,11 +1406,11 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     claims.append(outputs)
 
     # 7] Ring-switching
-    # That claim is supported on q_flock's region of the stack, so its weight carries the
+    # That claim is supported on q_keccak's region of the stack, so its weight carries the
     # placement's selector, and it leads the batch, taking the first power.
     target, weight = ring_switch(point, slices, transcript)
-    qflock = layout.placements[QFLOCK]
-    ringswitch = (lambda x: qflock.eq_above(x) * weight(x[: qflock.variables]), target)
+    qkeccak = layout.placements[QKECCAK]
+    ringswitch = (lambda x: qkeccak.eq_above(x) * weight(x[: qkeccak.variables]), target)
     verify_stacked_opening(transcript, root, layout.stack_log, log_inverse_rate, [ringswitch, *(c.on_stack(layout) for c in claims)])
     transcript.finish()
 

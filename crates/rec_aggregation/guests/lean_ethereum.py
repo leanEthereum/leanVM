@@ -183,7 +183,7 @@ ETA_FORM_BASE = ETA_FORM_BASE_PLACEHOLDER
 N_ETA_POWS = N_ETA_POWS_PLACEHOLDER
 
 # ------------------------------------------------- Keccak, by GKR over its rounds
-# q_flock holds a step's state every KECCAK_DEPTH rounds, a lane per slot and a word
+# q_keccak holds a step's state every KECCAK_DEPTH rounds, a lane per slot and a word
 # per step; a pack is KECCAK_PACK consecutive steps, embedded in a polynomial of
 # degree under KECCAK_EMBED_BITS whose products have KECCAK_PROD_BITS coefficients.
 # The *_START / *_IDX pairs are index lists: row i is IDX[START[i] .. START[i + 1]].
@@ -209,7 +209,7 @@ KECCAK_Z_BITS = 6      # a bit position is z + 64 * lane
 KECCAK_LANE_BITS = 5
 KECCAK_LOCAL_BITS = KECCAK_Z_BITS + KECCAK_LANE_BITS
 KECCAK_IOTA_BITS = 7   # iota flips slices 2^i - 1 of lane 0 only
-QFLOCK_SLOT_LOG = QFLOCK_SLOT_LOG_PLACEHOLDER
+QKECCAK_SLOT_LOG = QKECCAK_SLOT_LOG_PLACEHOLDER
 # A claim's record: its value, the sum of its instance weights, pointers to its
 # point, its lane table, its slice table and the local point that table is the eq
 # of, then the instance weights and its position weights where iota flips.
@@ -289,20 +289,20 @@ LIG_N_CANDIDATES = LIG_N_CANDIDATES_PLACEHOLDER
 LIG_MIN_SHIFT_INV = LIG_MIN_SHIFT_INV_PLACEHOLDER
 # eval_b claim descriptors. CLAIM_POINT_BUF says which point buffer a pooled
 # claim's x-part lives in, CLAIM_COMMITTED_COL maps it to the compact index of the
-# committed column it must open (a virtual SHA3 value claim maps to QFLOCK),
-# CLAIM_QFLOCK_SLOT_BITS holds the bits of the q_flock slot a virtual claim reads
+# committed column it must open (a virtual SHA3 value claim maps to QKECCAK),
+# CLAIM_QKECCAK_SLOT_BITS holds the bits of the q_keccak slot a virtual claim reads
 # (zero for a non-virtual one), CLAIM_END_LANE marks the one lane committed with
-# the padding bit XORed in, and QFLOCK_COMMITTED_COL is the ring-switch target.
+# the padding bit XORed in, and QKECCAK_COMMITTED_COL is the ring-switch target.
 POINT_BUF_ZETA = 0
 POINT_BUF_RHO = 1
 POINT_BUF_PI = 2
-POINT_BUF_QFLOCK_RHO = 3
+POINT_BUF_QKECCAK_RHO = 3
 CLAIM_POINT_BUF = CLAIM_POINT_BUF_PLACEHOLDER
 CLAIM_COMMITTED_COL = CLAIM_COMMITTED_COL_PLACEHOLDER
-CLAIM_QFLOCK_SLOT_BITS = CLAIM_QFLOCK_SLOT_BITS_PLACEHOLDER
+CLAIM_QKECCAK_SLOT_BITS = CLAIM_QKECCAK_SLOT_BITS_PLACEHOLDER
 CLAIM_END_LANE = CLAIM_END_LANE_PLACEHOLDER
-QFLOCK_COMMITTED_COL = QFLOCK_COMMITTED_COL_PLACEHOLDER
-QFLOCK_VARS_CAP = QFLOCK_VARS_CAP_PLACEHOLDER
+QKECCAK_COMMITTED_COL = QKECCAK_COMMITTED_COL_PLACEHOLDER
+QKECCAK_VARS_CAP = QKECCAK_VARS_CAP_PLACEHOLDER
 
 # ------------------------------------------------------ statements and deferral
 # A node defers one claim on the stacked bytecode. DEFER_SIZE is the region one
@@ -1232,14 +1232,14 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     # entries above m without reading uninitialized cells.
     lane_folds = LIG_FOLDS[m_idx * LIG_MAX_LEVELS]
     fold_head = n_folds - lane_folds
-    point = HeapBuf(SIZE_BITS + QFLOCK_SLOT_LOG)
+    point = HeapBuf(SIZE_BITS + QKECCAK_SLOT_LOG)
     for j in unroll(0, fold_head):
         point[GEN ** j] = fold_challenges[GEN ** (lane_folds + j)]
     for j in unroll(0, yr_log):
         point[GEN ** (fold_head + j)] = tail_challenges[GEN ** j]
     for j in unroll(0, lane_folds):
         point[GEN ** (fold_head + yr_log + j)] = fold_challenges[GEN ** j]
-    for j in unroll(n_folds + yr_log, SIZE_BITS + QFLOCK_SLOT_LOG):
+    for j in unroll(n_folds + yr_log, SIZE_BITS + QKECCAK_SLOT_LOG):
         point[GEN ** j] = 0
 
     # ---- per-level induced bases at the single terminal point ----
@@ -1955,15 +1955,15 @@ def keccak_read_slices(fs0, fs1, cursor, out):
 def keccak_slot_lanes(slot, segment_point, first: Const):
     # The weight an opening's slot point puts on each lane: the states it speaks of
     # start at `first`, one per segment.
-    slot_tree = HeapBuf(2 ** (QFLOCK_SLOT_LOG + 1) - 2)
-    eqtree(slot, slot_tree, QFLOCK_SLOT_LOG)
+    slot_tree = HeapBuf(2 ** (QKECCAK_SLOT_LOG + 1) - 2)
+    eqtree(slot, slot_tree, QKECCAK_SLOT_LOG)
     segment_tree = HeapBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
     eqtree(segment_point, segment_tree, KECCAK_SEG_LOG)
     out = HeapBuf(KECCAK_LANES)
     for lane in unroll(0, KECCAK_LANES):
         acc = 0
         for m in unroll(0, KECCAK_SEGMENTS):
-            acc += segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + m)] * slot_tree[GEN ** (2 ** QFLOCK_SLOT_LOG - 2 + KECCAK_LANES * (first + m) + lane)]
+            acc += segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + m)] * slot_tree[GEN ** (2 ** QKECCAK_SLOT_LOG - 2 + KECCAK_LANES * (first + m) + lane)]
         out[GEN ** lane] = acc
     return out
 
@@ -1971,15 +1971,15 @@ def keccak_slot_lanes(slot, segment_point, first: Const):
 def verify_keccak(fs0, fs1, cursor, tau_g, z_vals, slices):
     # SHA3 validity (keccak_gkr::verify): a random claim on the committed outputs,
     # KECCAK_DEPTH layers down to the committed inputs, every segment at once. It
-    # leaves two openings of q_flock, at the two points written to `z_vals` (tau +
-    # QFLOCK_SLOT_LOG coordinates each, QFLOCK_VARS_CAP apart): the column itself
+    # leaves two openings of q_keccak, at the two points written to `z_vals` (tau +
+    # QKECCAK_SLOT_LOG coordinates each, QKECCAK_VARS_CAP apart): the column itself
     # at the first, returned, and its 64 `slices` at the second.
     # tau >= KECCAK_MIN_STEPS_LOG is certified, so the pack count is a real count.
     fs = [fs0, fs1]
     pack_g = tau_g * INV_GEN ** KECCAK_PACK_LOG
     y_g = pack_g * GEN ** KECCAK_SEG_LOG
     out_point = z_vals
-    in_point = z_vals * GEN ** QFLOCK_VARS_CAP
+    in_point = z_vals * GEN ** QKECCAK_VARS_CAP
     for i in unroll(0, KECCAK_PACK_LOG):
         fs, r = squeeze(fs)
         out_point[GEN ** i] = r
@@ -2039,9 +2039,9 @@ def verify_keccak(fs0, fs1, cursor, tau_g, z_vals, slices):
 
     # ---- the outputs, whose instance weights are an eq already ----
     # Their position weights are a word's, so the 64 slices are only needed as
-    # the word they add up to: q_flock itself at the point.
+    # the word they add up to: q_keccak itself at the point.
     out_slot = out_point * tau_g
-    fs0, fs1, cursor, out_value = keccak_plain_rounds(fs[0], fs[1], cursor, value, out_slot, QFLOCK_SLOT_LOG)
+    fs0, fs1, cursor, out_value = keccak_plain_rounds(fs[0], fs[1], cursor, value, out_slot, QKECCAK_SLOT_LOG)
     fs = [fs0, fs1]
     fs, word, cursor = fs_next(fs, cursor)
     out_lanes = keccak_slot_lanes(out_slot, point * pack_g, 1)
@@ -2062,7 +2062,7 @@ def verify_keccak(fs0, fs1, cursor, tau_g, z_vals, slices):
     for i in unroll(0, KECCAK_PACK):
         mu_at_low += low_tree[GEN ** (2 ** KECCAK_PACK_LOG - 2 + i)] * last[GEN ** (KC_MU + i)]
     in_slot = in_point * tau_g
-    fs0, fs1, cursor, in_value = keccak_plain_rounds(fs0, fs1, cursor, low_value, in_slot, QFLOCK_SLOT_LOG)
+    fs0, fs1, cursor, in_value = keccak_plain_rounds(fs0, fs1, cursor, low_value, in_slot, QKECCAK_SLOT_LOG)
     fs0, fs1, cursor = keccak_read_slices(fs0, fs1, cursor, slices)
     last_point = last[GEN ** KC_POINT]
     in_lanes = keccak_slot_lanes(in_slot, last_point * pack_g, 0)
@@ -2103,13 +2103,13 @@ def ring_switch_target(slices, map_challenges):
     return rs_end[GEN ** 1]
 
 
-def ring_switch_weight(z_vals, point, c_table, qflockv_g):
+def ring_switch_weight(z_vals, point, c_table, qkeccakv_g):
     # One ring-switched claim's transparent weight at the opening point.
-    prod_chains = HeapBuf((qflockv_g * GEN) ** BASE_FIELD_BITS)
+    prod_chains = HeapBuf((qkeccakv_g * GEN) ** BASE_FIELD_BITS)
     for k in unroll(0, BASE_FIELD_BITS):
         prod_chains[GEN ** k] = 1
-    rs_eq_run(prod_chains, z_vals, point, qflockv_g)
-    prod_final = prod_chains * qflockv_g ** BASE_FIELD_BITS
+    rs_eq_run(prod_chains, z_vals, point, qkeccakv_g)
+    prod_final = prod_chains * qkeccakv_g ** BASE_FIELD_BITS
     rs_weight = 0
     for k in unroll(0, BASE_FIELD_BITS):
         rs_weight += c_table[GEN ** k] * prod_final[GEN ** k]
@@ -2142,7 +2142,7 @@ def certify_placement(kappa_base, g_squares):
                 assert log(col / prev_col) < N_COMMITTED_COLS
         col_off_g[col] = g_total  # write-once: a duplicate permutation entry collides
         # g_squares spans SIZE_BITS, and every kappa is under it: a certified log
-        # <= 32 (log_mem or a tau), the baked bytecode log, or q_flock's tau_5 + QFLOCK_SLOT_LOG.
+        # <= 32 (log_mem or a tau), the baked bytecode log, or q_keccak's tau_5 + QFLOCK_SLOT_LOG.
         # Bound it before the lookup, independently of m derived from this product.
         assert log(kappa_g) < SIZE_BITS
         g_total *= g_squares[kappa_g]
@@ -2173,7 +2173,7 @@ def column_selector(offset, point, kappa: Const):
 def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_g, claim_cplen_g, lam_out, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, inner_total, yr_at_tail, sumcheck_target):
     # Evaluate each transparent weight at the complete point in witness order.
     # A claim is its low point followed by the certified column's selector bits;
-    # a q_flock lane puts its slot's bits between the two.
+    # a q_keccak lane puts its slot's bits between the two.
     zeta_eq_chain = HeapBuf(SIZE_BITS + 1)
     eq_prefix_chain(zeta_eq_chain, 1, zeta, point, g_bus_mu)
     chi_eq_chain = HeapBuf(SIZE_BITS + 1)
@@ -2204,25 +2204,25 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_
             low_eq = zeta_eq_chain[cplen_g]
         if CLAIM_POINT_BUF[j] == POINT_BUF_RHO:
             low_eq = chi_eq_chain[cplen_g]
-        if CLAIM_POINT_BUF[j] == POINT_BUF_QFLOCK_RHO:
+        if CLAIM_POINT_BUF[j] == POINT_BUF_QKECCAK_RHO:
             slot_eq = GEN ** 0
-            for k in unroll(0, QFLOCK_SLOT_LOG):
-                slot_eq *= 1 + CLAIM_QFLOCK_SLOT_BITS[QFLOCK_SLOT_LOG * j + k] + slot_point[GEN ** k]
+            for k in unroll(0, QKECCAK_SLOT_LOG):
+                slot_eq *= 1 + CLAIM_QKECCAK_SLOT_BITS[QKECCAK_SLOT_LOG * j + k] + slot_point[GEN ** k]
             low_eq = slot_eq * chi_eq_chain[cplen_g]
-            nlow = cplen_g * GEN ** QFLOCK_SLOT_LOG
+            nlow = cplen_g * GEN ** QKECCAK_SLOT_LOG
         assert nlow == col_kappas[GEN ** CLAIM_COMMITTED_COL[j]]
         inner_sum += lam_pool[GEN ** j] * low_eq * selectors[CLAIM_COMMITTED_COL[j]]
 
-    # The Keccak reduction's two claims on q_flock, each over the whole column:
+    # The Keccak reduction's two claims on q_keccak, each over the whole column:
     # the ring-switched one leads the batch at lam_cl^0, the plain one closes it.
     # A lane claim's low point is tau_sha3 long, the kappa check above holding it
     # to this column.
-    qflockv_g = tau_sha3_g * GEN ** QFLOCK_SLOT_LOG
-    assert qflockv_g == col_kappas[GEN ** QFLOCK_COMMITTED_COL]
-    out_eq_chain = HeapBuf(SIZE_BITS + QFLOCK_SLOT_LOG + 1)
-    eq_prefix_chain(out_eq_chain, 1, z_vals, point, qflockv_g)
-    rs_weight = ring_switch_weight(z_vals * GEN ** QFLOCK_VARS_CAP, point, c_table, qflockv_g)
-    inner_sum += (rs_weight + lam_out * out_eq_chain[qflockv_g]) * selectors[QFLOCK_COMMITTED_COL]
+    qkeccakv_g = tau_sha3_g * GEN ** QKECCAK_SLOT_LOG
+    assert qkeccakv_g == col_kappas[GEN ** QKECCAK_COMMITTED_COL]
+    out_eq_chain = HeapBuf(SIZE_BITS + QKECCAK_SLOT_LOG + 1)
+    eq_prefix_chain(out_eq_chain, 1, z_vals, point, qkeccakv_g)
+    rs_weight = ring_switch_weight(z_vals * GEN ** QKECCAK_VARS_CAP, point, c_table, qkeccakv_g)
+    inner_sum += (rs_weight + lam_out * out_eq_chain[qkeccakv_g]) * selectors[QKECCAK_COMMITTED_COL]
     assert inner_sum * yr_at_tail == sumcheck_target
 
 
@@ -2324,7 +2324,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
 
     # ---- SHA3 validity, by GKR over the rounds ----
     tau_sha3_g = dims_g[GEN ** (TABLE_SHA3 + 1)]  # the SHA3 table's certified tau
-    z_vals = HeapBuf(2 * QFLOCK_VARS_CAP)
+    z_vals = HeapBuf(2 * QKECCAK_VARS_CAP)
     slices = HeapBuf(BASE_FIELD_BITS)
     fs0, fs1, cursor, keccak_word = verify_keccak(fs[0], fs[1], cursor, tau_sha3_g, z_vals, slices)
     fs = [fs0, fs1]

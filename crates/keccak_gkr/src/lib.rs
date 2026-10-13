@@ -160,7 +160,7 @@ pub fn open_commitment(
 ) {
     let ring = pcs::stack_open::RingSwitchOpen {
         offset: 0,
-        qflock_vars: shape.stack_log(),
+        qkeccak_vars: shape.stack_log(),
         claims: vec![pcs::stack_open::RingSwitchClaim {
             suffix_point: openings.inputs.point,
             s_hat_v: Some(openings.inputs.slices),
@@ -188,7 +188,7 @@ pub fn verify_commitment(
 ) -> Result<(), pcs::whir::VerifyError> {
     let ring = pcs::stack_open::RingSwitchVerify {
         offset: 0,
-        qflock_vars: shape.stack_log(),
+        qkeccak_vars: shape.stack_log(),
         claims: vec![pcs::stack_open::RingSwitchVerifyClaim {
             suffix_point: &openings.inputs.point,
             s_hat_v: openings.inputs.slices.as_slice().try_into().expect("64 slices"),

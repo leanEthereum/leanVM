@@ -874,7 +874,7 @@ impl Program {
                     }
                 }
                 Op::Sha3 { .. } => {
-                    use crate::hash_flock::{CELL_LANES, ROW_CELLS, STATE_CELLS};
+                    use crate::keccak::{CELL_LANES, ROW_CELLS, STATE_CELLS};
                     let cells = crate::tables::sha3_cells(&self.prog, pc, fp);
                     let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                     // A cell carries two lanes, the lone lane-16 cell one: the table
@@ -887,11 +887,11 @@ impl Program {
                         }
                     }
                     // No table constraint covers the output (the relation is proven
-                    // by the Keccak reduction, §hash_flock); the interpreter still computes it so
+                    // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
-                    let lanes = crate::hash_flock::state_of_cells(&input);
+                    let lanes = crate::keccak::state_of_cells(&input);
                     sha3_step(&lanes);
-                    let output = crate::hash_flock::cells_of_state(&primitives::hash::step(&lanes));
+                    let output = crate::keccak::cells_of_state(&primitives::hash::step(&lanes));
                     for (c, &v) in output.iter().enumerate() {
                         m.put(cells[STATE_CELLS + c], v)?;
                     }

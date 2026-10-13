@@ -36,7 +36,7 @@ pub enum Op {
     /// Keccak-f of a 25-lane state after XORing the padding's last bit into lane
     /// 16. The state is read from thirteen canonical cells (two lanes each, top
     /// limb zero) and the result written to thirteen, both in the order of
-    /// [`crate::hash_flock::CELL_LANES`]: four independently addressed cells `m`
+    /// [`crate::keccak::CELL_LANES`]: four independently addressed cells `m`
     /// (lanes 0..8, the first 64 bytes of a block), four consecutive cells from
     /// `tail` (lanes 8..16, the other 64), and five consecutive cells from `cap`
     /// (lane 16 alone, its high lane zero, then the capacity lanes 17..25).
@@ -44,7 +44,7 @@ pub enum Op {
     /// A fresh hash reads a zero `cap`; a later block reads the previous output's
     /// last five cells there, and XORs its message into the previous output's
     /// first eight to form `m` and `tail`. The relation is proven by the Keccak
-    /// reduction ([`crate::hash_flock`]).
+    /// reduction ([`crate::keccak`]).
     Sha3 {
         m: [u32; 4],
         tail: u32,

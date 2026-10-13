@@ -40,7 +40,7 @@ pub const SIZES: [usize; 8] = [128, 64, 32, 16, 8, 4, 2, 1];
 /// Least rows a table can be proven over. Only `SHA3` has one above `1`: the Keccak
 /// reduction is sized for at least one of its blocks of steps, so filling that table below
 /// the floor would leave it padded up to it, which is the padding this exists to avoid.
-pub const MIN_ROWS: [usize; N_TABLES] = [1, 1, 1, 1, 1, crate::hash_flock::MIN_STEPS];
+pub const MIN_ROWS: [usize; N_TABLES] = [1, 1, 1, 1, 1, crate::keccak::MIN_STEPS];
 
 /// The `JUMP` table's index in [`crate::cpu::Stats::TABLES`]. Every traversal of every
 /// block lands its closing jump here, so this table is solved last, absorbing the cost
@@ -84,7 +84,7 @@ pub mod frame {
     /// The `SHA3` dummy's thirteen output cells.
     pub const SHA3_OUT: u32 = SHA3_IN + 5;
     /// Cells a block's frame occupies.
-    pub const CELLS: u32 = SHA3_OUT + crate::hash_flock::STATE_CELLS as u32;
+    pub const CELLS: u32 = SHA3_OUT + crate::keccak::STATE_CELLS as u32;
 }
 
 /// Traversals per block: `plan[t][k]` is how many times the size-`SIZES[k]` block of

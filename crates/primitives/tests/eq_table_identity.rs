@@ -1,5 +1,5 @@
 //! `eq_table` feeds the verifier (via the leanvm_core constraint and GKR paths and
-//! flock's univariate skip), so its rewrite must be bit-identical to the
+//! the Keccak reduction), so its rewrite must be bit-identical to the
 //! two-multiply form, not merely algebraically equal.
 //!
 //! Old: `hi = e · r`, `lo = e · (1 + r)` : two products.

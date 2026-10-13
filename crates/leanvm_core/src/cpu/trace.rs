@@ -50,7 +50,7 @@ pub(crate) struct Jrow {
 pub(crate) struct Brow {
     pub(crate) pc: u32,
     pub(crate) fp: u32,
-    pub(crate) r: [F64; crate::hash_flock::ROW_CELLS],
+    pub(crate) r: [F64; crate::keccak::ROW_CELLS],
     pub(crate) bytecode_read: F64,
 }
 

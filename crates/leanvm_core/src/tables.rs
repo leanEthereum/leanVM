@@ -378,7 +378,7 @@ pub(crate) const SHA3_TABLE: usize = 5;
 /// The twenty-six cells a `SHA3` row touches, in flush order: the four `m` cells,
 /// the four `tail` cells, the five `cap` cells, then the thirteen output cells.
 /// Recovered from the instruction, not stored per row.
-pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::hash_flock::ROW_CELLS] {
+pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::keccak::ROW_CELLS] {
     match prog[pc as usize] {
         Op::Sha3 { m, tail, cap, out } => {
             let in_cell = |c: u32| match c {
@@ -396,9 +396,9 @@ pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::hash_flo
 }
 
 /// SHA3 value-column LOCAL indices in canonical slot order (the input lanes, then
-/// the output lanes; matches `hash_flock::SLOTS`). These columns are VIRTUAL
-/// (never committed): `q_flock` already holds those words at fixed slots,
-/// so `cpu` routes their memory-bus evaluation claims straight to `q_flock`
+/// the output lanes; matches `keccak::SLOTS`). These columns are VIRTUAL
+/// (never committed): `q_keccak` already holds those words at fixed slots,
+/// so `cpu` routes their memory-bus evaluation claims straight to `q_keccak`
 /// (`slot_claims`): the value the bus flushes IS the proven word.
 pub const SHA3_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
     let mut c = [0usize; 2 * primitives::hash::STATE_LANES];
@@ -410,7 +410,7 @@ pub const SHA3_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
     c
 };
 // The fifty value lanes are laid out contiguously, inputs then outputs, so they
-// map 1:1 onto `hash_flock::SLOTS`.
+// map 1:1 onto `keccak::SLOTS`.
 const _: () = assert!(sha3t::V_OUT == sha3t::V_IN + primitives::hash::STATE_LANES);
 
 // ---- XOR / MUL ---------------------------------------------------------------
@@ -810,8 +810,8 @@ impl Table for JumpTable {
 /// thirteen output cells are consecutive runs based at `fp·o_T`, `fp·o_C` and
 /// `fp·o_O`. No address is committed: each rides the bus as the product `fp·o_X·g^k`
 /// (§sec:m3). The permutation relating output lanes to input lanes carries no
-/// table constraint either: it is proven by the Keccak reduction over `q_flock`
-/// (§hash_flock), which leaves this table with no identity of its own.
+/// table constraint either: it is proven by the Keccak reduction over `q_keccak`
+/// (§keccak), which leaves this table with no identity of its own.
 ///
 /// A cell carries two lanes with a literal-zero top limb (`memory_128`), except
 /// the lone lane-16 cell of each state, whose high lane is a literal zero too
@@ -819,12 +819,12 @@ impl Table for JumpTable {
 /// are never committed. The fifty lanes are fifty value columns, listed in
 /// `n_committed_columns` (they need a local index for the flushes and are filled
 /// from the trace for the bus), but `cpu` treats them as VIRTUAL and routes their
-/// bus claims to `q_flock`, which already holds those words (see
+/// bus claims to `q_keccak`, which already holds those words (see
 /// [`SHA3_VALUE_COLS`]).
 struct Sha3Table;
 
 pub(crate) mod sha3t {
-    use crate::hash_flock::ROW_CELLS;
+    use crate::keccak::ROW_CELLS;
     use primitives::hash::STATE_LANES;
 
     pub const PC: usize = 0;
@@ -845,20 +845,20 @@ impl Table for Sha3Table {
         sha3t::N
     }
     fn count_columns(&self) -> &'static [usize] {
-        const COUNTS: [usize; crate::hash_flock::ROW_CELLS + 1] = {
-            let mut c = [0usize; crate::hash_flock::ROW_CELLS + 1];
+        const COUNTS: [usize; crate::keccak::ROW_CELLS + 1] = {
+            let mut c = [0usize; crate::keccak::ROW_CELLS + 1];
             let mut i = 0;
-            while i < crate::hash_flock::ROW_CELLS {
+            while i < crate::keccak::ROW_CELLS {
                 c[i] = sha3t::R0 + i;
                 i += 1;
             }
-            c[crate::hash_flock::ROW_CELLS] = sha3t::RBC;
+            c[crate::keccak::ROW_CELLS] = sha3t::RBC;
             c
         };
         &COUNTS
     }
     fn flushes(&self, f: &mut FlushBuilder) {
-        use crate::hash_flock::{CELL_LANES, STATE_CELLS};
+        use crate::keccak::{CELL_LANES, STATE_CELLS};
         use sha3t::*;
         f.state_step(PC, FP);
         f.bytecode(
@@ -897,7 +897,7 @@ impl Table for Sha3Table {
         }
     }
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
-        use crate::hash_flock::{STATE_CELLS, state_of_cells};
+        use crate::keccak::{STATE_CELLS, state_of_cells};
         use primitives::hash::STATE_LANES;
         use sha3t::*;
         let rows = &ctx.trace.sha3;

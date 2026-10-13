@@ -1,5 +1,5 @@
-% !TeX root = ../drafts/c-flock-protocol.tex
-\section{Keccak by GKR}\label{annex:keccak}\label{annex:flock}
+% !TeX root = ../drafts/c-keccak-gkr.tex
+\section{Keccak by GKR}\label{annex:keccak}
 
 This annex proves that every \texttt{SHA3} step of an execution (\S\ref{sec:tab-sha3}) writes the Keccak-$f[1600]$ permutation~\cite{fips202} of what it reads. The argument is a GKR~\cite{GKR08} over the rounds of the permutation, one layer per round, run from the outputs back to the inputs. The prover commits a state every six rounds and nothing between two of them. The data is binary, so sixteen steps are packed into one field element by a reverse multiplication friendly embedding~\cite{CCXY18}.
 
@@ -17,11 +17,11 @@ where $\krc_R\in\cube{64}$ is the round constant, which iota adds to lane $0$.
 
 \paragraph{The commitment.} The prover commits the five states that bound the segments, the one after $6m$ rounds for $0\le m\le4$, as lanes. They form one column
 \[
-\qflock:\cube{\kbatch}\times\cube{7}\to\K,
+\qkeccak:\cube{\kbatch}\times\cube{7}\to\K,
 \]
-whose second argument is a \emph{slot}: slot $25m+\ell$ holds lane $\ell$ of the state after $6m$ rounds, one $\K$-element per step, bit $z$ of the lane being the coefficient of $x^z$. That is $125$ slots, and the three left are zero. With the bit slices $Q_0,\dots,Q_{63}$ of Annex~\ref{annex:rs}, $\qflock=\sum_{z<64}Q_z\,x^z$, slice $z$ of that lane is $Q_z(t,25m+\ell)$, and the column has $\nflock=\kbatch+7$ variables. It is one region of the stack (\S\ref{sec:stacking}). The column keeps the name of Flock~\cite{Flock26}, whose packed witness the region first held.
+whose second argument is a \emph{slot}: slot $25m+\ell$ holds lane $\ell$ of the state after $6m$ rounds, one $\K$-element per step, bit $z$ of the lane being the coefficient of $x^z$. That is $125$ slots, and the three left are zero. With the bit slices $Q_0,\dots,Q_{63}$ of Annex~\ref{annex:rs}, $\qkeccak=\sum_{z<64}Q_z\,x^z$, slice $z$ of that lane is $Q_z(t,25m+\ell)$, and the column has $\nkeccak=\kbatch+7$ variables. It is one region of the stack (\S\ref{sec:stacking}). The column keeps the name of Flock~\cite{Flock26}, whose packed witness the region first held.
 
-The state a step reads and the state it writes are the first and the last of the five. The \texttt{SHA3} table has no value column of its own (\S\ref{sec:tab-sha3}): its output lane $\ell$ is slot $100+\ell$ of $\qflock$, and its input lane $\ell$ is slot $\ell$, except that the step XORs the padding's last bit into lane $16$ before permuting, so the committed slot $16$ is the lane the machine reads plus $x^{63}$.
+The state a step reads and the state it writes are the first and the last of the five. The \texttt{SHA3} table has no value column of its own (\S\ref{sec:tab-sha3}): its output lane $\ell$ is slot $100+\ell$ of $\qkeccak$, and its input lane $\ell$ is slot $\ell$, except that the step XORs the padding's last bit into lane $16$ before permuting, so the committed slot $16$ is the lane the machine reads plus $x^{63}$.
 
 \paragraph{The statement.} For $0\le e\le6$, let $a_{m,e}(j;t)\in\Ftwo$ be bit $j$ of the state obtained by applying the first $e$ rounds of segment $m$, by \eqref{keccak:eq:round}, to the committed input of that segment in step $t$. So $a_{m,0}(z+64\ell;t)=Q_z(t,25m+\ell)$ is committed, and every other $a_{m,e}$ is a function of the commitment that nobody commits to. The statement is that each segment ends on the next committed state:
 \begin{equation}\label{keccak:eq:statement}
@@ -133,16 +133,16 @@ The layer outputs the claim $(c',\,\kw',\,\fc,\,\klin^{\top}\kpw^{\flat})$ at de
 
 \subsection{The two openings}\label{keccak:openings}
 
-Six layers take the first claim to a claim at depth $6$. Both ends are then settled against $\qflock$, each by a short sumcheck of degree two (two $\E$-elements a round).
+Six layers take the first claim to a claim at depth $6$. Both ends are then settled against $\qkeccak$, each by a short sumcheck of degree two (two $\E$-elements a round).
 
 \paragraph{Outputs.} Let $(c,\kw,r,\kpw)$ be the first claim. Its weights are a word's and its instance weights an equality table, so if \eqref{keccak:eq:statement} holds its right side \eqref{keccak:eq:claim} is a sum over slots of the committed column itself:
 \begin{equation}\label{keccak:eq:out}
-c\ \qeq\sum_{o\in\cube{7}}\kpw^{\mathrm{out}}(o)\;\mle{\qflock}\bigl(r_{\mathrm{low}},r_{\mathrm{pack}},o\bigr),\qquad
+c\ \qeq\sum_{o\in\cube{7}}\kpw^{\mathrm{out}}(o)\;\mle{\qkeccak}\bigl(r_{\mathrm{low}},r_{\mathrm{pack}},o\bigr),\qquad
 \kpw^{\mathrm{out}}\bigl(25(m+1)+\ell\bigr)=\eq(r_{\mathrm{seg}},m)\,\eq(r_{\mathrm{lane}},\ell),
 \end{equation}
 with $\kpw^{\mathrm{out}}$ zero on every other slot. The parties run sumcheck on \eqref{keccak:eq:out} over the slot, seven rounds with challenges $\fc^{\mathrm{out}}\in\E^{7}$. The prover sends one value $c_{\mathrm{out}}$, the verifier checks $\mle{\kpw^{\mathrm{out}}}(\fc^{\mathrm{out}})\,c_{\mathrm{out}}$ against the final claim, and what is left is an ordinary evaluation claim on the column,
 \begin{equation}\label{keccak:eq:out-claim}
-\mle{\qflock}\bigl(r_{\mathrm{low}},r_{\mathrm{pack}},\fc^{\mathrm{out}}\bigr)=c_{\mathrm{out}}.
+\mle{\qkeccak}\bigl(r_{\mathrm{low}},r_{\mathrm{pack}},\fc^{\mathrm{out}}\bigr)=c_{\mathrm{out}}.
 \end{equation}
 This is the one place where \eqref{keccak:eq:statement} is tested: the layers speak of the states the committed inputs imply, and \eqref{keccak:eq:out} of the committed outputs.
 
@@ -159,7 +159,7 @@ against the final claim, extending $\kpw^{\mathrm{in}}$ in the slot only. What i
 \begin{equation}\label{keccak:eq:in-claim}
 s_z=\mle{Q_z}\bigl(\fc^{\mathrm{low}},r_{\mathrm{pack}},\fc^{\mathrm{in}}\bigr)\qquad(0\le z<64),
 \end{equation}
-$64$ bit slices at one shared point of $\E^{\nflock}$, which is exactly what ring switching takes (Annex~\ref{annex:rs}).
+$64$ bit slices at one shared point of $\E^{\nkeccak}$, which is exactly what ring switching takes (Annex~\ref{annex:rs}).
 
 \subsection{Protocol summary}\label{keccak:summary}
 
@@ -177,7 +177,7 @@ A layer costs $47+2(\kbatch-2)+33+3$ elements of $\E$ and the openings $15$ and 
 
 \subsection{Soundness analysis}\label{keccak:soundness}
 
-The commitment determines $\qflock$, hence every $a_{m,e}$, before any challenge is drawn, and the commitment scheme proves the claims opened on $\qflock$. So take \eqref{keccak:eq:out-claim} and \eqref{keccak:eq:in-claim} to be true, up to the error of the commitment scheme and the $2^{-160}$ of Annex~\ref{annex:rs}, and suppose \eqref{keccak:eq:statement} fails. Call a claim at depth $d$ \emph{true} if \eqref{keccak:eq:claim} holds.
+The commitment determines $\qkeccak$, hence every $a_{m,e}$, before any challenge is drawn, and the commitment scheme proves the claims opened on $\qkeccak$. So take \eqref{keccak:eq:out-claim} and \eqref{keccak:eq:in-claim} to be true, up to the error of the commitment scheme and the $2^{-160}$ of Annex~\ref{annex:rs}, and suppose \eqref{keccak:eq:statement} fails. Call a claim at depth $d$ \emph{true} if \eqref{keccak:eq:claim} holds.
 
 \paragraph{A layer.} Let the claim entering layer $d$ be false. The polynomial of \eqref{keccak:eq:product} satisfies \eqref{keccak:eq:projection} with the true value in place of $c$, so a prover passing that check sent some other polynomial of degree at most $46$, and the two agree at $\kpt$ with probability at most $46/|\E|$ (Lemma~\ref{lem:sz}). Otherwise \eqref{keccak:eq:at-s} is a false sumcheck claim. Both sumchecks have summands of degree three, the equality factor included, so the false claim survives their $\kbatch+9$ rounds with probability at most $3(\kbatch+9)/|\E|$, and otherwise \eqref{keccak:eq:terminal} fails for the true $\kev_k$: one of the three sent is wrong. The combination $c'$ is then wrong except with probability $2/|\E|$, a nonzero polynomial of degree two in $\kbeta$ having two roots. Steps 5 and 6 are identities. A false claim therefore leaves a layer true with probability at most $(3\kbatch+75)/|\E|$.
 

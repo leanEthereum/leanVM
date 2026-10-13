@@ -177,7 +177,7 @@ def family(benchmark):
         "stateproof": "L1 state proofs",
         "shielded": "Shielded transfers",
         "hash": "SHA3",
-        "flock": "Flock",
+        "keccak": "Keccak GKR",
         "pcs": "PCS",
         "ntt": "PCS",
         "f64": "Field and transpose kernels",

@@ -56,7 +56,7 @@ pub fn relation_digest() -> [u8; 32] {
 pub const RELATION_LABEL: &[u8] = b"leanVM keccak GKR: step, depth 6, packs of 16 in degree 23, lane slots";
 
 /// `log2` of the committed column, in words.
-pub fn qflock_kappa(n_blocks: usize) -> usize {
+pub fn qkeccak_kappa(n_blocks: usize) -> usize {
     n_blocks_log(n_blocks) + SLOT_LOG
 }
 
@@ -142,8 +142,8 @@ pub(crate) struct PreparedReductionWitness(keccak_gkr::Witness);
 
 impl PreparedReductionWitness {
     /// The two openings of the committed column the reduction leaves.
-    pub(crate) fn prove(&self, ps: &mut ProverState, q_flock: &[F64]) -> Openings {
-        keccak_gkr::prove(ps, &self.0, q_flock)
+    pub(crate) fn prove(&self, ps: &mut ProverState, q_keccak: &[F64]) -> Openings {
+        keccak_gkr::prove(ps, &self.0, q_keccak)
     }
 }
 
@@ -156,17 +156,20 @@ fn permuted(mut state: [u64; STATE_LANES]) -> [u64; STATE_LANES] {
 /// Build the committed column for `instances`, the lanes each step reads, padded with all-zero
 /// steps to `2^n_blocks_log(instances.len())`, and keep the reduction's witness.
 #[cfg(test)]
-pub(crate) fn build_qflock_prepared(instances: &[[u64; STATE_LANES]], q_flock: &mut [F64]) -> PreparedReductionWitness {
+pub(crate) fn build_qkeccak_prepared(
+    instances: &[[u64; STATE_LANES]],
+    q_keccak: &mut [F64],
+) -> PreparedReductionWitness {
     let shape = shape(instances.len());
     assert_eq!(
-        q_flock.len(),
+        q_keccak.len(),
         1 << shape.stack_log(),
         "the committed column is the wrong size"
     );
     let inputs: Vec<[u64; STATE_LANES]> = parallel::map_collect(shape.n(), |i| {
         permuted(instances.get(i).copied().unwrap_or([0; STATE_LANES]))
     });
-    PreparedReductionWitness(keccak_gkr::Witness::generate(shape, &inputs, q_flock))
+    PreparedReductionWitness(keccak_gkr::Witness::generate(shape, &inputs, q_keccak))
 }
 
 /// The reduction's witness for the steps a program ran, built while it ran: every whole block
@@ -263,11 +266,11 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
 impl Blocks {
     /// Write the committed column of the `steps` steps these blocks hold, padded with
     /// all-zero steps, and hand the reduction its witness.
-    pub(crate) fn place(self, steps: usize, q_flock: &mut [F64]) -> PreparedReductionWitness {
+    pub(crate) fn place(self, steps: usize, q_keccak: &mut [F64]) -> PreparedReductionWitness {
         let shape = shape(steps);
         assert_eq!(self.steps, steps, "the blocks are of another run");
         assert_eq!(
-            q_flock.len(),
+            q_keccak.len(),
             1 << shape.stack_log(),
             "the committed column is the wrong size"
         );
@@ -280,8 +283,8 @@ impl Blocks {
             let lanes = unsafe { run_block(&[], slot) };
             (extent, lanes)
         });
-        q_flock[shape.slots() * n..].fill(F64::ZERO);
-        let column = parallel::SendPtr(q_flock.as_mut_ptr());
+        q_keccak[shape.slots() * n..].fill(F64::ZERO);
+        let column = parallel::SendPtr(q_keccak.as_mut_ptr());
         parallel::for_each(shape.n_blocks(), |g| {
             let lanes = self
                 .lanes
@@ -311,7 +314,7 @@ impl Blocks {
 pub fn ring_switch_open(n_blocks: usize, offset: usize, openings: Openings) -> (RingSwitchOpen, SlotClaim) {
     let ring = RingSwitchOpen {
         offset,
-        qflock_vars: qflock_kappa(n_blocks),
+        qkeccak_vars: qkeccak_kappa(n_blocks),
         claims: vec![RingSwitchClaim {
             suffix_point: openings.inputs.point,
             s_hat_v: Some(openings.inputs.slices),
@@ -329,7 +332,7 @@ pub fn ring_switch_open(n_blocks: usize, offset: usize, openings: Openings) -> (
 pub fn ring_switch_verify(n_blocks: usize, offset: usize, openings: &Openings) -> (RingSwitchVerify<'_>, SlotClaim) {
     let ring = RingSwitchVerify {
         offset,
-        qflock_vars: qflock_kappa(n_blocks),
+        qkeccak_vars: qkeccak_kappa(n_blocks),
         claims: vec![::pcs::stack_open::RingSwitchVerifyClaim {
             suffix_point: &openings.inputs.point,
             s_hat_v: openings.inputs.slices.as_slice().try_into().expect("64 slices"),
@@ -358,10 +361,10 @@ mod tests {
     }
 
     /// The committed column on its own, and the reduction's witness.
-    fn build_qflock(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, PreparedReductionWitness) {
-        let mut q_flock = vec![F64::ZERO; 1 << qflock_kappa(instances.len())];
-        let witness = build_qflock_prepared(instances, &mut q_flock);
-        (q_flock, witness)
+    fn build_qkeccak(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, PreparedReductionWitness) {
+        let mut q_keccak = vec![F64::ZERO; 1 << qkeccak_kappa(instances.len())];
+        let witness = build_qkeccak_prepared(instances, &mut q_keccak);
+        (q_keccak, witness)
     }
 
     fn sample_instances(n: usize) -> Vec<[u64; STATE_LANES]> {
@@ -377,18 +380,18 @@ mod tests {
     fn blocks_built_while_executing_match_one_pass() {
         for n in [0, 1, 511, 512, 513, 1500, 4099] {
             let instances = sample_instances(n);
-            let (expected, reference) = build_qflock(&instances);
+            let (expected, reference) = build_qkeccak(&instances);
             let ((), blocks) = while_executing(|step| {
                 for state in &instances {
                     step(state);
                 }
             });
-            let mut q_flock = vec![f(0xdead_beef); expected.len()];
-            let witness = blocks.place(n, &mut q_flock);
-            assert_eq!(q_flock, expected, "{n} steps");
+            let mut q_keccak = vec![f(0xdead_beef); expected.len()];
+            let witness = blocks.place(n, &mut q_keccak);
+            assert_eq!(q_keccak, expected, "{n} steps");
             let stream = |witness: &PreparedReductionWitness| {
                 let mut ps = ProverState::from_label(b"blocks");
-                let openings = witness.prove(&mut ps, &q_flock);
+                let openings = witness.prove(&mut ps, &q_keccak);
                 (openings, ps.into_proof())
             };
             assert!(stream(&witness) == stream(&reference), "{n} steps");
@@ -426,17 +429,17 @@ mod tests {
     /// The committed column holds every step's lanes, a word per step: what the VM reads, with
     /// the padding's last bit in lane 16, and what it writes.
     #[test]
-    fn qflock_words_match_layout() {
+    fn qkeccak_words_match_layout() {
         let instances = sample_instances(5);
-        let (q_flock, _) = build_qflock(&instances);
+        let (q_keccak, _) = build_qkeccak(&instances);
         let n = 1usize << n_blocks_log(instances.len());
         for (j, input) in instances.iter().enumerate() {
             let out = primitives::hash::step(input);
             for i in 0..STATE_LANES {
                 let (slot, shift) = value_slot(i);
-                assert_eq!(F192::from(q_flock[slot * n + j]), F192::from(f(input[i])) + shift);
+                assert_eq!(F192::from(q_keccak[slot * n + j]), F192::from(f(input[i])) + shift);
                 let (slot, shift) = value_slot(STATE_LANES + i);
-                assert_eq!(F192::from(q_flock[slot * n + j]), F192::from(f(out[i])) + shift);
+                assert_eq!(F192::from(q_keccak[slot * n + j]), F192::from(f(out[i])) + shift);
             }
         }
     }
@@ -447,9 +450,9 @@ mod tests {
     #[test]
     fn validity_stacked_roundtrip() {
         let instances = sample_instances(4);
-        let (q_flock, witness) = build_qflock(&instances);
+        let (q_keccak, witness) = build_qkeccak(&instances);
         let dummy: Vec<F64> = (0..8u64).map(|i| f(0x9000 + i)).collect();
-        let stacked = crate::witness::stack(&[q_flock.clone(), dummy.clone()]);
+        let stacked = crate::witness::stack(&[q_keccak.clone(), dummy.clone()]);
         let offset = stacked.placements[0].offset;
 
         let dummy_pl = stacked.placements[1];
@@ -465,7 +468,7 @@ mod tests {
 
         let mut ps = ProverState::from_label(b"vstack");
         let committed = crate::pcs::commit(&mut ps, &stacked.q, stacked.shape, crate::pcs::TEST_LOG_INV_RATE);
-        let (ring, outputs) = ring_switch_open(instances.len(), offset, witness.prove(&mut ps, &q_flock));
+        let (ring, outputs) = ring_switch_open(instances.len(), offset, witness.prove(&mut ps, &q_keccak));
         let all = [&points[..], &[outputs]].concat();
         crate::pcs::open(&mut ps, &committed, &stacked.q, &all, &ring);
         let bundle = ps.into_proof();

@@ -5,7 +5,7 @@
 //! is over `E = F192 = K[y]/(y³+y+1)` (XOR degree 1, MUL_NATIVE degree 2),
 //! with each word carried by three committed `K = F64` limbs. `SHA3` adds the
 //! memory/state/bytecode plumbing for one Keccak-f sponge step whose relation
-//! is discharged by the Keccak reduction (see [`crate::hash_flock`]). All
+//! is discharged by the Keccak reduction (see [`crate::keccak`]). All
 //! challenges and transcript scalars live in the same tower E.
 
 use std::collections::HashMap;
@@ -56,7 +56,7 @@ const MAX_LOG_BYTECODE: usize = 32;
 /// The Fiat-Shamir IV: ONE 32-byte digest, as two field words, committing to
 /// everything fixed about the proving environment.
 ///
-/// Two things go in. [`crate::hash_flock::relation_digest`] names the Keccak
+/// Two things go in. [`crate::keccak::relation_digest`] names the Keccak
 /// relation and how its reduction is parameterized, independent of the instance
 /// count, which is announced and absorbed with the other sizes, so one constant
 /// covers every shape. And the bytecode enters through the hash
@@ -74,7 +74,7 @@ pub fn fs_seed(program: &Program) -> [F192; 2] {
     h.update(b"leanvm");
     // Length-framed so the preimage parses one way: the domain and the bytecode
     // hash are fixed-width, so framing the digest between them is all it takes.
-    let relation = crate::hash_flock::relation_digest();
+    let relation = crate::keccak::relation_digest();
     h.update(&(relation.len() as u64).to_le_bytes());
     h.update(&relation);
     h.update(&program.bytecode_hash);
@@ -154,7 +154,7 @@ fn read_public(vs: &mut VerifierState, prog: &Program, public_input: &[F192; 2])
         // SHA3 table's value columns share that instance cube, so a height below the
         // floor describes a layout the arithmetization cannot express. The other two
         // verifiers reject it here too (`python-verifier`, `guests/lean_ethereum.py`).
-        || taus[tables::SHA3_TABLE] < crate::hash_flock::n_blocks_log(1)
+        || taus[tables::SHA3_TABLE] < crate::keccak::n_blocks_log(1)
         || ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err()
     {
         return Err(CpuError::PublicInput);
@@ -461,17 +461,17 @@ fn xi_form_pows(xi: F192) -> [F192; 3] {
     [pows[base], pows[base + 1], pows[base + 2]]
 }
 
-/// If `col` is a SHA3 **value** column (global index), its `q_flock` slot and the
+/// If `col` is a SHA3 **value** column (global index), its `q_keccak` slot and the
 /// constant the committed lane differs by.
 /// These columns are virtual (uncommitted): their memory-bus evaluation claims
-/// are re-routed to `q_flock` slot evaluations, which is the whole binding: the
-/// bus-tied value IS the proven `q_flock` word, no separate check needed.
+/// are re-routed to `q_keccak` slot evaluations, which is the whole binding: the
+/// bus-tied value IS the proven `q_keccak` word, no separate check needed.
 fn sha3_value_slot(col: usize) -> Option<(usize, F192)> {
     let base = schema().base[tables::SHA3_TABLE];
     tables::SHA3_VALUE_COLS
         .iter()
         .position(|&c| base + c == col)
-        .map(crate::hash_flock::value_slot)
+        .map(crate::keccak::value_slot)
 }
 
 /// Run statistics returned alongside the proof: the cycle count (total executed
@@ -548,7 +548,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
     let (exec, sha3_blocks) = crate::stage!("Execute program", || {
-        crate::hash_flock::while_executing(|step| program.execute_with(public_input, step))
+        crate::keccak::while_executing(|step| program.execute_with(public_input, step))
     });
     let exec = exec.map_err(ProveError::Execution)?;
     // A live value that came from outside the constraint system would make the proof
@@ -580,12 +580,12 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate)
     });
 
-    // SHA3 (§hash_flock), single PCS: q_flock is ALWAYS a column in `w.q` (the
+    // SHA3 (§keccak), single PCS: q_keccak is ALWAYS a column in `w.q` (the
     // SHA3 table is filled to the reduction's floor, so the proof shape is uniform
     // and there is no has/hasn't-SHA3 fork). The Keccak reduction's claims and
     // EVERY leanVM point claim are discharged together by ONE
     // WHIR over this commitment (below). Input and output lanes bind through the
-    // memory bus: their virtual value columns route to q_flock, so no separate pin
+    // memory bus: their virtual value columns route to q_keccak, so no separate pin
     // claims are needed. Mirrored in `verify`.
     let (owners, spans) = bus_wiring(program, &w.layout);
     // The columns are windows into `w.q`, so both stages read them in place: the
@@ -628,20 +628,20 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     let r_pi = ps.sample();
     // Memory binds the message, chaining-value, and output words; bytecode binds
     // the counter and flags. All corresponding value columns are virtual and route
-    // to q_flock through `slot_claims`.
+    // to q_keccak through `slot_claims`.
     let mut slots = finish_claims(l, bus.claims, &table_claims, r_pi);
 
-    // Run the Keccak reduction over the witness retained from the q_flock build
-    // pass; it returns two claims on the committed `q_flock`, discharged by the
+    // Run the Keccak reduction over the witness retained from the q_keccak build
+    // pass; it returns two claims on the committed `q_keccak`, discharged by the
     // PCS below in the SAME WHIR as every leanVM point claim: one ring-switched,
     // one appended to the point claims.
-    let flock_reduction = w.flock_reduction;
+    let keccak_reduction = w.keccak_reduction;
     let n_blocks = 1usize << w.layout.taus[tables::SHA3_TABLE];
-    let offset = w.layout.placements[QFLOCK].offset;
-    let q_flock = &w.q[offset..offset + (1 << crate::hash_flock::qflock_kappa(n_blocks))];
-    let openings = crate::stage!("Keccak reduction", || { flock_reduction.prove(&mut ps, q_flock) });
-    drop(flock_reduction);
-    let (ring, outputs) = crate::hash_flock::ring_switch_open(n_blocks, offset, openings);
+    let offset = w.layout.placements[QKECCAK].offset;
+    let q_keccak = &w.q[offset..offset + (1 << crate::keccak::qkeccak_kappa(n_blocks))];
+    let openings = crate::stage!("Keccak reduction", || { keccak_reduction.prove(&mut ps, q_keccak) });
+    drop(keccak_reduction);
+    let (ring, outputs) = crate::keccak::ring_switch_open(n_blocks, offset, openings);
     slots.push(outputs);
     crate::stage!("PCS open", || { pcs::open(&mut ps, &committed, &w.q, &slots, &ring) });
     Ok((
@@ -706,7 +706,7 @@ fn bind_pi_claim(r: F192, l: &Layout) -> [ColumnClaim; 3] {
 
 /// Everything a recursion harness needs from an accepting verify run, named
 /// and typed: the deferred bytecode claim and the raw proof. The Keccak
-/// reduction's scalars live on `proof.stream`, ending at `flock_stream_end`.
+/// reduction's scalars live on `proof.stream`, ending at `keccak_stream_end`.
 /// Ordinary callers just `?`-discard it.
 pub struct VerifySummary {
     /// Transcript-bound inverse-rate logarithm used by this proof's PCS.
@@ -714,7 +714,7 @@ pub struct VerifySummary {
     pub bytecode_claim: leaf::BytecodeClaim,
     /// Stream cursor just after the Keccak reduction, i.e. where the PCS opening's
     /// own scalars start.
-    pub flock_stream_end: usize,
+    pub keccak_stream_end: usize,
     /// The proof this run just verified, in the unpruned form the recursion
     /// guest and the Python verifier consume.
     pub raw: fiat_shamir::transcript::RawProof,
@@ -734,7 +734,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     // claim are verified together by ONE WHIR opening at the end. The SHA3 table
     // size is public and announced; the reduction rides the shared stream.
     // Memory binds every step's input and output lanes by routing
-    // their virtual value-column claims to q_flock.
+    // their virtual value-column claims to q_keccak.
     let n_sha3 = 1usize << l.taus[tables::SHA3_TABLE];
 
     let (owners, spans) = bus_wiring(program, &l);
@@ -765,21 +765,21 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     let mut slots = finish_claims(&l, bus.claims, &table_claims, r_pi);
 
     // Replay the Keccak reduction straight off the shared stream (each scalar bound
-    // as it is read) to recover its two claims on q_flock, then
+    // as it is read) to recover its two claims on q_keccak, then
     // verify them alongside every point claim in the ONE WHIR opening
     // (mirroring `prove`).
     let n_blocks = n_sha3.max(1);
-    let offset = l.placements[QFLOCK].offset;
-    let openings = crate::hash_flock::verify_reduction(n_blocks, &mut vs).map_err(CpuError::Sha3)?;
-    let flock_stream_end = vs.stream_offset();
-    let (ring, outputs) = crate::hash_flock::ring_switch_verify(n_blocks, offset, &openings);
+    let offset = l.placements[QKECCAK].offset;
+    let openings = crate::keccak::verify_reduction(n_blocks, &mut vs).map_err(CpuError::Sha3)?;
+    let keccak_stream_end = vs.stream_offset();
+    let (ring, outputs) = crate::keccak::ring_switch_verify(n_blocks, offset, &openings);
     slots.push(outputs);
     pcs::verify(&mut vs, &slots, &ring, l.shape, log_inv_rate, &root).map_err(CpuError::Open)?;
     vs.finish().map_err(CpuError::Transcript)?;
     Ok(VerifySummary {
         bytecode_claim: bus.bytecode_claim,
         log_inv_rate,
-        flock_stream_end,
+        keccak_stream_end,
         raw: vs.into_raw_proof(),
     })
 }
@@ -789,8 +789,8 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
 ///
 /// SHA3 value columns are virtual: they have no committed placement. A bus
 /// claim `value_col(r) = v` (at the `n_log`-dim instance point `r`) is re-routed
-/// to the equal `q_flock` slot evaluation: an ordinary claim on the committed
-/// `QFLOCK` column at the point whose low coords are `r` and whose next
+/// to the equal `q_keccak` slot evaluation: an ordinary claim on the committed
+/// `QKECCAK` column at the point whose low coords are `r` and whose next
 /// `SLOT_LOG` are the slot's bits, shifted by the slot's constant. No downstream
 /// special-casing: it folds into the one opening like every other point claim.
 fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
@@ -798,10 +798,10 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
         .into_iter()
         .map(|c| {
             // A SHA3 value column (always virtual): its bus claim at instance point
-            // `c.point` is a claim on the slot's `2^n_log` words of QFLOCK.
+            // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
             if let Some((slot, shift)) = sha3_value_slot(c.col) {
                 return pcs::SlotClaim::Point {
-                    offset: l.placements[QFLOCK].offset + (slot << c.point.len()),
+                    offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
                     low_point: c.point,
                     value: c.value + shift,
                 };
@@ -872,10 +872,10 @@ mod tests {
         let program = sha3_program(a, b, [pad, F192::ZERO, F192::ZERO, F192::ZERO]);
         let exec = program.execute([w(7), w(11)]).unwrap();
 
-        let mut input = [F192::ZERO; crate::hash_flock::STATE_CELLS];
+        let mut input = [F192::ZERO; crate::keccak::STATE_CELLS];
         input[..4].copy_from_slice(&[a, b, a, b]);
         input[4] = pad;
-        let out = crate::hash_flock::step_cells(&input);
+        let out = crate::keccak::step_cells(&input);
         assert_eq!(&exec.mem[13..26], &out[..]);
 
         let bytes: Vec<u8> = [a, b, a, b]

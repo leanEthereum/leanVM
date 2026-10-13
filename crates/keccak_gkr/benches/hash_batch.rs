@@ -4,12 +4,15 @@
 //! BENCH_REPEAT=3 BENCH_COOLDOWN=2 KECCAK_N_LOG=18 cargo bench -p keccak_gkr --bench hash_batch
 //! ```
 //!
+//! With `-- --json` it prints, in place of the report, the proving time as Bencher Metric
+//! Format, which is what CI compares.
+//!
 //! `KECCAK_DEPTH` sets the rounds between two committed states (a divisor of 24).
 //! `BENCH_TRACING=1` prints the final pass's span tree (`RUST_LOG` adjusts it).
 
 use std::time::Instant;
 
-use bench::{Plan, Timing, env_usize};
+use bench::{Metric, Plan, Timing, bencher_json, env_usize};
 use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
 use keccak_gkr::{Shape, Witness};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
@@ -91,6 +94,15 @@ fn main() {
         .map(|m| 8 * m.leaf_data.iter().map(Vec::len).sum::<usize>() + 32 * m.sibling_hashes.len())
         .sum();
     let proof_bytes = 24 * transcript.stream.len() + merkle_bytes;
+
+    if std::env::args().any(|arg| arg == "--json") {
+        let report = [(
+            format!("keccak-hash-batch-{n}"),
+            vec![("latency", Metric::nanoseconds(&pass))],
+        )];
+        println!("{}", bencher_json(&report));
+        return;
+    }
 
     let pass_s = pass.mean();
     let line = |name: &str, t: &Timing| {

@@ -93,7 +93,7 @@ pub(super) fn build(
             lane.push(index);
         }
     }
-    let ring_end = ring.offset + (1 << ring.qflock_vars);
+    let ring_end = ring.offset + (1 << ring.qkeccak_vars);
     build_initial_basis(stack, lane_block, |start, dst| {
         dst.fill(F192::ZERO);
         let lo = start.max(ring.offset);

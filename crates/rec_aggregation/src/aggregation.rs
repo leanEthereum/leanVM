@@ -73,7 +73,7 @@ pub struct XmssClaimGroup {
     pub keys: Vec<XmssPublicKey>,
 }
 
-/// Why the guest reads every `q_flock` slot claim's instance point off `chi`: a
+/// Why the guest reads every `q_keccak` slot claim's instance point off `chi`: a
 /// virtual value column is referenced only by its own table's bus blocks, which
 /// the table sumcheck settles, so no framework block can raise one at `zeta`.
 const VALCOL_FRAMEWORK: &str = "a framework block must not reference a virtual value column";
@@ -1086,7 +1086,7 @@ fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
     (queries.next_power_of_two().ilog2() as usize).min(depth)
 }
 
-/// The SHA3 table's virtual value columns, in `hash_flock::SLOTS` order.
+/// The SHA3 table's virtual value columns, in `keccak::SLOTS` order.
 fn sha3_value_columns() -> Vec<usize> {
     let base = leanvm_core::cpu::schema().base[5];
     leanvm_core::tables::SHA3_VALUE_COLS.iter().map(|&c| base + c).collect()
@@ -1096,8 +1096,8 @@ fn sha3_value_columns() -> Vec<usize> {
 enum ClaimSite {
     /// A committed column read by a framework bus block.
     Framework { column: usize },
-    /// A table column; `is_virtual` marks the q_flock-backed value
-    /// columns, whose claim is on a slot of `q_flock` rather than a column of its own.
+    /// A table column; `is_virtual` marks the q_keccak-backed value
+    /// columns, whose claim is on a slot of `q_keccak` rather than a column of its own.
     TableColumn { column: usize, is_virtual: bool },
     /// One of the three PI memory limbs (MEM_LO, MEM_HI, MEM_TOP).
     MemoryLimb { column: usize },
@@ -2084,7 +2084,7 @@ struct Term {
 struct ClaimDescriptor {
     buffer: usize,
     column: usize,
-    qflock_slot: usize,
+    qkeccak_slot: usize,
 }
 
 fn literals(values: impl IntoIterator<Item = impl std::fmt::Display>) -> String {
@@ -2204,9 +2204,9 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             n_committed += 1;
         }
     }
-    let qflock_compact = compact_col_pm[leanvm_core::cpu::QFLOCK];
-    assert_ne!(qflock_compact, usize::MAX, "QFLOCK must be committed");
-    // Buffer codes are the guest's POINT_BUF_*: zeta, chi, pi, qflock-chi.
+    let qkeccak_compact = compact_col_pm[leanvm_core::cpu::QKECCAK];
+    assert_ne!(qkeccak_compact, usize::MAX, "QKECCAK must be committed");
+    // Buffer codes are the guest's POINT_BUF_*: zeta, chi, pi, qkeccak-chi.
     let mut claims = Vec::new();
     walk_claims(&layout, kbc, |site| {
         let descriptor = match site {
@@ -2216,18 +2216,18 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                 ClaimDescriptor {
                     buffer: 0,
                     column,
-                    qflock_slot: 0,
+                    qkeccak_slot: 0,
                 }
             }
             ClaimSite::TableColumn { column, is_virtual, .. } => ClaimDescriptor {
                 buffer: if is_virtual { 3 } else { 1 },
                 column: if is_virtual {
-                    qflock_compact
+                    qkeccak_compact
                 } else {
                     compact_col_pm[column]
                 },
-                qflock_slot: if is_virtual {
-                    leanvm_core::hash_flock::SLOTS[valcols.iter().position(|&v| v == column).unwrap()]
+                qkeccak_slot: if is_virtual {
+                    leanvm_core::keccak::SLOTS[valcols.iter().position(|&v| v == column).unwrap()]
                 } else {
                     0
                 },
@@ -2235,7 +2235,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             ClaimSite::MemoryLimb { column } => ClaimDescriptor {
                 buffer: 2,
                 column: compact_col_pm[column],
-                qflock_slot: 0,
+                qkeccak_slot: 0,
             },
         };
         claims.push(descriptor);
@@ -2331,7 +2331,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // ---- the Keccak reduction (`keccak_gkr`), as index lists the guest unrolls ----
     {
         use keccak_gkr::rmfe::{EMBED_BITS, PACK, PROD_BITS, RMFE};
-        let depth = leanvm_core::hash_flock::DEPTH;
+        let depth = leanvm_core::keccak::DEPTH;
         let segments = primitives::hash::ROUNDS / depth;
         // `starts[i]..starts[i + 1]` indexes row `i`'s entries of the flat list.
         let lists = |rows: Vec<Vec<usize>>| {
@@ -2398,7 +2398,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         })
         .collect();
     ps("COORD_BASIS", flds(&coord_basis));
-    ps("QFLOCK_SLOT_LOG", leanvm_core::hash_flock::SLOT_LOG.to_string());
+    ps("QKECCAK_SLOT_LOG", leanvm_core::keccak::SLOT_LOG.to_string());
 
     // ---- LIG candidate tables (fixed [minm, maxm] range; open_stacked config) ----
     let oshape = |m: usize, log_inv_rate: usize| {
@@ -2624,24 +2624,24 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     );
     ps("CLAIM_POINT_BUF", literals(claims.iter().map(|c| c.buffer)));
     ps("CLAIM_COMMITTED_COL", literals(claims.iter().map(|c| c.column)));
-    let slot_log = leanvm_core::hash_flock::SLOT_LOG;
+    let slot_log = leanvm_core::keccak::SLOT_LOG;
     let cpqbits: Vec<usize> = claims
         .iter()
-        .flat_map(|c| (0..slot_log).map(move |k| (c.qflock_slot >> k) & 1))
+        .flat_map(|c| (0..slot_log).map(move |k| (c.qkeccak_slot >> k) & 1))
         .collect();
     // The one committed lane that is not the lane the VM reads: the padding bit is XORed in.
-    let end_slot = leanvm_core::hash_flock::SLOTS[primitives::hash::END_LANE];
+    let end_slot = leanvm_core::keccak::SLOTS[primitives::hash::END_LANE];
     ps(
         "CLAIM_END_LANE",
         literals(
             claims
                 .iter()
-                .map(|c| usize::from(c.buffer == 3 && c.qflock_slot == end_slot)),
+                .map(|c| usize::from(c.buffer == 3 && c.qkeccak_slot == end_slot)),
         ),
     );
-    ps("CLAIM_QFLOCK_SLOT_BITS", literals(&cpqbits));
-    ps("QFLOCK_COMMITTED_COL", qflock_compact.to_string());
-    ps("QFLOCK_VARS_CAP", (33 + slot_log).to_string());
+    ps("CLAIM_QKECCAK_SLOT_BITS", literals(&cpqbits));
+    ps("QKECCAK_COMMITTED_COL", qkeccak_compact.to_string());
+    ps("QKECCAK_VARS_CAP", (33 + slot_log).to_string());
     ps("BYTECODE_LOG", kbc.to_string());
     // The stacked bytecode: nbcv/2 encoding columns per side, aligned with the bus
     // tuple, so their slots span the fingerprint's own bits. The defer region is
@@ -2672,7 +2672,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     let pairs = defer_cells.div_ceil(2);
     ps("STMT_ODD", (defer_cells % 2).to_string());
     ps("STMT_PAIRS", pairs.to_string());
-    ps("SHA3_STATE", leanvm_core::hash_flock::STATE_CELLS.to_string());
+    ps("SHA3_STATE", leanvm_core::keccak::STATE_CELLS.to_string());
 
     // The XMSS instance, from which the guest derives every table width by
     // compile-time integer arithmetic.
@@ -4609,7 +4609,7 @@ def main():
             prove_leaf(&signers[SMALL_LEAF_SIZE..]),
         ];
         let summary = verify(unified_guest(), &children[0].public_input(), &children[0].proof).expect("the child");
-        let end = summary.flock_stream_end;
+        let end = summary.keccak_stream_end;
         // A layer is its product polynomial, a round pair per pack and segment variable, the
         // position rounds and three evaluations; the openings behind the last are 15 and 86.
         let log_steps = summary.raw.stream[leanvm_core::tables::N_TABLES].c0 as usize; // the last table

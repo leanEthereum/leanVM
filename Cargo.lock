@@ -1035,18 +1035,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flock"
-version = "0.1.0"
-dependencies = [
- "bench",
- "fiat_shamir",
- "parallel",
- "pcs",
- "primitives",
- "tracing",
-]
-
-[[package]]
 name = "foldhash"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -15,14 +15,14 @@ pub const MEM_HI: usize = 1;
 pub const MEM_TOP: usize = 2;
 pub const MFCNT: usize = 3; // per-cell memory access count, g^{A[i]}
 pub const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
-// The Keccak reduction's committed states `q_flock`, in the SAME stack as every
+// The Keccak reduction's committed states `q_keccak`, in the SAME stack as every
 // other column (single PCS). Size `2^(SLOT_LOG + tau)` F64 words for `2^tau`
 // SHA3 steps, never fewer than `MIN_STEPS`. It is the
 // SOLE copy of the input/output words: the VM's SHA3 value columns are
-// virtual and their memory-bus claims route to `q_flock` slots (§hash_flock), so
+// virtual and their memory-bus claims route to `q_keccak` slots (§keccak), so
 // nothing duplicates them. The reduction's two claims are discharged by the single
 // stacked WHIR opening over this commitment.
-pub const QFLOCK: usize = 5;
+pub const QKECCAK: usize = 5;
 pub const N_SHARED: usize = 6;
 
 /// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
@@ -95,7 +95,7 @@ pub(crate) struct Witness {
     pub(crate) layout: Layout,
     pub(crate) log_mem: usize,
     /// Freed immediately after reduction, before the mixed PCS opening.
-    pub(crate) flock_reduction: crate::hash_flock::PreparedReductionWitness,
+    pub(crate) keccak_reduction: crate::keccak::PreparedReductionWitness,
 }
 
 impl Witness {
@@ -147,17 +147,17 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
     k[MEM_TOP] = Some((1, 0));
     k[MFCNT] = Some((1, 0));
     k[BFCNT] = Some((0, log_bytecode));
-    // q_flock is `2^(SLOT_LOG + n_blocks_log)` F64 words, and tau_5 IS
+    // q_keccak is `2^(SLOT_LOG + n_blocks_log)` F64 words, and tau_5 IS
     // n_blocks_log (the announced-size certification uses the same floor), so this
-    // reproduces `qflock_kappa`.
-    k[QFLOCK] = Some((2 + tables::SHA3_TABLE, crate::hash_flock::SLOT_LOG));
+    // reproduces `qkeccak_kappa`.
+    k[QKECCAK] = Some((2 + tables::SHA3_TABLE, crate::keccak::SLOT_LOG));
     for (t, table) in tables::tables().iter().enumerate() {
         let base = sch.base[t];
         k[base..base + table.n_committed_columns()].fill(Some((2 + t, 0)));
     }
-    // The SHA3 value columns are ALWAYS virtual: `q_flock` already holds those
+    // The SHA3 value columns are ALWAYS virtual: `q_keccak` already holds those
     // words at fixed slots, so committing them again is redundant. Their
-    // memory-bus claims route directly to `q_flock` slot evaluations (`slot_claims`),
+    // memory-bus claims route directly to `q_keccak` slot evaluations (`slot_claims`),
     // which both binds them to the proven witness AND removes the separate
     // value-binding sub-protocol.
     let b3 = sch.base[tables::SHA3_TABLE];
@@ -424,8 +424,8 @@ pub fn layout(prog: &[Op], log_mem: usize, taus: [usize; tables::N_TABLES], pi: 
 }
 
 impl Program {
-    /// `sha3_blocks` is what [`crate::hash_flock::while_executing`] built behind `exec`'s run.
-    pub(crate) fn build(&self, exec: &Execution, sha3_blocks: crate::hash_flock::Blocks) -> Witness {
+    /// `sha3_blocks` is what [`crate::keccak::while_executing`] built behind `exec`'s run.
+    pub(crate) fn build(&self, exec: &Execution, sha3_blocks: crate::keccak::Blocks) -> Witness {
         assert!(self.prog.len().is_power_of_two());
         assert!(exec.mem.len().is_power_of_two());
         // The trace was emitted in the same walk as the memory image (no re-walk).
@@ -463,7 +463,7 @@ impl Program {
         });
         assert_eq!(
             taus[tables::SHA3_TABLE],
-            crate::hash_flock::n_blocks_log(row_counts[tables::SHA3_TABLE]),
+            crate::keccak::n_blocks_log(row_counts[tables::SHA3_TABLE]),
             "the SHA3 table must be filled to the Keccak reduction's floor"
         );
         let pi = [exec.mem[0], exec.mem[1]];
@@ -481,7 +481,7 @@ impl Program {
         let mut q = unsafe { witness::alloc_stack(l.shape) };
         // A virtual column is not in the stack, so its values need storage of their
         // own: it carries data for the bus, and only its evaluation claims route
-        // elsewhere (to `q_flock`).
+        // elsewhere (to `q_keccak`).
         let mut virt: Vec<(usize, Vec<F64>)> = Vec::new();
         for (t, table) in tables::tables().iter().enumerate() {
             for c in 0..table.n_committed_columns() {
@@ -508,7 +508,7 @@ impl Program {
                 tables::fill_table(*table, &ctx, &mut windows[base..base + n]);
             }
             // Shared columns. The 192-bit memory image splits into three K-limbs.
-            // These five plus `QFLOCK` below are every shared column, and each has to
+            // These five plus `QKECCAK` below are every shared column, and each has to
             // be written: the stack is uninitialized, so one left out would be read
             // as indeterminate bytes rather than caught by a length mismatch.
             const _: () = assert!(N_SHARED == 6, "a new shared column needs a fill here");
@@ -518,10 +518,10 @@ impl Program {
             parallel::fill(windows[MFCNT], |i| tr.mem_count[i]); // counts ended at g^{A[i]}
             parallel::fill(windows[BFCNT], |i| tr.bytecode_count[i]); // … at g^{A[pc]}
         });
-        // The committed Keccak states q_flock, ALWAYS in this same stack: built from
+        // The committed Keccak states q_keccak, ALWAYS in this same stack: built from
         // the executed SHA3 rows in order (row j = step j).
-        let flock_reduction = crate::stage!("Build q_flock", || {
-            sha3_blocks.place(tr.sha3.len(), windows[QFLOCK])
+        let keccak_reduction = crate::stage!("Build q_keccak", || {
+            sha3_blocks.place(tr.sha3.len(), windows[QKECCAK])
         });
 
         // (`execute` already asserts the run halts at the sentinel (pc, fp) =
@@ -532,7 +532,7 @@ impl Program {
             virt,
             layout: l,
             log_mem,
-            flock_reduction,
+            keccak_reduction,
         }
     }
 }

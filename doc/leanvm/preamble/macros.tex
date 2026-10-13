@@ -28,12 +28,12 @@
 \newcommand{\cube}[1]{\{0,1\}^{#1}}
 \newcommand{\inner}[2]{\langle #1,\, #2 \rangle}
 \newcommand{\fc}{\chi}      % a sumcheck round challenge, everywhere in the document
-\newcommand{\flock}{\mathrm{flock}}
+\newcommand{\keccak}{\mathrm{keccak}}
 
 % ---------- Keccak by GKR (Annex C) ----------
 % Letters the document already spends (\mu, \kappa, \beta, s, t, \rho, \pi, \chi) are routed
 % through these; the name each object has in the code is given in brackets.
-\newcommand{\qflock}{q_{\flock}}             % committed Keccak states, a lane per slot [q_flock]
+\newcommand{\qkeccak}{q_{\keccak}}             % committed Keccak states, a lane per slot [q_keccak]
 \newcommand{\kbatch}{\kappa_{\mathrm{batch}}} % log number of SHA3 steps
 \newcommand{\along}[2]{#1^{\rightarrow #2}}   % the position #2 columns along from #1 [along]
 \newcommand{\klin}{\mathsf{lin}}              % a round's linear map: theta, rho, pi [linear]
@@ -144,5 +144,5 @@
 % ---------- ring switching (Annex A) ----------
 \newcommand{\pair}{\Omega}               % error pairing values        (was V_k)
 \newcommand{\supp}{\mathcal{S}}          % support of \Phimap          (was S)
-\newcommand{\nflock}{\kappa_{\flock}}     % variables of the packed bit witness \qflock (was m, L)
+\newcommand{\nkeccak}{\kappa_{\keccak}}     % variables of the packed bit witness \qkeccak (was m, L)
 \newcommand{\fcoord}{\mathsf{a}}          % an F_2 coordinate function  (was A_w)

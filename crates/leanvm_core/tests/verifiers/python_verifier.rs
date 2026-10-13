@@ -110,7 +110,7 @@ fn test_python_verifier() {
     // full Merkle path instead of one octopus over the batch. A Rust verify
     // expands the wire form, so the pruning is written once.
     let summary = verify(&program, &public_input, &proof).expect("honest proof verifies");
-    let reduction_end = summary.flock_stream_end;
+    let reduction_end = summary.keccak_stream_end;
     let raw = summary.raw;
 
     let directory = std::env::temp_dir().join(format!("leanvm-python-verifier-test-{}", std::process::id()));

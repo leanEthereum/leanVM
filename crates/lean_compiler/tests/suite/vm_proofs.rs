@@ -61,7 +61,7 @@ fn a_tampered_opening_is_rejected() {
 #[test]
 fn a_tampered_reduction_word_is_rejected() {
     let (program, pi, proof) = hashing_proof();
-    let end = verify(&program, &pi, &proof).expect("verifies").flock_stream_end;
+    let end = verify(&program, &pi, &proof).expect("verifies").keccak_stream_end;
     let mut tampered = proof;
     // One of the last opening's slices.
     tampered.stream[end - 2] += F192::ONE;
