@@ -269,6 +269,13 @@ fn sha3_short_non_final_block_is_rejected() {
 }
 
 #[test]
+#[should_panic(expected = "sha3 len=0 after a previous block hashes no message")]
+fn sha3_empty_block_after_a_previous_one_is_rejected() {
+    let src = "def main():\n    st = StackBuf(13)\n    sha3([1, 2], [3, 4], st, final=0, tail=[5, 6, 7, 8])\n    out = StackBuf(2)\n    sha3([0, 0], [0, 0], out, state=st, len=0)\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
+#[test]
 #[should_panic(expected = "sha3 state= must be the 13-cell run a previous sha3 wrote")]
 fn sha3_short_state_is_rejected() {
     let src =

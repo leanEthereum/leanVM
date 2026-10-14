@@ -50,7 +50,7 @@ fn main() {
         let commit_s = t.elapsed().as_secs_f64();
 
         // The VM's memory bus claims the outputs; standalone, they are bound here.
-        let output = OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log));
+        let output = OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
         ps.add_scalars(&output.lanes);
         let t = Instant::now();
         let openings = keccak_gkr::prove(&mut ps, &witness, &committed, &output);
@@ -88,7 +88,7 @@ fn main() {
         let mut vs = VerifierState::from_label(LABEL, &transcript);
         let root = vs.next_root().expect("commitment root");
         let output = OutputClaim {
-            instance: vs.sample_vec(shape.n_log),
+            instance: vs.sample_vec(shape.n_log()),
             lanes: vs.next_scalars(25).expect("output lanes").try_into().expect("25 lanes"),
         };
         let openings = keccak_gkr::verify(&mut vs, shape, &output).expect("the reduction verifies");
@@ -124,7 +124,7 @@ fn main() {
     println!(
         "\nKeccak GKR batch proving, {} permutations, a state committed every {} rounds",
         pretty_integer(n),
-        shape.depth
+        shape.depth()
     );
     line("witness", &witness);
     line("commit", &commit_stage);

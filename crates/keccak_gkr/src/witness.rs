@@ -16,12 +16,13 @@ pub const BLOCK_WORDS: usize = 8;
 /// Words one block of one state takes.
 pub const BLOCK_LEN: usize = BITS * BLOCK_WORDS;
 
+/// Built only by [`Shape::new`], whose bounds the witness's raw writes rely on.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Shape {
     /// `log2` of the number of instances, at least 9.
-    pub n_log: usize,
+    pub(crate) n_log: usize,
     /// Rounds between two committed states. Divides 24.
-    pub depth: usize,
+    pub(crate) depth: usize,
 }
 
 impl Shape {
@@ -31,6 +32,12 @@ impl Shape {
         Self { n_log, depth }
     }
 
+    pub fn n_log(&self) -> usize {
+        self.n_log
+    }
+    pub fn depth(&self) -> usize {
+        self.depth
+    }
     pub fn n(&self) -> usize {
         1 << self.n_log
     }

@@ -449,7 +449,7 @@ The three positional arguments form a **statement**: one `SHA3` instruction abso
 
 The optional keywords, all compile-time except `state`:
 
-- `len=<bytes>`: this block is the last of a message ending `len` bytes into it, at most 128. The compiler places SHA3's padding byte `0x06` there: into a constant cell it folds, into a cell the program wrote it costs one `XOR`. The bytes past it must be zero, which the circuit does not enforce. At 128 the byte lands in lane 16, beside the capacity;
+- `len=<bytes>`: this block is the last of a message ending `len` bytes into it, at most 128, and at least 1 after a `state=` (a message that fills its previous block ends there, with `len=128`). The compiler places SHA3's padding byte `0x06` there: into a constant cell it folds, into a cell the program wrote it costs one `XOR`. The bytes past it must be zero, which the circuit does not enforce. At 128 the byte lands in lane 16, beside the capacity;
 - `final=0`: this block carries 128 message bytes and more blocks follow, so it takes no padding;
 - `state=<run>`: the previous block's 13-cell output. Without it the block starts from the zero state. With it, each message cell is XORed into the state's (one `XOR` each, none for a cell known to be zero), and the state's capacity is passed on in place.
 

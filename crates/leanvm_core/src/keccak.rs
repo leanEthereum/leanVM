@@ -45,10 +45,7 @@ pub fn n_blocks_log(n: usize) -> usize {
 }
 
 fn shape(n_blocks: usize) -> Shape {
-    Shape {
-        n_log: n_blocks_log(n_blocks),
-        depth: DEPTH,
-    }
+    Shape::new(n_blocks, DEPTH)
 }
 
 /// Domain separator for the relation in the Fiat-Shamir seed (`leanvm_core::cpu`): the hash of

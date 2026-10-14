@@ -133,9 +133,9 @@ impl FiatShamirState {
     /// Whether `nonce` passes a `bits` grind here: absorbed as a nonce, the challenge
     /// drawn next has its low `bits` bits zero. A CONTIGUOUS low-bit window, so a
     /// recursive verifier re-checks it with one bit decomposition of the challenge's
-    /// first limb (`grind_check` in `guests/lean_ethereum.py`). `bits` is always `< 64`.
+    /// first limb (`grind_check` in `guests/lean_ethereum.py`).
     fn pow_bits_ok(&self, nonce: F192, bits: u32) -> bool {
-        debug_assert!(bits < 64, "the grinding window fits the challenge's low limb");
+        assert!(bits < 64, "the grinding window fits the challenge's low limb");
         let mut probe = self.clone();
         probe.absorb(nonce, DS_POW_NONCE);
         probe.sample().c0 & ((1u64 << bits) - 1) == 0
@@ -152,10 +152,11 @@ impl FiatShamirState {
     /// bits, then bind it so later challenges depend on it. `bits = 0` is the
     /// canonical no-work nonce `0`. Parallel search for the larger grinds.
     pub fn grind_pow(&mut self, bits: u32) -> u64 {
+        assert!(bits < 64, "the grinding window fits the challenge's low limb");
         const PARALLEL_GRIND_MIN: u64 = 1 << 13;
         let nonce = if bits == 0 {
             0
-        } else if (1u64 << bits.min(63)) < PARALLEL_GRIND_MIN {
+        } else if (1u64 << bits) < PARALLEL_GRIND_MIN {
             (0..)
                 .find(|&n| self.pow_bits_ok(F192::new(n, 0, 0), bits))
                 .expect("a nonce exists")

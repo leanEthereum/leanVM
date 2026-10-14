@@ -77,7 +77,7 @@ The construction uses compressed variants of the Winternitz one-time signature (
 
 Write $\bits r$ for $r$-bit strings, $\concat$ for concatenation, and $\LE_r(z)$ for the unsigned $r$-bit little-endian encoding of $z$. Write $x\getsr A$ for a uniform sample from $A$. Indices and bit positions start at zero; $\bot$ denotes failure.
 
-Let $\hash:\bits{*}\to\bits{256}$ be the hash function. Most operations use its first $n=128$ output bits:
+Let $\hash:\bits{*}\to\bits{256}$ be SHA3-256~\cite{fips202} in the cell encoding: write a message as $x=x_1\concat\dots\concat x_k$, every $x_i$ of $128$ bytes but the last, which has at most $128$ (the empty message is $k=1$), and set $\hash(x)=\mathrm{SHA3\text{-}256}(x_1\concat g\concat x_2\concat g\concat\dots\concat g\concat x_k)$ with the fixed eight bytes $g=\mathtt{00}^7\concat\mathtt{80}$. On messages of at most $128$ bytes this is plain SHA3-256, and on longer ones it differs. The encoding makes each $136$-byte block of SHA3-256 carry $128$ message bytes, eight whole $16$-byte cells of leanVM, which verifies these signatures. Most operations use its first $n=128$ output bits:
 \[
   \Th(P,\tw,M)=\Truncate_n\!\left(\hash(\tw\concat P\concat M)\right).
 \]

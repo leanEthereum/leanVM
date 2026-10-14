@@ -109,6 +109,10 @@ impl FnLower<'_> {
             if len > 128 {
                 self.fail(format!("sha3 len= {len} is past the block's 128 message bytes"))
             };
+            // A message ending on a whole block ends in that block, never in an empty one.
+            if len == 0 && kwargs.contains_key("state") {
+                self.fail("sha3 len=0 after a previous block hashes no message: end that block with len=128")
+            };
             Some(len as u32)
         } else {
             if len.is_some_and(|l| l != 128) {

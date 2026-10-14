@@ -358,6 +358,10 @@ pub fn zero_prefix_state(n_chunks: usize) -> [u64; STATE_LANES] {
 /// chunks (see [`zero_prefix_state`]): `data` is the rest of the message, and
 /// must not be empty.
 pub fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
+    assert!(
+        !data.is_empty() || *state == [0; STATE_LANES],
+        "a message continued past whole chunks ends in a block with at least one byte"
+    );
     let mut state = *state;
     let (nonfinal, tail) = chunks_of(data.len());
     for chunk in data[..nonfinal * CHUNK].as_chunks::<CHUNK>().0 {
