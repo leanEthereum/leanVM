@@ -903,9 +903,9 @@ def verify_merkle_path(leaf_0, leaf_1, direction_bits, depth: Const):
     node_1 = leaf_1
     for level in unroll(0, depth):
         dir_bit = direction_bits[GEN ** level]
-        selected = path_ptr * GEN ** (4 * level) * (1 + dir_bit * (1 + GEN ** 2))
-        selected[1] = node_0
-        selected[GEN] = node_1
+        selected = path_ptr * (1 + dir_bit * (1 + GEN ** 2))
+        selected[GEN ** (4 * level)] = node_0
+        selected[GEN ** (4 * level + 1)] = node_1
         parent = StackBuf(SHA3_STATE)
         sha3(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], parent)
         node_0 = parent[0]
@@ -1025,15 +1025,25 @@ def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n
         path_depth = depth - cap_depth
         node_0, node_1 = verify_merkle_path(leaf_hash_state[0], leaf_hash_state[1], direction_bits, path_depth)
         if cap_depth != 0:
-            parent = GEN ** (2 ** (cap_depth - 1))
-            for bit in unroll(0, cap_depth - 1):
-                parent *= 1 + direction_bits[GEN ** (path_depth + 1 + bit)] * (1 + GEN ** (2 ** bit))
-            flags[parent] = 1  # the cap check propagates this obligation to the root
-            cap_index = parent * parent * (1 + direction_bits[GEN ** path_depth] * (1 + GEN))
+            # The reached cap leaf is node 2*parent + bit at cells 2*node, 2*node + 1,
+            # where parent = 2^(cap_depth-1) + q: q in the exponent, the constant
+            # parts folded into the address immediates.
+            if const(cap_depth == 1):
+                flags[GEN] = 1
+                leaf = cap * (1 + direction_bits[GEN ** path_depth] * (1 + GEN ** 2))
+            else:
+                q = 1 + direction_bits[GEN ** (path_depth + 1)] * (1 + GEN)
+                for bit in unroll(1, cap_depth - 1):
+                    q *= 1 + direction_bits[GEN ** (path_depth + 1 + bit)] * (1 + GEN ** (2 ** bit))
+                flags_q = flags * q
+                flags_q[GEN ** (2 ** (cap_depth - 1))] = 1  # the cap check propagates this obligation to the root
+                q2 = q * q
+                leaf = cap * q2 * q2 * (1 + direction_bits[GEN ** path_depth] * (1 + GEN ** 2))
+            leaf[GEN ** (2 ** (cap_depth + 1))] = node_0
+            leaf[GEN ** (2 ** (cap_depth + 1) + 1)] = node_1
         else:
-            cap_index = GEN
-        cap[cap_index * cap_index] = node_0
-        cap[GEN * cap_index * cap_index] = node_1
+            cap[GEN ** 2] = node_0
+            cap[GEN ** 3] = node_1
     return query_sum_chain[n_queries_g]
 
 
