@@ -966,12 +966,21 @@ def opening_final_message(fs0, fs1, cursor, out, n: Const):
 
 
 def opening_row_weights(point, out, folds: Const, reverse: Const):
-    for i in unroll(0, 2 ** folds):
-        if reverse == 1:
-            slot = 2 ** folds - 1 - i
+    if reverse == 1:
+        # Level 0 keeps the weights as their two tensor factors: weight i is
+        # out[i % 2^lo] * out[2^lo + i // 2^lo], the low `lo` coordinates first.
+        if const(folds // 3 == 0):
+            lo = folds
         else:
-            slot = i
-        out[GEN ** i] = eq_weight(point, folds, slot, 0)
+            lo = 3
+        hi = folds - lo
+        for i in unroll(0, 2 ** lo):
+            out[GEN ** i] = eq_weight(point, lo, 2 ** lo - 1 - i, 0)
+        for i in unroll(0, 2 ** hi):
+            out[GEN ** (2 ** lo + i)] = eq_weight(point * GEN ** lo, hi, 2 ** hi - 1 - i, 0)
+    else:
+        for i in unroll(0, 2 ** folds):
+            out[GEN ** i] = eq_weight(point, folds, i, 0)
     return
 
 
@@ -989,14 +998,19 @@ def opening_query(cap, flags, row_eq_weights, weight, direction_bits, base: Cons
     packed_row = StackBuf(LIG_PACKED_ROW_CAP)
     if base == 1:
         # Packing proves each hinted lane is in K before hashing or folding it.
-        for jb in unroll(0, interleave // 4):
-            e0 = row[4 * jb]
-            e1 = row[4 * jb + 1]
-            e2 = row[4 * jb + 2]
-            e3 = row[4 * jb + 3]
-            packed_row[2 * jb] = pack64x2(e0, e1)
-            packed_row[2 * jb + 1] = pack64x2(e2, e3)
-            row_dot += e0 * row_eq_weights[GEN ** (4 * jb)] + e1 * row_eq_weights[GEN ** (4 * jb + 1)] + e2 * row_eq_weights[GEN ** (4 * jb + 2)] + e3 * row_eq_weights[GEN ** (4 * jb + 3)]
+        for jb in unroll(0, interleave // 2):
+            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
+        # The weights' tensor factors (opening_row_weights): a run of lo_len
+        # lanes shares one hi factor.
+        if const(interleave // 8 == 0):
+            lo_len = interleave
+        else:
+            lo_len = 8
+        for h in unroll(0, interleave // lo_len):
+            part = 0
+            for l in unroll(0, lo_len):
+                part += row[lo_len * h + l] * row_eq_weights[GEN ** l]
+            row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
     else:
         # Pack the checked tower limbs into the leaf's contiguous byte image.
         for jb in unroll(0, 3 * interleave // 4):
