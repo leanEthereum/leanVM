@@ -3167,9 +3167,13 @@ mod tests {
 def main():
     point = HeapBuf(MAX_STACK_LOG)
     hint_witness(point[0:MAX_STACK_LOG], "point")
+    point1 = HeapBuf(MAX_STACK_LOG)
+    for k in unroll(0, MAX_STACK_LOG):
+        point1[GEN ** k] = 1 + point[GEN ** k]
+    sel_eq, sel_g = selector_tables(point, point1)
     offset = hint_witness("offset")
     kappa_g = hint_witness("kappa")
-    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, point, kappa))
+    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
     public = GEN ** 0
     assert public[1] == weight
     return
