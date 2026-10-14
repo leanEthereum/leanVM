@@ -2172,11 +2172,11 @@ def certify_placement(kappa_base, g_squares):
     return g_total, col_off_g, col_kappa_g
 
 
-def column_selector(offset, point, kappa: Const):
+def column_selector(offset, point1, kappa: Const):
     # Rebuild the offset using only bits above the column's kappa, certifying its
-    # alignment. The same bits select the column at the complete opening point.
-    # Both offset and point are zero above m, so extending to MAX_STACK_LOG adds
-    # only factors eq(0, 0) = 1.
+    # alignment. The same bits select the column at the complete opening point,
+    # read here as point1 = 1 + point. Both offset and point are zero above m, so
+    # extending to MAX_STACK_LOG adds only factors eq(0, 0) = 1.
     bits = StackBuf(MAX_STACK_LOG)
     hint_decompose_bits_exponent(bits, offset, MAX_STACK_LOG)
     rebuilt = GEN ** 0
@@ -2185,7 +2185,7 @@ def column_selector(offset, point, kappa: Const):
         bit = bits[k]
         bits[k] = bit * bit
         rebuilt *= 1 + bit * (1 + GEN ** (2 ** k))
-        selector *= 1 + bit + point[GEN ** k]
+        selector *= bit + point1[GEN ** k]
     assert rebuilt == offset
     return selector
 
@@ -2206,11 +2206,14 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_
         pi_chain[xk * GEN] = pi_chain[xk] * (1 + point[xk])
     pi_eq = pi_chain[g_log_mem]
 
+    point1 = HeapBuf(MAX_STACK_LOG)
+    for k in unroll(0, MAX_STACK_LOG):
+        point1[GEN ** k] = 1 + point[GEN ** k]
     selectors = StackBuf(N_COMMITTED_COLS)
     for c in unroll(0, N_COMMITTED_COLS):
         offset = col_offsets[GEN ** c]
         kappa_g = col_kappas[GEN ** c]
-        selectors[c] = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, point, kappa))
+        selectors[c] = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, point1, kappa))
 
     inner_sum = inner_total
     for j in unroll(0, N_CLAIMS):
