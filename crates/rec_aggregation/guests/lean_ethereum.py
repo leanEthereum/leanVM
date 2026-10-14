@@ -908,31 +908,58 @@ def verify_merkle_path(leaf, direction_bits, depth: Const):
     return node
 
 
-@inline
-def hash_cap_node(cap, node: Const):
-    # Node k sits at cells 2k, 2k+1, so its children are cells 4k .. 4k+3.
-    parent = StackBuf(SHA3_STATE)
-    sha3([cap[GEN ** (4 * node)], cap[GEN ** (4 * node + 1)]], [cap[GEN ** (4 * node + 2)], cap[GEN ** (4 * node + 3)]], parent)
-    cap[GEN ** (2 * node)] = parent[0]
-    cap[GEN ** (2 * node + 1)] = parent[1]
-    return
-
-
 def verify_merkle_cap(cap, flags, depth: Const):
-    # Unrolled over the cap's nodes, so every cap and flag address is an immediate.
-    # An active (flagged) node is hashed; an inactive one pins its children's flags
-    # to zero, so every active node's parent is active too, up to the root, which
-    # is always hashed. The queries flag the parents of the cap leaves they reach.
+    # Unrolled over the cap's nodes, so every address is an immediate. Every node's
+    # hinted digest (node k at heap cells 2k, 2k+1) is read once into a frame run,
+    # and an internal node's run is SHA3_STATE cells long so that its hash can
+    # write its state there, the digest landing on (and so asserting) the hinted
+    # value. An active (flagged) node is hashed; an inactive one pins its children's
+    # flags to zero, so every active node's parent is active too, up to the root,
+    # which is always hashed. The queries flag the parents of the cap leaves they
+    # reach. The run is sized per depth, the cap depths a configuration reaches.
     if depth != 0:
-        hash_cap_node(cap, 1)
-        for node in unroll(2, 2 ** depth):
-            if flags[GEN ** node] != 0:
-                hash_cap_node(cap, node)
+        n_leaves = 2 ** depth
+        if const(depth == 4):
+            runs = StackBuf(15 * 16 - 13)
+        elif const(depth == 5):
+            runs = StackBuf(15 * 32 - 13)
+        elif const(depth == 6):
+            runs = StackBuf(15 * 64 - 13)
+        elif const(depth == 7):
+            runs = StackBuf(15 * 128 - 13)
+        else:
+            runs = StackBuf(15 * 256 - 13)
+        # internal node k (1 <= k < n_leaves) at SHA3_STATE * (k - 1), leaf k after them
+        for node in unroll(1, 2 * n_leaves):
+            if const(node // n_leaves == 0):
+                at = SHA3_STATE * (node - 1)
             else:
-                if const(node // 2 ** (depth - 1) == 0):  # node has flagged children
-                    flags[GEN ** (2 * node)] = 0
-                    flags[GEN ** (2 * node + 1)] = 0
-    return cap[GEN ** 2], cap[GEN ** 3]
+                at = SHA3_STATE * (n_leaves - 1) + 2 * (node - n_leaves)
+            runs[at] = cap[GEN ** (2 * node)]
+            runs[at + 1] = cap[GEN ** (2 * node + 1)]
+        for node in unroll(1, n_leaves):
+            if const(2 * node // n_leaves == 0):
+                left = SHA3_STATE * (2 * node - 1)
+                right = SHA3_STATE * (2 * node)
+            else:
+                left = SHA3_STATE * (n_leaves - 1) + 2 * (2 * node - n_leaves)
+                right = left + 2
+            at = SHA3_STATE * (node - 1)
+            if const(node == 1):
+                sha3(runs[left:left + 2], runs[right:right + 2], runs[at:at + SHA3_STATE])
+            else:
+                if flags[GEN ** node] != 0:
+                    sha3(runs[left:left + 2], runs[right:right + 2], runs[at:at + SHA3_STATE])
+                else:
+                    if const(2 * node // n_leaves == 0):  # node has flagged children
+                        flags[GEN ** (2 * node)] = 0
+                        flags[GEN ** (2 * node + 1)] = 0
+        root_0 = runs[0]
+        root_1 = runs[1]
+    else:
+        root_0 = cap[GEN ** 2]
+        root_1 = cap[GEN ** 3]
+    return root_0, root_1
 
 
 # ============================== the stacked WHIR opening ============================
