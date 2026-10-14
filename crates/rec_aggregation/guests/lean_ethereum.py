@@ -1431,6 +1431,24 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
     return fs[0], fs[1], cursor, last[GEN ** LAYER_PUSH], last[GEN ** LAYER_PULL], last[GEN ** LAYER_COUNT]
 
 
+def block_selector(sel_bits, zeta1_hi, idxc_hi, n: Const):
+    # A bus block's eq over its n = mu - κ selector bits, the offset's bits above κ,
+    # each boolean-pinned, and g^offset rebuilt from those bits alone (weights
+    # g^(2^(κ+k)) = idxc_hi[k] + 1), which the caller pins to the certified offset.
+    eq = GEN ** 0
+    rebuilt = GEN ** 0
+    for k in unroll(0, n):
+        sbit = sel_bits[GEN ** k]
+        sel_bits[GEN ** k] = sbit * sbit  # booleanity as a write-once pin
+        if k == 0:
+            eq = sbit + zeta1_hi[GEN ** k]  # eq over GF(2) is 1 + b + z
+            rebuilt = 1 + sbit * idxc_hi[GEN ** k]
+        else:
+            eq *= sbit + zeta1_hi[GEN ** k]
+            rebuilt *= 1 + sbit * idxc_hi[GEN ** k]
+    return eq, rebuilt
+
+
 def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count):
     # Settle the bus against the six tables, in four steps: certify each side's
     # leaf-cube tiling, decompose the three GKR leaf values over it, run the ONE
@@ -1487,6 +1505,9 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     idxc_tab = HeapBuf(SIZE_BITS)  # INDEX_MLE_FACTORS[t] = 1 + g^(2^t)
     for t in unroll(0, SIZE_BITS):
         idxc_tab[GEN ** t] = INDEX_MLE_FACTORS[t]
+    zeta1 = HeapBuf(g_bus_mu)  # 1 + zeta, so a selector factor 1 + b + z is one XOR
+    for xk in mul_range(1, g_bus_mu):
+        zeta1[xk] = 1 + zeta[xk]
     bus_table_total = StackBuf(N_GKR_SIDES)  # per side, what its tables' blocks owe
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
     block_index_mle = HeapBuf(N_BLOCKS)      # per push block with an Index coord
@@ -1508,21 +1529,13 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
                 # in one shot; the low κ bit cells are written but never read.
                 sel_len_g = g_bus_mu / kappa_g  # g^(mu - κ)
                 assert log(sel_len_g) < SIZE_BITS
-                zeta_hi = zeta * kappa_g
                 offset_bits = HeapBuf(GEN ** SIZE_BITS)
                 hint_decompose_bits_exponent(offset_bits, block_off_g[GEN ** b], SIZE_BITS)
                 sel_bits = offset_bits * kappa_g
-                eq_chain = HeapBuf(MU_CAP + 2)
-                goff_chain = HeapBuf(MU_CAP + 2)  # rebuild g^offset from the high bits
-                eq_chain[GEN ** 0] = 1
-                goff_chain[GEN ** 0] = 1
-                for xk in mul_range(1, sel_len_g):
-                    sbit = sel_bits[xk]
-                    sel_bits[xk] = sbit * sbit  # booleanity as a write-once pin
-                    eq_chain[xk * GEN] = eq_chain[xk] * (1 + sbit + zeta_hi[xk])  # eq over GF(2) is 1 + b + z
-                    goff_chain[xk * GEN] = goff_chain[xk] * (1 + sbit * (g_squares[kappa_g * xk] + 1))
-                eq_hi = eq_chain[sel_len_g]
-                assert goff_chain[sel_len_g] == block_off_g[GEN ** b]  # bits == offset >> κ, κ-aligned
+                zeta1_hi = zeta1 * kappa_g
+                idxc_hi = idxc_tab * kappa_g
+                eq_hi, goff = match(log(sel_len_g), range(0, SIZE_BITS), lambda n: block_selector(sel_bits, zeta1_hi, idxc_hi, n))
+                assert goff == block_off_g[GEN ** b]  # bits == offset >> κ, κ-aligned
             selector_sum += eq_hi
             block_eq_hi[b] = eq_hi
             # A TABLE's block streams no value here: the table sumcheck settles its
