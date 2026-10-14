@@ -2063,37 +2063,86 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
 
 
 @inline
-def keccak_shift_eq(e, u, v, r: Const):
-    # The multilinear extension of "x = y + r mod 64" at (a, b), a ripple of the carry
-    # over the six bits: e[t], u[t], v[t] are bit t's weights for (x, y) equal, (1, 0)
-    # and (0, 1). c[2t], c[2t + 1] carry the weight of each carry into bit t, the
-    # second absent until r's lowest set bit.
-    c = StackBuf(2 * KECCAK_Z_BITS + 2)
-    if r % 2 == 0:
-        c[2] = e[0]
-    else:
-        c[2] = u[0]
-        c[3] = v[0]
-    for t in unroll(1, KECCAK_Z_BITS):
-        if (r // 2 ** t) % 2 == 0:
-            if r % 2 ** t == 0:
-                c[2 * t + 2] = c[2 * t] * e[t]
-            else:
-                c[2 * t + 2] = c[2 * t] * e[t] + c[2 * t + 1] * u[t]
-                c[2 * t + 3] = c[2 * t + 1] * v[t]
+def carry_step(c0, c1, n0, n1, e_t, u_t, v_t, t: Const):
+    # Extend every t-bit prefix p of r by bit t of r, to p and p + 2^t: c0[p], c1[p]
+    # weigh the carry 0 and 1 into bit t, and e_t, u_t, v_t are bit t's weights for
+    # (x, y) equal, (1, 0) and (0, 1). The zero prefix never carries.
+    for p in unroll(0, 2 ** t):
+        if p == 0:
+            n0[0] = c0[0] * e_t
+            n0[2 ** t] = c0[0] * u_t
+            n1[2 ** t] = c0[0] * v_t
         else:
-            if r % 2 ** t == 0:
-                c[2 * t + 2] = c[2 * t] * u[t]
-                c[2 * t + 3] = c[2 * t] * v[t]
+            n0[p] = c0[p] * e_t + c1[p] * u_t
+            n1[p] = c1[p] * v_t
+            n0[p + 2 ** t] = c0[p] * u_t
+            n1[p + 2 ** t] = c0[p] * v_t + c1[p] * e_t
+    return
+
+
+@inline
+def carry_wrap(c0, c1, out, e_t, s_t, t: Const):
+    # carry_step's last bit, the carry out dropped: u_t + v_t = s_t weighs it either way.
+    for p in unroll(0, 2 ** t):
+        if p == 0:
+            out[0] = c0[0] * e_t
+            out[2 ** t] = c0[0] * s_t
+        else:
+            out[p] = c0[p] * e_t + c1[p] * s_t
+            out[p + 2 ** t] = c0[p] * s_t + c1[p] * e_t
+    return
+
+
+@inline
+def keccak_shifts_eq(a, b, shifts):
+    # shifts[r] for every used r: the multilinear extension of "x = y + r mod 64" at
+    # (a, b), a ripple of the carry over the six bits. Split r = rl + 8 rh: the low
+    # three bits leave a carry c into the high three, which then add rh + c, so
+    # shifts[r] = L0[rl] H[rh] + L1[rl] H[rh + 1] over tables of eight.
+    w_eq = StackBuf(KECCAK_Z_BITS)
+    w_sum = StackBuf(KECCAK_Z_BITS)
+    w_up = StackBuf(KECCAK_Z_BITS)
+    w_down = StackBuf(KECCAK_Z_BITS)
+    # Bits 0 and 3 start the two tables: their weights are the first level itself.
+    lo0 = StackBuf(2)
+    lo1 = StackBuf(2)
+    hi0 = StackBuf(2)
+    hi1 = StackBuf(2)
+    for t in unroll(0, KECCAK_Z_BITS):
+        a_t = a[GEN ** t]
+        b_t = b[GEN ** t]
+        both = a_t * b_t
+        w_sum[t] = a_t + b_t
+        if t == 0:
+            lo0[0] = 1 + w_sum[t]
+            lo0[1] = a_t + both
+            lo1[1] = b_t + both
+        elif t == 3:
+            hi0[0] = 1 + w_sum[t]
+            hi0[1] = a_t + both
+            hi1[1] = b_t + both
+        else:
+            w_eq[t] = 1 + w_sum[t]
+            w_up[t] = a_t + both
+            w_down[t] = b_t + both
+    mid0 = StackBuf(4)
+    mid1 = StackBuf(4)
+    carry_step(lo0, lo1, mid0, mid1, w_eq[1], w_up[1], w_down[1], 1)
+    low0 = StackBuf(8)
+    low1 = StackBuf(8)
+    carry_step(mid0, mid1, low0, low1, w_eq[2], w_up[2], w_down[2], 2)
+    hmid0 = StackBuf(4)
+    hmid1 = StackBuf(4)
+    carry_step(hi0, hi1, hmid0, hmid1, w_eq[4], w_up[4], w_down[4], 1)
+    high = StackBuf(8)
+    carry_wrap(hmid0, hmid1, high, w_eq[5], w_sum[5], 2)
+    for r in unroll(0, 64):
+        if KECCAK_SHIFT_USED[r] == 1:
+            if r % 8 == 0:
+                shifts[r] = low0[0] * high[r // 8]
             else:
-                c[2 * t + 2] = c[2 * t] * u[t]
-                c[2 * t + 3] = c[2 * t] * v[t] + c[2 * t + 1] * e[t]
-    out = StackBuf(1)
-    if r == 0:
-        out[0] = c[2 * KECCAK_Z_BITS]
-    else:
-        out[0] = c[2 * KECCAK_Z_BITS] + c[2 * KECCAK_Z_BITS + 1]
-    return out[0]
+                shifts[r] = low0[r % 8] * high[r // 8] + low1[r % 8] * high[(r // 8 + 1) % 8]
+    return
 
 
 @inline
@@ -2247,21 +2296,8 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
             lanes_eq *= 1 + local[GEN ** t] * (1 + GEN ** (2 ** t))
         weight_at_local[0] = lanes_eq
     else:
-        prev_local = claim[GEN ** KC_LOCAL]
-        bit_eq = StackBuf(KECCAK_Z_BITS)
-        bit_up = StackBuf(KECCAK_Z_BITS)
-        bit_down = StackBuf(KECCAK_Z_BITS)
-        for t in unroll(0, KECCAK_Z_BITS):
-            a_t = prev_local[GEN ** t]
-            b_t = local[GEN ** t]
-            both = a_t * b_t
-            bit_eq[t] = 1 + a_t + b_t
-            bit_up[t] = a_t + both
-            bit_down[t] = b_t + both
         shifts = StackBuf(64)
-        for r in unroll(0, 64):
-            if KECCAK_SHIFT_USED[r] == 1:
-                shifts[r] = keccak_shift_eq(bit_eq, bit_up, bit_down, r)
+        keccak_shifts_eq(claim[GEN ** KC_LOCAL], local, shifts)
         weight_at_local[0] = keccak_form(prev_lanes, shifts, f_lanes)
     assert last[GEN ** KR_SCALE] * weight_at_local[0] * (kappa * t0 + (kappa + t1) * t2) == value
     # t[k] = sum_j eq[j] T[j + k]: one claim on the state before chi.
