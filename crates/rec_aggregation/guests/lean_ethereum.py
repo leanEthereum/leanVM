@@ -2214,12 +2214,15 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
     product = StackBuf(KECCAK_PROD_BITS)
     projected = 0
     for k in unroll(0, KECCAK_PROD_BITS):
-        fs, coefficient, cursor = fs_next(fs, cursor)
-        product[k] = coefficient
+        # fs_next, the word read straight into its cell.
+        product[k] = cursor[GEN ** k]
+        coefficient = product[k]
+        fs = obs(fs, coefficient)
         reader = 0
         for t in unroll(KECCAK_PROJ_START[k], KECCAK_PROJ_START[k + 1]):
             reader += mu[KECCAK_PROJ_IDX[t]]
         projected += reader * coefficient
+    cursor = cursor * GEN ** KECCAK_PROD_BITS
     assert projected + iota * claim[GEN ** KC_KAPPA] == claim[GEN ** KC_VALUE]
     # At a random point a pack is one field element.
     fs, s = squeeze(fs)
