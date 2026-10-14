@@ -1,8 +1,8 @@
 //! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
 //! one bit position of one block.
 //!
-//! Each has a portable form and an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), which agree bit for
-//! bit. The vector forms are compiled only where all of those features are.
+//! Each has a portable form, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI) and a NEON one (PMULL),
+//! which agree bit for bit. The vector forms are compiled only where their features are.
 
 use primitives::field::gf2_64::mul_wide;
 
@@ -124,12 +124,20 @@ pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
     unsafe {
         x86::embed(words)
     }
-    #[cfg(not(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    // SAFETY: the feature is enabled at compile time.
+    unsafe {
+        neon::embed(words)
+    }
+    #[cfg(not(any(
+        all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "vpclmulqdq",
+            target_feature = "gfni"
+        ),
+        all(target_arch = "aarch64", target_feature = "aes")
     )))]
     embed_portable(words)
 }
@@ -152,12 +160,20 @@ pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; P
     unsafe {
         x86::products(a, b, c)
     }
-    #[cfg(not(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    // SAFETY: the feature is enabled at compile time.
+    unsafe {
+        neon::products(a, b, c)
+    }
+    #[cfg(not(any(
+        all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "vpclmulqdq",
+            target_feature = "gfni"
+        ),
+        all(target_arch = "aarch64", target_feature = "aes")
     )))]
     products_portable(a, b, c)
 }
@@ -182,12 +198,20 @@ pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5
     unsafe {
         x86::skip_row(acc, e, weights)
     }
-    #[cfg(not(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    // SAFETY: the feature is enabled at compile time.
+    unsafe {
+        neon::skip_row(acc, e, weights)
+    }
+    #[cfg(not(any(
+        all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "vpclmulqdq",
+            target_feature = "gfni"
+        ),
+        all(target_arch = "aarch64", target_feature = "aes")
     )))]
     skip_row_portable(acc, e, weights)
 }
@@ -218,12 +242,20 @@ pub fn fold_group(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
     unsafe {
         x86::fold_group(e, weights)
     }
-    #[cfg(not(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
+    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+    // SAFETY: the feature is enabled at compile time.
+    unsafe {
+        neon::fold_group(e, weights)
+    }
+    #[cfg(not(any(
+        all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512bw",
+            target_feature = "vpclmulqdq",
+            target_feature = "gfni"
+        ),
+        all(target_arch = "aarch64", target_feature = "aes")
     )))]
     fold_group_portable(e, weights)
 }
@@ -388,6 +420,143 @@ mod x86 {
                 out[k] = lanes[0] ^ lanes[1] ^ lanes[2] ^ lanes[3];
             }
             out
+        }
+    }
+}
+
+#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+mod neon {
+    use core::arch::aarch64::*;
+    use core::mem::transmute;
+    use std::sync::LazyLock;
+
+    use super::*;
+
+    /// Byte `k` of the embedding of each nibble of a pack: table `4 * k + n` is nibble `n`, low
+    /// first.
+    static NIBBLES: LazyLock<[[u8; 16]; 12]> = LazyLock::new(|| {
+        std::array::from_fn(|i| {
+            let (k, n) = (i / 4, i % 4);
+            std::array::from_fn(|v| {
+                let e = (0..4)
+                    .filter(|t| v >> t & 1 == 1)
+                    .fold(0, |e, t| e ^ RMFE.emb[4 * n + t]);
+                (e >> (8 * k)) as u8
+            })
+        })
+    });
+
+    /// A linear map is the sum of its nibbles' images, so each byte of sixteen embeddings is four
+    /// table lookups.
+    #[inline(always)]
+    pub unsafe fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
+        unsafe {
+            let t: [uint8x16_t; 12] = std::array::from_fn(|i| vld1q_u8(NIBBLES[i].as_ptr()));
+            let mask = vdupq_n_u8(0x0f);
+            let mut out = [0u32; PACKS];
+            for half in 0..2 {
+                // Pack `q` is bytes `2q` and `2q + 1`: the low bytes and the high bytes of sixteen.
+                let bytes = vld2q_u8(words.as_ptr().cast::<u8>().add(32 * half));
+                let nibbles = [
+                    vandq_u8(bytes.0, mask),
+                    vshrq_n_u8(bytes.0, 4),
+                    vandq_u8(bytes.1, mask),
+                    vshrq_n_u8(bytes.1, 4),
+                ];
+                let byte = |k: usize| {
+                    let look = |n: usize| vqtbl1q_u8(t[4 * k + n], nibbles[n]);
+                    veorq_u8(veorq_u8(look(0), look(1)), veorq_u8(look(2), look(3)))
+                };
+                let (b0, b1, b2) = (byte(0), byte(1), byte(2));
+                let zero = vdupq_n_u8(0);
+                let (lo, hi) = (vzip1q_u8(b0, b1), vzip2q_u8(b0, b1));
+                let (top_lo, top_hi) = (vzip1q_u8(b2, zero), vzip2q_u8(b2, zero));
+                let dst = out.as_mut_ptr().add(16 * half);
+                for (i, (l, h)) in [(lo, top_lo), (hi, top_hi)].into_iter().enumerate() {
+                    let (l, h) = (vreinterpretq_u16_u8(l), vreinterpretq_u16_u8(h));
+                    vst1q_u32(dst.add(8 * i), vreinterpretq_u32_u16(vzip1q_u16(l, h)));
+                    vst1q_u32(dst.add(8 * i + 4), vreinterpretq_u32_u16(vzip2q_u16(l, h)));
+                }
+            }
+            out
+        }
+    }
+
+    /// Two packs, a lane each.
+    #[inline(always)]
+    unsafe fn load(p: *const u32) -> uint64x2_t {
+        unsafe { vmovl_u32(vld1_u32(p)) }
+    }
+
+    /// The product of the low lanes, and of the high lanes.
+    #[inline(always)]
+    unsafe fn mul_lo(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        unsafe { transmute::<u128, uint64x2_t>(vmull_p64(vgetq_lane_u64(a, 0), vgetq_lane_u64(b, 0))) }
+    }
+
+    #[inline(always)]
+    unsafe fn mul_hi(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        unsafe { transmute::<u128, uint64x2_t>(vmull_high_p64(vreinterpretq_p64_u64(a), vreinterpretq_p64_u64(b))) }
+    }
+
+    #[inline(always)]
+    pub unsafe fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
+        unsafe {
+            let ones = vdupq_n_u64(RMFE.ones as u64);
+            let mut out = [0u64; PACKS];
+            for q in (0..PACKS).step_by(2) {
+                let (za, zb, zc) = (
+                    load(a.as_ptr().add(q)),
+                    load(b.as_ptr().add(q)),
+                    load(c.as_ptr().add(q)),
+                );
+                let linear = veorq_u64(za, zc);
+                let even = veorq_u64(mul_lo(zb, zc), mul_lo(linear, ones));
+                let odd = veorq_u64(mul_hi(zb, zc), mul_hi(linear, ones));
+                vst1q_u64(out.as_mut_ptr().add(q), vzip1q_u64(even, odd));
+            }
+            out
+        }
+    }
+
+    /// Two slots at a time, their sums over the row kept in registers.
+    #[inline(always)]
+    pub unsafe fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
+        unsafe {
+            let w: [[uint64x2_t; 3]; 5] = std::array::from_fn(|x| std::array::from_fn(|k| vdupq_n_u64(weights[x][k])));
+            for p in (0..SLOTS).step_by(2) {
+                let z: [uint64x2_t; 5] = std::array::from_fn(|x| load(e[x].as_ptr().add(p)));
+                let mut sums = [[vdupq_n_u64(0); 2]; 3];
+                for x in 0..5 {
+                    let (zb, zc) = (z[(x + 1) % 5], z[(x + 2) % 5]);
+                    let pair = vzip1q_u64(mul_lo(zb, zc), mul_hi(zb, zc));
+                    for k in 0..3 {
+                        sums[k][0] = veorq_u64(sums[k][0], mul_lo(pair, w[x][k]));
+                        sums[k][1] = veorq_u64(sums[k][1], mul_hi(pair, w[x][k]));
+                    }
+                }
+                for (k, sums) in sums.iter().enumerate() {
+                    for (h, &sum) in sums.iter().enumerate() {
+                        let i = p + h;
+                        let slot = (&mut acc.0[k][2 * (i / 8) + i % 2].0[(i % 8) / 2] as *mut u128).cast::<u64>();
+                        vst1q_u64(slot, veorq_u64(vld1q_u64(slot), sum));
+                    }
+                }
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub unsafe fn fold_group(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
+        unsafe {
+            std::array::from_fn(|k| {
+                let mut acc = vdupq_n_u64(0);
+                for q in (0..GROUP).step_by(2) {
+                    let (ze, zw) = (load(e.as_ptr().add(q)), vld1q_u64(weights[k].as_ptr().add(q)));
+                    acc = veorq_u64(acc, veorq_u64(mul_lo(ze, zw), mul_hi(ze, zw)));
+                }
+                transmute::<uint64x2_t, u128>(acc)
+            })
         }
     }
 }
