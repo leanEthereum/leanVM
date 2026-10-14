@@ -258,6 +258,7 @@ YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
 MAX_STACK_LOG = LIG_MIN_LOG_SIZE + LIG_N_LOG_SIZES - 1
 SEL_NIBBLES = (MAX_STACK_LOG + 3) // 4  # four selector bits share one table lookup
 SEL_EQ_STRIDE = 30                      # a nibble's eq tables over its top 1..4 coords
+EQ_CHAIN_ARMS = SIZE_BITS + QKECCAK_SLOT_LOG + 1  # eq prefix chain lengths
 SEL_SHARED_SRC = 2 + TABLE_SHA3         # the kappa source whose bus blocks share selector tables
 SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4  # nibbles of a bus selector run
 SEL_TAB_EQ_STRIDE = 32                  # a nibble's eq tables over its low 1..4 coords, padded
@@ -796,10 +797,24 @@ def eq_prefix_chain(chain, seed, a, b1, count_g):
     # reader picks the partial product up at its own certified length. Entry t is
     # written from inputs with index < t only, so a garbage tail past a buffer's
     # written extent cannot corrupt any shorter prefix.
-    chain[GEN ** 0] = seed
-    for xk in mul_range(1, count_g):
-        chain[xk * GEN] = chain[xk] * (a[xk] + b1[xk])
+    assert log(count_g) < EQ_CHAIN_ARMS
+    done = match(log(count_g), range(0, EQ_CHAIN_ARMS), lambda n: eq_prefix_run(chain, seed, a, b1, n))  # a match needs a target
     return
+
+
+def eq_prefix_run(chain, seed, a, b1, n: Const):
+    chain[GEN ** 0] = seed
+    v = seed
+    for k in unroll(0, n):
+        v = v * (a[GEN ** k] + b1[GEN ** k])
+        chain[GEN ** (k + 1)] = v
+    return 0
+
+
+def plus_one_run(out, src, n: Const):
+    for k in unroll(0, n):
+        out[GEN ** k] = 1 + src[GEN ** k]
+    return 0
 
 
 def rs_eq_run(chain, z_vals, point1, count_g):
@@ -1664,9 +1679,8 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     idxc_tab = HeapBuf(SIZE_BITS)  # INDEX_MLE_FACTORS[t] = 1 + g^(2^t)
     for t in unroll(0, SIZE_BITS):
         idxc_tab[GEN ** t] = INDEX_MLE_FACTORS[t]
-    zeta1 = HeapBuf(g_bus_mu)  # 1 + zeta, so a selector factor 1 + b + z is one XOR
-    for xk in mul_range(1, g_bus_mu):
-        zeta1[xk] = 1 + zeta[xk]
+    zeta1 = HeapBuf(g_bus_mu)  # 1 + zeta, so an eq factor 1 + b + z is one XOR
+    zeta1_done = match(log(g_bus_mu), range(0, SIZE_BITS), lambda n: plus_one_run(zeta1, zeta, n))  # a match needs a target
     # The blocks sized by SEL_SHARED_SRC share one κ, block_kappa being
     # kappa_base[src] = dims_g[src - 1] for them (verify_sub), so their selector
     # runs read shared tables.
@@ -1831,9 +1845,7 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     claim = zc_last[GEN ** ROUND_CLAIM]
     # peq[g^tau] = eq(zeta[..tau], chi[..tau]), as a prefix chain.
     zc_peq = HeapBuf(g_zc_n * GEN)
-    zc_peq[GEN ** 0] = 1
-    for xi in mul_range(1, g_zc_n):
-        zc_peq[xi * GEN] = zc_peq[xi] * (1 + zeta[xi] + chi[xi])
+    eq_prefix_chain(zc_peq, 1, chi, zeta1, g_zc_n)
     # Per table: every committed column's evaluation (pooled), its AIR constraint
     # at its own reduced point chi[..tau_t], weighted into the batch's final claim.
     air_acc = 0
