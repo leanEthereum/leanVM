@@ -25,11 +25,11 @@
 //! commitment only shrinks the level-0 symbols to 8 bytes; every random
 //! ingredient is sampled from `E` with the same error terms as before.
 
-use crate::transcript::{ProverState, Receiver, Transmitter, VerifierState};
+use crate::transcript::ProverState;
 use primitives::field::F64;
 
-pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, StackClaim as SlotClaim};
-use ::pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
+use ::pcs::stack_open::open_batch_mixed_whir_stacked;
+pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim as SlotClaim};
 use ::pcs::whir::ProverConfig;
 use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
 
@@ -83,15 +83,9 @@ pub struct Committed {
     pub log_inv_rate: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Error {
-    Whir(::pcs::whir::VerifyError),
-}
-
 /// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_MU`, from
 /// [`crate::witness::placements_of`]) and bind its root into the transcript,
-/// before any challenge is sampled. The verifier reads it with
-/// [`read_commitment`].
+/// before any challenge is sampled.
 ///
 /// `witness` is the stack truncated to the lane blocks that carry data
 /// ([`crate::witness::StackShape::committed_len`]); the zero tail past them is
@@ -129,12 +123,6 @@ pub fn commit(
 // challenge, the points are prior challenges, and the offsets are public
 // (reconstructed identically from the announced layout).
 
-/// Verifier counterpart of [`commit`]'s root binding: read the committed root
-/// from the stream at the start of verification, before sampling any challenge.
-pub fn read_commitment(vs: &mut VerifierState) -> Result<[u8; 32], crate::transcript::Error> {
-    vs.next_root()
-}
-
 /// Open the committed witness: discharge the `points` (leanVM's bus / constraint /
 /// public-input claims and the Keccak reduction's point claim, as block-sparse
 /// slot evaluations) AND the reduction's ring-switched claim (`ring`) in ONE stacked WHIR.
@@ -152,21 +140,6 @@ pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim]
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");
     let cfg = whir_config(c.mu, c.log_inv_rate);
     open_batch_mixed_whir_stacked(ps, c.mu, q, &c.prover_data, &cfg, points, ring)
-}
-
-/// Verify the opening (mirror of [`open`]): the Keccak reduction's ring-switched claim
-/// and every `points` slot evaluation are checked together in the ONE stacked
-/// WHIR against `root`, pulling its Merkle phases off the transcript.
-pub fn verify(
-    vs: &mut VerifierState,
-    points: &[SlotClaim],
-    ring: &RingSwitchVerify<'_>,
-    shape: crate::witness::StackShape,
-    log_inv_rate: usize,
-    root: &[u8; 32],
-) -> Result<(), Error> {
-    let cfg = whir_config(shape.mu, log_inv_rate);
-    verify_opening_batch_mixed_whir_stacked(vs, &cfg, shape.mu, shape.n_lanes, root, points, ring).map_err(Error::Whir)
 }
 
 #[cfg(test)]

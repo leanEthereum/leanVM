@@ -6,11 +6,12 @@
 
 pub use rec_aggregation::{
     AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
-    MAX_DA_ROOTS, MAX_KEYS, MAX_LEAF_INDICES, MAX_RECURSIONS, SignatureClaims, SphincsClaim, XmssClaimGroup, aggregate,
+    MAX_DA_ROOTS, MAX_KEYS, MAX_LEAF_INDICES, MAX_RECURSIONS, SignatureClaims, SphincsClaim, VerifierError,
+    XmssClaimGroup, aggregate,
 };
 
 pub use leanvm_core::{
-    cpu::{CpuError, ExecError, Fault, ProveError},
+    cpu::{ExecError, Fault, ProveError},
     pcs::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE},
 };
 

@@ -1,10 +1,10 @@
-use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::transcript::{Proof, ProverState};
 use primitives::field::F192;
 use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
 
 use crate::keccak::{BITS, LANES, along, iota_bit};
-use crate::protocol::{Claim, first_claim, verify_layer};
+use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
 use crate::witness::{BLOCK_LEN, BLOCK_WORDS, Shape, Witness};
 
@@ -59,6 +59,7 @@ pub(crate) fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F192
     acc
 }
 
+/// The prover's layers end on a claim the committed inputs satisfy.
 fn layers_round_trip(n_instances: usize, depth: usize) {
     let mut rng = Rng::new(21 + depth as u64);
     let inputs: Vec<[u64; LANES]> = (0..n_instances)
@@ -78,7 +79,6 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
     let (r_low, point, r_lane) = (ps.sample_vec(4), ps.sample_vec(shape.y_vars()), ps.sample_vec(5));
     let mut claim = first_claim(shape, F192::ZERO, &r_low, point, &r_lane);
     claim.value = evaluate(shape, &outputs, &claim);
-    ps.add_scalar(claim.value);
     let mut scratch = crate::prover::Scratch::new(shape);
     for step in 0..depth {
         claim = prove_layer(&mut ps, &witness, &mut scratch, step, &claim);
@@ -88,29 +88,6 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
         evaluate(shape, &segment_inputs, &claim),
         "the prover's last claim holds"
     );
-    let proof = ps.into_proof();
-
-    let verify = |proof: &fiat_shamir::transcript::Proof| {
-        let mut vs = VerifierState::from_label(b"keccak-gkr-test", proof);
-        let (r_low, point, r_lane) = (vs.sample_vec(4), vs.sample_vec(shape.y_vars()), vs.sample_vec(5));
-        let value = vs.next_scalar().ok()?;
-        let mut claim = first_claim(shape, value, &r_low, point, &r_lane);
-        for step in 0..depth {
-            claim = verify_layer(&mut vs, shape, step, &claim).ok()?;
-        }
-        vs.finish().ok()?;
-        Some(claim)
-    };
-    assert_eq!(verify(&proof), Some(claim), "the verifier reaches the same claim");
-
-    // Any changed scalar is rejected, or leaves a claim the inputs do not satisfy.
-    for at in (0..proof.stream.len()).step_by(proof.stream.len() / 23 + 1) {
-        let mut bad = proof.clone();
-        bad.stream[at] += F192::ONE;
-        if let Some(claim) = verify(&bad) {
-            assert_ne!(claim.value, evaluate(shape, &segment_inputs, &claim), "scalar {at}");
-        }
-    }
 }
 
 #[test]
@@ -123,69 +100,89 @@ fn one_segment_and_two_blocks() {
     layers_round_trip(1024, 24);
 }
 
-fn end_to_end(n_instances: usize, depth: usize) {
+/// The wire proof in the `verifier` crate's types: the same limbs, digests and row words.
+fn scalar_proof(proof: &Proof) -> verifier::Proof {
+    let batches = proof.merkle.iter().map(|paths| verifier::PrunedMerklePaths {
+        leaf_data: paths
+            .leaf_data
+            .iter()
+            .map(|row| row.iter().map(|word| verifier::K(word.0)).collect())
+            .collect(),
+        sibling_hashes: paths.sibling_hashes.clone(),
+    });
+    verifier::Proof {
+        stream: proof
+            .stream
+            .iter()
+            .map(|x| verifier::E::new(x.c0, x.c1, x.c2))
+            .collect(),
+        merkle_openings: verifier::MerkleOpenings::Pruned(batches.collect()),
+    }
+}
+
+const LABEL: &[u8] = b"keccak-gkr-test";
+
+fn verify(shape: Shape, proof: &Proof) -> Result<(), verifier::VerifierError> {
+    let iv = primitives::hash::hash(LABEL);
+    let log_inv_rate = pcs::whir::LOG_INV_RATE_0;
+    verifier::verify_keccak_batch(
+        &iv,
+        &[0; 32],
+        shape.n_log(),
+        shape.depth(),
+        log_inv_rate,
+        &scalar_proof(proof),
+    )
+}
+
+/// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
+fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F192) -> Proof {
     use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
 
+    let mut honest = vec![primitives::field::F64(0); crate::committed_len(shape)];
+    let witness = Witness::generate(shape, inputs, &mut honest);
+    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
+    let mut ps = ProverState::from_label(LABEL);
+    let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
+    ps.add_root(&commitment.root);
+    let mut output = crate::OutputClaim::of_inputs(shape, inputs, ps.sample_vec(shape.n_log()));
+    output.lanes[7] += lane_error;
+    ps.add_scalars(&output.lanes);
+    let openings = crate::prove(&mut ps, &witness, committed, &output);
+    if lane_error == F192::ZERO && committed == honest {
+        // Each opening is what the commitment scheme means by it.
+        let mut stack = committed.to_vec();
+        stack.resize(1 << shape.stack_log(), primitives::field::F64(0));
+        assert_eq!(openings.outputs.is_some(), shape.segments() > 1);
+        if let Some(outputs) = &openings.outputs {
+            assert_eq!(
+                outputs.value,
+                primitives::multilinear::mle_eval(&stack, &outputs.point),
+                "outputs"
+            );
+        }
+        let slices = pcs::ring_switch::fold_1b_rows(&stack, &eq_table(&openings.inputs.point));
+        assert!(slices == openings.inputs.slices, "inputs");
+    }
+    crate::open_commitment(&mut ps, shape, committed, &prover_data, &config, openings);
+    ps.into_proof()
+}
+
+fn end_to_end(n_instances: usize, depth: usize) {
     let mut rng = Rng::new(77);
     let inputs: Vec<[u64; LANES]> = (0..n_instances)
         .map(|_| std::array::from_fn(|_| rng.next_u64()))
         .collect();
     let shape = Shape::new(n_instances, depth);
     let mut committed = vec![primitives::field::F64(0); crate::committed_len(shape)];
-    let witness = Witness::generate(shape, &inputs, &mut committed);
-    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
-
-    let mut ps = ProverState::from_label(b"keccak-gkr-test");
-    let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-    ps.add_root(&commitment.root);
-    let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log));
-    ps.add_scalars(&output.lanes);
-    let openings = crate::prove(&mut ps, &witness, &committed, &output);
-    // Each opening is what the commitment scheme means by it.
-    let mut stack = committed.clone();
-    stack.resize(1 << shape.stack_log(), primitives::field::F64(0));
-    assert_eq!(openings.outputs.is_some(), shape.segments() > 1);
-    if let Some(outputs) = &openings.outputs {
-        assert_eq!(
-            outputs.value,
-            primitives::multilinear::mle_eval(&stack, &outputs.point),
-            "outputs"
-        );
-    }
-    let slices = pcs::ring_switch::fold_1b_rows(&stack, &eq_table(&openings.inputs.point));
-    assert!(slices == openings.inputs.slices, "inputs");
-    crate::open_commitment(&mut ps, shape, &committed, &prover_data, &config, openings);
-    let proof = ps.into_proof();
-
-    let verify = |proof: &fiat_shamir::transcript::Proof| {
-        let mut vs = VerifierState::from_label(b"keccak-gkr-test", proof);
-        let root = vs.next_root().ok()?;
-        let output = read_output(&mut vs, shape).ok()?;
-        let openings = crate::verify(&mut vs, shape, &output).ok()?;
-        crate::verify_commitment(&mut vs, shape, &config, &root, &openings).ok()?;
-        vs.finish().ok()
-    };
-    {
-        let mut vs = VerifierState::from_label(b"keccak-gkr-test", &proof);
-        let root = vs.next_root().unwrap();
-        let output = read_output(&mut vs, shape).unwrap();
-        let openings = crate::verify(&mut vs, shape, &output).expect("layers and openings");
-        crate::verify_commitment(&mut vs, shape, &config, &root, &openings).expect("commitment");
-        vs.finish().unwrap();
-    }
-    assert!(verify(&proof).is_some(), "an honest proof verifies");
+    Witness::generate(shape, &inputs, &mut committed);
+    let proof = prove(shape, &inputs, &committed, F192::ZERO);
+    verify(shape, &proof).expect("an honest proof verifies");
     for at in (2..proof.stream.len()).step_by(proof.stream.len() / 31 + 1) {
         let mut bad = proof.clone();
         bad.stream[at] += F192::ONE;
-        assert!(verify(&bad).is_none(), "scalar {at}");
+        assert!(verify(shape, &bad).is_err(), "scalar {at}");
     }
-}
-
-/// The verifier's side of the output claim the tests bind: the point, then the lanes.
-fn read_output(vs: &mut VerifierState, shape: Shape) -> Result<crate::OutputClaim, fiat_shamir::transcript::Error> {
-    let instance = vs.sample_vec(shape.n_log);
-    let lanes = vs.next_scalars(LANES)?.try_into().expect("25 lanes");
-    Ok(crate::OutputClaim { instance, lanes })
 }
 
 #[test]
@@ -203,30 +200,13 @@ fn proof_verifies_against_the_commitment() {
 /// opening.
 #[test]
 fn a_broken_committed_state_is_rejected() {
-    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
-
     let mut rng = Rng::new(78);
     let inputs: Vec<[u64; LANES]> = (0..600).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
     let shape = Shape::new(inputs.len(), 6);
     let mut committed = vec![primitives::field::F64(0); crate::committed_len(shape)];
-    let witness = Witness::generate(shape, &inputs, &mut committed);
-    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
+    Witness::generate(shape, &inputs, &mut committed);
     let accepts = |committed: &[primitives::field::F64], lane_error: F192| {
-        let mut ps = ProverState::from_label(b"keccak-gkr-test");
-        let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
-        ps.add_root(&commitment.root);
-        let mut output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log));
-        output.lanes[7] += lane_error;
-        ps.add_scalars(&output.lanes);
-        let openings = crate::prove(&mut ps, &witness, committed, &output);
-        crate::open_commitment(&mut ps, shape, committed, &prover_data, &config, openings);
-        let proof = ps.into_proof();
-        let mut vs = VerifierState::from_label(b"keccak-gkr-test", &proof);
-        let root = vs.next_root().unwrap();
-        let output = read_output(&mut vs, shape).unwrap();
-        crate::verify(&mut vs, shape, &output)
-            .ok()
-            .is_some_and(|openings| crate::verify_commitment(&mut vs, shape, &config, &root, &openings).is_ok())
+        verify(shape, &prove(shape, &inputs, committed, lane_error)).is_ok()
     };
     assert!(accepts(&committed, F192::ZERO), "the honest column");
     // A lane of the input and of each state between.

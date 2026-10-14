@@ -142,7 +142,7 @@ impl FiatShamirState {
     }
 
     /// Absorb a grinding nonce and draw the challenge it is checked against, which
-    /// nothing else uses (both sides, so they stay in lockstep).
+    /// nothing else uses.
     fn absorb_nonce(&mut self, nonce: F192) {
         self.absorb(nonce, DS_POW_NONCE);
         self.sample();
@@ -217,24 +217,6 @@ impl FiatShamirState {
         self.absorb_nonce(F192::new(nonce, 0, 0));
         nonce
     }
-
-    /// Verifier-side mirror of [`Self::grind_pow`]: check `nonce` clears the `bits`
-    /// PoW against the current state, then bind it regardless (so the state stays
-    /// in lockstep with an honest prover; a failed check rejects at the call
-    /// site). `bits = 0` accepts only the canonical nonce `0`, which keeps proofs
-    /// non-malleable at zero-bit grinding sites. Allowing the complete field
-    /// domain does not weaken grinding: each candidate still requires one
-    /// permutation and succeeds with probability 2^-bits. Honest provers remain
-    /// canonical and search the deterministic u64 subset in [`Self::grind_pow`].
-    pub fn verify_pow_field(&mut self, nonce: F192, bits: u32) -> bool {
-        let ok = if bits == 0 {
-            nonce == F192::ZERO
-        } else {
-            self.pow_bits_ok(nonce, bits)
-        };
-        self.absorb_nonce(nonce);
-        ok
-    }
 }
 
 #[cfg(test)]
@@ -300,23 +282,9 @@ mod tests {
                 .find(|&n| bits == 0 || sp.pow_bits_ok(F192::new(n, 0, 0), bits))
                 .unwrap();
             assert_eq!(good, expected, "smallest nonce at {bits} bits");
-            let mut verifier = sp.clone();
-            assert!(verifier.verify_pow_field(F192::new(good, 0, 0), bits));
-            assert_eq!(clone.sample(), verifier.sample());
+            let mut expected_state = sp.clone();
+            expected_state.absorb_nonce(F192::new(good, 0, 0));
+            assert_eq!(clone.sample(), expected_state.sample());
         }
-    }
-    #[test]
-    fn pow_accepts_and_binds_full_field_nonce() {
-        let mut verifier = FiatShamirState::new(digest_words(&primitives::hash::hash(b"t")), pi(1));
-        let nonce = (0..u64::MAX)
-            .map(|lo| F192::new(lo, 1, 2))
-            .find(|&nonce| verifier.pow_bits_ok(nonce, 8))
-            .expect("an 8-bit grind has a solution");
-        let mut expected = verifier.clone();
-        expected.absorb_nonce(nonce);
-        assert!(verifier.verify_pow_field(nonce, 8));
-        assert_eq!(verifier.sample(), expected.sample());
-        let mut zero_bits = FiatShamirState::new(digest_words(&primitives::hash::hash(b"t")), pi(1));
-        assert!(!zero_bits.verify_pow_field(F192::new(0, 1, 0), 0));
     }
 }

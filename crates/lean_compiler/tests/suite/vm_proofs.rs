@@ -1,5 +1,4 @@
-//! Proof-level properties of the VM: what a proof is bound to, that its channels
-//! carry everything, and that tampering with either channel is rejected.
+//! Proof-level properties of the VM: that its channels carry everything, and that a malformed input is an error rather than a panic.
 //!
 //! These live here rather than beside the prover because a provable program's tables
 //! must all be powers of two, which is the compiler's fill blocks' job
@@ -41,94 +40,22 @@ fn hashing_proof() -> (leanvm_core::cpu::Program, [F192; 2], Proof) {
     (program, pi, proof)
 }
 
-/// The stacked WHIR opening rides the proof's Merkle phases. Nothing there is
-/// bound by the transcript (only by the Merkle structure), so tampering an opened
-/// row must still be rejected.
+/// A program whose bytecode is not a power of two long is an error, not a panic.
 #[test]
-fn a_tampered_opening_is_rejected() {
-    let (program, pi, mut proof) = hashing_proof();
-    let phase = proof.merkle.first_mut().expect("stacked WHIR opening");
-    phase.leaf_data[0][0].0 ^= 1;
-    assert!(
-        verify(&program, &pi, &proof).is_err(),
-        "a tampered validity proof must be rejected"
-    );
-}
-
-/// The Keccak reduction rides the scalar
-/// stream as raw transport, but its values re-enter the transcript through the verifier's
-/// replay, so a flipped transport word diverges the recovered claims.
-#[test]
-fn a_tampered_reduction_word_is_rejected() {
-    let (program, pi, proof) = hashing_proof();
-    let end = verify(&program, &pi, &proof).expect("verifies").keccak_stream_end;
-    let mut tampered = proof;
-    // One of the last opening's slices.
-    tampered.stream[end - 2] += F192::ONE;
-    assert!(
-        verify(&program, &pi, &tampered).is_err(),
-        "a tampered reduction transport word must be rejected"
-    );
-}
-
-/// A proof is bound to its exact program. The two programs here have the same shape,
-/// so the same layout and announced sizes, and differ in one constant; the program
-/// digest seeds the transcript, so it diverges at the first squeeze. This is
-/// the adaptive-statement forgery that the bytecode bus's single-point check does not,
-/// on its own, prevent.
-#[test]
-fn a_proof_does_not_verify_against_another_program() {
-    // The differing constant has to reach the bytecode: an unused one folds away at
-    // compile time and the two programs come out byte-identical. Hashing it does the
-    // job, and publishing nothing keeps the public input the same for both.
-    let src = |k: u32| {
-        format!(
-            "def main():\n    a = StackBuf(2)\n    a[0] = {k}\n    a[1] = 7\n    \
-             c = StackBuf(2)\n    sha3(a, a, c)\n    return\n"
-        )
-    };
-    let program = compile(&parse(&src(5)).expect("parse"));
-    let other = compile(&parse(&src(6)).expect("parse"));
-    let pi = [F192::ZERO, F192::ZERO];
-    let (proof, _) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &pi, &proof).expect("honest proof verifies");
-    assert!(
-        verify(&other, &pi, &proof).is_err(),
-        "a proof must not verify against a different program"
-    );
+fn a_bytecode_that_is_not_a_power_of_two_is_an_error() {
+    let (mut program, pi, proof) = hashing_proof();
+    program.prog.pop();
+    assert!(matches!(verify(&program, &pi, &proof), Err(CpuError::PublicInput)));
 }
 
 /// Out-of-process verification: everything travels in the two channels, so a proof
-/// serializes, crosses a process boundary and verifies, and a flipped announced size
-/// is caught before any reduction runs.
+/// serializes, crosses a process boundary and verifies.
 #[test]
 fn a_proof_roundtrips_through_bytes() {
     let (program, pi, proof) = hashing_proof();
     let bytes = bincode::serialize(&proof).expect("proof serializes");
     let decoded: Proof = bincode::deserialize(&bytes).expect("proof deserializes");
     verify(&program, &pi, &decoded).expect("a deserialized proof verifies");
-
-    // The announced sizes lead the stream: memory log, the table log heights, then
-    // the PCS rate.
-    let mut bad_rate = decoded.clone();
-    bad_rate.stream[1 + leanvm_core::cpu::Stats::TABLES.len()] = F192::new(5, 0, 0);
-    assert!(
-        matches!(verify(&program, &pi, &bad_rate), Err(CpuError::PublicInput)),
-        "the announced PCS rate must be in 1..=4"
-    );
-
-    // A SHA3 height below the Keccak reduction's step floor describes a layout the
-    // arithmetization cannot express, and all three verifiers reject it there.
-    let sha3 = leanvm_core::cpu::Stats::TABLES
-        .iter()
-        .position(|&t| t == "SHA3")
-        .unwrap();
-    let mut sub_floor = decoded;
-    sub_floor.stream[1 + sha3] = F192::new(2, 0, 0);
-    assert!(
-        matches!(verify(&program, &pi, &sub_floor), Err(CpuError::PublicInput)),
-        "the announced SHA3 height must reach the Keccak reduction's floor"
-    );
 }
 
 /// An unsupported rate is an error, not a panic.

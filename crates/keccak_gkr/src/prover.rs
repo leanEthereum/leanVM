@@ -9,7 +9,7 @@
 //! From `s` on, everything stays in the power basis of `s` ([`crate::power`]) until the tables
 //! are down to one row.
 
-use fiat_shamir::transcript::Transmitter;
+use fiat_shamir::transcript::ProverState;
 use primitives::field::F192;
 use primitives::field::gf2_64::mul_wide;
 use primitives::multilinear::{eq_table, poly_eval};
@@ -479,9 +479,10 @@ impl Scratch {
     }
 }
 
-/// Prove one layer: mirror of [`crate::protocol::verify_layer`].
+/// Prove one layer, as `crates/verifier`'s `keccak.rs` checks it: a claim on the states `step`
+/// layers below the outputs becomes one on the states a layer further down.
 pub fn prove_layer(
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
     witness: &Witness,
     scratch: &mut Scratch,
     step: usize,

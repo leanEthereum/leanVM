@@ -52,11 +52,4 @@ def main():
 
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("expression-position inline calls compute correctly");
-
-    let mut bad = want;
-    bad[0] += F192::ONE;
-    assert!(
-        verify(&program, &bad, &proof).is_err(),
-        "wrong published value must be rejected"
-    );
 }

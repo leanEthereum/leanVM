@@ -13,6 +13,7 @@ primitives.workspace = true
 fiat_shamir.workspace = true
 pcs.workspace = true
 keccak_gkr.workspace = true
+verifier.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]

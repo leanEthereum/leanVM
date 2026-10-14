@@ -4,7 +4,7 @@
 # statement digest binding its signature claims and a possibly empty list of LeanDA roots.
 # It may check a blob matrix directly and retain any roots proved by its children.
 # Reading order: `main` is the
-# node, `verify_sub` the in-circuit copy of `leanvm_core::cpu::verify`, and
+# node, `verify_sub` the in-circuit copy of `verifier::verify_execution`, and
 # `open_stacked` the WHIR opening it dispatches into.
 #
 # Every `*_PLACEHOLDER` below is filled by the host at compile time
@@ -1363,7 +1363,7 @@ def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, c
             fs_pack(rate, 1, w1, DS_OBSERVE)
             next_root_a, msg_cursor = fs_next(rate, 2, msg_cursor)
             next_root_b, msg_cursor = fs_next(rate, 3, msg_cursor)
-            # A non-canonical half is rejected (merkle.rs `scalars_to_hash`), as
+            # A non-canonical half is rejected (`Digest::from_halves` in `crates/verifier`), as
             # the commitment root was at its own read.
             canon = StackBuf(2)
             canon[0] = assert_canonical(next_root_a)
@@ -2926,7 +2926,7 @@ def certify_placement(kappa_base, g_squares):
                 assert log(col / prev_col) < N_COMMITTED_COLS
         col_off_g[col] = g_total  # write-once: a duplicate permutation entry collides
         # g_squares spans SIZE_BITS, and every kappa is under it: a certified log
-        # <= 32 (log_mem or a tau), the baked bytecode log, or q_keccak's tau_5 + QFLOCK_SLOT_LOG.
+        # <= 32 (log_mem or a tau), the baked bytecode log, or q_keccak's tau_5 + QKECCAK_SLOT_LOG.
         # Bound it before the lookup, independently of m derived from this product.
         assert log(kappa_g) < SIZE_BITS
         g_total *= g_squares[kappa_g]
@@ -3060,7 +3060,7 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_
 
 def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # In-circuit verification of ONE inner proof for the statement (pi_0, pi_1),
-    # mirroring cpu::verify step for step; the `# ---- ... ----` headers below run
+    # mirroring `crates/verifier` step for step; the `# ---- ... ----` headers below run
     # in that order. All proof data is hinted HERE, so each call pops the next
     # sub-proof's entry of every witness stream and the body lowers once. The
     # exponent tables are shared read-only; the deferred claim goes to `defer_out`.
@@ -3143,7 +3143,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
         sp = fs_perm(sp, rate, 4)
         rate = StackBuf(8)
     commit_root_1, cursor = fs_next(rate, (N_TABLES + 3) % 4, cursor)
-    # A non-canonical half is rejected here (merkle.rs `scalars_to_hash`); the level
+    # A non-canonical half is rejected here (`Digest::from_halves` in `crates/verifier`); the level
     # roots get the same treatment at their own read.
     root_cells = StackBuf(2)
     root_cells[0] = assert_canonical(commit_root_0)

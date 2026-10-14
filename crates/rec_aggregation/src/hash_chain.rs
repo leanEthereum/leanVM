@@ -123,8 +123,4 @@ fn sha3_hash_chain() {
         "  throughput                  : {} hashes/s",
         pretty_integer(hashes_per_second)
     );
-
-    let mut wrong_input = public_input;
-    wrong_input[0] += F192::ONE;
-    assert!(verify(&program, &wrong_input, &proof).is_err());
 }

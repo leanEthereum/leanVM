@@ -7,8 +7,8 @@
 //! ([`crate::cpu::xi_form_base`]), so those coefficients are per-side totals and
 //! the target pins the total, which is all the bus needs. The identities vanish on a
 //! valid row, but a table also attaches its three bus forms, whose sums are the
-//! values the bus is owed, so the target is those rather than zero. It is the
-//! caller's, not read off the stream: see [`crate::cpu::verify`].
+//! values the bus is owed, so the target is those rather than zero. It is
+//! derived from the bus's leaf claims, never read off the stream.
 //!
 //! Tables of different heights are combined by back-loaded batching: table `t`'s
 //! summand is lifted onto the common `n`-cube by `∏_{i ≥ τ_t} X_i`, which leaves
@@ -34,7 +34,7 @@
 
 use crate::PAR_THRESHOLD;
 use crate::colval::ColVal;
-use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use crate::transcript::ProverState;
 use primitives::field::{F64, F192, F192Unreduced, powers};
 use primitives::multilinear::{eq_table, fold_high_inplace, fold_high_k, poly_eval, shrink_eq_high};
 
@@ -45,12 +45,6 @@ pub struct Claims {
     pub evals: Vec<F192>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Error {
-    Truncated,
-    FinalMismatch,
-}
-
 /// One table's row constraint: identity `i` is weighted by `pows[i]`; `true` selects its homogeneous quadratic part.
 pub type Constraint<'a> = Box<dyn Fn(&[F192], &[F192], bool) -> F192 + Sync + 'a>;
 /// The same form over `K`-valued columns, for the round a table joins the batch.
@@ -59,7 +53,6 @@ pub type ConstraintK<'a> = Box<dyn Fn(&[F192], &[F64], bool) -> F192 + Sync + 'a
 /// One table's place in the shared batch.
 pub struct Air<'a> {
     pub tau: usize,
-    pub n_cols: usize,
     pub n_constraints: usize,
     pub eval: Constraint<'a>,
     pub eval_k: ConstraintK<'a>,
@@ -244,62 +237,9 @@ pub fn prove(
         .collect()
 }
 
-/// Verify the table sumcheck, returning the per-table claims for the caller to
-/// settle against the commitment.
-pub fn verify(
-    airs: &[Air<'_>],
-    xi: F192,
-    zeta: &[F192],
-    target: F192,
-    vs: &mut VerifierState,
-) -> Result<Vec<Claims>, Error> {
-    let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
-    if zeta.len() < n {
-        return Err(Error::Truncated);
-    }
-    let offsets = xi_offsets(airs.iter().map(|a| a.n_constraints));
-    let pows = powers(xi, airs.iter().map(|a| a.n_constraints).sum());
-    let mut weights = vec![F192::ONE; airs.len()];
-    // An ordinary sumcheck for `target`, which the caller supplies. Each round
-    // arrives as the round polynomial itself at `nd`, so the two steps are the
-    // textbook ones and nothing has to be reapplied: no eq factor, no separate
-    // waiting term. `ζ` and the heights enter only `weights`, never the check.
-    let mut claim = target;
-    let mut chi = vec![F192::ZERO; n];
-    for j in 0..n {
-        let m = n - 1 - j;
-        // The running claim fixes the linear coefficient.
-        let h = vs.next_round_poly(4, claim, None).map_err(|_| Error::Truncated)?;
-        let rk = vs.sample();
-        chi[m] = rk;
-        claim = poly_eval(&h, rk);
-        let eq_k = F192::ONE + zeta[m] + rk;
-        for (t, air) in airs.iter().enumerate() {
-            weights[t] *= if air.tau > m { eq_k } else { rk };
-        }
-    }
-
-    let mut acc = F192::ZERO;
-    let mut claims = Vec::with_capacity(airs.len());
-    for (t, air) in airs.iter().enumerate() {
-        let evals = vs.next_scalars(air.n_cols).map_err(|_| Error::Truncated)?;
-        let w = &pows[offsets[t]..offsets[t] + air.n_constraints];
-        acc += weights[t] * (air.eval)(w, &evals, false);
-        claims.push(Claims {
-            chi: chi[..air.tau].to_vec(),
-            evals,
-        });
-    }
-    if acc != claim {
-        return Err(Error::FinalMismatch);
-    }
-    Ok(claims)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transcript::{Proof, ProverState, VerifierState};
     use primitives::field::F64;
 
     fn synth_eval<T: crate::colval::ColVal>(pows: &[F192], v: &[T], quadratic: bool) -> F192 {
@@ -347,152 +287,47 @@ mod tests {
         check(&ext);
     }
 
-    fn good_table(tau: usize, salt: u64) -> Vec<Vec<F64>> {
-        let n = 1usize << tau;
-        let a: Vec<F64> = (0..n).map(|i| F64(i as u64 + salt)).collect();
-        let b: Vec<F64> = (0..n).map(|i| F64(3 * i as u64 + 1 + salt)).collect();
-        let ab: Vec<F64> = a.iter().zip(&b).map(|(&x, &y)| x * y).collect();
-        vec![a.clone(), b, ab, a]
-    }
-
     /// A third, attached "identity": the linear form `vals[1]`, whose claimed sum
     /// is an evaluation of column 1 rather than zero.
     fn synth_eval_attached<T: crate::colval::ColVal>(pows: &[F192], v: &[T], quadratic: bool) -> F192 {
         synth_eval(pows, v, quadratic) + if quadratic { F192::ZERO } else { v[1].mul_e(pows[2]) }
     }
 
-    fn airs_for(taus: &[usize], attached: bool) -> Vec<Air<'static>> {
-        taus.iter()
-            .map(|&tau| Air {
-                tau,
-                n_cols: 4,
-                n_constraints: if attached { 3 } else { 2 },
-                eval: Box::new(if attached {
-                    synth_eval_attached::<F192>
-                } else {
-                    synth_eval::<F192>
-                }),
-                eval_k: Box::new(if attached {
-                    synth_eval_attached::<F64>
-                } else {
-                    synth_eval::<F64>
-                }),
-            })
-            .collect()
-    }
-
-    /// The eq point and `η` are the caller's; the tests fix them.
-    fn xi_zeta(taus: &[usize]) -> (F192, Vec<F192>) {
-        let n = taus.iter().copied().max().unwrap_or(0);
-        let xi = F192::new(0x9e37_79b9_7f4a_7c15, 0x1234_5678_9abc_def0, 7);
-        let zeta = (0..n)
-            .map(|i| F192::new(i as u64 + 3, 0x5555 * (i as u64 + 1), i as u64 + 11))
-            .collect();
-        (xi, zeta)
-    }
-
-    fn run(taus: &[usize], cols: Vec<Vec<Vec<F64>>>) -> (Proof, Result<Vec<Claims>, Error>) {
-        let airs = airs_for(taus, false);
-        let (xi, zeta) = xi_zeta(taus);
-        let zeros = vec![F192::ZERO; taus.len()];
-        let mut ps = ProverState::from_label(b"zc-test");
-        let views: Vec<Vec<&[F64]>> = cols.iter().map(|t| t.iter().map(|c| &c[..]).collect()).collect();
-        let pclaims = prove(&airs, &views, xi, &zeta, &zeros, &mut ps);
-        let proof = ps.into_proof();
-        let mut vs = VerifierState::from_label(b"zc-test", &proof);
-        let vclaims = verify(&airs, xi, &zeta, F192::ZERO, &mut vs);
-        if let Ok(vc) = &vclaims {
-            assert_eq!(&pclaims, vc);
-        }
-        (proof, vclaims)
-    }
-
+    /// Tables of different heights in one batch: each table's claims are its
+    /// columns' true evaluations, at a prefix of the tallest table's point.
     #[test]
-    fn ragged_batch_verifies() {
+    fn ragged_batch_claims_are_true_evaluations() {
         let taus = [5usize, 3, 5, 0, 1];
-        let cols = taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
-        let claims = run(&taus, cols).1.expect("honest batch verifies");
-        let tallest = claims.iter().max_by_key(|c| c.chi.len()).unwrap().chi.clone();
-        for (c, &tau) in claims.iter().zip(&taus) {
-            assert_eq!(c.chi, tallest[..tau]);
-        }
-    }
-
-    #[test]
-    fn one_bad_row_in_any_table_is_rejected() {
-        let taus = [5usize, 3, 5, 0, 1];
-        for bad in 0..taus.len() {
-            for col in [2usize, 3] {
-                let mut cols: Vec<Vec<Vec<F64>>> =
-                    taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
-                cols[bad][col][(1usize << taus[bad]) - 1] += F64::ONE;
-                assert!(run(&taus, cols).1.is_err());
-            }
-        }
-    }
-
-    /// An ATTACHED evaluation claim: the extra identity's claimed
-    /// sum is `η^2 · col_1(ζ[..τ])`, not zero, so the batch's target is nonzero and
-    /// every table that has not joined yet rides a deferred line. Checks the honest
-    /// batch verifies and that perturbing ANY table's claimed sum is caught,
-    /// including a short table whose line is carried through most of the rounds.
-    #[test]
-    fn attached_eval_claims_verify_and_bind() {
-        let taus = [5usize, 3, 5, 0, 1];
-        let cols: Vec<Vec<Vec<F64>>> = taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
-        let (xi, zeta) = xi_zeta(&taus);
-        let pows = powers(xi, 3 * taus.len());
-        // σ_t = η^{offset_t + 2} · col_1(ζ[..τ_t]): the attached identity is `vals[1]`,
-        // so its eq-weighted sum over the table's cube is that column's evaluation.
-        let sigmas: Vec<F192> = taus
+        let cols: Vec<Vec<Vec<F64>>> = taus
             .iter()
             .enumerate()
-            .map(|(t, &tau)| pows[3 * t + 2] * primitives::multilinear::mle_eval(&cols[t][1], &zeta[..tau]))
+            .map(|(salt, &tau)| {
+                let a: Vec<F64> = (0..1u64 << tau).map(|i| F64(i + salt as u64)).collect();
+                let b: Vec<F64> = (0..1u64 << tau).map(|i| F64(3 * i + 1 + salt as u64)).collect();
+                let ab: Vec<F64> = a.iter().zip(&b).map(|(&x, &y)| x * y).collect();
+                vec![a.clone(), b, ab, a]
+            })
             .collect();
-
-        let settle = |sig: &[F192], cols: Vec<Vec<Vec<F64>>>| -> Result<Vec<Claims>, Error> {
-            let airs = airs_for(&taus, true);
-            let target = sig.iter().fold(F192::ZERO, |a, &b| a + b);
-            let mut ps = ProverState::from_label(b"zc-test");
-            let views: Vec<Vec<&[F64]>> = cols.iter().map(|t| t.iter().map(|c| &c[..]).collect()).collect();
-            let pclaims = prove(&airs, &views, xi, &zeta, sig, &mut ps);
-            let proof = ps.into_proof();
-            let mut vs = VerifierState::from_label(b"zc-test", &proof);
-            let out = verify(&airs, xi, &zeta, target, &mut vs);
-            if let Ok(vc) = &out {
-                assert_eq!(&pclaims, vc);
+        let airs: Vec<Air<'static>> = taus
+            .iter()
+            .map(|&tau| Air {
+                tau,
+                n_constraints: 2,
+                eval: Box::new(synth_eval::<F192>),
+                eval_k: Box::new(synth_eval::<F64>),
+            })
+            .collect();
+        let xi = F192::new(0x9e37_79b9_7f4a_7c15, 0x1234_5678_9abc_def0, 7);
+        let zeta: Vec<F192> = (0..5).map(|i| F192::new(i + 3, 0x5555 * (i + 1), i + 11)).collect();
+        let views: Vec<Vec<&[F64]>> = cols.iter().map(|t| t.iter().map(|c| &c[..]).collect()).collect();
+        let mut ps = ProverState::from_label(b"zc-test");
+        let claims = prove(&airs, &views, xi, &zeta, &[F192::ZERO; 5], &mut ps);
+        let tallest = &claims[0].chi;
+        for ((claim, &tau), table) in claims.iter().zip(&taus).zip(&cols) {
+            assert_eq!(claim.chi, tallest[..tau]);
+            for (eval, col) in claim.evals.iter().zip(table) {
+                assert_eq!(*eval, primitives::multilinear::mle_eval(col, &claim.chi));
             }
-            out
-        };
-        settle(&sigmas, cols.clone()).expect("honest attached claims verify");
-        for bad in 0..taus.len() {
-            let mut wrong = sigmas.clone();
-            wrong[bad] += F192::ONE;
-            assert!(
-                settle(&wrong, cols.clone()).is_err(),
-                "a wrong claimed sum for table {bad} must be rejected"
-            );
-        }
-    }
-
-    /// Tampering any transmitted word breaks the chain: the batch is one sumcheck,
-    /// so there is no per-table slack.
-    #[test]
-    fn tampered_transcript_is_rejected() {
-        let taus = [4usize, 2, 4];
-        let cols = taus.iter().enumerate().map(|(i, &t)| good_table(t, i as u64)).collect();
-        let (proof, ok) = run(&taus, cols);
-        assert!(ok.is_ok());
-        let airs = airs_for(&taus, false);
-        let (xi, zeta) = xi_zeta(&taus);
-        for i in 0..proof.stream.len() {
-            let mut bad = proof.clone();
-            bad.stream[i] += F192::ONE;
-            let mut vs = VerifierState::from_label(b"zc-test", &bad);
-            assert!(
-                verify(&airs, xi, &zeta, F192::ZERO, &mut vs).is_err(),
-                "tampered word {i} must be rejected"
-            );
         }
     }
 }

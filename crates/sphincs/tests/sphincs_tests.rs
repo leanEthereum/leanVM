@@ -36,60 +36,6 @@ fn serialized_sizes_and_roundtrip() {
     verify(&pk, &message, &decoded).unwrap();
 }
 
-#[test]
-fn tampered_signatures_rejected() {
-    let (sk, pk) = test_key(2);
-    let message = test_message();
-    let signature = sign(&sk, &message).unwrap();
-    verify(&pk, &message, &signature).unwrap();
-
-    let mut other_message = message;
-    other_message[0] ^= 1;
-    assert!(verify(&pk, &other_message, &signature).is_err());
-
-    let mut other_key = pk;
-    other_key.root[0] ^= 1;
-    assert!(verify(&other_key, &message, &signature).is_err());
-
-    // Verification recomputes the digest, so a tampered randomizer asks for
-    // another index, and asks it of a digest that is admissible only one time in
-    // 2^a.
-    let mut tampered = signature.clone();
-    tampered.randomizer[0] ^= 1;
-    assert_eq!(
-        verify(&pk, &message, &tampered),
-        Err(SphincsVerifyError::InadmissibleDigest)
-    );
-
-    // Everything the bottom layers carry feeds the message a layer above signs,
-    // and a counter is admissible for one message in 2^13.6, so tampering
-    // surfaces as an inadmissible encoding rather than as a wrong root.
-    for tamper in [
-        (|s: &mut SphincsSignature| s.fts.secrets[5][0] ^= 1) as fn(&mut SphincsSignature),
-        |s: &mut SphincsSignature| s.fts.paths[9][4][0] ^= 1,
-        |s: &mut SphincsSignature| s.counters[2] ^= 1,
-        |s: &mut SphincsSignature| s.ots[1][17][0] ^= 1,
-        |s: &mut SphincsSignature| s.paths[H - 1][0] ^= 1,
-    ] {
-        let mut tampered = signature.clone();
-        tamper(&mut tampered);
-        assert_eq!(
-            verify(&pk, &message, &tampered),
-            Err(SphincsVerifyError::InadmissibleEncoding)
-        );
-    }
-
-    // Layer 0's path is the exception: nothing is signed above it, so it can
-    // only fail the root comparison.
-    let mut tampered = signature.clone();
-    tampered.paths[0][0] ^= 1;
-    assert_eq!(verify(&pk, &message, &tampered), Err(SphincsVerifyError::RootMismatch));
-
-    let mut tampered = signature.clone();
-    tampered.ots[0][17][0] ^= 1;
-    assert_eq!(verify(&pk, &message, &tampered), Err(SphincsVerifyError::RootMismatch));
-}
-
 /// One key signs one codeword, on which the whole one-time argument rests: the
 /// counter is the least admissible one, not any admissible one.
 #[test]

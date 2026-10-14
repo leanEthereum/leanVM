@@ -14,7 +14,7 @@
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json, env_usize};
-use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::transcript::{Proof, ProverState};
 use keccak_gkr::{OutputClaim, Shape, Witness};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
@@ -84,16 +84,11 @@ fn main() {
         kept
     });
 
+    let proof = scalar_proof(&transcript);
+    let iv = primitives::hash::hash(LABEL);
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|_final_pass| {
-        let mut vs = VerifierState::from_label(LABEL, &transcript);
-        let root = vs.next_root().expect("commitment root");
-        let output = OutputClaim {
-            instance: vs.sample_vec(shape.n_log()),
-            lanes: vs.next_scalars(25).expect("output lanes").try_into().expect("25 lanes"),
-        };
-        let openings = keccak_gkr::verify(&mut vs, shape, &output).expect("the reduction verifies");
-        keccak_gkr::verify_commitment(&mut vs, shape, &config, &root, &openings).expect("the opening verifies");
-        vs.finish().expect("transcript fully consumed");
+        verifier::verify_keccak_batch(&iv, &[0; 32], shape.n_log(), shape.depth(), LOG_INV_RATE_0, &proof)
+            .expect("the batch proof verifies");
     });
 
     let merkle_bytes: usize = transcript
@@ -151,4 +146,24 @@ fn main() {
         transcript.stream.len(),
         merkle_bytes as f64 / 1024.0
     );
+}
+
+/// The wire proof in the `verifier` crate's types: the same limbs, digests and row words.
+fn scalar_proof(proof: &Proof) -> verifier::Proof {
+    let batches = proof.merkle.iter().map(|paths| verifier::PrunedMerklePaths {
+        leaf_data: paths
+            .leaf_data
+            .iter()
+            .map(|row| row.iter().map(|word| verifier::K(word.0)).collect())
+            .collect(),
+        sibling_hashes: paths.sibling_hashes.clone(),
+    });
+    verifier::Proof {
+        stream: proof
+            .stream
+            .iter()
+            .map(|x| verifier::E::new(x.c0, x.c1, x.c2))
+            .collect(),
+        merkle_openings: verifier::MerkleOpenings::Pruned(batches.collect()),
+    }
 }

@@ -82,7 +82,7 @@ aggregation, 900 XMSS signatures
   proof size                  : 317.4 KiB
   proving time                : 0.545 s ± 1.5%      peak memory 7.385 GiB
   per signature               : 1,651.687 signatures/s
-  verifying                   : 3.977 ms
+  verifying                   : 5.258 ms
 ```
 
 ### SPHINCS aggregation
@@ -100,7 +100,7 @@ aggregation, 245 SPHINCS signatures
   proof size                  : 299.9 KiB
   proving time                : 0.831 s ± 3.6%      peak memory 9.275 GiB
   per signature               : 294.783 signatures/s
-  verifying                   : 3.644 ms
+  verifying                   : 5.225 ms
 ```
 
 ### data availability
@@ -116,7 +116,7 @@ aggregation, 16 blobs
   proof size                  : 324.0 KiB
   proving time                : 0.986 s ± 11.1%      peak memory 12.534 GiB
   blob throughput             : 16.235 blobs/s, 2.029 MiB/s
-  verifying                   : 6.573 ms
+  verifying                   : 9.974 ms
 ```
 
 ### recursion
@@ -131,7 +131,7 @@ recursion 2→1, over leaves of 900 XMSS signatures
     details                   : MUL 2^17.823 (41.2%)  DEREF 2^16.964 (22.7%)  XOR 2^16.728 (19.3%)  SET 2^15.77 (9.9%)  JUMP 2^14.486 (4.1%)  BLAKE2S 2^13.932 (2.8%)  MEMORY 2^19.481  BYTECODE 2^17.737  TOTAL_COMMITTED 2^24.086
   proof size                  : 190.2 KiB
   proving time                : 0.272 s ± 5.3%      peak memory 8.388 GiB
-  verifying                   : 3.457 ms
+  verifying                   : 6 ms
 ```
 
 ### hashing
@@ -165,7 +165,7 @@ Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
     details                   : MUL 2^20.944 (98.9%)  SET 2^13.288 (0.5%)  DEREF 2^12.967 (0.4%)  JUMP 2^10.968 (0.1%)  XOR 2^10.966 (0.1%)  MEMORY 2^20.96  BYTECODE 2^11.352  TOTAL_COMMITTED 2^25.26
   proof size                  : 286.0 KiB
   proving                     : 0.344 s ± 4.6%   6,181,087 cycles/s      peak memory 5.199 GiB
-  verifying                   : 2.218 ms
+  verifying                   : 4.689 ms
 ```
 
 ## SNARK machinery

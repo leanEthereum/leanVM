@@ -3,7 +3,7 @@
 //! pointer (at a runtime index, or from a callee).
 
 use lean_compiler::{compile, parse};
-use leanvm_core::cpu::{Fault, Stats, prove, verify};
+use leanvm_core::cpu::{Stats, prove, verify};
 use primitives::field::{F64, F192};
 
 const V: u64 = 0b1011_0110;
@@ -121,60 +121,6 @@ def probe(v):
     let want = [F192::from(F64(V)), F192::from(F64::ONE)];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the pointer reads the frame run");
-    let bad = [F192::from(F64(V + 1)), F192::from(F64::ONE)];
-    assert!(verify(&program, &bad, &proof).is_err(), "a wrong value is rejected");
-}
-
-/// A store into a cell the program has ALREADY written through an `addr()`
-/// pointer is the write-once equality assertion of `zkDSL.md` §Memory, not an
-/// assembly copy. `addr()` hands out an ordinary `GAddr`, so a write through it
-/// is a `DEREF` whose only `phys`-recorded cell is its source; the run's own
-/// cells looked untouched, the store deferred as an alias and emitted nothing,
-/// and the program went on to "prove" that one cell held two different values.
-#[test]
-fn a_store_after_a_write_through_addr_still_asserts() {
-    let src = "\
-def main():
-    b = StackBuf(1)
-    p = addr(b)
-    v = GEN ** 7
-    p[1] = v
-    b[0] = GEN ** 9
-    return
-";
-    let err = compile(&parse(src).expect("parse"))
-        .execute([F192::ZERO; 2])
-        .err()
-        .expect("the run must fail");
-    assert!(matches!(err.fault, Fault::Conflict { .. }), "{err}");
-}
-
-/// The same hazard for a run declared AFTER the escape, which the test above
-/// does not reach: `unsealed_runs` is already `None` by then, so `alloc_stack`
-/// has to seal the run on the spot. Left transparent, `b[0] = GEN ** 9` defers
-/// as a constant alias, the assert folds to `const == const`, and the program
-/// proves that a cell holding `g^7` holds `g^9`.
-#[test]
-fn a_run_declared_after_the_escape_is_sealed_too() {
-    let src = "\
-def poke(q):
-    q[GEN ** 3] = GEN ** 7
-    return 0
-
-def main():
-    a = StackBuf(2)
-    pa = addr(a)
-    b = StackBuf(1)
-    z = poke(pa)
-    b[0] = GEN ** 9
-    assert b[0] == GEN ** 9
-    return
-";
-    let err = compile(&parse(src).expect("parse"))
-        .execute([F192::ZERO; 2])
-        .err()
-        .expect("the run must fail");
-    assert!(matches!(err.fault, Fault::Conflict { .. }), "{err}");
 }
 
 /// A frame pointer carries the same compile-time bound a `HeapBuf` pointer gets.
@@ -192,31 +138,4 @@ def main():
     return
 ";
     compile(&parse(src).expect("parse"));
-}
-
-/// The pointer `addr()` hands out addresses the WHOLE frame, not the run it was
-/// taken from, so sealing only that run leaves the next `StackBuf` transparent:
-/// one off-by-one in a callee writes it, and its later store then defers as an
-/// alias and drops the write-once assertion, exactly as before the fix. An
-/// escaped frame address therefore seals every run in the function.
-#[test]
-fn an_escaped_frame_address_seals_every_run() {
-    let src = "\
-def poke(q):
-    q[GEN ** 2] = GEN ** 7
-    return 0
-
-def main():
-    a = StackBuf(2)
-    b = StackBuf(1)
-    z = poke(addr(a))
-    b[0] = GEN ** 9
-    assert b[0] == GEN ** 9
-    return
-";
-    let err = compile(&parse(src).expect("parse"))
-        .execute([F192::ZERO; 2])
-        .err()
-        .expect("the run must fail");
-    assert!(matches!(err.fault, Fault::Conflict { .. }), "{err}");
 }

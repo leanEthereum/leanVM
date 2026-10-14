@@ -10,3 +10,4 @@ pub use aggregation::{
     MAX_DA_ROOTS, MAX_KEYS, MAX_LEAF_INDICES, MAX_RECURSIONS, SignatureClaims, SphincsClaim, XmssClaimGroup, aggregate,
     aggregate_with_stats, warm_up,
 };
+pub use verifier::VerifierError;

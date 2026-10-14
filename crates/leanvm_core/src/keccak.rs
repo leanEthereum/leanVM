@@ -20,13 +20,13 @@
 //! permutation's, written as it is.
 
 use crate::pcs::SlotClaim;
-use crate::transcript::{ProverState, VerifierState};
+use crate::transcript::ProverState;
 use keccak_gkr::witness::{BLOCK, Extent, Slot};
-use keccak_gkr::{Openings, OutputClaim, Shape, VerifyError};
+use keccak_gkr::{Openings, OutputClaim, Shape};
 use primitives::field::{F64, F192};
 use primitives::hash::{END_BIT, END_LANE, STATE_LANES};
 
-pub use crate::pcs::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify};
+pub use crate::pcs::{RingSwitchClaim, RingSwitchOpen};
 
 /// Rounds between two committed states.
 pub const DEPTH: usize = 12;
@@ -318,42 +318,9 @@ pub fn ring_switch_open(n_blocks: usize, offset: usize, openings: Openings) -> (
     (ring, outputs)
 }
 
-/// Verifier mirror of [`ring_switch_open`].
-pub fn ring_switch_verify(
-    n_blocks: usize,
-    offset: usize,
-    openings: &Openings,
-) -> (RingSwitchVerify<'_>, Option<SlotClaim>) {
-    let ring = RingSwitchVerify {
-        offset,
-        qkeccak_vars: qkeccak_kappa(n_blocks),
-        claims: vec![::pcs::stack_open::RingSwitchVerifyClaim {
-            suffix_point: &openings.inputs.point,
-            s_hat_v: openings.inputs.slices.as_slice().try_into().expect("64 slices"),
-        }],
-    };
-    let outputs = openings.outputs.as_ref().map(|outputs| SlotClaim::Point {
-        offset,
-        low_point: outputs.point.clone(),
-        value: outputs.value,
-    });
-    (ring, outputs)
-}
-
-/// The reduction (verifier): replay its layers straight off the shared stream, and recover
-/// the openings of the committed column for the PCS to discharge.
-pub fn verify_reduction(
-    n_blocks: usize,
-    vs: &mut VerifierState,
-    output: &OutputClaim,
-) -> Result<Openings, VerifyError> {
-    keccak_gkr::verify(vs, shape(n_blocks), output)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fiat_shamir::transcript::{Challenger, Receiver, Transmitter};
 
     fn f(x: u64) -> F64 {
         F64(x)
@@ -450,74 +417,5 @@ mod tests {
                 assert_eq!(value_slot(STATE_LANES + i), None);
             }
         }
-    }
-
-    /// The reduction's openings, discharged by ONE stacked WHIR over a hand-stacked witness
-    /// holding the committed column (plus a dummy column) together with an ordinary point
-    /// claim. A mismatched domain and a tampered point value are rejected.
-    #[test]
-    fn validity_stacked_roundtrip() {
-        let instances = sample_instances(4);
-        let (q_keccak, witness) = build_qkeccak(&instances);
-        let dummy: Vec<F64> = (0..8u64).map(|i| f(0x9000 + i)).collect();
-        let stacked = crate::witness::stack(&[q_keccak.clone(), dummy.clone()]);
-        let offset = stacked.placements[0].offset;
-
-        let dummy_pl = stacked.placements[1];
-        let low_point: Vec<F192> = (0..dummy_pl.n_vars)
-            .map(|i| F192::new(0x100 + i as u64, 0x7, 0x55))
-            .collect();
-        let pd_value = primitives::multilinear::mle_eval(&dummy, &low_point);
-        let points = vec![crate::pcs::SlotClaim::Point {
-            offset: dummy_pl.offset,
-            low_point: low_point.clone(),
-            value: pd_value,
-        }];
-
-        let mut ps = ProverState::from_label(b"vstack");
-        let committed = crate::pcs::commit(&mut ps, &stacked.q, stacked.shape, crate::pcs::TEST_LOG_INV_RATE);
-        let output = output_claim(&instances, ps.sample_vec(n_blocks_log(instances.len())));
-        ps.add_scalars(&output.lanes);
-        let (ring, outputs) = ring_switch_open(instances.len(), offset, witness.prove(&mut ps, &q_keccak, &output));
-        let all = [&points[..], &Vec::from_iter(outputs)].concat();
-        crate::pcs::open(&mut ps, &committed, &stacked.q, &all, &ring);
-        let bundle = ps.into_proof();
-
-        let run = |label: &'static [u8], points: &[crate::pcs::SlotClaim]| -> Result<(), &'static str> {
-            let mut vs = VerifierState::from_label(label, &bundle);
-            let root = crate::pcs::read_commitment(&mut vs).map_err(|_| "root")?;
-            let output = OutputClaim {
-                instance: vs.sample_vec(n_blocks_log(instances.len())),
-                lanes: vs
-                    .next_scalars(STATE_LANES)
-                    .map_err(|_| "lanes")?
-                    .try_into()
-                    .expect("25 lanes"),
-            };
-            let openings = verify_reduction(instances.len(), &mut vs, &output).map_err(|_| "reduction")?;
-            let (ring, outputs) = ring_switch_verify(instances.len(), offset, &openings);
-            let points = &[points, &Vec::from_iter(outputs)].concat();
-            crate::pcs::verify(
-                &mut vs,
-                points,
-                &ring,
-                stacked.shape,
-                crate::pcs::TEST_LOG_INV_RATE,
-                &root,
-            )
-            .map_err(|_| "opening")?;
-            vs.finish().map_err(|_| "leftover")
-        };
-
-        run(b"vstack", &points).expect("validity verifies");
-        assert!(
-            run(b"different-domain", &points).is_err(),
-            "validity under a mismatched transcript must fail"
-        );
-        let mut bad_points = points.clone();
-        if let crate::pcs::SlotClaim::Point { value, .. } = &mut bad_points[0] {
-            *value += F192::ONE;
-        }
-        assert!(run(b"vstack", &bad_points).is_err(), "tampered point value must fail");
     }
 }

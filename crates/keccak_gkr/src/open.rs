@@ -7,12 +7,12 @@
 //! The first claim weighs the bits of a word as the word itself does, so its 64 evaluations
 //! are only ever needed as the one they add up to: the committed polynomial at that point.
 
-use fiat_shamir::transcript::{Receiver, Transmitter};
+use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, mle_eval, poly_eval};
 
 use crate::keccak::{BITS, LANES, along, iota_bit};
-use crate::protocol::{Claim, VerifyError, dot};
+use crate::protocol::{Claim, dot};
 use crate::witness::{BLOCK_WORDS, Shape, Witness};
 
 /// The 64 slices of the committed stack at `point`: bit `z` of every word, as a multilinear.
@@ -160,7 +160,7 @@ fn fold(table: &[F192], width: usize, rho: F192) -> Vec<F192> {
 
 /// Bind the leading variable of `scale * sum of a * b` in every round, down to one row of `a`.
 fn prove_rounds(
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
     mut a: Vec<F192>,
     mut b: Vec<F192>,
     width: usize,
@@ -180,24 +180,6 @@ fn prove_rounds(
         b = fold(&b, width, rho);
     }
     (a, b, point)
-}
-
-fn verify_rounds(vs: &mut impl Receiver, rounds: usize, value: &mut F192) -> Result<Vec<F192>, VerifyError> {
-    let mut point = Vec::with_capacity(rounds);
-    for _ in 0..rounds {
-        let h = vs.next_round_poly(3, *value, None)?;
-        let rho = vs.sample();
-        *value = poly_eval(&h, rho);
-        point.push(rho);
-    }
-    Ok(point)
-}
-
-fn fold_all(mut table: Vec<F192>, width: usize, point: &[F192]) -> Vec<F192> {
-    for &rho in point {
-        table = fold(&table, width, rho);
-    }
-    table
 }
 
 /// The weight a word-level claim puts on each slot: what [`slot_weights`] gives its bit 0.
@@ -224,7 +206,7 @@ pub fn output_claim(shape: Shape, committed: &[F64], instance: &[F192], claim: &
 /// Open `value`, the part of the first claim on the committed segment outputs, whose instance
 /// weights are `eq(instance, .)` and whose position weights are those of a word.
 pub fn open_outputs(
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
     shape: Shape,
     instance: &[F192],
     claim: &Claim,
@@ -240,26 +222,8 @@ pub fn open_outputs(
     }
 }
 
-pub fn verify_outputs(
-    vs: &mut impl Receiver,
-    shape: Shape,
-    instance: &[F192],
-    claim: &Claim,
-    mut value: F192,
-) -> Result<WordOpening, VerifyError> {
-    let slot = verify_rounds(vs, shape.slot_log(), &mut value)?;
-    let word = vs.next_scalar()?;
-    if fold_all(word_weights(shape, claim), 1, &slot)[0] * word != value {
-        return Err(VerifyError::Opening);
-    }
-    Ok(WordOpening {
-        point: [instance, &slot].concat(),
-        value: word,
-    })
-}
-
 /// Open the claim on the inputs: the instances of a pack first, then the slot.
-pub fn open_inputs(ps: &mut impl Transmitter, witness: &Witness, claim: &Claim) -> Opening {
+pub fn open_inputs(ps: &mut ProverState, witness: &Witness, claim: &Claim) -> Opening {
     let shape = witness.shape;
     let pack = &claim.point[..shape.pack_vars()];
     let folded = fold_packs(witness, pack);
@@ -290,25 +254,4 @@ pub fn open_inputs(ps: &mut impl Transmitter, witness: &Witness, claim: &Claim) 
         point: [&low, pack, &slot].concat(),
         slices,
     }
-}
-
-pub fn verify_inputs(vs: &mut impl Receiver, shape: Shape, claim: &Claim) -> Result<Opening, VerifyError> {
-    let mut value = claim.value;
-    let low = verify_rounds(vs, 4, &mut value)?;
-    let mu = dot(&eq_table(&low), &claim.mu);
-    let slot = verify_rounds(vs, shape.slot_log(), &mut value)?;
-    let slices = vs.next_scalars(64)?;
-    if mu
-        * dot(
-            &fold_all(slot_weights(shape, claim, 0, shape.segments()), 64, &slot),
-            &slices,
-        )
-        != value
-    {
-        return Err(VerifyError::Opening);
-    }
-    Ok(Opening {
-        point: [&low, &claim.point[..shape.pack_vars()], &slot].concat(),
-        slices,
-    })
 }

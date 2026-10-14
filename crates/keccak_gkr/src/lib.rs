@@ -24,8 +24,8 @@
 //! prover sends, plus the last segment's, which the caller's lane values give. `depth` layers turn
 //! the claim into one on the committed inputs, and both end as openings of the commitment
 //! ([`open`]): the committed outputs as words at one point, the inputs as their 64 bit slices at
-//! another. The caller's instance point is a challenge drawn after the commitment and after its
-//! lane values are bound, so a batch that breaks the permutation anywhere makes the first claim
+//! another. The caller's instance point is a challenge drawn after the commitment, and the
+//! claim's segment and lane challenges after the caller's lane values are bound, so a batch that breaks the permutation anywhere makes the first claim
 //! false of what the inputs imply, except with the probability a nonzero multilinear vanishes at
 //! a random point.
 //!
@@ -33,8 +33,8 @@
 //!
 //! A round is `chi` after a linear map. On the state `u` the linear map produces, `chi` sets
 //! position `j` to `u[j] + (1 + u[j + 1]) * u[j + 2]`, with `j + k` the position `k` columns
-//! along. A claim on a round's output becomes one on its input in six steps
-//! ([`protocol::verify_layer`]):
+//! along. A claim on a round's output becomes one on its input in six steps (the
+//! verifier's are `crates/verifier`'s `keccak.rs`, the prover's [`prover::prove_layer`]):
 //!
 //! 1. **Product polynomial.** Sixteen bits embed in a binary polynomial of degree at most 23, in
 //!    such a way that a fixed linear map sends a product of two embeddings to the embedding of
@@ -78,7 +78,7 @@
 //! arithmetic in the power basis of `s`, where a pack's value is its embedding's bits and a
 //! weighted sum is a carry-less product ([`basis`], [`power`]).
 
-use fiat_shamir::transcript::{Receiver, Transmitter};
+use fiat_shamir::transcript::ProverState;
 
 pub mod basis;
 pub mod keccak;
@@ -97,8 +97,8 @@ pub use open::{Opening, Openings, WordOpening};
 
 /// A claim on the permutation's output, from outside the reduction: `lanes[l]` is lane `l` of
 /// the output state, as words over the instances, evaluated at `instance` (an instance index's
-/// low four variables first). Both must be bound to the transcript before [`prove`] and
-/// [`verify`] run, the point being a challenge drawn after the commitment.
+/// low four variables first). Both must be bound to the transcript before [`prove`] runs, the
+/// point being a challenge drawn after the commitment.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OutputClaim {
     pub instance: Vec<F192>,
@@ -124,13 +124,12 @@ impl OutputClaim {
         Self { instance, lanes }
     }
 }
-pub use protocol::VerifyError;
 pub use witness::{Shape, Witness};
 
 use keccak::LANE_VARS;
 use primitives::field::F192;
 use primitives::multilinear::eq_table;
-use protocol::{Claim, dot, first_claim, verify_layer};
+use protocol::{Claim, dot, first_claim};
 
 /// The first claim, valued at the last segment's part only: the caller's lanes, at the claim's
 /// segment and lane weights.
@@ -146,7 +145,7 @@ fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]
 /// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to openings
 /// of the commitment. `committed` is what [`Witness::generate`] wrote.
 pub fn prove(
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
     witness: &Witness,
     committed: &[primitives::field::F64],
     output: &OutputClaim,
@@ -175,34 +174,6 @@ pub fn prove(
     Openings { outputs, inputs }
 }
 
-/// Mirror of [`prove`]. The caller checks the openings against the commitment.
-pub fn verify(vs: &mut impl Receiver, shape: Shape, output: &OutputClaim) -> Result<Openings, VerifyError> {
-    let (segment, r_lane) = (vs.sample_vec(shape.seg_log()), vs.sample_vec(LANE_VARS));
-    let mut first = first(shape, output, segment, &r_lane);
-    let committed_value = if shape.segments() > 1 {
-        vs.next_scalar()?
-    } else {
-        F192::ZERO
-    };
-    first.value += committed_value;
-    let mut claim = first.clone();
-    for step in 0..shape.depth {
-        claim = verify_layer(vs, shape, step, &claim)?;
-    }
-    let outputs = match shape.segments() > 1 {
-        true => Some(open::verify_outputs(
-            vs,
-            shape,
-            &output.instance,
-            &first,
-            committed_value,
-        )?),
-        false => None,
-    };
-    let inputs = open::verify_inputs(vs, shape, &claim)?;
-    Ok(Openings { outputs, inputs })
-}
-
 /// The words of a stack holding the committed states alone.
 pub fn committed_len(shape: Shape) -> usize {
     1 << shape.stack_log()
@@ -211,7 +182,7 @@ pub fn committed_len(shape: Shape) -> usize {
 /// Discharge the two openings against the commitment to `stack`, which holds the committed
 /// states alone.
 pub fn open_commitment(
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
     shape: Shape,
     stack: &[primitives::field::F64],
     prover_data: &pcs::whir::ProverData,
@@ -236,31 +207,4 @@ fn word_claim(opening: WordOpening) -> pcs::stack_open::StackClaim {
         low_point: opening.point,
         value: opening.value,
     }
-}
-
-/// Mirror of [`open_commitment`].
-pub fn verify_commitment(
-    vs: &mut impl Receiver,
-    shape: Shape,
-    config: &pcs::whir::VerifierConfig,
-    root: &pcs::merkle::Hash,
-    openings: &Openings,
-) -> Result<(), pcs::whir::VerifyError> {
-    let ring = pcs::stack_open::RingSwitchVerify {
-        offset: 0,
-        qkeccak_vars: shape.stack_log(),
-        claims: vec![pcs::stack_open::RingSwitchVerifyClaim {
-            suffix_point: &openings.inputs.point,
-            s_hat_v: openings.inputs.slices.as_slice().try_into().expect("64 slices"),
-        }],
-    };
-    pcs::stack_open::verify_opening_batch_mixed_whir_stacked(
-        vs,
-        config,
-        shape.stack_log(),
-        1 << pcs::whir::INITIAL_FOLDING_FACTOR,
-        root,
-        &openings.outputs.iter().cloned().map(word_claim).collect::<Vec<_>>(),
-        &ring,
-    )
 }

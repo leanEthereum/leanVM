@@ -24,37 +24,22 @@
 use crate::merkle::{self, Hash};
 use crate::ntt::AdditiveNttF64;
 use fiat_shamir::merkle::PrunedMerklePaths;
-use fiat_shamir::transcript::{Challenger, Error as TranscriptError, Receiver, Transmitter};
+use fiat_shamir::transcript::ProverState;
 use primitives::{
     field::{F64, F192, F192Unreduced, powers},
-    multilinear::eq_eval,
     stream::Stream,
 };
 
 pub use super::whir_config::{
     FinalBlockConfig, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
     ProverConfig, QUERY_GRINDING_BITS, RESIDUAL_MAX_LOG, RS_DOMAIN_INITIAL_REDUCTION_FACTOR, SECURITY_BITS,
-    SUBSEQUENT_FOLDING_FACTOR, VerifierConfig, WhirLevelConfig, WhirSecurityConfig, validate_log_inv_rate,
+    SUBSEQUENT_FOLDING_FACTOR, WhirLevelConfig, WhirSecurityConfig, validate_log_inv_rate,
 };
 #[cfg(test)]
 pub use super::whir_config::{default_config, udr_queries};
 
 pub use crate::whir_induce::*;
 use crate::whir_ntt_ext::*;
-
-/// Why a WHIR opening was rejected.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum VerifyError {
-    Transcript(TranscriptError),
-    InvalidShape,
-    TerminalMismatch,
-}
-
-impl From<TranscriptError> for VerifyError {
-    fn from(error: TranscriptError) -> Self {
-        Self::Transcript(error)
-    }
-}
 
 // ===================================================================
 // Multilinear helpers over E
@@ -79,40 +64,7 @@ pub fn build_eq_table_ext(point: &[F192]) -> Vec<F192> {
     out
 }
 
-/// Evaluate an E-valued multilinear table at an E-valued point, LSB-first.
-fn mle_eval_ext(table: &[F192], point: &[F192]) -> F192 {
-    assert_eq!(table.len(), 1usize << point.len());
-    let mut folded = table.to_vec();
-    for &challenge in point {
-        let half = folded.len() / 2;
-        for row in 0..half {
-            let lo = folded[2 * row];
-            let hi = folded[2 * row + 1];
-            folded[row] = lo + challenge * (lo + hi);
-        }
-        folded.truncate(half);
-    }
-    folded[0]
-}
-
 use primitives::multilinear::eq_table as build_eq_table_ext_parallel;
-
-/// Partially evaluate the multilinear extension of `evals` at the first
-/// `rs.len()` (LSB) variables. Mirror of `whir::partial_eval_lsb`.
-#[cfg(test)]
-pub(crate) fn partial_eval_lsb_ext(evals: &[F192], rs: &[F192]) -> Vec<F192> {
-    let mut cur = evals.to_vec();
-    for &r in rs {
-        let one_plus_r = F192::ONE + r;
-        let half = cur.len() / 2;
-        let mut next = Vec::with_capacity(half);
-        for i in 0..half {
-            next.push(cur[2 * i] * one_plus_r + cur[2 * i + 1] * r);
-        }
-        cur = next;
-    }
-    cur
-}
 
 /// Mixed inner product `Σ_i b[i] · witness[i]` (E x K via `mul_base`). The
 /// evaluation-claim `target` for a K-witness against an E-basis.
@@ -303,22 +255,11 @@ pub(crate) struct SumcheckMessage {
 }
 
 /// Transmit the constant and quadratic coefficients; the claim fixes the linear coefficient.
-fn send_msg(ps: &mut impl Transmitter, m: SumcheckMessage, claim: F192) {
+fn send_msg(ps: &mut ProverState, m: SumcheckMessage, claim: F192) {
     ps.add_round_poly(&[m.u_0, claim + m.u_2, m.u_2], false);
 }
 
-/// Verifier mirror of [`send_msg`]. The round polynomial already travels in the
-/// coefficient form the folds use.
-fn recv_quad(vs: &mut impl Receiver, claim: F192) -> Result<RoundQuad, TranscriptError> {
-    let h = vs.next_round_poly(3, claim, None)?;
-    Ok(RoundQuad {
-        c: h[0],
-        b: h[1],
-        a: h[2],
-    })
-}
-
-/// Round-quadratic in coefficient form `c + b X + a X^2` (verifier side).
+/// Round-quadratic in coefficient form `c + b X + a X^2`.
 #[derive(Clone, Copy, Debug)]
 struct RoundQuad {
     c: F192, // u_0
@@ -1010,7 +951,7 @@ impl<'a> SumcheckProver<'a> {
 /// `config.queries`). Duplicates are harmless, a repeated position re-opens the
 /// same Merkle-authenticated row.
 ///
-fn sample_queries_ordered(ch: &mut impl Challenger, block_len: usize, count: usize) -> Vec<usize> {
+fn sample_queries_ordered(ch: &mut ProverState, block_len: usize, count: usize) -> Vec<usize> {
     let d = block_len.trailing_zeros() as usize;
     let per = 192 / d;
     let mut out = Vec::with_capacity(count);
@@ -1035,8 +976,8 @@ fn sample_queries_ordered(ch: &mut impl Challenger, block_len: usize, count: usi
 /// and its intro message. The claim stays pending: the level's batching
 /// challenge is drawn only once its query positions are fixed too, and
 /// `glue_pending` then folds every claim of the level in with its own power.
-/// Mirror of the verifiers' [`replay_ood`], operation for operation.
-fn send_ood(sc: &mut SumcheckProver<'_>, ps: &mut impl Transmitter, n_vars: usize, count: usize) {
+/// A verifier replays it operation for operation.
+fn send_ood(sc: &mut SumcheckProver<'_>, ps: &mut ProverState, n_vars: usize, count: usize) {
     for _ in 0..count {
         let z = ps.sample_vec(n_vars);
         let (intro, y) = sc.introduce_new_with_eval(build_eq_table_ext_parallel(&z));
@@ -1048,12 +989,6 @@ fn send_ood(sc: &mut SumcheckProver<'_>, ps: &mut impl Transmitter, n_vars: usiz
 /// An `E` row as the `F64` words its Merkle leaf is hashed from.
 fn ext_row_words(row: &[F192]) -> Vec<F64> {
     row.iter().flat_map(|v| [F64(v.c0), F64(v.c1), F64(v.c2)]).collect()
-}
-
-/// The inverse of [`ext_row_words`]. The row was already checked to be `3w`
-/// words wide, which is what makes the regrouping exact.
-fn ext_row_from_words(words: &[F64]) -> Vec<F192> {
-    words.chunks(3).map(|c| F192::new(c[0].0, c[1].0, c[2].0)).collect()
 }
 
 /// Prove `Σ_x witness(x) · b_initial(x) = target` against the L0 commitment
@@ -1068,7 +1003,7 @@ fn ext_row_from_words(words: &[F64]) -> Vec<F192> {
 /// whole number of lane blocks, and `b_initial` must be the weight restricted to
 /// them, with the weight VANISHING at every boolean point of
 /// `[witness.len(), 2^log_n)`. The lane rounds treat the absent blocks as zero
-/// while the verifier's `eval_b_at` evaluates the closed form over the whole cube,
+/// while a verifier evaluates the weight's closed form over the whole cube,
 /// so a weight that is nonzero out there produces a proof that fails only at the
 /// terminal check. `stack_open` discharges this by bounding every claim's support
 /// by `stack.len()`; `ood_samples[0] == 0` is what keeps a full-tensor OOD weight
@@ -1083,7 +1018,7 @@ pub fn recursive_prover_with_basis(
     target: F192,
     l0_codeword: &[F64],
     l0_tree: &[Hash],
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
 ) {
     recursive_prover_with_prepared_basis(
         config,
@@ -1107,7 +1042,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     l0_codeword: &[F64],
     l0_tree: &[Hash],
     initial_message: Option<SumcheckMessage>,
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
 ) {
     let r = config.level_steps;
     let initial_k = config.initial_k;
@@ -1139,7 +1074,7 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     assert_eq!(l0_codeword.len(), block_len_0 * n_lanes);
     assert_eq!(l0_tree.len(), 2 * block_len_0 - 1);
 
-    // Nothing is absorbed on entry. The commitment was bound by the `add_root`/`next_root` that
+    // Nothing is absorbed on entry. The commitment was bound by the `add_root` that
     // transmitted it, and the target is `sum_i lambda^i * claim_i` over claim values bound by their
     // own reads, with lambda drawn from the state: the state already determines both. Every caller
     // must therefore have transmitted its root before opening against it, which is what makes the
@@ -1362,855 +1297,12 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     unreachable!()
 }
 
-// ===================================================================
-// Dense verifier
-// ===================================================================
-
-/// Pull the next Merkle phase, authenticated against `root`, and decode its
-/// leaf words into the rows the level committed. `row_words` announces what the
-/// proof stores and `leaf_words` the image it hashes to, which pins what the
-/// octopus is checked against; they differ only at a padding-free L0, whose absent
-/// lanes ride the image as a zero prefix. The decoded rows are full images.
-fn recv_level_rows<T>(
-    vs: &mut impl Receiver,
-    root: &Hash,
-    block_len: usize,
-    queries: &[usize],
-    row_words: usize,
-    leaf_words: usize,
-    decode: impl Fn(Vec<F64>) -> T,
-) -> Result<Vec<T>, TranscriptError> {
-    let rows = vs.next_merkle_batch(root, block_len, queries, row_words, leaf_words)?;
-    Ok(rows.into_iter().map(decode).collect())
-}
-
-/// Decode for an L0 leaf image: the image is lane-DESCENDING, so that a
-/// padding-free commitment's absent lanes are its leading words, and reversing it
-/// puts stack block `b` back at index `b`, which is what the induce folds.
-fn l0_row_ascending(mut row: Vec<F64>) -> Vec<F64> {
-    row.reverse();
-    row
-}
-
-/// The already-committed level whose rows the next query phase opens: its root
-/// plus the shape both verifiers re-derive the block length and leaf width from.
-struct PrevLevel {
-    root: Hash,
-    log_num_interleaved: usize,
-    log_msg_cols: usize,
-    log_inv_rate: usize,
-}
-
-impl PrevLevel {
-    #[inline]
-    fn block_len(&self) -> usize {
-        1usize << (self.log_msg_cols + self.log_inv_rate)
-    }
-
-    #[inline]
-    fn num_interleaved(&self) -> usize {
-        1usize << self.log_num_interleaved
-    }
-
-    /// Step to the level just committed, which folds `k_next` of the
-    /// `n_current` remaining variables. `None` when the announced shape cannot
-    /// hold them.
-    fn advance(&mut self, root: Hash, k_next: usize, n_current: usize, log_inv_rate: usize) -> Option<()> {
-        self.root = root;
-        self.log_num_interleaved = k_next;
-        self.log_msg_cols = n_current.checked_sub(k_next)?;
-        self.log_inv_rate = log_inv_rate;
-        Some(())
-    }
-}
-
-/// Replay each fold challenge and its following round message, in prover order.
-fn replay_fold_rounds(
-    vs: &mut impl Receiver,
-    k: usize,
-    t_r: &mut F192,
-    running_quad: &mut RoundQuad,
-) -> Result<Vec<F192>, TranscriptError> {
-    let mut rs = Vec::with_capacity(k);
-    for _ in 0..k {
-        let ri = vs.sample();
-        rs.push(ri);
-        *t_r = running_quad.eval(ri);
-        *running_quad = recv_quad(vs, *t_r)?;
-    }
-    Ok(rs)
-}
-
-/// One replayed OOD claim: the point `z` it was taken at, its claimed value and
-/// the intro message that carries it into the running sumcheck. Both are held
-/// until the level's batching challenge is drawn (the prover holds the matching
-/// basis pending, see [`send_ood`]).
-struct OodReplay {
-    z: Vec<F192>,
-    y: F192,
-    intro_quad: RoundQuad,
-}
-
-/// Replay one OOD claim: draw its point, then read its value and intro message.
-fn replay_ood(vs: &mut impl Receiver, n_vars: usize) -> Result<OodReplay, TranscriptError> {
-    let z = vs.sample_vec(n_vars);
-    let y = vs.next_scalar()?;
-    let intro_quad = recv_quad(vs, y)?;
-    Ok(OodReplay { z, y, intro_quad })
-}
-
-/// Fold the level's pending claims into the running one with powers of its
-/// batching challenge, in Protocol 1 step 1 order (the OOD claims, then the
-/// query batch), and return the power each was scaled by, for the terminal
-/// weight. The running claim keeps `lambda^0 = 1`.
-fn batch_level_claims(
-    lambda: F192,
-    ood: &[OodReplay],
-    query_intro: &RoundQuad,
-    query_sum: F192,
-    t_r: &mut F192,
-    running_quad: &mut RoundQuad,
-) -> (Vec<F192>, F192) {
-    let mut scalar = F192::ONE;
-    let mut ood_scalars = Vec::with_capacity(ood.len());
-    for claim in ood {
-        scalar *= lambda;
-        *running_quad = RoundQuad::fold(running_quad, &claim.intro_quad, scalar);
-        *t_r += scalar * claim.y;
-        ood_scalars.push(scalar);
-    }
-    scalar *= lambda;
-    *running_quad = RoundQuad::fold(running_quad, query_intro, scalar);
-    *t_r += scalar * query_sum;
-    (ood_scalars, scalar)
-}
-
-/// Dense verifier for [`recursive_prover_with_basis`]: materializes `b_initial` and
-/// every induced basis poly, replays the transcript, and checks the residual
-/// inner product against the running sum-claim. Production callers should
-/// prefer [`recursive_verifier_with_basis_succinct`]; this one exists for
-/// correctness testing (dense/succinct agreement) and benchmarking.
-#[cfg(test)]
-pub fn recursive_verifier_with_basis(
-    config: &VerifierConfig,
-    n_lanes: usize,
-    b_initial: &[F192],
-    target: F192,
-    expected_initial_root: &Hash,
-    vs: &mut impl Receiver,
-) -> bool {
-    let log_n = b_initial.len().trailing_zeros() as usize;
-    let initial_k = config.initial_k;
-    let r = config.level_steps;
-
-    if r < 1 || config.level_ks.len() != r || config.log_inv_rates.len() != r + 1 {
-        return false;
-    }
-    if b_initial.len() != 1usize << log_n {
-        return false;
-    }
-    if config.ood_samples.first().copied().unwrap_or(0) != 0 {
-        return false;
-    }
-
-    // The caller already bound the root and claim values through the transcript.
-
-    let log_inv_rate_0 = config.log_inv_rates[0];
-    let log_msg_cols_0 = log_n - initial_k;
-    let block_len_0 = 1usize << (log_msg_cols_0 + log_inv_rate_0);
-    let num_interleaved_0 = 1usize << initial_k;
-
-    // Replay sumcheck: start msg, then initial_k folds.
-    let mut t_r = target;
-    let Ok(mut running_quad) = recv_quad(vs, t_r) else {
-        return false;
-    };
-
-    let ood_count = |lvl: usize| -> usize { config.ood_samples.get(lvl).copied().unwrap_or(0) };
-    let mut ood_bases: Vec<(Vec<F192>, usize, F192)> = Vec::new();
-
-    let Ok(r_lane_fold) = replay_fold_rounds(vs, initial_k, &mut t_r, &mut running_quad) else {
-        return false;
-    };
-
-    // Observe wtns_1 root + open wtns_0.
-    let Ok(root_1) = vs.next_root() else {
-        return false;
-    };
-
-    let mut level_ood = Vec::with_capacity(ood_count(1));
-    for _ in 0..ood_count(1) {
-        let Ok(ood) = replay_ood(vs, log_n - initial_k) else {
-            return false;
-        };
-        level_ood.push(ood);
-    }
-
-    // PoW grinding check for L0's query phase (no-op at 0 bits but keeps the
-    // FS state in lockstep with the prover).
-    if vs.grind_check(config.grinding_bits[0] as u32).is_err() {
-        return false;
-    }
-
-    let num_queries_0 = config.queries[0];
-    let queries_0 = sample_queries_ordered(vs, block_len_0, num_queries_0);
-    let lambda_0 = vs.sample();
-    let weights_0 = powers(lambda_0, num_queries_0);
-    let Ok(ordered_rows_0) = recv_level_rows(
-        vs,
-        expected_initial_root,
-        block_len_0,
-        &queries_0,
-        n_lanes,
-        num_interleaved_0,
-        l0_row_ascending,
-    ) else {
-        return false;
-    };
-
-    // L0 induce with the same auto dispatch as the prover (dense vs sparse
-    // transposed-NTT; identical outputs either way).
-    let n1 = log_n - initial_k;
-    let sks_vks_n1 = eval_sk_at_vks(n1);
-    let (basis_0_induced, enforced_sum_0) = induce_sumcheck_poly_auto_base(
-        n1,
-        log_inv_rate_0,
-        &sks_vks_n1,
-        &ordered_rows_0,
-        &r_lane_fold,
-        &queries_0,
-        &weights_0,
-    );
-
-    // Intro, then batch every claim of the level with powers of lambda_0.
-    let Ok(intro_quad_0) = recv_quad(vs, enforced_sum_0) else {
-        return false;
-    };
-    let (ood_scalars_0, query_scalar_0) = batch_level_claims(
-        lambda_0,
-        &level_ood,
-        &intro_quad_0,
-        enforced_sum_0,
-        &mut t_r,
-        &mut running_quad,
-    );
-    for (ood, scalar) in level_ood.iter().zip(&ood_scalars_0) {
-        ood_bases.push((build_eq_table_ext(&ood.z), initial_k, *scalar));
-    }
-
-    // Basis poly tracking for the residual check. Slot 0 is `b_initial`, evaluated
-    // at the whole (rotated) point; every later slot is an induced basis evaluated
-    // at a suffix of `ris`, so the two side vectors describe slots 1.. and are
-    // indexed `[k - 1]`.
-    let mut basis_polys: Vec<Vec<F192>> = vec![b_initial.to_vec(), basis_0_induced];
-    let mut basis_ris_starts: Vec<usize> = vec![initial_k];
-    let mut basis_separations: Vec<F192> = vec![query_scalar_0];
-    let mut ris = r_lane_fold;
-
-    let mut prev = PrevLevel {
-        root: root_1,
-        log_num_interleaved: config.level_ks[0],
-        log_msg_cols: n1 - config.level_ks[0],
-        log_inv_rate: config.log_inv_rates[1],
-    };
-    let mut n_current = n1;
-
-    for i in 0..r {
-        let k_i = config.level_ks[i];
-        if n_current < k_i {
-            return false;
-        }
-        let Ok(level_rs) = replay_fold_rounds(vs, k_i, &mut t_r, &mut running_quad) else {
-            return false;
-        };
-        ris.extend_from_slice(&level_rs);
-        n_current -= k_i;
-
-        if i == r - 1 {
-            let Ok(yr) = vs.next_scalars(1 << n_current) else {
-                return false;
-            };
-            // PoW grinding check for the last level.
-            if vs.grind_check(config.grinding_bits[i + 1] as u32).is_err() {
-                return false;
-            }
-
-            let num_queries_last = config.queries[i + 1];
-            let queries_last = sample_queries_ordered(vs, prev.block_len(), num_queries_last);
-            // Final-level batching challenge: sampled AFTER `yr` was observed
-            // and the queries are fixed, so a forged `yr` cannot be adapted to
-            // it.
-            let lambda_last = vs.sample();
-            let weights_last = powers(lambda_last, num_queries_last);
-            let leaf_words = 3 * prev.num_interleaved();
-            let Ok(ordered_rows_last) = recv_level_rows(
-                vs,
-                &prev.root,
-                prev.block_len(),
-                &queries_last,
-                leaf_words,
-                leaf_words,
-                |row| ext_row_from_words(&row),
-            ) else {
-                return false;
-            };
-
-            // Bind the LAST commitment to `yr`: induce its opened rows into
-            // the sumcheck like every non-final level, batched with the level's
-            // own lambda.
-            let sks_vks_last = eval_sk_at_vks(n_current);
-            let (basis_last_induced, enforced_sum_last) = induce_sumcheck_poly(
-                n_current,
-                &sks_vks_last,
-                &ordered_rows_last,
-                &level_rs,
-                &queries_last,
-                &weights_last,
-            );
-            let Ok(intro_quad_last) = recv_quad(vs, enforced_sum_last) else {
-                return false;
-            };
-            // No OOD at the final level: there is no new oracle to bind.
-            let (_, query_scalar_last) = batch_level_claims(
-                lambda_last,
-                &[],
-                &intro_quad_last,
-                enforced_sum_last,
-                &mut t_r,
-                &mut running_quad,
-            );
-            basis_polys.push(basis_last_induced);
-            basis_ris_starts.push(ris.len());
-            basis_separations.push(query_scalar_last);
-
-            // Finish the residual sumcheck rounds, then evaluate every dense
-            // basis and the transmitted final message at the one terminal point.
-            let mut ris_tail = Vec::with_capacity(n_current);
-            for j in 0..n_current {
-                let ri = vs.sample();
-                t_r = running_quad.eval(ri);
-                ris_tail.push(ri);
-                if j + 1 < n_current {
-                    let Ok(q) = recv_quad(vs, t_r) else {
-                        return false;
-                    };
-                    running_quad = q;
-                }
-            }
-            ris.extend_from_slice(&ris_tail);
-            // `b_initial` is indexed by witness variable, while `ris` is in round
-            // order and the first `initial_k` rounds bound the lane (top) variables:
-            // the same rotation the succinct path applies before `eval_b_at`. Its
-            // separation is 1, so it opens the sum.
-            if basis_polys[0].len() != 1usize << ris.len() {
-                return false;
-            }
-            let mut point = ris.clone();
-            point.rotate_left(initial_k);
-            let mut weight = mle_eval_ext(&basis_polys[0], &point);
-            for ((basis, &start), &sep) in basis_polys[1..].iter().zip(&basis_ris_starts).zip(&basis_separations) {
-                let folded = partial_eval_lsb_ext(basis, &ris[start..]);
-                if folded.len() != 1 {
-                    return false;
-                }
-                weight += sep * folded[0];
-            }
-            for (basis, start, beta) in &ood_bases {
-                let at = partial_eval_lsb_ext(basis, &ris[*start..]);
-                if at.len() != 1 {
-                    return false;
-                }
-                weight += *beta * at[0];
-            }
-            return weight * mle_eval_ext(&yr, &ris_tail) == t_r;
-        }
-
-        let Ok(root_next) = vs.next_root() else {
-            return false;
-        };
-
-        let mut level_ood = Vec::with_capacity(ood_count(i + 2));
-        for _ in 0..ood_count(i + 2) {
-            let Ok(ood) = replay_ood(vs, n_current) else {
-                return false;
-            };
-            level_ood.push(ood);
-        }
-        let ood_ris_start = ris.len();
-
-        // PoW grinding check for this iteration's query phase.
-        if vs.grind_check(config.grinding_bits[i + 1] as u32).is_err() {
-            return false;
-        }
-
-        let num_queries_i = config.queries[i + 1];
-        let queries_i = sample_queries_ordered(vs, prev.block_len(), num_queries_i);
-        let lambda_i = vs.sample();
-        let weights_i = powers(lambda_i, num_queries_i);
-        let leaf_words = 3 * prev.num_interleaved();
-        let Ok(ordered_rows_i) = recv_level_rows(
-            vs,
-            &prev.root,
-            prev.block_len(),
-            &queries_i,
-            leaf_words,
-            leaf_words,
-            |row| ext_row_from_words(&row),
-        ) else {
-            return false;
-        };
-
-        let sks_vks_i = eval_sk_at_vks(n_current);
-        let (basis_i_induced, enforced_sum_i) = induce_sumcheck_poly(
-            n_current,
-            &sks_vks_i,
-            &ordered_rows_i,
-            &level_rs,
-            &queries_i,
-            &weights_i,
-        );
-
-        let Ok(intro_quad_i) = recv_quad(vs, enforced_sum_i) else {
-            return false;
-        };
-        let (ood_scalars_i, query_scalar_i) = batch_level_claims(
-            lambda_i,
-            &level_ood,
-            &intro_quad_i,
-            enforced_sum_i,
-            &mut t_r,
-            &mut running_quad,
-        );
-        for (ood, scalar) in level_ood.iter().zip(&ood_scalars_i) {
-            ood_bases.push((build_eq_table_ext(&ood.z), ood_ris_start, *scalar));
-        }
-        basis_polys.push(basis_i_induced);
-        basis_ris_starts.push(ris.len());
-        basis_separations.push(query_scalar_i);
-
-        if prev
-            .advance(
-                root_next,
-                config.level_ks[i + 1],
-                n_current,
-                config.log_inv_rates[i + 2],
-            )
-            .is_none()
-        {
-            return false;
-        }
-    }
-
-    unreachable!()
-}
-
-// ===================================================================
-// Succinct verifier
-// ===================================================================
-
-/// Succinct verifier for [`recursive_prover_with_basis`]: instead of a dense
-/// `b_initial` (2^log_n E-values) it takes a closure `eval_b_at` that evaluates
-/// b's multilinear extension once, at the final fold point INDEXED BY WITNESS
-/// COORDINATE: the fold challenges arrive in round order and the first `initial_k`
-/// rounds are the lane fold, which binds the witness's top `initial_k` coords, so
-/// the point is rotated left by `initial_k` before the closure sees it.
-///
-/// Per-level induced bases are never materialized: intro time uses the cheap
-/// enforced-sum recomputation, and the residual uses the closed-form
-/// `induce_sumcheck_evaluate_at_residual`. `log_n` is the committed
-/// K-witness log size (b's logical dimension). Transcript replay is
-/// byte-identical to the dense verifier.
-pub fn recursive_verifier_with_basis_succinct<F>(
-    config: &VerifierConfig,
-    log_n: usize,
-    n_lanes: usize,
-    target: F192,
-    expected_initial_root: &Hash,
-    eval_b_at: F,
-    vs: &mut impl Receiver,
-) -> Result<(), VerifyError>
-where
-    // Called once at the terminal check with the full fold point.
-    F: Fn(&[F192]) -> F192,
-{
-    let initial_k = config.initial_k;
-    let r = config.level_steps;
-    // The L0 rows the proof stores: the committed lanes, the rest of the leaf image
-    // being the zero prefix the absent ones contribute. Derived from the announced
-    // layout by the caller, so it is not the prover's to choose.
-    if n_lanes == 0 || n_lanes > 1usize << initial_k {
-        return Err(VerifyError::InvalidShape);
-    }
-    if r < 1 || config.level_ks.len() != r || config.log_inv_rates.len() != r + 1 {
-        return Err(VerifyError::InvalidShape);
-    }
-    if config.ood_samples.first().copied().unwrap_or(0) != 0 {
-        return Err(VerifyError::InvalidShape);
-    }
-
-    // The caller already bound the root and claim values through the transcript.
-
-    let log_inv_rate_0 = config.log_inv_rates[0];
-    let log_msg_cols_0 = log_n - initial_k;
-    let block_len_0 = 1usize << (log_msg_cols_0 + log_inv_rate_0);
-    let num_interleaved_0 = 1usize << initial_k;
-
-    let mut t_r = target;
-    let mut running_quad = recv_quad(vs, t_r)?;
-
-    let ood_count = |lvl: usize| -> usize { config.ood_samples.get(lvl).copied().unwrap_or(0) };
-    struct OodCtx {
-        z: Vec<F192>,
-        ris_start: usize,
-        beta: F192,
-    }
-    let mut ood_ctxs: Vec<OodCtx> = Vec::new();
-
-    let r_lane_fold = replay_fold_rounds(vs, initial_k, &mut t_r, &mut running_quad)?;
-
-    let root_1 = vs.next_root()?;
-
-    let mut level_ood = Vec::with_capacity(ood_count(1));
-    for _ in 0..ood_count(1) {
-        let ood = replay_ood(vs, log_n - initial_k)?;
-        level_ood.push(ood);
-    }
-
-    // PoW grinding check for L0's query phase.
-    vs.grind_check(config.grinding_bits[0] as u32)?;
-
-    let num_queries_0 = config.queries[0];
-    let queries_0 = sample_queries_ordered(vs, block_len_0, num_queries_0);
-    let lambda_0 = vs.sample();
-    let weights_0 = powers(lambda_0, num_queries_0);
-    let ordered_rows_0 = recv_level_rows(
-        vs,
-        expected_initial_root,
-        block_len_0,
-        &queries_0,
-        n_lanes,
-        num_interleaved_0,
-        l0_row_ascending,
-    )?;
-
-    // Compute enforced_sum cheaply at intro time. The induced basis poly's
-    // residual evaluations are deferred to the final closed-form check.
-    let n1 = log_n - initial_k;
-    let enforced_sum_0 = induce_sumcheck_enforced_sum(&ordered_rows_0, &r_lane_fold, &queries_0, &weights_0);
-
-    let intro_quad_0 = recv_quad(vs, enforced_sum_0)?;
-    let (ood_scalars_0, query_scalar_0) = batch_level_claims(
-        lambda_0,
-        &level_ood,
-        &intro_quad_0,
-        enforced_sum_0,
-        &mut t_r,
-        &mut running_quad,
-    );
-    for (ood, scalar) in level_ood.into_iter().zip(ood_scalars_0) {
-        ood_ctxs.push(OodCtx {
-            z: ood.z,
-            ris_start: initial_k,
-            beta: scalar,
-        });
-    }
-
-    // Per-level induced-basis evaluation context: small (no dense vec).
-    struct LevelCtx {
-        log_msg_cols: usize,
-        queries: Vec<usize>,
-        weights: Vec<F192>, // one power of the level's lambda per query
-        ris_start: usize,
-        beta: F192,
-    }
-    let mut level_ctxs: Vec<LevelCtx> = vec![LevelCtx {
-        log_msg_cols: n1,
-        queries: queries_0,
-        weights: weights_0,
-        ris_start: initial_k,
-        beta: query_scalar_0,
-    }];
-    let mut ris = r_lane_fold;
-
-    let mut prev = PrevLevel {
-        root: root_1,
-        log_num_interleaved: config.level_ks[0],
-        log_msg_cols: n1 - config.level_ks[0],
-        log_inv_rate: config.log_inv_rates[1],
-    };
-    let mut n_current = n1;
-
-    for i in 0..r {
-        let k_i = config.level_ks[i];
-        if n_current < k_i {
-            return Err(VerifyError::InvalidShape);
-        }
-        let level_rs = replay_fold_rounds(vs, k_i, &mut t_r, &mut running_quad)?;
-        ris.extend_from_slice(&level_rs);
-        n_current -= k_i;
-
-        if i == r - 1 {
-            let yr = vs.next_scalars(1 << n_current)?;
-            // PoW grinding check for the last level's query phase.
-            vs.grind_check(config.grinding_bits[i + 1] as u32)?;
-
-            let num_queries_last = config.queries[i + 1];
-            let queries_last = sample_queries_ordered(vs, prev.block_len(), num_queries_last);
-            // Batching challenge for the LAST commitment, sampled after `yr`
-            // was observed and the queries are fixed (mirror of the dense
-            // verifier, so both stay in lockstep).
-            let lambda_last = vs.sample();
-            let weights_last = powers(lambda_last, num_queries_last);
-            let leaf_words = 3 * prev.num_interleaved();
-            let ordered_rows_last = recv_level_rows(
-                vs,
-                &prev.root,
-                prev.block_len(),
-                &queries_last,
-                leaf_words,
-                leaf_words,
-                |row| ext_row_from_words(&row),
-            )?;
-
-            let enforced_sum_last =
-                induce_sumcheck_enforced_sum(&ordered_rows_last, &level_rs, &queries_last, &weights_last);
-            let intro_quad_last = recv_quad(vs, enforced_sum_last)?;
-            // No OOD at the final level: there is no new oracle to bind.
-            let (_, query_scalar_last) = batch_level_claims(
-                lambda_last,
-                &[],
-                &intro_quad_last,
-                enforced_sum_last,
-                &mut t_r,
-                &mut running_quad,
-            );
-            level_ctxs.push(LevelCtx {
-                log_msg_cols: n_current,
-                queries: queries_last,
-                weights: weights_last,
-                ris_start: ris.len(),
-                beta: query_scalar_last,
-            });
-
-            // Finish the sumcheck over the residual cube. Each basis and the
-            // caller's weight are then evaluated once at `ris ++ ris_tail`.
-            let yr_log_n = n_current;
-            let mut ris_tail = Vec::with_capacity(yr_log_n);
-            for j in 0..yr_log_n {
-                let ri = vs.sample();
-                t_r = running_quad.eval(ri);
-                ris_tail.push(ri);
-                if j + 1 < yr_log_n {
-                    let q = recv_quad(vs, t_r)?;
-                    running_quad = q;
-                }
-            }
-
-            let mut weight = F192::ZERO;
-            for ctx in &level_ctxs {
-                if ctx.log_msg_cols < yr_log_n || ctx.ris_start + (ctx.log_msg_cols - yr_log_n) > ris.len() {
-                    return Err(VerifyError::InvalidShape);
-                }
-                let folded = ctx.log_msg_cols - yr_log_n;
-                let mut point = ris[ctx.ris_start..ctx.ris_start + folded].to_vec();
-                point.extend_from_slice(&ris_tail);
-                let at = induce_sumcheck_evaluate_at_residual(
-                    ctx.log_msg_cols,
-                    &eval_sk_at_vks(ctx.log_msg_cols),
-                    &ctx.queries,
-                    &ctx.weights,
-                    &point,
-                    0,
-                );
-                if at.len() != 1 {
-                    return Err(VerifyError::InvalidShape);
-                }
-                weight += ctx.beta * at[0];
-            }
-            for ctx in &ood_ctxs {
-                if ctx.z.len() < yr_log_n || ctx.ris_start + (ctx.z.len() - yr_log_n) > ris.len() {
-                    return Err(VerifyError::InvalidShape);
-                }
-                let folded = ctx.z.len() - yr_log_n;
-                let mut scalar = ctx.beta;
-                for b in 0..folded {
-                    scalar *= F192::ONE + ctx.z[b] + ris[ctx.ris_start + b];
-                }
-                weight += scalar * eq_eval(&ctx.z[folded..], &ris_tail);
-            }
-
-            // `ris ++ ris_tail` is the fold challenges in ROUND order, and the
-            // first `initial_k` rounds are the lane fold, which binds the
-            // committed witness's TOP `initial_k` variables (lane `l` is the
-            // stack block `q[l·H ..)`). Rotating by `initial_k` re-indexes the
-            // point by witness variable, which is the only thing this whole
-            // relayout changes for a verifier: `eval_b_at` and every closed form
-            // under it stay exactly as they were.
-            let mut full_point = ris;
-            full_point.extend_from_slice(&ris_tail);
-            full_point.rotate_left(initial_k);
-            weight += eval_b_at(&full_point);
-            return if weight * mle_eval_ext(&yr, &ris_tail) == t_r {
-                Ok(())
-            } else {
-                Err(VerifyError::TerminalMismatch)
-            };
-        }
-
-        let root_next = vs.next_root()?;
-
-        let mut level_ood = Vec::with_capacity(ood_count(i + 2));
-        for _ in 0..ood_count(i + 2) {
-            let ood = replay_ood(vs, n_current)?;
-            level_ood.push(ood);
-        }
-        let ood_ris_start = ris.len();
-
-        // PoW grinding check for this iteration's query phase.
-        vs.grind_check(config.grinding_bits[i + 1] as u32)?;
-
-        let num_queries_i = config.queries[i + 1];
-        let queries_i = sample_queries_ordered(vs, prev.block_len(), num_queries_i);
-        let lambda_i = vs.sample();
-        let weights_i = powers(lambda_i, num_queries_i);
-        let leaf_words = 3 * prev.num_interleaved();
-        let ordered_rows_i = recv_level_rows(
-            vs,
-            &prev.root,
-            prev.block_len(),
-            &queries_i,
-            leaf_words,
-            leaf_words,
-            |row| ext_row_from_words(&row),
-        )?;
-
-        let enforced_sum_i = induce_sumcheck_enforced_sum(&ordered_rows_i, &level_rs, &queries_i, &weights_i);
-
-        let intro_quad_i = recv_quad(vs, enforced_sum_i)?;
-        let (ood_scalars_i, query_scalar_i) = batch_level_claims(
-            lambda_i,
-            &level_ood,
-            &intro_quad_i,
-            enforced_sum_i,
-            &mut t_r,
-            &mut running_quad,
-        );
-        for (ood, scalar) in level_ood.into_iter().zip(ood_scalars_i) {
-            ood_ctxs.push(OodCtx {
-                z: ood.z,
-                ris_start: ood_ris_start,
-                beta: scalar,
-            });
-        }
-        level_ctxs.push(LevelCtx {
-            log_msg_cols: n_current,
-            queries: queries_i,
-            weights: weights_i,
-            ris_start: ris.len(),
-            beta: query_scalar_i,
-        });
-
-        if prev
-            .advance(
-                root_next,
-                config.level_ks[i + 1],
-                n_current,
-                config.log_inv_rates[i + 2],
-            )
-            .is_none()
-        {
-            return Err(VerifyError::InvalidShape);
-        }
-    }
-
-    unreachable!()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::whir::QUERY_GRINDING_BITS;
     use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
-
-    struct Instance {
-        vc: VerifierConfig,
-        log_n: usize,
-        /// The eq-point behind `b_initial` (for the succinct closure).
-        point: Vec<F192>,
-        b_initial: Vec<F192>,
-        target: F192,
-        root: Hash,
-        /// The transcript: every scalar WHIR transmitted, plus its opening phases.
-        fs: fiat_shamir::transcript::Proof,
-    }
-
-    fn prove_instance(log_n: usize, seed: u64) -> Instance {
-        let pc = test_config_for(log_n);
-        let mut rng = Rng::new(seed);
-        let witness: Vec<F64> = (0..1usize << log_n).map(|_| F64(rng.next_u64())).collect();
-        let (cm, pd) = commit(&witness, log_n, pc.initial_k, pc.log_inv_rates[0]);
-        let point: Vec<F192> = (0..log_n).map(|_| rng.ext()).collect();
-        let b_initial = build_eq_table_ext(&point);
-        let target = inner_product_base_ext(&witness, &b_initial);
-        let mut ps = fiat_shamir::transcript::ProverState::from_label(b"whir-test");
-        recursive_prover_with_basis(
-            &pc,
-            log_n,
-            &witness,
-            b_initial.to_vec(),
-            target,
-            &pd.codeword,
-            &pd.merkle_tree,
-            &mut ps,
-        );
-        Instance {
-            vc: pc,
-            log_n,
-            point,
-            b_initial,
-            target,
-            root: cm.root,
-            fs: ps.into_proof(),
-        }
-    }
-
-    fn verify_instance(inst: &Instance, fs: &fiat_shamir::transcript::Proof) -> bool {
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(b"whir-test", fs);
-        recursive_verifier_with_basis(
-            &inst.vc,
-            1 << inst.vc.initial_k,
-            &inst.b_initial,
-            inst.target,
-            &inst.root,
-            &mut vs,
-        )
-    }
-
-    /// Succinct verify with the eq weight evaluated at the terminal fold point.
-    fn verify_succinct_instance(inst: &Instance, fs: &fiat_shamir::transcript::Proof) -> bool {
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(b"whir-test", fs);
-        let point = &inst.point;
-        recursive_verifier_with_basis_succinct(
-            &inst.vc,
-            inst.log_n,
-            1 << inst.vc.initial_k,
-            inst.target,
-            &inst.root,
-            |fold_point| eq_eval(point, fold_point),
-            &mut vs,
-        )
-        .is_ok()
-    }
-
-    /// Both verifiers on the same proof, asserting they agree; returns the
-    /// shared verdict.
-    fn verify_both_agree(inst: &Instance, fs: &fiat_shamir::transcript::Proof, what: &str) -> bool {
-        let dense = verify_instance(inst, fs);
-        let succinct = verify_succinct_instance(inst, fs);
-        assert_eq!(dense, succinct, "dense/succinct verdict split on {what}");
-        dense
-    }
 
     /// Pin the production 128-bit Johnson/OOD profile rather than the small-
     /// size test fallback.
@@ -2253,126 +1345,27 @@ mod tests {
     }
 
     /// At log_n = 18 the production profile's L0 has log_msg_cols = 12 and
-    /// enough queries to trip the sparse transposed-NTT dispatch in BOTH the
-    /// prover and the dense verifier; pin the heuristic, then roundtrip.
+    /// enough queries to trip the sparse transposed-NTT dispatch; the smaller
+    /// shape stays on the dense path (cols < 12).
     #[test]
-    fn roundtrip_log_n_18_sparse_induce() {
+    fn induce_dispatch_follows_the_shape() {
         let pc = config_for_rate(18, LOG_INV_RATE_0).expect("Johnson profile feasible at log_n = 18");
         assert!(
             induce_use_ntt_heuristic(18 - pc.initial_k, pc.log_inv_rates[0], pc.queries[0]),
             "shape must select the sparse transposed-NTT induce at L0"
         );
-        // And the smaller roundtrips stay on the dense path (cols < 12).
         let pc16 = config_for_rate(16, LOG_INV_RATE_0).unwrap();
         assert!(!induce_use_ntt_heuristic(
             16 - pc16.initial_k,
             pc16.log_inv_rates[0],
             pc16.queries[0]
         ));
-        let inst = prove_instance(18, 8);
-        assert!(verify_instance(&inst, &inst.fs), "honest proof rejected");
-        assert!(
-            verify_succinct_instance(&inst, &inst.fs),
-            "succinct verifier rejected an honest proof at log_n=18"
-        );
-    }
-
-    /// Dense and succinct must return the same verdict on every proof:
-    /// honest plus a spread of randomized single-bit tampers, at both a
-    /// fallback-config shape (log_n = 12) and the Johnson/OOD production
-    /// shape (log_n = 16).
-    #[test]
-    fn dense_and_succinct_agree() {
-        for (log_n, seed) in [(12usize, 11u64), (16, 12)] {
-            let inst = prove_instance(log_n, seed);
-            assert!(verify_both_agree(&inst, &inst.fs, "honest proof"));
-
-            let mut rng = Rng::new(seed ^ 0xABCD);
-            // One Merkle phase per level, in level order: phase 0 opens L0, the
-            // last phase opens the final level.
-            type Tamper = fn(&mut fiat_shamir::transcript::Proof, u64);
-            let tampers: &[(&str, Tamper)] = &[
-                ("L0 opened row", |p, r| {
-                    let rows = &mut p.merkle[0].leaf_data;
-                    let row = (r as usize) % rows.len();
-                    rows[row][0].0 ^= 1;
-                }),
-                ("final-level opened row", |p, r| {
-                    let rows = &mut p.merkle.last_mut().unwrap().leaf_data;
-                    let row = (r as usize) % rows.len();
-                    rows[row][0].0 ^= 1;
-                }),
-                ("merkle proof node", |p, r| {
-                    let sibs = &mut p.merkle[0].sibling_hashes;
-                    let idx = (r as usize) % sibs.len();
-                    sibs[idx][0] ^= 1;
-                }),
-            ];
-            for (what, tamper) in tampers {
-                let mut bad_fs = inst.fs.clone();
-                tamper(&mut bad_fs, rng.next_u64());
-                assert!(
-                    !verify_both_agree(&inst, &bad_fs, what),
-                    "tampered {what} accepted at log_n={log_n}"
-                );
-            }
-            // Every transmitted scalar (sumcheck messages, level roots, OOD
-            // claims, `yr`, both kinds of grinding nonce) is one stream word, so
-            // one sweep covers what used to be five per-field tampers: a bound
-            // word re-rolls the challenges after it, a nonce word fails its PoW.
-            let n_stream = inst.fs.stream.len();
-            assert!(n_stream > 0, "WHIR transmitted nothing");
-            for idx in (0..n_stream).step_by(1 + n_stream / 24) {
-                let mut bad_fs = inst.fs.clone();
-                bad_fs.stream[idx] += F192::ONE;
-                assert!(
-                    !verify_both_agree(&inst, &bad_fs, "stream word"),
-                    "tampered stream word {idx} accepted at log_n={log_n}"
-                );
-            }
-        }
-    }
-
-    /// Every stream word is prover-chosen, including the limbs of a level root
-    /// and of every digest half. A tampered word must be REJECTED, never panic
-    /// the verifier: `next_root` rejects a non-canonical half rather than
-    /// handing it to a decoder that asserts.
-    #[test]
-    fn tampered_stream_words_reject_without_panicking() {
-        let inst = prove_instance(12, 11);
-        let mut short = inst.fs.clone();
-        short.stream.truncate(1);
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(b"whir-test", &short);
-        assert_eq!(
-            recursive_verifier_with_basis_succinct(
-                &inst.vc,
-                inst.log_n,
-                1 << inst.vc.initial_k,
-                inst.target,
-                &inst.root,
-                |point| eq_eval(&inst.point, point),
-                &mut vs,
-            ),
-            Err(VerifyError::Transcript(TranscriptError::ExceededStream)),
-        );
-        for idx in 0..inst.fs.stream.len() {
-            for tamper in [F192::ONE, F192::new(0, 0, 1)] {
-                let mut bad = inst.fs.clone();
-                bad.stream[idx] += tamper;
-                let verdict = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| verify_instance(&inst, &bad)));
-                match verdict {
-                    Ok(accepted) => assert!(!accepted, "tampered stream word {idx} accepted"),
-                    Err(_) => panic!("verifier panicked on tampered stream word {idx}"),
-                }
-            }
-        }
     }
 
     /// Committing only the lanes that carry data must be indistinguishable from
     /// committing the whole `2^log_n` witness with an explicit zero tail: same
-    /// root, byte-identical transcript, and the dense verifier (which always sees
-    /// the full `2^log_n` weight) accepts. That indistinguishability is what lets
-    /// the verifier stay unaware of the lane count.
+    /// root and byte-identical stream, the stored L0 rows differing only by the
+    /// zero prefix the truncated proof drops.
     #[test]
     fn truncated_lanes_match_an_explicit_zero_tail() {
         // `log_n = 18` puts the lane block over `ROUND_CHUNK`, so the fold runs several
@@ -2425,25 +1418,6 @@ mod tests {
                     assert!(
                         full[..leaf_words - n_lanes].iter().all(|w| *w == F64::ZERO),
                         "the words the proof drops are the padding at n_lanes = {n_lanes}"
-                    );
-                }
-
-                let mut vs = fiat_shamir::transcript::VerifierState::from_label(b"whir-test", &fs_trunc);
-                assert!(
-                    recursive_verifier_with_basis(&pc, n_lanes, &b_initial, target, &root_trunc, &mut vs),
-                    "dense verify failed at n_lanes = {n_lanes}"
-                );
-
-                // The image the octopus was built over is pinned by the announced widths,
-                // so a row of any other width is rejected rather than zero-extended to
-                // something that happens to hash.
-                if n_lanes < leaf_words {
-                    let mut bad_fs = fs_trunc.clone();
-                    bad_fs.merkle[0].leaf_data[0].push(F64::ZERO);
-                    let mut vs = fiat_shamir::transcript::VerifierState::from_label(b"whir-test", &bad_fs);
-                    assert!(
-                        !recursive_verifier_with_basis(&pc, n_lanes, &b_initial, target, &root_trunc, &mut vs),
-                        "a wrong-width row was accepted at n_lanes = {n_lanes}"
                     );
                 }
             }
