@@ -212,6 +212,8 @@ KECCAK_LANES = 25
 KECCAK_Z_BITS = 6      # a bit position is z + 64 * lane
 KECCAK_LANE_BITS = 5
 KECCAK_LOCAL_BITS = KECCAK_Z_BITS + KECCAK_LANE_BITS
+LANE_OFF = 2 ** KECCAK_LANE_BITS - 2  # where a frame eqtree's last level starts
+SLICE_OFF = 2 ** KECCAK_Z_BITS - 2
 KECCAK_IOTA_BITS = 7   # iota flips slices 2^i - 1 of lane 0 only
 QKECCAK_SLOT_LOG = QKECCAK_SLOT_LOG_PLACEHOLDER
 # A claim's record: its value, the sum of its instance weights, pointers to its
@@ -221,9 +223,8 @@ KC_VALUE = 0
 KC_KAPPA = 1
 KC_POINT = 2
 KC_LANES = 3
-KC_SLICES = 4
-KC_LOCAL = 5
-KC_MU = 6
+KC_LOCAL = 4
+KC_MU = 5
 KC_IOTA = KC_MU + KECCAK_PACK
 KC_SIZE = KC_IOTA + KECCAK_IOTA_BITS
 # One round of a layer's sumcheck over packs and segments.
@@ -796,6 +797,27 @@ def eqtree(point_ptr, out, n_coords: Const):
             pw = out[GEN ** (2 ** t - 2 + i)]
             out[GEN ** (2 ** (t + 1) - 2 + i)] = pw * one_plus_rt
             out[GEN ** (2 ** (t + 1) - 2 + 2 ** t + i)] = pw * rt
+    return
+
+
+@inline
+def eqtree_frame(point_ptr, out, n_coords: Const, count: Const):
+    # eqtree into frame cells, in the same layout, the last level cut at `count`
+    # (which must exceed half of it).
+    r0 = point_ptr[GEN ** 0]
+    out[0] = 1 + r0
+    out[1] = r0
+    for t in unroll(1, n_coords):
+        rt = point_ptr[GEN ** t]
+        one_plus_rt = 1 + rt
+        for i in unroll(0, 2 ** t):
+            pw = out[2 ** t - 2 + i]
+            out[2 ** (t + 1) - 2 + i] = pw * one_plus_rt
+            if const(t + 1 == n_coords):
+                if (2 ** t + i) // count == 0:
+                    out[2 ** (t + 1) - 2 + 2 ** t + i] = pw * rt
+            else:
+                out[2 ** (t + 1) - 2 + 2 ** t + i] = pw * rt
     return
 
 
@@ -2172,10 +2194,11 @@ def fold_shifts(src, dst, a_t, t: Const):
 
 
 @inline
-def keccak_form(lanes, shifts, f_lanes):
+def keccak_form(lanes, shifts, f_lanes, f_off: Const):
     # <L^T(E), f> for theta, rho, pi's transpose L^T, on weights that factor as lane
     # times slice: E = lanes (x) eZ and f = f_lanes (x) fZ, the slices entering only
-    # through shifts[r] = sum_z fZ[z] eZ[(z + r) % 64].
+    # through shifts[r] = sum_z fZ[z] eZ[(z + r) % 64]. f_lanes are frame cells from
+    # f_off.
     total = 0
     column = StackBuf(5)
     column_next = StackBuf(5)
@@ -2187,7 +2210,7 @@ def keccak_form(lanes, shifts, f_lanes):
         for y in unroll(0, 5):
             lane_weight = lanes[GEN ** KECCAK_PI[x + 5 * y]]
             moved = lane_weight * shifts[KECCAK_RHO[x + 5 * y]]
-            f_weight = f_lanes[GEN ** (x + 5 * y)]
+            f_weight = f_lanes[f_off + x + 5 * y]
             total += f_weight * moved
             acc += moved
             acc_next += lane_weight * shifts[(KECCAK_RHO[x + 5 * y] + 1) % 64]
@@ -2285,23 +2308,22 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
     fs, t1, cursor = fs_next(fs, cursor)
     fs, t2, cursor = fs_next(fs, cursor)
     # The claim's weights at the local point.
-    lane_tree = HeapBuf(2 ** (KECCAK_LANE_BITS + 1) - 2)
-    eqtree(local * GEN ** KECCAK_Z_BITS, lane_tree, KECCAK_LANE_BITS)
-    f_lanes = lane_tree * GEN ** (2 ** KECCAK_LANE_BITS - 2)
+    f_lanes = StackBuf(2 ** (KECCAK_LANE_BITS + 1) - 2)
+    eqtree_frame(local * GEN ** KECCAK_Z_BITS, f_lanes, KECCAK_LANE_BITS, KECCAK_LANES)
     prev_lanes = claim[GEN ** KC_LANES]
     weight_at_local = StackBuf(1)
     if first == 1:
         # The first claim weighs a lane table times the bits of a word, x^z.
         lanes_eq = 0
         for lane in unroll(0, KECCAK_LANES):
-            lanes_eq += f_lanes[GEN ** lane] * prev_lanes[GEN ** lane]
+            lanes_eq += f_lanes[LANE_OFF + lane] * prev_lanes[GEN ** lane]
         for t in unroll(0, KECCAK_Z_BITS):
             lanes_eq *= 1 + local[GEN ** t] * (1 + GEN ** (2 ** t))
         weight_at_local[0] = lanes_eq
     else:
         shifts = StackBuf(64)
         keccak_shifts_eq(claim[GEN ** KC_LOCAL], local, shifts)
-        weight_at_local[0] = keccak_form(prev_lanes, shifts, f_lanes)
+        weight_at_local[0] = keccak_form(prev_lanes, shifts, f_lanes, LANE_OFF)
     assert last[GEN ** KR_SCALE] * weight_at_local[0] * (kappa * t0 + (kappa + t1) * t2) == value
     # t[k] = sum_j eq[j] T[j + k]: one claim on the state before chi.
     fs, beta = squeeze(fs)
@@ -2311,18 +2333,16 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
     lanes = HeapBuf(KECCAK_LANES)
     for y in unroll(0, 5):
         for x in unroll(0, 5):
-            lanes[GEN ** (x + 5 * y)] = f_lanes[GEN ** (x + 5 * y)] + beta * (f_lanes[GEN ** ((x + 4) % 5 + 5 * y)] + beta * f_lanes[GEN ** ((x + 3) % 5 + 5 * y)])
+            lanes[GEN ** (x + 5 * y)] = f_lanes[LANE_OFF + x + 5 * y] + beta * (f_lanes[LANE_OFF + (x + 4) % 5 + 5 * y] + beta * f_lanes[LANE_OFF + (x + 3) % 5 + 5 * y])
     out[GEN ** KC_LANES] = lanes
-    slice_tree = HeapBuf(2 ** (KECCAK_Z_BITS + 1) - 2)
-    eqtree(local, slice_tree, KECCAK_Z_BITS)
-    slices = slice_tree * GEN ** (2 ** KECCAK_Z_BITS - 2)
-    out[GEN ** KC_SLICES] = slices
+    slices = StackBuf(2 ** (KECCAK_Z_BITS + 1) - 2)
+    eqtree_frame(local, slices, KECCAK_Z_BITS, 64)
     # The new weights where iota can flip: slice 2^i - 1 of lane 0.
     for i in unroll(0, KECCAK_IOTA_BITS):
-        flipped = lanes[GEN ** KECCAK_PI[0]] * slices[GEN ** ((2 ** i - 1 + KECCAK_RHO[0]) % 64)]
+        flipped = lanes[GEN ** KECCAK_PI[0]] * slices[SLICE_OFF + (2 ** i - 1 + KECCAK_RHO[0]) % 64]
         for y in unroll(0, 5):
-            flipped += lanes[GEN ** KECCAK_PI[1 + 5 * y]] * slices[GEN ** ((2 ** i - 1 + KECCAK_RHO[1 + 5 * y]) % 64)]
-            flipped += lanes[GEN ** KECCAK_PI[4 + 5 * y]] * slices[GEN ** ((2 ** i + KECCAK_RHO[4 + 5 * y]) % 64)]
+            flipped += lanes[GEN ** KECCAK_PI[1 + 5 * y]] * slices[SLICE_OFF + (2 ** i - 1 + KECCAK_RHO[1 + 5 * y]) % 64]
+            flipped += lanes[GEN ** KECCAK_PI[4 + 5 * y]] * slices[SLICE_OFF + (2 ** i + KECCAK_RHO[4 + 5 * y]) % 64]
         out[GEN ** (KC_IOTA + i)] = flipped
     return fs[0], fs[1], cursor
 
@@ -2348,20 +2368,21 @@ def keccak_read_slices(fs0, fs1, cursor, out):
     return fs[0], fs[1], cursor
 
 
-def keccak_slot_lanes(slot, segment_point, first: Const, count: Const):
-    # The weight an opening's slot point puts on each lane: the states it speaks of
-    # start at `first`, one per segment, for the first `count` segments.
-    slot_tree = HeapBuf(2 ** (QKECCAK_SLOT_LOG + 1) - 2)
-    eqtree(slot, slot_tree, QKECCAK_SLOT_LOG)
-    segment_tree = HeapBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
-    eqtree(segment_point, segment_tree, KECCAK_SEG_LOG)
-    out = HeapBuf(KECCAK_LANES)
+@inline
+def keccak_slot_lanes(slot, segment_point, out, first: Const, count: Const):
+    # The weight an opening's slot point puts on each lane, into the frame cells
+    # out[0..25): the states it speaks of start at `first`, one per segment, for the
+    # first `count` segments.
+    slot_weights = StackBuf(2 ** (QKECCAK_SLOT_LOG + 1) - 2)
+    eqtree_frame(slot, slot_weights, QKECCAK_SLOT_LOG, KECCAK_LANES * KECCAK_SEGMENTS)
+    seg_weights = StackBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
+    eqtree_frame(segment_point, seg_weights, KECCAK_SEG_LOG, 2 ** KECCAK_SEG_LOG)
     for lane in unroll(0, KECCAK_LANES):
-        acc = 0
+        lane_acc = 0
         for m in unroll(0, count):
-            acc += segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + m)] * slot_tree[GEN ** (2 ** QKECCAK_SLOT_LOG - 2 + KECCAK_LANES * (first + m) + lane)]
-        out[GEN ** lane] = acc
-    return out
+            lane_acc += seg_weights[2 ** KECCAK_SEG_LOG - 2 + m] * slot_weights[2 ** QKECCAK_SLOT_LOG - 2 + KECCAK_LANES * (first + m) + lane]
+        out[lane] = lane_acc
+    return
 
 
 def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
@@ -2444,10 +2465,11 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
     fs0, fs1, cursor, out_value = keccak_plain_rounds(fs[0], fs[1], cursor, value, out_slot, QKECCAK_SLOT_LOG)
     fs = [fs0, fs1]
     fs, word, cursor = fs_next(fs, cursor)
-    out_lanes = keccak_slot_lanes(out_slot, point * pack_g, 1, KECCAK_SEGMENTS - 1)
+    out_lanes = StackBuf(KECCAK_LANES)
+    keccak_slot_lanes(out_slot, point * pack_g, out_lanes, 1, KECCAK_SEGMENTS - 1)
     lanes_sum = 0
     for lane in unroll(0, KECCAK_LANES):
-        lanes_sum += out_lanes[GEN ** lane] * first_lanes[GEN ** lane]
+        lanes_sum += out_lanes[lane] * first_lanes[GEN ** lane]
     assert lanes_sum * word == out_value
     out_pack = out_point * GEN ** KECCAK_PACK_LOG
     for xt in mul_range(1, pack_g):
@@ -2465,7 +2487,8 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
     fs0, fs1, cursor, in_value = keccak_plain_rounds(fs0, fs1, cursor, low_value, in_slot, QKECCAK_SLOT_LOG)
     fs0, fs1, cursor = keccak_read_slices(fs0, fs1, cursor, slices)
     last_point = last[GEN ** KC_POINT]
-    in_lanes = keccak_slot_lanes(in_slot, last_point * pack_g, 0, KECCAK_SEGMENTS)
+    in_lanes = StackBuf(KECCAK_LANES)
+    keccak_slot_lanes(in_slot, last_point * pack_g, in_lanes, 0, KECCAK_SEGMENTS)
     # shifts[r] = sum_z slices[z] eq(a, z + r), a the last layer's slice point:
     # folded a bit at a time for every r at once.
     last_local = last[GEN ** KC_LOCAL]
@@ -2478,7 +2501,7 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
         level = folded
     shifts = level
     last_lanes = last[GEN ** KC_LANES]
-    assert mu_at_low * keccak_form(last_lanes, shifts, in_lanes) == in_value
+    assert mu_at_low * keccak_form(last_lanes, shifts, in_lanes, 0) == in_value
     in_pack = in_point * GEN ** KECCAK_PACK_LOG
     for xt in mul_range(1, pack_g):
         in_pack[xt] = last_point[xt]
