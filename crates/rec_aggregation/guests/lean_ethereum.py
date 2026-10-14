@@ -705,16 +705,16 @@ def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, depth: Const):
     return
 
 
-def grind_check(state_0, state_1, nonce, nbits_g):
+def grind_check(state_0, state_1, nonce, nbits: Const):
     # WHIR fold/query grinding: digest = H(H(state, POW_BASE), (nonce, POW_NONCE)),
-    # whose low nbits (nbits_g = g^nbits) must be zero. The PoW window of
+    # whose low nbits must be zero. The PoW window of
     # transcript::pow_bits_ok is `digest.0 & ((1 << bits) - 1)` with nbits < 64, so
     # it lives entirely in the digest's FIRST 64-bit lane: only that lane is
     # advice-decomposed and verified, not all FIELD_BITS of the cell. The caller
     # absorbs the full field nonce afterwards. The honest prover searches the
     # deterministic u64 subset while verification permits the full field: each
     # candidate still costs one hash and succeeds with probability 2^-bits.
-    if nbits_g == GEN ** 0:
+    if nbits == 0:
         assert nonce == 0  # native canonical zero-work nonce
     st = [state_0, state_1]
     base = StackBuf(SHA3_STATE)
@@ -725,19 +725,16 @@ def grind_check(state_0, state_1, nonce, nbits_g):
     hint_f192_limbs(lanes, out[0])
     high = (out[0] + lanes[0]) * Y_INV
     assert_in_k(lanes[0], high)
-    # Frame cells for the unrolled pass (no DEREF per bit), named by `addr` for the
-    # zero-check walk, whose bound is runtime and so must index a pointer.
+    # The lane is rebuilt from its bits at and above nbits only, which IS the claim
+    # that its low nbits coordinates are zero; the hinted low bits go unread.
     lane_bits = StackBuf(BASE_FIELD_BITS)
     hint_decompose_bits(lane_bits, lanes[0], BASE_FIELD_BITS)
     acc = 0
-    for i in unroll(0, BASE_FIELD_BITS):
+    for i in unroll(nbits, BASE_FIELD_BITS):
         b = lane_bits[i]
         lane_bits[i] = b * b  # booleanity, as a write-once pin
         acc += b * COORD_BASIS[i]
-    assert acc == lanes[0]  # the bits ARE the lane's coordinates, so the pins below bind it
-    lane_ptr = addr(lane_bits)
-    for xb in mul_range(1, nbits_g):
-        assert lane_ptr[xb] == 0
+    assert acc == lanes[0]
     return
 
 
@@ -1138,7 +1135,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         q_nonce = msg_cursor[GEN ** 0]  # raw transport word: bound by the DS_POW_NONCE absorb below
         msg_cursor = msg_cursor * GEN
         if LIG_QUERY_GRIND_BITS[ml] != 0:
-            grind_check(fs[0], fs[1], q_nonce, GEN ** LIG_QUERY_GRIND_BITS[ml])
+            grind_check(fs[0], fs[1], q_nonce, LIG_QUERY_GRIND_BITS[ml])
         else:
             assert q_nonce == 0
         fs = absorb_nonce(fs, q_nonce)
