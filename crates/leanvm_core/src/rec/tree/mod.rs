@@ -3,7 +3,7 @@
 //! ```text
 //!                 node                  verifies arity recursion proofs of any kind
 //!               /      \
-//!        first-level   first-level      each verifies arity_0 RISC-V proofs
+//!        first-level   first-level      each verifies arity_0 RISC-V proofs, and the proofs each assumes
 //!          /  \          /  \
 //!       leaf  leaf    leaf  leaf
 //! ```
@@ -27,14 +27,22 @@
 //!
 //! A claim-set tree has a node circuit for each arity from two to its largest, all of one height, or two tiers each
 //! at heights of its own (a small tier): small proofs then never pay for the largest node's union and children.
+//!
+//! Either may resolve assumptions: each leaf's run then assumed a fixed number of runs of one other program, a
+//! first-level node verifies their proofs beside the leaf's, and the leaf's output in the digest, or the hash its set's
+//! digest must have, is its committed values' digest. The two programs then share the bytecode and image polynomials,
+//! one half each. The leaves, the assumed proofs, or both may be zero knowledge, each as its shape says: the assumed
+//! outputs are part of a leaf's statement, which its native verifier is given too, so a tree proof holding them
+//! reveals nothing more.
 
 use crate::commitment::Rate;
-use crate::cpu::{Lookup, Output, Program, Proof, ProvenRun, VerifyError};
+use crate::cpu::{Assumption, Output, Program, Proof, ProvenRun, VerifyError};
 use crate::rec::circuit::{Circuit, Finished, chain};
 use crate::rec::fixed::FixedColumns;
 use crate::rec::proof::CircuitKey;
 use crate::rec::table::{PerRecTable, Table};
 use crate::rec::transcript::ProofSource;
+use crate::rec::verifier::ProofShape;
 use crate::tables::CircuitId;
 use design::{ChildWitness, Design, LARGE, LeafWitness, Level, NodeInputs, NodeRows, SMALL};
 use pcs::merkle::Openings;
@@ -67,13 +75,26 @@ pub use statement::Kind;
 /// The most rounds the search for the nodes' heights takes: each round at least doubles a table.
 const MAX_ROUNDS: usize = 8;
 
-/// One leaf of a tree: a proof of a run, and the output it proves.
+/// One leaf of a tree: a proof of a run, the output it states, and the proofs its run assumes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Leaf<'a> {
     /// The proof of the run.
     proof: &'a Proof,
-    /// The output the proof claims.
+    /// The output the leaf states: the proof's output, or with assumptions, the run's committed values' digest.
     output: Output,
+    /// The leaves of the runs it assumes, in order: none for a run that assumes nothing.
+    assumed: &'a [Self],
+}
+
+/// The proofs each leaf of a tree assumes: runs of one program, as many for each leaf.
+#[derive(Clone, Copy)]
+pub struct AssumedProofs<'p> {
+    /// The program they are runs of.
+    pub program: &'p Program,
+    /// The shape of their proofs.
+    pub leaf: LeafShape,
+    /// How many each leaf assumes.
+    pub count: usize,
 }
 
 /// What one of a tree's circuits costs.
@@ -116,7 +137,8 @@ pub struct Tree<'p> {
     tables: DenseTables,
 }
 
-/// A leaf of a claim-set tree: a leaf proof, and the claim set whose digest's hash its output is.
+/// A leaf of a claim-set tree: a leaf proof, and the claim set whose digest's hash its output is (its committed values'
+/// digest, for a leaf that assumes proofs).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ClaimLeaf<'a> {
     /// The proof and its output.
@@ -207,6 +229,42 @@ pub enum TreeError {
         /// Why its verifier refuses it.
         error: VerifyError,
     },
+    /// A leaf assumes another number of proofs than the tree's leaves do.
+    #[error("leaf {index} assumes {got} proofs, and the tree's leaves assume {expected}")]
+    Assumptions {
+        /// The leaf's index among its node's.
+        index: usize,
+        /// How many the tree's leaves assume.
+        expected: usize,
+        /// How many it is given.
+        got: usize,
+    },
+    /// A proof a leaf assumes announces another shape than the tree's assumed proofs.
+    #[error("leaf {leaf}'s assumed proof {index} has another shape than the tree's")]
+    ForeignAssumption {
+        /// The leaf's index among its node's.
+        leaf: usize,
+        /// The assumed proof's index among the leaf's.
+        index: usize,
+    },
+    /// A proof a leaf assumes does not verify.
+    #[error("leaf {leaf}'s assumed proof {index}: {error}")]
+    Assumption {
+        /// The leaf's index among its node's.
+        leaf: usize,
+        /// The assumed proof's index among the leaf's.
+        index: usize,
+        /// Why its verifier refuses it.
+        error: VerifyError,
+    },
+    /// A proof a leaf assumes itself assumes proofs: a tree resolves one level of assumptions.
+    #[error("leaf {leaf}'s assumed proof {index} itself assumes proofs")]
+    NestedAssumption {
+        /// The leaf's index among its node's.
+        leaf: usize,
+        /// The assumed proof's index among the leaf's.
+        index: usize,
+    },
     /// A child proof does not verify.
     #[error("child {index}: {error}")]
     Child {
@@ -285,10 +343,25 @@ pub enum TreeError {
 }
 
 impl<'a> Leaf<'a> {
-    /// The leaf of a proof and the output it proves.
+    /// The leaf of a proof and the output it proves, of a run that assumes nothing.
     #[must_use]
     pub const fn new(proof: &'a Proof, output: Output) -> Self {
-        Self { proof, output }
+        Self {
+            proof,
+            output,
+            assumed: &[],
+        }
+    }
+
+    /// The leaf of a proof of a run that committed values of digest `committed` and assumed the runs of `assumed`, in
+    /// order: its proof states `committed` folded with them ([`Output::assuming`]), and the leaf states `committed`.
+    #[must_use]
+    pub const fn assuming(proof: &'a Proof, committed: Output, assumed: &'a [Self]) -> Self {
+        Self {
+            proof,
+            output: committed,
+            assumed,
+        }
     }
 }
 
@@ -299,7 +372,8 @@ impl<'a> From<&'a ProvenRun> for Leaf<'a> {
 }
 
 impl<'a> ClaimLeaf<'a> {
-    /// The leaf of a proof whose output is the hash of this set's digest, as a guest that commits the digest gives.
+    /// The leaf of a proof whose output is the hash of this set's digest, as a guest that commits the digest gives: a
+    /// leaf that assumes proofs ([`Leaf::assuming`]) states that hash as its committed values' digest.
     #[must_use]
     pub const fn new(leaf: Leaf<'a>, claims: &'a ClaimSet) -> Self {
         Self { leaf, claims }
@@ -318,9 +392,27 @@ impl<'p> Tree<'p> {
     /// - A leaf shape no proof of the program has.
     /// - Circuits that fit no commitment.
     pub fn new(program: &'p Program, shape: TreeShape) -> Result<Self, TreeError> {
+        Self::build(program, shape, None)
+    }
+
+    /// The tree over proofs of a program whose runs each assumed `assumed.count` runs of `assumed.program`, which
+    /// resolves those assumptions: its first level verifies the assumed proofs beside each leaf's, so its root
+    /// states each leaf's committed values' digest, the assumptions proven. In a claim-set tree, a leaf's committed
+    /// values are its set's digest, as when it assumes nothing.
+    ///
+    /// It is [`Tree::new`] when the leaves assume no proof.
+    ///
+    /// # Errors
+    ///
+    /// As [`Tree::new`], and an assumed proofs' shape no proof of their program has.
+    pub fn assuming(program: &'p Program, shape: TreeShape, assumed: AssumedProofs<'p>) -> Result<Self, TreeError> {
+        Self::build(program, shape, (assumed.count > 0).then_some(assumed))
+    }
+
+    fn build(program: &'p Program, shape: TreeShape, assumed: Option<AssumedProofs<'p>>) -> Result<Self, TreeError> {
         shape.check()?;
         let tiers = shape.claims.map_or(1, |c| c.tiers());
-        let (design, circuits) = Self::converge(tiers, |taus| Design::new(program, &shape, taus))?;
+        let (design, circuits) = Self::converge(tiers, |taus| Design::new(program, &shape, assumed, taus))?;
         let keys: Vec<CircuitKey> = (circuits.into_iter().map(CircuitKey::new))
             .collect::<Result<_, _>>()
             .map_err(|_| TreeError::TooLarge)?;
@@ -334,10 +426,7 @@ impl<'p> Tree<'p> {
                 },
             )
         };
-        let rv = program.rv();
-        let mut image: Vec<F64> = rv.image().iter().map(|&w| F64(w)).collect();
-        image.resize(1 << design.vars.0[DensePoly::Image as usize], F64::ZERO);
-        let tables = DenseTables([Lookup::Bytecode.table(rv), image, fixed(SMALL), fixed(LARGE)]);
+        let tables = design.tables([fixed(SMALL), fixed(LARGE)]);
         Ok(Self {
             shape,
             design,
@@ -417,11 +506,12 @@ impl<'p> Tree<'p> {
         }
     }
 
-    /// Prove a first-level node over its leaves, each a RISC-V proof and its output, in order.
+    /// Prove a first-level node over its leaves, each a RISC-V proof, its output and the proofs it assumes, in order.
     ///
     /// # Errors
     ///
-    /// A tree of outputs only. The wrong number of leaves, a leaf of another shape, or a leaf that does not verify.
+    /// A tree of outputs only. The wrong number of leaves or of assumed proofs, a proof of another shape, or a proof that
+    /// does not verify.
     pub fn prove_first(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, TreeError> {
         self.outputs()?;
         let items = self.leaf_witnesses(leaves, |_| Ok([0; 4]))?;
@@ -447,24 +537,79 @@ impl<'p> Tree<'p> {
                 got: leaves.len(),
             });
         }
-        let shape = d.leaf.shape();
-        let program = d.leaf.program();
+        let expected = d.assumed.as_ref().map_or(0, |a| a.count);
         (leaves.iter().enumerate())
-            .map(|(index, &Leaf { proof, output })| {
-                if LeafShape::announced(proof) != Some(shape) {
-                    return Err(TreeError::ForeignLeaf { index });
+            .map(|(index, leaf)| {
+                if leaf.assumed.len() != expected {
+                    return Err(TreeError::Assumptions {
+                        index,
+                        expected,
+                        got: leaf.assumed.len(),
+                    });
                 }
-                let claims = claims(index)?;
-                let openings =
-                    (program.verify_recording(output, proof)).map_err(|error| TreeError::Leaf { index, error })?;
+                let set = claims(index)?;
+                let (assumed, assumptions) = match &d.assumed {
+                    None => (Vec::new(), Vec::new()),
+                    Some(a) => {
+                        let program = a.shape.program().digest_words();
+                        let witnesses = (leaf.assumed.iter().enumerate())
+                            .map(|(j, inner)| {
+                                if !inner.assumed.is_empty() {
+                                    return Err(TreeError::NestedAssumption { leaf: index, index: j });
+                                }
+                                Self::witness(&a.shape, inner.proof, inner.output).map_err(|error| {
+                                    error.map_or(TreeError::ForeignAssumption { leaf: index, index: j }, |error| {
+                                        TreeError::Assumption {
+                                            leaf: index,
+                                            index: j,
+                                            error,
+                                        }
+                                    })
+                                })
+                            })
+                            .collect::<Result<Vec<_>, _>>()?;
+                        let assumptions = (leaf.assumed.iter())
+                            .map(|inner| Assumption::new(program, inner.output))
+                            .collect();
+                        (witnesses, assumptions)
+                    }
+                };
+                let exit = leaf.output.assuming(&assumptions);
+                let witness = Self::witness(&d.leaf, leaf.proof, exit).map_err(|error| {
+                    error.map_or(TreeError::ForeignLeaf { index }, |error| TreeError::Leaf {
+                        index,
+                        error,
+                    })
+                })?;
                 Ok(LeafWitness {
-                    proof: &proof.0,
-                    openings,
-                    output: *output.words(),
-                    set: claims,
+                    committed: *leaf.output.words(),
+                    set,
+                    assumed,
+                    ..witness
                 })
             })
             .collect()
+    }
+
+    /// A RISC-V proof of this shape's program and shape, verified against `output`: the witness its rows take, or why
+    /// not, `None` for a proof of another shape.
+    fn witness<'a>(
+        shape: &ProofShape<'_>,
+        proof: &'a Proof,
+        output: Output,
+    ) -> Result<LeafWitness<'a>, Option<VerifyError>> {
+        if LeafShape::announced(proof) != Some(shape.shape()) {
+            return Err(None);
+        }
+        let openings = (shape.program().verify_recording(output, proof)).map_err(Some)?;
+        Ok(LeafWitness {
+            proof: &proof.0,
+            openings,
+            output: *output.words(),
+            committed: *output.words(),
+            set: [0; 4],
+            assumed: Vec::new(),
+        })
     }
 
     /// The node's witnesses of its children, proofs of `tier`, each verified natively, short of its claims.
@@ -526,8 +671,8 @@ impl<'p> Tree<'p> {
     /// # Errors
     ///
     /// - A tree of outputs.
-    /// - The wrong number of leaves, a leaf of another shape, a leaf that does not verify, or one whose output is not
-    ///   its set's.
+    /// - The wrong number of leaves or of assumed proofs, a proof of another shape, a proof that does not verify, or a
+    ///   leaf whose committed values' digest is not its set's hash.
     /// - A declared set that is not canonical, past the capacity, or with a claim no leaf carries.
     /// - Leaves whose sets together do not fit the first level's capacity: the small tier's, if the tree has one.
     pub fn aggregate_leaves(
@@ -883,7 +1028,8 @@ mod tests {
     use crate::rv::asm::*;
     use crate::tables::TableId;
     use fiat_shamir::ProofTranscript;
-    use std::sync::OnceLock;
+    use primitives::test_util::Rng;
+    use std::sync::{LazyLock, OnceLock};
     use zk::Randomness;
 
     // A program whose output is its one advice word, after a loop that reads every framework block.
@@ -1113,12 +1259,7 @@ mod tests {
         let f = fixture();
         let d = &f.tree.design;
         let leaves: Vec<LeafWitness> = (f.leaves[..2].iter())
-            .map(|(proof, output)| LeafWitness {
-                proof: &proof.0,
-                openings: program().verify_recording(*output, proof).expect("an honest leaf"),
-                output: *output.words(),
-                set: [0; 4],
-            })
+            .map(|(proof, output)| Tree::witness(&d.leaf, proof, *output).expect("an honest leaf"))
             .collect();
         let rows = d.first_rows(&NodeInputs::Prove {
             items: &leaves,
@@ -1261,12 +1402,7 @@ mod tests {
     fn forged_first(f: &Fixture, forge: Forge) -> TreeProof {
         let d = &f.tree.design;
         let items: Vec<LeafWitness> = (f.leaves[..2].iter())
-            .map(|(proof, output)| LeafWitness {
-                proof: &proof.0,
-                openings: program().verify_recording(*output, proof).expect("an honest leaf"),
-                output: *output.words(),
-                set: [0; 4],
-            })
+            .map(|(proof, output)| Tree::witness(&d.leaf, proof, *output).expect("an honest leaf"))
             .collect();
         let rows = d.first_rows(&NodeInputs::Prove {
             items: &items,
@@ -1433,6 +1569,413 @@ mod tests {
             tree.prove_first(&mixed).err(),
             Some(TreeError::ForeignLeaf { index: 0 })
         );
+    }
+
+    // A program whose output is its four advice words: the output a guest that assumed proofs folds them into.
+    fn outer() -> &'static Program {
+        static PROGRAM: LazyLock<Program> = LazyLock::new(|| {
+            let text = Asm::new()
+                .li(Reg::T0, Region::ADVICE.base())
+                .load(Ld, Reg::A0, 0, Reg::T0)
+                .load(Ld, Reg::A1, 8, Reg::T0)
+                .load(Ld, Reg::A2, 16, Reg::T0)
+                .load(Ld, Reg::A3, 24, Reg::T0)
+                .exit()
+                .finish();
+            Program::new(&text, Region::TEXT.base(), vec![7], 2, 2).expect("a valid program")
+        });
+        &PROGRAM
+    }
+
+    // Another program of the assumed proofs' shape: its output is its advice word, after a shorter loop.
+    fn other() -> &'static Program {
+        static PROGRAM: LazyLock<Program> = LazyLock::new(|| {
+            let text = Asm::new()
+                .li(Reg::T0, Region::ADVICE.base())
+                .load(Ld, Reg::A0, 0, Reg::T0)
+                .li(Reg::T1, 5)
+                .label("loop")
+                .i(Addi, Reg::T1, Reg::T1, -1)
+                .branch(Bne, Reg::T1, Reg::ZERO, "loop")
+                .exit()
+                .finish();
+            Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
+        });
+        &PROGRAM
+    }
+
+    fn prove(program: &Program, advice: &[u64]) -> (Proof, Output) {
+        let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(program, advice).expect("the run halts");
+        (proof, output)
+    }
+
+    // That runs of `program` exit with `outputs`, in order.
+    fn assume(program: &Program, outputs: &[Output]) -> Vec<Assumption> {
+        let digest = program.digest_words();
+        outputs.iter().map(|&o| Assumption::new(digest, o)).collect()
+    }
+
+    // Two outer leaves, the first assuming the runs of advice 11 and 12 of `program()`, the second those of 12 and 13;
+    // a tree of first level 1 and arity 2 resolving them, its first-level proofs and its root.
+    struct Resolving {
+        tree: Tree<'static>,
+        // The runs of `program()` on advice 11, 12 and 13.
+        assumed: Vec<(Proof, Output)>,
+        committed: [Output; 2],
+        leaves: [Proof; 2],
+        firsts: [TreeProof; 2],
+        root: TreeProof,
+    }
+
+    impl Resolving {
+        fn inner(&self, i: usize) -> Leaf<'_> {
+            Leaf::new(&self.assumed[i].0, self.assumed[i].1)
+        }
+
+        fn outputs(&self, of: [usize; 2]) -> [Output; 2] {
+            of.map(|i| self.assumed[i].1)
+        }
+    }
+
+    fn resolving() -> &'static Resolving {
+        static FIXTURE: LazyLock<Resolving> = LazyLock::new(|| {
+            let assumed: Vec<(Proof, Output)> = [11, 12, 13].iter().map(|&a| prove(program(), &[a])).collect();
+            let committed = [Output::new([0xc0, 1, 2, 3]), Output::new([0xc1, 4, 5, 6])];
+            let names = [[0, 1], [1, 2]];
+            let leaves = [0, 1].map(|i| {
+                let outputs = names[i].map(|j| assumed[j].1);
+                prove(outer(), committed[i].assuming(&assume(program(), &outputs)).words()).0
+            });
+            let shape = |proof: &Proof| LeafShape::of(proof).expect("a canonical announcement");
+            let tree = Tree::assuming(
+                outer(),
+                TreeShape {
+                    leaf: shape(&leaves[0]),
+                    arity_0: 1,
+                    arity: 2,
+                    rate: Rate::MIN,
+                    claims: None,
+                },
+                AssumedProofs {
+                    program: program(),
+                    leaf: shape(&assumed[0].0),
+                    count: 2,
+                },
+            )
+            .expect("a tree");
+            let firsts = [0, 1].map(|i| {
+                let inner = names[i].map(|j| Leaf::new(&assumed[j].0, assumed[j].1));
+                (tree.prove_first(&[Leaf::assuming(&leaves[i], committed[i], &inner)])).expect("honest leaves")
+            });
+            let root = tree.prove_node(&firsts).expect("honest children");
+            Resolving {
+                tree,
+                assumed,
+                committed,
+                leaves,
+                firsts,
+                root,
+            }
+        });
+        &FIXTURE
+    }
+
+    #[test]
+    fn a_tree_resolves_its_leaves_assumptions() {
+        let f = resolving();
+        let assumptions = assume(program(), &f.outputs([0, 1]));
+
+        // Alone, the outer proof shows its committed values only under its assumptions, which it leaves unresolved.
+        assert_eq!(
+            outer().verify_assuming(f.committed[0], &assumptions, &f.leaves[0]),
+            Ok(&assumptions[..])
+        );
+        assert!(outer().verify(f.committed[0], &f.leaves[0]).is_err());
+
+        // The tree states each leaf's committed values, the assumptions proven, at every level.
+        f.tree.verify(&f.root, &f.committed).expect("the root");
+        f.tree
+            .verify(&f.firsts[1], &f.committed[1..])
+            .expect("a first-level root");
+        let exits = [f.committed[0].assuming(&assumptions), f.committed[1]];
+        assert_eq!(f.tree.verify(&f.root, &exits), Err(TreeError::Outputs));
+
+        // A tree that resolves nothing has another key, so it refuses the root.
+        let plain = Tree::new(
+            outer(),
+            TreeShape {
+                leaf: LeafShape::of(&f.leaves[0]).expect("a canonical announcement"),
+                arity_0: 1,
+                arity: 2,
+                rate: Rate::MIN,
+                claims: None,
+            },
+        )
+        .expect("a tree");
+        // Its statements may also be shorter, its dense polynomials having fewer variables: then the root is no proof
+        // of its circuits at all.
+        assert!(matches!(
+            plain.verify(&f.root, &f.committed),
+            Err(TreeError::Root(_) | TreeError::Circuit(_))
+        ));
+    }
+
+    // What a first-level prover is handed: every assumption named by the leaf's output, in order, each proven, and
+    // nothing else. A leaf whose output names other assumptions does not verify against the ones given.
+    #[test]
+    fn a_leaf_is_resolved_by_exactly_the_proofs_it_assumes() {
+        let f = resolving();
+        let first = |inner: &[Leaf<'_>]| {
+            (f.tree
+                .prove_first(&[Leaf::assuming(&f.leaves[0], f.committed[0], inner)]))
+            .map(|p| p.kind())
+        };
+        let leaf_refused = |r: Result<Kind, TreeError>| matches!(r, Err(TreeError::Leaf { index: 0, .. }));
+        let [q11, q12, q13] = [0, 1, 2].map(|i| f.inner(i));
+
+        assert_eq!(first(&[q11, q12]), Ok(Kind::First));
+        // Another run in place of a named one, the named ones reordered, one twice.
+        for inner in [[q11, q13], [q12, q11], [q11, q11]] {
+            assert!(leaf_refused(first(&inner)), "{:?}", inner.map(|l| l.output));
+        }
+        // One dropped, one added.
+        assert!(matches!(
+            first(&[q11]),
+            Err(TreeError::Assumptions {
+                index: 0,
+                expected: 2,
+                got: 1
+            })
+        ));
+        assert!(matches!(
+            first(&[q11, q12, q13]),
+            Err(TreeError::Assumptions {
+                index: 0,
+                expected: 2,
+                got: 3
+            })
+        ));
+        // Another committed digest.
+        let other_committed = f
+            .tree
+            .prove_first(&[Leaf::assuming(&f.leaves[0], f.committed[1], &[q11, q12])]);
+        assert!(matches!(other_committed, Err(TreeError::Leaf { index: 0, .. })));
+
+        // A run of another program with a named output.
+        let (forged, output) = prove(other(), &[12]);
+        assert_eq!(output, f.assumed[1].1);
+        assert!(matches!(
+            first(&[q11, Leaf::new(&forged, output)]),
+            Err(TreeError::Assumption { leaf: 0, index: 1, .. } | TreeError::ForeignAssumption { leaf: 0, index: 1 })
+        ));
+
+        // A leaf whose output names another program.
+        let mut named = assume(program(), &f.outputs([0, 1]));
+        named[1] = Assumption::new(other().digest_words(), f.assumed[1].1);
+        let (renamed, _) = prove(outer(), f.committed[0].assuming(&named).words());
+        let refused = f
+            .tree
+            .prove_first(&[Leaf::assuming(&renamed, f.committed[0], &[q11, q12])]);
+        assert!(matches!(refused, Err(TreeError::Leaf { index: 0, .. })));
+
+        // An assumed proof that itself assumes proofs.
+        let inner = [q13];
+        let nested = [q11, Leaf::assuming(&f.assumed[1].0, f.assumed[1].1, &inner)];
+        assert_eq!(first(&nested), Err(TreeError::NestedAssumption { leaf: 0, index: 1 }));
+    }
+
+    // The checks above are the prover's courtesy; the circuit is what binds. Each forged witness, past them, leaves a
+    // first-level circuit whose rows fail, so no proof of it exists.
+    #[test]
+    fn the_rows_bind_each_assumption_to_its_proof() {
+        fn witness<'a>(shape: &ProofShape<'_>, proof: &'a Proof, output: Output) -> LeafWitness<'a> {
+            Tree::witness(shape, proof, output).expect("a proof that verifies")
+        }
+        // The leaf's witness: its proof against the output it exits with, its committed digest, the given assumed ones.
+        fn leaf<'a>(
+            shape: &ProofShape<'_>,
+            proof: &'a Proof,
+            committed: Output,
+            names: &[Assumption],
+            assumed: Vec<LeafWitness<'a>>,
+        ) -> LeafWitness<'a> {
+            LeafWitness {
+                committed: *committed.words(),
+                assumed,
+                ..witness(shape, proof, committed.assuming(names))
+            }
+        }
+        let f = resolving();
+        let d = &f.tree.design;
+        let a = d.assumed.as_ref().expect("a tree that resolves assumptions");
+        let inner = |i: usize| witness(&a.shape, &f.assumed[i].0, f.assumed[i].1);
+        let failures = |item: LeafWitness<'_>| {
+            let items = [item];
+            let rows = d.first_rows(&NodeInputs::Prove {
+                items: &items,
+                tables: &f.tree.tables,
+                union: None,
+            });
+            let reduction = rows.claim_values().prove(&d.session(), &d.vars, &f.tree.tables);
+            rows.reduce(d, ProofSource::Proof(&reduction, &[])).failures
+        };
+        let names = assume(program(), &f.outputs([0, 1]));
+        let honest = || leaf(&d.leaf, &f.leaves[0], f.committed[0], &names, vec![inner(0), inner(1)]);
+        assert_eq!(failures(honest()), Vec::<Unsatisfied>::new());
+
+        // Another committed digest than the one folded.
+        let committed = LeafWitness {
+            committed: *f.committed[1].words(),
+            ..honest()
+        };
+        // The assumed proofs reordered, and one replaced by another run of the program.
+        let reordered = leaf(&d.leaf, &f.leaves[0], f.committed[0], &names, vec![inner(1), inner(0)]);
+        let replaced = leaf(&d.leaf, &f.leaves[0], f.committed[0], &names, vec![inner(0), inner(2)]);
+        // A run of another program with the named output, verified as what it is.
+        let (forged, output) = prove(other(), &[12]);
+        let foreign = witness(
+            &ProofShape::new(other(), LeafShape::of(&forged).expect("canonical")).expect("a shape"),
+            &forged,
+            output,
+        );
+        let foreign = leaf(&d.leaf, &f.leaves[0], f.committed[0], &names, vec![inner(0), foreign]);
+        // A leaf whose output names another program, with the proofs of the named outputs.
+        let mut renamed_names = names.clone();
+        renamed_names[1] = Assumption::new(other().digest_words(), f.assumed[1].1);
+        let (renamed, _) = prove(outer(), f.committed[0].assuming(&renamed_names).words());
+        let renamed = leaf(
+            &d.leaf,
+            &renamed,
+            f.committed[0],
+            &renamed_names,
+            vec![inner(0), inner(1)],
+        );
+
+        for (what, item) in [
+            ("another committed digest", committed),
+            ("reordered", reordered),
+            ("replaced", replaced),
+            ("another program's run", foreign),
+            ("another program named", renamed),
+        ] {
+            assert!(!failures(item).is_empty(), "{what}: the rows hold");
+        }
+    }
+
+    // A claim-set tree resolves assumptions as a tree of outputs does: a leaf's committed values are its set's digest,
+    // and its run folds the proofs it assumed into its output.
+    #[test]
+    fn a_claim_set_tree_resolves_its_leaves_assumptions() {
+        let f = resolving();
+        let set = ClaimSet {
+            groups: vec![ClaimGroup {
+                label: [1, 2, 0, 0, 0, 1],
+                members: vec![[3, 4, 5, 6]],
+            }],
+        };
+        let committed = Output::new(chain(&set.digest()));
+        let assumptions = assume(program(), &[f.assumed[1].1]);
+        let (proof, _) = prove(outer(), committed.assuming(&assumptions).words());
+        let tree = Tree::assuming(
+            outer(),
+            TreeShape {
+                leaf: LeafShape::of(&proof).expect("a canonical announcement"),
+                arity_0: 1,
+                arity: 2,
+                rate: Rate::MIN,
+                claims: Some(ClaimShape::new(Capacity { claims: 4, groups: 2 })),
+            },
+            AssumedProofs {
+                program: program(),
+                leaf: LeafShape::of(&f.assumed[0].0).expect("a canonical announcement"),
+                count: 1,
+            },
+        )
+        .expect("a tree");
+        let first = |inner: &[Leaf<'_>]| {
+            tree.aggregate_leaves(&[ClaimLeaf::new(Leaf::assuming(&proof, committed, inner), &set)], None)
+        };
+
+        let root = first(&[f.inner(1)]).expect("an honest leaf");
+        assert_eq!(root.claims, set);
+        tree.verify_claims(&root.proof, &set).expect("the root");
+
+        // Another run of the assumed program in place of the named one, or no assumed proof at all.
+        assert!(matches!(first(&[f.inner(0)]), Err(TreeError::Leaf { index: 0, .. })));
+        assert!(matches!(
+            first(&[]),
+            Err(TreeError::Assumptions {
+                index: 0,
+                expected: 1,
+                got: 0
+            })
+        ));
+    }
+
+    // A tree resolving assumptions over zero-knowledge proofs, the leaf's and the one it assumes: each kind is its
+    // shape's, and the node verifies both as a plain leaf's.
+    #[test]
+    fn a_tree_resolves_zero_knowledge_assumptions() {
+        let zk = |seed: u8| Prover::new(Rate::MIN).zero_knowledge(Randomness::Fixed([seed; 32]));
+        let assumed = zk(1).prove(program(), &[11]).expect("the run halts");
+        let committed = Output::new([0xc0, 1, 2, 3]);
+        let assumptions = assume(program(), &[assumed.output]);
+        let leaf = (zk(2).prove(outer(), committed.assuming(&assumptions).words())).expect("the run halts");
+        assert_eq!(
+            outer().verify_assuming(committed, &assumptions, &leaf.proof),
+            Ok(&assumptions[..])
+        );
+        let shape = |proof: &Proof| LeafShape::of(proof).expect("a canonical announcement");
+        assert!(shape(&leaf.proof).is_zero_knowledge() && shape(&assumed.proof).is_zero_knowledge());
+        let tree = Tree::assuming(
+            outer(),
+            TreeShape {
+                leaf: shape(&leaf.proof),
+                arity_0: 1,
+                arity: 2,
+                rate: Rate::MIN,
+                claims: None,
+            },
+            AssumedProofs {
+                program: program(),
+                leaf: shape(&assumed.proof),
+                count: 1,
+            },
+        )
+        .expect("a tree");
+        let inner = [Leaf::from(&assumed)];
+        let root = (tree.prove_first(&[Leaf::assuming(&leaf.proof, committed, &inner)])).expect("honest proofs");
+        tree.verify(&root, &[committed]).expect("the root");
+
+        // A plain proof of the assumed run has another shape: the tree refuses it.
+        let (plain, output) = prove(program(), &[11]);
+        let refused = tree.prove_first(&[Leaf::assuming(&leaf.proof, committed, &[Leaf::new(&plain, output)])]);
+        assert_eq!(refused.err(), Some(TreeError::ForeignAssumption { leaf: 0, index: 0 }));
+    }
+
+    #[test]
+    fn the_fold_in_rows_is_output_assuming() {
+        let mut rng = Rng::new(0xa5);
+        let mut word4 = || std::array::from_fn::<u64, 4, _>(|_| rng.next_u64());
+        let program = word4();
+        let committed = word4();
+        for k in 1..=3 {
+            let outputs: Vec<[u64; 4]> = (0..k).map(|_| word4()).collect();
+            let mut b = Builder::new();
+            let wires = |b: &mut Builder, w: [u64; 4]| w.map(|x| b.free_k(x));
+            let (c, p) = (wires(&mut b, committed), wires(&mut b, program));
+            let o: Vec<[Kw; 4]> = outputs.iter().map(|&w| wires(&mut b, w)).collect();
+            let folded = design::assuming_rows(&mut b, c, p, &o);
+            let assumptions: Vec<Assumption> = outputs
+                .iter()
+                .map(|&w| Assumption::new(program, Output::new(w)))
+                .collect();
+            assert_eq!(
+                b.d(folded),
+                *Output::new(committed).assuming(&assumptions).words(),
+                "{k} assumptions"
+            );
+        }
     }
 
     mod claim_sets {

@@ -12,6 +12,10 @@
 //! `read` takes values from the advice, which the prover fills and the guest has to check;
 //! `commit` makes values public, and the run's output is their digest.
 //!
+//! `verify_proof(program, output)` records an assumption: that a run of the program of that digest exits with that
+//! output. Nothing is checked in the run; its output folds the assumptions with the committed digest, so its proof
+//! holds only once each assumption is proven, which an aggregation tree that resolves assumptions does.
+//!
 //! The environment has no traps to handle: an illegal instruction, a misaligned or
 //! unmapped access, or an `ecall` that is not `exit` leave a run with no proof. So a
 //! panic is one illegal instruction, and nothing else is needed.
@@ -40,9 +44,9 @@ pub use io::Run;
 #[cfg(not(all(target_arch = "riscv64", target_os = "none")))]
 pub use blake2s::blake2s_compress;
 
-// Reading, committing, the entry point and the precompiles exist on the VM only.
+// Reading, committing, assuming, the entry point and the precompiles exist on the VM only.
 #[cfg(all(target_arch = "riscv64", target_os = "none"))]
-pub use io::{commit, read, read_slice, read_unchecked};
+pub use io::{commit, read, read_slice, read_unchecked, verify_proof};
 #[cfg(all(target_arch = "riscv64", target_os = "none"))]
 pub mod precompile;
 #[cfg(all(target_arch = "riscv64", target_os = "none"))]

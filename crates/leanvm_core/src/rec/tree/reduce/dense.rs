@@ -206,6 +206,13 @@ impl<E: Copy> DenseClaim<E> {
         }
     }
 
+    /// `P(point, bits) = v`: a point, then public coordinates.
+    pub(crate) fn at_bits(poly: DensePoly, point: Vec<E>, bits: Bits, value: E) -> Self {
+        let mut claim = Self::at(poly, point, None, value);
+        claim.terms[0].bits = bits;
+        claim
+    }
+
     /// The same claims, each element mapped by `f`.
     pub(super) fn map<T>(&self, f: &mut impl FnMut(E) -> T) -> DenseClaim<T> {
         DenseClaim {

@@ -18,7 +18,12 @@ pub(crate) const IV: [u64; 4] = [
     0x5BE0_CD19_1F83_D9AB,
 ];
 
+/// [`IV`] personalized by `assuming` (the parameter block's last eight bytes): the hash folding a run's assumptions
+/// into its output.
+pub(crate) const ASSUMING_IV: [u64; 4] = [IV[0], IV[1], IV[2], IV[3] ^ u64::from_le_bytes(*b"assuming")];
+
 /// Streaming BLAKE2s-256.
+#[derive(Clone)]
 pub struct Blake2s {
     /// The chaining value.
     h: [u64; 4],
@@ -44,6 +49,14 @@ impl Blake2s {
             m: [0; 8],
             filled: 0,
             done: 0,
+        }
+    }
+
+    /// BLAKE2s-256 personalized by `assuming`.
+    pub(crate) const fn assuming() -> Self {
+        Self {
+            h: ASSUMING_IV,
+            ..Self::new()
         }
     }
 

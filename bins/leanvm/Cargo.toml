@@ -33,6 +33,7 @@ falcon-host.workspace = true
 stateproof-host.workspace = true
 shielded-host.workspace = true
 leanda-host.workspace = true
+defer-host.workspace = true
 tracing.workspace = true
 clap = { version = "4", features = ["derive"] }
 # The pinned cases' benchmarks, merged with this process's.

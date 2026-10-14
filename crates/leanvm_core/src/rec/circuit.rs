@@ -15,6 +15,7 @@
 //! - one BLAKE2s compression is a `HASH` row: a transcript step, a Merkle node or a block of a long message.
 
 use super::table::{PerRecTable, Table};
+use crate::cpu::Assumption;
 use crate::rv::{Hash, InstructionClass};
 use fiat_shamir::arith::Arith;
 use primitives::field::{F64, F192};
@@ -28,6 +29,9 @@ pub type Limbs = [u64; 4];
 
 /// The parameter IV as four words.
 pub const PARAM_IV: Limbs = words(primitives::hash::PARAM_IV);
+
+/// The IV of the hash that folds a run's assumptions into its output, as four words.
+pub(crate) const ASSUMING_IV: Limbs = words(primitives::hash::personal_iv(&Assumption::PERSONALIZATION));
 
 /// What a wire holds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -844,10 +848,16 @@ impl Builder {
 
     /// The hash of `words` in rows, as the native chain computes it.
     pub fn chain(&mut self, words: &[Kw]) -> Dw {
+        self.chain_from(PARAM_IV, words)
+    }
+
+    /// The hash of `words` from the initial chaining value `iv`: BLAKE2s-256 of their bytes under the parameter block
+    /// `iv` folds in.
+    pub fn chain_from(&mut self, iv: Limbs, words: &[Kw]) -> Dw {
         let n_blocks = words.len().div_ceil(8).max(1);
         let zero = self.k_zero();
         let bytes = 8 * words.len() as u64;
-        let mut h = self.d_const(PARAM_IV);
+        let mut h = self.d_const(iv);
         for j in 0..n_blocks {
             let m: [Kw; 8] = std::array::from_fn(|i| words.get(8 * j + i).copied().unwrap_or(zero));
             h = self.leaf_block(h, m, (64 * (j as u64 + 1)).min(bytes), j + 1 == n_blocks);

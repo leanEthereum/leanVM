@@ -26,6 +26,17 @@
 //!
 //! What a program reads there, it must check itself.
 //!
+//! # Assumptions
+//!
+//! A guest may verify another leanVM proof: `leanvm_guest::verify_proof(program, output)` records an [`Assumption`],
+//! that a run of that program exits with that output, and folds it into the run's output ([`Output::assuming`]).
+//!
+//! The run's own proof then shows its committed values only under its assumptions: [`Program::verify_assuming`]
+//! checks it and returns them, unresolved. An aggregation tree resolves them, verifying the assumed proofs too.
+//!
+//! A zero-knowledge proof assumes and is assumed as a plain one does. The assumptions are part of its statement, given
+//! to its verifier with the committed values' digest, so zero knowledge hides the advice and never the assumptions.
+//!
 //! # Zero knowledge
 //!
 //! A plain proof hides nothing: a verifier who guesses the advice can recompute the proof and compare.
@@ -84,11 +95,12 @@ mod stacking;
 mod tables;
 
 pub use commitment::{InvalidRate, Rate, SECURITY_BITS};
-pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
+pub use cpu::{Assumption, DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
 #[doc(hidden)]
 pub use rec::tree::{
-    Aggregate, Capacity, CircuitStats, Claim, ClaimGroup, ClaimLeaf, ClaimSet, ClaimSetError, ClaimShape, DensePoly,
-    FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tier, Tree, TreeError, TreeProof, TreeShape, Unsatisfied,
+    Aggregate, AssumedProofs, Capacity, CircuitStats, Claim, ClaimGroup, ClaimLeaf, ClaimSet, ClaimSetError,
+    ClaimShape, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tier, Tree, TreeError, TreeProof,
+    TreeShape, Unsatisfied,
 };
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 pub use zk::Randomness;
@@ -151,10 +163,19 @@ pub(crate) const PAR_THRESHOLD: usize = 1 << 11;
 /// of 6-word labels and 4-word members, whose meaning is the program's), its output the hash of the set's digest.
 ///
 /// A tree over one leaf, with `arity_0 = 1`, is a single proof's recursion.
+///
+/// # Assumptions
+///
+/// A guest that verifies proofs with `leanvm_guest::verify_proof` assumes them: its proof alone shows its run only
+/// under those assumptions ([`crate::Program::verify_assuming`]). A tree built with [`aggregate::Tree::assuming`]
+/// resolves them: its first level verifies, beside each leaf's proof, the proofs that leaf's run assumed, and checks
+/// that they are exactly the assumptions its output folds in, in order. Its root then states each leaf's committed
+/// values' digest, with nothing left assumed. Its leaves and the proofs they assume may each be zero knowledge, as
+/// their [`aggregate::LeafShape`]s say.
 pub mod aggregate {
     pub use crate::rec::tree::{
-        Aggregate, Capacity, CircuitStats, Claim, ClaimGroup, ClaimLeaf, ClaimSet, ClaimSetError, ClaimShape,
-        DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tier, Tree, TreeError, TreeProof, TreeShape,
-        Unsatisfied,
+        Aggregate, AssumedProofs, Capacity, CircuitStats, Claim, ClaimGroup, ClaimLeaf, ClaimSet, ClaimSetError,
+        ClaimShape, DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tier, Tree, TreeError, TreeProof,
+        TreeShape, Unsatisfied,
     };
 }

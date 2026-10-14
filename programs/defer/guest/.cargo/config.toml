@@ -1,0 +1,15 @@
+# A leanVM guest: `riscv64im-unknown-none-elf` is a Tier 3 target with no prebuilt `core`, so `build-std`.
+[build]
+target = "riscv64im-unknown-none-elf"
+
+[unstable]
+build-std = ["core"]
+
+[target.riscv64im-unknown-none-elf]
+rustflags = ["-C", "link-arg=-T../../../sdk/link.ld"]
+
+[profile.release]
+opt-level = 3
+panic = "abort"
+lto = true
+codegen-units = 1
