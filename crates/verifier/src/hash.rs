@@ -25,6 +25,21 @@ pub const BLAKE2S_G_LANES: [[usize; 4]; 8] = [
     [0, 5, 10, 15], [1, 6, 11, 12], [2, 7, 8, 13], [3, 4, 9, 14],
 ];
 
+/// One round's eight gates.
+#[inline(always)]
+fn round(v: &mut [u32; 16], m: &[u32; 16], sigma: &[usize; 16]) {
+    for (gate, &[a, b, c, d]) in BLAKE2S_G_LANES.iter().enumerate() {
+        v[a] = v[a].wrapping_add(v[b]).wrapping_add(m[sigma[2 * gate]]);
+        v[d] = (v[d] ^ v[a]).rotate_right(16);
+        v[c] = v[c].wrapping_add(v[d]);
+        v[b] = (v[b] ^ v[c]).rotate_right(12);
+        v[a] = v[a].wrapping_add(v[b]).wrapping_add(m[sigma[2 * gate + 1]]);
+        v[d] = (v[d] ^ v[a]).rotate_right(8);
+        v[c] = v[c].wrapping_add(v[d]);
+        v[b] = (v[b] ^ v[c]).rotate_right(7);
+    }
+}
+
 fn compression(h: &mut [u32; 8], block: &[u8; 64], counter: u64, last: bool) {
     let m: [u32; 16] = std::array::from_fn(|i| u32::from_le_bytes(block.as_chunks().0[i]));
     let mut v = [0u32; 16];
@@ -35,18 +50,18 @@ fn compression(h: &mut [u32; 8], block: &[u8; 64], counter: u64, last: bool) {
     if last {
         v[14] = !v[14];
     }
-    for sigma in &BLAKE2S_SIGMA {
-        for (gate, &[a, b, c, d]) in BLAKE2S_G_LANES.iter().enumerate() {
-            v[a] = v[a].wrapping_add(v[b]).wrapping_add(m[sigma[2 * gate]]);
-            v[d] = (v[d] ^ v[a]).rotate_right(16);
-            v[c] = v[c].wrapping_add(v[d]);
-            v[b] = (v[b] ^ v[c]).rotate_right(12);
-            v[a] = v[a].wrapping_add(v[b]).wrapping_add(m[sigma[2 * gate + 1]]);
-            v[d] = (v[d] ^ v[a]).rotate_right(8);
-            v[c] = v[c].wrapping_add(v[d]);
-            v[b] = (v[b] ^ v[c]).rotate_right(7);
-        }
-    }
+    // Spelled out: a loop over the rounds is kept rolled, and its message indices loaded and bounds checked.
+    let [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9] = &BLAKE2S_SIGMA;
+    round(&mut v, &m, s0);
+    round(&mut v, &m, s1);
+    round(&mut v, &m, s2);
+    round(&mut v, &m, s3);
+    round(&mut v, &m, s4);
+    round(&mut v, &m, s5);
+    round(&mut v, &m, s6);
+    round(&mut v, &m, s7);
+    round(&mut v, &m, s8);
+    round(&mut v, &m, s9);
     for i in 0..8 {
         h[i] ^= v[i] ^ v[i + 8];
     }

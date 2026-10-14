@@ -224,25 +224,26 @@ const WINDOWS_PER_LIMB: usize = 64usize.div_ceil(WINDOW);
 /// Multiplication by one fixed `r`, which is F2-linear: `r * x^(WINDOW j) * y^t * n` tabulated for every window value
 /// `n`, so a product is the sum of one entry per window of the other operand, with nothing left to reduce. It pays
 /// where `r` multiplies many values.
-pub struct Scaled(Vec<[E; 1 << WINDOW]>);
+///
+/// One flat run of tables, indexed through bounds checks the compiler cannot discharge: they keep the lookups, and loops
+/// of products, from being vectorized into AVX-512 gathers, which lose to the scalar loads.
+pub struct Scaled(Vec<E>);
 
 impl Scaled {
     pub fn new(r: E) -> Self {
         // r * x^k * y^t, k ascending: each step multiplies every limb by x.
         let times_x = |value: u64| value << 1 ^ (0u64.wrapping_sub(value >> 63) & 0x1B);
-        let mut tables = Vec::with_capacity(3 * WINDOWS_PER_LIMB);
+        let mut tables = vec![ZERO; (3 * WINDOWS_PER_LIMB) << WINDOW];
         let mut monomial = r;
-        for _ in 0..3 {
+        for limb_tables in tables.as_chunks_mut::<{ WINDOWS_PER_LIMB << WINDOW }>().0 {
             let mut power = monomial;
-            for _ in 0..WINDOWS_PER_LIMB {
-                let mut table = [ZERO; 1 << WINDOW];
+            for table in limb_tables.as_chunks_mut::<{ 1 << WINDOW }>().0 {
                 for bit in 0..WINDOW {
                     for low in 0..1 << bit {
                         table[1 << bit | low] = table[low] + power;
                     }
                     power = E::new(times_x(power.c0), times_x(power.c1), times_x(power.c2));
                 }
-                tables.push(table);
             }
             // times y, with y^3 = y + 1.
             monomial = E::new(monomial.c2, monomial.c0 ^ monomial.c2, monomial.c1);
@@ -253,9 +254,11 @@ impl Scaled {
     #[inline]
     pub fn mul(&self, a: E) -> E {
         let mut product = ZERO;
-        for (limb, tables) in [a.c0, a.c1, a.c2].into_iter().zip(self.0.chunks(WINDOWS_PER_LIMB)) {
-            for (window, table) in tables.iter().enumerate() {
-                product += table[(limb >> (WINDOW * window)) as usize % (1 << WINDOW)];
+        let mut table = 0;
+        for limb in [a.c0, a.c1, a.c2] {
+            for window in 0..WINDOWS_PER_LIMB {
+                product += self.0[(table << WINDOW) | ((limb >> (WINDOW * window)) as usize % (1 << WINDOW))];
+                table += 1;
             }
         }
         product

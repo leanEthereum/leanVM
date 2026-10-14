@@ -57,6 +57,9 @@ impl Bytecode {
             if members.is_empty() {
                 continue;
             }
+            // Fewest positions first: the sum over a word's positions then runs one length many times over, so its loop exit is predicted.
+            let mut members: Vec<(u64, Vec<u16>)> = members.into_iter().collect();
+            members.sort_by_key(|(_, at)| at.len());
             let mut used = std::collections::BTreeSet::new();
             for (word, at) in members {
                 positions.extend(at);
