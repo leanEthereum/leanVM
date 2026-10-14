@@ -1462,6 +1462,18 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
     return fs[0], fs[1], cursor, last[GEN ** LAYER_PUSH], last[GEN ** LAYER_PULL], last[GEN ** LAYER_COUNT]
 
 
+def index_mle(zeta, n: Const):
+    # The Index coordinate's MLE over the block's n = κ low coords:
+    # prod_t (1 + zeta_t * (1 + g^(2^t))).
+    v = GEN ** 0
+    for t in unroll(0, n):
+        if t == 0:
+            v = 1 + zeta[GEN ** t] * INDEX_MLE_FACTORS[t]
+        else:
+            v *= 1 + zeta[GEN ** t] * INDEX_MLE_FACTORS[t]
+    return v
+
+
 def block_selector(sel_bits, zeta1_hi, idxc_hi, n: Const):
     # A bus block's eq over its n = mu - κ selector bits, the offset's bits above κ,
     # each boolean-pinned, and g^offset rebuilt from those bits alone (weights
@@ -1599,12 +1611,7 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
                         if s == PULL_SIDE:
                             coord_val = block_index_mle[GEN ** (b - SIDE_BLOCK_START[PULL_SIDE])]
                         else:
-                            # Index-coord MLE: prod_t (1 + zeta_t * (1 + g^(2^t)))
-                            idx_chain = HeapBuf(MU_CAP + 2)
-                            idx_chain[GEN ** 0] = 1
-                            for xt in mul_range(1, kappa_g):
-                                idx_chain[xt * GEN] = idx_chain[xt] * (1 + zeta[xt] * idxc_tab[xt])
-                            coord_val = idx_chain[kappa_g]
+                            coord_val = match(log(kappa_g), range(0, SIZE_BITS), lambda n: index_mle(zeta, n))
                             if s == PUSH_SIDE:
                                 block_index_mle[GEN ** b] = coord_val
                     if COORD_TYPE[ci] == COORD_KIND_PUBLIC:
