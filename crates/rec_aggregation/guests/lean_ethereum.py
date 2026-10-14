@@ -234,6 +234,9 @@ KR_CURSOR = 2
 KR_CLAIM = 3
 KR_SCALE = 4
 KR_SLOTS = 5
+# A layer's round records lie field by field, KR_CAP apart, one per two rounds:
+# a layer has tau - 3 < 30 rounds, so at most 16 records.
+KR_CAP = 16
 
 # ------------------------------------------------- the stacked WHIR opening
 # The opening is dispatched by the certified committed log-size m through `match`.
@@ -2223,7 +2226,30 @@ def keccak_form(lanes, shifts, f_lanes, f_off: Const):
     return total
 
 
-def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
+def keccak_round(rd, pp, pt):
+    # One round of a layer's pack and segment sumcheck, from the record at rd (fields
+    # KR_CAP apart) to the next: degree two with the eq factor pulled out, the
+    # prover sending g(1) and g(2). With r the claim's coordinate pp[0] and d = r +
+    # rho, h(rho) = claim + d g(1) + (r + rho^2) g(2), g(0) being fixed by the claim.
+    fs = [rd[GEN ** (KR_FS0 * KR_CAP)], rd[GEN ** (KR_FS1 * KR_CAP)]]
+    cur = rd[GEN ** (KR_CURSOR * KR_CAP)]
+    r_eq = pp[1]
+    fs, g_1, cur = fs_next(fs, cur)
+    fs, g_2, cur = fs_next(fs, cur)
+    fs, rho = squeeze(fs)
+    pt[1] = rho
+    gap = r_eq + rho
+    eq_factor = 1 + gap
+    nxt = rd * GEN
+    nxt[GEN ** (KR_FS0 * KR_CAP)] = fs[0]
+    nxt[GEN ** (KR_FS1 * KR_CAP)] = fs[1]
+    nxt[GEN ** (KR_CURSOR * KR_CAP)] = cur
+    nxt[GEN ** (KR_CLAIM * KR_CAP)] = eq_factor * (rd[GEN ** (KR_CLAIM * KR_CAP)] + gap * g_1 + (r_eq + rho * rho) * g_2)
+    nxt[GEN ** (KR_SCALE * KR_CAP)] = rd[GEN ** (KR_SCALE * KR_CAP)] * eq_factor
+    return
+
+
+def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first: Const, odd: Const):
     # One layer (keccak_gkr::protocol::verify_layer): the claim on the states after
     # a round becomes one on the states before it. A claim's position weights are
     # never written out: they are the transpose of the linear layer applied to a
@@ -2365,36 +2391,49 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
     value = product[KECCAK_PROD_BITS - 1]
     for k in unroll(1, KECCAK_PROD_BITS):
         value = value * s + product[KECCAK_PROD_BITS - 1 - k]
-    # The pack and the segment, a runtime number of rounds.
+    # The pack and the segment, a runtime number of rounds: 2 half_g, plus one when
+    # odd, two a loop step; y_last = half_g g^odd.
     prev_point = claim[GEN ** KC_POINT]
     point = HeapBuf(y_g)
-    rounds = HeapBuf((y_g * GEN) ** KR_SLOTS)
-    rounds[GEN ** KR_FS0] = fs[0]
-    rounds[GEN ** KR_FS1] = fs[1]
-    rounds[GEN ** KR_CURSOR] = cursor
-    rounds[GEN ** KR_CLAIM] = value
-    rounds[GEN ** KR_SCALE] = 1
-    for xi in mul_range(1, y_g):
-        rd = rounds * xi ** KR_SLOTS
-        round_fs = [rd[GEN ** KR_FS0], rd[GEN ** KR_FS1]]
-        r_eq = prev_point[xi]
-        cur_i = rd[GEN ** KR_CURSOR]
-        round_fs, g_1, cur_i = fs_next(round_fs, cur_i)
-        round_fs, g_2, cur_i = fs_next(round_fs, cur_i)
-        g_0 = rd[GEN ** KR_CLAIM] + r_eq * (g_1 + g_2)
-        round_fs, rho = squeeze(round_fs)
-        point[xi] = rho
-        eq_factor = 1 + r_eq + rho
-        nxt = rd * GEN ** KR_SLOTS
-        nxt[GEN ** KR_FS0] = round_fs[0]
-        nxt[GEN ** KR_FS1] = round_fs[1]
-        nxt[GEN ** KR_CURSOR] = cur_i
-        nxt[GEN ** KR_CLAIM] = eq_factor * (g_0 + rho * (g_1 + rho * g_2))
-        nxt[GEN ** KR_SCALE] = rd[GEN ** KR_SCALE] * eq_factor
-    last = rounds * y_g ** KR_SLOTS
-    fs = [last[GEN ** KR_FS0], last[GEN ** KR_FS1]]
-    cursor = last[GEN ** KR_CURSOR]
-    value = last[GEN ** KR_CLAIM]
+    rounds = HeapBuf(KR_SLOTS * KR_CAP)
+    rounds[GEN ** (KR_FS0 * KR_CAP)] = fs[0]
+    rounds[GEN ** (KR_FS1 * KR_CAP)] = fs[1]
+    rounds[GEN ** (KR_CURSOR * KR_CAP)] = cursor
+    rounds[GEN ** (KR_CLAIM * KR_CAP)] = value
+    rounds[GEN ** (KR_SCALE * KR_CAP)] = 1
+    for x2 in mul_range(1, half_g):
+        rd = rounds * x2
+        sq = x2 * x2
+        pp = prev_point * sq
+        pt = point * sq
+        round_fs = [rd[GEN ** (KR_FS0 * KR_CAP)], rd[GEN ** (KR_FS1 * KR_CAP)]]
+        cur_i = rd[GEN ** (KR_CURSOR * KR_CAP)]
+        run = rd[GEN ** (KR_CLAIM * KR_CAP)]
+        scale = rd[GEN ** (KR_SCALE * KR_CAP)]
+        for q in unroll(0, 2):
+            # As in keccak_round.
+            r_eq = pp[GEN ** q]
+            round_fs, g_1, cur_i = fs_next(round_fs, cur_i)
+            round_fs, g_2, cur_i = fs_next(round_fs, cur_i)
+            round_fs, rho = squeeze(round_fs)
+            pt[GEN ** q] = rho
+            gap = r_eq + rho
+            eq_factor = 1 + gap
+            run = eq_factor * (run + gap * g_1 + (r_eq + rho * rho) * g_2)
+            scale = scale * eq_factor
+        nxt = rd * GEN
+        nxt[GEN ** (KR_FS0 * KR_CAP)] = round_fs[0]
+        nxt[GEN ** (KR_FS1 * KR_CAP)] = round_fs[1]
+        nxt[GEN ** (KR_CURSOR * KR_CAP)] = cur_i
+        nxt[GEN ** (KR_CLAIM * KR_CAP)] = run
+        nxt[GEN ** (KR_SCALE * KR_CAP)] = scale
+    if odd == 1:
+        sq = half_g * half_g
+        keccak_round(rounds * half_g, prev_point * sq, point * sq)
+    last = rounds * y_last
+    fs = [last[GEN ** (KR_FS0 * KR_CAP)], last[GEN ** (KR_FS1 * KR_CAP)]]
+    cursor = last[GEN ** (KR_CURSOR * KR_CAP)]
+    value = last[GEN ** (KR_CLAIM * KR_CAP)]
     # The bit position: degree three, the weights being one more multilinear factor.
     local = HeapBuf(KECCAK_LOCAL_BITS)
     for i in unroll(0, KECCAK_LOCAL_BITS):
@@ -2425,7 +2464,7 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
         shifts = StackBuf(64)
         keccak_shifts_eq(claim[GEN ** KC_LOCAL], local, shifts)
         weight_at_local[0] = keccak_form(prev_lanes, shifts, f_lanes, LANE_OFF)
-    assert last[GEN ** KR_SCALE] * weight_at_local[0] * (kappa * t0 + (kappa + t1) * t2) == value
+    assert last[GEN ** (KR_SCALE * KR_CAP)] * weight_at_local[0] * (kappa * t0 + (kappa + t1) * t2) == value
     # t[k] = sum_j eq[j] T[j + k]: one claim on the state before chi.
     fs, beta = squeeze(fs)
     out[GEN ** KC_VALUE] = t0 + beta * (t1 + beta * t2)
@@ -2499,6 +2538,19 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
     fs = [fs0, fs1]
     pack_g = tau_g * INV_GEN ** KECCAK_PACK_LOG
     y_g = pack_g * GEN ** KECCAK_SEG_LOG
+    # A layer runs y = log(y_g) rounds two at a time: y_g = half_g^2 g^odd, from y's
+    # bits, pinned boolean and tied back (y = tau - 3 < 2^5 as tau < COUNT_BITS).
+    y_bits = StackBuf(5)
+    hint_decompose_bits_exponent(y_bits, y_g, 5)
+    half_g = GEN ** 0
+    for j in unroll(0, 5):
+        bit = y_bits[j]
+        y_bits[j] = bit * bit
+        if j != 0:
+            half_g *= 1 + bit * (1 + GEN ** (2 ** j // 2))
+    odd_g = 1 + y_bits[0] * (1 + GEN)
+    y_last = half_g * odd_g
+    assert half_g * y_last == y_g
     out_point = z_vals
     in_point = z_vals * GEN ** QKECCAK_VARS_CAP
     for i in unroll(0, KECCAK_PACK_LOG):
@@ -2553,10 +2605,11 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
             for t in unroll(KECCAK_IOTA_START[KECCAK_SEGMENTS * step + m], KECCAK_IOTA_START[KECCAK_SEGMENTS * step + m + 1]):
                 flipped += claim[GEN ** (KC_IOTA + KECCAK_IOTA_IDX[t])]
             iota += segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + m)] * flipped
+        # odd_g is g^0 or g^1, its exponent a pinned bit.
         if step == 0:
-            fs0, fs1, cursor = keccak_layer(fs[0], fs[1], cursor, y_g, claim, claim * GEN ** KC_SIZE, iota, 1)
+            fs0, fs1, cursor = match(log(odd_g), range(0, 2), lambda odd: keccak_layer(fs[0], fs[1], cursor, y_g, half_g, y_last, claim, claim * GEN ** KC_SIZE, iota, 1, odd))
         else:
-            fs0, fs1, cursor = keccak_layer(fs[0], fs[1], cursor, y_g, claim, claim * GEN ** KC_SIZE, iota, 0)
+            fs0, fs1, cursor = match(log(odd_g), range(0, 2), lambda odd: keccak_layer(fs[0], fs[1], cursor, y_g, half_g, y_last, claim, claim * GEN ** KC_SIZE, iota, 0, odd))
         fs = [fs0, fs1]
 
     # ---- the outputs, whose instance weights are an eq already ----
