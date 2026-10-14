@@ -2253,51 +2253,108 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
     s_powers[0] = 1
     for b in unroll(1, KECCAK_EMBED_BITS):
         s_powers[b] = s_powers[b - 1] * s
-    # mu[i] = emb_i(s). The last embedding is the modulus itself, and where an
-    # embedding is x times the one two before it, reduced modulo that (as for the
-    # residues 1 + x and x + x^2 of a three-bit factor), its weight is s times that
-    # one's plus the modulus's when the reduction fires: both decided at compile time.
+    # mu[i] = emb_i(s), the embeddings being residues modulo the last one, the
+    # modulus. Where an embedding is x times another, reduced modulo it, its weight
+    # is s times that one's plus the modulus's when the reduction fires. A factor's
+    # residues 1 + x, x, x + x^2 relate so: with A = emb_k + emb_(k+1) (the lift),
+    # emb_(k+1) = x A and emb_(k+2) = x emb_k. Which rows relate is decided at
+    # compile time from the embedding tables; any other row is summed directly.
     mu_new = StackBuf(KECCAK_PACK)
     modulus = 0
     for t in unroll(KECCAK_EMB_START[KECCAK_PACK - 1], KECCAK_EMB_START[KECCAK_PACK]):
         modulus += s_powers[KECCAK_EMB_IDX[t]]
     mu_new[KECCAK_PACK - 1] = modulus
+    paired = 0
     for k in unroll(0, KECCAK_PACK - 1):
-        shifted = 0
-        top = 0
-        if const(k // 2 != 0):
-            shifted = 1
-            for t in unroll(KECCAK_EMB_START[k - 2], KECCAK_EMB_START[k - 1]):
-                if const(KECCAK_EMB_IDX[t] == KECCAK_EMBED_BITS - 2):
-                    top = 1
-            for b in unroll(0, KECCAK_EMBED_BITS):
-                want = 0
-                for t in unroll(KECCAK_EMB_START[k - 2], KECCAK_EMB_START[k - 1]):
-                    if const(KECCAK_EMB_IDX[t] + 1 == b):
-                        want = 1
-                if const(top == 1):
-                    for t in unroll(KECCAK_EMB_START[KECCAK_PACK - 1], KECCAK_EMB_START[KECCAK_PACK]):
-                        if const(KECCAK_EMB_IDX[t] == b):
+        if const(paired == 1):
+            paired = 0
+        else:
+            # Is emb_(k+1) = x (emb_k + emb_(k+1)) mod the modulus?
+            pair = 0
+            pair_top = 0
+            if const(k + 2 != KECCAK_PACK):
+                pair = 1
+                for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 2]):
+                    if const(KECCAK_EMB_IDX[t] == KECCAK_EMBED_BITS - 2):
+                        if const(pair_top == 1):
+                            pair_top = 0
+                        else:
+                            pair_top = 1
+                for b in unroll(0, KECCAK_EMBED_BITS):
+                    want = 0
+                    for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 2]):
+                        if const(KECCAK_EMB_IDX[t] + 1 == b):
                             if const(want == 1):
                                 want = 0
                             else:
                                 want = 1
-                have = 0
-                for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 1]):
-                    if const(KECCAK_EMB_IDX[t] == b):
-                        have = 1
-                if const(have != want):
-                    shifted = 0
-        if const(shifted == 1):
-            if const(top == 1):
-                mu_new[k] = s * mu_new[k - 2] + modulus
+                    if const(pair_top == 1):
+                        for t in unroll(KECCAK_EMB_START[KECCAK_PACK - 1], KECCAK_EMB_START[KECCAK_PACK]):
+                            if const(KECCAK_EMB_IDX[t] == b):
+                                if const(want == 1):
+                                    want = 0
+                                else:
+                                    want = 1
+                    have = 0
+                    for t in unroll(KECCAK_EMB_START[k + 1], KECCAK_EMB_START[k + 2]):
+                        if const(KECCAK_EMB_IDX[t] == b):
+                            have = 1
+                    if const(have != want):
+                        pair = 0
+            # Is emb_k = x emb_(k-2) mod the modulus?
+            shifted = 0
+            top = 0
+            if const(k // 2 != 0):
+                shifted = 1
+                for t in unroll(KECCAK_EMB_START[k - 2], KECCAK_EMB_START[k - 1]):
+                    if const(KECCAK_EMB_IDX[t] == KECCAK_EMBED_BITS - 2):
+                        top = 1
+                for b in unroll(0, KECCAK_EMBED_BITS):
+                    want = 0
+                    for t in unroll(KECCAK_EMB_START[k - 2], KECCAK_EMB_START[k - 1]):
+                        if const(KECCAK_EMB_IDX[t] + 1 == b):
+                            want = 1
+                    if const(top == 1):
+                        for t in unroll(KECCAK_EMB_START[KECCAK_PACK - 1], KECCAK_EMB_START[KECCAK_PACK]):
+                            if const(KECCAK_EMB_IDX[t] == b):
+                                if const(want == 1):
+                                    want = 0
+                                else:
+                                    want = 1
+                    have = 0
+                    for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 1]):
+                        if const(KECCAK_EMB_IDX[t] == b):
+                            have = 1
+                    if const(have != want):
+                        shifted = 0
+            if const(pair == 1):
+                lift = 0
+                for b in unroll(0, KECCAK_EMBED_BITS):
+                    in_lift = 0
+                    for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 2]):
+                        if const(KECCAK_EMB_IDX[t] == b):
+                            if const(in_lift == 1):
+                                in_lift = 0
+                            else:
+                                in_lift = 1
+                    if const(in_lift == 1):
+                        lift += s_powers[b]
+                if const(pair_top == 1):
+                    mu_new[k + 1] = s * lift + modulus
+                else:
+                    mu_new[k + 1] = s * lift
+                mu_new[k] = lift + mu_new[k + 1]
+                paired = 1
+            elif const(shifted == 1):
+                if const(top == 1):
+                    mu_new[k] = s * mu_new[k - 2] + modulus
+                else:
+                    mu_new[k] = s * mu_new[k - 2]
             else:
-                mu_new[k] = s * mu_new[k - 2]
-        else:
-            weight = 0
-            for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 1]):
-                weight += s_powers[KECCAK_EMB_IDX[t]]
-            mu_new[k] = weight
+                weight = 0
+                for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 1]):
+                    weight += s_powers[KECCAK_EMB_IDX[t]]
+                mu_new[k] = weight
     kappa = 0
     for i in unroll(0, KECCAK_PACK):
         out[GEN ** (KC_MU + i)] = mu_new[i]
