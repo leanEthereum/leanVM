@@ -927,9 +927,11 @@ def sumcheck_round4(state_0, state_1, msg_cursor, claim):
     fs, c0, msg_cursor = fs_next(fs, msg_cursor)
     fs, c2, msg_cursor = fs_next(fs, msg_cursor)
     fs, c3, msg_cursor = fs_next(fs, msg_cursor)
-    c1 = claim + c2 + c3  # the split identity fixes it, so it is neither sent nor bound
+    # The split identity fixes c1 = claim + c2 + c3, so it is neither sent nor bound,
+    # and h(y) = c0 + y (claim + (1 + y) (c2 + (1 + y) c3)).
     fs, y = squeeze(fs)
-    return fs[0], fs[1], msg_cursor, c0 + y * (c1 + y * (c2 + y * c3)), y
+    y1 = 1 + y
+    return fs[0], fs[1], msg_cursor, c0 + y * (claim + y1 * (c2 + y1 * c3)), y
 
 
 def gkr_rounds(rd, pt, n: Const):
@@ -2440,10 +2442,11 @@ def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first:
         fs, c0, cursor = fs_next(fs, cursor)
         fs, c2, cursor = fs_next(fs, cursor)
         fs, c3, cursor = fs_next(fs, cursor)
-        c1 = value + c2 + c3
         fs, rho = squeeze(fs)
         local[GEN ** i] = rho
-        value = c0 + rho * (c1 + rho * (c2 + rho * c3))
+        # c1 = value + c2 + c3, so h(rho) = c0 + rho (value + (1 + rho) (c2 + (1 + rho) c3)).
+        rho1 = 1 + rho
+        value = c0 + rho * (value + rho1 * (c2 + rho1 * c3))
     fs, t0, cursor = fs_next(fs, cursor)
     fs, t1, cursor = fs_next(fs, cursor)
     fs, t2, cursor = fs_next(fs, cursor)
