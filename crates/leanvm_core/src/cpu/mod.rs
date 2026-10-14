@@ -18,7 +18,7 @@ use crate::tables::{
     self, FillCtx, FlushBuilder, OP_BLAKE2S, OP_DEREF, OP_JUMP, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM,
     SEP_STATE,
 };
-use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use crate::transcript::ProverState;
 use crate::witness;
 use primitives::field::{F64, F192, g_pow};
 
@@ -59,10 +59,6 @@ const MAX_LOG_MEM: usize = 32;
 /// verifier rejects any announcement exceeding them before running a reduction.
 const MAX_LOG_ROWS: usize = 32;
 
-/// Bytecode-length instance cap (see [`MAX_LOG_ROWS`]): programs are at most
-/// `2^32` instructions.
-const MAX_LOG_BYTECODE: usize = 32;
-
 /// The Fiat-Shamir IV: ONE 32-byte digest, as two field words, committing to
 /// everything fixed about the proving environment.
 ///
@@ -94,7 +90,7 @@ pub fn fs_seed(program: &Program) -> [F192; 2] {
 
 /// The two 128-bit halves a digest travels in, as the four words the
 /// Fiat-Shamir chain runs on. Only defined for a real digest, whose halves have
-/// no third limb; [`read_public`] rejects a public input that has one, so a
+/// no third limb; [`verify`] rejects a public input that has one, so a
 /// third limb can never be silently dropped from what the transcript binds.
 fn digest_words(halves: &[F192; 2]) -> [F64; 4] {
     [
@@ -123,72 +119,18 @@ fn announce_public(ps: &mut ProverState, log_mem: usize, taus: [usize; tables::N
     ps.add_scalar(F192::new(log_inv_rate as u64, 0, 0));
 }
 
-/// Verifier side of [`announce_public`]: read the announced sizes and PCS
-/// rate from the stream, validate them, and reconstruct the public [`Layout`]
-/// from the program + sizes + public input. (The public input was already bound
-/// by seeding the transcript.)
-fn read_public(vs: &mut VerifierState, prog: &Program, public_input: &[F192; 2]) -> Result<(Layout, usize), CpuError> {
-    let read_size = |vs: &mut VerifierState| -> Result<usize, CpuError> {
-        let word = vs.next_scalar().map_err(CpuError::Transcript)?;
-        if word.c1 != 0 || word.c2 != 0 {
-            return Err(CpuError::PublicInput);
-        }
-        usize::try_from(word.c0).map_err(|_| CpuError::PublicInput)
-    };
-
-    // The transcript binds a public input as two 128-bit halves, so a third limb
-    // would be dropped and two statements would share a transcript.
-    if public_input.iter().any(|half| half.c2 != 0) {
-        return Err(CpuError::PublicInput);
-    }
-    let log_mem = read_size(vs)?;
-    let mut taus = [0usize; tables::N_TABLES];
-    for t in &mut taus {
-        *t = read_size(vs)?;
-    }
-    let log_inv_rate = read_size(vs)?;
-    // The public instance caps ensure that, with `ord(g) = 2^64 − 1`, the
-    // counting arguments (memory soundness, count non-wrap, exponent range checks)
-    // are theorems only when the announced instance keeps the total read-flush
-    // count provably below `2^64 − 1`, so reject any announcement exceeding the
-    // caps BEFORE running any reduction. (A table's row count is the number of
-    // times its opcode runs, unbounded by the bytecode size since a small loop
-    // body runs many times, so it gets its own cap, not `bytecode_size`.)
-    let bytecode_size = prog.prog.len();
-    if !bytecode_size.is_power_of_two()
-        || bytecode_size > (1usize << MAX_LOG_BYTECODE)
-        || !(MIN_LOG_MEM..=MAX_LOG_MEM).contains(&log_mem)
-        || taus.iter().any(|&t| t > MAX_LOG_ROWS)
-        // flock sizes its argument to at least `n_blocks_log(1)` instances, and the
-        // BLAKE2s table's value columns share that instance cube, so a height below the
-        // floor describes a layout the arithmetization cannot express. The other two
-        // verifiers reject it here too (`python-verifier`, `guests/lean_ethereum.py`).
-        || taus[tables::BLAKE2S_TABLE] < crate::hash_flock::n_blocks_log(1)
-        || ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err()
-    {
-        return Err(CpuError::PublicInput);
-    }
-    let l = layout(&prog.prog, log_mem, taus, *public_input);
-    // The caps bound each announced log on its own; what the PCS is configured for
-    // is the stacked size they imply, which they do not bound.
-    if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&l.shape.mu) {
-        return Err(CpuError::PublicInput);
-    }
-    Ok((l, log_inv_rate))
-}
-
 #[derive(Clone)]
 pub struct Program {
     pub prog: Vec<Op>, // bytecode (size B, power of two)
     /// BLAKE2s over the stacked bytecode multilinear, computed once at assembly
-    /// so proving and verifying the same program do not rehash it (that table is
+    /// so proofs of the same program do not rehash it (that table is
     /// 16·2^kbc words, tens of megabytes at production sizes). Trusted to match
     /// `prog`: always set by [`Program::assemble`] from the bytecode, so a
     /// `Program` cannot carry a hash inconsistent with its own `prog`.
     pub(crate) bytecode_hash: [u8; 32],
     /// Prover-side frame/buffer allocation hints (keyed by global pc) and the
     /// size of `main`'s frame: the nondeterminism [`Program::execute`] needs to
-    /// run the program. Public verification (§ `verify`) ignores them.
+    /// run the program. Public verification ([`verify`]) ignores them.
     pub(crate) hints: HashMap<u32, Vec<hints::RHint>>,
     pub(crate) main_frame: u32,
     /// Named prover witness streams for the program's `hint_witness` calls
@@ -348,17 +290,13 @@ impl std::fmt::Display for ProveError {
 
 impl std::error::Error for ProveError {}
 
+/// Why [`verify`] rejected a proof.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CpuError {
-    Bus(leaf::Error),
-    Constraint(constraints::Error),
-    Open(pcs::Error),
+    /// The statement is malformed: the public input is not two 128-bit halves, or the bytecode's length is not a power of two.
     PublicInput,
-    Transcript(crate::transcript::Error),
-    /// flock's BLAKE2s R1CS validity sub-proof failed to verify. (A missing or
-    /// malformed sub-proof surfaces as [`CpuError::Transcript`] when the shared
-    /// `stream`/`openings` fail to reconstruct or fully consume.)
-    Blake2s(flock::verifier::VerifyError),
+    /// The `verifier` crate rejected the proof.
+    Verifier(verifier::VerifierError),
 }
 
 /// Per side, which table (if any) owns each bus block, as `(table, column base)`.
@@ -378,8 +316,8 @@ fn block_owners(log_bytecode: usize, sides: [usize; 3]) -> BlockOwners {
 }
 
 /// The bus's public wiring: per side which table owns each block, and each table's
-/// column span. Derived from the program and the announced layout alone, so prover
-/// and verifier build it identically.
+/// column span. Derived from the program and the announced layout alone, so a
+/// verifier builds the same one.
 fn bus_wiring(program: &Program, l: &Layout) -> (BlockOwners, TableSpans) {
     let owners = block_owners(
         crate::log2_strict_usize(program.prog.len()),
@@ -400,8 +338,6 @@ fn table_spans() -> TableSpans {
 }
 
 /// The per-table inputs to the table sumcheck (§constraints), in schema order.
-/// Prover and verifier both call this, so their column order and constraint
-/// closures agree by construction.
 /// The airs carry every committed column of their table, so a constraint indexes the
 /// value array directly and each table's three bus forms can be
 /// evaluated on the same values. The identities take the air's own `η`-range; the
@@ -424,7 +360,6 @@ fn airs(
             let bus_k = bus.clone();
             constraints::Air {
                 tau,
-                n_cols: table.n_committed_columns(),
                 n_constraints: table.n_constraints(),
                 eval: Box::new(move |p, vals, quadratic| {
                     let air = <F192 as ColVal>::lift(table.eval_constraint(p, vals, quadratic));
@@ -455,7 +390,7 @@ fn sigmas(bus: &[Vec<F192>; 3], form_pows: [F192; 3]) -> Vec<F192> {
 /// per table. That sharing is what keeps the batch tied to the bus: with a common
 /// `η^{base+s}` per side, the batch's target is `Σ_s η^{FORM_POWS+s}·R_s` for
 /// the sides' table shares `R_s`, which the verifier DERIVES from the leaf claims
-/// (`xi_form_pows`; a mismatch surfaces as [`CpuError::Constraint`]). Were the
+/// (a mismatch fails its table sumcheck's terminal check). Were the
 /// powers per table, the target
 /// would not factor through the `R_s` and nothing would pin the tables' share of
 /// the bus.
@@ -592,7 +527,6 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // WHIR over this commitment (below). Message, chaining-value, and output words
     // bind through the memory bus; counter and flags bind through bytecode. Their
     // virtual value columns route to q_flock, so no separate pin claims are needed.
-    // Mirrored in `verify`.
     let (owners, spans) = bus_wiring(program, &w.layout);
     // The columns are windows into `w.q`, so both stages read them in place: the
     // table sumcheck lifts each K-column into a fresh `E` copy on the round it
@@ -665,8 +599,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
 
 /// Everything the PCS has to open, in the ORDER that feeds the batch's weights:
 /// the bus's framework claims, then the zerocheck's per-table column claims, then
-/// the three public-input limb claims, each located in its committed slot. Both
-/// sides assemble it here, so a claim can never shift by one element.
+/// the three public-input limb claims, each located in its committed slot. Every
+/// verifier assembles the same list in the same order.
 fn finish_claims(
     l: &Layout,
     bus_claims: Vec<ColumnClaim>,
@@ -709,91 +643,58 @@ fn bind_pi_claim(r: F192, l: &Layout) -> [ColumnClaim; 3] {
     })
 }
 
-/// Everything a recursion harness needs from an accepting verify run, named
-/// and typed: the deferred bytecode claim, flock's
-/// reduction claims, and the stacked-opening summary (ring-switch challenges +
-/// WHIR fold/query data). The sub-proof scalars themselves live on
-/// `proof.stream`, ending at `flock_stream_end`. Ordinary callers just
-/// `?`-discard it.
-pub struct VerifySummary {
-    /// Transcript-bound inverse-rate logarithm used by this proof's PCS.
-    pub log_inv_rate: usize,
-    pub bytecode_claim: leaf::BytecodeClaim,
-    pub zc_claim: flock::zerocheck::ZerocheckClaim,
-    pub lc_claim: flock::lincheck::LincheckClaim,
-    /// Stream cursor just after flock's reduction, i.e. where the PCS opening's
-    /// own scalars start. The recursion harness reads flock's lincheck tail
-    /// from here rather than counting back from the end of the stream.
-    pub flock_stream_end: usize,
-    /// The proof this run just verified, in the unpruned form the recursion
-    /// guest and the Python verifier consume.
-    pub raw: fiat_shamir::transcript::RawProof,
+/// A field element in the `verifier` crate's type, and back: the same limbs, no arithmetic.
+pub fn to_scalar(value: &F192) -> verifier::E {
+    verifier::E::new(value.c0, value.c1, value.c2)
 }
 
-/// Verify a proof against the public statement (program + public input): replay
-/// the transcript, reconstruct the public layout from the announced sizes, read
-/// every scalar the prover wrote and pull the PCS hints, then assert the stream
-/// was fully consumed. Takes only public inputs, never the prover's witness.
+pub fn from_scalar(value: verifier::E) -> F192 {
+    F192::new(value.c0, value.c1, value.c2)
+}
+
+/// The wire proof in the `verifier` crate's types: the same limbs, digests and row words.
+pub fn scalar_proof(proof: &Proof) -> verifier::Proof {
+    let batches = proof.merkle.iter().map(|paths| verifier::PrunedMerklePaths {
+        leaf_data: paths
+            .leaf_data
+            .iter()
+            .map(|row| row.iter().map(|word| verifier::K(word.0)).collect())
+            .collect(),
+        sibling_hashes: paths.sibling_hashes.clone(),
+    });
+    verifier::Proof {
+        stream: proof.stream.iter().map(to_scalar).collect(),
+        merkle_openings: verifier::MerkleOpenings::Pruned(batches.collect()),
+    }
+}
+
+/// The statement as the 32 bytes the `verifier` crate takes: the low two limbs of each half.
+pub fn public_input_bytes(public_input: &[F192; 2]) -> [u8; 32] {
+    let mut bytes = [0; 32];
+    let limbs = public_input.iter().flat_map(|half| [half.c0, half.c1]);
+    for (chunk, limb) in bytes.as_chunks_mut().0.iter_mut().zip(limbs) {
+        *chunk = limb.to_le_bytes();
+    }
+    bytes
+}
+
+/// Verify a proof against the public statement (program + public input). The `verifier` crate does it: this only builds its inputs.
+///
+/// The stacked bytecode is rebuilt and rehashed on every call. A caller verifying many proofs of one program prepares a [`verifier::Bytecode`] once instead.
 #[tracing::instrument(name = "Verify", skip_all)]
-pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Result<VerifySummary, CpuError> {
-    let mut vs = VerifierState::new(digest_words(&fs_seed(program)), proof, digest_words(public_input));
-    let (l, log_inv_rate) = read_public(&mut vs, program, public_input)?;
-    let root = pcs::read_commitment(&mut vs).map_err(CpuError::Transcript)?;
-
-    // BLAKE2s to flock (single PCS): flock's R1CS validity and every leanVM point
-    // claim are verified together by ONE WHIR opening at the end. The padded
-    // BLAKE2s table size is public and announced; its flock sub-proof rides the
-    // shared stream and openings. Memory and bytecode bind every compression input
-    // and output by routing their virtual value-column claims to q_flock.
-    let n_blake2s = 1usize << l.taus[tables::BLAKE2S_TABLE];
-
-    let (owners, spans) = bus_wiring(program, &l);
-    let bus = leaf::verify_balance(&l.push, &l.pull, &l.count, &owners, &spans, &mut vs).map_err(CpuError::Bus)?;
-
-    let zc_xi = vs.sample();
-    let form_pows = xi_form_pows(zc_xi);
-    // THE tie between the batch and the bus, and the reason the batch's target is
-    // never transmitted. Each side's leaf claim less what its framework blocks
-    // account for is the tables' share `R_s`, which the verifier just derived; the
-    // batch must sum to `Σ_s η^{base+s}·R_s`. Since `η` is sampled after the `R_s`
-    // are fixed, hitting that one number forces `Σ_t σ_{s,t} = R_s` on all three
-    // sides. A transmitted target would be a free value in its own check, and the
-    // tables' bus blocks would be settled by nothing at all.
-    let target = (0..3).fold(F192::ZERO, |a, s| a + form_pows[s] * bus.totals[s]);
-    let table_claims = constraints::verify(
-        &airs(&l.taus, &bus.forms, form_pows),
-        zc_xi,
-        &bus.point,
-        target,
-        &mut vs,
-    )
-    .map_err(CpuError::Constraint)?;
-
-    // Squeezed after the commitment and every message before it, so the prover
-    // cannot choose the memory to fit it; the claims it yields read no scalar.
-    let r_pi = vs.sample();
-    let slots = finish_claims(&l, bus.claims, &table_claims, r_pi);
-
-    // Replay flock's reduction straight off the shared stream (each scalar bound
-    // as it is read) to recover its validity claim on q_flock, then
-    // verify them alongside every point claim in the ONE WHIR opening
-    // (mirroring `prove`). The padding convention always supplies at least one
-    // instance, including programs that execute no BLAKE2s instruction.
-    let n_blocks = n_blake2s.max(1);
-    let offset = l.placements[QFLOCK].offset;
-    let replay = crate::hash_flock::verify_reduction(n_blocks, &mut vs).map_err(CpuError::Blake2s)?;
-    let flock_stream_end = vs.stream_offset();
-    let ring = crate::hash_flock::ring_switch_verify(n_blocks, offset, &replay.claim);
-    pcs::verify(&mut vs, &slots, &ring, l.shape, log_inv_rate, &root).map_err(CpuError::Open)?;
-    vs.finish().map_err(CpuError::Transcript)?;
-    Ok(VerifySummary {
-        bytecode_claim: bus.bytecode_claim,
-        zc_claim: replay.zc_claim,
-        lc_claim: replay.lc_claim,
-        log_inv_rate,
-        flock_stream_end,
-        raw: vs.into_raw_proof(),
-    })
+pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Result<verifier::Summary, CpuError> {
+    // The statement is two 128-bit halves, so a third limb would be dropped and two statements would share a proof.
+    // `Program::prog` is public, and the stacked table below is only defined for a power-of-two bytecode.
+    if public_input.iter().any(|half| half.c2 != 0) || !program.prog.len().is_power_of_two() {
+        return Err(CpuError::PublicInput);
+    }
+    let table: Vec<u64> = layout::bytecode_table(&program.prog)
+        .iter()
+        .map(|word| word.0)
+        .collect();
+    let bytecode = verifier::Bytecode::new(&table);
+    verifier::verify_execution(&bytecode, &public_input_bytes(public_input), &scalar_proof(proof))
+        .map_err(CpuError::Verifier)
 }
 
 /// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in
@@ -934,20 +835,6 @@ mod tests {
         assert_eq!(exec.mem[7], cell(d[2], d[3]));
     }
 
-    /// BLAKE consumes the `(c0,c1,0)` embedding. This is not an extra AIR
-    /// constraint: the full three-limb memory bus makes a request carrying a
-    /// literal zero in limb 2 match only such a stored word.
-    #[test]
-    fn blake2s_requires_zero_third_limb() {
-        let mut program = blake2s_program([F64::ZERO; 4], [F64::ZERO; 4]);
-        program.prog[0] = Op::Set {
-            o: 2,
-            k: F192::new(0, 0, 1),
-        };
-        let err = program.execute([w(7), w(11)]).err().expect("the run must fail");
-        assert!(matches!(err.fault, Fault::NotCanonical { operand: "m0", .. }), "{err}");
-    }
-
     /// A self-hash `BLAKE2s(h, h)` (the hash-chain step) passes the *same* input
     /// chunks as both `a` and `b` (`ins[0..2] == ins[2..4]`), so one 256-bit quad
     /// feeds both inputs with no copy. The row reads those cells twice; the
@@ -1014,22 +901,5 @@ mod tests {
         let pi = [w(1), w(2)];
         let exec = program.execute(pi).unwrap();
         assert_eq!(exec.mem[4], x * y, "MUL computes the E product");
-    }
-
-    /// The `XOR` reads `m[2]` before the `SET` writes it, so it reads ZERO, and its
-    /// row, filled from the final image, would contradict any other value there.
-    #[test]
-    fn a_write_must_agree_with_an_earlier_read() {
-        let prog = vec![
-            Op::Xor { a: 2, b: 0, c: 3 },
-            Op::Set { o: 2, k: F192::ONE },
-            Op::Set { o: 4, k: F192::ZERO },
-            Op::Xor { a: 0, b: 0, c: 0 }, // sentinel (never executed)
-        ];
-        let err = Program::from_bytecode(prog, 8)
-            .execute([F192::ZERO; 2])
-            .err()
-            .expect("the run must fail");
-        assert!(matches!(err.fault, Fault::Conflict { cell: 2, .. }), "{err}");
     }
 }

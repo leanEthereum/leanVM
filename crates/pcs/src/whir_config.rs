@@ -92,8 +92,7 @@ pub const RESIDUAL_MAX_LOG: usize = 5;
 const _: () = assert!(RESIDUAL_MAX_LOG <= INITIAL_FOLDING_FACTOR);
 
 /// Shape plus per-level soundness parameters for one WHIR opening. Prover
-/// and verifier read exactly the same numbers, hence the single struct and the
-/// [`VerifierConfig`] alias.
+/// and verifier read exactly the same numbers.
 #[derive(Clone, Debug)]
 pub struct ProverConfig {
     pub log_inv_rates: Vec<usize>,
@@ -115,11 +114,9 @@ pub struct ProverConfig {
     pub ood_samples: Vec<usize>,
 }
 
-pub type VerifierConfig = ProverConfig;
-
-/// The per-level shape table a [`VerifierConfig`] implies for a
+/// The per-level shape table a [`ProverConfig`] implies for a
 /// `log_n`-variable opening: the numbers every consumer of the multilevel
-/// protocol (the verifier itself, recursion harnesses) otherwise re-derives.
+/// protocol (the prover, recursion harnesses) otherwise re-derives.
 #[derive(Clone, Debug)]
 pub struct LevelShapes {
     /// Level count (`level_steps + 1`).

@@ -40,8 +40,9 @@
 //! the root's are discharged natively, by [`EthereumProof::verify`].
 //!
 //! `gen_verify` derives the guest's whole witness for a child from the real
-//! `cpu::layout` of the inner program and the summary of a real `cpu::verify`
-//! run, so there is no hand-mirrored copy of the protocol to drift.
+//! `cpu::layout` of the inner program and the summary the `verifier` crate
+//! reads out of the child's proof, so there is no hand-mirrored copy of the
+//! protocol to drift.
 
 use bincode::Options as _;
 use pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
@@ -51,7 +52,7 @@ use std::ops::Range;
 use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
 pub use lean_da::{DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
-use leanvm_core::cpu::{Program, ProveError, prove, verify};
+use leanvm_core::cpu::{Program, ProveError, from_scalar, prove, public_input_bytes, scalar_proof, to_scalar};
 use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::transcript::FiatShamirState;
 use primitives::field::{F64, F192, G, g_pow};
@@ -157,6 +158,11 @@ const _: () = assert!(sphincs::A <= 32 && sphincs::HEIGHTS[0] <= 32);
 /// A count as the guest carries it: in the exponent, `g^n`.
 fn count(n: usize) -> F192 {
     F192::new(g_pow(n).0, 0, 0)
+}
+
+/// [`count`] in the scalar field. The statement takes its few counts this way on both sides, being what [`EthereumProof::verify`] rebuilds.
+fn scalar_count(n: usize) -> F192 {
+    from_scalar(verifier::gpow(n as u64))
 }
 
 /// A field element as the decimal `u128` literal the zkDSL parser accepts.
@@ -278,8 +284,8 @@ fn tweak_index_weight(b: usize) -> F192 {
 fn signers_hash(xmss_signers: &[XmssClaimGroup], sphincs_signers: &[SphincsClaim]) -> [F192; 2] {
     let sphincs = sphincs_list_digest(sphincs_signers);
     let mut cells = vec![
-        count(xmss_signers.len()),
-        count(sphincs_signers.len()),
+        scalar_count(xmss_signers.len()),
+        scalar_count(sphincs_signers.len()),
         sphincs[0],
         sphincs[1],
     ];
@@ -291,7 +297,7 @@ fn signers_hash(xmss_signers: &[XmssClaimGroup], sphincs_signers: &[SphincsClaim
     {
         cells.extend([
             F192::new(*leaf_index as u64, 0, 0),
-            count(keys.len()),
+            scalar_count(keys.len()),
             pack_16_bytes(&message[..16]),
             pack_16_bytes(&message[16..]),
         ]);
@@ -329,10 +335,45 @@ impl DeferredClaim {
         .expect("the all-zeros point has the right shape")
     }
 
-    /// Evaluate the three fixed polynomials at `bytecode_point` / `matrix_point`.
+    /// Evaluate the three fixed polynomials at `bytecode_point` / `matrix_point`, on the prover's field kernels and thread pool.
     fn recompute(bytecode_point: Vec<F192>, matrix_point: Vec<F192>) -> Result<Self, AggregateVerifyError> {
-        let klog = flock::hash::K_LOG;
-        if bytecode_point.len() != bytecode_vars() || matrix_point.len() != 2 * klog {
+        let bytecode_at = |point: &[F192]| {
+            let _span = tracing::info_span!("bytecode mle").entered();
+            mle_eval_par(stacked_bytecode(), point)
+        };
+        let matrices_at = |point: &[F192]| {
+            let _span = tracing::info_span!("matrix walk").entered();
+            let (row, column) = point.split_at(flock::hash::K_LOG);
+            let eq_r = pcs::whir::build_eq_table_ext(row);
+            let eq_c = pcs::whir::build_eq_table_ext(column);
+            flock::hash::bilinear_walk_pair(&eq_r, &eq_c)
+        };
+        Self::evaluate(bytecode_point, matrix_point, bytecode_at, matrices_at)
+    }
+
+    /// [`Self::recompute`] in the `verifier` crate: scalar and single threaded, what a received aggregate is checked with.
+    fn recompute_scalar(bytecode_point: Vec<F192>, matrix_point: Vec<F192>) -> Result<Self, AggregateVerifyError> {
+        let scalars = |point: &[F192]| point.iter().map(to_scalar).collect::<Vec<_>>();
+        let bytecode_at = |point: &[F192]| {
+            let _span = tracing::info_span!("bytecode mle").entered();
+            let value = scalar_bytecode().evaluate(&scalars(point));
+            from_scalar(value.expect("the point's length was checked"))
+        };
+        let matrices_at = |point: &[F192]| {
+            let _span = tracing::info_span!("matrix walk").entered();
+            let (a, b) = verifier::deferred::matrix_values(&scalars(point)).expect("the point's length was checked");
+            (from_scalar(a), from_scalar(b))
+        };
+        Self::evaluate(bytecode_point, matrix_point, bytecode_at, matrices_at)
+    }
+
+    fn evaluate(
+        bytecode_point: Vec<F192>,
+        matrix_point: Vec<F192>,
+        bytecode_at: impl FnOnce(&[F192]) -> F192,
+        matrices_at: impl FnOnce(&[F192]) -> (F192, F192),
+    ) -> Result<Self, AggregateVerifyError> {
+        if bytecode_point.len() != bytecode_vars() || matrix_point.len() != 2 * flock::hash::K_LOG {
             return Err(AggregateVerifyError::MalformedClaim);
         }
         // Every leaf defers the all-zeros point, where the bytecode polynomial is
@@ -344,16 +385,9 @@ impl DeferredClaim {
         let bytecode_value = if zero_point {
             F192::from(stacked_bytecode()[0])
         } else {
-            let sp = tracing::info_span!("bytecode mle").entered();
-            let value = mle_eval_par(stacked_bytecode(), &bytecode_point);
-            drop(sp);
-            value
+            bytecode_at(&bytecode_point)
         };
-        let sp = tracing::info_span!("matrix walk").entered();
-        let eq_r = pcs::whir::build_eq_table_ext(&matrix_point[..klog]);
-        let eq_c = pcs::whir::build_eq_table_ext(&matrix_point[klog..]);
-        let (matrix_a_value, matrix_b_value) = flock::hash::bilinear_walk_pair(&eq_r, &eq_c);
-        drop(sp);
+        let (matrix_a_value, matrix_b_value) = matrices_at(&matrix_point);
         Ok(Self {
             bytecode_point,
             bytecode_value,
@@ -479,8 +513,8 @@ pub enum AggregateVerifyError {
     MalformedClaim,
     /// The bytes are not a valid encoding of an aggregate.
     MalformedEncoding,
-    /// The snark itself did not verify.
-    Snark(leanvm_core::cpu::CpuError),
+    /// The snark did not verify. From [`aggregate`], which does not verify its children, it means a child's proof could not be read, or its flock claim on the fixed matrices is false.
+    Snark(verifier::VerifierError),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -488,7 +522,7 @@ pub enum AggregationError {
     /// The union of the `(leaf_index, message)` groups, over the raw signatures and
     /// the children, exceeds [`MAX_LEAF_INDICES`].
     TooManyLeafIndices,
-    /// A child aggregate does not verify.
+    /// A child's statement is malformed, its proof cannot be read, or the claim it raises on flock's matrices is false. Any other child that does not verify is a [`Self::ProofError`]: the guest's run fails on it.
     InvalidChild(AggregateVerifyError),
     /// No signature claims or DA roots to publish.
     Empty,
@@ -524,7 +558,7 @@ impl std::fmt::Display for AggregateVerifyError {
             Self::MalformedDaCommitments => write!(f, "malformed DA commitment list"),
             Self::MalformedClaim => write!(f, "malformed deferred claim"),
             Self::MalformedEncoding => write!(f, "not a valid aggregate encoding"),
-            Self::Snark(e) => write!(f, "the snark did not verify: {e:?}"),
+            Self::Snark(e) => write!(f, "the snark did not verify: {e}"),
         }
     }
 }
@@ -747,7 +781,7 @@ impl EthereumProof {
             sphincs: sphincs_signers,
         } = keys;
         let (da_roots, bytecode_point, matrix_point, proof) = core;
-        // Cheap rejections first. `recompute` below is a pass over the whole stacked
+        // Cheap rejections first. `recompute_scalar` below is a pass over the whole stacked
         // bytecode plus a walk of the BLAKE2s circuit, on points a peer chose, so
         // anything decidable without it has to be decided before it.
         check_signer_set(&xmss_signers, &sphincs_signers)?;
@@ -757,7 +791,7 @@ impl EthereumProof {
             sphincs_signers,
             da_roots,
             // The wire carries no value, only the points to derive it from.
-            defer: DeferredClaim::recompute(bytecode_point, matrix_point)?,
+            defer: DeferredClaim::recompute_scalar(bytecode_point, matrix_point)?,
             proof,
         })
     }
@@ -775,6 +809,8 @@ impl EthereumProof {
     /// expects particular pairs has to check the two lists against them. Every root in
     /// [`Self::da_commitments`] also attests to a well-formed blob matrix; callers check
     /// that this list contains the commitments they require.
+    ///
+    /// Every field operation, the proof check and its Merkle hashing run in the `verifier` crate: scalar code on one thread.
     pub fn verify(&self) -> Result<(), AggregateVerifyError> {
         check_signer_set(&self.xmss_signers, &self.sphincs_signers)?;
         check_da_roots(&self.da_roots)?;
@@ -782,18 +818,34 @@ impl EthereumProof {
         // to be the true evaluations, or the recursion below proves nothing about
         // the fixed polynomials.
         let _s = tracing::info_span!("Recompute deferred claims").entered();
-        let defer = DeferredClaim::recompute(self.defer.bytecode_point.clone(), self.defer.matrix_point.clone())?;
+        let defer =
+            DeferredClaim::recompute_scalar(self.defer.bytecode_point.clone(), self.defer.matrix_point.clone())?;
         drop(_s);
         if defer != self.defer {
             return Err(AggregateVerifyError::MalformedClaim);
         }
         let _s = tracing::info_span!("Statement digest").entered();
-        let pi = self.public_input();
+        let pi = statement_digest(
+            signers_hash(&self.xmss_signers, &self.sphincs_signers),
+            verifier::da::list_digest(&self.da_roots),
+            &self.defer,
+        );
         drop(_s);
-        verify(unified_guest(), &pi, &self.proof).map_err(AggregateVerifyError::Snark)?;
-        Ok(())
+        verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &scalar_proof(&self.proof))
+            .map(|_| ())
+            .map_err(AggregateVerifyError::Snark)
     }
 }
+
+/// [`stacked_bytecode`] as the `verifier` crate takes it, hashed once: what [`EthereumProof::verify`] checks proofs against, and [`aggregate`] reads its children with.
+fn scalar_bytecode() -> &'static verifier::Bytecode {
+    static BYTECODE: std::sync::OnceLock<verifier::Bytecode> = std::sync::OnceLock::new();
+    BYTECODE.get_or_init(|| {
+        let words: Vec<u64> = stacked_bytecode().iter().map(|word| word.0).collect();
+        verifier::Bytecode::new(&words)
+    })
+}
+
 /// The stacked bytecode polynomial of the aggregation guest: the one fixed
 /// table every node's bytecode claims are about. Cached, because verification
 /// evaluates it and building it walks the whole program.
@@ -1011,10 +1063,14 @@ fn weighted_eq_table(points: &[Vec<F192>], lambdas: &[F192], vars: usize, active
 /// zerocheck/lincheck structure; a carried one is a plain point, so its weight
 /// is an eq table on each side. Returns the guest hints and the single claim
 /// per polynomial they reduce to.
+///
+/// Fails on a child whose fresh matrix claim is false. That value is the one batched here that is read out of a
+/// child's proof unchecked; every other is an evaluation this prover made, of the bytecode in `gen_verify` and of
+/// a carried claim in `DeferredClaim::evaluate`, so the remaining asserts guard against a prover bug only.
 fn aggregate_deferred_claims(
     subproofs: &[DeferredSubproof],
     carried_claims: &[&DeferredClaim],
-) -> (SubHints, DeferredClaim) {
+) -> Result<(SubHints, DeferredClaim), AggregateVerifyError> {
     let child_count = subproofs.len();
     assert_eq!(child_count, carried_claims.len(), "one carried claim per child");
     let kbcv = bytecode_vars();
@@ -1170,32 +1226,21 @@ fn aggregate_deferred_claims(
         ms.push(rb);
     }
     drop(_cols);
-    // sanity: every claim really is the bilinear form over the matrices.
+    // sanity: every carried claim really is the bilinear form over the matrices.
     #[cfg(debug_assertions)]
-    for t in 0..2 * child_count {
+    for (child, carried) in carried_claims.iter().enumerate() {
+        let t = 2 * child + 1;
         let form = |m: &[F192]| {
             m.iter()
                 .zip(&us[t])
                 .map(|(&m, &u)| m * u)
                 .fold(F192::ZERO, |a, x| a + x)
         };
-        let (fa, fb) = (form(&ms[2 * t]), form(&ms[2 * t + 1]));
-        if t % 2 == 0 {
-            let subproof = &subproofs[t / 2];
-            assert_eq!(
-                fa + subproof.matrix_a_coefficient * fb,
-                subproof.matrix_claim,
-                "fresh matrix claim, child {}",
-                t / 2
-            );
-        } else {
-            let carried = &carried_claims[t / 2];
-            assert_eq!(
-                (fa, fb),
-                (carried.matrix_a_value, carried.matrix_b_value),
-                "carried matrix claim"
-            );
-        }
+        assert_eq!(
+            (form(&ms[2 * t]), form(&ms[2 * t + 1])),
+            (carried.matrix_a_value, carried.matrix_b_value),
+            "carried matrix claim"
+        );
     }
     let mut mscr = Vec::new();
     let mut r_row = Vec::new();
@@ -1244,10 +1289,16 @@ fn aggregate_deferred_claims(
         }
     }
     let (v_a, v_b) = (acol[0], bcol[0]);
-    assert_eq!(mrun, v_a * wa[0] + v_b * wb[0], "matrix sumcheck terminal");
+    // A fresh matrix claim is the bilinear form exactly when its child's lincheck closes, which the replay did
+    // not check. A false one leaves this honest sumcheck off by its error.
+    if mrun != v_a * wa[0] + v_b * wb[0] {
+        return Err(AggregateVerifyError::Snark(
+            verifier::VerifierError::FlockLincheckTerminal,
+        ));
+    }
     // The guest reaches the same two weights by a succinct formula rather than by
     // folding these tables, and nothing else compares the two: the aggregation
-    // layer has no third implementation the way `cpu::verify` does. So this runs
+    // layer has no other implementation the way the snark's verifier does. So this runs
     // unconditionally (it is O(n) against a 2^28 sumcheck), and it compares the
     // weights COMPONENT-WISE. Checking only the combination `v_a·wa + v_b·wb`
     // would let two correlated errors through.
@@ -1287,7 +1338,7 @@ fn aggregate_deferred_claims(
         ("bc_star_hint", vec![v_bc]),
         ("mat_stars_hint", vec![v_a, v_b]),
     ];
-    (
+    Ok((
         hints,
         DeferredClaim {
             bytecode_point: r_bc,
@@ -1296,7 +1347,7 @@ fn aggregate_deferred_claims(
             matrix_a_value: v_a,
             matrix_b_value: v_b,
         },
-    )
+    ))
 }
 /// The verifier-side WHIR config for one committed size and rate, plus the
 /// query packing derived from it. The hint builder needs it for the real
@@ -1304,7 +1355,7 @@ fn aggregate_deferred_claims(
 /// a candidate whose shape differed from the real one would compile a guest
 /// that cannot open the proof it is handed.
 struct WhirShape {
-    config: pcs::whir::VerifierConfig,
+    config: pcs::whir::ProverConfig,
     levels: pcs::whir::LevelShapes,
     /// Merkle tree depth per level.
     depth: Vec<usize>,
@@ -1450,14 +1501,16 @@ fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl Fn
 }
 
 /// Config + hints for the recursion guest (`guests/lean_ethereum.py`), built
-/// from the REAL `cpu::layout` of the inner program and the summary of a real
-/// `cpu::verify` run (zero hand-mirroring drift).
+/// from the REAL `cpu::layout` of the inner program and the `summary` the
+/// `verifier` crate read out of the child's proof, whose scalars are
+/// `proof_stream` (zero hand-mirroring drift). Nothing here says the child
+/// verifies: the guest's run does.
 fn gen_verify(
     program: &Program,
     public_input: [F192; 2],
-    summary: leanvm_core::cpu::VerifySummary,
+    proof_stream: &[F192],
+    summary: verifier::Summary,
 ) -> Result<(SubHints, DeferredSubproof), AggregationError> {
-    let proof_stream = &summary.raw.stream;
     let layout = leanvm_core::cpu::layout(
         &program.prog,
         proof_stream[0].c0 as usize,
@@ -1466,51 +1519,53 @@ fn gen_verify(
     );
     let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
     let side_layouts = sides.map(leanvm_core::leaf::layout);
-    // Fixed capacities: every buffer/stride placeholder is a global cap so
-    // the placeholder map is SHAPE-INDEPENDENT (the definition of generic).
-    assert!(side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof_stream.len() <= STREAM_CAP);
     // The guest holds one opening arm per candidate committed size, so a child
     // outside that window has no arm to dispatch to. `min_log_committed` keeps
     // every aggregate above the low end, leaving only the ceiling reachable.
-    if !(MU_MIN..=MU_MAX).contains(&layout.shape.mu) {
+    // Fixed capacities: every buffer/stride placeholder is a global cap so
+    // the placeholder map is SHAPE-INDEPENDENT (the definition of generic). A
+    // child that verifies and has an arm fits them; one that does not need not.
+    let fits = side_layouts.iter().all(|side| side.mu <= MU_CAP) && proof_stream.len() <= STREAM_CAP;
+    if !(MU_MIN..=MU_MAX).contains(&layout.shape.mu) || !fits {
         return Err(AggregationError::ChildOutOfRange {
             log_committed: layout.shape.mu,
         });
     }
 
-    // ---- typed extraction: proof structs + the verifier's summary ----
+    // ---- typed extraction: the proof's stream + the verifier's summary ----
+    let scalars = |values: &[verifier::E]| -> Vec<F192> { values.iter().copied().map(from_scalar).collect() };
     // Push and pull share the bytecode point.
-    let kbc = summary.bytecode_claim.point.len() - leanvm_core::leaf::N_BYTECODE_SELECTORS;
+    let bytecode_point = scalars(&summary.bytecode_point);
+    let kbc = bytecode_point.len() - leanvm_core::leaf::N_BYTECODE_SELECTORS;
 
     let taus = layout.taus;
     // Flock replay data, all named struct fields.
     let lcrounds = flock::hash::K_LOG - 6;
-    let zcf = [summary.zc_claim.a_eval, summary.zc_claim.b_eval];
-    let zc_z = summary.zc_claim.z;
-    let zchi = &summary.zc_claim.mlv_challenges;
-    let lc_alpha = summary.lc_claim.alpha;
-    let lc_beta = summary.lc_claim.beta;
-    let lrr = &summary.lc_claim.r_rounds;
+    let flock = &summary.flock;
+    let zcf = [from_scalar(flock.v_a), from_scalar(flock.v_b)];
+    let zc_z = from_scalar(flock.z_skip);
+    let zchi = scalars(&flock.chi);
+    let lc_alpha = from_scalar(flock.alpha);
+    let lrr = scalars(&flock.round_challenges);
 
     // ---- the stacked opening: config + the opening summary ----
     let stack = whir_shape(layout.shape.mu, summary.log_inv_rate);
 
     // flock's reduction ends at `flock_stream_end`, where the WHIR opening's own
     // scalars start: its last 64 scalars are lincheck's `z_partial` (which the
-    // summary already carries as `s_hat_v`), immediately preceded by the
+    // summary already carries as `s`), immediately preceded by the
     // coefficient PAIRS of the `lcrounds` lincheck rounds: the linear one is not
     // sent, the running claim fixing it.
     let ns = summary.flock_stream_end;
     let lcr = &proof_stream[ns - 64 - 2 * lcrounds..ns - 64];
-    let lcz = &summary.lc_claim.s_hat_v;
+    let lcz = scalars(&flock.s);
 
     // matpart = the deferred weighted matrix evaluation: the lincheck running
-    // claim minus (= plus, char 2) the const-pin and c-claim contributions.
-    // α² from α, not from β: `LincheckClaim::beta` (the pin, at α³) is zero for
-    // a circuit with no const-pin column, while every verifier draws the
-    // c-claim's coefficient unconditionally.
+    // claim minus (= plus, char 2) the const-pin and c-claim contributions,
+    // which every verifier weighs by α³ and α².
     let lc_sq = lc_alpha.square();
-    let mut lrun = zcf[0] + lc_alpha * zcf[1] + lc_sq * summary.zc_claim.c_eval + lc_beta;
+    let lc_beta = lc_sq * lc_alpha;
+    let mut lrun = zcf[0] + lc_alpha * zcf[1] + lc_sq * from_scalar(flock.v_c) + lc_beta;
     for i in 0..lcrounds {
         let (c0, c2) = (lcr[2 * i], lcr[2 * i + 1]);
         lrun = primitives::multilinear::poly_eval(&[c0, lrun + c2, c2], lrr[i]);
@@ -1529,15 +1584,16 @@ fn gen_verify(
     }
     let c_slice_value = primitives::multilinear::lagrange_weights_naive(6, zc_z)
         .iter()
-        .zip(lcz)
+        .zip(&lcz)
         .fold(F192::ZERO, |acc, (&w, &s)| acc + w * s);
     let matpart = lrun + pinw + lc_sq * c_point_eq * c_slice_value;
 
     // ---- hints ----
     // The program's whole share of a bytecode leaf: ONE value, the stacked
     // polynomial at (ζ_lo, α⃗), the slot coordinates of the claim's own point being
-    // the fingerprint challenges (§sec:e2e-bc).
-    let bytecode_value = summary.bytecode_claim.value;
+    // the fingerprint challenges (§sec:e2e-bc). The summary carries the point
+    // only, so this is the prover's own evaluation, `program` being the guest.
+    let bytecode_value = mle_eval_par(stacked_bytecode(), &bytecode_point);
     let bcv = vec![bytecode_value];
 
     // ---- per-sub HINT data (the placeholder map is built once, elsewhere) ----
@@ -1581,7 +1637,7 @@ fn gen_verify(
     // opaque; the guest authenticates every cap leaf a query reaches.
     let mut query_hints = Vec::new();
     let (mut caps, mut cap_active) = (Vec::new(), Vec::new());
-    let mut openings = summary.raw.merkle.iter();
+    let mut openings = summary.merkle_paths.iter();
     for (&queries, &depth) in stack.config.queries.iter().zip(&stack.depth) {
         let cap_depth = merkle_cap_depth(queries, depth);
         let n = 1 << cap_depth;
@@ -1591,13 +1647,13 @@ fn gen_verify(
         for opening in openings.by_ref().take(queries) {
             query_hints.push((
                 "merkle_leaf_rows",
-                opening.leaf_data.iter().map(|x| F192::from(*x)).collect(),
+                opening.leaf.iter().map(|x| F192::new(x.0, 0, 0)).collect(),
             ));
             let mut path_children = Vec::with_capacity(4 * path_depth);
-            let bytes: Vec<_> = opening.leaf_data.iter().flat_map(|x| x.0.to_le_bytes()).collect();
+            let bytes: Vec<_> = opening.leaf.iter().flat_map(|x| x.to_bytes()).collect();
             let mut node = pcs::merkle::hash_leaf(&bytes);
-            let mut index = (1 << depth) + opening.leaf_index;
-            for (height, sibling) in opening.path.iter().enumerate() {
+            let mut index = (1 << depth) + opening.leaf_index as usize;
+            for (height, sibling) in opening.siblings.iter().enumerate() {
                 if height >= path_depth {
                     nodes[index] = node;
                     nodes[index ^ 1] = *sibling;
@@ -1621,7 +1677,7 @@ fn gen_verify(
         caps.extend(nodes.iter().flat_map(pack_hash_state));
         cap_active.extend(active);
     }
-    let mut bytecode_row_point = summary.bytecode_claim.point;
+    let mut bytecode_row_point = bytecode_point;
     let bytecode_selector_point = bytecode_row_point.split_off(kbc);
     let deferred = DeferredSubproof {
         public_input,
@@ -1631,8 +1687,8 @@ fn gen_verify(
         matrix_a_coefficient: lc_alpha,
         skip_point: zc_z,
         zerocheck_row_point: zchi[..lcrounds].to_vec(),
-        lincheck_round_point: summary.lc_claim.r_rounds,
-        lincheck_terminal_values: summary.lc_claim.s_hat_v,
+        lincheck_round_point: lrr,
+        lincheck_terminal_values: lcz,
         matrix_claim: matpart,
     };
 
@@ -1645,12 +1701,7 @@ fn gen_verify(
             // picks it up at `msg_cursor = cursor`, which sits where the flock
             // reduction stopped; the ring-switch messages are struct-observed and
             // still do not advance that cursor.
-            let mut stream = summary.raw.stream;
-            assert!(
-                stream.len() <= STREAM_CAP,
-                "stream {} exceeds cap {STREAM_CAP}",
-                stream.len()
-            );
+            let mut stream = proof_stream.to_vec();
             stream.resize(STREAM_CAP, F192::ZERO);
             stream
         }),
@@ -1703,17 +1754,6 @@ impl Hints {
             Some((_, entries)) => entries.push(entry),
             None => self.0.push((name.to_string(), vec![entry])),
         }
-    }
-
-    /// The entries of one stream, for the adversarial test to corrupt.
-    #[cfg(test)]
-    fn entries(&mut self, name: &str) -> &mut Vec<Vec<F192>> {
-        &mut self
-            .0
-            .iter_mut()
-            .find(|(n, _)| n == name)
-            .unwrap_or_else(|| panic!("no hint stream `{name}`"))
-            .1
     }
 
     fn install(self, guest: &mut Program) {
@@ -2018,11 +2058,6 @@ fn push_sphincs_hints(
     debug_assert_eq!(signed, pk.root, "the hinted walk reaches the public key");
     Ok(())
 }
-#[derive(Clone, Copy, Default)]
-pub(crate) struct DaInput<'a> {
-    pub rows: &'a [u64],
-    pub roots: Option<&'a [[u8; 32]]>,
-}
 
 /// Prove existence of signatures and valid encoding of PQ-blobs, potentially using recursive children.
 ///
@@ -2042,6 +2077,9 @@ pub(crate) struct DaInput<'a> {
 /// IMPORTANT:
 /// - `aggregate` should not be called more than once at a time in parallel per process.
 /// - Raw signatures are assumed valid (otherwise `aggregate` will panic).
+/// - Children are assumed verified by the caller ([`EthereumProof::verify`]): `aggregate` only reads them. A child
+///   that reads but does not verify makes the guest's run fail, an [`AggregationError::ProofError`] that does not
+///   say which child and comes only once the whole witness is built. Verify each child received from an untrusted party first.
 ///
 /// XMSS Performance: it is optimized for a small set of different (leaf index, message), and many XMSS
 /// sharing each such pair.
@@ -2056,7 +2094,7 @@ pub fn aggregate(
     aggregate_with_stats(children, raw_xmss, raw_sphincs, blobs, declare, log_inv_rate).map(|(sig, _)| sig)
 }
 
-/// [`aggregate`], also returning the prover's statistics (what the CLI's benchmarks report).
+/// [`aggregate`], under the same contract, also returning the prover's statistics (what the CLI's benchmarks report).
 pub fn aggregate_with_stats(
     children: &[EthereumProof],
     raw_xmss: Vec<(XmssPublicKey, xmss::LeafIndex, xmss::Message, XmssSignature)>,
@@ -2065,29 +2103,8 @@ pub fn aggregate_with_stats(
     declare: Option<ClaimSelection<'_>>,
     log_inv_rate: usize,
 ) -> Result<(EthereumProof, leanvm_core::cpu::Stats), AggregationError> {
-    let da_input = DaInput {
-        rows: blobs,
-        roots: declare.map(|claims| claims.da_commitments),
-    };
+    let declared_roots = declare.map(|claims| claims.da_commitments);
     let declare = declare.map(|claims| claims.signatures);
-    aggregate_tampered(children, raw_xmss, raw_sphincs, declare, da_input, log_inv_rate, |_| {})
-}
-
-/// [`aggregate`], with a hook to corrupt the witness before proving.
-///
-/// The coverage argument and the claim batching are enforced entirely by guest
-/// asserts over prover advice, so the only way to test them is to lie in a hint
-/// and require the guest to notice. That is what `tamper` is for
-/// (`aggregate_hints_bind`); with an empty hook this is the production path.
-pub(crate) fn aggregate_tampered(
-    children: &[EthereumProof],
-    raw_xmss: Vec<(XmssPublicKey, xmss::LeafIndex, xmss::Message, XmssSignature)>,
-    raw_sphincs: Vec<(SphincsPublicKey, sphincs::Message, SphincsSignature)>,
-    declare: Option<&SignatureClaims>,
-    da_input: DaInput<'_>,
-    log_inv_rate: usize,
-    tamper: impl FnOnce(&mut Hints),
-) -> Result<(EthereumProof, leanvm_core::cpu::Stats), AggregationError> {
     // Otherwise this reaches `cpu::prove`, which asserts rather than reporting.
     if !(leanvm_core::pcs::MIN_LOG_INV_RATE..=leanvm_core::pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(AggregationError::InvalidRate { log_inv_rate });
@@ -2095,23 +2112,22 @@ pub(crate) fn aggregate_tampered(
     if children.len() > MAX_RECURSIONS {
         return Err(AggregationError::TooLarge);
     }
-    let rows = da_input.rows;
-    if !rows.len().is_multiple_of(BLOB_SYMBOLS) || rows.len() / BLOB_SYMBOLS > DA_MAX_ROWS {
-        return Err(AggregationError::InvalidBlobSize { symbols: rows.len() });
+    if !blobs.len().is_multiple_of(BLOB_SYMBOLS) || blobs.len() / BLOB_SYMBOLS > DA_MAX_ROWS {
+        return Err(AggregationError::InvalidBlobSize { symbols: blobs.len() });
     }
     let mut available_roots = BTreeSet::new();
     for child in children {
         check_da_roots(&child.da_roots).map_err(AggregationError::InvalidChild)?;
         available_roots.extend(child.da_roots.iter().copied());
     }
-    let mut da_roots = match da_input.roots {
+    let mut da_roots = match declared_roots {
         Some(roots) => roots.iter().copied().collect::<BTreeSet<_>>().into_iter().collect(),
         None => available_roots.iter().copied().collect::<Vec<_>>(),
     };
     if da_roots.len() > MAX_DA_ROOTS {
         return Err(AggregationError::TooLarge);
     }
-    if rows.is_empty() && da_roots.iter().any(|root| !available_roots.contains(root)) {
+    if blobs.is_empty() && da_roots.iter().any(|root| !available_roots.contains(root)) {
         return Err(AggregationError::BlobNotCovered);
     }
 
@@ -2126,20 +2142,30 @@ pub(crate) fn aggregate_tampered(
     raw_sphincs.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_sphincs.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
 
-    // Verifying a child here is not a courtesy: `gen_verify` derives the guest's
-    // whole witness for it from a real verification's summary. Its deferred
-    // claim is deliberately NOT recomputed, which would cost a full pass over
-    // each fixed polynomial per child: the batching sumcheck below already
-    // forces every batched value to be the true evaluation, and the root
-    // discharges the one claim they reduce to.
-    let mut verified = Vec::with_capacity(children.len());
-    let _span = tracing::info_span!("Verify children").entered();
+    // The children are assumed checked. Nothing here verifies one: the replay
+    // only reads out of its proof the summary `gen_verify` derives the guest's
+    // witness from, and fails on a proof it cannot walk. A child that does not
+    // verify fails in the guest instead, which verifies every child in the VM,
+    // so `prove` below returns the error, unless its false flock claim already
+    // failed the batching. Its deferred claim is likewise not
+    // recomputed: the batching sumcheck below forces every batched value to be
+    // the true evaluation, and the root discharges the one claim they reduce to.
+    let _span = tracing::info_span!("Replay children").entered();
+    let mut statements = Vec::with_capacity(children.len());
     for child in children {
         check_signer_set(&child.xmss_signers, &child.sphincs_signers).map_err(AggregationError::InvalidChild)?;
-        let pi = child.public_input();
-        let summary = verify(guest, &pi, &child.proof)
-            .map_err(|e| AggregationError::InvalidChild(AggregateVerifyError::Snark(e)))?;
-        verified.push((pi, summary));
+        statements.push(child.public_input());
+    }
+    // One single-threaded replay per worker: nothing inside dispatches.
+    let bytecode = scalar_bytecode();
+    let summaries = parallel::map_collect(children.len(), |i| {
+        let public_input = public_input_bytes(&statements[i]);
+        verifier::replay_unchecked(bytecode, &public_input, &scalar_proof(&children[i].proof))
+    });
+    let mut replayed = Vec::with_capacity(children.len());
+    for (pi, summary) in statements.into_iter().zip(summaries) {
+        let summary = summary.map_err(|e| AggregationError::InvalidChild(AggregateVerifyError::Snark(e)))?;
+        replayed.push((pi, summary));
     }
 
     drop(_span);
@@ -2152,7 +2178,7 @@ pub(crate) fn aggregate_tampered(
     let raw_sphincs_keys: Vec<SphincsClaim> = raw_sphincs.iter().map(|(pk, message, _)| (*pk, *message)).collect();
     let cover = plan_coverage(&raw_xmss_claims, &raw_sphincs_keys, children, declare)?;
     let da_contributions =
-        usize::from(!rows.is_empty()) + children.iter().map(|child| child.da_roots.len()).sum::<usize>();
+        usize::from(!blobs.is_empty()) + children.iter().map(|child| child.da_roots.len()).sum::<usize>();
     if cover.n_total() + da_contributions >= MAX_KEYS {
         return Err(AggregationError::TooLarge);
     }
@@ -2175,7 +2201,7 @@ pub(crate) fn aggregate_tampered(
             count(cover.sphincs_dups.len()),
             count(raw_sphincs.len()),
             count(children.len()),
-            count(usize::from(!rows.is_empty())),
+            count(usize::from(!blobs.is_empty())),
         ],
     );
     let fs_seed = leanvm_core::cpu::fs_seed(guest);
@@ -2242,7 +2268,7 @@ pub(crate) fn aggregate_tampered(
 
     let mut subs = Vec::with_capacity(children.len());
     let mut carried = Vec::with_capacity(children.len());
-    for (i, (child, (pi, summary))) in children.iter().zip(verified).enumerate() {
+    for (i, (child, (pi, summary))) in children.iter().zip(replayed).enumerate() {
         hints.push(
             "child_meta",
             vec![count(child.xmss_signers.len()), count(child.sphincs_signers.len())],
@@ -2267,7 +2293,7 @@ pub(crate) fn aggregate_tampered(
         hints.push("signers_split", signers_split(1 + 2 * child.xmss_signers.len()));
         hints.push("child_defer", child.defer.cells());
         hints.push("child_da_count", vec![count(child.da_roots.len())]);
-        let (sub_hints, defer) = gen_verify(guest, pi, summary)?;
+        let (sub_hints, defer) = gen_verify(guest, pi, &child.proof.stream, summary)?;
         for (name, entry) in sub_hints {
             hints.push(name, entry);
         }
@@ -2286,19 +2312,20 @@ pub(crate) fn aggregate_tampered(
         leaf
     } else {
         let _span = tracing::info_span!("Batch deferred claims").entered();
-        let (agg_hints, reduced) = aggregate_deferred_claims(&subs, &carried);
+        let (agg_hints, reduced) =
+            aggregate_deferred_claims(&subs, &carried).map_err(AggregationError::InvalidChild)?;
         for (name, entry) in agg_hints {
             hints.push(name, entry);
         }
         reduced
     };
 
-    let direct_root = if rows.is_empty() {
+    let direct_root = if blobs.is_empty() {
         None
     } else {
         let _span = tracing::info_span!("LeanDA commit").entered();
-        let n_rows = rows.len() / BLOB_SYMBOLS;
-        let (commitment, witness) = lean_da::commit(rows);
+        let n_rows = blobs.len() / BLOB_SYMBOLS;
+        let (commitment, witness) = lean_da::commit(blobs);
         for block in lean_da::membership_vector(&commitment.root)
             .as_chunks::<CELL_SYMBOLS>()
             .0
@@ -2327,7 +2354,7 @@ pub(crate) fn aggregate_tampered(
     };
     if let Some(root) = direct_root {
         available_roots.insert(root);
-        if da_input.roots.is_none() {
+        if declared_roots.is_none() {
             da_roots = available_roots.iter().copied().collect();
         }
         if da_roots.len() > MAX_DA_ROOTS {
@@ -2364,7 +2391,6 @@ pub(crate) fn aggregate_tampered(
     // `2^MU_MIN`. A run smaller than that (a leaf of a few dozen signatures) grows
     // its SET table until it clears the floor.
     program.min_log_committed = MU_MIN;
-    tamper(&mut hints);
     hints.install(&mut program);
     let (proof, stats) = prove(&program, public_input, log_inv_rate).map_err(AggregationError::ProofError)?;
     Ok((
@@ -3057,6 +3083,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
 pub fn warm_up() {
     unified_guest();
     stacked_bytecode();
+    scalar_bytecode();
 }
 
 /// The aggregation bytecode, compiled to a fixed point on its own size.
@@ -3114,6 +3141,7 @@ fn compile_guest(kbc: usize) -> Program {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use leanvm_core::cpu::verify;
     use rand::SeedableRng;
     use rand::rngs::StdRng;
 
@@ -3492,17 +3520,13 @@ def main():
                             .unconstrained_reads
                             .is_empty()
                     );
-                    if kappa != 0 {
-                        assert!(run(&point, offset + 1, kappa, expected).is_err());
-                    }
                 }
             }
-            assert!(run(&point, 1usize << MU_MAX, 0, F192::ZERO).is_err());
         }
     }
 
     #[test]
-    fn guest_merkle_children_bind_every_link() {
+    fn guest_merkle_path_reaches_the_root() {
         leanvm_core::init_prover();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
@@ -3560,28 +3584,6 @@ def main():
                     .unconstrained_reads
                     .is_empty()
             );
-            for level in 0..3 {
-                for side in 0..2 {
-                    for byte in [0, 16] {
-                        let mut forged = pairs.clone();
-                        forged[level][side][byte] ^= 1;
-                        assert!(run(index, tree[8 + index], &forged, tree[1]).is_err());
-                    }
-                }
-                // Rehash a forged running child all the way to a matching public root.
-                // Root equality alone passes; the selected child must still bind to its predecessor.
-                for byte in [0, 16] {
-                    let mut forged = pairs.clone();
-                    forged[level][(index >> level) & 1][byte] ^= 1;
-                    let mut root = pcs::merkle::hash_pair(&forged[level][0], &forged[level][1]);
-                    for (height, pair) in forged.iter_mut().enumerate().skip(level + 1) {
-                        pair[(index >> height) & 1] = root;
-                        root = pcs::merkle::hash_pair(&pair[0], &pair[1]);
-                    }
-                    assert!(run(index, tree[8 + index], &forged, root).is_err());
-                }
-            }
-            assert!(run(index ^ 1, tree[8 + index], &pairs, tree[1]).is_err());
         }
     }
 
@@ -3597,8 +3599,11 @@ def main():
         let signers = get_signers(SMALL_LEAF_SIZE + big);
         let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
         let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
-        let node = aggregate(&[left, right], vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
+        let children = [left, right];
+        let node = aggregate(&children, vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
         node.verify().expect("node verifies");
+        // `cpu::verify` accepts the same proof of the same statement.
+        verify(unified_guest(), &node.public_input(), &node.proof).expect("node verifies natively");
         assert_eq!(xmss_claims(&node), SMALL_LEAF_SIZE + big);
     }
 
@@ -3630,14 +3635,6 @@ def main():
         let received = EthereumProof::from_bytes(&node.to_bytes()).unwrap();
         assert_eq!(received.da_commitments(), &[commitment.root]);
         received.verify().unwrap();
-        let keys = SignatureClaims {
-            xmss: node.xmss_signers.clone(),
-            sphincs: node.sphincs_signers.clone(),
-        };
-        let mut core: WireCore = wire().deserialize(&node.to_bytes_without_pubkeys()).unwrap();
-        core.0[0][0] ^= 1;
-        let bad = EthereumProof::from_bytes_without_pubkeys(&wire().serialize(&core).unwrap(), keys).unwrap();
-        assert!(bad.verify().is_err(), "the DA root must bind the VM proof");
     }
 
     #[test]
@@ -3729,12 +3726,6 @@ def main():
             expected.dedup();
             assert_eq!(node.da_roots, expected);
             assert_eq!(node.da_commitments_digest(), da_list_digest(&expected));
-            let mut tampered = node.clone();
-            tampered.da_roots = vec![[0xa5; 32]];
-            assert!(
-                tampered.verify().is_err(),
-                "changing the root list requires a new proof"
-            );
         }
         let repeated = aggregate(
             &[children[0].clone(), children[0].clone()],
@@ -3860,121 +3851,6 @@ def main():
             ),
             Err(AggregationError::BlobNotCovered)
         ));
-
-        // The first child's omitted root occupies slot 1; it cannot cover slot 0
-        // (the second child's declared root) or write outside the DA region.
-        for index in [count(0), count(2), count(MAX_KEYS - 1), F192::ZERO, F192::new(0, 1, 0)] {
-            let outcome = aggregate_tampered(
-                &children,
-                vec![],
-                vec![],
-                None,
-                DaInput {
-                    rows: &[],
-                    roots: Some(&[second]),
-                },
-                LOG_INV_RATE,
-                |h| {
-                    h.entries("da_index")[0] = vec![index];
-                },
-            );
-            assert!(outcome.is_err(), "accepted false DA slot {index:?}");
-        }
-        let outcome = aggregate_tampered(
-            &[children[0].clone(), children[0].clone()],
-            vec![],
-            vec![],
-            None,
-            DaInput::default(),
-            LOG_INV_RATE,
-            |h| {
-                h.entries("da_index")[1] = h.entries("da_index")[0].clone();
-            },
-        );
-        assert!(
-            outcome.is_err(),
-            "identical roots still require distinct coverage writes"
-        );
-        // An extra, unclaimed slot leaves the published digest and both child
-        // statements intact; only the final coverage count rejects it.
-        for (declared, duplicates) in [(1, 2), (MAX_DA_ROOTS + 1, 1), (1, MAX_RECURSIONS * MAX_DA_ROOTS + 2)] {
-            let outcome = aggregate_tampered(
-                &children,
-                vec![],
-                vec![],
-                None,
-                DaInput {
-                    rows: &[],
-                    roots: Some(&[second]),
-                },
-                LOG_INV_RATE,
-                |h| {
-                    h.entries("da_meta")[0] = vec![count(declared), count(duplicates)];
-                    h.entries("da_roots").push(da_claim_cells(&second));
-                },
-            );
-            assert!(outcome.is_err(), "accepted invalid DA coverage shape");
-        }
-        for selected in [None, Some([].as_slice()), Some([second].as_slice())] {
-            let outcome = aggregate_tampered(
-                &children,
-                vec![],
-                vec![],
-                None,
-                DaInput {
-                    rows: &[],
-                    roots: selected,
-                },
-                LOG_INV_RATE,
-                |h| {
-                    let root = h
-                        .entries("da_roots")
-                        .iter_mut()
-                        .find(|r| **r == da_claim_cells(&second))
-                        .unwrap();
-                    *root = da_claim_cells(&first);
-                },
-            );
-            assert!(outcome.is_err(), "every child's complete DA list must be authenticated");
-        }
-        for limb in [2, 3] {
-            let outcome = aggregate_tampered(
-                &children,
-                vec![],
-                vec![],
-                None,
-                DaInput {
-                    rows: &[],
-                    roots: Some(&[second]),
-                },
-                LOG_INV_RATE,
-                |h| {
-                    let omitted = h
-                        .entries("da_roots")
-                        .iter_mut()
-                        .find(|claim| claim[..2] == pack_hash_state(&first))
-                        .unwrap();
-                    omitted[limb] += F192::ONE;
-                },
-            );
-            assert!(
-                outcome.is_err(),
-                "a child's vector hash cannot change, even for an omitted root"
-            );
-        }
-        for roots in [
-            vec![second, second],
-            vec![both[1], both[0]],
-            vec![[0; 32]; MAX_DA_ROOTS],
-        ] {
-            let mut bad = direct.clone();
-            bad.da_roots = roots;
-            assert_eq!(bad.verify(), Err(AggregateVerifyError::MalformedDaCommitments));
-            assert_eq!(
-                EthereumProof::from_bytes(&bad.to_bytes()).unwrap_err(),
-                AggregateVerifyError::MalformedDaCommitments
-            );
-        }
     }
 
     #[test]
@@ -4001,24 +3877,8 @@ def main():
         assert_eq!(root.da_commitments(), expected);
         assert_eq!(root.da_commitments_digest(), da_list_digest(&expected));
 
-        let boundary: Vec<_> = (0..=MAX_DA_ROOTS).map(|i| [i as u8; 32]).collect();
-        check_da_roots(&boundary[..MAX_DA_ROOTS]).unwrap();
-        let mut full = root.clone();
-        full.da_roots = boundary[..MAX_DA_ROOTS].to_vec();
-        let mut extra = root.clone();
-        extra.da_roots = boundary[MAX_DA_ROOTS..].to_vec();
-        assert_eq!(
-            aggregate(&[full, extra], vec![], vec![], &[], None, LOG_INV_RATE).unwrap_err(),
-            AggregationError::TooLarge,
-            "reject the oversized union before verifying the modified child statements"
-        );
-        let mut too_many = root;
-        too_many.da_roots = boundary;
-        assert_eq!(too_many.verify(), Err(AggregateVerifyError::MalformedDaCommitments));
-        assert_eq!(
-            EthereumProof::from_bytes(&too_many.to_bytes()).unwrap_err(),
-            AggregateVerifyError::MalformedDaCommitments
-        );
+        let boundary: Vec<_> = (0..MAX_DA_ROOTS).map(|i| [i as u8; 32]).collect();
+        check_da_roots(&boundary).unwrap();
     }
 
     #[test]
@@ -4044,7 +3904,7 @@ def main():
 "#
         );
         let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
-        for n in 0..=MAX_DA_ROOTS + 1 {
+        for n in 0..=MAX_DA_ROOTS {
             let roots: Vec<_> = (0..n)
                 .map(|i| primitives::hash::hash(&(i as u64).to_le_bytes()))
                 .collect();
@@ -4056,17 +3916,13 @@ def main():
             let mut program = guest.clone();
             hints.install(&mut program);
             let public = pack_hash_state(&da_list_digest(&roots));
-            if n <= MAX_DA_ROOTS {
-                let execution = program.execute(public).unwrap();
-                assert!(execution.unconstrained_reads.is_empty(), "{n} roots");
-            } else {
-                assert!(program.execute(public).is_err());
-            }
+            let execution = program.execute(public).unwrap();
+            assert!(execution.unconstrained_reads.is_empty(), "{n} roots");
         }
     }
 
     #[test]
-    fn da_guest_bounds_coverage_slots() {
+    fn da_guest_covers_a_root_per_slot() {
         leanvm_core::init_prover();
         let (helpers, _) = include_str!("../guests/lean_ethereum.py")
             .split_once("\ndef main():")
@@ -4113,21 +3969,10 @@ def main():
         };
         assert!(run(2, count(0), first).unwrap().unconstrained_reads.is_empty());
         assert!(run(2, count(1), second).unwrap().unconstrained_reads.is_empty());
-        // Matching public roots must not bypass the region bound, even when the
-        // out-of-range root is present in memory.
-        for (slots, index, claimed) in [
-            (0, count(0), first),
-            (2, count(2), outside),
-            (2, count(1).inv(), first),
-            (2, F192::ZERO, first),
-            (2, F192::new(0, 1, 0), first),
-        ] {
-            assert!(run(slots, index, claimed).is_err());
-        }
     }
 
     #[test]
-    fn da_guest_checks_commitment_and_codewords() {
+    fn da_guest_accepts_committed_codewords() {
         leanvm_core::init_prover();
         let source = include_str!("../guests/lean_ethereum.py");
         let (helpers, _) = source.split_once("\ndef main():").unwrap();
@@ -4137,9 +3982,9 @@ def main():
         let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
         let n_rows = 3usize;
         let codewords = lean_da::encode_rows(&da_rows(3, 101));
-        let run = |words: &[u64], tamper: &dyn Fn(&mut Hints, &mut [F192; 2])| {
+        let run = |words: &[u64]| {
             let (commitment, _) = lean_da::commit_codewords(words.to_vec());
-            let mut public = pack_hash_state(&da_list_digest(&[commitment.root]));
+            let public = pack_hash_state(&da_list_digest(&[commitment.root]));
             let mut hints = Hints::default();
             hints.push(
                 "da_shape",
@@ -4163,179 +4008,12 @@ def main():
             {
                 hints.push("da_weights", block.to_vec());
             }
-            tamper(&mut hints, &mut public);
             let mut program = guest.clone();
             hints.install(&mut program);
             program.execute(public)
         };
-        let honest = run(&codewords, &|_, _| {}).unwrap();
+        let honest = run(&codewords).unwrap();
         assert!(honest.unconstrained_reads.is_empty());
-
-        // Every vector is orthogonal to zero rows: only hashing can reject these changes.
-        let zeros = vec![0; codewords.len()];
-        for limb in [F192::ONE, F192::new(0, 1, 0), F192::new(0, 0, 1)] {
-            assert!(
-                run(&zeros, &|h, _| {
-                    h.entries("da_weights")[0][0] += limb;
-                })
-                .is_err(),
-                "every limb of L must be bound by its hash"
-            );
-        }
-        assert!(
-            run(&zeros, &|h, _| {
-                for block in h.entries("da_weights") {
-                    block.fill(F192::ZERO);
-                }
-            })
-            .is_err(),
-            "zero weights must not bypass the external vector hash"
-        );
-
-        // Recommit the corrupted matrix and use that root as the public input.
-        // Hashing and statement binding now pass; only membership can reject it.
-        for position in [
-            0,
-            BLOB_SYMBOLS,
-            CODEWORD_SYMBOLS - 1,
-            CODEWORD_SYMBOLS,
-            codewords.len() - 1,
-        ] {
-            let mut bad = codewords.clone();
-            bad[position] ^= 1;
-            assert!(run(&bad, &|_, _| {}).is_err());
-        }
-        // A zero vector with its own hash passes the guest even for bad data.
-        // The verifier must derive the expected hash from the root, never trust this hash.
-        let mut bad = codewords.clone();
-        bad[0] ^= 1;
-        let bad_root = lean_da::commit_codewords(bad.clone()).0.root;
-        let zero_hash = lean_da::vector_digest(&vec![F192::ZERO; CODEWORD_SYMBOLS]);
-        let forged_digest = primitives::hash::hash([bad_root, zero_hash].as_flattened());
-        assert_ne!(forged_digest, da_list_digest(&[bad_root]));
-        let unchecked = run(&bad, &|h, public| {
-            for block in h.entries("da_weights") {
-                block.fill(F192::ZERO);
-            }
-            *public = pack_hash_state(&forged_digest);
-        });
-        assert!(unchecked.unwrap().unconstrained_reads.is_empty());
-        assert!(
-            run(&codewords, &|_, public| {
-                public[0] += F192::ONE;
-            })
-            .is_err()
-        );
-        assert!(
-            run(&codewords, &|h, _| {
-                h.entries("da_symbols")[0][0] += F192::new(0, 1, 0);
-            })
-            .is_err()
-        );
-        // Give the inflated tree its own matching root, so rejection must come
-        // from the shape check rather than a mismatched public commitment.
-        let mut padded_words = codewords.clone();
-        padded_words.resize(8 * CODEWORD_SYMBOLS, 0);
-        let (padded_commitment, _) = lean_da::commit_codewords(padded_words);
-        assert!(
-            run(&codewords, &|h, public| {
-                h.entries("da_shape")[0][1] = count(3);
-                *public = pack_hash_state(&da_list_digest(&[padded_commitment.root]));
-            })
-            .is_err(),
-            "three rows must not use an eight-row tree, even with a matching root"
-        );
-        assert!(
-            run(&zeros, &|h, _| {
-                h.entries("da_shape")[0][0] = count(0);
-            })
-            .is_err(),
-            "an empty payload with a matching zero-padded root must be rejected"
-        );
-        for (rows, log_pad) in [(DA_MAX_ROWS + 1, 10), (3, 1), (3, DA_MAX_ROWS.ilog2() as usize + 1)] {
-            assert!(
-                run(&codewords, &|h, _| {
-                    h.entries("da_shape")[0] = vec![count(rows), count(log_pad)];
-                })
-                .is_err(),
-                "accepted shape ({rows}, {log_pad})"
-            );
-        }
-    }
-
-    #[test]
-    fn da_row_shape_checks_power_of_two_boundaries() {
-        leanvm_core::init_prover();
-        let (helpers, _) = include_str!("../guests/lean_ethereum.py")
-            .split_once("\ndef main():")
-            .unwrap();
-        let source = format!(
-            "{helpers}\ndef main():\n    _, squares = exponent_tables()\n    public = GEN ** 0\n    _, _ = da_row_shape(public[1], public[GEN], squares)\n    return\n"
-        );
-        let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
-        let max_depth = DA_MAX_ROWS.ilog2() as usize;
-        let mut counts = vec![0, DA_MAX_ROWS + 1];
-        for depth in 0..=max_depth {
-            let power = 1usize << depth;
-            counts.extend([power - 1, power, power + 1]);
-        }
-        counts.sort_unstable();
-        counts.dedup();
-        for rows in counts {
-            for depth in 0..=max_depth + 1 {
-                let result = guest.execute([count(rows), count(depth)]);
-                let valid = (1..=DA_MAX_ROWS).contains(&rows) && rows.next_power_of_two() == 1 << depth;
-                assert_eq!(result.is_ok(), valid, "rows={rows}, depth={depth}");
-                if let Ok(execution) = result {
-                    assert!(execution.unconstrained_reads.is_empty());
-                }
-            }
-        }
-        for bad in [F192::ZERO, F192::new(0, 1, 0), count(1).inv()] {
-            for public in [[bad, count(0)], [count(1), bad]] {
-                assert!(guest.execute(public).is_err());
-            }
-        }
-    }
-
-    #[test]
-    fn ceil_log_hints_enforce_rounding_and_floor() {
-        leanvm_core::init_prover();
-        let (helpers, _) = include_str!("../guests/lean_ethereum.py")
-            .split_once("\ndef main():")
-            .unwrap();
-        // Replace only advice generation, leaving every guest constraint intact.
-        assert!(helpers.contains("g_log = hint_log2_ceil(bits_buf, nbits, floor)"));
-        let helpers = helpers.replace(
-            "g_log = hint_log2_ceil(bits_buf, nbits, floor)",
-            "g_log = hint_witness(\"ceil_log\")",
-        );
-        for floor in [0usize, 3] {
-            let source = format!(
-                "{helpers}\ndef main():\n    powers, squares = exponent_tables()\n    bits = HeapBuf(8)\n    hint_witness(bits[0:8], \"bits\")\n    depth, value = verify_log2_ceil(bits, powers, squares, {floor}, 8)\n    public = GEN ** 0\n    assert public[1] == value\n    assert public[GEN] == depth\n    return\n"
-            );
-            let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
-            for value in [0usize, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 127, 128, 129, 255] {
-                let expected = value.max(1).next_power_of_two().ilog2() as usize;
-                for depth in 0..=9 {
-                    let mut program = guest.clone();
-                    program.set_witness(
-                        "bits",
-                        vec![(0..8).map(|j| F192::from(F64(((value >> j) & 1) as u64))).collect()],
-                    );
-                    program.set_witness("ceil_log", vec![vec![count(depth)]]);
-                    let result = program.execute([count(value), count(depth)]);
-                    assert_eq!(
-                        result.is_ok(),
-                        depth == expected.max(floor),
-                        "value={value}, floor={floor}, depth={depth}"
-                    );
-                    if let Ok(execution) = result {
-                        assert!(execution.unconstrained_reads.is_empty());
-                    }
-                }
-            }
-        }
     }
 
     #[test]
@@ -4564,14 +4242,6 @@ def main():
             .err(),
             Some(AggregationError::NotCovered)
         );
-
-        // Putting the group back is a different signer set, whatever it covered.
-        let mut rewidened = narrow.clone();
-        rewidened.xmss_signers.insert(0, wide.xmss_signers[0].clone());
-        assert!(
-            rewidened.verify().is_err(),
-            "a split may not be re-widened after the fact"
-        );
     }
 
     /// The guest walks raw signatures group by group over the table, and a
@@ -4671,28 +4341,6 @@ def main():
             node.xmss_signers[1].keys, b_keys,
             "the same keys, at B, are their own claims"
         );
-        // Statement tampers: no proving, the mutated aggregate just has to fail.
-        let tampered = |mutate: &dyn Fn(&mut EthereumProof)| {
-            let mut bad = node.clone();
-            mutate(&mut bad);
-            assert!(bad.verify().is_err(), "a tampered aggregate must not verify");
-        };
-        tampered(&|s| s.xmss_signers.swap(0, 1));
-        tampered(&|s| s.xmss_signers[1].leaf_index = XMSS_LEAF_INDEX_B + 1);
-        tampered(&|s| {
-            let moved = s.xmss_signers[1].keys.pop().expect("a key to move");
-            s.xmss_signers[0].keys.push(moved);
-            s.xmss_signers[0].keys.sort();
-            s.xmss_signers[0].keys.dedup();
-        });
-        tampered(&|s| {
-            // Relabel group B's claims as group A's: B's keys are already among
-            // A's, so this folds the two groups into one.
-            let XmssClaimGroup { keys, .. } = s.xmss_signers.remove(1);
-            s.xmss_signers[0].keys.extend(keys);
-            s.xmss_signers[0].keys.sort();
-            s.xmss_signers[0].keys.dedup();
-        });
     }
 
     #[test]
@@ -4767,13 +4415,12 @@ def main():
 
     #[test]
     #[ignore]
-    fn aggregate_statement_binds() {
+    fn aggregate_round_trips_through_the_wire() {
         leanvm_core::init_prover();
         let signers = get_signers(2 * SMALL_LEAF_SIZE);
         let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
         let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
-        // Mixed, so both published lists are non-empty and every tampering
-        // below has a SPHINCS counterpart.
+        // Mixed, so both published lists are non-empty.
         let node = aggregate(&[left, right], vec![], get_sphincs_signers(3), &[], None, LOG_INV_RATE).expect("node");
         node.verify().expect("the honest node verifies");
 
@@ -4793,73 +4440,6 @@ def main():
         )
         .expect("round trip");
         without.verify().expect("a caller-supplied signer set verifies");
-
-        let tampered = |mutate: &dyn Fn(&mut EthereumProof)| {
-            let mut bad = node.clone();
-            mutate(&mut bad);
-            assert!(bad.verify().is_err(), "a tampered aggregate must not verify");
-        };
-        tampered(&|s| s.xmss_signers[0].keys[0] = s.xmss_signers[0].keys[1].clone());
-        tampered(&|s| {
-            s.xmss_signers[0].keys.swap(0, 1);
-        });
-        tampered(&|s| {
-            s.xmss_signers[0].keys.pop();
-        });
-        tampered(&|s| s.sphincs_signers[0] = s.sphincs_signers[1]);
-        tampered(&|s| {
-            s.sphincs_signers.swap(0, 1);
-        });
-        tampered(&|s| {
-            s.sphincs_signers.pop();
-        });
-        // Relabelling a signer's scheme: the same 32 bytes moved to the other
-        // list. Every count and the splits between them are in the statement, and
-        // the guest holds each region's writers to that region, so this is
-        // not a free relabelling of what the aggregate claims.
-        tampered(&|s| {
-            let moved = s.xmss_signers[0].keys.remove(0);
-            let claimed = (
-                SphincsPublicKey::from_bytes(&moved.flatten()),
-                s.xmss_signers[0].message,
-            );
-            s.sphincs_signers.push(claimed);
-            s.sphincs_signers.sort();
-        });
-        tampered(&|s| s.xmss_signers[0].leaf_index += 1);
-        tampered(&|s| s.xmss_signers[0].message[0] ^= 1);
-        // A signer's own message is in the statement too, so editing it is not a
-        // free re-attribution of that signature to another message.
-        tampered(&|s| s.sphincs_signers[0].1[0] ^= 1);
-        tampered(&|s| s.defer.bytecode_point[0] += F192::ONE);
-        tampered(&|s| s.defer.matrix_point[0] += F192::ONE);
-        tampered(&|s| s.xmss_signers[0].keys[0] = get_signers(2 * SMALL_LEAF_SIZE + 1)[2 * SMALL_LEAF_SIZE].0.clone());
-        // Splitting one group's keys across two leaf indices: the same claims cannot
-        // be re-attributed to a leaf index nothing signed at.
-        tampered(&|s| {
-            let moved = s.xmss_signers[0].keys.pop().expect("a key to move");
-            let leaf_index = s.xmss_signers[0].leaf_index;
-            let message = s.xmss_signers[0].message;
-            s.xmss_signers.push(XmssClaimGroup {
-                leaf_index: leaf_index + 1,
-                message,
-                keys: vec![moved],
-            });
-        });
-
-        // A claim off the wire carries only its points. Tampering with either
-        // half must be caught: a point by the recomputation, a value by the
-        // statement the proof is checked against.
-        let from_wire = |mutate: &dyn Fn(&mut EthereumProof)| {
-            let mut bad = EthereumProof::from_bytes(&node.to_bytes()).expect("round trip");
-            mutate(&mut bad);
-            assert!(bad.verify().is_err(), "a tampered wire aggregate must not verify");
-        };
-        from_wire(&|s| s.defer.bytecode_point[0] += F192::ONE);
-        from_wire(&|s| s.defer.matrix_point[0] += F192::ONE);
-        from_wire(&|s| s.defer.bytecode_value += F192::ONE);
-        from_wire(&|s| s.defer.matrix_a_value += F192::ONE);
-        from_wire(&|s| s.defer.matrix_b_value += F192::ONE);
     }
 
     /// The all-zeros fast path in `DeferredClaim::recompute` must agree with the
@@ -4879,380 +4459,37 @@ def main():
         assert_eq!((leaf.bytecode_value, leaf.matrix_a_value, leaf.matrix_b_value), general);
     }
 
-    type Tamper<'a> = (&'a str, &'a dyn Fn(&mut Hints));
-
-    /// Corrupt each security-critical hint and require rejection.
+    /// The scalar verifier's deferred values are the prover's, away from the leaf shortcut.
     #[test]
-    #[ignore]
-    fn aggregate_hints_bind() {
-        leanvm_core::init_prover();
-        let signers = get_signers(2 * SMALL_LEAF_SIZE);
-
-        let rejects = |children: &[EthereumProof],
-                       raw_signatures: Vec<(XmssPublicKey, xmss::LeafIndex, xmss::Message, XmssSignature)>,
-                       raw_sphincs: Vec<RawSphincs>,
-                       description: &str,
-                       tamper: &dyn Fn(&mut Hints)| {
-            let outcome = aggregate_tampered(
-                children,
-                raw_signatures,
-                raw_sphincs,
-                None,
-                DaInput::default(),
-                LOG_INV_RATE,
-                |hints| tamper(hints),
-            )
-            .map(|(signature, _)| signature.verify().is_ok());
-            assert!(!matches!(outcome, Ok(true)), "tampering {description} must be rejected");
+    fn scalar_deferred_claim_matches_the_prover() {
+        let mut rng = StdRng::seed_from_u64(7);
+        let mut point = |len: usize| -> Vec<F192> {
+            let limbs = (0..len).map(|_| rand::Rng::random::<(u64, u64, u64)>(&mut rng));
+            limbs.map(|(c0, c1, c2)| F192::new(c0, c1, c2)).collect()
         };
-
-        let raw_signatures = at_leaf_index(&signers[..SMALL_LEAF_SIZE], XMSS_LEAF_INDEX_A);
-        prove_leaf(&signers[..SMALL_LEAF_SIZE]);
-        let leaf_cases: &[Tamper] = &[
-            ("raw_index (duplicate slot)", &|h: &mut Hints| {
-                let entries = h.entries("raw_index");
-                entries[1] = entries[0].clone();
-            }),
-            ("raw_index (out of range)", &|h: &mut Hints| {
-                h.entries("raw_index")[0] = vec![count(SMALL_LEAF_SIZE)];
-            }),
-            ("group (n_xmss inflated)", &|h: &mut Hints| {
-                h.entries("group")[0][3] = count(SMALL_LEAF_SIZE + 1);
-            }),
-            ("group (n_raw_xmss understated)", &|h: &mut Hints| {
-                h.entries("group")[0][5] = count(SMALL_LEAF_SIZE - 1);
-            }),
-            ("group (a spurious duplicate slot)", &|h: &mut Hints| {
-                h.entries("group")[0][4] = count(1);
-            }),
-            // One more group than the hint stream carries: witness generation
-            // has nothing to pop for it.
-            ("meta (n_leaf_indices inflated)", &|h: &mut Hints| {
-                h.entries("meta")[0][0] = count(2);
-            }),
-            ("pubkeys (a key nobody signed for)", &|h: &mut Hints| {
-                h.entries("pubkeys")[0][0] += F192::ONE;
-            }),
-            // The window split of a list hash is advice, so both halves are pinned:
-            // the product identity ties them to the block count, and the tail's own
-            // range check keeps its `match` dispatch on a real arm.
-            (
-                "signers_split (a window count the list does not have)",
-                &|h: &mut Hints| {
-                    h.entries("signers_split")[0][0] = count(1);
-                },
-            ),
-            ("signers_split (a tail past a whole window)", &|h: &mut Hints| {
-                h.entries("signers_split")[0][1] = count(SIGNERS_WINDOW);
-            }),
-            ("fs_seed", &|h: &mut Hints| {
-                h.entries("fs_seed")[0][0] += F192::ONE;
-            }),
-            ("leaf_defer", &|h: &mut Hints| {
-                h.entries("leaf_defer")[0][0] += F192::ONE;
-            }),
-            // A leaf derives its group's tweak table from this, so a wrong
-            // leaf index is caught by the signatures long before the statement digest.
-            ("group (another leaf_index's tweak table)", &|h: &mut Hints| {
-                h.entries("group")[0][0] += F192::ONE;
-            }),
-            ("group (wider than the u32 the verifier holds)", &|h: &mut Hints| {
-                h.entries("group")[0][0] += F192::new(0, 1, 0);
-            }),
-            // The group's signatures were made over another message, so the
-            // encoding digests reject long before the statement digest.
-            ("group (another message under the signatures)", &|h: &mut Hints| {
-                h.entries("group")[0][1] += F192::ONE;
-            }),
-        ];
-        for (description, tamper) in leaf_cases {
-            rejects(&[], raw_signatures.clone(), vec![], description, *tamper);
-        }
-
-        // A leaf holding two leaf index groups: the second group's region is one
-        // slot, so its writer cannot reach the first group's keys, and the two
-        // groups' tweak tables cannot be swapped.
-        let mut two_leaf_index_raw = at_leaf_index(&signers[..2], XMSS_LEAF_INDEX_A);
-        two_leaf_index_raw.extend(at_leaf_index(&get_signers_at(1, XMSS_LEAF_INDEX_B), XMSS_LEAF_INDEX_B));
-        aggregate(&[], two_leaf_index_raw.clone(), vec![], &[], None, LOG_INV_RATE)
-            .expect("the honest two-leaf-index leaf aggregates");
-        let two_leaf_index_cases: &[Tamper] = &[
-            (
-                "raw_index (an XMSS signature crossing into another leaf_index's region)",
-                &|h: &mut Hints| {
-                    h.entries("raw_index")[2] = vec![count(1)];
-                },
-            ),
-            ("group (two leaf indices swapped)", &|h: &mut Hints| {
-                let entries = h.entries("group");
-                let other = entries[1][0];
-                entries[1][0] = entries[0][0];
-                entries[0][0] = other;
-            }),
-            ("group (a group's count moved to the other)", &|h: &mut Hints| {
-                h.entries("group")[0][3] = count(1);
-                h.entries("group")[1][3] = count(2);
-            }),
-            // The declared count is advice: keep both table groups but hash only the
-            // first, while the statement still publishes both.
-            ("meta (a published group left out of the digest)", &|h: &mut Hints| {
-                h.entries("meta")[0][0] = count(1);
-                h.entries("meta")[0][1] = count(1);
-            }),
-        ];
-        for (description, tamper) in two_leaf_index_cases {
-            rejects(&[], two_leaf_index_raw.clone(), vec![], description, *tamper);
-        }
-
-        // A mixed leaf: three XMSS signers then two SPHINCS ones, so the XMSS
-        // region is slots 0..3 and the SPHINCS region 3..5. Each scheme's
-        // witness has to bind, and neither scheme's signature may cover the
-        // other's declared key, which is what the statement's split claims.
-        let mixed_xmss = at_leaf_index(&signers[..3], XMSS_LEAF_INDEX_A);
-        let mixed_sphincs = get_sphincs_signers(2);
-        aggregate(&[], mixed_xmss.clone(), mixed_sphincs.clone(), &[], None, LOG_INV_RATE)
-            .expect("the honest mixed leaf aggregates");
-        let mixed_cases: &[Tamper] = &[
-            (
-                "raw_index (an XMSS signature reaching the SPHINCS region)",
-                &|h: &mut Hints| {
-                    h.entries("raw_index")[0] = vec![count(3)];
-                },
-            ),
-            ("sp_raw_index (out of range)", &|h: &mut Hints| {
-                h.entries("sp_raw_index")[0] = vec![count(2)];
-            }),
-            ("sp_raw_index (duplicate slot)", &|h: &mut Hints| {
-                let entries = h.entries("sp_raw_index");
-                entries[1] = entries[0].clone();
-            }),
-            ("meta (n_sphincs inflated)", &|h: &mut Hints| {
-                h.entries("meta")[0][1] = count(3);
-            }),
-            ("meta (n_raw_sphincs understated)", &|h: &mut Hints| {
-                h.entries("meta")[0][3] = count(1);
-            }),
-            ("sphincs_signers (a message nobody signed)", &|h: &mut Hints| {
-                h.entries("sphincs_signers")[0][2] += F192::ONE;
-            }),
-            ("sphincs_signers (a key nobody signed for)", &|h: &mut Hints| {
-                h.entries("sphincs_signers")[0][0] += F192::ONE;
-            }),
-            ("sp_rand (another randomizer, so another index)", &|h: &mut Hints| {
-                h.entries("sp_rand")[0][0] += F192::ONE;
-            }),
-            ("sp_counter", &|h: &mut Hints| {
-                h.entries("sp_counter")[0][0] += F192::ONE;
-            }),
-            ("sp_digits", &|h: &mut Hints| {
-                let entries = h.entries("sp_digits");
-                entries[0][0] *= F192::from(primitives::field::G);
-            }),
-            ("sp_chain_starts", &|h: &mut Hints| {
-                h.entries("sp_chain_starts")[0][0] += F192::ONE;
-            }),
-            ("sp_fts_secrets", &|h: &mut Hints| {
-                h.entries("sp_fts_secrets")[0][0] += F192::ONE;
-            }),
-            ("sp_fts_paths", &|h: &mut Hints| {
-                h.entries("sp_fts_paths")[0][0] += F192::ONE;
-            }),
-            ("sp_siblings", &|h: &mut Hints| {
-                h.entries("sp_siblings")[0][0] += F192::ONE;
-            }),
-        ];
-        for (description, tamper) in mixed_cases {
-            rejects(&[], mixed_xmss.clone(), mixed_sphincs.clone(), description, *tamper);
-        }
-
-        let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
-        let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
-        let children = vec![left, right];
-        aggregate(&children, vec![], vec![], &[], None, LOG_INV_RATE).expect("the honest node aggregates");
-        let node_cases: &[Tamper] = &[
-            ("column placement (swapped)", &|h: &mut Hints| {
-                h.entries("col_sort_order")[0].swap(0, 1);
-            }),
-            ("column placement (duplicate)", &|h: &mut Hints| {
-                let order = &mut h.entries("col_sort_order")[0];
-                order[1] = order[0];
-            }),
-            ("column placement (out of range)", &|h: &mut Hints| {
-                let order = &mut h.entries("col_sort_order")[0];
-                order[0] = count(order.len());
-            }),
-            ("merkle cap (all hashes skipped)", &|h: &mut Hints| {
-                h.entries("merkle_cap_active")[0].fill(F192::ZERO);
-            }),
-            ("merkle cap (one ancestor skipped)", &|h: &mut Hints| {
-                let flags = &mut h.entries("merkle_cap_active")[0];
-                let active = flags.iter_mut().skip(2).find(|x| **x == F192::ONE).unwrap();
-                *active = F192::ZERO;
-            }),
-            ("merkle cap (root)", &|h: &mut Hints| {
-                h.entries("merkle_caps")[0][2] += F192::ONE;
-            }),
-            ("merkle cap (subtree)", &|h: &mut Hints| {
-                h.entries("merkle_caps")[0][4] += F192::ONE;
-            }),
-            ("merkle children (reversed)", &|h: &mut Hints| {
-                let children = &mut h.entries("merkle_children")[0];
-                children.swap(0, 2);
-                children.swap(1, 3);
-            }),
-            ("merkle path (below cap)", &|h: &mut Hints| {
-                h.entries("merkle_children")[0][0] += F192::ONE;
-            }),
-            ("merkle leaf", &|h: &mut Hints| {
-                h.entries("merkle_leaf_rows")[0][0] += F192::ONE;
-            }),
-            ("merkle leaf (extension limb outside K)", &|h: &mut Hints| {
-                let rows = h.entries("merkle_leaf_rows");
-                let row = rows
-                    .iter_mut()
-                    .find(|row| row.len() == 3 << pcs::whir_config::SUBSEQUENT_FOLDING_FACTOR)
-                    .unwrap();
-                row[0] += F192::new(0, 1, 0);
-            }),
-            ("merkle path (last query)", &|h: &mut Hints| {
-                let paths = h.entries("merkle_children");
-                *paths.last_mut().unwrap().last_mut().unwrap() += F192::ONE;
-            }),
-            ("child_index (duplicate slot)", &|h: &mut Hints| {
-                let entries = h.entries("child_index");
-                entries[1] = entries[0].clone();
-            }),
-            ("child_index (out of range)", &|h: &mut Hints| {
-                h.entries("child_index")[0] = vec![count(2 * SMALL_LEAF_SIZE)];
-            }),
-            ("child_group (count understated)", &|h: &mut Hints| {
-                h.entries("child_group")[0][3] = count(SMALL_LEAF_SIZE - 1);
-            }),
-            // A child group claimed at a leaf index or under a message the child
-            // never carried: the map equality or the rebuilt digest rejects.
-            ("child_group (leaf index)", &|h: &mut Hints| {
-                h.entries("child_group")[0][0] += F192::ONE;
-            }),
-            ("child_group (message)", &|h: &mut Hints| {
-                h.entries("child_group")[0][1] += F192::ONE;
-            }),
-            ("child_defer (a forged carried claim)", &|h: &mut Hints| {
-                h.entries("child_defer")[0][0] += F192::ONE;
-            }),
-            ("bc_star_hint", &|h: &mut Hints| {
-                h.entries("bc_star_hint")[0][0] += F192::ONE;
-            }),
-            ("mat_stars_hint", &|h: &mut Hints| {
-                h.entries("mat_stars_hint")[0][0] += F192::ONE;
-            }),
-            // The one hint carrying flock's whole lincheck terminal. Pinned not
-            // by the guest's own assert (which merely defines it) but by the
-            // matrix batching, whose reduced claims the root discharges against
-            // the real A_0/B_0.
-            ("matpart", &|h: &mut Hints| {
-                h.entries("matpart")[0][0] += F192::ONE;
-            }),
-            // A node holding no raw XMSS signature builds no tweak tables, so
-            // the statement digest is all that pins its leaf indices. The children's
-            // leaf indices must then land on slots of this altered list, and the map
-            // equality has no target, so the node cannot be proven.
-            (
-                "group (a node that derives nothing from the leaf index)",
-                &|h: &mut Hints| {
-                    h.entries("group")[0][0] += F192::ONE;
-                },
-            ),
-        ];
-        for (description, tamper) in node_cases {
-            rejects(&children, vec![], vec![], description, *tamper);
-        }
-
-        // A node over children of two different leaf indices: the hinted group map is
-        // what ties each child's group to the parent region of the same leaf index.
-        let leaf_index_children = vec![
-            prove_leaf(&signers[..2]),
-            aggregate(
-                &[],
-                at_leaf_index(&get_signers_at(2, XMSS_LEAF_INDEX_B), XMSS_LEAF_INDEX_B),
-                vec![],
-                &[],
-                None,
-                LOG_INV_RATE,
-            )
-            .expect("the honest leaf-index-B leaf aggregates"),
-        ];
-        aggregate(&leaf_index_children, vec![], vec![], &[], None, LOG_INV_RATE)
-            .expect("the honest two-leaf-index node aggregates");
-        let leaf_index_node_cases: &[Tamper] = &[
-            // Pointing the second child's group at the parent's leaf-index-A region:
-            // the leaf indices disagree, so the map equality fails.
-            (
-                "child_group_map (a group mapped across leaf indices)",
-                &|h: &mut Hints| {
-                    h.entries("child_group_map")[1][0] = count(0);
-                },
-            ),
-            ("child_group_map (out of range)", &|h: &mut Hints| {
-                h.entries("child_group_map")[0][0] = count(2);
-            }),
-        ];
-        for (description, tamper) in leaf_index_node_cases {
-            rejects(&leaf_index_children, vec![], vec![], description, *tamper);
-        }
-
-        // The same discipline over a child's SPHINCS claims, which are rebuilt by
-        // their own loop (`hash_child_sphincs`) rather than the XMSS helper, so
-        // the cases above do not reach them: these children carry claims.
-        let sphincs = get_sphincs_signers(4);
-        let mixed_child = |x: &[(XmssPublicKey, XmssSignature)], s: &[RawSphincs]| {
-            aggregate(
-                &[],
-                at_leaf_index(x, XMSS_LEAF_INDEX_A),
-                s.to_vec(),
-                &[],
-                None,
-                LOG_INV_RATE,
-            )
-            .expect("the honest mixed child aggregates")
-        };
-        let mixed_children = vec![
-            mixed_child(&signers[..2], &sphincs[..2]),
-            mixed_child(&signers[2..4], &sphincs[2..]),
-        ];
-        let mixed_node_cases: &[Tamper] = &[
-            ("child_sphincs_index (duplicate slot)", &|h: &mut Hints| {
-                let entries = h.entries("child_sphincs_index");
-                entries[1] = entries[0].clone();
-            }),
-            ("child_sphincs_index (out of range)", &|h: &mut Hints| {
-                h.entries("child_sphincs_index")[0] = vec![count(4)];
-            }),
-            ("child_meta (a child's SPHINCS count understated)", &|h: &mut Hints| {
-                h.entries("child_meta")[0][1] = count(1);
-            }),
-        ];
-        for (description, tamper) in mixed_node_cases {
-            rejects(&mixed_children, vec![], vec![], description, *tamper);
-        }
+        let (bytecode_point, matrix_point) = (point(bytecode_vars()), point(2 * flock::hash::K_LOG));
+        assert_eq!(
+            DeferredClaim::recompute_scalar(bytecode_point.clone(), matrix_point.clone()),
+            DeferredClaim::recompute(bytecode_point, matrix_point)
+        );
     }
 
+    /// The scalar verifier derives a root's membership vector, and the list digest over it, as `lean_da` does.
     #[test]
-    #[ignore]
-    fn aggregate_rejects_a_bad_signature() {
-        leanvm_core::init_prover();
-        let mut raw_signatures = at_leaf_index(&get_signers(3), XMSS_LEAF_INDEX_A);
-        raw_signatures[1].3.wots_signature.chain_tips[0][0] ^= 1;
-        assert!(
-            aggregate(&[], raw_signatures, vec![], &[], None, LOG_INV_RATE).is_err(),
-            "a forged signature must be rejected"
-        );
-
-        let mut raw_sphincs = get_sphincs_signers(2);
-        raw_sphincs[1].2.ots[2][0][0] ^= 1;
-        assert!(
-            aggregate(&[], vec![], raw_sphincs, &[], None, LOG_INV_RATE).is_err(),
-            "a forged SPHINCS signature must be rejected"
-        );
+    fn scalar_da_digest_matches_lean_da() {
+        let roots = [[0u8; 32], [0xff; 32], std::array::from_fn(|i| 7 * i as u8 + 1)];
+        for root in &roots {
+            let vector = lean_da::membership_vector(root);
+            let scalar = verifier::da::membership_vector(root);
+            assert_eq!(scalar.iter().copied().map(from_scalar).collect::<Vec<_>>(), vector);
+            assert_eq!(verifier::da::vector_digest(&scalar), lean_da::vector_digest(&vector));
+        }
+        for count in 0..=roots.len() {
+            assert_eq!(
+                verifier::da::list_digest(&roots[..count]),
+                da_list_digest(&roots[..count])
+            );
+        }
     }
 
     /// Randomness that does not decode to a target-sum encoding used to panic

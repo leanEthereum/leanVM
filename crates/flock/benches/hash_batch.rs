@@ -20,13 +20,14 @@
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
-use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::digest_words;
+use fiat_shamir::transcript::{Proof, ProverState};
 use flock::hash::{
     Blake2sSetup, Compression, K_LOG, generate_witness_with_ab_packed_and_lincheck, min_n_blocks_log,
-    pinned_compression, ring_switch_open, ring_switch_verify,
+    pinned_compression, ring_switch_open,
 };
 use pcs::pack::LOG_PACKING;
-use pcs::stack_open::{open_batch_mixed_whir_stacked, verify_opening_batch_mixed_whir_stacked};
+use pcs::stack_open::open_batch_mixed_whir_stacked;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0};
 use pcs::whir::{commit, config_for_rate};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
@@ -76,7 +77,7 @@ fn main() {
         let q_flock: &[F64] = unsafe { std::slice::from_raw_parts(z_packed.as_ptr().cast(), z_packed.len()) };
         assert_eq!(q_flock.len(), 1 << mu);
 
-        let mut ps = ProverState::from_label(b"flock-blake2s-batch");
+        let mut ps = ProverState::new(digest_words(&SEED[0]), digest_words(&SEED[1]));
         let t_prove = Instant::now();
 
         let t = Instant::now();
@@ -113,7 +114,7 @@ fn main() {
     // the warmup, the cooldown, and the repetition for all of them.
     let plan = Plan::from_env();
     let mut stages: [Timing; 7] = std::array::from_fn(|_| Timing::default());
-    let (transcript, _) = plan.warm_then_measure(|final_pass| {
+    let (proof, _) = plan.warm_then_measure(|final_pass| {
         let _quiet = (!final_pass).then(bench::suppress_tracing);
         let (out, secs) = prove_pass();
         for (timing, s) in stages.iter_mut().zip(secs) {
@@ -130,25 +131,10 @@ fn main() {
         kept
     });
 
+    let proof = scalar_proof(&proof);
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|_final_pass| {
-        let mut vs = VerifierState::from_label(b"flock-blake2s-batch", &transcript);
-        let root = vs.next_root().expect("commitment root");
-        let replay = setup.verify_reduction(&mut vs).expect("Flock reduction verifies");
-        let ring = ring_switch_verify(n, 0, &replay.claim);
-        assert!(
-            verify_opening_batch_mixed_whir_stacked(
-                &mut vs,
-                &config,
-                mu,
-                1 << INITIAL_FOLDING_FACTOR,
-                &root,
-                &[],
-                &ring
-            )
-            .is_ok(),
-            "stacked PCS opening verifies"
-        );
-        vs.finish().expect("transcript fully consumed");
+        verifier::verify_flock_batch(&SEED[0], &SEED[1], K_LOG + n_log, LOG_INV_RATE_0, &proof)
+            .expect("Flock batch proof verifies");
     });
 
     if std::env::args().any(|arg| arg == "--json") {
@@ -185,7 +171,7 @@ fn main() {
     println!("  ------------------------------------------");
     println!("  prove TOTAL (witness excluded)  : {}", ms(&prove));
     println!(
-        "  verify                          : {:>8.1} ms",
+        "  verify (scalar, one thread)     : {:>8.1} ms",
         verify_time.mean() * 1e3
     );
     let prove_s = prove.mean();
@@ -199,4 +185,27 @@ fn main() {
         "  (~{:.1} XMSS/s equivalent at 146 compressions/signature)",
         n as f64 / prove_s / 146.0
     );
+}
+
+/// The transcript's seed: the `verifier` crate takes two digests, so the bench uses two fixed ones.
+const SEED: [[u8; 32]; 2] = [[1; 32], [2; 32]];
+
+/// The wire proof in the `verifier` crate's types (`leanvm_core::cpu::scalar_proof`, which `flock` sits below).
+fn scalar_proof(proof: &Proof) -> verifier::Proof {
+    let batches = proof.merkle.iter().map(|paths| verifier::PrunedMerklePaths {
+        leaf_data: paths
+            .leaf_data
+            .iter()
+            .map(|row| row.iter().map(|word| verifier::K(word.0)).collect())
+            .collect(),
+        sibling_hashes: paths.sibling_hashes.clone(),
+    });
+    verifier::Proof {
+        stream: proof
+            .stream
+            .iter()
+            .map(|x| verifier::E::new(x.c0, x.c1, x.c2))
+            .collect(),
+        merkle_openings: verifier::MerkleOpenings::Pruned(batches.collect()),
+    }
 }

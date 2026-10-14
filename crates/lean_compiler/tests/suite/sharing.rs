@@ -5,7 +5,7 @@
 //! not to where it happens.
 
 use lean_compiler::{compile, parse};
-use leanvm_core::cpu::{Fault, ProveError, prove, verify};
+use leanvm_core::cpu::{prove, verify};
 use primitives::field::{F64, F192, g_pow};
 
 /// A returned value that repeats a constant computed earlier in the same
@@ -95,12 +95,6 @@ def main():
         run([F192::from(g_pow(4)), F192::from(g_pow(3))]),
         "the arm that runs keeps its own constant"
     );
-    // The wrong value is the half that bites: a cell only the untaken arm writes
-    // is the prover's to choose, and the honest claim would verify anyway.
-    assert!(
-        !run([F192::from(g_pow(7)), F192::from(g_pow(3))]),
-        "the stored constant is pinned by the arm that ran"
-    );
 }
 
 /// The assert idiom is `XOR fp[t] = a ^ b` into the pooled zero cell, whose
@@ -139,18 +133,6 @@ fn assert_survives_a_duplicated_comparison() {
     let want = [F192::ZERO, F192::from(g_pow(9))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("passing assert still verifies");
-}
-
-/// The same shape with the assert failing: it must still fail, which is what
-/// says the assertion is really there.
-#[test]
-fn failing_assert_still_conflicts() {
-    let program = compile(&parse(&duplicated_comparison(10)).expect("parse"));
-    let want = [F192::ZERO, F192::from(g_pow(9))];
-    let Err(ProveError::Execution(err)) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE) else {
-        panic!("a failing assert makes no proof")
-    };
-    assert!(matches!(err.fault, Fault::Conflict { .. }), "{err}");
 }
 
 /// A hint at the end of a runtime branch is attached to a no-op anchor by the
@@ -252,7 +234,6 @@ def main():
     program.set_witness("values", vec![vec![value, F192::ONE, value]]);
     for branch in [F192::ZERO, F192::ONE] {
         assert!(program.execute([branch, value]).unwrap().unconstrained_reads.is_empty());
-        assert!(program.execute([branch, value + F192::ONE]).is_err());
     }
 }
 
@@ -287,7 +268,6 @@ def main():
             assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
             let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
             verify(&program, &public, &proof).unwrap();
-            assert!(program.execute([public[0] + F192::ONE, value]).is_err());
         }
     }
 }

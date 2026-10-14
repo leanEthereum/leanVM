@@ -92,6 +92,7 @@ pub fn run_aggregation(n_xmss: usize, n_sphincs: usize, n_blobs: usize, log_inv_
     let trace_span = tracing::info_span!("aggregation", n_xmss, n_sphincs, n_blobs, log_inv_rate).entered();
     // Spawn the worker pool before any timed work, so no kernel pays the spawn cost.
     leanvm_core::init_prover();
+    rec_aggregation::warm_up();
     let raw_xmss = signers(0, n_xmss);
     let raw_sphincs = sphincs_signers(0, n_sphincs);
     let blobs = blobs(n_blobs, 0);
@@ -170,6 +171,7 @@ pub fn run_recursion(
         "too many distinct DA roots"
     );
     leanvm_core::init_prover();
+    rec_aggregation::warm_up();
     let all = signers(0, n * per_leaf);
     let all_sphincs = sphincs_signers(0, n * sphincs_per_leaf);
     let started = std::time::Instant::now();

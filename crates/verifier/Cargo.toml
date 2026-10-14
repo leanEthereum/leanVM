@@ -1,0 +1,11 @@
+[package]
+name = "verifier"
+version.workspace = true
+edition.workspace = true
+publish = false
+description = "Portable single-threaded verifier for leanVM execution proofs: std only, no SIMD, no unsafe"
+
+[lints]
+workspace = true
+
+[dependencies]

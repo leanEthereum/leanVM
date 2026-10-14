@@ -183,8 +183,8 @@ pub(crate) fn induce_sumcheck_poly<T: RowElem>(
 
 /// Just the `enforced_sum` half of [`induce_sumcheck_poly`]:
 ///   `enforced_sum = Σ_i w_i · <opened_rows[i], eq(v_challenges, ·)>`
-/// Cheap: O(num_queries x num_interleaved). The succinct verifier needs this
-/// at level intro time (before the residual challenges are known).
+/// Cheap: O(num_queries x num_interleaved). The prover needs it for its last
+/// level, whose induced basis it never materializes.
 pub(crate) fn induce_sumcheck_enforced_sum<T: RowElem>(
     opened_rows: &[Vec<T>],
     v_challenges: &[F192],
@@ -202,9 +202,8 @@ pub(crate) fn induce_sumcheck_enforced_sum<T: RowElem>(
     sum
 }
 
-/// SUCCINCT evaluator for the induced basis poly's MLE at residual points
-/// (mirror of `whir::induce_sumcheck_evaluate_at_residual`). Replaces the
-/// dense basis + `partial_eval_lsb` in the verifier via the closed form:
+/// SUCCINCT evaluator for the induced basis poly's MLE at residual points,
+/// in place of the dense basis, via the closed form:
 ///   `MLE(basis_poly)(p) = Σ_i w_i · Π_k (1 + p[k] · (1 + W-hat_k(q_i)))`
 /// where `q_i = F64(queries[i])` and the K-valued `W-hat_k(q_i)` lifts into E
 /// through the char-2 factor. `ris_for_basis` is the fixed residual prefix
@@ -247,8 +246,8 @@ pub(crate) fn induce_sumcheck_evaluate_at_residual(
         };
         PerQuery { prefix_prod, suffix_w }
     };
-    // Once per recursion level over verify-sized inputs; stay serial below
-    // the dispatch crossover (mirror of the original's PAR_FLOOR).
+    // Once per opening over query-count-sized inputs; stay serial below
+    // the dispatch crossover.
     const PAR_FLOOR: usize = 1024;
     let per_query: Vec<PerQuery> = if n_queries > PAR_FLOOR {
         parallel::map_collect(n_queries, |i| compute_query(&queries[i]))

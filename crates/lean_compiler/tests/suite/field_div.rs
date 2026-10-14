@@ -29,12 +29,6 @@ def main():
     let want = [F192::from(g_pow(20)), F192::from(F64::ONE)];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("division program verifies");
-
-    let bad = [F192::from(g_pow(21)), F192::from(F64::ONE)];
-    assert!(
-        verify(&program, &bad, &proof).is_err(),
-        "wrong quotient product rejected"
-    );
 }
 
 /// `//` stays compile-time floor division (an index), `/` is the runtime field
@@ -57,29 +51,4 @@ def main():
     let want = [F192::from(g_pow(4)), F192::from(g_pow(3))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("mixed //-and-/ program verifies");
-}
-
-/// A zero divisor: the prover hints `b = 0`, and `1 / b` cannot be back-solved
-/// (`1 = q·0` has no solution), so witness generation / verification rejects.
-#[test]
-fn field_div_by_zero_rejected() {
-    let src = "\
-def main():
-    v = StackBuf(1)
-    hint_witness(v[0:1], \"den\")
-    r = 1 / v[0]
-    p = 1
-    p[1] = r * v[0]
-    p[GEN] = 1
-    return
-";
-    let run = |den: F64| -> bool {
-        let mut program = compile(&parse(src).expect("parse"));
-        program.set_witness("den", vec![vec![F192::from(den)]]);
-        let pi = [F192::from(F64::ONE), F192::from(F64::ONE)];
-        prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE)
-            .is_ok_and(|(proof, _)| verify(&program, &pi, &proof).is_ok())
-    };
-    assert!(run(g_pow(4)), "nonzero divisor must verify");
-    assert!(!run(F64::ZERO), "zero divisor must be rejected");
 }

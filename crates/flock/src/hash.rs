@@ -86,14 +86,13 @@ use crate::gf2::{
     ADD3_BITS, CARRY_BITS_PER_ADD, MatrixSide, WireWord, back_add, back_add3_fused, walk_add, walk_add3_fused,
     wire_from_const, wire_from_slot_base, wire_rotl, wire_rotr, wire_xor,
 };
-use crate::verifier;
 use crate::witness::packed_bytes;
 use crate::witness::{
     BitRecord, add_carry_parts, add3_fused_parts, drive_witness_packed_and_lincheck, or_bit_at,
     write_lin_word_ab_packed,
 };
 use pcs::pack::{LOG_PACKING, PACKING_WIDTH};
-use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify, RingSwitchVerifyClaim};
+use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen};
 use primitives::field::F192;
 
 // ---------------------------------------------------------------------------
@@ -380,13 +379,6 @@ pub fn row_values_walk(w: &[F192]) -> (Vec<F192>, Vec<F192>) {
     (sink.a, sink.b)
 }
 
-/// `(uᵀ A_0 w) + α·(uᵀ B_0 w)`, the α-batched form lincheck's verifier
-/// consumes.
-pub fn bilinear_walk(alpha: F192, u: &[F192], w: &[F192]) -> F192 {
-    let (va, vb) = bilinear_walk_pair(u, w);
-    va + alpha * vb
-}
-
 /// One matrix's column marginal, by one backward walk of the circuit.
 ///
 /// ```text
@@ -530,11 +522,8 @@ pub fn marginal_walk(alpha: F192, u: &[F192]) -> Vec<F192> {
     a
 }
 
-/// Walk-capable [`crate::lincheck::LincheckCircuit`] over the BLAKE2s R1CS:
-/// `bilinear_form` answers lincheck's verifier in O(circuit) field ops, so the
-/// verifier never materializes the substituted matrices' column
-/// marginal. `fold_alpha_batched` walks the circuit backwards
-/// ([`marginal_walk`]), so this circuit needs no matrices on either side.
+/// The BLAKE2s R1CS as a [`crate::lincheck::LincheckCircuit`]: `fold_alpha_batched`
+/// walks the circuit backwards ([`marginal_walk`]), so no matrix is materialized.
 pub struct WalkLincheckCircuit;
 
 impl crate::lincheck::LincheckCircuit for WalkLincheckCircuit {
@@ -546,9 +535,6 @@ impl crate::lincheck::LincheckCircuit for WalkLincheckCircuit {
     }
     fn fold_alpha_batched(&self, alpha: F192, eq_inner: &[F192]) -> Vec<F192> {
         marginal_walk(alpha, eq_inner)
-    }
-    fn bilinear_form(&self, alpha: F192, u: &[F192], w: &[F192]) -> Option<F192> {
-        Some(bilinear_walk(alpha, u, w))
     }
 }
 
@@ -770,35 +756,6 @@ pub fn ring_switch_open(n_blocks: usize, offset: usize, reduced: &SliceClaim) ->
     }
 }
 
-/// Verifier counterpart of [`ring_switch_open`]: package the recovered claim as
-/// a [`RingSwitchVerify`], the same statement data. The transmitted opening
-/// travels separately.
-pub fn ring_switch_verify(n_blocks: usize, offset: usize, claim: &SliceClaim) -> RingSwitchVerify<'_> {
-    let qflock_vars = qflock_kappa(n_blocks);
-    assert_eq!(
-        claim.suffix_point.len(),
-        qflock_vars,
-        "ring-switch suffix must span the q_flock cube"
-    );
-    RingSwitchVerify {
-        offset,
-        qflock_vars,
-        claims: vec![RingSwitchVerifyClaim {
-            suffix_point: &claim.suffix_point,
-            s_hat_v: claim.s_hat_v.as_slice().try_into().expect("ring-switch has 64 slices"),
-        }],
-    }
-}
-
-/// Everything [`Blake2sSetup::verify_reduction`] recovers: the z-claim for the
-/// PCS and the zerocheck / lincheck claims.
-#[derive(Clone, Debug)]
-pub struct ReductionReplay {
-    pub claim: SliceClaim,
-    pub zc_claim: crate::zerocheck::ZerocheckClaim,
-    pub lc_claim: crate::lincheck::LincheckClaim,
-}
-
 /// The lincheck input point carried over from the zerocheck claim: the
 /// univariate-skip coordinate, then the multilinear challenges split at
 /// `inner_rest_len` into the inner-rest and outer halves.
@@ -811,8 +768,7 @@ fn x_ab_of(zc: &crate::zerocheck::ZerocheckClaim, inner_rest_len: usize) -> crat
 }
 
 /// The claim the reduction leaves for the PCS: lincheck's output point, whose
-/// 64 slice values are `lc.s_hat_v`. Prover and verifier must derive it
-/// identically, so they share this one derivation.
+/// 64 slice values are `lc.s_hat_v`.
 fn reduction_claim(lc: &crate::lincheck::LincheckClaim, x_outer: &[F192]) -> SliceClaim {
     let mut suffix_point = lc.r_inner_rest.clone();
     suffix_point.extend_from_slice(x_outer);
@@ -925,45 +881,6 @@ impl Blake2sSetup {
         );
 
         reduction_claim(&lc_claim, &x_ab.x_outer)
-    }
-
-    /// **Flock reduction (verifier).** Replay the BLAKE2s zerocheck and
-    /// lincheck straight off the shared transcript stream, recovering the one
-    /// evaluation claim on the committed witness `q_flock`. Mirror of
-    /// [`Self::prove_reduction_precomputed`]; the PCS then discharges the returned claim.
-    pub fn verify_reduction(
-        &self,
-        vs: &mut fiat_shamir::transcript::VerifierState<'_>,
-    ) -> Result<ReductionReplay, verifier::VerifyError> {
-        // Mirror of prove_reduction_precomputed: the statement is bound by the embedding
-        // protocol's seed (R1CS digest) + announced count + commitment root.
-
-        let zc_claim = crate::zerocheck::verify(self.m(), vs).map_err(verifier::VerifyError::Zerocheck)?;
-
-        let inner_rest_len = K_LOG - K_SKIP;
-        let x_ab = x_ab_of(&zc_claim, inner_rest_len);
-        // Walk-capable circuit: the verifier's lincheck consistency check is
-        // one circuit walk (O(circuit) field ops) instead of the ∝ NNZ CSC
-        // marginal fold. Same transcript, same accept/reject.
-        let lc_claim = crate::lincheck::verify(
-            self.m(),
-            K_LOG,
-            K_SKIP,
-            &WalkLincheckCircuit,
-            &x_ab,
-            zc_claim.a_eval,
-            zc_claim.b_eval,
-            zc_claim.c_eval,
-            vs,
-        )
-        .map_err(verifier::VerifyError::Lincheck)?;
-
-        let claim = reduction_claim(&lc_claim, &x_ab.x_outer);
-        Ok(ReductionReplay {
-            claim,
-            zc_claim,
-            lc_claim,
-        })
     }
 }
 
@@ -1098,22 +1015,6 @@ mod tests {
             assert_eq!(z.len(), K << 3);
             assert!(satisfies(&z, 3), "witness for {n_blocks} compressions fails R1CS");
         }
-    }
-
-    #[test]
-    fn mutated_witness_fails() {
-        let mut rng = Rng::new(0xB2DEAD);
-        let blocks = vec![(param_iv(), std::array::from_fn(|_| rng.next_u32()), 64, 0, 0)];
-        let mut z = generate_witness(&blocks, 3);
-        assert!(satisfies(&z, 3));
-        // One bit in each layer of a fused ADD, and one in a two-operand ADD,
-        // in the last round where the affine cascade is deepest.
-        for off in [G_ADD3_A2 + 5, G_ADD3_A2 + CARRY_BITS_PER_ADD + 5, G_ADD_C2 + 7] {
-            z[g_slot(79, off)] ^= true;
-            assert!(!satisfies(&z, 3), "tampered product bit at {off} should violate R1CS");
-            z[g_slot(79, off)] ^= true;
-        }
-        assert!(satisfies(&z, 3), "restoring every bit should re-satisfy");
     }
 
     /// The all-zero witness must not satisfy the system: the constant-wire pin

@@ -4,7 +4,7 @@
 # statement digest binding its signature claims and a possibly empty list of LeanDA roots.
 # It may check a blob matrix directly and retain any roots proved by its children.
 # Reading order: `main` is the
-# node, `verify_sub` the in-circuit copy of `leanvm_core::cpu::verify`, and
+# node, `verify_sub` the in-circuit copy of `verifier::verify_execution`, and
 # `open_stacked` the WHIR opening it dispatches into.
 #
 # Every `*_PLACEHOLDER` below is filled by the host at compile time
@@ -1118,7 +1118,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         else:
             fs, next_root_a, msg_cursor = fs_next(fs, msg_cursor)
             fs, next_root_b, msg_cursor = fs_next(fs, msg_cursor)
-            # A non-canonical half is rejected (merkle.rs `scalars_to_hash`), as
+            # A non-canonical half is rejected (`Digest::from_halves` in `crates/verifier`), as
             # the commitment root was at its own read.
             canon = StackBuf(2)
             canon[0] = assert_canonical(next_root_a)
@@ -1997,7 +1997,7 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_blake
 
 def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # In-circuit verification of ONE inner proof for the statement (pi_0, pi_1),
-    # mirroring cpu::verify step for step; the `# ---- ... ----` headers below run
+    # mirroring `crates/verifier` step for step; the `# ---- ... ----` headers below run
     # in that order. All proof data is hinted HERE, so each call pops the next
     # sub-proof's entry of every witness stream and the body lowers once. The
     # exponent tables are shared read-only; the deferred claims go to `defer_out`.
@@ -2063,7 +2063,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # ---- commitment root (2 words), kept for the opening phase ----
     fs, commit_root_0, cursor = fs_next(fs, cursor)
     fs, commit_root_1, cursor = fs_next(fs, cursor)
-    # A non-canonical half is rejected here (merkle.rs `scalars_to_hash`); the level
+    # A non-canonical half is rejected here (`Digest::from_halves` in `crates/verifier`); the level
     # roots get the same treatment at their own read.
     root_cells = StackBuf(2)
     root_cells[0] = assert_canonical(commit_root_0)

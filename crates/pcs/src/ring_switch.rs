@@ -55,23 +55,19 @@
 //!    its total degree is below `2^32`, hence its failure probability is below
 //!    `2^-160` before the WHIR list-size factor.
 //!
-//! ## Prover vs. verifier paths for `rs_eq_ind`
+//! ## Building `rs_eq_ind`
 //!
-//! - The prover keeps the equality tensor factored, folds each claim into a
-//!   small byte table, and combines the claims directly into one dense PCS
-//!   weight. It never materializes a dense vector per claim.
-//! - [`eval_rs_eq`] lets the verifier avoid materializing the vector entirely:
-//!   its MLE at the WHIR final point is evaluated in
-//!   `O((m-6) * 192^2)` bit-ops plus `O((m-6) * 192)` E-multiplications via
-//!   the DP24 tensor-algebra iterative algorithm (DP24 section 1.3 Figure 3).
-//!
-//! [DP24]: <https://eprint.iacr.org/2024/504>
+//! The prover keeps the equality tensor factored, folds each claim into a
+//! small byte table, and combines the claims directly into one dense PCS
+//! weight. It never materializes a dense vector per claim. A verifier never
+//! builds the vector at all: it evaluates its MLE at the WHIR final point from
+//! `Phi`'s challenges.
 
-use fiat_shamir::transcript::Challenger;
+use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F192};
 
 use super::pack::PACKING_WIDTH;
-use super::tensor_algebra::{DEGREE_E, TensorAlgebraE, transpose_s_hat};
+use super::tensor_algebra::{DEGREE_E, transpose_s_hat};
 use super::whir::{build_eq_table_ext, inner_product_base_ext};
 
 /// Total degree of the six-challenge composed batching map. This is the
@@ -156,7 +152,7 @@ fn apply_composed_map(mut value: F192, challenges: &[F192; COMPOSITION_SHIFTS.le
 
 /// Sample the composed map's challenges after every ring-switch message has
 /// been bound.
-pub fn sample_map_challenges(ch: &mut impl Challenger) -> [F192; COMPOSITION_SHIFTS.len()] {
+pub fn sample_map_challenges(ch: &mut ProverState) -> [F192; COMPOSITION_SHIFTS.len()] {
     std::array::from_fn(|_| ch.sample())
 }
 
@@ -363,15 +359,8 @@ fn build_eq_split_ext(point: &[F192]) -> (Vec<F192>, Vec<F192>) {
 }
 
 // ---------------------------------------------------------------------------
-// Prover / verifier of the reduction
+// Prover of the reduction
 // ---------------------------------------------------------------------------
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum VerifyError {
-    ClaimMismatch,
-    /// The stream ran out before the 64 `s_hat_v` words were read.
-    Truncated,
-}
 
 /// Prover-side scratch carried from [`prove_prepare`] into finalization.
 ///
@@ -420,83 +409,10 @@ pub fn prove_prepare(
     RingSwitchProveState { s_hat_v, eq_lo, eq_hi }
 }
 
-/// Phase 2 of the ring-switch verifier: given the shared coordinate weights,
-/// produce the batched sumcheck claim. Pair it with [`eval_rs_eq`] at the WHIR
-/// final point, which takes the same weights, so `rs_eq_ind` is never built.
-pub fn verify_finish(s_hat_v: &[F192], coordinate_weights: &[F192]) -> F192 {
-    inner_product_base_ext(&transpose_s_hat(s_hat_v), coordinate_weights)
-}
-
-// ---------------------------------------------------------------------------
-// Polylog evaluation of MLE(rs_eq_ind)
-// ---------------------------------------------------------------------------
-
-/// Polylog-cost evaluation of `MLE(rs_eq_ind)(query)` at the WHIR final
-/// challenge point, following DP24 section 1.3 Figure 3.
-///
-/// ## Derivation
-///
-/// `rs_eq_ind[y] = Phi(eq(z, y))` with `z = suffix_point` and `Phi : E -> E`
-/// the F_2-linear map sending basis bit w to `coordinate_weights[w]`. So
-///
-/// ```text
-/// MLE(rs_eq_ind)(q) = sum_y eq(q, y) * Phi(eq(z, y))
-///                   = sum_w coordinate_weights[w] * (sum_y A(y, w) * eq(q, y))
-/// ```
-///
-/// where `A(y, w) = bit_w(eq(z, y))`. The inner sums are the components of
-/// the tensor-algebra element `Theta = sum_y eq(q, y) (x) eq(z, y)` in
-/// `E (x)_F2 E`, decomposed on the second factor's F_2 basis. Theta builds
-/// iteratively because eq factorizes per coordinate: in char 2,
-/// `sum_{y_j} eq(q_j, y_j) (x) eq(z_j, y_j) = 1 (x) 1 + q_j (x) 1 + 1 (x) z_j`,
-/// so each step is `Theta += q_j * Theta|first + z_j * Theta|second`
-/// (`scale_horizontal` / `scale_vertical`). The final `fold_vertical`
-/// transposes (so rows are indexed by the z-side basis w) and folds with
-/// `coordinate_weights`.
-///
-/// The rectangular twist vs. the old module: the fold length is e = 192
-/// (the E-degree over F_2), not the packing width 64; the K side of the
-/// reduction never appears here because `rs_eq_ind` is E-valued.
-///
-/// ## Arguments
-///
-/// * `z_vals`: the ring-switch suffix point,
-///   length L = m - 6.
-/// * `query`: the WHIR final challenges, length L, same coordinate order.
-/// * `coordinate_weights`: the 192 coordinate batching weights, the same ones
-///   passed to [`verify_finish`].
-pub fn eval_rs_eq(z_vals: &[F192], query: &[F192], coordinate_weights: &[F192]) -> F192 {
-    assert_eq!(
-        z_vals.len(),
-        query.len(),
-        "eval_rs_eq: z_vals and query must have equal length"
-    );
-    assert_eq!(
-        coordinate_weights.len(),
-        DEGREE_E,
-        "eval_rs_eq: coordinate_weights length must be 192"
-    );
-
-    let mut eval = TensorAlgebraE::from_vertical(F192::ONE);
-    for (&z_i, &q_i) in z_vals.iter().zip(query.iter()) {
-        let vert_scaled = eval.clone().scale_vertical(z_i);
-        let hztl_scaled = eval.clone().scale_horizontal(q_i);
-        eval += &vert_scaled;
-        eval += &hztl_scaled;
-    }
-    eval.fold_vertical(coordinate_weights)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::merkle::Hash;
     use crate::pack::LOG_PACKING;
-    use crate::whir::VerifierConfig;
-    use crate::whir::{
-        commit, recursive_prover_with_basis, recursive_verifier_with_basis, recursive_verifier_with_basis_succinct,
-    };
-    use crate::whir_config::test_config_for;
     use primitives::test_rng::Rng;
 
     /// Pack bit `64 * y + i` of `bits` into bit `i` of word `y`.
@@ -730,214 +646,5 @@ mod tests {
             fold_dense(&tensor, &coordinate_weights),
             fold_ext_elems_naive(&tensor, &coordinate_weights)
         );
-    }
-
-    /// eval_rs_eq must agree with the dense evaluation: materialize
-    /// rs_eq_ind, evaluate its MLE at a random query with the eq table.
-    #[test]
-    fn eval_rs_eq_matches_dense() {
-        let l = 6;
-        let mut rng = Rng::new(4);
-        let z = rng.ext_vec(l);
-        let challenges = std::array::from_fn(|_| rng.ext());
-        let coordinate_weights = build_coordinate_weights(&challenges);
-        let rs_eq_ind = fold_dense(&build_eq_table_ext(&z), &coordinate_weights);
-
-        let query = rng.ext_vec(l);
-        let eq_query = build_eq_table_ext(&query);
-        let dense = inner_product_ext(&rs_eq_ind, &eq_query);
-
-        assert_eq!(eval_rs_eq(&z, &query, &coordinate_weights), dense);
-    }
-
-    // -- end-to-end: reduction + whir opening --------------------------
-
-    struct E2e {
-        vc: VerifierConfig,
-        log_n: usize,
-        prefix_weights: Vec<F192>,
-        suffix_point: Vec<F192>,
-        claim: F192,
-        root: Hash,
-        rs_s_hat_v: Vec<F192>,
-        fs: fiat_shamir::transcript::Proof,
-    }
-
-    const E2E_DOMAIN: &[u8] = b"ring-switch-e2e-test";
-
-    /// Full prover pipeline: random bit witness, pack, commit, ring switch
-    /// (plain-point eq weights or a caller-supplied generalized weight
-    /// vector), then the whir opening on (rs_eq_ind, sumcheck_claim),
-    /// all over one continuous transcript.
-    fn prove_e2e(m: usize, seed: u64, generalized_weights: bool) -> E2e {
-        let mut rng = Rng::new(seed);
-        let bits = rng.bits(1usize << m);
-        let packed = pack_witness(&bits);
-        let log_n = m - LOG_PACKING;
-        let pc = test_config_for(log_n);
-        let (cm, pd) = commit(&packed, log_n, pc.initial_k, pc.log_inv_rates[0]);
-
-        let suffix_point = rng.ext_vec(log_n);
-        let prefix_weights: Vec<F192> = if generalized_weights {
-            // Synthetic non-eq weights (e.g. standing in for phi_8 Lagrange
-            // weights): any 64 E-values work.
-            rng.ext_vec(PACKING_WIDTH)
-        } else {
-            build_eq_table_ext(&rng.ext_vec(LOG_PACKING))
-        };
-        let claim = inner_product_ext(&prefix_weights, &s_hat_v_reference(&packed, &suffix_point));
-
-        // Drive the production two-phase API with a single claim: prepare the
-        // slices, sample the shared map, finish with a batching scalar of one.
-        let mut ps = fiat_shamir::transcript::ProverState::from_label(E2E_DOMAIN);
-        let state = prove_prepare(&packed, &suffix_point, None);
-        let rs_s_hat_v = state.s_hat_v.clone();
-        let coordinate_weights = build_coordinate_weights(&sample_map_challenges(&mut ps));
-        let out = prove_finish_deferred(state, &coordinate_weights, F192::ONE);
-        let sumcheck_claim = out.batched_sumcheck_claim;
-        let mut rs_eq_ind = vec![F192::ZERO; packed.len()];
-        combine_deferred_chunk(&[out], 0, &mut rs_eq_ind);
-        assert_eq!(inner_product_base_ext(&packed, &rs_eq_ind), sumcheck_claim);
-        recursive_prover_with_basis(
-            &pc,
-            log_n,
-            &packed,
-            rs_eq_ind.to_vec(),
-            sumcheck_claim,
-            &pd.codeword,
-            &pd.merkle_tree,
-            &mut ps,
-        );
-        E2e {
-            vc: pc,
-            log_n,
-            prefix_weights,
-            suffix_point,
-            claim,
-            root: cm.root,
-            rs_s_hat_v,
-            fs: ps.into_proof(),
-        }
-    }
-
-    /// Finish the caller-supplied slices against the shared map: the verifier's
-    /// half of the two phases, shared by both paths below. As in production, the
-    /// slices ride the statement, tied to `claim` by the caller.
-    fn verify_e2e_reduction(e: &E2e, vs: &mut fiat_shamir::transcript::VerifierState<'_>) -> Option<(Vec<F192>, F192)> {
-        if inner_product_ext(&e.prefix_weights, &e.rs_s_hat_v) != e.claim {
-            return None;
-        }
-        let coordinate_weights = build_coordinate_weights(&sample_map_challenges(vs));
-        let sumcheck_claim = verify_finish(&e.rs_s_hat_v, &coordinate_weights);
-        Some((coordinate_weights, sumcheck_claim))
-    }
-
-    /// Dense verification: rebuild `rs_eq_ind` and hand it to the dense whir
-    /// verifier as `b_initial`.
-    fn verify_e2e_dense(e: &E2e) -> bool {
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(E2E_DOMAIN, &e.fs);
-        let Some((coordinate_weights, sumcheck_claim)) = verify_e2e_reduction(e, &mut vs) else {
-            return false;
-        };
-        let rs_eq_ind = fold_dense(&build_eq_table_ext(&e.suffix_point), &coordinate_weights);
-        recursive_verifier_with_basis(&e.vc, 1 << e.vc.initial_k, &rs_eq_ind, sumcheck_claim, &e.root, &mut vs)
-    }
-
-    /// Succinct verification: no `rs_eq_ind`, the succinct whir verifier's
-    /// terminal closure evaluates its MLE once via `eval_rs_eq`.
-    fn verify_e2e_succinct(e: &E2e) -> bool {
-        let mut vs = fiat_shamir::transcript::VerifierState::from_label(E2E_DOMAIN, &e.fs);
-        let Some((coordinate_weights, sumcheck_claim)) = verify_e2e_reduction(e, &mut vs) else {
-            return false;
-        };
-        let z = e.suffix_point.clone();
-        recursive_verifier_with_basis_succinct(
-            &e.vc,
-            e.log_n,
-            1 << e.vc.initial_k,
-            sumcheck_claim,
-            &e.root,
-            |point| eval_rs_eq(&z, point, &coordinate_weights),
-            &mut vs,
-        )
-        .is_ok()
-    }
-
-    #[test]
-    fn end_to_end_plain_point() {
-        for (m, seed) in [(13usize, 10u64), (17, 11)] {
-            let e = prove_e2e(m, seed, false);
-            assert!(verify_e2e_dense(&e), "dense e2e rejected at m={m}");
-            assert!(verify_e2e_succinct(&e), "succinct e2e rejected at m={m}");
-        }
-    }
-
-    #[test]
-    fn end_to_end_generalized_weights() {
-        let e = prove_e2e(13, 12, true);
-        assert!(verify_e2e_dense(&e), "dense e2e (generalized) rejected");
-        assert!(verify_e2e_succinct(&e), "succinct e2e (generalized) rejected");
-    }
-
-    /// Tampering: a slice flip breaks the caller's claim check; a
-    /// claim-preserving forgery (two slices adjusted so the weighted sum is
-    /// unchanged) passes that check but diverges the ring-switch target, so the
-    /// whir opening must reject it. A tampered claim value, or any whir stream
-    /// word, is rejected too. Dense and succinct paths must agree throughout.
-    #[test]
-    fn end_to_end_rejects_tampering() {
-        let e = prove_e2e(13, 13, false);
-        let with = |s_hat_v: Vec<F192>, claim: F192, fs: fiat_shamir::transcript::Proof| E2e {
-            rs_s_hat_v: s_hat_v,
-            vc: e.vc.clone(),
-            log_n: e.log_n,
-            prefix_weights: e.prefix_weights.clone(),
-            suffix_point: e.suffix_point.clone(),
-            claim,
-            root: e.root,
-            fs,
-        };
-
-        // Plain slice flip: caught by the claim check.
-        let mut s = e.rs_s_hat_v.clone();
-        s[5].c1 ^= 1;
-        let bad = with(s, e.claim, e.fs.clone());
-        assert!(!verify_e2e_dense(&bad), "flipped slice accepted");
-        assert!(!verify_e2e_succinct(&bad), "flipped slice accepted (succinct)");
-
-        // Claim-preserving forgery: s'_1 = s_1 + d, s'_0 = s_0 + w_1*d/w_0
-        // keeps sum_i w_i s'_i = claim, so the claim check passes; the ring
-        // switch must still reject, its target and weights diverging from what
-        // the whir proof was built for.
-        let mut rng = Rng::new(99);
-        let d = rng.ext();
-        let (w0, w1) = (e.prefix_weights[0], e.prefix_weights[1]);
-        assert!(!w0.is_zero() && !d.is_zero());
-        let mut s = e.rs_s_hat_v.clone();
-        s[1] += d;
-        s[0] += w1 * d * w0.inv();
-        let bad = with(s, e.claim, e.fs.clone());
-        assert_eq!(
-            inner_product_ext(&bad.prefix_weights, &bad.rs_s_hat_v),
-            e.claim,
-            "forgery must be claim-preserving for this test to bite"
-        );
-        assert!(!verify_e2e_dense(&bad), "claim-preserving forgery accepted (dense)");
-        assert!(
-            !verify_e2e_succinct(&bad),
-            "claim-preserving forgery accepted (succinct)"
-        );
-
-        // Tampered claim value.
-        let bad = with(e.rs_s_hat_v.clone(), e.claim + F192::ONE, e.fs.clone());
-        assert!(!verify_e2e_dense(&bad), "tampered claim accepted");
-        assert!(!verify_e2e_succinct(&bad), "tampered claim accepted (succinct)");
-
-        // Tampered whir stream word.
-        let mut fs = e.fs.clone();
-        fs.stream[0] += F192::ONE;
-        let bad = with(e.rs_s_hat_v.clone(), e.claim, fs);
-        assert!(!verify_e2e_dense(&bad), "tampered stream word accepted");
-        assert!(!verify_e2e_succinct(&bad), "tampered stream word accepted (succinct)");
     }
 }

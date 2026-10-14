@@ -14,7 +14,7 @@
 //!
 //! [`hash`] is the one circuit: the BLAKE2s compression as a per-block R1CS,
 //! plus its witness generation and the leanVM-facing reduction entry points
-//! (`Blake2sSetup::{prove_reduction_precomputed, verify_reduction, …}`). Steps 2 to 4 above
+//! (`Blake2sSetup::{prove_reduction_precomputed, prove_zerocheck, prove_lincheck}`). Steps 2 to 4 above
 //! are circuit-agnostic: they take the block shape as plain numbers and reach
 //! the matrices only through [`lincheck::LincheckCircuit`], whose one live impl
 //! walks the circuit rather than reading any matrix.
@@ -28,11 +28,5 @@
 mod gf2;
 pub mod hash;
 pub mod lincheck;
-/// The circuit driven through the whole reduction. A `src` module rather than
-/// its own test binary so it shares the process, and so the slow
-/// [`hash::matrices`] build, with the unit tests.
-#[cfg(test)]
-mod reduction_tests;
-pub mod verifier;
 mod witness;
 pub mod zerocheck;

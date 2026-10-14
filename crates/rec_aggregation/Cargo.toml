@@ -17,6 +17,7 @@ lean_compiler.workspace = true
 xmss.workspace = true
 sphincs.workspace = true
 lean_da.workspace = true
+verifier.workspace = true
 rand.workspace = true
 bincode.workspace = true
 serde.workspace = true

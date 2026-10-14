@@ -7,16 +7,10 @@
 //! into `E` upstream, [`crate::leaf`]).
 
 use crate::PAR_THRESHOLD;
-use crate::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use crate::transcript::ProverState;
 use primitives::field::{F192, F192Unreduced, mul_unreduced4, mul2, mul4};
-use primitives::multilinear::{eq_table, interp, poly_eval, shrink_eq_low};
+use primitives::multilinear::{eq_table, interp, shrink_eq_low};
 use primitives::stream::Stream;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum GkrError {
-    Truncated,
-    LayerMismatch { layer: usize },
-}
 
 /// Rows per parallel window: enough tasks to keep every thread fed, but not so few
 /// rows per task that dispatch dominates.
@@ -383,7 +377,7 @@ pub fn prove_product_triple(leaves: [Vec<F192>; 3], ps: &mut ProverState, shape:
                 messages[0][coefficient] + lambda * (messages[1][coefficient] + lambda * messages[2][coefficient])
             });
             // The kernel accumulates `q(0) + q(1)`, the wire carries `c1`. This is
-            // `Transmitter::add_round_poly(_, true)` bar its dropped `c0`, which the
+            // `ProverState::add_round_poly(_, true)` bar its dropped `c0`, which the
             // claim fixes and the prover therefore never forms.
             coeffs[0] = coeffs[0] + coeffs[1] + coeffs[2] + coeffs[3];
             ps.add_scalars(&coeffs);
@@ -421,79 +415,6 @@ pub fn prove_product_triple(leaves: [Vec<F192>; 3], ps: &mut ProverState, shape:
     }
 
     ProductTriple { roots, point, values }
-}
-
-/// Verify the RLC-batched radix-four proof.
-pub fn verify_product_triple(mu: usize, vs: &mut VerifierState, shape: RootShape) -> Result<ProductTriple, GkrError> {
-    let mut root = || vs.next_scalar().map_err(|_| GkrError::Truncated);
-    let roots = match shape {
-        RootShape::Distinct => [root()?, root()?, root()?],
-        // One root for both balancing trees, so their equality is structural: there is no
-        // unbalanced pair a prover could state, and nothing for the caller to check.
-        RootShape::FirstTwoShared => {
-            let shared = root()?;
-            [shared, shared, root()?]
-        }
-    };
-    let mut point = Vec::new();
-    let mut values = roots;
-
-    let mut layer = mu;
-    while layer > 0 {
-        let lambda = vs.sample();
-        let round_count = mu - layer;
-        let mut claim = poly_eval(&values, lambda);
-        if layer % 2 == 1 {
-            debug_assert_eq!(round_count, 0, "only the root-most layer may be binary");
-            let mut tails = [[F192::ZERO; 2]; 3];
-            for value in tails.iter_mut().flatten() {
-                *value = vs.next_scalar().map_err(|_| GkrError::Truncated)?;
-            }
-            let products = tails.map(|[left, right]| left * right);
-            if claim != poly_eval(&products, lambda) {
-                return Err(GkrError::LayerMismatch { layer });
-            }
-            let challenge = vs.sample();
-            for (value, [left, right]) in values.iter_mut().zip(tails) {
-                *value = interp(left, right, challenge);
-            }
-            point = vec![challenge];
-            layer -= 1;
-            continue;
-        }
-
-        let mut round_point = Vec::with_capacity(round_count);
-        for &equality_point in point.iter().take(round_count) {
-            let h = vs
-                .next_round_poly(5, claim, Some(equality_point))
-                .map_err(|_| GkrError::Truncated)?;
-            let challenge = vs.sample();
-            round_point.push(challenge);
-            claim = poly_eval(&h, challenge);
-        }
-        let mut tails = [[F192::ZERO; 4]; 3];
-        for value in tails.iter_mut().flatten() {
-            *value = vs.next_scalar().map_err(|_| GkrError::Truncated)?;
-        }
-        let products = tails.map(|tail| tail[0] * tail[1] * tail[2] * tail[3]);
-        if claim != poly_eval(&products, lambda) {
-            return Err(GkrError::LayerMismatch { layer });
-        }
-        let low_challenge = vs.sample();
-        let high_challenge = vs.sample();
-        for (value, tail) in values.iter_mut().zip(tails) {
-            *value = interp(
-                interp(tail[0], tail[1], low_challenge),
-                interp(tail[2], tail[3], low_challenge),
-                high_challenge,
-            );
-        }
-        point = vec![low_challenge, high_challenge];
-        point.extend_from_slice(&round_point);
-        layer -= 2;
-    }
-
-    Ok(ProductTriple { roots, point, values })
 }
 
 #[cfg(test)]
@@ -574,7 +495,7 @@ mod tests {
     }
 
     #[test]
-    fn radix_four_roundtrip_at_even_and_odd_depths() {
+    fn radix_four_claims_are_true_at_even_and_odd_depths() {
         for mu in 0..=10 {
             let leaves: [Vec<F192>; 3] = [0, 1, 2].map(|lane| {
                 (0..1usize << mu)
@@ -590,14 +511,6 @@ mod tests {
             for lane in 0..3 {
                 assert_eq!(proved.values[lane], mle_eval_e(&leaves[lane], &proved.point));
             }
-
-            let proof = ps.into_proof();
-            let mut vs = VerifierState::from_label(b"radix-four-gkr-test", &proof);
-            let verified = verify_product_triple(mu, &mut vs, RootShape::Distinct).expect("GKR verifies");
-            assert_eq!(verified.roots, proved.roots);
-            assert_eq!(verified.point, proved.point);
-            assert_eq!(verified.values, proved.values);
-            vs.finish().expect("proof stream is consumed");
         }
     }
 
@@ -639,12 +552,6 @@ mod tests {
             assert_eq!(dense_proved.point, proved.point);
             assert_eq!(dense_proved.values, proved.values);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);
-            let mut vs = VerifierState::from_label(b"sparse-radix-four-gkr-test", &proof);
-            let verified = verify_product_triple(mu, &mut vs, RootShape::Distinct).expect("GKR verifies");
-            assert_eq!(verified.roots, proved.roots);
-            assert_eq!(verified.point, proved.point);
-            assert_eq!(verified.values, proved.values);
-            vs.finish().expect("proof stream is consumed");
         }
     }
 }

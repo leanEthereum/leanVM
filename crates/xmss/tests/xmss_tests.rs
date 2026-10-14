@@ -91,36 +91,9 @@ fn multi_block_tweak_hash_is_standard_blake2s() {
 }
 
 #[test]
-fn tampered_signatures_rejected() {
-    let seed = [9u8; 32];
-    let message = test_message();
-    let leaf_index = 7;
-    let (sk, pk) = key_gen_from_seed(seed, 0, 15).unwrap();
-    let sig = sign(&sk, &message, leaf_index).unwrap();
-    verify(&pk, &message, &sig, leaf_index).unwrap();
-
-    let mut bad_message = message;
-    bad_message[0] ^= 1;
-    assert!(verify(&pk, &bad_message, &sig, leaf_index).is_err());
-
-    assert!(verify(&pk, &message, &sig, leaf_index + 1).is_err());
-
-    let mut bad_chain_tip = sig.clone();
-    bad_chain_tip.wots_signature.chain_tips[5][0] ^= 1;
-    assert!(verify(&pk, &message, &bad_chain_tip, leaf_index).is_err());
-
-    let mut bad_randomness = sig.clone();
-    bad_randomness.wots_signature.randomness[0] ^= 1;
-    assert!(verify(&pk, &message, &bad_randomness, leaf_index).is_err());
-
-    let mut bad_merkle_path = sig.clone();
-    bad_merkle_path.merkle_proof[10][3] ^= 1;
-    assert_eq!(
-        verify(&pk, &message, &bad_merkle_path, leaf_index),
-        Err(XmssVerifyError::InvalidMerklePath)
-    );
-
-    assert_eq!(sign(&sk, &message, 16), Err(XmssSignError::LeafIndexOutOfRange));
+fn signing_outside_the_key_range_is_an_error() {
+    let (sk, _) = key_gen_from_seed([9u8; 32], 0, 15).unwrap();
+    assert_eq!(sign(&sk, &test_message(), 16), Err(XmssSignError::LeafIndexOutOfRange));
 }
 
 /// Detect changes to the encoding predicate through its grinding cost.

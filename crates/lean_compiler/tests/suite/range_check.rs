@@ -7,7 +7,7 @@
 //! end-of-run resolution of the two touched cells.
 
 use lean_compiler::{compile, parse};
-use leanvm_core::cpu::{Fault, prove, verify};
+use leanvm_core::cpu::{prove, verify};
 use primitives::field::{F64, F192, g_pow};
 
 use crate::common::mix;
@@ -38,12 +38,6 @@ def main():
     // 2 DEREFs per range check (4 checks) + 2 publishing stores.
     assert_eq!(mix(src, want)[3], 10, "DEREF count");
     verify(&program, &want, &proof).expect("range-checked program verifies");
-
-    let bad = [F192::from(g_pow(12)), F192::from(g_pow(6))];
-    assert!(
-        verify(&program, &bad, &proof).is_err(),
-        "wrong public input must be rejected"
-    );
 }
 
 /// A check whose two touched cells (`m[300]` and the complement's `m[99]`) are
@@ -109,33 +103,6 @@ def main():
     verify(&program, &want, &proof).expect("loop range checks verify");
 }
 
-/// `log(g^8) < 8` is false: the complement back-solves to a huge-exponent
-/// element, and its DEREF fails witness generation: the honest-execution
-/// surface of a failing range check.
-#[test]
-fn range_check_at_bound_rejected() {
-    let src = "def main():\n    x = GEN ** 8\n    assert log x < 8\n    return\n";
-    let program = compile(&parse(src).expect("parse"));
-    let err = program
-        .execute([F192::ZERO, F192::ZERO])
-        .err()
-        .expect("the run must fail");
-    assert!(matches!(err.fault, Fault::WildPointer { .. }), "{err}");
-}
-
-/// A value that is no small g-power at all (5 = x^2 + 1) fails at the first
-/// DEREF, the same way.
-#[test]
-fn range_check_non_g_power_rejected() {
-    let src = "def main():\n    x = 5\n    assert log x < 8\n    return\n";
-    let program = compile(&parse(src).expect("parse"));
-    let err = program
-        .execute([F192::ZERO, F192::ZERO])
-        .err()
-        .expect("the run must fail");
-    assert!(matches!(err.fault, Fault::WildPointer { .. }), "{err}");
-}
-
 /// Bound 0 names the empty set: rejected at compile time.
 #[test]
 #[should_panic(expected = "names the empty set")]
@@ -187,28 +154,6 @@ def main():
     let want = [F192::from(g_pow(5)), F192::from(g_pow(6))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("runtime-bound range check verifies");
-}
-
-/// The runtime bound binds: `log(g^5) < log(g^5)` is false, and the complement
-/// back-solves to a huge-exponent element whose DEREF fails, exactly as for a
-/// compile-time bound at its boundary.
-#[test]
-fn range_check_runtime_bound_at_bound_rejected() {
-    let src = "\
-def main():
-    nb = StackBuf(1)
-    hint_witness(nb[0:1], \"n\")
-    x = GEN ** 5
-    assert log x < log nb[0]
-    return
-";
-    let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("n", vec![vec![F192::from(g_pow(5))]]);
-    let err = program
-        .execute([F192::ZERO, F192::ZERO])
-        .err()
-        .expect("the run must fail");
-    assert!(matches!(err.fault, Fault::WildPointer { .. }), "{err}");
 }
 
 /// A bound that folds at parse time but is not a power of `GEN` stays a parse

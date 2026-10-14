@@ -25,6 +25,7 @@ rec_aggregation = { path = "crates/rec_aggregation" }
 xmss = { path = "crates/xmss" }
 sphincs = { path = "crates/sphincs" }
 parallel = { path = "crates/parallel" }
+verifier = { path = "crates/verifier" }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"

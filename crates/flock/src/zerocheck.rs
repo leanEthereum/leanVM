@@ -17,12 +17,8 @@
 //! C rides the sumcheck rather than being split off at round 1, which is what
 //! puts all three claims at ONE point and leaves lincheck a single family of
 //! bit slices for ring switching (doc/leanvm Annex C).
-//!
-//! Both `prove` and `verify` are wired end-to-end. The prove→verify roundtrip
-//! is tested on honest witnesses; verify also rejects byte-mutated proofs and
-//! shape-corrupted ones.
 
-use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use fiat_shamir::transcript::ProverState;
 use primitives::field::{F8, F192};
 
 use pcs::ntt::{AdditiveNttGf8, InvNttTableByteSingleGf8};
@@ -77,7 +73,7 @@ fn equality_tail(m: usize, mut sample_vec: impl FnMut(usize) -> Vec<F192>) -> Ve
 pub use pcs::pack::PaddingSpec;
 
 // ---------------------------------------------------------------------------
-// Public types: claim, proof, error.
+// The claim.
 // ---------------------------------------------------------------------------
 
 /// Evaluation claims on the multilinear extensions of a, b, c, all three at the
@@ -101,17 +97,8 @@ pub struct ZerocheckClaim {
     pub c_eval: F192,
 }
 
-/// Reasons the verifier may reject a proof.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum VerifyError {
-    /// `log_n` doesn't satisfy `log_n >= K_SKIP`.
-    LogNTooSmall { log_n: usize, k_skip: usize },
-    /// The proof stream ran out while reading a message.
-    Transcript(fiat_shamir::transcript::Error),
-}
-
 // ---------------------------------------------------------------------------
-// API: prove / verify.
+// The prover.
 // ---------------------------------------------------------------------------
 
 /// Send one multilinear round and advance the running claim, the prover mirror
@@ -120,7 +107,7 @@ pub enum VerifyError {
 /// `r_eq = 1` it leaves `G(0)` free, so the caller passes it: only the table
 /// rounds can meet that, the earlier ones running on fixed challenges.
 fn send_round(
-    ps: &mut impl Transmitter,
+    ps: &mut ProverState,
     claim: F192,
     r_eq: F192,
     g0: Option<F192>,
@@ -351,101 +338,6 @@ pub fn prove_packed_padded(
     }
 }
 
-/// Replay a zerocheck proof for an instance over `{0,1}^log_n`.
-///
-/// Walks the transcript in lockstep with the prover, samples the same challenges,
-/// and carries the running claim through the rounds. It is a REDUCTION, not a
-/// check: `ĉ` is whatever the terminal identity leaves, so no round message can
-/// fail here. The only errors are structural (shape, truncated stream). What
-/// makes the claims meaningful is lincheck, which pins all three against the
-/// committed witness: never call this alone and treat `Ok` as acceptance.
-///
-/// On accept: returns the [`ZerocheckClaim`] for lincheck and the PCS.
-/// On reject: returns a [`VerifyError`] indicating which check failed.
-pub fn verify(log_n: usize, vs: &mut VerifierState<'_>) -> Result<ZerocheckClaim, VerifyError> {
-    let m = log_n;
-    let k_skip = K_SKIP;
-
-    if m < k_skip + N_INNER {
-        return Err(VerifyError::LogNTooSmall { log_n: m, k_skip });
-    }
-    let n_mlv = m - k_skip;
-    let ell = 1usize << k_skip;
-
-    // ---- Re-derive the equality tail (in lockstep with prove_packed) ----
-    // The verifier samples tower challenges directly, matching the prover.
-    let r_rest = equality_tail(m, |n| vs.sample_vec(n));
-
-    // ---- Read + bind the round-1 message off the stream, sample z ----
-    let round1: Vec<F192> = vs.next_scalars(ell).map_err(VerifyError::Transcript)?;
-    let z = vs.sample();
-
-    // ---- Reconstruct the initial running claim ----
-    //
-    // `P = P^{AB} + P^C` has degree < 2·ell in λ. The prover sent only ell
-    // evaluations on Λ: not enough on its own. The verifier uses the
-    // **zerocheck assumption** `P(λ) = 0` for `λ ∈ S`: together with the ell
-    // Λ-evaluations that is 2·ell, enough to interpolate P at z.
-    //
-    // If the prover's witness is dishonest the S-zero assumption fails and the
-    // reconstructed claim is wrong; the chain then ends at a `ĉ` that is not
-    // the true evaluation, and lincheck's α-batched identity rejects.
-    let mut c_running = interpolate_at_z_combined(&round1, k_skip, z);
-
-    // ---- Multilinear sumcheck chain ----
-    //
-    // The propagated running claim is the *inner* polynomial value G(ρ),
-    // not the full per-round polynomial P(ρ) = eq(r_eq, ρ) · G(ρ). The eq
-    // factor for the just-bound variable is absorbed by the next round's
-    // consistency check via the identity
-    //   G_{r-1}(ρ_{r-1}) = (1 + r_eq_r) · G_r(0) + r_eq_r · G_r(1).
-    //
-    // Round r (0-indexed i = r − 2) binds the i-th rest variable with eq weight
-    // r_rest[i]. The prover sends `(G(1), G(∞))` (Convention A: no
-    // factor). Verifier:
-    //   1. reconstruct G(0) from consistency `c_running = (1+r_eq)·G(0) + r_eq·G(1)`,
-    //   2. observe message, sample ρ_i,
-    //   3. update `c_running ← G(ρ_i)`,
-    //      where `G(X) = G(0)·(1+X) + G(1)·X + G(∞)·X·(X+1)` (char-2 quadratic
-    //      interpolation through G(0), G(1), G(∞)).
-    let mut mlv_chis: Vec<F192> = Vec::with_capacity(n_mlv);
-    for i in 0..n_mlv {
-        let r_eq = r_rest[i];
-        let g = vs
-            .next_round_poly(3, c_running, Some(r_eq))
-            .map_err(VerifyError::Transcript)?;
-        let chi = vs.sample();
-        mlv_chis.push(chi);
-        c_running = primitives::multilinear::poly_eval(&g, chi);
-    }
-
-    // ---- Terminal identity ----
-    //
-    // After all variables are bound, the inner running claim is the polynomial
-    // without the eq weighting:
-    //   G_final(ρ) = â(z, ρ)·b̂(z, ρ) + ĉ(z, ρ).
-    // (The eq factors were absorbed round-by-round into the consistency checks,
-    // never accumulating into the running claim.)
-    //
-    // Read + bind the final â, b̂ claims off the stream: binding must land
-    // before the next challenge (lincheck's α) is drawn, so the α-batched
-    // reduction of the three claims is sound. `ĉ` is not transmitted: it is
-    // what the identity leaves, so there is nothing to check here. A prover who
-    // lies about anything upstream just shifts the lie into `ĉ`, and lincheck,
-    // which pins all three against the committed witness, rejects it.
-    let final_a_eval = vs.next_scalar().map_err(VerifyError::Transcript)?;
-    let final_b_eval = vs.next_scalar().map_err(VerifyError::Transcript)?;
-    let final_c_eval = c_running + final_a_eval * final_b_eval;
-
-    Ok(ZerocheckClaim {
-        z,
-        mlv_challenges: mlv_chis,
-        a_eval: final_a_eval,
-        b_eval: final_b_eval,
-        c_eval: final_c_eval,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -521,32 +413,8 @@ mod tests {
         }
     }
 
-    /// **Prove→verify roundtrip**: an honest proof verifies cleanly, and the
-    /// claim returned by `verify` is byte-for-byte equal to the claim returned
-    /// by `prove`.
-    #[test]
-    fn prove_verify_roundtrip_honest() {
-        for &m in &[13usize, 14, 15, 16] {
-            let mut rng = Rng::new(1000 + m as u64);
-            let a = rng.bits(1 << m);
-            let b = rng.bits(1 << m);
-            let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
-
-            let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-            let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
-            let claim_p = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
-
-            let proof_t = ch_prove.into_proof();
-            let mut ch_verify = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-            let result = verify(m, &mut ch_verify);
-            let claim_v = result.unwrap_or_else(|e| panic!("verify rejected at m={m}: {e:?}"));
-
-            assert_eq!(claim_p, claim_v, "claim mismatch at m={m}");
-        }
-    }
-
     /// **The reduction is faithful.** On an honest witness the three claims
-    /// the verifier ends up with are the true quirky evaluations of a, b and c
+    /// the prover is left with are the true quirky evaluations of a, b and c
     /// at the sumcheck point: including `ĉ`, which nobody transmits and both
     /// sides read off the terminal identity.
     #[test]
@@ -560,11 +428,8 @@ mod tests {
             let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
 
             let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-            let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
-            let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
-            let proof_t = ch_prove.into_proof();
-            let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-            let claim = verify(m, &mut ch).expect("honest proof");
+            let mut ps = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
+            let claim = prove_packed(&a_p, &b_p, &c_p, m, &mut ps);
 
             let chi = &claim.mlv_challenges;
             assert_eq!(claim.a_eval, quirky_eval(&a, claim.z, chi), "â at m={m}");
@@ -573,15 +438,14 @@ mod tests {
         }
     }
 
-    /// **AUDIT: a false statement leaves a wrong claim.** The zerocheck no
-    /// longer rejects on its own: `ĉ` is whatever the terminal identity
-    /// leaves, so a witness violating `a·b ⊕ c = 0` is not caught here but by
-    /// lincheck, which pins all three claims against the committed witness.
-    /// What must hold at this layer is that such a witness cannot leave all
-    /// three claims true. Same for a tampered proof word: it moves the
-    /// derived claims off the true evaluations.
+    /// **A false statement leaves a wrong claim.** The zerocheck does not
+    /// reject on its own: `ĉ` is whatever the terminal identity leaves, so a
+    /// witness violating `a·b ⊕ c = 0` is not caught here but by lincheck,
+    /// which pins all three claims against the committed witness. What must
+    /// hold at this layer is that such a witness cannot leave all three
+    /// claims true.
     #[test]
-    fn false_statement_or_tamper_leaves_a_wrong_claim() {
+    fn false_statement_leaves_a_wrong_claim() {
         for &m in &[13usize, 14, 15] {
             for seed in 0..20u64 {
                 let mut rng = Rng::new(0xBADC0DE ^ seed ^ ((m as u64) << 32));
@@ -595,11 +459,8 @@ mod tests {
                     c[idx] = !c[idx];
                 }
                 let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-                let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
-                let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
-                let proof_t = ch_prove.into_proof();
-                let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-                let claim = verify(m, &mut ch).expect("shape is still valid");
+                let mut ps = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
+                let claim = prove_packed(&a_p, &b_p, &c_p, m, &mut ps);
                 let chi = &claim.mlv_challenges;
                 let all_true = claim.a_eval == quirky_eval(&a, claim.z, chi)
                     && claim.b_eval == quirky_eval(&b, claim.z, chi)
@@ -607,144 +468,6 @@ mod tests {
                 assert!(!all_true, "false statement (m={m}, seed={seed}) left every claim true");
             }
         }
-
-        // Every region of an honest proof: one flipped word must move a claim.
-        let m = 14;
-        let mut rng = Rng::new(5050);
-        let a = rng.bits(1 << m);
-        let b = rng.bits(1 << m);
-        let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
-        let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-        let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
-        let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
-        let proof_t = ch_prove.into_proof();
-
-        let ell = 1usize << K_SKIP;
-        let n_mlv = m - K_SKIP;
-        let mutations: [(&str, usize); 6] = [
-            ("round1[0]", 0),
-            ("round1[5]", 5),
-            ("multilinear_rounds[0].0", ell),
-            ("multilinear_rounds[mid].1", ell + 2 * (n_mlv / 2) + 1),
-            ("final_a_eval", ell + 2 * n_mlv),
-            ("final_b_eval", ell + 2 * n_mlv + 1),
-        ];
-        for (label, word) in mutations {
-            let mut bad = proof_t.clone();
-            bad.stream[word].c0 ^= 1;
-            let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
-            let claim = verify(m, &mut ch).expect("shape is still valid");
-            let chi = &claim.mlv_challenges;
-            let all_true = claim.a_eval == quirky_eval(&a, claim.z, chi)
-                && claim.b_eval == quirky_eval(&b, claim.z, chi)
-                && claim.c_eval == quirky_eval(&c, claim.z, chi);
-            assert!(!all_true, "tampered proof ({label}) left every claim true");
-        }
-    }
-
-    /// Shape rejections: a truncated stream and a too-small instance.
-    #[test]
-    fn verify_rejects_shape_errors() {
-        let m = 14;
-        let mut rng = Rng::new(606);
-        let a = rng.bits(1 << m);
-        let b = rng.bits(1 << m);
-        let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
-        let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-        let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
-        let _ = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
-        let proof_t = ch_prove.into_proof();
-
-        // Truncated stream: a clean Transcript error, not a panic.
-        let mut bad = proof_t.clone();
-        bad.stream.truncate(bad.stream.len() - 3);
-        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
-        assert!(matches!(verify(m, &mut ch), Err(VerifyError::Transcript(_))));
-
-        // log_n too small.
-        let mut ch = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-        assert!(matches!(
-            verify(K_SKIP + 6, &mut ch),
-            Err(VerifyError::LogNTooSmall { .. })
-        ));
-    }
-
-    /// AUDIT (Fiat-Shamir binding of the final â, b̂ claims). Regression test
-    /// for the gap where `final_a_eval`/`final_b_eval` were not observed into
-    /// the transcript.
-    ///
-    /// Downstream, lincheck reduces the three claims via a *single* random-
-    /// linear-combination check in powers of α. That batching is only sound if
-    /// α is sampled *after* the claims are bound: otherwise a prover that
-    /// already knows α can pick them to satisfy the one batched equation while
-    /// violating the individual ties.
-    ///
-    /// The tamper here is *product-preserving*, `(â, b̂) → (â·t, b̂·t⁻¹)`, so it
-    /// leaves `â·b̂` and therefore the derived `ĉ` untouched: the whole triple
-    /// the reduction carries is unchanged, and nothing downstream could tell
-    /// the two runs apart except the transcript itself. The defense is that
-    /// both claims are observed last, so the next challenge (the slot lincheck
-    /// draws α from) must diverge. This assertion FAILS before the observe was
-    /// added (identical post-state) and passes now.
-    #[test]
-    fn audit_final_ab_claims_bound_to_transcript() {
-        let m = 14;
-        let mut rng = Rng::new(0xF1A7_5A11);
-        let a = rng.bits(1 << m);
-        let b = rng.bits(1 << m);
-        let c: Vec<bool> = a.iter().zip(&b).map(|(x, y)| *x & *y).collect();
-        let (a_p, b_p, c_p) = pack_abc(&a, &b, &c);
-
-        let mut ch_prove = fiat_shamir::transcript::ProverState::from_label(b"flock-test-v0");
-        let claim_p = prove_packed(&a_p, &b_p, &c_p, m, &mut ch_prove);
-        let proof_t = ch_prove.into_proof();
-
-        // Honest verify, then capture the next challenge the transcript feeds
-        // downstream: this is exactly the slot lincheck samples α from.
-        let mut ch_honest = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &proof_t);
-        assert!(verify(m, &mut ch_honest).is_ok(), "honest verify rejected");
-        let alpha_honest = ch_honest.sample();
-
-        // Product-preserving tamper: â' = â·t, b̂' = b̂·t⁻¹ ⇒ â'·b̂' = â·b̂, so the
-        // derived ĉ = claim + â·b̂ is unchanged too.
-        // The stream now carries tower (F192) values, so tamper in F192.
-        let t = F192::new(0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210, 0x55aa_aa55_0123_4567);
-        assert!(t != F192::ZERO && t != F192::ONE, "t must be nontrivial");
-        // The finals are the LAST two stream words of this standalone proof.
-        let n = proof_t.stream.len();
-        let mut bad = proof_t.clone();
-        bad.stream[n - 2] *= t;
-        bad.stream[n - 1] *= t.inv();
-        assert_ne!(bad.stream[n - 2], proof_t.stream[n - 2], "tamper must change â");
-        assert_ne!(bad.stream[n - 1], proof_t.stream[n - 1], "tamper must change b̂");
-        assert_eq!(
-            bad.stream[n - 2] * bad.stream[n - 1],
-            claim_p.a_eval * claim_p.b_eval,
-            "tamper must preserve the product",
-        );
-
-        // Replay the tampered proof to move the transcript to the same slot. Its
-        // claims are as consistent as the honest ones (same product, same ĉ),
-        // so nothing local distinguishes them.
-        let mut ch_tampered = fiat_shamir::transcript::VerifierState::from_label(b"flock-test-v0", &bad);
-        let tampered = verify(m, &mut ch_tampered).expect("shape is still valid");
-        assert_eq!(
-            tampered.a_eval * tampered.b_eval,
-            claim_p.a_eval * claim_p.b_eval,
-            "the tamper must preserve the product the reduction carries",
-        );
-        assert_eq!(tampered.c_eval, claim_p.c_eval, "and therefore the derived ĉ");
-        let alpha_tampered = ch_tampered.sample();
-
-        // The fix: observing â, b̂ makes the downstream challenge depend on them,
-        // so lincheck's α (and everything after) diverges and rejects the
-        // tampered pair. Before the fix these challenges were equal.
-        assert_ne!(
-            alpha_honest, alpha_tampered,
-            "final â/b̂ claims are NOT bound into the transcript: a product-preserving \
-             tamper leaves the downstream challenge unchanged, breaking lincheck's \
-             α-batched reduction of (v_a, v_b)",
-        );
     }
 
     /// Determinism: same witness + same transcript seed → same proof.
