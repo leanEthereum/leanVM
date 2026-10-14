@@ -2077,9 +2077,8 @@ fn push_sphincs_hints(
 /// IMPORTANT:
 /// - `aggregate` should not be called more than once at a time in parallel per process.
 /// - Raw signatures are assumed valid (otherwise `aggregate` will panic).
-/// - Children are assumed verified by the caller ([`EthereumProof::verify`]): `aggregate` only reads them. A child
-///   that reads but does not verify makes the guest's run fail, an [`AggregationError::ProofError`] that does not
-///   say which child and comes only once the whole witness is built. Verify each child received from an untrusted party first.
+/// - Children are assumed verified by the caller ([`EthereumProof::verify`]): `aggregate`, any invalid child
+/// proof ends up returning the error [`AggregationError::ProofError`] (TODO return the index of invalid proof).
 ///
 /// XMSS Performance: it is optimized for a small set of different (leaf index, message), and many XMSS
 /// sharing each such pair.
