@@ -851,20 +851,6 @@ def sumcheck_round4(state_0, state_1, msg_cursor, claim):
     return fs[0], fs[1], msg_cursor, c0 + y * (c1 + y * (c2 + y * c3)), y
 
 
-def sumcheck_round5(state_0, state_1, msg_cursor, claim, prev_challenge):
-    # One GKR round. The prover sends every coefficient but c0, which the round's
-    # pulled-out eq factor leaves fixed: `c0 + prev_challenge * (c1 + ... + c4) ==
-    # claim`.
-    fs = [state_0, state_1]
-    fs, c1, msg_cursor = fs_next(fs, msg_cursor)
-    fs, c2, msg_cursor = fs_next(fs, msg_cursor)
-    fs, c3, msg_cursor = fs_next(fs, msg_cursor)
-    fs, c4, msg_cursor = fs_next(fs, msg_cursor)
-    fs, y = squeeze(fs)
-    c0 = claim + prev_challenge * (c1 + c2 + c3 + c4)
-    return fs[0], fs[1], msg_cursor, c0 + y * (c1 + y * (c2 + y * (c3 + y * c4))), y
-
-
 def batch_sumcheck(fs0, fs1, msgs, running, point, n_rounds: Const):
     # The rounds of a claim-batching sumcheck: two hinted values per round
     # (g(1) and g(inf)), the split fixing the third against the running claim, and
@@ -1383,24 +1369,37 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
         point_row = layer[GEN ** LAYER_ROW]
         round_pos = layer[GEN ** LAYER_POS]
         nextrow = point_row * GEN ** MU_CAP
-        head = rounds * round_pos ** ROUND_SLOTS
-        head[GEN ** ROUND_FS0] = layer_fs[0]
-        head[GEN ** ROUND_FS1] = layer_fs[1]
-        head[GEN ** ROUND_CURSOR] = layer[GEN ** LAYER_CURSOR]
-        head[GEN ** ROUND_CLAIM] = layer[GEN ** LAYER_PUSH] + lam * (layer[GEN ** LAYER_PULL] + lam * layer[GEN ** LAYER_COUNT])
+        # Round i's record keeps field k at rounds * g^(k GKR_ROUNDS_CAP + i), so a
+        # round's record is one product away from the counter.
+        head = rounds * round_pos
+        head[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = layer_fs[0]
+        head[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = layer_fs[1]
+        head[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_CURSOR]
+        head[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_PUSH] + lam * (layer[GEN ** LAYER_PULL] + lam * layer[GEN ** LAYER_COUNT])
         for x_round in mul_range(1, x_layer):
-            rd = rounds * (round_pos * x_round) ** ROUND_SLOTS
-            nfs0, nfs1, ncur, nclaim, rk = sumcheck_round5(rd[GEN ** ROUND_FS0], rd[GEN ** ROUND_FS1], rd[GEN ** ROUND_CURSOR], rd[GEN ** ROUND_CLAIM], point_row[x_round])
-            nextrow[x_round * GEN ** 2] = rk
-            rd_next = rd * GEN ** ROUND_SLOTS
-            rd_next[GEN ** ROUND_FS0] = nfs0
-            rd_next[GEN ** ROUND_FS1] = nfs1
-            rd_next[GEN ** ROUND_CURSOR] = ncur
-            rd_next[GEN ** ROUND_CLAIM] = nclaim
-        tail = rounds * (round_pos * x_layer) ** ROUND_SLOTS
-        tail_fs = [tail[GEN ** ROUND_FS0], tail[GEN ** ROUND_FS1]]
-        tcur = tail[GEN ** ROUND_CURSOR]
-        tclaim = tail[GEN ** ROUND_CLAIM]
+            # One GKR round. The prover sends every coefficient but c0, which the
+            # round's pulled-out eq factor leaves fixed: c0 + r (c1 + ... + c4) == claim,
+            # r being the previous point's coordinate.
+            rd = head * x_round
+            pt = point_row * x_round
+            round_fs = [rd[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], rd[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+            cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
+            round_fs, c1, cur = fs_next(round_fs, cur)
+            round_fs, c2, cur = fs_next(round_fs, cur)
+            round_fs, c3, cur = fs_next(round_fs, cur)
+            round_fs, c4, cur = fs_next(round_fs, cur)
+            round_fs, rk = squeeze(round_fs)
+            c0 = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] + pt[1] * (c1 + c2 + c3 + c4)
+            pt[GEN ** (MU_CAP + 2)] = rk  # nextrow[x_round * g^2]
+            rd_next = rd * GEN
+            rd_next[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = round_fs[0]
+            rd_next[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = round_fs[1]
+            rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
+            rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
+        tail = head * x_layer
+        tail_fs = [tail[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], tail[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+        tcur = tail[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
+        tclaim = tail[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
         evals = StackBuf(4 * N_GKR_SIDES)  # the four children of each side, in side order
         for i in unroll(0, 4 * N_GKR_SIDES):
             tail_fs, ev, tcur = fs_next(tail_fs, tcur)
