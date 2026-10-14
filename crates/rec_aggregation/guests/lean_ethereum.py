@@ -2097,6 +2097,32 @@ def keccak_shift_eq(e, u, v, r: Const):
 
 
 @inline
+def fold_node(src, dst, a_t, p: Const, b: Const, t: Const):
+    n = 2 ** (KECCAK_Z_BITS - t)
+    for k in unroll(0, n // 2):
+        x0 = src[p * n + (2 * k + (n - 1) * b) % n]
+        x1 = src[p * n + (2 * k + 1 + (n - 1) * b) % n]
+        dst[(p + 2 ** t * b) * (n // 2) + k] = x0 + a_t * (x0 + x1)
+    return
+
+
+@inline
+def fold_shifts(src, dst, a_t, t: Const):
+    # One level of sum_w eq(a, w) V[w - r] for every used r at once, LSB first: node
+    # p of depth t is the vector for the residue p of r mod 2^t, 2^(6 - t) cells at
+    # p 2^(6 - t). Folding bit t splits it by bit t of r, b: V[w - r] pairs the
+    # parent's cells 2k - b and 2k + 1 - b.
+    for p in unroll(0, 2 ** t):
+        for b in unroll(0, 2):
+            if const(t + 1 == KECCAK_Z_BITS):
+                if KECCAK_SHIFT_USED[p + 2 ** t * b] == 1:
+                    fold_node(src, dst, a_t, p, b, t)
+            else:
+                fold_node(src, dst, a_t, p, b, t)
+    return
+
+
+@inline
 def keccak_form(lanes, shifts, f_lanes):
     # <L^T(E), f> for theta, rho, pi's transpose L^T, on weights that factor as lane
     # times slice: E = lanes (x) eZ and f = f_lanes (x) fZ, the slices entering only
@@ -2401,14 +2427,17 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
     fs0, fs1, cursor = keccak_read_slices(fs0, fs1, cursor, slices)
     last_point = last[GEN ** KC_POINT]
     in_lanes = keccak_slot_lanes(in_slot, last_point * pack_g, 0, KECCAK_SEGMENTS)
-    last_slices = last[GEN ** KC_SLICES]
-    shifts = StackBuf(64)
-    for r in unroll(0, 64):
-        if KECCAK_SHIFT_USED[r] == 1:
-            acc = 0
-            for z in unroll(0, BASE_FIELD_BITS):
-                acc += slices[GEN ** z] * last_slices[GEN ** ((z + r) % 64)]
-            shifts[r] = acc
+    # shifts[r] = sum_z slices[z] eq(a, z + r), a the last layer's slice point:
+    # folded a bit at a time for every r at once.
+    last_local = last[GEN ** KC_LOCAL]
+    level = StackBuf(64)
+    for z in unroll(0, BASE_FIELD_BITS):
+        level[z] = slices[GEN ** z]
+    for t in unroll(0, KECCAK_Z_BITS):
+        folded = StackBuf(64)
+        fold_shifts(level, folded, last_local[GEN ** t], t)
+        level = folded
+    shifts = level
     last_lanes = last[GEN ** KC_LANES]
     assert mu_at_low * keccak_form(last_lanes, shifts, in_lanes) == in_value
     in_pack = in_point * GEN ** KECCAK_PACK_LOG
