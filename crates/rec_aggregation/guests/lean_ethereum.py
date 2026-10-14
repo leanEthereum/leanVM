@@ -895,12 +895,13 @@ def verify_merkle_path(leaf_0, leaf_1, direction_bits, depth: Const):
     # child that must equal the running node, binding each link of the path.
     path = StackBuf(LIG_PATH_CAP)
     hint_witness(path[0:4 * depth], "merkle_children")
+    # The selected pair starts at path_ptr * g^(2*bit) = path_ptr + bit * path_step.
     path_ptr = addr(path)
+    path_step = path_ptr * (1 + GEN ** 2)
     node_0 = leaf_0
     node_1 = leaf_1
     for level in unroll(0, depth):
-        dir_bit = direction_bits[GEN ** level]
-        selected = path_ptr * (1 + dir_bit * (1 + GEN ** 2))
+        selected = path_ptr + direction_bits[GEN ** level] * path_step
         selected[GEN ** (4 * level)] = node_0
         selected[GEN ** (4 * level + 1)] = node_1
         parent = StackBuf(SHA3_STATE)
