@@ -26,7 +26,7 @@ The root `Cargo.toml` is workspace-only: the libraries are in `crates/`, the CLI
 | `parallel`        | thread pool (below)                                     |
 | `primitives`      | field kernels (NEON/AVX), bit transposes, multilinear helpers, streaming stores |
 | `bench`           | benchmark harness for the CLI and the `benches/` targets: `Plan` (warmup, repeats, cooldown), `Timing`, the `--tracing` trace tree, Bencher Metric Format output (`Metric`, `bencher_json`), the global allocator (`Jemalloc`, below); never linked by the prover |
-| `fiat_shamir`     | VM-native `FiatShamirState` + prover/verifier transcript                |
+| `fiat_shamir`     | `FiatShamirState`, a duplex sponge over the VM's `SHA3` step, + prover/verifier transcript |
 | `pcs`             | additive NTT, Merkle, ring switch, stacked WHIR                    |
 | `keccak_gkr`      | batched Keccak-f by GKR over the rounds: the VM's `SHA3` argument |
 | `leanvm_core`     | arithmetization: tables, bus, constraints, `cpu::prove`/`verify`       |

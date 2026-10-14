@@ -30,6 +30,11 @@ impl FnLower<'_> {
     /// `out` receives it (a heap run through the stack), a 2-cell `out` just the
     /// digest (write-once: a pre-written `out` asserts it). `state` may likewise
     /// be a heap run, bridged into the stack.
+    ///
+    /// `cap=` is a duplex step in overwrite mode instead: the eight message cells
+    /// ARE the rate, and the capacity is `cap`'s, the five cells a previous output
+    /// ends with (`cap` that 13-cell output or those five cells). No padding, no
+    /// XOR: the instruction reads the message cells and `cap` as they are.
     fn lower_sha3(&mut self, args: &[Expr]) {
         let first_kw = args
             .iter()
@@ -38,13 +43,64 @@ impl FnLower<'_> {
         if first_kw != 3 {
             self.fail("sha3 takes three positional arguments: (a, b, out)")
         };
-        let kwargs = self.sha3_kwargs(&args[first_kw..], &["tail", "state", "len", "final"]);
+        let kwargs = self.sha3_kwargs(&args[first_kw..], &["tail", "state", "len", "final", "cap"]);
         let const_kw = |this: &Self, name: &str| -> Option<u128> {
             kwargs.get(name).map(|e| {
                 this.try_const_int(e)
                     .unwrap_or_else(|| this.fail(format!("sha3 `{name}` must be a compile-time integer, got `{e:?}`")))
             })
         };
+        if let Some(cap) = kwargs.get("cap") {
+            if ["state", "len", "final"].iter().any(|k| kwargs.contains_key(k)) {
+                self.fail("sha3 cap= is an overwrite duplex step: it takes no state=, len= or final=")
+            }
+            let cap = match self.try_cell_run(cap) {
+                Ok(CellRun::Stack { base, len }) if len == STATE_CELLS => base + 8,
+                Ok(CellRun::Stack { base, len: 5 }) => base,
+                Ok(CellRun::Heap { ptr, lo, len }) if len == STATE_CELLS || len == 5 => {
+                    let from = lo + len - 5;
+                    let run = self.alloc_stack(5);
+                    for k in 0..5 {
+                        self.deref(ptr, from + k, run + k, DerefMode::Cell);
+                    }
+                    run
+                }
+                _ => self.fail(format!(
+                    "sha3 cap= must be a previous {STATE_CELLS}-cell output or its last five cells"
+                )),
+            };
+            let [a0, a1] = self.sha3_words::<2>(&args[0]);
+            let [b0, b1] = self.sha3_words::<2>(&args[1]);
+            let m = [a0, a1, b0, b1].map(|c| self.sponge_cell(c));
+            let tail = match kwargs.get("tail") {
+                Some(tail) => match self.try_cell_run(tail) {
+                    Ok(CellRun::Stack { base, len: 4 }) => base,
+                    _ => {
+                        let cells = self.sha3_words::<4>(tail);
+                        let t = self.alloc_stack(4);
+                        for (j, c) in cells.into_iter().enumerate() {
+                            let dst = t + j as u32;
+                            match c {
+                                SpongeCell::Zero => self.set_const(dst, F192::ZERO),
+                                SpongeCell::Const(v) => self.set_const(dst, v),
+                                SpongeCell::Cell(o) => self.copy(o, dst),
+                            }
+                        }
+                        t
+                    }
+                },
+                None => self.sha3_pad_run() + 1,
+            };
+            let out = self.sha3_out(&args[2]);
+            self.emit(LOp::Sha3 {
+                m,
+                tail,
+                cap,
+                c: out.state,
+            });
+            self.sha3_finish(out);
+            return;
+        }
         let is_final = const_kw(self, "final").unwrap_or(1) != 0;
         let len = const_kw(self, "len");
         // The message bytes this block carries, if it is the final one.

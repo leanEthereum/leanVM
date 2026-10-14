@@ -437,11 +437,15 @@ sha3(block0[0:2], block0[2:4], st, tail=block0[4:8], final=0)
 sha3([9, 10], [0, 0], out, state=st, len=32)
 
 sha3_cells(run, out)                # the hash of the whole run, however many blocks
+
+# A duplex step in overwrite mode (Fiat-Shamir): the rate is the eight message cells as
+# given, the capacity the last five cells of the previous output `st`.
+sha3(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=st)
 ```
 
 The hash is SHA3-256 in the **cell encoding** (`primitives::hash::hash`): plain SHA3-256 of messages up to 128 bytes, and past that, SHA3-256 of the message with the fixed eight bytes `00 00 00 00 00 00 00 80` after every 128. That makes one block eight whole 16-byte cells where SHA3's 136-byte rate would split a cell, and those gap bytes land in lane 16, the one lane the instruction supplies itself.
 
-The three positional arguments form a **statement**: one `SHA3` instruction absorbs the block `a ‖ b ‖ tail` (two, two and four cells; `tail` omitted is zero) and writes the 13-cell sponge state into `out`, whose first two cells are the digest. With no keywords it computes the hash of exactly `a ‖ b`, 64 bytes (128 with `tail`), the form every Fiat-Shamir step and Merkle node uses. A 2-cell `out` receives just the digest, at two copies.
+The three positional arguments form a **statement**: one `SHA3` instruction absorbs the block `a ‖ b ‖ tail` (two, two and four cells; `tail` omitted is zero) and writes the 13-cell sponge state into `out`, whose first two cells are the digest. With no keywords it computes the hash of exactly `a ‖ b`, 64 bytes (128 with `tail`), the form every Merkle node uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding and no XOR, the instruction reading the message cells and the capacity as they are. A 2-cell `out` receives just the digest, at two copies.
 
 The optional keywords, all compile-time except `state`:
 

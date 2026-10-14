@@ -335,11 +335,15 @@ class Proof:
 
 
 # Fiat--Shamir ---------------------------------------------------------------
+# A duplex sponge over the VM's SHA3 step, in overwrite mode. The rate is lanes 0..16 and the
+# capacity lanes 16..25. Up to four absorbed scalars wait; a permutation writes scalar i over lanes
+# 4i..4i+4 (three limbs and a tag), zeroes the rest of the rate and keeps the capacity. A fifth
+# scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
 
 DS_OBSERVE = 1
-DS_SQUEEZE = 2
-DS_POW_BASE = 3
 DS_POW_NONCE = 4
+RATE_SCALARS = 4
+LANE_MASK = 2**64 - 1
 
 
 def compress(left: Sequence[K | int], right: Sequence[K | int]) -> tuple[int, int, int, int]:
@@ -347,18 +351,45 @@ def compress(left: Sequence[K | int], right: Sequence[K | int]) -> tuple[int, in
     return unpack("<4Q", sha3_hash(b"".join(int(x).to_bytes(8, "little") for x in (*left, *right))).value)
 
 
+def keccak_step(lanes: Sequence[int]) -> list[int]:
+    """The VM's SHA3 step: XOR the padding's last bit into lane 16, then Keccak-f[1600]."""
+    a = list(lanes)
+    a[16] ^= KECCAK_END_BIT
+    rot = lambda x, n: ((x << n) | (x >> (64 - n))) & LANE_MASK if n else x  # noqa: E731
+    for rc in KECCAK_RC:
+        c = [a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20] for x in range(5)]
+        a = [a[i] ^ c[(i - 1) % 5] ^ rot(c[(i + 1) % 5], 1) for i in range(25)]
+        b = [0] * 25
+        for i in range(25):
+            b[KECCAK_PI[i]] = rot(a[i], KECCAK_RHO[i])
+        a = [b[i] ^ (~b[i - i % 5 + (i + 1) % 5] & LANE_MASK & b[i - i % 5 + (i + 2) % 5]) for i in range(25)]
+        a[0] ^= rc
+    return a
+
+
 class Transcript:
     def __init__(self, proof: Proof, fiat_shamir_IV: Digest, public_input: Digest) -> None:
         self.proof = proof
-        self.state = compress(fiat_shamir_IV.words(), public_input.words())
+        self.state = keccak_step([*fiat_shamir_IV.words(), *public_input.words(), *[0] * 17])
+        self.pending: list[tuple[E, int]] = []
         self.stream_offset = 0  # in E field elements
         self.opening_offset = 0  # in bytes
 
+    def _duplex(self) -> None:
+        rate = [lane for value, tag in self.pending for lane in (value.c0.value, value.c1.value, value.c2.value, tag)]
+        self.state = keccak_step([*rate, *[0] * (16 - len(rate)), *self.state[16:]])
+        self.pending = []
+
+    def _absorb(self, value: E, tag: int) -> None:
+        if len(self.pending) == RATE_SCALARS:
+            self._duplex()
+        self.pending.append((value, tag))
+
     def observe(self, value: E) -> None:
-        self.state = compress(self.state, (value.c0, value.c1, value.c2, DS_OBSERVE))
+        self._absorb(value, DS_OBSERVE)
 
     def sample(self) -> E:
-        self.state = compress(self.state, (0, 0, 0, DS_SQUEEZE))
+        self._duplex()
         return E(*self.state[:3])
 
     def samples(self, count: int) -> list[E]:
@@ -380,11 +411,9 @@ class Transcript:
 
     def grind_check(self, bits: int) -> None:
         nonce = self._next()
-        block = (nonce.c0, nonce.c1, nonce.c2, DS_POW_NONCE)
-        digest = compress(compress(self.state, (0, 0, 0, DS_POW_BASE)), block)[0]
-        valid = nonce == ZERO if bits == 0 else digest & (2**bits - 1) == 0
-        self.state = compress(self.state, block)
-        require(valid, "invalid grinding nonce")
+        self._absorb(nonce, DS_POW_NONCE)
+        challenge = self.sample()
+        require(nonce == ZERO if bits == 0 else challenge.c0.value & (2**bits - 1) == 0, "invalid grinding nonce")
 
     def _merkle_data(self, length: int) -> bytes:
         end = self.opening_offset + length

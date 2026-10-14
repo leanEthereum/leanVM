@@ -48,41 +48,41 @@ SIZE_BITS = 34
 LOG_WORD_BITS = 6
 
 # ------------------------------------------------------------------- Fiat-Shamir
-# Every absorbed block carries its domain tag in lane 3, which is exactly
-# `fs_compress`'s `tail` argument, so a role is never smuggled through the data
-# lanes. The seeding block has none, being fixed at the head of the chain.
+# An absorbed scalar's fourth lane is its domain tag (fs_pack), so a role is never
+# smuggled through the data lanes. The capacity a sponge carries is FS_CELLS cells.
 DS_OBSERVE = 1
-DS_SQ = 2
-DS_POW_BASE = 3
 DS_POW_NONCE = 4
+FS_CELLS = 5
 
 # ----------------------------------------------------------- loop-carried chains
 # A loop whose state is several fields keeps ONE heap run of N cells per iteration,
 # so a step is one pointer multiply rather than one per field.
-PAIR_SLOTS = 2  # the Fiat-Shamir state pair alone
+PAIR_SLOTS = 2  # a two-field chain
+# A record's Fiat-Shamir sponge is its FS_CELLS capacity cells, from field *_FS on.
 # A Fiat-Shamir chain carrying one accumulator (the claim batching loops).
-ACC_FS0 = 0
-ACC_FS1 = 1
-ACC_VALUE = 2
-ACC_SLOTS = 3
+ACC_FS = 0
+ACC_PEND = 5  # the eight rate cells the record's first permutation takes
+ACC_VALUE = 13
+ACC_SLOTS = 14
+# A sponge with a full rate waiting: its capacity, then those eight rate cells.
+PEND_SLOTS = 13
 # One sumcheck round of the bus GKR or the table batch.
-ROUND_FS0 = 0
-ROUND_FS1 = 1
-ROUND_CURSOR = 2
-ROUND_CLAIM = 3
-ROUND_SLOTS = 4
+ROUND_FS = 0
+ROUND_CURSOR = 5
+ROUND_CLAIM = 6
+ROUND_SLOTS = 7
 # One product layer of the bus GKR.
-LAYER_FS0 = 0
-LAYER_FS1 = 1
-LAYER_CURSOR = 2
-LAYER_PUSH = 3
-LAYER_PULL = 4
-LAYER_COUNT = 5
-LAYER_ROW = 6
-LAYER_POS = 7
-LAYER_HALF = 8  # g^(k // 2) at radix-four layer k
-LAYER_PARITY = 9  # k % 2, as a field element
-LAYER_SLOTS = 10
+LAYER_FS = 0
+LAYER_CURSOR = 5
+LAYER_PUSH = 6
+LAYER_PULL = 7
+LAYER_COUNT = 8
+LAYER_ROW = 9
+LAYER_POS = 10
+LAYER_HALF = 11  # g^(k // 2) at radix-four layer k
+LAYER_PARITY = 12  # k % 2, as a field element
+LAYER_PEND = 13  # the four rate cells the layer's first permutation takes: the roots', then zero
+LAYER_SLOTS = 17
 # One OOD sample of a WHIR level.
 OOD_BETA = 0
 OOD_Y = 1
@@ -136,6 +136,8 @@ COORD_CONST = COORD_CONST_PLACEHOLDER
 # COORD_CLAIM_SLOT), 0 on a duplicate (reuse that slot). The count side has its own
 # point, so its claims never dedup against the pair's.
 COORD_FRESH = COORD_FRESH_PLACEHOLDER
+COORD_FRESH_POS = COORD_FRESH_POS_PLACEHOLDER  # a fresh coordinate's place among the words the decomposition absorbs
+N_FRESH = N_FRESH_PLACEHOLDER
 COORD_CLAIM_SLOT = COORD_CLAIM_SLOT_PLACEHOLDER
 # A TABLE block's coordinates, flattened into TERMS: coord c is
 # Σ_{j < COORD_TERM_COUNT[c]} term(COORD_TERM_OFF[c] + j), each term a TERM_TYPE
@@ -181,6 +183,8 @@ N_TABLES = N_TABLES_PLACEHOLDER
 KECCAK_MIN_STEPS_LOG = 9
 FLOORS = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG]
 N_TABLE_COLS = N_TABLE_COLS_PLACEHOLDER
+TABLE_COL_BASE = TABLE_COL_BASE_PLACEHOLDER  # a table's first column among all the evaluations
+N_COL_EVALS = N_COL_EVALS_PLACEHOLDER
 TABLE_COLS_CAP = TABLE_COLS_CAP_PLACEHOLDER
 ETA_OFFSET = ETA_OFFSET_PLACEHOLDER
 ETA_FORM_BASE = ETA_FORM_BASE_PLACEHOLDER
@@ -228,12 +232,11 @@ KC_SLICES = 5
 KC_MU = 6
 KC_SIZE = KC_MU + KECCAK_PACK
 # One round of a layer's sumcheck over packs and segments.
-KR_FS0 = 0
-KR_FS1 = 1
-KR_CURSOR = 2
-KR_CLAIM = 3
-KR_SCALE = 4
-KR_SLOTS = 5
+KR_FS = 0
+KR_CURSOR = 5
+KR_CLAIM = 6
+KR_SCALE = 7
+KR_SLOTS = 8
 # A layer's round records lie field by field, KR_CAP apart, one per two rounds:
 # a layer has tau - 3 < 30 rounds, so at most 16 records.
 KR_CAP = 16
@@ -333,8 +336,15 @@ BYTECODE_VARS = BYTECODE_VARS_PLACEHOLDER  # = BYTECODE_LOG + LOG2_BYTECODE_COLS
 FRESH_BC_VALUE = BYTECODE_VARS
 DEFER_STMT_CELLS = BYTECODE_VARS + 1
 DEFER_STMT_BC_VALUE = BYTECODE_VARS
+# The aggregation transcript's seeded capacity, and the zeros padding a child's words
+# to whole rates (so every child starts with a full rate waiting).
 AGG_SEED_0 = AGG_SEED_0_PLACEHOLDER
 AGG_SEED_1 = AGG_SEED_1_PLACEHOLDER
+AGG_SEED_2 = AGG_SEED_2_PLACEHOLDER
+AGG_SEED_3 = AGG_SEED_3_PLACEHOLDER
+AGG_SEED_4 = AGG_SEED_4_PLACEHOLDER
+AGG_CHILD_PAD = AGG_CHILD_PAD_PLACEHOLDER
+AGG_CHILD_WORDS = 2 + DEFER_SIZE + DEFER_STMT_CELLS
 # The statement digest's preimage: the STMT_HEADER header values as the 16-byte
 # cells they already are (the seed and the signer-set digest, which itself binds
 # the leaf index groups and every count), then the deferred cells' tower limbs, two to
@@ -511,74 +521,112 @@ def challenge_from_state(state):
 
 
 # ==================================== Fiat-Shamir ===================================
+# A duplex sponge over the SHA3 step in overwrite mode (fiat_shamir::FiatShamirState). The
+# sponge is the 13-cell output `sp` of its last permutation, whose last FS_CELLS cells, the
+# capacity, are all the next permutation keeps: between functions and loop frames those
+# cells are all that travels, `fs0 .. fs4`. Scalars absorbed since wait in an eight-cell
+# `rate` run, two cells a scalar, at most four. How many wait is a compile-time count at
+# every call site, `k`. A fifth scalar, or a challenge, permutes; every challenge is a
+# permutation of its own.
 
 
 @inline
-def fs_compress(state, scalar, tail, out):
-    # SHA3 requires block[0] to have zero top limb, binding the hinted top.
+def fs_pack(rate, k: Const, x, tag):
+    # Scalar x as lanes (c0, c1, c2, tag) over rate cells 2k and 2k + 1. SHA3 requires
+    # both cells' top limbs to be zero, which binds the hinted c2.
     limbs = StackBuf(3)
-    hint_f192_limbs(limbs, scalar)
-    assert_in_k(limbs[2], tail)
-    block = StackBuf(2)
-    block[0] = scalar + Y_TOWER * Y_TOWER * limbs[2]
-    block[1] = limbs[2] + Y_TOWER * tail
-    sha3(state[0:2], block, out)
+    hint_f192_limbs(limbs, x)
+    assert_in_k(limbs[2], tag)
+    rate[2 * k] = x + Y_TOWER * Y_TOWER * limbs[2]
+    rate[2 * k + 1] = limbs[2] + Y_TOWER * tag
     return
 
 
 @inline
-def obs(state, x):
-    # Bind one scalar into the chain: state <- compress(state, (x, DS_OBSERVE)).
-    # Returns the successor StackBuf; the call site aliases it (zero copies).
-    nb = StackBuf(SHA3_STATE)
-    fs_compress(state, x, DS_OBSERVE, nb)
-    return nb
+def fs_perm(sp, rate, k: Const):
+    # The permutation taking the k waiting scalars: they overwrite the rate, zero past them.
+    nxt = StackBuf(SHA3_STATE)
+    if k == 0:
+        sha3([0, 0], [0, 0], nxt, cap=sp)
+    if k == 1:
+        sha3(rate[0:2], [0, 0], nxt, cap=sp)
+    if k == 2:
+        sha3(rate[0:2], rate[2:4], nxt, cap=sp)
+    if k == 3:
+        rate[6] = 0
+        rate[7] = 0
+        sha3(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
+    if k == 4:
+        sha3(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
+    return nxt
 
 
 @inline
-def fs_next(state, cursor):
-    # Fetch, observe and advance in one act: read the word under `cursor`, fold it
-    # into the state, and hand back the successor state, the word, AND the cursor
-    # stepped one word on. Reading and absorbing are inseparable here, so no
-    # proof-stream word can enter the computation unbound: the soundness invariant
-    # the whole guest rests on. All three returns alias into the caller for free.
+def fs_perm4(sp, r0, r1, r2, r3):
+    # The permutation whose rate is r0..r3 then zero: up to two waiting scalars, held as
+    # cells rather than in a rate run.
+    nxt = StackBuf(SHA3_STATE)
+    sha3([r0, r1], [r2, r3], nxt, cap=sp)
+    return nxt
+
+
+@inline
+def fs_absorb_nonce(sp, rate, k: Const, nonce):
+    # A grinding nonce as waiting scalar k (k < 4), with its own tag, then the
+    # permutation its challenge comes from.
+    fs_pack(rate, k, nonce, DS_POW_NONCE)
+    nxt = fs_perm(sp, rate, k + 1)
+    return nxt
+
+
+@inline
+def fs_perm_pending(cap, rec, at: Const):
+    # The permutation taking a full rate held in the record cells at..at+8.
+    nxt = StackBuf(SHA3_STATE)
+    sha3([rec[GEN ** at], rec[GEN ** (at + 1)]], [rec[GEN ** (at + 2)], rec[GEN ** (at + 3)]], nxt, tail=[rec[GEN ** (at + 4)], rec[GEN ** (at + 5)], rec[GEN ** (at + 6)], rec[GEN ** (at + 7)]], cap=cap)
+    return nxt
+
+
+@inline
+def fs_cap(fs0, fs1, fs2, fs3, fs4):
+    # A carried capacity as the run a permutation reads.
+    sp = [fs0, fs1, fs2, fs3, fs4]
+    return sp
+
+
+@inline
+def fs_load(rec, field: Const, stride: Const):
+    # A record's carried capacity, its cells `stride` fields apart from `field` on.
+    sp = [rec[GEN ** (field * stride)], rec[GEN ** ((field + 1) * stride)], rec[GEN ** ((field + 2) * stride)], rec[GEN ** ((field + 3) * stride)], rec[GEN ** ((field + 4) * stride)]]
+    return sp
+
+
+@inline
+def fs_store(rec, field: Const, stride: Const, sp):
+    # Store the capacity of permutation output `sp` as fs_load reads it.
+    for j in unroll(0, FS_CELLS):
+        rec[GEN ** ((field + j) * stride)] = sp[SHA3_STATE - FS_CELLS + j]
+    return
+
+
+@inline
+def fs_next(rate, k: Const, cursor):
+    # Fetch and absorb in one act: the word under `cursor` becomes waiting scalar k
+    # (k < 4), and the cursor steps one word on. Reading and absorbing are inseparable,
+    # so no proof-stream word can enter the computation unbound: the soundness
+    # invariant the whole guest rests on.
     x = cursor[GEN ** 0]
-    nb = obs(state, x)
-    return nb, x, cursor * GEN
+    fs_pack(rate, k, x, DS_OBSERVE)
+    return x, cursor * GEN
 
 
 @inline
-def squeeze_state(state):
-    nb = StackBuf(SHA3_STATE)
-    sha3(state[0:2], [0, Y_TOWER * DS_SQ], nb)
-    return nb
-
-
-@inline
-def squeeze(state):
-    # Ratchet: the canonical 128+128 digest is the new state; its first three K
-    # lanes are reassembled as the F192 challenge.
-    nb = squeeze_state(state)
-    challenge = challenge_from_state(nb)
-    return nb, challenge
-
-
-@inline
-def absorb_nonce(state, x):
-    # Full-field grinding nonce absorb: [x.c0, x.c1, x.c2, DS_POW_NONCE].
-    nb = StackBuf(SHA3_STATE)
-    fs_compress(state, x, DS_POW_NONCE, nb)
-    return nb
-
-
-@inline
-def squeeze_step(state_0, state_1):
-    # `squeeze` exposing BOTH output words, so a query-squeeze loop can chain the
-    # state through a heap buffer. Returns (challenge, next_state_0, next_state_1).
-    state = [state_0, state_1]
-    next_state = squeeze_state(state)
-    challenge = challenge_from_state(next_state)
-    return challenge, next_state[0], next_state[1]
+def squeeze(sp, rate, k: Const):
+    # A challenge: the permutation taking the k waiting scalars, read off its first three
+    # lanes. Returns the new sponge and the challenge.
+    nxt = fs_perm(sp, rate, k)
+    challenge = challenge_from_state(nxt)
+    return nxt, challenge
 
 
 # ============================ bits, logs, and the exponent ==========================
@@ -727,25 +775,17 @@ def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, depth: Const):
     return
 
 
-def grind_check(state_0, state_1, nonce, nbits: Const):
-    # WHIR fold/query grinding: digest = H(H(state, POW_BASE), (nonce, POW_NONCE)),
-    # whose low nbits must be zero. The PoW window of
-    # transcript::pow_bits_ok is `digest.0 & ((1 << bits) - 1)` with nbits < 64, so
-    # it lives entirely in the digest's FIRST 64-bit lane: only that lane is
-    # advice-decomposed and verified, not all FIELD_BITS of the cell. The caller
-    # absorbs the full field nonce afterwards. The honest prover searches the
-    # deterministic u64 subset while verification permits the full field: each
-    # candidate still costs one hash and succeeds with probability 2^-bits.
-    if nbits == 0:
-        assert nonce == 0  # native canonical zero-work nonce
-    st = [state_0, state_1]
-    base = StackBuf(SHA3_STATE)
-    sha3(st, [0, Y_TOWER * DS_POW_BASE], base)
-    out = StackBuf(SHA3_STATE)
-    fs_compress(base, nonce, DS_POW_NONCE, out)
+def grind_check(word, nbits: Const):
+    # WHIR query grinding: the challenge drawn right after the nonce is absorbed must
+    # have its low nbits zero (transcript::pow_bits_ok, nbits < 64). That window lives
+    # in the challenge's FIRST 64-bit lane, the low limb of the permutation output's
+    # first cell `word`: only that lane is advice-decomposed and verified. The honest
+    # prover searches the deterministic u64 subset while verification permits the
+    # full field: each candidate still costs one permutation and succeeds with
+    # probability 2^-bits.
     lanes = StackBuf(1)
-    hint_f192_limbs(lanes, out[0])
-    high = (out[0] + lanes[0]) * Y_INV
+    hint_f192_limbs(lanes, word)
+    high = (word + lanes[0]) * Y_INV
     assert_in_k(lanes[0], high)
     # The lane is rebuilt from its bits at and above nbits only, which IS the claim
     # that its low nbits coordinates are zero; the hinted low bits go unread.
@@ -917,21 +957,23 @@ def fold_final_msg(msg, point, log_len: Const):
     return cursor[0]
 
 
-def sumcheck_round4(state_0, state_1, msg_cursor, claim):
-    # One PLAIN sumcheck round. The prover sends the round polynomial's coefficients
-    # bar the one the split h(0) + h(1) == claim fixes, so the verifier derives that
-    # one and reads h at the challenge by Horner. Nothing is reapplied: no eq
-    # factor, no separate term for the tables still waiting, and the eq point is not
-    # read here at all.
-    fs = [state_0, state_1]
-    fs, c0, msg_cursor = fs_next(fs, msg_cursor)
-    fs, c2, msg_cursor = fs_next(fs, msg_cursor)
-    fs, c3, msg_cursor = fs_next(fs, msg_cursor)
+def sumcheck_round4(rd, msg_cursor, claim):
+    # One PLAIN sumcheck round, from the sponge of round record `rd` into the next
+    # record's. The prover sends the round polynomial's coefficients bar the one the
+    # split h(0) + h(1) == claim fixes, so the verifier derives that one and reads h
+    # at the challenge by Horner. Nothing is reapplied: no eq factor, no separate
+    # term for the tables still waiting, and the eq point is not read here at all.
+    sp = fs_load(rd, ROUND_FS, 1)
+    rate = StackBuf(8)
+    c0, msg_cursor = fs_next(rate, 0, msg_cursor)
+    c2, msg_cursor = fs_next(rate, 1, msg_cursor)
+    c3, msg_cursor = fs_next(rate, 2, msg_cursor)
     # The split identity fixes c1 = claim + c2 + c3, so it is neither sent nor bound,
     # and h(y) = c0 + y (claim + (1 + y) (c2 + (1 + y) c3)).
-    fs, y = squeeze(fs)
+    sp, y = squeeze(sp, rate, 3)
+    fs_store(rd * GEN ** ROUND_SLOTS, ROUND_FS, 1, sp)
     y1 = 1 + y
-    return fs[0], fs[1], msg_cursor, c0 + y * (claim + y1 * (c2 + y1 * c3)), y
+    return msg_cursor, c0 + y * (claim + y1 * (c2 + y1 * c3)), y
 
 
 def gkr_rounds(rd, pt, n: Const):
@@ -939,40 +981,41 @@ def gkr_rounds(rd, pt, n: Const):
     # one n further. The prover sends every coefficient but c0, which the round's
     # pulled-out eq factor leaves fixed: c0 + r (c1 + ... + c4) == claim, r being the
     # previous point's coordinate pt[q]; the challenge goes to pt[MU_CAP + 2 + q].
-    fs = [rd[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], rd[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+    sp = fs_load(rd, ROUND_FS, GKR_ROUNDS_CAP)
     cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
     claim = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
     for q in unroll(0, n):
-        fs, c1, cur = fs_next(fs, cur)
-        fs, c2, cur = fs_next(fs, cur)
-        fs, c3, cur = fs_next(fs, cur)
-        fs, c4, cur = fs_next(fs, cur)
-        fs, rk = squeeze(fs)
+        rate = StackBuf(8)
+        c1, cur = fs_next(rate, 0, cur)
+        c2, cur = fs_next(rate, 1, cur)
+        c3, cur = fs_next(rate, 2, cur)
+        c4, cur = fs_next(rate, 3, cur)
+        sp, rk = squeeze(sp, rate, 4)
         c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
         pt[GEN ** (MU_CAP + 2 + q)] = rk
         claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
     rd_next = rd * GEN ** n
-    rd_next[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = fs[0]
-    rd_next[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = fs[1]
+    fs_store(rd_next, ROUND_FS, GKR_ROUNDS_CAP, sp)
     rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
     rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = claim
     return
 
 
-def batch_sumcheck(fs0, fs1, msgs, running, point, n_rounds: Const):
+def batch_sumcheck(fs0, fs1, fs2, fs3, fs4, msgs, running, point, n_rounds: Const):
     # The rounds of a claim-batching sumcheck: two hinted values per round
     # (g(1) and g(inf)), the split fixing the third against the running claim, and
     # the challenges collected into `point`.
-    fs = [fs0, fs1]
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     for rd in unroll(0, n_rounds):
-        fs, msg_g1, c = fs_next(fs, msgs * GEN ** (2 * rd))
-        fs, msg_ginf, c = fs_next(fs, c)
-        fs, rv = squeeze(fs)
+        rate = StackBuf(8)
+        msg_g1, c = fs_next(rate, 0, msgs * GEN ** (2 * rd))
+        msg_ginf, c = fs_next(rate, 1, c)
+        sp, rv = squeeze(sp, rate, 2)
         point[GEN ** rd] = rv
         g_zero = running + msg_g1
         c_one = g_zero + msg_g1 + msg_ginf
         running = (msg_ginf * rv + c_one) * rv + g_zero  # fold the degree-2 round at rv
-    return fs[0], fs[1], running
+    return sp[8], sp[9], sp[10], sp[11], sp[12], running
 
 
 # ==================================== Merkle paths ==================================
@@ -1064,30 +1107,55 @@ def verify_merkle_cap(cap, flags, depth: Const):
 # ============================== the stacked WHIR opening ============================
 
 
-def opening_fold(fs0, fs1, cursor, c0, c1, c2):
-    fs = [fs0, fs1]
-    fs, r = squeeze(fs)
+def opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, c0, c1, c2):
+    # One fold round: its challenge takes the two scalars waiting in the sponge, w0 and
+    # w1, and the next round's two coefficients, returned, wait in their place.
+    cap = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    rate = StackBuf(8)
+    fs_pack(rate, 0, w0, DS_OBSERVE)
+    fs_pack(rate, 1, w1, DS_OBSERVE)
+    sp, r = squeeze(cap, rate, 2)
     claim = (c2 * r + c1) * r + c0
-    fs, c0, cursor = fs_next(fs, cursor)
-    fs, c2, cursor = fs_next(fs, cursor)
-    return fs[0], fs[1], cursor, claim, c0, c2, r
+    rate = StackBuf(8)
+    c0, cursor = fs_next(rate, 0, cursor)
+    c2, cursor = fs_next(rate, 1, cursor)
+    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, claim, c0, c2, r
 
 
-def opening_ood_point(fs0, fs1, point, n: Const):
-    # One specialization per point dimension, the state riding frame cells.
-    fs = [fs0, fs1]
-    for x in unroll(0, n):
-        fs, r = squeeze(fs)
+def opening_ood_point(fs0, fs1, fs2, fs3, fs4, r0, r1, r2, r3, r4, r5, r6, r7, point, n: Const):
+    # One specialization per point dimension. The first coordinate's permutation takes
+    # the rate r0..r7, the scalars waiting in the sponge and zero past them.
+    cap = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    sp = StackBuf(SHA3_STATE)
+    sha3([r0, r1], [r2, r3], sp, tail=[r4, r5, r6, r7], cap=cap)
+    point[GEN ** 0] = challenge_from_state(sp)
+    no_rate = StackBuf(8)
+    for x in unroll(1, n):
+        sp, r = squeeze(sp, no_rate, 0)
         point[GEN ** x] = r
-    return fs[0], fs[1]
+    return sp[8], sp[9], sp[10], sp[11], sp[12]
 
 
-def opening_final_message(fs0, fs1, cursor, out, n: Const):
-    fs = [fs0, fs1]
-    for i in unroll(0, n):
-        fs, value, cursor = fs_next(fs, cursor)
-        out[GEN ** i] = value
-    return fs[0], fs[1], cursor
+def opening_final_message(fs0, fs1, fs2, fs3, fs4, w0, w1, cursor, out, n: Const):
+    # The final message's n words, after the two scalars waiting in the sponge, w0 and
+    # w1, then the grinding nonce and the permutation its challenge comes from. Returns
+    # that output's first cell, its capacity, the cursor past the nonce, and the nonce.
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    rate = StackBuf(8)
+    fs_pack(rate, 0, w0, DS_OBSERVE)
+    fs_pack(rate, 1, w1, DS_OBSERVE)
+    for pos in unroll(2, 2 + n):
+        if pos % 4 == 0:
+            sp = fs_perm(sp, rate, 4)
+            rate = StackBuf(8)
+        value, cursor = fs_next(rate, pos % 4, cursor)
+        out[GEN ** (pos - 2)] = value
+    nonce = cursor[GEN ** 0]
+    if const((2 + n) % 4 == 0):
+        sp = fs_perm(sp, rate, 4)
+        rate = StackBuf(8)
+    sp = fs_absorb_nonce(sp, rate, (2 + n) % 4, nonce)
+    return sp[0], sp[8], sp[9], sp[10], sp[11], sp[12], cursor * GEN, nonce
 
 
 def opening_row_weights(point, out, folds: Const, reverse: Const):
@@ -1219,7 +1287,7 @@ def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
     return prefix_eq
 
 
-def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, cursor):
+def open_stacked(m_idx: Const, fs0, fs1, fs2, fs3, fs4, target, commit_root_0, commit_root_1, cursor):
     # The stacked WHIR opening, one specialization per (rate, committed log-size)
     # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
     # opening proof data is hinted here, so only the executed arm pops its streams.
@@ -1238,10 +1306,14 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     # ride the SHARED stream, walked on in protocol order. The K opener binds a
     # Merkle root as its two F192 scalars, not as a byte string, and every digest
     # uses ONE 128/128 encoding, so those scalars are exactly the root's two cells.
-    fs = [fs0, fs1]
+    # Between rounds the sponge rides fs0..fs4, its capacity, and w0, w1, the two
+    # scalars waiting in it: the last round polynomial's sent coefficients.
     msg_cursor = cursor
-    fs, round_quad_c, msg_cursor = fs_next(fs, msg_cursor)  # the round polynomial in coefficients
-    fs, round_quad_a, msg_cursor = fs_next(fs, msg_cursor)  # bar the linear one, which the split fixes
+    round_quad_c = msg_cursor[GEN ** 0]  # the round polynomial in coefficients
+    round_quad_a = msg_cursor[GEN ** 1]  # bar the linear one, which the split fixes
+    msg_cursor = msg_cursor * GEN ** 2
+    w0 = round_quad_c
+    w1 = round_quad_a
     round_quad_b = target + round_quad_a
     sumcheck_target = target
 
@@ -1276,17 +1348,21 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         folds_off = LIG_FOLDS_OFF[ml]
         pos_off = LIG_POSITIONS_OFF[ml]
         for j in unroll(0, LIG_FOLDS[ml]):
-            f0, f1, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs[0], fs[1], msg_cursor, round_quad_c, round_quad_b, round_quad_a)
-            fs = [f0, f1]
+            fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, fold_challenge = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
+            w0 = round_quad_c
+            w1 = round_quad_a
             fold_challenges[GEN ** (folds_off + j)] = fold_challenge
             round_quad_b = sumcheck_target + round_quad_a
 
         if lvl == yr_level:
-            f0, f1, msg_cursor = opening_final_message(fs[0], fs[1], msg_cursor, final_msg, yr_len)
-            fs = [f0, f1]
+            word0, fs0, fs1, fs2, fs3, fs4, msg_cursor, q_nonce = opening_final_message(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, final_msg, yr_len)
         else:
-            fs, next_root_a, msg_cursor = fs_next(fs, msg_cursor)
-            fs, next_root_b, msg_cursor = fs_next(fs, msg_cursor)
+            sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+            rate = StackBuf(8)
+            fs_pack(rate, 0, w0, DS_OBSERVE)
+            fs_pack(rate, 1, w1, DS_OBSERVE)
+            next_root_a, msg_cursor = fs_next(rate, 2, msg_cursor)
+            next_root_b, msg_cursor = fs_next(rate, 3, msg_cursor)
             # A non-canonical half is rejected (merkle.rs `scalars_to_hash`), as
             # the commitment root was at its own read.
             canon = StackBuf(2)
@@ -1297,48 +1373,71 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
             # OOD binding for the newly observed level-(lvl+1) commitment. The
             # random point has the just-folded witness dimension, namely this
             # level's message-column dimension.
+            # The point's first permutation takes what waits: the fold's coefficients and
+            # the root, four scalars, or the previous sample's three.
             for os in unroll(0, LIG_OOD_SAMPLES[ml + 1]):
                 oz = ood_z * GEN ** (((lvl + 1) * LIG_MAX_OOD_SAMPLES + os) * LIG_LOG_MSG_COLS_CAP)
-                f0, f1 = opening_ood_point(fs[0], fs[1], oz, LIG_LOG_MSG_COLS[ml])
-                fs = [f0, f1]
+                if os == 0:
+                    fs0, fs1, fs2, fs3, fs4 = opening_ood_point(fs0, fs1, fs2, fs3, fs4, rate[0], rate[1], rate[2], rate[3], rate[4], rate[5], rate[6], rate[7], oz, LIG_LOG_MSG_COLS[ml])
+                else:
+                    fs0, fs1, fs2, fs3, fs4 = opening_ood_point(fs0, fs1, fs2, fs3, fs4, rate[0], rate[1], rate[2], rate[3], rate[4], rate[5], 0, 0, oz, LIG_LOG_MSG_COLS[ml])
                 sample = ood * GEN ** ((lvl + 1) * ood_stride + os * OOD_SLOTS)
-                fs, ood_y, msg_cursor = fs_next(fs, msg_cursor)
-                fs, ood_c0, msg_cursor = fs_next(fs, msg_cursor)
-                fs, ood_c2, msg_cursor = fs_next(fs, msg_cursor)
+                rate = StackBuf(8)
+                ood_y, msg_cursor = fs_next(rate, 0, msg_cursor)
+                ood_c0, msg_cursor = fs_next(rate, 1, msg_cursor)
+                ood_c2, msg_cursor = fs_next(rate, 2, msg_cursor)
                 sample[GEN ** OOD_Y] = ood_y
                 sample[GEN ** OOD_C0] = ood_c0
                 sample[GEN ** OOD_C2] = ood_c2  # the split fixes c1 = y + c2
-        q_nonce = msg_cursor[GEN ** 0]  # raw transport word: bound by the DS_POW_NONCE absorb below
-        msg_cursor = msg_cursor * GEN
+            q_nonce = msg_cursor[GEN ** 0]
+            msg_cursor = msg_cursor * GEN
+            if LIG_OOD_SAMPLES[ml + 1] == 0:
+                sp = fs_perm(sp, rate, 4)
+                rate = StackBuf(8)
+                sp = fs_absorb_nonce(sp, rate, 0, q_nonce)
+            else:
+                sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+                sp = fs_absorb_nonce(sp, rate, 3, q_nonce)
+            word0 = sp[0]
+            fs0 = sp[8]
+            fs1 = sp[9]
+            fs2 = sp[10]
+            fs3 = sp[11]
+            fs4 = sp[12]
+        # The nonce, a raw transport word, is bound by its DS_POW_NONCE absorb above.
         if LIG_QUERY_GRIND_BITS[ml] != 0:
-            grind_check(fs[0], fs[1], q_nonce, LIG_QUERY_GRIND_BITS[ml])
+            grind_check(word0, LIG_QUERY_GRIND_BITS[ml])
         else:
             assert q_nonce == 0
-        fs = absorb_nonce(fs, q_nonce)
 
-        sqz = HeapBuf((GEN ** (LIG_MAX_SQUEEZES[m_idx] + 1)) ** PAIR_SLOTS)
-        sqz[GEN ** 0] = fs[0]
-        sqz[GEN ** 1] = fs[1]
+        sqz = HeapBuf((GEN ** (LIG_MAX_SQUEEZES[m_idx] + 1)) ** FS_CELLS)
+        sqz[GEN ** 0] = fs0
+        sqz[GEN ** 1] = fs1
+        sqz[GEN ** 2] = fs2
+        sqz[GEN ** 3] = fs3
+        sqz[GEN ** 4] = fs4
         for xs in mul_range(1, GEN ** LIG_SQUEEZES[ml]):
             # a loop body captures free names BY VALUE, so the compile-time aliases
             # are rebound here (m_idx and lvl are substituted literals)
             depth = LIG_TREE_DEPTH[m_idx * LIG_MAX_LEVELS + lvl]
             pos_off = LIG_POSITIONS_OFF[m_idx * LIG_MAX_LEVELS + lvl]
-            row = sqz * xs ** PAIR_SLOTS
-            packed_word, next_c0, next_c1 = squeeze_step(row[GEN ** 0], row[GEN ** 1])
-            row[GEN ** PAIR_SLOTS] = next_c0
-            row[GEN ** (PAIR_SLOTS + 1)] = next_c1
+            row = sqz * xs ** FS_CELLS
+            row_cap = fs_load(row, 0, 1)
+            no_rate = StackBuf(8)
+            row_sp, packed_word = squeeze(row_cap, no_rate, 0)
+            fs_store(row * GEN ** FS_CELLS, 0, 1, row_sp)
             query_ptr = xs ** (FIELD_BITS // depth)
             decode_query_bits(packed_word, query_positions * GEN ** pos_off * query_ptr, query_bit_ptrs * GEN ** pos_off * query_ptr, depth)
-        sqz_end = sqz * (GEN ** LIG_SQUEEZES[ml]) ** PAIR_SLOTS
-        fs = [sqz_end[GEN ** 0], sqz_end[GEN ** 1]]
+        sqz_end = sqz * (GEN ** LIG_SQUEEZES[ml]) ** FS_CELLS
+        sp = fs_load(sqz_end, 0, 1)
 
         # One batching challenge for the level, drawn once every claim it batches is
         # fixed: its OOD claims above and these query positions. Claim tau of the
         # level is weighted lam^tau, the running claim keeping lam^0 (Annex B,
         # Protocol 1 step 1): query i is claim n_ood + 1 + i, so its weight splits
         # into lam^i here and the level scalar lam^(n_ood+1) below.
-        fs, lam = squeeze(fs)
+        no_rate = StackBuf(8)
+        sp, lam = squeeze(sp, no_rate, 0)
         lam_pow = 1
         for i in unroll(0, n_queries):
             query_weights[GEN ** (lvl * max_q + i)] = lam_pow
@@ -1363,8 +1462,16 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
         # `lam`: the OOD claims held above first, then this query batch.
-        fs, intro_c0, msg_cursor = fs_next(fs, msg_cursor)
-        fs, intro_c2, msg_cursor = fs_next(fs, msg_cursor)
+        intro_c0 = msg_cursor[GEN ** 0]
+        intro_c2 = msg_cursor[GEN ** 1]
+        msg_cursor = msg_cursor * GEN ** 2
+        fs0 = sp[8]
+        fs1 = sp[9]
+        fs2 = sp[10]
+        fs3 = sp[11]
+        fs4 = sp[12]
+        w0 = intro_c0
+        w1 = intro_c2
         intro_c1 = level_query_sum + intro_c2  # the split fixes the linear coefficient
         if lvl == yr_level:
             beta_lvl = lam  # no OOD claim at the last level: no new oracle
@@ -1390,12 +1497,17 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     # ---- finish the sumcheck over the tail coordinates ----
     tail_challenges = HeapBuf(GEN ** YR_LOG_CAP)
     for j in unroll(0, yr_log - 1):
-        f0, f1, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, tail_c = opening_fold(fs[0], fs[1], msg_cursor, round_quad_c, round_quad_b, round_quad_a)
-        fs = [f0, f1]
+        fs0, fs1, fs2, fs3, fs4, msg_cursor, sumcheck_target, round_quad_c, round_quad_a, tail_c = opening_fold(fs0, fs1, fs2, fs3, fs4, w0, w1, msg_cursor, round_quad_c, round_quad_b, round_quad_a)
+        w0 = round_quad_c
+        w1 = round_quad_a
         tail_challenges[GEN ** j] = tail_c
         round_quad_b = sumcheck_target + round_quad_a
     # The closing round sends no following message.
-    fs, tail_last = squeeze(fs)
+    tail_cap = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    tail_rate = StackBuf(8)
+    fs_pack(tail_rate, 0, w0, DS_OBSERVE)
+    fs_pack(tail_rate, 1, w1, DS_OBSERVE)
+    tail_sp, tail_last = squeeze(tail_cap, tail_rate, 2)
     tail_challenges[GEN ** (yr_log - 1)] = tail_last
     sumcheck_target = round_quad_c + tail_last * round_quad_b + tail_last * tail_last * round_quad_a
     for j in unroll(yr_log, YR_LOG_CAP):
@@ -1511,7 +1623,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
 # Fiat-Shamir state pair and the stream cursor, so the sequence is what binds them.
 
 
-def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
+def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta):
     # ONE GKR grand product over push, pull and count, RLC-batched. Push and pull
     # have equal depth (matched blocks) and the count tree is padded with identity
     # leaves up to it (product unchanged), so a single sumcheck serves all three.
@@ -1523,13 +1635,18 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
     rounds = HeapBuf(GKR_ROUNDS_CAP * ROUND_SLOTS)
     gkr_pts = HeapBuf(GKR_POINTS_CAP)
     assert log(g_bus_mu) < COUNT_BITS
-    fs = [fs0, fs1]
-    fs, root_push, cursor = fs_next(fs, cursor)
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    rate = StackBuf(8)
+    root_push, cursor = fs_next(rate, 0, cursor)
     root_pull = root_push
-    fs, root_count, cursor = fs_next(fs, cursor)
+    root_count, cursor = fs_next(rate, 1, cursor)
     assert root_count != 0  # count-tree root nonzero: no read count self-cancels
-    layers[GEN ** LAYER_FS0] = fs[0]
-    layers[GEN ** LAYER_FS1] = fs[1]
+    # The roots wait in the sponge until the first layer's challenge: a layer's first
+    # permutation takes its LAYER_PEND cells, which are zero for every later layer.
+    for j in unroll(0, FS_CELLS):
+        layers[GEN ** (LAYER_FS + j)] = sp[j]
+    for j in unroll(0, 4):
+        layers[GEN ** (LAYER_PEND + j)] = rate[j]
     layers[GEN ** LAYER_CURSOR] = cursor
     layers[GEN ** LAYER_PUSH] = root_push
     layers[GEN ** LAYER_PULL] = root_pull
@@ -1551,25 +1668,32 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
     if depth_shift[g_bus_mu] != 1:
         # The odd layer is layer 0, so its round state would be written and read
         # back at the same position: read it straight off the layer instead.
-        tail_fs = [layers[GEN ** LAYER_FS0], layers[GEN ** LAYER_FS1]]
-        tail_fs, lam = squeeze(tail_fs)
+        layer_cap = fs_load(layers, LAYER_FS, 1)
+        tail_sp = fs_perm4(layer_cap, layers[GEN ** LAYER_PEND], layers[GEN ** (LAYER_PEND + 1)], layers[GEN ** (LAYER_PEND + 2)], layers[GEN ** (LAYER_PEND + 3)])
+        lam = challenge_from_state(tail_sp)
+        rate = StackBuf(8)
         tcur = layers[GEN ** LAYER_CURSOR]
         tclaim = layers[GEN ** LAYER_PUSH] + lam * (layers[GEN ** LAYER_PULL] + lam * layers[GEN ** LAYER_COUNT])
         nextrow = layers[GEN ** LAYER_ROW] * GEN ** MU_CAP
         evals = StackBuf(2 * N_GKR_SIDES)  # the two children of each side, in side order
         for i in unroll(0, 2 * N_GKR_SIDES):
-            tail_fs, ev, tcur = fs_next(tail_fs, tcur)
+            if i % 4 == 0:
+                if i != 0:
+                    tail_sp = fs_perm(tail_sp, rate, 4)
+                    rate = StackBuf(8)
+            ev, tcur = fs_next(rate, i % 4, tcur)
             evals[i] = ev
         combined = 0
         for i in unroll(0, N_GKR_SIDES):
             side = N_GKR_SIDES - 1 - i  # Horner in lam, so the top side lands last
             combined = evals[2 * side] * evals[2 * side + 1] + lam * combined
         assert tclaim == combined
-        tail_fs, c0 = squeeze(tail_fs)
+        tail_sp, c0 = squeeze(tail_sp, rate, (2 * N_GKR_SIDES + 3) % 4 + 1)
         nextrow[GEN ** 0] = c0
         nxt = layers * GEN ** LAYER_SLOTS
-        nxt[GEN ** LAYER_FS0] = tail_fs[0]
-        nxt[GEN ** LAYER_FS1] = tail_fs[1]
+        fs_store(nxt, LAYER_FS, 1, tail_sp)
+        for j in unroll(0, 4):
+            nxt[GEN ** (LAYER_PEND + j)] = 0
         nxt[GEN ** LAYER_CURSOR] = tcur
         for side in unroll(0, N_GKR_SIDES):
             nxt[GEN ** (LAYER_PUSH + side)] = evals[2 * side] + c0 * (evals[2 * side] + evals[2 * side + 1])
@@ -1582,16 +1706,16 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
         sq = x_pair * x_pair
         x_layer = sq * depth_shift[g_bus_mu]
         layer = layers * x_layer ** LAYER_SLOTS
-        layer_fs = [layer[GEN ** LAYER_FS0], layer[GEN ** LAYER_FS1]]
-        layer_fs, lam = squeeze(layer_fs)
+        layer_cap = fs_load(layer, LAYER_FS, 1)
+        layer_sp = fs_perm4(layer_cap, layer[GEN ** LAYER_PEND], layer[GEN ** (LAYER_PEND + 1)], layer[GEN ** (LAYER_PEND + 2)], layer[GEN ** (LAYER_PEND + 3)])
+        lam = challenge_from_state(layer_sp)
         point_row = layer[GEN ** LAYER_ROW]
         round_pos = layer[GEN ** LAYER_POS]
         nextrow = point_row * GEN ** MU_CAP
         # Round i's record keeps field k at rounds * g^(k GKR_ROUNDS_CAP + i), so a
         # round's record is one product away from the counter.
         head = rounds * round_pos
-        head[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = layer_fs[0]
-        head[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = layer_fs[1]
+        fs_store(head, ROUND_FS, GKR_ROUNDS_CAP, layer_sp)
         head[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_CURSOR]
         head[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_PUSH] + lam * (layer[GEN ** LAYER_PULL] + lam * layer[GEN ** LAYER_COUNT])
         # 2k rounds, or 2k + 1 when the depth is odd: four a loop step, the state
@@ -1602,22 +1726,22 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
             step = x4 ** 4
             rd = head * step
             pt = point_row * step
-            round_fs = [rd[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], rd[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+            round_sp = fs_load(rd, ROUND_FS, GKR_ROUNDS_CAP)
             cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
             claim = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
             for q in unroll(0, 4):
                 # As in gkr_rounds.
-                round_fs, c1, cur = fs_next(round_fs, cur)
-                round_fs, c2, cur = fs_next(round_fs, cur)
-                round_fs, c3, cur = fs_next(round_fs, cur)
-                round_fs, c4, cur = fs_next(round_fs, cur)
-                round_fs, rk = squeeze(round_fs)
+                rate = StackBuf(8)
+                c1, cur = fs_next(rate, 0, cur)
+                c2, cur = fs_next(rate, 1, cur)
+                c3, cur = fs_next(rate, 2, cur)
+                c4, cur = fs_next(rate, 3, cur)
+                round_sp, rk = squeeze(round_sp, rate, 4)
                 c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
                 pt[GEN ** (MU_CAP + 2 + q)] = rk  # nextrow[round * g^2]
                 claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
             rd_next = rd * GEN ** 4
-            rd_next[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = round_fs[0]
-            rd_next[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = round_fs[1]
+            fs_store(rd_next, ROUND_FS, GKR_ROUNDS_CAP, round_sp)
             rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
             rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = claim
         if parity != 0:
@@ -1626,25 +1750,31 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
         if x_layer != sq:
             gkr_rounds(head * sq, point_row * sq, 1)
         tail = head * x_layer
-        tail_fs = [tail[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], tail[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+        tail_sp = fs_load(tail, ROUND_FS, GKR_ROUNDS_CAP)
+        rate = StackBuf(8)
         tcur = tail[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
         tclaim = tail[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
         evals = StackBuf(4 * N_GKR_SIDES)  # the four children of each side, in side order
         for i in unroll(0, 4 * N_GKR_SIDES):
-            tail_fs, ev, tcur = fs_next(tail_fs, tcur)
+            if i % 4 == 0:
+                if i != 0:
+                    tail_sp = fs_perm(tail_sp, rate, 4)
+                    rate = StackBuf(8)
+            ev, tcur = fs_next(rate, i % 4, tcur)
             evals[i] = ev
         combined = 0
         for i in unroll(0, N_GKR_SIDES):
             side = N_GKR_SIDES - 1 - i  # Horner in lam, so the top side lands last
             combined = evals[4 * side] * evals[4 * side + 1] * evals[4 * side + 2] * evals[4 * side + 3] + lam * combined
         assert tclaim == combined
-        tail_fs, c0 = squeeze(tail_fs)
-        tail_fs, c1 = squeeze(tail_fs)
+        tail_sp, c0 = squeeze(tail_sp, rate, (4 * N_GKR_SIDES + 3) % 4 + 1)
+        tail_sp, c1 = squeeze(tail_sp, rate, 0)
         nextrow[GEN ** 0] = c0
         nextrow[GEN ** 1] = c1
         nxt = layer * GEN ** (2 * LAYER_SLOTS)
-        nxt[GEN ** LAYER_FS0] = tail_fs[0]
-        nxt[GEN ** LAYER_FS1] = tail_fs[1]
+        fs_store(nxt, LAYER_FS, 1, tail_sp)
+        for j in unroll(0, 4):
+            nxt[GEN ** (LAYER_PEND + j)] = 0
         nxt[GEN ** LAYER_CURSOR] = tcur
         for side in unroll(0, N_GKR_SIDES):
             lo = evals[4 * side] + c0 * (evals[4 * side] + evals[4 * side + 1])
@@ -1655,12 +1785,11 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
         nxt[GEN ** LAYER_HALF] = half * (1 + parity * (1 + GEN))
         nxt[GEN ** LAYER_PARITY] = 1 + parity
     last = layers * g_bus_mu ** LAYER_SLOTS
-    fs = [last[GEN ** LAYER_FS0], last[GEN ** LAYER_FS1]]
     cursor = last[GEN ** LAYER_CURSOR]
     final_point_row = last[GEN ** LAYER_ROW]
     for xt in mul_range(1, g_bus_mu):
         zeta[xt] = final_point_row[xt]  # the ONE shared point
-    return fs[0], fs[1], cursor, last[GEN ** LAYER_PUSH], last[GEN ** LAYER_PULL], last[GEN ** LAYER_COUNT]
+    return last[GEN ** LAYER_FS], last[GEN ** (LAYER_FS + 1)], last[GEN ** (LAYER_FS + 2)], last[GEN ** (LAYER_FS + 3)], last[GEN ** (LAYER_FS + 4)], cursor, last[GEN ** LAYER_PUSH], last[GEN ** LAYER_PULL], last[GEN ** LAYER_COUNT]
 
 
 def index_mle(zeta, n: Const):
@@ -1779,7 +1908,7 @@ def block_selector(sel_bits, zeta1_hi, idxc_hi, n: Const):
     return eq, rebuilt
 
 
-def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count):
+def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count):
     # Settle the bus against the six tables, in four steps: certify each side's
     # leaf-cube tiling, decompose the three GKR leaf values over it, run the ONE
     # table sumcheck they all reduce to, and bind the public input. Pooled claims
@@ -1794,7 +1923,8 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     # consecutive offsets force a valid tiling, and the grand product is
     # position-independent, so any tiling is sound. Pull's blocks mirror push's and
     # share zeta, so only push and count need offsets (pull's slots go unread).
-    fs = [fs0, fs1]
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    rate = StackBuf(8)
     gkr_claims = StackBuf(N_GKR_SIDES)
     gkr_claims[PUSH_SIDE] = claim_push
     gkr_claims[PULL_SIDE] = claim_pull
@@ -1903,14 +2033,22 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
                         coord_val = COORD_CONST[ci]
                     if COORD_TYPE[ci] == COORD_KIND_COL:
                         if COORD_FRESH[ci] == 1:
-                            fs, coord_val, cursor = fs_next(fs, cursor)
+                            if COORD_FRESH_POS[ci] % 4 == 0:
+                                if COORD_FRESH_POS[ci] != 0:
+                                    sp = fs_perm(sp, rate, 4)
+                                    rate = StackBuf(8)
+                            coord_val, cursor = fs_next(rate, COORD_FRESH_POS[ci] % 4, cursor)
                             claim_pool[GEN ** COORD_CLAIM_SLOT[ci]] = coord_val
                             claim_cplen_g[GEN ** COORD_CLAIM_SLOT[ci]] = kappa_g  # cplen = block kappa
                         else:
                             coord_val = claim_pool[GEN ** COORD_CLAIM_SLOT[ci]]
                     if COORD_TYPE[ci] == COORD_KIND_GCOL:
                         if COORD_FRESH[ci] == 1:
-                            fs, rawv, cursor = fs_next(fs, cursor)
+                            if COORD_FRESH_POS[ci] % 4 == 0:
+                                if COORD_FRESH_POS[ci] != 0:
+                                    sp = fs_perm(sp, rate, 4)
+                                    rate = StackBuf(8)
+                            rawv, cursor = fs_next(rate, COORD_FRESH_POS[ci] % 4, cursor)
                             claim_pool[GEN ** COORD_CLAIM_SLOT[ci]] = rawv
                             claim_cplen_g[GEN ** COORD_CLAIM_SLOT[ci]] = kappa_g
                         else:
@@ -1966,7 +2104,7 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     # kappa = tau, so it holds structurally, but zc_peq below reads zeta[..n] and
     # zeta only holds mu coords: unwritten heap there is prover-chosen.
     assert log(g_bus_mu / g_zc_n) < COUNT_BITS
-    fs, zc_xi = squeeze(fs)
+    sp, zc_xi = squeeze(sp, rate, (N_FRESH + 3) % 4 + 1)
     zc_xi_pows = StackBuf(N_ETA_POWS)
     zc_xi_pows[0] = 1
     for k in unroll(1, N_ETA_POWS):
@@ -1985,24 +2123,22 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     # only the per-table weights below.
     zc_rounds = HeapBuf((g_zc_n * GEN) ** ROUND_SLOTS)
     zc_cprod = HeapBuf(g_zc_n * GEN)  # the challenges bound so far, multiplied
-    zc_rounds[GEN ** ROUND_FS0] = fs[0]
-    zc_rounds[GEN ** ROUND_FS1] = fs[1]
+    fs_store(zc_rounds, ROUND_FS, 1, sp)
     zc_rounds[GEN ** ROUND_CURSOR] = cursor
     zc_rounds[GEN ** ROUND_CLAIM] = bus_target
     zc_cprod[GEN ** 0] = 1
     for xk in mul_range(1, g_zc_n):
         rd = zc_rounds * xk ** ROUND_SLOTS
-        nfs0, nfs1, ncur, nclaim, rk = sumcheck_round4(rd[GEN ** ROUND_FS0], rd[GEN ** ROUND_FS1], rd[GEN ** ROUND_CURSOR], rd[GEN ** ROUND_CLAIM])
+        ncur, nclaim, rk = sumcheck_round4(rd, rd[GEN ** ROUND_CURSOR], rd[GEN ** ROUND_CLAIM])
         chi[g_zc_n * INV_GEN / xk] = rk  # g^(n-1-j): the variable round j binds
         nxt = rd * GEN ** ROUND_SLOTS
-        nxt[GEN ** ROUND_FS0] = nfs0
-        nxt[GEN ** ROUND_FS1] = nfs1
         nxt[GEN ** ROUND_CURSOR] = ncur
         nxt[GEN ** ROUND_CLAIM] = nclaim
         # cprod is the weight of a table that joins here; peq below is the rest
         zc_cprod[xk * GEN] = zc_cprod[xk] * rk
     zc_last = zc_rounds * g_zc_n ** ROUND_SLOTS
-    fs = [zc_last[GEN ** ROUND_FS0], zc_last[GEN ** ROUND_FS1]]
+    sp = fs_load(zc_last, ROUND_FS, 1)
+    rate = StackBuf(8)
     cursor = zc_last[GEN ** ROUND_CURSOR]
     claim = zc_last[GEN ** ROUND_CLAIM]
     # peq[g^tau] = eq(zeta[..tau], chi[..tau]), as a prefix chain.
@@ -2014,9 +2150,13 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     for t in unroll(0, N_TABLES):
         tau_g = dims_g[GEN ** (t + 1)]
         col_evals = StackBuf(TABLE_COLS_CAP)
-        for k in unroll(0, N_TABLE_COLS[t]):
-            fs, e, cursor = fs_next(fs, cursor)
-            col_evals[k] = e
+        for pos in unroll(TABLE_COL_BASE[t], TABLE_COL_BASE[t] + N_TABLE_COLS[t]):
+            if pos % 4 == 0:
+                if pos != 0:
+                    sp = fs_perm(sp, rate, 4)
+                    rate = StackBuf(8)
+            e, cursor = fs_next(rate, pos % 4, cursor)
+            col_evals[pos - TABLE_COL_BASE[t]] = e
             claim_pool[GEN ** claim_idx] = e
             claim_cplen_g[GEN ** claim_idx] = tau_g  # cplen = tau_t
             claim_idx += 1
@@ -2077,7 +2217,7 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     # that limb's line through the public words, lo_0 + rm*(lo_0 + lo_1) and so
     # on, which the statement alone determines. canonical_limbs binds each word's
     # limbs and proves its top limb zero, so the top claim is zero (doc sec:e2e-pi).
-    fs, rm = squeeze(fs)
+    sp, rm = squeeze(sp, rate, (N_COL_EVALS + 3) % 4 + 1)
     lo_0, hi_0 = canonical_limbs(pi_0)
     lo_1, hi_1 = canonical_limbs(pi_1)
     claim_pool[GEN ** claim_idx] = lo_0 + rm * (lo_0 + lo_1)
@@ -2086,7 +2226,7 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     claim_idx += 1
     claim_pool[GEN ** claim_idx] = 0
     claim_idx += 1
-    return fs[0], fs[1], cursor, g_zc_n, bc_share, rm
+    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_zc_n, bc_share, rm
 
 
 @inline
@@ -2233,50 +2373,60 @@ def keccak_round(rd, pp, pt):
     # KR_CAP apart) to the next: degree two with the eq factor pulled out, the
     # prover sending g(1) and g(2). With r the claim's coordinate pp[0] and d = r +
     # rho, h(rho) = claim + d g(1) + (r + rho^2) g(2), g(0) being fixed by the claim.
-    fs = [rd[GEN ** (KR_FS0 * KR_CAP)], rd[GEN ** (KR_FS1 * KR_CAP)]]
+    sp = fs_load(rd, KR_FS, KR_CAP)
     cur = rd[GEN ** (KR_CURSOR * KR_CAP)]
     r_eq = pp[1]
-    fs, g_1, cur = fs_next(fs, cur)
-    fs, g_2, cur = fs_next(fs, cur)
-    fs, rho = squeeze(fs)
+    rate = StackBuf(8)
+    g_1, cur = fs_next(rate, 0, cur)
+    g_2, cur = fs_next(rate, 1, cur)
+    sp, rho = squeeze(sp, rate, 2)
     pt[1] = rho
     gap = r_eq + rho
     eq_factor = 1 + gap
     nxt = rd * GEN
-    nxt[GEN ** (KR_FS0 * KR_CAP)] = fs[0]
-    nxt[GEN ** (KR_FS1 * KR_CAP)] = fs[1]
+    fs_store(nxt, KR_FS, KR_CAP, sp)
     nxt[GEN ** (KR_CURSOR * KR_CAP)] = cur
     nxt[GEN ** (KR_CLAIM * KR_CAP)] = eq_factor * (rd[GEN ** (KR_CLAIM * KR_CAP)] + gap * g_1 + (r_eq + rho * rho) * g_2)
     nxt[GEN ** (KR_SCALE * KR_CAP)] = rd[GEN ** (KR_SCALE * KR_CAP)] * eq_factor
     return
 
 
-def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first: Const, odd: Const):
+def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, half_g, y_last, claim, out, iota, first: Const, odd: Const):
     # One layer (keccak_gkr::protocol::verify_layer): the claim on the states after
     # a round becomes one on the states before it. A claim's position weights are
     # never written out: they are the transpose of the linear layer applied to a
     # lane table times the eq table of six slice coordinates, which is all the
     # record keeps, and what `keccak_form` evaluates them from.
-    fs = [fs0, fs1]
+    # The first layer starts with the committed outputs' value waiting in the sponge, its
+    # two rate cells p0 and p1.
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    rate = StackBuf(8)
+    if first == 1:
+        rate[0] = p0
+        rate[1] = p1
     mu = StackBuf(KECCAK_PACK)
     for i in unroll(0, KECCAK_PACK):
         mu[i] = claim[GEN ** (KC_MU + i)]
     # The product polynomial carries the claim.
     product = StackBuf(KECCAK_PROD_BITS)
     projected = 0
-    for k in unroll(0, KECCAK_PROD_BITS):
-        # fs_next, the word read straight into its cell.
-        product[k] = cursor[GEN ** k]
-        coefficient = product[k]
-        fs = obs(fs, coefficient)
+    for pos in unroll(first, first + KECCAK_PROD_BITS):
+        # fs_next, the word read straight into its cell, k = pos - first.
+        product[pos - first] = cursor[GEN ** (pos - first)]
+        coefficient = product[pos - first]
+        if pos % 4 == 0:
+            if pos != 0:
+                sp = fs_perm(sp, rate, 4)
+                rate = StackBuf(8)
+        fs_pack(rate, pos % 4, coefficient, DS_OBSERVE)
         reader = 0
-        for t in unroll(KECCAK_PROJ_START[k], KECCAK_PROJ_START[k + 1]):
+        for t in unroll(KECCAK_PROJ_START[pos - first], KECCAK_PROJ_START[pos - first + 1]):
             reader += mu[KECCAK_PROJ_IDX[t]]
         projected += reader * coefficient
     cursor = cursor * GEN ** KECCAK_PROD_BITS
     assert projected + iota * claim[GEN ** KC_KAPPA] == claim[GEN ** KC_VALUE]
     # At a random point a pack is one field element.
-    fs, s = squeeze(fs)
+    sp, s = squeeze(sp, rate, (first + KECCAK_PROD_BITS + 3) % 4 + 1)
     s_powers = StackBuf(KECCAK_EMBED_BITS)
     s_powers[0] = 1
     for b in unroll(1, KECCAK_EMBED_BITS):
@@ -2398,8 +2548,7 @@ def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first:
     prev_point = claim[GEN ** KC_POINT]
     point = HeapBuf(y_g)
     rounds = HeapBuf(KR_SLOTS * KR_CAP)
-    rounds[GEN ** (KR_FS0 * KR_CAP)] = fs[0]
-    rounds[GEN ** (KR_FS1 * KR_CAP)] = fs[1]
+    fs_store(rounds, KR_FS, KR_CAP, sp)
     rounds[GEN ** (KR_CURSOR * KR_CAP)] = cursor
     rounds[GEN ** (KR_CLAIM * KR_CAP)] = value
     rounds[GEN ** (KR_SCALE * KR_CAP)] = 1
@@ -2408,24 +2557,24 @@ def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first:
         sq = x2 * x2
         pp = prev_point * sq
         pt = point * sq
-        round_fs = [rd[GEN ** (KR_FS0 * KR_CAP)], rd[GEN ** (KR_FS1 * KR_CAP)]]
+        round_sp = fs_load(rd, KR_FS, KR_CAP)
         cur_i = rd[GEN ** (KR_CURSOR * KR_CAP)]
         run = rd[GEN ** (KR_CLAIM * KR_CAP)]
         scale = rd[GEN ** (KR_SCALE * KR_CAP)]
         for q in unroll(0, 2):
             # As in keccak_round.
             r_eq = pp[GEN ** q]
-            round_fs, g_1, cur_i = fs_next(round_fs, cur_i)
-            round_fs, g_2, cur_i = fs_next(round_fs, cur_i)
-            round_fs, rho = squeeze(round_fs)
+            rate = StackBuf(8)
+            g_1, cur_i = fs_next(rate, 0, cur_i)
+            g_2, cur_i = fs_next(rate, 1, cur_i)
+            round_sp, rho = squeeze(round_sp, rate, 2)
             pt[GEN ** q] = rho
             gap = r_eq + rho
             eq_factor = 1 + gap
             run = eq_factor * (run + gap * g_1 + (r_eq + rho * rho) * g_2)
             scale = scale * eq_factor
         nxt = rd * GEN
-        nxt[GEN ** (KR_FS0 * KR_CAP)] = round_fs[0]
-        nxt[GEN ** (KR_FS1 * KR_CAP)] = round_fs[1]
+        fs_store(nxt, KR_FS, KR_CAP, round_sp)
         nxt[GEN ** (KR_CURSOR * KR_CAP)] = cur_i
         nxt[GEN ** (KR_CLAIM * KR_CAP)] = run
         nxt[GEN ** (KR_SCALE * KR_CAP)] = scale
@@ -2433,23 +2582,25 @@ def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first:
         sq = half_g * half_g
         keccak_round(rounds * half_g, prev_point * sq, point * sq)
     last = rounds * y_last
-    fs = [last[GEN ** (KR_FS0 * KR_CAP)], last[GEN ** (KR_FS1 * KR_CAP)]]
+    sp = fs_load(last, KR_FS, KR_CAP)
     cursor = last[GEN ** (KR_CURSOR * KR_CAP)]
     value = last[GEN ** (KR_CLAIM * KR_CAP)]
     # The bit position: degree three, the weights being one more multilinear factor.
     local = HeapBuf(KECCAK_LOCAL_BITS)
     for i in unroll(0, KECCAK_LOCAL_BITS):
-        fs, c0, cursor = fs_next(fs, cursor)
-        fs, c2, cursor = fs_next(fs, cursor)
-        fs, c3, cursor = fs_next(fs, cursor)
-        fs, rho = squeeze(fs)
+        rate = StackBuf(8)
+        c0, cursor = fs_next(rate, 0, cursor)
+        c2, cursor = fs_next(rate, 1, cursor)
+        c3, cursor = fs_next(rate, 2, cursor)
+        sp, rho = squeeze(sp, rate, 3)
         local[GEN ** i] = rho
         # c1 = value + c2 + c3, so h(rho) = c0 + rho (value + (1 + rho) (c2 + (1 + rho) c3)).
         rho1 = 1 + rho
         value = c0 + rho * (value + rho1 * (c2 + rho1 * c3))
-    fs, t0, cursor = fs_next(fs, cursor)
-    fs, t1, cursor = fs_next(fs, cursor)
-    fs, t2, cursor = fs_next(fs, cursor)
+    rate = StackBuf(8)
+    t0, cursor = fs_next(rate, 0, cursor)
+    t1, cursor = fs_next(rate, 1, cursor)
+    t2, cursor = fs_next(rate, 2, cursor)
     # The claim's weights at the local point.
     f_lanes = StackBuf(2 ** (KECCAK_LANE_BITS + 1) - 2)
     eqtree_frame(local * GEN ** KECCAK_Z_BITS, f_lanes, KECCAK_LANE_BITS, KECCAK_LANES)
@@ -2469,7 +2620,7 @@ def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first:
         weight_at_local[0] = keccak_form(prev_lanes, shifts, f_lanes, LANE_OFF)
     assert last[GEN ** (KR_SCALE * KR_CAP)] * weight_at_local[0] * (kappa * t0 + (kappa + t1) * t2) == value
     # t[k] = sum_j eq[j] T[j + k]: one claim on the state before chi.
-    fs, beta = squeeze(fs)
+    sp, beta = squeeze(sp, rate, 3)
     out[GEN ** KC_VALUE] = t0 + beta * (t1 + beta * t2)
     out[GEN ** KC_POINT] = point
     out[GEN ** KC_LOCAL] = local
@@ -2485,28 +2636,35 @@ def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first:
     for z in unroll(0, BASE_FIELD_BITS):
         slices_out[GEN ** z] = slices[SLICE_OFF + z]
     out[GEN ** KC_SLICES] = slices_out
-    return fs[0], fs[1], cursor
+    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor
 
 
-def keccak_plain_rounds(fs0, fs1, cursor, value, point, n: Const):
-    # n rounds of a degree-2 sumcheck with no equality factor.
-    fs = [fs0, fs1]
+def keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, value, point, n: Const, k0: Const):
+    # n rounds of a degree-2 sumcheck with no equality factor. With k0 = 1 one scalar
+    # already waits in the sponge, rate cells p0 and p1, and the first round's words
+    # join it.
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
     for i in unroll(0, n):
-        fs, c0, cursor = fs_next(fs, cursor)
-        fs, c2, cursor = fs_next(fs, cursor)
+        rate = StackBuf(8)
+        if i == 0:
+            if k0 == 1:
+                rate[0] = p0
+                rate[1] = p1
+                c0, cursor = fs_next(rate, 1, cursor)
+                c2, cursor = fs_next(rate, 2, cursor)
+                sp, rho = squeeze(sp, rate, 3)
+            else:
+                c0, cursor = fs_next(rate, 0, cursor)
+                c2, cursor = fs_next(rate, 1, cursor)
+                sp, rho = squeeze(sp, rate, 2)
+        else:
+            c0, cursor = fs_next(rate, 0, cursor)
+            c2, cursor = fs_next(rate, 1, cursor)
+            sp, rho = squeeze(sp, rate, 2)
         c1 = value + c2
-        fs, rho = squeeze(fs)
         point[GEN ** i] = rho
         value = c0 + rho * (c1 + rho * c2)
-    return fs[0], fs[1], cursor, value
-
-
-def keccak_read_slices(fs0, fs1, cursor, out):
-    fs = [fs0, fs1]
-    for z in unroll(0, BASE_FIELD_BITS):
-        fs, w, cursor = fs_next(fs, cursor)
-        out[GEN ** z] = w
-    return fs[0], fs[1], cursor
+    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, value
 
 
 @inline
@@ -2526,7 +2684,7 @@ def keccak_slot_lanes(slot, segment_point, out, first: Const, count: Const):
     return
 
 
-def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
+def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_vals, slices):
     # SHA3 validity (keccak_gkr::verify): a random claim on every segment's output,
     # KECCAK_DEPTH layers down to the committed inputs, every segment at once. The
     # last segment's output is the permutation's: the table's claims on its output
@@ -2535,8 +2693,11 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
     # openings of q_keccak, at the two points written to `z_vals` (tau +
     # QKECCAK_SLOT_LOG coordinates each, QKECCAK_VARS_CAP apart): the committed
     # outputs as words at the first, returned, and the 64 `slices` at the second.
-    # tau >= KECCAK_MIN_STEPS_LOG is certified, so the pack count is a real count.
-    fs = [fs0, fs1]
+    # tau >= KECCAK_MIN_STEPS_LOG is certified, so the pack count is a real count. It
+    # also draws the ring-switching map's first challenge, which the last slices wait
+    # for, and returns it.
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    no_rate = StackBuf(8)
     pack_g = tau_g * INV_GEN ** KECCAK_PACK_LOG
     y_g = pack_g * GEN ** KECCAK_SEG_LOG
     # A layer runs y = log(y_g) rounds two at a time: y_g = half_g^2 g^odd, from y's
@@ -2563,13 +2724,20 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
         point[xt] = chi_pack[xt]
     segment = point * pack_g
     for i in unroll(0, KECCAK_SEG_LOG):
-        fs, r = squeeze(fs)
+        sp, r = squeeze(sp, no_rate, 0)
         segment[GEN ** i] = r
     r_lane = HeapBuf(KECCAK_LANE_BITS)
     for i in unroll(0, KECCAK_LANE_BITS):
-        fs, r = squeeze(fs)
+        sp, r = squeeze(sp, no_rate, 0)
         r_lane[GEN ** i] = r
-    fs, value, cursor = fs_next(fs, cursor)
+    # The committed outputs' value waits in the sponge until the first layer's words.
+    value_rate = StackBuf(8)
+    value, cursor = fs_next(value_rate, 0, cursor)
+    fs0 = sp[8]
+    fs1 = sp[9]
+    fs2 = sp[10]
+    fs3 = sp[11]
+    fs4 = sp[12]
 
     # The first claim combines the output lanes as words: instance weights
     # eq(chi_low), position weights eq(r_lane) on the lane times x^z on the bit.
@@ -2627,18 +2795,17 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
             iota += segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + m)] * flipped
         # odd_g is g^0 or g^1, its exponent a pinned bit.
         if step == 0:
-            fs0, fs1, cursor = match(log(odd_g), range(0, 2), lambda odd: keccak_layer(fs[0], fs[1], cursor, y_g, half_g, y_last, claim, claim * GEN ** KC_SIZE, iota, 1, odd))
+            fs0, fs1, fs2, fs3, fs4, cursor = match(log(odd_g), range(0, 2), lambda odd: keccak_layer(fs0, fs1, fs2, fs3, fs4, value_rate[0], value_rate[1], cursor, y_g, half_g, y_last, claim, claim * GEN ** KC_SIZE, iota, 1, odd))
         else:
-            fs0, fs1, cursor = match(log(odd_g), range(0, 2), lambda odd: keccak_layer(fs[0], fs[1], cursor, y_g, half_g, y_last, claim, claim * GEN ** KC_SIZE, iota, 0, odd))
-        fs = [fs0, fs1]
+            fs0, fs1, fs2, fs3, fs4, cursor = match(log(odd_g), range(0, 2), lambda odd: keccak_layer(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, y_g, half_g, y_last, claim, claim * GEN ** KC_SIZE, iota, 0, odd))
 
     # ---- the outputs, whose instance weights are an eq already ----
     # Their position weights are a word's, so the 64 slices are only needed as
     # the word they add up to: q_keccak itself at the point.
     out_slot = out_point * tau_g
-    fs0, fs1, cursor, out_value = keccak_plain_rounds(fs[0], fs[1], cursor, value, out_slot, QKECCAK_SLOT_LOG)
-    fs = [fs0, fs1]
-    fs, word, cursor = fs_next(fs, cursor)
+    fs0, fs1, fs2, fs3, fs4, cursor, out_value = keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, value, out_slot, QKECCAK_SLOT_LOG, 0)
+    word_rate = StackBuf(8)
+    word, cursor = fs_next(word_rate, 0, cursor)
     out_lanes = StackBuf(KECCAK_LANES)
     keccak_slot_lanes(out_slot, point * pack_g, out_lanes, 1, KECCAK_SEGMENTS - 1)
     lanes_sum = 0
@@ -2651,15 +2818,24 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
 
     # ---- the inputs: the instances of a pack first, then the slot ----
     last = claims * GEN ** (KECCAK_DEPTH * KC_SIZE)
-    fs0, fs1, cursor, low_value = keccak_plain_rounds(fs[0], fs[1], cursor, last[GEN ** KC_VALUE], in_point, KECCAK_PACK_LOG)
+    fs0, fs1, fs2, fs3, fs4, cursor, low_value = keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, word_rate[0], word_rate[1], cursor, last[GEN ** KC_VALUE], in_point, KECCAK_PACK_LOG, 1)
     low_tree = HeapBuf(2 ** (KECCAK_PACK_LOG + 1) - 2)
     eqtree(in_point, low_tree, KECCAK_PACK_LOG)
     mu_at_low = 0
     for i in unroll(0, KECCAK_PACK):
         mu_at_low += low_tree[GEN ** (2 ** KECCAK_PACK_LOG - 2 + i)] * last[GEN ** (KC_MU + i)]
     in_slot = in_point * tau_g
-    fs0, fs1, cursor, in_value = keccak_plain_rounds(fs0, fs1, cursor, low_value, in_slot, QKECCAK_SLOT_LOG)
-    fs0, fs1, cursor = keccak_read_slices(fs0, fs1, cursor, slices)
+    fs0, fs1, fs2, fs3, fs4, cursor, in_value = keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, low_value, in_slot, QKECCAK_SLOT_LOG, 0)
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
+    rate = StackBuf(8)
+    for z in unroll(0, BASE_FIELD_BITS):
+        if z % 4 == 0:
+            if z != 0:
+                sp = fs_perm(sp, rate, 4)
+                rate = StackBuf(8)
+        w, cursor = fs_next(rate, z % 4, cursor)
+        slices[GEN ** z] = w
+    sp, map_0 = squeeze(sp, rate, 4)
     last_point = last[GEN ** KC_POINT]
     in_lanes = StackBuf(KECCAK_LANES)
     keccak_slot_lanes(in_slot, last_point * pack_g, in_lanes, 0, KECCAK_SEGMENTS)
@@ -2679,7 +2855,7 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
     in_pack = in_point * GEN ** KECCAK_PACK_LOG
     for xt in mul_range(1, pack_g):
         in_pack[xt] = last_point[xt]
-    return fs0, fs1, cursor, word
+    return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, word, map_0
 
 
 @inline
@@ -2896,8 +3072,10 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     claim_cplen_g = HeapBuf(N_CLAIMS)
 
     # ---- seed (statement pre-bound: hinted sub pi + baked program digest) ----
-    fs = StackBuf(SHA3_STATE)
-    sha3([seed_0, seed_1], [pi_0, pi_1], fs)
+    # The sponge's first permutation takes the program digest and the statement as
+    # its rate, from the zero state.
+    sp = StackBuf(SHA3_STATE)
+    sha3([seed_0, seed_1], [pi_0, pi_1], sp, final=0)
     stream = HeapBuf(STREAM_CAP)
     hint_witness(stream[0:STREAM_CAP], "stream")
     cursor = stream  # the proof stream, replayed word by word (advance = * g)
@@ -2910,10 +3088,18 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # bring each count up to a power of two), so a height is all there is to
     # announce.
     sizes = StackBuf(N_TABLES + 1)
+    rate = StackBuf(8)
     for i in unroll(0, N_TABLES + 1):
-        fs, x, cursor = fs_next(fs, cursor)
+        if i % 4 == 0:
+            if i != 0:
+                sp = fs_perm(sp, rate, 4)
+                rate = StackBuf(8)
+        x, cursor = fs_next(rate, i % 4, cursor)
         sizes[i] = x
-    fs, log_inv_rate, cursor = fs_next(fs, cursor)
+    if const((N_TABLES + 1) % 4 == 0):
+        sp = fs_perm(sp, rate, 4)
+        rate = StackBuf(8)
+    log_inv_rate, cursor = fs_next(rate, (N_TABLES + 1) % 4, cursor)
     rate_sel = g_power_of_word(log_inv_rate) / GEN
     assert log(rate_sel) < LIG_N_RATES
     dims_g = HeapBuf(N_TABLES + 1)  # [g^log_mem, g^tau_0 .. g^tau_{N_TABLES-1}]
@@ -2948,8 +3134,15 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     zeta = HeapBuf(g_bus_mu)  # the ONE shared GKR point: exactly mu coords
 
     # ---- commitment root (2 words), kept for the opening phase ----
-    fs, commit_root_0, cursor = fs_next(fs, cursor)
-    fs, commit_root_1, cursor = fs_next(fs, cursor)
+    # The announcement's N_TABLES + 2 words, then the root's two, wait as one run.
+    if const((N_TABLES + 2) % 4 == 0):
+        sp = fs_perm(sp, rate, 4)
+        rate = StackBuf(8)
+    commit_root_0, cursor = fs_next(rate, (N_TABLES + 2) % 4, cursor)
+    if const((N_TABLES + 3) % 4 == 0):
+        sp = fs_perm(sp, rate, 4)
+        rate = StackBuf(8)
+    commit_root_1, cursor = fs_next(rate, (N_TABLES + 3) % 4, cursor)
     # A non-canonical half is rejected here (merkle.rs `scalars_to_hash`); the level
     # roots get the same treatment at their own read.
     root_cells = StackBuf(2)
@@ -2962,28 +3155,29 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # polynomial is read off at the challenge vector itself (doc sec:gp, sec:e2e-bc).
     bus_alpha = HeapBuf(N_TUPLE_BITS)
     for t in unroll(0, N_TUPLE_BITS):
-        fs, av = squeeze(fs)
+        if t == 0:
+            sp, av = squeeze(sp, rate, (N_TABLES + 3) % 4 + 1)
+        else:
+            sp, av = squeeze(sp, rate, 0)
         bus_alpha[GEN ** t] = av
     fp_w = HeapBuf(N_TUPLE_SLOTS)
     for x in unroll(0, N_TUPLE_SLOTS):
         fp_w[GEN ** x] = eq_weight(bus_alpha, N_TUPLE_BITS, x, 0)
-    fs, beta = squeeze(fs)
+    sp, beta = squeeze(sp, rate, 0)
 
     # ---- ONE GKR grand product: push, pull, and count RLC-batched ----
-    fs0, fs1, cursor, claim_push, claim_pull, claim_count = verify_bus_gkr(fs[0], fs[1], cursor, g_bus_mu, zeta)
-    fs = [fs0, fs1]
+    fs0, fs1, fs2, fs3, fs4, cursor, claim_push, claim_pull, claim_count = verify_bus_gkr(sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_bus_mu, zeta)
 
     # ---- the bus leaves, the table sumcheck, and the public-input claim ----
     chi = HeapBuf(SIZE_BITS)  # chi[i] = the challenge that bound variable i
-    fs0, fs1, cursor, g_zc_n, bc_share, rm = verify_tables(fs[0], fs[1], cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count)
-    fs = [fs0, fs1]
+    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_share, rm = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count)
 
     # ---- SHA3 validity, by GKR over the rounds ----
     tau_sha3_g = dims_g[GEN ** (TABLE_SHA3 + 1)]  # the SHA3 table's certified tau
     z_vals = HeapBuf(2 * QKECCAK_VARS_CAP)
     slices = HeapBuf(BASE_FIELD_BITS)
-    fs0, fs1, cursor, keccak_word = verify_keccak(fs[0], fs[1], cursor, tau_sha3_g, chi, claim_pool * GEN ** KECCAK_OUT_POOL, z_vals, slices)
-    fs = [fs0, fs1]
+    fs0, fs1, fs2, fs3, fs4, cursor, keccak_word, map_0 = verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_sha3_g, chi, claim_pool * GEN ** KECCAK_OUT_POOL, z_vals, slices)
+    sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
 
     # ---- stacked mixed opening: ring-switch front + claim combination ----
     # The input opening's slices were read and bound above; this block only binds
@@ -2993,8 +3187,10 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # multiplications.
     map_challenges = HeapBuf(6)  # len(RING_MAP_SHIFTS)
     c_table = HeapBuf(BASE_FIELD_BITS)
-    for stage in unroll(0, len(RING_MAP_SHIFTS)):
-        fs, map_challenge = squeeze(fs)
+    # verify_keccak drew the first, which the last slices waited for.
+    map_challenges[GEN ** 0] = map_0
+    for stage in unroll(1, len(RING_MAP_SHIFTS)):
+        sp, map_challenge = squeeze(sp, rate, 0)
         map_challenges[GEN ** stage] = map_challenge
     # Expand the same composition once for the later transparent-weight evaluation.
     # Before shift d, the populated coefficients are exactly at multiples of 2d; the
@@ -3019,7 +3215,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # claim on its committed outputs the power after the pool's last.
     # The committed lane of a step's input holds the padding bit the VM reads
     # without, a constant apart.
-    fs, lam_cl = squeeze(fs)
+    sp, lam_cl = squeeze(sp, rate, 0)
     target = target_in
     lam_pool = HeapBuf(N_CLAIMS)
     lam_pow = lam_cl
@@ -3045,7 +3241,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # dispatch independently for every inner proof in a mixed-rate batch.
     config_sel = size_sel * rate_sel ** LIG_N_LOG_SIZES
     assert log(config_sel) < LIG_N_CANDIDATES
-    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, fs[0], fs[1], target, commit_root_0, commit_root_1, cursor))
+    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, sp[8], sp[9], sp[10], sp[11], sp[12], target, commit_root_0, commit_root_1, cursor))
     # `stream` is a fixed-capacity witness transport. The shape fixes the exact
     # consumed prefix, whose every word is transcript-bound; the unused suffix
     # is outside the recursively verified proof and intentionally unconstrained.
@@ -4240,58 +4436,84 @@ def aggregate_claims(n_children_g, child_pi, child_fresh, child_carried, defer_s
     bytecode_star = hint_witness("bc_star_hint")
 
     # ---- one transcript over every child's statement and both its claim sets ----
+    # The count, padded to a full rate, then each child's words, padded likewise: a
+    # child starts by permuting the full rate the previous one left waiting, which
+    # every record carries (PEND_SLOTS) beside its capacity.
     fresh_row = HeapBuf(n_children_g)
     carried_row = HeapBuf(n_children_g)
-    agg_fs = [AGG_SEED_0, AGG_SEED_1]
-    agg_fs = obs(agg_fs, n_children_g)
-    absorb = HeapBuf((n_children_g * GEN) ** PAIR_SLOTS)
-    absorb[GEN ** 0] = agg_fs[0]
-    absorb[GEN ** 1] = agg_fs[1]
+    seed = [AGG_SEED_0, AGG_SEED_1, AGG_SEED_2, AGG_SEED_3, AGG_SEED_4]
+    rate = StackBuf(8)
+    fs_pack(rate, 0, n_children_g, DS_OBSERVE)
+    for j in unroll(1, 4):
+        fs_pack(rate, j, 0, DS_OBSERVE)
+    absorb = HeapBuf((n_children_g * GEN) ** PEND_SLOTS)
+    for j in unroll(0, FS_CELLS):
+        absorb[GEN ** j] = seed[j]
+    for j in unroll(0, 8):
+        absorb[GEN ** (FS_CELLS + j)] = rate[j]
     for xc in mul_range(1, n_children_g):
-        row = absorb * xc ** PAIR_SLOTS
-        st = [row[GEN ** 0], row[GEN ** 1]]
+        row = absorb * xc ** PEND_SLOTS
+        row_cap = fs_load(row, 0, 1)
+        st = fs_perm_pending(row_cap, row, FS_CELLS)
+        rate = StackBuf(8)
         pi = xc * xc
-        st = obs(st, child_pi[pi])
-        st = obs(st, child_pi[pi * GEN])
         fresh = child_fresh * xc ** DEFER_SIZE
         fresh_row[xc] = fresh
-        for k in unroll(0, DEFER_SIZE):
-            st = obs(st, fresh[GEN ** k])
         carried = child_carried * xc ** DEFER_STMT_CELLS
         carried_row[xc] = carried
-        for k in unroll(0, DEFER_STMT_CELLS):
-            st = obs(st, carried[GEN ** k])
-        row[GEN ** PAIR_SLOTS] = st[0]
-        row[GEN ** (PAIR_SLOTS + 1)] = st[1]
-    absorbed = absorb * n_children_g ** PAIR_SLOTS
+        for pos in unroll(0, AGG_CHILD_WORDS + AGG_CHILD_PAD):
+            if pos % 4 == 0:
+                if pos != 0:
+                    st = fs_perm(st, rate, 4)
+                    rate = StackBuf(8)
+            if const(pos // 2 == 0):
+                fs_pack(rate, pos % 4, child_pi[pi * GEN ** pos], DS_OBSERVE)
+            if const(pos // 2 != 0):
+                if const((pos - 2) // DEFER_SIZE == 0):
+                    fs_pack(rate, pos % 4, fresh[GEN ** (pos - 2)], DS_OBSERVE)
+                if const((pos - 2) // DEFER_SIZE != 0):
+                    if const((pos - 2 - DEFER_SIZE) // DEFER_STMT_CELLS == 0):
+                        fs_pack(rate, pos % 4, carried[GEN ** (pos - 2 - DEFER_SIZE)], DS_OBSERVE)
+                    if const((pos - 2 - DEFER_SIZE) // DEFER_STMT_CELLS != 0):
+                        fs_pack(rate, pos % 4, 0, DS_OBSERVE)
+        nxt = row * GEN ** PEND_SLOTS
+        fs_store(nxt, 0, 1, st)
+        for j in unroll(0, 8):
+            nxt[GEN ** (FS_CELLS + j)] = rate[j]
+    absorbed = absorb * n_children_g ** PEND_SLOTS
 
     # ---- the batching sumcheck (BYTECODE_VARS variables, 2 claims per child) ----
     # Fresh and carried share one layout (point, then value), so the two differ
-    # only in which buffer they come from.
+    # only in which buffer they come from. The first child's first challenge takes
+    # the last full rate; every later record's pending cells are zero.
     lam_bc = HeapBuf(n_children_g * n_children_g)
     bc_chain = HeapBuf((n_children_g * GEN) ** ACC_SLOTS)
-    bc_chain[GEN ** ACC_FS0] = absorbed[GEN ** 0]
-    bc_chain[GEN ** ACC_FS1] = absorbed[GEN ** 1]
+    for j in unroll(0, FS_CELLS):
+        bc_chain[GEN ** (ACC_FS + j)] = absorbed[GEN ** j]
+    for j in unroll(0, 8):
+        bc_chain[GEN ** (ACC_PEND + j)] = absorbed[GEN ** (FS_CELLS + j)]
     bc_chain[GEN ** ACC_VALUE] = 0
     for xc in mul_range(1, n_children_g):
         row = bc_chain * xc ** ACC_SLOTS
-        st = [row[GEN ** ACC_FS0], row[GEN ** ACC_FS1]]
-        st, lam_fresh = squeeze(st)
-        st, lam_carried = squeeze(st)
+        row_cap = fs_load(row, ACC_FS, 1)
+        st = fs_perm_pending(row_cap, row, ACC_PEND)
+        lam_fresh = challenge_from_state(st)
+        no_rate = StackBuf(8)
+        st, lam_carried = squeeze(st, no_rate, 0)
         pair = xc * xc
         lam_bc[pair] = lam_fresh
         lam_bc[pair * GEN] = lam_carried
         fresh = fresh_row[xc]
         carried = carried_row[xc]
         nxt = row * GEN ** ACC_SLOTS
-        nxt[GEN ** ACC_FS0] = st[0]
-        nxt[GEN ** ACC_FS1] = st[1]
+        fs_store(nxt, ACC_FS, 1, st)
+        for j in unroll(0, 8):
+            nxt[GEN ** (ACC_PEND + j)] = 0
         nxt[GEN ** ACC_VALUE] = row[GEN ** ACC_VALUE] + lam_fresh * fresh[GEN ** FRESH_BC_VALUE] + lam_carried * carried[GEN ** DEFER_STMT_BC_VALUE]
     bc_end = bc_chain * n_children_g ** ACC_SLOTS
-    agg_fs = [bc_end[GEN ** ACC_FS0], bc_end[GEN ** ACC_FS1]]
     bc_running = bc_end[GEN ** ACC_VALUE]
     bc_point = HeapBuf(BYTECODE_VARS)
-    fs0, fs1, bc_running = batch_sumcheck(agg_fs[0], agg_fs[1], bc_msgs, bc_running, bc_point, BYTECODE_VARS)
+    fs0, fs1, fs2, fs3, fs4, bc_running = batch_sumcheck(bc_end[GEN ** ACC_FS], bc_end[GEN ** (ACC_FS + 1)], bc_end[GEN ** (ACC_FS + 2)], bc_end[GEN ** (ACC_FS + 3)], bc_end[GEN ** (ACC_FS + 4)], bc_msgs, bc_running, bc_point, BYTECODE_VARS)
     bc_wsum = HeapBuf(n_children_g * GEN)
     bc_wsum[GEN ** 0] = 0
     for xc in mul_range(1, n_children_g):

@@ -53,7 +53,7 @@ use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
 pub use lean_da::{DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
 use leanvm_core::cpu::{Program, ProveError, prove, verify};
 use leanvm_core::leaf::{Block, Coord};
-use leanvm_core::transcript::FiatShamirState;
+use leanvm_core::transcript::{FiatShamirState, RATE_SCALARS};
 use primitives::field::{F64, F192, G, g_pow};
 use primitives::multilinear::mle_eval_par;
 use xmss::{XmssPublicKey, XmssSignature};
@@ -141,14 +141,6 @@ fn dsl_u128(value: F192) -> u128 {
 
 fn f192_literal(f: F192) -> String {
     format!("f192({},{},{})", f.c0, f.c1, f.c2)
-}
-
-/// Pack the Fiat-Shamir state's four K lanes as two canonical 128-bit VM cells.
-fn pack_state(state: [F64; 4]) -> [F192; 2] {
-    [
-        F192::new(state[0].0, state[1].0, 0),
-        F192::new(state[2].0, state[3].0, 0),
-    ]
 }
 
 /// Pack a 32-byte digest as the canonical 128+128 cell pair the VM's hash
@@ -954,21 +946,26 @@ fn aggregate_deferred_claims(
     assert_eq!(child_count, carried_claims.len(), "one carried claim per child");
     let kbcv = bytecode_vars();
 
+    // The count and each child's words are padded with zeros to whole rates, so the
+    // guest's loop over the children finds every child starting the same way.
     let mut transcript = FiatShamirState::from_label(RECURSION_AGG_LABEL);
+    let pad = |transcript: &mut FiatShamirState, n: usize| {
+        for _ in 0..n.next_multiple_of(RATE_SCALARS) - n {
+            transcript.observe(F192::ZERO);
+        }
+    };
     transcript.observe(count(child_count));
+    pad(&mut transcript, 1);
     for (subproof, carried) in subproofs.iter().zip(carried_claims) {
-        transcript.observe(subproof.public_input[0]);
-        transcript.observe(subproof.public_input[1]);
-        for &value in &subproof.bytecode_row_point {
+        let mut words = vec![subproof.public_input[0], subproof.public_input[1]];
+        words.extend(&subproof.bytecode_row_point);
+        words.extend(&subproof.bytecode_selector_point);
+        words.push(subproof.bytecode_value);
+        words.extend(carried.cells());
+        for &value in &words {
             transcript.observe(value);
         }
-        for &value in &subproof.bytecode_selector_point {
-            transcript.observe(value);
-        }
-        transcript.observe(subproof.bytecode_value);
-        for value in carried.cells() {
-            transcript.observe(value);
-        }
+        pad(&mut transcript, words.len());
     }
 
     let _span = tracing::info_span!("Bytecode batch", vars = kbcv).entered();
@@ -2299,6 +2296,21 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("COORD_TYPE", literals(coordinates.iter().map(|c| c.kind)));
     ps("COORD_CONST", literals(coordinates.iter().map(|c| c.constant)));
     ps("COORD_FRESH", literals(coordinates.iter().map(|c| c.fresh)));
+    // A fresh coordinate's place in the run of words the decomposition absorbs, which
+    // decides where it waits in the Fiat-Shamir sponge.
+    let fresh_pos: Vec<usize> = coordinates
+        .iter()
+        .scan(0usize, |n, c| {
+            let pos = *n;
+            *n += c.fresh;
+            Some(pos)
+        })
+        .collect();
+    ps("COORD_FRESH_POS", literals(&fresh_pos));
+    ps(
+        "N_FRESH",
+        coordinates.iter().map(|c| c.fresh).sum::<usize>().to_string(),
+    );
     ps("COORD_CLAIM_SLOT", literals(coordinates.iter().map(|c| c.claim_slot)));
     ps("COORD_TERM_OFF", literals(coordinates.iter().map(|c| c.terms.start)));
     ps("COORD_TERM_COUNT", literals(coordinates.iter().map(|c| c.terms.len())));
@@ -2339,6 +2351,16 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         .map(|t| t.n_committed_columns())
         .collect();
     ps("N_TABLE_COLS", literals(&committed));
+    let col_base: Vec<usize> = committed
+        .iter()
+        .scan(0usize, |n, &c| {
+            let base = *n;
+            *n += c;
+            Some(base)
+        })
+        .collect();
+    ps("TABLE_COL_BASE", literals(&col_base));
+    ps("N_COL_EVALS", committed.iter().sum::<usize>().to_string());
     ps("TABLE_COLS_CAP", (committed.iter().max().unwrap() + 1).to_string());
     // ---- the Keccak reduction (`keccak_gkr`), as index lists the guest unrolls ----
     {
@@ -2674,9 +2696,16 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("LOG2_BYTECODE_COLS", log2_bc_cols.to_string());
     ps("DEFER_SIZE", (kbc + log2_bc_cols + 1).to_string());
     ps("BYTECODE_VARS", (kbc + log2_bc_cols).to_string());
-    let agg_state = pack_state(FiatShamirState::from_label(RECURSION_AGG_LABEL).state());
-    ps("AGG_SEED_0", dsl_u128(agg_state[0]).to_string());
-    ps("AGG_SEED_1", dsl_u128(agg_state[1]).to_string());
+    let agg_seed = FiatShamirState::from_label(RECURSION_AGG_LABEL).capacity_cells();
+    for (c, cell) in agg_seed.iter().enumerate() {
+        ps(&format!("AGG_SEED_{c}"), dsl_u128(*cell).to_string());
+    }
+    // A child's words: its statement's two, its fresh claim, and its carried claim's cells.
+    let child_words = 2 + (kbc + log2_bc_cols + 1) + (kbc + log2_bc_cols + 1);
+    ps(
+        "AGG_CHILD_PAD",
+        (child_words.next_multiple_of(RATE_SCALARS) - child_words).to_string(),
+    );
 
     // ---- LeanDA (`doc/leanvm` §sec:leanda) ----
     let (pad_cell, pad_row) = lean_da::padding_digests();

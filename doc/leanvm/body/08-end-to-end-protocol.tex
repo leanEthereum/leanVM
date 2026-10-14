@@ -47,7 +47,17 @@ The prover can thus leverage these \emph{closed walks} to fill every table to it
 
 \subsection{Fiat Shamir instantiation}\label{sec:e2e-fiat-shamir}
 
-TODO
+The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3's duplex challenger~\cite{Plonky3}, over the permutation the \texttt{SHA3} instruction computes: Keccak-$f[1600]$ after XORing the padding's last bit into lane $16$ (\S\ref{sec:tab-sha3}). Its state is $25$ lanes of $64$ bits. The \emph{rate} is lanes $0,\dots,15$, the eight message cells the instruction reads, and the \emph{capacity} lanes $16,\dots,24$, $576$ bits.
+
+\paragraph{Seed.} The first permutation takes, from the zero state, the $256$-bit IV (a digest of the bytecode and of the label fixing the Keccak reduction) in lanes $0,\dots,3$ and the $256$-bit public input in lanes $4,\dots,7$. The statement is bound before any challenge is drawn.
+
+\paragraph{Absorbing.} A scalar of $\E$ sent by the prover waits until a permutation takes it, at most four of them. A permutation writes the $i$-th waiting scalar over lanes $4i,\dots,4i+3$, as its three $\K$-limbs followed by a domain tag ($1$ for a sent scalar, $4$ for a grinding nonce), zeroes the rest of the rate and keeps the capacity. A fifth scalar first permutes the four waiting. The tags are nonzero, so a sent zero never reads as the zeroed rate.
+
+\paragraph{Squeezing.} Every challenge is a permutation of its own, taking whatever waits; the challenge is the first three lanes of its output, read as an element of $\E$. So a round's message and its challenge cost one permutation, and the recursion guest replays a permutation as one \texttt{SHA3} instruction whose message cells are the waiting scalars and whose capacity cells are the previous output's.
+
+\paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. With $b=0$ the nonce must be zero.
+
+Merkle trees hash with SHA3-256 in the cell encoding, apart from the sponge.
 
 \subsection{The unrolled protocol}\label{sec:e2e-unrolled}
 

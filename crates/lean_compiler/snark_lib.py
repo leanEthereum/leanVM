@@ -207,6 +207,7 @@ def sha3(
     state=None,
     len: Optional[int] = None,
     final: Optional[int] = None,
+    cap=None,
 ) -> None:
     """One block of the leanVM hash (SHA3-256 in the cell encoding), one `SHA3`
     instruction. The block's eight message cells are `a` (2 cells), `b` (2
@@ -225,11 +226,16 @@ def sha3(
     message ending that many bytes into it (at most 128): the padding's first
     byte is placed there, and bytes past it must be zero.
 
+    `cap=` makes the block a duplex step in overwrite mode (Fiat-Shamir): the
+    eight message cells are the rate as given, with no padding and no XOR, and
+    the capacity is the last five cells of `cap`, a previous 13-cell output (or
+    a 5-cell run).
+
     Message and output operands are StackBufs or slices `buf[lo:hi]` of the right
     size, or lists of words (a literal `0` is known to be zero); heap runs are
     bridged through the stack, one DEREF per cell, `state` and a 13-cell `out`
     included."""
-    _ = a, b, out, tail, state, len, final
+    _ = a, b, out, tail, state, len, final, cap
 
 
 def sha3_cells(run, out) -> None:
