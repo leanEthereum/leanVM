@@ -37,7 +37,7 @@ use crate::bus::{self, N_TUPLE_BITS, PublicColumns, SparseColumn};
 use crate::commitment::{Commitment, Committed, Rate};
 use crate::constraints::ConstraintError;
 use crate::tables::{CircuitId, Clock, N_CIRCUITS};
-use fiat_shamir::arith::{Arith, Verifier};
+use fiat_shamir::arith::{Arith, Native, Verifier};
 use fiat_shamir::{ProofTranscript, ProverState, VerifierState};
 use flock::FlockError;
 use flock::lincheck::{LincheckError, MatrixForm};
@@ -109,6 +109,8 @@ pub(super) fn prove(program: &Program, mut w: Witness, output: Output, rate: Rat
 
 /// The prover's replay of its own proof so far, through the verifier's recorder: the recorder, and the core it recorded.
 ///
+/// It feeds the prover's own proof and nobody's trust, so it runs on the prover's kernels.
+///
 /// # Panics
 ///
 /// Panics if the prover's own proof is refused.
@@ -116,8 +118,8 @@ fn replay<'p>(
     program: &Program,
     output: Output,
     proof: &'p ProofTranscript,
-) -> (Recorder<VerifierState<'p>>, RecordedCore<Hash, F192>) {
-    let mut rec = Recorder::new(VerifierState::new(&program.zk_session(), output.words(), proof));
+) -> (Recorder<VerifierState<'p, Native>>, RecordedCore<Hash, F192>) {
+    let mut rec = Recorder::new(VerifierState::native(&program.zk_session(), output.words(), proof));
     let core = record_proof(program, &mut rec, output).expect("the prover's own proof verifies");
     (rec, core)
 }
@@ -218,8 +220,14 @@ impl PublicEvaluations {
         let kbc = crate::log2_strict_usize(rv.entries().len());
         let (chi, alphas) = bytecode.split_at(kbc);
         let weights = bus::fingerprint_weights(alphas);
-        let twist_terms = bus::producer_twist_terms(&Lookup::Bytecode.tuple(rv), &weights, chi, point.twist.len());
-        let image = SparseColumn::new(rv.log_ram(), &[(0, rv.image())]).eval(&image_point);
+        let twist_terms = bus::producer_twist_terms(
+            &mut Native,
+            &Lookup::Bytecode.tuple(rv),
+            &weights,
+            chi,
+            point.twist.len(),
+        );
+        let image = SparseColumn::new(rv.log_ram(), &[(0, rv.image())]).eval(&mut Native, &image_point);
         let slice_weights = (CircuitId::ALL.into_iter().zip(&claims.circuits))
             .map(|(f, c)| {
                 // The weights depend on the slices' count, not their values.

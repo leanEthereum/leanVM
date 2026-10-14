@@ -129,11 +129,9 @@ impl Padding {
     /// The padding of lanes of `2^log_msg_cols` words at rate `2^-log_inv_rate`.
     pub(crate) fn new(log_msg_cols: usize, log_inv_rate: usize) -> Self {
         let basis = NovelBasis::new(log_msg_cols);
-        let mut normalized = vec![F64::ZERO; log_msg_cols + 1];
-        basis.normalized_at(F64(1 << (log_msg_cols + log_inv_rate)), &mut normalized);
         Self {
             log_msg_cols,
-            shift: normalized[log_msg_cols],
+            shift: basis.normalized_portable(F64(1 << (log_msg_cols + log_inv_rate)), log_msg_cols),
             basis,
         }
     }

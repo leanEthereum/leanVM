@@ -23,9 +23,11 @@
 //! - The encoder hands blocks over as it finishes them, so leaves are hashed while the rows are in L2.
 //! - Above the blocks, the last block to finish a unit of nodes climbs it, so no pass waits on a barrier.
 
+use fiat_shamir::Hashing;
+use fiat_shamir::arith::{Native, Portable};
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{BATCH, BLOCK_LEN, ChainingValue, OUT_LEN, hash_many};
+use primitives::hash::{BATCH, BLOCK_LEN, ChainingValue, OUT_LEN, hash_many, portable};
 use std::mem::MaybeUninit;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -48,6 +50,63 @@ pub fn hash_pair(left: &Hash, right: &Hash) -> Hash {
     primitives::hash::hash(&buf)
 }
 
+/// How an opening hashes: its rows' leaf digests and its pairs' parents, beside its transcript's [`Hashing`].
+///
+/// The committer's batched kernels ([`Native`]), for a prover replaying a proof it is handed, or the native verifier's
+/// portable code ([`Portable`]), one hash at a time. Both give the same digests.
+pub trait MerkleHashing: Hashing {
+    /// The leaf digest of each `row_bytes` row of `rows` in a `leaf_bytes` image, as the committer hashed it.
+    fn hash_leaves(rows: &[u8], row_bytes: usize, leaf_bytes: usize) -> Vec<Hash>;
+
+    /// Each pair of children's parent, into `parents`.
+    fn hash_pairs(pairs: &[[Hash; 2]], parents: &mut Vec<Hash>);
+}
+
+impl MerkleHashing for Native {
+    fn hash_leaves(rows: &[u8], row_bytes: usize, leaf_bytes: usize) -> Vec<Hash> {
+        let mut hashes = Box::new_uninit_slice(rows.len() / row_bytes);
+        LeafHasher::new(row_bytes, leaf_bytes).hash(rows, &mut hashes);
+        // SAFETY: the hasher wrote one digest per row.
+        unsafe { hashes.assume_init() }.into_vec()
+    }
+
+    fn hash_pairs(pairs: &[[Hash; 2]], parents: &mut Vec<Hash>) {
+        parents.clear();
+        parents.resize(pairs.len(), [0; 32]);
+        hash_many::<{ 2 * OUT_LEN }>(pairs.as_flattened().as_flattened(), parents.as_flattened_mut());
+    }
+}
+
+impl MerkleHashing for Portable {
+    /// The digests `LeafHasher` gives, the image's whole zero blocks again one chaining value.
+    fn hash_leaves(rows: &[u8], row_bytes: usize, leaf_bytes: usize) -> Vec<Hash> {
+        if !leaf_bytes.is_multiple_of(BLOCK_LEN) {
+            let mut image = vec![0u8; leaf_bytes];
+            return (rows.chunks_exact(row_bytes))
+                .map(|row| {
+                    image[leaf_bytes - row_bytes..].copy_from_slice(row);
+                    portable::hash(&image)
+                })
+                .collect();
+        }
+        let zero_blocks = (leaf_bytes - row_bytes) / BLOCK_LEN;
+        let start = ChainingValue::zero_prefix_portable(zero_blocks);
+        let mut image = vec![0u8; leaf_bytes - zero_blocks * BLOCK_LEN];
+        let at = image.len() - row_bytes;
+        (rows.chunks_exact(row_bytes))
+            .map(|row| {
+                image[at..].copy_from_slice(row);
+                start.hash_portable(&image)
+            })
+            .collect()
+    }
+
+    fn hash_pairs(pairs: &[[Hash; 2]], parents: &mut Vec<Hash>) {
+        parents.clear();
+        parents.extend(pairs.iter().map(|pair| portable::hash(pair.as_flattened())));
+    }
+}
+
 /// Bytes of the staging tile for leaves whose zero padding does not end on a hash block boundary.
 const STAGE_TILE_BYTES: usize = 16 << 10;
 
@@ -55,7 +114,8 @@ const STAGE_TILE_BYTES: usize = 16 << 10;
 ///
 /// The image's whole hash blocks of leading zeros are one chaining value, computed once for every leaf.
 ///
-/// The committer and the native verifier hash leaves through it alike.
+/// The committer and a prover's replay hash leaves through it; the native verifier takes the same digests one at a
+/// time (the [`MerkleHashing`] of [`Portable`]).
 pub(crate) struct LeafHasher(LeafShape);
 
 /// The hashing plan for one leaf shape, chosen once.
@@ -490,13 +550,6 @@ const fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
     unsafe { std::slice::from_raw_parts_mut(out.as_mut_ptr().cast(), out.len() * OUT_LEN) }
 }
 
-/// Hash each pair of children into its parent, all pairs together, into `parents`.
-fn hash_pairs(pairs: &[[Hash; 2]], parents: &mut Vec<Hash>) {
-    parents.clear();
-    parents.resize(pairs.len(), [0; 32]);
-    hash_many::<{ 2 * OUT_LEN }>(pairs.as_flattened().as_flattened(), parents.as_flattened_mut());
-}
-
 /// Query positions with duplicates removed, ascending.
 ///
 /// It is the order a phase stores its rows in, and the order its octopus is built and checked against.
@@ -565,7 +618,9 @@ impl PrunedMerklePaths {
     /// # Returns
     ///
     /// Nothing on a wrong row count or width, an out-of-range query, a wrong sibling count, or another root.
-    pub(crate) fn open(
+    ///
+    /// `H` hashes: the native verifier's [`Portable`], or a prover's replay's [`Native`].
+    pub(crate) fn open<H: MerkleHashing>(
         &self,
         root: &Hash,
         num_leaves: usize,
@@ -582,12 +637,9 @@ impl PrunedMerklePaths {
             return None;
         }
 
-        // The rows, one after another, hashed as the committer hashed them: zero prefix shared, leaves batched.
+        // The rows, one after another, hashed as the committer hashed them.
         let bytes: Vec<u8> = self.rows.iter().flat_map(|word| word.0.to_le_bytes()).collect();
-        let mut leaf_hashes = Box::new_uninit_slice(sorted.len());
-        LeafHasher::new(8 * row_words, 8 * leaf_words).hash(&bytes, &mut leaf_hashes);
-        // SAFETY: the hasher wrote one digest per row.
-        let leaf_hashes = unsafe { leaf_hashes.assume_init() };
+        let leaf_hashes = H::hash_leaves(&bytes, 8 * row_words, 8 * leaf_words);
 
         // Rebuild every node on the queried paths bottom-up.
         // A stored sibling is pulled only where it is not itself a queried subtree.
@@ -620,7 +672,7 @@ impl PrunedMerklePaths {
                 known.push((idx | 1, right));
                 i += if paired { 2 } else { 1 };
             }
-            hash_pairs(&pairs, &mut digests);
+            H::hash_pairs(&pairs, &mut digests);
             nodes.clear();
             nodes.extend(parents.iter().copied().zip(digests.iter().copied()));
         }
@@ -887,7 +939,11 @@ mod tests {
         let paths = tree.prune(&queries, |q| rows[q].clone());
         assert_eq!(paths.rows.len(), 3 * width, "one row per distinct query");
 
-        let openings = paths.open(&root, num_leaves, &queries, width, width).expect("open");
+        let openings = paths
+            .open::<Portable>(&root, num_leaves, &queries, width, width)
+            .expect("open");
+        let native = paths.open::<Native>(&root, num_leaves, &queries, width, width);
+        assert_eq!(native.as_ref(), Some(&openings), "both backends open alike");
         assert_eq!(openings.len(), queries.len());
         for (i, &q) in queries.iter().enumerate() {
             assert_eq!(openings.image(i), rows[q], "row must follow query order");
@@ -896,6 +952,19 @@ mod tests {
                 walk(openings.image(i), openings.path(i), q),
                 root,
                 "each unpruned path must reach the root"
+            );
+        }
+    }
+
+    #[test]
+    fn the_portable_leaf_digests_are_the_committers() {
+        // Zero prefixes of whole blocks, of none, and of a part of one, rows narrower than a block and wider.
+        for (row_words, leaf_words) in [(4, 4), (3, 8), (8, 16), (5, 13), (20, 24), (1, 64)] {
+            let rows: Vec<u8> = (0..7 * 8 * row_words).map(|i| (i * 37 % 251) as u8).collect();
+            assert_eq!(
+                Portable::hash_leaves(&rows, 8 * row_words, 8 * leaf_words),
+                Native::hash_leaves(&rows, 8 * row_words, 8 * leaf_words),
+                "{row_words} of {leaf_words} words"
             );
         }
     }
@@ -910,7 +979,7 @@ mod tests {
         let root = tree.root();
         let queries = [5usize, 1, 3];
         let good = tree.prune(&queries, |q| rows[q].clone());
-        let open = |p: &PrunedMerklePaths, qs: &[usize], w: usize, n: usize| p.open(&root, n, qs, w, w);
+        let open = |p: &PrunedMerklePaths, qs: &[usize], w: usize, n: usize| p.open::<Portable>(&root, n, qs, w, w);
         assert!(open(&good, &queries, width, num_leaves).is_some(), "honest phase");
 
         let mut extra = good.clone();

@@ -252,6 +252,7 @@ mod tests {
     use crate::rec::transcript::{ProofSource, Transcript};
 
     use crate::stacking::StackShape;
+    use fiat_shamir::arith::Portable;
     use fiat_shamir::{Encoding, FromNarg, ProofTranscript, ProverState, SessionId, VerifierState};
     use flock::BatchRows;
     use flock::FlockError;
@@ -431,7 +432,7 @@ mod tests {
         let replays = native(&proof).expect("an honest batch");
         for (batch, replay) in batches.iter().zip(&replays) {
             assert_eq!(
-                replay.matrices.form.evaluate(batch.block.circuit),
+                replay.matrices.form.evaluate(&mut Portable, batch.block.circuit),
                 replay.matrices.value
             );
         }
@@ -503,7 +504,7 @@ mod tests {
             let moved = native(&forged).expect("the batch's identity holds");
             for (f, replay) in moved.iter().enumerate() {
                 let matrices = &replay.matrices;
-                let settles = matrices.form.evaluate(batches[f].block.circuit) == matrices.value;
+                let settles = matrices.form.evaluate(&mut Portable, batches[f].block.circuit) == matrices.value;
                 assert_eq!(settles, f > 1, "circuit {f}'s moved claim");
             }
         }
@@ -667,7 +668,7 @@ mod tests {
             .expect("the committed witness");
         let proof = ps.into_proof();
         let native = |slots: &[StackClaim], rings: &[RingSwitch], proof: &ProofTranscript| {
-            let mut v = Recording::new(VerifierState::new(&SessionId::new(LABEL), &0u64, proof));
+            let mut v = Recording::new(VerifierState::native(&SessionId::new(LABEL), &0u64, proof));
             let commitment = Commitment::read(&mut v, shape, rate).expect("a root");
             commitment.verify(&mut v, slots, rings)?;
             v.transcript()

@@ -1,8 +1,8 @@
 // CREDIT: https://github.com/succinctlabs/flock (the skip domain's Lagrange weights), MIT OR Apache-2.0.
 //! The univariate skip's domain, and the interpolations at the skip challenge its verifiers and its prover share.
 
-use fiat_shamir::arith::Arith;
-use primitives::field::gf2_64::{reduce, software::clmul};
+use fiat_shamir::arith::{Arith, Native};
+use primitives::field::gf2_64::{portable::clmul, reduce};
 use primitives::field::{F192, PHI8_TABLE};
 use primitives::multilinear::eq_table;
 
@@ -16,20 +16,59 @@ use crate::lincheck::outer_product;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SkipDomain {
     k_skip: usize,
+    /// The coefficients `c_j` of `V_S(X) = prod_{s in S} (X + s) = sum_j c_j X^(2^j)`, lowest first, zero past `k_skip`.
+    vanishing: [F192; 8],
+    /// `V_S(phi_8(2^k_skip))`, by which the coset's vanishing polynomial `V_Lambda` exceeds `V_S`, `V_S` being linear.
+    offset: F192,
 }
 
 impl SkipDomain {
     /// The domain the zerocheck skips and the lincheck interpolates over.
-    pub const FLOCK: Self = Self { k_skip: K_SKIP };
+    pub const FLOCK: Self = Self::new(K_SKIP);
 
-    /// The domain of `2^k_skip` nodes.
+    /// The domain of `2^k_skip` nodes, its constants computed at compile time.
     ///
     /// # Panics
     ///
     /// If `S` and `Lambda` do not fit the phi_8 table.
     pub(crate) const fn new(k_skip: usize) -> Self {
+        const ALL: [SkipDomain; 8] = {
+            let mut all = [SkipDomain::compute(0); 8];
+            let mut k = 1;
+            while k < 8 {
+                all[k] = SkipDomain::compute(k);
+                k += 1;
+            }
+            all
+        };
         assert!(k_skip < 8, "the window fits the phi_8 table");
-        Self { k_skip }
+        ALL[k_skip]
+    }
+
+    /// The domain of `2^k_skip` nodes, by the portable products.
+    const fn compute(k_skip: usize) -> Self {
+        // Adding a basis element `a` to a subspace takes `V` to `V(X)^2 + V(a) V(X)`, since `V(X + a) = V(X) + V(a)`.
+        // The zero subspace's polynomial is `X`; the basis elements are `phi_8(2^j)`.
+        let mut vanishing = [F192::ZERO; 8];
+        vanishing[0] = F192::ONE;
+        let mut j = 0;
+        while j < k_skip {
+            let at_a = linearized(&vanishing, PHI8_TABLE[1 << j]);
+            // `V(X)^2` shifts every coefficient up a power; `V(a) V(X)` scales them in place.
+            let mut k = j + 1;
+            while k > 0 {
+                vanishing[k] = plus(vanishing[k - 1].square_portable(), at_a.mul_portable(vanishing[k]));
+                k -= 1;
+            }
+            vanishing[0] = at_a.mul_portable(vanishing[0]);
+            j += 1;
+        }
+        let offset = linearized(&vanishing, PHI8_TABLE[1 << k_skip]);
+        Self {
+            k_skip,
+            vanishing,
+            offset,
+        }
     }
 
     /// The base-two logarithm of its size.
@@ -42,29 +81,9 @@ impl SkipDomain {
         1 << self.k_skip
     }
 
-    /// The coefficients `c_j` of `V_S(X) = prod_{s in S} (X + s) = sum_j c_j X^(2^j)`, lowest first.
-    ///
-    /// Adding a basis element `a` to a subspace takes `V` to `V(X)^2 + V(a) V(X)`, since `V(X + a) = V(X) + V(a)`.
-    fn vanishing_coefficients(self) -> Vec<F192> {
-        // The zero subspace's polynomial is `X`.
-        let mut c = vec![F192::ZERO; self.k_skip + 1];
-        c[0] = F192::ONE;
-        // Add the basis elements `phi_8(2^j)` one at a time.
-        for j in 0..self.k_skip {
-            let a = PHI8_TABLE[1 << j];
-            let at_a = linearized(&c, a);
-            // `V(X)^2` shifts every coefficient up a power; `V(a) V(X)` scales them in place.
-            for k in (0..=j + 1).rev() {
-                let squared = if k == 0 { F192::ZERO } else { c[k - 1].square() };
-                c[k] = squared + at_a * c[k];
-            }
-        }
-        c
-    }
-
     /// `V_S(z)`: `k_skip` squarings and as many products by constants of `K`.
     pub fn vanishing<A: Arith>(self, a: &mut A, z: A::E) -> A::E {
-        let c = self.vanishing_coefficients();
+        let c = &self.vanishing;
         // `z^(2^j)` for every `j`, by squaring.
         let mut powers = vec![z];
         for j in 0..self.k_skip {
@@ -90,8 +109,7 @@ impl SkipDomain {
         let size = self.size();
         // The coset's vanishing polynomial is the domain's shifted by a constant, `V_S` being linear.
         let lambda = &PHI8_TABLE[size..2 * size];
-        let offset = linearized(&self.vanishing_coefficients(), lambda[0]);
-        let on_lambda = a.add_const(vanishing, offset);
+        let on_lambda = a.add_const(vanishing, self.offset);
         let both = a.mul(vanishing, on_lambda);
         let scaled = a.mul_const(both, window_denominator(2 * size));
         let inverses = inverses_at(a, z, lambda);
@@ -110,9 +128,9 @@ impl SkipDomain {
         lagrange_sum(a, scaled, &inverses, values)
     }
 
-    /// The Lagrange basis of `S` at `z`, the prover's form: `L_i(z) = D_l * prod_{k != i} (z + s_k)`.
-    pub(crate) fn lagrange_weights(self, z: F192) -> Vec<F192> {
-        window_lagrange_weights(self.k_skip, z)
+    /// The Lagrange basis of `S` at `z`, `L_i(z) = D_l * prod_{k != i} (z + s_k)`, on `a`.
+    pub(crate) fn lagrange_weights<A: Arith>(self, a: &mut A, z: A::E) -> Vec<A::E> {
+        window_lagrange_weights(a, self.k_skip, z)
     }
 
     /// The eq table of a skip point's inner half: the Lagrange basis at `z_skip` on the low index bits.
@@ -121,18 +139,28 @@ impl SkipDomain {
     ///     out[i_skip + i_rest 2^k_skip] = L_(i_skip)(z_skip) * eq(x_inner_rest, i_rest)
     /// ```
     pub fn inner_eq_table(self, z_skip: F192, x_inner_rest: &[F192]) -> Vec<F192> {
-        outer_product(&eq_table(x_inner_rest), &self.lagrange_weights(z_skip))
+        outer_product(
+            &mut Native,
+            &eq_table(x_inner_rest),
+            &self.lagrange_weights(&mut Native, z_skip),
+        )
     }
 }
 
-/// A linearized polynomial `sum_j c_j x^(2^j)` at `x`.
-fn linearized(c: &[F192], x: F192) -> F192 {
-    let (mut power, mut acc) = (x, F192::ZERO);
-    for &cj in c {
-        acc += cj * power;
-        power = power.square();
+/// A linearized polynomial `sum_j c_j x^(2^j)` at `x`, by the portable products.
+const fn linearized(c: &[F192; 8], x: F192) -> F192 {
+    let (mut power, mut acc, mut j) = (x, F192::ZERO, 0);
+    while j < c.len() {
+        acc = plus(acc, c[j].mul_portable(power));
+        power = power.square_portable();
+        j += 1;
     }
     acc
+}
+
+/// `a + b`, in a `const` context.
+const fn plus(a: F192, b: F192) -> F192 {
+    F192::new(a.c0 ^ b.c0, a.c1 ^ b.c1, a.c2 ^ b.c2)
 }
 
 /// `1 / (z + node)` for each node.
@@ -158,22 +186,25 @@ pub(crate) fn lagrange_sum<A: Arith>(a: &mut A, scale: A::E, inverses: &[A::E], 
 /// Prefix and suffix products of the differences give every weight.
 ///
 /// No inverse is taken, so the weights are exact at a node too.
-fn window_lagrange_weights(log_size: usize, z: F192) -> Vec<F192> {
+fn window_lagrange_weights<A: Arith>(a: &mut A, log_size: usize, z: A::E) -> Vec<A::E> {
     let n = 1 << log_size;
     let nodes = &PHI8_TABLE[..n];
     // Prefix products: weight `i` holds `prod_{k < i} (z + s_k)`.
-    let mut weights = vec![window_denominator(n); n];
+    let denominator = a.constant(window_denominator(n));
+    let mut weights = vec![denominator; n];
     for i in 1..n {
-        weights[i] = weights[i - 1] * (z + nodes[i - 1]);
+        let difference = a.add_const(z, nodes[i - 1]);
+        weights[i] = a.mul(weights[i - 1], difference);
     }
     // Suffix products: weight `i` takes `prod_{k > i} (z + s_k)`.
-    let mut suffix = z + nodes[n - 1];
+    let mut suffix = a.add_const(z, nodes[n - 1]);
     for i in (1..n - 1).rev() {
-        weights[i] *= suffix;
-        suffix *= z + nodes[i];
+        weights[i] = a.mul(weights[i], suffix);
+        let difference = a.add_const(z, nodes[i]);
+        suffix = a.mul(suffix, difference);
     }
     if n > 1 {
-        weights[0] *= suffix;
+        weights[0] = a.mul(weights[0], suffix);
     }
     weights
 }
@@ -226,7 +257,7 @@ const DENOMINATORS: [F192; 9] = {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fiat_shamir::arith::Native;
+    use fiat_shamir::arith::Portable;
     use primitives::test_util::Rng;
 
     /// `1 / prod_{k != i} (s_i + s_k)` over a window's nodes, by its definition.
@@ -269,7 +300,16 @@ mod tests {
                         others.fold(per_node_denominator(nodes, i), |acc, (_, &node)| acc * (z + node))
                     })
                     .collect();
-                assert_eq!(window_lagrange_weights(log_size, z), want, "log_size {log_size}");
+                assert_eq!(
+                    window_lagrange_weights(&mut Native, log_size, z),
+                    want,
+                    "log_size {log_size}"
+                );
+                assert_eq!(
+                    window_lagrange_weights(&mut Portable, log_size, z),
+                    want,
+                    "log_size {log_size}"
+                );
             }
         }
     }
@@ -285,7 +325,7 @@ mod tests {
             let values = rng.ext_vec(domain.size());
             for z in rng.ext_vec(4) {
                 // The window's Lagrange weights at `z`, zero on S, so only Lambda's half counts.
-                let window = window_lagrange_weights(k_skip + 1, z)[domain.size()..]
+                let window = window_lagrange_weights(&mut Native, k_skip + 1, z)[domain.size()..]
                     .iter()
                     .zip(&values)
                     .fold(F192::ZERO, |acc, (&w, &v)| acc + w * v);
@@ -312,8 +352,8 @@ mod tests {
                 // `V_S(z)` as the product over the nodes.
                 let vanishing = (PHI8_TABLE[..domain.size()].iter()).fold(F192::ONE, |acc, &s| acc * (z + s));
                 assert_eq!(domain.vanishing(&mut Native, z), vanishing, "k_skip {k_skip}");
-                let lagrange =
-                    (domain.lagrange_weights(z).iter().zip(&values)).fold(F192::ZERO, |acc, (&w, &v)| acc + w * v);
+                let lagrange = (domain.lagrange_weights(&mut Native, z).iter().zip(&values))
+                    .fold(F192::ZERO, |acc, (&w, &v)| acc + w * v);
                 assert_eq!(
                     domain.lagrange_at(&mut Native, z, vanishing, &values),
                     lagrange,

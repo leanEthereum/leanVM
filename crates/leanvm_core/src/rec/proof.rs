@@ -236,9 +236,28 @@ impl CircuitKey {
         ps.into_proof()
     }
 
+    /// Verify a proof of the circuit on the native verifier: portable and single-threaded, as a tree's root is checked.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first check that refuses the proof.
+    pub(crate) fn verify_public(
+        &self,
+        statement: &[Limbs],
+        session: &SessionId,
+        rate: Rate,
+        proof: &ProofTranscript,
+    ) -> Result<(), RecError> {
+        let instance = LengthPrefixed(statement.as_flattened());
+        self.verify_after(statement, &mut VerifierState::new(session, &instance, proof), rate)
+    }
+
     /// Verify a proof of the circuit, returning every opening it authenticated.
     ///
     /// A recursive verifier of the proof hashes those openings rather than decoding the hints again.
+    ///
+    /// It is a prover's replay of a child it is handed, which feeds its own proof and nobody's trust, so it runs on
+    /// the prover's kernels.
     ///
     /// # Errors
     ///
@@ -251,26 +270,29 @@ impl CircuitKey {
         proof: &ProofTranscript,
     ) -> Result<Vec<Openings>, RecError> {
         let instance = LengthPrefixed(statement.as_flattened());
-        self.verify_after(statement, VerifierState::new(session, &instance, proof), rate)
+        let mut v = Recording::new(VerifierState::native(session, &instance, proof));
+        self.verify_after(statement, &mut v, rate)?;
+        Ok(v.into_openings())
     }
 
-    /// Verify a proof over a transcript that has absorbed its instance.
-    fn verify_after(
+    /// Verify a proof read by `v`, whose transcript has absorbed its instance, against `statement`.
+    fn verify_after<V: OpeningVerifier<E = F192> + PublicColumns>(
         &self,
         statement: &[Limbs],
-        transcript: VerifierState<'_>,
+        v: &mut V,
         rate: Rate,
-    ) -> Result<Vec<Openings>, RecError> {
+    ) -> Result<(), RecError> {
         if statement.len() != self.circuit.statement_len {
             return Err(RecError::StatementLength {
                 expected: self.circuit.statement_len,
                 got: statement.len(),
             });
         }
-        let mut v = Recording::new(transcript);
-        let matrices = TableArgument::of(&self.fixed, statement, &self.layout).verify_core(&mut v, rate)?;
-        matrices.check(hash::CIRCUIT.circuit()).map_err(FlockError::Lincheck)?;
-        Ok(v.into_openings())
+        let matrices = TableArgument::of(&self.fixed, statement, &self.layout).verify_core(v, rate)?;
+        matrices
+            .check(v, hash::CIRCUIT.circuit())
+            .map_err(FlockError::Lincheck)?;
+        Ok(())
     }
 }
 
@@ -295,8 +317,10 @@ mod tests {
         key(circuit).prove(a, &session(), Rate::MIN)
     }
 
+    /// The native verifier's run: portable, in a portable section.
     fn verify_run(circuit: &Circuit, statement: &[Limbs], proof: &ProofTranscript) -> Result<(), RecError> {
-        key(circuit).verify(statement, &session(), Rate::MIN, proof).map(drop)
+        let _portable = primitives::portable::enter();
+        key(circuit).verify_public(statement, &session(), Rate::MIN, proof)
     }
 
     // Verify a proof whose transcript absorbed `absorbed` as its instance, in place of the statement.
@@ -307,8 +331,8 @@ mod tests {
         proof: &ProofTranscript,
     ) -> Result<(), RecError> {
         let instance = LengthPrefixed(absorbed.as_flattened());
-        let transcript = VerifierState::new(&session(), &instance, proof);
-        key(circuit).verify_after(statement, transcript, Rate::MIN).map(drop)
+        let mut transcript = VerifierState::new(&session(), &instance, proof);
+        key(circuit).verify_after(statement, &mut transcript, Rate::MIN)
     }
 
     // Wires of the every-kind circuit a test forges.

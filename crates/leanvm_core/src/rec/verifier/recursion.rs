@@ -192,6 +192,7 @@ mod tests {
     use crate::rec::transcript::ProofSource;
 
     use fiat_shamir::SessionId;
+    use fiat_shamir::arith::Portable;
 
     use primitives::field::F192;
 
@@ -243,7 +244,7 @@ mod tests {
         let (b, rows) = recursion_rows(&circuit, a.statement(), columns, ProofSource::Proof(&proof, &openings));
         let form = rows.matrix.point.map(|w| b.e(w));
         assert_eq!(
-            form.evaluate(hash::CIRCUIT.circuit()),
+            form.evaluate(&mut Portable, hash::CIRCUIT.circuit()),
             b.e(rows.matrix.value),
             "the hash rows' matrix claim settles"
         );

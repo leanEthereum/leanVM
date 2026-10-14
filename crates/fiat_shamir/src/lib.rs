@@ -15,6 +15,9 @@
 //! - The proof's messages are exactly the bytes the sponge absorbed.
 //!
 //! The sponge is a duplex built from the BLAKE2s compression function, the one hash the VM proves.
+//!
+//! A transcript hashes by its [`Hashing`]: the prover's the build's fastest kernels ([`Native`]), the native
+//! verifier's the portable code ([`Portable`]). Both give the same bytes.
 
 pub mod arith;
 mod codec;
@@ -23,6 +26,9 @@ mod pow;
 mod proof;
 mod prover;
 mod verifier;
+
+use arith::{Native, Portable};
+use primitives::hash::portable;
 
 pub use codec::{Encoding, FromNarg, FromUniform, LengthPrefixed};
 pub use duplex::{Blake2sDuplex, Role};
@@ -37,6 +43,37 @@ pub use verifier::{TranscriptError, VerifierState};
 pub trait Challenger {
     /// Draw a verifier message from the sponge.
     fn verifier_message<T: FromUniform>(&mut self) -> T;
+}
+
+/// How a transcript hashes: its duplex's compressions and its proof of work's trials.
+pub trait Hashing: Copy {
+    /// The BLAKE2s compression of `m` into `h` at byte counter `t`, final if `last`.
+    fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool);
+
+    /// One-shot BLAKE2s-256.
+    fn hash(data: &[u8]) -> [u8; 32];
+}
+
+/// The prover's: the build's kernels.
+impl Hashing for Native {
+    fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
+        primitives::hash::compress(h, m, t, last);
+    }
+
+    fn hash(data: &[u8]) -> [u8; 32] {
+        primitives::hash::hash(data)
+    }
+}
+
+/// The native verifier's: the portable code.
+impl Hashing for Portable {
+    fn compress(h: &mut [u32; 8], m: &[u32; 16], t: u64, last: bool) {
+        portable::compress(h, m, t, last);
+    }
+
+    fn hash(data: &[u8]) -> [u8; 32] {
+        portable::hash(data)
+    }
 }
 
 /// The 32 bytes that start a transcript.
@@ -58,6 +95,8 @@ const DERIVATION_IV: [u8; 32] = *b"irtf-cfrg-fiat-shamir/session-id";
 impl SessionId {
     /// The identifier of a tag.
     ///
+    /// Both sides derive it, the verifier included, so it compresses by the portable code.
+    ///
     /// The tag names the protocol, its version, its hash and codecs, and the relation.
     ///
     /// ```text
@@ -67,7 +106,7 @@ impl SessionId {
     /// ```
     #[must_use]
     pub fn new(tag: &[u8]) -> Self {
-        let mut sponge = Blake2sDuplex::new(DERIVATION_IV);
+        let mut sponge = Blake2sDuplex::<Portable>::new(DERIVATION_IV);
         sponge.absorb(tag);
         let mut id = [0; 32];
         sponge.squeeze(&mut id);

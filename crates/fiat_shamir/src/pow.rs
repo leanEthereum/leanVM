@@ -12,7 +12,9 @@
 //!
 //! So re-rolling that challenge costs `2^bits` hashes on average.
 
-use primitives::hash::{BATCH, hash, hash_many};
+use crate::Hashing;
+use crate::arith::Native;
+use primitives::hash::{BATCH, hash_many};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A proof-of-work difficulty: the number of leading zero bits a nonce's hash must have.
@@ -29,8 +31,8 @@ pub struct ProofOfWork {
 /// ```
 ///
 /// Nonce and tag are little-endian.
-fn trial(challenge: &[u8; 32], nonce: u64) -> [u8; 32] {
-    hash(&block(challenge, nonce))
+fn trial<H: Hashing>(challenge: &[u8; 32], nonce: u64) -> [u8; 32] {
+    H::hash(&block(challenge, nonce))
 }
 
 /// The 64-byte block a nonce is tried in.
@@ -68,10 +70,10 @@ impl ProofOfWork {
         self.bits
     }
 
-    /// Whether `nonce` is this much work on `challenge`.
+    /// Whether `nonce` is this much work on `challenge`, hashed by `H`.
     #[must_use]
-    pub fn verify(self, challenge: &[u8; 32], nonce: u64) -> bool {
-        self.accepts(&trial(challenge, nonce))
+    pub fn verify<H: Hashing>(self, challenge: &[u8; 32], nonce: u64) -> bool {
+        self.accepts(&trial::<H>(challenge, nonce))
     }
 
     /// Whether a trial's digest is this much work: its first eight bytes, little-endian, have their top bits zero.
@@ -95,7 +97,7 @@ impl ProofOfWork {
         const PARALLEL_MIN_TRIALS: u64 = 1 << 13;
         if (1u64 << bits) < PARALLEL_MIN_TRIALS {
             return (0..=u64::MAX)
-                .find(|&nonce| self.verify(challenge, nonce))
+                .find(|&nonce| self.verify::<Native>(challenge, nonce))
                 .expect("some nonce works");
         }
 
@@ -137,18 +139,22 @@ impl ProofOfWork {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arith::Portable;
 
     #[test]
     fn grinding_finds_the_smallest_nonce() {
-        // For each difficulty, every nonce below the one found fails, and that one passes.
+        // For each difficulty, every nonce below the one found fails, and that one passes, on either backend.
         //
         // 14 bits crosses into the parallel search.
         let challenge = [7; 32];
         for bits in [1, 5, 9, 14] {
             let pow = ProofOfWork::new(bits);
             let nonce = pow.grind(&challenge);
-            assert!(pow.verify(&challenge, nonce));
-            assert!((0..nonce).all(|n| !pow.verify(&challenge, n)), "{bits} bits");
+            assert!(pow.verify::<Native>(&challenge, nonce) && pow.verify::<Portable>(&challenge, nonce));
+            assert!(
+                (0..nonce).all(|n| !pow.verify::<Portable>(&challenge, n)),
+                "{bits} bits"
+            );
         }
     }
 
@@ -157,7 +163,7 @@ mod tests {
         // No bit is required, so every nonce is work, the smallest being zero.
         let free = ProofOfWork::new(0);
         assert_eq!(free.grind(&[1; 32]), 0);
-        assert!(free.verify(&[1; 32], u64::MAX));
+        assert!(free.verify::<Portable>(&[1; 32], u64::MAX));
     }
 
     #[test]

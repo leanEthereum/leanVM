@@ -34,9 +34,11 @@
 //!
 //! The loss is `q^2 / 2^257` for `q` compressions.
 
-use crate::SessionId;
+use crate::arith::Native;
 use crate::codec::{Encoding, FromUniform};
-use primitives::hash::{PARAM_IV, compress};
+use crate::{Hashing, SessionId};
+use primitives::hash::PARAM_IV;
+use std::marker::PhantomData;
 
 /// The role of a node, in the top byte of its compression counter.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -89,8 +91,10 @@ impl Role {
 /// It holds at most one pending input block and one output block, and never allocates.
 ///
 /// It streams: splitting an absorb or a squeeze into several calls never changes the bytes squeezed.
+///
+/// `H` compresses: the prover's [`Native`] kernels, or the native verifier's [`crate::arith::Portable`] code.
 #[derive(Clone, Debug)]
-pub struct Blake2sDuplex {
+pub struct Blake2sDuplex<H = Native> {
     /// The chaining value: everything absorbed so far.
     cv: [u32; 8],
     /// Input not yet compressed, at most one block.
@@ -105,12 +109,16 @@ pub struct Blake2sDuplex {
     squeezed: u64,
     /// The output block the next squeezed bytes come from.
     output: [u8; 32],
+    /// How it compresses.
+    hashing: PhantomData<H>,
 }
 
 impl Blake2sDuplex {
-    /// Bytes one squeeze run may consume: a 49-bit count fits the framing word.
+    /// Bytes one squeeze run may consume, whatever compresses: a 49-bit count fits the framing word.
     pub const MAX_SQUEEZE: u64 = (1 << 49) - 1;
+}
 
+impl<H: Hashing> Blake2sDuplex<H> {
     /// The sponge a transcript starts from: seeded with the session, then the instance absorbed.
     ///
     /// The instance is public: both sides absorb it, and the proof does not carry it.
@@ -140,7 +148,7 @@ impl Blake2sDuplex {
         // Zero the unused tail: the framing word's length tells padding from data.
         self.pending[self.n_pending..].fill(0);
         let counter = Role::absorb(self.first, last).counter(self.n_pending, self.previous);
-        self.cv = node(self.cv, &self.pending, counter);
+        self.cv = node::<H>(self.cv, &self.pending, counter);
 
         // The run continues past a full block, and only its first block carries the previous count.
         self.n_pending = 0;
@@ -149,7 +157,7 @@ impl Blake2sDuplex {
     }
 }
 
-impl Blake2sDuplex {
+impl<H: Hashing> Blake2sDuplex<H> {
     /// The sponge started from a 32-byte initialization vector, such as a session identifier.
     #[must_use]
     pub fn new(iv: [u8; 32]) -> Self {
@@ -157,13 +165,14 @@ impl Blake2sDuplex {
         let mut block = [0; 64];
         block[..32].copy_from_slice(&iv);
         Self {
-            cv: node(PARAM_IV, &block, Role::Seed.counter(0, 0)),
+            cv: node::<H>(PARAM_IV, &block, Role::Seed.counter(0, 0)),
             pending: [0; 64],
             n_pending: 0,
             first: true,
             previous: 0,
             squeezed: 0,
             output: [0; 32],
+            hashing: PhantomData,
         }
     }
 
@@ -203,7 +212,10 @@ impl Blake2sDuplex {
             return;
         }
         let len = output.len() as u64;
-        assert!(len <= Self::MAX_SQUEEZE - self.squeezed, "squeeze run too long");
+        assert!(
+            len <= Blake2sDuplex::MAX_SQUEEZE - self.squeezed,
+            "squeeze run too long"
+        );
 
         // Close the absorb run: its pending block is its last.
         if self.n_pending != 0 {
@@ -218,7 +230,7 @@ impl Blake2sDuplex {
             if offset == 0 {
                 let mut block = [0; 64];
                 block[..8].copy_from_slice(&(self.squeezed / 32).to_le_bytes());
-                self.output = state_bytes(node(self.cv, &block, Role::Output.counter(0, 0)));
+                self.output = state_bytes(node::<H>(self.cv, &block, Role::Output.counter(0, 0)));
             }
 
             // Hand out the unused part of the block, keeping the rest for the next squeeze.
@@ -231,10 +243,10 @@ impl Blake2sDuplex {
 }
 
 /// One node: the final-flagged compression of `cv` and `block` at `counter`.
-fn node(mut cv: [u32; 8], block: &[u8; 64], counter: u64) -> [u32; 8] {
+fn node<H: Hashing>(mut cv: [u32; 8], block: &[u8; 64], counter: u64) -> [u32; 8] {
     let (chunks, _) = block.as_chunks::<4>();
     let words = std::array::from_fn(|i| u32::from_le_bytes(chunks[i]));
-    compress(&mut cv, &words, counter, true);
+    H::compress(&mut cv, &words, counter, true);
     cv
 }
 
@@ -250,6 +262,7 @@ fn state_bytes(cv: [u32; 8]) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arith::Portable;
     use proptest::prelude::*;
 
     /// One run of a transcript: bytes absorbed, or a count of bytes squeezed.
@@ -259,13 +272,14 @@ mod tests {
         Squeeze(usize),
     }
 
-    // The mode written out node by node, with no buffering: what the streaming sponge must equal.
+    // The mode written out node by node, with no buffering, on the portable compression: what the streaming sponge on
+    // the native one must equal.
     //
     // Runs alternate, absorb runs non-empty, squeeze runs positive.
     fn reference(iv: [u8; 32], runs: &[Run]) -> Vec<u8> {
         let mut seed = [0; 64];
         seed[..32].copy_from_slice(&iv);
-        let mut cv = node(PARAM_IV, &seed, Role::Seed.counter(0, 0));
+        let mut cv = node::<Portable>(PARAM_IV, &seed, Role::Seed.counter(0, 0));
         let mut previous = 0;
         let mut out = Vec::new();
         for run in runs {
@@ -278,7 +292,7 @@ mod tests {
                         block[..chunk.len()].copy_from_slice(chunk);
                         let first = i == 0;
                         let role = Role::absorb(first, i + 1 == blocks.len());
-                        cv = node(cv, &block, role.counter(chunk.len(), if first { previous } else { 0 }));
+                        cv = node::<Portable>(cv, &block, role.counter(chunk.len(), if first { previous } else { 0 }));
                     }
                 }
                 Run::Squeeze(n) => {
@@ -287,7 +301,7 @@ mod tests {
                     for j in 0..n.div_ceil(32) as u64 {
                         let mut block = [0; 64];
                         block[..8].copy_from_slice(&j.to_le_bytes());
-                        stream.extend(state_bytes(node(cv, &block, Role::Output.counter(0, 0))));
+                        stream.extend(state_bytes(node::<Portable>(cv, &block, Role::Output.counter(0, 0))));
                     }
                     out.extend_from_slice(&stream[..*n]);
                     previous = *n as u64;
@@ -312,7 +326,7 @@ mod tests {
             //
             // Splitting and empty calls must change nothing.
             let iv = [9; 32];
-            let mut sponge = Blake2sDuplex::new(iv);
+            let mut sponge: Blake2sDuplex = Blake2sDuplex::new(iv);
             let mut out = Vec::new();
             for run in &runs {
                 match run {
@@ -340,7 +354,7 @@ mod tests {
     fn padding_and_squeeze_counts_are_bound() {
         // The framing tells apart transcripts a plain concatenation would merge.
         let challenge = |squeezed: usize, absorbed: &[u8]| {
-            let mut sponge = Blake2sDuplex::new([0; 32]);
+            let mut sponge: Blake2sDuplex = Blake2sDuplex::new([0; 32]);
             sponge.absorb(b"x");
             sponge.squeeze(&mut vec![0; squeezed]);
             sponge.absorb(absorbed);
@@ -368,7 +382,7 @@ mod tests {
     #[test]
     fn a_squeeze_run_past_the_limit_is_refused_before_any_change() {
         // Fixture: a sponge whose run already consumed all but one byte of the limit.
-        let mut sponge = Blake2sDuplex::new([0; 32]);
+        let mut sponge: Blake2sDuplex = Blake2sDuplex::new([0; 32]);
         sponge.squeeze(&mut [0; 1]);
         sponge.squeezed = Blake2sDuplex::MAX_SQUEEZE - 1;
         let before = sponge.clone();
@@ -384,18 +398,19 @@ mod tests {
     fn a_known_answer_pins_the_mode() {
         // Absorb 0..131, squeeze 40, absorb "ab", squeeze 8, from the iv 0..32.
         //
-        // Any change to the framing, the padding or the byte order moves these bytes.
-        let mut sponge = Blake2sDuplex::new(std::array::from_fn(|i| i as u8));
-        sponge.absorb(&(0..131).collect::<Vec<u8>>());
-        let mut first = [0; 40];
-        sponge.squeeze(&mut first);
-        sponge.absorb(b"ab");
-        let mut second = [0; 8];
-        sponge.squeeze(&mut second);
-        let hex: String = first.iter().chain(&second).map(|b| format!("{b:02x}")).collect();
-        assert_eq!(
-            hex,
-            "72d518bf9786c4060f03f3cb68a3ffc32dda36374ed40d4bb910659749d061d422f71eefc6691565f8a51fa46683db43"
-        );
+        // Any change to the framing, the padding or the byte order moves these bytes, on either compression.
+        fn run<H: Hashing>() -> String {
+            let mut sponge = Blake2sDuplex::<H>::new(std::array::from_fn(|i| i as u8));
+            sponge.absorb(&(0..131).collect::<Vec<u8>>());
+            let mut first = [0; 40];
+            sponge.squeeze(&mut first);
+            sponge.absorb(b"ab");
+            let mut second = [0; 8];
+            sponge.squeeze(&mut second);
+            first.iter().chain(&second).map(|b| format!("{b:02x}")).collect()
+        }
+        let want = "72d518bf9786c4060f03f3cb68a3ffc32dda36374ed40d4bb910659749d061d422f71eefc6691565f8a51fa46683db43";
+        assert_eq!(run::<Native>(), want);
+        assert_eq!(run::<Portable>(), want);
     }
 }

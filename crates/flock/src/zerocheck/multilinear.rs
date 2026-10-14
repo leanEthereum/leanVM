@@ -826,6 +826,7 @@ mod tests {
     use crate::zerocheck::round1::tests::pack_bits;
     use crate::zerocheck::tests::{fold_at_z, honest};
     use crate::zerocheck::{K_SKIP, SkipDomain};
+    use fiat_shamir::arith::Native;
     use primitives::multilinear::fold_low_inplace;
     use primitives::test_util::Rng;
 
@@ -879,7 +880,7 @@ mod tests {
             let (bits, packed_bits) = honest(&mut rng, m);
             let r_rest = rng.ext_vec(m - K_SKIP);
             let rho = rng.ext_vec(m - K_SKIP);
-            let lagrange = SkipDomain::FLOCK.lagrange_weights(rng.ext());
+            let lagrange = SkipDomain::FLOCK.lagrange_weights(&mut Native, rng.ext());
             let full = dense(m);
 
             // Level 0 of the naive route.
@@ -919,7 +920,7 @@ mod tests {
                 useful_bits: useful,
                 live_blocks: usize::MAX,
             };
-            let lagrange = SkipDomain::FLOCK.lagrange_weights(rng.ext());
+            let lagrange = SkipDomain::FLOCK.lagrange_weights(&mut Native, rng.ext());
             let r_rest = rng.ext_vec(m - K_SKIP);
             let rho = rng.ext_vec(4);
             for t in 0..=4 {

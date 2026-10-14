@@ -5,9 +5,9 @@
 //! - Natively a root is a digest, a query an index, and a committed word a `K` value.
 //! - In rows they are the wires holding them, and an opened row is authenticated by hash rows.
 
-use crate::merkle::{Hash, Openings, PrunedMerklePaths, sorted_unique};
+use crate::merkle::{Hash, MerkleHashing, Openings, PrunedMerklePaths, sorted_unique};
 use crate::whir::sample_queries;
-use fiat_shamir::arith::{Arith, Verifier};
+use fiat_shamir::arith::{Arith, Native, Verifier};
 use fiat_shamir::{TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 
@@ -63,7 +63,7 @@ pub trait OpeningVerifier: Verifier {
     fn query_point(&mut self, query: &Self::Query) -> Self::E;
 }
 
-impl OpeningVerifier for VerifierState<'_> {
+impl<A: Arith<E = F192> + MerkleHashing> OpeningVerifier for VerifierState<'_, A> {
     type Root = Hash;
     type K = F64;
     type Query = usize;
@@ -89,7 +89,7 @@ impl OpeningVerifier for VerifierState<'_> {
     }
 
     fn mul_k_add(&mut self, a: F192, k: F64, d: F192) -> F192 {
-        a.mul_base(k) + d
+        self.mul_const_add(a, F192::from(k), d)
     }
 
     fn e_of_limbs(&mut self, limbs: [F64; 3]) -> F192 {
@@ -102,8 +102,8 @@ impl OpeningVerifier for VerifierState<'_> {
 }
 
 /// Read the next hint as Merkle paths and authenticate them against `root`: each query's opening, in query order.
-fn authenticate(
-    vs: &mut VerifierState<'_>,
+fn authenticate<A: MerkleHashing>(
+    vs: &mut VerifierState<'_, A>,
     root: &Hash,
     depth: usize,
     queries: &[usize],
@@ -114,16 +114,18 @@ fn authenticate(
     let distinct = sorted_unique(queries).len();
     vs.prover_hint_with(|hint| {
         let paths = PrunedMerklePaths::from_hint(hint, distinct, row_words)?;
-        paths.open(root, 1 << depth, queries, row_words, leaf_words)
+        paths.open::<A>(root, 1 << depth, queries, row_words, leaf_words)
     })
 }
 
 /// A native verifier that keeps every opening it authenticates, for a recursive verifier to hash.
 ///
 /// The recursive verifier then reads the openings rather than decoding and hashing the hints again.
+///
+/// Only a prover replays a proof this way, to prove it in turn, so it runs on the prover's kernels.
 pub struct Recording<'a> {
     /// The transcript the proof is read from.
-    vs: VerifierState<'a>,
+    vs: VerifierState<'a, Native>,
     /// Every phase's openings, in transcript order.
     openings: Vec<Openings>,
 }
@@ -131,7 +133,7 @@ pub struct Recording<'a> {
 impl<'a> Recording<'a> {
     /// A recording verifier over a transcript.
     #[must_use]
-    pub const fn new(vs: VerifierState<'a>) -> Self {
+    pub const fn new(vs: VerifierState<'a, Native>) -> Self {
         Self {
             vs,
             openings: Vec::new(),
@@ -139,7 +141,7 @@ impl<'a> Recording<'a> {
     }
 
     /// The transcript the proof is read from.
-    pub const fn transcript(&mut self) -> &mut VerifierState<'a> {
+    pub const fn transcript(&mut self) -> &mut VerifierState<'a, Native> {
         &mut self.vs
     }
 

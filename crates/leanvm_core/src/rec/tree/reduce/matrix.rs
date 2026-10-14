@@ -477,6 +477,7 @@ mod tests {
     use crate::rec::hash;
     use crate::rec::tree::reduce;
 
+    use fiat_shamir::arith::Portable;
     use fiat_shamir::{ProverState, SessionId, VerifierState};
     use primitives::test_util::Rng;
 
@@ -500,7 +501,7 @@ mod tests {
                 r_inner_rest: r[..k - k_skip].to_vec(),
                 s_hat_v: rng.ext_vec(1 << k_skip),
             };
-            let value = form.evaluate(circuit);
+            let value = form.evaluate(&mut Portable, circuit);
             claims.push(MatrixClaim::fresh(f, &Claim { point: form, value }));
             if i == 0 {
                 continue;

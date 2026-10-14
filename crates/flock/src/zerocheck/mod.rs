@@ -29,7 +29,7 @@ use crate::lincheck::SkipPoint;
 use crate::round::RoundEvals;
 use lde::{AdditiveNttF8, LdeTable};
 use multilinear::{PackedWitness, RoundPair, bit_pass, bit_pass_storing, single_round, table_pass};
-use round1::{Round1, c_s, medium_challenges, small_challenges};
+use round1::{MEDIUM_CHALLENGES, Round1, c_s, small_challenges};
 
 mod lde;
 pub(crate) mod multilinear;
@@ -75,7 +75,7 @@ fn equality_tail(m: usize, sample: impl FnOnce(usize) -> Vec<F192>) -> Vec<F192>
     let outer = sample(m - MIN_CUBE_LOG);
     small_challenges()
         .into_iter()
-        .chain(medium_challenges())
+        .chain(MEDIUM_CHALLENGES)
         .chain(outer)
         .collect()
 }
@@ -245,7 +245,7 @@ impl<'a> CircuitProver<'a> {
 
     /// Take the skip challenge: the running claim becomes this circuit's `P(z)`.
     fn start(&mut self, z: F192, round1: &[F192]) {
-        self.lagrange = SkipDomain::FLOCK.lagrange_weights(z);
+        self.lagrange = SkipDomain::FLOCK.lagrange_weights(&mut Native, z);
         let vanishing = SkipDomain::FLOCK.vanishing(&mut Native, z);
         self.claim = SkipDomain::FLOCK.first_round_at(&mut Native, z, vanishing, round1);
     }
@@ -501,7 +501,7 @@ pub(crate) fn verify<V: Verifier>(log_ns: &[usize], v: &mut V) -> Result<Zeroche
     let outer = v.verifier_messages(m - MIN_CUBE_LOG);
     let lambda = v.verifier_message();
     let lambdas = v.powers(lambda, log_ns.len());
-    let fixed: Vec<V::E> = (small_challenges().into_iter().chain(medium_challenges()))
+    let fixed: Vec<V::E> = (small_challenges().into_iter().chain(MEDIUM_CHALLENGES))
         .map(|c| v.constant(c))
         .collect();
 
@@ -595,7 +595,7 @@ pub(crate) mod tests {
     /// Whether a claim holds the true evaluations of all three bit vectors.
     fn all_true(claim: &ZerocheckClaim, bits: &[Vec<bool>; 3]) -> bool {
         // The extension at `(z, chi)`: the bits folded over the skip at `z`, then weighted by `eq(chi, .)`.
-        let lagrange = SkipDomain::FLOCK.lagrange_weights(claim.z);
+        let lagrange = SkipDomain::FLOCK.lagrange_weights(&mut Native, claim.z);
         let eq = eq_table(&claim.mlv_challenges);
         (bits.iter().zip(claim.evals)).all(|(bits, eval)| inner_product(&fold_at_z(bits, &lagrange), &eq) == eval)
     }
@@ -776,7 +776,7 @@ pub(crate) mod tests {
         let lambdas = F192::powers(Verifier::verifier_message(&mut vs), circuits.len());
         let round1 = vs.prover_messages(1 << K_SKIP).unwrap();
         let z = Verifier::verifier_message(&mut vs);
-        let lagrange = SkipDomain::FLOCK.lagrange_weights(z);
+        let lagrange = SkipDomain::FLOCK.lagrange_weights(&mut Native, z);
         let mut tables: Vec<[Vec<F192>; 3]> = circuits
             .iter()
             .map(|c| c.dense.each_ref().map(|bits| fold_at_z(bits, &lagrange)))

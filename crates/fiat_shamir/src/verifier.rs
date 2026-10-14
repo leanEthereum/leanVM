@@ -1,10 +1,11 @@
 //! The verifier's side of a transcript, and why it refuses one.
 
+use crate::arith::{Native, Portable};
 use crate::codec::{Encoding, FromNarg, FromUniform};
 use crate::duplex::Blake2sDuplex;
 use crate::pow::ProofOfWork;
 use crate::proof::{Hints, ProofTranscript};
-use crate::{Challenger, SessionId};
+use crate::{Challenger, Hashing, SessionId};
 use thiserror::Error;
 
 /// Why a proof's transcript cannot be read.
@@ -51,9 +52,12 @@ pub enum TranscriptError {
 /// It mirrors the prover call for call.
 ///
 /// A failed read poisons it: every later read returns the same error.
-pub struct VerifierState<'a> {
+///
+/// Its backend `A` computes, hashes and checks proof of work: the native verifier's [`Portable`], or [`Native`] where
+/// a prover replays a proof it is handed, which feeds its own proof and nobody's trust.
+pub struct VerifierState<'a, A = Portable> {
     /// The duplex sponge.
-    sponge: Blake2sDuplex,
+    sponge: Blake2sDuplex<A>,
     /// The messages not yet read.
     narg: &'a [u8],
     /// The hints not yet read.
@@ -66,10 +70,12 @@ pub struct VerifierState<'a> {
     poison: Option<TranscriptError>,
     /// Whether the messages read next were sent under one-time-pad keys.
     hidden: bool,
+    /// The arithmetic it computes with.
+    pub(crate) arith: A,
 }
 
 impl<'a> VerifierState<'a> {
-    /// A transcript for one session, its first message the instance, reading `proof`.
+    /// A transcript for one session, its first message the instance, reading `proof`, on the portable backend.
     ///
     /// Session and instance must be the prover's, or every challenge differs.
     ///
@@ -77,6 +83,24 @@ impl<'a> VerifierState<'a> {
     ///
     /// Panics on an instance of no bytes, which would bind no statement.
     pub fn new(session: &SessionId, instance: &impl Encoding, proof: &'a ProofTranscript) -> Self {
+        Self::with_backend(session, instance, proof)
+    }
+}
+
+impl<'a> VerifierState<'a, Native> {
+    /// [`VerifierState::new`] on the prover's kernels, for a prover replaying a proof it is handed.
+    ///
+    /// # Panics
+    ///
+    /// Panics on an instance of no bytes, which would bind no statement.
+    pub fn native(session: &SessionId, instance: &impl Encoding, proof: &'a ProofTranscript) -> Self {
+        Self::with_backend(session, instance, proof)
+    }
+}
+
+impl<'a, A: Hashing + Default> VerifierState<'a, A> {
+    /// A transcript on the backend `A`.
+    fn with_backend(session: &SessionId, instance: &impl Encoding, proof: &'a ProofTranscript) -> Self {
         Self {
             sponge: Blake2sDuplex::transcript(session, instance),
             narg: &proof.narg,
@@ -85,9 +109,12 @@ impl<'a> VerifierState<'a> {
             hints_read: 0,
             poison: None,
             hidden: false,
+            arith: A::default(),
         }
     }
+}
 
+impl<'a, A: Hashing> VerifierState<'a, A> {
     /// Record `result`'s error, if any, so that every later read fails with it.
     fn guard<T>(&mut self, result: Result<T, TranscriptError>) -> Result<T, TranscriptError> {
         if let Err(e) = result {
@@ -177,7 +204,7 @@ impl<'a> VerifierState<'a> {
         (0..n).map(|_| self.verifier_message()).collect()
     }
 
-    /// Check `bits` of proof of work: draw the challenge, read the nonce, test it.
+    /// Check `bits` of proof of work: draw the challenge, read the nonce, test it by the backend's hash.
     ///
     /// Zero bits is no step at all, as on the prover's side.
     ///
@@ -195,7 +222,7 @@ impl<'a> VerifierState<'a> {
         }
         let challenge: [u8; 32] = self.verifier_message();
         let nonce: u64 = self.prover_message()?;
-        let worked = pow.verify(&challenge, nonce);
+        let worked = pow.verify::<A>(&challenge, nonce);
         self.guard(worked.then_some(()).ok_or(TranscriptError::PowFailed { bits }))
     }
 
@@ -233,7 +260,7 @@ impl<'a> VerifierState<'a> {
     }
 }
 
-impl Challenger for VerifierState<'_> {
+impl<A: Hashing> Challenger for VerifierState<'_, A> {
     fn verifier_message<T: FromUniform>(&mut self) -> T {
         Self::verifier_message(self)
     }

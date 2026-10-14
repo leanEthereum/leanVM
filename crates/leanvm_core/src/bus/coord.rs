@@ -1,8 +1,8 @@
 //! A tuple coordinate as a function of its block's row, and the public columns a coordinate reads.
 
 use crate::rec::FixedColumn;
-use fiat_shamir::VerifierState;
 use fiat_shamir::arith::{Arith, Native};
+use fiat_shamir::{Hashing, VerifierState};
 use pcs::verifier::Recording;
 use primitives::field::{F64, F192};
 use std::sync::{Arc, OnceLock};
@@ -80,7 +80,7 @@ pub(crate) trait PublicColumns: Arith {
 
 impl PublicColumns for Native {}
 
-impl PublicColumns for VerifierState<'_> {}
+impl<A: Arith<E = F192> + Hashing> PublicColumns for VerifierState<'_, A> {}
 
 impl PublicColumns for Recording<'_> {}
 
@@ -152,14 +152,13 @@ impl SparseColumn {
     }
 
     /// The column's multilinear extension at `point`.
-    pub(crate) fn eval(&self, point: &[F192]) -> F192 {
+    pub(crate) fn eval<A: Arith<E = F192>>(&self, a: &mut A, point: &[F192]) -> F192 {
         assert_eq!(point.len(), self.log_len);
         self.blocks.iter().fold(F192::ZERO, |acc, (at, words)| {
             let k = words.len().ilog2() as usize;
-            let selector = point[k..].iter().enumerate().fold(F192::ONE, |s, (j, &z)| {
-                s * if (at >> (k + j)) & 1 == 1 { z } else { z + F192::ONE }
-            });
-            acc + selector * primitives::multilinear::mle_eval(words, &point[..k])
+            let selector = a.eq_bits(at >> k, &point[k..]);
+            let block = a.public_mle(words, &point[..k]);
+            a.mul_add(selector, block, acc)
         })
     }
 }

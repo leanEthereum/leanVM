@@ -204,14 +204,15 @@ impl ClaimSet {
         items
     }
 
-    /// Its digest: the chain of its blocks' compressions.
+    /// Its digest: the chain of its blocks' compressions, by the portable compression: both sides compute it, the
+    /// native verifier included.
     #[must_use]
     pub fn digest(&self) -> [u64; 4] {
         let items = self.items();
         let last = items.len() - 1;
         (items.iter().enumerate()).fold(PARAM_IV, |h: Limbs, (i, item)| {
             let t = item.code | if i == 0 { code::START } else { 0 };
-            Compression::new(h, item.block, t, i == last).output()
+            Compression::new(h, item.block, t, i == last).output_portable()
         })
     }
 

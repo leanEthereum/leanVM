@@ -50,7 +50,7 @@ pub fn producer_affine_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta
             constant = a.square(constant);
             for (weight, monomials) in &mut affine {
                 *weight = a.square(*weight);
-                monomials.iter_mut().for_each(|m| *m = *m * *m);
+                monomials.iter_mut().for_each(|m| *m = m.square_portable());
             }
         }
     }
@@ -71,14 +71,26 @@ pub fn producer_affine_evals<A: Arith>(a: &mut A, p: &Producer, w: &[A::E], beta
 /// ```
 ///
 /// That is one pass over the columns, then a fixed cost per coordinate, bit and power.
-pub(crate) fn producer_public_twist(coords: &[Coord], w: &[F192], chi: &[F192], twist: &[F192]) -> F192 {
-    (producer_twist_terms(coords, w, chi, twist.len()).iter().zip(twist))
-        .fold(F192::ZERO, |acc, (&d, &mu)| acc + mu * d)
+pub(crate) fn producer_public_twist<A: Arith<E = F192>>(
+    a: &mut A,
+    coords: &[Coord],
+    w: &[F192],
+    chi: &[F192],
+    twist: &[F192],
+) -> F192 {
+    let terms = producer_twist_terms(a, coords, w, chi, twist.len());
+    a.dot(twist, &terms)
 }
 
 /// The terms `D_i` of the public half above, for `i < n_terms`, so that it is `sum_i mu_i D_i`.
-pub(crate) fn producer_twist_terms(coords: &[Coord], w: &[F192], chi: &[F192], n_terms: usize) -> Vec<F192> {
-    let eq = primitives::multilinear::eq_table(chi);
+pub(crate) fn producer_twist_terms<A: Arith<E = F192>>(
+    a: &mut A,
+    coords: &[Coord],
+    w: &[F192],
+    chi: &[F192],
+    n_terms: usize,
+) -> Vec<F192> {
+    let eq = a.eq_table(chi);
     let mut terms = vec![F192::ZERO; n_terms];
     for (c, &weight) in coords.iter().zip(w) {
         let Coord::Public(PublicColumn { values: vals, .. }) = c else {
@@ -97,10 +109,10 @@ pub(crate) fn producer_twist_terms(coords: &[Coord], w: &[F192], chi: &[F192], n
         let mut weight = weight;
         let mut basis: [F64; 64] = std::array::from_fn(|k| F64(1 << k));
         for term in &mut terms {
-            let sum = (slices.iter().zip(&basis)).fold(F192::ZERO, |s, (b, &g)| s + b.mul_base(g));
-            *term += weight * sum;
-            weight = weight.square();
-            basis.iter_mut().for_each(|g| *g = *g * *g);
+            let sum = (slices.iter().zip(&basis)).fold(F192::ZERO, |s, (&b, &g)| a.mul_const_add(b, F192::from(g), s));
+            *term = a.mul_add(weight, sum, *term);
+            weight = a.square(weight);
+            basis.iter_mut().for_each(|g| *g = g.square_portable());
         }
     }
     terms
@@ -528,6 +540,8 @@ impl Side<'_> {
             Ok::<_, Infallible>(v)
         });
         let Ok(framework) = framework;
-        (open.sparse.drain(..)).fold(framework, |acc, s| acc + s.weight * s.column.eval(&s.point))
+        (open.sparse.drain(..)).fold(framework, |acc, s| {
+            acc + s.weight * s.column.eval(&mut Native, &s.point)
+        })
     }
 }

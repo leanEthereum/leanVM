@@ -214,19 +214,19 @@ impl Lookup {
     }
 
     /// The array's public columns over its entries, in tuple order after the address.
+    ///
+    /// On the calling thread: the verifier builds them too.
     pub fn columns(self, p: &RiscvProgram) -> Vec<Vec<F64>> {
         match self {
             // The program's columns, in bytecode slot order.
             Self::Bytecode => {
                 let entries = p.entries();
-                let column = |f: &(dyn Fn(usize, &Entry) -> u64 + Sync)| {
-                    parallel::map_collect(entries.len(), |i| F64(f(i, &entries[i])))
+                let column = |f: &dyn Fn(usize, &Entry) -> u64| -> Vec<F64> {
+                    (entries.iter().enumerate()).map(|(i, e)| F64(f(i, e))).collect()
                 };
                 vec![
                     // An illegal entry's tag is zero, which is no table's: nothing can read it.
-                    parallel::map_collect(entries.len(), |i| {
-                        TableId::of(entries[i].class).map_or(F64::ZERO, TableId::tag)
-                    }),
+                    column(&|_, e| TableId::of(e.class).map_or(0, |t| t.tag().0)),
                     column(&|_, e| e.flags),
                     column(&|_, e| e.a1 as u64),
                     column(&|_, e| e.a2 as u64),

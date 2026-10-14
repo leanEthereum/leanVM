@@ -22,7 +22,7 @@ use super::gf2_64::F64;
 )))]
 use super::gf2_64::mul_wide;
 #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
-use super::gf2_64::{reduce, square_wide};
+use super::gf2_64::square_wide;
 use core::iter::Sum;
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
 use core::mem::MaybeUninit;
@@ -109,10 +109,12 @@ impl F192 {
     pub fn mul_unreduced(self, rhs: Self) -> F192Unreduced {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
+            crate::portable::kernel();
             aarch64::mul_unreduced(self, rhs)
         }
         #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
         {
+            crate::portable::kernel();
             // SAFETY: pclmulqdq is enabled at compile time.
             unsafe { x86_64::mul_unreduced(self, rhs) }
         }
@@ -121,7 +123,7 @@ impl F192 {
             all(target_arch = "x86_64", target_feature = "pclmulqdq")
         )))]
         {
-            software::mul_unreduced(self, rhs)
+            portable::mul_unreduced(self, rhs)
         }
     }
 
@@ -132,6 +134,7 @@ impl F192 {
     pub fn mul_base(self, k: F64) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
+            crate::portable::kernel();
             aarch64::mul_base(self, k)
         }
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
@@ -145,10 +148,12 @@ impl F192 {
     pub fn mul_base_unreduced(self, k: F64) -> F192Unreduced {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
+            crate::portable::kernel();
             aarch64::mul_base_unreduced(self, k)
         }
         #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
         {
+            crate::portable::kernel();
             // SAFETY: pclmulqdq is enabled at compile time.
             unsafe { x86_64::mul_base_unreduced(self, k) }
         }
@@ -173,6 +178,7 @@ impl F192 {
     pub fn square(self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
+            crate::portable::kernel();
             aarch64::square(self)
         }
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
@@ -213,6 +219,29 @@ impl F192 {
         );
         m.mul_base(F64(norm.c0).inv())
     }
+
+    /// The product, with no SIMD intrinsic or assembly: the verifier's (see [`crate::portable`]).
+    #[inline]
+    pub const fn mul_portable(self, rhs: Self) -> Self {
+        portable::mul(self, rhs)
+    }
+
+    /// The square, with no SIMD intrinsic or assembly.
+    #[inline]
+    pub const fn square_portable(self) -> Self {
+        portable::square(self)
+    }
+
+    /// The product by a base-field scalar, with no SIMD intrinsic or assembly.
+    #[inline]
+    pub const fn mul_base_portable(self, k: F64) -> Self {
+        portable::mul_base(self, k)
+    }
+
+    /// The inverse, zero for zero, with no SIMD intrinsic or assembly.
+    pub const fn inv_portable(self) -> Self {
+        portable::inv(self)
+    }
 }
 
 impl F192 {
@@ -220,8 +249,11 @@ impl F192 {
     #[inline(always)]
     pub fn mul2(a: [Self; 2], b: [Self; 2]) -> [Self; 2] {
         #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
-        // SAFETY: both features are enabled at compile time.
-        return unsafe { x86_64::mul_vec2(a, b) };
+        {
+            crate::portable::kernel();
+            // SAFETY: both features are enabled at compile time.
+            unsafe { x86_64::mul_vec2(a, b) }
+        }
         #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
         [a[0] * b[0], a[1] * b[1]]
     }
@@ -229,6 +261,8 @@ impl F192 {
     /// Four independent products.
     #[inline(always)]
     pub fn mul4(a: [Self; 4], b: [Self; 4]) -> [Self; 4] {
+        #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+        crate::portable::kernel();
         #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
         // SAFETY: both features are enabled at compile time.
         return unsafe { x86_64::mul_vec4(a, b) };
@@ -243,6 +277,8 @@ impl F192 {
     /// Four independent products without the reduction, for a caller XOR-accumulating many products.
     #[inline(always)]
     pub fn mul_unreduced4(a: [Self; 4], b: [Self; 4]) -> [F192Unreduced; 4] {
+        #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+        crate::portable::kernel();
         #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
         // SAFETY: both features are enabled at compile time.
         return unsafe { x86_64::mul_unreduced_vec4(a, b) };
@@ -267,6 +303,8 @@ impl F192 {
     /// On AVX-512 this is six CLMULs for all eight, against twenty-four one at a time.
     #[inline(always)]
     pub fn mul_base8(t: Self, k: [F64; 8]) -> [Self; 8] {
+        #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+        crate::portable::kernel();
         #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
         // SAFETY: both features are enabled at compile time.
         return unsafe { x86_64::mul_base8(t, k) };
@@ -316,6 +354,7 @@ impl Mul for F192 {
     fn mul(self, rhs: Self) -> Self {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
+            crate::portable::kernel();
             aarch64::mul(self, rhs)
         }
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
@@ -365,6 +404,7 @@ impl MixedSums8 {
     /// Add `t * k[i]` to sum `i`.
     #[inline(always)]
     pub fn add(&mut self, t: F192, k: [F64; 8]) {
+        crate::portable::kernel();
         // SAFETY: both features are enabled at compile time.
         unsafe { x86_64::mul_base8_add(&mut self.acc, t, k) }
     }
@@ -403,6 +443,7 @@ pub struct F192x4Unreduced {
 impl From<[F192; 4]> for F192x4 {
     #[inline(always)]
     fn from(v: [F192; 4]) -> Self {
+        crate::portable::kernel();
         Self {
             // SAFETY: both features are enabled at compile time.
             lanes: unsafe { x86_64::lanes4(v) },
@@ -435,6 +476,7 @@ impl F192x4 {
     /// From memory: two loads and two permutes, where building from values inserts twelve words one at a time.
     #[inline(always)]
     pub fn load(v: &[F192; 4]) -> Self {
+        crate::portable::kernel();
         Self {
             // SAFETY: both features are enabled at compile time; `v` is twelve words.
             lanes: unsafe { x86_64::load_lanes4(v) },
@@ -585,6 +627,8 @@ impl Weights8 {
 pub fn dot_base(w: &[Weights8], k: &[F64]) -> F192Unreduced {
     assert_eq!(k.len(), 8 * w.len());
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+    crate::portable::kernel();
+    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     // SAFETY: both features are enabled at compile time; the lengths match.
     return unsafe { x86_64::dot_base(w, k) };
     #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
@@ -614,25 +658,34 @@ impl F192Unreduced {
         allow(dead_code, reason = "the portable product's, kept as the tests' reference")
     )]
     #[inline]
-    fn from_wide(coeffs: [u128; 3]) -> Self {
+    const fn from_wide([c0, c1, c2]: [u128; 3]) -> Self {
         Self {
-            coeffs: coeffs.map(|c| [c as u64, (c >> 64) as u64]),
+            coeffs: [
+                [c0 as u64, (c0 >> 64) as u64],
+                [c1 as u64, (c1 >> 64) as u64],
+                [c2 as u64, (c2 >> 64) as u64],
+            ],
         }
     }
 
     /// Reduce each coefficient modulo the base polynomial.
+    #[cfg_attr(
+        not(all(target_arch = "aarch64", target_feature = "aes")),
+        expect(
+            clippy::missing_const_for_fn,
+            reason = "The aarch64 implementation requires runtime intrinsics."
+        )
+    )]
     #[inline]
     pub fn reduce(self) -> F192 {
         #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
         {
+            crate::portable::kernel();
             aarch64::reduce(self)
         }
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
-            let [c0, c1, c2] = self
-                .coeffs
-                .map(|[lo, hi]| reduce(u128::from(hi) << 64 | u128::from(lo)));
-            F192 { c0, c1, c2 }
+            portable::reduce(self)
         }
     }
 }
@@ -709,39 +762,12 @@ pub mod aarch64;
 #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
 pub mod x86_64;
 
-/// Portable fallback, and the reference every accelerated path is tested against.
-mod software {
-    use super::{F192, F192Unreduced};
-    use crate::field::gf2_64::software::clmul;
-
-    /// Schoolbook: nine base products into the five coefficients of `y^0..y^4`, then the `y`-fold.
-    #[cfg_attr(
-        any(
-            all(target_arch = "aarch64", target_feature = "aes"),
-            all(target_arch = "x86_64", target_feature = "pclmulqdq")
-        ),
-        allow(
-            dead_code,
-            reason = "the portable product, kept as the tests' reference where a CLMUL backend serves"
-        )
-    )]
-    pub(super) fn mul_unreduced(a: F192, b: F192) -> F192Unreduced {
-        let (a, b) = ([a.c0, a.c1, a.c2], [b.c0, b.c1, b.c2]);
-        let mut e = [0u128; 5];
-        // a_i * b_j lands on y^(i + j).
-        for i in 0..3 {
-            for j in 0..3 {
-                e[i + j] ^= clmul(a[i], b[j]);
-            }
-        }
-        // y^3 = y + 1 and y^4 = y^2 + y.
-        F192Unreduced::from_wide([e[0] ^ e[3], e[1] ^ e[3] ^ e[4], e[2] ^ e[4]])
-    }
-}
+/// The portable products, behind the `*_portable` methods and every fallback.
+mod portable;
 
 #[cfg(test)]
 mod tests {
-    // Every backend against the software reference, independent vectors, the field axioms, and both moduli's irreducibility.
+    // Every backend against a schoolbook reference, independent vectors, the field axioms, and both moduli's irreducibility.
 
     use super::*;
     use crate::field::gf2_64::R64;
@@ -755,11 +781,6 @@ mod tests {
     use core::mem::MaybeUninit;
     #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
     use x86_64::{F192x1, F192x1Unreduced};
-
-    /// The portable product, the reference every backend is checked against.
-    fn software_mul(a: F192, b: F192) -> F192 {
-        software::mul_unreduced(a, b).reduce()
-    }
 
     /// Vectors generated by an independent Python implementation
     /// (scratchpad/fieldref.py): (a, b, a·b, a·a).
@@ -808,41 +829,58 @@ mod tests {
         random.chain(corners).collect()
     }
 
+    /// The schoolbook product over bit-by-bit carry-less products, the reference every other is checked against.
+    fn reference(a: F192, b: F192) -> F192 {
+        let clmul = |a: u64, b: u64| (0..64).filter(|i| a >> i & 1 == 1).fold(0, |p, i| p ^ (b as u128) << i);
+        let (a, b) = ([a.c0, a.c1, a.c2], [b.c0, b.c1, b.c2]);
+        let mut e = [0u128; 5];
+        for i in 0..3 {
+            for j in 0..3 {
+                e[i + j] ^= clmul(a[i], b[j]);
+            }
+        }
+        // y^3 = y + 1 and y^4 = y^2 + y.
+        portable::reduce(F192Unreduced::from_wide([e[0] ^ e[3], e[1] ^ e[3] ^ e[4], e[2] ^ e[4]]))
+    }
+
     #[test]
     fn python_vectors_and_modulus() {
         for (a, b, c, s) in VECTORS {
             let (a, b) = (F192::new(a[0], a[1], a[2]), F192::new(b[0], b[1], b[2]));
             assert_eq!(a * b, F192::new(c[0], c[1], c[2]));
             assert_eq!(a.square(), F192::new(s[0], s[1], s[2]));
-            assert_eq!(software_mul(a, b), F192::new(c[0], c[1], c[2]));
+            assert_eq!(reference(a, b), F192::new(c[0], c[1], c[2]));
         }
         assert_eq!(F192::Y * F192::Y * F192::Y, F192::Y + F192::ONE);
     }
 
     #[test]
-    fn products_match_software() {
+    fn products_match_the_reference() {
         for (a, b) in operand_pairs(2) {
-            let want = software_mul(a, b);
-            // Dispatched product, its unreduced form, and squaring.
+            let want = reference(a, b);
+            // Dispatched and portable products, the unreduced form, and squaring.
             assert_eq!(a * b, want);
+            assert_eq!(a.mul_portable(b), want);
             assert_eq!(a.mul_unreduced(b).reduce(), want);
-            assert_eq!(a.square(), software_mul(a, a));
+            assert_eq!(a.square(), reference(a, a));
+            assert_eq!(a.square_portable(), reference(a, a));
             // A mixed product is a full product by an element with no y part.
             let k = F64(b.c1);
-            let want = software_mul(a, F192::from(k));
+            let want = reference(a, F192::from(k));
             assert_eq!(a.mul_base(k), want);
+            assert_eq!(a.mul_base_portable(k), want);
             assert_eq!(a.mul_base_unreduced(k).reduce(), want);
         }
     }
 
     #[test]
-    fn batched_products_match_software() {
+    fn batched_products_match_the_reference() {
         // Four consecutive pairs per batch.
         let pairs = operand_pairs(6);
         for batch in pairs.as_chunks::<4>().0 {
             let a = batch.map(|(a, _)| a);
             let b = batch.map(|(_, b)| b);
-            let want: [F192; 4] = std::array::from_fn(|i| software_mul(a[i], b[i]));
+            let want: [F192; 4] = std::array::from_fn(|i| reference(a[i], b[i]));
             assert_eq!(F192::mul4(a, b), want);
             assert_eq!(F192::mul_unreduced4(a, b).map(F192Unreduced::reduce), want);
             assert_eq!(F192::mul2([a[0], a[1]], [b[0], b[1]]), [want[0], want[1]]);
@@ -851,7 +889,7 @@ mod tests {
 
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
     #[test]
-    fn lane_products_match_software() {
+    fn lane_products_match_the_reference() {
         let pairs = operand_pairs(11);
         // Padded to whole batches, so the last corner pair is tested too.
         let pairs = [
@@ -862,7 +900,7 @@ mod tests {
         for batch in pairs.as_chunks::<4>().0 {
             let a = batch.map(|(a, _)| a);
             let b = batch.map(|(_, b)| b);
-            let want: [F192; 4] = std::array::from_fn(|i| software_mul(a[i], b[i]));
+            let want: [F192; 4] = std::array::from_fn(|i| reference(a[i], b[i]));
             let (a4, b4) = (F192x4::from(a), F192x4::from(b));
             assert_eq!(<[F192; 4]>::from(a4), a);
             assert_eq!(<[F192; 4]>::from(F192x4::load(&a)), a);
@@ -875,7 +913,7 @@ mod tests {
             let mut acc = F192x4Unreduced::zero();
             acc ^= a4.mul_unreduced(b4);
             acc ^= F192x4::splat(a[0]).mul_unreduced(b4);
-            let sum = (0..4).fold(F192::ZERO, |s, i| s + want[i] + software_mul(a[0], b[i]));
+            let sum = (0..4).fold(F192::ZERO, |s, i| s + want[i] + reference(a[0], b[i]));
             assert_eq!(acc.sum().reduce(), sum);
         }
     }
@@ -887,15 +925,15 @@ mod tests {
         all(target_arch = "x86_64", target_feature = "pclmulqdq")
     ))]
     #[test]
-    fn register_products_match_software() {
+    fn register_products_match_the_reference() {
         for (a, b) in operand_pairs(12) {
             let (a1, b1) = (F192x1::load(&a), F192x1::from(b));
-            assert_eq!(F192::from(a1 * b1), software_mul(a, b));
+            assert_eq!(F192::from(a1 * b1), reference(a, b));
             assert_eq!(F192::from(a1 + b1), a + b);
             let mut acc = F192x1Unreduced::zero();
             acc ^= a1.mul_unreduced(b1);
             acc ^= b1.mul_base_unreduced(F64(a.c2));
-            let want = software_mul(a, b) + software_mul(b, F192::from(F64(a.c2)));
+            let want = reference(a, b) + reference(b, F192::from(F64(a.c2)));
             assert_eq!(F192::from(acc.reduce()), want);
             assert_eq!(F192Unreduced::from(acc).reduce(), want);
             let mut out = MaybeUninit::uninit();
@@ -914,6 +952,7 @@ mod tests {
             if !a.is_zero() {
                 assert_eq!(a * a.inv(), F192::ONE);
             }
+            assert_eq!(a.inv_portable(), a.inv());
             // K-valued and y-free elements are the cases `inv`'s norm path is
             // most likely to get wrong, and the interpreter's MUL back-solve
             // inverts K-valued words exclusively.
@@ -922,8 +961,10 @@ mod tests {
                 assert_eq!(k * k.inv(), F192::ONE);
                 assert_eq!(k.inv(), F192::from(F64(k.c0).inv()));
             }
+            assert_eq!(k.inv_portable(), k.inv());
         }
         assert_eq!(F192::ZERO.inv(), F192::ZERO);
+        assert_eq!(F192::ZERO.inv_portable(), F192::ZERO);
     }
 
     #[test]
@@ -951,7 +992,7 @@ mod tests {
 
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
     #[test]
-    fn mixed_sums_match_software() {
+    fn mixed_sums_match_the_reference() {
         let mut rng = Rng::new(10);
         for _ in 0..200 {
             // A zero and an all-ones word in every term, a corner coefficient in the first.
@@ -973,7 +1014,7 @@ mod tests {
             let want: [F192; 8] = std::array::from_fn(|i| {
                 terms
                     .iter()
-                    .fold(F192::ZERO, |acc, (t, k)| acc + software_mul(*t, F192::from(k[i])))
+                    .fold(F192::ZERO, |acc, (t, k)| acc + reference(*t, F192::from(k[i])))
             });
             assert_eq!(sums.reduce(), want);
         }

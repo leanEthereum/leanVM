@@ -1,7 +1,7 @@
 //! A fixed-size thread pool for flat data-parallel kernels.
 //!
 //! - Workers claim ranges from one shared counter, which also balances cores of different speeds.
-//! - Dispatches cannot nest.
+//! - Dispatches cannot nest, and a [`serial`] section refuses them.
 //! - A task panic is resumed on the dispatcher after every worker stops.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 mod pool;
 mod topology;
 
-pub use pool::{AlreadyConfigured, for_each_chunk, init, init_with_threads};
+pub use pool::{AlreadyConfigured, Serial, for_each_chunk, init, init_with_threads, serial};
 pub use topology::{Topology, num_threads, topology};
 
 /// Claims per worker that a recommended chunk size aims for.

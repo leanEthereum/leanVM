@@ -32,6 +32,8 @@ impl NovelBasis {
     ///
     /// Each normalizer is nonzero: `v_k` lies outside the span of `v_0, ..., v_{k-1}`, where `s_k` vanishes.
     ///
+    /// Computed by the portable products, since the native verifier builds it too.
+    ///
     /// # Panics
     ///
     /// Panics if `log_n > 63`, past the degree of `K`.
@@ -42,7 +44,7 @@ impl NovelBasis {
         let mut rows = Vec::with_capacity(log_n + 1);
         loop {
             // The recurrence on every later basis vector: s_{k+1}(v_j) = s_k(v_j) (s_k(v_j) + s_k(v_k)).
-            let next: Vec<F64> = row[1..].iter().map(|&s| s * (s + row[0])).collect();
+            let next: Vec<F64> = row[1..].iter().map(|&s| s.mul_portable(s + row[0])).collect();
             rows.push(row);
             if next.is_empty() {
                 break;
@@ -51,9 +53,9 @@ impl NovelBasis {
         }
         // Row k's first entry is s_k(v_k): dividing by it normalizes the row.
         let normalizers: Vec<F64> = rows.iter().map(|row| row[0]).collect();
-        let inverses: Vec<F64> = normalizers.iter().map(|s| s.inv()).collect();
+        let inverses: Vec<F64> = normalizers.iter().map(|s| s.inv_portable()).collect();
         for (row, &inverse) in rows.iter_mut().zip(&inverses) {
-            row.iter_mut().for_each(|s| *s *= inverse);
+            row.iter_mut().for_each(|s| *s = s.mul_portable(inverse));
         }
         Self {
             rows,
@@ -93,6 +95,12 @@ impl NovelBasis {
             }
             *o = s * self.inverses[k];
         }
+    }
+
+    /// `s'_k(x)` alone, by the recurrence on the portable products, as the native verifier computes it.
+    pub(crate) fn normalized_portable(&self, x: F64, k: usize) -> F64 {
+        let s = (0..k).fold(x, |s, j| s.mul_portable(s + self.normalizers[j]));
+        s.mul_portable(self.inverses[k])
     }
 
     /// `s_{k+1}(x)` from `s = s_k(x)`, as `s^2 + s_k(v_k) s`.
@@ -140,7 +148,7 @@ mod tests {
         // Invariant: every way of reaching `s'_k` gives the same value.
         //
         //     table:       subset sums of the values at the basis vectors
-        //     recurrence:  s_{k+1} = s_k (s_k + s_k(v_k)), natively and through the arithmetic
+        //     recurrence:  s_{k+1} = s_k (s_k + s_k(v_k)), natively, portably and through the arithmetic
         //
         // Fixture state: a 12-variable domain, at points spread over it.
         let basis = NovelBasis::new(12);
@@ -150,6 +158,11 @@ mod tests {
             let mut s = F192::from(F64(point as u64));
             for (k, &want) in normalized.iter().enumerate() {
                 assert_eq!(basis.at_point(k, point), want, "point {point}, k {k}");
+                assert_eq!(
+                    basis.normalized_portable(F64(point as u64), k),
+                    want,
+                    "point {point}, k {k}"
+                );
                 assert_eq!(
                     s.mul_base(basis.inverses()[k]),
                     F192::from(want),

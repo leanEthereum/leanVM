@@ -125,29 +125,41 @@ pub(crate) fn small_challenges() -> [F192; 3] {
 const MEDIUM_GENERATOR: F192 = F192::new(0x243f_6a88_85a3_08d3, 0x1319_8a2e_0370_7344, 0xa409_3822_299f_31d0);
 
 /// `gamma, gamma^2, gamma^4, gamma^8`.
-fn medium_squares() -> [F192; N_MEDIUM] {
+const MEDIUM_SQUARES: [F192; N_MEDIUM] = {
     let mut g = [MEDIUM_GENERATOR; N_MEDIUM];
-    for i in 1..N_MEDIUM {
-        g[i] = g[i - 1].square();
+    let mut i = 1;
+    while i < N_MEDIUM {
+        g[i] = g[i - 1].square_portable();
+        i += 1;
     }
     g
+};
+
+/// `1 + g`.
+const fn one_plus(g: F192) -> F192 {
+    F192::new(g.c0 ^ 1, g.c1, g.c2)
 }
 
-/// The four medium challenges `gamma^(2^i) / (1 + gamma^(2^i))`.
-pub(crate) fn medium_challenges() -> [F192; N_MEDIUM] {
-    medium_squares().map(|g| g * (F192::ONE + g).inv())
-}
+/// The four medium challenges `gamma^(2^i) / (1 + gamma^(2^i))`, at compile time.
+pub(crate) const MEDIUM_CHALLENGES: [F192; N_MEDIUM] = {
+    let mut out = MEDIUM_SQUARES;
+    let mut i = 0;
+    while i < N_MEDIUM {
+        out[i] = out[i].mul_portable(one_plus(out[i]).inv_portable());
+        i += 1;
+    }
+    out
+};
 
 /// `1 / D`, `D = prod_i (1 + gamma^(2^i))`: it cancels the medium eq's normalization.
-fn d_inv() -> F192 {
-    static D_INV: OnceLock<F192> = OnceLock::new();
-    *D_INV.get_or_init(|| {
-        let d = medium_squares()
-            .into_iter()
-            .fold(F192::ONE, |acc, g| acc * (F192::ONE + g));
-        d.inv()
-    })
-}
+const D_INV: F192 = {
+    let (mut d, mut i) = (F192::ONE, 0);
+    while i < N_MEDIUM {
+        d = d.mul_portable(one_plus(MEDIUM_SQUARES[i]));
+        i += 1;
+    }
+    d.inv_portable()
+};
 
 /// `gamma^b` for each medium position `b`.
 fn gamma_powers() -> &'static [F192; N_MEDIUM_VALUES] {
@@ -278,12 +290,11 @@ impl<'a> Round1<'a> {
         let tail = self.padding.tail(self.m, WINDOW_LOG, WINDOW_LOG, self.r);
         let n_windows = tail.map_or(1 << (self.m - WINDOW_LOG), |t| t.head >> WINDOW_LOG);
         let eq = SplitEq::with_high_vars(&self.r[N_INNER..], EQ_HIGH_VARS);
-        let d_inv = d_inv();
         let sweep = Sweep {
             bits: self.bits,
             lde: self.lde,
             // `1 / D` rides the low half once, cancelling the medium eq's normalization.
-            eq_lo: eq.low.iter().map(|&e| e * d_inv).collect(),
+            eq_lo: eq.low.iter().map(|&e| e * D_INV).collect(),
             n_lo: eq.low_log,
             n_windows,
             medium: MediumCounts::new(&self.padding),
@@ -1130,7 +1141,7 @@ pub(crate) mod tests {
 
     /// The eq coordinates: the seven fixed ones, then random outer ones.
     fn protocol_r(rng: &mut Rng, m: usize) -> Vec<F192> {
-        (small_challenges().into_iter().chain(medium_challenges()))
+        (small_challenges().into_iter().chain(MEDIUM_CHALLENGES))
             .chain(rng.ext_vec(m - WINDOW_LOG))
             .collect()
     }
@@ -1247,7 +1258,7 @@ pub(crate) mod tests {
         // Invariant: the 2^7 eq weights of the seven fixed coordinates have rank 128 over GF(2) (lem:fixed-zerocheck).
         //
         // Rank 7 of the coordinates alone would pass while a relation among their products broke the lemma.
-        let a: Vec<F192> = small_challenges().into_iter().chain(medium_challenges()).collect();
+        let a: Vec<F192> = small_challenges().into_iter().chain(MEDIUM_CHALLENGES).collect();
         assert_eq!(a.len(), N_INNER);
 
         // One row per corner `b`: `eq(a, b) = prod_i (b_i ? a_i : 1 + a_i)`.

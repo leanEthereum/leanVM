@@ -37,9 +37,9 @@ use crate::rec::table::{PerRecTable, Table};
 use crate::rec::transcript::ProofSource;
 use crate::tables::CircuitId;
 use design::{ChildWitness, Design, LARGE, LeafWitness, Level, NodeInputs, NodeRows, SMALL};
+use fiat_shamir::arith::{Arith, Portable};
 use pcs::merkle::Openings;
-use primitives::field::{F64, F192};
-use primitives::multilinear::{eq_table, mle_eval_par};
+use primitives::field::F64;
 use reduce::DenseTables;
 use statement::TreeStatement;
 use thiserror::Error;
@@ -729,6 +729,7 @@ impl<'p> Tree<'p> {
     /// A tree of outputs only. Returns the first check that refuses.
     #[tracing::instrument(name = "Verify tree", skip_all)]
     pub fn verify(&self, root: &TreeProof, outputs: &[Output]) -> Result<(), TreeError> {
+        let _portable = primitives::portable::enter();
         self.outputs()?;
         let d = &self.design;
         self.check_rate(root)?;
@@ -741,7 +742,7 @@ impl<'p> Tree<'p> {
             });
         }
         let position = self.known(root)?;
-        self.read(root, position).map_err(TreeError::Root)?;
+        self.check(root, position).map_err(TreeError::Root)?;
         let statement = root.statement(d.statement);
         if statement.digest_words() != self.digest(outputs) {
             return Err(TreeError::Outputs);
@@ -760,12 +761,13 @@ impl<'p> Tree<'p> {
     /// A tree of outputs. Otherwise the first check that refuses.
     #[tracing::instrument(name = "Verify claim-set tree", skip_all)]
     pub fn verify_claims(&self, root: &TreeProof, claims: &ClaimSet) -> Result<(), TreeError> {
+        let _portable = primitives::portable::enter();
         let capacity = self.capacity()?;
         let d = &self.design;
         self.check_rate(root)?;
         let position = self.known(root)?;
         claims.check(capacity).map_err(TreeError::ClaimSet)?;
-        self.read(root, position).map_err(TreeError::Root)?;
+        self.check(root, position).map_err(TreeError::Root)?;
         let statement = root.statement(d.statement);
         if statement.digest_words() != claims.digest() {
             return Err(TreeError::Claims);
@@ -784,9 +786,18 @@ impl<'p> Tree<'p> {
         level[0]
     }
 
+    /// Verify a tree proof's recursion proof on the native verifier, short of its claims; the proof is of the tree's
+    /// circuit at `position`.
+    fn check(&self, p: &TreeProof, position: usize) -> Result<(), VerifyError> {
+        self.keys[position]
+            .verify_public(&p.limbs(), &self.design.session(), self.design.rate, &p.proof)
+            .map_err(Into::into)
+    }
+
     /// Verify a tree proof's recursion proof, short of its claims, returning every opening it authenticated.
     ///
-    /// The proof is of the tree's circuit at `position`.
+    /// The proof is of the tree's circuit at `position`. It is a node's prover's replay of a child, so it runs on the
+    /// prover's kernels.
     fn read(&self, p: &TreeProof, position: usize) -> Result<Vec<Openings>, VerifyError> {
         self.keys[position]
             .verify(&p.limbs(), &self.design.session(), self.design.rate, &p.proof)
@@ -811,6 +822,7 @@ impl<'p> Tree<'p> {
     /// Evaluate every claim a root's statement carries.
     #[tracing::instrument(name = "Settle claims", skip_all)]
     fn settle(&self, s: &TreeStatement, position: usize) -> Result<(), TreeError> {
+        let a = &mut Portable;
         let vars = &self.design.vars.0;
         for &poly in self.design.statement.polys() {
             // A first-level node reduces no claim on a fixed polynomial.
@@ -818,27 +830,24 @@ impl<'p> Tree<'p> {
                 continue;
             }
             let point = &s.dense_point()[..vars[poly as usize]];
-            if mle_eval_par(&self.tables.0[poly as usize], point) != s.dense_value(poly) {
+            if a.public_mle(&self.tables.0[poly as usize], point) != s.dense_value(poly) {
                 return Err(TreeError::Claim(FalseClaim::Dense(poly)));
             }
         }
-        let held = parallel::map_collect(CircuitId::ALL.len(), |f| {
-            let f = CircuitId::ALL[f];
+        for f in CircuitId::ALL {
             let circuit = f.circuit();
             let k = circuit.k_log();
-            let (ra, rb) = circuit.row_values(&eq_table(&s.cols()[..k]));
-            let u = eq_table(&s.rows()[..k]);
-            let dot = |r: &[F192]| u.iter().zip(r).fold(F192::ZERO, |acc, (&x, &y)| acc + x * y);
-            [dot(&ra), dot(&rb)] == s.matrices(f)
-        });
-        (CircuitId::ALL.into_iter().zip(held))
-            .find(|&(_, h)| !h)
-            .map_or(Ok(()), |(f, _)| {
-                Err(TreeError::Claim(FalseClaim::Matrix {
+            let cols = a.eq_table(&s.cols()[..k]);
+            let (ra, rb) = circuit.row_values(&cols);
+            let u = a.eq_table(&s.rows()[..k]);
+            if [a.dot(&u, &ra), a.dot(&u, &rb)] != s.matrices(f) {
+                return Err(TreeError::Claim(FalseClaim::Matrix {
                     table: f.table().name(),
                     part: f.part(),
-                }))
-            })
+                }));
+            }
+        }
+        Ok(())
     }
 
     /// What the circuit of one kind of node costs: of a claim-set tree's nodes, the one of the largest arity.
@@ -883,6 +892,7 @@ mod tests {
     use crate::rv::asm::*;
     use crate::tables::TableId;
     use fiat_shamir::ProofTranscript;
+    use primitives::field::F192;
     use std::sync::OnceLock;
     use zk::Randomness;
 
@@ -1197,7 +1207,7 @@ mod tests {
             rate: d.rate,
         };
         assert!(
-            f.tree.read(&child, 0).is_err(),
+            f.tree.check(&child, 0).is_err(),
             "natively, the fake is no first-level node"
         );
         let limbs = child.limbs();
@@ -1250,7 +1260,7 @@ mod tests {
             f.tree.keys[1].prove(&assignment, &d.session(), d.rate),
             d.rate,
         );
-        f.tree.read(&root, 1).expect("the root's recursion proof verifies");
+        f.tree.check(&root, 1).expect("the root's recursion proof verifies");
         assert_eq!(
             f.tree.verify(&root, &outputs),
             Err(TreeError::Claim(FalseClaim::Dense(DensePoly::Fixed)))
@@ -1446,6 +1456,8 @@ mod tests {
         use crate::rec::tree::*;
         use crate::rv::Region;
         use crate::rv::asm::*;
+        use primitives::field::F192;
+        use primitives::multilinear::mle_eval_par;
         use std::sync::LazyLock;
 
         // A program whose output is its four advice words, after a loop of `rounds` that reads every framework block: a leaf
@@ -2304,7 +2316,7 @@ mod tests {
                 d.rate,
             );
             assert!(
-                t.tree.read(&child, large).is_err(),
+                t.tree.check(&child, large).is_err(),
                 "natively, the fake is no large node"
             );
             let limbs = child.limbs();
@@ -2343,7 +2355,7 @@ mod tests {
                 t.tree.keys[wrap].prove(&assignment, &d.session(), d.rate),
                 d.rate,
             );
-            t.tree.read(&root, wrap).expect("the wrap's recursion proof verifies");
+            t.tree.check(&root, wrap).expect("the wrap's recursion proof verifies");
             assert_eq!(
                 t.tree.verify_claims(&root, &forged_set),
                 Err(TreeError::Claim(FalseClaim::Dense(DensePoly::Wide)))

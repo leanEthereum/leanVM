@@ -377,6 +377,7 @@ impl Program {
     #[doc(hidden)]
     #[tracing::instrument(name = "Verify core", skip_all)]
     pub fn verify_core(&self, output: Output, proof: &Proof) -> Result<DeferredClaims, CpuError> {
+        let _portable = primitives::portable::enter();
         if proof.is_zero_knowledge() {
             let vs = VerifierState::new(&self.zk_session(), output.words(), &proof.0);
             return zero_knowledge::verify_core(self, output, vs).map(|(_, claims)| claims);
@@ -390,6 +391,9 @@ impl Program {
     ///
     /// A recursive verifier of the proof hashes those openings rather than decoding the hints again.
     ///
+    /// It is an aggregator's replay of a leaf it is handed: it feeds the aggregator's proof, which its own verifier
+    /// checks, and nobody's trust, so it runs on the prover's kernels.
+    ///
     /// # Errors
     ///
     /// Returns the first stage that refuses the proof.
@@ -397,14 +401,14 @@ impl Program {
     #[doc(hidden)]
     pub fn verify_recording(&self, output: Output, proof: &Proof) -> Result<Vec<Openings>, VerifyError> {
         if proof.is_zero_knowledge() {
-            let recording = Recording::new(VerifierState::new(&self.zk_session(), output.words(), &proof.0));
+            let recording = Recording::new(VerifierState::native(&self.zk_session(), output.words(), &proof.0));
             let (recording, claims) = zero_knowledge::verify_core(self, output, recording)?;
-            self.check_deferred(&claims)?;
+            self.settle(&mut Native, &claims)?;
             return Ok(recording.into_openings());
         }
-        let mut recording = Recording::new(VerifierState::new(&self.session(), output.words(), &proof.0));
+        let mut recording = Recording::new(VerifierState::native(&self.session(), output.words(), &proof.0));
         let claims = self.core(output, &mut recording)?;
-        self.check_deferred(&claims)?;
+        self.settle(&mut Native, &claims)?;
         Ok(recording.into_openings())
     }
 
@@ -483,7 +487,9 @@ impl Program {
     /// The digest of `rv`'s public statement.
     ///
     /// Every variable-length part is length-framed, so the preimage parses one way.
+    /// The verifier checks a proof against it, so it is computed as the verifier computes (`primitives::portable`).
     fn digest_of(rv: &RiscvProgram) -> [u8; 32] {
+        let _portable = primitives::portable::enter();
         let bytes = |words: &[u64]| -> Vec<u8> { words.iter().flat_map(|w| w.to_le_bytes()).collect() };
         let table = Lookup::Bytecode.table(rv);
         let table_bytes: Vec<u8> = table.iter().flat_map(|w| w.0.to_le_bytes()).collect();
@@ -570,6 +576,7 @@ mod tests {
     use crate::bus::Coord;
     use crate::bus::tests::unmatched_leaves;
     use crate::commitment::Rate;
+    use crate::cpu::Prover;
     use crate::cpu::execute::Row;
     use crate::cpu::filler::JUMP;
     use crate::cpu::layout::{Framework, Shared};
@@ -762,6 +769,22 @@ mod tests {
             "unmatched (side, block, row): {:?}",
             &unmatched[..unmatched.len().min(12)]
         );
+    }
+
+    /// The public verifier is the portable one: in a portable section it verifies, where the prover's replay on
+    /// `Native` reaches a kernel the guard refuses (when the build arms it, as the workspace's tests do).
+    #[test]
+    fn the_public_verifier_is_the_portable_one() {
+        let text = Asm::new().i(Addi, Reg::A0, Reg::ZERO, 5).exit().finish();
+        let program = Program::new(&text, Region::TEXT.base(), vec![], 2, 0).expect("valid instruction program");
+        let run = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
+        let _portable = primitives::portable::enter();
+        program.verify(run.output, &run.proof).expect("an honest proof");
+        if primitives::portable::GUARDED {
+            let replay =
+                std::panic::catch_unwind(AssertUnwindSafe(|| program.verify_recording(run.output, &run.proof)));
+            assert!(replay.is_err(), "the prover's replay ran in a portable section");
+        }
     }
 
     #[test]

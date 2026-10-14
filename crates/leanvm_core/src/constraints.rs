@@ -35,7 +35,7 @@
 use crate::PAR_THRESHOLD;
 use fiat_shamir::arith::RoundWeight;
 use fiat_shamir::arith::{Arith, Verifier};
-use fiat_shamir::{ProverState, TranscriptError, VerifierState};
+use fiat_shamir::{Hashing, ProverState, TranscriptError, VerifierState};
 use parallel::ChunkView;
 use primitives::field::{F64, F192, F192Unreduced, Subfield, padded_width};
 use primitives::multilinear::{SplitEq, eq_table, poly_eval, shrink_eq_high};
@@ -96,12 +96,12 @@ pub trait Residual<A: Arith> {
     }
 }
 
-impl<S: Summand> Residual<VerifierState<'_>> for S {
-    fn value_at(&self, _: &mut VerifierState<'_>, cols: &[F192]) -> F192 {
+impl<S: Summand, A: Arith<E = F192> + Hashing> Residual<VerifierState<'_, A>> for S {
+    fn value_at(&self, _: &mut VerifierState<'_, A>, cols: &[F192]) -> F192 {
         Summand::eval(self, cols, false)
     }
 
-    fn public_at(&self, _: &mut VerifierState<'_>, chi: &[F192]) -> Vec<F192> {
+    fn public_at(&self, _: &mut VerifierState<'_, A>, chi: &[F192]) -> Vec<F192> {
         Summand::public(self, chi)
     }
 }

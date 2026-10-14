@@ -79,8 +79,10 @@ impl TableId {
     /// The tags are distinct: `g` has order `2^64 - 1`, far above the table count.
     ///
     /// An illegal entry's tag is zero, which is no table's.
-    pub fn tag(self) -> F64 {
-        F64::G.pow(self.index() as u64)
+    ///
+    /// Computed by the portable products, since the verifier's layout computes it too.
+    pub const fn tag(self) -> F64 {
+        F64::G.pow_portable(self.index() as u64)
     }
 
     /// The table's specification.

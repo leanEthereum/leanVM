@@ -142,6 +142,7 @@ pub struct F192x1Unreduced([__m128i; 3]);
 impl From<F192> for F192x1 {
     #[inline(always)]
     fn from(e: F192) -> Self {
+        crate::portable::kernel();
         // SAFETY: SSE2 is part of the x86-64 baseline.
         Self {
             c01: pair(e.c0, e.c1),
@@ -154,6 +155,7 @@ impl F192x1 {
     /// The element at `e`, loaded into its registers.
     #[inline(always)]
     pub fn load(e: &F192) -> Self {
+        crate::portable::kernel();
         let words = (e as *const F192).cast::<u64>();
         // SAFETY: `e` is three words, `c0` and `c1` adjacent under `repr(C)`.
         unsafe {
@@ -1137,6 +1139,7 @@ impl F192x8 {
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx512f")]
     pub fn mul(self, rhs: Self) -> Self {
+        crate::portable::kernel();
         let (even, odd) = (self.karatsuba::<0x00>(rhs), self.karatsuba::<0x11>(rhs));
         // Lane j of `even` is element 2j's product and of `odd` element 2j + 1's: unpacking restores qword order.
         // SAFETY: the function carries both features.
@@ -1159,6 +1162,7 @@ impl F192x8Sum {
     #[inline]
     #[target_feature(enable = "avx512f")]
     pub fn zero() -> Self {
+        crate::portable::kernel();
         Self([_mm512_setzero_si512(); 3])
     }
 

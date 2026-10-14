@@ -236,7 +236,9 @@ impl Workload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use leanvm::Rate;
+    use leanvm::aggregate::{Capacity, ClaimGroup, ClaimLeaf, ClaimSet, ClaimShape, Leaf, LeafShape, Tree, TreeShape};
+    use leanvm::asm::Ld;
+    use leanvm::{Proof, Randomness, Rate};
 
     #[test]
     fn the_workloads_prove() {
@@ -262,5 +264,121 @@ mod tests {
             assert_eq!(stats.base_counts, exec.base_counts, "{}", workload.title);
             assert_eq!(stats.proven_rows, exec.proven_rows, "{}", workload.title);
         }
+    }
+
+    /// Verification is portable and single-threaded: every native verifier holds a `primitives::portable::Section`, in
+    /// which this crate's tests (the `guard` feature) make a pool dispatch and every SIMD or assembly kernel panic.
+    /// A verifier that reached either fails here, and so does a guard that stopped refusing them.
+    #[test]
+    fn verification_is_portable_and_single_threaded() {
+        const { assert!(primitives::portable::GUARDED, "the CLI's tests arm the guard") };
+        let refused = |f: fn()| {
+            std::panic::catch_unwind(|| {
+                let _portable = primitives::portable::enter();
+                f();
+            })
+            .is_err()
+        };
+        assert!(refused(|| parallel::for_each(1, |_| {})));
+        #[cfg(any(
+            all(target_arch = "x86_64", target_feature = "pclmulqdq"),
+            all(target_arch = "aarch64", target_feature = "aes")
+        ))]
+        assert!(refused(|| {
+            let y = std::hint::black_box(primitives::field::F192::Y);
+            std::hint::black_box(y * y);
+        }));
+        #[cfg(target_arch = "x86_64")]
+        assert!(refused(|| _ = std::hint::black_box(hash(b"leanvm"))));
+
+        // A leaf proof, a tampered copy of it, a two-leaf tree over it, the same over a zero-knowledge leaf, and a claim-set
+        // root, each verified in the guard.
+        let leaf = Workload::fibonacci(1_000);
+        let prover = Prover::new(Rate::MIN);
+        let proved = leaf.prove(&prover);
+        leaf.program
+            .verify(proved.output, &proved.proof)
+            .expect("an honest proof");
+        let mut bytes = proved.proof.to_bytes();
+        let middle = bytes.len() / 2;
+        bytes[middle] ^= 1;
+        if let Ok(tampered) = Proof::from_bytes(&bytes) {
+            assert!(leaf.program.verify(proved.output, &tampered).is_err());
+        }
+        let shape = TreeShape {
+            leaf: LeafShape::measured(&leaf.measure(), Rate::MIN),
+            arity_0: 2,
+            arity: 2,
+            rate: Rate::MIN,
+            claims: None,
+        };
+        let tree = Tree::new(&leaf.program, shape).expect("a tree");
+        let root = tree
+            .prove(&[Leaf::new(&proved.proof, proved.output); 2])
+            .expect("honest leaves");
+        tree.verify(&root, &[proved.output; 2]).expect("the root");
+        assert!(tree.verify(&root, &[proved.output, Output::new([1, 2, 3, 4])]).is_err());
+
+        // A zero-knowledge leaf, its outer proof included, and a tree over two of them.
+        let hidden = leaf.prove(&prover.zero_knowledge(Randomness::Fixed([3; 32])));
+        leaf.program
+            .verify(hidden.output, &hidden.proof)
+            .expect("an honest zero-knowledge proof");
+        let mut bytes = hidden.proof.to_bytes();
+        let middle = bytes.len() / 2;
+        bytes[middle] ^= 1;
+        if let Ok(tampered) = Proof::from_bytes(&bytes) {
+            assert!(leaf.program.verify(hidden.output, &tampered).is_err());
+        }
+        let shape = TreeShape {
+            leaf: LeafShape::of(&hidden.proof).expect("a canonical announcement"),
+            arity_0: 2,
+            arity: 2,
+            rate: Rate::MIN,
+            claims: None,
+        };
+        let tree = Tree::new(&leaf.program, shape).expect("a tree");
+        let root = tree
+            .prove(&[Leaf::new(&hidden.proof, hidden.output); 2])
+            .expect("honest zero-knowledge leaves");
+        tree.verify(&root, &[hidden.output; 2]).expect("the root");
+
+        // A leaf that outputs its advice, the hash of its set's digest, after a loop that reads every framework block.
+        let text = Asm::new()
+            .li(Reg::T0, Region::ADVICE.base())
+            .load(Ld, Reg::A0, 0, Reg::T0)
+            .load(Ld, Reg::A1, 8, Reg::T0)
+            .load(Ld, Reg::A2, 16, Reg::T0)
+            .load(Ld, Reg::A3, 24, Reg::T0)
+            .li(Reg::T1, 9)
+            .label("loop")
+            .i(Addi, Reg::T1, Reg::T1, -1)
+            .branch(Bne, Reg::T1, Reg::ZERO, "loop")
+            .exit()
+            .finish();
+        let program = Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 2).expect("a valid program");
+        let set = ClaimSet {
+            groups: vec![ClaimGroup {
+                label: [1, 9, 0, 0, 0, 1],
+                members: vec![[1, 8, 1 << 9, 0x5eed ^ 1]],
+            }],
+        };
+        let words: Vec<u8> = set.digest().iter().flat_map(|w| w.to_le_bytes()).collect();
+        let run = (prover.prove(&program, &digest_words(&hash(&words)))).expect("the run halts");
+        let shape = TreeShape {
+            leaf: LeafShape::of(&run.proof).expect("a canonical announcement"),
+            arity_0: 1,
+            arity: 3,
+            rate: Rate::MIN,
+            claims: Some(ClaimShape {
+                capacity: Capacity { claims: 12, groups: 4 },
+                small: None,
+            }),
+        };
+        let tree = Tree::new(&program, shape).expect("a tree");
+        let first = (tree.aggregate_leaves(&[ClaimLeaf::new(Leaf::new(&run.proof, run.output), &set)], None))
+            .expect("an honest leaf");
+        tree.verify_claims(&first.proof, &first.claims).expect("the root");
+        assert!(tree.verify_claims(&first.proof, &ClaimSet { groups: vec![] }).is_err());
     }
 }

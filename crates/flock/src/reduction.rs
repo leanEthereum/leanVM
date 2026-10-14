@@ -274,6 +274,7 @@ mod tests {
     //! The circuits are built from the builder and the multiplier gadget, their witnesses by the generic walk.
     //! Only the commitment's opening is left out: it is generic in the claims.
 
+    use fiat_shamir::arith::Portable;
     use fiat_shamir::{ProofTranscript, ProverState, SessionId, VerifierState};
     use primitives::field::F192;
     use primitives::test_util::Rng;
@@ -368,7 +369,7 @@ mod tests {
         tamper(&mut proof);
         let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
         reduction::verify(&[(block.shape(), n_log)], &mut vs)
-            .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
+            .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(&mut Portable, block.circuit).is_ok())
             && vs.check_eof().is_ok()
     }
 
@@ -454,7 +455,8 @@ mod tests {
             let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, proof);
             let shapes: Vec<_> = blocks.iter().map(|(block, n)| (block.shape(), *n)).collect();
             let replays = reduction::verify(&shapes, &mut vs).ok()?;
-            let settled = (replays.iter().zip(&blocks)).all(|(r, (block, _))| r.matrices.check(block.circuit).is_ok());
+            let settled = (replays.iter().zip(&blocks))
+                .all(|(r, (block, _))| r.matrices.check(&mut Portable, block.circuit).is_ok());
             (settled && vs.check_eof().is_ok()).then_some(replays)
         };
 

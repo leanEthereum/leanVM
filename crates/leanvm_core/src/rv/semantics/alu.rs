@@ -359,6 +359,7 @@ mod tests {
     use crate::rv::semantics::tests::{
         EDGES, Ports, circuit_matches_reference, edge_word, grid, word_witness_is_the_walk,
     };
+    use fiat_shamir::arith::Portable;
     use fiat_shamir::{ProverState, SessionId, VerifierState};
     use flock::BatchRows;
     use flock::reduction;
@@ -455,7 +456,7 @@ mod tests {
             let proof = ps.into_proof();
             let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
             reduction::verify(&[(block.shape(), n_log)], &mut vs)
-                .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
+                .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(&mut Portable, block.circuit).is_ok())
                 && vs.check_eof().is_ok()
         };
         assert!(accepts(None));
