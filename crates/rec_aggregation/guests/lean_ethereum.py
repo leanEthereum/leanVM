@@ -224,9 +224,9 @@ KC_KAPPA = 1
 KC_POINT = 2
 KC_LANES = 3
 KC_LOCAL = 4
-KC_MU = 5
-KC_IOTA = KC_MU + KECCAK_PACK
-KC_SIZE = KC_IOTA + KECCAK_IOTA_BITS
+KC_SLICES = 5
+KC_MU = 6
+KC_SIZE = KC_MU + KECCAK_PACK
 # One round of a layer's sumcheck over packs and segments.
 KR_FS0 = 0
 KR_FS1 = 1
@@ -2480,13 +2480,11 @@ def keccak_layer(fs0, fs1, cursor, y_g, half_g, y_last, claim, out, iota, first:
     out[GEN ** KC_LANES] = lanes
     slices = StackBuf(2 ** (KECCAK_Z_BITS + 1) - 2)
     eqtree_frame(local, slices, KECCAK_Z_BITS, 64)
-    # The new weights where iota can flip: slice 2^i - 1 of lane 0.
-    for i in unroll(0, KECCAK_IOTA_BITS):
-        flipped = lanes[GEN ** KECCAK_PI[0]] * slices[SLICE_OFF + (2 ** i - 1 + KECCAK_RHO[0]) % 64]
-        for y in unroll(0, 5):
-            flipped += lanes[GEN ** KECCAK_PI[1 + 5 * y]] * slices[SLICE_OFF + (2 ** i - 1 + KECCAK_RHO[1 + 5 * y]) % 64]
-            flipped += lanes[GEN ** KECCAK_PI[4 + 5 * y]] * slices[SLICE_OFF + (2 ** i + KECCAK_RHO[4 + 5 * y]) % 64]
-        out[GEN ** (KC_IOTA + i)] = flipped
+    # The slice weights, for the next layer's iota term.
+    slices_out = HeapBuf(BASE_FIELD_BITS)
+    for z in unroll(0, BASE_FIELD_BITS):
+        slices_out[GEN ** z] = slices[SLICE_OFF + z]
+    out[GEN ** KC_SLICES] = slices_out
     return fs[0], fs[1], cursor
 
 
@@ -2593,8 +2591,6 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
     for lane in unroll(0, KECCAK_LANES):
         output += first_lanes[GEN ** lane] * output_lanes[GEN ** lane]
     claims[GEN ** KC_VALUE] = value + segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + KECCAK_SEGMENTS - 1)] * output
-    for i in unroll(0, KECCAK_IOTA_BITS):
-        claims[GEN ** (KC_IOTA + i)] = first_lanes[GEN ** 0] * GEN ** (2 ** i - 1)
 
     for step in unroll(0, KECCAK_DEPTH):
         claim = claims * GEN ** (step * KC_SIZE)
@@ -2602,11 +2598,32 @@ def verify_keccak(fs0, fs1, cursor, tau_g, chi, output_lanes, z_vals, slices):
         claim_point = claim[GEN ** KC_POINT]
         segment_tree = HeapBuf(2 ** (KECCAK_SEG_LOG + 1) - 2)
         eqtree(claim_point * pack_g, segment_tree, KECCAK_SEG_LOG)
+        # The claim's weights where iota can flip, slice 2^i - 1 of lane 0, for the
+        # i this step's round constants set: the first claim's are a word's,
+        # x^(2^i - 1) on lane 0; a later claim's come from its lane and slice
+        # weights through the linear layer's transpose.
+        flips = StackBuf(KECCAK_IOTA_BITS)
+        for i in unroll(0, KECCAK_IOTA_BITS):
+            used = 0
+            for t in unroll(KECCAK_IOTA_START[KECCAK_SEGMENTS * step], KECCAK_IOTA_START[KECCAK_SEGMENTS * step + KECCAK_SEGMENTS]):
+                if const(KECCAK_IOTA_IDX[t] == i):
+                    used = 1
+            if const(used == 1):
+                if step == 0:
+                    flips[i] = first_lanes[GEN ** 0] * GEN ** (2 ** i - 1)
+                else:
+                    claim_lanes = claim[GEN ** KC_LANES]
+                    claim_slices = claim[GEN ** KC_SLICES]
+                    flipped = claim_lanes[GEN ** KECCAK_PI[0]] * claim_slices[GEN ** ((2 ** i - 1 + KECCAK_RHO[0]) % 64)]
+                    for y in unroll(0, 5):
+                        flipped += claim_lanes[GEN ** KECCAK_PI[1 + 5 * y]] * claim_slices[GEN ** ((2 ** i - 1 + KECCAK_RHO[1 + 5 * y]) % 64)]
+                        flipped += claim_lanes[GEN ** KECCAK_PI[4 + 5 * y]] * claim_slices[GEN ** ((2 ** i + KECCAK_RHO[4 + 5 * y]) % 64)]
+                    flips[i] = flipped
         iota = 0
         for m in unroll(0, KECCAK_SEGMENTS):
             flipped = 0
             for t in unroll(KECCAK_IOTA_START[KECCAK_SEGMENTS * step + m], KECCAK_IOTA_START[KECCAK_SEGMENTS * step + m + 1]):
-                flipped += claim[GEN ** (KC_IOTA + KECCAK_IOTA_IDX[t])]
+                flipped += flips[KECCAK_IOTA_IDX[t]]
             iota += segment_tree[GEN ** (2 ** KECCAK_SEG_LOG - 2 + m)] * flipped
         # odd_g is g^0 or g^1, its exponent a pinned bit.
         if step == 0:
