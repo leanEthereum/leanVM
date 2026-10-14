@@ -35,6 +35,7 @@ COORD_BASIS = COORD_BASIS_PLACEHOLDER
 # ring-switch coordinates.
 RING_MAP_SHIFTS = [32, 16, 8, 4, 2, 1]
 RS_CHUNK = 8  # ring-switch rows per loop iteration
+RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
 # its top bit constrained to zero so the native strict 32-bit bound holds; any
 # structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS bits; and a
@@ -801,17 +802,46 @@ def rs_eq_run(chain, z_vals, point1, count_g):
     # (z_j^(2^k) + 1 + ris_j): coordinate x multiplies row k by (z^(2^k) + 1 +
     # point_x), z evolving by squaring per row. The runtime coordinates walk
     # OUTSIDE and the fixed Frobenius powers inside, so nothing stores a z-power
-    # table.
-    for xk in mul_range(1, count_g):
-        zv = z_vals[xk]
-        one_plus = point1[xk]
-        row = chain * xk ** BASE_FIELD_BITS
+    # table. Coordinates go two an iteration, so a row is read and written once
+    # per pair; count = 2 * half + odd is pinned from advice bits, and an odd
+    # count's last coordinate runs after the loop. Returns the final row.
+    bits = StackBuf(RS_COUNT_BITS)
+    hint_decompose_bits_exponent(bits, count_g, RS_COUNT_BITS)
+    odd = bits[0]
+    bits[0] = odd * odd
+    half_g = GEN ** 0
+    for k in unroll(1, RS_COUNT_BITS):
+        b = bits[k]
+        bits[k] = b * b
+        half_g *= 1 + b * (1 + GEN ** (2 ** (k - 1)))
+    odd_g = 1 + odd * (1 + GEN)
+    assert half_g * half_g * odd_g == count_g
+    for xp in mul_range(1, half_g):
+        pair = xp * xp
+        zs = z_vals * pair
+        ps = point1 * pair
+        zv_0 = zs[GEN ** 0]
+        zv_1 = zs[GEN ** 1]
+        one_plus_0 = ps[GEN ** 0]
+        one_plus_1 = ps[GEN ** 1]
+        row = chain * xp ** BASE_FIELD_BITS
+        nxt = row * GEN ** BASE_FIELD_BITS
+        for k in unroll(0, BASE_FIELD_BITS):
+            nxt[GEN ** k] = row[GEN ** k] * (zv_0 + one_plus_0) * (zv_1 + one_plus_1)
+            if k != BASE_FIELD_BITS - 1:
+                zv_0 *= zv_0
+                zv_1 *= zv_1
+    if odd == 1:
+        last = half_g * half_g
+        zv = z_vals[last]
+        one_plus = point1[last]
+        row = chain * half_g ** BASE_FIELD_BITS
         nxt = row * GEN ** BASE_FIELD_BITS
         for k in unroll(0, BASE_FIELD_BITS):
             nxt[GEN ** k] = row[GEN ** k] * (zv + one_plus)
             if k != BASE_FIELD_BITS - 1:
                 zv *= zv
-    return
+    return chain * (half_g * odd_g) ** BASE_FIELD_BITS
 
 
 def fold_final_msg(msg, point, log_len: Const):
@@ -2169,8 +2199,7 @@ def ring_switch_weight(z_vals, point1, c_table, qkeccakv_g):
     prod_chains = HeapBuf((qkeccakv_g * GEN) ** BASE_FIELD_BITS)
     for k in unroll(0, BASE_FIELD_BITS):
         prod_chains[GEN ** k] = 1
-    rs_eq_run(prod_chains, z_vals, point1, qkeccakv_g)
-    prod_final = prod_chains * qkeccakv_g ** BASE_FIELD_BITS
+    prod_final = rs_eq_run(prod_chains, z_vals, point1, qkeccakv_g)
     rs_weight = 0
     for k in unroll(0, BASE_FIELD_BITS):
         rs_weight += c_table[GEN ** k] * prod_final[GEN ** k]
