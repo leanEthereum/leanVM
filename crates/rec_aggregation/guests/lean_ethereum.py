@@ -784,18 +784,18 @@ def eqtree(point_ptr, out, n_coords: Const):
     return
 
 
-def eq_prefix_chain(chain, seed, a, b, count_g):
-    # Prefix products of eq(a_k, b_k) = 1 + a_k + b_k from `seed`, so a reader picks
-    # the partial product up at its own certified length. Entry t is written from
-    # inputs with index < t only, so a garbage tail past a buffer's written extent
-    # cannot corrupt any shorter prefix.
+def eq_prefix_chain(chain, seed, a, b1, count_g):
+    # Prefix products of eq(a_k, b_k) = a_k + b1_k, b1 = 1 + b, from `seed`, so a
+    # reader picks the partial product up at its own certified length. Entry t is
+    # written from inputs with index < t only, so a garbage tail past a buffer's
+    # written extent cannot corrupt any shorter prefix.
     chain[GEN ** 0] = seed
     for xk in mul_range(1, count_g):
-        chain[xk * GEN] = chain[xk] * (1 + a[xk] + b[xk])
+        chain[xk * GEN] = chain[xk] * (a[xk] + b1[xk])
     return
 
 
-def rs_eq_run(chain, z_vals, point, count_g):
+def rs_eq_run(chain, z_vals, point1, count_g):
     # One run of the telescoped ring-switch product E = sum_k c_k * prod_j
     # (z_j^(2^k) + 1 + ris_j): coordinate x multiplies row k by (z^(2^k) + 1 +
     # point_x), z evolving by squaring per row. The runtime coordinates walk
@@ -803,7 +803,7 @@ def rs_eq_run(chain, z_vals, point, count_g):
     # table.
     for xk in mul_range(1, count_g):
         zv = z_vals[xk]
-        one_plus = 1 + point[xk]
+        one_plus = point1[xk]
         row = chain * xk ** BASE_FIELD_BITS
         nxt = row * GEN ** BASE_FIELD_BITS
         for k in unroll(0, BASE_FIELD_BITS):
@@ -1244,15 +1244,21 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     # entries above m without reading uninitialized cells.
     lane_folds = LIG_FOLDS[m_idx * LIG_MAX_LEVELS]
     fold_head = n_folds - lane_folds
+    # point1 = 1 + point, the form every eq factor reads.
     point = HeapBuf(SIZE_BITS + QKECCAK_SLOT_LOG)
+    point1 = HeapBuf(SIZE_BITS + QKECCAK_SLOT_LOG)
     for j in unroll(0, fold_head):
         point[GEN ** j] = fold_challenges[GEN ** (lane_folds + j)]
+        point1[GEN ** j] = 1 + fold_challenges[GEN ** (lane_folds + j)]
     for j in unroll(0, yr_log):
         point[GEN ** (fold_head + j)] = tail_challenges[GEN ** j]
+        point1[GEN ** (fold_head + j)] = 1 + tail_challenges[GEN ** j]
     for j in unroll(0, lane_folds):
         point[GEN ** (fold_head + yr_log + j)] = fold_challenges[GEN ** j]
+        point1[GEN ** (fold_head + yr_log + j)] = 1 + fold_challenges[GEN ** j]
     for j in unroll(n_folds + yr_log, SIZE_BITS + QKECCAK_SLOT_LOG):
         point[GEN ** j] = 0
+        point1[GEN ** j] = 1
 
     # ---- per-level induced bases at the single terminal point ----
     # Every query of a level runs the SAME product shape over its message-column
@@ -1327,7 +1333,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
             for t in unroll(0, yr_log):
                 scalar *= (1 + oz[GEN ** (z_folded + t)] + tail_challenges[GEN ** t])
             ood_inner += scalar
-    return sumcheck_target, point, inner_chain[GEN ** n_levels] + ood_inner, yr_at_tail
+    return sumcheck_target, point, point1, inner_chain[GEN ** n_levels] + ood_inner, yr_at_tail
 
 
 # ============================== inner-proof verification ============================
@@ -2141,12 +2147,12 @@ def ring_switch_target(slices, map_challenges):
     return rs_end[GEN ** 1]
 
 
-def ring_switch_weight(z_vals, point, c_table, qkeccakv_g):
+def ring_switch_weight(z_vals, point1, c_table, qkeccakv_g):
     # One ring-switched claim's transparent weight at the opening point.
     prod_chains = HeapBuf((qkeccakv_g * GEN) ** BASE_FIELD_BITS)
     for k in unroll(0, BASE_FIELD_BITS):
         prod_chains[GEN ** k] = 1
-    rs_eq_run(prod_chains, z_vals, point, qkeccakv_g)
+    rs_eq_run(prod_chains, z_vals, point1, qkeccakv_g)
     prod_final = prod_chains * qkeccakv_g ** BASE_FIELD_BITS
     rs_weight = 0
     for k in unroll(0, BASE_FIELD_BITS):
@@ -2208,25 +2214,24 @@ def column_selector(offset, point1, kappa: Const):
     return selector
 
 
-def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_g, claim_cplen_g, lam_out, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, inner_total, yr_at_tail, sumcheck_target):
+def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_g, claim_cplen_g, lam_out, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target):
     # Evaluate each transparent weight at the complete point in witness order.
     # A claim is its low point followed by the certified column's selector bits;
     # a q_keccak lane puts its slot's bits between the two.
+    # point1 = 1 + point holds each coordinate's eq factor against a zero bit.
     zeta_eq_chain = HeapBuf(SIZE_BITS + 1)
-    eq_prefix_chain(zeta_eq_chain, 1, zeta, point, g_bus_mu)
+    eq_prefix_chain(zeta_eq_chain, 1, zeta, point1, g_bus_mu)
     chi_eq_chain = HeapBuf(SIZE_BITS + 1)
-    eq_prefix_chain(chi_eq_chain, 1, chi, point, g_zc_n)
+    eq_prefix_chain(chi_eq_chain, 1, chi, point1, g_zc_n)
     slot_point = point * tau_sha3_g
+    slot_point1 = point1 * tau_sha3_g
     pi_chain = HeapBuf(SIZE_BITS + 1)
     pi_chain[GEN ** 0] = 1
-    pi_chain[GEN ** 1] = 1 + rm + point[GEN ** 0]
+    pi_chain[GEN ** 1] = rm + point1[GEN ** 0]
     for xk in mul_range(GEN, g_log_mem):
-        pi_chain[xk * GEN] = pi_chain[xk] * (1 + point[xk])
+        pi_chain[xk * GEN] = pi_chain[xk] * point1[xk]
     pi_eq = pi_chain[g_log_mem]
 
-    point1 = HeapBuf(MAX_STACK_LOG)
-    for k in unroll(0, MAX_STACK_LOG):
-        point1[GEN ** k] = 1 + point[GEN ** k]
     selectors = StackBuf(N_COMMITTED_COLS)
     for c in unroll(0, N_COMMITTED_COLS):
         offset = col_offsets[GEN ** c]
@@ -2246,9 +2251,18 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_
         if CLAIM_POINT_BUF[j] == POINT_BUF_RHO:
             low_eq = chi_eq_chain[cplen_g]
         if CLAIM_POINT_BUF[j] == POINT_BUF_QKECCAK_RHO:
+            # Top bit first, so claims sharing high slot bits share partial products.
             slot_eq = GEN ** 0
-            for k in unroll(0, QKECCAK_SLOT_LOG):
-                slot_eq *= 1 + CLAIM_QKECCAK_SLOT_BITS[QKECCAK_SLOT_LOG * j + k] + slot_point[GEN ** k]
+            for kk in unroll(0, QKECCAK_SLOT_LOG):
+                k = QKECCAK_SLOT_LOG - 1 - kk
+                if CLAIM_QKECCAK_SLOT_BITS[QKECCAK_SLOT_LOG * j + k] == 1:
+                    slot_factor = slot_point[GEN ** k]
+                else:
+                    slot_factor = slot_point1[GEN ** k]
+                if kk == 0:
+                    slot_eq = slot_factor
+                else:
+                    slot_eq *= slot_factor
             low_eq = slot_eq * chi_eq_chain[cplen_g]
             nlow = cplen_g * GEN ** QKECCAK_SLOT_LOG
         assert nlow == col_kappas[GEN ** CLAIM_COMMITTED_COL[j]]
@@ -2261,8 +2275,8 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_
     qkeccakv_g = tau_sha3_g * GEN ** QKECCAK_SLOT_LOG
     assert qkeccakv_g == col_kappas[GEN ** QKECCAK_COMMITTED_COL]
     out_eq_chain = HeapBuf(SIZE_BITS + QKECCAK_SLOT_LOG + 1)
-    eq_prefix_chain(out_eq_chain, 1, z_vals, point, qkeccakv_g)
-    rs_weight = ring_switch_weight(z_vals * GEN ** QKECCAK_VARS_CAP, point, c_table, qkeccakv_g)
+    eq_prefix_chain(out_eq_chain, 1, z_vals, point1, qkeccakv_g)
+    rs_weight = ring_switch_weight(z_vals * GEN ** QKECCAK_VARS_CAP, point1, c_table, qkeccakv_g)
     inner_sum += (rs_weight + lam_out * out_eq_chain[qkeccakv_g]) * selectors[QKECCAK_COMMITTED_COL]
     assert inner_sum * yr_at_tail == sumcheck_target
 
@@ -2428,13 +2442,13 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # dispatch independently for every inner proof in a mixed-rate batch.
     config_sel = size_sel * rate_sel ** LIG_N_LOG_SIZES
     assert log(config_sel) < LIG_N_CANDIDATES
-    sumcheck_target, point, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, fs[0], fs[1], target, commit_root_0, commit_root_1, cursor))
+    sumcheck_target, point, point1, inner_total, yr_at_tail = match(log(config_sel), range(0, LIG_N_CANDIDATES), lambda m_idx: open_stacked(m_idx, fs[0], fs[1], target, commit_root_0, commit_root_1, cursor))
     # `stream` is a fixed-capacity witness transport. The shape fixes the exact
     # consumed prefix, whose every word is transcript-bound; the unused suffix
     # is outside the recursively verified proof and intentionally unconstrained.
 
     # ---- generalized eval_b terminal (runtime claim shapes) ----
-    check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_g, claim_cplen_g, lam_pow, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, inner_total, yr_at_tail, sumcheck_target)
+    check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_g, claim_cplen_g, lam_pow, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target)
 
     # ---- export this sub-proof's deferred-claim data to the caller (FRESH_*) ----
     for k in unroll(0, BYTECODE_LOG):
