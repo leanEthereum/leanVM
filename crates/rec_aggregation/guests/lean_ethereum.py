@@ -1155,27 +1155,29 @@ def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, inter
     return row_dot
 
 
-def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_pairs_g, n_rest_g, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_iters_g, odd: Const, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
     # Specialize by row and path shape so opening configurations share query code.
-    # Queries run two an iteration, sharing the loop overhead and the weight reads;
-    # an odd count's last query runs alone after the pairs (n_rest_g is g or 1),
-    # so the hint streams are consumed in query order.
+    # Base-field rows (level 0) run two queries an iteration, sharing the loop
+    # overhead and the weight reads; an odd count runs its first query alone,
+    # ahead of the pairs. Extension rows run one query an iteration.
     # Query k is weighted lam^k: the chain runs h <- (h + dot_k) / lam, ending at
     # sum_k lam^(k - n) dot_k, and one product by lam_n = lam^n restores it.
     mu = 1 / lam
-    chain = HeapBuf(n_pairs_g * GEN)
-    chain[GEN ** 0] = 0
-    for xi in mul_range(1, n_pairs_g):
-        bit_ptrs = query_bit_ptrs * xi * xi
-        d0 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth)
-        d1 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN], base, interleave, leaf_cells, depth, cap_depth)
-        chain[xi * GEN] = ((chain[xi] + d0) * mu + d1) * mu
-    rest = HeapBuf(GEN ** 2)
-    rest[GEN ** 0] = chain[n_pairs_g]
-    for xr in mul_range(1, n_rest_g):
-        last = query_bit_ptrs * n_pairs_g * n_pairs_g
-        rest[GEN] = (rest[GEN ** 0] + opening_query(cap, flags, row_eq_weights, last[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth)) * mu
-    return rest[n_rest_g] * lam_n
+    chain = HeapBuf(n_iters_g * GEN)
+    if odd == 1:
+        chain[GEN ** 0] = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth) * mu
+    else:
+        chain[GEN ** 0] = 0
+    for xi in mul_range(1, n_iters_g):
+        if base == 1:
+            bit_ptrs = query_bit_ptrs * xi * xi
+            d0 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** odd], base, interleave, leaf_cells, depth, cap_depth)
+            d1 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** (odd + 1)], base, interleave, leaf_cells, depth, cap_depth)
+            chain[xi * GEN] = ((chain[xi] + d0) * mu + d1) * mu
+        else:
+            d = opening_query(cap, flags, row_eq_weights, query_bit_ptrs[xi], base, interleave, leaf_cells, depth, cap_depth)
+            chain[xi * GEN] = (chain[xi] + d) * mu
+    return chain[n_iters_g] * lam_n
 
 
 @inline
@@ -1329,7 +1331,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
-        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // 2), GEN ** (n_queries % 2), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // (1 + 1 // (lvl + 1))), n_queries % 2 * (1 // (lvl + 1)), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of
