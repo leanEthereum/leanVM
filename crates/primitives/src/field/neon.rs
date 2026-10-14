@@ -7,8 +7,8 @@
 //! and dependency-chain length in the hot loops. Builds without the extension
 //! transparently keep the two-`EOR` form.
 //!
-//! (`sha3` is the name of the ARMv8.2 feature *block* that carries `EOR3`,
-//! not a reference to the hash function. This crate hashes with BLAKE2s.)
+//! (`sha3` is the name of the ARMv8.2 feature *block* that carries `EOR3`; the
+//! batched SHA3-256 in `hash` uses the same block for its own instructions.)
 
 use core::arch::aarch64::*;
 
