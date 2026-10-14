@@ -7,14 +7,15 @@
 //! With `-- --json` it prints, in place of the report, the proving time as Bencher Metric
 //! Format, which is what CI compares.
 //!
-//! `KECCAK_DEPTH` sets the rounds between two committed states (a divisor of 24).
+//! `KECCAK_DEPTH` sets the rounds between two committed states (a divisor of 24). The output is
+//! not committed: the bench binds a claim on it, as the VM's memory bus does.
 //! `BENCH_TRACING=1` prints the final pass's span tree (`RUST_LOG` adjusts it).
 
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json, env_usize};
-use fiat_shamir::transcript::{ProverState, Receiver, Transmitter, VerifierState};
-use keccak_gkr::{Shape, Witness};
+use fiat_shamir::transcript::{Challenger, ProverState, Receiver, Transmitter, VerifierState};
+use keccak_gkr::{OutputClaim, Shape, Witness};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
@@ -26,7 +27,7 @@ const LABEL: &[u8] = b"keccak-gkr-batch";
 fn main() {
     bench::init_tracing_from_env();
     let n = 1usize << env_usize("KECCAK_N_LOG", 13);
-    let shape = Shape::new(n, env_usize("KECCAK_DEPTH", 6));
+    let shape = Shape::new(n, env_usize("KECCAK_DEPTH", 12));
     let mu = shape.stack_log();
 
     let mut rng = Rng::new(0x9E37_79B9_7F4A_7C15 ^ n as u64);
@@ -48,8 +49,11 @@ fn main() {
         ps.add_root(&commitment.root);
         let commit_s = t.elapsed().as_secs_f64();
 
+        // The VM's memory bus claims the outputs; standalone, they are bound here.
+        let output = OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log));
+        ps.add_scalars(&output.lanes);
         let t = Instant::now();
-        let openings = keccak_gkr::prove(&mut ps, &witness, &committed);
+        let openings = keccak_gkr::prove(&mut ps, &witness, &committed, &output);
         let gkr_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
@@ -83,7 +87,11 @@ fn main() {
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|_final_pass| {
         let mut vs = VerifierState::from_label(LABEL, &transcript);
         let root = vs.next_root().expect("commitment root");
-        let openings = keccak_gkr::verify(&mut vs, shape).expect("the reduction verifies");
+        let output = OutputClaim {
+            instance: vs.sample_vec(shape.n_log),
+            lanes: vs.next_scalars(25).expect("output lanes").try_into().expect("25 lanes"),
+        };
+        let openings = keccak_gkr::verify(&mut vs, shape, &output).expect("the reduction verifies");
         keccak_gkr::verify_commitment(&mut vs, shape, &config, &root, &openings).expect("the opening verifies");
         vs.finish().expect("transcript fully consumed");
     });

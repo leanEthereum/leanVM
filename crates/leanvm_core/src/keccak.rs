@@ -1,11 +1,14 @@
 //! Bridge to the Keccak prover ([`keccak_gkr`]), single-PCS.
 //!
 //! The committed states of every `SHA3` step are one column of leanVM's ONE stacked `F64`
-//! witness (§sec:stacking), a lane per slot and a word per step, with no separate commitment.
-//! The VM's `SHA3` table binds to it by point-eval equality (its value columns ARE the input
-//! and output lanes of that column), and the permutation between them is proven by the GKR
-//! reduction, whose two openings join the batch-mixed opening ([`::pcs::stack_open`]): the
-//! column's bit slices as the ring-switched claim, the column itself as a point claim.
+//! witness (§sec:stacking), a lane per slot and a word per step, with no separate commitment:
+//! the input and the state after every `DEPTH` rounds before the output. The output is not
+//! committed. The VM's `SHA3` table has no value column of its own: a claim on an input lane is
+//! a claim on its slot of that column, and the claims on the output lanes are the reduction's
+//! claim on the permutation's output ([`keccak_gkr::OutputClaim`]). The GKR reduction proves the
+//! rounds between, and its openings join the batch-mixed opening ([`::pcs::stack_open`]): the
+//! column's bit slices as the ring-switched claim, the committed states after the input as a
+//! point claim.
 //!
 //! ## The mapping
 //!
@@ -13,21 +16,22 @@
 //! 25 lanes those thirteen cells hold, written to thirteen cells in the same
 //! order ([`CELL_LANES`]). A step is the permutation after [`END_BIT`] is XORed into lane 16,
 //! so the committed input is the lanes the VM reads with that bit flipped, and a claim on the
-//! VM's lane 16 moves to the committed one by that constant ([`value_slot`]).
+//! VM's lane 16 moves to the committed one by that constant ([`value_slot`]). The output is the
+//! permutation's, written as it is.
 
 use crate::pcs::SlotClaim;
 use crate::transcript::{ProverState, VerifierState};
 use keccak_gkr::witness::{BLOCK, Extent, Slot};
-use keccak_gkr::{Openings, Shape, VerifyError};
+use keccak_gkr::{Openings, OutputClaim, Shape, VerifyError};
 use primitives::field::{F64, F192};
 use primitives::hash::{END_BIT, END_LANE, STATE_LANES};
 
 pub use crate::pcs::{RingSwitchClaim, RingSwitchOpen, RingSwitchVerify};
 
 /// Rounds between two committed states.
-pub const DEPTH: usize = 6;
-/// Committed states of a step: its input, its output, and those between.
-const STATES: usize = primitives::hash::ROUNDS / DEPTH + 1;
+pub const DEPTH: usize = 12;
+/// Committed states of a step: its input and those between, not its output.
+const STATES: usize = primitives::hash::ROUNDS / DEPTH;
 /// `log2` of the slots the committed column holds per step: one per lane of each state, rounded
 /// up to a power of two.
 pub const SLOT_LOG: usize = (STATE_LANES * STATES).next_power_of_two().ilog2() as usize;
@@ -53,7 +57,8 @@ fn shape(n_blocks: usize) -> Shape {
 pub fn relation_digest() -> [u8; 32] {
     primitives::hash::hash(RELATION_LABEL)
 }
-pub const RELATION_LABEL: &[u8] = b"leanVM keccak GKR: step, depth 6, packs of 16 in degree 23, lane slots";
+pub const RELATION_LABEL: &[u8] =
+    b"leanVM keccak GKR: step, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
 
 /// `log2` of the committed column, in words.
 pub fn qkeccak_kappa(n_blocks: usize) -> usize {
@@ -86,28 +91,16 @@ pub const CELL_LANES: [(usize, Option<usize>); STATE_CELLS] = {
     t
 };
 
-/// The slot of each value column, in `tables::SHA3_VALUE_COLS` order: the input lanes, then the
-/// output lanes.
-pub const SLOTS: [usize; 2 * STATE_LANES] = {
-    let mut s = [0usize; 2 * STATE_LANES];
-    let mut i = 0;
-    while i < STATE_LANES {
-        s[i] = i;
-        s[STATE_LANES + i] = STATE_LANES * (STATES - 1) + i;
-        i += 1;
-    }
-    s
-};
-
-/// What a claim on value column `i` (an index into [`SLOTS`]) is of the committed column: its
-/// slot, and the constant the committed lane differs from the VM's by.
-pub fn value_slot(i: usize) -> (usize, F192) {
+/// What a claim on value column `i`, in `tables::SHA3_VALUE_COLS` order, is of the committed
+/// column: an input lane's slot, and the constant the committed lane differs from the VM's by.
+/// An output lane has none.
+pub fn value_slot(i: usize) -> Option<(usize, F192)> {
     let shift = if i == END_LANE {
         F192::new(END_BIT, 0, 0)
     } else {
         F192::ZERO
     };
-    (SLOTS[i], shift)
+    (i < STATE_LANES).then_some((i, shift))
 }
 
 /// The 25 lanes thirteen state cells hold.
@@ -141,9 +134,9 @@ pub fn step_cells(cells: &[F192; STATE_CELLS]) -> [F192; STATE_CELLS] {
 pub(crate) struct PreparedReductionWitness(keccak_gkr::Witness);
 
 impl PreparedReductionWitness {
-    /// The two openings of the committed column the reduction leaves.
-    pub(crate) fn prove(&self, ps: &mut ProverState, q_keccak: &[F64]) -> Openings {
-        keccak_gkr::prove(ps, &self.0, q_keccak)
+    /// The openings of the committed column the reduction leaves, the output being `output`.
+    pub(crate) fn prove(&self, ps: &mut ProverState, q_keccak: &[F64], output: &OutputClaim) -> Openings {
+        keccak_gkr::prove(ps, &self.0, q_keccak, output)
     }
 }
 
@@ -310,8 +303,8 @@ impl Blocks {
 }
 
 /// The reduction's openings as claims on the committed column at `offset`: the inputs'
-/// ring-switched, the outputs' an ordinary point claim to append to the batch.
-pub fn ring_switch_open(n_blocks: usize, offset: usize, openings: Openings) -> (RingSwitchOpen, SlotClaim) {
+/// ring-switched, the committed outputs' an ordinary point claim to append to the batch.
+pub fn ring_switch_open(n_blocks: usize, offset: usize, openings: Openings) -> (RingSwitchOpen, Option<SlotClaim>) {
     let ring = RingSwitchOpen {
         offset,
         qkeccak_vars: qkeccak_kappa(n_blocks),
@@ -320,16 +313,20 @@ pub fn ring_switch_open(n_blocks: usize, offset: usize, openings: Openings) -> (
             s_hat_v: Some(openings.inputs.slices),
         }],
     };
-    let outputs = SlotClaim::Point {
+    let outputs = openings.outputs.map(|outputs| SlotClaim::Point {
         offset,
-        low_point: openings.outputs.point,
-        value: openings.outputs.value,
-    };
+        low_point: outputs.point,
+        value: outputs.value,
+    });
     (ring, outputs)
 }
 
 /// Verifier mirror of [`ring_switch_open`].
-pub fn ring_switch_verify(n_blocks: usize, offset: usize, openings: &Openings) -> (RingSwitchVerify<'_>, SlotClaim) {
+pub fn ring_switch_verify(
+    n_blocks: usize,
+    offset: usize,
+    openings: &Openings,
+) -> (RingSwitchVerify<'_>, Option<SlotClaim>) {
     let ring = RingSwitchVerify {
         offset,
         qkeccak_vars: qkeccak_kappa(n_blocks),
@@ -338,23 +335,28 @@ pub fn ring_switch_verify(n_blocks: usize, offset: usize, openings: &Openings) -
             s_hat_v: openings.inputs.slices.as_slice().try_into().expect("64 slices"),
         }],
     };
-    let outputs = SlotClaim::Point {
+    let outputs = openings.outputs.as_ref().map(|outputs| SlotClaim::Point {
         offset,
-        low_point: openings.outputs.point.clone(),
-        value: openings.outputs.value,
-    };
+        low_point: outputs.point.clone(),
+        value: outputs.value,
+    });
     (ring, outputs)
 }
 
 /// The reduction (verifier): replay its layers straight off the shared stream, and recover
-/// the two openings of the committed column for the PCS to discharge.
-pub fn verify_reduction(n_blocks: usize, vs: &mut VerifierState) -> Result<Openings, VerifyError> {
-    keccak_gkr::verify(vs, shape(n_blocks))
+/// the openings of the committed column for the PCS to discharge.
+pub fn verify_reduction(
+    n_blocks: usize,
+    vs: &mut VerifierState,
+    output: &OutputClaim,
+) -> Result<Openings, VerifyError> {
+    keccak_gkr::verify(vs, shape(n_blocks), output)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use fiat_shamir::transcript::{Challenger, Receiver, Transmitter};
 
     fn f(x: u64) -> F64 {
         F64(x)
@@ -365,6 +367,15 @@ mod tests {
         let mut q_keccak = vec![F64::ZERO; 1 << qkeccak_kappa(instances.len())];
         let witness = build_qkeccak_prepared(instances, &mut q_keccak);
         (q_keccak, witness)
+    }
+
+    /// The true claim on the steps' outputs at `point`.
+    fn output_claim(instances: &[[u64; STATE_LANES]], point: Vec<F192>) -> OutputClaim {
+        let shape = shape(instances.len());
+        let inputs: Vec<[u64; STATE_LANES]> = (0..shape.n())
+            .map(|i| permuted(instances.get(i).copied().unwrap_or([0; STATE_LANES])))
+            .collect();
+        OutputClaim::of_inputs(shape, &inputs, point)
     }
 
     fn sample_instances(n: usize) -> Vec<[u64; STATE_LANES]> {
@@ -389,9 +400,11 @@ mod tests {
             let mut q_keccak = vec![f(0xdead_beef); expected.len()];
             let witness = blocks.place(n, &mut q_keccak);
             assert_eq!(q_keccak, expected, "{n} steps");
+            let point = (0..n_blocks_log(n)).map(|i| F192::new(3 + i as u64, 5, 7)).collect();
+            let output = output_claim(&instances, point);
             let stream = |witness: &PreparedReductionWitness| {
                 let mut ps = ProverState::from_label(b"blocks");
-                let openings = witness.prove(&mut ps, &q_keccak);
+                let openings = witness.prove(&mut ps, &q_keccak, &output);
                 (openings, ps.into_proof())
             };
             assert!(stream(&witness) == stream(&reference), "{n} steps");
@@ -426,20 +439,18 @@ mod tests {
         assert_eq!(digest, primitives::hash::hash(&msg));
     }
 
-    /// The committed column holds every step's lanes, a word per step: what the VM reads, with
-    /// the padding's last bit in lane 16, and what it writes.
+    /// The committed column holds every step's input lanes, a word per step: what the VM reads,
+    /// with the padding's last bit in lane 16. The output lanes have no slot.
     #[test]
     fn qkeccak_words_match_layout() {
         let instances = sample_instances(5);
         let (q_keccak, _) = build_qkeccak(&instances);
         let n = 1usize << n_blocks_log(instances.len());
         for (j, input) in instances.iter().enumerate() {
-            let out = primitives::hash::step(input);
             for i in 0..STATE_LANES {
-                let (slot, shift) = value_slot(i);
+                let (slot, shift) = value_slot(i).expect("an input lane");
                 assert_eq!(F192::from(q_keccak[slot * n + j]), F192::from(f(input[i])) + shift);
-                let (slot, shift) = value_slot(STATE_LANES + i);
-                assert_eq!(F192::from(q_keccak[slot * n + j]), F192::from(f(out[i])) + shift);
+                assert_eq!(value_slot(STATE_LANES + i), None);
             }
         }
     }
@@ -468,17 +479,27 @@ mod tests {
 
         let mut ps = ProverState::from_label(b"vstack");
         let committed = crate::pcs::commit(&mut ps, &stacked.q, stacked.shape, crate::pcs::TEST_LOG_INV_RATE);
-        let (ring, outputs) = ring_switch_open(instances.len(), offset, witness.prove(&mut ps, &q_keccak));
-        let all = [&points[..], &[outputs]].concat();
+        let output = output_claim(&instances, ps.sample_vec(n_blocks_log(instances.len())));
+        ps.add_scalars(&output.lanes);
+        let (ring, outputs) = ring_switch_open(instances.len(), offset, witness.prove(&mut ps, &q_keccak, &output));
+        let all = [&points[..], &Vec::from_iter(outputs)].concat();
         crate::pcs::open(&mut ps, &committed, &stacked.q, &all, &ring);
         let bundle = ps.into_proof();
 
         let run = |label: &'static [u8], points: &[crate::pcs::SlotClaim]| -> Result<(), &'static str> {
             let mut vs = VerifierState::from_label(label, &bundle);
             let root = crate::pcs::read_commitment(&mut vs).map_err(|_| "root")?;
-            let openings = verify_reduction(instances.len(), &mut vs).map_err(|_| "reduction")?;
+            let output = OutputClaim {
+                instance: vs.sample_vec(n_blocks_log(instances.len())),
+                lanes: vs
+                    .next_scalars(STATE_LANES)
+                    .map_err(|_| "lanes")?
+                    .try_into()
+                    .expect("25 lanes"),
+            };
+            let openings = verify_reduction(instances.len(), &mut vs, &output).map_err(|_| "reduction")?;
             let (ring, outputs) = ring_switch_verify(instances.len(), offset, &openings);
-            let points = &[points, &[outputs]].concat();
+            let points = &[points, &Vec::from_iter(outputs)].concat();
             crate::pcs::verify(
                 &mut vs,
                 points,

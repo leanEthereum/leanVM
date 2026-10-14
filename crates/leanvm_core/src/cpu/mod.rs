@@ -461,17 +461,27 @@ fn xi_form_pows(xi: F192) -> [F192; 3] {
     [pows[base], pows[base + 1], pows[base + 2]]
 }
 
-/// If `col` is a SHA3 **value** column (global index), its `q_keccak` slot and the
-/// constant the committed lane differs by.
-/// These columns are virtual (uncommitted): their memory-bus evaluation claims
-/// are re-routed to `q_keccak` slot evaluations, which is the whole binding: the
-/// bus-tied value IS the proven `q_keccak` word, no separate check needed.
+/// If `col` is a SHA3 **input** value column (global index), its `q_keccak` slot and
+/// the constant the committed lane differs by.
+/// These columns are virtual (uncommitted): their evaluation claims are re-routed
+/// to `q_keccak` slot evaluations, which is the whole binding: the bus-tied value
+/// IS the proven `q_keccak` word, no separate check needed.
 fn sha3_value_slot(col: usize) -> Option<(usize, F192)> {
     let base = schema().base[tables::SHA3_TABLE];
     tables::SHA3_VALUE_COLS
         .iter()
         .position(|&c| base + c == col)
-        .map(crate::keccak::value_slot)
+        .and_then(crate::keccak::value_slot)
+}
+
+/// The SHA3 table's claims on its output lanes, which are the Keccak reduction's claim on
+/// the permutation's output: the batch claims every column of the table at one point.
+fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::OutputClaim {
+    let claims = &table_claims[tables::SHA3_TABLE];
+    keccak_gkr::OutputClaim {
+        instance: claims.chi.clone(),
+        lanes: std::array::from_fn(|l| claims.evals[tables::sha3t::V_OUT + l]),
+    }
 }
 
 /// Run statistics returned alongside the proof: the cycle count (total executed
@@ -626,10 +636,11 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // is still a challenge, squeezed after the commitment so the memory cannot
     // be chosen to fit it.
     let r_pi = ps.sample();
-    // Memory binds the message, chaining-value, and output words; bytecode binds
-    // the counter and flags. All corresponding value columns are virtual and route
-    // to q_keccak through `slot_claims`.
+    // Memory binds every step's input and output words. Their value columns are
+    // virtual: the inputs route to q_keccak through `slot_claims`, the outputs are
+    // the reduction's claim on the permutation's output.
     let mut slots = finish_claims(l, bus.claims, &table_claims, r_pi);
+    let output = keccak_output_claim(&table_claims);
 
     // Run the Keccak reduction over the witness retained from the q_keccak build
     // pass; it returns two claims on the committed `q_keccak`, discharged by the
@@ -639,10 +650,12 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     let n_blocks = 1usize << w.layout.taus[tables::SHA3_TABLE];
     let offset = w.layout.placements[QKECCAK].offset;
     let q_keccak = &w.q[offset..offset + (1 << crate::keccak::qkeccak_kappa(n_blocks))];
-    let openings = crate::stage!("Keccak reduction", || { keccak_reduction.prove(&mut ps, q_keccak) });
+    let openings = crate::stage!("Keccak reduction", || {
+        keccak_reduction.prove(&mut ps, q_keccak, &output)
+    });
     drop(keccak_reduction);
     let (ring, outputs) = crate::keccak::ring_switch_open(n_blocks, offset, openings);
-    slots.push(outputs);
+    slots.extend(outputs);
     crate::stage!("PCS open", || { pcs::open(&mut ps, &committed, &w.q, &slots, &ring) });
     Ok((
         ps.into_proof(),
@@ -673,6 +686,11 @@ fn finish_claims(
     claims.reserve(sch.n - N_SHARED);
     for (t, table) in tables::tables().iter().enumerate() {
         for c in 0..table.n_committed_columns() {
+            if t == tables::SHA3_TABLE
+                && (tables::sha3t::V_OUT..tables::sha3t::V_OUT + primitives::hash::STATE_LANES).contains(&c)
+            {
+                continue; // the Keccak reduction's claim on the output (`keccak_output_claim`)
+            }
             claims.push(ColumnClaim {
                 col: sch.base[t] + c,
                 point: table_claims[t].chi.clone(),
@@ -763,6 +781,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     // cannot choose the memory to fit it; the claims it yields read no scalar.
     let r_pi = vs.sample();
     let mut slots = finish_claims(&l, bus.claims, &table_claims, r_pi);
+    let output = keccak_output_claim(&table_claims);
 
     // Replay the Keccak reduction straight off the shared stream (each scalar bound
     // as it is read) to recover its two claims on q_keccak, then
@@ -770,10 +789,10 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
     // (mirroring `prove`).
     let n_blocks = n_sha3.max(1);
     let offset = l.placements[QKECCAK].offset;
-    let openings = crate::keccak::verify_reduction(n_blocks, &mut vs).map_err(CpuError::Sha3)?;
+    let openings = crate::keccak::verify_reduction(n_blocks, &mut vs, &output).map_err(CpuError::Sha3)?;
     let keccak_stream_end = vs.stream_offset();
     let (ring, outputs) = crate::keccak::ring_switch_verify(n_blocks, offset, &openings);
-    slots.push(outputs);
+    slots.extend(outputs);
     pcs::verify(&mut vs, &slots, &ring, l.shape, log_inv_rate, &root).map_err(CpuError::Open)?;
     vs.finish().map_err(CpuError::Transcript)?;
     Ok(VerifySummary {

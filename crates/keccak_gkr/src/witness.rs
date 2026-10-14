@@ -51,9 +51,9 @@ impl Shape {
     pub fn y_vars(&self) -> usize {
         self.pack_vars() + self.seg_log()
     }
-    /// Committed lanes per instance.
+    /// Committed lanes per instance: the state each segment starts from.
     pub fn slots(&self) -> usize {
-        LANES * (self.segments() + 1)
+        LANES * self.segments()
     }
     pub fn slot_log(&self) -> usize {
         self.slots().next_power_of_two().ilog2() as usize
@@ -144,7 +144,8 @@ fn xor(a: Word, b: Word) -> Word {
 
 /// Run one block of instances, padded with all-zero inputs, and write its input state and the
 /// state each round applies `chi` to, all sliced, into `slot`. `commit(slot, w, lanes)` receives lane `slot % 25`
-/// of the state after `depth * (slot / 25)` rounds, for instances `64 * w ..` of the block.
+/// of the state after `depth * (slot / 25)` rounds, for instances `64 * w ..` of the block: every
+/// state a segment starts from, the output not being committed.
 ///
 /// # Safety
 /// `slot` is a slot of a live [`Extent`] that no other call is writing.
@@ -207,7 +208,7 @@ pub unsafe fn block(
         for z in (0..64).filter(|z| RC[round - 1] >> z & 1 == 1) {
             state[z] = state[z].map(|w| !w);
         }
-        if round.is_multiple_of(depth) {
+        if round.is_multiple_of(depth) && round < ROUNDS {
             lanes(round / depth, &state);
         }
     }
@@ -215,8 +216,9 @@ pub unsafe fn block(
 
 impl Witness {
     /// Run every instance, padding the batch with all-zero inputs, and write the committed
-    /// lanes into `committed`: lane `l` of the state after `depth * m` rounds is slot
-    /// `25 * m + l`, one word per instance, and whatever follows the last slot is zeroed.
+    /// lanes into `committed`: lane `l` of the state after `depth * m` rounds, for `m` below the
+    /// segment count, is slot `25 * m + l`, one word per instance, and whatever follows the last
+    /// slot is zeroed.
     pub fn generate(shape: Shape, inputs: &[[u64; LANES]], committed: &mut [F64]) -> Self {
         let n = shape.n();
         assert!(inputs.len() <= n);
@@ -288,6 +290,7 @@ impl Witness {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::keccak::{along, iota_bit};
     use primitives::test_rng::Rng;
 
     #[test]
@@ -299,13 +302,22 @@ mod tests {
         Witness::generate(shape, &inputs, &mut committed);
         let n = shape.n();
         for x in (0..n).step_by(37) {
-            let mut state = inputs.get(x).copied().unwrap_or([0; LANES]);
+            let state = inputs.get(x).copied().unwrap_or([0; LANES]);
             for lane in 0..LANES {
                 assert_eq!(committed[lane * n + x].0, state[lane]);
             }
-            primitives::hash::keccak_f(&mut state);
+            // The state after 16 rounds, bit by bit.
+            let mut bits: Vec<bool> = (0..BITS).map(|j| state[j / 64] >> (j % 64) & 1 == 1).collect();
+            for round in 1..=16 {
+                let mut u = vec![false; BITS];
+                linear(&bits, &mut u, |a, b| a ^ b);
+                for j in 0..BITS {
+                    bits[j] = u[j] ^ (!u[along(j, 1)] & u[along(j, 2)]) ^ (j < 64 && iota_bit(round, j));
+                }
+            }
             for lane in 0..LANES {
-                assert_eq!(committed[(3 * LANES + lane) * n + x].0, state[lane], "instance {x}");
+                let word = (0..64).fold(0u64, |w, z| w | (bits[64 * lane + z] as u64) << z);
+                assert_eq!(committed[(2 * LANES + lane) * n + x].0, word, "instance {x}");
             }
         }
         assert!(committed[shape.slots() * n..].iter().all(|w| w.0 == 0));

@@ -29,19 +29,21 @@ pub struct WordOpening {
     pub value: F192,
 }
 
-/// What the reduction leaves for the commitment to answer.
+/// What the reduction leaves for the commitment to answer: the committed segment outputs as
+/// words, if a segment's output is committed at all, and the inputs as slices.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Openings {
-    pub outputs: WordOpening,
+    pub outputs: Option<WordOpening>,
     pub inputs: Opening,
 }
 
 /// The weight a claim puts on each `(slot, z)`: its position weights, on the slots of the states
-/// it speaks of, scaled by the segment. `first` is the state segment 0 claims.
-pub fn slot_weights(shape: Shape, claim: &Claim, first: usize) -> Vec<F192> {
+/// it speaks of, scaled by the segment. `first` is the state segment 0 claims, and only the first
+/// `count` segments' states are committed.
+pub fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<F192> {
     let segments = eq_table(&claim.point[shape.pack_vars()..]);
     let mut out = vec![F192::ZERO; 64 << shape.slot_log()];
-    for segment in 0..shape.segments() {
+    for segment in 0..count {
         let base = 64 * LANES * (first + segment);
         for j in 0..BITS {
             out[base + j] = segments[segment] * claim.weights[j];
@@ -98,7 +100,7 @@ fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
     let tables: Vec<[F192; 256]> = (0..4 << run_vars)
         .map(|t| subset_sums(&(0..8).map(|w| low[t % 4 + 4 * w + 32 * (t / 4)]).collect::<Vec<_>>())[0])
         .collect();
-    let lanes = LANES * (shape.segments() + 1);
+    let lanes = shape.slots();
     let mut out = vec![F192::ZERO; (16 * 64) << shape.slot_log()];
     parallel::chunks_mut(&mut out[..16 * 64 * lanes], 16 * 64, |lane, out| {
         let round = shape.depth * (lane / LANES);
@@ -199,32 +201,37 @@ fn fold_all(mut table: Vec<F192>, width: usize, point: &[F192]) -> Vec<F192> {
 }
 
 /// The weight a word-level claim puts on each slot: what [`slot_weights`] gives its bit 0.
-fn word_weights(shape: Shape, claim: &Claim, first: usize) -> Vec<F192> {
-    slot_weights(shape, claim, first).into_iter().step_by(64).collect()
+/// The word weights of the committed segment outputs: every segment's but the last, whose output
+/// is not committed.
+fn word_weights(shape: Shape, claim: &Claim) -> Vec<F192> {
+    slot_weights(shape, claim, 1, shape.segments() - 1)
+        .into_iter()
+        .step_by(64)
+        .collect()
 }
 
-/// Every committed lane as a word, at an instance point, and the value of the word-level
-/// `claim` on the outputs among them. An opening is of the whole stack, so the lanes the claim
-/// puts no weight on are evaluated too.
+/// Every committed lane as a word, at an instance point, and the part of the word-level `claim`
+/// on the committed segment outputs among them. An opening is of the whole stack, so the lanes
+/// the claim puts no weight on are evaluated too.
 pub fn output_claim(shape: Shape, committed: &[F64], instance: &[F192], claim: &Claim) -> (Vec<F192>, F192) {
     let n = shape.n();
     let mut words = parallel::map_collect(shape.slots(), |slot| mle_eval(&committed[slot * n..][..n], instance));
     words.resize(1 << shape.slot_log(), F192::ZERO);
-    let value = dot(&words, &word_weights(shape, claim, 1));
+    let value = dot(&words, &word_weights(shape, claim));
     (words, value)
 }
 
-/// Open the claim on the outputs, whose instance weights are `eq(instance, .)` and whose
-/// position weights are those of a word.
+/// Open `value`, the part of the first claim on the committed segment outputs, whose instance
+/// weights are `eq(instance, .)` and whose position weights are those of a word.
 pub fn open_outputs(
     ps: &mut impl Transmitter,
     shape: Shape,
     instance: &[F192],
     claim: &Claim,
+    mut value: F192,
     words: Vec<F192>,
 ) -> WordOpening {
-    let mut value = claim.value;
-    let (word, _, slot) = prove_rounds(ps, words, word_weights(shape, claim, 1), 1, F192::ONE, &mut value);
+    let (word, _, slot) = prove_rounds(ps, words, word_weights(shape, claim), 1, F192::ONE, &mut value);
     let word = word[0];
     ps.add_scalar(word);
     WordOpening {
@@ -238,11 +245,11 @@ pub fn verify_outputs(
     shape: Shape,
     instance: &[F192],
     claim: &Claim,
+    mut value: F192,
 ) -> Result<WordOpening, VerifyError> {
-    let mut value = claim.value;
     let slot = verify_rounds(vs, shape.slot_log(), &mut value)?;
     let word = vs.next_scalar()?;
-    if fold_all(word_weights(shape, claim, 1), 1, &slot)[0] * word != value {
+    if fold_all(word_weights(shape, claim), 1, &slot)[0] * word != value {
         return Err(VerifyError::Opening);
     }
     Ok(WordOpening {
@@ -256,7 +263,7 @@ pub fn open_inputs(ps: &mut impl Transmitter, witness: &Witness, claim: &Claim) 
     let shape = witness.shape;
     let pack = &claim.point[..shape.pack_vars()];
     let folded = fold_packs(witness, pack);
-    let weights = slot_weights(shape, claim, 0);
+    let weights = slot_weights(shape, claim, 0, shape.segments());
     // Per instance of a pack, the weighted sum over slots and positions.
     let per_instance: Vec<F192> = (0..16)
         .map(|i| {
@@ -291,7 +298,13 @@ pub fn verify_inputs(vs: &mut impl Receiver, shape: Shape, claim: &Claim) -> Res
     let mu = dot(&eq_table(&low), &claim.mu);
     let slot = verify_rounds(vs, shape.slot_log(), &mut value)?;
     let slices = vs.next_scalars(64)?;
-    if mu * dot(&fold_all(slot_weights(shape, claim, 0), 64, &slot), &slices) != value {
+    if mu
+        * dot(
+            &fold_all(slot_weights(shape, claim, 0, shape.segments()), 64, &slot),
+            &slices,
+        )
+        != value
+    {
         return Err(VerifyError::Opening);
     }
     Ok(Opening {

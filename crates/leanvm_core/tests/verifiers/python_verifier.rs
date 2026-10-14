@@ -162,13 +162,13 @@ fn test_python_verifier() {
     );
 
     // Each check of the Keccak reduction, tripped by the word it reads last. The reduction
-    // ends with its two openings, 15 scalars for the outputs then 86 for the inputs, behind a
-    // last layer whose three evaluations close its 97 scalars at this height.
+    // ends with its two openings, 13 scalars for the committed outputs then 84 for the inputs,
+    // behind a last layer whose three evaluations close its 95 scalars at this height.
     for (back, check) in [
         (2, "Keccak input opening ends on the wrong value"),
-        (87, "Keccak output opening ends on the wrong value"),
-        (102, "Keccak layer evaluations do not match the sumcheck"),
-        (198, "Keccak product polynomial does not carry the claim"),
+        (85, "Keccak output opening ends on the wrong value"),
+        (98, "Keccak layer evaluations do not match the sumcheck"),
+        (192, "Keccak product polynomial does not carry the claim"),
     ] {
         let mut tampered = proof.clone();
         tampered.stream[reduction_end - back] += F192::ONE;

@@ -395,11 +395,12 @@ pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::keccak::
     }
 }
 
-/// SHA3 value-column LOCAL indices in canonical slot order (the input lanes, then
-/// the output lanes; matches `keccak::SLOTS`). These columns are VIRTUAL
-/// (never committed): `q_keccak` already holds those words at fixed slots,
-/// so `cpu` routes their memory-bus evaluation claims straight to `q_keccak`
-/// (`slot_claims`): the value the bus flushes IS the proven word.
+/// SHA3 value-column LOCAL indices: the input lanes, then the output lanes. These
+/// columns are VIRTUAL (never committed). `q_keccak` holds the input words at the
+/// input lanes' slots ([`crate::keccak::value_slot`]), so `cpu` routes their
+/// evaluation claims straight to it (`slot_claims`); the output lanes' claims are
+/// the Keccak reduction's claim on the permutation's output. Either way the value
+/// the bus flushes IS the proven word.
 pub const SHA3_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
     let mut c = [0usize; 2 * primitives::hash::STATE_LANES];
     let mut i = 0;
@@ -409,8 +410,7 @@ pub const SHA3_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
     }
     c
 };
-// The fifty value lanes are laid out contiguously, inputs then outputs, so they
-// map 1:1 onto `keccak::SLOTS`.
+// The fifty value lanes are laid out contiguously, inputs then outputs.
 const _: () = assert!(sha3t::V_OUT == sha3t::V_IN + primitives::hash::STATE_LANES);
 
 // ---- XOR / MUL ---------------------------------------------------------------

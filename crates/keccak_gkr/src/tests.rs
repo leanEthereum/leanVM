@@ -138,15 +138,20 @@ fn end_to_end(n_instances: usize, depth: usize) {
     let mut ps = ProverState::from_label(b"keccak-gkr-test");
     let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
     ps.add_root(&commitment.root);
-    let openings = crate::prove(&mut ps, &witness, &committed);
+    let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log));
+    ps.add_scalars(&output.lanes);
+    let openings = crate::prove(&mut ps, &witness, &committed, &output);
     // Each opening is what the commitment scheme means by it.
     let mut stack = committed.clone();
     stack.resize(1 << shape.stack_log(), primitives::field::F64(0));
-    assert_eq!(
-        openings.outputs.value,
-        primitives::multilinear::mle_eval(&stack, &openings.outputs.point),
-        "outputs"
-    );
+    assert_eq!(openings.outputs.is_some(), shape.segments() > 1);
+    if let Some(outputs) = &openings.outputs {
+        assert_eq!(
+            outputs.value,
+            primitives::multilinear::mle_eval(&stack, &outputs.point),
+            "outputs"
+        );
+    }
     let slices = pcs::ring_switch::fold_1b_rows(&stack, &eq_table(&openings.inputs.point));
     assert!(slices == openings.inputs.slices, "inputs");
     crate::open_commitment(&mut ps, shape, &committed, &prover_data, &config, openings);
@@ -155,14 +160,16 @@ fn end_to_end(n_instances: usize, depth: usize) {
     let verify = |proof: &fiat_shamir::transcript::Proof| {
         let mut vs = VerifierState::from_label(b"keccak-gkr-test", proof);
         let root = vs.next_root().ok()?;
-        let openings = crate::verify(&mut vs, shape).ok()?;
+        let output = read_output(&mut vs, shape).ok()?;
+        let openings = crate::verify(&mut vs, shape, &output).ok()?;
         crate::verify_commitment(&mut vs, shape, &config, &root, &openings).ok()?;
         vs.finish().ok()
     };
     {
         let mut vs = VerifierState::from_label(b"keccak-gkr-test", &proof);
         let root = vs.next_root().unwrap();
-        let openings = crate::verify(&mut vs, shape).expect("layers and openings");
+        let output = read_output(&mut vs, shape).unwrap();
+        let openings = crate::verify(&mut vs, shape, &output).expect("layers and openings");
         crate::verify_commitment(&mut vs, shape, &config, &root, &openings).expect("commitment");
         vs.finish().unwrap();
     }
@@ -174,17 +181,26 @@ fn end_to_end(n_instances: usize, depth: usize) {
     }
 }
 
+/// The verifier's side of the output claim the tests bind: the point, then the lanes.
+fn read_output(vs: &mut VerifierState, shape: Shape) -> Result<crate::OutputClaim, fiat_shamir::transcript::Error> {
+    let instance = vs.sample_vec(shape.n_log);
+    let lanes = vs.next_scalars(LANES)?.try_into().expect("25 lanes");
+    Ok(crate::OutputClaim { instance, lanes })
+}
+
 #[test]
 fn proof_verifies_against_the_commitment() {
     end_to_end(600, 8);
-    end_to_end(512, 12);
+    end_to_end(1024, 24);
     // The VM's depth, over enough blocks that the input opening folds more than one run.
+    end_to_end(8192, 12);
     end_to_end(8192, 6);
 }
 
 /// A committed state that does not follow the permutation is rejected, whichever state it
-/// is: the honest prover run on a column with one bit flipped fails the reduction or the
-/// commitment's opening.
+/// is, and so is an output claim the inputs do not give: the honest prover run on a column
+/// with one bit flipped, or on a perturbed claim, fails the reduction or the commitment's
+/// opening.
 #[test]
 fn a_broken_committed_state_is_rejected() {
     use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
@@ -195,24 +211,29 @@ fn a_broken_committed_state_is_rejected() {
     let mut committed = vec![primitives::field::F64(0); crate::committed_len(shape)];
     let witness = Witness::generate(shape, &inputs, &mut committed);
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
-    let accepts = |committed: &[primitives::field::F64]| {
+    let accepts = |committed: &[primitives::field::F64], lane_error: F192| {
         let mut ps = ProverState::from_label(b"keccak-gkr-test");
         let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
         ps.add_root(&commitment.root);
-        let openings = crate::prove(&mut ps, &witness, committed);
+        let mut output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log));
+        output.lanes[7] += lane_error;
+        ps.add_scalars(&output.lanes);
+        let openings = crate::prove(&mut ps, &witness, committed, &output);
         crate::open_commitment(&mut ps, shape, committed, &prover_data, &config, openings);
         let proof = ps.into_proof();
         let mut vs = VerifierState::from_label(b"keccak-gkr-test", &proof);
         let root = vs.next_root().unwrap();
-        crate::verify(&mut vs, shape)
+        let output = read_output(&mut vs, shape).unwrap();
+        crate::verify(&mut vs, shape, &output)
             .ok()
             .is_some_and(|openings| crate::verify_commitment(&mut vs, shape, &config, &root, &openings).is_ok())
     };
-    assert!(accepts(&committed), "the honest column");
-    // A lane of the input, of each state between, and of the output.
-    for slot in [3, 30, 60, 80, 110] {
+    assert!(accepts(&committed, F192::ZERO), "the honest column");
+    // A lane of the input and of each state between.
+    for slot in [3, 30, 60, 80, 99] {
         let mut bad = committed.clone();
         bad[slot * shape.n() + 17].0 ^= 1 << 40;
-        assert!(!accepts(&bad), "slot {slot}");
+        assert!(!accepts(&bad, F192::ZERO), "slot {slot}");
     }
+    assert!(!accepts(&committed, F192::ONE), "the output");
 }

@@ -26,11 +26,11 @@ Each time the VM executes a \texttt{SHA3} instruction, it applies the Keccak per
   \item adding a public round constant.
 \end{enumerate}
 
-\paragraph{What the prover commits.} For each permutation the prover commits the state every $6$ rounds: after rounds $0, 6, 12, 18, 24$. That is $5$ states of $25$ lanes, stored as $64$-bit words in one column of the VM's commitment. The states in between are never committed.
+\paragraph{What the prover commits.} For each permutation the prover commits its input and its state after $12$ rounds: $2$ states of $25$ lanes, stored as $64$-bit words in one column of the VM's commitment. Nothing else is committed, not even the output.
 
-So each permutation is cut into $4$ \emph{chunks} of $6$ rounds, and the statement becomes: for every permutation and every chunk, the committed end state is the committed start state after $6$ rounds. The first committed state is the instruction's input and the last is its output, so the VM reads the instruction's input and output directly from this column.
+So each permutation is cut into $2$ \emph{chunks} of $12$ rounds. The first chunk ends on the committed middle state. The second ends on the output, which is not committed: the VM's memory argument already ends with claims about the instruction's output (an evaluation of each output lane at a random point), and those claims are where the GKR starts. The statement becomes: the first chunk ends on the committed state, and those claims on the output hold for the permutation of the committed input. The VM reads the instruction's input directly from the committed column.
 
-\paragraph{The plan.} GKR~\cite{GKR08} goes backwards through the computation, one round at a time. It starts from a random claim about the committed end states, and each \emph{layer} turns a claim about the states after a round into a claim about the states before it. After $6$ layers it reaches a claim about the committed start states. All $4N$ chunks are handled at once, so the protocol has only $6$ layers, not $24$.
+\paragraph{The plan.} GKR~\cite{GKR08} goes backwards through the computation, one round at a time. It starts from a random claim about the chunks' end states, and each \emph{layer} turns a claim about the states after a round into a claim about the states before it. After $12$ layers it reaches a claim about the committed start states. All $2N$ chunks are handled at once, so the protocol has only $12$ layers, not $24$.
 
 \section{Claims}
 
@@ -38,9 +38,9 @@ All arithmetic is in the field $\F = \mathrm{GF}(2^{192})$, which contains $\mat
 \[ C = \sum_{c,\, g} \eq\big(p, (g, c)\big) \sum_{j} w_j \sum_{t < 16} \mu_t \; b_c[g, t, j]. \]
 Here $\eq(p, \cdot)$ is the usual multilinear weight: summing against it evaluates the multilinear extension at the point $p$. So a claim is a weighted sum of bits, with a weight $w_j$ for each bit position, a weight $\mu_t$ for each member of a group, and a random point $p$ over (group, chunk).
 
-\paragraph{The first claim.} Once the column is committed, the verifier picks random $p$, a random point $r$ over the $16$ members and a random point $q$ over the $25$ lanes, and sets
+\paragraph{The first claim.} It is made at the random point $(r, g)$ (members, then groups) where the VM's claims on the output lanes are. The verifier picks a random chunk coordinate and a random point $q$ over the $25$ lanes, and sets
 \[ \mu_t = \eq(r, t), \qquad w_{z + 64\lambda} = \eq(q, \lambda) \cdot X^z, \qquad X^z \in \mathrm{GF}(2^{64}). \]
-Weighting bit $z$ by $X^z$ turns $64$ bits back into the $64$-bit word they form. So this claim is just the committed column evaluated at one random point. The prover sends its value $C$, which the commitment checks at the end.
+Weighting bit $z$ by $X^z$ turns $64$ bits back into the $64$-bit word they form. So the claim's part on the first chunk is just the committed column evaluated at one point, whose value the prover sends and the commitment checks at the end, and its part on the second chunk is a combination of the VM's claims on the output lanes, which the verifier already has.
 
 \section{One layer}
 
@@ -68,27 +68,27 @@ This is now an ordinary sum of products of field elements.
 
 \section{Back to the commitment}
 
-After $6$ layers, two claims remain, both about the committed column:
+After $12$ layers, two claims remain, both about the committed column:
 \begin{itemize}[nosep]
-  \item the first claim, on the end states, which is an evaluation of the column at a point;
+  \item the first claim's part on the committed middle state, an evaluation of the column at a point;
   \item the last claim, on the start states, whose weights are arbitrary. A short sumcheck reduces it to the evaluations, at one point, of the $64$ columns formed by bit $z$ of every word ($z < 64$). The commitment scheme supports this kind of claim directly (ring switching).
 \end{itemize}
 Both are opened together with the VM's other claims in a single opening of its one commitment.
 
-\paragraph{Why it is sound.} The end states are committed before any randomness is drawn. If some chunk is wrong, its committed end state differs from what its start state gives, so the first claim (a random evaluation) is false with high probability. Every check above is a polynomial identity at a random point, so a false claim stays false through each layer, except with probability at most (degree)$/|\F|$. In total the error is below $7\,(130 + 3 \log_2 N) / 2^{192}$. The final false claim is then rejected by the commitment.
+\paragraph{Why it is sound.} The committed states are fixed before any randomness is drawn. If the first chunk is wrong, its committed end state differs from what its start state gives; if a claim on the output is wrong, it differs from what the permutation of the input gives. Either way the first claim (a random evaluation) is false with high probability. Every check above is a polynomial identity at a random point, so a false claim stays false through each layer, except with probability at most (degree)$/|\F|$. In total the error is below $13\,(130 + 3 \log_2 N) / 2^{192}$. The final false claim is then rejected by the commitment.
 
 \section{Why it is fast}
 
 \begin{itemize}[nosep]
   \item The prover stores each bit position of $64$ permutations in one machine word, and computes $U$ with small carry-less multiplications: the nonlinear part of $16$ permutations costs one product of two $24$-bit polynomials. Field arithmetic only starts once $s$ is known.
   \item The first four rounds of the sumcheck over groups are also computed on bits, by extending the tables to the points $\{0, 1, \infty\}$~\cite{hashcaster}.
-  \item Only $5$ of the $25$ states of each permutation are committed.
+  \item Only $2$ of the $25$ states of each permutation are committed, and not the output.
   \item Per layer the verifier reads $U$ ($47$ values), the sumcheck messages and three values. Its only costly work is the weight term in step 4, a sum over $1600$ positions. When the verifier itself runs inside the VM (recursion), it avoids that sum: the weights are $L^{\top}$ applied to shifted $\eq$ tables, and their sum can be computed directly from the two random points.
 \end{itemize}
 
 \section{Credits}\label{sec:credits}
 
-The protocol follows Hashcaster, by Lev Soukhanov and collaborators. The first Hashcaster~\cite{hashcaster} proves batched boolean operations over binary fields with a sumcheck whose first rounds run on the bits themselves. Hashcaster~2~\cite{hashcaster2} is a GKR for Keccak built on the two ideas of step 2: packing bits into a polynomial ring with the Chinese remainder theorem, so that an AND of many bits is one product, and having the prover send that product as a polynomial which the verifier checks through the unpacking map~\cite{rmfeskip}. This note's protocol is that design with $16$ bits packed in degree below $24$, a state committed every $6$ rounds, and both final claims opened by the VM's commitment.
+The protocol follows Hashcaster, by Lev Soukhanov and collaborators. The first Hashcaster~\cite{hashcaster} proves batched boolean operations over binary fields with a sumcheck whose first rounds run on the bits themselves. Hashcaster~2~\cite{hashcaster2} is a GKR for Keccak built on the two ideas of step 2: packing bits into a polynomial ring with the Chinese remainder theorem, so that an AND of many bits is one product, and having the prover send that product as a polynomial which the verifier checks through the unpacking map~\cite{rmfeskip}. This note's protocol is that design with $16$ bits packed in degree below $24$, a state committed every $12$ rounds but the output, which the VM's memory argument claims, and both final claims opened by the VM's commitment.
 
 \begin{thebibliography}{9}
 \bibitem{hashcaster} L.~Soukhanov et al. \emph{Hashcaster: Frobenius sumcheck for vectorized boolean ops}, 2024. \url{https://github.com/morgana-proofs/hashcaster}

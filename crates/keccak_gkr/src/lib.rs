@@ -2,10 +2,13 @@
 //!
 //! # Statement
 //!
-//! The prover commits a state every `depth` rounds, as lanes: `24 / depth` segments, each a
-//! committed input and a committed output `depth` rounds later, for every instance of the batch.
-//! Nothing between two committed states is committed. The proof is that every segment of every
-//! instance follows the permutation.
+//! The prover commits a state every `depth` rounds, as lanes: the input of each of the
+//! `24 / depth` segments, for every instance of the batch. A segment's output is the next
+//! segment's committed input, except the last segment's, which is the permutation's output and is
+//! not committed: the caller holds a claim on it ([`OutputClaim`]), in the VM the memory bus's
+//! claim on the `SHA3` table's output lanes. Nothing between two committed states is committed.
+//! The proof is that every segment of every instance follows the permutation, the last one ending
+//! where the caller's claim says.
 //!
 //! # Claims
 //!
@@ -14,15 +17,17 @@
 //! and the weight of a bit is a product of four: `eq` of a point at the pack and segment, a
 //! weight per bit position, and a weight per instance of the pack.
 //!
-//! The verifier opens with a random such claim on the committed outputs: a random combination of
-//! their lanes as words, bit `z` of a lane weighing `x^z`, at a random instance and segment.
+//! The first claim is on every segment's output at the caller's instance point: a random
+//! combination of their lanes as words, bit `z` of a lane weighing `x^z`, at a random segment.
 //! Those weights are a basis of the word field over the bits, so the combination vanishes on no
-//! nonzero difference of two bit tables. `depth` layers turn the claim into one on the committed
-//! inputs, and both end as openings of the commitment ([`open`]): the first as the committed
-//! words at one point, the last as their 64 bit slices at another. The outputs are committed
-//! before the first claim is drawn, so a batch that breaks the permutation anywhere makes the
-//! first claim false of what the inputs imply, except with the probability a nonzero
-//! multilinear vanishes at a random point.
+//! nonzero difference of two bit tables. Its value is the committed outputs' part, which the
+//! prover sends, plus the last segment's, which the caller's lane values give. `depth` layers turn
+//! the claim into one on the committed inputs, and both end as openings of the commitment
+//! ([`open`]): the committed outputs as words at one point, the inputs as their 64 bit slices at
+//! another. The caller's instance point is a challenge drawn after the commitment and after its
+//! lane values are bound, so a batch that breaks the permutation anywhere makes the first claim
+//! false of what the inputs imply, except with the probability a nonzero multilinear vanishes at
+//! a random point.
 //!
 //! # A layer
 //!
@@ -89,28 +94,73 @@ pub mod witness;
 mod tests;
 
 pub use open::{Opening, Openings, WordOpening};
+
+/// A claim on the permutation's output, from outside the reduction: `lanes[l]` is lane `l` of
+/// the output state, as words over the instances, evaluated at `instance` (an instance index's
+/// low four variables first). Both must be bound to the transcript before [`prove`] and
+/// [`verify`] run, the point being a challenge drawn after the commitment.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OutputClaim {
+    pub instance: Vec<F192>,
+    pub lanes: [F192; keccak::LANES],
+}
+
+impl OutputClaim {
+    /// The true claim at `instance` on the batch of `inputs`, padded with all-zero inputs, by
+    /// running the permutation: what a caller without a claim of its own (a test, a benchmark)
+    /// binds and passes.
+    pub fn of_inputs(shape: Shape, inputs: &[[u64; keccak::LANES]], instance: Vec<F192>) -> Self {
+        let permute = |mut state: [u64; keccak::LANES]| {
+            primitives::hash::keccak_f(&mut state);
+            state
+        };
+        let padding = permute([0; keccak::LANES]);
+        let outputs: Vec<[u64; keccak::LANES]> =
+            parallel::map_collect(shape.n(), |i| inputs.get(i).map_or(padding, |&x| permute(x)));
+        let lanes = std::array::from_fn(|l| {
+            let words: Vec<primitives::field::F64> = outputs.iter().map(|o| primitives::field::F64(o[l])).collect();
+            primitives::multilinear::mle_eval(&words, &instance)
+        });
+        Self { instance, lanes }
+    }
+}
 pub use protocol::VerifyError;
 pub use witness::{Shape, Witness};
 
 use keccak::LANE_VARS;
 use primitives::field::F192;
-use protocol::{first_claim, verify_layer};
+use primitives::multilinear::eq_table;
+use protocol::{Claim, dot, first_claim, verify_layer};
 
-/// Reduce "the committed states follow Keccak-f" to two openings of the commitment.
-/// `committed` is what [`Witness::generate`] wrote.
-pub fn prove(ps: &mut impl Transmitter, witness: &Witness, committed: &[primitives::field::F64]) -> Openings {
+/// The first claim, valued at the last segment's part only: the caller's lanes, at the claim's
+/// segment and lane weights.
+fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]) -> Claim {
+    assert_eq!(output.instance.len(), shape.n_log);
+    let point = [&output.instance[4..], &segment[..]].concat();
+    let mut claim = first_claim(shape, F192::ZERO, &output.instance[..4], point, r_lane);
+    let last = eq_table(&segment)[shape.segments() - 1];
+    claim.value = last * dot(&eq_table(r_lane)[..keccak::LANES], &output.lanes);
+    claim
+}
+
+/// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to openings
+/// of the commitment. `committed` is what [`Witness::generate`] wrote.
+pub fn prove(
+    ps: &mut impl Transmitter,
+    witness: &Witness,
+    committed: &[primitives::field::F64],
+    output: &OutputClaim,
+) -> Openings {
     let shape = witness.shape;
-    let (r_low, point, r_lane) = (
-        ps.sample_vec(4),
-        ps.sample_vec(shape.y_vars()),
-        ps.sample_vec(LANE_VARS),
-    );
-    let instance = [&r_low[..], &point[..shape.pack_vars()]].concat();
-    let mut first = first_claim(shape, F192::ZERO, &r_low, point, &r_lane);
-    let (folded, value) =
-        tracing::info_span!("Outputs").in_scope(|| open::output_claim(shape, committed, &instance, &first));
-    first.value = value;
-    ps.add_scalar(value);
+    let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
+    let mut first = first(shape, output, segment, &r_lane);
+    let instance = &output.instance;
+    let (folded, committed_value) =
+        tracing::info_span!("Outputs").in_scope(|| open::output_claim(shape, committed, instance, &first));
+    if shape.segments() > 1 {
+        ps.add_scalar(committed_value);
+    }
+    first.value += committed_value;
 
     let mut claim = first.clone();
     let mut scratch = prover::Scratch::new(shape);
@@ -119,26 +169,36 @@ pub fn prove(ps: &mut impl Transmitter, witness: &Witness, committed: &[primitiv
             .in_scope(|| prover::prove_layer(ps, witness, &mut scratch, step, &claim));
     }
     let _span = tracing::info_span!("Openings").entered();
-    let outputs = open::open_outputs(ps, shape, &instance, &first, folded);
+    let outputs =
+        (shape.segments() > 1).then(|| open::open_outputs(ps, shape, instance, &first, committed_value, folded));
     let inputs = open::open_inputs(ps, witness, &claim);
     Openings { outputs, inputs }
 }
 
-/// Mirror of [`prove`]. The caller checks the two openings against the commitment.
-pub fn verify(vs: &mut impl Receiver, shape: Shape) -> Result<Openings, VerifyError> {
-    let (r_low, point, r_lane) = (
-        vs.sample_vec(4),
-        vs.sample_vec(shape.y_vars()),
-        vs.sample_vec(LANE_VARS),
-    );
-    let instance = [&r_low[..], &point[..shape.pack_vars()]].concat();
-    let value = vs.next_scalar()?;
-    let first = first_claim(shape, value, &r_low, point, &r_lane);
+/// Mirror of [`prove`]. The caller checks the openings against the commitment.
+pub fn verify(vs: &mut impl Receiver, shape: Shape, output: &OutputClaim) -> Result<Openings, VerifyError> {
+    let (segment, r_lane) = (vs.sample_vec(shape.seg_log()), vs.sample_vec(LANE_VARS));
+    let mut first = first(shape, output, segment, &r_lane);
+    let committed_value = if shape.segments() > 1 {
+        vs.next_scalar()?
+    } else {
+        F192::ZERO
+    };
+    first.value += committed_value;
     let mut claim = first.clone();
     for step in 0..shape.depth {
         claim = verify_layer(vs, shape, step, &claim)?;
     }
-    let outputs = open::verify_outputs(vs, shape, &instance, &first)?;
+    let outputs = match shape.segments() > 1 {
+        true => Some(open::verify_outputs(
+            vs,
+            shape,
+            &output.instance,
+            &first,
+            committed_value,
+        )?),
+        false => None,
+    };
     let inputs = open::verify_inputs(vs, shape, &claim)?;
     Ok(Openings { outputs, inputs })
 }
@@ -166,7 +226,7 @@ pub fn open_commitment(
             s_hat_v: Some(openings.inputs.slices),
         }],
     };
-    let points = [word_claim(openings.outputs)];
+    let points: Vec<_> = openings.outputs.into_iter().map(word_claim).collect();
     pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
 }
 
@@ -200,7 +260,7 @@ pub fn verify_commitment(
         shape.stack_log(),
         1 << pcs::whir::INITIAL_FOLDING_FACTOR,
         root,
-        &[word_claim(openings.outputs.clone())],
+        &openings.outputs.iter().cloned().map(word_claim).collect::<Vec<_>>(),
         &ring,
     )
 }

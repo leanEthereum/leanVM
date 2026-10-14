@@ -1086,7 +1086,7 @@ fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
     (queries.next_power_of_two().ilog2() as usize).min(depth)
 }
 
-/// The SHA3 table's virtual value columns, in `keccak::SLOTS` order.
+/// The SHA3 table's virtual value columns: the input lanes, then the output lanes.
 fn sha3_value_columns() -> Vec<usize> {
     let base = leanvm_core::cpu::schema().base[5];
     leanvm_core::tables::SHA3_VALUE_COLS.iter().map(|&c| base + c).collect()
@@ -2087,6 +2087,10 @@ struct ClaimDescriptor {
     qkeccak_slot: usize,
 }
 
+/// The guest's `POINT_BUF_KECCAK_OUT`: a claim on an output lane, which the Keccak reduction
+/// takes as its claim on the permutation's output and the opening never sees.
+const POINT_BUF_KECCAK_OUT: usize = 4;
+
 fn literals(values: impl IntoIterator<Item = impl std::fmt::Display>) -> String {
     format!(
         "[{}]",
@@ -2219,19 +2223,27 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                     qkeccak_slot: 0,
                 }
             }
-            ClaimSite::TableColumn { column, is_virtual, .. } => ClaimDescriptor {
-                buffer: if is_virtual { 3 } else { 1 },
-                column: if is_virtual {
-                    qkeccak_compact
-                } else {
-                    compact_col_pm[column]
-                },
-                qkeccak_slot: if is_virtual {
-                    leanvm_core::keccak::SLOTS[valcols.iter().position(|&v| v == column).unwrap()]
-                } else {
-                    0
-                },
-            },
+            ClaimSite::TableColumn { column, is_virtual, .. } => {
+                let slot = is_virtual
+                    .then(|| leanvm_core::keccak::value_slot(valcols.iter().position(|&v| v == column).unwrap()));
+                match slot {
+                    None => ClaimDescriptor {
+                        buffer: 1,
+                        column: compact_col_pm[column],
+                        qkeccak_slot: 0,
+                    },
+                    Some(Some((slot, _))) => ClaimDescriptor {
+                        buffer: 3,
+                        column: qkeccak_compact,
+                        qkeccak_slot: slot,
+                    },
+                    Some(None) => ClaimDescriptor {
+                        buffer: POINT_BUF_KECCAK_OUT,
+                        column: qkeccak_compact,
+                        qkeccak_slot: 0,
+                    },
+                }
+            }
             ClaimSite::MemoryLimb { column } => ClaimDescriptor {
                 buffer: 2,
                 column: compact_col_pm[column],
@@ -2342,8 +2354,10 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             (literals(&starts), literals(rows.concat()))
         };
         let bits = |word: u64, n: usize| (0..n).filter(|b| word >> b & 1 == 1).collect::<Vec<_>>();
+        assert!(segments > 1, "the guest opens a committed segment output");
         ps("KECCAK_DEPTH", depth.to_string());
         ps("KECCAK_SEGMENTS", segments.to_string());
+        ps("KECCAK_SEG_LOG", segments.next_power_of_two().ilog2().to_string());
         ps("KECCAK_PACK", PACK.to_string());
         ps("KECCAK_EMBED_BITS", EMBED_BITS.to_string());
         ps("KECCAK_PROD_BITS", PROD_BITS.to_string());
@@ -2630,7 +2644,15 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         .flat_map(|c| (0..slot_log).map(move |k| (c.qkeccak_slot >> k) & 1))
         .collect();
     // The one committed lane that is not the lane the VM reads: the padding bit is XORed in.
-    let end_slot = leanvm_core::keccak::SLOTS[primitives::hash::END_LANE];
+    let (end_slot, _) = leanvm_core::keccak::value_slot(primitives::hash::END_LANE).expect("an input lane");
+    // The output lanes' claims, consecutive in the pool: the reduction's claim on the output.
+    let out_pool = claims
+        .iter()
+        .position(|c| c.buffer == POINT_BUF_KECCAK_OUT)
+        .expect("the output lanes' claims");
+    assert!((0..claims.len()).all(|j| (claims[j].buffer == POINT_BUF_KECCAK_OUT)
+        == (out_pool..out_pool + primitives::hash::STATE_LANES).contains(&j)));
+    ps("KECCAK_OUT_POOL", out_pool.to_string());
     ps(
         "CLAIM_END_LANE",
         literals(
@@ -4611,15 +4633,16 @@ def main():
         let summary = verify(unified_guest(), &children[0].public_input(), &children[0].proof).expect("the child");
         let end = summary.keccak_stream_end;
         // A layer is its product polynomial, a round pair per pack and segment variable, the
-        // position rounds and three evaluations; the openings behind the last are 15 and 86.
+        // position rounds and three evaluations; the openings behind the last are 13 and 84.
         let log_steps = summary.raw.stream[leanvm_core::tables::N_TABLES].c0 as usize; // the last table
-        let layer = 47 + 2 * (log_steps - 4 + 2) + 33 + 3;
+        let segment_vars = (primitives::hash::ROUNDS / leanvm_core::keccak::DEPTH).ilog2() as usize;
+        let layer = 47 + 2 * (log_steps - 4 + segment_vars) + 33 + 3;
         // In the order the guest makes them: a layer's projection then its last check, the
-        // outputs' opening then the inputs'.
+        // committed outputs' opening then the inputs'.
         let checks = [
-            (101 + layer, "keccak_layer"),
-            (102, "keccak_layer"),
-            (87, "verify_keccak"),
+            (97 + layer, "keccak_layer"),
+            (98, "keccak_layer"),
+            (85, "verify_keccak"),
             (2, "verify_keccak"),
         ];
         let lines = checks.map(|(back, function)| {
