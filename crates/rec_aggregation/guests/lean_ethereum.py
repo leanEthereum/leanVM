@@ -966,21 +966,26 @@ def opening_final_message(fs0, fs1, cursor, out, n: Const):
 
 
 def opening_row_weights(point, out, folds: Const, reverse: Const):
-    if reverse == 1:
-        # Level 0 keeps the weights as their two tensor factors: weight i is
-        # out[i % 2^lo] * out[2^lo + i // 2^lo], the low `lo` coordinates first.
-        if const(folds // 3 == 0):
-            lo = folds
-        else:
-            lo = 3
-        hi = folds - lo
-        for i in unroll(0, 2 ** lo):
-            out[GEN ** i] = eq_weight(point, lo, 2 ** lo - 1 - i, 0)
-        for i in unroll(0, 2 ** hi):
-            out[GEN ** (2 ** lo + i)] = eq_weight(point * GEN ** lo, hi, 2 ** hi - 1 - i, 0)
+    # The row's eq weights as their two tensor factors: weight i is
+    # out[i % 2^lo] * out[2^lo + i // 2^lo], the low `lo` coordinates first. At
+    # level 0 lane i is interleaving index 2^folds - 1 - i, which reverses both.
+    if const(folds // 3 == 0):
+        lo = folds
     else:
-        for i in unroll(0, 2 ** folds):
-            out[GEN ** i] = eq_weight(point, folds, i, 0)
+        lo = 3
+    hi = folds - lo
+    for i in unroll(0, 2 ** lo):
+        if reverse == 1:
+            slot = 2 ** lo - 1 - i
+        else:
+            slot = i
+        out[GEN ** i] = eq_weight(point, lo, slot, 0)
+    for i in unroll(0, 2 ** hi):
+        if reverse == 1:
+            slot = 2 ** hi - 1 - i
+        else:
+            slot = i
+        out[GEN ** (2 ** lo + i)] = eq_weight(point * GEN ** lo, hi, slot, 0)
     return
 
 
@@ -1000,30 +1005,30 @@ def opening_query(cap, flags, row_eq_weights, weight, direction_bits, base: Cons
         # Packing proves each hinted lane is in K before hashing or folding it.
         for jb in unroll(0, interleave // 2):
             packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
-        # The weights' tensor factors (opening_row_weights): a run of lo_len
-        # lanes shares one hi factor.
-        if const(interleave // 8 == 0):
-            lo_len = interleave
-        else:
-            lo_len = 8
-        for h in unroll(0, interleave // lo_len):
-            part = 0
-            for l in unroll(0, lo_len):
-                part += row[lo_len * h + l] * row_eq_weights[GEN ** l]
-            row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
     else:
         # Pack the checked tower limbs into the leaf's contiguous byte image.
-        for jb in unroll(0, 3 * interleave // 4):
-            packed_row[2 * jb] = pack64x2(row[4 * jb], row[4 * jb + 1])
-            packed_row[2 * jb + 1] = pack64x2(row[4 * jb + 2], row[4 * jb + 3])
-        for jw in unroll(0, interleave):
-            if 3 * jw % 2 == 0:
+        for jb in unroll(0, 3 * interleave // 2):
+            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
+    # The weights' tensor factors (opening_row_weights): a run of lo_len row
+    # entries shares one hi factor.
+    if const(interleave // 8 == 0):
+        lo_len = interleave
+    else:
+        lo_len = 8
+    for h in unroll(0, interleave // lo_len):
+        part = 0
+        for l in unroll(0, lo_len):
+            jw = lo_len * h + l
+            if base == 1:
+                row_word = row[jw]
+            elif 3 * jw % 2 == 0:
                 # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
                 row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * row[3 * jw + 2]
             else:
                 # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
                 row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
-            row_dot += row_word * row_eq_weights[GEN ** jw]
+            part += row_word * row_eq_weights[GEN ** l]
+        row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
     # Hash the packed row, eight cells a block.
     leaf_hash_state = StackBuf(SHA3_STATE)
     sha3_cells(packed_row[0:leaf_cells], leaf_hash_state)
