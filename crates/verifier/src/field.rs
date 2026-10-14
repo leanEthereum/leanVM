@@ -4,8 +4,9 @@ use crate::{VerifierError, require};
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
 /// The low 64 bits of a 64x64 carry-less product, by integer multiplication: with both operands split into the four
-/// classes of their bit positions mod 4, a coefficient below bit 63 sums at most 15 bits, so its carries stay below
-/// the next bit of its class, and the one that sums 16 carries past bit 63. That class's bits carry the parities.
+/// classes of their bit positions mod 4, a coefficient below bit 60 sums at most 15 bits, so its carries stay below
+/// the next bit of its class. One at bit 60 or above may sum 16, whose carry lands past bit 63. Masking each class
+/// product to its own bits then leaves the parities.
 const fn clmul_low(a: u64, b: u64) -> u64 {
     const M0: u64 = 0x1111_1111_1111_1111;
     const M1: u64 = M0 << 1;

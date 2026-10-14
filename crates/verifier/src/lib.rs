@@ -163,7 +163,7 @@ pub fn verify_execution(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Pr
 
 /// NOT a verification: the [`Summary`] of `proof`, read out without checking it. An invalid proof is accepted.
 ///
-/// For a prover that reads its guest's witness out of a proof the guest then verifies in full. It walks the same transcript as [`verify_execution`] and leaves out every check: the sumcheck, GKR, constraint and WHIR terminal identities, the proof of work, the bytecode evaluation and the Merkle roots. It still fails on a proof it cannot walk: announced sizes out of range, a stream or openings of the wrong length or shape.
+/// For a prover that reads its guest's witness out of a proof the guest then verifies in full. It walks the same transcript as [`verify_execution`] and leaves out every check: the sumcheck, GKR, constraint, flock lincheck and WHIR terminal identities, the bus count's nonzero check, the proof of work, the bytecode evaluation and the Merkle roots. It still fails on a proof it cannot walk: announced sizes out of range, a stream or openings of the wrong length or shape.
 pub fn replay_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof) -> Result<Summary, VerifierError> {
     walk(bytecode, public_input, proof, false)
 }

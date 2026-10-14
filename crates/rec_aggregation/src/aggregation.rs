@@ -522,7 +522,7 @@ pub enum AggregationError {
     /// The union of the `(leaf_index, message)` groups, over the raw signatures and
     /// the children, exceeds [`MAX_LEAF_INDICES`].
     TooManyLeafIndices,
-    /// A child's statement is malformed, its proof cannot be read, or the claim it raises on flock's matrices is false. Any other child that does not verify is a [`Self::ProofError`]: the guest's run fails on it.
+    /// A child's statement is malformed, its proof cannot be walked, or the claim it raises on flock's matrices is false. The walk fails on most tampering, the openings having to sit at query positions the transcript draws, so a statement that does not match the proof usually lands here as a Merkle opening error. Any other child that does not verify is a [`Self::ProofError`]: the guest's run fails on it.
     InvalidChild(AggregateVerifyError),
     /// No signature claims or DA roots to publish.
     Empty,
@@ -810,7 +810,7 @@ impl EthereumProof {
     /// [`Self::da_commitments`] also attests to a well-formed blob matrix; callers check
     /// that this list contains the commitments they require.
     ///
-    /// Every field operation, the proof check and its Merkle hashing run in the `verifier` crate: scalar code on one thread.
+    /// Every field operation, the proof check and its Merkle hashing run in the `verifier` crate: one thread, no explicit SIMD.
     pub fn verify(&self) -> Result<(), AggregateVerifyError> {
         check_signer_set(&self.xmss_signers, &self.sphincs_signers)?;
         check_da_roots(&self.da_roots)?;
@@ -2077,7 +2077,7 @@ fn push_sphincs_hints(
 /// IMPORTANT:
 /// - `aggregate` should not be called more than once at a time in parallel per process.
 /// - Raw signatures are assumed valid (otherwise `aggregate` will panic).
-/// - Children are assumed verified by the caller ([`EthereumProof::verify`]): `aggregate`, any invalid child
+/// - Children are assumed verified by the caller ([`EthereumProof::verify`]): any invalid child
 /// proof ends up returning the error [`AggregationError::ProofError`] (TODO return the index of invalid proof).
 ///
 /// XMSS Performance: it is optimized for a small set of different (leaf index, message), and many XMSS
