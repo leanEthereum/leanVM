@@ -256,6 +256,8 @@ LIG_MAX_OOD_SAMPLES = LIG_MAX_OOD_SAMPLES_PLACEHOLDER
 LIG_LOG_MSG_COLS_CAP = LIG_LOG_MSG_COLS_CAP_PLACEHOLDER
 YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
 MAX_STACK_LOG = LIG_MIN_LOG_SIZE + LIG_N_LOG_SIZES - 1
+SEL_NIBBLES = (MAX_STACK_LOG + 3) // 4  # four selector bits share one table lookup
+SEL_EQ_STRIDE = 30                      # a nibble's eq tables over its top 1..4 coords
 LIG_N_LEVELS = LIG_N_LEVELS_PLACEHOLDER
 LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
@@ -2242,22 +2244,57 @@ def certify_placement(kappa_base, g_squares):
     return g_total, col_off_g, col_kappa_g
 
 
-def column_selector(offset, point1, kappa: Const):
+def column_selector(offset, sel_eq, sel_g, kappa: Const):
     # Rebuild the offset using only bits above the column's kappa, certifying its
-    # alignment. The same bits select the column at the complete opening point,
-    # read here as point1 = 1 + point. Both offset and point are zero above m, so
-    # extending to MAX_STACK_LOG adds only factors eq(0, 0) = 1.
-    bits = StackBuf(MAX_STACK_LOG)
-    hint_decompose_bits_exponent(bits, offset, MAX_STACK_LOG)
+    # alignment. The same bits select the column at the complete opening point.
+    # Both offset and point are zero above m, so extending to 4 * SEL_NIBBLES adds
+    # only factors eq(0, 0) = 1. The bits go a nibble at a time, top bit first:
+    # their g-power index u (bit 4j+3-t weighing 2^t) reads the nibble's eq over
+    # its coordinates and its g^offset share off the tables of selector_tables.
+    bits = StackBuf(4 * SEL_NIBBLES)
+    hint_decompose_bits_exponent(bits, offset, 4 * SEL_NIBBLES)
     rebuilt = GEN ** 0
     selector = GEN ** 0
-    for k in unroll(kappa, MAX_STACK_LOG):
-        bit = bits[k]
-        bits[k] = bit * bit
-        rebuilt *= 1 + bit * (1 + GEN ** (2 ** k))
-        selector *= bit + point1[GEN ** k]
+    for j in unroll(kappa // 4, SEL_NIBBLES):
+        width = 4
+        if const(j == kappa // 4):
+            width = 4 * j + 4 - kappa
+        idx = GEN ** 0
+        for t in unroll(0, width):
+            bit = bits[4 * j + 3 - t]
+            bits[4 * j + 3 - t] = bit * bit
+            idx *= 1 + bit * (1 + GEN ** (2 ** t))
+        selector *= sel_eq[GEN ** (SEL_EQ_STRIDE * j + 2 ** width - 2) * idx]
+        rebuilt *= sel_g[GEN ** (16 * j) * idx]
     assert rebuilt == offset
     return selector
+
+
+def selector_tables(point, point1):
+    # Per nibble j of the selector bits, the eq tables over its top 1..4
+    # coordinates (coordinate 4j+3-t is index bit t; the top w form the level-w
+    # table at 2^w - 2), and the g-powers g^(sum_t u_t 2^(4j+3-t)) of its indices.
+    sel_eq = HeapBuf(SEL_NIBBLES * SEL_EQ_STRIDE)
+    sel_g = HeapBuf(SEL_NIBBLES * 16)
+    for j in unroll(0, SEL_NIBBLES):
+        levels = StackBuf(SEL_EQ_STRIDE)
+        levels[0] = point1[GEN ** (4 * j + 3)]
+        levels[1] = point[GEN ** (4 * j + 3)]
+        for t in unroll(1, 4):
+            r = point[GEN ** (4 * j + 3 - t)]
+            r1 = point1[GEN ** (4 * j + 3 - t)]
+            for i in unroll(0, 2 ** t):
+                levels[2 ** (t + 1) - 2 + i] = levels[2 ** t - 2 + i] * r1
+                levels[2 ** (t + 1) - 2 + 2 ** t + i] = levels[2 ** t - 2 + i] * r
+        for i in unroll(0, SEL_EQ_STRIDE):
+            sel_eq[GEN ** (SEL_EQ_STRIDE * j + i)] = levels[i]
+        for u in unroll(0, 16):
+            g_share = GEN ** 0
+            for t in unroll(0, 4):
+                if (u // 2 ** t) % 2 == 1:
+                    g_share *= GEN ** (2 ** (4 * j + 3 - t))
+            sel_g[GEN ** (16 * j + u)] = g_share
+    return sel_eq, sel_g
 
 
 def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_g, claim_cplen_g, lam_out, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target):
@@ -2278,11 +2315,12 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_
         pi_chain[xk * GEN] = pi_chain[xk] * point1[xk]
     pi_eq = pi_chain[g_log_mem]
 
+    sel_eq, sel_g = selector_tables(point, point1)
     selectors = StackBuf(N_COMMITTED_COLS)
     for c in unroll(0, N_COMMITTED_COLS):
         offset = col_offsets[GEN ** c]
         kappa_g = col_kappas[GEN ** c]
-        selectors[c] = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, point1, kappa))
+        selectors[c] = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
 
     inner_sum = inner_total
     for j in unroll(0, N_CLAIMS):
