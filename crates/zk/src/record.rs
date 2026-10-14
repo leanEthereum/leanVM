@@ -19,9 +19,10 @@
 //!
 //! So the inner verifier may build rows of a circuit as well as check values, and both record the same system.
 
-use fiat_shamir::TranscriptError;
-use fiat_shamir::arith::{Arith, Verifier};
+use fiat_shamir::arith::{Arith, PublicMle, Stage, Verifier};
+use fiat_shamir::{TranscriptContext, TranscriptError};
 use pcs::verifier::OpeningVerifier;
+use pcs::whir::WhirError;
 use primitives::field::{F64, F192};
 
 /// An element as the recorder holds it.
@@ -497,7 +498,9 @@ impl<V: Arith> Arith for Recorder<V> {
             Value::Hidden(_) => unreachable!("the verifier applies the Frobenius map to challenges alone"),
         }
     }
+}
 
+impl<V: PublicMle> PublicMle for Recorder<V> {
     fn public_mle(&mut self, values: &[F64], point: &[Self::E]) -> Self::E {
         match point.iter().map(|&x| x.public()).collect::<Option<Vec<_>>>() {
             Some(point) => Value::Public(self.inner.public_mle(values, &point)),
@@ -559,12 +562,32 @@ impl<V: Verifier> Verifier for Recorder<V> {
     fn is_hidden(&self) -> bool {
         self.hidden
     }
+
+    fn begin_scope(&mut self, stage: Stage) {
+        self.inner.begin_scope(stage);
+    }
+
+    fn end_scope(&mut self) {
+        self.inner.end_scope();
+    }
 }
 
 impl<V: OpeningVerifier> OpeningVerifier for Recorder<V> {
     type Root = V::Root;
     type K = V::K;
     type Query = V::Query;
+
+    fn context(&mut self) -> TranscriptContext<Self::K, Self::Root> {
+        self.inner.context()
+    }
+
+    fn zero_k(&mut self) -> Self::K {
+        self.inner.zero_k()
+    }
+
+    fn ensure_root_eq(&mut self, actual: Self::Root, expected: Self::Root) -> Result<(), WhirError> {
+        self.inner.ensure_root_eq(actual, expected)
+    }
 
     /// # Panics
     ///

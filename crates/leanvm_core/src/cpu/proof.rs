@@ -31,8 +31,8 @@ impl ProofKind {
     /// The magic tells the two kinds apart, so a proof of one kind is refused as the other.
     const fn envelope(self) -> Envelope {
         match self {
-            Self::Plain => Envelope::new(*b"LVMP", 17),
-            Self::ZeroKnowledge => Envelope::new(*b"LVMZ", 1),
+            Self::Plain => Envelope::new(*b"LVMP", 18),
+            Self::ZeroKnowledge => Envelope::new(*b"LVMZ", 2),
         }
     }
 }
@@ -84,6 +84,28 @@ mod tests {
     use crate::cpu::{Program, Prover};
     use crate::rv::Region;
     use crate::rv::asm::{Addi, Asm, Reg};
+
+    #[test]
+    fn legacy_and_foreign_proofs_are_refused_before_the_body() {
+        for (kind, magic, legacy) in [
+            (ProofKind::Plain, *b"LVMP", 17),
+            (ProofKind::ZeroKnowledge, *b"LVMZ", 1),
+        ] {
+            let current = kind.envelope().seal(&[]);
+            let expected = u16::from_le_bytes(current[4..6].try_into().unwrap());
+            for found in 0..=legacy {
+                let bytes = Envelope::new(magic, found).seal(&[0xff]);
+                assert_eq!(
+                    Proof::from_bytes(&bytes),
+                    Err(DecodeError::UnsupportedVersion { found, expected })
+                );
+            }
+            assert_eq!(
+                Proof::from_bytes(&Envelope::new(*b"LVMT", expected).seal(&[0xff])),
+                Err(DecodeError::Malformed)
+            );
+        }
+    }
 
     #[test]
     fn a_proof_survives_its_bytes() {

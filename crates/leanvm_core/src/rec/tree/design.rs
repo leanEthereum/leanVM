@@ -39,7 +39,7 @@ use primitives::multilinear::mle_eval_par;
 use std::ops::Range;
 
 /// The protocol half of every recursion proof's session tag.
-const DOMAIN: &[u8] = b"leanvm-tree-16";
+const DOMAIN: &[u8] = b"leanvm-tree-17";
 
 /// The tier of a tree of one tier, or of a claim-set tree's small tier: the first level's.
 pub(crate) const SMALL: usize = 0;

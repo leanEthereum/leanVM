@@ -110,9 +110,13 @@ impl<E: Copy> RoundQuad<E> {
     ///
     /// Returns an error past the end of the proof.
     pub(crate) fn read<V: Verifier<E = E>>(v: &mut V, claim: E) -> Result<Self, TranscriptError> {
-        let [c, b, a] = <[E; 3]>::try_from(v.read_round(3, claim, None)?)
-            .unwrap_or_else(|_| unreachable!("a quadratic has three coefficients"));
-        Ok(Self { c, b, a })
+        // Indexed rather than an array conversion, which the extraction does not translate: the round has three coefficients.
+        let h = v.read_round(3, claim, None)?;
+        Ok(Self {
+            c: h[0],
+            b: h[1],
+            a: h[2],
+        })
     }
 
     /// The quadratic at `x`, by Horner's rule.

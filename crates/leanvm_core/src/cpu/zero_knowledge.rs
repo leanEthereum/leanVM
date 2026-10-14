@@ -37,7 +37,7 @@ use crate::bus::{self, N_TUPLE_BITS, PublicColumns, SparseColumn};
 use crate::commitment::{Commitment, Committed, Rate};
 use crate::constraints::ConstraintError;
 use crate::tables::{CircuitId, Clock, N_CIRCUITS};
-use fiat_shamir::arith::{Arith, Verifier};
+use fiat_shamir::arith::{Arith, PublicMle, Verifier};
 use fiat_shamir::{ProofTranscript, ProverState, VerifierState};
 use flock::FlockError;
 use flock::lincheck::{LincheckError, MatrixForm};
@@ -142,7 +142,7 @@ where
 }
 
 /// The recorded core of a proof read natively: its announced shape, its layout, then the core.
-fn record_proof<V: OpeningVerifier<E = F192>>(
+fn record_proof<V: OpeningVerifier<E = F192> + PublicMle>(
     program: &Program,
     rec: &mut Recorder<V>,
     output: Output,
@@ -171,13 +171,13 @@ impl Layout {
     /// # Errors
     ///
     /// Returns the first stage that refuses the proof.
-    pub(crate) fn record_core<V: OpeningVerifier>(
+    pub(crate) fn record_core<V: OpeningVerifier + PublicMle>(
         &self,
         rec: &mut Recorder<V>,
         rate: Rate,
         output: &[Value<V::E>; 4],
     ) -> Result<RecordedCore<V::Root, V::E>, CpuError> {
-        let commitment = Commitment::read(rec, self.shape, rate)?;
+        let commitment = Commitment::read(rec, self.shape, rate).map_err(CpuError::Open)?;
         let keys = KeyCommitment::read(rec.inner(), rate.log_inv_rate().into())
             .map_err(|e| CpuError::Outer(OuterError::KeyOpening(e)))?;
 

@@ -94,10 +94,17 @@ impl<'a> Iterator for Hints<'a> {
     fn next(&mut self) -> Option<&'a [u8]> {
         // A four-byte little-endian length, then that many bytes.
         // The length is untrusted, so a short tail is left unread rather than sliced past.
-        let (len, rest) = self.rest.split_first_chunk::<4>()?;
-        let (hint, rest) = rest.split_at_checked(u32::from_le_bytes(*len) as usize)?;
-        self.rest = rest;
-        Some(hint)
+        // Indexed reads rather than chunk splits, which the extraction does not translate.
+        let rest = self.rest;
+        if rest.len() < 4 {
+            return None;
+        }
+        let len = u32::from_le_bytes([rest[0], rest[1], rest[2], rest[3]]) as usize;
+        if rest.len() - 4 < len {
+            return None;
+        }
+        self.rest = &rest[4 + len..];
+        Some(&rest[4..4 + len])
     }
 }
 

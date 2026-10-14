@@ -507,6 +507,199 @@ pub(crate) fn sorted_unique(queries: &[usize]) -> Vec<usize> {
     unique
 }
 
+/// Each of the `n` rows' leaf digest, in order: rows of `row_words` words one after another, each hashed as its leaf image of `leaf_words` words, the missing words a zero prefix.
+///
+/// # Panics
+///
+/// Panics unless `0 < row_words <= leaf_words`, as [`LeafHasher::new`] does.
+fn hash_rows(rows: &[F64], n: usize, row_words: usize, leaf_words: usize) -> Vec<Hash> {
+    let mut leaf_hashes = Box::new_uninit_slice(n);
+    LeafHasher::new(8 * row_words, 8 * leaf_words).hash(words_as_bytes(rows), &mut leaf_hashes);
+    // SAFETY: the hasher wrote one digest per row.
+    unsafe { leaf_hashes.assume_init() }.into_vec()
+}
+
+/// A node of the octopus rebuild: its index within its level, and its digest.
+type Node = (usize, Hash);
+
+/// One level of the octopus rebuild: pair each of `nodes` (ascending by index) with its sibling.
+///
+/// The sibling is the next node when that is the sibling, else the next supplied sibling from `siblings[used..]`.
+/// Leaves each pair's parent index in `parents` and its children in `pairs`, and appends both children with their indices to `known`.
+/// Returns how many siblings are used after this level, or nothing when the supplied siblings run out.
+fn pair_level(
+    nodes: &[Node],
+    siblings: &[Hash],
+    mut used: usize,
+    parents: &mut Vec<usize>,
+    pairs: &mut Vec<[Hash; 2]>,
+    known: &mut Vec<Node>,
+) -> Option<usize> {
+    parents.clear();
+    pairs.clear();
+    let mut i = 0;
+    while i < nodes.len() {
+        let idx = nodes[i].0;
+        let parent = idx >> 1;
+        let paired = idx & 1 == 0 && i + 1 < nodes.len() && nodes[i + 1].0 == idx + 1;
+        let (left, right) = if paired {
+            (nodes[i].1, nodes[i + 1].1)
+        } else if used == siblings.len() {
+            return None;
+        } else if idx & 1 == 0 {
+            used += 1;
+            (nodes[i].1, siblings[used - 1])
+        } else {
+            used += 1;
+            (siblings[used - 1], nodes[i].1)
+        };
+        parents.push(parent);
+        pairs.push([left, right]);
+        known.push((2 * parent, left));
+        known.push((2 * parent + 1, right));
+        i += if paired { 2 } else { 1 };
+    }
+    Some(used)
+}
+
+/// Rebuild every node on the queried paths bottom-up from the `leaves` (ascending by index).
+///
+/// A stored sibling is pulled only where it is not itself a queried subtree.
+/// Returns every level's known nodes in one buffer, level `l` at `starts[l]..starts[l + 1]` (both children of each parent, ascending by index), and `starts`.
+/// Returns nothing when the siblings run out or are left over, or the last fold is not `root`.
+fn rebuild(mut nodes: Vec<Node>, siblings: &[Hash], height: usize, root: &Hash) -> Option<(Vec<Node>, Vec<usize>)> {
+    let mut used = 0;
+    let mut known: Vec<Node> = Vec::new();
+    let mut starts = Vec::with_capacity(height + 1);
+    let (mut parents, mut pairs, mut digests) = (Vec::new(), Vec::new(), Vec::new());
+    let mut level = 0;
+    while level < height {
+        starts.push(known.len());
+        used = pair_level(&nodes, siblings, used, &mut parents, &mut pairs, &mut known)?;
+        hash_pairs(&pairs, &mut digests);
+        next_nodes(&parents, &digests, &mut nodes);
+        level += 1;
+    }
+    starts.push(known.len());
+    // The last fold leaves exactly the root, and nothing may be left over.
+    if used < siblings.len() || nodes.is_empty() || nodes[0].1 != *root {
+        return None;
+    }
+    Some((known, starts))
+}
+
+/// Each query's image and path, in query order.
+///
+/// The image is the query's row of `rows` (stored at its position in `sorted`) after a zero prefix, the path its sibling at every level of `known`.
+fn expand(
+    rows: &[F64],
+    sorted: &[usize],
+    known: &[Node],
+    starts: &[usize],
+    queries: &[usize],
+    row_words: usize,
+    leaf_words: usize,
+) -> Option<Openings> {
+    let height = starts.len() - 1;
+    let mut openings = Openings {
+        leaf_words,
+        height,
+        images: vec![F64::ZERO; queries.len() * leaf_words],
+        paths: Vec::with_capacity(queries.len() * height),
+    };
+    let mut k = 0;
+    while k < queries.len() {
+        let q = queries[k];
+        // The query's row is the image's tail, after the zero prefix.
+        let slot = position(sorted, q)?;
+        let image = (k + 1) * leaf_words;
+        openings.images[image - row_words..image].copy_from_slice(&rows[slot * row_words..(slot + 1) * row_words]);
+
+        // Its sibling at each level is a known node of that level.
+        if !push_path(known, starts, q, &mut openings.paths) {
+            return None;
+        }
+        k += 1;
+    }
+    Some(openings)
+}
+
+/// The next level's nodes: each parent index with its digest, replacing `nodes`.
+fn next_nodes(parents: &[usize], digests: &[Hash], nodes: &mut Vec<Node>) {
+    nodes.clear();
+    let mut p = 0;
+    while p < parents.len() {
+        nodes.push((parents[p], digests[p]));
+        p += 1;
+    }
+}
+
+/// Where `key` sits in `sorted`, ascending without duplicates, if it does.
+const fn position(sorted: &[usize], key: usize) -> Option<usize> {
+    let (mut lo, mut hi) = (0, sorted.len());
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if sorted[mid] == key {
+            return Some(mid);
+        }
+        if sorted[mid] < key {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    None
+}
+
+/// Where the node of index `key` sits in `level`, ascending by index without duplicates, if it does.
+const fn node_position(level: &[Node], key: usize) -> Option<usize> {
+    let (mut lo, mut hi) = (0, level.len());
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if level[mid].0 == key {
+            return Some(mid);
+        }
+        if level[mid].0 < key {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    None
+}
+
+/// Push query `q`'s sibling at every level of `known` (level `l` at `starts[l]..starts[l + 1]`), lowest first.
+///
+/// Returns whether every level holds the sibling.
+fn push_path(known: &[Node], starts: &[usize], q: usize, paths: &mut Vec<Hash>) -> bool {
+    let mut lvl = 0;
+    while lvl + 1 < starts.len() {
+        let level = &known[starts[lvl]..starts[lvl + 1]];
+        let node = q >> lvl;
+        let sibling = if node & 1 == 0 { node + 1 } else { node - 1 };
+        match node_position(level, sibling) {
+            Some(pos) => paths.push(level[pos].1),
+            None => return false,
+        }
+        lvl += 1;
+    }
+    true
+}
+
+/// The little-endian word at `hint[at..at + 8]`.
+const fn word_at(hint: &[u8], at: usize) -> u64 {
+    u64::from_le_bytes([
+        hint[at],
+        hint[at + 1],
+        hint[at + 2],
+        hint[at + 3],
+        hint[at + 4],
+        hint[at + 5],
+        hint[at + 6],
+        hint[at + 7],
+    ])
+}
+
 /// One opening phase's Merkle data: the rows at each distinct queried position, ascending, and one octopus over them.
 ///
 /// - A row is words of `K`, what a Merkle preimage is; a row of `w` elements of `E` is `3w` words.
@@ -543,17 +736,27 @@ impl PrunedMerklePaths {
     /// Returns nothing when the bytes do not split that way, so each paths value has one hint.
     #[must_use]
     pub(crate) fn from_hint(hint: &[u8], n_rows: usize, row_words: usize) -> Option<Self> {
-        let (rows, siblings) = hint.split_at_checked(n_rows.checked_mul(row_words)?.checked_mul(8)?)?;
-        let (words, []) = rows.as_chunks::<8>() else {
-            unreachable!("the rows span whole words")
-        };
-        let (siblings, []) = siblings.as_chunks::<32>() else {
+        let n_words = n_rows.checked_mul(row_words)?;
+        let row_bytes = n_words.checked_mul(8)?;
+        if hint.len() < row_bytes || !(hint.len() - row_bytes).is_multiple_of(32) {
             return None;
-        };
-        Some(Self {
-            rows: words.iter().map(|w| F64(u64::from_le_bytes(*w))).collect(),
-            sibling_hashes: siblings.to_vec(),
-        })
+        }
+        let mut rows = Vec::with_capacity(n_words);
+        let mut i = 0;
+        while i < n_words {
+            rows.push(F64(word_at(hint, 8 * i)));
+            i += 1;
+        }
+        let n_siblings = (hint.len() - row_bytes) / 32;
+        let mut sibling_hashes = Vec::with_capacity(n_siblings);
+        let mut j = 0;
+        while j < n_siblings {
+            let mut digest = [0u8; 32];
+            digest.copy_from_slice(&hint[row_bytes + 32 * j..row_bytes + 32 * (j + 1)]);
+            sibling_hashes.push(digest);
+            j += 1;
+        }
+        Some(Self { rows, sibling_hashes })
     }
 
     /// Authenticate this phase against `root`, and expand it into one opening per query, in query order.
@@ -578,78 +781,20 @@ impl PrunedMerklePaths {
         }
         let height = num_leaves.trailing_zeros() as usize;
         let sorted = sorted_unique(queries);
-        if sorted.last().is_some_and(|&p| p >= num_leaves) || self.rows.len() != sorted.len() * row_words {
+        if sorted[sorted.len() - 1] >= num_leaves || self.rows.len() != sorted.len() * row_words {
             return None;
         }
 
         // The rows, one after another, hashed as the committer hashed them: zero prefix shared, leaves batched.
-        let bytes: Vec<u8> = self.rows.iter().flat_map(|word| word.0.to_le_bytes()).collect();
-        let mut leaf_hashes = Box::new_uninit_slice(sorted.len());
-        LeafHasher::new(8 * row_words, 8 * leaf_words).hash(&bytes, &mut leaf_hashes);
-        // SAFETY: the hasher wrote one digest per row.
-        let leaf_hashes = unsafe { leaf_hashes.assume_init() };
-
-        // Rebuild every node on the queried paths bottom-up.
-        // A stored sibling is pulled only where it is not itself a queried subtree.
-        //
-        // Every level's known nodes go into one buffer, level `l` at `starts[l]..starts[l + 1]`:
-        // both children of each parent, ascending by index.
-        let mut supplied = self.sibling_hashes.iter();
-        let mut known: Vec<(usize, Hash)> = Vec::new();
-        let mut starts = Vec::with_capacity(height + 1);
-        let mut nodes: Vec<(usize, Hash)> = sorted.iter().copied().zip(leaf_hashes).collect();
-        let (mut parents, mut pairs, mut digests) = (Vec::new(), Vec::new(), Vec::new());
-        for _ in 0..height {
-            starts.push(known.len());
-            parents.clear();
-            pairs.clear();
-            let mut i = 0;
-            while i < nodes.len() {
-                let idx = nodes[i].0;
-                let paired = idx & 1 == 0 && nodes.get(i + 1).is_some_and(|&(j, _)| j == (idx | 1));
-                let (left, right) = if paired {
-                    (nodes[i].1, nodes[i + 1].1)
-                } else if idx & 1 == 0 {
-                    (nodes[i].1, *supplied.next()?)
-                } else {
-                    (*supplied.next()?, nodes[i].1)
-                };
-                parents.push(idx >> 1);
-                pairs.push([left, right]);
-                known.push((idx & !1, left));
-                known.push((idx | 1, right));
-                i += if paired { 2 } else { 1 };
-            }
-            hash_pairs(&pairs, &mut digests);
-            nodes.clear();
-            nodes.extend(parents.iter().copied().zip(digests.iter().copied()));
+        let leaf_hashes = hash_rows(&self.rows, sorted.len(), row_words, leaf_words);
+        let mut leaves: Vec<Node> = Vec::with_capacity(sorted.len());
+        let mut i = 0;
+        while i < sorted.len() {
+            leaves.push((sorted[i], leaf_hashes[i]));
+            i += 1;
         }
-        starts.push(known.len());
-        // The last fold leaves exactly the root, and nothing may be left over.
-        if supplied.next().is_some() || nodes.first().map(|n| n.1) != Some(*root) {
-            return None;
-        }
-
-        // Each query's image and path, in query order.
-        let mut openings = Openings {
-            leaf_words,
-            height,
-            images: vec![F64::ZERO; queries.len() * leaf_words],
-            paths: Vec::with_capacity(queries.len() * height),
-        };
-        for (q, image) in queries.iter().zip(openings.images.chunks_exact_mut(leaf_words)) {
-            // The query's row is the image's tail, after the zero prefix.
-            let slot = sorted.binary_search(q).ok()?;
-            image[leaf_words - row_words..].copy_from_slice(&self.rows[slot * row_words..][..row_words]);
-
-            // Its sibling at each level is a known node of that level.
-            for (lvl, bounds) in starts.windows(2).enumerate() {
-                let level = &known[bounds[0]..bounds[1]];
-                let pos = level.binary_search_by_key(&((q >> lvl) ^ 1), |&(j, _)| j).ok()?;
-                openings.paths.push(level[pos].1);
-            }
-        }
-        Some(openings)
+        let (known, starts) = rebuild(leaves, &self.sibling_hashes, height, root)?;
+        expand(&self.rows, &sorted, &known, &starts, queries, row_words, leaf_words)
     }
 }
 
@@ -693,9 +838,15 @@ impl Openings {
     /// Each query's row: its leaf image with the zero prefix dropped, the last `row_words` words.
     #[must_use]
     pub fn rows(&self, row_words: usize) -> Vec<Vec<F64>> {
-        (0..self.len())
-            .map(|i| self.image(i)[self.leaf_words - row_words..].to_vec())
-            .collect()
+        // An index loop rather than a mapping closure.
+        let n = self.len();
+        let mut rows = Vec::with_capacity(n);
+        let mut i = 0;
+        while i < n {
+            rows.push(self.image(i)[self.leaf_words - row_words..].to_vec());
+            i += 1;
+        }
+        rows
     }
 
     /// Query `i`'s siblings, lowest first.

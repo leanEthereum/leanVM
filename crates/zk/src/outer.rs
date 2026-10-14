@@ -305,9 +305,11 @@ impl Keys {
 /// The key commitment as its verifier holds it.
 ///
 /// Its root is a digest, or whatever a verifier holds it as.
+///
+/// It is a hiding commitment, so it has no anchor: an anchor's value would publish an evaluation of the keys.
 pub struct KeyCommitment<R> {
     /// The commitment to the key stack.
-    commitment: StackCommitment<R>,
+    commitment: StackCommitment<F192, R>,
 }
 
 impl<R: Copy> KeyCommitment<R> {
@@ -320,7 +322,7 @@ impl<R: Copy> KeyCommitment<R> {
         let config = Config::hiding(KEY_MU, log_inv_rate)?;
         let root = v.next_root()?;
         Ok(Self {
-            commitment: StackCommitment::new(root, KEY_MU, LANES, config),
+            commitment: StackCommitment::hiding(root, KEY_MU, LANES, config)?,
         })
     }
 

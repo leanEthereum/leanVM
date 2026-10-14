@@ -1,0 +1,182 @@
+{
+  "aeneas_version": "d119a474-dirty",
+  "charon_version": "0.1.281",
+  "crate": "primitives",
+  "functions": [
+    {
+      "def_id": 11,
+      "lean_name": "PortableSource.hash.compress_portable_loop0_loop0.body",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::compress_portable",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 120,
+        "end_line": 130
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": true },
+      "parent_lean_name": "PortableSource.hash.compress_portable"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PortableSource.hash.compress_portable_loop0_loop0",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::compress_portable",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 120,
+        "end_line": 130
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 0, 0 ], "is_body": false },
+      "parent_lean_name": "PortableSource.hash.compress_portable"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PortableSource.hash.compress_portable_loop0.body",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::compress_portable",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 119,
+        "end_line": 131
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PortableSource.hash.compress_portable"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PortableSource.hash.compress_portable_loop0",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::compress_portable",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 119,
+        "end_line": 131
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PortableSource.hash.compress_portable"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PortableSource.hash.compress_portable_loop1.body",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::compress_portable",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 132,
+        "end_line": 134
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 2, "pos": [ 1 ], "is_body": true },
+      "parent_lean_name": "PortableSource.hash.compress_portable"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PortableSource.hash.compress_portable_loop1",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::compress_portable",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 132,
+        "end_line": 134
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 2, "pos": [ 1 ], "is_body": false },
+      "parent_lean_name": "PortableSource.hash.compress_portable"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PortableSource.hash.compress_portable",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::compress_portable",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 110,
+        "end_line": 135
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    }
+  ],
+  "types": [],
+  "globals": [
+    {
+      "def_id": 16,
+      "lean_name": "PortableSource.hash.IV",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::IV",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 39,
+        "end_line": 48
+      },
+      "can_fail": false
+    },
+    {
+      "def_id": 17,
+      "lean_name": "PortableSource.hash.SIGMA",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::SIGMA",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 58,
+        "end_line": 69
+      },
+      "can_fail": false
+    },
+    {
+      "def_id": 18,
+      "lean_name": "PortableSource.hash.G_LANES",
+      "lean_file": "Primitives.lean",
+      "rust_name": "primitives::hash::G_LANES",
+      "is_local": true,
+      "source": {
+        "file": "crates/primitives/src/hash/mod.rs",
+        "begin_line": 72,
+        "end_line": 81
+      },
+      "can_fail": false
+    }
+  ],
+  "trait_decls": [],
+  "trait_impls": []
+}

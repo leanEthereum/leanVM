@@ -1,0 +1,74 @@
+diff --git a/Aeneas/Tactic/Step/Tests/Coin.lean b/Aeneas/Tactic/Step/Tests/Coin.lean
+index dc4e6ea3..a9fddc25 100644
+--- a/Aeneas/Tactic/Step/Tests/Coin.lean
++++ b/Aeneas/Tactic/Step/Tests/Coin.lean
+@@ -8,6 +8,8 @@ This file shows how to build coinductive predicates over `ITree`s, and how to re
+ the `step` tactic (see `#register_spec_info` below).
+ -/
+ 
++set_option backward.isDefEq.respectTransparency false
++
+ open Aeneas
+ open Std Result WP Data Coinductive Effect Lean.Order
+ 
+diff --git a/Aeneas/Tactic/Step/Tests/TupleDestruct.lean b/Aeneas/Tactic/Step/Tests/TupleDestruct.lean
+index 5536f668..e4cae9da 100644
+--- a/Aeneas/Tactic/Step/Tests/TupleDestruct.lean
++++ b/Aeneas/Tactic/Step/Tests/TupleDestruct.lean
+@@ -33,56 +33,6 @@ private def sixNats : Result (((Nat × Nat) × Nat) × ((Nat × Nat) × Nat)) :=
+ private theorem sixNats_spec : sixNats ⦃ ((a, b), c) ((d, e), f) => a = 3 ∧ b = 4 ∧ c = 5 ∧ d = 6 ∧ e = 7 ∧ f = 8⦄ := by
+   unfold sixNats; step*
+ 
+-/--
+-warning: Variable name `a` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `b` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `c` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `d` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `b` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `c` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `e` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `h` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+--/
+-#guard_msgs in
+ private def testTuples : Result Nat := do
+   let (a, b) ← twoNats
+   let (c, d) ← twoNats

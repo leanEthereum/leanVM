@@ -69,6 +69,12 @@ pub struct VerifierState<'a> {
 }
 
 impl<'a> VerifierState<'a> {
+    /// Copy the exact logical duplex state without changing the transcript.
+    #[must_use]
+    pub fn context(&self) -> crate::TranscriptContext<primitives::field::F64, [u8; 32]> {
+        self.sponge.context()
+    }
+
     /// A transcript for one session, its first message the instance, reading `proof`.
     ///
     /// Session and instance must be the prover's, or every challenge differs.

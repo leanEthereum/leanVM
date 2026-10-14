@@ -7,8 +7,8 @@
 
 use crate::merkle::{Hash, Openings, PrunedMerklePaths, sorted_unique};
 use crate::whir::sample_queries;
-use fiat_shamir::arith::{Arith, Verifier};
-use fiat_shamir::{TranscriptError, VerifierState};
+use fiat_shamir::arith::{Arith, PublicMle, Stage, Verifier};
+use fiat_shamir::{TranscriptContext, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 
 /// A verifier of the stacked opening: its commitments, its queries, and the rows they open.
@@ -22,7 +22,20 @@ pub trait OpeningVerifier: Verifier {
     /// A query's index.
     type Query;
 
-    /// Read the next commitment's root, bound into the transcript.
+    /// Copy the exact context without changing the transcript.
+    fn context(&mut self) -> TranscriptContext<Self::K, Self::Root>;
+
+    /// A zero word for canonical padding when a context is packed into a record frame.
+    fn zero_k(&mut self) -> Self::K;
+
+    /// Check two raw commitment roots are equal.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::whir::WhirError::CommitmentMismatch`] when the native roots differ.
+    fn ensure_root_eq(&mut self, actual: Self::Root, expected: Self::Root) -> Result<(), crate::whir::WhirError>;
+
+    /// The next commitment's root, bound into the transcript.
     ///
     /// # Errors
     ///
@@ -68,6 +81,22 @@ impl OpeningVerifier for VerifierState<'_> {
     type K = F64;
     type Query = usize;
 
+    fn context(&mut self) -> TranscriptContext<F64, Hash> {
+        Self::context(self)
+    }
+
+    fn zero_k(&mut self) -> F64 {
+        F64::ZERO
+    }
+
+    fn ensure_root_eq(&mut self, actual: Hash, expected: Hash) -> Result<(), crate::whir::WhirError> {
+        if actual == expected {
+            Ok(())
+        } else {
+            Err(crate::whir::WhirError::CommitmentMismatch)
+        }
+    }
+
     fn next_root(&mut self) -> Result<Hash, TranscriptError> {
         self.prover_message()
     }
@@ -84,8 +113,7 @@ impl OpeningVerifier for VerifierState<'_> {
         row_words: usize,
         leaf_words: usize,
     ) -> Result<Vec<Vec<F64>>, TranscriptError> {
-        let openings = authenticate(self, root, depth, queries, row_words, leaf_words)?;
-        Ok(openings.rows(row_words))
+        open_rows_native(self, root, depth, queries, row_words, leaf_words)
     }
 
     fn mul_k_add(&mut self, a: F192, k: F64, d: F192) -> F192 {
@@ -99,6 +127,19 @@ impl OpeningVerifier for VerifierState<'_> {
     fn query_point(&mut self, query: &usize) -> F192 {
         F192::new(*query as u64, 0, 0)
     }
+}
+
+/// The native [`OpeningVerifier::open_rows`]: authenticate the next hint's paths, then each opening's row.
+fn open_rows_native(
+    vs: &mut VerifierState<'_>,
+    root: &Hash,
+    depth: usize,
+    queries: &[usize],
+    row_words: usize,
+    leaf_words: usize,
+) -> Result<Vec<Vec<F64>>, TranscriptError> {
+    let openings = authenticate(vs, root, depth, queries, row_words, leaf_words)?;
+    Ok(openings.rows(row_words))
 }
 
 /// Read the next hint as Merkle paths and authenticate them against `root`: each query's opening, in query order.
@@ -176,7 +217,9 @@ impl Arith for Recording<'_> {
     fn frobenius2(&mut self, a: F192) -> F192 {
         self.vs.frobenius2(a)
     }
+}
 
+impl PublicMle for Recording<'_> {
     fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
         self.vs.public_mle(values, point)
     }
@@ -203,6 +246,14 @@ impl Verifier for Recording<'_> {
         self.vs.check_eof()
     }
 
+    fn begin_scope(&mut self, stage: Stage) {
+        self.vs.begin_scope(stage);
+    }
+
+    fn end_scope(&mut self) {
+        self.vs.end_scope();
+    }
+
     fn set_hidden(&mut self, hidden: bool) {
         self.vs.set_hidden(hidden);
     }
@@ -216,6 +267,18 @@ impl OpeningVerifier for Recording<'_> {
     type Root = Hash;
     type K = F64;
     type Query = usize;
+
+    fn context(&mut self) -> TranscriptContext<F64, Hash> {
+        self.vs.context()
+    }
+
+    fn zero_k(&mut self) -> F64 {
+        self.vs.zero_k()
+    }
+
+    fn ensure_root_eq(&mut self, actual: Hash, expected: Hash) -> Result<(), crate::whir::WhirError> {
+        self.vs.ensure_root_eq(actual, expected)
+    }
 
     fn next_root(&mut self) -> Result<Hash, TranscriptError> {
         self.vs.next_root()

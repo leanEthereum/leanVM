@@ -30,7 +30,7 @@ impl TreeProof {
     /// The header of a tree proof's bytes: the magic `LVMT`, then the tree protocol's version.
     ///
     /// The version is bumped by every change to what a tree proof says.
-    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 19);
+    const ENVELOPE: Envelope = Envelope::new(*b"LVMT", 20);
 
     /// The kind of node that made the proof.
     #[must_use]
@@ -114,5 +114,29 @@ impl TreeProof {
     /// Its statement's words as the limbs the recursion proof states.
     pub(super) fn limbs(&self) -> Vec<Limbs> {
         self.words.iter().map(|w| [w.c0, w.c1, w.c2, 0]).collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_and_foreign_tree_proofs_are_refused_before_the_body() {
+        let current = TreeProof::ENVELOPE.seal(&[]);
+        let expected = u16::from_le_bytes(current[4..6].try_into().unwrap());
+        for found in 0..=19 {
+            let bytes = Envelope::new(*b"LVMT", found).seal(&[0xff]);
+            assert_eq!(
+                TreeProof::from_bytes(&bytes),
+                Err(DecodeError::UnsupportedVersion { found, expected })
+            );
+        }
+        for magic in [*b"LVMP", *b"LVMZ"] {
+            assert_eq!(
+                TreeProof::from_bytes(&Envelope::new(magic, expected).seal(&[0xff])),
+                Err(DecodeError::Malformed)
+            );
+        }
     }
 }

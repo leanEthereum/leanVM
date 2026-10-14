@@ -63,14 +63,26 @@ impl Stratum {
     /// - The top `s` levels of a group's Merkle paths are then one complete subtree, hashed once by the verifier.
     pub fn batch(count: usize, depth: usize) -> Vec<Self> {
         let mut out = Vec::with_capacity(count);
-        for g in (0..usize::BITS as usize).rev().filter(|&g| count >> g & 1 == 1) {
-            let bits = g.min(depth);
-            out.extend((0..1usize << g).map(|j| Self {
-                bits,
-                index: j & ((1 << bits) - 1),
-            }));
+        let mut g = usize::BITS as usize;
+        while g > 0 {
+            g -= 1;
+            if count >> g & 1 == 1 {
+                Self::push_group(&mut out, g, g.min(depth));
+            }
         }
         out
+    }
+
+    /// A group of `2^g` queries: query `j` fixes its top `bits` bits to `j mod 2^bits`.
+    fn push_group(out: &mut Vec<Self>, g: usize, bits: usize) {
+        let mut j = 0;
+        while j < 1usize << g {
+            out.push(Self {
+                bits,
+                index: j & ((1 << bits) - 1),
+            });
+            j += 1;
+        }
     }
 }
 
@@ -87,22 +99,33 @@ pub(crate) fn sample_queries(ch: &mut impl Challenger, depth: usize, count: usiz
     let mut out = Vec::with_capacity(count);
     while out.len() < count {
         let v: F192 = ch.verifier_message();
-        for j in 0..per.min(count - out.len()) {
-            let off = j * depth;
-            let limbs = [v.c0, v.c1, v.c2];
-            let (li, sh) = (off / 64, off % 64);
-            let mut chunk = limbs[li] >> sh;
-            if sh + depth > 64 {
-                chunk |= limbs[li + 1] << (64 - sh);
-            }
-            out.push(chunk as usize & ((1 << depth) - 1));
-        }
+        let take = per.min(count - out.len());
+        push_chunks(&mut out, [v.c0, v.c1, v.c2], depth, take);
     }
-    for (x, s) in out.iter_mut().zip(Stratum::batch(count, depth)) {
+    let strata = Stratum::batch(count, depth);
+    let mut i = 0;
+    while i < out.len().min(strata.len()) {
+        let s = strata[i];
         let low = depth - s.bits;
-        *x = (*x & ((1 << low) - 1)) | s.index << low;
+        out[i] = (out[i] & ((1 << low) - 1)) | s.index << low;
+        i += 1;
     }
     out
+}
+
+/// Push the first `take` disjoint `depth`-bit chunks of the limbs, low bits first.
+fn push_chunks(out: &mut Vec<usize>, limbs: [u64; 3], depth: usize, take: usize) {
+    let mut j = 0;
+    while j < take {
+        let off = j * depth;
+        let (li, sh) = (off / 64, off % 64);
+        let mut chunk = limbs[li] >> sh;
+        if sh + depth > 64 {
+            chunk |= limbs[li + 1] << (64 - sh);
+        }
+        out.push(chunk as usize & ((1 << depth) - 1));
+        j += 1;
+    }
 }
 
 /// The padding of a hiding commitment's level-0 lanes, as both sides take its share off a folded row.
@@ -159,13 +182,16 @@ impl Padding {
         let bits = g1.len().next_power_of_two().trailing_zeros() as usize;
         let mut s = x;
         let mut w = Vec::with_capacity(bits);
-        for (b, &inverse) in inverses[..=m].iter().enumerate() {
+        // An index loop rather than an enumerating iterator.
+        let mut b = 0;
+        while b <= m {
             if b > 0 {
                 s = self.basis.next(ar, s, b - 1);
             }
             if b < bits {
-                w.push(ar.mul_const(s, F192::from(inverse)));
+                w.push(ar.mul_const(s, F192::from(inverses[b])));
             }
+            b += 1;
         }
         let w_m = ar.mul_const(s, F192::from(inverses[m]));
         let w_m = ar.add_const(w_m, F192::from(self.shift));
@@ -179,10 +205,7 @@ impl Padding {
             }
             g.truncate(half);
         }
-        match g.first() {
-            Some(&p) => ar.mul(w_m, p),
-            None => ar.zero(),
-        }
+        if g.is_empty() { ar.zero() } else { ar.mul(w_m, g[0]) }
     }
 }
 

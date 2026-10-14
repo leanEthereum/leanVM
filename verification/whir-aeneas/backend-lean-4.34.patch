@@ -1,0 +1,96 @@
+diff --git a/AeneasMeta/BvEnumToBitVec.lean b/AeneasMeta/BvEnumToBitVec.lean
+index c900236a..95bd571d 100644
+--- a/AeneasMeta/BvEnumToBitVec.lean
++++ b/AeneasMeta/BvEnumToBitVec.lean
+@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
+ -/
+ module
+ public meta import Lean.Elab.Deriving.Basic
+-public meta import Lean.Elab.Tactic.BVDecide.Frontend.Normalize.Enums
++public meta import Lean.Meta.Tactic.BVDecide.Normalize.Enums
+ public section
+ 
+ /-!
+@@ -46,7 +46,6 @@ module, turning the lazy per-use realisation into a single deterministic one.
+ namespace Aeneas
+ 
+ open Lean Meta Elab
+-open Lean.Elab.Tactic.BVDecide.Frontend.Normalize
+ 
+ /-- Marker class enabling `deriving BvEnumToBitVec` on an enum inductive.
+ 
+@@ -71,11 +70,11 @@ meta def realizeBvEnumToBitVec (declName : Name) : CoreM Unit := do
+       (parameter-free with only nullary constructors); \
+       `bv_decide` only synthesises `enumToBitVec` for such types."
+   enableRealizationsForConst declName
+-  let act : MetaM Unit := do
+-    discard <| getEnumToBitVecFor declName
+-    discard <| getEnumToBitVecLeFor declName
+-    discard <| getEqIffEnumToBitVecEqFor declName
+-  discard <| act.run' {} {}
++  for suffix in ["enumToBitVec", "enumToBitVec_le", "eq_iff_enumToBitVec_eq"] do
++    let name := Name.str declName suffix
++    executeReservedNameAction name
++    unless (← getEnv).containsOnBranch name do
++      throwError m!"Failed to realize enum conversion constant {name}"
+ 
+ /-- `#define_bv_decide_toBitVec T` eagerly realises `bv_decide`'s enum
+ conversion constants for the enum inductive `T` in the current module.
+diff --git a/AeneasMeta/Simp/Simp.lean b/AeneasMeta/Simp/Simp.lean
+index 493fa59c..6441c19d 100644
+--- a/AeneasMeta/Simp/Simp.lean
++++ b/AeneasMeta/Simp/Simp.lean
+@@ -118,7 +118,7 @@ where
+     let freshFVarIds ←
+       match result? with
+       | none => replaceMainGoal []; pure none
+-      | some (fvars, mvarId) => replaceMainGoal [mvarId]; pure fvars
++      | some (fvars, mvarId) => replaceMainGoal [mvarId]; pure (some fvars)
+     /- We need to filter the `fvarIdsToSimp` to remove those which have been replaced with fresh fvars -/
+     let fvars ← do
+       match freshFVarIds with
+@@ -126,8 +126,8 @@ where
+       | some freshFVarIds =>
+         withMainContext do
+         let ctx ← getLCtx
+-        let ldecls := ctx.foldl (fun set decl => set.insert decl.fvarId) Std.HashSet.emptyWithCapacity
+-        pure (fvarIdsToSimp.filter ldecls.contains ++ freshFVarIds)
++        let ldecls := ctx.foldl (fun (set : Std.HashSet FVarId) decl => set.insert decl.fvarId) Std.HashSet.emptyWithCapacity
++        pure (some (fvarIdsToSimp.filter ldecls.contains ++ freshFVarIds))
+     return (fvars, stats)
+ 
+ /- Call the simp tactic. -/
+diff --git a/Aeneas/Tactic/Simproc/ReduceZMod/ReduceZMod.lean b/Aeneas/Tactic/Simproc/ReduceZMod/ReduceZMod.lean
+index c8ec82cf..8807aab2 100644
+--- a/Aeneas/Tactic/Simproc/ReduceZMod/ReduceZMod.lean
++++ b/Aeneas/Tactic/Simproc/ReduceZMod/ReduceZMod.lean
+@@ -81,13 +81,7 @@ simproc reduceZModInv (@Inv.inv _ (ZMod.instInv _) _) := fun e => do
+ 
+ /-- A simproc to reduce powers in ZMod. -/
+ simproc reduceZModPow
+-  (@HPow.hPow _ Nat _
+-      (@instHPow _ Nat
+-        (@Monoid.toPow _
+-          (@MonoidWithZero.toMonoid _
+-            (@Semiring.toMonoidWithZero _
+-              (@CommSemiring.toSemiring _ (@CommRing.toCommSemiring _ (ZMod.commRing _)))))))
+-      _ _) := fun e => do
++  (((_ : ZMod _) ^ (_ : Nat))) := fun e => do
+   trace[ReduceZMod] "Visiting: {e}"
+   match e.consumeMData.getAppFnArgs with
+   | (``HPow.hPow, #[fieldTy, _, _, inst, value, pow]) =>
+diff --git a/Aeneas/Tactic/Solver/Arith/Lemmas.lean b/Aeneas/Tactic/Solver/Arith/Lemmas.lean
+index b918c1c1..c5431014 100644
+--- a/Aeneas/Tactic/Solver/Arith/Lemmas.lean
++++ b/Aeneas/Tactic/Solver/Arith/Lemmas.lean
+@@ -284,9 +284,7 @@ theorem ZMod.mul_inv_eq_int_gcd {n : ℕ} (a : ℤ) :
+     simp only [Nat.cast_inj]
+     rfl
+   else
+-    have hn : 0 < n := by cases n <;> simp_all only [AddLeftCancelMonoid.add_eq_zero, one_ne_zero,
+-      and_false, not_false_eq_true, lt_add_iff_pos_left, add_pos_iff,
+-      zero_lt_one, or_true, not_true_eq_false]
++    have hn : 0 < n := Nat.pos_of_ne_zero hn
+     rw [ZMod.mul_inv_eq_gcd]
+     rw [← Int.gcd_natCast_natCast]
+     have hnz : NeZero n := by simp [neZero_iff, *]

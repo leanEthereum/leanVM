@@ -37,12 +37,17 @@ impl NovelBasis {
     /// Panics if `log_n > 63`, past the degree of `K`.
     pub(crate) fn new(log_n: usize) -> Self {
         assert!(log_n < F64::DEGREE, "a basis vector of K per variable");
+        // Index loops rather than iterator adapters and closures.
         // Row 0 of the unnormalized table: s_0(v_j) = v_j.
-        let mut row: Vec<F64> = (0..=log_n).map(|j| F64(1 << j)).collect();
+        let mut row: Vec<F64> = Vec::with_capacity(log_n + 1);
+        let mut j = 0;
+        while j <= log_n {
+            row.push(F64(1 << j));
+            j += 1;
+        }
         let mut rows = Vec::with_capacity(log_n + 1);
         loop {
-            // The recurrence on every later basis vector: s_{k+1}(v_j) = s_k(v_j) (s_k(v_j) + s_k(v_k)).
-            let next: Vec<F64> = row[1..].iter().map(|&s| s * (s + row[0])).collect();
+            let next = next_row(&row);
             rows.push(row);
             if next.is_empty() {
                 break;
@@ -50,10 +55,22 @@ impl NovelBasis {
             row = next;
         }
         // Row k's first entry is s_k(v_k): dividing by it normalizes the row.
-        let normalizers: Vec<F64> = rows.iter().map(|row| row[0]).collect();
-        let inverses: Vec<F64> = normalizers.iter().map(|s| s.inv()).collect();
-        for (row, &inverse) in rows.iter_mut().zip(&inverses) {
-            row.iter_mut().for_each(|s| *s *= inverse);
+        let mut normalizers: Vec<F64> = Vec::with_capacity(rows.len());
+        let mut inverses: Vec<F64> = Vec::with_capacity(rows.len());
+        let mut k = 0;
+        while k < rows.len() {
+            normalizers.push(rows[k][0]);
+            k += 1;
+        }
+        k = 0;
+        while k < normalizers.len() {
+            inverses.push(normalizers[k].inv());
+            k += 1;
+        }
+        k = 0;
+        while k < rows.len().min(inverses.len()) {
+            scale(&mut rows[k], inverses[k]);
+            k += 1;
         }
         Self {
             rows,
@@ -87,11 +104,13 @@ impl NovelBasis {
     /// `s'_k(x)` for every `k < out.len()`, by the recurrence from `s_0(x) = x`.
     pub(crate) fn normalized_at(&self, x: F64, out: &mut [F64]) {
         let mut s = x;
-        for (k, o) in out.iter_mut().enumerate() {
+        let mut k = 0;
+        while k < out.len() {
             if k > 0 {
                 s *= s + self.normalizers[k - 1];
             }
-            *o = s * self.inverses[k];
+            out[k] = s * self.inverses[k];
+            k += 1;
         }
     }
 
@@ -101,6 +120,29 @@ impl NovelBasis {
     pub(crate) fn next<A: Arith>(&self, a: &mut A, s: A::E, k: usize) -> A::E {
         let scaled = a.mul_const(s, F192::from(self.normalizers[k]));
         a.mul_add(s, s, scaled)
+    }
+}
+
+/// The recurrence on every later basis vector, `s_{k+1}(v_j) = s_k(v_j) (s_k(v_j) + s_k(v_k))`, from row `k`.
+///
+/// Row `k` holds `s_k(v_j)` for `j = k..`, so its first entry is `s_k(v_k)` and the next row is one shorter.
+fn next_row(row: &[F64]) -> Vec<F64> {
+    let mut next = Vec::with_capacity(row.len());
+    let mut j = 1;
+    while j < row.len() {
+        let s = row[j];
+        next.push(s * (s + row[0]));
+        j += 1;
+    }
+    next
+}
+
+/// Multiply every entry of `row` by `c`.
+fn scale(row: &mut [F64], c: F64) {
+    let mut j = 0;
+    while j < row.len() {
+        row[j] *= c;
+        j += 1;
     }
 }
 

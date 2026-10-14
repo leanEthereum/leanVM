@@ -1,0 +1,32 @@
+diff --git a/charon/src/bin/charon-driver/translate/translate_crate.rs b/charon/src/bin/charon-driver/translate/translate_crate.rs
+index e15fceff6..26a36b171 100644
+--- a/charon/src/bin/charon-driver/translate/translate_crate.rs
++++ b/charon/src/bin/charon-driver/translate/translate_crate.rs
+@@ -943,6 +943,27 @@ impl<'tcx, 'ctx> ItemTransCtx<'tcx, 'ctx> {
+                 builtin,
+             });
+         }
++        if builtin == Some(BuiltinAdt::Box) && self.monomorphize() {
++            let item_src = TransItemSource::polymorphic(&item.def_id, kind);
++            let id = if enqueue {
++                self.register_and_enqueue(span, item_src)
++            } else {
++                self.register_no_enqueue(span, &item_src)
++            };
++            let generics =
++                self.translate_generic_args(span, &item.generic_args, &item.trait_proofs)?;
++            if !generics.regions.is_empty()
++                || generics.types.len() != 2
++                || !generics.const_generics.is_empty()
++            {
++                raise_error!(self, span, "unexpected builtin Box monomorphization shape");
++            }
++            return Ok(TypeDeclRef {
++                id,
++                generics: Box::new(generics),
++                builtin,
++            });
++        }
+         let item_ref: DeclRef<ItemId> =
+             self.translate_item_maybe_enqueue(span, item, kind, enqueue)?;
+         assert!(item_ref.trait_ref.is_none());

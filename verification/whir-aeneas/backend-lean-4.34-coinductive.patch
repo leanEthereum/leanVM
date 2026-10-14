@@ -1,0 +1,137 @@
+diff --git a/Aeneas/Data/Coinductive/CoInd.lean b/Aeneas/Data/Coinductive/CoInd.lean
+index 73d8af22..162f4313 100644
+--- a/Aeneas/Data/Coinductive/CoInd.lean
++++ b/Aeneas/Data/Coinductive/CoInd.lean
+@@ -7,6 +7,8 @@ namespace Aeneas.Data.Coinductive
+ 
+ @[expose] public section
+ 
++set_option backward.isDefEq.respectTransparency false
++
+ /-!
+ # Coinductive Types via Polynomial Functors
+ 
+diff --git a/Aeneas/Data/Coinductive/ITree.lean b/Aeneas/Data/Coinductive/ITree.lean
+index 9ee4e5e2..3e66b241 100644
+--- a/Aeneas/Data/Coinductive/ITree.lean
++++ b/Aeneas/Data/Coinductive/ITree.lean
+@@ -8,6 +8,8 @@ public import Aeneas.Data.Coinductive.Effect
+ 
+ @[expose] public section
+ 
++set_option backward.isDefEq.respectTransparency false
++
+ namespace Aeneas.Data.Coinductive
+ 
+ open Lean.Order
+diff --git a/Aeneas/Data/Coinductive/ITreeWP/FunctionalWP.lean b/Aeneas/Data/Coinductive/ITreeWP/FunctionalWP.lean
+index 02b4b385..333e3007 100644
+--- a/Aeneas/Data/Coinductive/ITreeWP/FunctionalWP.lean
++++ b/Aeneas/Data/Coinductive/ITreeWP/FunctionalWP.lean
+@@ -1,7 +1,7 @@
+ module
+ public import Aeneas.Data.Coinductive.ITreeWP.EffectWP
+ public import Aeneas.Data.Coinductive.ITree
+-import Mathlib.Order.FixedPoints
++public import Mathlib.Order.FixedPoints
+ 
+ public section
+ 
+@@ -80,7 +80,7 @@ theorem FunctionalWP.mono [θ.Monotonic]
+ lattice of ITree predicates. By packaging it this way, we can leverage Mathlib's generic
+ fixed-point library (`OrderHom.lfp`, `OrderHom.gfp`, Knaster–Tarski) to define `DWP` and
+ `DWLP` and obtain their (co)induction principles for free. -/
+-private def FunctionalWP.hom (allowDivergence : Prop) (θ : EffectWP E) [θ.Monotonic] (Q : θ.Post α) :
++@[expose] def FunctionalWP.hom (allowDivergence : Prop) (θ : EffectWP E) [θ.Monotonic] (Q : θ.Post α) :
+     ITreePred θ α →o ITreePred θ α :=
+   ⟨FunctionalWP allowDivergence θ Q, fun _ _ hX _ _ => FunctionalWP.mono id (fun _ _ => id) hX⟩
+ 
+diff --git a/Aeneas/Data/Coinductive/ITreeWP/DWP.lean b/Aeneas/Data/Coinductive/ITreeWP/DWP.lean
+index 822eceeb..fe6920d4 100644
+--- a/Aeneas/Data/Coinductive/ITreeWP/DWP.lean
++++ b/Aeneas/Data/Coinductive/ITreeWP/DWP.lean
+@@ -3,6 +3,8 @@ public import Aeneas.Data.Coinductive.ITreeWP.FunctionalWP
+ import all Aeneas.Data.Coinductive.ITreeWP.FunctionalWP
+ import all Init.Internal.Order.Basic
+ 
++set_option backward.isDefEq.respectTransparency false
++
+ /-!
+ # Demonic Weakest Precondition
+ 
+@@ -28,9 +30,9 @@ universe u u' v w
+ variable {E : Effect.{v}} {α : Type u} {β : Type u'} {θ : EffectWP.{w, v} E}
+ variable [θ.Monotonic]
+ 
+-local infix:50 " ≤ " => entails
++local infix:50 (priority := high) " ≤ " => entails
+ 
+-def DWP (θ : EffectWP E) [θ.Monotonic] (m : ITree E α) (Q : θ.Post α) : θ.Pre :=
++@[expose] def DWP (θ : EffectWP E) [θ.Monotonic] (m : ITree E α) (Q : θ.Post α) : θ.Pre :=
+   (FunctionalWP.hom False θ Q).lfp m
+ 
+ /-- Unfolding of `DWP` into its impredicative definition. -/
+diff --git a/Aeneas/Data/Coinductive/ITreeWP/DWLP.lean b/Aeneas/Data/Coinductive/ITreeWP/DWLP.lean
+index 5f79903b..c5800ea5 100644
+--- a/Aeneas/Data/Coinductive/ITreeWP/DWLP.lean
++++ b/Aeneas/Data/Coinductive/ITreeWP/DWLP.lean
+@@ -3,6 +3,8 @@ public import Aeneas.Data.Coinductive.ITreeWP.FunctionalWP
+ import all Aeneas.Data.Coinductive.ITreeWP.FunctionalWP
+ import all Init.Internal.Order.Basic
+ 
++set_option backward.isDefEq.respectTransparency false
++
+ /-!
+ # Demonic Weakest Liberal Precondition
+ 
+@@ -30,9 +32,9 @@ universe u u' v w
+ variable {E : Effect.{v}} {α : Type u} {β : Type u'} {θ : EffectWP.{w, v} E}
+ variable [θ.Monotonic]
+ 
+-local infix:50 " ≤ " => entails
++local infix:50 (priority := high) " ≤ " => entails
+ 
+-def DWLP (θ : EffectWP E) [θ.Monotonic] (m : ITree E α) (Q : θ.Post α) : θ.Pre :=
++@[expose] def DWLP (θ : EffectWP E) [θ.Monotonic] (m : ITree E α) (Q : θ.Post α) : θ.Pre :=
+   (FunctionalWP.hom True θ Q).gfp m
+ 
+ /-- Unfolding of `DWLP` into its impredicative definition. -/
+diff --git a/Aeneas/Std/Primitives.lean b/Aeneas/Std/Primitives.lean
+index 926d7325..1147ddd6 100644
+--- a/Aeneas/Std/Primitives.lean
++++ b/Aeneas/Std/Primitives.lean
+@@ -7,6 +7,8 @@ public import Aeneas.Data.Coinductive.ITree
+ public import Aeneas.Data.Coinductive.Effect
+ public section
+ 
++set_option backward.isDefEq.respectTransparency false
++
+ namespace Aeneas
+ 
+ namespace Std
+diff --git a/Aeneas/Std/WP.lean b/Aeneas/Std/WP.lean
+index d54587db..ea182fcd 100644
+--- a/Aeneas/Std/WP.lean
++++ b/Aeneas/Std/WP.lean
+@@ -12,16 +12,18 @@ public import Aeneas.Data.Coinductive.ITreeWP
+ import all Init.Internal.Order.Basic
+ public section
+ 
++set_option backward.isDefEq.respectTransparency false
++
+ namespace Aeneas.Std.WP
+ 
+ open Std Result
+ open Aeneas.Data.Coinductive
+ open Lean.Order
+ 
+-@[expose] def Post α := (α -> Prop)
+-@[expose] def Pre := Prop
++abbrev Post α := (α -> Prop)
++abbrev Pre := Prop
+ 
+-@[expose] def Wp α := Post α → Pre
++abbrev Wp α := Post α → Pre
+ 
+ @[expose] def wp_return (x:α) : Wp α := fun p => p x
+ 

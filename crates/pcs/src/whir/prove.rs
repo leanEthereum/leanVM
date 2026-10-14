@@ -83,7 +83,7 @@ impl LevelQueries {
 /// # Transcript
 ///
 /// Each level's Merkle openings travel as one hint, which is not absorbed.
-/// The caller has already transmitted the L0 root.
+/// The typed caller has already bound the complete immutable L0 record and statement, or a hiding commitment's root.
 ///
 /// # Panics
 ///
@@ -119,10 +119,9 @@ pub(crate) fn prove(
         "the commitment's padding is the opening's"
     );
 
-    // Invariant: nothing is absorbed on entry, since the state already determines the commitment and the target.
-    // - The commitment was bound when its root was transmitted.
-    // - The target is `sum_i lambda^i * claim_i`, its claim values bound when read and `lambda` drawn from the state.
-    // So a caller must transmit its root before opening against it: that makes the fold challenges depend on it.
+    // The typed stack wrapper binds the whole immutable record, or a hiding commitment's root, and the public statement
+    // before drawing opening challenges. This private kernel does not bind either again.
+    // A plain opening's weight includes the commitment-time anchor, restricted to the occupied lanes.
 
     // Phase 1: the lane fold, `initial_k` rounds over the witness's top variables.
     // The first message answers `target`; each round samples its challenge, then sends the next message.

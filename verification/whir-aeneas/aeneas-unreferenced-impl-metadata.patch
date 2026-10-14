@@ -1,0 +1,78 @@
+diff --git a/src/PrePasses.ml b/src/PrePasses.ml
+index 4fc9b9f4..1197f4b2 100644
+--- a/src/PrePasses.ml
++++ b/src/PrePasses.ml
+@@ -157,33 +157,52 @@ let update_array_default (crate : crate) : crate =
+   let impl_pat = NameMatcher.parse_pattern "core::default::Default" in
+   let match_name = ExtractName.match_name crate in
+ 
++  (* Monomorphization may retain unused, methodless generic impl metadata while
++     omitting its trait declaration. Inspect all semantic trait-impl references,
++     including those in signatures, globals, types and other impls. *)
++  let referenced_impls = ref TraitImplId.Set.empty in
++  let reference_visitor =
++    object
++      inherit [_] iter_crate as super
++
++      method! visit_TraitImpl env impl_ref =
++        TraitImplId.Set.add_in_place impl_ref.id referenced_impls;
++        super#visit_TraitImpl env impl_ref
++    end
++  in
++  reference_visitor#visit_crate () crate;
++
+   (* Helper: check whether a trait impl matches the [Default<[T; N]>] pattern,
+      and if so return its array length [N]. We ignore the case where the length
+      is equal to 0, because in this case rustc uses a different impl which
+      doesn't require that the type of the elements also has a default
+      implementation. *)
+   let matches_default_array (impl : trait_impl) : constant_expr option =
+-    let trait_decl =
+-      [%silent_unwrap_opt_span] (Some impl.item_meta.span)
+-        (TraitDeclId.Map.find_opt impl.impl_trait.id crate.trait_decls)
+-    in
+-    if not (match_name impl_pat trait_decl.item_meta.name) then None
+-    else
+-      match impl.impl_trait.generics with
+-      | {
+-       regions = [];
+-       types =
+-         [
+-           TArray
+-             ( TVar (Free _),
+-               ({ kind = CInteger (UnsignedInteger (Usize, nv)); _ } as n),
+-               _ );
+-         ];
+-       const_generics = [];
+-       trait_refs = _;
+-      }
+-        when Z.to_int nv != 0 -> Some n
+-      | _ -> None
++    match TraitDeclId.Map.find_opt impl.impl_trait.id crate.trait_decls with
++    | None ->
++        [%cassert] impl.item_meta.span
++          (TraitMethodId.Map.is_empty impl.methods
++          && not (TraitImplId.Set.mem impl.def_id !referenced_impls))
++          "Missing trait declaration for a referenced or nonempty impl";
++        None
++    | Some trait_decl ->
++        if not (match_name impl_pat trait_decl.item_meta.name) then None
++        else
++          match impl.impl_trait.generics with
++          | {
++           regions = [];
++           types =
++             [
++               TArray
++                 ( TVar (Free _),
++                   ({ kind = CInteger (UnsignedInteger (Usize, nv)); _ } as n),
++                   _ );
++             ];
++           const_generics = [];
++           trait_refs = _;
++          }
++            when Z.to_int nv != 0 -> Some n
++          | _ -> None
+   in
+ 
+   (* First pass: collect all the trait impls matching [Default<[T; N]>] and

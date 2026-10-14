@@ -1,0 +1,97 @@
+diff --git a/charon/src/bin/charon-driver/translate/translate_crate.rs b/charon/src/bin/charon-driver/translate/translate_crate.rs
+index e15fceff6..6ac1390f0 100644
+--- a/charon/src/bin/charon-driver/translate/translate_crate.rs
++++ b/charon/src/bin/charon-driver/translate/translate_crate.rs
+@@ -282,9 +282,11 @@ impl<'tcx> TranslateCtx<'tcx> {
+     /// Register the std functions needed for `builtins_to_function_calls`.
+     fn register_builtin_functions(&mut self) -> Result<(), Error> {
+         if self.options.ops_to_function_calls {
+-            self.register_poly_function_by_path("array::as_slice")?;
+-            self.register_poly_function_by_path("array::as_mut_slice")?;
+-            self.register_poly_function_by_path("core::array::repeat")?;
++            self.synthesized_array_builtins = [
++                Some(self.register_poly_function_by_path("array::as_slice")?),
++                Some(self.register_poly_function_by_path("array::as_mut_slice")?),
++                Some(self.register_poly_function_by_path("core::array::repeat")?),
++            ];
+         }
+         if self.options.index_to_function_calls {
+             let tcx = self.tcx;
+@@ -737,8 +739,17 @@ impl<'tcx, 'ctx> ItemTransCtx<'tcx, 'ctx> {
+         //   2. Otherwise, if the current `item_trans_ctx` is under a `trait decl`
+         //      or a `vtable`, we construct a `poly` item.
+         //   3. In all other cases, we construct a `mono` item.
+-        let mono =
+-            self.monomorphize() && (kind.is_for_trait() || !self.item_src.kind.is_for_trait());
++        let synthesized_array_builtin = self.t_ctx.id_map.get(&self.item_src).is_some_and(|id| {
++            matches!(id, ItemId::Fun(id)
++                if self.t_ctx.synthesized_array_builtins.contains(&Some(*id)))
++        });
++        // The three preserved generic array helpers must reference the same generic trait
++        // declarations as their monomorphic callers, not invisible poly-in-mono duplicates.
++        let mono = self.monomorphize()
++            && (kind.is_for_trait() || !self.item_src.kind.is_for_trait())
++            || (self.t_ctx.options.monomorphize_with_hax
++                && synthesized_array_builtin
++                && matches!(kind, TransItemSourceKind::TraitDecl));
+         let item_src = TransItemSource::from_item(&item, kind, mono);
+         if enqueue {
+             self.register_and_enqueue(span, item_src)
+@@ -1160,6 +1171,7 @@ pub fn translate<'tcx>(
+             ..TranslatedCrate::default()
+         },
+         method_status: Default::default(),
++        synthesized_array_builtins: Default::default(),
+         assoc_item_id_map: Default::default(),
+         id_map: Default::default(),
+         reverse_id_map: Default::default(),
+diff --git a/charon/src/bin/charon-driver/translate/translate_ctx.rs b/charon/src/bin/charon-driver/translate/translate_ctx.rs
+index 7584fe155..d0b908516 100644
+--- a/charon/src/bin/charon-driver/translate/translate_ctx.rs
++++ b/charon/src/bin/charon-driver/translate/translate_ctx.rs
+@@ -37,6 +37,8 @@ pub struct TranslateCtx<'tcx> {
+     pub options: TranslateOptions,
+     /// The translated data.
+     pub translated: TranslatedCrate,
++    /// Generic standard-library declarations used by the late array-operation synthesis pass.
++    pub synthesized_array_builtins: [Option<FunDeclId>; 3],
+ 
+     /// Record data for each method whether it is ever used (called or implemented) and the
+     /// `FunDeclId`s of the implementations. We use this to lazily translate methods, so that we
+diff --git a/charon/src/bin/charon-driver/translate/translate_meta.rs b/charon/src/bin/charon-driver/translate/translate_meta.rs
+index 486643a22..e34e4ec72 100644
+--- a/charon/src/bin/charon-driver/translate/translate_meta.rs
++++ b/charon/src/bin/charon-driver/translate/translate_meta.rs
+@@ -976,7 +976,12 @@ impl<'tcx> TranslateCtx<'tcx> {
+         let opacity = if attr_info.attributes.iter().any(|attr| attr.is_exclude()) {
+             ItemOpacity::Invisible.max(name_opacity)
+         } else if self.is_poly_in_mono(item_src) {
+-            if matches!(item_src.kind, TransItemSourceKind::TraitImpl(..)) {
++            let synthesized_array_builtin = self.id_map.get(item_src).is_some_and(|id| {
++                matches!(id, ItemId::Fun(id) if self.synthesized_array_builtins.contains(&Some(*id)))
++            });
++            if matches!(item_src.kind, TransItemSourceKind::TraitImpl(..))
++                || synthesized_array_builtin
++            {
+                 ItemOpacity::Opaque.max(name_opacity)
+             } else {
+                 ItemOpacity::Invisible.max(name_opacity)
+diff --git a/charon/src/transform/simplify_output/builtins_to_function_calls.rs b/charon/src/transform/simplify_output/builtins_to_function_calls.rs
+index 04aa270b5..4c24edb65 100644
+--- a/charon/src/transform/simplify_output/builtins_to_function_calls.rs
++++ b/charon/src/transform/simplify_output/builtins_to_function_calls.rs
+@@ -12,9 +12,11 @@ use itertools::Itertools;
+ use crate::transform::ctx::LlbcPass;
+ 
+ fn mk_fn_ptr(ctx: &TransformCtx, id: ItemId, mut generics: GenericArgs) -> FnPtr {
+-    if ctx.options.add_destruct_bounds
+-        && let Some(item) = ctx.translated.get_item(id)
+-    {
++    let item = ctx
++        .translated
++        .get_item(id)
++        .expect("array/index synthesis requires a translated function declaration");
++    if ctx.options.add_destruct_bounds {
+         // Charon adds `Destruct` as the last trait clause of every generic item.
+         let trait_decl_ref = item
+             .generic_params()

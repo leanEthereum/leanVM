@@ -1,0 +1,25 @@
+diff --git a/src/extract/Extract.ml b/src/extract/Extract.ml
+index 47dc0523..4735e2b1 100644
+--- a/src/extract/Extract.ml
++++ b/src/extract/Extract.ml
+@@ -2705,6 +2705,7 @@ let extract_trait_decl_register_parent_clause_names (ctx : extraction_ctx)
+   let clause_names =
+     match builtin_info with
+     | None ->
++        let used = ref StringSet.empty in
+         List.map
+           (fun (c : trait_param) ->
+             let name = ctx_compute_trait_parent_clause_name ctx trait_decl c in
+@@ -2713,6 +2714,12 @@ let extract_trait_decl_register_parent_clause_names (ctx : extraction_ctx)
+               if !record_fields_short_names then name
+               else ctx_compute_trait_decl_name ctx trait_decl ^ name
+             in
++            let name =
++              basename_to_unique_aux
++                (fun name -> StringSet.mem name !used)
++                name_append_index name
++            in
++            used := StringSet.add name !used;
+             (c.clause_id, name))
+           trait_decl.parent_clauses
+     | Some info ->

@@ -1,0 +1,42 @@
+diff --git a/Aeneas/Std/SliceDef.lean b/Aeneas/Std/SliceDef.lean
+index 81569094..a2fe9044 100644
+--- a/Aeneas/Std/SliceDef.lean
++++ b/Aeneas/Std/SliceDef.lean
+@@ -41,13 +41,6 @@ theorem Slice.from_val {α} (l : List α) (h : l.length ≤ Usize.max)
+   : (Slice.from l h).val = l := by
+   simp [Slice.from, Slice.val, ListN.from_to_inverse]
+ 
+-@[simp, simp_lists_safe, grind =, agrind =]
+-theorem Slice.val_from {α} (s : Slice α) h
+-  : Slice.from s.val h = s := by
+-  cases s
+-  simp [val, Slice.from] at *
+-  simp [ListN_length]
+-  apply ListN.to_from_inverse
+ 
+ theorem Slice.eq_iff {α} (s0 s1 : Slice α) : s0 = s1 ↔ s0.val = s1.val := by
+   constructor
+@@ -66,4 +59,10 @@ theorem Slice.eq_iff {α} (s0 s1 : Slice α) : s0 = s1 ↔ s0.val = s1.val := by
+ theorem Slice.ext {α} (s0 s1 : Slice α) (h : s0.val = s1.val) : s0 = s1 :=
+   (Slice.eq_iff s0 s1).mpr h
+ 
++@[simp, simp_lists_safe, grind =, agrind =]
++theorem Slice.val_from {α} (s : Slice α) h
++  : Slice.from s.val h = s := by
++  apply Slice.ext
++  exact Slice.from_val s.val h
++
+ end Aeneas.Std
+diff --git a/Aeneas/Std/Slice.lean b/Aeneas/Std/Slice.lean
+index b3cb9f36..25333587 100644
+--- a/Aeneas/Std/Slice.lean
++++ b/Aeneas/Std/Slice.lean
+@@ -701,7 +701,7 @@ def core.slice.index.SliceIndexRangeFromUsizeSlice (T : Type) :
+ /-- Small helper (this function doesn't model a specific Rust function) -/
+ @[expose] def Slice.clone {T : Type} (clone : T → Result T) (s : Slice T) : Result (Slice T) := do
+   let s' ← List.clone clone s.val
+-  ok (.from s' (by simp))
++  ok (.from s'.val (by rw [s'.property]; exact s.property))
+ 
+ theorem Slice.clone_length {T : Type} {clone : T → Result T} {s s' : Slice T} (h : Slice.clone clone s = ok s') :
+   s'.length = s.length := by

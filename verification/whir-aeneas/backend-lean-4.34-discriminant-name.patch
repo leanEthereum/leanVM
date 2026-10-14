@@ -1,0 +1,18 @@
+diff --git a/Aeneas/Data/Discriminant.lean b/Aeneas/Data/Discriminant.lean
+--- a/Aeneas/Data/Discriminant.lean
++++ b/Aeneas/Data/Discriminant.lean
+@@ -127,10 +127,12 @@
+   let defStx ← `(@[expose] public def $(mkIdent auxFunName):ident
+     $binders:bracketedBinder* : $ty := $body:term)
+ 
+-  -- Generate the syntax for the instance
++  -- Generate the syntax for the instance, named after the inductive so that two crates
++  -- extracting the same Rust enum into different namespaces do not collide
+   let binders := binders.extract 0 indVal.numParams
+   let args := header.argNames.map mkIdent
+-  let instStx ← `(@[expose] public instance $binders:bracketedBinder* :
++  let instName := mkIdent (Name.mkStr declName "instDiscriminant")
++  let instStx ← `(@[expose] public instance $instName:ident $binders:bracketedBinder* :
+       Aeneas.Std.Discriminant ($header.targetType) ($ty) where
+       read_discriminant := @$(mkIdent auxFunName):ident $args*)
+ 

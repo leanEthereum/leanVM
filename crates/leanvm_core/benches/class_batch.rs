@@ -159,8 +159,7 @@ impl ClassBatch {
 
         let mut ps = ProverState::new(&SessionId::new(b"flock-class-batch"), &0u64);
         let t = Instant::now();
-        let committed = CommittedStack::new(as_field(&witness.z), self.mu, self.config.clone());
-        ps.prover_message(&committed.root());
+        let committed = CommittedStack::new(&mut ps, as_field(&witness.z), self.mu, self.config.clone());
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
@@ -197,7 +196,8 @@ impl ClassBatch {
     fn verify(&self, proof: &ProofTranscript) {
         let block = self.circuit.block();
         let mut vs = VerifierState::new(&SessionId::new(b"flock-class-batch"), &0u64, proof);
-        let root: [u8; 32] = vs.prover_message().expect("commitment root");
+        let commitment = StackCommitment::receive(&mut vs, self.mu, 1 << INITIAL_FOLDING_FACTOR, self.config.clone())
+            .expect("immutable anchored commitment");
         let replay = reduction::verify(&[(block.shape(), self.n_log)], &mut vs)
             .expect("the reduction verifies")
             .remove(0);
@@ -207,7 +207,6 @@ impl ClassBatch {
             qflock_vars: self.mu,
             claims: vec![replay.claim],
         };
-        let commitment = StackCommitment::new(root, self.mu, 1 << INITIAL_FOLDING_FACTOR, self.config.clone());
         let rings = [ring];
         commitment
             .verify(
