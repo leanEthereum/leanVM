@@ -914,25 +914,24 @@ def verify_merkle_path(leaf_0, leaf_1, direction_bits, depth: Const):
 
 
 @inline
-def hash_cap_node(cap, index):
-    children = cap * index ** 4
+def hash_cap_node(cap, node: Const):
+    # Node k sits at cells 2k, 2k+1, so its children are cells 4k .. 4k+3.
     parent = StackBuf(SHA3_STATE)
-    sha3([children[1], children[GEN]], [children[GEN ** 2], children[GEN ** 3]], parent)
-    cap[index * index] = parent[0]
-    cap[GEN * index * index] = parent[1]
+    sha3([cap[GEN ** (4 * node)], cap[GEN ** (4 * node + 1)]], [cap[GEN ** (4 * node + 2)], cap[GEN ** (4 * node + 3)]], parent)
+    cap[GEN ** (2 * node)] = parent[0]
+    cap[GEN ** (2 * node + 1)] = parent[1]
     return
 
 
 def verify_merkle_cap(cap, flags, depth: Const):
+    # Unrolled over the cap's nodes, so every cap and flag address is an immediate.
     if depth != 0:
-        hash_cap_node(cap, GEN)
+        hash_cap_node(cap, 1)
         flags[GEN] = 1
-        for parent in mul_range(GEN, GEN ** (2 ** (depth - 1))):
-            for side in unroll(0, 2):
-                child = parent * parent * GEN ** side
-                if flags[child] != 0:
-                    flags[parent] = 1  # every active node forces its parent to be hashed
-                    hash_cap_node(cap, child)
+        for child in unroll(2, 2 ** depth):
+            if flags[GEN ** child] != 0:
+                flags[GEN ** (child // 2)] = 1  # every active node forces its parent to be hashed
+                hash_cap_node(cap, child)
     return cap[GEN ** 2], cap[GEN ** 3]
 
 
