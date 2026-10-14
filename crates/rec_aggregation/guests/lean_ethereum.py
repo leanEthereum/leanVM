@@ -1249,22 +1249,29 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
     #     1 + c_t * (1 + chain_t * inv_t) == (1 + c_t) + (c_t * inv_t) * chain_t
     # a coordinate's two coefficients depend on the challenge and the baked
     # vanishing inverse alone, so they hoist out of the query loop (one row a level,
-    # fold coords then tail coords) and each query is one multiply-add a
-    # coordinate.
-    basis_a = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
-    basis_b = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
+    # fold coords then tail coords). Factoring b_t = c_t * inv_t out of every
+    # coordinate leaves (a_t / b_t) + chain_t per query, so a query is one add and
+    # one multiply a coordinate, and the level's product of the b_t scales its sum
+    # once. A zero challenge makes b_t zero and the division unsatisfiable, which
+    # rejects rather than accepts.
+    basis_d = HeapBuf(GEN ** (n_levels * LIG_LOG_MSG_COLS_CAP))
+    level_scale = HeapBuf(GEN ** n_levels)
     for lvl in unroll(0, n_levels):
         ml = m_idx * LIG_MAX_LEVELS + lvl
         prefix_len = LIG_RESIDUAL_PREFIX_LEN[ml]
         vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
+        scale = level_betas[GEN ** lvl]
         for t in unroll(0, prefix_len):
             fold_c = fold_challenges[GEN ** (LIG_RESIDUAL_FOLD_OFF[ml] + t)]
-            basis_a[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = 1 + fold_c
-            basis_b[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = fold_c * LIG_VANISH_INVS[vanish + t]
+            coef_b = fold_c * LIG_VANISH_INVS[vanish + t]
+            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + t)] = (1 + fold_c) / coef_b
+            scale *= coef_b
         for j in unroll(0, yr_log):
             tail_c = tail_challenges[GEN ** j]
-            basis_a[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = 1 + tail_c
-            basis_b[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = tail_c * LIG_VANISH_INVS[vanish + prefix_len + j]
+            coef_b = tail_c * LIG_VANISH_INVS[vanish + prefix_len + j]
+            basis_d[GEN ** (lvl * LIG_LOG_MSG_COLS_CAP + prefix_len + j)] = (1 + tail_c) / coef_b
+            scale *= coef_b
+        level_scale[GEN ** lvl] = scale
     inner_chain = HeapBuf(GEN ** (n_levels + 1))
     inner_chain[GEN ** 0] = 0
     for lvl in unroll(0, n_levels):
@@ -1279,14 +1286,14 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
             basis_row = lvl * LIG_LOG_MSG_COLS_CAP
             max_q = LIG_MAX_QUERIES[m_idx]
             basis_chain = query_positions[GEN ** LIG_POSITIONS_OFF[ml] * xr]
-            prefix_eq = basis_a[GEN ** basis_row] + basis_b[GEN ** basis_row] * basis_chain
+            prefix_eq = basis_d[GEN ** basis_row] + basis_chain
             for t in unroll(1, LIG_LOG_MSG_COLS[ml]):
                 # subspace-vanishing recurrence for the novel-basis point
                 basis_chain *= (basis_chain + LIG_VANISH_VALS[vanish + t - 1])
-                prefix_eq *= basis_a[GEN ** (basis_row + t)] + basis_b[GEN ** (basis_row + t)] * basis_chain
+                prefix_eq *= basis_d[GEN ** (basis_row + t)] + basis_chain
             residual_chain[xr * GEN] = residual_chain[xr] + query_weights[GEN ** (lvl * max_q)* xr] * prefix_eq
-        # accumulate beta_lvl * (per-level residual sum) into the grand residual
-        inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_betas[GEN ** lvl] * residual_chain[GEN ** LIG_QUERIES[ml]]
+        # accumulate beta_lvl * prod_t b_t * (per-level residual sum) into the grand residual
+        inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_scale[GEN ** lvl] * residual_chain[GEN ** LIG_QUERIES[ml]]
 
     # Explicit OOD eq bases at the same terminal point.
     ood_inner = 0
