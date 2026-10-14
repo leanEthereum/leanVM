@@ -1,0 +1,8 @@
+# The signatures of the SDK the leanXMSS guest calls, which Charon translates in place of `sdk/`: see `src/lib.rs`.
+[package]
+name = "leanvm_guest"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
