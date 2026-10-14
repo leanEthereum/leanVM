@@ -2253,13 +2253,55 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
     s_powers[0] = 1
     for b in unroll(1, KECCAK_EMBED_BITS):
         s_powers[b] = s_powers[b - 1] * s
+    # mu[i] = emb_i(s). The last embedding is the modulus itself, and where an
+    # embedding is x times the one two before it, reduced modulo that (as for the
+    # residues 1 + x and x + x^2 of a three-bit factor), its weight is s times that
+    # one's plus the modulus's when the reduction fires: both decided at compile time.
+    mu_new = StackBuf(KECCAK_PACK)
+    modulus = 0
+    for t in unroll(KECCAK_EMB_START[KECCAK_PACK - 1], KECCAK_EMB_START[KECCAK_PACK]):
+        modulus += s_powers[KECCAK_EMB_IDX[t]]
+    mu_new[KECCAK_PACK - 1] = modulus
+    for k in unroll(0, KECCAK_PACK - 1):
+        shifted = 0
+        top = 0
+        if const(k // 2 != 0):
+            shifted = 1
+            for t in unroll(KECCAK_EMB_START[k - 2], KECCAK_EMB_START[k - 1]):
+                if const(KECCAK_EMB_IDX[t] == KECCAK_EMBED_BITS - 2):
+                    top = 1
+            for b in unroll(0, KECCAK_EMBED_BITS):
+                want = 0
+                for t in unroll(KECCAK_EMB_START[k - 2], KECCAK_EMB_START[k - 1]):
+                    if const(KECCAK_EMB_IDX[t] + 1 == b):
+                        want = 1
+                if const(top == 1):
+                    for t in unroll(KECCAK_EMB_START[KECCAK_PACK - 1], KECCAK_EMB_START[KECCAK_PACK]):
+                        if const(KECCAK_EMB_IDX[t] == b):
+                            if const(want == 1):
+                                want = 0
+                            else:
+                                want = 1
+                have = 0
+                for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 1]):
+                    if const(KECCAK_EMB_IDX[t] == b):
+                        have = 1
+                if const(have != want):
+                    shifted = 0
+        if const(shifted == 1):
+            if const(top == 1):
+                mu_new[k] = s * mu_new[k - 2] + modulus
+            else:
+                mu_new[k] = s * mu_new[k - 2]
+        else:
+            weight = 0
+            for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 1]):
+                weight += s_powers[KECCAK_EMB_IDX[t]]
+            mu_new[k] = weight
     kappa = 0
     for i in unroll(0, KECCAK_PACK):
-        weight = 0
-        for t in unroll(KECCAK_EMB_START[i], KECCAK_EMB_START[i + 1]):
-            weight += s_powers[KECCAK_EMB_IDX[t]]
-        out[GEN ** (KC_MU + i)] = weight
-        kappa += weight
+        out[GEN ** (KC_MU + i)] = mu_new[i]
+        kappa += mu_new[i]
     out[GEN ** KC_KAPPA] = kappa
     value = product[KECCAK_PROD_BITS - 1]
     for k in unroll(1, KECCAK_PROD_BITS):
