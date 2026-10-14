@@ -14,14 +14,90 @@
 //! - a word and its bits are a `SPLIT` row, and the views of four words a `CAST` row;
 //! - one BLAKE2s compression is a `HASH` row: a transcript step, a Merkle node or a block of a long message.
 
+/// `$body`, recorded as the call `$call` when traced (`circuit-trace`) and called from outside the builder's methods.
+macro_rules! traced {
+    ($self:ident, $call:expr, $body:expr) => {{
+        #[cfg(feature = "circuit-trace")]
+        $self.begin(|| $call);
+        let out = $body;
+        #[cfg(feature = "circuit-trace")]
+        $self.end();
+        out
+    }};
+}
+
+use super::clean::{
+    ARITH_A, ARITH_B, ARITH_C, ARITH_D, CAST_DIGEST as DIGEST, CAST_ELEMENT as ELEMENT, CAST_HALVES as HALVES,
+    CAST_WORDS as WORDS, HASH_CH, HASH_DS, HASH_H, HASH_M, HASH_MUX, HASH_OUT, HASH_SEL, HASH_TF, HASH_X, SPLIT_BITS,
+    SPLIT_WORD,
+};
 use super::table::{PerRecTable, Table};
 use crate::rv::{Hash, InstructionClass};
 use fiat_shamir::arith::Arith;
 use primitives::field::{F64, F192};
 use primitives::hash::ChainingValue;
+#[cfg(feature = "circuit-trace")]
+use std::cell::RefCell;
 use std::collections::HashMap;
+#[cfg(feature = "circuit-trace")]
+use std::fmt::Write;
 use std::hash::{BuildHasherDefault, Hasher};
 use thiserror::Error;
+
+#[cfg(feature = "circuit-trace")]
+thread_local! {
+    /// The calls of every builder made while `traced` runs, one line each.
+    static TRACE: RefCell<Option<String>> = const { RefCell::new(None) };
+}
+
+/// Run `f`, returning with its value the calls it made of every builder it created, in order: the methods called from outside a builder, one line each, their wires as numbers.
+///
+/// `CheckRec` replays them through the Lean model of the builder and checks the circuit is the one built here.
+#[cfg(feature = "circuit-trace")]
+pub(crate) fn traced<T>(f: impl FnOnce() -> T) -> (T, String) {
+    TRACE.with(|t| *t.borrow_mut() = Some(String::new()));
+    let out = f();
+    let trace = TRACE.with(|t| t.borrow_mut().take()).unwrap_or_default();
+    (out, trace)
+}
+
+/// A traced builder's calls so far, and how deep inside its own methods it is.
+#[cfg(feature = "circuit-trace")]
+#[derive(Debug, Default)]
+struct Trace {
+    depth: u32,
+    out: String,
+}
+
+/// A list of numbers as its length, then its numbers.
+#[cfg(feature = "circuit-trace")]
+fn list(ws: impl ExactSizeIterator<Item = u32>) -> String {
+    let mut s = ws.len().to_string();
+    for w in ws {
+        let _ = write!(s, " {w}");
+    }
+    s
+}
+
+/// A wire kind as the builder's method names spell it.
+#[cfg(feature = "circuit-trace")]
+const fn kind_name(kind: WireKind) -> char {
+    match kind {
+        WireKind::K => 'k',
+        WireKind::E => 'e',
+        WireKind::D => 'd',
+    }
+}
+
+/// Words as their numbers.
+#[cfg(feature = "circuit-trace")]
+fn numbers(ws: impl IntoIterator<Item = u64>) -> String {
+    let mut s = String::new();
+    for (i, w) in ws.into_iter().enumerate() {
+        let _ = write!(s, "{}{w}", if i == 0 { "" } else { " " });
+    }
+    s
+}
 
 /// A wire's value as four `K` words: a `K` wire uses the first, an `E` wire the first three.
 pub type Limbs = [u64; 4];
@@ -155,6 +231,9 @@ pub struct Builder {
     scope: Vec<String>,
     /// Failed checks collected with their enclosing scope names, the first few only.
     failures: Vec<Unsatisfied>,
+    /// The calls made of it, when `traced` is running.
+    #[cfg(feature = "circuit-trace")]
+    trace: Option<Box<Trace>>,
 }
 
 /// The constants arithmetic folds away, once created.
@@ -194,18 +273,6 @@ struct HashHead {
     /// Final message word.
     ds: Kw,
 }
-
-/// The slot of a cast row's digest.
-const DIGEST: usize = 0;
-
-/// The slot of a cast row's element of its first three words.
-const ELEMENT: usize = 1;
-
-/// The first slot of a cast row's two halves.
-const HALVES: usize = 2;
-
-/// The first slot of a cast row's four words.
-const WORDS: usize = 4;
 
 impl AnyWire for Kw {
     fn id(self) -> u32 {
@@ -256,6 +323,27 @@ impl TableSlots {
 }
 
 impl Circuit {
+    /// Its rows and public rows as `CheckRec` reads them: per table in order, its slots' classes; then each public row's source; then the statement's length.
+    #[cfg(feature = "circuit-trace")]
+    pub(crate) fn dump(&self) -> String {
+        let mut s = String::new();
+        for t in Table::ALL {
+            let _ = write!(s, "table {}", self.classes.of(t).len());
+            for c in self.classes.of(t) {
+                let _ = write!(s, " {c}");
+            }
+            s.push('\n');
+        }
+        for p in &self.pubs {
+            let _ = match p {
+                PubSource::Const([a, b, c, d]) => writeln!(s, "const {a} {b} {c} {d}"),
+                PubSource::Statement(i) => writeln!(s, "statement {i}"),
+            };
+        }
+        let _ = writeln!(s, "statement_len {}", self.statement_len);
+        s
+    }
+
     /// Each table's number of rows.
     pub fn row_counts(&self) -> PerRecTable<usize> {
         PerRecTable::from_fn(|t| self.classes.len(t))
@@ -414,8 +502,33 @@ impl Builder {
     const RECORDED_FAILURES: usize = 64;
 
     /// An empty circuit.
+    #[cfg_attr(not(feature = "circuit-trace"), allow(clippy::unnecessary_struct_initialization))]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            #[cfg(feature = "circuit-trace")]
+            trace: TRACE.with(|t| t.borrow().is_some()).then(Box::default),
+            ..Self::default()
+        }
+    }
+
+    /// Record a call when traced and called from outside the builder's methods.
+    #[cfg(feature = "circuit-trace")]
+    fn begin(&mut self, call: impl FnOnce() -> String) {
+        if let Some(t) = &mut self.trace {
+            if t.depth == 0 {
+                t.out.push_str(&call());
+                t.out.push('\n');
+            }
+            t.depth += 1;
+        }
+    }
+
+    /// Close a call.
+    #[cfg(feature = "circuit-trace")]
+    fn end(&mut self) {
+        if let Some(t) = &mut self.trace {
+            t.depth -= 1;
+        }
     }
 
     /// Run `f` under a name, which an equality that fails reports.
@@ -450,6 +563,10 @@ impl Builder {
     ///
     /// A wire class is numbered by its first slot, so a circuit is the same however it was built.
     pub fn finish(mut self) -> Finished {
+        #[cfg(feature = "circuit-trace")]
+        if let Some(t) = self.trace.take() {
+            TRACE.with(|g| g.borrow_mut().as_mut().map(|g| g.push_str(&t.out)));
+        }
         let (wires, pubs) = self.statement_first();
         let mut number: Vec<Option<u32>> = vec![None; self.values.len()];
         let mut n_classes = 0;
@@ -554,32 +671,66 @@ impl Builder {
     ///
     /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn free_e(&mut self, value: F192) -> Ew {
+        traced!(self, "free_e".into(), self.free_e_rows(value))
+    }
+
+    fn free_e_rows(&mut self, value: F192) -> Ew {
         Ew(self.wire(WireKind::E, [value.c0, value.c1, value.c2, 0]))
     }
 
     /// A free `K` value.
     pub fn free_k(&mut self, value: u64) -> Kw {
+        traced!(self, "free_k".into(), self.free_k_rows(value))
+    }
+
+    fn free_k_rows(&mut self, value: u64) -> Kw {
         Kw(self.wire(WireKind::K, [value, 0, 0, 0]))
     }
 
     /// A free digest.
     pub fn free_d(&mut self, value: Limbs) -> Dw {
+        traced!(self, "free_d".into(), self.free_d_rows(value))
+    }
+
+    fn free_d_rows(&mut self, value: Limbs) -> Dw {
         Dw(self.wire(WireKind::D, value))
     }
 
     /// Hold `a` and `b` equal.
     pub fn eq<W: AnyWire>(&mut self, a: W, b: W) {
+        #[cfg(feature = "circuit-trace")]
+        let kind = kind_name(self.kinds[a.id() as usize]);
+        traced!(self, format!("eq_{kind} {} {}", a.id(), b.id()), self.eq_rows(a, b));
+    }
+
+    fn eq_rows<W: AnyWire>(&mut self, a: W, b: W) {
         self.union(a.id(), b.id());
     }
 
     /// Hold `a` to a constant.
     pub fn eq_e_const(&mut self, a: Ew, value: F192) {
+        traced!(
+            self,
+            format!("eq_e_const {} {} {} {}", a.0, value.c0, value.c1, value.c2),
+            self.eq_e_const_rows(a, value)
+        );
+    }
+
+    fn eq_e_const_rows(&mut self, a: Ew, value: F192) {
         let c = self.e_const(value);
         self.eq(a, c);
     }
 
     /// Hold `a` to a constant.
     pub fn eq_k_const(&mut self, a: Kw, value: u64) {
+        traced!(
+            self,
+            format!("eq_k_const {} {value}", a.0),
+            self.eq_k_const_rows(a, value)
+        );
+    }
+
+    fn eq_k_const_rows(&mut self, a: Kw, value: u64) {
         let c = self.k_const(value);
         self.eq(a, c);
     }
@@ -608,16 +759,32 @@ impl Builder {
     ///
     /// Its three coefficients occupy the first three words, with the fourth word zero.
     pub fn e_const(&mut self, value: F192) -> Ew {
+        traced!(
+            self,
+            format!("e_const {} {} {}", value.c0, value.c1, value.c2),
+            self.e_const_rows(value)
+        )
+    }
+
+    fn e_const_rows(&mut self, value: F192) -> Ew {
         Ew(self.constant(WireKind::E, [value.c0, value.c1, value.c2, 0]))
     }
 
     /// The constant `K` word `value`.
     pub fn k_const(&mut self, value: u64) -> Kw {
+        traced!(self, format!("k_const {value}"), self.k_const_rows(value))
+    }
+
+    fn k_const_rows(&mut self, value: u64) -> Kw {
         Kw(self.constant(WireKind::K, [value, 0, 0, 0]))
     }
 
     /// The constant digest `value`.
     pub fn d_const(&mut self, value: Limbs) -> Dw {
+        traced!(self, format!("d_const {}", numbers(value)), self.d_const_rows(value))
+    }
+
+    fn d_const_rows(&mut self, value: Limbs) -> Dw {
         Dw(self.constant(WireKind::D, value))
     }
 
@@ -630,11 +797,24 @@ impl Builder {
     ///
     /// Returns the word's index in the statement.
     pub fn expose<W: AnyWire>(&mut self, w: W) -> usize {
+        #[cfg(feature = "circuit-trace")]
+        let kind = kind_name(self.kinds[w.id() as usize]);
+        traced!(self, format!("expose_{kind} {}", w.id()), self.expose_rows(w))
+    }
+
+    fn expose_rows<W: AnyWire>(&mut self, w: W) -> usize {
         let i = self.statement.len();
         self.statement.push(self.values[w.id() as usize]);
         self.pubs.push(PubSource::Statement(i));
         self.row(Table::Pub, &[w.id()]);
         i
+    }
+
+    /// An `EMUL` or `EXK` row `c = a·b + d`.
+    fn arith_row(&mut self, table: Table, [a, b, d, c]: [u32; 4]) {
+        let mut slots = [0; 4];
+        (slots[ARITH_A], slots[ARITH_B], slots[ARITH_D], slots[ARITH_C]) = (a, b, d, c);
+        self.row(table, &slots);
     }
 
     /// The `EMUL` row `c = a·b + d`, or the earlier row with the same inputs.
@@ -644,7 +824,7 @@ impl Builder {
             return Ew(c);
         }
         let c = self.free_e(self.e(a) * self.e(b) + self.e(d));
-        self.row(Table::Emul, &[a.0, b.0, d.0, c.0]);
+        self.arith_row(Table::Emul, [a.0, b.0, d.0, c.0]);
         self.arith.insert(key, c.0);
         c
     }
@@ -662,6 +842,14 @@ impl Builder {
 
     /// `a·k + d`, `k` in `K`.
     pub fn mul_k_add(&mut self, a: Ew, k: Kw, d: Ew) -> Ew {
+        traced!(
+            self,
+            format!("mul_k_add {} {} {}", a.0, k.0, d.0),
+            self.mul_k_add_rows(a, k, d)
+        )
+    }
+
+    fn mul_k_add_rows(&mut self, a: Ew, k: Kw, d: Ew) -> Ew {
         let u = self.units;
         if u.e_zero == Some(a.0) || u.k_zero == Some(k.0) {
             return d;
@@ -674,19 +862,27 @@ impl Builder {
             return Ew(c);
         }
         let c = self.free_e(self.e(a).mul_base(F64(self.k(k))) + self.e(d));
-        self.row(Table::Exk, &[a.0, k.0, d.0, c.0]);
+        self.arith_row(Table::Exk, [a.0, k.0, d.0, c.0]);
         self.arith.insert(key, c.0);
         c
     }
 
     /// The `SPLIT` row of a word and its bits.
     fn split_row(&mut self, word: Kw, bits: &[Kw; 64]) {
-        let slots: [u32; 65] = std::array::from_fn(|i| if i == 0 { word.0 } else { bits[i - 1].0 });
+        let mut slots = [0; 65];
+        slots[SPLIT_WORD] = word.0;
+        for (slot, bit) in slots[SPLIT_BITS..].iter_mut().zip(bits) {
+            *slot = bit.0;
+        }
         self.row(Table::Split, &slots);
     }
 
     /// The 64 bits of `w`, lowest first, each a `K` wire holding 0 or 1.
     pub fn split(&mut self, w: Kw) -> [Kw; 64] {
+        traced!(self, format!("split {}", w.0), self.split_rows(w))
+    }
+
+    fn split_rows(&mut self, w: Kw) -> [Kw; 64] {
         let v = self.k(w);
         let bits: [Kw; 64] = std::array::from_fn(|i| self.free_k((v >> i) & 1));
         self.split_row(w, &bits);
@@ -699,6 +895,14 @@ impl Builder {
     ///
     /// Panics if there are more than 64 bits.
     pub fn pack(&mut self, bits: &[Kw]) -> Kw {
+        traced!(
+            self,
+            format!("pack {}", list(bits.iter().map(|w| w.0))),
+            self.pack_rows(bits)
+        )
+    }
+
+    fn pack_rows(&mut self, bits: &[Kw]) -> Kw {
         assert!(bits.len() <= 64, "a word has 64 bits");
         let zero = self.k_zero();
         let all: [Kw; 64] = std::array::from_fn(|i| bits.get(i).copied().unwrap_or(zero));
@@ -710,16 +914,14 @@ impl Builder {
 
     /// A cast row over the words `v`: the given `(slot, wire)` pairs, fresh wires in the other slots.
     fn cast_row(&mut self, given: &[(usize, u32)], v: Limbs) -> [u32; 8] {
-        let values: [Limbs; 8] = [
-            v,
-            [v[0], v[1], v[2], 0],
-            [v[0], v[1], 0, 0],
-            [v[2], v[3], 0, 0],
-            [v[0], 0, 0, 0],
-            [v[1], 0, 0, 0],
-            [v[2], 0, 0, 0],
-            [v[3], 0, 0, 0],
-        ];
+        let mut values: [Limbs; 8] = [[0; 4]; 8];
+        values[DIGEST] = v;
+        values[ELEMENT] = [v[0], v[1], v[2], 0];
+        values[HALVES] = [v[0], v[1], 0, 0];
+        values[HALVES + 1] = [v[2], v[3], 0, 0];
+        for (i, &w) in v.iter().enumerate() {
+            values[WORDS + i] = [w, 0, 0, 0];
+        }
         let kinds = Table::Cast.slot_kinds();
         let wires: [u32; 8] = std::array::from_fn(|s| {
             (given.iter().find(|&&(at, _)| at == s)).map_or_else(|| self.wire(kinds[s], values[s]), |&(_, w)| w)
@@ -733,6 +935,10 @@ impl Builder {
 
     /// The limbs of `e`.
     pub fn e_to_k(&mut self, e: Ew) -> [Kw; 3] {
+        traced!(self, format!("e_to_k {}", e.0), self.e_to_k_rows(e))
+    }
+
+    fn e_to_k_rows(&mut self, e: Ew) -> [Kw; 3] {
         let v = self.e(e);
         let w = self.cast_row(&[(ELEMENT, e.0)], [v.c0, v.c1, v.c2, 0]);
         std::array::from_fn(|i| Kw(w[WORDS + i]))
@@ -740,6 +946,14 @@ impl Builder {
 
     /// The element with limbs `k`.
     pub fn k_to_e(&mut self, k: [Kw; 3]) -> Ew {
+        traced!(
+            self,
+            format!("k_to_e {} {} {}", k[0].0, k[1].0, k[2].0),
+            self.k_to_e_rows(k)
+        )
+    }
+
+    fn k_to_e_rows(&mut self, k: [Kw; 3]) -> Ew {
         let v = [self.k(k[0]), self.k(k[1]), self.k(k[2]), 0];
         let given: [(usize, u32); 3] = std::array::from_fn(|i| (WORDS + i, k[i].0));
         Ew(self.cast_row(&given, v)[ELEMENT])
@@ -747,12 +961,20 @@ impl Builder {
 
     /// `k` in `E`.
     pub fn k_to_e1(&mut self, k: Kw) -> Ew {
+        traced!(self, format!("k_to_e1 {}", k.0), self.k_to_e1_rows(k))
+    }
+
+    fn k_to_e1_rows(&mut self, k: Kw) -> Ew {
         let zero = self.k_zero();
         self.k_to_e([k, zero, zero])
     }
 
     /// A digest's words.
     pub fn d_to_k(&mut self, d: Dw) -> [Kw; 4] {
+        traced!(self, format!("d_to_k {}", d.0), self.d_to_k_rows(d))
+    }
+
+    fn d_to_k_rows(&mut self, d: Dw) -> [Kw; 4] {
         let v = self.d(d);
         let w = self.cast_row(&[(DIGEST, d.0)], v);
         std::array::from_fn(|i| Kw(w[WORDS + i]))
@@ -760,6 +982,10 @@ impl Builder {
 
     /// A digest's first three words as an element, and its last word.
     pub fn d_to_e_and_k(&mut self, d: Dw) -> (Ew, Kw) {
+        traced!(self, format!("d_to_e_and_k {}", d.0), self.d_to_e_and_k_rows(d))
+    }
+
+    fn d_to_e_and_k_rows(&mut self, d: Dw) -> (Ew, Kw) {
         let v = self.d(d);
         let w = self.cast_row(&[(DIGEST, d.0)], v);
         (Ew(w[ELEMENT]), Kw(w[WORDS + 3]))
@@ -767,6 +993,10 @@ impl Builder {
 
     /// A digest's two 128-bit halves, each with a zero top limb.
     pub fn d_to_halves(&mut self, d: Dw) -> [Ew; 2] {
+        traced!(self, format!("d_to_halves {}", d.0), self.d_to_halves_rows(d))
+    }
+
+    fn d_to_halves_rows(&mut self, d: Dw) -> [Ew; 2] {
         let v = self.d(d);
         let w = self.cast_row(&[(DIGEST, d.0)], v);
         [Ew(w[HALVES]), Ew(w[HALVES + 1])]
@@ -774,6 +1004,14 @@ impl Builder {
 
     /// The digest whose two 128-bit halves are `lo` and `hi`, each with a zero top limb.
     pub fn halves_to_d(&mut self, lo: Ew, hi: Ew) -> Dw {
+        traced!(
+            self,
+            format!("halves_to_d {} {}", lo.0, hi.0),
+            self.halves_to_d_rows(lo, hi)
+        )
+    }
+
+    fn halves_to_d_rows(&mut self, lo: Ew, hi: Ew) -> Dw {
         let (l, h) = (self.e(lo), self.e(hi));
         if l.c2 != 0 || h.c2 != 0 {
             self.fail("a digest half has a top limb");
@@ -784,6 +1022,14 @@ impl Builder {
 
     /// The digest with words `k`.
     pub fn k_to_d(&mut self, k: [Kw; 4]) -> Dw {
+        traced!(
+            self,
+            format!("k_to_d {} {} {} {}", k[0].0, k[1].0, k[2].0, k[3].0),
+            self.k_to_d_rows(k)
+        )
+    }
+
+    fn k_to_d_rows(&mut self, k: [Kw; 4]) -> Dw {
         let v = k.map(|w| self.k(w));
         let given: [(usize, u32); 4] = std::array::from_fn(|i| (WORDS + i, k[i].0));
         Dw(self.cast_row(&given, v)[DIGEST])
@@ -793,6 +1039,14 @@ impl Builder {
     ///
     /// Returns the digest and its first three words.
     pub fn compress(&mut self, acc: Dw, x: Ew, ds: Kw) -> (Dw, Ew) {
+        traced!(
+            self,
+            format!("compress {} {} {}", acc.0, x.0, ds.0),
+            self.compress_rows(acc, x, ds)
+        )
+    }
+
+    fn compress_rows(&mut self, acc: Dw, x: Ew, ds: Kw) -> (Dw, Ew) {
         let bit = self.k_zero();
         let (a, xv, dv) = (self.d(acc), self.e(x), self.k(ds));
         let m = [a[0], a[1], a[2], a[3], xv.c0, xv.c1, xv.c2, dv];
@@ -801,6 +1055,14 @@ impl Builder {
 
     /// One Merkle node: the parent of `acc` and `sibling`, `acc` on the right if `bit` is set.
     pub fn node(&mut self, acc: Dw, bit: Kw, sibling: Limbs) -> Dw {
+        traced!(
+            self,
+            format!("node {} {}", acc.0, bit.0),
+            self.node_rows(acc, bit, sibling)
+        )
+    }
+
+    fn node_rows(&mut self, acc: Dw, bit: Kw, sibling: Limbs) -> Dw {
         let a = self.d(acc);
         let (left, right) = if self.k(bit) == 1 { (sibling, a) } else { (a, sibling) };
         let m = [
@@ -813,6 +1075,14 @@ impl Builder {
 
     /// One Merkle node over two wired children: the parent of `left` and `right`.
     pub fn parent(&mut self, left: Dw, right: Dw) -> Dw {
+        traced!(
+            self,
+            format!("parent {} {}", left.0, right.0),
+            self.parent_rows(left, right)
+        )
+    }
+
+    fn parent_rows(&mut self, left: Dw, right: Dw) -> Dw {
         let (l, rv) = (self.d(left), self.d(right));
         let m = [l[0], l[1], l[2], l[3], rv[0], rv[1], rv[2], rv[3]];
         let (x, ds) = self.d_to_e_and_k(right);
@@ -822,12 +1092,33 @@ impl Builder {
 
     /// One block of a long message: `m` absorbed into `h` at byte counter `t`, final if `last`.
     pub fn leaf_block(&mut self, h: Dw, m: [Kw; 8], t: u64, last: bool) -> Dw {
+        traced!(
+            self,
+            format!(
+                "leaf_block {} {} {t} {}",
+                h.0,
+                numbers(m.map(|w| u64::from(w.0))),
+                u8::from(last)
+            ),
+            self.leaf_block_rows(h, m, t, last)
+        )
+    }
+
+    fn leaf_block_rows(&mut self, h: Dw, m: [Kw; 8], t: u64, last: bool) -> Dw {
         let tf = self.d_const([t, if last { Hash::FINAL } else { 0 }, 0, 0]);
-        self.block(h, m, tf)
+        self.block_rows(h, m, tf)
     }
 
     /// One block of a long message whose byte counter and finalization word are wires: `tf` is `[t, f, 0, 0]`.
     pub fn block(&mut self, h: Dw, m: [Kw; 8], tf: Dw) -> Dw {
+        traced!(
+            self,
+            format!("block {} {} {}", h.0, numbers(m.map(|w| u64::from(w.0))), tf.0),
+            self.block_rows(h, m, tf)
+        )
+    }
+
+    fn block_rows(&mut self, h: Dw, m: [Kw; 8], tf: Dw) -> Dw {
         let [t, f, ..] = self.d(tf);
         let compression = Compression::with_flags(self.d(h), m.map(|w| self.k(w)), t, f);
         let v = &compression.inputs()[6..];
@@ -844,6 +1135,14 @@ impl Builder {
 
     /// The hash of `words` in rows, as the native chain computes it.
     pub fn chain(&mut self, words: &[Kw]) -> Dw {
+        traced!(
+            self,
+            format!("chain {}", list(words.iter().map(|w| w.0))),
+            self.chain_rows(words)
+        )
+    }
+
+    fn chain_rows(&mut self, words: &[Kw]) -> Dw {
         let n_blocks = words.len().div_ceil(8).max(1);
         let zero = self.k_zero();
         let bytes = 8 * words.len() as u64;
@@ -876,22 +1175,26 @@ impl Builder {
         let ch = self.free_e(F192::new(out[0], out[1], out[2]));
         let HashHead { h, tf, mux, bit, x, ds } = head;
         let mut slots = [0u32; Table::Hash.n_slots()];
-        slots[..8].copy_from_slice(&[h.0, tf.0, mux.0, bit.0, x.0, ds.0, o.0, ch.0]);
-        slots[8..].copy_from_slice(&words);
+        for (slot, w) in [
+            (HASH_H, h.0),
+            (HASH_TF, tf.0),
+            (HASH_MUX, mux.0),
+            (HASH_SEL, bit.0),
+            (HASH_X, x.0),
+            (HASH_DS, ds.0),
+            (HASH_OUT, o.0),
+            (HASH_CH, ch.0),
+        ] {
+            slots[slot] = w;
+        }
+        slots[HASH_M..HASH_M + 8].copy_from_slice(&words);
         self.row(Table::Hash, &slots);
         self.hash.push(compression);
         (o, ch)
     }
-}
 
-impl Arith for Builder {
-    type E = Ew;
-
-    fn constant(&mut self, c: F192) -> Ew {
-        self.e_const(c)
-    }
-
-    fn mul_add(&mut self, a: Ew, b: Ew, d: Ew) -> Ew {
+    /// `a·b + d`, folding the units away.
+    fn mul_add_rows(&mut self, a: Ew, b: Ew, d: Ew) -> Ew {
         let u = self.units;
         if u.e_zero.is_some_and(|z| z == a.0 || z == b.0) {
             d
@@ -904,7 +1207,14 @@ impl Arith for Builder {
         }
     }
 
-    fn add(&mut self, a: Ew, d: Ew) -> Ew {
+    /// `a·b`.
+    fn mul_rows(&mut self, a: Ew, b: Ew) -> Ew {
+        let zero = self.zero();
+        self.mul_add(a, b, zero)
+    }
+
+    /// `a + d`, folding a zero term away.
+    fn add_rows(&mut self, a: Ew, d: Ew) -> Ew {
         let zero = self.units.e_zero;
         if zero == Some(d.0) {
             a
@@ -916,8 +1226,8 @@ impl Arith for Builder {
         }
     }
 
-    /// Through the cheaper table when `c` is in `K`.
-    fn mul_const_add(&mut self, a: Ew, c: F192, d: Ew) -> Ew {
+    /// `a·c + d`, through the cheaper table when `c` is in `K`.
+    fn mul_const_add_rows(&mut self, a: Ew, c: F192, d: Ew) -> Ew {
         if c.c1 == 0 && c.c2 == 0 {
             let k = self.k_const(c.c0);
             return self.mul_k_add(a, k, d);
@@ -926,13 +1236,57 @@ impl Arith for Builder {
         self.mul_add(a, c, d)
     }
 
-    /// A hint the prover supplies, held to `a·(1/a) = 1`.
-    fn inv(&mut self, a: Ew) -> Ew {
+    /// `1 / a`: a hint the prover supplies, held to `a·(1/a) = 1`.
+    fn inv_rows(&mut self, a: Ew) -> Ew {
         let v = self.e(a);
         let i = self.free_e(v.inv());
         let p = self.mul(a, i);
         self.eq_e_const(p, F192::ONE);
         i
+    }
+
+    /// The constant zero of `E`.
+    fn zero_rows(&mut self) -> Ew {
+        self.units.e_zero.map_or_else(|| self.e_const(F192::ZERO), Ew)
+    }
+
+    /// The constant one of `E`.
+    fn one_rows(&mut self) -> Ew {
+        self.units.e_one.map_or_else(|| self.e_const(F192::ONE), Ew)
+    }
+}
+
+impl Arith for Builder {
+    type E = Ew;
+
+    fn constant(&mut self, c: F192) -> Ew {
+        self.e_const(c)
+    }
+
+    fn mul_add(&mut self, a: Ew, b: Ew, d: Ew) -> Ew {
+        traced!(
+            self,
+            format!("mul_add {} {} {}", a.0, b.0, d.0),
+            self.mul_add_rows(a, b, d)
+        )
+    }
+
+    fn add(&mut self, a: Ew, d: Ew) -> Ew {
+        traced!(self, format!("add {} {}", a.0, d.0), self.add_rows(a, d))
+    }
+
+    /// Through the cheaper table when `c` is in `K`.
+    fn mul_const_add(&mut self, a: Ew, c: F192, d: Ew) -> Ew {
+        traced!(
+            self,
+            format!("mul_const_add {} {} {} {} {}", a.0, c.c0, c.c1, c.c2, d.0),
+            self.mul_const_add_rows(a, c, d)
+        )
+    }
+
+    /// A hint the prover supplies, held to `a·(1/a) = 1`.
+    fn inv(&mut self, a: Ew) -> Ew {
+        traced!(self, format!("inv {}", a.0), self.inv_rows(a))
     }
 
     /// `v + c2 (Y + Y^2) + c1 Y^2` for `v = c0 + c1 Y + c2 Y^2`.
@@ -945,11 +1299,19 @@ impl Arith for Builder {
     }
 
     fn zero(&mut self) -> Ew {
-        self.units.e_zero.map_or_else(|| self.e_const(F192::ZERO), Ew)
+        traced!(self, "zero".into(), self.zero_rows())
     }
 
     fn one(&mut self) -> Ew {
-        self.units.e_one.map_or_else(|| self.e_const(F192::ONE), Ew)
+        traced!(self, "one".into(), self.one_rows())
+    }
+
+    fn mul(&mut self, a: Ew, b: Ew) -> Ew {
+        traced!(self, format!("mul {} {}", a.0, b.0), self.mul_rows(a, b))
+    }
+
+    fn square(&mut self, a: Ew) -> Ew {
+        traced!(self, format!("square {}", a.0), self.mul_rows(a, a))
     }
 }
 

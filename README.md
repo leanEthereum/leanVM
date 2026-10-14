@@ -32,6 +32,8 @@ leanVM is designed for security:
 
 **warning**: Formal verification is [in progress](https://github.com/Verified-zkEVM/leanerVM). leanVM is not (yet) production ready.
 
+The production wrapping and carry adders and the complete RV shift circuit are authored and proved in [Clean](./verification/circuits/README.md), then exported as checked-in Rust gates. Real instruction and BLAKE2s circuits consume the adder family; real RV shifts consume the complete shift artifact. The proofs cover arbitrary-witness Boolean constraint soundness and honest completeness, with the shift flag domain made explicit. The Rust interpretation and the separate cryptographic composition retain the trust boundaries documented there.
+
 ## work in progress
 
 Expect leanVM to change significantly:

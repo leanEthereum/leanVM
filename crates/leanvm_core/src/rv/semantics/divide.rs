@@ -2,8 +2,7 @@
 
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, WordGadgets};
-use flock::circuit::{Builder, Circuit, Wire};
-use flock::gadgets::Multiplier;
+use flock::circuit::{Builder, Circuit};
 
 /// One division instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -101,56 +100,15 @@ impl ClassCircuit for Div {
     /// A zero divisor checks nothing, and gives what RISC-V says: all ones, or the dividend.
     ///
     /// The one overflow, `-2^63 / -1`, needs no special case on magnitudes.
+    ///
+    /// The gates are `clean::div64`, checked in `LeanVMCircuits.Div`: the operands' magnitudes, the checks of the
+    /// hints, the verdict, then the result.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 3, 64, 64], &[64, 1]);
         let [v1, v2] = [0, 1].map(|port| c.input::<64>(port));
         let f = c.input::<3>(2);
         let [q, r] = [3, 4].map(|port| c.input::<64>(port));
-        let (signed, rem, word) = (f[0], f[1], f[2]);
-
-        // A word division divides the low 32 bits, extended as the division is signed or not.
-        let mut extend = |x: &[Wire; 64]| -> [Wire; 64] {
-            let sign = c.and(signed, x[31]);
-            std::array::from_fn(|i| if i < 32 { x[i] } else { c.mux(word, sign, x[i]) })
-        };
-        let (n, d) = (extend(&v1), extend(&v2));
-
-        // The operands' magnitudes.
-        let (n_negative, d_negative) = (c.and(signed, n[63]), c.and(signed, d[63]));
-        let (n_abs, d_abs) = (c.negate_if(n_negative, &n), c.negate_if(d_negative, &d));
-
-        // Check |n| = q * |d| + r: the product fits 64 bits, the sum does not carry, and it equals |n|.
-        let (product, _) = Multiplier::build::<128>(&mut c, &q, &d_abs);
-        let low: [Wire; 64] = std::array::from_fn(|i| product[i]);
-        let high: [Wire; 64] = std::array::from_fn(|i| product[64 + i]);
-        let overflows = c.any(&high);
-        let (sum, carries) = c.add_with_carry(&low, &r, Wire::ZERO);
-        let difference = c.xor_word(&sum, &n_abs);
-        let differs = c.any(&difference);
-
-        // Check r < |d|: r - |d| = r + !|d| + 1 carries out exactly when r >= |d|.
-        let d_inverted = d_abs.map(|bit| c.not(bit));
-        let (_, too_large) = c.add_with_carry(&r, &d_inverted, Wire::ONE);
-
-        // Any failed check is bad, unless the divisor is zero.
-        let d_nonzero = c.any(&d);
-        let wrong = [carries, differs, too_large]
-            .into_iter()
-            .fold(overflows, |acc, w| c.or(acc, w));
-        let bad = c.and(d_nonzero, wrong);
-
-        // The quotient is negative when the operands' signs differ.
-        // The remainder is negative when the dividend is.
-        let q_negative = c.xor(n_negative, d_negative);
-        let (q_signed, r_signed) = (c.negate_if(q_negative, &q), c.negate_if(n_negative, &r));
-
-        // The output: the quotient or the remainder, or the zero divisor's result.
-        let out = std::array::from_fn(|i| {
-            let result = c.mux(rem, r_signed[i], q_signed[i]);
-            let by_zero = c.mux(rem, n[i], Wire::ONE);
-            c.mux(d_nonzero, result, by_zero)
-        });
-        let out = c.sext32_if(word, &out);
+        let (out, bad) = flock::clean::div64(&mut c, &v1, &v2, &f, &q, &r);
 
         c.output_word(0, &out);
         c.output(1, 0, bad);
@@ -163,6 +121,10 @@ mod tests {
     use super::*;
     use crate::rv::Class;
     use crate::rv::semantics::tests::{Ports, circuit_matches_reference, edge_word, run};
+    use fiat_shamir::{ProverState, SessionId, VerifierState};
+    use flock::BatchRows;
+    use flock::reduction;
+    use flock::test_util::Witness;
     use proptest::prelude::*;
     use proptest::sample::select;
     use proptest::strategy::BoxedStrategy;
@@ -278,6 +240,69 @@ mod tests {
                 prop_assert_eq!(got[1], 1);
             }
         }
+    }
+
+    /// Prove `rows` with their walked witness, the bits `tamper` names flipped, and check the proof.
+    fn proves(rows: &[Vec<u64>], tamper: &[usize]) -> bool {
+        let block = DIV.block();
+        let n_log = rows.len().trailing_zeros() as usize;
+        let mut w = Witness::by_walk(&DIV, BatchRows::new(rows, &rows[0], n_log), |row, words| {
+            words.copy_from_slice(row);
+        });
+        for &bit in tamper {
+            w.z[bit / 64] ^= 1 << (bit % 64);
+        }
+        let label = b"clean-division-walked-witness";
+        let mut ps = ProverState::new(&SessionId::new(label), &0u64);
+        let claims = reduction::prove(&[w.instance(block, n_log)], &mut ps);
+        let proof = ps.into_proof();
+        let mut vs = VerifierState::new(&SessionId::new(label), &0u64, &proof);
+        reduction::verify(&[(block.shape(), n_log)], &mut vs)
+            .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
+            && vs.check_eof().is_ok()
+    }
+
+    #[test]
+    fn clean_division_proves_and_a_wrong_hint_cannot_clear_bad() {
+        // Invariant: honest hints prove with `bad` clear; a flipped bit is refused, and so is clearing `bad` for a
+        // wrong hint.
+        //
+        // Fixture state: every legal flag word on edge dividends, divisors including zero, minus one and the overflow.
+        let (min, all) = (i64::MIN as u64, u64::MAX);
+        let edges = [
+            0,
+            1,
+            7,
+            min,
+            all,
+            0x8000_0000,
+            0xffff_ffff_8000_0000,
+            0x0123_4567_89ab_cdef,
+        ];
+        let honest: Vec<Vec<u64>> = (0..64usize)
+            .map(|i| {
+                Div {
+                    flags: Div::LEGAL[i % 8],
+                    v1: edges[i / 8],
+                    v2: edges[(i + i / 8) % 8],
+                }
+                .input_words()
+            })
+            .collect();
+        assert!(proves(&honest, &[]));
+        let output = 64 * DIV.n_input_words();
+        let bad = output + 64;
+        for bit in [output + 5, output + 40, bad, DIV.const_pos() + 1, DIV.useful_bits() - 1] {
+            assert!(!proves(&honest, &[bit]), "flipping witness bit {bit} must reject");
+        }
+
+        // A quotient one too large, by a nonzero divisor: the walk sets `bad`, and clearing it is refused.
+        let mut wrong = honest;
+        wrong[0] = Div { flags: 0, v1: 7, v2: 3 }.input_words();
+        wrong[0][3] += 1;
+        assert_eq!(run(&DIV, &wrong[0], 2)[1], 1);
+        assert!(proves(&wrong, &[]));
+        assert!(!proves(&wrong, &[bad]));
     }
 
     impl Ports for Div {

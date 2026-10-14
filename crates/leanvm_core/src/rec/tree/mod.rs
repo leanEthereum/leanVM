@@ -417,6 +417,47 @@ impl<'p> Tree<'p> {
         }
     }
 
+    /// The number of positional circuits, including every claim-set node and tier wrap.
+    #[cfg(feature = "circuit-trace")]
+    #[must_use]
+    pub const fn circuit_count(&self) -> usize {
+        self.keys.len()
+    }
+
+    /// The circuit at this position as `CheckRec` reads it: its builder calls, finished circuit, and bus links.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the position is outside the tree or building the circuit again gives another circuit.
+    #[cfg(feature = "circuit-trace")]
+    pub fn circuit_dump(&self, position: usize) -> String {
+        use crate::rec::fixed::FixedColumn;
+        use crate::rec::table::Table;
+        use std::fmt::Write;
+        let (finished, calls) = crate::rec::circuit::traced(|| self.design.shape(position));
+        let mut circuit = finished.circuit;
+        circuit.floor = self.circuit(position).floor;
+        assert_eq!(
+            &circuit,
+            self.circuit(position),
+            "a circuit is built the same every time"
+        );
+        let columns = self.keys[position].fixed();
+        let mut next = String::from("next\n");
+        for t in Table::ALL {
+            let n = t.n_slots();
+            let rows = circuit.classes.of(t).len() / n;
+            let _ = write!(next, "table {}", rows * n);
+            for z in 0..rows {
+                for s in 0..n {
+                    let _ = write!(next, " {}", columns.get(FixedColumn::Next(t.first_slot() + s))[z].0);
+                }
+            }
+            next.push('\n');
+        }
+        calls + "circuit\n" + &circuit.dump() + &next
+    }
+
     /// Prove a first-level node over its leaves, each a RISC-V proof and its output, in order.
     ///
     /// # Errors

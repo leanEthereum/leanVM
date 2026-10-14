@@ -2,7 +2,7 @@
 
 use super::{InstructionClass, sext32};
 use crate::rv::circuits::{ClassCircuit, WordGadgets};
-use flock::circuit::{Builder, Circuit, Wire};
+use flock::circuit::{Builder, Circuit};
 use flock::gadgets::Multiplier;
 use std::sync::OnceLock;
 
@@ -75,14 +75,16 @@ impl ClassCircuit for Mul {
     /// The low word of the product: `(v1, v2, flags) -> out`.
     ///
     /// A word multiplication sign-extends the low 32 bits.
+    ///
+    /// The gates are `clean::mul64`, checked in `LeanVMCircuits.Mul`: the multiplier, then the word selector.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 1], &[64]);
         let [v1, v2] = [0, 1].map(|port| c.input::<64>(port));
         let f = c.input::<1>(2);
-        let (product, multiplier) = Multiplier::build::<64>(&mut c, &v1, &v2);
-        let mux_slot = c.next_slot();
-        let out = c.sext32_if(f[0], &product);
+        let multiplier = Multiplier::plan::<64>(c.next_slot());
+        let out = flock::clean::mul64(&mut c, &v1, &v2, &f);
         c.output_word(0, &out);
+        let mux_slot = multiplier.end_slot();
         let _ = MUL_PLAN.set(LowPlan { multiplier, mux_slot });
         c.finish()
     }
@@ -98,26 +100,16 @@ impl ClassCircuit for Mulh {
     /// ```text
     ///     high(v1 * v2) = high_u(v1 * v2) - [v1 < 0] * v2 - [v2 < 0] * v1    (mod 2^64)
     /// ```
+    ///
+    /// The gates are `clean::mulh64`, checked in `LeanVMCircuits.Mulh`.
+    /// Each correction is `negative`, the complement of the other operand gated by it, then `high` plus both.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&[64, 64, 2], &[64]);
         let [v1, v2] = [0, 1].map(|port| c.input::<64>(port));
         let f = c.input::<2>(2);
-        let (product, multiplier) = Multiplier::build::<128>(&mut c, &v1, &v2);
-        let mut corrections = [0; 2];
-        let mut high: [Wire; 64] = std::array::from_fn(|i| product[64 + i]);
-
-        // Subtract the other operand for each signed negative one.
-        for (i, (signed, operand, other)) in [(f[0], &v1, &v2), (f[1], &v2, &v1)].into_iter().enumerate() {
-            corrections[i] = c.next_slot();
-            let negative = c.and(signed, operand[63]);
-
-            // high - other is high + !other + 1, all of it gated by negative.
-            let subtrahend = other.map(|bit| {
-                let inverted = c.not(bit);
-                c.and(negative, inverted)
-            });
-            (high, _) = c.add_with_carry(&high, &subtrahend, negative);
-        }
+        let multiplier = Multiplier::plan::<128>(c.next_slot());
+        let high = flock::clean::mulh64(&mut c, &v1, &v2, &f);
+        let corrections = [0, 1].map(|i| multiplier.end_slot() + i * CORRECTION_PRODUCTS);
 
         c.output_word(0, &high);
         let _ = MULH_PLAN.set(HighPlan {
@@ -133,6 +125,9 @@ struct LowPlan {
     multiplier: Multiplier,
     mux_slot: usize,
 }
+
+/// A signed correction's products: `negative`, the 64 gated complement bits, then the 64 carries of the sum.
+const CORRECTION_PRODUCTS: usize = 1 + 64 + 64;
 
 /// The unsigned multiplier and each signed correction's first product slot.
 struct HighPlan {
@@ -264,7 +259,9 @@ mod tests {
     use crate::rv::Class;
     use crate::rv::semantics::tests::{Ports, circuit_matches_reference, edge_word};
     use crate::tables::spec::InstanceWitness;
+    use fiat_shamir::{ProverState, SessionId, VerifierState};
     use flock::BatchRows;
+    use flock::reduction;
     use flock::test_util::Witness;
     use primitives::test_util::Rng;
     use proptest::prelude::*;
@@ -323,6 +320,68 @@ mod tests {
             prop_assert_eq!(Mulh { flags: 0, v1, v2 }.eval(), ((v1 as u128 * v2 as u128) >> 64) as u64);
             let signed = Mulh { flags: Mulh::SIGNED_1 | Mulh::SIGNED_2, v1, v2 }.eval();
             prop_assert_eq!(signed, ((v1 as i64 as i128 * v2 as i64 as i128) >> 64) as u64);
+        }
+    }
+
+    /// A class's native witness of one instance.
+    type NativeWitness = fn(&[u64], &mut [u64], &mut [u64], &mut [u64]);
+
+    /// Prove `rows` with a native witness, a bit of `z` flipped if `tamper` says so, and check the proof.
+    fn proves(circuit: &Circuit, rows: &[[u64; 3]], witness: NativeWitness, tamper: Option<usize>) -> bool {
+        let block = circuit.block();
+        let n_log = rows.len().trailing_zeros() as usize;
+        let mut w = Witness::by_instance(circuit, BatchRows::new(rows, &rows[0], n_log), |row, z, az, bz| {
+            witness(row, z, az, bz);
+        });
+        if let Some(bit) = tamper {
+            w.z[bit / 64] ^= 1 << (bit % 64);
+        }
+        let label = b"clean-multiplication-native-witness";
+        let mut ps = ProverState::new(&SessionId::new(label), &0u64);
+        let claims = reduction::prove(&[w.instance(block, n_log)], &mut ps);
+        let proof = ps.into_proof();
+        let mut vs = VerifierState::new(&SessionId::new(label), &0u64, &proof);
+        reduction::verify(&[(block.shape(), n_log)], &mut vs)
+            .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(block.circuit).is_ok())
+            && vs.check_eof().is_ok()
+    }
+
+    #[test]
+    fn clean_multiplications_prove_native_witnesses_and_reject_flipped_bits() {
+        // Invariant: the generated gates prove the native witnesses of both classes, and any flipped bit is refused.
+        //
+        // Mutation: a result bit, the multiplier's first and last products, and each class's last product.
+        let edges = [
+            0,
+            1,
+            2,
+            (1 << 63) - 1,
+            1 << 63,
+            u64::MAX - 1,
+            u64::MAX,
+            0x0123_4567_89ab_cdef,
+        ];
+        let rows = |legal: &[u64]| -> Vec<[u64; 3]> {
+            (0..64usize)
+                .map(|i| [edges[i % 8], edges[i / 8], legal[i % legal.len()]])
+                .collect()
+        };
+        let low = Mul::circuit();
+        let high = Mulh::circuit();
+        let cases: [(&Circuit, Vec<[u64; 3]>, NativeWitness); 2] = [
+            (&low, rows(Mul::LEGAL), low_witness),
+            (&high, rows(Mulh::LEGAL), Mulh::witness),
+        ];
+        for (circuit, rows, witness) in cases {
+            assert!(proves(circuit, &rows, witness, None));
+            let output = 64 * circuit.n_input_words();
+            let first = circuit.const_pos() + 1;
+            for bit in [output + 7, output + 63, first, first + 2000, circuit.useful_bits() - 1] {
+                assert!(
+                    !proves(circuit, &rows, witness, Some(bit)),
+                    "flipping witness bit {bit} must reject"
+                );
+            }
         }
     }
 

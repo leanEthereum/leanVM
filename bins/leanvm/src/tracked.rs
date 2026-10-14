@@ -22,6 +22,8 @@ use crate::refuse;
 use crate::workload::{Items, Workload};
 use bench::pretty_integer;
 use bench::{Heap, Metric, Plan, Stage, Timing, bencher_json};
+#[cfg(feature = "circuits")]
+use leanvm::aggregate::Tier;
 use leanvm::aggregate::{
     Aggregate, Capacity, CircuitStats, ClaimLeaf, ClaimShape, Kind, Leaf, LeafShape, Tree, TreeError, TreeProof,
     TreeShape,
@@ -416,6 +418,77 @@ fn circuits(tree: &Aggregation, leaf_rate: Rate, rate: Rate) -> Vec<(NodeCircuit
                 (NodeCircuit::Node(arity), stats)
             });
             std::iter::once(first).chain(nodes).collect()
+        }
+    }
+}
+
+/// Write every tracked output-tree and signer-set tree circuit, one over zero-knowledge leaves, and every claim-set tier position, plus native instruction table bindings.
+///
+/// CI's `rec-builder-model` workflow replays the recorded builders and checks the table slot and clock-port bindings against their Lean sources.
+#[cfg(feature = "circuits")]
+pub fn dump(out: &Path, leaf_rate: Rate, rate: Rate) {
+    let proven = [
+        Aggregation::new("aggregate-leanxmss-100-2to1", Workload::leanxmss(100), 2, 2),
+        Aggregation::new("aggregate-leanxmss-100-4to1", Workload::leanxmss(100), 4, 4),
+    ];
+    std::fs::create_dir_all(out).unwrap_or_else(|e| refuse(format_args!("{}: {e}", out.display())));
+    let path = out.join("table-flushes.dump");
+    std::fs::write(&path, leanvm::table_flushes()).unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
+    // The same 2 to 1 tree over zero-knowledge leaves, whose first level verifies the zero-knowledge proofs.
+    let zero_knowledge = Aggregation::new("aggregate-leanxmss-100-2to1-zk", Workload::leanxmss(100), 2, 2);
+    let trees = (counted_trees().into_iter().chain(proven)).map(|tree| (tree, false));
+    for (tree, zk) in trees.chain([(zero_knowledge, true)]) {
+        let measured = LeafShape::measured(&tree.leaf.measure(), leaf_rate);
+        let shape = if zk { measured.zero_knowledge() } else { measured };
+        let built = tree.tree(shape, rate);
+        // A tree's circuits in their positions' order: the first level's, then the node circuit of the largest arity, or a signer-set tree's of every arity from two up.
+        let nodes = match tree.signers {
+            None => tree.arity..=tree.arity,
+            Some(_) => 2..=tree.arity,
+        };
+        let circuits: Vec<NodeCircuit> = std::iter::once(NodeCircuit::First)
+            .chain(nodes.map(NodeCircuit::Node))
+            .collect();
+        assert_eq!(
+            circuits.len(),
+            built.circuit_count(),
+            "{}: a circuit per position",
+            tree.name
+        );
+        for (position, circuit) in circuits.into_iter().enumerate() {
+            let path = out.join(format!("{}.txt", tree.node(circuit).0));
+            std::fs::write(&path, built.circuit_dump(position))
+                .unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
+        }
+    }
+    let leaf = Workload::leanxmss(100);
+    let measured = LeafShape::measured(&leaf.measure(), leaf_rate);
+    let capacity = Capacity { claims: 12, groups: 4 };
+    for (name, claims) in [
+        ("claimset-single-tier", ClaimShape::new(capacity)),
+        (
+            "claimset-two-tier",
+            ClaimShape {
+                capacity,
+                small: Some(Tier {
+                    arity: 2,
+                    capacity: Capacity { claims: 5, groups: 2 },
+                }),
+            },
+        ),
+    ] {
+        let shape = TreeShape {
+            leaf: measured,
+            arity_0: 1,
+            arity: 3,
+            rate,
+            claims: Some(claims),
+        };
+        let built = Tree::new(&leaf.program, shape).unwrap_or_else(|e| refuse(format_args!("{name}: {e}")));
+        for position in 0..built.circuit_count() {
+            let path = out.join(format!("{name}-circuit-{position}.txt"));
+            std::fs::write(&path, built.circuit_dump(position))
+                .unwrap_or_else(|e| refuse(format_args!("{}: {e}", path.display())));
         }
     }
 }
