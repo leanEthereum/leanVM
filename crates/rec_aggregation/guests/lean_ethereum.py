@@ -599,18 +599,18 @@ def exponent_tables():
     return g_logs_pow2, g_squares
 
 
-def g_power_of_word(value, g_squares, nbits: Const):
-    # g^value for a concrete integer `value` < 2^nbits: advice-decompose its bits,
-    # tie them back to the word, and assemble Π g^(bit_j·2^j).
-    bits = HeapBuf(GEN ** nbits)
-    hint_decompose_bits(bits, value, nbits)
+def g_power_of_word(value):
+    # g^value for a concrete integer `value` < 2^LOG_WORD_BITS: advice-decompose its
+    # bits, tie them back to the word, and assemble Π g^(bit_j·2^j).
+    bits = StackBuf(LOG_WORD_BITS)
+    hint_decompose_bits(bits, value, LOG_WORD_BITS)
     word = 0
     g_value = GEN ** 0
-    for j in unroll(0, nbits):
-        bit = bits[GEN ** j]
-        assert bit * bit == bit
+    for j in unroll(0, LOG_WORD_BITS):
+        bit = bits[j]
+        bits[j] = bit * bit
         word += bit * (2 ** j)
-        g_value *= (1 + bit * (g_squares[GEN ** j] + 1))
+        g_value *= 1 + bit * (1 + GEN ** (2 ** j))
     assert word == value
     return g_value
 
@@ -2291,15 +2291,15 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
         fs, x, cursor = fs_next(fs, cursor)
         sizes[i] = x
     fs, log_inv_rate, cursor = fs_next(fs, cursor)
-    rate_sel = g_power_of_word(log_inv_rate, g_squares, LOG_WORD_BITS) / GEN
+    rate_sel = g_power_of_word(log_inv_rate) / GEN
     assert log(rate_sel) < LIG_N_RATES
     dims_g = HeapBuf(N_TABLES + 1)  # [g^log_mem, g^tau_0 .. g^tau_{N_TABLES-1}]
-    g_log_mem = g_power_of_word(sizes[0], g_squares, LOG_WORD_BITS)
+    g_log_mem = g_power_of_word(sizes[0])
     assert log(g_log_mem) < COUNT_BITS
     assert log(g_log_mem / GEN ** MIN_LOG_MEM) < COUNT_BITS  # native MIN_LOG_MEM <= log_mem
     dims_g[GEN ** 0] = g_log_mem
     for t in unroll(0, N_TABLES):
-        g_tau = g_power_of_word(sizes[t + 1], g_squares, LOG_WORD_BITS)
+        g_tau = g_power_of_word(sizes[t + 1])
         assert log(g_tau) < COUNT_BITS
         # A table's floor: the Keccak reduction is sized for at least 2^9 steps.
         assert log(g_tau / GEN ** FLOORS[t]) < COUNT_BITS
