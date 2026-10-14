@@ -258,6 +258,9 @@ YR_LOG_CAP = YR_LOG_CAP_PLACEHOLDER
 MAX_STACK_LOG = LIG_MIN_LOG_SIZE + LIG_N_LOG_SIZES - 1
 SEL_NIBBLES = (MAX_STACK_LOG + 3) // 4  # four selector bits share one table lookup
 SEL_EQ_STRIDE = 30                      # a nibble's eq tables over its top 1..4 coords
+SEL_SHARED_SRC = 2 + TABLE_SHA3         # the kappa source whose bus blocks share selector tables
+SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4  # nibbles of a bus selector run
+SEL_TAB_EQ_STRIDE = 32                  # a nibble's eq tables over its low 1..4 coords, padded
 LIG_N_LEVELS = LIG_N_LEVELS_PLACEHOLDER
 LIG_YR_LEVEL = LIG_YR_LEVEL_PLACEHOLDER
 LIG_YR_LOG_LEN = LIG_YR_LOG_LEN_PLACEHOLDER
@@ -1507,6 +1510,92 @@ def index_mle(zeta, n: Const):
     return v
 
 
+@inline
+def sel_eq_nibble(out, z, z1, width: Const):
+    # The eq tables over coordinates z[0..t] for t < width, level t at 2^(t+1) - 2,
+    # coordinate t being index bit t; z1 = 1 + z.
+    levels = StackBuf(SEL_EQ_STRIDE)
+    levels[0] = z1[GEN ** 0]
+    levels[1] = z[GEN ** 0]
+    for t in unroll(1, width):
+        r = z[GEN ** t]
+        r1 = z1[GEN ** t]
+        for i in unroll(0, 2 ** t):
+            levels[2 ** (t + 1) - 2 + i] = levels[2 ** t - 2 + i] * r1
+            levels[2 ** (t + 1) - 2 + 2 ** t + i] = levels[2 ** t - 2 + i] * r
+    for i in unroll(0, 2 ** (width + 1) - 2):
+        out[GEN ** i] = levels[i]
+    return
+
+
+@inline
+def sel_g_nibble(out, gs, width: Const):
+    # out[u] = prod_t gs[t]^(bit t of u) for u < 2^width.
+    vals = StackBuf(16)
+    vals[0] = 1
+    vals[1] = gs[GEN ** 0]
+    for t in unroll(1, width):
+        g_t = gs[GEN ** t]
+        for i in unroll(0, 2 ** t):
+            vals[2 ** t + i] = vals[i] * g_t
+    for i in unroll(0, 2 ** width):
+        out[GEN ** i] = vals[i]
+    return
+
+
+def sel_partial_nibble(eq_out, g_out, z, z1, gs, width: Const):
+    if const(width != 0):
+        sel_eq_nibble(eq_out, z, z1, width)
+        sel_g_nibble(g_out, gs, width)
+    return 0
+
+
+def shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g):
+    # Per nibble j of a selector run of length n = 4q + r (coordinates 4j..4j+3
+    # past κ, the last nibble r wide), the eq tables over its low 1..4
+    # coordinates and the g-powers of its indices' offset shares. The split of n
+    # is advice, each bit pinned and the whole tied back to len_g.
+    nb = StackBuf(6)
+    hint_decompose_bits_exponent(nb, len_g, 6)
+    for k in unroll(0, 6):
+        b = nb[k]
+        nb[k] = b * b
+    r_g = (1 + nb[0] * (1 + GEN)) * (1 + nb[1] * (1 + GEN ** 2))
+    q_g = GEN ** 0
+    for k in unroll(2, 6):
+        q_g *= 1 + nb[k] * (1 + GEN ** (2 ** (k - 2)))
+    q4 = q_g ** 4
+    assert q4 * r_g == len_g
+    for xq in mul_range(1, q_g):
+        x4 = xq ** 4
+        x16 = x4 ** 4
+        sel_eq_nibble(eq_tab * x16 * x16, zeta_hi * x4, zeta1_hi * x4, 4)
+        sel_g_nibble(g_tab * x16, gsq_hi * x4, 4)
+    q16 = q4 ** 4
+    done = match(log(r_g), range(0, 4), lambda w: sel_partial_nibble(eq_tab * q16 * q16, g_tab * q16, zeta_hi * q4, zeta1_hi * q4, gsq_hi * q4, w))  # a match needs a target
+    return
+
+
+def block_selector_tab(sel_bits, eq_tab, g_tab, n: Const):
+    # block_selector off the shared tables: per nibble, the pinned bits fold into a
+    # g-power index g^u, u below the nibble's table size, that reads its eq factor
+    # and its share of g^offset.
+    eq = GEN ** 0
+    rebuilt = GEN ** 0
+    for j in unroll(0, (n + 3) // 4):
+        width = 4
+        if const(j == n // 4):
+            width = n - 4 * j
+        idx = GEN ** 0
+        for t in unroll(0, width):
+            sbit = sel_bits[GEN ** (4 * j + t)]
+            sel_bits[GEN ** (4 * j + t)] = sbit * sbit  # booleanity as a write-once pin
+            idx *= 1 + sbit * (1 + GEN ** (2 ** t))
+        eq *= eq_tab[GEN ** (SEL_TAB_EQ_STRIDE * j + 2 ** width - 2) * idx]
+        rebuilt *= g_tab[GEN ** (16 * j) * idx]
+    return eq, rebuilt
+
+
 def block_selector(sel_bits, zeta1_hi, idxc_hi, n: Const):
     # A bus block's eq over its n = mu - κ selector bits, the offset's bits above κ,
     # each boolean-pinned, and g^offset rebuilt from those bits alone (weights
@@ -1584,6 +1673,15 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     zeta1 = HeapBuf(g_bus_mu)  # 1 + zeta, so a selector factor 1 + b + z is one XOR
     for xk in mul_range(1, g_bus_mu):
         zeta1[xk] = 1 + zeta[xk]
+    # The blocks sized by SEL_SHARED_SRC share one κ, block_kappa being
+    # kappa_base[src] = dims_g[src - 1] for them (verify_sub), so their selector
+    # runs read shared tables.
+    shared_kappa_g = dims_g[GEN ** (SEL_SHARED_SRC - 1)]
+    shared_len_g = g_bus_mu / shared_kappa_g
+    assert log(shared_len_g) < SIZE_BITS
+    shared_eq = HeapBuf(SEL_TAB_NIBBLES * SEL_TAB_EQ_STRIDE)
+    shared_g = HeapBuf(SEL_TAB_NIBBLES * 16)
+    shared_selector_tables(shared_eq, shared_g, zeta * shared_kappa_g, zeta1 * shared_kappa_g, g_squares * shared_kappa_g, shared_len_g)
     bus_table_total = StackBuf(N_GKR_SIDES)  # per side, what its tables' blocks owe
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
     block_index_mle = HeapBuf(N_BLOCKS)      # per push block with an Index coord
@@ -1603,14 +1701,22 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
                 # g^offset from those high bits alone (weights g^(2^(κ+k))) and
                 # asserting it equals block_off_g pins the bits AND the κ-alignment
                 # in one shot; the low κ bit cells are written but never read.
-                sel_len_g = g_bus_mu / kappa_g  # g^(mu - κ)
-                assert log(sel_len_g) < SIZE_BITS
                 offset_bits = HeapBuf(GEN ** SIZE_BITS)
                 hint_decompose_bits_exponent(offset_bits, block_off_g[GEN ** b], SIZE_BITS)
-                sel_bits = offset_bits * kappa_g
-                zeta1_hi = zeta1 * kappa_g
-                idxc_hi = idxc_tab * kappa_g
-                eq_hi, goff = match(log(sel_len_g), range(0, SIZE_BITS), lambda n: block_selector(sel_bits, zeta1_hi, idxc_hi, n))
+                shared = 0
+                if const(BLOCK_KAPPA_SRC[b] == SEL_SHARED_SRC):
+                    if const(BLOCK_KAPPA_ADJ[b] == 0):
+                        shared = 1
+                if const(shared == 1):
+                    sel_bits = offset_bits * shared_kappa_g
+                    eq_hi, goff = match(log(shared_len_g), range(0, SIZE_BITS), lambda n: block_selector_tab(sel_bits, shared_eq, shared_g, n))
+                else:
+                    sel_len_g = g_bus_mu / kappa_g  # g^(mu - κ)
+                    assert log(sel_len_g) < SIZE_BITS
+                    sel_bits = offset_bits * kappa_g
+                    zeta1_hi = zeta1 * kappa_g
+                    idxc_hi = idxc_tab * kappa_g
+                    eq_hi, goff = match(log(sel_len_g), range(0, SIZE_BITS), lambda n: block_selector(sel_bits, zeta1_hi, idxc_hi, n))
                 assert goff == block_off_g[GEN ** b]  # bits == offset >> κ, κ-aligned
             selector_sum += eq_hi
             block_eq_hi[b] = eq_hi
