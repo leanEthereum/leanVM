@@ -259,7 +259,6 @@ MAX_STACK_LOG = LIG_MIN_LOG_SIZE + LIG_N_LOG_SIZES - 1
 SEL_NIBBLES = (MAX_STACK_LOG + 3) // 4  # four selector bits share one table lookup
 SEL_EQ_STRIDE = 30                      # a nibble's eq tables over its top 1..4 coords
 EQ_CHAIN_ARMS = SIZE_BITS + QKECCAK_SLOT_LOG + 1  # eq prefix chain lengths
-SEL_SHARED_SRC = 2 + TABLE_SHA3         # the kappa source whose bus blocks share selector tables
 SEL_TAB_NIBBLES = (SIZE_BITS + 3) // 4  # nibbles of a bus selector run
 SEL_TAB_EQ_STRIDE = 32                  # a nibble's eq tables over its low 1..4 coords, padded
 LIG_N_LEVELS = LIG_N_LEVELS_PLACEHOLDER
@@ -1681,15 +1680,17 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
         idxc_tab[GEN ** t] = INDEX_MLE_FACTORS[t]
     zeta1 = HeapBuf(g_bus_mu)  # 1 + zeta, so an eq factor 1 + b + z is one XOR
     zeta1_done = match(log(g_bus_mu), range(0, SIZE_BITS), lambda n: plus_one_run(zeta1, zeta, n))  # a match needs a target
-    # The blocks sized by SEL_SHARED_SRC share one κ, block_kappa being
-    # kappa_base[src] = dims_g[src - 1] for them (verify_sub), so their selector
-    # runs read shared tables.
-    shared_kappa_g = dims_g[GEN ** (SEL_SHARED_SRC - 1)]
-    shared_len_g = g_bus_mu / shared_kappa_g
-    assert log(shared_len_g) < SIZE_BITS
-    shared_eq = HeapBuf(SEL_TAB_NIBBLES * SEL_TAB_EQ_STRIDE)
-    shared_g = HeapBuf(SEL_TAB_NIBBLES * 16)
-    shared_selector_tables(shared_eq, shared_g, zeta * shared_kappa_g, zeta1 * shared_kappa_g, g_squares * shared_kappa_g, shared_len_g)
+    # A block sized by table t's tau (kappa source 2 + t, unadjusted) has
+    # block_kappa = kappa_base[2 + t] = dims_g[t + 1] (verify_sub), so all of one
+    # table's blocks walk the same selector run and read the same tables.
+    shared_len = StackBuf(N_TABLES)
+    shared_eq = HeapBuf(N_TABLES * SEL_TAB_NIBBLES * SEL_TAB_EQ_STRIDE)
+    shared_g = HeapBuf(N_TABLES * SEL_TAB_NIBBLES * 16)
+    for t in unroll(0, N_TABLES):
+        tau_g = dims_g[GEN ** (t + 1)]
+        shared_len[t] = g_bus_mu / tau_g
+        assert log(shared_len[t]) < SIZE_BITS
+        shared_selector_tables(shared_eq * GEN ** (t * SEL_TAB_NIBBLES * SEL_TAB_EQ_STRIDE), shared_g * GEN ** (t * SEL_TAB_NIBBLES * 16), zeta * tau_g, zeta1 * tau_g, g_squares * tau_g, shared_len[t])
     bus_table_total = StackBuf(N_GKR_SIDES)  # per side, what its tables' blocks owe
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
     block_index_mle = HeapBuf(N_BLOCKS)      # per push block with an Index coord
@@ -1712,12 +1713,16 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
                 offset_bits = HeapBuf(GEN ** SIZE_BITS)
                 hint_decompose_bits_exponent(offset_bits, block_off_g[GEN ** b], SIZE_BITS)
                 shared = 0
-                if const(BLOCK_KAPPA_SRC[b] == SEL_SHARED_SRC):
+                if const(BLOCK_KAPPA_SRC[b] // 2 != 0):
                     if const(BLOCK_KAPPA_ADJ[b] == 0):
                         shared = 1
                 if const(shared == 1):
-                    sel_bits = offset_bits * shared_kappa_g
-                    eq_hi, goff = match(log(shared_len_g), range(0, SIZE_BITS), lambda n: block_selector_tab(sel_bits, shared_eq, shared_g, n))
+                    t = BLOCK_KAPPA_SRC[b] - 2
+                    sel_bits = offset_bits * dims_g[GEN ** (t + 1)]
+                    len_g = shared_len[t]
+                    tab_eq = shared_eq * GEN ** (t * SEL_TAB_NIBBLES * SEL_TAB_EQ_STRIDE)
+                    tab_g = shared_g * GEN ** (t * SEL_TAB_NIBBLES * 16)
+                    eq_hi, goff = match(log(len_g), range(0, SIZE_BITS), lambda n: block_selector_tab(sel_bits, tab_eq, tab_g, n))
                 else:
                     sel_len_g = g_bus_mu / kappa_g  # g^(mu - κ)
                     assert log(sel_len_g) < SIZE_BITS
