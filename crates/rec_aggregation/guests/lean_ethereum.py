@@ -723,16 +723,16 @@ def decode_query_bits(squeezed_word, positions_out, bit_ptrs_out, depth: Const):
     return
 
 
-def grind_check(state_0, state_1, nonce, nbits_g):
+def grind_check(state_0, state_1, nonce, nbits: Const):
     # WHIR fold/query grinding: digest = H(H(state, POW_BASE), (nonce, POW_NONCE)),
-    # whose low nbits (nbits_g = g^nbits) must be zero. The PoW window of
+    # whose low nbits must be zero. The PoW window of
     # transcript::pow_bits_ok is `digest.0 & ((1 << bits) - 1)` with nbits < 64, so
     # it lives entirely in the digest's FIRST 64-bit lane: only that lane is
     # advice-decomposed and verified, not all FIELD_BITS of the cell. The caller
     # absorbs the full field nonce afterwards. The honest prover searches the
     # deterministic u64 subset while verification permits the full field: each
     # candidate still costs one hash and succeeds with probability 2^-bits.
-    if nbits_g == GEN ** 0:
+    if nbits == 0:
         assert nonce == 0  # native canonical zero-work nonce
     st = [state_0, state_1]
     base = StackBuf(SHA3_STATE)
@@ -743,19 +743,16 @@ def grind_check(state_0, state_1, nonce, nbits_g):
     hint_f192_limbs(lanes, out[0])
     high = (out[0] + lanes[0]) * Y_INV
     assert_in_k(lanes[0], high)
-    # Frame cells for the unrolled pass (no DEREF per bit), named by `addr` for the
-    # zero-check walk, whose bound is runtime and so must index a pointer.
+    # The lane is rebuilt from its bits at and above nbits only, which IS the claim
+    # that its low nbits coordinates are zero; the hinted low bits go unread.
     lane_bits = StackBuf(BASE_FIELD_BITS)
     hint_decompose_bits(lane_bits, lanes[0], BASE_FIELD_BITS)
     acc = 0
-    for i in unroll(0, BASE_FIELD_BITS):
+    for i in unroll(nbits, BASE_FIELD_BITS):
         b = lane_bits[i]
         lane_bits[i] = b * b  # booleanity, as a write-once pin
         acc += b * COORD_BASIS[i]
-    assert acc == lanes[0]  # the bits ARE the lane's coordinates, so the pins below bind it
-    lane_ptr = addr(lane_bits)
-    for xb in mul_range(1, nbits_g):
-        assert lane_ptr[xb] == 0
+    assert acc == lanes[0]
     return
 
 
@@ -965,47 +962,76 @@ def order_children(node, sibling, bit):
 
 
 @inline
-def verify_merkle_path(leaf_0, leaf_1, direction_bits, depth: Const):
+def verify_merkle_path(leaf, direction_bits, depth: Const):
     # Hinted child pairs are hashed in order; the boolean query bit selects the
     # child that must equal the running node, binding each link of the path.
     path = StackBuf(LIG_PATH_CAP)
     hint_witness(path[0:4 * depth], "merkle_children")
+    # The selected pair starts at path_ptr * g^(2*bit) = path_ptr + bit * path_step.
     path_ptr = addr(path)
-    node_0 = leaf_0
-    node_1 = leaf_1
+    path_step = path_ptr * (1 + GEN ** 2)
+    node = leaf
     for level in unroll(0, depth):
-        dir_bit = direction_bits[GEN ** level]
-        selected = path_ptr * GEN ** (4 * level) * (1 + dir_bit * (1 + GEN ** 2))
-        selected[1] = node_0
-        selected[GEN] = node_1
-        parent = StackBuf(SHA3_STATE)
-        sha3(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], parent)
-        node_0 = parent[0]
-        node_1 = parent[1]
-    return node_0, node_1
-
-
-@inline
-def hash_cap_node(cap, index):
-    children = cap * index ** 4
-    parent = StackBuf(SHA3_STATE)
-    sha3([children[1], children[GEN]], [children[GEN ** 2], children[GEN ** 3]], parent)
-    cap[index * index] = parent[0]
-    cap[GEN * index * index] = parent[1]
-    return
+        selected = path_ptr + direction_bits[GEN ** level] * path_step
+        selected[GEN ** (4 * level)] = node[0]
+        selected[GEN ** (4 * level + 1)] = node[1]
+        node = StackBuf(SHA3_STATE)
+        sha3(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], node)
+    return node
 
 
 def verify_merkle_cap(cap, flags, depth: Const):
+    # Unrolled over the cap's nodes, so every address is an immediate. Every node's
+    # hinted digest (node k at heap cells 2k, 2k+1) is read once into a frame run,
+    # and an internal node's run is SHA3_STATE cells long so that its hash can
+    # write its state there, the digest landing on (and so asserting) the hinted
+    # value. An active (flagged) node is hashed; an inactive one pins its children's
+    # flags to zero, so every active node's parent is active too, up to the root,
+    # which is always hashed. The queries flag the parents of the cap leaves they
+    # reach. The run is sized per depth, the cap depths a configuration reaches.
     if depth != 0:
-        hash_cap_node(cap, GEN)
-        flags[GEN] = 1
-        for parent in mul_range(GEN, GEN ** (2 ** (depth - 1))):
-            for side in unroll(0, 2):
-                child = parent * parent * GEN ** side
-                if flags[child] != 0:
-                    flags[parent] = 1  # every active node forces its parent to be hashed
-                    hash_cap_node(cap, child)
-    return cap[GEN ** 2], cap[GEN ** 3]
+        n_leaves = 2 ** depth
+        if const(depth == 4):
+            runs = StackBuf(15 * 16 - 13)
+        elif const(depth == 5):
+            runs = StackBuf(15 * 32 - 13)
+        elif const(depth == 6):
+            runs = StackBuf(15 * 64 - 13)
+        elif const(depth == 7):
+            runs = StackBuf(15 * 128 - 13)
+        else:
+            runs = StackBuf(15 * 256 - 13)
+        # internal node k (1 <= k < n_leaves) at SHA3_STATE * (k - 1), leaf k after them
+        for node in unroll(1, 2 * n_leaves):
+            if const(node // n_leaves == 0):
+                at = SHA3_STATE * (node - 1)
+            else:
+                at = SHA3_STATE * (n_leaves - 1) + 2 * (node - n_leaves)
+            runs[at] = cap[GEN ** (2 * node)]
+            runs[at + 1] = cap[GEN ** (2 * node + 1)]
+        for node in unroll(1, n_leaves):
+            if const(2 * node // n_leaves == 0):
+                left = SHA3_STATE * (2 * node - 1)
+                right = SHA3_STATE * (2 * node)
+            else:
+                left = SHA3_STATE * (n_leaves - 1) + 2 * (2 * node - n_leaves)
+                right = left + 2
+            at = SHA3_STATE * (node - 1)
+            if const(node == 1):
+                sha3(runs[left:left + 2], runs[right:right + 2], runs[at:at + SHA3_STATE])
+            else:
+                if flags[GEN ** node] != 0:
+                    sha3(runs[left:left + 2], runs[right:right + 2], runs[at:at + SHA3_STATE])
+                else:
+                    if const(2 * node // n_leaves == 0):  # node has flagged children
+                        flags[GEN ** (2 * node)] = 0
+                        flags[GEN ** (2 * node + 1)] = 0
+        root_0 = runs[0]
+        root_1 = runs[1]
+    else:
+        root_0 = cap[GEN ** 2]
+        root_1 = cap[GEN ** 3]
+    return root_0, root_1
 
 
 # ============================== the stacked WHIR opening ============================
@@ -1038,69 +1064,118 @@ def opening_final_message(fs0, fs1, cursor, out, n: Const):
 
 
 def opening_row_weights(point, out, folds: Const, reverse: Const):
-    for i in unroll(0, 2 ** folds):
+    # The row's eq weights as their two tensor factors: weight i is
+    # out[i % 2^lo] * out[2^lo + i // 2^lo], the low `lo` coordinates first. At
+    # level 0 lane i is interleaving index 2^folds - 1 - i, which reverses both.
+    if const(folds // 3 == 0):
+        lo = folds
+    else:
+        lo = 3
+    hi = folds - lo
+    for i in unroll(0, 2 ** lo):
         if reverse == 1:
-            slot = 2 ** folds - 1 - i
+            slot = 2 ** lo - 1 - i
         else:
             slot = i
-        out[GEN ** i] = eq_weight(point, folds, slot, 0)
+        out[GEN ** i] = eq_weight(point, lo, slot, 0)
+    for i in unroll(0, 2 ** hi):
+        if reverse == 1:
+            slot = 2 ** hi - 1 - i
+        else:
+            slot = i
+        out[GEN ** (2 ** lo + i)] = eq_weight(point * GEN ** lo, hi, slot, 0)
     return
 
 
-def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n_queries_g, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+@inline
+def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
+    # One query: hash the hinted row up its Merkle path into the shared cap, and
+    # return its dot product with the row's eq weights.
+    if base == 1:
+        row_len = interleave
+    else:
+        row_len = 3 * interleave
+    row = StackBuf(LIG_ROW_CAP)
+    hint_witness(row[0:row_len], "merkle_leaf_rows")
+    row_dot = 0
+    packed_row = StackBuf(LIG_PACKED_ROW_CAP)
+    if base == 1:
+        # Packing proves each hinted lane is in K before hashing or folding it.
+        for jb in unroll(0, interleave // 2):
+            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
+    else:
+        # Pack the checked tower limbs into the leaf's contiguous byte image.
+        for jb in unroll(0, 3 * interleave // 2):
+            packed_row[jb] = pack64x2(row[2 * jb], row[2 * jb + 1])
+    # The weights' tensor factors (opening_row_weights): a run of lo_len row
+    # entries shares one hi factor.
+    if const(interleave // 8 == 0):
+        lo_len = interleave
+    else:
+        lo_len = 8
+    for h in unroll(0, interleave // lo_len):
+        part = 0
+        for l in unroll(0, lo_len):
+            jw = lo_len * h + l
+            if base == 1:
+                row_word = row[jw]
+            elif 3 * jw % 2 == 0:
+                # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
+                row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * row[3 * jw + 2]
+            else:
+                # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
+                row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
+            part += row_word * row_eq_weights[GEN ** l]
+        row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
+    # Hash the packed row, eight cells a block.
+    leaf_hash_state = StackBuf(SHA3_STATE)
+    sha3_cells(packed_row[0:leaf_cells], leaf_hash_state)
+    path_depth = depth - cap_depth
+    node = verify_merkle_path(leaf_hash_state, direction_bits, path_depth)
+    if cap_depth != 0:
+        # The reached cap leaf is node 2*parent + bit at cells 2*node, 2*node + 1,
+        # where parent = 2^(cap_depth-1) + q: q in the exponent, the constant
+        # parts folded into the address immediates.
+        if const(cap_depth == 1):
+            flags[GEN] = 1
+            leaf = cap * (1 + direction_bits[GEN ** path_depth] * (1 + GEN ** 2))
+        else:
+            q = 1 + direction_bits[GEN ** (path_depth + 1)] * (1 + GEN)
+            for bit in unroll(1, cap_depth - 1):
+                q *= 1 + direction_bits[GEN ** (path_depth + 1 + bit)] * (1 + GEN ** (2 ** bit))
+            flags_q = flags * q
+            flags_q[GEN ** (2 ** (cap_depth - 1))] = 1  # the cap check propagates this obligation to the root
+            q2 = q * q
+            leaf = cap * q2 * q2 * (1 + direction_bits[GEN ** path_depth] * (1 + GEN ** 2))
+        leaf[GEN ** (2 ** (cap_depth + 1))] = node[0]
+        leaf[GEN ** (2 ** (cap_depth + 1) + 1)] = node[1]
+    else:
+        cap[GEN ** 2] = node[0]
+        cap[GEN ** 3] = node[1]
+    return row_dot
+
+
+def opening_queries(cap, flags, lam, lam_n, query_bit_ptrs, row_eq_weights, n_pairs_g, n_rest_g, base: Const, interleave: Const, leaf_cells: Const, depth: Const, cap_depth: Const):
     # Specialize by row and path shape so opening configurations share query code.
-    query_sum_chain = HeapBuf(n_queries_g * GEN)
-    query_sum_chain[GEN ** 0] = 0
-    for xe in mul_range(1, n_queries_g):
-        if base == 1:
-            row_len = interleave
-        else:
-            row_len = 3 * interleave
-        row = StackBuf(LIG_ROW_CAP)
-        hint_witness(row[0:row_len], "merkle_leaf_rows")
-        row_dot = 0
-        packed_row = StackBuf(LIG_PACKED_ROW_CAP)
-        if base == 1:
-            # Packing proves each hinted lane is in K before hashing or folding it.
-            for jb in unroll(0, interleave // 4):
-                e0 = row[4 * jb]
-                e1 = row[4 * jb + 1]
-                e2 = row[4 * jb + 2]
-                e3 = row[4 * jb + 3]
-                packed_row[2 * jb] = pack64x2(e0, e1)
-                packed_row[2 * jb + 1] = pack64x2(e2, e3)
-                row_dot += e0 * row_eq_weights[GEN ** (4 * jb)] + e1 * row_eq_weights[GEN ** (4 * jb + 1)] + e2 * row_eq_weights[GEN ** (4 * jb + 2)] + e3 * row_eq_weights[GEN ** (4 * jb + 3)]
-        else:
-            # Pack the checked tower limbs into the leaf's contiguous byte image.
-            for jb in unroll(0, 3 * interleave // 4):
-                packed_row[2 * jb] = pack64x2(row[4 * jb], row[4 * jb + 1])
-                packed_row[2 * jb + 1] = pack64x2(row[4 * jb + 2], row[4 * jb + 3])
-            for jw in unroll(0, interleave):
-                if 3 * jw % 2 == 0:
-                    # limbs (3w, 3w+1) are a pack; add Y^2 * limb(3w+2).
-                    row_word = packed_row[3 * jw // 2] + Y_TOWER * Y_TOWER * row[3 * jw + 2]
-                else:
-                    # limbs (3w+1, 3w+2) are a pack; shift it by Y and add limb(3w).
-                    row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
-                row_dot += row_word * row_eq_weights[GEN ** jw]
-        # Hash the packed row, eight cells a block.
-        leaf_hash_state = StackBuf(SHA3_STATE)
-        sha3_cells(packed_row[0:leaf_cells], leaf_hash_state)
-        query_sum_chain[xe * GEN] = query_sum_chain[xe] + query_weights[xe] * row_dot
-        direction_bits = query_bit_ptrs[xe]
-        path_depth = depth - cap_depth
-        node_0, node_1 = verify_merkle_path(leaf_hash_state[0], leaf_hash_state[1], direction_bits, path_depth)
-        if cap_depth != 0:
-            parent = GEN ** (2 ** (cap_depth - 1))
-            for bit in unroll(0, cap_depth - 1):
-                parent *= 1 + direction_bits[GEN ** (path_depth + 1 + bit)] * (1 + GEN ** (2 ** bit))
-            flags[parent] = 1  # the cap check propagates this obligation to the root
-            cap_index = parent * parent * (1 + direction_bits[GEN ** path_depth] * (1 + GEN))
-        else:
-            cap_index = GEN
-        cap[cap_index * cap_index] = node_0
-        cap[GEN * cap_index * cap_index] = node_1
-    return query_sum_chain[n_queries_g]
+    # Queries run two an iteration, sharing the loop overhead and the weight reads;
+    # an odd count's last query runs alone after the pairs (n_rest_g is g or 1),
+    # so the hint streams are consumed in query order.
+    # Query k is weighted lam^k: the chain runs h <- (h + dot_k) / lam, ending at
+    # sum_k lam^(k - n) dot_k, and one product by lam_n = lam^n restores it.
+    mu = 1 / lam
+    chain = HeapBuf(n_pairs_g * GEN)
+    chain[GEN ** 0] = 0
+    for xi in mul_range(1, n_pairs_g):
+        bit_ptrs = query_bit_ptrs * xi * xi
+        d0 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth)
+        d1 = opening_query(cap, flags, row_eq_weights, bit_ptrs[GEN], base, interleave, leaf_cells, depth, cap_depth)
+        chain[xi * GEN] = ((chain[xi] + d0) * mu + d1) * mu
+    rest = HeapBuf(GEN ** 2)
+    rest[GEN ** 0] = chain[n_pairs_g]
+    for xr in mul_range(1, n_rest_g):
+        last = query_bit_ptrs * n_pairs_g * n_pairs_g
+        rest[GEN] = (rest[GEN ** 0] + opening_query(cap, flags, row_eq_weights, last[GEN ** 0], base, interleave, leaf_cells, depth, cap_depth)) * mu
+    return rest[n_rest_g] * lam_n
 
 
 @inline
@@ -1207,7 +1282,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         q_nonce = msg_cursor[GEN ** 0]  # raw transport word: bound by the DS_POW_NONCE absorb below
         msg_cursor = msg_cursor * GEN
         if LIG_QUERY_GRIND_BITS[ml] != 0:
-            grind_check(fs[0], fs[1], q_nonce, GEN ** LIG_QUERY_GRIND_BITS[ml])
+            grind_check(fs[0], fs[1], q_nonce, LIG_QUERY_GRIND_BITS[ml])
         else:
             assert q_nonce == 0
         fs = absorb_nonce(fs, q_nonce)
@@ -1254,7 +1329,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         level_roots[GEN ** (2 * lvl)] = root_0
         level_roots[GEN ** (2 * lvl + 1)] = root_1
 
-        level_query_sum = opening_queries(cap, flags, query_weights * GEN ** (lvl * max_q), query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** n_queries, 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
+        level_query_sum = opening_queries(cap, flags, lam, lam_pow, query_bit_ptrs * GEN ** pos_off, row_eq_weights, GEN ** (n_queries // 2), GEN ** (n_queries % 2), 1 // (lvl + 1), interleave, LIG_LEAF_CELLS[ml], depth, cap_depth)
 
         # Every level, including the last, ties its commitment in through an intro
         # message. The level's claims then enter the running one with powers of

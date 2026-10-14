@@ -3236,10 +3236,10 @@ def main():
     direction = addr(bits)
     leaf = StackBuf(2)
     hint_witness(leaf[0:2], "leaf")
-    a, b = verify_merkle_path(leaf[0], leaf[1], direction, 3)
+    root = verify_merkle_path(leaf, direction, 3)
     public = GEN ** 0
-    assert public[1] == a
-    assert public[GEN] == b
+    assert public[1] == root[0]
+    assert public[GEN] == root[1]
     return
 "#
         );
