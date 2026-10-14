@@ -27,7 +27,7 @@ z(\jconst,\,t)=1\qquad\text{for every }t\in\cube{\kbatch}
 
 This second condition is enforced by lincheck (\S\ref{flock:lincheck}), and $\jconst$ is where the circuit puts its constant wire, the position after its ports (\S\ref{flock:classes}). Since it is asked of every block, the prover pads the batch out to $2^{\kbatch}$ with genuine witness blocks, the instances of its class's no-op on zero inputs, rather than with zeros.
 
-Set $\kskip=6$ and $\nflock=\kbool-\kskip$. The prover commits to $z$ by packing its low $\kskip$ coordinates, $64$ bits, to a $\K$-element, following Ring-Switching (Annex~\ref{annex:rs}). The resulting multilinear $\qflock:\cube{\nflock}\to\K$ is committed as one region of the stack (\S\ref{sec:stacking}).
+Set $\kskip=6$ and $\nflock=\kbool-\kskip$. The prover commits to $z$ by packing its low $\kskip$ coordinates, $64$ bits, to a $\K$-element, following Ring-Switching (Annex~\ref{annex:rs}). The resulting multilinear $\qflock:\cube{\nflock}\to\K$ occupies one region of the stack (\S\ref{sec:stacking}). Before any Flock challenge, the stack's shape and Merkle root are bound, one full-stack point is sampled, and its advertised MLE value completes the immutable commitment record (Annex~\ref{annex:pcs}). Flock's later ring-switched claims reuse that record: the stacked opening batches their shared family at power zero, pooled point claims at successive powers, and the supported commitment anchor at the final power of one opening challenge. Neither the Flock reduction nor any later opening replaces the anchor point or value.
 
 
 \subsection{Zerocheck}\label{flock:zerocheck}
@@ -162,7 +162,7 @@ s_i \qeq \mle z(i,\fc'_{\mathrm{in}},\fc_{\mathrm{out}})\qquad\text{for }i\in\cu
 \subsection{Protocol summary}\label{flock:summary}
 
 \begin{protocol}[Flock summary]\label{flock:protocol}
-After the witness $z$ has been committed, and its size announced:
+After the witness $z$ has been included in the immutable anchored stack commitment, and its size announced:
 \begin{enumerate}
 \item The verifier forms the zerocheck point $r$: seven fixed coordinates, the rest sampled. The $\kskip$ variables the univariate skip replaced consume no equality challenge.
 \item The prover sends $P|_{\skipcoset}$, $64$ values. The verifier samples $\zskip$ and reconstructs $v_P$.
@@ -329,7 +329,7 @@ Carry-save steps then compress the rows. A step replaces three rows by their sum
 
 \subsection{Soundness analysis}\label{flock:soundness}
 
-We argue for the batch of \S\ref{flock:batch}; one circuit is the batch of one. The commitment determines every packed witness, hence every $z_f$, before any challenge is drawn, and the PCS proves the claims opened on them. So take every transmitted family to be true of its witness,
+We argue for the batch of \S\ref{flock:batch}; one circuit is the batch of one. For this algebraic argument, fix a candidate packed witness from the root-fixed list before the Flock challenges. The immutable anchor restricts which candidate can satisfy all later claims only outside its separate ideal separation event, and the PCS must enforce that same anchor together with every ring-switched family. The following argument is conditional on the transmitted families being true of that fixed witness; the original opening ledger retains the union over candidates, rather than assuming that a root or a classical selector already supplies one known witness. Thus take
 \[
 s_{f,i}=\mle{z_f}(i,\fc'_{\mathrm{in},f},\fc_{\mathrm{out},f}),\qquad i\in\cube{\kskip},
 \]

@@ -25,7 +25,7 @@
 
 leanVM is designed for security:
 
- * 128-bit ROM (64-bit QROM) soundness
+ * a 128-bit ROM (64-bit QROM) soundness target, not a proved deployed security level
  * no proximity gap conjecture
  * end-to-end formal verification
  * a traditional hash function
@@ -180,3 +180,17 @@ Each instruction class's circuit proven alone by flock, on `2^FLOCK_N_LOG` rando
 - [WHIR](https://eprint.iacr.org/2024/1586) PCS, aka [Ligerito](https://eprint.iacr.org/2025/1187)
 - [Flock](https://github.com/succinctlabs/flock/tree/main) hash proving
 - [Binius](https://github.com/IrreducibleOSS/binius)/[Binius64](https://github.com/binius-zk/binius64) ring switching, M3 arithmetisation, and more (see [DP23](https://eprint.iacr.org/2023/1784) and [DP24](https://eprint.iacr.org/2024/504))
+
+### Immutable PCS commitment anchors
+
+PCS commitment identity is now the complete immutable Merkle root, public shape, exact pre-commit transcript chaining value, normalized pending bytes and byte count, first-block flag and previous and current squeeze cursors, commitment-time extension-field point and advertised MLE value. Capturing that context does not flush, hash, sample, allocate or emit recursive rows. A valid duplex state's cached output is derivable from its chaining value and cursor; snapshots are read-only and cannot inject arbitrary states. `CommittedStack::new` binds the `whir-anchor-v1` marker, dimension/interleaving/rate tuple and occupied lane count before the root and the one anchor challenge. `StackCommitment::receive` checks the same context, derives that point once and reads its value. CPU proofs use `LVMP18` and the `leanvm-rv64im-14` program domain; tree proofs use `LVMT20` and the `leanvm-tree-17` domain. These identities are above current upstream. Legacy proofs are not accepted.
+
+Every public stacked opening requires this complete record. Its `whir-opening-v1` frame binds and compares the shape, raw 32-byte root, raw 32-byte original chaining value, pending-byte metadata and normalized buffer, point and advertised value before any opening batching challenge. Cursor metadata precedes pending bytes, packed as three little endian words per scalar with canonical final padding. This permits opening the same immutable record in a fresh session without receiving it again or resampling its point. Root-only WHIR kernels and dense-weight interfaces are crate-private protocol building blocks, not alternate public PCS verification paths. Callers must bind their complete opening statement before entry: values must already be observed or public, coordinates must be public constants or earlier verifier challenges, and addressing and shape must follow the bound layout. The identity frame does not bind arbitrary external claims. Omitted lanes remain mandated zero, and the anchor's linear weight is restricted to the occupied prefix in both native and row arithmetic.
+
+The crate-private terminal weight provider dispatches statically and is consumed once at the terminal point after rotating fold challenges into witness-coordinate order. Named weight values borrow their existing inputs without callback allocation.
+
+The separate Lean investigation proves ideal interactive uniform anchor candidate uniqueness with a commitment-fixed list, including arbitrary malicious advertised values and cross-session reuse. Its anchor ambiguity term is separate from opening, Fiat-Shamir, Merkle and concrete cryptographic losses. This branch normally merges upstream #607 at `d3c7f9d9a6ad4f7b88f917284076b34430502ae2`: session-IV derivation, public-instance absorption, raw-byte roots, the new codecs, proof-of-work and squeezed final digests. Proof PR #551's existing duplex refinement chain models the historical pre-#607 #552 transcript. Its checked adaptive ideal-compression coupling has loss `min(1,(2Q^2-Q)/2^256)`, but the conditional `2^-42` historical unanchored endpoint does not currently apply to the deployed #607 transcript or these new anchor inputs without the missing source adapters and composition. Its checked reset knowledge extractor is interactive only, not a Fiat-Shamir knowledge result. This cutover claims no proved whole-system security level, unconditional deterministic BLAKE2s security or universal Rust-to-Lean equivalence.
+
+A hiding commitment, which zero-knowledge proofs take for their stack and their key commitment, carries no anchor: its advertised value would be one more evaluation of the hidden witness, which the hiding argument does not cover. `CommittedStack::new_hiding` and `StackCommitment::hiding` stay root-only; `StackCommitment::receive` refuses a padding configuration and `StackCommitment::hiding` a plain one with `WhirError::Anchoring`, and weighted openings, which only the key commitment takes, are refused on an anchored commitment.
+
+The typed stacked receiver retains upstream's aligned plain-selector, checked strided-width and slot guards, including #608's machine-width checks. Native and Rows use the same typed verifier and record frame. The security theorem and a universal source correspondence must still discharge their stated model and caller-binding hypotheses.

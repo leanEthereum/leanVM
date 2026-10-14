@@ -431,10 +431,10 @@ fn large_program() -> (Program, Proof, Proof, Output) {
     let ProvenRun { proof, output, .. } = Prover::new(Rate::MIN).prove(&program, &[]).expect("the run halts");
     assert_eq!(output, [7, 0, 0, 0]);
 
-    // The nonce follows the announcement, the root and the flock reductions, which read the shortest prefix past the
-    // root that they read whole; replace it with one that misses the work.
+    // The nonce follows the announcement, the complete commitment record and the flock reductions, which read the shortest
+    // prefix past the record that they read whole; replace it with one that misses the work.
     let missed = CpuError::Bus(BusError::Transcript(TranscriptError::PowFailed { bits: 1 }));
-    let flock = 24 * (N_TABLES + 2) + 32;
+    let flock = 24 * (N_TABLES + 6) + 32;
     let messages: Vec<usize> = (0..(proof.0.narg.len() - flock) / 24).collect();
     let nonce = flock
         + 24 * messages.partition_point(|&m| {
@@ -458,7 +458,10 @@ fn a_large_program_grinds_before_the_bus() {
     let (program, proof, forged, output) = large_program();
     assert!(program.verify(output, &proof).is_ok());
     // The nonce that misses the work is refused at the bus.
-    assert!(program.verify(output, &forged).is_err());
+    assert_eq!(
+        program.verify(output, &forged),
+        Err(CpuError::Bus(BusError::Transcript(TranscriptError::PowFailed { bits: 1 })).into())
+    );
 }
 
 #[test]

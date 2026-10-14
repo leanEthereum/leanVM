@@ -60,7 +60,12 @@ impl<'p> ProofShape<'p> {
         let mut t = Transcript::new(b, &self.program.session(), &output, source);
         let mut r = Rows::new(b, &mut t);
 
-        let clock = r.scope("announcement", |r| self.read_announcement(r));
+        let clock = {
+            r.begin_scope(fiat_shamir::arith::Stage::Announcement);
+            let scoped_result = self.read_announcement(&mut r);
+            r.end_scope();
+            scoped_result
+        };
         let output = output.map(|o| r.b.k_to_e1(o));
         let claims = infallible(self.layout.verify_core(&mut r, clock, &output, self.shape.rate()));
         CoreRows {
@@ -78,7 +83,9 @@ impl<'p> ProofShape<'p> {
         let mut t = Transcript::new(b, &self.program.zk_session(), &output, source);
         let (claims, fits) = {
             let mut r = Rows::new(b, &mut t);
-            r.scope("announcement", |r| self.read_shape(r));
+            r.begin_scope(fiat_shamir::arith::Stage::Announcement);
+            self.read_shape(&mut r);
+            r.end_scope();
             let output = output.map(|o| Value::Public(r.b.k_to_e1(o)));
             let mut rec = Recorder::new(r);
             let core = infallible(self.layout.record_core(&mut rec, self.shape.rate(), &output));
@@ -203,8 +210,8 @@ mod tests {
         PerTable::from_fn(|t: TableId| usize::try_from(scalar(proof, t.index()).c0).expect("a height"))
     }
 
-    // The byte where the flock reductions' first message starts: past the announcement, then the commitment's root.
-    const FLOCK_START: usize = 24 * (N_TABLES + 2) + 32;
+    // The byte where the flock reductions' first message starts: past the announcement, three anchor-frame constants, the raw root and the anchor value.
+    const FLOCK_START: usize = 24 * (N_TABLES + 6) + 32;
 
     impl Fixture {
         // An honest run of a program, verified natively: its claims, its openings, and the heights it announces.

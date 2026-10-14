@@ -1,0 +1,270 @@
+{
+  "aeneas_version": "nightly-2026.10.09-d119a47",
+  "charon_version": "0.1.281",
+  "crate": "pcs",
+  "functions": [
+    {
+      "def_id": 24,
+      "lean_name": "PcsSource.stack_open.StackClaim.range",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::{pcs::stack_open::StackClaim<E>}::range",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 106,
+        "end_line": 116
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": false,
+      "is_rec": false,
+      "reducible": false
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement_loop0.body",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 314,
+        "end_line": 320
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.stack_open.check_statement"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement_loop0",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 314,
+        "end_line": 320
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 0, "pos": [ 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.stack_open.check_statement"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement_loop1_loop0.body",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 331,
+        "end_line": 337
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 2, "pos": [ 1, 0 ], "is_body": true },
+      "parent_lean_name": "PcsSource.stack_open.check_statement"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement_loop1_loop0",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 331,
+        "end_line": 337
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 2, "pos": [ 1, 0 ], "is_body": false },
+      "parent_lean_name": "PcsSource.stack_open.check_statement"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement_loop1.body",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 326,
+        "end_line": 343
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 1 ], "is_body": true },
+      "parent_lean_name": "PcsSource.stack_open.check_statement"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement_loop1",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 326,
+        "end_line": 343
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 1, "pos": [ 1 ], "is_body": false },
+      "parent_lean_name": "PcsSource.stack_open.check_statement"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement_loop2.body",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 348,
+        "end_line": 354
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 3, "pos": [ 2 ], "is_body": true },
+      "parent_lean_name": "PcsSource.stack_open.check_statement"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement_loop2",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 348,
+        "end_line": 354
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false,
+      "loop": { "id": 3, "pos": [ 2 ], "is_body": false },
+      "parent_lean_name": "PcsSource.stack_open.check_statement"
+    },
+    {
+      "def_id": 11,
+      "lean_name": "PcsSource.stack_open.check_statement",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::check_statement",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 306,
+        "end_line": 359
+      },
+      "is_opaque": false,
+      "can_fail": true,
+      "can_diverge": true,
+      "is_rec": false,
+      "reducible": false
+    }
+  ],
+  "types": [
+    {
+      "def_id": 13,
+      "lean_name": "PcsSource.fiat_shamir.transcript.TranscriptError",
+      "lean_file": "Pcs.lean",
+      "rust_name": "fiat_shamir::transcript::TranscriptError",
+      "is_local": false,
+      "source": {
+        "file": "crates/fiat_shamir/src/transcript.rs",
+        "begin_line": 45,
+        "end_line": 45
+      }
+    },
+    {
+      "def_id": 10,
+      "lean_name": "PcsSource.ring_switch.SliceClaim",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::ring_switch::SliceClaim",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/ring_switch.rs",
+        "begin_line": 340,
+        "end_line": 345
+      }
+    },
+    {
+      "def_id": 6,
+      "lean_name": "PcsSource.ring_switch.RingSwitch",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::ring_switch::RingSwitch",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/ring_switch.rs",
+        "begin_line": 365,
+        "end_line": 372
+      }
+    },
+    {
+      "def_id": 5,
+      "lean_name": "PcsSource.stack_open.StackClaim",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::stack_open::StackClaim",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/stack_open/mod.rs",
+        "begin_line": 71,
+        "end_line": 90
+      }
+    },
+    {
+      "def_id": 14,
+      "lean_name": "PcsSource.whir.config.ConfigError",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::whir::config::ConfigError",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/config/mod.rs",
+        "begin_line": 48,
+        "end_line": 55
+      }
+    },
+    {
+      "def_id": 8,
+      "lean_name": "PcsSource.whir.verify.WhirError",
+      "lean_file": "Pcs.lean",
+      "rust_name": "pcs::whir::verify::WhirError",
+      "is_local": true,
+      "source": {
+        "file": "crates/pcs/src/whir/verify.rs",
+        "begin_line": 21,
+        "end_line": 46
+      }
+    }
+  ],
+  "globals": [],
+  "trait_decls": [],
+  "trait_impls": []
+}

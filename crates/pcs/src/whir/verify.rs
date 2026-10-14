@@ -19,6 +19,7 @@ use crate::whir::config::{Config, ConfigError};
 use crate::whir::query::Padding;
 use crate::whir::sumcheck::RoundQuad;
 use fiat_shamir::TranscriptError;
+use fiat_shamir::arith::Stage;
 use primitives::field::F192;
 use thiserror::Error;
 
@@ -45,6 +46,14 @@ pub enum WhirError {
         /// The index of the level that does not fit.
         level: usize,
     },
+    /// The immutable commitment record has a different shape or domain context.
+    #[error("the immutable commitment record does not match its public context")]
+    CommitmentMismatch,
+    /// A hiding commitment received as an anchored one, an anchored one as a hiding one, or opened by a weighted claim.
+    ///
+    /// A hiding commitment has no anchor: its value would publish an evaluation of the hidden stack.
+    #[error("a hiding commitment has no anchor, and an anchored one opens through its statement")]
+    Anchoring,
     /// The opening has no ring-switched claim.
     #[error("the opening has no ring-switched claim")]
     NoRingClaim,
@@ -227,6 +236,12 @@ impl<R> Oracle<R> {
     }
 }
 
+/// A caller's terminal weight, evaluated once with static dispatch.
+/// The consumed provider keeps borrowed statement data within verification's lifetime without allocating a callback.
+pub(crate) trait WeightAt<V: OpeningVerifier> {
+    fn call(self, v: &mut V, point: &[V::E]) -> V::E;
+}
+
 /// Verify `sum_x f(x) * w(x) = target` for the witness `f` of `2^log_n` words committed at `root`.
 ///
 /// It takes no dense weight: `weight_at` evaluates the multilinear extension of `w` once, at the terminal point.
@@ -259,8 +274,11 @@ pub(crate) fn verify<V: OpeningVerifier>(
     n_lanes: usize,
     target: V::E,
     root: V::Root,
-    weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
+    weight_at: impl WeightAt<V>,
 ) -> Result<(), WhirError> {
+    // The typed wrapper checks shape before reading its record frame; keep
+    // direct internal callers safe too, without duplicating record binding.
+    check_config_shape(config, log_n)?;
     let initial_k = config.initial_k();
     let max = 1usize << initial_k;
     if n_lanes == 0 || n_lanes > max {
@@ -326,6 +344,46 @@ pub(crate) fn verify<V: OpeningVerifier>(
         oracle = w.oracle(root, i + 1, n_current)?;
     }
     unreachable!("the configuration has at least one level")
+}
+
+/// Check all source-dependent dimensions before shifts, reads or challenges.
+pub(crate) fn check_config_shape(config: &Config, log_n: usize) -> Result<(), WhirError> {
+    let bits = usize::BITS as usize;
+    let initial_k = config.initial_k();
+    if log_n >= bits || log_n <= initial_k {
+        return Err(WhirError::InvalidShape { level: 0 });
+    }
+    let mut remaining = log_n - initial_k;
+    if !remaining
+        .checked_add(config.log_inv_rates()[0])
+        .is_some_and(|depth| depth < bits)
+    {
+        return Err(WhirError::InvalidShape { level: 0 });
+    }
+    let mut level = 0;
+    let mut result = Ok(());
+    while level < config.level_ks().len() && result.is_ok() {
+        let k = config.level_ks()[level];
+        // An extension-field row holds three base words per interleaved value.
+        if k >= bits - 2 {
+            result = Err(WhirError::InvalidShape { level });
+        } else {
+            match remaining.checked_sub(k) {
+                None => result = Err(WhirError::InvalidShape { level }),
+                Some(next) => {
+                    remaining = next;
+                    if !remaining
+                        .checked_add(config.log_inv_rates()[level + 1])
+                        .is_some_and(|depth| depth > 0 && depth < bits)
+                    {
+                        result = Err(WhirError::InvalidShape { level });
+                    }
+                }
+            }
+        }
+        level += 1;
+    }
+    result
 }
 
 impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
@@ -419,7 +477,10 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         let queries = phase.sample(v);
         let lambda = v.verifier_message();
         let weights = v.powers(lambda, phase.count);
-        let sum = v.scope("rows", |v| enforced(v, &queries, &weights))?;
+        v.begin_scope(Stage::Rows);
+        let sum = enforced(v, &queries, &weights);
+        v.end_scope();
+        let sum = sum?;
         let intro = RoundQuad::read(v, sum)?;
 
         // Batch the OOD claims, then the query batch, each at the next power of the level's challenge.
@@ -461,7 +522,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         oracle: &Oracle<V::Root>,
         level_rs: &[V::E],
         n_current: usize,
-        weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
+        weight_at: impl WeightAt<V>,
     ) -> Result<(), WhirError> {
         let yr = v.prover_messages(1 << n_current)?;
         let phase = self.phase(self.config.level_steps(), oracle.depth());
@@ -478,7 +539,10 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
                 self.quad = RoundQuad::read(v, self.t_r)?;
             }
         }
-        v.scope("terminal", |v| self.terminal(v, &yr, &ris_tail, weight_at))
+        v.begin_scope(Stage::Terminal);
+        let result = self.terminal(v, &yr, &ris_tail, weight_at);
+        v.end_scope();
+        result
     }
 
     /// Check `weight * <yr, eq(ris_tail)> = t_r`.
@@ -494,7 +558,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         v: &mut V,
         yr: &[V::E],
         ris_tail: &[V::E],
-        weight_at: impl FnOnce(&mut V, &[V::E]) -> V::E,
+        weight_at: impl WeightAt<V>,
     ) -> Result<(), WhirError> {
         let tail = ris_tail.len();
         let zero = v.zero();
@@ -522,7 +586,7 @@ impl<'c, V: OpeningVerifier> WhirReplay<'c, V> {
         let mut full_point = self.ris.clone();
         full_point.extend_from_slice(ris_tail);
         full_point.rotate_left(self.config.initial_k());
-        let caller = weight_at(v, &full_point);
+        let caller = weight_at.call(v, &full_point);
         let weight = v.add(weight, caller);
         let folded_yr = v.mle(yr, ris_tail);
         let lhs = v.mul(weight, folded_yr);

@@ -1,0 +1,127 @@
+diff --git a/Aeneas/Tactic/Solver/BvTac/BvTac.lean b/Aeneas/Tactic/Solver/BvTac/BvTac.lean
+index 4f24de47..59d905a1 100644
+--- a/Aeneas/Tactic/Solver/BvTac/BvTac.lean
++++ b/Aeneas/Tactic/Solver/BvTac/BvTac.lean
+@@ -10,7 +10,7 @@ namespace Aeneas.BvTac
+ open Lean Lean.Meta Lean.Parser.Tactic Lean.Elab.Tactic
+ open Bvify Utils
+ 
+-structure Config extends Lean.Elab.Tactic.BVDecide.Frontend.BVDecideConfig, Bvify.Config where
++structure Config extends Lean.Elab.Tactic.BVDecide.BVDecideConfig, Bvify.Config where
+ 
+ meta section
+ declare_config_elab elabConfig Config
+@@ -84,7 +84,41 @@ meta partial def bvTacPreprocess (config : Config) (n : Option Expr): TacticM Un
+ elab "bv_tac_preprocess" config:Parser.Tactic.optConfig n:(colGt term)? : tactic => do
+   bvTacPreprocess (← elabConfig config) (← optElabTerm n)
+ 
+-open Lean.Elab.Tactic.BVDecide.Frontend Lean.Elab in
++-- The 4.34 frontend keys bit-vector expressions by their elaborated width. Generalize scalar projections at the alias used in the goal and retain the numeral syntax expected by the frontend.
++meta def canonicalScalarBvs : TacticM Unit := withMainContext do
++  let mut args : Array GeneralizeArg := #[]
++  let mut hyps : Array FVarId := #[]
++  for decl in ← getLCtx do
++    if !decl.isImplementationDetail then
++      hyps := hyps.push decl.fvarId
++      let ty ← withTransparency .all (whnf decl.type)
++      let projection := if ty.isAppOf ``Std.UScalar then some ``Std.UScalar.bv
++                        else if ty.isAppOf ``Std.IScalar then some ``Std.IScalar.bv
++                        else none
++      if let some projection := projection then
++        let aliasName? := match decl.type.consumeMData.getAppFn with
++          | .const name _ => some (name ++ `bv)
++          | _ => none
++        let env ← getEnv
++        let projection := match aliasName? with
++          | some name => if env.contains name then name else projection
++          | none => projection
++        args := args.push { expr := ← mkAppM projection #[decl.toExpr] }
++  unless args.isEmpty do
++    let (_, fields, firstGoal) ← (← getMainGoal).generalizeHyp args hyps
++    let mut goal := firstGoal
++    for field in fields.take args.size do
++      goal ← goal.withContext do
++        let ty ← inferType (.fvar field)
++        let_expr BitVec width := ty | return goal
++        let width ← withTransparency .all (whnf width)
++        let width := match width with
++          | .lit (.natVal n) => mkNatLit n
++          | width => width
++        return ← goal.changeLocalDecl field (mkApp (mkConst ``BitVec) width)
++    replaceMainGoal [goal]
++
++open Lean.Meta.Tactic.BVDecide Lean.Elab in
+ /-- `bv_tac n` solves goals about bit-vectors.
+ 
+ **Usage**: `bv_tac n` where `n` is the bitwidth to use for the bit-vectors.
+@@ -113,19 +147,21 @@ want to simplify to `BitVec.ofNat n a + BitVec.ofNat n b`).
+ -/
+ elab "bv_tac" config:Parser.Tactic.optConfig n:(colGt term)? : tactic =>
+   withMainContext do
+-  Tactic.focus do
++  Lean.Elab.Tactic.focus do
+   -- Preprocess
+   let config ← elabConfig config
+   trace[BvTac] "Input bitwidth: {n}"
+   bvTacPreprocess config (← optElabTerm n)
+   -- The preprocessing step may have proven the goal
+   Utils.allGoals do
++  canonicalScalarBvs
+   -- Call bv_decide
+   IO.FS.withTempFile fun _ lratFile => do
+     let config := config.toBVDecideConfig
+-    let cfg ← BVDecide.Frontend.TacticContext.new lratFile config
++    let cfg ← Lean.Meta.Tactic.BVDecide.TacticContext.new lratFile config
+     liftMetaFinishingTactic fun g => do
+-      discard <| bvDecide g cfg
++      let params ← Lean.Meta.Grind.mkDefaultParams {}
++      discard <| Lean.Meta.Grind.GrindM.run (params := params) <| bvDecide (.mvarIdTarget g) cfg
+ 
+ /-!
+ # Tests
+diff --git a/Aeneas/Tactic/Step/Step.lean b/Aeneas/Tactic/Step/Step.lean
+index 577576e0..bb6685a1 100644
+--- a/Aeneas/Tactic/Step/Step.lean
++++ b/Aeneas/Tactic/Step/Step.lean
+@@ -849,11 +849,10 @@ meta def tryApply (info : SpecInfo) (lifting : Option LiftingInfo) (args : Args)
+     | some th => do
+       trace[Step] "Lookuped up {kind}: {th}"
+       -- Apply the theorem
+-      let res ← do
+-        try
+-          let res ← stepWith info lifting args isLet fExpr th
+-          pure (some res)
+-        catch _ => pure none
++      try
++        let res ← stepWith info lifting args isLet fExpr th
++        pure (some res)
++      catch _ => pure none
+   match res with
+   | some res => pure (some res)
+   | none => pure none
+diff --git a/Aeneas/Tactic/Step/StepArraySpec.lean b/Aeneas/Tactic/Step/StepArraySpec.lean
+index 0b1e0b6c..7d04ac9b 100644
+--- a/Aeneas/Tactic/Step/StepArraySpec.lean
++++ b/Aeneas/Tactic/Step/StepArraySpec.lean
+@@ -110,7 +110,7 @@ meta def parseStepArraySpec
+   match stx with
+   | `($[$vis]? step_array_spec (name := $thm_name:ident) $array:ident [ $i:ident ]! { $x:ident => $pred:term } by $tac:tacticSeq) => do
+     -- Compute the visibility of the `step` theorem
+-    let vis : TSyntax `declModifiers ← do
++    let vis : TSyntax `Lean.Parser.Command.declModifiers ← do
+       match vis with
+       | none => `(declModifiers|@[step])
+       | some vis =>
+diff --git a/Aeneas/Tactic/Step/StepStar.lean b/Aeneas/Tactic/Step/StepStar.lean
+index 162f16e1..d7e3e834 100644
+--- a/Aeneas/Tactic/Step/StepStar.lean
++++ b/Aeneas/Tactic/Step/StepStar.lean
+@@ -461,7 +461,7 @@ where
+       {simpThms := #[← Step.stepSimpExt.getTheorems]}
+       (.targets #[] true)
+     /- We may have proven the goal already -/
+-    let tac : Array Syntax.Tactic ← do
++    let tac : Array (TaskOrDone (Option Syntax.Tactic)) ← do
+       let genSimp : Bool ← do
+         if r.isNone then pure true
+         else do

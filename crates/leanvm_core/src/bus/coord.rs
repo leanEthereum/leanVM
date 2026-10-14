@@ -2,7 +2,7 @@
 
 use crate::rec::FixedColumn;
 use fiat_shamir::VerifierState;
-use fiat_shamir::arith::{Arith, Native};
+use fiat_shamir::arith::{Native, PublicMle};
 use pcs::verifier::Recording;
 use primitives::field::{F64, F192};
 use std::sync::{Arc, OnceLock};
@@ -71,7 +71,7 @@ impl PublicColumn {
 /// Arithmetic that evaluates public columns.
 ///
 /// A recursive verifier takes a fixed column's evaluation as a hint rather than computing it.
-pub(crate) trait PublicColumns: Arith {
+pub(crate) trait PublicColumns: PublicMle {
     /// The multilinear extension of a public column at `point`, lowest coordinate first.
     fn column_mle(&mut self, column: &PublicColumn, point: &[Self::E]) -> Self::E {
         self.public_mle(&column.values, point)
@@ -84,7 +84,7 @@ impl PublicColumns for VerifierState<'_> {}
 
 impl PublicColumns for Recording<'_> {}
 
-impl<V: Arith> PublicColumns for Recorder<V> {}
+impl<V: PublicMle> PublicColumns for Recorder<V> {}
 
 impl Coord {
     /// Whether the coordinate is linear in the columns: it multiplies no column by another.

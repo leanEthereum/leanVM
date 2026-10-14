@@ -1,0 +1,64 @@
+{
+  "aeneas_revision": "d119a474f852781f8ae88a85424f2f8ba8407b82",
+  "upstream_backend_lean": "4.31.0",
+  "ported_backend_lean": "4.34.0",
+  "mathlib_revision": "5ed2965256430c3649e86755f9576b54eca72435",
+  "patches": [
+    {
+      "file": "backend-lean-4.31-shifts.patch",
+      "sha256": "c8cc58d006179f6a3b126597a52d7221ff635cf47c4b8ce6d560c15f16aa4972"
+    },
+    {
+      "file": "backend-lean-4.31-iterator-alias.patch",
+      "sha256": "1cae613f9ebc1b3976a3e02a038423c10e2e5f9989b6902fcf16d2aefa7ae2db"
+    },
+    {
+      "file": "backend-lean-4.31-string-kernel.patch",
+      "sha256": "740b6b3169c53777a36d905e2312027524781fdec46325f4256b4bf49a20a7ef"
+    },
+    {
+      "file": "backend-lean-4.34.patch",
+      "sha256": "423b739ee03f55de808f4a4c3aa187bcd38dbd2a670f1a03eb607a0206a51375"
+    },
+    {
+      "file": "backend-lean-4.34-stdlib.patch",
+      "sha256": "816b49da8c67bc8b714c7999a60172ff13090ee841d317186ee62aec5e965194"
+    },
+    {
+      "file": "backend-lean-4.34-vector.patch",
+      "sha256": "ece5387b1af91107a61a6a08084f9465cfda954f6446432a68a0f31490560bc2"
+    },
+    {
+      "file": "backend-lean-4.34-coinductive.patch",
+      "sha256": "3e6029ab31c73a0ad1100656574aa4b294fd387189b79dcbe9767f6ffcd0924d"
+    },
+    {
+      "file": "backend-lean-4.34-bvify-tests.patch",
+      "sha256": "a227add2f9a37e6eb36a96886fadbb1f1b463392218439ecfa0c72cd7a147442"
+    },
+    {
+      "file": "backend-lean-4.34-rendered-examples.patch",
+      "sha256": "4dc0e01d179af2a98b1b0d75e127557012a3826e590a9241e692f39f198c0d20"
+    },
+    {
+      "file": "backend-lean-4.34-slice.patch",
+      "sha256": "c3e7846d202bad1c1d0fb257007da330af75bed44bf6be3c4e005edf8cd2f3d3"
+    },
+    {
+      "file": "backend-lean-4.34-tactic-api.patch",
+      "sha256": "f72d9f19e6566b1834e11bd2329b02a552e2eeca4fccb9c225411d04849e0e9c"
+    },
+    {
+      "file": "backend-lean-4.34-test-compat.patch",
+      "sha256": "b65b1d635faf30d3d67b6d158d7f9ac94d91674fb7048265e819f6473c8115ed"
+    }
+  ],
+  "build_command": "LEAN_NUM_THREADS=2 lake build Aeneas AeneasMeta WhirAeneas.Std.Bulk WhirAeneas.Std.Guards WhirAeneas.Toolchain.StringLiteral",
+  "build_observation": "Both backend libraries and stdlib content/guard lemmas check in one Lean 4.34.0 environment. Genuine BvTac, Step, tuple, and coinduction examples are preserved; obsolete wording-only diagnostics are removed.",
+  "compatibility_option_scope": "backward.isDefEq.respectTransparency false is confined to coinductive modules and their coinductive test. Slice reconstruction uses the checked slice extensionality theorem instead of that compatibility option.",
+  "string_literal_before": "WhirAeneas.Toolchain.assertMessage depends on WhirAeneas.Toolchain.assertMessage._native.decide.ax_1 with the unpatched String.toStr default proof.",
+  "string_literal_after": "WhirAeneas.Toolchain.assertMessage depends only on propext, Classical.choice and Quot.sound with the kernel-checked default proof.",
+  "exported_helper_audit": "WhirAeneas.Audit checks generated function constants and exhaustively audits all theorem constants in WhirAeneas and Aeneas.Std.WrappingShiftRhs. The current 28-theorem census and the generated function audits contain only subsets of propext, Classical.choice and Quot.sound; the audit fails on any project axiom declaration or other transitive axiom.",
+  "model_execution": "Importing actual Whir.FieldTower from the pinned #551 package and running compiled E operations returns (27,14,12) for (2,3,4)*(5,6,7), with additive zero, multiplicative identity, and subtraction checked through the canonical executable superclass dictionaries.",
+  "boundary": "This portability and helper audit is not full verifier extraction or an acceptance/rejection correspondence theorem. Capacity, allocation and OOM behavior are not supplied by Vec content lemmas. Final anchored verifier/model source pins remain a separate prerequisite."
+}

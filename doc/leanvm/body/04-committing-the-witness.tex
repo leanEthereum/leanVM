@@ -21,11 +21,11 @@ the zero padding contributing nothing. An evaluation claim $\widetilde P_i(\zeta
 \]
 a weighted sum over $\widetilde q$ with weight $W(w)=\eq((\zeta,\mathsf{sel}_i),w)$.
 
-\paragraph{Batching.} By the identity above, the claims the protocol raises on the $P_i$ transfer to a list of claims $\langle W_j,\widetilde q\rangle=c_j$ on the stack, with $\E$-valued weights and targets. The verifier then samples $\lambda\in\E$, and it remains to prove
+\paragraph{Batching.} The public commitment to $q$ is the immutable record $\mathsf{cm}=(c_{\mathrm{pre}},s,R,a,v_a)$ of Annex~\ref{annex:pcs}, including the original pre-commit transcript context and one commitment-time anchor sampled after the shape and root and before any opening claim. Each opening first binds and checks a deterministic frame containing that full record in its current session; this does not resample the point or replace the advertised value. Let $A_{s,a}$ be its equality weight restricted to the occupied prefix, with target $v_a$. The ring-switched family is one weighted claim $(W_{\mathrm{rs}},c_{\mathrm{rs}})$; let the $p$ pooled point claims be $(W_j,c_j)$ for $j=0,\dots,p-1$. After the family's challenge $\rsgamma$ and shared map $\Phi$, and after every claim value is bound, the verifier samples one $\lambda\in\E$, and it remains to prove
 \[
-  \Bigl\langle \sum_j\lambda^{j-1}W_j,\;\widetilde q\Bigr\rangle\qeq\sum_j\lambda^{j-1}c_j
+  \Bigl\langle W_{\mathrm{rs}}+\sum_{j=0}^{p-1}\lambda^{j+1}W_j+\lambda^{p+1}A_{s,a},\;\widetilde q\Bigr\rangle\qeq c_{\mathrm{rs}}+\sum_{j=0}^{p-1}\lambda^{j+1}c_j+\lambda^{p+1}v_a
 \]
-via the PCS (Annex~\ref{annex:pcs}).
+via one PCS opening (Annex~\ref{annex:pcs}). The family takes power zero, the point claims take the next powers, and the immutable anchor takes the final power. All weights vanish on the omitted zero-tail lanes. At the terminal fold point the verifier evaluates the multilinear extension of the supported anchor weight, not a full-cube equality product. Every later opening uses this same record and context without replacing its point or value.
 
 \subsection{Committing to booleans via Ring-Switching}\label{sec:ringswitch}
 

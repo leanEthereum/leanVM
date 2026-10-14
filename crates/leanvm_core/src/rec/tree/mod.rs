@@ -889,18 +889,20 @@ mod tests {
     // A program whose output is its one advice word, after a loop that reads every framework block.
     fn program() -> &'static Program {
         static PROGRAM: OnceLock<Program> = OnceLock::new();
-        PROGRAM.get_or_init(|| {
-            let text = Asm::new()
-                .li(Reg::T0, Region::ADVICE.base())
-                .load(Ld, Reg::A0, 0, Reg::T0)
-                .li(Reg::T1, 9)
-                .label("loop")
-                .i(Addi, Reg::T1, Reg::T1, -1)
-                .branch(Bne, Reg::T1, Reg::ZERO, "loop")
-                .exit()
-                .finish();
-            Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
-        })
+        PROGRAM.get_or_init(|| program_with_image(vec![3, 5]))
+    }
+
+    fn program_with_image(image: Vec<u64>) -> Program {
+        let text = Asm::new()
+            .li(Reg::T0, Region::ADVICE.base())
+            .load(Ld, Reg::A0, 0, Reg::T0)
+            .li(Reg::T1, 9)
+            .label("loop")
+            .i(Addi, Reg::T1, Reg::T1, -1)
+            .branch(Bne, Reg::T1, Reg::ZERO, "loop")
+            .exit()
+            .finish();
+        Program::new(&text, Region::TEXT.base(), image, 2, 0).expect("a valid program")
     }
 
     // Four leaves of distinct outputs, a tree of first level 2 and arity 2 over them, and its proofs.
@@ -1364,8 +1366,17 @@ mod tests {
         );
     }
 
+    #[test]
+    fn proofs_cannot_move_to_another_program_or_tree_context() {
+        let f = fixture();
+        let other = program_with_image(vec![3, 6]);
+        assert!(other.verify(f.leaves[0].1, &f.leaves[0].0).is_err());
+        let tree = Tree::new(&other, f.tree.shape).expect("the same tree shape for another program");
+        assert!(tree.verify(&f.root, &f.outputs()).is_err());
+    }
+
     // A tree of outputs is as protocol version `leanvm-tree-12` built it, before the tiers: the same heights, statement
-    // layout and session tag but for the version.
+    // layout and session tag but for the version and the program digest's domain.
     #[test]
     fn a_tree_of_outputs_is_unchanged_from_tree_12() {
         let d = &fixture().tree.design;
@@ -1388,8 +1399,8 @@ mod tests {
         assert_eq!(
             d.session_under(b"leanvm-tree-12").0,
             [
-                131, 35, 57, 135, 111, 161, 159, 65, 198, 173, 203, 59, 29, 190, 76, 72, 162, 204, 82, 150, 192, 101,
-                73, 98, 94, 12, 195, 130, 18, 239, 205, 34
+                247, 166, 231, 150, 156, 175, 83, 52, 77, 212, 13, 127, 191, 214, 23, 22, 144, 95, 94, 254, 74, 201,
+                121, 11, 77, 77, 18, 62, 212, 144, 238, 99
             ]
         );
     }
@@ -2375,8 +2386,9 @@ mod tests {
             (tree.verify_claims(&narrowed.proof, &part)).expect("a narrowed root");
         }
 
-        // A claim-set tree of one tier keeps the heights, statement layout and session tag (but for the version) of protocol
-        // version `leanvm-tree-12`, before the tiers; its nodes' circuits add the absent places.
+        // A claim-set tree of one tier keeps the heights, statement layout and session tag (but for the version and the
+        // program digest's domain) of protocol version `leanvm-tree-12`, before the tiers; its nodes' circuits add the
+        // absent places.
         #[test]
         fn a_claim_set_tree_of_one_tier_keeps_tree_12s_heights_layout_and_tag() {
             let d = &fixture().tree.design;
@@ -2399,8 +2411,8 @@ mod tests {
             assert_eq!(
                 d.session_under(b"leanvm-tree-12").0,
                 [
-                    63, 98, 217, 38, 13, 142, 156, 140, 68, 244, 21, 118, 140, 239, 62, 3, 236, 119, 216, 49, 83, 51,
-                    42, 33, 6, 32, 202, 209, 96, 204, 87, 245
+                    214, 206, 89, 113, 86, 183, 114, 144, 71, 245, 141, 47, 237, 56, 44, 145, 221, 141, 102, 235, 146,
+                    220, 184, 130, 33, 114, 219, 21, 201, 117, 117, 130
                 ]
             );
         }

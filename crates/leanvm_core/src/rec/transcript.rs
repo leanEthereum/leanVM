@@ -9,7 +9,7 @@
 //! Every message the rows absorb is whole 64-bit words, so the native byte framing is a word framing here.
 
 use super::circuit::{Builder, Compression, Dw, Ew, Kw, PARAM_IV, zero_prefix};
-use fiat_shamir::{Blake2sDuplex, FromNarg, ProofOfWork, ProofTranscript, Role, SessionId};
+use fiat_shamir::{Blake2sDuplex, FromNarg, ProofOfWork, ProofTranscript, Role, SessionId, TranscriptContext};
 use pcs::merkle::Openings;
 use primitives::field::F192;
 
@@ -98,6 +98,24 @@ impl<'a> Transcript<'a> {
             t.absorb_word(b, word);
         }
         t
+    }
+
+    /// Capture the logical duplex state without emitting rows or changing either transport cursor.
+    ///
+    /// Only live input words are included. The output buffer is a derivable cache, not independent logical state.
+    pub fn context(&self) -> TranscriptContext<Kw, Dw> {
+        let mut pending = [None; 8];
+        for (slot, &word) in pending.iter_mut().zip(&self.pending[..self.n_pending]) {
+            *slot = Some(word);
+        }
+        TranscriptContext {
+            state: self.cv,
+            pending,
+            pending_bytes: self.n_pending * 8,
+            first: self.first,
+            previous: self.previous,
+            squeezed: self.squeezed,
+        }
     }
 
     /// Whether every message and hint of the proof was read, and nothing past them.
@@ -308,8 +326,10 @@ impl<'a> Transcript<'a> {
 mod tests {
     use super::*;
     use crate::rec::circuit::Unsatisfied;
-    use fiat_shamir::ProverState;
+    use crate::rec::verifier::Rows;
+    use fiat_shamir::{ProverState, VerifierState};
     use pcs::merkle::{Hash, hash_leaf, hash_pair};
+    use pcs::verifier::OpeningVerifier;
     use primitives::field::F64;
 
     const INSTANCE: [u64; 2] = [3, 4];
@@ -347,27 +367,45 @@ mod tests {
     }
 
     // The same run in rows, from the given source: its circuit, its challenges, and its failures.
-    fn rows(source: ProofSource<'_>) -> (crate::rec::circuit::Circuit, Vec<F192>, Vec<Unsatisfied>) {
+    fn rows(source: ProofSource<'_>, capture: bool) -> (crate::rec::circuit::Circuit, Vec<F192>, Vec<Unsatisfied>) {
         let mut b = Builder::new();
         let instance = INSTANCE.map(|w| b.k_const(w));
         let mut t = Transcript::new(&mut b, &session(), &instance, source);
         let mut challenges = Vec::new();
+        if capture {
+            let _ = Rows::new(&mut b, &mut t).context();
+        }
         for (stage, (absorbed, squeezed)) in RUNS.into_iter().enumerate() {
             for _ in 0..absorbed {
                 t.prover_message(&mut b);
+                if capture {
+                    let _ = Rows::new(&mut b, &mut t).context();
+                }
             }
             for _ in 0..squeezed {
                 let c = t.verifier_message(&mut b);
                 challenges.push(b.e(c));
+                if capture {
+                    let _ = Rows::new(&mut b, &mut t).context();
+                }
             }
             if stage == 2 {
                 t.prover_root(&mut b);
                 t.check_pow(&mut b, 6);
+                if capture {
+                    let _ = Rows::new(&mut b, &mut t).context();
+                }
             }
         }
         t.check_pow(&mut b, 1);
+        if capture {
+            let _ = Rows::new(&mut b, &mut t).context();
+        }
         let c = t.verifier_message(&mut b);
         challenges.push(b.e(c));
+        if capture {
+            let _ = Rows::new(&mut b, &mut t).context();
+        }
         assert!(t.finished());
         let finished = b.finish();
         (finished.circuit, challenges, finished.failures)
@@ -377,12 +415,81 @@ mod tests {
     fn the_rows_replay_the_native_transcript() {
         // Same proof, same challenges, and every row satisfied.
         let (proof, expected) = native();
-        let (circuit, challenges, failures) = rows(ProofSource::Proof(&proof, &[]));
+        let (circuit, challenges, failures) = rows(ProofSource::Proof(&proof, &[]), false);
         assert!(failures.is_empty(), "{failures:?}");
         assert_eq!(challenges, expected);
 
         // Built from the shape alone, the circuit is the same.
-        assert_eq!(circuit, rows(ProofSource::Shape).0);
+        assert_eq!(circuit, rows(ProofSource::Shape, false).0);
+        let (captured, captured_challenges, captured_failures) = rows(ProofSource::Proof(&proof, &[]), true);
+        assert_eq!(captured, circuit, "capturing context emits no constraints");
+        assert_eq!(
+            captured_challenges, challenges,
+            "capturing context does not change future challenges"
+        );
+        assert!(captured_failures.is_empty(), "{captured_failures:?}");
+        assert_eq!(captured, rows(ProofSource::Shape, true).0);
+    }
+
+    fn same_context(b: &mut Builder, t: &mut Transcript<'_>, native: &VerifierState<'_>) {
+        let actual = Rows::new(b, t).context();
+        let expected = native.context();
+        assert_eq!(b.d(actual.state), primitives::hash::digest_words(&expected.state));
+        assert_eq!(
+            actual.pending.map(|w| w.map(|w| b.k(w))),
+            expected.pending.map(|w| w.map(|w| w.0))
+        );
+        assert_eq!(actual.pending_bytes, expected.pending_bytes);
+        assert_eq!(actual.first, expected.first);
+        assert_eq!(actual.previous, expected.previous);
+        assert_eq!(actual.squeezed, expected.squeezed);
+    }
+
+    #[test]
+    fn the_rows_capture_the_live_native_context() {
+        let (proof, _) = native();
+        let mut v = VerifierState::new(&session(), &INSTANCE, &proof);
+        let mut b = Builder::new();
+        let instance = INSTANCE.map(|w| b.k_const(w));
+        let mut t = Transcript::new(&mut b, &session(), &instance, ProofSource::Proof(&proof, &[]));
+        same_context(&mut b, &mut t, &v);
+        for (stage, (absorbed, squeezed)) in RUNS.into_iter().enumerate() {
+            for _ in 0..absorbed {
+                let expected: F192 = v.prover_message().expect("a field message");
+                let actual = t.prover_message(&mut b);
+                assert_eq!(b.e(actual), expected);
+                same_context(&mut b, &mut t, &v);
+            }
+            for _ in 0..squeezed {
+                let expected: F192 = v.verifier_message();
+                let actual = t.verifier_message(&mut b);
+                assert_eq!(b.e(actual), expected);
+                same_context(&mut b, &mut t, &v);
+            }
+            if stage == 2 {
+                let expected: [u8; 32] = v.prover_message().expect("a raw root");
+                let actual = t.prover_root(&mut b);
+                assert_eq!(b.d(actual), primitives::hash::digest_words(&expected));
+                same_context(&mut b, &mut t, &v);
+                v.check_pow(6).expect("honest work");
+                t.check_pow(&mut b, 6);
+                same_context(&mut b, &mut t, &v);
+            }
+        }
+        v.check_pow(1).expect("honest work");
+        t.check_pow(&mut b, 1);
+        same_context(&mut b, &mut t, &v);
+        let expected: F192 = v.verifier_message();
+        let actual = t.verifier_message(&mut b);
+        assert_eq!(b.e(actual), expected);
+        same_context(&mut b, &mut t, &v);
+        v.check_eof().expect("the proof was read");
+        assert!(t.finished());
+        let expected: [u8; 32] = v.verifier_message();
+        let actual = t.digest(&mut b);
+        assert_eq!(b.d(actual), primitives::hash::digest_words(&expected));
+        same_context(&mut b, &mut t, &v);
+        assert!(b.finish().failures.is_empty());
     }
 
     #[test]
@@ -395,7 +502,7 @@ mod tests {
         let missed = (0..64u8).find_map(|bit| {
             let mut forged = proof.clone();
             forged.narg[last + usize::from(bit / 8)] ^= 1 << (bit % 8);
-            let (_, _, failures) = rows(ProofSource::Proof(&forged, &[]));
+            let (_, _, failures) = rows(ProofSource::Proof(&forged, &[]), false);
             (!failures.is_empty()).then_some(failures)
         });
         assert!(missed.is_some(), "no forged nonce failed");

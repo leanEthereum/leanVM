@@ -24,6 +24,7 @@
 //!     verify    the succinct verifier
 //! ```
 
+pub(crate) mod anchor;
 mod commit;
 pub(crate) mod config;
 mod prove;
@@ -31,6 +32,7 @@ mod query;
 mod sumcheck;
 mod verify;
 
+pub use commit::{Commitment, CommitmentShape};
 pub use config::{
     Config, ConfigError, INITIAL_FOLDING_FACTOR, L0_LIST_BITS, LOG_INV_RATE_0, MAX_LOG_INV_RATE, MAX_LOG_N,
     MIN_LOG_INV_RATE, MIN_LOG_N, MIN_LOG_N_HIDING, SECURITY_BITS,
@@ -38,18 +40,19 @@ pub use config::{
 pub use query::Stratum;
 pub use verify::WhirError;
 
-pub(crate) use commit::BaseCommitment;
+pub(crate) use commit::{BaseCommitment, commit, receive_commitment, send_record_binding, verify_record_binding};
 pub(crate) use config::RANDOM_LANES;
 pub(crate) use prove::prove;
 pub(crate) use query::sample_queries;
 pub(crate) use sumcheck::{DenseWeight, INITIAL_BASIS_CHUNK, InitialWeight};
-pub(crate) use verify::verify;
+pub(crate) use verify::{WeightAt, check_config_shape, verify};
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::merkle::{Hash, PrunedMerklePaths};
     use crate::ntt::{NovelBasis, basis_values};
+    use crate::verifier::OpeningVerifier;
     use crate::whir::config::tests::test_config_for;
     use crate::whir::config::{QUERY_GRINDING_BITS, RANDOM_LANES};
     use crate::whir::query::{Padding, QueryBatch};
@@ -62,7 +65,7 @@ mod tests {
     struct Instance {
         vc: Config,
         log_n: usize,
-        /// The eq-point behind `b_initial` (for the succinct closure).
+        /// The eq-point behind `b_initial` (for the closed-form weight).
         point: Vec<F192>,
         b_initial: Vec<F192>,
         target: F192,
@@ -75,11 +78,13 @@ mod tests {
         let pc = test_config_for(log_n);
         let mut rng = Rng::new(seed);
         let witness: Vec<F64> = (0..1usize << log_n).map(|_| F64(rng.next_u64())).collect();
-        let pd = BaseCommitment::new(&witness, log_n, pc.initial_k(), pc.log_inv_rates()[0], &[]);
+        let mut commit_ps = ProverState::new(&SessionId::new(b"whir-commit"), &0u64);
+        let (record, pd) = commit(&mut commit_ps, &witness, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
         let point: Vec<F192> = (0..log_n).map(|_| rng.ext()).collect();
         let b_initial = eq_table(&point);
         let target = inner_product_base(&witness, &b_initial);
         let mut ps = ProverState::new(&SessionId::new(b"whir-test"), &0u64);
+        ps.prover_message(&record.root());
         let weight = DenseWeight {
             weight: b_initial.to_vec(),
             block: 1 << (log_n - pc.initial_k()),
@@ -91,7 +96,7 @@ mod tests {
             point,
             b_initial,
             target,
-            root: pd.root(),
+            root: record.root(),
             fs: ps.into_proof(),
         }
     }
@@ -101,12 +106,32 @@ mod tests {
         inner_product(table, &eq_table(point))
     }
 
+    struct EqWeight<'a>(&'a [F192]);
+
+    impl<V: crate::verifier::OpeningVerifier<E = F192>> WeightAt<V> for EqWeight<'_> {
+        fn call(self, _: &mut V, point: &[F192]) -> F192 {
+            eq_eval(self.0, point)
+        }
+    }
+
+    struct DenseWeightAt<'a>(&'a [F192]);
+
+    impl<V: crate::verifier::OpeningVerifier<E = F192>> WeightAt<V> for DenseWeightAt<'_> {
+        fn call(self, _: &mut V, point: &[F192]) -> F192 {
+            dense_mle(self.0, point)
+        }
+    }
+
     fn verify_with(
         inst: &Instance,
         fs: &ProofTranscript,
-        eval_b_at: impl Fn(&[F192]) -> F192,
+        weight_at: impl for<'v> WeightAt<VerifierState<'v>>,
     ) -> Result<(), WhirError> {
         let mut vs = VerifierState::new(&SessionId::new(b"whir-test"), &0u64, fs);
+        let root = vs.next_root()?;
+        if root != inst.root {
+            return Err(WhirError::CommitmentMismatch);
+        }
         verify(
             &mut vs,
             &inst.vc,
@@ -114,18 +139,18 @@ mod tests {
             1 << inst.vc.initial_k(),
             inst.target,
             inst.root,
-            |_, point| eval_b_at(point),
+            weight_at,
         )
     }
 
     /// The weight evaluated in closed form at the terminal fold point.
     fn verify_closed_form(inst: &Instance, fs: &ProofTranscript) -> bool {
-        verify_with(inst, fs, |fold_point| eq_eval(&inst.point, fold_point)).is_ok()
+        verify_with(inst, fs, EqWeight(&inst.point)).is_ok()
     }
 
     /// The weight evaluated from its whole table at the terminal fold point.
     fn verify_dense_weight(inst: &Instance, fs: &ProofTranscript) -> bool {
-        verify_with(inst, fs, |fold_point| dense_mle(&inst.b_initial, fold_point)).is_ok()
+        verify_with(inst, fs, DenseWeightAt(&inst.b_initial)).is_ok()
     }
 
     /// Both weight evaluations on the same proof, asserting they agree.
@@ -253,7 +278,7 @@ mod tests {
         let mut short = inst.fs.clone();
         short.narg.truncate(1);
         assert_eq!(
-            verify_with(&inst, &short, |point| eq_eval(&inst.point, point)),
+            verify_with(&inst, &short, EqWeight(&inst.point)),
             Err(WhirError::Transcript(TranscriptError::Malformed { index: 0 })),
         );
         for idx in (0..inst.fs.narg.len()).step_by(5) {
@@ -269,9 +294,9 @@ mod tests {
 
     #[test]
     fn truncated_lanes_match_an_explicit_zero_tail() {
-        // Invariant: committing only the lanes that carry data is committing the whole stack with a zero tail.
-        //
-        // Same root, the same transcript, and the verifier accepts against the weight over the whole cube.
+        // Kernel invariant: dropping the witness's zero tail preserves its root and
+        // recursive proof. The immutable public record additionally binds n_lanes,
+        // so complete commitment/opening transcripts deliberately differ by shape.
         // `log_n = 18` puts the lane block over the fold's task chunk, so the fold runs
         // several x-chunks per block; at 13 it is one chunk per block. Both matter: the
         // chunked path is what production takes, and it is where a message pair could
@@ -289,14 +314,16 @@ mod tests {
                 let target = inner_product_base(&witness, &b_initial);
 
                 let prove_with = |msg: &[F64], b: &[F192]| {
-                    let pd = BaseCommitment::new(msg, log_n, pc.initial_k(), pc.log_inv_rates()[0], &[]);
+                    let mut commit_ps = ProverState::new(&SessionId::new(b"whir-commit"), &0u64);
+                    let (record, pd) = commit(&mut commit_ps, msg, log_n, pc.initial_k(), pc.log_inv_rates()[0]);
                     let mut ps = ProverState::new(&SessionId::new(b"whir-test"), &0u64);
+                    ps.prover_message(&record.root());
                     let weight = DenseWeight {
                         weight: b.to_vec(),
                         block: lane_block,
                     };
                     prove(&pc, log_n, msg, &weight, target, &pd, &mut ps);
-                    (pd.root(), ps.into_proof())
+                    (record.root(), ps.into_proof())
                 };
                 let (root_trunc, fs_trunc) = prove_with(&witness[..used], &b_initial[..used]);
                 let (root_full, fs_full) = prove_with(&witness, &b_initial);
@@ -328,9 +355,19 @@ mod tests {
                 // The verifier evaluates the weight over the whole `2^log_n` cube.
                 let verify = |fs: &ProofTranscript| {
                     let mut vs = VerifierState::new(&SessionId::new(b"whir-test"), &0u64, fs);
-                    verify(&mut vs, &pc, log_n, n_lanes, target, root_trunc, |_, point| {
-                        dense_mle(&b_initial, point)
-                    })
+                    let root = vs.next_root()?;
+                    if root != root_trunc {
+                        return Err(WhirError::CommitmentMismatch);
+                    }
+                    verify(
+                        &mut vs,
+                        &pc,
+                        log_n,
+                        n_lanes,
+                        target,
+                        root_trunc,
+                        DenseWeightAt(&b_initial),
+                    )
                 };
                 assert_eq!(verify(&fs_trunc), Ok(()), "verify failed at n_lanes = {n_lanes}");
 
@@ -374,8 +411,8 @@ mod tests {
                 weight[..used].copy_from_slice(&rng.ext_vec(used));
                 let target = inner_product_base(&witness, &weight[..used]);
 
-                let pd = BaseCommitment::new(&witness, log_n, pc.initial_k(), log_inv_rate, &[]);
                 let mut ps = ProverState::new(&SessionId::new(b"whir-test"), &0u64);
+                let (record, pd) = commit(&mut ps, &witness, log_n, pc.initial_k(), log_inv_rate);
                 let table = DenseWeight {
                     weight: weight[..used].to_vec(),
                     block: lane_block,
@@ -385,9 +422,16 @@ mod tests {
 
                 let check = |target: F192| {
                     let mut vs = VerifierState::new(&SessionId::new(b"whir-test"), &0u64, &fs);
-                    verify(&mut vs, &pc, log_n, n_lanes, target, pd.root(), |_, point| {
-                        dense_mle(&weight, point)
-                    })
+                    receive_commitment(&mut vs, log_n, pc.initial_k(), log_inv_rate, n_lanes)?;
+                    verify(
+                        &mut vs,
+                        &pc,
+                        log_n,
+                        n_lanes,
+                        target,
+                        record.root(),
+                        DenseWeightAt(&weight),
+                    )
                 };
                 let label = format!("rate={log_inv_rate}, n_lanes={n_lanes}");
                 assert_eq!(check(target), Ok(()), "{label}");

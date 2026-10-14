@@ -12,7 +12,7 @@ The construction is VEIL's compiler~\cite{DHRR26}. The plain protocol runs uncha
 A zero-knowledge proof has a session of its own, its tag naming another protocol, so no challenge of one kind of proof is one of the other. Its bytes carry another magic, \texttt{LVMZ}. In order:
 \begin{enumerate}[itemsep=1pt,topsep=2pt]
 \item each table's height and the rate, in the clear;
-\item the stack's root, a hiding commitment (\S\ref{sec:pcs-zk}), then the key commitment's root (\S\ref{zk:keys});
+\item the stack's root, a hiding commitment without an anchor (\S\ref{sec:pcs-zk}), then the key commitment's root (\S\ref{zk:keys});
 \item under keys: the final clock's free bits, Flock's reductions, the bus, the table sumcheck, and the opening up to its lane fold;
 \item in the clear: the rest of the opening, from its revealed claim on;
 \item in the clear: the public evaluations the deferred claims need (\S\ref{zk:deferred});

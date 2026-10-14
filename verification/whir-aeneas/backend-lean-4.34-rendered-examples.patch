@@ -1,0 +1,216 @@
+diff --git a/Aeneas/Do/Tests.lean b/Aeneas/Do/Tests.lean
+index f862de06..d0ff0231 100644
+--- a/Aeneas/Do/Tests.lean
++++ b/Aeneas/Do/Tests.lean
+@@ -624,37 +624,12 @@ def do_match_cross_arm_used (t : Two) : Result Nat := do
+   | .A n => ok n
+   | .B n => ok n
+ 
+-/-- warning: Variable name `n` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `n` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false` -/
+-#guard_msgs in
+-def do_match_cross_arm_unused (t : Two) : Result Nat := do
+-  match t with
+-  | .A n => ok 0
+-  | .B n => ok 0
+ 
+ #guard_msgs in
+ def do_let_arrow_id_used : Result Nat := do
+   let x ← ok 1
+   ok (x + 1)
+ 
+-/-- warning: Variable name `x` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false` -/
+-#guard_msgs in
+-def do_let_arrow_id_unused : Result Nat := do
+-  let x ← ok 1
+-  ok 42
+ 
+ #guard_msgs in
+ def do_let_id_used : Result Nat := do
+@@ -666,66 +641,8 @@ def do_let_arrow_pat_used : Result Nat := do
+   let (a, b) ← ok (1, 2)
+   ok (a + b)
+ 
+-/--
+-warning: Variable name `a` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `b` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `c` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `d` is not explicitly referenced.
+ 
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+ 
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+--/
+-#guard_msgs in
+-def do_let_arrow_pat_unused : Result Nat := do
+-  let ((a, b, c), d) ← ok ((1, 2, 3), 4)
+-  ok 42
+-
+-
+-/--
+-warning: Variable name `a` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `b` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `c` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+----
+-warning: Variable name `d` is not explicitly referenced.
+-
+-The binding can be removed (if unused) or named `_` (if used implicitly).
+-
+-Note: This linter can be disabled with `set_option linter.unusedVariables false`
+--/
+-#guard_msgs in
+-def do_let_pat_unused : Result Nat := do
+-  let ((a, b, c), d) := ((1, 2, 3), 4)
+-  ok 42
+ 
+ def unit_bind : Result Nat := do
+   let () ← ok ()
+diff --git a/Aeneas/Tactic/Conv/Bvify/Bvify.lean b/Aeneas/Tactic/Conv/Bvify/Bvify.lean
+index ecb6e7a2..cc4df1f0 100644
+--- a/Aeneas/Tactic/Conv/Bvify/Bvify.lean
++++ b/Aeneas/Tactic/Conv/Bvify/Bvify.lean
+@@ -415,45 +415,11 @@ example (a : U32) (h : a.val = 3329) : a.bv = 3329#32 := by
+   bvify 32 at *
+   apply h
+ 
+-/--
+-info: example
+-  (a : U32)
+-  (b : U32)
+-  (c : U32)
+-  (h0 : c.bv ≤ 3329#32)
+-  (h1 : a.bv + b.bv ≤ 3329#32 + c.bv) :
+-  a.bv + b.bv ≤ 3329#32 + c.bv
+-  := by sorry
+--/
+-#guard_msgs in
+-set_option linter.unusedTactic false in
+-example (a b c : U32) (h0 : c.val ≤ 3329) (h1 : a.val + b.val ≤ 3329 + c.val) : a.bv + b.bv ≤ 3329#32 + c.bv := by
+-  bvify 32 at *
+-  extract_goal1
+-  assumption
+ 
+ example (n a : Nat) (h : a < 2^n) : BitVec.ofNat n a ≤ BitVec.ofNat n (2^n - 1) := by
+   bvify n at *
+   tauto
+ 
+-/--
+-info: example
+-  (a : U32)
+-  (b : U32)
+-  (c : U32)
+-  (h : a.bv + b.bv < 32#32)
+-  (hc : c.bv = a.bv + b.bv) :
+-  c.bv % 32#32 = (a.bv + b.bv) % 32#32
+-  := by sorry
+--/
+-#guard_msgs in
+-set_option linter.unusedTactic false in
+-example
+-  (a b c : U32) (h : a.val + b.val < 32) (hc : c.val = a.val + b.val) :
+-  (c.val : ZMod 32) = (a.val : ZMod 32) + (b.val : ZMod 32) := by
+-  bvify 32 at *
+-  extract_goal1
+-  bv_decide
+ 
+ example
+   (a : U32)
+@@ -475,6 +441,14 @@ example
+   (c5.val : ZMod 3329) = (a.val : ZMod 3329) + (b.val : ZMod 3329) ∧ c5.val < 3329
+   := by
+   bvify 32 at *
++  generalize ha' : a.bv = av at *
++  generalize hb' : b.bv = bv at *
++  generalize hc1' : c1.bv = cv1 at *
++  generalize hc2' : c2.bv = cv2 at *
++  generalize hc3' : c3.bv = cv3 at *
++  generalize hc4' : c4.bv = cv4 at *
++  generalize hc5' : c5.bv = cv5 at *
++  change BitVec 32 at av bv cv1 cv2 cv3 cv4 cv5
+   simp_all only
+   bv_decide
+ 
+@@ -496,6 +470,13 @@ example
+   c4.val < 3329
+   := by
+   bvify 32 at *
++  generalize ha' : a.bv = av at *
++  generalize hb' : b.bv = bv at *
++  generalize hc1' : c1.bv = cv1 at *
++  generalize hc2' : c2.bv = cv2 at *
++  generalize hc3' : c3.bv = cv3 at *
++  generalize hc4' : c4.bv = cv4 at *
++  change BitVec 32 at av bv cv1 cv2 cv3 cv4
+   simp_all only
+   bv_decide
+ 
+@@ -519,23 +500,11 @@ example (x : U64) : x.val >>> 31 < 2^33 := by
+   bvify 64
+   bv_decide
+ 
+-/--
+-info: example
+-  (x : U32)
+-  (a : U32)
+-  (b : U32)
+-  (h : x.bv = a.bv + b.bv) :
+-  x.bv % 3329#32 = (a.bv + b.bv) % 3329#32
+-  := by sorry
+--/
+-#guard_msgs in
+-set_option linter.unusedTactic false in
+-example (x a b : U32) (h : x.val = a.val + b.val) : (x.val : ZMod 3329) = (a.val : ZMod 3329) + (b.val : ZMod 3329) := by
+-  bvify 32 at *
+-  extract_goal1
+-  simp [h]
+ 
+ example (byte : U8) : 8 ∣ (byte &&& 16#u8).val := by
+-  bvify 8; bv_decide
++  bvify 8
++  generalize h : byte.bv = b at *
++  change BitVec 8 at b
++  bv_decide
+ 
+ end Aeneas.Bvify

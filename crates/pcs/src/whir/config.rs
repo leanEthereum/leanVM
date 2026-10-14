@@ -31,18 +31,19 @@
 use fiat_shamir::ProofOfWork;
 use thiserror::Error;
 
-/// Round-by-round soundness target, in bits.
+/// Round-by-round design target, in bits.
 ///
-/// Every transition a verifier challenge makes fails with conditional probability at most `2^-SECURITY_BITS`.
+/// This parameter targets the ideal-interactive analysis; it is not a proven
+/// 128-bit security level for the complete Fiat-Shamir protocol or concrete primitives.
 pub const SECURITY_BITS: usize = 128;
 
 /// Bits a challenge drawn after the commitment loses to the commitment's list.
 ///
-/// Level 0 takes no out-of-domain sample.
-/// So the root binds the prover to a list of up to `L_0 = 1/(2 eta_0 sqrt(rho_0))` polynomials (Johnson bound).
+/// Level 0 takes no per-opening out-of-domain sample. Its root fixes a list of
+/// up to `L_0 = 1/(2 eta_0 sqrt(rho_0))` polynomials (Johnson bound).
 ///
-/// A challenge drawn between the root and the opening must hold against every list member.
-/// By a union bound its error grows by a factor `L_0`.
+/// The commitment-time anchor of a plain commitment separately selects an immutable identity within
+/// that list. The conservative opening ledger still pays the list-size union bound.
 ///
 /// The value is `ceil(log2 L_0)` at its largest over every configured size and rate, hiding or not.
 /// A test pins it to the derivation.
@@ -205,10 +206,8 @@ impl Config {
         assert_eq!(queries.len(), levels);
         assert_eq!(grinding_bits.len(), levels);
         assert_eq!(ood_samples.len(), levels);
-        // Why: the lane rounds fold the truncated witness against a weight over the whole `2^log_n` cube.
-        // - Every claim weight vanishes on the absent lanes.
-        // - An OOD weight `eq(z, .)` is a full tensor that does not, so L0 can take none.
-        assert_eq!(ood_samples[0], 0, "L0 takes no OOD sample");
+        // The per-opening L0 oracle takes no additional OOD sample. A plain commitment's immutable commitment-time anchor is handled separately with a weight restricted to the occupied lane prefix.
+        assert_eq!(ood_samples[0], 0, "L0 takes no per-opening OOD sample");
         assert!(
             grinding_bits.iter().all(|&g| g <= ProofOfWork::MAX_BITS as usize),
             "a proof of work grinds at most the digest's low word"
@@ -259,8 +258,9 @@ impl Config {
 
     /// Per-level out-of-domain samples (L0, L1, ..., L_r).
     ///
-    /// Each is drawn right after the level's root enters the transcript.
-    /// L0 takes none: its commitment binds only to a list, which every challenge before the opening pays for.
+    /// Each later-level sample is drawn right after that level's root enters the transcript.
+    /// L0 takes no additional sample: a plain commitment's immutable commitment-time anchor is
+    /// handled separately by the typed stack wrapper, restricted to occupied lanes.
     pub fn ood_samples(&self) -> &[usize] {
         &self.ood_samples
     }
@@ -274,12 +274,7 @@ impl Config {
 
     /// The configuration prover and verifier share for a witness of `2^log_n` words of `K` at L0 rate `2^-log_inv_rate`.
     ///
-    /// It is the production 128-bit Johnson profile:
-    ///
-    /// - the level ladder,
-    /// - the tabulated query counts,
-    /// - `QUERY_GRINDING_BITS` at every level,
-    /// - one OOD sample at every level past L0.
+    /// The Johnson/OOD profile with a 128-bit design target: the ladder, tabulated query counts, `QUERY_GRINDING_BITS` at every level, and one OOD sample at every level past L0. A plain commitment's immutable anchor is handled separately.
     ///
     /// # Errors
     ///

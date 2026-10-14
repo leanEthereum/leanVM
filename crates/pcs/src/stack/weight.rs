@@ -10,6 +10,7 @@
 
 use crate::ring_switch::{DeferredWeight, RingFamily};
 use crate::stack::{StackClaim, Statement};
+use crate::whir::anchor::eq_prefix;
 use crate::whir::{INITIAL_BASIS_CHUNK, InitialWeight};
 use primitives::bit_fold::F192Map;
 use primitives::field::F192;
@@ -170,6 +171,49 @@ struct RingClaim<'a> {
     scale: F192,
 }
 
+/// The original anchor's equality weight, truncated to the occupied lane prefix.
+///
+/// Coordinates are least-significant first: in-lane coordinates precede lane bits.
+/// A partial first fold binds the *lowest* lane bits, retaining one scalar seed
+/// per group, including its possibly incomplete last group. The remaining lane
+/// bits stay in the original equality coefficients, not a newly sampled point.
+struct AnchorWeight<'a> {
+    low: &'a [F192],
+    rows_high: Vec<F192>,
+    lanes: Vec<F192>,
+}
+
+impl<'a> AnchorWeight<'a> {
+    fn new(point: &'a [F192], lambda: F192, lane_block: usize, n_lanes: usize) -> Self {
+        let block_log = lane_block.ilog2() as usize;
+        let chunk_log = lane_block.min(INITIAL_BASIS_CHUNK).ilog2() as usize;
+        Self {
+            low: &point[..chunk_log],
+            rows_high: eq_table(&point[chunk_log..block_log]),
+            lanes: eq_prefix(&point[block_log..], n_lanes, lambda),
+        }
+    }
+
+    fn add_chunk(&self, x: usize, lane_seed: F192, dst: &mut [F192], scratch: &mut [MaybeUninit<F192>]) {
+        let n = 1usize << self.low.len();
+        assert_eq!(dst.len(), n);
+        let seed = lane_seed * self.rows_high[x / n];
+        fill_eq_table_uninit(self.low, seed, &mut scratch[..n]);
+        // SAFETY: the table build initializes all n entries before this read.
+        let eq = unsafe { std::slice::from_raw_parts(scratch.as_ptr().cast::<F192>(), n) };
+        for (d, &w) in dst.iter_mut().zip(eq) {
+            *d += w;
+        }
+    }
+
+    fn folded_seeds(&self, eq: &[F192]) -> Vec<F192> {
+        self.lanes
+            .chunks(eq.len())
+            .map(|lanes| lanes.iter().zip(eq).fold(F192::ZERO, |sum, (&lane, &e)| sum + lane * e))
+            .collect()
+    }
+}
+
 /// The stacked opening's weight, never stored whole.
 pub(super) struct StackWeight<'a> {
     /// Words of the committed stack.
@@ -186,16 +230,21 @@ pub(super) struct StackWeight<'a> {
     points: Vec<PointWeight<'a>>,
     /// For each lane block, the point claims whose slice meets it.
     by_lane: Vec<Vec<usize>>,
+    /// The borrowed immutable anchor, separate from ordinary full-slice claims; a hiding stack has none.
+    anchor: Option<AnchorWeight<'a>>,
 }
 
 impl<'a> StackWeight<'a> {
     /// The weight of the statement's point claims at their powers of lambda, plus its ring-switched family.
+    ///
+    /// An anchored stack adds its commitment-time anchor point at its own power of lambda, on the occupied lanes.
     pub(super) fn new(
         stack_len: usize,
         lane_block: usize,
         statement: Statement<'a>,
         lambdas: &[F192],
         family: &RingFamily,
+        anchor: Option<(&'a [F192], F192)>,
     ) -> Self {
         let Statement { points: claims, rings } = statement;
         assert_eq!(claims.len(), lambdas.len());
@@ -255,6 +304,7 @@ impl<'a> StackWeight<'a> {
             pieces,
             points,
             by_lane,
+            anchor: anchor.map(|(point, lambda)| AnchorWeight::new(point, lambda, lane_block, stack_len / lane_block)),
         }
     }
 
@@ -369,6 +419,14 @@ impl InitialWeight for StackWeight<'_> {
                 point.scatter(at, seed, dst, &mut scratch);
             }
         }
+        if let Some(anchor) = &self.anchor {
+            anchor.add_chunk(
+                start % self.lane_block,
+                anchor.lanes[start / self.lane_block],
+                dst,
+                &mut scratch,
+            );
+        }
     }
 
     fn fold_lanes(&self, rs: &[F192]) -> Vec<F192> {
@@ -378,6 +436,7 @@ impl InitialWeight for StackWeight<'_> {
         let n_lanes = self.stack_len / self.lane_block;
         let n_groups = n_lanes.div_ceil(per);
         let (kept, pieces) = self.folded_pieces(&eq);
+        let anchor_seeds = self.anchor.as_ref().map(|anchor| anchor.folded_seeds(&eq));
 
         // The point claims meeting each group of folded lanes, each once, with the in-lane words it covers.
         let by_group: Vec<Vec<(usize, Range<usize>)>> = (0..n_groups)
@@ -433,6 +492,9 @@ impl InitialWeight for StackWeight<'_> {
                 for &(at, seed) in &hits[..n_hits] {
                     point.scatter(at, seed, dst, &mut scratch);
                 }
+            }
+            if let (Some(anchor), Some(seeds)) = (&self.anchor, &anchor_seeds) {
+                anchor.add_chunk(x, seeds[group], dst, &mut scratch);
             }
         });
         // SAFETY: the chunks above wrote every word.
@@ -556,43 +618,66 @@ mod tests {
         // And every lane fold is the dense weight folded by the lanes' eq weights.
         let mut rng = Rng::new(0xBA515);
         // Fixture state: lane blocks below, at and above one fill chunk; lane counts below one group, at it, and past it.
-        for (lane_vars, lanes) in [(6usize, 1usize), (6, 5), (8, 16), (10, 15), (10, 37)] {
-            let lane_block = 1 << lane_vars;
-            let stack_len = lanes * lane_block;
-            let (rings, claims, lambdas) = statement(&mut rng, lane_vars, lanes);
-            let family = RingFamily::sample(&mut ProverState::new(&SessionId::new(b"stack-weight-test"), &0u64));
-            let dense = dense_weight(stack_len, &rings, &claims, &lambdas, &family);
-            let statement = Statement {
-                points: &claims,
-                rings: &rings,
-            };
-            let weight = StackWeight::new(stack_len, lane_block, statement, &lambdas, &family);
-            let label = format!("lane_vars={lane_vars}, lanes={lanes}");
-
-            // The fill, chunk by chunk as the first pass reads it.
-            let chunk = lane_block.min(INITIAL_BASIS_CHUNK);
-            let mut filled = vec![F192::ZERO; stack_len];
-            for (i, out) in filled.chunks_exact_mut(chunk).enumerate() {
-                weight.fill(i * chunk, out);
-            }
-            assert_eq!(filled, dense, "fill, {label}");
-
-            // The fold over one to four lane bits, lanes past the last one folding as zeros.
-            for bits in 1..=4 {
-                let rs = rng.ext_vec(bits);
-                let eq = eq_table(&rs);
-                let groups = lanes.div_ceil(eq.len());
-                let mut expected = vec![F192::ZERO; groups * lane_block];
-                for (word, e) in expected.iter_mut().enumerate() {
-                    let (group, x) = (word / lane_block, word % lane_block);
-                    for (j, &w) in eq.iter().enumerate() {
-                        let lane = group * eq.len() + j;
-                        if lane < lanes {
-                            *e += w * dense[lane * lane_block + x];
-                        }
+        for (lane_vars, lanes) in [
+            (6usize, 1usize),
+            (6, 3),
+            (6, 5),
+            (8, 16),
+            (8, 17),
+            (10, 15),
+            (10, 33),
+            (10, 64),
+            (12, 3),
+        ] {
+            for anchored in [false, true] {
+                let lane_block = 1 << lane_vars;
+                let stack_len = lanes * lane_block;
+                let (rings, claims, lambdas) = statement(&mut rng, lane_vars, lanes);
+                let family = RingFamily::sample(&mut ProverState::new(&SessionId::new(b"stack-weight-test"), &0u64));
+                let mut dense = dense_weight(stack_len, &rings, &claims, &lambdas, &family);
+                let anchor_point = rng.ext_vec(lane_vars + 6);
+                let anchor_lambda = rng.ext();
+                if anchored {
+                    for (i, value) in dense.iter_mut().enumerate() {
+                        let eq = anchor_point.iter().enumerate().fold(anchor_lambda, |acc, (j, &r)| {
+                            acc * if (i >> j) & 1 == 0 { F192::ONE + r } else { r }
+                        });
+                        *value += eq;
                     }
                 }
-                assert_eq!(weight.fold_lanes(&rs), expected, "fold over {bits} bits, {label}");
+                let statement = Statement {
+                    points: &claims,
+                    rings: &rings,
+                };
+                let anchor = anchored.then_some((anchor_point.as_slice(), anchor_lambda));
+                let weight = StackWeight::new(stack_len, lane_block, statement, &lambdas, &family, anchor);
+                let label = format!("lane_vars={lane_vars}, lanes={lanes}, anchored={anchored}");
+
+                // The fill, chunk by chunk as the first pass reads it.
+                let chunk = lane_block.min(INITIAL_BASIS_CHUNK);
+                let mut filled = vec![F192::ZERO; stack_len];
+                for (i, out) in filled.chunks_exact_mut(chunk).enumerate() {
+                    weight.fill(i * chunk, out);
+                }
+                assert_eq!(filled, dense, "fill, {label}");
+
+                // The fold over one to four lane bits, lanes past the last one folding as zeros.
+                for bits in 1..=4 {
+                    let rs = rng.ext_vec(bits);
+                    let eq = eq_table(&rs);
+                    let groups = lanes.div_ceil(eq.len());
+                    let mut expected = vec![F192::ZERO; groups * lane_block];
+                    for (word, e) in expected.iter_mut().enumerate() {
+                        let (group, x) = (word / lane_block, word % lane_block);
+                        for (j, &w) in eq.iter().enumerate() {
+                            let lane = group * eq.len() + j;
+                            if lane < lanes {
+                                *e += w * dense[lane * lane_block + x];
+                            }
+                        }
+                    }
+                    assert_eq!(weight.fold_lanes(&rs), expected, "fold over {bits} bits, {label}");
+                }
             }
         }
     }

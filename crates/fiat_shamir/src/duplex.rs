@@ -133,6 +133,31 @@ impl Blake2sDuplex {
         T::from_uniform(repr)
     }
 
+    /// Capture the immutable logical state without flushing, hashing, squeezing, or allocating.
+    ///
+    /// A live cached output suffix is determined by the chaining value and squeeze cursor; inactive cached output has no effect on future operations.
+    #[must_use]
+    pub fn context(&self) -> crate::TranscriptContext<primitives::field::F64, [u8; 32]> {
+        let mut pending = [None; 8];
+        let (words, remainder) = self.pending[..self.n_pending].as_chunks::<8>();
+        for (slot, bytes) in pending.iter_mut().zip(words) {
+            *slot = Some(primitives::field::F64(u64::from_le_bytes(*bytes)));
+        }
+        if !remainder.is_empty() {
+            let mut padded = [0; 8];
+            padded[..remainder.len()].copy_from_slice(remainder);
+            pending[words.len()] = Some(primitives::field::F64(u64::from_le_bytes(padded)));
+        }
+        crate::TranscriptContext {
+            state: state_bytes(self.cv),
+            pending,
+            pending_bytes: self.n_pending,
+            first: self.first,
+            previous: self.previous,
+            squeezed: self.squeezed,
+        }
+    }
+
     /// Compress the pending block into the chaining value.
     ///
     /// `last` says whether it closes its absorb run.
@@ -333,6 +358,51 @@ mod tests {
                 }
             }
             prop_assert_eq!(out, reference(iv, &runs));
+        }
+    }
+
+    #[test]
+    fn context_preserves_partial_absorb_and_squeeze_continuations() {
+        let input: [u8; 129] = std::array::from_fn(|i| (i + 1) as u8);
+        for pending_bytes in 0..=64 {
+            for squeezed in 0..=65 {
+                let mut sponge = Blake2sDuplex::new([17; 32]);
+                if squeezed > 0 {
+                    sponge.absorb(&input[..65]);
+                    sponge.squeeze(&mut [0; 65][..squeezed]);
+                }
+                sponge.absorb(&input[..pending_bytes]);
+                let mut before = sponge.clone();
+                let context = sponge.context();
+                assert_eq!(context, sponge.context());
+                assert_eq!(context.state, state_bytes(before.cv));
+                assert_eq!(context.pending_bytes, before.n_pending);
+                assert_eq!(context.first, before.first);
+                assert_eq!(context.previous, before.previous);
+                assert_eq!(context.squeezed, before.squeezed);
+                for (i, word) in context.pending.iter().enumerate() {
+                    let start = 8 * i;
+                    if start < pending_bytes {
+                        let end = (start + 8).min(pending_bytes);
+                        let mut padded = [0; 8];
+                        padded[..end - start].copy_from_slice(&input[start..end]);
+                        assert_eq!(*word, Some(primitives::field::F64(u64::from_le_bytes(padded))));
+                    } else {
+                        assert_eq!(*word, None);
+                    }
+                }
+                let mut actual = [0; 97];
+                let mut expected = [0; 97];
+                sponge.squeeze(&mut actual);
+                before.squeeze(&mut expected);
+                assert_eq!(actual, expected);
+                sponge.absorb(&input[..19]);
+                before.absorb(&input[..19]);
+                sponge.squeeze(&mut actual);
+                before.squeeze(&mut expected);
+                assert_eq!(actual, expected);
+                assert_eq!(sponge.context(), before.context());
+            }
         }
     }
 

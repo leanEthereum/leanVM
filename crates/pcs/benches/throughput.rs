@@ -81,13 +81,13 @@ fn main() {
 
     let (mut commit_t, mut open_t) = (Timing::default(), Timing::default());
     plan.warm_then_measure(|| {
+        let mut ch = ProverState::new(&SessionId::new(b"pcs-throughput"), &0u64);
         let t = Instant::now();
-        let committed = tracing::info_span!("Commit").in_scope(|| CommittedStack::new(&witness, log_n, pc.clone()));
+        let committed =
+            tracing::info_span!("Commit").in_scope(|| CommittedStack::new(&mut ch, &witness, log_n, pc.clone()));
         commit_t.push(t.elapsed().as_secs_f64());
 
-        // The root, then the claims' values, are prover messages before the opening draws its challenges.
-        let mut ch = ProverState::new(&SessionId::new(b"pcs-throughput"), &0u64);
-        ch.prover_message(&committed.root());
+        // The anchored record, then the claims' values, are prover messages before the opening draws its challenges.
         ch.prover_message(&value);
         ch.prover_messages(&rings[0].claims[0].s_hat_v);
         let t = Instant::now();

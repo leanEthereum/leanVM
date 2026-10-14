@@ -74,6 +74,12 @@ impl ProverState {
         }
     }
 
+    /// Copy the exact logical duplex state without changing the transcript.
+    #[must_use]
+    pub fn context(&self) -> crate::TranscriptContext<primitives::field::F64, [u8; 32]> {
+        self.sponge.context()
+    }
+
     /// Absorb a value the verifier already knows, without sending it.
     pub fn public_message(&mut self, value: &impl Encoding) {
         self.sponge.absorb(value.encode().as_ref());

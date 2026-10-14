@@ -7,8 +7,8 @@
 
 use crate::merkle::{Hash, Openings, PrunedMerklePaths, sorted_unique};
 use crate::whir::sample_queries;
-use fiat_shamir::arith::{Arith, Verifier};
-use fiat_shamir::{TranscriptError, VerifierState};
+use fiat_shamir::arith::{Arith, PublicMle, Stage, Verifier};
+use fiat_shamir::{TranscriptContext, TranscriptError, VerifierState};
 use primitives::field::{F64, F192};
 
 /// A verifier of the stacked opening: its commitments, its queries, and the rows they open.
@@ -22,7 +22,20 @@ pub trait OpeningVerifier: Verifier {
     /// A query's index.
     type Query;
 
-    /// Read the next commitment's root, bound into the transcript.
+    /// Copy the exact context without changing the transcript.
+    fn context(&mut self) -> TranscriptContext<Self::K, Self::Root>;
+
+    /// A zero word for canonical padding when a context is packed into a record frame.
+    fn zero_k(&mut self) -> Self::K;
+
+    /// Check two raw commitment roots are equal.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::whir::WhirError::CommitmentMismatch`] when the native roots differ.
+    fn ensure_root_eq(&mut self, actual: Self::Root, expected: Self::Root) -> Result<(), crate::whir::WhirError>;
+
+    /// The next commitment's root, bound into the transcript.
     ///
     /// # Errors
     ///
@@ -67,6 +80,22 @@ impl OpeningVerifier for VerifierState<'_> {
     type Root = Hash;
     type K = F64;
     type Query = usize;
+
+    fn context(&mut self) -> TranscriptContext<F64, Hash> {
+        Self::context(self)
+    }
+
+    fn zero_k(&mut self) -> F64 {
+        F64::ZERO
+    }
+
+    fn ensure_root_eq(&mut self, actual: Hash, expected: Hash) -> Result<(), crate::whir::WhirError> {
+        if actual == expected {
+            Ok(())
+        } else {
+            Err(crate::whir::WhirError::CommitmentMismatch)
+        }
+    }
 
     fn next_root(&mut self) -> Result<Hash, TranscriptError> {
         self.prover_message()
@@ -176,7 +205,9 @@ impl Arith for Recording<'_> {
     fn frobenius2(&mut self, a: F192) -> F192 {
         self.vs.frobenius2(a)
     }
+}
 
+impl PublicMle for Recording<'_> {
     fn public_mle(&mut self, values: &[F64], point: &[F192]) -> F192 {
         self.vs.public_mle(values, point)
     }
@@ -203,6 +234,14 @@ impl Verifier for Recording<'_> {
         self.vs.check_eof()
     }
 
+    fn begin_scope(&mut self, stage: Stage) {
+        self.vs.begin_scope(stage);
+    }
+
+    fn end_scope(&mut self) {
+        self.vs.end_scope();
+    }
+
     fn set_hidden(&mut self, hidden: bool) {
         self.vs.set_hidden(hidden);
     }
@@ -216,6 +255,18 @@ impl OpeningVerifier for Recording<'_> {
     type Root = Hash;
     type K = F64;
     type Query = usize;
+
+    fn context(&mut self) -> TranscriptContext<F64, Hash> {
+        self.vs.context()
+    }
+
+    fn zero_k(&mut self) -> F64 {
+        self.vs.zero_k()
+    }
+
+    fn ensure_root_eq(&mut self, actual: Hash, expected: Hash) -> Result<(), crate::whir::WhirError> {
+        self.vs.ensure_root_eq(actual, expected)
+    }
 
     fn next_root(&mut self) -> Result<Hash, TranscriptError> {
         self.vs.next_root()

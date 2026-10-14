@@ -157,11 +157,26 @@ impl<'a> TableArgument<'a> {
     ) -> Result<MatrixClaim<V::E>, RecError> {
         let commitment = Commitment::read(v, self.layout.shape, rate)?;
         let batch = (hash::CIRCUIT.shape(), self.layout.tau(Table::Hash));
-        let [replay] = <[_; 1]>::try_from(v.scope("flock", |v| reduction::verify(&[batch], v))?)
-            .unwrap_or_else(|_| unreachable!("a batch of one circuit"));
-        let slots = v.scope("bus and tables", |v| self.verify(v))?;
+        let [replay] = <[_; 1]>::try_from({
+            v.begin_scope(fiat_shamir::arith::Stage::Flock);
+            let scoped_result = reduction::verify(&[batch], v);
+            v.end_scope();
+            scoped_result
+        }?)
+        .unwrap_or_else(|_| unreachable!("a batch of one circuit"));
+        let slots = {
+            v.begin_scope(fiat_shamir::arith::Stage::BusAndTables);
+            let scoped_result = self.verify(v);
+            v.end_scope();
+            scoped_result
+        }?;
         let ring = self.layout.hash_window().ring(replay.claim);
-        v.scope("opening", |v| commitment.verify(v, &slots, &[ring]))?;
+        {
+            v.begin_scope(fiat_shamir::arith::Stage::Opening);
+            let scoped_result = commitment.verify(v, &slots, &[ring]);
+            v.end_scope();
+            scoped_result
+        }?;
         v.check_eof()?;
         Ok(replay.matrices)
     }

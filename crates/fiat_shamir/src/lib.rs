@@ -31,6 +31,21 @@ pub use proof::{Hints, ProofTranscript};
 pub use prover::ProverState;
 pub use verifier::{TranscriptError, VerifierState};
 
+/// The logical duplex state captured without hashing, consuming output, or flushing pending input.
+///
+/// `K` holds a little-endian 64-bit word and `R` holds the chaining value. This snapshot cannot construct a duplex.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TranscriptContext<K, R> {
+    pub state: R,
+    /// Only live words are present; the last partial word is zero-padded.
+    pub pending: [Option<K>; 8],
+    /// The exact live input length, from zero through 64 bytes.
+    pub pending_bytes: usize,
+    pub first: bool,
+    pub previous: u64,
+    pub squeezed: u64,
+}
+
 /// What both sides of a transcript do alike: draw verifier messages.
 ///
 /// A step that only draws challenges, such as sampling query positions, is then written once.

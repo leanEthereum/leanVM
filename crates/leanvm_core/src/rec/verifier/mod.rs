@@ -8,8 +8,8 @@
 use super::circuit::{Builder, Dw, Ew, Kw};
 use super::transcript::Transcript;
 use crate::bus::{PublicColumn, PublicColumns};
-use fiat_shamir::TranscriptError;
-use fiat_shamir::arith::{Arith, Verifier};
+use fiat_shamir::arith::{Arith, PublicMle, Stage, Verifier};
+use fiat_shamir::{TranscriptContext, TranscriptError};
 use pcs::verifier::OpeningVerifier;
 use pcs::whir::Stratum;
 use primitives::field::F192;
@@ -87,6 +87,8 @@ impl Rows<'_, '_> {
     }
 }
 
+impl PublicMle for Builder {}
+
 impl Arith for Rows<'_, '_> {
     type E = Ew;
 
@@ -127,6 +129,8 @@ impl Arith for Rows<'_, '_> {
     }
 }
 
+impl PublicMle for Rows<'_, '_> {}
+
 impl PublicColumns for Rows<'_, '_> {
     fn column_mle(&mut self, column: &PublicColumn, point: &[Ew]) -> Ew {
         match (self.fixed.as_deref_mut(), column.fixed) {
@@ -159,18 +163,32 @@ impl Verifier for Rows<'_, '_> {
         // A recorded failure, not a constraint: in rows the proof is only the witness, so nothing is left to read.
         // It catches an honest prover's mismatch with the native verifier, and protects nothing else.
         if !self.t.finished() {
-            self.scope("transcript", |r| {
-                r.b.fail("the proof has data the verifier never reads");
-            });
+            self.begin_scope(Stage::Transcript);
+            self.b.fail("the proof has data the verifier never reads");
+            self.end_scope();
         }
         Ok(())
     }
 
-    fn scope<T>(&mut self, name: &'static str, f: impl FnOnce(&mut Self) -> T) -> T {
+    fn begin_scope(&mut self, stage: Stage) {
+        let name = match stage {
+            Stage::Announcement => "announcement",
+            Stage::BusAndTables => "bus and tables",
+            Stage::Flock => "flock",
+            Stage::Lincheck => "lincheck",
+            Stage::Opening => "opening",
+            Stage::Rows => "rows",
+            Stage::Target => "target",
+            Stage::Terminal => "terminal",
+            Stage::Transcript => "transcript",
+            Stage::Whir => "whir",
+            Stage::Zerocheck => "zerocheck",
+        };
         self.b.enter(name);
-        let out = f(self);
+    }
+
+    fn end_scope(&mut self) {
         self.b.leave();
-        out
     }
 }
 
@@ -179,6 +197,21 @@ impl OpeningVerifier for Rows<'_, '_> {
     type K = Kw;
     /// A query's index bits, lowest first.
     type Query = Vec<Kw>;
+
+    fn context(&mut self) -> TranscriptContext<Kw, Dw> {
+        self.t.context()
+    }
+
+    fn zero_k(&mut self) -> Kw {
+        self.b.k_const(0)
+    }
+
+    fn ensure_root_eq(&mut self, actual: Dw, expected: Dw) -> Result<(), pcs::whir::WhirError> {
+        for (actual, expected) in self.b.d_to_k(actual).into_iter().zip(self.b.d_to_k(expected)) {
+            self.b.eq(actual, expected);
+        }
+        Ok(())
+    }
 
     fn next_root(&mut self) -> Result<Dw, TranscriptError> {
         Ok(self.t.prover_root(self.b))
@@ -645,6 +678,180 @@ mod tests {
         });
         let done = b.finish();
         (done.circuit, done.failures, finished)
+    }
+
+    const FRESH_OPENING_LABEL: &[u8] = b"rec-verifier-fresh-opening";
+
+    // Keep the original wires in one builder while the opening uses a separate transcript.
+    fn fresh_opening_rows(
+        original_label: &[u8],
+        shape: StackShape,
+        rate: Rate,
+        rings: &[RingSwitch],
+        header: ProofSource<'_>,
+        opening: ProofSource<'_>,
+    ) -> (Circuit, Vec<Unsatisfied>, bool) {
+        let mut b = Builder::new();
+        let instance = [b.k_const(0)];
+        let mut original = Transcript::new(&mut b, &SessionId::new(original_label), &instance, header);
+        let commitment = {
+            let mut r = Rows::new(&mut b, &mut original);
+            infallible(Commitment::read(&mut r, shape, rate))
+        };
+        let header_finished = original.finished();
+        let mut fresh = Transcript::new(&mut b, &SessionId::new(FRESH_OPENING_LABEL), &instance, opening);
+        {
+            let mut r = Rows::new(&mut b, &mut fresh);
+            let rings = ring_wires(&mut r, rings);
+            infallible(commitment.verify(&mut r, &[], &rings));
+        }
+        let finished = header_finished && fresh.finished();
+        let done = b.finish();
+        (done.circuit, done.failures, finished)
+    }
+
+    #[test]
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "the test's statement is fixed before the transcript: public"
+    )]
+    fn a_fresh_opening_keeps_the_original_record_in_both_verifiers() {
+        use pcs::stack::{CommittedStack, StackCommitment, Statement};
+
+        const OTHER_ORIGINAL_LABEL: &[u8] = b"rec-verifier-other-original";
+        let shape = StackShape {
+            mu: crate::commitment::MIN_MU,
+            n_lanes: N_LANES,
+            hiding: false,
+        };
+        let rate = Rate::MIN;
+        let config =
+            pcs::whir::Config::for_rate(shape.mu, usize::from(rate.log_inv_rate())).expect("supported profile");
+        let mut rng = Rng::new(0x7265_636f_7264);
+        let q: Vec<F64> = (0..shape.committed_len()).map(|_| F64(rng.next_u64())).collect();
+        let vars = shape.mu - crate::commitment::LOG_BATCH;
+        let point = rng.ext_vec(vars);
+        let rings = [RingSwitch {
+            offset: 0,
+            qflock_vars: vars,
+            claims: vec![SliceClaim {
+                s_hat_v: slices(&q[..1 << vars], &point),
+                suffix_point: point,
+            }],
+        }];
+        let mut original = ProverState::new(&SessionId::new(LABEL), &0u64);
+        let committed = CommittedStack::new(&mut original, &q, shape.mu, config.clone());
+        let header = original.into_proof();
+        let mut other = ProverState::new(&SessionId::new(OTHER_ORIGINAL_LABEL), &0u64);
+        let foreign = CommittedStack::new(&mut other, &q, shape.mu, config.clone());
+        assert_eq!(committed.root(), foreign.root());
+        let other_header = other.into_proof();
+
+        let read_header = |label: &[u8], header: &ProofTranscript| {
+            let mut vs = VerifierState::new(&SessionId::new(label), &0u64, header);
+            let record = StackCommitment::receive(&mut vs, shape.mu, shape.n_lanes, config.clone()).expect("a record");
+            vs.check_eof().expect("only the original commitment");
+            record
+        };
+        let record = read_header(LABEL, &header);
+        let foreign_record = read_header(OTHER_ORIGINAL_LABEL, &other_header);
+        let mut fresh = ProverState::new(&SessionId::new(FRESH_OPENING_LABEL), &0u64);
+        committed.open(
+            &mut fresh,
+            &q,
+            Statement {
+                points: &[],
+                rings: &rings,
+            },
+        );
+        let opening = fresh.into_proof();
+        let mut vs = Recording::new(VerifierState::new(
+            &SessionId::new(FRESH_OPENING_LABEL),
+            &0u64,
+            &opening,
+        ));
+        record
+            .verify(
+                &mut vs,
+                Statement {
+                    points: &[],
+                    rings: &rings,
+                },
+            )
+            .expect("the original record works in a separate session");
+        vs.transcript().check_eof().expect("only the fresh opening");
+        let openings = vs.into_openings();
+        let (circuit, failures, finished) = fresh_opening_rows(
+            LABEL,
+            shape,
+            rate,
+            &rings,
+            ProofSource::Proof(&header, &[]),
+            ProofSource::Proof(&opening, &openings),
+        );
+        assert!(failures.is_empty(), "honest fresh-session rows: {failures:?}");
+        assert!(finished, "both transcripts must be consumed independently");
+        assert!(
+            circuit == fresh_opening_rows(LABEL, shape, rate, &rings, ProofSource::Shape, ProofSource::Shape).0,
+            "the fresh-session shape must build the same constraints",
+        );
+
+        let mut vs = VerifierState::new(&SessionId::new(FRESH_OPENING_LABEL), &0u64, &opening);
+        assert_eq!(
+            foreign_record.verify(
+                &mut vs,
+                Statement {
+                    points: &[],
+                    rings: &rings,
+                },
+            ),
+            Err(WhirError::CommitmentMismatch),
+        );
+        let (_, failures, finished) = fresh_opening_rows(
+            OTHER_ORIGINAL_LABEL,
+            shape,
+            rate,
+            &rings,
+            ProofSource::Proof(&other_header, &[]),
+            ProofSource::Proof(&opening, &openings),
+        );
+        assert!(finished, "row constraints must retain the complete fresh transcript");
+        assert!(
+            !failures.is_empty(),
+            "the same Merkle root must not substitute another original context"
+        );
+
+        // Both record digests are raw 32-byte messages, and every one of their four limbs is constrained.
+        for start in [3 * 24, 3 * 24 + 32] {
+            for limb in 0..4 {
+                let mut forged = opening.clone();
+                forged.narg[start + 8 * limb] ^= 1;
+                let mut vs = VerifierState::new(&SessionId::new(FRESH_OPENING_LABEL), &0u64, &forged);
+                assert_eq!(
+                    record.verify(
+                        &mut vs,
+                        Statement {
+                            points: &[],
+                            rings: &rings
+                        }
+                    ),
+                    Err(WhirError::CommitmentMismatch),
+                );
+                let (_, failures, finished) = fresh_opening_rows(
+                    LABEL,
+                    shape,
+                    rate,
+                    &rings,
+                    ProofSource::Proof(&header, &[]),
+                    ProofSource::Proof(&forged, &openings),
+                );
+                assert!(finished, "the forged record still has the complete transport");
+                assert!(
+                    !failures.is_empty(),
+                    "digest at byte {start}, limb {limb} passes the rows"
+                );
+            }
+        }
     }
 
     // Commit and open, then verify natively and in rows: an honest opening holds in both, and a tampered claim fails both at the terminal check.
