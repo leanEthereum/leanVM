@@ -137,23 +137,20 @@ recursion 2→1, over leaves of 900 XMSS signatures
 ### hashing
 
 ```bash
-BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo bench -p flock --bench hash_batch
+BENCH_REPEAT=3 BENCH_COOLDOWN=2 KECCAK_N_LOG=17 cargo bench -p keccak_gkr --bench hash_batch
 ```
 
 ```
-Flock BLAKE2s batch proving, 262,144 compressions (2^18 slots)
-  setup (preprocessing, excluded) :      0.0 ms
-  witness-gen                     :     34.8 ms ± 26.8%   6.1%
-  commit                          :    102.2 ms ± 1.3%   17.8%
-  zerocheck                       :    244.9 ms ± 7.5%   42.6%
-  lincheck                        :     20.2 ms ± 3.4%    3.5%
-  pcs opening                     :    172.3 ms ± 1.3%   30.0%
-  other                           :      0.0 ms           0.0%
+Keccak GKR batch proving, 131,072 permutations, a state committed every 6 rounds
+  witness                         :     17.5 ms ± 43.6%    3.7%
+  commit                          :     35.1 ms ± 10.6%    7.4%
+  layers and openings             :    367.1 ms ± 0.5%   77.3%
+  pcs opening                     :     55.5 ms ± 5.3%   11.7%
   ------------------------------------------
-  prove TOTAL (witness excluded)  :    539.7 ms ± 3.3%   93.9%
-  verify                          :      2.0 ms
-  throughput                      :        485,765 compressions/s ± 3.3%
-  (~3327.2 XMSS/s equivalent at 146 compressions/signature)
+  prove TOTAL (witness included)  :    475.1 ms ± 2.2%
+  verify                          :      2.1 ms
+  throughput                      :        275,879 permutations/s ± 2.2%
+  proof size                      :       297.7 KiB  (869 scalars, 277.3 KiB of Merkle openings)
 ```
 
 ### Fibonacci
