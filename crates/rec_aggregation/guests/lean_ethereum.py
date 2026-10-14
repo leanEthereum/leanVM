@@ -984,19 +984,13 @@ def opening_fold(fs0, fs1, cursor, c0, c1, c2):
     return fs[0], fs[1], cursor, claim, c0, c2, r
 
 
-def opening_ood_point(fs0, fs1, point, n_g):
-    # Share the squeeze loop across point dimensions.
-    states = HeapBuf((n_g * GEN) ** 2)
-    states[1] = fs0
-    states[GEN] = fs1
-    for x in mul_range(1, n_g):
-        state = states * x * x
-        r, f0, f1 = squeeze_step(state[1], state[GEN])
-        point[x] = r
-        state[GEN ** 2] = f0
-        state[GEN ** 3] = f1
-    last = states * n_g * n_g
-    return last[1], last[GEN]
+def opening_ood_point(fs0, fs1, point, n: Const):
+    # One specialization per point dimension, the state riding frame cells.
+    fs = [fs0, fs1]
+    for x in unroll(0, n):
+        fs, r = squeeze(fs)
+        point[GEN ** x] = r
+    return fs[0], fs[1]
 
 
 def opening_final_message(fs0, fs1, cursor, out, n: Const):
@@ -1165,7 +1159,7 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
             # level's message-column dimension.
             for os in unroll(0, LIG_OOD_SAMPLES[ml + 1]):
                 oz = ood_z * GEN ** (((lvl + 1) * LIG_MAX_OOD_SAMPLES + os) * LIG_LOG_MSG_COLS_CAP)
-                f0, f1 = opening_ood_point(fs[0], fs[1], oz, GEN ** LIG_LOG_MSG_COLS[ml])
+                f0, f1 = opening_ood_point(fs[0], fs[1], oz, LIG_LOG_MSG_COLS[ml])
                 fs = [f0, f1]
                 sample = ood * GEN ** ((lvl + 1) * ood_stride + os * OOD_SLOTS)
                 fs, ood_y, msg_cursor = fs_next(fs, msg_cursor)
