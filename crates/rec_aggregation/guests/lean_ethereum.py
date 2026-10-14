@@ -1037,6 +1037,18 @@ def opening_queries(cap, flags, query_weights, query_bit_ptrs, row_eq_weights, n
     return query_sum_chain[n_queries_g]
 
 
+@inline
+def residual_query(basis_chain, row_d, vanish: Const, n_cols: Const):
+    # prod_t (d_t + chain_t) over one query's message-column coordinates, chain_0
+    # being the query position.
+    prefix_eq = row_d[GEN ** 0] + basis_chain
+    for t in unroll(1, n_cols):
+        # subspace-vanishing recurrence for the novel-basis point
+        basis_chain *= basis_chain + LIG_VANISH_VALS[vanish + t - 1]
+        prefix_eq *= row_d[GEN ** t] + basis_chain
+    return prefix_eq
+
+
 def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, cursor):
     # The stacked WHIR opening, one specialization per (rate, committed log-size)
     # candidate: every LIG_* table reads row m_idx, per level row `ml`, and all
@@ -1280,20 +1292,26 @@ def open_stacked(m_idx: Const, fs0, fs1, target, commit_root_0, commit_root_1, c
         basis_row = lvl * LIG_LOG_MSG_COLS_CAP
         residual_chain = HeapBuf(GEN ** (max_q + 1))
         residual_chain[GEN ** 0] = 0
-        for xr in mul_range(1, GEN ** LIG_QUERIES[ml]):
+        # Two queries an iteration share the row's reads and constants.
+        for xr in mul_range(1, GEN ** (LIG_QUERIES[ml] // 2)):
             ml = m_idx * LIG_MAX_LEVELS + lvl  # rebound: the body captures by value
             vanish = m_idx * LIG_MAX_VANISH_LEN + LIG_VANISH_OFF[ml]
             basis_row = lvl * LIG_LOG_MSG_COLS_CAP
             max_q = LIG_MAX_QUERIES[m_idx]
-            basis_chain = query_positions[GEN ** LIG_POSITIONS_OFF[ml] * xr]
-            prefix_eq = basis_d[GEN ** basis_row] + basis_chain
-            for t in unroll(1, LIG_LOG_MSG_COLS[ml]):
-                # subspace-vanishing recurrence for the novel-basis point
-                basis_chain *= (basis_chain + LIG_VANISH_VALS[vanish + t - 1])
-                prefix_eq *= basis_d[GEN ** (basis_row + t)] + basis_chain
-            residual_chain[xr * GEN] = residual_chain[xr] + query_weights[GEN ** (lvl * max_q)* xr] * prefix_eq
+            pair = xr * xr
+            positions = query_positions * GEN ** LIG_POSITIONS_OFF[ml] * pair
+            weights = query_weights * GEN ** (lvl * max_q) * pair
+            row_d = basis_d * GEN ** basis_row
+            eq_0 = residual_query(positions[GEN ** 0], row_d, vanish, LIG_LOG_MSG_COLS[ml])
+            eq_1 = residual_query(positions[GEN ** 1], row_d, vanish, LIG_LOG_MSG_COLS[ml])
+            residual_chain[xr * GEN] = residual_chain[xr] + weights[GEN ** 0] * eq_0 + weights[GEN ** 1] * eq_1
+        level_sum = residual_chain[GEN ** (LIG_QUERIES[ml] // 2)]
+        if const(LIG_QUERIES[ml] % 2 == 1):
+            last = LIG_QUERIES[ml] - 1
+            eq_last = residual_query(query_positions[GEN ** (LIG_POSITIONS_OFF[ml] + last)], basis_d * GEN ** basis_row, vanish, LIG_LOG_MSG_COLS[ml])
+            level_sum = level_sum + query_weights[GEN ** (lvl * max_q + last)] * eq_last
         # accumulate beta_lvl * prod_t b_t * (per-level residual sum) into the grand residual
-        inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_scale[GEN ** lvl] * residual_chain[GEN ** LIG_QUERIES[ml]]
+        inner_chain[GEN ** (lvl + 1)] = inner_chain[GEN ** lvl] + level_scale[GEN ** lvl] * level_sum
 
     # Explicit OOD eq bases at the same terminal point.
     ood_inner = 0
