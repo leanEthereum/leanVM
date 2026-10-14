@@ -34,6 +34,7 @@ COORD_BASIS = COORD_BASIS_PLACEHOLDER
 # Six challenges compose the F2-linear map that batches the 192 transposed
 # ring-switch coordinates.
 RING_MAP_SHIFTS = [32, 16, 8, 4, 2, 1]
+RS_CHUNK = 8  # ring-switch rows per loop iteration
 # Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
 # its top bit constrained to zero so the native strict 32-bit bound holds; any
 # structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS bits; and a
@@ -2133,24 +2134,33 @@ def verify_keccak(fs0, fs1, cursor, tau_g, z_vals, slices):
     return fs0, fs1, cursor, word
 
 
+@inline
+def ring_map(lin_eval, map_challenges):
+    for stage in unroll(0, len(RING_MAP_SHIFTS)):
+        frobenius = lin_eval
+        for k in unroll(0, RING_MAP_SHIFTS[stage]):
+            frobenius *= frobenius
+        lin_eval += map_challenges[GEN ** stage] * frobenius
+    return lin_eval
+
+
 def ring_switch_target(slices, map_challenges):
-    # Evaluate the claim and combine its 64 packing rows: the running x-power and
-    # the running sum ride one two-slot chain.
-    rs_chain = HeapBuf((BASE_FIELD_BITS + 1) * PAIR_SLOTS)
-    rs_chain[GEN ** 0] = GEN ** 0  # x^i
+    # Evaluate the claim and combine its 64 packing rows, sum_i x^i L(slice_i),
+    # RS_CHUNK rows an iteration in Horner form: the running x-power and the
+    # running sum ride one two-slot chain.
+    rs_chain = HeapBuf((BASE_FIELD_BITS // RS_CHUNK + 1) * PAIR_SLOTS)
+    rs_chain[GEN ** 0] = GEN ** 0  # x^(RS_CHUNK j)
     rs_chain[GEN ** 1] = 0         # the running sum
-    for x_round in mul_range(1, GEN ** BASE_FIELD_BITS):
-        lin_eval = slices[x_round]
-        for stage in unroll(0, len(RING_MAP_SHIFTS)):
-            frobenius = lin_eval
-            for k in unroll(0, RING_MAP_SHIFTS[stage]):
-                frobenius *= frobenius
-            lin_eval += map_challenges[GEN ** stage] * frobenius
+    for x_round in mul_range(1, GEN ** (BASE_FIELD_BITS // RS_CHUNK)):
+        rows = slices * x_round ** RS_CHUNK
+        chunk = ring_map(rows[GEN ** (RS_CHUNK - 1)], map_challenges)
+        for r in unroll(1, RS_CHUNK):
+            chunk = chunk * 2 + ring_map(rows[GEN ** (RS_CHUNK - 1 - r)], map_challenges)
         row = rs_chain * x_round ** PAIR_SLOTS
         x_pow = row[GEN ** 0]
-        row[GEN ** PAIR_SLOTS] = x_pow * 2
-        row[GEN ** (PAIR_SLOTS + 1)] = row[GEN ** 1] + x_pow * lin_eval
-    rs_end = rs_chain * (GEN ** BASE_FIELD_BITS) ** PAIR_SLOTS
+        row[GEN ** PAIR_SLOTS] = x_pow * const(2 ** RS_CHUNK)
+        row[GEN ** (PAIR_SLOTS + 1)] = row[GEN ** 1] + x_pow * chunk
+    rs_end = rs_chain * (GEN ** (BASE_FIELD_BITS // RS_CHUNK)) ** PAIR_SLOTS
     return rs_end[GEN ** 1]
 
 
