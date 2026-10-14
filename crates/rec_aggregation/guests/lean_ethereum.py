@@ -851,6 +851,28 @@ def sumcheck_round4(state_0, state_1, msg_cursor, claim):
     return fs[0], fs[1], msg_cursor, c0 + y * (c1 + y * (c2 + y * c3)), y
 
 
+def gkr_round(rd, pt):
+    # One GKR round, from the round record at `rd` (fields GKR_ROUNDS_CAP apart) to
+    # the next. The prover sends every coefficient but c0, which the round's
+    # pulled-out eq factor leaves fixed: c0 + r (c1 + ... + c4) == claim, r being
+    # the previous point's coordinate pt[0]; the challenge goes to pt[MU_CAP + 2].
+    fs = [rd[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], rd[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+    cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
+    fs, c1, cur = fs_next(fs, cur)
+    fs, c2, cur = fs_next(fs, cur)
+    fs, c3, cur = fs_next(fs, cur)
+    fs, c4, cur = fs_next(fs, cur)
+    fs, rk = squeeze(fs)
+    c0 = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] + pt[1] * (c1 + c2 + c3 + c4)
+    pt[GEN ** (MU_CAP + 2)] = rk
+    rd_next = rd * GEN
+    rd_next[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = fs[0]
+    rd_next[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = fs[1]
+    rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
+    rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
+    return
+
+
 def batch_sumcheck(fs0, fs1, msgs, running, point, n_rounds: Const):
     # The rounds of a claim-batching sumcheck: two hinted values per round
     # (g(1) and g(inf)), the split fixing the third against the running claim, and
@@ -1362,7 +1384,8 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
         nxt[GEN ** LAYER_POS] = GEN
 
     for x_pair in mul_range(1, pair_bounds[g_bus_mu]):
-        x_layer = x_pair * x_pair * depth_shift[g_bus_mu]
+        sq = x_pair * x_pair
+        x_layer = sq * depth_shift[g_bus_mu]
         layer = layers * x_layer ** LAYER_SLOTS
         layer_fs = [layer[GEN ** LAYER_FS0], layer[GEN ** LAYER_FS1]]
         layer_fs, lam = squeeze(layer_fs)
@@ -1376,26 +1399,32 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
         head[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = layer_fs[1]
         head[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_CURSOR]
         head[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_PUSH] + lam * (layer[GEN ** LAYER_PULL] + lam * layer[GEN ** LAYER_COUNT])
-        for x_round in mul_range(1, x_layer):
-            # One GKR round. The prover sends every coefficient but c0, which the
-            # round's pulled-out eq factor leaves fixed: c0 + r (c1 + ... + c4) == claim,
-            # r being the previous point's coordinate.
-            rd = head * x_round
-            pt = point_row * x_round
+        # 2k rounds, or 2k + 1 when the depth is odd: two a loop step, the state
+        # between them staying in the frame, then the odd one.
+        for x2 in mul_range(1, x_pair):
+            step = x2 * x2
+            rd = head * step
+            pt = point_row * step
             round_fs = [rd[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], rd[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
             cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
-            round_fs, c1, cur = fs_next(round_fs, cur)
-            round_fs, c2, cur = fs_next(round_fs, cur)
-            round_fs, c3, cur = fs_next(round_fs, cur)
-            round_fs, c4, cur = fs_next(round_fs, cur)
-            round_fs, rk = squeeze(round_fs)
-            c0 = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] + pt[1] * (c1 + c2 + c3 + c4)
-            pt[GEN ** (MU_CAP + 2)] = rk  # nextrow[x_round * g^2]
-            rd_next = rd * GEN
+            claim = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
+            for half in unroll(0, 2):
+                # As in gkr_round.
+                round_fs, c1, cur = fs_next(round_fs, cur)
+                round_fs, c2, cur = fs_next(round_fs, cur)
+                round_fs, c3, cur = fs_next(round_fs, cur)
+                round_fs, c4, cur = fs_next(round_fs, cur)
+                round_fs, rk = squeeze(round_fs)
+                c0 = claim + pt[GEN ** half] * (c1 + c2 + c3 + c4)
+                pt[GEN ** (MU_CAP + 2 + half)] = rk  # nextrow[round * g^2]
+                claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
+            rd_next = rd * GEN ** 2
             rd_next[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = round_fs[0]
             rd_next[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = round_fs[1]
             rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
-            rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
+            rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = claim
+        if x_layer != sq:
+            gkr_round(head * sq, point_row * sq)
         tail = head * x_layer
         tail_fs = [tail[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], tail[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
         tcur = tail[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
