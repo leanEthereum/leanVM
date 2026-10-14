@@ -337,7 +337,10 @@ STMT_CELLS = STMT_DEFER_OFF + 3 * STMT_PAIRS
 SHA3_STATE = SHA3_STATE_PLACEHOLDER
 # One step of such a chain: the state, then whatever count the loop threads with it.
 STATE_SLOTS = SHA3_STATE + 1
-# The key lists' chains step four blocks at a time, a power of two apart.
+# The key lists' chains hash LIST_BLOCKS blocks a loop step, their records a power
+# of two apart.
+LIST_BLOCKS_LOG = 3
+LIST_BLOCKS = 2 ** LIST_BLOCKS_LOG
 LIST_STEP = 16
 
 # ---------------------------------------------------------- XMSS (host-supplied)
@@ -2796,80 +2799,76 @@ def list_split(n_g, per_block: Const):
     return body, rest
 
 
-def split_quads(body):
-    # body = g^(4q + m), m < 4, as (g^q, g^m): the exponent's bits are pinned boolean
+def split_body(body):
+    # body = g^(8q + m), m < 8, as (g^q, g^m): the exponent's bits are pinned boolean
     # and tied back to body, whose exponent is below MAX_KEYS = 2^16, so the split
     # is the only one.
     bits = StackBuf(16)
     hint_decompose_bits_exponent(bits, body, 16)
-    quads = GEN ** 0
+    steps = GEN ** 0
     extra = GEN ** 0
     for k in unroll(0, 16):
         bit = bits[k]
         bits[k] = bit * bit
-        if k // 2 == 0:
+        if k // LIST_BLOCKS_LOG == 0:
             extra *= 1 + bit * (1 + GEN ** (2 ** k))
         else:
-            quads *= 1 + bit * (1 + GEN ** (2 ** k // 4))
-    assert quads ** 4 * extra == body
-    return quads, extra
+            steps *= 1 + bit * (1 + GEN ** (2 ** k // LIST_BLOCKS))
+    assert steps ** LIST_BLOCKS * extra == body
+    return steps, extra
 
 
 def key_list_digest(keys_ptr, n_keys_g):
     # The hash of one leaf index group's declared key list, 32 bytes a key and so four
     # keys a block. The keys are hinted into the group's declared slots of the table,
-    # a block at a time. A loop step hashes four blocks, their states staying in the
-    # frame; the tail dispatches on the blocks left over and the last block's keys.
+    # a block at a time. A loop step hashes LIST_BLOCKS blocks, their states staying
+    # in the frame; the blocks left over then go one a step, and the last block's
+    # shape is a match.
     body, rest = list_split(n_keys_g, 4)
-    quads, extra = split_quads(body)
-    chain = HeapBuf((quads * GEN) ** LIST_STEP)
+    steps, extra = split_body(body)
+    chain = HeapBuf((steps * extra * GEN) ** LIST_STEP)
     zero_state(chain)
-    for xq in mul_range(1, quads):
-        step = xq ** LIST_STEP
-        st = chain * step
+    for xq in mul_range(1, steps):
+        rec = xq ** LIST_STEP
+        st = chain * rec
         nxt = st * GEN ** LIST_STEP
-        blk = keys_ptr * step * step
-        s0 = StackBuf(SHA3_STATE)
-        s1 = StackBuf(SHA3_STATE)
-        s2 = StackBuf(SHA3_STATE)
+        blk = keys_ptr * rec ** (8 * LIST_BLOCKS // LIST_STEP)
+        src = StackBuf(SHA3_STATE)
+        for i in unroll(0, LIST_BLOCKS):
+            hint_witness(blk[8 * i:8 * i + 8], "pubkeys")
+            out = StackBuf(SHA3_STATE)
+            if i == 0:
+                sha3(blk[0:2], blk[2:4], out, tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
+            elif i == LIST_BLOCKS - 1:
+                sha3(blk[8 * i:8 * i + 2], blk[8 * i + 2:8 * i + 4], nxt[0:SHA3_STATE], tail=blk[8 * i + 4:8 * i + 8], state=src, final=0)
+            else:
+                sha3(blk[8 * i:8 * i + 2], blk[8 * i + 2:8 * i + 4], out, tail=blk[8 * i + 4:8 * i + 8], state=src, final=0)
+            src = out
+    head = chain * steps ** LIST_STEP
+    head_keys = keys_ptr * steps ** (8 * LIST_BLOCKS)
+    for xe in mul_range(1, extra):
+        st = head * xe ** LIST_STEP
+        nxt = st * GEN ** LIST_STEP
+        blk = head_keys * xe ** 8
         hint_witness(blk[0:8], "pubkeys")
-        sha3(blk[0:2], blk[2:4], s0, tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
-        hint_witness(blk[8:16], "pubkeys")
-        sha3(blk[8:10], blk[10:12], s1, tail=blk[12:16], state=s0, final=0)
-        hint_witness(blk[16:24], "pubkeys")
-        sha3(blk[16:18], blk[18:20], s2, tail=blk[20:24], state=s1, final=0)
-        hint_witness(blk[24:32], "pubkeys")
-        sha3(blk[24:26], blk[26:28], nxt[0:SHA3_STATE], tail=blk[28:32], state=s2, final=0)
-    last = chain * quads ** LIST_STEP
-    tail_blk = keys_ptr * quads ** (2 * LIST_STEP)
-    # extra < 4 by its bits and rest < 4 by list_split, so the arm index is below 16.
-    sel = extra ** 4 * rest
-    d0, d1 = match(log(sel), range(0, 16), lambda j: key_list_last(last, tail_blk, j // 4, j % 4))
+        sha3(blk[0:2], blk[2:4], nxt[0:SHA3_STATE], tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
+    last = head * extra ** LIST_STEP
+    d0, d1 = match(log(rest), range(0, 4), lambda k: key_list_last(last, head_keys * extra ** 8, k))
     return d0, d1
 
 
-def key_list_last(state, blk, m: Const, k: Const):
-    # The tail of a key list: m full blocks, then the last block's k + 1 keys and the
-    # padding.
-    src = StackBuf(SHA3_STATE)
-    for t in unroll(0, SHA3_STATE):
-        src[t] = state[GEN ** t]
-    for i in unroll(0, m):
-        hint_witness(blk[8 * i:8 * i + 8], "pubkeys")
-        nxt = StackBuf(SHA3_STATE)
-        sha3(blk[8 * i:8 * i + 2], blk[8 * i + 2:8 * i + 4], nxt, tail=blk[8 * i + 4:8 * i + 8], state=src, final=0)
-        src = nxt
-    tb = blk * GEN ** (8 * m)
-    hint_witness(tb[0:2 * k + 2], "pubkeys")
+def key_list_last(state, blk, k: Const):
+    # The last block of a key list: k + 1 keys, then the padding.
+    hint_witness(blk[0:2 * k + 2], "pubkeys")
     digest = StackBuf(SHA3_STATE)
     if k == 0:
-        sha3(tb[0:2], [0, 0], digest, state=src, len=32)
+        sha3(blk[0:2], [0, 0], digest, state=state[0:SHA3_STATE], len=32)
     if k == 1:
-        sha3(tb[0:2], tb[2:4], digest, state=src, len=64)
+        sha3(blk[0:2], blk[2:4], digest, state=state[0:SHA3_STATE], len=64)
     if k == 2:
-        sha3(tb[0:2], tb[2:4], digest, tail=[tb[GEN ** 4], tb[GEN ** 5], 0, 0], state=src, len=96)
+        sha3(blk[0:2], blk[2:4], digest, tail=[blk[GEN ** 4], blk[GEN ** 5], 0, 0], state=state[0:SHA3_STATE], len=96)
     if k == 3:
-        sha3(tb[0:2], tb[2:4], digest, tail=tb[4:8], state=src)
+        sha3(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=state[0:SHA3_STATE])
     return digest[0], digest[1]
 
 
@@ -2896,62 +2895,57 @@ def child_key_list_digest(keys_ptr, cover, base, origin_g, limit_g, n_keys_g):
     # The hash of one leaf index group of a child's keys, over the same 32·n bytes the
     # child hashed (`key_list_digest`), so the digest it rebuilds is the one the
     # child's statement carries. The chain threads the coverage write value, which
-    # counts the keys off as they are marked, from `base`. Four blocks a loop step,
-    # as in `key_list_digest`.
+    # counts the keys off as they are marked, from `base`. The blocks go as in
+    # `key_list_digest`.
     body, rest = list_split(n_keys_g, 4)
-    quads, extra = split_quads(body)
+    steps, extra = split_body(body)
     cover_at = cover * origin_g
-    chain = HeapBuf((quads * GEN) ** LIST_STEP)
+    chain = HeapBuf((steps * extra * GEN) ** LIST_STEP)
     zero_state(chain)
     chain[GEN ** SHA3_STATE] = base
-    for xq in mul_range(1, quads):
+    for xq in mul_range(1, steps):
         st = chain * xq ** LIST_STEP
         nxt = st * GEN ** LIST_STEP
         marks = st[GEN ** SHA3_STATE]
-        b0 = StackBuf(8)
-        b1 = StackBuf(8)
-        b2 = StackBuf(8)
-        b3 = StackBuf(8)
-        s0 = StackBuf(SHA3_STATE)
-        s1 = StackBuf(SHA3_STATE)
-        s2 = StackBuf(SHA3_STATE)
-        child_keys(keys_ptr, cover_at, marks, limit_g, b0, 4, 0)
-        sha3(b0[0:2], b0[2:4], s0, tail=b0[4:8], state=st[0:SHA3_STATE], final=0)
-        child_keys(keys_ptr, cover_at, marks, limit_g, b1, 4, 4)
-        sha3(b1[0:2], b1[2:4], s1, tail=b1[4:8], state=s0, final=0)
-        child_keys(keys_ptr, cover_at, marks, limit_g, b2, 4, 8)
-        sha3(b2[0:2], b2[2:4], s2, tail=b2[4:8], state=s1, final=0)
-        child_keys(keys_ptr, cover_at, marks, limit_g, b3, 4, 12)
-        sha3(b3[0:2], b3[2:4], nxt[0:SHA3_STATE], tail=b3[4:8], state=s2, final=0)
-        nxt[GEN ** SHA3_STATE] = marks * GEN ** 16
-    last = chain * quads ** LIST_STEP
-    sel = extra ** 4 * rest  # below 16, as in key_list_digest
-    d0, d1 = match(log(sel), range(0, 16), lambda j: child_key_list_last(last, keys_ptr, cover_at, limit_g, j // 4, j % 4))
+        src = StackBuf(SHA3_STATE)
+        for i in unroll(0, LIST_BLOCKS):
+            blk = StackBuf(8)
+            child_keys(keys_ptr, cover_at, marks, limit_g, blk, 4, 4 * i)
+            out = StackBuf(SHA3_STATE)
+            if i == 0:
+                sha3(blk[0:2], blk[2:4], out, tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
+            elif i == LIST_BLOCKS - 1:
+                sha3(blk[0:2], blk[2:4], nxt[0:SHA3_STATE], tail=blk[4:8], state=src, final=0)
+            else:
+                sha3(blk[0:2], blk[2:4], out, tail=blk[4:8], state=src, final=0)
+            src = out
+        nxt[GEN ** SHA3_STATE] = marks * GEN ** (4 * LIST_BLOCKS)
+    head = chain * steps ** LIST_STEP
+    for xe in mul_range(1, extra):
+        st = head * xe ** LIST_STEP
+        nxt = st * GEN ** LIST_STEP
+        marks = st[GEN ** SHA3_STATE]
+        blk = StackBuf(8)
+        child_keys(keys_ptr, cover_at, marks, limit_g, blk, 4, 0)
+        sha3(blk[0:2], blk[2:4], nxt[0:SHA3_STATE], tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
+        nxt[GEN ** SHA3_STATE] = marks * GEN ** 4
+    last = head * extra ** LIST_STEP
+    d0, d1 = match(log(rest), range(0, 4), lambda k: child_key_list_last(last, keys_ptr, cover_at, limit_g, k))
     return d0, d1
 
 
-def child_key_list_last(state, keys_ptr, cover_at, limit_g, m: Const, k: Const):
-    marks = state[GEN ** SHA3_STATE]
-    src = StackBuf(SHA3_STATE)
-    for t in unroll(0, SHA3_STATE):
-        src[t] = state[GEN ** t]
-    for i in unroll(0, m):
-        full = StackBuf(8)
-        child_keys(keys_ptr, cover_at, marks, limit_g, full, 4, 4 * i)
-        nxt = StackBuf(SHA3_STATE)
-        sha3(full[0:2], full[2:4], nxt, tail=full[4:8], state=src, final=0)
-        src = nxt
+def child_key_list_last(state, keys_ptr, cover_at, limit_g, k: Const):
     blk = StackBuf(8)
-    child_keys(keys_ptr, cover_at, marks, limit_g, blk, k + 1, 4 * m)
+    child_keys(keys_ptr, cover_at, state[GEN ** SHA3_STATE], limit_g, blk, k + 1, 0)
     digest = StackBuf(SHA3_STATE)
     if k == 0:
-        sha3(blk[0:2], [0, 0], digest, state=src, len=32)
+        sha3(blk[0:2], [0, 0], digest, state=state[0:SHA3_STATE], len=32)
     if k == 1:
-        sha3(blk[0:2], blk[2:4], digest, state=src, len=64)
+        sha3(blk[0:2], blk[2:4], digest, state=state[0:SHA3_STATE], len=64)
     if k == 2:
-        sha3(blk[0:2], blk[2:4], digest, tail=[blk[4], blk[5], 0, 0], state=src, len=96)
+        sha3(blk[0:2], blk[2:4], digest, tail=[blk[4], blk[5], 0, 0], state=state[0:SHA3_STATE], len=96)
     if k == 3:
-        sha3(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=src)
+        sha3(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=state[0:SHA3_STATE])
     return digest[0], digest[1]
 
 
