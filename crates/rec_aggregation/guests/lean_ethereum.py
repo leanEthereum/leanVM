@@ -78,7 +78,9 @@ LAYER_PULL = 4
 LAYER_COUNT = 5
 LAYER_ROW = 6
 LAYER_POS = 7
-LAYER_SLOTS = 8
+LAYER_HALF = 8  # g^(k // 2) at radix-four layer k
+LAYER_PARITY = 9  # k % 2, as a field element
+LAYER_SLOTS = 10
 # One OOD sample of a WHIR level.
 OOD_BETA = 0
 OOD_Y = 1
@@ -341,6 +343,11 @@ STMT_CELLS = STMT_DEFER_OFF + 3 * STMT_PAIRS
 SHA3_STATE = SHA3_STATE_PLACEHOLDER
 # One step of such a chain: the state, then whatever count the loop threads with it.
 STATE_SLOTS = SHA3_STATE + 1
+# The key lists' chains hash LIST_BLOCKS blocks a loop step, their records a power
+# of two apart.
+LIST_BLOCKS_LOG = 3
+LIST_BLOCKS = 2 ** LIST_BLOCKS_LOG
+LIST_STEP = 16
 
 # ---------------------------------------------------------- XMSS (host-supplied)
 # Every 16-byte native value (tweak, digest, chain tip, sibling, public parameter)
@@ -598,18 +605,18 @@ def exponent_tables():
     return g_logs_pow2, g_squares
 
 
-def g_power_of_word(value, g_squares, nbits: Const):
-    # g^value for a concrete integer `value` < 2^nbits: advice-decompose its bits,
-    # tie them back to the word, and assemble Π g^(bit_j·2^j).
-    bits = HeapBuf(GEN ** nbits)
-    hint_decompose_bits(bits, value, nbits)
+def g_power_of_word(value):
+    # g^value for a concrete integer `value` < 2^LOG_WORD_BITS: advice-decompose its
+    # bits, tie them back to the word, and assemble Π g^(bit_j·2^j).
+    bits = StackBuf(LOG_WORD_BITS)
+    hint_decompose_bits(bits, value, LOG_WORD_BITS)
     word = 0
     g_value = GEN ** 0
-    for j in unroll(0, nbits):
-        bit = bits[GEN ** j]
-        assert bit * bit == bit
+    for j in unroll(0, LOG_WORD_BITS):
+        bit = bits[j]
+        bits[j] = bit * bit
         word += bit * (2 ** j)
-        g_value *= (1 + bit * (g_squares[GEN ** j] + 1))
+        g_value *= 1 + bit * (1 + GEN ** (2 ** j))
     assert word == value
     return g_value
 
@@ -853,18 +860,29 @@ def sumcheck_round4(state_0, state_1, msg_cursor, claim):
     return fs[0], fs[1], msg_cursor, c0 + y * (c1 + y * (c2 + y * c3)), y
 
 
-def sumcheck_round5(state_0, state_1, msg_cursor, claim, prev_challenge):
-    # One GKR round. The prover sends every coefficient but c0, which the round's
-    # pulled-out eq factor leaves fixed: `c0 + prev_challenge * (c1 + ... + c4) ==
-    # claim`.
-    fs = [state_0, state_1]
-    fs, c1, msg_cursor = fs_next(fs, msg_cursor)
-    fs, c2, msg_cursor = fs_next(fs, msg_cursor)
-    fs, c3, msg_cursor = fs_next(fs, msg_cursor)
-    fs, c4, msg_cursor = fs_next(fs, msg_cursor)
-    fs, y = squeeze(fs)
-    c0 = claim + prev_challenge * (c1 + c2 + c3 + c4)
-    return fs[0], fs[1], msg_cursor, c0 + y * (c1 + y * (c2 + y * (c3 + y * c4))), y
+def gkr_rounds(rd, pt, n: Const):
+    # n GKR rounds, from the round record at `rd` (fields GKR_ROUNDS_CAP apart) to the
+    # one n further. The prover sends every coefficient but c0, which the round's
+    # pulled-out eq factor leaves fixed: c0 + r (c1 + ... + c4) == claim, r being the
+    # previous point's coordinate pt[q]; the challenge goes to pt[MU_CAP + 2 + q].
+    fs = [rd[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], rd[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+    cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
+    claim = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
+    for q in unroll(0, n):
+        fs, c1, cur = fs_next(fs, cur)
+        fs, c2, cur = fs_next(fs, cur)
+        fs, c3, cur = fs_next(fs, cur)
+        fs, c4, cur = fs_next(fs, cur)
+        fs, rk = squeeze(fs)
+        c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
+        pt[GEN ** (MU_CAP + 2 + q)] = rk
+        claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
+    rd_next = rd * GEN ** n
+    rd_next[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = fs[0]
+    rd_next[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = fs[1]
+    rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
+    rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = claim
+    return
 
 
 def batch_sumcheck(fs0, fs1, msgs, running, point, n_rounds: Const):
@@ -1339,6 +1357,8 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
     layers[GEN ** LAYER_COUNT] = root_count
     layers[GEN ** LAYER_ROW] = gkr_pts
     layers[GEN ** LAYER_POS] = GEN ** 0
+    layers[GEN ** LAYER_HALF] = GEN ** 0
+    layers[GEN ** LAYER_PARITY] = 0
 
     # Contract two binary product levels at a time. pair_bounds[g^d] = g^(d//2) is
     # the radix-four layer count, and shift is g exactly when the depth is odd, in
@@ -1376,33 +1396,60 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
             nxt[GEN ** (LAYER_PUSH + side)] = evals[2 * side] + c0 * (evals[2 * side] + evals[2 * side + 1])
         nxt[GEN ** LAYER_ROW] = nextrow
         nxt[GEN ** LAYER_POS] = GEN
+        nxt[GEN ** LAYER_HALF] = GEN ** 0
+        nxt[GEN ** LAYER_PARITY] = 0
 
     for x_pair in mul_range(1, pair_bounds[g_bus_mu]):
-        x_layer = x_pair * x_pair * depth_shift[g_bus_mu]
+        sq = x_pair * x_pair
+        x_layer = sq * depth_shift[g_bus_mu]
         layer = layers * x_layer ** LAYER_SLOTS
         layer_fs = [layer[GEN ** LAYER_FS0], layer[GEN ** LAYER_FS1]]
         layer_fs, lam = squeeze(layer_fs)
         point_row = layer[GEN ** LAYER_ROW]
         round_pos = layer[GEN ** LAYER_POS]
         nextrow = point_row * GEN ** MU_CAP
-        head = rounds * round_pos ** ROUND_SLOTS
-        head[GEN ** ROUND_FS0] = layer_fs[0]
-        head[GEN ** ROUND_FS1] = layer_fs[1]
-        head[GEN ** ROUND_CURSOR] = layer[GEN ** LAYER_CURSOR]
-        head[GEN ** ROUND_CLAIM] = layer[GEN ** LAYER_PUSH] + lam * (layer[GEN ** LAYER_PULL] + lam * layer[GEN ** LAYER_COUNT])
-        for x_round in mul_range(1, x_layer):
-            rd = rounds * (round_pos * x_round) ** ROUND_SLOTS
-            nfs0, nfs1, ncur, nclaim, rk = sumcheck_round5(rd[GEN ** ROUND_FS0], rd[GEN ** ROUND_FS1], rd[GEN ** ROUND_CURSOR], rd[GEN ** ROUND_CLAIM], point_row[x_round])
-            nextrow[x_round * GEN ** 2] = rk
-            rd_next = rd * GEN ** ROUND_SLOTS
-            rd_next[GEN ** ROUND_FS0] = nfs0
-            rd_next[GEN ** ROUND_FS1] = nfs1
-            rd_next[GEN ** ROUND_CURSOR] = ncur
-            rd_next[GEN ** ROUND_CLAIM] = nclaim
-        tail = rounds * (round_pos * x_layer) ** ROUND_SLOTS
-        tail_fs = [tail[GEN ** ROUND_FS0], tail[GEN ** ROUND_FS1]]
-        tcur = tail[GEN ** ROUND_CURSOR]
-        tclaim = tail[GEN ** ROUND_CLAIM]
+        # Round i's record keeps field k at rounds * g^(k GKR_ROUNDS_CAP + i), so a
+        # round's record is one product away from the counter.
+        head = rounds * round_pos
+        head[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = layer_fs[0]
+        head[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = layer_fs[1]
+        head[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_CURSOR]
+        head[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = layer[GEN ** LAYER_PUSH] + lam * (layer[GEN ** LAYER_PULL] + lam * layer[GEN ** LAYER_COUNT])
+        # 2k rounds, or 2k + 1 when the depth is odd: four a loop step, the state
+        # between them staying in the frame, then two when k is odd, then the odd one.
+        half = layer[GEN ** LAYER_HALF]
+        parity = layer[GEN ** LAYER_PARITY]
+        for x4 in mul_range(1, half):
+            step = x4 ** 4
+            rd = head * step
+            pt = point_row * step
+            round_fs = [rd[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], rd[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+            cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
+            claim = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
+            for q in unroll(0, 4):
+                # As in gkr_rounds.
+                round_fs, c1, cur = fs_next(round_fs, cur)
+                round_fs, c2, cur = fs_next(round_fs, cur)
+                round_fs, c3, cur = fs_next(round_fs, cur)
+                round_fs, c4, cur = fs_next(round_fs, cur)
+                round_fs, rk = squeeze(round_fs)
+                c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
+                pt[GEN ** (MU_CAP + 2 + q)] = rk  # nextrow[round * g^2]
+                claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
+            rd_next = rd * GEN ** 4
+            rd_next[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)] = round_fs[0]
+            rd_next[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)] = round_fs[1]
+            rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
+            rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = claim
+        if parity != 0:
+            quad = half ** 4
+            gkr_rounds(head * quad, point_row * quad, 2)
+        if x_layer != sq:
+            gkr_rounds(head * sq, point_row * sq, 1)
+        tail = head * x_layer
+        tail_fs = [tail[GEN ** (ROUND_FS0 * GKR_ROUNDS_CAP)], tail[GEN ** (ROUND_FS1 * GKR_ROUNDS_CAP)]]
+        tcur = tail[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
+        tclaim = tail[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
         evals = StackBuf(4 * N_GKR_SIDES)  # the four children of each side, in side order
         for i in unroll(0, 4 * N_GKR_SIDES):
             tail_fs, ev, tcur = fs_next(tail_fs, tcur)
@@ -1426,6 +1473,8 @@ def verify_bus_gkr(fs0, fs1, cursor, g_bus_mu, zeta):
             nxt[GEN ** (LAYER_PUSH + side)] = lo + c1 * (lo + hi)
         nxt[GEN ** LAYER_ROW] = nextrow
         nxt[GEN ** LAYER_POS] = round_pos * x_layer * GEN
+        nxt[GEN ** LAYER_HALF] = half * (1 + parity * (1 + GEN))
+        nxt[GEN ** LAYER_PARITY] = 1 + parity
     last = layers * g_bus_mu ** LAYER_SLOTS
     fs = [last[GEN ** LAYER_FS0], last[GEN ** LAYER_FS1]]
     cursor = last[GEN ** LAYER_CURSOR]
@@ -2267,15 +2316,15 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
         fs, x, cursor = fs_next(fs, cursor)
         sizes[i] = x
     fs, log_inv_rate, cursor = fs_next(fs, cursor)
-    rate_sel = g_power_of_word(log_inv_rate, g_squares, LOG_WORD_BITS) / GEN
+    rate_sel = g_power_of_word(log_inv_rate) / GEN
     assert log(rate_sel) < LIG_N_RATES
     dims_g = HeapBuf(N_TABLES + 1)  # [g^log_mem, g^tau_0 .. g^tau_{N_TABLES-1}]
-    g_log_mem = g_power_of_word(sizes[0], g_squares, LOG_WORD_BITS)
+    g_log_mem = g_power_of_word(sizes[0])
     assert log(g_log_mem) < COUNT_BITS
     assert log(g_log_mem / GEN ** MIN_LOG_MEM) < COUNT_BITS  # native MIN_LOG_MEM <= log_mem
     dims_g[GEN ** 0] = g_log_mem
     for t in unroll(0, N_TABLES):
-        g_tau = g_power_of_word(sizes[t + 1], g_squares, LOG_WORD_BITS)
+        g_tau = g_power_of_word(sizes[t + 1])
         assert log(g_tau) < COUNT_BITS
         # A table's floor: the Keccak reduction is sized for at least 2^9 steps.
         assert log(g_tau / GEN ** FLOORS[t]) < COUNT_BITS
@@ -2777,21 +2826,61 @@ def list_split(n_g, per_block: Const):
     return body, rest
 
 
+def split_body(body):
+    # body = g^(8q + m), m < 8, as (g^q, g^m): the exponent's bits are pinned boolean
+    # and tied back to body, whose exponent is below MAX_KEYS = 2^16, so the split
+    # is the only one.
+    bits = StackBuf(16)
+    hint_decompose_bits_exponent(bits, body, 16)
+    steps = GEN ** 0
+    extra = GEN ** 0
+    for k in unroll(0, 16):
+        bit = bits[k]
+        bits[k] = bit * bit
+        if k // LIST_BLOCKS_LOG == 0:
+            extra *= 1 + bit * (1 + GEN ** (2 ** k))
+        else:
+            steps *= 1 + bit * (1 + GEN ** (2 ** k // LIST_BLOCKS))
+    assert steps ** LIST_BLOCKS * extra == body
+    return steps, extra
+
+
 def key_list_digest(keys_ptr, n_keys_g):
     # The hash of one leaf index group's declared key list, 32 bytes a key and so four
     # keys a block. The keys are hinted into the group's declared slots of the table,
-    # a block at a time.
+    # a block at a time. A loop step hashes LIST_BLOCKS blocks, their states staying
+    # in the frame; the blocks left over then go one a step, and the last block's
+    # shape is a match.
     body, rest = list_split(n_keys_g, 4)
-    chain = HeapBuf((body * GEN) ** STATE_SLOTS)
+    steps, extra = split_body(body)
+    chain = HeapBuf((steps * extra * GEN) ** LIST_STEP)
     zero_state(chain)
-    for xq in mul_range(1, body):
-        st = chain * xq ** STATE_SLOTS
-        nxt = st * GEN ** STATE_SLOTS
-        blk = keys_ptr * xq ** 8
+    for xq in mul_range(1, steps):
+        rec = xq ** LIST_STEP
+        st = chain * rec
+        nxt = st * GEN ** LIST_STEP
+        blk = keys_ptr * rec ** (8 * LIST_BLOCKS // LIST_STEP)
+        src = StackBuf(SHA3_STATE)
+        for i in unroll(0, LIST_BLOCKS):
+            hint_witness(blk[8 * i:8 * i + 8], "pubkeys")
+            out = StackBuf(SHA3_STATE)
+            if i == 0:
+                sha3(blk[0:2], blk[2:4], out, tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
+            elif i == LIST_BLOCKS - 1:
+                sha3(blk[8 * i:8 * i + 2], blk[8 * i + 2:8 * i + 4], nxt[0:SHA3_STATE], tail=blk[8 * i + 4:8 * i + 8], state=src, final=0)
+            else:
+                sha3(blk[8 * i:8 * i + 2], blk[8 * i + 2:8 * i + 4], out, tail=blk[8 * i + 4:8 * i + 8], state=src, final=0)
+            src = out
+    head = chain * steps ** LIST_STEP
+    head_keys = keys_ptr * steps ** (8 * LIST_BLOCKS)
+    for xe in mul_range(1, extra):
+        st = head * xe ** LIST_STEP
+        nxt = st * GEN ** LIST_STEP
+        blk = head_keys * xe ** 8
         hint_witness(blk[0:8], "pubkeys")
         sha3(blk[0:2], blk[2:4], nxt[0:SHA3_STATE], tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
-    last = chain * body ** STATE_SLOTS
-    d0, d1 = match(log(rest), range(0, 4), lambda k: key_list_last(last, keys_ptr * body ** 8, k))
+    last = head * extra ** LIST_STEP
+    d0, d1 = match(log(rest), range(0, 4), lambda k: key_list_last(last, head_keys * extra ** 8, k))
     return d0, d1
 
 
@@ -2811,17 +2900,18 @@ def key_list_last(state, blk, k: Const):
 
 
 @inline
-def child_keys(keys_ptr, cover, marks, origin_g, limit_g, blk, n: Const):
+def child_keys(keys_ptr, cover_at, marks, limit_g, blk, n: Const, first: Const):
     # n of a child's keys, read at hinted indices into THIS node's table and marked
-    # in the coverage table, copied into the block `blk`. Each index is an offset
-    # into the parent group the caller mapped this child group to, bounded by that
-    # group's size, so a child's key can only ever land on an XMSS slot of the right
-    # leaf index.
+    # in the coverage table, copied into the block `blk`; they are the keys first..
+    # of the run `marks` counts from. Each index is an offset into the parent group
+    # the caller mapped this child group to (cover_at = cover * origin), bounded by
+    # that group's size, so a child's key can only ever land on an XMSS slot of the
+    # right leaf index.
     idx = StackBuf(4)
     hint_witness(idx[0:n], "child_index")
     for j in unroll(0, n):
         assert log(idx[j]) < log(limit_g)  # precondition as in the raw loops
-        cover[origin_g * idx[j]] = marks * (GEN ** j)
+        cover_at[idx[j]] = marks * (GEN ** (first + j))
         key = keys_ptr * (idx[j] * idx[j])
         blk[2 * j] = key[1]
         blk[2 * j + 1] = key[GEN]
@@ -2832,27 +2922,48 @@ def child_key_list_digest(keys_ptr, cover, base, origin_g, limit_g, n_keys_g):
     # The hash of one leaf index group of a child's keys, over the same 32·n bytes the
     # child hashed (`key_list_digest`), so the digest it rebuilds is the one the
     # child's statement carries. The chain threads the coverage write value, which
-    # counts the keys off as they are marked, from `base`.
+    # counts the keys off as they are marked, from `base`. The blocks go as in
+    # `key_list_digest`.
     body, rest = list_split(n_keys_g, 4)
-    chain = HeapBuf((body * GEN) ** STATE_SLOTS)
+    steps, extra = split_body(body)
+    cover_at = cover * origin_g
+    chain = HeapBuf((steps * extra * GEN) ** LIST_STEP)
     zero_state(chain)
     chain[GEN ** SHA3_STATE] = base
-    for xq in mul_range(1, body):
-        st = chain * xq ** STATE_SLOTS
-        nxt = st * GEN ** STATE_SLOTS
+    for xq in mul_range(1, steps):
+        st = chain * xq ** LIST_STEP
+        nxt = st * GEN ** LIST_STEP
+        marks = st[GEN ** SHA3_STATE]
+        src = StackBuf(SHA3_STATE)
+        for i in unroll(0, LIST_BLOCKS):
+            blk = StackBuf(8)
+            child_keys(keys_ptr, cover_at, marks, limit_g, blk, 4, 4 * i)
+            out = StackBuf(SHA3_STATE)
+            if i == 0:
+                sha3(blk[0:2], blk[2:4], out, tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
+            elif i == LIST_BLOCKS - 1:
+                sha3(blk[0:2], blk[2:4], nxt[0:SHA3_STATE], tail=blk[4:8], state=src, final=0)
+            else:
+                sha3(blk[0:2], blk[2:4], out, tail=blk[4:8], state=src, final=0)
+            src = out
+        nxt[GEN ** SHA3_STATE] = marks * GEN ** (4 * LIST_BLOCKS)
+    head = chain * steps ** LIST_STEP
+    for xe in mul_range(1, extra):
+        st = head * xe ** LIST_STEP
+        nxt = st * GEN ** LIST_STEP
         marks = st[GEN ** SHA3_STATE]
         blk = StackBuf(8)
-        child_keys(keys_ptr, cover, marks, origin_g, limit_g, blk, 4)
+        child_keys(keys_ptr, cover_at, marks, limit_g, blk, 4, 0)
         sha3(blk[0:2], blk[2:4], nxt[0:SHA3_STATE], tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
         nxt[GEN ** SHA3_STATE] = marks * GEN ** 4
-    last = chain * body ** STATE_SLOTS
-    d0, d1 = match(log(rest), range(0, 4), lambda k: child_key_list_last(last, keys_ptr, cover, origin_g, limit_g, k))
+    last = head * extra ** LIST_STEP
+    d0, d1 = match(log(rest), range(0, 4), lambda k: child_key_list_last(last, keys_ptr, cover_at, limit_g, k))
     return d0, d1
 
 
-def child_key_list_last(state, keys_ptr, cover, origin_g, limit_g, k: Const):
+def child_key_list_last(state, keys_ptr, cover_at, limit_g, k: Const):
     blk = StackBuf(8)
-    child_keys(keys_ptr, cover, state[GEN ** SHA3_STATE], origin_g, limit_g, blk, k + 1)
+    child_keys(keys_ptr, cover_at, state[GEN ** SHA3_STATE], limit_g, blk, k + 1, 0)
     digest = StackBuf(SHA3_STATE)
     if k == 0:
         sha3(blk[0:2], [0, 0], digest, state=state[0:SHA3_STATE], len=32)
