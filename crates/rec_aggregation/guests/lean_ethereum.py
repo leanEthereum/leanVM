@@ -2264,6 +2264,7 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
     for t in unroll(KECCAK_EMB_START[KECCAK_PACK - 1], KECCAK_EMB_START[KECCAK_PACK]):
         modulus += s_powers[KECCAK_EMB_IDX[t]]
     mu_new[KECCAK_PACK - 1] = modulus
+    kappa = modulus  # the sum of the weights: a pair's is its lift's
     paired = 0
     for k in unroll(0, KECCAK_PACK - 1):
         if const(paired == 1):
@@ -2344,21 +2345,22 @@ def keccak_layer(fs0, fs1, cursor, y_g, claim, out, iota, first: Const):
                 else:
                     mu_new[k + 1] = s * lift
                 mu_new[k] = lift + mu_new[k + 1]
+                kappa += lift
                 paired = 1
             elif const(shifted == 1):
                 if const(top == 1):
                     mu_new[k] = s * mu_new[k - 2] + modulus
                 else:
                     mu_new[k] = s * mu_new[k - 2]
+                kappa += mu_new[k]
             else:
                 weight = 0
                 for t in unroll(KECCAK_EMB_START[k], KECCAK_EMB_START[k + 1]):
                     weight += s_powers[KECCAK_EMB_IDX[t]]
                 mu_new[k] = weight
-    kappa = 0
+                kappa += weight
     for i in unroll(0, KECCAK_PACK):
         out[GEN ** (KC_MU + i)] = mu_new[i]
-        kappa += mu_new[i]
     out[GEN ** KC_KAPPA] = kappa
     value = product[KECCAK_PROD_BITS - 1]
     for k in unroll(1, KECCAK_PROD_BITS):
