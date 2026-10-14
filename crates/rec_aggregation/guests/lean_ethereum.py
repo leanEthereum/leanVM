@@ -920,13 +920,18 @@ def hash_cap_node(cap, node: Const):
 
 def verify_merkle_cap(cap, flags, depth: Const):
     # Unrolled over the cap's nodes, so every cap and flag address is an immediate.
+    # An active (flagged) node is hashed; an inactive one pins its children's flags
+    # to zero, so every active node's parent is active too, up to the root, which
+    # is always hashed. The queries flag the parents of the cap leaves they reach.
     if depth != 0:
         hash_cap_node(cap, 1)
-        flags[GEN] = 1
-        for child in unroll(2, 2 ** depth):
-            if flags[GEN ** child] != 0:
-                flags[GEN ** (child // 2)] = 1  # every active node forces its parent to be hashed
-                hash_cap_node(cap, child)
+        for node in unroll(2, 2 ** depth):
+            if flags[GEN ** node] != 0:
+                hash_cap_node(cap, node)
+            else:
+                if const(node // 2 ** (depth - 1) == 0):  # node has flagged children
+                    flags[GEN ** (2 * node)] = 0
+                    flags[GEN ** (2 * node + 1)] = 0
     return cap[GEN ** 2], cap[GEN ** 3]
 
 
