@@ -56,7 +56,7 @@ pub(crate) struct DenseClaim<E> {
     pub(crate) terms: Vec<DenseTerm<E>>,
 }
 
-/// Each dense polynomial's variables: the bytecode table's, the image's, the fixed polynomial's.
+/// Each dense polynomial's variables: the bytecode table's, the image's, the leaves' fixed polynomial's, the nodes'.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct DenseVars(pub(crate) [usize; DensePoly::COUNT]);
 
@@ -782,7 +782,7 @@ mod tests {
     #[test]
     fn the_dense_reduction_reduces_to_the_polynomials() {
         let mut rng = Rng::new(17);
-        let vars = DenseVars([3, 6, 7, 5]);
+        let vars = DenseVars([3, 6, 5, 7, 4]);
         let tables = DenseTables(vars.0.map(|n| (0..1 << n).map(|_| F64(rng.next_u64())).collect()));
         let claims = dense_claims(&mut rng, &tables, &vars);
         let prove = |claims: &[DenseClaim<F192>], forge: bool| {
@@ -892,7 +892,7 @@ mod tests {
         // blocks of the image and the fixed polynomial have one or two low points, so their weights stay factored for a few
         // rounds; the bytecode's has three, written out at once.
         let mut rng = Rng::new(23);
-        let vars = DenseVars([3, 5, 14, 4]);
+        let vars = DenseVars([3, 5, 6, 14, 4]);
         let tables = DenseTables(vars.0.map(|n| (0..1 << n).map(|_| F64(rng.next_u64())).collect()));
         let mut claims: Vec<DenseClaim<F192>> = (0..3)
             .map(|_| {
@@ -902,6 +902,13 @@ mod tests {
             })
             .collect();
         claims.push(block_claim(&mut rng, &tables, &vars, DensePoly::Image, &[(1, 2)]));
+        claims.push(block_claim(
+            &mut rng,
+            &tables,
+            &vars,
+            DensePoly::Leaf,
+            &[(3, 5), (1, 3)],
+        ));
         claims.push(block_claim(
             &mut rng,
             &tables,

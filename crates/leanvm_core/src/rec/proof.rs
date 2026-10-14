@@ -1,9 +1,11 @@
 //! Proving and verifying a run of the recursion machine: the pipeline of a leanVM proof, on the circuit's tables.
 //!
-//! - The stack commits the hash table's packed witness, then every owned table's committed columns.
+//! - The stack commits the hash table's packed witness, then every present owned table's committed columns.
 //! - The bus balances the slots' copy cycles.
-//! - One batch proves every table's summand at the bus's point, and flock proves every hash row.
+//! - One batch proves every present table's summand at the bus's point, and flock proves every hash row.
 //! - One opening settles the column claims and the packed witness's ring-switched claim.
+//!
+//! A table with no rows, other than the hash and public tables, is absent (`RecLayout`): neither side reads it.
 
 use super::RecError;
 use super::bus::{BusBlocks, TableResidual, TableSummand};
@@ -59,7 +61,7 @@ impl RecWitness {
         // SAFETY: the owned tables and hash batch fill every committed window before it is read.
         // The pad tail is zeroed.
         let mut windows = stacking::split_stack(unsafe { primitives::write_only(&mut q) }, &layout.placements);
-        for table in Table::OWNED {
+        for &table in &layout.present {
             table.fill(a, &mut windows[RecLayout::columns(table)]);
         }
 
@@ -107,19 +109,20 @@ impl<'a> TableArgument<'a> {
         Self::new(layout, BusBlocks::new(fixed, public, layout))
     }
 
-    /// Prove the bus, then every owned table's summand at the bus's point.
+    /// Prove the bus, then every present owned table's summand at the bus's point.
     fn prove(&self, w: &RecWitness, ps: &mut ProverState) -> Vec<StackClaim> {
         let cols = w.columns(self.layout);
         let bus = info_span!("Prove bus").in_scope(|| self.blocks.prove(&cols, ps));
         let tables = info_span!("Prove constraints").in_scope(|| {
             let xi = ps.verifier_message();
-            let sums: Vec<F192> = (0..Table::OWNED.len())
+            let present = &self.layout.present;
+            let sums: Vec<F192> = (0..present.len())
                 .map(|t| bus.sigmas[0][t] + xi * bus.sigmas[1][t])
                 .collect();
-            let table_cols = (Table::OWNED.into_iter())
-                .map(|t| Columns::K(cols[RecLayout::columns(t)].to_vec()))
+            let table_cols = (present.iter())
+                .map(|&t| Columns::K(cols[RecLayout::columns(t)].to_vec()))
                 .collect();
-            let airs = self.layout.airs(TableSummand::batch(&bus.forms, xi));
+            let airs = self.layout.airs(TableSummand::batch(present, &bus.forms, xi));
             constraints::prove(&airs, table_cols, &bus.point, &sums, ps)
         });
         self.layout.opening_claims(bus.claims, &tables)
@@ -134,7 +137,9 @@ impl<'a> TableArgument<'a> {
         let bus = self.blocks.verify(v)?;
         let xi = v.verifier_message();
         let target = v.mul_add(xi, bus.totals[1], bus.totals[0]);
-        let airs = self.layout.airs(TableResidual::batch(v, &bus.forms, xi));
+        let airs = self
+            .layout
+            .airs(TableResidual::batch(v, &self.layout.present, &bus.forms, xi));
         let tables = constraints::verify(v, &airs, &bus.point, target)?;
         let zero = v.zero();
         v.ensure_eq(tables.residual, zero, || {
@@ -279,7 +284,9 @@ mod tests {
     use super::*;
     use crate::commitment::{self, Rate};
     use crate::constraints::ConstraintError;
+    use crate::rec::circuit::chains::{Planned, plan, step, tweak};
     use crate::rec::circuit::{Builder, Dw, Ew, Finished, Kw, PARAM_IV};
+    use crate::rec::fixed::FixedColumn;
     use fiat_shamir::arith::Arith;
     use std::panic::AssertUnwindSafe;
 
@@ -321,6 +328,15 @@ mod tests {
 
     // A circuit using every table and every slot kind.
     fn every_kind() -> (Circuit, Assignment, Wires) {
+        kinds(true)
+    }
+
+    // The same circuit without its chain, so with no step or link rows.
+    fn every_kind_but_chains() -> (Circuit, Assignment, Wires) {
+        kinds(false)
+    }
+
+    fn kinds(chains: bool) -> (Circuit, Assignment, Wires) {
         let mut b = Builder::new();
         let x = b.free_e(F192::new(3, 5, 7));
         let one = b.one();
@@ -376,6 +392,9 @@ mod tests {
         b.expose(r);
         b.expose(leaf);
         b.expose(low);
+        if chains {
+            b.emit_chains(&plan(&[5]));
+        }
         let Finished {
             circuit,
             assignment: a,
@@ -557,6 +576,7 @@ mod tests {
                 b.leaf_block(acc, m, 64 * (i + 1), i % 4 == 3)
             };
         }
+        b.emit_chains(&plan(&[4, 7, 5]));
         b.expose(acc);
         let Finished {
             circuit,
@@ -565,25 +585,169 @@ mod tests {
         } = b.finish();
         assert!(failures.is_empty(), "{failures:?}");
         let counts = circuit.row_counts();
-        assert_eq!(counts[Table::Hash], 61);
+        assert_eq!(counts[Table::Hash], 66);
         assert!(counts.values().all(|&n| n > 1 && !n.is_power_of_two()), "{counts:?}");
         let proof = prove_run(&circuit, &a);
         assert_eq!(verify_run(&circuit, &a.statement, &proof), Ok(()));
     }
 
+    fn chains(rows: &[Planned]) -> Finished {
+        let mut b = Builder::new();
+        b.emit_chains(rows);
+        b.finish()
+    }
+
+    // Chains of every digit's kind, one of no step and one of seven, prove and verify.
+    #[test]
+    fn chains_on_the_dynamic_bus_prove_and_verify() {
+        let Finished {
+            circuit,
+            assignment: a,
+            failures,
+        } = chains(&plan(&[0, 3, 7, 6]));
+        assert!(failures.is_empty(), "{failures:?}");
+        let counts = circuit.row_counts();
+        assert_eq!((counts[Table::Step], counts[Table::Link]), (12, 4));
+        let proof = prove_run(&circuit, &a);
+        assert_eq!(verify_run(&circuit, &a.statement, &proof), Ok(()));
+    }
+
+    // Rows whose dynamic tuples do not balance: the builder reports it, and the prover cannot prove the bus.
+    fn assert_refused(rows: &[Planned], what: &str) {
+        let Finished {
+            circuit,
+            assignment: a,
+            failures,
+        } = chains(rows);
+        assert!(
+            failures.iter().any(|f| f.check() == "the dynamic tuples balance"),
+            "{what}: {failures:?}"
+        );
+        let refused = std::panic::catch_unwind(AssertUnwindSafe(|| prove_run(&circuit, &a)))
+            .expect_err(&format!("{what} was proven"));
+        let message = refused.downcast_ref::<String>().map_or("", String::as_str);
+        assert!(
+            message.contains("the bus needs the two products to agree"),
+            "{what}: {message}"
+        );
+    }
+
+    // Row `i`'s input, a step's.
+    fn input(rows: &mut [Planned], i: usize) -> &mut [u64; 2] {
+        match &mut rows[i] {
+            Planned::Step { v, .. } => v,
+            Planned::Link { .. } => unreachable!("row {i} is a step"),
+        }
+    }
+
+    #[test]
+    fn tampered_chains_are_refused() {
+        // Chain 0 steps from position 2 (rows 0 to 4, link 5), chain 1 from position 5 (rows 6 and 7, link 8).
+        let honest = plan(&[2, 5]);
+
+        // The tuples are a multiset: the rows' order is free.
+        let mut rows = honest.clone();
+        rows.swap(2, 7);
+        assert!(chains(&rows).failures.is_empty());
+
+        let mut rows = honest.clone();
+        input(&mut rows, 2)[1] ^= 1;
+        assert_refused(&rows, "a step with a wrong input");
+
+        let mut rows = honest.clone();
+        let (v1, v2) = (*input(&mut rows, 1), *input(&mut rows, 2));
+        *input(&mut rows, 1) = v2;
+        *input(&mut rows, 2) = v1;
+        assert_refused(&rows, "two steps' inputs swapped");
+
+        let mut rows = honest.clone();
+        rows.remove(3);
+        assert_refused(&rows, "a missing step");
+
+        let mut rows = honest.clone();
+        let Planned::Link { end, .. } = &mut rows[8] else {
+            unreachable!("row 8 is chain 1's link")
+        };
+        end[0] ^= 1;
+        assert_refused(&rows, "a link's end not the chain's");
+
+        // Eight steps of chain 50, past the 42 a signature has, from position 0 round to position 0: the last
+        // pushes at the first's key, and only an output equal to the first input would close the cycle.
+        let mut rows = honest;
+        let mut v = [5, 6];
+        for s in 0..8 {
+            rows.push(Planned::Step { tweak: tweak(50, s), v });
+            v = step(tweak(50, s), v);
+        }
+        assert_refused(&rows, "a cycle of steps past the chains");
+    }
+
+    // A circuit whose last step is a padding row, the witness filling it with that step: an honest prover cannot
+    // balance the bus, the padding row's tuples being inactive, and a proof that sets the row active is refused.
+    #[test]
+    fn a_padding_row_carrying_a_tuple_is_refused() {
+        let Finished {
+            circuit,
+            assignment: a,
+            failures,
+        } = chains(&plan(&[3]));
+        assert!(failures.is_empty(), "{failures:?}");
+        assert_eq!(circuit.row_counts()[Table::Step], 4);
+        let mut short = circuit.clone();
+        short.classes.pop_row(Table::Step);
+        let taus = circuit.heights();
+        assert_eq!(short.heights(), taus);
+        // The honest circuit's key, its fixed columns the short circuit's.
+        let forged = |fixed: FixedColumns| CircuitKey { fixed, ..key(&circuit) };
+        let fixed = FixedColumns::new(&short);
+        let refused = std::panic::catch_unwind(AssertUnwindSafe(|| {
+            forged(fixed.clone()).prove(&a, &session(), Rate::MIN)
+        }))
+        .expect_err("an inactive tuple balanced an active one");
+        let message = refused.downcast_ref::<String>().map_or("", String::as_str);
+        assert!(message.contains("the bus needs the two products to agree"), "{message}");
+
+        let mut active = fixed;
+        active.set(FixedColumn::Active(Table::Step), 3, F64::ONE);
+        let proof = forged(active).prove(&a, &session(), Rate::MIN);
+        assert!(verify_run(&short, &a.statement, &proof).is_err());
+    }
+
     #[test]
     fn a_circuit_past_one_commitment_is_an_error() {
         let (mut circuit, ..) = every_kind();
-        circuit.floor[Table::Emul] = commitment::MAX_MU;
+        circuit.floor[Table::Emul] = Some(commitment::MAX_MU);
         let too_long = |e: &RecError| matches!(e, RecError::TooLong { mu } if *mu > commitment::MAX_MU);
         assert!(CircuitKey::new(circuit.clone()).is_err_and(|e| too_long(&e)));
 
-        circuit.floor[Table::Emul] = 0;
-        circuit.floor[Table::Pub] = RecLayout::MAX_TAU + 1;
+        circuit.floor[Table::Emul] = None;
+        circuit.floor[Table::Pub] = Some(RecLayout::MAX_TAU + 1);
         let too_many = Err(RecError::TooManyRows {
             table: Table::Pub,
             tau: RecLayout::MAX_TAU + 1,
         });
         assert_eq!(CircuitKey::new(circuit).map(drop), too_many);
+    }
+
+    // A table with no rows is absent: nothing of it is committed and the verifier reads nothing of it. The heights fix
+    // which tables a proof has, so a proof with the table is refused where the verifier expects none, and the other way.
+    #[test]
+    fn the_heights_fix_the_absent_tables() {
+        let (circuit, a, _) = every_kind_but_chains();
+        let counts = circuit.row_counts();
+        assert_eq!((counts[Table::Step], counts[Table::Link]), (0, 0));
+        let layout = RecLayout::new(&circuit).unwrap();
+        assert!(!layout.present.contains(&Table::Step) && !layout.present.contains(&Table::Link));
+        let proof = prove_run(&circuit, &a);
+        assert_eq!(verify_run(&circuit, &a.statement, &proof), Ok(()));
+
+        let mut padded = circuit.clone();
+        padded.floor[Table::Step] = Some(0);
+        padded.floor[Table::Link] = Some(0);
+        assert!(padded.committed_words().unwrap() > circuit.committed_words().unwrap());
+        let padded_proof = prove_run(&padded, &a);
+        assert_eq!(verify_run(&padded, &a.statement, &padded_proof), Ok(()));
+        assert!(verify_run(&circuit, &a.statement, &padded_proof).is_err());
+        assert!(verify_run(&padded, &a.statement, &proof).is_err());
     }
 }

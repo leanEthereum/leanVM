@@ -1,15 +1,19 @@
-//! The recursion machine: a circuit of rows over six tables, wired by copy cycles, and its proof (Annex E).
+//! The recursion machine: a circuit of rows over eight tables, wired by copy cycles and dynamic tuples, and its proof
+//! (Annex E).
 
 mod bus;
 pub mod circuit;
+mod clean;
 mod fixed;
 mod hash;
 mod layout;
 pub mod proof;
+pub mod sphincs;
 pub mod table;
 pub mod transcript;
 pub mod tree;
 pub mod verifier;
+pub mod xmss;
 
 pub(crate) use fixed::FixedColumn;
 

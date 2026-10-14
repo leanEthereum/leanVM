@@ -1,52 +1,62 @@
-//! Aggregation trees: RISC-V proofs of one program at the leaves, recursion proofs above them, one root the native verifier checks.
+//! Aggregation trees: leaf proofs of one family, recursion proofs above them, one root the native verifier checks.
 //!
 //! ```text
-//!                 node                  verifies arity recursion proofs of any kind
+//!                 node                  verifies arity tree proofs of any kind
 //!               /      \
-//!        first-level   first-level      each verifies arity_0 RISC-V proofs
+//!        first-level   first-level      each verifies arity_0 leaves
 //!          /  \          /  \
 //!       leaf  leaf    leaf  leaf
 //! ```
 //!
+//! A tree's leaves are of one family: RISC-V proofs of one program, or proofs of one recursion circuit (a batch of
+//! signatures, say). The tree's session names the family, so a tree proof verifies under a tree of its own family only.
+//!
 //! Every tree proof states the same words, whatever the tree's size:
 //!
 //! - its kind, and a digest;
-//! - one claim on each of the bytecode table, RAM's image and the nodes' fixed polynomial, which holds every circuit's fixed columns;
+//! - one claim on each dense polynomial the tree has: the RISC-V program's bytecode table and RAM image, or the leaf circuit's fixed polynomial, and the nodes' fixed polynomial, which holds every circuit's fixed columns;
 //! - each flock circuit's two matrices at one row point and one column point.
 //!
 //! Each node reduces the claims its children leave and carry to one of each, and only the root's verifier evaluates them.
 //!
 //! A tree has one of two semantics, which its shape fixes:
 //!
-//! - **Outputs**: the digest is of the leaves' outputs under the proof, in order, through the tree's fixed shape.
-//! - **Claim sets**: the leaves publish claim sets (their output is the hash of their set's digest), and the digest is
-//!   of the set the proof declares: by default the union of its children's sets, or any part of it. Each node proves
-//!   every claim it declares is one of its children's (`union`), so every claim of the root's set is one a leaf
-//!   published, whatever the tree's shape: anyone may combine any proofs of the tree, up to its largest arity, and the
-//!   root's verifier needs the set alone. What a claim means is the leaf program's (`multiset`).
+//! - **Outputs**: the digest is of what the leaves under the proof state, in order, through the tree's fixed shape.
+//! - **Claim sets**: the leaves publish claim sets, and the digest is of the set the proof declares: by default the
+//!   union of its children's sets, or any part of it. Each node proves every claim it declares is one of its
+//!   children's (`union`), so every claim of the root's set is one a leaf published, whatever the tree's shape: anyone
+//!   may combine any proofs of the tree, up to its largest arity, and the root's verifier needs the set alone. What a
+//!   claim means is the leaf's (`multiset`). A RISC-V leaf's output is the hash of its set's digest; a signature
+//!   circuit's leaf publishes one group, a claim a signature, read from its statement (`leaf_set`).
 //!
 //! A claim-set tree has a node circuit for each arity from two to its largest, all of one height, or two tiers each
 //! at heights of its own (a small tier): small proofs then never pay for the largest node's union and children.
 
 use crate::commitment::Rate;
-use crate::cpu::{Lookup, Output, Program, Proof, ProvenRun, VerifyError};
-use crate::rec::circuit::{Circuit, Finished, chain};
+use crate::cpu::{Output, Program, Proof, ProvenRun, VerifyError};
+use crate::rec::circuit::{Circuit, Finished, Limbs, chain};
 use crate::rec::fixed::FixedColumns;
 use crate::rec::proof::CircuitKey;
-use crate::rec::table::{PerRecTable, Table};
+use crate::rec::table::{Heights, Table};
 use crate::rec::transcript::ProofSource;
+use crate::rec::verifier::ProofShape;
 use crate::tables::CircuitId;
-use design::{ChildWitness, Design, LARGE, LeafWitness, Level, NodeInputs, NodeRows, SMALL};
+use design::{
+    ChildWitness, CircuitFamily, CircuitWitness, Design, Family, LARGE, LeafWitness, Level, NodeInputs, NodeRows, SMALL,
+};
+use fiat_shamir::{LengthPrefixed, ProofTranscript, ProverState, SessionId};
+pub(crate) use leaf_set::{ClaimLayout, ClaimWord};
 use pcs::merkle::Openings;
-use primitives::field::{F64, F192};
+use primitives::field::F192;
 use primitives::multilinear::{eq_table, mle_eval_par};
 use reduce::DenseTables;
-use statement::TreeStatement;
+use statement::{Items, TreeStatement};
 use thiserror::Error;
 use tracing::info_span;
 use union::{FillError, UnionFill};
 
 mod design;
+mod leaf_set;
 
 mod multiset;
 mod proof;
@@ -67,16 +77,78 @@ pub use statement::Kind;
 /// The most rounds the search for the nodes' heights takes: each round at least doubles a table.
 const MAX_ROUNDS: usize = 8;
 
-/// One leaf of a tree: a proof of a run, and the output it proves.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Leaf<'a> {
-    /// The proof of the run.
-    proof: &'a Proof,
-    /// The output the proof claims.
-    output: Output,
+/// A recursion circuit whose proofs are leaves of a tree: its key (the circuit and its fixed columns), its transcript's
+/// session, its proofs' rate, and how its statement states claims.
+///
+/// A batch of signatures gives it (`XmssBatch::leaves`). Its proofs are plain recursion proofs: the recursion machine
+/// has no zero-knowledge proof.
+#[derive(Clone, Copy)]
+pub struct LeafCircuit<'p> {
+    /// The circuit and its fixed columns at its heights.
+    pub(crate) key: &'p CircuitKey,
+    /// Its proofs' transcript's session, which names the circuit and its size.
+    pub(crate) session: SessionId,
+    /// Its proofs' rate.
+    pub(crate) rate: Rate,
+    /// How its statement states claims, one a signature: what a proof of it publishes in a claim-set tree.
+    pub(crate) claims: &'static ClaimLayout,
 }
 
-/// What one of a tree's circuits costs.
+/// A tree's leaf family: what every leaf of the tree is a proof of.
+#[derive(Clone, Copy)]
+pub enum Leaves<'p> {
+    /// RISC-V proofs of one program, of one shape, plain or zero knowledge as the shape says.
+    Runs {
+        /// The program.
+        program: &'p Program,
+        /// The proofs' shape.
+        shape: LeafShape,
+    },
+    /// Proofs of one recursion circuit.
+    Circuit(LeafCircuit<'p>),
+}
+
+/// One leaf of a tree: a proof, and what it proves.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Leaf<'a>(LeafProof<'a>);
+
+/// A leaf's proof and what it proves.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum LeafProof<'a> {
+    /// A RISC-V proof of a run, and the output it claims.
+    Run { proof: &'a Proof, output: Output },
+    /// A proof of the recursion circuit of session `session`, and its statement.
+    Circuit {
+        session: SessionId,
+        statement: Vec<Limbs>,
+        proof: &'a ProofTranscript,
+        rate: Rate,
+    },
+}
+
+/// What one leaf states, which the root's verifier is given.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LeafStatement(Stated);
+
+/// What a leaf states: a run's output, or a recursion circuit's statement.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Stated {
+    /// A RISC-V proof's output.
+    Run(Output),
+    /// The statement of a proof of the recursion circuit of session `session`.
+    Circuit { session: SessionId, words: Vec<Limbs> },
+}
+
+/// The tree a root is expected to cover: its shape, and what each leaf states.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Subtree {
+    /// A first-level node: what its leaves state, in order.
+    First(Vec<LeafStatement>),
+    /// A node: its children, in order.
+    Node(Vec<Self>),
+}
+
+/// What a recursion circuit costs: one of a tree's, or a signature batch's.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct CircuitStats {
@@ -94,17 +166,52 @@ pub struct TableStats {
     pub name: &'static str,
     /// The rows the circuit puts in the table.
     pub rows: usize,
-    /// The base-two logarithm of the table's height.
+    /// The base-two logarithm of the table's height, none if the proof leaves the table out.
     ///
     /// The height is a power of two, at least the rows.
-    pub height_log: usize,
+    pub height_log: Option<usize>,
 }
 
-/// An aggregation tree over proofs of one program.
+impl TableStats {
+    /// The rows its proof has: its height, zero if the proof leaves it out.
+    #[must_use]
+    pub const fn height(&self) -> usize {
+        match self.height_log {
+            Some(tau) => 1 << tau,
+            None => 0,
+        }
+    }
+}
+
+impl CircuitStats {
+    /// What a circuit costs.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the circuit fits no commitment, which every caller has refused before.
+    pub(crate) fn of(circuit: &Circuit) -> Self {
+        // The circuit's rows per table, and the padded heights it is proven at.
+        let (rows, heights) = (circuit.row_counts(), circuit.heights());
+
+        // One entry per table of the recursion machine, in its order.
+        let tables = (Table::ALL.iter())
+            .map(|&table| TableStats {
+                name: table.name(),
+                rows: rows[table],
+                height_log: heights[table],
+            })
+            .collect();
+
+        let committed = circuit.committed_words().expect("the circuit fits one commitment");
+        Self { tables, committed }
+    }
+}
+
+/// An aggregation tree over leaf proofs of one family.
 ///
 /// It is the tree's verifying key, and what its prover needs.
 ///
-/// It is built from the program and the shape alone, before any proof exists.
+/// It is built from the leaf family and the shape alone, before any proof exists.
 pub struct Tree<'p> {
     /// How it is shaped.
     shape: TreeShape,
@@ -116,10 +223,12 @@ pub struct Tree<'p> {
     tables: DenseTables,
 }
 
-/// A leaf of a claim-set tree: a leaf proof, and the claim set whose digest's hash its output is.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// A leaf of a claim-set tree: a leaf proof, and the claim set it publishes.
+///
+/// A RISC-V proof's output is the hash of the set's digest; a proof of a signature circuit states the set's claims.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClaimLeaf<'a> {
-    /// The proof and its output.
+    /// The proof and what it states.
     leaf: Leaf<'a>,
     /// The set it publishes.
     claims: &'a ClaimSet,
@@ -183,7 +292,7 @@ pub enum TreeError {
         /// How many it is given.
         got: usize,
     },
-    /// A number of leaves no tree of these arities has.
+    /// A number of leaves no balanced tree of these arities has.
     #[error("{leaves} leaves make no tree of a first level of {arity_0} and nodes of {arity}")]
     LeafCount {
         /// How many leaves.
@@ -193,8 +302,8 @@ pub enum TreeError {
         /// The nodes' arity.
         arity: usize,
     },
-    /// A leaf proof announces another shape than the tree's.
-    #[error("leaf {index} has another shape than the tree's")]
+    /// A leaf of another family or shape than the tree's.
+    #[error("leaf {index} is of another family or shape than the tree's")]
     ForeignLeaf {
         /// The leaf's index among its node's.
         index: usize,
@@ -230,12 +339,10 @@ pub enum TreeError {
         /// The proof's.
         got: Rate,
     },
-    /// The root is not of the kind its number of leaves gives.
-    #[error("{leaves} leaves have a {expected:?} root, and the proof is a {got:?}")]
+    /// The root is not of the kind the expected tree's top gives.
+    #[error("the expected tree has a {expected:?} root, and the proof is a {got:?}")]
     Kind {
-        /// How many leaves.
-        leaves: usize,
-        /// The kind they give.
+        /// The kind the expected tree gives.
         expected: Kind,
         /// The proof's.
         got: Kind,
@@ -243,9 +350,9 @@ pub enum TreeError {
     /// The root's recursion proof does not verify.
     #[error("the root: {0}")]
     Root(VerifyError),
-    /// The root's digest is not that of the given leaves' outputs.
-    #[error("the root does not state these leaf outputs")]
-    Outputs,
+    /// The root's digest is not that of the expected tree.
+    #[error("the root does not state the expected tree's leaves")]
+    Digest,
     /// A claim the root carries is false.
     #[error("the root's claim {0} is false")]
     Claim(FalseClaim),
@@ -258,8 +365,9 @@ pub enum TreeError {
     /// A proof of no circuit of the tree.
     #[error("a proof of kind {0}, which the tree has no circuit of")]
     Circuit(usize),
-    /// A leaf's output is not the hash of its claim set's digest.
-    #[error("leaf {index}'s output is not its claim set's")]
+    /// A leaf that does not publish the claim set given with it: a RISC-V output not the hash of its digest, or a
+    /// statement stating another set, or claims of more than one label.
+    #[error("leaf {index} does not publish its claim set")]
     LeafClaims {
         /// The leaf's index among its node's.
         index: usize,
@@ -284,11 +392,73 @@ pub enum TreeError {
     Claims,
 }
 
+/// The digest a first-level node binds a leaf circuit's statement by: the first 32 bytes its proof's transcript would squeeze after the session and the instance.
+///
+/// A leaf's verifier rows draw it from their transcript once it has absorbed the instance (`Transcript::digest_so_far`).
+fn instance_digest(session: &SessionId, statement: &[Limbs]) -> Limbs {
+    let mut ps = ProverState::new(session, &LengthPrefixed(statement.as_flattened()));
+    primitives::hash::digest_words(&ps.verifier_message::<[u8; 32]>())
+}
+
+impl<'p> LeafCircuit<'p> {
+    /// The leaf circuit of a circuit's key, its proofs' session and rate, and how its statement states claims.
+    pub(crate) const fn new(key: &'p CircuitKey, session: SessionId, rate: Rate, claims: &'static ClaimLayout) -> Self {
+        Self {
+            key,
+            session,
+            rate,
+            claims,
+        }
+    }
+
+    /// The circuit.
+    pub(crate) const fn circuit(&self) -> &'p Circuit {
+        self.key.circuit()
+    }
+
+    /// Its fixed columns at its heights.
+    pub(crate) const fn columns(&self) -> &'p FixedColumns {
+        self.key.fixed()
+    }
+
+    /// Its session, as words.
+    pub(crate) fn seed(&self) -> Limbs {
+        primitives::hash::digest_words(&self.session.0)
+    }
+}
+
 impl<'a> Leaf<'a> {
-    /// The leaf of a proof and the output it proves.
+    /// The leaf of a RISC-V proof and the output it proves.
     #[must_use]
     pub const fn new(proof: &'a Proof, output: Output) -> Self {
-        Self { proof, output }
+        Self(LeafProof::Run { proof, output })
+    }
+
+    /// The leaf of a proof of a leaf circuit at `rate`, and the statement it proves.
+    pub(crate) const fn circuit(
+        leaf: &LeafCircuit<'_>,
+        statement: Vec<Limbs>,
+        proof: &'a ProofTranscript,
+        rate: Rate,
+    ) -> Self {
+        Self(LeafProof::Circuit {
+            session: leaf.session,
+            statement,
+            proof,
+            rate,
+        })
+    }
+
+    /// What it states.
+    #[must_use]
+    pub fn statement(&self) -> LeafStatement {
+        LeafStatement(match &self.0 {
+            LeafProof::Run { output, .. } => Stated::Run(*output),
+            LeafProof::Circuit { session, statement, .. } => Stated::Circuit {
+                session: *session,
+                words: statement.clone(),
+            },
+        })
     }
 }
 
@@ -298,8 +468,51 @@ impl<'a> From<&'a ProvenRun> for Leaf<'a> {
     }
 }
 
+impl LeafStatement {
+    /// The statement of a proof of a leaf circuit.
+    pub(crate) const fn circuit(leaf: &LeafCircuit<'_>, words: Vec<Limbs>) -> Self {
+        Self(Stated::Circuit {
+            session: leaf.session,
+            words,
+        })
+    }
+}
+
+impl From<Output> for LeafStatement {
+    fn from(output: Output) -> Self {
+        Self(Stated::Run(output))
+    }
+}
+
+impl Subtree {
+    /// The balanced tree over these leaves, in order: first-level nodes of `arity_0` consecutive leaves, then nodes of `arity` consecutive children up to one root.
+    ///
+    /// # Errors
+    ///
+    /// A number of leaves no tree of the shape's arities has.
+    pub fn balanced(leaves: Vec<LeafStatement>, shape: &TreeShape) -> Result<Self, TreeError> {
+        shape.depth(leaves.len())?;
+        let mut level: Vec<Self> = groups(leaves, shape.arity_0).into_iter().map(Self::First).collect();
+        while level.len() > 1 {
+            level = groups(level, shape.arity).into_iter().map(Self::Node).collect();
+        }
+        Ok(level.pop().expect("one root"))
+    }
+}
+
+/// The items in consecutive groups of `n`, the last one shorter if they do not divide.
+fn groups<T>(items: Vec<T>, n: usize) -> Vec<Vec<T>> {
+    let mut items = items.into_iter().peekable();
+    let mut out = Vec::new();
+    while items.peek().is_some() {
+        out.push(items.by_ref().take(n).collect());
+    }
+    out
+}
+
 impl<'a> ClaimLeaf<'a> {
-    /// The leaf of a proof whose output is the hash of this set's digest, as a guest that commits the digest gives.
+    /// The leaf of a proof that publishes this set: a RISC-V proof whose output is the hash of its digest, as a guest
+    /// that commits the digest gives, or a proof of a signature circuit whose statement states it.
     #[must_use]
     pub const fn new(leaf: Leaf<'a>, claims: &'a ClaimSet) -> Self {
         Self { leaf, claims }
@@ -307,9 +520,9 @@ impl<'a> ClaimLeaf<'a> {
 }
 
 impl<'p> Tree<'p> {
-    /// The tree over proofs of a program, shaped as given.
+    /// The tree over leaves of this family, shaped as given.
     ///
-    /// The circuits are built from the shapes alone, so a verifier needs no proof to build its key.
+    /// The circuits are built from the family and the shape alone, so a verifier needs no proof to build its key.
     ///
     /// # Errors
     ///
@@ -317,27 +530,21 @@ impl<'p> Tree<'p> {
     /// - A small tier past the tree's.
     /// - A leaf shape no proof of the program has.
     /// - Circuits that fit no commitment.
-    pub fn new(program: &'p Program, shape: TreeShape) -> Result<Self, TreeError> {
+    pub fn new(leaves: Leaves<'p>, shape: TreeShape) -> Result<Self, TreeError> {
         shape.check()?;
         let tiers = shape.claims.map_or(1, |c| c.tiers());
-        let (design, circuits) = Self::converge(tiers, |taus| Design::new(program, &shape, taus))?;
+        let family = || match leaves {
+            Leaves::Runs { program, shape } => ProofShape::new(program, shape)
+                .map(Family::Runs)
+                .map_err(|e| TreeError::LeafShape(e.into())),
+            Leaves::Circuit(c) => CircuitFamily::new(c).map(Family::Circuit),
+        };
+        let (design, circuits) = Self::converge(tiers, |taus| Design::new(family()?, &shape, taus))?;
         let keys: Vec<CircuitKey> = (circuits.into_iter().map(CircuitKey::new))
             .collect::<Result<_, _>>()
             .map_err(|_| TreeError::TooLarge)?;
-        // Each tier's fixed polynomial stacks its circuits' columns; a tree of one tier has no wide one.
-        let fixed = |tier: usize| {
-            design.tiers.get(tier).map_or_else(
-                || vec![F64::ZERO],
-                |t| {
-                    let columns: Vec<&FixedColumns> = keys[t.places.clone()].iter().map(CircuitKey::fixed).collect();
-                    t.fixed.polynomial(&columns)
-                },
-            )
-        };
-        let rv = program.rv();
-        let mut image: Vec<F64> = rv.image().iter().map(|&w| F64(w)).collect();
-        image.resize(1 << design.vars.0[DensePoly::Image as usize], F64::ZERO);
-        let tables = DenseTables([Lookup::Bytecode.table(rv), image, fixed(SMALL), fixed(LARGE)]);
+        let columns: Vec<&FixedColumns> = keys.iter().map(CircuitKey::fixed).collect();
+        let tables = design.tables(&columns);
         Ok(Self {
             shape,
             design,
@@ -349,25 +556,27 @@ impl<'p> Tree<'p> {
     /// Each tier's heights, which its circuits share, and the circuits at them, by their position.
     ///
     /// They are the least fixed point of `tau -> max(tau, each of a tier's circuits' heights at tau)`, every tier
-    /// from the first level's own heights: a small tier's wrap verifies the large tier's proofs, and the large tier's
-    /// nodes the small tier's, so the tiers' heights are found together.
+    /// from the first-level circuit's own heights: a small tier's wrap verifies the large tier's proofs, and the large
+    /// tier's nodes the small tier's, so the tiers' heights are found together. A table is absent from a tier's
+    /// heights, its height none, only while all the tier's circuits lack it.
     ///
     /// Each round only raises heights, and a node's rows grow with the logarithm of its children's, so few rounds reach it.
     fn converge(
         tiers: usize,
-        design: impl Fn(&[PerRecTable<usize>]) -> Result<Design<'p>, TreeError>,
+        design: impl Fn(&[Heights]) -> Result<Design<'p>, TreeError>,
     ) -> Result<(Design<'p>, Vec<Circuit>), TreeError> {
-        let start = design(&vec![PerRecTable::default(); tiers])?.shape(0).circuit.heights();
+        let max = |taus: Heights, built: &[Circuit]| {
+            Heights::from_fn(|t| built.iter().map(|c| c.heights()[t]).fold(taus[t], Option::max))
+        };
+        // The first-level circuit does not depend on the heights: those of a circuit of no rows build it.
+        let empty = Heights::from_fn(|t: Table| t.height_log(0));
+        let start = design(&vec![empty; tiers])?.shape(0).circuit.heights();
         let mut taus = vec![start; tiers];
         for _ in 0..MAX_ROUNDS {
             let d = design(&taus)?;
             let built: Vec<Circuit> = (0..d.places.len()).map(|p| d.shape(p).circuit).collect();
-            let next: Vec<PerRecTable<usize>> = (d.tiers.iter().zip(&taus))
-                .map(|(tier, taus)| {
-                    PerRecTable::from_fn(|t| {
-                        (built[tier.places.clone()].iter()).fold(taus[t], |h, c| h.max(c.heights()[t]))
-                    })
-                })
+            let next: Vec<Heights> = (d.tiers.iter().zip(&taus))
+                .map(|(tier, &taus)| max(taus, &built[tier.places.clone()]))
                 .collect();
             if next == taus {
                 let circuits = (built.into_iter().zip(&d.places))
@@ -383,6 +592,34 @@ impl<'p> Tree<'p> {
     /// The circuit at this position.
     pub(crate) fn circuit(&self, position: usize) -> &Circuit {
         self.keys[position].circuit()
+    }
+
+    /// The position of the circuit of a kind: the first level's, or of a claim-set tree's nodes, the one of the largest
+    /// arity.
+    const fn position_of(&self, kind: Kind) -> usize {
+        match kind {
+            Kind::First => 0,
+            Kind::Node => self.design.places.len() - 1,
+        }
+    }
+
+    /// The circuit of a kind as `CheckRec` reads it: the builder calls that make it, one per line, then `circuit` and the circuit's dump, then `next` and the bus's `next` key of every slot of the circuit's rows, per table, row-major.
+    ///
+    /// # Panics
+    ///
+    /// Panics if building the circuit again gives another circuit.
+    #[cfg(feature = "circuit-trace")]
+    pub fn circuit_dump(&self, kind: Kind) -> String {
+        let position = self.position_of(kind);
+        let (finished, calls) = crate::rec::circuit::traced(|| self.design.shape(position));
+        let mut circuit = finished.circuit;
+        circuit.floor = self.circuit(position).floor;
+        assert_eq!(
+            &circuit,
+            self.circuit(position),
+            "a circuit is built the same every time"
+        );
+        calls + "circuit\n" + &circuit.dump() + &self.keys[position].fixed().dump_next(&circuit)
     }
 
     /// The capacity of a claim-set tree's largest nodes and roots, or why this tree has none.
@@ -417,44 +654,69 @@ impl<'p> Tree<'p> {
         }
     }
 
-    /// Prove a first-level node over its leaves, each a RISC-V proof and its output, in order.
+    /// Prove a first-level node over its leaves, in order.
     ///
     /// # Errors
     ///
-    /// A tree of outputs only. The wrong number of leaves, a leaf of another shape, or a leaf that does not verify.
+    /// A tree of outputs only. The wrong number of leaves, a leaf of another family or shape than the tree's, or a leaf
+    /// that does not verify.
     pub fn prove_first(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, TreeError> {
         self.outputs()?;
-        let items = self.leaf_witnesses(leaves, |_| Ok([0; 4]))?;
-        let inputs = NodeInputs::Prove {
-            items: &items,
-            tables: &self.tables,
-            union: None,
+        let d = &self.design;
+        let leaves: Vec<&Leaf<'_>> = leaves.iter().collect();
+        let rows = match &d.family {
+            Family::Runs(shape) => {
+                let items = self.leaf_witnesses(shape, &leaves, |_, _| Ok([0; 4]))?;
+                let inputs = NodeInputs::Prove {
+                    items: &items,
+                    tables: &self.tables,
+                    union: None,
+                };
+                info_span!("Build circuit").in_scope(|| d.first_runs_rows(shape, &inputs))
+            }
+            Family::Circuit(family) => {
+                let items = self.circuit_witnesses(family, &leaves)?;
+                let inputs = NodeInputs::Prove {
+                    items: &items,
+                    tables: &self.tables,
+                    union: None,
+                };
+                info_span!("Build circuit").in_scope(|| d.first_circuit_rows(family, &inputs))
+            }
         };
-        let rows = info_span!("Build circuit").in_scope(|| self.design.first_rows(&inputs));
         self.prove_rows(rows)
     }
 
-    /// The first level's witnesses of its leaves, each verified natively; `claims` gives a leaf's set's digest.
+    /// Nothing, if a first-level node is given as many leaves as it verifies.
+    const fn leaf_count(&self, got: usize) -> Result<(), TreeError> {
+        let expected = self.design.arity_0;
+        if got == expected {
+            Ok(())
+        } else {
+            Err(TreeError::Children { expected, got })
+        }
+    }
+
+    /// The first level's witnesses of its RISC-V leaves of this shape, each verified natively; `claims` gives a leaf's
+    /// set's digest from its index and output.
     fn leaf_witnesses<'a>(
         &self,
-        leaves: &[Leaf<'a>],
-        claims: impl Fn(usize) -> Result<[u64; 4], TreeError>,
+        shape: &ProofShape<'_>,
+        leaves: &[&Leaf<'a>],
+        claims: impl Fn(usize, &Output) -> Result<[u64; 4], TreeError>,
     ) -> Result<Vec<LeafWitness<'a>>, TreeError> {
-        let d = &self.design;
-        if leaves.len() != d.arity_0 {
-            return Err(TreeError::Children {
-                expected: d.arity_0,
-                got: leaves.len(),
-            });
-        }
-        let shape = d.leaf.shape();
-        let program = d.leaf.program();
+        self.leaf_count(leaves.len())?;
+        let announced = shape.shape();
+        let program = shape.program();
         (leaves.iter().enumerate())
-            .map(|(index, &Leaf { proof, output })| {
-                if LeafShape::announced(proof) != Some(shape) {
+            .map(|(index, leaf)| {
+                let LeafProof::Run { proof, output } = leaf.0 else {
+                    return Err(TreeError::ForeignLeaf { index });
+                };
+                if LeafShape::announced(proof) != Some(announced) {
                     return Err(TreeError::ForeignLeaf { index });
                 }
-                let claims = claims(index)?;
+                let claims = claims(index, &output)?;
                 let openings =
                     (program.verify_recording(output, proof)).map_err(|error| TreeError::Leaf { index, error })?;
                 Ok(LeafWitness {
@@ -462,6 +724,44 @@ impl<'p> Tree<'p> {
                     openings,
                     output: *output.words(),
                     set: claims,
+                })
+            })
+            .collect()
+    }
+
+    /// The first level's witnesses of its leaves of the leaf circuit, each verified natively.
+    fn circuit_witnesses<'a>(
+        &self,
+        family: &CircuitFamily<'a>,
+        leaves: &[&Leaf<'a>],
+    ) -> Result<Vec<CircuitWitness<'a>>, TreeError> {
+        self.leaf_count(leaves.len())?;
+        let c = &family.leaf;
+        (leaves.iter().enumerate())
+            .map(|(index, leaf)| {
+                let LeafProof::Circuit {
+                    session,
+                    ref statement,
+                    proof,
+                    rate,
+                } = leaf.0
+                else {
+                    return Err(TreeError::ForeignLeaf { index });
+                };
+                let words = statement.len() == c.circuit().statement_len && statement.iter().all(|w| w[3] == 0);
+                if session != c.session || rate != c.rate || !words {
+                    return Err(TreeError::ForeignLeaf { index });
+                }
+                let openings =
+                    (c.key.verify(statement, &c.session, c.rate, proof)).map_err(|error| TreeError::Leaf {
+                        index,
+                        error: error.into(),
+                    })?;
+                Ok(CircuitWitness {
+                    statement: statement.clone(),
+                    proof,
+                    openings,
+                    columns: c.columns(),
                 })
             })
             .collect()
@@ -495,6 +795,8 @@ impl<'p> Tree<'p> {
 
     /// Prove a node over its children, tree proofs of either kind, in order.
     ///
+    /// A child is verified under the tree's session, which names the tree's leaf family: a tree proof of another tree is refused as a child that does not verify.
+    ///
     /// # Errors
     ///
     /// A tree of outputs only. The wrong number of children, or a child that does not verify.
@@ -526,8 +828,9 @@ impl<'p> Tree<'p> {
     /// # Errors
     ///
     /// - A tree of outputs.
-    /// - The wrong number of leaves, a leaf of another shape, a leaf that does not verify, or one whose output is not
-    ///   its set's.
+    /// - The wrong number of leaves, a leaf of another family or shape, a leaf that does not verify, or one that does
+    ///   not publish its set: a RISC-V output not the hash of its digest, a statement stating another set or claims
+    ///   of more than one label.
     /// - A declared set that is not canonical, past the capacity, or with a claim no leaf carries.
     /// - Leaves whose sets together do not fit the first level's capacity: the small tier's, if the tree has one.
     pub fn aggregate_leaves(
@@ -536,24 +839,48 @@ impl<'p> Tree<'p> {
         declare: Option<&ClaimSet>,
     ) -> Result<Aggregate, TreeError> {
         self.capacity()?;
-        let digests: Vec<[u64; 4]> = leaves.iter().map(|l| l.claims.digest()).collect();
-        let plain: Vec<Leaf<'_>> = leaves.iter().map(|l| l.leaf).collect();
-        let items = self.leaf_witnesses(&plain, |index| {
-            // The guest commits the digest, so its output is the digest's hash.
-            if *leaves[index].leaf.output.words() == chain(&digests[index]) {
-                Ok(digests[index])
-            } else {
-                Err(TreeError::LeafClaims { index })
-            }
-        })?;
+        let d = &self.design;
+        let plain: Vec<&Leaf<'_>> = leaves.iter().map(|l| &l.leaf).collect();
         let sets: Vec<&ClaimSet> = leaves.iter().map(|l| l.claims).collect();
-        let (union, claims) = self.fill(0, &sets, declare)?;
-        let inputs = NodeInputs::Prove {
-            items: &items,
-            tables: &self.tables,
-            union: Some(&union),
+        let (rows, claims) = match &d.family {
+            Family::Runs(shape) => {
+                let digests: Vec<[u64; 4]> = sets.iter().map(|s| s.digest()).collect();
+                let items = self.leaf_witnesses(shape, &plain, |index, output| {
+                    // The guest commits the digest, so its output is the digest's hash.
+                    if *output.words() == chain(&digests[index]) {
+                        Ok(digests[index])
+                    } else {
+                        Err(TreeError::LeafClaims { index })
+                    }
+                })?;
+                let (union, claims) = self.fill(0, &sets, declare)?;
+                let inputs = NodeInputs::Prove {
+                    items: &items,
+                    tables: &self.tables,
+                    union: Some(&union),
+                };
+                let rows = info_span!("Build circuit").in_scope(|| d.first_runs_rows(shape, &inputs));
+                (rows, claims)
+            }
+            Family::Circuit(family) => {
+                let items = self.circuit_witnesses(family, &plain)?;
+                // The statement states the set: one group, a claim a signature.
+                let stated = |(w, set): (&CircuitWitness<'_>, &&ClaimSet)| {
+                    family.leaf.claims.set(&w.statement).as_ref() == Some(*set)
+                };
+                if let Some(index) = items.iter().zip(&sets).position(|p| !stated(p)) {
+                    return Err(TreeError::LeafClaims { index });
+                }
+                let (union, claims) = self.fill(0, &sets, declare)?;
+                let inputs = NodeInputs::Prove {
+                    items: &items,
+                    tables: &self.tables,
+                    union: Some(&union),
+                };
+                let rows = info_span!("Build circuit").in_scope(|| d.first_circuit_rows(family, &inputs));
+                (rows, claims)
+            }
         };
-        let rows = info_span!("Build circuit").in_scope(|| self.design.first_rows(&inputs));
         let proof = self.prove_rows(rows)?;
         Ok(Aggregate { proof, claims })
     }
@@ -699,7 +1026,7 @@ impl<'p> Tree<'p> {
         Ok((fill, declared))
     }
 
-    /// Prove the tree over its leaves, each a RISC-V proof and its output, in order.
+    /// Prove the balanced tree over its leaves, in order.
     ///
     /// The first level, then each level of nodes, up to the root.
     ///
@@ -708,7 +1035,7 @@ impl<'p> Tree<'p> {
     /// A tree of outputs only. A number of leaves no tree of the arities has, or a leaf the first level refuses.
     pub fn prove(&self, leaves: &[Leaf<'_>]) -> Result<TreeProof, TreeError> {
         self.outputs()?;
-        self.shape.root_kind(leaves.len())?;
+        self.shape.depth(leaves.len())?;
         let (arity_0, arity) = (self.design.arity_0, self.design.arity);
         let mut level: Vec<TreeProof> = (leaves.chunks(arity_0))
             .map(|leaves| self.prove_first(leaves))
@@ -722,29 +1049,28 @@ impl<'p> Tree<'p> {
         Ok(level.pop().expect("one root"))
     }
 
-    /// Verify a root: its recursion proof, that it states these leaf outputs in order, and every claim it carries.
+    /// Verify a root: its recursion proof, that it covers the expected tree, and every claim it carries.
     ///
     /// # Errors
     ///
     /// A tree of outputs only. Returns the first check that refuses.
     #[tracing::instrument(name = "Verify tree", skip_all)]
-    pub fn verify(&self, root: &TreeProof, outputs: &[Output]) -> Result<(), TreeError> {
+    pub fn verify(&self, root: &TreeProof, expected: &Subtree) -> Result<(), TreeError> {
         self.outputs()?;
         let d = &self.design;
         self.check_rate(root)?;
-        let expected = self.shape.root_kind(outputs.len())?;
-        if root.kind() != expected {
+        let (kind, digest) = self.expect(expected)?;
+        if root.kind() != kind {
             return Err(TreeError::Kind {
-                leaves: outputs.len(),
-                expected,
+                expected: kind,
                 got: root.kind(),
             });
         }
         let position = self.known(root)?;
         self.read(root, position).map_err(TreeError::Root)?;
         let statement = root.statement(d.statement);
-        if statement.digest_words() != self.digest(outputs) {
-            return Err(TreeError::Outputs);
+        if statement.digest_words() != digest {
+            return Err(TreeError::Digest);
         }
         self.settle(&statement, position)
     }
@@ -773,15 +1099,40 @@ impl<'p> Tree<'p> {
         self.settle(&statement, position)
     }
 
-    /// The digest the root over these leaf outputs states.
-    fn digest(&self, outputs: &[Output]) -> [u64; 4] {
-        let (arity_0, arity) = (self.design.arity_0, self.design.arity);
-        let outputs: Vec<[u64; 4]> = outputs.iter().map(|output| *output.words()).collect();
-        let mut level: Vec<[u64; 4]> = outputs.chunks(arity_0).map(|o| Kind::First.digest(o)).collect();
-        while level.len() > 1 {
-            level = level.chunks(arity).map(|c| Kind::Node.digest(c)).collect();
+    /// The kind and the digest of the root of an expected tree.
+    fn expect(&self, tree: &Subtree) -> Result<(Kind, Limbs), TreeError> {
+        let d = &self.design;
+        let count = |expected, got| {
+            (got == expected)
+                .then_some(())
+                .ok_or(TreeError::Children { expected, got })
+        };
+        match tree {
+            Subtree::First(leaves) => {
+                count(d.arity_0, leaves.len())?;
+                let items = (leaves.iter().enumerate())
+                    .map(|(index, l)| match (&d.family, &l.0) {
+                        (Family::Runs(_), Stated::Run(output)) => Ok(*output.words()),
+                        (Family::Circuit(c), Stated::Circuit { session, words }) if *session == c.leaf.session => {
+                            Ok(instance_digest(session, words))
+                        }
+                        _ => Err(TreeError::ForeignLeaf { index }),
+                    })
+                    .collect::<Result<Vec<Limbs>, _>>()?;
+                let under = match &d.family {
+                    Family::Runs(_) => Items::Runs,
+                    Family::Circuit(c) => Items::Circuit(c.leaf.seed()),
+                };
+                Ok((Kind::First, under.digest(&items)))
+            }
+            Subtree::Node(children) => {
+                count(d.arity, children.len())?;
+                let digests = (children.iter())
+                    .map(|c| self.expect(c).map(|(_, digest)| digest))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok((Kind::Node, Items::Node.digest(&digests)))
+            }
         }
-        level[0]
     }
 
     /// Verify a tree proof's recursion proof, short of its claims, returning every opening it authenticated.
@@ -808,16 +1159,15 @@ impl<'p> Tree<'p> {
         Ok(TreeProof::new(d.code(position), &assignment, proof, d.rate))
     }
 
-    /// Evaluate every claim a root's statement carries.
+    /// Evaluate every claim a root's statement carries: each dense polynomial a proof of its circuit carries a claim on,
+    /// and every flock circuit's matrices.
     #[tracing::instrument(name = "Settle claims", skip_all)]
     fn settle(&self, s: &TreeStatement, position: usize) -> Result<(), TreeError> {
-        let vars = &self.design.vars.0;
-        for &poly in self.design.statement.polys() {
-            // A first-level node reduces no claim on a fixed polynomial.
-            if poly.is_fixed() && position == 0 {
-                continue;
-            }
-            let point = &s.dense_point()[..vars[poly as usize]];
+        let d = &self.design;
+        // A first-level node carries a claim only on a polynomial its leaves fix.
+        let carried = |poly| position != 0 || d.leaves_fix(poly);
+        for poly in d.statement.polys().filter(|&p| carried(p)) {
+            let point = &s.dense_point()[..d.vars.0[poly as usize]];
             if mle_eval_par(&self.tables.0[poly as usize], point) != s.dense_value(poly) {
                 return Err(TreeError::Claim(FalseClaim::Dense(poly)));
             }
@@ -844,30 +1194,13 @@ impl<'p> Tree<'p> {
     /// What the circuit of one kind of node costs: of a claim-set tree's nodes, the one of the largest arity.
     #[must_use]
     pub fn stats(&self, kind: Kind) -> CircuitStats {
-        self.circuit_stats(match kind {
-            Kind::First => 0,
-            Kind::Node => self.design.places.len() - 1,
-        })
+        self.circuit_stats(self.position_of(kind))
     }
 
     /// What the circuit at this position costs.
     fn circuit_stats(&self, position: usize) -> CircuitStats {
-        // The circuit's rows per table, and the padded heights it is proven at.
-        let circuit = self.circuit(position);
-        let (rows, heights) = (circuit.row_counts(), circuit.heights());
-
-        // One entry per table of the recursion machine, in its order.
-        let tables = (Table::ALL.iter())
-            .map(|&table| TableStats {
-                name: table.name(),
-                rows: rows[table],
-                height_log: heights[table],
-            })
-            .collect();
-
         // Invariant: building the tree refused any circuit that fits no commitment.
-        let committed = circuit.committed_words().expect("a tree's circuits fit one commitment");
-        CircuitStats { tables, committed }
+        CircuitStats::of(self.circuit(position))
     }
 }
 
@@ -875,21 +1208,26 @@ impl<'p> Tree<'p> {
 mod tests {
     use super::*;
     use crate::cpu::{DecodeError, Prover};
+    use crate::rec::RecError;
     use crate::rec::circuit::{Assignment, Builder, Kw};
+    use crate::rec::sphincs::{SphincsBatch, SphincsClaim, SphincsProof};
     use crate::rec::tree::design::NodeRows;
     use crate::rec::tree::reduce::tests::{Forge, forged_reduction};
     use crate::rec::tree::statement::Section;
+    use crate::rec::xmss::{XmssBatch, XmssClaim, XmssError, XmssProof, XmssSignature};
     use crate::rv::Region;
     use crate::rv::asm::*;
     use crate::tables::TableId;
     use fiat_shamir::ProofTranscript;
-    use std::sync::OnceLock;
+    use flock::FlockError;
+    use flock::zerocheck::ZerocheckError;
+    use leanxmss_host::{LEAF_INDEX, MESSAGE};
+    use std::sync::LazyLock;
     use zk::Randomness;
 
     // A program whose output is its one advice word, after a loop that reads every framework block.
     fn program() -> &'static Program {
-        static PROGRAM: OnceLock<Program> = OnceLock::new();
-        PROGRAM.get_or_init(|| {
+        static PROGRAM: LazyLock<Program> = LazyLock::new(|| {
             let text = Asm::new()
                 .li(Reg::T0, Region::ADVICE.base())
                 .load(Ld, Reg::A0, 0, Reg::T0)
@@ -900,8 +1238,17 @@ mod tests {
                 .exit()
                 .finish();
             Program::new(&text, Region::TEXT.base(), vec![3, 5], 2, 0).expect("a valid program")
-        })
+        });
+        &PROGRAM
     }
+
+    // The 2 to 1 shape at the lowest rate.
+    const PAIRS: TreeShape = TreeShape {
+        arity_0: 2,
+        arity: 2,
+        rate: Rate::MIN,
+        claims: None,
+    };
 
     // Four leaves of distinct outputs, a tree of first level 2 and arity 2 over them, and its proofs.
     struct Fixture {
@@ -911,9 +1258,15 @@ mod tests {
         root: TreeProof,
     }
 
+    fn runs(shape: LeafShape) -> Leaves<'static> {
+        Leaves::Runs {
+            program: program(),
+            shape,
+        }
+    }
+
     fn fixture() -> &'static Fixture {
-        static FIXTURE: OnceLock<Fixture> = OnceLock::new();
-        FIXTURE.get_or_init(|| {
+        static FIXTURE: LazyLock<Fixture> = LazyLock::new(|| {
             let leaves: Vec<(Proof, Output)> = (1..=4)
                 .map(|advice| {
                     let run = Prover::new(Rate::MIN)
@@ -923,17 +1276,7 @@ mod tests {
                 })
                 .collect();
             let shape = LeafShape::of(&leaves[0].0).expect("a canonical announcement");
-            let tree = Tree::new(
-                program(),
-                TreeShape {
-                    leaf: shape,
-                    arity_0: 2,
-                    arity: 2,
-                    rate: Rate::MIN,
-                    claims: None,
-                },
-            )
-            .expect("a tree");
+            let tree = Tree::new(runs(shape), PAIRS).expect("a tree");
             let firsts = [0, 2].map(|i| {
                 let pair = [
                     Leaf::new(&leaves[i].0, leaves[i].1),
@@ -948,7 +1291,8 @@ mod tests {
                 firsts,
                 root,
             }
-        })
+        });
+        &FIXTURE
     }
 
     impl Fixture {
@@ -956,9 +1300,18 @@ mod tests {
             self.leaves.iter().map(|l| l.1).collect()
         }
 
+        fn statements(&self) -> Vec<LeafStatement> {
+            self.leaves.iter().map(|l| l.1.into()).collect()
+        }
+
         fn pairs(&self) -> Vec<Leaf<'_>> {
             self.leaves.iter().map(|(p, o)| Leaf::new(p, *o)).collect()
         }
+    }
+
+    // The balanced tree over these leaves' outputs.
+    fn balanced(outputs: &[Output], shape: &TreeShape) -> Result<Subtree, TreeError> {
+        Subtree::balanced(outputs.iter().map(|&o| o.into()).collect(), shape)
     }
 
     #[test]
@@ -966,20 +1319,19 @@ mod tests {
         let f = fixture();
         let outputs = f.outputs();
         assert_eq!((f.firsts[0].kind(), f.root.kind()), (Kind::First, Kind::Node));
-        f.tree.verify(&f.root, &outputs).expect("the root");
-        f.tree
-            .verify(&f.firsts[1], &outputs[2..])
-            .expect("a first-level node is the root of its leaves");
+        let verify = |root, outputs: &[Output]| f.tree.verify(root, &balanced(outputs, &PAIRS)?);
+        verify(&f.root, &outputs).expect("the root");
+        verify(&f.firsts[1], &outputs[2..]).expect("a first-level node is the root of its leaves");
 
         let mut wrong = outputs.clone();
         let [a0, a1, a2, a3] = *wrong[3].words();
         wrong[3] = Output::new([a0 ^ 1, a1, a2, a3]);
-        assert_eq!(f.tree.verify(&f.root, &wrong), Err(TreeError::Outputs));
+        assert_eq!(verify(&f.root, &wrong), Err(TreeError::Digest));
         let mut swapped = outputs.clone();
         swapped.swap(0, 1);
-        assert_eq!(f.tree.verify(&f.root, &swapped), Err(TreeError::Outputs));
+        assert_eq!(verify(&f.root, &swapped), Err(TreeError::Digest));
         assert_eq!(
-            f.tree.verify(&f.root, &outputs[..3]),
+            verify(&f.root, &outputs[..3]),
             Err(TreeError::LeafCount {
                 leaves: 3,
                 arity_0: 2,
@@ -987,9 +1339,8 @@ mod tests {
             })
         );
         assert_eq!(
-            f.tree.verify(&f.root, &outputs[..2]),
+            verify(&f.root, &outputs[..2]),
             Err(TreeError::Kind {
-                leaves: 2,
                 expected: Kind::First,
                 got: Kind::Node
             })
@@ -1000,20 +1351,15 @@ mod tests {
     fn one_leaf_is_a_root() {
         let f = fixture();
         let shape = LeafShape::of(&f.leaves[0].0).expect("a canonical announcement");
-        let tree = Tree::new(
-            program(),
-            TreeShape {
-                leaf: shape,
-                arity_0: 1,
-                arity: 2,
-                rate: Rate::MIN,
-                claims: None,
-            },
-        )
-        .expect("a tree");
+        let single = TreeShape { arity_0: 1, ..PAIRS };
+        let tree = Tree::new(runs(shape), single).expect("a tree");
         let root = tree.prove(&f.pairs()[..1]).expect("an honest leaf");
-        tree.verify(&root, &[f.leaves[0].1]).expect("the root of one leaf");
-        assert_eq!(tree.verify(&root, &[f.leaves[1].1]), Err(TreeError::Outputs));
+        tree.verify(&root, &balanced(&[f.leaves[0].1], &single).expect("one leaf"))
+            .expect("the root of one leaf");
+        assert_eq!(
+            tree.verify(&root, &balanced(&[f.leaves[1].1], &single).expect("one leaf")),
+            Err(TreeError::Digest)
+        );
 
         // A first-level node of that tree is no child of a tree of another first level.
         let child = tree.prove_first(&f.pairs()[1..2]).expect("an honest leaf");
@@ -1030,13 +1376,11 @@ mod tests {
         for (arity_0, arity) in [(2, 1), (0, 2)] {
             assert!(matches!(
                 Tree::new(
-                    program(),
+                    runs(shape),
                     TreeShape {
-                        leaf: shape,
                         arity_0,
                         arity,
-                        rate: Rate::MIN,
-                        claims: None,
+                        ..PAIRS
                     }
                 ),
                 Err(TreeError::Arity { .. })
@@ -1053,14 +1397,17 @@ mod tests {
         let mid = forged.0.narg.len() / 24 / 2;
         forged.0.narg[24 * mid] ^= 1;
         assert!(matches!(
-            f.tree.prove_first(&[pairs[0], Leaf::new(&forged, f.leaves[1].1)]),
+            f.tree
+                .prove_first(&[pairs[0].clone(), Leaf::new(&forged, f.leaves[1].1)]),
             Err(TreeError::Leaf { index: 1, .. })
         ));
         let ProvenRun {
             proof: longer, output, ..
         } = (Prover::new(Rate::new(2).expect("a rate")).prove(program(), &[7])).expect("the run halts");
         assert_eq!(
-            f.tree.prove_first(&[Leaf::new(&longer, output), pairs[1]]).map(|_| ()),
+            f.tree
+                .prove_first(&[Leaf::new(&longer, output), pairs[1].clone()])
+                .map(|_| ()),
             Err(TreeError::ForeignLeaf { index: 0 })
         );
 
@@ -1073,38 +1420,48 @@ mod tests {
         ));
     }
 
-    // A root over subtrees of two depths states no balanced tree: its count or its digest refuses it.
+    // A root over subtrees of two depths verifies against its own topology only.
     #[test]
-    fn mixed_levels_are_refused_at_the_root() {
+    fn a_root_states_its_topology() {
         let f = fixture();
         let mixed = f
             .tree
             .prove_node(&[f.root.clone(), f.firsts[0].clone()])
             .expect("a node verifies either kind");
-        let mut outputs = f.outputs();
-        outputs.extend_from_slice(&f.outputs()[..2]);
+        let pairs = |o: &[Output]| Subtree::First(o.iter().map(|&o| o.into()).collect());
+        let outputs = f.outputs();
+        let topology = Subtree::Node(vec![
+            balanced(&outputs, &PAIRS).expect("four leaves"),
+            pairs(&outputs[..2]),
+        ]);
+        f.tree.verify(&mixed, &topology).expect("the root of its topology");
+        let flipped = Subtree::Node(vec![
+            pairs(&outputs[..2]),
+            balanced(&outputs, &PAIRS).expect("four leaves"),
+        ]);
+        assert_eq!(f.tree.verify(&mixed, &flipped), Err(TreeError::Digest));
+        let mut six = outputs.clone();
+        six.extend_from_slice(&outputs[..2]);
         assert!(matches!(
-            f.tree.verify(&mixed, &outputs),
-            Err(TreeError::LeafCount { .. })
+            balanced(&six, &PAIRS),
+            Err(TreeError::LeafCount { leaves: 6, .. })
         ));
-        outputs.extend_from_slice(&f.outputs()[2..]);
-        assert_eq!(f.tree.verify(&mixed, &outputs), Err(TreeError::Outputs));
     }
 
     // The reduction an honest prover proves, as its rows read it.
-    fn honest_reduction(f: &Fixture, rows: &NodeRows) -> ProofTranscript {
+    fn honest_reduction(tree: &Tree<'_>, rows: &NodeRows) -> ProofTranscript {
         rows.claim_values()
-            .prove(&f.tree.design.session(), &f.tree.design.vars, &f.tree.tables)
+            .prove(&tree.design.session(), &tree.design.vars, &tree.tables)
     }
 
     // The circuit a prover's rows build, at the nodes' heights.
-    fn proven_circuit(f: &Fixture, rows: NodeRows) -> Circuit {
-        let reduction = honest_reduction(f, &rows);
+    fn proven_circuit(tree: &Tree<'_>, rows: NodeRows) -> Circuit {
+        let reduction = honest_reduction(tree, &rows);
         let Finished {
             mut circuit, failures, ..
-        } = rows.reduce(&f.tree.design, ProofSource::Proof(&reduction, &[]));
+        } = rows.reduce(&tree.design, ProofSource::Proof(&reduction, &[]));
         assert!(failures.is_empty(), "{failures:?}");
-        circuit.floor = f.tree.design.tiers[SMALL].taus;
+        circuit.floor = tree.design.tiers[SMALL].taus;
         circuit
     }
 
@@ -1120,13 +1477,19 @@ mod tests {
                 set: [0; 4],
             })
             .collect();
-        let rows = d.first_rows(&NodeInputs::Prove {
-            items: &leaves,
-            tables: &f.tree.tables,
-            union: None,
-        });
+        let Family::Runs(shape) = &d.family else {
+            panic!("a tree of RISC-V proofs")
+        };
+        let rows = d.first_runs_rows(
+            shape,
+            &NodeInputs::Prove {
+                items: &leaves,
+                tables: &f.tree.tables,
+                union: None,
+            },
+        );
         assert!(
-            &proven_circuit(f, rows) == f.tree.circuit(0),
+            &proven_circuit(&f.tree, rows) == f.tree.circuit(0),
             "the leaves build another circuit"
         );
 
@@ -1148,7 +1511,7 @@ mod tests {
             1,
         );
         assert!(
-            &proven_circuit(f, rows) == f.tree.circuit(1),
+            &proven_circuit(&f.tree, rows) == f.tree.circuit(1),
             "the children build another circuit"
         );
     }
@@ -1157,7 +1520,7 @@ mod tests {
     fn fake_first(tree: &Tree<'_>, honest: &TreeProof, outputs: &[[u64; 4]]) -> (Circuit, Assignment) {
         let mut b = Builder::new();
         let items: Vec<[Kw; 4]> = outputs.iter().map(|o| o.map(|w| b.free_k(w))).collect();
-        let digest = Kind::First.digest_rows(&mut b, &items);
+        let digest = Items::Runs.digest_rows(&mut b, &items);
         let mut words = vec![b.e_const(F192::ZERO)];
         words.extend(TreeStatement::digest_halves(&mut b, digest));
         words.extend(
@@ -1178,6 +1541,24 @@ mod tests {
         (circuit, assignment)
     }
 
+    // A key's proof of its assignment's statement, as a tree proof of the circuit at a position.
+    fn tree_proof(tree: &Tree<'_>, position: usize, key: &CircuitKey, assignment: &Assignment) -> TreeProof {
+        let d = &tree.design;
+        let proof = key.prove(assignment, &d.session(), d.rate);
+        TreeProof::new(d.code(position), assignment, proof, d.rate)
+    }
+
+    // Reduce rows over the given tables, as a cheating prover holding them would, and prove the circuit at their position.
+    fn proven_over(tree: &Tree<'_>, position: usize, rows: NodeRows, tables: &DenseTables) -> TreeProof {
+        let d = &tree.design;
+        let reduction = rows.claim_values().prove(&d.session(), &d.vars, tables);
+        let Finished {
+            assignment, failures, ..
+        } = rows.reduce(d, ProofSource::Proof(&reduction, &[]));
+        assert!(failures.is_empty(), "{failures:?}");
+        tree_proof(tree, position, &tree.keys[position], &assignment)
+    }
+
     // An honest node's rows over a child circuit the tree does not have hold, and only the root's settlement of the fixed polynomial refuses it.
     #[test]
     fn a_fake_child_circuit_is_refused_at_the_root() {
@@ -1186,16 +1567,8 @@ mod tests {
         let fake_outputs = [[0xdead, 1, 2, 3], [0xbeef, 4, 5, 6]];
         let (fake, assignment) = fake_first(&f.tree, &f.firsts[0], &fake_outputs);
         assert_eq!(fake.heights(), d.tiers[SMALL].taus, "the fake has the nodes' heights");
-        let words: Vec<F192> = (assignment.statement().iter())
-            .map(|l| F192::new(l[0], l[1], l[2]))
-            .collect();
         let fake = CircuitKey::new(fake).expect("the fake fits");
-        let child = TreeProof {
-            circuit: 0,
-            words,
-            proof: fake.prove(&assignment, &d.session(), d.rate),
-            rate: d.rate,
-        };
+        let child = tree_proof(&f.tree, 0, &fake, &assignment);
         assert!(
             f.tree.read(&child, 0).is_err(),
             "natively, the fake is no first-level node"
@@ -1205,7 +1578,7 @@ mod tests {
             .verify(&limbs, &d.session(), d.rate, &child.proof)
             .expect("the fake proves its own circuit");
 
-        // The prover hands the rows the fake's fixed columns, and its fixed polynomial the fake's half.
+        // The prover hands the rows the fake's fixed columns, and its fixed polynomial the fake's stack.
         let columns = fake.fixed();
         let mut tables = f.tree.tables.clone();
         tables.0[DensePoly::Fixed as usize] = d.tiers[SMALL].fixed.polynomial(&[columns, f.tree.keys[1].fixed()]);
@@ -1238,23 +1611,532 @@ mod tests {
         );
 
         // Reduced over the forged polynomial, every row holds and the root's proof verifies.
-        let rows = d.node_rows(&inputs(&tables), 1);
-        let reduction = rows.claim_values().prove(&d.session(), &d.vars, &tables);
-        let Finished {
-            assignment, failures, ..
-        } = rows.reduce(d, ProofSource::Proof(&reduction, &[]));
-        assert!(failures.is_empty(), "{failures:?}");
-        let root = TreeProof::new(
-            1,
-            &assignment,
-            f.tree.keys[1].prove(&assignment, &d.session(), d.rate),
-            d.rate,
-        );
+        let root = proven_over(&f.tree, 1, d.node_rows(&inputs(&tables), 1), &tables);
         f.tree.read(&root, 1).expect("the root's recursion proof verifies");
         assert_eq!(
-            f.tree.verify(&root, &outputs),
+            f.tree.verify(&root, &balanced(&outputs, &PAIRS).expect("four leaves")),
             Err(TreeError::Claim(FalseClaim::Dense(DensePoly::Fixed)))
         );
+    }
+
+    // Four signers' leanXMSS claims and signatures, one signature per batch, and each one's proof.
+    struct Signed {
+        batch: XmssBatch,
+        claims: Vec<XmssClaim>,
+        proofs: Vec<XmssProof>,
+    }
+
+    fn signed() -> &'static Signed {
+        static SIGNED: LazyLock<Signed> = LazyLock::new(|| {
+            let batch = XmssBatch::new(1, Rate::MIN).expect("one signature fits");
+            let (claims, proofs) = (leanxmss_host::signers(4).into_iter())
+                .map(|(pk, s)| {
+                    let claim = XmssClaim {
+                        public_param: pk.public_param,
+                        merkle_root: pk.merkle_root,
+                        epoch: LEAF_INDEX,
+                        message: MESSAGE,
+                    };
+                    let signature = XmssSignature {
+                        chain_tips: s.chain_tips,
+                        randomness: s.randomness,
+                        merkle_proof: s.merkle_proof,
+                    };
+                    let proof = batch.prove(&[claim], &[signature]).expect("an honest signature");
+                    (claim, proof)
+                })
+                .unzip();
+            Signed { batch, claims, proofs }
+        });
+        &SIGNED
+    }
+
+    impl Signed {
+        fn leaves(&self) -> Vec<Leaf<'_>> {
+            (self.claims.iter().zip(&self.proofs))
+                .map(|(c, p)| self.batch.leaf(&[*c], p).expect("one claim"))
+                .collect()
+        }
+
+        fn statements(&self) -> Vec<LeafStatement> {
+            (self.claims.iter())
+                .map(|c| self.batch.statement(&[*c]).expect("one claim"))
+                .collect()
+        }
+    }
+
+    // A 2 to 1 tree over the leanXMSS proofs, its two first-level nodes and the node over them.
+    struct XmssTree {
+        tree: Tree<'static>,
+        firsts: [TreeProof; 2],
+        node: TreeProof,
+    }
+
+    fn xmss_tree() -> &'static XmssTree {
+        static TREE: LazyLock<XmssTree> = LazyLock::new(|| {
+            let s = signed();
+            let tree = Tree::new(s.batch.leaves(), PAIRS).expect("a tree");
+            let leaves = s.leaves();
+            let firsts = [0, 2].map(|i| tree.prove_first(&leaves[i..i + 2]).expect("honest leaves"));
+            let node = tree.prove_node(&firsts).expect("honest children");
+            XmssTree { tree, firsts, node }
+        });
+        &TREE
+    }
+
+    #[test]
+    fn an_xmss_tree_binds_its_statements() {
+        let (s, x) = (signed(), xmss_tree());
+        let statements = s.statements();
+        let leaves = s.leaves();
+        assert_eq!((x.firsts[0].kind(), x.node.kind()), (Kind::First, Kind::Node));
+        let four = Subtree::balanced(statements.clone(), &PAIRS).expect("four leaves");
+        x.tree.verify(&x.node, &four).expect("the node");
+        x.tree
+            .verify(&x.firsts[1], &Subtree::First(statements[2..].to_vec()))
+            .expect("a first-level node is the root of its leaves");
+
+        // A node over nodes.
+        let root = x
+            .tree
+            .prove_node(&[x.node.clone(), x.node.clone()])
+            .expect("honest children");
+        x.tree
+            .verify(&root, &Subtree::Node(vec![four.clone(), four]))
+            .expect("the root over two nodes");
+
+        // Mutation: one claim's message, or two leaves swapped.
+        //
+        //     the leaves' statements' hashes are the first-level digest's items
+        //     → another digest
+        let mut changed = s.claims[3];
+        changed.message[0] ^= 1;
+        let mut forged = statements.clone();
+        forged[3] = s.batch.statement(&[changed]).expect("one claim");
+        let verify = |leaves: Vec<LeafStatement>| x.tree.verify(&x.node, &Subtree::balanced(leaves, &PAIRS)?);
+        assert_eq!(verify(forged), Err(TreeError::Digest));
+        let mut swapped = statements;
+        swapped.swap(0, 1);
+        assert_eq!(verify(swapped), Err(TreeError::Digest));
+        let outputs = vec![LeafStatement::from(Output::new([0; 4])); 4];
+        assert_eq!(verify(outputs), Err(TreeError::ForeignLeaf { index: 0 }));
+
+        // A leaf whose claims are not its proof's.
+        let wrong = s.batch.leaf(&[changed], &s.proofs[3]).expect("one claim");
+        assert!(matches!(
+            x.tree.prove_first(&[leaves[0].clone(), wrong]),
+            Err(TreeError::Leaf { index: 1, .. })
+        ));
+        // A leaf of another batch size.
+        let pair = XmssBatch::new(2, Rate::MIN).expect("two signatures fit");
+        let other = pair.leaf(&s.claims[..2], &s.proofs[0]).expect("two claims");
+        assert_eq!(
+            x.tree.prove_first(&[leaves[0].clone(), other]).map(|_| ()),
+            Err(TreeError::ForeignLeaf { index: 1 })
+        );
+    }
+
+    // A claim-set tree of 2 to 1 over leaves of at most four claims in total.
+    const CLAIM_PAIRS: TreeShape = TreeShape {
+        claims: Some(ClaimShape {
+            capacity: Capacity { claims: 5, groups: 1 },
+            small: None,
+        }),
+        ..PAIRS
+    };
+
+    #[test]
+    fn a_claim_set_tree_over_xmss_leaves_states_their_signers() {
+        // Invariant: a leanXMSS leaf publishes its claims as one group, the set the guest publishes for the same
+        // signatures, and a claim-set tree over such leaves states the union of their sets.
+        let s = signed();
+        let tree = Tree::new(s.batch.leaves(), CLAIM_PAIRS).expect("a claim-set tree");
+        let leaves = s.leaves();
+        let sets: Vec<ClaimSet> = (s.claims.iter())
+            .map(|c| s.batch.claim_set(&[*c]).expect("one claim"))
+            .collect();
+        let first = |i: usize| {
+            let pair = [0, 1].map(|j| ClaimLeaf::new(leaves[i + j].clone(), &sets[i + j]));
+            tree.aggregate_leaves(&pair, None).expect("honest leaves")
+        };
+        let firsts = [first(0), first(2)];
+        tree.verify_claims(&firsts[0].proof, &firsts[0].claims)
+            .expect("a first-level root");
+        let root = tree
+            .aggregate(&[&firsts[0], &firsts[1]], None)
+            .expect("honest children");
+
+        // The guest's set of the four signers, canonical: the root's.
+        let guest = leanxmss_host::SignerSet::from_claims(leanxmss_host::batch(4).set.claims());
+        let guest = ClaimSet {
+            groups: (guest.label_groups().into_iter())
+                .map(|(label, members)| ClaimGroup { label, members })
+                .collect(),
+        };
+        assert_eq!(root.claims, guest);
+        tree.verify_claims(&root.proof, &guest)
+            .expect("the root of the four signers");
+
+        // A batch's set, in its claims' order, is the guest's for the same signers.
+        let four = XmssBatch::new(4, Rate::MIN).expect("four signatures fit");
+        let set = four.claim_set(&s.claims).expect("one epoch and message");
+        assert_eq!(set.digest(), leanxmss_host::batch(4).set.digest());
+
+        // Mutation: a leaf given another leaf's set, claims of two messages, the set of the root narrowed.
+        //
+        //     leaf 1's statement states its own claim
+        //     → the set given with it is not published by it
+        let wrong = [0, 1].map(|j| ClaimLeaf::new(leaves[j].clone(), &sets[0]));
+        assert_eq!(
+            tree.aggregate_leaves(&wrong, None),
+            Err(TreeError::LeafClaims { index: 1 })
+        );
+        let mut other = s.claims[1];
+        other.message[0] ^= 1;
+        let pair = XmssBatch::new(2, Rate::MIN).expect("two signatures fit");
+        assert_eq!(pair.claim_set(&[s.claims[0], other]), Err(XmssError::Label));
+        assert_eq!(
+            tree.verify_claims(&root.proof, &firsts[0].claims),
+            Err(TreeError::Claims)
+        );
+
+        // The claim-set tree and the tree of outputs over the same leaves have sessions of their own.
+        let x = xmss_tree();
+        assert_ne!(tree.design.session(), x.tree.design.session());
+        assert!(matches!(
+            x.tree.verify(
+                &root.proof,
+                &Subtree::balanced(s.statements(), &PAIRS).expect("four leaves")
+            ),
+            Err(TreeError::Kind { .. } | TreeError::Root(_) | TreeError::Circuit(_))
+        ));
+    }
+
+    #[test]
+    fn a_claim_set_tree_over_sphincs_leaves_states_their_signers() {
+        // Invariant: a leanSPHINCS leaf publishes its claims as one group, the set the guest publishes for the same
+        // signatures.
+        let s = sphincs_signed();
+        let tree = Tree::new(s.batch.leaves(), CLAIM_PAIRS).expect("a claim-set tree");
+        let sets: Vec<ClaimSet> = (s.claims.iter())
+            .map(|c| s.batch.claim_set(&[*c]).expect("one claim"))
+            .collect();
+        let leaves: Vec<ClaimLeaf<'_>> = (s.leaves().into_iter().zip(&sets))
+            .map(|(l, set)| ClaimLeaf::new(l, set))
+            .collect();
+        let first = tree.aggregate_leaves(&leaves, None).expect("honest leaves");
+        let pair = SphincsBatch::new(2, Rate::MIN).expect("two signatures fit");
+        let both = pair.claim_set(&s.claims).expect("one message");
+        assert_eq!(both.digest(), leansphincs_host::batch(2).set.digest());
+        assert_eq!(first.claims, ClaimSet::from_claims(both.claims()));
+        tree.verify_claims(&first.proof, &first.claims)
+            .expect("the root of both signers");
+    }
+
+    #[test]
+    fn a_four_to_one_xmss_tree_verifies() {
+        let s = signed();
+        let shape = TreeShape {
+            arity_0: 4,
+            arity: 4,
+            rate: Rate::MIN,
+            claims: None,
+        };
+        let tree = Tree::new(s.batch.leaves(), shape).expect("a tree");
+        let first = tree.prove_first(&s.leaves()).expect("honest leaves");
+        let leaves = Subtree::First(s.statements());
+        tree.verify(&first, &leaves).expect("a first-level root");
+        let node = tree.prove_node(&vec![first; 4]).expect("honest children");
+        tree.verify(&node, &Subtree::Node(vec![leaves; 4])).expect("the node");
+    }
+
+    // An honest first-level node's rows over a leaf circuit the tree does not have hold, and only the root's settlement of the
+    // leaves' fixed polynomial refuses it: its leaves state forged claims no signature backs.
+    #[test]
+    fn a_fake_leaf_circuit_is_refused_at_the_root() {
+        let (s, x) = (signed(), xmss_tree());
+        let d = &x.tree.design;
+        let Family::Circuit(family) = &d.family else {
+            panic!("a tree of leanXMSS proofs")
+        };
+        let leaf = &family.leaf;
+        let position = 0;
+
+        // The honest leaves' rows build the tree's circuit.
+        let honest: Vec<CircuitWitness<'_>> = (s.claims[..2].iter().zip(&s.proofs))
+            .map(|(c, p)| {
+                let Leaf(LeafProof::Circuit { statement, proof, .. }) = s.batch.leaf(&[*c], p).expect("one claim")
+                else {
+                    panic!("a circuit's leaf")
+                };
+                CircuitWitness {
+                    openings: (leaf.key.verify(&statement, &leaf.session, leaf.rate, proof)).expect("an honest leaf"),
+                    statement,
+                    proof,
+                    columns: leaf.columns(),
+                }
+            })
+            .collect();
+        let inputs = NodeInputs::Prove {
+            items: &honest,
+            tables: &x.tree.tables,
+            union: None,
+        };
+        assert!(
+            &proven_circuit(&x.tree, d.first_circuit_rows(family, &inputs)) == x.tree.circuit(position),
+            "the leaves build another circuit"
+        );
+
+        // A fake circuit of the leaves' heights stating a forged claim.
+        let mut forged = s.claims[0];
+        forged.merkle_root[0] ^= 1;
+        let statement = s.batch.statement(&[forged]).expect("one claim");
+        let LeafStatement(Stated::Circuit { words, .. }) = &statement else {
+            panic!("a circuit's statement")
+        };
+        let mut b = Builder::new();
+        for w in words {
+            let wire = b.free_e(F192::new(w[0], w[1], w[2]));
+            b.expose(wire);
+        }
+        let Finished {
+            mut circuit,
+            assignment,
+            failures,
+        } = b.finish();
+        assert!(failures.is_empty(), "{failures:?}");
+        circuit.floor = leaf.circuit().heights();
+        assert_eq!(
+            circuit.heights(),
+            leaf.circuit().heights(),
+            "the fake has the leaves' heights"
+        );
+        let fake = CircuitKey::new(circuit).expect("the fake fits");
+        let proof = fake.prove(&assignment, &leaf.session, leaf.rate);
+        assert!(
+            (leaf.key.verify(words, &leaf.session, leaf.rate, &proof)).is_err(),
+            "natively, the fake is no leanXMSS proof"
+        );
+        let columns = fake.fixed();
+        let openings = fake
+            .verify(words, &leaf.session, leaf.rate, &proof)
+            .expect("the fake proves its own circuit");
+        let items: Vec<CircuitWitness<'_>> = (0..2)
+            .map(|_| CircuitWitness {
+                statement: words.clone(),
+                proof: &proof,
+                openings: openings.clone(),
+                columns,
+            })
+            .collect();
+        let mut tables = x.tree.tables.clone();
+        tables.0[DensePoly::Leaf as usize] = family.leaf_polynomial(columns);
+        let inputs = |tables| NodeInputs::Prove {
+            items: &items,
+            tables,
+            union: None,
+        };
+
+        // An honest reduction over the tree's polynomials fails on the fake's hints.
+        let honest = x.tree.prove_rows(d.first_circuit_rows(family, &inputs(&x.tree.tables)));
+        assert!(
+            matches!(&honest, Err(TreeError::Unsatisfied(check)) if check.scope()[0] == "reduction"),
+            "{:?}",
+            honest.map(|p| p.kind())
+        );
+
+        // Reduced over the forged polynomial, every row holds and the root's proof verifies.
+        let root = proven_over(
+            &x.tree,
+            position,
+            d.first_circuit_rows(family, &inputs(&tables)),
+            &tables,
+        );
+        x.tree
+            .read(&root, position)
+            .expect("the root's recursion proof verifies");
+        let expected = Subtree::First(vec![statement.clone(), statement]);
+        assert_eq!(
+            x.tree.verify(&root, &expected),
+            Err(TreeError::Claim(FalseClaim::Dense(DensePoly::Leaf)))
+        );
+        // A node carrying the fake's claims cannot reduce them honestly.
+        assert!(matches!(
+            x.tree.prove_node(&[root, x.firsts[1].clone()]),
+            Err(TreeError::Unsatisfied(check)) if check.scope()[0] == "reduction"
+        ));
+    }
+
+    // Two leanSPHINCS signers' claims, one signature per batch, and each one's proof.
+    struct SphincsSigned {
+        batch: SphincsBatch,
+        claims: Vec<SphincsClaim>,
+        proofs: Vec<SphincsProof>,
+    }
+
+    fn sphincs_signed() -> &'static SphincsSigned {
+        static SIGNED: LazyLock<SphincsSigned> = LazyLock::new(|| {
+            let batch = SphincsBatch::new(1, Rate::MIN).expect("one signature fits");
+            let (claims, signatures) = crate::rec::sphincs::tests::signed(2);
+            let proofs = (claims.iter().zip(signatures))
+                .map(|(c, s)| batch.prove(&[*c], &[s]).expect("an honest signature"))
+                .collect();
+            SphincsSigned { batch, claims, proofs }
+        });
+        &SIGNED
+    }
+
+    impl SphincsSigned {
+        fn leaves(&self) -> Vec<Leaf<'_>> {
+            (self.claims.iter().zip(&self.proofs))
+                .map(|(c, p)| self.batch.leaf(&[*c], p).expect("one claim"))
+                .collect()
+        }
+
+        fn statements(&self) -> Vec<LeafStatement> {
+            (self.claims.iter())
+                .map(|c| self.batch.statement(&[*c]).expect("one claim"))
+                .collect()
+        }
+    }
+
+    // A 2 to 1 tree over the leanSPHINCS proofs, its first-level node and a node over two copies of it.
+    struct SphincsTree {
+        tree: Tree<'static>,
+        first: TreeProof,
+        node: TreeProof,
+    }
+
+    fn sphincs_tree() -> &'static SphincsTree {
+        static TREE: LazyLock<SphincsTree> = LazyLock::new(|| {
+            let s = sphincs_signed();
+            let tree = Tree::new(s.batch.leaves(), PAIRS).expect("a tree");
+            let first = tree.prove_first(&s.leaves()).expect("honest leaves");
+            let node = tree
+                .prove_node(&[first.clone(), first.clone()])
+                .expect("honest children");
+            SphincsTree { tree, first, node }
+        });
+        &TREE
+    }
+
+    // A tree proof's recursion proof, verified against its own tree's circuit under this session.
+    fn under(tree: &Tree<'_>, session: &SessionId, p: &TreeProof) -> Result<(), RecError> {
+        let position = tree.known(p).expect("a proof of one of the tree's circuits");
+        (tree.keys[position])
+            .verify(&p.limbs(), session, tree.design.rate, &p.proof)
+            .map(drop)
+    }
+
+    // Trees of leanXMSS proofs, of leanSPHINCS proofs and of RISC-V proofs: each tree's session names its leaf family, so no
+    // tree takes another's proofs, and nothing but the session and the statement refuses them.
+    //
+    //     the leanXMSS and leanSPHINCS trees share their heights and statement layout: their proofs have one shape
+    //     a proof against its own tree's circuit under the other tree's session fails at its first stage, flock's zerocheck
+    //     → as a child of the other tree's node, or as its root, it fails with that same error
+    //     a RISC-V tree's statement has another length than a circuit-leaf tree's
+    //     → each refuses the other's proofs at the statement's length, as of no circuit of its own
+    #[test]
+    fn a_tree_refuses_another_familys_tree_proofs() {
+        let (f, s, x) = (fixture(), signed(), xmss_tree());
+        let (p, y) = (sphincs_signed(), sphincs_tree());
+        let xmss_first = Subtree::First(s.statements()[..2].to_vec());
+        let xmss_node = Subtree::balanced(s.statements(), &PAIRS).expect("four leaves");
+        let sphincs_first = Subtree::First(p.statements());
+        let sphincs_node = Subtree::Node(vec![sphincs_first.clone(); 2]);
+        let runs_first = Subtree::First(f.statements()[..2].to_vec());
+        y.tree.verify(&y.first, &sphincs_first).expect("a first-level root");
+        y.tree.verify(&y.node, &sphincs_node).expect("the node");
+        let sessions = [&f.tree, &x.tree, &y.tree].map(|t| t.design.session());
+        assert!(
+            sessions[0] != sessions[1] && sessions[1] != sessions[2] && sessions[0] != sessions[2],
+            "each family has its session"
+        );
+        assert_eq!(
+            (x.tree.design.tiers[SMALL].taus, x.tree.design.statement),
+            (y.tree.design.tiers[SMALL].taus, y.tree.design.statement),
+            "the leanXMSS and leanSPHINCS trees' proofs have one shape"
+        );
+
+        // The session alone: each proof against its own tree's circuit, under the other tree's session.
+        let session_refusal = |tree: &Tree<'_>, other: &Tree<'_>, p: &TreeProof| {
+            under(tree, &tree.design.session(), p).expect("its own session");
+            let refused = under(tree, &other.design.session(), p).expect_err("the other tree's session");
+            assert!(
+                matches!(
+                    refused,
+                    RecError::Flock(FlockError::Zerocheck(ZerocheckError::TerminalMismatch))
+                ),
+                "{refused:?}"
+            );
+            VerifyError::from(refused)
+        };
+
+        // Each kind of one circuit-leaf tree's proofs as the second child of the other's node, and as its root, given an
+        // expected tree of its own leaves whose top is the proof's kind.
+        for (what, tree, own, other, other_tree, expected) in [
+            (
+                "leanSPHINCS first-level",
+                &x.tree,
+                &x.firsts[0],
+                &y.first,
+                &y.tree,
+                &xmss_first,
+            ),
+            ("leanSPHINCS node", &x.tree, &x.firsts[0], &y.node, &y.tree, &xmss_node),
+            (
+                "leanXMSS first-level",
+                &y.tree,
+                &y.first,
+                &x.firsts[0],
+                &x.tree,
+                &sphincs_first,
+            ),
+            ("leanXMSS node", &y.tree, &y.first, &x.node, &x.tree, &sphincs_node),
+        ] {
+            let error = session_refusal(other_tree, tree, other);
+            assert_eq!(
+                tree.prove_node(&[own.clone(), other.clone()]),
+                Err(TreeError::Child {
+                    index: 1,
+                    error: error.clone()
+                }),
+                "{what} as a child"
+            );
+            assert_eq!(
+                tree.verify(other, expected),
+                Err(TreeError::Root(error)),
+                "{what} as a root"
+            );
+        }
+
+        // A RISC-V tree and a leanXMSS tree, each given the other's first-level node: its statement has another length
+        // than the tree's statements, so it is of no circuit of the tree.
+        assert_ne!(f.tree.design.statement.len(), x.tree.design.statement.len());
+        for (what, tree, own, other, expected) in [
+            (
+                "leanXMSS in a RISC-V tree",
+                &f.tree,
+                &f.firsts[0],
+                &x.firsts[0],
+                &runs_first,
+            ),
+            (
+                "RISC-V in a leanXMSS tree",
+                &x.tree,
+                &x.firsts[0],
+                &f.firsts[0],
+                &xmss_first,
+            ),
+        ] {
+            let error = TreeError::Circuit(0);
+            assert_eq!(
+                tree.prove_node(&[own.clone(), other.clone()]),
+                Err(error.clone()),
+                "{what} as a child"
+            );
+            assert_eq!(tree.verify(other, expected), Err(error), "{what} as a root");
+        }
     }
 
     // A first-level node whose reduction a cheating prover forged: its rows hold, its claims are false.
@@ -1268,29 +2150,30 @@ mod tests {
                 set: [0; 4],
             })
             .collect();
-        let rows = d.first_rows(&NodeInputs::Prove {
-            items: &items,
-            tables: &f.tree.tables,
-            union: None,
-        });
+        let Family::Runs(shape) = &d.family else {
+            panic!("a tree of RISC-V proofs")
+        };
+        let rows = d.first_runs_rows(
+            shape,
+            &NodeInputs::Prove {
+                items: &items,
+                tables: &f.tree.tables,
+                union: None,
+            },
+        );
         let reduction = forged_reduction(&d.session(), &d.vars, &f.tree.tables, &rows.claim_values(), forge);
         let Finished {
             assignment, failures, ..
         } = rows.reduce(d, ProofSource::Proof(&reduction, &[]));
         assert!(failures.is_empty(), "{forge:?}: {failures:?}");
-        TreeProof::new(
-            0,
-            &assignment,
-            f.tree.keys[0].prove(&assignment, &d.session(), d.rate),
-            d.rate,
-        )
+        tree_proof(&f.tree, 0, &f.tree.keys[0], &assignment)
     }
 
     // Reduced claims that satisfy every row and are false: the root refuses them, and an honest node cannot carry them.
     #[test]
     fn forged_reduced_claims_are_refused() {
         let f = fixture();
-        let outputs = &f.outputs()[..2];
+        let outputs = balanced(&f.outputs()[..2], &PAIRS).expect("two leaves");
         for (forge, refusal) in [
             (Forge::Dense, FalseClaim::Dense(DensePoly::Bytecode)),
             (
@@ -1303,7 +2186,7 @@ mod tests {
         ] {
             let forged = forged_first(f, forge);
             assert_eq!(
-                f.tree.verify(&forged, outputs),
+                f.tree.verify(&forged, &outputs),
                 Err(TreeError::Claim(refusal)),
                 "{forge:?}"
             );
@@ -1340,11 +2223,17 @@ mod tests {
         //     | header: 6 | rate: 1 | n_words: 4 | kind word ...
         //     byte 6 = the rate, byte 11 = the kind word's low byte, byte 19 its second limb's
         let mut kind = bytes.clone();
+        kind[11] = 0;
+        assert_eq!(
+            TreeProof::from_bytes(&kind).map(|p| p.kind()),
+            Ok(Kind::First),
+            "the other kind's code decodes"
+        );
         kind[11] = 2;
         let foreign = TreeProof::from_bytes(&kind).expect("a kind is any index");
-        let outputs: Vec<Output> = f.leaves.iter().map(|&(_, o)| o).collect();
+        let expected = balanced(&f.outputs(), &PAIRS).expect("four leaves");
         assert_eq!(
-            f.tree.verify(&foreign, &outputs),
+            f.tree.verify(&foreign, &expected),
             Err(TreeError::Circuit(2)),
             "an index of no circuit"
         );
@@ -1364,13 +2253,14 @@ mod tests {
         );
     }
 
-    // A tree of outputs is as protocol version `leanvm-tree-12` built it, before the tiers: the same heights, statement
-    // layout and session tag but for the version.
+    // A tree of outputs keeps the heights and statement layout of protocol version `leanvm-tree-12`, before the tiers, the
+    // absent STEP and LINK tables aside. Its session tag also names its leaf family, so it is pinned here as it is now.
     #[test]
-    fn a_tree_of_outputs_is_unchanged_from_tree_12() {
+    fn a_tree_of_outputs_keeps_tree_12s_heights_and_layout() {
         let d = &fixture().tree.design;
         assert_eq!(d.tiers.len(), 1);
-        assert_eq!(d.tiers[SMALL].taus.into_values(), [16, 16, 14, 10, 14, 10]);
+        let heights = [Some(16), Some(16), Some(14), Some(10), Some(14), None, None, Some(10)];
+        assert_eq!(d.tiers[SMALL].taus.into_values(), heights);
         assert_eq!(d.statement.len(), 97);
         let sections = [
             Section::Kind,
@@ -1388,8 +2278,8 @@ mod tests {
         assert_eq!(
             d.session_under(b"leanvm-tree-12").0,
             [
-                131, 35, 57, 135, 111, 161, 159, 65, 198, 173, 203, 59, 29, 190, 76, 72, 162, 204, 82, 150, 192, 101,
-                73, 98, 94, 12, 195, 130, 18, 239, 205, 34
+                175, 244, 77, 226, 2, 53, 216, 225, 108, 105, 36, 89, 227, 32, 16, 198, 75, 141, 243, 78, 198, 200, 59,
+                193, 25, 116, 199, 81, 72, 118, 40, 11
             ]
         );
     }
@@ -1410,25 +2300,16 @@ mod tests {
             .into();
         let shape = LeafShape::of(&leaves[0].0).expect("a canonical announcement");
         assert!(shape.is_zero_knowledge());
-        let tree = Tree::new(
-            program(),
-            TreeShape {
-                leaf: shape,
-                arity_0: 2,
-                arity: 2,
-                rate: Rate::MIN,
-                claims: None,
-            },
-        )
-        .expect("a tree");
+        let tree = Tree::new(runs(shape), PAIRS).expect("a tree");
         let pair: Vec<Leaf<'_>> = leaves.iter().map(|(p, o)| Leaf::new(p, *o)).collect();
         let root = tree.prove_first(&pair).expect("honest leaves");
         let outputs: Vec<Output> = leaves.iter().map(|l| l.1).collect();
-        tree.verify(&root, &outputs).expect("the root");
+        tree.verify(&root, &balanced(&outputs, &PAIRS).expect("two leaves"))
+            .expect("the root");
 
         // A plain leaf of the same run has another shape: the tree refuses it.
         let plain = Prover::new(Rate::MIN).prove(program(), &[7]).expect("the run halts");
-        let mixed = [Leaf::new(&plain.proof, plain.output), pair[1]];
+        let mixed = [Leaf::new(&plain.proof, plain.output), pair[1].clone()];
         assert_eq!(
             tree.prove_first(&mixed).err(),
             Some(TreeError::ForeignLeaf { index: 0 })
@@ -1517,13 +2398,19 @@ mod tests {
             pair: Aggregate,
         }
 
-        fn shape(leaf: LeafShape, claims: Option<ClaimShape>) -> TreeShape {
+        fn shape(claims: Option<ClaimShape>) -> TreeShape {
             TreeShape {
-                leaf,
                 arity_0: 1,
                 arity: 3,
                 rate: Rate::MIN,
                 claims,
+            }
+        }
+
+        fn runs(shape: LeafShape) -> Leaves<'static> {
+            Leaves::Runs {
+                program: program(),
+                shape,
             }
         }
 
@@ -1542,7 +2429,7 @@ mod tests {
             let sets = sets();
             let leaves: Vec<(Proof, Output)> = sets.iter().map(leaf_proof).collect();
             let leaf = LeafShape::of(&leaves[0].0).expect("a canonical announcement");
-            let tree = Tree::new(program(), shape(leaf, Some(ClaimShape::new(CAPACITY)))).expect("a tree");
+            let tree = Tree::new(runs(leaf), shape(Some(ClaimShape::new(CAPACITY)))).expect("a tree");
             let firsts: Vec<Aggregate> = (sets.iter().zip(&leaves))
                 .map(|(set, (proof, output))| {
                     let leaf = ClaimLeaf::new(Leaf::new(proof, *output), set);
@@ -1761,18 +2648,19 @@ mod tests {
         fn positional_and_claim_set_proofs_are_not_confused() {
             let f = fixture();
             let leaf = LeafShape::of(&f.leaves[0].0).expect("a canonical announcement");
-            let outputs_tree = Tree::new(program(), shape(leaf, None)).expect("a tree of outputs");
+            let outputs_tree = Tree::new(runs(leaf), shape(None)).expect("a tree of outputs");
             let (proof, output) = &f.leaves[0];
             let positional = outputs_tree
                 .prove_first(&[Leaf::new(proof, *output)])
                 .expect("an honest leaf");
-            outputs_tree.verify(&positional, &[*output]).expect("a positional root");
+            let positional_leaves = Subtree::First(vec![(*output).into()]);
+            (outputs_tree.verify(&positional, &positional_leaves)).expect("a positional root");
 
             // Each tree refuses the other's operations.
             let claims = TreeError::Semantics { claims: true };
             let outputs = TreeError::Semantics { claims: false };
             assert_eq!(f.tree.prove_first(&[Leaf::new(proof, *output)]), Err(claims.clone()));
-            assert_eq!(f.tree.verify(&positional, &[*output]), Err(claims));
+            assert_eq!(f.tree.verify(&positional, &positional_leaves), Err(claims));
             let set_leaf = ClaimLeaf::new(Leaf::new(proof, *output), &f.sets[0]);
             assert_eq!(outputs_tree.aggregate_leaves(&[set_leaf], None), Err(outputs.clone()));
             assert_eq!(
@@ -1794,7 +2682,7 @@ mod tests {
                 Err(TreeError::Child { index: 0, .. } | TreeError::Circuit(_))
             ));
             assert!(matches!(
-                outputs_tree.verify(&f.firsts[0].proof, &[*output]),
+                outputs_tree.verify(&f.firsts[0].proof, &positional_leaves),
                 Err(TreeError::Root(_) | TreeError::Circuit(_))
             ));
         }
@@ -1804,7 +2692,7 @@ mod tests {
             let f = fixture();
             // Another party builds the tree from the same program and shape, and proves the third leaf.
             let leaf = LeafShape::of(&f.leaves[0].0).expect("a canonical announcement");
-            let theirs = Tree::new(program(), shape(leaf, Some(ClaimShape::new(CAPACITY)))).expect("the same tree");
+            let theirs = Tree::new(runs(leaf), shape(Some(ClaimShape::new(CAPACITY)))).expect("the same tree");
             let (proof, output) = &f.leaves[2];
             let third = (theirs.aggregate_leaves(&[ClaimLeaf::new(Leaf::new(proof, *output), &f.sets[2])], None))
                 .expect("an honest leaf");
@@ -1830,7 +2718,14 @@ mod tests {
             let leaves: Vec<(Proof, Output)> = f.sets[..2].iter().map(|set| leaf_proof_of(&other, set)).collect();
             let leaf = LeafShape::of(&leaves[0].0).expect("a canonical announcement");
             assert_eq!(Some(leaf), LeafShape::of(&f.leaves[0].0).ok(), "one leaf shape");
-            let theirs = Tree::new(&other, shape(leaf, Some(ClaimShape::new(CAPACITY)))).expect("a tree");
+            let theirs = Tree::new(
+                Leaves::Runs {
+                    program: &other,
+                    shape: leaf,
+                },
+                shape(Some(ClaimShape::new(CAPACITY))),
+            )
+            .expect("a tree");
             let firsts: Vec<Aggregate> = (f.sets.iter().zip(&leaves))
                 .map(|(set, (proof, output))| {
                     let leaf = ClaimLeaf::new(Leaf::new(proof, *output), set);
@@ -1905,7 +2800,7 @@ mod tests {
                 capacity: CAPACITY,
                 small: Some(SMALL_TIER),
             };
-            Tree::new(program(), shape(leaf, Some(claims))).expect("a tree of two tiers")
+            Tree::new(runs(leaf), shape(Some(claims))).expect("a tree of two tiers")
         }
 
         static TIERED: LazyLock<Tiered> = LazyLock::new(|| {
@@ -2115,7 +3010,7 @@ mod tests {
                     small: Some(small),
                 };
                 assert_eq!(
-                    Tree::new(program(), shape(leaf(), Some(claims))).err(),
+                    Tree::new(runs(leaf()), shape(Some(claims))).err(),
                     Some(TreeError::SmallTier {
                         arity: small.arity,
                         capacity: small.capacity
@@ -2140,7 +3035,7 @@ mod tests {
                     capacity: CAPACITY,
                     small: Some(small),
                 };
-                let other = Tree::new(program(), shape(leaf, Some(claims))).expect("a tree of two tiers");
+                let other = Tree::new(runs(leaf), shape(Some(claims))).expect("a tree of two tiers");
                 assert_ne!(other.design.session(), t.tree.design.session(), "{small:?}");
                 for ours in [&t.firsts[0], &t.pair] {
                     assert!(
@@ -2264,16 +3159,15 @@ mod tests {
             let digest = forged_set.digest();
             let halves = [F192::new(digest[0], digest[1], 0), F192::new(digest[2], digest[3], 0)];
             let rest = d.statement.range(Section::Digest).end;
-            let wide = d.statement.range(Section::DenseValues).start + DensePoly::Wide as usize;
             // The fake: the large node's kind, the forged set's digest, then an honest large proof's claims but for the wide
             // polynomial's value, which the fake's own stack decides.
             let fake = |wide_value: F192| {
                 let mut b = Builder::new();
                 let mut words = vec![b.e_const(F192::new(d.code(large) as u64, 0, 0))];
                 words.extend(halves.map(|h| b.free_e(h)));
-                let mut claims = t.pair.proof.words[rest..].to_vec();
-                claims[wide - rest] = wide_value;
-                words.extend(claims.iter().map(|&w| b.free_e(w)));
+                let mut claims = TreeStatement::new(d.statement, t.pair.proof.words.clone());
+                *claims.dense_value_mut(DensePoly::Wide) = wide_value;
+                words.extend(claims.words()[rest..].iter().map(|&w| b.free_e(w)));
                 for w in words {
                     b.expose(w);
                 }
@@ -2356,7 +3250,7 @@ mod tests {
         fn a_lone_child_past_half_the_capacity_is_narrowed_and_republished() {
             let wide = Capacity { claims: 401, groups: 2 };
             let leaf = LeafShape::of(&fixture().leaves[0].0).expect("a canonical announcement");
-            let tree = Tree::new(program(), shape(leaf, Some(ClaimShape::new(wide)))).expect("a tree");
+            let tree = Tree::new(runs(leaf), shape(Some(ClaimShape::new(wide)))).expect("a tree");
             let d = &tree.design;
             let pool = (d.union_shape(d.place(SMALL, Level::Node(2)).expect("a node of two"))).expect("a union");
             let big = set(vec![group(4, 4, &(0..400).collect::<Vec<_>>())]);
@@ -2375,10 +3269,11 @@ mod tests {
             (tree.verify_claims(&narrowed.proof, &part)).expect("a narrowed root");
         }
 
-        // A claim-set tree of one tier keeps the heights, statement layout and session tag (but for the version) of protocol
-        // version `leanvm-tree-12`, before the tiers; its nodes' circuits add the absent places.
+        // A claim-set tree of one tier keeps the heights and statement layout of protocol version `leanvm-tree-12`, before the
+        // tiers, the absent STEP and LINK tables aside; its nodes' circuits add the absent places. Its session tag also names
+        // its leaf family, so it is pinned here as it is now.
         #[test]
-        fn a_claim_set_tree_of_one_tier_keeps_tree_12s_heights_layout_and_tag() {
+        fn a_claim_set_tree_of_one_tier_keeps_tree_12s_heights_and_layout() {
             let d = &fixture().tree.design;
             let sections = [
                 Section::Kind,
@@ -2390,7 +3285,8 @@ mod tests {
                 Section::Matrices,
             ];
             assert_eq!(d.tiers.len(), 1);
-            assert_eq!(d.tiers[SMALL].taus.into_values(), [17, 17, 15, 11, 14, 10]);
+            let heights = [Some(17), Some(17), Some(15), Some(11), Some(14), None, None, Some(10)];
+            assert_eq!(d.tiers[SMALL].taus.into_values(), heights);
             assert_eq!(d.statement.len(), 99);
             assert_eq!(
                 sections.map(|s| d.statement.range(s)),
@@ -2399,8 +3295,8 @@ mod tests {
             assert_eq!(
                 d.session_under(b"leanvm-tree-12").0,
                 [
-                    63, 98, 217, 38, 13, 142, 156, 140, 68, 244, 21, 118, 140, 239, 62, 3, 236, 119, 216, 49, 83, 51,
-                    42, 33, 6, 32, 202, 209, 96, 204, 87, 245
+                    154, 84, 34, 6, 227, 175, 120, 53, 34, 100, 15, 157, 66, 36, 149, 151, 175, 236, 58, 53, 72, 185,
+                    96, 134, 27, 250, 102, 1, 254, 237, 123, 51
                 ]
             );
         }

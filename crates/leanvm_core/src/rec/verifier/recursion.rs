@@ -15,7 +15,7 @@ use crate::rec::circuit::{Builder, Dw, Ew, Kw};
 use crate::rec::fixed::{FixedColumn, FixedColumns};
 use crate::rec::layout::RecLayout;
 use crate::rec::proof::TableArgument;
-use crate::rec::table::PerRecTable;
+use crate::rec::table::Heights;
 use crate::rec::transcript::{ProofSource, Transcript};
 use fiat_shamir::SessionId;
 use fiat_shamir::arith::Arith;
@@ -23,7 +23,10 @@ use flock::lincheck::MatrixForm;
 use primitives::field::F192;
 use primitives::multilinear::mle_eval_par;
 
-/// What fixes the rows verifying a recursion proof: its circuit's heights and the commitment's rate.
+/// What fixes the rows verifying a recursion proof: its circuit's heights, which tables it has among them, and the
+/// commitment's rate.
+///
+/// The rows read nothing of a table the heights leave out, and a proof that has one is not of this shape.
 #[derive(Clone, Debug)]
 pub(crate) struct RecShape {
     /// The proven circuit's layout.
@@ -83,7 +86,7 @@ impl RecShape {
     /// # Errors
     ///
     /// Returns an error if the heights admit no layout.
-    pub(crate) fn new(taus: PerRecTable<usize>, rate: Rate) -> Result<Self, RecError> {
+    pub(crate) fn new(taus: Heights, rate: Rate) -> Result<Self, RecError> {
         Ok(Self {
             layout: RecLayout::from_taus(taus)?,
             rate,
@@ -103,12 +106,32 @@ impl RecShape {
         columns: &FixedColumns,
         source: ProofSource<'_>,
     ) -> RecRows {
-        // The instance: the statement's limbs, their count first.
+        let t = Self::transcript(b, session, statement, source);
+        self.verify_from(b, t, statement, columns)
+    }
+
+    /// The transcript of a proof of a statement: the session, then the instance, the statement's limbs, their count first.
+    pub(crate) fn transcript<'a>(
+        b: &mut Builder,
+        session: &SessionId,
+        statement: &[[Kw; 4]],
+        source: ProofSource<'a>,
+    ) -> Transcript<'a> {
         let count = b.k_const(4 * statement.len() as u64);
         let instance: Vec<Kw> = std::iter::once(count)
             .chain(statement.as_flattened().iter().copied())
             .collect();
-        let mut t = Transcript::new(b, session, &instance, source);
+        Transcript::new(b, session, &instance, source)
+    }
+
+    /// [`Self::verify`] from its transcript, [`Self::transcript`] of the same statement.
+    pub(crate) fn verify_from<'s>(
+        &self,
+        b: &mut Builder,
+        mut t: Transcript<'s>,
+        statement: &'s [[Kw; 4]],
+        columns: &'s FixedColumns,
+    ) -> RecRows {
         let mut hints = FixedHints {
             columns,
             statement,
@@ -139,7 +162,7 @@ impl FixedHints<'_> {
             value,
         });
         match column {
-            FixedColumn::Next(_) => value,
+            FixedColumn::Next(_) | FixedColumn::Active(_) => value,
             FixedColumn::Constant(j) => {
                 let statement = self.statement_at(b, j, point);
                 b.add(value, statement)
@@ -185,6 +208,7 @@ mod tests {
     use crate::rec::verifier::tests::LABEL;
 
     use crate::commitment::Rate;
+    use crate::rec::circuit::chains::plan;
     use crate::rec::circuit::{Builder, Circuit, Finished, Kw, Limbs};
     use crate::rec::fixed::FixedColumns;
     use crate::rec::hash;
@@ -210,6 +234,7 @@ mod tests {
     }
 
     // The rows hold on an honest proof, leave a hash matrix claim that settles and true fixed hints, and are the shape's rows.
+    // The proven circuit has chains, so its proof has dynamic tuples and activity columns.
     #[test]
     fn a_recursion_proof_in_rows_is_its_verifier() {
         let mut b = Builder::new();
@@ -226,6 +251,7 @@ mod tests {
         b.split(w);
         b.expose(acc);
         b.expose(e);
+        b.emit_chains(&plan(&[4, 7]));
         let Finished {
             circuit,
             assignment: a,

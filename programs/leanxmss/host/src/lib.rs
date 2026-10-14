@@ -11,21 +11,30 @@ pub use signers::{SignerSet, SignerSetError, XmssClaim, XmssGroup};
 
 use core::ops::Range;
 use leanvm_guest::{PublicValues, Run, as_words_unchecked};
-use leanxmss::{LeafIndex, Message, PublicKey, Signature};
+pub use leanxmss::{LeafIndex, Message, PublicKey, Signature};
 
 /// The guest (`../guest`), built by `programs/build.sh`.
 pub const ELF: &[u8] = include_bytes!("../../leanxmss.elf");
 
 /// The message every signer of [`batch`] signs.
-const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
+pub const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
 /// The leaf index every signer of [`batch`] signs at.
-const LEAF_INDEX: LeafIndex = 1234;
+pub const LEAF_INDEX: LeafIndex = 1234;
 
 /// A signer's secret seed: its index, then zeros.
 fn seed(i: usize) -> [u8; 32] {
     let mut seed = [0; 32];
     seed[..8].copy_from_slice(&(i as u64).to_le_bytes());
     seed
+}
+
+/// `n` signers, each with its own key, sign [`MESSAGE`] at [`LEAF_INDEX`]: each one's key and signature, as [`batch`]'s.
+pub fn signers(n: usize) -> Vec<(PublicKey, Signature)> {
+    // Keys and signatures are independent, so they are made in parallel.
+    parallel::map_collect(n, |i| {
+        let (sk, pk) = leanxmss::key_gen(seed(i), LEAF_INDEX);
+        (pk, sk.sign(&MESSAGE).expect("a valid encoding"))
+    })
 }
 
 /// Signers that sign one message at one leaf index.

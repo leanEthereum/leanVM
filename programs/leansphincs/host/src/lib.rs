@@ -7,23 +7,32 @@
 
 mod signers;
 
+pub use leansphincs::{LayerSignature, Message, PublicKey, Signature};
 pub use signers::{SignerSet, SignerSetError, SphincsClaim};
 
 use core::ops::Range;
-use leansphincs::{Message, PublicKey, Signature};
 use leanvm_guest::{PublicValues, Run, as_words_unchecked};
 
 /// The guest (`../guest`), built by `programs/build.sh`.
 pub const ELF: &[u8] = include_bytes!("../../leansphincs.elf");
 
 /// The message every signer of [`batch`] signs.
-const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
+pub const MESSAGE: Message = [0x4242_4242_4242_4242; 4];
 
 /// A signer's secret seed: its index, then zeros.
 fn seed(i: usize) -> [u8; 32] {
     let mut seed = [0; 32];
     seed[..8].copy_from_slice(&(i as u64).to_le_bytes());
     seed
+}
+
+/// `n` signers, each with its own key, sign [`MESSAGE`]: each one's key and signature, as [`batch`]'s.
+pub fn signers(n: usize) -> Vec<(PublicKey, Signature)> {
+    // Keys and signatures are independent, so they are made in parallel.
+    parallel::map_collect(n, |i| {
+        let (sk, pk) = leansphincs::key_gen(seed(i));
+        (pk, sk.sign(&MESSAGE).expect("an admissible digest and encodings"))
+    })
 }
 
 /// Signers that sign one message. Signer `i`'s key is the one from `i`'s seed, in every group.
@@ -154,6 +163,21 @@ mod tests {
             "76f771d246ae4460e0d2d193c567c8352cfc6e3ccd6e4d68d25955832d5e3431"
         );
         assert_eq!(leansphincs::verify(&public_key, &message, &signature), Ok(()));
+    }
+
+    /// The known answers' key, message and specification bytes of the signature, as hex, for the Lean
+    /// specification's check of them (`verification/circuits/Spec/LeanSphincs/Kat.lean`).
+    ///
+    /// `cargo test -p leansphincs-host print_known_answers -- --ignored --nocapture`
+    #[test]
+    #[ignore = "prints the known answers for the Lean specification"]
+    fn print_known_answers() {
+        let (seed, message) = fixed();
+        let (sk, public_key) = leansphincs::key_gen(seed);
+        let signature = sk.sign(&message).unwrap();
+        println!("public key {}", hex(bytes(words_of_key(&public_key))));
+        println!("message {}", hex(bytes(&message)));
+        println!("signature {}", hex(signature.to_bytes()));
     }
 
     #[test]

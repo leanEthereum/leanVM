@@ -1,9 +1,10 @@
-//! What both sides derive from a circuit alone: each table's height and where every column sits in the stack.
+//! What both sides derive from a circuit alone: each table's height, the tables the proof has, and where every column
+//! sits in the stack.
 
 use super::RecError;
 use super::circuit::Circuit;
 use super::hash;
-use super::table::{PerRecTable, Table};
+use super::table::{Heights, Table};
 use crate::bus::ColumnClaim;
 use crate::commitment::StackClaim;
 use crate::constraints::{Air, BitColumns, Claims};
@@ -11,14 +12,20 @@ use crate::stacking;
 use crate::stacking::{Placement, Source, StackShape, Window};
 use std::ops::Range;
 
-/// Each table's height and every column's place in the stack.
+/// Each table's height, the owned tables the proof has, and every column's place in the stack.
 ///
-/// The stack holds the hash table's packed witness, then every owned table's columns in table order.
+/// The stack holds the hash table's packed witness, then every present owned table's columns in table order.
 /// The hash table's first columns are ports of that witness and take no place of their own.
+///
+/// A table with no height is absent: nothing of it is committed, it has no bus block and no summand, and no claim names
+/// it. The heights are the verifier's, from the circuit, so a proof has no rows where the verifier expects none.
 #[derive(Clone, Debug)]
 pub(crate) struct RecLayout {
-    /// Each table's base-two logarithm of rows, the public table's included.
-    pub(crate) taus: PerRecTable<usize>,
+    /// Each table's base-two logarithm of rows, the public table's included, none for an absent table.
+    pub(crate) taus: Heights,
+    /// The owned tables the proof has, in table order: a table's index here is its index on the bus and in the table
+    /// sumcheck.
+    pub(crate) present: Vec<Table>,
     pub(crate) placements: Vec<Placement>,
     pub(crate) shape: StackShape,
 }
@@ -57,8 +64,18 @@ impl RecLayout {
     /// # Errors
     ///
     /// Returns an error if a table has more rows than its keys name, or the witness exceeds one commitment.
-    pub(crate) fn from_taus(taus: PerRecTable<usize>) -> Result<Self, RecError> {
-        if let Some((table, &tau)) = taus.iter().find(|&(_, &tau)| tau > Self::MAX_TAU) {
+    ///
+    /// # Panics
+    ///
+    /// Panics if the hash table or the public table has no height: every circuit has both.
+    pub(crate) fn from_taus(taus: Heights) -> Result<Self, RecError> {
+        assert!(
+            taus[Table::Hash].is_some() && taus[Table::Pub].is_some(),
+            "every proof has the hash and public tables"
+        );
+        let too_many =
+            (taus.iter()).find_map(|(table, &tau)| tau.filter(|&tau| tau > Self::MAX_TAU).map(|tau| (table, tau)));
+        if let Some((table, tau)) = too_many {
             return Err(RecError::TooManyRows { table, tau });
         }
         let (placements, shape) = stacking::placements_of(&Self::sources(&taus));
@@ -66,28 +83,28 @@ impl RecLayout {
             return Err(RecError::TooLong { mu: shape.mu });
         }
         Ok(Self {
+            present: Table::OWNED.into_iter().filter(|&t| taus[t].is_some()).collect(),
             taus,
             placements,
             shape,
         })
     }
 
-    /// Every global column's source: the packed witness, then each owned table's ports and committed columns.
-    fn sources(taus: &PerRecTable<usize>) -> Vec<Source> {
+    /// Every global column's source: the packed witness, then each owned table's ports and committed columns, none of an
+    /// absent table's in the stack.
+    fn sources(taus: &Heights) -> Vec<Source> {
         let stride_log = hash::CIRCUIT.stride_log();
-        let mut sources = vec![Source::Committed(taus[Table::Hash] + stride_log)];
+        let mut sources = vec![Source::Committed(Self::tau_of(taus, Table::Hash) + stride_log)];
         for table in Table::OWNED {
             debug_assert_eq!(sources.len(), Self::columns(table).start);
-            sources.extend((0..table.n_cols()).map(|c| {
-                if c < table.n_ports() {
-                    Source::Port {
-                        column: Self::HASH_WITNESS,
-                        port: c,
-                        stride_log,
-                    }
-                } else {
-                    Source::Committed(taus[table])
-                }
+            sources.extend((0..table.n_cols()).map(|c| match taus[table] {
+                None => Source::Absent,
+                Some(_) if c < table.n_ports() => Source::Port {
+                    column: Self::HASH_WITNESS,
+                    port: c,
+                    stride_log,
+                },
+                Some(tau) => Source::Committed(tau),
             }));
         }
         sources
@@ -100,8 +117,23 @@ impl RecLayout {
     }
 
     /// A table's base-two logarithm of rows.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the proof leaves the table out.
     pub(crate) fn tau(&self, table: Table) -> usize {
-        self.taus[table]
+        Self::tau_of(&self.taus, table)
+    }
+
+    /// A table's base-two logarithm of rows among the heights, which have the table.
+    fn tau_of(taus: &Heights, table: Table) -> usize {
+        taus[table].unwrap_or_else(|| panic!("the proof leaves {table:?} out"))
+    }
+
+    /// Each present owned table's first global column and its number of columns, in table order: the tables the bus
+    /// and the table sumcheck see.
+    pub(crate) fn spans(&self) -> Vec<(usize, usize)> {
+        self.present.iter().map(|&t| Self::TABLE_COLUMNS[t as usize]).collect()
     }
 
     /// The packed witness's window in the stack.
@@ -111,10 +143,10 @@ impl RecLayout {
             .expect("the packed witness is committed")
     }
 
-    /// The constraint batch's airs, one per owned table, each with its summand in table order.
+    /// The constraint batch's airs, one per present owned table, each with its summand in table order.
     pub(crate) fn airs<S>(&self, summands: Vec<S>) -> Vec<Air<S>> {
-        (Table::OWNED.into_iter().zip(summands))
-            .map(|(table, summand)| Air {
+        (self.present.iter().zip(summands))
+            .map(|(&table, summand)| Air {
                 tau: self.tau(table),
                 n_cols: table.n_cols(),
                 n_public: 0,
@@ -124,15 +156,16 @@ impl RecLayout {
             .collect()
     }
 
-    /// Every column claim the opening discharges, the bus's then each owned table's, located in the stack.
+    /// Every column claim the opening discharges, the bus's then each present owned table's, located in the stack.
     ///
     /// A port's claim is a strided evaluation of its packed witness.
     pub(crate) fn opening_claims<E: Copy>(&self, bus: Vec<ColumnClaim<E>>, tables: &[Claims<E>]) -> Vec<StackClaim<E>> {
         let mut claims = bus;
-        for (&(base, _), table) in Self::TABLE_COLUMNS.iter().zip(tables) {
-            claims.extend(table.evals.iter().enumerate().map(|(c, &value)| ColumnClaim {
+        for (&table, claimed) in self.present.iter().zip(tables) {
+            let base = Self::columns(table).start;
+            claims.extend(claimed.evals.iter().enumerate().map(|(c, &value)| ColumnClaim {
                 col: base + c,
-                point: table.chi.clone(),
+                point: claimed.chi.clone(),
                 value,
             }));
         }

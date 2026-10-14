@@ -1,8 +1,8 @@
 //! What every proof of a tree states, in one layout whatever its place in the tree.
 //!
 //! - Its kind: what its circuit verifies.
-//! - The digest of the leaves' outputs under it.
-//! - One claim on each dense polynomial, at prefixes of one point.
+//! - The digest of what the leaves under it state.
+//! - One claim on each dense polynomial the tree has, at prefixes of one point.
 //! - Each flock circuit's two matrices at prefixes of one row point and one column point.
 
 use super::reduce::{DensePoly, Reduced};
@@ -15,9 +15,20 @@ use std::ops::Range;
 /// What a tree proof's circuit verifies.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Kind {
-    /// RISC-V proofs of the tree's program: a node of the first level.
+    /// Leaves of the tree's leaf family: a node of the first level.
     First,
-    /// Recursion proofs of either kind: a node above the first level.
+    /// Tree proofs of either kind: a node above the first level.
+    Node,
+}
+
+/// What a digest's items are, which its first block names: a first-level node's leaves, and what they are, or a node's children.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Items {
+    /// A first-level node over RISC-V proofs: its items are their outputs.
+    Runs,
+    /// A first-level node over proofs of the recursion circuit of these session words: its items are their statements' digests.
+    Circuit(Limbs),
+    /// A node: its items are its children's digests.
     Node,
 }
 
@@ -26,8 +37,8 @@ pub enum Kind {
 pub(crate) struct StatementLayout {
     /// The dense point's coordinates: the most any dense polynomial has.
     n_dense: usize,
-    /// The dense polynomials the tree has: the first in statement order.
-    n_polys: usize,
+    /// Which dense polynomials the tree has, each with a value word.
+    dense: [bool; DensePoly::COUNT],
     /// The matrix points' coordinates: the most any flock circuit's matrices have.
     n_matrix: usize,
 }
@@ -41,7 +52,7 @@ pub(crate) enum Section {
     Digest,
     /// The dense claims' point.
     DensePoint,
-    /// Each dense polynomial's value at its prefix of the point.
+    /// Each dense polynomial the tree has: its value at its prefix of the point.
     DenseValues,
     /// The matrix claims' row point.
     Rows,
@@ -61,23 +72,30 @@ pub(crate) struct TreeStatement<E = F192> {
 impl Kind {
     /// Both kinds.
     pub const ALL: [Self; 2] = [Self::First, Self::Node];
+}
 
+impl Items {
     /// The first word of its digest's message.
     const fn tag(self) -> u64 {
         match self {
-            Self::First => u64::from_le_bytes(*b"tree-fst"),
+            Self::Runs => u64::from_le_bytes(*b"tree-fst"),
+            Self::Circuit(_) => u64::from_le_bytes(*b"tree-cir"),
             Self::Node => u64::from_le_bytes(*b"tree-nod"),
         }
     }
 
-    /// Its digest's first block: its tag and how many items follow, then zeros.
+    /// Its digest's first block: its tag and how many items follow, then the leaves' circuit's session words if any, then zeros.
     const fn header(self, count: usize) -> [u64; 8] {
-        [self.tag(), count as u64, 0, 0, 0, 0, 0, 0]
+        let [s0, s1, s2, s3] = match self {
+            Self::Circuit(session) => session,
+            Self::Runs | Self::Node => [0; 4],
+        };
+        [self.tag(), count as u64, s0, s1, s2, s3, 0, 0]
     }
 
-    /// The digest of the items under a proof of this kind: the leaves' outputs under a node of the first level, its children's digests under a node.
+    /// The digest of these items.
     ///
-    /// The tag separates the levels and the count fixes the items, so a digest names its whole subtree.
+    /// The tag and the session separate the levels and the leaf circuits, and the count fixes the items, so a digest names its whole subtree.
     pub(crate) fn digest(self, items: &[Limbs]) -> Limbs {
         let words: Vec<u64> = (self.header(items.len()).into_iter())
             .chain(items.iter().flatten().copied())
@@ -107,18 +125,18 @@ impl Section {
 }
 
 impl StatementLayout {
-    /// The layout of a tree whose first `n_polys` dense polynomials have at most `n_dense` variables.
-    pub(crate) const fn new(n_dense: usize, n_polys: usize) -> Self {
+    /// The layout of a tree that has these dense polynomials, which have at most this many variables.
+    pub(crate) const fn new(n_dense: usize, dense: [bool; DensePoly::COUNT]) -> Self {
         Self {
             n_dense,
-            n_polys,
+            dense,
             n_matrix: CircuitId::MAX_K_LOG,
         }
     }
 
-    /// The dense polynomials the tree has.
-    pub(crate) fn polys(self) -> &'static [DensePoly] {
-        &DensePoly::ALL[..self.n_polys]
+    /// The dense polynomials the tree has, in statement order.
+    pub(crate) fn polys(self) -> impl Iterator<Item = DensePoly> {
+        DensePoly::ALL.into_iter().filter(move |&p| self.dense[p as usize])
     }
 
     /// How many words a section has.
@@ -127,10 +145,23 @@ impl StatementLayout {
             Section::Kind => 1,
             Section::Digest => 2,
             Section::DensePoint => self.n_dense,
-            Section::DenseValues => self.n_polys,
+            Section::DenseValues => self.dense_index(DensePoly::COUNT),
             Section::Rows | Section::Cols => self.n_matrix,
             Section::Matrices => 2 * N_CIRCUITS,
         }
+    }
+
+    /// How many of the dense polynomials before the `n`-th the tree has: the `n`-th's value word among the values.
+    const fn dense_index(self, n: usize) -> usize {
+        let mut count = 0;
+        let mut i = 0;
+        while i < n {
+            if self.dense[i] {
+                count += 1;
+            }
+            i += 1;
+        }
+        count
     }
 
     /// Where a section's words sit: after every section before it.
@@ -201,7 +232,23 @@ impl<E: Copy> TreeStatement<E> {
 
     /// A dense polynomial's claimed value at its prefix of the point.
     pub(crate) fn dense_value(&self, poly: DensePoly) -> E {
-        self.section(Section::DenseValues)[poly as usize]
+        self.section(Section::DenseValues)[self.value_word(poly)]
+    }
+
+    /// A dense polynomial's value word, to write.
+    pub(crate) fn dense_value_mut(&mut self, poly: DensePoly) -> &mut E {
+        let word = self.value_word(poly);
+        &mut self.section_mut(Section::DenseValues)[word]
+    }
+
+    /// A dense polynomial's word among the values.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the tree lacks the polynomial: its statements have no word for it.
+    fn value_word(&self, poly: DensePoly) -> usize {
+        assert!(self.layout.dense[poly as usize], "the tree has no {poly:?}");
+        self.layout.dense_index(poly as usize)
     }
 
     /// The matrices' row point.
@@ -247,10 +294,11 @@ impl TreeStatement<Ew> {
             .copy_from_slice(&Self::digest_halves(b, digest));
         let point = &reduced.dense.point;
         s.section_mut(Section::DensePoint)[..point.len()].copy_from_slice(point);
-        let values = reduced.dense.values.map(|v| v.unwrap_or(zero));
-        let section = s.section_mut(Section::DenseValues);
-        let n = section.len();
-        section.copy_from_slice(&values[..n]);
+        for (poly, value) in DensePoly::ALL.into_iter().zip(reduced.dense.values) {
+            if let Some(value) = value {
+                *s.dense_value_mut(poly) = value;
+            }
+        }
         s.section_mut(Section::Rows).copy_from_slice(&reduced.matrices.rows);
         s.section_mut(Section::Cols).copy_from_slice(&reduced.matrices.cols);
         s.section_mut(Section::Matrices)

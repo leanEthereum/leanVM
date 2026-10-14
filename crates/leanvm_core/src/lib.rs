@@ -50,7 +50,8 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! Many proofs of one program aggregate into one proof through the aggregation module.
+//! Many proofs of one program aggregate into one proof through the aggregation module, and a batch of leanXMSS or
+//! leanSPHINCS signatures is verified in one recursion proof by [`XmssBatch`] or [`SphincsBatch`].
 //!
 //! # Implementation
 //!
@@ -85,11 +86,16 @@ mod tables;
 
 pub use commitment::{InvalidRate, Rate, SECURITY_BITS};
 pub use cpu::{DecodeError, Output, Program, Proof, ProveError, ProvenRun, Prover, Stats, VerifyError};
+pub use rec::sphincs::{
+    SphincsBatch, SphincsClaim, SphincsError, SphincsFtsOpening, SphincsLayer, SphincsProof, SphincsSignature,
+};
 #[doc(hidden)]
 pub use rec::tree::{
     Aggregate, Capacity, CircuitStats, Claim, ClaimGroup, ClaimLeaf, ClaimSet, ClaimSetError, ClaimShape, DensePoly,
-    FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tier, Tree, TreeError, TreeProof, TreeShape, Unsatisfied,
+    FalseClaim, Kind, Leaf, LeafCircuit, LeafShape, LeafStatement, Leaves, Part, Subtree, TableStats, Tier, Tree,
+    TreeError, TreeProof, TreeShape, Unsatisfied,
 };
+pub use rec::xmss::{XmssBatch, XmssClaim, XmssError, XmssProof, XmssSignature};
 pub use rv::{ElfError, ProgramError, Region, Trap, asm};
 pub use zk::Randomness;
 
@@ -127,34 +133,39 @@ pub fn init_prover() {
 /// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`bus`].
 pub(crate) const PAR_THRESHOLD: usize = 1 << 11;
 
-/// Aggregation trees: many proofs of one program, verified as one.
+/// Aggregation trees: many leaf proofs, verified as one.
 ///
 /// # Overview
 ///
 /// ```text
 ///                 node                  verifies tree proofs, of any kind
 ///               /      \
-///        first-level   first-level      each verifies `arity_0` proofs of the program
+///        first-level   first-level      each verifies `arity_0` leaves
 ///          /  \          /  \
 ///       leaf  leaf    leaf  leaf
 /// ```
 ///
+/// A tree's leaves are of one family ([`Leaves`]): RISC-V proofs of one program, or proofs of one recursion circuit such
+/// as an [`XmssBatch`]'s. The tree's session names the family, so a tree takes no other tree's proofs.
+///
 /// Every tree proof states the same few hundred words:
 ///
-/// - a digest: of its leaves' outputs in a tree of outputs, of the claim set it declares in a claim-set tree,
+/// - a digest: of what its leaves state in a tree of outputs, of the claim set it declares in a claim-set tree,
 /// - claims that only the root's verifier evaluates.
 ///
 /// A tree of outputs has one node arity, and its root states its leaves' outputs in order. A claim-set tree
 /// ([`TreeShape::claims`]) has nodes of every arity up to its largest: anyone combines any of its proofs
 /// ([`Tree::aggregate`]), each node declaring the union of its children's claim sets or part of it, and its root states a
-/// canonical claim set ([`Tree::verify_claims`]). A leaf program publishes the claims it checked (a [`ClaimSet`]: groups
-/// of 6-word labels and 4-word members, whose meaning is the program's), its output the hash of the set's digest.
+/// canonical claim set ([`Tree::verify_claims`]). Its leaves publish the claims they checked (a [`ClaimSet`]: groups of
+/// 6-word labels and 4-word members, whose meaning is the leaf's): a RISC-V leaf program's output is the hash of the
+/// set's digest, and a signature circuit's proof (an [`XmssBatch`]'s, a [`SphincsBatch`]'s) publishes one group, a claim
+/// a signature, as the scheme's guest writes its signer set ([`XmssBatch::claim_set`]).
 ///
 /// A tree over one leaf, with `arity_0 = 1`, is a single proof's recursion.
 pub mod aggregate {
     pub use crate::rec::tree::{
         Aggregate, Capacity, CircuitStats, Claim, ClaimGroup, ClaimLeaf, ClaimSet, ClaimSetError, ClaimShape,
-        DensePoly, FalseClaim, Kind, Leaf, LeafShape, Part, TableStats, Tier, Tree, TreeError, TreeProof, TreeShape,
-        Unsatisfied,
+        DensePoly, FalseClaim, Kind, Leaf, LeafCircuit, LeafShape, LeafStatement, Leaves, Part, Subtree, TableStats,
+        Tier, Tree, TreeError, TreeProof, TreeShape, Unsatisfied,
     };
 }

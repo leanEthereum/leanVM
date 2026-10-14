@@ -7,6 +7,12 @@
 //!
 //! The slots of a class, in table, row and slot order, form one cycle.
 //! A padding row's `next` is its own key, which cancels whatever it carries.
+//!
+//! A step or link row also pushes and pulls one dynamic tuple `(key, x0, x1, act, 0)`, keyed by its data:
+//!
+//! - `act` is its table's activity column, one on the circuit's rows and zero on padding rows, so a padding row's
+//!   tuples, equal when its columns are zero, meet no real row's;
+//! - every dynamic key has bit 63 set, which no slot key has.
 
 use super::fixed::{FixedColumn, FixedColumns};
 use super::layout::RecLayout;
@@ -22,11 +28,16 @@ use primitives::field::{F64, F192, Subfield};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct SlotKey(u64);
 
-/// The bus's push and pull blocks: the public table's pair, which no table owns, then one pair per owned slot.
+/// The bus's push and pull blocks: the public table's pair, which no table owns, then per present owned table one pair
+/// per slot and its dynamic pair, if it has one.
+///
+/// An owned table's blocks name it by its index among the present tables, whose columns the blocks read.
 #[derive(Clone, Debug)]
 pub(crate) struct BusBlocks {
     push: Vec<Block>,
     pull: Vec<Block>,
+    /// Each present owned table's first global column and its number of columns.
+    tables: Vec<(usize, usize)>,
 }
 
 /// A table's whole summand in the prover's constraint batch: its bus forms and its identities, already weighted.
@@ -72,44 +83,66 @@ impl SlotKey {
 
 impl BusBlocks {
     /// The blocks at a layout's heights, over a circuit's fixed columns and the public table's value columns.
+    ///
+    /// A table the layout leaves out has no block.
     pub(crate) fn new(fixed: &FixedColumns, public: [PublicColumn; 4], layout: &RecLayout) -> Self {
         let mut blocks = Self {
             push: Vec::new(),
             pull: Vec::new(),
+            tables: layout.spans(),
         };
         let next = |table: Table, slot: usize| fixed.public(FixedColumn::Next(table.first_slot() + slot));
         let values = public.into_iter().map(Coord::Public).collect();
         let public = Table::Pub;
-        blocks.add_pair(public, 0, layout.tau(public), next(public, 0), values);
-        for table in Table::OWNED {
-            let base = RecLayout::columns(table).start;
+        let framework = |tau, coords| Block::framework(tau, coords);
+        blocks.add_pair(
+            SlotKey::new(public, 0, 0).column(),
+            next(public, 0),
+            values,
+            framework,
+            layout.tau(public),
+        );
+        for (index, &table) in layout.present.iter().enumerate() {
+            let (base, tau) = (RecLayout::columns(table).start, layout.tau(table));
+            let owned = |tau, coords| Block::table(index, tau, coords);
             for s in 0..table.n_slots() {
                 let limbs = table.slot(s).offset(base).into();
-                blocks.add_pair(table, s, layout.tau(table), next(table, s), limbs);
+                blocks.add_pair(SlotKey::new(table, s, 0).column(), next(table, s), limbs, owned, tau);
+            }
+            if let Some(tuples) = table.dynamic() {
+                let active = fixed.public(FixedColumn::Active(table));
+                let [push, pull] = tuples.map(|tuple| {
+                    let coords = tuple.map(|c| c.offset(base)).into_iter();
+                    let coords = coords
+                        .chain([Coord::Public(active.clone()), Coord::Const(F64::ZERO)])
+                        .collect();
+                    owned(tau, coords)
+                });
+                blocks.push.push(push);
+                blocks.pull.push(pull);
             }
         }
         blocks
     }
 
-    /// A slot's pull block at its own keys and its push block at `next`, both carrying `limbs`.
-    ///
-    /// An owned table's blocks are its own, the public table's the framework's.
-    fn add_pair(&mut self, table: Table, slot: usize, tau: usize, next: PublicColumn, limbs: Vec<Coord>) {
-        let block = |key: Coord, limbs: Vec<Coord>| {
-            let coords = std::iter::once(key).chain(limbs).collect();
-            match table {
-                Table::Pub => Block::framework(tau, coords),
-                owned => Block::table(owned as usize, tau, coords),
-            }
-        };
-        self.pull
-            .push(block(SlotKey::new(table, slot, 0).column(), limbs.clone()));
-        self.push.push(block(Coord::Public(next), limbs));
+    /// A slot's pull block at its own keys and its push block at `next`, both carrying `limbs`, made by `block`: an
+    /// owned table's own, the public table's the framework's.
+    fn add_pair(
+        &mut self,
+        keys: Coord,
+        next: PublicColumn,
+        limbs: Vec<Coord>,
+        block: impl Fn(usize, Vec<Coord>) -> Block,
+        tau: usize,
+    ) {
+        let coords = |key: Coord, limbs: Vec<Coord>| std::iter::once(key).chain(limbs).collect();
+        self.pull.push(block(tau, coords(keys, limbs.clone())));
+        self.push.push(block(tau, coords(Coord::Public(next), limbs)));
     }
 
     /// Prove the bus balances over the global columns.
     pub(crate) fn prove(&self, cols: &[&[F64]], ps: &mut ProverState) -> BusProof {
-        bus::prove_balance(&self.push, &self.pull, &[], 0, cols, &RecLayout::TABLE_COLUMNS, ps)
+        bus::prove_balance(&self.push, &self.pull, &[], 0, cols, &self.tables, ps)
     }
 
     /// Verify the bus balances.
@@ -118,7 +151,7 @@ impl BusBlocks {
     ///
     /// Returns the first check of the balance that refuses.
     pub(crate) fn verify<V: Verifier + PublicColumns>(&self, v: &mut V) -> Result<BusVerify<V::E>, BusError> {
-        let bus = bus::verify_balance(v, &self.push, &self.pull, &[], 0, &RecLayout::TABLE_COLUMNS)?;
+        let bus = bus::verify_balance(v, &self.push, &self.pull, &[], 0, &self.tables)?;
         debug_assert!(
             bus.sparse.iter().all(Vec::is_empty) && bus.producers.is_empty(),
             "the machine's target has no share for sparse columns or producers"
@@ -128,12 +161,12 @@ impl BusBlocks {
 }
 
 impl TableSummand {
-    /// Each owned table's summand.
+    /// Each present owned table's summand, in the order of `tables`, the bus's.
     ///
     /// Its push and pull forms weigh `1` and `xi`, then each identity has a power of `xi` of its own from `xi^2`.
     /// The tables' ranges of powers are disjoint.
-    pub(crate) fn batch(forms: &[Vec<BusForm>; 2], xi: F192) -> Vec<Self> {
-        let ids = Table::OWNED.map(Table::identities);
+    pub(crate) fn batch(tables: &[Table], forms: &[Vec<BusForm>; 2], xi: F192) -> Vec<Self> {
+        let ids: Vec<Vec<BusForm>> = tables.iter().map(|t| t.identities()).collect();
         let offsets = constraints::xi_offsets(ids.iter().map(Vec::len));
         (ids.into_iter().zip(offsets).enumerate())
             .map(|(t, (ids, offset))| {
@@ -150,9 +183,14 @@ impl TableSummand {
 }
 
 impl<'a, E: Copy> TableResidual<'a, E> {
-    /// Each owned table's residual, its powers of `xi` those of the prover's batch.
-    pub(crate) fn batch<A: Arith<E = E>>(a: &mut A, forms: &'a [Vec<BusForm<E>>; 2], xi: E) -> Vec<Self> {
-        let ids = Table::OWNED.map(Table::identities);
+    /// Each present owned table's residual, in the order of `tables`, its powers of `xi` those of the prover's batch.
+    pub(crate) fn batch<A: Arith<E = E>>(
+        a: &mut A,
+        tables: &[Table],
+        forms: &'a [Vec<BusForm<E>>; 2],
+        xi: E,
+    ) -> Vec<Self> {
+        let ids: Vec<Vec<BusForm>> = tables.iter().map(|t| t.identities()).collect();
         let n_ids: usize = ids.iter().map(Vec::len).sum();
         let powers = a.powers(xi, 2 + n_ids);
         let mut powers = powers[2..].iter().copied();

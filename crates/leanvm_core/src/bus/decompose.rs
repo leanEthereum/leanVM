@@ -308,6 +308,11 @@ impl<E: Copy> BusForm<E> {
                 let product = a.mul(selector, w);
                 self.coeffs[*i - base] = a.mul_const_add(product, F192::from(*c), self.coeffs[*i - base]);
             }
+            Coord::ScaledProd(c, i, j) => {
+                let product = a.mul(selector, w);
+                let product = a.mul_const(product, F192::from(*c));
+                self.prods.push((*i - base, *j - base, product));
+            }
             Coord::Sum(cs) => {
                 for c in cs {
                     self.accumulate(a, c, weight, base, constant);
@@ -447,7 +452,7 @@ impl Side<'_> {
                         };
                         a.mul_add(w[i], x, leaf)
                     }
-                    Coord::Prod(..) | Coord::Scaled(..) | Coord::Sum(..) => {
+                    Coord::Prod(..) | Coord::Scaled(..) | Coord::ScaledProd(..) | Coord::Sum(..) => {
                         unreachable!("only a table's bus block carries a degree-2 coordinate")
                     }
                     Coord::Public(column) => {

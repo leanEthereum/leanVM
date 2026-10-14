@@ -45,6 +45,7 @@ fn push_terms<'a>(c: &'a Coord, w: F192, terms: &mut Vec<Term<'a>>, constant: &m
         Coord::Col(i) => terms.push(Term::Col(*i, w)),
         Coord::Prod(i, j) => terms.push(Term::Prod(*i, *j, w)),
         Coord::Scaled(c, i) => terms.push(Term::Col(*i, w.mul_base(*c))),
+        Coord::ScaledProd(c, i, j) => terms.push(Term::Prod(*i, *j, w.mul_base(*c))),
         Coord::IntIndex { base, shift } => {
             *constant += w.mul_base(*base);
             terms.push(Term::IntIndex(w, *shift));

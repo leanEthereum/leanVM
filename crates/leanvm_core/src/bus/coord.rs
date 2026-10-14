@@ -22,6 +22,9 @@ pub enum Coord {
     /// A committed column times a public constant, `c · col[z]`: what makes a coordinate depend on a 0 or 1 column
     /// (an extension-field row's `base` bit choosing between two separators).
     Scaled(F64, usize),
+    /// A product of two columns times a public constant, `c · col_a[z] · col_b[z]`: what a recursion row's dynamic
+    /// key adds at a power of `X` when two of its bits are set.
+    ScaledProd(F64, usize, usize),
     /// The integer index column `base ^ (z << shift)` (§sec:idxcol), the element
     /// whose bits are that integer's: what addresses a region whose cell `z` sits at
     /// `base + (z << shift)`. Free, its MLE being linear.
@@ -34,7 +37,7 @@ pub enum Coord {
     /// §sec:memchan): the verifier evaluates it in time proportional to the blocks,
     /// not to the column.
     Sparse(Arc<SparseColumn>),
-    /// A sum of `Const`/`Col`/`Prod`/`Scaled` terms: any degree-2 form over the
+    /// A sum of `Const`/`Col`/`Prod`/`Scaled`/`ScaledProd` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
     /// carries a value a row DERIVES from its columns (a branch's successor, what a
     /// jump writes to `rd`, a hash row's block addresses) without committing a column for it, and
@@ -90,7 +93,7 @@ impl Coord {
     /// Whether the coordinate is linear in the columns: it multiplies no column by another.
     pub fn is_linear(&self) -> bool {
         match self {
-            Self::Prod(..) => false,
+            Self::Prod(..) | Self::ScaledProd(..) => false,
             Self::Sum(terms) => terms.iter().all(Self::is_linear),
             _ => true,
         }
@@ -102,6 +105,7 @@ impl Coord {
             Self::Col(i) => Self::Col(base + i),
             Self::Prod(i, j) => Self::Prod(base + i, base + j),
             Self::Scaled(c, i) => Self::Scaled(c, base + i),
+            Self::ScaledProd(c, i, j) => Self::ScaledProd(c, base + i, base + j),
             Self::Sum(cs) => Self::Sum(cs.into_iter().map(|c| c.offset(base)).collect()),
             other => other,
         }

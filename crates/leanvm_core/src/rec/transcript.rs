@@ -205,6 +205,16 @@ impl<'a> Transcript<'a> {
         b.k_to_d(words)
     }
 
+    /// The digest [`Self::digest`] would draw now, leaving the transcript as it is: a commitment to what it absorbed.
+    pub fn digest_so_far(&self, b: &mut Builder) -> Dw {
+        Self {
+            source: ProofSource::Shape,
+            openings: None,
+            ..*self
+        }
+        .digest(b)
+    }
+
     /// Check `bits` of proof of work, as the native verifier does.
     ///
     /// - The challenge is 32 squeezed bytes, the nonce the next message word.
@@ -436,5 +446,30 @@ mod tests {
         let preimage: [u64; 8] = std::array::from_fn(|j| primitives::hash::digest_words(&leaves[j / 4])[j % 4]);
         assert!(open(&preimage, &[nodes[1]], &root, 1).is_empty());
         assert!(!open(&preimage, &[nodes[1]], &root, 2).is_empty());
+    }
+
+    #[test]
+    fn the_native_constants_are_the_lean_transcriptions() {
+        // `LeanVMCircuits.Rec.Duplex` and `Rec.Merkle` state the transcript and the hashes over these values.
+        use crate::rec::clean::{ABSORB_TWEAKS, DUPLEX_TAGS, PARAM_IV_WORDS, ZERO_PREFIXES};
+        assert_eq!(PARAM_IV, PARAM_IV_WORDS);
+        for (n, &z) in ZERO_PREFIXES.iter().enumerate() {
+            assert_eq!(zero_prefix(n), z, "{n} zero blocks");
+        }
+        assert_eq!(
+            [
+                Role::Seed.counter(0, 0),
+                Role::Output.counter(0, 0),
+                ProofOfWork::TRIAL_TAG
+            ],
+            DUPLEX_TAGS
+        );
+        for &(first, last, len, previous, tweak) in ABSORB_TWEAKS {
+            assert_eq!(
+                Role::absorb(first, last).counter(len, previous),
+                tweak,
+                "{first} {last} {len} {previous}"
+            );
+        }
     }
 }

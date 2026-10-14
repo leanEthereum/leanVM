@@ -4,6 +4,7 @@ use aggregate::LeafProgram;
 use bench::Plan;
 use clap::builder::RangedU64ValueParser;
 use clap::{Parser, Subcommand};
+use leanvm::aggregate::Capacity;
 use leanvm::{Prover, Randomness, Rate};
 use std::error::Error;
 use std::fmt::Arguments;
@@ -21,8 +22,10 @@ static ALLOCATOR: bench::Counting<bench::Jemalloc> = bench::Counting(bench::Jema
 static ALLOCATOR: bench::Counting<std::alloc::System> = bench::Counting(std::alloc::System);
 
 mod aggregate;
+mod sphincs;
 mod tracked;
 mod workload;
+mod xmss;
 
 #[derive(Parser)]
 struct Cli {
@@ -81,11 +84,29 @@ enum Command {
         #[arg(long, default_value_t = 64, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         n: usize,
     },
+    /// Prove and verify leanXMSS signatures, one key each, on the recursion machine: one circuit verifying them all.
+    LeanxmssRec {
+        /// Signatures to verify.
+        #[arg(long, default_value_t = 64, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+        /// Change a chain element of the last signature and show that the batch has no proof.
+        #[arg(long)]
+        tamper: bool,
+    },
     /// Prove and verify a guest checking leanSPHINCS signatures, one key each.
     Leansphincs {
         /// Signatures to verify.
         #[arg(long, default_value_t = 16, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         n: usize,
+    },
+    /// Prove and verify leanSPHINCS signatures, one key each, on the recursion machine: one circuit verifying them all.
+    LeansphincsRec {
+        /// Signatures to verify.
+        #[arg(long, default_value_t = 16, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        n: usize,
+        /// Change a chain element of the last signature and show that the batch has no proof.
+        #[arg(long)]
+        tamper: bool,
     },
     /// Prove and verify a guest checking Falcon-512 signatures, one key each.
     Falcon {
@@ -111,9 +132,10 @@ enum Command {
         #[arg(long, default_value_t = 1, value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
         blobs: usize,
     },
-    /// Prove a leaf program once, then an aggregation tree over copies of its proof.
+    /// Prove a leaf once, then an aggregation tree over copies of its proof.
     Aggregate {
-        /// The leaf program.
+        /// The leaf program: a RISC-V guest's (`fibonacci`, `leanxmss`, `leansphincs`) or a recursion circuit's
+        /// (`leanxmss-rec`, `leansphincs-rec`).
         #[arg(long, value_enum, default_value = "leanxmss")]
         program: LeafProgram,
         /// The leaf program's size: Fibonacci's steps, or the signatures it verifies.
@@ -128,6 +150,14 @@ enum Command {
         /// The children each node verifies.
         #[arg(long, default_value_t = 2)]
         arity: usize,
+        /// A claim-set tree whose sets hold fewer claims than this: each leaf publishes its signer set (a leanXMSS or
+        /// leanSPHINCS guest's, or a signature circuit's), and the tree states their union. Without it, a tree of
+        /// outputs.
+        #[arg(long, value_parser = RangedU64ValueParser::<usize>::new().range(2..))]
+        capacity: Option<usize>,
+        /// The most groups a claim-set tree's sets hold.
+        #[arg(long, default_value_t = 1, requires = "capacity", value_parser = RangedU64ValueParser::<usize>::new().range(1..))]
+        groups: usize,
     },
     /// Prove the benchmarks CI tracks and print them as Bencher Metric Format JSON.
     ///
@@ -151,6 +181,12 @@ enum Command {
         /// Prove only the case of this name, as each of CI's proving jobs does.
         #[arg(long, conflicts_with = "cycles_only")]
         only: Option<String>,
+    },
+    /// Write the tracked aggregation trees' recursion circuits and the leanXMSS and leanSPHINCS batch circuits (with `--features circuits`),
+    /// each with the builder calls that make it, for `verification/circuits`' `checkrec` and `checkxmss`.
+    Circuits {
+        /// The directory to write them to.
+        out: PathBuf,
     },
 }
 
@@ -184,7 +220,7 @@ fn refuse(what: Arguments) -> ! {
 fn main() {
     let cli = Cli::parse();
     let fixed_threads = match &cli.command {
-        Command::Bench { cycles_only: true, .. } => false,
+        Command::Bench { cycles_only: true, .. } | Command::Circuits { .. } => false,
         Command::Bench { only, .. } => only.as_deref().is_some_and(|name| name.ends_with("-16thread")),
         _ => std::env::var_os("LEANVM_NUM_THREADS").is_none(),
     };
@@ -192,7 +228,7 @@ fn main() {
         parallel::init_with_threads(NonZeroUsize::new(16).unwrap())
             .unwrap_or_else(|error| refuse(format_args!("cannot configure 16 benchmark threads: {error}")));
     }
-    if !matches!(cli.command, Command::Bench { .. }) || fixed_threads {
+    if !matches!(cli.command, Command::Bench { .. } | Command::Circuits { .. }) || fixed_threads {
         let topology = parallel::topology();
         eprintln!(
             "Benchmark pool: {} threads ({} performance, {} efficiency)",
@@ -204,6 +240,16 @@ fn main() {
     if cli.zk && matches!(cli.command, Command::Bench { .. }) {
         refuse(format_args!(
             "--zk is not for the tracked benchmarks, which are plain proofs"
+        ));
+    }
+    if cli.zk
+        && matches!(
+            cli.command,
+            Command::LeanxmssRec { .. } | Command::LeansphincsRec { .. }
+        )
+    {
+        refuse(format_args!(
+            "--zk is not for the signature circuits: a recursion proof is never zero knowledge"
         ));
     }
     let prover = Prover::new(cli.rate);
@@ -227,7 +273,9 @@ fn main() {
         Command::Fibonacci { n } => Workload::fibonacci(n).run(&prover, plan),
         Command::Guest { elf, advice } => Workload::guest(&elf, advice).run(&prover, plan),
         Command::Leanxmss { n } => Workload::leanxmss(n).run(&prover, plan),
+        Command::LeanxmssRec { n, tamper } => xmss::run(n, prover.rate(), tamper, plan),
         Command::Leansphincs { n } => Workload::leansphincs(n).run(&prover, plan),
+        Command::LeansphincsRec { n, tamper } => sphincs::run(n, prover.rate(), tamper, plan),
         Command::Falcon { n } => Workload::falcon(n).run(&prover, plan),
         Command::Stateproof { n } => Workload::stateproof(n).run(&prover, plan),
         Command::Shielded { n } => Workload::shielded(n).run(&prover, plan),
@@ -238,7 +286,15 @@ fn main() {
             leaves,
             arity0,
             arity,
-        } => aggregate::run(&program.workload(n), leaves, arity0, arity, &leaf_prover, &prover, plan),
+            capacity,
+            groups,
+        } => aggregate::run(
+            (program, n),
+            (leaves, arity0, arity),
+            capacity.map(|claims| Capacity { claims, groups }),
+            (&leaf_prover, &prover),
+            plan,
+        ),
         Command::Bench {
             cycles_only,
             markdown,
@@ -253,5 +309,9 @@ fn main() {
             &prover,
             plan,
         ),
+        #[cfg(feature = "circuits")]
+        Command::Circuits { out } => tracked::dump(&out, leaf_prover.rate(), prover.rate()),
+        #[cfg(not(feature = "circuits"))]
+        Command::Circuits { .. } => refuse(format_args!("`circuits` needs `--features circuits`")),
     }
 }

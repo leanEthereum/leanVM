@@ -1,16 +1,17 @@
-//! The shapes a tree is built from: its leaf proofs', its arities and rate, and a claim-set tree's capacities.
+//! The shapes a tree is built from: its RISC-V leaf proofs', its arities and rate, and a claim-set tree's capacities.
 
 use super::design::SMALL;
-use super::{Capacity, Kind, TreeError};
+use super::{Capacity, TreeError};
 use crate::commitment::Rate;
 use crate::cpu::{Announcement, DecodeError, Proof, ProofKind, Stats};
 use crate::tables::{N_TABLES, PerTable};
 use fiat_shamir::FromNarg;
 use primitives::field::F192;
 
-/// The shape every leaf proof of a tree shares.
+/// The shape every RISC-V leaf proof of a tree shares.
 ///
-/// It is each table's height and the commitment's rate, as a proof announces them.
+/// It is each table's height, the commitment's rate and whether the proofs are zero knowledge, as a proof announces
+/// them.
 ///
 /// A tree's circuits are built from it, so they verify leaves of that shape only.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,11 +24,9 @@ pub struct LeafShape {
     kind: ProofKind,
 }
 
-/// How a tree is shaped.
+/// How a tree is shaped; what its leaves are is its leaf family's (`Leaves`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TreeShape {
-    /// The shape every leaf proof shares.
-    pub leaf: LeafShape,
     /// The leaf proofs a first-level node verifies, at least one.
     pub arity_0: usize,
     /// The tree proofs a higher node verifies, at least two: the only arity of a tree of outputs, the largest of a
@@ -159,26 +158,24 @@ impl TreeShape {
         Ok(())
     }
 
-    /// The kind of the root over this many leaves: a first-level node over `n_0`, a node over `n_0 n^d`.
+    /// The levels of nodes of the balanced tree over this many leaves: zero for a first-level node over `n_0`, `d` over
+    /// `n_0 n^d`.
     ///
     /// # Errors
     ///
     /// A number of leaves no tree of these arities has.
-    pub fn root_kind(&self, leaves: usize) -> Result<Kind, TreeError> {
+    pub fn depth(&self, leaves: usize) -> Result<usize, TreeError> {
         let Self { arity_0, arity, .. } = *self;
         let count = TreeError::LeafCount { leaves, arity_0, arity };
-        if leaves == 0 || arity < 2 || !leaves.is_multiple_of(arity_0) {
+        if leaves == 0 || arity_0 == 0 || arity < 2 || !leaves.is_multiple_of(arity_0) {
             return Err(count);
         }
-        let mut nodes = leaves / arity_0;
+        let (mut nodes, mut depth) = (leaves / arity_0, 0);
         while nodes > 1 && nodes.is_multiple_of(arity) {
             nodes /= arity;
+            depth += 1;
         }
-        match (nodes, leaves == arity_0) {
-            (1, true) => Ok(Kind::First),
-            (1, false) => Ok(Kind::Node),
-            _ => Err(count),
-        }
+        if nodes == 1 { Ok(depth) } else { Err(count) }
     }
 }
 

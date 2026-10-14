@@ -23,6 +23,8 @@ pub enum Source {
     },
     /// Not committed: a field of a committed word, which the opening reads through the word's bit slices.
     Sliced,
+    /// Not in the stack: a column of a table the proof leaves out, which nothing reads.
+    Absent,
 }
 
 /// A committed column's window in the stacked witness: `2^n_vars` words from `offset`.
@@ -56,6 +58,8 @@ pub enum Placement {
     },
     /// A field of a committed word: its claims are its bits', which the opening ring-switches.
     Sliced,
+    /// A column of a table the proof leaves out: nothing claims it.
+    Absent,
 }
 
 impl Placement {
@@ -63,7 +67,7 @@ impl Placement {
     pub const fn window(&self) -> Option<Window> {
         match *self {
             Self::Committed(window) => Some(window),
-            Self::Port { .. } | Self::Sliced => None,
+            Self::Port { .. } | Self::Sliced | Self::Absent => None,
         }
     }
 
@@ -72,6 +76,10 @@ impl Placement {
     /// - A committed column's is at its window, the point as the low point.
     /// - A port's is a strided evaluation of its packed witness: the low coordinates frozen to the port's bits.
     /// - A sliced column's is none: its bits' ring-switched claim stands for it.
+    ///
+    /// # Panics
+    ///
+    /// Panics on a column of a table the proof leaves out, which no claim names.
     pub fn claim<E>(self, point: Vec<E>, value: E) -> Option<StackClaim<E>> {
         match self {
             Self::Committed(window) => Some(StackClaim::Point {
@@ -91,6 +99,7 @@ impl Placement {
                 value,
             }),
             Self::Sliced => None,
+            Self::Absent => unreachable!("nothing claims a column of a table the proof leaves out"),
         }
     }
 }
@@ -194,7 +203,7 @@ pub fn placements_of(sources: &[Source]) -> (Vec<Placement>, StackShape) {
         .iter()
         .map(|s| match *s {
             Source::Committed(kappa) => Some(kappa),
-            Source::Port { .. } | Source::Sliced => None,
+            Source::Port { .. } | Source::Sliced | Source::Absent => None,
         })
         .collect();
     let (offsets, placed) = stack_offsets(&kappas);
@@ -216,6 +225,7 @@ pub fn placements_of(sources: &[Source]) -> (Vec<Placement>, StackShape) {
                 }
             }
             Source::Sliced => Placement::Sliced,
+            Source::Absent => Placement::Absent,
         })
         .collect();
     // Floor at the PCS minimum (WHIR's level ladder needs room); tiny

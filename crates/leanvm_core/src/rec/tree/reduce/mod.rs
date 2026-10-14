@@ -27,13 +27,18 @@ pub(crate) use matrix::{MatrixClaim, MatrixProver, MatrixReduced};
 /// The protocol half of a node's reduction's session tag.
 pub(super) const SESSION_TAG: &[u8] = b"leanvm-tree-reduction-5";
 
-/// The polynomials the program and the tree's circuits fix, on which tree proofs carry claims.
+/// The polynomials the leaves and the tree's circuits fix, on which tree proofs carry claims.
+///
+/// A tree whose leaves fix no such polynomial has none: no claim is ever made on it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DensePoly {
-    /// The program's stacked bytecode table.
+    /// The leaves' program's stacked bytecode table, if RISC-V proofs are leaves.
     Bytecode,
-    /// RAM's image, zero padded to a power of two.
+    /// That program's RAM image, zero padded to a power of two.
     Image,
+    /// The leaves' fixed polynomial `W_leaf`, if proofs of a recursion circuit are leaves: that circuit's fixed columns,
+    /// stacked.
+    Leaf,
     /// The nodes' fixed polynomial `W_node`: the fixed columns of the circuits of a tree's only tier, or of its small
     /// tier, stacked by their kind's index.
     Fixed,
@@ -75,21 +80,16 @@ pub(crate) struct Reduced<E> {
     pub(crate) matrices: MatrixReduced<E>,
 }
 
-/// The prover's dense polynomials, each a table of its values: the bytecode table, the image, the fixed polynomial.
+/// The prover's dense polynomials, each a table of its values, in `DensePoly` order; one the tree lacks is the zero table of no variables.
 #[derive(Clone, Debug)]
 pub(crate) struct DenseTables(pub(crate) [Vec<F64>; DensePoly::COUNT]);
 
 impl DensePoly {
     /// How many dense polynomials there are.
-    pub const COUNT: usize = 4;
+    pub const COUNT: usize = 5;
 
     /// Every dense polynomial, in statement order.
-    pub const ALL: [Self; Self::COUNT] = [Self::Bytecode, Self::Image, Self::Fixed, Self::Wide];
-
-    /// Whether it holds circuits' fixed columns, on which a first-level node's statement carries no claim.
-    pub(crate) const fn is_fixed(self) -> bool {
-        matches!(self, Self::Fixed | Self::Wide)
-    }
+    pub const ALL: [Self; Self::COUNT] = [Self::Bytecode, Self::Image, Self::Leaf, Self::Fixed, Self::Wide];
 }
 
 impl<E> Default for NodeClaims<E> {
