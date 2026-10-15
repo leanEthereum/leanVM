@@ -3543,10 +3543,11 @@ def sp_walk_group(idx, pp, walks, first: Const, n: Const, k: Const):
 
 
 @inline
-def sp_forest_top(at, pp, tops, t: Const, i: Const):
-    # Chain i of the forest key at codeword t, walked its digit's steps up to the top.
-    # A top past the block's first four cells lands in the tail run `tops`, the others
-    # are read where the walk left them.
+def sp_forest_top(at, pp, tws, tops, t: Const, i: Const):
+    # Chain i of the forest key at codeword t, walked its digit's steps up to the top,
+    # the step leaving position s at address at + tws[SP_FTOP * i + s]. A top past the
+    # block's first four cells lands in the tail run `tops`, the others are read where
+    # the walk left them.
     if const(SP_CODEWORDS[SP_FCHAINS * t + i] == 0):
         if const(i // 2 == 0):
             value = hint_witness("sp_forest_values")
@@ -3557,7 +3558,7 @@ def sp_forest_top(at, pp, tops, t: Const, i: Const):
         value = hint_witness("sp_forest_values")
         for s in unroll(SP_FTOP - SP_CODEWORDS[SP_FCHAINS * t + i], SP_FTOP):
             out = StackBuf(SHA3_STATE)
-            sha3([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + s * SP_STEP_MUL)], [value, 0], out, len=48)
+            sha3([pp, at + tws[SP_FTOP * i + s]], [value, 0], out, len=48)
             value = out[0]
         if const(i // 2 != 0):
             tops[i - 2] = value
@@ -3565,19 +3566,19 @@ def sp_forest_top(at, pp, tops, t: Const, i: Const):
 
 
 @inline
-def sp_forest_key(at, pp, t: Const, w: Const):
+def sp_forest_key(at, pp, tws, t: Const, w: Const):
     # One opened WOTS key of the forest, at the codeword of table index t, walked in
     # the arm itself: each chain its digit's steps up to the top, and the subtree leaf
     # the tops hash to. Returns that leaf and t where the digest holds it, codeword w's
     # byte, which is how a dispatch that came from a hint is bound.
     tops = StackBuf(4)
-    top_0 = sp_forest_top(at, pp, tops, t, 0)
-    top_1 = sp_forest_top(at, pp, tops, t, 1)
+    top_0 = sp_forest_top(at, pp, tws, tops, t, 0)
+    top_1 = sp_forest_top(at, pp, tws, tops, t, 1)
     for i in unroll(2, SP_FCHAINS):
-        top = sp_forest_top(at, pp, tops, t, i)  # in `tops`
+        top = sp_forest_top(at, pp, tws, tops, t, i)  # in `tops`
     # P, A and the six tops: 128 bytes, one block.
     leaf = StackBuf(SHA3_STATE)
-    sha3([pp, at + SP_TW_FKEY_LEAF], [top_0, top_1], leaf, tail=tops)
+    sha3([pp, at + tws[SP_FCHAINS * SP_FTOP]], [top_0, top_1], leaf, tail=tops)
     if const(w // 8 == 0):
         weight = const(t * 2 ** (8 * w))
     else:
@@ -3586,21 +3587,26 @@ def sp_forest_key(at, pp, t: Const, w: Const):
 
 
 @inline
-def sp_fold(node, at, pp, out, slot: Const, index: Const, height: Const, tw: Const, level_mul: Const, node_mul: Const, own_mul: Const):
+def sp_fold(node, at, pp, out, tws, slot: Const, index: Const, height: Const, tw: Const, level_mul: Const, node_mul: Const, own_mul: Const, preset: Const):
     # Fold leaf `index` of a tree of the forest up its hinted path, into the
     # tree's two top nodes, out[slot] and out[slot + 1]. No hash joins them: the
     # path's last element is the top node the fold does not reach. The index is
     # the arm's constant, so the order of each pair and every node's address are
     # the program's. `at` is the leaf's own address, own_mul its field's unit: a
-    # node's level and index take that field's place.
+    # node's level and index take that field's place. With `preset`, what a node's
+    # address adds is tws[(height - 1) * index + level], set once for every arm.
     cur = node
     for level in unroll(0, height - 1):
         sibling = hint_witness("sp_forest_nodes")
         parent = StackBuf(SHA3_STATE)
-        if const((index // 2 ** level) % 2 == 0):
-            sha3([pp, at + (const(index * own_mul) + const(tw + (level + 1) * level_mul + (index // 2 ** (level + 1)) * node_mul))], [cur, sibling], parent)
+        if const(preset == 1):
+            address = at + tws[(height - 1) * index + level]
         else:
-            sha3([pp, at + (const(index * own_mul) + const(tw + (level + 1) * level_mul + (index // 2 ** (level + 1)) * node_mul))], [sibling, cur], parent)
+            address = at + (const(index * own_mul) + const(tw + (level + 1) * level_mul + (index // 2 ** (level + 1)) * node_mul))
+        if const((index // 2 ** level) % 2 == 0):
+            sha3([pp, address], [cur, sibling], parent)
+        else:
+            sha3([pp, address], [sibling, cur], parent)
         cur = parent[0]
     out[slot + index // 2 ** (height - 1)] = cur
     hint_witness(out[slot + 1 - index // 2 ** (height - 1):slot + 2 - index // 2 ** (height - 1)], "sp_forest_nodes")
@@ -3608,18 +3614,18 @@ def sp_fold(node, at, pp, out, slot: Const, index: Const, height: Const, tw: Con
 
 
 @inline
-def sp_subtree_arm(node, key_at, pp, subtops, c: Const, j: Const, a: Const):
+def sp_subtree_arm(node, key_at, pp, subtops, sub_tws, c: Const, j: Const, a: Const):
     # The path of WOTS key `a` in subtree j, from the key's address. Returns the
     # subtree and `a` as its addresses hold them, and `a` as the digest does, which
     # is what binds the dispatch.
-    sp_fold(node, key_at, pp, subtops, 2 + 2 * j, a, SP_SUBTREE_HEIGHT, SP_TW_FSUBNODE, SP_SUBNODE_LEVEL_MUL, SP_SUBNODE_MUL, SP_KEY_MUL)
+    sp_fold(node, key_at, pp, subtops, sub_tws, 2 + 2 * j, a, SP_SUBTREE_HEIGHT, SP_TW_FSUBNODE, SP_SUBNODE_LEVEL_MUL, SP_SUBNODE_MUL, SP_KEY_MUL, 1)
     return const(j * SP_SUBTREE_MUL + a * SP_KEY_MUL), const(a) * COORD_BASIS[SP_KEY_OFF + (2 * c + j) * SP_SUBTREE_HEIGHT]
 
 
 @inline
-def sp_tree_arm(node, leaf_at, pp, tops, c: Const, s: Const):
+def sp_tree_arm(node, leaf_at, pp, tops, sub_tws, c: Const, s: Const):
     # The path of leaf `s` in tree c, from the leaf's address, likewise.
-    sp_fold(node, leaf_at, pp, tops, 2 + 2 * c, s, SP_TREE_HEIGHT, SP_TW_FNODE, SP_FNODE_LEVEL_MUL, SP_FNODE_MUL, SP_LEAF_MUL)
+    sp_fold(node, leaf_at, pp, tops, sub_tws, 2 + 2 * c, s, SP_TREE_HEIGHT, SP_TW_FNODE, SP_FNODE_LEVEL_MUL, SP_FNODE_MUL, SP_LEAF_MUL, 0)
     return const(c * SP_HI_MUL + s * SP_LEAF_MUL), const(s) * COORD_BASIS[SP_LEAF_OFF + c * SP_TREE_HEIGHT]
 
 
@@ -3661,6 +3667,18 @@ def verify_sig_sphincs(signer, byte_bits):
     tops[0] = pp
     tops[1] = idx + SP_TW_FKEY
     encoded_words = 0
+    # What a forest key's addresses add to the key's own, the same for every key: its
+    # chains' steps, then its leaf. Set once here, where each arm would set its own.
+    tws = StackBuf(SP_FCHAINS * SP_FTOP + 1)
+    for i in unroll(0, SP_FCHAINS):
+        for s in unroll(0, SP_FTOP):
+            tws[SP_FTOP * i + s] = const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + s * SP_STEP_MUL)
+    tws[SP_FCHAINS * SP_FTOP] = SP_TW_FKEY_LEAF
+    # Likewise what a subtree node's address adds to its key's, by key and level.
+    sub_tws = StackBuf(SP_KEYS * (SP_SUBTREE_HEIGHT - 1))
+    for a in unroll(0, SP_KEYS):
+        for level in unroll(0, SP_SUBTREE_HEIGHT - 1):
+            sub_tws[(SP_SUBTREE_HEIGHT - 1) * a + level] = const(a * SP_KEY_MUL) + const(SP_TW_FSUBNODE + (level + 1) * SP_SUBNODE_LEVEL_MUL + (a // 2 ** (level + 1)) * SP_SUBNODE_MUL)
     for c in unroll(0, SP_TREES):
         # The tree's leaf: g^s, and the tree and s where an address holds them,
         # which the dispatch on the first writes again.
@@ -3680,18 +3698,18 @@ def verify_sig_sphincs(signer, byte_bits):
             word = hint_witness("sp_words")
             assert log(word) < SP_WORDS
             key_at = leaf_at + key_mark[1]
-            node, weight = match(log(word), range(0, SP_WORDS), lambda t: sp_forest_key(key_at, pp, t, 2 * c + j))
+            node, weight = match(log(word), range(0, SP_WORDS), lambda t: sp_forest_key(key_at, pp, tws, t, 2 * c + j))
             if const(2 * c + j + 1 == 2 * SP_TREES):
                 # The last codeword: the sum stored where the digest's first cell
                 # already is, which is the assert that the codewords are that cell.
                 digest[0] = encoded_words + weight
             else:
                 encoded_words = encoded_words + weight
-            key_mark[1], key_weight = match(log(key_mark[0]), range(0, SP_KEYS), lambda a: sp_subtree_arm(node, key_at, pp, subtops, c, j, a))
+            key_mark[1], key_weight = match(log(key_mark[0]), range(0, SP_KEYS), lambda a: sp_subtree_arm(node, key_at, pp, subtops, sub_tws, c, j, a))
             bound = bound + key_weight
         leaf = StackBuf(SHA3_STATE)
         sha3_cells(subtops, leaf)
-        leaf_mark[1], leaf_weight = match(log(leaf_mark[0]), range(0, SP_LEAVES), lambda s: sp_tree_arm(leaf[0], leaf_at, pp, tops, c, s))
+        leaf_mark[1], leaf_weight = match(log(leaf_mark[0]), range(0, SP_LEAVES), lambda s: sp_tree_arm(leaf[0], leaf_at, pp, tops, sub_tws, c, s))
         if const(c + 1 == SP_TREES):
             digest[1] = bound + leaf_weight  # likewise, the second cell's fields
         else:
