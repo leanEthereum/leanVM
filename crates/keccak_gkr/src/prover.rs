@@ -10,8 +10,8 @@
 //! are down to one row.
 
 use fiat_shamir::transcript::ProverState;
-use primitives::field::F192;
 use primitives::field::gf2_64::mul_wide;
+use primitives::field::{F192, F192Unreduced};
 use primitives::multilinear::{eq_table, poly_eval};
 
 use crate::basis::{PolyEval, carry};
@@ -22,7 +22,7 @@ use crate::kernels::{
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at, sum};
 use crate::rmfe::PROD_BITS;
-use crate::witness::{BLOCK_WORDS, Shape, Witness};
+use crate::witness::{BLOCK_WORDS, Shape, Witness, transpose64};
 
 /// The pattern index of a binary assignment.
 fn ternary(b: usize) -> usize {
@@ -43,6 +43,8 @@ fn words(block: &[u64], j: usize) -> &[u64; BLOCK_WORDS] {
 /// Digits a weight splits into, and the values of one.
 const DIGIT_BITS: usize = 6;
 const DIGITS: usize = 192usize.div_ceil(DIGIT_BITS);
+/// The bits of a payload.
+const PAYLOAD_BITS: usize = 48 * PACKS;
 /// The 32 products of a block position, 48 bits each.
 #[derive(Clone, Copy)]
 #[repr(C, align(64))]
@@ -51,15 +53,14 @@ struct Payload([u64; 24]);
 impl Payload {
     const ZERO: Self = Self([0; 24]);
 
+    /// Product `q` at bits `48 * q ..`: four products to three words.
     #[inline(always)]
     fn pack(products: &[u64; PACKS]) -> Self {
-        let mut bytes = [0u8; 200];
-        for (q, &p) in products.iter().enumerate() {
-            bytes[6 * q..6 * q + 8].copy_from_slice(&p.to_le_bytes());
+        let mut out = [0u64; 24];
+        for (out, p) in out.as_chunks_mut::<3>().0.iter_mut().zip(products.as_chunks::<4>().0) {
+            *out = [p[0] | p[1] << 48, p[1] >> 16 | p[2] << 32, p[2] >> 32 | p[3] << 16];
         }
-        Self(std::array::from_fn(|i| {
-            u64::from_le_bytes(bytes[8 * i..8 * i + 8].try_into().unwrap())
-        }))
+        Self(out)
     }
 
     #[inline(always)]
@@ -82,49 +83,89 @@ impl Payload {
                 );
             }
         }
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f")))]
+        // Left to itself, the compiler XORs the words in general registers.
+        #[cfg(target_arch = "aarch64")]
+        // SAFETY: both payloads are 24 words, and aarch64 always has NEON.
+        unsafe {
+            use core::arch::aarch64::*;
+            let (dst, src) = (self.0.as_mut_ptr(), other.0.as_ptr());
+            for i in (0..24).step_by(2) {
+                vst1q_u64(dst.add(i), veorq_u64(vld1q_u64(dst.add(i)), vld1q_u64(src.add(i))));
+            }
+        }
+        #[cfg(not(any(all(target_arch = "x86_64", target_feature = "avx512f"), target_arch = "aarch64")))]
         for (x, y) in self.0.iter_mut().zip(&other.0) {
             *x ^= y;
         }
     }
-
-    fn bit(&self, i: usize) -> bool {
-        self.0[i / 64] >> (i % 64) & 1 == 1
-    }
 }
 
-/// `sum of weight (x) payload`, kept as one bucket per digit of the weight.
-struct Buckets(Vec<Payload>);
+/// Digit `d` of a weight.
+#[inline(always)]
+fn digit(weight: F192, d: usize) -> usize {
+    let w = [weight.c0, weight.c1, weight.c2, 0];
+    let (word, off) = (DIGIT_BITS * d / 64, DIGIT_BITS * d % 64);
+    ((w[word] >> off) | (w[word + 1] << 1 << (63 - off))) as usize & ((1 << DIGIT_BITS) - 1)
+}
 
-impl Buckets {
-    fn new() -> Self {
-        Self(vec![Payload::ZERO; DIGITS << DIGIT_BITS])
-    }
+/// Positions of a row of the state, which `chi` mixes: `64 * x + z` in row `r` is position
+/// `64 * (x + 5 * r) + z`.
+const ROW_POSITIONS: usize = 5 * 64;
 
-    #[inline(always)]
-    fn add(&mut self, weight: F192, payload: &Payload) {
-        let w = [weight.c0, weight.c1, weight.c2, 0];
-        for d in 0..DIGITS {
-            let (word, off) = (DIGIT_BITS * d / 64, DIGIT_BITS * d % 64);
-            let digit = ((w[word] >> off) | (w[word + 1] << 1 << (63 - off))) as usize & ((1 << DIGIT_BITS) - 1);
-            self.0[(d << DIGIT_BITS) + digit].add(payload);
+/// The positions of each row grouped by each digit of their weight: those of row `r` whose digit
+/// `d` is `v` are `order[k][starts[k][v]..starts[k][v + 1]]`, with `k = DIGITS * r + d`.
+struct Groups {
+    order: Vec<[u16; ROW_POSITIONS]>,
+    starts: Vec<[u16; (1 << DIGIT_BITS) + 1]>,
+}
+
+impl Groups {
+    fn new(weights: &[F192]) -> Self {
+        let mut order = vec![[0u16; ROW_POSITIONS]; 5 * DIGITS];
+        let mut starts = vec![[0u16; (1 << DIGIT_BITS) + 1]; 5 * DIGITS];
+        for (k, (order, starts)) in order.iter_mut().zip(&mut starts).enumerate() {
+            let (r, d) = (k / DIGITS, k % DIGITS);
+            let digits: [usize; ROW_POSITIONS] = std::array::from_fn(|p| digit(weights[ROW_POSITIONS * r + p], d));
+            for &v in &digits {
+                starts[v + 1] += 1;
+            }
+            for v in 0..1 << DIGIT_BITS {
+                starts[v + 1] += starts[v];
+            }
+            let mut next = *starts;
+            for (p, &v) in digits.iter().enumerate() {
+                order[next[v] as usize] = p as u16;
+                next[v] += 1;
+            }
         }
+        Self { order, starts }
     }
 
-    /// Row `r` is the sum of the payloads whose weight has bit `r` set.
-    fn rows(&self) -> Vec<Payload> {
-        (0..192)
-            .map(|r| {
-                let mut row = Payload::ZERO;
-                let bucket = &self.0[(r / DIGIT_BITS) << DIGIT_BITS..][..1 << DIGIT_BITS];
-                for (v, entry) in bucket.iter().enumerate() {
-                    if v >> (r % DIGIT_BITS) & 1 == 1 {
-                        row.add(entry);
-                    }
+    /// Add row `r`'s part of `sum over positions of weight[j] (x) payloads[j]` to `rows`: row
+    /// `DIGIT_BITS * d + i` sums the payloads whose weight has that bit set. Each group is summed
+    /// in registers, so the payloads, a row's worth that stays in cache, are only read.
+    fn add_rows(&self, r: usize, payloads: &[Payload], rows: &mut [Payload]) {
+        let mut sums = [Payload::ZERO; 1 << DIGIT_BITS];
+        let groups = self.order[DIGITS * r..].iter().zip(&self.starts[DIGITS * r..]);
+        for (rows, (order, starts)) in rows.as_chunks_mut::<DIGIT_BITS>().0.iter_mut().zip(groups) {
+            for (v, sum) in sums.iter_mut().enumerate() {
+                let mut acc = Payload::ZERO;
+                for &p in &order[starts[v] as usize..starts[v + 1] as usize] {
+                    acc.add(&payloads[p as usize]);
                 }
-                row
-            })
-            .collect()
+                *sum = acc;
+            }
+            // Bit `i` of the digit: the sums whose value has it, then fold it away.
+            for (i, row) in rows.iter_mut().enumerate().rev() {
+                let (low, high) = sums[..2 << i].split_at_mut(1 << i);
+                let mut acc = Payload::ZERO;
+                for (low, high) in low.iter_mut().zip(&*high) {
+                    acc.add(high);
+                    low.add(high);
+                }
+                row.add(&acc);
+            }
+        }
     }
 }
 
@@ -165,44 +206,53 @@ impl Layer<'_> {
     /// unprojected `chi`.
     ///
     /// Nothing here knows where the polynomials will be evaluated, so each product meets its
-    /// weight bit by bit: the products of a block position go into one bucket per digit of the
-    /// position's weight.
+    /// weight bit by bit. The position weights are the same in every block, so a block's sum
+    /// over positions is grouped by their digits ([`Groups`]); only that sum meets the block's
+    /// weight, as field elements.
     fn pack_products(&self, claim: &Claim) -> Vec<[F192; PROD_BITS]> {
         let blocks = eq_table(&claim.point[SKIP + 1..]);
-        let rows = parallel::fold_reduce(
+        let groups = Groups::new(&claim.weights);
+        let sums = parallel::map_reduce_with_state(
             self.n_tasks(),
-            Buckets::new,
-            |buckets, task| {
+            || (vec![Payload::ZERO; ROW_POSITIONS], vec![Payload::ZERO; 192]),
+            || vec![F192Unreduced::ZERO; PAYLOAD_BITS],
+            |(payloads, rows), sums, task| {
                 let (row, block) = self.block(task);
+                rows.fill(Payload::ZERO);
                 for r in 0..5 {
                     for z in 0..64 {
                         let js = row_positions(r, z);
                         let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words(block, js[x])));
                         for x in 0..5 {
-                            let products = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
-                            buckets.add(blocks[row] * claim.weights[js[x]], &Payload::pack(&products));
+                            payloads[64 * x + z] = Payload::pack(&products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]));
                         }
+                    }
+                    groups.add_rows(r, payloads, rows);
+                }
+                // Row `r` holds bit `r` of each payload bit's weighted sum: transposed, they are
+                // field elements, which the block's weight multiplies.
+                let mut columns = [[0u64; 64]; 3];
+                for m in 0..24 {
+                    for (k, column) in columns.iter_mut().enumerate() {
+                        for (b, word) in column.iter_mut().enumerate() {
+                            *word = rows[64 * k + b].0[m];
+                        }
+                        transpose64(column);
+                    }
+                    for (t, sum) in sums[64 * m..][..64].iter_mut().enumerate() {
+                        *sum ^= blocks[row].mul_unreduced(F192::new(columns[0][t], columns[1][t], columns[2][t]));
                     }
                 }
             },
             |mut a, b| {
-                for (x, y) in a.0.iter_mut().zip(&b.0) {
-                    x.add(y);
+                for (x, y) in a.iter_mut().zip(b) {
+                    *x ^= y;
                 }
                 a
             },
-        )
-        .rows();
+        );
         (0..PACKS)
-            .map(|q| {
-                std::array::from_fn(|c| {
-                    let mut bits = [0u64; 3];
-                    for (r, row) in rows.iter().enumerate() {
-                        bits[r / 64] |= (row.bit(48 * q + c) as u64) << (r % 64);
-                    }
-                    F192::new(bits[0], bits[1], bits[2])
-                })
-            })
+            .map(|q| std::array::from_fn(|c| sums[48 * q + c].reduce()))
             .collect()
     }
 
