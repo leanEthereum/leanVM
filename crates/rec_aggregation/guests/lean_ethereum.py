@@ -3515,27 +3515,47 @@ def sp_walk_group(idx, pp, walks, first: Const, n: Const, k: Const):
     return const(k * SP_CHAIN_LENGTH ** first), GEN ** SP_DIGIT_SUMS[k]
 
 
-def sp_forest_key(at, pp, t: Const):
-    # One opened WOTS key of the forest, at the codeword of table index t: each
-    # chain walked its digit's steps up to the top, and the subtree leaf the tops
-    # hash to. One specialization per codeword, the digits being its constants;
-    # it returns t as the digest holds it, which is how a dispatch that came from
-    # a hint is bound.
-    tips = StackBuf(SP_FCHAINS)
-    for i in unroll(0, SP_FCHAINS):
-        if const(SP_CODEWORDS[SP_FCHAINS * t + i] == 0):
-            hint_witness(tips[i:i + 1], "sp_forest_values")
-        else:
+@inline
+def sp_forest_top(at, pp, tops, t: Const, i: Const):
+    # Chain i of the forest key at codeword t, walked its digit's steps up to the top.
+    # A top past the block's first four cells lands in the tail run `tops`, the others
+    # are read where the walk left them.
+    if const(SP_CODEWORDS[SP_FCHAINS * t + i] == 0):
+        if const(i // 2 == 0):
             value = hint_witness("sp_forest_values")
-            for s in unroll(SP_FTOP - SP_CODEWORDS[SP_FCHAINS * t + i], SP_FTOP):
-                out = StackBuf(SHA3_STATE)
-                sha3([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + s * SP_STEP_MUL)], [value, 0], out, len=48)
-                value = out[0]
-            tips[i] = value
+        else:
+            hint_witness(tops[i - 2:i - 1], "sp_forest_values")
+            value = tops[i - 2]
+    else:
+        value = hint_witness("sp_forest_values")
+        for s in unroll(SP_FTOP - SP_CODEWORDS[SP_FCHAINS * t + i], SP_FTOP):
+            out = StackBuf(SHA3_STATE)
+            sha3([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + s * SP_STEP_MUL)], [value, 0], out, len=48)
+            value = out[0]
+        if const(i // 2 != 0):
+            tops[i - 2] = value
+    return value
+
+
+@inline
+def sp_forest_key(at, pp, t: Const, w: Const):
+    # One opened WOTS key of the forest, at the codeword of table index t, walked in
+    # the arm itself: each chain its digit's steps up to the top, and the subtree leaf
+    # the tops hash to. Returns that leaf and t where the digest holds it, codeword w's
+    # byte, which is how a dispatch that came from a hint is bound.
+    tops = StackBuf(4)
+    top_0 = sp_forest_top(at, pp, tops, t, 0)
+    top_1 = sp_forest_top(at, pp, tops, t, 1)
+    for i in unroll(2, SP_FCHAINS):
+        top = sp_forest_top(at, pp, tops, t, i)  # in `tops`
     # P, A and the six tops: 128 bytes, one block.
     leaf = StackBuf(SHA3_STATE)
-    sha3([pp, at + SP_TW_FKEY_LEAF], tips[0:2], leaf, tail=tips[2:6])
-    return leaf[0], t
+    sha3([pp, at + SP_TW_FKEY_LEAF], [top_0, top_1], leaf, tail=tops)
+    if const(w // 8 == 0):
+        weight = const(t * 2 ** (8 * w))
+    else:
+        weight = const(t * 2 ** (8 * (w - 8))) * Y_TOWER
+    return leaf[0], weight
 
 
 @inline
@@ -3613,7 +3633,7 @@ def verify_sig_sphincs(signer):
     tops = StackBuf(2 + 2 * SP_TREES)
     tops[0] = pp
     tops[1] = idx + SP_TW_FKEY
-    words = StackBuf(2 * SP_TREES)
+    encoded_words = 0
     for c in unroll(0, SP_TREES):
         if const(c == 0):
             tree_at = idx
@@ -3640,7 +3660,8 @@ def verify_sig_sphincs(signer):
             word = hint_witness("sp_words")
             assert log(word) < SP_WORDS
             key_at = sub_at + key_mark[1]
-            node, words[2 * c + j] = match(log(word), range(0, SP_WORDS), lambda t: sp_forest_key(key_at, pp, t))
+            node, weight = match(log(word), range(0, SP_WORDS), lambda t: sp_forest_key(key_at, pp, t, 2 * c + j))
+            encoded_words = encoded_words + weight
             key_mark[1], key_weight = match(log(key_mark[0]), range(0, SP_KEYS), lambda a: sp_subtree_arm(node, sub_at, pp, subtops, c, j, a))
             bound = bound + key_weight
         leaf = StackBuf(SHA3_STATE)
@@ -3648,12 +3669,7 @@ def verify_sig_sphincs(signer):
         leaf_mark[1], leaf_weight = match(log(leaf_mark[0]), range(0, SP_LEAVES), lambda s: sp_tree_arm(leaf[0], tree_at, pp, tops, c, s))
         bound = bound + leaf_weight
     # The codewords, a byte each: eight to a lane, low byte first.
-    lane_0 = words[7]
-    lane_1 = words[15]
-    for k in unroll(1, 8):
-        lane_0 = words[7 - k] + lane_0 * GEN ** 8
-        lane_1 = words[15 - k] + lane_1 * GEN ** 8
-    assert lane_0 + lane_1 * Y_TOWER == digest[0]
+    assert encoded_words == digest[0]
     assert bound == digest[1]
     forest_key = StackBuf(SHA3_STATE)
     sha3_cells(tops, forest_key)
