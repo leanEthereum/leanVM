@@ -110,6 +110,11 @@ impl PowerField {
             // SAFETY: the features are enabled at compile time, and the assert above bounds every row.
             return unsafe { x86::dot_pair(a, b, width) };
         }
+        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+        if width.is_multiple_of(2) {
+            // SAFETY: the feature is enabled at compile time, and the assert above bounds every row.
+            return unsafe { neon::dot_pair(a, b, width) };
+        }
         dot_pair_portable(a, b, width)
     }
 
@@ -127,6 +132,11 @@ impl PowerField {
             // SAFETY: as in `dot_pair`.
             return unsafe { x86::fold_row(self, dst, lo, hi, rho, width) };
         }
+        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+        if width.is_multiple_of(2) {
+            // SAFETY: the feature is enabled at compile time, and the assert above bounds every row.
+            return unsafe { neon::fold_row(self, dst, lo, hi, rho, width) };
+        }
         self.fold_row_portable(dst, lo, hi, rho, width)
     }
 
@@ -143,6 +153,11 @@ impl PowerField {
         if width.is_multiple_of(8) {
             // SAFETY: as in `dot_pair`.
             return unsafe { x86::reduce_row(self, dst, wide, width) };
+        }
+        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+        if width.is_multiple_of(2) {
+            // SAFETY: the feature is enabled at compile time, and the assert above bounds every row.
+            return unsafe { neon::reduce_row(self, dst, wide, width) };
         }
         self.reduce_row_portable(dst, wide, width)
     }
@@ -167,6 +182,11 @@ impl PowerField {
         if width.is_multiple_of(8) {
             // SAFETY: as in `dot_pair`.
             return unsafe { x86::mul_row(self, dst, a, b, c, width) };
+        }
+        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+        if width.is_multiple_of(2) {
+            // SAFETY: the feature is enabled at compile time, and the assert above bounds every row.
+            return unsafe { neon::mul_row(self, dst, a, b, c, width) };
         }
         self.mul_row_portable(dst, a, b, c, width)
     }
@@ -400,6 +420,161 @@ mod x86 {
                         _mm512_xor_si512(l[k], folded),
                     );
                 }
+            }
+        }
+    }
+}
+
+#[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
+mod neon {
+    use core::arch::aarch64::*;
+    use core::mem::transmute;
+
+    use super::*;
+
+    /// Entries `j` and `j + 1` of a row, a lane each, by word.
+    #[inline(always)]
+    unsafe fn load3(row: &[u64], width: usize, j: usize) -> [uint64x2_t; 3] {
+        unsafe { std::array::from_fn(|k| vld1q_u64(row.as_ptr().add(k * width + j))) }
+    }
+
+    #[inline(always)]
+    unsafe fn xor3(a: &[uint64x2_t; 3], b: &[uint64x2_t; 3]) -> [uint64x2_t; 3] {
+        unsafe { std::array::from_fn(|k| veorq_u64(a[k], b[k])) }
+    }
+
+    #[inline(always)]
+    unsafe fn mul_lo(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        unsafe { transmute::<u128, uint64x2_t>(vmull_p64(vgetq_lane_u64(a, 0), vgetq_lane_u64(b, 0))) }
+    }
+
+    #[inline(always)]
+    unsafe fn mul_hi(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        unsafe { transmute::<u128, uint64x2_t>(vmull_high_p64(vreinterpretq_p64_u64(a), vreinterpretq_p64_u64(b))) }
+    }
+
+    /// The products `a[i] * b[k]` of the listed word pairs, of each lane, as 128-bit sums by
+    /// offset `i + k`.
+    #[inline(always)]
+    unsafe fn partial<const N: usize>(
+        a: &[uint64x2_t; 3],
+        b: &[uint64x2_t; 3],
+        terms: [(usize, usize); N],
+    ) -> [[uint64x2_t; 5]; 2] {
+        unsafe {
+            let mut out = [[vdupq_n_u64(0); 5]; 2];
+            for (i, k) in terms {
+                out[0][i + k] = veorq_u64(out[0][i + k], mul_lo(a[i], b[k]));
+                out[1][i + k] = veorq_u64(out[1][i + k], mul_hi(a[i], b[k]));
+            }
+            out
+        }
+    }
+
+    const ALL: [(usize, usize); 9] = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)];
+
+    /// Word `w` of each lane's product: the low half of its sum `w` and the high half of its
+    /// sum `w - 1`.
+    #[inline(always)]
+    unsafe fn word(sums: &[[uint64x2_t; 5]; 2], w: usize) -> uint64x2_t {
+        unsafe {
+            let low = if w < 5 {
+                vzip1q_u64(sums[0][w], sums[1][w])
+            } else {
+                vdupq_n_u64(0)
+            };
+            let high = if w > 0 {
+                vzip2q_u64(sums[0][w - 1], sums[1][w - 1])
+            } else {
+                vdupq_n_u64(0)
+            };
+            veorq_u64(low, high)
+        }
+    }
+
+    /// Reduce two products, a lane each, given by their six words.
+    #[inline(always)]
+    unsafe fn reduce(field: &PowerField, p: &[uint64x2_t; 6]) -> [uint64x2_t; 3] {
+        unsafe {
+            let barrett: [uint64x2_t; 3] = std::array::from_fn(|k| vdupq_n_u64(field.barrett[k]));
+            let modulus: [uint64x2_t; 3] = std::array::from_fn(|k| vdupq_n_u64(field.modulus[k]));
+            let high = [p[3], p[4], p[5]];
+            // The top three words of `high * barrett`, then the low three of `q * modulus`.
+            let t = partial(&high, &barrett, [(0, 2), (1, 1), (2, 0), (1, 2), (2, 1), (2, 2)]);
+            let q: [uint64x2_t; 3] = std::array::from_fn(|k| veorq_u64(high[k], word(&t, 3 + k)));
+            let r = partial(&q, &modulus, [(0, 0), (0, 1), (1, 0), (0, 2), (1, 1), (2, 0)]);
+            std::array::from_fn(|k| veorq_u64(p[k], word(&r, k)))
+        }
+    }
+
+    #[inline(always)]
+    unsafe fn store3(row: &mut [u64], width: usize, j: usize, value: &[uint64x2_t; 3]) {
+        unsafe {
+            for (k, &v) in value.iter().enumerate() {
+                vst1q_u64(row.as_mut_ptr().add(k * width + j), v);
+            }
+        }
+    }
+
+    pub unsafe fn dot_pair(a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 6], [u64; 6]) {
+        unsafe {
+            let mut acc = [[vdupq_n_u64(0); 5]; 2];
+            for j in (0..width).step_by(2) {
+                let (a0, a1, b0, b1) = (
+                    load3(a[0], width, j),
+                    load3(a[1], width, j),
+                    load3(b[0], width, j),
+                    load3(b[1], width, j),
+                );
+                for (acc, p) in acc
+                    .iter_mut()
+                    .zip([partial(&a0, &b0, ALL), partial(&xor3(&a0, &a1), &xor3(&b0, &b1), ALL)])
+                {
+                    for s in 0..5 {
+                        acc[s] = veorq_u64(acc[s], veorq_u64(p[0][s], p[1][s]));
+                    }
+                }
+            }
+            let finish = |acc: &[uint64x2_t; 5]| {
+                let mut out = [0u64; 6];
+                for (s, &sum) in acc.iter().enumerate() {
+                    out[s] ^= vgetq_lane_u64(sum, 0);
+                    out[s + 1] ^= vgetq_lane_u64(sum, 1);
+                }
+                out
+            };
+            (finish(&acc[0]), finish(&acc[1]))
+        }
+    }
+
+    pub unsafe fn reduce_row(field: &PowerField, dst: &mut [u64], wide: &[u64], width: usize) {
+        unsafe {
+            let zero = vdupq_n_u64(0);
+            for j in (0..width).step_by(2) {
+                let w: [uint64x2_t; 4] = std::array::from_fn(|k| vld1q_u64(wide.as_ptr().add(k * width + j)));
+                store3(dst, width, j, &reduce(field, &[w[0], w[1], w[2], w[3], zero, zero]));
+            }
+        }
+    }
+
+    pub unsafe fn mul_row(field: &PowerField, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
+        unsafe {
+            for j in (0..width).step_by(2) {
+                let sums = partial(&load3(a, width, j), &load3(b, width, j), ALL);
+                let product = reduce(field, &std::array::from_fn(|w| word(&sums, w)));
+                store3(dst, width, j, &xor3(&product, &load3(c, width, j)));
+            }
+        }
+    }
+
+    pub unsafe fn fold_row(field: &PowerField, dst: &mut [u64], lo: &[u64], hi: &[u64], rho: &Element, width: usize) {
+        unsafe {
+            let rho: [uint64x2_t; 3] = std::array::from_fn(|k| vdupq_n_u64(rho[k]));
+            for j in (0..width).step_by(2) {
+                let l = load3(lo, width, j);
+                let sums = partial(&xor3(&l, &load3(hi, width, j)), &rho, ALL);
+                let folded = reduce(field, &std::array::from_fn(|w| word(&sums, w)));
+                store3(dst, width, j, &xor3(&l, &folded));
             }
         }
     }
