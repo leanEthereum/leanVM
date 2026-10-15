@@ -30,7 +30,7 @@
 \end{center}
 \vspace{1em}
 
-A program run by the VM executes $N = 2^n$ \texttt{SHA3} steps, each one Keccak-$f[1600]$ permutation~\cite{fips202}. This note explains how \texttt{crates/keccak\_gkr} proves them all. It is a GKR~\cite{GKR08} over the $24$ rounds, run on the whole batch at once. The prover commits two of each permutation's $25$ states, and pays, per round and per bit position, one product of two binary polynomials of degree $23$ for every $16$ permutations. The design is Hashcaster's~\cite{hashcaster,hashcaster2} (\S\ref{sec:credits}).
+A program run by the VM executes $N = 2^n$ \texttt{SHA3} steps, each one Keccak-$f[1600]$ permutation~\cite{fips202}. This note explains how \texttt{crates/keccak\_gkr} proves them all. It is a GKR~\cite{GKR08} over the $24$ rounds, run on the whole batch at once. The prover commits two of each permutation's $25$ states, and pays, per round and per bit position, one product of two binary polynomials of degree $23$ for every $16$ permutations. The design is Lev Soukhanov's: it follows his Hashcaster~\cite{hashcaster} and Hashcaster~2~\cite{hashcaster2}, and his RMFE-skip~\cite{rmfeskip} (\S\ref{sec:credits}).
 
 The note gives the ideas, for a reader who knows sumcheck, GKR and multilinear extensions. The precise protocol, with its soundness proof, is Annex~C of \texttt{doc/leanvm}, and the crate's documentation describes the prover.
 
