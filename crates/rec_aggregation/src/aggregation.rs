@@ -1779,10 +1779,14 @@ fn push_sphincs_hints(
         let address = sphincs::address(&sphincs::tweak(0, field, 0));
         vec![count(index), pack_16_bytes(&address)]
     };
-    for (tree, mark_of) in sig.forest.iter().zip(&marks) {
-        hints.push("sp_leaves", mark(mark_of.leaf, sphincs::leaf_field(mark_of.leaf)));
-        for (subtree, &key) in tree.subtrees.iter().zip(&mark_of.keys) {
-            hints.push("sp_keys", mark(key, sphincs::key_field(key)));
+    // A leaf's address field carries its tree, a key's its subtree (the packing above).
+    for (c, (tree, mark_of)) in sig.forest.iter().zip(&marks).enumerate() {
+        hints.push(
+            "sp_leaves",
+            mark(mark_of.leaf, c as u32 | sphincs::leaf_field(mark_of.leaf)),
+        );
+        for (j, (subtree, &key)) in tree.subtrees.iter().zip(&mark_of.keys).enumerate() {
+            hints.push("sp_keys", mark(key, (j as u32) << 7 | sphincs::key_field(key)));
             for node in &subtree.path {
                 hints.push("sp_forest_nodes", vec![pack_16_bytes(node)]);
             }
