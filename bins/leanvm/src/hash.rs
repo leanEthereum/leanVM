@@ -1,4 +1,4 @@
-//! A SHA3 hash chain: the benchmark of the `SHA3` opcode through the whole proof.
+//! A Keccak hash chain: the benchmark of the `SHA3` opcode through the whole proof.
 
 use bench::Plan;
 use lean_compiler::{compile, parse};
@@ -40,7 +40,7 @@ pub fn run_hash(n: usize, unroll: usize, log_inv_rate: usize, plan: Plan) {
 
     drop(trace_span);
 
-    println!("SHA3 hash chain, N = {}", pretty_integer(n));
+    println!("Keccak hash chain, N = {}", pretty_integer(n));
     println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
     println!("    details                   : {}", stats.details());
     crate::report::print_proof_size(&proof);

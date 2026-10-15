@@ -582,7 +582,7 @@ impl FnLower<'_> {
 /// Cells a sponge state occupies.
 const STATE_CELLS: u32 = leanvm_core::keccak::STATE_CELLS as u32;
 
-/// A cell holding the padding's first byte at its start: `0x06` in the low lane.
+/// A cell holding the padding's first byte at its start: `0x01` in the low lane.
 fn sha3_pad_value() -> F192 {
     F192::new(u64::from(primitives::hash::PAD_FIRST), 0, 0)
 }

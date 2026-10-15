@@ -1,4 +1,4 @@
-//! End-to-end proof of an unrolled zkDSL SHA3 hash chain.
+//! End-to-end proof of an unrolled zkDSL Keccak hash chain.
 
 use std::time::Instant;
 
@@ -94,7 +94,7 @@ fn sha3_hash_chain() {
     assert_eq!(instruction_counts(&source, public_input)[5], steps);
 
     println!(
-        "\nSHA3 hash chain, N = {}, unroll = {}",
+        "\nKeccak hash chain, N = {}, unroll = {}",
         pretty_integer(steps),
         pretty_integer(unroll)
     );

@@ -1,7 +1,7 @@
 //! Merkle openings in the form a proof travels in: one batch per opening phase, each shared sibling sent once.
 
 use crate::field::K;
-use crate::hash::{Digest, sha3_hash};
+use crate::hash::{Digest, keccak_hash};
 use crate::{VerifierError, require};
 
 /// A proof's Merkle openings, in either form. Both authenticate the same leaf images against the same roots.
@@ -38,11 +38,11 @@ pub fn hash_pair(left: &[u8], right: &[u8]) -> Digest {
     let mut pair = [0u8; 64];
     pair[..32].copy_from_slice(left);
     pair[32..].copy_from_slice(right);
-    sha3_hash(&pair)
+    keccak_hash(&pair)
 }
 
 fn hash_leaf(image: &[K]) -> Digest {
-    sha3_hash(&image.iter().flat_map(|word| word.to_bytes()).collect::<Vec<u8>>())
+    keccak_hash(&image.iter().flat_map(|word| word.to_bytes()).collect::<Vec<u8>>())
 }
 
 /// One query's own opening, the form the recursion guest and the Python verifier read.
@@ -157,7 +157,7 @@ mod tests {
                 .map(|word| K(if word == 0 { 0 } else { 4 * position + word }))
                 .collect()
         };
-        let hash = |image: &[K]| sha3_hash(&image.iter().flat_map(|word| word.to_bytes()).collect::<Vec<u8>>());
+        let hash = |image: &[K]| keccak_hash(&image.iter().flat_map(|word| word.to_bytes()).collect::<Vec<u8>>());
         let mut levels = vec![(0..8).map(|position| hash(&image(position))).collect::<Vec<Digest>>()];
         for level in 0..height {
             let parents = levels[level]

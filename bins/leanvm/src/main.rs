@@ -1,4 +1,4 @@
-//! Benchmark CLI for signature and blob proofs, recursion, a SHA3 hash chain, and the Fibonacci demo.
+//! Benchmark CLI for signature and blob proofs, recursion, a Keccak hash chain, and the Fibonacci demo.
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
@@ -80,7 +80,7 @@ enum Command {
         )]
         blobs_per_leaf: usize,
     },
-    /// Prove and verify a SHA3 hash chain
+    /// Prove and verify a Keccak hash chain
     Hash {
         /// Number of SHA3 steps.
         #[arg(long, default_value = "262144")]

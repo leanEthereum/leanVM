@@ -1,13 +1,13 @@
 # A miniature WOTS-style chain walk bundling the DSL's moving parts: a
 # runtime digit is range-checked (dispatch soundness), then match
-# dispatches it to a Const-specialized walker whose SHA3 chain is unrolled
+# dispatches it to a Const-specialized walker whose hash chain is unrolled
 # over heap slices (a 256-bit SHA3 digest occupies two canonical cells);
 # the walker also builds g^{2n} at runtime (unrolled MULs) to read its final
 # pair back through g-power indexing. The recomputation at the end lands on an
 # already-written StackBuf pair, so write-once turns the hash into a digest
 # assertion; the dead `if` branch holds an impossible assert that must never
 # execute. Published: the two 128-bit digest cells of H^2(5, 7).
-# public_input: 159627741349152034293490146076421325686, 246461856103384235225570620016904984418
+# public_input: 208822183413446500621413149391147122921, 118328345503752981047975230716482008923
 from snark_lib import *
 
 

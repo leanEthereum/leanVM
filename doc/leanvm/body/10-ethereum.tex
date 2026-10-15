@@ -13,7 +13,7 @@ The DA claim is a sorted, duplicate-free list of at most $16$ LeanDA roots, poss
 
 \subsubsection{The public input}\label{sec:rec-stmt}
 
-The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is the hash (SHA3-256 in the cell encoding, \S\ref{sec:tab-sha3}) of the following fields, in order:
+The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is the hash (Keccak-256 in the cell encoding, \S\ref{sec:tab-sha3}) of the following fields, in order:
 \begin{center}
 \begin{tabular}{@{}rl@{}}
 \hline
@@ -58,7 +58,7 @@ A node with $n$ children combines the claim each child carries with the new clai
 
 Erasure coding makes data recoverable from a subset of its encoded symbols. Sampling checks whether those symbols can be retrieved, but does not establish that they form a valid encoding. An approach using leanVM was introduced in \href{https://frisitano.github.io/slides/presentations/leanvm-fold-in-circuit-das-2026-05-08/index.html}{Risitano's presentation} and developed in LeanDA~\cite{LeanDA} by Meng, Wagner, Kadianakis and Risitano: commit to an encoded matrix and prove every row is a codeword, then sample authenticated cells. A formal security proof can be found in \cite{LeanDASecurity}.
 
-Our construction uses SHA3-256 and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different codeword membership test from LeanDA's (\S\ref{sec:da-membership}). The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
+Our construction uses Keccak-256 and the additive Reed-Solomon encoder over $\K$ already used by the PCS, with a different codeword membership test from LeanDA's (\S\ref{sec:da-membership}). The polynomial basis, transform, and membership lemmas are collected in Annex~\ref{app:ntt}.
 
 
 \subsubsection{The commitment}\label{sec:da-commit}

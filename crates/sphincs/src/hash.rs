@@ -1,5 +1,5 @@
 //! The tweakable hash `Th(P, A, M) = Truncate_n(H(P | A | M))`, `H` the leanVM
-//! hash ([`primitives::hash::hash`], SHA3-256 in the cell encoding), and the
+//! hash ([`primitives::hash::hash`], Keccak-256 in the cell encoding), and the
 //! address that names one hash call in the whole structure.
 //!
 //! The public parameter and the address are 16 bytes each, as every value

@@ -4,7 +4,7 @@ import Sphincs.Correctness
 
 /-!
 Block counts for the actual verifier's logged hash-input bytes. A hash of `n` bytes costs
-`max 1 (ceil (n / 64))`, its 64-byte blocks, as BLAKE2s compresses them. The leanVM hash, SHA3 over
+`max 1 (ceil (n / 64))`, its 64-byte blocks, as BLAKE2s compresses them. The leanVM hash, Keccak-256 over
 128-byte blocks, spends 272 permutations on the same verification (`sphincs::VERIFY_PERMUTATIONS`
 in `crates/sphincs`), which is not stated here. The oracle's answers remain arbitrary; only the byte
 lengths are counted.

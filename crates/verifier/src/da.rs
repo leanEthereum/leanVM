@@ -4,7 +4,7 @@
 //! the normalized subspace polynomial of degree `2^j` and `z` drawn from the commitment (doc/leanvm annex D for the basis).
 
 use crate::field::{E, K, ONE, ZERO};
-use crate::hash::sha3_hash;
+use crate::hash::keccak_hash;
 use crate::transcript::Sponge;
 
 const DA_LOG_K: usize = 14; // payload symbols per blob, as a logarithm
@@ -87,7 +87,7 @@ pub fn membership_vector(root: &[u8; 32]) -> Vec<E> {
 pub fn vector_digest(vector: &[E]) -> [u8; 32] {
     assert_eq!(vector.len(), 1 << LOG_M);
     let limbs = vector.iter().flat_map(|value| [value.c0, value.c1, value.c2]);
-    sha3_hash(&limbs.flat_map(u64::to_le_bytes).collect::<Vec<u8>>()).0
+    keccak_hash(&limbs.flat_map(u64::to_le_bytes).collect::<Vec<u8>>()).0
 }
 
 /// The hash of the concatenated `(root, vector digest)` pairs, or of the empty string: what the statement of an aggregate carries for its DA roots.
@@ -95,5 +95,5 @@ pub fn list_digest(roots: &[[u8; 32]]) -> [u8; 32] {
     let pairs = roots
         .iter()
         .flat_map(|root| [*root, vector_digest(&membership_vector(root))]);
-    sha3_hash(&pairs.flatten().collect::<Vec<u8>>()).0
+    keccak_hash(&pairs.flatten().collect::<Vec<u8>>()).0
 }

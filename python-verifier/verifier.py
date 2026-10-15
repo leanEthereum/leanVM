@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from functools import reduce
@@ -189,19 +188,26 @@ def powers(base: E, count: int) -> list[E]:
 
 # The hash and digests --------------------------------------------------------
 
-# SHA3-256 of the cell encoding: a message of more than 128 bytes is cut into 128-byte
-# chunks, the last holding the remaining 1 to 128, and every chunk but the last is
-# followed by the fixed gap below, which is what lets the VM absorb eight whole 16-byte
-# cells per permutation. Up to 128 bytes it is plain SHA3-256.
+# Keccak-256 (Ethereum's hash) of the cell encoding: a message of more than 128 bytes is
+# cut into 128-byte chunks, the last holding the remaining 1 to 128, and every chunk but
+# the last is followed by the fixed gap 0^7 || 0x80, which is what lets the VM absorb
+# eight whole 16-byte cells per permutation. Up to 128 bytes it is plain Keccak-256. The
+# gap is lane 16, which every step supplies, so a chunk is absorbed as its sixteen lanes.
 HASH_CHUNK = 128
-HASH_GAP = bytes(7) + b"\x80"
+PAD_FIRST = 0x01  # the padding's first byte, after the message; SHA3-256 would put 0x06
 
 
-def sha3_hash(data: bytes) -> Digest:
+def keccak_hash(data: bytes) -> Digest:
     """The 32-byte hash of `data` in the cell encoding."""
     nonfinal = max(len(data) - 1, 0) // HASH_CHUNK
-    encoded = b"".join(data[HASH_CHUNK * c : HASH_CHUNK * (c + 1)] + HASH_GAP for c in range(nonfinal)) + data[HASH_CHUNK * nonfinal :]
-    return Digest(hashlib.sha3_256(encoded).digest())
+    state = [0] * 25
+    for c in range(nonfinal + 1):
+        block = bytearray(data[HASH_CHUNK * c : HASH_CHUNK * (c + 1)])
+        if c == nonfinal:
+            block.append(PAD_FIRST)
+        block += bytes(8 * 17 - len(block))
+        state = keccak_step([lane ^ word for lane, word in zip(state, unpack("<17Q", block))] + state[17:])
+    return Digest(pack("<4Q", *state[:4]))
 
 
 @dataclass(frozen=True, slots=True)
@@ -348,7 +354,7 @@ LANE_MASK = 2**64 - 1
 
 def compress(left: Sequence[K | int], right: Sequence[K | int]) -> tuple[int, int, int, int]:
     """Hash two four-word operands, a word being a plain integer or the K element standing for it."""
-    return unpack("<4Q", sha3_hash(b"".join(int(x).to_bytes(8, "little") for x in (*left, *right))).value)
+    return unpack("<4Q", keccak_hash(b"".join(int(x).to_bytes(8, "little") for x in (*left, *right))).value)
 
 
 def keccak_step(lanes: Sequence[int]) -> list[int]:
@@ -427,11 +433,11 @@ class Transcript:
         rows = []
         for query in queries:
             leaf = self._merkle_data(8 * leaf_words)
-            node = sha3_hash(leaf)
+            node = keccak_hash(leaf)
             for level in range(height):
                 sibling = self._merkle_data(32)
                 left, right = (node.value, sibling) if query >> level & 1 == 0 else (sibling, node.value)
-                node = sha3_hash(left + right)
+                node = keccak_hash(left + right)
             require(node == root, "Merkle root mismatch")
             rows.append(tuple(K(word) for word in unpack(f"<{leaf_words}Q", leaf)))
         return rows
@@ -1403,10 +1409,10 @@ def verify_stacked_opening(transcript: Transcript, root: Digest, stack_log: int,
 
 
 def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) -> None:
-    bytecode_hash = sha3_hash(b"".join(word.to_bytes() for word in bytecode))
-    relation = sha3_hash(RELATION_LABEL).value
+    bytecode_hash = keccak_hash(b"".join(word.to_bytes() for word in bytecode))
+    relation = keccak_hash(RELATION_LABEL).value
     iv_preimage = b"leanvm" + pack("<Q", len(relation)) + relation + bytecode_hash.value
-    fiat_shamir_IV = sha3_hash(iv_preimage)
+    fiat_shamir_IV = keccak_hash(iv_preimage)
     transcript = Transcript(proof, fiat_shamir_IV, public_input)
 
     # 1] memory log-size, table log-size, and log-inv-rate in WHIR

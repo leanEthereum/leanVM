@@ -1,4 +1,4 @@
-//! SHA3-256 of the cell encoding, the VM's `SHA3` step, and digests.
+//! Keccak-256 of the cell encoding, the VM's `SHA3` step, and digests.
 
 use crate::field::E;
 use crate::{VerifierError, require};
@@ -85,20 +85,20 @@ fn xor_bytes(state: &mut [u64; STATE_LANES], bytes: &[u8]) {
     }
 }
 
-/// SHA3-256 of `data` in the cell encoding: past 128 bytes, the fixed eight bytes `0^7 ‖ 0x80` after every 128,
-/// so that a block is eight whole cells. Up to 128 bytes it is plain SHA3-256.
-pub fn sha3_hash(data: &[u8]) -> Digest {
+/// Keccak-256 of `data` in the cell encoding: past 128 bytes, the fixed eight bytes `0^7 ‖ 0x80` after every 128,
+/// so that a block is eight whole cells. Up to 128 bytes it is plain Keccak-256.
+pub fn keccak_hash(data: &[u8]) -> Digest {
     let mut state = [0u64; STATE_LANES];
     let nonfinal = data.len().saturating_sub(1) / CHUNK;
     for chunk in data[..nonfinal * CHUNK].chunks(CHUNK) {
         xor_bytes(&mut state, chunk);
         state = step(&state);
     }
-    // The last block: the remaining bytes, then SHA3's padding, whose last bit is the one `step` supplies.
+    // The last block: the remaining bytes, then Keccak's padding, whose last bit is the one `step` supplies.
     let tail = &data[nonfinal * CHUNK..];
     let mut block = [0u8; RATE];
     block[..tail.len()].copy_from_slice(tail);
-    block[tail.len()] ^= 0x06;
+    block[tail.len()] ^= 0x01;
     xor_bytes(&mut state, &block);
     state = step(&state);
     let mut value = [0u8; 32];
@@ -143,25 +143,25 @@ impl Digest {
 mod tests {
     use super::*;
 
-    /// SHA3-256 of the cell encoding of the bytes `00 01 ..` (mod 256), from Python's `hashlib`: plain SHA3-256 up to
+    /// Keccak-256 of the cell encoding of the bytes `00 01 ..` (mod 256), from OpenSSL's `keccak-256`: plain Keccak-256 up to
     /// 128 bytes, then each side of a chunk boundary.
     const VECTORS: [(usize, &str); 9] = [
-        (0, "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"),
-        (1, "5d53469f20fef4f8eab52b88044ede69c77a6a68a60728609fc4a65ff531e7d0"),
-        (127, "c66018e60c774d770cc6539d42c023fa974c29e3fe2db5925f226b9cc5cf8b05"),
-        (128, "bec3ebfba06834f224543cca2a427cb9329147be93e19aeb0e33a7119c7f63ef"),
-        (129, "634ed47904bb26db6a7bcf96954e869905711ca072f9499b8154150afd419f21"),
-        (200, "45874a8fdf627c901808e12c41c4026a015933fba404cbd3139b5e97b362c099"),
-        (256, "3e21e62a3c79ea292f52280b8ce0b674c52634d784077852506b0cb8741f9192"),
-        (257, "becb0b05959b41d6ec97d7bee2c794dad8216f363736cba2336d93fc469c6865"),
-        (512, "363ef36ec486dc1e6612a0254f0537054071069f0c268cfc637f9bae5666dd45"),
+        (0, "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"),
+        (1, "bc36789e7a1e281436464229828f817d6612f7b477d66591ff96a9e064bcc98a"),
+        (127, "c52f0bd08793b9e8601b29753539e1bf47f8e483eed0a901e8761982449c9b4c"),
+        (128, "ed4c9adc183fb8cb025b1500ec3eeae1b45517314441a187605de1bb8a64726e"),
+        (129, "2900f87118e525c6a28e5d3a37a7f37db1b0b17661931ba7ba0be4fbb202f766"),
+        (200, "f4eb34198ddc4f2012a7791eb46292821d0904eb97640e9519ab735eef9c04ab"),
+        (256, "d63969818e044e52f1c4bb4b58569816bb0c5e7efadcee96f83b02a355a42686"),
+        (257, "2cc03e9f89462b48c53aae96d64d7a43482bdd896fa16f8308f8199538d0ba65"),
+        (512, "63e0372d8c2e3203e0a6a80bbafa151aba520de0c9baeb89907af0c242ed4e6a"),
     ];
 
     #[test]
     fn matches_reference_vectors() {
         for (n, want) in VECTORS {
             let input: Vec<u8> = (0..n).map(|i| i as u8).collect();
-            let got: String = sha3_hash(&input).0.iter().map(|byte| format!("{byte:02x}")).collect();
+            let got: String = keccak_hash(&input).0.iter().map(|byte| format!("{byte:02x}")).collect();
             assert_eq!(got, want, "{n} bytes");
         }
     }

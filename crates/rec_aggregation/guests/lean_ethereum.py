@@ -357,7 +357,7 @@ STMT_PAIRS = STMT_PAIRS_PLACEHOLDER
 STMT_CELLS = STMT_DEFER_OFF + 3 * STMT_PAIRS
 
 # ------------------------------------------------------------------ the hash
-# Every hash is SHA3-256 in the cell encoding (primitives::hash::hash): a `sha3`
+# Every hash is Keccak-256 in the cell encoding (primitives::hash::hash): a `sha3`
 # block absorbs eight cells, and its output is the SHA3_STATE-cell sponge state,
 # whose first two cells are the digest. A hash of runtime length carries that
 # state through a heap run between loop frames, SHA3_STATE cells a step.

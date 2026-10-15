@@ -1,5 +1,5 @@
 pub mod aggregation;
-/// The SHA3 hash chain, proven end to end. A `src` module rather than its own
+/// The Keccak hash chain, proven end to end. A `src` module rather than its own
 /// test binary so it shares the process with the other workloads.
 #[cfg(test)]
 mod hash_chain;

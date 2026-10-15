@@ -55,7 +55,7 @@ leanVM is designed for security:
 
 Expect leanVM to change significantly:
 
-* **hash**: SHA3 is a placeholder: SHA2, BLAKE2s and BLAKE3 are actively considered.
+* **hash**: Keccak-256 is a placeholder: SHA2, BLAKE2s and BLAKE3 are actively considered.
 * **ISA**: A migration from leanISA to RISC-V (rv64im) is planned.
 * **zk**: Support for zero-knowledge is planned.
 

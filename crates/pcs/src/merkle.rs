@@ -1,5 +1,5 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! Binary Merkle tree with SHA3-256, built in cache-resident subtree blocks.
+//! Binary Merkle tree with Keccak-256, built in cache-resident subtree blocks.
 //!
 //! The committer's half. What a proof carries lives in [`fiat_shamir::merkle`].
 //!

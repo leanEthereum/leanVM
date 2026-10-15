@@ -48,11 +48,11 @@ fn known_answer() {
     let signature = sign(&sk, &message).unwrap();
     assert_eq!(
         hex(&pk.flatten()),
-        "7066d47a61f9c2a228f81d33414f773384d69cadea1e1374ab3bd20be993910c"
+        "1eae3c515091ef635f73e3c43522cc8c2e582128e480149accc2ed4f19edcd00"
     );
     assert_eq!(
         hex(&primitives::hash::hash(&signature.to_bytes())),
-        "b76d90bb1f04661724f5f759f7e198fed50a19f8d89c70122ad7eaa3b2902258"
+        "e4b684df5c1a31a28f2ff76455de6c53be907ca39d0c8daac058adfac75543ba"
     );
 }
 

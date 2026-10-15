@@ -5,7 +5,7 @@
 # specialization. A 256-bit SHA3 digest occupies two canonical cells.
 # Published: the two 128-bit digest cells of H(quad0, quad0) XOR H(quad1, quad1)
 #: the direct k=0 digest XORed with the arm the runtime x = GEN selects (k=1).
-# public_input: 58850464375348014636339962981988382766, 89162038347271370697966752179361655278
+# public_input: 157908933584918725715541133239856802159, 40624458567139149906120084677986376415
 from snark_lib import *
 
 

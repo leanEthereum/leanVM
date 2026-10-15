@@ -17,7 +17,7 @@ pub mod transcript;
 use primitives::field::{F64, F192};
 use primitives::hash::STATE_LANES;
 
-/// `f(a, b) = SHA3-256(a‖b)` on two 256-bit halves laid out little-endian into
+/// `f(a, b) = Keccak-256(a‖b)` on two 256-bit halves laid out little-endian into
 /// 64 bytes, *exactly* one VM `SHA3` instruction from the zero state: 64 input
 /// bytes → 32-byte digest, split back into four field words. The Merkle trees'
 /// node hash.

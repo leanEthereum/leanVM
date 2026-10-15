@@ -1,5 +1,5 @@
 //! The XMSS hash layer: [`tweak_hash`] is the leanVM hash
-//! ([`primitives::hash::hash`], SHA3-256 in the cell encoding) of the exact byte
+//! ([`primitives::hash::hash`], Keccak-256 in the cell encoding) of the exact byte
 //! string `tweak | pp | payload`, for chain steps, Merkle nodes, WOTS public
 //! keys, and message encodings alike.
 //!

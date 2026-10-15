@@ -57,7 +57,7 @@ The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3
 
 \paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. With $b=0$ the nonce must be zero.
 
-Merkle trees hash with SHA3-256 in the cell encoding, apart from the sponge.
+Merkle trees hash with Keccak-256 in the cell encoding, apart from the sponge.
 
 \subsection{The unrolled protocol}\label{sec:e2e-unrolled}
 

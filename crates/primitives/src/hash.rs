@@ -1,12 +1,13 @@
-//! SHA3-256 (FIPS 202), the repo's one hash function.
+//! Keccak-256, the repo's one hash function: Ethereum's, which is SHA3-256 (FIPS
+//! 202) with Keccak's original padding.
 //!
 //! Three surfaces, in increasing order of how much of the machine they touch:
 //!
 //! - [`keccak_f`], the Keccak-f\[1600\] permutation. Every hash in leanVM is a
 //!   sponge over it, and it is what the VM's `SHA3` opcode computes and
 //!   `keccak_gkr` proves.
-//! - [`hash`] / [`Hasher`], SHA3-256 over bytes, in the cell encoding that
-//!   makes a VM block eight whole 16-byte cells (plain SHA3-256 up to 128 bytes).
+//! - [`hash`] / [`Hasher`], Keccak-256 over bytes, in the cell encoding that
+//!   makes a VM block eight whole 16-byte cells (plain Keccak-256 up to 128 bytes).
 //! - [`hash_many`], the batched form: `LANES` independent equal-length inputs
 //!   hashed together with the state transposed across lanes, which is how the
 //!   PCS Merkle tree gets SIMD out of hashes that are individually serial.
@@ -16,7 +17,7 @@
 //! XORed into them before each permutation, and the digest is read off the first
 //! [`OUT_LANES`] of them after the last one.
 
-/// Digest length in bytes. SHA3-256 throughout.
+/// Digest length in bytes. Keccak-256 throughout.
 pub const OUT_LEN: usize = 32;
 /// Digest length in lanes.
 pub const OUT_LANES: usize = OUT_LEN / 8;
@@ -29,9 +30,9 @@ pub const STATE_LANES: usize = 25;
 /// Rounds per permutation.
 pub const ROUNDS: usize = 24;
 
-/// SHA3's domain-separation suffix `01`, with the first bit of the `10*1`
-/// padding, as the byte XORed right after the message.
-pub const PAD_FIRST: u8 = 0x06;
+/// The first bit of Keccak's `10*1` padding, as the byte XORed right after the
+/// message. It is the only difference from SHA3-256, whose suffix makes it `0x06`.
+pub const PAD_FIRST: u8 = 0x01;
 /// The last bit of the `10*1` padding, XORed into the rate's last byte.
 pub const PAD_LAST: u8 = 0x80;
 
@@ -245,8 +246,8 @@ fn chunk_block(chunk: &[u8; CHUNK]) -> [u64; RATE_LANES] {
     })
 }
 
-/// The final block: the last `tail.len() <= CHUNK` message bytes, then SHA3's
-/// suffix and padding, as rate lanes.
+/// The final block: the last `tail.len() <= CHUNK` message bytes, then the
+/// padding, as rate lanes.
 #[inline]
 pub fn final_block(tail: &[u8]) -> [u64; RATE_LANES] {
     assert!(tail.len() <= CHUNK, "a final block holds at most CHUNK message bytes");
@@ -325,14 +326,14 @@ impl Default for Hasher {
     }
 }
 
-/// SHA3-256 of `data` under the cell encoding, the one hash of leanVM.
+/// Keccak-256 of `data` under the cell encoding, the one hash of leanVM.
 ///
-/// For inputs of at most [`CHUNK`] = 128 bytes this is plain SHA3-256. A longer
+/// For inputs of at most [`CHUNK`] = 128 bytes this is plain Keccak-256. A longer
 /// input is cut into 128-byte chunks, the last holding the remaining 1 to 128
 /// bytes, and every chunk but the last is followed by the fixed 8-byte gap
-/// `00 00 00 00 00 00 00 80`; the result is SHA3-256 of that byte string. The
+/// `00 00 00 00 00 00 00 80`; the result is Keccak-256 of that byte string. The
 /// encoding is injective, and it is what lets the VM absorb eight whole 16-byte
-/// cells per permutation where SHA3's 136-byte rate would split a cell across two
+/// cells per permutation where the 136-byte rate would split a cell across two
 /// blocks: the gap is lane 16, the one lane the opcode supplies itself
 /// ([`step`]).
 pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {
@@ -640,7 +641,7 @@ unsafe fn hash_many_with<S: Lanes64>(data: &[u8], len: usize, state: &[u64; STAT
     }
 }
 
-/// Batched SHA3-256 of `data` split into `LEN`-byte inputs, writing one 32-byte
+/// Batched Keccak-256 of `data` split into `LEN`-byte inputs, writing one 32-byte
 /// digest per input to `out`. Byte-identical to [`hash`] per input; the batching
 /// only changes how the lanes are scheduled.
 pub fn hash_many<const LEN: usize>(data: &[u8], out: &mut [u8]) {
@@ -690,33 +691,33 @@ mod tests {
         (0..n).map(|i| ((i * 7 + 3) & 0xff) as u8).collect()
     }
 
-    /// Known answers from `hashlib.sha3_256`, of the input itself up to 128 bytes
+    /// Known answers from OpenSSL's `keccak-256`, of the input itself up to 128 bytes
     /// and of its cell encoding past that (`0^7 ‖ 0x80` after every 128 bytes but
     /// the last chunk). They span the empty input, both sides of the chunk
-    /// boundary (128 puts the padding's first bit in lane 16), SHA3's own rate
+    /// boundary (128 puts the padding's first bit in lane 16), Keccak's own rate
     /// boundary, and multi-chunk inputs.
     #[test]
     fn matches_reference_vectors() {
         assert_eq!(
             hex(&hash(b"abc")),
-            "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532"
+            "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"
         );
         for (n, expected) in [
             (
                 0usize,
-                "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+                "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
             ),
-            (1, "e3ed56bd086d8958483a12734fa0ae7f5c8bb160ef9092c67e82ed9b19e4c7b2"),
-            (63, "1275539a6596eb01fbc83a54af2f2994aa7ea8beb0b0d440ae07c620ad8eaa9f"),
-            (64, "85c576bd8097a119432293d7b09da76d336aff9acda1c0708cf03bdd999911cd"),
-            (127, "31578857f28c795c37ceb9bfffd3d24267d338e622927ae128330a5b07f22358"),
-            (128, "fcb6ea7388b68266e5df9f9beaf980fca55fdc6393f4d97ce1bcb2096eb4a975"),
-            (129, "3d0568183e17ed0ec5b304b306aa437a3f7105708312b88c81ac264ebe8e06ef"),
-            (135, "4917e5da7a7d49b75b6e47bf9f7bf9efd73ce13d5fa591ad011065b9d720b5fb"),
-            (136, "bc36c66b09b3db7f509d93baf09257f2393637b1784d5471103ad1ede347adcb"),
-            (256, "9f74f1dc5390ddded8afd18a85997428435b11eaa9d97a7961c767e72b765e13"),
-            (257, "71674412fe9842dcf4549f649fb12e8518b2363a399cb6ae28f9983c46b1de1e"),
-            (1024, "6e7e70062c9f9875658a66998d5821194b4f2b0b1e285fba91241937ee98bd35"),
+            (1, "69c322e3248a5dfc29d73c5b0553b0185a35cd5bb6386747517ef7e53b15e287"),
+            (63, "48d8e506b57c81c8257a8e1da7f04610191ef05bf96fa9dc4fb9bca39bbed2c6"),
+            (64, "0251cf13aa5b18f1cbda7cddbe85f3dc536fc93df590c2d20ca9b28af1ed2c39"),
+            (127, "fa3cd4a949bae0f7690ff5c8cbc6dc0332d192d790ab4d80dc97ba37b6569deb"),
+            (128, "1c51c71b758998e7b841d7abde03b6f2b3e76b0313ed687269c30e16bb3aa488"),
+            (129, "3b95dee5829e33cef44f4608ffbfbadd8992e975b5a0385ef3ff361075901236"),
+            (135, "86e2cb68791fd722e06dbd9c5f5141fef4ab43922356f76e227446faed47c12f"),
+            (136, "ff0548ca71d990e5b8c6e6577021d9242b835e44eed810c908b061f9aaeba8b1"),
+            (256, "87ad67c8690f991c43928512a6ef4db3373af350bde44e63a0f0b2b2ce80b0e8"),
+            (257, "8d3cadea4a1b3308b8ae9d239dd9480848353c0dd396c7a55a675aa6b92aa202"),
+            (1024, "2c7bc9081cc1f1a1b0f22194a1fefa9a866e5df6b34d28f696db1e068400f499"),
         ] {
             assert_eq!(hex(&hash(&pattern(n))), expected, "{n} bytes");
         }

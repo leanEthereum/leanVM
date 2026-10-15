@@ -209,7 +209,7 @@ def sha3(
     final: Optional[int] = None,
     cap=None,
 ) -> None:
-    """One block of the leanVM hash (SHA3-256 in the cell encoding), one `SHA3`
+    """One block of the leanVM hash (Keccak-256 in the cell encoding), one `SHA3`
     instruction. The block's eight message cells are `a` (2 cells), `b` (2
     cells) and `tail` (4 cells, zero when omitted); `out` receives the
     13-cell sponge state, whose first two cells are the digest, or just the
