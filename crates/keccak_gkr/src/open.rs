@@ -100,35 +100,38 @@ fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
     let tables: Vec<[F192; 256]> = (0..4 << run_vars)
         .map(|t| subset_sums(&(0..8).map(|w| low[t % 4 + 4 * w + 32 * (t / 4)]).collect::<Vec<_>>())[0])
         .collect();
-    let lanes = shape.slots();
-    let mut out = vec![F192::ZERO; (16 * 64) << shape.slot_log()];
-    parallel::chunks_mut(&mut out[..16 * 64 * lanes], 16 * 64, |lane, out| {
+    // A task per position of a committed lane: a task per lane would leave threads idle.
+    let positions: Vec<[F192; 16]> = parallel::map_collect(64 * shape.slots(), |task| {
+        let (lane, z) = (task / 64, task % 64);
         let round = shape.depth * (lane / LANES);
-        for z in 0..64 {
-            let mut acc = [F192Unreduced::ZERO; 16];
-            for (run, &scale) in runs.iter().enumerate() {
-                let mut sums = [F192::ZERO; 16];
-                for block in 0..1 << run_vars {
-                    let words = state_words(witness, round, (run << run_vars) + block, 64 * (lane % LANES) + z);
-                    // Byte `8 * b + t` gathers bit `t` of byte `b` of each word: instance
-                    // `8 * (b % 2) + t` of pack `b / 2`, across the eight words.
-                    let mut gathered = [0u8; 64];
-                    primitives::bits::bit_transpose_64bytes(bytes_of(&words), &mut gathered);
-                    for (i, sum) in sums.iter_mut().enumerate() {
-                        for p in 0..4 {
-                            *sum += tables[4 * block + p][gathered[8 * (2 * p + i / 8) + i % 8] as usize];
-                        }
+        let mut acc = [F192Unreduced::ZERO; 16];
+        for (run, &scale) in runs.iter().enumerate() {
+            let mut sums = [F192::ZERO; 16];
+            for block in 0..1 << run_vars {
+                let words = state_words(witness, round, (run << run_vars) + block, 64 * (lane % LANES) + z);
+                // Byte `8 * b + t` gathers bit `t` of byte `b` of each word: instance
+                // `8 * (b % 2) + t` of pack `b / 2`, across the eight words.
+                let mut gathered = [0u8; 64];
+                primitives::bits::bit_transpose_64bytes(bytes_of(&words), &mut gathered);
+                for (i, sum) in sums.iter_mut().enumerate() {
+                    for p in 0..4 {
+                        *sum += tables[4 * block + p][gathered[8 * (2 * p + i / 8) + i % 8] as usize];
                     }
                 }
-                for (acc, sum) in acc.iter_mut().zip(sums) {
-                    *acc ^= scale.mul_unreduced(sum);
-                }
             }
-            for (i, acc) in acc.into_iter().enumerate() {
-                out[i * 64 + z] = acc.reduce();
+            for (acc, sum) in acc.iter_mut().zip(sums) {
+                *acc ^= scale.mul_unreduced(sum);
             }
         }
+        acc.map(F192Unreduced::reduce)
     });
+    let mut out = vec![F192::ZERO; (16 * 64) << shape.slot_log()];
+    for (task, sums) in positions.iter().enumerate() {
+        let (lane, z) = (task / 64, task % 64);
+        for (i, &sum) in sums.iter().enumerate() {
+            out[(i + 16 * lane) * 64 + z] = sum;
+        }
+    }
     out
 }
 
