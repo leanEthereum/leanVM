@@ -1463,6 +1463,17 @@ const STREAM_CAP: usize = 8192;
 /// Named hint entries for a single sub-proof, ordered within each stream.
 type SubHints = Vec<(&'static str, Vec<F192>)>;
 
+/// An edit to a node's hints: how a test hands the guest a witness the honest host
+/// would not.
+#[cfg(test)]
+type Forgery = Box<dyn FnOnce(&mut Hints)>;
+
+#[cfg(test)]
+thread_local! {
+    /// The forgery the next node this thread aggregates gets.
+    static FORGE: std::cell::RefCell<Option<Forgery>> = const { std::cell::RefCell::new(None) };
+}
+
 /// One `hint_witness` stream: a name and its entries, in the order the guest
 /// pops them.
 #[derive(Default)]
@@ -1479,6 +1490,13 @@ impl Hints {
             Some((_, entries)) => entries.push(entry),
             None => self.0.push((name.to_string(), vec![entry])),
         }
+    }
+
+    /// Entry `i` of stream `name`, for a test to forge.
+    #[cfg(test)]
+    fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<F192> {
+        let (_, entries) = self.0.iter_mut().find(|(n, _)| n == name).expect("a hinted stream");
+        &mut entries[i]
     }
 
     fn install(self, guest: &mut Program) {
@@ -2139,6 +2157,10 @@ pub fn aggregate_with_stats(
     // `2^MU_MIN`. A run smaller than that (a leaf of a few dozen signatures) grows
     // its SET table until it clears the floor.
     program.min_log_committed = MU_MIN;
+    #[cfg(test)]
+    if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
+        forge(&mut hints);
+    }
     hints.install(&mut program);
     let (proof, stats) = prove(&program, public_input, log_inv_rate).map_err(AggregationError::ProofError)?;
     Ok((
@@ -3160,6 +3182,32 @@ mod tests {
         aggregate.verify().expect("verifies");
         assert!(aggregate.xmss_signers.is_empty());
         assert_eq!(aggregate.sphincs_signers.len(), 1);
+    }
+
+    /// The SPHINCS digest's fields are bound to it in-circuit: a node whose hints give a
+    /// tree's leaf the address field of another tree, or the digest's unused bits off
+    /// by one, fails the guest's run.
+    #[test]
+    fn forged_sphincs_digest_fields_are_rejected() {
+        leanvm_core::init_prover();
+        let signers = get_sphincs_signers(1);
+        let forgeries: [Forgery; 2] = [
+            Box::new(|hints: &mut Hints| {
+                let other_tree = pack_16_bytes(&sphincs::address(&sphincs::tweak(0, 1, 0)));
+                hints.entry_mut("sp_leaves", 0)[1] += other_tree;
+            }),
+            Box::new(|hints: &mut Hints| {
+                hints.entry_mut("sp_unused", 0)[0] *= F192::new(g_pow(1).0, 0, 0);
+            }),
+        ];
+        for forgery in forgeries {
+            FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+            let result = aggregate(&[], vec![], signers.clone(), &[], None, LOG_INV_RATE);
+            assert!(
+                matches!(result, Err(AggregationError::ProofError(_))),
+                "a forged digest field is rejected"
+            );
+        }
     }
 
     #[test]
