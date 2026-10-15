@@ -56,17 +56,38 @@ jobs:
         run: |
           ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
               --include='*.lean' --exclude-dir=.lake formal/sphincs | grep -vE ':[0-9]+: *(--|/-)'
+      # Without Mathlib's build, which `lake exe cache get` fetches, an entry takes
+      # a small share of the repository's cache. Only `main` saves one; every
+      # branch restores it, and GitHub drops it after a week unused.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/sphincs/.lake
+            !formal/sphincs/.lake/packages/mathlib/.lake
+          key: lake-sphincs-${{ runner.os }}-${{ hashFiles('formal/sphincs/lean-toolchain', 'formal/sphincs/lake-manifest.json') }}-${{ hashFiles('formal/sphincs/**/*.lean') }}
+          restore-keys: lake-sphincs-${{ runner.os }}-${{ hashFiles('formal/sphincs/lean-toolchain', 'formal/sphincs/lake-manifest.json') }}-
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/sphincs
+          use-github-cache: false
       - name: Check the axiom footprint
         working-directory: formal/sphincs
         run: |
-          printf 'import SphincsSecurity\n#print axioms SphincsSecurity.sphincs_has_127_bits_of_classical_security\n' \
+          printf 'import Sphincs\n#print axioms Sphincs.Lifetimes.requestedSecurity\n' \
             > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          grep -qF "'SphincsSecurity.sphincs_has_127_bits_of_classical_security' depends on axioms: [propext, Classical.choice, Quot.sound]" \
+          grep -qF "'Sphincs.Lifetimes.requestedSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]" \
             "$RUNNER_TEMP/axioms.txt"
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/sphincs/.lake
+            !formal/sphincs/.lake/packages/mathlib/.lake
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
           name: sphincs-axioms

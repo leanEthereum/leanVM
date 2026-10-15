@@ -18,7 +18,7 @@
   </tr>
   <tr>
     <td><a href="#sphincs-aggregation">leanSPHINCS aggregation</a></td>
-    <td align="right"><b>295/s</b></td>
+    <td align="right"><b>626/s</b></td>
   </tr>
   <tr>
     <td><a href="#data-availability">leanDA commitment</a></td>
@@ -69,7 +69,7 @@ Expect leanVM to change significantly:
 
 ### XMSS aggregation
 
-The XMSS parameters are specified in [XMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/xmss/XmssSecurity/Statement.lean).
+The XMSS parameters are specified in [XMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/xmss/XmssSecurity/Statement.lean). **This is not the definitive parameter set.**
 
 ```bash
 cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3
@@ -87,20 +87,20 @@ aggregation, 900 XMSS signatures
 
 ### SPHINCS aggregation
 
-The SPHINCS parameters are specified in [SPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/SPHINCS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/sphincs/SphincsSecurity/Statement.lean).
+The SPHINCS parameters are specified in [SPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/SPHINCS.pdf), with a [(ROM) security proof in Lean 4](formal/sphincs/README.md). **This is not the definitive parameter set.**
 
 ```bash
-cargo leanvm aggregate --sphincs 245 --log-inv-rate 1 --repeat 3
+cargo leanvm aggregate --sphincs 850 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-aggregation, 245 SPHINCS signatures
-  cycles (VM steps)           : 2,131,611 = 2^21.024
-    details                   : XOR 2^18.951 (23.8%)  MUL 2^18.93 (23.4%)  SET 2^18.845 (22.1%)  DEREF 2^18.711 (20.1%)  BLAKE2S 2^16.992 (6.1%)  JUMP 2^16.543 (4.5%)  MEMORY 2^21.46  BYTECODE 2^17.737  TOTAL_COMMITTED 2^26.301
-  proof size                  : 299.9 KiB
-  proving time                : 0.831 s ± 3.6%      peak memory 9.275 GiB
-  per signature               : 294.783 signatures/s
-  verifying                   : 5.225 ms
+aggregation, 850 SPHINCS signatures
+  cycles (VM steps)           : 2,206,098 = 2^21.073
+    details                   : SET 2^19.195 (27.2%)  MUL 2^18.984 (23.5%)  XOR 2^18.89 (22.0%)  SHA3 2^17.821 (10.5%)  DEREF 2^17.694 (9.6%)  JUMP 2^17.268 (7.2%)  MEMORY 2^22.671  BYTECODE 2^18.195  TOTAL_COMMITTED 2^26.455
+  proof size                  : 337.7 KiB
+  proving time                : 1.358 s ± 3.4%      peak memory 11.095 GiB
+  per signature               : 626.07 signatures/s
+  verifying                   : 16.002 ms
 ```
 
 ### data availability

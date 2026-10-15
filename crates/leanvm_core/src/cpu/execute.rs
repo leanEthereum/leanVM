@@ -667,13 +667,19 @@ impl Program {
                             let mu = cl.max(*floor);
                             m.put(fp + dst, F192::from(primitives::field::g_pow(mu as usize)))?;
                         }
-                        RHint::BitDecompose { value, bits, nbits } => {
-                            assert!(*nbits <= 192, "a machine word has 192 bits");
+                        RHint::BitDecompose {
+                            value,
+                            bits,
+                            nbits,
+                            start,
+                        } => {
+                            assert!(start + nbits <= 192, "a machine word has 192 bits");
                             let v = m.get(fp + value);
                             let limbs = [v.c0, v.c1, v.c2];
                             let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
                             for j in 0..*nbits {
-                                let bit = (limbs[j as usize / 64] >> (j % 64)) & 1;
+                                let at = start + j;
+                                let bit = (limbs[at as usize / 64] >> (at % 64)) & 1;
                                 m.put(bb + j, F192::new(bit, 0, 0))?;
                             }
                         }

@@ -1,6 +1,6 @@
 name = "sphincs-security"
 version = "0.1.0"
-defaultTargets = ["SphincsSecurity", "SphincsSecurity.Tests.QueryBudget"]
+defaultTargets = ["Sphincs"]
 
 [[require]]
 name = "VCVio"
@@ -8,4 +8,10 @@ git = "https://github.com/Verified-zkEVM/VCVio.git"
 rev = "cbd4144"
 
 [[lean_lib]]
-name = "SphincsSecurity"
+name = "Sphincs"
+
+[[lean_lib]]
+name = "SphincsFors"
+
+[[lean_lib]]
+name = "SphincsBase"

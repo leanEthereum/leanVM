@@ -1,16 +1,34 @@
-# SPHINCS security in Lean 4
+# leanSPHINCS security in Lean 4
 
-[Scheme.lean](SphincsSecurity/Scheme.lean) defines the scheme with a 32-byte master seed: parameters, serialized hash inputs, key generation, signing, and verification. [Statement.lean](SphincsSecurity/Statement.lean) imports it and defines the SUF-CMA game, hash-query budget, and 127-bit security target. Public parameters, signing secrets, and signing randomizers are derived in separate hash domains. Every hash call in the experiment counts, including derivation, signing failures, repeated calls and final verification.
+**`Sphincs.Lifetimes.requestedSecurity` proves that leanSPHINCS, the scheme of [`crates/sphincs`](../../crates/sphincs) specified in [`doc/sphincs`](../../doc/sphincs), has 127 bits of classical SUF-CMA security in the random-oracle model, at every subtree height below.** [Axioms.lean](Sphincs/Axioms.lean) pins every public theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`. There is no `sorry` and no `native_decide`.
 
-[Completeness.lean](SphincsSecurity/Completeness.lean) states the other side. Correctness, for every hash function: a signature the signer produces verifies. Completeness, against the same random oracle: the sum over all messages of the probability that sampling a seed, generating a key, signing and verifying fails is at most $2^{-256}$, where failing means the signer returned no signature or the verifier rejected it. This is the union-bound budget for one key signing every message. `sphincs_is_correct` and `sphincs_is_complete` prove the two statements; [PROOF.md](PROOF.md#completeness) outlines the route.
+The game is [StatementDet.lean](Sphincs/StatementDet.lean). A uniform 32-byte seed generates the key (`Seeded.keygenFromSeed`), and the adversary gets the public key, the random oracle and a signing oracle running the deterministic signer `Seeded.sign`. It wins if the final `Concrete.verify` accepts its pair, the pair is not one the signing oracle returned, and the signing oracle answered at most `N` requests, repeats included. `HasClassicalSecurityBitsDet 127` says that for every `q ≥ 1` and every adversary whose experiment makes at most `q` hash calls on every outcome, the probability of winning is at most `q / 2^127`. The count includes every call of the experiment: key generation, the signer and the final verification. Private sampling is free, and running time and memory are unbounded.
 
-The public adversary may use private randomness adaptively and has no running-time or memory bound. The probability is over the master seed, the shared consistent random oracle and the adversary's private randomness. Private sampling does not count toward the hash-query budget. [Proof/Adversary](SphincsSecurity/Proof/Adversary) identifies this game with the internal probabilistic game, preserving success probabilities and query counts exactly.
+## Lifetimes
 
-The theorem `sphincs_has_127_bits_of_classical_security` proves this claim for at most `2^24` signing requests per key. The reduction in [Proof/Deterministic](SphincsSecurity/Proof/Deterministic) couples seed derivation to independent secrets and signing trials, handles repeated requests, bounds adaptive seed guesses, and transfers the query budget. The public-parameter derivation consumes a query, leaving enough slack to absorb the seed-guessing loss without weakening the 127-bit bound.
+A key keeps one subtree of height `b` of the height-26 tree (`doc/sphincs` explains the pruning). Each row is one theorem of [Lifetimes.lean](Sphincs/Lifetimes.lean):
 
-## Build and audit
+| b | signatures N | key generation, hash calls | key generation, permutations |
+| ---: | ---: | ---: | ---: |
+| 26 | 1,383,000,000 | 15,166,603,264 | 15,703,474,176 |
+| 20 | 26,030,000 | 236,978,188 | 245,366,796 |
+| 14 | 480,900 | 3,702,808 | 3,833,880 |
+| 13 | 247,000 | 1,851,418 | 1,916,954 |
+| 12 | 126,900 | 925,724 | 958,492 |
+| 10 | 33,490 | 231,456 | 239,648 |
+| 8 | 8,830 | 57,892 | 59,940 |
 
-Use the pinned Lean toolchain and VCVio revision:
+The hash calls are `226 · 2^b + 2 (26 − b)` (`Security.Prefix.hashCalls_keygenFromSeed`): per one-time key 32 derivations of chain starts, 192 chain steps and the leaf, then the `2^b − 1` nodes of the subtree, the `26 − b` surrogate siblings, the `26 − b` nodes above the subtree and the public parameter. In permutations of the leanVM hash, one per started 128-byte block, a one-time leaf hashes 1,056 bytes and costs 9, so the total is `234 · 2^b + 2 (26 − b)`.
+
+Also proved: for every hash function and every subtree height, a signature the signer returns verifies (`Completeness.correct`), a signature serializes to 4,276 bytes (`signature_size`), and an accepted verification hashes exactly 307 blocks of 64 bytes and no signature more (`Cost.verification_compressions`, `Cost.verification_compressions_le`). In the leanVM hash's 128-byte blocks it is 272 permutations (`sphincs::VERIFY_PERMUTATIONS`), which Lean does not state.
+
+## The model and the Rust code
+
+[Scheme.lean](Sphincs/Scheme.lean) is the functional model. Its bytes are the crate's: the 16-byte address and every hash domain, the seed derivations (two chain starts per hash), the randomizer base `R0 = Th(P, A(7, 0, 0), seed ‖ m)` and the attempts `R0 + i`, the 234-bit message digest and its field offsets, the codeword table (`codewordCodes`, the rule of `doc/sphincs`), the kept subtree (the first 8 bytes of `P` mod `2^(26−b)`), the 2^32 bounds on randomizer and counter attempts, and the serialization. This was checked by reading both sides; it is not a mechanized refinement of the Rust.
+
+The two signers compute the same signature, but not with the same hash calls. The Lean signer recomputes the forest for its key and again for the opening, and hashes the digest once more after its loop, where the Rust signer reuses what it computed. The budget `q` of the theorem counts the calls of the Lean signer.
+
+## Build
 
 ```sh
 cd formal/sphincs
@@ -18,26 +36,14 @@ lake exe cache get
 lake build
 ```
 
-The cache command is needed on initial setup. The root module pins the axiom footprint of every theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`, so the build fails if it ever grows. [scripts/Reach.lean](scripts/Reach.lean) is a maintenance script: `lake env lean scripts/Reach.lean` writes `reach.txt`, listing every local declaration with the line range of its source block and whether the proof terms of the public theorems reach it, which is how dead code is found before pruning.
+[PROOF.md](PROOF.md) describes the route, the codeword table, the hash inputs, the signer's hash-call counts, and the scripts that generate the kernel-checked certificates.
 
-## Where to work
+## Libraries
 
-[PROOF.md](PROOF.md) explains the route, the constants, the component facades that seal each component's parameters, and which modules must change if a component changes. The proof is split by component:
+| Library                    | What it is                                                                                                                                                                                                                                |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Sphincs](Sphincs)         | The scheme and its proof.                                                                                                                                                                                                                 |
+| [SphincsFors](SphincsFors) | The modules of the proof of the FORS variant of leanSPHINCS that `Sphincs` imports.                                                                                                                                                       |
+| [SphincsBase](SphincsBase) | The modules that `Sphincs` and `SphincsFors` import from the candidates' copy of the proof of leanVM's earlier SPHINCS instance (whose hash domains it renumbers): scheme-independent tooling (uniform tables, query caps, chain bounds). |
 
-| Entry | Purpose |
-| --- | --- |
-| [SphincsSecurity.lean](SphincsSecurity.lean) | The public theorems. |
-| [Completeness](SphincsSecurity/Completeness) | Correctness and completeness: recovery, the reduction of failure to signing returning `none`, and the bounds on signing's four searches. |
-| [Proof/Deterministic](SphincsSecurity/Proof/Deterministic) | Seed derivation, coupling to independent secrets, and the final security bound. |
-| [Proof/Security127Completion.lean](SphincsSecurity/Proof/Security127Completion.lean) | Combines the large-budget and small-budget bounds into `security127`. |
-| [Proof/Base](SphincsSecurity/Proof/Base) | Scheme-independent tooling: uniform tables and their exact adaptive posteriors, query caps, pauses and traces, oracle query charges, moment bounds. |
-| [Proof/Scheme](SphincsSecurity/Proof/Scheme) | The concrete game over a query cache, honest computation and witness extraction from an accepting signature. |
-| [Proof/Hypertree](SphincsSecurity/Proof/Hypertree) | The canonical graph of honest hash inputs, frontier oracles, structural matches, layer and hypertree witnesses. |
-| [Proof/Chains](SphincsSecurity/Proof/Chains) | Abstract chain tables and their adaptive query bounds, independent of the scheme. |
-| [Proof/Ots](SphincsSecurity/Proof/Ots) | The one-time signature: prefix simulation, contacts, encoding neighbors, markers and matches on the concrete chains, the OTS verifier witness. |
-| [Proof/Fts](SphincsSecurity/Proof/Fts) | The few-time signature and message digest: target certificates, the banked monitor, proposal words, the terminal certificate price, cache exceptions. |
-| [Proof/Reference](SphincsSecurity/Proof/Reference) | The reference experiment: sampled reference family, forgery source, verifier classification, primitive-event union, query allocation, certificate coverage. |
-| [Proof/Residual](SphincsSecurity/Proof/Residual) | The retained residual monitor on the original game and the large-budget theorem. |
-| [Proof/Forced](SphincsSecurity/Proof/Forced) | The secret-guess interpreter, the forced FTS games, their monitored runs and the small-budget arithmetic. |
-
-Superseded proof routes and their planning notes are in the Git history.
+The three come from [leanXMSS-leanSPHINCS-candidates](https://github.com/TomWambsgans/leanXMSS-leanSPHINCS-candidates/tree/cc0648feb5b686ba1447678120e401f7b78098f7/formal/sphincs) at commit `cc0648f`, where they are named `LeanForest`, `LeanSphincs` and `SphincsSecurity` and where the rest of the FORS proof is. Only the modules `Sphincs` reaches are here, renamed and otherwise unchanged but for one comment of `LifetimeCertificates.lean` and of the script that writes it.

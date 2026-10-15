@@ -206,8 +206,13 @@ pub enum RHint {
         nbits: u32,
         floor: u32,
     },
-    /// Write the `nbits` bits of `m[fp+value]` into `bits`.
-    BitDecompose { value: Off, bits: BitsDest, nbits: u32 },
+    /// Write the `nbits` bits of `m[fp+value]` from bit `start` on into `bits`.
+    BitDecompose {
+        value: Off,
+        bits: BitsDest,
+        nbits: u32,
+        start: u32,
+    },
     /// Write the `nbits` bits of `n`, where `m[fp+value] = g^n` (a bounded
     /// discrete log at witness generation), into `bits`.
     BitDecomposeExp { value: Off, bits: BitsDest, nbits: u32 },

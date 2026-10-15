@@ -501,7 +501,7 @@ The prover supplies streams with `program.set_witness("name", entries)` (`Vec<Ve
 
 Three builtins have the prover compute the values at witness generation instead of popping a stream entry. Like `hint_witness`, the results are completely unconstrained: the program must re-verify them in-circuit.
 
-- `hint_decompose_bits(bits, value, nbits)`: writes the low `nbits` bits of `value` into the buffer `bits`, one field element (`0`/`1`) per bit.
+- `hint_decompose_bits(bits, value, nbits[, start])`: writes `nbits` bits of `value`, from bit `start` on (default `0`), into the buffer `bits`, one field element (`0`/`1`) per bit.
 - `hint_decompose_bits_exponent(bits, x, nbits)`: writes the `nbits` bits of the exponent `n` where `x = GEN ** n` into `bits` (a bounded dlog at witness generation).
 - `g = hint_log2_ceil(bits, nbits, floor)`: returns `GEN ** log2_ceil(v)` for the value `v` held bitwise in the `nbits`-bit buffer `bits`, floored at `floor`.
 
