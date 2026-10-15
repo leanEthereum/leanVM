@@ -488,14 +488,44 @@ mod neon {
         unsafe { vmovl_u32(vld1_u32(p)) }
     }
 
-    /// The product of the low lanes, and of the high lanes.
+    /// The product of the low lanes, and of the high lanes, written out: the intrinsics take the
+    /// lanes as scalars, so the compiler splits loads in general registers and moves each
+    /// operand over on its own.
     #[inline(always)]
     unsafe fn mul_lo(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        unsafe { transmute::<u128, uint64x2_t>(vmull_p64(vgetq_lane_u64(a, 0), vgetq_lane_u64(b, 0))) }
+        let out;
+        unsafe {
+            core::arch::asm!(
+                "pmull {o:v}.1q, {a:v}.1d, {b:v}.1d",
+                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
+                options(pure, nomem, nostack, preserves_flags),
+            );
+        }
+        out
     }
 
     #[inline(always)]
     unsafe fn mul_hi(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        let out;
+        unsafe {
+            core::arch::asm!(
+                "pmull2 {o:v}.1q, {a:v}.2d, {b:v}.2d",
+                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
+                options(pure, nomem, nostack, preserves_flags),
+            );
+        }
+        out
+    }
+
+    /// The same through the intrinsics, for [`skip_row`]: its products are the bound there, and
+    /// the compiler schedules them better around the rest of the loop than written-out ones.
+    #[inline(always)]
+    unsafe fn mul_lo_scheduled(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        unsafe { transmute::<u128, uint64x2_t>(vmull_p64(vgetq_lane_u64(a, 0), vgetq_lane_u64(b, 0))) }
+    }
+
+    #[inline(always)]
+    unsafe fn mul_hi_scheduled(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
         unsafe { transmute::<u128, uint64x2_t>(vmull_high_p64(vreinterpretq_p64_u64(a), vreinterpretq_p64_u64(b))) }
     }
 
@@ -530,10 +560,10 @@ mod neon {
                 let mut sums = [[vdupq_n_u64(0); 2]; 3];
                 for x in 0..5 {
                     let (zb, zc) = (z[(x + 1) % 5], z[(x + 2) % 5]);
-                    let pair = vzip1q_u64(mul_lo(zb, zc), mul_hi(zb, zc));
+                    let pair = vzip1q_u64(mul_lo_scheduled(zb, zc), mul_hi_scheduled(zb, zc));
                     for k in 0..3 {
-                        sums[k][0] = veorq_u64(sums[k][0], mul_lo(pair, w[x][k]));
-                        sums[k][1] = veorq_u64(sums[k][1], mul_hi(pair, w[x][k]));
+                        sums[k][0] = veorq_u64(sums[k][0], mul_lo_scheduled(pair, w[x][k]));
+                        sums[k][1] = veorq_u64(sums[k][1], mul_hi_scheduled(pair, w[x][k]));
                     }
                 }
                 for (k, sums) in sums.iter().enumerate() {

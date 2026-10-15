@@ -428,7 +428,6 @@ mod x86 {
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
 mod neon {
     use core::arch::aarch64::*;
-    use core::mem::transmute;
 
     use super::*;
 
@@ -443,14 +442,33 @@ mod neon {
         unsafe { std::array::from_fn(|k| veorq_u64(a[k], b[k])) }
     }
 
+    /// The product of the low lanes, and of the high lanes, written out: through the intrinsics,
+    /// which take the lanes as scalars, the compiler moves each operand over from a general
+    /// register.
     #[inline(always)]
     unsafe fn mul_lo(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        unsafe { transmute::<u128, uint64x2_t>(vmull_p64(vgetq_lane_u64(a, 0), vgetq_lane_u64(b, 0))) }
+        let out;
+        unsafe {
+            core::arch::asm!(
+                "pmull {o:v}.1q, {a:v}.1d, {b:v}.1d",
+                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
+                options(pure, nomem, nostack, preserves_flags),
+            );
+        }
+        out
     }
 
     #[inline(always)]
     unsafe fn mul_hi(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        unsafe { transmute::<u128, uint64x2_t>(vmull_high_p64(vreinterpretq_p64_u64(a), vreinterpretq_p64_u64(b))) }
+        let out;
+        unsafe {
+            core::arch::asm!(
+                "pmull2 {o:v}.1q, {a:v}.2d, {b:v}.2d",
+                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
+                options(pure, nomem, nostack, preserves_flags),
+            );
+        }
+        out
     }
 
     /// The products `a[i] * b[k]` of the listed word pairs, of each lane, as 128-bit sums by
