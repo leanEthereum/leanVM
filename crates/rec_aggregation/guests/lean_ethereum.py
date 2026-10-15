@@ -467,10 +467,17 @@ SP_SUBNODE_LEVEL_MUL = 2 ** 8 * SP_HI_MUL
 SP_SUBNODE_MUL = 2 ** 10 * SP_HI_MUL
 SP_FNODE_LEVEL_MUL = 2 ** 3 * SP_HI_MUL
 SP_FNODE_MUL = 2 ** 6 * SP_HI_MUL
+# Values bounded a byte at a time: each byte hinted in the exponent, range checked,
+# and read as the bits it spells off a table of the SP_BYTE_VALUES bytes.
+SP_BYTE_VALUES = 256
 # The encoding counter, LE_32 in the low four bytes of its lane: bounded by
-# decomposing exactly that many bits, so the guest accepts no preimage the native
-# verifier cannot parse.
-SP_COUNTER_BITS = 32
+# rebuilding it from exactly that many bytes, so the guest accepts no preimage the
+# native verifier cannot parse.
+SP_COUNTER_BYTES = 4
+# The bits past the second cell's fields, likewise: a byte at a time, the last one
+# holding the rest.
+SP_UNUSED_BYTES = (SP_UNUSED_BITS + 7) // 8
+SP_UNUSED_TOP = 2 ** (SP_UNUSED_BITS - 8 * (SP_UNUSED_BYTES - 1))
 
 # --------------------------------------------------------------- node capacities
 # MAX_KEYS caps the coverage table's slots, both schemes' declared keys and their
@@ -3478,6 +3485,26 @@ def sp_shifts(bits, off: Const, n: Const, out):
 
 
 @inline
+def sp_from_bytes(byte_bits, marks, n: Const, top: Const):
+    # The integer whose n bytes, low first, are hinted in the exponent at marks[k]:
+    # each range checked (the top one below `top`, SP_BYTE_VALUES or SP_UNUSED_TOP)
+    # and read off `byte_bits` as the bits it spells, so the integer is below
+    # top * 2^(8 (n - 1)).
+    for t in unroll(0, n):
+        k = n - 1 - t
+        if const(t == 0):
+            if const(top == SP_BYTE_VALUES):
+                assert log(marks[k]) < SP_BYTE_VALUES
+            else:
+                assert log(marks[k]) < SP_UNUSED_TOP
+            value = byte_bits[marks[k]]
+        else:
+            assert log(marks[k]) < SP_BYTE_VALUES
+            value = byte_bits[marks[k]] + value * GEN ** 8
+    return value
+
+
+@inline
 def sp_is_child(node, kids, k: Const, bit):
     # A node is not ordered against its sibling: the two children are hinted in
     # order, at kids[k] and kids[k + 1], and `node` is checked to be the one `bit`
@@ -3594,7 +3621,7 @@ def sp_tree_arm(node, tree_at, pp, tops, c: Const, s: Const):
     return const(s * SP_LEAF_MUL), const(s) * COORD_BASIS[SP_LEAF_OFF + c * SP_TREE_HEIGHT]
 
 
-def verify_sig_sphincs(signer):
+def verify_sig_sphincs(signer, byte_bits):
     # `signer` is one 4-cell entry of the SPHINCS coverage table: the key's root and
     # public parameter, then the message THAT signer signed. Where XMSS's message is
     # one statement field for the whole node, a SPHINCS message rides its own slot,
@@ -3610,23 +3637,21 @@ def verify_sig_sphincs(signer):
     # The digest's first cell is the sixteen codewords and its second is bit
     # fields. A field a dispatch takes (a codeword, a tree's leaf, a subtree's
     # WOTS key) is hinted in the exponent and bound by what its arm returns, the
-    # field as the digest holds it. The index and the unused bits are advice bits,
-    # pinned Boolean. `bound` gathers what the second cell's fields weigh.
+    # field as the digest holds it. The index is advice bits, pinned Boolean, and
+    # the unused bits hinted bytes (sp_from_bytes). `bound` gathers what the second
+    # cell's fields weigh.
     bits = StackBuf(SP_H)
     hint_decompose_bits(bits, digest[1], SP_H)
     for i in unroll(0, SP_H):
         bits[i] = bits[i] * bits[i]
-    high = StackBuf(SP_UNUSED_BITS)
-    hint_decompose_bits(high, digest[1], SP_UNUSED_BITS, SP_USED_BITS)
-    for i in unroll(0, SP_UNUSED_BITS):
-        high[i] = high[i] * high[i]
     # nodes[l] is idx >> l: the index, then the node above it on each level.
     nodes = StackBuf(SP_H)
     sp_shifts(bits, 0, SP_H, nodes)
     idx = nodes[0]
-    unused = StackBuf(SP_UNUSED_BITS)
-    sp_shifts(high, 0, SP_UNUSED_BITS, unused)
-    bound = idx + unused[0] * COORD_BASIS[SP_USED_BITS]
+    unused_bytes = StackBuf(SP_UNUSED_BYTES)
+    hint_witness(unused_bytes, "sp_unused")
+    unused = sp_from_bytes(byte_bits, unused_bytes, SP_UNUSED_BYTES, SP_UNUSED_TOP)
+    bound = idx + unused * COORD_BASIS[SP_USED_BITS]
 
     # ---- the few-time signature: two opened WOTS keys per tree of the forest ----
     # The few-time key's input: P, A, then tree c's top nodes at tops[2 + 2c].
@@ -3661,31 +3686,30 @@ def verify_sig_sphincs(signer):
             assert log(word) < SP_WORDS
             key_at = sub_at + key_mark[1]
             node, weight = match(log(word), range(0, SP_WORDS), lambda t: sp_forest_key(key_at, pp, t, 2 * c + j))
-            encoded_words = encoded_words + weight
+            if const(2 * c + j + 1 == 2 * SP_TREES):
+                # The last codeword: the sum stored where the digest's first cell
+                # already is, which is the assert that the codewords are that cell.
+                digest[0] = encoded_words + weight
+            else:
+                encoded_words = encoded_words + weight
             key_mark[1], key_weight = match(log(key_mark[0]), range(0, SP_KEYS), lambda a: sp_subtree_arm(node, sub_at, pp, subtops, c, j, a))
             bound = bound + key_weight
         leaf = StackBuf(SHA3_STATE)
         sha3_cells(subtops, leaf)
         leaf_mark[1], leaf_weight = match(log(leaf_mark[0]), range(0, SP_LEAVES), lambda s: sp_tree_arm(leaf[0], tree_at, pp, tops, c, s))
-        bound = bound + leaf_weight
-    # The codewords, a byte each: eight to a lane, low byte first.
-    assert encoded_words == digest[0]
-    assert bound == digest[1]
+        if const(c + 1 == SP_TREES):
+            digest[1] = bound + leaf_weight  # likewise, the second cell's fields
+        else:
+            bound = bound + leaf_weight
     forest_key = StackBuf(SHA3_STATE)
     sha3_cells(tops, forest_key)
 
     # ---- the one-time signature of the few-time key ----
-    # D = Th(P, A, key | LE_32(c)), 52 bytes. The counter is bounded by decomposing
-    # exactly its bits, so the guest accepts no preimage the native verifier cannot
-    # parse.
-    ctr = hint_witness("sp_counter")
-    ctr_bits = StackBuf(SP_COUNTER_BITS)
-    hint_decompose_bits(ctr_bits, ctr, SP_COUNTER_BITS)
-    ctr_bound = 0
-    for i in unroll(0, SP_COUNTER_BITS):
-        ctr_bits[i] = ctr_bits[i] * ctr_bits[i]
-        ctr_bound = ctr_bits[SP_COUNTER_BITS - 1 - i] + GEN * ctr_bound
-    assert ctr_bound == ctr
+    # D = Th(P, A, key | LE_32(c)), 52 bytes. The counter is rebuilt from its four
+    # bytes, so the guest accepts no preimage the native verifier cannot parse.
+    ctr_bytes = StackBuf(SP_COUNTER_BYTES)
+    hint_witness(ctr_bytes, "sp_counter")
+    ctr = sp_from_bytes(byte_bits, ctr_bytes, SP_COUNTER_BYTES, SP_BYTE_VALUES)
     encoding = StackBuf(SHA3_STATE)
     sha3([pp, idx + SP_TW_ENC], [forest_key[0], ctr], encoding, len=52)
 
@@ -3708,9 +3732,8 @@ def verify_sig_sphincs(signer):
     assert log(group) < SP_CHAIN_LENGTH
     term, digit_sum = match(log(group), range(0, SP_CHAIN_LENGTH), lambda k: sp_walk_group(idx, pp, walks, SP_V - 1, 1, k))
     digit_product = digit_product * digit_sum
-    encoded = encoded + term
+    encoding[0] = encoded + term  # the digits, stored where D already is
     assert digit_product == GEN ** SP_TARGET_SUM
-    assert encoded == encoding[0]
     leaf = StackBuf(SHA3_STATE)
     wots_leaf(pp, idx + SP_TW_LEAF, walks, SP_CHAIN_STEPS, SP_V, leaf)
 
@@ -4521,11 +4544,15 @@ def main():
             raw_count[xe * GEN] = prefix * n_raw
         else:
             raw_count[xe * GEN] = prefix
+    # byte_bits[g^v] = v, read at a hinted byte's exponent (sp_from_bytes).
+    byte_bits = HeapBuf(SP_BYTE_VALUES)
+    for v in unroll(0, SP_BYTE_VALUES):
+        byte_bits[GEN ** v] = v
     for xj in mul_range(1, n_raw_s_g):
         off_hint = hint_witness("sp_raw_index")
         assert log(off_hint) < log(sphincs_slots_g)
         cover[xmss_slots_g * off_hint] = n_raw_x_g * xj
-        verify_sig_sphincs(sphincs_table * (off_hint ** 4))
+        verify_sig_sphincs(sphincs_table * (off_hint ** 4), byte_bits)
 
     if n_direct_da_g == GEN:
         root_0, root_1, vector_0, vector_1 = da_verify(g_squares)

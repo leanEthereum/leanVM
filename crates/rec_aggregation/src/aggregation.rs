@@ -152,6 +152,20 @@ fn count(n: usize) -> F192 {
     F192::new(g_pow(n).0, 0, 0)
 }
 
+/// The bytes of a `bits`-bit value, low first, each in the exponent: how the guest
+/// bounds a value it rebuilds (`sp_from_bytes`).
+fn exponent_bytes(value: u64, bits: usize) -> Vec<F192> {
+    (0..bits.div_ceil(8))
+        .map(|k| count((value >> (8 * k) & 0xff) as usize))
+        .collect()
+}
+
+/// The bits of the SPHINCS digest's second cell its fields take: the index, each
+/// tree's leaf and each subtree's key.
+const SPHINCS_USED_BITS: usize = sphincs::H
+    + sphincs::FOREST_TREES * sphincs::TREE_HEIGHT
+    + sphincs::SUBTREES * sphincs::FOREST_TREES * sphincs::SUBTREE_HEIGHT;
+
 /// [`count`] in the scalar field. The statement takes its few counts this way on both sides, being what [`EthereumProof::verify`] rebuilds.
 fn scalar_count(n: usize) -> F192 {
     from_scalar(verifier::gpow(n as u64))
@@ -1747,6 +1761,16 @@ fn push_sphincs_hints(
         hints.push("sp_forest_values", vec![pack_16_bytes(value)]);
     }
     let (idx, marks) = sphincs::message_digest(pp, &sig.randomizer, message);
+    // The bits past the digest's fields, which only its rebuild reads.
+    let digest = sphincs::hasher(pp, &sphincs::tweak(sphincs::TWEAK_MSG, 0, 0))
+        .update(message)
+        .update(&sig.randomizer)
+        .finalize();
+    let unused = (SPHINCS_USED_BITS..128).fold(0u64, |value, bit| {
+        let position = 8 * sphincs::DIGEST_WORD_BYTES + bit;
+        value | u64::from(digest[position / 8] >> (position % 8) & 1) << (bit - SPHINCS_USED_BITS)
+    });
+    hints.push("sp_unused", exponent_bytes(unused, 128 - SPHINCS_USED_BITS));
     for word in marks.iter().flat_map(|mark| mark.words) {
         hints.push("sp_words", vec![count(word)]);
     }
@@ -1770,7 +1794,7 @@ fn push_sphincs_hints(
     let forest_key = sphincs::forest_recover(pp, idx as u32, &marks, &sig.forest);
     let codeword =
         sphincs::encode(pp, idx as u32, &forest_key, sig.counter).ok_or(AggregationError::MalformedRawSignature)?;
-    hints.push("sp_counter", vec![F192::new(u64::from(sig.counter), 0, 0)]);
+    hints.push("sp_counter", exponent_bytes(u64::from(sig.counter), 32));
     // The guest dispatches on three digits at a time, and on the last one alone.
     for group in codeword.chunks(SPHINCS_DIGIT_GROUP) {
         let index = group
