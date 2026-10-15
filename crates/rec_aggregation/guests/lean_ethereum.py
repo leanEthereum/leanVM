@@ -3300,13 +3300,13 @@ def chain_tip(walks, near: Const, i: Const):
 
 
 @inline
-def wots_leaf(tw, pp, walks, near: Const, n: Const, leaf):
-    # The hash of the prefix (tw, pp) and the n chain tips, eight cells a block. A block
+def wots_leaf(p0, p1, walks, near: Const, n: Const, leaf):
+    # The hash of the prefix (p0, p1) and the n chain tips, eight cells a block. A block
     # takes its first four cells from anywhere, and a later one all eight, its message
     # being XORed into the state, so the tips are read where their walks left them. The
     # last block holds at most four cells: 2 + n is at most 4 past a multiple of 8.
     st = StackBuf(SHA3_STATE)
-    sha3([tw, pp], [chain_tip(walks, near, 0), chain_tip(walks, near, 1)], st, tail=[chain_tip(walks, near, 2), chain_tip(walks, near, 3), chain_tip(walks, near, 4), chain_tip(walks, near, 5)], final=0)
+    sha3([p0, p1], [chain_tip(walks, near, 0), chain_tip(walks, near, 1)], st, tail=[chain_tip(walks, near, 2), chain_tip(walks, near, 3), chain_tip(walks, near, 4), chain_tip(walks, near, 5)], final=0)
     for b in unroll(1, (n + 1) // 8):
         t = 8 * b - 2  # the block's first tip
         nxt = StackBuf(SHA3_STATE)
@@ -3490,28 +3490,28 @@ def sp_is_child(node, kids, k: Const, bit):
 
 
 @inline
-def sp_walk(idx, pp, tips, i: Const, k: Const):
+def sp_walk(idx, pp, walks, i: Const, k: Const):
     # Walk WOTS+C chain i from position k to its end, the step leaving position s
-    # carrying s, the tip landing in tips[2 + i].
+    # carrying s and landing in chain i's slot s of `walks`, so the tip is
+    # chain_tip(walks, SP_CHAIN_STEPS, i) whatever k is.
     if const(k == SP_CHAIN_STEPS):
-        hint_witness(tips[2 + i:3 + i], "sp_chain_starts")
+        hint_witness(walks[((i + 1) * SP_CHAIN_STEPS - 1) * SHA3_STATE:((i + 1) * SP_CHAIN_STEPS - 1) * SHA3_STATE + 1], "sp_chain_starts")
     else:
         value = hint_witness("sp_chain_starts")
         for s in unroll(k, SP_CHAIN_STEPS):
-            out = StackBuf(SHA3_STATE)
-            sha3([pp, idx + const(SP_TW_CHAIN + i * SP_HI_MUL + s * SP_STEP_MUL)], [value, 0], out, len=48)
-            value = out[0]
-        tips[2 + i] = value
+            at = (SP_CHAIN_STEPS * i + s) * SHA3_STATE
+            sha3([pp, idx + const(SP_TW_CHAIN + i * SP_HI_MUL + s * SP_STEP_MUL)], [value, 0], walks[at:at + SHA3_STATE], len=48)
+            value = walks[at]
     return
 
 
 @inline
-def sp_walk_group(idx, pp, tips, first: Const, n: Const, k: Const):
+def sp_walk_group(idx, pp, walks, first: Const, n: Const, k: Const):
     # The n <= SP_DIGIT_GROUP chains from `first` on, at the digits of k, one
     # dispatch for all of them. Returns the digits as the encoding digest holds
     # them, and their sum in the exponent.
     for r in unroll(0, n):
-        sp_walk(idx, pp, tips, first + r, (k // SP_CHAIN_LENGTH ** r) % SP_CHAIN_LENGTH)
+        sp_walk(idx, pp, walks, first + r, (k // SP_CHAIN_LENGTH ** r) % SP_CHAIN_LENGTH)
     return const(k * SP_CHAIN_LENGTH ** first), GEN ** SP_DIGIT_SUMS[k]
 
 
@@ -3677,28 +3677,26 @@ def verify_sig_sphincs(signer):
     # checked and dispatched once, the arm walking every chain's remaining steps.
     # The product of what the arms return is the target sum, and the digits, each
     # group where the digest holds it, reconstruct D. The one-time leaf's input is
-    # P, A, then chain i's tip at tips[2 + i].
-    tips = StackBuf(2 + SP_V)
-    tips[0] = pp
-    tips[1] = idx + SP_TW_LEAF
+    # P, A, then the chains' tips.
+    walks = StackBuf(SP_V * SP_CHAIN_STEPS * SHA3_STATE)
     digit_product = 1
     encoded = 0
     for p in unroll(0, SP_V // SP_DIGIT_GROUP):
         group = hint_witness("sp_digits")
         assert log(group) < SP_DIGIT_GROUPS
-        term, digit_sum = match(log(group), range(0, SP_DIGIT_GROUPS), lambda k: sp_walk_group(idx, pp, tips, SP_DIGIT_GROUP * p, SP_DIGIT_GROUP, k))
+        term, digit_sum = match(log(group), range(0, SP_DIGIT_GROUPS), lambda k: sp_walk_group(idx, pp, walks, SP_DIGIT_GROUP * p, SP_DIGIT_GROUP, k))
         digit_product = digit_product * digit_sum
         encoded = encoded + term
     # The chain the groups leave over.
     group = hint_witness("sp_digits")
     assert log(group) < SP_CHAIN_LENGTH
-    term, digit_sum = match(log(group), range(0, SP_CHAIN_LENGTH), lambda k: sp_walk_group(idx, pp, tips, SP_V - 1, 1, k))
+    term, digit_sum = match(log(group), range(0, SP_CHAIN_LENGTH), lambda k: sp_walk_group(idx, pp, walks, SP_V - 1, 1, k))
     digit_product = digit_product * digit_sum
     encoded = encoded + term
     assert digit_product == GEN ** SP_TARGET_SUM
     assert encoded == encoding[0]
     leaf = StackBuf(SHA3_STATE)
-    sha3_cells(tips, leaf)
+    wots_leaf(pp, idx + SP_TW_LEAF, walks, SP_CHAIN_STEPS, SP_V, leaf)
 
     # ---- the tree: the path from that one-time key to the public key's root ----
     node = leaf[0]
