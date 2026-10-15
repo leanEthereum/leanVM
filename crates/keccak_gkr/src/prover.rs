@@ -144,14 +144,15 @@ impl Groups {
     /// Add row `r`'s part of `sum over positions of weight[j] (x) payloads[j]` to `rows`: row
     /// `DIGIT_BITS * d + i` sums the payloads whose weight has that bit set. Each group is summed
     /// in registers, so the payloads, a row's worth that stays in cache, are only read.
-    fn add_rows(&self, r: usize, payloads: &[Payload], rows: &mut [Payload]) {
+    fn add_rows(&self, r: usize, payloads: &[Payload; ROW_POSITIONS], rows: &mut [Payload]) {
         let mut sums = [Payload::ZERO; 1 << DIGIT_BITS];
         let groups = self.order[DIGITS * r..].iter().zip(&self.starts[DIGITS * r..]);
         for (rows, (order, starts)) in rows.as_chunks_mut::<DIGIT_BITS>().0.iter_mut().zip(groups) {
             for (v, sum) in sums.iter_mut().enumerate() {
                 let mut acc = Payload::ZERO;
                 for &p in &order[starts[v] as usize..starts[v + 1] as usize] {
-                    acc.add(&payloads[p as usize]);
+                    // SAFETY: `order` holds positions of a row.
+                    acc.add(unsafe { payloads.get_unchecked(p as usize) });
                 }
                 *sum = acc;
             }
@@ -227,7 +228,7 @@ impl Layer<'_> {
                             payloads[64 * x + z] = Payload::pack(&products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]));
                         }
                     }
-                    groups.add_rows(r, payloads, rows);
+                    groups.add_rows(r, payloads.as_array().expect("a row"), rows);
                 }
                 // Row `r` holds bit `r` of each payload bit's weighted sum: transposed, they are
                 // field elements, which the block's weight multiplies.
