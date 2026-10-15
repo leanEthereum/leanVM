@@ -519,12 +519,13 @@ mod neon {
         }
     }
 
-    /// Two slots at a time, their sums over the row kept in registers.
+    /// Two slots at a time, their sums over the row kept in registers. The padding slots are
+    /// skipped: [`extend`] leaves them zero.
     #[inline(always)]
     pub unsafe fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
         unsafe {
             let w: [[uint64x2_t; 3]; 5] = std::array::from_fn(|x| std::array::from_fn(|k| vdupq_n_u64(weights[x][k])));
-            for p in (0..SLOTS).step_by(2) {
+            for p in (0..2 * MIXED).step_by(2) {
                 let z: [uint64x2_t; 5] = std::array::from_fn(|x| load(e[x].as_ptr().add(p)));
                 let mut sums = [[vdupq_n_u64(0); 2]; 3];
                 for x in 0..5 {
