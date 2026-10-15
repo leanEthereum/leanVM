@@ -53,13 +53,13 @@ theorem NoMsg.tweakableHash (parameter : PublicParameter) (domain : HashDomain) 
   exact NoMsg.bind (NoMsg.query (not_msg_tweakable parameter domain payload hdomain)) fun _ => NoMsg.pure' _
 
 theorem NoMsg.encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (counter : Counter) :
+    (message : ForestKey) (counter : Counter) :
     NoMsg (Concrete.encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) := by
   unfold Concrete.encode
   exact NoMsg.bind (NoMsg.tweakableHash _ _ _ (by simp [hashDomainFields, tweakFields])) fun _ => NoMsg.pure' _
 
 theorem NoMsg.search (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) : ∀ attempts start,
+    (message : ForestKey) : ∀ attempts start,
     NoMsg (ReferenceChoice.search parameter lay tree leaf message attempts start)
   | 0, _ => NoMsg.pure' _
   | attempts + 1, start => by
@@ -123,14 +123,14 @@ variable [Params]
 /-- The final assembly after its digest call. -/
 noncomputable def finishRest (parameter : PublicParameter) (data : PublicData) (_message : Message)
     (randomness : Randomness) (digest : MessageDigest) : OracleComp CostSpec (Option Signature) := do
-  HiddenCost.tick 118081
+  HiddenCost.tick 118080
   let index := digestIndex digest
   let some (counter, word) ← liftM (ReferenceChoice.search parameter topLayer rootTree index
     (data.forestKey index) encodingAttemptLimit 0) | return none
   let values ← sequenceFin fun chain => HiddenCost.reveal
     (.chain topLayer rootTree index chain (word chain))
   let opening ← sequenceFin fun c => coordCostSource data index c (digestMarks digest c)
-  HiddenCost.tick (152 + treePathCost)
+  HiddenCost.tick (155 + treePathCost)
   let top : LayerSignature topLayer := ⟨counter, values, data.treePath index⟩
   return some ⟨randomness, opening, Fin.cases top (fun i => Fin.elim0 i)⟩
 

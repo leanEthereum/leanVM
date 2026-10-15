@@ -168,18 +168,18 @@ theorem hashCalls_topNode (f : QueryImpl HashSpec Id) (parameter : PublicParamet
       rw [pow_succ]
       omega
 
-/-- Building the forest key costs `8 · 2 · (462 · 8 - 1) + 1 = 59121` hash calls: the two level-3
-nodes of each of the 8 trees and their hash. A tree has no root hash. -/
+/-- Building the forest key costs `8 · 2 · (462 · 8 - 1) = 59120` hash calls: the two level-3 nodes
+of each of the 8 trees. A tree has no root hash and the key has no hash. -/
 theorem hashCalls_forestKey (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (index : Index) (seed : MasterSeed) :
-    hashCalls f (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest) = 59121 := by
-  rw [Seeded.forestKey, hashCalls_bind, hashCalls_sequenceFin, hashCalls_tweakableHash]
+    hashCalls f (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey) = 59120 := by
+  rw [Seeded.forestKey, hashCalls_sequenceFin]
   simp only [hashCalls_bind, hashCalls_pure,
     hashCalls_topNode f parameter index _ seed (topHeight - 1) _ (by decide)]
   decide
 
 theorem hashCalls_encode (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : Digest) (counter : Counter) :
+    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey) (counter : Counter) :
     hashCalls f (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) = 1 := by
   simp only [encode, hashCalls_bind, hashCalls_tweakableHash, hashCalls_pure, Nat.add_zero]
 

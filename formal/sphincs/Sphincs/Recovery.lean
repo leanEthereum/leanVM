@@ -147,7 +147,7 @@ def otsEndpoint (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (
 
 /-- What a successful counter search produced: the counter encodes the message, and every chain value is the signer's partial walk from the derived secret. -/
 theorem otsSignFrom_spec (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) :
+    (leaf : LeafIndex) (seed : MasterSeed) (message : ForestKey) :
     ∀ (attempts start : Nat) {counter : Counter} {values : ChainIndex → Digest},
       evalWithAnswerFn f (otsSignFrom parameter lay tree leaf seed message attempts start
           : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest)))) = some (counter, values) →
@@ -177,7 +177,7 @@ theorem otsSignFrom_spec (parameter : PublicParameter) (lay : Layer) (tree : Tre
 
 /-- The verifier's leaf is the leaf the signer's tree was built from. -/
 theorem eval_otsLeaf_of_otsSign (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) {counter : Counter}
+    (leaf : LeafIndex) (seed : MasterSeed) (message : ForestKey) {counter : Counter}
     {values : ChainIndex → Digest}
     (h : evalWithAnswerFn f (otsSign parameter lay tree leaf seed message
         : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest)))) = some (counter, values)) :
@@ -543,7 +543,7 @@ def subTopsValue (s : SuperIdx) (j : SubIdx) : Digest × Digest :=
   (subNodeValue f parameter index c s j seed (subHeight - 1) 0,
     subNodeValue f parameter index c s j seed (subHeight - 1) 1)
 
-/-- The two honest level-3 nodes of a top tree, the inputs of the forest key. -/
+/-- The two honest level-3 nodes of a top tree, its part of the forest key. -/
 def topTopsValue : Digest × Digest :=
   (topNodeValue f parameter index c seed (topHeight - 1) 0,
     topNodeValue f parameter index c seed (topHeight - 1) 1)
@@ -557,11 +557,9 @@ theorem superValue_eq (s : SuperIdx) :
   rfl
 
 theorem forestKey_eq :
-    evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest) =
-      truncateHash (f (tweakableHashInput parameter (.roots index)
-        (rootsPayload fun c => topTopsValue f parameter index c seed))) := by
-  simp only [Seeded.forestKey, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin,
-    eval_tweakableHash]
+    evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey) =
+      fun c => topTopsValue f parameter index c seed := by
+  simp only [Seeded.forestKey, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin]
   rfl
 
 end Tops
@@ -626,11 +624,11 @@ theorem eval_coordRecover (c : Coord) (mark : CoordMark) :
 theorem eval_forestRecover (marks : Coord → CoordMark) :
     evalWithAnswerFn f (forestRecover parameter index marks
         (evalWithAnswerFn f (Seeded.forestOpen parameter index marks seed
-          : OracleComp HashSpec (Coord → CoordOpening))) : OracleComp HashSpec Digest)
-      = evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest) := by
+          : OracleComp HashSpec (Coord → CoordOpening))) : OracleComp HashSpec ForestKey)
+      = evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey) := by
   rw [forestKey_eq]
   simp only [forestRecover, Seeded.forestOpen, evalWithAnswerFn_bind, eval_sequenceFin,
-    eval_coordRecover, eval_tweakableHash]
+    eval_coordRecover]
 
 end Key
 

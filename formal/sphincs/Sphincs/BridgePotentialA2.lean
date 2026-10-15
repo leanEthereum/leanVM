@@ -403,7 +403,7 @@ theorem ite_or_le (P : Prop) [Decidable P] (Q : ChainIndex → Prop) [DecidableP
 /-- **Encoding inputs at a landed leaf.** The first-order hit, a marker at a contacted chain, and
 the arming by a new marker. -/
 theorem step_enc (hρ : K.ρ ≤ 2) (y : ℕ) {s : St} {x : HashInput} (hx : s.cache x = none)
-    (hi : K.initial x = none) {l : Index} {msg : Digest} {ctr : Counter} (hl : Landed K.p l)
+    (hi : K.initial x = none) {l : Index} {msg : ForestKey} {ctr : Counter} (hl : Landed K.p l)
     (hxE : x = Wots.encodingInput K.p topLayer rootTree l msg ctr) :
     ∑' r, Pr[= r | readOutside x s] * K.pot y r.2 ≤ K.pot y s + (ν * K.kindUnit x +
       ν * (if K.Bad s then 0 else 63 * ∑ i, (if (K.ContactB s l i).Nonempty then (1 : ℝ≥0∞) else 0)) +

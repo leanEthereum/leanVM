@@ -140,7 +140,7 @@ theorem structuralFresh_of_tag (parameter : PublicParameter) (fields : TweakFiel
 
 /-- Every counter-search input is separate from all structural tree inputs. -/
 theorem structuralFresh_encoding (parameter : PublicParameter) (lay : Layer)
-    (tree : TreeIndex) (leaf : LeafIndex) (message : Digest) (c : Nat) :
+    (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey) (c : Nat) :
     StructuralFresh (encodeInput parameter lay tree leaf message c) :=
   structuralFresh_of_tag parameter (hashDomainFields (.encoding lay tree leaf))
     _ 4 (Or.inl rfl) rfl
@@ -149,7 +149,7 @@ theorem structuralFresh_encoding (parameter : PublicParameter) (lay : Layer)
 theorem messageInput_ne_encoding (parameter : PublicParameter) (root : Digest)
     (message : Message) (randomness : Randomness)
     (encodingParameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (encodingMessage : Digest) (c : Nat) :
+    (leaf : LeafIndex) (encodingMessage : ForestKey) (c : Nat) :
     tweakableHashInput parameter .message
       (messageDigestPayload root message randomness) ≠
         encodeInput encodingParameter lay tree leaf encodingMessage c := by
@@ -309,9 +309,8 @@ omit [Params] in
 theorem forestKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) :
     PreservesFresh target (Seeded.forestKey parameter index seed) := by
   rw [Seeded.forestKey]
-  exact bind (sequenceFin _ _ (fun _ => bind (topNode hs _ _ _ _ _ _) (fun _ =>
-      bind (topNode hs _ _ _ _ _ _) (fun _ => pure' _ _))))
-    (fun _ => tweakableHash _ _ _ _ (hs.roots _ _ _))
+  exact sequenceFin _ _ (fun _ => bind (topNode hs _ _ _ _ _ _) (fun _ =>
+    bind (topNode hs _ _ _ _ _ _) (fun _ => pure' _ _)))
 
 omit [Params] in
 theorem coordOpen (parameter : PublicParameter) (index : Index) (c : Coord) (mark : CoordMark)

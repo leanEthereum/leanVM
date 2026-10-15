@@ -16,13 +16,12 @@ attribute [local irreducible] firstEncoding ReferenceChoice.search encodingAttem
   chainWalk sequenceFin encode
 
 /-- The FORS key: per tree the two top nodes of level 9 (2558 calls: 512 hashes of the seed, 1024
-leaf hashes and 1022 node hashes; no root hash), then the key hash. -/
+leaf hashes and 1022 node hashes; no root hash). No hash folds them: the encoding absorbs them. -/
 theorem hashCalls_forsKey_exact (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (index : Index) (seed : MasterSeed) :
-    hashCalls f (Seeded.ftsKey parameter index seed : OracleComp HashSpec Digest) = 61393 := by
+    hashCalls f (Seeded.ftsKey parameter index seed : OracleComp HashSpec FtsTops) = 61392 := by
   simp only [Seeded.ftsKey, hashCalls_bind, hashCalls_sequenceFin, hashCalls_ftsNode,
-    hashCalls_pure, hashCalls_tweakableHash, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
-    nsmul_eq_mul]
+    hashCalls_pure, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
   rfl
 
 theorem hashCalls_forsOpen_exact (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
@@ -46,7 +45,7 @@ theorem hashCalls_published_values (f : QueryImpl HashSpec Id) (parameter : Publ
   rfl
 
 theorem hashCalls_otsSignFrom_search (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (seed : MasterSeed) (message : Digest)
+    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (seed : MasterSeed) (message : FtsTops)
     (attempts start : Nat) :
     hashCalls f (Seeded.otsSignFrom parameter lay tree leaf seed message attempts start :
       OracleComp HashSpec (Option (Counter × (ChainIndex → Digest)))) =
@@ -90,17 +89,17 @@ theorem hashCalls_treePath_exact (f : QueryImpl HashSpec Id) (parameter : Public
 theorem hashCalls_signLayer_exact (f : QueryImpl HashSpec Id) (sk : Seeded.SecretKey)
     (index : Index) (lay : Layer) :
     hashCalls f (Seeded.signLayer sk index lay : OracleComp HashSpec (Option (LayerSignature lay))) =
-      61393 + hashCalls f (ReferenceChoice.search sk.parameter lay rootTree index
-        (evalWithAnswerFn f (Seeded.ftsKey sk.parameter index sk.seed : OracleComp HashSpec Digest))
+      61392 + hashCalls f (ReferenceChoice.search sk.parameter lay rootTree index
+        (evalWithAnswerFn f (Seeded.ftsKey sk.parameter index sk.seed : OracleComp HashSpec FtsTops))
         encodingAttemptLimit 0) +
       if (firstEncoding f sk.parameter lay rootTree index
-        (evalWithAnswerFn f (Seeded.ftsKey sk.parameter index sk.seed : OracleComp HashSpec Digest))
+        (evalWithAnswerFn f (Seeded.ftsKey sk.parameter index sk.seed : OracleComp HashSpec FtsTops))
         encodingAttemptLimit 0).isSome then 152 + treePathCost else 0 := by
   simp only [Seeded.signLayer, Seeded.layerMessage, hashCalls_bind, hashCalls_forsKey_exact,
     treeIndexAt_eq, leafIndexAt_eq, Seeded.otsSign, hashCalls_otsSignFrom_search,
     otsSignFrom_eq_firstEncoding]
   cases hs : firstEncoding f sk.parameter lay rootTree index
-      (evalWithAnswerFn f (Seeded.ftsKey sk.parameter index sk.seed : OracleComp HashSpec Digest))
+      (evalWithAnswerFn f (Seeded.ftsKey sk.parameter index sk.seed : OracleComp HashSpec FtsTops))
       encodingAttemptLimit 0 <;>
     simp only [Option.map_none, Option.map_some, Option.isSome_none, Option.isSome_some,
       Bool.false_eq_true, ↓reduceIte, hashCalls_pure, hashCalls_bind, hashCalls_treePath_exact,
@@ -111,13 +110,13 @@ noncomputable def finishHashCost (f : QueryImpl HashSpec Id) (parameter : Public
     (data : PublicData) (message : Message) (randomness : Randomness) : Nat :=
   let index := digestIndex (evalWithAnswerFn f
     (messageDigest parameter data.root message randomness : OracleComp HashSpec MessageDigest))
-  122571 + hashCalls f (ReferenceChoice.search parameter topLayer rootTree index
+  122570 + hashCalls f (ReferenceChoice.search parameter topLayer rootTree index
     (data.forsKey index) encodingAttemptLimit 0) +
     if (firstEncoding f parameter topLayer rootTree index (data.forsKey index)
       encodingAttemptLimit 0).isSome then 152 + treePathCost else 0
 
-/-- The 122571 calls include both digest blocks, the 24 hashes of the seed for the revealed
-secrets, all FORS authentication nodes (61152), and the canonical FORS-key computation (61393),
+/-- The 122570 calls include both digest blocks, the 24 hashes of the seed for the revealed
+secrets, all FORS authentication nodes (61152), and the canonical FORS-key computation (61392),
 even when WOTS fails. In a FORS subtree two sibling leaves share one hash of the seed. -/
 theorem hashCalls_finishSign_exact (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (data : PublicData) (hdata : DataCorrect f parameter seed data)

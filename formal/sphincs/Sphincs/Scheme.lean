@@ -5,13 +5,14 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 # leanSPHINCS with a two-level WOTS forest
 
 The scheme of `SphincsFors.Scheme` (one height-26 tree of WOTS+C keys with 64 chains of length 4 and
-target sum 120, pruning with surrogate siblings, randomizer grinding, tweakable hash with 16-byte
+target sum 123, pruning with surrogate siblings, randomizer grinding, tweakable hash with 16-byte
 outputs) with the few-time signature under each tree leaf replaced by a **two-level WOTS forest**:
 
 * 8 independent coordinates; a coordinate is a top Merkle tree of height 4 over 16 super-children,
   hashed up to level 3 only: its two level-3 nodes `t_c[0]`, `t_c[1]` are not hashed into a root. The
-  forest public key is `Th(roots(idx), t_0[0] || t_0[1] || ... || t_7[0] || t_7[1])`, the message
-  WOTS+C signs;
+  forest key is the sixteen nodes `t_0[0], t_0[1], ..., t_7[0], t_7[1]` themselves, the message WOTS+C
+  signs: no hash folds them, and the WOTS+C encoding absorbs them with its counter,
+  `Th(enc(e), t_0[0] || t_0[1] || ... || t_7[0] || t_7[1] || ctr)`;
 * a sub-tree is a Merkle tree of height 3 over 8 children, hashed up to level 2 only; super-child `s`
   is `Th(super(idx, c, s), m_0[0] || m_0[1] || m_1[0] || m_1[1])` where `m_j[0]`, `m_j[1]` are the two
   level-2 nodes of sub-tree `j`;
@@ -34,8 +35,8 @@ Everything that is not the forest (parameters, WOTS+C, the tree, pruning, grindi
 is `SphincsFors.Scheme` verbatim. Every hash input is `P || A || payload`: the 16-byte public
 parameter, then the 16-byte address of the call (a 32-bit field `lo`, a 24-bit field `hi`, one byte
 holding the type and a chain step, then 8 zero bytes), so the payload starts at byte 32. Forest
-hashes use types 14 (secret derivation) and 15 to 20, with the instance `idx` in `lo` and the
-position inside the instance in `hi`. The message digest hashes `m || rho` (the root is not hashed:
+hashes use types 14 (secret derivation) and 15 to 19, with the instance `idx` in `lo` and the
+position inside the instance in `hi`; type 20 (`roots`, the former forest-key hash) is not hashed. The message digest hashes `m || rho` (the root is not hashed:
 `P` binds the key) and the randomizer base `S || m`: the randomizer, which changes between two
 grinding attempts, comes last, alone in the second block.
 -/
@@ -54,7 +55,7 @@ def counterBits : Nat := 32
 def winternitzBits : Nat := 2
 def chainLength : Nat := 2 ^ winternitzBits
 def numChains : Nat := 64
-def targetSum : Nat := 120
+def targetSum : Nat := 123
 def numLayers : Nat := 1
 def totalHeight : Nat := 26
 /-- The height of the only XMSS layer, which bounds its leaf index. -/
@@ -219,6 +220,10 @@ structure CoordMark where
   word : SubIdx → LutIdx
 deriving DecidableEq
 
+/-- The forest key of an instance: the two level-3 nodes of every tree, `(t_c[0], t_c[1])`. It is
+not hashed: the WOTS+C encoding absorbs the sixteen nodes (`Concrete.encode`). -/
+abbrev ForestKey := Coord → Digest × Digest
+
 /-- `pk = (root, P)`. -/
 structure PublicKey where
   root : Digest
@@ -379,7 +384,7 @@ def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
 /-! ### The target-sum code
 
 `v = 64` chunks of `w = 2` bits covering the 128 digest bits, and the code is the words of digit sum
-`T = 120`. -/
+`T = 123`. -/
 
 namespace TargetSum
 
@@ -483,16 +488,27 @@ def leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (lea
     (endpoints : ChainIndex → Digest) : m Digest :=
   tweakableHash parameter (.leaf lay tree leaf) (leafPayload endpoints)
 
-/-- `Enc(P, e, M, c)`: hash the message with the counter under the leaf's encoding tweak, and decode. -/
+/-- The two children of a Merkle node. -/
+def nodePayload (left right : Digest) : HashInput :=
+  bytesLE 16 left ++ bytesLE 16 right
+
+/-- `t_0[0] || t_0[1] || ... || t_7[0] || t_7[1]`, the forest key as bytes: the level-3 nodes of the 8
+top trees. -/
+def rootsPayload (tops : ForestKey) : HashInput :=
+  (List.ofFn tops).flatMap fun pair => nodePayload pair.1 pair.2
+
+/-- `Enc(P, e, K, c)`: hash the forest key's sixteen nodes, then the counter, under the leaf's encoding
+tweak, and decode. There is no forest-key hash: the counter falls in the last block of this one
+(`P || A || K || c`, 292 bytes). -/
 def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (counter : Counter) : m (Option Encoding) := do
+    (message : ForestKey) (counter : Counter) : m (Option Encoding) := do
   let digest ← tweakableHash parameter (.encoding lay tree leaf)
-    (bytesLE 16 message ++ bytesLE 4 counter)
+    (rootsPayload message ++ bytesLE 4 counter)
   return TargetSum.decodeDigest digest
 
 /-- `Ots.leaf` (`wots_recover`): the verifier's leaf, or nothing if the counter does not encode the message. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (counter : Counter) (values : ChainIndex → Digest) : m (Option Digest) := do
+    (message : ForestKey) (counter : Counter) (values : ChainIndex → Digest) : m (Option Digest) := do
   let some encoding ← encode parameter lay tree leaf message counter | return none
   let endpoints ← sequenceFin fun chainIdx =>
     recoverChain parameter lay tree leaf chainIdx (encoding chainIdx) (values chainIdx)
@@ -500,10 +516,6 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf
   return some value
 
 /-! ### The tree -/
-
-/-- The two children of a Merkle node. -/
-def nodePayload (left right : Digest) : HashInput :=
-  bytesLE 16 left ++ bytesLE 16 right
 
 /-- `Tree.fold` (`tree_fold`): fold a leaf and a path into the root. -/
 def treeFold (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -622,16 +634,11 @@ def coordRecover (parameter : PublicParameter) (index : Index) (c : Coord) (mark
   let node ← topFold parameter index c mark.super opening.top (topHeight - 1) super
   return orderTops (mark.super.val.testBit (topHeight - 1)) node (opening.top topTopLevel)
 
-/-- `t_0[0] || t_0[1] || ... || t_7[0] || t_7[1]`, the level-3 nodes of the 8 top trees. -/
-def rootsPayload (tops : Coord → Digest × Digest) : HashInput :=
-  (List.ofFn tops).flatMap fun pair => nodePayload pair.1 pair.2
-
-/-- `Fts.recover`: the forest key an opening reaches, the hash of the sixteen level-3 nodes. A top
-tree has no root hash. -/
+/-- `Fts.recover`: the forest key an opening reaches, the sixteen level-3 nodes. A top tree has no
+root hash, and the key has no hash: the WOTS+C encoding absorbs it. -/
 def forestRecover (parameter : PublicParameter) (index : Index) (marks : Coord → CoordMark)
-    (opening : Coord → CoordOpening) : m Digest := do
-  let tops ← sequenceFin fun c => coordRecover parameter index c (marks c) (opening c)
-  tweakableHash parameter (.roots index) (rootsPayload tops)
+    (opening : Coord → CoordOpening) : m ForestKey :=
+  sequenceFin fun c => coordRecover parameter index c (marks c) (opening c)
 
 /-! ### The message digest -/
 
@@ -685,11 +692,11 @@ def digestMarks (digest : MessageDigest) : Coord → CoordMark := fun c =>
 def signaturePath (signature : Signature) (lay : Layer) (level : Nat) : Digest :=
   if hlevel : level < layerHeight lay then (signature.layers lay).path ⟨level, hlevel⟩ else 0
 
-/-- The tree walk: `remaining + 1` enters at layer `remaining`, and layer `0`'s fold returns the
-value compared against the public root. -/
+/-- The tree walk of the one layer: `remaining + 1` enters at layer `remaining`, whose WOTS+C key
+signs the forest key; its fold is the value compared against the public root. -/
 def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Signature) :
-    Nat → Digest → m (Option Digest)
-  | 0, message => pure (some message)
+    Nat → ForestKey → m (Option Digest)
+  | 0, _ => pure none
   | remaining + 1, message => do
       if hlayer : remaining < numLayers then
         let lay : Layer := ⟨remaining, hlayer⟩
@@ -699,7 +706,7 @@ def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Sign
         let some value ← otsLeaf parameter lay tree leaf message part.counter part.chainValues
           | return none
         let root ← treeFold parameter lay tree leaf (signaturePath signature lay) (layerHeight lay) value
-        verifyLayers parameter index signature remaining root
+        return some root
       else
         pure none
 
@@ -708,8 +715,8 @@ fold the path and compare with the root. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
   let index := digestIndex digest
-  let ftsPublicKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
-  let some root ← verifyLayers publicKey.parameter index signature numLayers ftsPublicKey | return false
+  let forestKey ← forestRecover publicKey.parameter index (digestMarks digest) signature.forest
+  let some root ← verifyLayers publicKey.parameter index signature numLayers forestKey | return false
   return decide (root = publicKey.root)
 
 /-! ### Signing -/
@@ -798,7 +805,7 @@ def oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree : TreeInd
     chainWalk parameter lay tree leaf chainIdx 0 (chainLength - 1) (secrets chainIdx)
 
 def otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (seed : MasterSeed) (message : Digest) :
+    (seed : MasterSeed) (message : ForestKey) :
     Nat → Nat → m (Option (Counter × (ChainIndex → Digest)))
   | 0, _ => pure none
   | attempts + 1, counter => do
@@ -812,7 +819,7 @@ def otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (
 
 /-- `wots_sign`: the least admissible counter, then the opened chain values. -/
 def otsSign (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (seed : MasterSeed) (message : Digest) :
+    (seed : MasterSeed) (message : ForestKey) :
     m (Option (Counter × (ChainIndex → Digest))) :=
   otsSignFrom parameter lay tree leaf seed message encodingAttemptLimit 0
 
@@ -938,13 +945,12 @@ def topNode (parameter : PublicParameter) (index : Index) (c : Coord) (seed : Ma
       else
         pure 0
 
-/-- The forest key of instance `idx`: the two level-3 nodes of every coordinate, then their hash. -/
-def forestKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) : m Digest := do
-  let tops ← sequenceFin fun c => do
+/-- The forest key of instance `idx`: the two level-3 nodes of every coordinate (no hash). -/
+def forestKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) : m ForestKey :=
+  sequenceFin fun c => do
     let left ← topNode parameter index c seed (topHeight - 1) 0
     let right ← topNode parameter index c seed (topHeight - 1) 1
     return (left, right)
-  tweakableHash parameter (.roots index) (rootsPayload tops)
 
 /-- The opening of one coordinate at a mark. The last element of each path (level 2 of a sub-tree,
 level 3 of the top tree) is the top node the verifier does not compute. -/
@@ -984,7 +990,7 @@ def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Random
   else
     return none
 
-def layerMessage (secretKey : SecretKey) (index : Index) (_lay : Layer) : m Digest :=
+def layerMessage (secretKey : SecretKey) (index : Index) (_lay : Layer) : m ForestKey :=
   forestKey secretKey.parameter index secretKey.seed
 
 def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) : m (Option (LayerSignature lay)) := do
@@ -1006,7 +1012,8 @@ def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Randomn
       | none => signDigestLoop secretKey message attempts (randomness + 1)
 
 /-- `Sign`: derive the randomizer base `R0` of the message (one hash), scan `R0, R0 + 1, ...` into
-the kept subtree, compute the digest, open the forest, sign its key with WOTS+C and attach the path. -/
+the kept subtree, compute the digest, open the forest, sign its key (the sixteen level-3 nodes) with
+WOTS+C and attach the path. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
   let base ← deriveRandomizer secretKey.parameter secretKey.seed message
   let some (randomness, _) ← signDigestLoop secretKey message digestAttemptLimit base

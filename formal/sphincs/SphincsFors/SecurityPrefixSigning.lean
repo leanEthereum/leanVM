@@ -14,7 +14,7 @@ attribute [local irreducible] encodingAttemptLimit Seeded.treePath Seeded.ftsNod
 
 /-- The actual least successful encoding search; its counter remains a 32-bit value. -/
 noncomputable def firstEncoding (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : Digest) :
+    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : FtsTops) :
     Nat → Nat → Option (Counter × Encoding)
   | 0, _ => none
   | attempts + 1, counter =>
@@ -24,7 +24,7 @@ noncomputable def firstEncoding (f : QueryImpl HashSpec Id) (parameter : PublicP
       | none => firstEncoding f parameter lay tree leaf message attempts (counter + 1)
 
 theorem otsSignFrom_eq_firstEncoding (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (seed : MasterSeed) (message : Digest)
+    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (seed : MasterSeed) (message : FtsTops)
     (attempts start : Nat) :
     evalWithAnswerFn f (Seeded.otsSignFrom parameter lay tree leaf seed message attempts start :
       OracleComp HashSpec (Option (Counter × (ChainIndex → Digest)))) =

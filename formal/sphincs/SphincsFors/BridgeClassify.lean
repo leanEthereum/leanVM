@@ -276,9 +276,9 @@ include hconsistent in
 theorem forsException_hit (index : Index) (leaves : IndexGroup → FtsLeaf) (secrets : FtsTree → Digest)
     (paths : FtsTree → Fin ftsTreeHeight → Digest)
     (h : Fors.Exception f parameter index seed leaves secrets paths) :
-    ∃ input ∈ queriedInputs f (ftsRecover parameter index leaves secrets paths : OracleComp HashSpec Digest),
+    ∃ input ∈ queriedInputs f (ftsRecover parameter index leaves secrets paths : OracleComp HashSpec FtsTops),
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input := by
-  rcases h with ⟨tree, hne, heq⟩ | ⟨tree, level, hlevel, hnode⟩ | ⟨hne, heq⟩
+  rcases h with ⟨tree, hne, heq⟩ | ⟨tree, level, hlevel, hnode⟩
   · refine ⟨_, Fors.leafInput_mem f parameter index leaves secrets paths tree,
       active_hit f parameter seed labels (.ftsLeaf index tree (leaves tree)) trivial _ ?_ ?_⟩
     · rw [fors_leaf_input]
@@ -307,14 +307,6 @@ theorem forsException_hit (index : Index) (leaves : IndexGroup → FtsLeaf) (sec
         rw [fors_path_value f parameter seed labels hconsistent index tree (leaves tree) (level + 1) hlevel]
         exact hout)
     exact hpos
-  · refine ⟨_, Fors.topsInput_mem f parameter index leaves secrets paths,
-      active_hit f parameter seed labels (.ftsRoots index) trivial _ ?_ ?_⟩
-    · rw [fors_roots_input f parameter seed labels hconsistent index]
-      intro hinput
-      exact hne (tweakableInput_injective hinput).2.2
-    · change truncateHash (f (tweakableHashInput parameter (.ftsRoots index)
-        (ftsTopsPayload (Fors.tops f parameter index leaves secrets paths)))) = _
-      rw [heq, fors_key_value f parameter seed labels hconsistent index]
 
 include hconsistent in
 theorem treeHit_hit (hboundary : BoundaryCorrect f parameter seed labels) (pk : PublicKey)
@@ -468,7 +460,7 @@ theorem encodingMatch_hit (f : QueryImpl HashSpec Id) (parameter : PublicParamet
   have hexempt' : ¬ReferenceChoice.exemptInput f parameter topLayer rootTree leaf
       (SignatureWitness.canonicalFors f parameter seed leaf) =
         some (tweakableHashInput parameter (.encoding topLayer rootTree leaf)
-          (bytesLE 16 message ++ bytesLE 4 counter)) := hexempt
+          (ftsTopsPayload message ++ bytesLE 4 counter)) := hexempt
   unfold Wots.encodingInput
   rw [targets_at_entry _ _ _ _ _ hentry]
   simp only []

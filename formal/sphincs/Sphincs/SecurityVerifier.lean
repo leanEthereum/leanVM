@@ -44,10 +44,10 @@ def verificationDigest (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : M
 
 /-- The candidate forest key recovered before WOTS verification. -/
 def verificationForest (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
-    (signature : Signature) : Digest :=
+    (signature : Signature) : ForestKey :=
   let digest := verificationDigest f pk message signature
   evalWithAnswerFn f (forestRecover pk.parameter (digestIndex digest) (digestMarks digest)
-    signature.forest : OracleComp HashSpec Digest)
+    signature.forest : OracleComp HashSpec ForestKey)
 
 theorem verification_forest_run (f : QueryImpl HashSpec Id) (pk : PublicKey)
     (message : Message) (signature : Signature) :

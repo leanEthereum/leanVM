@@ -18,13 +18,15 @@ set_option maxRecDepth 10000
 
 structure PublicData where
   root : Digest
-  forsKey : Index → Digest
+  forsKey : Index → FtsTops
   treePath : LeafIndex → Fin (layerHeight topLayer) → Digest
   forsPath : Index → (IndexGroup → FtsLeaf) → FtsTree → Fin ftsTreeHeight → Digest
 
 def publicData (labels : CanonicalGraphLabels) : PublicData where
   root := truncateHash (labels (treePosition topLayer rootTree totalHeight le_rfl ⟨0, by decide⟩))
-  forsKey := fun index => truncateHash (labels (.ftsRoots index))
+  forsKey := fun index tree =>
+    (truncateHash (labels (forsPosition index tree ftsTopLevel (by decide) ⟨0, by decide⟩)),
+      truncateHash (labels (forsPosition index tree ftsTopLevel (by decide) ⟨1, by decide⟩)))
   treePath := fun leaf level => truncateHash (labels
     (treePosition topLayer rootTree level.val (Nat.le_of_lt level.isLt)
       ⟨Nat.xor (leaf.val / 2 ^ level.val) 1,
@@ -41,7 +43,7 @@ structure DataCorrect (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
   root : data.root = evalWithAnswerFn f
     (Seeded.treeRoot parameter topLayer rootTree seed : OracleComp HashSpec Digest)
   forsKey : ∀ index, data.forsKey index = evalWithAnswerFn f
-    (Seeded.ftsKey parameter index seed : OracleComp HashSpec Digest)
+    (Seeded.ftsKey parameter index seed : OracleComp HashSpec FtsTops)
   treePath : ∀ leaf, Landed parameter leaf → data.treePath leaf = evalWithAnswerFn f
     (Seeded.treePath parameter topLayer rootTree seed leaf :
       OracleComp HashSpec (Fin (layerHeight topLayer) → Digest))
@@ -161,7 +163,7 @@ theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : Publi
         OracleComp HashSpec MessageDigest)))
       (evalWithAnswerFn f (Seeded.ftsKey parameter
         (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
-          OracleComp HashSpec MessageDigest))) seed : OracleComp HashSpec Digest))
+          OracleComp HashSpec MessageDigest))) seed : OracleComp HashSpec FtsTops))
       encodingAttemptLimit 0 <;>
     simp only [Option.map_none, Option.map_some, evalWithAnswerFn_pure, evalWithAnswerFn_bind,
       derivedSecrets, Completeness.otsSecret, Completeness.ftsSecret, ftsIndexOf]

@@ -334,11 +334,11 @@ include hconsistent in
 queried first-order input. -/
 theorem structException_hitA (index : Index) (marks : Coord → CoordMark) (opening : Coord → CoordOpening)
     (h : Forest.StructException f parameter index seed marks opening) :
-    ∃ input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest),
+    ∃ input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey),
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input ∧
       ∀ results, ¬SecondOrderInput parameter results input := by
   rcases h with ⟨c, j, hne, heq⟩ | ⟨c, j, level, hlevel, -, hneq, hout⟩ | ⟨c, hne, heq⟩ |
-      ⟨c, level, hlevel, -, hneq, hout⟩ | ⟨hne, heq⟩
+      ⟨c, level, hlevel, -, hneq, hout⟩
   · refine ⟨_, Forest.childLeafInput_mem f parameter index marks opening c j,
       active_hit f parameter seed labels (.childLeaf index c (marks c).super j ((marks c).child j)) trivial _ ?_ ?_,
       fun results => not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ _ _ _ _ h => by cases h)⟩
@@ -395,14 +395,6 @@ theorem structException_hitA (index : Index) (marks : Coord → CoordMark) (open
     · unfold merkleInput
       rw [hdom]
       exact not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ _ _ _ _ h => by cases h)
-  · refine ⟨_, Forest.rootsInput_mem f parameter index marks opening,
-      active_hit f parameter seed labels (.roots index) trivial _ ?_ ?_,
-      fun results => not_secondOrder _ _ _ _ (fun _ _ _ _ _ h => by cases h) (fun _ _ _ _ _ _ _ h => by cases h)⟩
-    · rw [roots_input f parameter seed labels hconsistent index]
-      intro hinput
-      exact hne (tweakableInput_injective hinput).2.2
-    · rw [forest_key_value f parameter seed labels hconsistent index]
-      exact heq
 
 end Hits
 

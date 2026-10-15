@@ -141,6 +141,10 @@ const SPHINCS_DIGIT_GROUP: usize = 3;
 const _: () = assert!(sphincs::W * sphincs::V == 128 && sphincs::V % SPHINCS_DIGIT_GROUP == 1);
 // It hashes a forest WOTS key's leaf, P, A and the six chain tops, as one block.
 const _: () = assert!(sphincs::FOREST_CHAINS == 6);
+// The guest hashes the encoding as three blocks: P, A and the trees' sixteen top
+// nodes, then the counter.
+const _: () =
+    assert!(sphincs::FOREST_TREES == 8 && 2 * (1 + sphincs::FOREST_TREES) * sphincs::N + sphincs::COUNTER_LEN == 292);
 // It hashes a tree leaf over two subtrees, and places the forest's positions in
 // an address as `sphincs::forest` packs them: the tree in 3 bits, then the leaf
 // in 4, the subtree in 1, the key in 3 and the chain.
@@ -2911,7 +2915,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         ("SP_TW_FSUBNODE", sphincs::TWEAK_FOREST_SUBNODE),
         ("SP_TW_FTREE_LEAF", sphincs::TWEAK_FOREST_TREE_LEAF),
         ("SP_TW_FNODE", sphincs::TWEAK_FOREST_NODE),
-        ("SP_TW_FKEY", sphincs::TWEAK_FOREST_KEY),
     ] {
         ps(
             name,

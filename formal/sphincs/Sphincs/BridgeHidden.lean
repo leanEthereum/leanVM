@@ -342,8 +342,10 @@ theorem publicData_congr (labels labels' : CanonicalGraphLabels)
   unfold GraphView.publicData
   congr 1
   · rw [htree]
-  · funext index
-    rw [h (.roots index) (by simp [IsRowPosition])]
+  · funext index c
+    unfold GraphCorrectness.keyLabels
+    rw [h (.topNode index c ⟨topHeight - 2, by decide⟩ ⟨0, by decide⟩) (by simp [IsRowPosition]),
+      h (.topNode index c ⟨topHeight - 2, by decide⟩ ⟨1, by decide⟩) (by simp [IsRowPosition])]
   · funext leaf level
     rw [htree]
   · funext index c s j a level

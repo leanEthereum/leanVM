@@ -112,7 +112,7 @@ theorem seedFree_le_expose (adversary : Adversary) (q : Nat)
     (knownAgrees_exposeT table _ _ hagree) event
 
 /-- The preparation's search results read off an answer function. -/
-noncomputable def resultsOf (parameter : PublicParameter) (forsKey : Index → Digest) (f : QueryImpl HashSpec Id) :
+noncomputable def resultsOf (parameter : PublicParameter) (forsKey : Index → ForestKey) (f : QueryImpl HashSpec Id) :
     Index → Option (Counter × Encoding) :=
   fun leaf => Prefix.firstEncoding f parameter topLayer rootTree leaf (forsKey leaf) encodingAttemptLimit 0
 
@@ -125,7 +125,7 @@ omit [Params] in
 /-- **Preparation with exposure.** -/
 theorem evalDist_expose_prep {A α : Type}
     (model : HiddenRows.Model HashInput HashOutput A HiddenGraph.Coordinate)
-    (base : QueryCache HashSpec) (parameter : PublicParameter) (forsKey : Index → Digest)
+    (base : QueryCache HashSpec) (parameter : PublicParameter) (forsKey : Index → ForestKey)
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate)
     (cs : (Index → Option (Counter × Encoding)) → List Coordinate) :

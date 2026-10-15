@@ -195,11 +195,6 @@ theorem cellKnown_children (parameter : PublicParameter) (position : Position)
       split_ifs at hchild <;> simp only [List.mem_cons, List.not_mem_nil, or_false] at hchild <;>
         rcases hchild with rfl | rfl <;>
         first | exact cellKnown_struct parameter _ (fun h => h) | exact cellKnown_ftsLeaf parameter _ _ _
-  | ftsRoots index =>
-      simp only [Position.children, List.mem_flatMap, List.mem_finRange, true_and] at hchild
-      obtain ⟨tree, hchild⟩ := hchild
-      rcases List.mem_pair.mp hchild with rfl | rfl <;>
-        exact cellKnown_struct parameter _ (fun h => h)
 
 section Split
 
@@ -339,8 +334,8 @@ theorem publicData_congr (labels labels' : CanonicalGraphLabels)
   unfold GraphView.publicData
   congr 1
   · rw [htree]
-  · funext index
-    rw [h (.ftsRoots index) (by intros; simp)]
+  · funext index tree
+    rw [hfors, hfors]
   · funext leaf level
     rw [htree]
   · funext index leaves tree level

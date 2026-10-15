@@ -95,7 +95,7 @@ noncomputable def finishCostSource (parameter : PublicParameter) (data : PublicD
     (message : Message) (randomness : Randomness) : OracleComp CostSpec (Option Signature) := do
   let digest ← liftM (messageDigest parameter data.root message randomness :
     OracleComp HashSpec MessageDigest)
-  HiddenCost.tick 122569
+  HiddenCost.tick 122568
   let index := digestIndex digest
   let some (counter, word) ← liftM (ReferenceChoice.search parameter topLayer rootTree index
     (data.forsKey index) encodingAttemptLimit 0) | return none

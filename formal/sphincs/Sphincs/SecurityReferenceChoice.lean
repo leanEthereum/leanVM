@@ -12,12 +12,12 @@ set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 attribute [local irreducible] firstEncoding encodingAttemptLimit Seeded.forestKey
 
-def dummyWord : Encoding := fun index => if index.val < 40 then ⟨3, by decide⟩ else ⟨0, by decide⟩
+def dummyWord : Encoding := fun index => if index.val < 41 then ⟨3, by decide⟩ else ⟨0, by decide⟩
 
 theorem dummyWord_valid : TargetSum.Valid dummyWord := by decide
 
 variable (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-  (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (referenceMessage : Digest)
+  (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (referenceMessage : ForestKey)
 
 theorem firstEncoding_sound (attempts start : Nat) (counter : Counter) (word : Encoding)
     (h : firstEncoding f parameter lay tree leaf referenceMessage attempts start = some (counter, word)) :
@@ -70,7 +70,7 @@ theorem target_decodes : TargetSum.decodeDigest (target f parameter lay tree lea
     some (word f parameter lay tree leaf referenceMessage) :=
   decodeDigest_pack _ (word_valid f parameter lay tree leaf referenceMessage)
 
-theorem same_word_target (message : Digest) (counter : Counter)
+theorem same_word_target (message : ForestKey) (counter : Counter)
     (h : evalWithAnswerFn f (encode parameter lay tree leaf message counter :
       OracleComp HashSpec (Option Encoding)) = some (word f parameter lay tree leaf referenceMessage)) :
     truncateHash (f (Wots.encodingInput parameter lay tree leaf message counter)) =
@@ -90,7 +90,7 @@ def EncodingMatch (trace : List HashInput) : Prop :=
 
 /-- This classification needs no successful honest signature or counter at the leaf. If
 canonical encoding exhausts, recovering the dummy word instead supplies an encoding match. -/
-theorem otsLeaf_classification (secret : ChainIndex → Digest) (message : Digest)
+theorem otsLeaf_classification (secret : ChainIndex → Digest) (message : ForestKey)
     (counter : Counter) (values : ChainIndex → Digest) (candidate : Encoding) (trace : List HashInput)
     (hencode : evalWithAnswerFn f (encode parameter lay tree leaf message counter :
       OracleComp HashSpec (Option Encoding)) = some candidate)

@@ -24,7 +24,7 @@ theorem msg_ne_chain {x : HashInput} (hx : ForestSigner.IsMsgInput x) {p : Publi
   cases hd
 
 theorem msg_ne_enc {x : HashInput} (hx : ForestSigner.IsMsgInput x) {p : PublicParameter} {l : LeafIndex}
-    {m : Digest} {c : Counter} : x ≠ Wots.encodingInput p topLayer rootTree l m c := by
+    {m : ForestKey} {c : Counter} : x ≠ Wots.encodingInput p topLayer rootTree l m c := by
   obtain ⟨p', call, payload, rfl⟩ := hx
   intro h
   have hd := (domain_eq_of_input h trivial trivial).1

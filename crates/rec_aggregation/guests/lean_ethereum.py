@@ -453,7 +453,6 @@ SP_TW_FKEY_LEAF = SP_TW_FKEY_LEAF_PLACEHOLDER
 SP_TW_FSUBNODE = SP_TW_FSUBNODE_PLACEHOLDER
 SP_TW_FTREE_LEAF = SP_TW_FTREE_LEAF_PLACEHOLDER
 SP_TW_FNODE = SP_TW_FNODE_PLACEHOLDER
-SP_TW_FKEY = SP_TW_FKEY_PLACEHOLDER
 SP_HI_MUL = 2 ** 32
 SP_STEP_MUL = 2 ** 61
 # Where a forest position sits in `hi`: tree c | leaf s | subtree j | key a | chain i,
@@ -3662,10 +3661,11 @@ def verify_sig_sphincs(signer, byte_bits):
     bound = idx + unused * COORD_BASIS[SP_USED_BITS]
 
     # ---- the few-time signature: two opened WOTS keys per tree of the forest ----
-    # The few-time key's input: P, A, then tree c's top nodes at tops[2 + 2c].
+    # The encoding's input: P, A, then tree c's top nodes at tops[2 + 2c], the
+    # few-time key, which no hash folds.
     tops = StackBuf(2 + 2 * SP_TREES)
     tops[0] = pp
-    tops[1] = idx + SP_TW_FKEY
+    tops[1] = idx + SP_TW_ENC
     encoded_words = 0
     # What a forest key's addresses add to the key's own, the same for every key: its
     # chains' steps, then its leaf. Set once here, where each arm would set its own.
@@ -3714,17 +3714,19 @@ def verify_sig_sphincs(signer, byte_bits):
             digest[1] = bound + leaf_weight  # likewise, the second cell's fields
         else:
             bound = bound + leaf_weight
-    forest_key = StackBuf(SHA3_STATE)
-    sha3_cells(tops, forest_key)
-
     # ---- the one-time signature of the few-time key ----
-    # D = Th(P, A, key | LE_32(c)), 52 bytes. The counter is rebuilt from its four
-    # bytes, so the guest accepts no preimage the native verifier cannot parse.
+    # D = Th(P, A, key | LE_32(c)), the sixteen top nodes then the counter: 292
+    # bytes, three blocks. The counter is rebuilt from its four bytes, so the guest
+    # accepts no preimage the native verifier cannot parse.
     ctr_bytes = StackBuf(SP_COUNTER_BYTES)
     hint_witness(ctr_bytes, "sp_counter")
     ctr = sp_from_bytes(byte_bits, ctr_bytes, SP_COUNTER_BYTES, SP_BYTE_VALUES)
+    first = StackBuf(SHA3_STATE)
+    sha3(tops[0:2], tops[2:4], first, tail=tops[4:8], final=0)
+    second = StackBuf(SHA3_STATE)
+    sha3(tops[8:10], tops[10:12], second, tail=tops[12:16], state=first, final=0)
     encoding = StackBuf(SHA3_STATE)
-    sha3([pp, idx + SP_TW_ENC], [forest_key[0], ctr], encoding, len=52)
+    sha3(tops[16:18], [ctr, 0], encoding, state=second, len=36)
 
     # The codeword: SP_DIGIT_GROUP digits at a time, hinted in the exponent, range
     # checked and dispatched once, the arm walking every chain's remaining steps.

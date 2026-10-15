@@ -31,8 +31,6 @@ pub const TWEAK_FOREST_SUBNODE: u8 = 17;
 /// The leaf of a tree: the top nodes of its two subtrees.
 pub const TWEAK_FOREST_TREE_LEAF: u8 = 18;
 pub const TWEAK_FOREST_NODE: u8 = 19;
-/// The few-time public key: the top nodes of the trees.
-pub const TWEAK_FOREST_KEY: u8 = 20;
 
 /// The address of a hash call: its type, a chain step, and two fields,
 /// `hi < 2^24` and `lo`.
@@ -98,7 +96,7 @@ pub fn th_pair(pp: &PublicParam, tw: &Tweak, master: &MasterSecret) -> [Digest; 
     [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]
 }
 
-/// `Th` over a concatenation of digests: a Merkle node, a leaf, a few-time key.
+/// `Th` over a concatenation of digests: a Merkle node or a leaf.
 pub fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Digest {
     truncate(hasher(pp, tw).update(values.as_flattened()).finalize())
 }

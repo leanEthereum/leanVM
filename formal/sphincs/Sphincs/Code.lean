@@ -3,8 +3,8 @@ import Sphincs.Scheme
 /-!
 # How many digests the target-sum code accepts
 
-The signer's counter search succeeds on a digest whose 64 two-bit digits sum to `T = 120` with no padding bits, so the search's failure probability is governed by how many of
-the `2^128` digests that is. The count is the coefficient of `z^120` in `(1 + z + z^2 + z^3)^64`.
+The signer's counter search succeeds on a digest whose 64 two-bit digits sum to `T = 123` with no padding bits, so the search's failure probability is governed by how many of
+the `2^128` digests that is. The count is the coefficient of `z^123` in `(1 + z + z^2 + z^3)^64`.
 
 Counting it is one identity and one division. Packing the polynomial into a single natural number
 in base `2^129`, which is above every coefficient, turns the product of the `64` factors into a
@@ -96,7 +96,7 @@ theorem codeCount_target :
   rw [weight_pow, sum_encoding_pow]
   exact (digit_of_sum base (by decide) codeCount codeCount_lt_base 193 targetSum (by decide)).symm
 
-theorem two_pow_le_codeCount : 2 ^ 118 ≤ codeCount targetSum := by
+theorem two_pow_le_codeCount : 2 ^ 116 ≤ codeCount targetSum := by
   rw [codeCount_target, weight_eq]
   decide
 
@@ -151,9 +151,9 @@ theorem digestEncoding_pack (x : Encoding) : digestEncoding (pack x) = x := by
 theorem decodeDigest_pack (x : Encoding) (hx : Valid x) : decodeDigest (pack x) = some x := by
   rw [decodeDigest, digestEncoding_pack, if_pos hx]
 
-/-- At least one in 1024 uniformly sampled 128-bit digests is an admissible WOTS+C codeword. -/
+/-- At least one in 4096 uniformly sampled 128-bit digests is an admissible WOTS+C codeword. -/
 theorem two_pow_le_card_accepting :
-    2 ^ 118 ≤ (Finset.univ.filter fun d : Digest => (decodeDigest d).isSome).card := by
+    2 ^ 116 ≤ (Finset.univ.filter fun d : Digest => (decodeDigest d).isSome).card := by
   refine le_trans two_pow_le_codeCount ?_
   rw [codeCount]
   apply Finset.card_le_card_of_injOn pack
@@ -176,9 +176,9 @@ theorem encoding_antichain {x y : Encoding} (hx : Valid x) (hy : Valid y)
     Finset.sum_lt_sum (fun j _ => hle j) ⟨i, Finset.mem_univ i, hstrict⟩
   omega
 
-/-- Every admissible WOTS+C encoding leaves exactly 72 hash steps for its verifier. -/
+/-- Every admissible WOTS+C encoding leaves exactly 69 hash steps for its verifier. -/
 theorem verification_chain_steps (word : Encoding) (hword : Valid word) :
-    (∑ i : ChainIndex, (chainLength - 1 - (word i).val)) = 72 := by
+    (∑ i : ChainIndex, (chainLength - 1 - (word i).val)) = 69 := by
   have hle : ∀ i ∈ (Finset.univ : Finset ChainIndex), (word i).val ≤ chainLength - 1 :=
     fun i _ => Nat.le_of_lt_succ (word i).isLt
   rw [Finset.sum_tsub_distrib Finset.univ hle,

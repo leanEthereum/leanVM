@@ -34,12 +34,23 @@ pub fn wots_leaf_hash(pp: &PublicParam, e: u32, ends: &[Digest; V]) -> Digest {
     th_digests(pp, &tweak(TWEAK_LEAF, 0, e), ends)
 }
 
-/// `Enc(P, e, M, c)`: the codeword, or `None` if this counter's digest is not one.
-pub fn encode(pp: &PublicParam, e: u32, m: &Digest, c: u32) -> Option<[u8; V]> {
-    let mut payload = [0u8; N + COUNTER_LEN];
-    payload[..N].copy_from_slice(m);
-    payload[N..].copy_from_slice(&c.to_le_bytes());
-    codeword(&th(pp, &tweak(TWEAK_ENC, 0, e), &payload))
+/// The hash of `Enc(P, e, K, .)` before its counter: `P | A | K`, the forest
+/// key's sixteen nodes. The counter falls in the last block, so a signer grinding
+/// it pays one permutation a counter.
+fn encoder(pp: &PublicParam, e: u32, key: &ForestKey) -> primitives::hash::Hasher {
+    let mut hasher = hasher(pp, &tweak(TWEAK_ENC, 0, e));
+    hasher.update(key.as_flattened().as_flattened());
+    hasher
+}
+
+fn encode_from(encoder: &primitives::hash::Hasher, c: u32) -> Option<[u8; V]> {
+    let output = encoder.clone().update(&c.to_le_bytes()).finalize();
+    codeword(&output[..N].try_into().unwrap())
+}
+
+/// `Enc(P, e, K, c)`: the codeword, or `None` if this counter's digest is not one.
+pub fn encode(pp: &PublicParam, e: u32, key: &ForestKey, c: u32) -> Option<[u8; V]> {
+    encode_from(&encoder(pp, e, key), c)
 }
 
 /// The digest as `v` chunks of `w` bits, little endian; a codeword if they sum
@@ -54,17 +65,18 @@ fn codeword(digest: &Digest) -> Option<[u8; V]> {
 /// opens. Deterministic in its inputs, which is what keeps one key to one
 /// codeword: a resumed or randomized search would leak two incomparable
 /// codewords.
-pub fn wots_sign(pp: &PublicParam, master: &MasterSecret, e: u32, m: &Digest) -> Option<(u32, [Digest; V])> {
-    let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode(pp, e, m, c as u32).map(|x| (c as u32, x)))?;
+pub fn wots_sign(pp: &PublicParam, master: &MasterSecret, e: u32, key: &ForestKey) -> Option<(u32, [Digest; V])> {
+    let encoder = encoder(pp, e, key);
+    let (c, x) = (0..MAX_ENCODING_ATTEMPTS).find_map(|c| encode_from(&encoder, c as u32).map(|x| (c as u32, x)))?;
     let secrets = wots_secrets(pp, master, e);
     let signature = std::array::from_fn(|i| chain(pp, e, i, 0, x[i] as usize, secrets[i]));
     Some((c, signature))
 }
 
 /// `Ots.leaf`: the leaf a claimed signature recovers, or `None` if its counter
-/// is not admissible for `m`.
-pub fn wots_leaf(pp: &PublicParam, e: u32, m: &Digest, c: u32, signature: &[Digest; V]) -> Option<Digest> {
-    let x = encode(pp, e, m, c)?;
+/// is not admissible for the key.
+pub fn wots_leaf(pp: &PublicParam, e: u32, key: &ForestKey, c: u32, signature: &[Digest; V]) -> Option<Digest> {
+    let x = encode(pp, e, key, c)?;
     let ends = std::array::from_fn(|i| {
         let start = x[i] as usize;
         chain(pp, e, i, start, CHAIN_LEN - 1 - start, signature[i])

@@ -15,7 +15,7 @@ variable [Params]
 
 noncomputable def publicLayer (segment : Segment) (outside : QueryImpl HashSpec Id)
     (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Digest)
-    (index : Index) (lay : Layer) (message : Digest) : Option (LayerSignature lay) :=
+    (index : Index) (lay : Layer) (message : FtsTops) : Option (LayerSignature lay) :=
   (firstEncoding outside segment.parameter lay (treeIndexAt index lay) (leafIndexAt index lay)
       message encodingAttemptLimit 0).map fun pair =>
     ⟨pair.1,
@@ -27,7 +27,7 @@ If that leaf has no successful encoding, the condition is vacuous. -/
 def ReferenceCutoff (segment : Segment) (outside : QueryImpl HashSpec Id) (seed : MasterSeed) : Prop :=
   ∀ counter word,
     firstEncoding outside segment.parameter segment.lay segment.tree segment.leaf
-      (evalWithAnswerFn outside (Seeded.ftsKey segment.parameter segment.leaf seed : OracleComp HashSpec Digest))
+      (evalWithAnswerFn outside (Seeded.ftsKey segment.parameter segment.leaf seed : OracleComp HashSpec FtsTops))
       encodingAttemptLimit 0 = some (counter, word) → segment.digit.val ≤ (word segment.chainIdx).val
 
 end SphincsFors.Security.Prefix

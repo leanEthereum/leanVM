@@ -64,7 +64,7 @@ This specification defines leanSPHINCS, a stateless hash-based signature scheme 
   \item \textbf{NIST security level~1}~\cite{NISTPQC}, 127 bits of classical security in the Random Oracle model, and a target of $\approx 64$ bits in the Quantum Random Oracle model (Section~\ref{sec:security}).
   \item \textbf{Public key: 32 bytes.}
   \item \textbf{Signature: 4276 bytes.}
-  \item \textbf{Verification: 272 permutations} of Keccak-f.
+  \item \textbf{Verification: 268 permutations} of Keccak-f.
   \item \textbf{Lifetime: up to 1.3B signatures per key pair}, less for a key that trades lifetime for a faster key generation (Section~\ref{sec:security}).
 \end{itemize}
 \end{abstract}
@@ -91,7 +91,7 @@ Symbol & Value & Meaning\\
 \midrule
 $w$ & $2$ & bit-size of WOTS$^+$C chain positions\\
 $v$ & $64$ & chains per WOTS$^+$C key\\
-$T$ & $120$ & sum of the signed chain positions\\
+$T$ & $123$ & sum of the signed chain positions\\
 $h$ & $26$ & height of the tree\\
 $b$ & $\leq h$ & height of the subtree a key keeps\\
 $k$ & $8$ & trees per forest\\
@@ -126,7 +126,7 @@ A step's address names the position it leaves. Hashing the endpoints in chain or
   X_{0,e}=\Th\!\left(P,\addr_{\mathrm{leaf}}(e),C_{0,3}\concat\cdots\concat C_{v-1,3}\right).
 \]
 
-To sign $M\in\mathcal H$, the signer encodes it as positions $x_0,\ldots,x_{v-1}$ and reveals $C_{i,x_i}$ from each chain. The verifier hashes these values forward to recover the endpoints. All valid encodings have the same sum:
+To sign $M\in\mathcal H^{16}$, the key of a few-time signature (Section~\ref{sec:fts}), the signer encodes it as positions $x_0,\ldots,x_{v-1}$ and reveals $C_{i,x_i}$ from each chain. The verifier hashes these values forward to recover the endpoints. All valid encodings have the same sum:
 \[
   \mathcal C=\left\{x\in\{0,\ldots,2^w-1\}^{v}:\sum_{i=0}^{v-1}x_i=T\right\}.
 \]
@@ -135,8 +135,9 @@ Hashing forward can only increase a position. Thus one valid encoding cannot be 
 \paragraph{Encoding a message.}
 $\Enc(P,e,M,c)$ first computes
 \[
-  D=\Th\!\left(P,\addr_{\mathrm{enc}}(e),M\concat\LE_{32}(c)\right).
+  D=\Th\!\left(P,\addr_{\mathrm{enc}}(e),M\concat\LE_{32}(c)\right),
 \]
+$M$ being its sixteen values concatenated: $292$ bytes in all, the counter in the last $128$-byte block, so that a signer trying counters pays one permutation for each.
 Interpret $D$ as a little-endian integer; it supplies 64 consecutive two-bit positions:
 \[
   x_i=\left\lfloor D/2^{2i}\right\rfloor\bmod 4,\qquad 0\leq i<v.
@@ -157,7 +158,7 @@ $\OtsLeaf(P,e,M,c,\sigma)$ recomputes $x=\Enc(P,e,M,c)$ and returns $\bot$ if en
 \]
 
 \label{rem:once}
-Each one-time key signs one fixed value, the public key of its few-time key. Choosing the least successful counter makes repeated signing of that value reveal the same positions. Revealing different positions for the same key would let an adversary combine the smaller positions from both signatures.
+Each one-time key signs one fixed value, the key of its few-time signature. Choosing the least successful counter makes repeated signing of that value reveal the same positions. Revealing different positions for the same key would let an adversary combine the smaller positions from both signatures.
 
 \section{The tree: authenticating one-time keys}
 \label{sec:layer}
@@ -210,16 +211,17 @@ No subtree and no tree has a root hash: what stands for a root is the pair of no
 \[
   \Th\!\left(P,\addr_{\mathrm{fleaf}}(\idx,c,s),Z^{0}_{0}\concat Z^{0}_{1}\concat Z^{1}_{0}\concat Z^{1}_{1}\right),
 \]
-where $Z^{j}_{0},Z^{j}_{1}$ are those of subtree $j$. A tree is hashed up to height $3$, under $\addr_{\mathrm{fnode}}(\idx,c,\lambda,\nu)$ for $\lambda\in\{1,2,3\}$, and the forest's public key is the hash of the sixteen height-3 nodes:
+where $Z^{j}_{0},Z^{j}_{1}$ are those of subtree $j$. A tree is hashed up to height $3$, under $\addr_{\mathrm{fnode}}(\idx,c,\lambda,\nu)$ for $\lambda\in\{1,2,3\}$, and the forest's key is the sixteen height-3 nodes themselves:
 \[
-  \FtsKey(P,\idx)=\Th\!\left(P,\addr_{\mathrm{froots}}(\idx),Y^{0}_{0}\concat Y^{0}_{1}\concat\cdots\concat Y^{7}_{0}\concat Y^{7}_{1}\right).
+  \FtsKey(P,\idx)=\left(Y^{0}_{0},Y^{0}_{1},\ldots,Y^{7}_{0},Y^{7}_{1}\right).
 \]
+No hash folds them: the one-time signature's encoding absorbs all sixteen with its counter (Section~\ref{sec:ots}).
 
 \paragraph{Opening.}
 The digest selects in each tree $c$ a \emph{mark}: a leaf $s_c$, and for each of its two subtrees a WOTS key $\alpha_{c,j}$ and a codeword $d_{c,j}=\lut(t_{c,j})$. $\FtsOpen(P,\idx,\text{marks})$ reveals, per tree and per subtree, the six chain values $F_{i,4-d_i}$ of the selected key and its three siblings in the subtree, then the four siblings of leaf $s_c$ in the tree (Figure~\ref{fig:forest}). A path is ordered from the leaves up, and its last element is the top node its fold does not reach: 22 values per tree.
 
-\paragraph{Recovering the public key.}
-$\FtsRec$ walks each revealed chain value $d_i$ steps, hashes the six tops into the subtree leaf, and folds it two heights as $\TreeFold$ does, with the bits of $\alpha_{c,j}$ and the subtree's node addresses. The node reached and the path's last element are the subtree's two top nodes: the reached one is $Z^{j}_{1}$ exactly when bit $2$ of $\alpha_{c,j}$ is set. The four top nodes hash into the tree leaf, which is folded three heights with the bits of $s_c$; the node reached and the path's last element are $Y^{c}_{0},Y^{c}_{1}$, ordered by bit $3$ of $s_c$. Return the hash of the sixteen under $\addr_{\mathrm{froots}}(\idx)$.
+\paragraph{Recovering the key.}
+$\FtsRec$ walks each revealed chain value $d_i$ steps, hashes the six tops into the subtree leaf, and folds it two heights as $\TreeFold$ does, with the bits of $\alpha_{c,j}$ and the subtree's node addresses. The node reached and the path's last element are the subtree's two top nodes: the reached one is $Z^{j}_{1}$ exactly when bit $2$ of $\alpha_{c,j}$ is set. The four top nodes hash into the tree leaf, which is folded three heights with the bits of $s_c$; the node reached and the path's last element are $Y^{c}_{0},Y^{c}_{1}$, ordered by bit $3$ of $s_c$. Return the sixteen.
 
 \begin{figure}[t]
 \centering
@@ -284,7 +286,7 @@ $\FtsRec$ walks each revealed chain value $d_i$ steps, hashes the six tops into 
 \node[note,anchor=west] at (1.87,1.7) {$Z^1_1$};
 \node[note,anchor=north] at (-3.69,0.47) {$\alpha_{c,0}$};
 \node[note,anchor=north] at (1.59,0.47) {$\alpha_{c,1}$};
-\node[note,anchor=west] at (0.18,5.45) {$\FtsKey(P,\idx)$: $\Th$ of the top pairs of the 8 trees};
+\node[note,anchor=west] at (0.18,5.45) {$\FtsKey(P,\idx)$: the top pairs of the 8 trees};
 \node[lab,anchor=west] at (3.6,4.45) {tree $c$, height $a=4$};
 \node[note,anchor=west] at (3.6,4.1) {opened at leaf $s_c$ (4 bits)};
 \node[lab,anchor=west] at (3.6,1.55) {two subtrees, height $a'=3$};
@@ -388,14 +390,14 @@ A signature starts with $\rho$, followed by the forest's opening in increasing t
 Count permutations of Keccak-f: an input of $r$ bytes costs $\lceil r/128\rceil$. Every signature takes exactly
 \[
   \underbrace{1}_{\text{digest}}
-  +\underbrace{k\bigl(2(5+1+2)+1+3\bigr)+3}_{\text{forest}}
-  +\underbrace{1+(2^w-1)v-T+9}_{\text{WOTS$^+$C}}
+  +\underbrace{k\bigl(2(5+1+2)+1+3\bigr)}_{\text{forest}}
+  +\underbrace{3+(2^w-1)v-T+9}_{\text{WOTS$^+$C}}
   +\underbrace{h}_{\text{path}}
-  =272
+  =268
 \]
-permutations to verify: per subtree 5 chain steps, 1 for the WOTS key's leaf and 2 folds, then 1 for the tree leaf and 3 folds, and 3 for the public key of the forest.
+permutations to verify: per subtree 5 chain steps, 1 for the WOTS key's leaf and 2 folds, then 1 for the tree leaf and 3 folds; then 3 for the encoding, which absorbs the forest's key, the chain steps and 9 for the one-time leaf.
 
-A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $233$ permutations and key generation $234\cdot2^b+2(h-b)$. A forest holds $2048$ WOTS keys of $28$ permutations each, which is what signing spends its hashes on: about $6\cdot10^4$, plus the $2^{h-b}$ expected randomizer trials of a pruned key, one permutation each, and the expected $829$ encoding attempts.
+A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $233$ permutations and key generation $234\cdot2^b+2(h-b)$. A forest holds $2048$ WOTS keys of $28$ permutations each, which is what signing spends its hashes on: about $6\cdot10^4$, plus the $2^{h-b}$ expected randomizer trials of a pruned key, one permutation each, and the expected $2197$ encoding attempts, one permutation each once the forest's key is absorbed.
 
 \section{Security}
 \label{sec:security}
@@ -436,13 +438,13 @@ Approximately 64 bits of security in the quantum random-oracle model is a target
 
 Signing fails only if the randomizer search or the counter search is exhausted; whenever it succeeds, verification accepts, each recovery retracing what the signer computed.
 
-A randomizer trial selects a kept leaf with probability $2^{-(h-b)}$, so for $b\geq8$ the search fails with probability about $(1-2^{-18})^{\amax}\leq e^{-2^{14}}$. An encoding accepts exactly when its 64 two-bit positions sum to 120, so a uniform 128-bit digest is accepted with probability
+A randomizer trial selects a kept leaf with probability $2^{-(h-b)}$, so for $b\geq8$ the search fails with probability about $(1-2^{-18})^{\amax}\leq e^{-2^{14}}$. An encoding accepts exactly when its 64 two-bit positions sum to 123, so a uniform 128-bit digest is accepted with probability
 \[
-  \frac{[z^{120}](1+z+z^2+z^3)^{64}}{2^{128}}
-  =\frac{410356077965267834847013187094862224}{2^{128}}
-  \geq2^{-10},
+  \frac{[z^{123}](1+z+z^2+z^3)^{64}}{2^{128}}
+  =\frac{154880076975771860577080744218814592}{2^{128}}
+  \geq2^{-12},
 \]
-where $[z^r]$ denotes the coefficient of $z^r$, and all $\cmax=2^{32}$ counters fail with probability at most $e^{-2^{22}}$.
+where $[z^r]$ denotes the coefficient of $z^r$, and all $\cmax=2^{32}$ counters fail with probability at most $e^{-2^{20}}$.
 
 \appendix
 \section{Address encoding}
@@ -475,7 +477,6 @@ $\addr_{\mathrm{fkey}}(\idx,c,s,j,\alpha)$ & $\mathsf{enc}(16,0,\pi+256\alpha,\i
 $\addr_{\mathrm{fsub}}(\idx,c,s,j,\lambda,\nu)$ & $\mathsf{enc}(17,0,\pi+256\lambda+1024\nu,\idx)$\\
 $\addr_{\mathrm{fleaf}}(\idx,c,s)$ & $\mathsf{enc}(18,0,c+8s,\idx)$\\
 $\addr_{\mathrm{fnode}}(\idx,c,\lambda,\nu)$ & $\mathsf{enc}(19,0,c+8\lambda+64\nu,\idx)$\\
-$\addr_{\mathrm{froots}}(\idx)$ & $\mathsf{enc}(20,0,0,\idx)$\\
 \bottomrule
 \end{tabular}
 \end{center}

@@ -263,7 +263,7 @@ theorem noQ_bind {bad : HashInput → Prop} [DecidablePred bad] {α β : Type} {
 omit [Params] in
 /-- The encoding search queries only encoding inputs. -/
 theorem noQ_search {bad : HashInput → Prop} [DecidablePred bad]
-    (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : Digest)
+    (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey)
     (hbad : ∀ payload, ¬bad (tweakableHashInput parameter (.encoding lay tree leaf) payload)) :
     ∀ attempts start, (ReferenceChoice.search parameter lay tree leaf message attempts start :
       OracleComp HashSpec (Option (Counter × Encoding))).IsQueryBoundP bad 0
@@ -461,10 +461,10 @@ attribute [local instance] sampleCellFintypeInst sampleCellDecEq hiddenTableSamp
 
 omit [Params] in
 theorem search_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) : ∀ (n t : ℕ),
+    (message : ForestKey) : ∀ (n t : ℕ),
     (ReferenceChoice.search parameter lay tree leaf message n t : OracleComp HashSpec (Option (Counter × Encoding))) =
       searchLoop (fun c => tweakableHashInput parameter (.encoding lay tree leaf)
-          (bytesLE 16 message ++ bytesLE 4 (BitVec.ofNat counterBits c)))
+          (rootsPayload message ++ bytesLE 4 (BitVec.ofNat counterBits c)))
         (fun out => TargetSum.decodeDigest (truncateHash out))
         (fun c encoding => pure (BitVec.ofNat counterBits c, encoding)) n t := by
   intro n
@@ -481,7 +481,7 @@ theorem search_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (tree :
 omit [Params] in
 /-- One search over fresh counters fails with at most the rejection share to the trial budget. -/
 theorem search_fail_le (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (cache : QueryCache HashSpec)
+    (message : ForestKey) (cache : QueryCache HashSpec)
     (hfresh : ∀ s, s < encodingAttemptLimit → cache (encodeInput parameter lay tree leaf message s) = none) :
     Pr[fun r => r.1 = none | (simulateQ (randomOracle (spec := HashSpec))
         (ReferenceChoice.search parameter lay tree leaf message encodingAttemptLimit 0)).run cache] ≤
@@ -529,24 +529,24 @@ theorem prep_fail_le (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) 
     exact programGraphCache_empty_none _ _ _ _ _ _ fun position _ => encoding_not_graph _ _ position _ _ _ _ _
 
 omit [Params] in
-/-- Bernoulli: `(1 - 2⁻¹⁰) ^ 2¹⁰ ≤ 1/2`. -/
-theorem one_sub_pow_le_half : (1 - (2 : ℝ)⁻¹ ^ 10) ^ (2 ^ 10) ≤ 1 / 2 := by
-  set a : ℝ := (2 : ℝ)⁻¹ ^ 10 with ha
+/-- Bernoulli: `(1 - 2⁻¹²) ^ 2¹² ≤ 1/2`. -/
+theorem one_sub_pow_le_half : (1 - (2 : ℝ)⁻¹ ^ 12) ^ (2 ^ 12) ≤ 1 / 2 := by
+  set a : ℝ := (2 : ℝ)⁻¹ ^ 12 with ha
   have ha0 : 0 ≤ a := by positivity
   have ha1 : a ≤ 1 := by rw [ha]; norm_num
-  have hbern : 1 + ((2 ^ 10 : ℕ) : ℝ) * a ≤ (1 + a) ^ (2 ^ 10) := one_add_mul_le_pow (by linarith) _
-  have hna : ((2 ^ 10 : ℕ) : ℝ) * a = 1 := by rw [ha]; norm_num
+  have hbern : 1 + ((2 ^ 12 : ℕ) : ℝ) * a ≤ (1 + a) ^ (2 ^ 12) := one_add_mul_le_pow (by linarith) _
+  have hna : ((2 ^ 12 : ℕ) : ℝ) * a = 1 := by rw [ha]; norm_num
   rw [hna] at hbern
-  have hprod : (1 - a) ^ (2 ^ 10) * (1 + a) ^ (2 ^ 10) ≤ 1 := by
+  have hprod : (1 - a) ^ (2 ^ 12) * (1 + a) ^ (2 ^ 12) ≤ 1 := by
     rw [← mul_pow]
     have h0 : 0 ≤ (1 - a) * (1 + a) := mul_nonneg (by linarith) (by linarith)
     have h1 : (1 - a) * (1 + a) ≤ 1 := by nlinarith
     exact pow_le_one₀ h0 h1
-  have hpos : 0 < (1 + a) ^ (2 ^ 10) := by positivity
+  have hpos : 0 < (1 + a) ^ (2 ^ 12) := by positivity
   rw [div_eq_mul_inv, one_mul]
-  calc (1 - a) ^ (2 ^ 10) = (1 - a) ^ (2 ^ 10) * (1 + a) ^ (2 ^ 10) / (1 + a) ^ (2 ^ 10) := by
+  calc (1 - a) ^ (2 ^ 12) = (1 - a) ^ (2 ^ 12) * (1 + a) ^ (2 ^ 12) / (1 + a) ^ (2 ^ 12) := by
         field_simp
-    _ ≤ 1 / (1 + a) ^ (2 ^ 10) := by gcongr
+    _ ≤ 1 / (1 + a) ^ (2 ^ 12) := by gcongr
     _ ≤ 1 / 2 := by gcongr; exact (by norm_num : (2 : ℝ) ≤ 1 + 1).trans hbern
     _ = 2⁻¹ := by norm_num
 
@@ -554,24 +554,24 @@ omit [Params] in
 /-- The trial budget makes a prepared search fail with negligible probability. -/
 theorem fail_pow_le :
     Completeness.failMass (fun out => TargetSum.decodeDigest (truncateHash out)) ^ encodingAttemptLimit ≤
-      (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 22) := by
+      (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 20) := by
   set fm := Completeness.failMass (fun out => TargetSum.decodeDigest (truncateHash out)) with hfm
   have hadd := Completeness.failMass_encoding_add_le
-  have hle : fm ≤ ENNReal.ofReal (1 - (2 : ℝ)⁻¹ ^ 10) := by
-    have htop : ((2 : ℝ≥0∞) ^ 10)⁻¹ ≠ ⊤ := by simp
-    have h1 : fm ≤ 1 - ((2 : ℝ≥0∞) ^ 10)⁻¹ := ENNReal.le_sub_of_add_le_right htop hadd
+  have hle : fm ≤ ENNReal.ofReal (1 - (2 : ℝ)⁻¹ ^ 12) := by
+    have htop : ((2 : ℝ≥0∞) ^ 12)⁻¹ ≠ ⊤ := by simp
+    have h1 : fm ≤ 1 - ((2 : ℝ≥0∞) ^ 12)⁻¹ := ENNReal.le_sub_of_add_le_right htop hadd
     refine h1.trans (le_of_eq ?_)
     rw [ENNReal.ofReal_sub _ (by positivity), ENNReal.ofReal_one]
     congr 1
     rw [ENNReal.ofReal_pow (by norm_num), ENNReal.ofReal_inv_of_pos (by norm_num), ENNReal.ofReal_ofNat,
       ENNReal.inv_pow]
-  calc fm ^ encodingAttemptLimit ≤ ENNReal.ofReal (1 - (2 : ℝ)⁻¹ ^ 10) ^ (2 ^ 10 * 2 ^ 22) := by
-        rw [show encodingAttemptLimit = 2 ^ 10 * 2 ^ 22 from rfl]
+  calc fm ^ encodingAttemptLimit ≤ ENNReal.ofReal (1 - (2 : ℝ)⁻¹ ^ 12) ^ (2 ^ 12 * 2 ^ 20) := by
+        rw [show encodingAttemptLimit = 2 ^ 12 * 2 ^ 20 from rfl]
         exact pow_le_pow_left' hle _
-    _ = (ENNReal.ofReal ((1 - (2 : ℝ)⁻¹ ^ 10) ^ (2 ^ 10))) ^ (2 ^ 22) := by
+    _ = (ENNReal.ofReal ((1 - (2 : ℝ)⁻¹ ^ 12) ^ (2 ^ 12))) ^ (2 ^ 20) := by
         rw [pow_mul, ENNReal.ofReal_pow (by norm_num)]
-    _ ≤ (ENNReal.ofReal (1 / 2)) ^ (2 ^ 22) := pow_le_pow_left' (ENNReal.ofReal_le_ofReal one_sub_pow_le_half) _
-    _ = (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 22) := by
+    _ ≤ (ENNReal.ofReal (1 / 2)) ^ (2 ^ 20) := pow_le_pow_left' (ENNReal.ofReal_le_ofReal one_sub_pow_le_half) _
+    _ = (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 20) := by
         rw [one_div, ENNReal.ofReal_inv_of_pos (by norm_num), ENNReal.ofReal_ofNat]
 
 theorem failMass_le_count (R : Index → Option (Counter × Encoding)) :
@@ -622,14 +622,14 @@ theorem expectedFail_le : expectedFail ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
           rw [Summable.tsum_finsetSum (fun _ _ => ENNReal.summable)]
       _ ≤ ∑ i : Index, Pr[fun prepared => prepared.1 i = none | preparation parameterOutput fixed highs remaining] :=
           Finset.sum_le_sum fun i _ => tsum_elim_le _ i
-      _ ≤ ∑ _i : Index, (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 22) :=
+      _ ≤ ∑ _i : Index, (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 20) :=
           Finset.sum_le_sum fun i _ => (prep_fail_le parameterOutput fixed highs remaining i).trans fail_pow_le
-      _ = (2 ^ 26 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 22) := by
+      _ = (2 ^ 26 : ℕ) * (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 20) := by
           rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
           rfl
       _ ≤ (2 : ℝ≥0∞)⁻¹ ^ 201 := by
-          have hsplit : (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 22) = (2 : ℝ≥0∞)⁻¹ ^ 26 * ((2 : ℝ≥0∞)⁻¹ ^ 201 *
-              (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 22 - 227)) := by
+          have hsplit : (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 20) = (2 : ℝ≥0∞)⁻¹ ^ 26 * ((2 : ℝ≥0∞)⁻¹ ^ 201 *
+              (2 : ℝ≥0∞)⁻¹ ^ (2 ^ 20 - 227)) := by
             rw [← pow_add, ← pow_add]
             congr 1
           rw [hsplit, Nat.cast_pow, Nat.cast_ofNat, ← mul_assoc, ← mul_pow,

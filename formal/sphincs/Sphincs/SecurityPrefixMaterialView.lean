@@ -46,13 +46,13 @@ theorem chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (index : Chain
       · exact h.tweakable _ _
       · rfl
 
-theorem encoding (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : Digest) (counter : Counter) :
+theorem encoding (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey) (counter : Counter) :
     evalWithAnswerFn left (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) =
       evalWithAnswerFn right (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) := by
   simp only [encode, evalWithAnswerFn_bind, h.tweakable, evalWithAnswerFn_pure]
 
 theorem firstEncoding_eq (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (attempts start : Nat) :
+    (message : ForestKey) (attempts start : Nat) :
     firstEncoding left parameter lay tree leaf message attempts start =
       firstEncoding right parameter lay tree leaf message attempts start := by
   induction attempts generalizing start with
@@ -108,8 +108,8 @@ theorem topNode (index : Index) (c : Coord) (level node : Nat) :
       · rfl
 
 theorem forsKey (index : Index) :
-    evalWithAnswerFn left (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest) =
-      evalWithAnswerFn right (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest) := by
+    evalWithAnswerFn left (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey) =
+      evalWithAnswerFn right (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey) := by
   simp only [Seeded.forestKey, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin, h.topNode,
     h.tweakable]
 
@@ -170,7 +170,7 @@ theorem path (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Diges
   simp only [publicPath, h.node segment hparameter]
 
 theorem layer (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Digest)
-    (index : Index) (lay : Layer) (message : Digest) :
+    (index : Index) (lay : Layer) (message : ForestKey) :
     publicLayer segment left secrets frontier surrogates index lay message =
       publicLayer segment right secrets frontier surrogates index lay message := by
   subst parameter

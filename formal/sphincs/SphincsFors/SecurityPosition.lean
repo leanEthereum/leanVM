@@ -79,18 +79,15 @@ theorem hashFields_injective {left right : HashDomain} (hl : left.InRange)
     have he3 : level = level' := by omega
     have he4 : nodeIdx = nodeIdx' := by omega
     cases he1; cases he2; cases he3; cases he4; rfl
-  · obtain ⟨_, _, _, hindex⟩ := heq
-    have he := fin_of_ofNat_eq (by decide) hindex
-    cases he; rfl
   · obtain ⟨_, _, hcall, _⟩ := heq
     have he := fin_of_ofNat_eq (by decide) hcall
     cases he; rfl
 
 /-- A structural position of the honest key. A `node` at `level` is the node of actual level
 `level + 1`, the leaves being the `leaf` positions; likewise for `ftsNode`. A FORS tree has no root
-hash: the children of `ftsRoots`, the FORS key hash, are the two nodes of actual level `a - 1` of
-every tree. The `ftsNode` positions of actual level `a` remain in the type, like the node indices
-beyond a level's width, and no position or scheme value reads them. -/
+hash, and no hash folds the trees into a key: the encoding absorbs the two nodes of actual level
+`a - 1` of every tree. The `ftsNode` positions of actual level `a` remain in the type, like the
+node indices beyond a level's width, and no position or scheme value reads them. -/
 inductive Position where
   | chain (lay : Layer) (tree : TreeIndex) (leafIdx : LeafIndex) (chainIdx : ChainIndex)
       (step : ChainStep)
@@ -98,7 +95,6 @@ inductive Position where
   | node (lay : Layer) (tree : TreeIndex) (level : Fin maxLayerHeight) (nodeIdx : LeafIndex)
   | ftsLeaf (index : Index) (tree : FtsTree) (leafIdx : FtsLeaf)
   | ftsNode (index : Index) (tree : FtsTree) (level : Fin ftsTreeHeight) (nodeIdx : FtsLeaf)
-  | ftsRoots (index : Index)
   deriving DecidableEq, Fintype
 
 namespace Position
@@ -110,7 +106,6 @@ def domain : Position → HashDomain
   | .node lay tree level nodeIdx => HashDomain.node lay tree (level.val + 1) nodeIdx.val
   | .ftsLeaf index tree leafIdx => HashDomain.ftsLeaf index tree leafIdx
   | .ftsNode index tree level nodeIdx => HashDomain.ftsNode index tree (level.val + 1) nodeIdx.val
-  | .ftsRoots index => HashDomain.ftsRoots index
 
 theorem domain_inRange (p : Position) : p.domain.InRange := by
   cases p with
@@ -129,7 +124,6 @@ theorem domain_inRange (p : Position) : p.domain.InRange := by
   | chain => exact (trivial : True)
   | leaf => exact (trivial : True)
   | ftsLeaf => exact (trivial : True)
-  | ftsRoots => exact (trivial : True)
 
 theorem domain_injective {p q : Position} (h : p.domain = q.domain) : p = q := by
   cases p <;> cases q <;> simp only [domain] at h <;> simp_all [Fin.ext_iff]
@@ -162,10 +156,6 @@ def children : Position → List Position
           [.ftsLeaf index tree ⟨2 * nodeIdx.val, by omega⟩,
             .ftsLeaf index tree ⟨2 * nodeIdx.val + 1, by omega⟩]
       else []
-  | .ftsRoots index =>
-      (List.finRange ftsTrees).flatMap fun tree : FtsTree =>
-        [.ftsNode index tree ⟨ftsTopLevel - 1, by decide⟩ ⟨0, by decide⟩,
-          .ftsNode index tree ⟨ftsTopLevel - 1, by decide⟩ ⟨1, by decide⟩]
 
 /-! ### Depth and separated addresses
 
@@ -179,7 +169,6 @@ def depth : Position → Nat
   | .node _ _ level _ => chainLength + 1 + level.val
   | .ftsLeaf _ _ _ => 0
   | .ftsNode _ _ level _ => 1 + level.val
-  | .ftsRoots _ => 1 + ftsTreeHeight
 
 theorem depth_lt_of_mem_children {c d : Position} (hmem : c ∈ d.children) :
     c.depth < d.depth := by
@@ -212,11 +201,6 @@ theorem depth_lt_of_mem_children {c d : Position} (hmem : c ∈ d.children) :
       · split at hmem <;> rcases List.mem_pair.mp hmem with h | h <;> subst h <;>
           simp only [depth] <;> omega
       · simp at hmem
-  | ftsRoots =>
-      simp only [children, List.mem_flatMap, List.mem_finRange, true_and] at hmem
-      obtain ⟨tree, hmem⟩ := hmem
-      rcases List.mem_pair.mp hmem with h | h <;> subst h <;>
-        simp [depth, ftsTopLevel, ftsTreeHeight]
 
 theorem fields_injective {left right : Position}
     (h : hashDomainFields left.domain = hashDomainFields right.domain) : left = right :=

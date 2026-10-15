@@ -5,7 +5,7 @@ import SphincsFors.RandomizedCorrectness
 
 /-!
 The interface of deterministic extraction from an accepted candidate signature: its index and
-verifier trace, the canonical FORS key, reference certificates for the WOTS counter and word at a
+verifier trace, the canonical FORS tops, reference certificates for the WOTS counter and word at a
 leaf, canonical openings, and the explicit exceptional branches (`ForsException`, `Exception`).
 `BridgeClassify` proves the classification of accepted signatures.
 -/
@@ -27,10 +27,10 @@ def trace (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
   queriedInputs f (Concrete.verify pk message signature : OracleComp HashSpec Bool)
 
 def canonicalFors (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (seed : MasterSeed) (leaf : Index) : Digest :=
-  evalWithAnswerFn f (Seeded.ftsKey parameter leaf seed : OracleComp HashSpec Digest)
+    (seed : MasterSeed) (leaf : Index) : FtsTops :=
+  evalWithAnswerFn f (Seeded.ftsKey parameter leaf seed : OracleComp HashSpec FtsTops)
 
-/-- A concrete reference counter certifies the canonical FORS key's valid WOTS encoding. -/
+/-- A concrete reference counter certifies the canonical FORS tops' valid WOTS encoding. -/
 def ReferenceCertificate (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (leaf : Index) (counter : Counter) (word : Encoding) : Prop :=
   evalWithAnswerFn f (encode parameter topLayer rootTree leaf

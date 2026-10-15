@@ -159,7 +159,7 @@ theorem compile_forestWalk (seed : MasterSeed) (material : Material)
 
 theorem compile_encode (seed : MasterSeed) (material : Material)
     (p : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (counter : Counter) :
+    (message : ForestKey) (counter : Counter) :
     simulateQ (compileHash seed material)
       (encode p lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) =
         liftM (encode p lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) := by
@@ -320,9 +320,9 @@ theorem compiled_topNode_eq (left right : MasterSeed) (material : Material)
 omit [Params] in
 theorem compiled_forestKey_eq (left right : MasterSeed) (material : Material) (index : Index) :
     simulateQ (compileHash left material)
-      (Seeded.forestKey (parameter material) index left : OracleComp HashSpec Digest) =
+      (Seeded.forestKey (parameter material) index left : OracleComp HashSpec ForestKey) =
     simulateQ (compileHash right material)
-      (Seeded.forestKey (parameter material) index right : OracleComp HashSpec Digest) := by
+      (Seeded.forestKey (parameter material) index right : OracleComp HashSpec ForestKey) := by
   simp only [Seeded.forestKey, simulateQ_bind, simulate_sequenceFin,
     compiled_topNode_eq left right, compile_tweakableHash, simulateQ_pure]
 
@@ -347,7 +347,7 @@ theorem compiled_forestOpen_eq (left right : MasterSeed) (material : Material) (
 
 omit [Params] in
 theorem compiled_otsSignFrom_eq (left right : MasterSeed) (material : Material)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : Digest) (attempts counter : Nat) :
+    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey) (attempts counter : Nat) :
     simulateQ (compileHash left material)
       (Seeded.otsSignFrom (parameter material) lay tree leaf left message attempts counter : OracleComp HashSpec _) =
     simulateQ (compileHash right material)

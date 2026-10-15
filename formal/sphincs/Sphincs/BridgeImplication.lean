@@ -20,7 +20,7 @@ variable [Params]
 
 omit [Params] in
 theorem otsSignFrom_firstEncoding (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) :
+    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (seed : MasterSeed) (message : ForestKey) :
     ∀ (attempts start : Nat) {counter : Counter} {values : ChainIndex → Digest},
       evalWithAnswerFn f (Seeded.otsSignFrom parameter lay tree leaf seed message attempts start
           : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest)))) = some (counter, values) →
@@ -81,7 +81,7 @@ noncomputable def answersT (table : HiddenGraph.Table) : CanonicalGraphLabels :=
   splitAnswers highs remaining (mix (truncateHash parameterOutput) fixed table)
 
 /-- Encoding targets fixed by the preparation's search results. -/
-noncomputable def encTable (parameter : PublicParameter) (forsKey : Index → Digest)
+noncomputable def encTable (parameter : PublicParameter) (forsKey : Index → ForestKey)
     (results : Index → Option (Counter × Encoding)) : TargetAssignment.Table := fun fields =>
   (encodingAt fields).map fun leaf =>
     ⟨(results leaf).map (fun pair => Wots.encodingInput parameter topLayer rootTree leaf (forsKey leaf) pair.1),
@@ -218,7 +218,7 @@ theorem answer_extend_final {A : Type} (model : HiddenRows.Model HashInput HashO
 omit [Params] in
 /-- Preparation facts: the structural cache persists, and every leaf's encoding search result is
 the one recorded, for any function agreeing with the prepared cache. -/
-theorem preparation_support (parameter : PublicParameter) (forsKey : Index → Digest)
+theorem preparation_support (parameter : PublicParameter) (forsKey : Index → ForestKey)
     (base : QueryCache HashSpec) (prepared : (Index → Option (Counter × Encoding)) × QueryCache HashSpec)
     (hprepared : prepared ∈ support ((simulateQ randomOracle (searchAll parameter forsKey)).run base))
     (f : QueryImpl HashSpec Id) (hf : prepared.2.AgreesWithFn f) :
@@ -430,7 +430,7 @@ theorem reach_chain (parameterOutput : HashOutput) (highs : CoordinateHighs) (fi
 
 omit [Params] in
 theorem firstEncoding_congr (f g : QueryImpl HashSpec Id) (parameter : PublicParameter) (lay : Layer)
-    (tree : TreeIndex) (leaf : LeafIndex) (message : Digest)
+    (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey)
     (h : ∀ counter : Counter, f (Wots.encodingInput parameter lay tree leaf message counter) =
       g (Wots.encodingInput parameter lay tree leaf message counter)) :
     ∀ attempts start, Prefix.firstEncoding f parameter lay tree leaf message attempts start =
@@ -440,8 +440,8 @@ theorem firstEncoding_congr (f g : QueryImpl HashSpec Id) (parameter : PublicPar
         evalWithAnswerFn g (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) := by
     intro counter
     simp only [encode, evalWithAnswerFn_bind, eval_tweakableHash, evalWithAnswerFn_pure]
-    rw [show f (tweakableHashInput parameter (.encoding lay tree leaf) (bytesLE 16 message ++ bytesLE 4 counter)) =
-      g (tweakableHashInput parameter (.encoding lay tree leaf) (bytesLE 16 message ++ bytesLE 4 counter)) from
+    rw [show f (tweakableHashInput parameter (.encoding lay tree leaf) (rootsPayload message ++ bytesLE 4 counter)) =
+      g (tweakableHashInput parameter (.encoding lay tree leaf) (rootsPayload message ++ bytesLE 4 counter)) from
       h counter]
   intro attempts
   induction attempts with
@@ -569,7 +569,7 @@ theorem finalFn_unparsed (parameterOutput : HashOutput) (highs : CoordinateHighs
       rw [if_neg (hnot query hparse)]
 
 theorem encoding_not_row (parameterOutput : HashOutput) (highs : CoordinateHighs) (table : HiddenGraph.Table)
-    (leaf : LeafIndex) (message : Digest) (counter : Counter) :
+    (leaf : LeafIndex) (message : ForestKey) (counter : Counter) :
     ∀ query, (sampleModel parameterOutput highs).parse
       (Wots.encodingInput (truncateHash parameterOutput) topLayer rootTree leaf message counter) = some query →
       ¬query.2 = table ((sampleModel parameterOutput highs).incoming query.1) := by
@@ -632,7 +632,7 @@ theorem fullTable_eq (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) 
       rw [hselection leaf]
 
 omit [Params] in
-theorem selection_of_agree (parameter : PublicParameter) (forsKey : Index → Digest)
+theorem selection_of_agree (parameter : PublicParameter) (forsKey : Index → ForestKey)
     (results : Index → Option (Counter × Encoding)) (f g : QueryImpl HashSpec Id)
     (hsearch : ∀ leaf, Prefix.firstEncoding g parameter topLayer rootTree leaf (forsKey leaf)
       encodingAttemptLimit 0 = results leaf)
@@ -965,10 +965,10 @@ noncomputable def finalTable (parameterOutput : HashOutput) (highs : CoordinateH
   fun short => finalFn (sampleModel parameterOutput highs) table cacheF short.val
 
 omit [Params] in
-theorem encodingInput_short (parameter : PublicParameter) (leaf : Index) (key : Digest) (counter : Counter) :
+theorem encodingInput_short (parameter : PublicParameter) (leaf : Index) (key : ForestKey) (counter : Counter) :
     Short.IsShort (Wots.encodingInput parameter topLayer rootTree leaf key counter) := by
   simp only [Wots.encodingInput, Short.IsShort, Short.bound, Short.tweakableHashInput_length,
-    List.length_append, bytesLE_length]
+    List.length_append, rootsPayload_len, bytesLE_length]
   omega
 
 /-- Encoding inputs read the same value through the prepared cache. -/
@@ -978,7 +978,7 @@ theorem encoding_preferCache (parameterOutput : HashOutput) (highs : CoordinateH
     (hagreeAll : ∀ input, Short.IsShort input → ¬SeedGuess.SeedHit input seed →
       f input = finalFn (sampleModel parameterOutput highs) table cacheF input)
     (hgrow : ∀ input answer, prepCache input = some answer → cacheF input = some answer)
-    (leaf : Index) (key : Digest) (counter : Counter) :
+    (leaf : Index) (key : ForestKey) (counter : Counter) :
     f (Wots.encodingInput (truncateHash parameterOutput) topLayer rootTree leaf key counter) =
       preferCache prepCache f (Wots.encodingInput (truncateHash parameterOutput) topLayer rootTree leaf key counter) := by
   unfold preferCache
