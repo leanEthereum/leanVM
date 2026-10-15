@@ -400,6 +400,10 @@ XM_INDEX_WEIGHT = XM_INDEX_WEIGHT_PLACEHOLDER
 # lane's leftover top bits are ground to zero by the signer).
 DIGITS_PER_WORD = V / 2
 TIP_CELLS = WORDS_PER_VALUE * V
+# A chain walks its last XM_NEAR steps in place and any before in a frame of their own:
+# a dispatch's arms share the cells of the longest, so steps past these would reserve
+# cells most chains leave unwritten, and memory is padded to a power of two.
+XM_NEAR = 4
 
 # ------------------------------------------------------ SPHINCS+ (host-supplied)
 # The scheme's own letters, prefixed SP_ where XMSS has the same one: one tree of
@@ -3283,6 +3287,45 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     return
 
 
+# ================================ WOTS chain walks ==================================
+# A chain's last steps land in fixed slots of a `walks` run, so its tip is one cell
+# whatever the digit, read there by the leaf's hash.
+
+
+@inline
+def chain_tip(walks, near: Const, i: Const):
+    # Chain i's tip, in the last of its `near` slots of `walks`.
+    tip = walks[((i + 1) * near - 1) * SHA3_STATE]
+    return tip
+
+
+@inline
+def wots_leaf(tw, pp, walks, near: Const, n: Const, leaf):
+    # The hash of the prefix (tw, pp) and the n chain tips, eight cells a block. A block
+    # takes its first four cells from anywhere, and a later one all eight, its message
+    # being XORed into the state, so the tips are read where their walks left them. The
+    # last block holds at most four cells: 2 + n is at most 4 past a multiple of 8.
+    st = StackBuf(SHA3_STATE)
+    sha3([tw, pp], [chain_tip(walks, near, 0), chain_tip(walks, near, 1)], st, tail=[chain_tip(walks, near, 2), chain_tip(walks, near, 3), chain_tip(walks, near, 4), chain_tip(walks, near, 5)], final=0)
+    for b in unroll(1, (n + 1) // 8):
+        t = 8 * b - 2  # the block's first tip
+        nxt = StackBuf(SHA3_STATE)
+        sha3([chain_tip(walks, near, t), chain_tip(walks, near, t + 1)], [chain_tip(walks, near, t + 2), chain_tip(walks, near, t + 3)], nxt, tail=[chain_tip(walks, near, t + 4), chain_tip(walks, near, t + 5), chain_tip(walks, near, t + 6), chain_tip(walks, near, t + 7)], state=st, final=0)
+        st = nxt
+    # The last block's one to four cells.
+    t = 8 * ((n + 1) // 8) - 2
+    last = n - t
+    if const(last == 1):
+        sha3([chain_tip(walks, near, t), 0], [0, 0], leaf, state=st, len=16)
+    elif const(last == 2):
+        sha3([chain_tip(walks, near, t), chain_tip(walks, near, t + 1)], [0, 0], leaf, state=st, len=32)
+    elif const(last == 3):
+        sha3([chain_tip(walks, near, t), chain_tip(walks, near, t + 1)], [chain_tip(walks, near, t + 2), 0], leaf, state=st, len=48)
+    else:
+        sha3([chain_tip(walks, near, t), chain_tip(walks, near, t + 1)], [chain_tip(walks, near, t + 2), chain_tip(walks, near, t + 3)], leaf, state=st, len=64)
+    return
+
+
 # ============================ XMSS signature verification ===========================
 # One signature of its leaf index group's (leaf index, message), against the signer's public
 # key at `pk_ptr[g^0..g^1]` = (merkle_root, public_param). Every 16-byte native
@@ -3344,15 +3387,12 @@ def verify_sig(message, tweak_table, merkle_bits, pk_ptr):
 
     # V WOTS chains. Per chain the digit is hinted in the exponent (g^{e_i}), range
     # checked and dispatched once into this frame; arm k walks the remaining
-    # CHAIN_STEPS-k steps into `tips` and returns e_i = k weighted by CHAIN_LENGTH^i
+    # CHAIN_STEPS-k steps (walk) and returns e_i = k weighted by CHAIN_LENGTH^i
     # inside its own 64-bit lane (DIGITS_PER_WORD digits a lane, GF(2^64)'s monomial
     # budget, each lane's leftover top bits ground to zero by the signer). The product
     # of the digits is the target sum (g^{Σe_i}), and the weighted digits reconstruct
     # D's first cell as `acc_lo + acc_hi·Y`.
-    # The leaf's preimage: the prefix (tweak, pp), then the V tips.
-    tips = StackBuf(2 + TIP_CELLS)
-    tips[0] = tweak_table[GEN ** (WORDS_PER_VALUE * WOTS_PK_TWEAK_IDX)]
-    tips[1] = pp
+    walks = StackBuf(V * XM_NEAR * SHA3_STATE)
     chain_tweaks = tweak_table * GEN ** WORDS_PER_VALUE  # chain i at cell 1 + CHAIN_STEPS·i
     digit_product = 1
     acc_lo = 0
@@ -3360,8 +3400,7 @@ def verify_sig(message, tweak_table, merkle_bits, pk_ptr):
     for i in unroll(0, V):
         digit = hint_witness("digits")
         assert log(digit) < CHAIN_LENGTH
-        chain_start = hint_witness("chain_starts")
-        term = match(log(digit), range(0, CHAIN_LENGTH), lambda k: walk(chain_start, chain_tweaks, pp, tips, i, k))
+        term = match(log(digit), range(0, CHAIN_LENGTH), lambda k: walk(chain_tweaks, pp, walks, i, k))
         digit_product = digit_product * digit
         if i // DIGITS_PER_WORD == 0:
             acc_lo = acc_lo + term
@@ -3371,10 +3410,9 @@ def verify_sig(message, tweak_table, merkle_bits, pk_ptr):
     assert digit_product == GEN ** TARGET_SUM
     assert acc_lo + acc_hi * Y_TOWER == digest[0]
 
-    # WOTS public-key leaf = the hash of the prefix and the V tips, eight cells a
-    # block.
+    # WOTS public-key leaf = the hash of the prefix and the V tips.
     leaf = StackBuf(SHA3_STATE)
-    sha3_cells(tips, leaf)
+    wots_leaf(tweak_table[GEN ** (WORDS_PER_VALUE * WOTS_PK_TWEAK_IDX)], pp, walks, XM_NEAR, TIP_CELLS, leaf)
 
     # Merkle path from the leaf to the root: the leaf index bit orders the two children at
     # each level, and the tweak carries that level's parent index.
@@ -3390,17 +3428,37 @@ def verify_sig(message, tweak_table, merkle_bits, pk_ptr):
 
 
 @inline
-def walk(value, chain_tweaks, pp, tips, i: Const, k: Const):
-    # Walk chain i's steps k..CHAIN_STEPS-1, value' = H(tweak|pp, value|0), the tip
-    # landing in tips[2 + i]. Step s reads its tweak at cell s off the chain's
-    # subtable, a compile-time offset.
-    word = value
-    for s in unroll(k, CHAIN_STEPS):
+def walk(chain_tweaks, pp, walks, i: Const, k: Const):
+    # Walk chain i's steps k..CHAIN_STEPS-1, value' = H(tweak|pp, value|0), from its
+    # hinted start. Step s reads its tweak at cell s off the chain's subtable, a
+    # compile-time offset. The last XM_NEAR steps land in chain i's slots of `walks`,
+    # the last one's digest being the tip whatever k is; walk_far takes any before.
+    far = CHAIN_STEPS - XM_NEAR
+    if const(k == CHAIN_STEPS):
+        hint_witness(walks[((i + 1) * XM_NEAR - 1) * SHA3_STATE:((i + 1) * XM_NEAR - 1) * SHA3_STATE + 1], "chain_starts")
+    else:
+        if const(k // far == 0):
+            word = walk_far(chain_tweaks, pp, k)
+            first = far
+        else:
+            word = hint_witness("chain_starts")
+            first = k
+        for s in unroll(first, CHAIN_STEPS):
+            at = (i * XM_NEAR + s - far) * SHA3_STATE
+            sha3([chain_tweaks[GEN ** (WORDS_PER_VALUE * s)], pp], [word, 0], walks[at:at + SHA3_STATE], len=48)
+            word = walks[at]
+    return const(k * CHAIN_LENGTH ** (i % DIGITS_PER_WORD))
+
+
+def walk_far(chain_tweaks, pp, k: Const):
+    # Steps k..CHAIN_STEPS-XM_NEAR-1 of a long walk, from its hinted start, in a frame
+    # sized for exactly them.
+    word = hint_witness("chain_starts")
+    for s in unroll(k, CHAIN_STEPS - XM_NEAR):
         out = StackBuf(SHA3_STATE)
         sha3([chain_tweaks[GEN ** (WORDS_PER_VALUE * s)], pp], [word, 0], out, len=48)
         word = out[0]
-    tips[2 + i] = word
-    return const(k * CHAIN_LENGTH ** (i % DIGITS_PER_WORD))
+    return word
 
 
 # ========================== SPHINCS+ signature verification =========================
