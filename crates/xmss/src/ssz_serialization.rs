@@ -7,8 +7,8 @@
 //! decodes:
 //!
 //! - [`XmssPublicKey`]: `merkle_root | public_param`, [`PUB_KEY_SSZ_LEN`] bytes.
-//! - [`XmssSignature`]: `chain_tips | randomness | merkle_proof`,
-//!   [`SIGNATURE_SSZ_LEN`] bytes.
+//! - [`XmssSignature`]: `leaf_index | chain_tips | randomness | merkle_proof`,
+//!   [`SIGNATURE_SSZ_LEN`] bytes, the leaf index a little-endian `uint32`.
 
 pub use ssz::{Decode, DecodeError, Encode};
 
@@ -132,6 +132,7 @@ impl Encode for XmssSignature {
     }
 
     fn ssz_append(&self, buf: &mut Vec<u8>) {
+        buf.extend_from_slice(&self.leaf_index.to_le_bytes());
         self.wots_signature.ssz_append(buf);
         for neighbour in &self.merkle_proof {
             buf.extend_from_slice(neighbour);
@@ -151,6 +152,7 @@ impl Decode for XmssSignature {
     fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
         let mut reader = check_len(bytes, SIGNATURE_SSZ_LEN)?;
         Ok(Self {
+            leaf_index: LeafIndex::from_le_bytes(reader.take()),
             wots_signature: WotsSignature::from_ssz_bytes(&reader.take::<WOTS_SIG_SIZE>())?,
             merkle_proof: std::array::from_fn(|_| reader.take()),
         })

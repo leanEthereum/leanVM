@@ -22,37 +22,41 @@ use xmss::*;
 
 type CachedSignature = (XmssPublicKey, XmssSignature);
 
-const SCHEMA_VERSION: u32 = 3;
+const SCHEMA_VERSION: u32 = 4;
 
-/// The leaf index `get_signers` signs at. SPHINCS has none.
-pub const XMSS_LEAF_INDEX_A: LeafIndex = 3_000_000_007;
-/// First leaf index the cached keys are activated at, so a test that wants many leaf index
-/// groups can walk the whole window (`key_gen`'s range is inclusive).
-pub const KEY_START: LeafIndex = 3_000_000_000;
+/// The leaf indices every cached key is activated for (`key_gen`'s range is inclusive).
+const KEY_START: LeafIndex = 3_000_000_000;
 const KEY_END: LeafIndex = 3_000_000_015;
 
+/// The message [`get_signers`] signs. SPHINCS signers carry their own.
 pub fn message() -> Message {
     std::array::from_fn(|i| (i * 5 + 1) as u8)
 }
 
-/// The message signed at `leaf_index`: distinct per leaf index, and exactly [`message`]
-/// at [`XMSS_LEAF_INDEX_A`], so pre-existing cache files stay valid.
-pub fn message_for(leaf_index: LeafIndex) -> Message {
+/// The message of cache `message_id`: distinct per id, and exactly [`message`] at 0.
+pub fn message_for(message_id: u32) -> Message {
     let mut msg = message();
-    for (byte, delta) in msg.iter_mut().zip((leaf_index ^ XMSS_LEAF_INDEX_A).to_le_bytes()) {
+    for (byte, delta) in msg.iter_mut().zip(message_id.to_le_bytes()) {
         *byte ^= delta;
     }
     msg
 }
 
-fn compute_signer(index: usize, leaf_index: LeafIndex) -> CachedSignature {
+/// The leaf index signer `index` signs [`message_for`]`(message_id)` at, shifted per
+/// message so one key signs messages fewer than 16 ids apart at distinct leaf indices.
+pub fn leaf_index_of(index: usize, message_id: u32) -> LeafIndex {
+    let span = (KEY_END - KEY_START + 1) as usize;
+    KEY_START + ((index + message_id as usize) % span) as LeafIndex
+}
+
+fn compute_signer(index: usize, message_id: u32) -> CachedSignature {
     // The index over its full width: a one-byte seed repeats every 256 signers,
     // and a repeated signer is invisible until something deduplicates the set,
     // at which point a batch of 900 quietly becomes one of 256.
     let mut seed = [10u8; 32];
     seed[..8].copy_from_slice(&(index as u64).to_le_bytes());
     let (sk, pk) = xmss::key_gen_from_seed(seed, KEY_START, KEY_END).expect("keygen");
-    let sig = xmss::sign(&sk, &message_for(leaf_index), leaf_index).expect("sign");
+    let sig = xmss::sign(&sk, &message_for(message_id), leaf_index_of(index, message_id)).expect("sign");
     (pk, sig)
 }
 
@@ -64,31 +68,31 @@ fn hash_fingerprint() -> [Digest; 2] {
     ]
 }
 
-fn encoding_fingerprint(leaf_index: LeafIndex) -> (u64, [u8; V]) {
+fn encoding_fingerprint(message_id: u32) -> (u64, [u8; V]) {
     let pp = [0xA5u8; PUBLIC_PARAM_LEN];
-    let msg = message_for(leaf_index);
+    let msg = message_for(message_id);
     for counter in 0u64.. {
         let mut randomness = [0u8; RANDOMNESS_LEN];
         randomness[..8].copy_from_slice(&counter.to_le_bytes());
-        if let Some(digits) = wots_encode(&msg, leaf_index, &pp, &randomness) {
+        if let Some(digits) = wots_encode(&msg, leaf_index_of(0, message_id), &pp, &randomness) {
             return (counter, digits);
         }
     }
     unreachable!("some counter randomness encodes")
 }
 
-fn footprint(leaf_index: LeafIndex) -> u64 {
+fn footprint(message_id: u32) -> u64 {
     let mut hasher = DefaultHasher::new();
     SCHEMA_VERSION.hash(&mut hasher);
-    leaf_index.hash(&mut hasher);
+    message_id.hash(&mut hasher);
     KEY_START.hash(&mut hasher);
     KEY_END.hash(&mut hasher);
-    message_for(leaf_index).hash(&mut hasher);
+    message_for(message_id).hash(&mut hasher);
     (V, W, CHAIN_LENGTH, LOG_LIFETIME, TARGET_SUM, RANDOMNESS_LEN).hash(&mut hasher);
     hash_fingerprint().hash(&mut hasher);
-    encoding_fingerprint(leaf_index).hash(&mut hasher);
+    encoding_fingerprint(message_id).hash(&mut hasher);
     // Key derivation and grinding, which verifying a cached signature does not exercise.
-    compute_signer(0, leaf_index).hash(&mut hasher);
+    compute_signer(0, message_id).hash(&mut hasher);
     hasher.finish()
 }
 
@@ -96,25 +100,28 @@ fn cache_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/signers-cache")
 }
 
-fn cache_path(leaf_index: LeafIndex) -> PathBuf {
-    cache_dir().join(format!("xmss_signers_{:016x}.bin", footprint(leaf_index)))
+fn cache_path(message_id: u32) -> PathBuf {
+    cache_dir().join(format!("xmss_signers_{:016x}.bin", footprint(message_id)))
 }
 
-fn try_load_cache(leaf_index: LeafIndex) -> Option<Vec<CachedSignature>> {
-    let bytes = fs::read(cache_path(leaf_index)).ok()?;
+fn try_load_cache(message_id: u32) -> Option<Vec<CachedSignature>> {
+    let bytes = fs::read(cache_path(message_id)).ok()?;
     let (version, mut signers): (u32, Vec<CachedSignature>) = bincode::deserialize(&bytes).ok()?;
     if version != SCHEMA_VERSION {
         return None;
     }
-    let msg = message_for(leaf_index);
+    let msg = message_for(message_id);
     let valid = signers
         .iter()
-        .take_while(|(pk, sig)| xmss::verify(pk, &msg, sig, leaf_index).is_ok())
+        .enumerate()
+        .take_while(|(i, (pk, sig))| {
+            sig.leaf_index == leaf_index_of(*i, message_id) && xmss::verify(pk, &msg, sig).is_ok()
+        })
         .count();
     if valid < signers.len() {
         eprintln!(
             "warning: signers cache {} is stale (signer {valid} of {} no longer verifies); regenerating from there",
-            cache_path(leaf_index).display(),
+            cache_path(message_id).display(),
             signers.len()
         );
         signers.truncate(valid);
@@ -122,8 +129,8 @@ fn try_load_cache(leaf_index: LeafIndex) -> Option<Vec<CachedSignature>> {
     Some(signers)
 }
 
-fn save_cache(signers: &[CachedSignature], leaf_index: LeafIndex) {
-    let path = cache_path(leaf_index);
+fn save_cache(signers: &[CachedSignature], message_id: u32) {
+    let path = cache_path(message_id);
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
@@ -133,12 +140,12 @@ fn save_cache(signers: &[CachedSignature], leaf_index: LeafIndex) {
     }
 }
 
-fn generate_range(start: usize, end: usize, leaf_index: LeafIndex) -> Vec<CachedSignature> {
+fn generate_range(start: usize, end: usize, message_id: u32) -> Vec<CachedSignature> {
     let total = end - start;
     let started = Instant::now();
     let mut signers = Vec::with_capacity(total);
     for (done, index) in (start..end).enumerate() {
-        signers.push(compute_signer(index, leaf_index));
+        signers.push(compute_signer(index, message_id));
         print!(
             "\r  generating XMSS signers (one-time, then cached): {}/{}",
             pretty_integer(done + 1),
@@ -156,25 +163,27 @@ fn generate_range(start: usize, end: usize, leaf_index: LeafIndex) -> Vec<Cached
 
 static POOLS: Mutex<BTreeMap<u32, Vec<CachedSignature>>> = Mutex::new(BTreeMap::new());
 
+/// The first `n` cached signers of [`message`].
 pub fn get_signers(n: usize) -> Vec<CachedSignature> {
-    get_signers_at(n, XMSS_LEAF_INDEX_A)
+    get_signers_for(n, 0)
 }
 
-/// The first `n` cached signers, signing [`message_for`]`(leaf_index)` at `leaf_index`:
-/// one cache file per leaf index, the keys shared across them.
-pub fn get_signers_at(n: usize, leaf_index: LeafIndex) -> Vec<CachedSignature> {
+/// The first `n` cached signers, signing [`message_for`]`(message_id)`, signer `i` at
+/// [`leaf_index_of`]`(i, message_id)`: one cache file per message, the keys shared
+/// across them.
+pub fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
     let mut pools = POOLS.lock().unwrap();
-    let pool = pools.entry(leaf_index).or_default();
+    let pool = pools.entry(message_id).or_default();
     if pool.len() < n {
-        if let Some(disk) = try_load_cache(leaf_index)
+        if let Some(disk) = try_load_cache(message_id)
             && disk.len() > pool.len()
         {
             *pool = disk;
         }
         if pool.len() < n {
-            let mut fresh = generate_range(pool.len(), n, leaf_index);
+            let mut fresh = generate_range(pool.len(), n, message_id);
             pool.append(&mut fresh);
-            save_cache(pool, leaf_index);
+            save_cache(pool, message_id);
         }
     }
     pool[..n].to_vec()
@@ -328,9 +337,6 @@ mod tests {
 
     #[test]
     fn signer_seed_uses_more_than_one_byte() {
-        assert_ne!(
-            compute_signer(0, XMSS_LEAF_INDEX_A).0,
-            compute_signer(256, XMSS_LEAF_INDEX_A).0
-        );
+        assert_ne!(compute_signer(0, 0).0, compute_signer(256, 0).0);
     }
 }

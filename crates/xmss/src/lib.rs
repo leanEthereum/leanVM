@@ -55,7 +55,8 @@ pub type LeafIndex = u32;
 
 /// Serialized sizes (exact under bincode: fixed arrays, no length prefixes).
 pub const WOTS_SIG_SIZE: usize = RANDOMNESS_LEN + V * DIGEST_LEN; // 696
-pub const SIG_SIZE: usize = WOTS_SIG_SIZE + LOG_LIFETIME * DIGEST_LEN; // 1208
+pub const LEAF_INDEX_SIZE: usize = size_of::<LeafIndex>();
+pub const SIG_SIZE: usize = LEAF_INDEX_SIZE + WOTS_SIG_SIZE + LOG_LIFETIME * DIGEST_LEN; // 1212
 pub const PUB_KEY_SIZE: usize = DIGEST_LEN + PUBLIC_PARAM_LEN; // 32
 
 // The encoding uses v*w = 126 of the digest's 128 bits; the 2 leftover top

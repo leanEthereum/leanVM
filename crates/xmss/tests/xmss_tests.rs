@@ -13,9 +13,20 @@ fn keygen_sign_verify() {
     for leaf_index in [0u32, 1234, u32::MAX] {
         let (sk, pk) = key_gen_from_seed(seed, leaf_index.saturating_sub(1), leaf_index.saturating_add(2)).unwrap();
         let sig = sign(&sk, &message, leaf_index).unwrap();
-        verify(&pk, &message, &sig, leaf_index).unwrap();
+        assert_eq!(sig.leaf_index, leaf_index);
+        verify(&pk, &message, &sig).unwrap();
         assert_eq!(sign(&sk, &message, leaf_index).unwrap(), sig);
     }
+}
+
+/// The leaf index rides the signature, so the verifier must hash at it: moved to
+/// a neighbour, the same signature no longer verifies.
+#[test]
+fn signature_is_bound_to_its_leaf_index() {
+    let (sk, pk) = key_gen_from_seed([4u8; 32], 0, 7).unwrap();
+    let mut sig = sign(&sk, &test_message(), 5).unwrap();
+    sig.leaf_index = 4;
+    assert!(verify(&pk, &test_message(), &sig).is_err());
 }
 
 #[test]
@@ -37,7 +48,7 @@ fn serialize_deserialize_and_size() {
     let decoded_signature: XmssSignature = bincode::deserialize(&signature_bytes).unwrap();
     assert_eq!(sig, decoded_signature);
 
-    verify(&decoded_public_key, &message, &decoded_signature, leaf_index).unwrap();
+    verify(&decoded_public_key, &message, &decoded_signature).unwrap();
 }
 
 #[test]
@@ -127,7 +138,7 @@ fn secret_key_survives_a_round_trip() {
     let message = test_message();
     for leaf_index in [40, 43, 45] {
         let sig = sign(&reloaded, &message, leaf_index as u32).unwrap();
-        verify(&pk, &message, &sig, leaf_index as u32).unwrap();
+        verify(&pk, &message, &sig).unwrap();
     }
     assert_eq!(sign(&reloaded, &message, 46), Err(XmssSignError::LeafIndexOutOfRange));
 }
@@ -151,6 +162,7 @@ fn ssz_layout_is_exact() {
     assert_eq!(expected_pk, pk.flatten());
 
     let mut expected_sig = Vec::new();
+    expected_sig.extend_from_slice(&leaf_index.to_le_bytes());
     for chain_tip in &sig.wots_signature.chain_tips {
         expected_sig.extend_from_slice(chain_tip);
     }
@@ -166,7 +178,7 @@ fn ssz_layout_is_exact() {
     let decoded_sig = XmssSignature::from_ssz_bytes(&expected_sig).unwrap();
     assert_eq!(decoded_pk, pk);
     assert_eq!(decoded_sig, sig);
-    verify(&decoded_pk, &message, &decoded_sig, leaf_index).unwrap();
+    verify(&decoded_pk, &message, &decoded_sig).unwrap();
 }
 
 /// A fixed-length container rejects any other length, and only that.
@@ -200,7 +212,7 @@ fn prepare_warms_without_changing_signatures() {
     // 0 and 200 are far enough apart to land in different bottom subtrees.
     sk.prepare(200).unwrap();
     let after_prepare = sign(&sk, &message, 200).unwrap();
-    verify(&pk, &message, &after_prepare, 200).unwrap();
+    verify(&pk, &message, &after_prepare).unwrap();
 
     let fresh = sign(&sk, &message, 200).unwrap();
     assert_eq!(after_prepare, fresh);
@@ -208,7 +220,7 @@ fn prepare_warms_without_changing_signatures() {
     // A miss on the warmed subtree rebuilds rather than reusing it.
     sk.prepare(0).unwrap();
     let other = sign(&sk, &message, 0).unwrap();
-    verify(&pk, &message, &other, 0).unwrap();
+    verify(&pk, &message, &other).unwrap();
 
     assert_eq!(sk.prepare(256), Err(XmssSignError::LeafIndexOutOfRange));
 }
@@ -222,7 +234,7 @@ fn key_gen_draws_a_usable_seed() {
     let (sk, pk) = key_gen(&mut rng, 70, 80).unwrap();
     assert_eq!(sk.leaf_index_range(), 70..=80);
     let sig = sign(&sk, &message, 75).unwrap();
-    verify(&pk, &message, &sig, 75).unwrap();
+    verify(&pk, &message, &sig).unwrap();
 
     // A fresh draw is a different key.
     let (_, other) = key_gen(&mut rng, 70, 80).unwrap();

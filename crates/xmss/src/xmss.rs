@@ -32,8 +32,10 @@ pub(crate) struct BottomSubtree {
     layers: Vec<Vec<Digest>>,
 }
 
+/// Carries the leaf index it was made at, so a verifier needs only the key and the message.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct XmssSignature {
+    pub leaf_index: LeafIndex,
     pub wots_signature: WotsSignature,
     pub merkle_proof: [Digest; LOG_LIFETIME],
 }
@@ -271,6 +273,7 @@ pub fn sign(
     });
     drop(cache);
     Ok(XmssSignature {
+        leaf_index,
         wots_signature,
         merkle_proof,
     })
@@ -366,12 +369,8 @@ impl std::fmt::Display for XmssVerifyError {
 
 impl std::error::Error for XmssVerifyError {}
 
-pub fn verify(
-    pub_key: &XmssPublicKey,
-    message: &Message,
-    signature: &XmssSignature,
-    leaf_index: LeafIndex,
-) -> Result<(), XmssVerifyError> {
+pub fn verify(pub_key: &XmssPublicKey, message: &Message, signature: &XmssSignature) -> Result<(), XmssVerifyError> {
+    let leaf_index = signature.leaf_index;
     let wots_public_key = signature
         .wots_signature
         .recover_public_key(message, leaf_index, &pub_key.public_param)

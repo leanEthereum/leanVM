@@ -56,7 +56,7 @@ As proposed in~\cite{DKKW25}, XMSS is a promising post-quantum replacement for B
 \begin{itemize}
   \item \textbf{NIST security level~1}~\cite{NISTPQC}, $\approx 128$-bit (resp. $\approx 64$-bit) of classical (resp. quantum) security, in the Random Oracle model, ROM (resp. Quantum Random Oracle model, QROM).\footnote{The classical bound is proved (Section~\ref{sec:security}); the quantum one is a target, not a proved statement (Section~\ref{sec:quantum}).}
   \item \textbf{public key: 32 bytes}.
-  \item \textbf{signature: 1208 bytes} (smaller than the 1280-byte minimum IPv6 MTU~\cite{RFC8200}).
+  \item \textbf{signature: 1212 bytes} (smaller than the 1280-byte minimum IPv6 MTU~\cite{RFC8200}).
   \item snark-friendly encoding, optimized for aggregation via leanVM~\cite{leanVM}, requiring 15 bits of grinding on average.
   \item 133 hashes per verification.
 \end{itemize}
@@ -210,7 +210,7 @@ and returns
   \qquad
   \mathit{path}_{\idx}=(A_0,\ldots,A_{h-1}),
 \]
-serialized as $\sigma_{\mathrm{OTS},0}\concat\cdots\concat\sigma_{\mathrm{OTS},v-1}\concat\rho\concat A_0\concat\cdots\concat A_{h-1}$. If all $\amax$ attempts produce $x=\bot$, it returns $\bot$.
+serialized as $\mathsf{LE}_{32}(\idx)\concat\sigma_{\mathrm{OTS},0}\concat\cdots\concat\sigma_{\mathrm{OTS},v-1}\concat\rho\concat A_0\concat\cdots\concat A_{h-1}$. If all $\amax$ attempts produce $x=\bot$, it returns $\bot$.
 
 Each trial makes two hash queries: one to derive $\rho_a$ and one to evaluate $\IncEnc$. Reading the stored chain values and authentication path makes no random-oracle query.
 

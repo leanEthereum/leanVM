@@ -13,23 +13,15 @@ fn blobs(n: usize, seed: u64) -> Vec<u64> {
     (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect()
 }
 
-/// Cached signers `[from, to)`, as the aggregation API takes them: each raw
-/// signature carries its leaf index and message, the benchmarks using one pair for
-/// all.
-fn signers(from: usize, to: usize) -> Vec<(XmssPublicKey, xmss::LeafIndex, xmss::Message, XmssSignature)> {
+/// Cached signers `[from, to)`, as the aggregation API takes them: one message for
+/// all, each signature at its own signer's leaf index.
+fn signers(from: usize, to: usize) -> Vec<(XmssPublicKey, xmss::Message, XmssSignature)> {
     if to == 0 {
         return Vec::new();
     }
     signers_cache::get_signers(to)[from..to]
         .iter()
-        .map(|(pk, sig)| {
-            (
-                pk.clone(),
-                signers_cache::XMSS_LEAF_INDEX_A,
-                signers_cache::message(),
-                sig.clone(),
-            )
-        })
+        .map(|(pk, sig)| (pk.clone(), signers_cache::message(), sig.clone()))
         .collect()
 }
 

@@ -6,8 +6,7 @@
 
 pub use rec_aggregation::{
     AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
-    MAX_DA_ROOTS, MAX_KEYS, MAX_LEAF_INDICES, MAX_RECURSIONS, SignatureClaims, SphincsClaim, VerifierError,
-    XmssClaimGroup, aggregate,
+    MAX_DA_ROOTS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, VerifierError, XmssClaim, aggregate,
 };
 
 pub use leanvm_core::{
