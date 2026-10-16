@@ -18,6 +18,8 @@ workspace = true
 [features]
 # The system allocator in place of `bench::Jemalloc`, still under `bench::Counting`, for heap profilers that hook `malloc` (heaptrack). Slower: for memory questions only.
 system-alloc = []
+# `circuits`: the tracked trees' recursion circuits with the builder calls that make them, for `checkrec`.
+circuits = ["leanvm/circuit-trace"]
 
 [dependencies]
 leanvm.workspace = true

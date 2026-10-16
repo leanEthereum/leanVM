@@ -1,7 +1,7 @@
 //! The BLAKE2s compression instruction, and its access to its block.
 
 use super::InstructionClass;
-use crate::rv::circuits::{ClassCircuit, Products, WordGadgets};
+use crate::rv::circuits::{ClassCircuit, Products};
 use flock::circuit::{Builder, Circuit, Wire};
 use primitives::hash::{G_LANES, IV, SIGMA};
 
@@ -92,51 +92,19 @@ impl ClassCircuit for Hash {
     ///
     /// `h` and `out` are four words each, and `m` is eight.
     ///
-    /// Each G is six 32-bit additions, its two three-operand ones chained.
-    ///
-    /// The state is never committed: only the carries are products, and the result is copied out.
+    /// The gate list is `flock::clean::blake2s`, generated from the Clean circuit proven to be RFC 7693's
+    /// compression; this function only binds its ports. Word `i` of `h`, `m` and the result is the half `i % 2` of
+    /// port word `i / 2`, low half first.
     fn circuit() -> Circuit {
         let mut c = Builder::new(&INPUT_BITS, &[64, 64, 64, 64]);
         let half = |x: &[Wire; 64], i: usize| -> [Wire; 32] { std::array::from_fn(|j| x[32 * (i % 2) + j]) };
-        let literal = |x: u32| -> [Wire; 32] { std::array::from_fn(|i| Wire::constant(x >> i & 1 == 1)) };
-        let rotr = |w: &[Wire; 32], r: usize| -> [Wire; 32] { std::array::from_fn(|i| w[(i + r) % 32]) };
-
-        // The inputs as 32-bit words: the counter, the finalization word, h and m.
         let t = c.input::<64>(0);
         let f0 = c.input::<32>(1);
-        let h: Vec<[Wire; 32]> = (0..8).map(|i| half(&c.input(2 + i / 2), i)).collect();
-        let m: Vec<[Wire; 32]> = (0..16).map(|i| half(&c.input(6 + i / 2), i)).collect();
-
-        // The working vector: h, the IV, with the counter and the finalization word XORed in.
-        let mut v = h.clone();
-        v.extend(IV[..4].iter().map(|&x| literal(x)));
-        for (i, x) in [half(&t, 0), half(&t, 1), f0, [Wire::ZERO; 32]].into_iter().enumerate() {
-            let iv = literal(IV[4 + i]);
-            v.push(c.xor_word(&iv, &x));
-        }
-
-        // Ten rounds of eight G's.
-        for round in &SIGMA {
-            for (g, &[a, b, cc, d]) in G_LANES.iter().enumerate() {
-                for (x, r1, r2) in [(&m[round[2 * g]], 16, 12), (&m[round[2 * g + 1]], 8, 7)] {
-                    let ab = c.add_wrapping(&v[a], &v[b]);
-                    v[a] = c.add_wrapping(&ab, x);
-                    let da = c.xor_word(&v[d], &v[a]);
-                    v[d] = rotr(&da, r1);
-                    v[cc] = c.add_wrapping(&v[cc], &v[d]);
-                    let bc = c.xor_word(&v[b], &v[cc]);
-                    v[b] = rotr(&bc, r2);
-                }
-            }
-        }
-
-        // The new chaining value: h ^ v_low ^ v_high, half by half.
-        for i in 0..8 {
-            let hv = c.xor_word(&h[i], &v[i]);
-            let out = c.xor_word(&hv, &v[i + 8]);
-            for (bit, &wire) in out.iter().enumerate() {
-                c.output(i / 2, 32 * (i % 2) + bit, wire);
-            }
+        let h: [[Wire; 32]; 8] = std::array::from_fn(|i| half(&c.input(2 + i / 2), i));
+        let m: [[Wire; 32]; 16] = std::array::from_fn(|i| half(&c.input(6 + i / 2), i));
+        let out = flock::clean::blake2s(&mut c, &t, &f0, &h, &m);
+        for (k, &wire) in out.iter().enumerate() {
+            c.output(k / 64, k % 64, wire);
         }
         c.finish()
     }
@@ -144,6 +112,61 @@ impl ClassCircuit for Hash {
 
 /// The input ports in bits: `t`, `f0`, then the four words of `h` and the eight of `m`.
 const INPUT_BITS: [usize; 14] = [64, 32, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64];
+
+/// SplitMix64's output at counter `i + 1`: the bits of the column weights `Hash::rows_dump` evaluates the rows at.
+#[cfg(feature = "circuit-trace")]
+const fn mix(i: u64) -> u64 {
+    let mut x = (i + 1).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    x = (x ^ (x >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    x ^ (x >> 31)
+}
+
+#[cfg(feature = "circuit-trace")]
+impl Hash {
+    /// `Hash::circuit`'s rows at pseudorandom column weights, for the Lean checker `checkhashrows`.
+    ///
+    /// Column `j`'s weight is `F192::new(mix(3j), mix(3j + 1), mix(3j + 2))`, and line `s` holds row `s` of
+    /// `row_values`, `A_0 w` then `B_0 w`, each as 48 hex digits, `c2` first. A row's value is the sum of its form's
+    /// weights, so each of its 192 bits is the form at one bit of the weights.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `fold_alpha_batched`, the prover's backward walk, is not the adjoint of the forward walk at a
+    /// pseudorandom point.
+    pub(crate) fn rows_dump() -> String {
+        use flock::lincheck::LincheckCircuit;
+        use primitives::field::F192;
+        use std::fmt::Write;
+
+        let weight = |j: usize| {
+            let j = 3 * j as u64;
+            F192::new(mix(j), mix(j + 1), mix(j + 2))
+        };
+        let circuit = Self::circuit();
+        let n = circuit.n_cols();
+        let w: Vec<F192> = (0..n).map(weight).collect();
+        let u: Vec<F192> = (n..2 * n).map(weight).collect();
+        let alpha = weight(2 * n);
+        let backward = primitives::multilinear::inner_product(&circuit.fold_alpha_batched(alpha, &u), &w);
+        assert_eq!(
+            backward,
+            circuit.bilinear_form(alpha, &u, &w),
+            "the backward walk is the forward walk's adjoint"
+        );
+        let (ra, rb) = circuit.row_values(&w);
+        let mut out = String::with_capacity(98 * n);
+        for (a, b) in ra.iter().zip(&rb) {
+            writeln!(
+                out,
+                "{:016x}{:016x}{:016x} {:016x}{:016x}{:016x}",
+                a.c2, a.c1, a.c0, b.c2, b.c1, b.c0
+            )
+            .expect("a String takes any write");
+        }
+        out
+    }
+}
 
 /// One instance of the circuit's witness, by word arithmetic instead of the gate walk.
 ///
@@ -286,6 +309,43 @@ mod tests {
     fn hash_circuit_matches_the_reference() {
         // Legal flags and edge-biased operands pin the gate list to the reference function.
         circuit_matches_reference::<Hash>(64);
+    }
+
+    #[test]
+    fn a_flipped_witness_bit_is_refused() {
+        // Invariant: the hash circuit's flock reduction accepts an honest batch and refuses a changed bit.
+        //
+        // Mutation: one bit of the counter, of the result, the constant, the first carry and the last.
+        use fiat_shamir::{ProverState, SessionId, VerifierState};
+        use flock::reduction;
+        const LABEL: &[u8] = b"blake2s-witness-test";
+        let n_log = 3;
+        let rows: Vec<[u64; 14]> = (0..1u64 << n_log)
+            .map(|i| std::array::from_fn(|k| (i + 1).wrapping_mul(0x9E37_79B9_7F4A_7C15).rotate_left(k as u32)))
+            .collect();
+        let witness = || {
+            Witness::by_instance(&BLAKE2S, BatchRows::new(&rows, &[0; 14], n_log), |row, z, az, bz| {
+                blake2s_witness(row, z, az, bz);
+            })
+        };
+        let accepts = |w: &Witness| {
+            let block = BLAKE2S.block();
+            let mut ps = ProverState::new(&SessionId::new(LABEL), &0u64);
+            let claims = reduction::prove(&[w.instance(block, n_log)], &mut ps);
+            let proof = ps.into_proof();
+            let mut vs = VerifierState::new(&SessionId::new(LABEL), &0u64, &proof);
+            reduction::verify(&[(block.shape(), n_log)], &mut vs)
+                .is_ok_and(|r| r[0].claim == claims[0] && r[0].matrices.check(&*BLAKE2S).is_ok())
+                && vs.check_eof().is_ok()
+        };
+        assert!(accepts(&witness()), "an honest batch");
+        let output = 64 * INPUT_BITS.len() + 5;
+        let constant = BLAKE2S.const_pos();
+        for bit in [3, output, constant, constant + 1, BLAKE2S.useful_bits() - 1] {
+            let mut tampered = witness();
+            tampered.z[bit / 64] ^= 1 << (bit % 64);
+            assert!(!accepts(&tampered), "bit {bit}");
+        }
     }
 
     #[test]

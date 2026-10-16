@@ -1,7 +1,6 @@
-//! Local column allocation and the aliases used by memory moves.
+//! Local column views and the shared value aliases supplied by the Clean table source.
 
-use super::{ClassSpec, Ram, Word};
-use crate::bus::Coord::{self, Col};
+use super::Word;
 use crate::rv::{Ext, Hash};
 
 /// The `rs2` read's columns: the register's number and what it held.
@@ -48,13 +47,6 @@ pub(super) struct ControlColumns {
 
     /// Selector for the exit instruction.
     pub(super) exit: usize,
-}
-
-impl ControlColumns {
-    /// The successor, `pc + 4` plus the jump: the fall-through or the target.
-    pub(super) fn next_pc(self, pc4: usize) -> Coord {
-        Coord::Sum(vec![Col(pc4), Col(self.jump)])
-    }
 }
 
 /// Columns binding a load or store to one memory cell.
@@ -111,16 +103,6 @@ impl LimbColumns {
     pub(super) fn computed(&self, k: usize) -> Option<usize> {
         let i = Ext::OFFSET_LIMBS.iter().position(|&j| j == k)?;
         Some(self.addresses + i)
-    }
-
-    /// The bus address of limb `k`: the operand's pointer for its first limb, else what the clock circuit computes.
-    pub(super) fn address(&self, k: usize, pointers: [usize; 3]) -> usize {
-        self.computed(k).unwrap_or(pointers[k / 3])
-    }
-
-    /// What the row leaves in limb `k`: `c`'s are rewritten.
-    pub(super) const fn left(&self, k: usize) -> usize {
-        if k >= 6 { self.new + k - 6 } else { self.limbs + k }
     }
 }
 
@@ -185,97 +167,6 @@ pub(super) struct Columns {
 }
 
 impl Columns {
-    /// Allocate the fixed layout in protocol order, retaining aliases for doubleword moves.
-    pub(super) fn new(spec: &ClassSpec) -> Self {
-        let mut allocator = ColumnAllocator::default();
-        let (pc, ts, a1, pc4, v1) = (
-            allocator.allocate(1),
-            allocator.allocate(1),
-            allocator.allocate(1),
-            allocator.allocate(1),
-            allocator.allocate(1),
-        );
-        let flags = spec.words().any(|w| w == Word::Flags).then(|| allocator.allocate(1));
-        let rs2 = spec.reads_rs2.then(|| SourceColumns {
-            a2: allocator.allocate(1),
-            v2: allocator.allocate(1),
-        });
-        // A doubleword load's `rd` receives its cell, which is a column further on.
-        let rd = spec.writes_rd.then(|| {
-            (
-                allocator.allocate(1),
-                allocator.allocate(1),
-                (!spec.copies).then(|| allocator.allocate(1)),
-            )
-        });
-        let pointer = spec.reads_rd.then(|| PointerColumns {
-            ad: allocator.allocate(1),
-            vd: allocator.allocate(1),
-        });
-        let control = spec.control.then(|| ControlColumns {
-            dt: allocator.allocate(1),
-            jump: allocator.allocate(1),
-            exit: allocator.allocate(1),
-        });
-        let imm = spec.words().any(|w| w == Word::Imm).then(|| allocator.allocate(1));
-        let (ram, block) = match spec.ram {
-            Ram::None | Ram::Limbs => (None, None),
-            Ram::Read | Ram::Write => {
-                let (address, cell) = (allocator.allocate(1), allocator.allocate(1));
-                let new = match (spec.ram, rs2) {
-                    (Ram::Read, _) => cell,
-                    (Ram::Write, Some(rs2)) if spec.copies => rs2.v2,
-                    _ => allocator.allocate(1),
-                };
-                (Some(MemoryColumns { address, cell, new }), None)
-            }
-            Ram::Block => {
-                let words = allocator.allocate(Hash::WORDS);
-                (
-                    None,
-                    Some(BlockColumns {
-                        words,
-                        out: allocator.allocate(4),
-                    }),
-                )
-            }
-        };
-        let rd = rd.map(|(ad, vd_old, out)| DestinationColumns {
-            ad,
-            vd_old,
-            out: out.unwrap_or_else(|| ram.expect("a doubleword load reads a cell").cell),
-        });
-        let limbs = (spec.ram == Ram::Limbs).then(|| LimbColumns {
-            limbs: allocator.allocate(Ext::LIMBS),
-            new: allocator.allocate(3),
-            addresses: allocator.allocate(Ext::OFFSET_LIMBS.len()),
-        });
-        let n_flag_bits = spec.words().filter(|w| matches!(w, Word::FlagBit(_))).count();
-        let flag_bits = (n_flag_bits > 0).then(|| allocator.allocate(n_flag_bits));
-        let bad = spec.words().any(|w| w == Word::Bad).then(|| allocator.allocate(1));
-        let (prev, step) = (allocator.allocate(spec.n_accesses()), allocator.allocate(1));
-        Self {
-            pc,
-            ts,
-            a1,
-            pc4,
-            v1,
-            flags,
-            rs2,
-            rd,
-            pointer,
-            control,
-            imm,
-            ram,
-            block,
-            limbs,
-            flag_bits,
-            bad,
-            prev,
-            step,
-        }
-    }
-
     /// Number of local columns, including aliases to circuit words.
     pub(super) const fn len(&self) -> usize {
         self.step + 1
@@ -313,43 +204,5 @@ impl Columns {
             Word::Bad => self.bad.unwrap_or_else(missing),
             Word::HintQ | Word::HintR => return None,
         })
-    }
-}
-
-/// Assign contiguous local columns in protocol order.
-#[derive(Default)]
-struct ColumnAllocator {
-    /// First local column index not yet assigned.
-    next: usize,
-}
-
-impl ColumnAllocator {
-    /// Reserve consecutive columns, returning their first index.
-    const fn allocate(&mut self, count: usize) -> usize {
-        let start = self.next;
-        self.next += count;
-        start
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::super::ClassSpec;
-    use super::*;
-
-    #[test]
-    fn doubleword_moves_share_the_value_column_on_both_bus_sides() {
-        // A load's register write and a store's cell write must bind the value read, without a new output port.
-        let load = Columns::new(&ClassSpec::LD);
-        let store = Columns::new(&ClassSpec::SD);
-        assert_eq!(
-            load.rd.expect("a load writes rd").out,
-            load.ram.expect("a load reads RAM").cell
-        );
-        assert_eq!(
-            store.rs2.expect("a store reads rs2").v2,
-            store.ram.expect("a store writes RAM").new
-        );
-        assert!(load.flags.is_none() && store.flags.is_none());
     }
 }

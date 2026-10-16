@@ -1,7 +1,7 @@
-//! u64 arithmetic in the gate-list language: multiplication, wrapping or widening.
+//! u64 multiplication in the gate-list language, wrapping or widening: its plan and native witness.
 //!
-//! A gadget takes wires and returns wires, so gadgets compose into larger circuits.
-//! Its witness is word arithmetic on the structure its gate list is built from, never the generic walk.
+//! The gates are `clean::multiply64` and `clean::multiply128`, generated from the checked Clean circuit.
+//! This module replays the same plan, so a witness is word arithmetic on that structure, never the generic walk.
 //!
 //! ## Partial products are free
 //!
@@ -44,7 +44,6 @@ use std::arch::x86_64::{
 };
 use std::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
-use crate::circuit::{Builder, Wire};
 use crate::witness::InstanceRows;
 
 /// The rows `(a_i ? b : NOT b)` for `i < 64`, then the `a` and `b` rows.
@@ -83,7 +82,7 @@ fn is_run(mask: u128) -> bool {
     run & run.wrapping_add(1) == 0
 }
 
-/// A built multiplier: the plan its witness replays as word arithmetic.
+/// A multiplier's plan: what its witness replays as word arithmetic.
 #[derive(Debug)]
 pub struct Multiplier {
     /// The slot of `g = NOT a_0 * NOT b_0`.
@@ -101,45 +100,33 @@ pub struct Multiplier {
 }
 
 impl Multiplier {
-    /// The low `N` bits of `a b`, as wires.
+    /// The plan of the low `N` bits of `a b`, its products from slot `first_slot`.
     ///
     /// `N` is 64 for the low word, or 128 for the whole product.
-    pub fn build<const N: usize>(c: &mut Builder, a: &[Wire; 64], b: &[Wire; 64]) -> ([Wire; N], Self) {
+    ///
+    /// The gates are `clean::multiply64` and `clean::multiply128`, generated from the same plan in
+    /// `LeanVMCircuits.Multiply`; the plan places their products for the native witness.
+    pub fn plan<const N: usize>(first_slot: usize) -> Self {
         const { assert!(64 <= N && N <= 128, "a product of two words has 64 to 128 bits") };
         let width = u128::MAX >> (128 - N);
-        let not_a: [Wire; 64] = std::array::from_fn(|i| c.not(a[i]));
-        let not_b: [Wire; 64] = std::array::from_fn(|i| c.not(b[i]));
-        let g_slot = c.next_slot();
-        let g = c.and(not_a[0], not_b[0]);
 
-        // Phase 1: each row's wire per position, all shifted down a place.
-        // Row 0's bit 0 is what `g` and the constant one replace.
-        let mut rows = vec![vec![Wire::ZERO; N]; N_ROWS];
-        for i in 0..64usize {
-            for (j, &bj) in b.iter().enumerate() {
-                if let Some(p) = (i + j).checked_sub(1).filter(|&p| p < N) {
-                    rows[i][p] = c.xor(bj, not_a[i]);
-                }
-            }
+        // Phase 1: the positions where each row has a bit, all shifted down a place.
+        // Row `i < 64` holds `b_j ^ !a_i` at `i + j - 1`; rows 2 and 3 also hold the constant one and `g` at 0.
+        let mut present = vec![0u128; N_ROWS];
+        for (i, row) in present[..64].iter_mut().enumerate() {
+            let low = i.saturating_sub(1);
+            let high = (i + 62).min(N - 1);
+            *row = (u128::MAX >> (127 - high)) & !((1u128 << low) - 1);
         }
-        // `(NOT a >> 1) + a 2^63`, and the same for `b`.
-        for (row, low, high) in [(A_ROW, &not_a, a), (B_ROW, &not_b, b)] {
-            let len = 64.min(N - 63);
-            rows[row][..63].copy_from_slice(&low[1..]);
-            rows[row][63..63 + len].copy_from_slice(&high[..len]);
-        }
-        rows[2][0] = Wire::ONE;
-        rows[3][0] = g;
-        // Half of the constant `2^128`, which survives only mod `2^128`.
-        if N == 128 {
-            rows[A_ROW][127] = Wire::ONE;
-        }
-        let mut present: Vec<u128> = rows
-            .iter()
-            .map(|row| (0..N).filter(|&p| !row[p].is_zero()).fold(0, |m, p| m | (1 << p)))
-            .collect();
+        present[2] |= 1;
+        present[3] |= 1;
+        // `(NOT a >> 1) + a 2^63`, and the same for `b`, clipped to the width; half of `2^128` at the top.
+        let side = u128::MAX >> (128 - (63 + 64.min(N - 63)));
+        present[A_ROW] = side | if N == 128 { 1 << 127 } else { 0 };
+        present[B_ROW] = side;
 
         // Phase 2: carry-save steps on the three rows that end lowest, until two rows remain.
+        let mut slot = first_slot + 1;
         let mut live: Vec<usize> = (0..N_ROWS).collect();
         let mut steps = Vec::new();
         while live.len() > 2 {
@@ -163,77 +150,47 @@ impl Multiplier {
                 }
             }
             assert!(is_run(products), "a step's products must be one run of slots");
-            let step = Csa {
+            steps.push(Csa {
                 x,
                 y,
                 z,
                 products,
                 move_y: moves & !pz,
                 move_z: moves & pz,
-                slot: c.next_slot(),
-            };
-
-            let (mut sum, mut carry) = (vec![Wire::ZERO; N], vec![Wire::ZERO; N]);
-            for p in 0..N {
-                let (wx, wy, wz) = (rows[x][p], rows[y][p], rows[z][p]);
-                if (products >> p) & 1 == 1 {
-                    // A full adder: the majority is the product, the sum is free.
-                    let xz = c.xor(wx, wz);
-                    let yz = c.xor(wy, wz);
-                    let maj = c.and(xz, yz);
-                    carry[p + 1] = c.xor(maj, wz);
-                    sum[p] = c.xor(xz, wy);
-                } else if (step.move_z >> p) & 1 == 1 {
-                    carry[p] = wz;
-                    sum[p] = c.xor(wx, wy);
-                } else if (step.move_y >> p) & 1 == 1 {
-                    carry[p] = wy;
-                    sum[p] = wx;
-                } else {
-                    let xz = c.xor(wx, wz);
-                    sum[p] = c.xor(xz, wy);
-                }
-            }
-            rows[x] = sum;
-            rows[y] = carry;
+                slot,
+            });
+            slot += products.count_ones() as usize;
             present[x] = px | py | pz;
             present[y] = (products << 1) | moves;
-            steps.push(step);
         }
 
-        // Phase 3: a ripple-carry addition of the last two rows.
+        // Phase 3: a ripple-carry addition of the last two rows; a position carries where two of its bits are set.
         let &[x, y] = live.as_slice() else {
             unreachable!("the steps stop at two rows")
         };
-        let carry_slot = c.next_slot();
         let mut carries = 0u128;
-        let mut carry = Wire::ZERO;
-        let mut product = [Wire::ZERO; N];
-        for (p, (&wx, &wy)) in rows[x].iter().zip(&rows[y]).enumerate() {
-            let out = if p + 1 < N && [wx, wy, carry].iter().filter(|w| !w.is_zero()).count() >= 2 {
+        for p in 0..N - 1 {
+            let carry_in = p > 0 && (carries >> (p - 1)) & 1 == 1;
+            let bits = ((present[x] >> p) & 1) + ((present[y] >> p) & 1) + u128::from(carry_in);
+            if bits >= 2 {
                 carries |= 1 << p;
-                let xc = c.xor(wx, carry);
-                let yc = c.xor(wy, carry);
-                let maj = c.and(xc, yc);
-                carry = c.xor(maj, carry);
-                c.xor(xc, wy)
-            } else {
-                let xy = c.xor(wx, wy);
-                c.xor(xy, std::mem::take(&mut carry))
-            };
-            product[p] = out;
+            }
         }
         assert!(is_run(carries), "the final carries must be one run of slots");
 
-        let multiplier = Self {
-            g_slot,
+        Self {
+            g_slot: first_slot,
             steps,
             last: (x, y),
             carries,
-            carry_slot,
+            carry_slot: slot,
             width,
-        };
-        (product, multiplier)
+        }
+    }
+
+    /// The slot after the multiplier's last product.
+    pub const fn end_slot(&self) -> usize {
+        self.carry_slot + self.carries.count_ones() as usize
     }
 
     /// Write the multiplication's product rows into zeroed packed buffers, and return the product.

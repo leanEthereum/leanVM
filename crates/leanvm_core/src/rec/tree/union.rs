@@ -209,6 +209,16 @@ impl PoolShape {
     fn rows(self, b: &mut Builder, side: Side, digests: &[Dw], fill: Option<&PoolFill>) -> PoolWires {
         let runs = digests.len();
         assert!(runs >= 1 && runs <= self.chunks, "a run a chunk at most");
+        b.mark(|| {
+            let ds: Vec<String> = digests.iter().map(|d| d.0.to_string()).collect();
+            format!(
+                "pool {} {} {} {}",
+                self.chunks,
+                u8::from(side == Side::Children),
+                runs,
+                ds.join(" ")
+            )
+        });
         let (zero, one) = (b.zero(), b.one());
         let k_zero = b.k_const(0);
         let [iv_lo, iv_hi] = [
@@ -347,6 +357,7 @@ impl PoolShape {
         for (r, &c) in current.iter().enumerate() {
             b.eq_e_const(c, F192::new(u64::from(r + 1 == runs), 0, 0));
         }
+        b.mark(|| "end pool".into());
         // The hinted bits are bits; the begin and selection bits' words are kept for the transcript.
         for chunk in bits.chunks(64) {
             b.pack(chunk);
@@ -548,6 +559,10 @@ impl PoolWires {
     /// The product over the pool's claims of `1 + s · valid · (X + 1 + fp)`, `s` a slot's selection bit or one.
     fn product(&self, b: &mut Builder, point: &Point) -> Ew {
         let items = &self.items;
+        b.mark(|| {
+            let ws: Vec<String> = point.weights.iter().map(|w| w.0.to_string()).collect();
+            format!("product {} {} {}", items[0].m[0].0, point.x1.0, ws.join(" "))
+        });
         let (zero, one) = (b.zero(), b.one());
         let w = &point.weights;
         let mut label = zero;
@@ -575,6 +590,7 @@ impl PoolWires {
                 product = b.mul(product, factor);
             }
         }
+        b.mark(|| "end product".into());
         product
     }
 }

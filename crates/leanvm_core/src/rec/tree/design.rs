@@ -400,6 +400,10 @@ impl<'p> Design<'p> {
                 Some(c) => c.statement.map(|&w| b.free_e(w)),
                 None => TreeStatement::filled(self.statement, F192::ZERO).map(|&w| b.free_e(w)),
             };
+            b.mark(|| {
+                let ws: Vec<String> = statement.words().iter().map(|w| w.0.to_string()).collect();
+                format!("edge child {i} {} {}", ws.len(), ws.join(" "))
+            });
             let kind = b.scope(format!("child {i} kind"), |b| {
                 self.kind_bits(b, statement.kind(), child_tier)
             });
@@ -529,7 +533,7 @@ impl<'p> Design<'p> {
     /// A child's hinted fixed-column evaluations as claims on its tier's fixed polynomial, in its circuit's block.
     ///
     /// Column `c` at the bus point's prefix `p` is the fixed polynomial at `(p, block_c, kind's bits)`.
-    fn fixed_claim(&self, hints: &[FixedHint], top: &[Ew], tier: usize) -> DenseClaim<Ew> {
+    pub(super) fn fixed_claim(&self, hints: &[FixedHint], top: &[Ew], tier: usize) -> DenseClaim<Ew> {
         let fixed = &self.tiers[tier].fixed;
         let low = hints
             .iter()
@@ -570,7 +574,7 @@ impl<'p> Design<'p> {
     /// The claims a child's statement carries.
     ///
     /// A first-level node reduces no claim on a fixed polynomial, so its carried ones are scaled by `is_node`, zero.
-    fn carried(&self, statement: &TreeStatement<Ew>, is_node: Ew, claims: &mut NodeClaims<Ew>) {
+    pub(super) fn carried(&self, statement: &TreeStatement<Ew>, is_node: Ew, claims: &mut NodeClaims<Ew>) {
         let point = statement.dense_point();
         for &poly in self.statement.polys() {
             let n = self.vars.0[poly as usize];
@@ -610,6 +614,8 @@ impl NodeRows {
         let b = &mut self.b;
         let claims = &self.claims;
 
+        b.mark(|| design.statement.edge_line(&design.vars.0));
+        b.mark(|| claims.edge_lines());
         // The instance is every value the claims rest on, their count first.
         let count = b.k_const(claims.bound.len() as u64);
         let mut instance = vec![count];

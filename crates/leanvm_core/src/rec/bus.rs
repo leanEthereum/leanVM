@@ -125,6 +125,51 @@ impl BusBlocks {
         );
         Ok(bus)
     }
+
+    /// The blocks as `Builder::mark` lines, for `checkbind`'s side certificate (`Bind.SideCert`): per side (push, then
+    /// pull) a line `bus side s mu n`, then a line `bus block kappa offset owner coords...` per block, at the offsets
+    /// `bus::verify_balance` lays it at (`bus::layout`) and `owner` `-` or `table:base`, its columns' base.
+    pub(crate) fn mark_lines(&self) -> String {
+        let lays = [bus::layout(&self.push, &[]), bus::layout(&self.pull, &[])];
+        let mu = lays[0].mu.max(lays[1].mu);
+        let mut lines = Vec::new();
+        for (s, (blocks, lay)) in [&self.push, &self.pull].into_iter().zip(&lays).enumerate() {
+            lines.push(format!("bus side {s} {mu} {}", blocks.len()));
+            for (block, offset) in blocks.iter().zip(&lay.offsets) {
+                let owner = block
+                    .owner
+                    .map_or_else(|| "-".into(), |t| format!("{t}:{}", RecLayout::TABLE_COLUMNS[t].0));
+                let coords: Vec<String> = block.coords.iter().map(coord_word).collect();
+                lines.push(format!(
+                    "bus block {} {offset} {owner} {}",
+                    block.kappa,
+                    coords.join(" ")
+                ));
+            }
+        }
+        lines.join("\n")
+    }
+}
+
+/// A coordinate as one word of a `bus block` mark: `k` a constant, `c` a column, `x` a product, `s` a scaled column,
+/// `i` an index column (`base.shift`), `pn`/`pc` a fixed `Next`/`Constant` public column (`p` another), `y` a sparse
+/// one, a sum its terms joined by `+` (`e` if it has none).
+fn coord_word(c: &Coord) -> String {
+    match c {
+        Coord::Const(v) => format!("k{}", v.0),
+        Coord::Col(i) => format!("c{i}"),
+        Coord::Prod(i, j) => format!("x{i}.{j}"),
+        Coord::Scaled(v, i) => format!("s{}.{i}", v.0),
+        Coord::IntIndex { base, shift } => format!("i{}.{shift}", base.0),
+        Coord::Public(p) => match p.fixed {
+            Some(FixedColumn::Next(s)) => format!("pn{s}"),
+            Some(FixedColumn::Constant(j)) => format!("pc{j}"),
+            None => "p".into(),
+        },
+        Coord::Sparse(_) => "y".into(),
+        Coord::Sum(cs) if cs.is_empty() => "e".into(),
+        Coord::Sum(cs) => cs.iter().map(coord_word).collect::<Vec<_>>().join("+"),
+    }
 }
 
 impl TableSummand {
@@ -182,5 +227,50 @@ impl Summand for TableSummand {
     #[inline(always)]
     fn eval<V: Subfield>(&self, cols: &[V], quadratic: bool) -> F192 {
         self.0.eval_unreduced(cols, quadratic).reduce()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::rec::circuit::{Builder, Finished, Kw};
+
+    // The plan the Lean copy argument assumes (`Rec.Balanced`, `Rec.bus_copy_sound`): every slot, the public table's
+    // first, pulls its own key and pushes its `next` key, both blocks carrying the same limbs at the same height.
+    #[test]
+    fn every_slot_pulls_its_key_and_pushes_its_next_with_its_limbs() {
+        let mut b = Builder::new();
+        let x = b.free_e(F192::new(3, 5, 7));
+        let y = b.e_const(F192::new(11, 13, 17));
+        let one = b.one();
+        let p = b.mul_add(x, y, one);
+        let w: [Kw; 4] = std::array::from_fn(|i| b.free_k(10 + i as u64));
+        let d = b.k_to_d(w);
+        b.expose(p);
+        b.expose(d);
+        let Finished {
+            circuit, assignment, ..
+        } = b.finish();
+        let layout = RecLayout::new(&circuit).unwrap();
+        let fixed = FixedColumns::new(&circuit);
+        let blocks = BusBlocks::new(&fixed, fixed.public_values(&assignment.statement), &layout);
+
+        let slots: Vec<(Table, usize)> = std::iter::once((Table::Pub, 0))
+            .chain(
+                Table::OWNED
+                    .into_iter()
+                    .flat_map(|t| (0..t.n_slots()).map(move |s| (t, s))),
+            )
+            .collect();
+        assert_eq!(blocks.pull.len(), slots.len());
+        assert_eq!(blocks.push.len(), slots.len());
+        let show = |c: &[Coord]| format!("{c:?}");
+        for ((pull, push), &(table, slot)) in blocks.pull.iter().zip(&blocks.push).zip(&slots) {
+            assert_eq!((pull.kappa, pull.owner), (push.kappa, push.owner));
+            assert_eq!(show(&pull.coords[1..]), show(&push.coords[1..]));
+            assert_eq!(show(&pull.coords[..1]), show(&[SlotKey::new(table, slot, 0).column()]));
+            let next = fixed.public(FixedColumn::Next(table.first_slot() + slot));
+            assert_eq!(show(&push.coords[..1]), show(&[Coord::Public(next)]));
+        }
     }
 }

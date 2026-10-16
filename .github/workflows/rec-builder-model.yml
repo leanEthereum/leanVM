@@ -1,0 +1,92 @@
+name: Recursion builder model
+
+# The Lean model of the recursion circuit's builder (verification/circuits/LeanVMCircuits/Rec/Builder.lean)
+# replays the builder calls that make each tracked aggregation tree's circuits and checks it builds the same
+# circuits. Any Rust change can change what the verifier in rows calls, so every one runs it.
+
+on:
+  pull_request:
+    paths:
+      - crates/**
+      - bins/leanvm/**
+      - programs/**
+      - Cargo.toml
+      - Cargo.lock
+      - verification/circuits/**
+      - .github/workflows/rec-builder-model.yml
+  push:
+    branches: [riscv-exploration, 'kw/clean-circuits-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.0
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: verification/circuits
+          build: 'false'
+          test: 'false'
+          lint: 'false'
+          use-mathlib-cache: 'false'
+      - name: Dump the tracked circuits and instruction table bindings
+        run: cargo run --release -p leanvm-cli --features circuits -- circuits /tmp/circuits
+      - name: Replay the builders and check native table bindings
+        working-directory: verification/circuits
+        run: |
+          lake exe cache get Mathlib.Tactic Mathlib.FieldTheory.Finite.Extension Mathlib.RingTheory.AdjoinRoot Mathlib.Algebra.Polynomial.SpecificDegree Mathlib.Algebra.MvPolynomial.Eval Mathlib.Algebra.Polynomial.Roots Mathlib.Algebra.BigOperators.Field Mathlib.Algebra.Order.BigOperators.Group.Finset Mathlib.Algebra.Order.Field.Rat Mathlib.Data.Fintype.Card
+          lake build checkrec checkflushes checkbind checkdesign checkedges checkhashrows
+          lake exe checkrec /tmp/circuits/*.txt
+          lake exe checkflushes /tmp/circuits/table-flushes.dump
+      - name: Check Hash::circuit's rows against their Lean model
+        working-directory: verification/circuits
+        run: lake exe checkhashrows /tmp/circuits/hash-rows.dump
+      - name: Check the design model
+        working-directory: verification/circuits
+        run: lake exe checkdesign fixtures/design-summaries.txt /tmp/circuits/*.txt
+      - name: Check that a circuit from before the union absorbed its begin bits (#626) leaves its coverage test unbound
+        working-directory: verification/circuits
+        run: |
+          xz -dc fixtures/pre626-claimset-two-tier-circuit-1.txt.xz > /tmp/pre626-claimset-two-tier-circuit-1.txt
+          lake exe checkbind --expect-unbound /tmp/pre626-claimset-two-tier-circuit-1.txt
+      - name: Check the tree's edges
+        working-directory: verification/circuits
+        run: lake exe checkedges /tmp/circuits/*.txt
+
+  # Transcript binding over the dumps in three shards, one runner each, the signer-set trees' four-child dumps being the longest to check. Each shard takes the dumps the largest-first greedy split by file size gives it, so a new dump lands in some shard.
+  bind:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.0
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: verification/circuits
+          build: 'false'
+          test: 'false'
+          lint: 'false'
+          use-mathlib-cache: 'false'
+      - name: Dump the tracked circuits
+        run: cargo run --release -p leanvm-cli --features circuits -- circuits /tmp/circuits
+      - name: Check transcript binding, shard ${{ matrix.shard }} of 3
+        working-directory: verification/circuits
+        run: |
+          lake exe cache get Mathlib.Tactic Mathlib.FieldTheory.Finite.Extension Mathlib.RingTheory.AdjoinRoot Mathlib.Algebra.Polynomial.SpecificDegree Mathlib.Algebra.MvPolynomial.Eval Mathlib.Algebra.Polynomial.Roots Mathlib.Algebra.BigOperators.Field Mathlib.Algebra.Order.BigOperators.Group.Finset Mathlib.Algebra.Order.Field.Rat Mathlib.Data.Fintype.Card
+          lake build checkbind
+          files=$(stat -c '%s %n' /tmp/circuits/*.txt | sort -rn | awk -v k=${{ matrix.shard }} \
+            '{ b = 0; for (i = 1; i < 3; i++) if (load[i] < load[b]) b = i; load[b] += $1; if (b == k) print $2 }')
+          test -n "$files"
+          lake exe checkbind $files

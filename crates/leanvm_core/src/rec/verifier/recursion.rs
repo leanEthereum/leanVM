@@ -115,10 +115,11 @@ impl RecShape {
             statement_eq: None,
             hints: Vec::new(),
         };
-        let mut r = Rows::hinting(b, &mut t, &mut hints);
-
         let constants = std::array::from_fn(|j| columns.public(FixedColumn::Constant(j)));
         let blocks = BusBlocks::new(columns, constants, &self.layout);
+        b.mark(|| blocks.mark_lines());
+        let mut r = Rows::hinting(b, &mut t, &mut hints);
+
         let matrices = infallible(TableArgument::new(&self.layout, blocks).verify_core(&mut r, self.rate));
         RecRows {
             matrix: matrices.into(),

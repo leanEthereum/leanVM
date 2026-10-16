@@ -2,12 +2,11 @@
 
 use super::bus::{FlushBuilder, Separator};
 use super::columns::Columns;
-use super::{BAD_SLOT, EXIT_SLOT, Part, PerTable, TableId, Word};
+use super::{Part, PerTable, TableId, Word};
 use crate::bus::BusForm;
-use crate::bus::Coord::{self, Col, Const, Scaled};
+use crate::bus::Coord::{self, Col, Const};
 use crate::constraints::{BitColumns, BitField};
-use crate::rv::{Ext, Hash, Reg, RegisterFile};
-use primitives::field::{F64, F192};
+use crate::rv::{Reg, RegisterFile};
 use std::sync::OnceLock;
 
 /// Circuit bindings and bus interactions for one instruction class.
@@ -38,7 +37,7 @@ impl ClassTable {
     fn new(id: TableId) -> Self {
         let spec = id.spec();
         spec.assert_valid();
-        let cols = Columns::new(spec);
+        let cols = super::clean::table_columns(id.index());
         let table = Self {
             id,
             cols,
@@ -177,126 +176,13 @@ impl ClassTable {
             .filter_map(|(port, &w)| Some((port, self.cols.column(w)?)))
     }
 
-    /// Build the state transition, bytecode lookup, and ordered memory accesses.
+    /// The ordered state, bytecode and access tuples generated from the proved Clean table source.
     pub(crate) fn flushes(&self) -> FlushBuilder {
-        let mut bus = FlushBuilder::new();
-        self.flush_state(&mut bus);
-        bus.read(self.bytecode_tuple());
-        self.flush_accesses(&mut bus);
-        bus
-    }
-
-    /// Bind the next instruction and clock to the current state.
-    ///
-    /// The successor is linear in the row's columns: `pc + 4`, plus the circuit's jump for a class with control flow.
-    fn flush_state(&self, bus: &mut FlushBuilder) {
-        let c = &self.cols;
-        let npc = c.control.map_or(Col(c.pc4), |control| control.next_pc(c.pc4));
-        let exit = c.control.map_or(Const(F64::ZERO), |control| Col(control.exit));
-        bus.state(c.pc, c.ts, c.step, npc, exit);
+        super::clean::table_flushes(self.id.index())
     }
 
     /// The bytecode tuple's coordinate holding the cell the entry writes.
     pub(crate) const DESTINATION_SLOT: usize = 6;
-
-    /// Read the public decoded entry, using constants for absent register and circuit ports.
-    fn bytecode_tuple(&self) -> Vec<Coord> {
-        let c = &self.cols;
-        // A row without flags, an `rs2` read, an `rd` write or an immediate reads its constant off the entry.
-        // Those constants are zero, `x0`, the sink, and zero.
-        let mut entry = vec![
-            Separator::Bytecode.coordinate(),
-            Col(c.pc),
-            Const(self.id.tag()),
-            c.flags.map_or(Const(F64::ZERO), Col),
-            Col(c.a1),
-            c.rs2.map_or(Const(F64::ZERO), |r| Col(r.a2)),
-            match (c.rd, c.pointer) {
-                (Some(rd), _) => Col(rd.ad),
-                (_, Some(pointer)) => Col(pointer.ad),
-                _ => Const(F64(RegisterFile::SINK as u64)),
-            },
-            c.imm.map_or(Const(F64::ZERO), Col),
-            Col(c.pc4),
-        ];
-        if let Some(control) = c.control {
-            entry.push(Col(control.dt));
-        }
-        if let Some(bad) = c.bad {
-            entry.resize(BAD_SLOT, Const(F64::ZERO));
-            entry.push(Col(bad));
-        }
-        entry.resize(EXIT_SLOT, Const(F64::ZERO));
-        entry.push(c.control.map_or(Const(F64::ZERO), |k| Col(k.exit)));
-        entry
-    }
-
-    /// Bind register, cell, block, and limb values to their ordered memory accesses.
-    fn flush_accesses(&self, bus: &mut FlushBuilder) {
-        let c = &self.cols;
-        // The accesses' columns are in the order the row makes them.
-        let mut accesses = bus.accesses(c.ts, c.prev, self.id.spec().slots());
-        accesses.read(Separator::Registers.coordinate(), Col(c.a1), Col(c.v1));
-        if let Some(r) = c.rs2 {
-            accesses.read(Separator::Registers.coordinate(), Col(r.a2), Col(r.v2));
-        }
-        // The destination receives the circuit's output, which is the link of a jump that links.
-        if let Some(rd) = c.rd {
-            accesses.write(
-                Separator::Registers.coordinate(),
-                Col(rd.ad),
-                Col(rd.vd_old),
-                Col(rd.out),
-            );
-        }
-        // An address in `rd` is read and written back as found.
-        if let Some(p) = c.pointer {
-            accesses.read(Separator::Registers.coordinate(), Col(p.ad), Col(p.vd));
-        }
-        // Misaligned or unmapped addresses name no seeded cell.
-        // Doubleword moves share their value column on the read and write sides.
-        if let Some(ram) = c.ram {
-            accesses.write(
-                Separator::Memory.coordinate(),
-                Col(ram.address),
-                Col(ram.cell),
-                Col(ram.new),
-            );
-        }
-        // The hash's block: word `k` at `v1 ^ 8k`, which is `v1 + 8k` in the field.
-        if let Some(block) = c.block {
-            for k in 0..Hash::WORDS {
-                let addr = Coord::Sum(vec![Col(c.v1), Const(F64(8 * k as u64))]);
-                accesses.write(
-                    Separator::Memory.coordinate(),
-                    addr,
-                    Col(block.words + k),
-                    Col(block.left(k)),
-                );
-            }
-        }
-        // The limbs: each operand's first at its pointer, the others at the addresses the clock circuit computes.
-        //
-        // A base-field `b`'s high limbs are reads of `x0`, at the address zero the clock circuit gives them, under a
-        // separator that is a form in the bit `base`, which picks the registers over memory:
-        //
-        //     separator   memory + base·(memory + registers)
-        if let (Some(limbs), Some(r), Some(p), Some(bits)) = (c.limbs, c.rs2, c.pointer, c.flag_bits) {
-            let pointers = [c.v1, r.v2, p.vd];
-            let (memory, registers) = (Separator::Memory.value(), Separator::Registers.value());
-            let base = bits + 1;
-            for k in 0..Ext::LIMBS {
-                let sep = if k / 3 == 1 && k % 3 > 0 {
-                    Coord::Sum(vec![Const(memory), Scaled(memory + registers, base)])
-                } else {
-                    Separator::Memory.coordinate()
-                };
-                let addr = Col(limbs.address(k, pointers));
-                accesses.write(sep, addr, Col(limbs.limbs + k), Col(limbs.left(k)));
-            }
-        }
-        accesses.finish();
-    }
 
     /// The identities the table proves of every one of its rows, in local column indices: none for a class with a
     /// circuit, and for the extension-field product its three new limbs.
@@ -311,76 +197,64 @@ impl ClassTable {
     /// ```
     ///
     /// Each form is the difference of the two sides, which vanishes on a row exactly when the row's new limb is its
-    /// product: degree 2, every coefficient one. A base-field `b`'s high limbs are zero, being reads of `x0`.
+    /// product: degree 2, every coefficient one. These identities are generated from the proved Clean assertion in
+    /// `LeanVMCircuits.ExtensionProduct`. A base-field `b`'s high limbs are zero, being reads of `x0`.
     pub(crate) fn identities(&self) -> Vec<BusForm> {
         let c = &self.cols;
         let (Some(limbs), Some(bits)) = (c.limbs, c.flag_bits) else {
             return Vec::new();
         };
-        let (a, b, old) = (limbs.limbs, limbs.limbs + 3, limbs.limbs + 6);
-        (0..3)
-            .map(|i| {
-                let mut form = BusForm::new(self.n_committed_columns(), F192::ZERO);
-                form.coeffs[limbs.new + i] = F192::ONE;
-                form.prods.push((bits, old + i, F192::ONE));
-                for (j, k) in (0..3).flat_map(|j| (0..3).map(move |k| (j, k))) {
-                    let lands = match j + k {
-                        3 => i < 2,
-                        4 => i > 0,
-                        m => m == i,
-                    };
-                    if lands {
-                        form.prods.push((a + j, b + k, F192::ONE));
-                    }
+        super::clean::extension_identities(self.n_committed_columns(), bits, limbs.limbs, limbs.new)
+    }
+    /// The generated plans together with the native slot lists and clock-port projection, for `checkflushes`.
+    #[cfg(feature = "circuit-trace")]
+    pub(crate) fn flush_dump() -> String {
+        use crate::bus::Coord::Scaled;
+
+        fn render(coordinate: &Coord) -> String {
+            match coordinate {
+                Col(index) => format!("c{index}"),
+                Const(value) => format!("k{}", value.0),
+                Coord::Sum(terms) => format!("(+ {})", terms.iter().map(render).collect::<Vec<_>>().join(" ")),
+                Scaled(value, index) => format!("(* {} c{index})", value.0),
+                other => format!("?{other:?}"),
+            }
+        }
+
+        fn counted(items: impl ExactSizeIterator<Item = String>) -> String {
+            std::iter::once(items.len().to_string())
+                .chain(items)
+                .collect::<Vec<_>>()
+                .join(" ")
+        }
+
+        let mut lines = Vec::new();
+        for (_, table) in Self::all().iter() {
+            let spec = table.id.spec();
+            let bus = table.flushes();
+            let clock = table.ports(Part::Clock).iter();
+            lines.push(format!("table {}", spec.name));
+            lines.push(format!("columns {}", table.n_committed_columns()));
+            lines.push(format!("slots {}", counted(spec.slots().iter().map(u32::to_string))));
+            lines.push(format!(
+                "clock {}",
+                counted(clock.map(|&w| table.cols.column(w).map_or_else(|| "-".to_owned(), |c| c.to_string())))
+            ));
+            for (side, tuples) in [("push", &bus.push), ("pull", &bus.pull)] {
+                for tuple in tuples {
+                    lines.push(format!("{side} {}", counted(tuple.iter().map(render))));
                 }
-                form
-            })
-            .collect()
+            }
+        }
+        lines.iter().map(|line| format!("{line}\n")).collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::Clock;
     use super::*;
-
-    fn check_columns(coordinate: &Coord, width: usize) {
-        // Every table-side coordinate must use its own local span of columns.
-        match coordinate {
-            Col(index) => assert!(*index < width),
-            Coord::Prod(a, b) => assert!(*a < width && *b < width),
-            Scaled(_, index) => assert!(*index < width),
-            Coord::Sum(terms) => terms.iter().for_each(|term| check_columns(term, width)),
-            Const(_) => {}
-            _ => panic!("a table tuple contains a nonlocal coordinate"),
-        }
-    }
-
-    #[test]
-    fn every_table_binds_its_ports_and_accesses_within_its_local_columns() {
-        for (_, table) in ClassTable::all().iter() {
-            let width = table.n_committed_columns();
-            let accesses = table.id.spec().n_accesses();
-            let slots = table.id.spec().slots();
-            assert_eq!(slots.len(), accesses);
-            assert!(slots.iter().all(|&slot| slot < 1 << Clock::SLOT_BITS));
-            for part in [Part::Class, Part::Clock] {
-                for (_, column) in table.word_columns(part) {
-                    assert!(column < width);
-                }
-            }
-            // A row pulls state and bytecode, then pulls and pushes one tuple per access.
-            let bus = table.flushes();
-            assert_eq!(bus.push.len(), 1 + accesses);
-            assert_eq!(bus.pull.len(), 2 + accesses);
-            assert_eq!(bus.pull[1].len(), EXIT_SLOT + 1);
-            for tuple in bus.push.iter().chain(&bus.pull) {
-                for coordinate in tuple {
-                    check_columns(coordinate, width);
-                }
-            }
-        }
-    }
+    use crate::rv::Ext;
+    use primitives::field::{F64, F192};
 
     proptest::proptest! {
         #[test]

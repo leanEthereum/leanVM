@@ -47,6 +47,8 @@ use tracing::info_span;
 use union::{FillError, UnionFill};
 
 mod design;
+#[cfg(test)]
+mod design_tests;
 
 mod multiset;
 mod proof;
@@ -415,6 +417,47 @@ impl<'p> Tree<'p> {
             Some(position) if p.words.len() == self.design.statement.len() => Ok(position),
             _ => Err(TreeError::Circuit(p.circuit)),
         }
+    }
+
+    /// The number of positional circuits, including every claim-set node and tier wrap.
+    #[cfg(feature = "circuit-trace")]
+    #[must_use]
+    pub const fn circuit_count(&self) -> usize {
+        self.keys.len()
+    }
+
+    /// The circuit at this position as `CheckRec` reads it: its builder calls, finished circuit, and bus links.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the position is outside the tree or building the circuit again gives another circuit.
+    #[cfg(feature = "circuit-trace")]
+    pub fn circuit_dump(&self, position: usize) -> String {
+        use crate::rec::fixed::FixedColumn;
+        use crate::rec::table::Table;
+        use std::fmt::Write;
+        let (finished, calls) = crate::rec::circuit::traced(|| self.design.shape(position));
+        let mut circuit = finished.circuit;
+        circuit.floor = self.circuit(position).floor;
+        assert_eq!(
+            &circuit,
+            self.circuit(position),
+            "a circuit is built the same every time"
+        );
+        let columns = self.keys[position].fixed();
+        let mut next = String::from("next\n");
+        for t in Table::ALL {
+            let n = t.n_slots();
+            let rows = circuit.classes.of(t).len() / n;
+            let _ = write!(next, "table {}", rows * n);
+            for z in 0..rows {
+                for s in 0..n {
+                    let _ = write!(next, " {}", columns.get(FixedColumn::Next(t.first_slot() + s))[z].0);
+                }
+            }
+            next.push('\n');
+        }
+        calls + "circuit\n" + &circuit.dump() + &next
     }
 
     /// Prove a first-level node over its leaves, each a RISC-V proof and its output, in order.
@@ -966,6 +1009,25 @@ mod tests {
         fn pairs(&self) -> Vec<Leaf<'_>> {
             self.leaves.iter().map(|(p, o)| Leaf::new(p, *o)).collect()
         }
+    }
+
+    // The building facts `LeanVMCircuits.Rec.AirLink.checksGiveRows_of_tree` takes: each circuit `Tree::converge`
+    // returns has its tier's heights, at which a node reads its children, and they hold its rows.
+    fn assert_converged(tree: &Tree<'_>) {
+        for (p, place) in tree.design.places.iter().enumerate() {
+            let tier = &tree.design.tiers[place.tier];
+            let circuit = tree.circuit(p);
+            assert_eq!(circuit.heights(), tier.taus, "{place:?}");
+            let counts = circuit.row_counts();
+            for t in Table::ALL {
+                assert!(counts[t] <= 1 << tier.taus[t], "{place:?}, {t:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn every_circuit_is_at_its_tiers_converged_heights_which_hold_its_rows() {
+        assert_converged(&fixture().tree);
     }
 
     #[test]
@@ -1952,10 +2014,8 @@ mod tests {
             let d = &t.tree.design;
             assert!(d.place(SMALL, Level::Node(3)).is_none() && d.place(SMALL, Level::Wrap).is_some());
             assert!(d.place(LARGE, Level::Node(3)).is_some() && d.place(LARGE, Level::Node(2)).is_none());
-            // Each tier's circuits are at its own heights.
-            for (p, place) in d.places.iter().enumerate() {
-                assert_eq!(t.tree.circuit(p).heights(), d.tiers[place.tier].taus, "{place:?}");
-            }
+            // Each tier's circuits are at its own heights, which hold their rows.
+            super::assert_converged(&t.tree);
             // A kind names one circuit, whose proofs state it.
             for p in 0..d.places.len() {
                 assert_eq!(d.position(d.code(p)), Some(p));

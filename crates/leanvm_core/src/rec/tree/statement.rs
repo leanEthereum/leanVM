@@ -146,6 +146,21 @@ impl StatementLayout {
     pub(crate) fn len(self) -> usize {
         Section::ALL.into_iter().map(|s| self.width(s)).sum()
     }
+
+    /// The layout as `CheckEdges` reads it: its section widths, then each dense polynomial's variables (`vars`) and each flock circuit's matrix variables, the prefixes of the points a statement's claims are at.
+    pub(crate) fn edge_line(self, vars: &[usize]) -> String {
+        let dims: Vec<String> = (self.polys().iter().map(|&p| vars[p as usize]))
+            .chain(CircuitId::ALL.iter().map(|f| f.k_log()))
+            .map(|n| n.to_string())
+            .collect();
+        format!(
+            "edge layout {} {} {} {N_CIRCUITS} {}",
+            self.n_dense,
+            self.n_polys,
+            self.n_matrix,
+            dims.join(" ")
+        )
+    }
 }
 
 impl<E: Copy> TreeStatement<E> {

@@ -2,6 +2,7 @@
 
 mod bus;
 pub mod circuit;
+mod clean;
 mod fixed;
 mod hash;
 mod layout;
