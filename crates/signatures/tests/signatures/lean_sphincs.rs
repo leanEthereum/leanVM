@@ -1,4 +1,4 @@
-use signatures::sphincs::*;
+use signatures::lean_sphincs::*;
 
 fn seed(x: u8) -> MasterSecret {
     std::array::from_fn(|i| x.wrapping_mul(31).wrapping_add(i as u8))
@@ -13,11 +13,14 @@ fn signatures_verify_and_tampered_ones_do_not() {
     // At 20 the key stores its subtree from level 1: a signature rebuilds below it.
     for b in [3, 10, 20] {
         let (sk, pk) = key_gen_from_seed(seed(b as u8), b);
-        assert_eq!(SphincsSecretKey::from_bytes(&sk.to_bytes()).unwrap().public_key(), pk);
+        assert_eq!(
+            LeanSphincsSecretKey::from_bytes(&sk.to_bytes()).unwrap().public_key(),
+            pk
+        );
         let message: Message = std::array::from_fn(|i| (b + i) as u8);
         let signature = sign(&sk, &message).unwrap();
         assert_eq!(verify(&pk, &message, &signature), Ok(()));
-        assert_eq!(SphincsSignature::from_bytes(&signature.to_bytes()), signature);
+        assert_eq!(LeanSphincsSignature::from_bytes(&signature.to_bytes()), signature);
 
         let mut other = message;
         other[0] ^= 1;
@@ -32,7 +35,7 @@ fn signatures_verify_and_tampered_ones_do_not() {
         for at in (0..counter).step_by(N).chain((counter..SIG_SIZE).step_by(N)) {
             let mut bad = bytes;
             bad[at] ^= 1;
-            let bad = SphincsSignature::from_bytes(&bad);
+            let bad = LeanSphincsSignature::from_bytes(&bad);
             assert!(verify(&pk, &message, &bad).is_err(), "byte {at}");
         }
     }

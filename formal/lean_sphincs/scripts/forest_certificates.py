@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate Sphincs/LifetimeCertificates.lean: exact rational certificates for the forest lifetimes.
 
-Usage (from formal/sphincs):
+Usage (from formal/lean_sphincs):
     python3 scripts/forest_certificates.py check B N LX   # check one parameter set (exit status 1 if it fails)
     python3 scripts/forest_certificates.py emit           # write Sphincs/LifetimeCertificates.lean and Lifetimes.lean
     python3 scripts/forest_certificates.py maxn B N0 [STEP LXLO LXHI]   # search the largest N above N0, over a grid of lx

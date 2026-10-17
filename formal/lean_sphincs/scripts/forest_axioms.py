@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Axiom guards for Sphincs (writes Sphincs/Axioms.lean).
 
-From formal/sphincs:
+From formal/lean_sphincs:
     lake env lean scripts/ForestTheorems.lean            # writes forest_theorems.txt
     python3 scripts/forest_axioms.py prepare             # writes .build/forest_print_axioms.lean
     lake env lean .build/forest_print_axioms.lean > .build/forest_axioms_out.txt

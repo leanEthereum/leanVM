@@ -228,7 +228,7 @@ Key generation and signing add a negligible number of calls, so
 \]
 The top layer admits the same attack, on the root of a bottom tree of the adversary's own, at the same cost.
 
-\paragraph{Quantum security.} Only the classical bound is proved. We expect about 64 quantum bits, NIST category~1, which FIPS~205 assigns to the SLH-DSA parameter sets with a 128-bit digest~\cite{FIPS205}. The hypertree of SPHINCS$^+$, of which these two layers are a variant, has a QROM bound against an adversary that does not choose the signed messages~\cite{HK22}, and hash-then-sign reduces chosen messages to random ones~\cite{GHHM21}. This remains a conjecture: the first bound is proved for the WOTS$^+$ encoding rather than for a target sum, and the second reduction loses around 1.5 bits.
+\paragraph{Quantum security.} Only the classical bound is proved. We expect about 64 quantum bits, NIST category~1, which FIPS~205 assigns to the SLH-DSA parameter sets with a 128-bit digest~\cite{FIPS205}. The hypertree of leanSPHINCS$^+$, of which these two layers are a variant, has a QROM bound against an adversary that does not choose the signed messages~\cite{HK22}, and hash-then-sign reduces chosen messages to random ones~\cite{GHHM21}. This remains a conjecture: the first bound is proved for the WOTS$^+$ encoding rather than for a target sum, and the second reduction loses around 1.5 bits.
 
 \section{Address encoding}
 \label{sec:addresses}

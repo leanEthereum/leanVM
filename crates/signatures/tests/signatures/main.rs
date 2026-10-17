@@ -1,2 +1,2 @@
+mod lean_sphincs;
 mod lean_xmss;
-mod sphincs;

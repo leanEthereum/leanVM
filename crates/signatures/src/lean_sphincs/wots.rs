@@ -8,7 +8,7 @@
 //! code at all, hence the counter the signer searches for and the signature
 //! carries.
 
-use crate::sphincs::*;
+use crate::lean_sphincs::*;
 
 /// The starts of the `v` chains of the one-time key at leaf `e`. One hash of the
 /// seed gives two of them: chains `2t` and `2t + 1` are its two halves.

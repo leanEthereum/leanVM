@@ -1,7 +1,7 @@
-//! Recursive proofs of leanXMSS and SPHINCS signature claims and LeanDA blob well-formedness.
+//! Recursive proofs of leanXMSS and leanSPHINCS signature claims and LeanDA blob well-formedness.
 //! One bytecode (`guests/lean_ethereum.py`) serves every node of an aggregation tree.
 //!
-//! A node verifies `n_raw_lean_xmss` leanXMSS signatures, `n_raw_sphincs` SPHINCS
+//! A node verifies `n_raw_lean_xmss` leanXMSS signatures, `n_raw_lean_sphincs` leanSPHINCS
 //! signatures and `n_children` sub-proofs **of this same bytecode**, and
 //! by default publishes the sorted deduplicated union of their signer sets. A claim
 //! of either scheme is a `(pubkey, message)` pair; a leanXMSS signature carries its own
@@ -50,16 +50,16 @@ use leanvm_core::transcript::FiatShamirState;
 use primitives::field::{F64, F192, G, g_pow};
 use primitives::multilinear::mle_eval_par;
 use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-use signatures::{lean_xmss, sphincs};
+use signatures::{lean_sphincs, lean_xmss};
 
-use signatures::sphincs::{SphincsPublicKey, SphincsSignature};
+use signatures::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 
 /// One leanXMSS claim: a pubkey, and the message it signed at whatever leaf index its
 /// signature carries.
 pub type LeanXmssClaim = (LeanXmssPublicKey, lean_xmss::Message);
 
-/// One SPHINCS claim: a pubkey, and the message it signed.
-pub type SphincsClaim = (SphincsPublicKey, sphincs::Message);
+/// One leanSPHINCS claim: a pubkey, and the message it signed.
+pub type LeanSphincsClaim = (LeanSphincsPublicKey, lean_sphincs::Message);
 
 /// Why the guest reads every `q_flock` slot claim's instance point off `chi`: a
 /// virtual value column is referenced only by its own table's bus blocks, which
@@ -118,25 +118,25 @@ const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BY
 // same address types (`primitives::hash`'s). A chain step's address leaves out the
 // chain index in leanXMSS, where it follows the value.
 const DIGIT_GROUP: usize = 3;
-const _: () = assert!(sphincs::W * sphincs::V == 128 && sphincs::V % DIGIT_GROUP == 1);
-const _: () = assert!(lean_xmss::W == sphincs::W && lean_xmss::V % DIGIT_GROUP == 1);
+const _: () = assert!(lean_sphincs::W * lean_sphincs::V == 128 && lean_sphincs::V % DIGIT_GROUP == 1);
+const _: () = assert!(lean_xmss::W == lean_sphincs::W && lean_xmss::V % DIGIT_GROUP == 1);
 // leanXMSS's one-time leaf fills whole blocks, and a leaf index is the two layers'
 // indices, which the guest decomposes into bits at once.
 const _: () = assert!((2 + lean_xmss::V).is_multiple_of(4));
 const _: () = assert!(lean_xmss::LOG_LIFETIME == 32);
-// The guest takes the SPHINCS message digest's first cell as its sixteen
+// The guest takes the leanSPHINCS message digest's first cell as its sixteen
 // codewords, and reads the index and what the digest leaves unused from the bits
 // of the second, where it weighs each leaf and each WOTS key as one word of a
 // 64-bit lane.
-const _: () = assert!(sphincs::DIGEST_WORD_BYTES == 16 && sphincs::DIGEST_BITS <= 256);
+const _: () = assert!(lean_sphincs::DIGEST_WORD_BYTES == 16 && lean_sphincs::DIGEST_BITS <= 256);
 const _: () = {
-    let mut at = sphincs::H;
+    let mut at = lean_sphincs::H;
     let mut k = 0;
-    while k < sphincs::FOREST_TREES * (1 + sphincs::SUBTREES) {
-        let bits = if k < sphincs::FOREST_TREES {
-            sphincs::TREE_HEIGHT
+    while k < lean_sphincs::FOREST_TREES * (1 + lean_sphincs::SUBTREES) {
+        let bits = if k < lean_sphincs::FOREST_TREES {
+            lean_sphincs::TREE_HEIGHT
         } else {
-            sphincs::SUBTREE_HEIGHT
+            lean_sphincs::SUBTREE_HEIGHT
         };
         assert!(at / 64 == (at + bits - 1) / 64);
         at += bits;
@@ -145,14 +145,14 @@ const _: () = {
 };
 // The index and the bits after the last field are each read in one lane: the
 // first, and the second up to the cell's end.
-const _: () = assert!(sphincs::H <= 64 && sphincs::DIGEST_BITS - 128 >= 64);
+const _: () = assert!(lean_sphincs::H <= 64 && lean_sphincs::DIGEST_BITS - 128 >= 64);
 // Its hashes of the one-time leaf and of the few-time key end on half a block.
-const _: () = assert!(sphincs::V.is_multiple_of(4) && (2 * sphincs::FOREST_TREES).is_multiple_of(4));
+const _: () = assert!(lean_sphincs::V.is_multiple_of(4) && (2 * lean_sphincs::FOREST_TREES).is_multiple_of(4));
 // It hashes a tree leaf over two subtrees, and places the forest's positions in
-// an address as `sphincs::forest` packs them: the tree in 3 bits, then the leaf
+// an address as `lean_sphincs::forest` packs them: the tree in 3 bits, then the leaf
 // in 4, the subtree in 1, the key in 3 and the chain.
-const _: () = assert!(sphincs::SUBTREES == 2 && sphincs::FOREST_TREES <= 1 << 3);
-const _: () = assert!(sphincs::TREE_HEIGHT <= 4 && sphincs::SUBTREE_HEIGHT <= 3);
+const _: () = assert!(lean_sphincs::SUBTREES == 2 && lean_sphincs::FOREST_TREES <= 1 << 3);
+const _: () = assert!(lean_sphincs::TREE_HEIGHT <= 4 && lean_sphincs::SUBTREE_HEIGHT <= 3);
 
 /// A count as the guest carries it: in the exponent, `g^n`.
 fn count(n: usize) -> F192 {
@@ -239,18 +239,21 @@ fn lean_xmss_claim_cells((pk, message): &LeanXmssClaim) -> [F192; 4] {
     claim_cells(&pk.flatten(), message)
 }
 
-fn sphincs_claim_cells((pk, message): &SphincsClaim) -> [F192; 4] {
+fn lean_sphincs_claim_cells((pk, message): &LeanSphincsClaim) -> [F192; 4] {
     claim_cells(&pk.flatten(), message)
 }
 
-/// The signer-set digest: plain BLAKE2s of the leanXMSS list's digest then the SPHINCS
+/// The signer-set digest: plain BLAKE2s of the leanXMSS list's digest then the leanSPHINCS
 /// list's, one 64-byte block (`main` in the guest). Each list digest binds its own
 /// length through BLAKE2s's byte counter, so the pair binds both lists whole.
-fn signers_hash(xmss_signers: &[LeanXmssClaim], sphincs_signers: &[SphincsClaim]) -> [F192; 2] {
+fn signers_hash(xmss_signers: &[LeanXmssClaim], lean_sphincs_signers: &[LeanSphincsClaim]) -> [F192; 2] {
     let xmss = claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells));
-    let sphincs = claim_list_digest(sphincs_signers.iter().map(sphincs_claim_cells));
+    let lean_sphincs = claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells));
     pack_hash_state(&primitives::hash::hash(&cell_bytes([
-        xmss[0], xmss[1], sphincs[0], sphincs[1],
+        xmss[0],
+        xmss[1],
+        lean_sphincs[0],
+        lean_sphincs[1],
     ])))
 }
 
@@ -421,7 +424,7 @@ struct DeferredSubproof {
 
 /// A proof that every `(pubkey, message)` in [`Self::xmss_signers`] is backed by a
 /// valid leanXMSS signature, at a leaf index the statement does not record, and every
-/// one in [`Self::sphincs_signers`] by a valid SPHINCS signature. Each root in
+/// one in [`Self::lean_sphincs_signers`] by a valid leanSPHINCS signature. Each root in
 /// [`Self::da_commitments`] also attests that the committed blob rows are valid Reed-Solomon codewords.
 /// These claims can be established directly or carried from verified child proofs.
 ///
@@ -439,7 +442,7 @@ pub struct EthereumProof {
     /// claims of both schemes together are strictly fewer than [`MAX_KEYS`].
     xmss_signers: Vec<LeanXmssClaim>,
     /// Strictly sorted and deduplicated on the whole `(pubkey, message)` pair.
-    sphincs_signers: Vec<SphincsClaim>,
+    lean_sphincs_signers: Vec<LeanSphincsClaim>,
     /// Strictly sorted LeanDA roots. Their list digest rides the public statement.
     da_roots: Vec<[u8; 32]>,
     /// What this aggregate defers to whoever discharges it: its parent, in
@@ -560,7 +563,7 @@ type WireCore = (Vec<[u8; 32]>, Vec<F192>, Vec<F192>, leanvm_core::cpu::Proof);
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SignatureClaims {
     pub xmss: Vec<LeanXmssClaim>,
-    pub sphincs: Vec<SphincsClaim>,
+    pub lean_sphincs: Vec<LeanSphincsClaim>,
 }
 
 /// Exactly the claims to publish. Empty lists publish no claims of that kind.
@@ -585,11 +588,11 @@ fn wire() -> impl bincode::Options {
 /// the guest.
 fn check_signer_set(
     xmss_signers: &[LeanXmssClaim],
-    sphincs_signers: &[SphincsClaim],
+    lean_sphincs_signers: &[LeanSphincsClaim],
 ) -> Result<(), AggregateVerifyError> {
-    if xmss_signers.len() + sphincs_signers.len() >= MAX_KEYS
+    if xmss_signers.len() + lean_sphincs_signers.len() >= MAX_KEYS
         || !xmss_signers.windows(2).all(|w| w[0] < w[1])
-        || !sphincs_signers.windows(2).all(|w| w[0] < w[1])
+        || !lean_sphincs_signers.windows(2).all(|w| w[0] < w[1])
     {
         return Err(AggregateVerifyError::MalformedSignerSet);
     }
@@ -619,7 +622,7 @@ impl EthereumProof {
     /// This aggregate's own public statement, as the VM publishes it.
     fn public_input(&self) -> [F192; 2] {
         statement_digest(
-            signers_hash(&self.xmss_signers, &self.sphincs_signers),
+            signers_hash(&self.xmss_signers, &self.lean_sphincs_signers),
             self.da_commitments_digest(),
             &self.defer,
         )
@@ -632,8 +635,8 @@ impl EthereumProof {
     }
 
     /// Strictly sorted and deduplicated on the whole `(pubkey, message)` pair.
-    pub fn sphincs_signers(&self) -> &[SphincsClaim] {
-        &self.sphincs_signers
+    pub fn lean_sphincs_signers(&self) -> &[LeanSphincsClaim] {
+        &self.lean_sphincs_signers
     }
 
     /// Strictly sorted, distinct LeanDA roots proved directly or inherited from children.
@@ -655,7 +658,7 @@ impl EthereumProof {
     /// claims, one per message it signed. A caller that wants signers has to
     /// deduplicate by pubkey itself.
     pub fn num_signature_claims(&self) -> usize {
-        self.xmss_signers.len() + self.sphincs_signers.len()
+        self.xmss_signers.len() + self.lean_sphincs_signers.len()
     }
 
     /// The wire format: the signer set, the DA root list, the two deferred points,
@@ -663,7 +666,7 @@ impl EthereumProof {
     /// [`Self::from_bytes`] recomputes them, so there is nothing to lie about.
     pub fn to_bytes(&self) -> Vec<u8> {
         wire()
-            .serialize(&((&self.xmss_signers, &self.sphincs_signers), self.core()))
+            .serialize(&((&self.xmss_signers, &self.lean_sphincs_signers), self.core()))
             .expect("an aggregate serializes")
     }
 
@@ -709,17 +712,17 @@ impl EthereumProof {
     fn from_parts(claims: SignatureClaims, core: WireCore) -> Result<Self, AggregateVerifyError> {
         let SignatureClaims {
             xmss: xmss_signers,
-            sphincs: sphincs_signers,
+            lean_sphincs: lean_sphincs_signers,
         } = claims;
         let (da_roots, bytecode_point, matrix_point, proof) = core;
         // Cheap rejections first. `recompute_scalar` below is a pass over the whole stacked
         // bytecode plus a walk of the BLAKE2s circuit, on points a peer chose, so
         // anything decidable without it has to be decided before it.
-        check_signer_set(&xmss_signers, &sphincs_signers)?;
+        check_signer_set(&xmss_signers, &lean_sphincs_signers)?;
         check_da_roots(&da_roots)?;
         Ok(Self {
             xmss_signers,
-            sphincs_signers,
+            lean_sphincs_signers,
             da_roots,
             // The wire carries no value, only the points to derive it from.
             defer: DeferredClaim::recompute_scalar(bytecode_point, matrix_point)?,
@@ -733,7 +736,7 @@ impl EthereumProof {
     /// all of it.
     ///
     /// This says "every `(pubkey, message)` in `xmss_signers` is a valid leanXMSS signature,
-    /// and every one in `sphincs_signers` a valid SPHINCS signature", with the
+    /// and every one in `lean_sphincs_signers` a valid leanSPHINCS signature", with the
     /// messages chosen by whoever produced the aggregate: an aggregate over the same
     /// pubkeys under different messages verifies just as well. Which leaf index each
     /// leanXMSS signature used is not part of the claim. A caller that
@@ -743,7 +746,7 @@ impl EthereumProof {
     ///
     /// Every field operation, the proof check and its Merkle hashing run in the `verifier` crate: one thread, no explicit SIMD.
     pub fn verify(&self) -> Result<(), AggregateVerifyError> {
-        check_signer_set(&self.xmss_signers, &self.sphincs_signers)?;
+        check_signer_set(&self.xmss_signers, &self.lean_sphincs_signers)?;
         check_da_roots(&self.da_roots)?;
         // Discharging the deferred claims IS recomputing them: their values have
         // to be the true evaluations, or the recursion below proves nothing about
@@ -757,7 +760,7 @@ impl EthereumProof {
         }
         let _s = tracing::info_span!("Statement digest").entered();
         let pi = statement_digest(
-            signers_hash(&self.xmss_signers, &self.sphincs_signers),
+            signers_hash(&self.xmss_signers, &self.lean_sphincs_signers),
             verifier::da::list_digest(&self.da_roots),
             &self.defer,
         );
@@ -1699,8 +1702,8 @@ impl Hints {
 /// | --- | --- |
 /// | `[0, n_lean_xmss)` | the declared leanXMSS claims |
 /// | `[n_lean_xmss, X)` | leanXMSS duplicate slots |
-/// | `[X, X + n_sphincs)` | the declared SPHINCS claims |
-/// | `[X + n_sphincs, n_total)` | SPHINCS duplicate slots |
+/// | `[X, X + n_lean_sphincs)` | the declared leanSPHINCS claims |
+/// | `[X + n_lean_sphincs, n_total)` | leanSPHINCS duplicate slots |
 ///
 /// A claim the declared set holds takes its slot there, one it does not takes a
 /// fresh duplicate slot in the same region, so the walk hits every one of the
@@ -1713,7 +1716,7 @@ impl Hints {
 /// range check per write, so no signature can reach a claim of the other scheme.
 struct Coverage {
     xmss: Region<LeanXmssClaim>,
-    sphincs: Region<SphincsClaim>,
+    lean_sphincs: Region<LeanSphincsClaim>,
 }
 
 /// One scheme's region of the coverage table.
@@ -1780,7 +1783,7 @@ impl<K: Ord + Clone> Region<K> {
 
 impl Coverage {
     fn n_total(&self) -> usize {
-        self.xmss.n_slots() + self.sphincs.n_slots()
+        self.xmss.n_slots() + self.lean_sphincs.n_slots()
     }
 }
 
@@ -1801,7 +1804,7 @@ fn take_slot<K: Ord + Clone>(claims: &[K], claimed: &mut [bool], duplicates: &mu
 
 fn plan_coverage(
     raw_lean_xmss: &[LeanXmssClaim],
-    raw_sphincs: &[SphincsClaim],
+    raw_lean_sphincs: &[LeanSphincsClaim],
     children: &[EthereumProof],
     declare: Option<&SignatureClaims>,
 ) -> Result<Coverage, AggregationError> {
@@ -1811,10 +1814,10 @@ fn plan_coverage(
             children.iter().map(|child| child.xmss_signers.as_slice()),
             declare.map(|claims| claims.xmss.as_slice()),
         )?,
-        sphincs: Region::plan(
-            raw_sphincs,
-            children.iter().map(|child| child.sphincs_signers.as_slice()),
-            declare.map(|claims| claims.sphincs.as_slice()),
+        lean_sphincs: Region::plan(
+            raw_lean_sphincs,
+            children.iter().map(|child| child.lean_sphincs_signers.as_slice()),
+            declare.map(|claims| claims.lean_sphincs.as_slice()),
         )?,
     };
     if cover.n_total() >= MAX_KEYS {
@@ -1864,7 +1867,7 @@ fn lean_xmss_hints(
     Ok(hints)
 }
 
-/// One SPHINCS signature's witness: the randomizer, the forest's opened chain
+/// One leanSPHINCS signature's witness: the randomizer, the forest's opened chain
 /// values, each tree's leaf and each subtree's key as the guest dispatches on
 /// them, the forest's path nodes in signature order, the encoding counter, the
 /// codeword digits (three at a time, in the exponent), the chain values they
@@ -1873,10 +1876,10 @@ fn lean_xmss_hints(
 /// The guest derives the index and every tree's choices from the digest itself,
 /// so nothing here carries them. The signer's own message is not hinted either:
 /// it rides its slot in the coverage table.
-fn push_sphincs_hints(
+fn push_lean_sphincs_hints(
     hints: &mut Hints,
-    (pk, message): &SphincsClaim,
-    sig: &SphincsSignature,
+    (pk, message): &LeanSphincsClaim,
+    sig: &LeanSphincsSignature,
 ) -> Result<(), AggregationError> {
     let pp = &pk.public_param;
     hints.push("sp_rand", vec![pack_16_bytes(&sig.randomizer)]);
@@ -1884,19 +1887,19 @@ fn push_sphincs_hints(
     for value in subtrees.flat_map(|subtree| &subtree.values) {
         hints.push("sp_forest_values", vec![pack_16_bytes(value)]);
     }
-    let (idx, marks) = sphincs::message_digest(pp, &sig.randomizer, message);
+    let (idx, marks) = lean_sphincs::message_digest(pp, &sig.randomizer, message);
     for word in marks.iter().flat_map(|mark| mark.words) {
         hints.push("sp_words", vec![count(word)]);
     }
     // A field the guest dispatches on: in the exponent, and as an address holds it.
     let mark = |index: usize, field: u32| {
-        let address = sphincs::address(&sphincs::tweak(0, field, 0));
+        let address = lean_sphincs::address(&lean_sphincs::tweak(0, field, 0));
         vec![count(index), pack_16_bytes(&address)]
     };
     for (tree, mark_of) in sig.forest.iter().zip(&marks) {
-        hints.push("sp_leaves", mark(mark_of.leaf, sphincs::leaf_field(mark_of.leaf)));
+        hints.push("sp_leaves", mark(mark_of.leaf, lean_sphincs::leaf_field(mark_of.leaf)));
         for (subtree, &key) in tree.subtrees.iter().zip(&mark_of.keys) {
-            hints.push("sp_keys", mark(key, sphincs::key_field(key)));
+            hints.push("sp_keys", mark(key, lean_sphincs::key_field(key)));
             for node in &subtree.path {
                 hints.push("sp_forest_nodes", vec![pack_16_bytes(node)]);
             }
@@ -1905,9 +1908,9 @@ fn push_sphincs_hints(
             hints.push("sp_forest_nodes", vec![pack_16_bytes(node)]);
         }
     }
-    let forest_key = sphincs::forest_recover(pp, idx as u32, &marks, &sig.forest);
-    let codeword =
-        sphincs::encode(pp, idx as u32, &forest_key, sig.counter).ok_or(AggregationError::MalformedRawSignature)?;
+    let forest_key = lean_sphincs::forest_recover(pp, idx as u32, &marks, &sig.forest);
+    let codeword = lean_sphincs::encode(pp, idx as u32, &forest_key, sig.counter)
+        .ok_or(AggregationError::MalformedRawSignature)?;
     hints.push("sp_counter", vec![F192::new(u64::from(sig.counter), 0, 0)]);
     for entry in digit_hints(&codeword) {
         hints.push("digits", entry);
@@ -1915,12 +1918,12 @@ fn push_sphincs_hints(
     for opened in &sig.wots {
         hints.push("chain_starts", vec![pack_16_bytes(opened)]);
     }
-    let leaf = sphincs::wots_leaf(pp, idx as u32, &forest_key, sig.counter, &sig.wots)
+    let leaf = lean_sphincs::wots_leaf(pp, idx as u32, &forest_key, sig.counter, &sig.wots)
         .ok_or(AggregationError::MalformedRawSignature)?;
     // On the tree's path the guest does not order a node and its sibling: it is
     // handed the two children in order and checks that the node it holds is the
     // one its bit names.
-    let root = sphincs::tree_fold_with(pp, idx, leaf, &sig.path, |pair| {
+    let root = lean_sphincs::tree_fold_with(pp, idx, leaf, &sig.path, |pair| {
         hints.push("siblings", vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])]);
     });
     debug_assert_eq!(root, pk.root, "the hinted walk reaches the public key");
@@ -1932,7 +1935,7 @@ fn push_sphincs_hints(
 /// - `children`: child proofs; at most [`MAX_RECURSIONS`].
 /// - `raw_lean_xmss`: list of `(public_key, message, signature)`, any order, each signature at
 ///   the leaf index it carries.
-/// - `raw_sphincs`: list of `(public_key, message, signature)`, any order.
+/// - `raw_lean_sphincs`: list of `(public_key, message, signature)`, any order.
 /// - `blobs`: concatenated blobs, each containing [`BLOB_SYMBOLS`] little-endian `u64` symbols;
 ///   at most [`DA_MAX_ROWS`] blobs.
 /// - `declare`: `None` keeps all claims; `Some` specifies exactly the signatures and DA roots
@@ -1940,7 +1943,7 @@ fn push_sphincs_hints(
 /// - `log_inv_rate`: PCS code rate `2^-log_inv_rate`, higher `log_inv_rate` means a smaller proof
 ///   but slower proving; in [`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`].
 ///
-/// The combined leanXMSS and SPHINCS claim count, including duplicate coverage slots, must be strictly below [`MAX_KEYS`].
+/// The combined leanXMSS and leanSPHINCS claim count, including duplicate coverage slots, must be strictly below [`MAX_KEYS`].
 ///
 /// IMPORTANT:
 /// - `aggregate` should not be called more than once at a time in parallel per process.
@@ -1950,19 +1953,19 @@ fn push_sphincs_hints(
 pub fn aggregate(
     children: &[EthereumProof],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
-    raw_sphincs: Vec<(SphincsPublicKey, sphincs::Message, SphincsSignature)>,
+    raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[u64],
     declare: Option<ClaimSelection<'_>>,
     log_inv_rate: usize,
 ) -> Result<EthereumProof, AggregationError> {
-    aggregate_with_stats(children, raw_lean_xmss, raw_sphincs, blobs, declare, log_inv_rate).map(|(sig, _)| sig)
+    aggregate_with_stats(children, raw_lean_xmss, raw_lean_sphincs, blobs, declare, log_inv_rate).map(|(sig, _)| sig)
 }
 
 /// [`aggregate`], under the same contract, also returning the prover's statistics (what the CLI's benchmarks report).
 pub fn aggregate_with_stats(
     children: &[EthereumProof],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
-    raw_sphincs: Vec<(SphincsPublicKey, sphincs::Message, SphincsSignature)>,
+    raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: &[u64],
     declare: Option<ClaimSelection<'_>>,
     log_inv_rate: usize,
@@ -2001,9 +2004,9 @@ pub fn aggregate_with_stats(
     let mut raw_lean_xmss = raw_lean_xmss;
     raw_lean_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_lean_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
-    let mut raw_sphincs = raw_sphincs;
-    raw_sphincs.sort_by_key(|(pk, message, _)| (*pk, *message));
-    raw_sphincs.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
+    let mut raw_lean_sphincs = raw_lean_sphincs;
+    raw_lean_sphincs.sort_by_key(|(pk, message, _)| (*pk, *message));
+    raw_lean_sphincs.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
 
     // The children are assumed checked. Nothing here verifies one: the replay
     // only reads out of its proof the summary `gen_verify` derives the guest's
@@ -2016,7 +2019,7 @@ pub fn aggregate_with_stats(
     let _span = tracing::info_span!("Replay children").entered();
     let mut statements = Vec::with_capacity(children.len());
     for child in children {
-        check_signer_set(&child.xmss_signers, &child.sphincs_signers).map_err(AggregationError::InvalidChild)?;
+        check_signer_set(&child.xmss_signers, &child.lean_sphincs_signers).map_err(AggregationError::InvalidChild)?;
         statements.push(child.public_input());
     }
     // One single-threaded replay per worker: nothing inside dispatches.
@@ -2035,8 +2038,11 @@ pub fn aggregate_with_stats(
 
     let _span = tracing::info_span!("Build witness").entered();
     let raw_xmss_claims: Vec<LeanXmssClaim> = raw_lean_xmss.iter().map(|(pk, message, _)| (*pk, *message)).collect();
-    let raw_sphincs_claims: Vec<SphincsClaim> = raw_sphincs.iter().map(|(pk, message, _)| (*pk, *message)).collect();
-    let cover = plan_coverage(&raw_xmss_claims, &raw_sphincs_claims, children, declare)?;
+    let raw_lean_sphincs_claims: Vec<LeanSphincsClaim> = raw_lean_sphincs
+        .iter()
+        .map(|(pk, message, _)| (*pk, *message))
+        .collect();
+    let cover = plan_coverage(&raw_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
     let da_contributions =
         usize::from(!blobs.is_empty()) + children.iter().map(|child| child.da_roots.len()).sum::<usize>();
     if cover.n_total() + da_contributions >= MAX_KEYS {
@@ -2050,9 +2056,9 @@ pub fn aggregate_with_stats(
             count(cover.xmss.signers.len()),
             count(cover.xmss.dups.len()),
             count(raw_lean_xmss.len()),
-            count(cover.sphincs.signers.len()),
-            count(cover.sphincs.dups.len()),
-            count(raw_sphincs.len()),
+            count(cover.lean_sphincs.signers.len()),
+            count(cover.lean_sphincs.dups.len()),
+            count(raw_lean_sphincs.len()),
             count(children.len()),
             count(usize::from(!blobs.is_empty())),
         ],
@@ -2062,8 +2068,13 @@ pub fn aggregate_with_stats(
     // Both lists in the guest's order, leanXMSS first: each one's split, its declared
     // claims, then its duplicates.
     let lean_xmss_cells: Vec<[F192; 4]> = cover.xmss.signers.iter().map(lean_xmss_claim_cells).collect();
-    let sphincs_cells: Vec<[F192; 4]> = cover.sphincs.signers.iter().map(sphincs_claim_cells).collect();
-    for cells in [&lean_xmss_cells, &sphincs_cells] {
+    let lean_sphincs_cells: Vec<[F192; 4]> = cover
+        .lean_sphincs
+        .signers
+        .iter()
+        .map(lean_sphincs_claim_cells)
+        .collect();
+    for cells in [&lean_xmss_cells, &lean_sphincs_cells] {
         if !cells.is_empty() {
             hints.push("signers_split", signers_split(cells.len()));
         }
@@ -2072,7 +2083,7 @@ pub fn aggregate_with_stats(
         }
     }
     let dups = cover.xmss.dups.iter().map(lean_xmss_claim_cells);
-    for claim in dups.chain(cover.sphincs.dups.iter().map(sphincs_claim_cells)) {
+    for claim in dups.chain(cover.lean_sphincs.dups.iter().map(lean_sphincs_claim_cells)) {
         hints.push("dup_claims", claim.to_vec());
     }
     // Each slot is hinted as an offset into its scheme's region, which is how one
@@ -2087,9 +2098,9 @@ pub fn aggregate_with_stats(
             hints.push(name, entry);
         }
     }
-    for (&offset, (pk, message, sig)) in cover.sphincs.raw.iter().zip(&raw_sphincs) {
+    for (&offset, (pk, message, sig)) in cover.lean_sphincs.raw.iter().zip(&raw_lean_sphincs) {
         hints.push("sp_raw_index", vec![count(offset)]);
-        push_sphincs_hints(&mut hints, &(*pk, *message), sig)?;
+        push_lean_sphincs_hints(&mut hints, &(*pk, *message), sig)?;
     }
 
     let mut subs = Vec::with_capacity(children.len());
@@ -2097,9 +2108,9 @@ pub fn aggregate_with_stats(
     for (i, (child, (pi, summary))) in children.iter().zip(replayed).enumerate() {
         hints.push(
             "child_meta",
-            vec![count(child.xmss_signers.len()), count(child.sphincs_signers.len())],
+            vec![count(child.xmss_signers.len()), count(child.lean_sphincs_signers.len())],
         );
-        for offsets in [&cover.xmss.children[i], &cover.sphincs.children[i]] {
+        for offsets in [&cover.xmss.children[i], &cover.lean_sphincs.children[i]] {
             if !offsets.is_empty() {
                 hints.push("signers_split", signers_split(offsets.len()));
             }
@@ -2177,7 +2188,7 @@ pub fn aggregate_with_stats(
             return Err(AggregationError::TooLarge);
         }
     }
-    if cover.xmss.signers.is_empty() && cover.sphincs.signers.is_empty() && da_roots.is_empty() {
+    if cover.xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_roots.is_empty() {
         return Err(AggregationError::Empty);
     }
     let mut claimed = vec![false; da_roots.len()];
@@ -2198,7 +2209,7 @@ pub fn aggregate_with_stats(
     }
 
     let public_input = statement_digest(
-        signers_hash(&cover.xmss.signers, &cover.sphincs.signers),
+        signers_hash(&cover.xmss.signers, &cover.lean_sphincs.signers),
         da_list_digest(&da_roots),
         &defer,
     );
@@ -2212,7 +2223,7 @@ pub fn aggregate_with_stats(
     Ok((
         EthereumProof {
             xmss_signers: cover.xmss.signers,
-            sphincs_signers: cover.sphincs.signers,
+            lean_sphincs_signers: cover.lean_sphincs.signers,
             da_roots,
             defer,
             proof,
@@ -2854,35 +2865,35 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("DA_ROOT_COUNTS", (MAX_DA_ROOTS + 1).to_string());
     ps("MAX_RECURSIONS", MAX_RECURSIONS.to_string());
 
-    // The SPHINCS instance. Its addresses are derived per signature from the
+    // The leanSPHINCS instance. Its addresses are derived per signature from the
     // index the message digest picks, so the guest receives the shape, the codeword
     // table and each hash type of its own as the address lane holds it.
-    ps("SP_V", sphincs::V.to_string());
-    ps("SP_TARGET_SUM", sphincs::TARGET_SUM.to_string());
-    ps("SP_H", sphincs::H.to_string());
-    ps("SP_TREES", sphincs::FOREST_TREES.to_string());
-    ps("SP_TREE_HEIGHT", sphincs::TREE_HEIGHT.to_string());
-    ps("SP_SUBTREE_HEIGHT", sphincs::SUBTREE_HEIGHT.to_string());
-    ps("SP_FCHAINS", sphincs::FOREST_CHAINS.to_string());
-    ps("SP_FTOP", sphincs::FOREST_CHAIN_TOP.to_string());
-    ps("SP_WORD_BITS", sphincs::CODEWORD_BITS.to_string());
-    let digits: Vec<String> = (0..1 << sphincs::CODEWORD_BITS)
-        .flat_map(sphincs::codeword)
+    ps("SP_V", lean_sphincs::V.to_string());
+    ps("SP_TARGET_SUM", lean_sphincs::TARGET_SUM.to_string());
+    ps("SP_H", lean_sphincs::H.to_string());
+    ps("SP_TREES", lean_sphincs::FOREST_TREES.to_string());
+    ps("SP_TREE_HEIGHT", lean_sphincs::TREE_HEIGHT.to_string());
+    ps("SP_SUBTREE_HEIGHT", lean_sphincs::SUBTREE_HEIGHT.to_string());
+    ps("SP_FCHAINS", lean_sphincs::FOREST_CHAINS.to_string());
+    ps("SP_FTOP", lean_sphincs::FOREST_CHAIN_TOP.to_string());
+    ps("SP_WORD_BITS", lean_sphincs::CODEWORD_BITS.to_string());
+    let digits: Vec<String> = (0..1 << lean_sphincs::CODEWORD_BITS)
+        .flat_map(lean_sphincs::codeword)
         .map(|digit| digit.to_string())
         .collect();
     ps("SP_CODEWORDS", format!("[{}]", digits.join(", ")));
     for (name, tag) in [
-        ("SP_TW_ENC", sphincs::TWEAK_ENC),
-        ("SP_TW_FCHAIN", sphincs::TWEAK_FOREST_CHAIN),
-        ("SP_TW_FKEY_LEAF", sphincs::TWEAK_FOREST_KEY_LEAF),
-        ("SP_TW_FSUBNODE", sphincs::TWEAK_FOREST_SUBNODE),
-        ("SP_TW_FTREE_LEAF", sphincs::TWEAK_FOREST_TREE_LEAF),
-        ("SP_TW_FNODE", sphincs::TWEAK_FOREST_NODE),
-        ("SP_TW_FKEY", sphincs::TWEAK_FOREST_KEY),
+        ("SP_TW_ENC", lean_sphincs::TWEAK_ENC),
+        ("SP_TW_FCHAIN", lean_sphincs::TWEAK_FOREST_CHAIN),
+        ("SP_TW_FKEY_LEAF", lean_sphincs::TWEAK_FOREST_KEY_LEAF),
+        ("SP_TW_FSUBNODE", lean_sphincs::TWEAK_FOREST_SUBNODE),
+        ("SP_TW_FTREE_LEAF", lean_sphincs::TWEAK_FOREST_TREE_LEAF),
+        ("SP_TW_FNODE", lean_sphincs::TWEAK_FOREST_NODE),
+        ("SP_TW_FKEY", lean_sphincs::TWEAK_FOREST_KEY),
     ] {
         ps(
             name,
-            dsl_u128(pack_16_bytes(&sphincs::address(&sphincs::tweak(tag, 0, 0)))).to_string(),
+            dsl_u128(pack_16_bytes(&lean_sphincs::address(&lean_sphincs::tweak(tag, 0, 0)))).to_string(),
         );
     }
     rep
@@ -2956,7 +2967,7 @@ mod tests {
     use rand::rngs::StdRng;
 
     use crate::signers_cache::{
-        SPHINCS_KEPT_HEIGHT, get_signers, get_signers_for, get_sphincs_signers, message, message_for,
+        LEAN_LEAN_SPHINCS_KEPT_HEIGHT, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,
     };
 
     /// A second cached message, sorting after [`message`]; signer `i` holds the same
@@ -2991,12 +3002,12 @@ mod tests {
     fn signature_claims_keep_the_wire_layout() {
         let claims = SignatureClaims {
             xmss: signer_set(2).into_iter().map(|pk| (pk, message())).collect(),
-            sphincs: vec![(
-                SphincsPublicKey::from_bytes(&[0xa5; sphincs::PUB_KEY_SIZE]),
-                [0x3c; sphincs::MESSAGE_LEN],
+            lean_sphincs: vec![(
+                LeanSphincsPublicKey::from_bytes(&[0xa5; lean_sphincs::PUB_KEY_SIZE]),
+                [0x3c; lean_sphincs::MESSAGE_LEN],
             )],
         };
-        let bytes = wire().serialize(&(&claims.xmss, &claims.sphincs)).unwrap();
+        let bytes = wire().serialize(&(&claims.xmss, &claims.lean_sphincs)).unwrap();
         assert_eq!(wire().serialize(&claims).unwrap(), bytes);
         assert_eq!(wire().deserialize::<SignatureClaims>(&bytes).unwrap(), claims);
     }
@@ -3023,14 +3034,14 @@ mod tests {
 
     /// `MAX_KEYS` is exclusive at both host checks: one claim short of it passes,
     /// the cap itself is the documented error. The cap counts both schemes, so
-    /// one leanXMSS claim short of it plus one SPHINCS claim is already over. No proof
+    /// one leanXMSS claim short of it plus one leanSPHINCS claim is already over. No proof
     /// involved.
     #[test]
     fn max_keys_bound_is_exclusive() {
         let claims: Vec<LeanXmssClaim> = signer_set(MAX_KEYS).into_iter().map(|pk| (pk, message())).collect();
-        let sphincs = [(
-            SphincsPublicKey::from_bytes(&[0; sphincs::PUB_KEY_SIZE]),
-            [0; sphincs::MESSAGE_LEN],
+        let lean_sphincs = [(
+            LeanSphincsPublicKey::from_bytes(&[0; lean_sphincs::PUB_KEY_SIZE]),
+            [0; lean_sphincs::MESSAGE_LEN],
         )];
         let short = &claims[..MAX_KEYS - 1];
         check_signer_set(short, &[]).expect("one short of the cap");
@@ -3039,7 +3050,7 @@ mod tests {
             Err(AggregateVerifyError::MalformedSignerSet)
         );
         assert_eq!(
-            check_signer_set(short, &sphincs),
+            check_signer_set(short, &lean_sphincs),
             Err(AggregateVerifyError::MalformedSignerSet)
         );
         plan_coverage(short, &[], &[], None).expect("one short of the cap");
@@ -3048,7 +3059,7 @@ mod tests {
             Some(AggregationError::TooLarge)
         );
         assert_eq!(
-            plan_coverage(short, &sphincs, &[], None).err(),
+            plan_coverage(short, &lean_sphincs, &[], None).err(),
             Some(AggregationError::TooLarge)
         );
     }
@@ -3081,19 +3092,19 @@ mod tests {
         }
     }
 
-    type RawSphincs = (SphincsPublicKey, sphincs::Message, SphincsSignature);
+    type RawSphincs = (LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature);
 
-    fn prove_sphincs_leaf(signers: &[RawSphincs]) -> EthereumProof {
+    fn prove_lean_sphincs_leaf(signers: &[RawSphincs]) -> EthereumProof {
         aggregate(&[], vec![], signers.to_vec(), &[], None, LOG_INV_RATE).expect("leaf aggregates")
     }
 
     #[test]
-    fn aggregate_one_sphincs_signer() {
+    fn aggregate_one_lean_sphincs_signer() {
         leanvm_core::init_prover();
-        let aggregate = prove_sphincs_leaf(&get_sphincs_signers(1));
+        let aggregate = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(1));
         aggregate.verify().expect("verifies");
         assert!(aggregate.xmss_signers.is_empty());
-        assert_eq!(aggregate.sphincs_signers.len(), 1);
+        assert_eq!(aggregate.lean_sphincs_signers.len(), 1);
     }
 
     #[test]
@@ -3111,14 +3122,17 @@ mod tests {
         let aggregate = aggregate(
             &[],
             signing(&get_signers(3), 0),
-            get_sphincs_signers(3),
+            get_lean_sphincs_signers(3),
             &[],
             None,
             LOG_INV_RATE,
         )
         .expect("leaf aggregates");
         aggregate.verify().expect("verifies");
-        assert_eq!((aggregate.xmss_signers.len(), aggregate.sphincs_signers.len()), (3, 3));
+        assert_eq!(
+            (aggregate.xmss_signers.len(), aggregate.lean_sphincs_signers.len()),
+            (3, 3)
+        );
     }
 
     /// A node over children of both schemes, overlapping in one signer of each:
@@ -3128,17 +3142,17 @@ mod tests {
     fn aggregate_mixed_two_to_one() {
         leanvm_core::init_prover();
         let xmss = get_signers(6);
-        let sphincs = get_sphincs_signers(4);
+        let lean_sphincs = get_lean_sphincs_signers(4);
         let leaf = |x: &[(LeanXmssPublicKey, LeanXmssSignature)], s: &[RawSphincs]| {
             aggregate(&[], signing(x, 0), s.to_vec(), &[], None, LOG_INV_RATE).expect("leaf aggregates")
         };
-        let left = leaf(&xmss[..4], &sphincs[..3]);
-        let right = leaf(&xmss[3..], &sphincs[2..]);
+        let left = leaf(&xmss[..4], &lean_sphincs[..3]);
+        let right = leaf(&xmss[3..], &lean_sphincs[2..]);
         let node = aggregate(&[left, right], vec![], vec![], &[], None, LOG_INV_RATE).expect("node aggregates");
         node.verify().expect("node verifies");
-        assert_eq!((node.xmss_signers.len(), node.sphincs_signers.len()), (6, 4));
+        assert_eq!((node.xmss_signers.len(), node.lean_sphincs_signers.len()), (6, 4));
         assert!(node.xmss_signers.windows(2).all(|w| w[0] < w[1]));
-        assert!(node.sphincs_signers.windows(2).all(|w| w[0] < w[1]));
+        assert!(node.lean_sphincs_signers.windows(2).all(|w| w[0] < w[1]));
     }
 
     /// A node whose children are each of one scheme only: every claim list it
@@ -3149,9 +3163,9 @@ mod tests {
     fn aggregate_one_scheme_per_child() {
         leanvm_core::init_prover();
         let lean_xmss_child = prove_leaf(&get_signers(3));
-        let sphincs_child = prove_sphincs_leaf(&get_sphincs_signers(2));
+        let lean_sphincs_child = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(2));
         let node = aggregate(
-            &[lean_xmss_child, sphincs_child],
+            &[lean_xmss_child, lean_sphincs_child],
             vec![],
             vec![],
             &[],
@@ -3160,7 +3174,7 @@ mod tests {
         )
         .expect("node aggregates");
         node.verify().expect("node verifies");
-        assert_eq!((node.xmss_signers.len(), node.sphincs_signers.len()), (3, 2));
+        assert_eq!((node.xmss_signers.len(), node.lean_sphincs_signers.len()), (3, 2));
     }
 
     /// The repeat the statement allows: one pubkey signing two messages is two
@@ -3170,19 +3184,19 @@ mod tests {
     fn aggregate_one_key_two_messages() {
         leanvm_core::init_prover();
         let mut rng = StdRng::seed_from_u64(77);
-        let (secret_key, public_key) = sphincs::key_gen(&mut rng, SPHINCS_KEPT_HEIGHT);
+        let (secret_key, public_key) = lean_sphincs::key_gen(&mut rng, LEAN_LEAN_SPHINCS_KEPT_HEIGHT);
         let raw: Vec<RawSphincs> = [3u8, 9]
             .into_iter()
             .map(|tag| {
-                let signed: sphincs::Message = std::array::from_fn(|i| tag.wrapping_mul(i as u8 + 1));
-                let signature = sphincs::sign(&secret_key, &signed).expect("signs");
+                let signed: lean_sphincs::Message = std::array::from_fn(|i| tag.wrapping_mul(i as u8 + 1));
+                let signature = lean_sphincs::sign(&secret_key, &signed).expect("signs");
                 (public_key, signed, signature)
             })
             .collect();
-        let aggregate = prove_sphincs_leaf(&raw);
+        let aggregate = prove_lean_sphincs_leaf(&raw);
         aggregate.verify().expect("verifies");
-        assert_eq!(aggregate.sphincs_signers.len(), 2);
-        let (first, second) = (aggregate.sphincs_signers[0], aggregate.sphincs_signers[1]);
+        assert_eq!(aggregate.lean_sphincs_signers.len(), 2);
+        let (first, second) = (aggregate.lean_sphincs_signers[0], aggregate.lean_sphincs_signers[1]);
         assert_eq!(first.0, second.0, "the same pubkey, twice");
         assert!(first.1 < second.1, "ordered by the message");
     }
@@ -3402,7 +3416,7 @@ def main():
         }
         let signatures = SignatureClaims {
             xmss: children[0].xmss_signers.clone(),
-            sphincs: children[0].sphincs_signers.clone(),
+            lean_sphincs: children[0].lean_sphincs_signers.clone(),
         };
         let first = children[0].da_roots[0];
         let second = children[1].da_roots[0];
@@ -3824,7 +3838,10 @@ def main():
                 LOG_INV_RATE,
             )
         };
-        let only = |xmss: Vec<LeanXmssClaim>| SignatureClaims { xmss, sphincs: vec![] };
+        let only = |xmss: Vec<LeanXmssClaim>| SignatureClaims {
+            xmss,
+            lean_sphincs: vec![],
+        };
         let on_b: Vec<LeanXmssClaim> = wide
             .xmss_signers
             .iter()
@@ -3876,7 +3893,7 @@ def main():
             Some(ClaimSelection {
                 signatures: &SignatureClaims {
                     xmss: claim_b.clone(),
-                    sphincs: vec![],
+                    lean_sphincs: vec![],
                 },
                 da_commitments: &[],
             }),
@@ -3946,9 +3963,9 @@ def main():
         assert!(node.xmss_signers.windows(2).all(|w| w[0] < w[1]));
     }
 
-    /// Three levels, both schemes. The SPHINCS claims are rebuilt twice over, once
+    /// Three levels, both schemes. The leanSPHINCS claims are rebuilt twice over, once
     /// into each node and again into the root, and the two nodes share one claim,
-    /// so the root needs a SPHINCS duplicate slot for a claim it never saw
+    /// so the root needs a leanSPHINCS duplicate slot for a claim it never saw
     /// directly. The root also adds a raw signature of each scheme alongside its
     /// children.
     #[test]
@@ -3956,12 +3973,12 @@ def main():
     fn aggregate_three_levels() {
         leanvm_core::init_prover();
         let signers = get_signers(4 * SMALL_LEAF_SIZE);
-        let claims = get_sphincs_signers(5);
-        let leaf = |index: usize, sphincs: &[RawSphincs]| {
+        let claims = get_lean_sphincs_signers(5);
+        let leaf = |index: usize, lean_sphincs: &[RawSphincs]| {
             aggregate(
                 &[],
                 signing(&signers[index * SMALL_LEAF_SIZE..(index + 1) * SMALL_LEAF_SIZE], 0),
-                sphincs.to_vec(),
+                lean_sphincs.to_vec(),
                 &[],
                 None,
                 LOG_INV_RATE,
@@ -3987,9 +4004,13 @@ def main():
         .expect("root aggregates");
         root.verify().expect("root verifies");
         assert_eq!(root.xmss_signers.len(), 4 * SMALL_LEAF_SIZE + 2);
-        assert_eq!(root.sphincs_signers.len(), 4, "claims 0, 1, 2 and 4, the repeat merged");
+        assert_eq!(
+            root.lean_sphincs_signers.len(),
+            4,
+            "claims 0, 1, 2 and 4, the repeat merged"
+        );
         assert!(root.xmss_signers.windows(2).all(|w| w[0] < w[1]));
-        assert!(root.sphincs_signers.windows(2).all(|w| w[0] < w[1]));
+        assert!(root.lean_sphincs_signers.windows(2).all(|w| w[0] < w[1]));
     }
 
     #[test]
@@ -4000,7 +4021,15 @@ def main():
         let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
         let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
         // Mixed, so both published lists are non-empty.
-        let node = aggregate(&[left, right], vec![], get_sphincs_signers(3), &[], None, LOG_INV_RATE).expect("node");
+        let node = aggregate(
+            &[left, right],
+            vec![],
+            get_lean_sphincs_signers(3),
+            &[],
+            None,
+            LOG_INV_RATE,
+        )
+        .expect("node");
         node.verify().expect("the honest node verifies");
 
         assert_eq!(
@@ -4014,7 +4043,7 @@ def main():
             &node.to_bytes_without_pubkeys(),
             SignatureClaims {
                 xmss: node.xmss_signers.clone(),
-                sphincs: node.sphincs_signers.clone(),
+                lean_sphincs: node.lean_sphincs_signers.clone(),
             },
         )
         .expect("round trip");
@@ -4108,14 +4137,14 @@ def main():
         );
     }
 
-    /// The same for a SPHINCS claim, whose witness walk is equally fallible: a
+    /// The same for a leanSPHINCS claim, whose witness walk is equally fallible: a
     /// counter that does not encode has no witness, and that is an error rather
     /// than a panic inside the prover.
     #[test]
-    fn malformed_raw_sphincs_signature_is_an_error() {
-        let (public_key, signed, mut signature) = get_sphincs_signers(1).pop().expect("one signer");
+    fn malformed_raw_lean_sphincs_signature_is_an_error() {
+        let (public_key, signed, mut signature) = get_lean_sphincs_signers(1).pop().expect("one signer");
         signature.counter ^= 1;
-        assert!(sphincs::verify(&public_key, &signed, &signature).is_err());
+        assert!(lean_sphincs::verify(&public_key, &signed, &signature).is_err());
         let raw = vec![(public_key, signed, signature)];
         assert_eq!(
             aggregate(&[], vec![], raw, &[], None, LOG_INV_RATE).err(),

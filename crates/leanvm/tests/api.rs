@@ -20,13 +20,13 @@ fn public_api_end_to_end() {
         }
     }
 
-    // 2. Three SPHINCS signatures, each on its own message, by keys pruned to a subtree of height 8
-    let mut sphincs_input = Vec::new();
+    // 2. Three leanSPHINCS signatures, each on its own message, by keys pruned to a subtree of height 8
+    let mut lean_sphincs_input = Vec::new();
     for signer in 0..3u8 {
-        let (secret_key, pub_key) = sphincs::key_gen(rng, 8);
-        let message = [signer; sphincs::MESSAGE_LEN];
-        let signature = sphincs::sign(&secret_key, &message).unwrap();
-        sphincs_input.push((pub_key, message, signature));
+        let (secret_key, pub_key) = lean_sphincs::key_gen(rng, 8);
+        let message = [signer; lean_sphincs::MESSAGE_LEN];
+        let signature = lean_sphincs::sign(&secret_key, &message).unwrap();
+        lean_sphincs_input.push((pub_key, message, signature));
     }
 
     // 3. Two leaves, then a root over both. Both leaves hold claims on the second message; the root's claims are the union.
@@ -35,7 +35,7 @@ fn public_api_end_to_end() {
     let left = aggregate(
         &[],
         lean_xmss_input[..4].to_vec(),
-        sphincs_input[..1].to_vec(),
+        lean_sphincs_input[..1].to_vec(),
         &blobs,
         None,
         2,
@@ -49,7 +49,7 @@ fn public_api_end_to_end() {
     let right = aggregate(
         &[],
         lean_xmss_input[4..7].to_vec(),
-        sphincs_input[1..].to_vec(),
+        lean_sphincs_input[1..].to_vec(),
         &other_blobs,
         None,
         2,
@@ -73,11 +73,11 @@ fn public_api_end_to_end() {
     // 5. Removing some signatures from the aggregate: `declare` is what we keep. Here every claim on MSG_1 goes.
     let (dropped_claims, xmss_signers): (Vec<_>, Vec<_>) =
         received.xmss_signers().iter().cloned().partition(|(_, m)| *m == MSG_1);
-    let mut sphincs_signers = received.sphincs_signers().to_vec();
-    let dropped_signer = sphincs_signers.remove(0);
+    let mut lean_sphincs_signers = received.lean_sphincs_signers().to_vec();
+    let dropped_signer = lean_sphincs_signers.remove(0);
     let retained_signatures = SignatureClaims {
         xmss: xmss_signers,
-        sphincs: sphincs_signers,
+        lean_sphincs: lean_sphincs_signers,
     };
     let narrowed = aggregate(
         &[received],
@@ -99,7 +99,7 @@ fn public_api_end_to_end() {
             .iter()
             .all(|claim| !narrowed.xmss_signers().contains(claim))
     );
-    assert!(!narrowed.sphincs_signers().contains(&dropped_signer));
+    assert!(!narrowed.lean_sphincs_signers().contains(&dropped_signer));
 
     let dropped = aggregate(
         &[narrowed],
@@ -116,5 +116,5 @@ fn public_api_end_to_end() {
     dropped.verify().unwrap();
     assert!(dropped.da_commitments().is_empty());
     assert_eq!(dropped.xmss_signers(), retained_signatures.xmss);
-    assert_eq!(dropped.sphincs_signers(), retained_signatures.sphincs);
+    assert_eq!(dropped.lean_sphincs_signers(), retained_signatures.lean_sphincs);
 }

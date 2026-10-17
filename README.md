@@ -17,7 +17,7 @@
     <td align="right"><b>1.35K/s</b></td>
   </tr>
   <tr>
-    <td><a href="#sphincs-aggregation">leanSPHINCS aggregation</a></td>
+    <td><a href="#leansphincs-aggregation">leanSPHINCS aggregation</a></td>
     <td align="right"><b>850/s</b></td>
   </tr>
   <tr>
@@ -85,16 +85,16 @@ aggregation, 1,290 leanXMSS signatures
   verifying                   : 5.387 ms
 ```
 
-### SPHINCS aggregation
+### leanSPHINCS aggregation
 
-The SPHINCS parameters are specified in [SPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/SPHINCS.pdf), with a [(ROM) security proof in Lean 4](formal/sphincs/README.md). **This is not the definitive parameter set.**
+The leanSPHINCS parameters are specified in [leanSPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanSPHINCS.pdf), with a [(ROM) security proof in Lean 4](formal/lean_sphincs/README.md). **This is not the definitive parameter set.**
 
 ```bash
 cargo leanvm aggregate --sphincs 850 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-aggregation, 850 SPHINCS signatures
+aggregation, 850 leanSPHINCS signatures
   cycles (VM steps)           : 1,870,199 = 2^20.835
     details                   : SET 2^18.992 (27.9%)  XOR 2^18.696 (22.7%)  MUL 2^18.208 (16.2%)  BLAKE2S2^17.998 (14.0%)  DEREF 2^17.879 (12.9%)  JUMP 2^16.855 (6.3%)  MEMORY 2^21.403  BYTECODE 2^17.961  TOTAL_COMMITTED 2^26.775
   proof size                  : 325.8 KiB

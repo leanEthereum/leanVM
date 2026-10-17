@@ -1,4 +1,4 @@
-//! leanVM proves leanXMSS and SPHINCS signature claims and LeanDA blob well-formedness.
+//! leanVM proves leanXMSS and leanSPHINCS signature claims and LeanDA blob well-formedness.
 //!
 //! Release only: the zkDSL compiler [`setup_verifier`] runs overflows the debug stack.
 //!
@@ -6,7 +6,7 @@
 
 pub use rec_aggregation::{
     AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
-    LeanXmssClaim, MAX_DA_ROOTS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, VerifierError, aggregate,
+    LeanSphincsClaim, LeanXmssClaim, MAX_DA_ROOTS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, VerifierError, aggregate,
 };
 
 pub use leanvm_core::{
@@ -33,11 +33,12 @@ pub mod lean_xmss {
     };
 }
 
-pub mod sphincs {
-    pub use signatures::sphincs::{
-        Digest, ForestOpening, H, MASTER_SECRET_LEN, MESSAGE_LEN, MasterSecret, Message, PUB_KEY_SIZE, PublicParam,
-        SECRET_KEY_SIZE, SIG_SIZE, SphincsPublicKey, SphincsSecretKey, SphincsSignError, SphincsSignature,
-        SphincsVerifyError, SubtreeOpening, TreeOpening, key_gen, key_gen_from_seed, sign, verify,
+pub mod lean_sphincs {
+    pub use signatures::lean_sphincs::{
+        Digest, ForestOpening, H, LeanSphincsPublicKey, LeanSphincsSecretKey, LeanSphincsSignError,
+        LeanSphincsSignature, LeanSphincsVerifyError, MASTER_SECRET_LEN, MESSAGE_LEN, MasterSecret, Message,
+        PUB_KEY_SIZE, PublicParam, SECRET_KEY_SIZE, SIG_SIZE, SubtreeOpening, TreeOpening, key_gen, key_gen_from_seed,
+        sign, verify,
     };
 }
 

@@ -19,7 +19,7 @@ use primitives::{pretty_f64, pretty_integer};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use signatures::lean_xmss::*;
-use signatures::{lean_xmss, sphincs};
+use signatures::{lean_sphincs, lean_xmss};
 
 type CachedSignature = (LeanXmssPublicKey, LeanXmssSignature);
 
@@ -31,7 +31,7 @@ const SCHEMA_VERSION: u32 = 7;
 const KEY_START: LeafIndex = 3_000_000_000;
 const KEY_END: LeafIndex = 3_000_000_015;
 
-/// The message [`get_signers`] signs. SPHINCS signers carry their own.
+/// The message [`get_signers`] signs. leanSPHINCS signers carry their own.
 pub fn message() -> Message {
     std::array::from_fn(|i| (i * 5 + 1) as u8)
 }
@@ -162,89 +162,93 @@ pub fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
     pool[..n].to_vec()
 }
 
-/// The height of the subtree a cached SPHINCS key keeps. Verification does not
+/// The height of the subtree a cached leanSPHINCS key keeps. Verification does not
 /// depend on it, and a full key takes `2^26` one-time keys to generate.
-pub const SPHINCS_KEPT_HEIGHT: usize = 12;
+pub const LEAN_LEAN_SPHINCS_KEPT_HEIGHT: usize = 12;
 
-/// A SPHINCS signer, generated the same way, with the message it signed.
+/// A leanSPHINCS signer, generated the same way, with the message it signed.
 /// Signing is stateless, so unlike leanXMSS there is no leaf index and no key range:
 /// one key answers for every index.
-type CachedSphincsSignature = (sphincs::SphincsPublicKey, sphincs::Message, sphincs::SphincsSignature);
+type CachedSphincsSignature = (
+    lean_sphincs::LeanSphincsPublicKey,
+    lean_sphincs::Message,
+    lean_sphincs::LeanSphincsSignature,
+);
 
 /// Signer `index`'s own message, distinct from every other's and from the
 /// leanXMSS ones, so a test that mixed them up would fail rather than pass.
-pub fn sphincs_message(index: usize) -> sphincs::Message {
-    let mut msg = [0u8; sphincs::MESSAGE_LEN];
+pub fn lean_sphincs_message(index: usize) -> lean_sphincs::Message {
+    let mut msg = [0u8; lean_sphincs::MESSAGE_LEN];
     msg[..8].copy_from_slice(&(index as u64).to_le_bytes());
-    msg[8..].copy_from_slice(&[0xC5; sphincs::MESSAGE_LEN - 8]);
+    msg[8..].copy_from_slice(&[0xC5; lean_sphincs::MESSAGE_LEN - 8]);
     msg
 }
 
-/// One cached SPHINCS signer, as fixed-size bytes: the scheme's own
+/// One cached leanSPHINCS signer, as fixed-size bytes: the scheme's own
 /// serializations, so nothing here has to agree with a derived one.
-const SPHINCS_RECORD: usize = sphincs::PUB_KEY_SIZE + sphincs::MESSAGE_LEN + sphincs::SIG_SIZE;
+const LEAN_LEAN_SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphincs::MESSAGE_LEN + lean_sphincs::SIG_SIZE;
 
-fn compute_sphincs_signer(index: usize) -> CachedSphincsSignature {
+fn compute_lean_sphincs_signer(index: usize) -> CachedSphincsSignature {
     let mut rng = StdRng::seed_from_u64(0x5F1A_C500 ^ index as u64);
-    let (secret_key, public_key) = sphincs::key_gen(&mut rng, SPHINCS_KEPT_HEIGHT);
-    let message = sphincs_message(index);
-    let signature = sphincs::sign(&secret_key, &message).expect("sign");
+    let (secret_key, public_key) = lean_sphincs::key_gen(&mut rng, LEAN_LEAN_SPHINCS_KEPT_HEIGHT);
+    let message = lean_sphincs_message(index);
+    let signature = lean_sphincs::sign(&secret_key, &message).expect("sign");
     (public_key, message, signature)
 }
 
-fn sphincs_footprint() -> u64 {
+fn lean_sphincs_footprint() -> u64 {
     let mut hasher = DefaultHasher::new();
     SCHEMA_VERSION.hash(&mut hasher);
     // The record layout and the per-signer messages, so a change to either
     // invalidates the file rather than being read back as another scheme's.
-    SPHINCS_RECORD.hash(&mut hasher);
-    sphincs_message(0).hash(&mut hasher);
-    sphincs_message(1).hash(&mut hasher);
+    LEAN_LEAN_SPHINCS_RECORD.hash(&mut hasher);
+    lean_sphincs_message(0).hash(&mut hasher);
+    lean_sphincs_message(1).hash(&mut hasher);
     (
-        sphincs::MASTER_SECRET_LEN,
-        sphincs::V,
-        sphincs::W,
-        sphincs::TARGET_SUM,
-        sphincs::H,
-        sphincs::FOREST_TREES,
-        sphincs::TREE_HEIGHT,
-        sphincs::SUBTREE_HEIGHT,
-        sphincs::FOREST_CHAINS,
-        SPHINCS_KEPT_HEIGHT,
+        lean_sphincs::MASTER_SECRET_LEN,
+        lean_sphincs::V,
+        lean_sphincs::W,
+        lean_sphincs::TARGET_SUM,
+        lean_sphincs::H,
+        lean_sphincs::FOREST_TREES,
+        lean_sphincs::TREE_HEIGHT,
+        lean_sphincs::SUBTREE_HEIGHT,
+        lean_sphincs::FOREST_CHAINS,
+        LEAN_LEAN_SPHINCS_KEPT_HEIGHT,
     )
         .hash(&mut hasher);
     // The key derivation, the tweakable hash and the codeword table, so a change
     // to any of them invalidates the file.
-    sphincs::scheme_seed(&[0x11; sphincs::MASTER_SECRET_LEN]).hash(&mut hasher);
-    sphincs::th(
-        &[0xA5; sphincs::PUBLIC_PARAM_LEN],
-        &sphincs::tweak(1, 2, 3).step(4),
+    lean_sphincs::scheme_seed(&[0x11; lean_sphincs::MASTER_SECRET_LEN]).hash(&mut hasher);
+    lean_sphincs::th(
+        &[0xA5; lean_sphincs::PUBLIC_PARAM_LEN],
+        &lean_sphincs::tweak(1, 2, 3).step(4),
         &[0x3C; 16],
     )
     .hash(&mut hasher);
-    for t in 0..1 << sphincs::CODEWORD_BITS {
-        sphincs::codeword(t).hash(&mut hasher);
+    for t in 0..1 << lean_sphincs::CODEWORD_BITS {
+        lean_sphincs::codeword(t).hash(&mut hasher);
     }
     hasher.finish()
 }
 
-fn sphincs_cache_path() -> PathBuf {
-    cache_dir().join(format!("sphincs_signers_{:016x}.bin", sphincs_footprint()))
+fn lean_sphincs_cache_path() -> PathBuf {
+    cache_dir().join(format!("lean_sphincs_signers_{:016x}.bin", lean_sphincs_footprint()))
 }
 
-fn try_load_sphincs_cache() -> Option<Vec<CachedSphincsSignature>> {
-    let bytes = fs::read(sphincs_cache_path()).ok()?;
-    let mut signers = Vec::with_capacity(bytes.len() / SPHINCS_RECORD);
-    for record in bytes.as_chunks::<SPHINCS_RECORD>().0 {
-        let (key_bytes, rest) = record.split_at(sphincs::PUB_KEY_SIZE);
-        let (message_bytes, signature_bytes) = rest.split_at(sphincs::MESSAGE_LEN);
-        let public_key = sphincs::SphincsPublicKey::from_bytes(key_bytes.try_into().unwrap());
-        let message: sphincs::Message = message_bytes.try_into().unwrap();
-        let signature = sphincs::SphincsSignature::from_bytes(signature_bytes.try_into().unwrap());
-        if sphincs::verify(&public_key, &message, &signature).is_err() {
+fn try_load_lean_sphincs_cache() -> Option<Vec<CachedSphincsSignature>> {
+    let bytes = fs::read(lean_sphincs_cache_path()).ok()?;
+    let mut signers = Vec::with_capacity(bytes.len() / LEAN_LEAN_SPHINCS_RECORD);
+    for record in bytes.as_chunks::<LEAN_LEAN_SPHINCS_RECORD>().0 {
+        let (key_bytes, rest) = record.split_at(lean_sphincs::PUB_KEY_SIZE);
+        let (message_bytes, signature_bytes) = rest.split_at(lean_sphincs::MESSAGE_LEN);
+        let public_key = lean_sphincs::LeanSphincsPublicKey::from_bytes(key_bytes.try_into().unwrap());
+        let message: lean_sphincs::Message = message_bytes.try_into().unwrap();
+        let signature = lean_sphincs::LeanSphincsSignature::from_bytes(signature_bytes.try_into().unwrap());
+        if lean_sphincs::verify(&public_key, &message, &signature).is_err() {
             eprintln!(
                 "warning: signers cache {} is stale (signer {} no longer verifies); regenerating from there",
-                sphincs_cache_path().display(),
+                lean_sphincs_cache_path().display(),
                 signers.len()
             );
             break;
@@ -254,12 +258,12 @@ fn try_load_sphincs_cache() -> Option<Vec<CachedSphincsSignature>> {
     Some(signers)
 }
 
-fn save_sphincs_cache(signers: &[CachedSphincsSignature]) {
-    let path = sphincs_cache_path();
+fn save_lean_sphincs_cache(signers: &[CachedSphincsSignature]) {
+    let path = lean_sphincs_cache_path();
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
-    let mut bytes = Vec::with_capacity(signers.len() * SPHINCS_RECORD);
+    let mut bytes = Vec::with_capacity(signers.len() * LEAN_LEAN_SPHINCS_RECORD);
     for (public_key, message, signature) in signers {
         bytes.extend_from_slice(&public_key.flatten());
         bytes.extend_from_slice(message);
@@ -270,12 +274,12 @@ fn save_sphincs_cache(signers: &[CachedSphincsSignature]) {
     }
 }
 
-static SPHINCS_POOL: Mutex<Vec<CachedSphincsSignature>> = Mutex::new(Vec::new());
+static LEAN_LEAN_SPHINCS_POOL: Mutex<Vec<CachedSphincsSignature>> = Mutex::new(Vec::new());
 
-pub fn get_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
-    let mut pool = SPHINCS_POOL.lock().unwrap();
+pub fn get_lean_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
+    let mut pool = LEAN_LEAN_SPHINCS_POOL.lock().unwrap();
     if pool.len() < n {
-        if let Some(disk) = try_load_sphincs_cache()
+        if let Some(disk) = try_load_lean_sphincs_cache()
             && disk.len() > pool.len()
         {
             *pool = disk;
@@ -285,9 +289,9 @@ pub fn get_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
         let started = Instant::now();
         let missing = n.saturating_sub(pool.len());
         for index in pool.len()..n {
-            pool.push(compute_sphincs_signer(index));
+            pool.push(compute_lean_sphincs_signer(index));
             print!(
-                "\r  generating SPHINCS signers (one-time, then cached): {}/{}",
+                "\r  generating leanSPHINCS signers (one-time, then cached): {}/{}",
                 pretty_integer(index + 1 - (n - missing)),
                 pretty_integer(missing)
             );
@@ -295,11 +299,11 @@ pub fn get_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
         }
         if missing > 0 {
             println!(
-                "\r  generated {} SPHINCS in {} s (cached to disk)              ",
+                "\r  generated {} leanSPHINCS in {} s (cached to disk)              ",
                 pretty_integer(missing),
                 pretty_f64(started.elapsed().as_secs_f64())
             );
-            save_sphincs_cache(&pool);
+            save_lean_sphincs_cache(&pool);
         }
     }
     pool[..n].to_vec()

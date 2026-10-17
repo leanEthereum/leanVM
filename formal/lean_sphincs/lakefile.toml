@@ -1,4 +1,4 @@
-name = "sphincs-security"
+name = "lean-sphincs-security"
 version = "0.1.0"
 defaultTargets = ["Sphincs"]
 

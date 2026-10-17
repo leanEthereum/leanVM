@@ -15,7 +15,7 @@
 //! WOTS keys already opened at codewords whose componentwise maximum covers the
 //! target's.
 
-use crate::sphincs::*;
+use crate::lean_sphincs::*;
 
 /// Distinct codewords in the table.
 const TABLE_CODEWORDS: usize = 214;
@@ -25,7 +25,7 @@ const TABLE_CODEWORDS: usize = 214;
 /// increasing order, are stably sorted by decreasing sum of squared digits, and
 /// entry `t` is number `t mod 214`: the 32 most spread-out ones are left out and
 /// the 42 most concentrated appear twice, which is what the lifetime wants
-/// (`doc/sphincs`).
+/// (`doc/lean_sphincs`).
 const CODEWORDS: [u16; 1 << CODEWORD_BITS] = {
     // The codewords in increasing order, with their sums of squared digits.
     let (mut words, mut squares) = ([0u16; 246], [0usize; 246]);

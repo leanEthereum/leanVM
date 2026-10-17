@@ -1,5 +1,5 @@
 //! leanSPHINCS over BLAKE2s: the stateless scheme specified in
-//! `doc/sphincs/main.tex`. One Merkle tree of height `h = 26` over WOTS+C keys,
+//! `doc/lean_sphincs/main.tex`. One Merkle tree of height `h = 26` over WOTS+C keys,
 //! each signing the key of a few-time signature built from small WOTS keys, the
 //! two-level WOTS forest. A public key is 32 bytes, a signature 4276, and a
 //! verification 307 BLAKE2s compressions.

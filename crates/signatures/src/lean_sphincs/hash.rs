@@ -3,7 +3,7 @@
 
 pub use crate::tweak::*;
 
-use crate::sphincs::*;
+use crate::lean_sphincs::*;
 
 // Hash types of leanSPHINCS's own.
 pub const TWEAK_ENC: u8 = 4;

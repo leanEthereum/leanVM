@@ -48,7 +48,7 @@ enum Command {
         /// leanXMSS signatures to aggregate.
         #[arg(long, default_value = "0")]
         xmss: usize,
-        /// SPHINCS signatures to aggregate.
+        /// leanSPHINCS signatures to aggregate.
         #[arg(long, default_value = "0")]
         sphincs: usize,
         /// Blobs in one LeanDA commitment (128 KiB each).
@@ -68,7 +68,7 @@ enum Command {
         /// which is what the recursion cost should be quoted against.
         #[arg(long, default_value = "900")]
         xmss_per_leaf: usize,
-        /// SPHINCS signatures in each child, on top of the leanXMSS ones.
+        /// leanSPHINCS signatures in each child, on top of the leanXMSS ones.
         #[arg(long, default_value = "0")]
         sphincs_per_leaf: usize,
         /// Blobs in each child's LeanDA commitment. Use --xmss-per-leaf 0 for blobs alone.

@@ -4,7 +4,7 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 /-!
 # SPHINCS+ scheme
 
-Parameters, serialized hash inputs, key generation, signing, and verification for the instance defined in `doc/sphincs/main.tex`.
+Parameters, serialized hash inputs, key generation, signing, and verification for the instance defined in `doc/lean_sphincs/main.tex`.
 -/
 
 open OracleComp OracleSpec ENNReal

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The codeword table of the forest (`lut`, Sphincs/Scheme.lean) and the tables computed from it.
 
-Usage (from formal/sphincs):
+Usage (from formal/lean_sphincs):
     python3 scripts/forest_table.py info     # composition of the table, f(1..6), digit counts
     python3 scripts/forest_table.py check    # the Lean sources hold exactly the tables computed here
     python3 scripts/forest_table.py write    # rewrite the literals in Scheme.lean, H0FTab.lean, H0PTab.lean, H0NTab.lean

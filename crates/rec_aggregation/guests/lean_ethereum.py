@@ -2235,7 +2235,7 @@ def is_child(node, kids, k: Const, bit):
 
 @inline
 def chain_step(at, pp, md, value, out, o: Const, i: Const, s: Const, lx: Const):
-    # The step of chain i leaving position s, into out[o:o+2]. A SPHINCS step's
+    # The step of chain i leaving position s, into out[o:o+2]. A leanSPHINCS step's
     # address carries i and s; a leanXMSS one only s, at[s] computed once per key,
     # i riding after the value.
     if const(lx == 1):
@@ -2452,8 +2452,8 @@ def sp_tree_arm(node, tree_at, pp, md, tops, c: Const, s: Const):
     return const(s * SP_LEAF_MUL), const(s) * COORD_BASIS[SP_LEAF_OFF + c * SP_TREE_HEIGHT]
 
 
-def verify_sig_sphincs(signer):
-    # `signer` is one 4-cell entry of the SPHINCS coverage table: the pubkey's root and
+def verify_sig_lean_sphincs(signer):
+    # `signer` is one 4-cell entry of the leanSPHINCS coverage table: the pubkey's root and
     # public parameter, then the message THAT signer signed, the two bound together
     # by the signer-set digest, as for leanXMSS.
     pp = signer[GEN]
@@ -3047,8 +3047,8 @@ def cover_da_root(roots, cover, n_slots_g, mark):
 
 
 def main():
-    # One node of an aggregation tree: n_raw_lean_xmss leanXMSS signatures, n_raw_sphincs
-    # SPHINCS signatures and n_children sub-proofs OF THIS SAME BYTECODE. A claim of
+    # One node of an aggregation tree: n_raw_lean_xmss leanXMSS signatures, n_raw_lean_sphincs
+    # leanSPHINCS signatures and n_children sub-proofs OF THIS SAME BYTECODE. A claim of
     # either scheme is a pubkey and the message it signed, and each signature is
     # verified against the claim in its own coverage slot; a leanXMSS signature carries
     # its own leaf index. DA roots occupy a separate region of the same table.
@@ -3058,7 +3058,7 @@ def main():
     # per scheme, each its declared claims then its own duplicates, then DA shaped
     # the same way:
     #
-    #   [leanXMSS: declared | dup][SPHINCS: declared | dup][DA: declared | dup]
+    #   [leanXMSS: declared | dup][leanSPHINCS: declared | dup][DA: declared | dup]
     #
     # so one range check per write keeps each writer inside its own region: that is
     # what makes the statement's split mean which scheme verified which claim. A
@@ -3069,7 +3069,7 @@ def main():
     n_lx_g = meta[0]
     n_xdup_g = meta[1]
     n_raw_x_g = meta[2]
-    n_sphincs_g = meta[3]
+    n_lean_sphincs_g = meta[3]
     n_sdup_g = meta[4]
     n_raw_s_g = meta[5]
     n_children_g = meta[6]
@@ -3077,7 +3077,7 @@ def main():
     assert log(n_lx_g) < MAX_KEYS
     assert log(n_xdup_g) < MAX_KEYS
     assert log(n_raw_x_g) < MAX_KEYS
-    assert log(n_sphincs_g) < MAX_KEYS
+    assert log(n_lean_sphincs_g) < MAX_KEYS
     assert log(n_sdup_g) < MAX_KEYS
     assert log(n_raw_s_g) < MAX_KEYS
     assert log(n_children_g) < MAX_RECURSIONS + 1
@@ -3091,10 +3091,10 @@ def main():
     da_slots_g = n_da_g * n_da_dup_g
     assert log(da_slots_g) < MAX_RECURSIONS * MAX_DA_ROOTS + 2
     lx_slots_g = n_lx_g * n_xdup_g
-    sphincs_slots_g = n_sphincs_g * n_sdup_g
+    lean_sphincs_slots_g = n_lean_sphincs_g * n_sdup_g
     # The sum of every region bounds the coverage indices, so it is what has to sit
     # below the minimum memory size.
-    da_base_g = lx_slots_g * sphincs_slots_g
+    da_base_g = lx_slots_g * lean_sphincs_slots_g
     n_total_g = da_base_g * da_slots_g
     assert log(n_total_g) < MAX_KEYS
 
@@ -3118,23 +3118,23 @@ def main():
     da_0, da_1 = da_list_digest(da_roots, n_da_g)
     # One table per scheme: its declared list (strictly sorted, checked by the outer
     # verifier, which holds it) followed by its own duplicate slots. The coverage
-    # indices below run over one space: leanXMSS, then SPHINCS, then DA.
+    # indices below run over one space: leanXMSS, then leanSPHINCS, then DA.
     #
     # Each list's digest is a plain BLAKE2s of its claims, 64 bytes a claim, so it
     # binds its own length; the signer set is one compression over the two digests.
     lx_table = HeapBuf(lx_slots_g ** 4)
-    sphincs_table = HeapBuf(sphincs_slots_g ** 4)
+    lean_sphincs_table = HeapBuf(lean_sphincs_slots_g ** 4)
     xd_0, xd_1 = claim_list_digest(lx_table, n_lx_g, g_squares)
-    sd_0, sd_1 = claim_list_digest(sphincs_table, n_sphincs_g, g_squares)
+    sd_0, sd_1 = claim_list_digest(lean_sphincs_table, n_lean_sphincs_g, g_squares)
     # The duplicate slots ride the same tables but outside the hashed prefixes.
     for xd in mul_range(1, n_xdup_g):
         dup = lx_table * ((n_lx_g * xd) ** 4)
         hint_witness(dup[0:4], "dup_claims")
     for xd in mul_range(1, n_sdup_g):
-        dup = sphincs_table * ((n_sphincs_g * xd) ** 4)
+        dup = lean_sphincs_table * ((n_lean_sphincs_g * xd) ** 4)
         hint_witness(dup[0:4], "dup_claims")
     # At least one published signature claim or DA root also ensures a nonempty coverage table.
-    assert n_lx_g * n_sphincs_g * n_da_g != 1
+    assert n_lx_g * n_lean_sphincs_g * n_da_g != 1
     signers = StackBuf(2)
     blake2s([xd_0, xd_1], [sd_0, sd_1], signers)
     signers_hash = HeapBuf(WORDS_PER_BLOCK)
@@ -3155,15 +3155,15 @@ def main():
         # discharged by `assert log(n_total_g) < MAX_KEYS` above. Without it this
         # degenerates to what DEREF alone gives and an index could reach past
         # `cover`, which is the whole bijection. The bound is the leanXMSS region, so
-        # a raw leanXMSS signature covers no SPHINCS claim.
+        # a raw leanXMSS signature covers no leanSPHINCS claim.
         assert log(idx) < log(lx_slots_g)
         cover[idx] = xi
         verify_lean_xmss(lx_table * (idx ** 4))
     for xj in mul_range(1, n_raw_s_g):
         off_hint = hint_witness("sp_raw_index")
-        assert log(off_hint) < log(sphincs_slots_g)
+        assert log(off_hint) < log(lean_sphincs_slots_g)
         cover[lx_slots_g * off_hint] = n_raw_x_g * xj
-        verify_sig_sphincs(sphincs_table * (off_hint ** 4))
+        verify_sig_lean_sphincs(lean_sphincs_table * (off_hint ** 4))
 
     if n_direct_da_g == GEN:
         root_0, root_1, vector_0, vector_1 = da_verify(g_squares)
@@ -3186,14 +3186,14 @@ def main():
         # list digests, which the child's statement carries, so a lie about any of it
         # changes the public input its proof has to satisfy.
         child_meta = StackBuf(2)
-        hint_witness(child_meta, "child_meta")  # n_lean_xmss, n_sphincs
+        hint_witness(child_meta, "child_meta")  # n_lean_xmss, n_lean_sphincs
         nsub_x_g = child_meta[0]
         nsub_s_g = child_meta[1]
         assert log(nsub_x_g) < MAX_KEYS
         assert log(nsub_s_g) < MAX_KEYS
         nsub_g = nsub_x_g * nsub_s_g
         cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, 1, lx_slots_g, nsub_x_g, g_squares)
-        cs_0, cs_1 = child_claim_list_digest(sphincs_table, cover, base * nsub_x_g, lx_slots_g, sphincs_slots_g, nsub_s_g, g_squares)
+        cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, cover, base * nsub_x_g, lx_slots_g, lean_sphincs_slots_g, nsub_s_g, g_squares)
         sub_signers = StackBuf(2)
         blake2s([cx_0, cx_1], [cs_0, cs_1], sub_signers)
         sub_hash = HeapBuf(WORDS_PER_BLOCK)

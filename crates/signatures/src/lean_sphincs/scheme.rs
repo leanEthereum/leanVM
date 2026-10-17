@@ -12,17 +12,17 @@
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 
-use crate::sphincs::*;
+use crate::lean_sphincs::*;
 
 /// Ordered lexicographically on [`Self::flatten`], which is what an aggregate's
 /// signer list is sorted and deduplicated by.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct SphincsPublicKey {
+pub struct LeanSphincsPublicKey {
     pub root: Digest,
     pub public_param: PublicParam,
 }
 
-impl SphincsPublicKey {
+impl LeanSphincsPublicKey {
     pub fn flatten(&self) -> [u8; PUB_KEY_SIZE] {
         let mut out = [0; PUB_KEY_SIZE];
         out[..N].copy_from_slice(&self.root);
@@ -52,7 +52,7 @@ const fn lowest_stored(b: usize) -> usize {
 /// subtree and the surrogates above it. Those are a cache and not state, a
 /// deterministic function of the seed and of `b`.
 #[derive(Clone)]
-pub struct SphincsSecretKey {
+pub struct LeanSphincsSecretKey {
     pub public_param: PublicParam,
     pub root: Digest,
     /// The key's seed, which the key serializes.
@@ -69,18 +69,18 @@ pub struct SphincsSecretKey {
     surrogates: Vec<Digest>,
 }
 
-impl std::fmt::Debug for SphincsSecretKey {
+impl std::fmt::Debug for LeanSphincsSecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SphincsSecretKey")
+        f.debug_struct("LeanSphincsSecretKey")
             .field("public_key", &self.public_key())
             .field("b", &self.b)
             .finish_non_exhaustive()
     }
 }
 
-impl SphincsSecretKey {
-    pub fn public_key(&self) -> SphincsPublicKey {
-        SphincsPublicKey {
+impl LeanSphincsSecretKey {
+    pub fn public_key(&self) -> LeanSphincsPublicKey {
+        LeanSphincsPublicKey {
             root: self.root,
             public_param: self.public_param,
         }
@@ -135,7 +135,7 @@ impl SphincsSecretKey {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SphincsSignature {
+pub struct LeanSphincsSignature {
     pub randomizer: Randomizer,
     pub forest: ForestOpening,
     pub counter: u32,
@@ -143,7 +143,7 @@ pub struct SphincsSignature {
     pub path: [Digest; H],
 }
 
-impl SphincsSignature {
+impl LeanSphincsSignature {
     /// The specification's serialization, exactly [`SIG_SIZE`] bytes.
     pub fn to_bytes(&self) -> [u8; SIG_SIZE] {
         let mut out = [0; SIG_SIZE];
@@ -196,7 +196,7 @@ impl SphincsSignature {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SphincsSignError {
+pub enum LeanSphincsSignError {
     /// `A_max` randomizers in a row missed the kept subtree.
     NoAdmissibleDigest,
     /// `C_max` counters in a row failed to encode.
@@ -204,13 +204,13 @@ pub enum SphincsSignError {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SphincsVerifyError {
+pub enum LeanSphincsVerifyError {
     /// The counter does not encode the few-time key.
     InadmissibleEncoding,
     RootMismatch,
 }
 
-impl std::fmt::Display for SphincsSignError {
+impl std::fmt::Display for LeanSphincsSignError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::NoAdmissibleDigest => write!(f, "no message digest in the kept subtree within A_max attempts"),
@@ -219,9 +219,9 @@ impl std::fmt::Display for SphincsSignError {
     }
 }
 
-impl std::error::Error for SphincsSignError {}
+impl std::error::Error for LeanSphincsSignError {}
 
-impl std::fmt::Display for SphincsVerifyError {
+impl std::fmt::Display for LeanSphincsVerifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InadmissibleEncoding => write!(f, "the counter does not encode the few-time key"),
@@ -230,7 +230,7 @@ impl std::fmt::Display for SphincsVerifyError {
     }
 }
 
-impl std::error::Error for SphincsVerifyError {}
+impl std::error::Error for LeanSphincsVerifyError {}
 
 /// The index and the trees' marks a digest spells. Its fields are grouped by
 /// kind, so that none lies across two 64-bit words: first one byte per subtree,
@@ -296,7 +296,7 @@ fn subtree(pp: &PublicParam, seed: &MasterSecret, first: u64, height: usize) -> 
 
 /// `Gen`, deterministic: the seed derives the public parameter, whose low bits
 /// place the kept subtree of height `b <= h`, and the surrogates above it.
-pub fn key_gen_from_seed(seed: MasterSecret, b: usize) -> (SphincsSecretKey, SphincsPublicKey) {
+pub fn key_gen_from_seed(seed: MasterSecret, b: usize) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
     assert!(b <= H, "a key keeps at most the whole tree");
     let master = scheme_seed(&seed);
     let public_param = public_param(&master);
@@ -322,7 +322,7 @@ pub fn key_gen_from_seed(seed: MasterSecret, b: usize) -> (SphincsSecretKey, Sph
             };
             node(&public_param, b + t + 1, j >> 1, &children)
         });
-    let sk = SphincsSecretKey {
+    let sk = LeanSphincsSecretKey {
         public_param,
         root,
         seed,
@@ -338,14 +338,14 @@ pub fn key_gen_from_seed(seed: MasterSecret, b: usize) -> (SphincsSecretKey, Sph
 
 /// `Gen`, on a fresh key keeping a subtree of height `b`: the seed comes from
 /// `rng`, so nothing can regenerate the key.
-pub fn key_gen(rng: &mut impl CryptoRng, b: usize) -> (SphincsSecretKey, SphincsPublicKey) {
+pub fn key_gen(rng: &mut impl CryptoRng, b: usize) -> (LeanSphincsSecretKey, LeanSphincsPublicKey) {
     key_gen_from_seed(rng.random(), b)
 }
 
 /// `Sign`. Deterministic and stateless: the randomizer is the first of
 /// `R_0 + i`, `R_0` a hash of the seed and the message, whose index lands in the
-/// kept subtree. How many messages a key may sign depends on `b` (`doc/sphincs`).
-pub fn sign(sk: &SphincsSecretKey, message: &Message) -> Result<SphincsSignature, SphincsSignError> {
+/// kept subtree. How many messages a key may sign depends on `b` (`doc/lean_sphincs`).
+pub fn sign(sk: &LeanSphincsSecretKey, message: &Message) -> Result<LeanSphincsSignature, LeanSphincsSignError> {
     let pp = &sk.public_param;
     let mut payload = [0u8; MASTER_SECRET_LEN + MESSAGE_LEN];
     payload[..MASTER_SECRET_LEN].copy_from_slice(&sk.master);
@@ -358,12 +358,12 @@ pub fn sign(sk: &SphincsSecretKey, message: &Message) -> Result<SphincsSignature
             let (idx, marks) = marks_of(&prefix.hash(&randomizer));
             sk.keeps(idx).then_some((randomizer, idx, marks))
         })
-        .ok_or(SphincsSignError::NoAdmissibleDigest)?;
+        .ok_or(LeanSphincsSignError::NoAdmissibleDigest)?;
 
     let (forest_key, forest) = forest_open(pp, &sk.master, idx as u32, &marks);
     let (counter, wots) =
-        wots_sign(pp, &sk.master, idx as u32, &forest_key).ok_or(SphincsSignError::NoAdmissibleEncoding)?;
-    Ok(SphincsSignature {
+        wots_sign(pp, &sk.master, idx as u32, &forest_key).ok_or(LeanSphincsSignError::NoAdmissibleEncoding)?;
+    Ok(LeanSphincsSignature {
         randomizer,
         forest,
         counter,
@@ -398,18 +398,18 @@ pub fn tree_fold_with(
 
 /// `Ver`.
 pub fn verify(
-    pk: &SphincsPublicKey,
+    pk: &LeanSphincsPublicKey,
     message: &Message,
-    signature: &SphincsSignature,
-) -> Result<(), SphincsVerifyError> {
+    signature: &LeanSphincsSignature,
+) -> Result<(), LeanSphincsVerifyError> {
     let pp = &pk.public_param;
     let (idx, marks) = message_digest(pp, &signature.randomizer, message);
     let forest_key = forest_recover(pp, idx as u32, &marks, &signature.forest);
     let leaf = wots_leaf(pp, idx as u32, &forest_key, signature.counter, &signature.wots)
-        .ok_or(SphincsVerifyError::InadmissibleEncoding)?;
+        .ok_or(LeanSphincsVerifyError::InadmissibleEncoding)?;
     if tree_fold(pp, idx, leaf, &signature.path) == pk.root {
         Ok(())
     } else {
-        Err(SphincsVerifyError::RootMismatch)
+        Err(LeanSphincsVerifyError::RootMismatch)
     }
 }
