@@ -28,7 +28,7 @@
 <table align="center">
   <tr>
     <td><a href="#recursion">2-to-1 recursion</a></td>
-    <td align="right"><b>0.27s</b></td>
+    <td align="right"><b>0.29s</b></td>
   </tr>
   <tr>
     <td><a href="#hashing">hash compressions</a></td>
@@ -126,12 +126,12 @@ cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
 ```
 
 ```
-recursion 2→1, over leaves of 900 XMSS signatures
-  cycles (VM steps)           : 562,737 = 2^19.102
-    details                   : MUL 2^17.823 (41.2%)  DEREF 2^16.964 (22.7%)  XOR 2^16.728 (19.3%)  SET 2^15.77 (9.9%)  JUMP 2^14.486 (4.1%)  BLAKE2S 2^13.932 (2.8%)  MEMORY 2^19.481  BYTECODE 2^17.737  TOTAL_COMMITTED 2^24.086
-  proof size                  : 190.2 KiB
-  proving time                : 0.272 s ± 5.3%      peak memory 8.388 GiB
-  verifying                   : 3.457 ms
+recursion 2→1, over leaves of 900 leanXMSS signatures
+  cycles (VM steps)           : 598,600 = 2^19.191
+    details                   : MUL 2^17.876 (40.2%)  DEREF 2^17.089 (23.3%)  XOR 2^16.799 (19.0%)  SET 2^15.955 (10.6%)  JUMP 2^14.505 (3.9%)  BLAKE2S 2^14.127 (3.0%)  MEMORY 2^19.555  BYTECODE 2^17.965  TOTAL_COMMITTED 2^24.533
+  proof size                  : 200.5 KiB
+  proving time                : 0.293 s      peak memory 14.69 GiB
+  verifying                   : 6.2 ms
 ```
 
 ### hashing
