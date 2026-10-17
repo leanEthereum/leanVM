@@ -1,6 +1,6 @@
 name = "lean-xmss-security"
 version = "0.1.0"
-defaultTargets = ["LeanXmss"]
+defaultTargets = ["LeanXmss", "XmssSecurity", "XmssSecurity.Tests.QueryBudget"]
 
 [[require]]
 name = "VCVio"
