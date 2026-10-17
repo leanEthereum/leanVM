@@ -205,9 +205,9 @@ impl FnLower<'_> {
     /// `names = match(log(x), …, lambda k: f(args, k))` fused: the arms all
     /// call one of `callees` (specializations sharing the arg/return layout) with
     /// the same runtime `args`, so build the callee frame **once** and let the
-    /// dispatch jump straight into the selected entry, which returns to the join.
-    /// Each taken arm is then just the trampoline's `SET entry; JUMP`: no
-    /// per-arm frame setup, call, or return jump.
+    /// dispatch jump straight into the selected entry, which returns to the join:
+    /// no per-arm frame setup, call, or return jump. Calls to the same callees share
+    /// one jump table, of their entries.
     pub(super) fn lower_dispatched_call(&mut self, targets: &[Expr], x: &Expr, callees: &[String], rt_args: &[&Expr]) {
         // The arms share ONE frame, so they must share one argument layout too:
         // a `StackBuf` parameter in one callee and a scalar in another at the
@@ -277,7 +277,6 @@ impl FnLower<'_> {
         let arg_offs: Vec<Off> = rt_args.iter().map(|a| self.expr(a)).collect();
         let xo = self.expr(x);
         let one = self.one();
-        let sfp = self.self_fp();
 
         let nfp = self.fresh();
         self.pending.push(Hint::AllocFrameMax {
@@ -298,12 +297,14 @@ impl FnLower<'_> {
         self.set(join_cell, KVal::Local(0)); // patched: the join pc
         self.deref(nfp, Abi::RET_PC, join_cell, DerefMode::Cell); // retpc = join
 
-        let kset = self.emit_dispatch(xo, one, sfp);
-
-        // Trampoline: slot j enters `callees[j]` with fp = nfp; the callee's own
-        // `return` jumps to retpc (the join) in the caller frame.
-        self.patch_local(kset, self.code.len());
-        self.emit_slots(callees.len(), one, nfp, |j| KVal::Entry(callees[j].clone()));
+        // Slot j enters `callees[j]` with fp = nfp; the callee's own `return` jumps
+        // to retpc (the join) in the caller frame.
+        let tables = &mut *self.tables;
+        let first = *tables.shared.entry(callees.to_vec()).or_insert_with(|| {
+            tables.slots.extend(callees.iter().map(|c| KVal::Entry(c.clone())));
+            tables.slots.len() - callees.len()
+        });
+        self.table_jump(xo, first, one, nfp);
 
         // Join: read the return values (written by whichever callee ran).
         self.patch_local(join_set, self.code.len());

@@ -6,42 +6,39 @@ use bench::{Plan, Timing};
 use primitives::{pretty_f64, pretty_integer};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use rec_aggregation::{EthereumProof, aggregate, aggregate_with_stats, signers_cache};
-use xmss::{XmssPublicKey, XmssSignature};
+use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
+use signatures::{lean_sphincs, lean_xmss};
 
 fn blobs(n: usize, seed: u64) -> Vec<u64> {
     let mut rng = StdRng::seed_from_u64(seed);
     (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect()
 }
 
-/// Cached signers `[from, to)`, as the aggregation API takes them: each raw
-/// signature carries its leaf index and message, the benchmarks using one pair for
-/// all.
-fn signers(from: usize, to: usize) -> Vec<(XmssPublicKey, xmss::LeafIndex, xmss::Message, XmssSignature)> {
+/// Cached signers `[from, to)`, as the aggregation API takes them: one message for
+/// all, each signature at its own signer's leaf index.
+fn signers(from: usize, to: usize) -> Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)> {
     if to == 0 {
         return Vec::new();
     }
     signers_cache::get_signers(to)[from..to]
         .iter()
-        .map(|(pk, sig)| {
-            (
-                pk.clone(),
-                signers_cache::XMSS_LEAF_INDEX_A,
-                signers_cache::message(),
-                sig.clone(),
-            )
-        })
+        .map(|(pk, sig)| (*pk, signers_cache::message(), sig.clone()))
         .collect()
 }
 
-/// Each SPHINCS signer comes with the message it signed, as the XMSS ones do.
-fn sphincs_signers(
+/// Each leanSPHINCS signer comes with the message it signed, as the leanXMSS ones do.
+fn lean_sphincs_signers(
     from: usize,
     to: usize,
-) -> Vec<(sphincs::SphincsPublicKey, sphincs::Message, sphincs::SphincsSignature)> {
+) -> Vec<(
+    lean_sphincs::LeanSphincsPublicKey,
+    lean_sphincs::Message,
+    lean_sphincs::LeanSphincsSignature,
+)> {
     if to == 0 {
         return Vec::new();
     }
-    signers_cache::get_sphincs_signers(to)[from..to].to_vec()
+    signers_cache::get_lean_sphincs_signers(to)[from..to].to_vec()
 }
 
 /// Report the shape and cost of one aggregation node.
@@ -70,11 +67,11 @@ fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &EthereumProof, pro
 }
 
 /// How a benchmark names a leaf of either scheme or of both.
-fn describe(n_xmss: usize, n_sphincs: usize) -> String {
-    match (n_xmss, n_sphincs) {
-        (x, 0) => format!("{} XMSS", pretty_integer(x)),
-        (0, s) => format!("{} SPHINCS", pretty_integer(s)),
-        (x, s) => format!("{} XMSS and {} SPHINCS", pretty_integer(x), pretty_integer(s)),
+fn describe(n_lean_xmss: usize, n_lean_sphincs: usize) -> String {
+    match (n_lean_xmss, n_lean_sphincs) {
+        (x, 0) => format!("{} leanXMSS", pretty_integer(x)),
+        (0, s) => format!("{} leanSPHINCS", pretty_integer(s)),
+        (x, s) => format!("{} leanXMSS and {} leanSPHINCS", pretty_integer(x), pretty_integer(s)),
     }
 }
 
@@ -83,25 +80,32 @@ fn describe(n_xmss: usize, n_sphincs: usize) -> String {
 /// Proving runs one discarded warmup pass followed by `plan.repeat` measured
 /// passes; see [`bench`] for why the first pass is not
 /// representative and why the cooldown matters.
-pub fn run_aggregation(n_xmss: usize, n_sphincs: usize, n_blobs: usize, log_inv_rate: usize, plan: Plan) {
+pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize, log_inv_rate: usize, plan: Plan) {
     assert!(
-        n_xmss > 0 || n_sphincs > 0 || n_blobs > 0,
+        n_lean_xmss > 0 || n_lean_sphincs > 0 || n_blobs > 0,
         "a leaf needs signatures or blobs"
     );
     assert!(n_blobs <= lean_da::DA_MAX_ROWS, "too many blobs in one commitment");
-    let trace_span = tracing::info_span!("aggregation", n_xmss, n_sphincs, n_blobs, log_inv_rate).entered();
+    let trace_span = tracing::info_span!("aggregation", n_lean_xmss, n_lean_sphincs, n_blobs, log_inv_rate).entered();
     // Spawn the worker pool before any timed work, so no kernel pays the spawn cost.
     leanvm_core::init_prover();
     rec_aggregation::warm_up();
-    let raw_xmss = signers(0, n_xmss);
-    let raw_sphincs = sphincs_signers(0, n_sphincs);
+    let raw_lean_xmss = signers(0, n_lean_xmss);
+    let raw_lean_sphincs = lean_sphincs_signers(0, n_lean_sphincs);
     let blobs = blobs(n_blobs, 0);
     // Only the final measured pass of each stage is traced: the tree describes the
     // proof the reported timings are about, instead of repeating itself per pass.
     let ((sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats(&[], raw_xmss.clone(), raw_sphincs.clone(), &blobs, None, log_inv_rate)
-            .expect("leaf aggregates")
+        aggregate_with_stats(
+            &[],
+            raw_lean_xmss.clone(),
+            raw_lean_sphincs.clone(),
+            &blobs,
+            None,
+            log_inv_rate,
+        )
+        .expect("leaf aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
@@ -110,8 +114,8 @@ pub fn run_aggregation(n_xmss: usize, n_sphincs: usize, n_blobs: usize, log_inv_
     drop(trace_span);
 
     let mut inputs = Vec::new();
-    if n_xmss > 0 || n_sphincs > 0 {
-        inputs.push(format!("{} signatures", describe(n_xmss, n_sphincs)));
+    if n_lean_xmss > 0 || n_lean_sphincs > 0 {
+        inputs.push(format!("{} signatures", describe(n_lean_xmss, n_lean_sphincs)));
     }
     if n_blobs > 0 {
         inputs.push(format!("{} blobs", pretty_integer(n_blobs)));
@@ -122,10 +126,10 @@ pub fn run_aggregation(n_xmss: usize, n_sphincs: usize, n_blobs: usize, log_inv_
         &sig,
         &prove_time,
     );
-    if n_xmss > 0 || n_sphincs > 0 {
+    if n_lean_xmss > 0 || n_lean_sphincs > 0 {
         println!(
             "  per signature               : {} signatures/s",
-            pretty_f64((n_xmss + n_sphincs) as f64 / prove_time.mean())
+            pretty_f64((n_lean_xmss + n_lean_sphincs) as f64 / prove_time.mean())
         );
     }
     if n_blobs > 0 {
@@ -148,7 +152,7 @@ pub fn run_aggregation(n_xmss: usize, n_sphincs: usize, n_blobs: usize, log_inv_
 pub fn run_recursion(
     n: usize,
     per_leaf: usize,
-    sphincs_per_leaf: usize,
+    lean_sphincs_per_leaf: usize,
     blobs_per_leaf: usize,
     log_inv_rate: usize,
     enable_tracing: bool,
@@ -159,7 +163,7 @@ pub fn run_recursion(
         "invalid child count"
     );
     assert!(
-        per_leaf > 0 || sphincs_per_leaf > 0 || blobs_per_leaf > 0,
+        per_leaf > 0 || lean_sphincs_per_leaf > 0 || blobs_per_leaf > 0,
         "a leaf needs signatures or blobs"
     );
     assert!(
@@ -173,7 +177,7 @@ pub fn run_recursion(
     leanvm_core::init_prover();
     rec_aggregation::warm_up();
     let all = signers(0, n * per_leaf);
-    let all_sphincs = sphincs_signers(0, n * sphincs_per_leaf);
+    let all_lean_sphincs = lean_sphincs_signers(0, n * lean_sphincs_per_leaf);
     let started = std::time::Instant::now();
     let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
     let compile_time = started.elapsed();
@@ -183,7 +187,7 @@ pub fn run_recursion(
             aggregate(
                 &[],
                 all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
-                all_sphincs[k * sphincs_per_leaf..(k + 1) * sphincs_per_leaf].to_vec(),
+                all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
                 &blobs(blobs_per_leaf, k as u64),
                 None,
                 log_inv_rate,
@@ -214,8 +218,8 @@ pub fn run_recursion(
         pretty_f64(compile_time.as_secs_f64())
     );
     let mut inputs = Vec::new();
-    if per_leaf > 0 || sphincs_per_leaf > 0 {
-        inputs.push(format!("{} signatures", describe(per_leaf, sphincs_per_leaf)));
+    if per_leaf > 0 || lean_sphincs_per_leaf > 0 {
+        inputs.push(format!("{} signatures", describe(per_leaf, lean_sphincs_per_leaf)));
     }
     if blobs_per_leaf > 0 {
         inputs.push(format!("{blobs_per_leaf} blobs"));

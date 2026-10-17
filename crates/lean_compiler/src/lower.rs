@@ -234,6 +234,8 @@ struct FnLower<'a> {
     /// Top-level constant arrays, resolved at compile time: `NAME[i]` yields the
     /// element (a field value or an index), `len(NAME)` its length.
     const_arrays: &'a HashMap<&'a str, &'a [F192]>,
+    /// Every `match` dispatches through a slot of these.
+    tables: &'a mut JumpTables,
 }
 
 impl FnLower<'_> {
@@ -601,10 +603,11 @@ impl FnLower<'_> {
         (cells, binds)
     }
 
-    /// `targets = match(log(x), …)`: dispatch through the trampoline table
-    /// ([`Self::lower_match_dispatch`]), arm `j` evaluating the lambda body at
-    /// `i = j` into cells every arm shares. Write-once makes that sound, exactly
-    /// one arm running, and [`Self::ret_targets`] says which cells those are.
+    /// `targets = match(log(x), …)`: a dispatched call when every arm calls one
+    /// function with the same runtime args, else [`Self::lower_match_dispatch`],
+    /// arm `j` evaluating the lambda body at `i = j` into cells every arm shares.
+    /// Write-once makes that sound, exactly one arm running, and
+    /// [`Self::ret_targets`] says which cells those are.
     fn lower_match(&mut self, targets: &[Expr], x: &Expr, arms: &[Expr]) {
         for arm in arms {
             if let Expr::Call(f, _) = arm
@@ -616,8 +619,8 @@ impl FnLower<'_> {
                 self.fail("a normal function's StackBuf return cannot cross a match join; bind it with `let`");
             }
         }
-        // Calls with identical runtime args share one callee frame and a
-        // two-instruction trampoline per arm. Const args select specializations;
+        // Calls with identical runtime args share one callee frame, dispatched
+        // through a table of the callees' entries. Const args select specializations;
         // see `lower_dispatched_call` for the shared argument/return layout checks.
         // `@inline` arms instead expand into this frame, below.
         let inline_arm =
@@ -682,37 +685,20 @@ impl FnLower<'_> {
         self.bind_targets(&binds);
     }
 
-    /// The two-jump dispatch itself: `d = g^T · x²` names slot `x` of the
-    /// two-instruction trampoline table at bytecode base `T`. Returns the index
-    /// of the `SET` holding `T`, for the caller to patch once the table's
-    /// position is known.
-    fn emit_dispatch(&mut self, xo: Off, one: Off, of: Off) -> usize {
-        let kcell = self.fresh();
-        let kset = self.code.len();
-        self.set(kcell, KVal::Local(0)); // patched: table base T
-        let x2 = self.pure(PureOp::Mul, xo, xo);
-        let d = self.fresh();
-        self.emit(LOp::Mul { a: kcell, b: x2, c: d });
-        self.emit(LOp::Jump { oc: one, od: d, of });
-        kset
+    /// Jump through slot `x` of the table at `first` ([`JumpTables`]): one `DEREF`
+    /// of the slot, then a `JUMP` to what it holds, with frame `of`.
+    pub(super) fn table_jump(&mut self, xo: Off, first: usize, one: Off, of: Off) {
+        let entry = self.fresh();
+        self.emit(LOp::Slot {
+            x: xo,
+            first: first as u32,
+            dst: entry,
+        });
+        self.emit(LOp::Jump { oc: one, od: entry, of });
     }
 
-    /// The `n` trampoline slots themselves, each `SET c = k(j); JUMP c`, sharing
-    /// `c` since one slot runs. Returns the table's start; slot `j` has its
-    /// `SET` at `start + 2*j`.
-    fn emit_slots(&mut self, n: usize, one: Off, of: Off, k: impl Fn(usize) -> KVal) -> usize {
-        let start = self.code.len();
-        let c = self.fresh();
-        for j in 0..n {
-            self.set(c, k(j));
-            self.emit(LOp::Jump { oc: one, od: c, of });
-        }
-        start
-    }
-
-    /// The trampoline dispatch every `match` lowers through: jump to
-    /// `d = g^T · x²` (slot `j` of the two-instruction table at bytecode base
-    /// `T`), then to `body(j)`'s code; every non-final body exits to the
+    /// The dispatch every `match` lowers through: read slot `x` of the match's jump
+    /// table and jump there ([`Self::table_jump`]). Every non-final arm exits to the
     /// join. `body` lowers arm `j`, with its own branch-local scope.
     ///
     /// One arm runs, so the arms allocate their locals over the same cells.
@@ -723,17 +709,16 @@ impl FnLower<'_> {
         let join = self.fresh();
         let jset = self.code.len();
         self.set(join, KVal::Local(0)); // patched: the join
-        // Slot j (two instructions) sits at T + 2j.
-        let kset = self.emit_dispatch(xo, one, sfp);
-        // The trampoline table.
-        self.patch_local(kset, self.code.len());
-        let start = self.emit_slots(n, one, sfp, |_| KVal::Local(0));
+        let first = self.tables.slots.len();
+        let name = self.fn_name.to_string();
+        self.tables.slots.extend((0..n).map(|_| KVal::At(name.clone(), 0)));
+        self.table_jump(xo, first, one, sfp);
         // The arm blocks, each exiting to the join (the last falls through).
         let arms_base = self.next;
         let mut arms_end = arms_base;
         for j in 0..n {
             self.next = arms_base;
-            self.patch_local(start + 2 * j, self.code.len());
+            self.tables.slots[first + j] = KVal::At(name.clone(), self.code.len() as u32);
             body(self, j);
             if j + 1 != n {
                 self.emit(LOp::Jump {
@@ -1585,6 +1570,7 @@ pub(crate) fn lower_func(
     const_arrays: &HashMap<&str, &[F192]>,
     with_filler: bool,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
+    tables: &mut JumpTables,
 ) -> Lowered {
     let mut names: HashMap<String, Bound> = HashMap::new();
     for (i, p) in f.params.iter().enumerate() {
@@ -1637,6 +1623,7 @@ pub(crate) fn lower_func(
         loop_ctr,
         defs,
         const_arrays,
+        tables,
     };
     for (i, s) in f.body.iter().enumerate() {
         // Tail position: a conditional call whose only successor is a bare

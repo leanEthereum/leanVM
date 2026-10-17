@@ -1449,8 +1449,7 @@ dependencies = [
  "leanvm_core",
  "rand 0.9.4",
  "rec_aggregation",
- "sphincs",
- "xmss",
+ "signatures",
 ]
 
 [[package]]
@@ -1467,9 +1466,8 @@ dependencies = [
  "rand 0.9.4",
  "rec_aggregation",
  "serde",
- "sphincs",
+ "signatures",
  "tracing",
- "xmss",
 ]
 
 [[package]]
@@ -1855,10 +1853,9 @@ dependencies = [
  "primitives",
  "rand 0.9.4",
  "serde",
- "sphincs",
+ "signatures",
  "tracing",
  "verifier",
- "xmss",
 ]
 
 [[package]]
@@ -2191,6 +2188,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "signatures"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "ethereum_ssz",
+ "parallel",
+ "primitives",
+ "rand 0.9.4",
+ "serde",
+ "signatures",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2201,16 +2211,6 @@ name = "smallvec"
 version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
-
-[[package]]
-name = "sphincs"
-version = "0.1.0"
-dependencies = [
- "parallel",
- "primitives",
- "rand 0.9.4",
- "serde",
-]
 
 [[package]]
 name = "spki"
@@ -2719,18 +2719,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
 dependencies = [
  "tap",
-]
-
-[[package]]
-name = "xmss"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "ethereum_ssz",
- "parallel",
- "primitives",
- "rand 0.9.4",
- "serde",
 ]
 
 [[package]]

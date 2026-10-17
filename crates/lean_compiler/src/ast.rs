@@ -151,9 +151,9 @@ pub enum StmtKind {
     /// `targets = match(log(x), range(a, b), lambda i: expr, …)`: the one dispatch
     /// construct. Arm `j` is the lambda body with the parameter replaced by the
     /// literal `j`, expanded at parse time, and `x = g^j` runs arm `j` through a
-    /// trampoline table in the bytecode. Every arm writes the same cells, exactly
-    /// one of them running, so a target may be a name bound at the join or a
-    /// `StackBuf` element written in place. See `FnLower::lower_match`.
+    /// jump table in `main`'s frame. Every arm writes the same cells, exactly one of them running, so a
+    /// target may be a name bound at the join or a `StackBuf` element written in
+    /// place. See `FnLower::lower_match`.
     Match {
         targets: Vec<Expr>,
         x: Expr,

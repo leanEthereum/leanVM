@@ -13,11 +13,11 @@
 
 <table align="center">
   <tr>
-    <td><a href="#xmss-aggregation">leanXMSS aggregation</a></td>
-    <td align="right"><b>1.65K/s</b></td>
+    <td><a href="#leanxmss-aggregation">leanXMSS aggregation</a></td>
+    <td align="right"><b>pending</b></td>
   </tr>
   <tr>
-    <td><a href="#sphincs-aggregation">leanSPHINCS aggregation</a></td>
+    <td><a href="#leansphincs-aggregation">leanSPHINCS aggregation</a></td>
     <td align="right"><b>626/s</b></td>
   </tr>
   <tr>
@@ -28,7 +28,7 @@
 <table align="center">
   <tr>
     <td><a href="#recursion">2-to-1 recursion</a></td>
-    <td align="right"><b>0.27s</b></td>
+    <td align="right"><b>0.33s</b></td>
   </tr>
   <tr>
     <td><a href="#hashing">hash compressions</a></td>
@@ -67,13 +67,15 @@ Expect leanVM to change significantly:
 
 **note**: The Metal GPU was not used.
 
-### XMSS aggregation
+### leanXMSS aggregation
 
-The XMSS parameters are specified in [XMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/xmss/XmssSecurity/Statement.lean). **This is not the definitive parameter set.**
+The leanXMSS parameters are specified in [leanXMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf), with a [(ROM) security proof in Lean 4](formal/lean_xmss/LeanXmss/Statement.lean). **This is not the definitive parameter set.**
 
 ```bash
 cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3
 ```
+
+**note**: The output below was measured on the single-layer XMSS over Keccak-256 that leanXMSS replaced. leanXMSS over Keccak-256 has not been measured yet.
 
 ```
 aggregation, 900 XMSS signatures
@@ -85,9 +87,9 @@ aggregation, 900 XMSS signatures
   verifying                   : 15.352 ms
 ```
 
-### SPHINCS aggregation
+### leanSPHINCS aggregation
 
-The SPHINCS parameters are specified in [SPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/SPHINCS.pdf), with a [(ROM) security proof in Lean 4](formal/sphincs/README.md). **This is not the definitive parameter set.**
+The leanSPHINCS parameters are specified in [leanSPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanSPHINCS.pdf), with a [(ROM) security proof in Lean 4](formal/lean_sphincs/README.md). **This is not the definitive parameter set.**
 
 ```bash
 cargo leanvm aggregate --sphincs 850 --log-inv-rate 1 --repeat 3
@@ -124,6 +126,8 @@ aggregation, 16 blobs
 ```bash
 cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
 ```
+
+**note**: The output below was measured on the single-layer XMSS over Keccak-256 that leanXMSS replaced. leanXMSS over Keccak-256 has not been measured yet.
 
 ```
 recursion 2→1, over leaves of 900 XMSS signatures

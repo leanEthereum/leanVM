@@ -22,6 +22,9 @@ pub(crate) enum KVal {
     /// fixed. Emitted with a placeholder by the `if`/`else` lowering and
     /// backpatched ([`FnLower::patch_local`]).
     Local(u32),
+    /// The `i`-th instruction of the named function: a `match` arm's entry, written
+    /// into the arm's jump-table slot ([`JumpTables`]).
+    At(String, u32),
 }
 
 #[derive(Clone, Debug)]
@@ -68,6 +71,13 @@ pub(crate) enum LOp {
         od: Off,
         of: Off,
     },
+    /// `dst = m[x·g^(base+first)]`: slot `x = g^j` of the jump table at `first`, a
+    /// `DEREF` whose `base`, where the tables start, is fixed at assembly ([`JumpTables`]).
+    Slot {
+        x: Off,
+        first: u32,
+        dst: Off,
+    },
     /// `SHA3`: one sponge step. The four `m` cells are addressed independently,
     /// `tail` (4 cells), `cap` (5 cells) and the output `c` (13 cells) are
     /// consecutive runs.
@@ -112,6 +122,20 @@ pub(crate) struct Lowered {
     /// The fill blocks this function carries, with `code`-relative pcs; only `main` has
     /// any ([`crate::lower::FnLower::lower_filler_blocks`]).
     pub(crate) filler: Vec<leanvm_core::cpu::filler::Block>,
+}
+
+/// The jump tables every `match` dispatches through: one cell per arm, holding the
+/// pc it jumps to, in `main`'s frame past its own cells. `main`'s frame sits at a
+/// fixed address (`fp = g^0`), so a dispatch reads slot `x = g^j` of a table with
+/// one `DEREF` ([`LOp::Slot`]). Code at pc 0, before `main` and in its frame, writes
+/// every slot once, with one `SET` each.
+#[derive(Default)]
+pub(crate) struct JumpTables {
+    /// Each slot's target: an arm's first instruction ([`KVal::At`]) or, for a
+    /// dispatched call, a callee's entry ([`KVal::Entry`]).
+    pub(crate) slots: Vec<KVal>,
+    /// The table of each dispatched call's callees, shared by every call to the same ones.
+    pub(crate) shared: HashMap<Vec<String>, usize>,
 }
 
 /// A resolved run of consecutive cells ([`crate::lower::FnLower::cell_run`]): a

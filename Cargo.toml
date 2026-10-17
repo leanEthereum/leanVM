@@ -22,8 +22,7 @@ leanvm_core = { path = "crates/leanvm_core" }
 lean_compiler = { path = "crates/lean_compiler" }
 lean_da = { path = "crates/lean_da" }
 rec_aggregation = { path = "crates/rec_aggregation" }
-xmss = { path = "crates/xmss" }
-sphincs = { path = "crates/sphincs" }
+signatures = { path = "crates/signatures" }
 parallel = { path = "crates/parallel" }
 verifier = { path = "crates/verifier" }
 libc = "0.2"

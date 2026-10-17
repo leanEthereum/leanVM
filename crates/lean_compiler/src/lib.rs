@@ -61,7 +61,7 @@ pub fn compile_without_filler(ast: &Ast) -> Program {
 }
 
 fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
-    // Lower main first (entry pc 0), then the rest, expanding loop helpers.
+    // Lower main first (it follows the table writes at pc 0), then the rest, expanding loop helpers.
     let mut queue: Vec<Func> = Vec::new();
     let main = ast
         .funcs
@@ -89,6 +89,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
     let mut loop_bounds = HashMap::new();
     let mut loop_ctr = 0usize;
     let mut lowered: Vec<Lowered> = Vec::new();
+    let mut tables = JumpTables::default();
     let mut i = 0;
     while i < queue.len() {
         let f = &queue[i];
@@ -100,7 +101,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             continue;
         }
         let f = f.clone();
-        let low = lower_func(
+        lowered.push(lower_func(
             &f,
             &mut queue,
             &mut loop_ctr,
@@ -108,17 +109,41 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             &const_arrays,
             with_filler,
             &mut loop_bounds,
+            &mut tables,
+        ));
+    }
+    // The tables sit past `main`'s own cells. At pc 0, in `main`'s frame (`fp = g^0`),
+    // one `SET` per slot writes them, then falls through into `main`.
+    let tables_base = lowered[0].frame_size;
+    if !tables.slots.is_empty() {
+        lowered[0].frame_size += tables.slots.len() as u32;
+        let code = (tables.slots.iter().zip(tables_base..))
+            .map(|(k, o)| LInstr {
+                op: LOp::Set { o, k: k.clone() },
+                line: 0,
+                hints: Vec::new(),
+            })
+            .collect();
+        let frame_size = lowered[0].frame_size;
+        lowered.insert(
+            0,
+            Lowered {
+                name: "__jump_tables".into(),
+                code,
+                frame_size,
+                filler: Vec::new(),
+            },
         );
-        if dbg_lower {
+    }
+    if dbg_lower {
+        for low in &lowered {
             eprintln!("== fn {} (frame {}) ==", low.name, pretty_integer(low.frame_size));
             for (i, ins) in low.code.iter().enumerate() {
                 let index = pretty_integer(i);
                 eprintln!("  {index:>5}: {:?}", ins.op);
             }
         }
-        lowered.push(low);
     }
-
     // Assign entry program counters and frame sizes.
     let mut entry = HashMap::new();
     let mut frame_size = HashMap::new();
@@ -144,7 +169,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
     let mut src_lines: Vec<u32> = Vec::new();
     let mut hints: HashMap<u32, Vec<RHint>> = HashMap::new();
     for l in &mut lowered {
-        let base = entry[&l.name];
+        let pc0 = entry[&l.name];
         for ins in &mut l.code {
             let here = prog.len() as u32;
             if !ins.hints.is_empty() {
@@ -186,7 +211,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
                 hints.insert(here, rhs);
             }
             src_lines.push(ins.line);
-            prog.push(resolve(&ins.op, &entry, sentinel, base, l.frame_size));
+            prog.push(resolve(&ins.op, &entry, sentinel, pc0, l.frame_size, tables_base));
         }
     }
 
@@ -198,9 +223,12 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         .iter()
         .map(|l| (l.name.clone(), entry[&l.name], l.code.len() as u32))
         .collect();
-    // The blocks are `main`'s, and `main` is lowered first, so its entry pc is 0 and the
-    // block pcs are already the global ones.
-    program.filler = std::mem::take(&mut lowered[0].filler);
+    // The blocks are `main`'s, their pcs relative to its entry.
+    let main = lowered.iter_mut().find(|l| l.name == "main").unwrap();
+    program.filler = std::mem::take(&mut main.filler);
+    for b in &mut program.filler {
+        b.pc += entry["main"];
+    }
     program
 }
 
@@ -273,7 +301,7 @@ fn g_pow_u128(mut e: u128) -> F64 {
     result
 }
 
-fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32, frame_size: u32) -> Op {
+fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, frame_size: u32, tables: u32) -> Op {
     let resolve_kval = |kv: &KVal| -> F192 {
         match kv {
             KVal::FrameSize => g_pow(frame_size as usize).into(),
@@ -282,7 +310,8 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32, fra
             // embed them canonically as (c0, 0, 0).
             KVal::Entry(name) => g_pow(entry[name] as usize).into(),
             KVal::EndSentinel => g_pow(sentinel as usize).into(),
-            KVal::Local(i) => g_pow((base + i) as usize).into(),
+            KVal::Local(i) => g_pow((pc0 + i) as usize).into(),
+            KVal::At(name, i) => g_pow((entry[name] + i) as usize).into(),
         }
     };
     match op {
@@ -302,6 +331,12 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32, fra
             o2: *o2,
             o3: *o3,
             mode: *mode,
+        },
+        LOp::Slot { x, first, dst } => Op::Deref {
+            o1: *x,
+            o2: tables + first,
+            o3: *dst,
+            mode: DerefMode::Cell,
         },
         LOp::Jump { oc, od, of } => Op::Jump {
             oc: *oc,

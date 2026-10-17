@@ -14,8 +14,7 @@ pcs.workspace = true
 keccak_gkr.workspace = true
 leanvm_core.workspace = true
 lean_compiler.workspace = true
-xmss.workspace = true
-sphincs.workspace = true
+signatures.workspace = true
 lean_da.workspace = true
 verifier.workspace = true
 rand.workspace = true
@@ -23,4 +22,9 @@ bincode.workspace = true
 serde.workspace = true
 tracing.workspace = true
 
+[features]
+# `signers_cache`: cached benchmark signers over leanXMSS mock keys, for tests and the CLI.
+signers-cache = ["signatures/mock"]
+
 [dev-dependencies]
+signatures = { workspace = true, features = ["mock"] }
