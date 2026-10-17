@@ -1,6 +1,6 @@
-# `match(log(x), range(a, b), lambda j: …)`: x = GEN ** j runs arm j. The match in
-# main dispatches through a trampoline in the bytecode; the one in the loop body,
-# a function of its own, through a jump table in main's frame. Arms must cover
+# `match(log(x), range(a, b), lambda j: …)`: x = GEN ** j runs arm j, both the
+# match in main and the one in the loop body, a function of its own, through a
+# jump table in main's frame. Arms must cover
 # consecutive integers from 0, and a hinted scrutinee must be range-checked
 # first. Published: (21, 5 + 7 + 9) = (21, 11): `+` is XOR.
 # public_input: 21, 11

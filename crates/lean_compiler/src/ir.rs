@@ -121,16 +121,22 @@ pub(crate) struct Lowered {
     pub(crate) tables_hook: Option<TablesHook>,
 }
 
-/// The jump tables of every `match` outside `main`: one cell per arm, holding the
-/// arm's entry pc, in `main`'s frame from `base` on. `main`'s frame sits at a fixed
+/// The jump tables every `match` dispatches through: one cell per arm, holding the
+/// pc it jumps to, in `main`'s frame from `base` on. `main`'s frame sits at a fixed
 /// address (`fp = g^0`), so a dispatch reads slot `x = g^j` of a table at offset `k`
 /// with one `DEREF` of `m[x·g^(base+k)]`, and `main` writes every slot once, with
 /// one `SET` each, before anything runs.
 #[derive(Default)]
 pub(crate) struct JumpTables {
     pub(crate) base: u32,
-    /// Each slot's arm, as (function, instruction).
-    pub(crate) slots: Vec<(String, u32)>,
+    /// Each slot's target: an arm's first instruction ([`KVal::At`]) or, for a
+    /// dispatched call, a callee's entry ([`KVal::Entry`]).
+    pub(crate) slots: Vec<KVal>,
+    /// The table of each dispatched call's callees, shared by every call to the same ones.
+    pub(crate) shared: HashMap<Vec<String>, usize>,
+    /// `main`'s dispatches, lowered before `base` is known: their `DEREF`s hold the
+    /// table's offset from `base`, which is added once `main`'s frame is laid out.
+    pub(crate) main_derefs: Vec<usize>,
 }
 
 /// `main`'s first instructions jump to the table-filling code, which is appended

@@ -618,8 +618,8 @@ impl FnLower<'_> {
                 self.fail("a normal function's StackBuf return cannot cross a match join; bind it with `let`");
             }
         }
-        // Calls with identical runtime args share one callee frame and a
-        // two-instruction trampoline per arm. Const args select specializations;
+        // Calls with identical runtime args share one callee frame, dispatched
+        // through a table of the callees' entries. Const args select specializations;
         // see `lower_dispatched_call` for the shared argument/return layout checks.
         // `@inline` arms instead expand into this frame, below.
         let inline_arm =
@@ -684,40 +684,26 @@ impl FnLower<'_> {
         self.bind_targets(&binds);
     }
 
-    /// The two-jump dispatch itself: `d = g^T · x²` names slot `x` of the
-    /// two-instruction trampoline table at bytecode base `T`. Returns the index
-    /// of the `SET` holding `T`, for the caller to patch once the table's
-    /// position is known.
-    fn emit_dispatch(&mut self, xo: Off, one: Off, of: Off) -> usize {
-        let kcell = self.fresh();
-        let kset = self.code.len();
-        self.set(kcell, KVal::Local(0)); // patched: table base T
-        let x2 = self.pure(PureOp::Mul, xo, xo);
-        let d = self.fresh();
-        self.emit(LOp::Mul { a: kcell, b: x2, c: d });
-        self.emit(LOp::Jump { oc: one, od: d, of });
-        kset
-    }
-
-    /// The `n` trampoline slots themselves, each `SET c = k(j); JUMP c`, sharing
-    /// `c` since one slot runs. Returns the table's start; slot `j` has its
-    /// `SET` at `start + 2*j`.
-    fn emit_slots(&mut self, n: usize, one: Off, of: Off, k: impl Fn(usize) -> KVal) -> usize {
-        let start = self.code.len();
-        let c = self.fresh();
-        for j in 0..n {
-            self.set(c, k(j));
-            self.emit(LOp::Jump { oc: one, od: c, of });
+    /// Jump through slot `x` of the table at `first` ([`JumpTables`]): one `DEREF`
+    /// of the slot, then a `JUMP` to what it holds, with frame `of`.
+    pub(super) fn table_jump(&mut self, xo: Off, first: usize, one: Off, of: Off) {
+        let entry = self.fresh();
+        if self.is_main {
+            self.tables.main_derefs.push(self.code.len());
         }
-        start
+        let at = if self.is_main { 0 } else { self.tables.base } + first as u32;
+        self.emit(LOp::Deref {
+            o1: xo,
+            o2: at,
+            o3: entry,
+            mode: DerefMode::Cell,
+        });
+        self.emit(LOp::Jump { oc: one, od: entry, of });
     }
 
-    /// The dispatch every `match` lowers through. Outside `main`, through the
-    /// match's jump table ([`JumpTables`]): read slot `x` with one `DEREF` and jump
-    /// there. In `main`, whose frame holds the tables, through a trampoline: jump to
-    /// `d = g^T · x²` (slot `j` of the two-instruction table at bytecode base `T`),
-    /// then to the arm. Every non-final arm exits to the join. `body` lowers arm
-    /// `j`, with its own branch-local scope.
+    /// The dispatch every `match` lowers through: read slot `x` of the match's jump
+    /// table and jump there ([`Self::table_jump`]). Every non-final arm exits to the
+    /// join. `body` lowers arm `j`, with its own branch-local scope.
     ///
     /// One arm runs, so the arms allocate their locals over the same cells.
     fn lower_match_dispatch(&mut self, xo: Off, n: usize, mut body: impl FnMut(&mut Self, usize)) {
@@ -727,39 +713,16 @@ impl FnLower<'_> {
         let join = self.fresh();
         let jset = self.code.len();
         self.set(join, KVal::Local(0)); // patched: the join
-        let slot = if self.is_main {
-            // Slot j (two instructions) sits at T + 2j.
-            let kset = self.emit_dispatch(xo, one, sfp);
-            self.patch_local(kset, self.code.len());
-            let start = self.emit_slots(n, one, sfp, |_| KVal::Local(0));
-            Err(start)
-        } else {
-            let first = self.tables.slots.len();
-            let at = self.tables.base + first as u32;
-            self.tables.slots.extend((0..n).map(|_| (self.fn_name.to_string(), 0)));
-            let entry = self.fresh();
-            self.emit(LOp::Deref {
-                o1: xo,
-                o2: at,
-                o3: entry,
-                mode: DerefMode::Cell,
-            });
-            self.emit(LOp::Jump {
-                oc: one,
-                od: entry,
-                of: sfp,
-            });
-            Ok(first)
-        };
+        let first = self.tables.slots.len();
+        let name = self.fn_name.to_string();
+        self.tables.slots.extend((0..n).map(|_| KVal::At(name.clone(), 0)));
+        self.table_jump(xo, first, one, sfp);
         // The arm blocks, each exiting to the join (the last falls through).
         let arms_base = self.next;
         let mut arms_end = arms_base;
         for j in 0..n {
             self.next = arms_base;
-            match slot {
-                Ok(first) => self.tables.slots[first + j].1 = self.code.len() as u32,
-                Err(start) => self.patch_local(start + 2 * j, self.code.len()),
-            }
+            self.tables.slots[first + j] = KVal::At(name.clone(), self.code.len() as u32);
             body(self, j);
             if j + 1 != n {
                 self.emit(LOp::Jump {

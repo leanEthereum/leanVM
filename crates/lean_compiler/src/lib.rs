@@ -103,7 +103,7 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             continue;
         }
         let f = f.clone();
-        let low = lower_func(
+        let mut low = lower_func(
             &f,
             &mut queue,
             &mut loop_ctr,
@@ -115,8 +115,15 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             f.name == "main" && any_match,
         );
         if f.name == "main" {
-            // `main` is lowered first; its frame then grows by the tables.
+            // `main` is lowered first; its frame then grows by the tables, which its
+            // own dispatches now find.
             tables.base = low.frame_size;
+            for &i in &tables.main_derefs {
+                match &mut low.code[i].op {
+                    LOp::Deref { o2, .. } => *o2 += tables.base,
+                    _ => unreachable!("a dispatch reads its slot with a DEREF"),
+                }
+            }
         }
         if dbg_lower {
             eprintln!("== fn {} (frame {}) ==", low.name, pretty_integer(low.frame_size));
@@ -139,10 +146,10 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             line: 0,
             hints: Vec::new(),
         };
-        for (k, (name, i)) in tables.slots.iter().enumerate() {
+        for (k, slot) in tables.slots.iter().enumerate() {
             main.code.push(instr(LOp::Set {
                 o: tables.base + k as u32,
-                k: KVal::At(name.clone(), *i),
+                k: slot.clone(),
             }));
         }
         main.code.push(instr(LOp::Set {
@@ -155,6 +162,9 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             of: hook.one,
         }));
         main.frame_size = tables.base + tables.slots.len() as u32;
+    } else {
+        // An unfilled slot would be a prover-chosen jump target.
+        assert!(tables.slots.is_empty(), "a match the prologue hook did not foresee");
     }
 
     // Assign entry program counters and frame sizes.
