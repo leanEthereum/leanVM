@@ -352,7 +352,6 @@ LX_V = LX_V_PLACEHOLDER
 LX_TARGET_SUM = LX_TARGET_SUM_PLACEHOLDER
 LX_HEIGHT = LX_HEIGHT_PLACEHOLDER
 LX_TOP = LX_TOP_PLACEHOLDER
-LX_LEAF_BLOCKS = (2 + LX_V) / 4  # P and A, then the chain ends, four cells a block
 
 # ------------------------------------------------------ SPHINCS+ (host-supplied)
 # The scheme's own letters, prefixed SP_: one tree of height SP_H over WOTS+C keys,
@@ -374,10 +373,6 @@ SP_LEAVES = 2 ** SP_TREE_HEIGHT
 SP_KEYS = 2 ** SP_SUBTREE_HEIGHT
 # Digit i of codeword t, at SP_FCHAINS * t + i.
 SP_CODEWORDS = SP_CODEWORDS_PLACEHOLDER
-# Blocks of a hash over n values, P and A before them: four cells a block, the last
-# block half full.
-SP_LEAF_BLOCKS = (SP_V + 2 + 2) // 4
-SP_FKEY_BLOCKS = (2 * SP_TREES + 2 + 2) // 4
 # The message digest: its first cell is the codewords, a byte per subtree, and its
 # second holds bit fields, the index, each tree's leaf, each subtree's WOTS key, and
 # bits nothing uses.
@@ -2239,26 +2234,30 @@ def is_child(node, kids, k: Const, bit):
 
 
 @inline
+def chain_step(at, pp, md, value, out, o: Const, i: Const, s: Const, lx: Const):
+    # The step of chain i leaving position s, into out[o:o+2]. A SPHINCS step's
+    # address carries i and s; a leanXMSS one only s, at[s] computed once per key,
+    # i riding after the value.
+    if const(lx == 1):
+        blake2s([pp, at[s]], [value, i], out[o:o + 2], md=md)
+    else:
+        blake2s([pp, at + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], out[o:o + 2], md=md)
+    return
+
+
+@inline
 def walk(at, pp, md, tips, i: Const, k: Const, lx: Const):
     # Walk WOTS+C chain i from position k to its end, the tip landing in tips[2i]
-    # beside the unread upper half of its last hash. A SPHINCS step's address carries
-    # i and the position s it leaves; a leanXMSS one only s, at[s] computed once per
-    # key, i riding after the value.
+    # beside the unread upper half of its last hash.
     if const(k == CHAIN_STEPS):
         hint_witness(tips[2 * i:2 * i + 1], "chain_starts")
     else:
         value = hint_witness("chain_starts")
         for s in unroll(k, CHAIN_STEPS - 1):
             out = StackBuf(WORDS_PER_BLOCK)
-            if const(lx == 1):
-                blake2s([pp, at[s]], [value, i], out, md=md)
-            else:
-                blake2s([pp, at + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], out, md=md)
+            chain_step(at, pp, md, value, out, 0, i, s, lx)
             value = out[0]
-        if const(lx == 1):
-            blake2s([pp, at[CHAIN_STEPS - 1]], [value, i], tips[2 * i:2 * i + 2], md=md)
-        else:
-            blake2s([pp, at + const(TW_CHAIN + i * HI_MUL + (CHAIN_STEPS - 1) * STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], md=md)
+        chain_step(at, pp, md, value, tips, 2 * i, i, CHAIN_STEPS - 1, lx)
     return
 
 
@@ -2271,6 +2270,47 @@ def walk_group(at, pp, md, tips, first: Const, n: Const, k: Const, lx: Const, po
     for r in unroll(0, n):
         walk(at, pp, md, tips, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
     return product * powers[DIGIT_SUMS[k]], encoded + const(k * CHAIN_LENGTH ** first)
+
+
+@inline
+def hash_values(pp, a, vals, n: Const, out):
+    # Th(P, A, values) into out, over the n values at vals[2m], four cells a block,
+    # the last one half full when n is a multiple of four. Writing into the caller's
+    # buffer rather than returning one saves the cell a call's return takes.
+    h = StackBuf(WORDS_PER_BLOCK)
+    blake2s([pp, a], [vals[0], vals[2]], h, counter=64, final=0)
+    for q in unroll(1, (n + 1) // 4):
+        next_h = StackBuf(WORDS_PER_BLOCK)
+        blake2s([vals[8 * q - 4], vals[8 * q - 2]], [vals[8 * q], vals[8 * q + 2]], next_h, cv=h, counter=64 * (q + 1), final=0)
+        h = next_h
+    if const(n % 4 == 0):
+        blake2s([vals[2 * n - 4], vals[2 * n - 2]], [0, 0], out, cv=h, counter=16 * (n + 2), final=1)
+    else:
+        blake2s([vals[2 * n - 8], vals[2 * n - 6]], [vals[2 * n - 4], vals[2 * n - 2]], out, cv=h, counter=16 * (n + 2), final=1)
+    return
+
+
+@inline
+def merkle_path(node, pp, bits, nodes, out, off: Const, height: Const, end: Const, top: Const):
+    # The path from `node` up `height` levels into out, the two children of each
+    # node hinted in order. Level l's bit is bits[off + l] and its parent's index
+    # nodes[off + l + 1], the one at `end` being a root, at index 0. `top` flags
+    # leanXMSS's top layer.
+    cur = node
+    for level in unroll(0, height):
+        kids = StackBuf(2)
+        hint_witness(kids, "siblings")
+        is_child(cur, kids, 0, bits[off + level])
+        if const(level + 1 == height):
+            parent = out
+        else:
+            parent = StackBuf(WORDS_PER_BLOCK)
+        if const(off + level + 1 == end):
+            blake2s([pp, const(TW_NODE + (level + 1) * HI_MUL + top * LX_TOP)], kids, parent)
+        else:
+            blake2s([pp, const(TW_NODE + (level + 1) * HI_MUL + top * LX_TOP) + nodes[off + level + 1]], kids, parent)
+        cur = parent[0]
+    return
 
 
 # ========================= leanXMSS signature verification ========================
@@ -2313,7 +2353,7 @@ def verify_lean_xmss(signer):
             blake2s([pp, idx + TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], prefix, counter=64, final=0)
             blake2s([rho, 0], [0, 0], digest, cv=prefix, counter=80, final=1)
         else:
-            blake2s([pp, idx + TW_MSG], [root, rho], digest)
+            blake2s([pp, idx + TW_MSG], [root[0], rho], digest)
 
         # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
         # checked and dispatched once, the arm walking every chain's remaining steps
@@ -2336,29 +2376,12 @@ def verify_lean_xmss(signer):
         assert digit_product == GEN ** LX_TARGET_SUM
         assert encoded == digest[0]
 
-        # The one-time leaf: P, A and the LX_V chain ends, four cells a block.
+        # The one-time leaf, then the path to the layer's root.
         leaf = StackBuf(WORDS_PER_BLOCK)
-        blake2s([pp, idx + TW_LEAF], [tips[0], tips[2]], leaf, counter=64, final=0)
-        for q in unroll(1, LX_LEAF_BLOCKS):
-            next_leaf = StackBuf(WORDS_PER_BLOCK)
-            blake2s([tips[8 * q - 4], tips[8 * q - 2]], [tips[8 * q], tips[8 * q + 2]], next_leaf, cv=leaf, counter=64 * (q + 1), final=(q + 1) // LX_LEAF_BLOCKS)
-            leaf = next_leaf
-
-        # The path to the layer's root, the two children of each node hinted in order.
-        node = leaf[0]
-        for level in unroll(0, LX_HEIGHT):
-            kids = StackBuf(2)
-            hint_witness(kids, "siblings")
-            is_child(node, kids, 0, bits[LX_HEIGHT * layer + level])
-            parent = StackBuf(WORDS_PER_BLOCK)
-            if const(LX_HEIGHT * layer + level + 1 == 2 * LX_HEIGHT):
-                # The top root, at index 0.
-                blake2s([pp, const(TW_NODE + (level + 1) * HI_MUL + LX_TOP)], kids, parent)
-            else:
-                blake2s([pp, const(TW_NODE + (level + 1) * HI_MUL + layer * LX_TOP) + nodes[LX_HEIGHT * layer + level + 1]], kids, parent)
-            node = parent[0]
-        root = node
-    assert root == signer[1]
+        hash_values(pp, idx + TW_LEAF, tips, LX_V, leaf)
+        root = StackBuf(WORDS_PER_BLOCK)
+        merkle_path(leaf[0], pp, bits, nodes, root, LX_HEIGHT * layer, LX_HEIGHT, 2 * LX_HEIGHT, layer)
+    assert root[0] == signer[1]
     return
 
 
@@ -2514,16 +2537,9 @@ def verify_sig_sphincs(signer):
         lane_1 = words[15 - k] + lane_1 * GEN ** 8
     assert lane_0 + lane_1 * Y_TOWER == digest[0]
     assert bound == digest[1]
-    # The few-time key: P, A and the 2 * SP_TREES top nodes, four cells a block.
+    # The few-time key: P, A and the 2 * SP_TREES top nodes.
     forest_key = StackBuf(WORDS_PER_BLOCK)
-    blake2s([pp, idx + SP_TW_FKEY], [tops[0], tops[2]], forest_key, counter=64, final=0)
-    for q in unroll(1, SP_FKEY_BLOCKS):
-        next_key = StackBuf(WORDS_PER_BLOCK)
-        if const(q + 1 == SP_FKEY_BLOCKS):
-            blake2s([tops[8 * q - 4], tops[8 * q - 2]], [0, 0], next_key, cv=forest_key, counter=32 + 32 * SP_TREES, final=1)
-        else:
-            blake2s([tops[8 * q - 4], tops[8 * q - 2]], [tops[8 * q], tops[8 * q + 2]], next_key, cv=forest_key, counter=64 * (q + 1), final=0)
-        forest_key = next_key
+    hash_values(pp, idx + SP_TW_FKEY, tops, 2 * SP_TREES, forest_key)
 
     # ---- the one-time signature of the few-time key ----
     # D = Th(P, A, key | LE_32(c)), 52 bytes. The counter is bounded by decomposing
@@ -2560,30 +2576,12 @@ def verify_sig_sphincs(signer):
     digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, step_md[0], tips, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
     assert digit_product == GEN ** SP_TARGET_SUM
     assert encoded == encoding[0]
-    # The one-time leaf: P, A and the SP_V tips, four cells a block.
+    # The one-time leaf, then the path from it to the public key's root.
     leaf = StackBuf(WORDS_PER_BLOCK)
-    blake2s([pp, idx + TW_LEAF], [tips[0], tips[2]], leaf, counter=64, final=0)
-    for q in unroll(1, SP_LEAF_BLOCKS):
-        next_leaf = StackBuf(WORDS_PER_BLOCK)
-        if const(q + 1 == SP_LEAF_BLOCKS):
-            blake2s([tips[8 * q - 4], tips[8 * q - 2]], [0, 0], next_leaf, cv=leaf, counter=32 + 16 * SP_V, final=1)
-        else:
-            blake2s([tips[8 * q - 4], tips[8 * q - 2]], [tips[8 * q], tips[8 * q + 2]], next_leaf, cv=leaf, counter=64 * (q + 1), final=0)
-        leaf = next_leaf
-
-    # ---- the tree: the path from that one-time key to the public key's root ----
-    node = leaf[0]
-    for level in unroll(0, SP_H):
-        kids = StackBuf(2)
-        hint_witness(kids, "siblings")
-        is_child(node, kids, 0, bits[level])
-        parent = StackBuf(WORDS_PER_BLOCK)
-        if const(level + 1 == SP_H):
-            blake2s([pp, TW_NODE + const((level + 1) * HI_MUL)], kids, parent)
-        else:
-            blake2s([pp, TW_NODE + const((level + 1) * HI_MUL) + nodes[level + 1]], kids, parent)
-        node = parent[0]
-    assert node == signer[1]
+    hash_values(pp, idx + TW_LEAF, tips, SP_V, leaf)
+    root = StackBuf(WORDS_PER_BLOCK)
+    merkle_path(leaf[0], pp, bits, nodes, root, 0, SP_H, SP_H, 0)
+    assert root[0] == signer[1]
     return
 
 
