@@ -1,87 +1,109 @@
-//! BLAKE2s and digests.
+//! Keccak-256 of the cell encoding, the VM's `SHA3` step, and digests.
 
 use crate::field::E;
 use crate::{VerifierError, require};
 
-pub const BLAKE2S_IV: [u32; 8] = [
-    0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
-];
-#[rustfmt::skip]
-pub const BLAKE2S_SIGMA: [[usize; 16]; 10] = [
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
-    [11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4],
-    [7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8],
-    [9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13],
-    [2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9],
-    [12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11],
-    [13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10],
-    [6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5],
-    [10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0],
-];
-#[rustfmt::skip]
-pub const BLAKE2S_G_LANES: [[usize; 4]; 8] = [
-    [0, 4, 8, 12], [1, 5, 9, 13], [2, 6, 10, 14], [3, 7, 11, 15],
-    [0, 5, 10, 15], [1, 6, 11, 12], [2, 7, 8, 13], [3, 4, 9, 14],
-];
+pub const STATE_LANES: usize = 25;
+/// The sponge rate in bytes.
+const RATE: usize = 136;
+/// Message bytes one block carries: the rate's first 16 lanes, eight whole 16-byte cells.
+const CHUNK: usize = 128;
+const ROUNDS: usize = 24;
 
-/// One round's eight gates.
-#[inline(always)]
-fn round(v: &mut [u32; 16], m: &[u32; 16], sigma: &[usize; 16]) {
-    for (gate, &[a, b, c, d]) in BLAKE2S_G_LANES.iter().enumerate() {
-        v[a] = v[a].wrapping_add(v[b]).wrapping_add(m[sigma[2 * gate]]);
-        v[d] = (v[d] ^ v[a]).rotate_right(16);
-        v[c] = v[c].wrapping_add(v[d]);
-        v[b] = (v[b] ^ v[c]).rotate_right(12);
-        v[a] = v[a].wrapping_add(v[b]).wrapping_add(m[sigma[2 * gate + 1]]);
-        v[d] = (v[d] ^ v[a]).rotate_right(8);
-        v[c] = v[c].wrapping_add(v[d]);
-        v[b] = (v[b] ^ v[c]).rotate_right(7);
+pub const KECCAK_RC: [u64; ROUNDS] = [
+    0x0000000000000001,
+    0x0000000000008082,
+    0x800000000000808A,
+    0x8000000080008000,
+    0x000000000000808B,
+    0x0000000080000001,
+    0x8000000080008081,
+    0x8000000000008009,
+    0x000000000000008A,
+    0x0000000000000088,
+    0x0000000080008009,
+    0x000000008000000A,
+    0x000000008000808B,
+    0x800000000000008B,
+    0x8000000000008089,
+    0x8000000000008003,
+    0x8000000000008002,
+    0x8000000000000080,
+    0x000000000000800A,
+    0x800000008000000A,
+    0x8000000080008081,
+    0x8000000000008080,
+    0x0000000080000001,
+    0x8000000080008008,
+];
+pub const KECCAK_RHO: [u32; STATE_LANES] = [
+    0, 1, 62, 28, 27, 36, 44, 6, 55, 20, 3, 10, 43, 25, 39, 41, 45, 15, 21, 8, 18, 2, 61, 56, 14,
+];
+/// Where lane `x + 5y` lands.
+pub const KECCAK_PI: [usize; STATE_LANES] = {
+    let mut pi = [0; STATE_LANES];
+    let mut i = 0;
+    while i < STATE_LANES {
+        pi[i] = i / 5 + 5 * ((2 * (i % 5) + 3 * (i / 5)) % 5);
+        i += 1;
+    }
+    pi
+};
+/// The padding's last bit, which every step XORs into lane 16.
+pub const KECCAK_END_BIT: u64 = 0x80 << 56;
+const END_LANE: usize = 16;
+
+pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
+    for rc in KECCAK_RC {
+        let c: [u64; 5] = std::array::from_fn(|x| a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20]);
+        for i in 0..STATE_LANES {
+            a[i] ^= c[(i + 4) % 5] ^ c[(i + 1) % 5].rotate_left(1);
+        }
+        let mut b = [0u64; STATE_LANES];
+        for i in 0..STATE_LANES {
+            b[KECCAK_PI[i]] = a[i].rotate_left(KECCAK_RHO[i]);
+        }
+        for i in 0..STATE_LANES {
+            let row = i - i % 5;
+            a[i] = b[i] ^ (!b[row + (i + 1) % 5] & b[row + (i + 2) % 5]);
+        }
+        a[0] ^= rc;
     }
 }
 
-fn compression(h: &mut [u32; 8], block: &[u8; 64], counter: u64, last: bool) {
-    let m: [u32; 16] = std::array::from_fn(|i| u32::from_le_bytes(block.as_chunks().0[i]));
-    let mut v = [0u32; 16];
-    v[..8].copy_from_slice(h);
-    v[8..].copy_from_slice(&BLAKE2S_IV);
-    v[12] ^= counter as u32;
-    v[13] ^= (counter >> 32) as u32;
-    if last {
-        v[14] = !v[14];
-    }
-    // Spelled out: a loop over the rounds is kept rolled, and its message indices loaded and bounds checked.
-    let [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9] = &BLAKE2S_SIGMA;
-    round(&mut v, &m, s0);
-    round(&mut v, &m, s1);
-    round(&mut v, &m, s2);
-    round(&mut v, &m, s3);
-    round(&mut v, &m, s4);
-    round(&mut v, &m, s5);
-    round(&mut v, &m, s6);
-    round(&mut v, &m, s7);
-    round(&mut v, &m, s8);
-    round(&mut v, &m, s9);
-    for i in 0..8 {
-        h[i] ^= v[i] ^ v[i + 8];
+/// The VM's `SHA3` step: XOR the padding's last bit into lane 16, then Keccak-f\[1600\].
+pub fn step(input: &[u64; STATE_LANES]) -> [u64; STATE_LANES] {
+    let mut state = *input;
+    state[END_LANE] ^= KECCAK_END_BIT;
+    keccak_f(&mut state);
+    state
+}
+
+fn xor_bytes(state: &mut [u64; STATE_LANES], bytes: &[u8]) {
+    for (i, &byte) in bytes.iter().enumerate() {
+        state[i / 8] ^= u64::from(byte) << (8 * (i % 8));
     }
 }
 
-/// Standard 32-byte unkeyed BLAKE2s-256 hash.
-pub fn blake2s_hash(data: &[u8]) -> Digest {
-    let mut h = BLAKE2S_IV;
-    h[0] ^= 0x0101_0020;
-    // The last block is the one compressed with the final flag, and is never empty unless the input is.
-    let last_start = data.len().saturating_sub(1) / 64 * 64;
-    for (index, block) in data[..last_start].as_chunks().0.iter().enumerate() {
-        compression(&mut h, block, 64 * (index as u64 + 1), false);
+/// Keccak-256 of `data` in the cell encoding: past 128 bytes, the fixed eight bytes `0^7 ‖ 0x80` after every 128,
+/// so that a block is eight whole cells. Up to 128 bytes it is plain Keccak-256.
+pub fn keccak_hash(data: &[u8]) -> Digest {
+    let mut state = [0u64; STATE_LANES];
+    let nonfinal = data.len().saturating_sub(1) / CHUNK;
+    for chunk in data[..nonfinal * CHUNK].chunks(CHUNK) {
+        xor_bytes(&mut state, chunk);
+        state = step(&state);
     }
-    let mut block = [0u8; 64];
-    block[..data.len() - last_start].copy_from_slice(&data[last_start..]);
-    compression(&mut h, &block, data.len() as u64, true);
+    // The last block: the remaining bytes, then Keccak's padding, whose last bit is the one `step` supplies.
+    let tail = &data[nonfinal * CHUNK..];
+    let mut block = [0u8; RATE];
+    block[..tail.len()].copy_from_slice(tail);
+    block[tail.len()] ^= 0x01;
+    xor_bytes(&mut state, &block);
+    state = step(&state);
     let mut value = [0u8; 32];
-    for (bytes, word) in value.as_chunks_mut().0.iter_mut().zip(h) {
-        *bytes = word.to_le_bytes();
+    for (bytes, lane) in value.as_chunks_mut().0.iter_mut().zip(state) {
+        *bytes = lane.to_le_bytes();
     }
     Digest(value)
 }
@@ -91,7 +113,7 @@ pub fn blake2s_hash(data: &[u8]) -> Digest {
 pub struct Digest(pub [u8; 32]);
 
 impl Digest {
-    /// Its four 64-bit words, the form the compression chain runs in.
+    /// Its four 64-bit words, the form a seed takes in the sponge's lanes.
     pub fn words(&self) -> [u64; 4] {
         std::array::from_fn(|i| u64::from_le_bytes(self.0.as_chunks().0[i]))
     }
@@ -121,25 +143,25 @@ impl Digest {
 mod tests {
     use super::*;
 
-    /// Official unkeyed BLAKE2s-256 vectors: the digest of the bytes `00 01 .. n-1`, at lengths either side of every block boundary case.
-    const VECTORS: [(usize, &str); 6] = [
-        (0, "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9"),
-        (1, "e34d74dbaf4ff4c6abd871cc220451d2ea2648846c7757fbaac82fe51ad64bea"),
-        (63, "e57cb79487dd57902432b250733813bd96a84efce59f650fac26e6696aefafc3"),
-        (64, "56f34e8b96557e90c1f24b52d0c89d51086acf1b00f634cf1dde9233b8eaaa3e"),
-        (65, "1b53ee94aaf34e4b159d48de352c7f0661d0a40edff95a0b1639b4090e974472"),
-        (199, "1d4e5487ae3c740f2ba6e541ac91bc2bfcd2999c518d807b426748803a350fd4"),
+    /// Keccak-256 of the cell encoding of the bytes `00 01 ..` (mod 256), from OpenSSL's `keccak-256`: plain Keccak-256 up to
+    /// 128 bytes, then each side of a chunk boundary.
+    const VECTORS: [(usize, &str); 9] = [
+        (0, "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"),
+        (1, "bc36789e7a1e281436464229828f817d6612f7b477d66591ff96a9e064bcc98a"),
+        (127, "c52f0bd08793b9e8601b29753539e1bf47f8e483eed0a901e8761982449c9b4c"),
+        (128, "ed4c9adc183fb8cb025b1500ec3eeae1b45517314441a187605de1bb8a64726e"),
+        (129, "2900f87118e525c6a28e5d3a37a7f37db1b0b17661931ba7ba0be4fbb202f766"),
+        (200, "f4eb34198ddc4f2012a7791eb46292821d0904eb97640e9519ab735eef9c04ab"),
+        (256, "d63969818e044e52f1c4bb4b58569816bb0c5e7efadcee96f83b02a355a42686"),
+        (257, "2cc03e9f89462b48c53aae96d64d7a43482bdd896fa16f8308f8199538d0ba65"),
+        (512, "63e0372d8c2e3203e0a6a80bbafa151aba520de0c9baeb89907af0c242ed4e6a"),
     ];
 
     #[test]
-    fn matches_official_vectors() {
+    fn matches_reference_vectors() {
         for (n, want) in VECTORS {
             let input: Vec<u8> = (0..n).map(|i| i as u8).collect();
-            let got: String = blake2s_hash(&input)
-                .0
-                .iter()
-                .map(|byte| format!("{byte:02x}"))
-                .collect();
+            let got: String = keccak_hash(&input).0.iter().map(|byte| format!("{byte:02x}")).collect();
             assert_eq!(got, want, "{n} bytes");
         }
     }

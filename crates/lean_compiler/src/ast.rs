@@ -57,7 +57,7 @@ pub enum Expr {
     HeapBufDyn(Box<Expr>),
     /// `StackBuf(n)`: allocate `n` *consecutive* frame (stack) cells, bound as a
     /// stack value. Its cells `sa[0..n]` are written/read directly (no heap deref),
-    /// and a size-2 `StackBuf` is a valid `blake2s` operand (the four 64-bit hash
+    /// and a size-2 `StackBuf` is a valid `sha3` operand (the four 64-bit hash
     /// words live as two lanes in each of two consecutive 128-bit cells).
     StackBuf(u64),
     /// `arr[idx]`: read a cell. For a heap `arr` (a pointer), `m[arr·idx]` (idx a
@@ -67,8 +67,8 @@ pub enum Expr {
     /// `buf[lo:hi]`: a run of cells of a [`Expr::StackBuf`] (frame cells
     /// `base+lo..base+hi`) or of a [`Expr::HeapBuf`] (heap cells
     /// `ptr·g^lo..ptr·g^hi`), with compile-time integer bounds (`hi`
-    /// exclusive). Only meaningful as a `blake2s` operand, where it must span
-    /// exactly 2 cells (one 256-bit value).
+    /// exclusive). Meaningful as a `sha3` operand, a hint destination, or a
+    /// function argument run.
     Slice(Box<Expr>, Box<Expr>, Box<Expr>),
     /// `[a, b, …]`: an initialized [`Expr::StackBuf`], so `x = [a, b]` allocates
     /// a StackBuf of the element count and writes each element in place, sugar

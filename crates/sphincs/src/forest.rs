@@ -105,6 +105,10 @@ pub struct TreeOpening {
 
 pub type ForestOpening = [TreeOpening; FOREST_TREES];
 
+/// The few-time key: the two top nodes of every tree. No hash folds them: the
+/// one-time signature's encoding absorbs all sixteen with its counter.
+pub type ForestKey = [[Digest; 2]; FOREST_TREES];
+
 /// A WOTS key of the forest: instance `idx`, tree `c`, leaf `s`, subtree `j`,
 /// key `a`.
 #[derive(Clone, Copy)]
@@ -181,11 +185,6 @@ fn tree_node(pp: &PublicParam, idx: u32, c: usize, level: usize, node: usize, ch
     th_digests(pp, &tweak(TWEAK_FOREST_NODE, hi, idx), children)
 }
 
-/// The few-time public key: `Th` over the two top nodes of every tree.
-fn forest_key(pp: &PublicParam, idx: u32, tops: &[[Digest; 2]; FOREST_TREES]) -> Digest {
-    th_digests(pp, &tweak(TWEAK_FOREST_KEY, 0, idx), tops.as_flattened())
-}
-
 /// The levels of a Merkle tree from its leaves up to its two top nodes.
 fn levels(leaves: Vec<Digest>, node: impl Fn(usize, usize, &[Digest; 2]) -> Digest) -> Vec<Vec<Digest>> {
     let mut levels = vec![leaves];
@@ -219,13 +218,13 @@ fn fold(leaf: Digest, at: usize, path: &[Digest], node: impl Fn(usize, usize, &[
 }
 
 /// `Fts.key` and `Fts.open` together, the forest of instance `idx` being built
-/// once: its public key, and its opening at `marks`.
+/// once: its key, and its opening at `marks`.
 pub fn forest_open(
     pp: &PublicParam,
     master: &MasterSecret,
     idx: u32,
     marks: &[Mark; FOREST_TREES],
-) -> (Digest, ForestOpening) {
+) -> (ForestKey, ForestOpening) {
     let mut tops = [[[0u8; N]; 2]; FOREST_TREES];
     let opening = std::array::from_fn(|c| {
         let mark = &marks[c];
@@ -265,12 +264,12 @@ pub fn forest_open(
             path: path(&levels, mark.leaf),
         }
     });
-    (forest_key(pp, idx, &tops), opening)
+    (tops, opening)
 }
 
 /// `Fts.recover`: the few-time key an opening reaches at `marks`.
-pub fn forest_recover(pp: &PublicParam, idx: u32, marks: &[Mark; FOREST_TREES], opening: &ForestOpening) -> Digest {
-    let tops = std::array::from_fn(|c| {
+pub fn forest_recover(pp: &PublicParam, idx: u32, marks: &[Mark; FOREST_TREES], opening: &ForestOpening) -> ForestKey {
+    std::array::from_fn(|c| {
         let (mark, tree) = (&marks[c], &opening[c]);
         let s = mark.leaf;
         let subtree_tops = std::array::from_fn(|j| {
@@ -297,8 +296,7 @@ pub fn forest_recover(pp: &PublicParam, idx: u32, marks: &[Mark; FOREST_TREES], 
         fold(leaf, s, &tree.path, |level, node, pair| {
             tree_node(pp, idx, c, level, node, pair)
         })
-    });
-    forest_key(pp, idx, &tops)
+    })
 }
 
 #[cfg(test)]

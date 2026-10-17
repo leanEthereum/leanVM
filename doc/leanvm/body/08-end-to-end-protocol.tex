@@ -18,7 +18,7 @@ Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$\\
 \texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $k_2$ & $0$ & $0$ & $0$\\
 \texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$\\
 \texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{BLAKE2S}        & $\opc{B2S}$  & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{cv}}$ & $o_{\mathit{out}}$ & $o_{\md}$\\
+\texttt{SHA3}           & $\opc{S3}$  & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$\\
 \hline
 \end{tabular}
 \end{center}
@@ -47,7 +47,17 @@ The prover can thus leverage these \emph{closed walks} to fill every table to it
 
 \subsection{Fiat Shamir instantiation}\label{sec:e2e-fiat-shamir}
 
-TODO
+The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3's duplex challenger~\cite{Plonky3}, over the permutation the \texttt{SHA3} instruction computes: Keccak-$f[1600]$ after XORing the padding's last bit into lane $16$ (\S\ref{sec:tab-sha3}). Its state is $25$ lanes of $64$ bits. The \emph{rate} is lanes $0,\dots,15$, the eight message cells the instruction reads, and the \emph{capacity} lanes $16,\dots,24$, $576$ bits.
+
+\paragraph{Seed.} The first permutation takes, from the zero state, the $256$-bit IV (a digest of the bytecode and of the label fixing the Keccak reduction) in lanes $0,\dots,3$ and the $256$-bit public input in lanes $4,\dots,7$. The statement is bound before any challenge is drawn.
+
+\paragraph{Absorbing.} A scalar of $\E$ sent by the prover waits until a permutation takes it, at most four of them. A permutation writes the $i$-th waiting scalar over lanes $4i,\dots,4i+3$, as its three $\K$-limbs followed by a domain tag ($1$ for a sent scalar, $4$ for a grinding nonce), zeroes the rest of the rate and keeps the capacity. A fifth scalar first permutes the four waiting. The tags are nonzero, so a sent zero never reads as the zeroed rate.
+
+\paragraph{Squeezing.} Every challenge is a permutation of its own, taking whatever waits; the challenge is the first three lanes of its output, read as an element of $\E$. So a round's message and its challenge cost one permutation, and the recursion guest replays a permutation as one \texttt{SHA3} instruction whose message cells are the waiting scalars and whose capacity cells are the previous output's.
+
+\paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. With $b=0$ the nonce must be zero.
+
+Merkle trees hash with Keccak-256 in the cell encoding, apart from the sponge.
 
 \subsection{The unrolled protocol}\label{sec:e2e-unrolled}
 
@@ -56,12 +66,12 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 \paragraph{Setup.}
 
 
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input, the bytecode and Flock's BLAKE2s R1CS matrices. The prover sends the memory log-size $\kmem$ and the six table log-heights $\tau_j$; the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input, the bytecode and the hash of a label fixing the Keccak reduction (Annex~\ref{annex:keccak}). The prover sends the memory log-size $\kmem$, the six table log-heights $\tau_j$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}), checks that the \texttt{SHA3} table has at least $2^{9}$ rows (\S\ref{keccak:statement}), and derives the layout of every stack (PCS and GKR leaves).
 
 \paragraph{Commitment.}
 
 \begin{enumerate}
-\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, the two finalize (memory / bytecode) counts, and Flock's packed witness $\qflock$ (\S\ref{sec:tab-blake2s}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
+\item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memory limbs, the two finalize (memory / bytecode) counts, and the committed Keccak states $\qkeccak$ (\S\ref{sec:tab-sha3}), into $q$ and sends its commitment (Annex~\ref{annex:pcs}).
 \item \textbf{Verifier.} Receives the commitment to $q$.
 \end{enumerate}
 
@@ -78,7 +88,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
 \item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
-\item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{BLAKE2S}'s eighteen value limbs are columns of its table but live in $\qflock$, not the stack, so their claims route there (\S\ref{sec:tab-blake2s}).
+\item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{SHA3}'s fifty value lanes are columns of its table but have no region of their own in the stack. An input lane is a slot of $\qkeccak$, so its claim is a claim on $\qkeccak$ at the same point followed by the slot's bits, the one on lane $16$ shifted by $x^{63}$ (\S\ref{sec:tab-sha3}). The claims on the output lanes leave the pool: they are the Keccak reduction's claims on the output.
 \end{enumerate}
 
 \paragraph{Public input.}
@@ -88,18 +98,21 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Verifier.} Computes $c_0,c_1$ from the public input and pools $(c_0,c_1,0)$ as claims on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$ (\S\ref{sec:e2e-pi}). The prover sends nothing.
 \end{enumerate}
 
-\paragraph{BLAKE2s validity.}
+\paragraph{SHA3 validity.}
 
 \begin{enumerate}
-\item \textbf{Prover \& Verifier.} Reduce the executed BLAKE2s constraints to one evaluation claim on $\qflock$ (\S\ref{sec:tab-blake2s}, Annex~\ref{annex:flock}).
-\item \textbf{Prover \& Verifier.} The ring switching of \S\ref{sec:ringswitch} reduces that bit-witness claim to a weighted-sum claim on the $\qflock$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}); it joins the pool.
+\item \textbf{Verifier.} Samples and sends the first claim's challenges, $r_{\mathrm{seg}}\in\E$ and $r_{\mathrm{lane}}\in\E^{5}$. The claim is made at the \texttt{SHA3} table's point $\fc_{<\kbatch}$, with $\kbatch$ its log-height (\S\ref{keccak:claims}).
+\item \textbf{Prover \& Verifier.} The prover sends the part of the first claim on the committed state after twelve rounds; the part on the output is the table's claims on its output lanes. The parties run the twelve layers of Protocol~\ref{keccak:protocol}, one per round of a segment, which take the claim to one on the committed states twelve rounds earlier (\S\ref{keccak:layer}).
+\item \textbf{Prover \& Verifier.} Open the part on the committed state: a sumcheck over the slot leaves one evaluation of $\qkeccak$, an ordinary column claim, which joins the pool last (\S\ref{keccak:openings}).
+\item \textbf{Prover \& Verifier.} Open the last claim: a sumcheck over the steps of a pack, then over the slot, leaves the $64$ bit slices of $\qkeccak$ at one point, which the prover sends.
+\item \textbf{Prover \& Verifier.} The verifier samples the six challenges of the ring-switching map, and the ring switching of \S\ref{sec:ringswitch} reduces those $64$ values to a weighted-sum claim on the $\qkeccak$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}).
 \end{enumerate}
 
 \paragraph{Opening.}
 
 \begin{enumerate}
-\item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qflock$ region.)
+\item \textbf{Prover \& Verifier.} Each pooled claim is one evaluation of a column at a point, its value already supplied; via the stacking selectors (\S\ref{sec:stacking}) it becomes a weighted sum $\sum_w W_j(w)\,\widetilde q(w)=c_j$ over the stacked witness. (The ring-switched claim arrives already in this form, its weight supported on the $\qkeccak$ region.)
 \item \textbf{Verifier.} Sends one batching challenge $\lambda\in\E$, drawn after every claim value is bound. Claim $j$ takes the weight $\lambda^{j-1}$, the ring-switched claim first and the pooled column claims after: the $J$ weights are distinct powers of the one challenge (Theorem~\ref{thm:rbr}).
 \item \textbf{Prover \& Verifier.} Fold the $J$ claims into $W_\lambda=\sum_j\lambda^{j-1} W_j$ and $C_\lambda=\sum_j\lambda^{j-1} c_j$, and run the inner-product PCS opening on $\sum_w W_\lambda(w)\,\widetilde q(w)=C_\lambda$ (Annex~\ref{annex:pcs}), the verifier evaluating $W_\lambda$ itself. This one opening discharges every pooled claim; there is no separate reduction sumcheck.
-\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, flock's reduction, and the PCS opening.
+\item \textbf{Verifier.} Accepts if every check above passed: the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final value, the Keccak reduction's checks, and the PCS opening.
 \end{enumerate}

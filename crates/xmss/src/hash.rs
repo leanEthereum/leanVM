@@ -1,15 +1,16 @@
-//! The XMSS hash layer: [`tweak_hash`] is standard BLAKE2s of the exact byte
+//! The XMSS hash layer: [`tweak_hash`] is the leanVM hash
+//! ([`primitives::hash::hash`], Keccak-256 in the cell encoding) of the exact byte
 //! string `tweak | pp | payload`, for chain steps, Merkle nodes, WOTS public
 //! keys, and message encodings alike.
 //!
 //! The 16-byte tweak makes every call site a distinct hash function
 //! (multi-target separation, as in leanVM) and the public parameter separates
-//! users. Standard BLAKE2s binds the exact payload length.
+//! users. The hash's padding binds the exact payload length.
 //!
-//! Compression counts per call: chain step 1, Merkle node 1, message encoding
-//! 2, WOTS public key 11. A full XMSS verification is a constant 144
-//! compressions: 2 (encoding) + 99 (chains, fixed by the target sum) + 11
-//! (tips) + 32 (Merkle path).
+//! Permutations per call: chain step 1, Merkle node 1, message encoding 1, WOTS
+//! public key 6. A full XMSS verification is a constant 138 permutations: 1
+//! (encoding) + 99 (chains, fixed by the target sum) + 6 (tips) + 32 (Merkle
+//! path).
 
 use crate::*;
 
@@ -28,7 +29,7 @@ pub const TWEAK_TYPE_RANDOMIZER: u8 = 7;
 pub const TWEAK_LEN: usize = 16;
 pub type Tweak = [u8; TWEAK_LEN];
 
-/// A full 32-byte BLAKE2s chaining value/output.
+/// A full 32-byte hash output.
 pub const STATE_LEN: usize = 32;
 
 /// `[protocol_domain_sep:1 | type:1 | layer:1 | zero:1 | p:4 | tree:4 | index:4]`, little endian.
@@ -44,9 +45,9 @@ pub fn make_tweak(tweak_type: u8, sub_position: u32, index: u32) -> Tweak {
     tweak
 }
 
-/// Standard BLAKE2s of the exact-length `tweak | pp | payload` byte string. One
-/// compression for chain steps (48 bytes total) and Merkle nodes (64 bytes
-/// total), more for the multi-block WOTS public-key and encoding inputs.
+/// The hash of the exact-length `tweak | pp | payload` byte string. One
+/// permutation for chain steps (48 bytes total), Merkle nodes (64 bytes total)
+/// and encodings (96 bytes total), six for the WOTS public key.
 pub fn tweak_hash(pp: &PublicParam, tweak_type: u8, sub_position: u32, index: u32, payload: &[u8]) -> Digest {
     let mut hasher = primitives::hash::Hasher::new();
     hasher.update(&make_tweak(tweak_type, sub_position, index));

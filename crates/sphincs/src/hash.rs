@@ -1,9 +1,10 @@
-//! The tweakable hash `Th(P, A, M) = Truncate_n(BLAKE2s(P | A | M))`, and the
+//! The tweakable hash `Th(P, A, M) = Truncate_n(H(P | A | M))`, `H` the leanVM
+//! hash ([`primitives::hash::hash`], Keccak-256 in the cell encoding), and the
 //! address that names one hash call in the whole structure.
 //!
 //! The public parameter and the address are 16 bytes each, as every value
-//! hashed after them is: a chain step and a Merkle node are one compression,
-//! and a prover whose words are 16 bytes never has to cut a value in two.
+//! hashed after them is, so a prover whose cells are 16 bytes never has to cut a
+//! value in two: a chain step and a Merkle node are one permutation.
 
 use primitives::hash::Hasher;
 
@@ -30,8 +31,6 @@ pub const TWEAK_FOREST_SUBNODE: u8 = 17;
 /// The leaf of a tree: the top nodes of its two subtrees.
 pub const TWEAK_FOREST_TREE_LEAF: u8 = 18;
 pub const TWEAK_FOREST_NODE: u8 = 19;
-/// The few-time public key: the top nodes of the trees.
-pub const TWEAK_FOREST_KEY: u8 = 20;
 
 /// The address of a hash call: its type, a chain step, and two fields,
 /// `hi < 2^24` and `lo`.
@@ -69,9 +68,10 @@ pub fn address(tw: &Tweak) -> [u8; ADDRESS_LEN] {
     out
 }
 
-/// Compressions BLAKE2s spends on a hash input whose payload is `payload` bytes.
+/// Permutations the leanVM hash spends on a hash input whose payload is
+/// `payload` bytes: one per started 128-byte block.
 pub const fn blocks(payload: usize) -> usize {
-    (PUBLIC_PARAM_LEN + ADDRESS_LEN + payload).div_ceil(64)
+    (PUBLIC_PARAM_LEN + ADDRESS_LEN + payload).div_ceil(primitives::hash::CHUNK)
 }
 
 /// A hasher that has absorbed `P | A`.
@@ -96,7 +96,7 @@ pub fn th_pair(pp: &PublicParam, tw: &Tweak, master: &MasterSecret) -> [Digest; 
     [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]
 }
 
-/// `Th` over a concatenation of digests: a Merkle node, a leaf, a few-time key.
+/// `Th` over a concatenation of digests: a Merkle node or a leaf.
 pub fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Digest {
     truncate(hasher(pp, tw).update(values.as_flattened()).finalize())
 }

@@ -45,7 +45,7 @@ noncomputable def publicFinishSign (segment : Segment) (outside : QueryImpl Hash
   let opening := evalWithAnswerFn outside (Seeded.forestOpen segment.parameter index (digestMarks digest) seed :
     OracleComp HashSpec (Coord → CoordOpening))
   let layer := publicLayer segment outside secrets frontier surrogates index topLayer
-    (evalWithAnswerFn outside (Seeded.forestKey segment.parameter index seed : OracleComp HashSpec Digest))
+    (evalWithAnswerFn outside (Seeded.forestKey segment.parameter index seed : OracleComp HashSpec ForestKey))
   layer.map fun top => ⟨randomness, opening, Fin.cases top (fun i => Fin.elim0 i)⟩
 
 end Sphincs.Security.Prefix

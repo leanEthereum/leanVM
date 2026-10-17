@@ -1,11 +1,12 @@
-//! leanSPHINCS over BLAKE2s: the stateless scheme specified in
+//! leanSPHINCS over Keccak-256: the stateless scheme specified in
 //! `doc/sphincs/main.tex`. One Merkle tree of height `h = 26` over WOTS+C keys,
 //! each signing the key of a few-time signature built from small WOTS keys, the
 //! two-level WOTS forest. A public key is 32 bytes, a signature 4276, and a
-//! verification 307 BLAKE2s compressions.
+//! verification 268 permutations.
 //!
-//! `Th(P, A, M) = BLAKE2s(P | A | M)` truncated to `n = 16` bytes, the 16-byte
-//! address `A` naming one hash call in the whole structure (the `hash` module).
+//! `Th(P, A, M) = H(P | A | M)` truncated to `n = 16` bytes, `H` the leanVM hash,
+//! the 16-byte address `A` naming one hash call in the whole structure (the
+//! `hash` module).
 //!
 //! One 32-byte seed derives the public parameter and every secret. A key may be
 //! pruned: it keeps one subtree of height `b` and replaces the `h - b` siblings
@@ -54,7 +55,7 @@ pub const CHAIN_LEN: usize = 1 << W;
 pub const V: usize = 64;
 /// `T`: the sum every codeword has. Above the mean `v(2^w-1)/2 = 96`, so
 /// verification walks fewer chain steps and the signer grinds a counter for it.
-pub const TARGET_SUM: usize = 120;
+pub const TARGET_SUM: usize = 123;
 
 /// `h`: the tree's height, so `2^h` few-time keys.
 pub const H: usize = 26;
@@ -101,16 +102,16 @@ pub const PUB_KEY_SIZE: usize = N + PUBLIC_PARAM_LEN;
 pub const SECRET_KEY_SIZE: usize = MASTER_SECRET_LEN + 1;
 pub const SIG_SIZE: usize = RANDOMIZER_LEN + FOREST_TREES * TREE_VALUES * N + COUNTER_LEN + V * N + H * N;
 
-/// BLAKE2s compressions of one verification: the digest, the forest, the
-/// encoding, the chains, the one-time leaf and the path.
-pub const VERIFY_COMPRESSIONS: usize = blocks(MESSAGE_LEN + RANDOMIZER_LEN)
+/// Permutations of one verification: the digest, the forest, the
+/// encoding (which absorbs the forest key), the chains, the one-time leaf and
+/// the path.
+pub const VERIFY_PERMUTATIONS: usize = blocks(MESSAGE_LEN + RANDOMIZER_LEN)
     + FOREST_TREES
         * (SUBTREES * (CODEWORD_SUM + blocks(FOREST_CHAINS * N) + SUBTREE_HEIGHT - 1)
             + blocks(2 * SUBTREES * N)
             + TREE_HEIGHT
             - 1)
-    + blocks(2 * FOREST_TREES * N)
-    + blocks(N + COUNTER_LEN)
+    + blocks(2 * FOREST_TREES * N + COUNTER_LEN)
     + (V * (CHAIN_LEN - 1) - TARGET_SUM)
     + blocks(V * N)
     + H * blocks(2 * N);
@@ -120,4 +121,4 @@ const _: () = assert!(TARGET_SUM < V * (CHAIN_LEN - 1));
 const _: () = assert!(CODEWORD_BITS == 8 && DIGEST_BITS == 234);
 const _: () = assert!(PUB_KEY_SIZE == 32);
 const _: () = assert!(SIG_SIZE == 4276);
-const _: () = assert!(VERIFY_COMPRESSIONS == 307);
+const _: () = assert!(VERIFY_PERMUTATIONS == 268);

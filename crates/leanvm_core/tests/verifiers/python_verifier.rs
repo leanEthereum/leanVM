@@ -26,7 +26,7 @@ def mix(value, tag):
 def main():
     seed = [5, 7]
     digest = StackBuf(2)
-    blake2s(seed, seed, digest)
+    sha3(seed, seed, digest)
 
     chain = HeapBuf(LOOP_STEPS + 1)
     chain[1] = digest[0]
@@ -74,11 +74,8 @@ fn python_verify(directory: &Path, bytecode: &Path, public_input: &Path, stream:
 }
 
 fn public_input() -> [F192; 2] {
-    use leanvm_core::hash_flock::{FINAL_FLAG, IV, PINNED_T, compression, digest, metadata};
-
     let seed = [F64(5), F64::ZERO, F64(7), F64::ZERO];
-    let metadata = metadata(PINNED_T, FINAL_FLAG, 0);
-    let digest = digest(&compression(seed, seed, IV, metadata));
+    let digest = leanvm_core::vmhash::compress(seed, seed);
     let digest = [
         F192::new(digest[0].0, digest[1].0, 0),
         F192::new(digest[2].0, digest[3].0, 0),

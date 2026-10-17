@@ -3,10 +3,11 @@ import Sphincs.BridgeClassify
 /-! Accepted-signature classification keeping the recovered forest key. An accepted signature is a
 canonical WOTS and tree opening at a retained leaf whose forest part recovers the canonical forest
 key, a tree hit, or a WOTS exception at a retained leaf. A recovered canonical forest key is a
-structural match (WOTS-key leaf, subtree node, tree leaf, tree node or roots), or every path is
-canonical and every opened chain value is canonical or walks into its chain through a match. A tree
-has no root hash: the roots hash takes the two level-3 nodes of every tree and a tree leaf the two
-level-2 nodes of each of its subtrees, one reached by the fold and one the last path element. -/
+structural match (WOTS-key leaf, subtree node, tree leaf or tree node), or every path is canonical
+and every opened chain value is canonical or walks into its chain through a match. A tree has no
+root hash and the key is not hashed: the key is the two level-3 nodes of every tree, and a tree leaf
+hashes the two level-2 nodes of each of its subtrees, one reached by the fold and one the last path
+element. -/
 
 open OracleComp OracleSpec
 
@@ -17,16 +18,14 @@ section Refined
 
 variable (f : QueryImpl HashSpec Id) (parameter : PublicParameter) (index : Index) (seed : MasterSeed)
 
-/-- The exceptional branches other than a chain match: a WOTS-key leaf, a subtree node, a tree leaf,
-a tree node or the roots. A node match is at a hashed level: subtree levels 1 and 2, tree levels 1
-to 3. -/
+/-- The exceptional branches other than a chain match: a WOTS-key leaf, a subtree node, a tree leaf
+or a tree node. A node match is at a hashed level: subtree levels 1 and 2, tree levels 1 to 3. -/
 def StructException (marks : Coord → CoordMark) (opening : Coord → CoordOpening) : Prop :=
   (∃ c j, ChildLeafMatch f parameter index seed c (marks c) j ((opening c).sub j).values) ∨
   (∃ c j level, level < subHeight - 1 ∧
     SubNodeMatch f parameter index seed c (marks c) j ((opening c).sub j) level) ∨
   (∃ c, SuperMatch f parameter index seed c (marks c) (opening c)) ∨
-  (∃ c level, level < topHeight - 1 ∧ TopNodeMatch f parameter index seed c (marks c) (opening c) level) ∨
-  RootsMatch f parameter index seed marks opening
+  (∃ c level, level < topHeight - 1 ∧ TopNodeMatch f parameter index seed c (marks c) (opening c) level)
 
 /-- One subtree with the two canonical level-2 nodes: a WOTS-key leaf match, a node match, or a
 canonical path with every chain canonical or a chain match. -/
@@ -87,8 +86,8 @@ theorem coord_refined (c : Coord) (mark : CoordMark) (opening : CoordOpening)
 
 /-- **Chain-by-chain classification of a recovered canonical forest key.** -/
 theorem recovered_classification (marks : Coord → CoordMark) (opening : Coord → CoordOpening)
-    (hrecover : evalWithAnswerFn f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) =
-      evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest)) :
+    (hrecover : evalWithAnswerFn f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) =
+      evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey)) :
     StructException f parameter index seed marks opening ∨
     ∀ c, (opening c).top = canonicalTopPath f parameter index seed c (marks c).super ∧
       (∀ j, ((opening c).sub j).path = canonicalSubPath f parameter index seed c (marks c).super j ((marks c).child j)) ∧
@@ -101,12 +100,9 @@ theorem recovered_classification (marks : Coord → CoordMark) (opening : Coord 
   right
   unfold StructException at hS
   push Not at hS
-  obtain ⟨hleafS, hsubS, hsuperS, htopS, hrootsS⟩ := hS
-  have hpayload : rootsPayload (roots f parameter index marks opening) =
-      rootsPayload (canonicalRoots f parameter index seed) := by
-    by_contra hne
-    exact hrootsS ⟨hne, by rwa [← eval_forestRecover]⟩
-  have hroots := rootsPayload_injective hpayload
+  obtain ⟨hleafS, hsubS, hsuperS, htopS⟩ := hS
+  have hroots : roots f parameter index marks opening = canonicalRoots f parameter index seed := by
+    rw [← eval_forestRecover, hrecover, forestKey_eq]
   intro c
   have htops : opTops f parameter index c (marks c) (opening c) =
       Completeness.topTopsValue f parameter index c seed := congrFun hroots c

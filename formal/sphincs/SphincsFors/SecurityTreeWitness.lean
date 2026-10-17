@@ -14,6 +14,36 @@ open OracleComp OracleSpec
 namespace SphincsFors.Security
 open Concrete
 
+theorem flatMap_ofFn_injective {α β : Type} (g : α → List β) (len : Nat)
+    (hlen : ∀ a, (g a).length = len) (hinj : ∀ a b, g a = g b → a = b) :
+    ∀ {n : Nat} {f f' : Fin n → α},
+      (List.ofFn f).flatMap g = (List.ofFn f').flatMap g → f = f' := by
+  intro n
+  induction n with
+  | zero => intro f f' _; funext i; exact i.elim0
+  | succ n ih =>
+      intro f f' h
+      simp only [List.ofFn_succ, List.flatMap_cons] at h
+      obtain ⟨hhead, htail⟩ := List.append_inj h (by rw [hlen, hlen])
+      have hzero := hinj _ _ hhead
+      have hsucc := ih htail
+      funext i
+      cases i using Fin.cases with
+      | zero => exact hzero
+      | succ j => exact congrFun hsucc j
+
+theorem ftsTopsPayload_injective {tops tops' : FtsTree → Digest × Digest}
+    (h : ftsTopsPayload tops = ftsTopsPayload tops') : tops = tops' :=
+  flatMap_ofFn_injective (fun pair : Digest × Digest => nodePayload pair.1 pair.2) 32
+    (fun _ => by simp [nodePayload, bytesLE_length])
+    (fun left right hpair => by
+      obtain ⟨hfirst, hsecond⟩ := List.append_inj hpair (by rw [bytesLE_length, bytesLE_length])
+      exact Prod.ext (bytesLE_injective hfirst) (bytesLE_injective hsecond)) h
+
+theorem ftsTopsPayload_length (tops : FtsTops) : (ftsTopsPayload tops).length = 768 := by
+  rw [ftsTopsPayload, List.length_flatMap]
+  simp [nodePayload, bytesLE_length, ftsTrees]
+
 /-- Inputs on the actual deterministic execution path selected by `f`. -/
 def queriedInputs {α : Type} (f : QueryImpl HashSpec Id) (oa : OracleComp HashSpec α) :
     List HashInput :=

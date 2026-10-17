@@ -16,8 +16,8 @@ attribute [local semireducible] Concrete.verify
 
 variable (f : QueryImpl HashSpec Id) [Params]
 
-def layerMessageValue (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer) : Digest :=
-  evalWithAnswerFn f (Seeded.layerMessage secretKey index lay : OracleComp HashSpec Digest)
+def layerMessageValue (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer) : FtsTops :=
+  evalWithAnswerFn f (Seeded.layerMessage secretKey index lay : OracleComp HashSpec FtsTops)
 
 theorem signLayer_spec (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer)
     {part : LayerSignature lay}
@@ -33,7 +33,7 @@ theorem signLayer_spec (secretKey : Seeded.SecretKey) (index : Index) (lay : Lay
   simp only [layerMessageValue, Seeded.signLayer, evalWithAnswerFn_bind] at h ⊢
   cases hots : evalWithAnswerFn f (otsSign secretKey.parameter lay (treeIndexAt index lay)
       (leafIndexAt index lay) secretKey.seed
-      (evalWithAnswerFn f (Seeded.layerMessage secretKey index lay : OracleComp HashSpec Digest))
+      (evalWithAnswerFn f (Seeded.layerMessage secretKey index lay : OracleComp HashSpec FtsTops))
       : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest)))) with
   | none =>
       rw [hots] at h
@@ -205,7 +205,7 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
   set digest := digestValue f secretKey message signature.randomness
   set index := digestIndex digest with hindex
   have hkey : evalWithAnswerFn f (ftsRecover secretKey.parameter index (digestLeaves digest)
-      signature.ftsSecret signature.ftsPath : OracleComp HashSpec Digest)
+      signature.ftsSecret signature.ftsPath : OracleComp HashSpec FtsTops)
       = layerMessageValue f secretKey index topLayer := by
     rw [hsecrets, hpaths, eval_ftsRecover]
     rfl
@@ -219,9 +219,9 @@ theorem verify_of_parts (secretKey : Seeded.SecretKey) (message : Message) {sign
       signature.randomness : OracleComp HashSpec MessageDigest) = digest := rfl
   rw [Concrete.verify]
   simp only [evalWithAnswerFn_bind, hdig, ← hindex, hkey]
-  rw [show numLayers = 0 + 1 from rfl, verifyLayers, dif_pos (by decide : 0 < numLayers)]
+  rw [verifyLayer]
   simp only [topLayer] at hleaf hfold'
-  simp only [topLayer, evalWithAnswerFn_bind, hleaf, hfold', verifyLayers,
+  simp only [topLayer, evalWithAnswerFn_bind, hleaf, hfold',
     evalWithAnswerFn_pure, decide_true]
 
 /-- Every successful signature verifies under every fixed hash function, for any pruning height. -/

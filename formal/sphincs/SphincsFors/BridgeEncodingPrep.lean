@@ -14,13 +14,13 @@ set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 10000
 attribute [local instance] Classical.propDecidable
 
-/-- Every leaf's canonical WOTS encoding search of its FORS key, run in order. -/
-def searchAll (parameter : PublicParameter) (forsKey : Index → Digest) :
+/-- Every leaf's canonical WOTS encoding search of its FORS tops, run in order. -/
+def searchAll (parameter : PublicParameter) (forsKey : Index → FtsTops) :
     OracleComp HashSpec (Index → Option (Counter × Encoding)) :=
   Concrete.sequenceFin fun leaf => ReferenceChoice.search parameter topLayer rootTree leaf (forsKey leaf)
     encodingAttemptLimit 0
 
-theorem Only.searchAll (parameter : PublicParameter) (forsKey : Index → Digest) :
+theorem Only.searchAll (parameter : PublicParameter) (forsKey : Index → FtsTops) :
     Short.Only (searchAll parameter forsKey) :=
   Short.Only.sequenceFin _ fun _ => Only.search _ _ _ _ _ _ _
 
@@ -75,7 +75,7 @@ theorem evalDist_eager_prefix {β γ : Type} (computation : OracleComp HashSpec 
 
 theorem evalDist_stoppedExperiment_prep {A α : Type}
     (model : HiddenRows.Model HashInput HashOutput A HiddenGraph.Coordinate)
-    (base : QueryCache HashSpec) (parameter : PublicParameter) (forsKey : Index → Digest)
+    (base : QueryCache HashSpec) (parameter : PublicParameter) (forsKey : Index → FtsTops)
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate) :
     𝒟[($ᵗ Eager.Table) >>= fun outside =>

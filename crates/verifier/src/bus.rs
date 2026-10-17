@@ -88,7 +88,8 @@ pub struct ColumnClaim {
 
 impl ColumnClaim {
     pub fn on_stack(&self, layout: &Layout) -> StackClaim<'static> {
-        let point = layout.placements[self.column].stack_point(&self.point, layout.stack_log);
+        let placement = layout.placements[self.column].expect("a claim is on a committed column");
+        let point = placement.stack_point(&self.point, layout.stack_log);
         (Box::new(move |x| eq_eval(&point, x)), self.value)
     }
 }

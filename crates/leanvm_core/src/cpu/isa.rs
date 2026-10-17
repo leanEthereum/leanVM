@@ -32,26 +32,24 @@ pub enum Op {
         od: u32,
         of: u32,
     },
-    /// `BLAKE2s`: one standard BLAKE2s compression. The four 16-byte
-    /// message chunks `ins` (each a canonical 128-bit chunk in ONE 192-bit cell,
-    /// top limb zero) form the 64-byte block; the digest lands in the TWO
-    /// consecutive cells `out, out+1`. Each message chunk is addressed
-    /// independently, with no forced contiguity, so the caller need not assemble
-    /// its operands into adjacent cells. Every operand is a memory operand, the
-    /// metadata included. The compression relation is proven by flock.
-    Blake2s {
-        ins: [u32; 4],
-        /// Base of two consecutive cells holding the 256-bit chaining value
-        /// (canonical 128-bit chunks, top limbs zero).
-        cv: u32,
+    /// `SHA3`: one step of the cell sponge ([`primitives::hash::step`]):
+    /// Keccak-f of a 25-lane state after XORing the padding's last bit into lane
+    /// 16. The state is read from thirteen canonical cells (two lanes each, top
+    /// limb zero) and the result written to thirteen, both in the order of
+    /// [`crate::keccak::CELL_LANES`]: four independently addressed cells `m`
+    /// (lanes 0..8, the first 64 bytes of a block), four consecutive cells from
+    /// `tail` (lanes 8..16, the other 64), and five consecutive cells from `cap`
+    /// (lane 16 alone, its high lane zero, then the capacity lanes 17..25).
+    ///
+    /// A fresh hash reads a zero `cap`; a later block reads the previous output's
+    /// last five cells there, and XORs its message into the previous output's
+    /// first eight to form `m` and `tail`. The relation is proven by the Keccak
+    /// reduction ([`crate::keccak`]).
+    Sha3 {
+        m: [u32; 4],
+        tail: u32,
+        cap: u32,
         out: u32,
-        /// The cell holding the metadata `counter:u64 | f0:u32 | f1:u32`,
-        /// little-endian in its two low K-lanes (top lane zero, as for every
-        /// other cell this opcode reads). `f0` is the final-block flag and `f1`
-        /// the last-node flag. A memory operand like the rest, so a program can
-        /// hash any length: a compile-time counter is one pooled `SET` per
-        /// frame, a runtime one any cell the program computes.
-        md: u32,
     },
 }
 

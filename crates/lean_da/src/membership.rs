@@ -42,7 +42,7 @@ pub fn membership_vector(root: &[u8; 32]) -> Vec<F192> {
     dual_codeword(&membership_challenges(root))
 }
 
-/// BLAKE2s of the vector's three little-endian 64-bit limbs per entry, in domain order.
+/// The hash of the vector's three little-endian 64-bit limbs per entry, in domain order.
 pub fn vector_digest(vector: &[F192]) -> [u8; 32] {
     assert_eq!(vector.len(), CODEWORD_SYMBOLS);
     let bytes: Vec<u8> = vector

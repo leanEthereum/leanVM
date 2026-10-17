@@ -5,44 +5,20 @@ Deterministic extraction for the forest opening, the analogue of `SecurityForsWi
 that recovers the canonical forest key either opens every needed chain at its canonical value with
 canonical sub-tree and top-tree paths, or one of the verifier's actual queries uses a different input
 producing a canonical value: a forest chain step (`ChainMatch`), a child leaf, a sub-tree node, a
-super-child, a top-tree node or the roots hash. No collision-freeness or security assumption is used.
+super-child or a top-tree node. No collision-freeness or security assumption is used.
 
-A tree has no root hash. The roots hash takes the two level-3 nodes of every top tree and the
-super-child the two level-2 nodes of each of its sub-trees: the opening gives one of the two by
-folding and the other as its last path element. An opening whose sixteen level-3 nodes are the
-canonical ones (else `RootsMatch`) has, in every tree, the canonical last path element and a fold of
-3 levels that reaches a canonical node, which is classified as a fold to a root was; likewise for the
-four level-2 nodes of a super-child (`SuperMatch`) and the folds of 2 levels below them.
+A tree has no root hash and the forest key is not hashed: the key is the two level-3 nodes of every
+top tree, which the WOTS+C encoding absorbs, and the super-child hashes the two level-2 nodes of each
+of its sub-trees. The opening gives one of the two by folding and the other as its last path element.
+An opening that recovers the canonical key has, in every tree, the canonical last path element and a
+fold of 3 levels that reaches a canonical node, which is classified as a fold to a root was; likewise
+for the four level-2 nodes of a super-child (`SuperMatch`) and the folds of 2 levels below them.
 -/
 
 open OracleComp OracleSpec
 
 namespace Sphincs.Security
 open Concrete
-
-theorem flatMap_ofFn_injective {α β : Type} (g : α → List β) (len : Nat)
-    (hlen : ∀ a, (g a).length = len) (hinj : ∀ a b, g a = g b → a = b) :
-    ∀ {n : Nat} {f f' : Fin n → α},
-      (List.ofFn f).flatMap g = (List.ofFn f').flatMap g → f = f' := by
-  intro n
-  induction n with
-  | zero => intro f f' _; funext i; exact i.elim0
-  | succ n ih =>
-      intro f f' h
-      simp only [List.ofFn_succ, List.flatMap_cons] at h
-      obtain ⟨hhead, htail⟩ := List.append_inj h (by rw [hlen, hlen])
-      have hzero := hinj _ _ hhead
-      have hsucc := ih htail
-      funext i
-      cases i using Fin.cases with
-      | zero => exact hzero
-      | succ j => exact congrFun hsucc j
-
-theorem rootsPayload_injective {tops tops' : Coord → Digest × Digest}
-    (h : rootsPayload tops = rootsPayload tops') : tops = tops' :=
-  flatMap_ofFn_injective (fun pair : Digest × Digest => nodePayload pair.1 pair.2) 32
-    (fun pair => by simp [nodePayload, bytesLE_length])
-    (fun _ _ hpair => Prod.ext (nodePayload_injective hpair).1 (nodePayload_injective hpair).2) h
 
 theorem superPayload_injective {tops tops' : SubIdx → Digest × Digest}
     (h : superPayload tops = superPayload tops') : tops = tops' := by
@@ -227,7 +203,7 @@ def canonicalSubPath (c : Coord) (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (lev
 def canonicalTopPath (c : Coord) (s : SuperIdx) (level : Fin topHeight) : Digest :=
   Completeness.topNodeValue f parameter index c seed level.val (Nat.xor (s.val / 2 ^ level.val) 1)
 
-/-- The canonical level-3 nodes of every coordinate, the inputs of the forest key. -/
+/-- The canonical level-3 nodes of every coordinate: the canonical forest key. -/
 def canonicalRoots : Coord → Digest × Digest :=
   fun c => Completeness.topTopsValue f parameter index c seed
 
@@ -256,9 +232,8 @@ theorem superValue_eq (c : Coord) (s : SuperIdx) :
   Completeness.superValue_eq f parameter index c seed s
 
 theorem forestKey_eq :
-    evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest) =
-      truncateHash (f (tweakableHashInput parameter (.roots index)
-        (rootsPayload (canonicalRoots f parameter index seed)))) :=
+    evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey) =
+      canonicalRoots f parameter index seed :=
   Completeness.forestKey_eq f parameter index seed
 
 end Canonical
@@ -353,11 +328,9 @@ theorem eval_coordRecover (c : Coord) (mark : CoordMark) (opening : CoordOpening
   rfl
 
 theorem eval_forestRecover (marks : Coord → CoordMark) (opening : Coord → CoordOpening) :
-    evalWithAnswerFn f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) =
-      truncateHash (f (tweakableHashInput parameter (.roots index)
-        (rootsPayload (roots f parameter index marks opening)))) := by
-  simp only [forestRecover, evalWithAnswerFn_bind, Completeness.eval_sequenceFin, eval_coordRecover,
-    Completeness.eval_tweakableHash]
+    evalWithAnswerFn f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) =
+      roots f parameter index marks opening := by
+  simp only [forestRecover, Completeness.eval_sequenceFin, eval_coordRecover]
   rfl
 
 end Opening
@@ -407,13 +380,6 @@ def TopNodeMatch (c : Coord) (mark : CoordMark) (opening : CoordOpening) (level 
     (opSuper f parameter index c mark opening)
     (Completeness.superValue f parameter index c seed mark.super) level
 
-/-- The sixteen level-3 nodes differ from the canonical ones but hash to the forest key. -/
-def RootsMatch (marks : Coord → CoordMark) (opening : Coord → CoordOpening) : Prop :=
-  rootsPayload (roots f parameter index marks opening) ≠ rootsPayload (canonicalRoots f parameter index seed) ∧
-  truncateHash (f (tweakableHashInput parameter (.roots index)
-    (rootsPayload (roots f parameter index marks opening)))) =
-    evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest)
-
 /-- Every needed chain value, sub-tree path and top path is canonical. -/
 def Opening (marks : Coord → CoordMark) (opening : Coord → CoordOpening) : Prop :=
   ∀ c, (∀ j i, ((opening c).sub j).values i =
@@ -430,8 +396,7 @@ def Exception (marks : Coord → CoordMark) (opening : Coord → CoordOpening) :
   (∃ c j level, level < subHeight - 1 ∧
     SubNodeMatch f parameter index seed c (marks c) j ((opening c).sub j) level) ∨
   (∃ c, SuperMatch f parameter index seed c (marks c) (opening c)) ∨
-  (∃ c level, level < topHeight - 1 ∧ TopNodeMatch f parameter index seed c (marks c) (opening c) level) ∨
-  RootsMatch f parameter index seed marks opening
+  (∃ c level, level < topHeight - 1 ∧ TopNodeMatch f parameter index seed c (marks c) (opening c) level)
 
 /-- A sub-tree whose two level-2 nodes are canonical: its last path element is the canonical one,
 and its fold of 2 levels reaches a canonical node, so the child leaf and the path below are canonical
@@ -586,30 +551,27 @@ theorem coord_classification (c : Coord) (mark : CoordMark) (opening : CoordOpen
 /-- **Forest extraction.** An opening that recovers the canonical forest key is canonical or has an
 exceptional branch. -/
 theorem recover_classification (marks : Coord → CoordMark) (opening : Coord → CoordOpening)
-    (hrecover : evalWithAnswerFn f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) =
-      evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest)) :
+    (hrecover : evalWithAnswerFn f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) =
+      evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey)) :
     Opening f parameter index seed marks opening ∨ Exception f parameter index seed marks opening := by
   classical
-  by_cases hpayload : rootsPayload (roots f parameter index marks opening) =
-      rootsPayload (canonicalRoots f parameter index seed)
-  · have hroots := rootsPayload_injective hpayload
-    by_cases hopening : Opening f parameter index seed marks opening
-    · exact Or.inl hopening
-    · unfold Opening at hopening
-      push Not at hopening
-      obtain ⟨c, hc⟩ := hopening
-      have htops : opTops f parameter index c (marks c) (opening c) =
-          Completeness.topTopsValue f parameter index c seed := congrFun hroots c
-      rcases coord_classification f parameter index seed c (marks c) (opening c) htops with
-        hok | ⟨j, i, hchain⟩ | ⟨j, hleaf⟩ | ⟨j, level, hlevel, hnode⟩ | hsuper | ⟨level, hlevel, htop⟩
-      · exact False.elim (hc hok.1 hok.2.1 hok.2.2)
-      · exact Or.inr (Or.inl ⟨c, j, i, hchain⟩)
-      · exact Or.inr (Or.inr (Or.inl ⟨c, j, hleaf⟩))
-      · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨c, j, level, hlevel, hnode⟩)))
-      · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨c, hsuper⟩))))
-      · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨c, level, hlevel, htop⟩)))))
-  · refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨hpayload, ?_⟩)))))
-    rwa [← eval_forestRecover]
+  have hroots : roots f parameter index marks opening = canonicalRoots f parameter index seed := by
+    rw [← eval_forestRecover, hrecover, forestKey_eq]
+  by_cases hopening : Opening f parameter index seed marks opening
+  · exact Or.inl hopening
+  · unfold Opening at hopening
+    push Not at hopening
+    obtain ⟨c, hc⟩ := hopening
+    have htops : opTops f parameter index c (marks c) (opening c) =
+        Completeness.topTopsValue f parameter index c seed := congrFun hroots c
+    rcases coord_classification f parameter index seed c (marks c) (opening c) htops with
+      hok | ⟨j, i, hchain⟩ | ⟨j, hleaf⟩ | ⟨j, level, hlevel, hnode⟩ | hsuper | ⟨level, hlevel, htop⟩
+    · exact False.elim (hc hok.1 hok.2.1 hok.2.2)
+    · exact Or.inr (Or.inl ⟨c, j, i, hchain⟩)
+    · exact Or.inr (Or.inr (Or.inl ⟨c, j, hleaf⟩))
+    · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨c, j, level, hlevel, hnode⟩)))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨c, hsuper⟩))))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨c, level, hlevel, htop⟩))))
 
 end Exceptions
 
@@ -623,9 +585,8 @@ variable (f : QueryImpl HashSpec Id) (parameter : PublicParameter) (index : Inde
 theorem coordInput_mem (c : Coord) {input : HashInput}
     (h : input ∈ queriedInputs f (coordRecover parameter index c (marks c) (opening c)
       : OracleComp HashSpec (Digest × Digest))) :
-    input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
+    input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   rw [forestRecover]
-  apply queriedInputs_mono_bind_left
   exact queriedInputs_sequenceFin_component f _ c h
 
 theorem subInput_mem (c : Coord) (j : SubIdx) {input : HashInput}
@@ -636,7 +597,7 @@ theorem subInput_mem (c : Coord) (j : SubIdx) {input : HashInput}
         (subHeight - 1) leaf
       return orderTops (((marks c).child j).val.testBit (subHeight - 1)) node (((opening c).sub j).path subTopLevel)
         : OracleComp HashSpec (Digest × Digest))) :
-    input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
+    input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   apply coordInput_mem f parameter index marks opening c
   rw [coordRecover]
   apply queriedInputs_mono_bind_left
@@ -650,7 +611,7 @@ theorem chainInput_mem (c : Coord) (j : SubIdx) (i : FChain) (offset : Nat)
         ⟨chainTop - (lut ((marks c).word j) i).val + offset, hrange⟩)
       ((bytesLE 16) (walkValue f parameter index c (marks c).super j ((marks c).child j) i
         (chainTop - (lut ((marks c).word j) i).val) (((opening c).sub j).values i) offset)) ∈
-      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
+      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   apply subInput_mem f parameter index marks opening c j
   apply queriedInputs_mono_bind_left
   rw [childRecover]
@@ -662,7 +623,7 @@ theorem chainInput_mem (c : Coord) (j : SubIdx) (i : FChain) (offset : Nat)
 theorem childLeafInput_mem (c : Coord) (j : SubIdx) :
     tweakableHashInput parameter (.childLeaf index c (marks c).super j ((marks c).child j))
         (childPayload (opEnds f parameter index c (marks c) j ((opening c).sub j).values)) ∈
-      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
+      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   apply subInput_mem f parameter index marks opening c j
   apply queriedInputs_mono_bind_left
   rw [childRecover]
@@ -675,7 +636,7 @@ theorem childLeafInput_mem (c : Coord) (j : SubIdx) :
 theorem subNodeInput_mem (c : Coord) (j : SubIdx) (level : Nat) (hlevel : level < subHeight - 1) :
     merkleInput f parameter (subDomain index c (marks c).super j) ((marks c).child j).val
       (subPathExt ((opening c).sub j).path) (opLeaf f parameter index c (marks c) j ((opening c).sub j).values) level ∈
-      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
+      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   apply subInput_mem f parameter index marks opening c j
   apply queriedInputs_mono_bind_right
   apply queriedInputs_mono_bind_left
@@ -686,7 +647,7 @@ theorem subNodeInput_mem (c : Coord) (j : SubIdx) (level : Nat) (hlevel : level 
 theorem superInput_mem (c : Coord) :
     tweakableHashInput parameter (.superChild index c (marks c).super)
         (superPayload fun j => opSubTops f parameter index c (marks c) j ((opening c).sub j)) ∈
-      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
+      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   apply coordInput_mem f parameter index marks opening c
   rw [coordRecover]
   apply queriedInputs_mono_bind_right
@@ -698,7 +659,7 @@ theorem superInput_mem (c : Coord) :
 theorem topNodeInput_mem (c : Coord) (level : Nat) (hlevel : level < topHeight - 1) :
     merkleInput f parameter (topDomain index c) (marks c).super.val (topPathExt (opening c).top)
       (opSuper f parameter index c (marks c) (opening c)) level ∈
-      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
+      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   apply coordInput_mem f parameter index marks opening c
   rw [coordRecover]
   apply queriedInputs_mono_bind_right
@@ -708,15 +669,6 @@ theorem topNodeInput_mem (c : Coord) (level : Nat) (hlevel : level < topHeight -
   rw [← merkleFold_topFold _ _ _ _ _ _ (by decide)]
   exact merkleInput_mem f parameter _ _ _ _ _ _ hlevel
 
-theorem rootsInput_mem :
-    tweakableHashInput parameter (.roots index) (rootsPayload (roots f parameter index marks opening)) ∈
-      queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
-  rw [forestRecover]
-  apply queriedInputs_mono_bind_right
-  rw [queriedInputs_tweakableHash, List.mem_singleton]
-  simp only [Completeness.eval_sequenceFin, eval_coordRecover]
-  rfl
-
 end Inputs
 
 /-- Every exceptional branch supplies an actual queried input and a distinct canonical input with
@@ -725,10 +677,10 @@ theorem Exception.queried_output_match (f : QueryImpl HashSpec Id) (parameter : 
     (index : Index) (seed : MasterSeed) (marks : Coord → CoordMark) (opening : Coord → CoordOpening)
     (hexception : Exception f parameter index seed marks opening) :
     ∃ input canonicalInput : HashInput,
-      input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest) ∧
+      input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) ∧
       input ≠ canonicalInput ∧ truncateHash (f input) = truncateHash (f canonicalInput) := by
   rcases hexception with ⟨c, j, i, offset, hoffset, hlt, hne, heq⟩ | ⟨c, j, hne, heq⟩ |
-      ⟨c, j, level, hlevel, hnode⟩ | ⟨c, hne, heq⟩ | ⟨c, level, hlevel, hnode⟩ | ⟨hne, heq⟩
+      ⟨c, j, level, hlevel, hnode⟩ | ⟨c, hne, heq⟩ | ⟨c, level, hlevel, hnode⟩
   · refine ⟨_, tweakableHashInput parameter (.fchain index c (marks c).super j ((marks c).child j) i
         ⟨chainTop - (lut ((marks c).word j) i).val + offset, hoffset⟩)
         ((bytesLE 16) (honestChain f parameter index c (marks c).super j ((marks c).child j) i
@@ -754,10 +706,6 @@ theorem Exception.queried_output_match (f : QueryImpl HashSpec Id) (parameter : 
       exact heq
   · refine ⟨_, _, topNodeInput_mem f parameter index marks opening c level hlevel, hnode.2.1, ?_⟩
     exact hnode.2.2.trans (merkleValue_succ f parameter _ _ _ _ level)
-  · refine ⟨_, tweakableHashInput parameter (.roots index) (rootsPayload (canonicalRoots f parameter index seed)),
-      rootsInput_mem f parameter index marks opening, ?_, ?_⟩
-    · exact fun hinput => hne (List.append_cancel_left hinput)
-    · rw [heq, forestKey_eq]
 
 end Forest
 end Sphincs.Security

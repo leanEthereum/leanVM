@@ -1,4 +1,4 @@
-//! Batched BLAKE2s throughput across the thread pool, 64-byte blocks to 32-byte digests.
+//! Batched Keccak-256 throughput across the thread pool, 64-byte inputs to 32-byte digests.
 //! The passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text

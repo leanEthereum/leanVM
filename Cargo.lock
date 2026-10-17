@@ -1035,19 +1035,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flock"
-version = "0.1.0"
-dependencies = [
- "bench",
- "fiat_shamir",
- "parallel",
- "pcs",
- "primitives",
- "tracing",
- "verifier",
-]
-
-[[package]]
 name = "foldhash"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1397,6 +1384,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "keccak_gkr"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "fiat_shamir",
+ "parallel",
+ "pcs",
+ "primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
 name = "konst"
 version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1478,7 +1478,7 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "fiat_shamir",
- "flock",
+ "keccak_gkr",
  "lean_compiler",
  "parallel",
  "pcs",
@@ -1846,7 +1846,7 @@ name = "rec_aggregation"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "flock",
+ "keccak_gkr",
  "lean_compiler",
  "lean_da",
  "leanvm_core",

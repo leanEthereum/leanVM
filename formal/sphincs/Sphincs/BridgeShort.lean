@@ -148,14 +148,15 @@ theorem Only.leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
   Only.tweakableHash _ _ _ (by rw [leafPayload_length])
 
 theorem Only.encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (message : Digest) (counter : Counter) :
+    (leaf : LeafIndex) (message : ForestKey) (counter : Counter) :
     Only (Concrete.encode parameter lay tree leaf message counter :
       OracleComp HashSpec (Option Encoding)) := by
   unfold Concrete.encode
-  exact Only.bind (Only.tweakableHash _ _ _ (by simp [bytesLE_length])) (fun _ => Only.pure' _)
+  exact Only.bind (Only.tweakableHash _ _ _ (by simp [rootsPayload_length, bytesLE_length]))
+    (fun _ => Only.pure' _)
 
 theorem Only.otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (message : Digest) (counter : Counter) (values : ChainIndex → Digest) :
+    (leaf : LeafIndex) (message : ForestKey) (counter : Counter) (values : ChainIndex → Digest) :
     Only (Concrete.otsLeaf parameter lay tree leaf message counter values :
       OracleComp HashSpec (Option Digest)) := by
   unfold Concrete.otsLeaf
@@ -228,19 +229,17 @@ theorem Only.topFold (parameter : PublicParameter) (index : Index) (c : Coord) (
 
 theorem Only.forestRecover (parameter : PublicParameter) (index : Index)
     (marks : Coord → CoordMark) (opening : Coord → CoordOpening) :
-    Only (Concrete.forestRecover parameter index marks opening : OracleComp HashSpec Digest) := by
+    Only (Concrete.forestRecover parameter index marks opening : OracleComp HashSpec ForestKey) := by
   unfold Concrete.forestRecover Concrete.coordRecover
-  refine Only.bind (Only.sequenceFin _ fun c => ?_) ?_
-  · refine Only.bind (Only.sequenceFin _ fun j => ?_) (fun tops => ?_)
-    · unfold Concrete.childRecover Concrete.forestRecoverChain
-      exact Only.bind (Only.bind (Only.sequenceFin _ fun _ => Only.forestWalk _ _ _ _ _ _ _ _ _ _)
-        (fun _ => Only.childLeafHash _ _ _ _ _ _ _))
-        (fun _ => Only.bind (Only.subFold _ _ _ _ _ _ _ _ _) (fun _ => Only.pure' _))
-    · unfold Concrete.superHash
-      exact Only.bind (Only.tweakableHash _ _ _ (by rw [superPayload_length]; omega))
-        (fun _ => Only.bind (Only.topFold _ _ _ _ _ _ _) (fun _ => Only.pure' _))
-  · intro tops
-    exact Only.tweakableHash _ _ _ (by rw [rootsPayload_length]; omega)
+  refine Only.sequenceFin _ fun c => ?_
+  refine Only.bind (Only.sequenceFin _ fun j => ?_) (fun tops => ?_)
+  · unfold Concrete.childRecover Concrete.forestRecoverChain
+    exact Only.bind (Only.bind (Only.sequenceFin _ fun _ => Only.forestWalk _ _ _ _ _ _ _ _ _ _)
+      (fun _ => Only.childLeafHash _ _ _ _ _ _ _))
+      (fun _ => Only.bind (Only.subFold _ _ _ _ _ _ _ _ _) (fun _ => Only.pure' _))
+  · unfold Concrete.superHash
+    exact Only.bind (Only.tweakableHash _ _ _ (by rw [superPayload_length]; omega))
+      (fun _ => Only.bind (Only.topFold _ _ _ _ _ _ _) (fun _ => Only.pure' _))
 
 theorem Only.messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) :
@@ -294,7 +293,7 @@ theorem Only.oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree 
     Short.Only.sequenceFin _ fun _ => Short.Only.chainWalk _ _ _ _ _ _ _ _)
 
 theorem Only.otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) :
+    (leaf : LeafIndex) (seed : MasterSeed) (message : ForestKey) :
     ∀ attempts counter, Short.Only (otsSignFrom parameter lay tree leaf seed message attempts counter :
       OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))
   | 0, _ => Short.Only.pure' _
@@ -372,19 +371,15 @@ theorem Only.topNode (parameter : PublicParameter) (index : Index) (c : Coord)
       · exact Short.Only.pure' _
 
 theorem Only.forestKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) :
-    Short.Only (forestKey parameter index seed : OracleComp HashSpec Digest) := by
+    Short.Only (forestKey parameter index seed : OracleComp HashSpec ForestKey) := by
   have htop : ∀ c, Short.Only (do
       let left ← Sphincs.Seeded.topNode parameter index c seed (topHeight - 1) 0
       let right ← Sphincs.Seeded.topNode parameter index c seed (topHeight - 1) 1
       return (left, right) : OracleComp HashSpec (Digest × Digest)) :=
     fun c => Short.Only.bind (Only.topNode parameter index c seed _ _) (fun _ =>
       Short.Only.bind (Only.topNode parameter index c seed _ _) (fun _ => Short.Only.pure' _))
-  have hroots : ∀ tops : Coord → Digest × Digest,
-      Short.Only (Concrete.tweakableHash parameter (.roots index) (rootsPayload tops) :
-        OracleComp HashSpec Digest) := fun tops =>
-    Short.Only.tweakableHash _ _ _ (by rw [rootsPayload_length]; omega)
   unfold Sphincs.Seeded.forestKey
-  exact Short.Only.bind (Short.Only.sequenceFin _ htop) hroots
+  exact Short.Only.sequenceFin _ htop
 
 theorem Only.forestOpen (parameter : PublicParameter) (index : Index) (marks : Coord → CoordMark)
     (seed : MasterSeed) :

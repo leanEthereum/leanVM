@@ -18,7 +18,7 @@
   </tr>
   <tr>
     <td><a href="#sphincs-aggregation">leanSPHINCS aggregation</a></td>
-    <td align="right"><b>770/s</b></td>
+    <td align="right"><b>626/s</b></td>
   </tr>
   <tr>
     <td><a href="#data-availability">leanDA commitment</a></td>
@@ -55,7 +55,7 @@ leanVM is designed for security:
 
 Expect leanVM to change significantly:
 
-* **hash**: BLAKE2s is a placeholder. SHA2, SHA3, BLAKE3 are actively considered.
+* **hash**: Keccak-256 is a placeholder: SHA2, BLAKE2s and BLAKE3 are actively considered.
 * **ISA**: A migration from leanISA to RISC-V (rv64im) is planned.
 * **zk**: Support for zero-knowledge is planned.
 
@@ -77,12 +77,12 @@ cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 900 XMSS signatures
-  cycles (VM steps)           : 995,578 = 2^19.925
-    details                   : DEREF 2^17.878 (24.2%)  MUL 2^17.689 (21.2%)  SET 2^17.425 (17.7%)  BLAKE2S 2^16.989 (13.1%)  XOR 2^16.979 (13.0%)  JUMP 2^16.722 (10.9%)  MEMORY 2^20.674  BYTECODE 2^17.737  TOTAL_COMMITTED 2^25.801
-  proof size                  : 317.4 KiB
-  proving time                : 0.545 s ± 1.5%      peak memory 7.385 GiB
-  per signature               : 1,651.687 signatures/s
-  verifying                   : 3.977 ms
+  cycles (VM steps)           : 1,143,237 = 2^20.125
+    details                   : DEREF 2^18.079 (24.2%)  SET 2^17.831 (20.4%)  MUL 2^17.771 (19.6%)  XOR 2^17.315 (14.3%) SHA3 2^16.925 (10.9%)  JUMP 2^16.897 (10.7%)  MEMORY 2^21.885  BYTECODE 2^18.453  TOTAL_COMMITTED 2^25.577
+  proof size                  : 331.4 KiB
+  proving time                : 0.628 s ± 2.3%      peak memory 6.084 GiB
+  per signature               : 1,433.505 signatures/s
+  verifying                   : 15.352 ms
 ```
 
 ### SPHINCS aggregation
@@ -95,12 +95,12 @@ cargo leanvm aggregate --sphincs 850 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 850 SPHINCS signatures
-  cycles (VM steps)           : 2,040,659 = 2^20.961
-    details                   : SET 2^19.186 (29.2%)  XOR 2^18.694 (20.8%)  MUL 2^18.605 (19.5%)  BLAKE2S 2^17.998 (12.8%)  DEREF 2^17.625 (9.9%)  JUMP 2^17.266 (7.7%)  MEMORY 2^21.475  BYTECODE 2^17.982 TOTAL_COMMITTED 2^26.849
-  proof size                  : 331.9 KiB
-  proving time                : 1.04 s ± 2.1%      peak memory 14.013 GiB
-  per signature               : 817.658 signatures/s
-  verifying                   : 5.048 ms
+  cycles (VM steps)           : 1,781,990 = 2^20.765
+    details                   : XOR 2^18.713 (24.1%)  SET 2^18.696 (23.8%)  MUL 2^18.569 (21.8%)  SHA3 2^17.821 (13.0%)JUMP 2^17.267 (8.9%)  DEREF 2^17.189 (8.4%)  MEMORY 2^22.604  BYTECODE 2^18.453  TOTAL_COMMITTED 2^26.388
+  proof size                  : 333.9 KiB
+  proving time                : 1.198 s ± 6.0%      peak memory 10.787 GiB
+  per signature               : 709.623 signatures/s
+  verifying                   : 16.091 ms
 ```
 
 ### data availability
@@ -111,12 +111,12 @@ cargo leanvm aggregate --blobs 16 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 16 blobs
-  cycles (VM steps)           : 2,989,506 = 2^21.511
-    details                   : MUL 2^19.899 (32.7%)  XOR 2^19.809 (30.7%)  DEREF 2^19.138 (19.3%)  JUMP 2^18.299 (10.8%)  SET 2^16.787 (3.8%)  BLAKE2S 2^16.295 (2.7%)  MEMORY 2^21.695  BYTECODE 2^17.737 TOTAL_COMMITTED 2^26.695
-  proof size                  : 324.0 KiB
-  proving time                : 0.986 s ± 11.1%      peak memory 12.534 GiB
-  blob throughput             : 16.235 blobs/s, 2.029 MiB/s
-  verifying                   : 6.573 ms
+  cycles (VM steps)           : 3,188,912 = 2^21.605
+    details                   : XOR 2^20.201 (37.8%)  MUL 2^19.908 (30.9%)  DEREF 2^19.142 (18.1%)  JUMP 2^18.299 (10.1%)  SET 2^15.805 (1.8%)  SHA3 2^15.332 (1.3%)  MEMORY 2^21.938  BYTECODE 2^18.453  TOTAL_COMMITTED 2^26.496
+  proof size                  : 339.9 KiB
+  proving time                : 0.945 s ± 1.9%      peak memory 10.002 GiB
+  blob throughput             : 16.937 blobs/s, 2.117 MiB/s
+  verifying                   : 27.696 ms
 ```
 
 ### recursion
@@ -127,33 +127,30 @@ cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
 
 ```
 recursion 2→1, over leaves of 900 XMSS signatures
-  cycles (VM steps)           : 562,737 = 2^19.102
-    details                   : MUL 2^17.823 (41.2%)  DEREF 2^16.964 (22.7%)  XOR 2^16.728 (19.3%)  SET 2^15.77 (9.9%)  JUMP 2^14.486 (4.1%)  BLAKE2S 2^13.932 (2.8%)  MEMORY 2^19.481  BYTECODE 2^17.737  TOTAL_COMMITTED 2^24.086
-  proof size                  : 190.2 KiB
-  proving time                : 0.272 s ± 5.3%      peak memory 8.388 GiB
-  verifying                   : 3.457 ms
+  cycles (VM steps)           : 498,888 = 2^18.928
+    details                   : MUL 2^17.563 (38.8%)  XOR 2^17.055 (27.3%)  DEREF 2^16.664 (20.8%)  SET 2^14.885 (6.1%)JUMP 2^14.522 (4.7%)  SHA3 2^13.473 (2.3%)  MEMORY 2^19.688  BYTECODE 2^18.453  TOTAL_COMMITTED 2^24.011
+  proof size                  : 217.9 KiB
+  proving time                : 0.326 s ± 1.7%      peak memory 6.84 GiB
+  verifying                   : 14.478 ms
 ```
 
 ### hashing
 
 ```bash
-BENCH_REPEAT=3 BENCH_COOLDOWN=2 FLOCK_N_LOG=18 cargo bench -p flock --bench hash_batch
+BENCH_REPEAT=3 BENCH_COOLDOWN=2 KECCAK_N_LOG=17 cargo bench -p keccak_gkr --bench hash_batch
 ```
 
 ```
-Flock BLAKE2s batch proving, 262,144 compressions (2^18 slots)
-  setup (preprocessing, excluded) :      0.0 ms
-  witness-gen                     :     34.8 ms ± 26.8%   6.1%
-  commit                          :    102.2 ms ± 1.3%   17.8%
-  zerocheck                       :    244.9 ms ± 7.5%   42.6%
-  lincheck                        :     20.2 ms ± 3.4%    3.5%
-  pcs opening                     :    172.3 ms ± 1.3%   30.0%
-  other                           :      0.0 ms           0.0%
+Keccak GKR batch proving, 131,072 permutations, a state committed every 12 rounds
+  witness                         :     11.1 ms ± 29.1%    4.3%
+  commit                          :     18.0 ms ± 11.7%    6.9%
+  layers and openings             :    190.0 ms ± 1.2%   73.0%
+  pcs opening                     :     33.9 ms ± 6.2%   13.0%
   ------------------------------------------
-  prove TOTAL (witness excluded)  :    539.7 ms ± 3.3%   93.9%
-  verify                          :      2.0 ms
-  throughput                      :        485,765 compressions/s ± 3.3%
-  (~3373.4 XMSS/s equivalent at 144 compressions/signature)
+  prove TOTAL (witness included)  :    260.4 ms ± 2.5%
+  verify                          :     10.9 ms
+  throughput                      :        503,422 permutations/s ± 2.5%
+  proof size                      :       291.2 KiB  (1562 scalars, 254.6 KiB of Merkle openings)
 ```
 
 ### Fibonacci
@@ -164,11 +161,11 @@ cargo leanvm fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
 
 ```
 Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
-  cycles (VM steps)           : 2,127,880
-    details                   : MUL 2^20.944 (98.9%)  SET 2^13.288 (0.5%)  DEREF 2^12.967 (0.4%)  JUMP 2^10.968 (0.1%)  XOR 2^10.966 (0.1%)  MEMORY 2^20.96  BYTECODE 2^11.352  TOTAL_COMMITTED 2^25.26
-  proof size                  : 286.0 KiB
-  proving                     : 0.344 s ± 4.6%   6,181,087 cycles/s      peak memory 5.199 GiB
-  verifying                   : 2.218 ms
+  cycles (VM steps)           : 2,128,384
+    details                   : MUL 2^20.944 (98.9%)  SET 2^13.288 (0.5%)  DEREF 2^12.967 (0.4%)  JUMP 2^10.968 (0.1%)  XOR 2^10.966 (0.1%)  MEMORY 2^20.96  BYTECODE 2^11.352  TOTAL_COMMITTED 2^25.262
+  proof size                  : 311.5 KiB
+  proving                     : 0.371 s ± 6.0%   5,742,525 cycles/s      peak memory 3.611 GiB
+  verifying                   : 19.091 ms
 ```
 
 ## SNARK machinery

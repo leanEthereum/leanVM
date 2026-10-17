@@ -1,0 +1,228 @@
+% !TeX root = ../drafts/c-keccak-gkr.tex
+\section{Keccak by GKR}\label{annex:keccak}
+
+This annex proves that every \texttt{SHA3} step of an execution (\S\ref{sec:tab-sha3}) writes the Keccak-$f[1600]$ permutation~\cite{fips202} of what it reads. The argument is a GKR~\cite{GKR08} over the rounds of the permutation, one layer per round, run from the outputs back to the inputs. The prover commits a step's input and its state after twelve rounds, nothing between them and not the output: the claims the main protocol leaves on the output are where the argument starts. The data is binary, so sixteen steps are packed into one field element by a reverse multiplication friendly embedding~\cite{CCXY18}.
+
+\subsection{Statement and commitment}\label{keccak:statement}
+
+\paragraph{Positions.} A state is $1600$ bits. Bit \emph{position} $j=z+64\ell$ is \emph{slice} $z$ of \emph{lane} $\ell$, with $0\le z<64$ and $0\le\ell<25$. Lane $\ell$ sits in column $\ell\bmod5$ and row $\lfloor\ell/5\rfloor$ of the $5\times5$ array of~\cite{fips202}. Write $\along{j}{k}$ for the position $k$ columns along from $j$, in the same row and slice: lane $\ell$ becomes lane $5\lfloor\ell/5\rfloor+\bigl((\ell+k)\bmod5\bigr)$. For each $k$ this is a permutation of the positions, with inverse $j\mapsto\along{j}{5-k}$.
+
+\paragraph{A round.} Round $R$, for $1\le R\le24$, sends a state $a$ to the state $a'$ in two steps. The first is the $\Ftwo$-linear map $\klin$, the composition of the steps theta, rho and pi of~\cite{fips202}: theta adds to every bit the parity of one neighbouring column in its slice and of the other in the slice before, rho rotates the slices of each lane by a fixed offset, and pi moves each lane to a fixed lane. The second is the step chi followed by iota, the only nonlinear part:
+\begin{equation}\label{keccak:eq:round}
+b=\klin(a),\qquad a'[j]=b[j]+\bigl(1+b[\along{j}{1}]\bigr)\,b[\along{j}{2}]+[\,j<64\,]\,\krc_R[j],
+\end{equation}
+where $\krc_R\in\cube{64}$ is the round constant, which iota adds to lane $0$.
+
+\paragraph{The batch.} The \texttt{SHA3} table has $2^{\kbatch}$ rows, one per step, and the verifier requires $\kbatch\ge9$. A step is indexed by $t\in\cube{\kbatch}$. The $24$ rounds are cut into two \emph{segments} of twelve: segment $m$, for $m<2$, is rounds $12m+1,\dots,12m+12$.
+
+\paragraph{The commitment.} The prover commits the two states the segments start from, the one after $12m$ rounds for $m<2$, as lanes. They form one column
+\[
+\qkeccak:\cube{\kbatch}\times\cube{6}\to\K,
+\]
+whose second argument is a \emph{slot}: slot $25m+\ell$ holds lane $\ell$ of the state after $12m$ rounds, one $\K$-element per step, bit $z$ of the lane being the coefficient of $x^z$. That is $50$ slots, and the fourteen left are zero. With the bit slices $Q_0,\dots,Q_{63}$ of Annex~\ref{annex:rs}, $\qkeccak=\sum_{z<64}Q_z\,x^z$, slice $z$ of that lane is $Q_z(t,25m+\ell)$, and the column has $\nkeccak=\kbatch+6$ variables. It is one region of the stack (\S\ref{sec:stacking}). The column keeps the name of Flock~\cite{Flock26}, whose packed witness the region first held.
+
+The state a step reads is the first of the two. The \texttt{SHA3} table has no value column of its own (\S\ref{sec:tab-sha3}): its input lane $\ell$ is slot $\ell$, except that the step XORs the padding's last bit into lane $16$ before permuting, so the committed slot $16$ is the lane the machine reads plus $x^{63}$. Its output lane $\ell$ is the column $\kout{\ell}:\cube{\kbatch}\to\K$ of lane $\ell$ of what the permutation makes of the committed input, a function of the commitment that nobody commits to. The table sumcheck (\S\ref{sec:e2e-unrolled}) leaves one claim on each, at its point: with $(r_{\mathrm{low}},r_{\mathrm{pack}})=\fc_{<\kbatch}$, the first four coordinates and the rest, the prover has sent $\koutv{\ell}\in\E$ claiming $\koutv{\ell}=\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})$ for $\ell<25$.
+
+\paragraph{The statement.} For $0\le e\le12$, let $a_{m,e}(j;t)\in\Ftwo$ be bit $j$ of the state obtained by applying the first $e$ rounds of segment $m$, by \eqref{keccak:eq:round}, to the committed input of that segment in step $t$. So $a_{m,0}(z+64\ell;t)=Q_z(t,25m+\ell)$ is committed, every other $a_{m,e}$ is a function of the commitment that nobody commits to, and $\kout{\ell}(t)=\sum_{z<64}a_{1,12}(z+64\ell;t)\,x^z$. The statement is that the first segment ends on the committed state and the claims on the output hold:
+\begin{equation}\label{keccak:eq:statement}
+a_{0,12}(z+64\ell;\,t)=Q_z\bigl(t,\,25+\ell\bigr)\quad\text{for all }t\in\cube{\kbatch},\ \ell<25,\ z<64,\qquad \koutv{\ell}=\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})\quad\text{for all }\ell<25.
+\end{equation}
+The two segments chain, so the first half says that slots $25,\dots,49$ hold the first twelve rounds of slots $0,\dots,24$, and the second that the main protocol's claims on the output lanes are claims on the permutation of the input lanes.
+
+\subsection{The embedding}\label{keccak:rmfe}
+
+Sixteen consecutive steps form a \emph{pack}: a step index splits as $t=(i,p)$, with $i\in\cube{4}$ its low four bits and $p\in\cube{\kbatch-4}$ the pack. The bits a pack holds at one position are a vector of $\Ftwo^{16}$, and the protocol moves it into a polynomial ring where a bitwise AND is one product.
+
+\begin{lemma}[Embedding]\label{lem:rmfe}
+There are $\Ftwo$-linear maps $\kemb:\Ftwo^{16}\to\Ftwo^{\le23}[X]$ and $\kproj:\Ftwo^{\le46}[X]\to\Ftwo^{16}$, on polynomials of degree at most $23$ and $46$, such that, for all $u,v\in\Ftwo^{16}$ and with $\wedge$ the coordinatewise product,
+\[
+\kproj\bigl(\kemb(u)\cdot\kemb(v)\bigr)=u\wedge v.
+\]
+\end{lemma}
+
+\begin{proof}
+Take the seven pairwise coprime polynomials
+\[
+X,\quad X+1,\quad X^3+X+1,\quad X^3+X^2+1,\quad X^5+X^2+1,\quad X^5+X^3+1,\quad X^5+X^3+X^2+X+1,
+\]
+holding $1,1,2,2,3,3,3$ bits respectively, fifteen in all, and let $f$ be their product, of degree $23$. A factor holding $n$ bits receives the polynomial of degree below $n$ that takes those bits as its values at $0$ and $1$ and, when $n=3$, as its coefficient of $X^2$ (its value at infinity). By the Chinese remainder theorem one polynomial of degree at most $22$ has these seven residues. $\kemb(u)$ is that polynomial for the first fifteen bits of $u$, plus $u_{15}\,f$.
+
+A product $\kemb(u)\kemb(v)$ has degree at most $46$. Since $f$ vanishes modulo every factor, its residue modulo a factor is the product of the two residues, which has degree at most $2(n-1)$, below the factor's degree, and so is not reduced: its values at $0$ and $1$ and its leading coefficient are the products of those of the two residues. The coefficient of $X^{46}$ is $u_{15}v_{15}$, both other terms having degree at most $45$. $\kproj$ reads the first fifteen bits off the seven residues and the last off the coefficient of $X^{46}$, all of which are $\Ftwo$-linear in the $47$ coefficients.
+\end{proof}
+
+Write $\kemb_i$ for the embedding of the $i$-th unit vector and $\kemb_{\mathbf 1}=\sum_i\kemb_i$ for that of the all-ones vector, so $\kproj(\kemb_{\mathbf 1}\cdot\kemb(u))=u$. Each coordinate of $\kproj$ is the parity of a fixed set of coefficients, and extends to an $\E$-linear functional on $\E^{\le46}[X]$. For $\kw\in\E^{16}$ put
+\[
+\kproj_{\kw}(G)=\sum_{i\in\cube{4}}\kw_i\,\kproj(G)_i\qquad(G\in\E^{\le46}[X]).
+\]
+
+\subsection{Claims}\label{keccak:claims}
+
+\begin{definition}[Claim]\label{def:keccak-claim}
+A \emph{claim at depth $d$}, for $0\le d\le12$, is a tuple $(c,\kw,r,\kpw)$ of a value $c\in\E$, \emph{instance weights} $\kw\in\E^{16}$, a point $r=(r_{\mathrm{pack}},r_{\mathrm{seg}})\in\E^{\kbatch-4}\times\E$ and \emph{position weights} $\kpw\in\E^{1600}$. It asserts
+\begin{equation}\label{keccak:eq:claim}
+c=\sum_{m<2}\ \sum_{p\in\cube{\kbatch-4}}\ \sum_{i\in\cube{4}}\ \sum_{j<1600}\eq\bigl(r,(p,m)\bigr)\,\kw_i\,\kpw_j\;a_{m,12-d}\bigl(j;(i,p)\bigr),
+\end{equation}
+the segment $m$ read as one bit. Write $\kwsum=\sum_i\kw_i$.
+\end{definition}
+
+A claim at depth $0$ speaks of the two segment outputs, the committed state after twelve rounds and the step's output, a claim at depth $12$ of the two segment inputs, which are committed. Both segments ride one claim: the segment index is one more variable next to the pack index, so the twelve layers below are run once, not twice.
+
+\paragraph{The first claim.} It is made at the output claims' point. The verifier samples $r_{\mathrm{seg}}\in\E$, then $r_{\mathrm{lane}}\in\E^{5}$, and the prover sends a value $c_{\mathrm{st}}$, its part on the committed state. The first claim is $(c,\kw,r,\kpw)$ at depth $0$ with $r=(r_{\mathrm{pack}},r_{\mathrm{seg}})$,
+\[
+\kw_i=\eq(r_{\mathrm{low}},i),\qquad \kpw_{z+64\ell}=\eq(r_{\mathrm{lane}},\ell)\,x^{z},\qquad c=c_{\mathrm{st}}+r_{\mathrm{seg}}\sum_{\ell<25}\eq(r_{\mathrm{lane}},\ell)\,\koutv{\ell}.
+\]
+It is a random combination of the segment outputs' lanes as words: its position weights give bit $z$ of a lane the weight $x^z$ that the lane's $\K$-element gives it. So the second segment's part of \eqref{keccak:eq:claim} at depth $0$ is $r_{\mathrm{seg}}\sum_{\ell}\eq(r_{\mathrm{lane}},\ell)\,\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})$, which the claims on the output give, and the first's is $c_{\mathrm{st}}$, which the commitment settles (\S\ref{keccak:openings}).
+
+\subsection{A layer}\label{keccak:layer}
+
+Layer $d$, for $0\le d<12$, turns a claim $(c,\kw,r,\kpw)$ at depth $d$ into a claim at depth $d+1$. It undoes round $12(m+1)-d$ in segment $m$. Let $b_m=\klin(a_{m,11-d})$ be the state that round applies chi to, so that by \eqref{keccak:eq:round}
+\begin{equation}\label{keccak:eq:chi}
+a_{m,12-d}(j;t)=b_m(j;t)+\bigl(1+b_m(\along{j}{1};t)\bigr)\,b_m(\along{j}{2};t)+[\,j<64\,]\,\krc_{12(m+1)-d}[j].
+\end{equation}
+
+\paragraph{1. Product polynomial.} Embed every pack of $b_m$, and form the product that Lemma~\ref{lem:rmfe} projects to the pack's bits of \eqref{keccak:eq:chi}, less the round constant:
+\[
+S_{m,p,j}=\kemb\Bigl(\bigl(b_m(j;(i,p))\bigr)_{i\in\cube{4}}\Bigr),\qquad
+G_{m,p,j}=\kemb_{\mathbf 1}\,S_{m,p,j}+\bigl(\kemb_{\mathbf 1}+S_{m,p,\along{j}{1}}\bigr)\,S_{m,p,\along{j}{2}}.
+\]
+The prover sends the $47$ coefficients of the claim's weighted sum of these,
+\begin{equation}\label{keccak:eq:product}
+G(X)=\sum_{m<2}\ \sum_{p\in\cube{\kbatch-4}}\ \sum_{j<1600}\eq\bigl(r,(p,m)\bigr)\,\kpw_j\,G_{m,p,j}(X)\ \in\E^{\le46}[X].
+\end{equation}
+Applying $\kproj_{\kw}$ to \eqref{keccak:eq:product} gives the right side of \eqref{keccak:eq:claim} without its round constants, which are public and the same in every step. Since $\sum_p\eq(r_{\mathrm{pack}},p)=1$, the verifier checks
+\begin{equation}\label{keccak:eq:projection}
+\kproj_{\kw}(G)+\kwsum\sum_{m<2}\eq(r_{\mathrm{seg}},m)\sum_{z<64}\krc_{12(m+1)-d}[z]\,\kpw_z\ \qeq\ c.
+\end{equation}
+
+\paragraph{2. Evaluation.} The verifier samples $\kpt\in\E$. The next claim's instance weights are the unit embeddings at $\kpt$:
+\[
+\kw'_i=\kemb_i(\kpt),\qquad \kwsum'=\sum_i\kw'_i=\kemb_{\mathbf 1}(\kpt).
+\]
+At $\kpt$ a pack is one field element, $S_{m,p,j}(\kpt)=\sum_i\kw'_i\,b_m(j;(i,p))$. Write $b^{\kpt}_j(p,m)$ for it, a function on $\cube{\kbatch-3}$ for each position $j$. Then
+\begin{equation}\label{keccak:eq:at-s}
+G(\kpt)=\sum_{(p,m)\in\cube{\kbatch-3}}\eq\bigl(r,(p,m)\bigr)\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,b^{\kpt}_j(p,m)+\bigl(\kwsum'+b^{\kpt}_{\along{j}{1}}(p,m)\bigr)\,b^{\kpt}_{\along{j}{2}}(p,m)\Bigr),
+\end{equation}
+a sumcheck claim whose left side the verifier computes from the coefficients it holds.
+
+\paragraph{3. Packs and segments.} The parties run sumcheck on \eqref{keccak:eq:at-s} over its $\kbatch-3$ variables, with each $b^{\kpt}_j$ replaced by its multilinear extension. The summand is $\eq(r,\cdot)$ times a cofactor of degree two, so a round costs two $\E$-elements (\S\ref{sec:prelim}). With $\fc\in\E^{\kbatch-2}$ the challenges, it ends on the claim
+\begin{equation}\label{keccak:eq:after-packs}
+\rc{\kbatch-3}=\eq(r,\fc)\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,\mle{b^{\kpt}_j}(\fc)+\bigl(\kwsum'+\mle{b^{\kpt}_{\along{j}{1}}}(\fc)\bigr)\,\mle{b^{\kpt}_{\along{j}{2}}}(\fc)\Bigr).
+\end{equation}
+
+\paragraph{4. Positions.} The positions sit in $\cube{11}$, the low six coordinates the slice and the high five the lane, and every table indexed by a position is zero on the $448$ points whose lane is $25$ or more. The parties run sumcheck on \eqref{keccak:eq:after-packs} over these eleven variables. Its summand is a product of three multilinears, the position weights being one of them, so a round costs three $\E$-elements. With $\fc^{\mathrm{pos}}\in\E^{11}$ the challenges, the prover sends
+\[
+\kev_k=\sum_{j<1600}\eq(\fc^{\mathrm{pos}},j)\,\mle{b^{\kpt}_{\along{j}{k}}}(\fc)\qquad(k=0,1,2),
+\]
+the embedded state at the positions $0$, $1$ and $2$ columns along from one point. The verifier evaluates the weights there itself, $\mle{\kpw}(\fc^{\mathrm{pos}})=\sum_{j<1600}\eq(\fc^{\mathrm{pos}},j)\,\kpw_j$, and checks the sumcheck's final claim:
+\begin{equation}\label{keccak:eq:terminal}
+\eq(r,\fc)\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr)\ \qeq\ \rc{\kbatch+8}.
+\end{equation}
+
+\paragraph{5. Batching.} The verifier samples $\kbeta\in\E$ and the three evaluations become one, of value $c'=\kev_0+\kbeta\,\kev_1+\kbeta^{2}\,\kev_2$. Moving each shift from the state onto the weights,
+\begin{equation}\label{keccak:eq:flat}
+c'=\sum_{j<1600}\kpw^{\flat}_j\,\mle{b^{\kpt}_j}(\fc),\qquad
+\kpw^{\flat}_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}},\along{j}{3}),
+\end{equation}
+and by Fact~\ref{fact:eq}, $\mle{b^{\kpt}_j}(\fc)=\sum_{m,p,i}\eq(\fc,(p,m))\,\kw'_i\,b_m(j;(i,p))$. So $(c',\kw',\fc,\kpw^{\flat})$ is a claim of the shape \eqref{keccak:eq:claim}, on $b_m$ in place of $a_{m,12-d}$.
+
+\paragraph{6. Linear map.} $b_m(\cdot;t)=\klin\bigl(a_{m,11-d}(\cdot;t)\bigr)$ in every step, so with $\klin^{\top}$ the transpose of $\klin$, extended to $\E^{1600}$,
+\[
+\sum_{j<1600}\kpw^{\flat}_j\,b_m(j;t)=\sum_{j<1600}\bigl(\klin^{\top}\kpw^{\flat}\bigr)_j\,a_{m,11-d}(j;t).
+\]
+The layer outputs the claim $(c',\,\kw',\,\fc,\,\klin^{\top}\kpw^{\flat})$ at depth $d+1$, with no further interaction.
+
+\subsection{The two openings}\label{keccak:openings}
+
+Twelve layers take the first claim to a claim at depth $12$. The committed state the first claim speaks of and the committed states the last one speaks of are then settled against $\qkeccak$, each by a short sumcheck of degree two (two $\E$-elements a round).
+
+\paragraph{Outputs.} The first claim's part on the first segment's output, $c_{\mathrm{st}}$, has a word's weights and an equality table for instance weights, so if \eqref{keccak:eq:statement} holds it is a sum over slots of the committed column itself:
+\begin{equation}\label{keccak:eq:out}
+c_{\mathrm{st}}\ \qeq\sum_{o\in\cube{6}}\kpw^{\mathrm{out}}(o)\;\mle{\qkeccak}\bigl(r_{\mathrm{low}},r_{\mathrm{pack}},o\bigr),\qquad
+\kpw^{\mathrm{out}}(25+\ell)=\eq(r_{\mathrm{seg}},0)\,\eq(r_{\mathrm{lane}},\ell),
+\end{equation}
+with $\kpw^{\mathrm{out}}$ zero on every other slot. The parties run sumcheck on \eqref{keccak:eq:out} over the slot, six rounds with challenges $\fc^{\mathrm{out}}\in\E^{6}$. The prover sends one value $c_{\mathrm{out}}$, the verifier checks $\mle{\kpw^{\mathrm{out}}}(\fc^{\mathrm{out}})\,c_{\mathrm{out}}$ against the final claim, and what is left is an ordinary evaluation claim on the column,
+\begin{equation}\label{keccak:eq:out-claim}
+\mle{\qkeccak}\bigl(r_{\mathrm{low}},r_{\mathrm{pack}},\fc^{\mathrm{out}}\bigr)=c_{\mathrm{out}}.
+\end{equation}
+This and the claims on the output are where \eqref{keccak:eq:statement} is tested: the layers speak of the states the committed inputs imply, \eqref{keccak:eq:out} of the committed state after twelve rounds, and the $\koutv{\ell}$ of what the main protocol takes the output to be.
+
+\paragraph{Inputs.} Let $(c,\kw,r,\kpw)$ now be the claim at depth $12$. Its states are committed, $a_{m,0}(z+64\ell;t)=Q_z(t,25m+\ell)$, but its weights are general, so it is a claim on the $64$ bit slices:
+\begin{equation}\label{keccak:eq:in}
+c=\sum_{i\in\cube{4}}\kw_i\sum_{o\in\cube{6}}\sum_{z<64}\kpw^{\mathrm{in}}(o,z)\;\mle{Q_z}\bigl(i,r_{\mathrm{pack}},o\bigr),\qquad
+\kpw^{\mathrm{in}}(25m+\ell,\,z)=\eq(r_{\mathrm{seg}},m)\,\kpw_{z+64\ell},
+\end{equation}
+with $\kpw^{\mathrm{in}}$ zero on the slots from $50$ on. The parties run sumcheck over the four variables of $i$, with challenges $\fc^{\mathrm{low}}\in\E^{4}$, then over the six of the slot, with challenges $\fc^{\mathrm{in}}\in\E^{6}$. The prover sends $s_0,\dots,s_{63}\in\E$ and the verifier checks
+\[
+\mle{\kw}(\fc^{\mathrm{low}})\sum_{z<64}\mle{\kpw^{\mathrm{in}}}(\fc^{\mathrm{in}},z)\,s_z
+\]
+against the final claim, extending $\kpw^{\mathrm{in}}$ in the slot only. What is left is the family
+\begin{equation}\label{keccak:eq:in-claim}
+s_z=\mle{Q_z}\bigl(\fc^{\mathrm{low}},r_{\mathrm{pack}},\fc^{\mathrm{in}}\bigr)\qquad(0\le z<64),
+\end{equation}
+$64$ bit slices at one shared point of $\E^{\nkeccak}$, which is exactly what ring switching takes (Annex~\ref{annex:rs}).
+
+\subsection{Protocol summary}\label{keccak:summary}
+
+\begin{protocol}[Keccak by GKR]\label{keccak:protocol}
+\begin{enumerate}
+\item The verifier samples $r_{\mathrm{seg}}$ and $r_{\mathrm{lane}}$. The prover sends $c_{\mathrm{st}}$, and the first claim's value is $c_{\mathrm{st}}$ plus the output lanes' part.
+\item For $d=0,\dots,11$, layer $d$ (\S\ref{keccak:layer}): the prover sends $G$; the verifier checks \eqref{keccak:eq:projection} and samples $\kpt$; the parties run the $\kbatch-3$ rounds over packs and segments and the $11$ rounds over positions; the prover sends $\kev_0,\kev_1,\kev_2$; the verifier checks \eqref{keccak:eq:terminal} and samples $\kbeta$.
+\item The parties open $c_{\mathrm{st}}$ (\S\ref{keccak:openings}): six rounds, then the prover sends $c_{\mathrm{out}}$.
+\item The parties open the last claim: four rounds, six rounds, then the prover sends $s_0,\dots,s_{63}$.
+\end{enumerate}
+What is left for the commitment scheme is the evaluation claim \eqref{keccak:eq:out-claim}, which joins the claims of the main protocol, and the family \eqref{keccak:eq:in-claim}, its one ring-switched claim (\S\ref{sec:e2e-unrolled}). The claims on the output lanes leave the main protocol's pool: the reduction has consumed them.
+\end{protocol}
+
+A layer costs $47+2(\kbatch-3)+33+3$ elements of $\E$ and the openings $13$ and $84$.
+
+\subsection{Soundness analysis}\label{keccak:soundness}
+
+The commitment determines $\qkeccak$, hence every $a_{m,e}$ and every $\kout{\ell}$, before any challenge is drawn, and the commitment scheme proves the claims opened on $\qkeccak$. So take \eqref{keccak:eq:out-claim} and \eqref{keccak:eq:in-claim} to be true, up to the error of the commitment scheme and the $2^{-160}$ of Annex~\ref{annex:rs}, and suppose \eqref{keccak:eq:statement} fails. Call a claim at depth $d$ \emph{true} if \eqref{keccak:eq:claim} holds.
+
+\paragraph{A layer.} Let the claim entering layer $d$ be false. The polynomial of \eqref{keccak:eq:product} satisfies \eqref{keccak:eq:projection} with the true value in place of $c$, so a prover passing that check sent some other polynomial of degree at most $46$, and the two agree at $\kpt$ with probability at most $46/|\E|$ (Lemma~\ref{lem:sz}). Otherwise \eqref{keccak:eq:at-s} is a false sumcheck claim. Both sumchecks have summands of degree three, the equality factor included, so the false claim survives their $\kbatch+8$ rounds with probability at most $3(\kbatch+8)/|\E|$, and otherwise \eqref{keccak:eq:terminal} fails for the true $\kev_k$: one of the three sent is wrong. The combination $c'$ is then wrong except with probability $2/|\E|$, a nonzero polynomial of degree two in $\kbeta$ having two roots. Steps 5 and 6 are identities. A false claim therefore leaves a layer true with probability at most $(3\kbatch+72)/|\E|$.
+
+\paragraph{The two ends.} If the first claim is false, the claim at depth $12$ is false too, except with the twelve layers' probability, at most $12(3\kbatch+72)/|\E|$. The sumcheck on \eqref{keccak:eq:in} then starts from a false claim, survives its ten rounds with probability at most $20/|\E|$, and otherwise its final check forces a wrong $s_z$, contradicting \eqref{keccak:eq:in-claim}.
+
+If \eqref{keccak:eq:out} is false, its sumcheck survives six rounds with probability at most $12/|\E|$, and otherwise $c_{\mathrm{out}}$ is wrong, contradicting \eqref{keccak:eq:out-claim}. So let \eqref{keccak:eq:out} hold and the first claim be true, and compare their two sides. Their difference is
+\[
+P(r_{\mathrm{seg}},r_{\mathrm{lane}})=\eq(r_{\mathrm{seg}},0)\,A(r_{\mathrm{lane}})+r_{\mathrm{seg}}\,B(r_{\mathrm{lane}}),\qquad
+B(r_{\mathrm{lane}})=\sum_{\ell<25}\eq(r_{\mathrm{lane}},\ell)\bigl(\koutv{\ell}+\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})\bigr),
+\]
+with $A$ the multilinear extension, at $(r_{\mathrm{low}},r_{\mathrm{pack}},r_{\mathrm{lane}})$, of
+\[
+D(i,p,\ell)=\sum_{z<64}x^{z}\Bigl(a_{0,12}\bigl(z+64\ell;(i,p)\bigr)+Q_z\bigl((i,p),25+\ell\bigr)\Bigr)\in\K,
+\]
+set to zero for $\ell\ge25$. The powers $x^z$ are a basis of $\K$ over $\Ftwo$, so $D$ is nonzero as soon as the first half of \eqref{keccak:eq:statement} fails in one bit, and it is fixed before $(r_{\mathrm{low}},r_{\mathrm{pack}})$ is drawn: its extension in its first $\kbatch$ variables is nonzero there except with probability $\kbatch/|\E|$ (Lemma~\ref{lem:sz}). And $B$ is nonzero as soon as the second half fails. In either case $P$ is a nonzero polynomial of total degree at most six, fixed before $r_{\mathrm{seg}}$ and $r_{\mathrm{lane}}$ are drawn, so it vanishes there with probability at most $6/|\E|$, and otherwise the first claim is false.
+
+\paragraph{Total.} A union bound gives
+\[
+\frac{\kbatch+6+12\,(3\kbatch+72)+12+20}{|\E|}=\frac{37\,\kbatch+902}{|\E|}<2^{-180}
+\]
+for $\kbatch\le32$ (\S\ref{sec:lookup}), next to the errors of ring switching and of the commitment scheme.
+
+\paragraph{Completeness.} An honest prover that does not abort is always accepted. The prover computes in the basis of the powers of $\kpt$, which exists unless $\kpt$ lies in a proper subfield of $\E$, and aborts in that case. The proper subfields have at most $2^{96}$ elements each and fewer than $2^{97}$ together, so this has probability below $2^{-95}$ a layer.
+
+\subsection{Evaluating the weights in the recursion}\label{keccak:recursion}
+
+A native verifier holds the $1600$ position weights of each claim and applies $\klin^{\top}$ to them. The recursive verifier (\S\ref{sec:recursion}) never writes them out. Every claim after the first has weights $\klin^{\top}\kpw^{\flat}$, and by \eqref{keccak:eq:flat} $\kpw^{\flat}$ factors as a lane table times a slice table, a shift along the columns moving lanes only:
+\[
+\kpw^{\flat}_{z+64\ell}=\kpw^{\mathrm{ln}}_{\ell}\,\kpw^{\mathrm{sl}}_{z},\qquad
+\kpw^{\mathrm{sl}}_z=\eq(\fc^{\mathrm{pos}}_{<6},z),\qquad
+\kpw^{\mathrm{ln}}_\ell=\eq(\fc^{\mathrm{pos}}_{\ge6},\ell)+\kbeta\,\eq(\fc^{\mathrm{pos}}_{\ge6},\along{\ell}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}}_{\ge6},\along{\ell}{3}),
+\]
+the shift of a lane being that of its positions. A claim is thus carried as $25$ lane weights and a point of $\E^{6}$. The verifier needs its weights in three places, and each is a pairing $\inner{\klin^{\top}\kpw^{\flat}}{g}=\inner{\kpw^{\flat}}{\klin(g)}$ against a $g$ that factors the same way, $g_{z+64\ell}=g^{\mathrm{ln}}_\ell\,g^{\mathrm{sl}}_z$:
+\begin{itemize}
+\item $\mle{\kpw}(\fc^{\mathrm{pos}})$ in \eqref{keccak:eq:terminal} of the next layer, where $g$ is the equality table of that layer's point;
+\item the sum against $s_z$ that closes \eqref{keccak:eq:in}, where $g^{\mathrm{sl}}_z=s_z$ and $g^{\mathrm{ln}}_\ell=\sum_{m<2}\eq(r_{\mathrm{seg}},m)\,\eq(\fc^{\mathrm{in}},25m+\ell)$;
+\item the round constants of \eqref{keccak:eq:projection}, where $g$ is a single position, and only the seven slices $2^n-1$ of lane $0$ can be set in a round constant.
+\end{itemize}
+Each step of $\klin$ respects the factorization: pi moves lanes, rho rotates the slices of lane $\ell$ by its offset $\koff{\ell}$, and theta adds column sums, rotated by at most one slice. With $\kto{\ell}$ the lane pi moves lane $\ell$ to, $v_\ell=\ell\bmod5$ its column, and $g^{\mathrm{ln}}_{[v]}=\sum_{k<5}g^{\mathrm{ln}}_{v+5k}$ the sum of $g^{\mathrm{ln}}$ over column $v$, indices modulo $5$,
+\begin{equation}\label{keccak:eq:form}
+\inner{\kpw^{\flat}}{\klin(g)}=\sum_{\ell<25}\kpw^{\mathrm{ln}}_{\kto{\ell}}\Bigl(\bigl(g^{\mathrm{ln}}_{\ell}+g^{\mathrm{ln}}_{[v_\ell-1]}\bigr)\,\krot_{\koff{\ell}}+g^{\mathrm{ln}}_{[v_\ell+1]}\,\krot_{\koff{\ell}+1}\Bigr),\qquad
+\krot_n=\sum_{z<64}g^{\mathrm{sl}}_z\,\kpw^{\mathrm{sl}}_{(z+n)\bmod64}.
+\end{equation}
+The slices enter only through the rotation sums $\krot_n$, for the few $n$ that occur. When $g^{\mathrm{sl}}$ is an equality table too, $\krot_n$ is the multilinear extension of the predicate $[\,z'=z+n\bmod64\,]$ at the two points of $\E^{6}$, which a ripple of the carry over the six bits evaluates with a constant number of multiplications a bit. The first claim's weights factor as well, with $x^z$ for slice table, and need no $\klin^{\top}$.
+
+\subsection{Credits}\label{keccak:credits}
+
+The layered reduction is GKR~\cite{GKR08} specialized to the round structure of Keccak, and the embedding of Lemma~\ref{lem:rmfe} is a reverse multiplication friendly embedding in the sense of~\cite{CCXY18}. Proving Keccak by a GKR over a binary field follows Lev Soukhanov's Hashcaster~2~\cite{Hashcaster2}: packing bits into a polynomial ring so that an AND of many bits is one product, and having the prover send that product as a polynomial, are its design. The first Hashcaster~\cite{Hashcaster} gives the prover's first sumcheck rounds on bits, before any field arithmetic.

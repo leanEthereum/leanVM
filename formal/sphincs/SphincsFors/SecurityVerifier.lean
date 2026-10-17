@@ -21,8 +21,8 @@ theorem verify_eq_single_layer (pk : PublicKey) (message : Message) (signature :
       let root ← treeFold pk.parameter topLayer rootTree index (signaturePath signature topLayer)
         totalHeight value
       return decide (root = pk.root)) := by
-  simp only [Concrete.verify, numLayers, verifyLayers]
-  simp only [show (0 : Nat) < 1 by decide, ↓reduceDIte, Completeness.treeIndexAt_eq,
+  simp only [Concrete.verify, verifyLayer]
+  simp only [Completeness.treeIndexAt_eq,
     Completeness.leafIndexAt_eq, bind_assoc]
   apply bind_congr
   intro digest
@@ -42,12 +42,12 @@ def verificationDigest (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : M
   evalWithAnswerFn f (messageDigest pk.parameter pk.root message signature.randomness :
     OracleComp HashSpec MessageDigest)
 
-/-- The candidate FORS key recovered before WOTS verification. -/
+/-- The candidate FORS tops recovered before WOTS verification. -/
 def verificationFors (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
-    (signature : Signature) : Digest :=
+    (signature : Signature) : FtsTops :=
   let digest := verificationDigest f pk message signature
   evalWithAnswerFn f (ftsRecover pk.parameter (digestIndex digest) (digestLeaves digest)
-    signature.ftsSecret signature.ftsPath : OracleComp HashSpec Digest)
+    signature.ftsSecret signature.ftsPath : OracleComp HashSpec FtsTops)
 
 theorem verification_fors_run (f : QueryImpl HashSpec Id) (pk : PublicKey)
     (message : Message) (signature : Signature) :

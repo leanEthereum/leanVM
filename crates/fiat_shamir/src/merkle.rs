@@ -18,7 +18,7 @@ pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
     ]
 }
 
-/// Hash one leaf with standard BLAKE2s-256.
+/// Hash one leaf ([`primitives::hash::hash`]).
 #[inline]
 pub fn hash_leaf(data: &[u8]) -> Hash {
     primitives::hash::hash(data)

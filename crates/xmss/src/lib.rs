@@ -1,7 +1,7 @@
-//! XMSS over BLAKE2s, with byte-oriented keys and signatures.
+//! XMSS over Keccak-256, with byte-oriented keys and signatures.
 //! The concrete scheme is defined in the [XMSS specification].
 //!
-//! Every hash is standard BLAKE2s of the exact byte string
+//! Every hash is the leanVM hash ([`primitives::hash::hash`]) of the exact byte string
 //! `tweak | pp | payload`. Randomizer derivation retains 192 bits; other calls
 //! retain 128 bits. See the `hash` module for the constructions.
 //!

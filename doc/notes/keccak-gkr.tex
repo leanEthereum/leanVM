@@ -1,0 +1,197 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\F}{\mathbb{F}_2}
+\newcommand{\E}{E}
+\newcommand{\K}{K}
+\newcommand{\eq}{\mathrm{eq}}
+\newcommand{\mle}[1]{\widetilde{#1}}
+\newcommand{\cube}[1]{\{0,1\}^{#1}}
+\newcommand{\along}[2]{#1^{\rightarrow #2}}
+\newcommand{\emb}{\mathsf{emb}}
+\newcommand{\proj}{\mathsf{proj}}
+\newcommand{\RC}{\mathsf{RC}}
+
+\newtheorem*{lemma}{Lemma}
+
+\setlist{nosep}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\titlespacing*{\paragraph}{0pt}{0.4em}{0.8em}
+
+\begin{document}
+
+\begin{center}
+{\LARGE Proving Keccak with GKR}
+\end{center}
+\vspace{1em}
+
+A program run by the VM executes $N = 2^n$ \texttt{SHA3} steps, each one Keccak-$f[1600]$ permutation~\cite{fips202}. This note explains how \texttt{crates/keccak\_gkr} proves them all. It is a GKR~\cite{GKR08} over the $24$ rounds, run on the whole batch at once. The prover commits only each permutation's input, and pays, per round and per bit position, one product of two binary polynomials of degree $23$ for every $16$ permutations. The design is Lev Soukhanov's: it follows his Hashcaster~\cite{hashcaster} and Hashcaster~2~\cite{hashcaster2}, and his RMFE-skip~\cite{rmfeskip} (\S\ref{sec:credits}). Committing a state in the middle as well halves the rounds the proof goes through, which is what the VM does (\S\ref{sec:segments}).
+
+The note gives the ideas, for a reader who knows sumcheck, GKR and multilinear extensions. The precise protocol, with its soundness proof, is Annex~C of \texttt{doc/leanvm}, and the crate's documentation describes the prover.
+
+\section{Keccak as a circuit}
+
+A state is $1600$ bits. Position $j = z + 64\ell$ is bit $z$ (its \emph{slice}) of lane $\ell$, for $z < 64$ and $\ell < 25$, and lane $\ell$ sits in column $\ell \bmod 5$ of the $5 \times 5$ array. Write $\along{j}{k}$ for the position $k$ columns along from $j$, in the same row and slice.
+
+Round $R$ sends a state $a$ to $a'$ by a linear map, one nonlinear step and a constant:
+\[
+b = L(a), \qquad a'_j = b_j + \bigl(1 + b_{\along{j}{1}}\bigr)\, b_{\along{j}{2}} + [\,j < 64\,]\, \RC_R[j].
+\]
+$L$ is theta, rho and pi, linear over $\F$; the product is chi, the only nonlinear step, of degree two; $\RC_R$ is the round constant iota adds to lane $0$. So a round is one GKR layer, whose sumchecks handle chi. $L$ costs nothing: a claim on $L(a)$ is a claim on $a$ with transposed weights.
+
+\section{What is committed}
+
+The prover commits each permutation's input, and nothing else: not the $23$ states in between, and not the output. The input is stored as lanes, in one column $q$ of the VM's commitment, indexed by a step and a \emph{slot}: slot $\ell$ holds lane $\ell$ as an element of $\K = \mathrm{GF}(2^{64})$, bit $z$ being the coefficient of $x^z$. The VM reads each step's input from the same slots, so the input is committed once.
+
+The output needs no commitment because the VM already holds claims on it: its table sumcheck ends with a value $v_\ell$ for each output lane, the lane's multilinear extension over the steps at a random point $r^* \in \E^n$. So the statement is: Keccak-$f$, run from the committed inputs, ends on outputs whose lanes evaluate to the $v_\ell$ at $r^*$. GKR runs backwards from the output to the input, one layer per round.
+
+\section{Claims}
+
+All arithmetic is in $\E = \mathrm{GF}(2^{192})$, which contains $\K$, a bit being the element $0$ or $1$. Sixteen consecutive steps form a \emph{pack}, whose bits the protocol multiplies at once: a step splits as $t = (i, p)$, with $i \in \cube{4}$ its low four bits and $p \in \cube{n-4}$ the pack. Let $a(j; t)$ be bit $j$ of the state in step $t$, after some number of rounds. A claim $(c, \mu, r, w)$ asserts
+\begin{equation}\label{eq:claim}
+c = \sum_{p} \eq(r, p) \sum_{j < 1600} w_j \sum_{i \in \cube{4}} \mu_i \; a\bigl(j; (i, p)\bigr).
+\end{equation}
+It has three sets of weights, each with its own origin: an equality table over packs, which is what a sumcheck leaves; arbitrary weights $w$ over the positions, which $L^\top$ scrambles; and arbitrary weights $\mu$ over the sixteen steps of a pack, which the packing of \S\ref{sec:layer} sets.
+
+\paragraph{The first claim.} It is made at the VM's point, split as $r^* = (r_{\mathrm{low}}, r_{\mathrm{pack}})$. The verifier samples $r_{\mathrm{lane}} \in \E^5$, and sets
+\[
+\mu_i = \eq(r_{\mathrm{low}}, i), \qquad r = r_{\mathrm{pack}}, \qquad w_{z + 64\ell} = \eq(r_{\mathrm{lane}}, \ell)\, x^z.
+\]
+Weighting bit $z$ of a lane by $x^z$ adds its bits back up into the lane, so the claim is a random combination of the output lanes, as words, at $r^*$, and its value is $\sum_\ell \eq(r_{\mathrm{lane}}, \ell)\, v_\ell$, which the verifier computes.
+
+If the statement fails, the outputs that the committed inputs imply differ from what the $v_\ell$ say they are. Because the $x^z$ are a basis of $\K$ over $\F$, one wrong bit already makes a lane differ as an element of $\K$, and the first claim, a random evaluation of that difference, is then false except with negligible probability.
+
+\section{One layer}\label{sec:layer}
+
+A layer turns a claim on the states after a round into a claim of the same shape on the states before it. Let $b = L(a)$ be the state that round applies chi to.
+
+\paragraph{1. Product polynomial.} Chi multiplies bits of the same step. To multiply the bits of sixteen steps at once, the protocol moves them into a polynomial ring where a bitwise AND is one product, a reverse multiplication friendly embedding~\cite{CCXY18}:
+
+\begin{lemma}
+There are $\F$-linear maps $\emb : \F^{16} \to \F[X]_{<24}$ and $\proj : \F[X]_{<47} \to \F^{16}$ such that $\proj\bigl(\emb(u) \cdot \emb(v)\bigr) = u \wedge v$ for all $u, v \in \F^{16}$.
+\end{lemma}
+
+The construction is the Chinese remainder theorem over seven coprime factors of a polynomial $f$ of degree $23$ (of degrees $1, 1, 3, 3, 5, 5, 5$), each holding one to three bits as the values of a residue of low degree at $0$, $1$ and $\infty$. A product of two residues has too low a degree to wrap around its factor, so its values there are the products of the bits. The sixteenth bit rides as a multiple of $f$, which no residue sees, and the product of two such bits is the coefficient of $X^{46}$.
+
+Write $S_{p,j} = \emb\bigl(b(j; (\cdot, p))\bigr)$ for the embedding of a pack's bits at position $j$, and $e = \emb(1, \dots, 1)$. Since NOT $u$ is $1 + u$ and $\proj$ is linear,
+\[
+G_{p,j} = e\, S_{p,j} + \bigl(e + S_{p,\along{j}{1}}\bigr)\, S_{p,\along{j}{2}}
+\]
+projects to chi's output, without the round constant, for the sixteen steps of pack $p$ at position $j$. The prover sends the claim's weighted sum of these, a polynomial with $47$ coefficients:
+\[
+G(X) = \sum_{p} \eq(r, p) \sum_j w_j\, G_{p,j}(X).
+\]
+Each coordinate of $\proj$ is a parity of coefficients, so $\proj_\mu(G) = \sum_i \mu_i\, \proj(G)_i$ is an $\E$-linear functional of $G$. The verifier checks that $\proj_\mu(G)$, plus the share of the public round constants, is $c$.
+
+\paragraph{2. Evaluation.} The verifier samples $s \in \E$. A wrong $G$ agrees with the true one there with probability at most $46/|\E|$. At $s$ a pack's embedding is a single field element, linear in its sixteen bits:
+\[
+b^s_j(p) = S_{p,j}(s) = \sum_i \mu'_i\, b\bigl(j; (i, p)\bigr), \qquad \mu'_i = \emb(\text{unit vector } i)(s).
+\]
+With $\bar\mu' = e(s) = \sum_i \mu'_i$, the value $G(s)$, which the verifier computes from the coefficients it holds, is the sumcheck claim
+\begin{equation}\label{eq:at-s}
+G(s) = \sum_{p} \eq(r, p) \sum_j w_j \Bigl(\bar\mu'\, b^s_j + \bigl(\bar\mu' + b^s_{\along{j}{1}}\bigr)\, b^s_{\along{j}{2}}\Bigr).
+\end{equation}
+This is the heart of the protocol: the sixteen steps of a pack have become one field element, at the price of new step weights $\mu'$.
+
+\paragraph{3. Packs.} A sumcheck over the $n - 4$ variables of $p$, each $b^s_j$ replaced by its multilinear extension. The summand is the equality factor times a degree two cofactor, so a round costs two field elements. It ends at a point $r'$.
+
+\paragraph{4. Positions.} A second sumcheck, over the $11$ variables of the position (the slice low, the lane high; the $448$ positions past lane $24$ are zero), in which $w$ is one more multilinear factor: three field elements a round. It ends at a point $\rho \in \E^{11}$, where the prover sends the state at the positions $0$, $1$ and $2$ columns along,
+\[
+v_k = \sum_j \eq(\rho, j)\, \mle{b^s_{\along{j}{k}}}(r') \qquad (k = 0, 1, 2),
+\]
+and the verifier closes the sumcheck by computing $\mle{w}(\rho) = \sum_j \eq(\rho, j)\, w_j$ itself.
+
+\paragraph{5. Batching.} The verifier samples $\beta$, and $c' = v_0 + \beta v_1 + \beta^2 v_2$ is one claim on $b$. Moving the shifts from the state onto the weights, $k$ columns along being undone by $5 - k$,
+\[
+c' = \sum_j w^\flat_j\, \mle{b^s_j}(r'), \qquad w^\flat_j = \eq(\rho, j) + \beta\, \eq\bigl(\rho, \along{j}{4}\bigr) + \beta^2\, \eq\bigl(\rho, \along{j}{3}\bigr),
+\]
+and since $\mle{b^s_j}(r') = \sum_{p} \eq(r', p) \sum_i \mu'_i\, b(j; (i, p))$, this is the claim $(c', \mu', r', w^\flat)$ on $b$, of the shape~\eqref{eq:claim}.
+
+\paragraph{6. Linear map.} $\sum_j w^\flat_j\, b_j = \sum_j (L^\top w^\flat)_j\, a_j$, so $(c', \mu', r', L^\top w^\flat)$ is a claim on the round's input, with no interaction.
+
+The new claim has the shape of the old one, so the layers chain. In short, a layer is:
+
+\begin{center}
+\begin{tabular}{l@{\qquad}l}
+prover & sends $G$ ($47$ elements) \\
+verifier & checks $\proj_\mu(G)$ against $c$, samples $s$ \\
+both & sumcheck over packs ($2(n-4)$ elements) \\
+both & sumcheck over positions ($33$ elements) \\
+prover & sends $v_0, v_1, v_2$ \\
+verifier & checks the last sumcheck equation, samples $\beta$ \\
+both & form the claim $(c', \mu', r', L^\top w^\flat)$
+\end{tabular}
+\end{center}
+
+\section{Back to the commitment}\label{sec:openings}
+
+After $24$ layers one claim remains, on the inputs, that is on the committed column $q$. Its weights are general, so a sumcheck over the four variables of $i$ and the five of the slot reduces it to the $64$ bit slices of $q$ (bit $z$ of every word, $z < 64$) at one shared point. That is exactly the claim ring switching takes (Annex~A of \texttt{doc/leanvm}).
+
+It joins the VM's other claims in the single opening of its commitment, and the claims $v_\ell$ on the output leave the VM's batch: the reduction has used them.
+
+\section{Soundness}
+
+The commitment fixes $q$, hence every state and the output, before any challenge. If the statement fails, the first claim is false except with probability $(n + 5)/|\E|$. A layer turns a false claim into a true one with probability at most $(3n + 69)/|\E|$: a wrong $G$ matches at $s$ with probability $46/|\E|$, the two sumchecks (degree three with the equality factor, $n + 7$ rounds) let a false claim through with probability $3(n + 7)/|\E|$, and a wrong $v_k$ survives the batching with probability $2/|\E|$. The closing sumcheck adds $18/|\E|$, and in total the error is
+\[
+\frac{73n + 1679}{2^{192}} < 2^{-180} \qquad (n \le 32),
+\]
+next to the errors of ring switching and of the commitment scheme.
+
+\section{Cost}
+
+\paragraph{Proof.} A layer is $2n + 75$ field elements, and the closing sumcheck $82$: about $2650$ elements in all for $2^{16}$ steps.
+
+\paragraph{Prover.}
+\begin{itemize}
+  \item The witness is bit-sliced: a machine word holds one position of $64$ steps, four packs, so building it is running Keccak $64$ steps at a time.
+  \item $G$ is computed before $s$ exists, on bits. A pack and a position cost one carry-less product of two $24$-bit polynomials, and field arithmetic starts only when the products meet their weights.
+  \item The first four rounds of step 3 also run on bits~\cite{hashcaster}: the prover evaluates the summand on $\{0, 1, \infty\}^4$, where every value is a sum of products of bit-level combinations of packs.
+  \item After $s$, the prover stays in the power basis of $s$, in which a pack's value $b^s_j$ is its embedding's bits and multiplying by it is a carry-less product.
+\end{itemize}
+
+\paragraph{Verifier.} A layer's only real work is the $1600$ position weights: applying $L^\top$, and $\mle{w}(\rho)$. The recursive verifier, which runs inside the VM, never writes them out. $w^\flat$ factors into a table over the $25$ lanes times an equality table over the $64$ slices, since a shift along the columns moves whole lanes. Pi moves lanes, rho rotates a lane's slices, and theta adds column sums rotated by at most one slice, so pairing $L^\top w^\flat$ with a vector $g$ that factors the same way comes down to $25$ lane terms and a few rotation sums $\sum_z g_z\, \eq(\rho_{\mathrm{slice}}, z + \delta \bmod 64)$. When $g$'s slice table is an equality table too, such a sum is the multilinear extension of $z' = z + \delta \bmod 64$ at two points, which a carry ripple over the six bits evaluates.
+
+\section{Next to Flock}
+
+Flock~\cite{flock} commits the whole Boolean witness of a hash circuit, every gate's output, and proves it with a zerocheck on the products $a \cdot b + c = 0$ and a lincheck on the linear relations, which end as claims on the witness's bit slices, discharged by ring switching. This protocol ends the same way, but gets there differently:
+\begin{itemize}
+  \item the states between two committed ones are never committed: the GKR layers carry a claim through them instead of a zerocheck checking them;
+  \item the linear map needs no lincheck, since a claim passes through it by transposing its weights.
+\end{itemize}
+The price is that a claim goes through the layers in sequence, each with its own sumchecks, so the proof and the verifier's work grow with the number of rounds between committed states.
+
+\section{Optimization: committing the middle state}\label{sec:segments}
+
+Committing more states shortens that sequence. The VM cuts the $24$ rounds into two \emph{segments} of $12$ and commits each segment's input, that is the permutation's input and its state after $12$ rounds: slot $25m + \ell$ of $q$ holds lane $\ell$ of segment $m$'s input. The statement becomes:
+\begin{enumerate}[label=(\roman*)]
+  \item segment $0$, run from its committed input, ends on segment $1$'s committed input;
+  \item segment $1$, run from its committed input, ends on an output whose lanes evaluate to the $v_\ell$ at $r^*$.
+\end{enumerate}
+GKR runs backwards from both segment ends at once: the segment $m$ is one more variable next to the pack, so a claim's equality table is $\eq\bigl(r, (p, m)\bigr)$ and there are $12$ layers, not $24$. Only the two ends change.
+
+\paragraph{The first claim.} The verifier also samples $r_{\mathrm{seg}} \in \E$, and $r = (r_{\mathrm{pack}}, r_{\mathrm{seg}})$. The claim is now a random combination of both segments' outputs. Its part on segment $1$ is $r_{\mathrm{seg}} \sum_\ell \eq(r_{\mathrm{lane}}, \ell)\, v_\ell$, which the verifier computes. Its part on segment $0$, a combination of the committed middle state, is a value $c_{\mathrm{st}}$ the prover sends. The claimed value is their sum.
+
+\paragraph{The middle state.} $c_{\mathrm{st}}$ has a word's weights and an equality table over the steps, so it is a weighted sum, over the slots, of $\mle{q}$ at $r^*$. A sumcheck over the six slot variables reduces it to one evaluation of $\mle{q}$, an ordinary point claim, opened with the rest. The inputs' claim closes as before, over six slot variables instead of five.
+
+\paragraph{Cost.} The prover commits $25$ more lanes per step. In exchange a layer is $2n + 77$ elements and the two closing sumchecks $13$ and $84$, about $1400$ elements in all for $2^{16}$ steps, half as many, and the verifier runs half as many layers. The error becomes $(37n + 902)/2^{192}$. (The crate takes any number of segments that divides $24$.)
+
+\section{Credits}\label{sec:credits}
+
+The protocol follows Hashcaster, by Lev Soukhanov and collaborators. The first Hashcaster~\cite{hashcaster} proves batched boolean operations over binary fields with a sumcheck whose first rounds run on the bits themselves. Hashcaster~2~\cite{hashcaster2} is a GKR for Keccak built on the two ideas of step~1: packing bits into a polynomial ring by the Chinese remainder theorem, so that an AND of many bits is one product, and having the prover send that product as a polynomial that the verifier checks through the projection~\cite{rmfeskip}. The protocol here is that design with $16$ bits packed in degree below $24$, a state committed every $12$ rounds and the output not at all, its claims coming from the VM, and both closing claims opened by the VM's commitment.
+
+\begin{thebibliography}{9}
+\bibitem{hashcaster} L.~Soukhanov et al. \emph{Hashcaster: Frobenius sumcheck for vectorized boolean ops}, 2024. \url{https://github.com/morgana-proofs/hashcaster}
+\bibitem{hashcaster2} L.~Soukhanov et al. \emph{Hashcaster 2: Newfanged RMFE in polynomials}, 2026. \url{https://github.com/levs57/hashcaster2}
+\bibitem{rmfeskip} L.~Soukhanov. \emph{RMFE-skip}. \url{https://hackmd.io/@levs57/HJkT2mEXMx}
+\bibitem{GKR08} S.~Goldwasser, Y.~T.~Kalai, G.~N.~Rothblum. \emph{Delegating Computation: Interactive Proofs for Muggles}. STOC 2008.
+\bibitem{CCXY18} I.~Cascudo, R.~Cramer, C.~Xing, C.~Yuan. \emph{Amortized Complexity of Information-Theoretically Secure MPC Revisited}. CRYPTO 2018.
+\bibitem{flock} Succinct. \emph{Flock}. \url{https://github.com/succinctlabs/flock}
+\bibitem{fips202} NIST. \emph{SHA-3 Standard: Permutation-Based Hash and Extendable-Output Functions}. FIPS 202, 2015.
+\end{thebibliography}
+
+\end{document}

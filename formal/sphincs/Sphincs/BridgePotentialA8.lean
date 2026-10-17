@@ -129,7 +129,7 @@ theorem prepared_not_fchain {f : FIn} {a : HashOutput}
 
 include hprepared in
 /-- No prepared encoding answer decodes to a unit neighbour of the prepared word. -/
-theorem prepared_no_marker {l : Index} {msg : Digest} {ctr : Counter} {a : HashOutput} {i : ChainIndex}
+theorem prepared_no_marker {l : Index} {msg : ForestKey} {ctr : Counter} {a : HashOutput} {i : ChainIndex}
     (h : prepared.2 (Wots.encodingInput (truncateHash parameterOutput) topLayer rootTree l msg ctr) = some a)
     (hm : truncateHash a ∈ decodingDigests (unitNeighbors (preparedWord prepared.1 l) i)) : False := by
   obtain ⟨word, hword, hdec⟩ := mem_decodingDigests.1 hm

@@ -60,7 +60,7 @@ theorem failMass_encoding_add_le :
 /-- All 2^32 WOTS+C encoding attempts fail with probability at most 2^(-2^22),
 provided these counter inputs are initially fresh. -/
 theorem encoding_exhaustion_bound (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) (cache : QueryCache HashSpec)
+    (leaf : LeafIndex) (seed : MasterSeed) (message : FtsTops) (cache : QueryCache HashSpec)
     (hfresh : ∀ c, c < encodingAttemptLimit →
       cache (encodeInput parameter lay tree leaf message c) = none) :
     Pr[fun r => r.1 = none | (simulateQ randomOracle

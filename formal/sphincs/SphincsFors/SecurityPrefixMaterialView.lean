@@ -46,13 +46,13 @@ theorem chain (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (index : Chain
       · exact h.tweakable _ _
       · rfl
 
-theorem encoding (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : Digest) (counter : Counter) :
+theorem encoding (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : FtsTops) (counter : Counter) :
     evalWithAnswerFn left (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) =
       evalWithAnswerFn right (encode parameter lay tree leaf message counter : OracleComp HashSpec (Option Encoding)) := by
   simp only [encode, evalWithAnswerFn_bind, h.tweakable, evalWithAnswerFn_pure]
 
 theorem firstEncoding_eq (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (attempts start : Nat) :
+    (message : FtsTops) (attempts start : Nat) :
     firstEncoding left parameter lay tree leaf message attempts start =
       firstEncoding right parameter lay tree leaf message attempts start := by
   induction attempts generalizing start with
@@ -71,8 +71,8 @@ theorem forsNode (index : Index) (tree : FtsTree) (level nodeIdx : Nat) :
       rw [hleft, hright, ih, ih, h.hash]
 
 theorem forsKey (index : Index) :
-    evalWithAnswerFn left (Seeded.ftsKey parameter index seed : OracleComp HashSpec Digest) =
-      evalWithAnswerFn right (Seeded.ftsKey parameter index seed : OracleComp HashSpec Digest) := by
+    evalWithAnswerFn left (Seeded.ftsKey parameter index seed : OracleComp HashSpec FtsTops) =
+      evalWithAnswerFn right (Seeded.ftsKey parameter index seed : OracleComp HashSpec FtsTops) := by
   simp only [Seeded.ftsKey, evalWithAnswerFn_bind, evalWithAnswerFn_pure, eval_sequenceFin,
     h.forsNode, h.tweakable]
 
@@ -132,7 +132,7 @@ theorem path (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Diges
   simp only [publicPath, h.node segment hparameter]
 
 theorem layer (secrets : Secrets) (frontier : Digest) (surrogates : Nat → Digest)
-    (index : Index) (lay : Layer) (message : Digest) :
+    (index : Index) (lay : Layer) (message : FtsTops) :
     publicLayer segment left secrets frontier surrogates index lay message =
       publicLayer segment right secrets frontier surrogates index lay message := by
   subst parameter

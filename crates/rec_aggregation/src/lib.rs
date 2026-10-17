@@ -1,7 +1,6 @@
 pub mod aggregation;
-/// The BLAKE2s hash chain, proven end to end. A `src` module rather than its own
-/// test binary so it shares the process, and so the slow flock circuit build,
-/// with the other workloads.
+/// The Keccak hash chain, proven end to end. A `src` module rather than its own
+/// test binary so it shares the process with the other workloads.
 #[cfg(test)]
 mod hash_chain;
 pub mod signers_cache;

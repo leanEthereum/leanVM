@@ -24,7 +24,7 @@ pub enum Coord {
     /// A committed column, value `col[z]`.
     Col(usize),
     /// The free increment `g^k · col[z]` (a virtual column, §sec:vm): `k = 1` for the
-    /// count/state steps, `k ∈ {1,2,3}` for BLAKE2s's consecutive-word successors.
+    /// count/state steps, `k ≤ 12` for a SHA3 state's consecutive cells.
     GCol(usize, u32),
     /// The product `g^k · col_a[z] · col_b[z]` of two committed columns. An address
     /// is `fp·g^o`, so this carries one on the bus without committing it: the

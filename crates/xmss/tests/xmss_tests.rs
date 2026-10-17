@@ -61,16 +61,16 @@ fn tweak_separates_hash_domains() {
     assert_ne!(base, tweak_hash(&pp, TWEAK_TYPE_CHAIN, 4, 5, &x));
     assert_ne!(base, tweak_hash(&pp, TWEAK_TYPE_CHAIN, 3, 6, &x));
     assert_ne!(base, tweak_hash(&[8u8; PUBLIC_PARAM_LEN], TWEAK_TYPE_CHAIN, 3, 5, &x));
-    // Standard BLAKE2s binds the exact payload length.
+    // The hash's padding binds the exact payload length.
     let mut extended = [0u8; STATE_LEN];
     extended[..DIGEST_LEN].copy_from_slice(&x);
     assert_ne!(base, tweak_hash(&pp, TWEAK_TYPE_CHAIN, 3, 5, &extended));
 }
 
-/// The multi-block WOTS public-key hash is standard BLAKE2s of `tweak | pp |
-/// payload`, assembled independently here and streamed in unrelated chunks.
+/// The multi-block WOTS public-key hash is the hash of `tweak | pp | payload`,
+/// assembled independently here and streamed in unrelated chunks.
 #[test]
-fn multi_block_tweak_hash_is_standard_blake2s() {
+fn multi_block_tweak_hash_is_the_hash_of_its_input() {
     let pp = [9u8; PUBLIC_PARAM_LEN];
     let payload = [5u8; V * DIGEST_LEN];
     let mut input = Vec::new();

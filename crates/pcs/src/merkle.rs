@@ -1,5 +1,5 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! Binary Merkle tree with BLAKE2s, built in cache-resident subtree blocks.
+//! Binary Merkle tree with Keccak-256, built in cache-resident subtree blocks.
 //!
 //! The committer's half. What a proof carries lives in [`fiat_shamir::merkle`].
 //!
@@ -27,18 +27,18 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 pub use fiat_shamir::merkle::{Hash, hash_leaf, hash_pair};
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{BATCH, BLOCK_LEN, OUT_LEN, hash_many, hash_many_dyn_from_state, zero_prefix_state};
+use primitives::hash::{CHUNK, LANES, OUT_LEN, STATE_LANES, hash_many, hash_many_dyn_from_state, zero_prefix_state};
 use primitives::pretty_integer;
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
 const UNIT: usize = 1 << 10;
 
-/// Staging tile for leaves whose zero padding does not end on a block boundary.
+/// Staging tile for leaves whose zero padding does not end on a chunk boundary.
 const STAGE_TILE_BYTES: usize = 16 << 10;
 
 /// Merkle tree over `num_leaves` equal byte leaves.
 ///
-/// Every leaf is hashed as plain BLAKE2s-256 of its bytes.
+/// Every leaf is hashed as [`primitives::hash::hash`] of its bytes.
 #[tracing::instrument(
     name = "Hashing",
     skip_all,
@@ -119,7 +119,7 @@ impl MerkleBuilder {
             return unsafe { self.nodes.climb(level, 0, n, n.ilog2() as usize) };
         }
         // Climb while every level still fills whole batches.
-        let height = (n / BATCH).max(1).ilog2() as usize;
+        let height = (n / LANES).max(1).ilog2() as usize;
         // SAFETY: forwarded.
         unsafe { self.nodes.climb(level, first, n, height) };
         let (level, first, n) = (level + height, first >> height, n >> height);
@@ -273,103 +273,70 @@ impl Progress {
 
 /// How rows become leaf digests, chosen once from the leaf shape.
 ///
-/// Whole blocks of leading zeros are one chaining value, absorbed once for every leaf.
+/// Whole chunks of leading zeros are one sponge state, absorbed once for every leaf.
 enum LeafHasher {
-    /// Past the shared prefix, each row is its own whole-block image.
+    /// Past the shared prefix, each row is its own image.
     Direct {
         row_bytes: usize,
-        state: [u32; 8],
-        t_offset: u64,
+        state: [u64; STATE_LANES],
     },
-    /// The rest of the padding does not fill a block, so rows are zero-extended in a tile first.
+    /// The rest of the padding does not fill a chunk, so rows are zero-extended in a tile first.
     ///
     /// The copy also aligns each image to whole cache lines, which the hasher's loads want.
     Staged {
         row_bytes: usize,
         image: usize,
-        state: [u32; 8],
-        t_offset: u64,
+        state: [u64; STATE_LANES],
     },
-    /// Leaves of no whole block: one at a time, zero-extended to `leaf_bytes`.
-    Single { row_bytes: usize, leaf_bytes: usize },
 }
 
 impl LeafHasher {
     fn new(row_bytes: usize, leaf_bytes: usize) -> Self {
         assert!(0 < row_bytes && row_bytes <= leaf_bytes, "a leaf holds its row");
-        if !leaf_bytes.is_multiple_of(BLOCK_LEN) {
-            assert!(
-                row_bytes == leaf_bytes || leaf_bytes <= STAGE_TILE_BYTES,
-                "a padded leaf fits the tile"
-            );
-            return Self::Single { row_bytes, leaf_bytes };
-        }
-        let zero_blocks = (leaf_bytes - row_bytes) / BLOCK_LEN;
-        let (state, t_offset) = (zero_prefix_state(zero_blocks), (zero_blocks * BLOCK_LEN) as u64);
-        let image = leaf_bytes - zero_blocks * BLOCK_LEN;
+        // A shared chunk must be non-final, which it is: the row follows it.
+        let zero_chunks = (leaf_bytes - row_bytes) / CHUNK;
+        let state = zero_prefix_state(zero_chunks);
+        let image = leaf_bytes - zero_chunks * CHUNK;
         if image == row_bytes {
-            Self::Direct {
-                row_bytes,
-                state,
-                t_offset,
-            }
+            Self::Direct { row_bytes, state }
         } else {
             assert!(image <= STAGE_TILE_BYTES, "a padded leaf fits the tile");
             Self::Staged {
                 row_bytes,
                 image,
                 state,
-                t_offset,
             }
         }
     }
 
     fn row_bytes(&self) -> usize {
         match *self {
-            Self::Direct { row_bytes, .. } | Self::Staged { row_bytes, .. } | Self::Single { row_bytes, .. } => {
-                row_bytes
-            }
+            Self::Direct { row_bytes, .. } | Self::Staged { row_bytes, .. } => row_bytes,
         }
     }
 
     /// Hash one leaf per row into `out`.
     fn hash(&self, rows: &[u8], out: &mut [MaybeUninit<Hash>]) {
         match *self {
-            Self::Direct {
-                row_bytes,
-                state,
-                t_offset,
-            } => {
-                hash_many_dyn_from_state(rows, row_bytes, &state, t_offset, digests_as_bytes(out));
+            Self::Direct { row_bytes, state } => {
+                hash_many_dyn_from_state(rows, row_bytes, &state, digests_as_bytes(out));
             }
             Self::Staged {
                 row_bytes,
                 image,
                 state,
-                t_offset,
             } => {
                 // Whole batches per tile.
                 let per_tile = STAGE_TILE_BYTES / image;
-                let per_tile = if per_tile >= BATCH {
-                    per_tile - per_tile % BATCH
+                let per_tile = if per_tile >= LANES {
+                    per_tile - per_tile % LANES
                 } else {
                     per_tile
                 };
                 let mut tile = Tile::new();
                 for (out, rows) in out.chunks_mut(per_tile).zip(rows.chunks(per_tile * row_bytes)) {
                     let images = tile.extend(rows, row_bytes, image);
-                    hash_many_dyn_from_state(images, image, &state, t_offset, digests_as_bytes(out));
-                }
-            }
-            Self::Single { row_bytes, leaf_bytes } if row_bytes == leaf_bytes => {
-                for (slot, row) in out.iter_mut().zip(rows.chunks_exact(row_bytes)) {
-                    slot.write(hash_leaf(row));
-                }
-            }
-            Self::Single { row_bytes, leaf_bytes } => {
-                let mut tile = Tile::new();
-                for (slot, row) in out.iter_mut().zip(rows.chunks_exact(row_bytes)) {
-                    slot.write(hash_leaf(tile.extend(row, row_bytes, leaf_bytes)));
+                    hash_many_dyn_from_state(images, image, &state, digests_as_bytes(out));
                 }
             }
         }
@@ -436,7 +403,7 @@ mod tests {
 
     #[test]
     fn byte_tree_matches_sequential() {
-        // Leaf sizes cover every batched width in use, and ones with no whole block.
+        // Leaf sizes on both sides of a chunk, whole chunks or not.
         //
         // Leaf counts cross the batch, the block, and the parallel top.
         for (num_leaves, leaf_size) in [
@@ -472,18 +439,19 @@ mod tests {
             // Nothing to pad.
             (8usize, 64usize, 64usize),
             (1024, 8, 8),
-            // A shared prefix plus a partial block, staged.
+            // A shared prefix plus a partial chunk, staged.
             (2048, 37, 64),
             (256, 27, 64),
             (64, 1, 64),
-            // A prefix of whole blocks: the rows are hashed where they lie.
+            // A prefix of whole chunks: the rows are hashed where they lie.
             (256, 32, 64),
-            (1 << 14, 56, 64),
-            // A prefix shorter than one block: nothing shared, still staged.
+            (1 << 14, 48, 64),
+            // A prefix shorter than one chunk: nothing shared, still staged.
             (32, 5, 8),
             (256, 61, 64),
-            // 40-byte leaves: not whole blocks, hashed one at a time.
+            // Leaves that are not a whole number of chunks.
             (16, 3, 5),
+            (64, 7, 40),
         ] {
             let data: Vec<F64> = (0..row_words * num_leaves)
                 .map(|i| F64(i.wrapping_mul(0x9E37_79B9_7F4A_7C15) as u64 | 1))

@@ -22,8 +22,8 @@ const PROGRAMS: [&str; 5] = [
     "def main():\n    x = GEN ** 5\n    y = x * x\n    return\n",
     "def main():\n    b = HeapBuf(4)\n    b[1] = GEN\n    y = b[1] * b[1]\n    return\n",
     "def main():\n    for i in mul_range(1, GEN ** 20):\n        z = i * i\n    return\n",
-    // A compression, so BLAKE2s is non-empty too.
-    "def main():\n    a = StackBuf(2)\n    a[0] = 5\n    a[1] = 7\n    c = StackBuf(2)\n    blake2s(a, a, c)\n    return\n",
+    // A hash, so SHA3 is non-empty too.
+    "def main():\n    a = StackBuf(2)\n    a[0] = 5\n    a[1] = 7\n    c = StackBuf(2)\n    sha3(a, a, c)\n    return\n",
     "def main():\n    for i in mul_range(1, GEN ** 300):\n        z = i + GEN\n    return\n",
 ];
 

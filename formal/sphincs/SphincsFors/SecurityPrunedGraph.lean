@@ -18,7 +18,7 @@ def active (parameter : PublicParameter) : Position → Prop
   | .chain _ _ leaf _ _ => Landed parameter leaf
   | .leaf _ _ leaf => Landed parameter leaf
   | .node _ _ level index => KeptNode parameter (level.val + 1) index.val
-  | .ftsLeaf _ _ _ | .ftsNode _ _ _ _ | .ftsRoots _ => True
+  | .ftsLeaf _ _ _ | .ftsNode _ _ _ _ => True
 
 def boundary (parameter : PublicParameter) (surrogates : Fin totalHeight → Digest) :
     Position → Option Digest
@@ -36,7 +36,7 @@ theorem boundary_inactive (parameter : PublicParameter) (surrogates : Fin totalH
     (position : Position) (value : Digest) (hboundary : boundary parameter surrogates position = some value) :
     ¬active parameter position := by
   cases position with
-  | chain | ftsLeaf | ftsNode | ftsRoots => simp [boundary] at hboundary
+  | chain | ftsLeaf | ftsNode => simp [boundary] at hboundary
   | leaf lay tree leaf =>
       simp only [boundary] at hboundary
       split at hboundary

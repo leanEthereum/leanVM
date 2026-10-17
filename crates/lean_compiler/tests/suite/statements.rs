@@ -676,7 +676,7 @@ fn a_value_may_ask_for_the_integer_regime() {
 /// name.
 #[test]
 fn a_function_may_not_shadow_a_builtin() {
-    for name in ["const", "f192", "addr", "blake2s", "len", "hint_witness", "StackBuf"] {
+    for name in ["const", "f192", "addr", "sha3", "len", "hint_witness", "StackBuf"] {
         let src = format!("def {name}(x):\n    assert x == 99\n    return x\n\ndef main():\n    return\n");
         let err = parse(&src).expect_err(&format!("`def {name}` must be rejected"));
         assert!(err.contains("is a builtin"), "got `{err}`");
@@ -684,7 +684,7 @@ fn a_function_may_not_shadow_a_builtin() {
     // A global CONSTANT of that name is rejected too, and for a sharper reason: a
     // scalar constant is substituted textually, so `match = 4` rewrites
     // `v = match(log(x), …)` into `4(log(x), …)`.
-    for name in ["match", "blake2s", "len"] {
+    for name in ["match", "sha3", "len"] {
         let src = format!("{name} = 4\n\ndef main():\n    return\n");
         let err = parse(&src).expect_err(&format!("`{name} = 4` must be rejected"));
         assert!(err.contains("is a builtin"), "got `{err}`");

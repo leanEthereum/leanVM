@@ -87,7 +87,7 @@ theorem OnlyC.writerLift {α : Type} {oa : OracleComp CostSpec α} (h : OnlyC oa
   exact OnlyC.map _ h
 
 theorem Only.search (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) : ∀ attempts start,
+    (message : FtsTops) : ∀ attempts start,
     Short.Only (ReferenceChoice.search parameter lay tree leaf message attempts start)
   | 0, _ => Short.Only.pure' _
   | attempts + 1, start => by

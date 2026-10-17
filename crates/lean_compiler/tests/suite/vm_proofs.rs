@@ -11,14 +11,14 @@ use leanvm_core::vmhash::compress;
 use primitives::field::{F64, F192};
 
 /// A program that hashes one block and publishes the digest, so its proof carries
-/// flock's sub-proof over a real compression.
+/// the Keccak reduction over a real compression.
 const HASHING: &str = "\
 def main():
     a = StackBuf(2)
     a[0] = 5
     a[1] = 7
     c = StackBuf(2)
-    blake2s(a, a, c)
+    sha3(a, a, c)
     p = 1
     p[1] = c[0]
     p[GEN] = c[1]

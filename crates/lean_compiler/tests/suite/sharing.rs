@@ -161,20 +161,15 @@ def main():
     verify(&program, &want, &proof).expect("untaken branch must not consume its witness");
 }
 
-/// A BLAKE2s chaining value names a CONSECUTIVE PAIR, so neither half may be
-/// folded into a canonical elsewhere and the base may not be rewritten: a
-/// substitution speaks for one cell, and redirecting the base silently redirects
-/// the second word too. `rewrite_reads` used to map `cv` like any single-cell
-/// read, so when the first of the two assembling copies duplicated an earlier
-/// copy of the same source, the compression absorbed the OTHER pair's second
-/// word. Silent, and a soundness break in a transcript.
+/// A `sha3` state names a CONSECUTIVE RUN, so no cell of it may be folded into a
+/// canonical elsewhere: a substitution speaks for one cell, and redirecting the
+/// run's base silently redirects the rest of it too.
 ///
-/// The two compressions here differ in nothing but their chaining value, and
-/// their two `cv` pairs share a first word, which is what made the first copy a
-/// duplicate. If either pair is rewritten or dropped, the digests coincide and
-/// the inequality fails at witness generation.
+/// The two hashes here differ in nothing but their state, and their two state
+/// runs share every cell's source but the last. If either run is rewritten or
+/// dropped, the digests coincide and the inequality fails at witness generation.
 #[test]
-fn a_chaining_value_pair_is_neither_rewritten_nor_dropped() {
+fn a_sponge_state_run_is_neither_rewritten_nor_dropped() {
     let src = "\
 def main():
     hb = HeapBuf(4)
@@ -186,21 +181,17 @@ def main():
     y = hb[GEN]
     z = hb[GEN ** 2]
     w = hb[GEN ** 3]
-    msg = StackBuf(4)
-    msg[0] = y
-    msg[1] = y
-    msg[2] = y
-    msg[3] = y
-    t = StackBuf(2)
-    t[0] = x
-    t[1] = z
+    t = StackBuf(13)
+    s = StackBuf(13)
+    for k in unroll(0, 12):
+        t[k] = x
+        s[k] = x
+    t[12] = z
+    s[12] = w
     o1 = StackBuf(2)
-    blake2s(msg[0:2], msg[2:4], o1, cv=t, counter=64, final=1)
-    s = StackBuf(2)
-    s[0] = x
-    s[1] = w
+    sha3([y, y], [y, y], o1, state=t)
     o2 = StackBuf(2)
-    blake2s(msg[0:2], msg[2:4], o2, cv=s, counter=64, final=1)
+    sha3([y, y], [y, y], o2, state=s)
     assert o1[0] != o2[0]
     p = 1
     p[1] = x
@@ -210,7 +201,7 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     let want = [F192::from(g_pow(11)), F192::from(g_pow(22))];
     let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("each compression absorbs its own chaining value");
+    verify(&program, &want, &proof).expect("each hash absorbs into its own state");
 }
 
 #[test]

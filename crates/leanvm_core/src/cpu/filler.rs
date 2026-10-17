@@ -37,10 +37,10 @@ pub const PAD_TABLE: usize = 2;
 /// largest block and then one per set bit of the remainder.
 pub const SIZES: [usize; 8] = [128, 64, 32, 16, 8, 4, 2, 1];
 
-/// Least rows a table can be proven over. Only `BLAKE2s` has one above `1`: flock sizes
-/// its argument to at least eight instances, so filling that table below the floor
-/// would leave it padded up to it, which is the padding this exists to avoid.
-pub const MIN_ROWS: [usize; N_TABLES] = [1, 1, 1, 1, 1, 8];
+/// Least rows a table can be proven over. Only `SHA3` has one above `1`: the Keccak
+/// reduction is sized for at least one of its blocks of steps, so filling that table below
+/// the floor would leave it padded up to it, which is the padding this exists to avoid.
+pub const MIN_ROWS: [usize; N_TABLES] = [1, 1, 1, 1, 1, crate::keccak::MIN_STEPS];
 
 /// The `JUMP` table's index in [`crate::cpu::Stats::TABLES`]. Every traversal of every
 /// block lands its closing jump here, so this table is solved last, absorbing the cost
@@ -66,10 +66,9 @@ pub struct Block {
 ///
 /// The rest is what the dummies use: a cell that is never written, so the `JUMP` table's
 /// dummy reads a zero condition and falls through instead of leaving the block; the
-/// scratch cell a dummy writes, which doubles as the `BLAKE2s` dummy's chaining value and
-/// so spans `SCRATCH..SCRATCH+2`; and the digest, placed clear of it so that a digest
-/// never becomes the next traversal's chaining value. `DIGEST+2..DIGEST+6` are the
-/// message cells, never written, so every traversal compresses the same input.
+/// scratch cell a dummy writes; the `SHA3` dummy's input, five cells never written that
+/// serve as its `m`, `tail` and `cap` alike, so every traversal permutes the same state;
+/// and its output, placed clear of them.
 pub mod frame {
     /// Where the closing jump goes, and in which frame.
     pub const DEST: u32 = 0;
@@ -80,10 +79,12 @@ pub mod frame {
     pub const ZERO: u32 = 3;
     /// What a dummy writes.
     pub const SCRATCH: u32 = 4;
-    /// The `BLAKE2s` dummy's output pair.
-    pub const DIGEST: u32 = 6;
+    /// The `SHA3` dummy's input cells, never written.
+    pub const SHA3_IN: u32 = 5;
+    /// The `SHA3` dummy's thirteen output cells.
+    pub const SHA3_OUT: u32 = SHA3_IN + 5;
     /// Cells a block's frame occupies.
-    pub const CELLS: u32 = 12;
+    pub const CELLS: u32 = SHA3_OUT + crate::keccak::STATE_CELLS as u32;
 }
 
 /// Traversals per block: `plan[t][k]` is how many times the size-`SIZES[k]` block of

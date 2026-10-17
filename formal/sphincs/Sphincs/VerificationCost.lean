@@ -3,9 +3,11 @@ import Sphincs.Code
 import Sphincs.Correctness
 
 /-!
-Compression counts for the actual verifier's logged hash-input bytes. A hash of `n` bytes costs
-`max 1 (ceil (n / 64))`, the BLAKE2s accounting used by `crates/sphincs/src/hash.rs` and
-`scripts/scheme.py`. The oracle's answers remain arbitrary; only the byte lengths are counted.
+Keccak-f permutation counts for the actual verifier's logged hash-input bytes. A hash of `n` bytes
+costs `max 1 (ceil (n / 128))`, the leanVM hash's (Keccak-256 in the cell encoding, 128 message bytes
+a permutation), as `sphincs::blocks` counts it in `crates/sphincs/src/hash.rs`; the total is
+`sphincs::VERIFY_PERMUTATIONS`. The oracle's answers remain arbitrary; only the byte lengths are
+counted.
 -/
 
 open OracleComp OracleSpec Finset
@@ -14,15 +16,15 @@ namespace Sphincs.Cost
 
 open Concrete
 
-/-- BLAKE2s compression blocks, including the block for an empty input. -/
-def blocks (bytes : Nat) : Nat := max 1 ((bytes + 63) / 64)
+/-- Permutations of the leanVM hash: one per started 128-byte block, one for the empty input. -/
+def blocks (bytes : Nat) : Nat := max 1 ((bytes + 127) / 128)
 
 /-- Actual hash inputs on the execution selected by an arbitrary answer function. -/
 def hashTrace {α : Type} (f : QueryImpl HashSpec Id) (oa : OracleComp HashSpec α) :
     List HashInput := ((simulateQ f.withLogging oa).run).2.map Sigma.fst
 
-/-- Compression count of the actual execution, with input lengths including parameter and address. -/
-def compressions {α : Type} (f : QueryImpl HashSpec Id) (oa : OracleComp HashSpec α) : Nat :=
+/-- Permutation count of the actual execution, with input lengths including parameter and address. -/
+def permutations {α : Type} (f : QueryImpl HashSpec Id) (oa : OracleComp HashSpec α) : Nat :=
   ((hashTrace f oa).map (fun input => blocks input.length)).sum
 
 @[simp] theorem hashTrace_pure {α : Type} (f : QueryImpl HashSpec Id) (x : α) :
@@ -45,17 +47,17 @@ theorem hashTrace_bind {α β : Type} (f : QueryImpl HashSpec Id)
         show evalWithAnswerFn f (liftM (HashSpec.query input)) = f input from
           simulateQ_spec_query f input, List.cons_append]
 
-@[simp] theorem compressions_pure {α : Type} (f : QueryImpl HashSpec Id) (x : α) :
-    compressions f (pure x) = 0 := rfl
+@[simp] theorem permutations_pure {α : Type} (f : QueryImpl HashSpec Id) (x : α) :
+    permutations f (pure x) = 0 := rfl
 
-theorem compressions_bind {α β : Type} (f : QueryImpl HashSpec Id)
+theorem permutations_bind {α β : Type} (f : QueryImpl HashSpec Id)
     (oa : OracleComp HashSpec α) (next : α → OracleComp HashSpec β) :
-    compressions f (oa >>= next) = compressions f oa +
-      compressions f (next (evalWithAnswerFn f oa)) := by
-  simp [compressions, hashTrace_bind]
+    permutations f (oa >>= next) = permutations f oa +
+      permutations f (next (evalWithAnswerFn f oa)) := by
+  simp [permutations, hashTrace_bind]
 
-@[simp] theorem compressions_oracleHash (f : QueryImpl HashSpec Id) (input : HashInput) :
-    compressions f (oracleHash input : OracleComp HashSpec HashOutput) = blocks input.length := rfl
+@[simp] theorem permutations_oracleHash (f : QueryImpl HashSpec Id) (input : HashInput) :
+    permutations f (oracleHash input : OracleComp HashSpec HashOutput) = blocks input.length := rfl
 
 theorem tweakableHashInput_length (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :
@@ -63,66 +65,70 @@ theorem tweakableHashInput_length (parameter : PublicParameter) (domain : HashDo
   simp [tweakableHashInput, tweakBytes, fieldBytes, bytesLE_length]
   omega
 
-@[simp] theorem compressions_tweakableHash (f : QueryImpl HashSpec Id)
+@[simp] theorem permutations_tweakableHash (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) :
-    compressions f (Concrete.tweakableHash parameter domain payload) = blocks (32 + payload.length) := by
-  rw [Concrete.tweakableHash, compressions_bind, compressions_oracleHash,
-    compressions_pure, Nat.add_zero, tweakableHashInput_length]
+    permutations f (Concrete.tweakableHash parameter domain payload) = blocks (32 + payload.length) := by
+  rw [Concrete.tweakableHash, permutations_bind, permutations_oracleHash,
+    permutations_pure, Nat.add_zero, tweakableHashInput_length]
 
-theorem compressions_sequenceFin {α : Type} {n : Nat} (f : QueryImpl HashSpec Id)
+theorem permutations_sequenceFin {α : Type} {n : Nat} (f : QueryImpl HashSpec Id)
     (computation : Fin n → OracleComp HashSpec α) :
-    compressions f (sequenceFin computation) = ∑ i : Fin n, compressions f (computation i) := by
+    permutations f (sequenceFin computation) = ∑ i : Fin n, permutations f (computation i) := by
   induction n with
   | zero => simp [sequenceFin]
   | succ n ih =>
-      rw [sequenceFin, compressions_bind]
-      simp only [compressions_bind, compressions_pure, Nat.add_zero, ih, Fin.sum_univ_succ]
+      rw [sequenceFin, permutations_bind]
+      simp only [permutations_bind, permutations_pure, Nat.add_zero, ih, Fin.sum_univ_succ]
 
-theorem compressions_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
+theorem permutations_chainWalk (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (chain : ChainIndex)
     (start steps : Nat) (value : Digest) (hsteps : start + steps ≤ chainLength - 1) :
-    compressions f (chainWalk parameter lay tree leaf chain start steps value) = steps := by
+    permutations f (chainWalk parameter lay tree leaf chain start steps value) = steps := by
   induction steps with
   | zero => rfl
   | succ steps ih =>
-      rw [chainWalk, compressions_bind, dif_pos (by omega), compressions_tweakableHash,
+      rw [chainWalk, permutations_bind, dif_pos (by omega), permutations_tweakableHash,
         bytesLE_length, ih (by omega)]
       rfl
 
-@[simp] theorem compressions_recoverChain (f : QueryImpl HashSpec Id)
+@[simp] theorem permutations_recoverChain (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (chain : ChainIndex) (digit : Digit) (value : Digest) :
-    compressions f (recoverChain parameter lay tree leaf chain digit value) =
+    permutations f (recoverChain parameter lay tree leaf chain digit value) =
       chainLength - 1 - digit.val := by
-  apply compressions_chainWalk
+  apply permutations_chainWalk
   have := digit.isLt
   omega
 
-@[simp] theorem compressions_leafHash (f : QueryImpl HashSpec Id)
+@[simp] theorem permutations_leafHash (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
     (endpoints : ChainIndex → Digest) :
-    compressions f (leafHash parameter lay tree leaf endpoints) = 17 := by
-  rw [leafHash, compressions_tweakableHash, leafPayload, digest_vector_length]
+    permutations f (leafHash parameter lay tree leaf endpoints) = 9 := by
+  rw [leafHash, permutations_tweakableHash, leafPayload, digest_vector_length]
   rfl
 
-@[simp] theorem compressions_encode (f : QueryImpl HashSpec Id)
+theorem rootsPayload_length (tops : Coord → Digest × Digest) : (rootsPayload tops).length = 256 := by
+  simp [rootsPayload, nodePayload, bytesLE_length, forestCoords]
+
+/-- The encoding hashes the forest key and the counter: 32 + 256 + 4 = 292 bytes, 3 permutations. -/
+@[simp] theorem permutations_encode (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (counter : Counter) :
-    compressions f (encode parameter lay tree leaf message counter) = 1 := by
-  simp only [encode, compressions_bind, compressions_tweakableHash, List.length_append,
-    bytesLE_length, compressions_pure]
+    (message : ForestKey) (counter : Counter) :
+    permutations f (encode parameter lay tree leaf message counter) = 3 := by
+  simp only [encode, permutations_bind, permutations_tweakableHash, List.length_append,
+    rootsPayload_length, bytesLE_length, permutations_pure]
   rfl
 
-theorem compressions_treeFold (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
+theorem permutations_treeFold (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (path : Nat → Digest)
     (levels : Nat) (value : Digest) :
-    compressions f (treeFold parameter lay tree leaf path levels value) = levels := by
+    permutations f (treeFold parameter lay tree leaf path levels value) = levels := by
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [treeFold, compressions_bind, ih]
+      rw [treeFold, permutations_bind, ih]
       dsimp only
-      split <;> simp [compressions_tweakableHash, nodePayload, bytesLE_length, blocks]
+      split <;> simp [permutations_tweakableHash, nodePayload, bytesLE_length, blocks]
 
 theorem lut_sum (t : LutIdx) : ∑ i, (lut t i).val = codewordSum := Completeness.lut_sum t
 
@@ -130,102 +136,100 @@ section Coord
 
 variable (f : QueryImpl HashSpec Id) (parameter : PublicParameter) (index : Index) (c : Coord)
 
-theorem compressions_forestWalk (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
+theorem permutations_forestWalk (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
     (start steps : Nat) (value : Digest) (hsteps : start + steps ≤ chainTop) :
-    compressions f (forestWalk parameter index c s j a i start steps value) = steps := by
+    permutations f (forestWalk parameter index c s j a i start steps value) = steps := by
   induction steps with
   | zero => rfl
   | succ steps ih =>
-      rw [forestWalk, compressions_bind, dif_pos (by omega), compressions_tweakableHash,
+      rw [forestWalk, permutations_bind, dif_pos (by omega), permutations_tweakableHash,
         bytesLE_length, ih (by omega)]
       rfl
 
-@[simp] theorem compressions_forestRecoverChain (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
+@[simp] theorem permutations_forestRecoverChain (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (i : FChain)
     (deficit : FPos) (value : Digest) :
-    compressions f (forestRecoverChain parameter index c s j a i deficit value) = deficit.val := by
-  apply compressions_forestWalk
+    permutations f (forestRecoverChain parameter index c s j a i deficit value) = deficit.val := by
+  apply permutations_forestWalk
   have := deficit.isLt
   simp only [chainTop] at this ⊢
   omega
 
-@[simp] theorem compressions_childLeafHash (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (ends : FChain → Digest) :
-    compressions f (childLeafHash parameter index c s j a ends) = 2 := by
-  rw [childLeafHash, compressions_tweakableHash, childPayload, digest_vector_length]
+@[simp] theorem permutations_childLeafHash (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (ends : FChain → Digest) :
+    permutations f (childLeafHash parameter index c s j a ends) = 1 := by
+  rw [childLeafHash, permutations_tweakableHash, childPayload, digest_vector_length]
   rfl
 
-@[simp] theorem compressions_childRecover (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (t : LutIdx)
+@[simp] theorem permutations_childRecover (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (t : LutIdx)
     (values : FChain → Digest) :
-    compressions f (childRecover parameter index c s j a (lut t) values) = 7 := by
-  rw [childRecover, compressions_bind, compressions_sequenceFin, compressions_childLeafHash]
-  simp only [compressions_forestRecoverChain, lut_sum]
+    permutations f (childRecover parameter index c s j a (lut t) values) = 6 := by
+  rw [childRecover, permutations_bind, permutations_sequenceFin, permutations_childLeafHash]
+  simp only [permutations_forestRecoverChain, lut_sum]
   rfl
 
-theorem compressions_subFold (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (path : Fin subHeight → Digest)
+theorem permutations_subFold (s : SuperIdx) (j : SubIdx) (a : ChildIdx) (path : Fin subHeight → Digest)
     (levels : Nat) (hlevels : levels ≤ subHeight) (value : Digest) :
-    compressions f (subFold parameter index c s j a path levels value) = levels := by
+    permutations f (subFold parameter index c s j a path levels value) = levels := by
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [subFold, compressions_bind, ih (by omega), dif_pos (by omega)]
+      rw [subFold, permutations_bind, ih (by omega), dif_pos (by omega)]
       dsimp only
-      split <;> simp [compressions_tweakableHash, nodePayload, bytesLE_length, blocks]
+      split <;> simp [permutations_tweakableHash, nodePayload, bytesLE_length, blocks]
 
-theorem compressions_topFold (s : SuperIdx) (path : Fin topHeight → Digest)
+theorem permutations_topFold (s : SuperIdx) (path : Fin topHeight → Digest)
     (levels : Nat) (hlevels : levels ≤ topHeight) (value : Digest) :
-    compressions f (topFold parameter index c s path levels value) = levels := by
+    permutations f (topFold parameter index c s path levels value) = levels := by
   induction levels with
   | zero => rfl
   | succ levels ih =>
-      rw [topFold, compressions_bind, ih (by omega), dif_pos (by omega)]
+      rw [topFold, permutations_bind, ih (by omega), dif_pos (by omega)]
       dsimp only
-      split <;> simp [compressions_tweakableHash, nodePayload, bytesLE_length, blocks]
+      split <;> simp [permutations_tweakableHash, nodePayload, bytesLE_length, blocks]
 
 theorem superPayload_length (tops : SubIdx → Digest × Digest) : (superPayload tops).length = 64 := by
   simp [superPayload, nodePayload, bytesLE_length]
 
-theorem rootsPayload_length (tops : Coord → Digest × Digest) : (rootsPayload tops).length = 256 := by
-  simp [rootsPayload, nodePayload, bytesLE_length, forestCoords]
-
-/-- One coordinate costs 23 compressions: per sub-tree 5 chain steps, 2 for the WOTS-key leaf and 2
-folds; 2 for the tree leaf (96 bytes); 3 folds. -/
-@[simp] theorem compressions_coordRecover (mark : CoordMark) (opening : CoordOpening) :
-    compressions f (coordRecover parameter index c mark opening) = 23 := by
-  rw [coordRecover, compressions_bind, compressions_sequenceFin, compressions_bind, superHash,
-    compressions_tweakableHash, compressions_bind,
-    compressions_topFold f parameter index c _ _ _ (by decide : topHeight - 1 ≤ topHeight)]
-  simp only [compressions_bind, compressions_childRecover,
-    compressions_subFold f parameter index c _ _ _ _ _ (by decide : subHeight - 1 ≤ subHeight),
-    compressions_pure, superPayload_length, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+/-- One coordinate costs 20 permutations: per sub-tree 5 chain steps, 1 for the WOTS-key leaf and 2
+folds; 1 for the tree leaf (96 bytes); 3 folds. -/
+@[simp] theorem permutations_coordRecover (mark : CoordMark) (opening : CoordOpening) :
+    permutations f (coordRecover parameter index c mark opening) = 20 := by
+  rw [coordRecover, permutations_bind, permutations_sequenceFin, permutations_bind, superHash,
+    permutations_tweakableHash, permutations_bind,
+    permutations_topFold f parameter index c _ _ _ (by decide : topHeight - 1 ≤ topHeight)]
+  simp only [permutations_bind, permutations_childRecover,
+    permutations_subFold f parameter index c _ _ _ _ _ (by decide : subHeight - 1 ≤ subHeight),
+    permutations_pure, superPayload_length, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
     smul_eq_mul]
   rfl
 
 end Coord
 
-/-- The forest recovery costs 189 compressions: 23 per coordinate and 5 for the key (288 bytes). -/
-@[simp] theorem compressions_forestRecover (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
+/-- The forest recovery costs 160 permutations: 20 per coordinate. The key is not hashed: the
+encoding absorbs it. -/
+@[simp] theorem permutations_forestRecover (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (index : Index) (marks : Coord → CoordMark) (opening : Coord → CoordOpening) :
-    compressions f (forestRecover parameter index marks opening) = 189 := by
-  rw [forestRecover, compressions_bind, compressions_sequenceFin, compressions_tweakableHash]
-  simp only [compressions_coordRecover, rootsPayload_length, Finset.sum_const,
+    permutations f (forestRecover parameter index marks opening) = 160 := by
+  rw [forestRecover, permutations_sequenceFin]
+  simp only [permutations_coordRecover, Finset.sum_const,
     Finset.card_univ, Fintype.card_fin, smul_eq_mul]
   rfl
 
-@[simp] theorem compressions_messageDigestCall (f : QueryImpl HashSpec Id)
+@[simp] theorem permutations_messageDigestCall (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) :
-    compressions f (messageDigestCall parameter root message randomness) = 2 := by
-  simp only [messageDigestCall, compressions_oracleHash, tweakableHashInput_length,
+    permutations f (messageDigestCall parameter root message randomness) = 1 := by
+  simp only [messageDigestCall, permutations_oracleHash, tweakableHashInput_length,
     messageDigestPayload, List.length_append, bytesLE_length]
   rfl
 
-@[simp] theorem compressions_messageDigest (f : QueryImpl HashSpec Id)
+@[simp] theorem permutations_messageDigest (f : QueryImpl HashSpec Id)
     (parameter : PublicParameter) (root : Digest) (message : Message) (randomness : Randomness) :
-    compressions f (messageDigest parameter root message randomness) = 2 := by
-  simp only [messageDigest, compressions_bind, compressions_messageDigestCall,
-    compressions_pure]
+    permutations f (messageDigest parameter root message randomness) = 1 := by
+  simp only [messageDigest, permutations_bind, permutations_messageDigestCall,
+    permutations_pure]
 
 theorem encode_valid (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : Digest)
+    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey)
     (counter : Counter) (word : Encoding)
     (hword : evalWithAnswerFn f (encode parameter lay tree leaf message counter
       : OracleComp HashSpec (Option Encoding)) = some word) : TargetSum.Valid word := by
@@ -237,58 +241,60 @@ theorem encode_valid (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     exact hvalid
   next => simp at hword
 
-/-- Recovery spends 90 compressions after an admissible encoding, or one on rejection. -/
-theorem compressions_otsLeaf (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : Digest)
+/-- Recovery spends 81 permutations after an admissible encoding (3 for the encoding, 69 chain steps,
+9 for the leaf), or 3 on rejection. -/
+theorem permutations_otsLeaf (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
+    (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex) (message : ForestKey)
     (counter : Counter) (values : ChainIndex → Digest) :
-    compressions f (otsLeaf parameter lay tree leaf message counter values) =
+    permutations f (otsLeaf parameter lay tree leaf message counter values) =
       if (evalWithAnswerFn f (otsLeaf parameter lay tree leaf message counter values
-        : OracleComp HashSpec (Option Digest))).isSome then 90 else 1 := by
+        : OracleComp HashSpec (Option Digest))).isSome then 81 else 3 := by
   cases henc : evalWithAnswerFn f (encode parameter lay tree leaf message counter
       : OracleComp HashSpec (Option Encoding)) with
   | none =>
-      simp only [otsLeaf, compressions_bind, compressions_encode, evalWithAnswerFn_bind,
+      simp only [otsLeaf, permutations_bind, permutations_encode, evalWithAnswerFn_bind,
         henc, evalWithAnswerFn_pure, Option.isSome_none, Bool.false_eq_true, ↓reduceIte,
-        compressions_pure, Nat.add_zero]
+        permutations_pure, Nat.add_zero]
   | some word =>
       have hvalid := encode_valid f parameter lay tree leaf message counter word henc
-      simp only [otsLeaf, compressions_bind, compressions_encode, evalWithAnswerFn_bind,
+      simp only [otsLeaf, permutations_bind, permutations_encode, evalWithAnswerFn_bind,
         henc, evalWithAnswerFn_pure, Option.isSome_some, ↓reduceIte,
-        compressions_sequenceFin, compressions_recoverChain, compressions_leafHash,
-        compressions_pure, Nat.add_zero, Completeness.verification_chain_steps word hvalid]
+        permutations_sequenceFin, permutations_recoverChain, permutations_leafHash,
+        permutations_pure, Nat.add_zero, Completeness.verification_chain_steps word hvalid]
 
 attribute [local irreducible] otsLeaf encode sequenceFin chainWalk recoverChain leafHash
   forestRecover treeFold messageDigest
 
-/-- The one actual tree layer costs 116 compressions, or one if its encoding is rejected. -/
-theorem compressions_verifyLayers (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (index : Index) (signature : Signature) (message : Digest) :
-    compressions f (verifyLayers parameter index signature numLayers message) =
+/-- The one actual tree layer costs 107 permutations, or 3 if its encoding is rejected. -/
+theorem permutations_verifyLayers (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
+    (index : Index) (signature : Signature) (message : ForestKey) :
+    permutations f (verifyLayers parameter index signature numLayers message) =
       if (evalWithAnswerFn f (verifyLayers parameter index signature numLayers message
-        : OracleComp HashSpec (Option Digest))).isSome then 116 else 1 := by
+        : OracleComp HashSpec (Option Digest))).isSome then 107 else 3 := by
   rw [show numLayers = 0 + 1 from rfl, verifyLayers, dif_pos (by decide : 0 < numLayers)]
-  simp only [compressions_bind, evalWithAnswerFn_bind]
-  rw [compressions_otsLeaf]
+  simp only [permutations_bind, evalWithAnswerFn_bind]
+  rw [permutations_otsLeaf]
   cases hleaf : evalWithAnswerFn f (otsLeaf parameter topLayer (treeIndexAt index topLayer)
       (leafIndexAt index topLayer) message (signature.layers topLayer).counter
       (signature.layers topLayer).chainValues : OracleComp HashSpec (Option Digest)) <;>
     simp only [topLayer] at hleaf
-  all_goals simp only [hleaf, compressions_bind, compressions_treeFold, verifyLayers,
-    evalWithAnswerFn_bind, evalWithAnswerFn_pure, compressions_pure, Nat.add_zero,
+  all_goals simp only [hleaf, permutations_bind, permutations_treeFold,
+    evalWithAnswerFn_bind, evalWithAnswerFn_pure, permutations_pure, Nat.add_zero,
     Option.isSome_some, Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
   rfl
 
 attribute [local semireducible] Concrete.verify
 
-/-- Every accepted signature causes exactly 307 BLAKE2s compressions in the verifier execution: 2 for
-the digest, 189 for the forest and 116 for WOTS+C and the path. -/
-theorem verification_compressions (f : QueryImpl HashSpec Id) (pk : PublicKey)
+/-- Every accepted signature causes exactly 268 Keccak-f permutations in the verifier execution: 1 for
+the digest, 160 for the forest and 107 for WOTS+C (with the 3-permutation encoding of the forest key)
+and the path. -/
+theorem verification_permutations (f : QueryImpl HashSpec Id) (pk : PublicKey)
     (message : Message) (signature : Signature)
     (haccept : evalWithAnswerFn f (Concrete.verify pk message signature
       : OracleComp HashSpec Bool) = true) :
-    compressions f (Concrete.verify pk message signature : OracleComp HashSpec Bool) = 307 := by
-  rw [Concrete.verify, compressions_bind, compressions_messageDigest,
-    compressions_bind, compressions_forestRecover, compressions_bind, compressions_verifyLayers]
+    permutations f (Concrete.verify pk message signature : OracleComp HashSpec Bool) = 268 := by
+  rw [Concrete.verify, permutations_bind, permutations_messageDigest,
+    permutations_bind, permutations_forestRecover, permutations_bind, permutations_verifyLayers]
   simp only [Concrete.verify, evalWithAnswerFn_bind] at haccept
   split at haccept
   next root hroot =>
@@ -297,11 +303,11 @@ theorem verification_compressions (f : QueryImpl HashSpec Id) (pk : PublicKey)
   next => simp at haccept
 
 /-- Malformed signatures cannot make verification exceed its accepted-signature cost. -/
-theorem verification_compressions_le (f : QueryImpl HashSpec Id) (pk : PublicKey)
+theorem verification_permutations_le (f : QueryImpl HashSpec Id) (pk : PublicKey)
     (message : Message) (signature : Signature) :
-    compressions f (Concrete.verify pk message signature : OracleComp HashSpec Bool) ≤ 307 := by
-  rw [Concrete.verify, compressions_bind, compressions_messageDigest,
-    compressions_bind, compressions_forestRecover, compressions_bind, compressions_verifyLayers]
-  split <;> split <;> simp [compressions_pure]
+    permutations f (Concrete.verify pk message signature : OracleComp HashSpec Bool) ≤ 268 := by
+  rw [Concrete.verify, permutations_bind, permutations_messageDigest,
+    permutations_bind, permutations_forestRecover, permutations_bind, permutations_verifyLayers]
+  split <;> split <;> simp [permutations_pure]
 
 end Sphincs.Cost

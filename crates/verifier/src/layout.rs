@@ -58,10 +58,8 @@ pub struct BusBlock {
     pub owner: usize,           // whose block it is, by opcode
 }
 
-pub const R1CS_DIGEST: [u8; 32] = [
-    0x53, 0x7a, 0xd2, 0x07, 0x90, 0x30, 0x8f, 0x8e, 0xb8, 0xc0, 0xe8, 0xbd, 0x3e, 0x6c, 0x58, 0xee, 0x64, 0x57, 0x33,
-    0x71, 0xe3, 0xd5, 0x3c, 0x30, 0x61, 0x3d, 0xd0, 0x4d, 0x87, 0xc0, 0xb7, 0xea,
-];
+pub const RELATION_LABEL: &[u8] =
+    b"leanVM keccak GKR: step, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
 
 // The columns no instruction table owns. They come first in the global column numbering, the tables after.
 pub const NUM_GLOBAL_COLUMNS: usize = 6;
@@ -70,16 +68,15 @@ pub const MEMORY_1: usize = 1;
 pub const MEMORY_2: usize = 2;
 pub const MEMORY_FINAL_COUNTERS: usize = 3;
 pub const BYTECODE_FINAL_COUNTERS: usize = 4;
-pub const QFLOCK: usize = 5;
+pub const QKECCAK: usize = 5;
 
-pub const BLAKE2S_R1CS_LOG_SIZE: usize = 14;
 pub const K_BITS: usize = 64;
-pub const FLOCK_K_SKIP: usize = 6; // log2_ceil(K_BITS)
-const LOG_PACKING: usize = 6; // bits per committed K-element: log2_ceil(K_BITS)
 
-pub const FLOCK_NUM_LINCHECK_ROUNDS: usize = BLAKE2S_R1CS_LOG_SIZE - FLOCK_K_SKIP;
-const QFLOCK_SLOT_BITS: usize = BLAKE2S_R1CS_LOG_SIZE - LOG_PACKING;
-pub const BLAKE2S_CONSTANT_COLUMN: usize = 512;
+// The Keccak reduction commits a step's state every KECCAK_DEPTH rounds but the output, a lane per
+// slot of q_keccak and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
+pub const KECCAK_DEPTH: usize = 12;
+pub const QKECCAK_SLOT_BITS: usize = 6; // log2_ceil(25 * segments), two segments of 12 rounds
+pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at least one block of 512 steps
 
 pub const MAX_TABLE_LOG: usize = 32;
 pub const MIN_STACKED_LOG: usize = 15;
@@ -93,7 +90,8 @@ pub struct Layout<'a> {
     pub push: Vec<BusBlock>,
     pub pull: Vec<BusBlock>,
     pub count: Vec<BusBlock>,
-    pub placements: Vec<Placement>,
+    /// Where each column sits, `None` for a column nothing commits: the `SHA3` output lanes.
+    pub placements: Vec<Option<Placement>>,
     pub stack_log: usize,
     pub placed: u64, // the words the columns fill, from the bottom of the stack
     pub table_log_heights: Vec<usize>,
@@ -284,28 +282,53 @@ fn jump_constraints(columns: &[E]) -> Vec<E> {
     vec![flag + condition * inverse, condition * (flag + ONE)]
 }
 
-fn flushes_blake2s() -> Flushes {
-    let [pc, fp, cnt_bc] = cols(BLAKE2S_COLUMNS, ["pc", "fp", "cnt_bc"]);
-    let operands = cols(BLAKE2S_COLUMNS, ["o_0", "o_1", "o_2", "o_3", "o_v", "o_out", "o_md"]);
+/// The lanes each of a sponge state's thirteen cells holds: lanes 0..16 two to a cell, then lane 16 alone (its high
+/// lane a literal zero), then the capacity lanes 17..25.
+const SHA3_CELL_LANES: [&[usize]; 13] = [
+    &[0, 1],
+    &[2, 3],
+    &[4, 5],
+    &[6, 7],
+    &[8, 9],
+    &[10, 11],
+    &[12, 13],
+    &[14, 15],
+    &[16],
+    &[17, 18],
+    &[19, 20],
+    &[21, 22],
+    &[23, 24],
+];
+
+fn flushes_sha3() -> Flushes {
+    let [pc, fp, cnt_bc] = cols(SHA3_COLUMNS, ["pc", "fp", "cnt_bc"]);
+    let o_m = cols(SHA3_COLUMNS, ["o_m0", "o_m1", "o_m2", "o_m3"]);
+    let [o_tail, o_cap, o_out] = cols(SHA3_COLUMNS, ["o_tail", "o_cap", "o_out"]);
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
-    flushes.bytecode(pc, cnt_bc, OP_BLAKE2S, operands.map(|i| col(i, 0)).to_vec());
-    // The nine cells read, as (cell, operand, offset from it): four addressed message chunks, then
-    // the consecutive chaining-value and output pairs, then the metadata cell (the byte counter and
-    // the two flags). Each holds two q_flock limbs and a zero top.
-    #[rustfmt::skip]
-    let cells = [("m0", "o_0", 0), ("m1", "o_1", 0), ("m2", "o_2", 0), ("m3", "o_3", 0),
-                 ("cv0", "o_v", 0), ("cv1", "o_v", 1), ("out0", "o_out", 0), ("out1", "o_out", 1),
-                 ("md", "o_md", 0)];
-    for (cell, operand, exponent) in cells {
-        let names = [
-            operand,
-            &format!("cnt_{cell}"),
-            &format!("{cell}_lo"),
-            &format!("{cell}_hi"),
-        ];
-        let [address, count, lo, hi] = cols(BLAKE2S_COLUMNS, names);
-        flushes.memory_cols(prod(fp, address, exponent), count, &[lo, hi]);
+    let operands = [o_m[0], o_m[1], o_m[2], o_m[3], o_tail, o_cap, o_out];
+    flushes.bytecode(pc, cnt_bc, OP_SHA3, operands.map(|i| col(i, 0)).to_vec());
+    // The thirteen cells read (four addressed ones, then the consecutive tail and cap runs), then the thirteen
+    // written. Each carries its q_keccak lanes and zeros above them.
+    let read = |cell: usize| match cell {
+        0..4 => prod(fp, o_m[cell], 0),
+        4..8 => prod(fp, o_tail, cell as u64 - 4),
+        _ => prod(fp, o_cap, cell as u64 - 8),
+    };
+    for (side, prefix) in ["in", "out"].into_iter().enumerate() {
+        for (cell, lanes) in SHA3_CELL_LANES.iter().enumerate() {
+            let address = if side == 0 {
+                read(cell)
+            } else {
+                prod(fp, o_out, cell as u64)
+            };
+            let count = cols(SHA3_COLUMNS, [&format!("cnt_{}", 13 * side + cell)])[0];
+            let limbs: Vec<usize> = lanes
+                .iter()
+                .map(|lane| cols(SHA3_COLUMNS, [&format!("{prefix}_{lane}")])[0])
+                .collect();
+            flushes.memory_cols(address, count, &limbs);
+        }
     }
     flushes
 }
@@ -315,7 +338,7 @@ pub const OP_MUL: usize = 1;
 pub const OP_SET: usize = 2;
 pub const OP_DEREF: usize = 3;
 pub const OP_JUMP: usize = 4;
-pub const OP_BLAKE2S: usize = 5;
+pub const OP_SHA3: usize = 5;
 pub const N_TABLES: usize = 6;
 
 #[rustfmt::skip]
@@ -326,13 +349,14 @@ const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "
 #[rustfmt::skip]
 const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
 #[rustfmt::skip]
-const BLAKE2S_COLUMNS: &[&str] = &[
-    "pc", "fp", "o_0", "o_1", "o_2", "o_3", "o_v", "o_out", "o_md",
-    // These eighteen value limbs live in q_flock, not here: each is already a flock witness slot.
-    "m0_lo", "m0_hi", "m1_lo", "m1_hi", "m2_lo", "m2_hi", "m3_lo", "m3_hi",
-    "out0_lo", "out0_hi", "out1_lo", "out1_hi", "cv0_lo", "cv0_hi", "cv1_lo", "cv1_hi", "md_lo", "md_hi",
+const SHA3_COLUMNS: &[&str] = &[
+    "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_cap", "o_out",
+    // These fifty value lanes are not committed here: an input lane is one of q_keccak's slots,
+    // and the output lanes' claims are the Keccak reduction's claim on the output.
+    "in_0", "in_1", "in_2", "in_3", "in_4", "in_5", "in_6", "in_7", "in_8", "in_9", "in_10", "in_11", "in_12", "in_13", "in_14", "in_15", "in_16", "in_17", "in_18", "in_19", "in_20", "in_21", "in_22", "in_23", "in_24",
+    "out_0", "out_1", "out_2", "out_3", "out_4", "out_5", "out_6", "out_7", "out_8", "out_9", "out_10", "out_11", "out_12", "out_13", "out_14", "out_15", "out_16", "out_17", "out_18", "out_19", "out_20", "out_21", "out_22", "out_23", "out_24",
     // ...and the read counts, committed here like every other column.
-    "cnt_m0", "cnt_m1", "cnt_m2", "cnt_m3", "cnt_cv0", "cnt_cv1", "cnt_out0", "cnt_out1", "cnt_md", "cnt_bc",
+    "cnt_0", "cnt_1", "cnt_2", "cnt_3", "cnt_4", "cnt_5", "cnt_6", "cnt_7", "cnt_8", "cnt_9", "cnt_10", "cnt_11", "cnt_12", "cnt_13", "cnt_14", "cnt_15", "cnt_16", "cnt_17", "cnt_18", "cnt_19", "cnt_20", "cnt_21", "cnt_22", "cnt_23", "cnt_24", "cnt_25", "cnt_bc",
 ];
 
 pub fn tables() -> Vec<Table> {
@@ -348,17 +372,9 @@ pub fn tables() -> Vec<Table> {
         table(OP_SET, SET_COLUMNS, flushes_set(), |_| vec![]),
         table(OP_DEREF, DEREF_COLUMNS, flushes_deref(), |_| vec![]),
         table(OP_JUMP, JUMP_COLUMNS, flushes_jump(), jump_constraints),
-        table(OP_BLAKE2S, BLAKE2S_COLUMNS, flushes_blake2s(), |_| vec![]),
+        table(OP_SHA3, SHA3_COLUMNS, flushes_sha3(), |_| vec![]),
     ]
 }
-
-// Where in the flock witness each embedded BLAKE2s limb live: one 64-bit slot per limb, the chaining value first, then the
-// digest, the message block and the metadata. Slots 8 and 9 are flock's constant wire and the padding up to its message base, which no memory cell carries.
-#[rustfmt::skip]
-const BLAKE2S_SLOTS: [Option<&str>; 20] = [
-    Some("cv0_lo"), Some("cv0_hi"), Some("cv1_lo"), Some("cv1_hi"), Some("out0_lo"), Some("out0_hi"), Some("out1_lo"), Some("out1_hi"), None, None,
-    Some("m0_lo"), Some("m0_hi"), Some("m1_lo"), Some("m1_hi"), Some("m2_lo"), Some("m2_hi"), Some("m3_lo"), Some("m3_hi"), Some("md_lo"), Some("md_hi"),
-];
 
 const TABLE_WIDTHS: [usize; N_TABLES] = [
     ARITH_COLUMNS.len(),
@@ -366,7 +382,7 @@ const TABLE_WIDTHS: [usize; N_TABLES] = [
     SET_COLUMNS.len(),
     DEREF_COLUMNS.len(),
     JUMP_COLUMNS.len(),
-    BLAKE2S_COLUMNS.len(),
+    SHA3_COLUMNS.len(),
 ];
 pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
     let mut bases = [NUM_GLOBAL_COLUMNS; N_TABLES];
@@ -377,6 +393,11 @@ pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
     }
     bases
 };
+
+/// The global column of a `SHA3` value lane: `prefix` is `in` or `out`.
+pub fn sha3_lane(prefix: &str, lane: usize) -> usize {
+    GLOBAL_COLUMN_BASES[OP_SHA3] + cols(SHA3_COLUMNS, [&format!("{prefix}_{lane}")])[0]
+}
 
 pub fn build_layout<'a>(
     bytecode: &'a Bytecode,
@@ -389,7 +410,7 @@ pub fn build_layout<'a>(
             && table_log_heights
                 .iter()
                 .all(|&log_height| log_height <= MAX_TABLE_LOG as u64)
-            && table_log_heights[OP_BLAKE2S] >= 3
+            && table_log_heights[OP_SHA3] >= KECCAK_MIN_STEPS_LOG as u64
             && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
     )?;
@@ -415,48 +436,42 @@ pub fn build_layout<'a>(
         count.extend(table.count_columns().map(|local| block(&vec![col(local, 0)])));
     }
 
-    // Every column's log size, in global order: the framework's, q_flock's, then each table's block.
-    let qflock_kappa = table_log_heights[OP_BLAKE2S] + QFLOCK_SLOT_BITS;
+    // Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
+    let qkeccak_kappa = table_log_heights[OP_SHA3] + QKECCAK_SLOT_BITS;
     let mut kappas = vec![
         log_memory,
         log_memory,
         log_memory,
         log_memory,
         log_bytecode,
-        qflock_kappa,
+        qkeccak_kappa,
     ];
     for table in &tables {
         kappas.extend(vec![table_log_heights[table.opcode]; table.width()]);
     }
 
-    // A BLAKE2s value limb gets no block of its own: it is committed inside q_flock, whose slots
-    // interleave, so it sits at q_flock's offset behind its own slot's bits. Same width either way.
-    let mut limbs = BTreeMap::new();
-    for (slot, name) in BLAKE2S_SLOTS.iter().enumerate() {
-        if let Some(name) = name {
-            limbs.insert(
-                GLOBAL_COLUMN_BASES[OP_BLAKE2S] + cols(BLAKE2S_COLUMNS, [name])[0],
-                slot as u64,
-            );
-        }
-    }
-    let blocks: Vec<usize> = (0..kappas.len()).filter(|column| !limbs.contains_key(column)).collect();
+    // A SHA3 value lane gets no block of its own: an input lane is committed inside q_keccak, one slot of
+    // 2^height words each, and an output lane not at all, nothing ever opening it.
+    let limbs: BTreeMap<usize, u64> = (0..25).map(|l| (sha3_lane("in", l), l as u64)).collect();
+    let outputs: Vec<usize> = (0..25).map(|l| sha3_lane("out", l)).collect();
+    let blocks: Vec<usize> = (0..kappas.len())
+        .filter(|column| !limbs.contains_key(column) && !outputs.contains(column))
+        .collect();
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
     let offsets: BTreeMap<usize, u64> = blocks.into_iter().zip(block_offsets).collect();
     let stack_log = MIN_STACKED_LOG.max(total_log); // Floor at the PCS minimum
     let placed = block_kappas.iter().map(|&kappa| 1 << kappa).sum();
-    let placement = |(column, &kappa): (usize, &usize)| match limbs.get(&column) {
-        Some(slot) => Placement {
+    let placement = |(column, &kappa): (usize, &usize)| {
+        let index = match limbs.get(&column) {
+            Some(slot) => offsets[&QKECCAK] + (slot << kappa),
+            None => *offsets.get(&column)?,
+        };
+        Some(Placement {
             variables: kappa,
-            index: offsets[&QFLOCK] + slot,
-            low: QFLOCK_SLOT_BITS,
-        },
-        None => Placement {
-            variables: kappa,
-            index: offsets[&column],
+            index,
             low: 0,
-        },
+        })
     };
     let placements = kappas.iter().enumerate().map(placement).collect();
     Ok(Layout {

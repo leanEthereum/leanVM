@@ -114,8 +114,6 @@ structure StructuralFresh (target : HashInput) : Prop where
     tweakableHashInput parameter (.ftsLeaf index tree leaf) payload ≠ target
   ftsNode : ∀ parameter index tree level node payload,
     tweakableHashInput parameter (.ftsNode index tree level node) payload ≠ target
-  ftsRoots : ∀ parameter index payload,
-    tweakableHashInput parameter (.ftsRoots index) payload ≠ target
 
 /-- Structural computations cannot query either a message input or an encoding input. -/
 theorem structuralFresh_of_tag (parameter : PublicParameter) (fields : TweakFields)
@@ -134,7 +132,7 @@ theorem structuralFresh_of_tag (parameter : PublicParameter) (fields : TweakFiel
 
 /-- Every counter-search input is separate from all structural tree inputs. -/
 theorem structuralFresh_encoding (parameter : PublicParameter) (lay : Layer)
-    (tree : TreeIndex) (leaf : LeafIndex) (message : Digest) (c : Nat) :
+    (tree : TreeIndex) (leaf : LeafIndex) (message : FtsTops) (c : Nat) :
     StructuralFresh (encodeInput parameter lay tree leaf message c) :=
   structuralFresh_of_tag parameter (hashDomainFields (.encoding lay tree leaf))
     _ 4 (Or.inl rfl) rfl
@@ -143,7 +141,7 @@ theorem structuralFresh_encoding (parameter : PublicParameter) (lay : Layer)
 theorem messageInput_ne_encoding (parameter : PublicParameter) (root : Digest)
     (message : Message) (randomness : Randomness) (block : Fin 2)
     (encodingParameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (encodingMessage : Digest) (c : Nat) :
+    (leaf : LeafIndex) (encodingMessage : FtsTops) (c : Nat) :
     tweakableHashInput parameter (.message block)
       (messageDigestPayload root message randomness) ≠
         encodeInput encodingParameter lay tree leaf encodingMessage c := by
@@ -250,9 +248,8 @@ omit [Params] in
 theorem ftsKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) :
     PreservesFresh target (Seeded.ftsKey parameter index seed) := by
   rw [Seeded.ftsKey]
-  exact bind (sequenceFin _ _ (fun _ => bind (ftsNode hs _ _ _ _ _ _)
-      (fun _ => bind (ftsNode hs _ _ _ _ _ _) (fun _ => pure' _ _))))
-    (fun _ => tweakableHash _ _ _ _ (hs.ftsRoots _ _ _))
+  exact sequenceFin _ _ (fun _ => bind (ftsNode hs _ _ _ _ _ _)
+    (fun _ => bind (ftsNode hs _ _ _ _ _ _) (fun _ => pure' _ _)))
 
 omit [Params] in
 theorem ftsOpen (parameter : PublicParameter) (index : Index)

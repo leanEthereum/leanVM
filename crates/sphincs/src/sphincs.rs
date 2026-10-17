@@ -249,9 +249,9 @@ fn marks_of(digest: &[u8; 32]) -> (u64, [Mark; FOREST_TREES]) {
     (field(0, H) as u64, marks)
 }
 
-/// The message digest, `BLAKE2s(P | A | m | rho)`, read as the index and the
-/// trees' marks. `P` binds the key, so the root is not hashed, and the message
-/// ends the first block: a signer grinding `rho` hashes it once.
+/// The message digest, `H(P | A | m | rho)`, read as the index and the
+/// trees' marks. `P` binds the key, so the root is not hashed, and the input is
+/// one 80-byte block.
 pub fn message_digest(pp: &PublicParam, rho: &Randomizer, m: &Message) -> (u64, [Mark; FOREST_TREES]) {
     marks_of(&digest_prefix(pp, m).update(rho).finalize())
 }

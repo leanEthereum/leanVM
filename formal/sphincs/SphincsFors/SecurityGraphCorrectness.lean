@@ -175,32 +175,18 @@ theorem fors_value (index : Index) (tree : FtsTree) (level : Nat)
       rw [ih (by omega) _ (by change 2 * nodeIdx.val < _; omega), ih (by omega) _ hchildren]
 
 include hconsistent in
-/-- The input of the FORS key hash: the two top nodes (level `a - 1`) of every tree. -/
-theorem fors_roots_input (index : Index) :
-    canonicalGraphInput parameter (otsSecrets f parameter seed) (ftsSecrets f parameter seed)
-      (.ftsRoots index) labels =
-    tweakableHashInput parameter (.ftsRoots index)
-      (ftsTopsPayload (ftsTopsValue f parameter index seed)) := by
-  unfold canonicalGraphInput canonicalGraphSlots
-  simp only [Position.children, Position.domain]
-  congr 1
-  rw [ftsTopsPayload, List.ofFn_eq_map, List.map_flatMap, List.flatMap_assoc, List.flatMap_map]
-  refine List.flatMap_congr fun tree _ => ?_
-  have hleft := fors_value f parameter seed labels hconsistent index tree ftsTopLevel (by decide)
-    ⟨0, by decide⟩ (by decide)
-  have hright := fors_value f parameter seed labels hconsistent index tree ftsTopLevel (by decide)
-    ⟨1, by decide⟩ (by decide)
-  simp only [List.map_cons, List.map_nil, List.flatMap_cons, List.flatMap_nil, List.append_nil,
-    nodePayload, ftsTopsValue]
-  rw [← hleft, ← hright]
-  rfl
-
-include hconsistent in
+/-- The FORS key: the two top nodes (level `a - 1`) of every tree. -/
 theorem fors_key_value (index : Index) :
-    truncateHash (labels (.ftsRoots index)) =
-      evalWithAnswerFn f (Seeded.ftsKey parameter index seed : OracleComp HashSpec Digest) := by
-  rw [hconsistent (.ftsRoots index) trivial, fors_roots_input f parameter seed labels hconsistent index,
-    eval_ftsKey]
+    (fun tree => (truncateHash (labels (forsPosition index tree ftsTopLevel (by decide) ⟨0, by decide⟩)),
+      truncateHash (labels (forsPosition index tree ftsTopLevel (by decide) ⟨1, by decide⟩)))) =
+      evalWithAnswerFn f (Seeded.ftsKey parameter index seed : OracleComp HashSpec FtsTops) := by
+  rw [eval_ftsKey]
+  funext tree
+  simp only [ftsTopsValue]
+  rw [fors_value f parameter seed labels hconsistent index tree ftsTopLevel (by decide)
+      ⟨0, by decide⟩ (by decide),
+    fors_value f parameter seed labels hconsistent index tree ftsTopLevel (by decide)
+      ⟨1, by decide⟩ (by decide)]
 
 omit f parameter seed labels hconsistent [Params] in
 theorem double_div_pow (index level bit : Nat) (hbit : bit < 2) :

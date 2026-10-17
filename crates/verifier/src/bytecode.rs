@@ -1,8 +1,8 @@
 //! The program a proof is about, prepared once so that verifying many proofs of it hashes its table once.
 
 use crate::field::{E, ZERO, reduce};
-use crate::hash::{Digest, blake2s_hash};
-use crate::layout::R1CS_DIGEST;
+use crate::hash::{Digest, keccak_hash};
+use crate::layout::RELATION_LABEL;
 use crate::multilinear::eq_kernel;
 use crate::{VerifierError, require};
 
@@ -44,9 +44,10 @@ fn byte_buckets(word: u64) -> impl Iterator<Item = u16> {
 impl Bytecode {
     pub fn new(table: &[u64]) -> Self {
         let encoded_bytecode: Vec<u8> = table.iter().flat_map(|word| word.to_le_bytes()).collect();
-        let bytecode_hash = blake2s_hash(&encoded_bytecode);
-        let length = (R1CS_DIGEST.len() as u64).to_le_bytes();
-        let iv_preimage = [&b"leanvm"[..], &length, &R1CS_DIGEST, &bytecode_hash.0].concat();
+        let bytecode_hash = keccak_hash(&encoded_bytecode);
+        let relation = keccak_hash(RELATION_LABEL).0;
+        let length = (relation.len() as u64).to_le_bytes();
+        let iv_preimage = [&b"leanvm"[..], &length, &relation, &bytecode_hash.0].concat();
 
         let (mut blocks, mut words, mut positions, mut bytes) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
         for (index, block) in table.chunks(1 << BLOCK_LOG).enumerate() {
@@ -76,7 +77,7 @@ impl Bytecode {
         }
         Self {
             len: table.len(),
-            fiat_shamir_iv: blake2s_hash(&iv_preimage),
+            fiat_shamir_iv: keccak_hash(&iv_preimage),
             blocks,
             words,
             positions,

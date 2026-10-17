@@ -4,8 +4,8 @@
 //! the normalized subspace polynomial of degree `2^j` and `z` drawn from the commitment (doc/leanvm annex D for the basis).
 
 use crate::field::{E, K, ONE, ZERO};
-use crate::hash::blake2s_hash;
-use crate::transcript::{DS_OBSERVE, DS_SQUEEZE, compress};
+use crate::hash::keccak_hash;
+use crate::transcript::Sponge;
 
 const DA_LOG_K: usize = 14; // payload symbols per blob, as a logarithm
 const LOG_M: usize = DA_LOG_K + 1; // the rate-1/2 codeword
@@ -14,15 +14,10 @@ const LABEL: &[u8] = b"leanDA/rs-membership/v1";
 /// `z_0 .. z_(log k - 1)`, drawn from a transcript of its own that has observed the commitment root.
 pub fn membership_challenges(root: &[u8; 32]) -> Vec<E> {
     let word = |index: usize| u64::from_le_bytes(root.as_chunks().0[index]);
-    let mut state = blake2s_hash(LABEL).words();
-    for half in [[word(0), word(1)], [word(2), word(3)]] {
-        state = compress(state, [half[0], half[1], 0, DS_OBSERVE]);
-    }
-    let mut sample = || {
-        state = compress(state, [0, 0, 0, DS_SQUEEZE]);
-        E::new(state[0], state[1], state[2])
-    };
-    (0..DA_LOG_K).map(|_| sample()).collect()
+    let mut sponge = Sponge::from_label(LABEL);
+    sponge.observe(E::new(word(0), word(1), 0));
+    sponge.observe(E::new(word(2), word(3), 0));
+    (0..DA_LOG_K).map(|_| sponge.sample()).collect()
 }
 
 /// Row `i` holds the subspace polynomial `s_i` at the basis elements `x^j`, `j >= i`, scaled so that its first entry is one.
@@ -88,17 +83,17 @@ pub fn membership_vector(root: &[u8; 32]) -> Vec<E> {
     dual_codeword(&membership_challenges(root))
 }
 
-/// BLAKE2s of the vector's three little-endian limbs per entry, in domain order.
+/// The hash of the vector's three little-endian limbs per entry, in domain order.
 pub fn vector_digest(vector: &[E]) -> [u8; 32] {
     assert_eq!(vector.len(), 1 << LOG_M);
     let limbs = vector.iter().flat_map(|value| [value.c0, value.c1, value.c2]);
-    blake2s_hash(&limbs.flat_map(u64::to_le_bytes).collect::<Vec<u8>>()).0
+    keccak_hash(&limbs.flat_map(u64::to_le_bytes).collect::<Vec<u8>>()).0
 }
 
-/// BLAKE2s of the concatenated `(root, vector digest)` pairs, or of the empty string: what the statement of an aggregate carries for its DA roots.
+/// The hash of the concatenated `(root, vector digest)` pairs, or of the empty string: what the statement of an aggregate carries for its DA roots.
 pub fn list_digest(roots: &[[u8; 32]]) -> [u8; 32] {
     let pairs = roots
         .iter()
         .flat_map(|root| [*root, vector_digest(&membership_vector(root))]);
-    blake2s_hash(&pairs.flatten().collect::<Vec<u8>>()).0
+    keccak_hash(&pairs.flatten().collect::<Vec<u8>>()).0
 }

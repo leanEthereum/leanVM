@@ -1,6 +1,6 @@
 name: Bench
 
-# Proves flock's hash batch at a PR's merge commit and at its base (the merge commit's first
+# Proves keccak_gkr's hash batch at a PR's merge commit and at its base (the merge commit's first
 # parent) in turns on one runner, so the comparison is free of which machine the job landed
 # on: each job builds both sides and runs them `ROUNDS` times in the order base, PR, PR,
 # base, ... It saves its runs as the artifact `ab-<testbed>-<benchmark>`, and
@@ -44,10 +44,10 @@ jobs:
           - name: arm64
             runner: ubuntu-24.04-arm
             rustflags: -C target-cpu=neoverse-n2 -C target-feature=+aes,+sha3
-        benchmark: [ flock-hash-batch-262144 ]
+        benchmark: [ keccak-hash-batch-262144 ]
     env:
       RUSTFLAGS: ${{ matrix.testbed.rustflags }}
-      FLOCK_N_LOG: 18
+      KECCAK_N_LOG: 18
       BENCH_REPEAT: 1
       BENCH_COOLDOWN: 0
     steps:
@@ -70,7 +70,7 @@ jobs:
         run: |
           build() {
             mkdir -p "ab/$1"
-            exe=$(cargo bench -p flock --bench hash_batch --no-run --message-format=json \
+            exe=$(cargo bench -p keccak_gkr --bench hash_batch --no-run --message-format=json \
               | jq -r 'select(.reason == "compiler-artifact" and .target.name == "hash_batch") | .executable')
             cp "$exe" "ab/$1/bench"
           }

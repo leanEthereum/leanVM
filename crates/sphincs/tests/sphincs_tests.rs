@@ -48,11 +48,11 @@ fn known_answer() {
     let signature = sign(&sk, &message).unwrap();
     assert_eq!(
         hex(&pk.flatten()),
-        "25e2cd4721a96bd25c7c164099a62f9df39e809c5482e50b8b8b76a66fab6507"
+        "1eae3c515091ef635f73e3c43522cc8c2e582128e480149accc2ed4f19edcd00"
     );
     assert_eq!(
         hex(&primitives::hash::hash(&signature.to_bytes())),
-        "e8103c4980eb16a750adbf341e88010a36d58da411055aa8c5af674185a40d46"
+        "104deac9109f0749cb7223ed868c89da8a2b33103e4774bf049677297ad30442"
     );
 }
 
@@ -64,5 +64,16 @@ fn the_counter_is_the_least_admissible() {
     let (idx, marks) = message_digest(pp, &signature.randomizer, &[9; MESSAGE_LEN]);
     let forest_key = forest_recover(pp, idx as u32, &marks, &signature.forest);
     assert!(encode(pp, idx as u32, &forest_key, signature.counter).is_some());
+    // The signer grinds from the hash state before the counter; the encoding is
+    // still `Th(P, A_enc(idx), K | LE_32(c))` in one piece.
+    let payload = [
+        forest_key.as_flattened().as_flattened(),
+        &signature.counter.to_le_bytes(),
+    ]
+    .concat();
+    let digest = th(pp, &tweak(TWEAK_ENC, 0, idx as u32), &payload);
+    let d = u128::from_le_bytes(digest);
+    let word: [u8; V] = std::array::from_fn(|i| ((d >> (W * i)) & (CHAIN_LEN as u128 - 1)) as u8);
+    assert_eq!(encode(pp, idx as u32, &forest_key, signature.counter), Some(word));
     assert!((0..signature.counter).all(|c| encode(pp, idx as u32, &forest_key, c).is_none()));
 }

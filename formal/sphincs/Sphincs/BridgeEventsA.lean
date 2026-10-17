@@ -72,7 +72,7 @@ def TwoEdgeAt (leaf : Index) (chain : ChainIndex) : Prop :=
 
 /-- A cached encoding answer of the leaf decodes to a unit neighbour lowering the chain. -/
 def MarkerAt (leaf : Index) (chain : ChainIndex) : Prop :=
-  ∃ (message : Digest) (counter : Counter) (answer : HashOutput) (candidate : Encoding),
+  ∃ (message : ForestKey) (counter : Counter) (answer : HashOutput) (candidate : Encoding),
     cache (Wots.encodingInput parameter topLayer rootTree leaf message counter) = some answer ∧
     TargetSum.decodeDigest (truncateHash answer) = some candidate ∧
     EncodingCode.UnitNeighborAt (preparedWord results leaf) candidate chain

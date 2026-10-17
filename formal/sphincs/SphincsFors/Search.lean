@@ -181,13 +181,13 @@ over the encoding inputs. -/
 open Concrete Seeded in
 /-- The counter search, as a search over its encoding inputs. -/
 theorem otsSignFrom_eq_searchLoop (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) :
+    (leaf : LeafIndex) (seed : MasterSeed) (message : FtsTops) :
     ∀ (n t : Nat),
       (otsSignFrom parameter lay tree leaf seed message n t
         : OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))
         = searchLoop
             (fun c => tweakableHashInput parameter (.encoding lay tree leaf)
-              (bytesLE 16 message ++ bytesLE 4 (BitVec.ofNat counterBits c)))
+              (ftsTopsPayload message ++ bytesLE 4 (BitVec.ofNat counterBits c)))
             (fun out => TargetSum.decodeDigest (truncateHash out))
             (fun c encoding => do
               let values ← otsValues parameter lay tree leaf seed fun chainIdx => (encoding chainIdx).val

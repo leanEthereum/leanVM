@@ -46,6 +46,35 @@
   url    = {https://eprint.iacr.org/2026/1329},
 }
 
+@inproceedings{GKR08,
+  author    = {Shafi Goldwasser and Yael Tauman Kalai and Guy N. Rothblum},
+  title     = {Delegating Computation: Interactive Proofs for Muggles},
+  booktitle = {Symposium on Theory of Computing (STOC 2008)},
+  year      = {2008},
+  pages     = {113--122},
+}
+
+@misc{Hashcaster,
+  author = {Lev Soukhanov and others},
+  title  = {Hashcaster: Frobenius Sumcheck for Vectorized Boolean Operations},
+  year   = {2024},
+  url    = {https://github.com/morgana-proofs/hashcaster},
+}
+
+@misc{Hashcaster2,
+  author = {Lev Soukhanov and others},
+  title  = {Hashcaster 2: Newfanged {RMFE} in Polynomials},
+  year   = {2026},
+  url    = {https://github.com/levs57/hashcaster2},
+}
+
+@inproceedings{CCXY18,
+  author    = {Ignacio Cascudo and Ronald Cramer and Chaoping Xing and Chen Yuan},
+  title     = {Amortized Complexity of Information-Theoretically Secure {MPC} Revisited},
+  booktitle = {Advances in Cryptology -- {CRYPTO} 2018},
+  year      = {2018},
+}
+
 @misc{BCHKS25,
   author = {Eli Ben-Sasson and Dan Carmon and Ulrich Hab{\"o}ck and
             Swastik Kopparty and Shubhangi Saraf},
@@ -181,15 +210,15 @@
   howpublished = {\url{https://www.binius.xyz/basics/binius-v0/m3/}},
 }
 
-@techreport{blake2,
-  author = {Saarinen, Markku-Juhani O. and Aumasson, Jean-Philippe},
-  title = {The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC)},
-  type = {RFC},
-  number = {7693},
-  institution = {Internet Engineering Task Force},
+@techreport{fips202,
+  author = {{National Institute of Standards and Technology}},
+  title = {{SHA-3} Standard: Permutation-Based Hash and Extendable-Output Functions},
+  type = {Federal Information Processing Standards Publication},
+  number = {202},
+  institution = {U.S. Department of Commerce},
   year = {2015},
-  doi = {10.17487/RFC7693},
-  url = {https://www.rfc-editor.org/rfc/rfc7693}
+  doi = {10.6028/NIST.FIPS.202},
+  url = {https://doi.org/10.6028/NIST.FIPS.202}
 }
 
 @misc{jagged_pcs,
@@ -223,4 +252,26 @@
   month  = aug,
   howpublished = {Ethereum Research},
   url    = {https://ethresear.ch/t/formally-verified-security-for-pq-das-leanda/25746},
+}
+
+@inproceedings{BDPV11,
+  author    = {Guido Bertoni and Joan Daemen and Micha{\"e}l Peeters and Gilles Van Assche},
+  title     = {Duplexing the Sponge: Single-Pass Authenticated Encryption and Other Applications},
+  booktitle = {Selected Areas in Cryptography (SAC 2011)},
+  year      = {2011},
+  pages     = {320--337},
+}
+
+@misc{Plonky3,
+  author       = {{Polygon Zero}},
+  title        = {Plonky3},
+  howpublished = {\url{https://github.com/Plonky3/Plonky3}},
+  note         = {The \texttt{challenger} crate's \texttt{DuplexChallenger}},
+}
+
+@misc{keccak,
+  author = {Guido Bertoni and Joan Daemen and Micha{\"e}l Peeters and Gilles {Van Assche}},
+  title = {The {Keccak} Reference, Version 3.0},
+  year = {2011},
+  url = {https://keccak.team/files/Keccak-reference-3.0.pdf}
 }

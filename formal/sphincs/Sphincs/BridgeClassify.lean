@@ -298,10 +298,10 @@ theorem fchain_input_consistent (index : Index) (c : Coord) (s : SuperIdx) (j : 
 include hconsistent in
 theorem forestException_hit (index : Index) (marks : Coord → CoordMark) (opening : Coord → CoordOpening)
     (h : Forest.Exception f parameter index seed marks opening) :
-    ∃ input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec Digest),
+    ∃ input ∈ queriedInputs f (forestRecover parameter index marks opening : OracleComp HashSpec ForestKey),
       truncateHash (f input) ∈ targets parameter (graphTable f parameter seed labels) input := by
   rcases h with ⟨c, j, i, offset, hoffset, hlt, hne, heq⟩ | ⟨c, j, hne, heq⟩ |
-      ⟨c, j, level, hlevel, -, hneq, hout⟩ | ⟨c, hne, heq⟩ | ⟨c, level, hlevel, -, hneq, hout⟩ | ⟨hne, heq⟩
+      ⟨c, j, level, hlevel, -, hneq, hout⟩ | ⟨c, hne, heq⟩ | ⟨c, level, hlevel, -, hneq, hout⟩
   · refine ⟨_, Forest.chainInput_mem f parameter index marks opening c j i offset hlt hoffset,
       active_hit f parameter seed labels (.fchain index c (marks c).super j ((marks c).child j) i
         ⟨chainTop - (lut ((marks c).word j) i).val + offset, hoffset⟩) trivial _ ?_ ?_⟩
@@ -360,13 +360,6 @@ theorem forestException_hit (index : Index) (marks : Coord → CoordMark) (openi
       exact hneq
     · rw [top_path_value f parameter seed labels hconsistent index c _ (level + 1) hl1]
       exact hout
-  · refine ⟨_, Forest.rootsInput_mem f parameter index marks opening,
-      active_hit f parameter seed labels (.roots index) trivial _ ?_ ?_⟩
-    · rw [roots_input f parameter seed labels hconsistent index]
-      intro hinput
-      exact hne (tweakableInput_injective hinput).2.2
-    · rw [forest_key_value f parameter seed labels hconsistent index]
-      exact heq
 
 include hconsistent in
 theorem treeHit_hit (hboundary : BoundaryCorrect f parameter seed labels) (pk : PublicKey)
@@ -520,7 +513,7 @@ theorem encodingMatch_hit (f : QueryImpl HashSpec Id) (parameter : PublicParamet
   have hexempt' : ¬ReferenceChoice.exemptInput f parameter topLayer rootTree leaf
       (SignatureWitness.canonicalForest f parameter seed leaf) =
         some (tweakableHashInput parameter (.encoding topLayer rootTree leaf)
-          (bytesLE 16 message ++ bytesLE 4 counter)) := hexempt
+          (rootsPayload message ++ bytesLE 4 counter)) := hexempt
   unfold Wots.encodingInput
   rw [targets_at_entry _ _ _ _ _ hentry]
   simp only []

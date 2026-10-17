@@ -63,8 +63,8 @@ pub enum Fault {
     NotInK { what: &'static str, value: F192 },
     /// A word that has to be an address or a count is not a g-power in its range.
     NotAGPower { what: &'static str, value: F64 },
-    /// A `BLAKE2s` operand outside the 128-bit embedding.
-    NotCanonical { operand: &'static str, value: F192 },
+    /// A `SHA3` input cell outside its 64- or 128-bit embedding.
+    NotCanonical { cell: usize, bits: u32, value: F192 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing or
@@ -126,10 +126,10 @@ impl std::fmt::Display for Fault {
             ),
             Self::NotInK { what, value } => write!(f, "{what} is not a K-valued word ({})", word(*value)),
             Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
-            Self::NotCanonical { operand, value } => write!(
+            Self::NotCanonical { cell, bits, value } => write!(
                 f,
-                "BLAKE2s {operand} cell is not a canonical 128-bit embedding: top limb 0x{:016x}",
-                value.c2
+                "SHA3 input cell {cell} is not a canonical {bits}-bit embedding ({})",
+                word(*value)
             ),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
             Self::Witness(problem) => write!(f, "{problem}"),
@@ -187,6 +187,16 @@ impl Program {
     /// witness reaches [`Program::min_log_committed`]. Compilation yields the
     /// `Program`; executing it (here) and proving it are separate later phases.
     pub fn execute(&self, public_input: [F192; 2]) -> Result<Execution, ExecError> {
+        self.execute_with(public_input, &mut |_| {})
+    }
+
+    /// [`Self::execute`], handing `sha3_step` the lanes each `SHA3` row reads, in row order
+    /// and as the row runs.
+    pub(crate) fn execute_with(
+        &self,
+        public_input: [F192; 2],
+        sha3_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
+    ) -> Result<Execution, ExecError> {
         // One interpretation of the program, then the fill. The blocks that bring every
         // table to a power of two are cycles no program code enters (`cpu::filler`), so
         // they run after the chain has halted, by which point the program's own row
@@ -260,7 +270,7 @@ impl Program {
         let mut set: Vec<Srow> = Vec::new();
         let mut deref: Vec<Drow> = Vec::new();
         let mut jump: Vec<Jrow> = Vec::new();
-        let mut blake2s: Vec<Brow> = Vec::new();
+        let mut sha3: Vec<Brow> = Vec::new();
 
         // A cell that is not `Written` holds ZERO. A `DEREF` between two unwritten cells
         // links them, and a write to either reaches the other at once.
@@ -459,7 +469,7 @@ impl Program {
                     if fp != 0 {
                         return Err(ExecError::new(self, pc, Fault::HaltOutsideMain { fp }));
                     }
-                    let counts = [xor.len(), mul.len(), set.len(), deref.len(), jump.len(), blake2s.len()];
+                    let counts = [xor.len(), mul.len(), set.len(), deref.len(), jump.len(), sha3.len()];
                     base_counts = Some(counts);
                     unconstrained_reads = std::mem::take(&mut m.unwritten_reads);
                     use super::filler::{self, frame as fr};
@@ -869,52 +879,35 @@ impl Program {
                         pc += 1;
                     }
                 }
-                Op::Blake2s { ins, cv, out, md } => {
-                    // Four independently-addressed 128-bit message chunks, each a
-                    // single cell; the chaining value and the output each span two
-                    // consecutive cells; the metadata is one more cell.
-                    let (aa0, aa1, ab0, ab1) = (fp + ins[0], fp + ins[1], fp + ins[2], fp + ins[3]);
-                    let acv = fp + cv;
-                    let ac = fp + out;
-                    let amd = fp + md;
-                    let words = [aa0, aa1, ab0, ab1, acv, acv + 1, amd].map(|a| m.read(a));
-                    // Naming the operand and the line matters most for the metadata,
-                    // the one a guest builds with field arithmetic rather than reads.
-                    if let Some((i, &value)) = words.iter().enumerate().find(|(_, w)| w.c2 != 0) {
-                        const CELLS: [&str; 7] = ["m0", "m1", "m2", "m3", "cv0", "cv1", "md"];
-                        return Err(fail(Fault::NotCanonical {
-                            operand: CELLS[i],
-                            value,
-                        }));
+                Op::Sha3 { .. } => {
+                    use crate::keccak::{CELL_LANES, ROW_CELLS, STATE_CELLS};
+                    let cells = crate::tables::sha3_cells(&self.prog, pc, fp);
+                    let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
+                    // A cell carries two lanes, the lone lane-16 cell one: the table
+                    // reads them with literal zeros above, so anything else could
+                    // not balance the bus.
+                    for (cell, (&value, &(_, hi))) in input.iter().zip(&CELL_LANES).enumerate() {
+                        if value.c2 != 0 || (hi.is_none() && value.c1 != 0) {
+                            let bits = if hi.is_none() { 64 } else { 128 };
+                            return Err(fail(Fault::NotCanonical { cell, bits, value }));
+                        }
                     }
-                    let va = [F64(words[0].c0), F64(words[0].c1), F64(words[1].c0), F64(words[1].c1)];
-                    let vb = [F64(words[2].c0), F64(words[2].c1), F64(words[3].c0), F64(words[3].c1)];
-                    let vcv = [F64(words[4].c0), F64(words[4].c1), F64(words[5].c0), F64(words[5].c1)];
-                    let metadata = words[6];
-                    // Compress the 64 message bytes to the 32-byte result, then
-                    // write it to c's two cells. No table constraint covers the
-                    // digest (the relation is proven by flock, §hash_flock); the
-                    // interpreter still computes the definite digest so the output
-                    // cells are consistent for any later read.
-                    let vc = blake2s_compress(va, vb, vcv, metadata);
-                    let outputs = [F192::new(vc[0].0, vc[1].0, 0), F192::new(vc[2].0, vc[3].0, 0)];
-                    m.put(ac, outputs[0])?;
-                    m.put(ac + 1, outputs[1])?;
-                    let ra = [m.bump_access_count(aa0), m.bump_access_count(aa1)];
-                    let rb = [m.bump_access_count(ab0), m.bump_access_count(ab1)];
-                    let rcv = [m.bump_access_count(acv), m.bump_access_count(acv + 1)];
-                    let rc = [m.bump_access_count(ac), m.bump_access_count(ac + 1)];
-                    // Last, matching the flush order, so an md cell aliasing another
-                    // operand still pairs each read with its own count.
-                    let rmd = m.bump_access_count(amd);
-                    blake2s.push(Brow {
+                    // No table constraint covers the output (the relation is proven
+                    // by the Keccak reduction, §keccak); the interpreter still computes it so
+                    // the output cells are consistent for any later read.
+                    let lanes = crate::keccak::state_of_cells(&input);
+                    sha3_step(&lanes);
+                    let output = crate::keccak::cells_of_state(&primitives::hash::step(&lanes));
+                    for (c, &v) in output.iter().enumerate() {
+                        m.put(cells[STATE_CELLS + c], v)?;
+                    }
+                    // In flush order, so a cell two operands alias still pairs each
+                    // read with its own count.
+                    let r: [F64; ROW_CELLS] = std::array::from_fn(|c| m.bump_access_count(cells[c]));
+                    sha3.push(Brow {
                         pc,
                         fp,
-                        ra,
-                        rb,
-                        rcv,
-                        rc,
-                        rmd,
+                        r,
                         bytecode_read,
                     });
                     pc += 1;
@@ -978,7 +971,7 @@ impl Program {
             set,
             deref,
             jump,
-            blake2s,
+            sha3,
             mem_count: m.count,
             bytecode_count,
         };

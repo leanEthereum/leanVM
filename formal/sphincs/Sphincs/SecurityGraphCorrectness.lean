@@ -505,8 +505,9 @@ theorem tree_root_value (hboundary : BoundaryCorrect f parameter seed labels)
 
 Every forest position is prepared. Its label is the honest value: chain steps the chain values,
 WOTS-key leaves the child leaves, subtree and tree nodes the honest nodes, the tree leaves the
-hashes of the four level-2 nodes of their subtrees and the roots position the forest key, the hash of
-the sixteen level-3 nodes of the trees. -/
+hashes of the four level-2 nodes of their subtrees, and the roots position the hash of the sixteen
+level-3 nodes of the trees. The scheme does not hash the roots position: the forest key is the
+sixteen level-3 nodes themselves (`keyLabels`). -/
 
 section Forest
 
@@ -704,12 +705,24 @@ theorem roots_input :
     Forest.canonicalRoots, Completeness.topTopsValue]
   rw [h c' ⟨0, by decide⟩ (by decide), h c' ⟨1, by decide⟩ (by decide)]
 
+omit [Params] in
+/-- The forest key as graph labels: the two level-3 nodes of every tree. -/
+def keyLabels : ForestKey :=
+  fun c' => (truncateHash (labels (.topNode index c' ⟨topHeight - 2, by decide⟩ ⟨0, by decide⟩)),
+    truncateHash (labels (.topNode index c' ⟨topHeight - 2, by decide⟩ ⟨1, by decide⟩)))
+
 include hconsistent in
 theorem forest_key_value :
-    truncateHash (labels (.roots index)) =
-      evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest) := by
-  rw [hconsistent (.roots index) trivial, roots_input f parameter seed labels hconsistent index,
-    Forest.forestKey_eq]
+    keyLabels labels index =
+      evalWithAnswerFn f (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey) := by
+  have h : ∀ (c' : Coord) (nd : SuperIdx) (_ : nd.val < 2 ^ (topHeight - (topHeight - 1))),
+      truncateHash (labels (.topNode index c' ⟨topHeight - 2, by decide⟩ nd)) =
+        Completeness.topNodeValue f parameter index c' seed (topHeight - 1) nd.val :=
+    fun c' nd hnd => top_value f parameter seed labels hconsistent index c' (topHeight - 1) (by decide) nd hnd
+  rw [Forest.forestKey_eq]
+  funext c'
+  simp only [keyLabels, Forest.canonicalRoots, Completeness.topTopsValue]
+  rw [h c' ⟨0, by decide⟩ (by decide), h c' ⟨1, by decide⟩ (by decide)]
 
 /-! #### Paths -/
 

@@ -112,11 +112,6 @@ theorem leafPayload_length (endpoints : ChainIndex → Digest) :
   rw [leafPayload, flatMap_bytes_length]
   rfl
 
-theorem ftsTopsPayload_length (tops : FtsTree → Digest × Digest) :
-    (ftsTopsPayload tops).length = 768 := by
-  rw [ftsTopsPayload, List.length_flatMap]
-  simp [nodePayload, bytesLE_length, ftsTrees]
-
 theorem messageDigestPayload_length (root : Digest) (message : Message) (randomness : Randomness) :
     (messageDigestPayload root message randomness).length = 48 := by
   simp [messageDigestPayload, bytesLE_length]
@@ -140,14 +135,15 @@ theorem Only.leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
   Only.tweakableHash _ _ _ (by rw [leafPayload_length])
 
 theorem Only.encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (message : Digest) (counter : Counter) :
+    (leaf : LeafIndex) (message : FtsTops) (counter : Counter) :
     Only (Concrete.encode parameter lay tree leaf message counter :
       OracleComp HashSpec (Option Encoding)) := by
   unfold Concrete.encode
-  exact Only.bind (Only.tweakableHash _ _ _ (by simp [bytesLE_length])) (fun _ => Only.pure' _)
+  exact Only.bind (Only.tweakableHash _ _ _
+    (by simp [Security.ftsTopsPayload_length, bytesLE_length])) (fun _ => Only.pure' _)
 
 theorem Only.otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (message : Digest) (counter : Counter) (values : ChainIndex → Digest) :
+    (leaf : LeafIndex) (message : FtsTops) (counter : Counter) (values : ChainIndex → Digest) :
     Only (Concrete.otsLeaf parameter lay tree leaf message counter values :
       OracleComp HashSpec (Option Digest)) := by
   unfold Concrete.otsLeaf
@@ -186,13 +182,11 @@ theorem Only.ftsRecover (parameter : PublicParameter) (index : Index)
     (leaves : IndexGroup → FtsLeaf) (secrets : FtsTree → Digest)
     (paths : FtsTree → Fin ftsTreeHeight → Digest) :
     Only (Concrete.ftsRecover parameter index leaves secrets paths :
-      OracleComp HashSpec Digest) := by
+      OracleComp HashSpec FtsTops) := by
   unfold Concrete.ftsRecover
-  refine Only.bind (Only.sequenceFin _ fun tree => ?_) ?_
-  · exact Only.bind (Only.tweakableHash _ _ _ (by rw [bytes16_length]; omega))
+  exact Only.sequenceFin _ fun tree =>
+    Only.bind (Only.tweakableHash _ _ _ (by rw [bytes16_length]; omega))
       (fun _ => Only.bind (Only.ftsFold _ _ _ _ _ _ _) (fun _ => Only.pure' _))
-  · intro tops
-    exact Only.tweakableHash _ _ _ (by rw [ftsTopsPayload_length]; omega)
 
 theorem Only.messageDigestCall (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : Fin 2) :
@@ -250,7 +244,7 @@ theorem Only.oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree 
   Only.otsValues _ _ _ _ _ _
 
 theorem Only.otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
-    (leaf : LeafIndex) (seed : MasterSeed) (message : Digest) :
+    (leaf : LeafIndex) (seed : MasterSeed) (message : FtsTops) :
     ∀ attempts counter, Short.Only (otsSignFrom parameter lay tree leaf seed message attempts counter :
       OracleComp HashSpec (Option (Counter × (ChainIndex → Digest))))
   | 0, _ => Short.Only.pure' _
@@ -295,12 +289,11 @@ theorem Only.ftsNode (parameter : PublicParameter) (index : Index) (tree : FtsTr
           Short.Only.tweakableHash _ _ _ (by rw [nodePayload_length]; omega)))
 
 theorem Only.ftsKey (parameter : PublicParameter) (index : Index) (seed : MasterSeed) :
-    Short.Only (ftsKey parameter index seed : OracleComp HashSpec Digest) := by
+    Short.Only (ftsKey parameter index seed : OracleComp HashSpec FtsTops) := by
   unfold SphincsFors.Seeded.ftsKey
-  exact Short.Only.bind (Short.Only.sequenceFin _ fun _ =>
-      Short.Only.bind (Only.ftsNode _ _ _ _ _ _) (fun _ =>
-        Short.Only.bind (Only.ftsNode _ _ _ _ _ _) (fun _ => Short.Only.pure' _)))
-    (fun _ => Short.Only.tweakableHash _ _ _ (by rw [ftsTopsPayload_length]; omega))
+  exact Short.Only.sequenceFin _ fun _ =>
+    Short.Only.bind (Only.ftsNode _ _ _ _ _ _) (fun _ =>
+      Short.Only.bind (Only.ftsNode _ _ _ _ _ _) (fun _ => Short.Only.pure' _))
 
 theorem Only.ftsOpen (parameter : PublicParameter) (index : Index) (leaves : IndexGroup → FtsLeaf)
     (seed : MasterSeed) :

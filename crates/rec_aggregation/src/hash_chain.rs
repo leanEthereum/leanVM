@@ -1,4 +1,4 @@
-//! End-to-end proof of an unrolled zkDSL BLAKE2s hash chain.
+//! End-to-end proof of an unrolled zkDSL Keccak hash chain.
 
 use std::time::Instant;
 
@@ -31,9 +31,9 @@ fn chain_source(steps: usize, unroll: usize) -> String {
     body.push_str("        h0[0] = buff[b]\n");
     body.push_str("        h0[1] = buff[b * GEN]\n");
     for step in 1..=unroll {
-        body.push_str(&format!("        h{step} = StackBuf(2)\n"));
+        body.push_str(&format!("        h{step} = StackBuf(13)\n"));
         body.push_str(&format!(
-            "        blake2s(h{previous}, h{previous}, h{step})\n",
+            "        sha3(h{previous}[0:2], h{previous}[0:2], h{step})\n",
             previous = step - 1
         ));
     }
@@ -58,7 +58,7 @@ fn chain_source(steps: usize, unroll: usize) -> String {
 }
 
 #[test]
-fn blake2s_hash_chain() {
+fn sha3_hash_chain() {
     let env_usize = |key: &str, default: usize| {
         std::env::var(key)
             .ok()
@@ -94,15 +94,12 @@ fn blake2s_hash_chain() {
     assert_eq!(instruction_counts(&source, public_input)[5], steps);
 
     println!(
-        "\nBLAKE2s hash chain, N = {}, unroll = {}",
+        "\nKeccak hash chain, N = {}, unroll = {}",
         pretty_integer(steps),
         pretty_integer(unroll)
     );
     println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
-    for (name, &c) in ["XOR", "MUL", "SET", "DEREF", "JUMP", "BLAKE2S"]
-        .iter()
-        .zip(&stats.counts)
-    {
+    for (name, &c) in ["XOR", "MUL", "SET", "DEREF", "JUMP", "SHA3"].iter().zip(&stats.counts) {
         let pow = if c == 0 {
             "0".to_string()
         } else {

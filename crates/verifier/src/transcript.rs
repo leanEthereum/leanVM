@@ -1,7 +1,7 @@
 //! Proof transport and Fiat-Shamir.
 
 use crate::field::{E, K, ZERO};
-use crate::hash::{Digest, blake2s_hash};
+use crate::hash::{Digest, STATE_LANES, keccak_hash, step};
 use crate::merkle::{MerkleOpenings, MerklePath};
 use crate::multilinear::{log2_strict, poly_eval};
 use crate::{VerifierError, require};
@@ -30,22 +30,69 @@ impl Proof {
 }
 
 pub const DS_OBSERVE: u64 = 1;
-pub const DS_SQUEEZE: u64 = 2;
-const DS_POW_BASE: u64 = 3;
 const DS_POW_NONCE: u64 = 4;
+/// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, three limbs and a tag.
+const RATE_SCALARS: usize = 4;
 
-/// Hash two four-word operands.
-pub fn compress(left: [u64; 4], right: [u64; 4]) -> [u64; 4] {
-    let mut data = [0u8; 64];
-    for (bytes, word) in data.as_chunks_mut().0.iter_mut().zip(left.into_iter().chain(right)) {
-        *bytes = word.to_le_bytes();
+/// A duplex sponge over the VM's `SHA3` step, in overwrite mode. The rate is lanes 0..16 and the capacity lanes
+/// 16..25. A permutation writes waiting scalar `i` over lanes `4i..4i+4`, zeroes the rest of the rate and keeps the
+/// capacity. A fifth scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
+#[derive(Clone, Debug)]
+pub struct Sponge {
+    state: [u64; STATE_LANES],
+    pending: [(E, u64); RATE_SCALARS],
+    n_pending: usize,
+}
+
+impl Sponge {
+    /// One permutation of the IV and the public input, from the zero state.
+    pub fn new(fiat_shamir_iv: Digest, public_input: Digest) -> Self {
+        let mut state = [0u64; STATE_LANES];
+        state[..4].copy_from_slice(&fiat_shamir_iv.words());
+        state[4..8].copy_from_slice(&public_input.words());
+        Self {
+            state: step(&state),
+            pending: [(ZERO, 0); RATE_SCALARS],
+            n_pending: 0,
+        }
     }
-    blake2s_hash(&data).words()
+
+    /// A protocol with no public input of its own, seeded from `label` alone.
+    pub fn from_label(label: &[u8]) -> Self {
+        Self::new(keccak_hash(label), Digest([0; 32]))
+    }
+
+    fn duplex(&mut self) {
+        let mut input = self.state;
+        input[..16].fill(0);
+        for (i, &(value, tag)) in self.pending[..self.n_pending].iter().enumerate() {
+            input[4 * i..4 * i + 4].copy_from_slice(&[value.c0, value.c1, value.c2, tag]);
+        }
+        self.state = step(&input);
+        self.n_pending = 0;
+    }
+
+    fn absorb(&mut self, value: E, tag: u64) {
+        if self.n_pending == RATE_SCALARS {
+            self.duplex();
+        }
+        self.pending[self.n_pending] = (value, tag);
+        self.n_pending += 1;
+    }
+
+    pub fn observe(&mut self, value: E) {
+        self.absorb(value, DS_OBSERVE);
+    }
+
+    pub fn sample(&mut self) -> E {
+        self.duplex();
+        E::new(self.state[0], self.state[1], self.state[2])
+    }
 }
 
 pub struct Transcript<'a> {
     proof: &'a Proof,
-    state: [u64; 4],
+    sponge: Sponge,
     stream_offset: usize,  // in E field elements
     opening_offset: usize, // in bytes, or in batches of the pruned form
     checked: bool,         // false for a replay, which walks the proof and checks none of it
@@ -56,7 +103,7 @@ impl<'a> Transcript<'a> {
     pub fn new(proof: &'a Proof, fiat_shamir_iv: Digest, public_input: Digest, checked: bool) -> Self {
         Self {
             proof,
-            state: compress(fiat_shamir_iv.words(), public_input.words()),
+            sponge: Sponge::new(fiat_shamir_iv, public_input),
             stream_offset: 0,
             opening_offset: 0,
             checked,
@@ -69,17 +116,8 @@ impl<'a> Transcript<'a> {
         self.checked
     }
 
-    pub fn stream_offset(&self) -> usize {
-        self.stream_offset
-    }
-
-    fn observe(&mut self, value: E) {
-        self.state = compress(self.state, [value.c0, value.c1, value.c2, DS_OBSERVE]);
-    }
-
     pub fn sample(&mut self) -> E {
-        self.state = compress(self.state, [0, 0, 0, DS_SQUEEZE]);
-        E::new(self.state[0], self.state[1], self.state[2])
+        self.sponge.sample()
     }
 
     pub fn samples(&mut self, count: usize) -> Vec<E> {
@@ -98,7 +136,7 @@ impl<'a> Transcript<'a> {
 
     pub fn next_scalar(&mut self) -> Result<E, VerifierError> {
         let value = self.next()?;
-        self.observe(value);
+        self.sponge.observe(value);
         Ok(value)
     }
 
@@ -106,19 +144,21 @@ impl<'a> Transcript<'a> {
         (0..count).map(|_| self.next_scalar()).collect()
     }
 
+    /// The nonce is absorbed with its own tag, and the challenge drawn next, which nothing else uses, must have its low
+    /// `bits` bits zero. With no bits to grind the nonce must be zero.
     pub fn grind_check(&mut self, bits: u32) -> Result<(), VerifierError> {
         let nonce = self.next()?;
-        let block = [nonce.c0, nonce.c1, nonce.c2, DS_POW_NONCE];
+        self.sponge.absorb(nonce, DS_POW_NONCE);
+        let challenge = self.sample();
         if self.checked {
-            let digest = compress(compress(self.state, [0, 0, 0, DS_POW_BASE]), block)[0];
+            let mask = 1u64.checked_shl(bits).map_or(u64::MAX, |bit| bit - 1);
             let valid = if bits == 0 {
                 nonce == ZERO
             } else {
-                digest & ((1 << bits) - 1) == 0
+                challenge.c0 & mask == 0
             };
             require(valid, VerifierError::GrindingNonce)?;
         }
-        self.state = compress(self.state, block);
         Ok(())
     }
 

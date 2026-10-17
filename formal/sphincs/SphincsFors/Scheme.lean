@@ -12,8 +12,9 @@ Parameters, serialized hash inputs, key generation, signing, and verification of
 `leanSPHINCS.tex`, with the hash inputs of `crates/sphincs`: the 16-byte public parameter, the
 16-byte address of the call (8 bytes of fields, then 8 zero bytes), then the payload. One XMSS tree of height
 `h = 26`, WOTS+C with `64` chains of length `4` and target sum `120`, and FORS with `k = 24`
-trees of `2^a = 1024` leaves, `a = 10`. A FORS tree has no root hash: the FORS key hashes the two
-nodes of level `a - 1 = 9` of every tree. A pruned key keeps one subtree of `2^b` leaves, placed by the low bits of
+trees of `2^a = 1024` leaves, `a = 10`. A FORS tree has no root hash, and no hash folds the trees
+into a key: the WOTS+C encoding hashes the two nodes of level `a - 1 = 9` of every tree with the
+counter. A pruned key keeps one subtree of `2^b` leaves, placed by the low bits of
 the public parameter, and replaces the `26 - b` siblings above it by surrogates derived from the
 seed; the signer grinds its randomizer until the leaf index lands in the kept subtree. `b = 26` is
 the full key.
@@ -82,6 +83,9 @@ abbrev FtsTree := Fin ftsTrees
 abbrev IndexGroup := Fin ftsTrees
 abbrev FtsLeaf := Fin (2 ^ ftsTreeHeight)
 abbrev Encoding := ChainIndex → Digit
+/-- The two top nodes (level `a - 1`, node `0` then node `1`) of each of the `k` FORS trees: what
+the one-time signature signs. -/
+abbrev FtsTops := FtsTree → Digest × Digest
 abbrev HashInput := List UInt8
 
 /-- The layer height, `h = 26`. -/
@@ -176,12 +180,11 @@ inductive HashDomain where
   | encoding (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
   | ftsLeaf (index : Index) (tree : FtsTree) (leaf : FtsLeaf)
   | ftsNode (index : Index) (tree : FtsTree) (level : Nat) (nodeIdx : Nat)
-  /-- The FORS key hash of instance `index`, over the two top nodes of every tree. -/
-  | ftsRoots (index : Index)
   | message (call : Fin 2)
 deriving DecidableEq
 
-/-- The address fields of a hash domain (`TWEAK_CHAIN = 1`, ..., `TWEAK_MSG = 12`). In the tree,
+/-- The address fields of a hash domain (`TWEAK_CHAIN = 1`, ..., `TWEAK_MSG = 12`; type `11` is
+unused). In the tree,
 `lo` is the leaf or the node index and `hi` the chain or the level; the layer and the tree, always
 `0`, are not serialized. In a FORS instance `lo` is the index `idx` and `hi` packs the tree `kappa`,
 the level and the leaf or node index as `kappa + 32 * level + 512 * j`. -/
@@ -192,7 +195,6 @@ def hashDomainFields : HashDomain → TweakFields
   | .encoding _ _ leaf => tweakFields 4 0 0 leaf
   | .ftsLeaf index tree leaf => tweakFields 9 0 (tree + 512 * leaf) index
   | .ftsNode index tree level nodeIdx => tweakFields 10 0 (tree + 32 * level + 512 * nodeIdx) index
-  | .ftsRoots index => tweakFields 11 0 0 index
   | .message call => tweakFields 12 0 call 0
 
 /-- The exact 16 address bytes of a hash domain. -/
@@ -329,6 +331,14 @@ def leafIndexAt (index : Index) (lay : Layer) : LeafIndex :=
 
 /-! ### The one-time signature -/
 
+/-- The two children of a Merkle node. -/
+def nodePayload (left right : Digest) : HashInput :=
+  bytesLE 16 left ++ bytesLE 16 right
+
+/-- The tops as hashed by the encoding: `48` values in tree order. -/
+def ftsTopsPayload (tops : FtsTops) : HashInput :=
+  (List.ofFn tops).flatMap fun pair => nodePayload pair.1 pair.2
+
 /-- A node index at level `0` read as a leaf index. -/
 def leafOfNat (value : Nat) : LeafIndex :=
   ⟨value % 2 ^ maxLayerHeight, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
@@ -360,16 +370,17 @@ def leafHash (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (lea
     (endpoints : ChainIndex → Digest) : m Digest :=
   tweakableHash parameter (.leaf lay tree leaf) (leafPayload endpoints)
 
-/-- `Enc(P, e, M, c)`: hash the message with the counter under the leaf's encoding tweak, and decode. -/
+/-- `Enc(P, e, tops, c)`: hash the FORS tops with the counter, last, under the leaf's encoding tweak,
+and decode (`encode`: `P || A(4, 0, e) || tops || c`, 804 bytes). -/
 def encode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (counter : Counter) : m (Option Encoding) := do
+    (message : FtsTops) (counter : Counter) : m (Option Encoding) := do
   let digest ← tweakableHash parameter (.encoding lay tree leaf)
-    (bytesLE 16 message ++ bytesLE 4 counter)
+    (ftsTopsPayload message ++ bytesLE 4 counter)
   return TargetSum.decodeDigest digest
 
 /-- `Ots.leaf` (`wots_recover`): the verifier's leaf, or nothing if the counter does not encode the message. -/
 def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (message : Digest) (counter : Counter) (values : ChainIndex → Digest) : m (Option Digest) := do
+    (message : FtsTops) (counter : Counter) (values : ChainIndex → Digest) : m (Option Digest) := do
   let some encoding ← encode parameter lay tree leaf message counter | return none
   let endpoints ← sequenceFin fun chainIdx =>
     recoverChain parameter lay tree leaf chainIdx (encoding chainIdx) (values chainIdx)
@@ -377,10 +388,6 @@ def otsLeaf (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf
   return some value
 
 /-! ### The tree -/
-
-/-- The two children of a Merkle node. -/
-def nodePayload (left right : Digest) : HashInput :=
-  bytesLE 16 left ++ bytesLE 16 right
 
 /-- `Tree.fold` (`tree_fold`): fold a leaf and a path into the root. -/
 def treeFold (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
@@ -409,11 +416,6 @@ def ftsLeafHash (parameter : PublicParameter) (index : Index) (tree : FtsTree) (
     (secret : Digest) : m Digest :=
   tweakableHash parameter (.ftsLeaf index tree leaf) (bytesLE 16 secret)
 
-/-- The payload of the FORS key hash: the two top nodes (level `a - 1`, node `0` then node `1`) of
-each of the `k` trees, `48` values (`fors_key_of_tops`). -/
-def ftsTopsPayload (tops : FtsTree → Digest × Digest) : HashInput :=
-  (List.ofFn tops).flatMap fun pair => nodePayload pair.1 pair.2
-
 /-- The two top nodes in node order: the node on the side of the opened leaf, and the other one,
 which is the last element of the path. -/
 def ftsTopPair (leaf : FtsLeaf) (node other : Digest) : Digest × Digest :=
@@ -434,17 +436,17 @@ def ftsFold (parameter : PublicParameter) (index : Index) (tree : FtsTree) (leaf
         tweakableHash parameter (.ftsNode index tree (levels + 1) nodeIdx)
           (nodePayload current sibling)
 
-/-- `Fts.recover` (`fors_recover`): the FORS key an opening reaches. Per tree, the leaf is folded
+/-- `Fts.recover` (`fors_recover`): the FORS tops an opening reaches. Per tree, the leaf is folded
 with path elements `0 .. a - 2` into the top node on its side; path element `a - 1` is the other
-top node and is not hashed with it. The key is the hash of the `2 k` top nodes. -/
+top node and is not hashed with it. The `2 k` top nodes are not hashed into a key: the encoding
+absorbs them. -/
 def ftsRecover (parameter : PublicParameter) (index : Index) (leaves : IndexGroup → FtsLeaf)
-    (secrets : FtsTree → Digest) (paths : FtsTree → Fin ftsTreeHeight → Digest) : m Digest := do
-  let tops ← sequenceFin fun tree => do
+    (secrets : FtsTree → Digest) (paths : FtsTree → Fin ftsTreeHeight → Digest) : m FtsTops :=
+  sequenceFin fun tree => do
     let leaf := leaves (ftsIndexOf tree)
     let value ← ftsLeafHash parameter index tree leaf (secrets tree)
     let node ← ftsFold parameter index tree leaf (paths tree) ftsTopLevel value
     return ftsTopPair leaf node (paths tree ⟨ftsTopLevel, by decide⟩)
-  tweakableHash parameter (.ftsRoots index) (ftsTopsPayload tops)
 
 /-! ### The message digest -/
 
@@ -487,32 +489,27 @@ def digestLeaves (digest : MessageDigest) : IndexGroup → FtsLeaf :=
 def signaturePath (signature : Signature) (lay : Layer) (level : Nat) : Digest :=
   if hlevel : level < layerHeight lay then (signature.layers lay).path ⟨level, hlevel⟩ else 0
 
-/-- The tree walk: `remaining + 1` enters at layer `remaining`, and layer `0`'s fold returns the
-value compared against the public root. -/
-def verifyLayers (parameter : PublicParameter) (index : Index) (signature : Signature) :
-    Nat → Digest → m (Option Digest)
-  | 0, message => pure (some message)
-  | remaining + 1, message => do
-      if hlayer : remaining < numLayers then
-        let lay : Layer := ⟨remaining, hlayer⟩
-        let tree := treeIndexAt index lay
-        let leaf := leafIndexAt index lay
-        let part := signature.layers lay
-        let some value ← otsLeaf parameter lay tree leaf message part.counter part.chainValues
-          | return none
-        let root ← treeFold parameter lay tree leaf (signaturePath signature lay) (layerHeight lay) value
-        verifyLayers parameter index signature remaining root
-      else
-        pure none
+/-- The one layer: the one-time leaf the tops and the counter recover, folded with the path into
+the value compared against the public root. -/
+def verifyLayer (parameter : PublicParameter) (index : Index) (signature : Signature)
+    (message : FtsTops) : m (Option Digest) := do
+  let lay := topLayer
+  let tree := treeIndexAt index lay
+  let leaf := leafIndexAt index lay
+  let part := signature.layers lay
+  let some value ← otsLeaf parameter lay tree leaf message part.counter part.chainValues
+    | return none
+  let root ← treeFold parameter lay tree leaf (signaturePath signature lay) (layerHeight lay) value
+  return some root
 
-/-- `Ver(pk, m, sigma)`: recompute the digest, recover the FORS key, recover the one-time leaf, fold
-the path and compare with the root. -/
+/-- `Ver(pk, m, sigma)`: recompute the digest, recover the FORS tops, recover the one-time leaf from
+them, fold the path and compare with the root. -/
 def verify (publicKey : PublicKey) (message : Message) (signature : Signature) : m Bool := do
   let digest ← messageDigest publicKey.parameter publicKey.root message signature.randomness
   let index := digestIndex digest
-  let ftsPublicKey ← ftsRecover publicKey.parameter index (digestLeaves digest)
+  let tops ← ftsRecover publicKey.parameter index (digestLeaves digest)
     signature.ftsSecret signature.ftsPath
-  let some root ← verifyLayers publicKey.parameter index signature numLayers ftsPublicKey | return false
+  let some root ← verifyLayer publicKey.parameter index signature tops | return false
   return decide (root = publicKey.root)
 
 /-! ### Signing -/
@@ -608,7 +605,7 @@ def oneTimePublicKey (parameter : PublicParameter) (lay : Layer) (tree : TreeInd
   otsValues parameter lay tree leaf seed fun _ => chainLength - 1
 
 def otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (seed : MasterSeed) (message : Digest) :
+    (seed : MasterSeed) (message : FtsTops) :
     Nat → Nat → m (Option (Counter × (ChainIndex → Digest)))
   | 0, _ => pure none
   | attempts + 1, counter => do
@@ -620,7 +617,7 @@ def otsSignFrom (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (
 
 /-- `wots_sign`: the least admissible counter, then the opened chain values. -/
 def otsSign (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex) (leaf : LeafIndex)
-    (seed : MasterSeed) (message : Digest) :
+    (seed : MasterSeed) (message : FtsTops) :
     m (Option (Counter × (ChainIndex → Digest))) :=
   otsSignFrom parameter lay tree leaf seed message encodingAttemptLimit 0
 
@@ -701,15 +698,14 @@ def ftsNode (parameter : PublicParameter) (index : Index) (tree : FtsTree)
       let right ← ftsNode parameter index tree seed (level + 1) (2 * nodeIdx + 1)
       tweakableHash parameter (.ftsNode index tree (level + 2) nodeIdx) (nodePayload left right)
 
-/-- The FORS key of instance `idx`: the two top nodes of every tree, then their hash. No tree is
-hashed up to a root. -/
+/-- The FORS key of instance `idx`: the two top nodes of every tree (`ForsForest::tops`). No tree
+is hashed up to a root, and the tops are not hashed into one value: the encoding absorbs them. -/
 def ftsKey (parameter : PublicParameter) (index : Index)
-    (seed : MasterSeed) : m Digest := do
-  let tops ← sequenceFin fun tree => do
+    (seed : MasterSeed) : m FtsTops :=
+  sequenceFin fun tree => do
     let left ← ftsNode parameter index tree seed ftsTopLevel 0
     let right ← ftsNode parameter index tree seed ftsTopLevel 1
     return (left, right)
-  tweakableHash parameter (.ftsRoots index) (ftsTopsPayload tops)
 
 def ftsOpen (parameter : PublicParameter) (index : Index) (leaves : IndexGroup → FtsLeaf)
     (seed : MasterSeed) : m (FtsTree → Fin ftsTreeHeight → Digest) :=
@@ -735,7 +731,7 @@ def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Random
   else
     return none
 
-def layerMessage (secretKey : SecretKey) (index : Index) (_lay : Layer) : m Digest :=
+def layerMessage (secretKey : SecretKey) (index : Index) (_lay : Layer) : m FtsTops :=
   ftsKey secretKey.parameter index secretKey.seed
 
 def signLayer (secretKey : SecretKey) (index : Index) (lay : Layer) : m (Option (LayerSignature lay)) := do
@@ -758,7 +754,7 @@ def signDigestLoop (secretKey : SecretKey) (message : Message) : Nat → Randomn
       | none => signDigestLoop secretKey message attempts (randomness + 1)
 
 /-- `Sign`: derive the base randomizer `R0` of the message, grind `R0 + i` into the kept subtree,
-compute the digest, open FORS, sign its key with WOTS+C and attach the path. -/
+compute the digest, open FORS, sign its tops with WOTS+C and attach the path. -/
 def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := do
   let base ← deriveRandomizer secretKey.parameter secretKey.seed message
   let some (randomness, _) ← signDigestLoop secretKey message digestAttemptLimit base

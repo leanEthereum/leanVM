@@ -156,10 +156,11 @@ struct Scope {
     /// outside it, where the other path leaves the cell unwritten and therefore
     /// prover-chosen, which is why this reverts at a join with the bindings.
     const_cells: HashMap<[u64; 3], Off>,
-    /// Two consecutive frame cells holding the standard BLAKE2s IV, emitted
-    /// lazily at the first dominating default-IV compression in this
-    /// control-flow scope.
-    blake2s_iv: Option<Off>,
+    /// Six consecutive frame cells holding `[pad, 0, 0, 0, 0, 0]`, `pad` the
+    /// padding's first byte at the start of a cell: every constant `tail` and
+    /// `cap` a fresh `sha3` block needs is a window of it. Emitted lazily at the
+    /// first dominating fresh hash in this control-flow scope.
+    sha3_pad: Option<Off>,
 }
 
 impl Scope {
@@ -398,7 +399,7 @@ impl FnLower<'_> {
     }
 
     /// A frame cell holding `0`, set lazily once: the source for forwarded zero
-    /// words (a `BLAKE2s` padding half), and the destination every `assert a == b`
+    /// words (a `sha3` padding cell), and the destination every `assert a == b`
     /// in this scope XORs into.
     fn zero(&mut self) -> Off {
         self.const_cell(F192::ZERO)
@@ -480,15 +481,15 @@ impl FnLower<'_> {
                             od: fr::ZERO,
                             of: fr::ZERO,
                         },
-                        // Its metadata cell is one no instruction writes, like its
-                        // message cells: the interpreter leaves those zero, and a
-                        // prover choosing otherwise only picks which compression the
-                        // dummy proves, which nothing reads (`leanvm_core::cpu::filler`).
-                        FillerOp::Blake2s => LOp::Blake2s {
-                            ins: [fr::DIGEST + 2, fr::DIGEST + 3, fr::DIGEST + 4, fr::DIGEST + 5],
-                            cv: fr::SCRATCH,
-                            c: fr::DIGEST,
-                            md: fr::ZERO,
+                        // Its input cells are ones no instruction writes: the
+                        // interpreter leaves those zero, and a prover choosing
+                        // otherwise only picks which state the dummy permutes, which
+                        // nothing reads (`leanvm_core::cpu::filler`).
+                        FillerOp::Sha3 => LOp::Sha3 {
+                            m: [fr::SHA3_IN, fr::SHA3_IN + 1, fr::SHA3_IN + 2, fr::SHA3_IN + 3],
+                            tail: fr::SHA3_IN,
+                            cap: fr::SHA3_IN,
+                            c: fr::SHA3_OUT,
                         },
                     });
                 }
@@ -543,7 +544,7 @@ impl FnLower<'_> {
     }
 
     /// Run `f` with branch-local scope: bindings AND the lazily cached cells
-    /// (`one`, `self_fp`, range-check bounds, default BLAKE2s IV) revert
+    /// (`one`, `self_fp`, range-check bounds, the `sha3` padding run) revert
     /// afterwards, since a cell whose `SET` sits inside a conditionally-executed
     /// region must not be trusted outside it.
     fn scoped(&mut self, f: impl FnOnce(&mut Self)) {
@@ -957,7 +958,7 @@ impl FnLower<'_> {
             Expr::Pow(b, e) => self.pow_expr(b, e),
             Expr::Var(v) => match self.scope.bound(v).map(|b| b.val) {
                 Some(Binding::Stack(..)) => {
-                    self.fail(format!("StackBuf `{v}` used as a scalar; index it (`{v}[k]`) or pass it to blake2s"));
+                    self.fail(format!("StackBuf `{v}` used as a scalar; index it (`{v}[k]`) or pass it to sha3"));
                 }
                 Some(Binding::Gaddr(ga)) => self.materialize(ga),
                 Some(Binding::Scalar(o)) => o,
@@ -1088,7 +1089,7 @@ impl FnLower<'_> {
                     "`-`, `//`, `%` are compile-time only (field subtraction is `+`); use them in an index, a bound, or a `Const` argument, got `{e:?}`"
                 ))
             }
-            Expr::Slice(..) => self.fail("a slice is not a scalar; it is only a blake2s operand"),
+            Expr::Slice(..) => self.fail("a slice is not a scalar; it is only a sha3 operand"),
             Expr::ListLit(..) => self.fail("a list literal must be bound to a name: `x = [a, b]`"),
         }
     }

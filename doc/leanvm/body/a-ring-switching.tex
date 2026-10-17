@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/a-ring-switching.tex
 \section{Ring switching}\label{annex:rs}
 
-Ring switching was introduced in \cite{DP24}. We present a variant tailored to our use case: transforming a PCS for $\K$ into a PCS for $\Ftwo$ (transforming a $\K$-valued multilinear PCS, with $\nflock$ variables and opening claims in $\E$, into a commitment protocol to 64 $\Ftwo$-valued multilinears, each with $\nflock$ variables and sharing opening claims in $\E$).
+Ring switching was introduced in \cite{DP24}. We present a variant tailored to our use case: transforming a PCS for $\K$ into a PCS for $\Ftwo$ (transforming a $\K$-valued multilinear PCS, with $\nkeccak$ variables and opening claims in $\E$, into a commitment protocol to 64 $\Ftwo$-valued multilinears, each with $\nkeccak$ variables and sharing opening claims in $\E$).
 
 \subsection{Setting}\label{rs:setting}
 
@@ -10,19 +10,19 @@ The two fields are those of \S\ref{sec:vm}: $\K=\F_2[x]/(x^{64}+x^4+x^3+x+1)$ in
 e_w=x^iy^j\in\E,\qquad w=64j+i,\quad 0\le i<64,\quad 0\le j<3.
 \]
 
-The witness is $64$ bit-valued multilinears $Q_0,\dots,Q_{63}:\cube{\nflock}\to\{0,1\}$. We commit to them packed, one $\K$ element per point:
+The witness is $64$ bit-valued multilinears $Q_0,\dots,Q_{63}:\cube{\nkeccak}\to\{0,1\}$. We commit to them packed, one $\K$ element per point:
 \[
-\qflock:\cube{\nflock}\to\K,\qquad \qflock(u)=\sum_{i=0}^{63}Q_i(u)\,x^i.
+\qkeccak:\cube{\nkeccak}\to\K,\qquad \qkeccak(u)=\sum_{i=0}^{63}Q_i(u)\,x^i.
 \]
-The commitment scheme proves statements of one shape. Given a target $T\in\E$ and an MLE-friendly weight $W:\cube{\nflock}\to\E$ (Definition~\ref{def:ipcs}), an opening proves
+The commitment scheme proves statements of one shape. Given a target $T\in\E$ and an MLE-friendly weight $W:\cube{\nkeccak}\to\E$ (Definition~\ref{def:ipcs}), an opening proves
 \[
-\sum_{u\in\cube{\nflock}}W(u)\,\qflock(u)=T.
+\sum_{u\in\cube{\nkeccak}}W(u)\,\qkeccak(u)=T.
 \]
 The weight $W$ and target $T$ are $\E$-valued, the committed values are $\K$-valued.
 
-What arrives is not of that shape. It is $64$ claimed values $s_i\in\E$, one per bit polynomial, at a point $r\in\E^{\nflock}$ they all share.
+What arrives is not of that shape. It is $64$ claimed values $s_i\in\E$, one per bit polynomial, at a point $r\in\E^{\nkeccak}$ they all share.
 \[
-s_i \qeq \mle{Q_i}(r)=\sum_{u\in\cube{\nflock}}\eq(r,u)\,Q_i(u),\qquad 0\le i<64,
+s_i \qeq \mle{Q_i}(r)=\sum_{u\in\cube{\nkeccak}}\eq(r,u)\,Q_i(u),\qquad 0\le i<64,
 \]
 
 Ring switching~\cite{DP24} turns those $64$ claims into a single statement the opening can prove.
@@ -32,9 +32,9 @@ Ring switching~\cite{DP24} turns those $64$ claims into a single statement the o
 Fix an $\F_2$-linear map $\Phi:\E\to\E$:
 \begin{equation}
 \begin{split}
-\sum_{u\in\cube{\nflock}}\Phi\bigl(\eq(r,u)\bigr)\,\qflock(u)
-&=\sum_{i=0}^{63}x^i\sum_{u\in\cube{\nflock}}Q_i(u)\,\Phi\bigl(\eq(r,u)\bigr)\\
-&=\sum_{i=0}^{63}x^i\,\Phi\Bigl(\sum_{u\in\cube{\nflock}}Q_i(u)\,\eq(r,u)\Bigr)
+\sum_{u\in\cube{\nkeccak}}\Phi\bigl(\eq(r,u)\bigr)\,\qkeccak(u)
+&=\sum_{i=0}^{63}x^i\sum_{u\in\cube{\nkeccak}}Q_i(u)\,\Phi\bigl(\eq(r,u)\bigr)\\
+&=\sum_{i=0}^{63}x^i\,\Phi\Bigl(\sum_{u\in\cube{\nkeccak}}Q_i(u)\,\eq(r,u)\Bigr)
 =\sum_{i=0}^{63}x^i\,\Phi(s_i).
 \end{split}
 \label{eq:complete}
@@ -43,7 +43,7 @@ The reduction is:
 \begin{enumerate}
 \item once the $s_i$ are fixed, the verifier draws $\Phi$ at random;
 \item it computes the target $T=\sum_{i=0}^{63}x^i\Phi(s_i)$;
-\item the commitment scheme opens $\qflock$ against the weight $W:\cube{\nflock}\to\E$, $W(u)=\Phi\bigl(\eq(r,u)\bigr)$, with target $T$; if that opening accepts, the verifier accepts the $64$ claims.
+\item the commitment scheme opens $\qkeccak$ against the weight $W:\cube{\nkeccak}\to\E$, $W(u)=\Phi\bigl(\eq(r,u)\bigr)$, with target $T$; if that opening accepts, the verifier accepts the $64$ claims.
 \end{enumerate}
 Everything now turns on which $\Phi$ we can afford to draw.
 
@@ -129,26 +129,26 @@ so by Schwartz--Zippel (Lemma~\ref{lem:sz}) the check passes with probability le
 
 \subsection{Evaluating the weight}\label{rs:weight}
 
-An opening reduces $\sum_{u\in\cube{\nflock}}W(u)\,\qflock(u)=T$ to a claim about $\qflock$ at a random point $r'\in\E^{\nflock}$, and the verifier must evaluate the multilinear extension of $W$ at $r'$, written $\mle{W}(r')$, by itself. One fact turns that into a short formula.
+An opening reduces $\sum_{u\in\cube{\nkeccak}}W(u)\,\qkeccak(u)=T$ to a claim about $\qkeccak$ at a random point $r'\in\E^{\nkeccak}$, and the verifier must evaluate the multilinear extension of $W$ at $r'$, written $\mle{W}(r')$, by itself. One fact turns that into a short formula.
 
-\emph{Fact (Frobenius passes through $\eq$ on the boolean hypercube).} Squaring respects sums and products and fixes bits, so for $u\in\cube{\nflock}$, by Definition~\ref{def:eq},
+\emph{Fact (Frobenius passes through $\eq$ on the boolean hypercube).} Squaring respects sums and products and fixes bits, so for $u\in\cube{\nkeccak}$, by Definition~\ref{def:eq},
 \[
-\eq(r,u)^{2^k}=\prod_{n=1}^{\nflock}(1+r_n+u_n)^{2^k}=\prod_{n=1}^{\nflock}\bigl(1+r_n^{2^k}+u_n\bigr)=\eq\bigl(r^{2^k},u\bigr),
-\qquad r^{2^k}:=\bigl(r_1^{2^k},\dots,r_{\nflock}^{2^k}\bigr).
+\eq(r,u)^{2^k}=\prod_{n=1}^{\nkeccak}(1+r_n+u_n)^{2^k}=\prod_{n=1}^{\nkeccak}\bigl(1+r_n^{2^k}+u_n\bigr)=\eq\bigl(r^{2^k},u\bigr),
+\qquad r^{2^k}:=\bigl(r_1^{2^k},\dots,r_{\nkeccak}^{2^k}\bigr).
 \]
 
 Expand $W$ at $r'$ with \eqref{eq:ck} and this fact:
 \[
 \begin{aligned}
-\mle{W}(r')&=\sum_{u\in\cube{\nflock}}W(u)\,\eq(r',u)
-=\sum_{u\in\cube{\nflock}}\Phi\bigl(\eq(r,u)\bigr)\,\eq(r',u)\\
-&=\sum_{k=0}^{63}c_k\sum_{u\in\cube{\nflock}}\eq\bigl(r^{2^k},u\bigr)\,\eq(r',u).
+\mle{W}(r')&=\sum_{u\in\cube{\nkeccak}}W(u)\,\eq(r',u)
+=\sum_{u\in\cube{\nkeccak}}\Phi\bigl(\eq(r,u)\bigr)\,\eq(r',u)\\
+&=\sum_{k=0}^{63}c_k\sum_{u\in\cube{\nkeccak}}\eq\bigl(r^{2^k},u\bigr)\,\eq(r',u).
 \end{aligned}
 \]
 The inner sum is $\eq(r^{2^k},r')$, since $\eq(u,\cdot\,)$ is its own multilinear extension for every $u$. By Definition~\ref{def:eq} again,
 \[
 \boxed{\ \
-\mle{W}(r') \;=\; \sum_{k=0}^{63}\, c_k \prod_{n=1}^{\nflock}
+\mle{W}(r') \;=\; \sum_{k=0}^{63}\, c_k \prod_{n=1}^{\nkeccak}
 \bigl( 1 + r_n^{2^k} + r'_n \bigr).
 \ \ }
 \]
@@ -164,7 +164,7 @@ One application of $\Phi$ takes $63$ squarings and $6$ multiplications: the Frob
 one application of $\Phi$ & $63$ & $6$\\
 the target $T$, $64$ applications & $4032$ & $384$\\
 the coefficients $c_k$, once & $192$ & $63$\\
-the weight $\mle{W}(r')$ & $63\nflock$ & $64\nflock$\\
+the weight $\mle{W}(r')$ & $63\nkeccak$ & $64\nkeccak$\\
 \end{tabular}
 \end{center}
 

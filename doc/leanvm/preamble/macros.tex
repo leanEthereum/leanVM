@@ -28,31 +28,29 @@
 \newcommand{\cube}[1]{\{0,1\}^{#1}}
 \newcommand{\inner}[2]{\langle #1,\, #2 \rangle}
 \newcommand{\fc}{\chi}      % a sumcheck round challenge, everywhere in the document
-\newcommand{\flock}{\mathrm{flock}}
+\newcommand{\keccak}{\mathrm{keccak}}
 
-% ---------- Flock protocol (Annex C) ----------
-\newcommand{\qflock}{q_{\flock}}             % packed Boolean Flock witness
-\newcommand{\qext}[1]{#1^{\sharp}}           % 64-point univariate / multilinear extension
-\newcommand{\kblock}{\kappa_{\mathrm{block}}} % variables in one BLAKE2s witness block
-\newcommand{\kbatch}{\kappa_{\mathrm{batch}}} % log number of BLAKE2s instances
-\newcommand{\kbool}{\kappa_{\mathrm{bool}}}   % variables of the unpacked Boolean batch witness
-\newcommand{\kskip}{\kappa_{\mathrm{skip}}}   % variables replaced by the univariate skip
-\newcommand{\skipdom}{\mathcal{H}}            % 64 skip-domain nodes
-\newcommand{\skipcoset}{\mathcal{H}'}         % 64 transmitted round-one nodes
-\newcommand{\fembed}{\varphi_{8}}             % embedding of F_{2^8} into E
-\newcommand{\zskip}{\upsilon_{\mathrm{zc}}}   % zerocheck univariate challenge
-\newcommand{\lcalpha}{\alpha_{\mathrm{lc}}}      % lincheck batching challenge (A, B, C, the pin)
-\newcommand{\ksk}{k_{\mathrm{sk}}}              % row index, the skipped half
-\newcommand{\kin}{k_{\mathrm{in}}}              % row index, the within-block half
-\newcommand{\jsk}{j_{\mathrm{sk}}}              % column index, the skipped half
-\newcommand{\jin}{j_{\mathrm{in}}}              % column index, the within-block half
-\newcommand{\jconst}{j_{\mathbf{1}}}            % position of the circuit's constant-one wire
-\newcommand{\posof}[1]{k(#1)}                 % position, equivalently R1CS row, of a committed wire
-\newcommand{\lform}[1]{\mathcal{F}_{#1}}        % a wire's expansion, over the block's positions
-\newcommand{\erow}{e_{\mathrm{row}}}                % lincheck's row weight, the quirky eq table
-\newcommand{\wcol}{w_{\mathrm{col}}}                % lincheck's column weight
-\newcommand{\chg}[1]{\Gamma_{#1}}                 % a wire's coefficient in the backward walk
-\newcommand{\colmar}{M_{\mathrm{col}}}           % column marginal of one matrix, A_0 or B_0
+% ---------- Keccak by GKR (Annex C) ----------
+% Letters the document already spends (\mu, \kappa, \beta, s, t, \rho, \pi, \chi) are routed
+% through these; the name each object has in the code is given in brackets.
+\newcommand{\qkeccak}{q_{\keccak}}             % committed Keccak states, a lane per slot [q_keccak]
+\newcommand{\kbatch}{\kappa_{\mathrm{batch}}} % log number of SHA3 steps
+\newcommand{\along}[2]{#1^{\rightarrow #2}}   % the position #2 columns along from #1 [along]
+\newcommand{\klin}{\mathsf{lin}}              % a round's linear map: theta, rho, pi [linear]
+\newcommand{\krc}{\mathsf{RC}}                % a round constant, as 64 bits
+\newcommand{\koff}[1]{\mathsf{off}_{#1}}      % rho's rotation offset of lane #1
+\newcommand{\kto}[1]{\mathsf{to}(#1)}         % the lane pi moves lane #1 to
+\newcommand{\krot}{\mathsf{rot}}              % rotation sum of two slice tables [shifts]
+\newcommand{\kemb}{\mathsf{emb}}              % the embedding of sixteen bits [embed]
+\newcommand{\kproj}{\mathsf{proj}}            % its projection of a product [project]
+\newcommand{\kw}{\sigma}                      % instance weights of a claim [mu]
+\newcommand{\kwsum}{\bar{\sigma}}             % their sum [kappa]
+\newcommand{\kpw}{\varpi}                     % position weights of a claim [weights]
+\newcommand{\kpt}{\upsilon}                   % the point the embeddings are evaluated at [s]
+\newcommand{\kev}{\phi}                       % the three evaluations closing a layer [t]
+\newcommand{\kbeta}{\vartheta}                % their batching challenge [beta]
+\newcommand{\kout}[1]{\mathsf{out}_{#1}}      % the SHA3 table's output lane #1, a virtual column
+\newcommand{\koutv}[1]{\mathsf{out}^{*}_{#1}} % the claimed value on it the reduction starts from [OutputClaim::lanes]
 
 % ---------- VM ----------
 \newcommand{\loc}[1]{\mem[\fp\cdot #1]}
@@ -64,7 +62,6 @@
 \newcommand{\addr}{\mathit{addr}}
 \newcommand{\val}{\mathit{val}}
 \newcommand{\cnt}{\mathit{count}}
-\newcommand{\md}{\mathrm{md}}       % BLAKE2s metadata: byte counter, final and last-node flags
 \newcommand{\cntfin}{\mathit{count}^{\mathrm{fin}}}  % committed finalize-count column
 \newcommand{\rcnts}{\mathcal{N}}          % multiset of read counts at one (address, value)
 \newcommand{\mset}[1]{\{\!\{#1\}\!\}}     % a multiset (plain braces stay sets)
@@ -149,6 +146,5 @@
 % ---------- ring switching (Annex A) ----------
 \newcommand{\pair}{\Omega}               % error pairing values        (was V_k)
 \newcommand{\supp}{\mathcal{S}}          % support of \Phimap          (was S)
-\newcommand{\nflock}{\kappa_{\flock}}     % variables of the packed flock witness (was m, L)
-\newcommand{\lag}{\varpi}                 % Lagrange weights of flock's skip (was p_i)
+\newcommand{\nkeccak}{\kappa_{\keccak}}     % variables of the packed bit witness \qkeccak (was m, L)
 \newcommand{\fcoord}{\mathsf{a}}          % an F_2 coordinate function  (was A_w)

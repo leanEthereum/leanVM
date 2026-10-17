@@ -237,7 +237,8 @@ pub fn parse_with_replacements(src: &str, replacements: &BTreeMap<String, String
 const BUILTINS: &[&str] = &[
     "addr",
     "assert_in_k",
-    "blake2s",
+    "sha3",
+    "sha3_cells",
     "const",
     "f192",
     "hint_decompose_bits",

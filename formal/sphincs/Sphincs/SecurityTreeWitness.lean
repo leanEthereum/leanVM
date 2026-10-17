@@ -52,6 +52,33 @@ theorem nodePayload_injective {left right left' right' : Digest}
   obtain ⟨hl, hr⟩ := List.append_inj h (by simp [bytesLE_length])
   exact ⟨bytesLE_injective hl, bytesLE_injective hr⟩
 
+theorem flatMap_ofFn_injective {α β : Type} (g : α → List β) (len : Nat)
+    (hlen : ∀ a, (g a).length = len) (hinj : ∀ a b, g a = g b → a = b) :
+    ∀ {n : Nat} {f f' : Fin n → α},
+      (List.ofFn f).flatMap g = (List.ofFn f').flatMap g → f = f' := by
+  intro n
+  induction n with
+  | zero => intro f f' _; funext i; exact i.elim0
+  | succ n ih =>
+      intro f f' h
+      simp only [List.ofFn_succ, List.flatMap_cons] at h
+      obtain ⟨hhead, htail⟩ := List.append_inj h (by rw [hlen, hlen])
+      have hzero := hinj _ _ hhead
+      have hsucc := ih htail
+      funext i
+      cases i using Fin.cases with
+      | zero => exact hzero
+      | succ j => exact congrFun hsucc j
+
+theorem rootsPayload_len (tops : Coord → Digest × Digest) : (rootsPayload tops).length = 256 := by
+  simp [rootsPayload, nodePayload, bytesLE_length, forestCoords]
+
+theorem rootsPayload_injective {tops tops' : Coord → Digest × Digest}
+    (h : rootsPayload tops = rootsPayload tops') : tops = tops' :=
+  flatMap_ofFn_injective (fun pair : Digest × Digest => nodePayload pair.1 pair.2) 32
+    (fun pair => by simp [nodePayload, bytesLE_length])
+    (fun _ _ hpair => Prod.ext (nodePayload_injective hpair).1 (nodePayload_injective hpair).2) h
+
 def orderedPayload (bit : Bool) (current sibling : Digest) : HashInput :=
   if bit then nodePayload sibling current else nodePayload current sibling
 

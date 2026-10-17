@@ -240,10 +240,10 @@ pub fn disassemble(prog: &[Op]) -> String {
             Op::Jump { oc, od, of } => {
                 format!("JUMP   if fp[{oc}]≠0: pc=fp[{od}], fp=fp[{of}]")
             }
-            Op::Blake2s { ins, cv, out, md } => {
+            Op::Sha3 { m, tail, cap, out } => {
                 format!(
-                    "BLAKE2S fp[{out}..]= compress(cv=fp[{cv}..], m=fp[{}],fp[{}],fp[{}],fp[{}], meta=fp[{md}])",
-                    ins[0], ins[1], ins[2], ins[3]
+                    "SHA3   fp[{out}..+13] = step(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], cap=fp[{cap}..+5])",
+                    m[0], m[1], m[2], m[3]
                 )
             }
         };
@@ -308,11 +308,11 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32, fra
             od: *od,
             of: *of,
         },
-        LOp::Blake2s { ins, cv, c, md } => Op::Blake2s {
-            ins: *ins,
-            cv: *cv,
+        LOp::Sha3 { m, tail, cap, c } => Op::Sha3 {
+            m: *m,
+            tail: *tail,
+            cap: *cap,
             out: *c,
-            md: *md,
         },
     }
 }

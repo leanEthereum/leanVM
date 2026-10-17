@@ -291,7 +291,7 @@ theorem fresh_B {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none
 
 include hN hxr hY in
 theorem fresh_enc {s : St} (hinv : K.Inv s) {x : HashInput} (hx : s.cache x = none) {l : Index}
-    {msg : Digest} {ctr : Counter} (hl : Landed K.p l) (hxE : x = Wots.encodingInput K.p topLayer rootTree l msg ctr)
+    {msg : ForestKey} {ctr : Counter} (hl : Landed K.p l) (hxE : x = Wots.encodingInput K.p topLayer rootTree l msg ctr)
     {g : ℝ≥0∞} (hg : g + K.kindUnit x ≤ 1) :
     ∑' r, Pr[= r | readOutside x s] * K.pot y' r.2 + ν * g ≤ K.pot (y' + 1) s := by
   have hi := initial_none_of_fresh K.initial s hinv.prepared x hx

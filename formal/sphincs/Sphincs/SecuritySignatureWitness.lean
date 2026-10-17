@@ -27,8 +27,8 @@ def trace (f : QueryImpl HashSpec Id) (pk : PublicKey) (message : Message)
   queriedInputs f (Concrete.verify pk message signature : OracleComp HashSpec Bool)
 
 def canonicalForest (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
-    (seed : MasterSeed) (leaf : Index) : Digest :=
-  evalWithAnswerFn f (Seeded.forestKey parameter leaf seed : OracleComp HashSpec Digest)
+    (seed : MasterSeed) (leaf : Index) : ForestKey :=
+  evalWithAnswerFn f (Seeded.forestKey parameter leaf seed : OracleComp HashSpec ForestKey)
 
 /-- A concrete reference counter certifies the canonical forest key's valid WOTS encoding. -/
 def ReferenceCertificate (f : QueryImpl HashSpec Id) (parameter : PublicParameter)

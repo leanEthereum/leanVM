@@ -1,10 +1,10 @@
 //! Witness commitment: an inner-product PCS committing over `K = F_{2^64}` and
-//! opening over `E = F_{2^192}` (doc §sec:stacking, §annex:pcs), reusing flock's **WHIR**. An
+//! opening over `E = F_{2^192}` (doc §sec:stacking, §annex:pcs), through **WHIR**. An
 //! opening proves `Σ_x q(x)·W(x) = C` against any verifier-evaluable `E`-valued
 //! weight `W` (a point evaluation `q̂(r)` is `W = eq(r,·)`). A batch of claims
 //! `q̂(point_j) = value_j` folds with random `γ`s into one weight and target,
 //! opened in a single WHIR run: the verifier evaluates the weight itself,
-//! so it never travels. flock's ring-switched `q_flock` claims join the same batch
+//! so it never travels. The Keccak reduction's ring-switched `q_keccak` claim joins the same batch
 //! ([`::pcs::stack_open`]).
 //!
 //! The stacked witness is `2^μ` words, but its tail past the placed columns is
@@ -74,8 +74,8 @@ fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
 /// [`open`]), so committing costs no extra full-trace copy.
 pub struct Committed {
     /// Codeword + Merkle tree retained for opening. Public so the single stacked
-    /// WHIR opening (which also discharges flock's claim over
-    /// this same commitment, §hash_flock) can reuse it.
+    /// WHIR opening (which also discharges the Keccak reduction's claims on
+    /// this same commitment, §keccak) can reuse it.
     pub prover_data: ProverData,
     /// `log2` of the witness length in F64 words.
     pub mu: usize,
@@ -124,16 +124,16 @@ pub fn commit(
 // (reconstructed identically from the announced layout).
 
 /// Open the committed witness: discharge the `points` (leanVM's bus / constraint /
-/// public-input claims, as block-sparse slot evaluations) AND flock's
-/// ring-switched BLAKE2s validity claim (`ring`) in ONE stacked WHIR.
+/// public-input claims and the Keccak reduction's point claim, as block-sparse
+/// slot evaluations) AND the reduction's ring-switched claim (`ring`) in ONE stacked WHIR.
 /// The points become the opener's `point_claims`; the opening's Merkle data
 /// rides the transcript's phase list, not the scalar stream. The commitment root
 /// was already bound by [`commit`], and the point *values* either rode the
 /// stream or derive from the statement and prior challenges, so nothing extra
 /// is bound here.
 ///
-/// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_flock`
-/// sub-block (≥ 1 padding instance, §cpu), so every opening is stacked.
+/// There is no plain (non-ring-switch) path: the witness ALWAYS carries a `q_keccak`
+/// sub-block (§cpu), so every opening is stacked.
 pub fn open(ps: &mut ProverState, c: &Committed, q: &[F64], points: &[SlotClaim], ring: &RingSwitchOpen) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
