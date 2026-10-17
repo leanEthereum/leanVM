@@ -5,8 +5,8 @@ import XmssSecurity.Proof.Seeded.BudgetTransfer
 # Eliminating the seed
 
 The model's key generation never queries a derivation, so it runs over the programmed cache as over
-the empty one, with the programmed entries laid on top. Those entries all name the seed: dropping
-them costs at most one `2^-256` seed guess per hash call after key generation.
+the empty one, with the programmed entries laid on top. Those entries all name the scheme's seed `S`:
+dropping them costs at most one `2^-256` guess of `S` per hash call after key generation.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -42,21 +42,21 @@ theorem mem_support_progCache {seed : MasterSeed} {d : Derivations}
 
 /-- The real budget, after key generation, from the clean cache. -/
 theorem cleanBudget (adversary : LeanXmss.Security.Adversary) (q : Nat) (hq : q < 2 ^ 256)
-    (hbound : LeanXmss.Security.HasHashQueryBound adversary q) (d : Derivations)
+    (hbound : SeededBudget adversary q) (d : Derivations)
     {p : ((Digest × (TopIndex → Option (Randomness × Encoding))) × QueryLog HashSpec) × QueryCache HashSpec}
     (hp : p ∈ support ((simulateQ randomOracle (honestRun d).withQueryLog).run ∅)) :
     keygenQueries ≤ q ∧
       HashQueryBound (Seeded.gameRest (tableScheme d.rnd) (toModelAdversary adversary) (modelPublicKey d p.1)
         (modelSecretKey d p.1)) p.2 (q - keygenQueries) := by
   refine ⟨(afterKeygen_budget adversary q hbound 0 d p.1 _ (mem_support_progCache hp)).1, ?_⟩
-  exact hashQueryBound_of_seed_caches _ (q - keygenQueries) []
+  exact hashQueryBound_of_seed_caches guessBound_seedHit _ (q - keygenQueries) []
     (fun seed => overlay (progCache seed d) p.2) p.2 (by simp only [List.length_nil]; omega)
     (fun seed _ => agreeOutside_overlay_progCache seed d p.2)
     (fun seed _ => (afterKeygen_budget adversary q hbound seed d p.1 _ (mem_support_progCache hp)).2)
 
 /-- Dropping the programmed entries costs a seed guess per hash call after key generation. -/
 theorem tableGame_le_clean (adversary : LeanXmss.Security.Adversary) (q : Nat) (hq : q < 2 ^ 256)
-    (hbound : LeanXmss.Security.HasHashQueryBound adversary q) :
+    (hbound : SeededBudget adversary q) :
     Pr[= true | sampleMasterSeed >>= tableGame adversary] ≤
       Pr[= true | cleanGame adversary] + ((q - keygenQueries : Nat) : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
   have hswap : 𝒟[sampleMasterSeed >>= tableGame adversary] = 𝒟[do
@@ -78,7 +78,7 @@ theorem tableGame_le_clean (adversary : LeanXmss.Security.Adversary) (q : Nat) (
   intro d _
   apply probEvent_bind_congr_le_add
   intro p hp
-  exact probEvent_random_cache_change_le _ (fun seed => overlay (progCache seed d) p.2) p.2
+  exact probEvent_random_cache_change_le guessBound_seedHit _ (fun seed => overlay (progCache seed d) p.2) p.2
     (fun seed => agreeOutside_overlay_progCache seed d p.2) (q - keygenQueries)
     (cleanBudget adversary q hq hbound d hp).2 _
 

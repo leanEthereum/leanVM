@@ -6,9 +6,11 @@ The proof combines three earlier ones: the byte layout, seed model, honest graph
 
 ## Units
 
-A *unit* is `2^-128`. The bound is two units per hash call the adversary or the final verification makes, which is `q / 2^127` once the key-generation calls, charged to `q` but never bad, pay for the seed and the lower-order terms.
+A *unit* is `2^-128`. The bound is two units per hash call the adversary or the final verification makes, which is `q / 2^127` once the key-generation calls, charged to `q` but never bad, pay for the two seeds and the lower-order terms.
 
 ## Route
+
+0. **Tagged seed.** The secret key is a 32-byte seed `S_0`, and key generation first computes `S = H("leanXMSS" || S_0)`, a 40-byte input that no other hash input matches. Its answer is uniform, so `S` is a uniform seed; the cached entry names `S_0`, and dropping it costs at most `2^-256` per later hash call, a guess of `S_0` (`Bridge/SchemeSeed`).
 
 1. **Seed elimination.** Every derivation input contains the seed `S` at bytes 32 to 63: the parameter, the chain starts (two per hash, its halves) and the randomizer bases `R0(l, e, M)`. Their answers are sampled first and programmed; the adversary learns one only by querying an input that contains `S`, `2^-256` per query. Afterwards `P`, every chain start and every `R0` are independent and uniform (B: `SeedModel`, `SeedCoupling`, `SeedGuess`, `BridgeDet`).
 
@@ -29,7 +31,7 @@ A *unit* is `2^-128`. The bound is two units per hash call the adversary or the 
      - a call partners itself with probability `|D|/2^128 ≤ V/2^128` and an existing `z` with probability `2^-128`, so `E[Δ 2^128 Φ] ≤ V W_new + H`;
      - `E[Δ (V/p) H] ≥ H + V W_new`.
      Stopped at each key's signing, and with `H ≤ C + V (1-p)/p` (`mass_le`; `C` counts the cached calls), this gives `E[Φ] 2^128 ≤ E[(V/p)(C + V(1-p)/p)] ≤ (2-p) Q^2 + Q/p` for `Q` digest calls (`E[V] ≤ p Q`, `E[V^2] ≤ p^2 Q^2 + p Q`). For `Q < 2^127` this is at most `Q 2^128`: one unit per digest call, the unit a digest call never spends on a guess. The constant `2 - p` is attained (islands of consecutive calls each ending at a landing), so the separated accounting has no room for a looser argument.
-   - Total: `Pr[win] ≤ (2 (q - K) + c_v) 2^-128 ≤ q 2^-127` for `q < 2^127` (trivial above), with `K = 1 + 2^16 (29 + 174 + 1) + 2^16 - 1 = 13,434,880` the hash calls of key generation and `c_v` the verification's constant.
+   - Total: `Pr[win] ≤ (2 (q - K) + c_v + 2) 2^-128 ≤ q 2^-127` for `q < 2^127` (trivial above), the `2` paying the guesses of `S_0` and `S` (each at most `q 2^-256 ≤ 2^-128`), with `K = 2 + 2^16 (29 + 174 + 1) + 2^16 - 1 = 13,434,881` the hash calls of key generation (the seed hash, the parameter and the top tree) and `c_v` the verification's constant.
 
 ## Codewords
 
@@ -42,7 +44,7 @@ The proof is complete: `XmssSecurity.leanXmss_has_127_bits_of_classical_security
 | modules (`XmssSecurity/`) | content |
 | --- | --- |
 | `Scheme`, `Proof/IdealStatement`, `Proof/RandomizedStatement` | the model with precomputed keys (`Concrete.scheme`) and its after-key-generation budget |
-| `Proof/Bridge/*` | the real game to the model: derivations programmed as uniform tables, seed elimination (`(q-K)/2^256`), memoization, key distribution, the final arithmetic |
+| `Proof/Bridge/*` | the real game to the model: the seed hash programmed as uniform (`(q-1)/2^256`), derivations programmed as uniform tables, seed elimination (`(q-K)/2^256`), memoization, key distribution, the final arithmetic |
 | `Proof/Interface` | `concreteScheme_afterKeygenSecurity`: `(2q + 2^20)/2^128` after key generation, from the two lanes |
 | `Proof/OutcomeClassification`, `ConcreteForgery`, `*BadEvent`, `LossDecomposition`, `CappedExactFirstLane` | a win implies a bad event, bottom or top, split into the two lanes |
 | `Proof/CappedGlobal*`, `Causal*`, `Chain*`, `ChainKey`, `CappedExactFirstLane*` | lane 1: guesses of hidden chain values of both layers (`ChainKey = LeafIndex ⊕ TopIndex`) and the encoding monitor, `(q + 2^19)/2^128` |

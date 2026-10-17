@@ -91,6 +91,11 @@ pub fn th(pp: &PublicParam, tw: &Tweak, payload: &[u8]) -> Digest {
     truncate(hasher(pp, tw).update(payload).finalize())
 }
 
+/// The seed the scheme derives from: the hash of [`SEED_TAG`] then the key's seed.
+pub fn scheme_seed(seed: &Seed) -> Seed {
+    Hasher::new().update(SEED_TAG).update(seed).finalize()
+}
+
 /// Two secrets for one hash: the two halves of the untruncated hash of the seed.
 pub fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &Seed) -> [Digest; 2] {
     let output = hasher(pp, tw).update(seed).finalize();

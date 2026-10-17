@@ -19,6 +19,27 @@ fn full_key_signs_and_verifies() {
     assert_eq!(sign(&sk, &message, 5).unwrap(), first, "signing is deterministic");
 }
 
+/// Pins a full key's public key and one signature's bytes, so that a change to the
+/// seed derivation, the addresses, the hash inputs or the serialization cannot pass
+/// unnoticed. An implementation of `doc/lean_xmss` written from the text alone gives
+/// the same bytes.
+#[test]
+fn known_answer() {
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let seed: Seed = std::array::from_fn(|i| (i as u8).wrapping_mul(37).wrapping_add(11));
+    let (sk, pk) = key_gen_from_seed(seed);
+    let message: Message = std::array::from_fn(|i| (i * 7 + 3) as u8);
+    let signature = sign(&sk, &message, 0xA5C3_7E19).unwrap();
+    assert_eq!(
+        hex(&pk.as_ssz_bytes()),
+        "b60df5557dd72654da9b26eb5aee454fbb8b8839d80d6d0ab29a4226fc2c910f"
+    );
+    assert_eq!(
+        hex(&primitives::hash::hash(&signature.as_ssz_bytes())),
+        "76fe28fc5609099765d1289f0a75b397d8698e9abfe74d3f83bf01118e2db831"
+    );
+}
+
 #[test]
 fn mock_keys_sign_in_range() {
     let message = test_message();

@@ -212,6 +212,10 @@ def keygenDomainFields : KeygenDomain → TweakFields
   | .chain leafIndex pair => tweakFields 0 0 pair leafIndex
   | .topChain key pair => tweakFields 0 0 (topFlag + pair) key
 
+/-- `"leanXMSS" || S_0`, the input of the scheme's seed `S`. -/
+def seedHashInput (keySeed : MasterSeed) : HashInput :=
+  [0x6c, 0x65, 0x61, 0x6e, 0x58, 0x4d, 0x53, 0x53] ++ bytesLE 32 keySeed
+
 /-- `P || A || S`; parameter derivation uses `P = 0`. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) : HashInput :=
@@ -674,13 +678,16 @@ noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
 
 namespace Seeded
 
-/-- The seed and the chain and tree values and top signatures computed during key generation. -/
+/-- The scheme's seed `S` and the chain and tree values and top signatures computed during key
+generation. -/
 structure SecretKey where
   seed : MasterSeed
   precomputed : XmssSecurity.SecretKey
 
-/-- Derive the parameter and the secrets, then compute and store both layers. -/
-def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
+/-- Hash the key's seed `S_0` into `S = H("leanXMSS" || S_0)`, derive the parameter and the secrets,
+then compute and store both layers. -/
+def keygenFromSeed (keySeed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
+  let seed ← Concrete.oracleHash (seedHashInput keySeed)
   let parameter ← deriveKey 0 .parameter seed
   let secret ← deriveSecrets parameter seed
   let topSecret ← deriveTopSecrets parameter seed

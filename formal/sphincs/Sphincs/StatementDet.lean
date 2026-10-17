@@ -1,8 +1,10 @@
 import Sphincs.Statement
 
 /-!
-The SUF-CMA target for the signer of the Rust implementation, `Seeded.sign`: randomizers are
-derived from the master seed and the message, so a repeated request returns the same signature.
+The SUF-CMA target for the signer of the Rust implementation, `Seeded.sign`: the key is generated
+from a uniform 32-byte seed `S0` (`Seeded.keygenFromSeed`, which first hashes it into the scheme
+seed), and randomizers are derived from the scheme seed and the message, so a repeated request
+returns the same signature.
 The adversary, transcript tests and counted oracle are those of `Statement`; this module adds the
 forgery advantage, the hash-query budget and the security-bits target.
 -/

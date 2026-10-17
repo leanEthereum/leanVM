@@ -308,7 +308,7 @@ theorem keygen_map_root (material : Material) :
   simp only [materialRoot, map_bind, bind_pure_comp]
 
 theorem gameAfterSeed_eq_bind (seed : MasterSeed) (adversary : Adversary) :
-    gameAfterSeed adversary seed = (liftM (Seeded.keygenFromSeed seed) : OracleComp OracleWorld _) >>=
+    gameAfterSeed adversary seed = (liftM (Seeded.keygenFromMaster seed) : OracleComp OracleWorld _) >>=
       fun result => sourceRest adversary result.1 result.2 := rfl
 
 theorem materialGame_eq_bind (material : Material) (adversary : Adversary) :
@@ -320,7 +320,7 @@ shared cache, so this statement makes no premature independence claim about adve
 theorem Related.gameAfterSeed (seed : MasterSeed) (material : Material) (adversary : Adversary) :
     Related (programCache ∅ seed material) (gameAfterSeed adversary seed) (materialGame material adversary) := by
   have hkey := Related.honest seed material
-    (liftM (Seeded.keygenFromSeed seed) : OracleComp OracleWorld _)
+    (liftM (Seeded.keygenFromMaster seed) : OracleComp OracleWorld _)
   rw [compileWorld_lift_hash, compile_keygen, keygen_map_root, Functor.map_map, liftM_map] at hkey
   have hgame := hkey.bind_on_support
     (fun result => sourceRest adversary result.1 result.2)

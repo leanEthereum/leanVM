@@ -79,7 +79,7 @@ theorem mem_support_keygen {key : (PublicKey × XmssSecurity.SecretKey) × Query
   exact ⟨d, p, hp, by simpa using hmem⟩
 
 theorem afterKeygenBudget (adversary : LeanXmss.Security.Adversary) (q : Nat) (hq : q < 2 ^ 256)
-    (hbound : LeanXmss.Security.HasHashQueryBound adversary q) :
+    (hbound : SeededBudget adversary q) :
     HasAfterKeygenHashQueryBound Concrete.scheme (modelAdversary adversary) (q - keygenQueries) := by
   intro key hkey result hresult
   obtain ⟨d, p, hp, rfl⟩ := mem_support_keygen hkey

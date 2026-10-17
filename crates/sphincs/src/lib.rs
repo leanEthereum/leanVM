@@ -34,6 +34,9 @@ pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
 pub const MASTER_SECRET_LEN: usize = 32;
 pub type MasterSecret = [u8; MASTER_SECRET_LEN];
 
+/// Hashed before the seed, so no other scheme derives from the same bytes.
+pub const SEED_TAG: &[u8] = b"leanSPHINCS";
+
 /// The per-signature randomizer the message digest is computed under.
 pub const RANDOMIZER_LEN: usize = 16;
 pub type Randomizer = [u8; RANDOMIZER_LEN];

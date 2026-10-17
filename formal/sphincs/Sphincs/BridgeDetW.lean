@@ -12,7 +12,8 @@ namespace Sphincs.Security.H0
 open Concrete ForestPrice SphincsFors.Security.H0 SphincsFors.Security.Domination
 
 /-- Keygen credit `K` of the forest signer: the `226 · 2^b + 2 (26 − b)` hash calls of key
-generation (`Prefix.hashCalls_keygenFromSeed`), with one seed derivation for the starts of two chains. -/
+generation from the scheme seed (`Prefix.hashCalls_keygenFromMaster`), with one seed derivation for
+the starts of two chains. The call deriving the scheme seed is not credited. -/
 def kCreditF (b : ℕ) : ℕ := 226 * 2 ^ b + 2 * (26 - b)
 
 /-- A cover entry: budgets `[qa, qb]` and the index of its option. -/

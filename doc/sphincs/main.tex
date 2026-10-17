@@ -82,7 +82,7 @@ Let $\hash:\bits{*}\to\bits{256}$ be BLAKE2s. Most operations use its first $n=1
 \]
 Here $P$ is a 128-bit public parameter and $\addr$ is a 128-bit \emph{address} identifying the operation and its position in the construction. Appendix~\ref{sec:tweaks} gives every address's exact bytes. $\Truncate_r$ always keeps the first $r$ bits, with bits read least significant first within each byte. The parameter and the address take half of a block's 64 bytes, so a chain step and a Merkle node each cost one compression, and every value a hash input holds starts on a 16-byte boundary.
 
-The message $m$ and the seed $S$ are each 256 bits. The signature contains a 128-bit randomizer $\rho$ and one 32-bit counter $c$. Chain values and Merkle nodes are 128 bits; write $\mathcal H=\bits n$.
+The message $m$, the seed $S_0$ and the secret $S$ derived from it are each 256 bits. The signature contains a 128-bit randomizer $\rho$ and one 32-bit counter $c$. Chain values and Merkle nodes are 128 bits; write $\mathcal H=\bits n$.
 
 \begin{center}
 \begin{tabular}{@{}lll@{}}
@@ -104,7 +104,7 @@ $\cmax$ & $2^{32}$ & maximum encoding attempts per signature\\
 \end{tabular}
 \end{center}
 
-The public parameter and all signing secrets are derived from $S$. In particular,
+The public parameter and all signing secrets are derived from $S=\hash(\text{\texttt{leanSPHINCS}}\concat S_0)$, the hash of the scheme's 11-byte ASCII name then the seed, so that no other scheme derives from the same bytes. In particular,
 \[
   P=\Th\!\left(0^{128},\addr_{\mathrm{parameter}},S\right).
 \]
@@ -342,16 +342,16 @@ Every digest is accepted.
 \subsection{Key generation}
 \label{rem:seed}
 
-$\Gen(b)$ samples $S\getsr\bits{256}$, derives $P$ as in Section~\ref{sec:parameters}, builds the kept subtree and the surrogates of Section~\ref{sec:pruning}, and folds them into $\rootnode$. It returns
+$\Gen(b)$ samples $S_0\getsr\bits{256}$, derives $S$ and $P$ as in Section~\ref{sec:parameters}, builds the kept subtree and the surrogates of Section~\ref{sec:pruning}, and folds them into $\rootnode$. It returns
 \[
-  \pk=(\rootnode,P),\qquad \sk=(S,b),
+  \pk=(\rootnode,P),\qquad \sk=(S_0,b),
 \]
-the kept subtree being a cache the signer may recompute from $S$ and $b$.
+the kept subtree being a cache the signer may recompute from $S_0$ and $b$.
 
 \subsection{Signing}
 \label{sec:sign}
 
-Given $\sk=(S,b)$ and a 256-bit message $m$, $\Sig(\sk,m)$ proceeds as follows:
+Given $\sk=(S_0,b)$ and a 256-bit message $m$, $\Sig(\sk,m)$ proceeds as follows:
 \begin{enumerate}
 \item Derive $R_0=\Th(P,\addr_{\mathrm{rnd}},S\concat m)$. For $i=0,\ldots,\amax-1$, let $\rho_i=R_0+i$ as 128-bit little-endian integers, modulo $2^{128}$. Stop at the first $i$ for which the index of $\Digest(P,m,\rho_i)$ is a kept leaf, set $\rho=\rho_i$, and extract $\idx$ and the marks. Return $\bot$ if no trial succeeds. A full key stops at $i=0$.
 \item Compute the opening $\FtsOpen(P,\idx,\text{marks})$ and $M=\FtsKey(P,\idx)$.
@@ -374,7 +374,7 @@ $\Ver(\pk,m,\sigma)$ rejects $\bot$ and malformed inputs. Otherwise, parse $\pk=
 \subsection{Serialization and cost}
 \label{sec:costs}
 
-Serialize the public key as $\rootnode\concat P$, 32 bytes. The secret key is $S\concat\LE_8(b)$, 33 bytes: $b$ places the kept subtree and its surrogates, and so the root.
+Serialize the public key as $\rootnode\concat P$, 32 bytes. The secret key is $S_0\concat\LE_8(b)$, 33 bytes: $b$ places the kept subtree and its surrogates, and so the root.
 
 A signature starts with $\rho$, followed by the forest's opening in increasing tree, then $\LE_{32}(c)$, the $v$ chain values in increasing chain index, and the path in increasing height. A tree's opening is, for each of its two subtrees, the six chain values in increasing chain index then the three siblings in increasing height, followed by the tree's four siblings. The size is
 \[
@@ -395,14 +395,14 @@ Count compressions of BLAKE2s: an input of $r$ bytes costs $\lceil r/64\rceil$. 
 \]
 compressions to verify: per subtree 5 chain steps, 2 for the WOTS key's leaf and 2 folds, then 2 for the tree leaf and 3 folds, and 5 for the public key of the forest.
 
-A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $241$ compressions and key generation $242\cdot2^b+2(h-b)$. A forest holds $2048$ WOTS keys of $29$ compressions each, which is what signing spends its hashes on: about $6\cdot10^4$, plus the $2^{h-b}$ expected randomizer trials of a pruned key, one compression each, and the expected $829$ encoding attempts.
+A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $241$ compressions and key generation $242\cdot2^b+2(h-b)+1$. A forest holds $2048$ WOTS keys of $29$ compressions each, which is what signing spends its hashes on: about $6\cdot10^4$, plus the $2^{h-b}$ expected randomizer trials of a pruned key, one compression each, and the expected $829$ encoding attempts.
 
 \section{Security}
 \label{sec:security}
 
 Model $\hash$ as one shared random oracle. The challenger generates a key pair and gives $\pk$ to a classical probabilistic adversary, which may adaptively query the hash and request signatures on messages of its choice, at most $N$ of them. It finally returns $(m^*,\sigma^*)$ and wins exactly when $\Ver(\pk,m^*,\sigma^*)=1$ and no signing request for $m^*$ returned $\sigma^*$: \emph{strong unforgeability}. A query budget $q$ bounds every hash call of the complete experiment, including key generation, signing and final verification.
 
-The lifetime $N$ of a key depends on the height $b$ of the subtree it keeps. For each row below, with $N$ rounded down, every adversary making at most $N$ signing requests wins with probability at most $q/2^{127}$. Key generation costs $242\cdot2^b+2(h-b)$ compressions (Section~\ref{sec:costs}), rounded to nearest:
+The lifetime $N$ of a key depends on the height $b$ of the subtree it keeps. For each row below, with $N$ rounded down, every adversary making at most $N$ signing requests wins with probability at most $q/2^{127}$. Key generation costs $242\cdot2^b+2(h-b)+1$ compressions (Section~\ref{sec:costs}), rounded to nearest:
 \begin{center}
 \begin{tabular}{@{}rrr@{}}
 \toprule

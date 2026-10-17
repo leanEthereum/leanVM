@@ -14,6 +14,8 @@ WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`;
   `lo (4 bytes) || hi (3 bytes) || (type + 32 step) || 0^8`, then the payload. The top layer sets
   bit 23 of `hi`. A chain step's address carries the step but not the chain, whose index follows the
   value in the payload.
+* The secret key is a 32-byte seed `S_0`. Every secret derives from `S = H("leanXMSS" || S_0)`, all
+  32 bytes, and the signer keeps `S`.
 * Signing a message `M` with key `e` of layer `l`: `R0 = Th(P, A_rnd(l, e), S || M)`, then the least
   `c < 2^32` such that `Th(P, A_msg(l, e), M || (R0 + c))` is a codeword.
 -/
@@ -152,6 +154,13 @@ def tweakBytes (domain : HashDomain) : HashInput :=
 def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) : HashInput :=
   bytesLE 16 parameter ++ tweakBytes domain ++ payload
+
+/-- `leanXMSS`, the 8 ASCII bytes hashed before the key's seed (`SEED_TAG`). -/
+def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x58, 0x4d, 0x53, 0x53]
+
+/-- `"leanXMSS" || S_0`, the 40-byte input of the scheme's seed `S`. -/
+def seedHashInput (keySeed : MasterSeed) : HashInput :=
+  seedTag ++ bytesLE 32 keySeed
 
 /-- The seed derivations: the parameter (under `P = 0`), and the starts of chains `2t` and `2t + 1`
 of a one-time key, the two halves of one hash. -/
@@ -331,6 +340,10 @@ attribute [irreducible] verify
 
 end Concrete
 
+/-- `S = H("leanXMSS" || S_0)`, all 32 bytes (`scheme_seed`): the seed every derivation hashes. -/
+def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (keySeed : MasterSeed) : m MasterSeed :=
+  Concrete.oracleHash (seedHashInput keySeed)
+
 /-- One seed derivation, first 16 bytes: the parameter. -/
 def deriveKey {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
@@ -347,6 +360,7 @@ def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (message : HashInput) : m Randomness := do
   return truncateHash (← Concrete.oracleHash (randomizerHashInput parameter lay key seed message))
 
+/-- The key's seed `S_0`, uniform. -/
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
   $ᵗ MasterSeed
@@ -355,6 +369,7 @@ namespace Seeded
 
 open Concrete
 
+/-- The signer's key: the scheme's seed `S`, the parameter and the root. -/
 structure SecretKey where
   seed : MasterSeed
   parameter : PublicParameter
@@ -414,8 +429,10 @@ def treePath (parameter : PublicParameter) (lay : Layer) (seed : MasterSeed) (ke
     m (Fin layerHeight → Digest) :=
   sequenceFin fun level => treeNode parameter lay seed level.val (Nat.xor (key.val / 2 ^ level.val) 1)
 
-/-- `Gen` (`key_gen`): derive the public parameter and build the top tree. -/
-def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
+/-- `Gen` (`key_gen`): hash the key's seed `S_0` into `S`, derive the public parameter and build the
+top tree. -/
+def keygenFromSeed (keySeed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
+  let seed ← schemeSeed keySeed
   let parameter ← deriveKey 0 .parameter seed
   let root ← treeNode parameter topLayer seed layerHeight 0
   return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)

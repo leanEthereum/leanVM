@@ -94,6 +94,7 @@ pub fn key_gen_from_seed(seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
 
 /// The key signing at `first..=last`; nodes over no leaf in that range are fillers.
 pub(crate) fn generate(seed: Seed, first: LeafIndex, last: LeafIndex) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+    let seed = scheme_seed(&seed);
     let public_param = th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &seed);
     let top = LayerTree::build(&public_param, &seed, 1, 0, layer_index(first, 1), layer_index(last, 1));
     let sk = LeanXmssSecretKey {

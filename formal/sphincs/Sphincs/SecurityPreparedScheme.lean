@@ -370,18 +370,18 @@ def reseedKey (seed : MasterSeed) (key : Seeded.SecretKey) : Seeded.SecretKey :=
 
 /-- Key generation compiles identically except for its explicit private seed field. -/
 theorem compiled_keygen_eq (left right : MasterSeed) (material : Material) :
-    simulateQ (compileHash left material) (Seeded.keygenFromSeed left) =
+    simulateQ (compileHash left material) (Seeded.keygenFromMaster left) =
       (fun result => (result.1, reseedKey left result.2)) <$>
-        simulateQ (compileHash right material) (Seeded.keygenFromSeed right) := by
-  simp only [Seeded.keygenFromSeed, simulateQ_bind, compile_parameter, bind_assoc, pure_bind,
+        simulateQ (compileHash right material) (Seeded.keygenFromMaster right) := by
+  simp only [Seeded.keygenFromMaster, simulateQ_bind, compile_parameter, bind_assoc, pure_bind,
     map_bind, Seeded.treeRoot, compiled_spineNode_eq left right, simulateQ_pure, map_pure, reseedKey]
 
 /-- Candidate key generation using only material, ordinary hash calls, and virtual ticks. -/
 noncomputable def keygen (material : Material) : OracleComp PreparedHashSpec (PublicKey × Seeded.SecretKey) :=
-  simulateQ (compileHash 0 material) (Seeded.keygenFromSeed 0)
+  simulateQ (compileHash 0 material) (Seeded.keygenFromMaster 0)
 
 theorem compile_keygen (seed : MasterSeed) (material : Material) :
-    simulateQ (compileHash seed material) (Seeded.keygenFromSeed seed) =
+    simulateQ (compileHash seed material) (Seeded.keygenFromMaster seed) =
       (fun result => (result.1, reseedKey seed result.2)) <$> keygen material :=
   compiled_keygen_eq seed 0 material
 
@@ -713,7 +713,7 @@ theorem keygen_eq (material : Material) :
       let root ← simulateQ (compileHash 0 material)
         (Seeded.treeRoot (parameter material) topLayer rootTree 0 : OracleComp HashSpec Digest)
       return (⟨root, parameter material⟩, ⟨0, parameter material, root⟩)) := by
-  simp only [keygen, Seeded.keygenFromSeed, simulateQ_bind, compile_parameter,
+  simp only [keygen, Seeded.keygenFromMaster, simulateQ_bind, compile_parameter,
     bind_assoc, pure_bind, simulateQ_pure]
 
 /-- Ordinary adversarial queries bypass the privileged honest-code compiler completely. -/

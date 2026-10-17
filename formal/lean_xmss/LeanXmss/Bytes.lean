@@ -75,6 +75,40 @@ theorem tweakableInput_injective {parameter parameter' : PublicParameter}
       parameter = parameter' ∧ payload = payload' :=
   fieldInput_injective h
 
+/-! ### The seed hash
+
+Its input is 40 bytes, every other input at least 64: `P || A` then a 32-byte seed, or a payload that
+is never 8 bytes (the scheme's payloads are at least 32). -/
+
+theorem seedHashInput_length (keySeed : MasterSeed) : (seedHashInput keySeed).length = 40 := by
+  simp [seedHashInput, seedTag, bytesLE_length]
+
+theorem seedHashInput_injective : Function.Injective seedHashInput :=
+  fun _ _ h => bytesLE_injective (List.append_cancel_left h)
+
+theorem seedHashInput_ne_keygen (keySeed : MasterSeed) (parameter : PublicParameter)
+    (domain : KeygenDomain) (seed : MasterSeed) :
+    seedHashInput keySeed ≠ keygenHashInput parameter domain seed := by
+  intro h
+  have := congrArg List.length h
+  simp [seedHashInput_length, keygenHashInput, fieldBytes, bytesLE_length] at this
+
+theorem seedHashInput_ne_randomizer (keySeed : MasterSeed) (parameter : PublicParameter) (lay : Layer)
+    (key : KeyIndex) (seed : MasterSeed) (message : HashInput) :
+    seedHashInput keySeed ≠ randomizerHashInput parameter lay key seed message := by
+  intro h
+  have := congrArg List.length h
+  simp [seedHashInput_length, randomizerHashInput, fieldBytes, bytesLE_length] at this
+  omega
+
+theorem seedHashInput_ne_tweakable (keySeed : MasterSeed) (parameter : PublicParameter)
+    (domain : HashDomain) {payload : HashInput} (hpayload : payload.length ≠ 8) :
+    seedHashInput keySeed ≠ tweakableHashInput parameter domain payload := by
+  intro h
+  have := congrArg List.length h
+  simp [seedHashInput_length, tweakableHashInput, tweakBytes, fieldBytes, bytesLE_length] at this
+  omega
+
 /-! ### Address fields -/
 
 theorem tweakFields_inj {tag tag' step step' hi hi' lo lo' : Nat}

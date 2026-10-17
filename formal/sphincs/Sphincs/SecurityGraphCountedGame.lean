@@ -9,7 +9,7 @@ open OracleComp OracleSpec
 namespace Sphincs.Security.GraphView
 open Concrete Completeness Prefix HiddenGraph SeedCoupling
 set_option backward.isDefEq.respectTransparency false
-attribute [local irreducible] signCostSource Randomized.sign Seeded.keygenFromSeed
+attribute [local irreducible] signCostSource Randomized.sign Seeded.keygenFromMaster
 
 def ordinaryCostSource : QueryImpl OracleWorld (OracleComp CostSpec)
   | .inl request => liftM (CostSpec.query (.inl (.inl request)))
@@ -43,12 +43,12 @@ noncomputable def costGame (parameter : PublicParameter) (data : PublicData) (ad
 theorem fixedWorldCost_keygen_graph (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
     (seed : MasterSeed) (data : PublicData) (hdata : DataCorrect f parameter seed data)
     (hparameter : evalWithAnswerFn f (deriveKey 0 .parameter seed : OracleComp HashSpec Digest) = parameter) :
-    simulateQ (fixedWorldCost f) (liftM (Seeded.keygenFromSeed seed) :
+    simulateQ (fixedWorldCost f) (liftM (Seeded.keygenFromMaster seed) :
       OracleComp OracleWorld (PublicKey × Seeded.SecretKey)) =
       WriterT.mk (PMF.pure ((⟨data.root, parameter⟩, ⟨seed, parameter, data.root⟩),
         Multiplicative.ofAdd (226 * 2 ^ subtreeHeight + 2 * (totalHeight - subtreeHeight)))) := by
-  rw [fixedWorldCost_lift_hash, hashCalls_keygenFromSeed]
-  simp only [Seeded.keygenFromSeed, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
+  rw [fixedWorldCost_lift_hash, hashCalls_keygenFromMaster]
+  simp only [Seeded.keygenFromMaster, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
     hparameter, ← hdata.root]
 
 end Sphincs.Security.GraphView

@@ -4,7 +4,8 @@ import XmssSecurity.Proof.Bridge.Resolution
 # The real scheme's honest computations
 
 With every derivation programmed, a real tree node is the model's node with the derivation queries
-erased, and the real key generation makes exactly `K = 13,434,880` hash calls.
+erased. The real key generation makes exactly `K = 13,434,881` hash calls: the seed hash, then
+`K - 1` from the scheme's seed `S`.
 -/
 
 open OracleComp OracleSpec
@@ -15,10 +16,21 @@ open Seeded DeterministicSigning
 
 set_option backward.isDefEq.respectTransparency false
 
-/-- The hash calls of the real key generation. -/
-def keygenQueries : Nat := 1 + 2 ^ 16 * (29 + 174 + 1) + 2 ^ 16 - 1
+/-- The hash calls of the real key generation: the seed hash, the parameter and the top tree. -/
+def keygenQueries : Nat := 2 + 2 ^ 16 * (29 + 174 + 1) + 2 ^ 16 - 1
 
-theorem keygenQueries_eq : keygenQueries = 13434880 := by decide
+theorem keygenQueries_eq : keygenQueries = 13434881 := by decide
+
+/-- The real key generation from the scheme's seed `S`, after the seed hash. -/
+def realKeygen (seed : MasterSeed) : OracleComp HashSpec (LeanXmss.PublicKey × LeanXmss.Seeded.SecretKey) :=
+  (do
+    let parameter ← LeanXmss.deriveKey 0 .parameter seed
+    let root ← LeanXmss.Seeded.treeNode parameter LeanXmss.topLayer seed LeanXmss.layerHeight 0
+    return (⟨root, parameter⟩, ⟨seed, parameter, root⟩) : OracleComp LeanXmss.HashSpec _)
+
+theorem keygenFromSeed_eq (keySeed : MasterSeed) :
+    LeanXmss.Seeded.keygenFromSeed keySeed =
+      (LeanXmss.schemeSeed keySeed : OracleComp LeanXmss.HashSpec MasterSeed) >>= realKeygen := rfl
 
 /-! ## Counts -/
 
@@ -93,9 +105,9 @@ theorem queryCount_realTreeNode (parameter : PublicParameter) (lay : LeanXmss.La
       exact (ih (2 * node)).bind fun _ => (ih (2 * node + 1)).bind fun _ => queryCount_realHash _ _ _
 
 theorem queryCount_realKeygen (seed : MasterSeed) :
-    QueryCount (LeanXmss.Seeded.keygenFromSeed seed) keygenQueries := by
-  unfold LeanXmss.Seeded.keygenFromSeed LeanXmss.deriveKey
-  rw [bind_assoc, show keygenQueries = 1 + (0 + (nodeQueries LeanXmss.layerHeight + 0)) by decide]
+    QueryCount (realKeygen seed) (keygenQueries - 1) := by
+  unfold realKeygen LeanXmss.deriveKey
+  rw [bind_assoc, show keygenQueries - 1 = 1 + (0 + (nodeQueries LeanXmss.layerHeight + 0)) by decide]
   refine (queryCount_oracleHash _).bind fun output => (QueryCount.pure _).bind fun parameter => ?_
   exact (queryCount_realTreeNode _ _ _ _ _).bind fun _ => .pure _
 
@@ -243,11 +255,11 @@ theorem realTopNode (h : Prepared seed d result cache) (level : Nat) (hlevel : l
       ((modelSecretKey d result).topTreeValue ⟨level, by simp [treeHeight]; omega⟩ (Concrete.topNodeOfNat j)) :=
   (erases_treeNode_top seed d level hlevel j hj).resolves h.prog_le (h.topTree level hlevel j hj)
 
-/-- The real key generation resolves to the model's public key. -/
+/-- The real key generation from `S` resolves to the model's public key. -/
 theorem realKeygen (h : Prepared seed d result cache) :
-    Resolves cache (LeanXmss.Seeded.keygenFromSeed seed)
+    Resolves cache (Bridge.realKeygen seed)
       ((⟨result.1.1, d.parameter⟩ : LeanXmss.PublicKey), (⟨seed, d.parameter, result.1.1⟩ : LeanXmss.Seeded.SecretKey)) := by
-  unfold LeanXmss.Seeded.keygenFromSeed LeanXmss.deriveKey
+  unfold Bridge.realKeygen LeanXmss.deriveKey
   rw [bind_assoc]
   have hparam : cache (paramInput seed) = some d.param := h.prog_le (progCache_param seed d)
   change Resolves cache (liftM (HashSpec.query (paramInput seed)) >>= _) _

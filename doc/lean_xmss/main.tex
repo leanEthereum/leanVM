@@ -124,7 +124,7 @@ $\amax$ & $2^{32}$ & randomizer trials per one-time signature\\
 \end{tabular}
 \end{center}
 
-The secret key is a 32-byte seed $S$, and $P=\Th(0^{16},\addr_{\mathrm{param}},S)$. A message $m$ is 32 bytes. The layers are $\ell=0$ (bottom) and $\ell=1$ (top). A leaf index $\idx<2^{32}$ uses key $\idx$ at the bottom, which signs $M=m$, and key $b=\lfloor\idx/2^h\rfloor$ at the top, which signs the 16-byte root $M=X^0_{h,b}$ of bottom tree $b$ (Section~\ref{sec:trees}).
+The secret key is a 32-byte seed $S_0$. Every secret derives from $S=\hash(\text{\texttt{leanXMSS}}\concat S_0)$, the hash of the scheme's 8-byte ASCII name then the seed, so that no other scheme derives from the same bytes, and $P=\Th(0^{16},\addr_{\mathrm{param}},S)$. A message $m$ is 32 bytes. The layers are $\ell=0$ (bottom) and $\ell=1$ (top). A leaf index $\idx<2^{32}$ uses key $\idx$ at the bottom, which signs $M=m$, and key $b=\lfloor\idx/2^h\rfloor$ at the top, which signs the 16-byte root $M=X^0_{h,b}$ of bottom tree $b$ (Section~\ref{sec:trees}).
 
 \section{\texorpdfstring{WOTS$^+$C}{WOTS+C}}
 \label{sec:ots}
@@ -164,7 +164,7 @@ The path of key $e$ is $\pi=(\pi_0,\dots,\pi_{h-1})$ with $\pi_\lambda=X^\ell_{\
 
 \section{The scheme}
 
-\paragraph{Key generation.} Sample a uniform 32-byte $S$ and return $\pk=(X^1_{h,0},P)$ and $\sk=S$.
+\paragraph{Key generation.} Sample a uniform 32-byte $S_0$ and return $\pk=(X^1_{h,0},P)$ and $\sk=S_0$.
 
 \paragraph{Signing.} $\Sig(\sk,\idx,m)$, with $b=\lfloor\idx/2^h\rfloor$:
 \begin{enumerate}

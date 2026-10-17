@@ -6,16 +6,17 @@ namespace XmssSecurity.Seeded
 
 set_option backward.isDefEq.respectTransparency false
 
-theorem exists_seed_not_hit (inputs : List HashInput) (hsize : inputs.length < 2 ^ 256) :
-    ∃ seed, ¬SeedHitLog inputs seed := by
+theorem exists_seed_not_hit {hit : HashInput → MasterSeed → Prop} (hhit : GuessBound hit)
+    (inputs : List HashInput) (hsize : inputs.length < 2 ^ 256) :
+    ∃ seed, ¬SeedHitLog hit inputs seed := by
   classical
   by_contra h
-  have hall : ∀ seed, SeedHitLog inputs seed := by simpa using h
-  have hone : Pr[SeedHitLog inputs | sampleMasterSeed] = 1 := by
+  have hall : ∀ seed, SeedHitLog hit inputs seed := by simpa using h
+  have hone : Pr[SeedHitLog hit inputs | sampleMasterSeed] = 1 := by
     simp [hall]
   have hlt : (inputs.length : ℝ≥0∞) / ((2 ^ 256 : Nat) : ℝ≥0∞) < 1 :=
     ENNReal.div_lt_of_lt_mul (by rw [one_mul]; exact_mod_cast hsize)
-  exact (not_lt_of_ge (hone ▸ probEvent_seedHitLog_le inputs)) hlt
+  exact (not_lt_of_ge (hone ▸ probEvent_seedHitLog_le hhit inputs)) hlt
 
 theorem hashQueryBound_query_bind_of {α : Type} (input : OracleWorld.Domain)
     (next : OracleWorld.Range input → OracleComp OracleWorld α)
@@ -109,12 +110,13 @@ theorem romImpl_support_transfer (bad : HashInput → Prop) (left right : QueryC
           exact ⟨by rw [QueryImpl.withCaching_run_some _ hl]; simp, h⟩
 
 /-- A budget valid for every unguessed seed also bounds the ordinary consistent oracle. -/
-theorem hashQueryBound_of_seed_caches {α : Type} (computation : OracleComp OracleWorld α)
+theorem hashQueryBound_of_seed_caches {hit : HashInput → MasterSeed → Prop} (hhit : GuessBound hit)
+    {α : Type} (computation : OracleComp OracleWorld α)
     (q : Nat) (inputs : List HashInput) (caches : MasterSeed → QueryCache HashSpec)
     (cache : QueryCache HashSpec) (hsize : inputs.length + q < 2 ^ 256)
-    (hagree : ∀ seed, ¬SeedHitLog inputs seed →
-      AgreeOutside (fun input => SeedHit input seed) (caches seed) cache)
-    (hbound : ∀ seed, ¬SeedHitLog inputs seed → HashQueryBound computation (caches seed) q) :
+    (hagree : ∀ seed, ¬SeedHitLog hit inputs seed →
+      AgreeOutside (fun input => hit input seed) (caches seed) cache)
+    (hbound : ∀ seed, ¬SeedHitLog hit inputs seed → HashQueryBound computation (caches seed) q) :
     HashQueryBound computation cache q := by
   induction computation using OracleComp.inductionOn generalizing q inputs caches cache with
   | pure value =>
@@ -124,7 +126,7 @@ theorem hashQueryBound_of_seed_caches {α : Type} (computation : OracleComp Orac
       subst result
       exact Nat.zero_le q
   | query_bind input next ih =>
-      obtain ⟨seed, hseed⟩ := exists_seed_not_hit inputs (by omega)
+      obtain ⟨seed, hseed⟩ := exists_seed_not_hit hhit inputs (by omega)
       obtain ⟨step, hstep⟩ := probComp_support_nonempty ((romImpl input).run (caches seed))
       have hcost := (hashQueryBound_query_bind input next (caches seed) q
         (hbound seed hseed) step hstep).1
@@ -134,13 +136,13 @@ theorem hashQueryBound_of_seed_caches {α : Type} (computation : OracleComp Orac
       rcases result with ⟨answer, nextCache⟩
       dsimp at hcache
       subst nextCache
-      have havoid (seed : MasterSeed) (hseed : ¬SeedHitLog (prependHash input inputs) seed) :
-          ¬hashBad (fun input => SeedHit input seed) input ∧ ¬SeedHitLog inputs seed := by
-        change ¬TraceHits (fun input => SeedHit input seed) (prependHash input inputs) at hseed
+      have havoid (seed : MasterSeed) (hseed : ¬SeedHitLog hit (prependHash input inputs) seed) :
+          ¬hashBad (fun input => hit input seed) input ∧ ¬SeedHitLog hit inputs seed := by
+        change ¬TraceHits (fun input => hit input seed) (prependHash input inputs) at hseed
         rw [traceHits_prepend] at hseed
         exact not_or.mp hseed
-      have htransfer (seed : MasterSeed) (hseed : ¬SeedHitLog (prependHash input inputs) seed) :=
-        romImpl_support_transfer (fun input => SeedHit input seed) (caches seed) cache
+      have htransfer (seed : MasterSeed) (hseed : ¬SeedHitLog hit (prependHash input inputs) seed) :=
+        romImpl_support_transfer (fun input => hit input seed) (caches seed) cache
           (hagree seed (havoid seed hseed).2) input (havoid seed hseed).1 answer hresult
       apply ih answer
         (q - (if (fun input : OracleWorld.Domain => input matches .inr _) input then 1 else 0))

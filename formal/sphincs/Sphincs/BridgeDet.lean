@@ -1,10 +1,12 @@
 import Sphincs.BridgeDetValue
 import Sphincs.BridgeReduce
+import Sphincs.BridgeSchemeSeed
 
 /-! **Seed elimination for the deterministic-randomizer game.** The SUF-CMA advantage against
 `Seeded.sign` is at most the seed-free, budget-capped win probability of the internalized
-memoizing adversary, plus `2 q / 2^256` for naming the hidden seed (in a derivation input or in a
-randomizer-derivation input).
+memoizing adversary, plus `3 q / 2^256` for naming a hidden seed: the key's seed `S0` in the input
+of the scheme seed (`BridgeSchemeSeed`), or the scheme seed in a derivation input or in a
+randomizer-derivation input.
 
 The eager table is split at the seed's randomizer-derivation inputs into an independent uniform
 randomizer table; the two runs agree until such an input is queried. Memoizing and then averaging
@@ -290,7 +292,7 @@ theorem sample_costGameDet (adversary : Adversary) (material : Material) (seed :
     (answers : CanonicalGraphLabels) (table : Eager.Table) (rnd : RTable) :
     𝒟[simulateQ (fixedRom (extend (preparedCache material seed answers)
           (plant (SeedModel.parameter material) seed table rnd)))
-        (countHashQueries (gameAfterSeedDet adversary seed))] =
+        (countHashQueries (gameAfterMasterDet adversary seed))] =
       𝒟[(simulateQ (GraphView.fixedCostSource
           (sampleFn material seed answers (plant (SeedModel.parameter material) seed table rnd))
           (sampleCoordinates material seed answers (plant (SeedModel.parameter material) seed table rnd)))
@@ -322,7 +324,7 @@ theorem per_sampleDet (adversary : Adversary) (q : Nat) (material : Material) (s
     Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
         simulateQ (fixedRom (extend (preparedCache material seed answers)
           (plant (SeedModel.parameter material) seed table rnd)))
-          (countHashQueries (gameAfterSeedDet adversary seed))] ≤
+          (countHashQueries (gameAfterMasterDet adversary seed))] ≤
       Pr[Win | detRun adversary q material answers table rnd] +
         Pr[fun result => Hits (Marked seed) result.2 | detRun adversary q material answers table rnd] := by
   set table' := plant (SeedModel.parameter material) seed table rnd
@@ -346,30 +348,25 @@ theorem noRepeat_internalize_memoAdv (adversary : Adversary) :
   rw [← Memo.internalize_memoAdv]
   exact ForsPotential.noRepeat_internalize_adversary _ (Memo.memoAdv_noRepeat adversary)
 
-attribute [local irreducible] experimentDet sampleMasterSeed
+attribute [local irreducible] experimentDet experimentMasterDet sampleMasterSeed
 
-/-- **Seed elimination for the deterministic signer.** The SUF-CMA advantage against
-`Seeded.sign` is at most the seed-free capped win of the internalized memoizing adversary in the
-fresh-randomizer graph-view game, plus `2 q / 2^256` for naming the hidden seed. -/
-theorem forgeAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat)
-    (hbound : HasHashQueryBoundDet adversary q) :
-    forgeAdvantageDet adversary ≤
+/-- **Seed elimination from a uniform scheme seed.** The capped win of the internalized game from a
+uniform scheme seed is at most the seed-free capped win of the internalized memoizing adversary in
+the fresh-randomizer graph-view game, plus `2 q / 2^256` for naming the hidden seed. -/
+theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) :
+    Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
+        experimentMasterDet (internalize adversary)] ≤
       Pr[Win | seedFreeExperiment (internalize (Memo.memoAdv adversary)) q] +
         2 * (q / (2 : ℝ≥0∞) ^ 256) := by
-  unfold forgeAdvantageDet
   calc
-    _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | experimentDet adversary] :=
-      probEvent_congr' (fun result hresult => ⟨fun h => ⟨h, hbound result hresult⟩, And.left⟩) rfl
-    _ ≤ Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
-          experimentDet (internalize adversary)] := budgetedWin_le_internalize adversary q
     _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | do
           let material ← sampleMaterial
           let seed ← sampleMasterSeed
           let answers ← $ᵗ CanonicalGraphLabels
           let table ← $ᵗ Eager.Table
           simulateQ (fixedRom (extend (preparedCache material seed answers) table))
-            (countHashQueries (gameAfterSeedDet (internalize adversary) seed))] :=
-      probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_experimentDet_fixed adversary)
+            (countHashQueries (gameAfterMasterDet (internalize adversary) seed))] :=
+      probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_experimentMasterDet_fixed adversary)
     _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | do
           let material ← sampleMaterial
           let seed ← sampleMasterSeed
@@ -378,7 +375,7 @@ theorem forgeAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat)
           let rnd ← $ᵗ RTable
           simulateQ (fixedRom (extend (preparedCache material seed answers)
               (plant (SeedModel.parameter material) seed table rnd)))
-            (countHashQueries (gameAfterSeedDet (internalize adversary) seed))] := by
+            (countHashQueries (gameAfterMasterDet (internalize adversary) seed))] := by
       refine probEvent_congr' (fun _ _ => Iff.rfl) ?_
       refine evalDist_bind_congr' _ fun material => evalDist_bind_congr' _ fun seed =>
         evalDist_bind_congr' _ fun answers => ?_
@@ -430,5 +427,27 @@ theorem forgeAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat)
         refine probEvent_bind_le_of _ _ _ _ fun rnd => ?_
         exact marked_hit_le (detRun (internalize adversary) q material answers table rnd)
           (fun result => result.2) q (fun result hresult => costRun_cap_cost_le _ _ _ q result hresult)
+
+/-- **Seed elimination for the deterministic signer.** The SUF-CMA advantage against
+`Seeded.sign` is at most the seed-free capped win of the internalized memoizing adversary in the
+fresh-randomizer graph-view game, plus `3 q / 2^256` for naming the hidden seeds. -/
+theorem forgeAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat)
+    (hbound : HasHashQueryBoundDet adversary q) :
+    forgeAdvantageDet adversary ≤
+      Pr[Win | seedFreeExperiment (internalize (Memo.memoAdv adversary)) q] +
+        3 * (q / (2 : ℝ≥0∞) ^ 256) := by
+  unfold forgeAdvantageDet
+  calc
+    _ = Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q | experimentDet adversary] :=
+      probEvent_congr' (fun result hresult => ⟨fun h => ⟨h, hbound result hresult⟩, And.left⟩) rfl
+    _ ≤ Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
+          experimentDet (internalize adversary)] := budgetedWin_le_internalize adversary q
+    _ ≤ Pr[fun result : Bool × Nat => result.1 = true ∧ result.2 ≤ q |
+          experimentMasterDet (internalize adversary)] + q / (2 : ℝ≥0∞) ^ 256 :=
+      budgetedWin_le_master adversary q
+    _ ≤ Pr[Win | seedFreeExperiment (internalize (Memo.memoAdv adversary)) q] +
+          2 * (q / (2 : ℝ≥0∞) ^ 256) + q / (2 : ℝ≥0∞) ^ 256 :=
+      add_le_add (budgetedWinMaster_le_seedFree adversary q) le_rfl
+    _ = _ := by ring
 
 end Sphincs.Security.Det

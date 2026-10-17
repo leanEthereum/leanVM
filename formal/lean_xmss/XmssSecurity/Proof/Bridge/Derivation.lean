@@ -8,7 +8,7 @@ import XmssSecurity.Proof.HashInputLemmas
 /-!
 # The seed derivations of the real scheme
 
-Every input of the real scheme that contains the master seed: the parameter, the 29 pair derivations
+Every input of the real scheme that contains the scheme's seed `S`: the parameter, the 29 pair derivations
 of each one-time key of both layers, the bottom randomizer base `R0(idx, m)` of every request and the
 top one `R0_top(b, r)` of every top key and bottom root. Their answers are presampled into a
 programmed cache; no tweakable hash input is one of them.

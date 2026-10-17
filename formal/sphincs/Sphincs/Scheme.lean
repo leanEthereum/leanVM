@@ -31,13 +31,14 @@ outputs) with the few-time signature under each tree leaf replaced by a **two-le
   order, into the hash above.
 
 Everything that is not the forest (parameters, WOTS+C, the tree, pruning, grinding, key generation)
-is `SphincsFors.Scheme` verbatim. Every hash input is `P || A || payload`: the 16-byte public
-parameter, then the 16-byte address of the call (a 32-bit field `lo`, a 24-bit field `hi`, one byte
-holding the type and a chain step, then 8 zero bytes), so the payload starts at byte 32. Forest
-hashes use types 14 (secret derivation) and 15 to 20, with the instance `idx` in `lo` and the
-position inside the instance in `hi`. The message digest hashes `m || rho` (the root is not hashed:
-`P` binds the key) and the randomizer base `S || m`: the randomizer, which changes between two
-grinding attempts, comes last, alone in the second block.
+is `SphincsFors.Scheme` verbatim, but for the scheme seed: key generation first hashes the key's
+seed `S0` into `S = H(leanSPHINCS || S0)`, and everything else derives from `S`. Every other hash
+input is `P || A || payload`: the 16-byte public parameter, then the 16-byte address of the call (a
+32-bit field `lo`, a 24-bit field `hi`, one byte holding the type and a chain step, then 8 zero
+bytes), so the payload starts at byte 32. Forest hashes use types 14 (secret derivation) and 15 to
+20, with the instance `idx` in `lo` and the position inside the instance in `hi`. The message digest
+hashes `m || rho` (the root is not hashed: `P` binds the key) and the randomizer base `S || m`: the
+randomizer, which changes between two grinding attempts, comes last, alone in the second block.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -370,6 +371,14 @@ def keygenDomainFields : KeygenDomain → TweakFields
   | .ots _ _ leaf pair => tweakFields 0 0 pair leaf
   | .forest index c s j a pair => tweakFields 14 0 (pairSlot c s j a pair) index
   | .surrogate level => tweakFields 13 0 level 0
+
+/-- `SEED_TAG`, the 11 ASCII bytes of `leanSPHINCS`. -/
+def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e, 0x43, 0x53]
+
+/-- `leanSPHINCS || S0` (`scheme_seed`), 43 bytes: its hash is the scheme seed `S`, the seed every
+other input below derives from. It has no parameter and no address. -/
+def schemeSeedInput (seed : MasterSeed) : HashInput :=
+  seedTag ++ bytesLE 32 seed
 
 /-- `P || A || S`; parameter derivation uses `P = 0`. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
@@ -762,6 +771,10 @@ def deriveRandomizer {m : Type → Type} [Monad m] [HasQuery HashSpec m]
     (message : Message) : m Randomness := do
   return truncateHash (← Concrete.oracleHash (randomizerHashInput parameter seed message))
 
+/-- `scheme_seed`: the scheme seed `S`, the whole hash of `leanSPHINCS || S0`. -/
+def schemeSeed {m : Type → Type} [Monad m] [HasQuery HashSpec m] (seed : MasterSeed) : m MasterSeed :=
+  Concrete.oracleHash (schemeSeedInput seed)
+
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
   $ᵗ MasterSeed
@@ -770,6 +783,7 @@ namespace Seeded
 
 open Concrete
 
+/-- What the signer reads: `seed` is the scheme seed `S`, not the key's seed `S0`. -/
 structure SecretKey where
   seed : MasterSeed
   parameter : PublicParameter
@@ -969,11 +983,18 @@ def forestOpen (parameter : PublicParameter) (index : Index) (marks : Coord → 
 
 variable [Params]
 
-/-- `Gen` (`key_gen`): derive the public parameter, which places the kept subtree, and build the root. -/
-def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
+/-- Key generation from the scheme seed `S`: derive the public parameter, which places the kept
+subtree, and build the root. -/
+def keygenFromMaster (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
   let parameter ← deriveKey 0 .parameter seed
   let root ← treeRoot parameter topLayer rootTree seed
   return (⟨root, parameter⟩, ⟨seed, parameter, root⟩)
+
+/-- `Gen` (`key_gen_from_seed`): hash the key's seed `S0` into the scheme seed `S`, then generate
+from `S`. -/
+def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) := do
+  let master ← schemeSeed seed
+  keygenFromMaster master
 
 /-- One grinding attempt: the leaf index of the digest call (`digest_index`). -/
 def signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :

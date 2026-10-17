@@ -4,10 +4,10 @@ import XmssSecurity.Proof.Seeded.Presampling
 /-!
 # From the real experiment to the table game
 
-Presampling every derivation and the model's key generation before the real experiment changes
-nothing; afterwards the real key generation is cached and the rest of the real game erases to the
-model's game with the table signer. The real budget `q` leaves `q - K` hash calls after key
-generation.
+The real game from a uniform scheme seed `S` (`innerGame`; `SchemeSeed` reaches it from the real
+experiment). Presampling every derivation and the model's key generation before it changes nothing;
+afterwards the real key generation is cached and the rest of the real game erases to the model's game
+with the table signer. A budget of `q - 1` from `S` leaves `q - K` hash calls after key generation.
 -/
 
 open OracleComp OracleSpec
@@ -54,18 +54,14 @@ noncomputable def tableGame (adversary : LeanXmss.Security.Adversary) (seed : Ma
   (simulateQ romImpl (Seeded.gameRest (tableScheme d.rnd) (toModelAdversary adversary)
     (modelPublicKey d r.1) (modelSecretKey d r.1))).run' r.2
 
-/-- The real key generation, in the model's oracle type. -/
-def realKeygen (seed : MasterSeed) : OracleComp HashSpec (LeanXmss.PublicKey × LeanXmss.Seeded.SecretKey) :=
-  LeanXmss.Seeded.keygenFromSeed seed
-
-/-- The real game after the seed. -/
+/-- The real game from the scheme's seed `S`. -/
 noncomputable def realAfterSeed (adversary : LeanXmss.Security.Adversary) (seed : MasterSeed) :
     OracleComp OracleWorld Bool :=
   (liftM (realKeygen seed) : OracleComp OracleWorld _) >>= fun keys => realRest adversary keys.1 keys.2
 
-theorem gameCore_eq' (adversary : LeanXmss.Security.Adversary) :
-    (LeanXmss.Security.gameCore adversary : OracleComp OracleWorld Bool) =
-      (liftM sampleMasterSeed : OracleComp OracleWorld _) >>= realAfterSeed adversary := rfl
+/-- The real game with `S` sampled uniformly rather than hashed from the key's seed. -/
+noncomputable def innerGame (adversary : LeanXmss.Security.Adversary) : OracleComp OracleWorld Bool :=
+  (liftM sampleMasterSeed : OracleComp OracleWorld _) >>= realAfterSeed adversary
 
 theorem erases_afterKeygen (adversary : LeanXmss.Security.Adversary) {seed : MasterSeed} {d : Derivations}
     {result : (Digest × (TopIndex → Option (Randomness × Encoding))) × QueryLog HashSpec}
@@ -80,11 +76,10 @@ theorem lift_hash_romImpl {α : Type} (c : OracleComp HashSpec α) :
     simulateQ romImpl (liftM c : OracleComp OracleWorld α) = simulateQ randomOracle c :=
   QueryImpl.simulateQ_add_liftM_right _ _ c
 
-/-- The real experiment's winning distribution is the table game's. -/
-theorem evalDist_realGame (adversary : LeanXmss.Security.Adversary) :
-    𝒟[(simulateQ romImpl (LeanXmss.Security.gameCore adversary : OracleComp OracleWorld Bool)).run' ∅] =
-      𝒟[sampleMasterSeed >>= tableGame adversary] := by
-  rw [gameCore_eq', run'_lift_sample_bind]
+/-- The inner game's winning distribution is the table game's. -/
+theorem evalDist_innerGame (adversary : LeanXmss.Security.Adversary) :
+    𝒟[(simulateQ romImpl (innerGame adversary)).run' ∅] = 𝒟[sampleMasterSeed >>= tableGame adversary] := by
+  rw [innerGame, run'_lift_sample_bind]
   apply evalDist_bind_congr'
   intro seed
   rw [evalDist_presample_computation _ (liftM (preparation seed) : OracleComp OracleWorld _) ∅,
@@ -110,58 +105,41 @@ theorem probOutput_countHashQueries (computation : OracleComp OracleWorld Bool) 
     (probEvent_map (mx := (simulateQ romImpl (countHashQueries computation)).run' ∅) (f := Prod.fst)
       (q := fun result => result = true)).symm
 
-/-- The real experiment's advantage is the table game's winning probability. -/
-theorem forgeAdvantage_eq_tableGame (adversary : LeanXmss.Security.Adversary) :
-    LeanXmss.Security.forgeAdvantage adversary = Pr[= true | sampleMasterSeed >>= tableGame adversary] := by
-  unfold LeanXmss.Security.forgeAdvantage LeanXmss.Security.experiment
-  rw [probOutput_def, ← evalDist_realGame, ← probOutput_def, ← probOutput_countHashQueries,
-    simulateQ_countHashQueries]
-  rfl
+/-- The inner game's winning probability is the table game's. -/
+theorem innerGame_eq_tableGame (adversary : LeanXmss.Security.Adversary) :
+    Pr[= true | (simulateQ romImpl (innerGame adversary)).run' ∅] =
+      Pr[= true | sampleMasterSeed >>= tableGame adversary] := by
+  rw [probOutput_def, evalDist_innerGame, ← probOutput_def]
 
 /-! ## Budgets -/
 
-theorem experiment_eq (adversary : LeanXmss.Security.Adversary) :
-    LeanXmss.Security.experiment adversary =
-      (simulateQ countedRomImpl ((liftM sampleMasterSeed : OracleComp OracleWorld _) >>=
-        realAfterSeed adversary)).run.run' ∅ :=
-  rfl
-
-theorem hashQueryBound_real (adversary : LeanXmss.Security.Adversary) (q : Nat)
-    (hbound : LeanXmss.Security.HasHashQueryBound adversary q) :
-    HashQueryBound ((liftM sampleMasterSeed : OracleComp OracleWorld _) >>= realAfterSeed adversary) ∅ q := by
-  have h : HashQueryBound ((liftM sampleMasterSeed : OracleComp OracleWorld _) >>= realAfterSeed adversary) ∅ q ↔
-      ∀ result ∈ support ((simulateQ countedRomImpl ((liftM sampleMasterSeed : OracleComp OracleWorld _) >>=
-        realAfterSeed adversary)).run.run' ∅), result.2 ≤ q := by
-    simp only [HashQueryBound, simulateQ_countHashQueries]
-    rfl
-  rw [h, ← experiment_eq]
-  exact hbound
+/-- The real budget `q` less the seed hash bounds the real game from every scheme seed. -/
+def SeededBudget (adversary : LeanXmss.Security.Adversary) (q : Nat) : Prop :=
+  ∀ seed, HashQueryBound (realAfterSeed adversary seed) ∅ (q - 1)
 
 /-- The real budget `q` leaves `q - K` hash calls for the table game after key generation. -/
 theorem afterKeygen_budget (adversary : LeanXmss.Security.Adversary) (q : Nat)
-    (hbound : LeanXmss.Security.HasHashQueryBound adversary q) (seed : MasterSeed) (d : Derivations)
+    (hbound : SeededBudget adversary q) (seed : MasterSeed) (d : Derivations)
     (r : (Digest × (TopIndex → Option (Randomness × Encoding))) × QueryLog HashSpec)
     (cache : QueryCache HashSpec)
     (hr : (r, cache) ∈ support ((simulateQ randomOracle (honestRun d).withQueryLog).run (progCache seed d))) :
     keygenQueries ≤ q ∧
       HashQueryBound (Seeded.gameRest (tableScheme d.rnd) (toModelAdversary adversary) (modelPublicKey d r)
         (modelSecretKey d r)) cache (q - keygenQueries) := by
-  have hgame := hashQueryBound_real adversary q hbound
-  have hseed : HashQueryBound (realAfterSeed adversary seed) ∅ q :=
-    hashQueryBound_of_sampling_bind sampleMasterSeed _ ∅ q hgame seed (by
-      rw [mem_support_iff]
-      unfold sampleMasterSeed
-      rw [probOutput_uniformSample]
-      exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _))
-  have hprep := hashQueryBound_after_preparation _ (liftM (preparation seed) : OracleComp OracleWorld _) ∅ q
-    hseed ((d, r), cache) (by
+  have hprep := hashQueryBound_after_preparation _ (liftM (preparation seed) : OracleComp OracleWorld _) ∅
+    (q - 1) (hbound seed) ((d, r), cache) (by
       rw [lift_hash_romImpl]
       exact mem_support_preparation seed d r cache hr)
   have h := prepared_of_mem seed d r cache hr
   have hrun := run_countHashQueries_lift_of_resolves (c := realKeygen seed) (queryCount_realKeygen seed)
     h.realKeygen
-  have hfirst := hashQueryBound_bind (realKeygen seed) (fun keys => realRest adversary keys.1 keys.2) cache q
-    hprep (((⟨r.1.1, d.parameter⟩, ⟨seed, d.parameter, r.1.1⟩), keygenQueries), cache) (by rw [hrun]; simp)
-  exact ⟨hfirst.1, (h.erases_rest adversary).hashQueryBound cache le_rfl _ hfirst.2⟩
+  have hfirst := hashQueryBound_bind (realKeygen seed) (fun keys => realRest adversary keys.1 keys.2) cache
+    (q - 1) hprep (((⟨r.1.1, d.parameter⟩, ⟨seed, d.parameter, r.1.1⟩), keygenQueries - 1), cache)
+    (by rw [hrun]; simp)
+  have hK : keygenQueries - 1 ≤ q - 1 := hfirst.1
+  have hK' := keygenQueries_eq
+  refine ⟨by omega, ?_⟩
+  rw [show q - keygenQueries = q - 1 - (keygenQueries - 1) by omega]
+  exact (h.erases_rest adversary).hashQueryBound cache le_rfl _ hfirst.2
 
 end XmssSecurity.Bridge

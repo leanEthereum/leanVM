@@ -1,7 +1,7 @@
 import Sphincs.SecurityPrefixMaterialCost
 
-/-! The exact hash cost of key generation, `226 · 2^b + 2 (26 - b)` calls, including the surrogate
-spine. -/
+/-! The exact hash cost of key generation, `226 · 2^b + 2 (26 - b) + 1` calls: the scheme seed, then
+`226 · 2^b + 2 (26 - b)` from it, including the surrogate spine. -/
 
 open OracleComp OracleSpec
 
@@ -27,12 +27,19 @@ theorem hashCalls_spineNode (f : QueryImpl HashSpec Id) (parameter : PublicParam
       simp only [Seeded.surrogate, dif_pos hlevel, hashCalls_deriveKey]
       split <;> rw [hashCalls_tweakableHash] <;> omega
 
-theorem hashCalls_keygenFromSeed (f : QueryImpl HashSpec Id) (seed : MasterSeed) :
-    hashCalls f (Seeded.keygenFromSeed seed) =
+theorem hashCalls_keygenFromMaster (f : QueryImpl HashSpec Id) (seed : MasterSeed) :
+    hashCalls f (Seeded.keygenFromMaster seed) =
       226 * 2 ^ subtreeHeight + 2 * (totalHeight - subtreeHeight) := by
-  simp only [Seeded.keygenFromSeed, hashCalls_bind, hashCalls_deriveKey, Seeded.treeRoot,
+  simp only [Seeded.keygenFromMaster, hashCalls_bind, hashCalls_deriveKey, Seeded.treeRoot,
     hashCalls_spineNode f _ _ _ seed _ (le_refl _), hashCalls_pure, Nat.add_zero]
   have := Nat.two_pow_pos subtreeHeight
+  omega
+
+theorem hashCalls_keygenFromSeed (f : QueryImpl HashSpec Id) (seed : MasterSeed) :
+    hashCalls f (Seeded.keygenFromSeed seed) =
+      226 * 2 ^ subtreeHeight + 2 * (totalHeight - subtreeHeight) + 1 := by
+  have hseed : hashCalls f (schemeSeed seed : OracleComp HashSpec MasterSeed) = 1 := rfl
+  rw [Seeded.keygenFromSeed, hashCalls_bind, hseed, hashCalls_keygenFromMaster]
   omega
 
 end Sphincs.Security.Prefix

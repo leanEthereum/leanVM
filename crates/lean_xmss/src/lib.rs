@@ -35,6 +35,9 @@ pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
 pub const SEED_LEN: usize = 32;
 pub type Seed = [u8; SEED_LEN];
 
+/// Hashed before the seed, so no other scheme derives from the same bytes.
+pub const SEED_TAG: &[u8] = b"leanXMSS";
+
 /// The randomizer a layer's message digest is computed under.
 pub const RANDOMIZER_LEN: usize = 16;
 pub type Randomizer = [u8; RANDOMIZER_LEN];

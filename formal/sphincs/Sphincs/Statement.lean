@@ -4,8 +4,9 @@ import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 The SUF-CMA experiment, adapted from leanVM b7a107256 to pruning: forgeries, signing transcripts and
 their tests, adversaries, and the counted experiment with the randomized signer (genuinely random
-randomizers). All hash calls in the experiment count, including repeated calls and honest-party
-calls. The security target, for the deterministic signer, is in `StatementDet`.
+randomizers), keyed by a uniform scheme seed. All hash calls in the experiment count, including
+repeated calls and honest-party calls. The security target, for the deterministic signer and key
+generation from the key's seed, is in `StatementDet`.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -48,7 +49,7 @@ noncomputable def signingOracle (sk : Seeded.SecretKey) :
 
 noncomputable def gameCore (adversary : Adversary) : OracleComp OracleWorld Bool := do
   let seed ← liftM sampleMasterSeed
-  let (pk, sk) ← liftM (Seeded.keygenFromSeed seed)
+  let (pk, sk) ← liftM (Seeded.keygenFromMaster seed)
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
     (simulateQ (QueryImpl.ofLift OracleWorld
       (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) + signingOracle sk)

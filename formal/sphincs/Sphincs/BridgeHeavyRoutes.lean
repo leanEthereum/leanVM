@@ -330,17 +330,20 @@ theorem det_largeH (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
   refine le_trans (Det.forgeAdvantageDet_le_seedFree adversary q hbound) ?_
   have hE := expectedFail_le
   -- the negligible terms fit in the slack
-  have hslack : ((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 2 * ((q : ℝ≥0∞) / 2 ^ 256) +
+  have hslack : ((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 3 * ((q : ℝ≥0∞) / 2 ^ 256) +
       lam Lmax 0 q' ≤ ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 200 := by
-    have h256 : 2 * ((q : ℝ≥0∞) / 2 ^ 256) ≤ (((q' + keygenCost : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
+    have h256 : 3 * ((q : ℝ≥0∞) / 2 ^ 256) ≤ (((q' + keygenCost : ℕ) : ℝ≥0∞)) * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
       rw [div_two_pow, hsum, mul_left_comm]
       refine mul_le_mul' le_rfl ?_
       rw [show (256 : ℕ) = 55 + 201 by norm_num, pow_add, ← mul_assoc]
-      calc 2 * (2 : ℝ≥0∞)⁻¹ ^ 55 * (2 : ℝ≥0∞)⁻¹ ^ 201 ≤ 1 * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
+      calc 3 * (2 : ℝ≥0∞)⁻¹ ^ 55 * (2 : ℝ≥0∞)⁻¹ ^ 201 ≤ 1 * (2 : ℝ≥0∞)⁻¹ ^ 201 := by
             refine mul_le_mul' ?_ le_rfl
-            rw [show (55 : ℕ) = 1 + 54 by norm_num, pow_add, pow_one, ← mul_assoc,
-              ENNReal.mul_inv_cancel (by norm_num) (by norm_num), one_mul]
-            exact pow_le_one₀ (by norm_num) (by norm_num)
+            rw [show (55 : ℕ) = 2 + 53 by norm_num, pow_add, ← mul_assoc]
+            calc 3 * (2 : ℝ≥0∞)⁻¹ ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 53 ≤ 1 * 1 := by
+                  refine mul_le_mul' ?_ (pow_le_one₀ (by norm_num) (by norm_num))
+                  rw [← ENNReal.inv_pow, ← div_eq_mul_inv, ENNReal.div_le_iff (by norm_num) (by norm_num), one_mul]
+                  norm_num
+              _ = 1 := one_mul 1
         _ = _ := one_mul _
     have hnat : ((q' : ℝ≥0∞) + signatureLimit) + ((q' + keygenCost : ℕ) : ℝ≥0∞) + 1 ≤
         2 * ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) := by
@@ -363,9 +366,9 @@ theorem det_largeH (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
       _ = _ := by rw [mul_comm (2 : ℝ≥0∞), mul_assoc, two_mul_inv_pow_succ]
   calc _ ≤ (((1 - budget 0 q') + (q' : ℝ≥0∞) * startExcessH wbar (baselineW q') q' +
             lam Lmax 0 q') +
-          ((q' : ℕ) + signatureLimit) * expectedFail) + 2 * ((q : ℝ≥0∞) / 2 ^ 256) := add_le_add hmain le_rfl
+          ((q' : ℕ) + signatureLimit) * expectedFail) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) := add_le_add hmain le_rfl
     _ = ((1 - budget 0 q') + (q' : ℝ≥0∞) * startExcessH wbar (baselineW q') q') +
-          (((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 2 * ((q : ℝ≥0∞) / 2 ^ 256) +
+          (((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 3 * ((q : ℝ≥0∞) / 2 ^ 256) +
             lam Lmax 0 q') := by
         ring
     _ ≤ ((1 - budget 0 q') + (q' : ℝ≥0∞) * startExcessH wbar (baselineW q') q') +
