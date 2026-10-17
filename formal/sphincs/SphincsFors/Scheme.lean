@@ -9,7 +9,7 @@ The seeded signer models failure after 2^32 attempts explicitly. The Rust random
 is unbounded at the source level over a u32 counter; see PROOF.md for that mismatch.
 
 Parameters, serialized hash inputs, key generation, signing, and verification of the scheme in
-`leanSPHINCS.tex`, with the hash inputs of `crates/signatures/src/sphincs`: the 16-byte public parameter, the
+`leanSPHINCS.tex`, with the hash inputs of `crates/sphincs`: the 16-byte public parameter, the
 16-byte address of the call (8 bytes of fields, then 8 zero bytes), then the payload. One XMSS tree of height
 `h = 26`, WOTS+C with `64` chains of length `4` and target sum `120`, and FORS with `k = 24`
 trees of `2^a = 1024` leaves, `a = 10`. A FORS tree has no root hash: the FORS key hashes the two
@@ -116,7 +116,7 @@ def firstCallFields (first : HashOutput) : BitVec 146 :=
   callIndices first ++ first.extractLsb' 128 totalHeight
 
 /-- The fields of the two digest calls, as one string of `h + k * a` bits: the index, then the
-`k = 24` FORS indices in order (`digest_fields` in `crates/signatures/src/sphincs/src/scheme.rs`). The index is bits
+`k = 24` FORS indices in order (`digest_fields` in `crates/sphincs/src/scheme.rs`). The index is bits
 `128 .. 153` of call `0`. FORS index `kappa` is in call `kappa / 12`, at bit
 `64 * ((kappa % 12) / 6) + 10 * (kappa % 6)`: no field lies across two 64-bit words. -/
 def truncateMessageDigest (first second : HashOutput) : MessageDigest :=
@@ -148,7 +148,7 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak` in `crates/signatures/src/sphincs`): the hash type `tag < 32`, a chain step
+/-- The address of a hash call (`Tweak` in `crates/sphincs`): the hash type `tag < 32`, a chain step
 `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   tag : BitVec 5

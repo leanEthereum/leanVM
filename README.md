@@ -13,7 +13,7 @@
 
 <table align="center">
   <tr>
-    <td><a href="#xmss-aggregation">leanXMSS aggregation</a></td>
+    <td><a href="#leanxmss-aggregation">leanXMSS aggregation</a></td>
     <td align="right"><b>1.35K/s</b></td>
   </tr>
   <tr>
@@ -67,9 +67,9 @@ Expect leanVM to change significantly:
 
 **note**: The Metal GPU was not used.
 
-### XMSS aggregation
+### leanXMSS aggregation
 
-The XMSS parameters are specified in [XMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/xmss/XmssSecurity/Statement.lean). **This is not the definitive parameter set.**
+The leanXMSS parameters are specified in [leanXMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf), with a [(ROM) security proof in Lean 4](formal/lean_xmss/LeanXmss/Statement.lean). **This is not the definitive parameter set.**
 
 ```bash
 cargo leanvm aggregate --xmss 1290 --log-inv-rate 1 --repeat 3
@@ -153,7 +153,7 @@ Flock BLAKE2s batch proving, 262,144 compressions (2^18 slots)
   prove TOTAL (witness excluded)  :    539.7 ms ± 3.3%   93.9%
   verify                          :      2.0 ms
   throughput                      :        485,765 compressions/s ± 3.3%
-  (~3373.4 XMSS/s equivalent at 144 compressions/signature)
+  (~2416.7 leanXMSS/s equivalent at 201 compressions/signature)
 ```
 
 ### Fibonacci

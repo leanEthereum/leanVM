@@ -43,7 +43,7 @@ theorem fieldBytes_injective {t1 t2 : TweakFields} (h : fieldBytes t1 = fieldByt
   have hs : step1 = step2 := BitVec.eq_of_toNat_eq (by omega)
   simp only [ht, hs, bytesLE_injective hhi, bytesLE_injective hlo]
 
-/-- The layout test of `crates/signatures/src/sphincs/src/hash.rs`: type `10`, step `5`, `hi = 0x123456`,
+/-- The layout test of `crates/sphincs/src/hash.rs`: type `10`, step `5`, `hi = 0x123456`,
 `lo = 0x89abcdef`. -/
 theorem fieldBytes_layout_example :
     fieldBytes (tweakFields 10 5 0x123456 0x89abcdef) =
@@ -55,7 +55,7 @@ theorem fieldBytes_length (fields : TweakFields) : (fieldBytes fields).length = 
 
 /-- A digest call hashes 80 bytes, `P || A || m || rho`: the first 64-byte block ends with the
 message and the second is the randomizer (`randomizer_and_digest_inputs` in
-`crates/signatures/src/sphincs/src/scheme.rs`). -/
+`crates/sphincs/src/scheme.rs`). -/
 theorem messageDigestInput_length (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : Fin 2) :
     (tweakableHashInput parameter (.message call)

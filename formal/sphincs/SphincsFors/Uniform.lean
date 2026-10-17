@@ -172,7 +172,7 @@ theorem getLsbD_truncateMessageDigest (first second : HashOutput) (i : Nat) :
     rw [show i - 146 - 60 = i - 206 by omega]
   · simp only [h0, h1, h2, h3, h4, if_false, decide_false, Bool.false_and]
 
-/-- Where the FORS indices are (`digest_fields` in `crates/signatures/src/sphincs/src/scheme.rs`): index `kappa` is
+/-- Where the FORS indices are (`digest_fields` in `crates/sphincs/src/scheme.rs`): index `kappa` is
 in call `kappa / 12`, at bit `64 * ((kappa % 12) / 6) + 10 * (kappa % 6)`, so six indices lie in each
 of the first two 64-bit words of a call and none across two words. -/
 theorem digestLeaves_truncate (first second : HashOutput) (tree : IndexGroup) :

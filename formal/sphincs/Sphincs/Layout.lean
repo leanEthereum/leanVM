@@ -2,7 +2,7 @@ import Sphincs.Bytes
 
 /-! The forest signature's byte layout: the randomizer, then per coordinate and per sub-tree the 6
 chain values and the 3 auth nodes, then the 4 top-tree auth nodes, then the WOTS+C counter, chain
-values and authentication path, as `crates/signatures/src/sphincs/src/scheme.rs::Signature::to_bytes` lays out the
+values and authentication path, as `SphincsSignature::to_bytes` (`crates/signatures/src/sphincs/scheme.rs`) lays out the
 FORS signature. -/
 
 namespace Sphincs
