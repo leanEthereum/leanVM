@@ -11,14 +11,15 @@ use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Instant;
 
-use lean_xmss::*;
 use primitives::{pretty_f64, pretty_integer};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
+use signatures::lean_xmss::*;
+use signatures::{lean_xmss, sphincs};
 
 type CachedSignature = (LeanXmssPublicKey, LeanXmssSignature);
 
@@ -46,7 +47,7 @@ pub fn message_for(message_id: u32) -> Message {
 
 /// The leaf index signer `index` signs [`message_for`]`(message_id)` at, shifted per
 /// message so one key signs messages fewer than 16 ids apart at distinct leaf indices.
-pub fn leaf_index_of(index: usize, message_id: u32) -> LeafIndex {
+fn leaf_index_of(index: usize, message_id: u32) -> LeafIndex {
     let span = (KEY_END - KEY_START + 1) as usize;
     KEY_START + ((index + message_id as usize) % span) as LeafIndex
 }
@@ -64,39 +65,20 @@ fn compute_signer(index: usize, message_id: u32) -> CachedSignature {
     (pk, sig)
 }
 
-fn hash_fingerprint() -> [Digest; 3] {
-    let pp = [0xA5u8; PUBLIC_PARAM_LEN];
-    [
-        th(&pp, &tweak(TWEAK_CHAIN, 1, 2), &[0x5Au8; N]),
-        message_digest(&pp, 1, 3, &[0x3Cu8; RANDOMIZER_LEN], &[0x3Cu8; MESSAGE_LEN]),
-        scheme_seed(&[0x11; SEED_LEN])[..N].try_into().unwrap(),
-    ]
-}
-
-fn footprint(message_id: u32) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    SCHEMA_VERSION.hash(&mut hasher);
-    message_id.hash(&mut hasher);
-    KEY_START.hash(&mut hasher);
-    KEY_END.hash(&mut hasher);
-    message_for(message_id).hash(&mut hasher);
-    (V, W, ZERO_DIGITS, LAYER_HEIGHT, TARGET_SUM, RANDOMIZER_LEN).hash(&mut hasher);
-    hash_fingerprint().hash(&mut hasher);
-    // Key derivation and grinding, which verifying a cached signature does not exercise.
-    compute_signer(0, message_id).hash(&mut hasher);
-    hasher.finish()
-}
-
 fn cache_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/signers-cache")
 }
 
+/// The cache file of `message_id`, named after signer 0's key and signature, which
+/// any change to the scheme, its parameters, key derivation or grinding changes.
 fn cache_path(message_id: u32) -> PathBuf {
-    cache_dir().join(format!("lean_xmss_signers_{:016x}.bin", footprint(message_id)))
+    let mut hasher = DefaultHasher::new();
+    (SCHEMA_VERSION, message_id, compute_signer(0, message_id)).hash(&mut hasher);
+    cache_dir().join(format!("lean_xmss_signers_{:016x}.bin", hasher.finish()))
 }
 
-fn try_load_cache(message_id: u32) -> Option<Vec<CachedSignature>> {
-    let bytes = fs::read(cache_path(message_id)).ok()?;
+fn try_load_cache(path: &Path, message_id: u32) -> Option<Vec<CachedSignature>> {
+    let bytes = fs::read(path).ok()?;
     let (version, mut signers): (u32, Vec<CachedSignature>) = bincode::deserialize(&bytes).ok()?;
     if version != SCHEMA_VERSION {
         return None;
@@ -112,7 +94,7 @@ fn try_load_cache(message_id: u32) -> Option<Vec<CachedSignature>> {
     if valid < signers.len() {
         eprintln!(
             "warning: signers cache {} is stale (signer {valid} of {} no longer verifies); regenerating from there",
-            cache_path(message_id).display(),
+            path.display(),
             signers.len()
         );
         signers.truncate(valid);
@@ -120,13 +102,12 @@ fn try_load_cache(message_id: u32) -> Option<Vec<CachedSignature>> {
     Some(signers)
 }
 
-fn save_cache(signers: &[CachedSignature], message_id: u32) {
-    let path = cache_path(message_id);
+fn save_cache(path: &Path, signers: &[CachedSignature]) {
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
     let bytes = bincode::serialize(&(SCHEMA_VERSION, signers)).expect("serialize signers cache");
-    if let Err(error) = fs::write(&path, &bytes) {
+    if let Err(error) = fs::write(path, &bytes) {
         eprintln!("warning: could not write signers cache to {}: {error}", path.display());
     }
 }
@@ -160,13 +141,14 @@ pub fn get_signers(n: usize) -> Vec<CachedSignature> {
 }
 
 /// The first `n` cached signers, signing [`message_for`]`(message_id)`, signer `i` at
-/// [`leaf_index_of`]`(i, message_id)`: one cache file per message, the keys shared
+/// `leaf_index_of(i, message_id)`: one cache file per message, the keys shared
 /// across them.
 pub fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
     let mut pools = POOLS.lock().unwrap();
     let pool = pools.entry(message_id).or_default();
     if pool.len() < n {
-        if let Some(disk) = try_load_cache(message_id)
+        let path = cache_path(message_id);
+        if let Some(disk) = try_load_cache(&path, message_id)
             && disk.len() > pool.len()
         {
             *pool = disk;
@@ -174,7 +156,7 @@ pub fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
         if pool.len() < n {
             let mut fresh = generate_range(pool.len(), n, message_id);
             pool.append(&mut fresh);
-            save_cache(pool, message_id);
+            save_cache(&path, pool);
         }
     }
     pool[..n].to_vec()

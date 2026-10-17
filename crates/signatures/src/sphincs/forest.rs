@@ -15,7 +15,7 @@
 //! WOTS keys already opened at codewords whose componentwise maximum covers the
 //! target's.
 
-use crate::*;
+use crate::sphincs::*;
 
 /// Distinct codewords in the table.
 const TABLE_CODEWORDS: usize = 214;

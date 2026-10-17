@@ -25,8 +25,8 @@ pub mod lean_da {
 pub mod lean_xmss {
     /// The SSZ traits [`LeanXmssPublicKey`] and [`LeanXmssSignature`] implement: import
     /// them to call `as_ssz_bytes` and `from_ssz_bytes`.
-    pub use ::lean_xmss::{Decode, DecodeError, Encode};
-    pub use ::lean_xmss::{
+    pub use signatures::lean_xmss::{Decode, DecodeError, Encode};
+    pub use signatures::lean_xmss::{
         Digest, LOG_LIFETIME, LayerSignature, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError,
         LeanXmssSignature, LeanXmssVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PUB_KEY_SSZ_LEN, PublicParam,
         SEED_LEN, SIG_SIZE, SIGNATURE_SSZ_LEN, Seed, key_gen, key_gen_from_seed, sign, verify,
@@ -34,7 +34,7 @@ pub mod lean_xmss {
 }
 
 pub mod sphincs {
-    pub use ::sphincs::{
+    pub use signatures::sphincs::{
         Digest, ForestOpening, H, MASTER_SECRET_LEN, MESSAGE_LEN, MasterSecret, Message, PUB_KEY_SIZE, PublicParam,
         SECRET_KEY_SIZE, SIG_SIZE, SphincsPublicKey, SphincsSecretKey, SphincsSignError, SphincsSignature,
         SphincsVerifyError, SubtreeOpening, TreeOpening, key_gen, key_gen_from_seed, sign, verify,

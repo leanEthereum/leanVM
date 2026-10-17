@@ -3,16 +3,16 @@
 //! signs in it, keeping the last one.
 
 use std::ops::RangeInclusive;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
 use rand::{CryptoRng, Rng};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::*;
+use crate::lean_xmss::*;
 
 /// Ordered lexicographically on `flatten()`, which is what an aggregate's claims are
 /// sorted by.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LeanXmssPublicKey {
     pub merkle_root: Digest,
     pub public_param: PublicParam,
@@ -32,7 +32,7 @@ impl LeanXmssPublicKey {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct LayerSignature {
     pub randomizer: Randomizer,
-    #[serde(with = "crate::array_serialization")]
+    #[serde(with = "crate::lean_xmss::array_serialization")]
     pub chain_values: [Digest; V],
     pub path: [Digest; LAYER_HEIGHT],
 }
@@ -46,16 +46,15 @@ pub struct LeanXmssSignature {
     pub top: LayerSignature,
 }
 
-/// The encoding is SECRET KEY MATERIAL: it carries the seed. Decoding checks the key's
-/// shape and that its public parameter is the seed's.
-#[derive(Serialize, Deserialize)]
-#[serde(try_from = "SecretKeyFields")]
 pub struct LeanXmssSecretKey {
+    /// The key's seed, which the key serializes.
+    key_seed: Seed,
+    /// [`scheme_seed`] of it, which every secret derives from.
     seed: Seed,
     public_param: PublicParam,
     top: LayerTree,
-    #[serde(skip)]
-    bottom: Mutex<Option<BottomTree>>,
+    /// The bottom tree the key last signed in.
+    bottom: Mutex<Option<Arc<BottomTree>>>,
 }
 
 impl std::fmt::Debug for LeanXmssSecretKey {
@@ -66,35 +65,16 @@ impl std::fmt::Debug for LeanXmssSecretKey {
     }
 }
 
-/// [`LeanXmssSecretKey`] as decoded, before its checks.
-#[derive(Deserialize)]
-struct SecretKeyFields {
-    seed: Seed,
-    public_param: PublicParam,
-    top: LayerTree,
+/// SECRET KEY MATERIAL: the key's seed, all of it; decoding regenerates the key.
+impl Serialize for LeanXmssSecretKey {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.key_seed.serialize(serializer)
+    }
 }
 
-impl TryFrom<SecretKeyFields> for LeanXmssSecretKey {
-    type Error = &'static str;
-
-    fn try_from(key: SecretKeyFields) -> Result<Self, Self::Error> {
-        let SecretKeyFields {
-            seed,
-            public_param,
-            top,
-        } = key;
-        if !top.spans(1, 0, 0, layer_index(LeafIndex::MAX, 1)) {
-            return Err("malformed secret key");
-        }
-        if public_param != th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &seed) {
-            return Err("secret key's public parameter is not its seed's");
-        }
-        Ok(Self {
-            seed,
-            public_param,
-            top,
-            bottom: Mutex::new(None),
-        })
+impl<'de> Deserialize<'de> for LeanXmssSecretKey {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Seed::deserialize(deserializer).map(|seed| key_gen_from_seed(seed).0)
     }
 }
 
@@ -135,12 +115,13 @@ pub fn key_gen_from_seed(seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
 }
 
 /// The key over the leaf indices `leaves`; nodes over no leaf in it are fillers.
-pub(crate) fn generate(seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
-    let seed = scheme_seed(&seed);
-    let public_param = th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &seed);
+pub(crate) fn generate(key_seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+    let seed = scheme_seed(&key_seed);
+    let public_param = public_param(&seed);
     let (first, last) = (layer_index(*leaves.start(), 1), layer_index(*leaves.end(), 1));
     let top = LayerTree::build(&public_param, &seed, 1, 0, first, last);
     let sk = LeanXmssSecretKey {
+        key_seed,
         seed,
         public_param,
         top,
@@ -183,59 +164,49 @@ impl LeanXmssSecretKey {
         leaves: RangeInclusive<LeafIndex>,
     ) -> Result<LeanXmssSignature, LeanXmssSignError> {
         let bottom = self.bottom_tree(leaf_index, leaves)?;
-        let tree = &bottom.as_ref().unwrap();
         let (randomizer, chain_values) = wots_sign(&self.public_param, &self.seed, 0, leaf_index, message)
             .ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
-        let leaf = leaf_index & ((1 << LAYER_HEIGHT) - 1);
         Ok(LeanXmssSignature {
             leaf_index,
             bottom: LayerSignature {
                 randomizer,
                 chain_values,
-                path: tree.tree.path(&self.public_param, &self.seed, leaf),
+                path: bottom.tree.path(&self.public_param, &self.seed, tree_leaf(leaf_index)),
             },
-            top: tree.top_signature.clone(),
+            top: bottom.top_signature.clone(),
         })
     }
 
+    /// The bottom tree `leaf_index` is in, with the top layer's signature of its root:
+    /// the cached one, or built and cached. Built outside the lock, which is only ever
+    /// held to read or replace the cache.
     fn bottom_tree(
         &self,
         leaf_index: LeafIndex,
         leaves: RangeInclusive<LeafIndex>,
-    ) -> Result<MutexGuard<'_, Option<BottomTree>>, LeanXmssSignError> {
+    ) -> Result<Arc<BottomTree>, LeanXmssSignError> {
         let index = layer_index(leaf_index, 1);
-        // A panic while building, in a nested parallel dispatch say, leaves the cache as it was:
-        // it is written only once the tree and its signature are complete.
-        let mut cache = self.bottom.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        if cache.as_ref().is_none_or(|bottom| bottom.index != index) {
-            let (pp, seed) = (&self.public_param, &self.seed);
-            let in_tree = |leaf: LeafIndex| leaf & ((1 << LAYER_HEIGHT) - 1);
-            let (start, end) = (*leaves.start(), *leaves.end());
-            let first = if layer_index(start, 1) == index {
-                in_tree(start)
-            } else {
-                0
-            };
-            let last = if layer_index(end, 1) == index {
-                in_tree(end)
-            } else {
-                in_tree(LeafIndex::MAX)
-            };
-            let tree = LayerTree::build(pp, seed, 0, index << LAYER_HEIGHT, first, last);
-            let (randomizer, chain_values) =
-                wots_sign(pp, seed, 1, index, &tree.root()).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
-            let top_signature = LayerSignature {
+        if let Some(bottom) = self.bottom.lock().unwrap().as_ref().filter(|b| b.index == index) {
+            return Ok(Arc::clone(bottom));
+        }
+        let (pp, seed) = (&self.public_param, &self.seed);
+        let base = index << LAYER_HEIGHT;
+        let first = (*leaves.start()).max(base) - base;
+        let last = (*leaves.end()).min(base | tree_leaf(LeafIndex::MAX)) - base;
+        let tree = LayerTree::build(pp, seed, 0, base, first, last);
+        let (randomizer, chain_values) =
+            wots_sign(pp, seed, 1, index, &tree.root()).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
+        let bottom = Arc::new(BottomTree {
+            index,
+            top_signature: LayerSignature {
                 randomizer,
                 chain_values,
                 path: self.top.path(pp, seed, index),
-            };
-            *cache = Some(BottomTree {
-                index,
-                tree,
-                top_signature,
-            });
-        }
-        Ok(cache)
+            },
+            tree,
+        });
+        *self.bottom.lock().unwrap() = Some(Arc::clone(&bottom));
+        Ok(bottom)
     }
 }
 
@@ -265,9 +236,9 @@ pub fn verify(
 ) -> Result<(), LeanXmssVerifyError> {
     let pp = &pk.public_param;
     let leaf_index = signature.leaf_index;
-    let bottom_root = layer_root(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom, |_| {})
+    let (_, bottom_root) = layer_root(pp, 0, layer_index(leaf_index, 0), message, &signature.bottom, |_| {})
         .ok_or(LeanXmssVerifyError::InvalidEncoding)?;
-    let root = layer_root(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top, |_| {})
+    let (_, root) = layer_root(pp, 1, layer_index(leaf_index, 1), &bottom_root, &signature.top, |_| {})
         .ok_or(LeanXmssVerifyError::InvalidEncoding)?;
     if root == pk.merkle_root {
         Ok(())
@@ -276,8 +247,9 @@ pub fn verify(
     }
 }
 
-/// The root a layer's signature by key `e` reaches, or `None` if its digest is not a
-/// codeword. `on_children` sees the two children of each node on the path, in order.
+/// The codeword of a layer's signature by key `e` and the root it reaches, or `None`
+/// if its digest is not a codeword. `on_children` sees the two children of each node
+/// on the path, in order.
 pub fn layer_root(
     pp: &PublicParam,
     layer: usize,
@@ -285,21 +257,20 @@ pub fn layer_root(
     message: &[u8],
     signature: &LayerSignature,
     mut on_children: impl FnMut(&[Digest; 2]),
-) -> Option<Digest> {
-    let (_, leaf) = wots_leaf(pp, layer, e, message, &signature.randomizer, &signature.chain_values)?;
-    Some(
-        signature
-            .path
-            .iter()
-            .enumerate()
-            .fold(leaf, |current, (level, sibling)| {
-                let children = if (e >> level) & 1 == 0 {
-                    [current, *sibling]
-                } else {
-                    [*sibling, current]
-                };
-                on_children(&children);
-                node(pp, layer, level + 1, e >> (level + 1), &children)
-            }),
-    )
+) -> Option<([u8; V], Digest)> {
+    let (codeword, leaf) = wots_leaf(pp, layer, e, message, &signature.randomizer, &signature.chain_values)?;
+    let root = signature
+        .path
+        .iter()
+        .enumerate()
+        .fold(leaf, |current, (level, sibling)| {
+            let children = if (e >> level) & 1 == 0 {
+                [current, *sibling]
+            } else {
+                [*sibling, current]
+            };
+            on_children(&children);
+            node(pp, layer, level + 1, e >> (level + 1), &children)
+        });
+    Some((codeword, root))
 }

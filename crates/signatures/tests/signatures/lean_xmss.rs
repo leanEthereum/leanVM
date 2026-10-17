@@ -1,5 +1,5 @@
-use lean_xmss::*;
 use rand::{Rng, SeedableRng, rngs::StdRng};
+use signatures::lean_xmss::*;
 
 fn test_message() -> Message {
     std::array::from_fn(|i| (i * 3 + 7) as u8)
@@ -90,22 +90,18 @@ fn serialize_deserialize_and_size() {
     verify(&pk, &message, &decoded).unwrap();
 }
 
-/// A reloaded secret key must sign exactly as the original does.
+/// A secret key encodes as its seed, and the reloaded key signs exactly as the
+/// original does.
 #[test]
 fn secret_key_survives_a_round_trip() {
-    let (sk, pk) = key_gen_from_seed([6; SEED_LEN]);
+    let seed = [6; SEED_LEN];
+    let (sk, pk) = key_gen_from_seed(seed);
     let bytes = bincode::serialize(&sk).unwrap();
+    assert_eq!(bytes, seed);
     let reloaded: LeanXmssSecretKey = bincode::deserialize(&bytes).unwrap();
     assert_eq!(reloaded.public_key(), pk);
     let message = test_message();
     assert_eq!(sign(&reloaded, &message, 43).unwrap(), sign(&sk, &message, 43).unwrap());
-
-    // The seed leads the encoding: another seed no longer derives the stored parameter.
-    let mut other_seed = bytes.clone();
-    other_seed[0] ^= 1;
-    assert!(bincode::deserialize::<LeanXmssSecretKey>(&other_seed).is_err());
-    // A truncated tree is refused rather than panicking when signing.
-    assert!(bincode::deserialize::<LeanXmssSecretKey>(&bytes[..bytes.len() - N]).is_err());
 }
 
 /// The SSZ encoding is the container's fields concatenated, in declaration order.

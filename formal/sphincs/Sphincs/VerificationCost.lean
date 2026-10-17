@@ -4,7 +4,7 @@ import Sphincs.Correctness
 
 /-!
 Compression counts for the actual verifier's logged hash-input bytes. A hash of `n` bytes costs
-`max 1 (ceil (n / 64))`, the BLAKE2s accounting used by `crates/sphincs/src/hash.rs` and
+`max 1 (ceil (n / 64))`, the BLAKE2s accounting used by `crates/signatures/src/sphincs/src/hash.rs` and
 `scripts/scheme.py`. The oracle's answers remain arbitrary; only the byte lengths are counted.
 -/
 

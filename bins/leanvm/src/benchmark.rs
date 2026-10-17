@@ -3,10 +3,11 @@
 //! signature counts and a blob count; recursion accepts these counts per leaf.
 
 use bench::{Plan, Timing};
-use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::{pretty_f64, pretty_integer};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use rec_aggregation::{EthereumProof, aggregate, aggregate_with_stats, signers_cache};
+use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
+use signatures::{lean_xmss, sphincs};
 
 fn blobs(n: usize, seed: u64) -> Vec<u64> {
     let mut rng = StdRng::seed_from_u64(seed);
@@ -21,7 +22,7 @@ fn signers(from: usize, to: usize) -> Vec<(LeanXmssPublicKey, lean_xmss::Message
     }
     signers_cache::get_signers(to)[from..to]
         .iter()
-        .map(|(pk, sig)| (pk.clone(), signers_cache::message(), sig.clone()))
+        .map(|(pk, sig)| (*pk, signers_cache::message(), sig.clone()))
         .collect()
 }
 

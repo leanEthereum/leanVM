@@ -1,6 +1,6 @@
 # The leanXMSS proof
 
-Target: `LeanXmssSecurityStatement` (`LeanXmss/Statement.lean`), 127 bits of classical SUF-CMA security in the random-oracle model for the scheme of `LeanXmss/Scheme.lean` (`crates/lean_xmss`, `doc/lean_xmss`): for every `q ≥ 1` and every adversary whose experiment makes at most `q` hash calls (key generation, signing, the adversary's queries and the final verification, cache hits included), the forgery probability is at most `q / 2^127`. The adversary picks a leaf index per signing request and may not reuse one.
+Target: `LeanXmssSecurityStatement` (`LeanXmss/Statement.lean`), 127 bits of classical SUF-CMA security in the random-oracle model for the scheme of `LeanXmss/Scheme.lean` (`crates/signatures/src/lean_xmss`, `doc/lean_xmss`): for every `q ≥ 1` and every adversary whose experiment makes at most `q` hash calls (key generation, signing, the adversary's queries and the final verification, cache hits included), the forgery probability is at most `q / 2^127`. The adversary picks a leaf index per signing request and may not reuse one.
 
 The proof combines three earlier ones: the byte layout, seed model, honest graph and scan tooling of `formal/sphincs` (B), the layered descent and one-time witnesses of the 3-layer leanSPHINCS proof at `0cd0539ae` (C), and the stateful game and two-lane accounting of the single-layer XMSS proof `formal/xmss` at `35fae6781` (A).
 

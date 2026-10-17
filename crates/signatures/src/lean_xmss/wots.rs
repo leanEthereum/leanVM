@@ -6,12 +6,17 @@
 //! zero, so those have no chain, and the other `v` sum to `T`. The signer grinds the
 //! randomizer `R` until it is, one compression a trial.
 
-use crate::*;
+use crate::lean_xmss::*;
 
 /// The index of `leaf_index`'s one-time key on `layer`: the leaf index itself at
 /// the bottom, the bottom tree's index at the top.
 pub fn layer_index(leaf_index: LeafIndex, layer: usize) -> u32 {
     (leaf_index as u64 >> (layer * LAYER_HEIGHT)) as u32
+}
+
+/// `leaf_index`'s leaf within its bottom tree.
+pub fn tree_leaf(leaf_index: LeafIndex) -> u32 {
+    leaf_index & ((1 << LAYER_HEIGHT) - 1)
 }
 
 /// The starts of the `v` chains of key `e` on `layer`. One hash of the seed gives
@@ -46,17 +51,17 @@ pub fn wots_leaf_hash(pp: &PublicParam, layer: usize, e: u32, ends: &[Digest; V]
 /// The digest key `e` on `layer` signs: `Th(P, A, M | R)`, `M` the message at the
 /// bottom and the bottom root at the top.
 pub fn message_digest(pp: &PublicParam, layer: usize, e: u32, randomizer: &Randomizer, message: &[u8]) -> Digest {
-    digest_prefix(pp, layer, e, message).update(randomizer).finalize()[..N]
+    digest_prefix(pp, layer, e, message).hash(randomizer)[..N]
         .try_into()
         .unwrap()
 }
 
 /// `P | A | M`, which fills the bottom digest's first block, so a randomizer trial
 /// compresses only the block holding `R`.
-fn digest_prefix(pp: &PublicParam, layer: usize, e: u32, message: &[u8]) -> primitives::hash::Hasher {
+fn digest_prefix(pp: &PublicParam, layer: usize, e: u32, message: &[u8]) -> primitives::hash::Prefix {
     let mut prefix = hasher(pp, &tweak(TWEAK_MSG, layer_hi(layer, 0), e));
-    prefix.update(message).flush();
-    prefix
+    prefix.update(message);
+    prefix.prefix()
 }
 
 /// The digest's first `v` digits, if it is a codeword.
@@ -90,7 +95,7 @@ pub fn wots_sign(
     let trial = |c: u64| base.wrapping_add(u128::from(c)).to_le_bytes();
     let prefix = digest_prefix(pp, layer, e, message);
     let admits = |c: u64| {
-        let digest = prefix.clone().update(&trial(c)).finalize();
+        let digest = prefix.hash(&trial(c));
         codeword(&digest[..N].try_into().unwrap()).is_some()
     };
     let c = (0..MAX_RANDOMIZER_TRIALS)

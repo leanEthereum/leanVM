@@ -12,7 +12,7 @@
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 
-use crate::*;
+use crate::sphincs::*;
 
 /// Ordered lexicographically on [`Self::flatten`], which is what an aggregate's
 /// signer list is sorted and deduplicated by.
@@ -256,13 +256,13 @@ fn marks_of(digest: &[u8; 32]) -> (u64, [Mark; FOREST_TREES]) {
 /// trees' marks. `P` binds the key, so the root is not hashed, and the message
 /// ends the first block: a signer grinding `rho` hashes it once.
 pub fn message_digest(pp: &PublicParam, rho: &Randomizer, m: &Message) -> (u64, [Mark; FOREST_TREES]) {
-    marks_of(&digest_prefix(pp, m).update(rho).finalize())
+    marks_of(&digest_prefix(pp, m).hash(rho))
 }
 
-fn digest_prefix(pp: &PublicParam, m: &Message) -> primitives::hash::Hasher {
+fn digest_prefix(pp: &PublicParam, m: &Message) -> primitives::hash::Prefix {
     let mut prefix = hasher(pp, &tweak(TWEAK_MSG, 0, 0));
-    prefix.update(m).flush();
-    prefix
+    prefix.update(m);
+    prefix.prefix()
 }
 
 fn node(pp: &PublicParam, level: usize, j: u64, children: &[Digest; 2]) -> Digest {
@@ -299,7 +299,7 @@ fn subtree(pp: &PublicParam, seed: &MasterSecret, first: u64, height: usize) -> 
 pub fn key_gen_from_seed(seed: MasterSecret, b: usize) -> (SphincsSecretKey, SphincsPublicKey) {
     assert!(b <= H, "a key keeps at most the whole tree");
     let master = scheme_seed(&seed);
-    let public_param = th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &master);
+    let public_param = public_param(&master);
     let s = u64::from_le_bytes(public_param[..8].try_into().unwrap()) & ((1 << (H - b)) - 1);
     let c = lowest_stored(b);
     let bottom = parallel::map_collect(1 << (b - c), |j| {
@@ -355,7 +355,7 @@ pub fn sign(sk: &SphincsSecretKey, message: &Message) -> Result<SphincsSignature
     let (randomizer, idx, marks) = (0..MAX_DIGEST_ATTEMPTS)
         .find_map(|i| {
             let randomizer = base.wrapping_add(u128::from(i)).to_le_bytes();
-            let (idx, marks) = marks_of(&prefix.clone().update(&randomizer).finalize());
+            let (idx, marks) = marks_of(&prefix.hash(&randomizer));
             sk.keeps(idx).then_some((randomizer, idx, marks))
         })
         .ok_or(SphincsSignError::NoAdmissibleDigest)?;

@@ -1,37 +1,31 @@
-//! The tweakable hash `Th(P, A, M) = Truncate_n(BLAKE2s(P | A | M))`, and the
-//! address that names one hash call in the whole structure.
+//! What the two schemes share: the tweakable hash
+//! `Th(P, A, M) = Truncate_n(BLAKE2s(P | A | M))`, its address and the address
+//! types, so the recursion guest builds both schemes' addresses alike.
 //!
-//! The public parameter and the address are 16 bytes each, as every value
-//! hashed after them is: a chain step and a Merkle node are one compression,
-//! and a prover whose words are 16 bytes never has to cut a value in two.
+//! The public parameter and the address are 16 bytes each, as every value hashed
+//! after them is: a chain step and a Merkle node are one compression, and a prover
+//! whose words are 16 bytes never has to cut a value in two.
 
 use primitives::hash::Hasher;
 
-use crate::*;
+/// `n`: hash value and Merkle node length, in bytes.
+pub const N: usize = 16;
+pub type Digest = [u8; N];
+
+pub const PUBLIC_PARAM_LEN: usize = 16;
+pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
 
 pub const ADDRESS_LEN: usize = 16;
 
-// Hash types (the low five bits of the address's last byte).
+// Hash types (the low five bits of the address's last field byte); each scheme adds
+// its own.
 pub const TWEAK_PRF: u8 = 0;
 pub const TWEAK_CHAIN: u8 = 1;
 pub const TWEAK_LEAF: u8 = 2;
 pub const TWEAK_NODE: u8 = 3;
-pub const TWEAK_ENC: u8 = 4;
 pub const TWEAK_PARAMETER: u8 = 5;
 pub const TWEAK_RANDOMIZER: u8 = 7;
 pub const TWEAK_MSG: u8 = 12;
-/// A pruned key's surrogate siblings.
-pub const TWEAK_SURROGATE: u8 = 13;
-pub const TWEAK_FOREST_PRF: u8 = 14;
-pub const TWEAK_FOREST_CHAIN: u8 = 15;
-/// The leaf of a subtree: a small WOTS key's chain tops.
-pub const TWEAK_FOREST_KEY_LEAF: u8 = 16;
-pub const TWEAK_FOREST_SUBNODE: u8 = 17;
-/// The leaf of a tree: the top nodes of its two subtrees.
-pub const TWEAK_FOREST_TREE_LEAF: u8 = 18;
-pub const TWEAK_FOREST_NODE: u8 = 19;
-/// The few-time public key: the top nodes of the trees.
-pub const TWEAK_FOREST_KEY: u8 = 20;
 
 /// The address of a hash call: its type, a chain step, and two fields,
 /// `hi < 2^24` and `lo`.
@@ -81,29 +75,31 @@ pub fn hasher(pp: &PublicParam, tw: &Tweak) -> Hasher {
     hasher
 }
 
-fn truncate(output: [u8; 32]) -> Digest {
-    output[..N].try_into().unwrap()
-}
-
-/// The seed the scheme derives from: the hash of [`SEED_TAG`] then the key's seed.
-pub fn scheme_seed(seed: &MasterSecret) -> MasterSecret {
-    Hasher::new().update(SEED_TAG).update(seed).finalize()
-}
-
 /// `Th` over a byte payload.
 pub fn th(pp: &PublicParam, tw: &Tweak, payload: &[u8]) -> Digest {
-    truncate(hasher(pp, tw).update(payload).finalize())
-}
-
-/// Two secrets for one hash: the two halves of the untruncated hash of the seed.
-pub fn th_pair(pp: &PublicParam, tw: &Tweak, master: &MasterSecret) -> [Digest; 2] {
-    let output = hasher(pp, tw).update(master).finalize();
-    [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]
+    hasher(pp, tw).update(payload).finalize()[..N].try_into().unwrap()
 }
 
 /// `Th` over a concatenation of digests: a Merkle node, a leaf, a few-time key.
 pub fn th_digests(pp: &PublicParam, tw: &Tweak, values: &[Digest]) -> Digest {
-    truncate(hasher(pp, tw).update(values.as_flattened()).finalize())
+    th(pp, tw, values.as_flattened())
+}
+
+/// Two secrets for one hash: the two halves of the untruncated hash of the seed.
+pub fn th_pair(pp: &PublicParam, tw: &Tweak, seed: &[u8; 32]) -> [Digest; 2] {
+    let output = hasher(pp, tw).update(seed).finalize();
+    [output[..N].try_into().unwrap(), output[N..].try_into().unwrap()]
+}
+
+/// The seed a scheme derives from: the hash of the scheme's `tag` then the key's
+/// seed, so no two schemes derive from the same bytes.
+pub fn tagged_seed(tag: &[u8], seed: &[u8; 32]) -> [u8; 32] {
+    Hasher::new().update(tag).update(seed).finalize()
+}
+
+/// The public parameter, derived from the scheme's seed under `P = 0`.
+pub fn public_param(seed: &[u8; 32]) -> PublicParam {
+    th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), seed)
 }
 
 #[cfg(test)]
@@ -112,7 +108,7 @@ mod tests {
 
     #[test]
     fn address_layout() {
-        let tw = tweak(TWEAK_FOREST_NODE, 0x123456, 0x89abcdef).step(5);
+        let tw = tweak(19, 0x123456, 0x89abcdef).step(5);
         assert_eq!(address(&tw)[..8], [0xef, 0xcd, 0xab, 0x89, 0x56, 0x34, 0x12, 0xb3]);
         assert_eq!(address(&tw)[8..], [0; 8]);
         let pp: PublicParam = std::array::from_fn(|i| i as u8 + 1);

@@ -170,31 +170,37 @@ impl Hasher {
         self
     }
 
-    /// Compresses a full buffered block now rather than when more input arrives.
-    /// For a prefix ending on a block boundary that is cloned and extended many
-    /// times, which then pays for that block once; more input must follow.
-    pub fn flush(&mut self) -> &mut Self {
+    /// The input so far as the prefix of many inputs, a full buffered block
+    /// compressed now so that each of them pays for it once.
+    pub fn prefix(mut self) -> Prefix {
         if self.buf_len == BLOCK_LEN {
             self.counter += BLOCK_LEN as u64;
             compress(&mut self.h, &block_words(&self.buf), self.counter, false);
             self.buf_len = 0;
         }
-        self
+        Prefix(self)
     }
 
     pub fn finalize(&self) -> [u8; OUT_LEN] {
-        // Only `flush` leaves a compressed block with nothing buffered after it, and that
-        // block was compressed as not the last.
-        assert!(
-            self.buf_len > 0 || self.counter == 0,
-            "a flushed block must be followed by more input"
-        );
         let mut h = self.h;
         let mut block = self.buf;
         block[self.buf_len..].fill(0);
         let t = self.counter + self.buf_len as u64;
         compress(&mut h, &block_words(&block), t, true);
         state_bytes(&h)
+    }
+}
+
+/// A [`Hasher::prefix`], hashed with each tail.
+#[derive(Clone)]
+pub struct Prefix(Hasher);
+
+impl Prefix {
+    /// The hash of the prefix then `tail`, which must not be empty: the prefix's last
+    /// block was compressed as not the last.
+    pub fn hash(&self, tail: &[u8]) -> [u8; OUT_LEN] {
+        assert!(!tail.is_empty(), "a prefix is followed by input");
+        self.0.clone().update(tail).finalize()
     }
 }
 
@@ -355,17 +361,15 @@ mod tests {
     }
 
     #[test]
-    fn flushed_prefix_hashes_the_whole_input() {
+    fn prefix_hashes_the_whole_input() {
         let data = pattern(200);
         for prefix in [0usize, 50, 64, 128] {
+            let mut hasher = Hasher::new();
+            hasher.update(&data[..prefix]);
+            let hasher = hasher.prefix();
             for rest in [1usize, 16, 64, 70] {
-                let mut hasher = Hasher::new();
-                hasher
-                    .update(&data[..prefix])
-                    .flush()
-                    .update(&data[prefix..prefix + rest]);
                 assert_eq!(
-                    hasher.finalize(),
+                    hasher.hash(&data[prefix..prefix + rest]),
                     hash(&data[..prefix + rest]),
                     "prefix {prefix}, rest {rest}"
                 );

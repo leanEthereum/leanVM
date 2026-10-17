@@ -257,7 +257,7 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak` in `crates/sphincs`): its type `tag < 32`, a chain step
+/-- The address of a hash call (`Tweak` in `crates/signatures/src/sphincs`): its type `tag < 32`, a chain step
 `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   tag : BitVec 5

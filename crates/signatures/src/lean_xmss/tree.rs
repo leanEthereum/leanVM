@@ -2,9 +2,7 @@
 //! key's trees hold every leaf; a mock key's hold a range, every node outside it a
 //! pseudorandom filler.
 
-use serde::{Deserialize, Serialize};
-
-use crate::*;
+use crate::lean_xmss::*;
 
 /// The Merkle parent at `level` and index `j` of `layer`.
 pub fn node(pp: &PublicParam, layer: usize, level: usize, j: u32, children: &[Digest; 2]) -> Digest {
@@ -15,7 +13,6 @@ fn filler(pp: &PublicParam, seed: &Seed, layer: usize, level: usize, j: u32) -> 
     th(pp, &tweak(TWEAK_FILLER, layer_hi(layer, level as u32), j), seed)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct LayerTree {
     layer: usize,
     /// The index of leaf 0 on its layer: the bottom tree's first leaf index, or 0.
@@ -40,15 +37,15 @@ impl LayerTree {
             levels: vec![leaves],
         };
         for level in 1..=LAYER_HEIGHT {
-            let up = ((first >> level)..=(last >> level))
-                .map(|j| {
-                    let children = [
-                        tree.at(pp, seed, level - 1, 2 * j),
-                        tree.at(pp, seed, level - 1, 2 * j + 1),
-                    ];
-                    node(pp, layer, level, (base >> level) + j, &children)
-                })
-                .collect();
+            let start = first >> level;
+            let up = parallel::map_collect(((last >> level) - start + 1) as usize, |k| {
+                let j = start + k as u32;
+                let children = [
+                    tree.at(pp, seed, level - 1, 2 * j),
+                    tree.at(pp, seed, level - 1, 2 * j + 1),
+                ];
+                node(pp, layer, level, (base >> level) + j, &children)
+            });
             tree.levels.push(up);
         }
         tree
@@ -61,15 +58,6 @@ impl LayerTree {
         } else {
             filler(pp, seed, self.layer, level, (self.base >> level) + j)
         }
-    }
-
-    /// Whether the tree has the shape [`Self::build`] gives these arguments.
-    pub(crate) fn spans(&self, layer: usize, base: u32, first: u32, last: u32) -> bool {
-        (self.layer, self.base, self.first, self.last) == (layer, base, first, last)
-            && first <= last
-            && last >> LAYER_HEIGHT == 0
-            && self.levels.len() == LAYER_HEIGHT + 1
-            && (0..=LAYER_HEIGHT).all(|l| self.levels[l].len() == ((last >> l) - (first >> l) + 1) as usize)
     }
 
     pub(crate) fn root(&self) -> Digest {

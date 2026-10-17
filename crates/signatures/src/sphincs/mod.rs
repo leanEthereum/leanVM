@@ -11,24 +11,14 @@
 //! pruned: it keeps one subtree of height `b` and replaces the `h - b` siblings
 //! above it by pseudorandom nodes, which trades lifetime for key generation.
 
-#![cfg_attr(not(test), warn(unused_crate_dependencies))]
-
 mod hash;
 pub use hash::*;
 mod wots;
 pub use wots::*;
 mod forest;
 pub use forest::*;
-mod sphincs;
-pub use sphincs::*;
-
-/// `n`: hash value and Merkle node length, in bytes.
-pub const N: usize = 16;
-pub type Digest = [u8; N];
-
-/// The public parameter derived from the seed.
-pub const PUBLIC_PARAM_LEN: usize = 16;
-pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
+mod scheme;
+pub use scheme::*;
 
 /// The seed every secret is derived from.
 pub const MASTER_SECRET_LEN: usize = 32;

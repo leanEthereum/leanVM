@@ -4,7 +4,7 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 /-!
 # leanXMSS
 
-The scheme of `crates/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS of height 16 over
+The scheme of `crates/signatures/src/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS of height 16 over
 WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`; a leaf index
 `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`.
 
@@ -110,7 +110,7 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The address of a hash call (`Tweak` in `crates/lean_xmss`): its type `tag < 32`, a chain step
+/-- The address of a hash call (`Tweak` in `crates/signatures/src/lean_xmss`): its type `tag < 32`, a chain step
 `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   tag : BitVec 5

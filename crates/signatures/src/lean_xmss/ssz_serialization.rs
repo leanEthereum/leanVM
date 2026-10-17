@@ -12,7 +12,7 @@
 
 pub use ssz::{Decode, DecodeError, Encode};
 
-use crate::*;
+use crate::lean_xmss::*;
 
 /// SSZ length of an encoded public key. Equal to [`PUB_KEY_SIZE`]: both encodings
 /// concatenate the same fixed-size fields.

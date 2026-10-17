@@ -1,6 +1,6 @@
 //! Keys real only over a short range of leaf indices, every node over no leaf in it
 //! a pseudorandom filler. In that range they sign like a full key, and verify with
-//! [`crate::verify`], for a fraction of its key generation. For tests and
+//! [`crate::lean_xmss::verify`], for a fraction of its key generation. For tests and
 //! benchmarks: signing outside the range panics.
 //!
 //! A seed must back ONE key: never a mock key and the full key, nor two mock keys
@@ -10,7 +10,7 @@
 
 use std::ops::RangeInclusive;
 
-use crate::*;
+use crate::lean_xmss::*;
 
 /// A key whose trees hold only the leaf indices `leaves`.
 #[derive(Debug)]
@@ -37,7 +37,7 @@ pub fn key_gen_from_seed(seed: Seed, first: LeafIndex, last: LeafIndex) -> (Mock
     )
 }
 
-/// [`crate::sign`], in the key's range.
+/// [`crate::lean_xmss::sign`], in the key's range.
 pub fn sign(
     sk: &MockSecretKey,
     message: &Message,

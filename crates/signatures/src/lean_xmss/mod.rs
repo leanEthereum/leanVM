@@ -9,27 +9,18 @@
 //!
 //! [leanXMSS specification]: https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf
 
-#![cfg_attr(not(test), warn(unused_crate_dependencies))]
-
 mod hash;
 pub use hash::*;
 mod wots;
 pub use wots::*;
 mod tree;
 use tree::*;
-mod lean_xmss;
-pub use lean_xmss::*;
+mod scheme;
+pub use scheme::*;
 mod ssz_serialization;
 pub use ssz_serialization::*;
 #[cfg(feature = "mock")]
 pub mod mock;
-
-/// `n`: hash value and Merkle node length, in bytes.
-pub const N: usize = 16;
-pub type Digest = [u8; N];
-
-pub const PUBLIC_PARAM_LEN: usize = 16;
-pub type PublicParam = [u8; PUBLIC_PARAM_LEN];
 
 /// The seed every secret is derived from.
 pub const SEED_LEN: usize = 32;

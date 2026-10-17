@@ -16,7 +16,7 @@ fn public_api_end_to_end() {
     for (leaf_index, (message, count)) in (7..).zip([(MSG_0, 3), (MSG_1, 4), (MSG_2, 1)]) {
         for (secret_key, pub_key) in &keys[..count] {
             let signature = lean_xmss::sign(secret_key, &message, leaf_index).unwrap();
-            lean_xmss_input.push((pub_key.clone(), message, signature));
+            lean_xmss_input.push((*pub_key, message, signature));
         }
     }
 

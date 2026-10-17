@@ -44,14 +44,15 @@ use std::ops::Range;
 use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS};
 pub use lean_da::{DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS};
-use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use leanvm_core::cpu::{Program, ProveError, from_scalar, prove, public_input_bytes, scalar_proof, to_scalar};
 use leanvm_core::leaf::{Block, Coord};
 use leanvm_core::transcript::FiatShamirState;
 use primitives::field::{F64, F192, G, g_pow};
 use primitives::multilinear::mle_eval_par;
+use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
+use signatures::{lean_xmss, sphincs};
 
-use sphincs::{SphincsPublicKey, SphincsSignature};
+use signatures::sphincs::{SphincsPublicKey, SphincsSignature};
 
 /// One leanXMSS claim: a pubkey, and the message it signed at whatever leaf index its
 /// signature carries.
@@ -114,25 +115,11 @@ const _: () = assert!(SIGNERS_COUNT_BITS + 6 + SIGNERS_WINDOW.ilog2() <= 64);
 const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BYTECODE_SELECTORS);
 // Both schemes' one-time keys go through the guest's one WOTS+C walk: the same chain
 // length, digits dispatched DIGIT_GROUP at a time and the last chain alone, and the
-// same address for a one-time leaf, a node and a message digest. A chain step's
-// address shares its type, leanXMSS's leaving out the chain index, which follows the
-// value.
+// same address types (`primitives::hash`'s). A chain step's address leaves out the
+// chain index in leanXMSS, where it follows the value.
 const DIGIT_GROUP: usize = 3;
 const _: () = assert!(sphincs::W * sphincs::V == 128 && sphincs::V % DIGIT_GROUP == 1);
 const _: () = assert!(lean_xmss::W == sphincs::W && lean_xmss::V % DIGIT_GROUP == 1);
-const _: () = {
-    let shared = [
-        (lean_xmss::TWEAK_CHAIN, sphincs::TWEAK_CHAIN),
-        (lean_xmss::TWEAK_LEAF, sphincs::TWEAK_LEAF),
-        (lean_xmss::TWEAK_NODE, sphincs::TWEAK_NODE),
-        (lean_xmss::TWEAK_MSG, sphincs::TWEAK_MSG),
-    ];
-    let mut k = 0;
-    while k < shared.len() {
-        assert!(shared[k].0 == shared[k].1);
-        k += 1;
-    }
-};
 // leanXMSS's one-time leaf fills whole blocks, and a leaf index is the two layers'
 // indices, which the guest decomposes into bits at once.
 const _: () = assert!((2 + lean_xmss::V).is_multiple_of(4));
@@ -237,26 +224,23 @@ fn claim_list_digest(claims: impl IntoIterator<Item = [F192; 4]>) -> [F192; 2] {
     pack_hash_state(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
 }
 
-/// A leanXMSS claim as the four cells the guest hashes and `verify_lean_xmss` reads: the
-/// pubkey's root and public parameter, then the message that pubkey signed.
-fn lean_xmss_claim_cells((pk, message): &LeanXmssClaim) -> [F192; 4] {
+/// A claim as the four cells the guest hashes and its verifier reads: the pubkey's
+/// root and public parameter (`flatten`), then the message that pubkey signed.
+fn claim_cells(pk: &[u8; 32], message: &[u8; 32]) -> [F192; 4] {
     [
-        pack_16_bytes(&pk.merkle_root),
-        pack_16_bytes(&pk.public_param),
+        pack_16_bytes(&pk[..16]),
+        pack_16_bytes(&pk[16..]),
         pack_16_bytes(&message[..16]),
         pack_16_bytes(&message[16..]),
     ]
 }
 
-/// A SPHINCS claim as the four cells the guest hashes and `verify_sig_sphincs`
-/// reads, laid out as a leanXMSS one is.
+fn lean_xmss_claim_cells((pk, message): &LeanXmssClaim) -> [F192; 4] {
+    claim_cells(&pk.flatten(), message)
+}
+
 fn sphincs_claim_cells((pk, message): &SphincsClaim) -> [F192; 4] {
-    [
-        pack_16_bytes(&pk.root),
-        pack_16_bytes(&pk.public_param),
-        pack_16_bytes(&message[..16]),
-        pack_16_bytes(&message[16..]),
-    ]
+    claim_cells(&pk.flatten(), message)
 }
 
 /// The signer-set digest: plain BLAKE2s of the leanXMSS list's digest then the SPHINCS
@@ -1691,11 +1675,6 @@ type SubHints = Vec<(&'static str, Vec<F192>)>;
 pub(crate) struct Hints(Vec<(String, Vec<Vec<F192>>)>);
 
 impl Hints {
-    #[cfg(test)]
-    fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
     fn push(&mut self, name: &str, entry: Vec<F192>) {
         match self.0.iter_mut().find(|(n, _)| n == name) {
             Some((_, entries)) => entries.push(entry),
@@ -1860,41 +1839,29 @@ fn digit_hints(codeword: &[u8]) -> impl Iterator<Item = Vec<F192>> + '_ {
 /// One leanXMSS signature's witness: the bits of its leaf index, then per layer,
 /// bottom first, the randomizer, the codeword's digits, the chain values they start
 /// from, and the ordered children of every node on the path.
-fn push_lean_xmss_hints(
-    hints: &mut Hints,
+fn lean_xmss_hints(
     pk: &LeanXmssPublicKey,
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
-) -> Result<(), AggregationError> {
+) -> Result<SubHints, AggregationError> {
     let pp = &pk.public_param;
-    // Buffered, so a signature that does not walk leaves no hint behind.
-    let mut layer_hints: SubHints = Vec::new();
+    let bits = (0..lean_xmss::LOG_LIFETIME).map(|b| F192::new(u64::from(sig.leaf_index >> b & 1), 0, 0));
+    let mut hints: SubHints = vec![("leaf_index_bits", bits.collect())];
     let mut root: Vec<u8> = message.to_vec();
     for (layer, layer_sig) in [&sig.bottom, &sig.top].into_iter().enumerate() {
         let e = lean_xmss::layer_index(sig.leaf_index, layer);
-        let digest = lean_xmss::message_digest(pp, layer, e, &layer_sig.randomizer, &root);
-        let codeword = lean_xmss::codeword(&digest).ok_or(AggregationError::MalformedRawSignature)?;
-        layer_hints.push(("randomizer", vec![pack_16_bytes(&layer_sig.randomizer)]));
-        layer_hints.extend(digit_hints(&codeword).map(|entry| ("digits", entry)));
-        for value in &layer_sig.chain_values {
-            layer_hints.push(("chain_starts", vec![pack_16_bytes(value)]));
-        }
-        let reached = lean_xmss::layer_root(pp, layer, e, &root, layer_sig, |pair| {
-            layer_hints.push(("siblings", vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])]));
+        let (codeword, reached) = lean_xmss::layer_root(pp, layer, e, &root, layer_sig, |pair| {
+            hints.push(("siblings", vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])]));
         })
         .ok_or(AggregationError::MalformedRawSignature)?;
+        hints.push(("randomizer", vec![pack_16_bytes(&layer_sig.randomizer)]));
+        hints.extend(digit_hints(&codeword).map(|entry| ("digits", entry)));
+        for value in &layer_sig.chain_values {
+            hints.push(("chain_starts", vec![pack_16_bytes(value)]));
+        }
         root = reached.to_vec();
     }
-    hints.push(
-        "leaf_index_bits",
-        (0..lean_xmss::LOG_LIFETIME)
-            .map(|b| F192::new(u64::from(sig.leaf_index >> b & 1), 0, 0))
-            .collect(),
-    );
-    for (name, entry) in layer_hints {
-        hints.push(name, entry);
-    }
-    Ok(())
+    Ok(hints)
 }
 
 /// One SPHINCS signature's witness: the randomizer, the forest's opened chain
@@ -2032,7 +1999,7 @@ pub fn aggregate_with_stats(
     // On the whole (pubkey, message) pair, so a signer may appear once per message. One
     // claim needs one signature, whatever leaf index a leanXMSS one carries.
     let mut raw_lean_xmss = raw_lean_xmss;
-    raw_lean_xmss.sort_by(|(a, am, _), (b, bm, _)| (a, am).cmp(&(b, bm)));
+    raw_lean_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_lean_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
     let mut raw_sphincs = raw_sphincs;
     raw_sphincs.sort_by_key(|(pk, message, _)| (*pk, *message));
@@ -2067,10 +2034,7 @@ pub fn aggregate_with_stats(
     drop(_span);
 
     let _span = tracing::info_span!("Build witness").entered();
-    let raw_xmss_claims: Vec<LeanXmssClaim> = raw_lean_xmss
-        .iter()
-        .map(|(pk, message, _)| (pk.clone(), *message))
-        .collect();
+    let raw_xmss_claims: Vec<LeanXmssClaim> = raw_lean_xmss.iter().map(|(pk, message, _)| (*pk, *message)).collect();
     let raw_sphincs_claims: Vec<SphincsClaim> = raw_sphincs.iter().map(|(pk, message, _)| (*pk, *message)).collect();
     let cover = plan_coverage(&raw_xmss_claims, &raw_sphincs_claims, children, declare)?;
     let da_contributions =
@@ -2113,9 +2077,15 @@ pub fn aggregate_with_stats(
     }
     // Each slot is hinted as an offset into its scheme's region, which is how one
     // range check keeps a scheme's writers off the other's claims.
-    for (&offset, (pk, message, sig)) in cover.xmss.raw.iter().zip(&raw_lean_xmss) {
+    let lean_xmss_hints = parallel::map_collect(raw_lean_xmss.len(), |i| {
+        let (pk, message, sig) = &raw_lean_xmss[i];
+        lean_xmss_hints(pk, sig, message)
+    });
+    for (&offset, sub) in cover.xmss.raw.iter().zip(lean_xmss_hints) {
         hints.push("raw_index", vec![count(offset)]);
-        push_lean_xmss_hints(&mut hints, pk, sig, message)?;
+        for (name, entry) in sub? {
+            hints.push(name, entry);
+        }
     }
     for (&offset, (pk, message, sig)) in cover.sphincs.raw.iter().zip(&raw_sphincs) {
         hints.push("sp_raw_index", vec![count(offset)]);
@@ -3003,7 +2973,7 @@ mod tests {
     ) -> Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)> {
         signers
             .iter()
-            .map(|(pk, sig)| (pk.clone(), message_for(message_id), sig.clone()))
+            .map(|(pk, sig)| (*pk, message_for(message_id), sig.clone()))
             .collect()
     }
 
@@ -3867,7 +3837,7 @@ def main():
         narrow.verify().expect("the one-message narrowing verifies");
         assert_eq!(narrow.xmss_signers, on_b);
 
-        let one = vec![(at_a[0].0.clone(), message())];
+        let one = vec![(at_a[0].0, message())];
         let part = narrowed(&wide, &only(one.clone())).expect("narrows to one claim");
         part.verify().expect("the one-claim narrowing verifies");
         assert_eq!(part.xmss_signers, one);
@@ -3879,12 +3849,12 @@ def main():
         );
         // A pubkey that signed A only, declared on B: the cache reuses pubkeys.
         assert_eq!(
-            narrowed(&wide, &only(vec![(at_a[2].0.clone(), message_for(MESSAGE_B))])).err(),
+            narrowed(&wide, &only(vec![(at_a[2].0, message_for(MESSAGE_B))])).err(),
             Some(AggregationError::NotCovered)
         );
         // A covered pubkey, against a message nobody signed.
         assert_eq!(
-            narrowed(&wide, &only(vec![(at_a[0].0.clone(), message_for(MESSAGE_B + 1))])).err(),
+            narrowed(&wide, &only(vec![(at_a[0].0, message_for(MESSAGE_B + 1))])).err(),
             Some(AggregationError::NotCovered)
         );
     }
@@ -3897,7 +3867,7 @@ def main():
         let b = get_signers_for(1, MESSAGE_B);
         let mut raw = signing(&a, 0);
         raw.extend(signing(&b, MESSAGE_B));
-        let claim_b = vec![(b[0].0.clone(), message_for(MESSAGE_B))];
+        let claim_b = vec![(b[0].0, message_for(MESSAGE_B))];
         let sig = aggregate(
             &[],
             raw,
@@ -4128,12 +4098,10 @@ def main():
             top: layer,
         };
 
-        let mut hints = Hints::default();
         assert_eq!(
-            push_lean_xmss_hints(&mut hints, &pk, &sig, &message),
-            Err(AggregationError::MalformedRawSignature)
+            lean_xmss_hints(&pk, &sig, &message).err(),
+            Some(AggregationError::MalformedRawSignature)
         );
-        assert!(hints.is_empty());
         assert_eq!(
             aggregate(&[], vec![(pk, message, sig)], vec![], &[], None, LOG_INV_RATE).err(),
             Some(AggregationError::MalformedRawSignature)

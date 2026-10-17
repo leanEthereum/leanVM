@@ -1,4 +1,4 @@
-use sphincs::*;
+use signatures::sphincs::*;
 
 fn seed(x: u8) -> MasterSecret {
     std::array::from_fn(|i| x.wrapping_mul(31).wrapping_add(i as u8))
