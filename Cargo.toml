@@ -26,6 +26,7 @@ xmss = { path = "crates/xmss" }
 sphincs = { path = "crates/sphincs" }
 parallel = { path = "crates/parallel" }
 verifier = { path = "crates/verifier" }
+binary_spartan = { path = "crates/binary_spartan" }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 bincode = "1"

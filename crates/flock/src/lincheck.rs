@@ -31,6 +31,8 @@
 //!
 //! The prover partially folds the witness at the shared outer point and forms the column marginal of `A + α B + α² I`, with a constant-wire pin at `α³`. A product sumcheck reduces its inner product to the final `2^k_skip` witness slices, which the prover sends after the rounds. The verifier reconstructs the terminal marginal through the circuit's bilinear form; ring switching binds the slices to the commitment.
 //!
+//! A circuit whose `C_0` is not the identity says so ([`LincheckCircuit::c_is_identity`]) and folds `α² C_0` into its own marginal; the protocol is otherwise unchanged.
+//!
 //! ## Quirky (univariate-skip) claim points
 //!
 //! To compose with the **zerocheck's univariate skip** for the first `k_skip`
@@ -127,6 +129,12 @@ pub trait LincheckCircuit: Sync {
     /// padding included. The term rides a power of `α`, so it costs no
     /// transcript message.
     fn const_pin_col(&self) -> usize;
+
+    /// Whether `C_0 = I`. When true (the default) lincheck adds the `α²·eq` comb term itself and
+    /// `fold_alpha_batched` covers A and B only. When false it covers `A_0 + α·B_0 + α²·C_0`.
+    fn c_is_identity(&self) -> bool {
+        true
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +169,8 @@ pub struct QuirkyPoint {
 /// `r_inner_rest` combined with `x_ab.x_outer` (publicly known to the caller).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LincheckClaim {
+    /// The challenge batching the A, B and C claims and the constant pin.
+    pub alpha: F192,
     /// The sumcheck round challenges in LSB-first coordinate order, length `k_log − k_skip`.
     pub r_inner_rest: Vec<F192>,
     /// The transmitted post-sumcheck vector: the 64 bit-slice values of `z` at
@@ -1064,14 +1074,16 @@ pub fn prove_padded_capture_s_hat_v(
         tracing::info_span!("Eq table").in_scope(|| build_quirky_eq_table(x_ab.z_skip, &x_ab.x_inner_rest, k_skip));
     let mut comb_vec = tracing::info_span!("Fold circuit").in_scope(|| circuit.fold_alpha_batched(alpha, &eq_inner));
 
-    // 3. The zerocheck's c-claim, at α². `C = I`, so `ĉ(x_ab)` is the z-claim
+    // 3. The zerocheck's c-claim, at α². When `C = I`, `ĉ(x_ab)` is the z-claim
     //    `Σ_j eq_inner[j]·ẑ(j, x_outer)`: the same row weights the matrices are
     //    folded against, which is why it costs one pass over a length-k vector
     //    and no extra sumcheck. It is what makes the AB and C claims come out
-    //    of lincheck at ONE point.
+    //    of lincheck at ONE point. A general `C_0` is already in the circuit's fold.
     let alpha_sq = alpha.square();
-    for (c, e) in comb_vec.iter_mut().zip(&eq_inner) {
-        *c += alpha_sq * *e;
+    if circuit.c_is_identity() {
+        for (c, e) in comb_vec.iter_mut().zip(&eq_inner) {
+            *c += alpha_sq * *e;
+        }
     }
 
     // 4. Constant-wire pin, at β = α³. Fold β·eq(j*, ·) into the comb so the
@@ -1138,6 +1150,7 @@ pub fn prove_padded_capture_s_hat_v(
     r_inner_rest.reverse();
 
     LincheckClaim {
+        alpha,
         r_inner_rest,
         s_hat_v: z_partial,
     }

@@ -52,7 +52,7 @@ fn window_denominator(count: usize) -> E {
 }
 
 /// The barycentric weights of `PHI[:count]` at `point`, by prefix and suffix numerator products.
-fn lagrange_weights(count: usize, point: E) -> Vec<E> {
+pub(crate) fn lagrange_weights(count: usize, point: E) -> Vec<E> {
     let differences: Vec<E> = (0..count).map(|node| point + phi(node)).collect();
     let mut prefix = vec![ONE; count + 1];
     let mut suffix = vec![ONE; count + 1];
@@ -68,7 +68,7 @@ fn lagrange_interpolate(count: usize, values: &[E], point: E) -> E {
     dot(&lagrange_weights(count, point), values)
 }
 
-struct ZerocheckResult {
+pub(crate) struct ZerocheckResult {
     z_skip: E,
     chi: Vec<E>,
     v_a: E,
@@ -78,7 +78,10 @@ struct ZerocheckResult {
 
 /// The zerocheck: one univariate skip round, then nflock quadratic ones.
 /// C rides those rounds with AB, so all three claims come out at one point.
-fn verify_flock_zerocheck(log_n: usize, transcript: &mut Transcript) -> Result<ZerocheckResult, VerifierError> {
+pub(crate) fn verify_flock_zerocheck(
+    log_n: usize,
+    transcript: &mut Transcript,
+) -> Result<ZerocheckResult, VerifierError> {
     // The point r: seven fixed coordinates, the rest sampled.
     let mut r: Vec<Option<E>> = fixed_challenges().map(Some).into();
     let sampled = transcript.samples(log_n - FLOCK_K_SKIP - N_FIXED_CHALLENGES);
@@ -119,56 +122,74 @@ pub struct FlockClaims {
 impl FlockClaims {
     /// The point the slices are claims at: the lincheck's challenges in coordinate order, then the rest of chi.
     pub(crate) fn point(&self) -> Vec<E> {
-        let chi_in_prime = self.round_challenges.iter().rev().copied();
-        let rest = self.chi[FLOCK_NUM_LINCHECK_ROUNDS..].iter().copied();
-        chi_in_prime.chain(rest).collect()
+        let rest = self.chi[self.round_challenges.len()..].iter().copied();
+        self.chi_in_prime().into_iter().chain(rest).collect()
     }
-}
 
-/// Lincheck at the quirky point (z_skip, chi): its 64 slices s, claims at [`FlockClaims::point`].
-fn verify_flock_lincheck(zc: ZerocheckResult, transcript: &mut Transcript) -> Result<FlockClaims, VerifierError> {
-    let alpha = transcript.sample(); // batches the two matrix identities, the c claim and the constant-position claim
+    /// The row coordinates the lincheck rounds ran over, past the skip.
+    pub(crate) fn chi_in(&self) -> &[E] {
+        &self.chi[..self.round_challenges.len()]
+    }
 
-    // The 8 rounds that bind the high column coordinates, leaving 64 unfolded.
-    let claim = zc.v_a + alpha * zc.v_b + alpha.pow(2) * zc.v_c + alpha.pow(3);
-    let (round_challenges, r_lc) = sumcheck(transcript, claim, 3, &[None; FLOCK_NUM_LINCHECK_ROUNDS])?;
+    /// The lincheck's challenges in coordinate order.
+    pub(crate) fn chi_in_prime(&self) -> Vec<E> {
+        self.round_challenges.iter().rev().copied().collect()
+    }
 
-    // The residual, then the terminal identity: pin term and c term included.
-    let s = transcript.next_scalars(K_BITS)?;
-    if transcript.checked() {
-        // e_row: phi8 Lagrange in the skip coordinate, eq in the slot variables.
-        let skip_weights = lagrange_weights(K_BITS, zc.z_skip);
-        let chi_in = &zc.chi[..FLOCK_NUM_LINCHECK_ROUNDS];
-        // C = I, so the c weight is e_row itself, and both sides being tensors it
-        // collapses to eq(chi_in, chi_in_prime) times a 64-term Lagrange combination.
-        let chi_in_prime: Vec<E> = round_challenges.iter().rev().copied().collect();
-        // w_col = eq(chi_in_prime) ⊗ s, a column of it per slice: each slice multiplies the whole eq table.
-        let high = eq_kernel(&chi_in_prime);
+    /// The terminal's column weights `w_col = eq(chi_in_prime) ⊗ s`, a column of it per slice: each slice multiplies
+    /// the whole eq table.
+    pub(crate) fn column_weights(&self) -> Vec<E> {
+        let high = eq_kernel(&self.chi_in_prime());
         let mut w_col = vec![ZERO; high.len() * K_BITS];
-        for (l, &slice) in s.iter().enumerate() {
+        for (l, &slice) in self.s.iter().enumerate() {
             let slice = Scaled::new(slice);
             for (h, &weight) in high.iter().enumerate() {
                 w_col[h * K_BITS + l] = slice.mul(weight);
             }
         }
-        let (left_values, right_values) = blake2s_row_values(&w_col);
-        // e_row = eq(chi_in) ⊗ skip_weights, never built: each block of 64 rows meets the skip weights, a column at a
-        // time, then chi_in folds the blocks.
-        let (mut left_blocks, mut right_blocks) = (vec![ZERO; high.len()], vec![ZERO; high.len()]);
-        for (l, &weight) in skip_weights.iter().enumerate() {
+        w_col
+    }
+
+    /// `e_row^T values` for each of `values`, with the row weights `e_row = eq(chi_in) ⊗ skip_weights` (phi8 Lagrange
+    /// in the skip coordinate, eq in the slot variables) never built: each block of 64 rows meets the skip weights,
+    /// a column at a time, then chi_in folds the blocks.
+    pub(crate) fn row_forms<const N: usize>(&self, values: [&[E]; N]) -> Result<[E; N], VerifierError> {
+        let blocks = 1 << self.round_challenges.len();
+        let mut folded = [(); N].map(|_| vec![ZERO; blocks]);
+        for (l, &weight) in lagrange_weights(K_BITS, self.z_skip).iter().enumerate() {
             let weight = Scaled::new(weight);
-            for (h, (left, right)) in left_blocks.iter_mut().zip(&mut right_blocks).enumerate() {
-                *left += weight.mul(left_values[h * K_BITS + l]);
-                *right += weight.mul(right_values[h * K_BITS + l]);
+            for (block, values) in folded.iter_mut().zip(values) {
+                for (h, value) in block.iter_mut().enumerate() {
+                    *value += weight.mul(values[h * K_BITS + l]);
+                }
             }
         }
-        let terminal = multilinear_eval(&left_blocks, chi_in)?
-            + alpha * multilinear_eval(&right_blocks, chi_in)?
-            + alpha.pow(2) * eq_eval(chi_in, &chi_in_prime) * dot(&skip_weights, &s)
-            + alpha.pow(3) * w_col[BLAKE2S_CONSTANT_COLUMN];
-        require(terminal == r_lc, VerifierError::FlockLincheckTerminal)?;
+        let mut forms = [ZERO; N];
+        for (form, block) in forms.iter_mut().zip(&folded) {
+            *form = multilinear_eval(block, self.chi_in())?;
+        }
+        Ok(forms)
     }
-    Ok(FlockClaims {
+}
+
+/// Lincheck at the quirky point (z_skip, chi) over `rounds` high column coordinates: its 64 slices s, claims at
+/// [`FlockClaims::point`], and the running claim the circuit's terminal identity must meet,
+/// `e_row^T (A0 + alpha B0 + alpha^2 C0) w_col + alpha^3 w_col[constant column]` ([`FlockClaims::row_forms`],
+/// [`FlockClaims::column_weights`]).
+pub(crate) fn verify_lincheck(
+    zc: ZerocheckResult,
+    rounds: usize,
+    transcript: &mut Transcript,
+) -> Result<(FlockClaims, E), VerifierError> {
+    let alpha = transcript.sample(); // batches the two matrix identities, the c claim and the constant-position claim
+
+    // The rounds that bind the high column coordinates, leaving 64 unfolded.
+    let claim = zc.v_a + alpha * zc.v_b + alpha.pow(2) * zc.v_c + alpha.pow(3);
+    let (round_challenges, running) = sumcheck(transcript, claim, 3, &vec![None; rounds])?;
+
+    // The residual, which the terminal identity closes on.
+    let s = transcript.next_scalars(K_BITS)?;
+    let claims = FlockClaims {
         z_skip: zc.z_skip,
         chi: zc.chi,
         v_a: zc.v_a,
@@ -177,7 +198,22 @@ fn verify_flock_lincheck(zc: ZerocheckResult, transcript: &mut Transcript) -> Re
         alpha,
         round_challenges,
         s,
-    })
+    };
+    Ok((claims, running))
+}
+
+/// BLAKE2s's terminal: the forward walk gives `A0 w` and `B0 w`, and `C = I`, so the c weight is e_row itself and,
+/// both sides being tensors, collapses to eq(chi_in, chi_in_prime) times a 64-term Lagrange combination.
+fn blake2s_terminal(claims: &FlockClaims) -> Result<E, VerifierError> {
+    let alpha = claims.alpha;
+    let w_col = claims.column_weights();
+    let (left_values, right_values) = blake2s_row_values(&w_col);
+    let [left, right] = claims.row_forms([&left_values, &right_values])?;
+    let skip_weights = lagrange_weights(K_BITS, claims.z_skip);
+    Ok(left
+        + alpha * right
+        + alpha.pow(2) * eq_eval(claims.chi_in(), &claims.chi_in_prime()) * dot(&skip_weights, &claims.s)
+        + alpha.pow(3) * w_col[BLAKE2S_CONSTANT_COLUMN])
 }
 
 type Word = [E; 32];
@@ -338,7 +374,14 @@ pub fn blake2s_row_values(column_weights: &[E]) -> (Vec<E>, Vec<E>) {
 /// point and the 64 claims s\[i\] = z(i, point), i < 64, for ring switching to bind.
 pub fn verify_flock(log_n: usize, transcript: &mut Transcript) -> Result<FlockClaims, VerifierError> {
     let zc = verify_flock_zerocheck(log_n, transcript)?;
-    verify_flock_lincheck(zc, transcript)
+    let (claims, running) = verify_lincheck(zc, FLOCK_NUM_LINCHECK_ROUNDS, transcript)?;
+    if transcript.checked() {
+        require(
+            blake2s_terminal(&claims)? == running,
+            VerifierError::FlockLincheckTerminal,
+        )?;
+    }
+    Ok(claims)
 }
 
 // The Frobenius shifts of the six stages composing Phi, one challenge each.

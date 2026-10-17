@@ -9,7 +9,10 @@ use crate::multilinear::{Placement, dot, eq_eval, eq_kernel, index_mle, multilin
 use crate::transcript::{Transcript, sumcheck};
 use crate::{StackClaim, VerifierError, require};
 
-fn verify_gkr_grand_products(depth: usize, transcript: &mut Transcript) -> Result<(E, Vec<E>, Vec<E>), VerifierError> {
+pub(crate) fn verify_gkr_grand_products(
+    depth: usize,
+    transcript: &mut Transcript,
+) -> Result<(E, Vec<E>, Vec<E>), VerifierError> {
     let (shared, count) = (transcript.next_scalar()?, transcript.next_scalar()?);
     let mut point: Vec<E> = Vec::new();
     let mut values = vec![shared, shared, count]; // 3 grand product GKR are batched together: push, pull, count

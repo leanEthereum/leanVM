@@ -2,12 +2,13 @@
 //!
 //! A port of `python-verifier/verifier.py`, kept close enough to read side by side: the same functions, in the same order, with the same constants.
 //!
-//! What the Python has no counterpart for sits in modules of its own: the prepared [`Bytecode`], the pruned Merkle openings a proof travels with (`merkle`), and what the statement of an aggregate adds, [`deferred`] and [`da`].
+//! What the Python has no counterpart for sits in modules of its own: the prepared [`Bytecode`], the pruned Merkle openings a proof travels with (`merkle`), what the statement of an aggregate adds, [`deferred`] and [`da`], and [`binary_spartan`], a standalone proof of Clean GF(2) circuits built on the same flock reduction and PCS.
 //!
 //! One walk of the protocol serves two entry points. [`verify_execution`] checks the proof. [`replay_unchecked`] reads the same [`Summary`] out of it and checks nothing: every check it leaves out is behind `Transcript::checked`.
 
 #![forbid(unsafe_code)]
 
+pub mod binary_spartan;
 mod bus;
 mod bytecode;
 pub mod da;
@@ -69,6 +70,10 @@ pub enum VerifierError {
     AnnouncedHighLimb,
     PcsInverseRate,
     CommittedSize,
+    /// Binary Spartan's public words are malformed: no instance, a partial instance, an unset constant or a set padding bit.
+    PublicWords,
+    SparkSumcheck,
+    SparkMemoryCheck,
 }
 
 impl std::fmt::Display for VerifierError {
@@ -99,6 +104,9 @@ impl std::fmt::Display for VerifierError {
             Self::AnnouncedHighLimb => "announced size has a nonzero high limb",
             Self::PcsInverseRate => "invalid PCS inverse rate",
             Self::CommittedSize => "committed size outside the PCS window",
+            Self::PublicWords => "malformed public words",
+            Self::SparkSumcheck => "SPARK sumcheck terminal mismatch",
+            Self::SparkMemoryCheck => "SPARK memory-checking leaf mismatch",
         };
         f.write_str(message)
     }

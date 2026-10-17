@@ -3,6 +3,7 @@ testall = ["test", "--release", "--workspace"]
 clippyall = ["clippy", "--release", "--workspace", "--all-targets", "--", "-D", "warnings"]
 docall = ["doc", "--release", "--workspace", "--no-deps"]
 leanvm = ["run", "--release", "-p", "leanvm-cli", "--"]
+binary-spartan = ["run", "--release", "-p", "binary-spartan-cli", "--"]
 
 [build]
 rustdocflags = ["-D", "warnings"]

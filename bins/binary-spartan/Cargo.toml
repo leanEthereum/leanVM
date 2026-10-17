@@ -1,0 +1,20 @@
+[package]
+name = "binary-spartan-cli"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "binary-spartan"
+path = "src/main.rs"
+# Its rustdoc would overwrite the `binary_spartan` library's (cargo#6313).
+doc = false
+
+[lints]
+workspace = true
+
+[dependencies]
+binary_spartan.workspace = true
+leanvm_core.workspace = true
+bench.workspace = true
+bincode.workspace = true

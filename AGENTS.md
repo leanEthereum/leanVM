@@ -18,7 +18,7 @@ Primary uses:
 
 ## Layout
 
-The root `Cargo.toml` is workspace-only: the libraries are in `crates/`, the CLI in `bins/`. Dependency order, leaves first:
+The root `Cargo.toml` is workspace-only: the libraries are in `crates/`, the CLIs in `bins/`. Dependency order, leaves first:
 
 | crate             | role                                                                   |
 | ----------------- | ---------------------------------------------------------------------- |
@@ -27,17 +27,18 @@ The root `Cargo.toml` is workspace-only: the libraries are in `crates/`, the CLI
 | `bench`           | benchmark harness for the CLI and the `benches/` targets: `Plan` (warmup, repeats, cooldown), `Timing`, the `--tracing` trace tree, Bencher Metric Format output (`Metric`, `bencher_json`), the global allocator (`Jemalloc`, below); never linked by the prover |
 | `fiat_shamir`     | VM-native `FiatShamirState` + the prover's side of the proof transport (`ProverState`, `Proof`, pruning Merkle openings) |
 | `pcs`             | additive NTT, Merkle, ring switch, stacked WHIR: commit and open, no verifier |
-| `flock`           | batched R1CS over GF(2) for BLAKE2s: the zerocheck + lincheck prover    |
+| `flock`           | batched R1CS over GF(2) for BLAKE2s: the zerocheck + lincheck prover (lincheck also takes a general `C_0`, for `binary_spartan`) |
 | `leanvm_core`     | arithmetization: tables, bus, constraints, `cpu::prove`; `cpu::verify` is a wrapper over `verifier` |
 | `lean_compiler`   | zkDSL (Python subset) → ISA                                            |
 | `xmss`            | XMSS over BLAKE2s; an independent leaf, consumed only by `rec_aggregation` |
 | `sphincs`         | leanSPHINCS, the stateless scheme of `doc/sphincs`; an independent leaf, consumed only by `rec_aggregation` |
 | `lean_da` | additive Reed-Solomon blob encoding, commitments, and membership vectors |
-| `verifier`        | the one native verifier, self-contained: no dependencies, no `unsafe`, no explicit SIMD, one thread; what `EthereumProof::verify` and `cpu::verify` run, and what `aggregate` reads its children with |
+| `verifier`        | the one native verifier, self-contained: no dependencies, no `unsafe`, no explicit SIMD, one thread; what `EthereumProof::verify` and `cpu::verify` run, and what `aggregate` reads its children with; `verifier::binary_spartan` verifies `binary_spartan` proofs on the same flock, GKR and WHIR code |
 | `rec_aggregation` | recursive signature and DA aggregation: the guest and public entry points |
 | `leanvm`          | the public API: re-exports of `rec_aggregation`, `xmss`, `sphincs`, `lean_da`, and the prover/verifier setup |
+| `binary_spartan`  | Spartan for Clean GF(2) block R1CS (README, "Clean circuits on binary Spartan"): flock's zerocheck and lincheck, SPARK for the block; an independent leaf, verified by `verifier::binary_spartan`, driven by `bins/binary-spartan` |
 
-`crates/leanvm/src/lib.rs` is the public API and the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there. `crates/leanvm/tests/api.rs` is the end-to-end use of the API; guests are zkDSL under `crates/rec_aggregation/guests/`. The benchmark CLI is its own package, `bins/leanvm` (`leanvm-cli`, binary `leanvm`), run with `cargo leanvm <subcommand>` (a `.cargo/config.toml` alias for `run --release -p leanvm-cli --`): `aggregate`, `recursion` and `fibonacci`, whose drivers live there, over `rec_aggregation::aggregate_with_stats`.
+`crates/leanvm/src/lib.rs` is the public API and the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there. `crates/leanvm/tests/api.rs` is the end-to-end use of the API; guests are zkDSL under `crates/rec_aggregation/guests/`. The benchmark CLI is its own package, `bins/leanvm` (`leanvm-cli`, binary `leanvm`), run with `cargo leanvm <subcommand>` (a `.cargo/config.toml` alias for `run --release -p leanvm-cli --`): `aggregate`, `recursion` and `fibonacci`, whose drivers live there, over `rec_aggregation::aggregate_with_stats`. `bins/binary-spartan` (`binary-spartan-cli`, `cargo binary-spartan prove ...`) proves Clean circuits; `examples/clean-binary/run.sh` drives it.
 
 ## Building / Testing / Formatting
 

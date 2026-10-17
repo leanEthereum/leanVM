@@ -434,6 +434,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "binary-spartan-cli"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "binary_spartan",
+ "bincode",
+ "leanvm_core",
+]
+
+[[package]]
+name = "binary_spartan"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "fiat_shamir",
+ "flock",
+ "leanvm_core",
+ "parallel",
+ "pcs",
+ "primitives",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
