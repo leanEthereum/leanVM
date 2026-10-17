@@ -258,7 +258,7 @@ pub fn message_digest(pp: &PublicParam, rho: &Randomizer, m: &Message) -> (u64, 
 
 fn digest_prefix(pp: &PublicParam, m: &Message) -> primitives::hash::Hasher {
     let mut prefix = hasher(pp, &tweak(TWEAK_MSG, 0, 0));
-    prefix.update(m);
+    prefix.update(m).flush();
     prefix
 }
 

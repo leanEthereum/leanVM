@@ -44,8 +44,9 @@ leanXMSS is a stateful hash-based signature scheme: two layers of XMSS~\cite{RFC
 \begin{itemize}
   \item \textbf{Target: NIST security level~1}~\cite{NISTPQC}.
   \item \textbf{Public key: 32 bytes.}
-  \item \textbf{Signature: $4+1200+1200=2404$ bytes}: the leaf index and the two layers.
+  \item \textbf{Signature: 2404 bytes} ($4+1200+1200$: the leaf index and the two layers).
   \item \textbf{Verification: 201 compressions} of BLAKE2s.
+  \item \textbf{Grinding: $\approx2^{20}$ randomizer trials per signature} on average, one compression each, for the bottom layer; the top layer's are paid once per bottom tree.
 \end{itemize}
 \end{abstract}
 
@@ -84,11 +85,11 @@ and the leaf $X^\ell_{0,e}=\Th(P,\addr_{\mathrm{leaf}}(\ell,e),C_{0,3}\concat\cd
 
 \paragraph{Signing.} $\OtsSign(\ell,e,M)$ computes
 \[
-  R_0=\hash\bigl(P\concat\addr_{\mathrm{rnd}}(\ell,e)\concat S\concat M\bigr),\qquad
-  \rho_c=\Th\bigl(P,\addr_{\mathrm{grind}}(\ell,c),R_0\bigr),\qquad
-  D_c=\Th\bigl(P,\addr_{\mathrm{msg}}(\ell,e),\rho_c\concat M\bigr),
+  R_0=\Th\bigl(P,\addr_{\mathrm{rnd}}(\ell,e),S\concat M\bigr),\qquad
+  \rho_c=R_0+c\bmod2^{128},\qquad
+  D_c=\Th\bigl(P,\addr_{\mathrm{msg}}(\ell,e),M\concat\rho_c\bigr),
 \]
-takes the least $c<\amax$ for which $D_c$ is a codeword $x$, and returns $\rho=\rho_c$ and $\sigma_i=C_{i,x_i}$, or $\bot$.
+reading $R_0$ and $\rho_c$ as little-endian integers, takes the least $c<\amax$ for which $D_c$ is a codeword $x$, and returns $\rho=\rho_c$ and $\sigma_i=C_{i,x_i}$, or $\bot$. A trial costs one compression: on the bottom layer, $P\concat\addr\concat M$ is a block of its own, compressed once.
 
 \paragraph{Recovering the leaf.} $\OtsLeaf(\ell,e,M,\rho,\sigma)$ recomputes $D$, returns $\bot$ unless it is a codeword $x$, walks each $\sigma_i$ from position $x_i$ to position $3$, and hashes the ends into the leaf.
 
@@ -169,7 +170,7 @@ and accepts exactly when neither $\OtsLeaf$ fails and $r'=\rootnode$.
 \[
   p=[y^{106}](1+y+y^2+y^3)^{58}/2^{128}\approx2^{-20},
 \]
-so a signature expects about $2^{20}$ trials, and all $\amax$ fail with probability below $e^{-2^{11}}$.
+so a signature expects about $2^{20}$ trials, one compression each, and all $\amax$ fail with probability below $e^{-2^{11}}$.
 
 \section{Address encoding}
 \label{sec:addresses}
@@ -180,8 +181,8 @@ An address is $\mathsf{enc}(t,\mu,\mathit{hi},\mathit{lo})=\LE_{32}(\mathit{lo})
 \toprule
 $\addr_{\mathrm{prf}}(\ell,e,j)$ & $\mathsf{enc}(0,0,\mathit{hi}_\ell(j),e)$ & $\addr_{\mathrm{param}}$ & $\mathsf{enc}(5,0,0,0)$\\
 $\addr_{\mathrm{chain}}(\ell,e,\mu)$ & $\mathsf{enc}(1,\mu,\mathit{hi}_\ell(0),e)$ & $\addr_{\mathrm{rnd}}(\ell,e)$ & $\mathsf{enc}(7,0,\mathit{hi}_\ell(0),e)$\\
-$\addr_{\mathrm{leaf}}(\ell,e)$ & $\mathsf{enc}(2,0,\mathit{hi}_\ell(0),e)$ & $\addr_{\mathrm{grind}}(\ell,c)$ & $\mathsf{enc}(8,0,\mathit{hi}_\ell(0),c)$\\
-$\addr_{\mathrm{node}}(\ell,\lambda,j)$ & $\mathsf{enc}(3,0,\mathit{hi}_\ell(\lambda),j)$ & $\addr_{\mathrm{msg}}(\ell,e)$ & $\mathsf{enc}(12,0,\mathit{hi}_\ell(0),e)$\\
+$\addr_{\mathrm{leaf}}(\ell,e)$ & $\mathsf{enc}(2,0,\mathit{hi}_\ell(0),e)$ & $\addr_{\mathrm{msg}}(\ell,e)$ & $\mathsf{enc}(12,0,\mathit{hi}_\ell(0),e)$\\
+$\addr_{\mathrm{node}}(\ell,\lambda,j)$ & $\mathsf{enc}(3,0,\mathit{hi}_\ell(\lambda),j)$ & & \\
 \bottomrule
 \end{tabular}
 \end{center}

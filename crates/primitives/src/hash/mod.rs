@@ -170,6 +170,18 @@ impl Hasher {
         self
     }
 
+    /// Compresses a full buffered block now rather than when more input arrives.
+    /// For a prefix ending on a block boundary that is cloned and extended many
+    /// times, which then pays for that block once; more input must follow.
+    pub fn flush(&mut self) -> &mut Self {
+        if self.buf_len == BLOCK_LEN {
+            self.counter += BLOCK_LEN as u64;
+            compress(&mut self.h, &block_words(&self.buf), self.counter, false);
+            self.buf_len = 0;
+        }
+        self
+    }
+
     pub fn finalize(&self) -> [u8; OUT_LEN] {
         let mut h = self.h;
         let mut block = self.buf;
@@ -332,6 +344,25 @@ mod tests {
                         );
                     }
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn flushed_prefix_hashes_the_whole_input() {
+        let data = pattern(200);
+        for prefix in [0usize, 50, 64, 128] {
+            for rest in [1usize, 16, 64, 70] {
+                let mut hasher = Hasher::new();
+                hasher
+                    .update(&data[..prefix])
+                    .flush()
+                    .update(&data[prefix..prefix + rest]);
+                assert_eq!(
+                    hasher.finalize(),
+                    hash(&data[..prefix + rest]),
+                    "prefix {prefix}, rest {rest}"
+                );
             }
         }
     }

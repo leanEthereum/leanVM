@@ -2292,16 +2292,16 @@ def verify_lean_xmss(signer):
             idx = nodes[0]
         else:
             idx = nodes[LX_HEIGHT] + LX_TOP
-        # D = Th(P, A, R | M): 80 bytes at the bottom, the message ending in a block
-        # of its own, and one block at the top, where M is the bottom root.
+        # D = Th(P, A, M | R): 80 bytes at the bottom, R in a block of its own after
+        # the message, and one block at the top, where M is the bottom root.
         rho = hint_witness("randomizer")
         digest = StackBuf(WORDS_PER_BLOCK)
         if const(layer == 0):
             prefix = StackBuf(WORDS_PER_BLOCK)
-            blake2s([pp, idx + TW_MSG], [rho, signer[GEN ** 2]], prefix, counter=64, final=0)
-            blake2s([signer[GEN ** 3], 0], [0, 0], digest, cv=prefix, counter=80, final=1)
+            blake2s([pp, idx + TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], prefix, counter=64, final=0)
+            blake2s([rho, 0], [0, 0], digest, cv=prefix, counter=80, final=1)
         else:
-            blake2s([pp, idx + TW_MSG], [rho, root], digest)
+            blake2s([pp, idx + TW_MSG], [root, rho], digest)
 
         # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
         # checked and dispatched once, the arm walking every chain's remaining steps

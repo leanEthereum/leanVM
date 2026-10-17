@@ -22,8 +22,6 @@ pub const TWEAK_LEAF: u8 = 2;
 pub const TWEAK_NODE: u8 = 3;
 pub const TWEAK_PARAMETER: u8 = 5;
 pub const TWEAK_RANDOMIZER: u8 = 7;
-/// One randomizer trial, from the layer's base randomizer.
-pub const TWEAK_GRIND: u8 = 8;
 pub const TWEAK_MSG: u8 = 12;
 /// A node outside a mock key's range.
 pub const TWEAK_FILLER: u8 = 13;

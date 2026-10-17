@@ -1,10 +1,10 @@
 //! The one-time signature, WOTS+C: `v` hash chains of `2^w - 1` steps, and a
 //! target-sum code in place of the Winternitz checksum.
 //!
-//! A layer's message digest is `Th(P, A, R | M)`, read as `DIGITS` digits of `w`
+//! A layer's message digest is `Th(P, A, M | R)`, read as `DIGITS` digits of `w`
 //! bits, little endian. It is a codeword when its last `ZERO_DIGITS` digits are
 //! zero, so those have no chain, and the other `v` sum to `T`. The signer grinds the
-//! randomizer `R` until it is.
+//! randomizer `R` until it is, one compression a trial.
 
 use crate::*;
 
@@ -43,12 +43,20 @@ pub fn wots_leaf_hash(pp: &PublicParam, layer: usize, e: u32, ends: &[Digest; V]
     th_digests(pp, &tweak(TWEAK_LEAF, layer_hi(layer, 0), e), ends)
 }
 
-/// The digest key `e` on `layer` signs: `Th(P, A, R | M)`, `M` the message at the
+/// The digest key `e` on `layer` signs: `Th(P, A, M | R)`, `M` the message at the
 /// bottom and the bottom root at the top.
 pub fn message_digest(pp: &PublicParam, layer: usize, e: u32, randomizer: &Randomizer, message: &[u8]) -> Digest {
-    let mut hasher = hasher(pp, &tweak(TWEAK_MSG, layer_hi(layer, 0), e));
-    hasher.update(randomizer).update(message);
-    hasher.finalize()[..N].try_into().unwrap()
+    digest_prefix(pp, layer, e, message).update(randomizer).finalize()[..N]
+        .try_into()
+        .unwrap()
+}
+
+/// `P | A | M`, which fills the bottom digest's first block, so a randomizer trial
+/// compresses only the block holding `R`.
+fn digest_prefix(pp: &PublicParam, layer: usize, e: u32, message: &[u8]) -> primitives::hash::Hasher {
+    let mut prefix = hasher(pp, &tweak(TWEAK_MSG, layer_hi(layer, 0), e));
+    prefix.update(message).flush();
+    prefix
 }
 
 /// The digest's first `v` digits, if it is a codeword.
@@ -63,9 +71,10 @@ pub fn codeword(digest: &Digest) -> Option<[u8; V]> {
 /// after about `2^20`, and a batch has to be small for the search to stop near it.
 const GRIND_BATCH: u64 = 1 << 14;
 
-/// `Ots.sign`: the randomizer of the LEAST admissible trial, and the chain value
-/// each digit opens. Deterministic in its inputs, so signing one message again
-/// gives the same signature and a key never opens two codewords.
+/// `Ots.sign`: the randomizer of the LEAST admissible trial `R_0 + c`, `R_0` a hash
+/// of the seed and the message, and the chain value each digit opens. Deterministic
+/// in its inputs, so signing one message again gives the same signature and a key
+/// never opens two codewords.
 pub fn wots_sign(
     pp: &PublicParam,
     seed: &Seed,
@@ -76,10 +85,14 @@ pub fn wots_sign(
     let base = {
         let mut hasher = hasher(pp, &tweak(TWEAK_RANDOMIZER, layer_hi(layer, 0), e));
         hasher.update(seed).update(message);
-        hasher.finalize()
+        u128::from_le_bytes(hasher.finalize()[..RANDOMIZER_LEN].try_into().unwrap())
     };
-    let trial = |c: u64| th(pp, &tweak(TWEAK_GRIND, layer_hi(layer, 0), c as u32), &base);
-    let admits = |c: u64| codeword(&message_digest(pp, layer, e, &trial(c), message)).is_some();
+    let trial = |c: u64| base.wrapping_add(u128::from(c)).to_le_bytes();
+    let prefix = digest_prefix(pp, layer, e, message);
+    let admits = |c: u64| {
+        let digest = prefix.clone().update(&trial(c)).finalize();
+        codeword(&digest[..N].try_into().unwrap()).is_some()
+    };
     let c = (0..MAX_RANDOMIZER_TRIALS)
         .step_by(GRIND_BATCH as usize)
         .find_map(|start| {
