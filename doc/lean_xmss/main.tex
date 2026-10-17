@@ -46,7 +46,7 @@ leanXMSS is a stateful hash-based signature scheme: two layers of XMSS~\cite{RFC
   \item \textbf{Public key: 32 bytes.}
   \item \textbf{Signature: 2404 bytes} ($4+1200+1200$: the leaf index and the two layers).
   \item \textbf{Verification: 201 compressions} of BLAKE2s.
-  \item \textbf{Grinding: $\approx2^{20}$ randomizer trials per signature} on average, one compression each, for the bottom layer; the top layer's are paid once per bottom tree.
+  \item \textbf{Grinding: $\approx2^{20}$ randomizer trials per signature} on average, one compression each.
 \end{itemize}
 \end{abstract}
 
