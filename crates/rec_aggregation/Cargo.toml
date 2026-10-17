@@ -14,7 +14,7 @@ pcs.workspace = true
 flock.workspace = true
 leanvm_core.workspace = true
 lean_compiler.workspace = true
-lean_xmss = { workspace = true, features = ["mock"] }
+lean_xmss.workspace = true
 sphincs.workspace = true
 lean_da.workspace = true
 verifier.workspace = true
@@ -23,4 +23,9 @@ bincode.workspace = true
 serde.workspace = true
 tracing.workspace = true
 
+[features]
+# `signers_cache`: cached benchmark signers over `lean_xmss` mock keys, for tests and the CLI.
+signers-cache = ["lean_xmss/mock"]
+
 [dev-dependencies]
+rec_aggregation = { path = ".", features = ["signers-cache"] }

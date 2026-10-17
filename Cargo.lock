@@ -1868,6 +1868,7 @@ dependencies = [
  "pcs",
  "primitives",
  "rand 0.9.4",
+ "rec_aggregation",
  "serde",
  "sphincs",
  "tracing",

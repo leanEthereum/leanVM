@@ -63,6 +63,15 @@ impl LayerTree {
         }
     }
 
+    /// Whether the tree has the shape [`Self::build`] gives these arguments.
+    pub(crate) fn spans(&self, layer: usize, base: u32, first: u32, last: u32) -> bool {
+        (self.layer, self.base, self.first, self.last) == (layer, base, first, last)
+            && first <= last
+            && last >> LAYER_HEIGHT == 0
+            && self.levels.len() == LAYER_HEIGHT + 1
+            && (0..=LAYER_HEIGHT).all(|l| self.levels[l].len() == ((last >> l) - (first >> l) + 1) as usize)
+    }
+
     pub(crate) fn root(&self) -> Digest {
         self.levels[LAYER_HEIGHT][0]
     }

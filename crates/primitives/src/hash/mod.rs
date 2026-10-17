@@ -183,6 +183,12 @@ impl Hasher {
     }
 
     pub fn finalize(&self) -> [u8; OUT_LEN] {
+        // Only `flush` leaves a compressed block with nothing buffered after it, and that
+        // block was compressed as not the last.
+        assert!(
+            self.buf_len > 0 || self.counter == 0,
+            "a flushed block must be followed by more input"
+        );
         let mut h = self.h;
         let mut block = self.buf;
         block[self.buf_len..].fill(0);

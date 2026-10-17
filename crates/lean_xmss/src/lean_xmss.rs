@@ -45,8 +45,10 @@ pub struct LeanXmssSignature {
     pub top: LayerSignature,
 }
 
-/// The encoding is SECRET KEY MATERIAL: it carries the seed.
-#[derive(Debug, Serialize, Deserialize)]
+/// The encoding is SECRET KEY MATERIAL: it carries the seed. Decoding checks the key's
+/// shape and that its public parameter is the seed's.
+#[derive(Serialize, Deserialize)]
+#[serde(try_from = "SecretKeyFields")]
 pub struct LeanXmssSecretKey {
     seed: Seed,
     public_param: PublicParam,
@@ -58,7 +60,54 @@ pub struct LeanXmssSecretKey {
     bottom: Mutex<Option<BottomTree>>,
 }
 
-#[derive(Debug)]
+impl std::fmt::Debug for LeanXmssSecretKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LeanXmssSecretKey")
+            .field("public_key", &self.public_key())
+            .field("first", &self.first)
+            .field("last", &self.last)
+            .finish_non_exhaustive()
+    }
+}
+
+/// [`LeanXmssSecretKey`] as decoded, before its checks.
+#[derive(Deserialize)]
+struct SecretKeyFields {
+    seed: Seed,
+    public_param: PublicParam,
+    first: LeafIndex,
+    last: LeafIndex,
+    top: LayerTree,
+}
+
+impl TryFrom<SecretKeyFields> for LeanXmssSecretKey {
+    type Error = &'static str;
+
+    fn try_from(key: SecretKeyFields) -> Result<Self, Self::Error> {
+        let SecretKeyFields {
+            seed,
+            public_param,
+            first,
+            last,
+            top,
+        } = key;
+        if first > last || !top.spans(1, 0, layer_index(first, 1), layer_index(last, 1)) {
+            return Err("malformed secret key");
+        }
+        if public_param != th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &seed) {
+            return Err("secret key's public parameter is not its seed's");
+        }
+        Ok(Self {
+            seed,
+            public_param,
+            first,
+            last,
+            top,
+            bottom: Mutex::new(None),
+        })
+    }
+}
+
 struct BottomTree {
     index: u32,
     tree: LayerTree,
@@ -110,7 +159,8 @@ pub(crate) fn generate(seed: Seed, first: LeafIndex, last: LeafIndex) -> (LeanXm
 }
 
 /// Never use the same key and leaf index to sign two different messages.
-/// Signing is deterministic.
+/// Signing is deterministic. The first signature in a bottom tree builds it with
+/// `parallel`, so never sign from inside a `parallel` task.
 pub fn sign(
     sk: &LeanXmssSecretKey,
     message: &Message,
@@ -152,7 +202,9 @@ impl LeanXmssSecretKey {
             "a mock key signs only in its range"
         );
         let index = layer_index(leaf_index, 1);
-        let mut cache = self.bottom.lock().unwrap();
+        // A panic while building, in a nested parallel dispatch say, leaves the cache as it was:
+        // it is written only once the tree and its signature are complete.
+        let mut cache = self.bottom.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         if cache.as_ref().is_none_or(|bottom| bottom.index != index) {
             let (pp, seed) = (&self.public_param, &self.seed);
             let in_tree = |leaf: LeafIndex| leaf & ((1 << LAYER_HEIGHT) - 1);

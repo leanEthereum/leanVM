@@ -64,11 +64,12 @@ fn compute_signer(index: usize, message_id: u32) -> CachedSignature {
     (pk, sig)
 }
 
-fn hash_fingerprint() -> [Digest; 2] {
+fn hash_fingerprint() -> [Digest; 3] {
     let pp = [0xA5u8; PUBLIC_PARAM_LEN];
     [
         th(&pp, &tweak(TWEAK_CHAIN, 1, 2), &[0x5Au8; N]),
         message_digest(&pp, 1, 3, &[0x3Cu8; RANDOMIZER_LEN], &[0x3Cu8; MESSAGE_LEN]),
+        scheme_seed(&[0x11; SEED_LEN])[..N].try_into().unwrap(),
     ]
 }
 
@@ -230,8 +231,9 @@ fn sphincs_footprint() -> u64 {
         SPHINCS_KEPT_HEIGHT,
     )
         .hash(&mut hasher);
-    // The tweakable hash and the codeword table, so a change to either
-    // invalidates the file.
+    // The key derivation, the tweakable hash and the codeword table, so a change
+    // to any of them invalidates the file.
+    sphincs::scheme_seed(&[0x11; sphincs::MASTER_SECRET_LEN]).hash(&mut hasher);
     sphincs::th(
         &[0xA5; sphincs::PUBLIC_PARAM_LEN],
         &sphincs::tweak(1, 2, 3).step(4),

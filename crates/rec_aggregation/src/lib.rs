@@ -4,6 +4,7 @@ pub mod aggregation;
 /// with the other workloads.
 #[cfg(test)]
 mod hash_chain;
+#[cfg(feature = "signers-cache")]
 pub mod signers_cache;
 
 pub use aggregation::{
