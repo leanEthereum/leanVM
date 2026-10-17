@@ -2251,13 +2251,14 @@ def walk(at, pp, md, tips, i: Const, k: Const, lx: Const):
 
 
 @inline
-def walk_group(at, pp, md, tips, first: Const, n: Const, k: Const, lx: Const):
+def walk_group(at, pp, md, tips, first: Const, n: Const, k: Const, lx: Const, powers, product, encoded):
     # The n <= DIGIT_GROUP chains from `first` on, at the digits of k, one
-    # dispatch for all of them. Returns the digits as the encoding digest holds
-    # them, and their sum in the exponent.
+    # dispatch for all of them. Folds the digits' sum into `product`, in the
+    # exponent (`powers[s]` is GEN ** s), and the digits into `encoded`, where the
+    # encoding digest holds them.
     for r in unroll(0, n):
         walk(at, pp, md, tips, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
-    return const(k * CHAIN_LENGTH ** first), GEN ** DIGIT_SUMS[k]
+    return product * powers[DIGIT_SUMS[k]], encoded + const(k * CHAIN_LENGTH ** first)
 
 
 # ========================= leanXMSS signature verification ========================
@@ -2282,6 +2283,9 @@ def verify_lean_xmss(signer):
         bits[b] = bits[b] * bits[b]
     nodes = StackBuf(2 * LX_HEIGHT)
     shifts(bits, 0, 2 * LX_HEIGHT, nodes)
+    powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
+    for s in unroll(0, DIGIT_GROUP * CHAIN_STEPS + 1):
+        powers[s] = GEN ** s
 
     for layer in unroll(0, 2):
         if const(layer == 0):
@@ -2300,10 +2304,10 @@ def verify_lean_xmss(signer):
             blake2s([pp, idx + TW_MSG], [rho, root], digest)
 
         # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
-        # checked and dispatched once, the arm walking every chain's remaining steps.
-        # The product of what the arms return is the target sum, and the digits, each
-        # where the digest holds it, reconstruct D, which also checks the digits past
-        # LX_V are zero.
+        # checked and dispatched once, the arm walking every chain's remaining steps
+        # and folding its digits in: their sums into a product that must be the
+        # target sum, and the digits, each where the digest holds it, into D, which
+        # also checks the digits past LX_V are zero.
         tips = StackBuf(2 * LX_V)
         steps = StackBuf(CHAIN_STEPS)
         for st in unroll(0, CHAIN_STEPS):
@@ -2313,14 +2317,10 @@ def verify_lean_xmss(signer):
         for p in unroll(0, LX_V // DIGIT_GROUP):
             group = hint_witness("digits")
             assert log(group) < DIGIT_GROUPS
-            term, digit_sum = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(steps, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k, 1))
-            digit_product = digit_product * digit_sum
-            encoded = encoded + term
+            digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(steps, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k, 1, powers, digit_product, encoded))
         group = hint_witness("digits")
         assert log(group) < CHAIN_LENGTH
-        term, digit_sum = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(steps, pp, step_md[0], tips, LX_V - 1, 1, k, 1))
-        digit_product = digit_product * digit_sum
-        encoded = encoded + term
+        digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(steps, pp, step_md[0], tips, LX_V - 1, 1, k, 1, powers, digit_product, encoded))
         assert digit_product == GEN ** LX_TARGET_SUM
         assert encoded == digest[0]
 
@@ -2529,24 +2529,23 @@ def verify_sig_sphincs(signer):
     blake2s([pp, idx + SP_TW_ENC], [forest_key[0], ctr], encoding, counter=52, final=1)
 
     # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
-    # checked and dispatched once, the arm walking every chain's remaining steps.
-    # The product of what the arms return is the target sum, and the digits, each
-    # group where the digest holds it, reconstruct D.
+    # checked and dispatched once, the arm walking every chain's remaining steps
+    # and folding its digits in: their sums into a product that must be the target
+    # sum, and the digits, each group where the digest holds it, into D.
     tips = StackBuf(2 * SP_V)
+    powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
+    for s in unroll(0, DIGIT_GROUP * CHAIN_STEPS + 1):
+        powers[s] = GEN ** s
     digit_product = 1
     encoded = 0
     for p in unroll(0, SP_V // DIGIT_GROUP):
         group = hint_witness("digits")
         assert log(group) < DIGIT_GROUPS
-        term, digit_sum = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k, 0))
-        digit_product = digit_product * digit_sum
-        encoded = encoded + term
+        digit_product, encoded = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k, 0, powers, digit_product, encoded))
     # The chain the groups leave over.
     group = hint_witness("digits")
     assert log(group) < CHAIN_LENGTH
-    term, digit_sum = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, step_md[0], tips, SP_V - 1, 1, k, 0))
-    digit_product = digit_product * digit_sum
-    encoded = encoded + term
+    digit_product, encoded = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, step_md[0], tips, SP_V - 1, 1, k, 0, powers, digit_product, encoded))
     assert digit_product == GEN ** SP_TARGET_SUM
     assert encoded == encoding[0]
     # The one-time leaf: P, A and the SP_V tips, four cells a block.
