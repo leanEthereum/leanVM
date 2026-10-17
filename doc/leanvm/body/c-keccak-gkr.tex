@@ -225,4 +225,4 @@ The slices enter only through the rotation sums $\krot_n$, for the few $n$ that 
 
 \subsection{Credits}\label{keccak:credits}
 
-The layered reduction is GKR~\cite{GKR08} specialized to the round structure of Keccak, and the embedding of Lemma~\ref{lem:rmfe} is a reverse multiplication friendly embedding in the sense of~\cite{CCXY18}. Proving Keccak by a GKR over a binary field follows Hashcaster, by Lev Soukhanov.
+The layered reduction is GKR~\cite{GKR08} specialized to the round structure of Keccak, and the embedding of Lemma~\ref{lem:rmfe} is a reverse multiplication friendly embedding in the sense of~\cite{CCXY18}. Proving Keccak by a GKR over a binary field follows Lev Soukhanov's Hashcaster~2~\cite{Hashcaster2}: packing bits into a polynomial ring so that an AND of many bits is one product, and having the prover send that product as a polynomial, are its design. The first Hashcaster~\cite{Hashcaster} gives the prover's first sumcheck rounds on bits, before any field arithmetic.
