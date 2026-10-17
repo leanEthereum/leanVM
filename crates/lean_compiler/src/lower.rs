@@ -233,6 +233,8 @@ struct FnLower<'a> {
     /// Top-level constant arrays, resolved at compile time: `NAME[i]` yields the
     /// element (a field value or an index), `len(NAME)` its length.
     const_arrays: &'a HashMap<&'a str, &'a [F192]>,
+    /// Every `match` outside `main` dispatches through a slot of these.
+    tables: &'a mut JumpTables,
 }
 
 impl FnLower<'_> {
@@ -709,10 +711,12 @@ impl FnLower<'_> {
         start
     }
 
-    /// The trampoline dispatch every `match` lowers through: jump to
-    /// `d = g^T · x²` (slot `j` of the two-instruction table at bytecode base
-    /// `T`), then to `body(j)`'s code; every non-final body exits to the
-    /// join. `body` lowers arm `j`, with its own branch-local scope.
+    /// The dispatch every `match` lowers through. Outside `main`, through the
+    /// match's jump table ([`JumpTables`]): read slot `x` with one `DEREF` and jump
+    /// there. In `main`, whose frame holds the tables, through a trampoline: jump to
+    /// `d = g^T · x²` (slot `j` of the two-instruction table at bytecode base `T`),
+    /// then to the arm. Every non-final arm exits to the join. `body` lowers arm
+    /// `j`, with its own branch-local scope.
     ///
     /// One arm runs, so the arms allocate their locals over the same cells.
     fn lower_match_dispatch(&mut self, xo: Off, n: usize, mut body: impl FnMut(&mut Self, usize)) {
@@ -722,17 +726,39 @@ impl FnLower<'_> {
         let join = self.fresh();
         let jset = self.code.len();
         self.set(join, KVal::Local(0)); // patched: the join
-        // Slot j (two instructions) sits at T + 2j.
-        let kset = self.emit_dispatch(xo, one, sfp);
-        // The trampoline table.
-        self.patch_local(kset, self.code.len());
-        let start = self.emit_slots(n, one, sfp, |_| KVal::Local(0));
+        let slot = if self.is_main {
+            // Slot j (two instructions) sits at T + 2j.
+            let kset = self.emit_dispatch(xo, one, sfp);
+            self.patch_local(kset, self.code.len());
+            let start = self.emit_slots(n, one, sfp, |_| KVal::Local(0));
+            Err(start)
+        } else {
+            let first = self.tables.slots.len();
+            let at = self.tables.base + first as u32;
+            self.tables.slots.extend((0..n).map(|_| (self.fn_name.to_string(), 0)));
+            let entry = self.fresh();
+            self.emit(LOp::Deref {
+                o1: xo,
+                o2: at,
+                o3: entry,
+                mode: DerefMode::Cell,
+            });
+            self.emit(LOp::Jump {
+                oc: one,
+                od: entry,
+                of: sfp,
+            });
+            Ok(first)
+        };
         // The arm blocks, each exiting to the join (the last falls through).
         let arms_base = self.next;
         let mut arms_end = arms_base;
         for j in 0..n {
             self.next = arms_base;
-            self.patch_local(start + 2 * j, self.code.len());
+            match slot {
+                Ok(first) => self.tables.slots[first + j].1 = self.code.len() as u32,
+                Err(start) => self.patch_local(start + 2 * j, self.code.len()),
+            }
             body(self, j);
             if j + 1 != n {
                 self.emit(LOp::Jump {
@@ -1584,6 +1610,8 @@ pub(crate) fn lower_func(
     const_arrays: &HashMap<&str, &[F192]>,
     with_filler: bool,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
+    tables: &mut JumpTables,
+    tables_hook: bool,
 ) -> Lowered {
     let mut names: HashMap<String, Bound> = HashMap::new();
     for (i, p) in f.params.iter().enumerate() {
@@ -1636,7 +1664,27 @@ pub(crate) fn lower_func(
         loop_ctr,
         defs,
         const_arrays,
+        tables,
     };
+    // `main` first jumps to the code filling the jump tables, appended to it once
+    // every function is lowered ([`JumpTables`]); `fp = 1` in `main`.
+    let tables_hook = tables_hook.then(|| {
+        let one = lowerer.one();
+        let (target, back) = (lowerer.fresh(), lowerer.fresh());
+        let set = lowerer.code.len();
+        lowerer.set(target, KVal::Local(0));
+        lowerer.emit(LOp::Jump {
+            oc: one,
+            od: target,
+            of: one,
+        });
+        TablesHook {
+            set,
+            one,
+            back,
+            resume: lowerer.code.len() as u32,
+        }
+    });
     for (i, s) in f.body.iter().enumerate() {
         // Tail position: a conditional call whose only successor is a bare
         // `return`, in a function that returns nothing. The `mul_range` helper
@@ -1667,5 +1715,6 @@ pub(crate) fn lower_func(
         code: lowerer.code,
         frame_size: lowerer.next,
         filler,
+        tables_hook,
     }
 }

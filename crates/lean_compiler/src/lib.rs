@@ -89,6 +89,9 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
     let mut loop_bounds = HashMap::new();
     let mut loop_ctr = 0usize;
     let mut lowered: Vec<Lowered> = Vec::new();
+    let mut tables = JumpTables::default();
+    // Over every body, `main`'s included: its loops lower to functions of their own.
+    let any_match = ast.funcs.iter().any(|f| has_match(&f.body));
     let mut i = 0;
     while i < queue.len() {
         let f = &queue[i];
@@ -108,7 +111,13 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             &const_arrays,
             with_filler,
             &mut loop_bounds,
+            &mut tables,
+            f.name == "main" && any_match,
         );
+        if f.name == "main" {
+            // `main` is lowered first; its frame then grows by the tables.
+            tables.base = low.frame_size;
+        }
         if dbg_lower {
             eprintln!("== fn {} (frame {}) ==", low.name, pretty_integer(low.frame_size));
             for (i, ins) in low.code.iter().enumerate() {
@@ -117,6 +126,35 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             }
         }
         lowered.push(low);
+    }
+    if let Some(hook) = lowered[0].tables_hook.take() {
+        let main = &mut lowered[0];
+        let fill = main.code.len() as u32;
+        match &mut main.code[hook.set].op {
+            LOp::Set { k: KVal::Local(t), .. } => *t = fill,
+            _ => unreachable!("the hook's target is a SET"),
+        }
+        let instr = |op| LInstr {
+            op,
+            line: 0,
+            hints: Vec::new(),
+        };
+        for (k, (name, i)) in tables.slots.iter().enumerate() {
+            main.code.push(instr(LOp::Set {
+                o: tables.base + k as u32,
+                k: KVal::At(name.clone(), *i),
+            }));
+        }
+        main.code.push(instr(LOp::Set {
+            o: hook.back,
+            k: KVal::Local(hook.resume),
+        }));
+        main.code.push(instr(LOp::Jump {
+            oc: hook.one,
+            od: hook.back,
+            of: hook.one,
+        }));
+        main.frame_size = tables.base + tables.slots.len() as u32;
     }
 
     // Assign entry program counters and frame sizes.
@@ -204,6 +242,16 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
     program
 }
 
+/// Whether `body` holds a `match`, so its function dispatches through a jump table.
+fn has_match(body: &[Stmt]) -> bool {
+    body.iter().any(|s| match &s.kind {
+        StmtKind::Match { .. } => true,
+        StmtKind::If { then, els, .. } => has_match(then) || has_match(els),
+        StmtKind::For { body, .. } | StmtKind::Unroll { body, .. } => has_match(body),
+        _ => false,
+    })
+}
+
 /// Render compiled bytecode as a human-readable disassembly. `fp[k]` is the cell
 /// `m[fp·gᵏ]` (frame offset `k`); `*(p·gᵝ)` is the dereferenced cell. `SET`
 /// constants that are small g-powers (code addresses, indices) show as `gʲ`.
@@ -283,6 +331,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, base: u32, fra
             KVal::Entry(name) => g_pow(entry[name] as usize).into(),
             KVal::EndSentinel => g_pow(sentinel as usize).into(),
             KVal::Local(i) => g_pow((base + i) as usize).into(),
+            KVal::At(name, i) => g_pow((entry[name] + i) as usize).into(),
         }
     };
     match op {

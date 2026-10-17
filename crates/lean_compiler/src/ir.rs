@@ -22,6 +22,9 @@ pub(crate) enum KVal {
     /// fixed. Emitted with a placeholder by the `if`/`else` lowering and
     /// backpatched ([`FnLower::patch_local`]).
     Local(u32),
+    /// The `i`-th instruction of the named function: a `match` arm's entry, which
+    /// `main` writes into the arm's jump-table slot ([`JumpTables`]).
+    At(String, u32),
 }
 
 #[derive(Clone, Debug)]
@@ -113,6 +116,32 @@ pub(crate) struct Lowered {
     /// The fill blocks this function carries, with `code`-relative pcs; only `main` has
     /// any ([`crate::lower::FnLower::lower_filler_blocks`]).
     pub(crate) filler: Vec<leanvm_core::cpu::filler::Block>,
+    /// `main` only, when other functions may dispatch through jump tables: where its
+    /// prologue jumps to the code that fills them ([`TablesHook`]).
+    pub(crate) tables_hook: Option<TablesHook>,
+}
+
+/// The jump tables of every `match` outside `main`: one cell per arm, holding the
+/// arm's entry pc, in `main`'s frame from `base` on. `main`'s frame sits at a fixed
+/// address (`fp = g^0`), so a dispatch reads slot `x = g^j` of a table at offset `k`
+/// with one `DEREF` of `m[x·g^(base+k)]`, and `main` writes every slot once, with
+/// one `SET` each, before anything runs.
+#[derive(Default)]
+pub(crate) struct JumpTables {
+    pub(crate) base: u32,
+    /// Each slot's arm, as (function, instruction).
+    pub(crate) slots: Vec<(String, u32)>,
+}
+
+/// `main`'s first instructions jump to the table-filling code, which is appended
+/// to `main` once every function is lowered and jumps back to `resume`.
+pub(crate) struct TablesHook {
+    /// The `SET` of the jump target, patched to the appended code.
+    pub(crate) set: usize,
+    pub(crate) one: Off,
+    /// A free cell for the jump back.
+    pub(crate) back: Off,
+    pub(crate) resume: u32,
 }
 
 /// A resolved run of consecutive cells ([`crate::lower::FnLower::cell_run`]): a

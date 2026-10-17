@@ -32,20 +32,20 @@ use leanvm_core::cpu::Program;
 #[rustfmt::skip]
 const GOLDEN: &[(&str, &str)] = &[
     ("conditionals", "e8df2b807d3eed366d83843e207f0a9441c1e2014ee0add958a399af562a761c"),
-    ("const_params", "a746b339afc434c52c4c04388e0af25054eef20405a9c99a6a6d59987a37d0de"),
+    ("const_params", "f9b8264c38c898eefef5d0e915e1c269c35a7c10fa21c6f40d5f64e89e235190"),
     ("fibonacci", "1419063250d0c54fa808499fdca691748dfb91f84f1007c6f0e939d5ef6779b6"),
     ("hash_heap_chain", "9d8735c8393dd6cde7e07a71277a52435ca903186c6a984161b2b8821d6b552d"),
     ("hash_slices", "99b3de0af47b797b51b8f38f37b5ccb7ff64d3f5acd9ba23bdd1ff4cfc47e9c3"),
     ("heapbuf_dyn", "9e570732cf9258379eec6caf1efb2bd2d8ed484b5aa8c7b7da5360d2a79103ef"),
     ("hint", "d9601df070184a3f1a5702d769e3897013c17a264889161df8ae7efe0daecc13"),
     ("identities", "49a2bbd6bf785786f2ce8bf8f63a57a21bb6c547eae0c0f245f20a5222ac1c7a"),
-    ("match", "6a7265d2ed56e512c939f76024afea98e5cd707aee4776df09c2e4a863208354"),
-    ("match_arms", "c1b74b466538ca9387ae43db9b86c621decf70bf3ae92e73e6634b37b5afb616"),
-    ("nested", "2d5c743a2692704207e1c45ea2518a504da1f3a18743a204600bc6ed04bdc87d"),
+    ("match", "66eed83c7289add45fd9ab6e3df3c939b57b636f0c4158ddf7e069c4f8426c33"),
+    ("match_arms", "e7e85c53bfd8565aef16398d907c67f0d5f03ac474afbdb71b2970e59b558c4c"),
+    ("nested", "8b7d237c8f95be2d703eb6dbfe3e044c0d6db5226270c5c1f699c3d1c3bdd5c7"),
     ("runtime_loop", "f33c6b5b82ed8ade198fb8978ba443554fc8714082a98dc784dbabdcee92e0fe"),
     ("scoping", "c466babcc1af1deba56dda628e730d815d2fdffe065d695f9118167e0bb8669f"),
     ("unroll", "08ebe1f4b51d862c6335b90694cf60d2fd2841d3a9913f6400cb53322117d309"),
-    ("wots_walk", "82f5dc859eec827ec2862c423fc20a2f83c687081f7fe6e37a84a414bf3ae720"),
+    ("wots_walk", "620ed9a2c88846b6d52395071d32df0d040b536f5d08ebf16dbf03a1da563384"),
 ];
 
 fn digest(p: &Program) -> String {
