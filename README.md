@@ -78,13 +78,13 @@ cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3
 **note**: The output below was measured on the single-layer XMSS over Keccak-256 that leanXMSS replaced. leanXMSS over Keccak-256 has not been measured yet.
 
 ```
-aggregation, 900 XMSS signatures
-  cycles (VM steps)           : 1,143,237 = 2^20.125
-    details                   : DEREF 2^18.079 (24.2%)  SET 2^17.831 (20.4%)  MUL 2^17.771 (19.6%)  XOR 2^17.315 (14.3%) SHA3 2^16.925 (10.9%)  JUMP 2^16.897 (10.7%)  MEMORY 2^21.885  BYTECODE 2^18.453  TOTAL_COMMITTED 2^25.577
+aggregation, 1,290 leanXMSS signatures
+  cycles (VM steps)           : 1,487,899 = 2^20.505
+    details                   : XOR 2^18.519 (25.2%)  SET 2^18.157 (19.6%)  MUL 2^18.105 (19.0%)  SHA3 2^17.876 (16.2%)  DEREF 2^17.556 (13.0%)  JUMP 2^16.677 (7.0%)  MEMORY 2^22.98  BYTECODE 2^18.457  TOTAL_COMMITTED 2^26.358
   proof size                  : 331.4 KiB
-  proving time                : 0.628 s ± 2.3%      peak memory 6.084 GiB
-  per signature               : 1,433.505 signatures/s
-  verifying                   : 15.352 ms
+  proving time                : 1.133 s ± 2.9%      peak memory 10.466 GiB
+  per signature               : 1,138.502 signatures/s
+  verifying                   : 15.971 ms
 ```
 
 ### leanSPHINCS aggregation
@@ -96,13 +96,13 @@ cargo leanvm aggregate --sphincs 850 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-aggregation, 850 SPHINCS signatures
-  cycles (VM steps)           : 1,781,990 = 2^20.765
-    details                   : XOR 2^18.713 (24.1%)  SET 2^18.696 (23.8%)  MUL 2^18.569 (21.8%)  SHA3 2^17.821 (13.0%)JUMP 2^17.267 (8.9%)  DEREF 2^17.189 (8.4%)  MEMORY 2^22.604  BYTECODE 2^18.453  TOTAL_COMMITTED 2^26.388
-  proof size                  : 333.9 KiB
-  proving time                : 1.198 s ± 6.0%      peak memory 10.787 GiB
-  per signature               : 709.623 signatures/s
-  verifying                   : 16.091 ms
+aggregation, 850 leanSPHINCS signatures
+  cycles (VM steps)           : 1,547,938 = 2^20.562
+    details                   : XOR 2^18.704 (27.6%)  SET 2^18.283 (20.6%)  MUL 2^18.025 (17.2%)  SHA3 2^17.8 (14.7%)  DEREF 2^17.624 (13.0%)  JUMP 2^16.679 (6.8%)  MEMORY 2^22.561  BYTECODE 2^18.457  TOTAL_COMMITTED 2^26.358
+  proof size                  : 332.7 KiB
+  proving time                : 1.174 s ± 2.6%      peak memory 10.31 GiB
+  per signature               : 723.809 signatures/s
+  verifying                   : 16.149 ms
 ```
 
 ### data availability
@@ -113,12 +113,12 @@ cargo leanvm aggregate --blobs 16 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 16 blobs
-  cycles (VM steps)           : 3,188,912 = 2^21.605
-    details                   : XOR 2^20.201 (37.8%)  MUL 2^19.908 (30.9%)  DEREF 2^19.142 (18.1%)  JUMP 2^18.299 (10.1%)  SET 2^15.805 (1.8%)  SHA3 2^15.332 (1.3%)  MEMORY 2^21.938  BYTECODE 2^18.453  TOTAL_COMMITTED 2^26.496
-  proof size                  : 339.9 KiB
-  proving time                : 0.945 s ± 1.9%      peak memory 10.002 GiB
-  blob throughput             : 16.937 blobs/s, 2.117 MiB/s
-  verifying                   : 27.696 ms
+  cycles (VM steps)           : 3,192,288 = 2^21.606
+    details                   : XOR 2^20.201 (37.8%)  MUL 2^19.908 (30.8%)  DEREF 2^19.142 (18.1%)  JUMP 2^18.298 (10.1%)  SET 2^15.903 (1.9%)  SHA3 2^15.332 (1.3%)  MEMORY 2^21.939  BYTECODE 2^18.457  TOTAL_COMMITTED 2^26.496
+  proof size                  : 341.3 KiB
+  proving time                : 0.939 s ± 2.3%      peak memory 9.957 GiB
+  blob throughput             : 17.039 blobs/s, 2.13 MiB/s
+  verifying                   : 27.377 ms
 ```
 
 ### recursion
@@ -127,15 +127,13 @@ aggregation, 16 blobs
 cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
 ```
 
-**note**: The output below was measured on the single-layer XMSS over Keccak-256 that leanXMSS replaced. leanXMSS over Keccak-256 has not been measured yet.
-
 ```
-recursion 2→1, over leaves of 900 XMSS signatures
-  cycles (VM steps)           : 498,888 = 2^18.928
-    details                   : MUL 2^17.563 (38.8%)  XOR 2^17.055 (27.3%)  DEREF 2^16.664 (20.8%)  SET 2^14.885 (6.1%)JUMP 2^14.522 (4.7%)  SHA3 2^13.473 (2.3%)  MEMORY 2^19.688  BYTECODE 2^18.453  TOTAL_COMMITTED 2^24.011
-  proof size                  : 217.9 KiB
-  proving time                : 0.326 s ± 1.7%      peak memory 6.84 GiB
-  verifying                   : 14.478 ms
+recursion 2→1, over leaves of 900 leanXMSS signatures
+  cycles (VM steps)           : 622,501 = 2^19.248
+    details                   : MUL 2^17.818 (37.1%)  DEREF 2^17.293 (25.8%)  XOR 2^17.175 (23.8%)  SET 2^15.454 (7.2%)  JUMP 2^14.624 (4.1%)  SHA3 2^13.641 (2.1%)  MEMORY 2^19.906  BYTECODE 2^18.457  TOTAL_COMMITTED 2^24.19
+  proof size                  : 222.6 KiB
+  proving time                : 0.344 s ± 3.9%      peak memory 11.808 GiB
+  verifying                   : 14.703 ms
 ```
 
 ### hashing

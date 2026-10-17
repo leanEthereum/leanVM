@@ -72,9 +72,9 @@ Heavy benches are `benches/` targets (`harness = false`), which `cargo test` nev
 
 The benchmarks we care about:
 
-- `cargo leanvm aggregate --xmss 470 --log-inv-rate 1 --repeat 3`
+- `cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3`
 - `cargo leanvm aggregate --sphincs 850 --log-inv-rate 1 --repeat 3`
-- `cargo leanvm recursion --n 2 --xmss-per-leaf 450 --log-inv-rate 2 --repeat 3`
+- `cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3`
 - `cargo leanvm hash --n 262144 --repeat 3` (a Keccak hash chain: the `SHA3` opcode's throughput through a whole proof, VM overhead included)
 
 The Keccak prover has a standalone bench that prints throughput and proof size: `KECCAK_N_LOG=18 cargo bench -p keccak_gkr --bench hash_batch`.
