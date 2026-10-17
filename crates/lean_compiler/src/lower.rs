@@ -233,7 +233,7 @@ struct FnLower<'a> {
     /// Top-level constant arrays, resolved at compile time: `NAME[i]` yields the
     /// element (a field value or an index), `len(NAME)` its length.
     const_arrays: &'a HashMap<&'a str, &'a [F192]>,
-    /// Every `match` outside `main` dispatches through a slot of these.
+    /// Every `match` dispatches through a slot of these.
     tables: &'a mut JumpTables,
 }
 
@@ -688,15 +688,10 @@ impl FnLower<'_> {
     /// of the slot, then a `JUMP` to what it holds, with frame `of`.
     pub(super) fn table_jump(&mut self, xo: Off, first: usize, one: Off, of: Off) {
         let entry = self.fresh();
-        if self.is_main {
-            self.tables.main_derefs.push(self.code.len());
-        }
-        let at = if self.is_main { 0 } else { self.tables.base } + first as u32;
-        self.emit(LOp::Deref {
-            o1: xo,
-            o2: at,
-            o3: entry,
-            mode: DerefMode::Cell,
+        self.emit(LOp::Slot {
+            x: xo,
+            first: first as u32,
+            dst: entry,
         });
         self.emit(LOp::Jump { oc: one, od: entry, of });
     }
@@ -1575,7 +1570,6 @@ pub(crate) fn lower_func(
     with_filler: bool,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
     tables: &mut JumpTables,
-    tables_hook: bool,
 ) -> Lowered {
     let mut names: HashMap<String, Bound> = HashMap::new();
     for (i, p) in f.params.iter().enumerate() {
@@ -1630,25 +1624,6 @@ pub(crate) fn lower_func(
         const_arrays,
         tables,
     };
-    // `main` first jumps to the code filling the jump tables, appended to it once
-    // every function is lowered ([`JumpTables`]); `fp = 1` in `main`.
-    let tables_hook = tables_hook.then(|| {
-        let one = lowerer.one();
-        let (target, back) = (lowerer.fresh(), lowerer.fresh());
-        let set = lowerer.code.len();
-        lowerer.set(target, KVal::Local(0));
-        lowerer.emit(LOp::Jump {
-            oc: one,
-            od: target,
-            of: one,
-        });
-        TablesHook {
-            set,
-            one,
-            back,
-            resume: lowerer.code.len() as u32,
-        }
-    });
     for (i, s) in f.body.iter().enumerate() {
         // Tail position: a conditional call whose only successor is a bare
         // `return`, in a function that returns nothing. The `mul_range` helper
@@ -1679,6 +1654,5 @@ pub(crate) fn lower_func(
         code: lowerer.code,
         frame_size: lowerer.next,
         filler,
-        tables_hook,
     }
 }
