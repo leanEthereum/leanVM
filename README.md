@@ -14,11 +14,11 @@
 <table align="center">
   <tr>
     <td><a href="#xmss-aggregation">leanXMSS aggregation</a></td>
-    <td align="right"><b>1.65K/s</b></td>
+    <td align="right"><b>1.35K/s</b></td>
   </tr>
   <tr>
     <td><a href="#sphincs-aggregation">leanSPHINCS aggregation</a></td>
-    <td align="right"><b>770/s</b></td>
+    <td align="right"><b>850/s</b></td>
   </tr>
   <tr>
     <td><a href="#data-availability">leanDA commitment</a></td>
@@ -72,17 +72,17 @@ Expect leanVM to change significantly:
 The XMSS parameters are specified in [XMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf), with a [(ROM) security proof in Lean 4](https://github.com/leanEthereum/leanMultisig/blob/main/formal/xmss/XmssSecurity/Statement.lean). **This is not the definitive parameter set.**
 
 ```bash
-cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3
+cargo leanvm aggregate --xmss 1290 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-aggregation, 900 XMSS signatures
-  cycles (VM steps)           : 995,578 = 2^19.925
-    details                   : DEREF 2^17.878 (24.2%)  MUL 2^17.689 (21.2%)  SET 2^17.425 (17.7%)  BLAKE2S 2^16.989 (13.1%)  XOR 2^16.979 (13.0%)  JUMP 2^16.722 (10.9%)  MEMORY 2^20.674  BYTECODE 2^17.737  TOTAL_COMMITTED 2^25.801
-  proof size                  : 317.4 KiB
-  proving time                : 0.545 s ± 1.5%      peak memory 7.385 GiB
-  per signature               : 1,651.687 signatures/s
-  verifying                   : 3.977 ms
+aggregation, 1,290 leanXMSS signatures
+  cycles (VM steps)           : 1,336,043 = 2^20.35
+    details                   : SET 2^18.207 (22.7%)  BLAKE2S 2^17.992 (19.5%)  MUL 2^17.943 (18.9%)  XOR2^17.866 (17.9%)  DEREF 2^17.437 (13.3%)  JUMP 2^16.672 (7.8%)  MEMORY 2^21.125  BYTECODE 2^17.961  TOTAL_COMMITTED 2^26.672
+  proof size                  : 318.4 KiB
+  proving time                : 0.947 s ± 0.8%      peak memory 15.46 GiB
+  per signature               : 1,362.468 signatures/s
+  verifying                   : 5.387 ms
 ```
 
 ### SPHINCS aggregation
@@ -95,12 +95,12 @@ cargo leanvm aggregate --sphincs 850 --log-inv-rate 1 --repeat 3
 
 ```
 aggregation, 850 SPHINCS signatures
-  cycles (VM steps)           : 2,040,659 = 2^20.961
-    details                   : SET 2^19.186 (29.2%)  XOR 2^18.694 (20.8%)  MUL 2^18.605 (19.5%)  BLAKE2S 2^17.998 (12.8%)  DEREF 2^17.625 (9.9%)  JUMP 2^17.266 (7.7%)  MEMORY 2^21.475  BYTECODE 2^17.982 TOTAL_COMMITTED 2^26.849
-  proof size                  : 331.9 KiB
-  proving time                : 1.04 s ± 2.1%      peak memory 14.013 GiB
-  per signature               : 817.658 signatures/s
-  verifying                   : 5.048 ms
+  cycles (VM steps)           : 1,870,199 = 2^20.835
+    details                   : SET 2^18.992 (27.9%)  XOR 2^18.696 (22.7%)  MUL 2^18.208 (16.2%)  BLAKE2S2^17.998 (14.0%)  DEREF 2^17.879 (12.9%)  JUMP 2^16.855 (6.3%)  MEMORY 2^21.403  BYTECODE 2^17.961  TOTAL_COMMITTED 2^26.775
+  proof size                  : 325.8 KiB
+  proving time                : 1 s ± 3.9%      peak memory 16.102 GiB
+  per signature               : 850.082 signatures/s
+  verifying                   : 5.113 ms
 ```
 
 ### data availability
