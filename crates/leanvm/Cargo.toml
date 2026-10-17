@@ -10,6 +10,6 @@ workspace = true
 rec_aggregation.workspace = true
 leanvm_core.workspace = true
 lean_da.workspace = true
-xmss.workspace = true
+lean_xmss.workspace = true
 sphincs.workspace = true
 rand.workspace = true

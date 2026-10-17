@@ -15,16 +15,18 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Instant;
 
+use lean_xmss::*;
 use primitives::{pretty_f64, pretty_integer};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use xmss::*;
 
-type CachedSignature = (XmssPublicKey, XmssSignature);
+type CachedSignature = (LeanXmssPublicKey, LeanXmssSignature);
 
-const SCHEMA_VERSION: u32 = 4;
+const SCHEMA_VERSION: u32 = 5;
 
-/// The leaf indices every cached key is activated for (`key_gen`'s range is inclusive).
+/// The leaf indices every cached key signs at: mock keys (`lean_xmss::mock`), real
+/// only over this range, which a full key's top tree would make far slower to
+/// generate.
 const KEY_START: LeafIndex = 3_000_000_000;
 const KEY_END: LeafIndex = 3_000_000_015;
 
@@ -53,32 +55,21 @@ fn compute_signer(index: usize, message_id: u32) -> CachedSignature {
     // The index over its full width: a one-byte seed repeats every 256 signers,
     // and a repeated signer is invisible until something deduplicates the set,
     // at which point a batch of 900 quietly becomes one of 256.
+    // One seed per signer, always over the one range KEY_START..=KEY_END: a seed
+    // must back one key only (`lean_xmss::mock`).
     let mut seed = [10u8; 32];
     seed[..8].copy_from_slice(&(index as u64).to_le_bytes());
-    let (sk, pk) = xmss::key_gen_from_seed(seed, KEY_START, KEY_END).expect("keygen");
-    let sig = xmss::sign(&sk, &message_for(message_id), leaf_index_of(index, message_id)).expect("sign");
+    let (sk, pk) = mock::key_gen_from_seed(seed, KEY_START, KEY_END);
+    let sig = lean_xmss::sign(&sk, &message_for(message_id), leaf_index_of(index, message_id)).expect("sign");
     (pk, sig)
 }
 
 fn hash_fingerprint() -> [Digest; 2] {
     let pp = [0xA5u8; PUBLIC_PARAM_LEN];
     [
-        tweak_hash(&pp, TWEAK_TYPE_CHAIN, 1, 2, &[0x5Au8; DIGEST_LEN]),
-        tweak_hash(&pp, TWEAK_TYPE_ENCODING, 3, 4, &[0x3Cu8; 2 * STATE_LEN]),
+        th(&pp, &tweak(TWEAK_CHAIN, 1, 2), &[0x5Au8; N]),
+        message_digest(&pp, 1, 3, &[0x3Cu8; RANDOMIZER_LEN], &[0x3Cu8; MESSAGE_LEN]),
     ]
-}
-
-fn encoding_fingerprint(message_id: u32) -> (u64, [u8; V]) {
-    let pp = [0xA5u8; PUBLIC_PARAM_LEN];
-    let msg = message_for(message_id);
-    for counter in 0u64.. {
-        let mut randomness = [0u8; RANDOMNESS_LEN];
-        randomness[..8].copy_from_slice(&counter.to_le_bytes());
-        if let Some(digits) = wots_encode(&msg, leaf_index_of(0, message_id), &pp, &randomness) {
-            return (counter, digits);
-        }
-    }
-    unreachable!("some counter randomness encodes")
 }
 
 fn footprint(message_id: u32) -> u64 {
@@ -88,9 +79,8 @@ fn footprint(message_id: u32) -> u64 {
     KEY_START.hash(&mut hasher);
     KEY_END.hash(&mut hasher);
     message_for(message_id).hash(&mut hasher);
-    (V, W, CHAIN_LENGTH, LOG_LIFETIME, TARGET_SUM, RANDOMNESS_LEN).hash(&mut hasher);
+    (V, W, ZERO_DIGITS, LAYER_HEIGHT, TARGET_SUM, RANDOMIZER_LEN).hash(&mut hasher);
     hash_fingerprint().hash(&mut hasher);
-    encoding_fingerprint(message_id).hash(&mut hasher);
     // Key derivation and grinding, which verifying a cached signature does not exercise.
     compute_signer(0, message_id).hash(&mut hasher);
     hasher.finish()
@@ -101,7 +91,7 @@ fn cache_dir() -> PathBuf {
 }
 
 fn cache_path(message_id: u32) -> PathBuf {
-    cache_dir().join(format!("xmss_signers_{:016x}.bin", footprint(message_id)))
+    cache_dir().join(format!("lean_xmss_signers_{:016x}.bin", footprint(message_id)))
 }
 
 fn try_load_cache(message_id: u32) -> Option<Vec<CachedSignature>> {
@@ -115,7 +105,7 @@ fn try_load_cache(message_id: u32) -> Option<Vec<CachedSignature>> {
         .iter()
         .enumerate()
         .take_while(|(i, (pk, sig))| {
-            sig.leaf_index == leaf_index_of(*i, message_id) && xmss::verify(pk, &msg, sig).is_ok()
+            sig.leaf_index == leaf_index_of(*i, message_id) && lean_xmss::verify(pk, &msg, sig).is_ok()
         })
         .count();
     if valid < signers.len() {
@@ -147,14 +137,14 @@ fn generate_range(start: usize, end: usize, message_id: u32) -> Vec<CachedSignat
     for (done, index) in (start..end).enumerate() {
         signers.push(compute_signer(index, message_id));
         print!(
-            "\r  generating XMSS signers (one-time, then cached): {}/{}",
+            "\r  generating leanXMSS signers (one-time, then cached): {}/{}",
             pretty_integer(done + 1),
             pretty_integer(total)
         );
         let _ = std::io::stdout().flush();
     }
     println!(
-        "\r  generated {} XMSS in {} s (cached to disk)                ",
+        "\r  generated {} leanXMSS in {} s (cached to disk)                ",
         pretty_integer(total),
         pretty_f64(started.elapsed().as_secs_f64())
     );
@@ -194,12 +184,12 @@ pub fn get_signers_for(n: usize, message_id: u32) -> Vec<CachedSignature> {
 pub const SPHINCS_KEPT_HEIGHT: usize = 12;
 
 /// A SPHINCS signer, generated the same way, with the message it signed.
-/// Signing is stateless, so unlike XMSS there is no leaf index and no key range:
+/// Signing is stateless, so unlike leanXMSS there is no leaf index and no key range:
 /// one key answers for every index.
 type CachedSphincsSignature = (sphincs::SphincsPublicKey, sphincs::Message, sphincs::SphincsSignature);
 
 /// Signer `index`'s own message, distinct from every other's and from the
-/// XMSS ones, so a test that mixed them up would fail rather than pass.
+/// leanXMSS ones, so a test that mixed them up would fail rather than pass.
 pub fn sphincs_message(index: usize) -> sphincs::Message {
     let mut msg = [0u8; sphincs::MESSAGE_LEN];
     msg[..8].copy_from_slice(&(index as u64).to_le_bytes());

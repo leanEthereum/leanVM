@@ -1,24 +1,22 @@
 use leanvm::*;
 
-const MSG_0: xmss::Message = [0; xmss::MESSAGE_LEN];
-const MSG_1: xmss::Message = [1; xmss::MESSAGE_LEN];
-const MSG_2: xmss::Message = [2; xmss::MESSAGE_LEN];
+const MSG_0: lean_xmss::Message = [0; lean_xmss::MESSAGE_LEN];
+const MSG_1: lean_xmss::Message = [1; lean_xmss::MESSAGE_LEN];
+const MSG_2: lean_xmss::Message = [2; lean_xmss::MESSAGE_LEN];
 
 #[test]
 fn public_api_end_to_end() {
     setup_prover();
     let rng = &mut rand::rng();
 
-    // 1. Eight XMSS signatures over three messages, three of the first, four of the second, one of the third.
-    //    Each signature carries its own leaf index, which the statement does not record.
-    let mut xmss_input = Vec::new();
-    let mut leaf_index = 7;
-    for (message, count) in [(MSG_0, 3), (MSG_1, 4), (MSG_2, 1)] {
-        for _ in 0..count {
-            let (secret_key, pub_key) = xmss::key_gen(rng, leaf_index, leaf_index).unwrap();
-            let signature = xmss::sign(&secret_key, &message, leaf_index).unwrap();
-            xmss_input.push((pub_key, message, signature));
-            leaf_index = leaf_index * 5 + 1;
+    // 1. Eight leanXMSS signatures over three messages, three of the first, four of the second, one of the third,
+    //    by four keys. A key signs each message at its own leaf index, which the statement does not record.
+    let keys: Vec<_> = (0..4).map(|_| lean_xmss::key_gen(rng)).collect();
+    let mut lean_xmss_input = Vec::new();
+    for (leaf_index, (message, count)) in (7..).zip([(MSG_0, 3), (MSG_1, 4), (MSG_2, 1)]) {
+        for (secret_key, pub_key) in &keys[..count] {
+            let signature = lean_xmss::sign(secret_key, &message, leaf_index).unwrap();
+            lean_xmss_input.push((pub_key.clone(), message, signature));
         }
     }
 
@@ -36,7 +34,7 @@ fn public_api_end_to_end() {
     let (commitment, _) = lean_da::commit(&blobs);
     let left = aggregate(
         &[],
-        xmss_input[..4].to_vec(),
+        lean_xmss_input[..4].to_vec(),
         sphincs_input[..1].to_vec(),
         &blobs,
         None,
@@ -50,7 +48,7 @@ fn public_api_end_to_end() {
     let (other_commitment, _) = lean_da::commit(&other_blobs);
     let right = aggregate(
         &[],
-        xmss_input[4..7].to_vec(),
+        lean_xmss_input[4..7].to_vec(),
         sphincs_input[1..].to_vec(),
         &other_blobs,
         None,
@@ -59,7 +57,7 @@ fn public_api_end_to_end() {
     .unwrap();
     let mut roots = vec![commitment.root, other_commitment.root];
     roots.sort();
-    let root = aggregate(&[left, right], xmss_input[7..].to_vec(), vec![], &[], None, 2).unwrap();
+    let root = aggregate(&[left, right], lean_xmss_input[7..].to_vec(), vec![], &[], None, 2).unwrap();
     assert_eq!(root.num_signature_claims(), 11);
     assert_eq!(root.da_commitments(), roots);
 

@@ -1,5 +1,5 @@
 # The recursive aggregation guest: zkDSL, not runnable Python (see
-# crates/lean_compiler/zkDSL.md). One node of an aggregation tree verifies raw XMSS
+# crates/lean_compiler/zkDSL.md). One node of an aggregation tree verifies raw leanXMSS
 # and SPHINCS+ signatures and sub-proofs OF THIS SAME BYTECODE, and publishes the
 # statement digest binding its signature claims and a possibly empty list of LeanDA roots.
 # It may check a blob matrix directly and retain any roots proved by its children.
@@ -324,46 +324,42 @@ BLAKE2S_IV_0 = BLAKE2S_IV_0_PLACEHOLDER
 BLAKE2S_IV_1 = BLAKE2S_IV_1_PLACEHOLDER
 MD_FINAL = MD_FINAL_PLACEHOLDER
 
-# ---------------------------------------------------------- XMSS (host-supplied)
-# Every 16-byte native value (tweak, digest, chain tip, sibling, public parameter)
-# is one canonical 128-bit cell. XM_* are the tweaks minus their index field, as
-# the host read them out of the native `make_tweak`, so the guest holds no byte
-# layout of its own; bit b of an index weighs XM_INDEX_WEIGHT · XM_INDEX_RATIO^b,
-# an index being its set bits summed.
-V = V_PLACEHOLDER
+# --------------------------------------------------------- WOTS+C (host-supplied)
+# Both schemes' one-time keys: chains of CHAIN_LENGTH positions, whose digits are
+# dispatched DIGIT_GROUP at a time, the last chain alone, and the leanSPHINCS
+# address, a cell whose low lane is lo:32 | hi:24 | type:5 | step:3, its high lane
+# zero. TW_* hold the type. Every 16-byte native value is one canonical cell.
 W = W_PLACEHOLDER
-TARGET_SUM = TARGET_SUM_PLACEHOLDER
-LOG_LIFETIME = LOG_LIFETIME_PLACEHOLDER
 CHAIN_LENGTH = 2 ** W
 CHAIN_STEPS = CHAIN_LENGTH - 1
-WORDS_PER_VALUE = 1
+DIGIT_GROUP = DIGIT_GROUP_PLACEHOLDER
+DIGIT_GROUPS = CHAIN_LENGTH ** DIGIT_GROUP
+# The digit sum of group k, at k.
+DIGIT_SUMS = DIGIT_SUMS_PLACEHOLDER
+TW_CHAIN = TW_CHAIN_PLACEHOLDER
+TW_LEAF = TW_LEAF_PLACEHOLDER
+TW_NODE = TW_NODE_PLACEHOLDER
+TW_MSG = TW_MSG_PLACEHOLDER
+HI_MUL = 2 ** 32
+STEP_MUL = 2 ** 61
 WORDS_PER_BLOCK = 2
-XM_ENC_TWEAK = XM_ENC_TWEAK_PLACEHOLDER
-XM_PK_TWEAK = XM_PK_TWEAK_PLACEHOLDER
-XM_CHAIN_TWEAKS = XM_CHAIN_TWEAKS_PLACEHOLDER   # indexed CHAIN_STEPS·i + s
-XM_MERKLE_TWEAKS = XM_MERKLE_TWEAKS_PLACEHOLDER  # indexed by level
-XM_INDEX_WEIGHT = XM_INDEX_WEIGHT_PLACEHOLDER
-XM_INDEX_RATIO = XM_INDEX_RATIO_PLACEHOLDER
-# Digits packed per digest lane: W bits each in GF(2^64)'s monomial budget (the
-# lane's leftover top bits are ground to zero by the signer).
-DIGITS_PER_WORD = V / 2
-TIP_CELLS = 2 * V  # tip i at cell 2i, beside the unread upper half of its last hash
-WOTS_PK_BLOCKS = (2 + V) / 4  # prefix (tweak, pp) + V tips, four cells a block
+
+# ----------------------------------------------------- leanXMSS (host-supplied)
+# Two layers of trees of height LX_HEIGHT over keys of LX_V chains. A layer's digest
+# is a codeword when its first LX_V digits sum to LX_TARGET_SUM and the rest are
+# zero. LX_TOP is the top layer's flag where an address holds it.
+LX_V = LX_V_PLACEHOLDER
+LX_TARGET_SUM = LX_TARGET_SUM_PLACEHOLDER
+LX_HEIGHT = LX_HEIGHT_PLACEHOLDER
+LX_TOP = LX_TOP_PLACEHOLDER
+LX_LEAF_BLOCKS = (2 + LX_V) / 4  # P and A, then the chain ends, four cells a block
 
 # ------------------------------------------------------ SPHINCS+ (host-supplied)
-# The scheme's own letters, prefixed SP_ where XMSS has the same one: one tree of
-# height SP_H over WOTS+C keys, each signing a forest of small WOTS keys.
+# The scheme's own letters, prefixed SP_: one tree of height SP_H over WOTS+C keys,
+# each signing a forest of small WOTS keys.
 SP_V = SP_V_PLACEHOLDER
-SP_W = SP_W_PLACEHOLDER
 SP_TARGET_SUM = SP_TARGET_SUM_PLACEHOLDER
 SP_H = SP_H_PLACEHOLDER
-SP_CHAIN_LENGTH = 2 ** SP_W
-SP_CHAIN_STEPS = SP_CHAIN_LENGTH - 1
-# The one-time digits are dispatched SP_DIGIT_GROUP at a time, the last chain alone.
-SP_DIGIT_GROUP = SP_DIGIT_GROUP_PLACEHOLDER
-SP_DIGIT_GROUPS = SP_CHAIN_LENGTH ** SP_DIGIT_GROUP
-# The digit sum of group k, at k.
-SP_DIGIT_SUMS = SP_DIGIT_SUMS_PLACEHOLDER
 # The forest: SP_TREES trees of height SP_TREE_HEIGHT, each leaf over two subtrees
 # of height SP_SUBTREE_HEIGHT, whose leaves are WOTS keys of SP_FCHAINS chains with
 # top position SP_FTOP. A codeword is an SP_WORD_BITS-bit index into a table.
@@ -390,32 +386,25 @@ SP_LEAF_OFF = SP_H
 SP_KEY_OFF = SP_LEAF_OFF + SP_TREES * SP_TREE_HEIGHT
 SP_USED_BITS = SP_KEY_OFF + 2 * SP_TREES * SP_SUBTREE_HEIGHT
 SP_UNUSED_BITS = SP_CELL_BITS - SP_USED_BITS
-# An address is a cell whose low lane is lo:32 | hi:24 | type:5 | step:3, its high
-# lane zero. SP_TW_* hold the type.
-SP_TW_CHAIN = SP_TW_CHAIN_PLACEHOLDER
-SP_TW_LEAF = SP_TW_LEAF_PLACEHOLDER
-SP_TW_NODE = SP_TW_NODE_PLACEHOLDER
+# The forest's hash types.
 SP_TW_ENC = SP_TW_ENC_PLACEHOLDER
-SP_TW_MSG = SP_TW_MSG_PLACEHOLDER
 SP_TW_FCHAIN = SP_TW_FCHAIN_PLACEHOLDER
 SP_TW_FKEY_LEAF = SP_TW_FKEY_LEAF_PLACEHOLDER
 SP_TW_FSUBNODE = SP_TW_FSUBNODE_PLACEHOLDER
 SP_TW_FTREE_LEAF = SP_TW_FTREE_LEAF_PLACEHOLDER
 SP_TW_FNODE = SP_TW_FNODE_PLACEHOLDER
 SP_TW_FKEY = SP_TW_FKEY_PLACEHOLDER
-SP_HI_MUL = 2 ** 32
-SP_STEP_MUL = 2 ** 61
 # Where a forest position sits in `hi`: tree c | leaf s | subtree j | key a | chain i,
 # a subtree node's level and index in place of the key, a tree node's in place of
 # the leaf.
-SP_LEAF_MUL = 2 ** 3 * SP_HI_MUL
-SP_SUBTREE_MUL = 2 ** 7 * SP_HI_MUL
-SP_KEY_MUL = 2 ** 8 * SP_HI_MUL
-SP_FCHAIN_MUL = 2 ** 11 * SP_HI_MUL
-SP_SUBNODE_LEVEL_MUL = 2 ** 8 * SP_HI_MUL
-SP_SUBNODE_MUL = 2 ** 10 * SP_HI_MUL
-SP_FNODE_LEVEL_MUL = 2 ** 3 * SP_HI_MUL
-SP_FNODE_MUL = 2 ** 6 * SP_HI_MUL
+SP_LEAF_MUL = 2 ** 3 * HI_MUL
+SP_SUBTREE_MUL = 2 ** 7 * HI_MUL
+SP_KEY_MUL = 2 ** 8 * HI_MUL
+SP_FCHAIN_MUL = 2 ** 11 * HI_MUL
+SP_SUBNODE_LEVEL_MUL = 2 ** 8 * HI_MUL
+SP_SUBNODE_MUL = 2 ** 10 * HI_MUL
+SP_FNODE_LEVEL_MUL = 2 ** 3 * HI_MUL
+SP_FNODE_MUL = 2 ** 6 * HI_MUL
 # The encoding counter, LE_32 in the low four bytes of its lane: bounded by
 # decomposing exactly that many bits, so the guest accepts no preimage the native
 # verifier cannot parse.
@@ -908,16 +897,6 @@ def batch_sumcheck(fs0, fs1, msgs, running, point, n_rounds: Const):
 
 
 # ==================================== Merkle paths ==================================
-
-
-@inline
-def order_children(node, sibling, bit):
-    # Branchless child ordering: `bit` is boolean-pinned wherever it comes from, so
-    # `m = bit*(node + sibling)` selects rather than branches, leaving (node,
-    # sibling) at bit 0 and (sibling, node) at bit 1.
-    m = bit * (node + sibling)
-    kids = [node + m, sibling + m]
-    return kids
 
 
 @inline
@@ -2219,116 +2198,14 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     return
 
 
-# ============================ XMSS signature verification ===========================
-# `signer` is one 4-cell entry of the XMSS coverage table: the pubkey's merkle root
-# and public parameter, then the message that pubkey signed. Every 16-byte native value
-# (tweak, digest, chain tip, sibling, pp) is one canonical 128-bit cell.
-
-
-def verify_sig(signer):
-    pp = signer[GEN]
-
-    # The leaf index rides the signature, so every tweak is derived here from its
-    # bits, which are advice pinned Boolean: any LOG_LIFETIME-bit index is one some
-    # signature may carry, so no outside value pins them, and the encoding digest and
-    # the root this signature must reach bind them. at[l] is the index field of
-    # `leaf_index >> l`, built top down by Horner: at[0] goes into the encoding,
-    # chain and wots-pk tweaks, at[l + 1] into Merkle level l's, and bit l orders
-    # that level's children.
-    bits = StackBuf(LOG_LIFETIME)
-    hint_witness(bits, "leaf_index_bits")
-    for b in unroll(0, LOG_LIFETIME):
-        bits[b] = bits[b] * bits[b]
-    at = StackBuf(LOG_LIFETIME + 1)
-    at[LOG_LIFETIME] = 0
-    for r in unroll(1, LOG_LIFETIME + 1):
-        at[LOG_LIFETIME - r] = bits[LOG_LIFETIME - r] * XM_INDEX_WEIGHT + at[LOG_LIFETIME + 1 - r] * XM_INDEX_RATIO
-    index = at[0]
-
-    # Encoding digest D = BLAKE2s(tweak | pp | msg | randomness | zero-pad), 96
-    # bytes: one full 64-byte block then a 32-byte final block (24 bytes of
-    # randomness and the specified 8-byte zero pad). A packing helper source is read
-    # as (lo, 0, 0) where BLAKE2s reads (lo, hi, 0), which is what pins that pad.
-    after_msg = StackBuf(WORDS_PER_BLOCK)
-    blake2s([index + XM_ENC_TWEAK, pp], [signer[GEN ** 2], signer[GEN ** 3]], after_msg, counter=64, final=0)
-    rand_block = StackBuf(WORDS_PER_BLOCK)
-    hint_witness(rand_block, "rand")
-    assert_in_k(rand_block[1], 0)
-    digest = StackBuf(WORDS_PER_BLOCK)
-    blake2s(rand_block, [0, 0], digest, cv=after_msg, counter=96, final=1)
-
-    # V WOTS chains. Per chain the digit is hinted in the exponent (g^{e_i}), range
-    # checked and dispatched once into this frame; arm k walks the remaining
-    # CHAIN_STEPS-k steps into `tips` and returns e_i = k weighted by CHAIN_LENGTH^i
-    # inside its own 64-bit lane (DIGITS_PER_WORD digits a lane, GF(2^64)'s monomial
-    # budget, each lane's leftover top bits ground to zero by the signer). The product
-    # of the digits is the target sum (g^{Σe_i}), and the weighted digits reconstruct
-    # D's first cell as `acc_lo + acc_hi·Y`.
-    tips = StackBuf(TIP_CELLS)
-    step_md = StackBuf(1)
-    step_md[0] = MD_FINAL + 48  # SET once here, not in every arm
-    digit_product = 1
-    acc_lo = 0
-    acc_hi = 0
-    for i in unroll(0, V):
-        digit = hint_witness("digits")
-        assert log(digit) < CHAIN_LENGTH
-        chain_start = hint_witness("chain_starts")
-        term = match(log(digit), range(0, CHAIN_LENGTH), lambda k: walk(chain_start, index, pp, step_md[0], tips, i, k))
-        digit_product = digit_product * digit
-        if i // DIGITS_PER_WORD == 0:
-            acc_lo = acc_lo + term
-        else:
-            acc_hi = acc_hi + term
-    assert digit_product == GEN ** TARGET_SUM
-    assert acc_lo + acc_hi * Y_TOWER == digest[0]
-
-    # WOTS public-key leaf = standard BLAKE2s over prefix + V tips: WOTS_PK_BLOCKS
-    # full blocks, carrying the chaining value between instructions.
-    leaf = StackBuf(WORDS_PER_BLOCK)
-    blake2s([index + XM_PK_TWEAK, pp], [tips[0], tips[2]], leaf, counter=64, final=0)
-    for q in unroll(1, WOTS_PK_BLOCKS):
-        next_leaf = StackBuf(WORDS_PER_BLOCK)
-        blake2s([tips[8 * q - 4], tips[8 * q - 2]], [tips[8 * q], tips[8 * q + 2]], next_leaf, cv=leaf, counter=64 * (q + 1), final=(q + 1) // WOTS_PK_BLOCKS)
-        leaf = next_leaf
-
-    # Merkle path from the leaf to the root: the leaf index bit orders the two children at
-    # each level, and the tweak carries that level's parent index.
-    node = leaf[0]
-    for lvl in unroll(0, LOG_LIFETIME):
-        sibling = hint_witness("siblings")
-        children = order_children(node, sibling, bits[lvl])
-        parent = StackBuf(WORDS_PER_BLOCK)
-        blake2s([at[lvl + 1] + XM_MERKLE_TWEAKS[lvl], pp], children, parent)
-        node = parent[0]
-    assert node == signer[1]
-    return
-
-
-@inline
-def walk(value, index, pp, md, tips, i: Const, k: Const):
-    # Walk chain i's steps k..CHAIN_STEPS-1, value' = H(tweak|pp, value|0), the tip
-    # landing in tips[2i]. Only the steps walked build their tweaks.
-    if const(k == CHAIN_STEPS):
-        tips[2 * i] = value
-    else:
-        word = value
-        for s in unroll(k, CHAIN_STEPS - 1):
-            out = StackBuf(WORDS_PER_BLOCK)
-            blake2s([index + XM_CHAIN_TWEAKS[CHAIN_STEPS * i + s], pp], [word, 0], out, md=md)
-            word = out[0]
-        blake2s([index + XM_CHAIN_TWEAKS[CHAIN_STEPS * i + CHAIN_STEPS - 1], pp], [word, 0], tips[2 * i:2 * i + 2], md=md)
-    return const(k * CHAIN_LENGTH ** (i % DIGITS_PER_WORD))
-
-
-# ========================== SPHINCS+ signature verification =========================
+# =============================== WOTS+C, both schemes ===============================
 # Every hash input is P | A | M with P, A and each value of M 16 bytes, so each is
 # one cell: a hash's output feeds the next hash where it lands, and a hinted value
 # needs no check of its own, the compression reading only canonical cells.
 
 
 @inline
-def sp_shifts(bits, off: Const, n: Const, out):
+def shifts(bits, off: Const, n: Const, out):
     # The integer in the pinned bits [off, off+n) and its right shifts, out[l] the
     # one by l: a field's value, and the node indices above a leaf.
     out[n - 1] = bits[off + n - 1]
@@ -2338,7 +2215,7 @@ def sp_shifts(bits, off: Const, n: Const, out):
 
 
 @inline
-def sp_is_child(node, kids, k: Const, bit):
+def is_child(node, kids, k: Const, bit):
     # A node is not ordered against its sibling: the two children are hinted in
     # order, at kids[k] and kids[k + 1], and `node` is checked to be the one `bit`
     # names, the left one at 0, the right one at 1. One product, stored where the
@@ -2350,30 +2227,120 @@ def sp_is_child(node, kids, k: Const, bit):
 
 
 @inline
-def sp_walk(idx, pp, md, tips, i: Const, k: Const):
+def walk(idx, pp, md, tips, i: Const, k: Const):
     # Walk WOTS+C chain i from position k to its end, the step leaving position s
     # carrying s, the tip landing in tips[2i] beside the unread upper half of its
     # last hash.
-    if const(k == SP_CHAIN_STEPS):
-        hint_witness(tips[2 * i:2 * i + 1], "sp_chain_starts")
+    if const(k == CHAIN_STEPS):
+        hint_witness(tips[2 * i:2 * i + 1], "chain_starts")
     else:
-        value = hint_witness("sp_chain_starts")
-        for s in unroll(k, SP_CHAIN_STEPS - 1):
+        value = hint_witness("chain_starts")
+        for s in unroll(k, CHAIN_STEPS - 1):
             out = StackBuf(WORDS_PER_BLOCK)
-            blake2s([pp, idx + const(SP_TW_CHAIN + i * SP_HI_MUL + s * SP_STEP_MUL)], [value, 0], out, md=md)
+            blake2s([pp, idx + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], out, md=md)
             value = out[0]
-        blake2s([pp, idx + const(SP_TW_CHAIN + i * SP_HI_MUL + (SP_CHAIN_STEPS - 1) * SP_STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], md=md)
+        blake2s([pp, idx + const(TW_CHAIN + i * HI_MUL + (CHAIN_STEPS - 1) * STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], md=md)
     return
 
 
 @inline
-def sp_walk_group(idx, pp, md, tips, first: Const, n: Const, k: Const):
-    # The n <= SP_DIGIT_GROUP chains from `first` on, at the digits of k, one
+def walk_group(idx, pp, md, tips, first: Const, n: Const, k: Const):
+    # The n <= DIGIT_GROUP chains from `first` on, at the digits of k, one
     # dispatch for all of them. Returns the digits as the encoding digest holds
     # them, and their sum in the exponent.
     for r in unroll(0, n):
-        sp_walk(idx, pp, md, tips, first + r, (k // SP_CHAIN_LENGTH ** r) % SP_CHAIN_LENGTH)
-    return const(k * SP_CHAIN_LENGTH ** first), GEN ** SP_DIGIT_SUMS[k]
+        walk(idx, pp, md, tips, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH)
+    return const(k * CHAIN_LENGTH ** first), GEN ** DIGIT_SUMS[k]
+
+
+# ========================= leanXMSS signature verification ========================
+
+
+def verify_lean_xmss(signer):
+    # `signer` is one 4-cell entry of the leanXMSS coverage table: the pubkey's
+    # merkle root and public parameter, then the message that pubkey signed. The
+    # bottom layer signs the message, the top layer the bottom root.
+    pp = signer[GEN]
+    step_md = StackBuf(1)
+    step_md[0] = MD_FINAL + 48  # SET once here, not in every arm
+
+    # The leaf index rides the signature, so every address is derived here from its
+    # bits, which are advice pinned Boolean: any index is one some signature may
+    # carry, so no outside value pins them, and the digests and the root this
+    # signature must reach bind them. nodes[l] is `leaf_index >> l`: the bottom
+    # layer's key and node indices, then from LX_HEIGHT on the top layer's.
+    bits = StackBuf(2 * LX_HEIGHT)
+    hint_witness(bits, "leaf_index_bits")
+    for b in unroll(0, 2 * LX_HEIGHT):
+        bits[b] = bits[b] * bits[b]
+    nodes = StackBuf(2 * LX_HEIGHT)
+    shifts(bits, 0, 2 * LX_HEIGHT, nodes)
+
+    for layer in unroll(0, 2):
+        if const(layer == 0):
+            idx = nodes[0]
+        else:
+            idx = nodes[LX_HEIGHT] + LX_TOP
+        # D = Th(P, A, R | M): 80 bytes at the bottom, the message ending in a block
+        # of its own, and one block at the top, where M is the bottom root.
+        rho = hint_witness("randomizer")
+        digest = StackBuf(WORDS_PER_BLOCK)
+        if const(layer == 0):
+            prefix = StackBuf(WORDS_PER_BLOCK)
+            blake2s([pp, idx + TW_MSG], [rho, signer[GEN ** 2]], prefix, counter=64, final=0)
+            blake2s([signer[GEN ** 3], 0], [0, 0], digest, cv=prefix, counter=80, final=1)
+        else:
+            blake2s([pp, idx + TW_MSG], [rho, root], digest)
+
+        # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
+        # checked and dispatched once, the arm walking every chain's remaining steps.
+        # The product of what the arms return is the target sum, and the digits, each
+        # where the digest holds it, reconstruct D, which also checks the digits past
+        # LX_V are zero.
+        tips = StackBuf(2 * LX_V)
+        digit_product = 1
+        encoded = 0
+        for p in unroll(0, LX_V // DIGIT_GROUP):
+            group = hint_witness("digits")
+            assert log(group) < DIGIT_GROUPS
+            term, digit_sum = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k))
+            digit_product = digit_product * digit_sum
+            encoded = encoded + term
+        group = hint_witness("digits")
+        assert log(group) < CHAIN_LENGTH
+        term, digit_sum = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, step_md[0], tips, LX_V - 1, 1, k))
+        digit_product = digit_product * digit_sum
+        encoded = encoded + term
+        assert digit_product == GEN ** LX_TARGET_SUM
+        assert encoded == digest[0]
+
+        # The one-time leaf: P, A and the LX_V chain ends, four cells a block.
+        leaf = StackBuf(WORDS_PER_BLOCK)
+        blake2s([pp, idx + TW_LEAF], [tips[0], tips[2]], leaf, counter=64, final=0)
+        for q in unroll(1, LX_LEAF_BLOCKS):
+            next_leaf = StackBuf(WORDS_PER_BLOCK)
+            blake2s([tips[8 * q - 4], tips[8 * q - 2]], [tips[8 * q], tips[8 * q + 2]], next_leaf, cv=leaf, counter=64 * (q + 1), final=(q + 1) // LX_LEAF_BLOCKS)
+            leaf = next_leaf
+
+        # The path to the layer's root, the two children of each node hinted in order.
+        node = leaf[0]
+        for level in unroll(0, LX_HEIGHT):
+            kids = StackBuf(2)
+            hint_witness(kids, "siblings")
+            is_child(node, kids, 0, bits[LX_HEIGHT * layer + level])
+            parent = StackBuf(WORDS_PER_BLOCK)
+            if const(LX_HEIGHT * layer + level + 1 == 2 * LX_HEIGHT):
+                # The top root, at index 0.
+                blake2s([pp, const(TW_NODE + (level + 1) * HI_MUL + LX_TOP)], kids, parent)
+            else:
+                blake2s([pp, const(TW_NODE + (level + 1) * HI_MUL + layer * LX_TOP) + nodes[LX_HEIGHT * layer + level + 1]], kids, parent)
+            node = parent[0]
+        root = node
+    assert root == signer[1]
+    return
+
+
+# ========================== SPHINCS+ signature verification =========================
 
 
 def sp_forest_key(at, pp, t: Const):
@@ -2390,9 +2357,9 @@ def sp_forest_key(at, pp, t: Const):
             value = hint_witness("sp_forest_values")
             for s in unroll(SP_FTOP - SP_CODEWORDS[SP_FCHAINS * t + i], SP_FTOP - 1):
                 out = StackBuf(WORDS_PER_BLOCK)
-                blake2s([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + s * SP_STEP_MUL)], [value, 0], out, counter=48, final=1)
+                blake2s([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + s * STEP_MUL)], [value, 0], out, counter=48, final=1)
                 value = out[0]
-            blake2s([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + (SP_FTOP - 1) * SP_STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], counter=48, final=1)
+            blake2s([pp, at + const(SP_TW_FCHAIN + i * SP_FCHAIN_MUL + (SP_FTOP - 1) * STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], counter=48, final=1)
     st = StackBuf(WORDS_PER_BLOCK)
     blake2s([pp, at + SP_TW_FKEY_LEAF], [tips[0], tips[2]], st, counter=64, final=0)
     leaf = StackBuf(WORDS_PER_BLOCK)
@@ -2443,7 +2410,7 @@ def sp_tree_arm(node, tree_at, pp, md, tops, c: Const, s: Const):
 def verify_sig_sphincs(signer):
     # `signer` is one 4-cell entry of the SPHINCS coverage table: the pubkey's root and
     # public parameter, then the message THAT signer signed, the two bound together
-    # by the signer-set digest, as for XMSS.
+    # by the signer-set digest, as for leanXMSS.
     pp = signer[GEN]
     # The metadata of a chain step and of a node, SET once here, not in every arm.
     step_md = StackBuf(1)
@@ -2455,7 +2422,7 @@ def verify_sig_sphincs(signer):
     # D = H(P | A | m | rho), 80 bytes: the message ends the first block and the
     # randomizer is the second.
     prefix = StackBuf(WORDS_PER_BLOCK)
-    blake2s([pp, SP_TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], prefix, counter=64, final=0)
+    blake2s([pp, TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], prefix, counter=64, final=0)
     rho = hint_witness("sp_rand")
     digest = StackBuf(WORDS_PER_BLOCK)
     blake2s([rho, 0], [0, 0], digest, cv=prefix, counter=80, final=1)
@@ -2475,10 +2442,10 @@ def verify_sig_sphincs(signer):
         high[i] = high[i] * high[i]
     # nodes[l] is idx >> l: the index, then the node above it on each level.
     nodes = StackBuf(SP_H)
-    sp_shifts(bits, 0, SP_H, nodes)
+    shifts(bits, 0, SP_H, nodes)
     idx = nodes[0]
     unused = StackBuf(SP_UNUSED_BITS)
-    sp_shifts(high, 0, SP_UNUSED_BITS, unused)
+    shifts(high, 0, SP_UNUSED_BITS, unused)
     bound = idx + unused[0] * COORD_BASIS[SP_USED_BITS]
 
     # ---- the few-time signature: two opened WOTS keys per tree of the forest ----
@@ -2489,7 +2456,7 @@ def verify_sig_sphincs(signer):
         if const(c == 0):
             tree_at = idx
         else:
-            tree_at = idx + const(c * SP_HI_MUL)
+            tree_at = idx + const(c * HI_MUL)
         # The tree's leaf: g^s, and s where an address holds it, which the
         # dispatch on the first writes again.
         leaf_mark = StackBuf(2)
@@ -2551,30 +2518,30 @@ def verify_sig_sphincs(signer):
     encoding = StackBuf(WORDS_PER_BLOCK)
     blake2s([pp, idx + SP_TW_ENC], [forest_key[0], ctr], encoding, counter=52, final=1)
 
-    # The codeword: SP_DIGIT_GROUP digits at a time, hinted in the exponent, range
+    # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
     # checked and dispatched once, the arm walking every chain's remaining steps.
     # The product of what the arms return is the target sum, and the digits, each
     # group where the digest holds it, reconstruct D.
     tips = StackBuf(2 * SP_V)
     digit_product = 1
     encoded = 0
-    for p in unroll(0, SP_V // SP_DIGIT_GROUP):
-        group = hint_witness("sp_digits")
-        assert log(group) < SP_DIGIT_GROUPS
-        term, digit_sum = match(log(group), range(0, SP_DIGIT_GROUPS), lambda k: sp_walk_group(idx, pp, step_md[0], tips, SP_DIGIT_GROUP * p, SP_DIGIT_GROUP, k))
+    for p in unroll(0, SP_V // DIGIT_GROUP):
+        group = hint_witness("digits")
+        assert log(group) < DIGIT_GROUPS
+        term, digit_sum = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k))
         digit_product = digit_product * digit_sum
         encoded = encoded + term
     # The chain the groups leave over.
-    group = hint_witness("sp_digits")
-    assert log(group) < SP_CHAIN_LENGTH
-    term, digit_sum = match(log(group), range(0, SP_CHAIN_LENGTH), lambda k: sp_walk_group(idx, pp, step_md[0], tips, SP_V - 1, 1, k))
+    group = hint_witness("digits")
+    assert log(group) < CHAIN_LENGTH
+    term, digit_sum = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, step_md[0], tips, SP_V - 1, 1, k))
     digit_product = digit_product * digit_sum
     encoded = encoded + term
     assert digit_product == GEN ** SP_TARGET_SUM
     assert encoded == encoding[0]
     # The one-time leaf: P, A and the SP_V tips, four cells a block.
     leaf = StackBuf(WORDS_PER_BLOCK)
-    blake2s([pp, idx + SP_TW_LEAF], [tips[0], tips[2]], leaf, counter=64, final=0)
+    blake2s([pp, idx + TW_LEAF], [tips[0], tips[2]], leaf, counter=64, final=0)
     for q in unroll(1, SP_LEAF_BLOCKS):
         next_leaf = StackBuf(WORDS_PER_BLOCK)
         if const(q + 1 == SP_LEAF_BLOCKS):
@@ -2587,13 +2554,13 @@ def verify_sig_sphincs(signer):
     node = leaf[0]
     for level in unroll(0, SP_H):
         kids = StackBuf(2)
-        hint_witness(kids, "sp_siblings")
-        sp_is_child(node, kids, 0, bits[level])
+        hint_witness(kids, "siblings")
+        is_child(node, kids, 0, bits[level])
         parent = StackBuf(WORDS_PER_BLOCK)
         if const(level + 1 == SP_H):
-            blake2s([pp, SP_TW_NODE + const((level + 1) * SP_HI_MUL)], kids, parent)
+            blake2s([pp, TW_NODE + const((level + 1) * HI_MUL)], kids, parent)
         else:
-            blake2s([pp, SP_TW_NODE + const((level + 1) * SP_HI_MUL) + nodes[level + 1]], kids, parent)
+            blake2s([pp, TW_NODE + const((level + 1) * HI_MUL) + nodes[level + 1]], kids, parent)
         node = parent[0]
     assert node == signer[1]
     return
@@ -3061,10 +3028,10 @@ def cover_da_root(roots, cover, n_slots_g, mark):
 
 
 def main():
-    # One node of an aggregation tree: n_raw_xmss XMSS signatures, n_raw_sphincs
+    # One node of an aggregation tree: n_raw_lean_xmss leanXMSS signatures, n_raw_sphincs
     # SPHINCS signatures and n_children sub-proofs OF THIS SAME BYTECODE. A claim of
     # either scheme is a pubkey and the message it signed, and each signature is
-    # verified against the claim in its own coverage slot; an XMSS signature carries
+    # verified against the claim in its own coverage slot; a leanXMSS signature carries
     # its own leaf index. DA roots occupy a separate region of the same table.
     #
     # The declared lists are the signer set; the duplicate slots absorb claims a
@@ -3072,7 +3039,7 @@ def main():
     # per scheme, each its declared claims then its own duplicates, then DA shaped
     # the same way:
     #
-    #   [XMSS: declared | dup][SPHINCS: declared | dup][DA: declared | dup]
+    #   [leanXMSS: declared | dup][SPHINCS: declared | dup][DA: declared | dup]
     #
     # so one range check per write keeps each writer inside its own region: that is
     # what makes the statement's split mean which scheme verified which claim. A
@@ -3080,7 +3047,7 @@ def main():
     # occupies two cells.
     meta = StackBuf(8)
     hint_witness(meta, "meta")  # every count in the exponent
-    n_xmss_g = meta[0]
+    n_lx_g = meta[0]
     n_xdup_g = meta[1]
     n_raw_x_g = meta[2]
     n_sphincs_g = meta[3]
@@ -3088,7 +3055,7 @@ def main():
     n_raw_s_g = meta[5]
     n_children_g = meta[6]
     n_direct_da_g = meta[7]
-    assert log(n_xmss_g) < MAX_KEYS
+    assert log(n_lx_g) < MAX_KEYS
     assert log(n_xdup_g) < MAX_KEYS
     assert log(n_raw_x_g) < MAX_KEYS
     assert log(n_sphincs_g) < MAX_KEYS
@@ -3104,11 +3071,11 @@ def main():
     assert log(n_da_dup_g) < MAX_RECURSIONS * MAX_DA_ROOTS + 2
     da_slots_g = n_da_g * n_da_dup_g
     assert log(da_slots_g) < MAX_RECURSIONS * MAX_DA_ROOTS + 2
-    xmss_slots_g = n_xmss_g * n_xdup_g
+    lx_slots_g = n_lx_g * n_xdup_g
     sphincs_slots_g = n_sphincs_g * n_sdup_g
     # The sum of every region bounds the coverage indices, so it is what has to sit
     # below the minimum memory size.
-    da_base_g = xmss_slots_g * sphincs_slots_g
+    da_base_g = lx_slots_g * sphincs_slots_g
     n_total_g = da_base_g * da_slots_g
     assert log(n_total_g) < MAX_KEYS
 
@@ -3132,23 +3099,23 @@ def main():
     da_0, da_1 = da_list_digest(da_roots, n_da_g)
     # One table per scheme: its declared list (strictly sorted, checked by the outer
     # verifier, which holds it) followed by its own duplicate slots. The coverage
-    # indices below run over one space: XMSS, then SPHINCS, then DA.
+    # indices below run over one space: leanXMSS, then SPHINCS, then DA.
     #
     # Each list's digest is a plain BLAKE2s of its claims, 64 bytes a claim, so it
     # binds its own length; the signer set is one compression over the two digests.
-    xmss_table = HeapBuf(xmss_slots_g ** 4)
+    lx_table = HeapBuf(lx_slots_g ** 4)
     sphincs_table = HeapBuf(sphincs_slots_g ** 4)
-    xd_0, xd_1 = claim_list_digest(xmss_table, n_xmss_g, g_squares)
+    xd_0, xd_1 = claim_list_digest(lx_table, n_lx_g, g_squares)
     sd_0, sd_1 = claim_list_digest(sphincs_table, n_sphincs_g, g_squares)
     # The duplicate slots ride the same tables but outside the hashed prefixes.
     for xd in mul_range(1, n_xdup_g):
-        dup = xmss_table * ((n_xmss_g * xd) ** 4)
+        dup = lx_table * ((n_lx_g * xd) ** 4)
         hint_witness(dup[0:4], "dup_claims")
     for xd in mul_range(1, n_sdup_g):
         dup = sphincs_table * ((n_sphincs_g * xd) ** 4)
         hint_witness(dup[0:4], "dup_claims")
     # At least one published signature claim or DA root also ensures a nonempty coverage table.
-    assert n_xmss_g * n_sphincs_g * n_da_g != 1
+    assert n_lx_g * n_sphincs_g * n_da_g != 1
     signers = StackBuf(2)
     blake2s([xd_0, xd_1], [sd_0, sd_1], signers)
     signers_hash = HeapBuf(WORDS_PER_BLOCK)
@@ -3168,15 +3135,15 @@ def main():
         # A runtime bound, whose `n_total < 2^MIN_LOG_MEM` precondition is
         # discharged by `assert log(n_total_g) < MAX_KEYS` above. Without it this
         # degenerates to what DEREF alone gives and an index could reach past
-        # `cover`, which is the whole bijection. The bound is the XMSS region, so a
-        # raw XMSS signature covers no SPHINCS claim.
-        assert log(idx) < log(xmss_slots_g)
+        # `cover`, which is the whole bijection. The bound is the leanXMSS region, so
+        # a raw leanXMSS signature covers no SPHINCS claim.
+        assert log(idx) < log(lx_slots_g)
         cover[idx] = xi
-        verify_sig(xmss_table * (idx ** 4))
+        verify_lean_xmss(lx_table * (idx ** 4))
     for xj in mul_range(1, n_raw_s_g):
         off_hint = hint_witness("sp_raw_index")
         assert log(off_hint) < log(sphincs_slots_g)
-        cover[xmss_slots_g * off_hint] = n_raw_x_g * xj
+        cover[lx_slots_g * off_hint] = n_raw_x_g * xj
         verify_sig_sphincs(sphincs_table * (off_hint ** 4))
 
     if n_direct_da_g == GEN:
@@ -3200,14 +3167,14 @@ def main():
         # list digests, which the child's statement carries, so a lie about any of it
         # changes the public input its proof has to satisfy.
         child_meta = StackBuf(2)
-        hint_witness(child_meta, "child_meta")  # n_xmss, n_sphincs
+        hint_witness(child_meta, "child_meta")  # n_lean_xmss, n_sphincs
         nsub_x_g = child_meta[0]
         nsub_s_g = child_meta[1]
         assert log(nsub_x_g) < MAX_KEYS
         assert log(nsub_s_g) < MAX_KEYS
         nsub_g = nsub_x_g * nsub_s_g
-        cx_0, cx_1 = child_claim_list_digest(xmss_table, cover, base, 1, xmss_slots_g, nsub_x_g, g_squares)
-        cs_0, cs_1 = child_claim_list_digest(sphincs_table, cover, base * nsub_x_g, xmss_slots_g, sphincs_slots_g, nsub_s_g, g_squares)
+        cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, 1, lx_slots_g, nsub_x_g, g_squares)
+        cs_0, cs_1 = child_claim_list_digest(sphincs_table, cover, base * nsub_x_g, lx_slots_g, sphincs_slots_g, nsub_s_g, g_squares)
         sub_signers = StackBuf(2)
         blake2s([cx_0, cx_1], [cs_0, cs_1], sub_signers)
         sub_hash = HeapBuf(WORDS_PER_BLOCK)

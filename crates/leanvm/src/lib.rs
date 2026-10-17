@@ -1,4 +1,4 @@
-//! leanVM proves XMSS and SPHINCS signature claims and LeanDA blob well-formedness.
+//! leanVM proves leanXMSS and SPHINCS signature claims and LeanDA blob well-formedness.
 //!
 //! Release only: the zkDSL compiler [`setup_verifier`] runs overflows the debug stack.
 //!
@@ -6,7 +6,7 @@
 
 pub use rec_aggregation::{
     AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
-    MAX_DA_ROOTS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, VerifierError, XmssClaim, aggregate,
+    LeanXmssClaim, MAX_DA_ROOTS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, VerifierError, aggregate,
 };
 
 pub use leanvm_core::{
@@ -22,14 +22,14 @@ pub mod lean_da {
     };
 }
 
-pub mod xmss {
-    /// The SSZ traits [`XmssPublicKey`] and [`XmssSignature`] implement: import
+pub mod lean_xmss {
+    /// The SSZ traits [`LeanXmssPublicKey`] and [`LeanXmssSignature`] implement: import
     /// them to call `as_ssz_bytes` and `from_ssz_bytes`.
-    pub use ::xmss::{Decode, DecodeError, Encode};
-    pub use ::xmss::{
-        Digest, LOG_LIFETIME, LeafIndex, MESSAGE_LEN, Message, PUB_KEY_SIZE, PUB_KEY_SSZ_LEN, PublicParam, SIG_SIZE,
-        SIGNATURE_SSZ_LEN, WotsSignature, XmssKeyGenError, XmssPublicKey, XmssSecretKey, XmssSignError, XmssSignature,
-        XmssVerifyError, key_gen, key_gen_from_seed, sign, verify,
+    pub use ::lean_xmss::{Decode, DecodeError, Encode};
+    pub use ::lean_xmss::{
+        Digest, LOG_LIFETIME, LayerSignature, LeafIndex, LeanXmssPublicKey, LeanXmssSecretKey, LeanXmssSignError,
+        LeanXmssSignature, LeanXmssVerifyError, MESSAGE_LEN, Message, PUB_KEY_SIZE, PUB_KEY_SSZ_LEN, PublicParam,
+        SEED_LEN, SIG_SIZE, SIGNATURE_SSZ_LEN, Seed, key_gen, key_gen_from_seed, sign, verify,
     };
 }
 

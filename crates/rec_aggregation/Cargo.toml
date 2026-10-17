@@ -14,7 +14,7 @@ pcs.workspace = true
 flock.workspace = true
 leanvm_core.workspace = true
 lean_compiler.workspace = true
-xmss.workspace = true
+lean_xmss = { workspace = true, features = ["mock"] }
 sphincs.workspace = true
 lean_da.workspace = true
 verifier.workspace = true

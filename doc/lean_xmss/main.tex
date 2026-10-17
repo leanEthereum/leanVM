@@ -1,0 +1,192 @@
+% Build with: latexmk -pdf main.tex
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\definecolor{fts}{RGB}{20,70,170}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\newcommand{\Th}{\mathsf{Th}}
+\newcommand{\hash}{\mathsf{H}}
+\newcommand{\Sig}{\mathsf{Sig}}
+\newcommand{\Ver}{\mathsf{Ver}}
+\newcommand{\OtsSign}{\mathsf{Ots.sign}}
+\newcommand{\OtsLeaf}{\mathsf{Ots.leaf}}
+\newcommand{\Fold}{\mathsf{Tree.fold}}
+\newcommand{\LE}{\mathsf{LE}}
+\newcommand{\concat}{\mathbin\Vert}
+\newcommand{\idx}{\mathit{idx}}
+\newcommand{\pk}{\mathit{pk}}
+\newcommand{\sk}{\mathit{sk}}
+\newcommand{\rootnode}{\mathit{root}}
+\newcommand{\addr}{\mathsf{A}}
+\newcommand{\amax}{A_{\max}}
+
+\emergencystretch=1.5em
+\setlist[enumerate]{leftmargin=2em, itemsep=4pt}
+
+\title{leanXMSS for Ethereum PQ-Consensus, specification draft.}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+leanXMSS is a stateful hash-based signature scheme: two layers of XMSS~\cite{RFC8391} of height 16 over WOTS$^+$C one-time keys~\cite{HK22C,DKKW25}. Each leaf of the top tree signs the root of one bottom tree, so a key signs at $2^{32}$ leaf indices.
+\begin{itemize}
+  \item \textbf{Target: NIST security level~1}~\cite{NISTPQC}.
+  \item \textbf{Public key: 32 bytes.}
+  \item \textbf{Signature: $4+1200+1200=2404$ bytes}: the leaf index and the two layers.
+  \item \textbf{Verification: 201 compressions} of BLAKE2s.
+\end{itemize}
+\end{abstract}
+
+\section{Hashing and parameters}
+
+Write $\concat$ for concatenation and $\LE_r(z)$ for the $r$-bit little-endian encoding of $z$. Let $\hash$ be BLAKE2s, and $\hash_0,\hash_1$ the first and last 128 bits of its output. With a 128-bit public parameter $P$ and a 128-bit address $\addr$ (Section~\ref{sec:addresses}),
+\[
+  \Th(P,\addr,M)=\hash_0(P\concat\addr\concat M).
+\]
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Symbol & Value & Meaning\\
+\midrule
+$v$ & $58$ & chains per one-time key, of positions $0$ to $3$\\
+$T$ & $106$ & sum of a codeword's digits\\
+$h$ & $16$ & height of each layer's tree\\
+$\amax$ & $2^{32}$ & randomizer trials per one-time signature\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The secret key is a 256-bit seed $S$, and $P=\Th(0^{128},\addr_{\mathrm{param}},S)$. A message $m$ is 256 bits. The layers are $\ell=0$ (bottom) and $\ell=1$ (top). A leaf index $\idx<2^{32}$ uses key $\idx$ at the bottom and key $b=\lfloor\idx/2^h\rfloor$ at the top.
+
+\section{\texorpdfstring{WOTS$^+$C}{WOTS+C}}
+
+Key $e$ of layer $\ell$ has the chains, for $i<v$ and $\mu<3$,
+\[
+  C_{i,0}=\hash_{i\bmod2}\bigl(P\concat\addr_{\mathrm{prf}}(\ell,e,\lfloor i/2\rfloor)\concat S\bigr),\qquad
+  C_{i,\mu+1}=\Th\bigl(P,\addr_{\mathrm{chain}}(\ell,e,i,\mu),C_{i,\mu}\bigr),
+\]
+and the leaf $X^\ell_{0,e}=\Th(P,\addr_{\mathrm{leaf}}(\ell,e),C_{0,3}\concat\cdots\concat C_{v-1,3})$.
+
+\paragraph{Codewords.} Split a digest $D\in\{0,1\}^{128}$, read as a little-endian integer, into the digits $x_i=\lfloor D/4^i\rfloor\bmod4$, $i<64$. $D$ is a codeword when $x_{58}=\cdots=x_{63}=0$ and $\sum_{i<v}x_i=T$. Two distinct codewords are incomparable: each has a digit smaller than the other's.
+
+\paragraph{Signing.} $\OtsSign(\ell,e,M)$ computes
+\[
+  R_0=\hash\bigl(P\concat\addr_{\mathrm{rnd}}(\ell,e)\concat S\concat M\bigr),\qquad
+  \rho_c=\Th\bigl(P,\addr_{\mathrm{grind}}(\ell,c),R_0\bigr),\qquad
+  D_c=\Th\bigl(P,\addr_{\mathrm{msg}}(\ell,e),\rho_c\concat M\bigr),
+\]
+takes the least $c<\amax$ for which $D_c$ is a codeword $x$, and returns $\rho=\rho_c$ and $\sigma_i=C_{i,x_i}$, or $\bot$.
+
+\paragraph{Recovering the leaf.} $\OtsLeaf(\ell,e,M,\rho,\sigma)$ recomputes $D$, returns $\bot$ unless it is a codeword $x$, walks each $\sigma_i$ from position $x_i$ to position $3$, and hashes the ends into the leaf.
+
+\section{Trees}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[line join=round,line cap=round,
+  tri/.style={draw=fts!35,line width=0.5pt,fill=fts!4},
+  faded/.style={draw=fts!25,line width=0.4pt,fill=fts!2},
+  path/.style={draw=fts,line width=1.3pt},
+  gap/.style={draw=fts,line width=1.3pt,dash pattern=on 0pt off 3.5pt},
+  edge/.style={draw=fts!60,line width=0.5pt},
+  on/.style={circle,draw=fts,line width=0.9pt,fill=white,minimum size=6pt,inner sep=0pt},
+  chosen/.style={circle,draw=fts,line width=0.9pt,fill=fts!55,minimum size=7pt,inner sep=0pt},
+  auth/.style={circle,draw=fts,line width=0.5pt,fill=fts!25,minimum size=6pt,inner sep=0pt},
+  note/.style={font=\scriptsize,text=fts!85}]
+% One layer's tree of height 16, base centered at (#1, #2), with the path of one key.
+\newcommand{\layer}[2]{
+  \draw[tri] (#1-2,#2) -- (#1+2,#2) -- (#1,#2+2.4) -- cycle;
+  \draw[edge] (#1-0.4,#2) -- (#1-0.55,#2+0.35) (#1+0.22,#2+1.9) -- (#1,#2+2.4);
+  \draw[path] (#1-0.7,#2) -- (#1-0.55,#2+0.35) (#1-0.22,#2+1.9) -- (#1,#2+2.4);
+  \draw[gap] (#1-0.55,#2+0.35) -- (#1-0.22,#2+1.9);
+  \node[auth] at (#1-0.4,#2) {};
+  \node[auth] at (#1+0.22,#2+1.9) {};
+  \node[on] at (#1-0.55,#2+0.35) {};
+  \node[on] at (#1-0.22,#2+1.9) {};
+  \node[on,minimum size=7pt] at (#1,#2+2.4) {};
+  \node[chosen] at (#1-0.7,#2) {};
+  \draw[fts!45,line width=0.4pt,<->] (#1+2.25,#2) -- node[note,anchor=west] {16 levels} (#1+2.25,#2+2.4);}
+\layer{0}{3.9}
+\layer{0}{0}
+\foreach \c in {-5.2,5.2} {
+  \draw[faded] (\c-2,0) -- (\c+2,0) -- (\c,2.4) -- cycle;
+  \node[circle,draw=fts!30,line width=0.4pt,fill=white,minimum size=4.2pt,inner sep=0pt] at (\c,2.4) {};}
+\node[note] at (-7.5,1) {$\cdots$};
+\node[note] at (7.5,1) {$\cdots$};
+% Who signs what.
+\draw[fts!60,line width=0.6pt,dashed,->] (0,2.55) to[out=90,in=-90] node[note,pos=0.5,anchor=east,xshift=-2pt] {signed by top key $b$} (-0.7,3.75);
+\draw[fts!60,line width=0.6pt,dashed,<-] (-0.7,-0.15) -- (-0.7,-0.6) node[note,anchor=north] {$m$, signed by bottom key $\idx$};
+% Labels.
+\node[note,anchor=west] at (0.15,6.35) {$\rootnode=X^1_{h,0}$};
+\node[note,anchor=west] at (0.15,2.45) {$X^0_{h,b}$};
+\node[note,anchor=north] at (1,3.85) {top tree};
+\node[note,anchor=north] at (1,-0.05) {bottom tree $b$};
+\node[note,anchor=north] at (-5.2,-0.05) {bottom tree $b-1$};
+\node[note,anchor=north] at (5.2,-0.05) {bottom tree $b+1$};
+\end{tikzpicture}
+\caption{A signature at leaf index $\idx$, in bottom tree $b=\lfloor\idx/2^{16}\rfloor$, whose leaves are keys $b\,2^{16}$ to $(b+1)2^{16}-1$. On each layer, the signing key (dark) and its authentication path (shaded, one sibling per level, the 14 middle levels dotted) take the verifier to the root (bold).}
+\end{figure}
+
+On layer $\ell$, for $1\le\lambda\le h$,
+\[
+  X^\ell_{\lambda,j}=\Th\bigl(P,\addr_{\mathrm{node}}(\ell,\lambda,j),X^\ell_{\lambda-1,2j}\concat X^\ell_{\lambda-1,2j+1}\bigr).
+\]
+The top tree has root $X^1_{h,0}$. Bottom tree $b$ covers the leaves $X^0_{0,e}$ with $\lfloor e/2^h\rfloor=b$, and has root $X^0_{h,b}$.
+
+The path of key $e$ is $A_\lambda=X^\ell_{\lambda,\lfloor e/2^\lambda\rfloor\oplus1}$ for $\lambda<h$. $\Fold(\ell,e,X,A)$ starts from $V_0=X$ and sets $V_{\lambda+1}=\Th(P,\addr_{\mathrm{node}}(\ell,\lambda+1,\lfloor e/2^{\lambda+1}\rfloor),V_\lambda\concat A_\lambda)$, the two children swapped when bit $\lambda$ of $e$ is one. It returns $V_h$.
+
+\section{The scheme}
+
+\paragraph{Key generation.} Sample $S$ and return $\pk=(X^1_{h,0},P)$, $\sk=S$.
+
+\paragraph{Signing.} $\Sig(\sk,\idx,m)$ returns $\idx$, then $\OtsSign(0,\idx,m)$ with the path of key $\idx$, then $\OtsSign(1,b,X^0_{h,b})$ with the path of key $b$; or $\bot$ if either fails. \textbf{A leaf index must never sign two different messages}: their two codewords would reveal every chain at the smaller of their two positions. The top key $b$ only signs $X^0_{h,b}$, so it never signs twice.
+
+\paragraph{Verification.} $\Ver((\rootnode,P),m,\sigma)$ computes
+\[
+\begin{aligned}
+  r&=\Fold\bigl(0,\idx,\OtsLeaf(0,\idx,m,\rho^0,\sigma^0),A^0\bigr),\\
+  r'&=\Fold\bigl(1,b,\OtsLeaf(1,b,r,\rho^1,\sigma^1),A^1\bigr),
+\end{aligned}
+\]
+and accepts exactly when neither $\OtsLeaf$ fails and $r'=\rootnode$.
+
+\paragraph{Serialization.} The public key is $\rootnode\concat P$. A layer's signature is $\rho\concat\sigma_0\concat\cdots\concat\sigma_{v-1}\concat A_0\concat\cdots\concat A_{h-1}$, $16+58\cdot16+16\cdot16=1200$ bytes. The signature is $\LE_{32}(\idx)$, the bottom layer's, then the top layer's: $4+1200+1200=2404$ bytes.
+
+\paragraph{Cost.} An input of $r$ bytes costs $\lceil r/64\rceil$ compressions. Verification costs, per layer, 2 (bottom) or 1 (top) for the digest, $3v-T=68$ for the chains, 15 for the leaf and 16 for the path: 201 in all. A tree costs $219\cdot2^h-1$ compressions. A digest is a codeword with probability
+\[
+  p=[y^{106}](1+y+y^2+y^3)^{58}/2^{128}\approx2^{-20},
+\]
+so a signature expects about $2^{20}$ trials, and all $\amax$ fail with probability below $e^{-2^{11}}$.
+
+\section{Address encoding}
+\label{sec:addresses}
+
+An address is $\mathsf{enc}(t,\mu,\mathit{hi},\mathit{lo})=\LE_{32}(\mathit{lo})\concat\LE_{24}(\mathit{hi})\concat\LE_8(t+32\mu)\concat0^{64}$, with type $t<32$ and $\mu<8$. The top layer sets bit 23 of $\mathit{hi}$: $\mathit{hi}_\ell(f)=f+2^{23}\ell$.
+\begin{center}
+\begin{tabular}{@{}ll@{\qquad}ll@{}}
+\toprule
+$\addr_{\mathrm{prf}}(\ell,e,j)$ & $\mathsf{enc}(0,0,\mathit{hi}_\ell(j),e)$ & $\addr_{\mathrm{param}}$ & $\mathsf{enc}(5,0,0,0)$\\
+$\addr_{\mathrm{chain}}(\ell,e,i,\mu)$ & $\mathsf{enc}(1,\mu,\mathit{hi}_\ell(i),e)$ & $\addr_{\mathrm{rnd}}(\ell,e)$ & $\mathsf{enc}(7,0,\mathit{hi}_\ell(0),e)$\\
+$\addr_{\mathrm{leaf}}(\ell,e)$ & $\mathsf{enc}(2,0,\mathit{hi}_\ell(0),e)$ & $\addr_{\mathrm{grind}}(\ell,c)$ & $\mathsf{enc}(8,0,\mathit{hi}_\ell(0),c)$\\
+$\addr_{\mathrm{node}}(\ell,\lambda,j)$ & $\mathsf{enc}(3,0,\mathit{hi}_\ell(\lambda),j)$ & $\addr_{\mathrm{msg}}(\ell,e)$ & $\mathsf{enc}(12,0,\mathit{hi}_\ell(0),e)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

@@ -8,7 +8,7 @@ pub mod signers_cache;
 
 pub use aggregation::{
     AggregateVerifyError, AggregationError, ClaimSelection, DA_LOG_CELL, DA_LOG_K, DA_MAX_ROWS, EthereumProof,
-    MAX_DA_ROOTS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, XmssClaim, aggregate, aggregate_with_stats,
-    warm_up,
+    LeanXmssClaim, MAX_DA_ROOTS, MAX_KEYS, MAX_RECURSIONS, SignatureClaims, SphincsClaim, aggregate,
+    aggregate_with_stats, warm_up,
 };
 pub use verifier::VerifierError;
