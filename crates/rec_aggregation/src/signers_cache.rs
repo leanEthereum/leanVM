@@ -22,7 +22,7 @@ use rand::rngs::StdRng;
 
 type CachedSignature = (LeanXmssPublicKey, LeanXmssSignature);
 
-const SCHEMA_VERSION: u32 = 5;
+const SCHEMA_VERSION: u32 = 6;
 
 /// The leaf indices every cached key signs at: mock keys (`lean_xmss::mock`), real
 /// only over this range, which a full key's top tree would make far slower to

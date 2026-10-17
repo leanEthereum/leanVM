@@ -2227,29 +2227,36 @@ def is_child(node, kids, k: Const, bit):
 
 
 @inline
-def walk(idx, pp, md, tips, i: Const, k: Const):
-    # Walk WOTS+C chain i from position k to its end, the step leaving position s
-    # carrying s, the tip landing in tips[2i] beside the unread upper half of its
-    # last hash.
+def walk(at, pp, md, tips, i: Const, k: Const, lx: Const):
+    # Walk WOTS+C chain i from position k to its end, the tip landing in tips[2i]
+    # beside the unread upper half of its last hash. A SPHINCS step's address carries
+    # i and the position s it leaves; a leanXMSS one only s, at[s] computed once per
+    # key, i riding after the value.
     if const(k == CHAIN_STEPS):
         hint_witness(tips[2 * i:2 * i + 1], "chain_starts")
     else:
         value = hint_witness("chain_starts")
         for s in unroll(k, CHAIN_STEPS - 1):
             out = StackBuf(WORDS_PER_BLOCK)
-            blake2s([pp, idx + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], out, md=md)
+            if const(lx == 1):
+                blake2s([pp, at[s]], [value, i], out, md=md)
+            else:
+                blake2s([pp, at + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], out, md=md)
             value = out[0]
-        blake2s([pp, idx + const(TW_CHAIN + i * HI_MUL + (CHAIN_STEPS - 1) * STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], md=md)
+        if const(lx == 1):
+            blake2s([pp, at[CHAIN_STEPS - 1]], [value, i], tips[2 * i:2 * i + 2], md=md)
+        else:
+            blake2s([pp, at + const(TW_CHAIN + i * HI_MUL + (CHAIN_STEPS - 1) * STEP_MUL)], [value, 0], tips[2 * i:2 * i + 2], md=md)
     return
 
 
 @inline
-def walk_group(idx, pp, md, tips, first: Const, n: Const, k: Const):
+def walk_group(at, pp, md, tips, first: Const, n: Const, k: Const, lx: Const):
     # The n <= DIGIT_GROUP chains from `first` on, at the digits of k, one
     # dispatch for all of them. Returns the digits as the encoding digest holds
     # them, and their sum in the exponent.
     for r in unroll(0, n):
-        walk(idx, pp, md, tips, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH)
+        walk(at, pp, md, tips, first + r, (k // CHAIN_LENGTH ** r) % CHAIN_LENGTH, lx)
     return const(k * CHAIN_LENGTH ** first), GEN ** DIGIT_SUMS[k]
 
 
@@ -2262,7 +2269,7 @@ def verify_lean_xmss(signer):
     # bottom layer signs the message, the top layer the bottom root.
     pp = signer[GEN]
     step_md = StackBuf(1)
-    step_md[0] = MD_FINAL + 48  # SET once here, not in every arm
+    step_md[0] = MD_FINAL + 64  # SET once here, not in every arm
 
     # The leaf index rides the signature, so every address is derived here from its
     # bits, which are advice pinned Boolean: any index is one some signature may
@@ -2298,17 +2305,20 @@ def verify_lean_xmss(signer):
         # where the digest holds it, reconstruct D, which also checks the digits past
         # LX_V are zero.
         tips = StackBuf(2 * LX_V)
+        steps = StackBuf(CHAIN_STEPS)
+        for st in unroll(0, CHAIN_STEPS):
+            steps[st] = idx + const(TW_CHAIN + st * STEP_MUL)
         digit_product = 1
         encoded = 0
         for p in unroll(0, LX_V // DIGIT_GROUP):
             group = hint_witness("digits")
             assert log(group) < DIGIT_GROUPS
-            term, digit_sum = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k))
+            term, digit_sum = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(steps, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k, 1))
             digit_product = digit_product * digit_sum
             encoded = encoded + term
         group = hint_witness("digits")
         assert log(group) < CHAIN_LENGTH
-        term, digit_sum = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, step_md[0], tips, LX_V - 1, 1, k))
+        term, digit_sum = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(steps, pp, step_md[0], tips, LX_V - 1, 1, k, 1))
         digit_product = digit_product * digit_sum
         encoded = encoded + term
         assert digit_product == GEN ** LX_TARGET_SUM
@@ -2528,13 +2538,13 @@ def verify_sig_sphincs(signer):
     for p in unroll(0, SP_V // DIGIT_GROUP):
         group = hint_witness("digits")
         assert log(group) < DIGIT_GROUPS
-        term, digit_sum = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k))
+        term, digit_sum = match(log(group), range(0, DIGIT_GROUPS), lambda k: walk_group(idx, pp, step_md[0], tips, DIGIT_GROUP * p, DIGIT_GROUP, k, 0))
         digit_product = digit_product * digit_sum
         encoded = encoded + term
     # The chain the groups leave over.
     group = hint_witness("digits")
     assert log(group) < CHAIN_LENGTH
-    term, digit_sum = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, step_md[0], tips, SP_V - 1, 1, k))
+    term, digit_sum = match(log(group), range(0, CHAIN_LENGTH), lambda k: walk_group(idx, pp, step_md[0], tips, SP_V - 1, 1, k, 0))
     digit_product = digit_product * digit_sum
     encoded = encoded + term
     assert digit_product == GEN ** SP_TARGET_SUM

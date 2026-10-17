@@ -1,6 +1,8 @@
 //! The tweakable hash `Th(P, A, M) = Truncate_n(BLAKE2s(P | A | M))` and its
 //! address, laid out as leanSPHINCS lays them out (`crates/sphincs`), with the same
-//! type codes, so the recursion guest builds both schemes' addresses alike.
+//! type codes, so the recursion guest builds both schemes' addresses alike. A chain
+//! step is the exception: its address leaves out the chain index, which follows the
+//! value instead (`wots::chain`), so a key's chains share their step addresses.
 //!
 //! The two layers share one public parameter, so the address separates them: the
 //! top layer sets [`TOP`] in `hi`. A bottom address's `lo` is the leaf index, or a

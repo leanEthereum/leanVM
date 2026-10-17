@@ -114,7 +114,9 @@ const _: () = assert!(SIGNERS_COUNT_BITS + 6 + SIGNERS_WINDOW.ilog2() <= 64);
 const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BYTECODE_SELECTORS);
 // Both schemes' one-time keys go through the guest's one WOTS+C walk: the same chain
 // length, digits dispatched DIGIT_GROUP at a time and the last chain alone, and the
-// same address for a chain step, a one-time leaf, a node and a message digest.
+// same address for a one-time leaf, a node and a message digest. A chain step's
+// address shares its type, leanXMSS's leaving out the chain index, which follows the
+// value.
 const DIGIT_GROUP: usize = 3;
 const _: () = assert!(sphincs::W * sphincs::V == 128 && sphincs::V % DIGIT_GROUP == 1);
 const _: () = assert!(lean_xmss::W == sphincs::W && lean_xmss::V % DIGIT_GROUP == 1);

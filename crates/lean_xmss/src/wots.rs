@@ -24,15 +24,16 @@ pub fn wots_secrets(pp: &PublicParam, seed: &Seed, layer: usize, e: u32) -> [Dig
     secrets
 }
 
-/// `steps` steps of chain `i` from position `start`; a step carries the position
-/// it leaves.
+/// `steps` steps of chain `i` from position `start`. A step's address carries the
+/// position it leaves, and the chain index rides after the value, so the address is
+/// the same for every chain of a key.
 pub fn chain(pp: &PublicParam, layer: usize, e: u32, i: usize, start: usize, steps: usize, value: Digest) -> Digest {
     debug_assert!(start + steps < CHAIN_LEN);
     (start..start + steps).fold(value, |current, from| {
-        th(
+        th_digests(
             pp,
-            &tweak(TWEAK_CHAIN, layer_hi(layer, i as u32), e).step(from),
-            &current,
+            &tweak(TWEAK_CHAIN, layer_hi(layer, 0), e).step(from),
+            &[current, (i as u128).to_le_bytes()],
         )
     })
 }

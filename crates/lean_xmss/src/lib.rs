@@ -83,7 +83,7 @@ pub const SIG_SIZE: usize = LEAF_INDEX_SIZE + 2 * LAYER_SIG_SIZE;
 /// chains, the one-time leaf and the path.
 pub const VERIFY_COMPRESSIONS: usize = blocks(RANDOMIZER_LEN + MESSAGE_LEN)
     + blocks(RANDOMIZER_LEN + N)
-    + 2 * (CHAIN_HASHES + blocks(V * N) + LAYER_HEIGHT * blocks(2 * N));
+    + 2 * (CHAIN_HASHES * blocks(2 * N) + blocks(V * N) + LAYER_HEIGHT * blocks(2 * N));
 
 const _: () = assert!(V == 58 && TARGET_SUM < V * (CHAIN_LEN - 1));
 const _: () = assert!(PUB_KEY_SIZE == 32 && LAYER_SIG_SIZE == 1200 && SIG_SIZE == 2404);

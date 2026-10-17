@@ -76,7 +76,7 @@ The secret key is a 256-bit seed $S$, and $P=\Th(0^{128},\addr_{\mathrm{param}},
 Key $e$ of layer $\ell$ has the chains, for $i<v$ and $\mu<3$,
 \[
   C_{i,0}=\hash_{i\bmod2}\bigl(P\concat\addr_{\mathrm{prf}}(\ell,e,\lfloor i/2\rfloor)\concat S\bigr),\qquad
-  C_{i,\mu+1}=\Th\bigl(P,\addr_{\mathrm{chain}}(\ell,e,i,\mu),C_{i,\mu}\bigr),
+  C_{i,\mu+1}=\Th\bigl(P,\addr_{\mathrm{chain}}(\ell,e,\mu),C_{i,\mu}\concat\LE_{128}(i)\bigr),
 \]
 and the leaf $X^\ell_{0,e}=\Th(P,\addr_{\mathrm{leaf}}(\ell,e),C_{0,3}\concat\cdots\concat C_{v-1,3})$.
 
@@ -179,7 +179,7 @@ An address is $\mathsf{enc}(t,\mu,\mathit{hi},\mathit{lo})=\LE_{32}(\mathit{lo})
 \begin{tabular}{@{}ll@{\qquad}ll@{}}
 \toprule
 $\addr_{\mathrm{prf}}(\ell,e,j)$ & $\mathsf{enc}(0,0,\mathit{hi}_\ell(j),e)$ & $\addr_{\mathrm{param}}$ & $\mathsf{enc}(5,0,0,0)$\\
-$\addr_{\mathrm{chain}}(\ell,e,i,\mu)$ & $\mathsf{enc}(1,\mu,\mathit{hi}_\ell(i),e)$ & $\addr_{\mathrm{rnd}}(\ell,e)$ & $\mathsf{enc}(7,0,\mathit{hi}_\ell(0),e)$\\
+$\addr_{\mathrm{chain}}(\ell,e,\mu)$ & $\mathsf{enc}(1,\mu,\mathit{hi}_\ell(0),e)$ & $\addr_{\mathrm{rnd}}(\ell,e)$ & $\mathsf{enc}(7,0,\mathit{hi}_\ell(0),e)$\\
 $\addr_{\mathrm{leaf}}(\ell,e)$ & $\mathsf{enc}(2,0,\mathit{hi}_\ell(0),e)$ & $\addr_{\mathrm{grind}}(\ell,c)$ & $\mathsf{enc}(8,0,\mathit{hi}_\ell(0),c)$\\
 $\addr_{\mathrm{node}}(\ell,\lambda,j)$ & $\mathsf{enc}(3,0,\mathit{hi}_\ell(\lambda),j)$ & $\addr_{\mathrm{msg}}(\ell,e)$ & $\mathsf{enc}(12,0,\mathit{hi}_\ell(0),e)$\\
 \bottomrule
