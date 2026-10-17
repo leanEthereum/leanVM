@@ -137,7 +137,7 @@ $\Enc(P,e,M,c)$ first computes
 \[
   D=\Th\!\left(P,\addr_{\mathrm{enc}}(e),M\concat\LE_{32}(c)\right).
 \]
-Interpret $D$ as a little-endian integer; it supplies 64 consecutive two-bit positions:
+Its input is 52 bytes, within one block, by design: every encoding attempt costs exactly one compression. Interpret $D$ as a little-endian integer; it supplies 64 consecutive two-bit positions:
 \[
   x_i=\left\lfloor D/2^{2i}\right\rfloor\bmod 4,\qquad 0\leq i<v.
 \]
@@ -324,7 +324,7 @@ For message $m$ and randomizer $\rho$, define
 \[
   \Digest(P,m,\rho)=\hash(P\concat\addr_{\mathrm{msg}}\concat m\concat\rho).
 \]
-The root is not hashed: $P$ binds the key. The message ends the first block, so the second block is the randomizer alone and a signer trying several randomizers hashes the first once. The digest's fields are grouped by kind, so that none lies across two 64-bit words. Its first 16 bytes are the codeword indices, a byte each:
+The root is not hashed: $P$ binds the key. The message ends the first block, so the second block is the randomizer alone, and the randomizer is $R_0+i$ rather than a hash: this is deliberate, so that every randomizer trial costs exactly one compression, the signer hashing the first block once. The digest's fields are grouped by kind, so that none lies across two 64-bit words. Its first 16 bytes are the codeword indices, a byte each:
 \[
   t_{c,j}=\text{byte }2c+j.
 \]

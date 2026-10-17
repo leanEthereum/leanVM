@@ -89,7 +89,7 @@ and the leaf $X^\ell_{0,e}=\Th(P,\addr_{\mathrm{leaf}}(\ell,e),C_{0,3}\concat\cd
   \rho_c=R_0+c\bmod2^{128},\qquad
   D_c=\Th\bigl(P,\addr_{\mathrm{msg}}(\ell,e),M\concat\rho_c\bigr),
 \]
-reading $R_0$ and $\rho_c$ as little-endian integers, takes the least $c<\amax$ for which $D_c$ is a codeword $x$, and returns $\rho=\rho_c$ and $\sigma_i=C_{i,x_i}$, or $\bot$. A trial costs one compression: on the bottom layer, $P\concat\addr\concat M$ is a block of its own, compressed once.
+reading $R_0$ and $\rho_c$ as little-endian integers, takes the least $c<\amax$ for which $D_c$ is a codeword $x$, and returns $\rho=\rho_c$ and $\sigma_i=C_{i,x_i}$, or $\bot$. The layout is chosen so that every trial costs exactly one compression: $\rho_c$ is a sum rather than a hash, and comes last, so that on the bottom layer $P\concat\addr\concat M$ fills a block of its own, compressed once per signature, while the top layer's input is a single block.
 
 \paragraph{Recovering the leaf.} $\OtsLeaf(\ell,e,M,\rho,\sigma)$ recomputes $D$, returns $\bot$ unless it is a codeword $x$, walks each $\sigma_i$ from position $x_i$ to position $3$, and hashes the ends into the leaf.
 
