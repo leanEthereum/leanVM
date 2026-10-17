@@ -37,7 +37,7 @@ static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
 
 fn main() {
     bench::init_tracing_from_env();
-    // The XMSS n=820 workload executes about 2^17 BLAKE2s compressions.
+    // A leanXMSS aggregate of about 650 signatures executes about 2^17 BLAKE2s compressions.
     let requested_n_log: usize = std::env::var("FLOCK_N_LOG")
         .ok()
         .map(|s| s.parse().expect("FLOCK_N_LOG must be an integer"))
@@ -182,8 +182,8 @@ fn main() {
         prove.spread()
     );
     println!(
-        "  (~{:.1} XMSS/s equivalent at 144 compressions/signature)",
-        n as f64 / prove_s / 144.0
+        "  (~{:.1} leanXMSS/s equivalent at 201 compressions/signature)",
+        n as f64 / prove_s / 201.0
     );
 }
 

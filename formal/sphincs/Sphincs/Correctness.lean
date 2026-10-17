@@ -220,16 +220,15 @@ theorem verify_of_sign (secretKey : Seeded.SecretKey) (message : Message) {signa
       : OracleComp HashSpec Bool) = true := by
   exact verify_of_parts f secretKey message hroot (sign_spec f secretKey message h)
 
-/-- **Correctness.** Key generation supplies the root invariant used by `verify_of_sign`: every
-successful forest signature verifies, under every fixed hash function and every pruning height. -/
-theorem correct (seed : MasterSeed) (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
+/-- Key generation from the scheme seed supplies the root invariant used by `verify_of_sign`. -/
+theorem correct_master (seed : MasterSeed) (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
     (message : Message) (signature : Signature)
-    (hkey : evalWithAnswerFn f (Seeded.keygenFromSeed seed) = (publicKey, secretKey))
+    (hkey : evalWithAnswerFn f (Seeded.keygenFromMaster seed) = (publicKey, secretKey))
     (hsign : evalWithAnswerFn f (Seeded.sign secretKey message
       : OracleComp HashSpec (Option Signature)) = some signature) :
     evalWithAnswerFn f (Concrete.verify publicKey message signature
       : OracleComp HashSpec Bool) = true := by
-  simp only [Seeded.keygenFromSeed, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
+  simp only [Seeded.keygenFromMaster, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
     Prod.mk.injEq] at hkey
   generalize hparameter : evalWithAnswerFn f
     (deriveKey 0 .parameter seed : OracleComp HashSpec Digest) = parameter at hkey
@@ -239,5 +238,17 @@ theorem correct (seed : MasterSeed) (publicKey : PublicKey) (secretKey : Seeded.
   subst publicKey
   subst secretKey
   exact verify_of_sign f ⟨seed, parameter, root⟩ message hrootval.symm hsign
+
+/-- **Correctness.** Every successful forest signature verifies, under every fixed hash function and
+every pruning height. -/
+theorem correct (seed : MasterSeed) (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
+    (message : Message) (signature : Signature)
+    (hkey : evalWithAnswerFn f (Seeded.keygenFromSeed seed) = (publicKey, secretKey))
+    (hsign : evalWithAnswerFn f (Seeded.sign secretKey message
+      : OracleComp HashSpec (Option Signature)) = some signature) :
+    evalWithAnswerFn f (Concrete.verify publicKey message signature
+      : OracleComp HashSpec Bool) = true := by
+  simp only [Seeded.keygenFromSeed, evalWithAnswerFn_bind] at hkey
+  exact correct_master f _ publicKey secretKey message signature hkey hsign
 
 end Sphincs.Completeness

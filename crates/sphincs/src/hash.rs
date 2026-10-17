@@ -85,6 +85,11 @@ fn truncate(output: [u8; 32]) -> Digest {
     output[..N].try_into().unwrap()
 }
 
+/// The seed the scheme derives from: the hash of [`SEED_TAG`] then the key's seed.
+pub fn scheme_seed(seed: &MasterSecret) -> MasterSecret {
+    Hasher::new().update(SEED_TAG).update(seed).finalize()
+}
+
 /// `Th` over a byte payload.
 pub fn th(pp: &PublicParam, tw: &Tweak, payload: &[u8]) -> Digest {
     truncate(hasher(pp, tw).update(payload).finalize())

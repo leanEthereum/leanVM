@@ -249,7 +249,7 @@ mod tests {
         let cases: [[usize; N_TABLES]; 6] = [
             [0, 0, 0, 0, 0, 0],
             [1, 1, 1, 1, 1, 1],
-            // Roughly the XMSS run's mix.
+            // Roughly a signature aggregation's mix.
             [125_000, 286_000, 341_000, 508_000, 114_000, 130_000],
             // Tables already exactly on a power of two, the awkward case: the closing
             // jumps of every other table's traversals still have to fit somewhere.

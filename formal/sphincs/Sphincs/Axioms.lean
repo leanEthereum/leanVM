@@ -73,6 +73,7 @@ import Sphincs.BridgeSatWRoutes
 import Sphincs.BridgeSatWSigner
 import Sphincs.BridgeSaturation
 import Sphincs.BridgeScan
+import Sphincs.BridgeSchemeSeed
 import Sphincs.BridgeShort
 import Sphincs.BridgeShortCost
 import Sphincs.BridgeSigner
@@ -639,6 +640,10 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenDebt.withTable_swap
 
+/-- info: 'Sphincs.Security.Det.budgetedWinMaster_le_seedFree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.budgetedWinMaster_le_seedFree
+
 /-- info: 'Sphincs.Security.Det.evalDist_table_split' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Det.evalDist_table_split
@@ -835,6 +840,10 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Det.Only.seededSign
 
+/-- info: 'Sphincs.Security.Det.OnlyW.gameAfterMasterDet_internalize' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.OnlyW.gameAfterMasterDet_internalize
+
 /-- info: 'Sphincs.Security.Det.OnlyW.gameAfterSeedDet_internalize' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Det.OnlyW.gameAfterSeedDet_internalize
@@ -859,13 +868,13 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Det.budgetedWin_le_internalize
 
-/-- info: 'Sphincs.Security.Det.evalDist_experimentDet_fixed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Security.Det.evalDist_experimentDet_fixed
-
 /-- info: 'Sphincs.Security.Det.evalDist_experimentDet_internalize' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Det.evalDist_experimentDet_internalize
+
+/-- info: 'Sphincs.Security.Det.evalDist_experimentMasterDet_fixed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.evalDist_experimentMasterDet_fixed
 
 /-- info: 'Sphincs.Security.Det.experimentDet_eq_rightRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -874,6 +883,10 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.Det.gameAfterSeedDet_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Det.gameAfterSeedDet_eq
+
+/-- info: 'Sphincs.Security.Det.gameAfterSeedDet_eq_master' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.gameAfterSeedDet_eq_master
 
 /-- info: 'Sphincs.Security.Det.gameAfterSeedDet_rel' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -5695,6 +5708,54 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.GraphView.trial_boundS
 
+/-- info: 'Sphincs.Security.Det.budgetedWin_le_master' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.budgetedWin_le_master
+
+/-- info: 'Sphincs.Security.Det.evalDist_counted_eager' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.evalDist_counted_eager
+
+/-- info: 'Sphincs.Security.Det.evalDist_table_point' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.evalDist_table_point
+
+/-- info: 'Sphincs.Security.Det.extend_empty_update' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.extend_empty_update
+
+/-- info: 'Sphincs.Security.Det.fixed_gameAfterSeedDet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.fixed_gameAfterSeedDet
+
+/-- info: 'Sphincs.Security.Det.probEvent_bind_le_add_const' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.probEvent_bind_le_add_const
+
+/-- info: 'Sphincs.Security.Det.probEvent_bind_le_bad' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.probEvent_bind_le_bad
+
+/-- info: 'Sphincs.Security.Det.probEvent_update_seed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.probEvent_update_seed_le
+
+/-- info: 'Sphincs.Security.Det.schemeSeedInput_injective' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.schemeSeedInput_injective
+
+/-- info: 'Sphincs.Security.Det.schemeSeedInput_probability_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.schemeSeedInput_probability_le
+
+/-- info: 'Sphincs.Security.Det.schemeSeedInput_short' depends on axioms: [propext] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.schemeSeedInput_short
+
+/-- info: 'Sphincs.Security.Det.swapPoint_involutive' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Det.swapPoint_involutive
+
 /-- info: 'Sphincs.Security.Short.Only.bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Short.Only.bind
@@ -5763,6 +5824,10 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Short.Only.query
 
+/-- info: 'Sphincs.Security.Short.Only.schemeSeed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Short.Only.schemeSeed
+
 /-- info: 'Sphincs.Security.Short.Only.sequenceFin' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Short.Only.sequenceFin
@@ -5802,6 +5867,10 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.Short.Seeded.Only.forestSecrets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Short.Seeded.Only.forestSecrets
+
+/-- info: 'Sphincs.Security.Short.Seeded.Only.keygenFromMaster' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Short.Seeded.Only.keygenFromMaster
 
 /-- info: 'Sphincs.Security.Short.Seeded.Only.keygenFromSeed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -5898,6 +5967,10 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.Short.rootsPayload_length' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Short.rootsPayload_length
+
+/-- info: 'Sphincs.Security.Short.schemeSeedInput_length' depends on axioms: [propext] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Short.schemeSeedInput_length
 
 /-- info: 'Sphincs.Security.Short.superPayload_length' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
@@ -6583,6 +6656,10 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Completeness.correct
 
+/-- info: 'Sphincs.Completeness.correct_master' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Completeness.correct_master
+
 /-- info: 'Sphincs.Completeness.digestIndex_truncate' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Completeness.digestIndex_truncate
@@ -6771,9 +6848,9 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Completeness.PreservesFresh.forestWalk
 
-/-- info: 'Sphincs.Completeness.PreservesFresh.keygenFromSeed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Completeness.PreservesFresh.keygenFromMaster' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Sphincs.Completeness.PreservesFresh.keygenFromSeed
+#print axioms Sphincs.Completeness.PreservesFresh.keygenFromMaster
 
 /-- info: 'Sphincs.Completeness.PreservesFresh.messageDigest' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -7231,9 +7308,57 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.f2Tab_eq
 
+/-- info: 'Sphincs.Security.H0.f2Tab_slice_0' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.f2Tab_slice_0
+
+/-- info: 'Sphincs.Security.H0.f2Tab_slice_14' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.f2Tab_slice_14
+
+/-- info: 'Sphincs.Security.H0.f2Tab_slice_21' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.f2Tab_slice_21
+
+/-- info: 'Sphincs.Security.H0.f2Tab_slice_28' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.f2Tab_slice_28
+
+/-- info: 'Sphincs.Security.H0.f2Tab_slice_35' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.f2Tab_slice_35
+
+/-- info: 'Sphincs.Security.H0.f2Tab_slice_7' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.f2Tab_slice_7
+
 /-- info: 'Sphincs.Security.H0.fTab_eq' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.fTab_eq
+
+/-- info: 'Sphincs.Security.H0.fTab_slice_0' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.fTab_slice_0
+
+/-- info: 'Sphincs.Security.H0.fTab_slice_14' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.fTab_slice_14
+
+/-- info: 'Sphincs.Security.H0.fTab_slice_21' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.fTab_slice_21
+
+/-- info: 'Sphincs.Security.H0.fTab_slice_28' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.fTab_slice_28
+
+/-- info: 'Sphincs.Security.H0.fTab_slice_35' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.fTab_slice_35
+
+/-- info: 'Sphincs.Security.H0.fTab_slice_7' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.fTab_slice_7
 
 /-- info: 'Sphincs.Security.H0Avg.avgL_prod_marks' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -8086,6 +8211,22 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.H0.length_sumTL' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.length_sumTL
+
+/-- info: 'Sphincs.Security.H0.length_sumTL_of' depends on axioms: [propext] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.length_sumTL_of
+
+/-- info: 'Sphincs.Security.H0.powsL_eq_powsR' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.powsL_eq_powsR
+
+/-- info: 'Sphincs.Security.H0.sumTL_append' depends on axioms: [propext] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.sumTL_append
+
+/-- info: 'Sphincs.Security.H0.sumTL_powsR_split' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.H0.sumTL_powsR_split
 
 /-- info: 'Sphincs.Security.H0.Five.mk.inj' does not depend on any axioms -/
 #guard_msgs (whitespace := lax) in
@@ -10878,6 +11019,10 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.Prefix.map_logging_query' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Prefix.map_logging_query
+
+/-- info: 'Sphincs.Security.Prefix.hashCalls_keygenFromMaster' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Prefix.hashCalls_keygenFromMaster
 
 /-- info: 'Sphincs.Security.Prefix.hashCalls_keygenFromSeed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

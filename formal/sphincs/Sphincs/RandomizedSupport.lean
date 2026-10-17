@@ -143,11 +143,11 @@ theorem randomized_sign_replay (sk : Seeded.SecretKey) (message : Message)
 theorem correct_randomized_assembly (f : QueryImpl HashSpec Id) (seed : MasterSeed)
     (pk : PublicKey) (sk : Seeded.SecretKey) (message : Message)
     (ρ : Randomness) (signature : Signature)
-    (hkey : evalWithAnswerFn f (Seeded.keygenFromSeed seed) = (pk, sk))
+    (hkey : evalWithAnswerFn f (Seeded.keygenFromMaster seed) = (pk, sk))
     (hland : Landed sk.parameter (digestIndex (digestValue f sk message ρ)))
     (hsign : evalWithAnswerFn f (Randomized.finishSign sk message ρ) = some signature) :
     evalWithAnswerFn f (Concrete.verify pk message signature : OracleComp HashSpec Bool) = true := by
-  simp only [Seeded.keygenFromSeed, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
+  simp only [Seeded.keygenFromMaster, evalWithAnswerFn_bind, evalWithAnswerFn_pure,
     Prod.mk.injEq] at hkey
   generalize hparameter : evalWithAnswerFn f
     (deriveKey 0 .parameter seed : OracleComp HashSpec Digest) = parameter at hkey
@@ -164,7 +164,7 @@ theorem verify_of_keygen_sign_support (seed : MasterSeed) (pk : PublicKey)
     (sk : Seeded.SecretKey) (message : Message) (signature : Signature) (accepted : Bool)
     (cache₀ cacheK cacheS cacheV : QueryCache HashSpec)
     (hkey : ((pk, sk), cacheK) ∈ support
-      ((simulateQ randomOracle (Seeded.keygenFromSeed seed)).run cache₀))
+      ((simulateQ randomOracle (Seeded.keygenFromMaster seed)).run cache₀))
     (hsign : (some signature, cacheS) ∈ support
       ((simulateQ romImpl (Randomized.sign sk message)).run cacheK))
     (hverify : (accepted, cacheV) ∈ support

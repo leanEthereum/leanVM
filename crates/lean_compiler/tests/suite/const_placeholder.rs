@@ -152,7 +152,7 @@ def main():
         assert a[0] == W
     return
 ";
-    // V = 42, W = 8, LOG_LIFETIME = 32  → the standard XMSS instance.
+    // V = 42, W = 8, LOG_LIFETIME = 32  → an XMSS-shaped instance.
     let mut repl = BTreeMap::new();
     repl.insert("V_PLACEHOLDER".to_string(), "42".to_string());
     repl.insert("W_PLACEHOLDER".to_string(), "8".to_string());

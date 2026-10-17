@@ -55,6 +55,9 @@ const fn lowest_stored(b: usize) -> usize {
 pub struct SphincsSecretKey {
     pub public_param: PublicParam,
     pub root: Digest,
+    /// The key's seed, which the key serializes.
+    seed: MasterSecret,
+    /// [`scheme_seed`] of it, which every secret derives from.
     master: MasterSecret,
     /// `b`: the height of the kept subtree.
     b: usize,
@@ -85,7 +88,7 @@ impl SphincsSecretKey {
 
     /// SECRET KEY MATERIAL: with [`Self::kept_height`], all of the key.
     pub fn seed(&self) -> &MasterSecret {
-        &self.master
+        &self.seed
     }
 
     pub fn kept_height(&self) -> usize {
@@ -96,7 +99,7 @@ impl SphincsSecretKey {
     /// and so the root.
     pub fn to_bytes(&self) -> [u8; SECRET_KEY_SIZE] {
         let mut out = [0; SECRET_KEY_SIZE];
-        out[..MASTER_SECRET_LEN].copy_from_slice(&self.master);
+        out[..MASTER_SECRET_LEN].copy_from_slice(&self.seed);
         out[MASTER_SECRET_LEN] = self.b as u8;
         out
     }
@@ -258,7 +261,7 @@ pub fn message_digest(pp: &PublicParam, rho: &Randomizer, m: &Message) -> (u64, 
 
 fn digest_prefix(pp: &PublicParam, m: &Message) -> primitives::hash::Hasher {
     let mut prefix = hasher(pp, &tweak(TWEAK_MSG, 0, 0));
-    prefix.update(m);
+    prefix.update(m).flush();
     prefix
 }
 
@@ -295,16 +298,17 @@ fn subtree(pp: &PublicParam, seed: &MasterSecret, first: u64, height: usize) -> 
 /// place the kept subtree of height `b <= h`, and the surrogates above it.
 pub fn key_gen_from_seed(seed: MasterSecret, b: usize) -> (SphincsSecretKey, SphincsPublicKey) {
     assert!(b <= H, "a key keeps at most the whole tree");
-    let public_param = th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &seed);
+    let master = scheme_seed(&seed);
+    let public_param = th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &master);
     let s = u64::from_le_bytes(public_param[..8].try_into().unwrap()) & ((1 << (H - b)) - 1);
     let c = lowest_stored(b);
     let bottom = parallel::map_collect(1 << (b - c), |j| {
         let first = (s << b) + ((j as u64) << c);
-        subtree(&public_param, &seed, first, c)[c][0]
+        subtree(&public_param, &master, first, c)[c][0]
     });
     let stored = fold_up(&public_param, bottom, c, s << (b - c), b);
     let surrogates: Vec<Digest> = (b..H)
-        .map(|level| th(&public_param, &tweak(TWEAK_SURROGATE, level as u32, 0), &seed))
+        .map(|level| th(&public_param, &tweak(TWEAK_SURROGATE, level as u32, 0), &master))
         .collect();
     let root = surrogates
         .iter()
@@ -321,7 +325,8 @@ pub fn key_gen_from_seed(seed: MasterSecret, b: usize) -> (SphincsSecretKey, Sph
     let sk = SphincsSecretKey {
         public_param,
         root,
-        master: seed,
+        seed,
+        master,
         b,
         s,
         stored,

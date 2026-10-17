@@ -223,9 +223,9 @@ theorem spineNode (parameter : PublicParameter) (lay : Layer) (tree : TreeIndex)
       dsimp only
       split <;> exact tweakableHash _ _ _ _ (hs.node _ _ _ _ _ _)
 
-theorem keygenFromSeed (seed : MasterSeed) :
-    PreservesFresh target (Seeded.keygenFromSeed seed) := by
-  rw [Seeded.keygenFromSeed]
+theorem keygenFromMaster (seed : MasterSeed) :
+    PreservesFresh target (Seeded.keygenFromMaster seed) := by
+  rw [Seeded.keygenFromMaster]
   exact bind (deriveKey _ _ _ _ (hs.derive _ _ _)) (fun _ =>
     bind (spineNode hs _ _ _ _ _) (fun _ => pure' _ _))
 

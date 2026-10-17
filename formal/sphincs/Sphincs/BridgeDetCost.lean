@@ -202,8 +202,8 @@ theorem costGameDet_correct (f : QueryImpl HashSpec Id) (parameter : PublicParam
     (rnd : RTable) (hrnd : ∀ message, f (randomizerHashInput parameter seed message) = rnd message)
     (adversary : Adversary) :
     simulateQ (fixedCostSource f table) (costGameDet parameter data rnd adversary) =
-      simulateQ (fixedWorldCost f) (gameAfterSeedDet adversary seed) := by
-  simp only [costGameDet, gameAfterSeedDet, simulateQ_bind, fixedCostSource_tick]
+      simulateQ (fixedWorldCost f) (gameAfterMasterDet adversary seed) := by
+  simp only [costGameDet, gameAfterMasterDet, simulateQ_bind, fixedCostSource_tick]
   rw [fixedWorldCost_keygen_graph f parameter seed data hdata hparameter]
   apply WriterT.ext
   simp only [WriterT.run_bind, WriterT.run_mk, AddWriterT.run_addTell,

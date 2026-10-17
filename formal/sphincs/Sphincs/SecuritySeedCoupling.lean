@@ -624,7 +624,7 @@ variable [Params]
 /-- The actual SUF-CMA computation after its master-seed sample; honest algorithms are unchanged. -/
 noncomputable def gameAfterSeed (adversary : Adversary) (seed : MasterSeed) :
     OracleComp OracleWorld Bool := do
-  let (pk, sk) ← liftM (Seeded.keygenFromSeed seed)
+  let (pk, sk) ← liftM (Seeded.keygenFromMaster seed)
   let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
     (simulateQ (QueryImpl.ofLift OracleWorld
       (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) + signingOracle sk)

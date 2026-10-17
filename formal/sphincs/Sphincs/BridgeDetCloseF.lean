@@ -69,7 +69,7 @@ theorem small_realFF (x qh q N ρ B c M : ℝ) (hx0 : 0 ≤ x) (hxq : x ≤ qh) 
     (hq : x + 1 ≤ q) (hN0 : 0 ≤ N) (hN : N ≤ 2 ^ 70) (_hB : 0 ≤ B) (hc : 0 ≤ c) (hM : 1 ≤ M)
     (hcheck : ρ + 2 ^ 128 * B + (2 * M - 1) * qh / (M * 2 ^ 129) + qh * c + 1 / 2 ^ 60 ≤ 2) :
     ρ * x / 2 ^ 128 + x * B + (2 ^ 128)⁻¹ * (x * x / 2 * ((2 - 1 / M) / 2 ^ 128)) + x * (2 ^ 128)⁻¹ * (x * c) +
-        ((x + N) + x * (2 ^ 128)⁻¹ * (x + N)) * (1 / 2) ^ 201 + 2 * (1 / 2) ^ 201 + 2 * (q / 2 ^ 256) ≤
+        ((x + N) + x * (2 ^ 128)⁻¹ * (x + N)) * (1 / 2) ^ 201 + 2 * (1 / 2) ^ 201 + 3 * (q / 2 ^ 256) ≤
       q / 2 ^ 127 := by
   have hM0 : M ≠ 0 := by linarith
   have hr0 : 0 ≤ (2 - 1 / M) / 2 ^ 129 := by
@@ -107,11 +107,11 @@ theorem small_realFF (x qh q N ρ B c M : ℝ) (hx0 : 0 ≤ x) (hxq : x ≤ qh) 
   rw [e201] at hfail ⊢
   have hxq' : x ≤ 2 ^ 127 := le_trans hxq hqh
   have key : x * (2 ^ 128)⁻¹ * (2 - 1 / 2 ^ 60) + (x + N) * 2 * (1 / 2 ^ 201) + 2 * (1 / 2 ^ 201) +
-      2 * (q / 2 ^ 256) ≤ q / 2 ^ 127 := by
+      3 * (q / 2 ^ 256) ≤ q / 2 ^ 127 := by
     have ex : x * (2 ^ 128 : ℝ)⁻¹ * (2 - 1 / 2 ^ 60) + (x + N) * 2 * (1 / 2 ^ 201) + 2 * (1 / 2 ^ 201) +
-        2 * (q / 2 ^ 256) = (x * (2 ^ 128 - 2 ^ 67) + (x + N) * 2 ^ 55 + 2 ^ 55 + q) / 2 ^ 255 := by
+        3 * (q / 2 ^ 256) = (x * (2 ^ 129 - 2 ^ 68) + (x + N) * 2 ^ 56 + 2 ^ 56 + 3 * q) / 2 ^ 256 := by
       field_simp
-    have ey : q / (2 : ℝ) ^ 127 = q * 2 ^ 128 / 2 ^ 255 := by
+    have ey : q / (2 : ℝ) ^ 127 = q * 2 ^ 129 / 2 ^ 256 := by
       field_simp
     rw [ex, ey]
     refine div_le_div_of_nonneg_right ?_ (by positivity)
@@ -126,7 +126,7 @@ theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh)
     (hcheck : ρ + 2 ^ 128 * (B : ℝ) + (2 * (H0.scanM : ℝ) - 1) * (qh : ℝ) / ((H0.scanM : ℝ) * 2 ^ 129) +
         qh * (c : ℝ) + 1 / 2 ^ 60 ≤ 2) :
     smallMainFF ρ q B c + smallFailF q * (2 : ℝ≥0∞)⁻¹ ^ 201 +
-        2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) + 2 * ((q : ℝ≥0∞) / 2 ^ 256) ≤
+        2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : ℕ) : ℝ≥0∞) := by
   set q' := q - keygenCost with hq'def
   have hK : 1 ≤ keygenCost := one_le_keygenCostF
@@ -152,6 +152,7 @@ theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh)
     linarith
   have hnat : ∀ n : ℕ, (n : ℝ≥0∞) = ENNReal.ofReal (n : ℝ) := fun n => (ENNReal.ofReal_natCast n).symm
   have h2 : (2 : ℝ≥0∞) = ENNReal.ofReal 2 := by rw [ENNReal.ofReal_ofNat]
+  have h3 : (3 : ℝ≥0∞) = ENNReal.ofReal 3 := by rw [ENNReal.ofReal_ofNat]
   have hhalf : (2 : ℝ≥0∞)⁻¹ ^ 201 = ENNReal.ofReal ((1 / 2) ^ 201) := by
     rw [ENNReal.ofReal_pow (by norm_num), one_div, ENNReal.ofReal_inv_of_pos (by norm_num), ENNReal.ofReal_ofNat]
   have hq256 : (q : ℝ≥0∞) / 2 ^ 256 = ENNReal.ofReal (q / 2 ^ 256) := by
@@ -173,7 +174,7 @@ theorem small_closeFF (q qh : ℕ) (hq1 : 1 ≤ q) (hq' : q - keygenCost ≤ qh)
   rw [← hq'def]
   refine le_trans (add_le_add (add_le_add (add_le_add (add_le_add (add_le_add le_rfl
     (mul_le_mul' le_rfl (mul_le_mul' hC le_rfl))) le_rfl) le_rfl) le_rfl) le_rfl) ?_
-  rw [rateS_eqF, hhalf, hq256, hq127, ν_eq_ofReal, hnat q', hnat signatureLimit, h2]
+  rw [rateS_eqF, hhalf, hq256, hq127, ν_eq_ofReal, hnat q', hnat signatureLimit, h2, h3]
   generalize (2 - 1 / (H0.scanM : ℝ)) / 2 ^ 128 = r at hr0 hreal ⊢
   simp (disch := positivity) only [← ENNReal.ofReal_add, ← ENNReal.ofReal_mul]
   exact ENNReal.ofReal_le_ofReal hreal
@@ -247,7 +248,7 @@ theorem det_smallF (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
     (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
     Det.forgeAdvantageDet adversary ≤
       smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) + smallFailF q * (2 : ℝ≥0∞)⁻¹ ^ 201 +
-        2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) + 2 * ((q : ℝ≥0∞) / 2 ^ 256) := by
+        2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) := by
   refine le_trans (Det.forgeAdvantageDet_le_seedFree adversary q hbound) (add_le_add ?_ le_rfl)
   refine le_trans (small_seedFree_boundF hb (Memo.memoAdv adversary) (Memo.memoAdv_noRepeat adversary) q hq ρ hN
     κ hκ0 hκ1 hκ b N hbb hNN t o on hpt qtop hrt hqtop ho hon hcthr) ?_

@@ -254,7 +254,7 @@ theorem leftProgD_internal (sk : Sphincs.Seeded.SecretKey) {β : Type} (M : Orac
       (fun result => (result.1.1, result.2)) <$> rightProgD sk M ∅ := by
   simp only [leftProgD, rightProgD, StateT.run'_eq, simulateQ_map, WriterT.run_map]
 
-/-- The deterministic game after its master-seed sample. -/
+/-- The deterministic game after its seed sample: the key's seed `S0`. -/
 noncomputable def gameAfterSeedDet (adversary : Adversary) (seed : MasterSeed) :
     OracleComp OracleWorld Bool := do
   let (pk, sk) ← liftM (Sphincs.Seeded.keygenFromSeed seed)
@@ -264,6 +264,32 @@ noncomputable def gameAfterSeedDet (adversary : Adversary) (seed : MasterSeed) :
       (adversary.main pk)).run
   let verified ← liftM (Concrete.verify pk forgery.message forgery.signature : OracleComp HashSpec Bool)
   return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
+
+/-- The deterministic game after the scheme seed: key generation from `S`. -/
+noncomputable def gameAfterMasterDet (adversary : Adversary) (seed : MasterSeed) :
+    OracleComp OracleWorld Bool := do
+  let (pk, sk) ← liftM (Sphincs.Seeded.keygenFromMaster seed)
+  let ((forgery, log) : Forgery × QueryLog SigningSpec) ←
+    (simulateQ (QueryImpl.ofLift OracleWorld
+      (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) + signingOracleDet sk)
+      (adversary.main pk)).run
+  let verified ← liftM (Concrete.verify pk forgery.message forgery.signature : OracleComp HashSpec Bool)
+  return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
+
+/-- The deterministic game with a uniform scheme seed `S` in place of `H(leanSPHINCS || S0)`. -/
+noncomputable def gameCoreMasterDet (adversary : Adversary) : OracleComp OracleWorld Bool :=
+  (liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= gameAfterMasterDet adversary
+
+noncomputable def experimentMasterDet (adversary : Adversary) : ProbComp (Bool × Nat) :=
+  (simulateQ countedOracle (gameCoreMasterDet adversary)).run.run' ∅
+
+/-- The game after `S0` hashes `S0` once, then plays the game after the scheme seed. -/
+theorem gameAfterSeedDet_eq_master (adversary : Adversary) (seed : MasterSeed) :
+    gameAfterSeedDet adversary seed =
+      (liftM (schemeSeed seed : OracleComp HashSpec MasterSeed) : OracleComp OracleWorld MasterSeed) >>=
+        gameAfterMasterDet adversary := by
+  simp only [gameAfterSeedDet, Sphincs.Seeded.keygenFromSeed, liftM_bind, bind_assoc]
+  rfl
 
 theorem gameCoreDet_eq_sampling (adversary : Adversary) :
     gameCoreDet adversary = (liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>=
@@ -402,24 +428,31 @@ theorem OnlyW.gameAfterSeedDet_internalize (adversary : Adversary) (seed : Maste
   refine OnlyW.bind ?_ (fun output => OnlyW.verifyPart _ _)
   exact OnlyW.gameImplDet keys.2 _ (OnlyAdv.map _ (OnlyAdv.internal _ _))
 
+theorem OnlyW.gameAfterMasterDet_internalize (adversary : Adversary) (seed : MasterSeed) :
+    OnlyW (gameAfterMasterDet (internalize adversary) seed) := by
+  refine OnlyW.bind (OnlyW.liftHash (Short.Seeded.Only.keygenFromMaster seed)) (fun keys => ?_)
+  refine OnlyW.bind ?_ (fun output => OnlyW.verifyPart _ _)
+  exact OnlyW.gameImplDet keys.2 _ (OnlyAdv.map _ (OnlyAdv.internal _ _))
+
 open SeedModel Graph Assembly Eager in
 noncomputable local instance detLabelsSampleable : SampleableType CanonicalGraphLabels :=
   graphLabelsSampleable
 
 open SeedModel Graph Assembly Eager in
-/-- The internalized deterministic experiment as an average of fixed-function counted games. -/
-theorem evalDist_experimentDet_fixed (adversary : Adversary) :
-    𝒟[experimentDet (internalize adversary)] = 𝒟[do
+/-- The internalized deterministic experiment from a uniform scheme seed as an average of
+fixed-function counted games. -/
+theorem evalDist_experimentMasterDet_fixed (adversary : Adversary) :
+    𝒟[experimentMasterDet (internalize adversary)] = 𝒟[do
       let material ← sampleMaterial
       let seed ← sampleMasterSeed
       let answers ← $ᵗ CanonicalGraphLabels
       let table ← $ᵗ Eager.Table
       simulateQ (fixedRom (extend (preparedCache material seed answers) table))
-        (countHashQueries (gameAfterSeedDet (internalize adversary) seed))] := by
-  rw [experimentDet, gameCoreDet_eq_sampling, evalDist_seeded_prepared_counted]
+        (countHashQueries (gameAfterMasterDet (internalize adversary) seed))] := by
+  rw [experimentMasterDet, gameCoreMasterDet, evalDist_seeded_prepared_counted]
   refine evalDist_bind_congr' _ (fun material => evalDist_bind_congr' _ (fun seed => ?_))
   rw [← simulateQ_countHashQueries]
-  change 𝒟[(simulateQ romImpl (countHashQueries (gameAfterSeedDet (internalize adversary) seed))).run'
+  change 𝒟[(simulateQ romImpl (countHashQueries (gameAfterMasterDet (internalize adversary) seed))).run'
     (programCache ∅ seed material)] = _
   rw [evalDist_graph_continuation (parameter material) (GraphCorrectness.materialOts material)
     (GraphCorrectness.materialFts material) _ (PrunedGraph.active (parameter material))
@@ -427,6 +460,6 @@ theorem evalDist_experimentDet_fixed (adversary : Adversary) :
     _ (material_freshStructural (parameter material) seed material)]
   refine evalDist_bind_congr' _ (fun answers => ?_)
   exact evalDist_romImpl_eq_table _
-    (OnlyW.counted _ _ (OnlyW.gameAfterSeedDet_internalize adversary seed)) _
+    (OnlyW.counted _ _ (OnlyW.gameAfterMasterDet_internalize adversary seed)) _
 
 end Sphincs.Security.Det

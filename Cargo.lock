@@ -1442,15 +1442,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "lean_xmss"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "ethereum_ssz",
+ "lean_xmss",
+ "parallel",
+ "primitives",
+ "rand 0.9.4",
+ "serde",
+]
+
+[[package]]
 name = "leanvm"
 version = "0.1.0"
 dependencies = [
  "lean_da",
+ "lean_xmss",
  "leanvm_core",
  "rand 0.9.4",
  "rec_aggregation",
  "sphincs",
- "xmss",
 ]
 
 [[package]]
@@ -1462,6 +1475,7 @@ dependencies = [
  "clap",
  "lean_compiler",
  "lean_da",
+ "lean_xmss",
  "leanvm_core",
  "primitives",
  "rand 0.9.4",
@@ -1469,7 +1483,6 @@ dependencies = [
  "serde",
  "sphincs",
  "tracing",
- "xmss",
 ]
 
 [[package]]
@@ -1849,16 +1862,17 @@ dependencies = [
  "flock",
  "lean_compiler",
  "lean_da",
+ "lean_xmss",
  "leanvm_core",
  "parallel",
  "pcs",
  "primitives",
  "rand 0.9.4",
+ "rec_aggregation",
  "serde",
  "sphincs",
  "tracing",
  "verifier",
- "xmss",
 ]
 
 [[package]]
@@ -2719,18 +2733,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
 dependencies = [
  "tap",
-]
-
-[[package]]
-name = "xmss"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "ethereum_ssz",
- "parallel",
- "primitives",
- "rand 0.9.4",
- "serde",
 ]
 
 [[package]]

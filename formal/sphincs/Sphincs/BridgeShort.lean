@@ -70,6 +70,14 @@ theorem Only.tweakableHash (parameter : PublicParameter) (domain : HashDomain)
   simp only [IsShort, bound, tweakableHashInput_length]
   omega
 
+theorem schemeSeedInput_length (seed : MasterSeed) : (schemeSeedInput seed).length = 43 := by
+  simp [schemeSeedInput, seedTag, bytesLE_length]
+
+theorem Only.schemeSeed (seed : MasterSeed) :
+    Only (Sphincs.schemeSeed seed : OracleComp HashSpec MasterSeed) := by
+  refine Only.query ?_
+  simp [IsShort, bound, schemeSeedInput_length]
+
 theorem Only.deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     Only (Sphincs.deriveKey parameter domain seed : OracleComp HashSpec Digest) := by
   unfold Sphincs.deriveKey
@@ -436,11 +444,16 @@ theorem Only.treePath (parameter : PublicParameter) (lay : Layer) (tree : TreeIn
     · exact Only.treeNode _ _ _ _ _ _
     · exact Only.surrogate _ _ _
 
+theorem Only.keygenFromMaster (seed : MasterSeed) :
+    Short.Only (keygenFromMaster seed : OracleComp HashSpec (PublicKey × SecretKey)) := by
+  unfold Sphincs.Seeded.keygenFromMaster
+  exact Short.Only.bind (Short.Only.deriveKey _ _ _) (fun _ =>
+    Short.Only.bind (Only.treeRoot _ _ _ _) (fun _ => Short.Only.pure' _))
+
 theorem Only.keygenFromSeed (seed : MasterSeed) :
     Short.Only (keygenFromSeed seed : OracleComp HashSpec (PublicKey × SecretKey)) := by
   unfold Sphincs.Seeded.keygenFromSeed
-  exact Short.Only.bind (Short.Only.deriveKey _ _ _) (fun _ =>
-    Short.Only.bind (Only.treeRoot _ _ _ _) (fun _ => Short.Only.pure' _))
+  exact Short.Only.bind (Short.Only.schemeSeed _) (fun _ => Only.keygenFromMaster _)
 
 theorem Only.signAttempt (secretKey : SecretKey) (message : Message) (randomness : Randomness) :
     Short.Only (signAttempt secretKey message randomness : OracleComp HashSpec (Option Index)) := by

@@ -96,7 +96,7 @@ pub fn g_pow(i: usize) -> F64 {
 /// The fixed generator `g = x ∈ K`, with `ord(g) = 2^64 - 1` (pinned by a
 /// field test), larger than every index any admissible
 /// instance uses (the verifier's instance caps, §cpu). For `k < 64`, `g^k` is
-/// the monomial `x^k` (bit `k`), which the XMSS encoding check relies on.
+/// the monomial `x^k` (bit `k`), which the WOTS+C encoding check relies on.
 pub const G: F64 = F64::G;
 
 /// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube,

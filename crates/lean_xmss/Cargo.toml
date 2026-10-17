@@ -1,0 +1,23 @@
+[package]
+name = "lean_xmss"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+# `mock::key_gen`: keys real over a short range of leaf indices, for tests and benchmarks.
+mock = []
+
+[dependencies]
+primitives.workspace = true
+parallel.workspace = true
+ethereum_ssz.workspace = true
+rand.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+bincode.workspace = true
+lean_xmss = { path = ".", features = ["mock"] }

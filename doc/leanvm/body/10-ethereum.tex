@@ -5,7 +5,7 @@ An aggregate proof certifies signature claims and the correct encoding of blob d
 
 \subsection{Recursive aggregation}\label{sec:recursion}\label{sec:xmss-agg}\label{sec:sphincs-agg}
 
-A signature claim identifies what was signed and by whom. For XMSS~\cite{rfc8391}, it is a public key, a leaf index, and a message; the keys claiming one $(\text{leaf index},\text{message})$ pair form one group, so a leaf index signed at under several messages contributes one group per message. For SPHINCS+~\cite{sphincs}, it is a $(\text{key},\text{message})$ pair.
+A signature claim identifies what was signed and by whom. For both leanXMSS, two layers of XMSS~\cite{rfc8391}, and SPHINCS+~\cite{sphincs}, it is a $(\text{public key},\text{message})$ pair. Each leanXMSS signature carries the leaf index it was made at, so its Merkle path is its own, and the guest derives that signature's addresses from the index's bits; the claim does not record it.
 
 A node may publish any subset of the signature claims supported by its raw signatures and verified children. The default is their sorted, deduplicated union. The essential condition is coverage: every published claim must be justified, either directly at this node or recursively through a child.
 
@@ -29,21 +29,11 @@ The deferred claims let recursion postpone expensive polynomial evaluations unti
 
 The DA list digest is BLAKE2s of the concatenated pairs $(\daroot,\davechash)$, each a $32$-byte DA root $\daroot$ followed by a $32$-byte hash $\davechash$ of the membership test vector $\dual$.
 
-The signer-set digest is BLAKE2s of the following, where each cell is $16$ bytes and a count is encoded as $\gen^{\text{count}}$ (8 bytes, zero-padded to one cell):
-\begin{center}
-\begin{tabular}{@{}ll@{}}
-\hline
-block $0$ & XMSS group count, SPHINCS+ claim count, SPHINCS+ list digest\\
-per XMSS group & leaf index, key count, $32$-byte message\\
-& key list digest, two zero cells\\
-\hline
-\end{tabular}
-\end{center}
-Each inner list digest is BLAKE2s of the list alone: $32$ bytes per XMSS key or $64$ bytes per SPHINCS+ $(\text{key},\text{message})$ pair.
+The signer-set digest is BLAKE2s of the leanXMSS list digest followed by the SPHINCS+ list digest, one $64$-byte block. Each list digest is BLAKE2s of that scheme's sorted claims, $64$ bytes per $(\text{public key},\text{message})$ pair, so it binds the list's length through the byte counter.
 
 \subsubsection{Checking coverage}
 
-Every published claim needs support from a direct check or a recursively verified child. The guest builds a table with a region per XMSS (leaf index, message) group and separate regions for SPHINCS+ and DA. Each region starts with the claims the parent publishes, followed by extra slots for duplicates and omitted claims.
+Every published claim needs support from a direct check or a recursively verified child. The guest builds a table with one region for leanXMSS, one for SPHINCS+ and one for DA. Each region starts with the claims the parent publishes, followed by extra slots for duplicates and omitted claims.
 
 Each occurrence of a supporting claim needs its own slot. If two children prove the same published claim, one occurrence uses its published slot and the other uses an extra slot. Every occurrence of a claim the parent omits uses an extra slot. These claims are still verified; only the published prefixes enter the parent's list digests.
 
