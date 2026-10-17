@@ -47,7 +47,7 @@ fn mock_keys_sign_in_range() {
     let start = (3 << LAYER_HEIGHT) - 2;
     let (sk, pk) = mock::key_gen_from_seed([2; SEED_LEN], start, start + 5);
     for leaf_index in start..=start + 5 {
-        let sig = sign(&sk, &message, leaf_index).unwrap();
+        let sig = mock::sign(&sk, &message, leaf_index).unwrap();
         assert_eq!(sig.leaf_index, leaf_index);
         verify(&pk, &message, &sig).unwrap();
     }
@@ -61,7 +61,7 @@ fn mock_keys_sign_in_range() {
 fn signature_is_bound_to_its_leaf_index_and_message() {
     let (sk, pk) = mock::key_gen_from_seed([4; SEED_LEN], 0, 7);
     let message = test_message();
-    let sig = sign(&sk, &message, 5).unwrap();
+    let sig = mock::sign(&sk, &message, 5).unwrap();
     let mut moved = sig.clone();
     moved.leaf_index = 4;
     assert!(verify(&pk, &message, &moved).is_err());
@@ -74,7 +74,7 @@ fn signature_is_bound_to_its_leaf_index_and_message() {
 fn serialize_deserialize_and_size() {
     let (sk, pk) = mock::key_gen_from_seed([5; SEED_LEN], 100, 115);
     let message = test_message();
-    let sig = sign(&sk, &message, 110).unwrap();
+    let sig = mock::sign(&sk, &message, 110).unwrap();
 
     let public_key_bytes = bincode::serialize(&pk).unwrap();
     assert_eq!(public_key_bytes.len(), PUB_KEY_SIZE);
@@ -93,7 +93,7 @@ fn serialize_deserialize_and_size() {
 /// A reloaded secret key must sign exactly as the original does.
 #[test]
 fn secret_key_survives_a_round_trip() {
-    let (sk, pk) = mock::key_gen_from_seed([6; SEED_LEN], 40, 45);
+    let (sk, pk) = key_gen_from_seed([6; SEED_LEN]);
     let bytes = bincode::serialize(&sk).unwrap();
     let reloaded: LeanXmssSecretKey = bincode::deserialize(&bytes).unwrap();
     assert_eq!(reloaded.public_key(), pk);
@@ -115,7 +115,7 @@ fn secret_key_survives_a_round_trip() {
 fn ssz_layout_is_exact() {
     let (sk, pk) = mock::key_gen_from_seed([7; SEED_LEN], 290, 310);
     let message = test_message();
-    let sig = sign(&sk, &message, 300).unwrap();
+    let sig = mock::sign(&sk, &message, 300).unwrap();
 
     assert_eq!(pk.as_ssz_bytes(), [pk.merkle_root, pk.public_param].concat());
 

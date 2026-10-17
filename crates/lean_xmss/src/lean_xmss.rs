@@ -2,6 +2,7 @@
 //! a bottom tree, with the top layer's signature of its root, the first time it
 //! signs in it, keeping the last one.
 
+use std::ops::RangeInclusive;
 use std::sync::{Mutex, MutexGuard};
 
 use rand::{CryptoRng, Rng};
@@ -52,9 +53,6 @@ pub struct LeanXmssSignature {
 pub struct LeanXmssSecretKey {
     seed: Seed,
     public_param: PublicParam,
-    /// The leaf indices the key signs at: all of them, but for a mock key.
-    first: LeafIndex,
-    last: LeafIndex,
     top: LayerTree,
     #[serde(skip)]
     bottom: Mutex<Option<BottomTree>>,
@@ -64,8 +62,6 @@ impl std::fmt::Debug for LeanXmssSecretKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LeanXmssSecretKey")
             .field("public_key", &self.public_key())
-            .field("first", &self.first)
-            .field("last", &self.last)
             .finish_non_exhaustive()
     }
 }
@@ -75,8 +71,6 @@ impl std::fmt::Debug for LeanXmssSecretKey {
 struct SecretKeyFields {
     seed: Seed,
     public_param: PublicParam,
-    first: LeafIndex,
-    last: LeafIndex,
     top: LayerTree,
 }
 
@@ -87,11 +81,9 @@ impl TryFrom<SecretKeyFields> for LeanXmssSecretKey {
         let SecretKeyFields {
             seed,
             public_param,
-            first,
-            last,
             top,
         } = key;
-        if first > last || !top.spans(1, 0, layer_index(first, 1), layer_index(last, 1)) {
+        if !top.spans(1, 0, 0, layer_index(LeafIndex::MAX, 1)) {
             return Err("malformed secret key");
         }
         if public_param != th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &seed) {
@@ -100,8 +92,6 @@ impl TryFrom<SecretKeyFields> for LeanXmssSecretKey {
         Ok(Self {
             seed,
             public_param,
-            first,
-            last,
             top,
             bottom: Mutex::new(None),
         })
@@ -129,6 +119,9 @@ impl std::fmt::Display for LeanXmssSignError {
 
 impl std::error::Error for LeanXmssSignError {}
 
+/// Every leaf index: what a key signs at, but for a mock key.
+pub(crate) const ALL_LEAVES: RangeInclusive<LeafIndex> = 0..=LeafIndex::MAX;
+
 /// A fresh key pair, its seed sampled from `rng`. Generates the whole top tree.
 pub fn key_gen(rng: &mut impl CryptoRng) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
     key_gen_from_seed(rng.random())
@@ -138,19 +131,18 @@ pub fn key_gen(rng: &mut impl CryptoRng) -> (LeanXmssSecretKey, LeanXmssPublicKe
 /// derive another key from it, a mock key included: the two would share one-time
 /// keys (see `mock`).
 pub fn key_gen_from_seed(seed: Seed) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
-    generate(seed, 0, LeafIndex::MAX)
+    generate(seed, ALL_LEAVES)
 }
 
-/// The key signing at `first..=last`; nodes over no leaf in that range are fillers.
-pub(crate) fn generate(seed: Seed, first: LeafIndex, last: LeafIndex) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+/// The key over the leaf indices `leaves`; nodes over no leaf in it are fillers.
+pub(crate) fn generate(seed: Seed, leaves: RangeInclusive<LeafIndex>) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
     let seed = scheme_seed(&seed);
     let public_param = th(&[0; PUBLIC_PARAM_LEN], &tweak(TWEAK_PARAMETER, 0, 0), &seed);
-    let top = LayerTree::build(&public_param, &seed, 1, 0, layer_index(first, 1), layer_index(last, 1));
+    let (first, last) = (layer_index(*leaves.start(), 1), layer_index(*leaves.end(), 1));
+    let top = LayerTree::build(&public_param, &seed, 1, 0, first, last);
     let sk = LeanXmssSecretKey {
         seed,
         public_param,
-        first,
-        last,
         top,
         bottom: Mutex::new(None),
     };
@@ -166,20 +158,7 @@ pub fn sign(
     message: &Message,
     leaf_index: LeafIndex,
 ) -> Result<LeanXmssSignature, LeanXmssSignError> {
-    let bottom = sk.bottom_tree(leaf_index)?;
-    let tree = &bottom.as_ref().unwrap();
-    let (randomizer, chain_values) =
-        wots_sign(&sk.public_param, &sk.seed, 0, leaf_index, message).ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
-    let leaf = leaf_index & ((1 << LAYER_HEIGHT) - 1);
-    Ok(LeanXmssSignature {
-        leaf_index,
-        bottom: LayerSignature {
-            randomizer,
-            chain_values,
-            path: tree.tree.path(&sk.public_param, &sk.seed, leaf),
-        },
-        top: tree.top_signature.clone(),
-    })
+    sk.sign_over(message, leaf_index, ALL_LEAVES)
 }
 
 impl LeanXmssSecretKey {
@@ -193,14 +172,37 @@ impl LeanXmssSecretKey {
     /// Builds the bottom tree `leaf_index` is in, and signs its root, ahead of
     /// [`sign`]: the first signature in a bottom tree pays for both.
     pub fn prepare(&self, leaf_index: LeafIndex) -> Result<(), LeanXmssSignError> {
-        self.bottom_tree(leaf_index).map(drop)
+        self.bottom_tree(leaf_index, ALL_LEAVES).map(drop)
     }
 
-    fn bottom_tree(&self, leaf_index: LeafIndex) -> Result<MutexGuard<'_, Option<BottomTree>>, LeanXmssSignError> {
-        assert!(
-            (self.first..=self.last).contains(&leaf_index),
-            "a mock key signs only in its range"
-        );
+    /// [`sign`], for a key whose trees hold only the leaf indices `leaves`.
+    pub(crate) fn sign_over(
+        &self,
+        message: &Message,
+        leaf_index: LeafIndex,
+        leaves: RangeInclusive<LeafIndex>,
+    ) -> Result<LeanXmssSignature, LeanXmssSignError> {
+        let bottom = self.bottom_tree(leaf_index, leaves)?;
+        let tree = &bottom.as_ref().unwrap();
+        let (randomizer, chain_values) = wots_sign(&self.public_param, &self.seed, 0, leaf_index, message)
+            .ok_or(LeanXmssSignError::NoAdmissibleEncoding)?;
+        let leaf = leaf_index & ((1 << LAYER_HEIGHT) - 1);
+        Ok(LeanXmssSignature {
+            leaf_index,
+            bottom: LayerSignature {
+                randomizer,
+                chain_values,
+                path: tree.tree.path(&self.public_param, &self.seed, leaf),
+            },
+            top: tree.top_signature.clone(),
+        })
+    }
+
+    fn bottom_tree(
+        &self,
+        leaf_index: LeafIndex,
+        leaves: RangeInclusive<LeafIndex>,
+    ) -> Result<MutexGuard<'_, Option<BottomTree>>, LeanXmssSignError> {
         let index = layer_index(leaf_index, 1);
         // A panic while building, in a nested parallel dispatch say, leaves the cache as it was:
         // it is written only once the tree and its signature are complete.
@@ -208,13 +210,14 @@ impl LeanXmssSecretKey {
         if cache.as_ref().is_none_or(|bottom| bottom.index != index) {
             let (pp, seed) = (&self.public_param, &self.seed);
             let in_tree = |leaf: LeafIndex| leaf & ((1 << LAYER_HEIGHT) - 1);
-            let first = if layer_index(self.first, 1) == index {
-                in_tree(self.first)
+            let (start, end) = (*leaves.start(), *leaves.end());
+            let first = if layer_index(start, 1) == index {
+                in_tree(start)
             } else {
                 0
             };
-            let last = if layer_index(self.last, 1) == index {
-                in_tree(self.last)
+            let last = if layer_index(end, 1) == index {
+                in_tree(end)
             } else {
                 in_tree(LeafIndex::MAX)
             };

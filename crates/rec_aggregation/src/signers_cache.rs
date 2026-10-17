@@ -60,7 +60,7 @@ fn compute_signer(index: usize, message_id: u32) -> CachedSignature {
     let mut seed = [10u8; 32];
     seed[..8].copy_from_slice(&(index as u64).to_le_bytes());
     let (sk, pk) = mock::key_gen_from_seed(seed, KEY_START, KEY_END);
-    let sig = lean_xmss::sign(&sk, &message_for(message_id), leaf_index_of(index, message_id)).expect("sign");
+    let sig = mock::sign(&sk, &message_for(message_id), leaf_index_of(index, message_id)).expect("sign");
     (pk, sig)
 }
 

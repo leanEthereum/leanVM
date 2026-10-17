@@ -8,9 +8,41 @@
 //! so the same top one-time key would sign two roots, and its signatures would
 //! forge others.
 
+use std::ops::RangeInclusive;
+
 use crate::*;
 
-pub fn key_gen_from_seed(seed: Seed, first: LeafIndex, last: LeafIndex) -> (LeanXmssSecretKey, LeanXmssPublicKey) {
+/// A key whose trees hold only the leaf indices `leaves`.
+#[derive(Debug)]
+pub struct MockSecretKey {
+    key: LeanXmssSecretKey,
+    leaves: RangeInclusive<LeafIndex>,
+}
+
+impl MockSecretKey {
+    pub fn public_key(&self) -> LeanXmssPublicKey {
+        self.key.public_key()
+    }
+}
+
+pub fn key_gen_from_seed(seed: Seed, first: LeafIndex, last: LeafIndex) -> (MockSecretKey, LeanXmssPublicKey) {
     assert!(first <= last, "an empty range");
-    generate(seed, first, last)
+    let (key, pk) = generate(seed, first..=last);
+    (
+        MockSecretKey {
+            key,
+            leaves: first..=last,
+        },
+        pk,
+    )
+}
+
+/// [`crate::sign`], in the key's range.
+pub fn sign(
+    sk: &MockSecretKey,
+    message: &Message,
+    leaf_index: LeafIndex,
+) -> Result<LeanXmssSignature, LeanXmssSignError> {
+    assert!(sk.leaves.contains(&leaf_index), "a mock key signs only in its range");
+    sk.key.sign_over(message, leaf_index, sk.leaves.clone())
 }
