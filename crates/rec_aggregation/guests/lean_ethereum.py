@@ -1450,13 +1450,14 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     # round count g^n, the deferred bytecode share and the PI point come back.
     #
     # Bus-leaf packing offsets, for the selector certification. Each side's blocks
-    # tile its leaf cube, block b at offset_b; the hinted order is only
-    # PERMUTATION-checked and offsets accumulate as g^offset = Π_{earlier} g^(2^κ).
-    # The decompose below pins each block's selector bits against this offset,
-    # forcing κ-alignment, and no sort or tie-break check is needed: alignment plus
-    # consecutive offsets force a valid tiling, and the grand product is
-    # position-independent, so any tiling is sound. Pull's blocks mirror push's and
-    # share zeta, so only push and count need offsets (pull's slots go unread).
+    # tile its leaf cube, block b at offset_b, and offsets accumulate as
+    # g^offset = Π_{earlier} g^(2^κ). The hinted order is certified to be the
+    # native one, as certify_placement does for the columns: descending κ, then
+    # ascending block index, the guest's per-side block order being the native
+    # verifier's (framework blocks, then each table's in table order). The
+    # decompose below pins each block's selector bits against this offset, forcing
+    # κ-alignment. Pull's blocks mirror push's and share zeta, so only push and
+    # count need offsets (pull's slots go unread).
     fs = [fs0, fs1]
     gkr_claims = StackBuf(N_GKR_SIDES)
     gkr_claims[PUSH_SIDE] = claim_push
@@ -1471,14 +1472,25 @@ def verify_tables(fs0, fs1, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_ka
     for cert in unroll(0, 2):
         s = COUNT_SIDE * cert  # PUSH_SIDE (0), then COUNT_SIDE (2)
         g_off = GEN ** 0
+        prev_g = GEN ** 0
+        prev_kappa = GEN ** 0
         for r in unroll(SIDE_BLOCK_START[s], SIDE_BLOCK_START[s + 1]):
             global_g = sort_order[GEN ** r]       # g^{global block index at this rank}
             assert log(global_g) < N_BLOCKS       # a valid block index
             assert block_side_tab[global_g] == s  # ...belonging to THIS side
+            kappa_g = block_kappa[global_g]
+            if r != SIDE_BLOCK_START[s]:
+                assert log(prev_kappa / kappa_g) < SIZE_BITS  # κ non-increasing
+                if prev_kappa == kappa_g:
+                    # A side's blocks share one base, so ascending global index is
+                    # the native ascending index.
+                    assert log(global_g / prev_g) < N_BLOCKS
             # write-once: a repeat collides, and an omission fails the decompose's
             # offset read below
             block_off_g[global_g] = g_off
-            g_off *= g_squares[block_kappa[global_g]]
+            g_off *= g_squares[kappa_g]
+            prev_g = global_g
+            prev_kappa = kappa_g
 
     # ---- 3x leaf decomposition (claims pooled; bytecode Public DEFERRED) ----
     # Reconstruct Ṽ₀(ζ) per side and assert it equals the GKR leaf value. The

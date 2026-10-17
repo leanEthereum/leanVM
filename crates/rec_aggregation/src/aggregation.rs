@@ -1545,9 +1545,9 @@ fn gen_verify(
 
     // ---- per-sub HINT data (the placeholder map is built once, elsewhere) ----
     // Per side, the packing order read straight off `leaf::layout`'s offsets:
-    // sort_order[side_base + rank] = g^{side-local index of the rank-r block}.
-    // The guest only perm-checks it and derives offsets; any aligned tiling is
-    // sound, so this canonical order just has to match the committed leaf.
+    // sort_order[side_base + rank] = g^{global index of the rank-r block}. The
+    // guest certifies it is the native verifier's order (descending kappa, then
+    // ascending index) before deriving offsets from it.
     let mut sort_order: Vec<F192> = Vec::new();
     let mut gbase = 0usize;
     for (s, blocks) in sides.iter().enumerate() {
