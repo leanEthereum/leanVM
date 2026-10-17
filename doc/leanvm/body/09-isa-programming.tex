@@ -58,12 +58,14 @@ Hashing slice of dynamic-size requires to reconstruct the counter at runtime. On
 
 \subsection{Match statements}\label{sec:prog-match}
 
-Matching on $x=\gen^{j}$, $j\in[0,n)$, the dispatch jumps to
+Matching on $x=\gen^{j}$, $j\in[0,n)$, jumps to the entry $\gen^{\mathrm{block}_j}$ of case block $j$. The case blocks sit anywhere, unaligned and of any length, and a dispatch costs the same for every $n$. A \texttt{JUMP} reads its destination from a cell, so the entries must be in memory before the jump; the compiler puts them there in one of two ways.
+
+\paragraph{Jump table.} Every \texttt{match} outside \texttt{main} has a table of $n$ cells in \texttt{main}'s frame, slot $j$ holding $\gen^{\mathrm{block}_j}$. That frame sits at a fixed address, $\fp=\gen^{0}$ (\S\ref{sec:state}), so slot $j$ of a table at offset $t$ is the cell $\gen^{t+j}=x\cdot\gen^{t}$, which any function reaches without knowing \texttt{main}'s $\fp$: the dispatch is the \texttt{DEREF} $[o_x,\gen^{t},o_e;\,\texttt{deref\_cell}[o_e]]$, $\loc{o_x}=x$ and $o_e$ a fresh cell, which write-once back-solves to the entry, then one \texttt{JUMP} to $\loc{o_e}$. With the \texttt{SET} of the join, 3 cycles. \texttt{main} begins by writing every slot of every table, one \texttt{SET} each, so a program pays once per arm in its bytecode, however often its matches run.
+
+\paragraph{Trampoline.} A \texttt{match} in \texttt{main} itself, whose frame is laid out before the tables are known, and a dispatched call (every arm calling one function with the same runtime arguments, which builds the callee frame once and jumps straight into the selected specialization), jump instead to
 \[
   d \;=\; \gen^{T}\cdot x^{2} \;=\; \gen^{T+2j},
 \]
-slot $j$ of a \emph{trampoline} table at bytecode base $T$, where a slot is $\texttt{SET}\ c=\gen^{\mathrm{block}_j}$ then $\texttt{JUMP}\ c$. The case blocks sit anywhere, unaligned and of any length, the only arithmetic being the squaring $x^{2}$. Two jumps per dispatch, $\approx7$ cycles independent of $n$.
-
-The slots are two instructions rather than one because a \texttt{JUMP} reads its destination from a \emph{cell}: a one-instruction slot would need its target cell pre-written, i.e.\ $n$ \texttt{SET}s executed before every dispatch. (Other layouts exist and trade exactly this, e.g.\ a memory-resident table of the $n$ block addresses, read with one \texttt{DEREF} and taken with a \emph{single} jump, paying the \texttt{SET}s as setup; worthwhile for many repeated small matches. The compiler currently emits only the trampoline.)
+slot $j$ of a \emph{trampoline} table at bytecode base $T$, where a slot is $\texttt{SET}\ c=\gen^{\mathrm{block}_j}$ then $\texttt{JUMP}\ c$. A slot is two instructions because the destination cell is written only when the slot runs: one jump to the slot, one to the block, $\approx7$ cycles.
 
 The matched value must be known to lie in $[0,n)$: a hinted $x$ must be range-checked first (\S\ref{sec:prog-range-checks}); otherwise the dispatch lands at an attacker-chosen program counter.

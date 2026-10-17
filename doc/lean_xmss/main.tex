@@ -5,7 +5,7 @@
 \usepackage{lmodern}
 \usepackage[margin=1in]{geometry}
 \usepackage{microtype}
-\usepackage{amsmath,amssymb,mathtools}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage{booktabs}
 \usepackage{enumitem}
 \usepackage{xcolor}
@@ -29,6 +29,8 @@
 \newcommand{\addr}{\mathsf{A}}
 \newcommand{\amax}{A_{\max}}
 
+\newtheorem{theorem}{Theorem}
+
 \emergencystretch=1.5em
 \setlist[enumerate]{leftmargin=2em, itemsep=4pt}
 
@@ -42,7 +44,7 @@
 \begin{abstract}
 leanXMSS is a stateful hash-based signature scheme: two layers of XMSS~\cite{RFC8391} of height 16 over WOTS$^+$C one-time keys~\cite{HK22C,DKKW25}. Each leaf of the top tree signs the root of one bottom tree, so a key signs at $2^{32}$ leaf indices.
 \begin{itemize}
-  \item \textbf{Target: NIST security level~1}~\cite{NISTPQC}.
+  \item \textbf{Target: NIST security level~1}~\cite{NISTPQC}, with 127 bits of classical security proved in Lean (Section~\ref{sec:security}).
   \item \textbf{Public key: 32 bytes.}
   \item \textbf{Signature: 2404 bytes} ($4+1200+1200$: the leaf index and the two layers).
   \item \textbf{Verification: 201 compressions} of BLAKE2s.
@@ -106,7 +108,7 @@ To sign a message $m$ at $\idx$, the signer signs $m$ with bottom key $\idx$ and
 
 \section{Hashing and parameters}
 
-Write $\concat$ for concatenation, $0^k$ for $k$ zero bytes, $\LE_k(z)$ for the $k$-byte little-endian encoding of an integer $z$, and $\LE^{-1}$ for its inverse. Let $\hash$ be unkeyed BLAKE2s-256 (RFC~7693), and $\hash_0,\hash_1$ the first and last 16 bytes of its output. With a 16-byte public parameter $P$ and a 16-byte address $\addr$ (Section~\ref{sec:addresses}),
+Write $\concat$ for concatenation, $0^r$ for $r$ zero bits, $\LE_r(z)$ for the $r$-bit little-endian encoding of an integer $z$, and $\LE^{-1}$ for its inverse. Let $\hash$ be unkeyed BLAKE2s-256 (RFC~7693), and $\hash_0,\hash_1$ the first and last 16 bytes of its output. With a 16-byte public parameter $P$ and a 16-byte address $\addr$ (Section~\ref{sec:addresses}),
 \[
   \Th(P,\addr,M)=\hash_0(P\concat\addr\concat M).
 \]
@@ -124,7 +126,7 @@ $\amax$ & $2^{32}$ & randomizer trials per one-time signature\\
 \end{tabular}
 \end{center}
 
-The secret key is a 32-byte seed $S_0$. Every secret derives from $S=\hash(\text{\texttt{leanXMSS}}\concat S_0)$, the hash of the scheme's 8-byte ASCII name then the seed, so that no other scheme derives from the same bytes, and $P=\Th(0^{16},\addr_{\mathrm{param}},S)$. A message $m$ is 32 bytes. The layers are $\ell=0$ (bottom) and $\ell=1$ (top). A leaf index $\idx<2^{32}$ uses key $\idx$ at the bottom, which signs $M=m$, and key $b=\lfloor\idx/2^h\rfloor$ at the top, which signs the 16-byte root $M=X^0_{h,b}$ of bottom tree $b$ (Section~\ref{sec:trees}).
+The secret key is a 32-byte seed $S_0$. Every secret derives from $S=\hash(\text{\texttt{leanXMSS}}\concat S_0)$, the hash of the scheme's 8-byte ASCII name then the seed, so that no other scheme derives from the same bytes, and $P=\Th(0^{128},\addr_{\mathrm{param}},S)$. A message $m$ is 32 bytes. The layers are $\ell=0$ (bottom) and $\ell=1$ (top). A leaf index $\idx<2^{32}$ uses key $\idx$ at the bottom, which signs $M=m$, and key $b=\lfloor\idx/2^h\rfloor$ at the top, which signs the 16-byte root $M=X^0_{h,b}$ of bottom tree $b$ (Section~\ref{sec:trees}).
 
 \section{\texorpdfstring{WOTS$^+$C}{WOTS+C}}
 \label{sec:ots}
@@ -132,7 +134,7 @@ The secret key is a 32-byte seed $S_0$. Every secret derives from $S=\hash(\text
 A one-time key is $v$ hash chains of 4 positions. It signs a 16-byte digest that is a codeword, revealing each chain at the position its digit names. The chains of key $e$ on layer $\ell$ are, for $i<v$ and $\mu<3$,
 \[
   C_{i,0}=\hash_{i\bmod2}\bigl(P\concat\addr_{\mathrm{prf}}(\ell,e,\lfloor i/2\rfloor)\concat S\bigr),\qquad
-  C_{i,\mu+1}=\Th\bigl(P,\addr_{\mathrm{chain}}(\ell,e,\mu),C_{i,\mu}\concat\LE_{16}(i)\bigr),
+  C_{i,\mu+1}=\Th\bigl(P,\addr_{\mathrm{chain}}(\ell,e,\mu),C_{i,\mu}\concat\LE_{128}(i)\bigr),
 \]
 and its leaf is $X^\ell_{0,e}=\Th(P,\addr_{\mathrm{leaf}}(\ell,e),C_{0,3}\concat\cdots\concat C_{v-1,3})$.
 
@@ -142,7 +144,7 @@ and its leaf is $X^\ell_{0,e}=\Th(P,\addr_{\mathrm{leaf}}(\ell,e),C_{0,3}\concat
 \[
 \begin{aligned}
   R_0&=\Th\bigl(P,\addr_{\mathrm{rnd}}(\ell,e),S\concat M\bigr),&
-  \rho_c&=\LE_{16}\bigl(\LE^{-1}(R_0)+c\bmod2^{128}\bigr),\\
+  \rho_c&=\LE_{128}\bigl(\LE^{-1}(R_0)+c\bmod2^{128}\bigr),\\
   D_c&=\Th\bigl(P,\addr_{\mathrm{msg}}(\ell,e),M\concat\rho_c\bigr),
 \end{aligned}
 \]
@@ -163,6 +165,7 @@ The path of key $e$ is $\pi=(\pi_0,\dots,\pi_{h-1})$ with $\pi_\lambda=X^\ell_{\
 
 
 \section{The scheme}
+\label{sec:scheme}
 
 \paragraph{Key generation.} Sample a uniform 32-byte $S_0$ and return $\pk=(X^1_{h,0},P)$ and $\sk=S_0$.
 
@@ -174,7 +177,7 @@ The path of key $e$ is $\pi=(\pi_0,\dots,\pi_{h-1})$ with $\pi_\lambda=X^\ell_{\
 \end{enumerate}
 \textbf{A leaf index must never sign two different messages}: their two codewords would reveal every chain at the smaller of their two positions. The top key $b$ signs only $X^0_{h,b}$, so it signs one message, however many leaf indices of bottom tree $b$ are used.
 
-\paragraph{Serialization.} The public key is $\rootnode\concat P$. A layer's signature is $\rho\concat y_0\concat\cdots\concat y_{v-1}\concat\pi_0\concat\cdots\concat\pi_{h-1}$, $16(1+v+h)=1200$ bytes. The signature is $\LE_4(\idx)$, the bottom layer's, then the top layer's: $4+1200+1200=2404$ bytes.
+\paragraph{Serialization.} The public key is $\rootnode\concat P$. A layer's signature is $\rho\concat y_0\concat\cdots\concat y_{v-1}\concat\pi_0\concat\cdots\concat\pi_{h-1}$, $16(1+v+h)=1200$ bytes. The signature is $\LE_{32}(\idx)$, the bottom layer's, then the top layer's: $4+1200+1200=2404$ bytes.
 
 \paragraph{Verification.} $\Ver((\rootnode,P),m,\sigma)$ rejects unless $\sigma$ is 2404 bytes, parses it as $\idx$, $(\rho^0,y^0,\pi^0)$ and $(\rho^1,y^1,\pi^1)$, and computes
 \[
@@ -193,10 +196,44 @@ It accepts exactly when neither $\OtsLeaf$ fails and $X'=\rootnode$.
 \]
 so an encoding takes about $2^{20}$ trials on average, one compression each, and all $\amax$ trials fail with probability below $\exp(-2^{11})$. A signature needs one encoding per layer, but the top layer's depends only on the bottom tree, so the signer grinds it once per bottom tree: amortized, a signature costs about $2^{20}$ trials.
 
+\section{Security}
+\label{sec:security}
+
+Model $\hash$ as one shared random oracle. The challenger generates a key pair and gives $\pk$ to a classical probabilistic adversary, which may adaptively query the hash and request signatures $\Sig(\sk,\idx,m)$ on messages $m$ at leaf indices $\idx$ of its choice, never the same leaf index twice. It finally returns $(m^*,\sigma^*)$ and wins exactly when $\Ver(\pk,m^*,\sigma^*)=1$ and no signing request for $m^*$ returned $\sigma^*$: \emph{strong unforgeability}. A query budget $q$ bounds every hash call of the complete experiment: key generation, signing, the adversary's queries and the final verification, repeated inputs included.
+
+\begin{theorem}
+For every $q\ge1$ and every adversary with budget $q$, the adversary wins with probability at most $q/2^{127}$.
+\end{theorem}
+
+The theorem is proved in Lean~4 over VCVio~\cite{VCVio}, with only Lean's three standard axioms, in \texttt{formal/lean\_xmss/} (\texttt{XmssSecurity.leanXmss\_has\_127\_bits\_of\_classical\_security}, of statement \texttt{LeanXmss.LeanXmssSecurityStatement}), for the scheme of this document byte for byte: its hash inputs, its codewords and its signer. \texttt{formal/lean\_xmss/PROOF.md} outlines the route: once the seed is eliminated, a win implies a bad event on one of the two layers, a hash call that hits an honest output from another input or guesses a chain value not yet revealed, and each call raises one with probability at most $2^{-127}$.
+
+\paragraph{Using a key.} The theorem covers a signer that uses each leaf index at most once, which the signer's state must enforce. Signing is deterministic, so signing the same message again at the same leaf index returns the same signature, but the game counts no run that repeats a leaf index as a win, so the theorem does not cover it. Two different messages at one leaf index break the key (Section~\ref{sec:scheme}).
+
+\paragraph{Tightness.} The following classical attack shows that the security is at most about $127.2$ bits.
+\begin{enumerate}
+  \item \textbf{Get a signature} at a leaf index $\idx$, and read its bottom codeword $x$.
+  \item \textbf{Find a nearby codeword.} For a new message $m^*$ at $\idx$, try $2^{120}$ distinct randomizers, seeking a codeword that decreases one digit $x_i$ by one and increases another digit $x_j$ by one. The digits are at most $3$ and sum to $T=106$, so at least 36 are nonzero and at least 23 are below 3: there are at least $36\cdot22=792$ choices of $(i,j)$, each one 128-bit digest, and
+  \[
+    \Pr[\text{codeword found}]\geq1-\left(1-\frac{792}{2^{128}}\right)^{2^{120}}\geq1-\exp\!\left(-\frac{792}{2^8}\right)\approx0.955.
+  \]
+  \item \textbf{Go back one chain step.} Try $2^{124}$ distinct values, seeking a preimage of $y_i$ under the chain step from position $x_i-1$ of chain $i$. They contain the genuine $C_{i,x_i-1}$ with probability $1/16$; otherwise one of them hits $y_i$ with probability about $1-e^{-1/16}$. Thus
+  \[
+    \Pr[\text{preimage found}]\approx\frac{1}{16}+\frac{15}{16}\left(1-e^{-1/16}\right)\approx0.1193.
+  \]
+  \item \textbf{Forge.} Replace $y_i$ by the preimage and $y_j$ by its next chain step, keeping the rest of the signature.
+\end{enumerate}
+Key generation and signing add a negligible number of calls, so
+\[
+  \frac{q}{\Pr[\text{success}]}\approx\frac{2^{120}+2^{124}}{0.955\cdot0.1193}\approx1.17\cdot2^{127}\approx2^{127.2}.
+\]
+The top layer admits the same attack, on the root of a bottom tree of the adversary's own, at the same cost.
+
+\paragraph{Quantum security.} Only the classical bound is proved. We expect about 64 quantum bits, NIST category~1, which FIPS~205 assigns to the SLH-DSA parameter sets with a 128-bit digest~\cite{FIPS205}. The hypertree of SPHINCS$^+$, of which these two layers are a variant, has a QROM bound against an adversary that does not choose the signed messages~\cite{HK22}, and hash-then-sign reduces chosen messages to random ones~\cite{GHHM21}. This remains a conjecture: the first bound is proved for the WOTS$^+$ encoding rather than for a target sum, and the second reduction loses around 1.5 bits.
+
 \section{Address encoding}
 \label{sec:addresses}
 
-Addresses keep the hash inputs of a key distinct. An address is $\mathsf{enc}(\tau,\mu,\mathit{hi},\mathit{lo})=\LE_4(\mathit{lo})\concat\LE_3(\mathit{hi})\concat\LE_1(\tau+32\mu)\concat0^8$, with type $\tau<32$ and $\mu<8$. The top layer sets bit 23 of $\mathit{hi}$: $\mathit{hi}_\ell(a)=a+2^{23}\ell$.
+Addresses keep the hash inputs of a key distinct. An address is $\mathsf{enc}(\tau,\mu,\mathit{hi},\mathit{lo})=\LE_{32}(\mathit{lo})\concat\LE_{24}(\mathit{hi})\concat\LE_8(\tau+32\mu)\concat0^{64}$, with type $\tau<32$ and $\mu<8$. The top layer sets bit 23 of $\mathit{hi}$: $\mathit{hi}_\ell(a)=a+2^{23}\ell$.
 \begin{center}
 \begin{tabular}{@{}ll@{\qquad}ll@{}}
 \toprule

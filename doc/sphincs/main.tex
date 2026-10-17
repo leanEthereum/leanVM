@@ -74,7 +74,7 @@ The scheme has the shape of SLH-DSA-128-24~\cite{SP800230}, a single Merkle tree
 \section{Hashing and parameters}
 \label{sec:parameters}
 
-Write $\bits r$ for $r$-bit strings, $\concat$ for concatenation, and $\LE_r(z)$ for the unsigned $r$-bit little-endian encoding of $z$. Write $x\getsr A$ for a uniform sample from $A$. Indices and bit positions start at zero; $\bot$ denotes failure.
+Write $\bits r$ for $r$-bit strings, $0^r$ for $r$ zero bits, $\concat$ for concatenation, $\LE_r(z)$ for the unsigned $r$-bit little-endian encoding of $z$, and $\LE^{-1}$ for its inverse. Write $x\getsr A$ for a uniform sample from $A$. Indices and bit positions start at zero; $\bot$ denotes failure.
 
 Let $\hash:\bits{*}\to\bits{256}$ be BLAKE2s. Most operations use its first $n=128$ output bits:
 \[

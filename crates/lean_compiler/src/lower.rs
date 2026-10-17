@@ -602,10 +602,11 @@ impl FnLower<'_> {
         (cells, binds)
     }
 
-    /// `targets = match(log(x), …)`: dispatch through the trampoline table
-    /// ([`Self::lower_match_dispatch`]), arm `j` evaluating the lambda body at
-    /// `i = j` into cells every arm shares. Write-once makes that sound, exactly
-    /// one arm running, and [`Self::ret_targets`] says which cells those are.
+    /// `targets = match(log(x), …)`: a dispatched call when every arm calls one
+    /// function with the same runtime args, else [`Self::lower_match_dispatch`],
+    /// arm `j` evaluating the lambda body at `i = j` into cells every arm shares.
+    /// Write-once makes that sound, exactly one arm running, and
+    /// [`Self::ret_targets`] says which cells those are.
     fn lower_match(&mut self, targets: &[Expr], x: &Expr, arms: &[Expr]) {
         for arm in arms {
             if let Expr::Call(f, _) = arm
