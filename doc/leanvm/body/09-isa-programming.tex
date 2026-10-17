@@ -58,10 +58,4 @@ Hashing slice of dynamic-size requires to reconstruct the counter at runtime. On
 
 \subsection{Match statements}\label{sec:prog-match}
 
-Matching on $x=\gen^{j}$, $j\in[0,n)$, jumps to the entry $\gen^{\mathrm{block}_j}$ of case block $j$. The case blocks sit anywhere, unaligned and of any length, and a dispatch costs the same for every $n$. A \texttt{JUMP} reads its destination from a cell, so the entries must be in memory before the jump: they are in a jump table.
-
-Every \texttt{match} has a table of $n$ cells in \texttt{main}'s frame, slot $j$ holding $\gen^{\mathrm{block}_j}$. That frame sits at a fixed address, $\fp=\gen^{0}$ (\S\ref{sec:state}), so slot $j$ of a table at offset $t$ is the cell $\gen^{t+j}=x\cdot\gen^{t}$, which any function reaches without knowing \texttt{main}'s $\fp$: the dispatch is the \texttt{DEREF} $[o_x,\gen^{t},o_e;\,\texttt{deref\_cell}[o_e]]$, $\loc{o_x}=x$ and $o_e$ a fresh cell, which write-once back-solves to the entry, then one \texttt{JUMP} to $\loc{o_e}$. With the \texttt{SET} of the join, 3 cycles. \texttt{main} begins by writing every slot of every table, one \texttt{SET} each, so a program pays once per arm in its bytecode, however often its matches run.
-
-A dispatched call, every arm calling one function with the same runtime arguments, builds the callee frame once and dispatches the same way, its table holding the callees' entries and the \texttt{JUMP} entering the callee's frame; calls to the same callees share one table.
-
-The matched value must be known to lie in $[0,n)$: a hinted $x$ must be range-checked first (\S\ref{sec:prog-range-checks}); otherwise the dispatch lands at an attacker-chosen program counter.
+A \texttt{match} on $x=\gen^{j}$, $j<n$, runs block $j$ through a jump table: $n$ cells, cell $j$ holding block $j$'s address. Tables live in \texttt{main}'s frame, which is always at address $\gen^{0}$, so cell $j$ of a table at offset $t$ is at $x\cdot\gen^{t}$. A \texttt{DEREF} reads that cell and a \texttt{JUMP} goes there: 3 cycles, for any $n$. \texttt{main} fills all tables at startup, one \texttt{SET} per cell. The dispatch does not check $j<n$. Untrusted values (like hints) of $x$ must be range-check.
