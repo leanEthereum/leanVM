@@ -35,6 +35,14 @@ def ChildReads (rd : Reader) (entries cover marks origin limit : E) (off : ℕ �
     CellsAt rd (entries * gen ^ (4 * off j))
       [cs.getD (4 * j) 0, cs.getD (4 * j + 1) 0, cs.getD (4 * j + 2) 0, cs.getD (4 * j + 3) 0]
 
+theorem childReads_congr {rd : Reader} {entries cover marks origin limit : E} {off off' : ℕ → ℕ}
+    {cs : List E} {k : ℕ} (h : ∀ j < k, off j = off' j) :
+    ChildReads rd entries cover marks origin limit off cs k ↔
+      ChildReads rd entries cover marks origin limit off' cs k := by
+  constructor <;> intro hR j hj <;> obtain ⟨h1, h2, h3⟩ := hR j hj
+  · rw [h j hj] at h1 h2 h3; exact ⟨h1, h2, h3⟩
+  · rw [← h j hj] at h1 h2 h3; exact ⟨h1, h2, h3⟩
+
 /-- **`child_claims_tail__L{k}`**: `k` blocks read and marked as `ChildReads`, chained from the
 state under `baseMd base`. -/
 def Meaning_child_claims_tail (k : ℕ) (rd : Reader) (args rets : List E) : Prop :=
