@@ -93,6 +93,8 @@ theorem word_eq_eOfNat (c : ℕ) : word c 0 0 = eOfNat c := by
 
 theorem word_one : word 1 0 0 = 1 := by rw [word_eq_eOfNat, eOfNat_one]
 
+theorem word_gen : word 2 0 0 = gen := word_eq_eOfNat 2
+
 /-- A compile-time non-final counter word is its metadata cell. -/
 theorem word_md (c : ℕ) : word c 0 0 = metadataCell c false := rfl
 

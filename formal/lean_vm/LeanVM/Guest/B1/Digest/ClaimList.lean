@@ -52,8 +52,6 @@ theorem word_g128 : word 325 0 0 = gen ^ 128 := by
   rw [word_eq_eOfNat, gen_pow_eq_ofK, eOfNat, ← gpowK_eq (by unfold u128Bound; omega)]
   congr 1
 
-theorem word_gen : word 2 0 0 = gen := word_eq_eOfNat 2
-
 /-- One iteration of `__loop86` at `x`: the window's slot read at `chain·x⁴`, the window run, its
 results and next entry pointer stored at `chain·(x·g)⁴`. -/
 def L86Step (rd : Reader) (chain gsq : E) (C : CallRel) (x : E) : Prop :=
