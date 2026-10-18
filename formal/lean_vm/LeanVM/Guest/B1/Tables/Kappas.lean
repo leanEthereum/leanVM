@@ -56,7 +56,8 @@ theorem blockCols_110 : blockCols 110 = List.range 82 ++ (List.range 10).map (·
 theorem blockCols_110_length : (blockCols 110).length = 92 := by
   rw [blockCols_110]; simp
 
-theorem columnKappas_length_110 (lm lb : ℕ) (hs : List ℕ) : (columnKappas lm lb hs).length = 110 := by
+theorem columnKappas_length_110 (lm lb : ℕ) (hs : List ℕ) :
+    (columnKappas lm lb hs).length = 110 := by
   rw [columnKappas_length]; decide +kernel
 
 theorem committedKappas_length (kappas : List ℕ) (h : kappas.length = 110) :
@@ -68,7 +69,8 @@ theorem stackTotal_eq (kappas : List ℕ) :
   rw [stackTotal, committedKappas, List.map_map]; rfl
 
 theorem tables_shape :
-    tables.map (fun t ↦ (t.width, t.opcode)) = [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (37, 5)] := by
+    tables.map (fun t ↦ (t.width, t.opcode)) =
+      [(15, 0), (15, 1), (8, 2), (15, 3), (14, 4), (37, 5)] := by
   decide +kernel
 
 theorem columnKappas_eq (lm lb h0 h1 h2 h3 h4 h5 : ℕ) :

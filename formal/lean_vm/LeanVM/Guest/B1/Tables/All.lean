@@ -9,3 +9,4 @@ module
 public import LeanVM.Guest.B1.Tables.Padding
 public import LeanVM.Guest.B1.Tables.Kappas
 public import LeanVM.Guest.B1.Tables.Gkr
+public import LeanVM.Guest.B1.Tables.Flock
