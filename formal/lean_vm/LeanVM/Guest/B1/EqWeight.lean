@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.ScaledLog
+public import LeanVM.Guest.B1.Log2
 
 /-!
 # `eq_weight` (TRIAGE #19)
