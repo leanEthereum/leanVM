@@ -8,3 +8,4 @@ module
 
 public import LeanVM.Guest.B1.Tables.Padding
 public import LeanVM.Guest.B1.Tables.Kappas
+public import LeanVM.Guest.B1.Tables.Gkr
