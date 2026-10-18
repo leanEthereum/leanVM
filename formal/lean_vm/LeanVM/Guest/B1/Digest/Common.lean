@@ -25,7 +25,7 @@ public import LeanVM.Guest.Value.All
 * `rangeCheck_sound`, `rangeCheck_complete`: the range-check atom against `g^(K-1)` on `MemOk`.
 -/
 
-namespace LeanVM.Guest.B1
+namespace LeanVM.Guest.B1.Digest
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Protocol.Verifier LeanVM.Guest.Core LeanVM.Guest.Value
@@ -36,6 +36,11 @@ open LeanVM.Protocol.Verifier LeanVM.Guest.Core LeanVM.Guest.Value
 
 /-- The reader is a memory of `2^κ` words, `16 ≤ κ ≤ 32`, as every valid execution's is. -/
 def MemOk (rd : Reader) : Prop := ∃ κ, 16 ≤ κ ∧ κ ≤ 32 ∧ ∃ L : MemImage κ, rd = L.read
+
+/-- A memory word read twice is one word. -/
+theorem loadHolds_unique {rd : Reader} {p : E} {k : ℕ} {w w' : E} (h : LoadHolds rd p k w)
+    (h' : LoadHolds rd p k w') : w = w' :=
+  Option.some.inj (h.2.symm.trans h'.2)
 
 /-- The words `p·g^k`, `k < cs.length`, hold `cs`, `p` in `K` when `cs` is not empty. -/
 def CellsAt (rd : Reader) (p : E) (cs : List E) : Prop :=
@@ -85,6 +90,11 @@ theorem rangeCheck_complete {rd : Reader} (hm : MemOk rd) {e e' : ℕ} (he : e <
 /-- A word with zero upper limbs is the integer word. -/
 theorem word_eq_eOfNat (c : ℕ) : word c 0 0 = eOfNat c := by
   rw [eOfNat_eq_ofLimbs]; rfl
+
+theorem word_one : word 1 0 0 = 1 := by rw [word_eq_eOfNat, eOfNat_one]
+
+/-- A compile-time non-final counter word is its metadata cell. -/
+theorem word_md (c : ℕ) : word c 0 0 = metadataCell c false := rfl
 
 theorem isCanonical128_zero : IsCanonical128 (0 : E) := by
   rw [zero_eq_ofLimbs]; rfl
@@ -151,6 +161,9 @@ theorem ite_neg' {α : Sort*} {c : Prop} [Decidable c] (h : ¬c) (a b : α) :
 
 theorem ite_pos' {α : Sort*} {c : Prop} [Decidable c] (h : c) (a b : α) :
     (if c then a else b) = a := by simp [h]
+
+/-- A valuation listed by value index. -/
+def listVal (vs : List E) : Val := fun v => vs.getD v.idx 0
 
 /-! ## Finding a core function -/
 
@@ -273,5 +286,140 @@ theorem chainRun_blocks {blocks : ℕ → Fin 4 → E} {md : ℕ → E} {n : ℕ
     rfl hmd hfin (fun j hj => (compressCells_chainRun (hm j hj) (hcan j hj)).mpr rfl)
   exact digestScalars_injective this
 
+/-! ## Chains of `BLAKE2S` over cells, as relations -/
+
+/-- `n` chained `BLAKE2S` instructions from the cells `st` to the cells `out`: none, or a run from
+a digest's cells over canonical blocks and metadata cells, computing `chainRun`. -/
+def ChainCells (st : E × E) (blocks : ℕ → Fin 4 → E) (md : ℕ → E) (n : ℕ) (out : E × E) : Prop :=
+  (n = 0 ∧ out = st) ∨ (1 ≤ n ∧ ∃ h, st = digestScalars h ∧
+    (∀ j < n, (∀ r, IsCanonical128 (blocks j r)) ∧ IsCanonical128 (md j)) ∧
+    out = digestScalars (chainRun h blocks md n))
+
+/-- A run of chained `BLAKE2S` facts is a `ChainCells`. -/
+theorem chainCells_of_steps {n : ℕ} {blocks : ℕ → Fin 4 → E} {md : ℕ → E} {st : ℕ → E × E}
+    (hc : ∀ j < n, CompressCells (blocks j) (st j).1 (st j).2 (st (j + 1)).1 (st (j + 1)).2 (md j)) :
+    ChainCells (st 0) blocks md n (st n) := by
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · exact Or.inl ⟨rfl, rfl⟩
+  · have h0 := hc 0 hn
+    have hst : st 0 = digestScalars (cellsDigest (st 0).1 (st 0).2) :=
+      (digestScalars_cellsDigest h0.2.1 h0.2.2.1).symm
+    refine Or.inr ⟨hn, _, hst, fun j hj => compressCells_canonical (hc j hj), ?_⟩
+    exact chain_eq_chainRun hst hc n le_rfl
+
+/-- The chained `BLAKE2S` facts of a `ChainCells` run, at the honest states. -/
+theorem steps_of_chainCells {n : ℕ} {blocks : ℕ → Fin 4 → E} {md : ℕ → E} {h : Digest}
+    (hc : ∀ j < n, (∀ r, IsCanonical128 (blocks j r)) ∧ IsCanonical128 (md j)) :
+    ∀ j < n, CompressCells (blocks j) (digestScalars (chainRun h blocks md j)).1
+      (digestScalars (chainRun h blocks md j)).2 (digestScalars (chainRun h blocks md (j + 1))).1
+      (digestScalars (chainRun h blocks md (j + 1))).2 (md j) := fun j hj =>
+  (compressCells_chainRun (hc j hj).1 (hc j hj).2).mpr rfl
+
+theorem chainCells_congr {st out : E × E} {b b' : ℕ → Fin 4 → E} {md md' : ℕ → E} {n : ℕ}
+    (hb : ∀ j < n, b j = b' j) (hm : ∀ j < n, md j = md' j) :
+    ChainCells st b md n out ↔ ChainCells st b' md' n out := by
+  unfold ChainCells
+  have e : ∀ h, chainRun h b md n = chainRun h b' md' n := fun h => chainRun_congr n hb hm
+  simp only [e]
+  constructor
+  · rintro (h | ⟨h1, h, h2, h3, h4⟩)
+    · exact Or.inl h
+    · exact Or.inr ⟨h1, h, h2, fun j hj => by rw [← hb j hj, ← hm j hj]; exact h3 j hj, h4⟩
+  · rintro (h | ⟨h1, h, h2, h3, h4⟩)
+    · exact Or.inl h
+    · exact Or.inr ⟨h1, h, h2, fun j hj => by rw [hb j hj, hm j hj]; exact h3 j hj, h4⟩
+
+/-- The block `j` of a list of cells: cells `4j .. 4j + 3`. -/
+def blocksOf (cs : List E) (j : ℕ) : Fin 4 → E :=
+  ![cs.getD (4 * j) 0, cs.getD (4 * j + 1) 0, cs.getD (4 * j + 2) 0, cs.getD (4 * j + 3) 0]
+
+/-! ## Pointers -/
+
+theorem isInK_mul_gen_pow_iff (p : E) (j : ℕ) : IsInK (p * gen ^ j) ↔ IsInK p := by
+  rw [gen_pow_eq_ofK]
+  constructor
+  · intro h
+    obtain ⟨a, ha⟩ := (isInK_iff _).mp h
+    have hg : Parameters.gpow j ≠ 0 := pow_ne_zero _ g_ne_zero
+    refine (isInK_iff _).mpr ⟨a * (Parameters.gpow j)⁻¹, ?_⟩
+    rw [ofK_mul, ← ha, mul_assoc, ← ofK_mul, mul_inv_cancel₀ hg, ofK_one, mul_one]
+  · intro h
+    obtain ⟨a, rfl⟩ := (isInK_iff _).mp h
+    rw [← ofK_mul]; exact ofK_isInK _
+
+/-- A load through `p·g^j` at offset `k` is the load through `p` at offset `j + k`. -/
+theorem loadHolds_mul_gen_pow {rd : Reader} (p : E) (j k : ℕ) (w : E) :
+    LoadHolds rd (p * gen ^ j) k w ↔ LoadHolds rd p (j + k) w := by
+  unfold LoadHolds
+  rw [isInK_mul_gen_pow_iff]
+  constructor
+  · rintro ⟨hp, h⟩
+    refine ⟨hp, ?_⟩
+    obtain ⟨a, rfl⟩ := (isInK_iff _).mp hp
+    rw [gen_pow_eq_ofK, ← ofK_mul, limb_ofK] at h
+    rw [limb_ofK]
+    simp only [Fin.val_zero, ↓reduceIte, Parameters.gpow, pow_add, mul_assoc] at h ⊢
+    exact h
+  · rintro ⟨hp, h⟩
+    refine ⟨hp, ?_⟩
+    obtain ⟨a, rfl⟩ := (isInK_iff _).mp hp
+    rw [gen_pow_eq_ofK, ← ofK_mul, limb_ofK]
+    rw [limb_ofK] at h
+    simp only [Fin.val_zero, ↓reduceIte, Parameters.gpow, pow_add, mul_assoc] at h ⊢
+    exact h
+
+/-! ## `mul_range` loops -/
+
+/-- **A `mul_range` loop helper** from `g^k` to its end `N`: its relation holds exactly when `N`
+is `g^m` for the first `m > k` the loop reaches, its body (`B`, under the program's relation)
+holding at every `g^j`, `k ≤ j < m`. -/
+theorem loop_iff {rd : Reader} {f : String} {ps : List E} {N : E} {B : CallRel → E → Prop}
+    (hmono : ∀ C C' x, CallRel.Le C C' → B C x → B C' x)
+    (hstep : ∀ C x, (∃ fn, coreProgram.find? f = some fn ∧ fn.Sem C rd (x :: ps) []) ↔
+      B C x ∧ IsInK (x * gen + N) ∧ (x * gen + N ≠ 0 → C f (x * gen :: ps) []))
+    (k : ℕ) :
+    coreProgram.Rel rd f (gen ^ k :: ps) [] ↔
+      ∃ m, k < m ∧ N = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ N) ∧
+        ∀ j, k ≤ j → j < m → B (coreProgram.Rel rd) (gen ^ j) := by
+  have hadd : ∀ j, gen ^ j * gen + N = 0 ↔ N = gen ^ (j + 1) := fun j => by
+    rw [e_add_eq_zero_iff, pow_succ, eq_comm]
+  constructor
+  · rintro ⟨d, hd⟩
+    induction d generalizing k with
+    | zero => exact hd.elim
+    | succ d ih =>
+      obtain ⟨hB, -, hnext⟩ := (hstep _ _).mp hd
+      have hB' := hmono _ _ _ (relN_le_rel coreProgram d) hB
+      by_cases h0 : gen ^ k * gen + N = 0
+      · refine ⟨k + 1, by omega, (hadd k).mp h0, fun j h1 h2 => by omega, fun j h1 h2 => ?_⟩
+        rwa [show j = k by omega]
+      · have := hnext h0
+        rw [← pow_succ] at this
+        obtain ⟨m, hm, hN, hfirst, hall⟩ := ih (k + 1) this
+        refine ⟨m, by omega, hN, fun j h1 h2 => ?_, fun j h1 h2 => ?_⟩
+        · rcases Nat.lt_or_ge (k + 1) j with h | h
+          · exact hfirst j h h2
+          · rw [show j = k + 1 by omega]
+            intro he
+            exact h0 ((hadd k).mpr he.symm)
+        · rcases Nat.lt_or_ge k j with h | h
+          · exact hall j (by omega) h2
+          · rwa [show j = k by omega]
+  · rintro ⟨m, hkm, hN, hfirst, hall⟩
+    obtain ⟨t, rfl⟩ : ∃ t, m = k + 1 + t := ⟨m - k - 1, by omega⟩
+    have hK : ∀ j, IsInK (gen ^ j * gen + N) := fun j => by
+      rw [hN, ← pow_succ, gen_pow_eq_ofK, gen_pow_eq_ofK, ← ofK_add]; exact ofK_isInK _
+    induction t generalizing k with
+    | zero =>
+      rw [rel_iff]
+      exact (hstep _ _).mpr ⟨hall k le_rfl (by omega), hK k,
+        fun h => absurd ((hadd k).mpr hN) h⟩
+    | succ t ih =>
+      rw [rel_iff]
+      refine (hstep _ _).mpr ⟨hall k le_rfl (by omega), hK k, fun _ => ?_⟩
+      rw [← pow_succ]
+      exact ih (k + 1) (by omega) (by rw [hN]; congr 1; omega)
+        (fun j h1 h2 => hfirst j (by omega) (by omega)) (fun j h1 h2 => hall j (by omega) (by omega))
+
 end
-end LeanVM.Guest.B1
+end LeanVM.Guest.B1.Digest

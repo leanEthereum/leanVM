@@ -19,7 +19,7 @@ cells, then its vector digest's), as one BLAKE2s with compile-time counters: `da
 at a hinted index below `log n_slots_g` and marks its coverage slot.
 -/
 
-namespace LeanVM.Guest.B1
+namespace LeanVM.Guest.B1.Digest
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Protocol.Verifier LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Node
@@ -258,9 +258,6 @@ theorem da_hash_roots_succ_iff (n : ℕ) (hn1 : 1 ≤ n) (rd : Reader) (args ret
         hrVals_tail 2 (by omega), hrVals_tail 3 (by omega), hS]
       simp
 
-/-- A valuation listed by value index. -/
-def listVal (vs : List E) : Val := fun v => vs.getD v.idx 0
-
 theorem da_hash_roots_zero_iff (rd : Reader) (args rets : List E) :
     Fn.Sem (coreProgram.Rel rd) rd ⟨hrNames.getD 0 "", [.n 0], hrBody0⟩ args rets ↔
       Meaning_da_hash_roots 0 rd args rets := by
@@ -420,4 +417,8 @@ theorem cover_da_root_complete {rd : Reader} (hm : MemOk rd) {roots cover mark r
   exact ⟨⟨l1, hk', l2⟩, hmark, hroot.1, hroot.2.1, hroot.2.2.1, hroot.2.2.2⟩
 
 end
+end LeanVM.Guest.B1.Digest
+
+namespace LeanVM.Guest.B1
+export Digest (DaClaimsAt Meaning_da_hash_roots da_hash_roots_iff hrNames Meaning_da_list_digest da_list_digest_iff Meaning_cover_da_root cover_da_root_sound cover_da_root_complete)
 end LeanVM.Guest.B1

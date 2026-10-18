@@ -21,7 +21,7 @@ three cells are the 48 bytes `eBytes s ++ eBytes t`. So the digest is `statement
 (`stmtDigestOf`, `statementDigest_eq`).
 -/
 
-namespace LeanVM.Guest.B1
+namespace LeanVM.Guest.B1.Digest
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Protocol.Verifier LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Node
@@ -692,4 +692,8 @@ theorem statement_digest_iff (rd : Reader) (args rets : List E) :
       simp [sdVals, hS22]
 
 end
+end LeanVM.Guest.B1.Digest
+
+namespace LeanVM.Guest.B1
+export Digest (Meaning_statement_digest statement_digest_iff stmtDigestOf statementDigest_eq)
 end LeanVM.Guest.B1
