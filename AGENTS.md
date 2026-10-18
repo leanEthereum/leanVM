@@ -151,6 +151,7 @@ Understand the third before changing the verifier. `guests/lean_ethereum.py` is 
 | `LEANVM_HASH_N`, `LEANVM_HASH_UNROLL`                                                                   | workload sizes in tests                          |
 | `FLOCK_N_LOG`                                                                                           | flock batch size                                 |
 | `LEANVM_WRITE_NODE_VECTORS`                                                                             | `node_spec_vectors` rewrites `formal/lean_vm`'s `NodeVectors.lean` instead of failing on a stale one |
+| `LEANVM_GUEST_DIFF` | `guest_diff` (`#[ignore]`d) writes its aggregations there, for `formal/lean_vm`'s `guest-diff` |
 | `LEANVM_WRITE_GUEST` | `guest_bytecode_lean` and `guest_source_lean` rewrite `formal/lean_vm`'s guest data (`LeanVM/Guest/Data/`, `tests/LeanVMTests/Guest/Programs.lean`) instead of failing on stale ones |
 | `PCS_LOG_N`, `PCS_LOG_INV_RATE`, `PCS_MIN_MU`                                                           | PCS throughput bench                             |
 | `WHIR_NUM_VARS`, `WHIR_LOG_INV_RATE`                                                                    | `print_whir_query_counts`'s shape                |

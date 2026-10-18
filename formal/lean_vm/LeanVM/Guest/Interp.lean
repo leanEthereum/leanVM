@@ -328,6 +328,51 @@ def dlogSearch (bits : Nat) (a : K) : Option Nat := Id.run do
     x := x * g
   return none
 
+/-! ## Discrete logarithms
+
+`g` has order `2^64 - 1`, a product of seven primes, the largest `6700417`: Pohlig-Hellman reduces
+a logarithm to one per prime, each found by baby steps and giant steps. -/
+
+/-- The prime factors of `2^64 - 1`, the order of `g`. -/
+def orderPrimes : List Nat := [3, 5, 17, 257, 641, 65537, 6700417]
+
+/-- Per prime `p` of the order: `p`, the step `m = ⌊√p⌋ + 1`, `h^(-m)` for `h = g^((2^64-1)/p)`
+of order `p`, and `h^j ↦ j` for `j < m`. -/
+structure DlogTables where
+  primes : List (Nat × Nat × K × Std.HashMap Nat Nat)
+
+/-- The tables. -/
+def DlogTables.build : DlogTables where
+  primes := orderPrimes.map fun p =>
+    let h : K := powBin 64 g 1 ((2 ^ 64 - 1) / p)
+    let m := p.sqrt + 1
+    let baby := (List.range m).foldl (fun (acc : Std.HashMap Nat Nat × K) j =>
+      (acc.1.insert (keyOf acc.2) j, acc.2 * h)) ({}, 1)
+    (p, m, powBin 64 h 1 (p - m), baby.1)
+
+/-- `b^e mod p` for `e < 2^64`. -/
+def powMod (b e p : Nat) : Nat :=
+  ((List.range 64).foldl (fun (acc : Nat × Nat) i =>
+    (if e.testBit i then acc.1 * acc.2 % p else acc.1, acc.2 * acc.2 % p)) (1 % p, b % p)).1
+
+/-- The `n < 2^64 - 1` with `g^n = a`, by Pohlig-Hellman; `none` for `0`. -/
+def dlogWith (t : DlogTables) (a : K) : Option Nat := Id.run do
+  if a == 0 then return none
+  let order := 2 ^ 64 - 1
+  let mut n := 0
+  for (p, m, giant, baby) in t.primes do
+    let mut y : K := powBin 64 a 1 (order / p)
+    let mut x : Option Nat := none
+    for i in List.range m do
+      if let some j := baby[keyOf y]? then
+        x := some ((i * m + j) % p)
+        break
+      y := y * giant
+    let some xp := x | return none
+    let q := order / p
+    n := (n + xp * q * powMod q (p - 2) p) % order
+  return if gpowK n == a then some n else none
+
 /-- Evaluate `f` on `args`: its return words and the final state. -/
 def run (cfg : Cfg) (f : String) (args : List E) (fuel : Nat := 1000000000) :
     Except String (List E × IState) :=

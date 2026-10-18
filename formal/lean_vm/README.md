@@ -31,7 +31,7 @@ BLAKE2s is modelled as a random oracle. A proof is the Python verifier's format 
 | `LeanVM/Protocol/` | the proof system and the end-to-end proofs; `To{ArkLib,Clean,CompPoly,VCVio}/` hold lemmas meant for those libraries |
 | `LeanVM/Guest/` | the aggregation guest: its compiled bytecode (`Data/Bytecode*`, generated) as a `Program` and the program logic for its runs (`Code`, `Bytecode`, `Logic`); its mirror, the source AST (`Source`, the generated `Data/Source`), the core IR and its relational semantics (`Core`, `CoreLemmas`), the renumbering of a function's values (`Renumber`) and the guest's core IR as data (`CoreData`, the generated `Data/Core*`), the zkDSL expansion (`Expand`, `ExpandLemmas`) and an interpreter (`Interp`); the honest hint generator (`Hints`); the value lemmas (`Value/`) |
 | `tests/` | `#guard`s and `example`s, checked by `lake test`; `fixtures/verifier/` are proofs of the Rust prover |
-| `cli/` | `leanvm-verify`, the compiled verifier on a proof's files, `node-vectors`, the costly checks of the Rust vectors, and `guest-core`, the writer of the guest's core IR data |
+| `cli/` | `leanvm-verify`, the compiled verifier on a proof's files, `node-vectors`, the costly checks of the Rust vectors, `guest-core`, the writer of the guest's core IR data, and `guest-diff`, the guest's mirror and hint generator against Rust aggregations |
 | `scripts/` | the Rust-vs-Lean fuzz, its Rust verifier CLI, the fixture exporter, and the WHIR parameter table generator |
 
 ## Building and testing
@@ -49,6 +49,14 @@ The Rust-vs-Lean differential, as CI runs it:
 lake build leanvm-verify
 cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
 python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
+```
+
+The guest's mirror and hint generator against Rust aggregations, as CI runs it: the Rust test writes each case (a leaf of both schemes with a blob, a leaf whose list is longer than a digest window, a node over them), and `guest-diff` checks that the witness holds the statement, that `Hints.honestStreams` is the streams the Rust installed, that the public input is the statement's digest, and that the interpreter runs the guest's core IR on them, printing the first divergence:
+
+```sh
+lake build guest-diff
+LEANVM_GUEST_DIFF=/tmp/guest-diff cargo test --release -p rec_aggregation guest_diff -- --ignored
+.lake/build/bin/guest-diff /tmp/guest-diff/*.txt
 ```
 
 After a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`, and the node vectors with `LEANVM_WRITE_NODE_VECTORS=1 cargo test --release -p rec_aggregation node_spec_vectors`. After a change to the guest, its compiler or the compiler's test programs, regenerate the guest data with `LEANVM_WRITE_GUEST=1 cargo test --release -p rec_aggregation guest_`. After that, or a change to the expansion (`Guest/Expand.lean`) or the core IR (`Guest/Core.lean`), regenerate the guest's core IR (`LeanVM/Guest/Data/Core*`, the expansion of the source as data, its values renumbered) with `lake exe guest-core`; `lake exe guest-core --check`, which CI runs, fails when it is stale, and `lake exe guest-core --values f` prints the expansion's name of each value of the function `f`.

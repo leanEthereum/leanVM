@@ -90,3 +90,10 @@ srcDir = "cli"
 name = "guest-core"
 root = "GuestCore"
 srcDir = "cli"
+
+# The guest's mirror and honest hint generator against Rust aggregations (cli/GuestDiff.lean), on
+# the cases the Rust test `guest_diff` writes; CI runs it.
+[[lean_exe]]
+name = "guest-diff"
+root = "GuestDiff"
+srcDir = "cli"
