@@ -271,6 +271,12 @@ theorem runsTo_sampleN (n : ℕ) (cv : Digest) :
 
 /-! ## Building valuations -/
 
+theorem ite_pos' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : c) : (if c then a else b) = a := by
+  simp [h]
+
+theorem ite_neg' {α : Type} {c : Prop} [Decidable c] {a b : α} (h : ¬c) : (if c then a else b) = b := by
+  simp [h]
+
 /-- `σ` with the values `.n (b + k)`, `k < n`, set to `f k`. -/
 def setv (σ : Val) (b n : ℕ) (f : ℕ → E) : Val := fun v =>
   if v.path = [] ∧ v.tag = 0 ∧ b ≤ v.idx ∧ v.idx < b + n then f (v.idx - b) else σ v
@@ -379,6 +385,107 @@ theorem first_hit_of_lt {N : E} {k m : ℕ} (hm : m < ordG) (hN : N = gen ^ m) :
   rw [hN] at h
   have := gen_pow_inj (by omega) hm h
   omega
+
+/-! ## Comparing statement lists by kernel evaluation
+
+`stmtsEqb` is a structural Boolean equality on statements, comparing words limb by limb (the
+kernel reduces `E.limb` on literal words, not `DecidableEq E`). `stmtsEqb_sound`: a template
+equal to a function's body by `decide +kernel` on `stmtsEqb`, where `rfl` would unfold both
+sides in the elaborator. -/
+
+/-- Words compared limb by limb. -/
+def eEqb (a b : E) : Bool :=
+  decide (a.limb 0 = b.limb 0) && decide (a.limb 1 = b.limb 1) && decide (a.limb 2 = b.limb 2)
+
+theorem eEqb_sound {a b : E} (h : eEqb a b = true) : a = b := by
+  simp only [eEqb, Bool.and_eq_true, decide_eq_true_eq] at h
+  rw [← ofLimbs_limb a, ← ofLimbs_limb b, h.1.1, h.1.2, h.2]
+
+/-- Atoms compared, words limb by limb. -/
+def atomEqb : Atom → Atom → Bool
+  | .const d c, .const d' c' => decide (d = d') && eEqb c c'
+  | .const .., _ => false
+  | a, b => decide (a = b)
+
+theorem atomEqb_sound {a b : Atom} (h : atomEqb a b = true) : a = b := by
+  cases a <;> cases b <;> simp only [atomEqb, Bool.and_eq_true, decide_eq_true_eq,
+    Bool.false_eq_true] at h <;> first | exact h | (rw [h.1, eEqb_sound h.2])
+
+mutual
+/-- Statements compared structurally. -/
+def stmtEqb : Stmt → Stmt → Bool
+  | .atom a, .atom b => atomEqb a b
+  | .ite c z n, .ite c' z' n' => decide (c = c') && stmtsEqb z z' && stmtsEqb n n'
+  | .match_ x as, .match_ x' as' => decide (x = x') && armsEqb as as'
+  | .call f a r, .call f' a' r' => decide (f = f') && decide (a = a') && decide (r = r')
+  | .callIf c f a, .callIf c' f' a' => decide (c = c') && decide (f = f') && decide (a = a')
+  | .dispatch x fs a r, .dispatch x' fs' a' r' =>
+      decide (x = x') && decide (fs = fs') && decide (a = a') && decide (r = r')
+  | .ret vs, .ret vs' => decide (vs = vs')
+  | _, _ => false
+
+/-- Statement lists compared structurally. -/
+def stmtsEqb : List Stmt → List Stmt → Bool
+  | [], [] => true
+  | s :: ss, s' :: ss' => stmtEqb s s' && stmtsEqb ss ss'
+  | _, _ => false
+
+/-- Arms compared structurally. -/
+def armsEqb : List (List Stmt) → List (List Stmt) → Bool
+  | [], [] => true
+  | a :: as, a' :: as' => stmtsEqb a a' && armsEqb as as'
+  | _, _ => false
+end
+
+mutual
+theorem stmtEqb_sound : ∀ {s t : Stmt}, stmtEqb s t = true → s = t
+  | .atom a, .atom b, h => by rw [atomEqb_sound h]
+  | .ite c z n, .ite c' z' n', h => by
+    simp only [stmtEqb, Bool.and_eq_true, decide_eq_true_eq] at h
+    rw [h.1.1, stmtsEqb_sound h.1.2, stmtsEqb_sound h.2]
+  | .match_ x as, .match_ x' as', h => by
+    simp only [stmtEqb, Bool.and_eq_true, decide_eq_true_eq] at h
+    rw [h.1, armsEqb_sound h.2]
+  | .call .., .call .., h => by
+    simp only [stmtEqb, Bool.and_eq_true, decide_eq_true_eq] at h
+    rw [h.1.1, h.1.2, h.2]
+  | .callIf .., .callIf .., h => by
+    simp only [stmtEqb, Bool.and_eq_true, decide_eq_true_eq] at h
+    rw [h.1.1, h.1.2, h.2]
+  | .dispatch .., .dispatch .., h => by
+    simp only [stmtEqb, Bool.and_eq_true, decide_eq_true_eq] at h
+    rw [h.1.1.1, h.1.1.2, h.1.2, h.2]
+  | .ret _, .ret _, h => by
+    simp only [stmtEqb, decide_eq_true_eq] at h
+    rw [h]
+  | .atom _, .ite .., h | .atom _, .match_ .., h | .atom _, .call .., h | .atom _, .callIf .., h
+  | .atom _, .dispatch .., h | .atom _, .ret _, h | .ite .., .atom _, h | .ite .., .match_ .., h
+  | .ite .., .call .., h | .ite .., .callIf .., h | .ite .., .dispatch .., h | .ite .., .ret _, h
+  | .match_ .., .atom _, h | .match_ .., .ite .., h | .match_ .., .call .., h
+  | .match_ .., .callIf .., h | .match_ .., .dispatch .., h | .match_ .., .ret _, h
+  | .call .., .atom _, h | .call .., .ite .., h | .call .., .match_ .., h | .call .., .callIf .., h
+  | .call .., .dispatch .., h | .call .., .ret _, h | .callIf .., .atom _, h
+  | .callIf .., .ite .., h | .callIf .., .match_ .., h | .callIf .., .call .., h
+  | .callIf .., .dispatch .., h | .callIf .., .ret _, h | .dispatch .., .atom _, h
+  | .dispatch .., .ite .., h | .dispatch .., .match_ .., h | .dispatch .., .call .., h
+  | .dispatch .., .callIf .., h | .dispatch .., .ret _, h | .ret _, .atom _, h
+  | .ret _, .ite .., h | .ret _, .match_ .., h | .ret _, .call .., h | .ret _, .callIf .., h
+  | .ret _, .dispatch .., h => by simp [stmtEqb] at h
+
+theorem stmtsEqb_sound : ∀ {s t : List Stmt}, stmtsEqb s t = true → s = t
+  | [], [], _ => rfl
+  | s :: ss, t :: tt, h => by
+    simp only [stmtsEqb, Bool.and_eq_true] at h
+    rw [stmtEqb_sound h.1, stmtsEqb_sound h.2]
+  | [], _ :: _, h | _ :: _, [], h => by simp [stmtsEqb] at h
+
+theorem armsEqb_sound : ∀ {s t : List (List Stmt)}, armsEqb s t = true → s = t
+  | [], [], _ => rfl
+  | s :: ss, t :: tt, h => by
+    simp only [armsEqb, Bool.and_eq_true] at h
+    rw [stmtsEqb_sound h.1, armsEqb_sound h.2]
+  | [], _ :: _, h | _ :: _, [], h => by simp [armsEqb] at h
+end
 
 end
 end LeanVM.Guest.B1
