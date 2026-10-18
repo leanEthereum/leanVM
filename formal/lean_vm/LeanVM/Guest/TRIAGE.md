@@ -27,7 +27,7 @@ The compiled guest (`BYTECODE_LOG = 18`): 262144 instructions, 1044 functions (4
 | 13 | exponent_tables | GS: constant tables `g^j ↦ eOfNat (2^j)`, `g^j ↦ g^(2^j)` | |
 | 14 | g_power_of_word | GS: `gpow (kToNat v.limb0)`, upper limbs zero | `hint_decompose_bits`: booleanity, reconstruction |
 | 15 | verify_log2_ceil | GS: `log2Ceil` (V:695), floored | `hint_log2_ceil`: pinned by the two bounds |
-| 16 | log2_ceil_in_the_exponent | GS: as #15 on `g^N` (needs `N < 2^34`) | `hint_decompose_bits_exponent` |
+| 16 | log2_ceil_in_the_exponent | GS: as #15 on `g^N` (completes for `N ≤ 2^33`: the log is range-checked below `SIZE_BITS = 34`, G:627) | `hint_decompose_bits_exponent` |
 | 17 | decode_query_bits | S: one step of `sampleQueriesAux` (V:1598) | `hint_decompose_bits(192)`: booleanity, reconstruction |
 | 18 | grind_check | S: `.grind`, `powOk` (V:482) | `hint_f192_limbs`, `hint_decompose_bits(64)` |
 | 19-24 | eq_weight, eqtree, lag64, eq_prefix_chain, rs_eq_run, fold_final_msg | S: `eqKernel`, `lagrangeWeights 64` over `windowDenominator`, `eqEval`, `ringWeight`'s products, `multilinearEval` | |
