@@ -22,23 +22,37 @@ instruction, and `Item.fact`, what a recognized gadget means) and its forward br
 (`Item.branch`: a `JUMP` on an unknown condition, which falls through when the condition is zero
 and leaves by its exit otherwise); `exit` is where the path leaves when it reaches the end.
 
-What is known of the frame along a path is an **environment** (`Trie Sym`, by offset): constants
-(`SET`), powers of `g` (`Facts.pows`), the frame pointer times a power of `g` (the self frame
-pointer of a loop, the bounce through a hinted buffer, a loop's next frame), and words copied
-through `MUL x·1`. It recognizes the jump shapes the compiler emits (`Kind`): a local forward jump
-(`next`), a return, a call or a fused dispatch into a callee frame whose return registers it
-stored (`call`), and everything else, tail calls, table dispatch and halting, as a jump to
-registers it names (`jump`). At a join the entry environment is the intersection of the
-environments of the edges into it; `Result.linked` checks that each edge's environment holds the
-target's, so the executor's own bookkeeping is never trusted.
+What is known of the frame along a path is an **environment** (`Trie Sym`, by offset): the cells
+holding `0`, a power of `g` (a `SET` whose immediate `Facts.pows` names, `g^0` always), or the
+frame pointer times one (`fpg`: a loop's self frame pointer cell, the bounce through a hinted
+buffer, a loop's next frame `MUL nfp = own·g^S`), and the last stores through frame cells. It
+recognizes the jump shapes the compiler emits (`Kind`): a local forward jump (`next`), a return,
+a call or a fused dispatch into a callee frame whose return registers it stored (`call`), and
+everything else, tail calls, table dispatch and halting, as a jump to the registers it names
+(`jump`). The gadgets it recognizes are facts: `!=`, booleanity, copies through `MUL x·1`,
+`assert ==`, and the range check (`range` when the bound is a known power, `powPair` when it is
+computed). At a join the entry environment is the intersection of the environments of the
+edges into it; `Result.linked` checks that each edge's environment holds the target's, so the
+executor's own bookkeeping is never trusted.
 
-Inputs from outside are `Facts`: the entry environment (a loop's self frame pointer cell, say),
-whether the frame is `1` (`main`), the table of powers of `g` its constants name (checked by the
-caller, `Facts.PowsOk`), and the arms of each table dispatch. Everything is structural recursion
-over lists and tries keyed by `ℕ`, with no field arithmetic: `exec` is meant to be evaluated by
-the kernel once per function.
+Inputs from outside are `Facts`: the entry environment (a loop's self frame pointer cell), the
+cells whose products by powers of `g` are tracked, whether the frame is `1` (`main`), the powers
+of `g` its constants name (a search tree the caller checks, `PowTree.Ok`), and the arms of each
+table dispatch. A selector's bound is not an input: the dispatch exit names the register it
+reads (`Tgt.cell`), and the caller resolves it from whatever bounds it (a gadget, a precondition,
+a callee's postcondition).
 
-Soundness (`exec_sound`) and completeness (`exec_complete`) relate a segment to `run`.
+`exec` is structural recursion over the code, tries keyed by `ℕ` and no field arithmetic, written
+for the kernel, which evaluates it once per function (`decide +kernel`): the hot functions use
+the recursors directly (hence `noncomputable`), and the walk passes its state evaluated (`seq`),
+the kernel sharing no evaluation between the copies of a term.
+
+**Soundness** (`exec_sound`): a halting run entering a segment, in a frame its environment holds
+of, satisfies the atoms of the path it takes and leaves by that path's exit with fewer steps left
+(`RunK`, `Exit.Reached`); a path with no branch gives all its atoms at once (`RunK.straight`).
+**Completeness** (`exec_complete`): atoms holding along a path make the run reach the exit's
+registers (`Follows`, `Reach`). **Linking** (`Result.linked_spec`): an exit's successors start
+segments whose environments hold where the exit's does.
 -/
 
 namespace LeanVM.Guest.Exec
@@ -599,25 +613,37 @@ noncomputable def passStep (F : Facts) (entry len : ℕ) (ins : OInstr)
         w i none pend (c.close its x :: out) dead
 
 /-- The end of the walk. -/
-def passEnd (i : ℕ) (cur : Option Cur) (out : List Seg) (dead : ℕ) : Result :=
+def passEnd (len i : ℕ) (cur : Option Cur) (out : List Seg) (dead : ℕ) : Result :=
   match cur with
-  | some c => if c.start < i then ⟨c.close [] ⟨.next i, c.st.env, []⟩ :: out, dead⟩ else ⟨out, dead⟩
+  | some c =>
+    if c.start < i then ⟨c.close [] ⟨.next i, c.st.env, if i < len then [i] else []⟩ :: out, dead⟩
+    else ⟨out, dead⟩
   | none => ⟨out, dead⟩
 
 /-- The walk over the code from offset `i`. -/
 noncomputable def pass (F : Facts) (entry len : ℕ) (code : List OInstr) :
     ℕ → Option Cur → Pend → List Seg → ℕ → Result :=
   List.rec (motive := fun _ ↦ ℕ → Option Cur → Pend → List Seg → ℕ → Result)
-    (fun i cur _ out dead ↦ passEnd i cur out dead)
+    (fun i cur _ out dead ↦ passEnd len i cur out dead)
     (fun ins _ w ↦ passStep F entry len ins w) code
 
 /-- The entry environment. -/
-noncomputable def Facts.entryEnv (F : Facts) : Trie Sym :=
-  F.env.foldl (fun t p ↦ t.set p.2 envDepth p.1) .nil
+noncomputable def envOf (env : List (ℕ × Sym)) : Trie Sym :=
+  env.foldl (fun t p ↦ t.set p.2 envDepth p.1) .nil
+
+/-- The entry environment. -/
+noncomputable def Facts.entryEnv (F : Facts) : Trie Sym := envOf F.env
 
 /-- **The symbolic executor**: the segments of `f`'s code. -/
 noncomputable def exec (F : Facts) (f : CompiledFn) : Result :=
   pass F f.entry f.len f.code 0 (some (Cur.init 0 F.entryEnv)) [] [] 0
+
+/-- **A window** of `f`'s code, offsets `a` to `b`, starting a segment at `a` with environment
+`env`: the executor on a large function in pieces, each evaluated by the kernel on its own. The
+segment live at `b` ends there with `b` its successor, to start the next window with. -/
+noncomputable def execWin (F : Facts) (f : CompiledFn) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
+    Result :=
+  pass F f.entry f.len ((f.code.drop a).take (b - a)) a (some (Cur.init a (envOf env))) [] [] 0
 
 /-! ## Linking -/
 
@@ -630,6 +656,22 @@ noncomputable def linkedWith (idx : Trie Seg) (segs : List Seg) : Bool :=
     match idx.get t with
     | some s' => s'.start == t && s'.env.sub Sym.beq x.env
     | none => false
+
+/-- `linkedWith`, a successor that starts no segment starting one of `ext`, the next windows'. -/
+noncomputable def linkedExtWith (idx : Trie Seg) (ext : List (ℕ × Trie Sym)) (segs : List Seg) :
+    Bool :=
+  segs.all fun s ↦ s.exits.all fun x ↦ x.succ.all fun t ↦
+    match idx.get t with
+    | some s' => s'.start == t && s'.env.sub Sym.beq x.env
+    | none => match ext.find? (·.1 == t) with
+      | some e => e.2.sub Sym.beq x.env
+      | none => false
+
+/-- A window is linked, into itself or the windows starting at `ext` with their environments. -/
+noncomputable def Result.linkedExt (ext : List (ℕ × List (ℕ × Sym))) (R : Result) : Bool :=
+  match R with
+  | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦
+      linkedExtWith idx (ext.map fun e ↦ (e.1, envOf e.2)) segs
 
 /-- The segments are linked: every successor of an exit starts a segment whose entry environment
 the exit's environment holds. -/
@@ -1711,18 +1753,20 @@ theorem pass_good (hctx : Ctx F κ fp) : ∀ (code : List OInstr) (i : ℕ) (cur
     (∀ s ∈ out, SegGood L fp prog entry s) →
     ∀ s ∈ (pass F entry len code i cur pend out dead).segs, SegGood L fp prog entry s
   | [], i, cur, pend, out, dead, _, hcur, hout => by
-    show ∀ s ∈ (passEnd i cur out dead).segs, _
+    show ∀ s ∈ (passEnd len i cur out dead).segs, _
     unfold passEnd
     cases cur with
     | none => exact hout
     | some c =>
       simp only
-      split_ifs with hlt
-      · intro s hs
+      by_cases hlt : c.start < i
+      · rw [ite_eq_left hlt]
+        intro s hs
         rcases List.mem_cons.mp hs with rfl | hs
-        · exact segGood_close (hcur c rfl) hlt []
+        · exact segGood_close (hcur c rfl) hlt _
         · exact hout s hs
-      · exact hout
+      · rw [ite_eq_right hlt]
+        exact hout
   | ins :: rest, i, cur, pend, out, dead, hf, hcur, hout => by
     show ∀ s ∈ (passStep F entry len ins (pass F entry len rest) i cur pend out dead).segs, _
     obtain ⟨hcur', hout'⟩ := atJoin_good (pend := pend) hcur hout
@@ -1872,6 +1916,70 @@ theorem RunK.straight {entry k₀ : ℕ} {Q : ℕ → Prop} :
   | .branch _ _ _ _ :: _, _, hb, _ => by simp [branchExits] at hb
 
 end Straight
+
+
+/-! ## Windows -/
+
+section Windows
+
+variable {κ : ℕ} {L : MemImage κ} {fp : K} {F : Facts} {prog : Program} {f : CompiledFn}
+
+theorem Fetches.window {pc : ℕ} {code : List OInstr} (h : Fetches prog pc code) (a n : ℕ) :
+    Fetches prog (pc + a) ((code.drop a).take n) := by
+  intro j ins hj
+  rw [List.getElem?_take] at hj
+  split_ifs at hj
+  rw [List.getElem?_drop] at hj
+  simpa [Nat.add_assoc] using h (a + j) ins hj
+
+/-- Every segment of a window is good. -/
+theorem execWin_good (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) (a : ℕ)
+    (env : List (ℕ × Sym)) (b : ℕ) : ∀ s ∈ (execWin F f a env b).segs, SegGood L fp prog f.entry s :=
+  pass_good hctx _ a _ [] [] 0 (hf.window a (b - a))
+    (fun _ h ↦ Option.some.inj h ▸ curGood_init a _) (fun _ h ↦ by cases h)
+
+/-- **Soundness** on a window, as `exec_sound`. -/
+theorem execWin_sound (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {a b : ℕ}
+    {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs) {k : ℕ}
+    (he : EnvHolds L fp s.env) (h : Safe prog L k ⟨gpow (f.entry + s.start), fp⟩) :
+    RunK L fp prog f.entry k (s.exit.Reached L fp prog f.entry k) s.items k :=
+  (execWin_good hctx hf a env b s hs).1 k he h
+
+/-- **Completeness** on a window, as `exec_complete`. -/
+theorem execWin_complete (hctx : Ctx F κ fp) (hf : Fetches prog f.entry f.code) {a b : ℕ}
+    {env : List (ℕ × Sym)} {s : Seg} (hs : s ∈ (execWin F f a env b).segs)
+    (he : EnvHolds L fp s.env) {r : Semantics.Regs K}
+    (h : Follows L fp f.entry r (s.exit.kind.Regs L fp f.entry r) s.items) :
+    Reach prog L ⟨gpow (f.entry + s.start), fp⟩ r :=
+  (execWin_good hctx hf a env b s hs).2.1 he r h
+
+/-- **Linking across windows**: every successor of an exit of a window starts one of its
+segments, or one of the windows `ext`, with an environment holding where the exit's does. -/
+theorem Result.linkedExt_spec {ext : List (ℕ × List (ℕ × Sym))} {R : Result}
+    (hl : R.linkedExt ext = true) {s : Seg} (hs : s ∈ R.segs) {x : Exit} (hx : x ∈ s.exits) {t : ℕ}
+    (ht : t ∈ x.succ) :
+    (∃ s' ∈ R.segs, s'.start = t ∧
+      ∀ {κ : ℕ} (L : MemImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp s'.env) ∨
+    ∃ e, (t, e) ∈ ext ∧
+      ∀ {κ : ℕ} (L : MemImage κ) (fp : K), EnvHolds L fp x.env → EnvHolds L fp (envOf e) := by
+  obtain ⟨segs, dead⟩ := R
+  simp only [Result.linkedExt, listSeq_eq, Trie.seq_eq, linkedExtWith, List.all_eq_true] at hl
+  have h := hl s hs x hx t ht
+  split at h
+  · rename_i s' hs'
+    simp only [Bool.and_eq_true, beq_iff_eq] at h
+    exact Or.inl ⟨s', index_get hs', h.1, fun L fp he ↦ he.sub h.2⟩
+  · split at h
+    · rename_i e he
+      have hu := List.find?_some he
+      have hmem := List.mem_of_find?_eq_some he
+      obtain ⟨⟨u', e0⟩, hm0, rfl⟩ := List.mem_map.mp hmem
+      simp only [beq_iff_eq] at hu
+      subst hu
+      exact Or.inr ⟨e0, hm0, fun L fp hx' ↦ hx'.sub h⟩
+    · exact absurd h (by simp)
+
+end Windows
 
 end
 end LeanVM.Guest.Exec
