@@ -247,9 +247,19 @@ abbrev nClaims : ℕ := 112
 /-- The length of `open_stacked`'s point buffer, `SIZE_BITS + SLOT_STRIDE_LOG`. -/
 abbrev pointCap : ℕ := 42
 
+/-- `open_stacked`'s 28 specializations, in dispatch order. -/
+def openNames : List String :=
+  ["open_stacked__L0", "open_stacked__L1", "open_stacked__L2", "open_stacked__L3",
+    "open_stacked__L4", "open_stacked__L5", "open_stacked__L6", "open_stacked__L7",
+    "open_stacked__L8", "open_stacked__L9", "open_stacked__L10", "open_stacked__L11",
+    "open_stacked__L12", "open_stacked__L13", "open_stacked__L14", "open_stacked__L15",
+    "open_stacked__L16", "open_stacked__L17", "open_stacked__L18", "open_stacked__L19",
+    "open_stacked__L20", "open_stacked__L21", "open_stacked__L22", "open_stacked__L23",
+    "open_stacked__L24", "open_stacked__L25", "open_stacked__L26", "open_stacked__L27"]
+
 /-- The specialization of `open_stacked` for the stack log `μ` and the rate `r`
-(`config_sel = (μ - 22) + 7·(r - 1)`, G:2246-2252). -/
-def openName (μ r : ℕ) : String := "open_stacked__L" ++ toString (μ - 22 + 7 * (r - 1))
+(`config_sel = (μ - 22) + 7·(r - 1)`, G:2246-2252): `open_stacked__L{config_sel}`. -/
+def openName (μ r : ℕ) : String := openNames.getD (μ - 22 + 7 * (r - 1)) ""
 
 /-! ## The callees' soundness -/
 
