@@ -222,6 +222,14 @@ theorem l86Step_mono (rd : Reader) (c gsq : E) :
     ∀ C C' x, CallRel.Le C C' → L86Step rd c gsq C x → L86Step rd c gsq C' x :=
   fun _ _ _ hC ⟨a, b, d, e, f, g, h, h1, h2, h3⟩ => ⟨a, b, d, e, f, g, h, h1, hC _ _ _ h2, h3⟩
 
+/-- **`__loop86`** from `g^k` to `W`: `W = g^m` for the first `m > k` the loop reaches, every
+iteration `g^j`, `k ≤ j < m`, holding. -/
+theorem loop86_iff (rd : Reader) (W c gsq : E) (k : ℕ) :
+    coreProgram.Rel rd "__loop86" (gen ^ k :: [W, c, gsq]) [] ↔
+      ∃ m, k < m ∧ W = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ W) ∧
+        ∀ j, k ≤ j → j < m → L86Step rd c gsq (coreProgram.Rel rd) (gen ^ j) :=
+  loop_iff (l86Step_mono rd c gsq) (l86_step rd W c gsq) k
+
 /-- Canonical blocks make every cell canonical. -/
 theorem canonical_of_blocks {cs : List E} {n : ℕ} (hlen : cs.length = 4 * n)
     (h : ∀ j < n, ∀ r, IsCanonical128 (blocksOf cs j r)) : ∀ c ∈ cs, IsCanonical128 c := by

@@ -164,6 +164,11 @@ theorem blocksOf_sliceOf (cs : List E) (b m : ℕ) : ∀ j < m, blocksOf (sliceO
   congr 1
   ring
 
+theorem sliceOf_getD (cs : List E) (b m k : ℕ) (hk : k < 4 * m) :
+    (sliceOf cs b m).getD k 0 = cs.getD (4 * b + k) 0 := by
+  rw [List.getD_eq_getElem _ _ (by simp [sliceOf]; omega)]
+  simp [sliceOf]
+
 /-- A slice of cells read at `p` is read at `p·g^(4b)`. -/
 theorem cellsAt_sliceOf {rd : Reader} {p : E} {cs : List E} {b m : ℕ} (h : CellsAt rd p cs)
     (hle : 4 * (b + m) ≤ cs.length) : CellsAt rd (p * gen ^ (4 * b)) (sliceOf cs b m) := by
