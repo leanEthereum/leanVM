@@ -150,5 +150,40 @@ theorem loads_slice {rd : Reader} {p : E} {b : ℕ} {cs : List E}
     ∀ k < cs.length, LoadHolds rd p (b + k) (cellAt rd p (b + k)) := fun k hk =>
   (cellsAt_slice h k hk).2
 
+/-- Blocks `b .. b + m - 1` of a list of cells, as a list of `4m` cells. -/
+def sliceOf (cs : List E) (b m : ℕ) : List E := (List.range (4 * m)).map fun k => cs.getD (4 * b + k) 0
+
+theorem length_sliceOf (cs : List E) (b m : ℕ) : (sliceOf cs b m).length = 4 * m := by
+  simp [sliceOf]
+
+theorem blocksOf_sliceOf (cs : List E) (b m : ℕ) : ∀ j < m, blocksOf (sliceOf cs b m) j = blocksOf cs (b + j) := by
+  intro j hj
+  refine blocksOf_eq fun r hr => ?_
+  rw [List.getD_eq_getElem _ _ (by simp [sliceOf]; omega)]
+  simp only [sliceOf, List.getElem_map, List.getElem_range]
+  congr 1
+  ring
+
+/-- A slice of cells read at `p` is read at `p·g^(4b)`. -/
+theorem cellsAt_sliceOf {rd : Reader} {p : E} {cs : List E} {b m : ℕ} (h : CellsAt rd p cs)
+    (hle : 4 * (b + m) ≤ cs.length) : CellsAt rd (p * gen ^ (4 * b)) (sliceOf cs b m) := by
+  intro k hk
+  have hk' : k < 4 * m := by simpa [sliceOf] using hk
+  rw [loadHolds_mul_gen_pow]
+  simp only [sliceOf, List.getElem_map, List.getElem_range]
+  rw [List.getD_eq_getElem _ _ (by omega)]
+  exact h _ (by omega)
+
+/-- The blocks of canonical cells are canonical. -/
+theorem blocks_canonical {cs : List E} {n : ℕ} (hlen : cs.length = 4 * n)
+    (h : ∀ c ∈ cs, IsCanonical128 c) : ∀ j < n, ∀ r, IsCanonical128 (blocksOf cs j r) := by
+  intro j hj r
+  have hr : ∀ (r : ℕ) (hr : r < 4), (blocksOf cs j ⟨r, hr⟩ : E) = cs.getD (4 * j + r) 0 := by
+    intro r hr
+    interval_cases r <;> rfl
+  obtain ⟨r, hr4⟩ := r
+  rw [hr r hr4, List.getD_eq_getElem _ _ (by omega)]
+  exact h _ (List.getElem_mem _)
+
 end
 end LeanVM.Guest.B1.Digest
