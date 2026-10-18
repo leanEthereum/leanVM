@@ -160,12 +160,6 @@ theorem word_g31 : word 2147483648 0 0 = gen ^ 31 := by
 
 theorem md_final_word : word 0 4294967295 0 = metadataCell 0 true := rfl
 
-theorem pow4_eq (x : E) (q : ℕ) (hx : x = gen ^ q) : x * x * (x * x) = gen ^ (4 * q) := by
-  subst hx; ring
-
-theorem gen_pow_inj' {a b : ℕ} (ha : a < 2 ^ 33) (hb : b < 2 ^ 33) (h : gen ^ a = gen ^ b) : a = b :=
-  gen_pow_inj (by omega) (by omega) h
-
 /-- What a window establishes of the scratch table: window `q`'s slot holds the state after
 `32q` blocks, and window `q + 1`'s the state after `32(q + 1)`. -/
 def WinInv (rd : Reader) (p c : E) (len q : ℕ) : Prop :=

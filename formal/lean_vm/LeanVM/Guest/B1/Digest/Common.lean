@@ -397,6 +397,12 @@ theorem cellsAt_slice {rd : Reader} {p : E} {b : ℕ} {cs : List E} (h : CellsAt
   have := (loadHolds_mul_gen_pow p b k _).mp (h k hk)
   exact ⟨(cellAt_of_load this).symm, load_cellAt this⟩
 
+theorem pow4_eq (x : E) (q : ℕ) (hx : x = gen ^ q) : x * x * (x * x) = gen ^ (4 * q) := by
+  subst hx; ring
+
+theorem gen_pow_inj' {a b : ℕ} (ha : a < 2 ^ 33) (hb : b < 2 ^ 33) (h : gen ^ a = gen ^ b) : a = b :=
+  gen_pow_inj (by omega) (by omega) h
+
 /-! ## `mul_range` loops -/
 
 /-- **A `mul_range` loop helper** from `g^k` to its end `N`: its relation holds exactly when `N`
