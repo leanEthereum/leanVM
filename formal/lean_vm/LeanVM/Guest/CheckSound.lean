@@ -1769,7 +1769,7 @@ theorem checkFn_run {main : Bool} (hc : checkFn G f cf C main = true) (hf : f �
   rw [hR] at hc
   simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true, beq_iff_eq] at hc
   obtain ⟨⟨⟨hlink, hparams⟩, hmain⟩, hc⟩ := hc
-  set X : Fx := ⟨G, C.facts, f.entry, index segs, C.locs, cf.params.length, C.nret, main,
+  set X : Fx := ⟨G, C.facts, f.entry, index segs, locTrie C.locs, cf.params.length, C.nret, main,
     C.callees, C.post, C.mem, C.known, none⟩ with hX
   have H : WalkHyp L fp f X := ⟨⟨hpows, hfp, hκ⟩, guest_fetches hf, rfl, by rw [hR], by
     show linkedWith (index segs) (exec C.facts f).segs = true

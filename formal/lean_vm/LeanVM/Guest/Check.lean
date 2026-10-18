@@ -173,6 +173,14 @@ noncomputable def addFact (B : Book) (a : Exec.Atom) : Book := (keys a).foldl (a
 /-- The certificate's frame cell of a value, by its number. -/
 noncomputable def cellOf (loc : Trie ℕ) (v : Core.V) : ℕ := (getF loc v.idx).getD 0
 
+/-- The cells from value `k` on stored into `t`, each step evaluated. -/
+noncomputable def locTrieFrom : List ℕ → ℕ → Trie ℕ → Trie ℕ
+  | [], _, t => t
+  | c :: cs, k, t => natSeq (k + 1) fun k' ↦ (setF c indexDepth t k).seq fun t ↦ locTrieFrom cs k' t
+
+/-- The cells as a trie, value `k` at key `k`. -/
+noncomputable def locTrie (locs : List ℕ) : Trie ℕ := locTrieFrom locs 0 .nil
+
 /-- The cells of a list of values. -/
 noncomputable def cellsOf (loc : Trie ℕ) (vs : List Core.V) : List ℕ := vs.map (cellOf loc)
 
@@ -440,7 +448,7 @@ structure Cert where
   /-- The executor's facts. -/
   facts : Exec.Facts
   /-- The frame cell of each core value, by its number. -/
-  locs : Trie ℕ
+  locs : List ℕ
   /-- The number of return words. -/
   nret : ℕ
   /-- The functions it calls, by index. -/
@@ -847,7 +855,7 @@ parameters sit in their cells, and the walk of the body from the entry ends by t
 noncomputable def checkFn (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert) (main : Bool) :
     Bool :=
   match exec C.facts f with
-  | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ C.locs.seq fun loc ↦
+  | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (locTrie C.locs).seq fun loc ↦
       linkedWith idx segs && runAt loc 2 cf.params && main == C.facts.fpOne &&
       (match segAt ⟨G, C.facts, f.entry, idx, loc, cf.params.length, C.nret, main, C.callees, C.post,
           C.mem, C.known, none⟩

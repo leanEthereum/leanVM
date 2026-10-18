@@ -97,3 +97,10 @@ srcDir = "cli"
 name = "guest-diff"
 root = "GuestDiff"
 srcDir = "cli"
+
+# Writes the certificates of the guest's compiled functions (`LeanVM/Guest/Data/Cert*.lean`,
+# `Pows.lean`); `--check` fails when they are stale, as CI runs it.
+[[lean_exe]]
+name = "guest-cert"
+root = "GuestCert"
+srcDir = "cli"
