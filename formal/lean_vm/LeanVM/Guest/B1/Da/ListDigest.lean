@@ -367,17 +367,6 @@ theorem find_cover_da_root : coreProgram.find? "cover_da_root" =
 
 theorem gen_pow_four_mul (a : E) : a * a * (a * a) = a ^ 4 := by ring
 
-theorem cellsAt_four {rd : Reader} {p r0 r1 r2 r3 : E} :
-    CellsAt rd p [r0, r1, r2, r3] ↔ LoadHolds rd p 0 r0 ∧ LoadHolds rd p 1 r1 ∧
-      LoadHolds rd p 2 r2 ∧ LoadHolds rd p 3 r3 := by
-  constructor
-  · intro h
-    exact ⟨h 0 (by simp), h 1 (by simp), h 2 (by simp), h 3 (by simp)⟩
-  · rintro ⟨h0, h1, h2, h3⟩ k hk
-    simp only [List.length_cons, List.length_nil] at hk
-    rcases k with _ | _ | _ | _ | k
-    exacts [h0, h1, h2, h3, absurd hk (by omega)]
-
 theorem cover_da_root_sound {rd : Reader} (hm : MemOk rd) {args rets : List E}
     (h : coreProgram.Rel rd "cover_da_root" args rets) : Meaning_cover_da_root rd args rets := by
   rw [rel_of_find find_cover_da_root] at h

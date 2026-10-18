@@ -106,6 +106,17 @@ theorem ginv_mul_gen : word 9223372036854775821 0 0 * gen = 1 := by
   rw [word_eq_eOfNat, gen, eOfNat, eOfNat, ← ofK_mul, ← ofK_one]
   congr 1
 
+theorem cellsAt_four {rd : Reader} {p r0 r1 r2 r3 : E} :
+    CellsAt rd p [r0, r1, r2, r3] ↔ LoadHolds rd p 0 r0 ∧ LoadHolds rd p 1 r1 ∧
+      LoadHolds rd p 2 r2 ∧ LoadHolds rd p 3 r3 := by
+  constructor
+  · intro h
+    exact ⟨h 0 (by simp), h 1 (by simp), h 2 (by simp), h 3 (by simp)⟩
+  · rintro ⟨h0, h1, h2, h3⟩ k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    rcases k with _ | _ | _ | _ | k
+    exacts [h0, h1, h2, h3, absurd hk (by omega)]
+
 /-! ## Straight-line blocks -/
 
 variable {C : CallRel} {rd : Reader} {σ : Val}
@@ -367,6 +378,24 @@ theorem loadHolds_mul_gen_pow {rd : Reader} (p : E) (j k : ℕ) (w : E) :
     rw [limb_ofK] at h
     simp only [Fin.val_zero, ↓reduceIte, Parameters.gpow, pow_add, mul_assoc] at h ⊢
     exact h
+
+/-- The word at `p·g^i`, read off the memory (zero where there is none). -/
+noncomputable def cellAt (rd : Reader) (p : E) (i : ℕ) : E := (rd (p.limb 0 * Parameters.gpow i)).getD 0
+
+theorem cellAt_of_load {rd : Reader} {p : E} {i : ℕ} {v : E} (h : LoadHolds rd p i v) :
+    cellAt rd p i = v := by
+  unfold cellAt; rw [h.2]; rfl
+
+theorem load_cellAt {rd : Reader} {p : E} {i : ℕ} {v : E} (h : LoadHolds rd p i v) :
+    LoadHolds rd p i (cellAt rd p i) := by
+  rwa [cellAt_of_load h]
+
+/-- Cells read through `p·g^b` are the memory's cells from `b` on. -/
+theorem cellsAt_slice {rd : Reader} {p : E} {b : ℕ} {cs : List E} (h : CellsAt rd (p * gen ^ b) cs) :
+    ∀ k (hk : k < cs.length), cs[k] = cellAt rd p (b + k) ∧ LoadHolds rd p (b + k) (cellAt rd p (b + k)) := by
+  intro k hk
+  have := (loadHolds_mul_gen_pow p b k _).mp (h k hk)
+  exact ⟨(cellAt_of_load this).symm, load_cellAt this⟩
 
 /-! ## `mul_range` loops -/
 
