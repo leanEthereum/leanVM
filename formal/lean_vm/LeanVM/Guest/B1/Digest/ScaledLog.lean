@@ -250,5 +250,19 @@ theorem scaled_log_sem_iff (shift : ℕ) (hshift : shift ≤ 48) {C : CallRel} {
       rw [slV_eq b 15 (by omega), ← coordBasis_of_lt (by omega)]
       exact hsl.2
 
+/-- **`scaled_log__L11`**. -/
+theorem scaled_log_11_iff {rd : Reader} {gsq : E} (hT : SquaresAt rd gsq) (x : E) (rets : List E) :
+    coreProgram.Rel rd "scaled_log__L11" [x, gsq] rets ↔
+      ∃ v, rets = [v] ∧ ∃ N < 2 ^ 16, x = gen ^ N ∧ v = eOfNat (2 ^ 11 * N) := by
+  rw [rel_of_find find_scaled_log_11]
+  exact scaled_log_sem_iff 11 (by omega) hT _ x rets
+
+/-- **`scaled_log__L6`**. -/
+theorem scaled_log_6_iff {rd : Reader} {gsq : E} (hT : SquaresAt rd gsq) (x : E) (rets : List E) :
+    coreProgram.Rel rd "scaled_log__L6" [x, gsq] rets ↔
+      ∃ v, rets = [v] ∧ ∃ N < 2 ^ 16, x = gen ^ N ∧ v = eOfNat (2 ^ 6 * N) := by
+  rw [rel_of_find find_scaled_log_6]
+  exact scaled_log_sem_iff 6 (by omega) hT _ x rets
+
 end
 end LeanVM.Guest.B1.Digest
