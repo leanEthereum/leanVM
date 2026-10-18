@@ -191,7 +191,8 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
           elif git diff --name-only "$BASE" HEAD -- formal/lean_vm crates/verifier python-verifier \
-              crates/rec_aggregation/guests crates/leanvm_core crates/lean_da formal/lean_xmss/LeanXmss/Scheme.lean \
+              crates/rec_aggregation crates/signatures crates/lean_compiler crates/leanvm_core crates/lean_da \
+              formal/lean_xmss/LeanXmss/Scheme.lean \
               formal/lean_sphincs/Sphincs/Scheme.lean formal/lean_da/LeanDa/Scheme.lean formal/lean_da/LeanDa/Field.lean \
               .github/workflows/lean.yml | grep -q .; then
             echo changed=true >> "$GITHUB_OUTPUT"
@@ -258,3 +259,11 @@ jobs:
           lake build leanvm-verify
           cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
           python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
+      # The guest's mirror and its honest hint generator against real aggregations: the Rust test
+      # writes each case's statement, witness and installed streams, and `guest-diff` regenerates the
+      # streams from the witness, compares them and runs the guest's core IR on them.
+      - name: Guest mirror and hint generator against Rust aggregations
+        run: |
+          lake build guest-diff
+          LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" cargo test --release -p rec_aggregation guest_diff -- --ignored
+          .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt
