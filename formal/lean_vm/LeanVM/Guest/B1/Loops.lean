@@ -348,7 +348,7 @@ theorem loop8_step (rd : Reader) (N zs ps chain : E) (d : ℕ) (x : E) :
           · rw [em, ew, ea]
           · rw [h17, em, show 65 + k = 64 + (k + 1) by omega]; exact (hw' (k + 1) hk).2
       all_goals (try (simp only [τ]; b1_look))
-      all_goals (try ring)
+      all_goals (try ring1)
       · exact l6
       · exact l9
       · exact hK
