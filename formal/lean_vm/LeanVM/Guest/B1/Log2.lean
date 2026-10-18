@@ -704,5 +704,61 @@ theorem log2_ceil_in_the_exponent_L15_L34_iff {κ : ℕ} (hκ : κ ≤ 32) (hκ6
   log2_ceil_in_the_exponent_iff 15 (Program.find?_of_indexOf? (j := 176) (by decide +kernel) rfl)
     rfl rfl Lm (fun _ rets => verify_log2_ceil_L15_L34_iff hκ hκ6 Lm ht rets) rets
 
+/-! ## Completeness at given buffers
+
+The `HeapBuf`s the functions allocate are the caller's: for every pointer holding the honest
+words, the meaning with that pointer gives the relation. -/
+
+/-- `MeaningVerifyLog2Ceil` at the prefix-sum buffer `ps`. -/
+def MeaningVerifyLog2CeilAt (fl : ℕ) (rd : Reader) (ps : E) : List E → List E → Prop
+  | [bits, _, _], rets =>
+      ∃ W < 2 ^ 34, (∀ j < 34, LoadHolds rd bits j (bitE (W.testBit j))) ∧
+        max fl (log2Ceil W) < 34 ∧ (∀ j ≤ 34, LoadHolds rd ps j (eOfNat (W % 2 ^ j))) ∧
+        rets = [gen ^ max fl (log2Ceil W), gen ^ W]
+  | _, _ => False
+
+theorem meaningVerifyLog2Ceil_of_at {fl : ℕ} {rd : Reader} {ps : E} {args rets : List E}
+    (h : MeaningVerifyLog2CeilAt fl rd ps args rets) : MeaningVerifyLog2Ceil fl rd args rets := by
+  match args, h with
+  | [_, _, _], ⟨W, hW, hb, hL, hps, hr⟩ => exact ⟨W, hW, hb, hL, ⟨ps, hps⟩, hr⟩
+
+theorem verify_log2_ceil_L0_L34_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+    {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (ps : E) (rets : List E)
+    (h : MeaningVerifyLog2CeilAt 0 Lm.read ps [bits, lp, sq] rets) :
+    coreProgram.Rel Lm.read "verify_log2_ceil__L0_L34" [bits, lp, sq] rets :=
+  (verify_log2_ceil_L0_L34_iff hκ hκ6 Lm ht rets).mpr (meaningVerifyLog2Ceil_of_at h)
+
+theorem verify_log2_ceil_L15_L34_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+    {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (ps : E) (rets : List E)
+    (h : MeaningVerifyLog2CeilAt 15 Lm.read ps [bits, lp, sq] rets) :
+    coreProgram.Rel Lm.read "verify_log2_ceil__L15_L34" [bits, lp, sq] rets :=
+  (verify_log2_ceil_L15_L34_iff hκ hκ6 Lm ht rets).mpr (meaningVerifyLog2Ceil_of_at h)
+
+/-- `MeaningLog2CeilExp` at the bit buffer `bp` and the callee's prefix-sum buffer `ps`. -/
+def MeaningLog2CeilExpAt (fl : ℕ) (rd : Reader) (bp ps : E) : List E → List E → Prop
+  | [gN, _, _], rets =>
+      ∃ N < 2 ^ 34, gN = gen ^ N ∧ max fl (log2Ceil N) < 34 ∧
+        (∀ j < 34, LoadHolds rd bp j (bitE (N.testBit j))) ∧
+        (∀ j ≤ 34, LoadHolds rd ps j (eOfNat (N % 2 ^ j))) ∧
+        rets = [gen ^ max fl (log2Ceil N)]
+  | _, _ => False
+
+theorem meaningLog2CeilExp_of_at {fl : ℕ} {rd : Reader} {bp ps : E} {args rets : List E}
+    (h : MeaningLog2CeilExpAt fl rd bp ps args rets) : MeaningLog2CeilExp fl rd args rets := by
+  match args, h with
+  | [_, _, _], ⟨N, hN, hg, hL, hb, hps, hr⟩ => exact ⟨N, hN, hg, hL, ⟨bp, hb⟩, ⟨ps, hps⟩, hr⟩
+
+theorem log2_ceil_in_the_exponent_L0_L34_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ)
+    (Lm : MemImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (bp ps : E) (rets : List E)
+    (h : MeaningLog2CeilExpAt 0 Lm.read bp ps [gN, lp, sq] rets) :
+    coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L0_L34" [gN, lp, sq] rets :=
+  (log2_ceil_in_the_exponent_L0_L34_iff hκ hκ6 Lm ht rets).mpr (meaningLog2CeilExp_of_at h)
+
+theorem log2_ceil_in_the_exponent_L15_L34_complete {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ)
+    (Lm : MemImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (bp ps : E) (rets : List E)
+    (h : MeaningLog2CeilExpAt 15 Lm.read bp ps [gN, lp, sq] rets) :
+    coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L15_L34" [gN, lp, sq] rets :=
+  (log2_ceil_in_the_exponent_L15_L34_iff hκ hκ6 Lm ht rets).mpr (meaningLog2CeilExp_of_at h)
+
 end
 end LeanVM.Guest.B1

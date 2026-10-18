@@ -340,5 +340,26 @@ theorem g_power_of_word_L6_iff (rd : Reader) (args rets : List E) :
   g_power_of_word_iff 5 (by decide) (Program.find?_of_indexOf? (j := 172) (by decide +kernel) rfl)
     rfl core172_body rd args rets
 
+/-! ## Completeness at a given buffer -/
+
+/-- `MeaningGPowerOfWord` at the bit buffer `p` (a `HeapBuf` the caller's allocator names). -/
+def MeaningGPowerOfWordAt (n : ℕ) (rd : Reader) (p : E) : List E → List E → Prop
+  | [value, sq], [r] =>
+      IsInK value ∧ kToNat (value.limb 0) < 2 ^ n ∧
+        (∀ j < n, LoadHolds rd p j (bitE ((kToNat (value.limb 0)).testBit j))) ∧
+        ∃ s : List E, s.length = n ∧ ReadsAt rd sq s ∧
+          r = gpwProd (fun j => bitE ((kToNat (value.limb 0)).testBit j)) (fun j => s.getD j 0) n
+  | _, _ => False
+
+theorem meaningGPowerOfWord_of_at {n : ℕ} {rd : Reader} {p : E} {args rets : List E}
+    (h : MeaningGPowerOfWordAt n rd p args rets) : MeaningGPowerOfWord n rd args rets := by
+  match args, rets, h with
+  | [_, _], [_], ⟨hK, hlt, hb, hs⟩ => exact ⟨hK, hlt, ⟨p, hb⟩, hs⟩
+
+theorem g_power_of_word_L6_complete (rd : Reader) (p : E) (args rets : List E)
+    (h : MeaningGPowerOfWordAt 6 rd p args rets) :
+    coreProgram.Rel rd "g_power_of_word__L6" args rets :=
+  (g_power_of_word_L6_iff rd args rets).mpr (meaningGPowerOfWord_of_at h)
+
 end
 end LeanVM.Guest.B1

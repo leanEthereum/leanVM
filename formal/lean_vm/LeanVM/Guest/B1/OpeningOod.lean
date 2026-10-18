@@ -254,5 +254,23 @@ theorem opening_ood_point_iff (rd : Reader) (args rets : List E) :
       · exact (hx 1 _).mpr l14
       · exact hret.symm
 
+/-! ## Completeness at a given buffer -/
+
+/-- `MeaningOpeningOodPoint` at the state buffer `p` (a `HeapBuf` the caller's allocator names). -/
+def MeaningOpeningOodPointAt (rd : Reader) (p : E) : List E → List E → Prop
+  | [fs0, fs1, point, ng], rets =>
+      ∃ m < ordG, ng = gen ^ m ∧
+        ((m = 0 ∧ LoadHolds rd p 0 fs0 ∧ LoadHolds rd p 1 fs1 ∧ rets = [fs0, fs1]) ∨
+        (0 < m ∧ ∃ cv rs cv', (fs0, fs1) = digestScalars cv ∧ RunsTo (Prog.sampleN m) cv [] rs cv' ∧
+          ReadsAt rd point rs ∧ OodScratch rd p cv m ∧
+          rets = [(digestScalars cv').1, (digestScalars cv').2]))
+  | _, _ => False
+
+theorem opening_ood_point_complete (rd : Reader) (p : E) (args rets : List E)
+    (h : MeaningOpeningOodPointAt rd p args rets) : coreProgram.Rel rd "opening_ood_point" args rets :=
+  (opening_ood_point_iff rd args rets).mpr (by
+    match args, h with
+    | [_, _, _, _], ⟨m, hm, hn, hb⟩ => exact ⟨m, hm, hn, p, hb⟩)
+
 end
 end LeanVM.Guest.B1
