@@ -65,6 +65,9 @@ size is a seventh limit, `budget s w ≤ 2^28`. The deployed budget is linear in
 constant plus a coefficient per declared claim, coverage slot, raw signature or blob, child and
 child's claim, `work s w`), at `Trace.committedSize`'s formula (`Budget.size`), so the final
 statement is `GuestComplete (b.size ∘ work)` for the budget `b` the certificates count.
+`CompletePiecesWithin` splits the size at a call tree's instruction counts `cnt T op` (`count`:
+the run's against the tree's; `honest`: the tree's words and counts against the budget), and
+`guest_complete_within` gives `GuestCompleteWithin b`.
 
 **Composition** (`aggregate_sound_of`, `aggregate_complete_of`). With
 `knowledgeSoundness_holds`, an adversary in the random-oracle experiment whose statement is the
@@ -374,13 +377,35 @@ structure Budget where
   /-- The instructions of each opcode executed. -/
   instrs : Opcode → Linear
 
-/-- The committed size of a run within the budget at the work `u`: `Trace.committedSize`'s
-formula at the bounds, the memory on `2^logMem` words. -/
-def Budget.size (b : Budget) (u : Work) : ℕ :=
-  let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 ((b.instrs op).eval u)
-  4 * 2 ^ Memory.logMem (b.words.eval u) + 2 ^ guest.logSize +
+/-- `Trace.committedSize`'s formula for a run of the guest allocating `words` words, on
+`2^logMem words` of memory, and executing `instrs op` instructions of each opcode `op`. -/
+def sizeOf (words : ℕ) (instrs : Opcode → ℕ) : ℕ :=
+  let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (instrs op)
+  4 * 2 ^ Memory.logMem words + 2 ^ guest.logSize +
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
     14 * height .jump + 19 * height .blake2s + 2 ^ 8 * height .blake2s
+
+/-- The committed size of a run within the budget at the work `u`. -/
+def Budget.size (b : Budget) (u : Work) : ℕ := sizeOf (b.words.eval u) fun op ↦ (b.instrs op).eval u
+
+theorem logMem_mono {m n : ℕ} (h : m ≤ n) : Memory.logMem m ≤ Memory.logMem n :=
+  max_le_max le_rfl (Nat.clog_mono_right 2 h)
+
+theorem sizeOf_mono {w w' : ℕ} {i i' : Opcode → ℕ} (hw : w ≤ w') (hi : ∀ op, i op ≤ i' op) :
+    sizeOf w i ≤ sizeOf w' i' := by
+  have hh : ∀ op, 2 ^ Nat.clog 2 (i op) ≤ 2 ^ Nat.clog 2 (i' op) := fun op ↦
+    Nat.pow_le_pow_right (by norm_num) (Nat.clog_mono_right 2 (hi op))
+  have hm : 2 ^ Memory.logMem w ≤ 2 ^ Memory.logMem w' :=
+    Nat.pow_le_pow_right (by norm_num) (logMem_mono hw)
+  dsimp only [sizeOf]
+  have := hh .xor; have := hh .mulNative; have := hh .setConstant; have := hh .deref
+  have := hh .jump; have := hh .blake2s
+  omega
+
+/-- The committed size of a run on `2^logMem n` words is `sizeOf n` at its counts. -/
+theorem committedSize_eq {n : ℕ} (L : MemImage (Memory.logMem n)) (steps : ℕ) :
+    (⟨_, L, steps⟩ : Trace guest).committedSize = sizeOf n (⟨_, L, steps⟩ : Trace guest).count :=
+  rfl
 
 /-- `main`'s header: the public input's two words. -/
 abbrev hdrOf (d : Digest) : E × E := ((publicInputOf d).word0, (publicInputOf d).word1)
@@ -422,6 +447,43 @@ def GuestComplete (budget : NodeStatement → NodeWitness → ℕ) : Prop :=
 /-- **Completeness within a linear budget**, the final statement's form. -/
 abbrev GuestCompleteWithin (b : Budget) : Prop := GuestComplete fun s w ↦ b.size (work s w)
 
+/-- **What completeness within the budget `b` rests on**: `CompletePieces` with the size split
+at the instruction counts `cnt T op` of a call tree, the run's against the tree's and the tree's
+against the budget. -/
+structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ → E × E)
+    (C : Memory.Inst → List (ℕ × E)) (cnt : Memory.Tree → Opcode → ℕ) (b : Budget) : Prop where
+  /-- B1 (group 7), agent T: as `CompletePieces.honest`, the tree within the budget's words and
+  instruction counts. -/
+  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+    ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
+      Memory.Honest coreProgram fs H C (hdrOf (statementDigest seed s)) T rd [] [] ∧
+      T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w)
+  /-- Agent T: `main`'s cells hold its jump table. -/
+  table : ∀ I : Memory.Inst, I.t.name = "main" → Memory.tableCells ⊆ C I
+  /-- B2 (checker K): as `CompletePieces.b2`. -/
+  b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
+    Memory.Honest coreProgram fs H C hdr T rd [] [] →
+      Reach guest (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest)
+  /-- B2 (checker K, counting): a halting run on the honest memory executes at most the tree's
+  instructions of each opcode. -/
+  count : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
+    Memory.Honest coreProgram fs H C hdr T rd [] [] → ∀ n,
+      run guest (Memory.honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
+        ∀ op, (⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op
+
+theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
+    {C : Memory.Inst → List (ℕ × E)} {cnt : Memory.Tree → Opcode → ℕ} {b : Budget}
+    (h : CompletePiecesWithin fs H C cnt b) :
+    CompletePieces fs H C (fun T ↦ sizeOf (T.total fs) (cnt T)) fun s w ↦ b.size (work s w) where
+  honest seed s w hrel hlim := by
+    obtain ⟨rd, T, hname, hH, hw, hc⟩ := h.honest seed s w hrel hlim
+    exact ⟨rd, T, hname, hH, sizeOf_mono hw hc⟩
+  table := h.table
+  b2 := h.b2
+  size hdr rd T hname hH n hrun := by
+    rw [committedSize_eq]
+    exact sizeOf_mono le_rfl (h.count hdr rd T hname hH n hrun)
+
 /-- The honest memory holds the jump table. -/
 theorem jumpTables_honest {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
     {C : Memory.Inst → List (ℕ × E)} {hdr : E × E} {T : Memory.Tree} {rd : Reader}
@@ -444,6 +506,12 @@ theorem guest_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E �
   have hreach := (reach_jumpTables (jumpTables_honest hH hname h.table)).trans (h.b2 _ rd T hname hH)
   obtain ⟨n, hv⟩ := validExecution_of_reach hb hreach
   exact ⟨_, hv, (h.size _ rd T hname hH n hv.2).trans (hcost.trans hbudget)⟩
+
+/-- **Completeness within the budget `b`, from its pieces.** -/
+theorem guest_complete_within {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
+    {C : Memory.Inst → List (ℕ × E)} {cnt : Memory.Tree → Opcode → ℕ} {b : Budget}
+    (h : CompletePiecesWithin fs H C cnt b) : GuestCompleteWithin b :=
+  guest_complete_of h.pieces
 
 /-! ## Composition with the protocol -/
 

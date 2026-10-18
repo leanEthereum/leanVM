@@ -30,3 +30,7 @@ three standard axioms only.
 /-- info: 'LeanVM.Guest.End.aggregate_sound_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.End.aggregate_sound_of_parts
+
+/-- info: 'LeanVM.Guest.End.guest_complete_within' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.guest_complete_within
