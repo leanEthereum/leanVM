@@ -2,7 +2,7 @@
   LeanVM.Guest.EndSound
 
   The soundness end theorem from its pieces as their owners state them: checker K's contracts over
-  the program context `glob`, and group 7's `main_sound` with its callees' and `aggregate_claims`'
+  the program context `glob`, and group 7's `main_sound` with its callees'
   soundness on every valid execution's memory.
 -/
 
@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.Main.Sound
 `contracts` is checker K's family: function `j` of `glob`, entered at its compiled entry, under
 `Check.Pre glob` and `Check.Post coreProgram glob`. `B2Sound` is B2 stated over it, unfolded (the
 hypothesis `checkFn_run` takes), and `B1Sound` is what `main_sound` (group 7) takes beyond the
-memory and the public input: its callees' soundness (`Callees`) and `aggregate_claims`', on every
+memory and the public input: its callees' soundness (`Callees`), on every
 memory of `2^κ` words, `16 ≤ κ ≤ 32` (`MemOk`). `guest_sound_of_parts`: the two give
 `GuestSound`, so the final theorem only plugs in the owners' lemmas.
 -/
@@ -58,13 +58,10 @@ structure B2Sound : Prop where
     GlobLt L k → Safe guest L k ⟨gpow mainEntry, 1⟩ → coreProgram.Rel L.read "main" [] []
 
 /-- **B1 of `main`, what group 7's `main_sound` takes**: on every memory of a valid execution,
-the callees' soundness and `aggregate_claims`'. -/
+the callees' soundness (`aggregate_claims`' is group 7's own `aggregate_claims_sound`). -/
 structure B1Sound : Prop where
   /-- The callees (groups 2, 3, 6), soundly. -/
   callees : ∀ rd, B1.Main.MemOk rd → B1.Main.Callees bytecode rd
-  /-- `aggregate_claims` (group 7), soundly. -/
-  aggregate_claims : ∀ rd, B1.Main.MemOk rd → ∀ args rets,
-    coreProgram.Rel rd "aggregate_claims" args rets → B1.Main.Meaning_aggregate_claims rd args rets
 
 /-- The pieces of `SoundPieces contracts`, from their owners' forms. -/
 theorem soundPieces_of (hb2 : B2Sound) (hb1 : B1Sound) : SoundPieces contracts where
@@ -72,7 +69,7 @@ theorem soundPieces_of (hb2 : B2Sound) (hb1 : B1Sound) : SoundPieces contracts w
   main := hb2.main
   mainB1 L h16 h32 _ h0 h1 h :=
     have hm : B1.Main.MemOk L.read := ⟨_, h16, h32, L, rfl⟩
-    B1.Main.main_sound bytecode_length hm (hb1.callees _ hm) (hb1.aggregate_claims _ hm) h0 h1 h
+    B1.Main.main_sound bytecode_length hm (hb1.callees _ hm) h0 h1 h
 
 /-- **Soundness, from its pieces' own forms.** -/
 theorem guest_sound_of_parts (hb2 : B2Sound) (hb1 : B1Sound) : GuestSound :=
