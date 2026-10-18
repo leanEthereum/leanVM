@@ -427,6 +427,9 @@ def fkBody (t : Nat) : List Stmt :=
       .atom (.copy (.n (B + 10)) (.n (B + 8))), cst (B + 11) (word t 0 0),
       .ret [.n (B + 10), .n (B + 11)]]
 
+/-- The function of forest key `t`. -/
+def fkFn (t : Nat) : Fn := ⟨fkNames.getD t "", [.n 0, .n 1], fkBody t⟩
+
 /-- One level of `sp_fold` (G:2481) from base `b`: the hinted sibling, the node's address, the
 pair in the order of the index's bit, into `o0, o1`. -/
 def spLevel (pp md adr : V) (addr : Nat) (bit : Bool) (cur : V) (b : Nat) (o0 o1 : V) : List Stmt :=
