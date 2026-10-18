@@ -63,3 +63,25 @@ fn an_unsupported_rate_is_an_error() {
         Some(ProveError::InvalidRate { log_inv_rate: rate })
     );
 }
+
+/// A SHA3 table of any height proves and verifies: below the Keccak reduction's
+/// block of 512 steps, where padding fills the floor, at it, and one step past it.
+#[test]
+fn any_number_of_steps_proves() {
+    for n in [0usize, 1, 3, 512, 513] {
+        let mut source = String::from("def main():\n    h0 = StackBuf(2)\n    h0[0] = 5\n    h0[1] = 7\n");
+        for i in 0..n {
+            source += &format!("    h{} = StackBuf(2)\n    sha3(h{i}, h{i}, h{})\n", i + 1, i + 1);
+        }
+        source += &format!("    p = 1\n    p[1] = h{n}[0]\n    p[GEN] = h{n}[1]\n    return\n");
+        let mut h = [F64(5), F64(0), F64(7), F64(0)];
+        for _ in 0..n {
+            h = compress(h, h);
+        }
+        let pi = [F192::new(h[0].0, h[1].0, 0), F192::new(h[2].0, h[3].0, 0)];
+        let program = compile(&parse(&source).expect("parse"));
+        let (proof, stats) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        assert_eq!(stats.rows[5], n, "{n} steps");
+        verify(&program, &pi, &proof).unwrap_or_else(|e| panic!("{n} steps: {e:?}"));
+    }
+}
