@@ -21,7 +21,7 @@ set_option linter.all false
 
 /-- `__jump_tables`: its facts only. -/
 noncomputable def cert0 : Check.Cert where
-  facts := { pows := powTree }
+  facts := {}
   locs := []
   nret := 0
   callees := []

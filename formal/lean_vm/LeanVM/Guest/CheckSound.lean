@@ -117,17 +117,21 @@ section Atoms
 
 variable {κ : ℕ} {L : MemImage κ} {fp : K} {B : Book}
 
-theorem setIs_sound (hB : BookHolds L fp B) {c : ℕ} {x : E} (h : setIs B c x = true) :
-    L.read (fp * gpow c) = some x := by
+theorem setImm_sound (hB : BookHolds L fp B) {c l0 l1 l2 : ℕ} (h : setImm B c l0 l1 l2 = true) :
+    L.read (fp * gpow c) = some (OInstr.imm l0 l1 l2) := by
   obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
   have hh := hB c a ha
   split at hp
   · rename_i pc o k0 k1 k2
     simp only [Bool.and_eq_true, beq_iff_eq] at hp
-    obtain ⟨⟨⟨rfl, h0⟩, h1⟩, h2⟩ := hp
-    rw [eq_imm_of_limbs h0 h1 h2]
+    obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := hp
     exact hh
   · simp at hp
+
+theorem setIs_sound (hB : BookHolds L fp B) {c : ℕ} {x : E} (h : setIs B c x = true) :
+    L.read (fp * gpow c) = some x := by
+  rw [eq_imm_of_limbs rfl rfl rfl (x := x)]
+  exact setImm_sound hB h
 
 theorem perm3_sound {x y z p q r : ℕ} (h : perm3 x y z p q r = true) {vX vY : E}
     (hx : L.read (fp * gpow x) = some vX) (hy : L.read (fp * gpow y) = some vY)
@@ -266,7 +270,9 @@ theorem blakeOk_sound (hB : BookHolds L fp B) {m0 m1 m2 m3 cv0 cv1 o0 o1 md : �
 theorem neOk_sound (hB : BookHolds L fp B) {x i p : ℕ} (h : neOk B x i p = true) :
     wd L fp p = wd L fp x * wd L fp i ∧ wd L fp p = 1 := by
   simp only [neOk, Bool.and_eq_true] at h
-  exact ⟨mulOk_wd hB h.1, wd_of (setIs_sound hB h.2)⟩
+  refine ⟨mulOk_wd hB h.1, wd_of ?_⟩
+  rw [show (1 : E) = OInstr.imm 1 0 0 from (imm_of_ofBits rfl).trans ofK_one |>.symm]
+  exact setImm_sound hB h.2
 
 theorem rangeOk_sound (hB : BookHolds L fp B) {x y t1 t2 k : ℕ}
     (h : rangeOk B x y t1 t2 k = true) :
@@ -411,12 +417,16 @@ def MemPre (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Prop :=
   ∀ m ∈ mem, ∀ c < m.2.1, ∃ p, L.read (fp * gpow m.1) = some p ∧ IsInK p ∧
     ∃ e < m.2.2, L.read (p.limb 0 * gpow c) = some (ofK (gpow e))
 
+/-- The words of each pair of cells are in the program's semantic relation. -/
+def SemHolds (fp : K) (sems : List (ℕ × ℕ)) : Prop :=
+  ∀ p ∈ sems, G.sem L.read (wd L fp p.1) (wd L fp p.2)
+
 /-- **A function's precondition** at frame `fp`: it is one the program checks, the jump table
-holds, its self frame pointer cells hold `fp`, and its bounded frame cells and memory are
-bounded. -/
+holds, its self frame pointer cells hold `fp`, its bounded frame cells and memory are bounded,
+and its pairs of cells are in the semantic relation. -/
 def Pre (j : ℕ) (fp : K) : Prop :=
   G.good j = true ∧ JTHolds G L ∧ EnvHolds L fp (envOf (G.sig j).env) ∧
-    BndHolds L fp (G.sig j).pre ∧ MemPre L fp (G.sig j).mem
+    BndHolds L fp (G.sig j).pre ∧ MemPre L fp (G.sig j).mem ∧ SemHolds G L fp (G.sig j).sem
 
 /-- **A function's postcondition** at frame `fp`: its core relation holds of the argument and
 return words of the frame, and its bounded frame cells are bounded. -/
@@ -437,7 +447,7 @@ segment is the executor's, the book, environment and bounds hold, the rest of th
 items is run (`RunK`), its exits are the segment's, and a fresh position is the start of the
 segment the index names. -/
 structure PosOk (K : ℕ) (st : CS) (k : ℕ) : Prop where
-  seg : st.seg ∈ (exec X.F f).segs
+  seg : st.seg ∈ X.segs
   book : BookHolds L fp st.book
   psi : EnvHolds L fp st.psi
   bnd : BndHolds L fp st.bnd
@@ -448,12 +458,14 @@ structure PosOk (K : ℕ) (st : CS) (k : ℕ) : Prop where
     X.idx.get t = some st.seg ∧ st.seg.start = t ∧ st.its = st.seg.items ∧ st.psi = st.seg.env ∧
       Safe guest L k ⟨gpow (f.entry + t), fp⟩
 
-/-- **The run is at the start of the segment at offset `t`**, with `k` steps left. -/
+/-- **The run is at the start of the segment at offset `t`**, with `k` steps left; at the
+window's end, where no segment of it starts, in its environment `wenv`. -/
 def SegRun (K t k : ℕ) : Prop :=
   Safe guest L k ⟨gpow (f.entry + t), fp⟩ ∧
-  ∀ s, X.idx.get t = some s → s.start = t → s ∈ (exec X.F f).segs ∧ EnvHolds L fp s.env ∧
+  (∀ s, X.idx.get t = some s → s.start = t → s ∈ X.segs ∧ EnvHolds L fp s.env ∧
     ∃ k₀, k₀ ≤ K ∧ k ≤ k₀ ∧
-      RunK L fp guest f.entry k₀ (s.exit.Reached L fp guest f.entry k₀) s.items k
+      RunK L fp guest f.entry k₀ (s.exit.Reached L fp guest f.entry k₀) s.items k) ∧
+  (t = X.wJ → X.idx.get t = none → EnvHolds L fp X.wenv)
 
 /-- At a window's end `J`, what it hands on holds. -/
 def HandHolds (J : ℕ) : Prop :=
@@ -598,39 +610,54 @@ section Segs
 variable {κ : ℕ} {L : MemImage κ} {fp : K} {f : CompiledFn} {X : Fx}
 
 /-- What a walk assumes of its context: the executor's facts hold of the frame, the code is the
-program's, and the index and links are the executor's. -/
+program's, the segments are good (an executor's, `exec_good`, `execWin_good`), and the index and
+links are theirs. -/
 structure WalkHyp (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx) : Prop where
   ctx : Exec.Ctx X.F κ fp
   fetch : Fetches guest f.entry f.code
   entry : X.entry = f.entry
-  idx : X.idx = index (exec X.F f).segs
-  linked : linkedWith X.idx (exec X.F f).segs = true
+  good : ∀ s ∈ X.segs, SegGood L fp guest f.entry s
+  idx : X.idx = index X.segs
+  linked : linkedWeak X.idx X.segs X.wJ X.wenv = true
 
-theorem linkedWith_get {idx : Trie Exec.Seg} {segs : List Exec.Seg} (hl : linkedWith idx segs = true)
+theorem linkedWeak_get {idx : Trie Exec.Seg} {segs : List Exec.Seg} {wJ : ℕ} {wenv : Trie Sym}
+    (hl : linkedWeak idx segs wJ wenv = true)
     {s : Exec.Seg} (hs : s ∈ segs) {x : Exec.Exit} (hx : x ∈ s.exits) {t : ℕ} (ht : t ∈ x.succ)
     {s' : Exec.Seg} (h : idx.get t = some s') : s'.start = t ∧ s'.env.sub Sym.beq x.env = true := by
-  simp only [linkedWith, List.all_eq_true] at hl
+  simp only [linkedWeak, List.all_eq_true] at hl
   have := hl s hs x hx t ht
-  rw [h] at this
+  rw [getF_eq, h] at this
+  simpa using this
+
+theorem linkedWeak_none {idx : Trie Exec.Seg} {segs : List Exec.Seg} {wJ : ℕ} {wenv : Trie Sym}
+    (hl : linkedWeak idx segs wJ wenv = true)
+    {s : Exec.Seg} (hs : s ∈ segs) {x : Exec.Exit} (hx : x ∈ s.exits) (ht : wJ ∈ x.succ)
+    (h : idx.get wJ = none) : wenv.sub Sym.beq x.env = true := by
+  simp only [linkedWeak, List.all_eq_true] at hl
+  have := hl s hs x hx wJ ht
+  rw [getF_eq, h] at this
   simpa using this
 
 /-- A run entering offset `t`, a successor of an exit whose environment holds, is at the start
 of the segment there. -/
-theorem segRun_of_safe (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ (exec X.F f).segs)
+theorem segRun_of_safe (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ X.segs)
     {x : Exec.Exit} (hx : x ∈ s.exits) {t : ℕ} (ht : t ∈ x.succ) (he : EnvHolds L fp x.env)
     {K k : ℕ} (hk : k ≤ K) (h : Safe guest L k ⟨gpow (f.entry + t), fp⟩) :
     SegRun L fp f X K t k := by
-  refine ⟨h, fun s' hs' hst ↦ ?_⟩
-  have hl := linkedWith_get H.linked hs hx ht hs'
-  have hmem : s' ∈ (exec X.F f).segs := by
+  refine ⟨h, fun s' hs' hst ↦ ?_, fun htJ hn ↦ ?_⟩
+  swap
+  · subst htJ
+    exact he.sub (linkedWeak_none H.linked hs hx ht hn)
+  have hl := linkedWeak_get H.linked hs hx ht hs'
+  have hmem : s' ∈ X.segs := by
     rw [H.idx] at hs'
     exact index_get hs'
   have he' := he.sub hl.2
   refine ⟨hmem, he', k, hk, le_rfl, ?_⟩
-  exact exec_sound H.ctx H.fetch hmem he' (by rw [hst]; exact h)
+  exact (H.good s' hmem).1 k he' (by rw [hst]; exact h)
 
 /-- A local jump to `t` leaves into the segment at `t`. -/
-theorem segRun_of_next (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ (exec X.F f).segs)
+theorem segRun_of_next (H : WalkHyp L fp f X) {s : Exec.Seg} (hs : s ∈ X.segs)
     {x : Exec.Exit} (hx : x ∈ s.exits) {t : ℕ} (hk : x.kind = .next t) (ht : x.succ = [t])
     {K k₀ k : ℕ} (hk₀ : k₀ ≤ K) (h : x.Reached L fp guest f.entry k₀ k) :
     SegRun L fp f X K t k := by
@@ -650,9 +677,9 @@ theorem segAt_ok (H : WalkHyp L fp f X) {t : ℕ} {B : Book} {bnd : List (ℕ ×
     simp only [Bool.cond_eq_ite, beq_iff_eq] at h
     split_ifs at h with hst
     obtain rfl := Option.some.inj h
-    obtain ⟨hmem, he, k₀, hk₀, hk, hrun⟩ := hr.2 s hs hst
+    obtain ⟨hmem, he, k₀, hk₀, hk, hrun⟩ := hr.2.1 s hs hst
     exact ⟨hmem, hB, he, hb, ⟨k₀, hk₀, hk, hrun⟩,
-      fun x hx ↦ exec_exits L H.ctx H.fetch hmem hx, fun t' ht' ↦ by
+      fun x hx ↦ (H.good s hmem).2.2 x hx, fun t' ht' ↦ by
         obtain rfl := Option.some.inj ht'
         exact ⟨hs, hst, rfl, rfl, hr.1⟩⟩
   · simp at h
@@ -660,7 +687,7 @@ theorem segAt_ok (H : WalkHyp L fp f X) {t : ℕ} {B : Book} {bnd : List (ℕ ×
 theorem PosOk.segRun {K : ℕ} {st : CS} {k : ℕ} (h : PosOk L fp f X K st k) {t : ℕ}
     (ht : st.fresh = some t) : SegRun L fp f X K t k := by
   obtain ⟨hi, hs, hits, hψ, hsafe⟩ := h.fresh t ht
-  refine ⟨hsafe, fun s hs' _ ↦ ?_⟩
+  refine ⟨hsafe, fun s hs' _ ↦ ?_, fun _ hn ↦ by rw [hi] at hn; cases hn⟩
   obtain rfl := Option.some.inj (hi.symm.trans hs')
   obtain ⟨k₀, hk₀, hk, hr⟩ := h.run
   exact ⟨h.seg, hψ ▸ h.psi, k₀, hk₀, hk, hits ▸ hr⟩
@@ -1030,6 +1057,22 @@ theorem memOk_sound (hB : BookHolds L fp B) {known : List (ℕ × ℕ × ℕ)} (
   rw [hc1, nth_eq hlt, wd_of h1] at hK hr
   exact ⟨v, h3, hK, e, by omega, hr⟩
 
+theorem semOk_sound {G : Glob} {fp' : K} {sems : List (ℕ × ℕ)} (hs : SemHolds G L fp sems)
+    {args : List ℕ} {sem : List (ℕ × ℕ)} (h : semOk sems args sem = true)
+    (hw : ∀ i (hi : i < args.length), wd L fp' (2 + i) = wd L fp args[i]) : SemHolds G L fp' sem := by
+  intro p hp
+  have := List.all_eq_true.mp h p hp
+  simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at this
+  obtain ⟨⟨⟨⟨h1, l1⟩, h2⟩, l2⟩, hany⟩ := this
+  obtain ⟨q, hq, hq'⟩ := List.any_eq_true.mp hany
+  simp only [Bool.and_eq_true, beq_iff_eq] at hq'
+  have e1 := hw _ l1
+  have e2 := hw _ l2
+  rw [show 2 + (p.1 - 2) = p.1 by omega] at e1
+  rw [show 2 + (p.2 - 2) = p.2 by omega] at e2
+  rw [e1, e2, ← nth_eq l1, ← nth_eq l2, ← hq'.1, ← hq'.2]
+  exact hs q hq
+
 theorem preOk_sound {mem : List (ℕ × ℕ × ℕ)} (hm : MemPre L fp mem) (hB : BookHolds L fp B)
     {bnd : List (ℕ × ℕ)} (hb : BndHolds L fp bnd)
     {args : List ℕ} {pre : List (ℕ × ℕ)} (h : preOk mem B bnd args pre = true) {q : ℕ}
@@ -1235,6 +1278,7 @@ structure WalkEnv (Prog : Core.Program) (L : MemImage κ) (fp : K) (f : Compiled
   jt : JTHolds X.G L
   mem : MemPre L fp X.mem
   known : MemKnown L fp X.known
+  sems : SemHolds X.G L fp X.sems
   callees : ∀ j, FunSpecLt guest L Kb (X.G.sig j).entry (Pre X.G L j) (Post Prog X.G L j)
 
 /-- **What the walk of a block from a position gives**: the block's core semantics under the
@@ -1426,11 +1470,14 @@ theorem call_ok (W : WalkEnv Prog L fp f X Kb) {B : Book} {bnd : List (ℕ × �
       (∀ p ∈ (X.G.sig j).post, 2 ≤ p.1 ∧ p.1 < 2 + (X.G.sig j).nargs + (X.G.sig j).nret) ∧
       storesOk B q 2 ca = true := by
   simp only [callOk, Bool.and_eq_true, beq_iff_eq] at hco
-  obtain ⟨⟨⟨⟨⟨⟨⟨hname, hna⟩, hnr⟩, hst⟩, henvst⟩, hpre⟩, hmem⟩, hpost⟩ := hco
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hname, hna⟩, hnr⟩, hst⟩, henvst⟩, hpre⟩, hmem⟩, hsem⟩, hpost⟩ := hco
   obtain ⟨hgood, -⟩ := calleeAt_some hj
   have hPre : Pre X.G L j (pv.limb 0) :=
     ⟨hgood, W.jt, envStoresOk_sound hB henvst hq hpK, preOk_sound W.mem hB hbnd hpre hst hq,
-      memOk_sound hB W.known hmem hst hq⟩
+      memOk_sound hB W.known hmem hst hq, semOk_sound W.sems hsem fun i hi ↦ by
+        obtain ⟨pv', hq', -, v, h1, h2⟩ := storesOk_sound hB hst i hi
+        obtain rfl := Option.some.inj (hq'.symm.trans hq)
+        rw [wd_of h1, wd_of h2]⟩
   obtain ⟨k2, hk2, hPost, hsafe2⟩ := (W.callees j).call hk1 hPre hret hsafe
   refine ⟨k2, hk2, hPost, hsafe2, hname, hna, hnr, ?_, fun p hp ↦ ?_, hst⟩
   · rw [storesOk_words hB hst hq, hna]
@@ -1594,8 +1641,8 @@ theorem walk_callIf (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (f' : String) (a
   · rw [heq]
     simp only [tailOk, Bool.and_eq_true, beq_iff_eq, List.isEmpty_iff, Bool.not_eq_true',
       List.all_eq_true] at htail
-    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hname, hna⟩, hnr⟩, hxnr⟩, hpre⟩, hmem0⟩, hxpost⟩, hargs⟩, henv⟩, hr0⟩,
-      hr1⟩, hpend⟩, hmain⟩, hend⟩ := htail
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hname, hna⟩, hnr⟩, hxnr⟩, hpre⟩, hmem0⟩, hxpost⟩, hsem⟩, hargs⟩, henv⟩,
+      hr0⟩, hr1⟩, hpend⟩, hmain⟩, hend⟩ := htail
     have hP : ∀ a ∈ P, a.Holds L.read (val L fp X.loc) := fun a ha ↦
       atomOk_sound W.hyp.ctx.pows hB' (hpsi ▸ hp.psi) (List.all_eq_true.mp hpend a ha)
     have hrw : RetWords L fp X Kb [] → Core.Stmt.HoldsList (Prog.Rel L.read) L.read
@@ -1621,7 +1668,7 @@ theorem walk_callIf (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (f' : String) (a
       obtain ⟨hgood, hentry⟩ := calleeAt_some hj
       have hPre : Pre X.G L j (fp * gpow S) := by
         refine ⟨hgood, W.jt, envOf_holds fun p hp ↦ ?_, fun p hq0 ↦ ?_,
-          by rw [hmem0]; intro p hp; simp at hp⟩
+          by rw [hmem0]; intro p hp; simp at hp, semOk_sound W.sems hsem fun i hi ↦ ?_⟩
         rotate_left
         · have := List.all_eq_true.mp hpre p hq0
           simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at this
@@ -1633,6 +1680,10 @@ theorem walk_callIf (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (f' : String) (a
           rw [show 2 + (p.1 - 2) = p.1 by omega, hr] at hs
           rw [mul_assoc, gpow, gpow, ← pow_add, ← gpow]
           exact hs
+        · have := sameOk_sound hB' (tailArgsOk_sound hargs i hi)
+          rw [← this]
+          unfold wd
+          rw [mul_assoc, gpow, gpow, ← pow_add]
         have := henv p hp
         rw [Sym.beq_eq this.1]
         have h2 := tailEnvOk_sound hB' hxenv this.2
@@ -1752,62 +1803,186 @@ section Fn
 variable {κ : ℕ} {L : MemImage κ} {G : Glob} {f : CompiledFn} {cf : Core.Fn} {C : Cert}
   {Prog : Core.Program}
 
-/-- **A checked function's run**, from its entry with `k` steps left: its core relation holds
-of its frame, and a run of a function other than `main` returns in fewer steps. -/
-theorem checkFn_run {main : Bool} (hc : checkFn G f cf C main = true) (hf : f ∈ Data.functions)
-    (hfind : Prog.find? cf.name = some cf) (hpows : C.facts.pows.Ok) (hκ : κ ≤ 32) {fp : K}
-    (hfp : C.facts.fpOne = true → fp = 1) {k : ℕ}
+theorem blt_false {i n : ℕ} (h : n ≤ i) : Nat.blt i n = false := by
+  rw [Bool.eq_false_iff]
+  intro h'
+  exact absurd (Nat.blt_eq.mp h') (Nat.not_lt.mpr h)
+
+theorem bookOf_holds {fp : K} : ∀ (ps : List (ℕ × Exec.Atom)) {B : Book}, BookHolds L fp B →
+    (∀ p ∈ ps, p.2.Holds L fp) → BookHolds L fp (bookOf ps B)
+  | [], _, hB, _ => hB
+  | p :: ps, B, hB, hp => by
+    simp only [bookOf, Trie.seq_eq]
+    refine bookOf_holds ps (fun o a ha ↦ ?_) (fun q hq ↦ hp q (List.mem_cons_of_mem _ hq))
+    rcases look_addKey ha with rfl | ha
+    · exact hp p List.mem_cons_self
+    · exact hB o a ha
+
+/-- **The run at window `i`'s start** with `k` steps left: there, its environment and the facts
+and bounds handed on hold. -/
+def WinStart (L : MemImage κ) (fp : K) (f : CompiledFn) (C : Cert) (i k : ℕ) : Prop :=
+  Safe guest L k ⟨gpow (f.entry + (C.cutAt i).J), fp⟩ ∧ EnvHolds L fp (envOf (C.cutAt i).env) ∧
+    (∀ p ∈ (C.cutAt i).facts, p.2.Holds L fp) ∧ BndHolds L fp (C.cutAt i).bnd
+
+/-- What a function's return does, in every window's context. -/
+abbrev RetOf (L : MemImage κ) (fp : K) (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert)
+    (main : Bool) (Kb : ℕ) : List E → Prop :=
+  RetWords L fp (C.fxAt G f cf main 0 [] .nil .nil) Kb
+
+/-- **A checked window's run**, from its start with `k ≤ Kb` steps left: its statements hold
+under the check's valuation, and the run reaches the next window's start, or, the last window,
+its statements end by the return. -/
+theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = true)
+    (hf : f ∈ Data.functions) (hpows : C.facts.pows.Ok) (hκ : κ ≤ 32) {fp : K}
+    (hfp : C.facts.fpOne = true → fp = 1) {Kb : ℕ}
+    (hC : ∀ j, FunSpecLt guest L Kb (G.sig j).entry (Pre G L j) (Post Prog G L j))
+    (hjt : JTHolds G L) (hmem : MemPre L fp C.mem) (hknown : MemKnown L fp (C.cutAt i).known)
+    (hsems : SemHolds G L fp (C.cutAt i).sems) {k : ℕ} (hk : k ≤ Kb) (hs : WinStart L fp f C i k) :
+    (i = 0 → runAt (locTrie C.locs) 2 cf.params = true) ∧
+    (i < C.cuts.length → Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp (locTrie C.locs))
+        (C.stmtsAt cf i) True (RetOf L fp G f cf C main Kb) ∧
+        (C.cutAt i).start ≤ (C.cutAt (i + 1)).start ∧ ∃ k' ≤ k, WinStart L fp f C (i + 1) k') ∧
+    (C.cuts.length ≤ i → Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp (locTrie C.locs))
+        (C.stmtsAt cf i) False (RetOf L fp G f cf C main Kb)) := by
+  unfold checkWin at hc
+  rcases hR : execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with ⟨segs, dead⟩
+  rw [hR] at hc
+  simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true] at hc
+  obtain ⟨⟨hlink, h0⟩, hc⟩ := hc
+  set X : Fx := C.fxAt G f cf main i segs (index segs) (locTrie C.locs) with hX
+  have hctx : Exec.Ctx C.facts κ fp := ⟨hpows, hfp, hκ⟩
+  have H : WalkHyp L fp f X := ⟨hctx, guest_fetches hf, rfl, fun s hs ↦
+    execWin_good hctx (guest_fetches hf) _ _ _ s (by rw [hR]; exact hs), rfl, hlink⟩
+  have W : WalkEnv Prog L fp f X Kb := ⟨H, hjt, hmem, hknown, hsems, hC⟩
+  have hret : RetWords L fp X Kb = RetOf L fp G f cf C main Kb := rfl
+  refine ⟨fun hi ↦ ?_, ?_⟩
+  · subst hi
+    simp only [beq_self_eq_true, Bool.cond_true, Bool.and_eq_true] at h0
+    exact h0.1
+  split at hc
+  · rename_i st hst
+    simp only [Bool.and_eq_true] at hc
+    obtain ⟨hsub, hend⟩ := hc
+    have hrun : SegRun L fp f X Kb (C.cutAt i).J k := by
+      refine ⟨hs.1, fun s hs' hs0 ↦ ?_, fun _ hn ↦ ?_⟩
+      swap
+      · unfold segAt at hst
+        rw [getF_eq, hn] at hst
+        cases hst
+      have hmem : s ∈ X.segs := index_get hs'
+      have hs'' : st.seg = s := by
+        unfold segAt at hst
+        rw [getF_eq, hs'] at hst
+        simp only [hs0, beq_self_eq_true, Bool.cond_true, Option.some.injEq] at hst
+        rw [← hst]
+      have he : EnvHolds L fp s.env := hs'' ▸ hs.2.1.sub hsub
+      refine ⟨hmem, he, k, hk, le_rfl, (H.good s hmem).1 k he ?_⟩
+      rw [hs0]
+      exact hs.1
+    have hp := segAt_ok H hst hrun (bookOf_holds _ BookHolds.nil hs.2.2.1) hs.2.2.2
+    unfold winEnd at hend
+    by_cases hi : i < C.cuts.length
+    · have hb : Nat.blt i C.cuts.length = true := Nat.blt_eq.mpr hi
+      rw [hb] at hend
+      simp only [Bool.cond_true, Bool.and_eq_true, beq_iff_eq, Nat.ble_eq] at hend
+      obtain ⟨⟨hchk, hle⟩, henv⟩ := hend
+      refine ⟨fun _ ↦ ?_, fun h ↦ absurd hi (Nat.not_lt.mpr h)⟩
+      obtain ⟨hl, -, harr⟩ := walk_sound W (C.stmtsAt cf i) st [] k True hp
+        (by rw [hchk]; simp) (fun _ _ _ _ _ ↦ trivial)
+      obtain ⟨k', hk', ⟨hsafe, hseg, hwend⟩, hhand⟩ := harr _ hchk
+      refine ⟨hret ▸ hl, hle, k', hk', hsafe, ?_, ?_⟩
+      · split at henv
+        · rename_i s hs'
+          simp only [Bool.and_eq_true, beq_iff_eq] at henv
+          rw [getF_eq] at hs'
+          exact (hseg s hs' henv.1).2.1.sub henv.2
+        · rename_i hs'
+          rw [getF_eq] at hs'
+          have := hwend (by simp only [hX, Cert.fxAt, hb, Bool.cond_true]) hs'
+          simpa only [hX, Cert.fxAt, hb, Bool.cond_true] using this
+      · have hw : X.win = some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd) := by
+          simp only [hX, Cert.fxAt, hb, Bool.cond_true]
+        exact hhand _ _ _ hw rfl
+    · have hb : Nat.blt i C.cuts.length = false := blt_false (Nat.not_lt.mp hi)
+      rw [hb] at hend
+      simp only [Bool.cond_false, beq_iff_eq] at hend
+      refine ⟨fun h ↦ absurd h hi, fun _ ↦ ?_⟩
+      obtain ⟨hl, -, -⟩ := walk_sound W (C.stmtsAt cf i) st [] k False hp
+        (by rw [hend]; simp) (fun J hJ ↦ by rw [hend] at hJ; cases hJ)
+      exact hret ▸ hl
+  · simp at hc
+
+theorem stmtsAt_lt {i : ℕ} (hi : i < C.cuts.length) (hle : (C.cutAt i).start ≤ (C.cutAt (i + 1)).start) :
+    cf.body.take (C.cutAt i).start ++ C.stmtsAt cf i = cf.body.take (C.cutAt (i + 1)).start := by
+  simp only [Cert.stmtsAt, Nat.blt_eq.mpr hi, Bool.cond_true]
+  rw [← List.drop_take, ← Nat.min_eq_left hle, ← List.take_take, Nat.min_eq_left hle,
+    List.take_append_drop]
+
+theorem stmtsAt_last {i : ℕ} (hi : C.cuts.length ≤ i) :
+    cf.body.take (C.cutAt i).start ++ C.stmtsAt cf i = cf.body := by
+  simp only [Cert.stmtsAt, blt_false hi, Bool.cond_false]
+  exact List.take_append_drop _ _
+
+/-- **A checked function's run**, from its entry with `k` steps left, every window checked and
+each window's memory bounds given by the statements before it: its core relation holds of its
+frame, and a run of a function other than `main` returns in fewer steps. -/
+theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f cf C main i = true)
+    (hf : f ∈ Data.functions) (hfind : Prog.find? cf.name = some cf) (hpows : C.facts.pows.Ok)
+    (hκ : κ ≤ 32) {fp : K} (hfp : C.facts.fpOne = true → fp = 1) {k : ℕ}
     (hC : ∀ i, FunSpecLt guest L k (G.sig i).entry (Pre G L i) (Post Prog G L i))
     (hjt : JTHolds G L) (henv : EnvHolds L fp C.facts.entryEnv) (hpre : BndHolds L fp C.pre)
-    (hmem : MemPre L fp C.mem) (hknown : MemKnown L fp C.known)
+    (hmem : MemPre L fp C.mem) (hsem : SemHolds G L fp C.sem)
+    (hknown : ∀ i ≤ C.cuts.length, 0 < i → Core.Stmt.HoldsList (Prog.Rel L.read) L.read
+      (val L fp (locTrie C.locs)) (cf.body.take (C.cutAt i).start) True (fun _ ↦ True) →
+        MemKnown L fp (C.cutAt i).known ∧ SemHolds G L fp (C.cutAt i).sems)
     (hsafe : Safe guest L k ⟨gpow f.entry, fp⟩) :
     Prog.Rel L.read cf.name (frameWords L fp 2 cf.params.length)
         (frameWords L fp (2 + cf.params.length) C.nret) ∧ BndHolds L fp C.post ∧
       (main = false → ∃ k' < k, ∃ r, retRegs L fp = some r ∧ Safe guest L k' r) := by
-  unfold checkFn at hc
-  rcases hR : exec C.facts f with ⟨segs, dead⟩
-  rw [hR] at hc
-  simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true, beq_iff_eq] at hc
-  obtain ⟨⟨⟨hlink, hparams⟩, hmain⟩, hc⟩ := hc
-  set X : Fx := ⟨G, C.facts, f.entry, index segs, locTrie C.locs, cf.params.length, C.nret, main,
-    C.callees, C.post, C.mem, C.known, none⟩ with hX
-  have H : WalkHyp L fp f X := ⟨⟨hpows, hfp, hκ⟩, guest_fetches hf, rfl, by rw [hR], by
-    show linkedWith (index segs) (exec C.facts f).segs = true
-    rw [hR]
-    exact hlink⟩
-  have W : WalkEnv Prog L fp f X k := ⟨H, hjt, hmem, hknown, hC⟩
-  split at hc
-  · rename_i st hst
-    simp only [Bool.and_eq_true, beq_iff_eq] at hc
-    obtain ⟨hsub, hdone⟩ := hc
-    have hrun : SegRun L fp f X k 0 k := by
-      refine ⟨by rw [Nat.add_zero]; exact hsafe, fun s hs hs0 ↦ ?_⟩
-      have hmem : s ∈ (exec X.F f).segs := by
-        show s ∈ (exec C.facts f).segs
-        rw [hR]
-        exact index_get hs
-      have hs' : st.seg = s := by
-        unfold segAt at hst
-        rw [getF_eq, hs] at hst
-        simp only [hs0, beq_self_eq_true, Bool.cond_true, Option.some.injEq] at hst
-        rw [← hst]
-      have he : EnvHolds L fp s.env := hs' ▸ henv.sub hsub
-      refine ⟨hmem, he, k, le_rfl, le_rfl, exec_sound H.ctx H.fetch hmem he ?_⟩
-      rw [hs0]
-      exact hsafe
-    have hp := segAt_ok H hst hrun BookHolds.nil hpre
-    obtain ⟨hl, -, -⟩ := walk_sound W cf.body st [] k False hp (by
-        show chkL X cf.body st [] ≠ .fail
-        rw [hdone]; simp)
-      (fun J hJ ↦ by
-        change chkL X cf.body st [] = _ at hJ
-        rw [hdone] at hJ; cases hJ)
-    obtain ⟨rs, hw, hback, hpost⟩ := (holdsList_reach cf.body hl).resolve_left id
-    refine ⟨(Core.rel_iff Prog _ _ _).mpr ⟨cf, hfind, val L fp X.loc, ?_, ?_⟩, hpost,
-      fun hm ↦ hback hm⟩
-    · rw [runAt_words hparams]
-    · exact Core.holdsList_mono (fun _ _ _ h ↦ h) cf.body id (fun rs h ↦ h.1) hl
-  · simp at hc
+  have run := fun i (hi : i ≤ C.cuts.length) {k'} hk' hs (hkn : _ ∧ _) ↦
+    checkWin_run (Prog := Prog) (hc i hi) hf hpows hκ hfp hC hjt hmem hkn.1 hkn.2 (k := k') hk' hs
+  have hkn0 : MemKnown L fp (C.cutAt 0).known ∧ SemHolds G L fp (C.cutAt 0).sems :=
+    ⟨fun _ h ↦ by simp [Cert.cutAt] at h, hsem⟩
+  have reach : ∀ i ≤ C.cuts.length, ∃ k' ≤ k, WinStart L fp f C i k' ∧
+      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp (locTrie C.locs))
+        (cf.body.take (C.cutAt i).start) True (RetOf L fp G f cf C main k) := by
+    intro i
+    induction i with
+    | zero =>
+      intro _
+      refine ⟨k, le_rfl, ⟨by simpa [Cert.cutAt] using hsafe, henv, by simp [Cert.cutAt], hpre⟩, ?_⟩
+      simp [Cert.cutAt, Core.Stmt.HoldsList]
+    | succ i ih =>
+      intro hi
+      obtain ⟨k', hk', hs, hl⟩ := ih (by omega)
+      have hkn : MemKnown L fp (C.cutAt i).known ∧ SemHolds G L fp (C.cutAt i).sems := by
+        rcases Nat.eq_zero_or_pos i with rfl | hi0
+        · exact hkn0
+        · exact hknown i (by omega) hi0
+            (Core.holdsList_mono (fun _ _ _ h ↦ h) _ id (fun _ _ ↦ trivial) hl)
+      obtain ⟨hw, hle, k'', hk'', hs'⟩ := (run i (by omega) hk' hs hkn).2.1 (by omega)
+      refine ⟨k'', by omega, hs', ?_⟩
+      rw [← stmtsAt_lt (by omega) hle, Core.holdsList_append]
+      exact Core.holdsList_mono (fun _ _ _ h ↦ h) _ (fun _ ↦ hw) (fun _ h ↦ h) hl
+  obtain ⟨k', hk', hs, hl⟩ := reach _ le_rfl
+  have hkn : MemKnown L fp (C.cutAt C.cuts.length).known ∧
+      SemHolds G L fp (C.cutAt C.cuts.length).sems := by
+    rcases Nat.eq_zero_or_pos C.cuts.length with h0 | hi0
+    · rw [h0]; exact hkn0
+    · exact hknown _ le_rfl hi0 (Core.holdsList_mono (fun _ _ _ h ↦ h) _ id (fun _ _ ↦ trivial) hl)
+  have hr := run _ le_rfl hk' hs hkn
+  have hlast := hr.2.2 le_rfl
+  have hall : Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp (locTrie C.locs)) cf.body False
+      (RetOf L fp G f cf C main k) := by
+    rw [← stmtsAt_last (C := C) (i := C.cuts.length) le_rfl, Core.holdsList_append]
+    exact Core.holdsList_mono (fun _ _ _ h ↦ h) _ (fun _ ↦ hlast) (fun _ h ↦ h) hl
+  have hparams := (run 0 (Nat.zero_le _) le_rfl ⟨by simpa [Cert.cutAt] using hsafe, henv, by simp [Cert.cutAt], hpre⟩
+    hkn0).1 rfl
+  obtain ⟨rs, hw, hback, hpost⟩ := (holdsList_reach cf.body hall).resolve_left id
+  refine ⟨(Core.rel_iff Prog _ _ _).mpr ⟨cf, hfind, val L fp (locTrie C.locs), ?_, ?_⟩, hpost,
+    fun hm ↦ hback hm⟩
+  · rw [runAt_words hparams]
+  · exact Core.holdsList_mono (fun _ _ _ h ↦ h) cf.body id (fun rs h ↦ h.1) hall
 
 end Fn
 

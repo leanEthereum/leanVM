@@ -195,12 +195,14 @@ variable (F : Exec.Facts) (B : Book) (ψ : Trie Sym)
 /-- The bits of a limb. -/
 def limbNat (x : E) (i : Fin 3) : ℕ := (x.limb i).toBitVec.toNat
 
-/-- `fp[c]` is the constant `x`, by a `SET` of its limbs. -/
-noncomputable def setIs (c : ℕ) (x : E) : Bool :=
+/-- `fp[c]` is the word of limbs `l0, l1, l2`, by a `SET`. -/
+noncomputable def setImm (c l0 l1 l2 : ℕ) : Bool :=
   (look B c).any fun a ↦ match a with
-    | .instr _ (.set o k0 k1 k2) =>
-        o == c && limbNat x 0 == k0 && limbNat x 1 == k1 && limbNat x 2 == k2
+    | .instr _ (.set o k0 k1 k2) => o == c && l0 == k0 && l1 == k1 && l2 == k2
     | _ => false
+
+/-- `fp[c]` is the constant `x`, by a `SET` of its limbs. -/
+noncomputable def setIs (c : ℕ) (x : E) : Bool := setImm B c (limbNat x 0) (limbNat x 1) (limbNat x 2)
 
 /-- `(x, y, z)` is a permutation of `(p, q, r)`. -/
 def perm3 (x y z p q r : ℕ) : Bool :=
@@ -236,8 +238,9 @@ noncomputable def loadOk (d p off : ℕ) : Bool :=
     | .instr _ (.deref o1 o2 o3 .cell) => o1 == p && o2 == off && o3 == d
     | _ => false
 
-/-- The `!=` gadget: `fp[p] = fp[x] · fp[i]` and `fp[p] = 1`. -/
-noncomputable def neOk (x i p : ℕ) : Bool := mulOk B p x i && setIs B p 1
+/-- The `!=` gadget: `fp[p] = fp[x] · fp[i]` and `fp[p] = 1` (its limbs, since a module's
+kernel does not reduce `1 : E`). -/
+noncomputable def neOk (x i p : ℕ) : Bool := mulOk B p x i && setImm B p 1 0 0
 
 /-- The range check: `DEREF *(fp[x]) = fp[t1]`, `fp[k] = fp[x] · fp[y]`, `DEREF *(fp[y]) = fp[t2]`. -/
 noncomputable def rangeOk (x y t1 t2 k : ℕ) : Bool := loadOk B t1 x 0 && mulOk B k x y && loadOk B t2 y 0
@@ -431,8 +434,10 @@ theorem atomOkL_locate (F : Exec.Facts) (B : Book) (ψ : Trie Sym) (loc : Trie �
 
 /-- What a caller knows of a function: its name, entry, arity, the self frame pointer cells of
 its entry environment, the bounds on its frame cells before (`pre`) and after (`post`), a pair
-`(o, n)` saying `fp[o] = g^e` with `e < n`, and the bounds on memory it assumes (`mem`), a triple
-`(o, len, n)` saying that the word at `fp[o]·g^c` is `g^e` with `e < n` for every `c < len`. -/
+`(o, n)` saying `fp[o] = g^e` with `e < n`, the bounds on memory it assumes (`mem`), a triple
+`(o, len, n)` saying that the word at `fp[o]·g^c` is `g^e` with `e < n` for every `c < len`, and
+the pairs of frame cells `(o₁, o₂)` whose words it assumes in the program's semantic relation
+(`sem`, `Glob.sem`). -/
 structure Sig where
   name : String
   entry : ℕ
@@ -442,6 +447,22 @@ structure Sig where
   pre : List (ℕ × ℕ)
   post : List (ℕ × ℕ)
   mem : List (ℕ × ℕ × ℕ)
+  sem : List (ℕ × ℕ)
+
+/-- The start of a window of a function's check after the first: at the code offset `J`, in the
+environment `env`, at core statement `start`, with the atoms `facts` filed under their cells and
+the bounds `bnd` the previous window hands on, and the bounds on memory through its cells
+`known`, `(c, len, n)` as in `Sig.mem` for `fp[c]`, and the pairs of cells `sems` in the
+semantic relation, that it does not check but takes from obligations on the statements before
+it. -/
+structure Cut where
+  J : ℕ
+  env : List (ℕ × Sym)
+  start : ℕ
+  facts : List (ℕ × Exec.Atom) := []
+  bnd : List (ℕ × ℕ) := []
+  known : List (ℕ × ℕ × ℕ) := []
+  sems : List (ℕ × ℕ) := []
 
 /-- The certificate of one compiled function. -/
 structure Cert where
@@ -457,24 +478,31 @@ structure Cert where
   pre : List (ℕ × ℕ) := []
   post : List (ℕ × ℕ) := []
   mem : List (ℕ × ℕ × ℕ) := []
-  /-- Bounds on memory through its cells, `(c, len, n)` as in `Sig.mem` for `fp[c]`, that it
-  does not check but takes from named obligations. -/
-  known : List (ℕ × ℕ × ℕ) := []
+  sem : List (ℕ × ℕ) := []
+  /-- Where each window after the first starts (`Cut`). -/
+  cuts : List Cut := []
+  /-- The code offset each window's executor runs to, but the last's (which runs to the end). -/
+  ends : List ℕ := []
 
 /-- The program's context of a check: every function's `Sig` by index, the indices of the
-functions checked, and the jump table, slot to target pc. -/
+functions checked, the jump table, slot to target pc, and a relation on two words over the memory
+that functions may assume of their arguments (`Sig.sem`; never evaluated). -/
 structure Glob where
   sig : ℕ → Sig
   good : ℕ → Bool
   jt : Trie ℕ
+  sem : Core.Reader → E → E → Prop
 
-/-- The context of one function's walk: its memory bounds `mem` and `known` (as in `Cert`), and a
-window's end `win = (J, facts, bounds)`: the atoms and bounds a walk arriving at `J` hands to the
-next window. -/
+/-- The context of one window's walk: its segments and their index, its memory bounds `mem` and
+`known` and the cells `sems` in the semantic relation (as in `Cert`, `Cut`), a window's end
+`win = (J, facts, bounds)`: the atoms and bounds a walk arriving at `J` hands to the next window,
+and the environment `wenv` the exits into `wJ = J` hold when no segment of the window starts
+there. -/
 structure Fx where
   G : Glob
   F : Exec.Facts
   entry : ℕ
+  segs : List Exec.Seg
   idx : Trie Exec.Seg
   loc : Trie ℕ
   nargs : ℕ
@@ -484,7 +512,10 @@ structure Fx where
   post : List (ℕ × ℕ)
   mem : List (ℕ × ℕ × ℕ)
   known : List (ℕ × ℕ × ℕ)
+  sems : List (ℕ × ℕ)
   win : Option (ℕ × List (ℕ × Exec.Atom) × List (ℕ × ℕ))
+  wJ : ℕ
+  wenv : Trie Sym
 
 /-- A position of the walk: a segment and its items not yet passed, the book, the segment's entry
 environment, the known bounds `(cell, n)`, and `fresh = some t` at the start of segment `t`
@@ -594,6 +625,13 @@ def memOk (known : List (ℕ × ℕ × ℕ)) (args : List ℕ) (mem : List (ℕ 
   mem.all fun m ↦ Nat.ble 2 m.1 && Nat.blt (m.1 - 2) args.length &&
     known.any fun k ↦ k.1 == nth args (m.1 - 2) 0 && Nat.ble m.2.1 k.2.1 && Nat.ble k.2.2 m.2.2
 
+/-- The callee's pairs of cells in the semantic relation, on pairs of argument cells the caller
+knows so. -/
+def semOk (sems : List (ℕ × ℕ)) (args : List ℕ) (sem : List (ℕ × ℕ)) : Bool :=
+  sem.all fun p ↦ Nat.ble 2 p.1 && Nat.blt (p.1 - 2) args.length && Nat.ble 2 p.2 &&
+    Nat.blt (p.2 - 2) args.length &&
+    sems.any fun q ↦ q.1 == nth args (p.1 - 2) 0 && q.2 == nth args (p.2 - 2) 0
+
 /-- The caller's cell of a callee frame cell, the arguments' and returns' cells after `fp[0..1]`. -/
 def frameCell (cs : List ℕ) (o : ℕ) : ℕ := nth cs (o - 2) 0
 
@@ -607,6 +645,7 @@ noncomputable def callOk (X : Fx) (B : Book) (bnd : List (ℕ × ℕ)) (s : Sig)
     (args : List ℕ) (nrets : ℕ) : Bool :=
   f == s.name && args.length == s.nargs && nrets == s.nret && storesOk B q 2 args &&
     envStoresOk B q s.env && preOk X.mem B bnd args s.pre && memOk X.known args s.mem &&
+    semOk X.sems args s.sem &&
     s.post.all (fun p ↦ Nat.ble 2 p.1 && Nat.blt p.1 (2 + s.nargs + s.nret))
 
 /-- The callee at `pc`, among the function's callees, by index. -/
@@ -704,6 +743,7 @@ noncomputable def tailOk (X : Fx) (st : CS) (x : Exec.Exit) (S : ℕ) (s : Sig) 
     (ca : List ℕ) (P : List Core.Atom) : Bool :=
   f == s.name && ca.length == s.nargs && s.nret == 0 && X.nret == 0 &&
     preOk X.mem st.book st.bnd ca s.pre && s.mem.isEmpty && X.post.isEmpty &&
+    semOk X.sems ca s.sem &&
     tailArgsOk st.book S 2 ca &&
     s.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) && tailEnvOk st.book x.env S p.1) &&
     nextHolds st.book S 0 0 && nextHolds st.book S 1 1 && pendOk X st P && !X.main &&
@@ -847,23 +887,80 @@ noncomputable def chkArms (X : Fx) (J : ℕ) :
   | _, _, _, _ => false
 end
 
-/-! ## A function -/
+/-! ## A function, by windows
 
-/-- **The check of one function** `f` with core function `cf` and certificate `C`: the
-executor's segments are linked, the first starts at offset `0` in the entry environment, the
-parameters sit in their cells, and the walk of the body from the entry ends by the return. -/
-noncomputable def checkFn (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert) (main : Bool) :
+A function is checked in windows, each by its own kernel evaluation: window `i` runs the executor
+from its start (`execWin`) to its end offset and walks its core statements from its start, with
+the facts and bounds the previous window hands on; it ends at the next window's start, a join
+where it hands on what the next needs (`Fx.win`, `handOk`) in an environment holding the next
+one's, or, the last, by the return. A function of one window is `cuts = []`. -/
+
+/-- Successors starting a segment of the index start it, in an environment their exit's holds; a
+successor starting none (past a window's end) is left to the walk, which cannot go there, but
+for the window's end `wJ`, whose environment `wenv` the exit's holds. -/
+noncomputable def linkedWeak (idx : Trie Exec.Seg) (segs : List Exec.Seg) (wJ : ℕ) (wenv : Trie Sym) :
     Bool :=
-  match exec C.facts f with
+  segs.all fun s ↦ s.exits.all fun x ↦ x.succ.all fun t ↦
+    match getF idx t with
+    | some s' => s'.start == t && s'.env.sub Sym.beq x.env
+    | none => !(t == wJ) || wenv.sub Sym.beq x.env
+
+/-- The facts a window starts with, filed under their cells. -/
+noncomputable def bookOf : List (ℕ × Exec.Atom) → Book → Book
+  | [], B => B
+  | p :: ps, B => (addKey p.2 B p.1).seq fun B ↦ bookOf ps B
+
+/-- Where window `i` starts: the function's entry for the first. -/
+def Cert.cutAt (C : Cert) : ℕ → Cut
+  | 0 => ⟨0, C.facts.env, 0, [], C.pre, [], C.sem⟩
+  | i + 1 => nth C.cuts i ⟨0, [], 0, [], [], [], []⟩
+
+/-- The code offset window `i`'s executor runs to. -/
+def Cert.endAt (C : Cert) (f : CompiledFn) (i : ℕ) : ℕ :=
+  bif Nat.blt i C.cuts.length then nth C.ends i 0 else f.len
+
+/-- The core statements of window `i`. -/
+def Cert.stmtsAt (C : Cert) (cf : Core.Fn) (i : ℕ) : List Core.Stmt :=
+  bif Nat.blt i C.cuts.length then
+    (cf.body.drop (C.cutAt i).start).take ((C.cutAt (i + 1)).start - (C.cutAt i).start)
+  else cf.body.drop (C.cutAt i).start
+
+/-- The walk's context of window `i` over the segments `segs`. -/
+noncomputable def Cert.fxAt (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert) (main : Bool)
+    (i : ℕ) (segs : List Exec.Seg) (idx : Trie Exec.Seg) (loc : Trie ℕ) : Fx :=
+  ⟨G, C.facts, f.entry, segs, idx, loc, cf.params.length, C.nret, main, C.callees, C.post, C.mem,
+    (C.cutAt i).known, (C.cutAt i).sems,
+    bif Nat.blt i C.cuts.length then
+      some ((C.cutAt (i + 1)).J, (C.cutAt (i + 1)).facts, (C.cutAt (i + 1)).bnd)
+    else none,
+    bif Nat.blt i C.cuts.length then (C.cutAt (i + 1)).J else 0,
+    bif Nat.blt i C.cuts.length then envOf (C.cutAt (i + 1)).env else .nil⟩
+
+/-- How window `i` must end: at the next window's start (a later statement), in an environment
+holding the next one's (at a segment of the window starting there, or by `linkedWeak`), or by
+the return. -/
+noncomputable def winEnd (C : Cert) (i : ℕ) (idx : Trie Exec.Seg) (r : Res) : Bool :=
+  bif Nat.blt i C.cuts.length then
+    r == .join (C.cutAt (i + 1)).J && Nat.ble (C.cutAt i).start (C.cutAt (i + 1)).start &&
+      (match getF idx (C.cutAt (i + 1)).J with
+      | some s => s.start == (C.cutAt (i + 1)).J && (envOf (C.cutAt (i + 1)).env).sub Sym.beq s.env
+      | none => true)
+  else r == .done
+
+/-- **The check of window `i`** of `f` with core function `cf` and certificate `C`: its
+executor's segments are linked, its walk starts at its start offset in its environment with what
+the previous window handed on, and ends as `winEnd` says; the first window also has the
+parameters in their cells. -/
+noncomputable def checkWin (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert) (main : Bool)
+    (i : ℕ) : Bool :=
+  match execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (locTrie C.locs).seq fun loc ↦
-      linkedWith idx segs && runAt loc 2 cf.params && main == C.facts.fpOne &&
-      (match segAt ⟨G, C.facts, f.entry, idx, loc, cf.params.length, C.nret, main, C.callees, C.post,
-          C.mem, C.known, none⟩
-          0 .nil C.pre with
-        | some st => st.seg.env.sub Sym.beq C.facts.entryEnv &&
-            chkL ⟨G, C.facts, f.entry, idx, loc, cf.params.length, C.nret, main, C.callees, C.post,
-              C.mem, C.known, none⟩
-              cf.body st [] == .done
+      linkedWeak idx segs (C.fxAt G f cf main i segs idx loc).wJ (C.fxAt G f cf main i segs idx loc).wenv &&
+      (bif i == 0 then runAt loc 2 cf.params && main == C.facts.fpOne else true) &&
+      (match segAt (C.fxAt G f cf main i segs idx loc) (C.cutAt i).J
+          (bookOf (C.cutAt i).facts .nil) (C.cutAt i).bnd with
+        | some st => st.seg.env.sub Sym.beq (envOf (C.cutAt i).env) &&
+            winEnd C i idx (chkL (C.fxAt G f cf main i segs idx loc) (C.stmtsAt cf i) st [])
         | none => false)
 
 end
