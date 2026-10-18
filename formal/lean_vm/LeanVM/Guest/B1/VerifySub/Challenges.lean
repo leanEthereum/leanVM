@@ -136,8 +136,9 @@ def eqwIdx : ℕ → ℕ
   | 0 => 598
   | x + 1 => eqwIdx x + (eqwEntry x (eqwStart x)).1.length
 
-theorem vs_eqw_blocks : ∀ x < 16, stmtsEqb (eqwEntry x (eqwStart x)).1
-    ((vsPre.drop (eqwIdx x)).take (eqwEntry x (eqwStart x)).1.length) = true := by decide +kernel
+theorem vs_eqw_blocks : ∀ x < 16,
+    (decide (eqwIdx x + (eqwEntry x (eqwStart x)).1.length ≤ 790) && stmtsEqb (eqwEntry x (eqwStart x)).1
+      ((vsPre.drop (eqwIdx x)).take (eqwEntry x (eqwStart x)).1.length)) = true := by decide +kernel
 
 /-- The factor of coordinate `c` at index `x`. -/
 def eqFactor (a : ℕ → E) (x c : ℕ) : E := if x.testBit c then a c else 1 + a c
@@ -186,8 +187,10 @@ theorem eqKernel4 (a : ℕ → E) (x : ℕ) (hx : x < 16) :
   interval_cases x <;> simp (config := { decide := true }) [eqKernel, eqFactor]
 
 /-- **`fp_w`** (G:2145-2146): the equality weights of the `alpha`s. -/
-theorem vs_fpw (h : VsHolds rd σ) {alphas : List E} (hl : alphas.length = 4)
-    (ha : ReadsAt rd (σ (.n 451)) alphas) : ReadsAt rd (σ (.n 508)) (eqKernel alphas) := by
+theorem vs_fpw {N : ℕ} (h : VsHoldsTo N rd σ) (hN : 790 ≤ N) {alphas : List E}
+    (hl : alphas.length = 4) (ha : ReadsAt rd (σ (.n 451)) alphas) :
+    ReadsAt rd (σ (.n 508)) (eqKernel alphas) := by
+  replace h := h.mono hN
   have ha' : ∀ c < 4, ∀ u, LoadHolds rd (σ (.n 451)) c u → u = alphas.getD c 0 := fun c hc u hu => by
     rw [List.getD_eq_getElem _ _ (by omega)]
     exact loadHolds_unique hu (ha c (by omega))
@@ -197,7 +200,7 @@ theorem vs_fpw (h : VsHolds rd σ) {alphas : List E} (hl : alphas.length = 4)
   intro x hx
   have hlen : (eqKernel [a0, a1, a2, a3]).length = 16 := by simp [eqKernel]
   rw [hlen] at hx
-  have := holds_eqwEntry ha' x _ (h.slice _ _ (vs_eqw_blocks x hx))
+  have := holds_eqwEntry ha' x _ (h.slice' _ _ (vs_eqw_blocks x hx))
   rw [← List.getD_eq_getElem _ 0]
   have e := eqKernel4 (fun c ↦ [a0, a1, a2, a3].getD c 0) x hx
   simp only [List.getD_cons_zero, List.getD_cons_succ] at e

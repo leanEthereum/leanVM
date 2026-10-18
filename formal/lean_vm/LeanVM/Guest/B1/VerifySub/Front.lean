@@ -63,11 +63,12 @@ theorem VsHolds.squeeze (h : VsHolds rd σ) (n : ℕ) (s0 s1 : V) (b : ℕ)
 
 /-! ## The seed -/
 
-theorem vs_seed (h : VsHolds rd σ) :
+theorem vs_seed {N : ℕ} (h : VsHoldsTo N rd σ) (hN : 6 ≤ N) :
     ∃ seed pi : Digest, (σ (.n 2), σ (.n 3)) = digestScalars seed ∧
       (σ (.n 0), σ (.n 1)) = digestScalars pi ∧
       (σ (.n 12), σ (.n 13)) = digestScalars (blake2sBytes (digestBytes seed ++ digestBytes pi)) := by
-  have hs := h.slice 2 [.atom (.const (.n 9) (word 13503953895743350343 11912009169889063794 0)),
+  replace h := h.mono hN
+  have hs := h.slice' 2 [.atom (.const (.n 9) (word 13503953895743350343 11912009169889063794 0)),
     .atom (.const (.n 10) (word 11170449402626986623 6620516960021240235 0)),
     .atom (.const (.n 11) (word 64 4294967295 0)),
     .atom (.blake2s (.n 2) (.n 3) (.n 0) (.n 1) (.n 9) (.n 10) (.n 12) (.n 13) (.n 11))]
@@ -196,12 +197,13 @@ theorem vs_rate {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ
 
 /-- **The memory's log** (G:2111-2114): the first announced word is `E(m)`, `16 ≤ m ≤ 32`, and
 `dims_g[0] = g^m`. -/
-theorem vs_logMem {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) (h : VsHolds Lm.read σ)
+theorem vs_logMem {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) {N : ℕ} (h : VsHoldsTo N Lm.read σ) (hN : 132 ≤ N)
     (ht : ExpTables Lm.read (σ (.n 4)) (σ (.n 5))) :
     ∃ m, 16 ≤ m ∧ m ≤ 32 ∧ σ (.n 15) = eOfNat m ∧ σ (.n 144) = gen ^ m := by
-  obtain ⟨N, hN, hv, hr⟩ := gpw6_pow ht (h.call 125 "g_power_of_word__L6" [.n 15, .n 5] [.n 144]
+  replace h := h.mono hN
+  obtain ⟨N, hN, hv, hr⟩ := gpw6_pow ht (h.call' 125 "g_power_of_word__L6" [.n 15, .n 5] [.n 144]
     (by decide +kernel))
-  have hs := h.slice 126 [.atom (.const (.n 145) (word 4294967296 0 0)),
+  have hs := h.slice' 126 [.atom (.const (.n 145) (word 4294967296 0 0)),
     .atom (.rangeCheck (.n 144) (.n 146) (.n 147) (.n 148) (.n 145)),
     .atom (.const (.n 149) (word 4294967296 0 0)), .atom (.const (.n 150) (word 65536 0 0)),
     .atom (.mul (.n 144) (.n 151) (.n 150)),
@@ -231,20 +233,21 @@ def bkV (b : ℕ) : ℕ := 164 + b + (if 2 < b then 2 else 0) + (if 39 < b then 
 def bkStmt (b : ℕ) : ℕ := 151 + 2 * b + (if 2 < b then 2 else 0) + (if 39 < b then 2 else 0)
 
 theorem vs_kb_blocks : ∀ b < 102, b ≠ 2 → b ≠ 39 →
-    stmtsEqb [.atom (.load (.n (bkV b)) (.n 155) (blockKappaSrc.getD b 0)),
-      .atom (.load (.n (bkV b)) (.n 163) b)] ((vsPre.drop (bkStmt b)).take 2) = true := by
+    (decide (bkStmt b + 2 ≤ 359) && stmtsEqb [.atom (.load (.n (bkV b)) (.n 155) (blockKappaSrc.getD b 0)),
+      .atom (.load (.n (bkV b)) (.n 163) b)] ((vsPre.drop (bkStmt b)).take 2)) = true := by
   decide +kernel
 
 theorem vs_kb_adj : ∀ b ∈ [2, 39],
-    stmtsEqb [.atom (.load (.n (bkV b)) (.n 155) 0),
+    (decide (bkStmt b + 4 ≤ 359) && stmtsEqb [.atom (.load (.n (bkV b)) (.n 155) 0),
       .atom (.const (.n (bkV b + 1)) (word 262144 0 0)),
       .atom (.mul (.n (bkV b + 2)) (.n (bkV b)) (.n (bkV b + 1))),
-      .atom (.load (.n (bkV b + 2)) (.n 163) b)] ((vsPre.drop (bkStmt b)).take 4) = true := by
+      .atom (.load (.n (bkV b + 2)) (.n 163) b)] ((vsPre.drop (bkStmt b)).take 4)) = true := by
   decide +kernel
 
 theorem vs_kbase_blocks : ∀ t < 6,
-    stmtsEqb [.atom (.load (.n (157 + t)) (.n 143) (1 + t)), .atom (.load (.n (157 + t)) (.n 155) (2 + t))]
-      ((vsPre.drop (138 + 2 * t)).take 2) = true := by decide +kernel
+    (decide (138 + 2 * t + 2 ≤ 359) && stmtsEqb [.atom (.load (.n (157 + t)) (.n 143) (1 + t)),
+      .atom (.load (.n (157 + t)) (.n 155) (2 + t))] ((vsPre.drop (138 + 2 * t)).take 2)) = true := by
+  decide +kernel
 
 theorem blockKappaSrc_lt : ∀ b < 102, blockKappaSrc.getD b 0 < 8 := by decide
 
@@ -253,18 +256,19 @@ theorem blockKappaAdj_eq : ∀ b < 102, blockKappaAdj.getD b 0 = if b = 2 ∨ b 
 
 /-- **`dims_g` and `block_kappa`** (G:2113-2123): `dims_g` holds `g^log_mem` then the hinted
 words, and `block_kappa` the blocks' kappas over them. -/
-theorem vs_kappas (h : VsHolds rd σ) :
+theorem vs_kappas {N : ℕ} (h : VsHoldsTo N rd σ) (hN : 359 ≤ N) :
     ReadsAt rd (σ (.n 143)) (σ (.n 144) :: dimsWords σ) ∧
       ReadsAt rd (σ (.n 155)) (kappaBase (σ (.n 144)) (dimsWords σ)) ∧
       ReadsAt rd (σ (.n 163)) (blockKappas (σ (.n 144)) (dimsWords σ)) := by
-  have h132 := h.atom 132 (.load (.n 144) (.n 143) 0) (by decide +kernel)
-  have hb3 := h.slice 135 [.atom (.const (.n 156) (word 1 0 0)), .atom (.load (.n 156) (.n 155) 0),
+  replace h := h.mono hN
+  have h132 := h.atom' 132 (.load (.n 144) (.n 143) 0) (by decide +kernel)
+  have hb3 := h.slice' 135 [.atom (.const (.n 156) (word 1 0 0)), .atom (.load (.n 156) (.n 155) 0),
     .atom (.load (.n 144) (.n 155) 1)] (by decide +kernel)
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, word_one] at hb3
   obtain ⟨h156, l0, l1⟩ := hb3
   rw [h156] at l0
   have hk := fun t (ht : t < 6) => by
-    have := h.slice _ _ (vs_kbase_blocks t ht)
+    have := h.slice' _ _ (vs_kbase_blocks t ht)
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at this
     exact this
   have hdims : ReadsAt rd (σ (.n 143)) (σ (.n 144) :: dimsWords σ) := by
@@ -292,7 +296,7 @@ theorem vs_kappas (h : VsHolds rd σ) :
         gen ^ blockKappaAdj.getD b 0) := fun b hb => by
     rw [blockKappaAdj_eq b hb]
     by_cases hadj : b = 2 ∨ b = 39
-    · have hs := h.slice _ _ (vs_kb_adj b (by rcases hadj with rfl | rfl <;> simp))
+    · have hs := h.slice' _ _ (vs_kb_adj b (by rcases hadj with rfl | rfl <;> simp))
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hs
       obtain ⟨la, hc, hm, lb⟩ := hs
       have hsrc0 : blockKappaSrc.getD b 0 = 0 := by rcases hadj with rfl | rfl <;> rfl
@@ -301,7 +305,7 @@ theorem vs_kappas (h : VsHolds rd σ) :
       rw [hsrc0]
       simp only [hadj, ↓reduceIte]
       exact lb
-    · have hs := h.slice _ _ (vs_kb_blocks b hb (fun e => hadj (Or.inl e))
+    · have hs := h.slice' _ _ (vs_kb_blocks b hb (fun e => hadj (Or.inl e))
         (fun e => hadj (Or.inr e)))
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hs
       obtain ⟨la, lb⟩ := hs

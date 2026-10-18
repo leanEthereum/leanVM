@@ -97,7 +97,7 @@ theorem vs_depth (h : VsHolds rd σ) (ht : ExpTables rd (σ (.n 4)) (σ (.n 5)))
     (hm : m ≤ 32) {hs : List ℕ} (hl : hs.length = 6) (hh : ∀ h ∈ hs, h < 29)
     (h144 : σ (.n 144) = gen ^ m) (hdw : dimsWords σ = hs.map (gen ^ ·)) :
     σ (.n 416) = gen ^ ((pushKappas m hs).map (2 ^ ·)).sum := by
-  obtain ⟨-, -, hbk⟩ := vs_kappas h
+  obtain ⟨-, -, hbk⟩ := vs_kappas (h.to 2136) (by decide)
   obtain ⟨hp, hprod⟩ := vs_push h
   rw [h144, hdw] at hbk
   have hq : ∀ b < 37, σ (.n (pushK b + 2)) = gen ^ 2 ^ (pushKappas m hs).getD b 0 := by
@@ -155,17 +155,17 @@ theorem verify_sub_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : Me
   obtain ⟨σ, rfl, hv⟩ := verify_sub_holds h
   simp only [List.getD_cons_succ, List.getD_cons_zero] at ht
   -- the seed, the sizes, the root
-  obtain ⟨seed, pi, hseed, hpi, h12⟩ := vs_seed hv
+  obtain ⟨seed, pi, hseed, hpi, h12⟩ := vs_seed (hv.to 2136) (by decide)
   obtain ⟨hrd, hst, hrows⟩ := vs_reads hv h12
   obtain ⟨r, hr1, hr2, h121, h138⟩ := vs_rate hκ hκ6 Lm hv ht
-  obtain ⟨m, hm1, hm2, h15, h144⟩ := vs_logMem hκ hκ6 Lm hv ht
+  obtain ⟨m, hm1, hm2, h15, h144⟩ := vs_logMem hκ hκ6 Lm (hv.to 2136) (by decide) ht
   obtain ⟨-, -, h447, root, hroot⟩ := vs_root hv (hst 8 le_rfl)
-  obtain ⟨hdims, hbase, hbk⟩ := vs_kappas hv
+  obtain ⟨hdims, hbase, hbk⟩ := vs_kappas (hv.to 2136) (by decide)
   -- the bus challenges
   obtain ⟨har, h499⟩ := vs_alphas hv h447
   have hal : (sqAll 4 (obsAll (obsAll (blake2sBytes (digestBytes seed ++ digestBytes pi))
       (readWords σ 8)) [σ (.n 419), σ (.n 434)])).1.length = 4 := by simp [sqAll_eq]
-  have hfpw := vs_fpw hv hal har
+  have hfpw := vs_fpw (hv.to 2136) (by decide) hal har
   obtain ⟨h690, h698, h700⟩ := vs_beta hv h499
   -- GKR
   have cG := hv.call 806 "verify_bus_gkr" [.n 690, .n 691, .n 700, .n 417, .n 418]
