@@ -497,6 +497,75 @@ theorem instsKids_kids_kid : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j 
         exact ⟨J', List.mem_append_right _ hJ', h⟩
 end
 
+/-! ## Size -/
+
+mutual
+/-- The call instances of a subtree, phantoms included. -/
+def Tree.count : Tree → ℕ
+  | .node _ _ _ kids => 1 + Tree.countKids kids
+  | .phantom .. => 1
+
+/-- `Tree.count` of a list of subtrees. -/
+def Tree.countKids : List Tree → ℕ
+  | [] => 0
+  | k :: ks => k.count + Tree.countKids ks
+end
+
+mutual
+/-- The `HeapBuf` words of a subtree. -/
+def Tree.bufWords : Tree → ℕ
+  | .node _ _ bufs kids => bufs.sum + Tree.bufWordsKids kids
+  | .phantom .. => 0
+
+/-- `Tree.bufWords` of a list of subtrees. -/
+def Tree.bufWordsKids : List Tree → ℕ
+  | [] => 0
+  | k :: ks => k.bufWords + Tree.bufWordsKids ks
+end
+
+mutual
+/-- **The words allocated**: at most the largest frame per instance, and the `HeapBuf`s. -/
+theorem total_le {F : ℕ} (hF : ∀ f, fs f ≤ F) : ∀ t : Tree, t.total fs ≤ F * t.count + t.bufWords
+  | .node f σ bufs kids => by
+      rw [total_node, Tree.count, Tree.bufWords, Nat.mul_add]
+      have := totalKids_le hF kids
+      have := hF f
+      omega
+  | .phantom f σ => by
+      rw [Tree.total, Tree.count, Tree.bufWords]
+      have := hF f
+      omega
+
+/-- `total_le` for the callees. -/
+theorem totalKids_le {F : ℕ} (hF : ∀ f, fs f ≤ F) :
+    ∀ ks : List Tree, Tree.totalKids fs ks ≤ F * Tree.countKids ks + Tree.bufWordsKids ks
+  | [] => by rw [Tree.totalKids, Tree.countKids, Tree.bufWordsKids]; omega
+  | k :: ks => by
+      rw [totalKids_cons, Tree.countKids, Tree.bufWordsKids, Nat.mul_add]
+      have := total_le hF k
+      have := totalKids_le hF ks
+      omega
+end
+
+mutual
+/-- The allocator places one instance per call instance. -/
+theorem length_insts : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), (t.insts fs lp H fp hdr).length = t.count
+  | .node f σ bufs kids, fp, hdr => by
+      rw [insts_node, Tree.count, List.length_cons,
+        length_instsKids kids _ _ 0 (by rw [length_kidPos, List.length_map])]
+      omega
+  | .phantom f σ, fp, hdr => by rw [insts_phantom, Tree.count]; rfl
+
+/-- `length_insts` for the callees. -/
+theorem length_instsKids : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j : ℕ), ps.length = ks.length →
+    (Tree.instsKids fs lp H I j ps ks).length = Tree.countKids ks
+  | [], _, _, _, _ => by rw [instsKids_nil, Tree.countKids]; rfl
+  | _ :: _, [], _, _, h => absurd h (by simp)
+  | k :: ks, p :: ps, I, j, h => by
+      rw [instsKids_cons, List.length_append, length_insts, Tree.countKids,
+        length_instsKids ks ps I (j + 1) (by simpa using h)]
+end
+
 /-! ## Frame writes -/
 
 /-- A frame's cells by offset: `fp[0]`, `fp[1]` its header, then `C I`. -/
