@@ -60,7 +60,11 @@ call tree (`Memory.honest`) at the certificates' frame sizes `fs`, headers `H` a
   each instance).
 
 `Limits` transcribes the six findings of `TRIAGE.md`; they do not bound the run's size, so the
-size is a seventh limit, `budget s w ≤ 2^28`.
+size is a seventh limit, `budget s w ≤ 2^28`. The deployed budget is linear in the node's work
+(`Budget`: the words a run allocates and the instructions of each opcode it executes, each a
+constant plus a coefficient per declared claim, coverage slot, raw signature or blob, child and
+child's claim, `work s w`), at `Trace.committedSize`'s formula (`Budget.size`), so the final
+statement is `GuestComplete (b.size ∘ work)` for the budget `b` the certificates count.
 
 **Composition** (`aggregate_sound_of`, `aggregate_complete_of`). With
 `knowledgeSoundness_holds`, an adversary in the random-oracle experiment whose statement is the
@@ -315,6 +319,69 @@ structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
   /-- 6. At least one declared claim (G:3207). -/
   nonempty : 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
 
+/-! ## The seventh limit -/
+
+/-- **A node's work**: what the size of its run grows with. -/
+structure Work where
+  /-- The declared claims, of the three lists. -/
+  declared : ℕ
+  /-- The coverage table's slots. -/
+  coverage : ℕ
+  /-- The raw leanXMSS signatures. -/
+  rawXmss : ℕ
+  /-- The raw leanSPHINCS signatures. -/
+  rawSphincs : ℕ
+  /-- The blob matrices held directly. -/
+  rawDa : ℕ
+  /-- The children. -/
+  children : ℕ
+  /-- The children's declared claims, of the three lists. -/
+  childClaims : ℕ
+
+/-- The work of the node `s` with the witness `w`. -/
+def work (s : NodeStatement) (w : NodeWitness) : Work where
+  declared := s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
+  coverage := coverage s w
+  rawXmss := (Hints.direct s.claims.xmss w.xmss).length
+  rawSphincs := (Hints.direct s.claims.sphincs w.sphincs).length
+  rawDa := (Hints.direct s.claims.da w.da).length
+  children := w.children.length
+  childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
+    c.statement.claims.sphincs.length + c.statement.claims.da.length).sum
+
+/-- A bound linear in the work: a constant and a coefficient per unit. -/
+structure Linear where
+  base : ℕ
+  declared : ℕ
+  coverage : ℕ
+  rawXmss : ℕ
+  rawSphincs : ℕ
+  rawDa : ℕ
+  children : ℕ
+  childClaims : ℕ
+
+/-- The bound at the work `u`. -/
+def Linear.eval (l : Linear) (u : Work) : ℕ :=
+  l.base + l.declared * u.declared + l.coverage * u.coverage + l.rawXmss * u.rawXmss +
+    l.rawSphincs * u.rawSphincs + l.rawDa * u.rawDa + l.children * u.children +
+    l.childClaims * u.childClaims
+
+/-- **A size budget**: bounds on the words a run allocates and on the instructions of each opcode
+it executes. -/
+structure Budget where
+  /-- The words allocated. -/
+  words : Linear
+  /-- The instructions of each opcode executed. -/
+  instrs : Opcode → Linear
+
+/-- The committed size of a run within the budget at the work `u`: `Trace.committedSize`'s
+formula at the bounds, the memory on `2^logMem` words. -/
+def Budget.size (b : Budget) (u : Work) : ℕ :=
+  let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 ((b.instrs op).eval u)
+  4 * 2 ^ Memory.logMem (b.words.eval u) + 2 ^ guest.logSize +
+    15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
+    14 * height .jump + 19 * height .blake2s + 2 ^ 8 * height .blake2s
+
 /-- `main`'s header: the public input's two words. -/
 abbrev hdrOf (d : Digest) : E × E := ((publicInputOf d).word0, (publicInputOf d).word1)
 
@@ -351,6 +418,9 @@ def GuestComplete (budget : NodeStatement → NodeWitness → ℕ) : Prop :=
   ∀ seed s w, NodeRel bytecode seed s w → Limits s w → budget s w ≤ 2 ^ 28 →
     ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
       t.committedSize ≤ 2 ^ 28
+
+/-- **Completeness within a linear budget**, the final statement's form. -/
+abbrev GuestCompleteWithin (b : Budget) : Prop := GuestComplete fun s w ↦ b.size (work s w)
 
 /-- The honest memory holds the jump table. -/
 theorem jumpTables_honest {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
