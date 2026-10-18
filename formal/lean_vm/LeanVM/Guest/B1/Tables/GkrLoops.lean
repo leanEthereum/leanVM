@@ -222,7 +222,7 @@ theorem gkr_rounds {rd : Reader} {rounds : E} : ∀ (L : ℕ) (pos prow nrow : E
         ((hsh 0 _).mpr o4) ((hsh 1 _).mpr o5) ((hsh 2 _).mpr o6) ((hsh 3 _).mpr o7)
     rw [hsh] at t0 t1 t2 t3
     refine ⟨ws0 ++ ws', rk :: chs', cl, cvS, by simp [hwl, hwl']; ring,
-      readsAt_append hws (by rw [hwl]; exact hws'), by simp [hcl'], ?_, ?_, ?_, ?_, ?_, ?_⟩
+      readsAt_append_pow hws (by rw [hwl]; exact hws'), by simp [hcl'], ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro k hk
       cases k with
       | zero => rw [loadHolds_gen_pow_mul]; exact hrk

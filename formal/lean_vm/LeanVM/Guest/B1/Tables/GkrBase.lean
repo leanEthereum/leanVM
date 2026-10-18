@@ -142,7 +142,7 @@ theorem readsAt_gen_pow_mul {rd : Reader} {p : E} {a : ℕ} {xs : List E} :
   simp only [ReadsAt, loadHolds_gen_pow_mul]
 
 /-- Two runs of words, one after the other. -/
-theorem readsAt_append {rd : Reader} {p : E} {xs ys : List E} (hx : ReadsAt rd p xs)
+theorem readsAt_append_pow {rd : Reader} {p : E} {xs ys : List E} (hx : ReadsAt rd p xs)
     (hy : ReadsAt rd (p * gen ^ xs.length) ys) : ReadsAt rd p (xs ++ ys) := by
   intro k hk
   rw [readsAt_gen_pow_mul] at hy
@@ -151,18 +151,6 @@ theorem readsAt_append {rd : Reader} {p : E} {xs ys : List E} (hx : ReadsAt rd p
   · rw [List.getElem_append_right (by omega)]
     have := hy (k - xs.length) (by simp at hk; omega)
     rwa [show xs.length + (k - xs.length) = k by omega] at this
-
-/-- Words read at `p` determine the words. -/
-theorem readsAt_unique {rd : Reader} {p : E} {xs ys : List E} (hx : ReadsAt rd p xs)
-    (hy : ReadsAt rd p ys) (hl : xs.length = ys.length) : xs = ys :=
-  List.ext_getElem hl fun k h1 h2 => loadHolds_unique (hx k h1) (hy k h2)
-
-/-- Choices below `m` as a function. -/
-theorem exists_fun_of_forall {α : Type} [Nonempty α] {P : ℕ → α → Prop} {m : ℕ}
-    (h : ∀ j < m, ∃ v, P j v) : ∃ f : ℕ → α, ∀ j < m, P j (f j) := by
-  classical
-  exact ⟨fun j => if hj : j < m then Classical.choose (h j hj) else Classical.ofNonempty,
-    fun j hj => by simp only [hj, ↓reduceDIte]; exact Classical.choose_spec (h j hj)⟩
 
 /-! ## Runs -/
 

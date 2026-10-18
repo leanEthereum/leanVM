@@ -345,7 +345,7 @@ theorem loop10_step {rd : Reader} {N dsb gmu layers rounds x : E}
   simp only [sqAll] at hrun
   rw [← h277, ← h291] at hrun
   refine ⟨_, _, _, hrun, ?_, ?_⟩
-  · refine readsAt_append hws ?_
+  · refine readsAt_append_pow hws ?_
     rw [hwl, ← e54]
     intro k hk
     have hk' : k < 12 := by simpa using hk
@@ -388,7 +388,7 @@ theorem loop10_step {rd : Reader} {N dsb gmu layers rounds x : E}
     rw [← this]; exact t320
   · rw [a322, a321, e30] at t322; exact t322
   · rw [a47, a46, e30] at hchs
-    refine readsAt_append ?_
+    refine readsAt_append_pow ?_
       (by simp only [List.length_cons, List.length_nil, Nat.reduceAdd]; exact hchs)
     intro k hk
     have hk' : k < 2 := by simpa using hk

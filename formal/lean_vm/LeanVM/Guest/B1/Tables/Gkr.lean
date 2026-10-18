@@ -369,7 +369,7 @@ theorem verify_bus_gkr_sound {κ : ℕ} (hκ : κ ≤ 32) (Lm : MemImage κ) : S
       obtain ⟨ys, s, cv', row, hrd, hrun, hl⟩ := ih (by omega)
       obtain ⟨ys2, s2, cv2, hrun2, hrd2, hl2⟩ := hP i (by omega) i (d % 2) rfl hsh (by omega)
         (Nat.mod_lt _ (by decide)) cv' _ s row hl
-      refine ⟨ys ++ ys2, s2, cv2, row * gen ^ 40, readsAt_append hrd hrd2, ?_, ?_⟩
+      refine ⟨ys ++ ys2, s2, cv2, row * gen ^ 40, readsAt_append_pow hrd hrd2, ?_, ?_⟩
       · rw [show gkrPairs (i + 1) = fun t => gkrPairs i t >>= gkrStep 2 from rfl, ← bind_assoc]
         exact hrun.bind hrun2
       · rw [show 2 * (i + 1) + d % 2 = 2 * i + d % 2 + 2 by ring, List.length_append, pow_add,
@@ -415,7 +415,7 @@ theorem verify_bus_gkr_sound {κ : ℕ} (hκ : κ ≤ 32) (Lm : MemImage κ) : S
     exact runsTo_ret _ _
   refine ⟨cvq, d, [σ (.n 19), σ (.n 34)] ++ ys, (σ (.n 34), sF.point, sF.values), cvF, hcvq, hgmu,
     hd, ?_, ?_, gpl, gv, hz, ?_⟩
-  · refine readsAt_append ?_
+  · refine readsAt_append_pow ?_
       (by simp only [List.length_cons, List.length_nil, Nat.reduceAdd]; exact hrd)
     intro k hk
     have hk' : k < 2 := by simpa using hk
