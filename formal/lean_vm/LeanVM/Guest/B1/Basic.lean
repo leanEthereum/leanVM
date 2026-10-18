@@ -1,0 +1,384 @@
+/-
+  LeanVM.Guest.B1.Basic
+
+  The shared vocabulary of the B1 lemmas: a function's relation unfolded to its body, the
+  compile-time words of the guest's data, memory runs, runs of the specification's programs on
+  the Fiat-Shamir chain, valuations built block by block, and `mul_range` loops.
+-/
+
+module
+
+public import LeanVM.Guest.CoreData
+public import LeanVM.Guest.CoreLemmas
+public import LeanVM.Guest.Value.All
+
+/-!
+# B1: shared vocabulary
+
+* `rel_iff_sem`, `relN_succ_iff`: a function's relation is its body's (`Program.Rel` is a fixed
+  point, `rel_iff`), and at a finite depth its calls are one level shallower.
+* `word_*`: the constants the data writes as `word c0 c1 c2`, as the Spec's words (`y`, `y²`,
+  `y⁻¹`, `E(n)`, `g^a`, the IV cells, the metadata cell of one final block).
+* `ReadsAt rd p xs`: the words `xs` lie in memory from the pointer `p`, word `k` at `p·g^k`;
+  `loadHolds_mul_gen_pow`: a load through `p·g^j` at offset `k` is the load at offset `j + k`.
+* `RunsTo p cv xs a cv'`: the specification's program `p` (`Compile.Prog`) runs from the chain
+  state `cv`, reading exactly the stream words `xs`, to the value `a` and the state `cv'`
+  (`Compile.run` on the deployed hash, on any stream continuing `xs`, any openings and roots).
+  `RunsTo.bind`, `runsTo_readE`, `runsTo_sampleE`, `runsTo_readN`, `runsTo_sampleN` compose runs;
+  `RunsTo.unique` makes them functions of the state and the words read.
+* `setv σ b n f`: `σ` with the values `.n (b + k)`, `k < n`, set to `f k`: how an honest
+  valuation is built, block after block (`set_n_in`, `set_n_lt`, `set_n_ge` evaluate it).
+* `loop_iff`: a `mul_range` loop helper, from `g^k` to its end `N`, holds exactly when `N = g^m`
+  for the first `m > k` the loop reaches and its body holds at every `g^j`, `k ≤ j < m`;
+  `loop_iff_ord` restates it below the order of `g`.
+-/
+
+namespace LeanVM.Guest.B1
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+
+@[expose] public section
+
+/-! ## Unfolding a function -/
+
+/-- A function's relation is its body's, once it is found by name. -/
+theorem rel_iff_sem {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
+    (h : P.find? f = some fn) (args rets : List E) :
+    P.Rel rd f args rets ↔
+      ∃ σ : Val, fn.params.map σ = args ∧
+        Stmt.HoldsList (P.Rel rd) rd σ fn.body False (fun rs => rs = rets) := by
+  rw [rel_iff]
+  simp only [h, Option.some.injEq, exists_eq_left', Fn.Sem]
+
+/-- The same at a finite depth: the body's calls one level shallower. -/
+theorem relN_succ_iff {P : Core.Program} {rd : Reader} {f : String} {fn : Fn}
+    (h : P.find? f = some fn) (n : ℕ) (args rets : List E) :
+    P.relN rd (n + 1) f args rets ↔
+      ∃ σ : Val, fn.params.map σ = args ∧
+        Stmt.HoldsList (P.relN rd n) rd σ fn.body False (fun rs => rs = rets) := by
+  simp only [Program.relN, h, Option.some.injEq, exists_eq_left', Fn.Sem]
+
+/-! ## Compile-time words -/
+
+theorem word_eOfNat (n : ℕ) : word n 0 0 = eOfNat n := by
+  rw [word, eOfNat_eq_ofLimbs]
+  rfl
+
+theorem word_zero : word 0 0 0 = 0 := by rw [word_eOfNat, eOfNat_zero]
+
+theorem word_one : word 1 0 0 = 1 := by rw [word_eOfNat, eOfNat_one]
+
+theorem word_gen : word 2 0 0 = gen := by rw [word_eOfNat]; rfl
+
+/-- `E(2^a)` is `g^a` below the first reduction. -/
+theorem word_two_pow {a : ℕ} (h : a < 64) : word (2 ^ a) 0 0 = gen ^ a := by
+  rw [word_eOfNat, gen_pow_eq_eOfNat h]
+
+theorem word_y : word 0 1 0 = y := by rw [y_eq]; rfl
+
+theorem word_yy : word 0 0 1 = y * y := by
+  rw [y_eq, mul_limbs]
+  simp only [word, ofLimbs_inj]
+  refine ⟨?_, ?_, ?_⟩ <;> ring_nf <;> rfl
+
+theorem word_y_inv : word 1 0 1 = y⁻¹ := by rw [y_inv]; rfl
+
+/-- `y · E(t)`, the data's `word 0 t 0`. -/
+theorem word_y_mul (t : ℕ) : word 0 t 0 = y * eOfNat t := by
+  rw [eOfNat_eq_ofLimbs, y_eq, mul_limbs]
+  simp only [word, ofLimbs_inj]
+  refine ⟨?_, ?_, ?_⟩ <;> ring_nf <;> rfl
+
+theorem word_iv0 : word 13503953895743350343 11912009169889063794 0 = Value.ivCells.1 := by
+  rw [ivCells_eq]; rfl
+
+theorem word_iv1 : word 11170449402626986623 6620516960021240235 0 = Value.ivCells.2 := by
+  rw [ivCells_eq]; rfl
+
+/-- The metadata of one final 64-byte block. -/
+theorem word_md64 : word 64 4294967295 0 = metadataCell 64 true := rfl
+
+/-! ## Words in `K` -/
+
+theorem isInK_add {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a + b) := by
+  obtain ⟨a, rfl⟩ := (isInK_iff _).mp ha
+  obtain ⟨b, rfl⟩ := (isInK_iff _).mp hb
+  rw [← ofK_add]; exact ofK_isInK _
+
+theorem isInK_mul {a b : E} (ha : IsInK a) (hb : IsInK b) : IsInK (a * b) := by
+  obtain ⟨a, rfl⟩ := (isInK_iff _).mp ha
+  obtain ⟨b, rfl⟩ := (isInK_iff _).mp hb
+  rw [← ofK_mul]; exact ofK_isInK _
+
+theorem gen_pow_isInK (j : ℕ) : IsInK (gen ^ j) := by
+  rw [gen_pow_eq_ofK]; exact ofK_isInK _
+
+theorem isInK_mul_ofK {p : E} {c : K} (hc : c ≠ 0) : IsInK (p * ofK c) ↔ IsInK p := by
+  rw [eq_ofLimbs p, ofLimbs_mul_ofK, isInK_ofLimbs_iff, isInK_ofLimbs_iff]
+  simp [hc]
+
+theorem limb0_mul_ofK {p : E} (hp : IsInK p) (c : K) : (p * ofK c).limb 0 = p.limb 0 * c := by
+  rw [eq_ofLimbs p, ofLimbs_mul_ofK, hp.1, hp.2]
+  rfl
+
+/-! ## Memory runs -/
+
+/-- The words `xs` lie in memory from `p`: word `k` at `p·g^k`. -/
+def ReadsAt (rd : Reader) (p : E) (xs : List E) : Prop :=
+  ∀ k (hk : k < xs.length), LoadHolds rd p k xs[k]
+
+theorem readsAt_nil (rd : Reader) (p : E) : ReadsAt rd p [] := fun _ hk => absurd hk (by simp)
+
+/-- A load through `p·g^j` at offset `k` is the load at offset `j + k`. -/
+theorem loadHolds_mul_gen_pow (rd : Reader) (p : E) (j k : ℕ) (w : E) :
+    LoadHolds rd (p * gen ^ j) k w ↔ LoadHolds rd p (j + k) w := by
+  have hg : Parameters.gpow j ≠ 0 := pow_ne_zero _ g_ne_zero
+  rw [gen_pow_eq_ofK]
+  unfold LoadHolds
+  rw [isInK_mul_ofK hg]
+  constructor
+  · rintro ⟨hp, h⟩
+    rw [limb0_mul_ofK hp, mul_assoc, Parameters.gpow, Parameters.gpow, ← pow_add] at h
+    exact ⟨hp, h⟩
+  · rintro ⟨hp, h⟩
+    refine ⟨hp, ?_⟩
+    rw [limb0_mul_ofK hp, mul_assoc, Parameters.gpow, Parameters.gpow, ← pow_add]
+    exact h
+
+/-! ## Runs of the specification's programs -/
+
+/-- `Compile.run` over the deployed hash. -/
+abbrev runId {α : Type} (p : Prog α) (s : St) : Option (α × St) :=
+  Compile.run (m := Id) blake2sBytes p s
+
+theorem prog_bind_eq {α β : Type} (p : Prog α) (f : α → Prog β) : p >>= f = p.bind f := rfl
+
+theorem prog_pure_eq {α : Type} (a : α) : (pure a : Prog α) = Prog.ret a := rfl
+
+theorem run_bind {α β : Type} (p : Prog α) (f : α → Prog β) (s : St) :
+    runId (p.bind f) s = (runId p s).bind (fun r => runId (f r.1) r.2) := by
+  induction p generalizing s with
+  | ret a => rfl
+  | fail => rfl
+  | read k ih =>
+    simp only [runId, Prog.bind, Compile.run]
+    split
+    · rfl
+    · exact ih _ _
+  | sample k ih => exact ih _ _
+  | grind b k ih =>
+    simp only [runId, Prog.bind, Compile.run]
+    split
+    · rfl
+    · simp only [bind, pure]
+      split
+      · exact ih _
+      · rfl
+  | commit h w k ih =>
+    simp only [runId, Prog.bind, Compile.run]
+    split
+    · simp only [bind]
+      split
+      · exact ih _
+      · rfl
+    · rfl
+  | query i ps k ih =>
+    simp only [runId, Prog.bind, Compile.run]
+    split
+    · rfl
+    · simp only [bind]
+      split
+      · exact ih _ _
+      · rfl
+
+/-- The chain after absorbing a stream word (`.read`, `Node.observe`). -/
+def obsCv (cv : Digest) (x : E) : Digest := blake2sBytes (digestBytes cv ++ blockOf x 1)
+
+/-- The chain after a squeeze (`.sample`, `Node.squeeze`). -/
+def sqCv (cv : Digest) : Digest := blake2sBytes (digestBytes cv ++ blockOf 0 2)
+
+/-- The program `p` runs from the chain state `cv`, reading exactly `xs`, to `a` and `cv'`, on
+any stream continuing `xs`, any openings and any roots. -/
+def RunsTo {α : Type} (p : Prog α) (cv : Digest) (xs : List E) (a : α) (cv' : Digest) : Prop :=
+  ∀ (rest : List E) (os : List Opening) (roots : List (Digest × ℕ × ℕ)),
+    runId p ⟨cv, xs ++ rest, os, roots⟩ = some (a, ⟨cv', rest, os, roots⟩)
+
+theorem RunsTo.of_eq {α : Type} {p : Prog α} {cv : Digest} {xs xs' : List E} {a a' : α}
+    {c c' : Digest} (h : RunsTo p cv xs a c) (hx : xs = xs') (ha : a = a') (hc : c = c') :
+    RunsTo p cv xs' a' c' := by
+  subst hx ha hc; exact h
+
+theorem RunsTo.unique {α : Type} {p : Prog α} {cv : Digest} {xs : List E} {a b : α}
+    {c1 c2 : Digest} (h1 : RunsTo p cv xs a c1) (h2 : RunsTo p cv xs b c2) : a = b ∧ c1 = c2 := by
+  have := (h1 [] [] []).symm.trans (h2 [] [] [])
+  simp only [Option.some.injEq, Prod.mk.injEq, St.mk.injEq] at this
+  exact ⟨this.1, this.2.1⟩
+
+/-- A run determines its value and final state. -/
+theorem RunsTo.iff {α : Type} {p : Prog α} {cv : Digest} {xs : List E} {a b : α}
+    {c1 c2 : Digest} (h1 : RunsTo p cv xs a c1) : RunsTo p cv xs b c2 ↔ b = a ∧ c2 = c1 := by
+  constructor
+  · intro h2
+    obtain ⟨h, h'⟩ := h1.unique h2
+    exact ⟨h.symm, h'.symm⟩
+  · rintro ⟨rfl, rfl⟩
+    exact h1
+
+theorem runsTo_ret {α : Type} (a : α) (cv : Digest) : RunsTo (pure a : Prog α) cv [] a cv :=
+  fun _ _ _ => rfl
+
+theorem RunsTo.bind {α β : Type} {p : Prog α} {f : α → Prog β} {cv cv1 cv2 : Digest}
+    {xs ys : List E} {a : α} {b : β} (h1 : RunsTo p cv xs a cv1) (h2 : RunsTo (f a) cv1 ys b cv2) :
+    RunsTo (p >>= f) cv (xs ++ ys) b cv2 := by
+  intro rest os roots
+  rw [prog_bind_eq, run_bind, List.append_assoc, h1]
+  exact h2 rest os roots
+
+theorem runsTo_readE (cv : Digest) (x : E) : RunsTo Prog.readE cv [x] x (obsCv cv x) :=
+  fun _ _ _ => rfl
+
+theorem runsTo_sampleE (cv : Digest) :
+    RunsTo Prog.sampleE cv [] (challengeOf (sqCv cv)) (sqCv cv) := fun _ _ _ => rfl
+
+/-- The chain after absorbing the words `xs` in order. -/
+def obsAll (cv : Digest) (xs : List E) : Digest := xs.foldl obsCv cv
+
+theorem runsTo_readN (cv : Digest) (xs : List E) :
+    RunsTo (Prog.readN xs.length) cv xs xs (obsAll cv xs) := by
+  induction xs generalizing cv with
+  | nil => exact runsTo_ret _ _
+  | cons x xs ih =>
+    have h := (runsTo_readE cv x).bind (f := fun x => do let xs ← Prog.readN xs.length; return x :: xs)
+      ((ih (obsCv cv x)).bind (f := fun xs => (pure (x :: xs) : Prog (List E)))
+        (runsTo_ret (x :: xs) _))
+    simpa [Prog.readN, obsAll, List.foldl] using h
+
+/-- `n` squeezes from `cv`: the challenges and the final state. -/
+def sqAll : ℕ → Digest → List E × Digest
+  | 0, cv => ([], cv)
+  | n + 1, cv => (challengeOf (sqCv cv) :: (sqAll n (sqCv cv)).1, (sqAll n (sqCv cv)).2)
+
+theorem runsTo_sampleN (n : ℕ) (cv : Digest) :
+    RunsTo (Prog.sampleN n) cv [] (sqAll n cv).1 (sqAll n cv).2 := by
+  induction n generalizing cv with
+  | zero => exact runsTo_ret _ _
+  | succ n ih =>
+    have h := (runsTo_sampleE cv).bind (f := fun x => do let xs ← Prog.sampleN n; return x :: xs)
+      ((ih (sqCv cv)).bind (f := fun xs => (pure (challengeOf (sqCv cv) :: xs) : Prog (List E)))
+        (runsTo_ret _ _))
+    simpa [Prog.sampleN, sqAll] using h
+
+/-! ## Building valuations -/
+
+/-- `σ` with the values `.n (b + k)`, `k < n`, set to `f k`. -/
+def setv (σ : Val) (b n : ℕ) (f : ℕ → E) : Val := fun v =>
+  if v.path = [] ∧ v.tag = 0 ∧ b ≤ v.idx ∧ v.idx < b + n then f (v.idx - b) else σ v
+
+theorem set_n_in {σ : Val} {b n k : ℕ} {f : ℕ → E} (h1 : b ≤ k) (h2 : k < b + n) :
+    setv σ b n f (.n k) = f (k - b) := by
+  unfold setv
+  split
+  · rfl
+  · rename_i h
+    exact absurd ⟨rfl, rfl, h1, h2⟩ h
+
+theorem set_n_lt {σ : Val} {b n k : ℕ} {f : ℕ → E} (h : k < b) : setv σ b n f (.n k) = σ (.n k) := by
+  unfold setv
+  split
+  · rename_i h'
+    exact absurd h'.2.2.1 (by simp only; omega)
+  · rfl
+
+theorem set_n_ge {σ : Val} {b n k : ℕ} {f : ℕ → E} (h : b + n ≤ k) :
+    setv σ b n f (.n k) = σ (.n k) := by
+  unfold setv
+  split
+  · rename_i h'
+    exact absurd h'.2.2.2 (by simp only; omega)
+  · rfl
+
+/-- The valuation of a function's arguments, `.n k ↦ args[k]`. -/
+def Val.ofArgs (args : List E) : Val := fun v => args.getD v.idx 0
+
+/-- `σ` with the values from `.n b` on set to the words `l`. -/
+abbrev setl (σ : Val) (b : ℕ) (l : List E) : Val := setv σ b l.length (fun k => l.getD k 0)
+
+theorem ofArgs_n (args : List E) (k : ℕ) : Val.ofArgs args (.n k) = args.getD k 0 := rfl
+
+/-- Evaluate a lookup in a valuation built by `setv`/`setl` on `Val.ofArgs`, the side conditions
+by `omega` from the context. -/
+macro "b1_look" : tactic =>
+  `(tactic| simp (disch := omega) only [setl, set_n_lt, set_n_ge, set_n_in, Nat.add_sub_cancel_left,
+    ofArgs_n, List.getD_cons_succ, List.getD_cons_zero, List.length_cons, List.length_nil,
+    Nat.reduceAdd, Nat.reduceSub, Nat.add_zero, Nat.sub_self, Nat.zero_add])
+
+/-! ## `mul_range` loops -/
+
+/-- The order of `g`. -/
+abbrev ordG : ℕ := 2 ^ 64 - 1
+
+theorem gen_pow_mul_gen (j : ℕ) : gen ^ j * gen = gen ^ (j + 1) := (pow_succ gen j).symm
+
+theorem gen_pow_add_eq_zero_iff {N : E} (j : ℕ) : gen ^ j * gen + N = 0 ↔ N = gen ^ (j + 1) := by
+  rw [gen_pow_mul_gen, e_add_eq_zero_iff, eq_comm]
+
+/-- **A `mul_range` loop** (`for x in mul_range(g^k, N)`, lowered to a helper `f` that runs its
+body at `x`, then calls itself at `x·g` while `x·g ≠ N`): if `f`'s relation at depth `d + 1` is
+its body's meaning `B x` and the conditional call, then `f` holds at `g^k` exactly when the loop
+ends: `N = g^m` for the first `m > k` it reaches, and `B` holds at every `g^j`, `k ≤ j < m`. -/
+theorem loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : List E} {N : E}
+    {B : E → Prop}
+    (hstep : ∀ d x, P.relN rd (d + 1) f (x :: ps) [] ↔
+      B x ∧ IsInK (x * gen + N) ∧ (x * gen + N ≠ 0 → P.relN rd d f (x * gen :: ps) []))
+    (k : ℕ) :
+    P.Rel rd f (gen ^ k :: ps) [] ↔
+      ∃ m, k < m ∧ N = gen ^ m ∧ (∀ j, k < j → j < m → gen ^ j ≠ N) ∧
+        ∀ j, k ≤ j → j < m → B (gen ^ j) := by
+  constructor
+  · rintro ⟨d, hd⟩
+    induction d generalizing k with
+    | zero => exact hd.elim
+    | succ d ih =>
+      obtain ⟨hB, -, hnext⟩ := (hstep d _).mp hd
+      by_cases h0 : gen ^ k * gen + N = 0
+      · refine ⟨k + 1, by omega, (gen_pow_add_eq_zero_iff k).mp h0, fun j h1 h2 => by omega,
+          fun j h1 h2 => ?_⟩
+        rwa [show j = k by omega]
+      · have := hnext h0
+        rw [gen_pow_mul_gen] at this
+        obtain ⟨m, hm, hN, hfirst, hall⟩ := ih (k + 1) this
+        refine ⟨m, by omega, hN, fun j h1 h2 => ?_, fun j h1 h2 => ?_⟩
+        · rcases Nat.lt_or_ge (k + 1) j with h | h
+          · exact hfirst j h h2
+          · rw [show j = k + 1 by omega]
+            intro he
+            exact h0 ((gen_pow_add_eq_zero_iff k).mpr he.symm)
+        · rcases Nat.lt_or_ge k j with h | h
+          · exact hall j (by omega) h2
+          · rwa [show j = k by omega]
+  · rintro ⟨m, hkm, hN, hfirst, hall⟩
+    obtain ⟨t, rfl⟩ : ∃ t, m = k + 1 + t := ⟨m - k - 1, by omega⟩
+    have hK : ∀ j, IsInK (gen ^ j * gen + N) := fun j => by
+      rw [hN]; exact isInK_add (isInK_mul (gen_pow_isInK j) (by simpa using gen_pow_isInK 1)) (gen_pow_isInK _)
+    refine ⟨t + 1, ?_⟩
+    induction t generalizing k with
+    | zero =>
+      exact (hstep 0 _).mpr ⟨hall k le_rfl (by omega), hK k,
+        fun h => absurd ((gen_pow_add_eq_zero_iff k).mpr hN) h⟩
+    | succ t ih =>
+      refine (hstep (t + 1) _).mpr ⟨hall k le_rfl (by omega), hK k, fun _ => ?_⟩
+      rw [gen_pow_mul_gen]
+      exact ih (k + 1) (by omega) (by rw [hN]; congr 1; omega)
+        (fun j h1 h2 => hfirst j (by omega) (by omega)) (fun j h1 h2 => hall j (by omega) (by omega))
+
+/-- Below the order of `g`, the first `m > k` the loop reaches is the `m` with `N = g^m`. -/
+theorem first_hit_of_lt {N : E} {k m : ℕ} (hm : m < ordG) (hN : N = gen ^ m) :
+    ∀ j, k < j → j < m → gen ^ j ≠ N := fun j _ hj h => by
+  have hm' : m < 2 ^ 64 - 1 := hm
+  rw [hN] at h
+  have := gen_pow_inj (by omega) hm h
+  omega
+
+end
+end LeanVM.Guest.B1
