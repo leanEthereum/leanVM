@@ -6,7 +6,7 @@ Read in this order:
 
 1. [`Field.lean`](Field.lean): the fields `K = GF(2^64)` and `E = GF(2^192)`, and the generator `g`.
 2. [`Blake2s.lean`](Blake2s.lean): the BLAKE2s compression function and BLAKE2s-256 of bytes.
-3. [`Isa.lean`](Isa.lean): leanISA (programs, memory, one step, valid executions) and the encoding of an instruction.
+3. [`Isa.lean`](Isa.lean): leanISA (programs, memory, one step, valid executions, the instructions of each opcode an execution executes) and the encoding of an instruction.
 4. [`Verifier.lean`](Verifier.lean): the verifier, transcribed from leanVM's Python verifier, with the WHIR and Flock constants it reads and the Fiat-Shamir transcript it runs on; and the deferring verifier an aggregate runs on its children, which takes the values of the fixed polynomials from claims instead of computing them. The prover announces each table's row count, the table's height being the least power of two holding them; the bus discounts the rows past the count (padding rows) through a public term (`paddingWeight`, `Table.padding`).
 5. [`Statement.lean`](Statement.lean): the random-oracle experiment and the two statements, `KnowledgeSoundness` and `Completeness`.
 

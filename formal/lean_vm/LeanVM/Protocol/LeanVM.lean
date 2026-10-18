@@ -27,8 +27,9 @@ for `Q ≤ 2^64` (`soundnessError_le`). The `2^-128` is per oracle query: every 
 protocol's challenges, discounted by the proof of work before it, escapes with probability at
 most `2^-128`, certified for every admissible size and rate (`Whir.Params.Deployed`).
 
-**Completeness** (`completeness`): for a valid execution of at most `2^19` steps, with a memory
-of at most `2^23` words and a bytecode of at most `2^23` instructions, the honest prover
+**Completeness** (`completeness`): for a valid execution whose committed size
+(`Trace.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
+most `2^28`, the most the verifier admits, the honest prover
 (`honestProver`), run in the same random-oracle experiment, makes the verifier reject with probability at most
 `completenessError fuel`, which is below `2^-128` at a fuel of `2^25` nonces per proof of work
 (`completenessError_le`). The honest prover is a specification, not an implementation.
@@ -164,20 +165,19 @@ theorem completenessError_eq (fuel : ℕ) :
   rw [completenessError, Complete.completenessError, hQ]
   rfl
 
-/-- **Completeness.** For a valid execution of at most `2^19` steps, with a memory of at most
-`2^23` words and a bytecode of at most `2^23` instructions, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the
-random-oracle experiment, with probability at most `completenessError fuel`. -/
+/-- **Completeness.** For a valid execution whose committed size is at most `2^28`, at an inverse
+rate `2^ρ` with `1 ≤ ρ ≤ 4`: the verifier rejects the honest prover's proof, in the random-oracle
+experiment, with probability at most `completenessError fuel`. -/
 theorem completeness {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hv : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ 19)
-    (hmem : t.κ ≤ 23) (hcode : prog.logSize ≤ 23) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ}
-    (hfuel : fuel ≤ 2 ^ 64) :
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
+    (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤
       completenessError fuel := by
   have hV : (fun π ↦ verifier queryH prog input π) =
       verifierComp (leanVmSeed (Front.bytecodeWords prog) (Complete.publicDigest input))
         (leanVmProgram (Front.bytecodeWords prog) (Complete.publicDigest input)) :=
     funext fun π ↦ (verifierComp_leanVm _ _ π).symm
-  have h := Complete.romComplete_leanVm hv ⟨hsteps, hmem, hcode⟩ hρ hfuel
+  have h := Complete.romComplete_leanVm hv hbudget hρ hfuel
   rw [← hV, ← completenessError_eq] at h
   rw [experiment_eq]
   unfold honestProver
@@ -198,8 +198,7 @@ theorem knowledgeSoundness_holds : KnowledgeSoundness :=
 
 /-- **Completeness holds**, with the honest prover `honestProver`. -/
 theorem completeness_holds : Completeness :=
-  ⟨Complete.honestComp, fun _ _ _ _ _ hv hsteps hmem hcode hρ hfuel ↦
-    completeness hv hsteps hmem hcode hρ hfuel⟩
+  ⟨Complete.honestComp, fun _ _ _ _ _ hv hbudget hρ hfuel ↦ completeness hv hbudget hρ hfuel⟩
 
 end
 end LeanVM

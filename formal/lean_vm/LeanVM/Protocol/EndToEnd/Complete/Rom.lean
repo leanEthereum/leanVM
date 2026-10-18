@@ -1,9 +1,10 @@
 /-
   LeanVM.Protocol.EndToEnd.Complete.Rom
 
-  Completeness of the leanVM verifier in the random-oracle model: the honest prover of a small
-  valid execution, run against the random oracle, makes the verifier reject with probability at
-  most `completenessError fuel`, below `2^-128` at a fuel of `2^25` nonces per proof of work.
+  Completeness of the leanVM verifier in the random-oracle model: the honest prover of a valid
+  execution within the budget, run against the random oracle, makes the verifier reject with
+  probability at most `completenessError fuel`, below `2^-128` at a fuel of `2^25` nonces per
+  proof of work.
 -/
 
 module
@@ -63,17 +64,17 @@ noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
   (completenessQueries fuel : ℝ≥0∞) *
     (missProb Whir.queryGrindingBits ^ fuel + (completenessQueries fuel : ℝ≥0∞) / 2 ^ 256)
 
-/-- **Completeness in the random-oracle model.** For a valid execution that is small, at a valid
-rate, and a fuel of at most `2^64` nonces, the verifier rejects
-the honest prover's proof with probability at most `completenessError fuel`. -/
+/-- **Completeness in the random-oracle model.** For a valid execution whose committed size is at
+most `2^28`, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects the honest
+prover's proof with probability at most `completenessError fuel`. -/
 theorem romComplete_leanVm {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
-    (hv : ValidExecution prog input t) (hsmall : t.Small)
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ maxMu)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (honestComp prog input t ρ fuel)
         (verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
           (leanVmProgram (bytecodeWords prog) (publicDigest input)))}[z.1.2 = false] ≤
       completenessError fuel := by
-  obtain ⟨w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness hv hsmall
+  obtain ⟨w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness hv hbudget
   have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
   unfold honestComp
   simp only [hex, ↓reduceDIte]

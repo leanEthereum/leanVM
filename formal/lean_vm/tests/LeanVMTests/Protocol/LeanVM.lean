@@ -34,11 +34,11 @@ example {Q : ℕ} (hQ : Q ≤ 2 ^ 64) : soundnessError Q ≤ (2 : ENNReal)⁻¹ 
   soundnessError_le hQ
 
 example {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hv : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ 19) (hmem : t.κ ≤ 23)
-    (hcode : prog.logSize ≤ 23) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
+    (hv : ValidExecution prog input t) (hbudget : t.committedSize ≤ 2 ^ 28) {ρ : ℕ}
+    (hρ : 1 ≤ ρ ∧ ρ ≤ 4) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← experiment (honestProver prog input t ρ fuel)}[z.1.2 = false] ≤
       completenessError fuel :=
-  completeness hv hsteps hmem hcode hρ hfuel
+  completeness hv hbudget hρ hfuel
 
 example : completenessError (2 ^ 25) ≤ (2 : ENNReal)⁻¹ ^ 128 := completenessError_le
 

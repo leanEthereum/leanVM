@@ -32,9 +32,10 @@ execution of the program on the public input is at most `soundnessError Q`. The 
 required to be efficient, so the proposition says no more than soundness: the verifier accepts
 a statement that has no valid execution with probability at most `soundnessError Q`.
 
-**Completeness** (`Completeness`): there is an honest prover which, given a valid execution of a
-program of at most `2^19` steps, with a memory of at most `2^23` words and a bytecode of at most
-`2^23` instructions, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64`
+**Completeness** (`Completeness`): there is an honest prover which, given a valid execution whose
+committed size is at most `2^28`, the most the verifier admits (`Trace.committedSize`: the cells
+of the memory, of the bytecode's counts and of one table per opcode, a row per instruction of that
+opcode the execution executes, `Trace.count`), at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64`
 nonces per proof of work, makes the verifier reject with probability at most
 `completenessError fuel`. The honest prover is not required to be efficient either.
 
@@ -154,11 +155,24 @@ noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
   let Q : ℕ := 13216 + 13210 * (2 ^ 27 + fuel + 1)
   Q * ((1 - (2 : ℝ≥0∞)⁻¹ ^ 17) ^ fuel + Q / 2 ^ 256)
 
+/-- **The committed size of an execution**: the number of cells the honest prover commits to,
+every committed column at its table's height, the least power of two holding the table's rows
+(`1` for no row). The memory has four columns of `2^κ` rows, and the bytecode's counts (`BFCNT`)
+one of `2^logSize` rows. Each opcode has a table of one row per instruction of that opcode the execution
+executes (`Trace.count`), with `15, 15, 8, 15, 14, 19` committed columns for `XOR`, `MUL_NATIVE`,
+`SET_CONSTANT`, `DEREF`, `JUMP`, `BLAKE2S`; and Flock's region has `2^8` rows per row of the
+`BLAKE2S` table. -/
+noncomputable def Semantics.Trace.committedSize {prog : Program} (t : Trace prog) : ℕ :=
+  let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (t.count op)
+  4 * 2 ^ t.κ + 2 ^ prog.logSize +
+    15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
+    14 * height .jump + 19 * height .blake2s + 2 ^ 8 * height .blake2s
+
 /-- **Completeness in the random-oracle model.** -/
 def Completeness : Prop :=
   ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ),
     ValidExecution prog input t →
-    t.steps ≤ 2 ^ 19 → t.κ ≤ 23 → prog.logSize ≤ 23 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
+    t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> prover prog input t ρ fuel)}[
       z.1.2 = false] ≤ completenessError fuel
 

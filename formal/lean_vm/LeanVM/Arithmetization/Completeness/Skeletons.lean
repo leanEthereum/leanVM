@@ -78,6 +78,41 @@ theorem Trace.runRows_le_steps {prog : Program} {t : Trace prog} {rf : Regs K}
   rw [List.length_dropLast, Trace.regs_length h]
   simp
 
+/-- Along a run that succeeds, `runCount` counts the states stepped from whose fetched instruction
+has opcode `op`. -/
+theorem runCount_eq_length {κ : ℕ} {prog : Program} {L : MemImage κ} (op : Opcode) {n : ℕ}
+    {r rf : Regs K} (h : run prog L n r = some rf) :
+    runCount prog L op n r = (((List.range n).filterMap fun m ↦ run prog L m r).filter
+      fun r₁ ↦ (prog.fetch r₁.pc).map Instr.opcode = some op).length := by
+  induction n generalizing r with
+  | zero => rfl
+  | succ n ih =>
+    have hpc := pc_ne_finalPc_of_run_succ h
+    rw [run_succ_of_ne hpc] at h
+    obtain ⟨r', hs, hr'⟩ := Option.bind_eq_some_iff.mp h
+    obtain ⟨ins, hf⟩ : ∃ ins, prog.fetch r.pc = some ins := by
+      cases hf : prog.fetch r.pc with
+      | none => rw [step_eq_none_of_fetch_eq_none hf] at hs; exact absurd hs (by simp)
+      | some ins => exact ⟨ins, rfl⟩
+    have htail : ((List.range n).map Nat.succ).filterMap (fun m ↦ run prog L m r) =
+        (List.range n).filterMap fun m ↦ run prog L m r' := by
+      rw [List.filterMap_map]
+      congr 1
+      funext m
+      simp only [Function.comp, run_succ_of_ne hpc, hs, Option.bind_eq_bind, Option.bind_some]
+    rw [List.range_succ_eq_map, List.filterMap_cons, run_zero, htail]
+    simp only [runCount, hf, hs, ih hr']
+    by_cases ho : ins.opcode = op <;> simp [hf, ho, Nat.add_comm]
+
+/-- The instructions of an opcode an execution executes are the rows of its table. -/
+theorem Trace.count_eq_runRows {prog : Program} {t : Trace prog} {rf : Regs K}
+    (h : run prog t.image t.steps Regs.initial = some rf) (op : Opcode) :
+    t.count op = t.runRows op := by
+  unfold Trace.count Trace.runRows Trace.regs
+  rw [List.range_succ, List.filterMap_append]
+  simp only [List.filterMap_cons, List.filterMap_nil, h, List.dropLast_concat]
+  exact runCount_eq_length op h
+
 end LeanVM.Semantics
 
 namespace LeanVM.Arithmetization

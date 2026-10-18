@@ -295,6 +295,22 @@ valid executions. -/
 def SentinelSafe (prog : Program) : Prop :=
   (prog.code ⟨2 ^ prog.logSize - 1, Nat.sub_lt (Nat.two_pow_pos _) (by decide)⟩).opcode ≠ .jump
 
+/-! ## Instruction counts -/
+
+/-- The number of instructions of opcode `op` executed in `n` steps from `r`, stepping as `run`
+does; the count stops at a step that fails. -/
+noncomputable def runCount {κ : ℕ} (prog : Program) (L : MemImage κ) (op : Opcode) :
+    ℕ → Regs K → ℕ
+  | 0, _ => 0
+  | n + 1, r =>
+    match prog.fetch r.pc, step prog L r with
+    | some ins, some r' => (if ins.opcode = op then 1 else 0) + runCount prog L op n r'
+    | _, _ => 0
+
+/-- The number of instructions of opcode `op` an execution executes. -/
+noncomputable def Trace.count {prog : Program} (t : Trace prog) (op : Opcode) : ℕ :=
+  runCount prog t.image op t.steps Regs.initial
+
 end
 end LeanVM.Semantics
 
