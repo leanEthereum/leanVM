@@ -559,5 +559,22 @@ theorem claim_list_digest_iff {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squa
       · rw [hlast, hmd]
         exact (final_iff hlen (by omega) (hb (n - 1) (by omega))).mpr hd
 
+
+/-- Completeness, for every pointer `chain` of the windows' `HeapBuf` holding their honest
+states. -/
+theorem claim_list_digest_complete {rd : Reader} (hm : MemOk rd) {gsq : E}
+    (hT : SquaresAt rd gsq) (chain ptr : E) {n : ℕ} (hn : n < 2 ^ 16) {cs : List E}
+    (hlen : cs.length = 4 * n) (hcs : CellsAt rd ptr cs) (hcan : ∀ c ∈ cs, IsCanonical128 c)
+    (hS : 0 < n → ClScratch rd ptr chain cs ((n - 1) / 32)) :
+    coreProgram.Rel rd "claim_list_digest" [ptr, gen ^ n, gsq]
+      [(digestScalars (blake2sBytes (cs.flatMap cellBytes))).1,
+        (digestScalars (blake2sBytes (cs.flatMap cellBytes))).2] :=
+  (claim_list_digest_iff hm hT _ _ _).mpr ⟨ptr, _, gsq, _, _, rfl, rfl, n, hn, rfl, cs, hlen, hcs,
+    hcan, rfl, (Nat.eq_zero_or_pos n).imp id fun h => ⟨chain, hS h⟩⟩
+
 end
 end LeanVM.Guest.B1.Digest
+
+namespace LeanVM.Guest.B1
+export Digest (ClScratch Meaning_claim_list_digest claim_list_digest_iff claim_list_digest_complete)
+end LeanVM.Guest.B1

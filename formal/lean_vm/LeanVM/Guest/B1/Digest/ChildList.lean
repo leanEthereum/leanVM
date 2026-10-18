@@ -686,5 +686,24 @@ theorem child_claim_list_digest_iff {rd : Reader} (hm : MemOk rd) {gsq : E} (hT 
       Meaning_child_claim_list_digest rd [entries, cover, base, origin, limit, n_g, gsq] rets :=
   ⟨child_claim_list_digest_fwd hm hT, child_claim_list_digest_bwd hm hT hL⟩
 
+
+/-- Completeness, for every pointer `chain` of the windows' `HeapBuf` holding their honest
+states. -/
+theorem child_claim_list_digest_complete {rd : Reader} (hm : MemOk rd) {gsq : E}
+    (hT : SquaresAt rd gsq) (chain : E) {entries cover base origin limit : E}
+    (hL : ∃ L ≤ 2 ^ 16, limit = gen ^ L) {n : ℕ} (hn : n < 2 ^ 16) (off : ℕ → ℕ) {cs : List E}
+    (hlen : cs.length = 4 * n) (hR : ChildReads rd entries cover base origin limit off cs n)
+    (hcan : ∀ c ∈ cs, IsCanonical128 c) (hS : 0 < n → ChildScratch rd chain cs ((n - 1) / 32)) :
+    coreProgram.Rel rd "child_claim_list_digest" [entries, cover, base, origin, limit, gen ^ n, gsq]
+      [(digestScalars (blake2sBytes (cs.flatMap cellBytes))).1,
+        (digestScalars (blake2sBytes (cs.flatMap cellBytes))).2] :=
+  child_claim_list_digest_bwd hm hT hL ⟨entries, cover, base, origin, limit, _, gsq, _, _, rfl, rfl,
+    n, hn, rfl, off, cs, hlen, hR, hcan, rfl, (Nat.eq_zero_or_pos n).imp id fun h => ⟨chain, hS h⟩⟩
+
 end
 end LeanVM.Guest.B1.Digest
+
+namespace LeanVM.Guest.B1
+export Digest (ChildScratch ChildReads Meaning_child_claim_list_digest child_claim_list_digest_iff
+  child_claim_list_digest_fwd child_claim_list_digest_bwd child_claim_list_digest_complete)
+end LeanVM.Guest.B1
