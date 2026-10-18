@@ -144,6 +144,17 @@ structure Honest (rd : Reader) (args rets : List E) : Prop where
   /-- The equations agree with the frames where they meet. -/
   cross : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2
 
+/-- What the honest memory of a placed tree needs: `Honest`, every `HeapBuf` that of its path,
+and the tree placed from `main`'s frame at word `0` (`Tree.Placed`, the certificate `cert` placing
+the `frameAddr`s), so that every `HeapBuf` pointer is its instance's base and every `frameAddr`
+the address of its run (`HonestAt.nodeAt`). -/
+structure HonestAt (cert : String → V → ℕ) (rd : Reader) (args rets : List E) : Prop
+    extends Honest P fs H C hdr T rd args rets where
+  /-- The `HeapBuf`s are those of the paths. -/
+  bufsOk : T.BufsOk P
+  /-- The tree is placed from word `0`. -/
+  placed : T.Placed P fs cert 0
+
 variable {P fs H C hdr T} {rd : Reader} {args rets : List E}
 
 theorem Honest.logMem_le (h : Honest P fs H C hdr T rd args rets) :
@@ -289,6 +300,70 @@ theorem cross_of_read {rd' : Reader}
     (he : ∀ b ∈ T.eqns P, rd' b.1 = some b.2) :
     ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2 :=
   fun a ha b hb hab => Option.some.inj ((hf a ha).symm.trans (hab ▸ he b hb))
+
+/-! ## A placed tree -/
+
+/-- **A placed instance**: its `HeapBuf` pointers are its `bufBases`, its `frameAddr`s the
+addresses of their runs in its frame. -/
+theorem HonestAt.nodeAt {cert : String → V → ℕ} (h : HonestAt P fs H C hdr T cert rd args rets)
+    {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
+    {kids : List Tree} (ht : I.t = .node f σ bufs kids) :
+    (allocDsts (I.t.events P)).map σ = I.bufBases.map (fun b => ofK (gpow b)) ∧
+      ∀ q ∈ addrs (I.t.events P), σ q.1 = ofK (gpow (I.fp + cert f q.2)) :=
+  Inst.nodeAt (insts_placedAt T 0 hdr h.placed I hI) (insts_placed T 0 hdr I hI) ht
+
+/-- **Every equation is an instance's**: an atom's on the path of a node instance. -/
+theorem honest_eqns {q : Write} (hq : q ∈ T.eqns P) :
+    ∃ I ∈ honestInsts P fs H hdr T, (∃ f σ bufs kids, I.t = .node f σ bufs kids) ∧
+      ∃ a, Ev.atom a ∈ I.t.events P ∧ q ∈ atomEqns I.t.val a :=
+  eqns_insts T 0 hdr q hq
+
+/-- **A memory holding the frames**: a placed tree valid on a memory holding every frame write
+is `HonestAt`, its equations consistent and agreeing with the frames. -/
+theorem honestAt_of_read {cert : String → V → ℕ} {M : MemImage (logMem (T.total fs))}
+    (hv : T.Valid P M.read args rets) (hb : T.BufsOk P) (hp : T.Placed P fs cert 0)
+    (hsize : T.total fs ≤ 2 ^ 32) (hcells : CellsOk fs C (honestInsts P fs H hdr T))
+    (haddr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = gpow i)
+    (hf : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), M.read a.1 = some a.2) :
+    HonestAt P fs H C hdr T cert M.read args rets := by
+  have hκ : logMem (T.total fs) < 64 := by
+    have := logMem_le_maxLogMem hsize; unfold maxLogMem at this; omega
+  exact ⟨⟨hv, hsize, hcells, haddr, hv.eqns_consistent hκ haddr,
+    cross_of_read hf fun b hb => hv.eqns_read hκ T b hb (haddr b hb)⟩, hb, hp⟩
+
+/-- **The equations agree with the frames** when each lies in a `HeapBuf`, is itself a frame
+write, or agrees with the frames. -/
+theorem cross_of_cases (hcells : CellsOk fs C (honestInsts P fs H hdr T))
+    (hsize : T.total fs ≤ 2 ^ 32)
+    (h : ∀ b ∈ T.eqns P, (∃ I ∈ honestInsts P fs H hdr T, ∃ i, I.Buf i ∧ b.1 = gpow i) ∨
+      b ∈ frameWrites C (honestInsts P fs H hdr T) ∨
+      ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), a.1 = b.1 → a.2 = b.2) :
+    ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2 := by
+  intro a ha b hb hab
+  rcases h b hb with ⟨I, hI, i, hi, he⟩ | hb' | hb'
+  · exact absurd (hab.trans he) (frameWrites_not_buf hcells hsize hI hi a ha)
+  · exact frameWrites_consistent (insts_pairwise T 0 hdr) hcells (fun I hI => by
+      have := honest_within hI (by have := hcells.two_le I hI; omega)
+      omega) a ha b hb' hab
+  · exact hb' a ha hab
+
+/-- **A `frameAddr`'s equations are frame writes** of a placed instance whose cells hold its run
+at the certificate's offsets. -/
+theorem HonestAt.frameAddr_eqns {cert : String → V → ℕ}
+    (h : HonestAt P fs H C hdr T cert rd args rets) {I : Inst} (hI : I ∈ honestInsts P fs H hdr T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids)
+    {p r : V} {rs : List V} (he : Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events P)
+    (hrun : ∀ (k : ℕ) (hk : k < (r :: rs).length), (cert f r + k, σ (r :: rs)[k]) ∈ C I) :
+    ∀ q ∈ atomEqns σ (.frameAddr p (r :: rs)), q ∈ frameWrites C (honestInsts P fs H hdr T) := by
+  intro q hq
+  have hp := (h.nodeAt hI ht).2 (p, r) (List.mem_filterMap.mpr ⟨_, he, rfl⟩)
+  obtain ⟨k, hk, rfl⟩ := List.mem_mapIdx.mp hq
+  refine List.mem_flatMap.mpr ⟨I, hI, List.mem_map.mpr ⟨(cert f r + k, σ (r :: rs)[k]),
+    List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (hrun k hk)), ?_⟩⟩
+  simp only at hp ⊢
+  rw [hp]
+  rw [show (ofK (gpow (I.fp + cert f r))).limb 0 = gpow (I.fp + cert f r) by simp, gpow, gpow,
+    gpow, ← pow_add, Nat.add_assoc]
 
 /-! ## Certificates -/
 

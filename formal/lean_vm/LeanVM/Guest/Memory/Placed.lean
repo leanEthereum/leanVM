@@ -534,6 +534,45 @@ theorem Inst.nodeAt {I : Inst} (hp : I.t.Placed P fs cert I.fp) (hI : I.Placed f
   rw [hI.2, ht]
   exact hp.1
 
+theorem length_kidPos_kids {fp : ℕ} {f : String} {bufs : List ℕ} {kids : List Tree} :
+    (kidPos fs lp fp f bufs (kids.map (Tree.total fs))).length = kids.length := by
+  rw [length_kidPos, List.length_map]
+
+mutual
+/-- **Every equation is an instance's**: an atom's on the path of a node instance. -/
+theorem eqns_insts : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ q ∈ t.eqns P,
+    ∃ I ∈ t.insts fs lp H fp hdr, (∃ f σ bufs kids, I.t = .node f σ bufs kids) ∧
+      ∃ a, Ev.atom a ∈ I.t.events P ∧ q ∈ atomEqns I.t.val a
+  | .node f σ bufs kids, fp, hdr, q, hq => by
+      rw [Tree.eqns, List.mem_append] at hq
+      rw [insts_node]
+      rcases hq with hq | hq
+      · obtain ⟨e, he, hqe⟩ := List.mem_flatMap.mp hq
+        cases e with
+        | atom a => exact ⟨_, List.mem_cons_self, ⟨f, σ, bufs, kids, rfl⟩, a, he, hqe⟩
+        | inK _ => exact (List.not_mem_nil hqe).elim
+        | call _ _ _ => exact (List.not_mem_nil hqe).elim
+        | skip _ _ => exact (List.not_mem_nil hqe).elim
+      · obtain ⟨J, hJ, h⟩ := eqnsKids_insts kids _ _ 0 length_kidPos_kids q hq
+        exact ⟨J, List.mem_cons_of_mem _ hJ, h⟩
+  | .phantom .., _, _, q, hq => by rw [Tree.eqns] at hq; exact (List.not_mem_nil hq).elim
+
+/-- `eqns_insts` for the callees. -/
+theorem eqnsKids_insts : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j : ℕ), ps.length = ks.length →
+    ∀ q ∈ Tree.eqnsKids P ks, ∃ J ∈ Tree.instsKids fs lp H I j ps ks,
+      (∃ f σ bufs kids, J.t = .node f σ bufs kids) ∧ ∃ a, Ev.atom a ∈ J.t.events P ∧ q ∈ atomEqns J.t.val a
+  | [], _, _, _, _, q, hq => by rw [Tree.eqnsKids] at hq; exact (List.not_mem_nil hq).elim
+  | _ :: _, [], _, _, hl, _, _ => absurd hl (by simp)
+  | k :: ks, p :: ps, I, j, hl, q, hq => by
+      rw [Tree.eqnsKids, List.mem_append] at hq
+      rw [instsKids_cons]
+      rcases hq with hq | hq
+      · obtain ⟨J, hJ, h⟩ := eqns_insts k p (H I j) q hq
+        exact ⟨J, List.mem_append_left _ hJ, h⟩
+      · obtain ⟨J, hJ, h⟩ := eqnsKids_insts ks ps I (j + 1) (by simpa using hl) q hq
+        exact ⟨J, List.mem_append_right _ hJ, h⟩
+end
+
 end Insts
 
 end
