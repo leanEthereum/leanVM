@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.Template
 public import LeanVM.Guest.B1.Main.Cover
-public import LeanVM.Guest.B1.Main.AggregateSpec
+public import LeanVM.Guest.B1.Main.AggSound
 
 /-!
 # `main`, soundly
@@ -22,8 +22,8 @@ batching. The witness holds every declared claim: every slot of the coverage tab
 matrix, or a child whose statement makes the claim. The children are `__loop5`'s
 (`ChildAt`): their statements under the same seed, verified by `verify_sub`.
 
-`main_sound` assumes the callees' soundness (`Callees`) and `aggregate_claims`'
-(`Meaning_aggregate_claims`), and that the memory is a valid execution's (`MemOk`).
+`main_sound` assumes the callees' soundness (`Callees`) and that the memory is a valid execution's
+(`MemOk`); `aggregate_claims`' is `aggregate_claims_sound`.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -202,10 +202,8 @@ theorem deferredShaped_iff {bytecode : List K} (hlen : bytecode.length = 2 ^ 22)
 /-- **`main`, soundly** (G:3119-3316; TRIAGE #76): on a memory of a valid execution whose public
 input (cells `g^0`, `g^1`) is the digest `D`, a run of `main` gives a seed and a statement of
 digest `D` that a witness holds (`NodeRel`) for the guest `bytecode` of `2^22` words, given the
-callees' soundness and `aggregate_claims`'. -/
+callees' soundness. -/
 theorem main_sound (hlen : bytecode.length = 2 ^ 22) (hm : MemOk rd) (H : Callees bytecode rd)
-    (hagg : ∀ args rets, coreProgram.Rel rd "aggregate_claims" args rets →
-      Meaning_aggregate_claims rd args rets)
     {D : Digest} (hpub0 : rd 1 = some (digestScalars D).1) (hpub1 : rd g = some (digestScalars D).2)
     (h : coreProgram.Rel rd "main" [] []) :
     ∃ seed s w, statementDigest seed s = D ∧ NodeRel bytecode seed s w := by
@@ -459,7 +457,7 @@ theorem main_sound (hlen : bytecode.length = 2 ^ 22) (hm : MemOk rd) (H : Callee
       omega
     have ha := hite2.2.2 hne
     simp only [aggT, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil] at ha
-    obtain ⟨n_g, pis, fresh, carried, dp, hargs, -, hbat⟩ := hagg _ _ ha.1
+    obtain ⟨n_g, pis, fresh, carried, dp, hargs, -, hbat⟩ := aggregate_claims_sound _ _ ha.1
     simp only [List.cons.injEq, and_true] at hargs
     obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hargs
     let cs : List ChildClaims := chs.map fun c => ⟨statementDigest seed c.statement, c.fresh,
