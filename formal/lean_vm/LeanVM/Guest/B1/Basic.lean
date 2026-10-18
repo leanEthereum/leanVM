@@ -530,5 +530,18 @@ theorem guarded_loop_iff {P : Core.Program} {rd : Reader} {f : String} {ps : Lis
       · exact h
     exact hl.mpr ⟨m, hm0, hN, first_hit_of_lt hm hN, fun j _ hj => hall j hj⟩
 
+/-- A forward branch whose blocks have no `ret` holds, then its continuation. -/
+theorem holds_ite_noRet {C : CallRel} {rd : Reader} {σ : Val} (c : V) (z n : List Stmt)
+    (hz : Stmt.noRetList z = true) (hn : Stmt.noRetList n = true) (next : Prop)
+    (kret : List E → Prop) :
+    Stmt.Holds C rd σ (.ite c z n) next kret ↔
+      (IsInK (σ c) ∧ (σ c = 0 → Stmt.HoldsList C rd σ z True kret) ∧
+        (σ c ≠ 0 → Stmt.HoldsList C rd σ n True kret)) ∧ next := by
+  rw [holds_noRet (.ite c z n) (by simp [Stmt.noRet, hz, hn]) next kret]
+  rfl
+
+theorem eToNat_ofK (a : K) : eToNat (ofK a) = kToNat a := by
+  simp [eToNat, limb_ofK, kToNat]
+
 end
 end LeanVM.Guest.B1
