@@ -102,7 +102,7 @@ def DaFacts (rd : Reader) (r0 r1 v0 v1 : E) : Prop :=
     1 ≤ r ∧ r ≤ LeanDa.maxRows ∧
     (∀ i < r, L88Step rd pb pd (gen ^ i)) ∧
     LoadHolds rd hs 0 (digestScalars paramIv).1 ∧ LoadHolds rd hs 1 (digestScalars paramIv).2 ∧
-    (∀ k < 385, ∀ w, rd (ctr.limb 0 * Parameters.gpow k) = some w → w = word (k * 2048) 0 0) ∧
+    IsInK ctr ∧ (∀ k < 385, ∀ w, rd (ctr.limb 0 * Parameters.gpow k) = some w → w = word (k * 2048) 0 0) ∧
     (∀ i < r, L89Step rd acc rb (gen ^ i)) ∧
     (∀ b < 128, Meaning_da_verify_column (decide (b < 64)) rd
       [gen ^ b, gen ^ r, gen ^ LeanDa.nPad r, gen ^ (LeanDa.nPad r - r), gen ^ LeanDa.logPad r, pb, ct, rb,
@@ -198,7 +198,7 @@ theorem da_verify_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt 
     σ (.n 425), σ (.n 426), σ (.n 436), σ (.n 437), hr1, hr2,
     loop_all (B := fun j => L88Step rd (σ (.n 13)) (σ (.n 12)) (gen ^ j)) hr33 rfl
       ((l88_iff rd _ _ _ 0).mp h88'),
-    by rw [← iv0_word, ← c18]; exact l18, by rw [← iv1_word, ← c19]; exact l19,
+    by rw [← iv0_word, ← c18]; exact l18, by rw [← iv1_word, ← c19]; exact l19, hk405,
     fun k hk w hw => ?_,
     loop_all (B := fun j => L89Step rd (σ (.n 414)) (σ (.n 415)) (gen ^ j)) hr33 rfl
       ((l89_iff rd _ _ _ 0).mp h89'),

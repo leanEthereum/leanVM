@@ -312,7 +312,7 @@ root and vector digest. -/
 theorem daFacts_opens {rd : Reader} {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v1) :
     ∃ (root vd : Digest) (w : Da.Witness), (r0, r1) = digestScalars root ∧ (v0, v1) = digestScalars vd ∧
       w.Opens root vd := by
-  obtain ⟨r, pb, pd, hs, ctr, acc, rb, ct, rt, rc0, rc1, rr0, rr1, hr1, hr2, h88, hiv0, hiv1, hctr, h89,
+  obtain ⟨r, pb, pd, hs, ctr, acc, rb, ct, rt, rc0, rc1, rr0, rr1, hr1, hr2, h88, hiv0, hiv1, -, hctr, h89,
     hcol, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ := h
   have hr33 : r < 2 ^ 33 := by unfold LeanDa.maxRows at hr2; omega
   obtain ⟨hrN, hNr⟩ := (logPad_iff (lp := LeanDa.logPad r) hr1).mp rfl
