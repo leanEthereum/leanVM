@@ -10,6 +10,7 @@
 module
 
 public import LeanVM.Guest.Memory.Alloc
+public import LeanVM.Guest.Memory.Tree
 public import LeanVM.Guest.Data.Bytecode00
 
 /-!
@@ -17,8 +18,9 @@ public import LeanVM.Guest.Data.Bytecode00
 
 B2's completeness direction runs the compiled guest on a memory built from an honest
 evaluation of its core IR (`Tree.Valid`, `Memory/Eval.lean`): a call tree with one valuation per
-call instance. This file builds that memory and states what the checker's completeness
-consumes.
+call instance, which a derivation of `Program.Rel` is for a well-formed program
+(`Program.Rel.tree`, `Memory/Tree.lean`). This file builds that memory and states what the
+checker's completeness consumes.
 
 **Inputs.** The evaluation `T` from `main`, valid on some reader `rd`; the frame sizes `fs`
 (the certificate's); the header of each callee, `H I i` (`fp[0]`, `fp[1]`: the return pc and
