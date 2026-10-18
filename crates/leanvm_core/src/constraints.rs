@@ -28,7 +28,7 @@
 //!
 //! The eq point is the caller's, not a fresh one (the bus's GKR point `ζ`), which
 //! is what lets the forms' sums settle the bus. Batching derived in `doc/leanvm/main.tex`
-//! §sec:air. Both sides take `n = max τ_t` from the announced heights; a recursive
+//! §sec:air. Both sides take `n = max τ_t` from the tables' heights; a recursive
 //! verifier certifies that maximum with one hinted `g`-power (§recursion), so there
 //! are no rounds in which no table has joined.
 

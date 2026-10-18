@@ -14,13 +14,10 @@ pub struct Execution {
     pub mem: Vec<F192>,  // data memory after the run, write-once (size cells, power of two)
     pub cycles: usize,   // number of instructions the run executed (trace length)
     pub mem_used: usize, // cells actually touched, before the power-of-two pad of `mem`
-    /// Rows per table before the fill blocks ran: the work the program itself does, as
-    /// against the power-of-two heights that get proven. Cost measurements want this one.
-    pub base_counts: [usize; crate::tables::N_TABLES],
-    /// Cells an instruction read before anything wrote them, up to the halt, so the
-    /// value it read was ZERO here and prover-chosen in a proof: memory is a committed
-    /// array and the bus only forces accesses to one address to *agree*, never that
-    /// the address was written. `zkDSL.md` says don't; this is what says whether the
+    /// Cells an instruction read before anything wrote them, so the value it read was
+    /// ZERO here and prover-chosen in a proof: memory is a committed array and the bus
+    /// only forces accesses to one address to *agree*, never that the address was
+    /// written. `zkDSL.md` says don't; this is what says whether the
     /// emitted code did. A non-empty list means a live value came from outside the
     /// constraint system, so an `assert` on it is vacuous and a published value is
     /// free: the source read a cell nothing stores, or the lowering dropped or
@@ -31,6 +28,13 @@ pub struct Execution {
     /// and an arithmetic back-solve writes its operand before reading it.
     pub unconstrained_reads: Vec<u32>,
     pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
+}
+
+impl Execution {
+    /// Rows per table: the instructions of each opcode the run executed.
+    pub fn rows(&self) -> [usize; crate::tables::N_TABLES] {
+        self.trace.row_counts()
+    }
 }
 
 /// Why a run has no execution the interpreter can find: the program, on this public
@@ -182,10 +186,9 @@ fn pop_witness<'a>(
 impl Program {
     /// Run the program in write-once *fill* mode to produce its [`Execution`]:
     /// the final memory image and the step count, or why it has none. The public
-    /// input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi), and the
-    /// fill blocks bring every table to a power of two, growing one until the
-    /// witness reaches [`Program::min_log_committed`]. Compilation yields the
-    /// `Program`; executing it (here) and proving it are separate later phases.
+    /// input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi).
+    /// Compilation yields the `Program`; executing it (here) and proving it are
+    /// separate later phases.
     pub fn execute(&self, public_input: [F192; 2]) -> Result<Execution, ExecError> {
         self.execute_with(public_input, &mut |_| {})
     }
@@ -197,11 +200,6 @@ impl Program {
         public_input: [F192; 2],
         sha3_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
     ) -> Result<Execution, ExecError> {
-        // One interpretation of the program, then the fill. The blocks that bring every
-        // table to a power of two are cycles no program code enters (`cpu::filler`), so
-        // they run after the chain has halted, by which point the program's own row
-        // counts are final; a traversal costs exactly its block's size plus its closing
-        // jump, so the solve is exact and no second run is needed to correct it.
         use super::hints::{BitsDest, GPow, RHint};
 
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
@@ -255,13 +253,6 @@ impl Program {
         let mut witness_positions: HashMap<&str, usize> = HashMap::new();
         // Baby-step table for `hint_decompose_bits_exponent`, built on first use.
         let mut dlog_cache: Option<(GPow, F64)> = None;
-
-        // Rows per table before the fill runs, and the cells the program read unwritten,
-        // both captured when the chain halts: the fill's rows exist to reach a
-        // power-of-two height and are soundness-neutral (doc §Filling the tables), so
-        // they read cells nobody writes as a matter of course.
-        let mut base_counts: Option<[usize; crate::tables::N_TABLES]> = None;
-        let mut unconstrained_reads: Vec<u32> = Vec::new();
 
         // Per-opcode trace rows, accumulated during the walk and assembled into the
         // `Trace` once the run finishes (alongside the final count columns).
@@ -450,74 +441,12 @@ impl Program {
             }
         }
 
-        // The program's own chain runs to the halt sentinel; the fill blocks then run, one
-        // cycle at a time. A cycle is entered at its block's first instruction, in a frame
-        // of its own, and traversed for the rows `filler::plan` asks of it, always a whole
-        // number of traversals, so the state tuples it pushes are exactly the ones it pulls
-        // (doc §Filling the tables). `left` is the rows still to run in the current cycle,
-        // and `None` while the chain runs.
-        let mut cycles: std::vec::IntoIter<(u32, u32, usize)> = Vec::new().into_iter();
-        let mut left: Option<usize> = None;
         loop {
-            // The chain reached the sentinel, or a cycle has run its rows.
-            let switch = match left {
-                None => pc == ending_pc,
-                Some(n) => n == 0,
-            };
-            if switch {
-                if left.is_none() {
-                    if fp != 0 {
-                        return Err(ExecError::new(self, pc, Fault::HaltOutsideMain { fp }));
-                    }
-                    let counts = [xor.len(), mul.len(), set.len(), deref.len(), jump.len(), sha3.len()];
-                    base_counts = Some(counts);
-                    unconstrained_reads = std::mem::take(&mut m.unwritten_reads);
-                    use super::filler::{self, frame as fr};
-                    let mut runs: Vec<(u32, u32, usize)> = Vec::new();
-                    // A hand-assembled program carries no blocks and has to land on
-                    // powers of two by itself, which `Layout` checks.
-                    if !self.filler.is_empty() {
-                        // A whole frame per cycle, past every cell the program touched, so
-                        // the memory the fill leaves is known before it runs and the plan
-                        // reaching `min_log_committed` is solved for here, once.
-                        let start = m.cells.len();
-                        let log_bytecode = crate::log2_strict_usize(self.prog.len());
-                        let plan = filler::plan(counts, self.min_log_committed, |plan| {
-                            let cells = start + filler::frames(plan) * fr::CELLS as usize;
-                            super::layout::committed_log(
-                                crate::log2_strict_usize(cells.next_power_of_two().max(1 << MIN_LOG_MEM)),
-                                log_bytecode,
-                                filler::filled(counts, plan).map(crate::log2_strict_usize),
-                            )
-                        });
-                        let mut frame = start as u32;
-                        for (block_pc, size, n) in filler::cycles(&self.filler, &plan) {
-                            g.grow_to(frame as usize);
-                            g.note(frame as usize);
-                            m.ensure((frame + fr::CELLS - 1) as usize);
-                            // What the closing jump reads: back to the block's own first
-                            // instruction, in this same frame. Then the pointer the `DEREF`
-                            // dummy follows, memory cell `0`.
-                            m.put(frame + fr::DEST, F192::from(g.pow(block_pc as usize)))?;
-                            m.put(frame + fr::NEXT_FP, F192::from(g.pow(frame as usize)))?;
-                            m.put(frame + fr::PTR, F192::ONE)?;
-                            runs.push((block_pc, frame, n * (size as usize + 1)));
-                            frame += fr::CELLS;
-                        }
-                    }
-                    cycles = runs.into_iter();
+            if pc == ending_pc {
+                if fp != 0 {
+                    return Err(ExecError::new(self, pc, Fault::HaltOutsideMain { fp }));
                 }
-                match cycles.next() {
-                    Some((p, f, rows)) => {
-                        pc = p;
-                        fp = f;
-                        left = Some(rows);
-                    }
-                    None => break,
-                }
-            }
-            if let Some(n) = &mut left {
-                *n -= 1;
+                break;
             }
             if steps >= MAX_STEPS {
                 return Err(ExecError::new(self, pc, Fault::StepLimit));
@@ -958,14 +887,7 @@ impl Program {
             }
         }
 
-        // Pad memory to a power of two (the boundary tables read a dense image),
-        // at least 2^MIN_LOG_MEM cells (doc §Memory).
-        let mem_used = m.cells.len();
-        let cells = m.cells.len().next_power_of_two().max(1 << MIN_LOG_MEM);
-        assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
-        m.cells.resize(cells, F192::ZERO);
-        m.count.resize(cells, F64::ONE);
-        let trace = Trace {
+        let mut trace = Trace {
             xor,
             mul,
             set,
@@ -975,14 +897,25 @@ impl Program {
             mem_count: m.count,
             bytecode_count,
         };
+        // Pad memory to a power of two (the boundary tables read a dense image), at
+        // least 2^MIN_LOG_MEM cells (doc §Memory), doubled until the stacked witness
+        // reaches `min_log_committed`.
+        let mem_used = m.cells.len();
+        let mut cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
+        let taus = super::layout::table_logs(trace.row_counts());
+        let log_bytecode = crate::log2_strict_usize(self.prog.len());
+        while super::layout::committed_log(crate::log2_strict_usize(cells), log_bytecode, taus) < self.min_log_committed
+        {
+            cells *= 2;
+        }
+        assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
+        m.cells.resize(cells, F192::ZERO);
+        trace.mem_count.resize(cells, F64::ONE);
         Ok(Execution {
             mem: m.cells,
             cycles: steps,
             mem_used,
-            // Taken when the chain halted, which every run does before it can leave the
-            // loop at all.
-            base_counts: base_counts.expect("the run halted, so its own counts were taken"),
-            unconstrained_reads,
+            unconstrained_reads: m.unwritten_reads,
             trace,
         })
     }

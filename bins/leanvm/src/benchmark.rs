@@ -43,15 +43,11 @@ fn lean_sphincs_signers(
 
 /// Report the shape and cost of one aggregation node.
 fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &EthereumProof, prove_time: &Timing) {
-    let base_cycles: usize = stats.base_counts.iter().sum();
     println!("{label}");
-    // The program's own work, then what gets proven: the fill blocks bring each table
-    // to a power of two so that none needs padding rows, so the proven total is the sum
-    // of those powers.
     println!(
         "  cycles (VM steps)           : {} = {}",
-        pretty_integer(base_cycles),
-        crate::report::pow(base_cycles)
+        pretty_integer(stats.cycles),
+        crate::report::pow(stats.cycles)
     );
     println!("    details                   : {}", stats.details());
     crate::report::print_proof_size(sig.proof());

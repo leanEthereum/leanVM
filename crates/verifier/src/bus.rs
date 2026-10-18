@@ -5,7 +5,9 @@ use crate::layout::{
     BUS_BITS, BYTECODE_FINAL_COUNTERS, BusBlock, Form, GLOBAL_COLUMN_BASES, Layout, MEMORY_0, MEMORY_1, MEMORY_2,
     MEMORY_FINAL_COUNTERS, SEP_BYTECODE, SEP_MEM, SEP_STATE, Table, constant, gpow,
 };
-use crate::multilinear::{Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, poly_eval, stack_offsets};
+use crate::multilinear::{
+    Placement, dot, eq_eval, eq_kernel, index_mle, multilinear_eval, padding_weight, poly_eval, stack_offsets,
+};
 use crate::transcript::{Transcript, sumcheck};
 use crate::{StackClaim, VerifierError, require};
 
@@ -187,17 +189,22 @@ pub fn verify_bus_balance(layout: &Layout, transcript: &mut Transcript) -> Resul
         let shifted: Vec<E> = framework_fingerprints.iter().map(|&f| side_beta + f).collect();
         let known = dot(&framework_selectors, &shifted);
         // A table's blocks stay symbolic: they accumulate into the form its sumcheck settles over its own columns.
-        let beta_form = constant(side_beta);
+        // That form is summed over the padding rows too, whose leaves hold 1 instead: the difference is public.
+        let mut padding_rows = ZERO;
         for (&selector, block) in table_selectors.iter().zip(blocks) {
             let form = &mut forms[block.owner][side];
-            form.add_scaled(&beta_form, selector);
+            let mut block_form = constant(side_beta);
             for (slot, coordinate) in block.coordinates.iter().enumerate() {
-                form.add_scaled(coordinate, selector * side_weights[slot]); // the fingerprint, one tuple slot at a time
+                block_form.add_scaled(coordinate, side_weights[slot]); // the fingerprint, one tuple slot at a time
             }
+            form.add_scaled(&block_form, selector);
+            let padding = &layout.tables[block.owner].padding;
+            let weight = padding_weight(&point[..block.log_rows], block.rows);
+            padding_rows += selector * weight * (block_form.evaluate(padding) + ONE);
         }
-        // Every occupied row holds beta + its fingerprint; the rest of the leaf cube holds 1.
+        // The leaves outside every block hold 1.
         let ones_padding = E::sum(framework_selectors.into_iter().chain(table_selectors)) + ONE;
-        totals.push(tree_values[side] + known + ones_padding); // what the forms owe: the GKR value, less framework and padding
+        totals.push(tree_values[side] + known + ones_padding + padding_rows); // what the forms owe: the GKR value, less framework and padding
     }
 
     Ok(BusResult {

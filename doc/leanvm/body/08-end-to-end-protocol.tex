@@ -36,14 +36,29 @@ Recall that the memory $\mem\in\E^{\le1}[X_1,\dots,X_{\kmem}]$ is committed as t
 \]
 and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$, the last being $0$ because both public cells have top limb zero. The prover sends nothing: the claims are functions of the public input, which seeds the transcript, and of $r_m$, drawn after the commitment. If either cell is wrong, some limb's two sides are distinct polynomials of degree at most one in $r_m$, so its claim is true with probability at most $1/|\E|$ (Lemma~\ref{lem:sz}), and the opening rejects a false claim.
 
-\subsection{Filling the tables}\label{sec:e2e-pad}
+\subsection{Padding rows}\label{sec:e2e-pad}
 
-A table is proven over a power-of-two number of rows. The prover reaches one by running extra instructions, in execution cycles disjoint from the program's own run. Proposition~\ref{prop:walk} about bus balance splits the rows into two groups:
-\begin{itemize}
-\item one walk from $(\pc_0,\fp_0)$ to $(\pc_{\mathrm{final}},\fp_{\mathrm{final}})$
-\item closed walks
-\end{itemize}
-The prover can thus leverage these \emph{closed walks} to fill every table to its next power of 2. (important for completeness, but not for soundness)
+An honest prover fills the padding rows of $T_j$ with the public row $\padrow{j}$: zero, except the twenty-five \texttt{SHA3} output lanes (\S\ref{sec:tab-sha3}), which hold the step of a zero state. This is only for completeness: $\padrow{j}$ satisfies the constraints (\texttt{JUMP}'s vanish at zero), and the Keccak reduction (Annex~\ref{annex:keccak}) proves its step like any other. When the recursion guest needs a larger commitment (\S\ref{sec:recursion}), the prover grows the memory, not a table.
+
+The bus does not depend on what a padding row holds:
+
+\begin{proposition}[Padding rows flush nothing]\label{prop:pad}
+Let $P$ (resp.\ $Q$) be the multiset of tuples pushed (resp.\ pulled) by the executed rows and the boundary. If $P\neq Q$, the bus check passes with probability at most $4\cdot2^{\mu}/|\E|$, plus the soundness errors of GKR, the table sumcheck and the PCS.
+\end{proposition}
+
+\begin{proof}
+GKR ends on a claim about the leaves $L_b$ of \S\ref{sec:leafstack}, which the table sumcheck and the PCS opening check. The committed columns fix these leaves once $\alpha$ and $\beta$ are drawn, before GKR's challenges, so up to those errors the bus check passes only if they have equal push and pull products.
+
+Let $x$ be a padding row of block $b$, whatever it holds. Block $b$ flushes the tuple $\btup_{j,f}$, and $\bform{b}(x)=\beta-\pi_\alpha(\btup_{j,f}(x))$, where $\pi_\alpha$ is the fingerprint of \S\ref{sec:gp}. Let $\tdiff=\btup_{j,f}(x)-\btup_{j,f}(\padrow{j})$ be the difference between the row's tuple and the honest one. Since $\pi_\alpha$ is linear, the leaf of $x$ is
+\[
+  L_b(x)\;=\;1+\bform{b}(x)-\bform{b}(\padrow{j})\;=\;1-\pi_\alpha(\tdiff).
+\]
+It does not depend on $\beta$, and it is a nonzero polynomial in $\alpha$: the weights $\eq(\alpha,\iota)$ sum to $1$, so $L_b(x)=\pi_\alpha(\allone-\tdiff)$ with $\allone$ the all-one tuple, and $\allone-\tdiff$ is $1$ in slot $0$, where both tuples hold the same domain separator.
+
+So the push product is $\padprod{\push}(\alpha)\,\Pi_P(\alpha,\beta)$, where $\padprod{\push}$ multiplies the padding leaves, a nonzero polynomial in $\alpha$ alone, and $\Pi_P$ multiplies the leaves $\beta-\pi_\alpha(t)$, $t\in P$ (Lemma~\ref{lem:gp}). Likewise, the pull product is $\padprod{\pull}\,\Pi_Q$. Suppose $P\neq Q$, and that the two products are the same polynomial. Their highest powers of $\beta$ then match: $\padprod{\push}\beta^{|P|}$ and $\padprod{\pull}\beta^{|Q|}$, so $|P|=|Q|$ and $\padprod{\push}=\padprod{\pull}$. Dividing by it gives $\Pi_P=\Pi_Q$, so $P=Q$ by Lemma~\ref{lem:gp}, a contradiction. The two products are thus different polynomials, of degree at most $4\cdot2^{\mu}$, and agree at the random $(\alpha,\beta)$ with probability at most $4\cdot2^{\mu}/|\E|$ (Corollary~\ref{cor:idtest}).
+\end{proof}
+
+The count tree pads the same way, and whatever its padding leaves are, $R_c\neq0$ still forces every executed row's counts to be nonzero (\S\ref{sec:lookup}).
 
 \subsection{Fiat Shamir instantiation}\label{sec:e2e-fiat-shamir}
 
@@ -66,7 +81,7 @@ Each reduction below adds evaluation claims on columns to a shared \emph{claim p
 \paragraph{Setup.}
 
 
-The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input, the bytecode and the hash of a label fixing the Keccak reduction (Annex~\ref{annex:keccak}). The prover sends the memory log-size $\kmem$, the six table log-heights $\tau_j$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}), checks that the \texttt{SHA3} table has at least $2^{9}$ rows (\S\ref{keccak:statement}), and derives the layout of every stack (PCS and GKR leaves).
+The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the public input, the bytecode and the hash of a label fixing the Keccak reduction (Annex~\ref{annex:keccak}). The prover sends the memory log-size $\kmem$, the six row counts $\nexec{j}$ and the rate exponent $\rexp_0\in\{1,\dots,4\}$ of the commitment (Annex~\ref{annex:pcs}); the verifier checks them against the caps (\S\ref{sec:lookup}) and derives the layout of every stack (PCS and GKR leaves).
 
 \paragraph{Commitment.}
 
@@ -79,9 +94,9 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends the fingerprint challenge $\alpha\in\E^{4}$ and the multiset challenge $\beta\in\E$ (\S\ref{sec:gp}).
-\item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
+\item \textbf{Prover.} Forms the push, pull, and \emph{count} leaf vectors (\S\ref{sec:leafstack}; on executed rows, the count leaves are the count columns themselves, \S\ref{sec:lookup}), stacked into blocks and padded with $1$s. Sends one bus root $R$, then the count root $R_c$.
 \item \textbf{Prover \& Verifier.} Run the one batched GKR (\S\ref{sec:gkr}) over all three trees. For the bus, the verifier checks each side's product against $R$; one $R$ for both sides is the balance check (\S\ref{sec:gp}). For the counts it checks $R_c\neq0$ (no read self-cancels, \S\ref{sec:lookup}). The pass yields three leaf claims $\widetilde V^{s}_0(\zeta)$ at one shared $\zeta$.
-\item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta,\alpha)$ (\S\ref{sec:e2e-bc}). Three blocks per side belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
+\item \textbf{Prover \& Verifier.} Decompose each leaf claim (\S\ref{sec:leafstack}). The verifier forms every public part itself: the block selectors, the constant entries, the index column (\S\ref{sec:idxcol}), the padding term of \eqref{eq:pad_leaf}, and the program's whole share of the two bytecode blocks, one evaluation at $(\zeta,\alpha)$ (\S\ref{sec:e2e-bc}). Three blocks per side belong to no table: the state boundary, plus each array's (memory / bytecode) seed (push side) or finalization (pull side). For their committed columns the prover sends one evaluation each, entering the claim pool. Every other block belongs to a table, and is discharged by the table sumcheck (\S\ref{sec:air}).
 \end{enumerate}
 
 \paragraph{Table sumcheck.} One run proves the six tables' constraints together with their share of the bus (\S\ref{sec:air}).

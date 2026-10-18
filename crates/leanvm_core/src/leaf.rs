@@ -47,13 +47,48 @@ pub enum Coord {
     Sum(Vec<Coord>),
 }
 
-/// A flushing rule: `2^kappa` rows, each a tuple of coordinates. Every one of them is a
-/// row the program executed, since a table's height is its row count (§sec:e2e-pad), so a
-/// block has no padding rows to divide back out of the product.
+/// A flushing rule: `2^kappa` rows, each a tuple of coordinates. The first `rows` flush;
+/// the rest are a table's padding rows (§sec:e2e-pad), whose leaves are `1`, and
+/// `padding` is the tuple at the table's padding row.
 #[derive(Clone, Debug)]
 pub struct Block {
     pub kappa: usize,
+    pub rows: usize,
     pub coords: Vec<Coord>,
+    pub padding: Vec<F64>,
+}
+
+impl Block {
+    /// A block every row of which flushes.
+    pub fn full(kappa: usize, coords: Vec<Coord>) -> Self {
+        Self {
+            kappa,
+            rows: 1 << kappa,
+            coords,
+            padding: Vec::new(),
+        }
+    }
+}
+
+/// `pad_n(point)`, the multilinear extension of `[z ≥ n]`, `n ≤ 2^|point|` (lemma lem:suffix).
+fn padding_weight(point: &[F192], n: usize) -> F192 {
+    let bit = |k: usize| F192::new(((n >> k) & 1) as u64, 0, 0);
+    let low = point.iter().enumerate().fold(F192::ONE, |pad, (k, &r)| {
+        (F192::ONE + bit(k)) * r + (F192::ONE + bit(k) + r) * pad
+    });
+    (F192::ONE + bit(point.len())) * low
+}
+
+/// A table coordinate's value on a row whose local columns are `row`.
+pub(crate) fn coord_at(c: &Coord, row: &[F64]) -> F64 {
+    match c {
+        Coord::Const(v) => *v,
+        Coord::Col(i) => row[*i],
+        Coord::GCol(i, k) => g_pow(*k as usize) * row[*i],
+        Coord::Prod(i, j, k) => g_pow(*k as usize) * row[*i] * row[*j],
+        Coord::Sum(cs) => cs.iter().fold(F64::ZERO, |acc, c| acc + coord_at(c, row)),
+        Coord::Index | Coord::Public(_) => unreachable!("a table's bus block carries no virtual coordinate"),
+    }
 }
 
 /// Placement of each block in the stacked leaf vector (input order).
@@ -239,16 +274,19 @@ pub fn build_leaves(
             const_part + acc.reduce()
         };
         let off = lay.offsets[b];
-        // Every row of every block is a real row: a table's height is exactly the
-        // number of rows it executed (`cpu::filler`), so no block has padding rows
-        // whose tuples would have to be divided back out of the product.
-        let dst = &mut leaves[off..off + (1usize << blk.kappa)];
-        if dst.len() >= PAR_THRESHOLD {
-            parallel::fill(dst, row);
+        let (real, padding) = leaves[off..off + (1usize << blk.kappa)].split_at_mut(blk.rows);
+        if real.len() >= PAR_THRESHOLD {
+            parallel::fill(real, row);
         } else {
-            for (z, slot) in dst.iter_mut().enumerate() {
+            for (z, slot) in real.iter_mut().enumerate() {
                 *slot = row(z);
             }
+        }
+        // A padding row's leaf is the identity, so it leaves the product alone.
+        if padding.len() >= PAR_THRESHOLD {
+            parallel::fill(padding, |_| F192::ONE);
+        } else {
+            padding.fill(F192::ONE);
         }
     }
     leaves
@@ -378,6 +416,10 @@ fn accumulate_form(c: &Coord, w: F192, base: usize, form: &mut BusForm) {
 /// claims as before, `fresh` supplying values not already in `claims`. Returns the
 /// framework blocks' contribution to `Ṽ₀(ζ)` plus the padding mass, so the caller
 /// can settle the side once the zerocheck has proven the tables' forms.
+///
+/// A table's form is summed over all its rows, padding rows included, where the leaf
+/// holds `1` instead: the difference, `padding_weight · (β + fingerprint(pad) + 1)`, is
+/// public, so it joins the padding mass.
 fn decompose_formula<F: FnMut(usize, &[F192]) -> F192>(
     blocks: &[Block],
     lay: &Layout,
@@ -412,6 +454,12 @@ fn decompose_formula<F: FnMut(usize, &[F192]) -> F192>(
             for (i, c) in blk.coords.iter().enumerate() {
                 accumulate_form(c, eq_hi * w[i], base, form);
             }
+            let phi_padding = blk
+                .padding
+                .iter()
+                .zip(w)
+                .fold(beta, |acc, (&v, &wi)| acc + wi.mul_base(v));
+            acc += eq_hi * padding_weight(zeta_lo, blk.rows) * (F192::ONE + phi_padding);
             continue;
         }
 

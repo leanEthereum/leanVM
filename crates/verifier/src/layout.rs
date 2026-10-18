@@ -2,7 +2,8 @@
 
 use crate::bytecode::Bytecode;
 use crate::field::{E, GEN, ONE, ZERO};
-use crate::multilinear::{Placement, log2_strict, stack_offsets};
+use crate::hash::{STATE_LANES, step};
+use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
 use std::collections::BTreeMap;
 use std::ops::Add;
@@ -53,7 +54,8 @@ impl Add for Form {
 /// One block of a bus side, always owned by a table. The three blocks no table owns are the framework, on `BusLayout`.
 #[derive(Clone, Debug)]
 pub struct BusBlock {
-    pub log_rows: usize,        // the owner's height: this block flushes 2^log_rows rows
+    pub log_rows: usize,        // the owner's height: the block spans 2^log_rows rows
+    pub rows: u64,              // ...of which the first `rows` flush, the rest being padding rows, whose leaves are 1
     pub coordinates: Vec<Form>, // the tuple flushed, over the owner's OWN local column indices; stays symbolic until its table sumcheck
     pub owner: usize,           // whose block it is, by opcode
 }
@@ -174,6 +176,7 @@ impl Flushes {
 pub struct Table {
     pub opcode: usize, // also its index in the table list, so g^opcode is its bytecode tag
     pub columns: &'static [&'static str],
+    pub padding: Vec<E>, // the row a padding row holds
     pub flushes: Flushes,
     pub constraints: fn(&[E]) -> Vec<E>,
 }
@@ -360,9 +363,18 @@ const SHA3_COLUMNS: &[&str] = &[
 ];
 
 pub fn tables() -> Vec<Table> {
-    let table = |opcode, columns, flushes, constraints| Table {
+    // A padding row is zero, but for SHA3's output lanes: a padding step reads zeros, so it writes their step.
+    let output = step(&[0; STATE_LANES]);
+    let table = |opcode, columns: &'static [&'static str], flushes, constraints| Table {
         opcode,
         columns,
+        padding: columns
+            .iter()
+            .map(|&name| {
+                let lane = name.strip_prefix("out_").filter(|_| opcode == OP_SHA3);
+                E::new(lane.map_or(0, |lane| output[lane.parse::<usize>().unwrap()]), 0, 0)
+            })
+            .collect(),
         flushes,
         constraints,
     };
@@ -399,35 +411,38 @@ pub fn sha3_lane(prefix: &str, lane: usize) -> usize {
     GLOBAL_COLUMN_BASES[OP_SHA3] + cols(SHA3_COLUMNS, [&format!("{prefix}_{lane}")])[0]
 }
 
+/// Each table's least log height: 0, but the Keccak reduction's block of steps for SHA3.
+const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG];
+
 pub fn build_layout<'a>(
     bytecode: &'a Bytecode,
     log_memory: u64,
-    table_log_heights: &[u64],
+    table_rows: &[u64],
 ) -> Result<Layout<'a>, VerifierError> {
     let log_bytecode = log2_strict(bytecode.len() as u64)?;
     require(
         (16..=32).contains(&log_memory)
-            && table_log_heights
-                .iter()
-                .all(|&log_height| log_height <= MAX_TABLE_LOG as u64)
-            && table_log_heights[OP_SHA3] >= KECCAK_MIN_STEPS_LOG as u64
+            && table_rows.iter().all(|&rows| rows <= 1 << MAX_TABLE_LOG)
             && (BUS_BITS..=32 + BUS_BITS).contains(&log_bytecode),
         VerifierError::AnnouncedTableSizes,
     )?;
     let log_bytecode = log_bytecode - BUS_BITS;
     let log_memory = log_memory as usize;
-    let table_log_heights: Vec<usize> = table_log_heights
+    // A table's height is the least power of two holding its rows.
+    let table_log_heights: Vec<usize> = table_rows
         .iter()
-        .map(|&log_height| log_height as usize)
+        .zip(TABLE_LOG_FLOORS)
+        .map(|(&rows, floor)| log2_ceil(rows).max(floor))
         .collect();
 
     let tables = tables();
     let mut push = Vec::new();
     let mut pull = Vec::new();
     let mut count = Vec::new();
-    for (table, &height) in tables.iter().zip(&table_log_heights) {
+    for ((table, &height), &rows) in tables.iter().zip(&table_log_heights).zip(table_rows) {
         let block = |coordinates: &Vec<Form>| BusBlock {
             log_rows: height,
+            rows,
             coordinates: coordinates.clone(),
             owner: table.opcode,
         };

@@ -303,7 +303,7 @@ pub enum RootShape {
     /// Three unrelated products: every root is sent.
     Distinct,
     /// The first two trees share a product by construction, as the bus's two sides do
-    /// (`cpu::filler` fills every table to a power of two, so they balance outright). ONE root
+    /// (a padding row's leaf is the identity on both, so they balance outright). ONE root
     /// is then sent for both, and no verifier can be handed an unbalanced pair to check.
     FirstTwoShared,
 }

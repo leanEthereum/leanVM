@@ -27,10 +27,6 @@ Fix a state $x$. Its in-degree in $G$ counts the rows with $\bpush(r)=x$, plus $
 A finite balanced multigraph is a union of edge-disjoint closed walks: follow unused edges from any vertex, which balance always permits on entering one, until a vertex repeats; remove the closed walk found and repeat. Deleting $e$ from the closed walk that contains it leaves $r_1,\dots,r_L$.
 \end{proof}
 
-\begin{remark}
-  Tolerating closed walks is what lets a table be filled to a power of two (\S\ref{sec:e2e-pad}).
-\end{remark}
-
 \subsection{The lookup protocol}\label{sec:lookup}
 
 We use a similar idea to~\cite[Protocol.~4.27]{DP23}.

@@ -39,7 +39,7 @@ RS_COUNT_BITS = 6  # a ring-switch coordinate count is below 2^RS_COUNT_BITS
 # Exponent bit-widths: an announced 32-bit count decomposes into COUNT_BITS bits,
 # its top bit constrained to zero so the native strict 32-bit bound holds; any
 # structural size (sums of 2^kappa, packing offsets) fits SIZE_BITS bits; and a
-# structural LOG (log_mem, tau_t, log_inv_rate), announced as an integer word and
+# structural LOG (log_mem, log_inv_rate), announced as an integer word and
 # raised to a g-power by g_power_of_word, is below SIZE_BITS, so LOG_WORD_BITS bits
 # are enough and the reconstruction IS the bound (a larger announced log cannot
 # reproduce itself from this many bits).
@@ -130,11 +130,14 @@ BLOCK_COORD_OFF = BLOCK_COORD_OFF_PLACEHOLDER
 BLOCK_COORD_COUNT = BLOCK_COORD_COUNT_PLACEHOLDER
 COORD_TYPE = COORD_TYPE_PLACEHOLDER
 COORD_CONST = COORD_CONST_PLACEHOLDER
+# A table coord's value on its table's padding row (doc sec:e2e-pad), zero for a
+# framework coord: a block's rows past its table's announced count flush nothing,
+# their leaves being 1, so the decompose adds back what its form sums there.
+COORD_PADDING = COORD_PADDING_PLACEHOLDER
 # Claim dedup: push/pull share their GKR point, so a column read by two blocks with
 # the same kappa (across OR within the sides) is streamed and opened ONCE.
 # COORD_FRESH = 1 on the first occurrence (read the stream, fill pool slot
-# COORD_CLAIM_SLOT), 0 on a duplicate (reuse that slot). The count side has its own
-# point, so its claims never dedup against the pair's.
+# COORD_CLAIM_SLOT), 0 on a duplicate (reuse that slot).
 COORD_FRESH = COORD_FRESH_PLACEHOLDER
 COORD_FRESH_POS = COORD_FRESH_POS_PLACEHOLDER  # a fresh coordinate's place among the words the decomposition absorbs
 N_FRESH = N_FRESH_PLACEHOLDER
@@ -171,8 +174,8 @@ LOG2_BYTECODE_COLS = LOG2_BYTECODE_COLS_PLACEHOLDER
 # the evaluation frame. ETA_OFFSET[t] starts table t's disjoint range of zc_xi
 # powers; the three bus forms take ETA_FORM_BASE + side, the SAME three powers for
 # every table, and that sharing is what makes the batch's target derivable from the
-# three leaf claims. FLOORS[t] is the table's tau floor (the Keccak reduction is
-# sized for at least one block of 2^9 steps).
+# three leaf claims. FLOORS[t] is the table's least log height (the Keccak reduction
+# is sized for at least one block of 2^9 steps).
 TABLE_XOR = 0
 TABLE_MUL = 1
 TABLE_SET = 2
@@ -180,8 +183,7 @@ TABLE_DEREF = 3
 TABLE_JUMP = 4
 TABLE_SHA3 = 5
 N_TABLES = N_TABLES_PLACEHOLDER
-KECCAK_MIN_STEPS_LOG = 9
-FLOORS = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG]
+FLOORS = FLOORS_PLACEHOLDER
 N_TABLE_COLS = N_TABLE_COLS_PLACEHOLDER
 TABLE_COL_BASE = TABLE_COL_BASE_PLACEHOLDER  # a table's first column among all the evaluations
 N_COL_EVALS = N_COL_EVALS_PLACEHOLDER
@@ -1904,7 +1906,41 @@ def block_selector(sel_bits, zeta1_hi, idxc_hi, n: Const):
     return eq, rebuilt
 
 
-def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count):
+def padding_weight(rows, zeta, tau: Const):
+    # pad_n(zeta[..tau]) for n = rows <= 2^tau (doc lem:suffix). The advice is the bits
+    # of n + (2^tau - 1): the complements of n's low bits, as the step reads them, then
+    # n's bit tau, set only alone.
+    word = rows + const(2 ** tau - 1)
+    bits = StackBuf(N_COLUMN_LOGS)
+    hint_decompose_bits(bits, word, tau + 1)
+    pad = 1
+    for k in unroll(0, tau):
+        c = bits[k]
+        bits[k] = c * c
+        z = zeta[GEN ** k]
+        pad = c * z + (c + z) * pad
+    top = bits[tau]
+    bits[tau] = top * top
+    # tau is the least height holding n iff lead == 1 and rest != 0: n's highest
+    # bit is tau - 1 with more below it, or n = 2^tau.
+    if tau == 0:
+        low = 0
+        lead = 1
+        rest = 1
+    else:
+        # The bits below bit tau - 1, by Horner from their high end: one constant, 2.
+        below = 0
+        for k in unroll(1, tau):
+            below = below * 2 + bits[tau - 1 - k]
+        low = below + bits[tau - 1] * (2 ** (tau - 1))
+        lead = top + 1 + bits[tau - 1]
+        rest = top + below + const(2 ** (tau - 1) - 1)
+    assert low + top * (2 ** tau) == word
+    assert top * (low + const(2 ** tau - 1)) == 0
+    return (1 + top) * pad, lead, rest
+
+
+def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count):
     # Settle the bus against the six tables, in four steps: certify each side's
     # leaf-cube tiling, decompose the three GKR leaf values over it, run the ONE
     # table sumcheck they all reduce to, and bind the public input. Pooled claims
@@ -1970,6 +2006,23 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     # deduped pool reads (COORD_FRESH). The identity check against pull's own GKR
     # claim still binds everything.
     bc_share = hint_witness("bytecode_val")
+    # Each table's padding rows: their weight on a claim at zeta[..tau], dispatched on
+    # its hinted log height tau, which this certifies: the least holding its rows, or
+    # its floor. A table is at most the stack, so tau has an arm.
+    pad_weight = StackBuf(N_TABLES)
+    for t in unroll(0, N_TABLES):
+        tau_g = dims_g[GEN ** (t + 1)]
+        assert log(tau_g) < N_COLUMN_LOGS
+        rows = table_rows[GEN ** t]
+        pad_weight[t], lead, rest = match(log(tau_g), range(0, N_COLUMN_LOGS), lambda tau: padding_weight(rows, zeta, tau))
+        if FLOORS[t] == 0:
+            assert lead == 1
+            assert rest != 0
+        else:
+            assert log(tau_g / GEN ** FLOORS[t]) < N_COLUMN_LOGS
+            if tau_g != GEN ** FLOORS[t]:
+                assert lead == 1
+                assert rest != 0
     idxc_tab = HeapBuf(SIZE_BITS)  # INDEX_MLE_FACTORS[t] = 1 + g^(2^t)
     for t in unroll(0, SIZE_BITS):
         idxc_tab[GEN ** t] = INDEX_MLE_FACTORS[t]
@@ -1989,6 +2042,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     bus_table_total = StackBuf(N_GKR_SIDES)  # per side, what its tables' blocks owe
     block_eq_hi = StackBuf(N_BLOCKS)         # every block's eq_hi, reused below
     block_index_mle = HeapBuf(N_BLOCKS)      # per push block with an Index coord
+    beta_1 = beta + 1
     for s in unroll(0, N_GKR_SIDES):
         acc = 0
         selector_sum = 0
@@ -2084,6 +2138,34 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                     acc += eq_hi * inner_sum
                 else:
                     acc += eq_hi * (beta + inner_sum)
+        # The table sumcheck sums a table block's form phi over every row, padding
+        # rows included, whose leaves are 1 instead: the difference, (1 - phi(p_j))
+        # times the table's pad_weight, is public and joins the padding mass. A pull
+        # block has its push twin's eq_hi and padding tuple, so pull owes what push does.
+        if s == PULL_SIDE:
+            acc += push_padding
+        else:
+            padding_sum = 0
+            for t in unroll(0, N_TABLES):
+                table_sum = 0
+                for b in unroll(SIDE_BLOCK_START[s], SIDE_BLOCK_START[s + 1]):
+                    if BLOCK_TABLE[b] == t:
+                        if s == COUNT_SIDE:
+                            coeff = 1
+                        else:
+                            coeff = beta_1
+                        for i in unroll(0, BLOCK_COORD_COUNT[b]):
+                            ci = BLOCK_COORD_OFF[b] + i
+                            if const(COORD_PADDING[ci] != 0):
+                                if s == COUNT_SIDE:
+                                    coeff += COORD_PADDING[ci]
+                                else:
+                                    coeff += fp_w[GEN ** i] * COORD_PADDING[ci]
+                        table_sum += block_eq_hi[b] * coeff
+                padding_sum += pad_weight[t] * table_sum
+            acc += padding_sum
+            if s == PUSH_SIDE:
+                push_padding = padding_sum
         acc += 1 + selector_sum
         # What the tables' blocks owe this side: its GKR leaf value less the
         # framework decomposition. DERIVED, not read: a transmitted total would be a
@@ -2701,7 +2783,7 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
     # openings of q_keccak, at the two points written to `z_vals` (tau +
     # QKECCAK_SLOT_LOG coordinates each, QKECCAK_VARS_CAP apart): the committed
     # outputs as words at the first, returned, and the 64 `slices` at the second.
-    # tau >= KECCAK_MIN_STEPS_LOG is certified, so the pack count is a real count. It
+    # tau >= FLOORS[TABLE_SHA3] is certified, so the pack count is a real count. It
     # also draws the ring-switching map's first challenge, which the last slices wait
     # for, and returns it.
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
@@ -3089,13 +3171,12 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     cursor = stream  # the proof stream, replayed word by word (advance = * g)
 
     # ---- announced layout and PCS rate (observed, then certified) ----
-    # The stream announces the sizes as integer WORDS, one log each; the
-    # shape-generic phases need them as G-POWERS (loop bounds, match scrutinees), so
-    # each is reassembled from its advice-decomposed bits, with no hint and no
-    # g^j -> j lookup. Every table's rows are real rows (the prover's fill blocks
-    # bring each count up to a power of two), so a height is all there is to
-    # announce.
-    sizes = StackBuf(N_TABLES + 1)
+    # The stream announces the memory's log size and each table's row count as
+    # integer WORDS; the shape-generic phases need logs as G-POWERS (loop bounds,
+    # match scrutinees). log_mem is reassembled from its advice-decomposed bits, with
+    # no hint and no g^j -> j lookup. A table's log height is advice, which
+    # verify_tables certifies to be the least holding its rows, above its floor.
+    table_rows = HeapBuf(N_TABLES)
     rate = StackBuf(8)
     for i in unroll(0, N_TABLES + 1):
         if i % 4 == 0:
@@ -3103,7 +3184,10 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
                 sp = fs_perm(sp, rate, 4)
                 rate = StackBuf(8)
         x, cursor = fs_next(rate, i % 4, cursor)
-        sizes[i] = x
+        if i == 0:
+            log_mem_word = x
+        else:
+            table_rows[GEN ** (i - 1)] = x
     if const((N_TABLES + 1) % 4 == 0):
         sp = fs_perm(sp, rate, 4)
         rate = StackBuf(8)
@@ -3111,17 +3195,12 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     rate_sel = g_power_of_word(log_inv_rate) / GEN
     assert log(rate_sel) < LIG_N_RATES
     dims_g = HeapBuf(N_TABLES + 1)  # [g^log_mem, g^tau_0 .. g^tau_{N_TABLES-1}]
-    g_log_mem = g_power_of_word(sizes[0])
+    g_log_mem = g_power_of_word(log_mem_word)
     assert log(g_log_mem) < COUNT_BITS
     assert log(g_log_mem / GEN ** MIN_LOG_MEM) < COUNT_BITS  # native MIN_LOG_MEM <= log_mem
     dims_g[GEN ** 0] = g_log_mem
-    for t in unroll(0, N_TABLES):
-        g_tau = g_power_of_word(sizes[t + 1])
-        assert log(g_tau) < COUNT_BITS
-        # A table's floor: the Keccak reduction is sized for at least 2^9 steps.
-        assert log(g_tau / GEN ** FLOORS[t]) < COUNT_BITS
-        dims_g[GEN ** (t + 1)] = g_tau
-    # kappa_base maps a kappa source index to its certified announced log (source 0
+    hint_witness(dims_g[1:1 + N_TABLES], "table_logs")  # certified in verify_tables
+    # kappa_base maps a kappa source index to its certified log (source 0
     # = const via the baked adj). Each block's kappa then DERIVES from its
     # structural source as a compile-time offset off a certified log: no hint, and
     # nothing left free.
@@ -3178,7 +3257,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
 
     # ---- the bus leaves, the table sumcheck, and the public-input claim ----
     chi = HeapBuf(SIZE_BITS)  # chi[i] = the challenge that bound variable i
-    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_share, rm = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count)
+    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_share, rm = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count)
 
     # ---- SHA3 validity, by GKR over the rounds ----
     tau_sha3_g = dims_g[GEN ** (TABLE_SHA3 + 1)]  # the SHA3 table's certified tau

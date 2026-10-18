@@ -1,9 +1,4 @@
 //! Proof-level properties of the VM: that its channels carry everything, and that a malformed input is an error rather than a panic.
-//!
-//! These live here rather than beside the prover because a provable program's tables
-//! must all be powers of two, which is the compiler's fill blocks' job
-//! (`lean_compiler::filler`). A hand-written bytecode program would have to fill itself,
-//! duplicating their knowledge of what a dummy row looks like.
 
 use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{CpuError, Proof, ProveError, prove, verify};

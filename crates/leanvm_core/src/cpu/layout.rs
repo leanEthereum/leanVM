@@ -82,6 +82,9 @@ pub struct Layout {
     /// word), bound to the committed memory at verification (§sec:e2e-pi).
     pub pi: [F192; 2],
     pub taus: [usize; tables::N_TABLES],
+    /// Rows per table the program executed, at most `2^taus[t]`: the rest are padding
+    /// rows (§sec:e2e-pad).
+    pub rows: [usize; tables::N_TABLES],
 }
 
 /// The prover's witness: the stacked multilinear `q`, which holds every committed
@@ -211,15 +214,6 @@ pub(crate) fn committed_log(log_mem: usize, log_bytecode: usize, taus: [usize; t
         .mu
 }
 
-/// Build the public [`Layout`] from the program, the memory log-size `log_mem`, the
-/// instruction tables' log heights `taus`, and the public input `pi`. The flush blocks
-/// reference columns only by INDEX and the program only through its public columns, so
-/// this needs no committed witness: both prover and verifier reconstruct exactly the same
-/// structure.
-///
-/// A table's height is its row count: the fill blocks bring every count up to a power of
-/// two (`cpu::filler`), so `2^taus[t]` rows were all executed and no flush has padding
-/// tuples to divide back out of the bus.
 /// The eight PUBLIC bytecode columns over the program cube, in bytecode-slot
 /// order: the opcode, then seven operand/immediate slots. The program is not
 /// committed, so these ride the seed/finalize blocks as `Coord::Public` and
@@ -315,14 +309,17 @@ pub fn bytecode_table(prog: &[Op]) -> Vec<F64> {
     let coords = bytecode_columns(prog)
         .map(|c| Coord::Public(std::sync::Arc::new(c)))
         .into();
-    let block = Block {
-        kappa: crate::log2_strict_usize(prog.len()),
-        coords,
-    };
+    let block = Block::full(crate::log2_strict_usize(prog.len()), coords);
     crate::leaf::stacked_bytecode_table(std::slice::from_ref(&block))
 }
 
-pub fn layout(prog: &[Op], log_mem: usize, taus: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
+/// Build the public [`Layout`] from the program, the memory log-size `log_mem`, the
+/// instruction tables' row counts `rows`, and the public input `pi`. The flush blocks
+/// reference columns only by INDEX and the program only through its public columns, so
+/// this needs no committed witness: both prover and verifier reconstruct exactly the
+/// same structure.
+pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F192; 2]) -> Layout {
+    let taus = table_logs(rows);
     let bytecode_size = prog.len();
     let log_bytecode = crate::log2_strict_usize(bytecode_size);
 
@@ -341,21 +338,20 @@ pub fn layout(prog: &[Op], log_mem: usize, taus: [usize; tables::N_TABLES], pi: 
 
     // ---- bus blocks ----
     use Coord::{Col, Const, Index, Public};
-    let blk = |kappa: usize, coords: Vec<Coord>| Block { kappa, coords };
 
     let mut push: Vec<Block> = Vec::new();
     let mut pull: Vec<Block> = Vec::new();
 
     // Shared blocks (cross-instruction infra, not owned by any single table).
     // boundary state.
-    push.push(blk(0, vec![Const(SEP_STATE), Const(one), Const(one)]));
-    pull.push(blk(
+    push.push(Block::full(0, vec![Const(SEP_STATE), Const(one), Const(one)]));
+    pull.push(Block::full(
         0,
         vec![Const(SEP_STATE), Const(g_pow(final_pc as usize)), Const(one)],
     ));
     // memory seed + finalize (every address real, no padding). The value is the
     // full three-limb 192-bit word.
-    push.push(blk(
+    push.push(Block::full(
         log_mem,
         vec![
             Const(SEP_MEM),
@@ -366,7 +362,7 @@ pub fn layout(prog: &[Op], log_mem: usize, taus: [usize; tables::N_TABLES], pi: 
             Col(MEM_TOP),
         ],
     ));
-    pull.push(blk(
+    pull.push(Block::full(
         log_mem,
         vec![
             Const(SEP_MEM),
@@ -380,7 +376,7 @@ pub fn layout(prog: &[Op], log_mem: usize, taus: [usize; tables::N_TABLES], pi: 
     // bytecode seed + finalize (program columns are public; padding entries
     // self-cancel at count 1, so the whole 2^log_bytecode is "real").
     let bytecode_block = |count: Coord| {
-        blk(
+        Block::full(
             log_bytecode,
             [Const(SEP_BYTECODE), Index, count]
                 .into_iter()
@@ -397,18 +393,18 @@ pub fn layout(prog: &[Op], log_mem: usize, taus: [usize; tables::N_TABLES], pi: 
     let mut count_blocks: Vec<Block> = Vec::new();
     for (t, table) in tables::tables().iter().enumerate() {
         let base = sch.base[t];
-        let kappa = taus[t];
+        let padding = table.padding();
+        let table_block = |coords: Vec<Coord>| Block {
+            kappa: taus[t],
+            rows: rows[t],
+            padding: coords.iter().map(|c| crate::leaf::coord_at(c, &padding)).collect(),
+            coords: offset_coords(base, coords),
+        };
         let mut fb = FlushBuilder::new();
         table.flushes(&mut fb);
-        for coords in fb.push {
-            push.push(blk(kappa, offset_coords(base, coords)));
-        }
-        for coords in fb.pull {
-            pull.push(blk(kappa, offset_coords(base, coords)));
-        }
-        for &c in table.count_columns() {
-            count_blocks.push(blk(kappa, vec![Col(base + c)]));
-        }
+        push.extend(fb.push.into_iter().map(table_block));
+        pull.extend(fb.pull.into_iter().map(table_block));
+        count_blocks.extend(table.count_columns().iter().map(|&c| table_block(vec![Col(c)])));
     }
 
     let (placements, shape) = witness::placements_of(&col_kappas(log_mem, log_bytecode, taus));
@@ -420,7 +416,19 @@ pub fn layout(prog: &[Op], log_mem: usize, taus: [usize; tables::N_TABLES], pi: 
         shape,
         pi,
         taus,
+        rows,
     }
+}
+
+/// Every table's log height: the least that holds its rows, at least its floor.
+pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_TABLES] {
+    let taus = std::array::from_fn(|t| crate::log2_ceil_usize(rows[t]).max(tables::TABLE_LOG_FLOORS[t]));
+    debug_assert_eq!(
+        taus[tables::SHA3_TABLE],
+        crate::keccak::n_blocks_log(rows[tables::SHA3_TABLE]),
+        "the SHA3 table is the Keccak reduction's batch"
+    );
+    taus
 }
 
 impl Program {
@@ -450,24 +458,8 @@ impl Program {
             row_counts.iter().all(|&r| r <= 1 << MAX_LOG_ROWS),
             "a table exceeds 2^{MAX_LOG_ROWS} rows"
         );
-        // Every table's rows are real rows, so its height IS its row count: the fill
-        // blocks ran each count up to a power of two, and SHA3 up to the reduction's
-        // step floor as well (`cpu::filler`).
-        let taus = row_counts.map(|r| {
-            assert!(
-                r.is_power_of_two(),
-                "a table has {r} rows, not a power of two: the fill blocks did not fill \
-                 it (cpu::filler)"
-            );
-            crate::log2_strict_usize(r)
-        });
-        assert_eq!(
-            taus[tables::SHA3_TABLE],
-            crate::keccak::n_blocks_log(row_counts[tables::SHA3_TABLE]),
-            "the SHA3 table must be filled to the Keccak reduction's floor"
-        );
         let pi = [exec.mem[0], exec.mem[1]];
-        let l = layout(&self.prog, log_mem, taus, pi);
+        let l = layout(&self.prog, log_mem, row_counts, pi);
 
         // The stacked witness is written exactly ONCE: allocate it, carve one window
         // per committed column, and have every fill write its column straight into
@@ -504,7 +496,7 @@ impl Program {
         crate::stage!("Fill columns", || {
             for (t, table) in tables::tables().iter().enumerate() {
                 let (base, n) = (sch.base[t], table.n_committed_columns());
-                let ctx = FillCtx::new(tr, &exec.mem, &gpow, &self.prog, 1 << l.taus[t]);
+                let ctx = FillCtx::new(tr, &exec.mem, &gpow, &self.prog, 1 << l.taus[t], table.padding());
                 tables::fill_table(*table, &ctx, &mut windows[base..base + n]);
             }
             // Shared columns. The 192-bit memory image splits into three K-limbs.

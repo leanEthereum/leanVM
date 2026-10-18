@@ -256,7 +256,7 @@ def multilinear_eval(mle: Sequence[K | E], point: Sequence[E]) -> E:
 
 
 def log2_ceil(value: int) -> int:
-    return max(0, (value - 1).bit_length())
+    return (max(value, 1) - 1).bit_length()
 
 
 def log2_strict(value: int) -> int:
@@ -276,6 +276,15 @@ def dot(left: Sequence[K | E], right: Sequence[K | E]) -> E:
     for x, y in zip(left, right, strict=True):
         result += E.lift(x) * y
     return result
+
+
+def padding_weight(point: Sequence[E], n: int) -> E:
+    """`pad_n(point)`, the multilinear extension of `[z >= n]`, `n <= 2^len(point)` (lemma lem:suffix)."""
+    pad = ONE
+    for k, r in enumerate(point):
+        b = E(n >> k & 1)
+        pad = (ONE + b) * r + (ONE + b + r) * pad
+    return (ONE + E(n >> len(point) & 1)) * pad
 
 
 def index_mle(point: MultilinearPoint) -> E:
@@ -523,7 +532,8 @@ class Form:
 class BusBlock:
     """One block of a bus side, always owned by a table. The three blocks no table owns are the framework, on `BusLayout`."""
 
-    log_rows: int  # the owner's height: this block flushes 2^log_rows rows
+    log_rows: int  # the owner's height: the block spans 2^log_rows rows
+    rows: int  # ...of which the first `rows` flush, the rest being padding rows, whose leaves are 1
     coordinates: tuple[Form, ...]  # the tuple flushed, over the owner's OWN local column indices; stays symbolic until its table sumcheck
     owner: int  # whose block it is, by opcode
 
@@ -620,15 +630,18 @@ def verify_bus_balance(layout: Layout, transcript: Transcript) -> BusResult:
         table_selectors = [p.eq_above(point) for p in side_layout.tables]
         known = dot(framework_selectors, [side_beta + fingerprint for fingerprint in framework_fingerprints])
         # A table's blocks stay symbolic: they accumulate into the form its sumcheck settles over its own columns.
-        beta_form = _const(side_beta)
+        # That form is summed over the padding rows too, whose leaves hold 1 instead: the difference is public.
+        padding_rows = ZERO
         for selector, block in zip(table_selectors, blocks, strict=True):
-            form = forms[block.owner][side]
-            form.add_scaled(beta_form, selector)
+            block_form = _const(side_beta)
             for slot, coordinate in enumerate(block.coordinates):
-                form.add_scaled(coordinate, selector * side_weights[slot])  # the fingerprint, one tuple slot at a time
-        # Every occupied row holds beta + its fingerprint; the rest of the leaf cube holds 1.
+                block_form.add_scaled(coordinate, side_weights[slot])  # the fingerprint, one tuple slot at a time
+            forms[block.owner][side].add_scaled(block_form, selector)
+            padding = TABLES[block.owner].padding
+            padding_rows += selector * padding_weight(point[: block.log_rows], block.rows) * (block_form.evaluate(padding.__getitem__) + ONE)
+        # The leaves outside every block hold 1.
         ones_padding = E.sum(framework_selectors + table_selectors) + ONE
-        totals.append(tree_values[side] + known + ones_padding)  # what the forms owe: the GKR value, less framework and padding
+        totals.append(tree_values[side] + known + ones_padding + padding_rows)  # what the forms owe: the GKR value, less framework and padding
 
     return BusResult(tuple(claims), point, forms, (totals[0], totals[1], totals[2]))
 
@@ -781,6 +794,14 @@ class Table:
     def count_columns(self) -> tuple[int, ...]:
         return tuple(i for i, name in enumerate(self.columns) if name.startswith("cnt"))
 
+    @property
+    def padding(self) -> tuple[E, ...]:
+        """The row a padding row holds: zero, but for SHA3's output lanes, a padding step writing the step of a zero state."""
+        if self.opcode != OP_SHA3:
+            return tuple(ZERO for _ in self.columns)
+        output = keccak_step([0] * 25)
+        return tuple(E(output[SHA3_OUTPUTS.index(name)]) if name in SHA3_OUTPUTS else ZERO for name in self.columns)
+
 
 def _flushes_arith(opcode: int, multiply: bool) -> Flushes:
     pc, fp, o_a, o_b, o_c, cnt_a, cnt_b, cnt_c, cnt_bc = _cols(ARITH_COLUMNS, "pc", "fp", "o_a", "o_b", "o_c", "cnt_a", "cnt_b", "cnt_c", "cnt_bc")
@@ -903,31 +924,31 @@ TABLES = (
 SHA3_SLOTS = tuple(f"in_{lane}" for lane in range(25))
 SHA3_OUTPUTS = tuple(f"out_{lane}" for lane in range(25))
 
+
 TABLE_WIDTHS = tuple(t.width for t in TABLES)
 GLOBAL_COLUMN_BASES = tuple(NUM_GLOBAL_COLUMNS + sum(TABLE_WIDTHS[:table]) for table in range(len(TABLES)))
 
 
-def build_layout(bytecode: Sequence[K], log_memory: int, table_log_heights: Sequence[int]) -> Layout:
+TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG)  # each table's least log height: 0, but the Keccak reduction's block of steps for SHA3
+
+
+def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[int]) -> Layout:
     log_bytecode = log2_strict(len(bytecode)) - BUS_BITS
-    require(
-        16 <= log_memory <= 32
-        and all(0 <= log_height <= 32 for log_height in table_log_heights)
-        and table_log_heights[OP_SHA3] >= KECCAK_MIN_STEPS_LOG
-        and 0 <= log_bytecode <= 32,
-        "invalid announced table sizes",
-    )
+    require(16 <= log_memory <= 32 and all(rows <= 2**32 for rows in table_rows) and 0 <= log_bytecode <= 32, "invalid announced table sizes")
+    # A table's height is the least power of two holding its rows.
+    table_log_heights = tuple(max(log2_ceil(rows), floor) for rows, floor in zip(table_rows, TABLE_LOG_FLOORS, strict=True))
 
     push: list[BusBlock] = []
     pull: list[BusBlock] = []
     count: list[BusBlock] = []
-    for table, height in zip(TABLES, table_log_heights, strict=True):
+    for table, height, rows in zip(TABLES, table_log_heights, table_rows, strict=True):
         flushes = table.flushes
         for coordinates in flushes.push:
-            push.append(BusBlock(height, coordinates, table.opcode))
+            push.append(BusBlock(height, rows, coordinates, table.opcode))
         for coordinates in flushes.pull:
-            pull.append(BusBlock(height, coordinates, table.opcode))
+            pull.append(BusBlock(height, rows, coordinates, table.opcode))
         for local in table.count_columns:
-            count.append(BusBlock(height, (_col(local),), table.opcode))
+            count.append(BusBlock(height, rows, (_col(local),), table.opcode))
 
     # Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
     qkeccak_kappa = table_log_heights[OP_SHA3] + QKECCAK_SLOT_BITS
@@ -1415,14 +1436,14 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     fiat_shamir_IV = keccak_hash(iv_preimage)
     transcript = Transcript(proof, fiat_shamir_IV, public_input)
 
-    # 1] memory log-size, table log-size, and log-inv-rate in WHIR
+    # 1] memory log-size, table row counts, and log-inv-rate in WHIR
     announced = transcript.next_scalars(2 + len(TABLES))
     require(all(value.c1 == value.c2 == 0 for value in announced), "announced size has a nonzero high limb")
     log_memory = int(announced[0].c0)
-    table_logs = tuple(int(value.c0) for value in announced[1 : 1 + len(TABLES)])
+    table_rows = tuple(int(value.c0) for value in announced[1 : 1 + len(TABLES)])
     log_inverse_rate = int(announced[-1].c0)
     require(1 <= log_inverse_rate <= 4, "invalid PCS inverse rate")
-    layout = build_layout(bytecode, log_memory, table_logs)
+    layout = build_layout(bytecode, log_memory, table_rows)
     require(MIN_STACKED_LOG <= layout.stack_log <= MAX_STACKED_LOG, "committed size outside the PCS window")
 
     # 2] parse WHIR commitment: one Merkle root (No OOD, our PCS is only List-binding).

@@ -1,4 +1,4 @@
-use lean_compiler::{compile, compile_without_filler, parse};
+use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
 use primitives::field::{F64, F192, g_pow};
 
@@ -70,7 +70,7 @@ def main():
     assert public[1] == out[1]
     return
 "#;
-    let program = compile_without_filler(&parse(source).unwrap());
+    let program = compile(&parse(source).unwrap());
     let execution = program.execute([F192::from(F64(7)), F192::ZERO]).unwrap();
     assert!(execution.unconstrained_reads.is_empty());
 }
@@ -89,7 +89,7 @@ def main():
     assert out[GEN] == public[1]
     return
 "#;
-    let program = compile_without_filler(&parse(source).unwrap());
+    let program = compile(&parse(source).unwrap());
     assert!(
         program
             .execute([g_pow(65536).into(), g_pow(65537).into()])

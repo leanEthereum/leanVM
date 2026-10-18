@@ -1,15 +1,15 @@
 % !TeX root = ../drafts/05-arithmetization.tex
 \section{Arithmetization framework}\label{sec:arith}
 
-The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{m3}. Rows are unordered, and an instance is accepted exactly when every table's constraints hold and the bus balances.
+The arithmetization is inspired by the M3 model (multi-multiset matching)~\cite{m3}. Executed rows are unordered, and an instance is accepted exactly when every table's constraints hold and the bus balances.
 
 \subsection{M3 model}\label{sec:m3}
 
-\paragraph{Tables and columns.} A column of height $2^{\kappa}$ is a function $\cube{\kappa}\to\K$. A table is a group of columns of equal height. The arithmetization fixes the number of tables $\ntab$ and, for each table $T_j$, its number of columns $\ncol{j}$, its $\ncons{j}$ constraints and its $\nfl{j}$ bus flushes. The table heights are not fixed: the prover announces each table's log height $\tau_j$ at the beginning of the proof.
+\paragraph{Tables and columns.} A column of height $2^{\kappa}$ is a function $\cube{\kappa}\to\K$. A table is a group of columns of equal height. The arithmetization fixes the number of tables $\ntab$ and, for each table $T_j$, its number of columns $\ncol{j}$, its $\ncons{j}$ constraints and its $\nfl{j}$ bus flushes. The table heights are not fixed: the prover announces each table's row count $\nexec{j}$ at the beginning of the proof, and $T_j$ has height $2^{\tau_j}$, $\tau_j$ the least with $\nexec{j}\le2^{\tau_j}$ (at least $9$ for \texttt{SHA3}, whose rows are the Keccak reduction's steps, at least $2^9$ of them, Annex~\ref{annex:keccak}). Reading a row $x$ as an integer, low bit first, the rows $x<\nexec{j}$ are the \emph{executed} rows, and the others are \emph{padding} rows (\S\ref{sec:e2e-pad}).
 
 \paragraph{Constraints.} The constraints of $T_j$ are $C_{j,1},\dots,C_{j,\ncons{j}}$, each a polynomial over $\K$ of degree at most $d$ ($d=2$ throughout) in the $\ncol{j}$ columns, required to vanish on every row in $\cube{\tau_j}$.
 
-\paragraph{The bus.} All interactions (between tables) share a single \emph{bus}, a channel carrying tuples of up to $m=16$ $\K$-elements (shorter ones are zero-padded). Table $T_j$ has $\nfl{j}$ flushes $\btup_{j,1},\dots,\btup_{j,\nfl{j}}$, each is either a \emph{push} or a \emph{pull}. Each one of the $m$ coordinates in each tuple is a fixed polynomial of degree at most $d$ in the table's columns, so every row $x\in\cube{\tau_j}$ emits one tuple $\btup_{j,f}(x)$ per flush. A few \emph{boundary} tuples are pushed (resp. pulled) by default to the bus (for instance for the VM state $(\dsep{ST}, \pc, \fp)$, the initial $(\dsep{ST}, \gen^0, \gen^0)$ is pushed and the final $(\dsep{ST}, \gen^{\,\nprog-1}, \gen^{0})$ is pulled).
+\paragraph{The bus.} All interactions (between tables) share a single \emph{bus}, a channel carrying tuples of up to $m=16$ $\K$-elements (shorter ones are zero-padded). Table $T_j$ has $\nfl{j}$ flushes $\btup_{j,1},\dots,\btup_{j,\nfl{j}}$, each is either a \emph{push} or a \emph{pull}. Each one of the $m$ coordinates in each tuple is a fixed polynomial of degree at most $d$ in the table's columns, so every executed row emits one tuple $\btup_{j,f}(x)$ per flush. A few \emph{boundary} tuples are pushed (resp. pulled) by default to the bus (for instance for the VM state $(\dsep{ST}, \pc, \fp)$, the initial $(\dsep{ST}, \gen^0, \gen^0)$ is pushed and the final $(\dsep{ST}, \gen^{\,\nprog-1}, \gen^{0})$ is pulled).
 
 \paragraph{Balance.} The bus balances when its pushed tuples and its pulled tuples form the same multiset (\ref{def:multiset}).
 
@@ -48,7 +48,7 @@ For finite multisets $P,Q$ of width-$m$ tuples over $\K$, $\Pi_P=\Pi_Q$ if and o
 \end{lemma}
 
 \begin{proof}[Proof of Lemma~\ref{lem:gp}]
-TODO
+Distinct tuples have distinct fingerprints $\pi_A(\btup)$, the $\eq(A,\iota)$ being linearly independent. So $\Pi_P$ is a product of the monic, degree-one, hence irreducible factors $X-\pi_A(\btup)$, and unique factorization in $\K[A][X]$ recovers $P$ from it.
 \end{proof}
 
 
@@ -98,23 +98,31 @@ All $\nside$ trees leave the pass on claims at one shared terminal point $\zeta$
 
 GKR (\S\ref{sec:gkr}) leaves one claim per side $s$: the value of $\widetilde V^{s}_0(\zeta)$, the extension of that side's leaves at the terminal point $\zeta\in\E^{\mu}$. This subsection reduces it to one sum per table, over its rows, of a polynomial of degree at most $d=2$ in its columns: exactly what the \emph{table sumcheck} (\S\ref{sec:air}) proves.
 
-\paragraph{Blocks.} The leaves of side $s$ are a stack (\S\ref{sec:stacking}) whose pieces are its \emph{blocks}: one per flush of each table on that side, and one per boundary set (\S\ref{sec:m3}, \S\ref{sec:lookup}). Block $b$ holds $2^{\kappa_b}$ leaves $L_b(x)$ and sits at the public selector $\mathsf{sel}_b$; for the block of a flush $\btup_{j,f}$, $\kappa_b=\tau_j$ and $L_b(x)=\beta-\pi_\alpha(\btup_{j,f}(x))$. One diffence with the stacking at commitment (\S\ref{sec:stacking}) is the padding: $1$s rather than $0$s.
+\paragraph{Blocks.} The leaves of side $s$ are a stack (\S\ref{sec:stacking}) whose pieces are its \emph{blocks}: one per flush of each table on that side, and one per boundary set (\S\ref{sec:m3}, \S\ref{sec:lookup}). Block $b$ holds $2^{\kappa_b}$ leaves $L_b(x)$ and sits at the public selector $\mathsf{sel}_b$; for the block of a flush $\btup_{j,f}$, $\kappa_b=\tau_j$, and $L_b(x)$ is $\beta-\pi_\alpha(\btup_{j,f}(x))$ on an executed row; an honest prover puts $1$ on a padding row. One difference with the stacking at commitment (\S\ref{sec:stacking}) is the padding: $1$s rather than $0$s.
 \begin{equation}\label{eq:gkr_leaves}
-  \widetilde V^{s}_0(\zeta)\;=\;\sum_{b}\eq(\mathsf{sel}_b,\zeta_{\ge\kappa_b})\;\widetilde L_b(\zeta_{<\kappa_b})\;+\;\underbrace{\Bigl(1-\sum_{b}\eq(\mathsf{sel}_b,\zeta_{\ge\kappa_b})\Bigr)}_{\text{padding}},
+  \widetilde V^{s}_0(\zeta)\;=\;\sum_{b}\eq(\mathsf{sel}_b,\zeta_{\ge\kappa_b})\;\widetilde L_b(\zeta_{<\kappa_b})\;+\;\underbrace{\Bigl(1-\sum_{b}\eq(\mathsf{sel}_b,\zeta_{\ge\kappa_b})\Bigr)}_{\text{unused leaves}},
 \end{equation}
 both sums over the blocks of side $s$.
 
 \paragraph{Who settles what.} Three kinds of terms:
 \begin{itemize}[itemsep=1pt,topsep=3pt]
-\item \emph{Padding.} Public: the verifier evaluates it.
+\item \emph{Unused leaves.} Public: the verifier evaluates them.
 \item \emph{Boundary blocks.} Every slot of their tuples is public (a constant, a public input, or the index column of \S\ref{sec:idxcol}) or a single committed column, so $\widetilde L_b(\zeta_{<\kappa_b})$ is a linear combination of their evaluations at $\zeta_{<\kappa_b}$. The verifier computes the public ones; the prover sends each committed one, as a claim deferred to the PCS (\S\ref{sec:stacking}).
-\item \emph{Table blocks.} Nothing is sent for them: the table sumcheck proves them.
+\item \emph{Table blocks.} Nothing is sent for them: the table sumcheck proves them, except for a public term coming from their padding rows (below).
 \end{itemize}
-The verifier subtracts the first two kinds from the claimed value; the difference, $\mathsf{rem}_{s}$, is what the tables owe.
+The verifier subtracts the first two kinds and that public term from the claimed value; the difference, $\mathsf{rem}_{s}$, is what the tables owe.
 
-\paragraph{What a table owes.} A block of $T_j$ has $\kappa_b=\tau_j$, so by Fact~\ref{fact:eq} its term in \eqref{eq:gkr_leaves} is a sum over $T_j$'s rows against the weight $\eq(\zeta_{<\tau_j},\cdot)$. The blocks of $T_j$ share that weight and differ only by selector, so together they contribute one such sum, of
+\paragraph{What a table owes.} Let $b$ be a block of $T_j$, so $\kappa_b=\tau_j$, and let $\bform{b}(x)=\beta-\pi_\alpha(\btup_{j,f}(x))$, a polynomial of degree at most $d$ in $T_j$'s columns (on the count side, $\bform{b}(x)$ is the count itself, and $\bform{b}(\padrow{j})=0$). The verifier checks the claim on block $b$ against the leaves
+\[
+  L_b(x)\;=\;\bform{b}(x)+[x\ge\nexec{j}]\,\bigl(1-\bform{b}(\padrow{j})\bigr),
+\]
+where $\padrow{j}$ is a public row (\S\ref{sec:e2e-pad}). They are defined by the committed columns, whatever they hold. On an executed row $L_b(x)=\bform{b}(x)$. An honest prover fills padding rows with $\padrow{j}$, so there $L_b(x)=\bform{b}(\padrow{j})+1-\bform{b}(\padrow{j})=1$, the leaf it puts in GKR; Proposition~\ref{prop:pad} covers a padding row holding anything else. The indicator $[x\ge\nexec{j}]$ only multiplies a constant, which the verifier computes, so by Fact~\ref{fact:eq}
+\begin{equation}\label{eq:pad_leaf}
+  \widetilde L_b(\zeta_{<\tau_j})\;=\;\sum_{x\in\cube{\tau_j}}\eq(\zeta_{<\tau_j},x)\,\bform{b}(x)\;+\;\bigl(1-\bform{b}(\padrow{j})\bigr)\,\padw{\nexec{j}}(\zeta_{<\tau_j}).
+\end{equation}
+The last term is the public term above: $\padw{\nexec{j}}$ is the multilinear extension of $[x\ge\nexec{j}]$, which the verifier computes in $\tau_j$ steps (Lemma~\ref{lem:suffix}). The first term sums $\bform{b}$ over every row, padding rows included, with no indicator, so the table sumcheck proves it as if there were no padding. The blocks of $T_j$ share the weight $\eq(\zeta_{<\tau_j},\cdot)$ and differ only by selector, so together they contribute one sum, of
 \begin{equation}\label{eq:bus_poly}
-  B^{s}_j(x)\;=\;\sum_{b\,\in\,T_j}\eq(\mathsf{sel}_b,\zeta_{\ge\tau_j})\,L_b(x),
+  B^{s}_j(x)\;=\;\sum_{b\,\in\,T_j}\eq(\mathsf{sel}_b,\zeta_{\ge\tau_j})\,\bform{b}(x),
 \end{equation}
 of degree at most $d$ in $T_j$'s columns, with coefficients the verifier builds from $\alpha$, $\beta$ and the selectors. What remains of side $s$ is
 \begin{equation}\label{eq:bus}

@@ -85,6 +85,16 @@ pub fn dot(left: &[E], right: &[E]) -> E {
     result
 }
 
+/// `pad_n(point)`, the multilinear extension of `[z >= n]`, `n <= 2^len(point)` (lemma lem:suffix).
+pub fn padding_weight(point: &[E], n: u64) -> E {
+    let bit = |k: usize| E::new(n >> k & 1, 0, 0);
+    let low = point
+        .iter()
+        .enumerate()
+        .fold(ONE, |pad, (k, &r)| (ONE + bit(k)) * r + (ONE + bit(k) + r) * pad);
+    (ONE + bit(point.len())) * low
+}
+
 /// MLE of `[1, g, g^2, ...]` at an LSB-first point.
 pub fn index_mle(point: &[E]) -> E {
     let mut result = ONE;

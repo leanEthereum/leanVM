@@ -261,7 +261,7 @@ fn one_hinted_value_needs_no_buffer() {
         let want = [g_pow(5).into(), g_pow(0).into()];
         let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).expect("verifies");
-        program.execute(want).unwrap().base_counts.iter().sum::<usize>()
+        program.execute(want).unwrap().cycles
     };
     assert_eq!(run(&old), run(&new), "the sugar must cost what it replaces");
 
@@ -1010,24 +1010,6 @@ fn an_inline_call_does_not_steal_the_call_site_line() {
     assert!(
         err.site.contains("line 12"),
         "the call site, not the callee's line 5: {err}"
-    );
-}
-
-/// The fill blocks are not source code, so they carry the unknown line rather
-/// than whatever `main` happened to end on. They are most of a small program's
-/// instructions, so blaming them on a real line makes the table mostly wrong.
-#[test]
-fn fill_blocks_carry_no_source_line() {
-    let src = "\ndef main():\n    hb = HeapBuf(4)\n    hb[GEN] = 7\n    return\n";
-    let program = compile(&parse(src).expect("parse"));
-    let start = program.filler.first().map(|b| b.pc).expect("main carries fill blocks") as usize;
-    assert!(
-        program.src_lines[start..].iter().all(|&l| l == 0),
-        "a fill block must not be attributed to a source line"
-    );
-    assert!(
-        program.src_lines[..start].iter().any(|&l| l != 0),
-        "real code keeps its lines"
     );
 }
 

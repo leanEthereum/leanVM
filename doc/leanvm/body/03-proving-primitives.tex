@@ -39,6 +39,18 @@ Binding only the first $\ell\le\kappa$ variables gives the same identity with th
 so a partial evaluation is again a multilinear, its values the $\eq(r,\cdot)$-weighted combination of the rows $f(u,\cdot)$.
 \end{fact}
 
+\begin{lemma}[Weight of a suffix]\label{lem:suffix}
+Read $x\in\cube{\kappa}$ as an integer, low bit first, and let $\padw{n}(r)=\sum_{x\ge n}\eq(r,x)$, the multilinear extension of $[x\ge n]$. Then $\padw{0}=1$, $\padw{2^{\kappa}}=0$, and for $n<2^{\kappa}$, with top bit $n_{\kappa-1}$,
+\[
+  \padw{n}(r)\;=\;(1-n_{\kappa-1})\,r_{\kappa-1}+\eq(n_{\kappa-1},r_{\kappa-1})\,\padw{n\bmod2^{\kappa-1}}(r_{<\kappa-1}),
+\]
+so $\padw{n}$ costs $\kappa$ steps, unrolled from the low bit.
+\end{lemma}
+
+\begin{proof}
+Split on the top bit $x_{\kappa-1}$. If $n_{\kappa-1}=0$, every $x$ with $x_{\kappa-1}=1$ counts; if $n_{\kappa-1}=1$, none with $x_{\kappa-1}=0$ does. The others count when their low bits do.
+\end{proof}
+
 
 \begin{lemma}[Every element outside $\K$ is a cubic generator]\label{lem:kbasis}
 For $\alpha\in\E\setminus\K$, the set $\{1,\alpha,\alpha^{2}\}$ is a $\K$-basis of $\E$.

@@ -87,6 +87,13 @@
 \newcommand{\ncons}[1]{N_{\mathrm{cons},#1}}  % constraints of table #1
 \newcommand{\nconstot}{N_{\mathrm{cons}}}    % constraints of all tables, the batching offset
 \newcommand{\nfl}[1]{N_{\mathrm{flushes},#1}}    % bus flushes per row of table #1
+\newcommand{\nexec}[1]{N_{\mathrm{exec},#1}}   % executed rows of table #1; the rest are padding rows
+\newcommand{\padrow}[1]{\mathbf{p}_{#1}}       % the public row padding rows of table #1 hold
+\newcommand{\padw}[1]{\mathsf{pad}_{#1}}       % pad_n(r) = sum over x >= n of eq(r, x)
+\newcommand{\bform}[1]{\phi_{#1}}              % beta - pi_alpha(f(x)): block #1's leaf on an executed row
+\newcommand{\padprod}[1]{\Pi^{\mathsf{pad}}_{#1}} % product of side #1's padding leaves
+\newcommand{\allone}{\mathbf{1}}               % the all-one tuple
+\newcommand{\tdiff}{\mathbf{d}}                % a padding row's tuple minus the honest one
 \newcommand{\btup}{\mathbf{f}}          % a bus tuple
 \newcommand{\bpull}{\mathsf{pull}}        % the state a row pulls from the bus
 \newcommand{\bpush}{\mathsf{push}}        % the state a row pushes onto the bus

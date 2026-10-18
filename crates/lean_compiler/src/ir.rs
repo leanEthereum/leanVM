@@ -119,9 +119,6 @@ pub(crate) struct Lowered {
     pub(crate) name: String,
     pub(crate) code: Vec<LInstr>,
     pub(crate) frame_size: u32,
-    /// The fill blocks this function carries, with `code`-relative pcs; only `main` has
-    /// any ([`crate::lower::FnLower::lower_filler_blocks`]).
-    pub(crate) filler: Vec<leanvm_core::cpu::filler::Block>,
 }
 
 /// The jump tables every `match` dispatches through: one cell per arm, holding the

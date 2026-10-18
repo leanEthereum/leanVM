@@ -2,7 +2,7 @@
 
 use std::time::Instant;
 
-use lean_compiler::{compile, compile_without_filler, parse};
+use lean_compiler::{compile, parse};
 use leanvm_core::cpu::{prove, verify};
 use leanvm_core::vmhash::compress;
 use primitives::{
@@ -11,10 +11,10 @@ use primitives::{
 };
 
 fn instruction_counts(source: &str, public_input: [F192; 2]) -> [usize; leanvm_core::cpu::Stats::TABLES.len()] {
-    compile_without_filler(&parse(source).expect("parse"))
+    compile(&parse(source).expect("parse"))
         .execute(public_input)
         .unwrap()
-        .base_counts
+        .rows()
 }
 
 fn chain_source(steps: usize, unroll: usize) -> String {
@@ -99,7 +99,7 @@ fn sha3_hash_chain() {
         pretty_integer(unroll)
     );
     println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
-    for (name, &c) in ["XOR", "MUL", "SET", "DEREF", "JUMP", "SHA3"].iter().zip(&stats.counts) {
+    for (name, &c) in leanvm_core::cpu::Stats::TABLES.iter().zip(&stats.rows) {
         let pow = if c == 0 {
             "0".to_string()
         } else {

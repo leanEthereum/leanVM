@@ -36,7 +36,6 @@ use primitives::{
 };
 
 mod ast;
-pub mod filler;
 mod ir;
 mod lower;
 mod parser;
@@ -49,18 +48,6 @@ pub use parser::{parse, parse_const, parse_with_replacements};
 /// Compile an [`Ast`] to a provable [`Program`]. Panics on a malformed program
 /// (unbound variable, missing `main`, address overflow).
 pub fn compile(ast: &Ast) -> Program {
-    // Every program carries, past `main`'s halt, the fill blocks that bring each table's
-    // row count up to a power of two, so that no table needs padding rows (see `filler`).
-    compile_inner(ast, true)
-}
-
-/// [`compile`] without the fill blocks, so the program's own instruction mix is what
-/// runs. Used by tests of instruction selection and execution.
-pub fn compile_without_filler(ast: &Ast) -> Program {
-    compile_inner(ast, false)
-}
-
-fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
     // Lower main first (it follows the table writes at pc 0), then the rest, expanding loop helpers.
     let mut queue: Vec<Func> = Vec::new();
     let main = ast
@@ -107,7 +94,6 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
             &mut loop_ctr,
             &defs,
             &const_arrays,
-            with_filler,
             &mut loop_bounds,
             &mut tables,
         ));
@@ -131,7 +117,6 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
                 name: "__jump_tables".into(),
                 code,
                 frame_size,
-                filler: Vec::new(),
             },
         );
     }
@@ -223,12 +208,6 @@ fn compile_inner(ast: &Ast, with_filler: bool) -> Program {
         .iter()
         .map(|l| (l.name.clone(), entry[&l.name], l.code.len() as u32))
         .collect();
-    // The blocks are `main`'s, their pcs relative to its entry.
-    let main = lowered.iter_mut().find(|l| l.name == "main").unwrap();
-    program.filler = std::mem::take(&mut main.filler);
-    for b in &mut program.filler {
-        b.pc += entry["main"];
-    }
     program
 }
 

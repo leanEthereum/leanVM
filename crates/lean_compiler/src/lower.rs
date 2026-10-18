@@ -20,8 +20,6 @@
 //! cell whose `SET` sits inside a branch is never trusted outside it.
 
 use super::*;
-use crate::filler::FillerOp;
-use leanvm_core::cpu::filler::Block;
 
 mod builtins;
 mod call;
@@ -419,93 +417,6 @@ impl FnLower<'_> {
             od: dest,
             of: one,
         });
-    }
-
-    /// Emit the fill blocks: per table and per size in `leanvm_core::cpu::filler::SIZES`,
-    /// that many dummy instructions of the table's opcode, then a `JUMP` back to the
-    /// block's own first instruction, in the same frame.
-    ///
-    /// A block is a cycle and nothing jumps into one: they sit past `main`'s halt
-    /// and the interpreter enters them itself once the program has stopped. The
-    /// state tuples a traversal pushes are the ones it pulls, so the cycle
-    /// balances for any number of traversals (`leanvm_core::cpu::filler`).
-    ///
-    /// The closing jump is always taken (its destination is a g-power, so
-    /// nonzero) and reads its destination and frame from cells the interpreter
-    /// writes, so a traversal costs the block's rows plus that jump. A dummy uses
-    /// one scratch cell as each operand, writing the value already there, so a
-    /// block costs one cell whatever its size.
-    fn lower_filler_blocks(&mut self) -> Vec<Block> {
-        use leanvm_core::cpu::filler::{SIZES, frame as fr};
-
-        // No statement wrote these, so they get the "unknown" line rather than
-        // whatever `main` happened to end on.
-        self.cur_line = 0;
-
-        // A block runs in a frame the interpreter carves out, so the cells it reads are at
-        // fixed offsets in *that* frame rather than allocated from this function's
-        // counter, and nothing here touches `main`'s frame at all.
-        let mut blocks = Vec::new();
-        for (table, op) in crate::filler::TABLES {
-            for size in SIZES {
-                blocks.push(Block {
-                    pc: self.code.len() as u32,
-                    size: size as u32,
-                    table,
-                });
-                for _ in 0..size {
-                    self.emit(match op {
-                        FillerOp::Xor => LOp::Xor {
-                            a: fr::SCRATCH,
-                            b: fr::SCRATCH,
-                            c: fr::SCRATCH,
-                        },
-                        FillerOp::Mul => LOp::Mul {
-                            a: fr::SCRATCH,
-                            b: fr::SCRATCH,
-                            c: fr::SCRATCH,
-                        },
-                        FillerOp::Set => LOp::Set {
-                            o: fr::SCRATCH,
-                            k: KVal::Const(F192::ZERO),
-                        },
-                        FillerOp::Deref => LOp::Deref {
-                            o1: fr::PTR,
-                            o2: 0,
-                            o3: fr::SCRATCH,
-                            mode: DerefMode::Cell,
-                        },
-                        // Its condition is a cell nothing ever writes, so it reads as
-                        // zero: the dummy is not taken and falls through to the next
-                        // instruction of the block instead of closing the cycle early.
-                        FillerOp::Jump => LOp::Jump {
-                            oc: fr::ZERO,
-                            od: fr::ZERO,
-                            of: fr::ZERO,
-                        },
-                        // Its input cells are ones no instruction writes: the
-                        // interpreter leaves those zero, and a prover choosing
-                        // otherwise only picks which state the dummy permutes, which
-                        // nothing reads (`leanvm_core::cpu::filler`).
-                        FillerOp::Sha3 => LOp::Sha3 {
-                            m: [fr::SHA3_IN, fr::SHA3_IN + 1, fr::SHA3_IN + 2, fr::SHA3_IN + 3],
-                            tail: fr::SHA3_IN,
-                            cap: fr::SHA3_IN,
-                            c: fr::SHA3_OUT,
-                        },
-                    });
-                }
-                // Back to the top, closing the cycle. For the `JUMP` table this is one
-                // more row of its own, which is why the solver decomposes that table over
-                // `size + 1`.
-                self.emit(LOp::Jump {
-                    oc: fr::DEST,
-                    od: fr::DEST,
-                    of: fr::NEXT_FP,
-                });
-            }
-        }
-        blocks
     }
 
     /// `dst = src` (no MOV: multiply by `1`).
@@ -1568,7 +1479,6 @@ pub(crate) fn lower_func(
     loop_ctr: &mut usize,
     defs: &HashMap<&str, &Func>,
     const_arrays: &HashMap<&str, &[F192]>,
-    with_filler: bool,
     loop_bounds: &mut HashMap<String, (u64, Option<u64>)>,
     tables: &mut JumpTables,
 ) -> Lowered {
@@ -1636,14 +1546,8 @@ pub(crate) fn lower_func(
             && matches!(f.body.get(i + 1).map(|n| &n.kind), Some(StmtKind::Return(r)) if r.is_empty());
         lowerer.stmt(s);
     }
-    let mut filler = Vec::new();
     if lowerer.is_main {
         lowerer.halt(); // main terminates at the sentinel pc, not by falling off
-        if with_filler {
-            // Past the halt, so no program code reaches them: the fill blocks are cycles
-            // the interpreter enters on its own ([`FnLower::lower_filler_blocks`]).
-            filler = lowerer.lower_filler_blocks();
-        }
     } else if !matches!(f.body.last().map(|s| &s.kind), Some(StmtKind::Return(_))) {
         // A function must never fall off its end into whatever code the
         // layout placed next: append the implicit bare return.
@@ -1654,6 +1558,5 @@ pub(crate) fn lower_func(
         name: f.name.clone(),
         code: lowerer.code,
         frame_size: lowerer.next,
-        filler,
     }
 }
