@@ -63,9 +63,10 @@ def phi8Words : List ℕ :=
     5313623929546259085, 5313623929546259084, 1992561661411900883, 1992561661411900882,
     1773267034315692933, 1773267034315692932]
 
+theorem ofBits_phi8Words : ∀ j < 128, K.ofBits (phi8Words.getD j 0) = Flock.phi8 j := by decide +kernel
+
 theorem word_phi8Words {j : ℕ} (hj : j < 128) : word (phi8Words.getD j 0) 0 0 = phi j := by
-  have h : ∀ j < 128, K.ofBits (phi8Words.getD j 0) = Flock.phi8 j := by decide +kernel
-  rw [word_eOfNat, eOfNat, phi, h j hj]
+  rw [word_eOfNat, eOfNat, phi, ofBits_phi8Words j hj]
 
 /-! ## The template -/
 

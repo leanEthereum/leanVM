@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.B1.Lag64
 public import LeanVM.Guest.B1.Main.AggLoops
 public import LeanVM.Spec.Node
 
@@ -26,7 +27,10 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM
 
 @[expose] public section
 
-theorem phiWords_eq : ∀ i < 64, K.ofBits (phiWords.getD i 0) = Flock.phi8 i := by decide +kernel
+theorem phiWords_eq : ∀ i < 64, K.ofBits (phiWords.getD i 0) = Flock.phi8 i := fun i hi => by
+  rw [show phiWords.getD i 0 = phi8Words.getD i 0 from
+    (by decide +kernel : ∀ i < 64, phiWords.getD i 0 = phi8Words.getD i 0) i hi]
+  exact ofBits_phi8Words i (by omega)
 
 theorem lagInv_mul : K.ofBits 11666641484232641359 *
     ((List.range 63).map fun k => Flock.phi8 (k + 1)).foldl (· * ·) 1 = 1 := by decide +kernel
