@@ -29,6 +29,7 @@ BLAKE2s is modelled as a random oracle. A proof is the Python verifier's format 
 | `LeanVM/Parameters/`, `LeanVM/Semantics/` | constants and encodings; lemmas about the ISA and an executable interpreter |
 | `LeanVM/Arithmetization/` | the tables, the bus and the constraints, sound and complete for valid executions |
 | `LeanVM/Protocol/` | the proof system and the end-to-end proofs; `To{ArkLib,Clean,CompPoly,VCVio}/` hold lemmas meant for those libraries |
+| `LeanVM/Guest/` | the aggregation guest: its compiled bytecode (`Data/`, generated) as a `Program`, and the program logic for its runs |
 | `tests/` | `#guard`s and `example`s, checked by `lake test`; `fixtures/verifier/` are proofs of the Rust prover |
 | `cli/` | `leanvm-verify`, the compiled verifier on a proof's files, and `node-vectors`, the costly checks of the Rust vectors |
 | `scripts/` | the Rust-vs-Lean fuzz, its Rust verifier CLI, the fixture exporter, and the WHIR parameter table generator |
@@ -50,7 +51,7 @@ cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
 python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
 ```
 
-After a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`, and the node vectors with `LEANVM_WRITE_NODE_VECTORS=1 cargo test --release -p rec_aggregation node_spec_vectors`.
+After a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`, and the node vectors with `LEANVM_WRITE_NODE_VECTORS=1 cargo test --release -p rec_aggregation node_spec_vectors`. After a change to the guest or its compiler, regenerate its bytecode with `LEANVM_WRITE_GUEST=1 cargo test --release -p rec_aggregation guest_bytecode_lean`.
 
 ## Credits
 

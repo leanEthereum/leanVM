@@ -2972,6 +2972,9 @@ fn compile_guest(kbc: usize) -> Program {
 }
 
 #[cfg(test)]
+mod guest_bytecode;
+
+#[cfg(test)]
 mod node_vectors;
 
 #[cfg(test)]
