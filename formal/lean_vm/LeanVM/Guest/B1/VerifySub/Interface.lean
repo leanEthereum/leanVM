@@ -422,15 +422,21 @@ end Callees
 
 /-! ## The meaning -/
 
+/-- The shape of the fixed claims a child's proof makes, as `verify_sub` exports them
+(`DEFER_SIZE = 106` cells). -/
+def FreshShaped (c : FixedClaims) : Prop :=
+  c.bytecodePoint.length = 22 ∧ c.rowPoint.length = 8 ∧ c.columnPoint.length = 8 ∧
+    c.slices.length = 64
+
 /-- **`verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out)`**
 (G:2078-2281; TRIAGE #44): the cells are a public input `pi` and a seed, and for some fixed
-claims `c` and some proof `π` the deferring verifier accepts `π` for `pi` under the seed
-(`verifyDeferred`, V:2250), with `fixedCells c` at `defer_out`. -/
+claims `c` of the guest's shape and some proof `π` the deferring verifier accepts `π` for `pi`
+under the seed (`verifyDeferred`, V:2250), with `fixedCells c` at `defer_out`. -/
 def MeaningVerifySub (bytecode : List K) (rd : Reader) : List E → List E → Prop
   | [pi0, pi1, s0, s1, _, _, out], [] =>
       ∃ (seed pi : Digest) (c : FixedClaims) (π : Proof), (s0, s1) = digestScalars seed ∧
         (pi0, pi1) = digestScalars pi ∧ verifyDeferred bytecode seed pi c π = true ∧
-        ReadsAt rd out (Node.fixedCells c)
+        FreshShaped c ∧ ReadsAt rd out (Node.fixedCells c)
   | _, _ => False
 
 end

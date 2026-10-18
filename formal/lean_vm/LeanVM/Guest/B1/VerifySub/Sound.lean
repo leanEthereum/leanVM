@@ -17,7 +17,7 @@ bytecode of `2^22` words, and given the callees' soundness (`SoundGkr`, `SoundTa
 `SoundFlock`, `SoundPlace`, `HypKappa`, `SoundOpen`, `SoundTerm`, from groups 4 and 5),
 `verify_sub`'s relation implies `MeaningVerifySub`: the deferring verifier accepts the proof
 made of the words the guest read and the openings `open_stacked` read, for the statement `pi`
-under `seed`, with the claims on the fixed polynomials at `defer_out`.
+under `seed`, with the claims on the fixed polynomials, of the guest's shape, at `defer_out`.
 
 The proof reads each phase off the body (`Front`, `Challenges`, `Ring`, `Loops`, `Tail`), turns
 each callee's relation into its outcome, ties the chain states phase to phase by
@@ -329,7 +329,7 @@ theorem verify_sub_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : Me
       [σ (.n 419), σ (.n 434)])).1, σ (.n 714), σ (.n 728), σ (.n 727), chi.take 8, rcs.reverse, sl,
       σ (.n 729)⟩ with hcc
   refine ⟨seed, pi, cc, ⟨announce m rowsN r ++ σ (.n 419) :: σ (.n 434) ::
-      (xsG ++ (xsT ++ (xsF ++ xsW))), os⟩, hseed, hpi, ?_, ?_⟩
+      (xsG ++ (xsT ++ (xsF ++ xsW))), os⟩, hseed, hpi, ?_, ?_, ?_⟩
   · rw [← edepth, hann] at hrunG
     rw [h1627, h1179] at hrunW
     rw [h1179] at hacc
@@ -351,6 +351,9 @@ theorem verify_sub_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : Me
     · convert hF using 2
     · convert hrunW using 2
     · convert hacc using 2
+  · refine ⟨?_, ?_, by simp [hcc, hrcsl], by simp [hcc, hsll]⟩
+    · simp only [hcc, List.length_append, List.length_take, hptl, hal]; omega
+    · simp only [hcc, List.length_take, hchil]; omega
   · exact vs_defer hv (by omega) hzeta hal har (by omega) hchi hrcsl hrcs hsll hsr
 
 end
