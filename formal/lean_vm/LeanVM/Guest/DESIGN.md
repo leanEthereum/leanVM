@@ -25,7 +25,7 @@ The bytecode is data too (`Guest/Data/Bytecode*.lean`, one definition per compil
 
 ## B1: core IR and the specification
 
-Per source function, a lemma relating its relation to the Spec definition it computes ([TRIAGE.md](TRIAGE.md): 37 by a representation lemma, 39 guest-specific). The honest hint generator is a Lean function of a `NodeRel` witness, mirroring the Rust producers; completeness assumes the deployed limits of TRIAGE.md's findings.
+Per source function, a lemma relating its relation to the Spec definition it computes ([TRIAGE.md](TRIAGE.md): 37 by a representation lemma, 39 guest-specific). The honest hint generator (`Guest/Hints.lean`, `honestStreams`) is a Lean function of a `NodeRel` witness, mirroring the Rust producers push for push and replaying a child's proof with the Spec's deferring verifier; completeness assumes the deployed limits of TRIAGE.md's findings.
 
 ## Workstreams
 

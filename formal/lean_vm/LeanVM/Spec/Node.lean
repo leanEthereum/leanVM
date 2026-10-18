@@ -11,6 +11,7 @@ public import LeanVM.Spec.Statement
 public import LeanXmss.Scheme
 public import Sphincs.Scheme
 public import LeanVM.Spec.Da
+public import LeanVM.Spec.Fast.Schemes
 
 /-!
 # The aggregation node
