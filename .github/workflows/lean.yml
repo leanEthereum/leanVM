@@ -240,6 +240,8 @@ jobs:
           use-mathlib-cache: auto
       - name: Check the Rust vectors' costly checks, compiled
         run: lake exe node-vectors
+      - name: Check the guest's core IR data is current
+        run: lake exe guest-core --check
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

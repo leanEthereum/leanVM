@@ -158,7 +158,7 @@ inductive Stmt where
   | dispatch (x : V) (fs : List String) (args rets : List V)
   /-- Return these words. -/
   | ret (vs : List V)
-  deriving Inhabited
+  deriving Inhabited, BEq
 
 /-- A core function. -/
 structure Fn where
@@ -166,7 +166,7 @@ structure Fn where
   /-- The argument cells, flattened (`V.param k`). -/
   params : List V
   body : List Stmt
-  deriving Inhabited
+  deriving Inhabited, BEq
 
 /-- A core program: its functions, `main` first. -/
 abbrev Program := List Fn

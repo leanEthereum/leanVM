@@ -29,9 +29,9 @@ BLAKE2s is modelled as a random oracle. A proof is the Python verifier's format 
 | `LeanVM/Parameters/`, `LeanVM/Semantics/` | constants and encodings; lemmas about the ISA and an executable interpreter |
 | `LeanVM/Arithmetization/` | the tables, the bus and the constraints, sound and complete for valid executions |
 | `LeanVM/Protocol/` | the proof system and the end-to-end proofs; `To{ArkLib,Clean,CompPoly,VCVio}/` hold lemmas meant for those libraries |
-| `LeanVM/Guest/` | the aggregation guest: its compiled bytecode (`Data/Bytecode*`, generated) as a `Program` and the program logic for its runs (`Code`, `Bytecode`, `Logic`); its mirror, the source AST (`Source`, the generated `Data/Source`), the core IR and its relational semantics (`Core`, `CoreLemmas`), the zkDSL expansion (`Expand`, `ExpandLemmas`) and an interpreter (`Interp`); the value lemmas (`Value/`) |
+| `LeanVM/Guest/` | the aggregation guest: its compiled bytecode (`Data/Bytecode*`, generated) as a `Program` and the program logic for its runs (`Code`, `Bytecode`, `Logic`); its mirror, the source AST (`Source`, the generated `Data/Source`), the core IR and its relational semantics (`Core`, `CoreLemmas`), the renumbering of a function's values (`Renumber`) and the guest's core IR as data (`CoreData`, the generated `Data/Core*`), the zkDSL expansion (`Expand`, `ExpandLemmas`) and an interpreter (`Interp`); the value lemmas (`Value/`) |
 | `tests/` | `#guard`s and `example`s, checked by `lake test`; `fixtures/verifier/` are proofs of the Rust prover |
-| `cli/` | `leanvm-verify`, the compiled verifier on a proof's files, and `node-vectors`, the costly checks of the Rust vectors |
+| `cli/` | `leanvm-verify`, the compiled verifier on a proof's files, `node-vectors`, the costly checks of the Rust vectors, and `guest-core`, the writer of the guest's core IR data |
 | `scripts/` | the Rust-vs-Lean fuzz, its Rust verifier CLI, the fixture exporter, and the WHIR parameter table generator |
 
 ## Building and testing
@@ -51,7 +51,7 @@ cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
 python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
 ```
 
-After a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`, and the node vectors with `LEANVM_WRITE_NODE_VECTORS=1 cargo test --release -p rec_aggregation node_spec_vectors`. After a change to the guest, its compiler or the compiler's test programs, regenerate the guest data with `LEANVM_WRITE_GUEST=1 cargo test --release -p rec_aggregation guest_`.
+After a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`, and the node vectors with `LEANVM_WRITE_NODE_VECTORS=1 cargo test --release -p rec_aggregation node_spec_vectors`. After a change to the guest, its compiler or the compiler's test programs, regenerate the guest data with `LEANVM_WRITE_GUEST=1 cargo test --release -p rec_aggregation guest_`. After that, or a change to the expansion (`Guest/Expand.lean`) or the core IR (`Guest/Core.lean`), regenerate the guest's core IR (`LeanVM/Guest/Data/Core*`, the expansion of the source as data, its values renumbered) with `lake exe guest-core`; `lake exe guest-core --check`, which CI runs, fails when it is stale, and `lake exe guest-core --values f` prints the expansion's name of each value of the function `f`.
 
 ## Credits
 

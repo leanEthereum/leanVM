@@ -83,3 +83,10 @@ srcDir = "cli"
 name = "node-vectors"
 root = "NodeVectors"
 srcDir = "cli"
+
+# Writes the guest's core IR as data (`LeanVM/Guest/Data/Core*.lean`); `--check` fails when it
+# is stale, as CI runs it.
+[[lean_exe]]
+name = "guest-core"
+root = "GuestCore"
+srcDir = "cli"
