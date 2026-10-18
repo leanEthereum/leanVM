@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Guest.Memory.Alloc
 public import LeanVM.Guest.Memory.Tree
+public import LeanVM.Guest.Memory.Placed
 public import LeanVM.Guest.Data.Bytecode00
 
 /-!
@@ -47,7 +48,7 @@ holds; both hold when one memory holds the frames and the equations, `cross_of_r
 and certificate values read back at `fp · g^o` (`Honest.read_hdr`, `read_C`, `read_value`), and
 every equation (`Honest.read_eqn`); the evaluation and every instance in it are valid on the
 image (`Honest.valid_image`, `Honest.inst_good`); a callee is the instance at its caller's
-callee frame (`honest_kid`), a loop's tail call at `fp + fs f` (`honest_kidFps_getLast?`); the
+callee frame (`honest_kid`), a loop helper's tail call at `fp + fs f` (`honest_kidFps_getLast?`); the
 public input is in words `0`, `1` and `minLogMem ≤ κ ≤ maxLogMem` (`Honest.publicBoundary`).
 `Trace.committedSize ≤ 2^28` is the end theorem's: `logMem_le_iff` and `two_pow_logMem_le`
 bound `2^κ` by the words allocated.
@@ -63,7 +64,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 
 section Valid
 
-variable {P : Core.Program} {rd : Reader} {fs : String → ℕ} {H : Inst → ℕ → E × E}
+variable {P : Core.Program} {rd : Reader} {fs : String → ℕ} {lp : String → Bool}
+  {H : Inst → ℕ → E × E}
 
 /-- An instance that runs is a valid tree; the others are phantoms. -/
 def Inst.Good (P : Core.Program) (rd : Reader) (I : Inst) : Prop :=
@@ -72,20 +74,22 @@ def Inst.Good (P : Core.Program) (rd : Reader) (I : Inst) : Prop :=
 mutual
 /-- Every instance of a valid tree is valid or a phantom. -/
 theorem insts_good : ∀ (t : Tree) (fp : ℕ) (hdr : E × E) {args rets : List E},
-    t.Valid P rd args rets → ∀ I ∈ t.insts fs H fp hdr, I.Good P rd
+    t.Valid P rd args rets → ∀ I ∈ t.insts fs lp H fp hdr, I.Good P rd
   | .node f σ bufs kids, fp, hdr, args, rets, hv, I, hI => by
       rw [insts_node, List.mem_cons] at hI
       rcases hI with rfl | hI
       · exact Or.inl ⟨args, rets, hv⟩
       · obtain ⟨_, _, _, es, _, _, _, _, hk⟩ := hv
-        exact instsKids_good kids σ (calls es) _ 0 (fp + fs f) hk I hI
+        exact instsKids_good kids σ (calls es) _ 0 _ hk I hI
   | .phantom .., _, _, _, _, hv, _, _ => hv.elim
 
 /-- `insts_good` for the callees. -/
-theorem instsKids_good : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (I : Inst) (j b : ℕ),
-    Tree.KidsValid P rd σ cs ks → ∀ J ∈ Tree.instsKids fs H I j b ks, J.Good P rd
+theorem instsKids_good : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (I : Inst) (j : ℕ)
+    (ps : List ℕ), Tree.KidsValid P rd σ cs ks → ∀ J ∈ Tree.instsKids fs lp H I j ps ks, J.Good P rd
   | [], _, _, _, _, _, _, J, hJ => by rw [instsKids_nil] at hJ; exact (List.not_mem_nil hJ).elim
-  | k :: ks, σ, c :: cs, I, j, b, ⟨_, hc, hks⟩, J, hJ => by
+  | _ :: _, _, _, _, _, [], _, J, hJ => by
+      rw [instsKids_nil_left] at hJ; exact (List.not_mem_nil hJ).elim
+  | k :: ks, σ, c :: cs, I, j, p :: ps, ⟨_, hc, hks⟩, J, hJ => by
       rw [instsKids_cons, List.mem_append] at hJ
       rcases hJ with hJ | hJ
       · by_cases ht : c.taken = true
@@ -95,8 +99,8 @@ theorem instsKids_good : ∀ (ks : List Tree) (σ : Val) (cs : List Call) (I : I
           obtain ⟨⟨f, σ', rfl⟩, -⟩ := hc
           rw [insts_phantom, List.mem_singleton] at hJ
           exact Or.inr ⟨f, σ', by rw [hJ]⟩
-      · exact instsKids_good ks σ cs I (j + 1) b hks J hJ
-  | _ :: _, _, [], _, _, _, h, _, _ => h.elim
+      · exact instsKids_good ks σ cs I (j + 1) ps hks J hJ
+  | _ :: _, _, [], _, _, _ :: _, h, _, _ => h.elim
 end
 
 end Valid
@@ -118,12 +122,12 @@ variable (P : Core.Program) (fs : String → ℕ) (H : Inst → ℕ → E × E) 
   (hdr : E × E) (T : Tree)
 
 /-- The placed call instances, `main` at word `0`. -/
-def honestInsts : List Inst := T.insts fs H 0 hdr
+def honestInsts : List Inst := T.insts fs P.loop H 0 hdr
 
 /-- **The honest memory**: the frames' writes and the paths' equations, on `2^logMem` words for
 the words allocated. -/
 noncomputable def honest : MemImage (logMem (T.total fs)) :=
-  image (logMem (T.total fs)) (frameWrites C (honestInsts fs H hdr T) ++ T.eqns P)
+  image (logMem (T.total fs)) (frameWrites C (honestInsts P fs H hdr T) ++ T.eqns P)
 
 /-- What the honest memory needs. -/
 structure Honest (rd : Reader) (args rets : List E) : Prop where
@@ -132,13 +136,13 @@ structure Honest (rd : Reader) (args rets : List E) : Prop where
   /-- At most `2^32` words are allocated. -/
   size : T.total fs ≤ 2 ^ 32
   /-- The cells fit their frames and agree. -/
-  cells : CellsOk fs C (honestInsts fs H hdr T)
+  cells : CellsOk fs C (honestInsts P fs H hdr T)
   /-- The equations name addresses of the memory. -/
   addr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = gpow i
   /-- The equations agree among themselves. -/
   eqns : Consistent (T.eqns P)
   /-- The equations agree with the frames where they meet. -/
-  cross : ∀ a ∈ frameWrites C (honestInsts fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2
+  cross : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2
 
 variable {P fs H C hdr T} {rd : Reader} {args rets : List E}
 
@@ -150,14 +154,14 @@ theorem Honest.lt_64 (h : Honest P fs H C hdr T rd args rets) : logMem (T.total 
   have := h.logMem_le; unfold maxLogMem at this; omega
 
 /-- Every instance's frame is in the allocation. -/
-theorem honest_within {I : Inst} (hI : I ∈ honestInsts fs H hdr T) (h0 : 0 < fs I.t.name) :
+theorem honest_within {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) (h0 : 0 < fs I.t.name) :
     I.fp + fs I.t.name ≤ T.total fs := by
   have := insts_within T 0 hdr I hI (I.fp + fs I.t.name - 1) (Or.inl ⟨by omega, by omega⟩)
   omega
 
 /-- **Write-once consistency** of the honest memory's writes. -/
 theorem Honest.consistent (h : Honest P fs H C hdr T rd args rets) :
-    Consistent (frameWrites C (honestInsts fs H hdr T) ++ T.eqns P) :=
+    Consistent (frameWrites C (honestInsts P fs H hdr T) ++ T.eqns P) :=
   (frameWrites_consistent (insts_pairwise T 0 hdr) h.cells fun I hI => by
     have := honest_within hI (by have := h.cells.two_le I hI; omega)
     have := h.size
@@ -165,7 +169,7 @@ theorem Honest.consistent (h : Honest P fs H C hdr T rd args rets) :
 
 /-- **Every frame cell reads back**: header and cells, at `fp · g^o`. -/
 theorem Honest.read_cell (h : Honest P fs H C hdr T rd args rets) {I : Inst}
-    (hI : I ∈ honestInsts fs H hdr T) {q : ℕ × E} (hq : q ∈ I.cells C) :
+    (hI : I ∈ honestInsts P fs H hdr T) {q : ℕ × E} (hq : q ∈ I.cells C) :
     (honest P fs H C hdr T).read (gpow I.fp * gpow q.1) = some q.2 := by
   have hlt := h.cells.cell_lt hI hq
   have hw := honest_within hI (by omega)
@@ -177,7 +181,7 @@ theorem Honest.read_cell (h : Honest P fs H C hdr T rd args rets) {I : Inst}
 
 /-- The header: `fp[0]`, `fp[1]`. -/
 theorem Honest.read_hdr (h : Honest P fs H C hdr T rd args rets) {I : Inst}
-    (hI : I ∈ honestInsts fs H hdr T) :
+    (hI : I ∈ honestInsts P fs H hdr T) :
     (honest P fs H C hdr T).read (gpow I.fp * gpow 0) = some I.hdr.1 ∧
       (honest P fs H C hdr T).read (gpow I.fp * gpow 1) = some I.hdr.2 :=
   ⟨h.read_cell hI (q := (0, I.hdr.1)) List.mem_cons_self,
@@ -185,7 +189,7 @@ theorem Honest.read_hdr (h : Honest P fs H C hdr T rd args rets) {I : Inst}
 
 /-- A cell of `C`. -/
 theorem Honest.read_C (h : Honest P fs H C hdr T rd args rets) {I : Inst}
-    (hI : I ∈ honestInsts fs H hdr T) {o : ℕ} {w : E} (hq : (o, w) ∈ C I) :
+    (hI : I ∈ honestInsts P fs H hdr T) {o : ℕ} {w : E} (hq : (o, w) ∈ C I) :
     (honest P fs H C hdr T).read (gpow I.fp * gpow o) = some w :=
   h.read_cell hI (q := (o, w)) (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hq))
 
@@ -201,11 +205,11 @@ theorem Honest.valid_image (h : Honest P fs H C hdr T rd args rets) :
 
 /-- **Every instance is valid on the honest memory**, or a phantom. -/
 theorem Honest.inst_good (h : Honest P fs H C hdr T rd args rets) {I : Inst}
-    (hI : I ∈ honestInsts fs H hdr T) : I.Good P (honest P fs H C hdr T).read :=
+    (hI : I ∈ honestInsts P fs H hdr T) : I.Good P (honest P fs H C hdr T).read :=
   insts_good T 0 hdr h.valid_image I hI
 
 /-- `main`'s instance: the root, at frame `g^0`, with the header `hdr`. -/
-theorem root_inst : ∃ I ∈ honestInsts fs H hdr T, I.t = T ∧ I.fp = 0 ∧ I.hdr = hdr := by
+theorem root_inst : ∃ I ∈ honestInsts P fs H hdr T, I.t = T ∧ I.fp = 0 ∧ I.hdr = hdr := by
   obtain ⟨I, rest, he, ht, hfp, hh⟩ := head_insts (fs := fs) (H := H) T 0 hdr
   exact ⟨I, by rw [honestInsts, he]; exact List.mem_cons_self, ht, hfp, hh⟩
 
@@ -224,42 +228,48 @@ theorem Honest.publicBoundary {input : PublicInput} {prog : Semantics.Program}
 /-- A word nothing writes reads `0`, as the Rust runner reads an unwritten cell. -/
 theorem Honest.read_unwritten (h : Honest P fs H C hdr T rd args rets)
     (i : Fin (2 ^ logMem (T.total fs)))
-    (hn : ∀ q ∈ frameWrites C (honestInsts fs H hdr T) ++ T.eqns P, q.1 ≠ gpow i) :
+    (hn : ∀ q ∈ frameWrites C (honestInsts P fs H hdr T) ++ T.eqns P, q.1 ≠ gpow i) :
     (honest P fs H C hdr T).read (gpow i) = some 0 :=
   image_read_zero h.lt_64 i hn
 
 /-- **The callees of an instance**: its `i`-th callee is an instance at its `i`-th callee frame,
 with the header `H I i`. -/
-theorem honest_kid {I : Inst} (hI : I ∈ honestInsts fs H hdr T) {i : ℕ} {k : Tree}
+theorem honest_kid {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ} {k : Tree}
     (hk : I.t.kids[i]? = some k) :
-    ∃ J ∈ honestInsts fs H hdr T, J.t = k ∧ I.kidFps[i]? = some J.fp ∧ J.hdr = H I i :=
+    ∃ J ∈ honestInsts P fs H hdr T, J.t = k ∧ I.kidFps[i]? = some J.fp ∧ J.hdr = H I i :=
   insts_kid T 0 hdr I hI i k hk
 
-/-- **A loop's next iteration**: the last callee's frame is at `fp + fs f`, the frame its code
-addresses as `fp · g^S`. -/
-theorem honest_kidFps_getLast? {I : Inst} (hI : I ∈ honestInsts fs H hdr T)
-    (hk : I.t.kids ≠ []) : I.kidFps.getLast? = some (I.fp + fs I.t.name) :=
-  (insts_placed T 0 hdr I hI).kidFps_getLast? hk
+/-- **A loop's next iteration**: a loop helper's last callee's frame is at `fp + fs f`, the frame
+its code addresses as `fp · g^S`. -/
+theorem honest_kidFps_getLast? {I : Inst} (hI : I ∈ honestInsts P fs H hdr T)
+    (hl : P.loop I.t.name = true) (hk : I.t.kids ≠ []) :
+    I.kidFps.getLast? = some (I.fp + fs I.t.name) :=
+  (insts_placed T 0 hdr I hI).kidFps_getLast? hl hk
+
+/-- An instance's callees' frames, in call order. -/
+theorem honest_kidFps {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) :
+    I.kidFps = kidPos fs P.loop I.fp I.t.name I.t.bufs (I.t.kids.map (Tree.total fs)) :=
+  (insts_placed T 0 hdr I hI).1
 
 /-- An instance's `HeapBuf`s: the `j`-th of `bufs[j]` words from `bufBases[j]`, in the
 allocation, apart from every frame (`frameWrites_not_buf`). -/
-theorem honest_bufBases {I : Inst} (hI : I ∈ honestInsts fs H hdr T) :
-    I.bufBases = bases (I.fp + fs I.t.name + Tree.totalKids fs I.t.kids) I.t.bufs :=
+theorem honest_bufBases {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) :
+    I.bufBases = bases (bufBase fs P.loop I.fp I.t.name (I.t.kids.map (Tree.total fs))) I.t.bufs :=
   (insts_placed T 0 hdr I hI).2
 
 /-! ## Discharging the hypotheses -/
 
 /-- A frame write is at a word of an instance's frame. -/
-theorem frameWrites_addr (hok : CellsOk fs C (honestInsts fs H hdr T)) {a : Write}
-    (ha : a ∈ frameWrites C (honestInsts fs H hdr T)) :
-    ∃ I ∈ honestInsts fs H hdr T, ∃ o < fs I.t.name, a.1 = gpow (I.fp + o) := by
+theorem frameWrites_addr (hok : CellsOk fs C (honestInsts P fs H hdr T)) {a : Write}
+    (ha : a ∈ frameWrites C (honestInsts P fs H hdr T)) :
+    ∃ I ∈ honestInsts P fs H hdr T, ∃ o < fs I.t.name, a.1 = gpow (I.fp + o) := by
   obtain ⟨I, hI, q, hq, rfl⟩ := mem_frameWrites ha
   exact ⟨I, hI, q.1, hok.cell_lt hI hq, rfl⟩
 
 /-- **No frame write is in a `HeapBuf`**: an equation there meets no frame. -/
-theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts fs H hdr T))
-    (hsize : T.total fs ≤ 2 ^ 32) {I : Inst} (hI : I ∈ honestInsts fs H hdr T) {i : ℕ}
-    (hi : I.Buf i) : ∀ a ∈ frameWrites C (honestInsts fs H hdr T), a.1 ≠ gpow i := by
+theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts P fs H hdr T))
+    (hsize : T.total fs ≤ 2 ^ 32) {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {i : ℕ}
+    (hi : I.Buf i) : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), a.1 ≠ gpow i := by
   intro a ha he
   obtain ⟨J, hJ, o, ho, hao⟩ := frameWrites_addr hok ha
   have hiw := insts_within T 0 hdr I hI i (Or.inr hi)
@@ -275,9 +285,9 @@ theorem frameWrites_not_buf (hok : CellsOk fs C (honestInsts fs H hdr T))
 
 /-- The equations agree with the frames when one memory holds both. -/
 theorem cross_of_read {rd' : Reader}
-    (hf : ∀ a ∈ frameWrites C (honestInsts fs H hdr T), rd' a.1 = some a.2)
+    (hf : ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), rd' a.1 = some a.2)
     (he : ∀ b ∈ T.eqns P, rd' b.1 = some b.2) :
-    ∀ a ∈ frameWrites C (honestInsts fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2 :=
+    ∀ a ∈ frameWrites C (honestInsts P fs H hdr T), ∀ b ∈ T.eqns P, a.1 = b.1 → a.2 = b.2 :=
   fun a ha b hb hab => Option.some.inj ((hf a ha).symm.trans (hab ▸ he b hb))
 
 /-! ## Certificates -/
@@ -326,7 +336,7 @@ theorem CellsOk.append {Is : List Inst} {C₁ C₂ : Inst → List (ℕ × E)} (
 /-- **Every value reads back** at its certificate cell. -/
 theorem Honest.read_value (h : Honest P fs H C hdr T rd args rets) {cert : String → V → ℕ}
     {dom : Inst → List V} (hC : ∀ I, valueCells cert dom I ⊆ C I) {I : Inst}
-    (hI : I ∈ honestInsts fs H hdr T) {v : V} (hv : v ∈ dom I) :
+    (hI : I ∈ honestInsts P fs H hdr T) {v : V} (hv : v ∈ dom I) :
     (honest P fs H C hdr T).read (gpow I.fp * gpow (cert I.t.name v)) = some (I.t.val v) :=
   h.read_C hI (hC I (mem_valueCells hv))
 

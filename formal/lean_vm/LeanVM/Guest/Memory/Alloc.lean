@@ -1,10 +1,10 @@
 /-
   LeanVM.Guest.Memory.Alloc
 
-  The bump allocator of an honest evaluation: every call instance's frame and `HeapBuf`s in one
-  contiguous region per subtree, the regions of distinct instances disjoint, a loop's next
-  iteration in the frame right after its own; and the frame writes, consistent by
-  disjointness.
+  The bump allocator of an honest evaluation: every call instance's frame, `HeapBuf`s and callees
+  in one contiguous region per subtree, its `HeapBuf`s placed from its own frame pointer and
+  sizes, the regions of distinct instances disjoint, a loop's next iteration in the frame right
+  after its own; and the frame writes, consistent by disjointness.
 -/
 
 module
@@ -15,24 +15,32 @@ public import LeanVM.Guest.Memory.Image
 /-!
 # Placing a call tree
 
-Frame sizes are a parameter `fs` (the compiler's, from the certificate). A call instance placed
-at word `fp` occupies, in order: its frame `[fp, fp + fs f)`, then its callees' regions, the
-**last callee first**, each subtree contiguous, then its `HeapBuf`s one after another. So a
-subtree of `total` words occupies `[fp, fp + total)`, and the last callee's frame is at
-`fp + fs f`: a `mul_range` helper's tail call (`callIf`, its last call, a phantom on the last
-iteration) is the frame its code addresses as `fp · g^S` (`Inst.Placed.kidFps_getLast?`).
+Frame sizes are a parameter `fs` (the compiler's, from the certificate). A call instance of `f`
+placed at word `fp` occupies, in order: its frame `[fp, fp + fs f)`, then its `HeapBuf`s one
+after another, then its callees' regions in call order, each subtree contiguous. So a subtree
+of `total` words occupies `[fp, fp + total)`, and an instance's `HeapBuf` pointers depend only
+on its own `fp` and sizes (`bufBase`), never on its callees': a completeness proof fixes them
+before it knows what its callees allocate.
+
+A **loop helper** (`Program.loop`: its body ends with a `callIf` to itself and `ret []`) is the
+exception: its tail call (its last callee, a phantom on the last iteration) is the frame its code
+addresses as `fp · g^S`, so that callee's region comes first, at `fp + fs f`, then the
+`HeapBuf`s, then the other callees in call order (`kidPos`, `Inst.Placed.kidFps_getLast?`). Of
+the guest's loop helpers only `__loop5` (the loop over the children in `main`) allocates, two
+`HeapBuf`s per iteration that its tail call's arguments do not depend on.
 
 The Rust runner allocates in execution order instead (`cpu/execute.rs`, `next_free` from the
 end of `main`'s frame): a callee frame when its call is set up, a loop's `n + 1` frames at once,
 a dispatch's frame at the largest arm's size, a `HeapBuf` when its hint runs. Completeness needs
 only disjointness, which this order gives by construction.
 
-`Tree.insts fs H fp hdr t` lists the placed call instances (`Inst`): the tree, its frame, its
-header words `fp[0]`, `fp[1]`, its callees' frames and its `HeapBuf` bases; a callee's header is
-`H I i`, a function of the caller and the call's index (the return registers, or the caller's
-own for a tail call). `insts_within` and `insts_pairwise`: every instance owns words of its
-subtree's region only, and two instances own no word in common. `frameWrites_consistent`: the
-headers and cells of all frames are consistent writes.
+`Tree.insts fs lp H fp hdr t` lists the placed call instances (`Inst`), `lp` saying which
+functions are loop helpers: the tree, its frame, its header words `fp[0]`, `fp[1]`, its callees'
+frames and its `HeapBuf` bases; a callee's header is `H I i`, a function of the caller and the
+call's index (the return registers, or the caller's own for a tail call). `insts_within` and
+`insts_pairwise`: every instance owns words of its subtree's region only, and two instances own
+no word in common. `frameWrites_consistent`: the headers and cells of all frames are consistent
+writes.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -40,6 +48,22 @@ namespace LeanVM.Guest.Memory
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
 
 @[expose] public section
+
+/-- A loop helper: its body ends with a `callIf` to itself, then `ret []`. -/
+def _root_.LeanVM.Guest.Core.Fn.loop (fn : Fn) : Bool :=
+  match fn.body.reverse with
+  | .ret [] :: .callIf _ g _ :: _ => g == fn.name
+  | _ => false
+
+/-- The loop helpers of a program. -/
+def _root_.LeanVM.Guest.Core.Program.loop (P : Core.Program) (f : String) : Bool :=
+  match P.find? f with
+  | some fn => fn.loop
+  | none => false
+
+theorem _root_.LeanVM.Guest.Core.Program.loop_of_find? {P : Core.Program} {f : String} {fn : Fn}
+    (h : P.find? f = some fn) : P.loop f = fn.loop := by
+  simp only [Program.loop, h]
 
 /-- A placed call instance. -/
 structure Inst where
@@ -54,7 +78,7 @@ structure Inst where
   /-- Its `HeapBuf`s' first words, in allocation order. -/
   bufBases : List ℕ
 
-variable (fs : String → ℕ)
+variable (fs : String → ℕ) (lp : String → Bool)
 
 mutual
 /-- The words a subtree allocates: frames and `HeapBuf`s. -/
@@ -68,29 +92,38 @@ def Tree.totalKids : List Tree → ℕ
   | k :: ks => k.total + Tree.totalKids ks
 end
 
-/-- The regions of callees placed from `b`, the last first. -/
-def kidBases (b : ℕ) : List Tree → List ℕ
-  | [] => []
-  | _ :: ks => (b + Tree.totalKids fs ks) :: kidBases b ks
-
 /-- Regions of the sizes `ss`, one after another from `b`. -/
 def bases (b : ℕ) : List ℕ → List ℕ
   | [] => []
   | s :: ss => b :: bases (b + s) ss
 
+/-- The first word of the `HeapBuf`s of an instance of `f` at `fp` whose callees' regions have
+the sizes `ns`: right after its frame, or after its tail call's region for a loop helper. -/
+def bufBase (fp : ℕ) (f : String) (ns : List ℕ) : ℕ :=
+  fp + fs f + if lp f then ns.getLast?.getD 0 else 0
+
+/-- The callees' frames of an instance of `f` at `fp` with `HeapBuf`s `bufs`, in call order, for
+callee regions of sizes `ns`: one after another from the end of its `HeapBuf`s, a loop helper's
+last callee at `fp + fs f`. -/
+def kidPos (fp : ℕ) (f : String) (bufs ns : List ℕ) : List ℕ :=
+  if lp f then
+    bases (bufBase fs lp fp f ns + bufs.sum) ns.dropLast ++ ns.getLast?.toList.map fun _ => fp + fs f
+  else bases (bufBase fs lp fp f ns + bufs.sum) ns
+
 mutual
 /-- **The bump allocator**: the call instances of a subtree whose frame is at `fp`. -/
 def Tree.insts (H : Inst → ℕ → E × E) (fp : ℕ) (hdr : E × E) : Tree → List Inst
   | t@(.node f _ bufs kids) =>
-      let I : Inst := ⟨t, fp, hdr, kidBases fs (fp + fs f) kids,
-        bases (fp + fs f + Tree.totalKids fs kids) bufs⟩
-      I :: Tree.instsKids H I 0 (fp + fs f) kids
+      let I : Inst := ⟨t, fp, hdr, kidPos fs lp fp f bufs (kids.map (Tree.total fs)),
+        bases (bufBase fs lp fp f (kids.map (Tree.total fs))) bufs⟩
+      I :: Tree.instsKids H I 0 (kidPos fs lp fp f bufs (kids.map (Tree.total fs))) kids
   | t@(.phantom ..) => [⟨t, fp, hdr, [], []⟩]
 
-/-- The call instances of the callees `ks` of `I` from its `i`-th, placed from `b`. -/
-def Tree.instsKids (H : Inst → ℕ → E × E) (I : Inst) (i b : ℕ) : List Tree → List Inst
-  | [] => []
-  | k :: ks => k.insts H (b + Tree.totalKids fs ks) (H I i) ++ Tree.instsKids H I (i + 1) b ks
+/-- The call instances of the callees `ks` of `I` from its `i`-th, their frames at `ps`. -/
+def Tree.instsKids (H : Inst → ℕ → E × E) (I : Inst) (i : ℕ) : List ℕ → List Tree → List Inst
+  | _, [] => []
+  | [], _ :: _ => []
+  | p :: ps, k :: ks => k.insts H p (H I i) ++ Tree.instsKids H I (i + 1) ps ks
 end
 
 /-- Word `i` is in `I`'s frame. -/
@@ -108,7 +141,10 @@ def Inst.Apart (I J : Inst) : Prop := ∀ i, I.Owns fs i → ¬ J.Owns fs i
 
 instance : Std.Symm (Inst.Apart fs) := ⟨fun _ _ h i hJ hI => h i hI hJ⟩
 
-variable {fs}
+/-- Two regions `(size, base)` are disjoint. -/
+def Disj (q q' : ℕ × ℕ) : Prop := q.2 + q.1 ≤ q'.2 ∨ q'.2 + q'.1 ≤ q.2
+
+variable {fs lp}
 
 /-! ## Regions -/
 
@@ -122,7 +158,7 @@ theorem bases_zip : ∀ {b : ℕ} {ss : List ℕ} {q : ℕ × ℕ}, q ∈ ss.zip
       · have := bases_zip h
         simp only [List.sum_cons]; omega
 
-/-- The `HeapBuf`s of one instance are disjoint, in order. -/
+/-- The regions placed one after another are disjoint, in order. -/
 theorem bases_pairwise : ∀ {b : ℕ} {ss : List ℕ},
     (ss.zip (bases b ss)).Pairwise fun q q' => q.2 + q.1 ≤ q'.2
   | _, [] => List.Pairwise.nil
@@ -134,13 +170,24 @@ theorem length_bases : ∀ {b : ℕ} {ss : List ℕ}, (bases b ss).length = ss.l
   | _, [] => rfl
   | _, _ :: _ => by simp [bases, length_bases]
 
-theorem length_kidBases : ∀ {b : ℕ} {ks : List Tree}, (kidBases fs b ks).length = ks.length
-  | _, [] => rfl
-  | _, _ :: _ => by simp [kidBases, length_kidBases]
+/-- The `i`-th region placed from `b` starts after the first `i`. -/
+theorem getElem?_bases : ∀ {b : ℕ} {ss : List ℕ} {i : ℕ}, i < ss.length →
+    (bases b ss)[i]? = some (b + (ss.take i).sum)
+  | _, [], _, h => absurd h (by simp)
+  | b, s :: ss, 0, _ => by simp [bases]
+  | b, s :: ss, i + 1, h => by
+      simp only [bases, List.getElem?_cons_succ, List.take_succ_cons, List.sum_cons]
+      rw [getElem?_bases (by simpa using h)]
+      congr 1
+      omega
 
 theorem totalKids_cons (k : Tree) (ks : List Tree) :
     Tree.totalKids fs (k :: ks) = k.total fs + Tree.totalKids fs ks := by
   rw [Tree.totalKids]
+
+theorem totalKids_eq_sum : ∀ ks : List Tree, Tree.totalKids fs ks = (ks.map (Tree.total fs)).sum
+  | [] => by rw [Tree.totalKids]; rfl
+  | k :: ks => by rw [totalKids_cons, totalKids_eq_sum ks, List.map_cons, List.sum_cons]
 
 theorem total_node (f : String) (σ : Val) (bufs : List ℕ) (kids : List Tree) :
     (Tree.node f σ bufs kids).total fs = fs f + Tree.totalKids fs kids + bufs.sum := by
@@ -151,33 +198,107 @@ theorem le_total (t : Tree) : fs t.name ≤ t.total fs := by
   | node f σ bufs kids => rw [total_node]; simp only [Tree.name]; omega
   | phantom f σ => rw [Tree.total]; rfl
 
+theorem getLast?_getD_le_sum : ∀ ns : List ℕ, ns.getLast?.getD 0 ≤ ns.sum := by
+  intro ns
+  rcases List.eq_nil_or_concat ns with rfl | ⟨l, b, rfl⟩
+  · simp
+  · simp [List.concat_eq_append, List.sum_append]
+
+/-- The `HeapBuf`s lie past the frame, within the region. -/
+theorem bufBase_le (fp : ℕ) (f : String) (bufs ns : List ℕ) :
+    fp + fs f ≤ bufBase fs lp fp f ns ∧ bufBase fs lp fp f ns + bufs.sum ≤ fp + fs f + ns.sum + bufs.sum := by
+  have := getLast?_getD_le_sum ns
+  unfold bufBase
+  split <;> omega
+
+theorem length_kidPos (fp : ℕ) (f : String) (bufs ns : List ℕ) :
+    (kidPos fs lp fp f bufs ns).length = ns.length := by
+  unfold kidPos
+  split
+  · rcases List.eq_nil_or_concat ns with rfl | ⟨l, b, rfl⟩
+    · simp [bases]
+    · simp [List.concat_eq_append, length_bases]
+  · exact length_bases
+
+/-- **The callees' regions**: past the frame, within the region, apart from the `HeapBuf`s. -/
+theorem kidPos_regions (fp : ℕ) (f : String) (bufs ns : List ℕ) :
+    ∀ q ∈ ns.zip (kidPos fs lp fp f bufs ns), fp + fs f ≤ q.2 ∧
+      q.2 + q.1 ≤ fp + fs f + ns.sum + bufs.sum ∧ Disj q (bufs.sum, bufBase fs lp fp f ns) := by
+  intro q hq
+  unfold kidPos at hq
+  unfold Disj
+  split at hq
+  · rename_i hl
+    rcases List.eq_nil_or_concat ns with rfl | ⟨l, b, rfl⟩
+    · simp at hq
+    · rw [List.concat_eq_append] at hq ⊢
+      simp only [List.dropLast_concat, List.getLast?_concat, Option.toList_some, List.map_cons,
+        List.map_nil] at hq
+      rw [List.zip_append length_bases.symm, List.mem_append] at hq
+      have hb : bufBase fs lp fp f (l ++ [b]) = fp + fs f + b := by simp [bufBase, hl]
+      simp only [List.sum_append, List.sum_cons, List.sum_nil, hb] at hq ⊢
+      rcases hq with hq | hq
+      · have := bases_zip hq; omega
+      · simp only [List.zip_cons_cons, List.zip_nil_right, List.mem_singleton] at hq
+        subst hq; simp only; omega
+  · rename_i hl
+    have hb : bufBase fs lp fp f ns = fp + fs f := by simp [bufBase, hl]
+    have := bases_zip hq
+    rw [hb] at this ⊢
+    omega
+
+/-- The callees' regions are pairwise disjoint. -/
+theorem kidPos_pairwise (fp : ℕ) (f : String) (bufs ns : List ℕ) :
+    (ns.zip (kidPos fs lp fp f bufs ns)).Pairwise Disj := by
+  unfold kidPos
+  split
+  · rename_i hl
+    rcases List.eq_nil_or_concat ns with rfl | ⟨l, b, rfl⟩
+    · simp
+    · rw [List.concat_eq_append]
+      simp only [List.dropLast_concat, List.getLast?_concat, Option.toList_some, List.map_cons,
+        List.map_nil]
+      rw [List.zip_append length_bases.symm, List.pairwise_append]
+      have hb : bufBase fs lp fp f (l ++ [b]) = fp + fs f + b := by simp [bufBase, hl]
+      refine ⟨bases_pairwise.imp fun h => Or.inl h, by simp, fun q hq q' hq' => ?_⟩
+      simp only [List.zip_cons_cons, List.zip_nil_right, List.mem_singleton] at hq'
+      subst hq'
+      have := bases_zip hq
+      rw [hb] at this
+      exact Or.inr (by simp only; omega)
+  · exact bases_pairwise.imp fun h => Or.inl h
+
 /-! ## Placement -/
 
 variable {H : Inst → ℕ → E × E}
 
 theorem insts_node {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} {fp : ℕ}
     {hdr : E × E} :
-    (Tree.node f σ bufs kids).insts fs H fp hdr =
-      let I : Inst := ⟨.node f σ bufs kids, fp, hdr, kidBases fs (fp + fs f) kids,
-        bases (fp + fs f + Tree.totalKids fs kids) bufs⟩
-      I :: Tree.instsKids fs H I 0 (fp + fs f) kids := by
+    (Tree.node f σ bufs kids).insts fs lp H fp hdr =
+      let I : Inst := ⟨.node f σ bufs kids, fp, hdr, kidPos fs lp fp f bufs (kids.map (Tree.total fs)),
+        bases (bufBase fs lp fp f (kids.map (Tree.total fs))) bufs⟩
+      I :: Tree.instsKids fs lp H I 0 (kidPos fs lp fp f bufs (kids.map (Tree.total fs))) kids := by
   rw [Tree.insts]
 
 theorem insts_phantom {f : String} {σ : Val} {fp : ℕ} {hdr : E × E} :
-    (Tree.phantom f σ).insts fs H fp hdr = [⟨.phantom f σ, fp, hdr, [], []⟩] := by
+    (Tree.phantom f σ).insts fs lp H fp hdr = [⟨.phantom f σ, fp, hdr, [], []⟩] := by
   rw [Tree.insts]
 
-theorem instsKids_cons {I : Inst} {i b : ℕ} {k : Tree} {ks : List Tree} :
-    Tree.instsKids fs H I i b (k :: ks) =
-      k.insts fs H (b + Tree.totalKids fs ks) (H I i) ++ Tree.instsKids fs H I (i + 1) b ks := by
+theorem instsKids_cons {I : Inst} {i p : ℕ} {ps : List ℕ} {k : Tree} {ks : List Tree} :
+    Tree.instsKids fs lp H I i (p :: ps) (k :: ks) =
+      k.insts fs lp H p (H I i) ++ Tree.instsKids fs lp H I (i + 1) ps ks := by
   rw [Tree.instsKids]
 
-theorem instsKids_nil {I : Inst} {i b : ℕ} : Tree.instsKids fs H I i b [] = [] := by
+theorem instsKids_nil {I : Inst} {i : ℕ} {ps : List ℕ} : Tree.instsKids fs lp H I i ps [] = [] := by
   rw [Tree.instsKids]
+
+theorem instsKids_nil_left {I : Inst} {i : ℕ} {ks : List Tree} :
+    Tree.instsKids fs lp H I i [] ks = [] := by
+  cases ks <;> rw [Tree.instsKids]
 
 /-- The head of a node's instances is the node. -/
 theorem head_insts (t : Tree) (fp : ℕ) (hdr : E × E) :
-    ∃ I rest, t.insts fs H fp hdr = I :: rest ∧ I.t = t ∧ I.fp = fp ∧ I.hdr = hdr := by
+    ∃ I rest, t.insts fs lp H fp hdr = I :: rest ∧ I.t = t ∧ I.fp = fp ∧ I.hdr = hdr := by
   cases t with
   | node f σ bufs kids => exact ⟨_, _, insts_node, rfl, rfl, rfl⟩
   | phantom f σ => exact ⟨_, _, insts_phantom, rfl, rfl, rfl⟩
@@ -185,19 +306,19 @@ theorem head_insts (t : Tree) (fp : ℕ) (hdr : E × E) :
 mutual
 /-- **Within its region**: every word an instance of a subtree at `fp` owns is in
 `[fp, fp + total)`. -/
-theorem insts_within : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.insts fs H fp hdr,
+theorem insts_within : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.insts fs lp H fp hdr,
     ∀ i, I.Owns fs i → fp ≤ i ∧ i < fp + t.total fs
   | .node f σ bufs kids, fp, hdr, I, hI, i, hi => by
       rw [insts_node, List.mem_cons] at hI
-      rw [total_node]
+      rw [total_node, totalKids_eq_sum]
+      have hbb := bufBase_le (fs := fs) (lp := lp) fp f bufs (kids.map (Tree.total fs))
       rcases hI with rfl | hI
       · simp only [Inst.Owns, Inst.Frame, Inst.Buf, Tree.name, Tree.bufs] at hi
         rcases hi with ⟨h1, h2⟩ | ⟨q, hq, h1, h2⟩
         · omega
         · have := bases_zip hq; omega
-      · have := instsKids_within kids (I := ⟨.node f σ bufs kids, fp, hdr,
-          kidBases fs (fp + fs f) kids, bases (fp + fs f + Tree.totalKids fs kids) bufs⟩)
-          0 (fp + fs f) I hI i hi
+      · obtain ⟨q, hq, h1, h2⟩ := instsKids_within kids _ _ _ I hI i hi
+        have := kidPos_regions (fs := fs) (lp := lp) fp f bufs _ q hq
         omega
   | .phantom f σ, fp, hdr, I, hI, i, hi => by
       rw [insts_phantom, List.mem_singleton] at hI
@@ -207,129 +328,150 @@ theorem insts_within : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.ins
       · exact ⟨h1, h2⟩
       · simp at hq
 
-/-- `insts_within` for the callees placed from `b`. -/
-theorem instsKids_within : ∀ (ks : List Tree) {I : Inst} (j b : ℕ), ∀ J ∈ Tree.instsKids fs H I j b ks,
-    ∀ i, J.Owns fs i → b ≤ i ∧ i < b + Tree.totalKids fs ks
+/-- `insts_within` for the callees at `ps`: every word one owns is in its callee's region. -/
+theorem instsKids_within : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j : ℕ),
+    ∀ J ∈ Tree.instsKids fs lp H I j ps ks, ∀ i, J.Owns fs i →
+      ∃ q ∈ (ks.map (Tree.total fs)).zip ps, q.2 ≤ i ∧ i < q.2 + q.1
   | [], _, _, _, J, hJ, _, _ => by rw [instsKids_nil] at hJ; exact (List.not_mem_nil hJ).elim
-  | k :: ks, I, j, b, J, hJ, i, hi => by
+  | _ :: _, [], _, _, J, hJ, _, _ => by
+      rw [instsKids_nil_left] at hJ; exact (List.not_mem_nil hJ).elim
+  | k :: ks, p :: ps, I, j, J, hJ, i, hi => by
       rw [instsKids_cons, List.mem_append] at hJ
-      rw [totalKids_cons]
+      simp only [List.map_cons, List.zip_cons_cons, List.mem_cons, exists_eq_or_imp]
       rcases hJ with hJ | hJ
-      · have := insts_within k _ _ J hJ i hi; omega
-      · have := instsKids_within ks (I := I) (j + 1) b J hJ i hi; omega
+      · have := insts_within k _ _ J hJ i hi; exact Or.inl ⟨this.1, this.2⟩
+      · exact Or.inr (instsKids_within ks ps I (j + 1) J hJ i hi)
 end
 
 mutual
 /-- **Disjointness**: two instances of a subtree own no word in common. -/
 theorem insts_pairwise : ∀ (t : Tree) (fp : ℕ) (hdr : E × E),
-    (t.insts fs H fp hdr).Pairwise (Inst.Apart fs)
+    (t.insts fs lp H fp hdr).Pairwise (Inst.Apart fs)
   | .node f σ bufs kids, fp, hdr => by
       rw [insts_node]
-      refine List.Pairwise.cons (fun J hJ i hI hJi => ?_) (instsKids_pairwise kids 0 (fp + fs f))
-      have hJ' := instsKids_within kids 0 (fp + fs f) J hJ i hJi
+      refine List.Pairwise.cons (fun J hJ i hI hJi => ?_)
+        (instsKids_pairwise kids _ _ 0 (kidPos_pairwise fp f bufs _))
+      obtain ⟨q, hq, h1, h2⟩ := instsKids_within kids _ _ _ J hJ i hJi
+      have := kidPos_regions (fs := fs) (lp := lp) fp f bufs _ q hq
+      unfold Disj at this
       simp only [Inst.Owns, Inst.Frame, Inst.Buf, Tree.name, Tree.bufs] at hI
-      rcases hI with ⟨-, h2⟩ | ⟨q, hq, h1, -⟩
+      rcases hI with ⟨-, h⟩ | ⟨q', hq', h1', h2'⟩
       · omega
-      · have := bases_zip hq; omega
+      · have := bases_zip hq'; omega
   | .phantom f σ, fp, hdr => by
       rw [insts_phantom]
       exact List.pairwise_singleton _ _
 
-/-- `insts_pairwise` for the callees placed from `b`. -/
-theorem instsKids_pairwise : ∀ (ks : List Tree) {I : Inst} (j b : ℕ),
-    (Tree.instsKids fs H I j b ks).Pairwise (Inst.Apart fs)
-  | [], _, _, _ => by rw [instsKids_nil]; exact List.Pairwise.nil
-  | k :: ks, I, j, b => by
+/-- `insts_pairwise` for the callees at `ps`, their regions disjoint. -/
+theorem instsKids_pairwise : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j : ℕ),
+    ((ks.map (Tree.total fs)).zip ps).Pairwise Disj →
+      (Tree.instsKids fs lp H I j ps ks).Pairwise (Inst.Apart fs)
+  | [], _, _, _, _ => by rw [instsKids_nil]; exact List.Pairwise.nil
+  | _ :: _, [], _, _, _ => by rw [instsKids_nil_left]; exact List.Pairwise.nil
+  | k :: ks, p :: ps, I, j, hd => by
+      simp only [List.map_cons, List.zip_cons_cons, List.pairwise_cons] at hd
       rw [instsKids_cons, List.pairwise_append]
-      refine ⟨insts_pairwise k _ _, instsKids_pairwise ks (j + 1) b, fun J hJ J' hJ' i hi hi' => ?_⟩
+      refine ⟨insts_pairwise k _ _, instsKids_pairwise ks ps I (j + 1) hd.2,
+        fun J hJ J' hJ' i hi hi' => ?_⟩
       have h1 := insts_within k _ _ J hJ i hi
-      have h2 := instsKids_within ks (I := I) (j + 1) b J' hJ' i hi'
+      obtain ⟨q, hq, h2, h3⟩ := instsKids_within ks ps I (j + 1) J' hJ' i hi'
+      have := hd.1 q hq
+      unfold Disj at this
+      simp only at this
       omega
 end
 
 /-- An instance placed as the allocator places it: its callees' frames and its `HeapBuf`s where
 `Tree.insts` puts them. -/
-def Inst.Placed (fs : String → ℕ) (I : Inst) : Prop :=
-  I.kidFps = kidBases fs (I.fp + fs I.t.name) I.t.kids ∧
-    I.bufBases = bases (I.fp + fs I.t.name + Tree.totalKids fs I.t.kids) I.t.bufs
+def Inst.Placed (fs : String → ℕ) (lp : String → Bool) (I : Inst) : Prop :=
+  I.kidFps = kidPos fs lp I.fp I.t.name I.t.bufs (I.t.kids.map (Tree.total fs)) ∧
+    I.bufBases = bases (bufBase fs lp I.fp I.t.name (I.t.kids.map (Tree.total fs))) I.t.bufs
 
 mutual
 /-- Every instance is placed. -/
-theorem insts_placed : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.insts fs H fp hdr,
-    I.Placed fs
+theorem insts_placed : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.insts fs lp H fp hdr,
+    I.Placed fs lp
   | .node f σ bufs kids, fp, hdr, I, hI => by
       rw [insts_node, List.mem_cons] at hI
       rcases hI with rfl | hI
       · exact ⟨rfl, rfl⟩
-      · exact instsKids_placed kids 0 (fp + fs f) I hI
+      · exact instsKids_placed kids _ _ 0 I hI
   | .phantom f σ, fp, hdr, I, hI => by
       rw [insts_phantom, List.mem_singleton] at hI
       subst hI
-      exact ⟨rfl, rfl⟩
+      refine ⟨?_, rfl⟩
+      simp only [Tree.kids, List.map_nil, Tree.bufs, kidPos, bases, List.dropLast_nil,
+        List.getLast?_nil, Option.toList_none, List.map_nil, List.append_nil, ite_self]
 
 /-- `insts_placed` for the callees. -/
-theorem instsKids_placed : ∀ (ks : List Tree) {I : Inst} (j b : ℕ), ∀ J ∈ Tree.instsKids fs H I j b ks,
-    J.Placed fs
+theorem instsKids_placed : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j : ℕ),
+    ∀ J ∈ Tree.instsKids fs lp H I j ps ks, J.Placed fs lp
   | [], _, _, _, J, hJ => by rw [instsKids_nil] at hJ; exact (List.not_mem_nil hJ).elim
-  | k :: ks, I, j, b, J, hJ => by
+  | _ :: _, [], _, _, J, hJ => by rw [instsKids_nil_left] at hJ; exact (List.not_mem_nil hJ).elim
+  | k :: ks, p :: ps, I, j, J, hJ => by
       rw [instsKids_cons, List.mem_append] at hJ
       rcases hJ with hJ | hJ
       · exact insts_placed k _ _ J hJ
-      · exact instsKids_placed ks (I := I) (j + 1) b J hJ
+      · exact instsKids_placed ks ps I (j + 1) J hJ
 end
 
 /-- The frame and the `HeapBuf`s of a placed instance are disjoint. -/
-theorem Inst.Placed.frame_buf {I : Inst} (h : I.Placed fs) {i : ℕ} (hF : I.Frame fs i) :
+theorem Inst.Placed.frame_buf {I : Inst} (h : I.Placed fs lp) {i : ℕ} (hF : I.Frame fs i) :
     ¬ I.Buf i := by
   rintro ⟨q, hq, h1, -⟩
   rw [h.2] at hq
   have := bases_zip hq
+  have := (bufBase_le (fs := fs) (lp := lp) I.fp I.t.name I.t.bufs
+    (I.t.kids.map (Tree.total fs))).1
   exact absurd hF.2 (by omega)
 
-/-- The callees placed from `b`, the last at `b`. -/
-theorem kidBases_getLast? : ∀ {b : ℕ} {ks : List Tree}, ks ≠ [] → (kidBases fs b ks).getLast? = some b
-  | _, [], h => absurd rfl h
-  | b, [k], _ => by simp [kidBases, Tree.totalKids]
-  | b, k :: k' :: ks, _ => by
-      rw [kidBases, List.getLast?_cons, kidBases_getLast? (List.cons_ne_nil k' ks)]
-      rfl
+/-- **A loop's next iteration follows its frame**: a loop helper's last callee, its tail call, is
+at `fp · g^S`. -/
+theorem Inst.Placed.kidFps_getLast? {I : Inst} (h : I.Placed fs lp) (hl : lp I.t.name = true)
+    (hk : I.t.kids ≠ []) : I.kidFps.getLast? = some (I.fp + fs I.t.name) := by
+  rw [h.1, kidPos, ite_eq_left hl]
+  rcases List.eq_nil_or_concat (I.t.kids.map (Tree.total fs)) with he | ⟨l, b, he⟩
+  · exact absurd (List.map_eq_nil_iff.mp he) hk
+  · rw [he]
+    simp [List.concat_eq_append]
 
-/-- **The last callee's frame follows the caller's**: a loop's tail call at `fp · g^S`. -/
-theorem Inst.Placed.kidFps_getLast? {I : Inst} (h : I.Placed fs) (hk : I.t.kids ≠ []) :
-    I.kidFps.getLast? = some (I.fp + fs I.t.name) := by
-  rw [h.1, kidBases_getLast? hk]
-
-/-- The `i`-th callee placed from `b` is an instance at the `i`-th region, with header
-`H I (j + i)`. -/
-theorem instsKids_kid : ∀ (ks : List Tree) {I : Inst} (j b i : ℕ) {k : Tree}, ks[i]? = some k →
-    ∃ J ∈ Tree.instsKids fs H I j b ks, J.t = k ∧ (kidBases fs b ks)[i]? = some J.fp ∧
-      J.hdr = H I (j + i)
-  | [], _, _, _, _, _, h => by simp at h
-  | k' :: ks, I, j, b, 0, k, h => by
+/-- The `i`-th callee at `ps` is an instance at `ps[i]`, with header `H I (j + i)`. -/
+theorem instsKids_kid : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j i : ℕ) {k : Tree} {p : ℕ},
+    ks[i]? = some k → ps[i]? = some p →
+    ∃ J ∈ Tree.instsKids fs lp H I j ps ks, J.t = k ∧ J.fp = p ∧ J.hdr = H I (j + i)
+  | [], _, _, _, _, _, _, h, _ => by simp at h
+  | _ :: _, [], _, _, _, _, _, _, h => by simp at h
+  | k' :: ks, p' :: ps, I, j, 0, k, p, h, h' => by
       obtain rfl : k' = k := by simpa using h
-      obtain ⟨J, rest, he, ht, hfp, hh⟩ := head_insts (H := H) k' (b + Tree.totalKids fs ks) (H I j)
-      refine ⟨J, ?_, ht, ?_, by rw [hh, Nat.add_zero]⟩
-      · rw [instsKids_cons, he]; exact List.mem_append_left _ List.mem_cons_self
-      · rw [kidBases, hfp]; rfl
-  | k' :: ks, I, j, b, i + 1, k, h => by
-      obtain ⟨J, hJ, ht, hfp, hh⟩ := instsKids_kid ks (I := I) (j + 1) b i (by simpa using h)
-      refine ⟨J, ?_, ht, by simpa [kidBases] using hfp, by rw [hh]; congr 1; omega⟩
+      obtain rfl : p' = p := by simpa using h'
+      obtain ⟨J, rest, he, ht, hfp, hh⟩ := head_insts (fs := fs) (lp := lp) (H := H) k' p' (H I j)
+      refine ⟨J, ?_, ht, hfp, by rw [hh, Nat.add_zero]⟩
+      rw [instsKids_cons, he]; exact List.mem_append_left _ List.mem_cons_self
+  | k' :: ks, p' :: ps, I, j, i + 1, k, p, h, h' => by
+      obtain ⟨J, hJ, ht, hfp, hh⟩ :=
+        instsKids_kid ks ps I (j + 1) i (by simpa using h) (by simpa using h')
+      refine ⟨J, ?_, ht, hfp, by rw [hh]; congr 1; omega⟩
       rw [instsKids_cons]
       exact List.mem_append_right _ hJ
 
 mutual
 /-- **Callees are instances**: the `i`-th callee of an instance is an instance at the `i`-th
 callee frame, with header `H I i`. -/
-theorem insts_kid : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.insts fs H fp hdr,
+theorem insts_kid : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.insts fs lp H fp hdr,
     ∀ (i : ℕ) (k : Tree), I.t.kids[i]? = some k →
-      ∃ J ∈ t.insts fs H fp hdr, J.t = k ∧ I.kidFps[i]? = some J.fp ∧ J.hdr = H I i
+      ∃ J ∈ t.insts fs lp H fp hdr, J.t = k ∧ I.kidFps[i]? = some J.fp ∧ J.hdr = H I i
   | .node f σ bufs kids, fp, hdr, I, hI, i, k, hk => by
       rw [insts_node, List.mem_cons] at hI
       rcases hI with rfl | hI
-      · obtain ⟨J, hJ, h⟩ := instsKids_kid (H := H) kids 0 (fp + fs f) i hk
-        refine ⟨J, ?_, by simpa using h⟩
+      · have hi : i < (kidPos fs lp fp f bufs (kids.map (Tree.total fs))).length := by
+          rw [length_kidPos, List.length_map]
+          exact (List.getElem?_eq_some_iff.mp hk).1
+        obtain ⟨p, hp⟩ : ∃ p, (kidPos fs lp fp f bufs (kids.map (Tree.total fs)))[i]? = some p :=
+          ⟨_, List.getElem?_eq_getElem hi⟩
+        obtain ⟨J, hJ, ht, hfp, hh⟩ := instsKids_kid (fs := fs) (lp := lp) (H := H) kids _ _ 0 i hk hp
+        refine ⟨J, ?_, ht, by rw [hfp]; exact hp, by simpa using hh⟩
         rw [insts_node]; exact List.mem_cons_of_mem _ hJ
-      · obtain ⟨J, hJ, h⟩ := instsKids_kids_kid kids 0 (fp + fs f) I hI i k hk
+      · obtain ⟨J, hJ, h⟩ := instsKids_kids_kid kids _ _ 0 I hI i k hk
         refine ⟨J, ?_, h⟩
         rw [insts_node]; exact List.mem_cons_of_mem _ hJ
   | .phantom f σ, fp, hdr, I, hI, i, k, hk => by
@@ -338,17 +480,20 @@ theorem insts_kid : ∀ (t : Tree) (fp : ℕ) (hdr : E × E), ∀ I ∈ t.insts 
       simp [Tree.kids] at hk
 
 /-- `insts_kid` for the callees. -/
-theorem instsKids_kids_kid : ∀ (ks : List Tree) {I : Inst} (j b : ℕ), ∀ J ∈ Tree.instsKids fs H I j b ks,
-    ∀ (i : ℕ) (k : Tree), J.t.kids[i]? = some k →
-      ∃ J' ∈ Tree.instsKids fs H I j b ks, J'.t = k ∧ J.kidFps[i]? = some J'.fp ∧ J'.hdr = H J i
+theorem instsKids_kids_kid : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (j : ℕ),
+    ∀ J ∈ Tree.instsKids fs lp H I j ps ks, ∀ (i : ℕ) (k : Tree), J.t.kids[i]? = some k →
+      ∃ J' ∈ Tree.instsKids fs lp H I j ps ks, J'.t = k ∧ J.kidFps[i]? = some J'.fp ∧
+        J'.hdr = H J i
   | [], _, _, _, J, hJ, _, _, _ => by rw [instsKids_nil] at hJ; exact (List.not_mem_nil hJ).elim
-  | k' :: ks, I, j, b, J, hJ, i, k, hk => by
+  | _ :: _, [], _, _, J, hJ, _, _, _ => by
+      rw [instsKids_nil_left] at hJ; exact (List.not_mem_nil hJ).elim
+  | k' :: ks, p :: ps, I, j, J, hJ, i, k, hk => by
       rw [instsKids_cons, List.mem_append] at hJ
       rw [instsKids_cons]
       rcases hJ with hJ | hJ
       · obtain ⟨J', hJ', h⟩ := insts_kid k' _ _ J hJ i k hk
         exact ⟨J', List.mem_append_left _ hJ', h⟩
-      · obtain ⟨J', hJ', h⟩ := instsKids_kids_kid ks (I := I) (j + 1) b J hJ i k hk
+      · obtain ⟨J', hJ', h⟩ := instsKids_kids_kid ks ps I (j + 1) J hJ i k hk
         exact ⟨J', List.mem_append_right _ hJ', h⟩
 end
 
