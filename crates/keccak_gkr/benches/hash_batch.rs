@@ -14,7 +14,7 @@
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json, env_usize};
-use fiat_shamir::transcript::{Proof, ProverState};
+use fiat_shamir::transcript::Proof;
 use keccak_gkr::{OutputClaim, Shape, Witness};
 use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
@@ -43,7 +43,7 @@ fn main() {
         let witness = tracing::info_span!("Witness").in_scope(|| Witness::generate(shape, &inputs, &mut committed));
         let witness_s = t.elapsed().as_secs_f64();
 
-        let mut ps = ProverState::from_label(LABEL);
+        let mut ps = keccak_gkr::batch_transcript(LABEL, shape, LOG_INV_RATE_0);
         let t = Instant::now();
         let (commitment, prover_data) = commit(&committed, mu, INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
         ps.add_root(&commitment.root);
@@ -87,7 +87,7 @@ fn main() {
     let proof = scalar_proof(&transcript);
     let iv = primitives::hash::hash(LABEL);
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|_final_pass| {
-        verifier::verify_keccak_batch(&iv, &[0; 32], shape.n_log(), shape.depth(), LOG_INV_RATE_0, &proof)
+        verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), LOG_INV_RATE_0, &proof)
             .expect("the batch proof verifies");
     });
 

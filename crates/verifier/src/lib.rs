@@ -181,10 +181,10 @@ pub fn replay_unchecked(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Pr
 /// committed every `depth` rounds, the committed states the whole stack.
 ///
 /// The proof is the commitment root, the output lanes claimed at a challenge point, the reduction, then the ring
-/// switch and its opening, as in an execution proof.
+/// switch and its opening, as in an execution proof. Its public input is the shape, the words `log_steps`, `depth`,
+/// `log_inv_rate` and zero, so a proof of one shape verifies for no other.
 pub fn verify_keccak_batch(
     fiat_shamir_iv: &[u8; 32],
-    public_input: &[u8; 32],
     log_steps: usize,
     depth: usize,
     log_inv_rate: usize,
@@ -200,7 +200,16 @@ pub fn verify_keccak_batch(
         (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&stack_log),
         VerifierError::CommittedSize,
     )?;
-    let mut transcript = Transcript::new(proof, Digest(*fiat_shamir_iv), Digest(*public_input), true);
+    let mut statement = [0u8; 32];
+    for (bytes, word) in statement
+        .as_chunks_mut::<8>()
+        .0
+        .iter_mut()
+        .zip([log_steps, depth, log_inv_rate])
+    {
+        *bytes = (word as u64).to_le_bytes();
+    }
+    let mut transcript = Transcript::new(proof, Digest(*fiat_shamir_iv), Digest(statement), true);
     let halves = transcript.next_scalars(2)?;
     let root = Digest::from_halves(halves[0], halves[1])?;
     let instance = transcript.samples(log_steps);

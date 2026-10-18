@@ -7,6 +7,7 @@ on:
       - 'doc/leanvm/**'
       - 'doc/lean_xmss/**'
       - 'doc/lean_sphincs/**'
+      - 'doc/notes/**'
       - 'doc/images/**'
       - '.github/workflows/doc.yml'
   pull_request:
@@ -14,6 +15,7 @@ on:
       - 'doc/leanvm/**'
       - 'doc/lean_xmss/**'
       - 'doc/lean_sphincs/**'
+      - 'doc/notes/**'
       - 'doc/images/**'
       - '.github/workflows/doc.yml'
   workflow_dispatch:
@@ -54,6 +56,14 @@ jobs:
       - name: Fail on an undefined leanSPHINCS reference or citation
         run: |
           ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/lean_sphincs/.build/main.log
+      - name: Compile the Keccak GKR note
+        uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: doc/notes
+          root_file: keccak-gkr.tex
+      - name: Fail on an undefined Keccak GKR note reference or citation
+        run: |
+          ! grep -qE 'Reference .* undefined|Citation .* undefined|multiply defined' doc/notes/.build/keccak-gkr.log
 
   build-pdf:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

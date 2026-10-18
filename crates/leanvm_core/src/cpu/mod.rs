@@ -60,8 +60,8 @@ const MAX_LOG_ROWS: usize = 32;
 /// verifier holding only that polynomial reproduces the seed; that inner hash is
 /// cached, so the table is walked once per program rather than once per proof.
 ///
-/// The IV IS the transcript's starting chaining value ([`fiat_shamir::FiatShamirState::new`]),
-/// so all challenges depend on the circuit version and the program before
+/// The IV fills lanes 0..4 of the transcript's first permutation input
+/// ([`fiat_shamir::FiatShamirState::new`]), the public input the next four, so all challenges depend on the circuit version and the program before
 /// anything else; a recursion guest carries the INNER program's IV in its public
 /// input, pinning both with one word pair.
 pub fn fs_seed(program: &Program) -> [F192; 2] {

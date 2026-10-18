@@ -20,7 +20,7 @@ def verificationWork (x : Encoding) : Nat :=
 abbrev SuffixPosition (x : Encoding) :=
   Σ i : ChainIndex, Fin (chainLength - 1 - (x i).val)
 
-/-- Every valid encoding makes the verifier walk exactly 99 WOTS chain edges. -/
+/-- Every valid encoding makes the verifier walk exactly 68 WOTS chain edges. -/
 theorem verificationWork_eq (x : Encoding) (hx : Valid x) :
     verificationWork x = verificationChainHashes := by
   unfold Valid sum at hx

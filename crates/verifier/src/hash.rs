@@ -85,8 +85,9 @@ fn xor_bytes(state: &mut [u64; STATE_LANES], bytes: &[u8]) {
     }
 }
 
-/// Keccak-256 of `data` in the cell encoding: past 128 bytes, the fixed eight bytes `0^7 ‖ 0x80` after every 128,
-/// so that a block is eight whole cells. Up to 128 bytes it is plain Keccak-256.
+/// Keccak-256 of `data` in the cell encoding: up to 128 bytes it is plain Keccak-256. A longer input is cut into
+/// 128-byte chunks, the last holding the remaining 1 to 128 bytes, and every chunk but the last is followed by the
+/// fixed eight bytes `0^7 ‖ 0x80`, so that a block is eight whole cells.
 pub fn keccak_hash(data: &[u8]) -> Digest {
     let mut state = [0u64; STATE_LANES];
     let nonfinal = data.len().saturating_sub(1) / CHUNK;

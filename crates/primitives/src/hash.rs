@@ -385,7 +385,7 @@ pub fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN]
 // which is what lets one instruction stream serve the whole batch.
 // ---------------------------------------------------------------------------
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 mod x86 {
     use super::Lanes64;
     use core::arch::x86_64::*;
@@ -654,11 +654,16 @@ pub fn hash_many_dyn(data: &[u8], len: usize, out: &mut [u8]) {
 }
 
 /// [`hash_many_dyn`] continued from one sponge state shared by every input, as
-/// [`hash_from_state`] is to [`hash`]. Byte-identical to hashing each full image.
+/// [`hash_from_state`] is to [`hash`], under its precondition. Byte-identical to
+/// hashing each full image.
 pub fn hash_many_dyn_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8]) {
     let n = out.len() / OUT_LEN;
     assert_eq!(out.len(), n * OUT_LEN);
     assert_eq!(data.len(), n * len);
+    assert!(
+        len > 0 || *state == [0; STATE_LANES],
+        "a message continued past whole chunks ends in a block with at least one byte"
+    );
     // SAFETY (each arm): the asserts above pin the buffer sizes the backends
     // require, and every backend is gated on the feature its intrinsics need.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]

@@ -60,6 +60,16 @@ class BenchmarkPresentationTests(unittest.TestCase):
             "Other benchmarks": ["future-program"],
         })
 
+    def test_hash_families_of_both_branches(self):
+        names = ["hash-50000-16thread", "blake2s-batch-16thread", "flock-class-batch-16thread", "keccak-hash-batch-262144"]
+        sections = self.sections(self.report({name: {"latency": (1e9, 2e9)} for name in names}))
+        self.assertEqual({title: [row[0] for row in rows[1:]] for title, rows in sections.items()}, {
+            "Hash chains": ["hash-50000"],
+            "BLAKE2s": ["blake2s-batch"],
+            "Flock": ["flock-class-batch"],
+            "Keccak GKR": ["keccak-hash-batch-262144"],
+        })
+
     def test_stage_only_changes_stay_attached_to_full_thread_identity(self):
         report = self.report({
             "leanxmss-100-4thread": {"latency": (10e9, 10e9), "stage.commit": (1e9, 2e9)},

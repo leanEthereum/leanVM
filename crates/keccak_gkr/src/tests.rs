@@ -125,14 +125,7 @@ const LABEL: &[u8] = b"keccak-gkr-test";
 fn verify(shape: Shape, proof: &Proof) -> Result<(), verifier::VerifierError> {
     let iv = primitives::hash::hash(LABEL);
     let log_inv_rate = pcs::whir::LOG_INV_RATE_0;
-    verifier::verify_keccak_batch(
-        &iv,
-        &[0; 32],
-        shape.n_log(),
-        shape.depth(),
-        log_inv_rate,
-        &scalar_proof(proof),
-    )
+    verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), log_inv_rate, &scalar_proof(proof))
 }
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
@@ -142,7 +135,7 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
     let mut honest = vec![primitives::field::F64(0); crate::committed_len(shape)];
     let witness = Witness::generate(shape, inputs, &mut honest);
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
-    let mut ps = ProverState::from_label(LABEL);
+    let mut ps = crate::batch_transcript(LABEL, shape, LOG_INV_RATE_0);
     let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
     ps.add_root(&commitment.root);
     let mut output = crate::OutputClaim::of_inputs(shape, inputs, ps.sample_vec(shape.n_log()));

@@ -1984,8 +1984,8 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
                     # A side's blocks share one base, so ascending global index is
                     # the native ascending index.
                     assert log(global_g / prev_g) < N_BLOCKS
-            # write-once: a repeat collides, and an omission fails the decompose's
-            # offset read below
+            # write-once: a repeat collides (g_off has grown since), so the side's
+            # ranks name as many distinct blocks of the side as it has, omitting none
             block_off_g[global_g] = g_off
             g_off *= g_squares[kappa_g]
             prev_g = global_g
@@ -2460,9 +2460,9 @@ def keccak_form(lanes, shifts, f_lanes, f_off: Const):
 
 def keccak_round(rd, pp, pt):
     # One round of a layer's pack and segment sumcheck, from the record at rd (fields
-    # KR_CAP apart) to the next: degree two with the eq factor pulled out, the
-    # prover sending g(1) and g(2). With r the claim's coordinate pp[0] and d = r +
-    # rho, h(rho) = claim + d g(1) + (r + rho^2) g(2), g(0) being fixed by the claim.
+    # KR_CAP apart) to the next: q has degree two with the eq factor pulled out, and the prover
+    # sends its coefficients c1 and c2 (g_1, g_2), c0 being fixed by the claim. With r = pp[1],
+    # q(rho) = claim + (r + rho) c1 + (r + rho^2) c2, and the next claim is (1 + r + rho) q(rho).
     sp = fs_load(rd, KR_FS, KR_CAP)
     cur = rd[GEN ** (KR_CURSOR * KR_CAP)]
     r_eq = pp[1]

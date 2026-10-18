@@ -175,7 +175,7 @@ def HasSuffixCollisionWitness {α : Type} (step : ChainIndex → Nat → α → 
     (signedValue forgedValue : ChainIndex → α) : Prop :=
   ∃ position, IsSuffixCollisionAt step signedEncoding forgedEncoding signedValue forgedValue position
 
-/-- The WOTS extraction alternatives are indexed by 42 chains and exactly 99 valid suffix positions. -/
+/-- The WOTS extraction alternatives are indexed by 58 chains and exactly 68 valid suffix positions. -/
 theorem classify_distinct_valid_encodings {α : Type}
     (step : ChainIndex → Nat → α → α)
     (signedEncoding forgedEncoding : Encoding)

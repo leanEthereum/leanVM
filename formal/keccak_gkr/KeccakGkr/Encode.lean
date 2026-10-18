@@ -10,7 +10,7 @@ A lane is a point of `Cube 5`, a position `(ℓ, z)` the point of `Cube 11` of t
 segment `m` the point of `Cube 6` of `25 m + ℓ`, each number's bits low first. A table on lanes or
 positions is padded with zeros to a table on the cube (`pad`).
 
-The sixteen instances of a pack are the points of `Cube 4`, numbered the same way (`instNum`).
+The sixteen instances of a pack are the points of `Cube 4`, numbered the same way (`instEquiv`).
 -/
 
 namespace KeccakGkr

@@ -174,6 +174,14 @@ pub fn prove(
     Openings { outputs, inputs }
 }
 
+/// The transcript of a batch proved alone, as `verifier::verify_keccak_batch` reads it: seeded from
+/// `label` and, as its public input, the shape and the PCS rate.
+pub fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) -> ProverState {
+    let iv = fiat_shamir::digest_words(&primitives::hash::hash(label));
+    let statement = [shape.n_log(), shape.depth(), log_inv_rate, 0].map(|w| primitives::field::F64(w as u64));
+    ProverState::new(iv, statement)
+}
+
 /// The words of a stack holding the committed states alone.
 pub fn committed_len(shape: Shape) -> usize {
     1 << shape.stack_log()

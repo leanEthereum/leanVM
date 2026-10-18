@@ -4,9 +4,10 @@ import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 /-!
 # leanSPHINCS with a two-level WOTS forest
 
-The scheme of `SphincsFors.Scheme` (one height-26 tree of WOTS+C keys with 64 chains of length 4 and
-target sum 123, pruning with surrogate siblings, randomizer grinding, tweakable hash with 16-byte
-outputs) with the few-time signature under each tree leaf replaced by a **two-level WOTS forest**:
+The scheme of `SphincsFors.Scheme` (one height-26 tree of WOTS+C keys with 64 chains of length 4,
+pruning with surrogate siblings, randomizer grinding, tweakable hash with 16-byte outputs) with the
+WOTS+C target sum 123 where it has 120, and the few-time signature under each tree leaf replaced by
+a **two-level WOTS forest**:
 
 * 8 independent coordinates; a coordinate is a top Merkle tree of height 4 over 16 super-children,
   hashed up to level 3 only: its two level-3 nodes `t_c[0]`, `t_c[1]` are not hashed into a root. The
@@ -32,15 +33,15 @@ outputs) with the few-time signature under each tree leaf replaced by a **two-le
   order, into the hash above.
 
 Everything that is not the forest (parameters, WOTS+C, the tree, pruning, grinding, key generation)
-is `SphincsFors.Scheme` verbatim, but for the scheme seed: key generation first hashes the key's
+is `SphincsFors.Scheme` verbatim, but for the target sum and the scheme seed: key generation first hashes the key's
 seed `S0` into `S = H(leanSPHINCS || S0)`, and everything else derives from `S`. Every other hash
 input is `P || A || payload`: the 16-byte public parameter, then the 16-byte address of the call (a
 32-bit field `lo`, a 24-bit field `hi`, one byte holding the type and a chain step, then 8 zero
 bytes), so the payload starts at byte 32. Forest hashes use types 14 (secret derivation) and 15 to
 19, with the instance `idx` in `lo` and the position inside the instance in `hi`; type 20 (`roots`,
 the former forest-key hash) is not hashed. The message digest hashes `m || rho` (the root is not
-hashed: `P` binds the key) and the randomizer base `S || m`: the randomizer, which changes between
-two grinding attempts, comes last, alone in the second block.
+hashed: `P` binds the key), 80 bytes in one block, and the randomizer base `S || m`: the
+randomizer, which changes between two grinding attempts, comes last.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -652,9 +653,9 @@ def forestRecover (parameter : PublicParameter) (index : Index) (marks : Coord â
 
 /-! ### The message digest -/
 
-/-- `m || rho`, what the message digest hashes after the parameter and the address. The first block
-is `P || A || m` (64 bytes); the second block is the randomizer alone. The root is not hashed (`P`
-binds the key); the argument is kept for the callers. -/
+/-- `m || rho`, what the message digest hashes after the parameter and the address: the input
+`P || A || m || rho` is 80 bytes, one block. The root is not hashed (`P` binds the key); the
+argument is kept for the callers. -/
 def messageDigestPayload (_root : Digest) (message : Message) (randomness : Randomness) : HashInput :=
   bytesLE 32 message ++ bytesLE 16 randomness
 

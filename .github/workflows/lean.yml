@@ -18,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Cheap first pass: the axiom guard in `XmssSecurity.lean` catches a `sorry`
-      # or a `native_decide` reaching the root theorem, this catches one parked
-      # anywhere in the project.
+      # Cheap first pass: the axiom guard in `XmssSecurity.lean` catches a `sorry`,
+      # a `native_decide` or an `axiom` reaching the root theorem, this catches one
+      # parked anywhere in the project, and a kernel check switched off.
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|debug\.skipKernelTC)\b|#exit|^[[:space:]]*(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable)[[:space:]]+)*axiom\b' \
               --include='*.lean' --exclude-dir=.lake formal/lean_xmss | grep -vE ':[0-9]+: *(--|/-)'
       # Installs the toolchain from `formal/lean_xmss/lean-toolchain`, fetches the
       # mathlib cache, and runs `lake build` on the default targets, which
@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|debug\.skipKernelTC)\b|#exit|^[[:space:]]*(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable)[[:space:]]+)*axiom\b' \
               --include='*.lean' --exclude-dir=.lake formal/keccak_gkr | grep -vE ':[0-9]+: *(--|/-)'
       - uses: leanprover/lean-action@v1
         with:
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|debug\.skipKernelTC)\b|#exit|^[[:space:]]*(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable)[[:space:]]+)*axiom\b' \
               --include='*.lean' --exclude-dir=.lake formal/lean_sphincs | grep -vE ':[0-9]+: *(--|/-)'
       # Without Mathlib's build, which `lake exe cache get` fetches, an entry takes
       # a small share of the repository's cache. Only `main` saves one; every

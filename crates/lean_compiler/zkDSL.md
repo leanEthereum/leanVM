@@ -441,11 +441,11 @@ sha3_cells(run, out)                # the hash of the whole run, however many bl
 sha3(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=st)
 ```
 
-The hash is Keccak-256 in the **cell encoding** (`primitives::hash::hash`): plain Keccak-256 of messages up to 128 bytes, and past that, Keccak-256 of the message with the fixed eight bytes `00 00 00 00 00 00 00 80` after every 128. That makes one block eight whole 16-byte cells where the 136-byte rate would split a cell, and those gap bytes land in lane 16, the one lane the instruction supplies itself.
+The hash is Keccak-256 in the **cell encoding** (`primitives::hash::hash`): plain Keccak-256 of messages up to 128 bytes, and past that, Keccak-256 of the message cut into 128-byte chunks (the last holding the remaining 1 to 128) with the fixed eight bytes `00 00 00 00 00 00 00 80` after every chunk but the last. That makes one block eight whole 16-byte cells where the 136-byte rate would split a cell, and those gap bytes land in lane 16, the one lane the instruction supplies itself.
 
 The three positional arguments form a **statement**: one `SHA3` instruction absorbs the block `a ‖ b ‖ tail` (two, two and four cells; `tail` omitted is zero) and writes the 13-cell sponge state into `out`, whose first two cells are the digest. With no keywords it computes the hash of exactly `a ‖ b`, 64 bytes (128 with `tail`), the form every Merkle node uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding and no XOR, the instruction reading the message cells and the capacity as they are. A 2-cell `out` receives just the digest, at two copies.
 
-The optional keywords, all compile-time except `state`:
+The other optional keywords: `len` and `final` are compile-time, and `state`, like `tail` and `cap`, is a run.
 
 - `len=<bytes>`: this block is the last of a message ending `len` bytes into it, at most 128, and at least 1 after a `state=` (a message that fills its previous block ends there, with `len=128`). The compiler places the padding byte `0x01` there: into a constant cell it folds, into a cell the program wrote it costs one `XOR`. The bytes past it must be zero, which the circuit does not enforce. At 128 the byte lands in lane 16, beside the capacity;
 - `final=0`: this block carries 128 message bytes and more blocks follow, so it takes no padding;

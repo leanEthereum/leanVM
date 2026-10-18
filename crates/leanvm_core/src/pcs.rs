@@ -14,8 +14,8 @@
 //! opening's dense weight, its first `LOG_BATCH` rounds and the stack allocation
 //! shrink with them. A leaf image is still `2^LOG_BATCH` words, the absent lanes
 //! contributing the zeros their codeword would have been, but they LEAD the image:
-//! their whole 64-byte blocks are one chaining value every leaf shares, so the
-//! committer hashes them once rather than once per leaf, and only the image's tail
+//! their whole 128-byte chunks are one sponge state every leaf shares, so the
+//! committer absorbs them once rather than once per leaf, and only the image's tail
 //! rides the proof. Both sides derive the lane count from the announced layout.
 //!
 //! Security: the K configs use rate-1/2 Johnson list decoding with OOD binding

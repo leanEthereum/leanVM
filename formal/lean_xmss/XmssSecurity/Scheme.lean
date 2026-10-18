@@ -49,7 +49,7 @@ abbrev LeafIndex := Fin lifetime
 abbrev TopIndex := Fin topLifetime
 abbrev ChainIndex := Fin numChains
 abbrev Digit := Fin chainLength
-/-- A chain step; the tweak carries `2^w * i + step`. -/
+/-- A chain step; the tweak carries the step, and the chain index follows the value. -/
 abbrev ChainStep := Fin (chainLength - 1)
 /-- A level of the stored tree, `0` the leaves and `h` the root. -/
 abbrev MerkleHeight := Fin (treeHeight + 1)
@@ -223,7 +223,7 @@ def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
 
 /-! ### The target-sum code
 
-`v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the code is the words of digit sum `T = 195`. -/
+`v = 58` digits of `w = 2` bits, the low `2v = 116` bits of the digest; the code is the words of digit sum `T = 106` whose top `12` bits, the last `6` base-4 digits, are zero. -/
 
 namespace TargetSum
 
@@ -363,7 +363,7 @@ def topNodeHash (parameter : PublicParameter) (level : MerkleLevel) (node : TopN
 def signaturePath (signature : Signature) (level : Nat) : Digest :=
   if hlevel : level < treeHeight then signature.authPath ⟨level, hlevel⟩ else 0
 
-/-- `Chain_{i,idx}(P, start, steps, value)`: the step onto position `start + steps + 1` carries tweak position `2^w * i + start + steps`. -/
+/-- `Chain_{i,idx}(P, start, steps, value)`: the step onto position `start + steps + 1` carries step `start + steps` in its address and `i` after its value. -/
 def chainWalk (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex) :
     Nat → Nat → Digest → m Digest
   | _, 0, value => pure value

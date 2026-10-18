@@ -220,7 +220,7 @@ class Digest:
         require(len(self.value) == 32, "a digest is 256 bits")
 
     def words(self) -> tuple[int, int, int, int]:
-        """Its four 64-bit words, the form the compression chain runs in."""
+        """Its four 64-bit words, the form the sponge state holds it in."""
         return unpack("<4Q", self.value)
 
     def halves(self) -> tuple[E, E]:
@@ -1477,11 +1477,10 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     # 6] SHA3 validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the
     # reduction's claim on the permutation's output: they leave the batch.
     output_columns = [GLOBAL_COLUMN_BASES[OP_SHA3] + _cols(SHA3_COLUMNS, name)[0] for name in SHA3_OUTPUTS]
-    by_column = {c.column: c for c in claims if c.column in output_columns}
-    require(len(by_column) == 25 and len({c.point for c in by_column.values()}) == 1, "one claim on each SHA3 output lane")
+    lanes = [c for c in claims if c.column in output_columns]
+    require([c.column for c in lanes] == output_columns and len({c.point for c in lanes}) == 1, "one claim on each SHA3 output lane, in order")
     claims = [c for c in claims if c.column not in output_columns]
-    instance = by_column[output_columns[0]].point
-    outputs, (point, slices) = verify_keccak(layout.table_log_heights[OP_SHA3], instance, [by_column[c].value for c in output_columns], transcript)
+    outputs, (point, slices) = verify_keccak(layout.table_log_heights[OP_SHA3], lanes[0].point, [c.value for c in lanes], transcript)
     claims.extend(outputs)
 
     # 7] Ring-switching

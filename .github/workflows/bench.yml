@@ -66,7 +66,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.testbed.name }}
+      # A base without the bench (the PR that adds it) has nothing to compare: the job then
+      # builds the PR alone, so a broken bench still fails it, and saves no runs.
       - name: Build the PR and its base
+        id: build
         run: |
           build() {
             mkdir -p "ab/$1"
@@ -76,9 +79,17 @@ jobs:
           }
           build head
           git checkout --quiet --detach HEAD^1
-          build base
+          meta=$(cargo metadata --no-deps --format-version 1)
+          if jq -e 'any(.packages[] | select(.name == "keccak_gkr") | .targets[]; .name == "hash_batch")' <<< "$meta" > /dev/null; then
+            build base
+            echo "compare=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::The base has no keccak_gkr hash_batch bench, so there is nothing to compare."
+            echo "compare=false" >> "$GITHUB_OUTPUT"
+          fi
           git checkout --quiet --detach "$GITHUB_SHA"
       - name: Prove in turns
+        if: steps.build.outputs.compare == 'true'
         run: |
           for round in $(seq "$ROUNDS"); do
             if [ $((round % 2)) = 1 ]; then order="base head"; else order="head base"; fi
@@ -88,6 +99,7 @@ jobs:
             done
           done
       - name: Save the runs
+        if: steps.build.outputs.compare == 'true'
         env:
           PR: ${{ github.event.number }}
           TESTBED: ${{ matrix.testbed.name }}
@@ -96,6 +108,7 @@ jobs:
           jq -n --argjson pr "$PR" --arg base "$(git rev-parse HEAD^1)" --arg testbed "$TESTBED" --arg cpu "$cpu" \
             --slurpfile runs runs.jsonl '{pr: $pr, base: $base, testbed: $testbed, cpu: $cpu, runs: $runs}' > ab.json
       - uses: actions/upload-artifact@v4
+        if: steps.build.outputs.compare == 'true'
         with:
           name: ab-${{ matrix.testbed.name }}-${{ matrix.benchmark }}
           path: ab.json

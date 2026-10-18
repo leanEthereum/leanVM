@@ -5,7 +5,7 @@ import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.Algebra.Polynomial.Degree.SmallDegree
 
 /-!
-# Schwartz–Zippel at a uniform point
+# Schwartz-Zippel at a uniform point
 
 Two distinct polynomials of degree at most `d` agree at a uniform point with probability at
 most `d / |E|`, and the multilinear extension of a nonzero table in `n` variables vanishes at a
