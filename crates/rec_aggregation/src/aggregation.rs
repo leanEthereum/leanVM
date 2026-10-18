@@ -2978,6 +2978,9 @@ mod guest_bytecode;
 mod node_vectors;
 
 #[cfg(test)]
+mod guest_source;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use leanvm_core::cpu::verify;
