@@ -83,11 +83,6 @@ theorem word_g1023 : word 140737488388109 0 0 = gen ^ 1023 := by
 theorem word_g10 : word 1024 0 0 = gen ^ 10 := by
   rw [gen_pow_eq_eOfNat (by omega), word_eq_eOfNat]; rfl
 
-theorem gen_pow_ne_one {r : ℕ} (h1 : 1 ≤ r) (h2 : r < 2 ^ 33) : gen ^ r + 1 ≠ 0 := by
-  intro h
-  have := (gen_pow_eq_one_iff (by omega)).mp (e_add_eq_zero_iff.mp h)
-  omega
-
 /-- **`da_row_shape`**, on the squares table. -/
 theorem da_row_shape_iff {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
     (n_blob glp : E) (rets : List E) :

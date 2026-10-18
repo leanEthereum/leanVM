@@ -138,15 +138,18 @@ def lvBody (k l : ℕ) : List Stmt :=
     .mul (.n 25) (.n 0) (.n 24)] : List Atom).map .atom ++
   [.callIf (.n 23) (lvName k l) [.n 25, .n 1, .n 2], .ret []]
 
+/-- Level `l` of the tree's body: its loop's entry. -/
+def dlBlk (k l : ℕ) : List Stmt :=
+  [.atom (.const (.n (1 + 5 * l)) (word 1 0 0)),
+   .atom (.const (.n (2 + 5 * l)) (word (gw (2 ^ (k - l - 1))) 0 0)),
+   .atom (.add (.n (3 + 5 * l)) (.n (1 + 5 * l)) (.n (2 + 5 * l))),
+   .atom (.const (.n (4 + 5 * l)) (word 1 0 0)),
+   .atom (.const (.n (5 + 5 * l)) (word (gw (2 ^ (k - l - 1))) 0 0)),
+   .callIf (.n (3 + 5 * l)) (lvName k l) [.n (4 + 5 * l), .n (5 + 5 * l), .n 0]]
+
 /-- The tree's body. -/
 def dlBody (k : ℕ) : List Stmt :=
-  (List.range k).flatMap (fun l =>
-    [.atom (.const (.n (1 + 5 * l)) (word 1 0 0)),
-     .atom (.const (.n (2 + 5 * l)) (word (gw (2 ^ (k - l - 1))) 0 0)),
-     .atom (.add (.n (3 + 5 * l)) (.n (1 + 5 * l)) (.n (2 + 5 * l))),
-     .atom (.const (.n (4 + 5 * l)) (word 1 0 0)),
-     .atom (.const (.n (5 + 5 * l)) (word (gw (2 ^ (k - l - 1))) 0 0)),
-     .callIf (.n (3 + 5 * l)) (lvName k l) [.n (4 + 5 * l), .n (5 + 5 * l), .n 0]]) ++
+  (List.range k).flatMap (dlBlk k) ++
   [.atom (.load (.n (1 + 5 * k)) (.n 0) (4 * 2 ^ k - 4)),
    .atom (.load (.n (2 + 5 * k)) (.n 0) (4 * 2 ^ k - 3)), .ret [.n (1 + 5 * k), .n (2 + 5 * k)]]
 

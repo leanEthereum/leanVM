@@ -178,6 +178,15 @@ theorem ite_pos' {α : Sort*} {c : Prop} [Decidable c] (h : c) (a b : α) :
 /-- A valuation listed by value index. -/
 def listVal (vs : List E) : Val := fun v => vs.getD v.idx 0
 
+/-- Return-free blocks indexed by `i < n`, then the rest. -/
+theorem holdsList_flatMap {C : CallRel} {rd : Reader} {σ : Val} (n : ℕ) (f : ℕ → List Stmt)
+    (hf : ∀ i, Stmt.noRetList (f i) = true) (rest : List Stmt) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsList C rd σ ((List.range n).flatMap f ++ rest) next kret ↔
+      (∀ i < n, Stmt.HoldsList C rd σ (f i) True kret) ∧ Stmt.HoldsList C rd σ rest next kret := by
+  rw [holdsList_append, List.flatMap_def, holdsList_flatten _ (fun b hb => by
+    obtain ⟨i, _, rfl⟩ := List.mem_map.mp hb; exact hf i)]
+  simp only [List.mem_map, List.mem_range, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂]
+
 /-! ## Finding a core function -/
 
 /-- A function's relation, unfolded: its body under `Program.Rel`. -/
@@ -404,6 +413,11 @@ theorem pow4_eq (x : E) (q : ℕ) (hx : x = gen ^ q) : x * x * (x * x) = gen ^ (
 
 theorem gen_pow_inj' {a b : ℕ} (ha : a < 2 ^ 33) (hb : b < 2 ^ 33) (h : gen ^ a = gen ^ b) : a = b :=
   gen_pow_inj (by omega) (by omega) h
+
+theorem gen_pow_ne_one {r : ℕ} (h1 : 1 ≤ r) (h2 : r < 2 ^ 33) : gen ^ r + 1 ≠ 0 := by
+  intro h
+  have := (gen_pow_eq_one_iff (by omega)).mp (e_add_eq_zero_iff.mp h)
+  omega
 
 /-! ## `mul_range` loops -/
 
