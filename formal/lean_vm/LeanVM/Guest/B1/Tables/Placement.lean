@@ -228,18 +228,16 @@ def CpFacts (rd : Reader) (σ : Val) (r : ℕ) : Prop :=
         ∃ e < 92, σ (.n (cpCol r)) = gen ^ e * σ (.n (cpCol (r - 1)))))
 
 section
-variable {μ : ℕ} (hμ7 : 7 ≤ μ) (hμ : μ ≤ 32) (Lm : MemImage μ)
-include hμ7 hμ
+variable {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ)
+include hμ
 
 theorem rc92 {σ : Val} {x y t1 t2 k : ℕ} (hk : σ (.n k) = w91) (h : RcHolds Lm.read σ x y t1 t2 k) :
     ∃ e < 92, σ (.n x) = gen ^ e :=
-  rc_sound hμ Lm (K := 92) (by omega) (le_trans (by decide) (Nat.pow_le_pow_right (by omega) hμ7))
-    (by rw [hk]; exact word_g91) h.1 h.2.1 h.2.2
+  rc_sound' hμ Lm (K := 92) (by omega) (by decide) (by rw [hk]; exact word_g91) h.1 h.2.1 h.2.2
 
 theorem rc34 {σ : Val} {x y t1 t2 k : ℕ} (hk : σ (.n k) = w33) (h : RcHolds Lm.read σ x y t1 t2 k) :
     ∃ e < 34, σ (.n x) = gen ^ e :=
-  rc_sound hμ Lm (K := 34) (by omega) (le_trans (by decide) (Nat.pow_le_pow_right (by omega) hμ7))
-    (by rw [hk]; exact word_g33) h.1 h.2.1 h.2.2
+  rc_sound' hμ Lm (K := 34) (by omega) (by decide) (by rw [hk]; exact word_g33) h.1 h.2.1 h.2.2
 
 theorem cpFacts_succ {σ : Val} {r : ℕ} (h : CpRankOk Lm.read σ (r + 1)) : CpFacts Lm.read σ (r + 1) := by
   obtain ⟨l0, c1, rc0, m5, l6, c7, m8, rc8, a12, ⟨hK, hz⟩, m18, l18, c19, rc6, m23, l24, m25⟩ := h
@@ -256,14 +254,14 @@ theorem cpFacts_succ {σ : Val} {r : ℕ} (h : CpRankOk Lm.read σ (r + 1)) : Cp
   have ePc : cpPc (r + 1) = cpCol r := by unfold cpPc cpCol; split_ifs <;> omega
   unfold CpFacts
   rw [ecol, ekap, eG, eG1]
-  refine ⟨rc92 hμ7 hμ Lm c1 rc0, l0, rc34 hμ7 hμ Lm c19 rc6, by rw [← m5]; exact l6,
+  refine ⟨rc92 hμ Lm c1 rc0, l0, rc34 hμ Lm c19 rc6, by rw [← m5]; exact l6,
     by rw [← m18]; exact l18, ⟨_, by rw [← m23]; exact l24, m25⟩, fun _ => ⟨?_, fun h0 => ?_⟩⟩
-  · obtain ⟨d, hd, hq⟩ := rc34 hμ7 hμ Lm c7 rc8
+  · obtain ⟨d, hd, hq⟩ := rc34 hμ Lm c7 rc8
     refine ⟨d, hd, ?_⟩
     rw [Nat.add_sub_cancel, ← ePk, m8, hq]
   · rw [Nat.add_sub_cancel, ← ePk, ← a12] at h0
     obtain ⟨c13, m14, rc14⟩ := hz h0
-    obtain ⟨e, he, hq⟩ := rc92 hμ7 hμ Lm c13 rc14
+    obtain ⟨e, he, hq⟩ := rc92 hμ Lm c13 rc14
     exact ⟨e, he, by rw [m14, hq, Nat.add_sub_cancel, ePc]⟩
 
 end
@@ -303,7 +301,7 @@ theorem prefixSize_strict (k : ℕ → ℕ) :
       have : 0 < 2 ^ (((List.range 92).map k).getD r 0) := Nat.two_pow_pos _
       simp only [id]; omega
 
-theorem cp_sound {μ : ℕ} (hμ7 : 7 ≤ μ) (hμ : μ ≤ 32) (Lm : MemImage μ) {kb sq : E}
+theorem cp_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {kb sq : E}
     (hsq : ∀ j < 34, LoadHolds Lm.read sq j (gen ^ 2 ^ j)) (rets : List E)
     (h : coreProgram.Rel Lm.read "certify_placement" [kb, sq] rets) :
     MeaningCertifyPlacement Lm.read [kb, sq] rets := by
@@ -319,11 +317,11 @@ theorem cp_sound {μ : ℕ} (hμ7 : 7 ≤ μ) (hμ : μ ≤ 32) (Lm : MemImage �
       unfold CpFacts
       simp only [cpCol, cpKap, cpG, ↓reduceIte, Nat.zero_add, one_ne_zero, Nat.reduceMul,
         Nat.reduceAdd]
-      refine ⟨rc92 hμ7 hμ Lm c102 rc101, l101, rc34 hμ7 hμ Lm c110 rc107, by rw [← m106]; exact l107,
+      refine ⟨rc92 hμ Lm c102 rc101, l101, rc34 hμ Lm c110 rc107, by rw [← m106]; exact l107,
         by rw [← m109]; exact l108, ⟨_, by rw [← m114]; exact l115, ?_⟩, fun h => absurd h (by omega)⟩
       rw [c108, word_one, one_mul]
     · obtain ⟨r', rfl⟩ : ∃ r', r = r' + 1 := ⟨r - 1, by omega⟩
-      exact cpFacts_succ hμ7 hμ Lm (hranks r' (by omega))
+      exact cpFacts_succ hμ Lm (hranks r' (by omega))
   obtain ⟨π, hπ⟩ := exists_fun_of_forall (n := 92) (fun r hr => (hf r hr).1)
   obtain ⟨k, hk⟩ := exists_fun_of_forall (n := 92) (fun r hr => (hf r hr).2.2.1)
   set S := fun r => prefixSize id ((List.range 92).map k) r

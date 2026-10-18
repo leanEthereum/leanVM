@@ -45,6 +45,26 @@ theorem rc_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {K : ℕ} (hK1 
   obtain ⟨e, he, hx⟩ := (rangeCheck_iff hμ Lm x hK1 hK).mp ⟨y, t1, t2, h1, by rw [← h2, hk], h3⟩
   exact ⟨e, he, by rw [hx, gen_pow_eq_ofK]⟩
 
+/-- **A range check is sound** on any memory image of at most `2^32` words, whatever `K ≤ 2^33`:
+both reads are below `2^32`, so their exponents' sum `K - 1` is below the order of `g`. -/
+theorem rc_sound' {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {K : ℕ} (hK1 : 1 ≤ K)
+    (hK : K ≤ 2 ^ 33) {x y t1 t2 k : E} (hk : k = ofK (Parameters.gpow (K - 1)))
+    (h1 : LoadHolds Lm.read x 0 t1) (h2 : k = x * y) (h3 : LoadHolds Lm.read y 0 t2) :
+    ∃ e < K, x = gen ^ e := by
+  have hμ64 : μ < 64 := by omega
+  have h32 : 2 ^ μ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) hμ
+  obtain ⟨hx, h1⟩ := h1
+  obtain ⟨hy, h3⟩ := h3
+  rw [Parameters.gpow, pow_zero, mul_one] at h1 h3
+  obtain ⟨i, hi, -⟩ := (read_some_iff hμ64 Lm _ _).mp h1
+  obtain ⟨j, hj, -⟩ := (read_some_iff hμ64 Lm _ _).mp h3
+  have ex : x = ofK (Parameters.gpow i) := by rw [eq_ofK_limb hx, hi]
+  have ey : y = ofK (Parameters.gpow j) := by rw [eq_ofK_limb hy, hj]
+  rw [hk, ex, ey, ← ofK_mul, Parameters.gpow, Parameters.gpow, ← pow_add] at h2
+  have hij := gpow_injOn (by have := i.isLt; have := j.isLt; simp only [Set.mem_Iio]; omega)
+    (by simp only [Set.mem_Iio]; omega) (ofK_injective h2).symm
+  exact ⟨i, by omega, by rw [ex, gen_pow_eq_ofK]⟩
+
 /-- The auxiliary words of a passing range check, chosen. -/
 noncomputable def rcAux {μ : ℕ} (Lm : MemImage μ) (x : E) (K : ℕ) : E × E × E :=
   open Classical in
