@@ -257,6 +257,40 @@ theorem gw_end {k l : ℕ} (hk : k ≤ 10) (hl : l < k) :
   refine gw_spec ?_ (by have : 2 ^ (k - l - 1) ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) (by omega); omega)
   interval_cases k <;> interval_cases l <;> decide
 
+/-! ## The specification's tree -/
+
+theorem toBytes_toList (d : Digest) : (Da.toBytes d).toList = digestBytes d := by
+  simp [Da.toBytes]
+
+/-- A tree level's hash, as LeanDA's. -/
+theorem blake2s_pairBytes (a b : Digest) :
+    Da.blake2s (LeanDa.pairBytes (Da.toBytes a) (Da.toBytes b)) = Da.toBytes (hashPair a b) := by
+  rw [Da.blake2s, LeanDa.pairBytes, toBytes_toList, toBytes_toList, hashPair]
+
+theorem nodeD_succ (leaf : ℕ → Digest) : ∀ l i,
+    nodeD leaf (l + 1) i = nodeD (fun i => hashPair (leaf (2 * i)) (leaf (2 * i + 1))) l i
+  | 0, i => rfl
+  | l + 1, i => by rw [nodeD, nodeD_succ leaf l, nodeD_succ leaf l, nodeD]
+
+/-- **The root is LeanDA's** (`treeRoot`, `tree_from_leaves`). -/
+theorem treeRoot_nodeD : ∀ (k : ℕ) (leaf : ℕ → Digest),
+    LeanDa.treeRoot Da.blake2s ((List.range (2 ^ k)).map fun i => Da.toBytes (leaf i)) =
+      Da.toBytes (nodeD leaf k 0)
+  | 0, leaf => by rw [LeanDa.treeRoot]; simp [nodeD]
+  | k + 1, leaf => by
+    rw [LeanDa.treeRoot, ite_neg' (by simp), nodeD_succ,
+      ← treeRoot_nodeD k]
+    congr 1
+    simp only [LeanDa.treeLevel, List.length_map, List.length_range]
+    rw [show 2 ^ (k + 1) / 2 = 2 ^ k by rw [pow_succ]; omega]
+    refine List.map_congr_left fun i hi => ?_
+    have hi' := List.mem_range.mp hi
+    simp only [LeanDa.up]
+    rw [List.getD_eq_getElem _ _ (by simp; rw [pow_succ]; omega),
+      List.getD_eq_getElem _ _ (by simp; rw [pow_succ]; omega)]
+    simp only [List.getElem_map, List.getElem_range]
+    exact blake2s_pairBytes _ _
+
 /-- The honest values of `da_levels__L{2^k}_L{k}`. -/
 def dlVals (k : ℕ) (tree r0 r1 : E) (i : ℕ) : E :=
   if i = 0 then tree else
