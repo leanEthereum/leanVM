@@ -86,6 +86,36 @@ theorem xmss_costW_le (acs : List (ℕ × List (List ℕ))) (op : Opcode) (A : �
   rw [show (coreOf 17).body = Data.core16.body from rfl, costW_eq]
   exact xmss_cw_valid _ A B hA hv hf
 
+/-! ## At the generated table -/
+
+/-- The per-step charge: one compression per chain step for `blake2s`, none otherwise. -/
+def armB : Opcode → ℕ
+  | .blake2s => 1
+  | _ => 0
+
+/-- A match's base at `op`: its arms' largest count beyond their steps' charge. -/
+def armA (op : Opcode) (i : ℕ) : ℕ :=
+  match tabOp (nth Data.cplArms 17 []) op i with
+  | none => 0
+  | some l => ((List.range l.length).map fun k => l.getD k 0 - armB op * armSteps l.length k).foldr max 0
+
+/-- **`verify_lean_xmss`'s separately counted arms, per opcode.** -/
+def xmssArmC (op : Opcode) : ℕ := (xMatches.map fun q => armA op q.1.idx).sum + 136 * armB op
+
+theorem xmssArm_hA (op : Opcode) : ∀ q ∈ xMatches, ∀ k < q.2,
+    ((tabOp (nth Data.cplArms 17 []) op q.1.idx).map fun l => l.getD k 0).getD 0 ≤
+      armA op q.1.idx + armB op * armSteps q.2 k := by
+  cases op <;> decide +kernel
+
+theorem xmssArmC_spec : ∀ op σ bufs kids rd args rets,
+    (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
+      costW (nth Data.cplArms 17 []) σ (coreOf 17).body op ≤ xmssArmC op :=
+  fun op _ _ _ _ _ _ hv => xmss_costW_le _ op _ _ (xmssArm_hA op) hv rfl
+
+theorem xmssArmC_val : xmssArmC = fun op => [40, 80, 149, 0, 40, 136].getD (opIdx op) 0 := by
+  funext op
+  cases op <;> decide +kernel
+
 end
 end
 end LeanVM.Guest.B1.Sig
