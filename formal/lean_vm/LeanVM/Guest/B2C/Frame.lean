@@ -768,5 +768,91 @@ theorem frame_tail {hdr : E × E} {T : Tree} {I : Inst} (hI : I ∈ honestInsts 
 
 end Place
 
+/-! ## The call sites -/
+
+section Sites
+
+variable {j : ℕ} {G : Glob} {fc : CompiledFn} {main : Bool}
+
+/-- A candidate of `siteE`: a call of the path, its callee frame and its site. -/
+theorem siteE_cases {I : Inst} {es : List Ev} {x : ℕ × E} (h : x ∈ siteE j I es) :
+    ∃ (i : ℕ) (c : Call) (kfp : ℕ) (s : Site), (calls es)[i]? = some c ∧ I.kidFps[i]? = some kfp ∧
+      siteOf j c = some s ∧
+      (x = (s.q, ofK (gpow kfp)) ∨ (s.tgt ≠ 0 ∧ x = (s.tgt, ofK (gpow (entryOf c.f))))) := by
+  simp only [siteE, List.mem_flatMap] at h
+  obtain ⟨p, hp, hx⟩ := h
+  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hp
+  have hi1 : i < (calls es).length := by simp at hi; omega
+  have hi2 : i < I.kidFps.length := by simp at hi; omega
+  refine ⟨i, (calls es)[i], I.kidFps[i], ?_⟩
+  cases hs : siteOf j ((calls es).zip I.kidFps)[i].1 with
+  | none => rw [hs] at hx; cases hx
+  | some s =>
+    rw [hs] at hx
+    simp only [List.getElem_zip] at hs hx
+    refine ⟨s, List.getElem?_eq_getElem hi1, List.getElem?_eq_getElem hi2, hs, ?_⟩
+    simp only [List.mem_cons] at hx
+    rcases hx with rfl | hx
+    · exact Or.inl rfl
+    · split_ifs at hx with ht
+      · cases hx
+      · exact Or.inr ⟨ht, List.mem_singleton.mp hx⟩
+
+/-- A site's own two cells differ. -/
+theorem site_q_tgt (AP : Apart j) {s : Site} (hs : s ∈ (plumbOf j).sites) (ht : s.tgt ≠ 0) : s.q ≠ s.tgt := by
+  have := (List.nodup_flatMap.mp AP.siteNodup).1 s hs
+  have hb : Nat.beq s.tgt 0 = false := Bool.eq_false_iff.mpr fun hb ↦ ht (nbeq_iff.mp hb)
+  simp only [hb, Bool.cond_false, List.nodup_cons, List.mem_singleton] at this
+  exact this.1
+
+/-- What the completeness check says of the sites of a path's calls (`Cpl`). -/
+def SitesApart (j : ℕ) (es : List Ev) : Prop :=
+  ∀ (i i' : ℕ) (c c' : Call) (s s' : Site), i ≠ i' → (calls es)[i]? = some c → (calls es)[i']? = some c' → siteOf j c = some s →
+    siteOf j c' = some s' → s.q ≠ s'.q ∧ (s.tgt ≠ 0 → s.tgt ≠ s'.tgt ∧ s.tgt ≠ s'.q)
+
+/-- Every candidate at a cell of a call's site, other than that site's, is ruled out. -/
+theorem cand_site (hS : ShareOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
+    {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
+    (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
+    (hw : walk σ (coreOf j).body = .ret es vs) {o : ℕ} (ho : o ∈ siteCells (plumbOf j)) (h2 : 2 ≤ o)
+    {x : ℕ × E} (hx : x ∈ nodeE j f σ I) (hxc : x.1 = o) : x ∈ siteE j I es := by
+  have FS := fnStatic hS hchk
+  have AP := apart_j hS
+  obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
+  have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
+  obtain ⟨hev, hvs⟩ := node_path ht hj hw
+  obtain ⟨hst, hsr, hss, hsl⟩ := AP.site o ho
+  simp only [nodeE, List.mem_append, hev, hvs] at hx
+  rcases hx with (((((hx | hx) | hx) | hx) | hx) | hx) | hx
+  · simp only [valE, List.mem_map] at hx
+    obtain ⟨t, htm, rfl⟩ := hx
+    obtain ⟨j', hj', htl⟩ := temps_of htm
+    rw [hj] at hj'; cases hj'
+    exact absurd (by simp only [hcJ] at hxc; exact hxc) (hst _ (FS.tmp t htl).2)
+  · obtain ⟨p, r, rs, he', k, hk, rfl⟩ := mem_runsE hx
+    have ha' : Atom.frameAddr p (r :: rs) ∈ lAtoms (coreOf (i + 1)).body := walk_atoms _ (by rw [hw]; exact he')
+    obtain ⟨-, -, hrun⟩ := FS.run p r rs ha' k hk
+    exact absurd (by simp only [hcJ] at hxc; exact hxc) (hsr _ hrun)
+  · simp only [List.mem_map] at hx
+    obtain ⟨q, hq, rfl⟩ := hx
+    exact absurd hxc (hss q hq)
+  · simp only [valE, List.mem_map] at hx
+    obtain ⟨u, hu, rfl⟩ := hx
+    simp only [hcJ] at hxc
+    exact absurd (hxc ▸ cellJ_mem (hxc ▸ h2)) hsl
+  · exact hx
+  · simp only [List.mem_map] at hx
+    obtain ⟨a, ha, rfl⟩ := hx
+    exact absurd (hxc ▸ ho) (AP.arm a ha).2.2.2.2
+  · split_ifs at hx with h1
+    · have hlt := (AP.main h1).2.2.2.2.1 o ho
+      have : x.1 ∈ tableCells.map Prod.fst := List.mem_map_of_mem hx
+      rw [tableCells_offsets, List.mem_range'] at this
+      omega
+    · cases hx
+
+end Sites
+
 end
 end LeanVM.Guest.B2C
