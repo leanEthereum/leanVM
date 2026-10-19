@@ -586,5 +586,120 @@ theorem read_arm {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
 
 end Others
 
+/-! ## A callee's arguments -/
+
+section Args
+
+/-- The first window's check places the parameters at cells `2, 3, …`. -/
+theorem checkWin_params {G : Glob} {f : CompiledFn} {cf : Core.Fn} {C : Check.Cert} {main : Bool}
+    (hc : checkWin G f cf C main 0 = true) (hcont : Cont C C.cuts.length) :
+    ∀ m (hm : m < cf.params.length), C.locs.getD cf.params[m].idx 0 = 2 + m := by
+  have hins := (checkWin_parts hc).2
+  unfold checkWin at hc
+  rcases hR : execWin C.facts f (C.cutAt 0).J (C.cutAt 0).env (C.endAt f 0) with ⟨segs, dead⟩
+  rw [hR] at hc
+  simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true] at hc
+  obtain ⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, h0⟩, -⟩ := hc
+  simp only [beq_self_eq_true, Bool.cond_true, Bool.and_eq_true] at h0
+  intro m hm
+  have := runAt_sound h0.1 m hm
+  unfold cellOf at this
+  rcases hg : getF (C.locAt 0) cf.params[m].idx with _ | c
+  · rw [hg, Option.getD_none] at this; omega
+  · rw [hg, Option.getD_some] at this
+    rw [locAt_val hcont (Nat.zero_le _) hins rfl hg, this]
+
+variable {j : ℕ} {G : Glob} {fc : CompiledFn} {main : Bool}
+
+/-- **A callee's frame holds its arguments** at cells `2 + k`, whether it runs or not. -/
+theorem read_args {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
+    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
+    {J : Inst} (hJ : J ∈ honestInsts coreProgram fs H hdr T) {g : String} (hj : idxOf g = some j)
+    (hgood : (∃ σ bufs kids es vs, J.t = .node g σ bufs kids ∧
+      walk σ (coreOf j).body = .ret es vs ∧ ∀ e ∈ es, e.Holds rd σ) ∨ ∃ σ, J.t = .phantom g σ)
+    (k : ℕ) (hk : k < (coreOf j).params.length) :
+    (honest coreProgram fs H C hdr T).read (gpow (J.fp + (2 + k))) = some (J.t.val (coreOf j).params[k]) := by
+  have hcont := cont_of hchk
+  have hpc := checkWin_params (hchk 0 (Nat.zero_le _)) hcont k hk
+  have hpk : (coreOf j).params[k] ∈ (coreOf j).params ++ Stmt.usesList (coreOf j).body ++
+      Stmt.tmpsList (coreOf j).body := List.mem_append_left _ (List.mem_append_left _ (List.getElem_mem hk))
+  obtain ⟨hvn, hlt, hfc, -⟩ := valOk_global hS hchk hpk
+  rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc] at hlt hfc
+  rcases hgood with ⟨σ, bufs, kids, es, vs, ht, hw, he⟩ | ⟨σ, ht⟩
+  · have := read_val h hS hchk hJ ht hj hw he (v := (coreOf j).params[k])
+      (by simp only [namedOf, List.mem_append]; exact Or.inl (Or.inl (List.getElem_mem hk)))
+      (by rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc]; omega)
+      (by rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc]; exact hlt)
+    rw [show cellJ j (coreOf j).params[k] = 2 + k from hpc] at this
+    rw [ht]; exact this
+  · obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
+    have AP := apart_j hS
+    have hmem : (2 + k, σ (coreOf (i + 1)).params[k]) ∈ C J := by
+      rw [C_phantom ht hj, hfs]
+      refine frameE_cell ⟨(cert g (coreOf (i + 1)).params[k], σ (coreOf (i + 1)).params[k]), ?_, ?_⟩
+        (by omega) hlt fun x hx hxc ↦ ?_
+      · simp only [phantomE, List.mem_append, valE, List.mem_map]
+        exact Or.inl ⟨_, List.getElem_mem hk, rfl⟩
+      · rw [hcert]; exact hpc
+      simp only [phantomE, List.mem_append, valE, List.mem_map] at hx
+      rcases hx with ⟨u, hu, rfl⟩ | ⟨p, hp, rfl⟩
+      · obtain ⟨m, hm, rfl⟩ := List.mem_iff_getElem.mp hu
+        simp only at hxc ⊢
+        rw [hcert, checkWin_params (hchk 0 (Nat.zero_le _)) hcont m hm] at hxc
+        obtain rfl : m = k := by omega
+        rfl
+      · simp only at hxc
+        have hst := AP.env p hp
+        have : (fpgCells (plumbOf (i + 1))).testBit p.1 = true := mem_bitsOf (List.mem_filterMap.mpr ⟨_, hst, rfl⟩)
+        rw [bitN_eq, ← hxc, this] at hfc; cases hfc
+    rw [gpow, pow_add, ht]
+    exact h.read_C hJ hmem
+
+/-- The fixed cells lie in the frame. -/
+theorem stat_in (hS : ShareOk j) {q : ℕ × PC} (hq : q ∈ (plumbOf j).stat) : 2 ≤ q.1 ∧ q.1 < fsN j := by
+  obtain ⟨-, h0, -, -⟩ := shareWin_spec (hS 0 (Nat.zero_le _))
+  obtain ⟨-, hlists, -, -, -⟩ := h0 rfl
+  simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
+  have := (hlists.1.1.1.1.1 q hq).1
+  simp only [Nat.ble_eq, Nat.blt_eq] at this
+  exact this
+
+/-- **A callee's frame holds its frame pointer** in its entry environment's cells, whether it runs
+or not. -/
+theorem read_self {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
+    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
+    {J : Inst} (hJ : J ∈ honestInsts coreProgram fs H hdr T) {g : String} (hj : idxOf g = some j)
+    (hgood : (∃ σ bufs kids es vs, J.t = .node g σ bufs kids ∧
+      walk σ (coreOf j).body = .ret es vs ∧ ∀ e ∈ es, e.Holds rd σ) ∨ ∃ σ, J.t = .phantom g σ)
+    {o : ℕ} (ho : o ∈ (certOf j).facts.env.map Prod.fst) :
+    (honest coreProgram fs H C hdr T).read (gpow (J.fp + o)) = some (ofK (gpow J.fp)) := by
+  have AP := apart_j hS
+  obtain ⟨p, hp, rfl⟩ := List.mem_map.mp ho
+  have hst := AP.env p hp
+  obtain ⟨h2, hn⟩ := stat_in hS hst
+  rcases hgood with ⟨σ, bufs, kids, es, vs, ht, hw, he⟩ | ⟨σ, ht⟩
+  · have := read_stat h hS hchk hJ ht hj hw he hst h2 hn
+    simpa [PC.word] using this
+  · obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
+    have hmem : (p.1, ofK (gpow J.fp)) ∈ C J := by
+      rw [C_phantom ht hj, hfs]
+      refine frameE_cell ⟨(p.1, ofK (gpow J.fp)), ?_, rfl⟩ h2 hn fun x hx hxc ↦ ?_
+      · simp only [phantomE, List.mem_append, List.mem_map]
+        exact Or.inr ⟨p, hp, rfl⟩
+      simp only [phantomE, List.mem_append, valE, List.mem_map] at hx
+      rcases hx with ⟨u, hu, rfl⟩ | ⟨p', -, rfl⟩
+      · simp only [hcert] at hxc
+        obtain ⟨-, -, hfc, -⟩ := valOk_global hS hchk (v := u)
+          (List.mem_append_left _ (List.mem_append_left _ hu))
+        have : (fpgCells (plumbOf (i + 1))).testBit p.1 = true := mem_bitsOf (List.mem_filterMap.mpr ⟨_, hst, rfl⟩)
+        rw [bitN_eq, show cellJ (i + 1) u = p.1 from hxc, this] at hfc; cases hfc
+      · rfl
+    rw [gpow, pow_add]
+    exact h.read_C hJ hmem
+
+end Args
+
 end
 end LeanVM.Guest.B2C
