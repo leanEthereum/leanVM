@@ -1,13 +1,16 @@
 /-
   LeanVM.Guest.B2C.KFacts
 
-  The frame runs' cells in `C` (`End.KFactsAll`'s `run`), from the sharing check's lists.
+  The frame runs' cells in `C` (`End.KFactsAll`'s `run`), from the sharing check's lists, and
+  checker K's facts assembled (`kFactsAll`).
 -/
 
 module
 
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.B2C.KRetemp
+public import LeanVM.Guest.B2C.ArmsFresh
+public import LeanVM.Guest.B2C.KTemps
 public import LeanVM.Guest.B2C.Static
 public import LeanVM.Guest.B2C.Shared
 public import LeanVM.Guest.Sound
@@ -125,6 +128,11 @@ theorem kfacts_run (hdr : E × E) (T : Tree) :
   fun _ _ _ _ _ _ ht _ _ _ he k hk ↦ run_kfact ht he k hk
 
 end Run
+
+/-- **Checker K's facts for every tree of `main`.** -/
+theorem kFactsAll : End.KFactsAll fs H C cert := fun hdr T _ ↦
+  ⟨cellsOk_C _, fun _ ↦ cellsOk_C _, kfacts_cert_lt, kfacts_cert_inj, kfacts_run hdr T, kfacts_tmp hdr T,
+    kfacts_keep_all hdr T⟩
 
 end
 end LeanVM.Guest.B2C
