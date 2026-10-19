@@ -173,15 +173,15 @@ def CompletePlaceAt : Prop :=
 
 /-- **`open_stacked`, placed**, at every candidate, on an explicit run of `whirOpen μ r target`
 from the state `cv` reading the words `xs` (held by `Lin` at `g^c`) and the openings `os`
-(`CapOk`, group 4's agreement of the queries at the cap): it returns `w`'s claim, the pointer to
+(`CapOk`, group 4's agreement of the queries at the cap along the run): it returns `w`'s claim, the pointer to
 its point buffer, its glued weight and its residual's value, the buffer (`w`'s point zero-padded to
 `42`) its `Lout`. -/
-def CompleteOpenAt (CapOk : ℕ → ℕ → List Opening → Prop) : Prop :=
+def CompleteOpenAt (CapOk : ℕ → ℕ → Digest → Digest → List E → List Opening → E → Prop) : Prop :=
   ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
     ∀ (root cv : Digest) (xs : List E) (os : List Opening) (w : WhirEnd) (cv' : Digest)
       (roots' : List (Digest × ℕ × ℕ)) (target : E) (c : ℕ) (Lin : Main.Layout),
       RunsWith (whirOpen μ r target) cv xs os [(root, stackShape μ r)] w cv' roots' →
-      CapOk μ r os → (∀ rd, LowDef k rd → MemL rd Lin → ReadsAt rd (ofK (Parameters.gpow c)) xs) →
+      CapOk μ r root cv xs os target → (∀ rd, LowDef k rd → MemL rd Lin → ReadsAt rd (ofK (Parameters.gpow c)) xs) →
       CompleteAt fs cert k (openName μ r) Lin [(digestScalars cv).1, (digestScalars cv).2, target,
         (digestScalars root).1, (digestScalars root).2, ofK (Parameters.gpow c)] fun rets Lout =>
         ∃ b, rets = [w.target, ofK (Parameters.gpow b), w.inner, w.residual] ∧
