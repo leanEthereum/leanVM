@@ -936,9 +936,18 @@ noncomputable def partEnd (j i k : ℕ) : RC → Bool
   | .done => !(Nat.blt (k + 1) (nParts j i)) && !(Nat.blt i (certOf j).cuts.length)
   | .fail _ => false
 
+/-- A function's code from offset `a`, its whole chunks before skipped first. -/
+def codeFrom (f : CompiledFn) (a : ℕ) : List OInstr :=
+  (f.chunks.drop (a / chunkSize)).flatten.drop (a % chunkSize)
+
+/-- `execWin`, the window's code read by `codeFrom`. -/
+noncomputable def execWinC (F : Facts) (f : CompiledFn) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
+    Result :=
+  pass F f.entry f.len ((codeFrom f a).take (b - a)) a (some (Cur.init a (envOf env))) [] [] 0
+
 /-- The walk's result of part `k` of window `i` of function `j`. -/
 noncomputable def cplRes (j i k : ℕ) : RC :=
-  match execWin (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
+  match execWinC (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
       ((certOf j).endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (clocW (certOf j) i).seq fun loc ↦
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
