@@ -14,7 +14,7 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen eOfNat)
-open LeanVM.Guest.B1 (LowDef CompleteAt CompleteRel Within Returns)
+open LeanVM.Guest.B1 (LowDef CompleteAt CompleteAtD CompleteRel CompleteRelD DisjL disj_nil disj_append Within Returns)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
@@ -205,6 +205,102 @@ theorem l87_iter (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} 
     · exact ⟨_, by rw [g28, limb0_gen_pow, gpow_add'], hsR (j + 1) (by omega) 1 (by omega)⟩
     · exact ⟨_, by rw [g28, limb0_gen_pow, gpow_add'], hsR (j + 1) (by omega) 2 (by omega)⟩
 
+/-- **One iteration of `__loop87`, complete**, from the next one's. -/
+theorem l87_iterD (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ) (KL : Layout)
+    {gsq base entries cover origin : E} {cx L n w : ℕ} (hL16 : L ≤ 2 ^ 16) (hn : n < 2 ^ 16) (hw : 32 * w ≤ n)
+    {off : ℕ → ℕ} {cs : List E} (hlen : cs.length = 4 * n) (hcan : ∀ x ∈ cs, IsCanonical128 x)
+    (hR : ∀ rd, LowDef κ rd → MemL rd KL → ChildReads rd entries cover base origin (gen ^ L) off cs n)
+    (hsq : ∀ rd, MemL rd KL → SquaresAt rd gsq)
+    (hscr : ∀ rd, MemL rd KL → ChildScratch rd (gen ^ cx) cs w)
+    (hreg : ∀ A, ChildLoad entries cover origin off n A → ∃ i, A = gpow i ∧ RegionL KL i)
+    (hsR : ∀ q ≤ w, ∀ r < 3, RegionL KL (cx + 4 * q + r)) {j : ℕ} (hj : j < w)
+    (hnext : j + 1 < w → CompleteAtD fs cert κ "__loop87" KL
+      [gen ^ (j + 1), gen ^ w, gen ^ cx, base, entries, cover, origin, gen ^ L, gsq] (Returns [])) :
+    CompleteAtD fs cert κ "__loop87" KL
+      [gen ^ j, gen ^ w, gen ^ cx, base, entries, cover, origin, gen ^ L, gsq] (Returns []) := by
+  have hb := blocks_canonical hlen hcan
+  have hlow : ∀ rd, LowDef κ rd → Low16 rd := fun rd hl i hi =>
+    hl i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) hκ))
+  have hch : ChainCells ((digestScalars (prefixDigest cs (32 * j))).1, (digestScalars (prefixDigest cs (32 * j))).2)
+      (blocksOf (sliceOf cs (32 * j) 32)) (windowMd (eOfNat (2 ^ 11 * j)) (eOfNat (2 ^ 11 * (j + 1)))) 32
+      ((digestScalars (prefixDigest cs (32 * j + 32))).1, (digestScalars (prefixDigest cs (32 * j + 32))).2) :=
+    (chainCells_prefix (blocksOf_sliceOf cs (32 * j) 32) (fun i hi => windowMd_eq j i hi)).mpr
+      ⟨fun i hi r => hb _ (by omega) r, rfl⟩
+  have hRj : ∀ rd, LowDef κ rd → MemL rd KL → ChildReads rd entries cover (base * pow32 (gen ^ j)) origin (gen ^ L)
+      (fun k => off (32 * j + k)) (sliceOf cs (32 * j) 32) 32 := fun rd hl hL => by
+    rw [pow32_eq]; exact childReads_slice (hR rd hl hL) (32 * j) 32 (by omega)
+  refine completeAt_loopD find_loop87 (by rw [Program.loop_of_find? find_loop87]; decide +kernel) κ KL _ []
+    [⟨"child_claims_window", true, cclSlot cs j ++ [entries, cover, base * pow32 (gen ^ j), origin, gen ^ L, gen ^ j, gsq],
+      KL, [(digestScalars (prefixDigest cs (32 * j + 32))).1, (digestScalars (prefixDigest cs (32 * j + 32))).2,
+        eOfNat (2 ^ 11 * (j + 1))]⟩]
+    ⟨"__loop87", decide (gen ^ j * word 2 0 0 + gen ^ w ≠ 0),
+      [gen ^ (j + 1), gen ^ w, gen ^ cx, base, entries, cover, origin, gen ^ L, gsq], KL, []⟩ ?_ ?_ ?_ ?_
+  · intro k hk _
+    simp only [List.mem_singleton] at hk
+    subst hk
+    exact ccw_completeAtD fs cert hκ KL hL16 rfl (N := j + 1) (by omega) (pow_succ gen j).symm rfl hRj hsq
+      (fun A hA => hreg A (childLoad_shift (by omega) hA)) hch
+  · intro ht
+    refine hnext ?_
+    have : gen ^ j * word 2 0 0 + gen ^ w ≠ 0 := by simpa using ht
+    rw [word_gen, ← pow_succ] at this
+    by_contra h
+    exact this (by rw [show w = j + 1 by omega]; exact e_add_self _)
+  · intro k _ _ i hi
+    simp only [List.mem_append, List.mem_singleton] at *
+    rcases ‹_ ∨ _› with rfl | rfl <;> exact hi
+  intro rd hl hL
+  refine ⟨fun k hk => by simp only [List.mem_append, List.mem_singleton] at hk; rcases hk with rfl | rfl <;> exact hL, ?_⟩
+  have hT := hsq rd hL
+  have hs := hscr rd hL j (by omega)
+  have ho := hscr rd hL (j + 1) (by omega)
+  obtain ⟨σw, hpw, hHw, -, -, -, -⟩ := ccw_run (hlow rd hl) hT hL16 rfl (marks := base * pow32 (gen ^ j))
+    (entries := entries) (cover := cover) (origin := origin) (xq := gen ^ j) (N := j + 1) (by omega)
+    (pow_succ gen j).symm rfl (hRj rd hl hL) hch
+  have hcall := (rel_of_find find_child_claims_window _ _).mpr ⟨σw, hpw, hHw⟩
+  have hsteps := l87_steps_low (hlow rd hl) hT hL16 hn hw hlen (hR rd hl hL) hcan (hscr rd hL)
+  have hk : IsInK (gen ^ j * gen + gen ^ w) := by
+    rw [← pow_succ, gen_pow_eq_ofK, gen_pow_eq_ofK, ← ofK_add]; exact ofK_isInK _
+  have hnx : gen ^ j * gen + gen ^ w ≠ 0 → coreProgram.Rel rd "__loop87"
+      (gen ^ j * gen :: [gen ^ w, gen ^ cx, base, entries, cover, origin, gen ^ L, gsq]) [] := fun h => by
+    rw [← pow_succ] at h ⊢
+    have hjw : j + 1 < w := by
+      by_contra h'
+      exact h (by rw [show w = j + 1 by omega]; exact e_add_self _)
+    exact (loop87_iff rd _ _ _ _ _ _ _ _ (j + 1)).mpr ⟨w, hjw, rfl,
+      fun i h1 h2 he => by have := gen_pow_inj' (by omega) (by omega) he; omega, fun i _ h2 => hsteps i h2⟩
+  have hh := l87_holds (C := coreProgram.Rel rd) (W := gen ^ w)
+    (by rw [pow4_eq _ j rfl]; exact hs) hcall (by rw [← pow_succ, pow4_eq _ (j + 1) rfl]; exact ho) hk hnx
+  set σ := listVal (l87List (gen ^ j) (gen ^ w) (gen ^ cx) base entries cover origin (gen ^ L) gsq
+    (digestScalars (prefixDigest cs (32 * j))).1 (digestScalars (prefixDigest cs (32 * j))).2 (eOfNat (2 ^ 11 * j))
+    (digestScalars (prefixDigest cs (32 * j + 32))).1 (digestScalars (prefixDigest cs (32 * j + 32))).2
+    (eOfNat (2 ^ 11 * (j + 1)))) with hσ
+  have hwk : walk σ l87Body = .ret (l87S.flatMap (Main.slEvs σ)) [] := by
+    rw [l87Body_eq]; exact Main.walk_straight σ _ _ l87S_straight
+  obtain ⟨e1, e2, e3, e4, e5⟩ := l87_events σ
+  refine ⟨σ, _, [], rfl, hwk, rfl, holds_of_holdsList find_loop87 hh hwk, ?_, e2, e3, e4, fun A hA => ?_⟩
+  · rw [e1]
+    refine ⟨rfl, rfl, fun _ => ⟨rfl, rfl⟩, rfl, rfl, fun _ => ⟨?_, rfl⟩, trivial⟩
+    show [gen ^ j * word 2 0 0, _, _, _, _, _, _, _, _] = _
+    rw [word_gen, ← pow_succ]
+    rfl
+  · rw [e5] at hA
+    simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
+    have g11 : σ (.n 11) = gen ^ (cx + 4 * j) := by
+      show gen ^ cx * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j)) = _
+      rw [pow4_eq _ j rfl, ← pow_add]
+    have g28 : σ (.n 28) = gen ^ (cx + 4 * (j + 1)) := by
+      show gen ^ cx * (gen ^ j * word 2 0 0 * (gen ^ j * word 2 0 0) *
+        (gen ^ j * word 2 0 0 * (gen ^ j * word 2 0 0))) = _
+      rw [word_gen, ← pow_succ, pow4_eq _ (j + 1) rfl, ← pow_add]
+    rcases hA with rfl | rfl | rfl | rfl | rfl | rfl
+    · exact ⟨_, by rw [g11, limb0_gen_pow, gpow_add'], hsR j (by omega) 0 (by omega)⟩
+    · exact ⟨_, by rw [g11, limb0_gen_pow, gpow_add'], hsR j (by omega) 1 (by omega)⟩
+    · exact ⟨_, by rw [g11, limb0_gen_pow, gpow_add'], hsR j (by omega) 2 (by omega)⟩
+    · exact ⟨_, by rw [g28, limb0_gen_pow, gpow_add'], hsR (j + 1) (by omega) 0 (by omega)⟩
+    · exact ⟨_, by rw [g28, limb0_gen_pow, gpow_add'], hsR (j + 1) (by omega) 1 (by omega)⟩
+    · exact ⟨_, by rw [g28, limb0_gen_pow, gpow_add'], hsR (j + 1) (by omega) 2 (by omega)⟩
+
 /-- **`__loop87`'s iterations are complete, uniformly placed.** -/
 theorem l87_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ) (KL : Layout)
     {gsq base entries cover origin : E} {cx L n w : ℕ} (hL16 : L ≤ 2 ^ 16) (hn : n < 2 ^ 16) (hw : 32 * w ≤ n)
@@ -226,6 +322,29 @@ theorem l87_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ :
       (fun h => absurd h (by omega))
   | succ d ih =>
     exact fun j hj => l87_iter fs cert hκ KL hL16 hn hw hlen hcan hR hsq hscr hreg hsR (j := j) (by omega)
+      (fun _ => ih (j + 1) (by omega))
+
+/-- **`__loop87`'s iterations are complete, uniformly placed.** -/
+theorem l87_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ) (KL : Layout)
+    {gsq base entries cover origin : E} {cx L n w : ℕ} (hL16 : L ≤ 2 ^ 16) (hn : n < 2 ^ 16) (hw : 32 * w ≤ n)
+    {off : ℕ → ℕ} {cs : List E} (hlen : cs.length = 4 * n) (hcan : ∀ x ∈ cs, IsCanonical128 x)
+    (hR : ∀ rd, LowDef κ rd → MemL rd KL → ChildReads rd entries cover base origin (gen ^ L) off cs n)
+    (hsq : ∀ rd, MemL rd KL → SquaresAt rd gsq)
+    (hscr : ∀ rd, MemL rd KL → ChildScratch rd (gen ^ cx) cs w)
+    (hreg : ∀ A, ChildLoad entries cover origin off n A → ∃ i, A = gpow i ∧ RegionL KL i)
+    (hsR : ∀ q ≤ w, ∀ r < 3, RegionL KL (cx + 4 * q + r)) :
+    ∀ j < w, CompleteAtD fs cert κ "__loop87" KL
+      [gen ^ j, gen ^ w, gen ^ cx, base, entries, cover, origin, gen ^ L, gsq] (Returns []) := by
+  suffices H : ∀ d j, j + d + 1 = w → CompleteAtD fs cert κ "__loop87" KL
+      [gen ^ j, gen ^ w, gen ^ cx, base, entries, cover, origin, gen ^ L, gsq] (Returns []) from
+    fun j hj => H (w - j - 1) j (by omega)
+  intro d
+  induction d with
+  | zero =>
+    exact fun j hj => l87_iterD fs cert hκ KL hL16 hn hw hlen hcan hR hsq hscr hreg hsR (j := j) (by omega)
+      (fun h => absurd h (by omega))
+  | succ d ih =>
+    exact fun j hj => l87_iterD fs cert hκ KL hL16 hn hw hlen hcan hR hsq hscr hreg hsR (j := j) (by omega)
       (fun _ => ih (j + 1) (by omega))
 
 /-! ## `child_claim_list_digest` -/
@@ -501,6 +620,11 @@ theorem getElem_four (cs : List E) (j : ℕ) : ∀ (r : ℕ) (h : r < 4),
 /-- The windows' scratch table of a child's list at `b`. -/
 def cclScratchL (cs : List E) (b w : ℕ) : Layout := (List.range (w + 1)).map fun q => (b + 4 * q, cclSlot cs q)
 
+theorem cclScratchL_disj {cs : List E} {b w : ℕ} : DisjL (cclScratchL cs b w) := by
+  unfold DisjL cclScratchL
+  rw [List.pairwise_map]
+  exact (List.pairwise_lt_range (n := w + 1)).imp fun {a c} h => Or.inl (by simp only [cclSlot]; simp; omega)
+
 theorem cclScratch_slot {cs : List E} {b w q r : ℕ} (hq : q ≤ w) (hr : r < 3) :
     RegionL (cclScratchL cs b w) (b + 4 * q + r) :=
   ⟨(b + 4 * q, cclSlot cs q), List.mem_map.mpr ⟨q, List.mem_range.mpr (by omega), rfl⟩, by omega,
@@ -720,6 +844,275 @@ theorem ccld_completeRelAt (fs : String → ℕ) (cert : String → V → ℕ) {
         (fun rd _ h => by rw [pow32_eq]; exact childReads_slice (hKL fp rd h).2.1 (32 * w) t (by omega))
         (fun A hA => hregKL fp A (childLoad_shift (by omega) hA)) hch
     · exact LeanVM.Guest.B1.completeAt_of_rel_pure cldKid_pure (by simp [cldKidSet])
+        (fun rd h => (scaled_log_6_iff (hKL fp rd h).1 _ _).mpr ⟨_, rfl, n, hn, rfl, rfl⟩) κ
+  · intro fp k hk _ i hi
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
+    rcases hk with rfl | rfl | rfl <;> exact hKLreg fp i hi
+  · intro fp' rd hl hLb hLin
+    have hPL := hPLm rd hLin
+    refine ⟨fun k hk => by
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
+      rcases hk with rfl | rfl | rfl <;> exact Main.memL_append.mpr ⟨hLb, hPL⟩, ?_⟩
+    obtain ⟨hT, hR⟩ := hpre' rd hl hLin
+    have hscr : ChildScratch rd (gen ^ (fp' + fs "child_claim_list_digest")) cs ((n - 1) / 32) := by
+      rw [← hw]; exact cclScratch_of_memL hLb fun q hq => hq
+    obtain ⟨t1, t2, t3, t4, t5, t6, hh⟩ := ccld_holds_pos (hlow rd hl) hT hL16 hn hn1 hlen hR hcan hscr hd
+    rw [← hw, ← ht] at hh
+    set σ := listVal (cclList entries cover base origin (gen ^ L) gsq (gen ^ (fp' + fs "child_claim_list_digest"))
+      d0 d1 cs (off (n - 1)) L n w t t1 t2 t3 t4 t5 t6) with hσ
+    have h8 : σ (.n 8) ≠ 0 := fun h' => by
+      have h'' : gen ^ n + word 1 0 0 = 0 := h'
+      rw [word_one] at h''
+      have := (gen_pow_eq_one_iff (by omega)).mp (e_add_eq_zero_iff.mp h'')
+      omega
+    have hw' := walk_ccld_pos σ h8 ht32 (gen_pow_eq_ofK t)
+    have hev := holds_of_holdsList find_child_claim_list_digest hh hw'
+    obtain ⟨e1, e2, e3, e4, e5⟩ := ccld_pos_events σ t
+    have h39 : logG (σ (.n 39)) = 4 * (w + 1) := by
+      rw [show σ (.n 39) = gen ^ (4 * (w + 1)) by
+        show gen ^ w * word 2 0 0 * (gen ^ w * word 2 0 0) * (gen ^ w * word 2 0 0 * (gen ^ w * word 2 0 0)) = _
+        rw [word_gen]; ring]
+      exact logG_gen_pow (by omega)
+    refine ⟨σ, _, _, rfl, hw', rfl, hev, ?_, e3, by rw [e2, h39], ?_, fun A hA => ?_⟩
+    · rw [e4]
+      refine ⟨rfl, rfl, fun _ => ⟨?_, rfl⟩, rfl, rfl, fun _ => ⟨rfl, rfl⟩, rfl, rfl, fun _ => ⟨rfl, rfl⟩, trivial⟩
+      show [word 1 0 0, gen ^ w, gen ^ (fp' + fs "child_claim_list_digest"), base, entries, cover, origin, gen ^ L,
+        gsq] = _
+      rw [word_one, pow_zero]
+    · rw [e1]
+      simp only [List.map_cons, List.map_nil, bases]
+      rw [← gen_pow_eq_ofK]; rfl
+    · rw [e5] at hA
+      simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hA
+      set cx := fp' + fs "child_claim_list_digest" with hcx
+      have g40 : σ (.n 40) = gen ^ cx := rfl
+      have g49 : σ (.n 49) = gen ^ (cx + 4 * w) := by
+        show gen ^ cx * (gen ^ w * gen ^ w * (gen ^ w * gen ^ w)) = _
+        ring
+      have g71 : σ (.n 71) = cover * (origin * gen ^ off (n - 1)) := rfl
+      have g74 : σ (.n 74) = entries * gen ^ (4 * off (n - 1)) := by
+        show entries * (gen ^ off (n - 1) * gen ^ off (n - 1) * (gen ^ off (n - 1) * gen ^ off (n - 1))) = _
+        rw [pow4_eq _ _ rfl]
+      have sl : ∀ q r, q ≤ w → r < 3 → RegionL (cclScratchL cs cx w) (cx + 4 * q + r) :=
+        fun q r hq hr => cclScratch_slot hq hr
+      rcases hA with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      · exact ⟨cx + 4 * 0 + 0, by rw [g40, limb0_gen_pow, gpow_add'], Or.inl (sl 0 0 (by omega) (by omega))⟩
+      · exact ⟨cx + 4 * 0 + 1, by rw [g40, limb0_gen_pow, gpow_add'], Or.inl (sl 0 1 (by omega) (by omega))⟩
+      · exact ⟨cx + 4 * 0 + 2, by rw [g40, limb0_gen_pow, gpow_add'], Or.inl (sl 0 2 (by omega) (by omega))⟩
+      · exact ⟨cx + 4 * w + 0, by rw [g49, limb0_gen_pow, gpow_add'], Or.inl (sl w 0 le_rfl (by omega))⟩
+      · exact ⟨cx + 4 * w + 1, by rw [g49, limb0_gen_pow, gpow_add'], Or.inl (sl w 1 le_rfl (by omega))⟩
+      · exact ⟨cx + 4 * w + 2, by rw [g49, limb0_gen_pow, gpow_add'], Or.inl (sl w 2 le_rfl (by omega))⟩
+      · exact ⟨_, by rw [g71]; exact (hmidx (n - 1) (by omega)).1, Or.inr (hmidx (n - 1) (by omega)).2⟩
+      · exact ⟨_, by rw [g74]; exact (hcidx (n - 1) 0 (by omega) (by omega)).1,
+          Or.inr (hcidx (n - 1) 0 (by omega) (by omega)).2⟩
+      · exact ⟨_, by rw [g74]; exact (hcidx (n - 1) 1 (by omega) (by omega)).1,
+          Or.inr (hcidx (n - 1) 1 (by omega) (by omega)).2⟩
+      · exact ⟨_, by rw [g74]; exact (hcidx (n - 1) 2 (by omega) (by omega)).1,
+          Or.inr (hcidx (n - 1) 2 (by omega) (by omega)).2⟩
+      · exact ⟨_, by rw [g74]; exact (hcidx (n - 1) 3 (by omega) (by omega)).1,
+          Or.inr (hcidx (n - 1) 3 (by omega) (by omega)).2⟩
+
+/-- **`child_claim_list_digest` is complete, uniformly placed**, at the indices `off` and the claims
+`cs`, on a memory defined below `2^κ`, `κ ≥ 16`. -/
+theorem ccld_completeRelAtD (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ)
+    (off : ℕ → ℕ) (cs : List E) : CompleteRelD fs cert κ "child_claim_list_digest" (CclPreAt off cs) := by
+  intro args rets Lin hpre fp
+  classical
+  by_cases hex : ∃ rd1, LowDef κ rd1 ∧ MemL rd1 Lin
+  swap
+  · refine ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, fun rd hl hL => absurd ⟨rd, hl, ?_⟩ hex⟩
+    simpa using hL
+  obtain ⟨rd1, hl1, hL1⟩ := hex
+  obtain ⟨entries, cover, base, origin, limit, ng, gsq, d0, d1, rfl, rfl⟩ := cclPreAt_shape (hpre rd1 hl1 hL1)
+  obtain ⟨hT1, ⟨L, hL16, rfl⟩, n, hn, rfl, hlen, hR1, hcan, hd⟩ := hpre rd1 hl1 hL1
+  have hpre' : ∀ rd, LowDef κ rd → MemL rd Lin →
+      SquaresAt rd gsq ∧ ChildReads rd entries cover base origin (gen ^ L) off cs n := by
+    intro rd hl hL
+    obtain ⟨hT, -, n', hn', hng', -, hR', -, -⟩ := hpre rd hl hL
+    obtain rfl : n = n' := gen_pow_inj' (by omega) (by omega) hng'
+    exact ⟨hT, hR'⟩
+  have hFc : ∀ j r, ∃ i, j < n → r < 4 →
+      (entries * gen ^ (4 * off j)).limb 0 * gpow r = gpow i ∧ RegionL Lin i := by
+    intro j r
+    by_cases h : j < n ∧ r < 4
+    · obtain ⟨hj, hr⟩ := h
+      have hall : ∀ rd, LowDef κ rd → MemL rd Lin →
+          LoadHolds rd (entries * gen ^ (4 * off j)) r (cs.getD (4 * j + r) 0) := by
+        intro rd hl hL
+        have hc4 := ((hpre' rd hl hL).2 j hj).2.2
+        exact match r, hr with
+          | 0, _ => by simpa using hc4 0 (by simp)
+          | 1, _ => by simpa using hc4 1 (by simp)
+          | 2, _ => by simpa using hc4 2 (by simp)
+          | 3, _ => by simpa using hc4 3 (by simp)
+          | _ + 4, hr => absurd hr (by omega)
+      obtain ⟨i, hi⟩ := forced_load hall hl1 hL1
+      exact ⟨i, fun _ _ => hi⟩
+    · exact ⟨0, fun h1 h2 => absurd ⟨h1, h2⟩ h⟩
+  choose cidx hcidx using hFc
+  have hFm : ∀ j, ∃ i, j < n → (cover * (origin * gen ^ off j)).limb 0 * gpow 0 = gpow i ∧ RegionL Lin i := by
+    intro j
+    by_cases h : j < n
+    · obtain ⟨i, hi⟩ := forced_load (fun rd hl hL => ((hpre' rd hl hL).2 j h).2.1) hl1 hL1
+      exact ⟨i, fun _ => hi⟩
+    · exact ⟨0, fun h1 => absurd h1 h⟩
+  choose midx hmidx using hFm
+  have hSq : ∀ j, ∃ i, j < 16 → gsq.limb 0 * gpow j = gpow i ∧ RegionL Lin i := by
+    intro j
+    by_cases hj : j < 16
+    · obtain ⟨i, hi⟩ := forced_load (fun rd hl hL => (hpre' rd hl hL).1 j hj) hl1 hL1
+      exact ⟨i, fun _ => hi⟩
+    · exact ⟨0, fun h => absurd h hj⟩
+  choose sidx hsidx using hSq
+  have hgK : IsInK gsq := (hT1 0 (by norm_num)).1
+  have hlow : ∀ rd, LowDef κ rd → Low16 rd := fun rd hl i hi =>
+    hl i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) hκ))
+  set PL : Layout := ccldPins cs base n cidx midx ++ pinL (fun j => gen ^ 2 ^ j) sidx 16 with hPL
+  -- the pins read back as the reads and the squares table
+  have hPLr : ∀ rd', MemL rd' PL → SquaresAt rd' gsq ∧ ChildReads rd' entries cover base origin (gen ^ L) off cs n := by
+    intro rd' h
+    refine ⟨fun j hj => pin_loads h hgK (fun j hj => (hsidx j hj).1) (fun q hq => List.mem_append_right _ hq) j hj,
+      fun j hj => ⟨(hR1 j hj).1, load_of_pin h (hR1 j hj).2.1.1 (hmidx j hj).1
+        (List.mem_append_left _ (List.mem_append_right _ (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩))),
+        fun r hr => ?_⟩⟩
+    have hr4 : r < 4 := by simpa using hr
+    have := load_of_pin h ((hR1 j hj).2.2 0 (by simp)).1 (hcidx j r hj hr4).1 (v := cs.getD (4 * j + r) 0)
+      (List.mem_append_left _ (List.mem_append_left _ (List.mem_flatMap.mpr ⟨j, List.mem_range.mpr hj,
+        List.mem_map.mpr ⟨r, List.mem_range.mpr hr4, rfl⟩⟩)))
+    have key : ([cs.getD (4 * j) 0, cs.getD (4 * j + 1) 0, cs.getD (4 * j + 2) 0, cs.getD (4 * j + 3) 0] :
+        List E)[r]'hr = cs.getD (4 * j + r) 0 := getElem_four cs j r hr4
+    rw [key]; exact this
+  have hPLm : ∀ rd, MemL rd Lin → MemL rd PL := by
+    intro rd hL q hq k hk
+    have e : ∀ {i : ℕ} {v : E}, RegionL Lin i → rd1 (gpow i) = some v → q = (i, [v]) →
+        LoadHolds rd (ofK (gpow q.1)) k (q.2[k]'hk) := fun {i v} hR hv hqe => by
+      subst hqe
+      simp only [List.length_cons, List.length_nil] at hk
+      obtain rfl : k = 0 := by omega
+      refine ⟨ofK_isInK _, ?_⟩
+      rw [Main.addr_ofK, Nat.add_zero, Main.memL_agree hL hL1 _ hR, hv]
+      rfl
+    rw [hPL, List.mem_append, ccldPins, List.mem_append] at hq
+    rcases hq with (hq | hq) | hq
+    · obtain ⟨j, hj, hq⟩ := List.mem_flatMap.mp hq
+      obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hq
+      have hj := List.mem_range.mp hj
+      have hr := List.mem_range.mp hr
+      refine e (hcidx j r hj hr).2 ?_ rfl
+      have := ((hR1 j hj).2.2 r (by simp; omega)).2
+      rw [(hcidx j r hj hr).1] at this
+      rw [this]
+      exact match r, hr with
+        | 0, _ => by simp
+        | 1, _ => by simp
+        | 2, _ => by simp
+        | 3, _ => by simp
+        | _ + 4, hr => absurd hr (by omega)
+    · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hq
+      have hj := List.mem_range.mp hj
+      refine e (hmidx j hj).2 ?_ rfl
+      have := (hR1 j hj).2.1.2
+      rwa [(hmidx j hj).1] at this
+    · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hq
+      have hj := List.mem_range.mp hj
+      refine e (hsidx j hj).2 ?_ rfl
+      have := (hT1 j hj).2
+      rwa [(hsidx j hj).1] at this
+  have hPLR : ∀ i, RegionL PL i → RegionL Lin i := by
+    intro i ⟨q, hq, h1, h2⟩
+    rw [hPL, List.mem_append, ccldPins, List.mem_append] at hq
+    rcases hq with (hq | hq) | hq
+    · obtain ⟨j, hj, hq⟩ := List.mem_flatMap.mp hq
+      obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hq
+      simp only [List.length_cons, List.length_nil] at h1 h2
+      rw [show i = cidx j r by omega]
+      exact (hcidx j r (List.mem_range.mp hj) (List.mem_range.mp hr)).2
+    · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hq
+      simp only [List.length_cons, List.length_nil] at h1 h2
+      rw [show i = midx j by omega]
+      exact (hmidx j (List.mem_range.mp hj)).2
+    · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hq
+      simp only [List.length_cons, List.length_nil] at h1 h2
+      rw [show i = sidx j by omega]
+      exact (hsidx j (List.mem_range.mp hj)).2
+  rcases Nat.eq_zero_or_pos n with rfl | hn1
+  · obtain rfl : cs = [] := List.length_eq_zero_iff.mp (by simpa using hlen)
+    refine ⟨fs "child_claim_list_digest", [], [d0, d1], [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, fun rd hl hL => ?_⟩
+    have h8 : listVal (ccldZeroList entries cover base origin (gen ^ L) gsq d0 d1) (.n 8) = 0 := by
+      show (1 : E) + word 1 0 0 = 0; rw [word_one, e_add_self]
+    have hw := walk_ccld_zero _ h8
+    have hev := holds_of_holdsList find_child_claim_list_digest
+      (ccld_holds_zero rd entries cover base origin (gen ^ L) gsq hd) hw
+    obtain ⟨e1, e2, e3, e4, e5⟩ := ccld_zero_events (listVal (ccldZeroList entries cover base origin (gen ^ L) gsq d0 d1))
+    have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (rd := rd) coreProgram_wf
+      (R := RegionL Lin) (D := RegionL []) (Dk := fun _ => False) (fp := fp) (N := 0)
+      find_child_claim_list_digest (Or.inl (by decide +kernel)) rfl hw rfl hev (by rw [e1, e2]; rfl) (by rw [e3]; simp)
+      (by rw [e4]; exact ⟨rfl, fun _ h => h⟩) (by rw [e5]; simp) (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+    rwa [e2, List.sum_nil, Nat.add_zero, Nat.add_zero] at h
+  obtain ⟨w, hw⟩ : ∃ w, w = (n - 1) / 32 := ⟨_, rfl⟩
+  obtain ⟨t, ht⟩ : ∃ t, t = (n - 1) % 32 := ⟨_, rfl⟩
+  have ht32 : t < 32 := by omega
+  have hwt : n = 32 * w + t + 1 := by omega
+  have hb := blocks_canonical hlen hcan
+  let KL : ℕ → Layout := fun fp => cclScratchL cs (fp + fs "child_claim_list_digest") w ++ PL
+  have hKL : ∀ fp rd', MemL rd' (KL fp) → SquaresAt rd' gsq ∧
+      ChildReads rd' entries cover base origin (gen ^ L) off cs n ∧ ChildScratch rd' (gen ^ (fp + fs "child_claim_list_digest")) cs w :=
+    fun fp rd' h => ⟨(hPLr rd' (Main.memL_append.mp h).2).1, (hPLr rd' (Main.memL_append.mp h).2).2,
+      cclScratch_of_memL h fun q hq => List.mem_append_left _ hq⟩
+  have hKLreg : ∀ fp i, RegionL (KL fp) i → RegionL (cclScratchL cs (fp + fs "child_claim_list_digest") w) i ∨ RegionL Lin i := by
+    intro fp i ⟨q, hq, h1, h2⟩
+    rcases List.mem_append.mp hq with hq | hq
+    · exact Or.inl ⟨q, hq, h1, h2⟩
+    · exact Or.inr (hPLR i ⟨q, hq, h1, h2⟩)
+  have hregKL : ∀ fp A, ChildLoad entries cover origin off n A → ∃ i, A = gpow i ∧ RegionL (KL fp) i := by
+    intro fp A hA
+    rcases hA with ⟨j, hj, rfl⟩ | ⟨j, hj, r, hr, rfl⟩
+    · refine ⟨midx j, (hmidx j hj).1, ⟨(midx j, [base * gen ^ j]), ?_, le_refl _, by simp⟩⟩
+      exact List.mem_append_right _ (List.mem_append_left _ (List.mem_append_right _
+        (List.mem_map.mpr ⟨j, List.mem_range.mpr hj, rfl⟩)))
+    · refine ⟨cidx j r, (hcidx j r hj hr).1, ⟨(cidx j r, [cs.getD (4 * j + r) 0]), ?_, le_refl _, by simp⟩⟩
+      exact List.mem_append_right _ (List.mem_append_left _ (List.mem_append_left _
+        (List.mem_flatMap.mpr ⟨j, List.mem_range.mpr hj, List.mem_map.mpr ⟨r, List.mem_range.mpr hr, rfl⟩⟩)))
+  have hch : ChainCells ((digestScalars (prefixDigest cs (32 * w))).1, (digestScalars (prefixDigest cs (32 * w))).2)
+      (blocksOf (sliceOf cs (32 * w) t)) (baseMd (eOfNat (2 ^ 11 * w))) t
+      ((digestScalars (prefixDigest cs (n - 1))).1, (digestScalars (prefixDigest cs (n - 1))).2) := by
+    refine (chainCells_prefix (blocksOf_sliceOf cs (32 * w) t)
+      (fun j hj => baseMd_eq w j (by omega))).mpr ⟨fun j hj r => hb _ (by omega) r, ?_⟩
+    rw [show 32 * w + t = n - 1 by omega]
+  refine completeAt_nodeD find_child_claim_list_digest (by
+      rw [Program.loop_of_find? find_child_claim_list_digest]; decide +kernel) κ Lin _ _ [4 * (w + 1)]
+    (fun fp => cclScratchL cs (fp + fs "child_claim_list_digest") w)
+    (fun fp i hi => ⟨(4 * (w + 1), fp + fs "child_claim_list_digest"), List.mem_singleton_self _, (cclScratch_region hi).1,
+      (cclScratch_region hi).2⟩)
+    (fun fp q hq => by
+      obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hq
+      have := List.mem_range.mp hj
+      simp only [cclSlot, List.length_cons, List.length_nil, List.sum_cons, List.sum_nil]
+      omega) (fun _ => cclScratchL_disj)
+    (fun fp => [⟨"__loop87", decide (word 1 0 0 + gen ^ w ≠ 0),
+        [gen ^ 0, gen ^ w, gen ^ (fp + fs "child_claim_list_digest"), base, entries, cover, origin, gen ^ L, gsq], KL fp, []⟩,
+      ⟨cctNames[t]!, true, cclSlot cs w ++ [entries, cover, base * pow32 (gen ^ w), origin, gen ^ L], KL fp,
+        [(digestScalars (prefixDigest cs (n - 1))).1, (digestScalars (prefixDigest cs (n - 1))).2]⟩,
+      ⟨"scaled_log__L6", true, [gen ^ n, gsq], KL fp, [eOfNat (2 ^ 6 * n)]⟩]) ?_ ?_ ?_ fp
+  · intro fp k hk htk
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
+    rcases hk with rfl | rfl | rfl
+    · have hw0 : 0 < w := by
+        rcases Nat.eq_zero_or_pos w with h0 | h0
+        · simp [h0, word_one, e_add_self] at htk
+        · exact h0
+      exact l87_completeAtD fs cert hκ (KL fp) hL16 hn (by omega) hlen hcan (fun rd _ h => (hKL fp rd h).2.1)
+        (fun rd h => (hKL fp rd h).1) (fun rd h => (hKL fp rd h).2.2) (hregKL fp)
+        (fun q hq r hr => by
+          obtain ⟨e, he, h1, h2⟩ := cclScratch_slot (cs := cs) (b := fp + fs "child_claim_list_digest") (w := w) hq hr
+          exact ⟨e, List.mem_append_left _ he, h1, h2⟩) 0 hw0
+    · show CompleteAtD fs cert κ cctNames[t]! _ _ _
+      rw [cctNames_getElem! ht32]
+      exact cct_completeAtD fs cert hκ t ht32 (KL fp) hL16 rfl (off := fun k => off (32 * w + k))
+        (cs := sliceOf cs (32 * w) t)
+        (fun rd _ h => by rw [pow32_eq]; exact childReads_slice (hKL fp rd h).2.1 (32 * w) t (by omega))
+        (fun A hA => hregKL fp A (childLoad_shift (by omega) hA)) hch
+    · exact LeanVM.Guest.B1.completeAt_of_rel_pureD cldKid_pure (by simp [cldKidSet])
         (fun rd h => (scaled_log_6_iff (hKL fp rd h).1 _ _).mpr ⟨_, rfl, n, hn, rfl, rfl⟩) κ
   · intro fp k hk _ i hi
     simp only [List.mem_cons, List.not_mem_nil, or_false] at hk

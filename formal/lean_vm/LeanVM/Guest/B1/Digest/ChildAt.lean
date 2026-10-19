@@ -16,7 +16,7 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen eOfNat)
-open LeanVM.Guest.B1 (LowDef CompleteAt Within Returns)
+open LeanVM.Guest.B1 (LowDef CompleteAt CompleteAtD DisjL disj_nil disj_append Within Returns)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
@@ -215,6 +215,46 @@ theorem cct_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ :
       rw [loadAddrs_atoms] at hA
       simp [atomLoad?] at hA
   · refine LeanVM.Guest.B1.completeAt_leaf (find_child_claims_tail k hk) (by
+      rw [Program.loop_of_find? (find_child_claims_tail k hk)]
+      simp only [Fn.loop, show ¬k = 0 by omega, ↓reduceIte, cctBody_eq, List.reverse_append]
+      rfl) κ Lin _ _ [] (fun _ => []) (fun _ => List.Forall₂.nil) fun fp rd hl _ hL => ?_
+    obtain ⟨σ, hp, hh, hr, hld⟩ := cct_run (fun i hi => hl i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) hκ)))
+      k hk1 hk hL16 hlim (hR rd hl hL) hch
+    refine ⟨σ, _, [.n (8 + 21 * k), .n (9 + 21 * k)], hp, by simp only [show ¬k = 0 by omega, ↓reduceIte, cctBody_eq]; exact walk_atoms _ _ _, hr,
+      fun e he => ?_, calls_atoms _, by rw [addrs_atoms, cctAtoms_noAddr], allocs_atoms _ (cctAtoms_noAlloc k),
+      by rw [allocDsts_atoms (cctAtoms_noAlloc k)]; rfl, fun A hA => ?_⟩
+    · obtain ⟨a, ha, rfl⟩ := List.mem_map.mp he
+      exact hh a ha
+    · obtain ⟨i, hi, hRi⟩ := hreg A (hld A hA)
+      exact ⟨i, hi, Or.inr hRi⟩
+
+/-- **`child_claims_tail__L{k}` is complete, uniformly placed**, on reads every memory holding the
+caller's words makes, at words of those. -/
+theorem cct_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ) (k : ℕ) (hk : k < 32)
+    (Lin : Layout) {s0 s1 base entries cover marks origin limit o0 o1 : E} {L : ℕ} (hL16 : L ≤ 2 ^ 16)
+    (hlim : limit = gen ^ L) {off : ℕ → ℕ} {cs : List E}
+    (hR : ∀ rd, LowDef κ rd → MemL rd Lin → ChildReads rd entries cover marks origin limit off cs k)
+    (hreg : ∀ A, ChildLoad entries cover origin off k A → ∃ i, A = gpow i ∧ RegionL Lin i)
+    (hch : ChainCells (s0, s1) (blocksOf cs) (baseMd base) k (o0, o1)) :
+    CompleteAtD fs cert κ (cctNames.getD k "") Lin [s0, s1, base, entries, cover, marks, origin, limit]
+      (Returns [o0, o1]) := by
+  rcases Nat.eq_zero_or_pos k with rfl | hk1
+  · obtain ⟨-, hout⟩ | ⟨h, -⟩ := hch
+    swap; · omega
+    simp only [Prod.mk.injEq] at hout
+    refine LeanVM.Guest.B1.completeAt_leafD (find_child_claims_tail 0 hk) (by decide +kernel) κ Lin _ _ [] (fun _ => [])
+      (fun _ => List.Forall₂.nil) fun fp rd _ _ _ => ?_
+    refine ⟨listVal [s0, s1, base, entries, cover, marks, origin, limit, s0, s1, s0, s1], _, _, rfl,
+      by show walk _ cctBody0 = _; exact walk_atoms _ _ _, by rw [hout.1, hout.2]; rfl, ?_, calls_atoms _,
+      by rw [addrs_atoms]; rfl,
+      allocs_atoms _ (by decide), by rw [allocDsts_atoms (by decide)]; rfl, ?_⟩
+    · intro e he
+      simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at he
+      rcases he with rfl | rfl | rfl | rfl <;> rfl
+    · intro A hA
+      rw [loadAddrs_atoms] at hA
+      simp [atomLoad?] at hA
+  · refine LeanVM.Guest.B1.completeAt_leafD (find_child_claims_tail k hk) (by
       rw [Program.loop_of_find? (find_child_claims_tail k hk)]
       simp only [Fn.loop, show ¬k = 0 by omega, ↓reduceIte, cctBody_eq, List.reverse_append]
       rfl) κ Lin _ _ [] (fun _ => []) (fun _ => List.Forall₂.nil) fun fp rd hl _ hL => ?_
@@ -439,6 +479,51 @@ theorem ccw_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ :
       simp only [List.mem_singleton] at hk
       subst hk
       exact LeanVM.Guest.B1.completeAt_of_rel_pure cldKid_pure (by simp [cldKidSet])
+        (fun rd hL => (scaled_log_11_iff (hsq rd hL) _ _).mpr ⟨nxt, rfl, N, hN, by rw [word_gen]; exact hxq, hnxt⟩) κ)
+    (fun _ k hk _ i hi => by
+      simp only [List.mem_singleton] at hk
+      subst hk
+      exact Or.inr hi) fun fp rd hl _ hL => ?_
+  refine ⟨fun k hk => by simp only [List.mem_singleton] at hk; subst hk; exact hL, ?_⟩
+  obtain ⟨σ, hp, hH, h11, h12, hr, hld⟩ := ccw_run (fun i hi => hl i (lt_of_lt_of_le hi (Nat.pow_le_pow_right
+    (by norm_num) hκ))) (hsq rd hL) hL16 hlim hN hxq hnxt (hR rd hl hL) hch
+  have hw : walk σ ccwBody = .ret (ccwPre.flatMap (Main.slEvs σ)) [.n 683, .n 684, .n 685] := by
+    rw [ccwBody_eq]; exact Main.walk_straight σ _ _ ccwPre_straight
+  obtain ⟨e1, e2, e3, e4⟩ := Main.straight_parts σ _ ccwPre_straight
+  have h9 : σ (.n 9) = gsq := by simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp; exact hp.2.2.2.2.2.2.2.2.2.1
+  refine ⟨σ, _, _, hp, hw, hr, holds_of_holdsList find_child_claims_window hH hw, ?_, ?_, ?_, ?_, fun A hA => ?_⟩
+  · rw [e4, show ccwPre.filterMap Main.Stmt.callS = [(none, "scaled_log__L11", [.n 11, .n 9], [.n 12])] by
+      decide +kernel]
+    exact ⟨rfl, rfl, fun _ => ⟨show [σ (.n 11), σ (.n 9)] = _ by rw [h11, h9],
+      show [σ (.n 12)] = _ by rw [h12]⟩, trivial⟩
+  · rw [e3]; decide +kernel
+  · rw [e2, show ccwPre.filterMap Main.Stmt.allocSz = [] by decide +kernel]; rfl
+  · rw [e1, show ccwPre.filterMap Main.Stmt.allocSz = [] by decide +kernel]; rfl
+  · obtain ⟨i, hi, hRi⟩ := hreg A (hld A hA)
+    exact ⟨i, hi, Or.inr hRi⟩
+
+/-- **`child_claims_window` is complete, uniformly placed**, on reads every memory holding the
+caller's words makes, at words of those. -/
+theorem ccw_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ) (Lin : Layout)
+    {gsq s0 s1 base entries cover marks origin limit xq o0 o1 nxt : E} {L : ℕ} (hL16 : L ≤ 2 ^ 16)
+    (hlim : limit = gen ^ L) {N : ℕ} (hN : N < 2 ^ 16) (hxq : xq * gen = gen ^ N) (hnxt : nxt = eOfNat (2 ^ 11 * N))
+    {off : ℕ → ℕ} {cs : List E}
+    (hR : ∀ rd, LowDef κ rd → MemL rd Lin → ChildReads rd entries cover marks origin limit off cs 32)
+    (hsq : ∀ rd, MemL rd Lin → SquaresAt rd gsq)
+    (hreg : ∀ A, ChildLoad entries cover origin off 32 A → ∃ i, A = gpow i ∧ RegionL Lin i)
+    (hch : ChainCells (s0, s1) (blocksOf cs) (windowMd base nxt) 32 (o0, o1)) :
+    CompleteAtD fs cert κ "child_claims_window" Lin [s0, s1, base, entries, cover, marks, origin, limit, xq, gsq]
+      (Returns [o0, o1, nxt]) := by
+  refine completeAt_nodeD find_child_claims_window (by
+      rw [Program.loop_of_find? find_child_claims_window]
+      simp only [Fn.loop, ccwBody_eq, List.reverse_append]
+      rfl) κ Lin _ _ [] (fun _ => []) (fun _ _ h => by obtain ⟨q, hq, _⟩ := h; simp at hq)
+    (fun _ q hq => by simp at hq) (fun _ => disj_nil)
+    (fun _ => [⟨"scaled_log__L11", true, [xq * word 2 0 0, gsq], Lin, [nxt]⟩])
+    (fun _ k hk _ => by
+      simp only [List.mem_singleton] at hk
+      subst hk
+      exact LeanVM.Guest.B1.completeAt_of_rel_pureD cldKid_pure (by simp [cldKidSet])
         (fun rd hL => (scaled_log_11_iff (hsq rd hL) _ _).mpr ⟨nxt, rfl, N, hN, by rw [word_gen]; exact hxq, hnxt⟩) κ)
     (fun _ k hk _ i hi => by
       simp only [List.mem_singleton] at hk

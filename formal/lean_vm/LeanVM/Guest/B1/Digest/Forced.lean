@@ -23,7 +23,7 @@ namespace LeanVM.Guest.B1.Digest
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen)
-open LeanVM.Guest.B1 (LowDef CompleteRel)
+open LeanVM.Guest.B1 (LowDef CompleteRel CompleteRelD)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
@@ -83,6 +83,12 @@ theorem load_of_pin {rd : Reader} {L : Layout} (h : MemL rd L) {p : E} (hp : IsI
 theorem completeRel_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
     {Pre Pre' : Reader → List E → List E → Prop} (h : CompleteRel fs cert κ f Pre)
     (hP : ∀ rd args rets, Pre' rd args rets → Pre rd args rets) : CompleteRel fs cert κ f Pre' :=
+  fun args rets Lin hpre => h args rets Lin fun rd hl hL => hP rd args rets (hpre rd hl hL)
+
+/-- **`CompleteRelD` is antitone in the precondition.** -/
+theorem completeRel_monoD {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
+    {Pre Pre' : Reader → List E → List E → Prop} (h : CompleteRelD fs cert κ f Pre)
+    (hP : ∀ rd args rets, Pre' rd args rets → Pre rd args rets) : CompleteRelD fs cert κ f Pre' :=
   fun args rets Lin hpre => h args rets Lin fun rd hl hL => hP rd args rets (hpre rd hl hL)
 
 /-! ## Layout entries -/
