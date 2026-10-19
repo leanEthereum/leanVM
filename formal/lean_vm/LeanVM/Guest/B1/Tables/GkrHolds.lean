@@ -160,6 +160,112 @@ theorem gkr_loop10 (hT : T.Ok μ cv xs r cv') (hμ : μ < 33) {rd : Reader}
     rw [hT.next_lay hj] at this
     rwa [show 8 * gL (μ % 2) (j + 1) + k = 8 * gL (μ % 2) j + 16 + k by unfold gL; ring] at this
 
+/-- **`__loop11`** on an honest memory. -/
+theorem gkr_loop11 (hT : T.Ok μ cv xs r cv') {rd : Reader} {cur layers rounds pts pb dsb zeta : E}
+    (hM : GkrMem rd T μ cv cur layers rounds pts pb dsb) (hz : ReadsAt rd zeta r.2.1) (hμ : μ < 33)
+    (hm : 0 < μ) :
+    coreProgram.Rel rd "__loop11" [1, gen ^ μ, zeta, pts * gen ^ (40 * (μ % 2 + μ / 2))] [] := by
+  have hl := hT.hlen _ le_rfl
+  have hμL : gL (μ % 2) (μ / 2) = μ := by unfold gL; omega
+  refine loop11_complete hm fun j hj => ⟨(T.P (μ / 2)).point.getD j 0,
+    loadHolds_unshift (loadHolds_unshift (hM.row _ le_rfl j (by omega)) rfl) (by ring),
+    loadHolds_unshift ?_ (by ring)⟩
+  rw [hT.hr] at hz
+  have := readsAt_getD hz (k := j) (by simp only; rw [hl, hμL]; exact hj)
+  exact this
+
+theorem gk_word4 : word 4 0 0 = gen ^ 2 := word_two_pow (a := 2) (by decide)
+
+theorem gk_isInK_one_add (a : ℕ) : IsInK (word 1 0 0 + gen ^ a) := by
+  rw [word_one, ← pow_zero gen]; exact isInK_add (gen_pow_isInK 0) (gen_pow_isInK a)
+
+theorem gk_one_add_ne {a : ℕ} (ha : a < 33) (h : word 1 0 0 + gen ^ a ≠ 0) : 0 < a := by
+  rcases Nat.eq_zero_or_pos a with rfl | h'
+  · exact absurd (by rw [word_one, pow_zero]; exact e_add_self 1) h
+  · exact h'
+
+set_option maxRecDepth 100000 in
+set_option maxHeartbeats 4000000 in
+/-- **`verify_bus_gkr`'s body holds** on an honest memory, returning the run's state, cursor and
+values. -/
+theorem gkr_holds (hT : T.Ok μ cv xs r cv') (hμ : μ < 33) {rd : Reader}
+    {cur zeta layers rounds pts pb dsb rcy rct1 rct2 : E}
+    (hM : GkrMem rd T μ cv cur layers rounds pts pb dsb) (hx : ReadsAt rd cur xs)
+    (hz : ReadsAt rd zeta r.2.1) (hrc1 : LoadHolds rd (gen ^ μ) 0 rct1) (hrc2 : LoadHolds rd rcy 0 rct2)
+    (hrck : word 4294967296 0 0 = gen ^ μ * rcy) :
+    Stmt.HoldsList (coreProgram.Rel rd) rd (vbgσ zeta (digestScalars cv).1 (digestScalars cv).2 cur
+      (gen ^ μ) layers rounds pts pb dsb rcy rct1 rct2 T.cnt⁻¹ T.x0 T.cnt (gen ^ (μ % 2))
+      (gen ^ (μ / 2)) (cur * gen ^ gCur (μ % 2) (μ / 2)) (pts * gen ^ (40 * (μ % 2 + μ / 2)))
+      ((T.P (μ / 2)).values.getD 0 0) ((T.P (μ / 2)).values.getD 1 0) ((T.P (μ / 2)).values.getD 2 0)
+      cv (T.C (μ / 2)) T.oes) (Fn.body Data.core10) False
+      (fun rs => rs = [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ xs.length] ++ r.2.2) := by
+  obtain ⟨hx0, hcnt, hodd, -⟩ := hT.reads hx
+  have hμL : gL (μ % 2) (μ / 2) = μ := by unfold gL; omega
+  have hret : [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ xs.length] ++ r.2.2 =
+      [(digestScalars (T.C (μ / 2))).1, (digestScalars (T.C (μ / 2))).2, cur * gen ^ gCur (μ % 2) (μ / 2),
+        (T.P (μ / 2)).values.getD 0 0, (T.P (μ / 2)).values.getD 1 0, (T.P (μ / 2)).values.getD 2 0] := by
+    rw [hT.hcv, hT.xs_len, hT.hr]
+    simp only [List.cons_append, List.nil_append, List.cons.injEq, true_and]
+    exact hT.vals le_rfl
+  rw [hret]
+  have e0 : [(digestScalars (vbgCv0 cv T.x0 T.cnt)).1, (digestScalars (vbgCv0 cv T.x0 T.cnt)).2,
+      cur * word 4 0 0, T.x0, T.x0, T.cnt, pts, word 1 0 0] = gLay0 T cv cur pts := by
+    rw [gk_word4, word_one, gLay0, pow_zero]
+  have hl0 : ∀ k < 8, LoadHolds rd layers k ([(digestScalars (vbgCv0 cv T.x0 T.cnt)).1,
+      (digestScalars (vbgCv0 cv T.x0 T.cnt)).2, cur * word 4 0 0, T.x0, T.x0, T.cnt, pts,
+      word 1 0 0].getD k 0) := by
+    rw [e0]
+    rcases Nat.mod_two_eq_zero_or_one μ with h | h
+    · intro k hk
+      have := hM.lay 0 (Nat.zero_le _) k hk
+      obtain ⟨hp, hc⟩ := hT.even h
+      have e : gLay T (μ % 2) cur pts 0 = gLay0 T cv cur pts := by
+        rw [gLay, gLay0, hp, hc, h]; simp [gCur, gPos]
+      rwa [e, show 8 * gL (μ % 2) 0 + k = k by unfold gL; omega] at this
+    · exact hM.lay0 h
+  have hds : LoadHolds rd (dsb * gen ^ μ) 0 (gen ^ (μ % 2)) :=
+    loadHolds_unshift (by rw [← vbgDs_get hμ]; exact hM.ds μ (by omega)) rfl
+  have hnp : LoadHolds rd (pb * gen ^ μ) 0 (gen ^ (μ / 2)) :=
+    loadHolds_unshift (by rw [← vbgPb_get hμ]; exact hM.pb μ (by omega)) rfl
+  refine vbg_holds (oes := T.oes) rfl (by simpa using hrc1) hrc2 hrck hx0 hcnt
+    (by rw [word_zero, add_zero]; exact mul_inv_cancel₀ hT.hcnt) hl0 hM.pb hM.ds hds
+    (by rw [add_comm]; exact gk_isInK_one_add _) (fun hne => ?_) hnp (gk_isInK_one_add _)
+    (fun hne => ?_) (fun k hk => ?_) (gk_isInK_one_add _) (fun hne => ?_)
+  · have hs : μ % 2 = 1 := by
+      have := gk_one_add_ne (a := μ % 2) (by omega) (by rwa [add_comm] at hne)
+      omega
+    obtain ⟨hchk, hpt, hvl, hcv0⟩ := hT.odd hs
+    refine ⟨fun i hi => by rw [gk_word4]; exact hodd hs i hi, ?_, ?_, fun k hk => ?_⟩
+    · rw [← hchk, polyEval_three]
+    · have := hM.row 0 (Nat.zero_le _) 0 (by omega)
+      rw [hpt, hs] at this
+      rw [word_g40]; exact loadHolds_unshift this rfl
+    · have := hM.lay 0 (Nat.zero_le _) k hk
+      have e : gLay T (μ % 2) cur pts 0 = [(digestScalars (sqCv (l10cv (sqCv (vbgCv0 cv T.x0 T.cnt)) T.oes 6))).1,
+          (digestScalars (sqCv (l10cv (sqCv (vbgCv0 cv T.x0 T.cnt)) T.oes 6))).2,
+          cur * word 4 0 0 * word 64 0 0,
+          T.oes 0 + (challengeOf (sqCv (l10cv (sqCv (vbgCv0 cv T.x0 T.cnt)) T.oes 6))) * (T.oes 0 + T.oes 1),
+          T.oes 2 + (challengeOf (sqCv (l10cv (sqCv (vbgCv0 cv T.x0 T.cnt)) T.oes 6))) * (T.oes 2 + T.oes 3),
+          T.oes 4 + (challengeOf (sqCv (l10cv (sqCv (vbgCv0 cv T.x0 T.cnt)) T.oes 6))) * (T.oes 4 + T.oes 5),
+          pts * word 1099511627776 0 0, word 2 0 0] := by
+        rw [gLay, hcv0, hvl, hs, gk_word4, word_g6, word_g40, word_gen]
+        simp only [List.getD_cons_zero, List.getD_cons_succ, gCur, gPos, List.cons.injEq, and_true]
+        refine ⟨trivial, trivial, by rw [mul_assoc, ← pow_add], trivial, trivial, trivial, trivial, pow_one gen⟩
+      rwa [e, show 8 * gL (μ % 2) 0 + k = 8 + k by unfold gL; omega] at this
+  · have := gk_one_add_ne (by omega) hne
+    rw [word_one]; exact gkr_loop10 hT hμ hM hx this
+  · have := hM.lay (μ / 2) le_rfl k (by omega)
+    rw [hμL] at this
+    have e : (gLay T (μ % 2) cur pts (μ / 2)).getD k 0 = [(digestScalars (T.C (μ / 2))).1,
+        (digestScalars (T.C (μ / 2))).2, cur * gen ^ gCur (μ % 2) (μ / 2), (T.P (μ / 2)).values.getD 0 0,
+        (T.P (μ / 2)).values.getD 1 0, (T.P (μ / 2)).values.getD 2 0,
+        pts * gen ^ (40 * (μ % 2 + μ / 2))].getD k 0 := by
+      interval_cases k <;> rfl
+    rw [e] at this
+    rw [← pow_mul, mul_comm μ 8]; exact loadHolds_unshift this rfl
+  · have := gk_one_add_ne hμ hne
+    rw [word_one]; exact gkr_loop11 hT hM hz hμ this
+
 end
 
 end
