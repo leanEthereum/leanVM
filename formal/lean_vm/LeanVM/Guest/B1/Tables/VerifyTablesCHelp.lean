@@ -92,5 +92,103 @@ theorem vt_sel_count {j : ℕ} (hj : j < 28) :
 
 end
 
+/-- `busVal`'s forms are shaped. -/
+theorem vt_forms_shaped {bytecode : List K} (hb : bytecode.length = 2 ^ 22) (logMem : ℕ) {rows : List ℕ}
+    (hr : rows.length = 6) (alphas : List E) (beta : E) (point tv memory : List E) (mF bF bv : E) :
+    FormsShaped (busVal (layoutOf bytecode logMem rows) alphas beta point tv memory mF bF bv).forms := by
+  obtain ⟨hlb, -, hpo, hco, -, -, -, -, -, -, -, hpp⟩ := layoutOf_blocks bytecode hb logMem rows hr
+  set L := layoutOf bytecode logMem rows with hLd
+  have hlm : L.logMemory = logMem := rfl
+  have hlo : L.pull.map (·.owner) = layoutPushOwners := by
+    have := congrArg (List.map fun x : ℕ × ℕ × ℕ => x.1) hpp
+    simp only [List.map_map] at this; rw [← hpo]; exact this
+  have po6 : ∀ b ∈ L.push, b.owner < 6 := fun b hb => by
+    have := List.mem_map_of_mem (f := (·.owner)) hb; rw [hpo] at this
+    exact vt_owners_lt.1 _ this
+  have lo6 : ∀ b ∈ L.pull, b.owner < 6 := fun b hb => by
+    have := List.mem_map_of_mem (f := (·.owner)) hb; rw [hlo] at this
+    exact vt_owners_lt.1 _ this
+  have co6 : ∀ b ∈ L.count, b.owner < 6 := fun b hb => by
+    have := List.mem_map_of_mem (f := (·.owner)) hb; rw [hco] at this
+    exact vt_owners_lt.2 _ this
+  simp only [busVal_eq, hlb, hlm]
+  refine (accSide_forms (side := 2) (by omega) 0 0 (fun _ => 0) ?_ co6 _ _ _ _ _ _).2
+  refine (accSide_forms (side := 1) (by omega) 0 0 (fun _ => 0) ?_ lo6 _ _ _ _ _ _).2
+  exact (accSide_forms (side := 0) (by omega) 0 0 (fun _ => 0) forms0_shaped po6 _ _ _ _ _ _).2
+
+/-- An entry of a run of constant blocks. -/
+theorem flatMap_replicate_getElem? {α : Type} (f : ℕ → α) (cnt : ℕ → ℕ) :
+    ∀ (m t j : ℕ), t < m → j < cnt t →
+      ((List.range m).flatMap fun s => List.replicate (cnt s) (f s))[(∑ s ∈ Finset.range t, cnt s) + j]? =
+        some (f t)
+  | 0, _, _, ht, _ => absurd ht (Nat.not_lt_zero _)
+  | m + 1, t, j, ht, hj => by
+    have hl : ((List.range m).flatMap fun s => List.replicate (cnt s) (f s)).length =
+        ∑ s ∈ Finset.range m, cnt s := by
+      clear ht hj
+      induction m with
+      | zero => simp
+      | succ m ih => rw [List.range_succ, List.flatMap_append, List.length_append, ih, Finset.sum_range_succ]; simp
+    rw [List.range_succ, List.flatMap_append, List.flatMap_singleton]
+    rcases Nat.lt_succ_iff_lt_or_eq.mp ht with h | rfl
+    · have hle : (∑ s ∈ Finset.range t, cnt s) + j < ∑ s ∈ Finset.range m, cnt s := by
+        have := Finset.sum_le_sum_of_subset (f := cnt) (Finset.range_mono (show t + 1 ≤ m by omega))
+        rw [Finset.sum_range_succ] at this; omega
+      rw [List.getElem?_append_left (by rw [hl]; exact hle)]
+      exact flatMap_replicate_getElem? f cnt m t j h hj
+    · rw [List.getElem?_append_right (by rw [hl]; omega), hl, Nat.add_sub_cancel_left,
+        List.getElem?_replicate]
+      simp [hj]
+
+theorem evFirst_sum : ∀ t < 6, evFirst.getD t 0 = ∑ s ∈ Finset.range t, evCnt.getD s 0 := by decide
+
+theorem vtEvalVars_lengths : vtEvalVars.map List.length = (List.range 6).map fun t => evCnt.getD t 0 := by
+  decide
+
+/-- **The tables' claims' values and points**, from the evaluations' shape. -/
+theorem vt_claimsT {bytecode : List K} (hb : bytecode.length = 2 ^ 22) (logMem : ℕ) {rowsN : List ℕ}
+    (hrl : rowsN.length = 6) (alphas : List E) (beta : E) (point tv memory : List E) (mF bF bv : E)
+    (chis : List E) {evss : List (List E)}
+    (hshape : evss.map List.length = vtEvalVars.map List.length) :
+    ((List.zip (vtRows (layoutOf bytecode logMem rowsN)
+        (busVal (layoutOf bytecode logMem rowsN) alphas beta point tv memory mF bF bv) chis) evss).flatMap
+        (rowClaims chis)).map (·.value) = evss.flatten ∧
+    ((List.zip (vtRows (layoutOf bytecode logMem rowsN)
+        (busVal (layoutOf bytecode logMem rowsN) alphas beta point tv memory mF bF bv) chis) evss).flatMap
+        (rowClaims chis)).map (·.point) =
+      (List.range 6).flatMap fun t => List.replicate (evCnt.getD t 0) (chis.take (log2Ceil (rowsN.getD t 0))) := by
+  have hel6 : evss.length = 6 := by have := congrArg List.length hshape; simpa [vt_evalVars_length] using this
+  set L := layoutOf bytecode logMem rowsN with hL
+  set bus := busVal L alphas beta point tv memory mF bF bv with hbus
+  have hfl : bus.forms.length = 6 := (vt_forms_shaped hb logMem hrl alphas beta point tv memory mF bF bv).1
+  have hh : L.tableLogHeights = rowsN.map log2Ceil := rfl
+  set X := List.zip L.tableLogHeights (List.zip bus.forms (tableWeights L.tableLogHeights bus.point chis)) with hX
+  have hXl : X.length = 6 := by simp [hX, hh, hrl, hfl, tableWeights_length]
+  have hrows : vtRows L bus chis = List.zip tables X := rfl
+  have hrl6 : (vtRows L bus chis).length = 6 := by rw [hrows]; simp [hXl, tables_length']
+  constructor
+  · rw [List.map_flatMap]
+    simp only [rowClaims_value]
+    rw [List.flatMap_def, List.map_snd_zip (by rw [hrl6, hel6])]
+  · rw [List.map_flatMap]
+    simp only [rowClaims_point]
+    rw [hrows, vt_rows_flatMap X hXl evss hel6]
+    refine List.flatMap_congr fun t ht => ?_
+    have ht' := List.mem_range.mp ht
+    have e1 : (evss.getD t []).length = evCnt.getD t 0 := by
+      have h := congrArg (fun l => l.getD t 0) (hshape.trans vtEvalVars_lengths)
+      have h1 : (evss.map List.length).getD t 0 = (evss.getD t []).length := by
+        rw [List.getD_eq_getElem _ _ (by rw [List.length_map]; omega), List.getElem_map,
+          List.getD_eq_getElem _ _ (by omega)]
+      have h2 : ((List.range 6).map fun t => evCnt.getD t 0).getD t 0 = evCnt.getD t 0 := by
+        rw [List.getD_eq_getElem _ _ (by rw [List.length_map, List.length_range]; omega), List.getElem_map,
+          List.getElem_range]
+      exact h1.symm.trans (h.trans h2)
+    have e2 : (X.getD t default).1 = log2Ceil (rowsN.getD t 0) := by
+      rw [List.getD_eq_getElem _ _ (by omega)]
+      simp only [hX, List.getElem_zip, hh, List.getElem_map]
+      rw [List.getD_eq_getElem _ _ (by omega)]
+    simp only [e1, e2]
+
 end
 end LeanVM.Guest.B1.VerifySub
