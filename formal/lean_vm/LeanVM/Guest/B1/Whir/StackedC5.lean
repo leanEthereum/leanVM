@@ -131,6 +131,8 @@ structure OsLvOk (μ : ℕ) (L : Whir.Level) (cv : Digest) (w : WhirState) (osp 
 
 end
 
+@[expose] public section
+
 /-! ## The stream -/
 
 theorem os_foldRounds_st : ∀ {n : ℕ} {w : WhirState} {lf xs : List E} {p : ℕ} {cv : Digest}
@@ -329,4 +331,5 @@ theorem os_level_inv {cfg : OsCfg} {μ lane lvl : ℕ} {L : Whir.Level} {rest : 
     simp only [osHWEnd, osHPending, ite_neg' hyl, osHEnf, osHRowsE, osHQs, osHLam, osHCv4, osHCv3,
       osHNonce, osHC, osHCv12, ← e0, ← e1, ← e2, ← e3, ← e4, List.singleton_append]
 
+end
 end LeanVM.Guest.B1
