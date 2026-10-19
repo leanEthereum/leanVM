@@ -48,8 +48,8 @@ theorem verify_tables_completeAt_of (hPl : VtPlacedOk) (hF : VtFits) (fs : Strin
       (beta bv rm gzcn : E) (c z lp sq dims rows bk fpw pool cplen chi : ℕ) (Lin : Main.Layout),
       bytecode.length = 2 ^ 22 →
       point.length = (busLayout [0, logMem, 18] (layoutOf bytecode logMem rowsN).push).depth →
-      gzcn = gen ^ (layoutOf bytecode logMem rowsN).tableLogHeights.foldl max 0 →
-      point.length < 33 → 16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
+      point.length < 33 → gzcn = gen ^ (layoutOf bytecode logMem rowsN).tableLogHeights.foldl max 0 →
+      16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
       rowsN.length = 6 → (∀ n ∈ rowsN, log2Ceil n < 29) → claims.length = nClaims →
       (∀ ev, BytecodeAt ev bytecode
           (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
@@ -76,7 +76,7 @@ theorem verify_tables_completeAt_of (hPl : VtPlacedOk) (hF : VtFits) (fs : Strin
         (Returns [(digestScalars cv').1, (digestScalars cv').2,
           ofK (Parameters.gpow c) * gen ^ xs.length, gzcn, bv, rm]) := by
   intro pi logMem alphas point values cv xs cv' rowsN bus claims beta bv rm gzcn c z lp sq dims rows bk fpw pool
-    cplen chi Lin hb hdep hgz hpl h16 h32 hal hvl hrl hrows hcl hrun hLin
+    cplen chi Lin hb hdep hpl hgz h16 h32 hal hvl hrl hrows hcl hrun hLin
   set L := layoutOf bytecode logMem rowsN with hL
   obtain ⟨hlb, -⟩ := layoutOf_blocks bytecode hb logMem rowsN hrl
   have hbv := bytecodeAt_const bv bytecode (point.take L.logBytecode ++ alphas)
