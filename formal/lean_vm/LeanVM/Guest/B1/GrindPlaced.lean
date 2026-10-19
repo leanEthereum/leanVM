@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Grind
 public import LeanVM.Guest.B1.G1Placed
 public import LeanVM.Guest.B1.Whir.OsCallees
 public import LeanVM.Guest.B1.Da.Atoms
+public import LeanVM.Guest.Memory.LoopPre
 
 /-!
 # `grind_check`, placed (TRIAGE #18)
@@ -477,7 +478,7 @@ theorem grind_check_completeRelD (hc : cert "grind_check" (.n 34) + 64 ≤ fs "g
 /-- **`grind_check`, placed**: on `GrindPre` (the state the cells of `cv`, `powOk bits` of the digest,
 `bits ≤ 64`), it returns nothing and no buffer, its frame run the lane's bits. -/
 theorem grind_check_completeRelB (hc : cert "grind_check" (.n 34) + 64 ≤ fs "grind_check") (B6 : E → ℕ)
-    (h6 : TotalLe coreProgram fs "__loop6" fun a => B6 (a.getD 1 0)) :
+    (h6 : TotalLeOn coreProgram fs "__loop6" LoopPre fun a => B6 (a.getD 1 0)) :
     ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, LowDef k rd → MemL rd Lin → GrindPre rd args rets) →
       CompleteAtB fs cert k "grind_check" Lin args (Returns rets)
         (fs "grind_check" + max (B6 (args.getD 3 0)) (fs "__loop6")) := by
@@ -506,13 +507,14 @@ theorem grind_check_completeRelB (hc : cert "grind_check" (.n 34) + 64 ≤ fs "g
       gc_bits_of_powOk (by omega) hpow j hj] at this
   -- The loop, placed after the frame, when entered.
   have hloop : 0 < m → CompleteAtB fs cert k "__loop6" Lrun [1, N, p] (Returns []) (B6 N) := fun h0 =>
-    completeAt_of_rel_pureB find_loop6_pure (by simp) (fun rd hL => ((guarded_loop_iff
+    completeAt_of_rel_pureBat find_loop6_pure (by simp) (fun rd hL => ((guarded_loop_iff
       (loop6_step rd N p)).mpr ⟨m, hm, hN, fun j hj => by
         rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hzero rd hL j hj⟩).2 (by
           rw [hN]; intro h
           rw [e_add_eq_zero_iff, ← pow_zero gen] at h
           have := gen_pow_inj (by omega) (by decide) h.symm
-          omega)) k h6
+          omega)) k fun rd t hn hv hb =>
+      h6 rd t _ [] hn (by rw [hN]; exact loopPre_gen h0 hm _) hv hb
   set b := fp + fs "grind_check"
   obtain ⟨nl, Ll, hWl, hDl, hnb, hRl, hnl⟩ : ∃ (nl : ℕ) (Ll : Main.Layout), Within Ll b nl ∧ DisjL Ll ∧
       nl ≤ max (B6 N) (fs "__loop6") ∧ (0 < m → ∀ rd, LowDef k rd →

@@ -54,7 +54,7 @@ structure CalleesHyps (fs : String → ℕ) (cert : String → V → ℕ) (bytec
   Bdl : E → ℕ
   dl : TotalLe coreProgram fs "da_list_digest" fun a => Bdl (a.getD 1 0)
   B86 : E → ℕ
-  l86 : TotalLe coreProgram fs "__loop86" fun a => B86 (a.getD 1 0)
+  l86 : TotalLeOn coreProgram fs "__loop86" LoopPre fun a => B86 (a.getD 1 0)
   Bct : ℕ → ℕ
   ct : ∀ t, t < 32 → TotalLe coreProgram fs Digest.ctNames[t]! fun _ => Bct t
   Bsl : ℕ

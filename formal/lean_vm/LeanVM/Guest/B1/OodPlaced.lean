@@ -10,6 +10,7 @@ public import LeanVM.Guest.B1.OpeningOod
 public import LeanVM.Guest.B1.G1Placed
 public import LeanVM.Guest.B1.Whir.OsCallees
 public import LeanVM.Guest.B1.Da.Atoms
+public import LeanVM.Guest.Memory.LoopPre
 
 /-!
 # `opening_ood_point`, placed (TRIAGE #32)
@@ -448,7 +449,7 @@ theorem opening_ood_point_completeRelD : CompleteRelD fs cert k "opening_ood_poi
 /-- **`opening_ood_point`, placed**: on `OodPointPre`, it returns the final state's cells and no buffer,
 its states' run its own `HeapBuf`. -/
 theorem opening_ood_point_completeRelB  (B9 : E → ℕ)
-    (h9 : TotalLe coreProgram fs "__loop9" fun a => B9 (a.getD 1 0)) :
+    (h9 : TotalLeOn coreProgram fs "__loop9" LoopPre fun a => B9 (a.getD 1 0)) :
     ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, LowDef k rd → MemL rd Lin → OodPointPre rd args rets) →
       CompleteAtB fs cert k "opening_ood_point" Lin args (Returns rets)
         (fs "opening_ood_point" + (2 * logG (args.getD 3 0) + 2) + max (B9 (args.getD 3 0)) (fs "__loop9")) := by
@@ -498,7 +499,8 @@ theorem opening_ood_point_completeRelB  (B9 : E → ℕ)
           (loop9_bodies_iff rd p point m h0).mpr ⟨cv, hsc, hpt' rd hL⟩⟩).2
           (by rw [hN]; exact ood_one_add_ne hm h0)
   have hLoopC : 0 < m → CompleteAtB fs cert k "__loop9" ([(b0, st)] ++ Lin) [1, ng, p, point] (Returns []) (B9 ng) :=
-    fun h0 => completeAt_of_rel_pureB find_loop9_pure (by simp) (hloop h0) k h9
+    fun h0 => completeAt_of_rel_pureBat find_loop9_pure (by simp) (hloop h0) k fun rd t hn hv hb =>
+      h9 rd t _ [] hn (by rw [hN]; exact loopPre_gen h0 hm _) hv hb
   set b := b0 + (2 * m + 2) with hbdef
   obtain ⟨nl, Ll, hWl, hDl, hnb, hRl, hnl⟩ : ∃ (nl : ℕ) (Ll : Main.Layout), Within Ll b nl ∧ DisjL Ll ∧
       nl ≤ max (B9 ng) (fs "__loop9") ∧ (0 < m → ∀ rd,

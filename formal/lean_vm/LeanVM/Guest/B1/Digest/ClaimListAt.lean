@@ -11,6 +11,7 @@ public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.B1.Digest.ClaimList
 public import LeanVM.Guest.B1.Digest.Forced
 public import LeanVM.Guest.B1.Da.RelIn
+public import LeanVM.Guest.Memory.LoopPre
 
 /-!
 # `claim_list_digest`, uniformly placed
@@ -705,7 +706,7 @@ theorem cld_completeRelD (fs : String → ℕ) (cert : String → V → ℕ) {κ
 /-- **`claim_list_digest` is complete, uniformly placed**, on a memory defined below `2^κ`,
 `κ ≥ 16`. -/
 theorem cld_completeRelB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ) (B86 : E → ℕ) (Bct : ℕ → ℕ) (Bsl6 : ℕ)
-    (h86 : TotalLe coreProgram fs "__loop86" fun a => B86 (a.getD 1 0))
+    (h86 : TotalLeOn coreProgram fs "__loop86" LoopPre fun a => B86 (a.getD 1 0))
     (hct : ∀ t, t < 32 → TotalLe coreProgram fs ctNames[t]! fun _ => Bct t)
     (hsl6 : TotalLe coreProgram fs "scaled_log__L6" fun _ => Bsl6) :
     ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef κ rd → MemL rd Lin → ClPre rd args rets) →
@@ -815,10 +816,15 @@ theorem cld_completeRelB (fs : String → ℕ) (cert : String → V → ℕ) {κ
     intro k hk htk
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with rfl | rfl | rfl
-    · refine completeAt_of_rel_pureB cldKid_pure (by simp [cldKidSet]) (fun rd' h => r86 rd' h ?_) κ h86
-      intro hw0
-      simp only [hw0, pow_zero, word_one, e_add_self, ne_eq, not_true_eq_false, decide_false,
-        Bool.false_eq_true] at htk
+    · have hw0 : w ≠ 0 := by
+        intro hw0
+        simp only [hw0, pow_zero, word_one, e_add_self, ne_eq, not_true_eq_false, decide_false,
+          Bool.false_eq_true] at htk
+      have hpre86 : LoopPre [word 1 0 0, gen ^ w, gen ^ cx, gsq] := by
+        rw [word_one]
+        exact loopPre_gen (Nat.pos_of_ne_zero hw0) (by omega) _
+      exact completeAt_of_rel_pureBat cldKid_pure (by simp [cldKidSet]) (fun rd' h => r86 rd' h hw0) κ
+        fun rd t hn hv hb => h86 rd t [word 1 0 0, gen ^ w, gen ^ cx, gsq] [] hn hpre86 hv hb
     · refine (completeAt_of_rel_pureB cldKid_pure (by
         rw [ctNames_getElem! ht32]; simp only [cldKidSet, List.mem_append]
         rw [List.getD_eq_getElem _ _ (by simp [ctNames]; omega)]
@@ -961,7 +967,7 @@ theorem cld_completeRelAtD (fs : String → ℕ) (cert : String → V → ℕ) {
 /-- **`claim_list_digest` is complete, uniformly placed, at the claims `cs`**, by a bounded tree. -/
 theorem cld_completeRelAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ) (cs : List E)
     (B86 : E → ℕ) (Bct : ℕ → ℕ) (Bsl6 : ℕ)
-    (h86 : TotalLe coreProgram fs "__loop86" fun a => B86 (a.getD 1 0))
+    (h86 : TotalLeOn coreProgram fs "__loop86" LoopPre fun a => B86 (a.getD 1 0))
     (hct : ∀ t, t < 32 → TotalLe coreProgram fs ctNames[t]! fun _ => Bct t)
     (hsl6 : TotalLe coreProgram fs "scaled_log__L6" fun _ => Bsl6) :
     ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef κ rd → MemL rd Lin → ClPreAt cs rd args rets) →

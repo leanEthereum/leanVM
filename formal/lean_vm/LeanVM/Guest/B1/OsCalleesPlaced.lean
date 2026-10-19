@@ -104,9 +104,11 @@ structure G1Bounds (fs : String → ℕ) : Type where
   canonicalB : List E → ℕ
   canonical : LeanVM.Guest.Memory.TotalLe coreProgram fs "assert_canonical" canonicalB
   loop6B : E → ℕ
-  loop6 : LeanVM.Guest.Memory.TotalLe coreProgram fs "__loop6" fun a => loop6B (a.getD 1 0)
+  loop6 : LeanVM.Guest.Memory.TotalLeOn coreProgram fs "__loop6" LeanVM.Guest.Memory.LoopPre
+    fun a => loop6B (a.getD 1 0)
   loop9B : E → ℕ
-  loop9 : LeanVM.Guest.Memory.TotalLe coreProgram fs "__loop9" fun a => loop9B (a.getD 1 0)
+  loop9 : LeanVM.Guest.Memory.TotalLeOn coreProgram fs "__loop9" LeanVM.Guest.Memory.LoopPre
+    fun a => loop9B (a.getD 1 0)
   finalMsg4B : List E → ℕ
   finalMsg4 : LeanVM.Guest.Memory.TotalLe coreProgram fs "opening_final_message__L4" finalMsg4B
   finalMsg8B : List E → ℕ
