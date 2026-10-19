@@ -100,7 +100,7 @@ theorem osTail_complete {yrLog : ℕ} {s : OsSt} {cv : Digest} {cur : E} {p : �
     (htch : ∀ j < yrLog - 1, LoadHolds rd tchv j (chs.getD j 0))
     (hlast : LoadHolds rd tchv (yrLog - 1) (challengeOf (sqCv cv1)))
     (hz : ∀ j < 5 - yrLog, LoadHolds rd tchv (yrLog + j) 0) {kret : List E → Prop}
-    (hcf : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), p' + 2 ≤ xs.length →
+    (hcf : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), q'.length = 3 → p' + 2 ≤ xs.length →
       C "opening_fold" [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ p', q'.getD 0 0, q'.getD 1 0,
         q'.getD 2 0] (osFoldRets xs cv' p' q' (cur * gen ^ p')))
     (hv : ∀ j < (osTailVals yrLog xs cv p w.quad (cur * gen ^ (p - s.co)) s.co tchv w1 cv1).length,

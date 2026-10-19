@@ -82,6 +82,24 @@ def osLvStB (cfg : OsCfg) (lvl : ℕ) (sg : OsSt) : List Stmt :=
   (osLvSq cfg lvl sg).1 ++ osLvL cfg lvl sg ++ (osLvQ cfg lvl sg).1 ++ (osLvO cfg lvl sg).1 ++
     [.atom (.load (.n (osLvO cfg lvl sg).2.2) (.n osBetas) lvl)] ++ (osLvGl cfg lvl sg).1
 
+/-- The second part after the positions' squeezes. -/
+def osLvRestB (cfg : OsCfg) (lvl : ℕ) (sg : OsSt) : List Stmt :=
+  osLvL cfg lvl sg ++ (osLvQ cfg lvl sg).1 ++ (osLvO cfg lvl sg).1 ++
+    [.atom (.load (.n (osLvO cfg lvl sg).2.2) (.n osBetas) lvl)] ++ (osLvGl cfg lvl sg).1
+
+theorem osLvStB_eq (cfg : OsCfg) (lvl : ℕ) (sg : OsSt) :
+    osLvStB cfg lvl sg = (osLvSq cfg lvl sg).1 ++ osLvRestB cfg lvl sg := by
+  simp only [osLvStB, osLvRestB, List.append_assoc]
+
+/-- The values a level's second part allocates and enters its loop with: the squeezes' buffer, its
+size, the loop's guard, the row weights' buffer and its size. -/
+structure OsLvSig (σ : Val) (cfg : OsCfg) (lvl : ℕ) (sg : OsSt) (sqzv rewv : E) : Prop where
+  sqSize : σ (.n sg.k) = osGw (2 * (cfg.maxSq + 1))
+  sqPtr : σ (.n (sg.k + 1)) = sqzv
+  guard : σ (.n (sg.k + 4)) = 1 + osGw (cfg.lv lvl).squeezes
+  rwSize : σ (.n ((osLvSq cfg lvl sg).2.k + (cfg.lv lvl).queries)) = osGw cfg.maxIl
+  rwPtr : σ (.n ((osLvSq cfg lvl sg).2.k + (cfg.lv lvl).queries + 1)) = rewv
+
 /-- The level, in its two parts. -/
 theorem osLevel_parts (cfg : OsCfg) (lvl : ℕ) (s : OsSt) :
     osLevel cfg lvl (cfg.lv lvl) s = ((osLvF cfg lvl s).1 ++ (osLvM cfg lvl s).1 ++ (osLvG cfg lvl s).1 ++
@@ -141,9 +159,9 @@ theorem osLevelB_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : 
       LoadHolds rd P.ood ((lvl + 1) * 4 + 3) (osHW cfg lvl xs p 4))
     (hbeta : LoadHolds rd P.betas lvl (if lvl = cfg.yrLevel then osHLam cfg lvl xs p H.cv1
       else osHLam cfg lvl xs p H.cv1 * osHLam cfg lvl xs p H.cv1))
-    {kret : List E → Prop}
+    {kret : List E → Prop} {Csq : CallRel}
     (hcsq : 1 + osGw (cfg.lv lvl).squeezes ≠ 0 →
-      C (cfg.lv lvl).sqLoop [1, osGw (cfg.lv lvl).squeezes, sqzv, P.qpos, P.qbp] [])
+      Csq (cfg.lv lvl).sqLoop [1, osGw (cfg.lv lvl).squeezes, sqzv, P.qpos, P.qbp] [])
     (hcrw : C (cfg.lv lvl).rowWeights [P.fch * gen ^ (cfg.lv lvl).foldsOff, rewv] [])
     (hccap : C (cfg.lv lvl).verifyCap [P.caps * gen ^ (4 * (cfg.lv lvl).capOff), P.flags * gen ^ (cfg.lv lvl).capOff]
       [(digestScalars rt).1, (digestScalars rt).2])
@@ -152,7 +170,8 @@ theorem osLevelB_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : 
       [osHEnf cfg lvl xs p H])
     (hv : ∀ j < (osLvValsB cfg lvl xs p H rt P sqzv rewv).length,
       σ (.n (sg.k + j)) = (osLvValsB cfg lvl xs p H rt P sqzv rewv).getD j 0) :
-    Stmt.HoldsList C rd σ (osLvStB cfg lvl sg) True kret ∧
+    (Stmt.HoldsList Csq rd σ (osLvSq cfg lvl sg).1 True kret ∧ Stmt.HoldsList C rd σ (osLvRestB cfg lvl sg) True kret ∧
+      OsLvSig σ cfg lvl sg sqzv rewv) ∧
       OsAt σ (osLvGl cfg lvl sg).2 (osHCvEnd cfg lvl xs p H.cv1) cur (osHPEnd cfg lvl p) ∧
       (osLvGl cfg lvl sg).2.co = sg.co + 2 ∧
       (osHWEnd cfg lvl xs p H).quad = [σ (.n (osLvGl cfg lvl sg).2.c), σ (.n (osLvGl cfg lvl sg).2.b),
@@ -183,7 +202,7 @@ theorem osLevelB_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : 
   have hl2 : S2.length = lv.queries := by
     simp only [hS2, List.length_take, osLamPowsVals, List.length_cons, List.length_map, List.length_range]; omega
   -- the squeezes
-  obtain ⟨hS, hatS, hlamS, hcoS, hcbS, hkS⟩ := osSqueezes_complete (rd := rd) (σ := σ) (kret := kret)
+  obtain ⟨hS, hatS, hlamS, hcoS, hcbS, hkS⟩ := osSqueezes_complete (C := Csq) (rd := rd) (σ := σ) (kret := kret)
     (maxSq := cfg.maxSq) (qpos := osQpos) (qbp := osQbp) (loop := lv.sqLoop) (by omega) hat l0 l1 l2 l3
     (by rw [hP.qpos, hP.qbp]; exact hcsq) (fun j hj => by rw [hv j (by simp only [List.length_append]; omega), List.append_assoc, List.append_assoc,
       oq_getD_app_lt (by omega)])
@@ -224,8 +243,23 @@ theorem osLevelB_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : 
   have hq1 : H.w1.quad.getD 1 0 = σ (.n sg.b) := by rw [hqd]; rfl
   have hq2 : H.w1.quad.getD 2 0 = σ (.n sg.a) := by rw [hqd]; rfl
   have hP3 : osHPEnd cfg lvl p = osHP2 cfg lvl p + 1 + 2 := by rw [osHPEnd]
-  have hstB : osLvStB cfg lvl sg = (osLvSq cfg lvl sg).1 ++ osLvL cfg lvl sg ++ q.1 ++ (osLvO cfg lvl sg).1 ++
+  have hstB : osLvRestB cfg lvl sg = osLvL cfg lvl sg ++ q.1 ++ (osLvO cfg lvl sg).1 ++
       [.atom (.load (.n (osLvO cfg lvl sg).2.2) (.n osBetas) lvl)] ++ (osLvGl cfg lvl sg).1 := rfl
+  have hsig : OsLvSig σ cfg lvl sg sqzv rewv := by
+    have v0 := hv 0 (by simp [hl1])
+    have v1 := hv 1 (by simp [hl1]; omega)
+    have v4 := hv 4 (by simp [hl1]; omega)
+    have hS3l : 2 ≤ S3.length := by simp [hS3, osQueriesSegs]
+    have w0 := g3 0 (by omega)
+    have w1 := g3 1 (by omega)
+    simp only [List.append_assoc] at v0 v1 v4
+    rw [oq_getD_app_lt (by omega)] at v0 v1 v4
+    refine ⟨by simpa [hS1, osSqueezesVals] using v0, by simpa [hS1, osSqueezesVals] using v1,
+      by rw [v4]; simp [hS1, osSqueezesVals]; rfl, ?_, ?_⟩
+    · rw [show (osLvSq cfg lvl sg).2.k + lv.queries = sg.k + (25 + lv.queries) + 0 by rw [← hsq, hkS]; ring, w0]
+      simp [hS3, osQueriesSegs]
+    · rw [show (osLvSq cfg lvl sg).2.k + lv.queries + 1 = sg.k + (25 + lv.queries) + 1 by rw [← hsq, hkS]; ring, w1]
+      simp [hS3, osQueriesSegs]
   by_cases hl : lvl = cfg.yrLevel
   · have eO : osLvO cfg lvl sg = ([], q.2.1, sq.k - 1) := by rw [osLvO, ite_pos' hl]; rfl
     have hS4' : S4 = osGlueVals lam enf c0 (enf + c2) c2 (H.w1.quad.getD 0 0) (H.w1.quad.getD 1 0)
@@ -239,13 +273,12 @@ theorem osLevelB_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : 
       (fun j hj => by
         rw [g4 j hj, hlamS, eq1, eq2, eq3, eq4, kq.1, kq.2.1, kq.2.2.1, kq.2.2.2, hq0, hq1, hq2, htg])
     rw [← eGl] at hG gc gb ga gt gk gco
-    refine ⟨?_, ⟨by rw [eGl]; exact hatQ.fs, by rw [eGl, hP3]; exact hatQ.cursor⟩, ?_, ?_, ?_, ?_⟩
+    refine ⟨⟨hS, ?_, hsig⟩, ⟨by rw [eGl]; exact hatQ.fs, by rw [eGl, hP3]; exact hatQ.cursor⟩, ?_, ?_, ?_, ?_⟩
     · rw [hstB, eO]
       simp only [holdsList_append]
-      refine (holdsList_noRet _ (osSqueezes_noRet _ _ _ _ _ _) _ _).mpr ⟨hS,
-        (holdsList_noRet _ (osLamPows_noRet _ _ _ _ _) _ _).mpr ⟨hL,
+      refine (holdsList_noRet _ (osLamPows_noRet _ _ _ _ _) _ _).mpr ⟨hL,
         (holdsList_noRet _ (osQueries_noRet _ _ _ _) _ _).mpr ⟨hQ, (holdsList_noRet _ rfl _ _).mpr ⟨trivial,
-        (holdsList_noRet _ rfl _ _).mpr ⟨?_, hG⟩⟩⟩⟩⟩
+        (holdsList_noRet _ rfl _ _).mpr ⟨?_, hG⟩⟩⟩⟩
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       rw [hlamS, hP.betas]
       rw [ite_pos' hl] at hbeta
@@ -301,14 +334,13 @@ theorem osLevelB_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : 
         rw [show O.2.k + j = q.2.1.k + 13 + j by rw [ok]]
         rw [g4b j hj, ok1, eq1, eq2, eq3, eq4, oc, ob, oa, ot, hq0, hq1, hq2, htg])
     rw [← eGl] at hG gc gb ga gt gk gco
-    refine ⟨?_, ⟨by rw [eGl]; exact hatQ.fs, by rw [eGl, hP3]; exact hatQ.cursor⟩, ?_, ?_, ?_, ?_⟩
+    refine ⟨⟨hS, ?_, hsig⟩, ⟨by rw [eGl]; exact hatQ.fs, by rw [eGl, hP3]; exact hatQ.cursor⟩, ?_, ?_, ?_, ?_⟩
     · rw [hstB, eO]
       simp only [holdsList_append]
-      refine (holdsList_noRet _ (osSqueezes_noRet _ _ _ _ _ _) _ _).mpr ⟨hS,
-        (holdsList_noRet _ (osLamPows_noRet _ _ _ _ _) _ _).mpr ⟨hL,
+      refine (holdsList_noRet _ (osLamPows_noRet _ _ _ _ _) _ _).mpr ⟨hL,
         (holdsList_noRet _ (osQueries_noRet _ _ _ _) _ _).mpr ⟨hQ,
         (holdsList_noRet _ (by simp [hO, osOodGlue, Stmt.noRetList, Stmt.noRet]) _ _).mpr ⟨hOh,
-        (holdsList_noRet _ rfl _ _).mpr ⟨?_, hG⟩⟩⟩⟩⟩
+        (holdsList_noRet _ rfl _ _).mpr ⟨?_, hG⟩⟩⟩⟩
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       rw [ok1, hP.betas]
       rw [ite_neg' hl] at hbeta

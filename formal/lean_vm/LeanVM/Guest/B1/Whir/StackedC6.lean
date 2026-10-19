@@ -71,7 +71,7 @@ theorem osLevelA_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : 
       LoadHolds rd (σ (.n osOod)) ((lvl + 1) * 4 + 0 * 4 + 2) (osHW cfg lvl xs p 3) ∧
       LoadHolds rd (σ (.n osOod)) ((lvl + 1) * 4 + 0 * 4 + 3) (osHW cfg lvl xs p 4))
     {kret : List E → Prop}
-    (hcf : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), p' + 2 ≤ xs.length →
+    (hcf : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), q'.length = 3 → p' + 2 ≤ xs.length →
       C "opening_fold" [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ p', q'.getD 0 0, q'.getD 1 0,
         q'.getD 2 0] (osFoldRets xs cv' p' q' (cur * gen ^ p')))
     (hcm : lvl = cfg.yrLevel → C cfg.finalMsg [(digestScalars H.cv1).1, (digestScalars H.cv1).2,

@@ -140,9 +140,9 @@ theorem osBody_complete {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok
       R.D.ent i = 0) (hnq : ∀ lv ∈ cfg.levels, lv.queries < 2 ^ 128)
     (hσ : ∀ j < (osBodyVals cfg R).length, σ (.n j) = (osBodyVals cfg R).getD j 0)
     (hm : OsBodyMem rd σ cfg R)
-    {CA CB : ℕ → CallRel} (hcH : OsLvsCallH CA CB cfg R.xs R.cur R.P R.sqz R.rew 0 2 (osW0 R.target R.xs)
+    {CA CB Csq : ℕ → CallRel} (hcH : OsLvsCallH CA CB Csq cfg R.xs R.cur R.P R.sqz R.rew 0 2 (osW0 R.target R.xs)
       (R.roots0 cfg) R.Hs)
-    {CT : CallRel} (hcT : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), p' + 2 ≤ R.xs.length →
+    {CT : CallRel} (hcT : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), q'.length = 3 → p' + 2 ≤ R.xs.length →
       CT "opening_fold" [(digestScalars cv').1, (digestScalars cv').2, R.cur * gen ^ p', q'.getD 0 0, q'.getD 1 0,
         q'.getD 2 0] (osFoldRets R.xs cv' p' q' (R.cur * gen ^ p')))
     {CF : CallRel} (hcff : CF cfg.foldFinal [R.P.fmsg, R.tchv] [R.D.yat])
@@ -150,7 +150,7 @@ theorem osBody_complete {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok
       CF (cfg.levels.getD lvl default).resLoop [1, osGw (cfg.levels.getD lvl default).queries, R.P.qpos,
         R.D.ba, R.D.bb, R.D.chv lvl, R.P.qw] []) :
     Stmt.HoldsList osTC rd σ (osBody cfg) False (fun rs => rs = [R.D.t, R.D.pt, osFinTot cfg R.D, R.D.yat]) ∧
-      OsLvsCallsOk CA CB cfg σ 0 (osHead cfg).2 R.Hs.length ∧
+      OsLvsCallsOk CA CB Csq cfg σ R.sqz R.rew 0 (osHead cfg).2 R.Hs.length ∧
       Stmt.HoldsList CT rd σ (osTail cfg.yrLog (OsRun.sL cfg)).1 True
         (fun rs => rs = [R.D.t, R.D.pt, osFinTot cfg R.D, R.D.yat]) ∧
       Stmt.HoldsList CF rd σ (osFinish cfg (OsRun.sT cfg) (OsRun.tch cfg)) False
@@ -178,7 +178,7 @@ theorem osBody_complete {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok
   have hq0' : (osW0 R.target R.xs).quad = [σ (.n (osHead cfg).2.c), σ (.n (osHead cfg).2.b),
       σ (.n (osHead cfg).2.a)] := by rw [hq0]; rfl
   obtain ⟨hcs, hLh, hatL, hcoL, hqL, htL, hkL⟩ := osLevels_complete (rd := rd) (σ := σ) (kret := fun rs => rs = [R.D.t, R.D.pt, osFinTot cfg R.D, R.D.yat])
-    (CA := CA) (CB := CB) (rew := R.rew) hok.len hok.spec hok.yrLevel hP R.Hs 0 R.cv0 2 (osW0 R.target R.xs) R.os
+    (CA := CA) (CB := CB) (Csq := Csq) (rew := R.rew) hok.len hok.spec hok.yrLevel hP R.Hs 0 R.cv0 2 (osW0 R.target R.xs) R.os
     (R.roots0 cfg) (osHead cfg).2 (by rw [Nat.zero_add, hHs]) hch hat0 (by rw [hco0]) (by rw [hco0]; omega) hq0'
     hm.lvs hcH (fun j hj => by rw [hk0]; exact gL j hj)
   rw [List.drop_zero] at hLh hatL hcoL hqL htL hkL

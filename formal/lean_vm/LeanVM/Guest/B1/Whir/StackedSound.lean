@@ -83,8 +83,9 @@ theorem osResiduals_sound {cfg : OsCfg} {ich ba bb k : ℕ}
     (hres : ∀ i < cfg.levels.length, ∃ fn, coreProgram.find? (cfg.lv i).resLoop = some fn ∧
       fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧ fn.body = resLoopOf cfg i (cfg.lv i))
     (hcols : ∀ i < cfg.levels.length, 1 ≤ (cfg.lv i).logCols ∧ (cfg.lv i).queries < 2 ^ 62)
-    {kret : List E → Prop}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osResiduals cfg.maxQ ich ba bb k cfg.levels) True kret) :
+    {kret : List E → Prop} {C : CallRel}
+    (hC : ∀ i < cfg.levels.length, ∀ a, a.length = 7 → C (cfg.lv i).resLoop a [] → coreProgram.Rel rd (cfg.lv i).resLoop a [])
+    (h : Stmt.HoldsList C rd σ (osResiduals cfg.maxQ ich ba bb k cfg.levels) True kret) :
     ∀ i < cfg.levels.length, ∃ rc : E, (∀ x < (cfg.lv i).queries, ResBody rd (cfg.lv i).posOff (i * 22)
         (cfg.lv i).logCols (i * cfg.maxQ) (cfg.lv i).vals (σ (.n osQpos)) (σ (.n ba)) (σ (.n bb)) rc
         (σ (.n osQw)) (gen ^ x)) ∧ LoadHolds rd rc 0 0 ∧
@@ -94,7 +95,7 @@ theorem osResiduals_sound {cfg : OsCfg} {ich ba bb k : ℕ}
   rw [zipIdx_map_range', holdsList_range_flatten _ _ (fun _ => rfl)] at h
   intro i hi
   obtain ⟨fn, hf, hp, hb⟩ := hres i hi
-  exact osResidual_sound hf hp hb (hcols i hi).1 (hcols i hi).2 (h.1 i hi)
+  exact osResidual_sound hf hp hb (hcols i hi).1 (hcols i hi).2 (hC i hi) (h.1 i hi)
 
 /-! ## The configuration and the callees -/
 
@@ -180,8 +181,11 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
       ∀ i < cfg.levels.length, OsRecOk rd σ cfg i (recs.getD i default))
     (hresl : residual.length = cfg.yrLen) (hres : ReadsAt rd (σ (.n osFmsg)) residual)
     (htfl : tf.length = cfg.yrLog) (htch : ReadsAt rd (σ (.n tch)) (tf ++ List.replicate (5 - cfg.yrLog) 0))
-    {rets : List E}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osFinish cfg st tch) False (fun rs => rs = rets)) :
+    {rets : List E} {C : CallRel}
+    (hC7 : ∀ i < cfg.levels.length, ∀ a, a.length = 7 → C (cfg.lv i).resLoop a [] →
+      coreProgram.Rel rd (cfg.lv i).resLoop a [])
+    (hC2 : ∀ a r, a.length = 2 → C cfg.foldFinal a r → MeaningFoldFinalMsg cfg.yrLog rd a r)
+    (h : Stmt.HoldsList C rd σ (osFinish cfg st tch) False (fun rs => rs = rets)) :
     ∃ pt, rets = [σ (.n st.t), pt,
         wL.glued.foldl (fun w c ↦ w + c.scalar * c.weightAt (wL.folds.drop c.foldStart ++ tf)) 0,
         multilinearEval residual tf] ∧
@@ -218,7 +222,7 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
   have hyr : cfg.yrLen = 2 ^ cfg.yrLog := by
     rw [hlast.yrLen, hok.nFolds, ← hok.total, Nat.add_sub_cancel_left]
   -- the residual's value
-  obtain ⟨mm, ps, hmml, hpsl, hmm, hps, hyat⟩ := hcal.ff _ _ hF
+  obtain ⟨mm, ps, hmml, hpsl, hmm, hps, hyat⟩ := hC2 _ _ rfl hF
   have hps' : ps = tf := os_readsAt_unique hps (os_readsAt_prefix htch) (by rw [hpsl, htfl])
   have hmm' : mm = residual := os_readsAt_unique hmm hres (by rw [hmml, hresl, hyr])
   simp only [List.cons.injEq, and_true] at hyat
@@ -241,7 +245,7 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
     osBases_sound 0 cfg.levels _ hB i hi it (by simpa using hit)
   -- the residual chains
   have hres' := osResiduals_sound (ich := bs.2 + 1) (ba := st.k + 1 + 44) (bb := st.k + 1 + 46)
-    (k := bs.2 + 3) hcal.res (fun i hi => ⟨((hspec i hi).logCols).2.1, ((hspec i hi).logCols).2.2⟩) hR
+    (k := bs.2 + 3) hcal.res (fun i hi => ⟨((hspec i hi).logCols).2.1, ((hspec i hi).logCols).2.2⟩) hC7 hR
   choose! rc hrcB hrc0 i0 bv rr hi0 hbv hrr hi1 using hres'
   have hich : ∀ i ≤ n, LoadHolds rd (σ (.n (bs.2 + 1))) i (∑ i' ∈ Finset.range i, bv i' * rr i') := by
     intro i hi
@@ -395,7 +399,8 @@ theorem open_stacked_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (
   generalize osTail cfg.yrLog sL = tl at *
   -- after the tail
   have hnf : wL.folds.length = cfg.nFolds := by rw [hend.nfolds, hok.nFolds]
-  obtain ⟨pt, hrets, hpt⟩ := osFinish_sound hok hcal hnf hend.folds hend.glued hresl hres htfl htch h
+  obtain ⟨pt, hrets, hpt⟩ := osFinish_sound hok hcal hnf hend.folds hend.glued hresl hres htfl htch (fun _ _ _ _ h => h)
+    (fun a r _ h => hcal.ff a r h) h
   have hptl : ((wL.folds ++ tf).drop (cfg.lv 0).folds ++ (wL.folds ++ tf).take (cfg.lv 0).folds).length =
       cfg.nFolds + cfg.yrLog := by
     simp [hnf, htfl]; have := hok.laneLe; omega

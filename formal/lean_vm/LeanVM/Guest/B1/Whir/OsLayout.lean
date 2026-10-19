@@ -61,12 +61,12 @@ theorem os_lvsMem_mem {rd : Reader} {cfg : OsCfg} {xs : List E} {cur : E} {P : O
     ⟨h _ List.mem_cons_self, os_lvsMem_mem Hs _ _ _ _ _ _ fun L hL => h L (List.mem_cons_of_mem _ hL)⟩
 
 /-- A level's call hypotheses, from the levels'. -/
-theorem os_lvsCallH_mem {CA CB : ℕ → CallRel} {cfg : OsCfg} {xs : List E} {cur : E} {P : OsPtrs}
+theorem os_lvsCallH_mem {CA CB Csq : ℕ → CallRel} {cfg : OsCfg} {xs : List E} {cur : E} {P : OsPtrs}
     {sqz rew : ℕ → E} : ∀ (Hs : List OsLvH) lvl cv p w osp roots,
       (∀ L ∈ osLvsList cfg xs lvl cv p w osp roots Hs,
-        OsLvCallH (CA L.lvl) (CB L.lvl) cfg L.lvl xs L.p L.H (L.roots.getD L.lvl default).1 P (sqz L.lvl)
+        OsLvCallH (CA L.lvl) (CB L.lvl) (Csq L.lvl) cfg L.lvl xs L.p L.H (L.roots.getD L.lvl default).1 P (sqz L.lvl)
           (rew L.lvl) cur) →
-      OsLvsCallH CA CB cfg xs cur P sqz rew lvl p w roots Hs
+      OsLvsCallH CA CB Csq cfg xs cur P sqz rew lvl p w roots Hs
   | [], _, _, _, _, _, _, _ => trivial
   | _ :: Hs, _, _, _, _, _, _, h =>
     ⟨h _ List.mem_cons_self, os_lvsCallH_mem Hs _ _ _ _ _ _ fun L hL => h L (List.mem_cons_of_mem _ hL)⟩

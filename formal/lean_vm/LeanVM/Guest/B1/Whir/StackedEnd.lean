@@ -25,7 +25,7 @@ open LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {rd : Reader} {σ : Val} {C : CallRel}
 
 /-! ## The tail rounds -/
 
@@ -170,7 +170,7 @@ theorem osPoint_sound {nFolds lane yrLog tch k : ℕ} (hlane : lane ≤ nFolds) 
     {P T : List E} (hP : P.length = nFolds) (hT : T.length = yrLog)
     (hfch : ∀ j < nFolds, LoadHolds rd (σ (.n osFch)) j (P.getD j 0))
     (htch : ∀ j < yrLog, LoadHolds rd (σ (.n tch)) j (T.getD j 0)) {kret : List E → Prop}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osPoint nFolds lane yrLog tch k) True kret) :
+    (h : Stmt.HoldsList C rd σ (osPoint nFolds lane yrLog tch k) True kret) :
     ReadsAt rd (σ (.n k)) (((P ++ T).drop lane ++ (P ++ T).take lane) ++
       List.replicate (42 - (nFolds + yrLog)) 0) := by
   unfold osPoint at h
@@ -216,7 +216,7 @@ def OsBasisOk (rd : Reader) (σ : Val) (ba bb : ℕ) (it : ℕ × (ℕ × ℕ) �
 
 theorem osBasisRow_sound {ba bb : ℕ} {kret : List E → Prop} :
     ∀ (items : List (ℕ × (ℕ × ℕ) × ℕ)) (k : ℕ),
-      Stmt.HoldsList (coreProgram.Rel rd) rd σ (osBasisRow ba bb items k).1 True kret →
+      Stmt.HoldsList C rd σ (osBasisRow ba bb items k).1 True kret →
       ∀ it ∈ items, OsBasisOk rd σ ba bb it
   | [], _, _, it, hit => absurd hit (by simp)
   | (slot, src, inv) :: rest, k, h, it, hit => by
@@ -241,7 +241,7 @@ theorem osBasisRow_sound {ba bb : ℕ} {kret : List E → Prop} :
 
 theorem osBases_sound {yrLog tch ba bb : ℕ} {kret : List E → Prop} :
     ∀ (lvl : ℕ) (lvs : List OsLvl) (k : ℕ),
-      Stmt.HoldsList (coreProgram.Rel rd) rd σ (osBases yrLog tch ba bb lvl lvs k).1 True kret →
+      Stmt.HoldsList C rd σ (osBases yrLog tch ba bb lvl lvs k).1 True kret →
       ∀ i < lvs.length, ∀ it ∈ osBasisCoords yrLog tch (lvl + i) (lvs.getD i default),
         OsBasisOk rd σ ba bb it
   | _, [], _, _, i, hi => absurd hi (by simp)
@@ -269,7 +269,8 @@ theorem osResidual_sound {maxQ ich ba bb lvl k : ℕ} {lv : OsLvl} {fn : Fn}
     (hp : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6])
     (hb : fn.body = resLoopBody lv.posOff (lvl * 22) lv.logCols (lvl * maxQ) lv.vals lv.resLoop)
     (hc : 1 ≤ lv.logCols) (hnq : lv.queries < 2 ^ 62) {kret : List E → Prop}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osResidual maxQ ich ba bb lvl lv k) True kret) :
+    (hC : ∀ a, a.length = 7 → C lv.resLoop a [] → coreProgram.Rel rd lv.resLoop a [])
+    (h : Stmt.HoldsList C rd σ (osResidual maxQ ich ba bb lvl lv k) True kret) :
     ∃ rc : E, (∀ x < lv.queries, ResBody rd lv.posOff (lvl * 22) lv.logCols (lvl * maxQ) lv.vals
         (σ (.n osQpos)) (σ (.n ba)) (σ (.n bb)) rc (σ (.n osQw)) (gen ^ x)) ∧ LoadHolds rd rc 0 0 ∧
       ∃ i0 b r, LoadHolds rd (σ (.n ich)) lvl i0 ∧ LoadHolds rd (σ (.n osBetas)) lvl b ∧
@@ -280,6 +281,7 @@ theorem osResidual_sound {maxQ ich ba bb lvl k : ℕ} {lv : OsLvl} {fn : Fn}
   obtain ⟨-, -, e2, l2, e3, e4, e5, e6, e7, hK, hrun, l8, l9, l10, e11, e12, l12⟩ := h
   rw [e5, e3, e4, os_gw_eq (by omega)] at hrun
   rw [e6, e7, os_gw_eq (by omega)] at hrun
+  replace hrun := fun hne => hC _ rfl (hrun hne)
   obtain ⟨m, hm, hN, hB⟩ := guarded_loop_sound (P := coreProgram) (f := lv.resLoop)
     (ps := [gen ^ lv.queries, σ (.n osQpos), σ (.n ba), σ (.n bb), σ (.n (k + 1)), σ (.n osQw)])
     (fun d x hx => resLoop_step hfind hp hb hc hx) hrun
@@ -303,7 +305,7 @@ def osOodSrc (tch zf ris t : ℕ) : ℕ × ℕ := if t < zf then (osFch, ris + t
 /-- **An out-of-domain weight** (G:1302-1310): its scalar at `ood[ol·4]` times
 `∏ (1 + z_t + c_t)` over its point at `oodz[ol·22 ..]` and the terminal point's coordinates. -/
 theorem osOodWeight_sound {yrLog tch zf ris ol k : ℕ} (hn : 0 < zf + yrLog) {kret : List E → Prop}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osOodWeight yrLog tch zf ris ol 0 k) True kret)
+    (h : Stmt.HoldsList C rd σ (osOodWeight yrLog tch zf ris ol 0 k) True kret)
     {sc : E} {z c : ℕ → E} (hsc : LoadHolds rd (σ (.n osOod)) (ol * 4) sc)
     (hz : ∀ t < zf + yrLog, LoadHolds rd (σ (.n osOodz)) (ol * 22 + t) (z t))
     (hc : ∀ t < zf + yrLog, LoadHolds rd (σ (.n (osOodSrc tch zf ris t).1)) (osOodSrc tch zf ris t).2 (c t)) :
@@ -359,11 +361,11 @@ the running sum `acc`, each weight `W i` as `osOodWeight_sound` gives it. -/
 theorem osOodWeights_sound {yrLog tch : ℕ} {kret : List E → Prop} :
     ∀ (lvs : List OsLvl) (ol prev : ℕ) (acc : Option ℕ) (k : ℕ) (W : ℕ → E),
       (∀ lv ∈ lvs, lv.oodHere = 1) →
-      (∀ i < lvs.length, ∀ k', Stmt.HoldsList (coreProgram.Rel rd) rd σ
+      (∀ i < lvs.length, ∀ k', Stmt.HoldsList C rd σ
           (osOodWeight yrLog tch (osPrevColsAt lvs prev i - yrLog) (lvs.getD i default).foldsOff (ol + i) 0 k')
           True kret →
         σ (.n (k' + 6 * (osPrevColsAt lvs prev i - yrLog + yrLog))) = W i) →
-      Stmt.HoldsList (coreProgram.Rel rd) rd σ (osOodWeights yrLog tch prev ol lvs acc k).1 True kret →
+      Stmt.HoldsList C rd σ (osOodWeights yrLog tch prev ol lvs acc k).1 True kret →
       osAccVal σ (osOodWeights yrLog tch prev ol lvs acc k).2.1 =
         osAccVal σ acc + ∑ i ∈ Finset.range lvs.length, W i
   | [], _, _, acc, _, _, _, _, _ => by simp [osOodWeights]

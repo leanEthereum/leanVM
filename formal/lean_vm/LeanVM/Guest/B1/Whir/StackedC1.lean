@@ -238,7 +238,7 @@ theorem os_runs_foldStep {q : List E} {sp sp' : St} {r : E × E × List E}
 /-- **The fold rounds** at their honest values: `n` rounds of `foldRounds` (V:1678) from the
 specification's state at `p` words of `xs` read, each challenge stored at `fch[fo + j]`. -/
 theorem osFolds_complete {xs : List E} {cur : E} {fch : ℕ} {kret : List E → Prop} {C : CallRel}
-    (hcall : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), p' + 2 ≤ xs.length →
+    (hcall : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), q'.length = 3 → p' + 2 ≤ xs.length →
       C "opening_fold" [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ p', q'.getD 0 0, q'.getD 1 0,
         q'.getD 2 0] (osFoldRets xs cv' p' q' (cur * gen ^ p'))) :
     ∀ (n fo : ℕ) (s : OsSt) (cv : Digest) (p : ℕ) (w : WhirState) (lf : List E) (osp : List Opening)
@@ -290,7 +290,7 @@ theorem osFolds_complete {xs : List E} {cur : E} {fch : ℕ} {kret : List E → 
       simpa using this
     have hc1 : C "opening_fold" [σ (.n s.f0), σ (.n s.f1), σ (.n s.cb) * gen ^ s.co, σ (.n s.c), σ (.n s.b),
         σ (.n s.a)] (osFoldRets xs cv p [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (σ (.n s.cb) * gen ^ s.co)) := by
-      have := hcall cv p [σ (.n s.c), σ (.n s.b), σ (.n s.a)] hlen2
+      have := hcall cv p [σ (.n s.c), σ (.n s.b), σ (.n s.a)] rfl hlen2
       have e0 : (digestScalars cv).1 = σ (.n s.f0) := by rw [← hat.fs]
       have e1 : (digestScalars cv).2 = σ (.n s.f1) := by rw [← hat.fs]
       rw [e0, e1, ← hat.cursor] at this
