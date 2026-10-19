@@ -373,5 +373,161 @@ theorem read_val {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
 
 end Val
 
+/-! ## The fixed cells, the temporaries, the table targets -/
+
+section Others
+
+variable {j : ℕ} {G : Glob} {fc : CompiledFn} {main : Bool}
+
+/-- The run value at a fixed cell is a named value of the path at it. -/
+theorem run_named {f : String} {σ : Val} (hj : idxOf f = some j) {es : List Ev} {vs : List V}
+    (hw : walk σ (coreOf j).body = .ret es vs) (FS : FnStatic j) {x : ℕ × E} (hx : x ∈ runsE f σ es) :
+    ∃ u ∈ namedOf (coreOf j).params es vs, cellJ j u = x.1 ∧ x.2 = σ u := by
+  obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
+  obtain ⟨p, r, rs, he, k, hk, rfl⟩ := mem_runsE hx
+  have ha : Atom.frameAddr p (r :: rs) ∈ lAtoms (coreOf (i + 1)).body := walk_atoms _ (by rw [hw]; exact he)
+  obtain ⟨-, hrc, -⟩ := FS.run p r rs ha k hk
+  refine ⟨(r :: rs)[k], ?_, by rw [hrc, hcert]; rfl, rfl⟩
+  simp only [namedOf, List.mem_append, List.mem_flatMap]
+  exact Or.inl (Or.inr ⟨_, he, by simp only [Ev.uses, atomUses]; exact List.mem_cons_of_mem _ (List.getElem_mem hk)⟩)
+
+theorem cellJ_tmp_listed {u : V} {c : ℕ} (htc : bitN (tmpCells (plumbOf j)) c = false ∨
+    (u.idx, c) ∈ (plumbOf j).tmps) {t : V} (hl : (t.idx, c) ∈ (plumbOf j).tmps) : (u.idx, c) ∈ (plumbOf j).tmps := by
+  rcases htc with htc | htc
+  · have := mem_bitsOf (List.mem_map_of_mem (f := Prod.snd) hl)
+    simp only at this
+    unfold tmpCells at htc
+    rw [bitN_eq, this] at htc; cases htc
+  · exact htc
+
+/-- **The honest memory reads each fixed cell's word.** -/
+theorem read_stat {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
+    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
+    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
+    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
+    (hw : walk σ (coreOf j).body = .ret es vs) (he : ∀ e ∈ es, e.Holds rd σ)
+    {q : ℕ × PC} (hq : q ∈ (plumbOf j).stat) (h2 : 2 ≤ q.1) (hn : q.1 < fsN j) :
+    (honest coreProgram fs H C hdr T).read (gpow (I.fp + q.1)) = some (q.2.word I.fp) := by
+  obtain ⟨Ψ, hΨ, hst⟩ := shareOk_path hS hchk hw he
+  have hΨ' : ∀ u ∈ namedOf (coreOf j).params es vs, 2 ≤ cellJ j u → σ u = Ψ (cellJ j u) :=
+    fun u hu hc ↦ hΨ u (by simpa [namedOf, List.append_assoc] using hu) hc
+  have FS := fnStatic hS hchk
+  have AP := apart_j hS
+  obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
+  have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
+  obtain ⟨hev, hvs⟩ := node_path ht hj hw
+  -- a value at the cell: the cell holds a constant, the value's word
+  have hval : ∀ u ∈ namedOf (coreOf (i + 1)).params es vs, cellJ (i + 1) u = q.1 → σ u = q.2.word I.fp := by
+    intro u hu hcu
+    obtain ⟨-, -, hfc, -⟩ := valOk_global hS hchk (namedOf_sub hw hu)
+    rcases q with ⟨o, ⟨a, b, c⟩ | e⟩
+    · simp only at hcu ⊢
+      rw [hΨ' u hu (by rw [hcu]; exact h2), hcu, hst o a b c hq]; rfl
+    · simp only at hcu
+      have : (fpgCells (plumbOf (i + 1))).testBit o = true := mem_bitsOf (List.mem_filterMap.mpr ⟨_, hq, rfl⟩)
+      rw [bitN_eq, hcu, this] at hfc; cases hfc
+  have hmem : (q.1, q.2.word I.fp) ∈ C I := by
+    rw [C_node ht hj, hfs]
+    refine frameE_cell ⟨(q.1, q.2.word I.fp), ?_, rfl⟩ h2 hn fun x hx hxc ↦ ?_
+    · simp only [nodeE, List.mem_append, List.mem_map]
+      exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inr ⟨q, hq, rfl⟩))))
+    simp only [nodeE, List.mem_append, hev, hvs] at hx
+    rcases hx with (((((hx | hx) | hx) | hx) | hx) | hx) | hx
+    · simp only [valE, List.mem_map] at hx
+      obtain ⟨t, htm, rfl⟩ := hx
+      obtain ⟨j', hj', htl⟩ := temps_of htm
+      rw [hj] at hj'; cases hj'
+      have := (FS.tmp t htl).2
+      exact absurd (by rw [← hcJ]; exact hxc) (AP.statTmp q hq _ this)
+    · obtain ⟨u, hu, hcu, hx2⟩ := run_named hj hw FS hx
+      rw [hx2]; exact hval u hu (hcu.trans hxc)
+    · simp only [List.mem_map] at hx
+      obtain ⟨q', hq', rfl⟩ := hx
+      simp only at hxc ⊢
+      rw [List.inj_on_of_nodup_map AP.statNodup hq' hq hxc]
+    · simp only [valE, List.mem_map] at hx
+      obtain ⟨u, hu, rfl⟩ := hx
+      simp only [hcJ] at hxc ⊢
+      exact hval u hu hxc
+    · exact absurd hxc ((AP.site _ (mem_siteE hx)).2.2.1 q hq).symm
+    · simp only [List.mem_map] at hx
+      obtain ⟨a, ha, rfl⟩ := hx
+      exact absurd hxc ((AP.arm a ha).2.2.1 q hq).symm
+    · split_ifs at hx with h1
+      · have hlt := (AP.main h1).2.2.1 q hq
+        have : x.1 ∈ tableCells.map Prod.fst := List.mem_map_of_mem hx
+        rw [tableCells_offsets, List.mem_range'] at this
+        omega
+      · cases hx
+  rw [gpow, pow_add]
+  exact h.read_C hI hmem
+
+/-- **The honest memory reads each temporary of the path at its cell.** -/
+theorem read_tmp {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
+    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
+    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
+    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
+    (hw : walk σ (coreOf j).body = .ret es vs) {t : V} (htm : t ∈ coreProgram.temps f)
+    (h2 : 2 ≤ cellJ j t) (hn : cellJ j t < fsN j) :
+    (honest coreProgram fs H C hdr T).read (gpow (I.fp + cellJ j t)) = some (σ t) := by
+  have FS := fnStatic hS hchk
+  have AP := apart_j hS
+  obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
+  have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
+  obtain ⟨hev, hvs⟩ := node_path ht hj hw
+  obtain ⟨j', hj', htl⟩ := temps_of htm
+  rw [hj] at hj'; cases hj'
+  obtain ⟨ht1, ht2⟩ := FS.tmp t htl
+  -- a value at a temporary's cell is that temporary
+  have same : ∀ u : V, u = V.n u.idx → (u.idx, cellJ (i + 1) t) ∈ (plumbOf (i + 1)).tmps → u = t := by
+    intro u hu hl
+    have := FS.tmpsFun _ hl _ ht2 rfl
+    simp only at this
+    rw [hu, ht1, this]
+  have hmem : (cellJ (i + 1) t, σ t) ∈ C I := by
+    rw [C_node ht hj, hfs]
+    refine frameE_cell ⟨(cert f t, σ t), ?_, hcert t⟩ h2 hn fun x hx hxc ↦ ?_
+    · simp only [nodeE, List.mem_append, valE, List.mem_map]
+      exact Or.inl (Or.inl (Or.inl (Or.inl (Or.inl (Or.inl ⟨t, htm, rfl⟩)))))
+    simp only [nodeE, List.mem_append, hev, hvs] at hx
+    rcases hx with (((((hx | hx) | hx) | hx) | hx) | hx) | hx
+    · simp only [valE, List.mem_map] at hx
+      obtain ⟨t', htm', rfl⟩ := hx
+      obtain ⟨j', hj', htl'⟩ := temps_of htm'
+      rw [hj] at hj'; cases hj'
+      obtain ⟨ht1', ht2'⟩ := FS.tmp t' htl'
+      simp only [hcJ] at hxc ⊢
+      rw [same t' ht1' (hxc ▸ ht2')]
+    · obtain ⟨p, r, rs, he', k, hk, rfl⟩ := mem_runsE hx
+      have ha : Atom.frameAddr p (r :: rs) ∈ lAtoms (coreOf (i + 1)).body := walk_atoms _ (by rw [hw]; exact he')
+      obtain ⟨-, -, hrun⟩ := FS.run p r rs ha k hk
+      exact absurd (by simp only [hcJ] at hxc; exact hxc) (FS.runsTmp _ hrun _ ht2).symm
+    · simp only [List.mem_map] at hx
+      obtain ⟨q, hq, rfl⟩ := hx
+      exact absurd hxc.symm (AP.statTmp q hq _ ht2)
+    · simp only [valE, List.mem_map] at hx
+      obtain ⟨u, hu, rfl⟩ := hx
+      simp only [hcJ] at hxc ⊢
+      obtain ⟨hu1, -, -, htc⟩ := valOk_global hS hchk (namedOf_sub hw hu)
+      rw [hxc] at htc
+      rw [same u hu1 (cellJ_tmp_listed htc ht2)]
+    · exact absurd (hxc ▸ rfl) ((AP.site _ (mem_siteE hx)).1 _ ht2)
+    · simp only [List.mem_map] at hx
+      obtain ⟨a, ha, rfl⟩ := hx
+      exact absurd hxc.symm ((AP.arm a ha).1 _ ht2)
+    · split_ifs at hx with h1
+      · have hlt := (AP.main h1).1 _ ht2
+        have : x.1 ∈ tableCells.map Prod.fst := List.mem_map_of_mem hx
+        rw [tableCells_offsets, List.mem_range'] at this
+        simp only at hlt
+        omega
+      · cases hx
+  rw [gpow, pow_add]
+  exact h.read_C hI hmem
+
+end Others
+
 end
 end LeanVM.Guest.B2C
