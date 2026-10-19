@@ -224,5 +224,101 @@ theorem sel_blocks : ∀ i < 65, stmtsEqb (selT (selBlk.getD i 0) (selVal.getD i
     ((vtPre.drop (selStmt.getD i 0)).take 28) = true := by decide +kernel
 
 
+theorem word_g34 : word 17179869184 0 0 = gen ^ 34 := word_two_pow (a := 34) (by decide)
+
+/-- **A block's selector** (G:1572-1594): block `b = selBlk i` of log-height `k < 34`, at offset
+`off`, with the bus point at `zeta` of length `μ = log g_bus_mu`: `k ≤ μ`, the offset is below
+`2^μ` and aligned to `2^k`, and the selector at value `selVal i + 23` is the placement's
+`eqAbove` at the point. -/
+theorem vt_sel {κ : ℕ} (hκ : κ ≤ 32) (Lm : MemImage κ) {σ : Val} (h : VtHolds Lm.read σ)
+    {i : ℕ} (hi : i < 65) {k off : ℕ} (hk : k < 34)
+    (hbk : LoadHolds Lm.read (σ (.n 9)) (selBlk.getD i 0) (gen ^ k))
+    (hoff : LoadHolds Lm.read (σ (.n 128)) (selBlk.getD i 0) (gen ^ off)) (hoff62 : off < 2 ^ 62)
+    {point : List E} (hz : ReadsAt Lm.read (σ (.n 5)) point) (hmu : σ (.n 6) = gen ^ point.length)
+    (hml : point.length < 33) (hsq : ∀ j < 34, LoadHolds Lm.read (σ (.n 10)) j (gen ^ 2 ^ j)) :
+    k ≤ point.length ∧ off < 2 ^ point.length ∧ 2 ^ k ∣ off ∧
+      σ (.n (selVal.getD i 0 + 23)) = ({ vars := k, index := off } : Placement).eqAbove point := by
+  set b := selBlk.getD i 0
+  set v := selVal.getD i 0
+  obtain ⟨kr, hb⟩ := h.slice _ _ (sel_blocks i hi)
+  simp only [selT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, true_and, word_one,
+    List.map_cons, List.map_nil] at hb
+  obtain ⟨l0, -, -, m6, c6, rc5, m10, -, l13, m14, c17, s17, c18, s18, c19, a20, c21, -, hloop,
+    m22, l23, m24, l25, l26, ae⟩ := hb
+  have ev : σ (.n v) = gen ^ k := loadHolds_unique l0 hbk
+  obtain ⟨e, he, hee⟩ := rc_sound' hκ Lm (K := 34) (by omega) (by decide)
+    (by rw [c6]; exact word_g33) rc5.1 rc5.2.1 rc5.2.2
+  rw [hmu, hee, ev, ← pow_add] at m6
+  have hmue : point.length = e + k := gen_pow_inj' (by omega) (by omega) m6
+  -- the loop
+  have hB := Main.loop_sound (B := SelBody Lm.read (σ (.n (v + 14))) (σ (.n (v + 15)))
+      (σ (.n (v + 10))) (σ (.n (v + 16))) (σ (.n 10)) (σ (.n v)))
+    (ps := [σ (.n (v + 5)), σ (.n (v + 14)), σ (.n (v + 15)), σ (.n (v + 10)), σ (.n (v + 16)),
+      σ (.n 10), σ (.n v)]) (N := σ (.n (v + 5))) (m := e) (by unfold ordG; omega) hee
+    (fun x hx => sel_step (sel_ok i hi) hx) (fun hne => by
+      have := hloop (by rw [a20, c19]; exact hne)
+      rw [c21] at this
+      exact this)
+  unfold SelBody at hB
+  classical
+  let bit : ℕ → E := fun t => if ht : t < e then Classical.choose (hB t ht) else 0
+  have hbit : ∀ t (ht : t < e), ∃ e' z o s', LoadHolds Lm.read (σ (.n (v + 14)) * gen ^ t) 0 (bit t) ∧
+      bit t * bit t = bit t ∧ LoadHolds Lm.read (σ (.n (v + 15)) * gen ^ t) 0 e' ∧
+      LoadHolds Lm.read (σ (.n (v + 10)) * gen ^ t) 0 z ∧
+      LoadHolds Lm.read (σ (.n (v + 15)) * gen ^ t) 1 (e' * (1 + bit t + z)) ∧
+      LoadHolds Lm.read (σ (.n (v + 16)) * gen ^ t) 0 o ∧
+      LoadHolds Lm.read (σ (.n 10) * (σ (.n v) * gen ^ t)) 0 s' ∧
+      LoadHolds Lm.read (σ (.n (v + 16)) * gen ^ t) 1 (o * (1 + bit t * (s' + 1))) := fun t ht => by
+    simp only [bit, ht, ↓reduceDIte]
+    exact Classical.choose_spec (hB t ht)
+  -- the chains
+  have hzk : ∀ t < e, ∀ z, LoadHolds Lm.read (σ (.n (v + 10)) * gen ^ t) 0 z →
+      z = point.getD (k + t) 0 := fun t ht z hl => by
+    rw [m10, ev, mul_assoc, ← pow_add, loadHolds_gen_pow_mul, Nat.add_zero] at hl
+    rw [List.getD_eq_getElem _ _ (by omega)]
+    exact loadHolds_unique hl (hz _ (by omega))
+  have hchain : ∀ t ≤ e,
+      LoadHolds Lm.read (σ (.n (v + 15))) t
+        (∏ j ∈ Finset.range t, (1 + bit j + point.getD (k + j) 0)) ∧
+      LoadHolds Lm.read (σ (.n (v + 16))) t
+        (∏ j ∈ Finset.range t, (1 + bit j * (gen ^ 2 ^ (k + j) + 1))) := by
+    intro t ht
+    induction t with
+    | zero =>
+      simp only [Finset.range_zero, Finset.prod_empty]
+      exact ⟨by rw [← c17]; exact s17, by rw [← c18]; exact s18⟩
+    | succ t ih =>
+      obtain ⟨ih1, ih2⟩ := ih (by omega)
+      obtain ⟨e', z, o, s', -, -, le, lz, le1, lo, ls, lo1⟩ := hbit t (by omega)
+      rw [loadHolds_gen_pow_mul, Nat.add_zero] at le lo
+      rw [loadHolds_gen_pow_mul] at le1 lo1
+      rw [← mul_assoc, ev, mul_assoc, ← pow_add, loadHolds_gen_pow_mul, Nat.add_zero] at ls
+      rw [loadHolds_unique le ih1, hzk t (by omega) z lz] at le1
+      rw [loadHolds_unique lo ih2, loadHolds_unique ls (hsq _ (by omega))] at lo1
+      rw [Finset.prod_range_succ, Finset.prod_range_succ]
+      exact ⟨le1, lo1⟩
+  obtain ⟨hc1, hc2⟩ := hchain e le_rfl
+  rw [m22, hee, loadHolds_gen_pow_mul, Nat.add_zero] at l23
+  rw [m24, hee, loadHolds_gen_pow_mul, Nat.add_zero] at l25
+  have e23 := loadHolds_unique l23 hc1
+  have e25 := loadHolds_unique l25 hc2
+  have e26 := loadHolds_unique l26 hoff
+  rw [e_add_eq_zero_iff, e25, e26] at ae
+  -- the rebuilt offset is the block's
+  obtain ⟨off', hoff', hdvd, hprod, hbits⟩ := sel_rebuild (M := point.length) (κ := k)
+    (b := fun j => bit (j - k)) (by omega) (fun t ht => by
+      simp only [Nat.add_sub_cancel_left]
+      obtain ⟨-, -, -, -, -, hb2, -⟩ := hbit t (by omega)
+      exact hb2)
+  simp only [Nat.add_sub_cancel_left] at hprod hbits
+  rw [show point.length - k = e by omega] at hprod hbits
+  rw [hprod] at ae
+  have h32 : 2 ^ point.length ≤ 2 ^ 32 := Nat.pow_le_pow_right (by decide) (by omega)
+  have hoo : off' = off := gen_pow_inj' (by omega) (by omega) ae
+  subst hoo
+  refine ⟨by omega, hoff', hdvd, ?_⟩
+  rw [e23, eqAbove_prod (M := point.length) point rfl, show point.length - k = e by omega]
+  exact Finset.prod_congr rfl fun t ht => by rw [hbits t (Finset.mem_range.mp ht)]
+
 end
 end LeanVM.Guest.B1.VerifySub
