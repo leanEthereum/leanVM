@@ -23,7 +23,9 @@ form (`Uniform.lean`):
 
 * the functions returning fixed words, `CompleteRel` on their meaning without their own scratch:
   `opening_fold`, `assert_canonical`, `opening_ood_point` (its states' run its own),
-  `grind_check` (its frame run its own), `opening_final_message__L{n}`,
+  `grind_check` (its frame run its own, at most 64 bits);
+* those whose meaning reads words its arguments and returns do not pin, on every memory holding
+  the caller's words (`LowDef` dropped, as `CompleteMem`): `opening_final_message__L{n}`,
   `opening_row_weights__L{folds}_L{rev}`, `fold_final_msg__L{n}`;
 * `decode_query_bits__L{d}`, which stores pointers into its own frame run in the caller's buffer,
   in an explicit form: at every frame pointer `fp`, a tree of `fs name` words whose data holds the
@@ -63,7 +65,7 @@ def OsOodPointAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) :
 /-- `grind_check`'s meaning without its frame run. -/
 def GrindPre (_rd : Reader) : List E → List E → Prop
   | [s0, s1, nonce, ng], rets =>
-      rets = [] ∧ ∃ m < ordG, ng = gen ^ m ∧ ∃ cv, (s0, s1) = digestScalars cv ∧
+      rets = [] ∧ ∃ m < ordG, m ≤ 64 ∧ ng = gen ^ m ∧ ∃ cv, (s0, s1) = digestScalars cv ∧
         powOk m nonce (gcDigest cv nonce) = true
   | _, _ => False
 
@@ -71,14 +73,19 @@ def GrindPre (_rd : Reader) : List E → List E → Prop
 def OsGrindAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop := CompleteRel fs cert k "grind_check" GrindPre
 
 /-- **`opening_final_message__L{n}`, placed** (TRIAGE #33). -/
-def OsFinalMsgAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ) : Prop := CompleteRel fs cert k name (MeaningOpeningFinalMessage n)
+def OsFinalMsgAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningOpeningFinalMessage n rd args rets) →
+    CompleteAt fs cert k name Lin args (Returns rets)
 
 /-- **`opening_row_weights__L{folds}_L{rev}`, placed** (TRIAGE #34). -/
 def OsRowWeightsAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (folds rev : ℕ) : Prop :=
-  CompleteRel fs cert k name (MeaningOpeningRowWeights folds rev)
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningOpeningRowWeights folds rev rd args rets) →
+    CompleteAt fs cert k name Lin args (Returns rets)
 
 /-- **`fold_final_msg__L{n}`, placed** (TRIAGE #24). -/
-def OsFoldFinalAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ) : Prop := CompleteRel fs cert k name (MeaningFoldFinalMsg n)
+def OsFoldFinalAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningFoldFinalMsg n rd args rets) →
+    CompleteAt fs cert k name Lin args (Returns rets)
 
 /-- `decode_query_bits`' frame run at `fp`: the 192 bits of the word `w` at the certificate's
 cell of its first value `.n 3`. -/
