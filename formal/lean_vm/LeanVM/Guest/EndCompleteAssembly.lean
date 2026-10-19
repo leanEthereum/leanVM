@@ -20,8 +20,7 @@ public import LeanVM.Guest.B1.VerifySub.CTail
 proof (within the limits' stack log and stream), of the fresh shape (`ea_freshShaped`), its
 openings agreeing in the caps by `DeferredCaps`. Still assumed: `CalleesHyps` (the pure callees'
 bounds, `da_verify`'s certificate inequalities, the pending `CompleteTablesAtB` and
-`CompleteOpenAtB`), `__loop86`'s affine bound, `DeferredCaps`, the words budget within `2^32` at
-the limits (`WordsLimit`, the seventh limit's words half), and the instruction counts (`hcnt`).
+`CompleteOpenAtB`), `__loop86`'s affine bound, `DeferredCaps` and the instruction counts (`hcnt`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -64,15 +63,10 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tree → Opc
 /-- **The budget**: the words `eaWords`, the instruction counts `instrs`. -/
 def eaBudget (a86 b86 : ℕ) (instrs : Opcode → Linear) : Budget := ⟨eaWords fs H a86 b86, instrs⟩
 
-/-- **The words budget within `2^32` at the limits** (the seventh limit's words half). -/
-def WordsLimit (a86 b86 : ℕ) : Prop :=
-  ∀ s w, Limits s w → (eaWords fs H a86 b86).eval (work s w) ≤ 2 ^ 32
-
 /-- **`main` is complete within the budget**: group 7's `mainComplete_of` at the callees' bounded
 theorems, the children's runs and the words budget. -/
 theorem ea_mainComplete {a86 b86 : ℕ} (instrs : Opcode → Linear)
     (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) (hfs : 2 ≤ fs "main") (hcaps : DeferredCaps)
-    (h32 : WordsLimit fs cert H a86 b86)
     (hcnt : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
       ∀ (N : ℕ) (L : Layout) (t : Tree), N ≤ (eaWords fs H a86 b86).eval (work s w) → t.name = "main" →
         t.total fs = N →
@@ -89,15 +83,13 @@ theorem ea_mainComplete {a86 b86 : ℕ} (instrs : Opcode → Linear)
     rw [hfr, hpi, hseed, hpf]
     exact hcw c hc
   · intro seed s w hN hlim hcw
-    have hw := ea_words fs H h86 (seed := seed) hlim
-    exact ⟨le_trans hw (h32 s w hlim), hw⟩
+    exact ea_words fs H h86 (seed := seed) hlim
 
 /-- **Completeness within the budget**, from `ea_mainComplete` and checker K's and agent T's parts
 (`CompleteParts`' other fields). -/
 theorem ea_guest_complete {a86 b86 : ℕ} (instrs : Opcode → Linear) (Hh : Inst → ℕ → E × E)
     (C : Inst → List (ℕ × E))
     (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) (hfs : 2 ≤ fs "main") (hcaps : DeferredCaps)
-    (h32 : WordsLimit fs cert H a86 b86)
     (hcnt : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
       ∀ (N : ℕ) (L : Layout) (t : Tree), N ≤ (eaWords fs H a86 b86).eval (work s w) → t.name = "main" →
         t.total fs = N →
@@ -114,7 +106,7 @@ theorem ea_guest_complete {a86 b86 : ℕ} (instrs : Opcode → Linear) (Hh : Ins
           ∀ op, (⟨_, honest coreProgram fs Hh C hdr T, n⟩ : Trace guest).count op ≤ cnt T op) :
     LeanVM.Guest.End.GuestCompleteWithin (eaBudget fs cert H a86 b86 instrs) :=
   LeanVM.Guest.End.guest_complete_of_parts
-    ⟨ea_mainComplete fs cert cnt H instrs h86 hfs hcaps h32 hcnt, hk, hrt, htab, hb2, hcount⟩
+    ⟨ea_mainComplete fs cert cnt H instrs h86 hfs hcaps hcnt, hk, hrt, htab, hb2, hcount⟩
 
 end
 end LeanVM.Guest.B1.Main

@@ -418,6 +418,13 @@ theorem sizeOf_mono {w w' : ℕ} {i i' : Opcode → ℕ} (hw : w ≤ w') (hi : �
   have := hh .jump; have := hh .blake2s
   omega
 
+/-- **A budget's words within its size**: the memory alone commits `4` words per word. -/
+theorem words_le_of_size {b : Budget} {u : Work} (h : b.size u ≤ 2 ^ 28) : b.words.eval u ≤ 2 ^ 26 := by
+  have hm := Memory.le_two_pow_logMem (b.words.eval u)
+  have : 4 * 2 ^ Memory.logMem (b.words.eval u) ≤ b.size u := by
+    unfold Budget.size; dsimp only [sizeOf]; simp only [Nat.add_assoc]; exact Nat.le_add_right _ _
+  omega
+
 /-- The committed size of a run on `2^logMem n` words is `sizeOf n` at its counts. -/
 theorem committedSize_eq {n : ℕ} (L : MemImage (Memory.logMem n)) (steps : ℕ) :
     (⟨_, L, steps⟩ : Trace guest).committedSize = sizeOf n (⟨_, L, steps⟩ : Trace guest).count :=
@@ -435,6 +442,7 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
   (`Program.Rel.tree`, and the discharge of `Honest`): a call tree of `main`, honest with the
   statement's digest as `main`'s header, of cost within the node's budget. -/
   honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
+    budget s w ≤ 2 ^ 28 →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       cost T ≤ budget s w
@@ -472,6 +480,7 @@ structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ �
   /-- B1 (group 7), agent T: as `CompletePieces.honest`, the tree within the budget's words and
   instruction counts. -/
   honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
+    b.size (work s w) ≤ 2 ^ 28 →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w)
@@ -492,8 +501,8 @@ theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → �
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cnt : Memory.Tree → Opcode → ℕ}
     {b : Budget} (h : CompletePiecesWithin fs H C cert cnt b) :
     CompletePieces fs H C cert (fun T ↦ sizeOf (T.total fs) (cnt T)) fun s w ↦ b.size (work s w) where
-  honest seed s w hrel hlim hcap := by
-    obtain ⟨rd, T, hname, hH, hw, hc⟩ := h.honest seed s w hrel hlim hcap
+  honest seed s w hrel hlim hcap hb := by
+    obtain ⟨rd, T, hname, hH, hw, hc⟩ := h.honest seed s w hrel hlim hcap hb
     exact ⟨rd, T, hname, hH, sizeOf_mono hw hc⟩
   table := h.table
   b2 := h.b2
@@ -518,7 +527,7 @@ theorem guest_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E �
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cost : Memory.Tree → ℕ}
     {budget : NodeStatement → NodeWitness → ℕ} (h : CompletePieces fs H C cert cost budget) :
     GuestComplete budget := fun seed s w hrel hlim hcap hbudget ↦ by
-  obtain ⟨rd, T, hname, hH, hcost⟩ := h.honest seed s w hrel hlim hcap
+  obtain ⟨rd, T, hname, hH, hcost⟩ := h.honest seed s w hrel hlim hcap hbudget
   have hb := hH.toHonest.publicBoundary (prog := guest)
   have hreach := (reach_jumpTables (jumpTables_honest hH.toHonest hname h.table)).trans (h.b2 _ rd T hname hH)
   obtain ⟨n, hv⟩ := validExecution_of_reach hb hreach

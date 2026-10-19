@@ -37,11 +37,11 @@ variable (fs : String → ℕ) (H : Inst → ℕ → E × E) (C : Inst → List 
   (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ) (b : Budget)
 
 /-- **`main`'s completeness within the budget** (group 7): for `NodeRel` within the limits and
-the caps, a consistent layout of `N` words, `N` within the budget, on which `main` holds placed
+the caps, the budget's size within `2^28`, a consistent layout of `N` words, `N` within the budget, on which `main` holds placed
 at `0` with the statement's digest as its header, every tree of `main` valid on its image within
 the budget's instruction counts. -/
 def MainComplete : Prop :=
-  ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
+  ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
       N ≤ 2 ^ 32 ∧ N ≤ b.words.eval (work s w) ∧
       (∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
@@ -85,12 +85,12 @@ variable {fs H C cert cnt b}
 invariance. -/
 theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
-    ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
+    ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → b.size (work s w) ≤ 2 ^ 28 →
       ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
         HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
         T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w) := by
-  intro seed s w hrel hlim hcap
-  obtain ⟨N, L, hcons, hin, hN, hNb, hrelL, hcnt⟩ := hm seed s w hrel hlim hcap
+  intro seed s w hrel hlim hcap hbs
+  obtain ⟨N, L, hcons, hin, hN, hNb, hrelL, hcnt⟩ := hm seed s w hrel hlim hcap hbs
   set hdr := hdrOf (statementDigest seed s) with hhdr
   have h16 : 16 ≤ logMem N := minLogMem_le_logMem N
   have h64 : logMem N < 64 := by have := logMem_le_maxLogMem hN; unfold maxLogMem at this; omega
