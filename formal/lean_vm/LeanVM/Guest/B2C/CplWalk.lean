@@ -47,6 +47,102 @@ theorem ksum_succ (ck : List (Opcode → ℕ)) (n : ℕ) (op : Opcode) :
   · rw [List.take_of_length_le (by omega), List.take_of_length_le h, List.getD_eq_default _ _ h]
     simp
 
+/-! ## Functions and calls -/
+
+theorem idxOf_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : idxOf (coreOf j).name = some j := by
+  have hl : j - 1 < coreProgram.length := by
+    have := coreProgram_length
+    have : nFns = 1044 := rfl
+    omega
+  have hc : coreOf j = coreProgram[j - 1] := by unfold coreOf; exact nth_eq hl
+  unfold idxOf Core.Program.indexOf?
+  rw [hc]
+  have : coreProgram.findIdx? (·.name == coreProgram[j - 1].name) = some (j - 1) := by
+    rw [List.findIdx?_eq_some_iff_getElem]
+    refine ⟨hl, by simp, fun k hk he ↦ ?_⟩
+    have hn := coreProgram_names_nodup
+    have hk' : k < (coreProgram.map (·.name)).length := by simp; omega
+    have hj' : j - 1 < (coreProgram.map (·.name)).length := by simp; omega
+    have := (List.Nodup.getElem_inj_iff hn (hi := hk') (hj := hj')).mp (by simpa using he)
+    omega
+  rw [this]
+  simp only [Option.map_some, Option.some.injEq]
+  omega
+
+/-- A callee the code reaches, by its entry. -/
+theorem calleeC_some {X : CX} (hG : X.G = glob) {e j' : ℕ} (h : calleeC X e = some j') :
+    2 ≤ j' ∧ j' < nFns ∧ (fnOf j').entry = e := by
+  have hp := List.find?_some h
+  simp only [hG, Bool.and_eq_true] at hp
+  obtain ⟨hg, he⟩ := hp
+  simp only [glob, good, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hg
+  exact ⟨hg.1, hg.2, Nat.eq_of_beq_eq_true he⟩
+
+theorem entryOf_callee {j' : ℕ} (h1 : 2 ≤ j') (h2 : j' < nFns) :
+    entryOf (coreOf j').name = (fnOf j').entry := by
+  unfold entryOf
+  rw [idxOf_coreOf (by omega) h2]
+
+theorem selfCells_callee {j' : ℕ} (h1 : 2 ≤ j') (h2 : j' < nFns) :
+    selfCells (coreOf j').name = (certOf j').facts.env.map (·.1) := by
+  unfold selfCells
+  rw [idxOf_coreOf (by omega) h2]
+
+/-- The call of an event, at its position among the path's calls. -/
+theorem calls_at {ebef rest : List Ev} {ev : Ev} {c : Call} (hc : ev.call? = some c) :
+    (calls (ebef ++ ev :: rest))[(calls ebef).length]? = some c := by
+  simp [calls, List.filterMap_append, hc]
+
+theorem calls_len_gt {ebef rest : List Ev} {ev : Ev} {c : Call} (hc : ev.call? = some c)
+    (hr : ∃ e ∈ rest, (Ev.call? e).isSome) :
+    (calls ebef).length + 1 < (calls (ebef ++ ev :: rest)).length := by
+  obtain ⟨e, he, hs⟩ := hr
+  obtain ⟨c', hc'⟩ := Option.isSome_iff_exists.mp hs
+  have : 0 < (calls rest).length := List.length_pos_of_mem (List.mem_filterMap.mpr ⟨e, he, hc'⟩)
+  have hl : (calls (ebef ++ ev :: rest)).length = (calls ebef).length + 1 + (calls rest).length := by
+    simp [calls, List.filterMap_append, hc]
+    omega
+  omega
+
+theorem calls_append_one {ebef : List Ev} {ev : Ev} {c : Call} (hc : ev.call? = some c) :
+    (calls (ebef ++ [ev])).length = (calls ebef).length + 1 := by
+  simp [calls, List.filterMap_append, hc]
+
+theorem calls_append_none {ebef : List Ev} {ev : Ev} (hc : ev.call? = none) :
+    calls (ebef ++ [ev]) = calls ebef := by
+  simp [calls, List.filterMap_append, hc]
+
+theorem noRetList_append : ∀ (A B : List Stmt),
+    Stmt.noRetList (A ++ B) = (Stmt.noRetList A && Stmt.noRetList B)
+  | [], _ => by simp [Stmt.noRetList]
+  | a :: A, B => by simp only [List.cons_append, Stmt.noRetList, noRetList_append A B, Bool.and_assoc]
+
+/-- A loop's closing `callIf` is on a path through a block ending with it. -/
+theorem tail_call_in {j : ℕ} {σ : Val} {ss : List Stmt}
+    (ht : ∃ A c args, ss = A ++ [.callIf c (coreOf j).name args, .ret []])
+    (hs : Stmt.noRetList ss = true ∨ lastOkC ss = true) {o : Out} (hw : walk σ ss = o)
+    (hst : o ≠ .stuck) : ∃ e ∈ o.evs, (Ev.call? e).isSome := by
+  obtain ⟨A, c, args, rfl⟩ := ht
+  have hA : Stmt.noRetList A = true := by
+    rcases hs with hs | hs
+    · rw [noRetList_append] at hs
+      simp [Stmt.noRetList, Stmt.noRet] at hs
+    · obtain ⟨A', vs, he, hA'⟩ := lastOkC_split hs
+      rw [show A ++ [Stmt.callIf c (coreOf j).name args, .ret []] =
+        (A ++ [.callIf c (coreOf j).name args]) ++ [.ret []] by simp] at he
+      obtain ⟨rfl, -⟩ := List.append_inj' he rfl
+      rw [noRetList_append] at hA'
+      exact (Bool.and_eq_true _ _).mp hA' |>.1
+  rw [walk_appendC] at hw
+  rcases walk_noRetC A hA with ⟨eA, h1⟩ | h1
+  · rw [h1] at hw
+    subst hw
+    refine ⟨if σ c = 0 then .skip (coreOf j).name args else .call (coreOf j).name args [], ?_, ?_⟩
+    · simp [walk, walk1, Out.seq, Out.pre, Out.evs]
+    · split_ifs <;> rfl
+  · rw [h1] at hw
+    exact absurd hw.symm (by simpa [Out.seq] using hst)
+
 section Walk
 
 variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
@@ -371,7 +467,104 @@ theorem walk_atomZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (a : Core
   rw [hc]
   exact ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, fun t ht ↦ by cases ht⟩
 
+/-! ## Calls -/
+
+theorem argFC_mem {loc : CLoc} : ∀ {o : ℕ} {vs : List V} {p : ℕ × FC}, p ∈ argFC loc o vs →
+    ∃ k, ∃ hk : k < vs.length, p = (o + k, .val (loc.cell vs[k]))
+  | _, [], _, h => (List.not_mem_nil h).elim
+  | o, v :: vs, p, h => by
+    simp only [argFC, List.mem_cons] at h
+    rcases h with rfl | h
+    · exact ⟨0, by simp, by simp⟩
+    · obtain ⟨k, hk, rfl⟩ := argFC_mem h
+      exact ⟨k + 1, by simpa using hk, by simp [Nat.add_assoc, Nat.add_comm 1 k]⟩
+
+theorem posZ_fr (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
+    (hp : PosZ H st W0 n) {q : ℕ} {fcs : List (ℕ × FC)} {kfp : ℕ}
+    (hq : rdc L fp q = some (ofK (gpow kfp))) (hf : ∀ p ∈ fcs, FCHolds L fp kfp p.1 p.2) :
+    PosZ H { st with fr := (q, fcs) :: st.fr } W0 n :=
+  ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, fun x hx ↦ by
+    rcases List.mem_cons.mp hx with rfl | hx
+    · exact ⟨kfp, hq, hf⟩
+    · exact hp.ok.fr x hx, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh⟩
+
+theorem siteC_eq {X : CX} (hs : X.sites = (plumbOf j).sites) (c : Call) :
+    siteC X c.args c.rets = siteOf j c := by
+  unfold siteC siteOf
+  rw [hs]
+
+theorem siteOk_spec {X : CX} {args rets : List V} {q r t : ℕ} (h : siteOk X args rets q r t = true) :
+    ∃ s, siteC X args rets = some s ∧ s.q = q ∧ s.r = r ∧ s.tgt = t := by
+  unfold siteOk at h
+  split at h
+  · rename_i s hs
+    simp only [Bool.and_eq_true] at h
+    exact ⟨s, hs, Nat.eq_of_beq_eq_true h.1.1, Nat.eq_of_beq_eq_true h.1.2,
+      Nat.eq_of_beq_eq_true h.2⟩
+  · cases h
+
+/-- **A call's callee frame**, its `n`-th on the path, not a loop's closing one: its pointer cell
+holds it, it holds the arguments, the self frame pointer cells, the caller's frame pointer and
+the return pc, and it returns there. -/
+theorem call_frame (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {n : ℕ} {c : Call}
+    (hci : (calls es)[n]? = some c) {j' : ℕ} (hj1 : 2 ≤ j') (hj2 : j' < nFns)
+    (hf : c.f = (coreOf j').name) {s0 : Site} (hs0 : siteC X c.args c.rets = some s0)
+    (hnl : (coreOf j).loop = true → n + 1 < (calls es).length)
+    (hin : inFrame X.fs (s0.q :: c.args.map X.loc.cell) = true) {selfs : List ℕ}
+    (hsf : ∀ o ∈ selfs, o ∈ (certOf j').facts.env.map (·.1)) :
+    ∃ kfp, kfps[n]? = some kfp ∧ rdc L fp s0.q = some (ofK (gpow kfp)) ∧
+      (∀ p ∈ callFC X c.args selfs s0.r, FCHolds L fp kfp p.1 p.2) ∧
+      retRegs L (gpow kfp) = some ⟨gpow s0.r, gpow fp⟩ := by
+  have hlen : n < kfps.length := by
+    rw [H.frame.len]
+    exact (List.getElem?_eq_some_iff.mp hci).1
+  refine ⟨kfps[n], List.getElem?_eq_getElem hlen, ?_⟩
+  have hkfp := List.getElem?_eq_getElem hlen
+  have hfr := inFrame_mem hin
+  have hq : rdc L fp s0.q = some (ofK (gpow kfps[n])) := by
+    have := (H.frame.site n c kfps[n] s0 hci hkfp (by rw [← siteC_eq H.sites]; exact hs0)).1
+      (hfr _ List.mem_cons_self).1 (by rw [← H.fs]; exact (hfr _ List.mem_cons_self).2)
+    rw [gpow_addC] at this
+    exact this
+  obtain ⟨h0, h1, hargs, hself⟩ := H.frame.kid n c kfps[n] hci hkfp
+  have hhdr : kidHdr j fp hdr es n = (ofK (gpow s0.r), ofK (gpow fp)) := by
+    unfold kidHdr
+    rw [hci]
+    simp only
+    split_ifs with hh
+    · have := hnl hh.1
+      omega
+    · rw [← siteC_eq H.sites, hs0]
+  rw [hhdr] at h0 h1
+  rw [gpow_addC] at h0 h1
+  refine ⟨hq, fun p hp ↦ ?_, retRegs_eq_some_iff.mpr ⟨_, _, h0, h1, by simp⟩⟩
+  unfold callFC at hp
+  simp only [List.mem_append, List.mem_map, List.mem_cons, List.not_mem_nil, or_false] at hp
+  rcases hp with (hp | ⟨o, ho, rfl⟩) | (rfl | rfl)
+  · obtain ⟨k, hk, rfl⟩ := argFC_mem hp
+    have hv : X.loc.cell c.args[k] ∈ c.args.map X.loc.cell := List.mem_map.mpr ⟨_, List.getElem_mem hk, rfl⟩
+    have hc := hfr _ (List.mem_cons_of_mem _ hv)
+    obtain ⟨e', hm, hc'⟩ := List.mem_filterMap.mp (List.mem_of_getElem? hci)
+    have huses : c.args[k] ∈ e'.uses := by
+      rcases e' with _ | _ | ⟨f', a', r'⟩ | ⟨f', a'⟩ <;> simp only [Ev.call?, Option.some.injEq,
+        reduceCtorEq] at hc'
+      · subst hc'; simp [Ev.uses, List.getElem_mem]
+      · subst hc'; simp [Ev.uses, List.getElem_mem]
+    refine ⟨σ c.args[k], val_cell H.frame H.loc (uses_named hm huses) hc.1 (H.fs ▸ hc.2), ?_⟩
+    have := hargs k hk
+    rw [gpow_addC] at this
+    exact this
+  · have hm : o ∈ selfCells c.f := by
+      rw [hf, selfCells_callee hj1 hj2]
+      exact hsf o ho
+    have := hself o hm
+    rw [gpow_addC] at this
+    exact this
+  · exact h1
+  · exact h0
+
 end Walk
+
 
 
 
