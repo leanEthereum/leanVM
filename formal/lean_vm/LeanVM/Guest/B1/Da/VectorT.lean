@@ -87,17 +87,20 @@ def vxPre (w : ℕ) : List Atom :=
 /-- The weights' frame address. -/
 def vxF (final : Bool) : ℕ := if final then 3862 else 3860
 
-/-- `da_vector_cell__L{final}`'s body. -/
-def vxBody (final : Bool) : List Stmt :=
-  (([.hint (.witness "da_weights" (.stack ((List.range 256).map fun i => .n (i + 4))))] ++
+/-- `da_vector_cell__L{final}`'s atoms. -/
+def vxAtoms (final : Bool) : List Atom :=
+  [.hint (.witness "da_weights" (.stack ((List.range 256).map fun i => .n (i + 4))))] ++
     (List.range 128).flatMap vxPair ++ [.copy (.n 3460) (.n 1), .copy (.n 3461) (.n 2)] ++ vxPre0 ++
     (List.range 32).flatMap (vxBlk final) ++ vxPre 1 ++
     (List.range 32).flatMap (fun b => vxBlk final (32 + b)) ++ vxPre 2 ++
     (List.range 32).flatMap (fun b => vxBlk final (64 + b)) ++
     [.frameAddr (.n (vxF final)) ((List.range 256).map fun i => .n (i + 4)),
      .copy (.n (vxF final + 1)) (.n (vxSt final 96)), .copy (.n (vxF final + 2)) (.n (vxSt final 96 + 1)),
-     .copy (.n (vxF final + 3)) (.n (vxF final))] : List Atom).map .atom) ++
-  [.ret [.n (vxF final + 1), .n (vxF final + 2), .n (vxF final + 3)]]
+     .copy (.n (vxF final + 3)) (.n (vxF final))]
+
+/-- `da_vector_cell__L{final}`'s body. -/
+def vxBody (final : Bool) : List Stmt :=
+  (vxAtoms final).map .atom ++ [.ret [.n (vxF final + 1), .n (vxF final + 2), .n (vxF final + 3)]]
 
 /-- The specialization's name. -/
 def vxName (final : Bool) : String := if final then "da_vector_cell__L1" else "da_vector_cell__L0"

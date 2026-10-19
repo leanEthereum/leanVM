@@ -141,7 +141,7 @@ theorem da_vector_cell_fwd {final : Bool} {rd : Reader} {args rets : List E}
     (h : coreProgram.Rel rd (vxName final) args rets) : Meaning_da_vector_cell final rd args rets := by
   rw [rel_of_find (find_vx final)] at h
   obtain ⟨σ, hp, hb⟩ := h
-  simp only [vxBody, holdsList_atoms, holdsList_ret, List.forall_mem_append, forall_mem_flatMap_range,
+  simp only [vxBody, vxAtoms, holdsList_atoms, holdsList_ret, List.forall_mem_append, forall_mem_flatMap_range,
     List.forall_mem_cons, Atom.Holds, forall_mem_nil_iff, and_true, true_and, List.map_cons,
     List.map_nil] at hb hp
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hP, c60, c61⟩, hpre0⟩, hb0⟩, hpre1⟩, hb1⟩, hpre2⟩, hb2⟩, ⟨hfk, hfr⟩, o1, o2, o3⟩, hr⟩ := hb
@@ -358,19 +358,20 @@ theorem vxBlk_bwd {rd : Reader} {σ : Val} {final : Bool} {j : ℕ} {m : Fin 4 �
   · simp only [List.forall_mem_cons, Atom.Holds, forall_mem_nil_iff, and_true]
     exact ⟨(hc g1).1, (hc g1).2, hC⟩
 
-/-- The honest run, over an abstract chain of states. -/
-theorem vx_bwd_core {final : Bool} {rd : Reader} {xb h0 h1 ctr o0 o1 wp : E} {wsf cvf : ℕ → E}
+/-- The honest run's atoms hold, over an abstract chain of states. -/
+theorem vx_core_holds {final : Bool} {rd : Reader} {xb h0 h1 ctr o0 o1 wp : E} {wsf cvf : ℕ → E}
     {st : ℕ → E × E}
     (hcv : ∀ k < 4, LoadHolds rd (ctr * (xb * xb * xb)) k (cvf k))
     (hfr : IsInK wp ∧ ∀ k < 256, ∀ v, rd (wp.limb 0 * Parameters.gpow k) = some v → v = wsf k)
     (e0 : st 0 = (h0, h1)) (ho : st 96 = (o0, o1))
     (hcomp : ∀ j < 96, CompressCells (vxBlocks wsf j) (st j).1 (st j).2 (st (j + 1)).1
       (st (j + 1)).2 (vxMd final cvf j)) :
-    coreProgram.Rel rd (vxName final) [xb, h0, h1, ctr] [o0, o1, wp] := by
-  rw [rel_of_find (find_vx final)]
-  let σ : Val := fun v => vxVals final xb h0 h1 ctr wp wsf cvf st (vxMd final cvf) v.idx
+    let σ : Val := fun v => vxVals final xb h0 h1 ctr wp wsf cvf st (vxMd final cvf) v.idx
+    (∀ a ∈ vxAtoms final, a.Holds rd σ) ∧
+      [σ (.n (vxF final + 1)), σ (.n (vxF final + 2)), σ (.n (vxF final + 3))] = [o0, o1, wp] ∧
+      [Core.V.n 0, .n 1, .n 2, .n 3].map σ = [xb, h0, h1, ctr] := by
+  intro σ
   have hσ : ∀ k, σ (.n k) = vxVals final xb h0 h1 ctr wp wsf cvf st (vxMd final cvf) k := fun _ => rfl
-  refine ⟨σ, rfl, ?_⟩
   -- the states and metadata words
   have hst : ∀ i ≤ 96, σ (.n (vxSt final i)) = (st i).1 ∧ σ (.n (vxSt final i + 1)) = (st i).2 := by
     intro i hi
@@ -488,12 +489,12 @@ theorem vx_bwd_core {final : Bool} {rd : Reader} {xb h0 h1 ctr o0 o1 wp : E} {ws
     · refine ⟨rfl, rfl, rfl, rfl, ?_⟩
       show [(st 96).1, (st 96).2, wp] = _
       rw [ho]
-  simp only [vxBody, holdsList_atoms, holdsList_ret, List.forall_mem_append, forall_mem_flatMap_range,
-    List.forall_mem_cons, Atom.Holds, forall_mem_nil_iff, and_true, true_and, List.map_cons,
-    List.map_nil]
-  refine ⟨⟨⟨⟨⟨⟨⟨⟨⟨fun i hi => ?_, rfl, rfl⟩, hpre0⟩, fun b hb => hblk b (by omega)⟩, hpre1⟩,
+  refine ⟨?_, hF.2.2.2.2, rfl⟩
+  simp only [vxAtoms, List.forall_mem_append, forall_mem_flatMap_range,
+    List.forall_mem_cons, Atom.Holds, forall_mem_nil_iff, and_true, true_and]
+  refine ⟨⟨⟨⟨⟨⟨⟨⟨fun i hi => ?_, rfl, rfl⟩, hpre0⟩, fun b hb => hblk b (by omega)⟩, hpre1⟩,
     fun b hb => hblk (32 + b) (by omega)⟩, hpre2⟩, fun b hb => hblk (64 + b) (by omega)⟩,
-    ⟨?_, fun k hk v hv => ?_⟩, hF.1, hF.2.1, hF.2.2.1⟩, hF.2.2.2.2⟩
+    ⟨?_, fun k hk v hv => ?_⟩, hF.1, hF.2.1, hF.2.2.1⟩
   · exact vxPair_bwd (s := wsf (2 * i)) (t := wsf (2 * i + 1))
       (fun r hr hr2 => vxVals_pair final xb h0 h1 ctr wp wsf cvf st (vxMd final cvf) hi hr hr2)
       (vxVals_w final xb h0 h1 ctr wp wsf cvf st (vxMd final cvf) (k := 2 * i) (by omega))
@@ -504,6 +505,21 @@ theorem vx_bwd_core {final : Bool} {rd : Reader} {xb h0 h1 ctr o0 o1 wp : E} {ws
     simp only [List.getElem_map, List.getElem_range]
     rw [hσ, vxVals_w final xb h0 h1 ctr wp wsf cvf st (vxMd final cvf) hk]
     exact hfr.2 k hk v hv
+
+/-- The honest run, over an abstract chain of states. -/
+theorem vx_bwd_core {final : Bool} {rd : Reader} {xb h0 h1 ctr o0 o1 wp : E} {wsf cvf : ℕ → E}
+    {st : ℕ → E × E}
+    (hcv : ∀ k < 4, LoadHolds rd (ctr * (xb * xb * xb)) k (cvf k))
+    (hfr : IsInK wp ∧ ∀ k < 256, ∀ v, rd (wp.limb 0 * Parameters.gpow k) = some v → v = wsf k)
+    (e0 : st 0 = (h0, h1)) (ho : st 96 = (o0, o1))
+    (hcomp : ∀ j < 96, CompressCells (vxBlocks wsf j) (st j).1 (st j).2 (st (j + 1)).1
+      (st (j + 1)).2 (vxMd final cvf j)) :
+    coreProgram.Rel rd (vxName final) [xb, h0, h1, ctr] [o0, o1, wp] := by
+  obtain ⟨ha, hr, hp⟩ := vx_core_holds hcv hfr e0 ho hcomp
+  rw [rel_of_find (find_vx final)]
+  refine ⟨_, hp, ?_⟩
+  rw [vxBody, holdsList_atoms]
+  exact ⟨ha, hr⟩
 
 theorem da_vector_cell_bwd {final : Bool} {rd : Reader} {args rets : List E}
     (h : Meaning_da_vector_cell final rd args rets) : coreProgram.Rel rd (vxName final) args rets := by
