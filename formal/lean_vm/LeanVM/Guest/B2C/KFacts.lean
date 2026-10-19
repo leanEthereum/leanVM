@@ -49,7 +49,7 @@ section Run
 
 theorem nodeE_tmpsRuns (j : ℕ) (f : String) (σ : Val) (I : Inst) :
     ∃ R, nodeE j f σ I = (valE f σ (coreProgram.temps f) ++ runsE f σ (I.t.events coreProgram)) ++ R :=
-  ⟨_, by simp only [nodeE, List.append_assoc]⟩
+  ⟨_, by simp only [nodeE, List.append_assoc]; rfl⟩
 
 /-- An atom of a node's path is an atom of its function's body. -/
 theorem events_atom {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
