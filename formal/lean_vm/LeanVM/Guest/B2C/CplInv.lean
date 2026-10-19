@@ -28,6 +28,86 @@ def RC.ok : RC → Bool
   | .fail _ => false
   | _ => true
 
+/-! ## Callees by entry -/
+
+theorem functions_lengthC : Data.functions.length = nFns := by decide +kernel
+
+theorem nth_getD {α : Type} : ∀ (l : List α) (n : ℕ) (d : α), nth l n d = l.getD n d
+  | [], _, _ => rfl
+  | _ :: _, 0, _ => rfl
+  | _ :: as, n + 1, d => nth_getD as n d
+
+theorem tail_getD {α : Type} (l : List α) (m : ℕ) (d : α) : l.tail.getD m d = l.getD (m + 1) d := by
+  cases l <;> simp
+
+theorem headD_getD {α : Type} (l : List α) (d : α) : l.headD d = l.getD 0 d := by
+  cases l <;> rfl
+
+theorem sigT_get : ∀ (fs : List CompiledFn) (cs : List Core.Fn) (ks : List Cert) (i : ℕ)
+    (t : Trie (ℕ × Sig)) {k : ℕ} {v : ℕ × Sig}, getF (sigT fs cs ks i t) k = some v →
+      (∃ m f, fs[m]? = some f ∧ f.entry = k ∧
+        v = (i + m, mkSig f (cs.getD m default) (ks.getD m default))) ∨ getF t k = some v
+  | [], _, _, _, _, _, _, h => Or.inr h
+  | f :: fs, cs, ks, i, t, k, v, h => by
+    have e : sigT (f :: fs) cs ks i t = sigT fs cs.tail ks.tail (i + 1)
+        (setF (i, mkSig f (cs.headD default) (ks.headD default)) indexDepth t f.entry) := by
+      show (setF _ indexDepth t f.entry).seq (fun t ↦ sigT fs cs.tail ks.tail (i + 1) t) = _
+      rw [Trie.seq_eq]
+    rw [e] at h
+    rcases sigT_get fs cs.tail ks.tail (i + 1) _ h with ⟨m, g, hg, he, rfl⟩ | h'
+    · refine Or.inl ⟨m + 1, g, by simpa using hg, he, ?_⟩
+      rw [tail_getD, tail_getD, show i + 1 + m = i + (m + 1) by omega]
+    · rw [getF_eq, setF_eq] at h'
+      rcases Trie.get_set h' with ⟨rfl, rfl⟩ | h''
+      · exact Or.inl ⟨0, f, rfl, rfl, by rw [headD_getD, headD_getD, Nat.add_zero]⟩
+      · exact Or.inr (by rw [getF_eq]; exact h'')
+
+theorem certOf_sig (j : ℕ) : (certOf j).nret = (nth Data.certs j default).nret ∧
+    (certOf j).facts.env = (nth Data.certs j default).facts.env ∧
+    (certOf j).pre = (nth Data.certs j default).pre ∧ (certOf j).post = (nth Data.certs j default).post ∧
+    (certOf j).mem = (nth Data.certs j default).mem ∧ (certOf j).sem = (nth Data.certs j default).sem := by
+  unfold certOf
+  split
+  rename_i h
+  rw [h]
+  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+/-- **What `sigTrie` files**: the function entered there and what a caller knows of it. -/
+theorem sigTrie_get {k j : ℕ} {sg : Sig} (h : getF sigTrie k = some (j, sg)) :
+    1 ≤ j ∧ j < nFns ∧ (fnOf j).entry = k ∧ sg = sigOf j := by
+  unfold sigTrie at h
+  rcases sigT_get _ _ _ _ _ h with ⟨m, f, hf, he, hv⟩ | h0
+  · simp only [Prod.mk.injEq] at hv
+    obtain ⟨rfl, rfl⟩ := hv
+    have hf' : Data.functions[m + 1]? = some f := by simpa using hf
+    have hl : m + 1 < Data.functions.length := (List.getElem?_eq_some_iff.mp hf').1
+    have hfn : fnOf (1 + m) = f := by
+      unfold fnOf
+      rw [show 1 + m = m + 1 by omega, nth_eq hl]
+      exact (List.getElem?_eq_some_iff.mp hf').2
+    obtain ⟨c1, c2, c3, c4, c5, c6⟩ := certOf_sig (1 + m)
+    refine ⟨by omega, by rw [← functions_lengthC]; omega, by rw [hfn, he], ?_⟩
+    unfold sigOf mkSig
+    rw [hfn, c1, c2, c3, c4, c5, c6, coreOf, nth_getD, nth_getD, tail_getD,
+      show 1 + m - 1 = m by omega, show m + 1 = 1 + m by omega]
+  · simp [getF] at h0
+
+/-- **A callee the check finds**: a good function entered there, with its signature. -/
+theorem calleeS_spec {X : CX} (hG : X.G = glob) {pc j : ℕ} {sg : Sig} (h : calleeS X pc = some (j, sg)) :
+    2 ≤ j ∧ j < nFns ∧ (fnOf j).entry = pc ∧ sg = X.G.sig j ∧ calleeC X pc = some j := by
+  have hc : calleeC X pc = some j := by unfold calleeC; rw [h]; rfl
+  unfold calleeS at h
+  split at h
+  · rename_i p hp
+    cases hb : X.G.good p.1
+    · rw [hb] at h; cases h
+    · rw [hb] at h
+      obtain rfl := Option.some.inj h
+      simp only [hG, glob, good, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hb
+      obtain ⟨-, -, he, rfl⟩ := sigTrie_get hp
+      exact ⟨hb.1, hb.2, he, by rw [hG]; rfl, hc⟩
+  · cases h
+
 section Inv
 
 variable {X : CX}
@@ -115,7 +195,7 @@ theorem afterC_ok {st sr : CW} {q r u : ℕ} {fcs : List (ℕ × FC)} {args rets
     · cases h
   · cases h
 
-theorem cw_call {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW}
+theorem cw_call (hG : X.G = glob) {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW}
     (h : (cw X (.call f args rets :: ss) st).ok = true) :
     ∃ e q r j sr, st.seg.exit.kind = .call (.gp e) q r ∧ calleeC X e = some j ∧
       f = (X.G.sig j).name ∧ args.length = (X.G.sig j).nargs ∧ rets.length = (X.G.sig j).nret ∧
@@ -127,7 +207,8 @@ theorem cw_call {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW
   split at h
   · rename_i e q r hk
     split at h
-    · rename_i j hj
+    · rename_i j sg hj
+      obtain ⟨-, -, -, rfl, hjc⟩ := calleeS_spec hG hj
       cases hc : (f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
           Nat.beq rets.length (X.G.sig j).nret && Nat.ble X.entry r &&
           st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r 0 && !bitK st.uq q &&
@@ -139,7 +220,7 @@ theorem cw_call {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW
       obtain ⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩ := hc
       split at h
       · rename_i sr hsr
-        exact ⟨e, q, r, j, sr, hk, hj, h1, Nat.eq_of_beq_eq_true h2, Nat.eq_of_beq_eq_true h3,
+        exact ⟨e, q, r, j, sr, hk, hjc, h1, Nat.eq_of_beq_eq_true h2, Nat.eq_of_beq_eq_true h3,
           Nat.le_of_ble_eq_true h4, h5, h6, h7, h8, (by simpa using h9), hsr, rfl⟩
       · cases h
     · cases h
@@ -211,8 +292,8 @@ theorem cw_ret {vs : List V} {ss : List Core.Stmt} {st : CW}
     · rw [hm] at h1; exact of_decide_eq_true h1
   · cases h
 
-theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st : CW}
-    (h : (cw X (.callIf c f args :: ss) st).ok = true) :
+theorem cw_callIf (hG : X.G = glob) {c : V} {f : String} {args : List V} {ss : List Core.Stmt}
+    {st : CW} (h : (cw X (.callIf c f args :: ss) st).ok = true) :
     ∃ x, peekBr st.its = some (X.loc.cell c, x) ∧
       inFrame X.fs (X.loc.cell c :: args.map X.loc.cell) = true ∧
     ((∃ e q r j st' oc' od of x' se t sr, x.kind = .call (.gp e) q r ∧ calleeC X e = some j ∧
@@ -247,7 +328,8 @@ theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st
     · rename_i e q r hk
       left
       split at h
-      · rename_i j hj
+      · rename_i j sg hj
+        obtain ⟨-, -, -, rfl, hjc⟩ := calleeS_spec hG hj
         cases hc : (f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
             Nat.beq (X.G.sig j).nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
             siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q] && !(f == X.name))
@@ -274,7 +356,7 @@ theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st
               simp only [Bool.and_eq_true, beq_iff_eq] at hk3
               split at h
               · rename_i sr hsr
-                exact ⟨e, q, r, j, st', oc', od, of, x', se, t, sr, hk, hj, g1,
+                exact ⟨e, q, r, j, st', oc', od, of, x', se, t, sr, hk, hjc, g1,
                   Nat.eq_of_beq_eq_true g2, Nat.eq_of_beq_eq_true g3, Nat.le_of_ble_eq_true g4,
                   g5, g6, g7, g8, by simpa using g9, hb, hk2.1, hk2.2, hse, ht,
                   Nat.eq_of_beq_eq_true hk3.1, hk3.2,

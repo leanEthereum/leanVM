@@ -87,7 +87,8 @@ theorem tbl_armsOk {G : Glob} {entry base : ℕ} : ∀ (ts : List ℕ) (i : ℕ)
       rw [show i + (k + 1) = i + 1 + k by omega]
       simpa using this
 
-theorem tbl_tcOk {X : CX} {base na nr : ℕ} : ∀ (fs : List String) (i : ℕ), tcOk X base na nr i fs = true →
+theorem tbl_tcOk {X : CX} (hG : X.G = glob) {base na nr : ℕ} :
+    ∀ (fs : List String) (i : ℕ), tcOk X base na nr i fs = true →
     ∀ k (hk : k < fs.length), ∃ pc j', X.G.jt.get (base + (i + k)) = some pc ∧ calleeC X pc = some j' ∧
       fs[k] = (X.G.sig j').name ∧ (X.G.sig j').nargs = na ∧ (X.G.sig j').nret = nr
   | [], _, _, k, hk => absurd hk (Nat.not_lt_zero _)
@@ -99,14 +100,15 @@ theorem tbl_tcOk {X : CX} {base na nr : ℕ} : ∀ (fs : List String) (i : ℕ),
       split at h1
       · rename_i pc hpc
         split at h1
-        · rename_i j' hj'
+        · rename_i j' sg hj'
+          obtain ⟨-, -, -, rfl, hjc⟩ := calleeS_spec hG hj'
           simp only [Bool.and_eq_true, beq_iff_eq] at h1
-          exact ⟨pc, j', by simpa using hpc, hj', h1.1.1, Nat.eq_of_beq_eq_true h1.1.2,
+          exact ⟨pc, j', by simpa using hpc, hjc, h1.1.1, Nat.eq_of_beq_eq_true h1.1.2,
             Nat.eq_of_beq_eq_true h1.2⟩
         · cases h1
       · cases h1
     | succ k =>
-      obtain ⟨pc, j', h1, h2, h3, h4, h5⟩ := tbl_tcOk fs (i + 1) h.2 k (by simpa using hk)
+      obtain ⟨pc, j', h1, h2, h3, h4, h5⟩ := tbl_tcOk hG fs (i + 1) h.2 k (by simpa using hk)
       exact ⟨pc, j', by rw [show i + (k + 1) = i + 1 + k by omega]; exact h1, h2, h3, h4, h5⟩
 
 /-! ## Paths through a table jump -/
@@ -322,7 +324,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
     · exact absurd (show o = .stuck by rw [hw0, h]; rfl) hs
   obtain ⟨k, hkf, hvk, rfl⟩ := tbl_pick fs 0 hpk
   rw [Nat.zero_add] at hvk
-  obtain ⟨pc, j', hslot, hj, hf, -, -⟩ := tbl_tcOk fs 0 htc k hkf
+  obtain ⟨pc, j', hslot, hj, hf, -, -⟩ := tbl_tcOk H.G fs 0 htc k hkf
   rw [Nat.zero_add, H.G] at hslot
   obtain ⟨hj1, hj2, he⟩ := calleeC_some H.G hj
   have hfn : fs[k] = (coreOf j').name := by rw [hf, H.G]; rfl

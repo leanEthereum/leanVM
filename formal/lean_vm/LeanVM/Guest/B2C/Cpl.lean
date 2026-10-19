@@ -580,13 +580,36 @@ inductive RC where
   | done
   | fail (code : ℕ)
 
+/-- What a caller knows of a function, from its code, core function and certificate (`sigOf`). -/
+def mkSig (f : CompiledFn) (c : Core.Fn) (k : Cert) : Sig :=
+  ⟨c.name, f.entry, c.params.length, k.nret, k.facts.env, k.pre, k.post, k.mem, k.sem⟩
+
+/-- The functions `fs` with their core functions `cs` and certificates `ks`, numbered from `i`,
+filed under their entries (one pass, by the recursor, for the kernel). -/
+noncomputable def sigT (fs : List CompiledFn) : List Core.Fn → List Cert → ℕ → Trie (ℕ × Sig) →
+    Trie (ℕ × Sig) :=
+  List.rec (motive := fun _ ↦ List Core.Fn → List Cert → ℕ → Trie (ℕ × Sig) → Trie (ℕ × Sig))
+    (fun _ _ _ t ↦ t)
+    (fun f _ r cs ks i t ↦ (setF (i, mkSig f (cs.headD default) (ks.headD default)) indexDepth t
+      f.entry).seq fun t ↦ r cs.tail ks.tail (i + 1) t) fs
+
+/-- Every function but `__jump_tables`, with what a caller knows of it, by its entry. -/
+@[irreducible] noncomputable def sigTrie : Trie (ℕ × Sig) :=
+  sigT Data.functions.tail coreProgram Data.certs.tail 1 .nil
+
 section Walk
 
 variable (X : CX)
 
-/-- The callee at `pc`, among the function's callees. -/
-noncomputable def calleeC (pc : ℕ) : Option ℕ :=
-  X.callees.find? fun j ↦ X.G.good j && Nat.beq (X.G.sig j).entry pc
+/-- The callee at `pc`, with what a caller knows of it: the function entered there (`sigTrie`),
+a good one. -/
+noncomputable def calleeS (pc : ℕ) : Option (ℕ × Sig) :=
+  match getF sigTrie pc with
+  | some p => bif X.G.good p.1 then some p else none
+  | none => none
+
+/-- The callee at `pc`. -/
+noncomputable def calleeC (pc : ℕ) : Option ℕ := (calleeS X pc).map Prod.fst
 
 /-- The renumbered values `V.n k` a value list names, set in `s`. -/
 def nvVals : List V → ℕ → ℕ
@@ -614,9 +637,8 @@ def siteOk (args rets : List V) (q r t : ℕ) : Bool :=
 noncomputable def tcOk (base na nr : ℕ) : ℕ → List String → Bool
   | _, [] => true
   | k, f :: fs => (match X.G.jt.get (base + k) with
-      | some pc => match calleeC X pc with
-        | some j => f == (X.G.sig j).name && Nat.beq (X.G.sig j).nargs na &&
-            Nat.beq (X.G.sig j).nret nr
+      | some pc => match calleeS X pc with
+        | some (_, sg) => f == sg.name && Nat.beq sg.nargs na && Nat.beq sg.nret nr
         | none => false
       | none => false) && tcOk base na nr (k + 1) fs
 
@@ -645,6 +667,8 @@ noncomputable def afterC (st : CW) (q r u : ℕ) (fcs : List (ℕ × FC)) (args 
         sr.tg, sr.nx, sr.cnt, u, bif rets.isEmpty then sr.fresh else none, sr.nm⟩
     | none => .error 7
   | .error e => .error e
+
+set_option maxRecDepth 20000
 
 mutual
 /-- **The completeness walk** of a block from a position. -/
@@ -710,13 +734,13 @@ noncomputable def cw : List Core.Stmt → CW → RC
   | .call f args rets :: ss, st =>
     match st.seg.exit.kind with
     | .call (.gp e) q r =>
-      match calleeC X e with
-      | some j =>
-        bif f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
-            Nat.beq rets.length (X.G.sig j).nret && Nat.ble X.entry r &&
+      match calleeS X e with
+      | some (_, sg) =>
+        bif f == sg.name && Nat.beq args.length sg.nargs &&
+            Nat.beq rets.length sg.nret && Nat.ble X.entry r &&
             st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r 0 && !bitK st.uq q &&
             inFrame X.fs (q :: (args ++ rets).map X.loc.cell) && !(f == X.name) then
-          match afterC X st q r (setK st.uq q) (callFC X args ((X.G.sig j).env.map (·.1)) r) args
+          match afterC X st q r (setK st.uq q) (callFC X args (sg.env.map (·.1)) r) args
               rets with
           | .ok sr => cw ss sr
           | .error e => .fail e
@@ -747,12 +771,12 @@ noncomputable def cw : List Core.Stmt → CW → RC
       bif Nat.beq oc (X.loc.cell c) && inFrame X.fs (oc :: args.map X.loc.cell) then
         match x.kind with
         | .call (.gp e) q r =>
-          match calleeC X e with
-          | some j =>
-            bif f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
-                Nat.beq (X.G.sig j).nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
+          match calleeS X e with
+          | some (_, sg) =>
+            bif f == sg.name && Nat.beq args.length sg.nargs &&
+                Nat.beq sg.nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
                 siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q] && !(f == X.name) then
-              match brAtC X { st with fr := (q, callFC X args ((X.G.sig j).env.map (·.1)) r) :: st.fr } with
+              match brAtC X { st with fr := (q, callFC X args (sg.env.map (·.1)) r) :: st.fr } with
               | .ok (st', _, od, of, _) =>
                 bif cellK X st' od && cellK X st' of then
                   match endAtC X st' with

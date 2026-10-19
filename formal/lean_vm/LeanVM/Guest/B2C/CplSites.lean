@@ -200,10 +200,10 @@ theorem u_ret (vs' : List V) (ss : List Stmt) (st : CW) : UGood X j σ (.ret vs'
   rw [← hw.1]
   exact sitesP_nil _
 
-theorem u_call (hX : X.sites = (plumbOf j).sites) (f : String) (args rets : List V) (ss : List Stmt)
+theorem u_call (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) (f : String) (args rets : List V) (ss : List Stmt)
     (st : CW) (ih : ∀ st, UGood X j σ ss st) : UGood X j σ (.call f args rets :: ss) st := by
   intro hok
-  obtain ⟨e, q, r, j', sr, -, -, -, -, -, -, -, hsite, hbit, -, -, haf, hcw⟩ := cw_call hok
+  obtain ⟨e, q, r, j', sr, -, -, -, -, -, -, -, hsite, hbit, -, -, haf, hcw⟩ := cw_call hG hok
   obtain ⟨se, s', -, -, rfl⟩ := afterC_ok haf
   have hc := cells_of_site (c := ⟨f, args, rets, true⟩) hX hsite
   refine u_step (ih _) rfl hcw ?_ hok
@@ -278,11 +278,11 @@ theorem u_dispatch (hX : X.sites = (plumbOf j).sites) (v : V) (fs : List String)
       exact sitesP_append (hg g) (h2 e2 _ hws)
     | stuck => rw [hws] at hw; cases hw
 
-theorem u_callIf (hX : X.sites = (plumbOf j).sites) (c : V) (f : String) (args : List V)
+theorem u_callIf (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) (c : V) (f : String) (args : List V)
     (ss : List Stmt) (st : CW) (ih : ∀ st, UGood X j σ ss st) :
     UGood X j σ (.callIf c f args :: ss) st := by
   intro hok
-  obtain ⟨x, -, -, hcase⟩ := cw_callIf hok
+  obtain ⟨x, -, -, hcase⟩ := cw_callIf hG hok
   set ev : Ev := if σ c = 0 then Ev.skip f args else Ev.call f args [] with hev
   have hcalls : calls [Ev.inK c, ev] = [⟨f, args, [], !(decide (σ c = 0))⟩] := by
     have h0 : Ev.call? (Ev.inK c) = none := rfl
@@ -452,22 +452,22 @@ theorem u_match (v : V) (a0 : List Stmt) (as : List (List Stmt)) (ss : List Stmt
 
 mutual
 /-- **The walk keeps the site cells apart**, for every block and position. -/
-theorem sites_Z (hX : X.sites = (plumbOf j).sites) : ∀ (ss : List Stmt) (st : CW), UGood X j σ ss st
+theorem sites_Z (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) : ∀ (ss : List Stmt) (st : CW), UGood X j σ ss st
   | [], st => u_nil st
-  | .atom a :: ss, st => u_atom a ss st (sites_Z hX ss)
-  | .ite c z n :: ss, st => u_ite c z n ss st (sites_Z hX z) (sites_Z hX n) (sites_Z hX ss)
+  | .atom a :: ss, st => u_atom a ss st (sites_Z hX hG ss)
+  | .ite c z n :: ss, st => u_ite c z n ss st (sites_Z hX hG z) (sites_Z hX hG n) (sites_Z hX hG ss)
   | .match_ v [] :: ss, st => fun hok ↦ by simp [cw, RC.ok] at hok
-  | .match_ v (a0 :: as) :: ss, st => u_match v a0 as ss st (sites_armsZ hX (a0 :: as)) (sites_Z hX ss)
-  | .call f args rets :: ss, st => u_call hX f args rets ss st (sites_Z hX ss)
-  | .callIf c f args :: ss, st => u_callIf hX c f args ss st (sites_Z hX ss)
-  | .dispatch v fs args rets :: ss, st => u_dispatch hX v fs args rets ss st (sites_Z hX ss)
+  | .match_ v (a0 :: as) :: ss, st => u_match v a0 as ss st (sites_armsZ hX hG (a0 :: as)) (sites_Z hX hG ss)
+  | .call f args rets :: ss, st => u_call hX hG f args rets ss st (sites_Z hX hG ss)
+  | .callIf c f args :: ss, st => u_callIf hX hG c f args ss st (sites_Z hX hG ss)
+  | .dispatch v fs args rets :: ss, st => u_dispatch hX v fs args rets ss st (sites_Z hX hG ss)
   | .ret vs' :: ss, st => u_ret vs' ss st
 
-theorem sites_armsZ (hX : X.sites = (plumbOf j).sites) :
+theorem sites_armsZ (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) :
     ∀ (arms : List (List Stmt)) (k : ℕ) (hk : k < arms.length) (st : CW), UGood X j σ arms[k] st
   | [], _, hk, _ => absurd hk (Nat.not_lt_zero _)
-  | a :: _, 0, _, st => sites_Z hX a st
-  | _ :: as, k + 1, hk, st => sites_armsZ hX as k (by simpa using hk) st
+  | a :: _, 0, _, st => sites_Z hX hG a st
+  | _ :: as, k + 1, hk, st => sites_armsZ hX hG as k (by simpa using hk) st
 end
 
 end Walk
@@ -515,7 +515,7 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
       have hsplit := part_split hk (fun h ↦ ((checkWin_cpl (hchk i hi)).2.2.2.2 h).1) hc
       have hend := cplWin_end (hc k hk)
       obtain ⟨s, -, -, hres⟩ := cplRes_some hend
-      have hU := sites_Z (σ := σ) (X := Xp j i) (j := j) rfl (partStmts j i k) (st0 j i k s)
+      have hU := sites_Z (σ := σ) (X := Xp j i) (j := j) rfl rfl (partStmts j i k) (st0 j i k s)
         (cw_ok_of hres hend)
       unfold partPos at he
       rw [hsplit, walk_appendC] at he

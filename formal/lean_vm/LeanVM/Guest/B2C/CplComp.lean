@@ -66,11 +66,6 @@ theorem seq_fall_ret {e1 e : List Ev} {o : Out} {v : List V} (h : (Out.fall e1).
     exact ⟨e2, by rw [h.2], h.1.symm⟩
   | stuck => cases h
 
-theorem nth_getD {α : Type} : ∀ (l : List α) (n : ℕ) (d : α), nth l n d = l.getD n d
-  | [], _, _ => rfl
-  | _ :: _, 0, _ => rfl
-  | _ :: as, n + 1, d => nth_getD as n d
-
 theorem pmax_get {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (i : ℕ) (op : Opcode) :
     (Xp j i).pmax.get op = pathMax (coreOf j).name op := by
   unfold pathMax

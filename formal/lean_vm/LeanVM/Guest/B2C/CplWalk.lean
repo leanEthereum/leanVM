@@ -72,11 +72,10 @@ theorem idxOf_coreOf {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) : idxOf (coreOf j)
 /-- A callee the code reaches, by its entry. -/
 theorem calleeC_some {X : CX} (hG : X.G = glob) {e j' : ℕ} (h : calleeC X e = some j') :
     2 ≤ j' ∧ j' < nFns ∧ (fnOf j').entry = e := by
-  have hp := List.find?_some h
-  simp only [hG, Bool.and_eq_true] at hp
-  obtain ⟨hg, he⟩ := hp
-  simp only [glob, good, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hg
-  exact ⟨hg.1, hg.2, Nat.eq_of_beq_eq_true he⟩
+  unfold calleeC at h
+  obtain ⟨⟨j, sg⟩, hs, rfl⟩ := Option.map_eq_some_iff.mp h
+  obtain ⟨h1, h2, h3, -⟩ := calleeS_spec hG hs
+  exact ⟨h1, h2, h3⟩
 
 theorem entryOf_callee {j' : ℕ} (h1 : 2 ≤ j') (h2 : j' < nFns) :
     entryOf (coreOf j').name = (fnOf j').entry := by
@@ -633,7 +632,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
     WGood H (.call f args rets :: ss) st := by
   intro ebef eaft o W0 pre hw hes hs hshape hp hok
   obtain ⟨e, q, r, j', sr, hk, hj, hf, hna, hnr, hle, hsu, hsite, hbit, hin, hself, haf, hcw⟩ :=
-    cw_call hok
+    cw_call H.G hok
   obtain ⟨se, s', hse, hs', rfl⟩ := afterC_ok haf
   obtain ⟨hj1, hj2, he⟩ := calleeC_some H.G hj
   have hfn : f = (coreOf j').name := by rw [hf, H.G]; rfl
@@ -892,7 +891,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     (args : List V) (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) :
     WGood H (.callIf c f args :: ss) st := by
   intro ebef eaft o W0 pre hw hes hs hshape hp hok
-  obtain ⟨x, hpk, hin, hcase⟩ := cw_callIf hok
+  obtain ⟨x, hpk, hin, hcase⟩ := cw_callIf H.G hok
   set ev : Ev := if σ c = 0 then Ev.skip f args else Ev.call f args [] with hev
   have hwo : o = (walk σ ss).pre [.inK c, ev] := by rw [← hw]; rfl
   have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hwo, h]; rfl)

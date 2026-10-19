@@ -96,8 +96,6 @@ end Win
 
 /-! ## A part's context -/
 
-theorem functions_lengthC : Data.functions.length = nFns := by decide +kernel
-
 theorem fnOf_memC {j : ℕ} (h : j < nFns) : fnOf j ∈ Data.functions := by
   unfold fnOf
   rw [nth_eq (functions_lengthC ▸ h)]
