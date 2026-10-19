@@ -44,11 +44,11 @@ theorem powers_five (xi : E) : powers xi 5 = [1, xi, xi ^ 2, xi ^ 3, xi ^ 4] := 
   simp only [powers, powersFrom, List.cons.injEq, and_true]
   refine ⟨trivial, by ring, by ring, by ring, by ring⟩
 
-theorem le_foldl_max : ∀ (l : List ℕ) (a x : ℕ), (x ∈ l ∨ x ≤ a) → x ≤ l.foldl max a
+theorem vt_le_foldl_max : ∀ (l : List ℕ) (a x : ℕ), (x ∈ l ∨ x ≤ a) → x ≤ l.foldl max a
   | [], a, x, h => by simp at h; simpa using h
   | y :: l, a, x, h => by
     rw [List.foldl_cons]
-    refine le_foldl_max l _ x ?_
+    refine vt_le_foldl_max l _ x ?_
     rcases h with h | h
     · rcases List.mem_cons.mp h with rfl | h
       · exact Or.inr (le_max_right _ _)

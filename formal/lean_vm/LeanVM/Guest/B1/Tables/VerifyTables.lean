@@ -155,7 +155,7 @@ theorem verify_tables_sound_of (hP2 : CeExEval) (hP4 : PushTotalEval) (hP5 : Pul
   obtain ⟨c21, c22, c23⟩ := vt_tree_copies hv
   set xi := challengeOf (sqCv (obsAll cv (freshWords σ))) with hxid
   have hτn : ∀ t < 6, τ t ≤ n := fun t ht => by
-    rw [hn]; exact le_foldl_max _ 0 _ (Or.inl (List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩))
+    rw [hn]; exact vt_le_foldl_max _ 0 _ (Or.inl (List.mem_map.mpr ⟨t, List.mem_range.mpr ht, rfl⟩))
   -- the framework blocks
   have hk1 : vtKs logMem τ 1 = logMem := by simp [vtKs, blockKappaSrc, blockKappaAdj]
   have hk2 : vtKs logMem τ 2 = 18 := by simp [vtKs, blockKappaSrc, blockKappaAdj]
