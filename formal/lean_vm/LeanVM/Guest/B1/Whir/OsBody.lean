@@ -95,6 +95,19 @@ theorem os_lvsEnd_ge (cfg : OsCfg) (xs : List E) : ∀ (Hs : List OsLvH) (lvl : 
     have e : osHPEnd cfg lvl p = osHP2 cfg lvl p + 3 := rfl
     omega
 
+/-- A source buffer's pointer: the fold challenges' or the tail challenges'. -/
+def osSrcPtr (R : OsRun) (b : ℕ) : E := if b = osFch then R.P.fch else R.tchv
+
+theorem os_srcPtr_eq {σ : Val} {cfg : OsCfg} {R : OsRun} (hf : σ (.n osFch) = R.P.fch)
+    (ht : σ (.n (OsRun.tch cfg)) = R.tchv) {b : ℕ} (hb : b = osFch ∨ b = OsRun.tch cfg) :
+    osSrcPtr R b = σ (.n b) := by
+  unfold osSrcPtr
+  by_cases h : b = osFch
+  · rw [ite_pos' h, h, hf]
+  · rw [ite_neg' h]; rcases hb with hb | hb
+    · exact absurd hb h
+    · rw [hb, ht]
+
 /-- What the body reads of the memory, at the valuation `σ`. -/
 structure OsBodyMem (rd : Reader) (σ : Val) (cfg : OsCfg) (R : OsRun) : Prop where
   reads : ∀ j < R.xs.length, LoadHolds rd R.cur j (R.xs.getD j 0)
@@ -105,10 +118,11 @@ structure OsBodyMem (rd : Reader) (σ : Val) (cfg : OsCfg) (R : OsRun) : Prop wh
   last : LoadHolds rd R.tchv (cfg.yrLog - 1) (challengeOf (sqCv R.cv1t))
   zeros : ∀ j < 5 - cfg.yrLog, LoadHolds rd R.tchv (cfg.yrLog + j) 0
   src : ∀ i < 42, ∀ b o, osPtSrc cfg.nFolds (cfg.levels.headD default).folds cfg.yrLog (OsRun.tch cfg) i = some (b, o) →
-    LoadHolds rd (σ (.n b)) o (R.D.ent i)
+    LoadHolds rd (osSrcPtr R b) o (R.D.ent i)
   pt : ∀ i < 42, LoadHolds rd R.D.pt i (R.D.ent i)
   bas : ∀ i < cfg.levels.length, ∀ it ∈ osBasisCoords cfg.yrLog (OsRun.tch cfg) (0 + i) (cfg.levels.getD i default),
-    OsBasisMem rd σ R.D.ba R.D.bb (R.D.cf it) it
+    LoadHolds rd (osSrcPtr R it.2.1.1) it.2.1.2 (R.D.cf it) ∧ LoadHolds rd R.D.ba it.1 (1 + R.D.cf it) ∧
+      LoadHolds rd R.D.bb it.1 (R.D.cf it * eOfNat it.2.2)
   ich0 : LoadHolds rd R.D.ich 0 0
   res : ∀ lvl < cfg.levels.length, LoadHolds rd (R.D.chv lvl) 0 0 ∧ LoadHolds rd R.D.ich lvl (R.D.i0 lvl) ∧
     LoadHolds rd R.P.betas lvl (R.D.b lvl) ∧
@@ -120,12 +134,36 @@ structure OsBodyMem (rd : Reader) (σ : Val) (cfg : OsCfg) (R : OsRun) : Prop wh
     (∀ t < osPrevColsAt cfg.levels.tail (cfg.levels.headD default).logCols i - cfg.yrLog + cfg.yrLog,
       LoadHolds rd R.P.oodz ((1 + i) * 22 + t) (R.D.z (1 + i) t)) ∧
     ∀ t < osPrevColsAt cfg.levels.tail (cfg.levels.headD default).logCols i - cfg.yrLog + cfg.yrLog,
-      LoadHolds rd (σ (.n (osOodSrc (OsRun.tch cfg)
+      LoadHolds rd (osSrcPtr R (osOodSrc (OsRun.tch cfg)
         (osPrevColsAt cfg.levels.tail (cfg.levels.headD default).logCols i - cfg.yrLog)
-        (cfg.levels.tail.getD i default).foldsOff t).1))
+        (cfg.levels.tail.getD i default).foldsOff t).1)
         (osOodSrc (OsRun.tch cfg) (osPrevColsAt cfg.levels.tail (cfg.levels.headD default).logCols i - cfg.yrLog)
           (cfg.levels.tail.getD i default).foldsOff t).2 (R.D.c (1 + i) t)
   ichN : LoadHolds rd R.D.ich cfg.levels.length R.D.ichN
+
+theorem os_ptSrc_mem {nF lane yr tch i b o : ℕ} (h : osPtSrc nF lane yr tch i = some (b, o)) :
+    b = osFch ∨ b = tch := by
+  unfold osPtSrc at h
+  split at h
+  · simp only [Option.some.injEq, Prod.mk.injEq] at h; exact Or.inl h.1.symm
+  · split at h
+    · simp only [Option.some.injEq, Prod.mk.injEq] at h; exact Or.inr h.1.symm
+    · split at h
+      · simp only [Option.some.injEq, Prod.mk.injEq] at h; exact Or.inl h.1.symm
+      · cases h
+
+theorem os_basisCoords_mem {yr tch lvl : ℕ} {lv : OsLvl} {it : ℕ × (ℕ × ℕ) × ℕ}
+    (h : it ∈ osBasisCoords yr tch lvl lv) : it.2.1.1 = osFch ∨ it.2.1.1 = tch := by
+  obtain ⟨t, -, rfl⟩ := List.mem_map.mp h
+  dsimp only
+  split
+  · exact Or.inl rfl
+  · exact Or.inr rfl
+
+theorem os_oodSrc_mem (tch zf ris t : ℕ) : (osOodSrc tch zf ris t).1 = osFch ∨ (osOodSrc tch zf ris t).1 = tch := by
+  unfold osOodSrc; split
+  · exact Or.inl rfl
+  · exact Or.inr rfl
 
 /-- **The body** at its honest values (G:1047-1317): it holds, and its calls hold at the call
 relations, each level's under `CA`, `CB`, the tail's under `CT`, the finish's under `CF`. -/
@@ -199,9 +237,19 @@ theorem osBody_complete {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok
       rw [hsLk]
       exact gT j hj)
   -- after the tail
+  have htch' : σ (.n (OsRun.tch cfg)) = R.tchv := htch
   have hF := osFinish_complete (C := CF) (rd := rd) (σ := σ) (cfg := cfg) (st := OsRun.sT cfg) (tch := OsRun.tch cfg)
     (D := R.D) hP (by rw [show (OsRun.sT cfg).t = (osTail cfg.yrLog (OsRun.sL cfg)).2.1.t from rfl, htT, hDt])
-    hm.src hzD hm.pt hm.bas hm.ich0 hnq hm.res hok.ood hm.ood hm.ichN
+    (fun i hi b o hs => by
+      rw [← os_srcPtr_eq hP.fch htch' (os_ptSrc_mem hs)]; exact hm.src i hi b o hs) hzD hm.pt
+    (fun i hi it hit => by
+      obtain ⟨m0, m1, m2⟩ := hm.bas i hi it hit
+      exact ⟨by rw [← os_srcPtr_eq hP.fch htch' (os_basisCoords_mem hit)]; exact m0, m1, m2⟩)
+    hm.ich0 hnq hm.res hok.ood
+    (fun i hi => by
+      obtain ⟨o0, o1, o2, o3⟩ := hm.ood i hi
+      exact ⟨o0, o1, o2, fun t ht => by rw [← os_srcPtr_eq hP.fch htch' (os_oodSrc_mem _ _ _ _)]; exact o3 t ht⟩)
+    hm.ichN
     (by rw [hP.fmsg, show OsRun.tch cfg = (osTail cfg.yrLog (OsRun.sL cfg)).2.2.1 from rfl, htch]; exact hcff)
     (fun lvl hl h => by rw [hP.qpos, hP.qw]; exact hcres lvl hl h)
     (fun j hj => by
