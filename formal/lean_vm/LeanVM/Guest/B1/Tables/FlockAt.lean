@@ -254,19 +254,19 @@ theorem verify_flock_completeAt (fs : String → ℕ) (cert : String → V → �
   intro τ cv xs cv' zSkip alpha mv chi rcs s c zc lr zp Lin hτ hcl hrl hsl hrun hLin
   obtain ⟨hlen, hz, ha, hchiE, hrcE, hsE, hterm, hcv'⟩ :=
     flock_inv (hrun _ (flockEv_at alpha zSkip (chi.take 8) rcs.reverse s mv))
-  refine completeAt_straight find_verify_flock fl_not_loop κ Lin _ _ fl_body fl_straight fl_addrs
+  refine completeAt_straightD find_verify_flock fl_not_loop κ Lin _ _ fl_body fl_straight fl_addrs
     (flSizes τ) (fun _ => flOwn τ cv xs (ofK (Parameters.gpow c))) (fun _ => flOwn_fit _ _ _ _)
     (fun fp => flKids τ cv xs (ofK (Parameters.gpow c)) (ofK (Parameters.gpow zc)) Lin
       (fp + fs "verify_flock")) ?_ ?_ ?_ ?_
   · intro fp k hk _
     simp only [flKids, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with rfl | rfl
-    · refine completeAt_of_rel_low pure81 (by simp) κ fun rd hlow hL rd' hag => ?_
+    · refine completeAt_of_rel_lowD pure81 (by simp) κ fun rd hlow hL rd' hag => ?_
       obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
       have hM := flMem_of hLin hlen hchiE hrcE hsE hlow hL1 hL2 hag
       rw [word_g13, word_g14, ← pow_add]
       exact loop81_complete hτ hM
-    · refine completeAt_of_rel_low pure82 (by simp) κ fun rd hlow hL rd' hag => ?_
+    · refine completeAt_of_rel_lowD pure82 (by simp) κ fun rd hlow hL rd' hag => ?_
       obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
       have hM := flMem_of hLin hlen hchiE hrcE hsE hlow hL1 hL2 hag
       rw [word_g7, word_g8, ← pow_add]

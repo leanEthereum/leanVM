@@ -11,8 +11,8 @@ public import LeanVM.Guest.B1.Uniform
 /-!
 # Straight-line bodies, placed
 
-`completeAt_straight`: a function whose body is straight-line statements then a `ret`, with no
-`frameAddr`, is `CompleteAt` when its callees are, each reading the caller's words or its
+`completeAt_straightD`: a function whose body is straight-line statements then a `ret`, with no
+`frameAddr`, is `CompleteAtD` when its callees are, each reading the caller's words or its
 `HeapBuf`s, and at every frame pointer, on every memory holding its buffers' honest words and the
 caller's, a valuation satisfies its body with the allocator's pointers, frames matching the
 callees, and loads from its buffers or the caller's words.
@@ -28,13 +28,13 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 /-- **A straight-line function is complete, placed.** -/
-theorem completeAt_straight {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+theorem completeAt_straightD {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hst : pre.all Main.Stmt.straight = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
-    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out)
+    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
     (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
       RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)
     (hkm : ∀ fp rd, MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin → ∀ k ∈ kids fp,
@@ -49,11 +49,12 @@ theorem completeAt_straight {f : String} {fn : Fn} (hf : coreProgram.find? f = s
         CallsMatch σ ((pre.filterMap Main.Stmt.callS).map (Main.mkCall σ)) (kids fp) outs ∧
         ∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
-    CompleteAt fs cert κ f Lin args (Returns rets) := by
+    CompleteAtD fs cert κ f Lin args (Returns rets) := by
   intro fp
-  obtain ⟨N, L, outs, ho, hW, -, hK⟩ := kidsFromIn_of_kids' (fs := fs) (cert := cert) κ (kids fp)
+  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ (kids fp)
     (hkc fp) (fp + fs f + sizes.sum)
   refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ L, rets, [], ⟨rfl, rfl⟩, ?_,
+    by simpa using disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
     fun rd hlow hL => ?_⟩
   · simp only [List.nil_append, within_append]
     exact ⟨(bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
@@ -128,16 +129,16 @@ theorem loadHolds_agree {R : ℕ → Prop} {rd rd' : Reader} (hag : ∀ i, R i �
 
 /-- **A pure function complete on every memory agreeing with an honest one on `Lin`'s region**
 is `CompleteAt`, returning `rets` and no buffer. -/
-theorem completeAt_of_rel_low {S : List String} (hS : coreProgram.PureIn S) {g : String}
+theorem completeAt_of_rel_lowD {S : List String} (hS : coreProgram.PureIn S) {g : String}
     (hg : g ∈ S) {Lin : Layout} {args rets : List E} (k : ℕ)
     (h : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
       (∀ i, RegionL Lin i → rd' (gpow i) = rd (gpow i)) → coreProgram.Rel rd' g args rets) :
-    CompleteAt fs cert k g Lin args (Returns rets) := by
+    CompleteAtD fs cert k g Lin args (Returns rets) := by
   intro fp
   classical
   by_cases hex : ∃ rd1, LowDef k rd1 ∧ MemL rd1 Lin
   swap
-  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], fun rd hl hL =>
+  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, fun rd hl hL =>
       absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
   obtain ⟨rd1, hl1, h1⟩ := hex
   set rd0 := Main.restrict rd1 (RegionL Lin)
@@ -145,7 +146,7 @@ theorem completeAt_of_rel_low {S : List String} (hS : coreProgram.PureIn S) {g :
   obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg
     (Main.relIn_of_rel_supp coreProgram_wf hsupp
       (h rd1 hl1 h1 rd0 fun i hi => Main.restrict_of ⟨i, rfl, hi⟩))
-  refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], fun rd _ hL => ?_⟩
+  refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, fun rd _ hL => ?_⟩
   have hL' : MemL rd Lin := by simpa using hL
   refine relAtIn_dmono (hn fp rd (fun i hi => ?_) (fun A hA => ?_)) (fun i hi => ?_)
   · rw [Main.memL_agree hL' h1 i hi, Main.restrict_of ⟨i, rfl, hi⟩]
