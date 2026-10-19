@@ -234,7 +234,7 @@ def cellsC : LAtom → List ℕ
   | .range x y t1 t2 k => [x, y, t1, t2, k]
   | .inK a b => [a, b]
   | .blake m0 m1 m2 m3 cv0 cv1 o0 o1 md => [m0, m1, m2, m3, cv0, cv1, o0, o1, md]
-  | .addr p _ => [p]
+  | .addr p run => p :: run.take 1
   | .none => []
 
 /-- Every cell in `[2, n)`. -/
@@ -256,7 +256,8 @@ def locC (L : CLoc) : Core.Atom → LAtom
   | .blake2s m0 m1 m2 m3 cv0 cv1 o0 o1 md =>
       .blake (L.cell m0) (L.cell m1) (L.cell m2) (L.cell m3) (L.cell cv0) (L.cell cv1) (L.cell o0)
         (L.cell o1) (L.cell md)
-  | .frameAddr p run => .addr (L.cell p) (run.map L.cell)
+  | .frameAddr p (r :: rs) => .addr (L.cell p) ((r :: rs).map L.cell)
+  | .frameAddr _ [] => .none
   | .hint _ => .none
 
 /-- The facts by cell. -/
@@ -835,13 +836,11 @@ noncomputable def cplRes (j i : ℕ) : RC :=
         ⟨s, s.items, B, [], [], [], c, nth (nth Data.cplHands j []) i [] |>.getD 6 0, some s.start⟩
     | none => .fail 90
 
-/-- The last window's statements: none returns but the last, a `ret` or a loop's closing
-`callIf` to the function itself and `ret []`. -/
-def lastOkC (name : String) : List Core.Stmt → Bool
+/-- The last window's statements: none returns but the last, a `ret`. -/
+def lastOkC : List Core.Stmt → Bool
   | [] => false
   | [.ret _] => true
-  | [.callIf _ f _, .ret []] => f == name
-  | s :: ss => Stmt.noRet s && lastOkC name ss
+  | s :: ss => Stmt.noRet s && lastOkC ss
 
 /-- **The completeness check of window `i` of function `j`**: the window's cells pack, the
 first window starts with no counts and its self frame pointer cells fixed, and the walk ends as
@@ -849,7 +848,7 @@ first window starts with no counts and its self frame pointer cells fixed, and t
 noncomputable def cplWin (j i : ℕ) : Bool :=
   (nth (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
   (bif Nat.blt i (certOf j).cuts.length then Stmt.noRetList ((certOf j).stmtsAt (coreOf j) i)
-    else lastOkC (coreOf j).name ((certOf j).stmtsAt (coreOf j) i)) &&
+    else lastOkC ((certOf j).stmtsAt (coreOf j) i)) &&
   (bif Nat.beq i 0 then (cplHand j 0).le Cnt.zero &&
       Nat.beq ((nth (nth Data.cplHands j []) 0 []).getD 6 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&
