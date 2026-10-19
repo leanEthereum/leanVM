@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Whir.OsKids
 
 `os_kids_blockB`, `OsCompleteAtPB`/`os_kidsFromIn_onePB` and `os_levels_kidsB`: `OsKids`'s
 composition with each callee's total at most its bound (a function of its name and arguments, the
-loop a constant per level), the composition's total at most the sum (`osLvsKBound`).
+the composition's total at most the sum (`osCallsBound`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -91,29 +91,41 @@ theorem os_kidsFromIn_onePB {κ : ℕ} {f : String} {Lin : ℕ → Layout} {args
 
 /-- A level's callees by bounded trees. -/
 structure OsLvKOkB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (σ : Val) (Lk : Layout)
-    (W S : ℕ → Layout) (bd : String → List E → ℕ) (sqB : ℕ) (k : OsLvK) : Prop where
+    (W S : ℕ → Layout) (bd : String → List E → ℕ) (k : OsLvK) : Prop where
   A : ∀ c ∈ k.A, c.taken = true →
     CompleteAtB fs cert κ c.f Lk (c.args.map σ) (Returns (c.rets.map σ)) (bd c.f (c.args.map σ))
   taken : k.sq.taken = true
-  sq : OsCompleteAtPB fs cert κ k.sq.f (fun p => Lk ++ W p) (k.sq.args.map σ) (k.sq.rets.map σ) S sqB
+  sq : OsCompleteAtPB fs cert κ k.sq.f (fun p => Lk ++ W p) (k.sq.args.map σ) (k.sq.rets.map σ) S
+    (bd k.sq.f (k.sq.args.map σ))
   B : ∀ p, ∀ c ∈ k.B, c.taken = true →
     CompleteAtB fs cert κ c.f (Lk ++ W p ++ S p) (c.args.map σ) (Returns (c.rets.map σ)) (bd c.f (c.args.map σ))
 
-/-- A level's bound. -/
-def osLvKBound (fs : String → ℕ) (σ : Val) (bd : String → List E → ℕ) (sqB : ℕ) (k : OsLvK) : ℕ :=
-  osCallsBound fs σ bd k.A + (sqB + osCallsBound fs σ bd k.B)
+theorem osCallsBound_append (fs : String → ℕ) (σ : Val) (bd : String → List E → ℕ) (cs cs' : List Call) :
+    osCallsBound fs σ bd (cs ++ cs') = osCallsBound fs σ bd cs + osCallsBound fs σ bd cs' := by
+  simp [osCallsBound]
 
-/-- The levels' bound from level `l0`. -/
-def osLvsKBound (fs : String → ℕ) (σ : Val) (bd : String → List E → ℕ) (sqB : ℕ → ℕ) : ℕ → List OsLvK → ℕ
-  | _, [] => 0
-  | l0, k :: ks => osLvKBound fs σ bd (sqB l0) k + osLvsKBound fs σ bd sqB (l0 + 1) ks
+theorem osCallsBound_cons (fs : String → ℕ) (σ : Val) (bd : String → List E → ℕ) (c : Call) (cs : List Call) :
+    osCallsBound fs σ bd (c :: cs) =
+      (if c.taken = true then bd c.f (c.args.map σ) else fs c.f) + osCallsBound fs σ bd cs := by
+  simp [osCallsBound]
+
+/-- The frames' bound, by name: an entered one's or a skipped one's, the larger. -/
+theorem osCallsBound_le_max (fs : String → ℕ) (σ : Val) (bd : String → ℕ) (cs : List Call) :
+    osCallsBound fs σ (fun f _ => bd f) cs ≤ (cs.map fun c => max (bd c.f) (fs c.f)).sum := by
+  induction cs with
+  | nil => simp [osCallsBound]
+  | cons c cs ih =>
+    rw [osCallsBound_cons, List.map_cons, List.sum_cons]
+    refine Nat.add_le_add ?_ ih
+    split
+    · exact le_max_left _ _
+    · exact le_max_right _ _
 
 /-- **`os_levels_kids` by bounded trees.** -/
-theorem os_levels_kidsB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ → Layout) (bd : String → List E → ℕ)
-    (sqB : ℕ → ℕ) :
-    ∀ (ks : List OsLvK) (l0 : ℕ), (∀ i (h : i < ks.length), OsLvKOkB fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) bd (sqB (l0 + i)) ks[i]) →
+theorem os_levels_kidsB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ → Layout) (bd : String → List E → ℕ) :
+    ∀ (ks : List OsLvK) (l0 : ℕ), (∀ i (h : i < ks.length), OsLvKOkB fs cert κ σ Lk (W (l0 + i)) (S (l0 + i)) bd ks[i]) →
       ∀ b, ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
-        N ≤ osLvsKBound fs σ bd sqB l0 ks ∧
+        N ≤ osCallsBound fs σ bd (ks.flatMap OsLvK.calls) ∧
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
           (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →
@@ -127,7 +139,7 @@ theorem os_levels_kidsB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ �
     obtain ⟨nS, LS, hWS, hDS, hNS, hKS⟩ := os_kidsFromIn_onePB h0.sq σ k.sq rfl h0.taken rfl rfl (b + NA)
     obtain ⟨NB, LB, hWB, hDB, hNB, hKB⟩ := os_kids_blockB (fs := fs) (cert := cert) κ
       (Lk ++ W l0 (b + NA) ++ S l0 (b + NA)) σ k.B bd (h0.B (b + NA)) (b + NA + nS)
-    obtain ⟨Nr, Lr, ps, hps, hWr, hDr, hNr, hKr⟩ := os_levels_kidsB κ σ Lk W S bd sqB ks (l0 + 1) (fun i hi => by
+    obtain ⟨Nr, Lr, ps, hps, hWr, hDr, hNr, hKr⟩ := os_levels_kidsB κ σ Lk W S bd ks (l0 + 1) (fun i hi => by
       have := hok (i + 1) (by simp; omega)
       simp only [List.getElem_cons_succ, show l0 + (i + 1) = l0 + 1 + i by omega] at this
       exact this) (b + NA + nS + NB)
@@ -140,7 +152,8 @@ theorem os_levels_kidsB (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ �
         hW2 le_rfl, ?_, ?_⟩
     · rw [within_append]
       exact ⟨hWA.mono le_rfl (by omega), hW2.mono (by omega) (by omega)⟩
-    · simp only [osLvsKBound, osLvKBound]; omega
+    · simp only [List.flatMap_cons, OsLvK.calls, osCallsBound_append, osCallsBound_cons, h0.taken, ↓reduceIte]
+      omega
     · intro rd R Dacc hlow hL hLk hWm hR hRW
       obtain ⟨hLA, hL'⟩ := Main.memL_append.mp hL
       obtain ⟨hLS, hL''⟩ := Main.memL_append.mp hL'
