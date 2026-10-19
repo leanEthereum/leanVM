@@ -14,6 +14,7 @@ public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Glob
 public import LeanVM.Guest.Frames
 public import LeanVM.Guest.Data.Plumb
+public import LeanVM.Guest.Data.CplArms
 
 /-!
 # The honest memory's frames
@@ -179,12 +180,67 @@ noncomputable def pathMax (f : String) (op : Opcode) : ℕ :=
   | some j => (plumbOf j).pmax.getD (opIdx op) 0
   | none => 0
 
+/-! ## The counts of a path
+
+A `match` whose arms are counted separately (`Data.cplArms`) adds the count of the arm its
+selector picks; the rest of a path is counted by the most any path runs (`pathMax`). -/
+
+/-- The arms' counts of the `match` on `x`, if counted separately. -/
+def armRaw (acs : List (ℕ × List (List ℕ))) (x : ℕ) : Option (List (List ℕ)) :=
+  (acs.find? fun p ↦ Nat.beq p.1 x).map (·.2)
+
+mutual
+/-- The separately counted arms a statement's path passes, under `σ`. -/
+noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Stmt → Opcode → ℕ
+  | .ite c z n => if σ c = 0 then costW acs σ z else costW acs σ n
+  | .match_ x arms => costArms acs σ x (armRaw acs x.idx) 0 arms
+  | _ => 0
+
+/-- The separately counted arms a block's path passes, under `σ`. -/
+noncomputable def costW (acs : List (ℕ × List (List ℕ))) (σ : Val) : List Stmt → Opcode → ℕ
+  | [] => 0
+  | s :: ss => cost1 acs σ s + costW acs σ ss
+
+/-- The arm `σ` picks, from arm `k` on (`walkArms`), its count if counted separately. -/
+noncomputable def costArms (acs : List (ℕ × List (List ℕ))) (σ : Val) (x : V)
+    (key : Option (List (List ℕ))) : ℕ → List (List Stmt) → Opcode → ℕ
+  | _, [] => 0
+  | k, a :: as => if σ x = ofK (gpow k) then
+      (fun op ↦ match key with
+        | some cs => (nth cs k []).getD (opIdx op) 0
+        | none => 0) + costW acs σ a
+    else costArms acs σ x key (k + 1) as
+end
+
+/-- **The count of function `j`'s path under `σ`**: the most a path runs, and the separately
+counted arms it passes. -/
+noncomputable def pathCount (j : ℕ) (σ : Val) (op : Opcode) : ℕ :=
+  pathMax (coreOf j).name op + costW (nth Data.cplArms j []) σ (coreOf j).body op
+
+/-- `pathCount`, by function name. -/
+noncomputable def pathCountN (f : String) (σ : Val) (op : Opcode) : ℕ :=
+  match idxOf f with
+  | some j => pathCount j σ op
+  | none => 0
+
+mutual
+/-- The weight of a call tree, each instance weighing `ω f σ` by its function and valuation. -/
+def weightV (ω : String → Val → ℕ) : Tree → ℕ
+  | .node f σ _ kids => ω f σ + weightVKids ω kids
+  | .phantom .. => 0
+
+/-- The weight of a list of call trees. -/
+def weightVKids (ω : String → Val → ℕ) : List Tree → ℕ
+  | [] => 0
+  | k :: ks => weightV ω k + weightVKids ω ks
+end
+
 /-- The jump table's `SET`s, run before `main`. -/
 def jtSets (op : Opcode) : ℕ := if op = .setConstant then 4478 else 0
 
-/-- **The instructions of opcode `op` a run on the honest memory of `T` executes at most**: the
-most one path runs, per instance that runs, and the jump table. -/
-noncomputable def cnt (T : Tree) (op : Opcode) : ℕ := T.weight (pathMax · op) + jtSets op
+/-- **The instructions of opcode `op` a run on the honest memory of `T` executes at most**: its
+path's count, per instance that runs, and the jump table. -/
+noncomputable def cnt (T : Tree) (op : Opcode) : ℕ := weightV (fun f σ ↦ pathCountN f σ op) T + jtSets op
 
 end
 end LeanVM.Guest.B2C

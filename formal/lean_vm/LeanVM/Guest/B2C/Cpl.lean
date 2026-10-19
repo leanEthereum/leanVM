@@ -627,7 +627,7 @@ def nvVals : List V → ℕ → ℕ
 
 /-- The arms' counts of the `match` on `x`, if counted separately. -/
 def armKeyD (acs : List (ℕ × List (List ℕ))) (x : ℕ) : Option (List Cnt) :=
-  (acs.find? fun p ↦ Nat.beq p.1 x).map fun p ↦ p.2.map Cnt.ofList
+  (armRaw acs x).map fun cs ↦ cs.map Cnt.ofList
 
 /-- Arm `k` within its count, if counted separately. -/
 def armChkK (key : Option (List Cnt)) (k : ℕ) (c : Cnt) : Bool :=
@@ -1017,39 +1017,6 @@ noncomputable def cplWin (j i k : ℕ) : Bool :=
 /-- **The completeness check of function `j`**: every part of every window. -/
 noncomputable def CplOk (j : ℕ) : Prop :=
   ∀ i ≤ (certOf j).cuts.length, ∀ k < nParts j i, cplWin j i k = true
-
-/-! ## The counts of a path
-
-A `match` whose arms are counted separately (`Data.cplArms`) adds the count of the arm its
-selector picks; the rest of a path is counted by the most any path runs (`pathMax`). -/
-
-mutual
-/-- The separately counted arms a statement's path passes, under `σ`. -/
-noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Core.Stmt → Opcode → ℕ
-  | .ite c z n => if σ c = 0 then costW acs σ z else costW acs σ n
-  | .match_ x arms => costArms acs σ x (armKeyD acs x.idx) 0 arms
-  | _ => 0
-
-/-- The separately counted arms a block's path passes, under `σ`. -/
-noncomputable def costW (acs : List (ℕ × List (List ℕ))) (σ : Val) : List Core.Stmt → Opcode → ℕ
-  | [] => 0
-  | s :: ss => cost1 acs σ s + costW acs σ ss
-
-/-- The arm `σ` picks, from arm `k` on (`walkArms`), its count if counted separately. -/
-noncomputable def costArms (acs : List (ℕ × List (List ℕ))) (σ : Val) (x : V) (key : Option (List Cnt)) :
-    ℕ → List (List Core.Stmt) → Opcode → ℕ
-  | _, [] => 0
-  | k, a :: as => if σ x = ofK (gpow k) then
-      (match key with
-        | some cs => (nth cs k Cnt.zero).get
-        | none => 0) + costW acs σ a
-    else costArms acs σ x key (k + 1) as
-end
-
-/-- **The count of function `j`'s path under `σ`**: the most a path runs, and the separately
-counted arms it passes. -/
-noncomputable def pathCount (j : ℕ) (σ : Val) (op : Opcode) : ℕ :=
-  pathMax (coreOf j).name op + costW (nth Data.cplArms j []) σ (coreOf j).body op
 
 /-- **What the completeness check gives of function `j`** (`cpl_run`): on a memory holding the
 jump table, from an instance's frame holding what the check reads (`FrameHolds`) and its callees'

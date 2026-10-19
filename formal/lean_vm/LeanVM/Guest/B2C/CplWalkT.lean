@@ -177,12 +177,24 @@ theorem tbl_arm {X : CX} {J : ℕ} {se : CW} {key : Option (List Cnt)} {a0 : Lis
     obtain ⟨s, ck, uk, h1, h2, h3, h4⟩ := hks k hk1 (hl ▸ hk1)
     exact ⟨by simp; omega, s, ck, uk, h1, h2, h3, by rw [Nat.add_comm]; exact h4⟩
 
+theorem tbl_nth_ofList (cs : List (List ℕ)) (k : ℕ) (op : Opcode) :
+    (nth (cs.map Cnt.ofList) k Cnt.zero).get op = (nth cs k []).getD (opIdx op) 0 := by
+  have h : nth (cs.map Cnt.ofList) k Cnt.zero = Cnt.ofList (nth cs k []) := by
+    induction cs generalizing k with
+    | nil => rfl
+    | cons c cs ih =>
+      cases k with
+      | zero => rfl
+      | succ k => exact ih k
+  rw [h]
+  cases op <;> simp only [Cnt.ofList, Cnt.get, opIdx, nth_getD]
+
 /-- The arm a `match` takes, and the separately counted arms its path passes. -/
-theorem tbl_walkArmsC {σ : Val} {acs : List (ℕ × List (List ℕ))} {key : Option (List Cnt)} {x : V} :
+theorem tbl_walkArmsC {σ : Val} {acs : List (ℕ × List (List ℕ))} {key : Option (List (List ℕ))} {x : V} :
     ∀ (arms : List (List Stmt)) (i : ℕ) {e : List Ev}, walkArms σ x i arms = .fall e →
       ∃ k, ∃ hk : k < arms.length, σ x = ofK (gpow (i + k)) ∧ walk σ arms[k] = .fall e ∧
-        costArms acs σ x key i arms = (match key with
-          | some cs => (nth cs (i + k) Cnt.zero).get
+        costArms acs σ x key i arms = (fun op ↦ match key with
+          | some cs => (nth cs (i + k) []).getD (opIdx op) 0
           | none => 0) + costW acs σ arms[k]
   | [], _, _, h => by simp [walkArms] at h
   | a :: as, i, e, h => by
@@ -234,7 +246,8 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
   intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   obtain ⟨t, ft, t0, ts, base, se, s0, J, c0, u0, c, u, sj, hk, hsu, htb, hself, hl, hvn, hsel, hin,
     harm, hao, hse, hs0, h0, hck0, ha, hsj, hcw⟩ := cw_match hok
-  generalize hkey : armKeyD X.acs v.idx = key at hs0 hck0 ha hcw
+  have hkr : armKeyD X.acs v.idx = (armRaw X.acs v.idx).map (fun cs ↦ cs.map Cnt.ofList) := rfl
+  generalize armKeyD X.acs v.idx = key at hs0 hck0 ha hcw hkr
   have hnr : Stmt.noRet (.match_ v (a0 :: as)) = true := by
     rcases hshape with h | ⟨h, -, -⟩
     · simp only [Stmt.noRetList, Bool.and_eq_true] at h
@@ -246,7 +259,8 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
     rcases walkArms_noRetC (σ := σ) v (a0 :: as) 0 hnr with h | h
     · exact h
     · exact absurd (show o = .stuck by rw [hw0, h]; rfl) hs
-  obtain ⟨k, hka, hvk, hwk, hcost⟩ := tbl_walkArmsC (acs := X.acs) (key := key) (a0 :: as) 0 hwa
+  obtain ⟨k, hka, hvk, hwk, hcost⟩ :=
+    tbl_walkArmsC (acs := X.acs) (key := armRaw X.acs v.idx) (a0 :: as) 0 hwa
   rw [Nat.zero_add] at hvk hcost
   have hw' : o = (walk σ ss).pre e1 := by rw [hw0, hwa]; rfl
   have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hw', h]; rfl)
@@ -343,8 +357,7 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
   obtain rfl := Out.fall.inj hfe
   obtain ⟨⟨crj, hcrj, hcj⟩, henvJ⟩ := hArr
   -- the join
-  have hc1 : cost1 X.acs σ (.match_ v (a0 :: as)) = costArms X.acs σ v key 0 (a0 :: as) := by
-    rw [← hkey]
+  have hc1 : cost1 X.acs σ (.match_ v (a0 :: as)) = costArms X.acs σ v (armRaw X.acs v.idx) 0 (a0 :: as) :=
     rfl
   have hp'' := tbl_segJ H hsj hok0 henvJ u hcrj (c := armCnt key se c) (n := (calls (ebef ++ e1)).length)
     (xc := xc + cost1 X.acs σ (.match_ v (a0 :: as))) (fun op ↦ by
@@ -354,10 +367,15 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
       simp only [Pi.add_apply, xa] at h1 ⊢
       cases key with
       | none =>
+        have hr : armRaw X.acs v.idx = none := Option.map_eq_none_iff.mp hkr.symm
+        rw [hr]
         simp only [armCnt, armSt, Nat.sub_self, Nat.add_zero] at h1 ⊢
         omega
-      | some cs =>
+      | some cs' =>
+        obtain ⟨cs, hr, rfl⟩ := Option.map_eq_some_iff.mp hkr.symm
+        rw [hr]
         have h3 := Cnt.le_spec hchk op
+        rw [tbl_nth_ofList] at h3
         simp only [armCnt, armSt] at h1 ⊢
         have h4 : ({ se with cnt := Cnt.zero } : CW).cnt.get op = 0 := by cases op <;> rfl
         rw [h4, Nat.sub_zero] at h1
