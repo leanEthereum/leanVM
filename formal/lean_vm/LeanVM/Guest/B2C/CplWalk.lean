@@ -169,6 +169,8 @@ structure WH (L : MemImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (wJ 
   arms : X.arms = (plumbOf j).arms
   self : X.self = (certOf j).facts.env.map (·.1)
   entry : X.entry = (fnOf j).entry
+  /-- A selector the check accepts is a value the path names. -/
+  named : ∀ v : V, v = V.n v.idx → selOk X v = true → v ∈ namedOf (coreOf j).params es vs
   frame : FrameHolds L j fp σ es vs kfps hdr
   kids : KidsRun L σ es kfps ck
   hev : ∀ e ∈ es, e.Holds L.read σ

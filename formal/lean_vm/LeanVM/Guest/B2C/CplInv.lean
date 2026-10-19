@@ -147,6 +147,7 @@ theorem cw_call {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW
 theorem cw_dispatch {v : V} {fs : List String} {args rets : List V} {ss : List Core.Stmt} {st : CW}
     (h : (cw X (.dispatch v fs args rets :: ss) st).ok = true) :
     ∃ t q r base sr, st.seg.exit.kind = .call (.cell t) q r ∧ tblRead t st.its = some (X.loc.cell v, base) ∧
+      v = V.n v.idx ∧ selOk X v = true ∧
       tcOk X base args.length rets.length 0 fs = true ∧ X.entry ≤ r ∧
       st.seg.exit.succ = [r - X.entry] ∧ siteOk X args rets q r t = true ∧
       bitK st.uq q = false ∧ bitK st.uq t = false ∧ q ≠ t ∧
@@ -159,7 +160,8 @@ theorem cw_dispatch {v : V} {fs : List String} {args rets : List V} {ss : List C
   · rename_i t q r hk
     split at h
     · rename_i o1 base htb
-      cases hc : (Nat.beq o1 (X.loc.cell v) && tcOk X base args.length rets.length 0 fs &&
+      cases hc : (Nat.beq o1 (X.loc.cell v) && v.path.isEmpty && Nat.beq v.tag 0 && selOk X v &&
+          tcOk X base args.length rets.length 0 fs &&
           Nat.ble X.entry r && st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r t &&
           !bitK st.uq q && !bitK st.uq t && !Nat.beq q t &&
           inFrame X.fs (t :: q :: o1 :: (args ++ rets).map X.loc.cell))
@@ -167,11 +169,17 @@ theorem cw_dispatch {v : V} {fs : List String} {args rets : List V} {ss : List C
       rw [hc] at h
       simp only [Bool.cond_true] at h ⊢
       simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at hc
-      obtain ⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩ := hc
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, hp1⟩, hp2⟩, hp3⟩, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩ := hc
       obtain rfl := Nat.eq_of_beq_eq_true h1
+      have hvn : v = V.n v.idx := by
+        obtain ⟨vp, vt, vi⟩ := v
+        simp only [List.isEmpty_iff] at hp1
+        obtain rfl := hp1
+        obtain rfl := Nat.eq_of_beq_eq_true hp2
+        rfl
       split at h
       · rename_i sr hsr
-        exact ⟨t, q, r, base, sr, hk, htb, h2, Nat.le_of_ble_eq_true h3, h4, h5, h6, h7,
+        exact ⟨t, q, r, base, sr, hk, htb, hvn, hp3, h2, Nat.le_of_ble_eq_true h3, h4, h5, h6, h7,
           Nat.ne_of_beq_eq_false h8, h9, hsr, rfl⟩
       · cases h
     · cases h
@@ -352,7 +360,8 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
     {st : CW} (h : (cw X (.match_ v (a0 :: as) :: ss) st).ok = true) :
     ∃ t ft t0 ts base se s0 J c0 u0 c u sj, st.seg.exit.kind = .jump (.cell t) ft ∧
       st.seg.exit.succ = t0 :: ts ∧ tblRead t st.its = some (X.loc.cell v, base) ∧
-      X.F.self ft = true ∧ ts.length = as.length ∧ v = V.n v.idx ∧ inFrame X.fs [X.loc.cell v, t] = true ∧
+      X.F.self ft = true ∧ ts.length = as.length ∧ v = V.n v.idx ∧ selOk X v = true ∧
+      inFrame X.fs [X.loc.cell v, t] = true ∧
       X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) = true ∧
       armsOk X.G X.entry base 0 (t0 :: ts) = true ∧
       endAtC X { st with tg := (t, X.loc.cell v, base) :: st.tg } = .ok se ∧
@@ -366,14 +375,14 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
     split at h
     · rename_i o1 base htb
       cases hc : (X.F.self ft && Nat.beq ts.length as.length && Nat.beq o1 (X.loc.cell v) &&
-          v.path.isEmpty && Nat.beq v.tag 0 && inFrame X.fs [o1, t] &&
+          v.path.isEmpty && Nat.beq v.tag 0 && selOk X v && inFrame X.fs [o1, t] &&
           X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
           armsOk X.G X.entry base 0 (t0 :: ts))
       · rw [hc] at h; cases h
       rw [hc] at h
       simp only [Bool.cond_true] at h ⊢
       simp only [Bool.and_eq_true] at hc
-      obtain ⟨⟨⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g7⟩, g8⟩, g4⟩, g5⟩, g6⟩ := hc
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g7⟩, g8⟩, gsel⟩, g4⟩, g5⟩, g6⟩ := hc
       obtain rfl := Nat.eq_of_beq_eq_true g3
       have hvn : v = V.n v.idx := by
         obtain ⟨vp, vt, vi⟩ := v
@@ -393,7 +402,7 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
               split at h
               · rename_i sj hsj
                 exact ⟨t, ft, t0, ts, base, se, s0, J, c0, u0, c, u, sj, hk, hsu, htb, g1,
-                  Nat.eq_of_beq_eq_true g2, hvn, g4, g5, g6, hse, hs0, h0, ha, hsj,
+                  Nat.eq_of_beq_eq_true g2, hvn, gsel, g4, g5, g6, hse, hs0, h0, ha, hsj,
                   by simp only [Cnt.seq_eq, natSeq_eq]⟩
               · cases h
             · cases h
