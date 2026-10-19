@@ -407,5 +407,166 @@ theorem IObls_of_obs {C : CallRel} {rd : Reader} {lo : ℕ} {σf : Val} : ∀ (i
   | _ :: its, _, h => ⟨IObl_of_obs fun o ho => h o (List.mem_append_left _ ho),
       IObls_of_obs its _ fun o ho => h o (List.mem_append_right _ ho)⟩
 
+/-! ## What a body defines -/
+
+/-- The atoms of a body's items defining their results by arithmetic. -/
+def fDefAtomsI (lo : ℕ) : List ℕ → List FItem → List Atom
+  | _, [] => []
+  | D, .atom a :: its => (if fIsDef lo D a then [a] else []) ++ fDefAtomsI lo (fDStep lo D a) its
+  | D, it :: its => fDefAtomsI lo (fDStepI lo D it) its
+
+/-- The loads of a body's items defining their results. -/
+def fLoadsI (lo : ℕ) : List ℕ → List FItem → List (V × V × ℕ)
+  | _, [] => []
+  | D, .atom (.load d p off) :: its => (if fDef lo D d then [] else [(d, p, off)]) ++
+      fLoadsI lo (fDStep lo D (.load d p off)) its
+  | D, it :: its => fLoadsI lo (fDStepI lo D it) its
+
+/-- The items other than atoms of a body. -/
+def fSetItems : List FItem → List FItem
+  | [] => []
+  | .atom _ :: its => fSetItems its
+  | it :: its => it :: fSetItems its
+
+theorem fRunI_eq_of_def (rd : Reader) {lo hi : ℕ} (hv : ℕ → E) {its : List FItem} {D : List ℕ} {σ : Val}
+    {σf : Val} (hok : fOkI lo hi D its = true) (hf : ∀ v, fRunI rd lo hv D σ its v = σf v) {v : V}
+    (h : fDef lo D v = true) : σf v = σ v := by
+  rw [← hf v, fRunI_frame rd hv its D σ hok h]
+
+/-- **The defining atoms hold.** -/
+theorem fRunI_defs (rd : Reader) {lo hi : ℕ} (hv : ℕ → E) (σf : Val) : ∀ (its : List FItem) (D : List ℕ)
+    (σ : Val), fOkI lo hi D its = true → (∀ v, fRunI rd lo hv D σ its v = σf v) →
+      ∀ a ∈ fDefAtomsI lo D its, a.Holds rd σf
+  | [], _, _, _, _, a, ha => absurd ha (by simp [fDefAtomsI])
+  | .atom b :: its, D, σ, hok, hf, a, ha => by
+    simp only [fOkI, Bool.and_eq_true] at hok
+    simp only [fRunI] at hf
+    simp only [fDefAtomsI, List.mem_append] at ha
+    rcases ha with ha | ha
+    · split_ifs at ha with hd
+      · rcases List.mem_singleton.mp ha with rfl
+        rw [fStepI_fst] at hf
+        refine fStep_holds (σ := σ) rd hok.1 (fun v hv' => ?_) (fObl1_of_def hd)
+        rw [← hf v]
+        exact fRunI_frame rd hv its _ _ hok.2 (fOk1_vars hok.1 v hv')
+      · exact absurd ha (by simp)
+    · rw [fStepI_fst] at hf
+      exact fRunI_defs rd hv σf its _ _ hok.2 hf a ha
+  | .fs .. :: its, D, σ, hok, hf, a, ha
+  | .sq .. :: its, D, σ, hok, hf, a, ha
+  | .callIf .. :: its, D, σ, hok, hf, a, ha
+  | .disp .. :: its, D, σ, hok, hf, a, ha
+  | .hint _ :: its, D, σ, hok, hf, a, ha => by
+    simp only [fOkI, Bool.and_eq_true] at hok
+    simp only [fRunI] at hf
+    rw [fStepI_fst] at hf
+    exact fRunI_defs rd hv σf its _ _ hok.2 hf a (by simpa [fDefAtomsI] using ha)
+
+/-- **The defining loads read the memory.** -/
+theorem fRunI_loads (rd : Reader) {lo hi : ℕ} (hv : ℕ → E) (σf : Val) : ∀ (its : List FItem) (D : List ℕ)
+    (σ : Val), fOkI lo hi D its = true → (∀ v, fRunI rd lo hv D σ its v = σf v) →
+      ∀ q ∈ fLoadsI lo D its, σf q.1 = memAt rd (σf q.2.1) q.2.2
+  | [], _, _, _, _, q, hq => absurd hq (by simp [fLoadsI])
+  | .atom b :: its, D, σ, hok, hf, q, hq => by
+    simp only [fOkI, Bool.and_eq_true] at hok
+    simp only [fRunI] at hf
+    rw [fStepI_fst] at hf
+    have hrest : q ∈ fLoadsI lo (fDStepI lo D (.atom b)) its → σf q.1 = memAt rd (σf q.2.1) q.2.2 :=
+      fun h => fRunI_loads rd hv σf its _ _ hok.2 hf q h
+    cases b with
+    | load d p off =>
+      simp only [fLoadsI, List.mem_append] at hq
+      rcases hq with hq | hq
+      · split_ifs at hq with hd
+        · exact absurd hq (by simp)
+        · rcases List.mem_singleton.mp hq with rfl
+          simp only [Bool.not_eq_true] at hd
+          have hk1 : fOk1 lo hi D (.load d p off) = true := hok.1
+          have hok1 := hk1
+          simp only [fOk1, Bool.and_eq_true] at hok1
+          have hfr := fun v (hv' : fDef lo (fDStepI lo D (.atom (.load d p off))) v = true) =>
+            (hf v).symm.trans (fRunI_frame rd hv its _ _ hok.2 hv')
+          have e1 := hfr d (fOk1_vars hk1 d (by simp [atomUses]))
+          have e2 := hfr p (fOk1_vars hk1 p (by simp [atomUses]))
+          simp only [fStepI, fStep, hd, Bool.false_eq_true, ↓reduceIte, Function.update_self] at e1 e2
+          rw [Function.update_of_ne (ne_of_def hok1.1 hd)] at e2
+          dsimp only
+          rw [e1, e2]
+      · exact hrest hq
+    | _ => exact hrest (by simpa [fLoadsI] using hq)
+  | .fs .. :: its, D, σ, hok, hf, q, hq
+  | .sq .. :: its, D, σ, hok, hf, q, hq
+  | .callIf .. :: its, D, σ, hok, hf, q, hq
+  | .disp .. :: its, D, σ, hok, hf, q, hq
+  | .hint _ :: its, D, σ, hok, hf, q, hq => by
+    simp only [fOkI, Bool.and_eq_true] at hok
+    simp only [fRunI] at hf
+    rw [fStepI_fst] at hf
+    exact fRunI_loads rd hv σf its _ _ hok.2 hf q (by simpa [fLoadsI] using hq)
+
+theorem FItem.vals_congr (rd : Reader) (hv : ℕ → E) {σ σ' : Val} (it : FItem)
+    (h : ∀ v ∈ it.reads, σ' v = σ v) : it.vals rd hv σ' = it.vals rd hv σ := by
+  cases it with
+  | fs s0 s1 cur j b =>
+    simp only [FItem.reads, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at h
+    simp only [FItem.vals, h.1, h.2.1, h.2.2]
+  | sq s0 s1 b =>
+    simp only [FItem.reads, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at h
+    simp only [FItem.vals, h.1, h.2]
+  | _ => rfl
+
+theorem FItem.vals_length (rd : Reader) (hv : ℕ → E) (σ : Val) (it : FItem) :
+    (it.vals rd hv σ).length = it.sets.length := by
+  cases it <;> simp [FItem.vals, FItem.sets]
+
+/-- An atom item. -/
+def FItem.isAtom : FItem → Bool
+  | .atom _ => true
+  | _ => false
+
+theorem fSetItems_cons (it : FItem) (its : List FItem) :
+    fSetItems (it :: its) = (if it.isAtom then [] else [it]) ++ fSetItems its := by
+  cases it <;> rfl
+
+theorem fStepI_nonatom (rd : Reader) (lo : ℕ) (hv : ℕ → E) (D : List ℕ) (σ : Val) {it : FItem}
+    (h : it.isAtom = false) : fStepI rd lo hv D σ it = (fAddMany D it.sets, updMany σ it.sets (it.vals rd hv σ)) := by
+  cases it <;> simp_all [FItem.isAtom, fStepI]
+
+/-- **An item's values are its own**, at the final valuation. -/
+theorem fRunI_sets (rd : Reader) {lo hi : ℕ} (hv : ℕ → E) (σf : Val) : ∀ (its : List FItem) (D : List ℕ)
+    (σ : Val), fOkI lo hi D its = true → (∀ v, fRunI rd lo hv D σ its v = σf v) →
+      ∀ it ∈ fSetItems its, ∀ (i : ℕ) (hi : i < it.sets.length) (hj : i < (it.vals rd hv σf).length),
+        σf it.sets[i] = (it.vals rd hv σf)[i]
+  | [], _, _, _, _, it, hit => absurd hit (by simp [fSetItems])
+  | b :: its, D, σ, hok, hf, it, hit => by
+    simp only [fOkI, Bool.and_eq_true] at hok
+    simp only [fRunI] at hf
+    rw [fStepI_fst] at hf
+    rw [fSetItems_cons, List.mem_append] at hit
+    rcases hit with hit | hit
+    · cases hb : b.isAtom
+      · rw [hb] at hit
+        simp only [Bool.false_eq_true, ↓reduceIte, List.mem_singleton] at hit
+        subst hit
+        intro i hi hj
+        have hfr := fun v (hv' : fDef lo (fDStepI lo D it) v = true) =>
+          (hf v).symm.trans (fRunI_frame rd hv its _ _ hok.2 hv')
+        have hvars := fOkI1_vars hok.1
+        have hok1 := hok.1
+        have hn : it.isAtom = false := hb
+        cases it with
+        | atom a => simp [FItem.isAtom] at hn
+        | _ =>
+          simp only [fOkI1, Bool.and_eq_true, decide_eq_true_eq] at hok1
+          have hrd : ∀ v ∈ FItem.reads _, σf v = σ v := fun v hm => by
+            rw [hfr v (hvars v (List.mem_append_left _ hm)), fStepI_nonatom rd lo hv D σ hn]
+            exact updMany_of_not_mem σ _ _ (not_mem_sets hok1.1.2 (List.all_eq_true.mp hok1.1.1 v hm))
+          rw [hfr _ (hvars _ (List.mem_append_right _ (List.getElem_mem hi))), fStepI_nonatom rd lo hv D σ hn]
+          dsimp only
+          rw [updMany_get σ _ _ hok1.2 (FItem.vals_length rd hv σ _).symm i hi]
+          simp only [FItem.vals_congr rd hv _ hrd]
+      · rw [hb] at hit; exact absurd hit (by simp)
+    · exact fRunI_sets rd hv σf its _ _ hok.2 hf it hit
+
 end
 end LeanVM.Guest.B1.VerifySub
