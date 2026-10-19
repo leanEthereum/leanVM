@@ -224,7 +224,7 @@ theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st
           cw X ss { sr with cnt := Cnt.max se.cnt st'.cnt, uq := setK st.uq q }) ∨
      (∃ e S st' oc' od of x' se, x.kind = .jump (.gp e) (.fpg S) ∧ ss = [.ret []] ∧ e = X.entry ∧
         f = X.name ∧ S = X.fs ∧ args.length = X.nargs ∧ X.nret = 0 ∧ X.main = false ∧
-        brAtC X { st with nx := (argFC X.loc 2 args ++ [(0, .hdr 0), (1, .hdr 1)] ++
+        siteC X args [] = none ∧ brAtC X { st with nx := (argFC X.loc 2 args ++ [(0, .hdr 0), (1, .hdr 1)] ++
           X.self.map (fun o ↦ (o, FC.self))) } = .ok (st', oc', od, of, x') ∧
         cellK X st' od = true ∧ cellK X st' of = true ∧ st'.cnt.le X.pmax = true ∧
         endAtC X st' = .ok se ∧ se.seg.exit.kind = .ret ∧ se.cnt.le X.pmax = true ∧
@@ -285,12 +285,12 @@ theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st
       right
       split at h
       · cases hc : (Nat.beq e X.entry && f == X.name && Nat.beq S X.fs &&
-            Nat.beq args.length X.nargs && Nat.beq X.nret 0 && !X.main)
+            Nat.beq args.length X.nargs && Nat.beq X.nret 0 && !X.main && (siteC X args []).isNone)
         · rw [hc] at h; cases h
         rw [hc] at h
         simp only [Bool.cond_true] at h ⊢
         simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at hc
-        obtain ⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g4⟩, g5⟩, g6⟩ := hc
+        obtain ⟨⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g4⟩, g5⟩, g6⟩, g10⟩ := hc
         split at h
         · rename_i st' oc' od of x' hb
           cases hk2 : (cellK X st' od && cellK X st' of && st'.cnt.le X.pmax)
@@ -304,7 +304,8 @@ theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st
             · rw [hk3] at h; cases h
             simp only [Bool.and_eq_true, decide_eq_true_eq] at hk3
             exact ⟨e, S, st', oc', od, of, x', se, hk, trivial, Nat.eq_of_beq_eq_true g1, g2,
-              Nat.eq_of_beq_eq_true g3, Nat.eq_of_beq_eq_true g4, Nat.eq_of_beq_eq_true g5, g6, hb,
+              Nat.eq_of_beq_eq_true g3, Nat.eq_of_beq_eq_true g4, Nat.eq_of_beq_eq_true g5, g6,
+              Option.isNone_iff_eq_none.mp g10, hb,
               hk2.1.1, hk2.1.2, hk2.2, hse, hk3.1, hk3.2, rfl⟩
           · cases h
         · cases h

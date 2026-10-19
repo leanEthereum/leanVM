@@ -763,7 +763,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
           match ss with
           | [.ret []] =>
             bif Nat.beq e X.entry && f == X.name && Nat.beq S X.fs && Nat.beq args.length X.nargs &&
-                Nat.beq X.nret 0 && !X.main then
+                Nat.beq X.nret 0 && !X.main && (siteC X args []).isNone then
               match brAtC X { st with nx := (argFC X.loc 2 args ++ [(0, .hdr 0), (1, .hdr 1)] ++
                   X.self.map (fun o ↦ (o, FC.self))) } with
               | .ok (st', _, od, of, _) =>
