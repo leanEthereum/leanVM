@@ -206,5 +206,71 @@ structure OsCalleesAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : 
   foldFinal5 : OsFoldFinalAtD fs cert k "fold_final_msg__L5" 5
   decode : ∀ p ∈ osDqNames, OsDecodeAtD fs cert k p.1 p.2
 
+/-! ## On disjoint layouts, by bounded trees
+
+The same callees in the `CompleteAtB` form, each bound a function of the call's arguments (a
+loop's trip count depends on them). -/
+
+/-- `CompleteRelB` with a bound depending on the arguments. -/
+def CompleteRelBA (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
+    (Pre : Reader → List E → List E → Prop) (B : List E → ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, LowDef k rd → MemL rd Lin → Pre rd args rets) →
+    CompleteAtB fs cert k f Lin args (Returns rets) (B args)
+
+/-- `OsFinalMsgAtD` by bounded trees. -/
+def OsFinalMsgAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ)
+    (B : List E → ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningOpeningFinalMessage n rd args rets) →
+    CompleteAtB fs cert k name Lin args (Returns rets) (B args)
+
+/-- `OsRowWeightsAtD` by bounded trees. -/
+def OsRowWeightsAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (folds rev : ℕ)
+    (B : List E → ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningOpeningRowWeights folds rev rd args rets) →
+    CompleteAtB fs cert k name Lin args (Returns rets) (B args)
+
+/-- `OsFoldFinalAtD` by bounded trees. -/
+def OsFoldFinalAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ)
+    (B : List E → ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningFoldFinalMsg n rd args rets) →
+    CompleteAtB fs cert k name Lin args (Returns rets) (B args)
+
+/-- `OsDecodeAtD`, its tree `fs name` words (the decoder calls nothing). -/
+def OsDecodeAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d : ℕ) (name : String) : Prop :=
+  OsDecodeAtD fs cert k d name
+
+/-- **The callees of `open_stacked` from group 1, by bounded trees**, each with its bound. -/
+structure OsCalleesAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Type where
+  foldB : List E → ℕ
+  fold : CompleteRelBA fs cert k "opening_fold" MeaningOpeningFold foldB
+  canonicalB : List E → ℕ
+  canonical : CompleteRelBA fs cert k "assert_canonical" (fun _ args rets => MeaningAssertCanonical args rets)
+    canonicalB
+  oodB : List E → ℕ
+  ood : CompleteRelBA fs cert k "opening_ood_point" OodPointPre oodB
+  grindB : List E → ℕ
+  grind : CompleteRelBA fs cert k "grind_check" GrindPre grindB
+  finalMsg4B : List E → ℕ
+  finalMsg4 : OsFinalMsgAtB fs cert k "opening_final_message__L4" 4 finalMsg4B
+  finalMsg8B : List E → ℕ
+  finalMsg8 : OsFinalMsgAtB fs cert k "opening_final_message__L8" 8 finalMsg8B
+  finalMsg16B : List E → ℕ
+  finalMsg16 : OsFinalMsgAtB fs cert k "opening_final_message__L16" 16 finalMsg16B
+  finalMsg32B : List E → ℕ
+  finalMsg32 : OsFinalMsgAtB fs cert k "opening_final_message__L32" 32 finalMsg32B
+  rowWeights4B : List E → ℕ
+  rowWeights4 : OsRowWeightsAtB fs cert k "opening_row_weights__L4_L0" 4 0 rowWeights4B
+  rowWeights6B : List E → ℕ
+  rowWeights6 : OsRowWeightsAtB fs cert k "opening_row_weights__L6_L1" 6 1 rowWeights6B
+  foldFinal2B : List E → ℕ
+  foldFinal2 : OsFoldFinalAtB fs cert k "fold_final_msg__L2" 2 foldFinal2B
+  foldFinal3B : List E → ℕ
+  foldFinal3 : OsFoldFinalAtB fs cert k "fold_final_msg__L3" 3 foldFinal3B
+  foldFinal4B : List E → ℕ
+  foldFinal4 : OsFoldFinalAtB fs cert k "fold_final_msg__L4" 4 foldFinal4B
+  foldFinal5B : List E → ℕ
+  foldFinal5 : OsFoldFinalAtB fs cert k "fold_final_msg__L5" 5 foldFinal5B
+  decode : ∀ p ∈ osDqNames, OsDecodeAtB fs cert k p.1 p.2
+
 end
 end LeanVM.Guest.B1
