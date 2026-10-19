@@ -32,6 +32,26 @@ def LConsistent (L : Layout) : Prop :=
   ∀ q ∈ L, ∀ q' ∈ L, ∀ i, q.1 ≤ i → i < q.1 + q.2.length → q'.1 ≤ i → i < q'.1 + q'.2.length →
     q.2.getD (i - q.1) 0 = q'.2.getD (i - q'.1) 0
 
+theorem pairwise_mem_ne {α : Type} {R : α → α → Prop} (hs : ∀ a b, R a b → R b a) :
+    ∀ {l : List α}, l.Pairwise R → ∀ a ∈ l, ∀ b ∈ l, a ≠ b → R a b
+  | [], _, a, ha, _, _, _ => by simp at ha
+  | x :: l, h, a, ha, b, hb, hab => by
+    rw [List.pairwise_cons] at h
+    rcases List.mem_cons.mp ha with h1 | h1 <;> rcases List.mem_cons.mp hb with h2 | h2
+    · exact absurd (h1.trans h2.symm) hab
+    · rw [h1]; exact h.1 b h2
+    · rw [h2]; exact hs _ _ (h.1 a h1)
+    · exact pairwise_mem_ne hs h.2 a h1 b h2 hab
+
+/-- **Pairwise disjoint entries are consistent.** -/
+theorem lConsistent_of_pairwise {L : Layout}
+    (h : L.Pairwise fun q q' => q.1 + q.2.length ≤ q'.1 ∨ q'.1 + q'.2.length ≤ q.1) : LConsistent L := by
+  intro q hq q' hq' i h1 h2 h3 h4
+  by_cases he : q = q'
+  · subst he; rfl
+  · have := pairwise_mem_ne (fun a b hab => hab.symm) h q hq q' hq' he
+    omega
+
 open Classical in
 /-- **The image of a layout**: `hdr` at words `0` and `1`, an entry's word where one covers. -/
 noncomputable def imageOf (κ : ℕ) (L : Layout) (hdr : E × E) : MemImage κ := fun i =>
