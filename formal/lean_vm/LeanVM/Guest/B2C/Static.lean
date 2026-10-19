@@ -140,8 +140,7 @@ theorem mem_windows {α : Type} (g : List Stmt → List α) (hg : ∀ a b, g (a 
     (hS : ShareOk j) {x : α} : ∀ k i, i + k = (snapsOf j).length →
       x ∈ g (fromW (coreOf j).body (snapsOf j) i) → ∃ i', i' ≤ (snapsOf j).length ∧
         x ∈ g (stmtsW (coreOf j).body (snapsOf j) i') := by
-  obtain ⟨-, h0, -, -⟩ := shareWin_spec (hS 0 (Nat.zero_le _))
-  obtain ⟨-, -, hmono, -, -⟩ := h0 rfl
+  obtain ⟨-, -, hmono, -, -⟩ := shareStatic_spec hS.1
   intro k
   induction k with
   | zero =>
@@ -181,11 +180,10 @@ structure FnStatic (j : ℕ) : Prop where
 theorem fnStatic {j : ℕ} {G : Glob} {f : CompiledFn} {main : Bool} (hS : ShareOk j)
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) : FnStatic j := by
   have hcont := cont_of hchk
-  obtain ⟨-, h0, -, -⟩ := shareWin_spec (hS 0 (Nat.zero_le _))
-  obtain ⟨-, hlists, hsn, -, -⟩ := h0 rfl
+  obtain ⟨-, hlists, hsn, -, -⟩ := shareStatic_spec hS.1
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
       cellJ j v = c := fun i hi v c h ↦
-    locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS i hi)).1 h
+    locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS.2 i hi)).1 h
   simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
   obtain ⟨⟨⟨⟨⟨-, ht⟩, hr⟩, hrt⟩, -⟩, -⟩ := hlists
   obtain ⟨htIn, htFun⟩ := pairsOk_spec ht
@@ -195,7 +193,7 @@ theorem fnStatic {j : ℕ} {G : Glob} {f : CompiledFn} {main : Bool} (hS : Share
       atomListed (locW (certOf j) (winW (snapsOf j) i)) (byCell (plumbOf j).tmps) (plumbOf j) a = true) ∧
       FitV (locW (certOf j) (winW (snapsOf j) i)) (cellJ j) (Stmt.usesList (stmtsW (coreOf j).body (snapsOf j) i) ++
         Stmt.tmpsList (stmtsW (coreOf j).body (snapsOf j) i)) := fun i hi ↦ by
-    obtain ⟨-, -, hval, m, hsw, -⟩ := shareWin_spec (hS i hi)
+    obtain ⟨-, hval, m, hsw, -⟩ := shareWin_spec (hS.2 i hi)
     exact ⟨swL_listed _ hsw, fitV_of (hA i hi) hval⟩
   refine ⟨fun t htm ↦ ?_, htIn, htFun, fun p r rs ha k hk ↦ ?_, hrIn, hrFun, fun p hp q hq he ↦ ?_⟩
   · obtain ⟨i, hi, htm⟩ := mem_windows Stmt.tmpsList tmpsList_append hS _ 0 (Nat.zero_add _)

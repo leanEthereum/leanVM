@@ -1465,16 +1465,6 @@ theorem packCells_digit : ∀ (l : List ℕ) (m : ℕ) (hm : m < l.length), (∀
     rw [pow_succ', ← Nat.div_div_eq_div_mul, Nat.add_mul_div_right _ _ (by norm_num),
       Nat.div_eq_of_lt hc, Nat.zero_add]
 
-theorem insGet_mem : ∀ (ps : List (ℕ × ℕ × ℕ)) {v c : ℕ}, insGet v ps = some c → ∃ j, (v, c, j) ∈ ps
-  | [], _, _, h => by simp [insGet] at h
-  | p :: ps, v, c, h => by
-    simp only [insGet, Bool.cond_eq_ite, nbeq_iff] at h
-    split_ifs at h with hp
-    · cases h
-      exact ⟨p.2.2, by rw [← hp]; exact List.mem_cons_self⟩
-    · obtain ⟨j, hj⟩ := insGet_mem ps h
-      exact ⟨j, List.mem_cons_of_mem _ hj⟩
-
 /-- **A window's cells are the certificate's.** -/
 theorem locW_get {C : Cert} {n i : ℕ} (hcont : Cont C n) (hi : i ≤ n)
     (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n)
@@ -1492,7 +1482,7 @@ theorem locW_get {C : Cert} {n i : ℕ} (hcont : Cont C n) (hi : i ≤ n)
     have e1 := cont_locs hcont hi hm
     rw [show nth C.los i 0 + (v - nth C.los i 0) = v by omega] at e1
     rw [e1]; exact hd.symm
-  · obtain ⟨j, hj⟩ := insGet_mem _ h
+  · obtain ⟨j, hj⟩ := (insTrie_get _ _ h).resolve_right (by simp [getF_eq])
     have := List.all_eq_true.mp hins _ hj
     simp only [Bool.and_eq_true, Nat.ble_eq, beq_iff_eq] at this
     obtain ⟨⟨hjn, hlo⟩, hget⟩ := this
@@ -1590,13 +1580,19 @@ noncomputable def startSt (j i : ℕ) : SSt :=
   bif i == 0 then nameStep (locW (certOf j) 0) (bitsOf (plumbOf j).sh) (initSt (plumbOf j)) (coreOf j).params
   else (snapAt (snapsOf j) i).st
 
+/-- What the static check says. -/
+theorem shareStatic_spec (h : shareStatic j = true) :
+    fsN j < 2 ^ envDepth ∧ listsOk (plumbOf j) (fsN j) = true ∧ snapsOk (certOf j) (snapsOf j) = true ∧
+      apartOk j = true ∧
+      ∀ v ∈ (coreOf j).params, valOk (locW (certOf j) 0) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j))
+        (fpgCells (plumbOf j)) (fsN j) v = true := by
+  unfold shareStatic at h
+  simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at h
+  exact ⟨h.1.1.1.1.2, h.1.1.1.2, h.1.1.2, h.1.2, h.2⟩
+
 /-- What a window's check says. -/
 theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
     (∀ c ∈ nth (certOf j).cells (winW (snapsOf j) i) [], c < 65536) ∧
-    (i = 0 → fsN j < 2 ^ envDepth ∧ listsOk (plumbOf j) (fsN j) = true ∧ snapsOk (certOf j) (snapsOf j) = true ∧
-      apartOk j = true ∧
-      ∀ v ∈ (coreOf j).params, valOk (locW (certOf j) 0) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j))
-        (fpgCells (plumbOf j)) (fsN j) v = true) ∧
     (∀ v ∈ Stmt.usesList (stmtsW (coreOf j).body (snapsOf j) i) ++ Stmt.tmpsList (stmtsW (coreOf j).body (snapsOf j) i),
       valOk (locW (certOf j) (winW (snapsOf j) i)) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) v
         = true) ∧
@@ -1606,23 +1602,20 @@ theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
   unfold shareWin at h
   simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true,
     Nat.blt_eq] at h
-  obtain ⟨⟨⟨hc, h0⟩, hv⟩, hw⟩ := h
-  refine ⟨hc, fun hi ↦ ?_, hv, ?_⟩
-  · subst hi
-    simp only [beq_self_eq_true, Bool.cond_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at h0
-    exact ⟨h0.1.1.1.1, h0.1.1.1.2, h0.1.1.2, h0.1.2, h0.2⟩
-  · have hs : startSt j i = (bif i == 0 then nameStep (locW (certOf j) (winW (snapsOf j) i)) (bitsOf (plumbOf j).sh)
-        (initSt (plumbOf j)) (coreOf j).params else (snapAt (snapsOf j) i).st) := by
-      unfold startSt
-      cases hi : i == 0
-      · rfl
-      · obtain rfl := beq_iff_eq.mp hi; rfl
-    rw [hs]
-    split at hw
-    · rename_i m hm
-      refine ⟨m, hm, fun hi ↦ ?_⟩
-      simpa [Nat.blt_eq.mpr hi] using hw
-    · cases hw
+  obtain ⟨⟨hc, hv⟩, hw⟩ := h
+  refine ⟨hc, hv, ?_⟩
+  have hs : startSt j i = (bif i == 0 then nameStep (locW (certOf j) (winW (snapsOf j) i)) (bitsOf (plumbOf j).sh)
+      (initSt (plumbOf j)) (coreOf j).params else (snapAt (snapsOf j) i).st) := by
+    unfold startSt
+    cases hi : i == 0
+    · rfl
+    · obtain rfl := beq_iff_eq.mp hi; rfl
+  rw [hs]
+  split at hw
+  · rename_i m hm
+    refine ⟨m, hm, fun hi ↦ ?_⟩
+    simpa [Nat.blt_eq.mpr hi] using hw
+  · cases hw
 
 end Fn
 
@@ -1713,7 +1706,7 @@ theorem chain_sound (hS : ShareOk j)
   | zero =>
     intro i hi pre Ψ hI es vs hw he
     have hiN : i ≤ (snapsOf j).length := by omega
-    obtain ⟨-, -, hval, m, hsw, -⟩ := shareWin_spec (hS i hiN)
+    obtain ⟨-, hval, m, hsw, -⟩ := shareWin_spec (hS.2 i hiN)
     rw [fromW_last (by omega)] at hw
     have hfit : FitV (locW (certOf j) (winW (snapsOf j) i)) (cellJ j) (Stmt.usesList (stmtsW (coreOf j).body (snapsOf j) i)) :=
       fitV_of (hA i hiN) fun v hv ↦ hval v (List.mem_append_left _ hv)
@@ -1735,8 +1728,8 @@ theorem chain_sound (hS : ShareOk j)
   | succ k ih =>
     intro i hi pre Ψ hI es vs hw he
     have hiN : i < (snapsOf j).length := by omega
-    obtain ⟨-, -, hval, m, hsw, href⟩ := shareWin_spec (hS i hiN.le)
-    obtain ⟨-, -, hmono, -, -⟩ := (shareWin_spec (hS 0 (Nat.zero_le _))).2.1 rfl
+    obtain ⟨-, hval, m, hsw, href⟩ := shareWin_spec (hS.2 i hiN.le)
+    obtain ⟨-, -, hmono, -, -⟩ := shareStatic_spec hS.1
     rw [fromW_split hiN (snapsOk_spec hmono hiN).1, walk_append_sh] at hw
     have hfit : FitV (locW (certOf j) (winW (snapsOf j) i)) (cellJ j) (Stmt.usesList (stmtsW (coreOf j).body (snapsOf j) i)) :=
       fitV_of (hA i hiN.le) fun v hv ↦ hval v (List.mem_append_left _ hv)
@@ -1852,11 +1845,10 @@ theorem shareOk_path {G : Glob} {f : CompiledFn} {main : Bool} (hS : ShareOk j)
       σ v = Ψ (cellJ j v)) ∧
       ∀ o a b c, (o, PC.k a b c) ∈ (plumbOf j).stat → Ψ o = OInstr.imm a b c := by
   have hcont := cont_of hchk
-  obtain ⟨-, h0, -, -⟩ := shareWin_spec (hS 0 (Nat.zero_le _))
-  obtain ⟨-, hlists, hsn, -, hpv⟩ := h0 rfl
+  obtain ⟨-, hlists, hsn, -, hpv⟩ := shareStatic_spec hS.1
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
       cellJ j v = c := fun i hi v c h ↦
-    locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS i hi)).1 h
+    locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS.2 i hi)).1 h
   have hA0 : ∀ v c, (locW (certOf j) 0).get? v.idx = some c → cellJ j v = c := hA 0 (Nat.zero_le _)
   obtain ⟨Ψ1, hI1, hs1⟩ := nameStep_inv (sh := bitsOf (plumbOf j).sh) (locAgree_strong hA0)
     (initSt_inv (plumbOf j) (cellJ j) (rd := rd) (σ := σ)) (fitV_of hA0 hpv)

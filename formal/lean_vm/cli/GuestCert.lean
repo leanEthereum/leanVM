@@ -1855,8 +1855,9 @@ end
 /-- The bit set of a set of naturals. -/
 def bitsOfSet (s : Std.HashSet ℕ) : ℕ := s.fold (fun n c => n ||| (1 <<< c)) 0
 
-/-- The most cost (values its statements name) of a sharing window. -/
-def maxShareWin : ℕ := 2000
+/-- The most cost (values its statements name) of a sharing window; half that in a function of
+over 4000 statements, whose windows each also walk the body to their start. -/
+def maxShareWin : ℕ := 1200
 
 /-- The sharing check's windows of a function and their snapshots: each soundness window cut where
 its statements so far cost `maxShareWin` and nothing is pending, each window after the first
@@ -1911,7 +1912,7 @@ def snaps (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (starts : Array ℕ) (los h
       cost := 0
       st := st'
     for idx in [a:b] do
-      if cost ≥ maxShareWin && idx > a && st.pend.isEmpty then
+      if cost ≥ (if cf.body.length > 4000 then maxShareWin / 2 else maxShareWin) && idx > a && st.pend.isEmpty then
         let (t, st') := snap idx w st
         out := out ++ [t]
         costs := costs ++ [cost]
@@ -2203,42 +2204,60 @@ def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (n
 def sharedDir : System.FilePath := "LeanVM/Guest/B2C/Shared"
 
 /-- The most cost (values named) of the sharing windows one module decides. -/
-def maxShared : ℕ := 5000
+def maxShared : ℕ := 2400
 
-/-- The modules deciding the sharing check: each window's (`(function, window, cost)`), in modules
-of consecutive windows; a function of one window gets its `ShareOk` with it, one of several in
-the index. -/
-def sharedFiles (wins : Array (ℕ × ℕ × ℕ)) (n : ℕ) : List (System.FilePath × String) := Id.run do
+/-- The modules deciding the sharing check: each function's static check (`(function, cost)`) and
+windows (`(function, window, cost)`), in modules of at most `maxShared` cost; a function of one
+window has its static check, window and `ShareOk` together, one of several its `ShareOk` in the
+index. -/
+def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)) (n : ℕ) :
+    List (System.FilePath × String) := Id.run do
   let fns := Data.functions.toArray
   let cut (j : ℕ) : Bool := wins.any fun (j', w, _) => j' == j && w > 0
-  let mut groups : Array (Array (ℕ × ℕ)) := #[#[]]
+  -- items: `(function, none)` a static check, `(function, some w)` a window
+  let mut items : Array (ℕ × Option ℕ × ℕ) := #[]
+  for (j, sc) in statics do
+    if cut j then
+      items := items.push (j, none, sc)
+      for (j', w, l) in wins do
+        if j' == j then items := items.push (j, some w, l)
+    else
+      let l := (wins.toList.find? (·.1 == j)).map (·.2.2) |>.getD 0
+      items := items.push (j, some 0, sc + l)
+  let mut groups : Array (Array (ℕ × Option ℕ)) := #[#[]]
   let mut size := 0
-  for (j, w, l) in wins do
+  for (j, w, l) in items do
     if size + l > maxShared && size > 0 then
       groups := groups.push #[]
       size := 0
     groups := groups.modify (groups.size - 1) (·.push (j, w))
     size := size + l
-  let name (js : Array (ℕ × ℕ)) : String := let p := js[0]?.getD (0, 0); s!"S{p.1}_{p.2}"
-  let files := groups.toList.map fun js =>
-    (sharedDir / (name js ++ ".lean"), checkedHeader ("B2C.Shared." ++ name js)
-      "The kernel's sharing checks of windows of compiled functions." ++
+  let name (k : ℕ) : String := if k < 10 then s!"S00{k}" else if k < 100 then s!"S0{k}" else s!"S{k}"
+  let stText (j : ℕ) : String :=
+    s!"set_option maxRecDepth 100000 in\n/-- `{fns[j]!.name}`, once. -/\n" ++
+    s!"theorem st{j} : shareStatic {j} = true := by decide +kernel\n\n"
+  let winText (j w : ℕ) : String :=
+    s!"set_option maxRecDepth 100000 in\n/-- `{fns[j]!.name}`, window {w}. -/\n" ++
+    s!"theorem w{j}_{w} : shareWin {j} (snapsOf {j}) {w} = true := by decide +kernel\n\n"
+  let files := groups.toList.zipIdx.map fun (js, k) =>
+    (sharedDir / (name k ++ ".lean"), checkedHeader ("B2C.Shared." ++ name k)
+      "The kernel's sharing checks of compiled functions." ++
       "public import LeanVM.Guest.B2C.Share\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
-      String.join (js.toList.map fun (j, w) =>
-        s!"set_option maxRecDepth 100000 in\n/-- `{fns[j]!.name}`, window {w}. -/\n" ++
-        s!"theorem w{j}_{w} : shareWin {j} (snapsOf {j}) {w} = true := by decide +kernel\n\n") ++
-      String.join ((js.toList.filter fun (j, _) => !cut j).map fun (j, _) =>
-        s!"theorem ok{j} : ShareOk {j} := fun i hi ↦ by\n" ++
-        s!"  have h : (snapsOf {j}).length = 0 := by decide +kernel\n" ++
-        s!"  obtain rfl : i = 0 := by omega\n  exact w{j}_0\n\n") ++
+      String.join (js.toList.map fun (j, w) => match w with
+        | none => stText j
+        | some w => if cut j then winText j w else
+          stText j ++ winText j w ++
+          s!"theorem ok{j} : ShareOk {j} := ⟨st{j}, fun i hi ↦ by\n" ++
+          s!"  have h : (snapsOf {j}).length = 0 := by decide +kernel\n" ++
+          s!"  obtain rfl : i = 0 := by omega\n  exact w{j}_0⟩\n\n") ++
       "end\nend LeanVM.Guest.B2C.Shared\n")
   let cutFns := (wins.toList.filterMap fun (j, w, _) => if w > 0 then some j else none).eraseDups
   let cutOk := String.join (cutFns.map fun j =>
     let ws := (wins.toList.filter (·.1 == j)).map (·.2.1)
-    s!"theorem ok{j} : ShareOk {j} := fun i hi ↦ by\n" ++
+    s!"theorem ok{j} : ShareOk {j} := ⟨st{j}, fun i hi ↦ by\n" ++
     s!"  have h : (snapsOf {j}).length = {ws.length - 1} := by decide +kernel\n" ++
     s!"  rw [h] at hi\n  interval_cases i\n" ++
-    String.join (ws.map fun w => s!"  · exact w{j}_{w}\n") ++ "\n")
+    String.join (ws.map fun w => s!"  · exact w{j}_{w}\n") ++ "⟩\n\n")
   let index := ("LeanVM/Guest/B2C" : System.FilePath) / "Shared.lean"
   let text := checkedHeader "B2C.Shared" "Every compiled function's sharing check." ++
     "public import Mathlib.Tactic.IntervalCases\n" ++ String.join (files.map fun (p, _) => s!"public import LeanVM.Guest.B2C.Shared.{(p.fileStem.getD "")}\n") ++
@@ -2248,17 +2267,36 @@ def sharedFiles (wins : Array (ℕ × ℕ × ℕ)) (n : ℕ) : List (System.File
     s!"have h2 : j < {n + 1} := h2\n  " ++ okTree (fun k => s!"ok{k}") 1 n ++ "\n\nend\nend LeanVM.Guest.B2C.Shared\n"
   return files ++ [(index, text)]
 
-/-- The sharing check's snapshots, as `Data/Snaps.lean`. -/
-def snapsFile (ss : List (ℕ × List String)) : String :=
+/-- The sharing check's snapshots: one definition each, in files `Data/SnapsNN.lean` of at most
+300000 characters, and their index `Data/Snaps.lean`. -/
+def snapsFiles (ss : List (ℕ × List String)) : List (String × String) := Id.run do
   let ss := ss.filter (!·.2.isEmpty)
-  header "Snaps" "The sharing check's snapshots of the guest's compiled functions." ++
-    "public import LeanVM.Guest.Exec\npublic import LeanVM.Guest.B2C.Types\n" ++ preamble ++
+  let defs := ss.flatMap fun (j, l) => l.zipIdx.map fun (t, k) =>
+    s!"/-- Function {j}'s window {k + 1} starts from this. -/\nnoncomputable def snap{j}_{k + 1} : B2C.Snap :=\n  {t}\n"
+  let mut fs : Array (Array String) := #[#[]]
+  let mut size := 0
+  for d in defs do
+    if size + d.length > 300000 && size > 0 then
+      fs := fs.push #[]
+      size := 0
+    fs := fs.modify (fs.size - 1) (·.push d)
+    size := size + d.length
+  let name (k : ℕ) : String := if k < 10 then s!"Snaps0{k}" else s!"Snaps{k}"
+  let parts := fs.toList.zipIdx.map fun (ds, k) =>
+    (name k, header (name k) "The sharing check's snapshots of the guest's compiled functions." ++
+      "public import LeanVM.Guest.Exec\npublic import LeanVM.Guest.B2C.Types\n" ++ preamble ++
+      "\n".intercalate ds.toList ++ tail)
+  let index := header "Snaps" "The sharing check's snapshots, by compiled function index." ++
+    String.join (parts.map fun (m, _) => s!"public import LeanVM.Guest.Data.{m}\n") ++
+    "public import LeanVM.Guest.B2C.Types\n" ++ preamble ++
     String.join (ss.map fun (j, l) =>
       s!"/-- Function {j}'s windows after the first start from these. -/\n" ++
-      s!"noncomputable def snaps{j} : List B2C.Snap := [\n  " ++ ",\n  ".intercalate l ++ "]\n\n") ++
+      s!"noncomputable def snaps{j} : List B2C.Snap :=\n  " ++
+      listText ((List.range l.length).map fun k => s!"snap{j}_{k + 1}") ++ "\n\n") ++
     "/-- The snapshots, by compiled function index (functions of one window omitted). -/\n" ++
     "noncomputable def snaps : List (ℕ × List B2C.Snap) :=\n  " ++
     listText (ss.map fun (j, _) => s!"({j}, snaps{j})") ++ "\n" ++ tail
+  return parts ++ [("Snaps", index)]
 
 def files (P : Core.Program) : Except String (List (System.FilePath × String)) := do
   let fns := Data.functions.toArray
@@ -2273,6 +2311,7 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     m.insert f.entry ((factsOf T f false).env.map (·.1))) {}
   let expTable : Std.HashMap ℕ ℕ := logTable.fold (fun m k e => m.insert e k) {}
   let mut shareWins : Array (ℕ × ℕ × ℕ) := #[]
+  let mut shareStatics : Array (ℕ × ℕ) := #[]
   let mut snapTexts : Array (ℕ × List String) := #[]
   for (cf, i) in P.zipIdx do
     let (c, sizes, fsz, locs, segs, (starts, los, his, insW)) ← certOf T fns index (i + 1) cf
@@ -2283,7 +2322,10 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     snapTexts := snapTexts.push (i + 1, sts)
     frames := frames.push fsz
     wins := wins ++ (sizes.zipIdx.map fun (sz, w) => (i + 1, w, sz)).toArray
-    shareWins := shareWins ++ (costs.zipIdx.map fun (c, k) => (i + 1, k, c)).toArray
+    -- a window's fixed cost: its setup, and in a long body the walk to its start
+    let fixed := if cf.body.length > 4000 then maxShared else 300
+    shareWins := shareWins ++ (costs.zipIdx.map fun (c, k) => (i + 1, k, c + fixed)).toArray
+    shareStatics := shareStatics.push (i + 1, locs.length / 4)
   let mut fs : Array (Array String) := #[#[]]
   let mut size := 0
   for c in certs do
@@ -2342,8 +2384,8 @@ noncomputable def certs : List Check.Cert :=
     (dataDir / (n ++ ".lean"), t)) ++
     (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
-        else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareWins P.length ++
-    [(dataDir / "Snaps.lean", snapsFile snapTexts.toList)]
+        else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareStatics shareWins P.length ++
+    (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t))
 
 /-- The generated files on disk. -/
 def existing : IO (List System.FilePath) := do
@@ -2354,7 +2396,8 @@ def existing : IO (List System.FilePath) := do
   let ds ← dataDir.readDir
   let cs ← if ← checkedDir.isDir then checkedDir.readDir else pure #[]
   let ss ← if ← sharedDir.isDir then sharedDir.readDir else pure #[]
-  return (ds.toList.filter (fun e => gen "Cert" e.fileName || gen "Plumb" e.fileName)).map (·.path) ++
+  return (ds.toList.filter (fun e => gen "Cert" e.fileName || gen "Plumb" e.fileName ||
+      gen "Snaps" e.fileName)).map (·.path) ++
     (cs.toList.filter fun e => gen "F" e.fileName || gen "Fn" e.fileName || gen "Pow" e.fileName).map (·.path) ++
     (ss.toList.filter fun e => gen "S" e.fileName).map (·.path)
 

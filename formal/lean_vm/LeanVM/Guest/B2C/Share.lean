@@ -62,40 +62,36 @@ def packCells : List ℕ → ℕ
   | [] => 0
   | c :: cs => Nat.add c (Nat.mul (packCells cs) 65536)
 
-/-- The cell `(value, cell, window)` entries give value `v`. -/
-def insGet (v : ℕ) : List (ℕ × ℕ × ℕ) → Option ℕ
-  | [] => none
-  | p :: ps => bif Nat.beq p.1 v then some p.2.1 else insGet v ps
-
 /-- A window's cells: those of the values `lo, …, lo + len - 1` packed in `pk`, and those of the
-other values its statements name, `(value, cell, window)`. -/
+other values its statements name, by value (`ins`). -/
 structure Loc where
   lo : ℕ
   len : ℕ
   pk : ℕ
-  ins : List (ℕ × ℕ × ℕ)
+  ins : Trie ℕ
 
 /-- The cell of value number `v`, if the window has it. -/
-def Loc.get? (L : Loc) (v : ℕ) : Option ℕ :=
+noncomputable def Loc.get? (L : Loc) (v : ℕ) : Option ℕ :=
   bif Nat.ble L.lo v && Nat.blt v (Nat.add L.lo L.len) then
     some (Nat.mod (Nat.div L.pk (Nat.pow 65536 (Nat.sub v L.lo))) 65536)
-  else insGet v L.ins
+  else getF L.ins v
 
 /-- The cell of a value (`0` if the window has none). -/
-def Loc.cell (L : Loc) (v : V) : ℕ := (L.get? v.idx).getD 0
+noncomputable def Loc.cell (L : Loc) (v : V) : ℕ := (L.get? v.idx).getD 0
 
 /-- `k L`, its packed cells evaluated first. -/
 def Loc.seq {β : Type} (L : Loc) (k : Loc → β) : β :=
   match L with
-  | ⟨lo, len, pk, ins⟩ => natSeq lo fun lo ↦ natSeq len fun len ↦ natSeq pk fun pk ↦ k ⟨lo, len, pk, ins⟩
+  | ⟨lo, len, pk, ins⟩ => natSeq lo fun lo ↦ natSeq len fun len ↦ natSeq pk fun pk ↦ ins.seq fun ins ↦
+      k ⟨lo, len, pk, ins⟩
 
 theorem Loc.seq_eq {β : Type} (L : Loc) (k : Loc → β) : L.seq k = k L := by
   cases L
-  simp only [Loc.seq, natSeq_eq]
+  simp only [Loc.seq, natSeq_eq, Trie.seq_eq]
 
 /-- Window `i`'s cells in certificate `C`. -/
-def locW (C : Cert) (i : ℕ) : Loc :=
-  ⟨nth C.los i 0, (nth C.cells i []).length, packCells (nth C.cells i []), nth C.ins i []⟩
+noncomputable def locW (C : Cert) (i : ℕ) : Loc :=
+  ⟨nth C.los i 0, (nth C.cells i []).length, packCells (nth C.cells i []), insTrie (nth C.ins i []) .nil⟩
 
 /-! ## The state -/
 
@@ -167,7 +163,7 @@ section Steps
 variable (loc : Loc) (sh : ℕ)
 
 /-- The cell of value number `v`. -/
-def cellN (v : ℕ) : ℕ := loc.cell (V.n v)
+noncomputable def cellN (v : ℕ) : ℕ := loc.cell (V.n v)
 
 /-- The keys an atom gives the cells of its outputs: `(output cell, op, input cells)`. -/
 noncomputable def cellKeys : Core.Atom → List (ℕ × ℕ × List ℕ)
@@ -485,19 +481,23 @@ def snapsOk (C : Cert) (snaps : List Snap) : Bool :=
   (List.range snaps.length).all fun k ↦
     Nat.ble (startW snaps k) (startW snaps (k + 1)) && Nat.ble (winW snaps (k + 1)) C.cuts.length
 
+/-- **What the sharing check says once of function `j`**: the frame's bounds, the lists, the
+windows' order, the cells apart, the parameters numbered in the first window's cells. -/
+noncomputable def shareStatic (j : ℕ) : Bool :=
+  (locW (certOf j) 0).seq fun loc ↦ natSeq (tmpCells (plumbOf j)) fun tc ↦
+  natSeq (fpgCells (plumbOf j)) fun fc ↦ (byCell (plumbOf j).tmps).seq fun tt ↦
+  (nth (certOf j).cells 0 []).all (fun c ↦ Nat.blt c 65536) &&
+  Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) (snapsOf j) &&
+    apartOk j && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
+
 /-- **Window `k` of function `j`**, starting from the snapshots `snaps`: its values numbered, in
 its soundness window's cells and in the frame; its walk from the parameters' naming (the first
-window) or from its snapshot, ending in a state that refines the next one's; the first window
-also checks the frame's bounds, the lists and the windows' order. -/
+window) or from its snapshot, ending in a state that refines the next one's. -/
 noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
   (locW (certOf j) (winW snaps k)).seq fun loc ↦ natSeq (bitsOf (plumbOf j).sh) fun sh ↦
   natSeq (tmpCells (plumbOf j)) fun tc ↦ natSeq (fpgCells (plumbOf j)) fun fc ↦
   (byCell (plumbOf j).tmps).seq fun tt ↦
   (nth (certOf j).cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
-  (bif k == 0 then
-      Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) snaps &&
-        apartOk j && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
-    else true) &&
   (Memory.Stmt.usesList (stmtsW (coreOf j).body snaps k) ++
     Memory.Stmt.tmpsList (stmtsW (coreOf j).body snaps k)).all (valOk loc tt tc fc (fsN j)) &&
   (match swL loc sh tt (plumbOf j)
@@ -506,8 +506,9 @@ noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
     | some m => bif Nat.blt k snaps.length then refines m (snapAt snaps (k + 1)) else true
     | none => false)
 
-/-- **The sharing check of function `j`**: every window's. -/
-def ShareOk (j : ℕ) : Prop := ∀ k ≤ (snapsOf j).length, shareWin j (snapsOf j) k = true
+/-- **The sharing check of function `j`**: its static part and every window's. -/
+def ShareOk (j : ℕ) : Prop :=
+  shareStatic j = true ∧ ∀ k ≤ (snapsOf j).length, shareWin j (snapsOf j) k = true
 
 end
 end LeanVM.Guest.B2C
