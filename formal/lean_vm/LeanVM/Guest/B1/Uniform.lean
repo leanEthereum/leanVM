@@ -336,5 +336,67 @@ theorem loadAddrs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Main.Stmt.s
     | .callIf c _ _, _ =>
       by_cases hc : σ c = 0 <;> simp [Main.slEvs, hc, Ev.loadAddr?, Stmt.loadS, List.filterMap_cons]
 
+/-! ## Walks with a dispatch -/
+
+theorem Out.pre_pre (es es' : List Ev) : ∀ o : Out, (o.pre es').pre es = o.pre (es ++ es')
+  | .fall _ => by simp [Out.pre]
+  | .ret _ _ => by simp [Out.pre]
+  | .stuck => rfl
+
+/-- **A straight-line prefix walks each statement**, then the rest. -/
+theorem walk_pre_straight (σ : Val) (rest : List Stmt) : ∀ pre : List Stmt,
+    pre.all Main.Stmt.straight = true → walk σ (pre ++ rest) = (walk σ rest).pre (pre.flatMap (Main.slEvs σ))
+  | [], _ => by simp only [List.nil_append, List.flatMap_nil]; cases walk σ rest <;> rfl
+  | s :: pre, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    rw [List.cons_append, walk, walk_pre_straight σ rest pre h.2, Main.walk1_straight σ s h.1, Out.seq,
+      Out.pre_pre, List.flatMap_cons]
+
+/-- **A dispatch on `g^j` enters callee `j`**, the first arm with that power. -/
+theorem pick_eq (σ : Val) (x : V) (args rets : List V) : ∀ (fs : List String) (i j : ℕ),
+    i ≤ j → (hj : j - i < fs.length) → j < 2 ^ 64 - 1 → σ x = ofK (gpow j) →
+      pick σ x args rets i fs = .fall [.call fs[j - i] args rets]
+  | [], _, _, _, hj, _, _ => absurd hj (by simp)
+  | f :: fs, i, j, hij, hj, hj64, hx => by
+    unfold pick
+    by_cases he : i = j
+    · subst he; simp [hx]
+    · have hne : σ x ≠ ofK (gpow i) := by
+        rw [hx]; intro h
+        have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
+          (ofK_injective h)
+        omega
+      simp only [hne, ↓reduceIte]
+      rw [pick_eq σ x args rets fs (i + 1) j (by omega) (by simp at hj ⊢; omega) hj64 hx]
+      congr 3
+      have e : j - i = (j - (i + 1)) + 1 := by omega
+      simp only [e, List.getElem_cons_succ]
+
+/-! ## Callees in batches -/
+
+theorem kidsFromIn_dacc {rd : Reader} {σ : Val} {R : ℕ → Prop} :
+    ∀ (cs : List Call) (Dacc Dacc' : ℕ → Prop) (b n : ℕ) (D : ℕ → Prop), (∀ i, Dacc i → Dacc' i) →
+      KidsFromIn coreProgram fs cert rd σ R Dacc cs b n D →
+      KidsFromIn coreProgram fs cert rd σ R Dacc' cs b n D
+  | [], _, _, _, _, _, h, ⟨hn, hD⟩ => ⟨hn, fun i hi => h i (hD i hi)⟩
+  | _ :: cs, _, _, _, _, _, h, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩ =>
+      ⟨m, n', Rk, Dk, hn, fun i hi => (hR i hi).imp_right (h i), hc,
+        kidsFromIn_dacc cs _ _ _ _ _ (fun i hi => hi.imp_left (h i)) hk⟩
+
+/-- **Two batches of callees in sequence**: the second from any data that contains the first's
+claims. -/
+theorem kidsFromIn_append {rd : Reader} {σ : Val} {R : ℕ → Prop} :
+    ∀ (cs1 cs2 : List Call) (Dacc : ℕ → Prop) (b n1 n2 : ℕ) (D1 D : ℕ → Prop),
+      KidsFromIn coreProgram fs cert rd σ R Dacc cs1 b n1 D1 →
+      (∀ Dacc' : ℕ → Prop, (∀ i, D1 i → Dacc' i) →
+        KidsFromIn coreProgram fs cert rd σ R Dacc' cs2 (b + n1) n2 D) →
+      KidsFromIn coreProgram fs cert rd σ R Dacc (cs1 ++ cs2) b (n1 + n2) D
+  | [], cs2, Dacc, b, n1, n2, D1, D, ⟨hn, hD⟩, h2 => by
+    subst hn; simpa using h2 Dacc hD
+  | _ :: cs1, cs2, Dacc, b, n1, n2, D1, D, ⟨m, n', Rk, Dk, hn, hR, hc, hk⟩, h2 =>
+    ⟨m, n' + n2, Rk, Dk, by omega, hR, hc,
+      kidsFromIn_append cs1 cs2 _ (b + m) n' n2 D1 D hk fun Dacc' h => by
+        rw [show b + m + n' = b + n1 by omega]; exact h2 Dacc' h⟩
+
 end
 end LeanVM.Guest.B1
