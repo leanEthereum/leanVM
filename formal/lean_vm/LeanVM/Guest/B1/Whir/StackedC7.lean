@@ -97,6 +97,8 @@ structure OsLvSig (σ : Val) (cfg : OsCfg) (lvl : ℕ) (sg : OsSt) (sqzv rewv : 
   sqSize : σ (.n sg.k) = osGw (2 * (cfg.maxSq + 1))
   sqPtr : σ (.n (sg.k + 1)) = sqzv
   guard : σ (.n (sg.k + 4)) = 1 + osGw (cfg.lv lvl).squeezes
+  one : σ (.n (sg.k + 5)) = 1
+  count : σ (.n (sg.k + 6)) = osGw (cfg.lv lvl).squeezes
   rwSize : σ (.n ((osLvSq cfg lvl sg).2.k + (cfg.lv lvl).queries)) = osGw cfg.maxIl
   rwPtr : σ (.n ((osLvSq cfg lvl sg).2.k + (cfg.lv lvl).queries + 1)) = rewv
 
@@ -249,13 +251,16 @@ theorem osLevelB_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : 
     have v0 := hv 0 (by simp [hl1])
     have v1 := hv 1 (by simp [hl1]; omega)
     have v4 := hv 4 (by simp [hl1]; omega)
+    have v5 := hv 5 (by simp [hl1]; omega)
+    have v6 := hv 6 (by simp [hl1]; omega)
     have hS3l : 2 ≤ S3.length := by simp [hS3, osQueriesSegs]
     have w0 := g3 0 (by omega)
     have w1 := g3 1 (by omega)
-    simp only [List.append_assoc] at v0 v1 v4
-    rw [oq_getD_app_lt (by omega)] at v0 v1 v4
+    simp only [List.append_assoc] at v0 v1 v4 v5 v6
+    rw [oq_getD_app_lt (by omega)] at v0 v1 v4 v5 v6
     refine ⟨by simpa [hS1, osSqueezesVals] using v0, by simpa [hS1, osSqueezesVals] using v1,
-      by rw [v4]; simp [hS1, osSqueezesVals]; rfl, ?_, ?_⟩
+      by rw [v4]; simp [hS1, osSqueezesVals]; rfl, by rw [v5]; simp [hS1, osSqueezesVals],
+      by rw [v6]; simp [hS1, osSqueezesVals]; rfl, ?_, ?_⟩
     · rw [show (osLvSq cfg lvl sg).2.k + lv.queries = sg.k + (25 + lv.queries) + 0 by rw [← hsq, hkS]; ring, w0]
       simp [hS3, osQueriesSegs]
     · rw [show (osLvSq cfg lvl sg).2.k + lv.queries + 1 = sg.k + (25 + lv.queries) + 1 by rw [← hsq, hkS]; ring, w1]

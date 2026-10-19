@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.StackedC15
+public import LeanVM.Guest.B1.Whir.OsSig
 
 /-!
 # The body, honestly (TRIAGE #36)
@@ -154,7 +155,9 @@ theorem osBody_complete {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok
       Stmt.HoldsList CT rd σ (osTail cfg.yrLog (OsRun.sL cfg)).1 True
         (fun rs => rs = [R.D.t, R.D.pt, osFinTot cfg R.D, R.D.yat]) ∧
       Stmt.HoldsList CF rd σ (osFinish cfg (OsRun.sT cfg) (OsRun.tch cfg)) False
-        (fun rs => rs = [R.D.t, R.D.pt, osFinTot cfg R.D, R.D.yat]) := by
+        (fun rs => rs = [R.D.t, R.D.pt, osFinTot cfg R.D, R.D.yat]) ∧
+      (σ (.n (OsRun.sL cfg).k) = osGw 5 ∧ σ (.n ((OsRun.sL cfg).k + 1)) = R.tchv) ∧
+      OsFinSig σ cfg (OsRun.sT cfg) (OsRun.tch cfg) R.D := by
   set HV := osHeadVals cfg (digestScalars R.cv).1 (digestScalars R.cv).2 R.target (digestScalars R.root).1
       (digestScalars R.root).2 R.cur R.cv (R.xs.getD 0 0) (R.xs.getD 1 0) R.P with hHV
   set LV := osLvsVals cfg R.xs R.cur R.P R.sqz R.rew 0 R.cv0 2 (osW0 R.target R.xs) (R.roots0 cfg) (osHead cfg).2
@@ -205,7 +208,19 @@ theorem osBody_complete {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok
       show σ (.n ((osTail cfg.yrLog (OsRun.sL cfg)).2.1.k + j)) = _
       rw [hkT, hsLk]
       exact gF j hj)
-  refine ⟨?_, by rw [hHs] at hcs ⊢; exact hcs, hTh, hF⟩
+  have hts : σ (.n (OsRun.sL cfg).k) = osGw 5 ∧ σ (.n ((OsRun.sL cfg).k + 1)) = R.tchv := by
+    rw [hsLk]
+    have t0 := gT 0 (by rw [hTV]; simp [osTailVals])
+    have t1 := gT 1 (by rw [hTV]; simp [osTailVals])
+    rw [hTV] at t0 t1
+    simp only [osTailVals, List.cons_append, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at t0 t1
+    exact ⟨t0, t1⟩
+  have hfs := osFinish_sig (σ := σ) (cfg := cfg) (st := OsRun.sT cfg) (tch := OsRun.tch cfg) (D := R.D)
+    (fun j hj => by
+      show σ (.n ((osTail cfg.yrLog (OsRun.sL cfg)).2.1.k + j)) = _
+      rw [hkT, hsLk]
+      exact gF j hj)
+  refine ⟨?_, by rw [hHs] at hcs ⊢; exact hcs, hTh, hF, hts, hfs⟩
   unfold osBody
   dsimp only
   simp only [holdsList_append]

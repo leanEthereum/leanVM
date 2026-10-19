@@ -98,17 +98,17 @@ theorem os_completeAt_place {f : String} {fn : Fn} (hf : coreProgram.find? f = s
       List.Forall₂ (fun c s => c.length ≤ s) own sizes ∧
       Out rets [(fp + fs f + (sizes.take jo).sum, own.getD jo [])] ∧
       Within L (fp + fs f + sizes.sum) N ∧ DisjL L ∧ fn.params.map σ = args ∧
-      (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
-      ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
-        (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
       (∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd Lin →
-        Stmt.HoldsList C rd σ fn.body False (fun r => r = rets)) ∧
+        Stmt.HoldsList C rd σ fn.body False (fun r => r = rets) ∧
+        (pre.filterMap Main.Stmt.allocSz).map (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
+        ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b))) ∧
       ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd L → MemL rd Lin →
         KidsFromIn coreProgram fs cert rd σ (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes own) i)
           (fun _ => False) ((pre.filterMap Main.Stmt.callS).map (Main.mkCall σ)) (fp + fs f + sizes.sum) N Dk) :
     CompleteAtD fs cert κ f Lin args Out := by
   intro fp
-  obtain ⟨σ, own, rets, N, L, Dk, hown, hout, hW, hD, hp, hsz, hbuf, hh, hK⟩ := h fp
+  obtain ⟨σ, own, rets, N, L, Dk, hown, hout, hW, hD, hp, hh, hK⟩ := h fp
   set B := bufL (fp + fs f) sizes own with hB
   have hlen : jo < B.length := by
     simp only [hB, bufL, List.length_zip, os_length_bases, hown.length_eq, Nat.min_self]; exact hjo
@@ -143,10 +143,11 @@ theorem os_completeAt_place {f : String} {fn : Fn} (hf : coreProgram.find? f = s
   have hsat : ∀ rd', LowDef κ rd' → MemL rd' B → MemL rd' Lin →
       (∀ e ∈ pre.flatMap (Main.slEvs σ), e.Holds rd' σ) ∧ vs.map σ = rets := fun rd' h1 h2 h3 => by
     have hs := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf))
-      (hh rd' h1 h2 h3)
+      (hh rd' h1 h2 h3).1
     rw [hw] at hs
     exact ⟨fun e he => (hs.1 e he).1, hs.2⟩
   obtain ⟨hes, hr⟩ := hsat rd hlow hB1 hLin
+  obtain ⟨-, hsz, hbuf⟩ := hh rd hlow hB1 hLin
   have hal : allocs σ (pre.flatMap (Main.slEvs σ)) = sizes := by rw [i2, hsz]
   have hown' : ∀ i, RegionL B i →
       ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (Main.slEvs σ))) (pre.flatMap (Main.slEvs σ)) i :=
