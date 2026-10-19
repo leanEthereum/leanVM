@@ -144,14 +144,15 @@ def CompleteGkrAt : Prop :=
 the bytecode) from the state of `cv` reading the words `xs` (at `g^c`) to the bus result and the
 claims, the row counts `rowsN`: on the words its arguments point to (`TablesPre`'s and
 `TablesOut`'s reads, the terminal's context `TCtx` among them), it returns the new state, the
-cursor past `xs`, `gzcn`, `bv` and `rm`. -/
+cursor past `xs`, `gzcn` (`g` to the tables' largest log-height), `bv` and `rm`. -/
 def CompleteTablesAt : Prop :=
   ∀ (pi : Digest) (logMem : ℕ) (alphas point values : List E) (cv : Digest) (xs : List E)
     (cv' : Digest) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim)
     (beta bv rm gzcn : E) (c z lp sq dims rows bk fpw pool cplen chi : ℕ) (Lin : Main.Layout),
     bytecode.length = 2 ^ 22 →
     point.length = (busLayout [0, logMem, 18] (layoutOf bytecode logMem rowsN).push).depth →
-    point.length < 33 → 16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
+    point.length < 33 → gzcn = gen ^ (layoutOf bytecode logMem rowsN).tableLogHeights.foldl max 0 →
+    16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
     rowsN.length = 6 → (∀ n ∈ rowsN, log2Ceil n < 29) → claims.length = nClaims →
     (∀ ev, BytecodeAt ev bytecode
         (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
@@ -257,14 +258,15 @@ def CompleteGkrAtB (B : ℕ) : Prop :=
 the bytecode) from the state of `cv` reading the words `xs` (at `g^c`) to the bus result and the
 claims, the row counts `rowsN`: on the words its arguments point to (`TablesPre`'s and
 `TablesOut`'s reads, the terminal's context `TCtx` among them), it returns the new state, the
-cursor past `xs`, `gzcn`, `bv` and `rm`. -/
+cursor past `xs`, `gzcn` (`g` to the tables' largest log-height), `bv` and `rm`. -/
 def CompleteTablesAtB (B : ℕ) : Prop :=
   ∀ (pi : Digest) (logMem : ℕ) (alphas point values : List E) (cv : Digest) (xs : List E)
     (cv' : Digest) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim)
     (beta bv rm gzcn : E) (c z lp sq dims rows bk fpw pool cplen chi : ℕ) (Lin : Main.Layout),
     bytecode.length = 2 ^ 22 →
     point.length = (busLayout [0, logMem, 18] (layoutOf bytecode logMem rowsN).push).depth →
-    point.length < 33 → 16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
+    point.length < 33 → gzcn = gen ^ (layoutOf bytecode logMem rowsN).tableLogHeights.foldl max 0 →
+    16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
     rowsN.length = 6 → (∀ n ∈ rowsN, log2Ceil n < 29) → claims.length = nClaims →
     (∀ ev, BytecodeAt ev bytecode
         (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →

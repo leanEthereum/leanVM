@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Inv6a
 public import LeanVM.Guest.B1.VerifySub.CPlaced0
-public import LeanVM.Guest.B1.Tables.VerifyTablesInv
+public import LeanVM.Guest.B1.VerifySub.TablesLen
 public import LeanVM.Guest.B1.Whir.OpenLen
 
 /-!
@@ -79,7 +79,7 @@ theorem vs_inversion {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
   obtain ⟨w, s10, hw, hreq⟩ := runs_bind_inv' h9
   obtain ⟨hacc, rfl⟩ := runs_require_inv hreq
   obtain ⟨xsW, osW, e10s, e10o, hW⟩ := runs_frame _ _ _ _ _ _ _ hw
-  obtain ⟨chis, rm, hcl⟩ := tablesSeg_claimsOk hb hm1 hl hgl hT
+  obtain ⟨chis, rm, hclen, hcl⟩ := vs_tablesSeg_claimsOk hb hm1 hl hgl hT
   simp only at e1s e1c e1o e1r e5s e5o e5r e10s e10o
   have h8l : flockNumLincheckRounds = 8 := by decide
   have h6k : flockKSkip = 6 := by decide
@@ -144,7 +144,7 @@ theorem vs_inversion {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
     rfl
   · exact VsData.TOk.of_claims hcl rfl (by
       simp only [VsData.stream, VsData.ann, VsData.x0, VsData.x1, VsData.tail]
-      rw [← hstream]; exact hst)
+      rw [← hstream]; exact hst) hclen
   · cases c with
     | mk bp bvv al zs rp cp sl mv =>
       simp only at hpt' hrow hcol

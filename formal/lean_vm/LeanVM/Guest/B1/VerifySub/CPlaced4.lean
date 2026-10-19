@@ -225,7 +225,7 @@ theorem vsKids1_completeB {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok
       (vsB fs fp D 4) (vsB fs fp D 3) (vsB fs fp D 6) (vsB fs fp D 9) (vsB fs fp D 0)
       (vsB fs fp D 1) (vsB fs fp D 10) _ hb (by
         rw [hok.point_length]; unfold pushDepth; rw [layoutOf_logBytecode hb]; rfl)
-      (by rw [hok.point_length]; exact hok.depth_lt)
+      (by rw [hok.point_length]; exact hok.depth_lt) (by rw [htok.gzcn, htok.chis_len])
       hok.logMem_ge hok.logMem_le (by simp [VsData.alphas, sqAll_eq]) hok.values_length
       hok.rows_length hok.rows_log hok.claims_length hok.tables fun rd _ hm => by
         obtain ⟨h0, ht, hc, hp⟩ := M rd hm
@@ -372,7 +372,7 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
       (vsB fs fp D 4) (vsB fs fp D 3) (vsB fs fp D 6) (vsB fs fp D 9) (vsB fs fp D 0)
       (vsB fs fp D 1) (vsB fs fp D 10) _ hb (by
         rw [hok.point_length]; unfold pushDepth; rw [layoutOf_logBytecode hb]; rfl)
-      (by rw [hok.point_length]; exact hok.depth_lt)
+      (by rw [hok.point_length]; exact hok.depth_lt) (by rw [htok.gzcn, htok.chis_len])
       hok.logMem_ge hok.logMem_le (by simp [VsData.alphas, sqAll_eq]) hok.values_length
       hok.rows_length hok.rows_log hok.claims_length hok.tables fun rd _ hm => by
         obtain ⟨h0, ht, hc, hp⟩ := M rd hm
