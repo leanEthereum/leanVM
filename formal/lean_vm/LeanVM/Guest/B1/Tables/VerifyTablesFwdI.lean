@@ -36,6 +36,7 @@ inductive FItem where
   | callIf (c : V) (f : String) (args : List V)
   | disp (x : V) (fs : List String) (args rets : List V)
   | hint (h : Hint)
+  deriving DecidableEq
 
 /-- An item's statements. -/
 def FItem.stmts : FItem → List Stmt
@@ -567,6 +568,181 @@ theorem fRunI_sets (rd : Reader) {lo hi : ℕ} (hv : ℕ → E) (σf : Val) : �
           simp only [FItem.vals_congr rd hv _ hrd]
       · rw [hb] at hit; exact absurd hit (by simp)
     · exact fRunI_sets rd hv σf its _ _ hok.2 hf it hit
+
+/-! ## Every definition, as one list -/
+
+/-- A definition a body makes. -/
+inductive FEq where
+  | def (a : Atom)
+  | ld (d p : V) (off : ℕ)
+  | sv (x d y : V)
+  | rc (x y t1 t2 k : V)
+  | ne (p x i : V)
+  | item (it : FItem)
+  deriving DecidableEq
+
+/-- What a definition says of the final valuation. -/
+def FEq.Holds (rd : Reader) (hv : ℕ → E) (σf : Val) : FEq → Prop
+  | .def a => a.Holds rd σf
+  | .ld d p off => σf d = memAt rd (σf p) off
+  | .sv x d y => σf x = σf d * (σf y)⁻¹
+  | .rc x y t1 t2 k => σf y = σf k * (σf x)⁻¹ ∧ σf t1 = memAt rd (σf x) 0 ∧ σf t2 = memAt rd (σf y) 0
+  | .ne p x i => σf p = σf x * σf i
+  | .item it => ∀ (i : ℕ) (hi : i < it.sets.length) (hj : i < (it.vals rd hv σf).length),
+      σf it.sets[i] = (it.vals rd hv σf)[i]
+
+/-- An atom's definitions. -/
+def fEqs1 (lo : ℕ) (D : List ℕ) : Atom → List FEq
+  | a@(.const d _) | a@(.copy d _) | a@(.add d _ _) => if fDef lo D d then [] else [.def a]
+  | a@(.mul d x y) => if !fDef lo D d then [.def a] else if !fDef lo D x then [.sv x d y]
+      else if !fDef lo D y then [.sv y d x] else []
+  | .load d p off => if fDef lo D d then [] else [.ld d p off]
+  | .rangeCheck x y t1 t2 k => if fDef lo D y || fDef lo D t1 || fDef lo D t2 then [] else [.rc x y t1 t2 k]
+  | .assertNe x i p => if fDef lo D p then [] else [.ne p x i]
+  | _ => []
+
+/-- A body's definitions. -/
+def fEqs (lo : ℕ) : List ℕ → List FItem → List FEq
+  | _, [] => []
+  | D, .atom a :: its => fEqs1 lo D a ++ fEqs lo (fDStep lo D a) its
+  | D, it :: its => .item it :: fEqs lo (fDStepI lo D it) its
+
+theorem fStep_eqs (rd : Reader) {lo hi : ℕ} {D : List ℕ} {σ : Val} {a : Atom} (hok : fOk1 lo hi D a = true)
+    {σf : Val} (hag : ∀ v ∈ atomUses a ++ atomTmps a, σf v = (fStep rd lo D σ a).2 v) (hv : ℕ → E) :
+    ∀ e ∈ fEqs1 lo D a, e.Holds rd hv σf := by
+  intro e he
+  cases a with
+  | const d c =>
+    simp only [fEqs1] at he; split_ifs at he with hd
+    · simp at he
+    · rcases List.mem_singleton.mp he with rfl
+      exact fStep_holds rd hok hag (fObl1_of_def (by simpa [fIsDef] using hd))
+  | copy d s =>
+    simp only [fEqs1] at he; split_ifs at he with hd
+    · simp at he
+    · rcases List.mem_singleton.mp he with rfl
+      exact fStep_holds rd hok hag (fObl1_of_def (by simpa [fIsDef] using hd))
+  | add d x y =>
+    simp only [fEqs1] at he; split_ifs at he with hd
+    · simp at he
+    · rcases List.mem_singleton.mp he with rfl
+      exact fStep_holds rd hok hag (fObl1_of_def (by simpa [fIsDef] using hd))
+  | mul d x y =>
+    have ed := hag d (by simp [atomUses])
+    have ex := hag x (by simp [atomUses])
+    have ey := hag y (by simp [atomUses])
+    simp only [fEqs1] at he
+    split_ifs at he with h1 h2 h3
+    · rcases List.mem_singleton.mp he with rfl
+      exact fStep_holds rd hok hag (fObl1_of_def (by simpa [fIsDef] using h1))
+    · rcases List.mem_singleton.mp he with rfl
+      simp only [Bool.not_eq_true', Bool.not_eq_false] at h1 h2
+      simp only [fOk1, Bool.and_eq_true, Bool.or_eq_true] at hok
+      have hy : fDef lo D y = true := by
+        rcases hok with (⟨⟨hx, -⟩, -⟩ | ⟨-, hy⟩) | ⟨⟨-, hx⟩, -⟩
+        · rw [h2] at hx; exact absurd hx (by simp)
+        · exact hy
+        · rw [h2] at hx; exact absurd hx (by simp)
+      simp only [fStep, h1, h2, Bool.not_true, Bool.not_false, Bool.false_eq_true, ↓reduceIte,
+        Function.update_self] at ed ex ey
+      rw [Function.update_of_ne (ne_of_def h1 h2)] at ed
+      rw [Function.update_of_ne (ne_of_def hy h2)] at ey
+      show σf x = σf d * (σf y)⁻¹
+      rw [ex, ed, ey]
+    · rcases List.mem_singleton.mp he with rfl
+      simp only [Bool.not_eq_true', Bool.not_eq_false] at h1 h2 h3
+      simp only [fStep, h1, h2, h3, Bool.not_true, Bool.not_false, Bool.false_eq_true, ↓reduceIte,
+        Function.update_self] at ed ex ey
+      rw [Function.update_of_ne (ne_of_def h1 h3)] at ed
+      rw [Function.update_of_ne (ne_of_def h2 h3)] at ex
+      show σf y = σf d * (σf x)⁻¹
+      rw [ex, ed, ey]
+    · simp at he
+  | load d p off =>
+    simp only [fEqs1] at he; split_ifs at he with hd
+    · simp at he
+    · rcases List.mem_singleton.mp he with rfl
+      simp only [Bool.not_eq_true] at hd
+      simp only [fOk1, Bool.and_eq_true] at hok
+      have ed := hag d (by simp [atomUses])
+      have ep := hag p (by simp [atomUses])
+      simp only [fStep, hd, Bool.false_eq_true, ↓reduceIte, Function.update_self] at ed ep
+      rw [Function.update_of_ne (ne_of_def hok.1 hd)] at ep
+      show σf d = memAt rd (σf p) off
+      rw [ed, ep]
+  | rangeCheck x y t1 t2 k =>
+    simp only [fEqs1] at he; split_ifs at he with h1
+    · simp at he
+    · rcases List.mem_singleton.mp he with rfl
+      simp only [Bool.or_eq_true, not_or, Bool.not_eq_true] at h1
+      obtain ⟨⟨hy, ht1⟩, ht2⟩ := h1
+      simp only [fOk1, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq] at hok
+      obtain ⟨⟨hx, hk⟩, hr⟩ := hok
+      have hn : y ≠ t1 ∧ y ≠ t2 ∧ t1 ≠ t2 := by
+        rcases hr with ⟨⟨hy', -⟩, -⟩ | h
+        · rw [hy] at hy'; exact absurd hy' (by simp)
+        · tauto
+      obtain ⟨n1, n2, n3⟩ := hn
+      have ex := hag x (by simp [atomUses])
+      have ey := hag y (by simp [atomUses])
+      have ek := hag k (by simp [atomUses])
+      have e1 := hag t1 (by simp [atomTmps])
+      have e2 := hag t2 (by simp [atomTmps])
+      simp only [fStep, hy, ht1, ht2, Bool.or_self, Bool.false_eq_true, ↓reduceIte] at ex ey ek e1 e2
+      rw [Function.update_of_ne (ne_of_def hx ht2), Function.update_of_ne (ne_of_def hx ht1),
+        Function.update_of_ne (ne_of_def hx hy)] at ex
+      rw [Function.update_of_ne (ne_of_def hk ht2), Function.update_of_ne (ne_of_def hk ht1),
+        Function.update_of_ne (ne_of_def hk hy)] at ek
+      rw [Function.update_of_ne n2, Function.update_of_ne n1, Function.update_self] at ey
+      rw [Function.update_of_ne n3, Function.update_self] at e1
+      rw [Function.update_self] at e2
+      show σf y = σf k * (σf x)⁻¹ ∧ σf t1 = memAt rd (σf x) 0 ∧ σf t2 = memAt rd (σf y) 0
+      rw [ex, ey, ek, e1, e2]
+      exact ⟨rfl, rfl, rfl⟩
+  | assertNe x i p =>
+    simp only [fEqs1] at he; split_ifs at he with hp
+    · simp at he
+    · rcases List.mem_singleton.mp he with rfl
+      simp only [Bool.not_eq_true] at hp
+      simp only [fOk1, Bool.and_eq_true] at hok
+      have ep := hag p (by simp [atomUses])
+      have ex := hag x (by simp [atomUses])
+      have ei := hag i (by simp [atomUses])
+      simp only [fStep, hp, Bool.false_eq_true, ↓reduceIte, Function.update_self] at ep ex ei
+      rw [Function.update_of_ne (ne_of_def hok.1.1 hp)] at ex
+      rw [Function.update_of_ne (ne_of_def hok.1.2 hp)] at ei
+      show σf p = σf x * σf i
+      rw [ep, ex, ei]
+  | _ => simp [fEqs1] at he
+
+/-- **Every definition of a body holds** of its final valuation. -/
+theorem fRunI_eqs (rd : Reader) {lo hi : ℕ} (hv : ℕ → E) (σf : Val) : ∀ (its : List FItem) (D : List ℕ)
+    (σ : Val), fOkI lo hi D its = true → (∀ v, fRunI rd lo hv D σ its v = σf v) →
+      ∀ e ∈ fEqs lo D its, e.Holds rd hv σf
+  | [], _, _, _, _, e, he => absurd he (by simp [fEqs])
+  | .atom b :: its, D, σ, hok, hf, e, he => by
+    simp only [fOkI, Bool.and_eq_true] at hok
+    simp only [fRunI] at hf
+    rw [fStepI_fst] at hf
+    simp only [fEqs, List.mem_append] at he
+    rcases he with he | he
+    · refine fStep_eqs (σ := σ) rd hok.1 (fun v hv' => ?_) hv e he
+      rw [← hf v]
+      exact fRunI_frame rd hv its _ _ hok.2 (fOk1_vars hok.1 v hv')
+    · exact fRunI_eqs rd hv σf its _ _ hok.2 hf e he
+  | .fs s0 s1 cur j b :: its, D, σ, hok, hf, e, he
+  | .sq s0 s1 b :: its, D, σ, hok, hf, e, he
+  | .callIf s0 j cur :: its, D, σ, hok, hf, e, he
+  | .disp s0 j cur s1 :: its, D, σ, hok, hf, e, he
+  | .hint s0 :: its, D, σ, hok, hf, e, he => by
+    have hall := fRunI_sets rd hv σf (_ :: its) D σ (by simpa using hok) (by simpa using hf)
+    simp only [fOkI, Bool.and_eq_true] at hok
+    simp only [fRunI] at hf
+    rw [fStepI_fst] at hf
+    simp only [fEqs, List.mem_cons] at he
+    rcases he with rfl | he
+    · exact hall _ (by simp [fSetItems])
+    · exact fRunI_eqs rd hv σf its _ _ hok.2 hf e he
 
 end
 end LeanVM.Guest.B1.VerifySub
