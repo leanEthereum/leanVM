@@ -1927,6 +1927,36 @@ def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (n
     (powTopProof ps powCut 0).1 ++ "\n\nend\nend LeanVM.Guest.Checked\n")
   return fnFiles ++ powFiles ++ [index]
 
+def sharedDir : System.FilePath := "LeanVM/Guest/B2C/Shared"
+
+/-- The modules deciding the sharing check, `per` functions each, the largest alone. -/
+def sharedFiles (n : ℕ) : List (System.FilePath × String) := Id.run do
+  let alone : List ℕ := [1, 12, 16, 17, 18]
+  let mut groups : Array (List ℕ) := #[]
+  let mut cur : List ℕ := []
+  for j in [1:n + 1] do
+    if alone.contains j then
+      groups := groups.push [j]
+    else
+      cur := cur ++ [j]
+      if cur.length == 100 then groups := groups.push cur; cur := []
+  unless cur.isEmpty do groups := groups.push cur
+  let name (g : List ℕ) : String := s!"S{g.headD 0}"
+  let files := groups.toList.map fun g =>
+    (sharedDir / (name g ++ ".lean"), checkedHeader ("B2C.Shared." ++ name g)
+      "The kernel's sharing checks of compiled functions." ++
+      "public import LeanVM.Guest.B2C.Share\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+      String.join (g.map fun j => s!"set_option maxRecDepth 100000 in\ntheorem s{j} : shareOk {j} = true := by decide +kernel\n\n") ++
+      "end\nend LeanVM.Guest.B2C.Shared\n")
+  let index := ("LeanVM/Guest/B2C" : System.FilePath) / "Shared.lean"
+  let text := checkedHeader "B2C.Shared" "Every compiled function's sharing check." ++
+    String.join (groups.toList.map fun g => s!"public import LeanVM.Guest.B2C.Shared.{name g}\n") ++
+    "\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+    "/-- Every function but `__jump_tables` passes the sharing check. -/\n" ++
+    "theorem all : ∀ j, 1 ≤ j → j < nFns → shareOk j = true := fun j h1 h2 ↦\n  " ++
+    s!"have h2 : j < {n + 1} := h2\n  " ++ okTree (fun k => s!"s{k}") 1 n ++ "\n\nend\nend LeanVM.Guest.B2C.Shared\n"
+  return files ++ [(index, text)]
+
 def files (P : Core.Program) : Except String (List (System.FilePath × String)) := do
   let fns := Data.functions.toArray
   let T := tables Data.functions
@@ -2001,9 +2031,9 @@ noncomputable def certs : List Check.Cert :=
   return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
       [("Cert", index)] ++ plumbFiles ++ [("Plumb", plumbIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++
-    (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow).map fun (n, t) =>
+    (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
-        else checkedDir / (n ++ ".lean"), t)
+        else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles P.length
 
 /-- The generated files on disk. -/
 def existing : IO (List System.FilePath) := do
@@ -2013,8 +2043,10 @@ def existing : IO (List System.FilePath) := do
       ((cs.drop pre.length).take (cs.length - pre.length - 5)).all fun c => c.isDigit || c == '_'
   let ds ← dataDir.readDir
   let cs ← if ← checkedDir.isDir then checkedDir.readDir else pure #[]
+  let ss ← if ← sharedDir.isDir then sharedDir.readDir else pure #[]
   return (ds.toList.filter (fun e => gen "Cert" e.fileName || gen "Plumb" e.fileName)).map (·.path) ++
-    (cs.toList.filter fun e => gen "F" e.fileName || gen "Fn" e.fileName || gen "Pow" e.fileName).map (·.path)
+    (cs.toList.filter fun e => gen "F" e.fileName || gen "Fn" e.fileName || gen "Pow" e.fileName).map (·.path) ++
+    (ss.toList.filter fun e => gen "S" e.fileName).map (·.path)
 
 end GuestCert
 
@@ -2033,7 +2065,9 @@ def main (args : List String) : IO UInt32 := do
   let fs ← match files P with
     | .ok fs => pure fs
     | .error e => do IO.eprintln s!"certificate failed: {e}"; return 1
-  unless check do IO.FS.createDirAll checkedDir
+  unless check do
+    IO.FS.createDirAll checkedDir
+    IO.FS.createDirAll sharedDir
   let paths := fs.map (·.1)
   let stale := (← existing).filter (!paths.contains ·)
   let mut bad := false
