@@ -116,6 +116,14 @@ theorem run_kfact {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids : L
       simp only at this
       rw [hv', hv, this, hxe]
 
+/-- **`KFacts.run`** for every tree. -/
+theorem kfacts_run (hdr : E × E) (T : Tree) :
+    ∀ I ∈ honestInsts coreProgram fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
+      ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events coreProgram →
+        ∀ (k : ℕ) (hk : k < (r :: rs).length), (cert f r + k, σ (r :: rs)[k]) ∈ C I ∧
+          ∀ t ∈ coreProgram.temps f, cert f r + k ≠ cert f t :=
+  fun _ _ _ _ _ _ ht _ _ _ he k hk ↦ run_kfact ht he k hk
+
 end Run
 
 end
