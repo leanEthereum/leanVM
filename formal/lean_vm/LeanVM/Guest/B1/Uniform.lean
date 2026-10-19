@@ -130,23 +130,36 @@ theorem Within.mono {L : Layout} {b n b' n' : ℕ} (h : Within L b n) (h1 : b' �
     (h2 : b + n ≤ b' + n') : Within L b' n' := fun q hq => by
   have := h q hq; omega
 
+/-- The entered callees' buffers lie in `L`. -/
+def OutsIn : List Kid → List (List E × Layout) → Layout → Prop
+  | k :: ks, o :: os, L => (k.taken = true → ∀ q ∈ o.2, q ∈ L) ∧ OutsIn ks os L
+  | _, _, _ => True
+
+theorem OutsIn.mono : ∀ {ks : List Kid} {outs : List (List E × Layout)} {L L' : Layout},
+    OutsIn ks outs L → (∀ q ∈ L, q ∈ L') → OutsIn ks outs L'
+  | _ :: _, _ :: _, _, _, ⟨h, hs⟩, hL => ⟨fun ht q hq => hL q (h ht q hq), hs.mono hL⟩
+  | [], _, _, _, _, _ => trivial
+  | _ :: _, [], _, _, _, _ => trivial
+
 /-- **The callees at their running offsets**: from `b`, one total `N`, one layout and one result
 per callee serve every memory holding the layouts and the words the callees read. -/
-theorem kidsFromIn_of_kids (κ : ℕ) : ∀ (ks : List Kid),
+theorem kidsFromIn_of_kids' (κ : ℕ) : ∀ (ks : List Kid),
     (∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out) → ∀ b : ℕ,
     ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
+      OutsIn ks outs L ∧
       ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
         LowDef κ rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
         KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun i => Dacc i ∨ outRegion ks outs i)
-  | [], _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, fun rd σ cs R Dacc hc _ _ _ _ => by
+  | [], _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, trivial, fun rd σ cs R Dacc hc _ _ _ _ => by
       match cs, hc with
       | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
   | k :: ks, hok, b => by
     by_cases ht : k.taken = true
     · obtain ⟨n, Lown, rets, Lout, hout, hw, hrel⟩ := hok k (by simp) ht b
-      obtain ⟨N, L, outs, ho, hW, hK⟩ := kidsFromIn_of_kids κ ks (fun k' hk' => hok k' (by simp [hk']))
-        (b + n)
-      refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, ⟨fun _ => hout, ho⟩, ?_, ?_⟩
+      obtain ⟨N, L, outs, ho, hW, hI, hK⟩ := kidsFromIn_of_kids' κ ks
+        (fun k' hk' => hok k' (by simp [hk'])) (b + n)
+      refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, ⟨fun _ => hout, ho⟩, ?_,
+        ⟨fun _ q hq => by simp [hq], hI.mono fun q hq => by simp [hq]⟩, ?_⟩
       · rw [within_append]
         exact ⟨hw.mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
       · intro rd σ cs R Dacc hc hlow hL hLin hRg
@@ -169,10 +182,10 @@ theorem kidsFromIn_of_kids (κ : ℕ) : ∀ (ks : List Kid),
               · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
               · exact Or.inr hi
             · simpa [hct] using hR2
-    · obtain ⟨N, L, outs, ho, hW, hK⟩ := kidsFromIn_of_kids κ ks (fun k' hk' => hok k' (by simp [hk']))
-        (b + fs k.f)
+    · obtain ⟨N, L, outs, ho, hW, hI, hK⟩ := kidsFromIn_of_kids' κ ks
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
       refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
-        hW.mono (by omega) (by omega), ?_⟩
+        hW.mono (by omega) (by omega), ⟨fun h => absurd h ht, hI⟩, ?_⟩
       intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
@@ -191,6 +204,33 @@ theorem kidsFromIn_of_kids (κ : ℕ) : ∀ (ks : List Kid),
           · have := hRg.2
             simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
             exact this
+
+
+theorem kidsFromIn_of_kids (κ : ℕ) (ks : List Kid)
+    (hok : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out) (b : ℕ) :
+    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
+      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
+        LowDef κ rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
+        KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun i => Dacc i ∨ outRegion ks outs i) :=
+  let ⟨N, L, outs, ho, hW, _, hK⟩ := kidsFromIn_of_kids' κ ks hok b
+  ⟨N, L, outs, ho, hW, hK⟩
+
+theorem regionsOk_of {R : ℕ → Prop} : ∀ {Dacc : ℕ → Prop} {ks : List Kid} {outs : List (List E × Layout)},
+    (∀ k ∈ ks, k.taken = true → ∀ i, RegionL k.Lin i → R i ∨ Dacc i) → RegionsOk R Dacc ks outs
+  | _, k :: _, _ :: _, h => ⟨h k List.mem_cons_self, regionsOk_of fun k' hk' ht i hi =>
+      (h k' (List.mem_cons_of_mem _ hk') ht i hi).imp_right Or.inl⟩
+  | _, [], _, _ => trivial
+  | _, _ :: _, [], _ => trivial
+
+theorem memL_lins {rd : Reader} {ks : List Kid} (h : ∀ k ∈ ks, MemL rd k.Lin) :
+    MemL rd (Kid.lins ks) := fun q hq => by
+  obtain ⟨k, hk, hq⟩ := List.mem_flatMap.mp hq
+  exact h k hk q hq
+
+theorem OutsOk.length : ∀ {ks : List Kid} {outs : List (List E × Layout)}, OutsOk ks outs →
+    outs.length = ks.length
+  | _ :: _, _ :: _, ⟨_, h⟩ => by simp [h.length]
+  | [], [], _ => rfl
 
 /-! ## Pure functions -/
 

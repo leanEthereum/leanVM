@@ -171,6 +171,7 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
   obtain ⟨hN, hl⟩ := pushTotal_bounds hb hok
   have M := fun rd (hm : MemL rd (vsAllL fs D fp lpA sqA outA)) =>
     vsAll_mem (off := 0) (kap := 0) (pt := 0) hm
+  have CE := cur_eqs (fs := fs) (fp := fp) (D := D) (off := 0) (kap := 0) (pt := 0)
   obtain ⟨-, hl28, hst⟩ := stack_facts hb hok
   simp only [vsKids1, List.mem_cons, List.mem_nil_iff, or_false] at hk
   rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
@@ -180,11 +181,36 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
       ⟨D.pushTotal, _, _, rfl, by simp, hN, by simpa using hl, (M rd hm).2.1⟩
   · exact hc _ (isCanonical128_digestScalars _).1
   · exact hc _ (isCanonical128_digestScalars _).2
-  · exact hG _ _ _ fun rd _ hm => gkrPre_of hb hok (M rd hm).1
-  · exact hT _ _ _ fun rd _ hm =>
-      tablesPre_of hb hok htok (M rd hm).2.1 (M rd hm).1 (M rd hm).2.2.1
-        (M rd hm).2.2.2
-  · exact hF _ _ _ fun rd _ hm => flockPre_of hok (M rd hm).1
+  · have h := hG D.cvB _ D.xsG D.gr D.cvG (vsB fs fp D 2 + 10) (vsB fs fp D 7) _ hok.depth_lt hok.gkr
+      hok.point_length hok.values_length fun rd _ hm => ⟨by
+        have := (stream_at hok.rows_length (M rd hm).1.stream).1
+        rwa [CE.1] at this, (M rd hm).1.zeta⟩
+    rw [← hok.point_length, depth_eq hb hok, values_eq hok, ← CE.1] at h
+    exact h
+  · have h := hT D.pi D.logMem D.alphas D.gr.2.1 D.gr.2.2 D.cvG D.xsT D.cvT D.rows D.bus D.claims
+      D.beta D.bv D.rm D.gzcn (vsB fs fp D 2 + 10 + D.xsG.length) (vsB fs fp D 7) lpA sqA
+      (vsB fs fp D 4) (vsB fs fp D 3) (vsB fs fp D 6) (vsB fs fp D 9) (vsB fs fp D 0)
+      (vsB fs fp D 1) (vsB fs fp D 10) _ (by rw [hok.point_length]; exact hok.depth_lt)
+      hok.logMem_ge hok.logMem_le (by simp [VsData.alphas, sqAll_eq]) hok.values_length
+      hok.rows_length hok.rows_log hok.claims_length hok.tables fun rd _ hm => by
+        obtain ⟨h0, ht, hc, hp⟩ := M rd hm
+        refine ⟨?_, h0.zeta, ht, h0.rows, ?_, ?_, h0.fpw, h0.pool, tctx_of hok htok h0.zeta hc hp⟩
+        · have := (stream_at hok.rows_length h0.stream).2.1
+          rwa [CE.2.1] at this
+        · have := h0.dims
+          rwa [dims_eq] at this
+        · have := h0.bk
+          rwa [hsMap_eq] at this
+    rw [← CE.2.1, depth_eq hb hok] at h
+    exact h
+  · have h := hF D.tau D.cvT D.xsF D.cvF D.zSkip D.alpha D.mv D.chi D.rcs D.s
+      (vsB fs fp D 2 + 10 + D.xsG.length + D.xsT.length) (vsB fs fp D 11) (vsB fs fp D 12)
+      (vsB fs fp D 13) _ (tau_lt hok) hok.chi_length hok.rcs_length hok.s_length hok.flock
+      fun rd _ hm => ⟨by
+        have := (stream_at hok.rows_length (M rd hm).1.stream).2.2.1
+        rwa [CE.2.2.1] at this, (M rd hm).1.zchis, (M rd hm).1.lrs, (M rd hm).1.zpart⟩
+    rw [← CE.2.2.1] at h
+    exact h
   · refine completeAt_of_rel_pure loop84_pure (by simp) (fun rd hm => ?_) κ
     rw [word_one, ← pow_zero gen]
     exact loop84_complete (loop84_bodies (M rd hm).1 hok.s_length mcs_length)
@@ -238,11 +264,15 @@ theorem vsTermKid_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.O
       [(b, D.w.point ++ List.replicate (pointCap - D.w.point.length) 0)]
     CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
   intro k
-  refine hE _ _ _ fun rd _ hm => ?_
+  refine hE (layoutOf bytecode D.logMem D.rows) D.bus D.claims D.lam D.fpoint (ringCoefficients D.mcs)
+    D.w _ _ hok.accepts htok.point_vars fun rd _ hm => ?_
   obtain ⟨h12, h3⟩ := Main.memL_append.mp hm
   obtain ⟨h1, h2⟩ := Main.memL_append.mp h12
   obtain ⟨hm0, -, hchi, hcp⟩ := vsAll_mem (off := off) (kap := kap) (pt := ofK (Parameters.gpow b)) h1
-  exact termPre_acc hb hok htok hm0 hchi hcp (hc rd h2) (hypKappa rd) (h3 _ List.mem_cons_self)
+  have htc := tctx_of hok htok hm0.zeta hchi hcp
+  rw [depth_eq hb hok] at htc
+  exact termPre_of hb hok htc (hc rd h2) (hypKappa rd) hm0.lam hm0.zvals hm0.ctab
+    (h3 _ List.mem_cons_self)
 
 end
 end LeanVM.Guest.B1.VerifySub

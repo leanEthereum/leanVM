@@ -113,10 +113,11 @@ end Callees
 /-! ## The callees' completeness, placed
 
 The uniform placed form (`Uniform.lean`): each callee is complete on every layout `Lin` of the
-caller's words that makes its precondition true on every memory holding it (defined below `2^k`).
-`verify_bus_gkr`, `verify_tables`, `verify_flock` and `check_opening_terminal` return fixed words
-(`CompleteRel`); `certify_placement` and `open_stacked` return `HeapBuf`s, their contents in the
-layout `Lout` they return (`CompleteAt`). -/
+caller's words whose memories (defined below `2^k`) hold what it reads. A callee that runs a phase
+of the verifier takes the run explicitly, before the memory, so that one run (and the callee's
+honest buffers, which depend on it) serves every memory: `verify_bus_gkr`, `verify_tables`,
+`verify_flock` and `check_opening_terminal` return fixed words, `certify_placement` and
+`open_stacked` return `HeapBuf`s, their contents in the layout `Lout` they return. -/
 
 section Placed
 
@@ -126,38 +127,84 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (bytecode
   (TCtx : Reader → Layout → BusResult → List ColumnClaim → List E → Prop)
   (PCtx : Reader → List ℕ → E → E → Prop)
 
-/-- `verify_bus_gkr`'s precondition and outcome on a memory (`GkrOut`). -/
-def GkrPre (rd : Reader) : List E → List E → Prop
-  | [fs0, fs1, cur, gmu, zeta], rets => GkrOut rd fs0 fs1 cur gmu zeta rets
-  | _, _ => False
+/-- **`verify_bus_gkr`, placed**, on an explicit run of `gkrPhase depth` from the state of `cv`
+reading the words `xs` (at `g^c`), its point at `g^z`. -/
+def CompleteGkrAt : Prop :=
+  ∀ (cv : Digest) (depth : ℕ) (xs : List E) (r : E × List E × List E) (cv' : Digest) (c z : ℕ)
+    (Lin : Main.Layout), depth < 33 → RunsTo (gkrPhase depth) cv xs r cv' → r.2.1.length = depth →
+    r.2.2.length = 3 →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow z)) r.2.1) →
+    CompleteAt fs cert k "verify_bus_gkr" Lin [(digestScalars cv).1, (digestScalars cv).2,
+      ofK (Parameters.gpow c), gen ^ depth, ofK (Parameters.gpow z)]
+      (Returns ([(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length] ++ r.2.2))
 
-/-- **`verify_bus_gkr`, placed.** -/
-def CompleteGkrAt : Prop := CompleteRel fs cert k "verify_bus_gkr" GkrPre
+/-- **`verify_tables`, placed**, on an explicit run of `tablesSeg` (for every `ev` taking `bv` for
+the bytecode) from the state of `cv` reading the words `xs` (at `g^c`) to the bus result and the
+claims, the row counts `rowsN`: on the words its arguments point to (`TablesPre`'s and
+`TablesOut`'s reads, the terminal's context `TCtx` among them), it returns the new state, the
+cursor past `xs`, `gzcn`, `bv` and `rm`. -/
+def CompleteTablesAt : Prop :=
+  ∀ (pi : Digest) (logMem : ℕ) (alphas point values : List E) (cv : Digest) (xs : List E)
+    (cv' : Digest) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim)
+    (beta bv rm gzcn : E) (c z lp sq dims rows bk fpw pool cplen chi : ℕ) (Lin : Main.Layout),
+    point.length < 33 → 16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
+    rowsN.length = 6 → (∀ n ∈ rowsN, log2Ceil n < 29) → claims.length = nClaims →
+    (∀ ev, BytecodeAt ev bytecode
+        (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
+      RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values) cv xs
+        (bus, claims) cv') →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow z)) point ∧
+      ExpTables rd (ofK (Parameters.gpow lp)) (ofK (Parameters.gpow sq)) ∧
+      ReadsAt rd (ofK (Parameters.gpow rows)) (rowsN.map eOfNat) ∧
+      ReadsAt rd (ofK (Parameters.gpow dims)) (gen ^ logMem :: rowsN.map fun n ↦ gen ^ log2Ceil n) ∧
+      ReadsAt rd (ofK (Parameters.gpow bk))
+        (blockKappas (gen ^ logMem) (rowsN.map fun n ↦ gen ^ log2Ceil n)) ∧
+      ReadsAt rd (ofK (Parameters.gpow fpw)) (eqKernel alphas) ∧
+      ReadsAt rd (ofK (Parameters.gpow pool)) (claims.map (·.value)) ∧
+      TCtx rd (layoutOf bytecode logMem rowsN) bus claims [ofK (Parameters.gpow z),
+        ofK (Parameters.gpow chi), rm, gen ^ point.length, gzcn, ofK (Parameters.gpow cplen)]) →
+    CompleteAt fs cert k "verify_tables" Lin
+      [(digestScalars cv).1, (digestScalars cv).2, ofK (Parameters.gpow c), (digestScalars pi).1,
+        (digestScalars pi).2, ofK (Parameters.gpow z), gen ^ point.length,
+        ofK (Parameters.gpow dims), ofK (Parameters.gpow rows), ofK (Parameters.gpow bk),
+        ofK (Parameters.gpow sq), ofK (Parameters.gpow fpw), beta, ofK (Parameters.gpow pool),
+        ofK (Parameters.gpow cplen), ofK (Parameters.gpow chi), values.getD 0 0, values.getD 1 0,
+        values.getD 2 0]
+      (Returns [(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length, gzcn, bv, rm])
 
-/-- `verify_tables`' precondition and outcome on a memory, the terminal's context included. -/
-def TablesPreOut (rd : Reader) (args rets : List E) : Prop :=
-  ∃ lp pi logMem alphas point values, TablesPre rd lp pi logMem alphas point values args ∧
-    TablesOut bytecode TCtx rd pi logMem alphas point values args rets
+/-- **`verify_flock`, placed**, on an explicit run of `verifyFlock` (for every `ev` with the
+matrices' values) from the state of `cv` reading the words `xs` (at `g^c`), its outputs `chi`,
+`rcs`, `s` at `g^zc`, `g^lr`, `g^zp`. -/
+def CompleteFlockAt : Prop :=
+  ∀ (τ : ℕ) (cv : Digest) (xs : List E) (cv' : Digest) (zSkip alpha mv : E) (chi rcs s : List E)
+    (c zc lr zp : ℕ) (Lin : Main.Layout), τ < 29 → chi.length = 8 + τ → rcs.length = 8 →
+    s.length = 64 →
+    (∀ ev, MatricesAt ev alpha zSkip (chi.take 8) rcs.reverse s mv →
+      RunsTo (verifyFlock ev (blake2sR1csLogSize + τ)) cv xs (rcs.reverse ++ chi.drop 8, s) cv') →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow zc)) chi ∧
+      ReadsAt rd (ofK (Parameters.gpow lr)) rcs ∧ ReadsAt rd (ofK (Parameters.gpow zp)) s) →
+    CompleteAt fs cert k "verify_flock" Lin [(digestScalars cv).1, (digestScalars cv).2,
+      ofK (Parameters.gpow c), gen ^ τ, ofK (Parameters.gpow zc), ofK (Parameters.gpow lr),
+      ofK (Parameters.gpow zp)]
+      (Returns [(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length, zSkip, alpha, mv])
 
-/-- **`verify_tables`, placed.** -/
-def CompleteTablesAt : Prop := CompleteRel fs cert k "verify_tables" (TablesPreOut bytecode TCtx)
-
-/-- `verify_flock`'s precondition and outcome on a memory (`FlockOut`, `τ < 29`). -/
-def FlockPre (rd : Reader) (args rets : List E) : Prop :=
-  ∃ τ fs0 fs1 cur zchis lrs zpart, τ < 29 ∧ args = [fs0, fs1, cur, gen ^ τ, zchis, lrs, zpart] ∧
-    FlockOut rd τ fs0 fs1 cur zchis lrs zpart rets
-
-/-- **`verify_flock`, placed.** -/
-def CompleteFlockAt : Prop := CompleteRel fs cert k "verify_flock" FlockPre
-
-/-- `check_opening_terminal`'s precondition on a memory (`TermPre`) and the terminal's check. -/
-def TermPreAcc (rd : Reader) (args rets : List E) : Prop :=
-  rets = [] ∧ ∃ layout bus claims lam flockPoint coeffs w,
-    TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args ∧
-      w.Accepts (stackWeight layout claims flockPoint coeffs lam)
-
-/-- **`check_opening_terminal`, placed.** -/
-def CompleteTermAt : Prop := CompleteRel fs cert k "check_opening_terminal" (TermPreAcc TCtx PCtx)
+/-- **`check_opening_terminal`, placed**, for an explicit layout, claims and opening's end that
+the terminal's check accepts, each claim's point of its column's length, on the words `TermPre`
+reads. -/
+def CompleteTermAt : Prop :=
+  ∀ (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) (lam : E)
+    (flockPoint coeffs : List E) (w : WhirEnd) (args : List E) (Lin : Main.Layout),
+    w.Accepts (stackWeight layout claims flockPoint coeffs lam) →
+    (∀ c ∈ claims, c.point.length = (layout.placements.getD c.column default).vars) →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args) →
+    CompleteAt fs cert k "check_opening_terminal" Lin args (Returns [])
 
 /-- **`certify_placement`, placed**: on a layout holding the exponent tables at `lp`, `sq` and the
 base `[1, g^log_mem, g^h_0, …]` at `kb`, it returns `g^(Σ 2^κ)` and two buffers, held by its `Lout`,

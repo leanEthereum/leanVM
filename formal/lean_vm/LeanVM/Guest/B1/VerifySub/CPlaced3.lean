@@ -15,8 +15,7 @@ public import LeanVM.Guest.B1.VerifySub.CPlaced2
 * `expL`: the exponent tables at `lpA`, `sqA`; `vsExtL`: those and `defer_out`'s cells, the words
   of the caller `verify_sub` reads; `vsOwnL`: its own buffers, from `fp + fs "verify_sub"`;
 * `vsMem0_of`: a memory holding them holds the run's buffers (`VsMem0`) at `vsPtrsAt`;
-* the callees' preconditions on such a memory (`gkrPre_of`, `tablesPre_of`, `flockPre_of`,
-  `placePre_of`, `openPre_of`, `termPre_acc`), and `Log2Pre`, the shape of group 1's
+* the cursors at their addresses (`cur_eqs`), and `Log2Pre`, the shape of group 1's
   `log2_ceil_in_the_exponent` this file takes.
 -/
 
@@ -107,62 +106,32 @@ def Log2Pre (lo : ℕ) (rd : Reader) (args rets : List E) : Prop :=
   ∃ (N : ℕ) (lp sq : E), args = [gen ^ N, lp, sq] ∧ rets = [gen ^ max lo (log2Ceil N)] ∧
     N < 2 ^ 34 ∧ max lo (log2Ceil N) < 34 ∧ ExpTables rd lp sq
 
+/-- The address of `verify_sub`'s buffer `i` at `fp`. -/
+def vsB (fs : String → ℕ) (fp : ℕ) (D : VsData) (i : ℕ) : ℕ := (vsBases D (fp + fs "verify_sub")).getD i 0
+
+theorem cur_eqs : curG (vsPtrsAt fs fp D off kap pt) = ofK (Parameters.gpow (vsB fs fp D 2 + 10)) ∧
+    curT D (vsPtrsAt fs fp D off kap pt) =
+      ofK (Parameters.gpow (vsB fs fp D 2 + 10 + D.xsG.length)) ∧
+    curF D (vsPtrsAt fs fp D off kap pt) =
+      ofK (Parameters.gpow (vsB fs fp D 2 + 10 + D.xsG.length + D.xsT.length)) ∧
+    curW D (vsPtrsAt fs fp D off kap pt) = ofK (Parameters.gpow
+      (vsB fs fp D 2 + 10 + D.xsG.length + D.xsT.length + D.xsF.length)) := by
+  have hs : (vsPtrsAt fs fp D off kap pt).stream = ofK (Parameters.gpow (vsB fs fp D 2)) := rfl
+  simp only [curW, curF, curT, curG, hs, gen_pow_eq_ofK, ← ofK_mul, Parameters.gpow, ← pow_add,
+    and_self]
+
 theorem curW_eq : curW D (vsPtrsAt fs fp D off kap pt) = ofK (Parameters.gpow
     ((vsBases D (fp + fs "verify_sub")).getD 2 0 + 10 + D.xsG.length + D.xsT.length +
-      D.xsF.length)) := by
-  have hs : (vsPtrsAt fs fp D off kap pt).stream =
-      ofK (Parameters.gpow ((vsBases D (fp + fs "verify_sub")).getD 2 0)) := rfl
-  simp only [curW, curF, curT, curG, hs, gen_pow_eq_ofK, ← ofK_mul, Parameters.gpow, ← pow_add]
+      D.xsF.length)) := cur_eqs.2.2.2
+
+theorem hsMap_eq : D.hs.map (gen ^ ·) = D.rows.map fun n ↦ gen ^ log2Ceil n := by
+  simp [VsData.hs, List.map_map, Function.comp_def]
 
 variable {P : VsPtrs} {out lp sq : E}
-
-theorem gkrPre_of (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (hm : VsMem0 rd D P out) :
-    GkrPre rd [(digestScalars D.cvB).1, (digestScalars D.cvB).2, curG P, gen ^ log2Ceil D.pushTotal,
-      P.zeta] [(digestScalars D.cvG).1, (digestScalars D.cvG).2, curT D P, D.gr.2.2.getD 0 0,
-        D.gr.2.2.getD 1 0, D.gr.2.2.getD 2 0] := by
-  obtain ⟨hxG, -, -, -⟩ := stream_at hok.rows_length hm.stream
-  have := gkrOut_honest hok hm.zeta hxG
-  rw [depth_eq hb hok, values_eq hok] at this
-  exact this
-
-theorem tablesPre_of (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (htok : D.TOk bytecode)
-    (ht : ExpTables rd lp sq) (hm : VsMem0 rd D P out) (hchi : ReadsAt rd P.chi D.chis)
-    (hcp : ReadsAt rd P.cplen (cplenWords D)) :
-    TablesPreOut bytecode TCtx rd [(digestScalars D.cvG).1, (digestScalars D.cvG).2, curT D P,
-      (digestScalars D.pi).1, (digestScalars D.pi).2, P.zeta, gen ^ log2Ceil D.pushTotal, P.dims,
-      P.rows, P.bk, sq, P.fpw, D.beta, P.pool, P.cplen, P.chi, D.gr.2.2.getD 0 0, D.gr.2.2.getD 1 0,
-      D.gr.2.2.getD 2 0] [(digestScalars D.cvT).1, (digestScalars D.cvT).2, curF D P, D.gzcn, D.bv,
-        D.rm] := by
-  obtain ⟨-, hxT, -, -⟩ := stream_at hok.rows_length hm.stream
-  have : TablesPreOut bytecode TCtx rd (tabArgs D P sq) (tabRets D P) :=
-    ⟨lp, D.pi, D.logMem, D.alphas, D.gr.2.1, D.gr.2.2, tablesPre_honest hok ht hm,
-      tablesOut_honestQ hok hm hxT (tctx_of hok htok hm.zeta hchi hcp)⟩
-  rw [tabArgs, depth_eq hb hok] at this
-  exact this
-
-theorem flockPre_of (hok : D.Ok bytecode) (hm : VsMem0 rd D P out) :
-    FlockPre rd [(digestScalars D.cvT).1, (digestScalars D.cvT).2, curF D P, gen ^ D.tau, P.zchis,
-      P.lrs, P.zpart] [(digestScalars D.cvF).1, (digestScalars D.cvF).2, curW D P, D.zSkip, D.alpha,
-        D.mv] := by
-  obtain ⟨-, -, hxF, -⟩ := stream_at hok.rows_length hm.stream
-  exact ⟨D.tau, _, _, _, _, _, _, tau_lt hok, rfl, flockOut_honest hok hm hxF⟩
 
 theorem placePre_of (ht : ExpTables rd lp sq) (hm : VsMem0 rd D P out) :
     ExpTables rd lp sq ∧ ReadsAt rd P.kbase (1 :: gen ^ D.logMem :: D.hs.map (gen ^ ·)) :=
   ⟨ht, hm.kbase⟩
-
-theorem termPre_acc {PC : Reader → List ℕ → E → E → Prop} (hb : bytecode.length = 2 ^ 22)
-    (hok : D.Ok bytecode) (htok : D.TOk bytecode) (hm : VsMem0 rd D P out)
-    (hchi : ReadsAt rd P.chi D.chis) (hcp : ReadsAt rd P.cplen (cplenWords D))
-    (hpc : PC rd (columnKappas D.logMem 18 D.hs) P.off P.kap) (hK : HypKappa PC rd)
-    (hpt : ReadsAt rd P.pt (D.w.point ++ List.replicate (pointCap - D.w.point.length) 0)) :
-    TermPreAcc TCtx PC rd [P.zeta, P.chi, D.rm, gen ^ log2Ceil D.pushTotal, D.gzcn,
-        gen ^ D.logMem, gen ^ D.tau, P.cplen, P.lam, P.off, P.kap, P.zvals, P.ctab, P.pt, D.w.inner,
-        D.w.residual, D.w.target] [] := by
-  have htc := tctx_of hok htok hm.zeta hchi hcp
-  rw [depth_eq hb hok] at htc
-  exact ⟨rfl, _, _, _, _, _, _, _, termPre_of hb hok htc hpc hK hm.lam hm.zvals hm.ctab hpt,
-    hok.accepts⟩
 
 end
 end LeanVM.Guest.B1.VerifySub

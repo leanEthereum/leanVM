@@ -15,8 +15,9 @@ public import LeanVM.Guest.B1.Tables.TCtx
 
 * `vsSizes`, `vsBufs`: the nineteen `HeapBuf`s' sizes and honest words, in allocation order;
   `vsPtrsAt`: the pointers at the allocator's bases from `fp + fs "verify_sub"`;
-* `VsData.TOk`: what the run's tables hand the terminal (the claims' columns and points, the
-  sumcheck's point `chis`) and the stream's bound, which the honest memory needs;
+* `VsData.TOk`: what the run's tables hand the terminal (the claims' columns and points, each
+  point of its column's length, the sumcheck's point `chis`) and the stream's bound, which the
+  honest memory needs;
 * `vsBody_split`: the body is a straight-line prefix, the dispatch on the stack's size, and a
   straight-line suffix, with its `HeapBuf` hints, frames and loads read off by the kernel.
 -/
@@ -41,6 +42,8 @@ structure VsData.TOk (bytecode : List K) (D : VsData) : Prop where
       (nPooled ≤ j → p = D.rm :: List.replicate
         (((layoutOf bytecode D.logMem D.rows).placements.getD memory0 default).vars - 1) 0)
   stream_le : D.stream.length ≤ 8192
+  point_vars : ∀ c ∈ D.claims,
+    c.point.length = ((layoutOf bytecode D.logMem D.rows).placements.getD c.column default).vars
 
 /-- The claims' point lengths in `claim_cplen_g`. -/
 def cplenWords (D : VsData) : List E := (D.claims.take nPooled).map fun c => gen ^ c.point.length
