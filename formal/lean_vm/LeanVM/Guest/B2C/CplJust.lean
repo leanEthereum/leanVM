@@ -115,8 +115,8 @@ variable {κ : ℕ} {L : MemImage κ} {fp : ℕ}
 theorem lookC_addKeyC {a b : LAtom} {B : BookC} {o o' : ℕ} (h : b ∈ lookC (addKeyC a B o) o') :
     (b = a ∧ o' = o) ∨ b ∈ lookC B o' := by
   have e : addKeyC a B o = B.set (a :: lookC B o) envDepth o := by
-    unfold addKeyC
-    rw [listSeq_eq, setF_eq]
+    unfold addKeyC lookC
+    rw [optSeq_eq, setF_eq]
   rw [e] at h
   have h' : b ∈ ((B.set (a :: lookC B o) envDepth o).get o').getD [] := by
     simpa [lookC, getF_eq] using h
@@ -155,9 +155,7 @@ theorem keys_read {a : LAtom} (ha : LHolds L fp a) {o : ℕ} (ho : o ∈ keysC a
   | const d x => simp only [keysC, List.mem_singleton] at ho; subst ho; exact ⟨_, ha⟩
   | add d a b =>
     obtain ⟨va, vb, h1, h2, h3⟩ := ha
-    simp only [keysC, List.mem_cons, List.not_mem_nil, or_false] at ho
-    rcases ho with rfl | rfl | rfl
-    exacts [⟨_, h3⟩, ⟨_, h1⟩, ⟨_, h2⟩]
+    simp only [keysC, List.mem_singleton] at ho; subst ho; exact ⟨_, h3⟩
   | mul d a b =>
     obtain ⟨va, vb, h1, h2, h3⟩ := ha
     simp only [keysC, List.mem_singleton] at ho; subst ho; exact ⟨_, h3⟩
@@ -168,17 +166,15 @@ theorem keys_read {a : LAtom} (ha : LHolds L fp a) {o : ℕ} (ho : o ∈ keysC a
     exacts [⟨_, h1⟩, ⟨_, h2⟩]
   | load d p off =>
     obtain ⟨pv, vd, h1, -, h3, -⟩ := ha
-    simp only [keysC, List.mem_cons, List.not_mem_nil, or_false] at ho
-    rcases ho with rfl | rfl
-    exacts [⟨_, h3⟩, ⟨_, h1⟩]
+    simp only [keysC, List.mem_singleton] at ho; subst ho; exact ⟨_, h3⟩
   | ne x i p =>
     obtain ⟨vx, vi, -, -, h3, -⟩ := ha
     simp only [keysC, List.mem_singleton] at ho; subst ho; exact ⟨_, h3⟩
   | range x y t1 t2 k =>
     obtain ⟨vx, vy, v1, v2, hx, -, hy, -, h1, h2, -, -, hk⟩ := ha
     simp only [keysC, List.mem_cons, List.not_mem_nil, or_false] at ho
-    rcases ho with rfl | rfl | rfl | rfl | rfl
-    exacts [⟨_, h1⟩, ⟨_, h2⟩, ⟨_, hk⟩, ⟨_, hx⟩, ⟨_, hy⟩]
+    rcases ho with rfl | rfl
+    exacts [⟨_, hx⟩, ⟨_, hy⟩]
   | inK a b =>
     obtain ⟨va, vb, h1, -, h2, -⟩ := ha
     simp only [keysC, List.mem_cons, List.not_mem_nil, or_false] at ho
@@ -350,14 +346,19 @@ theorem char2C (a : E) : a + a = 0 := CharTwo.add_self_eq_zero a
 
 theorem xor_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
     (h : justI X st pc (.xor a b d) = true) : Guest.Holds L pc (gpow fp) (.xor a b d) := by
-  simp only [justI, Bool.or_eq_true, Bool.and_eq_true] at h
-  rcases h with (((h | ⟨hz, hs⟩) | ⟨⟨hab, hz⟩, hk⟩) | ⟨⟨hab, hz⟩, hk⟩) | ⟨⟨hab, hk⟩, hz⟩
-  · obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
-    have hh := (hst.book d x hx).1
+  have hA : ∀ c, addAt st a b d c = true → Guest.Holds L pc (gpow fp) (.xor a b d) := by
+    intro c h
+    obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
+    have hh := (hst.book c x hx).1
     split at hp
     · obtain ⟨vx, vy, h1, h2, h3⟩ := hh
       exact perm3_holds hp h1 h2 h3
     · cases hp
+  simp only [justI, Bool.or_eq_true, Bool.and_eq_true] at h
+  rcases h with ((((((h | h) | h) | ⟨hz, hs⟩) | ⟨⟨hab, hz⟩, hk⟩) | ⟨⟨hab, hz⟩, hk⟩) | ⟨⟨hab, hk⟩, hz⟩)
+  · exact hA _ h
+  · exact hA _ h
+  · exact hA _ h
   · obtain ⟨v, h1, h2⟩ := sameC_sound hX hst.book hs
     exact holds_xor_of h1 h2 (isZ_sound hX hst hz) (char2C v).symm
   · obtain rfl := Nat.eq_of_beq_eq_true hab
@@ -376,7 +377,19 @@ theorem fpg_word (e : ℕ) : PC.word fp (.fpg e) = ofK (gpow fp * gpow e) := by
 theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
     (h : justI X st pc (.mul a b d) = true) : Guest.Holds L pc (gpow fp) (.mul a b d) := by
   simp only [justI, Bool.or_eq_true, Bool.and_eq_true] at h
-  rcases h with ((((h | ⟨ho, hs⟩) | ⟨ho, hs⟩) | h) | ⟨⟨hle, ho⟩, hn⟩)
+  rcases h with (((((h | h) | ⟨ho, hs⟩) | ⟨ho, hs⟩) | h) | ⟨⟨hle, ho⟩, hn⟩)
+  rotate_left
+  · obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
+    have hh := (hst.book a x hx).1
+    split at hp
+    · rename_i x' y' t1 t2 k
+      simp only [Bool.and_eq_true] at hp
+      obtain ⟨hd, hp⟩ := hp
+      obtain rfl := Nat.eq_of_beq_eq_true hd
+      obtain ⟨vx, vy, v1, v2, h1, -, h2, -, -, -, -, -, h3⟩ := hh
+      exact mul_pair (pairEq_sound hp) h1 h2 h3
+    · cases hp
+  rotate_right
   · obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
     have hh := (hst.book d x hx).1
     split at hp
@@ -385,12 +398,6 @@ theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
       obtain ⟨hd, hp⟩ := hp
       obtain rfl := Nat.eq_of_beq_eq_true hd
       obtain ⟨vx, vy, h1, h2, h3⟩ := hh
-      exact mul_pair (pairEq_sound hp) h1 h2 h3
-    · rename_i x' y' t1 t2 k
-      simp only [Bool.and_eq_true] at hp
-      obtain ⟨hd, hp⟩ := hp
-      obtain rfl := Nat.eq_of_beq_eq_true hd
-      obtain ⟨vx, vy, v1, v2, h1, -, h2, -, -, -, -, -, h3⟩ := hh
       exact mul_pair (pairEq_sound hp) h1 h2 h3
     · rename_i x' i' p'
       simp only [Bool.and_eq_true] at hp
@@ -528,7 +535,7 @@ theorem derefCell_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 :
     (h : justI X st pc (.deref o1 o2 o3 .cell) = true) :
     Guest.Holds L pc (gpow fp) (.deref o1 o2 o3 .cell) := by
   simp only [justI, Bool.or_eq_true, Bool.and_eq_true] at h
-  rcases h with ((h | h) | h) | ⟨⟨h0, hs⟩, hk⟩
+  rcases h with (((h | h) | h) | h) | ⟨⟨h0, hs⟩, hk⟩
   · obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
     have hh := (hst.book o3 x hx).1
     split at hp
@@ -539,6 +546,10 @@ theorem derefCell_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 :
       obtain rfl := Nat.eq_of_beq_eq_true hoff
       obtain ⟨pv, vd, h1, hK, h3, h2⟩ := hh
       exact deref_holds h1 hK h3 h2
+    · cases hp
+  · obtain ⟨x, hx, hp⟩ := List.any_eq_true.mp h
+    have hh := (hst.book o1 x hx).1
+    split at hp
     · simp only [Bool.and_eq_true, Bool.or_eq_true] at hp
       obtain ⟨h0, (⟨hx', ht⟩ | ⟨hy', ht⟩)⟩ := hp
       · obtain rfl := Nat.eq_of_beq_eq_true h0
@@ -703,9 +714,6 @@ theorem cellK_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {o : ℕ} (h : cel
       rw [eq_imm_of_limbs rfl (Nat.eq_of_beq_eq_true h1) (Nat.eq_of_beq_eq_true h2),
         imm_of_ofBits rfl]
       exact isInK_ofK _
-    · obtain rfl := Nat.eq_of_beq_eq_true hp
-      obtain ⟨pv, vd, h1, hK, -, -⟩ := hh
-      exact ⟨pv, h1, hK⟩
     · obtain ⟨vx, vy, v1, v2, hx', hKx, hy', hKy, -⟩ := hh
       simp only [Bool.or_eq_true] at hp
       rcases hp with hp | hp
