@@ -261,7 +261,7 @@ def ringIn (D : VsData) (P : VsPtrs) : List (ℕ × E) :=
 /-- The values the ring block leaves. -/
 def ringOut (D : VsData) (P : VsPtrs) : List (ℕ × E) :=
   [(810, (digestScalars D.cvM).1), (811, (digestScalars D.cvM).2), (1144, P.rs),
-    (1150, ringTarget D.s D.mcs)]
+    (1149, P.rs * word 325 0 0), (1150, ringTarget D.s D.mcs), (1160, word 1 0 0 + gen ^ D.tau)]
 
 theorem bRing_eq : bRing = bSqueezes 6 730 735 (.n 732) ++
     [.atom (.const (.n 819) (word 1 0 0)), .atom (.load (.n 819) (.n 733) 0)] ++
@@ -304,12 +304,12 @@ theorem c_ring {bytecode : List K} {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem
   have hτ := tau_lt hok
   rw [bRing_eq]
   refine Completes.append (m := 1159) (P := fun σ' => σ' (.n 1150) = ringTarget D.s D.mcs ∧
-      Fixes σ' ([(810, (digestScalars D.cvM).1), (811, (digestScalars D.cvM).2), (1144, P.rs)] ++
-        ringIn D P))
+      Fixes σ' ([(810, (digestScalars D.cvM).1), (811, (digestScalars D.cvM).2), (1144, P.rs),
+        (1149, P.rs * word 325 0 0)] ++ ringIn D P))
     (by omega) (by omega) (numBelow_of_B (by decide +kernel)) ?_ fun σ5 _ ⟨j1150, jf⟩ => ?tailF
   refine Completes.append (m := 1151) (P := fun σ' => σ' (.n 1150) = ringTarget D.s D.mcs ∧
-      Fixes σ' ([(810, (digestScalars D.cvM).1), (811, (digestScalars D.cvM).2), (1144, P.rs)] ++
-        ringIn D P))
+      Fixes σ' ([(810, (digestScalars D.cvM).1), (811, (digestScalars D.cvM).2), (1144, P.rs),
+        (1149, P.rs * word 325 0 0)] ++ ringIn D P))
     (by omega) (by omega) (numBelow_of_B (by decide +kernel)) ?_ fun σ4 _ ⟨j1150, jf⟩ => ?copies
   refine Completes.append (m := 1144) (P := fun σ' => (σ' (.n 732) = P.mcs ∧ σ' (.n 733) = P.ctab) ∧
       Fixes σ' ([(810, (digestScalars D.cvM).1), (811, (digestScalars D.cvM).2)] ++ ringIn D P))
@@ -365,17 +365,19 @@ theorem c_ring {bytecode : List K} {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem
     have j723 : σ3 (.n 723) = P.zpart := jf.get (by simp [ringIn])
     refine ((completes_upds [(1144, P.rs), (1145, word 1 0 0), (1146, word 0 0 0), (1147, word 1 0 0),
       (1148, word 325 0 0), (1149, P.rs * word 325 0 0), (1150, rsSum D 64)] (by simp)
-      (fun next kret hn => ?_) (Post := fun σ' => σ' (.n 1150) = rsSum D 64 ∧ σ' (.n 1144) = P.rs)
-      (by vs_ev; exact ⟨trivial, trivial⟩)).keep jf
+      (fun next kret hn => ?_) (Post := fun σ' => σ' (.n 1150) = rsSum D 64 ∧ σ' (.n 1144) = P.rs ∧
+        σ' (.n 1149) = P.rs * word 325 0 0)
+      (by vs_ev; exact ⟨trivial, trivial, trivial⟩)).keep jf
       (by intro p hp; simp [ringIn] at hp; rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-        rfl | rfl | rfl | rfl <;> simp)).post fun σ' _ ⟨⟨k1, k3⟩, k2⟩ =>
+        rfl | rfl | rfl | rfl <;> simp)).post fun σ' _ ⟨⟨k1, k3, k4⟩, k2⟩ =>
           ⟨by rw [k1, rsSum_target hok.s_length], fun p hp => by
             rcases List.mem_append.mp hp with hp | hp
             · simp only [List.mem_cons, List.mem_nil_iff, or_false] at hp
-              rcases hp with rfl | rfl | rfl
+              rcases hp with rfl | rfl | rfl | rfl
               · exact k2.get (by simp)
               · exact k2.get (by simp)
               · exact k3
+              · exact k4
             · exact k2 p (List.mem_append_right _ hp)⟩
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
     vs_ev
@@ -396,12 +398,12 @@ theorem c_ring {bytecode : List K} {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem
       (fun t ht => numBelow_of_B (by revert t ht; decide +kernel)) (fun t ht σ' ⟨k1, k2⟩ => ?_) σ4
       ⟨jf.get (by simp [ringIn]), jf.get (by simp [ringIn])⟩
     · exact (key.keep (l := (1150, ringTarget D.s D.mcs) :: ([(810, (digestScalars D.cvM).1),
-        (811, (digestScalars D.cvM).2), (1144, P.rs)] ++ ringIn D P)) (fun p hp => by
+        (811, (digestScalars D.cvM).2), (1144, P.rs), (1149, P.rs * word 325 0 0)] ++ ringIn D P)) (fun p hp => by
           rcases List.mem_cons.mp hp with rfl | hp
           · exact j1150
           · exact jf p hp)
         (by intro p hp; simp [ringIn] at hp; rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-          rfl | rfl | rfl | rfl | rfl | rfl <;> simp)).post fun σ' _ ⟨_, kf⟩ =>
+          rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp)).post fun σ' _ ⟨_, kf⟩ =>
         ⟨kf.get (by simp), fun p hp => kf p (List.mem_cons_of_mem _ hp)⟩
     · have hrv : D.fpoint.getD t 0 = D.rcs.getD (7 - t) 0 := by
         have hrl := hok.rcs_length
@@ -435,7 +437,8 @@ theorem c_ring {bytecode : List K} {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem
         rw [h, word_one, pow_zero, e_add_eq_zero_iff]
     · intro p hp
       simp only [ringOut, List.mem_cons, List.mem_nil_iff, or_false] at hp
-      rcases hp with rfl | rfl | rfl | rfl <;> vs_ev
+      rcases hp with rfl | rfl | rfl | rfl | rfl | rfl <;> vs_ev
+      · exact jf.get (by simp)
       · exact jf.get (by simp)
       · exact jf.get (by simp)
       · exact jf.get (by simp)

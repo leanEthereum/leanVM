@@ -412,12 +412,18 @@ theorem pS_total (hl : D.rows.length = 6) : pS D 36 = D.pushTotal := by
 theorem numBelow_push : ∀ b < 36, NumBelow (273 + 4 * (b + 1)) (Stmt.valsList (pushBlk b)) :=
   fun b hb => numBelow_of_B (by revert b hb; decide +kernel)
 
-/-- **Push block `b + 1`** (G:2124-2127): the running total times `g_squares[block_kappa[b+1]]`. -/
-theorem c_pushBlk {lp sq : E} (ht : ExpTables rd lp sq) {b : ℕ} (hb : b < 36)
+/-- The pointers into `g_squares` the push blocks load through, up to block `b`. -/
+def pushPtrs (D : VsData) (sq : E) (b : ℕ) : List (ℕ × E) :=
+  (List.range (b + 1)).map fun j => (pushK j + 1, sq * gen ^ pkap D j)
+
+theorem pushK_lt : ∀ j, pushK j + 1 < 273 + 4 * j := by intro j; unfold pushK; split <;> omega
+
+theorem c_pushBlk0 {lp sq : E} (ht : ExpTables rd lp sq) {b : ℕ} (hb : b < 36)
     (hk : pkap D (b + 1) < 34) (hbk : LoadHolds rd P.bk (b + 1) (gen ^ pkap D (b + 1))) (σ : Val)
     (h5 : σ (.n 5) = sq) (h163 : σ (.n 163) = P.bk) (hP : σ (.n (pushP b)) = gen ^ pS D b) :
     Completes C rd (273 + 4 * b) (273 + 4 * (b + 1)) (pushBlk b) σ
-      (fun σ' => σ' (.n 5) = sq ∧ σ' (.n 163) = P.bk ∧ σ' (.n (pushP (b + 1))) = gen ^ pS D (b + 1)) := by
+      (fun σ' => σ' (.n 5) = sq ∧ σ' (.n 163) = P.bk ∧ σ' (.n (pushP (b + 1))) = gen ^ pS D (b + 1) ∧
+        σ' (.n (274 + 4 * b)) = sq * gen ^ pkap D (b + 1)) := by
   rw [pushP_eq] at hP
   have n1 : 274 + 4 * b ≠ 273 + 4 * b := by omega
   have n2 : 275 + 4 * b ≠ 273 + 4 * b := by omega
@@ -451,12 +457,31 @@ theorem c_pushBlk {lp sq : E} (ht : ExpTables rd lp sq) {b : ℕ} (hb : b < 36)
     · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact (ht _ hk).2
     · rw [pS_succ, pow_add]
   · simp only [pushP_eq, upds_n, upds_nil, e3]
-    simp only [n4, n5, n6, m1, m2, m3, m4, k1, k2, k3, k4, ↓reduceIte, h5, h163]
-    exact ⟨trivial, trivial, trivial⟩
+    simp only [n1, n4, n5, n6, m1, m2, m3, m4, k1, k2, k3, k4, ↓reduceIte, h5, h163]
+    exact ⟨trivial, trivial, trivial, trivial⟩
+
+/-- **Push block `b + 1`** (G:2124-2127): the running total times `g_squares[block_kappa[b+1]]`. -/
+theorem c_pushBlk {lp sq : E} (ht : ExpTables rd lp sq) {b : ℕ} (hb : b < 36)
+    (hk : pkap D (b + 1) < 34) (hbk : LoadHolds rd P.bk (b + 1) (gen ^ pkap D (b + 1))) (σ : Val)
+    (h5 : σ (.n 5) = sq) (h163 : σ (.n 163) = P.bk) (hP : σ (.n (pushP b)) = gen ^ pS D b)
+    (hF : Fixes σ (pushPtrs D sq b)) :
+    Completes C rd (273 + 4 * b) (273 + 4 * (b + 1)) (pushBlk b) σ
+      (fun σ' => σ' (.n 5) = sq ∧ σ' (.n 163) = P.bk ∧ σ' (.n (pushP (b + 1))) = gen ^ pS D (b + 1) ∧
+        Fixes σ' (pushPtrs D sq (b + 1))) := by
+  refine (Completes.keep (c_pushBlk0 ht hb hk hbk σ h5 h163 hP) hF (fun p hp => ?_)).post
+    fun σ' _ ⟨⟨a1, a2, a3, a4⟩, hf⟩ => ⟨a1, a2, a3, fun p hp => ?_⟩
+  · simp only [pushPtrs, List.mem_map, List.mem_range] at hp
+    obtain ⟨j, hj, rfl⟩ := hp
+    have := pushK_lt j; simp only; omega
+  · simp only [pushPtrs, List.range_succ (n := b + 1), List.map_append, List.mem_append,
+      List.map_cons, List.map_nil, List.mem_cons, List.mem_nil_iff, or_false] at hp
+    rcases hp with hp | rfl
+    · exact hf p (by simpa [pushPtrs] using hp)
+    · rw [pushK_succ]; simpa [show 273 + 4 * b + 1 = 274 + 4 * b by omega] using a4
 
 /-- The values the push side leaves. -/
-def pushOut (D : VsData) (P : VsPtrs) : List (ℕ × E) :=
-  [(417, gen ^ log2Ceil D.pushTotal), (418, P.zeta)]
+def pushOut (D : VsData) (P : VsPtrs) (sq : E) : List (ℕ × E) :=
+  [(417, gen ^ log2Ceil D.pushTotal), (418, P.zeta)] ++ pushPtrs D sq 36
 
 /-- **The push side's total and `g_bus_mu`** (G:2124-2128). -/
 theorem c_push {lp sq : E}
@@ -465,7 +490,7 @@ theorem c_push {lp sq : E}
     (hbk : ∀ b < 37, LoadHolds rd P.bk b (gen ^ pkap D b)) {bytecode : List K}
     (hC : VsCallsOk C bytecode D P lp sq) (σ : Val)
     (hσ : Fixes σ [(4, lp), (5, sq), (163, P.bk)]) :
-    Completes C rd 270 419 bPush σ (fun σ' => Fixes σ' (pushOut D P)) := by
+    Completes C rd 270 419 bPush σ (fun σ' => Fixes σ' (pushOut D P sq)) := by
   have h4 : σ (.n 4) = lp := hσ.get (by simp)
   have h5 : σ (.n 5) = sq := hσ.get (by simp)
   have h163 : σ (.n 163) = P.bk := hσ.get (by simp)
@@ -476,10 +501,12 @@ theorem c_push {lp sq : E}
     lt_of_le_of_lt (le_two_pow_log2Ceil _) (Nat.pow_lt_pow_right (by decide) (by omega))
   rw [bPush]
   refine Completes.append (m := 417) (P := fun σ' => (σ' (.n 5) = sq ∧ σ' (.n 163) = P.bk ∧
-      σ' (.n (pushP 36)) = gen ^ pS D 36) ∧ Fixes σ' [(4, lp)]) (by omega) (by omega)
+      σ' (.n (pushP 36)) = gen ^ pS D 36 ∧ Fixes σ' (pushPtrs D sq 36)) ∧ Fixes σ' [(4, lp)])
+    (by omega) (by omega)
     (numBelow_of_B (by decide +kernel)) ?_ fun σ2 e2 h2 => ?_
   · refine Completes.append (m := 273) (P := fun σ' => σ' (.n 4) = lp ∧ σ' (.n 5) = sq ∧
-        σ' (.n 163) = P.bk ∧ σ' (.n 272) = gen ^ pS D 0) (by omega) (by omega)
+        σ' (.n 163) = P.bk ∧ σ' (.n 272) = gen ^ pS D 0 ∧ Fixes σ' (pushPtrs D sq 0)) (by omega)
+      (by omega)
       (numBelow_of_B (by decide +kernel)) ?_ fun σ1 e1 h1 => ?_
     · refine completes_upds [(270, gen ^ pkap D 0), (271, sq * gen ^ pkap D 0),
         (272, gen ^ 2 ^ pkap D 0)] (by simp) (fun next kret hn => ?_) ?_
@@ -490,15 +517,20 @@ theorem c_push {lp sq : E}
         rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact (ht _ (hk 0 (by omega))).2
       · vs_ev
         rw [h4, h5, h163]
-        exact ⟨rfl, rfl, rfl, by simp [pS]⟩
-    · obtain ⟨i4, i5, i163, i272⟩ := h1
+        refine ⟨rfl, rfl, rfl, by simp [pS], fun p hp => ?_⟩
+        simp [pushPtrs] at hp
+        subst hp
+        simp only [pushK, ↓reduceIte, Nat.reduceAdd]
+        vs_ev
+    · obtain ⟨i4, i5, i163, i272, iF⟩ := h1
       have := Completes.flatten (C := C) (rd := rd) (blk := pushBlk)
         (st := fun b ↦ 273 + 4 * b) (Inv := fun b σ' ↦ σ' (.n 5) = sq ∧ σ' (.n 163) = P.bk ∧
-          σ' (.n (pushP b)) = gen ^ pS D b) 36 (fun b _ => by omega) numBelow_push
-        (fun b hb σ' ⟨j5, j163, jP⟩ => c_pushBlk ht hb (hk (b + 1) (by omega))
-          (hbk (b + 1) (by omega)) σ' j5 j163 jP) σ1 ⟨i5, i163, i272⟩
+          σ' (.n (pushP b)) = gen ^ pS D b ∧ Fixes σ' (pushPtrs D sq b)) 36 (fun b _ => by omega)
+        numBelow_push
+        (fun b hb σ' ⟨j5, j163, jP, jF⟩ => c_pushBlk ht hb (hk (b + 1) (by omega))
+          (hbk (b + 1) (by omega)) σ' j5 j163 jP jF) σ1 ⟨i5, i163, i272, iF⟩
       exact this.keep (l := [(4, lp)]) (by intro p hp; simp at hp; subst hp; exact i4) (by simp)
-  · obtain ⟨⟨j5, -, jP⟩, j4⟩ := h2
+  · obtain ⟨⟨j5, -, jP, jF⟩, j4⟩ := h2
     have j4' : σ2 (.n 4) = lp := j4.get (by simp)
     rw [pushP_eq, pS_total hl] at jP
     refine completes_upds [(417, gen ^ log2Ceil D.pushTotal), (418, P.zeta)] (by simp)
@@ -508,8 +540,17 @@ theorem c_push {lp sq : E}
       rw [jP, j4', j5]
       exact ⟨hC.log2Push, trivial, hn⟩
     · intro p hp
-      simp only [pushOut, List.mem_cons, List.mem_nil_iff, or_false] at hp
-      rcases hp with rfl | rfl <;> simp [upds_n]
+      rcases List.mem_append.mp hp with hp | hp
+      · simp only [List.mem_cons, List.mem_nil_iff, or_false] at hp
+        rcases hp with rfl | rfl <;> simp [upds_n]
+      · rw [upds_of_not_mem]
+        · exact jF p hp
+        · intro q hq
+          simp only [List.mem_cons, List.mem_nil_iff, or_false] at hq
+          simp only [pushPtrs, List.mem_map, List.mem_range] at hp
+          obtain ⟨j, hj, rfl⟩ := hp
+          have := pushK_lt j
+          rcases hq with rfl | rfl <;> simp <;> omega
 
 /-! ## The root -/
 

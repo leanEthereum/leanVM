@@ -114,7 +114,7 @@ def vsG3 (D : VsData) (P : VsPtrs) (lp sq out : E) : List (ℕ × E) := sizesOut
 def vsG4 (D : VsData) (P : VsPtrs) (lp sq out : E) : List (ℕ × E) := [(155, P.kbase)] ++ vsG3 D P lp sq out
 def vsG5 (D : VsData) (P : VsPtrs) (lp sq out : E) : List (ℕ × E) :=
   [(155, P.kbase), (163, P.bk)] ++ vsG4 D P lp sq out
-def vsG6 (D : VsData) (P : VsPtrs) (lp sq out : E) : List (ℕ × E) := pushOut D P ++ vsG5 D P lp sq out
+def vsG6 (D : VsData) (P : VsPtrs) (lp sq out : E) : List (ℕ × E) := pushOut D P sq ++ vsG5 D P lp sq out
 def vsG7 (D : VsData) (P : VsPtrs) (lp sq out : E) : List (ℕ × E) := rootOut D ++ vsG6 D P lp sq out
 def vsG8 (D : VsData) (P : VsPtrs) (lp sq out : E) : List (ℕ × E) := busOut D P ++ vsG7 D P lp sq out
 def vsG9 (D : VsData) (P : VsPtrs) (lp sq out : E) : List (ℕ × E) := callsOut D P ++ vsG8 D P lp sq out
@@ -182,7 +182,7 @@ theorem numBelow_pre12 : NumBelow 1652 (Stmt.valsList (bSeed ++ bReads ++ bSizes
 /-- Membership in the accumulated lists. -/
 macro "vs_mem" : tactic => `(tactic| simp [vsG0, vsG1, vsG2, vsG3, vsG4, vsG5, vsG6, vsG7, vsG8, vsG9,
   vsG10, vsG11, seedOut, readsOut, sizesOut, pushOut, rootOut, busOut, callsOut, ringOut, lamOut, curG,
-  deferIn, openIn, lamIn, ringIn, callsIn])
+  deferIn, openIn, lamIn, ringIn, callsIn, pushPtrs, pushK, List.range_succ])
 
 /-! ## The steps -/
 

@@ -130,7 +130,8 @@ theorem flockOut_honest (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
 
 /-- The values the three calls leave. -/
 def callsOut (D : VsData) (P : VsPtrs) : List (ℕ × E) :=
-  [(709, P.chi), (713, D.gzcn), (714, D.bv), (715, D.rm), (718, gen ^ D.tau), (721, P.zchis),
+  [(709, P.chi), (713, D.gzcn), (714, D.bv), (715, D.rm), (718, gen ^ D.tau),
+    (720, gen ^ D.tau * word 256 0 0), (721, P.zchis),
     (722, P.lrs), (723, P.zpart), (726, curW D P), (727, D.zSkip), (728, D.alpha), (729, D.mv),
     (730, (digestScalars D.cvF).1), (731, (digestScalars D.cvF).2), (732, P.mcs), (733, P.ctab),
     (734, P.zvals)]
@@ -227,7 +228,7 @@ theorem c_calls {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
   · intro p hp
     simp only [callsOut, List.mem_cons, List.mem_nil_iff, or_false] at hp
     rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl <;> simp [upds_n]
+      rfl | rfl | rfl | rfl <;> simp [upds_n]
 
 end
 end LeanVM.Guest.B1.VerifySub
