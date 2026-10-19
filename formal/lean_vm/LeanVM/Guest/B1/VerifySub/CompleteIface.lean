@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.Body
+public import LeanVM.Guest.B1.Uniform
 
 /-!
 # `verify_sub`'s completeness: the run, the memory, the callees
@@ -108,6 +109,87 @@ def CompleteTerm (EMem : Reader → List E → List E → Prop) : Prop :=
       coreProgram.Rel rd "check_opening_terminal" args []
 
 end Callees
+
+/-! ## The callees' completeness, placed
+
+The uniform placed form (`Uniform.lean`): each callee is complete on every layout `Lin` of the
+caller's words that makes its precondition true on every memory holding it (defined below `2^k`).
+`verify_bus_gkr`, `verify_tables`, `verify_flock` and `check_opening_terminal` return fixed words
+(`CompleteRel`); `certify_placement` and `open_stacked` return `HeapBuf`s, their contents in the
+layout `Lout` they return (`CompleteAt`). -/
+
+section Placed
+
+open LeanVM.Guest.B1.Main (MemL)
+
+variable (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (bytecode : List K)
+  (TCtx : Reader → Layout → BusResult → List ColumnClaim → List E → Prop)
+  (PCtx : Reader → List ℕ → E → E → Prop)
+
+/-- `verify_bus_gkr`'s precondition and outcome on a memory (`GkrOut`). -/
+def GkrPre (rd : Reader) : List E → List E → Prop
+  | [fs0, fs1, cur, gmu, zeta], rets => GkrOut rd fs0 fs1 cur gmu zeta rets
+  | _, _ => False
+
+/-- **`verify_bus_gkr`, placed.** -/
+def CompleteGkrAt : Prop := CompleteRel fs cert k "verify_bus_gkr" GkrPre
+
+/-- `verify_tables`' precondition and outcome on a memory, the terminal's context included. -/
+def TablesPreOut (rd : Reader) (args rets : List E) : Prop :=
+  ∃ lp pi logMem alphas point values, TablesPre rd lp pi logMem alphas point values args ∧
+    TablesOut bytecode TCtx rd pi logMem alphas point values args rets
+
+/-- **`verify_tables`, placed.** -/
+def CompleteTablesAt : Prop := CompleteRel fs cert k "verify_tables" (TablesPreOut bytecode TCtx)
+
+/-- `verify_flock`'s precondition and outcome on a memory (`FlockOut`, `τ < 29`). -/
+def FlockPre (rd : Reader) (args rets : List E) : Prop :=
+  ∃ τ fs0 fs1 cur zchis lrs zpart, τ < 29 ∧ args = [fs0, fs1, cur, gen ^ τ, zchis, lrs, zpart] ∧
+    FlockOut rd τ fs0 fs1 cur zchis lrs zpart rets
+
+/-- **`verify_flock`, placed.** -/
+def CompleteFlockAt : Prop := CompleteRel fs cert k "verify_flock" FlockPre
+
+/-- `check_opening_terminal`'s precondition on a memory (`TermPre`) and the terminal's check. -/
+def TermPreAcc (rd : Reader) (args rets : List E) : Prop :=
+  rets = [] ∧ ∃ layout bus claims lam flockPoint coeffs w,
+    TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args ∧
+      w.Accepts (stackWeight layout claims flockPoint coeffs lam)
+
+/-- **`check_opening_terminal`, placed.** -/
+def CompleteTermAt : Prop := CompleteRel fs cert k "check_opening_terminal" (TermPreAcc TCtx PCtx)
+
+/-- **`certify_placement`, placed**: on a layout holding the exponent tables at `lp`, `sq` and the
+base `[1, g^log_mem, g^h_0, …]` at `kb`, it returns `g^(Σ 2^κ)` and two buffers, held by its `Lout`,
+of which `PCtx` holds. -/
+def CompletePlaceAt : Prop :=
+  ∀ (lp sq kb : E) (logMem : ℕ) (hs : List ℕ) (Lin : Main.Layout), logMem ≤ 32 → hs.length = 6 →
+    (∀ h ∈ hs, h < 29) →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ExpTables rd lp sq ∧ ReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·))) →
+    CompleteAt fs cert k "certify_placement" Lin [kb, sq] fun rets Lout =>
+      ∃ off kap, rets = [gen ^ stackTotal (columnKappas logMem 18 hs), off, kap] ∧
+        ∀ rd, MemL rd Lout → PCtx rd (columnKappas logMem 18 hs) off kap
+
+/-- `open_stacked`'s run at `(μ, r)` on a memory: the words at the cursor and the openings run
+`whirOpen μ r target` to `w` from the state of `(fs0, fs1)`, the root committed. -/
+def OpenRun (μ r : ℕ) (root : Digest) (rd : Reader) (fs0 fs1 target cur : E) (w : WhirEnd) : Prop :=
+  ∃ (cv : Digest) (xs : List E) (os : List Opening) (cv' : Digest) (roots' : List (Digest × ℕ × ℕ)),
+    (fs0, fs1) = digestScalars cv ∧ ReadsAt rd cur xs ∧
+    RunsWith (whirOpen μ r target) cv xs os [(root, stackShape μ r)] w cv' roots'
+
+/-- **`open_stacked`, placed**, at every candidate: it returns `w`'s claim, a buffer holding `w`'s
+point (zero-padded to `42`, its `Lout`), its glued weight and its residual's value. -/
+def CompleteOpenAt : Prop :=
+  ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
+    ∀ (root : Digest) (fs0 fs1 target root0 root1 cur : E) (w : WhirEnd) (Lin : Main.Layout),
+      (root0, root1) = digestScalars root →
+      (∀ rd, LowDef k rd → MemL rd Lin → OpenRun μ r root rd fs0 fs1 target cur w) →
+      CompleteAt fs cert k (openName μ r) Lin [fs0, fs1, target, root0, root1, cur] fun rets Lout =>
+        ∃ pt, rets = [w.target, pt, w.inner, w.residual] ∧ w.point.length = μ ∧
+          ∀ rd, MemL rd Lout → ReadsAt rd pt (w.point ++ List.replicate (pointCap - w.point.length) 0)
+
+end Placed
 
 end
 end LeanVM.Guest.B1.VerifySub
