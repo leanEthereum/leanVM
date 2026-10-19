@@ -1,4 +1,5 @@
 import LeanVM.Guest.EndSound
+import LeanVM.Guest.EndComplete
 
 /-!
 # Tests: the end theorems' axioms
@@ -50,3 +51,11 @@ three standard axioms only.
 /-- info: 'LeanVM.Guest.End.vsKnown_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.End.vsKnown_proved
+
+/-- info: 'LeanVM.Guest.End.honest_of_main' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.honest_of_main
+
+/-- info: 'LeanVM.Guest.End.guest_complete_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.guest_complete_of_parts
