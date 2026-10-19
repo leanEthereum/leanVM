@@ -224,10 +224,11 @@ theorem main_relAtIn_core (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W)
     (hcm : ∀ rd, ∀ outs, OutsOk ks outs → CallsMatch (mainVal rd (mainRunAt fs fp W))
       ((mainFronts (decide (W.rd = 1)) (decide (W.nc = 0))).map
         (mkCall (mainVal rd (mainRunAt fs fp W)))) ks outs)
-    (B : String → List E → ℕ) (hT : ∀ k ∈ ks, k.taken = true → TotalLeAt fs k.f k.args (B k.f k.args)) :
+    (B : String → List E → ℕ) :
     ∃ (m : ℕ) (L : Layout), Within (mainIn fs fp W ++ L) (fp + fs "main") m ∧
       DisjL (mainIn fs fp W ++ L) ∧
-      ((∃ rd, LowDef κ rd ∧ MemL rd (mainIn fs fp W ++ L)) → m ≤ W.sizes.sum +
+      ((∀ k ∈ ks, k.taken = true → TotalLeAt fs k.f k.args (B k.f k.args)) →
+        (∃ rd, LowDef κ rd ∧ MemL rd (mainIn fs fp W ++ L)) → m ≤ W.sizes.sum +
         (fs "exponent_tables" + 68 + (ks.map fun k => if k.taken then B k.f k.args else fs k.f).sum)) ∧
       ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W ++ L) →
         rd 1 = some (digestScalars W.stDig).1 → rd g = some (digestScalars W.stDig).2 →
@@ -257,7 +258,7 @@ theorem main_relAtIn_core (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W)
     fun rd hl hL hp0 hp1 => ?_⟩
   · rw [within_append]
     exact ⟨hWin.mono le_rfl (by omega), hWk.mono (by omega) (by omega)⟩
-  · rintro ⟨rd, hl, hL⟩
+  · rintro hT ⟨rd, hl, hL⟩
     obtain ⟨hLin, hLk⟩ := memL_append.mp hL
     have hk' := hK rd (mainVal rd (mainRunAt fs fp W)) _ (fun _ => True) (fun _ => True)
       (hcm rd outs ho) hl hLk (memL_lins fun k hk' => (hsub k hk').1 rd hLin)
@@ -631,11 +632,11 @@ callees need, one size and one layout serve every memory holding `main`'s words,
 and the public input at words `0`, `1`: `main` holds by a tree placed at `fp`, loading from its
 own data or its header. -/
 theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W)
-    (B : String → List E → ℕ)
-    (hT : ∀ c ∈ mainCalls fs fp W, c.2.1 = true → TotalLeAt fs c.1 c.2.2 (B c.1 c.2.2)) :
+    (B : String → List E → ℕ) :
     ∃ (m : ℕ) (L : Layout), Within (mainIn fs fp W ++ L) (fp + fs "main") m ∧
       DisjL (mainIn fs fp W ++ L) ∧
-      ((∃ rd, LowDef κ rd ∧ MemL rd (mainIn fs fp W ++ L)) → m ≤ W.sizes.sum +
+      ((∀ c ∈ mainCalls fs fp W, c.2.1 = true → TotalLeAt fs c.1 c.2.2 (B c.1 c.2.2)) →
+        (∃ rd, LowDef κ rd ∧ MemL rd (mainIn fs fp W ++ L)) → m ≤ W.sizes.sum +
         (fs "exponent_tables" + 68 + callsSize fs B (mainCalls fs fp W))) ∧
       ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W ++ L) →
         rd 1 = some (digestScalars W.stDig).1 → rd g = some (digestScalars W.stDig).2 →
@@ -679,9 +680,11 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
       simp [mainCalls, hnc]
     refine (fun hc => ?_) (main_relAtIn_core (cert := cert) hκ hW _ (fun k hk htk => ?_) (fun k hk => ?_)
       (main_hcm hW [] fun rd o ho => by simp only [hnc, decide_true, ↓reduceIte]; exact callsMatch_nil o ho)
-      B (fun k hk htk => hT (kidCall k) (by rw [hmc]; exact List.mem_map_of_mem hk) htk))
+      B)
     · obtain ⟨m, L, h1, h2, h3, h4⟩ := hc
-      exact ⟨m, L, h1, h2, fun h => by rw [hmc, callsSize_map]; exact h3 h, h4⟩
+      exact ⟨m, L, h1, h2, fun hT h => by
+        rw [hmc, callsSize_map]
+        exact h3 (fun k hk htk => hT (kidCall k) (by rw [hmc]; exact List.mem_map_of_mem hk) htk) h, h4⟩
     · simp only [List.append_nil, List.mem_append, List.mem_singleton] at hk
       rcases hk with hk | rfl
       · exact hpre k (by simp only [List.mem_append, List.mem_singleton]; exact hk) htk
@@ -697,9 +700,11 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
     refine (fun hc => ?_) (main_relAtIn_core (cert := cert) hκ hW _ (fun k hk htk => ?_) (fun k hk => ?_)
       (main_hcm hW [mainKidAgg fs fp W cs d] fun rd o ho => by
         simp only [hnc, decide_false, Bool.false_eq_true, ↓reduceIte]; exact main_cmAgg rd cs d o ho)
-      B (fun k hk htk => hT (kidCall k) (by rw [hmc]; exact List.mem_map_of_mem hk) htk))
+      B)
     · obtain ⟨m, L, h1, h2, h3, h4⟩ := hc
-      exact ⟨m, L, h1, h2, fun h => by rw [hmc, callsSize_map]; exact h3 h, h4⟩
+      exact ⟨m, L, h1, h2, fun hT h => by
+        rw [hmc, callsSize_map]
+        exact h3 (fun k hk htk => hT (kidCall k) (by rw [hmc]; exact List.mem_map_of_mem hk) htk) h, h4⟩
     · simp only [List.mem_append, List.mem_singleton] at hk
       rcases hk with (hk | rfl) | rfl
       · exact hpre k (by simp only [List.mem_append, List.mem_singleton]; exact hk) htk

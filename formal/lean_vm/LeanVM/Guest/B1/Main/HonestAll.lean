@@ -150,17 +150,17 @@ theorem main_complete {cert : String → V → ℕ} {κ : ℕ} {VsGood : VerifyS
     (hb : bytecode.length = 2 ^ 22) (hN : NodeRel bytecode seed s w) (hlim : Limits s w)
     (hfr : ∀ c ∈ w.children, FreshShaped c.fresh)
     (hvs : ∀ c ∈ w.children, ∃ D : VerifySub.VsData, VsGood D ∧ D.pi = statementDigest seed c.statement ∧
-      D.seed = seed ∧ D.fresh = c.fresh) (fp : ℕ) (B : String → List E → ℕ)
-    (hT : ∀ c ∈ mainCalls fs fp (honestWords seed s w), c.2.1 = true → TotalLeAt fs c.1 c.2.2 (B c.1 c.2.2)) :
+      D.seed = seed ∧ D.fresh = c.fresh) (fp : ℕ) (B : String → List E → ℕ) :
     ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧ LeanVM.Guest.B1.DisjL L ∧
-      ((∃ rd, LowDef κ rd ∧ MemL rd L) → m ≤ (honestWords seed s w).sizes.sum +
+      ((∀ c ∈ mainCalls fs fp (honestWords seed s w), c.2.1 = true → TotalLeAt fs c.1 c.2.2 (B c.1 c.2.2)) →
+        (∃ rd, LowDef κ rd ∧ MemL rd L) → m ≤ (honestWords seed s w).sizes.sum +
         (fs "exponent_tables" + 68 + callsSize fs B (mainCalls fs fp (honestWords seed s w)))) ∧
       ∀ rd, LowDef κ rd → MemL rd L →
         rd 1 = some (digestScalars (statementDigest seed s)).1 →
         rd g = some (digestScalars (statementDigest seed s)).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] :=
-  let ⟨m, _, hW, hD, hB, h⟩ := main_relAtIn H hκ (honest_wordsOk fs (fp := fp) hb hN hlim hfr hvs) B hT
+  let ⟨m, _, hW, hD, hB, h⟩ := main_relAtIn H hκ (honest_wordsOk fs (fp := fp) hb hN hlim hfr hvs) B
   ⟨m, _, hW, hD, hB, h⟩
 
 end
