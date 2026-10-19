@@ -296,27 +296,29 @@ theorem args17 {P : List E → Prop} {args : List E} (hP : ∀ l, l.length ≠ 1
     | exact absurd h (hP _ (by simp))
 
 set_option maxHeartbeats 4000000 in
-/-- **`check_opening_terminal` is sound** (TRIAGE #42, #43): `SoundTerm`. -/
-theorem check_opening_terminal_sound (rd : Reader) : SoundTerm TCtx PCtx rd := by
-  intro layout bus claims lam fp cs w args hpre h
-  obtain ⟨a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, rfl⟩ :=
-    args17 (P := TermPre TCtx PCtx rd layout bus claims lam fp cs w)
-    (fun l hl hP => by
-      rcases l with _ | ⟨a0, _ | ⟨a1, _ | ⟨a2, _ | ⟨a3, _ | ⟨a4, _ | ⟨a5, _ | ⟨a6, _ | ⟨a7,
-          _ | ⟨a8, _ | ⟨a9, _ | ⟨a10, _ | ⟨a11, _ | ⟨a12, _ | ⟨a13, _ | ⟨a14, _ | ⟨a15,
-          _ | ⟨a16, _ | ⟨_, _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
-      all_goals first | exact hP.elim | exact absurd rfl hl) hpre
+/-- **The terminal's value** (V:1781-1785): with the body's segments before the check holding,
+the running sum plus the ring-switch term is the opening's inner value plus the stacked weight at
+the opening point. -/
+theorem terminal_val {rd : Reader} {layout : Layout} {bus : BusResult} {claims : List ColumnClaim}
+    {lam : E} {fp cs : List E} {w : WhirEnd}
+    {a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 : E}
+    (hpre : TermPre TCtx PCtx rd layout bus claims lam fp cs w
+      [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16])
+    {σ : Val} {kret : List E → Prop}
+    (hp : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7),
+        σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12), σ (.n 13), σ (.n 14), σ (.n 15),
+        σ (.n 16)] = [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16])
+    (g0 : Stmt.HoldsList (coreProgram.Rel rd) rd σ tPre True kret)
+    (g1 : ∀ c < 92, Stmt.HoldsList (coreProgram.Rel rd) rd σ (selBlk c) True kret)
+    (g2 : ∀ j < 112, Stmt.HoldsList (coreProgram.Rel rd) rd σ (claimBlk j) True kret)
+    (g4 : ∀ k < 64, Stmt.HoldsList (coreProgram.Rel rd) rd σ (rinitBlk k) True kret)
+    (g5 : Stmt.HoldsList (coreProgram.Rel rd) rd σ tPostB True kret)
+    (g6 : ∀ k < 64, Stmt.HoldsList (coreProgram.Rel rd) rd σ (rsBlk k) True kret) :
+    σ (.n 1736) + σ (.n 2080) * σ (.n 53) = w.inner + stackWeight layout claims fp cs lam w.point := by
   obtain ⟨hT, hP, -, hglm, hgtau, hlp, hzv, hct, hpt, hin, hyr, hst, hpl, hsl, hμ28, hlm1, hbp,
     hxl, hfpl, hcsl⟩ := hpre
-  obtain ⟨σ, hp, hseg⟩ := check_opening_terminal_holds h
   simp only [List.cons.injEq, and_true] at hp
   obtain ⟨e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16⟩ := hp
-  simp only [tSegs, List.forall_mem_cons] at hseg
-  obtain ⟨g0, g1, g2, g3, g4, g5, g6, g7, -⟩ := hseg
-  rw [holdsList_range_flatten 92 selBlk (fun _ => rfl), and_true] at g1
-  rw [holdsList_range_flatten 112 claimBlk claimBlk_noRet, and_true] at g2
-  rw [holdsList_range_flatten 64 rinitBlk (fun _ => rfl), and_true] at g4
-  rw [holdsList_range_flatten 64 rsBlk (fun k => by unfold rsBlk; split <;> rfl), and_true] at g6
   obtain ⟨chis, hzeta, hgmu, hchi, hgzcn, hchl, hcl, hcols, hpts⟩ := hT
   obtain ⟨hkl, hkap, hoff⟩ := hP
   -- the sizes, the offsets, the point
@@ -541,22 +543,44 @@ theorem check_opening_terminal_sound (rd : Reader) : SoundTerm TCtx PCtx rd := b
     (x := w.point) (by omega) (by omega) hq
     g4 g5 g6 hfpl hcsl (by omega) (by rw [e11]; exact hzv) (by rw [e12]; exact hct)
     (fun k hk => by rw [e13]; exact hX k (by omega))
-  -- the check
-  simp only [tEnd, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at g7
-  obtain ⟨m81, a82, m83, hfin⟩ := g7
+  -- the value
   have hqp : layout.placements.getD qflock default =
       ({ vars := K 5, index := O 5 } : Placement) := by
     rw [hpl, placementsOf_getD kps (by rw [hkl]; decide), hkl]
     simp only [qflock_col.1, qflock_col.2.1]
     rw [hK, committedKappas_getD _ hkl (by omega), qflock_col.2.2, hO]
   have hsel5 := (hsel 5 (by omega)).1
-  unfold WhirEnd.Accepts
   rw [stackWeight_eq layout claims fp cs lam w.point (by rw [hcl]), ringSwitchClaim]
   simp only
   rw [hqp, eqAbove_lo w.point hxl (hKμ 5 (by omega)) hμ28 (hOμ 5 (by omega)), ← hsel5, hK5,
-    ← hrw, ← hin, ← hyr, ← hst, ← e14, ← e15, ← e16, ← e_add_eq_zero_iff.mp hfin, m83, a82, m81,
-    h1736, show selV 5 = 53 from rfl]
+    ← hrw, ← hin, ← e14, h1736, show selV 5 = 53 from rfl]
   ring
+
+/-- **`check_opening_terminal` is sound** (TRIAGE #42, #43): `SoundTerm`. -/
+theorem check_opening_terminal_sound (rd : Reader) : SoundTerm TCtx PCtx rd := by
+  intro layout bus claims lam fp cs w args hpre h
+  obtain ⟨a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, rfl⟩ :=
+    args17 (P := TermPre TCtx PCtx rd layout bus claims lam fp cs w)
+    (fun l hl hP => by
+      rcases l with _ | ⟨a0, _ | ⟨a1, _ | ⟨a2, _ | ⟨a3, _ | ⟨a4, _ | ⟨a5, _ | ⟨a6, _ | ⟨a7,
+          _ | ⟨a8, _ | ⟨a9, _ | ⟨a10, _ | ⟨a11, _ | ⟨a12, _ | ⟨a13, _ | ⟨a14, _ | ⟨a15,
+          _ | ⟨a16, _ | ⟨_, _⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+      all_goals first | exact hP.elim | exact absurd rfl hl) hpre
+  obtain ⟨σ, hp, hseg⟩ := check_opening_terminal_holds h
+  simp only [tSegs, List.forall_mem_cons] at hseg
+  obtain ⟨g0, g1, g2, -, g4, g5, g6, g7, -⟩ := hseg
+  rw [holdsList_range_flatten 92 selBlk (fun _ => rfl), and_true] at g1
+  rw [holdsList_range_flatten 112 claimBlk claimBlk_noRet, and_true] at g2
+  rw [holdsList_range_flatten 64 rinitBlk (fun _ => rfl), and_true] at g4
+  rw [holdsList_range_flatten 64 rsBlk (fun k => by unfold rsBlk; split <;> rfl), and_true] at g6
+  have hv := terminal_val hpre hp g0 g1 g2 g4 g5 g6
+  obtain ⟨-, -, -, -, -, -, -, -, -, hin, hyr, hst, -⟩ := hpre
+  simp only [List.cons.injEq, and_true] at hp
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, e14, e15, e16⟩ := hp
+  simp only [tEnd, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at g7
+  obtain ⟨m81, a82, m83, hfin⟩ := g7
+  unfold WhirEnd.Accepts
+  rw [← hv, ← hyr, ← hst, ← e15, ← e16, ← e_add_eq_zero_iff.mp hfin, m83, a82, m81]
 
 end
 end LeanVM.Guest.B1
