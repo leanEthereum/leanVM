@@ -24,10 +24,12 @@ the precondition its Rel-level completeness takes, with the function's own buffe
 tables, internal `HeapBuf`s) left to it:
 
 * the signature verifiers, `statement_digest`, `da_list_digest`: their meanings;
-* `claim_list_digest`, `child_claim_list_digest` (`ClPre`, `CclPre`): the squares table and the
-  meaning without the windows' scratch table;
+* `claim_list_digest`, `child_claim_list_digest` (`ClPreAt`, `CclPreAt`): for the claims' cells
+  (and the child's table indices) given, the squares table and the meaning without the windows'
+  scratch table;
 * `cover_da_root` (`CoverPre`): its meaning with the slot count at most `2^16`;
-* `da_verify` (`DaVerifyPre`): the squares table and a witness opening the returned claim;
+* `da_verify` (`DaVerifyPreAt`): for a witness opening the claim, the squares table and the claim's
+  cells returned;
 * `verify_sub`: for every run of the deferring verifier `VsGood` admits (group 6's `VsData`, the
   run of an accepted proof within the deployed limits), group 6's `verify_sub_completeAt` shape:
   the exponent tables and the run's fixed claims at the caller's words `vsExtL`.
@@ -43,19 +45,20 @@ open LeanVM.Guest.B1.Digest (SquaresAt CellsAt)
 
 @[expose] public section
 
-/-- `claim_list_digest`'s precondition: the squares table, `n < 2^16` canonical claims at `ptr`,
-their digest returned. -/
-def ClPre (rd : Reader) : List E → List E → Prop
-  | [ptr, ng, gsq], [d0, d1] => SquaresAt rd gsq ∧ ∃ n < 2 ^ 16, ng = gen ^ n ∧ ∃ cs : List E,
+/-- `claim_list_digest`'s precondition, for the claims' cells `cs`: the squares table, `n < 2^16`
+canonical claims at `ptr`, their digest returned. -/
+def ClPreAt (cs : List E) (rd : Reader) : List E → List E → Prop
+  | [ptr, ng, gsq], [d0, d1] => SquaresAt rd gsq ∧ ∃ n < 2 ^ 16, ng = gen ^ n ∧
       cs.length = 4 * n ∧ CellsAt rd ptr cs ∧ (∀ c ∈ cs, IsCanonical128 c) ∧
         (d0, d1) = digestScalars (blake2sBytes (cs.flatMap cellBytes))
   | _, _ => False
 
-/-- `child_claim_list_digest`'s precondition: the squares table, the region's size at most `2^16`,
-`n < 2^16` canonical claims read at their table indices and marking their slots. -/
-def CclPre (rd : Reader) : List E → List E → Prop
+/-- `child_claim_list_digest`'s precondition, for the table indices `off` and the claims' cells
+`cs`: the squares table, the region's size at most `2^16`, `n < 2^16` canonical claims read at
+their table indices and marking their slots. -/
+def CclPreAt (off : ℕ → ℕ) (cs : List E) (rd : Reader) : List E → List E → Prop
   | [entries, cover, base, origin, limit, ng, gsq], [d0, d1] => SquaresAt rd gsq ∧
-      (∃ L ≤ 2 ^ 16, limit = gen ^ L) ∧ ∃ n < 2 ^ 16, ng = gen ^ n ∧ ∃ (off : ℕ → ℕ) (cs : List E),
+      (∃ L ≤ 2 ^ 16, limit = gen ^ L) ∧ ∃ n < 2 ^ 16, ng = gen ^ n ∧
         cs.length = 4 * n ∧ Digest.ChildReads rd entries cover base origin limit off cs n ∧
         (∀ c ∈ cs, IsCanonical128 c) ∧ (d0, d1) = digestScalars (blake2sBytes (cs.flatMap cellBytes))
   | _, _ => False
@@ -68,10 +71,11 @@ def CoverPre (rd : Reader) : List E → List E → Prop
       CellsAt rd (roots * gen ^ (4 * i)) [r0, r1, r2, r3]
   | _, _ => False
 
-/-- `da_verify`'s precondition: the squares table, and a witness opening the returned claim. -/
-def DaVerifyPre (rd : Reader) : List E → List E → Prop
-  | [gsq], [r0, r1, v0, v1] => SquaresAt rd gsq ∧ ∃ (root vd : Digest) (w : Da.Witness),
-      w.Opens root vd ∧ (r0, r1) = digestScalars root ∧ (v0, v1) = digestScalars vd
+/-- `da_verify`'s precondition, for the claim `(root, vd)`: the squares table, the claim's cells
+returned. -/
+def DaVerifyPreAt (root vd : Digest) (rd : Reader) : List E → List E → Prop
+  | [gsq], [r0, r1, v0, v1] => SquaresAt rd gsq ∧ (r0, r1) = digestScalars root ∧
+      (v0, v1) = digestScalars vd
   | _, _ => False
 
 /-- **The callees of `main` other groups prove, complete uniformly and placed** at `κ`. -/
@@ -83,9 +87,11 @@ structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
   statement_digest : CompleteRel fs cert κ "statement_digest" Meaning_statement_digest
   da_list_digest : CompleteRel fs cert κ "da_list_digest" Meaning_da_list_digest
   cover_da_root : CompleteRel fs cert κ "cover_da_root" CoverPre
-  claim_list_digest : CompleteRel fs cert κ "claim_list_digest" ClPre
-  child_claim_list_digest : CompleteRel fs cert κ "child_claim_list_digest" CclPre
-  da_verify : CompleteRel fs cert κ "da_verify" DaVerifyPre
+  claim_list_digest : ∀ cs, CompleteRel fs cert κ "claim_list_digest" (ClPreAt cs)
+  child_claim_list_digest : ∀ off cs,
+    CompleteRel fs cert κ "child_claim_list_digest" (CclPreAt off cs)
+  da_verify : ∀ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd →
+    CompleteRel fs cert κ "da_verify" (DaVerifyPreAt root vd)
   verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAt fs cert κ "verify_sub"
     (VerifySub.vsExtL lpA sqA outA D) [(digestScalars D.pi).1, (digestScalars D.pi).2,
       (digestScalars D.seed).1, (digestScalars D.seed).2, ofK (gpow lpA), ofK (gpow sqA),

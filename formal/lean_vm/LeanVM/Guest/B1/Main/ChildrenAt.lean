@@ -203,10 +203,10 @@ structure ChildWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (Lin : La
   nx : r.nx < 2 ^ 16
   ns : r.ns < 2 ^ 16
   nda : r.da.length ≤ 16
-  ccx : ∀ rd, LowDef κ rd → MemL rd Lin →
-    CclPre rd [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq] [r.dx.1, r.dx.2]
-  ccs : ∀ rd, LowDef κ rd → MemL rd Lin →
-    CclPre rd [spT, cover, r.base * gen ^ r.nx, lxS, spS, gen ^ r.ns, gsq] [r.ds.1, r.ds.2]
+  ccx : ∃ off cs, ∀ rd, LowDef κ rd → MemL rd Lin →
+    CclPreAt off cs rd [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq] [r.dx.1, r.dx.2]
+  ccs : ∃ off cs, ∀ rd, LowDef κ rd → MemL rd Lin →
+    CclPreAt off cs rd [spT, cover, r.base * gen ^ r.nx, lxS, spS, gen ^ r.ns, gsq] [r.ds.1, r.ds.2]
   sig : CompressCells ![r.dx.1, r.dx.2, r.ds.1, r.ds.2] ivCells.1 ivCells.2
     (digestScalars r.sigD).1 (digestScalars r.sigD).2 (metadataCell 64 true)
   cov : ∀ k (hk : k < r.da.length), ∀ rd, LowDef κ rd → MemL rd Lin →
@@ -245,6 +245,8 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
   obtain ⟨p1, p2, p3, p4, p5⟩ := loop5_parts
   have o := hok j hj
   obtain ⟨D, lpA, sqA, outA, hgood, hpi, hseed, hglp, hgsq, hout, hvsub⟩ := o.vs
+  obtain ⟨offx, csx, hccx⟩ := o.ccx
+  obtain ⟨offs, css, hccs⟩ := o.ccs
   set r := rs j with hr
   set b := fp + fs "__loop5" + mt with hb
   set nda := r.da.length with hnda
@@ -296,8 +298,8 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
     intro k hk ht
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
-    · exact H.child_claim_list_digest _ _ _ fun rd hl h => o.ccx rd hl (mLb rd h)
-    · exact H.child_claim_list_digest _ _ _ fun rd hl h => o.ccs rd hl (mLb rd h)
+    · exact H.child_claim_list_digest offx csx _ _ _ fun rd hl h => hccx rd hl (mLb rd h)
+    · exact H.child_claim_list_digest offs css _ _ _ fun rd hl h => hccs rd hl (mLb rd h)
     · simp only [decide_eq_true_eq] at ht
       refine loop100_completeAt H.cover_da_root (by have := o.nda; omega) (by omega) (Lb ++ Lin)
         (fun k => (r.da.map daCellsOf).getD k []) (fun c hc => ?_) (fun c hc rd hl h => ?_)

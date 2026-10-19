@@ -515,8 +515,8 @@ theorem main_ks8 (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : MainW
   · exact quietLoop_completeAt loop0_quiet κ _ fun rd => loop0_complete (m := W.da + W.ud) (by omega)
       (pow_add _ _ _).symm
   · exact H.da_list_digest _ _ _ hW.daList
-  · exact H.claim_list_digest _ _ _ hW.xList
-  · exact H.claim_list_digest _ _ _ hW.sList
+  · obtain ⟨cs, h⟩ := hW.xList; exact H.claim_list_digest cs _ _ _ h
+  · obtain ⟨cs, h⟩ := hW.sList; exact H.claim_list_digest cs _ _ _ h
   · exact quietLoop_completeAt loop1_quiet κ _ fun rd => loop1_complete (by omega) rfl
   · exact quietLoop_completeAt loop2_quiet κ _ fun rd => loop2_complete (by omega) rfl
   · have := loop3_completeAt (fs := fs) (cert := cert) H.verify_lean_xmss hκ (M := W.dx + W.ux)
@@ -555,7 +555,8 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
     · by_cases hr : W.rd = 1
       · simp only [hr, ↓reduceIte, mainKidsDa, List.mem_cons, List.not_mem_nil, or_false] at hk
         rcases hk with rfl | rfl
-        · exact H.da_verify _ _ _ (hW.daVerify hr)
+        · obtain ⟨wt, root, vd, ho, h⟩ := hW.daVerify hr
+          exact H.da_verify wt root vd ho _ _ _ h
         · exact H.cover_da_root _ _ _ (hW.daCover hr)
       · simp [hr] at hk
     · simp only [mainKid5, decide_eq_true_eq] at htk
