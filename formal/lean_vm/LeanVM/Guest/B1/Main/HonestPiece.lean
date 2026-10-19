@@ -146,5 +146,18 @@ theorem honest_of_relAtIn {N : ℕ} {L : Layout} (hcons : LConsistent L)
   obtain ⟨ν, hν⟩ := honestAt_retemp hd
   exact ⟨_, _, by rw [name_retemp]; exact hn, hν, total_retemp t 0⟩
 
+/-- **`main`'s honest tree from `main_complete`'s form at `0`**: its layout after `main`'s frame,
+consistent, its size at most `2^32`. -/
+theorem honest_of_complete {m : ℕ} {L : Layout} (hfs : 2 ≤ fs "main")
+    (hW : LeanVM.Guest.B1.Within L (0 + fs "main") m) (hcons : LConsistent L)
+    (hN : fs "main" + m ≤ 2 ^ 32)
+    (hrel : ∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some hdr.1 → rd g = some hdr.2 →
+      RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) 0 (fs "main" + m) "main" [] [])
+    (hk : ∀ T : Tree, T.name = "main" → T.total fs = fs "main" + m →
+      KFacts coreProgram fs cert H C hdr T) :
+    ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
+      HonestAt coreProgram fs H C hdr T cert rd [] [] ∧ T.total fs = fs "main" + m :=
+  honest_of_relAtIn hcons (fun q hq => by have := hW q hq; omega) hN hrel hk
+
 end
 end LeanVM.Guest.B1.Main
