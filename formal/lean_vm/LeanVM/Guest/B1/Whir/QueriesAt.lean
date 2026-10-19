@@ -287,7 +287,7 @@ theorem oq_disj_frames {b S c m : ℕ} {L : ℕ → List E} (h : ∀ i < m, c + 
 
 /-- **`opening_queries`' loop, placed**: from iteration `j0 < n`, on every memory holding the
 iterations' frame runs and the caller's words `Lin` that the iterations read (`OqIterMem`, within
-`RegionL Lin`), the loop helper is complete, its runs its own layout. -/
+`RegionL Lin`), the loop helper is complete, its runs its own layout, its tree its `n - j0 + 1` frames. -/
 theorem oqLoop_completeAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) {base I blocks pd cd : ℕ}
     (hs : OqShape base I blocks pd cd) {loop : String} {lf : Fn} (hfind : coreProgram.find? loop = some lf)
     (hp : lf.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
@@ -299,12 +299,13 @@ theorem oqLoop_completeAt (fs : String → ℕ) (cert : String → V → ℕ) (k
     (hmem : ∀ rd, LowDef k rd → MemL rd Lin → ∀ j < n,
       OqIterMem rd base I pd cd rew qsc qw qbp flags cap (gen ^ j) (leaf j) (pos j) (sibs j) ∧
         OqIterReg (RegionL Lin) rd I pd cd rew qsc qw qbp flags cap (gen ^ j) (pos j)) :
-    ∀ j0 < n, CompleteAtD fs cert k loop Lin [gen ^ j0, gen ^ n, rew, qsc, qw, qbp, flags, cap] (Returns []) := by
+    ∀ j0 < n, CompleteAtB fs cert k loop Lin [gen ^ j0, gen ^ n, rew, qsc, qw, qbp, flags, cap] (Returns [])
+      ((n - j0 + 1) * fs loop) := by
   intro j0 hj0 fp
   have hn' : n < 2 ^ 64 - 1 := hn
   set P := oqP base I blocks
   refine ⟨(n - j0 + 1) * (fs loop), oqLoopRuns fs cert loop P fp j0 n leaf pos sibs, [], [], ⟨rfl, rfl⟩, ?_,
-    ?_, fun rd hlow hmemL => ?_⟩
+    ?_, le_rfl, fun rd hlow hmemL => ?_⟩
   · intro e he
     simp only [List.nil_append, oqLoopRuns, List.mem_map, List.mem_range] at he
     obtain ⟨i, hi, rfl⟩ := he
@@ -402,7 +403,8 @@ def oqPre (loop : String) : List Stmt := (oqBody loop).dropLast
 
 /-- **`opening_queries`, placed**: at a shape whose loop helper is checked (`OqPlace`) and whose
 frame run fits the frame (`hfit`), on every memory holding the caller's words (`OqTopMem`, within
-`Lin`), it returns the query sum `oqSum … n`, its chain the one `HeapBuf` it allocates. -/
+`Lin`), it returns the query sum `oqSum … n`, its chain the one `HeapBuf` it allocates, by a tree of
+its frame, the chain and the loop's `n + 1` frames. -/
 theorem opening_queries_completeAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) {base I blocks pd cd : ℕ}
     (hs : OqShape base I blocks pd cd) {name loop : String} {f lf : Fn} (hfind : coreProgram.find? name = some f)
     (hp : f.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5]) (hb : f.body = oqBody loop)
@@ -415,8 +417,8 @@ theorem opening_queries_completeAt (fs : String → ℕ) (cert : String → V �
     {sibs : ℕ → List Digest} (hsl : ∀ j < n, (sibs j).length = pd) {wts qwV dbpV : ℕ → E}
     (hlin : ∀ rd, LowDef k rd → MemL rd Lin → OqTopMem rd I pd cd rew qw qbp flags cap wts qwV dbpV leaf pos sibs n)
     (hreg : OqTopReg (RegionL Lin) I pd cd rew qw qbp flags cap dbpV pos n) :
-    CompleteAtD fs cert k name Lin [cap, flags, qw, qbp, rew, gen ^ n]
-      (Returns [oqSum base I wts qwV leaf n]) := by
+    CompleteAtB fs cert k name Lin [cap, flags, qw, qbp, rew, gen ^ n]
+      (Returns [oqSum base I wts qwV leaf n]) (fs name + (n + 1) + (n + 1) * fs loop) := by
   intro fp
   set b := fp + fs name
   set qscV : List E := (List.range (n + 1)).map (oqSum base I wts qwV leaf)
@@ -426,7 +428,7 @@ theorem opening_queries_completeAt (fs : String → ℕ) (cert : String → V �
   have hqscV : ∀ j ≤ n, qscV.getD j 0 = oqSum base I wts qwV leaf j := fun j hj => by
     simp [qscV, List.getD_eq_getElem?_getD, List.getElem?_range (show j < n + 1 by omega)]
   have hqlen : qscV.length = n + 1 := by simp [qscV]
-  have hkid : ∀ κ ∈ [kid], κ.taken = true → CompleteAtD fs cert k κ.f κ.Lin κ.args κ.Out := by
+  have hkid : ∀ κ ∈ [kid], κ.taken = true → CompleteAtB fs cert k κ.f κ.Lin κ.args κ.Out ((n + 1) * fs loop) := by
     intro κ hκ ht
     simp only [List.mem_singleton] at hκ
     subst hκ
@@ -475,7 +477,14 @@ theorem opening_queries_completeAt (fs : String → ℕ) (cert : String → V �
     · refine ⟨?_, ?_⟩
       · rw [oq_limb_mul_gen_pow (m6 j hj).1.1, Nat.add_zero]; exact oq_in_mono inL (r6 j hj).1
       · rw [oq_limb_mul_gen_pow (m6 j hj).1.1, Nat.add_zero]; exact oq_in_mono inL (r6 j hj).2
-  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) k [kid] hkid (b + (n + 1))
+  obtain ⟨N, L, outs, ho, hW, hD, hNb, -, hK⟩ := kidsFromIn_of_kidsB (fs := fs) (cert := cert) k (fun _ => (n + 1) * fs loop)
+    [kid] hkid (b + (n + 1))
+  have hNb' : N ≤ (n + 1) * fs loop := by
+    refine le_trans hNb ?_
+    simp only [kidsBound, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, Nat.add_zero]
+    split
+    · exact le_rfl
+    · exact Nat.le_mul_of_pos_left _ (Nat.succ_pos n)
   obtain ⟨o, rfl⟩ : ∃ o, outs = [o] := by
     match outs, ho with
     | [o], _ => exact ⟨o, rfl⟩
@@ -485,7 +494,7 @@ theorem opening_queries_completeAt (fs : String → ℕ) (cert : String → V �
     subst he
     simp only [hqlen]; omega
   refine ⟨fs name + (n + 1) + N, [(b, qscV)] ++ L, [oqSum base I wts qwV leaf n], [], ⟨rfl, rfl⟩, ?_,
-    ?_, fun rd hlow hmem => ?_⟩
+    ?_, by omega, fun rd hlow hmem => ?_⟩
   · rw [List.nil_append, within_append]
     exact ⟨hW1.mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
   · rw [List.nil_append]
@@ -580,6 +589,23 @@ def OqCompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (
       OqTopMem rd I (depth - cd) cd rew qw qbp flags cap wts qwV dbpV leaf pos sibs n) →
     OqTopReg (RegionL Lin) I (depth - cd) cd rew qw qbp flags cap dbpV pos n →
     CompleteAtD fs cert k name Lin [cap, flags, qw, qbp, rew, gen ^ n] (Returns [oqSum base I wts qwV leaf n])
+
+/-- `OqCompleteAt` by trees of at most `B n` words. -/
+def OqCompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (base I depth cd : ℕ) (name : String)
+    (B : ℕ → ℕ) : Prop :=
+  ∀ (n : ℕ), n + 1 < ordG → ∀ (Lin : Main.Layout) (cap flags qw qbp rew : E) (leaf : ℕ → List K) (pos : ℕ → ℕ)
+    (sibs : ℕ → List Digest) (wts qwV dbpV : ℕ → E),
+    (∀ j < n, (leaf j).length = oqR base I) → (∀ j < n, pos j < 2 ^ depth) →
+    (∀ j < n, (sibs j).length = depth - cd) →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      OqTopMem rd I (depth - cd) cd rew qw qbp flags cap wts qwV dbpV leaf pos sibs n) →
+    OqTopReg (RegionL Lin) I (depth - cd) cd rew qw qbp flags cap dbpV pos n →
+    CompleteAtB fs cert k name Lin [cap, flags, qw, qbp, rew, gen ^ n] (Returns [oqSum base I wts qwV leaf n]) (B n)
+
+theorem OqCompleteAtB.toD {fs : String → ℕ} {cert : String → V → ℕ} {k base I depth cd : ℕ} {name : String}
+    {B : ℕ → ℕ} (h : OqCompleteAtB fs cert k base I depth cd name B) : OqCompleteAt fs cert k base I depth cd name :=
+  fun n hn Lin cap flags qw qbp rew leaf pos sibs wts qwV dbpV h1 h2 h3 h4 h5 =>
+    (h n hn Lin cap flags qw qbp rew leaf pos sibs wts qwV dbpV h1 h2 h3 h4 h5).toCompleteAtD
 
 end
 end LeanVM.Guest.B1
