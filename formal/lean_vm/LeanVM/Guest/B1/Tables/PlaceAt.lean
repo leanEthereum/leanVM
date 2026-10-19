@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Tables.Kappas
 public import LeanVM.Guest.B1.Tables.TermAtProof
+public import LeanVM.Guest.B1.Tables.FlatAtB
 
 /-!
 # `certify_placement`, placed
@@ -241,10 +242,10 @@ theorem limb_mul_gen_pow' {p : E} (hp : IsInK p) (j off : ℕ) :
 end
 
 set_option maxHeartbeats 4000000 in
-/-- **`certify_placement` is complete, placed** (TRIAGE #41): `CompletePlaceAt`, on memories
-defined below `2^7`. -/
-theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
-    (hκ : 7 ≤ κ) : CompletePlaceAt fs cert κ PCtx := by
+/-- **`certify_placement` is complete, placed, by a bounded tree** (TRIAGE #41):
+`CompletePlaceAtB` at its frame and its three `HeapBuf`s, on memories defined below `2^7`. -/
+theorem certify_placement_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
+    (hκ : 7 ≤ κ) : CompletePlaceAtB fs cert κ PCtx (fs "certify_placement" + 276) := by
   intro lp sq kb lm hs Lin hlm hl hh h5 hpre
   set kps := columnKappas lm 18 hs
   set κs := committedKappas kps with hκsdef
@@ -288,13 +289,14 @@ theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V 
     simp only [List.length_map, List.length_range] at hj
     simp only [List.getElem_map, List.getElem_range]
     exact ((hpre rd h1 h2).1 j hj).2
-  refine completeAt_flatOutD find_cp cp_not_loop κ Lin [kb, sq]
+  refine CompleteAtB.mono (B := fs "certify_placement" + [92, 92, 92].sum + 0) ?_ le_rfl (by simp)
+  refine completeAt_flatOutB find_cp cp_not_loop κ Lin [kb, sq]
     (fun fp => [gen ^ stackTotal kps, ofK (Parameters.gpow (fp + fs "certify_placement" + 92 + 92)),
       ofK (Parameters.gpow (fp + fs "certify_placement"))]) _ cp_body cp_flat cp_addrs [92, 92, 92]
     (fun _ => [κs.map (gen ^ ·), (stackOrder κs).map (gen ^ ·), (stackOffsets κs).1.map (gen ^ ·)])
     (fun _ => by simp [hlen, stackOrder_length, stackOffsets_length]) (fun fp => ?_) (fun _ => [])
-    (fun _ k hk => by simp at hk) (fun _ k hk => by simp at hk) (fun _ _ _ _ k hk => by simp at hk)
-    ?_
+    (fun _ => 0) 0 (fun _ k hk => by simp at hk) (fun _ => by simp [kidsBound])
+    (fun _ k hk => by simp at hk) (fun _ _ _ _ k hk => by simp at hk) ?_
   · refine ⟨_, _, rfl, fun rd hm => ⟨columnKappas_length_110 _ _ _,
       memL_one hm (by simp [bufL, bases, hκsdef]), memL_one hm (by simp [bufL, bases, hκsdef])⟩⟩
   intro fp outs ho rd hlow hB hL
@@ -354,6 +356,12 @@ theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V 
     · obtain ⟨i, hi, hr'⟩ := hsqA _ (hpk (r + 1) (by omega)).2
       exact ⟨i, by rw [(sR r hr).2.2]; exact hi, Or.inl hr'⟩
 
+/-- **`certify_placement` is complete, placed** (TRIAGE #41): `CompletePlaceAt`, on memories
+defined below `2^7`. -/
+theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
+    (hκ : 7 ≤ κ) : CompletePlaceAt fs cert κ PCtx :=
+  fun lp sq kb lm hs Lin h1 h2 h3 h4 h5 =>
+    (certify_placement_completeAtB fs cert hκ lp sq kb lm hs Lin h1 h2 h3 h4 h5).toCompleteAtD
+
 end
 end LeanVM.Guest.B1
-
