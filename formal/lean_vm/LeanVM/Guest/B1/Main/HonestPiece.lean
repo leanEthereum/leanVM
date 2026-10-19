@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.HonestImage
+public import LeanVM.Guest.Memory.GuestFresh
 
 /-!
 # The honest tree
@@ -94,6 +95,56 @@ theorem dischargeAddr {κ : ℕ} (hκ : κ < 64) {M : MemImage κ} {T : Tree} {a
       have := hrun I hI f σ bufs kids ht p r rs ha k hk
       exact ⟨⟨_, by rw [← Nat.add_assoc] at this; exact this⟩, rfl⟩
   | _ => simp [atomEqns] at hqa
+
+/-- **An honest tree of `main`** from its uniform placed relation at `0` on a consistent layout in
+`[2, N)`, the header at words `0` and `1`, with the certificate's facts (`KFacts`). -/
+theorem honest_of_relAtIn {N : ℕ} {L : Layout} (hcons : LConsistent L)
+    (hin : ∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) (hN : N ≤ 2 ^ 32)
+    (hrel : ∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some hdr.1 → rd g = some hdr.2 →
+      RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) 0 N "main" [] [])
+    (hk : ∀ T : Tree, T.name = "main" → T.total fs = N → KFacts coreProgram fs cert H C hdr T) :
+    ∃ (rd : Reader) (T : Tree), T.name = "main" ∧
+      HonestAt coreProgram fs H C hdr T cert rd [] [] ∧ T.total fs = N := by
+  have h16 : 16 ≤ logMem N := minLogMem_le_logMem N
+  have h64 : logMem N < 64 := by have := logMem_le_maxLogMem hN; unfold maxLogMem at this; omega
+  set M := imageOf (logMem N) L hdr with hM
+  have hlow : LowDef 16 M.read := fun i hi => by
+    have hi' : i < 2 ^ logMem N :=
+      lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) h16)
+    rw [MemImage.read_gpow h64 M ⟨i, hi'⟩]; rfl
+  have hL := memL_imageOf h64 hcons (fun q hq => ⟨(hin q hq).1,
+    le_trans (hin q hq).2 (le_two_pow_logMem N)⟩) hdr
+  obtain ⟨hh0, hh1⟩ := imageOf_hdr h64 (by omega) L hdr
+  have e0 : (1 : K) = Parameters.gpow 0 := by simp [Parameters.gpow]
+  have e1 : g = Parameters.gpow 1 := by simp [Parameters.gpow]
+  obtain ⟨t, hn, hv, hb, hp, ht, hl, -⟩ := hrel M.read hlow hL (by rw [e0]; exact hh0)
+    (by rw [e1]; exact hh1)
+  subst ht
+  have hkf := hk t hn rfl
+  have hd : DischargeHyps coreProgram fs cert H C hdr t (fun i => i < 2) M [] [] :=
+    { fresh := coreProgram_fresh
+      valid := hv
+      bufsOk := hb
+      placed := hp
+      loads := hl
+      region := fun i hi => Or.inl hi
+      hdr_read := ⟨hh0, hh1⟩
+      size := hN
+      addr := dischargeAddr h64 hv hp fun I hI f σ bufs kids hIt p r rs ha k hk' => by
+        have hc := (hkf.run I hI f σ bufs kids hIt p r rs ha k hk').1
+        have hoff := (hkf.cells.off I hI _ hc).2
+        have hw := honest_within (P := coreProgram) hI (by have := hkf.cells.two_le I hI; omega)
+        have := le_two_pow_logMem (t.total fs)
+        omega
+      cells := hkf.cells
+      cells' := hkf.cells'
+      cert_lt := hkf.cert_lt
+      cert_inj := hkf.cert_inj
+      run := hkf.run
+      tmp := hkf.tmp
+      keep := hkf.keep }
+  obtain ⟨ν, hν⟩ := honestAt_retemp hd
+  exact ⟨_, _, by rw [name_retemp]; exact hn, hν, total_retemp t 0⟩
 
 end
 end LeanVM.Guest.B1.Main
