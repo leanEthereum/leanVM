@@ -213,7 +213,7 @@ base `[1, g^log_mem, g^h_0, …]` at `kb`, it returns `g^(Σ 2^κ)` and two buff
 of which `PCtx` holds. -/
 def CompletePlaceAt : Prop :=
   ∀ (lp sq kb : E) (logMem : ℕ) (hs : List ℕ) (Lin : Main.Layout), logMem ≤ 32 → hs.length = 6 →
-    (∀ h ∈ hs, h < 29) →
+    (∀ h ∈ hs, h < 29) → hs.getD 5 0 + 8 < 34 →
     (∀ rd, LowDef k rd → MemL rd Lin →
       ExpTables rd lp sq ∧ ReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·))) →
     CompleteAtD fs cert k "certify_placement" Lin [kb, sq] fun rets Lout =>
@@ -235,6 +235,118 @@ def CompleteOpenAt (CapOk : ℕ → ℕ → Digest → Digest → List E → Lis
         (digestScalars root).1, (digestScalars root).2, ofK (Parameters.gpow c)] fun rets Lout =>
         ∃ b, rets = [w.target, ofK (Parameters.gpow b), w.inner, w.residual] ∧
           Lout = [(b, w.point ++ List.replicate (pointCap - w.point.length) 0)]
+
+/-! ### Bounded: the same shapes by trees of at most `B` words (`CompleteAtB`) -/
+
+/-- **`verify_bus_gkr`, placed, bounded**, on an explicit run of `gkrPhase depth` from the state of `cv`
+reading the words `xs` (at `g^c`), its point at `g^z`. -/
+def CompleteGkrAtB (B : ℕ) : Prop :=
+  ∀ (cv : Digest) (depth : ℕ) (xs : List E) (r : E × List E × List E) (cv' : Digest) (c z : ℕ)
+    (Lin : Main.Layout), depth < 33 → RunsTo (gkrPhase depth) cv xs r cv' → r.2.1.length = depth →
+    r.2.2.length = 3 →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow z)) r.2.1) →
+    CompleteAtB fs cert k "verify_bus_gkr" Lin [(digestScalars cv).1, (digestScalars cv).2,
+      ofK (Parameters.gpow c), gen ^ depth, ofK (Parameters.gpow z)]
+      (Returns ([(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length] ++ r.2.2)) B
+
+/-- **`verify_tables`, placed**, on an explicit run of `tablesSeg` (for every `ev` taking `bv` for
+the bytecode) from the state of `cv` reading the words `xs` (at `g^c`) to the bus result and the
+claims, the row counts `rowsN`: on the words its arguments point to (`TablesPre`'s and
+`TablesOut`'s reads, the terminal's context `TCtx` among them), it returns the new state, the
+cursor past `xs`, `gzcn`, `bv` and `rm`. -/
+def CompleteTablesAtB (B : ℕ) : Prop :=
+  ∀ (pi : Digest) (logMem : ℕ) (alphas point values : List E) (cv : Digest) (xs : List E)
+    (cv' : Digest) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim)
+    (beta bv rm gzcn : E) (c z lp sq dims rows bk fpw pool cplen chi : ℕ) (Lin : Main.Layout),
+    point.length < 33 → 16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
+    rowsN.length = 6 → (∀ n ∈ rowsN, log2Ceil n < 29) → claims.length = nClaims →
+    (∀ ev, BytecodeAt ev bytecode
+        (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
+      RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values) cv xs
+        (bus, claims) cv') →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow z)) point ∧
+      ExpTables rd (ofK (Parameters.gpow lp)) (ofK (Parameters.gpow sq)) ∧
+      ReadsAt rd (ofK (Parameters.gpow rows)) (rowsN.map eOfNat) ∧
+      ReadsAt rd (ofK (Parameters.gpow dims)) (gen ^ logMem :: rowsN.map fun n ↦ gen ^ log2Ceil n) ∧
+      ReadsAt rd (ofK (Parameters.gpow bk))
+        (blockKappas (gen ^ logMem) (rowsN.map fun n ↦ gen ^ log2Ceil n)) ∧
+      ReadsAt rd (ofK (Parameters.gpow fpw)) (eqKernel alphas) ∧
+      ReadsAt rd (ofK (Parameters.gpow pool)) (claims.map (·.value)) ∧
+      TCtx rd (layoutOf bytecode logMem rowsN) bus claims [ofK (Parameters.gpow z),
+        ofK (Parameters.gpow chi), rm, gen ^ point.length, gzcn, ofK (Parameters.gpow cplen)]) →
+    CompleteAtB fs cert k "verify_tables" Lin
+      [(digestScalars cv).1, (digestScalars cv).2, ofK (Parameters.gpow c), (digestScalars pi).1,
+        (digestScalars pi).2, ofK (Parameters.gpow z), gen ^ point.length,
+        ofK (Parameters.gpow dims), ofK (Parameters.gpow rows), ofK (Parameters.gpow bk),
+        ofK (Parameters.gpow sq), ofK (Parameters.gpow fpw), beta, ofK (Parameters.gpow pool),
+        ofK (Parameters.gpow cplen), ofK (Parameters.gpow chi), values.getD 0 0, values.getD 1 0,
+        values.getD 2 0]
+      (Returns [(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length, gzcn, bv, rm]) B
+
+/-- **`verify_flock`, placed**, on an explicit run of `verifyFlock` (for every `ev` with the
+matrices' values) from the state of `cv` reading the words `xs` (at `g^c`), its outputs `chi`,
+`rcs`, `s` at `g^zc`, `g^lr`, `g^zp`. -/
+def CompleteFlockAtB (B : ℕ) : Prop :=
+  ∀ (τ : ℕ) (cv : Digest) (xs : List E) (cv' : Digest) (zSkip alpha mv : E) (chi rcs s : List E)
+    (c zc lr zp : ℕ) (Lin : Main.Layout), τ < 29 → chi.length = 8 + τ → rcs.length = 8 →
+    s.length = 64 →
+    (∀ ev, MatricesAt ev alpha zSkip (chi.take 8) rcs.reverse s mv →
+      RunsTo (verifyFlock ev (blake2sR1csLogSize + τ)) cv xs (rcs.reverse ++ chi.drop 8, s) cv') →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow zc)) chi ∧
+      ReadsAt rd (ofK (Parameters.gpow lr)) rcs ∧ ReadsAt rd (ofK (Parameters.gpow zp)) s) →
+    CompleteAtB fs cert k "verify_flock" Lin [(digestScalars cv).1, (digestScalars cv).2,
+      ofK (Parameters.gpow c), gen ^ τ, ofK (Parameters.gpow zc), ofK (Parameters.gpow lr),
+      ofK (Parameters.gpow zp)]
+      (Returns [(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length, zSkip, alpha, mv]) B
+
+/-- **`check_opening_terminal`, placed**, for an explicit layout, claims and opening's end that
+the terminal's check accepts, each claim's point of its column's length, and the tables' sumcheck
+point `chis` (its length in `args[4]`), on the words `TermPre` reads and `chis` at `args[1]`. -/
+def CompleteTermAtB (B : ℕ) : Prop :=
+  ∀ (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) (lam : E)
+    (flockPoint coeffs : List E) (w : WhirEnd) (chis : List E) (args : List E) (Lin : Main.Layout),
+    w.Accepts (stackWeight layout claims flockPoint coeffs lam) →
+    (∀ c ∈ claims, c.point.length = (layout.placements.getD c.column default).vars) →
+    args.getD 4 0 = gen ^ chis.length →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args ∧
+        ReadsAt rd (args.getD 1 0) chis) →
+    CompleteAtB fs cert k "check_opening_terminal" Lin args (Returns []) B
+
+/-- **`certify_placement`, placed**: on a layout holding the exponent tables at `lp`, `sq` and the
+base `[1, g^log_mem, g^h_0, …]` at `kb`, it returns `g^(Σ 2^κ)` and two buffers, held by its `Lout`,
+of which `PCtx` holds. -/
+def CompletePlaceAtB (B : ℕ) : Prop :=
+  ∀ (lp sq kb : E) (logMem : ℕ) (hs : List ℕ) (Lin : Main.Layout), logMem ≤ 32 → hs.length = 6 →
+    (∀ h ∈ hs, h < 29) → hs.getD 5 0 + 8 < 34 →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ExpTables rd lp sq ∧ ReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·))) →
+    CompleteAtB fs cert k "certify_placement" Lin [kb, sq] (fun rets Lout =>
+      ∃ off kap, rets = [gen ^ stackTotal (columnKappas logMem 18 hs), off, kap] ∧
+        ∀ rd, MemL rd Lout → PCtx rd (columnKappas logMem 18 hs) off kap) B
+
+/-- **`open_stacked`, placed**, at every candidate, on an explicit run of `whirOpen μ r target`
+from the state `cv` reading the words `xs` (held by `Lin` at `g^c`) and the openings `os`
+(`CapOk`, group 4's agreement of the queries at the cap along the run): it returns `w`'s claim, the pointer to
+its point buffer, its glued weight and its residual's value, the buffer (`w`'s point zero-padded to
+`42`) its `Lout`. -/
+def CompleteOpenAtB (CapOk : ℕ → ℕ → Digest → Digest → List E → List Opening → E → Prop)
+    (B : ℕ) : Prop :=
+  ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
+    ∀ (root cv : Digest) (xs : List E) (os : List Opening) (w : WhirEnd) (cv' : Digest)
+      (roots' : List (Digest × ℕ × ℕ)) (target : E) (c : ℕ) (Lin : Main.Layout),
+      RunsWith (whirOpen μ r target) cv xs os [(root, stackShape μ r)] w cv' roots' →
+      CapOk μ r root cv xs os target → (∀ rd, LowDef k rd → MemL rd Lin → ReadsAt rd (ofK (Parameters.gpow c)) xs) →
+      CompleteAtB fs cert k (openName μ r) Lin [(digestScalars cv).1, (digestScalars cv).2, target,
+        (digestScalars root).1, (digestScalars root).2, ofK (Parameters.gpow c)] (fun rets Lout =>
+        ∃ b, rets = [w.target, ofK (Parameters.gpow b), w.inner, w.residual] ∧
+          Lout = [(b, w.point ++ List.replicate (pointCap - w.point.length) 0)]) B
 
 end Placed
 

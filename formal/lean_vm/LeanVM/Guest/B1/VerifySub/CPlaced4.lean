@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.CLog2c
+public import LeanVM.Guest.B1.VerifySub.Inv5
 public import LeanVM.Guest.B1.Tables.Kappas
 
 /-!
@@ -15,7 +16,7 @@ public import LeanVM.Guest.B1.Tables.Kappas
 `vsKids1`: the twelve calls before the dispatch, `vsOpenKid`: the opening, `vsTermKid`: the
 terminal, each with the words it reads (`vsAllL`, `verify_sub`'s own and the caller's, and for the
 terminal the buffers the placement and the opening return) and what it returns. Each is
-`CompleteAt` (`vsKids1_complete`, `vsOpenKid_complete`, `vsTermKid_complete`) from the callees'
+`CompleteAt` (`vsKids1_completeB`, `vsOpenKid_completeB`, `vsTermKid_completeB`) from the callees'
 placed completeness, group 1's `g_power_of_word` (`gpw6_completeAt`) and
 `log2_ceil_in_the_exponent` (`CLog2c`), `assert_canonical` and the two loops (pure,
 `completeAt_of_rel_pure`).
@@ -34,8 +35,8 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 theorem gpw6_completeAt' (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) {N : ℕ} (hN : N < 64)
     (qb : ℕ) :
-    CompleteAtD fs cert k "g_power_of_word__L6" [(qb, gpwSq)] [eOfNat N, ofK (Parameters.gpow qb)]
-      (Returns [gen ^ N]) := by
+    CompleteAtB fs cert k "g_power_of_word__L6" [(qb, gpwSq)] [eOfNat N, ofK (Parameters.gpow qb)]
+      (Returns [gen ^ N]) (fs "g_power_of_word__L6" + 6) := by
   have h := gpw6_completeAt fs cert k hN qb
   rwa [gpwProd_pow (n := 6) (fun j hj => by simp [gpwSq, hj]) (by omega)] at h
 
@@ -149,6 +150,39 @@ variable {fs bytecode D}
 
 /-! ## Their completeness -/
 
+/-- A bound on every valid tree of `f` (`Memory.TotalLe` at a constant bound). -/
+def TotalLeC (fs : String → ℕ) (f : String) (B : ℕ) : Prop :=
+  ∀ rd (t : Tree) (args rets : List E), t.name = f → t.Valid coreProgram rd args rets →
+    t.total fs ≤ B
+
+/-- The bounds of `verify_sub`'s callees' trees. -/
+structure VsBounds where
+  gkr : ℕ
+  tab : ℕ
+  fl : ℕ
+  pl : ℕ
+  op : ℕ
+  term : ℕ
+  ac : ℕ
+  l84 : ℕ
+  l85 : ℕ
+
+/-- A call before the dispatch: its callee's bound. -/
+def vsBd (fs : String → ℕ) (Bs : VsBounds) (k : Kid) : ℕ :=
+  if k.f = "g_power_of_word__L6" then fs "g_power_of_word__L6" + 6
+  else if k.f = "log2_ceil_in_the_exponent__L0_L34" then log2Bound0 fs
+  else if k.f = "assert_canonical" then Bs.ac
+  else if k.f = "verify_bus_gkr" then Bs.gkr
+  else if k.f = "verify_tables" then Bs.tab
+  else if k.f = "verify_flock" then Bs.fl
+  else if k.f = "__loop84" then Bs.l84
+  else if k.f = "__loop85" then Bs.l85
+  else if k.f = "certify_placement" then Bs.pl
+  else log2Bound15 fs
+
+/-- Read a callee's bound off `vsBd`. -/
+macro "vs_bd" : tactic => `(tactic| simp (config := { decide := true }) [vsBd])
+
 theorem pushTotal_bounds (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) :
     D.pushTotal < 2 ^ 34 ∧ log2Ceil D.pushTotal < 34 := by
   have hdep : log2Ceil D.pushTotal < 33 := by
@@ -157,11 +191,139 @@ theorem pushTotal_bounds (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) :
     by omega⟩
 
 /-- **The calls before the dispatch are complete.** -/
+theorem vsKids1_completeB {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode)
+    (htok : D.TOk bytecode) {Bs : VsBounds} (hG : CompleteGkrAtB fs cert κ Bs.gkr)
+    (hT : CompleteTablesAtB fs cert κ bytecode TCtx Bs.tab) (hF : CompleteFlockAtB fs cert κ Bs.fl)
+    (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hac : TotalLeC fs "assert_canonical" Bs.ac)
+    (h84 : TotalLeC fs "__loop84" Bs.l84) (h85 : TotalLeC fs "__loop85" Bs.l85)
+    (hκ : 7 ≤ κ) :
+    ∀ k ∈ vsKids1 fs D fp lpA sqA outA, k.taken = true →
+      CompleteAtB fs cert κ k.f k.Lin k.args k.Out (vsBd fs Bs k) := by
+  intro k hk ht
+  have hc : ∀ x : E, IsCanonical128 x →
+      CompleteAtB fs cert κ "assert_canonical" [] [x] (Returns [0]) Bs.ac :=
+    fun x hx => completeAt_of_rel_pureB ac_pure (by simp)
+      (fun rd _ => (assert_canonical_iff rd [x] [0]).mpr ⟨hx, rfl⟩) κ (B := fun _ => Bs.ac) hac
+  obtain ⟨hN, hl⟩ := pushTotal_bounds hb hok
+  have M := fun rd (hm : MemL rd (vsAllL fs D fp lpA sqA outA)) =>
+    vsAll_mem (off := 0) (kap := 0) (pt := 0) hm
+  have CE := cur_eqs (fs := fs) (fp := fp) (D := D) (off := 0) (kap := 0) (pt := 0)
+  obtain ⟨-, hl28, hst⟩ := stack_facts hb hok
+  have hq8 : D.hs.getD 5 0 + 8 < 34 := by
+    have := qflock_bound hb hok.rows_length hok.stack_le; simp only [VsData.hs]; omega
+  have hE : ∀ q ∈ expL lpA sqA, q ∈ vsAllL fs D fp lpA sqA outA := fun q hq =>
+    List.mem_append_right _ (List.mem_append_left _ hq)
+  simp only [vsKids1, List.mem_cons, List.mem_nil_iff, or_false] at hk
+  rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact (gpw6_completeAt' fs cert κ (by have := hok.rate_le; omega) sqA).mono le_rfl (by vs_bd)
+  · exact (gpw6_completeAt' fs cert κ (by have := hok.logMem_le; omega) sqA).mono le_rfl
+      (by vs_bd)
+  · exact (log2L0_completeAt (by omega) hN hl lpA sqA _ hE).mono le_rfl (by vs_bd)
+  · exact (hc _ (isCanonical128_digestScalars _).1).mono le_rfl (by vs_bd)
+  · exact (hc _ (isCanonical128_digestScalars _).2).mono le_rfl (by vs_bd)
+  · have h := hG D.cvB _ D.xsG D.gr D.cvG (vsB fs fp D 2 + 10) (vsB fs fp D 7) _ hok.depth_lt hok.gkr
+      hok.point_length hok.values_length fun rd _ hm => ⟨by
+        have := (stream_at hok.rows_length (M rd hm).1.stream).1
+        rwa [CE.1] at this, (M rd hm).1.zeta⟩
+    rw [← hok.point_length, depth_eq hb hok, values_eq hok, ← CE.1] at h
+    exact h.mono le_rfl (by vs_bd)
+  · have h := hT D.pi D.logMem D.alphas D.gr.2.1 D.gr.2.2 D.cvG D.xsT D.cvT D.rows D.bus D.claims
+      D.beta D.bv D.rm D.gzcn (vsB fs fp D 2 + 10 + D.xsG.length) (vsB fs fp D 7) lpA sqA
+      (vsB fs fp D 4) (vsB fs fp D 3) (vsB fs fp D 6) (vsB fs fp D 9) (vsB fs fp D 0)
+      (vsB fs fp D 1) (vsB fs fp D 10) _ (by rw [hok.point_length]; exact hok.depth_lt)
+      hok.logMem_ge hok.logMem_le (by simp [VsData.alphas, sqAll_eq]) hok.values_length
+      hok.rows_length hok.rows_log hok.claims_length hok.tables fun rd _ hm => by
+        obtain ⟨h0, ht, hc, hp⟩ := M rd hm
+        refine ⟨?_, h0.zeta, ht, h0.rows, ?_, ?_, h0.fpw, h0.pool, tctx_of hok htok h0.zeta hc hp⟩
+        · have := (stream_at hok.rows_length h0.stream).2.1
+          rwa [CE.2.1] at this
+        · have := h0.dims
+          rwa [dims_eq] at this
+        · have := h0.bk
+          rwa [hsMap_eq] at this
+    rw [← CE.2.1, depth_eq hb hok] at h
+    exact h.mono le_rfl (by vs_bd)
+  · have h := hF D.tau D.cvT D.xsF D.cvF D.zSkip D.alpha D.mv D.chi D.rcs D.s
+      (vsB fs fp D 2 + 10 + D.xsG.length + D.xsT.length) (vsB fs fp D 11) (vsB fs fp D 12)
+      (vsB fs fp D 13) _ (tau_lt hok) hok.chi_length hok.rcs_length hok.s_length hok.flock
+      fun rd _ hm => ⟨by
+        have := (stream_at hok.rows_length (M rd hm).1.stream).2.2.1
+        rwa [CE.2.2.1] at this, (M rd hm).1.zchis, (M rd hm).1.lrs, (M rd hm).1.zpart⟩
+    rw [← CE.2.2.1] at h
+    exact h.mono le_rfl (by vs_bd)
+  · refine (completeAt_of_rel_pureB loop84_pure (by simp) (fun rd hm => ?_) κ (B := fun _ => Bs.l84)
+      h84).mono le_rfl (by vs_bd)
+    rw [word_one, ← pow_zero gen]
+    exact loop84_complete (loop84_bodies (M rd hm).1 hok.s_length mcs_length)
+  · refine (completeAt_of_rel_pureB loop85_pure (by simp) (fun rd hm => ?_) κ (B := fun _ => Bs.l85)
+      h85).mono le_rfl (by vs_bd)
+    have hτ : D.tau ≠ 0 := by
+      intro h0
+      simp only [h0, pow_zero, word_one, CharTwo.add_self_eq_zero, ne_eq, not_true_eq_false,
+        decide_false, Bool.false_eq_true] at ht
+    have w8 : word 256 0 0 = gen ^ 8 := word_two_pow (a := 8) (by decide)
+    have hm0 := (M rd hm).1
+    rw [word_one, ← pow_zero gen, w8]
+    refine loop85_complete (Nat.pos_of_ne_zero hτ) (by have := tau_lt hok; unfold ordG; omega) rfl
+      fun j _ hj => ?_
+    have hcl := hok.chi_length
+    refine ⟨D.chi.getD (8 + j) 0, ?_, ?_⟩
+    · rw [mul_assoc, ← pow_add, loadHolds_mul_gen_pow, Nat.add_zero]
+      exact readsAt_getD hm0.zchis (by omega)
+    · rw [mul_assoc, ← pow_add, loadHolds_mul_gen_pow, Nat.add_zero]
+      have : D.fpoint.getD (8 + j) 0 = D.chi.getD (8 + j) 0 := by
+        rw [VsData.fpoint, List.getD_eq_getElem _ _ (by simp [hok.rcs_length]; omega),
+          List.getElem_append_right (by simp [hok.rcs_length]), List.getElem_drop,
+          List.getD_eq_getElem _ _ (by omega)]
+        simp only [List.length_reverse, hok.rcs_length]
+        congr 1; omega
+      rw [← this]; exact readsAt_getD hm0.zvals (by simp [VsData.fpoint, hok.rcs_length]; omega)
+  · exact (hPl _ _ _ D.logMem D.hs _ hok.logMem_le (hs_length hok) (hs_lt hok) hq8 fun rd _ hm =>
+      placePre_of (M rd hm).2.1 (M rd hm).1).mono le_rfl (by vs_bd)
+  · exact (log2L15_completeAt (by omega) hst (by omega) lpA sqA _ hE).mono le_rfl (by vs_bd)
+
+/-- **The opening is complete**, on its run and the agreement `CapOk` at the cap. -/
+theorem vsOpenKid_completeB {κ : ℕ} {CapOk : ℕ → ℕ → Digest → Digest → List E → List Opening → E → Prop}
+    {B : ℕ} (hok : D.Ok bytecode) (hO : CompleteOpenAtB fs cert κ CapOk B)
+    (hcap : CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os
+      D.target) :
+    let k := vsOpenKid fs bytecode D fp lpA sqA outA
+    CompleteAtB fs cert κ k.f k.Lin k.args k.Out B := by
+  intro k
+  have h := hO _ D.rate hok.stack_ge hok.stack_le hok.rate_ge hok.rate_le D.root D.cvL D.xsW D.os D.w
+    D.cvW D.roots' D.target _ (vsAllL fs D fp lpA sqA outA) hok.opening hcap fun rd _ hm => by
+      have := (stream_at hok.rows_length (vsAll_mem (off := 0) (kap := 0) (pt := 0) hm).1.stream).2.2.2
+      rwa [curW_eq] at this
+  rw [← curW_eq] at h
+  exact h
+
+/-- **The terminal is complete**, on the placement's and the opening's buffers. -/
+theorem vsTermKid_completeB {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode)
+    (htok : D.TOk bytecode) {B : ℕ} (hE : CompleteTermAtB fs cert κ TCtx PCtx B) {Lc : Main.Layout}
+    {b : ℕ}
+    (hc : ∀ rd, MemL rd Lc → PCtx rd (columnKappas D.logMem 18 D.hs) off kap) :
+    let k := vsTermKid fs D fp lpA sqA outA off kap (ofK (Parameters.gpow b)) Lc
+      [(b, D.w.point ++ List.replicate (pointCap - D.w.point.length) 0)]
+    CompleteAtB fs cert κ k.f k.Lin k.args k.Out B := by
+  intro k
+  refine hE (layoutOf bytecode D.logMem D.rows) D.bus D.claims D.lam D.fpoint (ringCoefficients D.mcs)
+    D.w D.chis _ _ hok.accepts htok.point_vars htok.gzcn fun rd _ hm => ?_
+  obtain ⟨h12, h3⟩ := Main.memL_append.mp hm
+  obtain ⟨h1, h2⟩ := Main.memL_append.mp h12
+  obtain ⟨hm0, -, hchi, hcp⟩ := vsAll_mem (off := off) (kap := kap) (pt := ofK (Parameters.gpow b)) h1
+  have htc := tctx_of hok htok hm0.zeta hchi hcp
+  rw [depth_eq hb hok] at htc
+  exact ⟨termPre_of hb hok htc (hc rd h2) (hypKappa rd) hm0.lam hm0.zvals hm0.ctab
+    (h3 _ List.mem_cons_self), hchi⟩
+
+/-! ## On disjoint layouts, without bounds (`CompleteAtD`) -/
+
+/-- **The calls before the dispatch are complete.** -/
 theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode)
     (htok : D.TOk bytecode) (hG : CompleteGkrAt fs cert κ)
     (hT : CompleteTablesAt fs cert κ bytecode TCtx) (hF : CompleteFlockAt fs cert κ)
     (hPl : CompletePlaceAt fs cert κ PCtx)
-    (hκ : 6 ≤ κ) :
+    (hκ : 7 ≤ κ) :
     ∀ k ∈ vsKids1 fs D fp lpA sqA outA, k.taken = true →
       CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
   intro k hk ht
@@ -173,13 +335,15 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
     vsAll_mem (off := 0) (kap := 0) (pt := 0) hm
   have CE := cur_eqs (fs := fs) (fp := fp) (D := D) (off := 0) (kap := 0) (pt := 0)
   obtain ⟨-, hl28, hst⟩ := stack_facts hb hok
+  have hq8 : D.hs.getD 5 0 + 8 < 34 := by
+    have := qflock_bound hb hok.rows_length hok.stack_le; simp only [VsData.hs]; omega
   have hE : ∀ q ∈ expL lpA sqA, q ∈ vsAllL fs D fp lpA sqA outA := fun q hq =>
     List.mem_append_right _ (List.mem_append_left _ hq)
   simp only [vsKids1, List.mem_cons, List.mem_nil_iff, or_false] at hk
   rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact gpw6_completeAt' fs cert κ (by have := hok.rate_le; omega) sqA
-  · exact gpw6_completeAt' fs cert κ (by have := hok.logMem_le; omega) sqA
-  · exact log2L0_completeAt hκ hN hl lpA sqA _ hE
+  · exact (gpw6_completeAt' fs cert κ (by have := hok.rate_le; omega) sqA).toCompleteAtD
+  · exact (gpw6_completeAt' fs cert κ (by have := hok.logMem_le; omega) sqA).toCompleteAtD
+  · exact (log2L0_completeAt (by omega) hN hl lpA sqA _ hE).toCompleteAtD
   · exact hc _ (isCanonical128_digestScalars _).1
   · exact hc _ (isCanonical128_digestScalars _).2
   · have h := hG D.cvB _ D.xsG D.gr D.cvG (vsB fs fp D 2 + 10) (vsB fs fp D 7) _ hok.depth_lt hok.gkr
@@ -237,9 +401,9 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
         simp only [List.length_reverse, hok.rcs_length]
         congr 1; omega
       rw [← this]; exact readsAt_getD hm0.zvals (by simp [VsData.fpoint, hok.rcs_length]; omega)
-  · exact hPl _ _ _ D.logMem D.hs _ hok.logMem_le (hs_length hok) (hs_lt hok) fun rd _ hm =>
+  · exact hPl _ _ _ D.logMem D.hs _ hok.logMem_le (hs_length hok) (hs_lt hok) hq8 fun rd _ hm =>
       placePre_of (M rd hm).2.1 (M rd hm).1
-  · exact log2L15_completeAt hκ hst (by omega) lpA sqA _ hE
+  · exact (log2L15_completeAt (by omega) hst (by omega) lpA sqA _ hE).toCompleteAtD
 
 /-- **The opening is complete**, on its run and the agreement `CapOk` at the cap. -/
 theorem vsOpenKid_complete {κ : ℕ} {CapOk : ℕ → ℕ → Digest → Digest → List E → List Opening → E → Prop}

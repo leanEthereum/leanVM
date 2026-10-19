@@ -80,5 +80,21 @@ theorem layout_bounds {bytecode : List K} (hb : bytecode.length = 2 ^ 22) {m : �
     simp only [List.mem_cons, List.mem_nil_iff, or_false] at hn
     rcases hn with rfl | rfl | rfl | rfl | rfl | rfl <;> exact hk _ (by omega)
 
+/-- **`q_flock`'s log-size below the stack's**: a stack of log-size at most 28 holds `q_flock`'s
+column of `2^(τ + 8)` words. -/
+theorem qflock_bound {bytecode : List K} (hb : bytecode.length = 2 ^ 22) {m : ℕ} {rows : List ℕ}
+    (hl : rows.length = 6) (hs : (layoutOf bytecode m rows).stackLog ≤ 28) :
+    (rows.map log2Ceil).getD 5 0 + 8 ≤ 28 := by
+  rw [stackLog_eq hb] at hs
+  have hst := le_trans (le_two_pow_log2Ceil _) (Nat.pow_le_pow_right (by decide)
+    (le_trans (le_max_right _ _) hs))
+  clear hs
+  obtain ⟨r0, r1, r2, r3, r4, r5, rfl⟩ := list6 hl
+  simp only [List.map_cons, List.map_nil] at hst ⊢
+  rw [stackTotal_expand] at hst
+  have h := (Nat.pow_le_pow_iff_right (by decide : 1 < 2)).mp
+    (show 2 ^ (log2Ceil r5 + 8) ≤ 2 ^ 28 by omega)
+  simpa using h
+
 end
 end LeanVM.Guest.B1.VerifySub

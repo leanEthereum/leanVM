@@ -621,5 +621,178 @@ theorem completeAt_leafD {f : String} {fn : Fn} (hf : coreProgram.find? f = some
     · exact ⟨i, hi, Or.inr (Or.inl h)⟩
 
 
+/-! ## Completeness with bounded trees
+
+`CompleteAtB … B` is `CompleteAtD` with the tree's size at most `B`, so that a caller's size is
+bounded by its callees' bounds: `kidsFromIn_of_kidsB`, `completeAt_leafB`,
+`completeAt_of_rel_pureB`. -/
+
+/-- **`f` is complete at every frame pointer, on disjoint layouts, by a tree of at most `B`
+words.** -/
+def CompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
+    (args : List E) (Out : List E → Layout → Prop) (B : ℕ) : Prop :=
+  ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), Out rets Lout ∧
+    Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ n ≤ B ∧ ∀ rd, LowDef k rd →
+      MemL rd (Lout ++ Lown ++ Lin) →
+      RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets
+
+/-- `CompleteRelD` by trees of at most `B` words. -/
+def CompleteRelB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
+    (Pre : Reader → List E → List E → Prop) (B : ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef k rd → MemL rd Lin → Pre rd args rets) →
+    CompleteAtB fs cert k f Lin args (Returns rets) B
+
+theorem CompleteAtB.toCompleteAtD {k : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {B : ℕ} (h : CompleteAtB fs cert k f Lin args Out B) :
+    CompleteAtD fs cert k f Lin args Out := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, _, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
+
+theorem CompleteRelB.toCompleteRelD {k : ℕ} {f : String} {Pre : Reader → List E → List E → Prop}
+    {B : ℕ} (h : CompleteRelB fs cert k f Pre B) : CompleteRelD fs cert k f Pre :=
+  fun args rets Lin hp => (h args rets Lin hp).toCompleteAtD
+
+theorem CompleteAtB.mono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {B B' : ℕ} (h : CompleteAtB fs cert k' f Lin args Out B)
+    (hk : k' ≤ k) (hB : B ≤ B') : CompleteAtB fs cert k f Lin args Out B' := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, le_trans hn hB, fun rd hl hm => hr rd (hl.mono hk) hm⟩
+
+/-- The callees' bound: an entered one's `bd`, a skipped one's frame. -/
+def kidsBound (fs : String → ℕ) (bd : Kid → ℕ) (ks : List Kid) : ℕ :=
+  (ks.map fun k => if k.taken = true then bd k else fs k.f).sum
+
+theorem kidsFromIn_of_kidsB (κ : ℕ) (bd : Kid → ℕ) : ∀ (ks : List Kid),
+    (∀ k ∈ ks, k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out (bd k)) → ∀ b : ℕ,
+    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
+      DisjL L ∧ N ≤ kidsBound fs bd ks ∧ OutsIn ks outs L ∧
+      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
+        LowDef κ rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
+        KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun i => Dacc i ∨ outRegion ks outs i)
+  | [], _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, disj_nil, le_rfl, trivial,
+      fun rd σ cs R Dacc hc _ _ _ _ => by
+      match cs, hc with
+      | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
+  | k :: ks, hok, b => by
+    by_cases ht : k.taken = true
+    · obtain ⟨n, Lown, rets, Lout, hout, hw, hd, hnb, hrel⟩ := hok k (by simp) ht b
+      obtain ⟨N, L, outs, ho, hW, hD, hNb, hI, hK⟩ := kidsFromIn_of_kidsB κ bd ks
+        (fun k' hk' => hok k' (by simp [hk'])) (b + n)
+      have hB1 : n + N ≤ kidsBound fs bd (k :: ks) := by
+        simp only [kidsBound, List.map_cons, List.sum_cons, ht, ↓reduceIte] at hNb ⊢; omega
+      refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, ⟨fun _ => hout, ho⟩, ?_,
+        disj_append hd hD hw hW le_rfl, hB1,
+        ⟨fun _ q hq => by simp [hq], hI.mono fun q hq => by simp [hq]⟩, ?_⟩
+      · rw [within_append]
+        exact ⟨hw.mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
+      · intro rd σ cs R Dacc hc hlow hL hLin hRg
+        match cs, hc with
+        | c :: cs, ⟨hf, hct, hcar, hc⟩ =>
+          obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
+          simp only [Kid.lins, List.flatMap_cons] at hLin
+          obtain ⟨hLk, hLs⟩ := Main.memL_append.mp hLin
+          obtain ⟨hR1, hR2⟩ := hRg
+          obtain ⟨ha, hr⟩ := hcar ht
+          refine ⟨n, N, RegionL k.Lin, RegionL Lout, rfl, hR1 ht, ?_, ?_⟩
+          · rw [hct]
+            simp only [ht, ↓reduceIte]
+            rw [hf, ha, hr]
+            exact hrel rd hlow (Main.memL_append.mpr ⟨hL1, hLk⟩)
+          · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL2 hLs ?_)
+            · intro i hi
+              rcases hi with hi | ⟨_, hi⟩ | hi
+              · exact Or.inl (Or.inl hi)
+              · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
+              · exact Or.inr hi
+            · simpa [hct] using hR2
+    · obtain ⟨N, L, outs, ho, hW, hD, hNb, hI, hK⟩ := kidsFromIn_of_kidsB κ bd ks
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
+      have hB1 : fs k.f + N ≤ kidsBound fs bd (k :: ks) := by
+        simp only [kidsBound, List.map_cons, List.sum_cons, ht, Bool.false_eq_true, ↓reduceIte]
+          at hNb ⊢
+        omega
+      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+        hW.mono (by omega) (by omega), hD, hB1, ⟨fun h => absurd h ht, hI⟩, ?_⟩
+      intro rd σ cs R Dacc hc hlow hL hLin hRg
+      match cs, hc with
+      | c :: cs, ⟨hf, hct, _, hc⟩ =>
+        simp only [Kid.lins, List.flatMap_cons] at hLin
+        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        · have ht' : k.taken = false := by simpa using ht
+          rw [hct, ht']
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          rw [hf]
+        · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL (Main.memL_append.mp hLin).2 ?_)
+          · intro i hi
+            rcases hi with hi | ⟨h, _⟩ | hi
+            · exact Or.inl (Or.inl hi)
+            · exact absurd h ht
+            · exact Or.inr hi
+          · have := hRg.2
+            simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
+            exact this
+
+
+/-- `completeAt_of_rel_pure` by a bounded tree: the bound on every valid tree of `g`. -/
+theorem completeAt_of_rel_pureB {S : List String} (hS : coreProgram.PureIn S) {g : String}
+    (hg : g ∈ S) {Lin : Layout} {args rets : List E}
+    (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) {B : List E → ℕ}
+    (hB : ∀ rd (t : Tree) args rets, t.name = g → t.Valid coreProgram rd args rets →
+      t.total fs ≤ B args) :
+    CompleteAtB fs cert k g Lin args (Returns rets) (B args) := by
+  intro fp
+  classical
+  by_cases hex : ∃ rd1, MemL rd1 Lin
+  swap
+  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, Nat.zero_le _,
+      fun rd _ hL => absurd ⟨rd, by simpa using hL⟩ hex⟩
+  obtain ⟨rd1, h1⟩ := hex
+  set rd0 := Main.restrict rd1 (RegionL Lin)
+  have h0 : MemL rd0 Lin := Main.memL_restrict h1 fun i hi => hi
+  have hsupp := Main.restrict_supp' rd1 (RegionL Lin)
+  obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg
+    (Main.relIn_of_rel_supp coreProgram_wf hsupp (h rd0 h0))
+  have hnB : n ≤ B args := by
+    obtain ⟨t, hname, hv, -, -, ht, -⟩ := hn fp rd0 (fun _ _ => rfl) (fun _ h => h)
+    rw [← ht]; exact hB rd0 t args rets hname hv
+  refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, hnB, fun rd _ hL => ?_⟩
+  have hL' : MemL rd Lin := by simpa using hL
+  refine relAtIn_dmono (hn fp rd (fun i hi => ?_) (fun A hA => ?_)) (fun i hi => ?_)
+  · rw [Main.memL_agree hL' h1 i hi, Main.restrict_of ⟨i, rfl, hi⟩]
+  · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hA
+    obtain ⟨i, rfl, hi⟩ := hsupp _ _ hv
+    rw [Main.memL_agree hL' h1 i hi, ← Main.restrict_of (rd := rd1) (S := RegionL Lin) ⟨i, rfl, hi⟩, hv]
+    rfl
+  · obtain ⟨q, hq, _⟩ := hi; simp at hq
+
+/-- `completeAt_leaf` by a tree of its frame and buffers. -/
+theorem completeAt_leafB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hl : coreProgram.loop f = false) (k : ℕ) (Lin : Layout) (args rets : List E) (sizes : List ℕ)
+    (own : ℕ → List (List E)) (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
+    (hσ : ∀ fp rd, LowDef k rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+      ∃ (σ : Val) (es : List Ev) (vs : List V), fn.params.map σ = args ∧
+        walk σ fn.body = .ret es vs ∧ vs.map σ = rets ∧ (∀ e ∈ es, e.Holds rd σ) ∧
+        calls es = [] ∧ addrs es = [] ∧ allocs σ es = sizes ∧
+        (allocDsts es).map σ = (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+        ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
+          (RegionL (bufL (fp + fs f) sizes (own fp)) i ∨ RegionL Lin i)) :
+    CompleteAtB fs cert k f Lin args (Returns rets) (fs f + sizes.sum) := by
+  intro fp
+  refine ⟨fs f + sizes.sum, bufL (fp + fs f) sizes (own fp), rets, [], ⟨rfl, rfl⟩,
+    by simpa using (bufL_within _ _ _ (hown fp)).mono (by omega) (by omega),
+    by simpa using bufL_disj _ _ _ (hown fp), le_rfl, fun rd hlow hL => ?_⟩
+  simp only [List.nil_append] at hL
+  obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
+  obtain ⟨σ, es, vs, hp, hw, hr, hes, hc, ha, hal, hbuf, hload⟩ := hσ fp rd hlow hL1 hL2
+  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
+    (D := RegionL []) (Dk := fun _ => False) (N := 0) (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw
+    hr hes (by rw [hal]; exact hbuf) (by rw [ha]; simp) (by rw [hc]; exact ⟨rfl, fun _ h => h⟩) (fun A hA => ?_)
+    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+  · rw [hal] at h; simpa using h
+  · obtain ⟨i, hi, h | h⟩ := hload A hA
+    · exact ⟨i, hi, Or.inl (Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i h))⟩
+    · exact ⟨i, hi, Or.inr (Or.inl h)⟩
+
+
 end
 end LeanVM.Guest.B1

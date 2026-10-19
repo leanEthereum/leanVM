@@ -167,9 +167,10 @@ theorem readsAt_map_range {rd : Reader} {p : E} {m : ℕ} {f : ℕ → E} (h : R
 bit buffer its one `HeapBuf`. -/
 theorem gpw6_completeAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) {N : ℕ} (hN : N < 64)
     (qb : ℕ) :
-    CompleteAtD fs cert k "g_power_of_word__L6" [(qb, gpwSq)] [eOfNat N, ofK (Parameters.gpow qb)]
-      (Returns [gpwProd (fun j => bitE (N.testBit j)) (fun j => gpwSq.getD j 0) 6]) := by
-  refine completeAt_leafD find_gpw6 gpw6_not_loop k _ _ _ [6] (fun _ => [gpwBits N])
+    CompleteAtB fs cert k "g_power_of_word__L6" [(qb, gpwSq)] [eOfNat N, ofK (Parameters.gpow qb)]
+      (Returns [gpwProd (fun j => bitE (N.testBit j)) (fun j => gpwSq.getD j 0) 6])
+      (fs "g_power_of_word__L6" + 6) := by
+  refine completeAt_leafB find_gpw6 gpw6_not_loop k _ _ _ [6] (fun _ => [gpwBits N])
     (fun _ => by simp [gpwBits]) fun fp rd _ hL hLin => ?_
   have hk : kToNat ((eOfNat N).limb 0) = N := kToNat_eOfNat_limb0 (by omega)
   simp only [bufL, bases, List.zip_cons_cons, List.zip_nil_right, Main.memL_cons, Main.memL_nil,
