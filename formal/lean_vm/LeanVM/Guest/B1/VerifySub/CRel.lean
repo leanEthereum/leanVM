@@ -42,7 +42,7 @@ theorem tctx_honest {TCtx : Reader → Layout → BusResult → List ColumnClaim
   obtain ⟨-, hxT, -, -⟩ := stream_at hok.rows_length hm.stream
   have h := hTC (fun _ l b c _ ↦ l = layoutOf bytecode D.logMem D.rows ∧ b = D.bus ∧ c = D.claims)
     P.tab lp D.pi D.logMem D.alphas D.gr.2.1 D.gr.2.2 (tabArgs D P sq) (tabRets D P)
-    (tablesPre_honest hok ht hm) (tablesOut_honestQ hok hm hxT ⟨rfl, rfl, rfl⟩) hcal.tab
+    (tablesPre_honest hok ht hm.toVsMem0) (tablesOut_honestQ hok hm.toVsMem0 hxT ⟨rfl, rfl, rfl⟩) hcal.tab
   obtain ⟨-, -, -, rowsN, bus, claims, -, -, -, -, -, -, -, -, -, ⟨⟨hl, hb, hc⟩, hT⟩, -, -⟩ := h
   rw [hl, hb, hc] at hT
   exact hT
@@ -123,13 +123,14 @@ theorem callsOk_rel {TCtx : Reader → Layout → BusResult → List ColumnClaim
     gpw6_complete ht (by have := hok.logMem_le; omega) hm.gpwMem,
     log2L0_complete hκ hκ6 Lm ht hN (by omega) hm.bpPush hm.psPush,
     hc _ (isCanonical128_digestScalars _).1, hc _ (isCanonical128_digestScalars _).2,
-    gkr_rel hb hok hm hcal hG, tables_rel hb hok ht hm hcal hT, flock_rel hok hm hcal hF, ?_, ?_,
+    gkr_rel hb hok hm.toVsMem0 hcal hG, tables_rel hb hok ht hm.toVsMem0 hcal hT,
+    flock_rel hok hm.toVsMem0 hcal hF, ?_, ?_,
     hPl P.pl lp sq P.kbase D.logMem D.hs P.off P.kap ht hok.logMem_le (hs_length hok) (hs_lt hok)
       hm.kbase hcal.pl,
     log2L15_complete hκ hκ6 Lm ht hst (by omega) hm.bpStack hm.psStack, ?_,
     hE P.term _ _ _ _ _ _ _ _ (termPre_honest hb hok ht hm hcal hTC hPC hK) hok.accepts hcal.term⟩
   · rw [word_one, ← pow_zero gen]
-    exact loop84_complete (loop84_bodies hm hok.s_length mcs_length)
+    exact loop84_complete (loop84_bodies hm.toVsMem0 hok.s_length mcs_length)
   · intro hτ
     rw [word_one, ← pow_zero gen, w8]
     refine loop85_complete (Nat.pos_of_ne_zero hτ) (by have := tau_lt hok; unfold ordG; omega) rfl
@@ -178,7 +179,7 @@ theorem verify_sub_complete_rel {TCtx : Reader → Layout → BusResult → List
   have h0 : Fixes σ0 (vsG0 D lp sq out) := by
     intro p hp; simp only [vsG0, List.mem_cons, List.mem_nil_iff, or_false] at hp
     rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp [σ0, vsG0, upds_n]
-  obtain ⟨σ, he, -, hh⟩ := vs_body ((lowDef_memImage hκ Lm).mono hκ6) hb hok ht hm hC σ0 h0
+  obtain ⟨σ, he, -, hh⟩ := vs_body ((lowDef_memImage hκ Lm).mono hκ6) hb hok ht hm.toVsMem0 hC σ0 h0
   rw [rel_iff_sem find_verify_sub, core15_body', core15_params]
   refine ⟨σ, ?_, ?_⟩
   · have hp : ∀ k < 7, σ (.n k) = σ0 (.n k) := fun k hk => he.apply (Or.inl hk)

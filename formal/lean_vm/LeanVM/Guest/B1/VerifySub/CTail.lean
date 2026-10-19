@@ -117,7 +117,7 @@ theorem target_eq (hl : D.claims.length = 112) : D.target = lamT D 111 := by
     dot_powers_cons, hvl, lamT]
 
 /-- **The batching** (G:2219-2229): `lam`, its powers stored, the opening's target. -/
-theorem c_lam (hcl : D.claims.length = 112) (hm : VsMem rd D P out) (σ : Val)
+theorem c_lam (hcl : D.claims.length = 112) (hm : VsMem0 rd D P out) (σ : Val)
     (hσ : Fixes σ (lamIn D P)) :
     Completes C rd 1166 1629 bLam σ (fun σ' => Fixes σ' (lamOut D P)) := by
   have hvl : (vals D).length = 112 := by simp [vals, hcl]
@@ -286,7 +286,7 @@ theorem depth_ge (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) : 18 ≤ 
   exact log2Ceil_ge this
 
 /-- The cells of `defer_out`, segment by segment. -/
-theorem out_cells (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
+theorem out_cells (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (hm : VsMem0 rd D P out) :
     (∀ k < 18, LoadHolds rd out k (D.gr.2.1.getD k 0)) ∧ (∀ k < 4, LoadHolds rd out (18 + k) (D.alphas.getD k 0)) ∧
       LoadHolds rd out 22 D.bv ∧ LoadHolds rd out 23 D.alpha ∧ LoadHolds rd out 24 D.zSkip ∧
       (∀ k < 8, LoadHolds rd out (25 + k) (D.chi.getD k 0)) ∧
@@ -349,7 +349,7 @@ theorem c_cpKeep {v i j src : ℕ} (hs : src < v) {ps w : E} (hi : LoadHolds rd 
       rfl | rfl | rfl <;> simp <;> omega)).post fun _ _ h => h.2
 
 /-- **`defer_out`** (G:2265-2279): the claims on the fixed polynomials, in `fixedCells` order. -/
-theorem c_defer (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (hm : VsMem rd D P out)
+theorem c_defer (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
     (σ : Val) (hσ : Fixes σ (deferIn D P out)) :
     Completes C rd 1652 1754 bDefer σ (fun _ => True) := by
   obtain ⟨o1, o2, o22, o23, o24, o3, o4, o5, o105⟩ := out_cells hb hok hm

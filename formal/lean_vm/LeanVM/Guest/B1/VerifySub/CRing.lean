@@ -219,7 +219,7 @@ theorem readsAt_getD {p : E} {xs : List E} (h : ReadsAt rd p xs) {k : ℕ} (hk :
   rw [List.getD_eq_getElem _ _ hk]; exact h k hk
 
 /-- **`__loop84`'s bodies over the honest `rs_chain`.** -/
-theorem loop84_bodies (hm : VsMem rd D P out) (hs : D.s.length = 64) (hl : D.mcs.length = 6) :
+theorem loop84_bodies (hm : VsMem0 rd D P out) (hs : D.s.length = 64) (hl : D.mcs.length = 6) :
     ∀ j < 64, Loop84Body rd P.zpart P.mcs P.rs (gen ^ j) := by
   intro j hj
   obtain ⟨a0, b0, hlen⟩ := rsChain_at (D := D) (j := j) (by omega)
@@ -289,7 +289,7 @@ theorem numBelow_sq732 : ∀ k < 6, NumBelow (735 + 14 * (k + 1)) (Stmt.valsList
   fun k hk => numBelow_of_B (by revert k hk; decide +kernel)
 
 /-- **The ring switch** (G:2170-2210): the map's challenges, `c_table`, the target, `z_vals`. -/
-theorem c_ring {bytecode : List K} {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem rd D P out)
+theorem c_ring {bytecode : List K} {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
     (hC : VsCallsOk C bytecode D P lp sq) (σ : Val)
     (hσ : Fixes σ (ringIn D P)) :
     Completes C rd 735 1166 bRing σ (fun σ' => Fixes σ' (ringOut D P)) := by

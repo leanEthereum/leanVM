@@ -92,14 +92,14 @@ theorem dims_eq : gen ^ D.logMem :: D.hs.map (gen ^ ·) =
   simp [VsData.hs, List.map_map, Function.comp_def]
 
 theorem tablesPre_honest {lp sq : E} (hok : D.Ok bytecode) (ht : ExpTables rd lp sq)
-    (hm : VsMem rd D P out) :
+    (hm : VsMem0 rd D P out) :
     TablesPre rd lp D.pi D.logMem D.alphas D.gr.2.1 D.gr.2.2 (tabArgs D P sq) :=
   ⟨rfl, hm.zeta, rfl, by rw [hok.point_length]; exact hok.depth_lt, hok.logMem_ge, hok.logMem_le,
     ⟨D.hs.map (gen ^ ·), by simp [hs_length hok], hm.dims, hm.bk⟩, ht, by simp [VsData.alphas, sqAll_eq],
     hm.fpw, values_eq hok⟩
 
 theorem tablesOut_honestQ {sq : E} {Q : Reader → Layout → BusResult → List ColumnClaim → List E → Prop}
-    (hok : D.Ok bytecode) (hm : VsMem rd D P out) (hxs : ReadsAt rd (curT D P) D.xsT)
+    (hok : D.Ok bytecode) (hm : VsMem0 rd D P out) (hxs : ReadsAt rd (curT D P) D.xsT)
     (hQ : Q rd (layoutOf bytecode D.logMem D.rows) D.bus D.claims
       [P.zeta, P.chi, D.rm, gen ^ D.gr.2.1.length, D.gzcn, P.cplen]) :
     TablesOut bytecode Q rd D.pi D.logMem D.alphas D.gr.2.1 D.gr.2.2 (tabArgs D P sq)
@@ -108,7 +108,7 @@ theorem tablesOut_honestQ {sq : E} {Q : Reader → Layout → BusResult → List
     by rw [← dims_eq]; exact hm.dims, hok.rows_log, hxs, hok.tables, hok.claims_length, hm.pool,
     hQ, rfl, rfl⟩
 
-theorem tablesOut_honest {sq : E} (hok : D.Ok bytecode) (hm : VsMem rd D P out)
+theorem tablesOut_honest {sq : E} (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
     (hxs : ReadsAt rd (curT D P) D.xsT) :
     TablesOut bytecode NoCtx rd D.pi D.logMem D.alphas D.gr.2.1 D.gr.2.2 (tabArgs D P sq)
       (tabRets D P) :=
@@ -119,7 +119,7 @@ theorem tau_lt (hok : D.Ok bytecode) : D.tau < 29 := by
   rw [List.getD_eq_getElem _ _ (by simp [hok.rows_length]), List.getElem_map]
   exact hok.rows_log _ (List.getElem_mem _)
 
-theorem flockOut_honest (hok : D.Ok bytecode) (hm : VsMem rd D P out)
+theorem flockOut_honest (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
     (hxs : ReadsAt rd (curF D P) D.xsF) :
     FlockOut rd D.tau (digestScalars D.cvT).1 (digestScalars D.cvT).2 (curF D P) P.zchis P.lrs
       P.zpart [(digestScalars D.cvF).1, (digestScalars D.cvF).2, curW D P, D.zSkip, D.alpha, D.mv] :=
@@ -142,7 +142,7 @@ def callsIn (D : VsData) (P : VsPtrs) (sq : E) : List (ℕ × E) :=
     (508, P.fpw), (690, (digestScalars D.cvB).1), (691, (digestScalars D.cvB).2), (698, D.beta),
     (700, curG P)]
 
-theorem dims_six (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
+theorem dims_six (hok : D.Ok bytecode) (hm : VsMem0 rd D P out) :
     LoadHolds rd P.dims 6 (gen ^ D.tau) := by
   have := hm.dims 6 (by simp [hs_length hok])
   simp only [List.getElem_cons_succ, List.getElem_map] at this
@@ -154,7 +154,7 @@ theorem dims_six (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
 theorem gkr_rel {GMem TMem FMem PMem : Reader → List E → List E → List E → Prop}
     {OMem : ℕ → ℕ → Reader → List E → List E → List E → Prop}
     {EMem : Reader → List E → List E → Prop} {lp sq : E} (hb : bytecode.length = 2 ^ 22)
-    (hok : D.Ok bytecode) (hm : VsMem rd D P out)
+    (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
     (hcal : VsCallees GMem TMem FMem PMem OMem EMem bytecode rd D P lp sq)
     (hG : CompleteGkr rd GMem) :
     coreProgram.Rel rd "verify_bus_gkr" [(digestScalars D.cvB).1, (digestScalars D.cvB).2, curG P,
@@ -170,7 +170,7 @@ theorem gkr_rel {GMem TMem FMem PMem : Reader → List E → List E → List E �
 theorem tables_rel {GMem TMem FMem PMem : Reader → List E → List E → List E → Prop}
     {OMem : ℕ → ℕ → Reader → List E → List E → List E → Prop}
     {EMem : Reader → List E → List E → Prop} {lp sq : E} (hb : bytecode.length = 2 ^ 22)
-    (hok : D.Ok bytecode) (ht : ExpTables rd lp sq) (hm : VsMem rd D P out)
+    (hok : D.Ok bytecode) (ht : ExpTables rd lp sq) (hm : VsMem0 rd D P out)
     (hcal : VsCallees GMem TMem FMem PMem OMem EMem bytecode rd D P lp sq)
     (hT : CompleteTables bytecode rd TMem) :
     coreProgram.Rel rd "verify_tables" [(digestScalars D.cvG).1, (digestScalars D.cvG).2, curT D P,
@@ -188,7 +188,7 @@ theorem tables_rel {GMem TMem FMem PMem : Reader → List E → List E → List 
 theorem flock_rel {GMem TMem FMem PMem : Reader → List E → List E → List E → Prop}
     {OMem : ℕ → ℕ → Reader → List E → List E → List E → Prop}
     {EMem : Reader → List E → List E → Prop} {lp sq : E}
-    (hok : D.Ok bytecode) (hm : VsMem rd D P out)
+    (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
     (hcal : VsCallees GMem TMem FMem PMem OMem EMem bytecode rd D P lp sq)
     (hF : CompleteFlock rd FMem) :
     coreProgram.Rel rd "verify_flock" [(digestScalars D.cvT).1, (digestScalars D.cvT).2, curF D P,
@@ -198,7 +198,7 @@ theorem flock_rel {GMem TMem FMem PMem : Reader → List E → List E → List E
   exact hF P.fl D.tau _ _ _ _ _ _ _ (tau_lt hok) (flockOut_honest hok hm hxF) hcal.fl
 
 /-- **GKR, the tables and Flock** (G:2150-2168). -/
-theorem c_calls {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem rd D P out)
+theorem c_calls {lp sq : E} (hok : D.Ok bytecode) (hm : VsMem0 rd D P out)
     (hC : VsCallsOk C bytecode D P lp sq) (σ : Val) (hσ : Fixes σ (callsIn D P sq)) :
     Completes C rd 701 735 bCalls σ (fun σ' => Fixes σ' (callsOut D P)) := by
   have e : ∀ k e, (k, e) ∈ callsIn D P sq → σ (.n k) = e := fun k e h => hσ.get h

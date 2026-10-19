@@ -223,9 +223,8 @@ structure VsPtrs where
   term : List E
 
 /-- **The honest memory at `verify_sub`'s buffers**: the stream, the tables' outputs, the stored
-sizes, the challenges and every table the body fills, `defer_out`, and the group 1 callees' bit
-buffers. -/
-structure VsMem (rd : Reader) (D : VsData) (P : VsPtrs) (out : E) : Prop where
+sizes, the challenges and every table the body fills, and `defer_out`. -/
+structure VsMem0 (rd : Reader) (D : VsData) (P : VsPtrs) (out : E) : Prop where
   stream : ReadsAt rd P.stream D.stream
   pool : ReadsAt rd P.pool (D.claims.map (·.value))
   rows : ReadsAt rd P.rows (D.rows.map eOfNat)
@@ -244,6 +243,11 @@ structure VsMem (rd : Reader) (D : VsData) (P : VsPtrs) (out : E) : Prop where
   rs : ReadsAt rd P.rs D.rsChain
   lam : ReadsAt rd P.lam (powersFrom D.lam D.lam nClaims)
   out : ReadsAt rd out (Node.fixedCells D.fresh)
+
+/-- `VsMem0` and the group 1 callees' bit buffers and the opening's point buffer, for the
+`Rel`-level completeness. -/
+structure VsMem (rd : Reader) (D : VsData) (P : VsPtrs) (out : E) : Prop
+    extends VsMem0 rd D P out where
   gpwRate : ∀ j < 6, LoadHolds rd P.gpwRate j (bitE (D.rate.testBit j))
   gpwMem : ∀ j < 6, LoadHolds rd P.gpwMem j (bitE (D.logMem.testBit j))
   bpPush : ∀ j < 34, LoadHolds rd P.bpPush j (bitE (D.pushTotal.testBit j))

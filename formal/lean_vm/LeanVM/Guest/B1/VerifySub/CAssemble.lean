@@ -30,7 +30,7 @@ variable {C : CallRel} {rd : Reader} {D : VsData} {P : VsPtrs} {out lp sq : E} {
 
 /-! ## The memory, word by word -/
 
-theorem mem_stream (hl : D.rows.length = 6) (hm : VsMem rd D P out) :
+theorem mem_stream (hl : D.rows.length = 6) (hm : VsMem0 rd D P out) :
     (∀ k < 8, LoadHolds rd P.stream k (D.ann.getD k 0)) ∧ LoadHolds rd P.stream 8 D.x0 ∧
       LoadHolds rd P.stream 9 D.x1 := by
   have h := hm.stream
@@ -42,13 +42,13 @@ theorem mem_stream (hl : D.rows.length = 6) (hm : VsMem rd D P out) :
   · have := hr 0 (by simp); rw [loadHolds_mul_gen_pow] at this; simpa using this
   · have := hr 1 (by simp); rw [loadHolds_mul_gen_pow] at this; simpa using this
 
-theorem mem_rows (hl : D.rows.length = 6) (hm : VsMem rd D P out) :
+theorem mem_rows (hl : D.rows.length = 6) (hm : VsMem0 rd D P out) :
     ∀ t < 6, LoadHolds rd P.rows t (eOfNat (D.rows.getD t 0)) := fun t ht => by
   have := readsAt_getD hm.rows (k := t) (by simp [hl]; omega)
   rwa [List.getD_eq_getElem _ _ (by simp [hl]; omega), List.getElem_map,
     ← List.getD_eq_getElem _ 0 (by omega)] at this
 
-theorem mem_dims (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
+theorem mem_dims (hok : D.Ok bytecode) (hm : VsMem0 rd D P out) :
     LoadHolds rd P.dims 0 (gen ^ D.logMem) ∧
       ∀ t < 6, LoadHolds rd P.dims (1 + t) (gen ^ D.hs.getD t 0) := by
   have hl := hs_length hok
@@ -58,7 +58,7 @@ theorem mem_dims (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
     List.getElem_map, ← List.getD_eq_getElem _ 0 (by omega)] at this
   rwa [show 1 + t = t + 1 by omega]
 
-theorem mem_kbase (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
+theorem mem_kbase (hok : D.Ok bytecode) (hm : VsMem0 rd D P out) :
     LoadHolds rd P.kbase 0 1 ∧ LoadHolds rd P.kbase 1 (gen ^ D.logMem) ∧
       (∀ t < 6, LoadHolds rd P.kbase (2 + t) (gen ^ D.hs.getD t 0)) ∧
       ∀ b < 102, LoadHolds rd P.kbase (blockKappaSrc.getD b 0) (bkSrc D b) := by
@@ -74,11 +74,11 @@ theorem mem_kbase (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
     ← List.getD_eq_getElem _ 0 (by omega)] at this
   rwa [show 2 + t = t + 2 by omega]
 
-theorem mem_bk (hm : VsMem rd D P out) :
+theorem mem_bk (hm : VsMem0 rd D P out) :
     ∀ b < 102, LoadHolds rd P.bk b ((blockKappas (gen ^ D.logMem) (D.hs.map (gen ^ ·))).getD b 0) :=
   fun b hb => readsAt_getD hm.bk (by simp [blockKappas]; omega)
 
-theorem mem_bk_pow (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
+theorem mem_bk_pow (hok : D.Ok bytecode) (hm : VsMem0 rd D P out) :
     ∀ b < 37, LoadHolds rd P.bk b (gen ^ pkap D b) := fun b hb => by
   have := mem_bk hm b (by omega)
   rwa [blockKappas_pow _ _ (hs_length hok) b hb] at this
@@ -86,13 +86,13 @@ theorem mem_bk_pow (hok : D.Ok bytecode) (hm : VsMem rd D P out) :
 theorem alphas_eq : D.alphas = [busA D 0, busA D 1, busA D 2, busA D 3] := by
   simp [VsData.alphas, sqAll_eq, busA, List.range_succ]
 
-theorem mem_alpha (hm : VsMem rd D P out) : ∀ c < 4, LoadHolds rd P.alpha c (busA D c) := by
+theorem mem_alpha (hm : VsMem0 rd D P out) : ∀ c < 4, LoadHolds rd P.alpha c (busA D c) := by
   intro c hc
   have := readsAt_getD hm.alpha (k := c) (by rw [alphas_eq]; simp; omega)
   rw [alphas_eq] at this
   interval_cases c <;> simpa using this
 
-theorem mem_fpw (hm : VsMem rd D P out) : ∀ x < 16, LoadHolds rd P.fpw x
+theorem mem_fpw (hm : VsMem0 rd D P out) : ∀ x < 16, LoadHolds rd P.fpw x
     (eqFactor (busA D) x 0 * eqFactor (busA D) x 1 * eqFactor (busA D) x 2 * eqFactor (busA D) x 3) := by
   intro x hx
   have := readsAt_getD hm.fpw (k := x) (by rw [alphas_eq]; simp [eqKernel]; omega)
@@ -189,7 +189,7 @@ macro "vs_mem" : tactic => `(tactic| simp [vsG0, vsG1, vsG2, vsG3, vsG4, vsG5, v
 section Steps
 
 variable (hlow : LowDef 6 rd) (hb : bytecode.length = 2 ^ 22)
-  (hok : D.Ok bytecode) (ht : ExpTables rd lp sq) (hm : VsMem rd D P out)
+  (hok : D.Ok bytecode) (ht : ExpTables rd lp sq) (hm : VsMem0 rd D P out)
   (hC : VsCallsOk C bytecode D P lp sq)
 
 theorem s_seed (σ : Val) (h : Fixes σ (vsG0 D lp sq out)) :
@@ -271,7 +271,7 @@ end Steps
 /-- **`verify_sub`'s body completes**, for any relation `C` its calls hold of, over the honest
 memory. -/
 theorem vs_body (hlow : LowDef 6 rd) (hb : bytecode.length = 2 ^ 22)
-    (hok : D.Ok bytecode) (ht : ExpTables rd lp sq) (hm : VsMem rd D P out)
+    (hok : D.Ok bytecode) (ht : ExpTables rd lp sq) (hm : VsMem0 rd D P out)
     (hC : VsCallsOk C bytecode D P lp sq) (σ0 : Val) (h0 : Fixes σ0 (vsG0 D lp sq out)) :
     Completes C rd 7 1754 vsBody σ0 (fun σ' => Fixes σ' (vsG11 D P lp sq out)) := by
   rw [vsBody_eq]
