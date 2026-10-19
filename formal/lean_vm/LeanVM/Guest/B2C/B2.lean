@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B2C.CplComp
+public import LeanVM.Guest.B2C.CplAll
 public import LeanVM.Guest.B2C.Table
 public import LeanVM.Guest.Sound
 public import LeanVM.Guest.Memory.GuestMainFree
@@ -42,9 +42,9 @@ structure B2Hyps : Prop where
         walk σ (coreOf j).body = .ret es vs →
           FrameHolds (honest coreProgram fs H C hdr T) j I.fp σ es vs I.kidFps I.hdr
 
-/-- Each function's completeness check gives its run (`cpl_run`, with the soundness checks). -/
+/-- Each function's completeness check gives its run (`cplRun_of`). -/
 theorem cplRun_of_ok (hok : ∀ j, 1 ≤ j → j < nFns → CplOk j) : ∀ j, 1 ≤ j → j < nFns → CplRun j :=
-  fun j h1 h2 => cpl_run h1 h2 (hok j h1 h2) (End.winOk_of h1 h2) (End.certOf_pows_ok j)
+  fun j h1 h2 => cplRun_of h1 h2 (hok j h1 h2)
 
 /-! ## Functions and their callees -/
 
@@ -59,7 +59,7 @@ theorem calls_ne_main {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
   rw [List.getElem?_eq_getElem hj] at h
   simpa using List.all_eq_true.mp h c.f hcc
 
-theorem idxOf_main : idxOf "main" = some 1 := by decide +kernel
+private theorem idxOf_main : idxOf "main" = some 1 := by decide +kernel
 
 theorem idx_one_iff {f : String} {j : ℕ} (hj : idxOf f = some j) : j = 1 ↔ f = "main" := by
   constructor
@@ -80,7 +80,7 @@ theorem entryOf_main : entryOf "main" = mainEntry := by
   rw [entryOf_of idxOf_main]
   rfl
 
-theorem idxOf_of_find {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) :
+private theorem idxOf_of_find {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) :
     ∃ j, idxOf f = some j := by
   cases hj : idxOf f with
   | none =>
