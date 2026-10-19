@@ -359,17 +359,17 @@ noncomputable def cstAt (o : ℕ) : Option (ℕ × ℕ × ℕ) :=
     | .ne _ _ p => bif Nat.beq p o then some (1, 0, 0) else none
     | _ => none
 
-/-- The cell holds `0`. -/
+/-- The cell holds `0`: a constant, or the segment's environment. -/
 noncomputable def isZ (o : ℕ) : Bool :=
-  match cstAt X st o with
-  | some (0, 0, 0) => true
-  | _ => false
+  (match cstAt X st o with
+    | some (0, 0, 0) => true
+    | _ => false) || isZero (st.seg.env.get o)
 
-/-- The cell holds `1`. -/
+/-- The cell holds `1`: a constant, or the segment's environment. -/
 noncomputable def isO (o : ℕ) : Bool :=
-  match cstAt X st o with
-  | some (1, 0, 0) => true
-  | _ => false
+  (match cstAt X st o with
+    | some (1, 0, 0) => true
+    | _ => false) || isOne (st.seg.env.get o)
 
 /-- The cell holds a word: the header, a fixed cell, a fact's. -/
 noncomputable def known (o : ℕ) : Bool :=
@@ -390,7 +390,8 @@ noncomputable def zeroBy (a : ℕ) : Bool :=
 /-- `{x, y} = {a, b}`. -/
 def pairEq (x y a b : ℕ) : Bool := (Nat.beq x a && Nat.beq y b) || (Nat.beq x b && Nat.beq y a)
 
-/-- The cell holds a word of `K`. -/
+/-- The cell holds a word of `K`: the header but in `main`, a fixed cell, a fact's, a callee
+frame pointer, a table read's target, a cell the segment's environment knows. -/
 noncomputable def cellK (o : ℕ) : Bool :=
   (Nat.ble o 1 && !X.main) ||
   (match statAt X o with
@@ -405,7 +406,8 @@ noncomputable def cellK (o : ℕ) : Bool :=
     | .addr p _ => Nat.beq p o
     | .ne _ _ p => Nat.beq p o
     | _ => false) ||
-  st.fr.any (fun q ↦ Nat.beq q.1 o) || st.tg.any (fun t ↦ Nat.beq t.1 o)
+  st.fr.any (fun q ↦ Nat.beq q.1 o) || st.tg.any (fun t ↦ Nat.beq t.1 o) ||
+  (st.seg.env.get o).isSome
 
 /-- A `MUL` of a frame address: `fp[a] = fp·g^e₁`, `fp[b] = g^e₂`, the run at `e₁ + e₂`. -/
 noncomputable def addrMul (a b : ℕ) (run : List ℕ) : Bool :=
