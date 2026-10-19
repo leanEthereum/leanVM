@@ -195,15 +195,17 @@ def CompleteFlockAt : Prop :=
         ofK (Parameters.gpow c) * gen ^ xs.length, zSkip, alpha, mv])
 
 /-- **`check_opening_terminal`, placed**, for an explicit layout, claims and opening's end that
-the terminal's check accepts, each claim's point of its column's length, on the words `TermPre`
-reads. -/
+the terminal's check accepts, each claim's point of its column's length, and the tables' sumcheck
+point `chis` (its length in `args[4]`), on the words `TermPre` reads and `chis` at `args[1]`. -/
 def CompleteTermAt : Prop :=
   ∀ (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) (lam : E)
-    (flockPoint coeffs : List E) (w : WhirEnd) (args : List E) (Lin : Main.Layout),
+    (flockPoint coeffs : List E) (w : WhirEnd) (chis : List E) (args : List E) (Lin : Main.Layout),
     w.Accepts (stackWeight layout claims flockPoint coeffs lam) →
     (∀ c ∈ claims, c.point.length = (layout.placements.getD c.column default).vars) →
+    args.getD 4 0 = gen ^ chis.length →
     (∀ rd, LowDef k rd → MemL rd Lin →
-      TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args) →
+      TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args ∧
+        ReadsAt rd (args.getD 1 0) chis) →
     CompleteAtD fs cert k "check_opening_terminal" Lin args (Returns [])
 
 /-- **`certify_placement`, placed**: on a layout holding the exponent tables at `lp`, `sq` and the

@@ -265,14 +265,14 @@ theorem vsTermKid_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.O
     CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
   intro k
   refine hE (layoutOf bytecode D.logMem D.rows) D.bus D.claims D.lam D.fpoint (ringCoefficients D.mcs)
-    D.w _ _ hok.accepts htok.point_vars fun rd _ hm => ?_
+    D.w D.chis _ _ hok.accepts htok.point_vars htok.gzcn fun rd _ hm => ?_
   obtain ⟨h12, h3⟩ := Main.memL_append.mp hm
   obtain ⟨h1, h2⟩ := Main.memL_append.mp h12
   obtain ⟨hm0, -, hchi, hcp⟩ := vsAll_mem (off := off) (kap := kap) (pt := ofK (Parameters.gpow b)) h1
   have htc := tctx_of hok htok hm0.zeta hchi hcp
   rw [depth_eq hb hok] at htc
-  exact termPre_of hb hok htc (hc rd h2) (hypKappa rd) hm0.lam hm0.zvals hm0.ctab
-    (h3 _ List.mem_cons_self)
+  exact ⟨termPre_of hb hok htc (hc rd h2) (hypKappa rd) hm0.lam hm0.zvals hm0.ctab
+    (h3 _ List.mem_cons_self), hchi⟩
 
 end
 end LeanVM.Guest.B1.VerifySub
