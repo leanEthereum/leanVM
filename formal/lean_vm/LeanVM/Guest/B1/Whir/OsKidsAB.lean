@@ -45,18 +45,6 @@ def osCBB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (bd : S
     (W S : ℕ → Main.Layout) : CallRel :=
   fun f a r => ∀ p, osKCB fs cert κ bd (Lk ++ W p ++ S p) f a r
 
-/-- `VmcCompleteAt` by trees of at most `B` words. -/
-def VmcCompleteAtB (fs : String → ℕ) (cert : String → V → ℕ) (k D : ℕ) (name : String) (B : ℕ) : Prop :=
-  ∀ (Lin : Main.Layout) (cap flags : E) (rets : List E),
-    (∀ rd, MemL rd Lin → MeaningVerifyMerkleCap D rd [cap, flags] rets) →
-      CompleteAtB fs cert k name Lin [cap, flags] (Returns rets) B
-
-theorem vmc_completeAtB {k D : ℕ} {name loop : String} (hS : coreProgram.PureIn [name, loop])
-    (hiff : ∀ rd args rets, coreProgram.Rel rd name args rets ↔ MeaningVerifyMerkleCap D rd args rets) {B : ℕ}
-    (hB : TotalLe coreProgram fs name fun _ => B) : VmcCompleteAtB fs cert k D name B := fun _ _ _ _ h =>
-  completeAt_of_rel_pureBat hS (by simp) (fun rd hL => (hiff rd _ _).mpr (h rd hL)) k
-    fun rd t hn hv hb => hB rd t _ _ hn hv hb
-
 /-- `opening_ood_point` by trees of at most `B` words, at the counts `open_stacked` samples. -/
 def OsOodAtB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (B : ℕ) : Prop :=
   ∀ m, m ≤ 22 → ∀ (args rets : List E) (Lin : Main.Layout), args.getD 3 0 = gen ^ m →
