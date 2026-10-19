@@ -33,8 +33,12 @@ theorem verify_sub_completeAtB_of_accepts {κ : ℕ} (hκ : 7 ≤ κ)
     {Bs : VsBounds} (hG : CompleteGkrAtB fs cert κ Bs.gkr)
     (hT : CompleteTablesAtB fs cert κ bytecode TCtx Bs.tab) (hF : CompleteFlockAtB fs cert κ Bs.fl)
     (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hO : CompleteOpenAtB fs cert κ CapOk Bs.op)
-    (hE : CompleteTermAtB fs cert κ TCtx PCtx Bs.term) (hac : TotalLeC fs "assert_canonical" Bs.ac)
-    (h84 : TotalLeC fs "__loop84" Bs.l84) (h85 : TotalLeC fs "__loop85" Bs.l85)
+    (hE : CompleteTermAtB fs cert κ TCtx PCtx Bs.term) (hac : TotalLeA fs "assert_canonical" fun _ => Bs.ac)
+    {B84 B85 : List E → ℕ} (h84 : TotalLeA fs "__loop84" B84)
+    (hB84 : ∀ args : List E, args.getD 0 0 = word 1 0 0 → B84 args ≤ Bs.l84)
+    (h85 : TotalLeA fs "__loop85" B85)
+    (hB85 : ∀ τ < 29, ∀ args : List E, args.getD 0 0 = word 1 0 0 → args.getD 1 0 = gen ^ τ →
+      B85 args ≤ Bs.l85)
     (hb : bytecode.length = 2 ^ 22) {seed pi : Digest} {c : FixedClaims}
     {π : Proof} (h : verifyDeferred bytecode seed pi c π = true)
     (hlo : ∀ layout r, announced bytecode π.stream = some (layout, r) → 22 ≤ layout.stackLog)
@@ -47,7 +51,7 @@ theorem verify_sub_completeAtB_of_accepts {κ : ℕ} (hκ : 7 ≤ κ)
         ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA), ofK (Parameters.gpow outA)]
       (Returns []) (vsBound fs Bs) := by
   obtain ⟨D, hok, htok, rfl, rfl, rfl, hp⟩ := vs_inversion hb h hlo hst
-  exact verify_sub_completeAtB hκ hG hT hF hPl hO hE hac h84 h85 hb hok htok (hcap D hok rfl rfl hp) lpA sqA outA
+  exact verify_sub_completeAtB hκ hG hT hF hPl hO hE hac h84 hB84 h85 hB85 hb hok htok (hcap D hok rfl rfl hp) lpA sqA outA
 
 /-- **`verify_sub` is complete on an accepted proof** within the deployed limits. -/
 theorem verify_sub_completeAt_of_accepts {κ : ℕ} (hκ : 7 ≤ κ)

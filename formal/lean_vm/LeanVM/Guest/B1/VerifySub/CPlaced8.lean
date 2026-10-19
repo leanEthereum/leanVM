@@ -63,8 +63,12 @@ theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
     {Bs : VsBounds} (hG : CompleteGkrAtB fs cert κ Bs.gkr)
     (hT : CompleteTablesAtB fs cert κ bytecode TCtx Bs.tab) (hF : CompleteFlockAtB fs cert κ Bs.fl)
     (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hO : CompleteOpenAtB fs cert κ CapOk Bs.op)
-    (hE : CompleteTermAtB fs cert κ TCtx PCtx Bs.term) (hac : TotalLeC fs "assert_canonical" Bs.ac)
-    (h84 : TotalLeC fs "__loop84" Bs.l84) (h85 : TotalLeC fs "__loop85" Bs.l85)
+    (hE : CompleteTermAtB fs cert κ TCtx PCtx Bs.term) (hac : TotalLeA fs "assert_canonical" fun _ => Bs.ac)
+    {B84 B85 : List E → ℕ} (h84 : TotalLeA fs "__loop84" B84)
+    (hB84 : ∀ args : List E, args.getD 0 0 = word 1 0 0 → B84 args ≤ Bs.l84)
+    (h85 : TotalLeA fs "__loop85" B85)
+    (hB85 : ∀ τ < 29, ∀ args : List E, args.getD 0 0 = word 1 0 0 → args.getD 1 0 = gen ^ τ →
+      B85 args ≤ Bs.l85)
     (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (htok : D.TOk bytecode)
     (hcap : CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os
       D.target)
@@ -78,7 +82,7 @@ theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
   -- the calls before the dispatch
   obtain ⟨N1, L1, outs1, ho1, hw1, hd1, hb1, hi1, hK1⟩ :=
     kidsFromIn_of_kidsB κ (vsBd fs Bs) (vsKids1 fs D fp lpA sqA outA)
-    (vsKids1_completeB hb hok htok hG hT hF hPl hac h84 h85 hκ)
+    (vsKids1_completeB hb hok htok hG hT hF hPl hac h84 hB84 h85 hB85 hκ)
     (fp + fs "verify_sub" + (vsSizes D).sum)
   obtain ⟨o0, o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, rfl⟩ :=
     list12 (ho1.length.trans (by simp [vsKids1]))

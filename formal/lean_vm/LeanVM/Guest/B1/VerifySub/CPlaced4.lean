@@ -150,10 +150,10 @@ variable {fs bytecode D}
 
 /-! ## Their completeness -/
 
-/-- A bound on every valid tree of `f` (`Memory.TotalLe` at a constant bound). -/
-def TotalLeC (fs : String → ℕ) (f : String) (B : ℕ) : Prop :=
+/-- A bound on every valid tree of `f` by its arguments (`Memory.TotalLe`'s body). -/
+def TotalLeA (fs : String → ℕ) (f : String) (B : List E → ℕ) : Prop :=
   ∀ rd (t : Tree) (args rets : List E), t.name = f → t.Valid coreProgram rd args rets →
-    t.total fs ≤ B
+    t.BufsOk coreProgram → t.total fs ≤ B args
 
 /-- The bounds of `verify_sub`'s callees' trees. -/
 structure VsBounds where
@@ -194,8 +194,12 @@ theorem pushTotal_bounds (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) :
 theorem vsKids1_completeB {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode)
     (htok : D.TOk bytecode) {Bs : VsBounds} (hG : CompleteGkrAtB fs cert κ Bs.gkr)
     (hT : CompleteTablesAtB fs cert κ bytecode TCtx Bs.tab) (hF : CompleteFlockAtB fs cert κ Bs.fl)
-    (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hac : TotalLeC fs "assert_canonical" Bs.ac)
-    (h84 : TotalLeC fs "__loop84" Bs.l84) (h85 : TotalLeC fs "__loop85" Bs.l85)
+    (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hac : TotalLeA fs "assert_canonical" fun _ => Bs.ac)
+    {B84 B85 : List E → ℕ} (h84 : TotalLeA fs "__loop84" B84)
+    (hB84 : ∀ args : List E, args.getD 0 0 = word 1 0 0 → B84 args ≤ Bs.l84)
+    (h85 : TotalLeA fs "__loop85" B85)
+    (hB85 : ∀ τ < 29, ∀ args : List E, args.getD 0 0 = word 1 0 0 → args.getD 1 0 = gen ^ τ →
+      B85 args ≤ Bs.l85)
     (hκ : 7 ≤ κ) :
     ∀ k ∈ vsKids1 fs D fp lpA sqA outA, k.taken = true →
       CompleteAtB fs cert κ k.f k.Lin k.args k.Out (vsBd fs Bs k) := by
@@ -251,12 +255,12 @@ theorem vsKids1_completeB {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok
         rwa [CE.2.2.1] at this, (M rd hm).1.zchis, (M rd hm).1.lrs, (M rd hm).1.zpart⟩
     rw [← CE.2.2.1] at h
     exact h.mono le_rfl (by vs_bd)
-  · refine (completeAt_of_rel_pureB loop84_pure (by simp) (fun rd hm => ?_) κ (B := fun _ => Bs.l84)
-      h84).mono le_rfl (by vs_bd)
+  · refine (completeAt_of_rel_pureB loop84_pure (by simp) (fun rd hm => ?_) κ (B := B84)
+      h84).mono le_rfl (le_trans (hB84 _ rfl) (by vs_bd))
     rw [word_one, ← pow_zero gen]
     exact loop84_complete (loop84_bodies (M rd hm).1 hok.s_length mcs_length)
-  · refine (completeAt_of_rel_pureB loop85_pure (by simp) (fun rd hm => ?_) κ (B := fun _ => Bs.l85)
-      h85).mono le_rfl (by vs_bd)
+  · refine (completeAt_of_rel_pureB loop85_pure (by simp) (fun rd hm => ?_) κ (B := B85)
+      h85).mono le_rfl (le_trans (hB85 D.tau (tau_lt hok) _ rfl rfl) (by vs_bd))
     have hτ : D.tau ≠ 0 := by
       intro h0
       simp only [h0, pow_zero, word_one, CharTwo.add_self_eq_zero, ne_eq, not_true_eq_false,

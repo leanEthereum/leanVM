@@ -738,7 +738,7 @@ theorem completeAt_of_rel_pureB {S : List String} (hS : coreProgram.PureIn S) {g
     (hg : g ∈ S) {Lin : Layout} {args rets : List E}
     (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) {B : List E → ℕ}
     (hB : ∀ rd (t : Tree) args rets, t.name = g → t.Valid coreProgram rd args rets →
-      t.total fs ≤ B args) :
+      t.BufsOk coreProgram → t.total fs ≤ B args) :
     CompleteAtB fs cert k g Lin args (Returns rets) (B args) := by
   intro fp
   classical
@@ -753,8 +753,8 @@ theorem completeAt_of_rel_pureB {S : List String} (hS : coreProgram.PureIn S) {g
   obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg
     (Main.relIn_of_rel_supp coreProgram_wf hsupp (h rd0 h0))
   have hnB : n ≤ B args := by
-    obtain ⟨t, hname, hv, -, -, ht, -⟩ := hn fp rd0 (fun _ _ => rfl) (fun _ h => h)
-    rw [← ht]; exact hB rd0 t args rets hname hv
+    obtain ⟨t, hname, hv, hbo, -, ht, -⟩ := hn fp rd0 (fun _ _ => rfl) (fun _ h => h)
+    rw [← ht]; exact hB rd0 t args rets hname hv hbo
   refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, hnB, fun rd _ hL => ?_⟩
   have hL' : MemL rd Lin := by simpa using hL
   refine relAtIn_dmono (hn fp rd (fun i hi => ?_) (fun A hA => ?_)) (fun i hi => ?_)
