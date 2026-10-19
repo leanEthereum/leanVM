@@ -141,5 +141,70 @@ structure OsCalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (k : �
   foldFinal5 : OsFoldFinalAt fs cert k "fold_final_msg__L5" 5
   decode : ∀ p ∈ osDqNames, OsDecodeAt fs cert k p.1 p.2
 
+/-! ## On disjoint layouts
+
+The same callees in the `CompleteAtD` form (`Uniform.lean`): their layouts pairwise disjoint. -/
+
+/-- `OsFoldAt` on disjoint layouts. -/
+def OsFoldAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop :=
+  CompleteRelD fs cert k "opening_fold" MeaningOpeningFold
+
+/-- `OsAssertCanonicalAt` on disjoint layouts. -/
+def OsAssertCanonicalAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop :=
+  CompleteRelD fs cert k "assert_canonical" fun _ args rets => MeaningAssertCanonical args rets
+
+/-- `OsOodPointAt` on disjoint layouts. -/
+def OsOodPointAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop :=
+  CompleteRelD fs cert k "opening_ood_point" OodPointPre
+
+/-- `OsGrindAt` on disjoint layouts. -/
+def OsGrindAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop :=
+  CompleteRelD fs cert k "grind_check" GrindPre
+
+/-- `OsFinalMsgAt` on disjoint layouts. -/
+def OsFinalMsgAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningOpeningFinalMessage n rd args rets) →
+    CompleteAtD fs cert k name Lin args (Returns rets)
+
+/-- `OsRowWeightsAt` on disjoint layouts. -/
+def OsRowWeightsAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (folds rev : ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningOpeningRowWeights folds rev rd args rets) →
+    CompleteAtD fs cert k name Lin args (Returns rets)
+
+/-- `OsFoldFinalAt` on disjoint layouts. -/
+def OsFoldFinalAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ) : Prop :=
+  ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, MemL rd Lin → MeaningFoldFinalMsg n rd args rets) →
+    CompleteAtD fs cert k name Lin args (Returns rets)
+
+/-- `OsDecodeAt` on disjoint layouts. -/
+def OsDecodeAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d : ℕ) (name : String) : Prop :=
+  ∀ (w pos ptrs : E) (Lin : Main.Layout) (fp : ℕ),
+    (∀ rd, LowDef k rd → MemL rd Lin → ∀ j < 192 / d,
+      LoadHolds rd pos j (eOfNat ((eToNat w >>> (j * d)) % 2 ^ d)) ∧
+        LoadHolds rd ptrs j (ofK (Parameters.gpow (fp + cert name (.n 3))) * gen ^ (j * d))) →
+    ∃ Lown : Main.Layout, Within (dqRunL cert name fp w ++ Lown) fp (fs name) ∧
+      DisjL (dqRunL cert name fp w ++ Lown) ∧
+      ∀ rd, LowDef k rd → MemL rd (dqRunL cert name fp w ++ Lown ++ Lin) →
+        RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL (dqRunL cert name fp w)) fp (fs name) name
+          [w, pos, ptrs] []
+
+/-- **The callees of `open_stacked` from group 1, on disjoint layouts.** -/
+structure OsCalleesAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop where
+  fold : OsFoldAtD fs cert k
+  canonical : OsAssertCanonicalAtD fs cert k
+  ood : OsOodPointAtD fs cert k
+  grind : OsGrindAtD fs cert k
+  finalMsg4 : OsFinalMsgAtD fs cert k "opening_final_message__L4" 4
+  finalMsg8 : OsFinalMsgAtD fs cert k "opening_final_message__L8" 8
+  finalMsg16 : OsFinalMsgAtD fs cert k "opening_final_message__L16" 16
+  finalMsg32 : OsFinalMsgAtD fs cert k "opening_final_message__L32" 32
+  rowWeights4 : OsRowWeightsAtD fs cert k "opening_row_weights__L4_L0" 4 0
+  rowWeights6 : OsRowWeightsAtD fs cert k "opening_row_weights__L6_L1" 6 1
+  foldFinal2 : OsFoldFinalAtD fs cert k "fold_final_msg__L2" 2
+  foldFinal3 : OsFoldFinalAtD fs cert k "fold_final_msg__L3" 3
+  foldFinal4 : OsFoldFinalAtD fs cert k "fold_final_msg__L4" 4
+  foldFinal5 : OsFoldFinalAtD fs cert k "fold_final_msg__L5" 5
+  decode : ∀ p ∈ osDqNames, OsDecodeAtD fs cert k p.1 p.2
+
 end
 end LeanVM.Guest.B1
