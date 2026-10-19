@@ -9,6 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.StackedC4
 public import LeanVM.Guest.B1.Whir.StackedLevel
 public import LeanVM.Guest.B1.Whir.OpenLen
+public import LeanVM.Guest.B1.Whir.OsSteps
 
 /-!
 # A level's honest data (TRIAGE #36)
@@ -187,7 +188,8 @@ theorem os_lq_inv {ml idx nsq depth nq : ℕ} {L : Whir.Level} {lf : List E} {w1
             else rows.map extRow) lf (powers lam qs.length),
           [c0, enforcedSum (if idx = 0 then rows.map fun row ↦ row.reverse.map ofK else rows.map extRow) lf
             (powers lam qs.length) + c2, c2], fun x ↦ inducedWeight ml qs (powers lam qs.length) x)]) ∧
-        s3 = ⟨obsCv (obsCv (sqCv cv4) c0) c2, xs.drop (p2 + 3), osq, ro⟩ := by
+        s3 = ⟨obsCv (obsCv (sqCv cv4) c0) c2, xs.drop (p2 + 3), osq, ro⟩ ∧
+        queriesOf (osLevelQueries ml idx L lf w1 pend) ⟨cv2, xs.drop p2, op, ro⟩ = [(hh, qs.zip op)] := by
   subst hdq hnq
   intro n cv3 qs cv4 lam c0 c2
   simp only [osLevelQueries] at h
@@ -213,10 +215,46 @@ theorem os_lq_inv {ml idx nsq depth nq : ℕ} {L : Whir.Level} {lf : List E} {w1
   obtain ⟨hd0, hd2, hrE⟩ := os_drop_cons2 hsE
   obtain ⟨rfl, rfl⟩ := os_inv_ret h5
   subst hrE
-  refine ⟨by omega, hpow, words, osq, rt, hh, ww, hr, hoa, ?_, ?_⟩
+  refine ⟨by omega, hpow, words, osq, rt, hh, ww, hr, hoa, ?_, ?_, ?_⟩
   · dsimp only; rw [← hd0, ← hd2, show p2 + 1 + 1 = p2 + 2 by ring]
   · dsimp only; rw [← hd0, ← hd2, show p2 + 1 + 1 = p2 + 2 by ring, show p2 + 1 + 2 = p2 + 3 by ring]
+  · simp only [osLevelQueries, prog_bind_eq]
+    rw [os_queriesOf_bind _ _ _ hA, os_queriesOf_noQ (Prog.grindP _) trivial, List.nil_append,
+      os_queriesOf_bind _ _ _ hB, os_queriesOf_noQ (sampleQueries _ _) (os_noQ_sampleQueriesAux _ _ _),
+      List.nil_append,
+      os_queriesOf_bind _ _ _ hC, os_queriesOf_noQ Prog.sampleE (fun _ => trivial), List.nil_append,
+      os_queriesOf_bind _ _ _ hD, os_queriesOf_queryP hr hoa,
+      os_queriesOf_bind _ _ _ hE, os_queriesOf_noQ _ (os_noQ_roundPoly3 _), List.nil_append]
+    rfl
 
+
+theorem os_noQ_levelMid (ml : ℕ) (rest : List Whir.Level) : osNoQ (osLevelMid ml rest) := by
+  cases rest with
+  | nil =>
+    simp only [osLevelMid, prog_bind_eq]
+    exact os_noQ_bind _ _ (os_noQ_readN _) fun _ => trivial
+  | cons next rest =>
+    simp only [osLevelMid, prog_bind_eq]
+    exact os_noQ_bind _ _ trivial fun _ => os_noQ_bind _ _ (os_noQ_sampleN _) fun _ =>
+      os_noQ_bind _ _ (fun _ => trivial) fun _ => os_noQ_bind _ _ (os_noQ_roundPoly3 _) fun _ => trivial
+
+/-- A level's query steps: its queries', then the rest's. -/
+theorem os_qOf_level {μ lane lvl ml : ℕ} {L : Whir.Level} {rest : List Whir.Level} {w w1 w' : WhirState}
+    {lf res : List E} {pend : List (E × List E × (List E → E))} {st st1 st2 st3 : St}
+    (h1 : Runs (foldRounds L.fold w []) st (w1, lf) st1) (hml : μ - w1.folds.length = ml)
+    (h3 : Runs (osLevelMid ml rest) st1 (res, pend) st2)
+    (h5 : Runs (osLevelQueries ml lvl L lf w1 pend) st2 w' st3) :
+    queriesOf (whirLevelsOpen μ lane lvl (L :: rest) w) st = queriesOf (osLevelQueries ml lvl L lf w1 pend) st2 ++
+      queriesOf (match rest with
+        | [] => osTailOpen ml lane w' res
+        | _ :: _ => whirLevelsOpen μ lane (lvl + 1) rest w') st3 := by
+  rw [os_whirLevelsOpen_cons, prog_bind_eq, os_queriesOf_bind _ _ _ h1,
+    os_queriesOf_noQ _ (os_noQ_foldRounds _ _ _), List.nil_append]
+  dsimp only
+  rw [hml, prog_bind_eq, os_queriesOf_bind _ _ _ h3, os_queriesOf_noQ _ (os_noQ_levelMid _ _), List.nil_append]
+  dsimp only
+  rw [prog_bind_eq, os_queriesOf_bind _ _ _ h5]
+  cases rest <;> rfl
 
 /-- **A level of the run, inverted**: one level of `whirLevelsOpen` from `p` words of `xs` has its
 data `H` (`OsLvOk`), and the rest of the run continues from the level's end. -/
@@ -229,7 +267,16 @@ theorem os_level_inv {cfg : OsCfg} {μ lane lvl : ℕ} {L : Whir.Level} {rest : 
       (rest = [] → Runs (osTailOpen (μ - osLevelF cfg lvl) lane (osHWEnd cfg lvl xs p H) (osHMs cfg lvl xs p))
         ⟨osHCvEnd cfg lvl xs p H.cv1, xs.drop (osHPEnd cfg lvl p), H.osq, roots⟩ e sp') ∧
       (rest ≠ [] → Runs (whirLevelsOpen μ lane (lvl + 1) rest (osHWEnd cfg lvl xs p H))
-        ⟨osHCvEnd cfg lvl xs p H.cv1, xs.drop (osHPEnd cfg lvl p), H.osq, osHRootsEnd cfg lvl roots H⟩ e sp') := by
+        ⟨osHCvEnd cfg lvl xs p H.cv1, xs.drop (osHPEnd cfg lvl p), H.osq, osHRootsEnd cfg lvl roots H⟩ e sp') ∧
+      ∃ rt hh ww, (osHRootsEnd cfg lvl roots H)[lvl]? = some (rt, hh, ww) ∧
+        (rest = [] → queriesOf (whirLevelsOpen μ lane lvl (L :: rest) w) ⟨cv, xs.drop p, osp, roots⟩ =
+          (hh, (osHQs cfg lvl xs p H.cv1).zip osp) ::
+            queriesOf (osTailOpen (μ - osLevelF cfg lvl) lane (osHWEnd cfg lvl xs p H) (osHMs cfg lvl xs p))
+              ⟨osHCvEnd cfg lvl xs p H.cv1, xs.drop (osHPEnd cfg lvl p), H.osq, roots⟩) ∧
+        (rest ≠ [] → queriesOf (whirLevelsOpen μ lane lvl (L :: rest) w) ⟨cv, xs.drop p, osp, roots⟩ =
+          (hh, (osHQs cfg lvl xs p H.cv1).zip osp) ::
+            queriesOf (whirLevelsOpen μ lane (lvl + 1) rest (osHWEnd cfg lvl xs p H))
+              ⟨osHCvEnd cfg lvl xs p H.cv1, xs.drop (osHPEnd cfg lvl p), H.osq, osHRootsEnd cfg lvl roots H⟩) := by
   obtain ⟨hf, hf0, hq, hml0, hml1, hlc, hdep, hgr, hper, hs1, hs2, hs3, hs4, hdig, hcd1, hcd2, hb1,
     hb2, hb4, hb5, hnq, hb6, hlast, hyr, hnext⟩ := hspec
   rw [os_whirLevelsOpen_cons] at h
@@ -247,6 +294,7 @@ theorem os_level_inv {cfg : OsCfg} {μ lane lvl : ℕ} {L : Whir.Level} {rest : 
   dsimp only at h2
   rw [hml] at h2
   obtain ⟨⟨res, pend⟩, s2, h3, h4⟩ := os_inv_bind h2
+  have h3o := h3
   have hd' : (cfg.lv lvl).logCols + L.logInvRate = (cfg.lv lvl).depth := by rw [hdep, hlc]
   have eP1 : osHP1 cfg lvl p = p + 2 * L.fold := by simp only [osHP1, hf]
   have hfolds : w1.folds = w.folds ++ chs ∧ chs.length = (cfg.lv lvl).folds := by
@@ -271,14 +319,21 @@ theorem os_level_inv {cfg : OsCfg} {μ lane lvl : ℕ} {L : Whir.Level} {rest : 
       rw [osHP2, eP1, ite_pos' hyl, hmsl, hyr']
     have eMs : res = osHMs cfg lvl xs p := by rw [osHMs, eP1, hyr', ← hmsl]; exact hms
     have eCv2 : obsAll cv1 res = osHCv2 cfg lvl xs p cv1 := by rw [osHCv2, ite_pos' hyl, eMs]
-    rw [eP2, eCv2] at h4
+    rw [eP2, eCv2] at h4 h3o
     simp only at h4
     obtain ⟨w', s3, h5, h6⟩ := os_inv_bind h4
-    obtain ⟨hlen, hpow, rows, osq, rt, hh, ww, hro, hoa, rfl, rfl⟩ := os_lq_inv (nsq := (cfg.lv lvl).squeezes)
+    obtain ⟨hlen, hpow, rows, osq, rt, hh, ww, hro, hoa, rfl, rfl, hqs⟩ := os_lq_inv (nsq := (cfg.lv lvl).squeezes)
       hd' hq.symm hper hs1 hs2 hs3 h5
+    have hqo := os_qOf_level (lane := lane) h1 hml h3o h5
     refine ⟨⟨w1, chs, cv1, default, rows, osq⟩, ⟨by rw [eP1]; exact h1, hlen, fun h' => absurd hyl h', hpow,
       ⟨rt, hh, ww, by simp only [osHRootsEnd, ite_pos' hyl]; exact hro, hoa⟩, hw1l, hfolds⟩, fun _ => ?_,
+      fun h' => absurd rfl h', rt, hh, ww, by simp only [osHRootsEnd, ite_pos' hyl]; exact hro, fun _ => ?_,
       fun h' => absurd rfl h'⟩
+    swap
+    · rw [hqo, hqs, List.singleton_append, ← eMs, ← hlc]
+      congr 2
+      simp only [osHWEnd, osHPending, ite_pos' hyl, List.nil_append, osHEnf, osHRowsE, osHQs, osHLam, osHCv4,
+        osHCv3, osHNonce, osHC]
     rw [← eMs, ← hlc]
     convert h6 using 2
     all_goals try rfl
@@ -314,17 +369,23 @@ theorem os_level_inv {cfg : OsCfg} {μ lane lvl : ℕ} {L : Whir.Level} {rest : 
     have eP2 : p + 2 * L.fold + 2 + 1 + 2 = osHP2 cfg lvl p := by rw [osHP2, eP1, ite_neg' hyl]
     have eCv2 : obsCv (obsCv (obsCv (sqAll (cfg.lv lvl).logCols (obsCv (obsCv cv1 x0) x1)).2 y) c0o) c2o =
         osHCv2 cfg lvl xs p cv1 := by rw [osHCv2, ite_neg' hyl, osHCv12, e0, e1, e2, e3, e4]
-    rw [eP2, eCv2] at h4
+    rw [eP2, eCv2] at h4 h3o
     simp only at h4
     obtain ⟨w', s3, h5, h6⟩ := os_inv_bind h4
-    obtain ⟨hlen, hpow, rows, osq, rt, hh, ww, hro, hoa, rfl, rfl⟩ := os_lq_inv (nsq := (cfg.lv lvl).squeezes)
+    obtain ⟨hlen, hpow, rows, osq, rt, hh, ww, hro, hoa, rfl, rfl, hqs⟩ := os_lq_inv (nsq := (cfg.lv lvl).squeezes)
       hd' hq.symm hper hs1 hs2 hs3 h5
+    have hqo := os_qOf_level (lane := lane) h1 hml h3o h5
     have eRoots : ro1 ++ [(root, (cfg.lv lvl).logCols - next.fold + next.logInvRate, 3 * 2 ^ next.fold)] =
         osHRootsEnd cfg lvl ro1 ⟨w1, chs, cv1, root, rows, osq⟩ := by
       rw [osHRootsEnd, ite_neg' hyl, hdep', hfl', hlc]
     refine ⟨⟨w1, chs, cv1, root, rows, osq⟩, ⟨by rw [eP1]; exact h1, hlen, fun _ => by rw [← e0, ← e1]; exact hroot,
       hpow, ⟨rt, hh, ww, by rw [← eRoots]; exact hro, hoa⟩, hw1l, hfolds⟩, fun h' => absurd h' (by simp),
-      fun _ => ?_⟩
+      fun _ => ?_, rt, hh, ww, by rw [← eRoots]; exact hro, fun h' => absurd h' (by simp), fun _ => ?_⟩
+    swap
+    · rw [hqo, hqs, List.singleton_append, ← eRoots]
+      congr 2
+      simp only [osHWEnd, osHPending, ite_neg' hyl, osHEnf, osHRowsE, osHQs, osHLam, osHCv4, osHCv3,
+        osHNonce, osHC, osHCv12, ← e0, ← e1, ← e2, ← e3, ← e4, List.singleton_append]
     rw [← eRoots]
     convert h6 using 2
     all_goals try rfl

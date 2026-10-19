@@ -133,11 +133,11 @@ def osLvsEnd (cfg : OsCfg) (xs : List E) :
 theorem osLevels_complete {cfg : OsCfg} {μ lane : ℕ} {Lall : List Whir.Level}
     (hlen : Lall.length = cfg.levels.length)
     (hspec : ∀ i < Lall.length, LvSpec cfg μ i (Lall.getD i default) (Lall.drop (i + 1)))
-    (hyl : cfg.yrLevel = cfg.levels.length - 1) {xs : List E} {e : WhirEnd} {sp' : St} {cur : E}
+    (hyl : cfg.yrLevel = cfg.levels.length - 1) {xs : List E} {e : WhirEnd} {sp' : St} {Q : List (ℕ × List (ℕ × Opening))} {cur : E}
     {P : OsPtrs} {sqz rew : ℕ → E} (hP : OsPtrsAt σ P) {kret : List E → Prop} :
     ∀ (Hs : List OsLvH) (lvl : ℕ) (cv : Digest) (p : ℕ) (w : WhirState) (osp : List Opening)
       (roots : List (Digest × ℕ × ℕ)) (s : OsSt), lvl + Hs.length = cfg.levels.length →
-      OsChain cfg μ lane xs Lall e sp' lvl cv p w osp roots Hs → OsAt σ s cv cur p → s.co ≤ p → s.co ≤ 8 →
+      OsChain cfg μ lane xs Lall e sp' Q lvl cv p w osp roots Hs → OsAt σ s cv cur p → s.co ≤ p → s.co ≤ 8 →
       w.quad = [σ (.n s.c), σ (.n s.b), σ (.n s.a)] → OsLvsMem rd cfg xs cur P sqz lvl cv p w roots Hs →
       (∀ j < (osLvsVals cfg xs cur P sqz rew lvl cv p w roots s Hs).length,
         σ (.n (s.k + j)) = (osLvsVals cfg xs cur P sqz rew lvl cv p w roots s Hs).getD j 0) →
@@ -151,7 +151,7 @@ theorem osLevels_complete {cfg : OsCfg} {μ lane : ℕ} {Lall : List Whir.Level}
         (osLevels cfg lvl (cfg.levels.drop lvl) s).2.k = s.k + (osLvsVals cfg xs cur P sqz rew lvl cv p w roots s Hs).length
   | [], _, _, _, _, _, _, _, _, hch, _, _, _, _, _, _ => hch.elim
   | H :: Hs, lvl, cv, p, w, osp, roots, s, hl, hch, hat, hcop, hco8, hq, hm, hv => by
-    obtain ⟨hok, hlast, hnext⟩ := hch
+    obtain ⟨hok, -, hlast, hnext⟩ := hch
     obtain ⟨hm1, hm2⟩ := hm
     simp only [List.length_cons] at hl
     have hlt : lvl < cfg.levels.length := by omega
