@@ -43,7 +43,7 @@ theorem mainComplete_of (fs : String → ℕ) (cert : String → V → ℕ) (cnt
         D.pi = statementDigest seed c.statement ∧ D.seed = seed ∧ D.fresh = c.fresh)
     (hwords : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
       mainBound fs Bd (honestWords seed s w) ≤ b.words.eval (work s w))
-    (hcnt : ∀ (t : Tree) op, cnt t op ≤ t.weight (ω op) + jt op)
+    (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op, cnt t op ≤ t.weight (ω op) + jt op)
     (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → ∀ op,
       mainWeight (ω op) Bd (Wt op) (honestWords seed s w) + jt op ≤ (b.instrs op).eval (work s w)) :
     MainComplete fs cert cnt b := by
@@ -60,7 +60,7 @@ theorem mainComplete_of (fs : String → ℕ) (cert : String → V → ℕ) (cnt
     fun rd hl hL h0 h1 => ?_⟩
   obtain ⟨t, hn, hv, hb, hp, ht, hl', -, hw⟩ := hrel rd hl hL h0 h1
   exact ⟨t, hn, hv, hb, hp, ht, hl', fun op =>
-    le_trans (hcnt t op) (le_trans (Nat.add_le_add_right (hw op) _) (hinstrs seed s w hN hlim hcaps op))⟩
+    le_trans (hcnt rd t hv op) (le_trans (Nat.add_le_add_right (hw op) _) (hinstrs seed s w hN hlim hcaps op))⟩
 
 end
 end LeanVM.Guest.B1.Main

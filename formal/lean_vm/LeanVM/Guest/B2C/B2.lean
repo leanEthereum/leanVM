@@ -123,6 +123,11 @@ theorem weightKids_eq_sumB (ω : String → ℕ) : ∀ ks : List Tree,
   | [] => by rw [Tree.weightKids]; rfl
   | k :: ks => by rw [Tree.weightKids, weightKids_eq_sumB ω ks, List.map_cons, List.sum_cons]
 
+theorem weightVKids_eq_sumB (ω : String → Val → ℕ) : ∀ ks : List Tree,
+    weightVKids ω ks = (ks.map (weightV ω)).sum
+  | [] => by rw [weightVKids]; rfl
+  | k :: ks => by rw [weightVKids, weightVKids_eq_sumB ω ks, List.map_cons, List.sum_cons]
+
 theorem sum_range_getD {α : Type} (g : α → ℕ) : ∀ ks : List α,
     ((List.range ks.length).map fun i => ((ks[i]?).map g).getD 0).sum = (ks.map g).sum
   | [] => rfl
@@ -202,7 +207,7 @@ arguments. -/
 def InstRuns {κ : ℕ} (L : MemImage κ) (I : Inst) (args rets : List E) : Prop :=
   ∃ (r : Regs K) (c : Opcode → ℕ),
     (if I.t.name = "main" then r = Regs.final guest else retRegs L (gpow I.fp) = some r) ∧
-    RunC guest L ⟨gpow (entryOf I.t.name), gpow I.fp⟩ r c ∧ (∀ op, c op ≤ I.t.weight (pathMax · op)) ∧
+    RunC guest L ⟨gpow (entryOf I.t.name), gpow I.fp⟩ r c ∧ (∀ op, c op ≤ weightV (fun f σ ↦ pathCountN f σ op) I.t) ∧
     ∀ k (hk : k < rets.length), L.read (gpow (I.fp + (2 + args.length + k))) = some rets[k]
 
 section Insts
@@ -234,7 +239,7 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
             RunC guest L ⟨gpow (entryOf c.f), gpow kfp⟩ r ci) ∧
             ∀ k (hk : k < c.rets.length),
               L.read (gpow (kfp + (2 + c.args.length + k))) = some (σ c.rets[k])) ∧
-          ∀ op, ci op ≤ ((kids[i']?).map (Memory.Tree.weight (pathMax · op))).getD 0 := by
+          ∀ op, ci op ≤ ((kids[i']?).map (weightV (fun f σ ↦ pathCountN f σ op))).getD 0 := by
         intro i'
         cases hc : (calls es)[i']? with
         | none => exact ⟨0, fun c _ h' => absurd h' (by simp), fun _ => Nat.zero_le _⟩
@@ -290,14 +295,15 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
         simp only [Tree.name]
         rw [entryOf_of hj]
         exact hrun
-      · rw [hti, Tree.weight, weightKids_eq_sumB, ← sum_range_getD _ kids, hkv.1]
+      · rw [hti, weightV, weightVKids_eq_sumB, ← sum_range_getD _ kids, hkv.1]
         have hs : (ck.map (· op)).sum ≤
             ((List.range (calls es).length).map fun i' =>
-              ((kids[i']?).map (Memory.Tree.weight (pathMax · op))).getD 0).sum := by
+              ((kids[i']?).map (weightV (fun f σ ↦ pathCountN f σ op))).getD 0).sum := by
           rw [hck, List.map_map]
           exact List.sum_le_sum fun i' _ => (hcf i').2 op
         have := hle op
-        rw [hname'] at this
+        have hpc : pathCountN f σ op = pathCount (i + 1) σ op := by unfold pathCountN; rw [hj]
+        rw [hpc]
         omega
       · subst hrets hpar
         have hk'' : k < vs.length := by simpa using hk'
@@ -315,7 +321,7 @@ end Insts
 theorem main_runC (h : B2Hyps) {hdr : E × E} {rd : Reader} {T : Memory.Tree} (hname : T.name = "main")
     (hH : HonestAt coreProgram fs H C hdr T cert rd [] []) :
     ∃ c : Opcode → ℕ, RunC guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest) c ∧
-      ∀ op, c op ≤ T.weight (pathMax · op) := by
+      ∀ op, c op ≤ weightV (fun f σ ↦ pathCountN f σ op) T := by
   obtain ⟨I, hI, hIt, hfp, -⟩ := root_inst (P := coreProgram) (fs := fs) (H := H) (hdr := hdr) (T := T)
   have hv : I.t.Valid coreProgram (honest coreProgram fs H C hdr T).read [] [] := by
     rw [hIt]; exact hH.toHonest.valid_image

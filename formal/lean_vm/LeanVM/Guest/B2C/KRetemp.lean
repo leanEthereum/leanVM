@@ -34,11 +34,77 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 /-! ## The counts -/
 
+mutual
+theorem costW_congr (acs : List (ℕ × List (List ℕ))) {σ σ' : Val} :
+    ∀ ss : List Stmt, (∀ v ∈ Stmt.usesList ss, σ' v = σ v) → costW acs σ' ss = costW acs σ ss
+  | [], _ => by rw [costW, costW]
+  | s :: ss, h => by
+    rw [costW, costW, cost1_congr acs s (fun v hv ↦ h v (by rw [Stmt.usesList]; exact List.mem_append_left _ hv)),
+      costW_congr acs ss (fun v hv ↦ h v (by rw [Stmt.usesList]; exact List.mem_append_right _ hv))]
+
+theorem cost1_congr (acs : List (ℕ × List (List ℕ))) {σ σ' : Val} :
+    ∀ s : Stmt, (∀ v ∈ Stmt.uses s, σ' v = σ v) → cost1 acs σ' s = cost1 acs σ s
+  | .ite c z n, h => by
+    rw [cost1, cost1, h c (by rw [Stmt.uses]; exact List.mem_cons_self),
+      costW_congr acs z (fun v hv ↦ h v (by rw [Stmt.uses]; exact List.mem_cons_of_mem _ (List.mem_append_left _ hv))),
+      costW_congr acs n (fun v hv ↦ h v (by rw [Stmt.uses]; exact List.mem_cons_of_mem _ (List.mem_append_right _ hv)))]
+  | .match_ x arms, h => by
+    rw [cost1, cost1]
+    exact costArms_congr acs x _ 0 arms (h x (by rw [Stmt.uses]; exact List.mem_cons_self))
+      (fun v hv ↦ h v (by rw [Stmt.uses]; exact List.mem_cons_of_mem _ hv))
+  | .atom _, _ => rfl
+  | .call .., _ => rfl
+  | .callIf .., _ => rfl
+  | .dispatch .., _ => rfl
+  | .ret _, _ => rfl
+
+theorem costArms_congr (acs : List (ℕ × List (List ℕ))) {σ σ' : Val} (x : V) (key : Option (List (List ℕ))) :
+    ∀ (k : ℕ) (arms : List (List Stmt)), σ' x = σ x → (∀ v ∈ Stmt.usesArms arms, σ' v = σ v) →
+      costArms acs σ' x key k arms = costArms acs σ x key k arms
+  | _, [], _, _ => by rw [costArms, costArms]
+  | k, a :: as, hx, h => by
+    rw [costArms, costArms, hx,
+      costW_congr acs a (fun v hv ↦ h v (by rw [Stmt.usesArms]; exact List.mem_append_left _ hv)),
+      costArms_congr acs x key (k + 1) as hx
+        (fun v hv ↦ h v (by rw [Stmt.usesArms]; exact List.mem_append_right _ hv))]
+end
+
+/-- A path's count does not see the temporaries' values. -/
+theorem pathCountN_retemp (ν : ℕ → String → Val → V → E) (fp : ℕ) (f : String) (σ : Val) (op : Opcode) :
+    pathCountN f (retempVal coreProgram ν fp f σ) op = pathCountN f σ op := by
+  unfold pathCountN
+  split
+  · rename_i j hj
+    obtain ⟨i, rfl, hi, -, hfind, hcore, -⟩ := fn_of_idx hj
+    unfold pathCount
+    rw [hcore, costW_congr _ _ (fun v hv ↦ retempVal_uses coreProgram_fresh hfind hv)]
+  · rfl
+
+mutual
+theorem weightV_retemp (ν : ℕ → String → Val → V → E) (op : Opcode) :
+    ∀ (t : Tree) (fp : ℕ), weightV (fun f σ ↦ pathCountN f σ op) (t.retemp coreProgram fs ν fp) =
+      weightV (fun f σ ↦ pathCountN f σ op) t
+  | .node f σ bufs kids, fp => by
+      rw [retemp_node, weightV, weightV, pathCountN_retemp, weightVKids_retempKids ν op kids _
+        (by rw [length_kidPos, List.length_map])]
+  | .phantom .., fp => by rw [retemp_phantom]
+
+theorem weightVKids_retempKids (ν : ℕ → String → Val → V → E) (op : Opcode) :
+    ∀ (ks : List Tree) (ps : List ℕ), ps.length = ks.length →
+      weightVKids (fun f σ ↦ pathCountN f σ op) (Tree.retempKids coreProgram fs ν ps ks) =
+        weightVKids (fun f σ ↦ pathCountN f σ op) ks
+  | [], _, _ => by rw [retempKids_nil]
+  | _ :: _, [], h => absurd h (by simp)
+  | k :: ks, p :: ps, h => by
+      rw [retempKids_cons, weightVKids, weightVKids, weightV_retemp ν op k p,
+        weightVKids_retempKids ν op ks ps (by simpa using h)]
+end
+
 /-- **The instruction counts do not see the temporaries' values.** -/
 theorem cntRetemp : End.CntRetemp fs cnt := by
   intro ν t
   funext op
-  simp only [cnt, weight_retemp]
+  simp only [cnt, weightV_retemp]
 
 /-! ## Re-chosen instances -/
 

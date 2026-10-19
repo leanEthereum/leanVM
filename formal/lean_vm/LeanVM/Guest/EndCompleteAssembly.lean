@@ -69,7 +69,7 @@ theorems, the children's runs and the words budget. -/
 theorem ea_mainComplete {a86 b86 : ℕ} (instrs : Opcode → Linear)
     (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) (hfs : 2 ≤ fs "main") (hcaps : DeferredCaps)
     (ω : Opcode → String → ℕ) (Wt : ∀ op, MainWeightHyps fs (ω op)) (jt : Opcode → ℕ)
-    (hcnt : ∀ (t : Tree) op, cnt t op ≤ t.weight (ω op) + jt op)
+    (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op, cnt t op ≤ t.weight (ω op) + jt op)
     (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → ∀ op,
       mainWeight (ω op) (calleeBd fs H) (Wt op) (honestWords seed s w) + jt op ≤ (instrs op).eval (work s w)) :
     MainComplete fs cert cnt (eaBudget fs cert H a86 b86 instrs) := by
@@ -91,7 +91,7 @@ theorem ea_guest_complete {a86 b86 : ℕ} (instrs : Opcode → Linear) (Hh : Ins
     (C : Inst → List (ℕ × E))
     (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) (hfs : 2 ≤ fs "main") (hcaps : DeferredCaps)
     (ω : Opcode → String → ℕ) (Wt : ∀ op, MainWeightHyps fs (ω op)) (jt : Opcode → ℕ)
-    (hcnt : ∀ (t : Tree) op, cnt t op ≤ t.weight (ω op) + jt op)
+    (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op, cnt t op ≤ t.weight (ω op) + jt op)
     (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → ∀ op,
       mainWeight (ω op) (calleeBd fs H) (Wt op) (honestWords seed s w) + jt op ≤ (instrs op).eval (work s w))
     (hk : LeanVM.Guest.End.KFactsAll fs Hh C cert) (hrt : LeanVM.Guest.End.CntRetemp fs cnt)

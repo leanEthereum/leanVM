@@ -215,7 +215,7 @@ end
 /-- **The count of function `j`'s path under `σ`**: the most a path runs, and the separately
 counted arms it passes. -/
 noncomputable def pathCount (j : ℕ) (σ : Val) (op : Opcode) : ℕ :=
-  pathMax (coreOf j).name op + costW (nth Data.cplArms j []) σ (coreOf j).body op
+  (plumbOf j).pmax.getD (opIdx op) 0 + costW (nth Data.cplArms j []) σ (coreOf j).body op
 
 /-- `pathCount`, by function name. -/
 noncomputable def pathCountN (f : String) (σ : Val) (op : Opcode) : ℕ :=

@@ -84,7 +84,7 @@ checker K's `run` and the run's end within the counts. -/
 theorem guest_complete_b2c (Wt : B2cWeightHyps) (hrun : B2cRun) (hb2 : B2cB2) (hcount : B2cCount) :
     GuestCompleteWithin (b2cBudget Wt) :=
   ea_guest_complete fs cert cnt calleesHyps_b2c _ H C (fun q => loop86_bound_le q) (two_le_fs _)
-    deferredCaps (fun op f => pathMax f op) Wt jtSets cnt_le_weight
+    deferredCaps (fun op f => pathMax f op) Wt jtSets (fun _ t _ op => cnt_le_weight t op)
     (ea_hinstrs calleesHyps_b2c (fun q => loop86_bound_le q) Wt jtSets)
     (b2c_kfactsAll hrun) cntRetemp (fun _ _ _ _ ht => tableC_node ht) hb2 hcount
 

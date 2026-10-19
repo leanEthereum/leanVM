@@ -12,19 +12,125 @@ public import LeanVM.Guest.B2C.Defs
 /-!
 # Counts as weights
 
-`cnt_le_weight`: `cnt t op ≤ t.weight (pathMax · op) + jtSets op` (`mainComplete_of`'s and
-`ea_mainComplete`'s `hcnt`, at `ω op := (pathMax · op)` and `jt := jtSets`).
+`cnt_le_weight`: `cnt t op ≤ t.weight (ω op) + jtSets op` (`mainComplete_of`'s and
+`ea_mainComplete`'s `hcnt`, at `jt := jtSets`), whenever each instance's path count is within its
+function's weight `ω op f` (`cnt_le_weight_of`); with no arm counted separately, at
+`ω op := (pathMax · op)`.
 -/
 
 namespace LeanVM.Guest.B2C
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
 
 @[expose] public section
 
-/-- **The counts within the weights**: by definition. -/
+mutual
+theorem weightV_le (ω : String → Val → ℕ) (ω' : String → ℕ) (h : ∀ f σ, ω f σ ≤ ω' f) :
+    ∀ t : Tree, weightV ω t ≤ t.weight ω'
+  | .node f σ _ kids => by
+    rw [weightV, Tree.weight]
+    exact Nat.add_le_add (h f σ) (weightVKids_le ω ω' h kids)
+  | .phantom .. => by rw [weightV, Tree.weight]
+
+theorem weightVKids_le (ω : String → Val → ℕ) (ω' : String → ℕ) (h : ∀ f σ, ω f σ ≤ ω' f) :
+    ∀ ks : List Tree, weightVKids ω ks ≤ Tree.weightKids ω' ks
+  | [] => by rw [weightVKids, Tree.weightKids]
+  | k :: ks => by
+    rw [weightVKids, Tree.weightKids]
+    exact Nat.add_le_add (weightV_le ω ω' h k) (weightVKids_le ω ω' h ks)
+end
+
+/-- **The counts within the weights**, each instance's path count within its function's. -/
+theorem cnt_le_weight_of (ω : Opcode → String → ℕ) (h : ∀ op f σ, pathCountN f σ op ≤ ω op f)
+    (t : Tree) (op : Opcode) : cnt t op ≤ t.weight (ω op) + jtSets op :=
+  Nat.add_le_add_right (weightV_le _ _ (h op) t) _
+
+section Valid
+
+variable {P : Core.Program} {rd : Reader} (ω : String → Val → ℕ) (ω' : String → ℕ)
+
+mutual
+theorem weightV_le_valid
+    (h : ∀ f σ bufs kids args rets, (Memory.Tree.node f σ bufs kids).Valid P rd args rets → ω f σ ≤ ω' f) :
+    ∀ (t : Tree) (args rets : List E), t.Valid P rd args rets → weightV ω t ≤ t.weight ω'
+  | .node f σ bufs kids, args, rets, hv => by
+    have hn := h f σ bufs kids args rets hv
+    obtain ⟨_, _, _, es, _, _, _, _, hk⟩ := hv
+    rw [weightV, Tree.weight]
+    exact Nat.add_le_add hn (weightVKids_le_valid h σ (calls es) kids hk)
+  | .phantom .., _, _, hv => hv.elim
+
+theorem weightVKids_le_valid
+    (h : ∀ f σ bufs kids args rets, (Memory.Tree.node f σ bufs kids).Valid P rd args rets → ω f σ ≤ ω' f) :
+    ∀ (σ : Val) (cs : List Call) (ks : List Tree), Tree.KidsValid P rd σ cs ks →
+      weightVKids ω ks ≤ Tree.weightKids ω' ks
+  | _, [], [], _ => by rw [weightVKids, Tree.weightKids]
+  | _, [], _ :: _, hk => hk.elim
+  | _, _ :: _, [], hk => hk.elim
+  | σ, c :: cs, k :: ks, ⟨_, hk, hks⟩ => by
+    rw [weightVKids, Tree.weightKids]
+    refine Nat.add_le_add ?_ (weightVKids_le_valid h σ cs ks hks)
+    split_ifs at hk
+    · exact weightV_le_valid h k _ _ hk
+    · obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
+      rw [weightV]
+      exact Nat.zero_le _
+end
+
+end Valid
+
+/-- **The counts within the weights** of a valid tree, each valid instance's path count within
+its function's weight. -/
+theorem cnt_le_weight_valid (ω : Opcode → String → ℕ)
+    (h : ∀ op f σ bufs kids rd args rets, (Memory.Tree.node f σ bufs kids).Valid coreProgram rd args rets →
+      pathCountN f σ op ≤ ω op f) :
+    ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op, cnt t op ≤ t.weight (ω op) + jtSets op :=
+  fun rd t hv op ↦ Nat.add_le_add_right
+    (weightV_le_valid _ _ (fun f σ bufs kids args rets hv' ↦ h op f σ bufs kids rd args rets hv') t [] [] hv) _
+
+mutual
+theorem costW_nil (σ : Val) : ∀ ss : List Stmt, costW [] σ ss = 0
+  | [] => by rw [costW]
+  | s :: ss => by rw [costW, cost1_nil σ s, costW_nil σ ss, zero_add]
+
+theorem cost1_nil (σ : Val) : ∀ s : Stmt, cost1 [] σ s = 0
+  | .ite c z n => by
+    rw [cost1]
+    split_ifs
+    · exact costW_nil σ z
+    · exact costW_nil σ n
+  | .match_ x arms => by rw [cost1]; exact costArms_nil σ x 0 arms
+  | .atom _ => rfl
+  | .call .. => rfl
+  | .callIf .. => rfl
+  | .dispatch .. => rfl
+  | .ret _ => rfl
+
+theorem costArms_nil (σ : Val) (x : V) : ∀ (k : ℕ) (arms : List (List Stmt)),
+    costArms [] σ x (armRaw [] x.idx) k arms = 0
+  | _, [] => by rw [costArms]
+  | k, a :: as => by
+    rw [costArms]
+    split_ifs
+    · rw [costW_nil σ a, add_zero]
+      funext op
+      rfl
+    · exact costArms_nil σ x (k + 1) as
+end
+
+/-- With no arm counted separately, a path's count is the most a path runs. -/
+theorem pathCountN_le (f : String) (σ : Val) (op : Opcode) : pathCountN f σ op ≤ pathMax f op := by
+  unfold pathCountN pathMax
+  split
+  · rename_i j _
+    unfold pathCount
+    rw [show nth Data.cplArms j [] = [] by simp [Data.cplArms, nth], costW_nil]
+    exact le_rfl
+  · exact le_rfl
+
+/-- **The counts within the weights** at the path maxima. -/
 theorem cnt_le_weight (t : Tree) (op : Opcode) : cnt t op ≤ t.weight (pathMax · op) + jtSets op :=
-  le_rfl
+  cnt_le_weight_of (fun op f ↦ pathMax f op) (fun op f σ ↦ pathCountN_le f σ op) t op
 
 end
 end LeanVM.Guest.B2C

@@ -81,10 +81,8 @@ theorem seq_fall_ret {e1 e : List Ev} {o : Out} {v : List V} (h : (Out.fall e1).
     exact ⟨e2, by rw [h.2], h.1.symm⟩
   | stuck => cases h
 
-theorem pmax_get {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (i k : ℕ) (op : Opcode) :
-    (Xp j i k).pmax.get op = pathMax (coreOf j).name op := by
-  unfold pathMax
-  rw [idxOf_coreOf h1 h2]
+theorem pmax_get (j i k : ℕ) (op : Opcode) :
+    (Xp j i k).pmax.get op = (plumbOf j).pmax.getD (opIdx op) 0 := by
   show (Cnt.ofList (plumbOf j).pmax).get op = _
   cases op <;> simp only [Cnt.ofList, Cnt.get, opIdx, nth_getD]
 
@@ -446,7 +444,7 @@ theorem part_last (F : FnH L j fp σ es vs kfps hdr ck)
     have h2 := ksum_le_sum ck (calls (ebef ++ erest)).length op
     have h3 : (xc + costW (Xp j i k).acs σ (partStmts j i k)) op =
         costW (nth Data.cplArms j []) σ (coreOf j).body op := congrFun hxc op
-    rw [pmax_get F.j1 F.jn i k op, h3] at h1
+    rw [pmax_get j i k op, h3] at h1
     unfold pathCount
     omega
   · obtain ⟨hc1, hc2, hc3⟩ := hcells k' hk'
