@@ -82,25 +82,24 @@ structure FrameHolds {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : 
     (2 ≤ s.q → s.q < fsN j → L.read (gpow (fp + s.q)) = some (ofK (gpow kfp))) ∧
     (s.tgt ≠ 0 → 2 ≤ s.tgt → s.tgt < fsN j →
       L.read (gpow (fp + s.tgt)) = some (ofK (gpow (entryOf c.f))))
-  /-- Each callee frame's header, arguments, returns (a call entered) and self frame pointer
-  cells. -/
+  /-- Each callee frame's header, arguments and self frame pointer cells. -/
   kid : ∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c → kfps[i]? = some kfp →
     L.read (gpow (kfp + 0)) = some (kidHdr j fp hdr es i).1 ∧
     L.read (gpow (kfp + 1)) = some (kidHdr j fp hdr es i).2 ∧
     (∀ k (hk : k < c.args.length), L.read (gpow (kfp + (2 + k))) = some (σ c.args[k])) ∧
-    (c.taken = true → ∀ k (hk : k < c.rets.length),
-      L.read (gpow (kfp + (2 + c.args.length + k))) = some (σ c.rets[k])) ∧
     (∀ o ∈ selfCells c.f, L.read (gpow (kfp + o)) = some (ofK (gpow kfp)))
   /-- A loop's tail call, its last, has its frame right after the caller's. -/
   tail : (coreOf j).loop = true → ∀ kfp, kfps.getLast? = some kfp → kfp = fp + fsN j
 
 /-- **The callees on a path run**: each call entered, from its callee's entry at its frame to its
-return registers, executing `ck[i] op` instructions of each opcode. -/
-def KidsRun {κ : ℕ} (L : MemImage κ) (es : List Ev) (kfps : List ℕ) (ck : List (Opcode → ℕ)) :
+return registers, executing `ck[i] op` instructions of each opcode, its returns left in its frame's
+cells after its arguments. -/
+def KidsRun {κ : ℕ} (L : MemImage κ) (σ : Val) (es : List Ev) (kfps : List ℕ) (ck : List (Opcode → ℕ)) :
     Prop :=
   ck.length = (calls es).length ∧ ∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c → kfps[i]? = some kfp →
-    c.taken = true → ∃ r, retRegs L (gpow kfp) = some r ∧
-      RunC guest L ⟨gpow (entryOf c.f), gpow kfp⟩ r (ck.getD i 0)
+    c.taken = true → (∃ r, retRegs L (gpow kfp) = some r ∧
+      RunC guest L ⟨gpow (entryOf c.f), gpow kfp⟩ r (ck.getD i 0)) ∧
+      ∀ k (hk : k < c.rets.length), L.read (gpow (kfp + (2 + c.args.length + k))) = some (σ c.rets[k])
 
 
 /-! ## A window's cells
@@ -325,7 +324,8 @@ structure CX where
 
 /-- A position of the walk: a segment and its items not yet passed, the facts, the callee frames
 in flight `(cell, its cells)`, the table reads `(target, selector, base)`, the next frame of a
-tail call, the instructions passed on the path, and `fresh = some t` at the start of segment `t`
+tail call, the instructions passed on the path, the cells of the callee frame pointers and
+dispatch targets set up on the path (a bit set), and `fresh = some t` at the start of segment `t`
 before any item is passed. -/
 structure CW where
   seg : Exec.Seg
@@ -335,6 +335,7 @@ structure CW where
   tg : List (ℕ × ℕ × ℕ)
   nx : List (ℕ × FC)
   cnt : Cnt
+  uq : ℕ
   fresh : Option ℕ
 
 /-! ## Justifying instructions -/
@@ -514,13 +515,13 @@ variable (X : CX)
 noncomputable def segAtC (t : ℕ) (st : CW) : Option CW :=
   match getF X.idx t with
   | some s => bif Nat.beq s.start t then
-      some ⟨s, s.items, st.book, st.fr, st.tg, st.nx, st.cnt, some t⟩ else none
+      some ⟨s, s.items, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, some t⟩ else none
   | none => none
 
 /-- The position at the end of the segment, its items passed, if no branch is before it. -/
 noncomputable def endAtC (st : CW) : Except ℕ CW :=
   match passL X st st.its st.cnt with
-  | .ok ([], c) => c.seq fun c ↦ .ok ⟨st.seg, [], st.book, st.fr, st.tg, st.nx, c, none⟩
+  | .ok ([], c) => c.seq fun c ↦ .ok ⟨st.seg, [], st.book, st.fr, st.tg, st.nx, c, st.uq, none⟩
   | .ok _ => .error 5
   | .error e => .error e
 
@@ -528,7 +529,7 @@ noncomputable def endAtC (st : CW) : Except ℕ CW :=
 noncomputable def brAtC (st : CW) : Except ℕ (CW × ℕ × ℕ × ℕ × Exec.Exit) :=
   match passL X st st.its st.cnt with
   | .ok (.branch oc od of x :: its, c) => c.bumpJ.seq fun c ↦
-      .ok (⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c, none⟩, oc, od, of, x)
+      .ok (⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c, st.uq, none⟩, oc, od, of, x)
   | .ok _ => .error 6
   | .error e => .error e
 
@@ -549,10 +550,19 @@ end Move
 
 /-! ## The walk -/
 
+/-- Bit `n` of `s`. -/
+def bitK (s n : ℕ) : Bool := Nat.beq (Nat.mod (Nat.shiftRight s n) 2) 1
+
+/-- `s` with bit `n` set. -/
+def setK (s n : ℕ) : ℕ := Nat.lor s (Nat.shiftLeft 1 n)
+
+/-- Every bit of `s` is one of `t`'s. -/
+def subK (s t : ℕ) : Bool := Nat.beq (Nat.land s t) s
+
 /-- How a block's walk ends: at a join with the counts of the path there (the most of any), by
 the return, or not at all (with a code saying where). -/
 inductive RC where
-  | join (J : ℕ) (c : Cnt)
+  | join (J : ℕ) (c : Cnt) (u : ℕ)
   | done
   | fail (code : ℕ)
 
@@ -594,21 +604,21 @@ def callFC (args : List V) (self : List ℕ) (r : ℕ) : List (ℕ × FC) :=
 /-- Where a block ends: at the start of a segment, or by its segment's local jump. -/
 noncomputable def endC (st : CW) : RC :=
   match st.fresh with
-  | some t => .join t st.cnt
+  | some t => .join t st.cnt st.uq
   | none => match endAtC X st with
     | .ok se => match se.seg.exit.kind with
-      | .next t => bif se.seg.exit.succ == [t] then .join t se.cnt else .fail 1
+      | .next t => bif se.seg.exit.succ == [t] then .join t se.cnt se.uq else .fail 1
       | _ => .fail 2
     | .error e => .fail e
 
 /-- After a call into the frame `fp[q]` returning to `r`: the position at the return point, its
 callee frame's returns known. -/
-noncomputable def afterC (st : CW) (q r : ℕ) (fcs : List (ℕ × FC)) (args rets : List V) :
+noncomputable def afterC (st : CW) (q r u : ℕ) (fcs : List (ℕ × FC)) (args rets : List V) :
     Except ℕ CW :=
   match endAtC X { st with fr := (q, fcs) :: st.fr } with
   | .ok se => match segAtC X (r - X.entry) se with
     | some sr => .ok ⟨sr.seg, sr.its, sr.book, (q, fcs ++ argFC X.loc (2 + args.length) rets) :: st.fr,
-        sr.tg, sr.nx, sr.cnt, bif rets.isEmpty then sr.fresh else none⟩
+        sr.tg, sr.nx, sr.cnt, u, bif rets.isEmpty then sr.fresh else none⟩
     | none => .error 7
   | .error e => .error e
 
@@ -616,7 +626,7 @@ mutual
 /-- **The completeness walk** of a block from a position. -/
 noncomputable def cw : List Core.Stmt → CW → RC
   | [], st => endC X st
-  | .atom _ :: ss, st => cw ss st
+  | .atom _ :: ss, st => cw ss ⟨st.seg, st.its, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, none⟩
   | .ite c z n :: ss, st =>
     match brAtC X st with
     | .ok (st', oc, od, of, x) =>
@@ -628,12 +638,13 @@ noncomputable def cw : List Core.Stmt → CW → RC
           | some sn =>
             (fileB X.loc X.fs z st'.book).seq fun Bz ↦ (fileB X.loc X.fs n st'.book).seq fun Bn ↦
             match cw z { st' with book := Bz }, cw n { sn with book := Bn } with
-            | .join J c1, .join J' c2 =>
+            | .join J c1 u1, .join J' c2 u2 =>
               bif Nat.beq J J' then
                 match segAtC X J st' with
-                | some sj => (Cnt.max c1 c2).seq fun c ↦ cw ss { sj with cnt := c }
+                | some sj => (Cnt.max c1 c2).seq fun c ↦ natSeq (Nat.lor u1 u2) fun u ↦
+                    cw ss { sj with cnt := c, uq := u }
                 | none => .fail 10
-              else .fail 11
+              else .fail (1000000000 + J * 100000 + J')
             | .fail e, _ => .fail e
             | _, .fail e => .fail e
             | _, _ => .fail 12
@@ -657,10 +668,10 @@ noncomputable def cw : List Core.Stmt → CW → RC
             | some s0 =>
               (fileB X.loc X.fs a0 se.book).seq fun B0 ↦
               match cw a0 { s0 with book := B0 } with
-              | .join J c0 =>
-                match cwArms J se as ts c0 with
-                | some c => match segAtC X J se with
-                  | some sj => c.seq fun c ↦ cw ss { sj with cnt := c }
+              | .join J c0 u0 =>
+                match cwArms J se as ts c0 u0 with
+                | some (c, u) => match segAtC X J se with
+                  | some sj => c.seq fun c ↦ natSeq u fun u ↦ cw ss { sj with cnt := c, uq := u }
                   | none => .fail 20
                 | none => .fail 21
               | .fail e => .fail e
@@ -677,9 +688,10 @@ noncomputable def cw : List Core.Stmt → CW → RC
       | some j =>
         bif f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
             Nat.beq rets.length (X.G.sig j).nret && Nat.ble X.entry r &&
-            st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r 0 &&
+            st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r 0 && !bitK st.uq q &&
             inFrame X.fs (q :: (args ++ rets).map X.loc.cell) then
-          match afterC X st q r (callFC X args ((X.G.sig j).env.map (·.1)) r) args rets with
+          match afterC X st q r (setK st.uq q) (callFC X args ((X.G.sig j).env.map (·.1)) r) args
+              rets with
           | .ok sr => cw ss sr
           | .error e => .fail e
         else .fail 31
@@ -692,9 +704,10 @@ noncomputable def cw : List Core.Stmt → CW → RC
       | some (o1, base) =>
         bif Nat.beq o1 (X.loc.cell v) && tcOk X base args.length rets.length 0 fs &&
             Nat.ble X.entry r && st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r t &&
+            !bitK st.uq q && !bitK st.uq t && !Nat.beq q t &&
             inFrame X.fs (t :: q :: o1 :: (args ++ rets).map X.loc.cell) then
-          match afterC X { st with tg := (t, o1, base) :: st.tg } q r (callFC X args [] r) args
-              rets with
+          match afterC X { st with tg := (t, o1, base) :: st.tg } q r (setK (setK st.uq q) t)
+              (callFC X args [] r) args rets with
           | .ok sr => cw ss sr
           | .error e => .fail e
         else .fail 41
@@ -710,7 +723,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
           | some j =>
             bif f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
                 Nat.beq (X.G.sig j).nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
-                siteOk X args [] q r 0 && inFrame X.fs [q] then
+                siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q] then
               match brAtC X { st with fr := (q, callFC X args ((X.G.sig j).env.map (·.1)) r) :: st.fr } with
               | .ok (st', _, od, of, _) =>
                 bif cellK X st' od && cellK X st' of then
@@ -719,7 +732,8 @@ noncomputable def cw : List Core.Stmt → CW → RC
                     | .next t =>
                       bif Nat.beq t (r - X.entry) && se.seg.exit.succ == [t] then
                         match segAtC X t st' with
-                        | some sr => (Cnt.max se.cnt st'.cnt).seq fun c ↦ cw ss { sr with cnt := c }
+                        | some sr => (Cnt.max se.cnt st'.cnt).seq fun c ↦ natSeq (setK st.uq q) fun u ↦
+                            cw ss { sr with cnt := c, uq := u }
                         | none => .fail 50
                       else .fail 51
                     | _ => .fail 52
@@ -748,27 +762,30 @@ noncomputable def cw : List Core.Stmt → CW → RC
         | _ => .fail 66
       else .fail 67
     | none => .fail 68
-  | .ret _ :: _, st =>
+  | .ret vs :: _, st =>
     match endAtC X st with
     | .ok se =>
       bif (bif X.main then decide (se.seg.exit.kind = .jump (.gp (2 ^ 18 - 1)) (.gp 0))
-          else decide (se.seg.exit.kind = .ret)) && se.cnt.le X.pmax then .done else .fail 70
+          else decide (se.seg.exit.kind = .ret)) && se.cnt.le X.pmax &&
+        Nat.beq vs.length X.nret && runCells (2 + X.nargs) (vs.map X.loc.cell) &&
+        inFrame X.fs (vs.map X.loc.cell) then .done else .fail 70
     | .error e => .fail e
 
 /-- The other arms of a `match`, each from its segment, ending at the join `J`: the most counts
 of any. -/
 noncomputable def cwArms (J : ℕ) (se : CW) :
-    List (List Core.Stmt) → List ℕ → Cnt → Option Cnt
-  | [], [], c => some c
-  | a :: as, t :: ts, c =>
+    List (List Core.Stmt) → List ℕ → Cnt → ℕ → Option (Cnt × ℕ)
+  | [], [], c, u => some (c, u)
+  | a :: as, t :: ts, c, u =>
     match segAtC X t se with
     | some s => (fileB X.loc X.fs a se.book).seq fun B ↦
       match cw a { s with book := B } with
-      | .join J' c' => bif Nat.beq J J' then (Cnt.max c c').seq fun c ↦ cwArms J se as ts c
+      | .join J' c' u' => bif Nat.beq J J' then (Cnt.max c c').seq fun c ↦ natSeq (Nat.lor u u') fun u ↦
+          cwArms J se as ts c u
           else none
       | _ => none
     | none => none
-  | _, _, _ => none
+  | _, _, _, _ => none
 end
 
 end Walk
@@ -798,7 +815,8 @@ noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie
 
 /-- How window `i` must end: at the next window's start within its counts, or by the return. -/
 noncomputable def winEndC (C : Cert) (j i : ℕ) : RC → Bool
-  | .join J c => Nat.blt i C.cuts.length && Nat.beq J (C.cutAt (i + 1)).J && c.le (cplHand j (i + 1))
+  | .join J c u => Nat.blt i C.cuts.length && Nat.beq J (C.cutAt (i + 1)).J && c.le (cplHand j (i + 1)) &&
+      subK u ((nth (nth Data.cplHands j []) (i + 1) []).getD 6 0)
   | .done => !(Nat.blt i C.cuts.length)
   | .fail _ => false
 
@@ -812,15 +830,26 @@ noncomputable def cplRes (j i : ℕ) : RC :=
     (cplHand j i).seq fun c ↦
     match getF idx ((certOf j).cutAt i).J with
     | some s => cw (cxOf j idx loc stat) ((certOf j).stmtsAt (coreOf j) i)
-        ⟨s, s.items, B, [], [], [], c, some s.start⟩
+        ⟨s, s.items, B, [], [], [], c, nth (nth Data.cplHands j []) i [] |>.getD 6 0, some s.start⟩
     | none => .fail 90
+
+/-- The last window's statements: none returns but the last, a `ret` or a loop's closing
+`callIf` to the function itself and `ret []`. -/
+def lastOkC (name : String) : List Core.Stmt → Bool
+  | [] => false
+  | [.ret _] => true
+  | [.callIf _ f _, .ret []] => f == name
+  | s :: ss => Stmt.noRet s && lastOkC name ss
 
 /-- **The completeness check of window `i` of function `j`**: the window's cells pack, the
 first window starts with no counts and its self frame pointer cells fixed, and the walk ends as
 `winEndC` says. -/
 noncomputable def cplWin (j i : ℕ) : Bool :=
   (nth (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
+  (bif Nat.blt i (certOf j).cuts.length then Stmt.noRetList ((certOf j).stmtsAt (coreOf j) i)
+    else lastOkC (coreOf j).name ((certOf j).stmtsAt (coreOf j) i)) &&
   (bif Nat.beq i 0 then (cplHand j 0).le Cnt.zero &&
+      Nat.beq ((nth (nth Data.cplHands j []) 0 []).getD 6 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&
         decide (getF (statT (fsN j) (plumbOf j).stat .nil) p.1 = some (.fpg 0)))
     else true) &&
@@ -828,6 +857,23 @@ noncomputable def cplWin (j i : ℕ) : Bool :=
 
 /-- **The completeness check of function `j`**: every window's. -/
 noncomputable def CplOk (j : ℕ) : Prop := ∀ i ≤ (certOf j).cuts.length, cplWin j i = true
+
+/-- **What the completeness check gives of function `j`** (`cpl_run`): on a memory holding the
+jump table, from an instance's frame holding what the check reads (`FrameHolds`) and its callees'
+runs (`KidsRun`), a counted run from its entry to its return registers (`main`: the final ones),
+with at most `pathMax` instructions of each opcode besides its callees', its returned values left
+in its frame's cells after its arguments. -/
+def CplRun (j : ℕ) : Prop :=
+  ∀ {κ : ℕ} (L : MemImage κ), κ ≤ 32 → JTHolds glob L →
+    (∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2) → ∀ (fp : ℕ), (j = 1 → fp = 0) →
+    ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ (coreOf j).body = .ret es vs →
+    (∀ e ∈ es, e.Holds L.read σ) → ∀ (kfps : List ℕ) (hdr : E × E),
+    FrameHolds L j fp σ es vs kfps hdr → ∀ ck : List (Opcode → ℕ), KidsRun L σ es kfps ck →
+    ∃ (r : Regs K) (c : Opcode → ℕ), (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
+      RunC guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
+      (∀ op, c op ≤ pathMax (coreOf j).name op + (ck.map (· op)).sum) ∧
+      ∀ k (hk : k < vs.length),
+        L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])
 
 end
 end LeanVM.Guest.B2C
