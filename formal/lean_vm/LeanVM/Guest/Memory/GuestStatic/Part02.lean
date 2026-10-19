@@ -23,7 +23,7 @@ theorem split_16_506 : blockR (lookJ 16) (omLookJ 16) false [] Data.core16.param
 
 set_option maxRecDepth 100000 in
 theorem split_17_0 : noTopRet ((Data.core17.body.drop 0).take 232) = true ∧
-    blockR (lookJ 17) (omLookJ 17) false [] Data.core17.params Data.core17.name ((Data.core17.body.drop 0).take 232) ([], []) = some (⟨7424, []⟩, []) := by
+    blockR (lookJ 17) (omLookJ 17) false [] Data.core17.params Data.core17.name ((Data.core17.body.drop 0).take 232) ([], []) = some (⟨29, []⟩, []) := by
   decide +kernel
 
 end

@@ -207,6 +207,21 @@ theorem addAcc_some {x y : Option Acc} {r : Acc} (h : Option.addAcc x y = some r
   cases x <;> cases y <;> simp [Option.addAcc] at h
   exact ⟨_, _, rfl, rfl, h.symm⟩
 
+theorem maxAcc_some {x y : Option Acc} {r : Acc} (h : Option.maxAcc x y = some r) :
+    ∃ rx ry, x = some rx ∧ y = some ry ∧ r = rx.join ry := by
+  cases x <;> cases y <;> simp [Option.maxAcc] at h
+  exact ⟨_, _, rfl, rfl, h.symm⟩
+
+theorem join_eval_left (a b : Acc) (args : List E) : a.1.eval args ≤ (a.join b).1.eval args := by
+  simp only [Acc.join, Aff.eval, List.map_append, List.sum_append]
+  have := Nat.le_max_left a.1.c b.1.c
+  omega
+
+theorem join_eval_right (a b : Acc) (args : List E) : b.1.eval args ≤ (a.join b).1.eval args := by
+  simp only [Acc.join, Aff.eval, List.map_append, List.sum_append]
+  have := Nat.le_max_right a.1.c b.1.c
+  omega
+
 theorem argsPre_append {p q : List (ℕ × ℕ)} {x : List E} :
     ArgsPre (p ++ q) x ↔ ArgsPre p x ∧ ArgsPre q x := by
   simp only [ArgsPre, List.mem_append]
@@ -586,6 +601,18 @@ theorem sumB_mem {α : Type} {f : α → Option Acc} {args : List E} :
       · obtain ⟨Ra, h1, h2, h3⟩ := sumB_mem hy a ha
         exact ⟨Ra, h1, by omega, fun h' => h3 (argsPre_append.mp h').2⟩
 
+theorem maxB_mem {α : Type} {f : α → Option Acc} {args : List E} :
+    ∀ {l : List α} {R : Acc}, maxB f l = some R → ∀ a ∈ l,
+      ∃ Ra, f a = some Ra ∧ Ra.1.eval args ≤ R.1.eval args ∧ (ArgsPre R.2 args → ArgsPre Ra.2 args)
+  | [], _, _, _, ha => (List.not_mem_nil ha).elim
+  | b :: l, R, h, a, ha => by
+      simp only [maxB] at h
+      obtain ⟨rx, ry, hx, hy, rfl⟩ := maxAcc_some h
+      rcases List.mem_cons.mp ha with rfl | ha
+      · exact ⟨rx, hx, join_eval_left _ _ _, fun h' => (argsPre_append.mp h').1⟩
+      · obtain ⟨Ra, h1, h2, h3⟩ := maxB_mem hy a ha
+        exact ⟨Ra, h1, h2.trans (join_eval_right _ _ _), fun h' => h3 (argsPre_append.mp h').2⟩
+
 /-- A call site's callee: its bound bounds the callee of one frame. -/
 theorem KB_site {ρ : Env} {ps : List V} {args : List E} (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
     {g : String} {a r : List V} {t : Bool} {R : Acc} (h : siteB cert ρ ps g a = some R)
@@ -730,19 +757,18 @@ theorem blockB_sound (hp : ps.map σ = args) (hwl : WlOk wl ω) : ∀ (ss : List
           · cases h
       | ite c z n =>
           simp only [blockB] at h
-          obtain ⟨rz, rnr, hz, hnr, rfl⟩ := addAcc_some h
-          obtain ⟨rn, rr, hn, hrr, rfl⟩ := addAcc_some hnr
-          simp only [Acc.add, argsPre_append] at hr
+          obtain ⟨rzn, rr, hzn, hrr, rfl⟩ := addAcc_some h
+          obtain ⟨rz, rn, hz, hn, rfl⟩ := maxAcc_some hzn
+          simp only [Acc.add, Acc.join, argsPre_append] at hr
           simp only [Acc.add, Aff.eval_add]
-          rw [← Nat.add_assoc]
-          refine KB_seq hh (fun h1 => ?_) fun es _ _ h2 => blockB_sound hp hwl ss ρ rr hρ hrr hr.2.2 h2
+          refine KB_seq hh (fun h1 => ?_) fun es _ _ h2 => blockB_sound hp hwl ss ρ rr hρ hrr hr.2 h2
           rw [walk1] at h1 ⊢
           refine KB_pre h1 fun h1' => ?_
           split_ifs
           · rw [ite_eq_left (by assumption)] at h1'
-            exact KB_mono (blockB_sound hp hwl z ρ rz hρ hz hr.1 h1') (Nat.le_add_right _ _)
+            exact KB_mono (blockB_sound hp hwl z ρ rz hρ hz hr.1.1 h1') (join_eval_left _ _ _)
           · rw [ite_eq_right (by assumption)] at h1'
-            exact KB_mono (blockB_sound hp hwl n ρ rn hρ hn hr.2.1 h1') (Nat.le_add_left _ _)
+            exact KB_mono (blockB_sound hp hwl n ρ rn hρ hn hr.1.2 h1') (join_eval_right _ _ _)
       | match_ x arms =>
           simp only [blockB] at h
           obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
@@ -791,7 +817,7 @@ theorem blockB_sound (hp : ps.map σ = args) (hwl : WlOk wl ω) : ∀ (ss : List
           rcases pick_cases (σ := σ) (x := x) (a := a) (r := r') gs 0 with hpk | ⟨g, hg, hpk⟩
           · rw [hpk]; exact KB_nil _
           · rw [hpk]
-            obtain ⟨Rg, h1, h2, h3⟩ := sumB_mem (args := args) hs g hg
+            obtain ⟨Rg, h1, h2, h3⟩ := maxB_mem (args := args) hs g hg
             exact KB_mono (KB_site hρ.1 hp h1 (h3 hr.1) (t := true) (r := r')
               (by simp [Out.evs, calls, Ev.call?]) (by simp only [Out.evs]; rw [aw_cons_none rfl, aw_nil])
               (Y := 0) fun h => absurd h (by decide)) (by omega)
@@ -806,13 +832,12 @@ theorem armsB_sound (hp : ps.map σ = args) (hwl : WlOk wl ω) (x : V) : ∀ (ar
   | [], _, _, _, _, _, _, _ => by rw [walkArms]; exact KB_nil _
   | a :: as, j, ρ, r, hρ, h, hr, hh => by
       simp only [armsB] at h
-      obtain ⟨ra, rs, ha, hs, rfl⟩ := addAcc_some h
-      simp only [Acc.add, argsPre_append] at hr
-      simp only [Acc.add, Aff.eval_add]
+      obtain ⟨ra, rs, ha, hs, rfl⟩ := maxAcc_some h
+      simp only [Acc.join, argsPre_append] at hr
       unfold walkArms at hh ⊢
       split_ifs at hh ⊢
-      · exact KB_mono (blockB_sound hp hwl a ρ ra hρ ha hr.1 hh) (Nat.le_add_right _ _)
-      · exact KB_mono (armsB_sound hp hwl x as (j + 1) ρ rs hρ hs hr.2 hh) (Nat.le_add_left _ _)
+      · exact KB_mono (blockB_sound hp hwl a ρ ra hρ ha hr.1 hh) (join_eval_left _ _ _)
+      · exact KB_mono (armsB_sound hp hwl x as (j + 1) ρ rs hρ hs hr.2 hh) (join_eval_right _ _ _)
 end
 
 end Block
@@ -842,7 +867,7 @@ theorem blockR_cons (s : Stmt) (ss : List Stmt) (ρ : Env × BEnv) :
 
 theorem stmtR_ite (c : V) (z n : List Stmt) (ρ : Env × BEnv) :
     stmtR cert wl α ks ps self (.ite c z n) ρ =
-      (Option.addAcc (blockR cert wl α ks ps self z ρ) (blockR cert wl α ks ps self n ρ)).map fun r => (r, some ρ) :=
+      (Option.maxAcc (blockR cert wl α ks ps self z ρ) (blockR cert wl α ks ps self n ρ)).map fun r => (r, some ρ) :=
   rfl
 
 theorem stmtR_match (x : V) (arms : List (List Stmt)) (ρ : Env × BEnv) :
@@ -850,7 +875,7 @@ theorem stmtR_match (x : V) (arms : List (List Stmt)) (ρ : Env × BEnv) :
   rfl
 
 theorem armsR_cons (a : List Stmt) (as : List (List Stmt)) (ρ : Env × BEnv) :
-    armsR cert wl α ks ps self (a :: as) ρ = Option.addAcc (blockR cert wl α ks ps self a ρ) (armsR cert wl α ks ps self as ρ) :=
+    armsR cert wl α ks ps self (a :: as) ρ = Option.maxAcc (blockR cert wl α ks ps self a ρ) (armsR cert wl α ks ps self as ρ) :=
   rfl
 
 mutual
@@ -866,8 +891,8 @@ theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert wl α k
           | none => rfl
           | some q => obtain ⟨r, ρ'⟩ := q; simp only [Option.map_some]; rw [blockR_eq]
       | ite c z n =>
-          rw [stmtR_ite, blockR_eq z, blockR_eq n, blockB, ← addAcc_assoc]
-          cases Option.addAcc (blockB cert wl α ks ps self ρ z) (blockB cert wl α ks ps self ρ n) with
+          rw [stmtR_ite, blockR_eq z, blockR_eq n, blockB]
+          cases Option.maxAcc (blockB cert wl α ks ps self ρ z) (blockB cert wl α ks ps self ρ n) with
           | none => rfl
           | some r => simp only [Option.map_some]; rw [blockR_eq]
       | match_ x arms =>
@@ -890,7 +915,7 @@ theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert wl α k
             | some r => simp only [Option.map_some]; rw [blockR_eq]
       | dispatch x gs args rets =>
           simp only [stmtR, blockB]
-          cases sumB (fun g => siteB cert ρ.1 ps g args) gs with
+          cases maxB (fun g => siteB cert ρ.1 ps g args) gs with
           | none => rfl
           | some r => simp only [Option.map_some]; rw [blockR_eq]
       | ret vs => simp only [stmtR, blockB]; rfl
@@ -956,7 +981,7 @@ theorem blockB_append (ρ : Env × BEnv) : ∀ (l1 l2 : List Stmt), noTopRet l1 
               obtain rfl := atomB_nil_env hq
               simp only
               rw [ih, addAcc_assoc]
-      | ite c z n => simp only [blockB]; rw [ih, addAcc_assoc, addAcc_assoc]
+      | ite c z n => simp only [blockB]; rw [ih, addAcc_assoc]
       | match_ x arms => simp only [blockB]; rw [ih, addAcc_assoc]
       | call g a r => simp only [blockB]; rw [ih, addAcc_assoc]
       | callIf c g a =>
@@ -998,14 +1023,14 @@ theorem siteB_mono (hl : LookOk look cert) {ρ : Env} {g : String} {a : List V} 
   rw [← hl g hg]
   exact h
 
-theorem sumB_site_mono (hl : LookOk look cert) {ρ : Env} {a : List V} :
-    ∀ {gs : List String} {r : Acc}, sumB (fun g => siteB look ρ ps g a) gs = some r →
-      sumB (fun g => siteB cert ρ ps g a) gs = some r
+theorem maxB_site_mono (hl : LookOk look cert) {ρ : Env} {a : List V} :
+    ∀ {gs : List String} {r : Acc}, maxB (fun g => siteB look ρ ps g a) gs = some r →
+      maxB (fun g => siteB cert ρ ps g a) gs = some r
   | [], _, h => h
   | g :: gs, r, h => by
-      simp only [sumB] at h ⊢
-      obtain ⟨rx, ry, hx, hy, rfl⟩ := addAcc_some h
-      rw [siteB_mono hl hx, sumB_site_mono hl hy]
+      simp only [maxB] at h ⊢
+      obtain ⟨rx, ry, hx, hy, rfl⟩ := maxAcc_some h
+      rw [siteB_mono hl hx, maxB_site_mono hl hy]
       rfl
 
 mutual
@@ -1026,8 +1051,8 @@ theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env × 
           · cases h
       | ite c z n =>
           simp only [blockB] at h ⊢
-          obtain ⟨rz, rnr, hz, hnr, rfl⟩ := addAcc_some h
-          obtain ⟨rn, rr, hn, hrr, rfl⟩ := addAcc_some hnr
+          obtain ⟨rzn, rr, hzn, hrr, rfl⟩ := addAcc_some h
+          obtain ⟨rz, rn, hz, hn, rfl⟩ := maxAcc_some hzn
           rw [blockB_mono hl z ρ hz, blockB_mono hl n ρ hn, blockB_mono hl ss ρ hrr]
           rfl
       | match_ x arms =>
@@ -1052,7 +1077,7 @@ theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env × 
       | dispatch x gs a rets =>
           simp only [blockB] at h ⊢
           obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
-          rw [sumB_site_mono hl ha, blockB_mono hl ss ρ hrr]
+          rw [maxB_site_mono hl ha, blockB_mono hl ss ρ hrr]
           rfl
       | ret vs => simp only [blockB] at h ⊢; exact h
 
@@ -1062,7 +1087,7 @@ theorem armsB_mono (hl : LookOk look cert) : ∀ (arms : List (List Stmt)) (ρ :
   | [], _, _, h => by rw [armsB] at h ⊢; exact h
   | a :: as, ρ, r, h => by
       simp only [armsB] at h ⊢
-      obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
+      obtain ⟨ra, rr, ha, hrr, rfl⟩ := maxAcc_some h
       rw [blockB_mono hl a ρ ha, armsB_mono hl as ρ hrr]
       rfl
 end

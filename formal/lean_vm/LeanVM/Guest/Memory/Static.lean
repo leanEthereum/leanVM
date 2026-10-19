@@ -30,7 +30,8 @@ through), the bound of one iteration (`loop`): a valid tree started at `i = g^a`
 (`siteB`): a callee's affine bound with its arguments classified (`cls`) as constants `g^e`,
 collapsing their terms and checking their preconditions, or as the caller's parameters, which
 the caller's bound and preconditions then name; a loop entry is its iteration count times its
-iteration's bound. Branches add up, a fused dispatch adds every arm. A loop helper's own body is
+iteration's bound. Exclusive branches take the larger bound: an `ite`'s two sides, a `match`'s arms,
+a fused dispatch's callees. A loop helper's own body is
 checked without its tail call, against its shape (`loopShape`). Counting words (`α`), each
 `HeapBuf` adds its size (`atomB`): `n` for `HeapBuf(n)`, a bound on the exponent of a dynamic
 one's size (`bnd`): a constant's, a parameter's, or a tracked product `x·g^c`'s, `x`'s bound plus
@@ -168,6 +169,19 @@ def preB (ρ : Env) (ps : List V) (args : List V) (q : ℕ × ℕ) : Option Acc 
     | .none => none
   | none => none
 
+/-- **The larger of two bounds**: the larger constant, both terms (an upper bound on either, the
+terms being nonnegative), both preconditions. -/
+def Acc.join (a b : Acc) : Acc := (⟨max a.1.c b.1.c, a.1.cs ++ b.1.cs⟩, a.2 ++ b.2)
+
+def Option.maxAcc : Option Acc → Option Acc → Option Acc
+  | some a, some b => some (a.join b)
+  | _, _ => none
+
+/-- The larger of the site values of a list, `0` for none. -/
+def maxB {α : Type} (f : α → Option Acc) : List α → Option Acc
+  | [] => some (⟨0, []⟩, [])
+  | a :: as => Option.maxAcc (f a) (maxB f as)
+
 /-- Sum of the site values of a list. -/
 def sumB {α : Type} (f : α → Option Acc) : List α → Option Acc
   | [] => some (⟨0, []⟩, [])
@@ -247,8 +261,9 @@ def blockB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ks
       match atomB α ks ps ρ a with
       | some (r, ρ') => Option.addAcc (some r) (blockB cert wl α ks ps self ρ' ss)
       | none => none
-  | ρ, .ite _ z n :: ss => Option.addAcc (blockB cert wl α ks ps self ρ z)
-      (Option.addAcc (blockB cert wl α ks ps self ρ n) (blockB cert wl α ks ps self ρ ss))
+  | ρ, .ite _ z n :: ss => Option.addAcc
+      (Option.maxAcc (blockB cert wl α ks ps self ρ z) (blockB cert wl α ks ps self ρ n))
+      (blockB cert wl α ks ps self ρ ss)
   | ρ, .match_ _ arms :: ss =>
       Option.addAcc (armsB cert wl α ks ps self ρ arms) (blockB cert wl α ks ps self ρ ss)
   | ρ, .call g args _ :: ss => Option.addAcc (siteB cert ρ.1 ps g args) (blockB cert wl α ks ps self ρ ss)
@@ -257,7 +272,7 @@ def blockB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ks
       else Option.addAcc (siteB cert ρ.1 ps g args)
         (Option.addAcc (phB wl α g) (blockB cert wl α ks ps self ρ ss))
   | ρ, .dispatch _ gs args _ :: ss =>
-      Option.addAcc (sumB (fun g => siteB cert ρ.1 ps g args) gs) (blockB cert wl α ks ps self ρ ss)
+      Option.addAcc (maxB (fun g => siteB cert ρ.1 ps g args) gs) (blockB cert wl α ks ps self ρ ss)
   | _, .ret _ :: _ => some (⟨0, []⟩, [])
 
 /-- The arms' bounds, summed. -/
@@ -265,7 +280,7 @@ def armsB (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ks 
     (self : String) :
     Env × BEnv → List (List Stmt) → Option Acc
   | _, [] => some (⟨0, []⟩, [])
-  | ρ, a :: as => Option.addAcc (blockB cert wl α ks ps self ρ a) (armsB cert wl α ks ps self ρ as)
+  | ρ, a :: as => Option.maxAcc (blockB cert wl α ks ps self ρ a) (armsB cert wl α ks ps self ρ as)
 end
 
 /-- **`blockB` on the recursor**, for the kernel: each statement gives its bound and the
@@ -277,12 +292,12 @@ noncomputable def stmtR (cert : String → Cert) (wl : String → Option ℕ) (�
   @Stmt.rec (fun _ => Env × BEnv → Option (Acc × Option (Env × BEnv))) (fun _ => Env × BEnv → Option Acc)
     (fun _ => Env × BEnv → Option Acc)
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
-    (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
+    (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
       else (Option.addAcc (siteB cert ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -290,7 +305,7 @@ noncomputable def stmtR (cert : String → Cert) (wl : String → Option ℕ) (�
       | some (r, some ρ') => Option.addAcc (some r) (hss ρ')
       | some (r, none) => some r)
     (fun _ => some Acc.zero)
-    (fun _ _ ha has ρ => Option.addAcc (ha ρ) (has ρ))
+    (fun _ _ ha has ρ => Option.maxAcc (ha ρ) (has ρ))
 
 /-- `stmtR` of a block. -/
 noncomputable def blockR (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ks : List (V × ℕ))
@@ -299,12 +314,12 @@ noncomputable def blockR (cert : String → Cert) (wl : String → Option ℕ) (
   @Stmt.rec_1 (fun _ => Env × BEnv → Option (Acc × Option (Env × BEnv))) (fun _ => Env × BEnv → Option Acc)
     (fun _ => Env × BEnv → Option Acc)
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
-    (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
+    (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
       else (Option.addAcc (siteB cert ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -312,7 +327,7 @@ noncomputable def blockR (cert : String → Cert) (wl : String → Option ℕ) (
       | some (r, some ρ') => Option.addAcc (some r) (hss ρ')
       | some (r, none) => some r)
     (fun _ => some Acc.zero)
-    (fun _ _ ha has ρ => Option.addAcc (ha ρ) (has ρ))
+    (fun _ _ ha has ρ => Option.maxAcc (ha ρ) (has ρ))
 
 /-- `stmtR` of arms. -/
 noncomputable def armsR (cert : String → Cert) (wl : String → Option ℕ) (α : Bool) (ks : List (V × ℕ))
@@ -321,12 +336,12 @@ noncomputable def armsR (cert : String → Cert) (wl : String → Option ℕ) (�
   @Stmt.rec_2 (fun _ => Env × BEnv → Option (Acc × Option (Env × BEnv))) (fun _ => Env × BEnv → Option Acc)
     (fun _ => Env × BEnv → Option Acc)
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
-    (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
+    (fun _ _ _ hz hn ρ => (Option.maxAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
     (fun _ g args ρ => if g = self then none
       else (Option.addAcc (siteB cert ρ.1 ps g args) (phB wl α g)).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (maxB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -334,7 +349,7 @@ noncomputable def armsR (cert : String → Cert) (wl : String → Option ℕ) (�
       | some (r, some ρ') => Option.addAcc (some r) (hss ρ')
       | some (r, none) => some r)
     (fun _ => some Acc.zero)
-    (fun _ _ ha has ρ => Option.addAcc (ha ρ) (has ρ))
+    (fun _ _ ha has ρ => Option.maxAcc (ha ρ) (has ρ))
 
 mutual
 /-- No `ret` in a statement. -/
