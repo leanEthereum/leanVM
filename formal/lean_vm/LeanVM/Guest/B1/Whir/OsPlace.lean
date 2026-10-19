@@ -94,7 +94,8 @@ theorem os_completeAt_place {f : String} {fn : Fn} (hf : coreProgram.find? f = s
     {pre : List Stmt} {vs : List V} (hb : fn.body = pre ++ [.ret vs])
     (hst : pre.all Main.Stmt.straight = true) (haddrs : pre.filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (jo : ℕ) (hjo : jo < sizes.length) {C : CallRel}
-    (h : ∀ fp, ∃ (σ : Val) (own : List (List E)) (rets : List E) (N : ℕ) (L : Layout) (Dk : ℕ → Prop),
+    (h : ∀ fp, ∃ (σ : Val) (own : List (List E)) (rets : List E) (N : ℕ) (L : Layout) (Dk : ℕ → Prop) (cs : List Call),
+      (pre.filterMap Main.Stmt.callS).map (Main.mkCall σ) = cs ∧
       List.Forall₂ (fun c s => c.length ≤ s) own sizes ∧
       Out rets [(fp + fs f + (sizes.take jo).sum, own.getD jo [])] ∧
       Within L (fp + fs f + sizes.sum) N ∧ DisjL L ∧ fn.params.map σ = args ∧
@@ -105,10 +106,10 @@ theorem os_completeAt_place {f : String} {fn : Fn} (hf : coreProgram.find? f = s
           (bases (fp + fs f) sizes).map (fun b => ofK (gpow b))) ∧
       ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd L → MemL rd Lin →
         KidsFromIn coreProgram fs cert rd σ (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes own) i)
-          (fun _ => False) ((pre.filterMap Main.Stmt.callS).map (Main.mkCall σ)) (fp + fs f + sizes.sum) N Dk) :
+          (fun _ => False) cs (fp + fs f + sizes.sum) N Dk) :
     CompleteAtD fs cert κ f Lin args Out := by
   intro fp
-  obtain ⟨σ, own, rets, N, L, Dk, hown, hout, hW, hD, hp, hh, hK⟩ := h fp
+  obtain ⟨σ, own, rets, N, L, Dk, cs, hcs, hown, hout, hW, hD, hp, hh, hK⟩ := h fp
   set B := bufL (fp + fs f) sizes own with hB
   have hlen : jo < B.length := by
     simp only [hB, bufL, List.length_zip, os_length_bases, hown.length_eq, Nat.min_self]; exact hjo
@@ -156,7 +157,7 @@ theorem os_completeAt_place {f : String} {fn : Fn} (hf : coreProgram.find? f = s
     (R' := fun i => RegionL Lin i ∨
       ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (Main.slEvs σ))) (pre.flatMap (Main.slEvs σ)) i)
     (fun i hi => hi.imp_right (hown' i)) _ _ _ _ _ (hK rd hlow hB1 hL1 hLin)
-  rw [← i4, show fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (Main.slEvs σ))).sum by rw [hal]] at hk
+  rw [← hcs, ← i4, show fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (Main.slEvs σ))).sum by rw [hal]] at hk
   have hrel := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
     (D := RegionL Lo) (Dk := Dk) (N := N) (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw hr hes
     (by rw [hal, i1]; exact hbuf) (by rw [i3, haddrs]; simp) hk (fun A hA => ?_) (fun i hi => ?_)

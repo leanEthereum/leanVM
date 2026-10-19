@@ -25,6 +25,18 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
+/-- **The body's frames, in its parts.** -/
+theorem os_calls_eq (cfg : OsCfg) (σ : Val) :
+    (((osHead cfg).1 ++ (osLevels cfg 0 cfg.levels (osHead cfg).2).1 ++ (osTail cfg.yrLog (OsRun.sL cfg)).1 ++
+      osFinPre cfg).filterMap Main.Stmt.callS).map (Main.mkCall σ) =
+      (osLvsKOf cfg σ 0 (osHead cfg).2 cfg.levels.length).flatMap OsLvK.calls ++
+        (((osTail cfg.yrLog (OsRun.sL cfg)).1.filterMap Main.Stmt.callS).map (Main.mkCall σ) ++
+        ((osFinPre cfg).filterMap Main.Stmt.callS).map (Main.mkCall σ)) := by
+  rw [List.filterMap_append, List.filterMap_append, List.filterMap_append, List.map_append, List.map_append,
+    List.map_append, os_head_noCalls, List.map_nil, List.nil_append,
+    show osLevels cfg 0 cfg.levels (osHead cfg).2 = osLevels cfg 0 (cfg.levels.drop 0) (osHead cfg).2 by rw [List.drop_zero],
+    os_levels_calls cfg σ cfg.levels.length 0 _ (by omega), List.append_assoc]
+
 namespace OsData
 
 variable {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {cfg : OsCfg} {d : OsData}
