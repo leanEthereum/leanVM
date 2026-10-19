@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Tables.VtKidsB
 # `verify_tables`, placed and bounded
 
 `verify_tables_completeAt_of` with `completeAt_flatB`: its tree is its frame, its 205 buffers
-(`vtSizes n`, at most `vtSzPre.sum + 198`) and its 75 callees, each within `vtKB fs`
+(`vtSizes n`, at most `vtSzPre.sum + 198`) and its 75 callees, each within its name's bound
 (`vt_kids_completeB`, `vtKids_bound`).
 -/
 
@@ -202,13 +202,13 @@ theorem verify_tables_completeAtB_of (hPl : VtPlacedOk) (hF : VtFits) (fs : Stri
   have hsplit : ∀ rd, ReadsAt rd cur xs → ReadsAt rd cur [m0, m1, m2, mF, bF] ∧
       ReadsAt rd (cur * gen ^ 5) ((List.range n).flatMap wsr ++ evss.flatten) := fun rd h => by
     rw [hxs] at h; exact Main.readsAt_append'.mp h
-  refine CompleteAtB.mono (B := fs "verify_tables" + (vtSizes n).sum + 75 * vtKB fs) ?_ le_rfl
+  refine CompleteAtB.mono (B := fs "verify_tables" + (vtSizes n).sum + vtKidsTot fs) ?_ le_rfl
     (by have := vtSizes_sum_le (n := n) (by omega); simp only [vtTablesBound]; omega)
   refine completeAt_flatB find_verify_tables vt_not_loop κ Lin _ _ core11_body vtPre_flat vtPre_addrs (vtSizes n)
     (fun _ => own) (fun _ => vtOwnW_fit _ _ _ _ _ _ _ _ _)
     (fun fp => vtKids Lin (fp + fs "verify_tables") n point.length logMem ks τs (fun t => rowsN.getD t 0) point
       (ofK (Parameters.gpow z)) (ofK (Parameters.gpow sq)) (ofK (Parameters.gpow chi)) own)
-    (fun _ => vtKB fs) (75 * vtKB fs) ?_ (fun fp => vtKids_bound fs _ _ _ _ _ _ _ _ _ _ _ _ _) ?_ ?_ ?_
+    (fun k => vtNameBd fs k.f) (vtKidsTot fs) ?_ (fun fp => vtKids_bound fs _ _ _ _ _ _ _ _ _ _ _ _ _ hτ29) ?_ ?_ ?_
   · intro fp k hk ht
     exact vt_kids_completeB fs cert κ hκ Lin (fp + fs "verify_tables") n logMem ks τs (fun t => rowsN.getD t 0)
       point chis cvr cur cl ch wsr _ _ _ hpl hlmμ h18μ hnp (fun i hi => (hfit i hi).1)

@@ -15,7 +15,8 @@ public import LeanVM.Guest.B1.Tables.VtPlaced
 
 `vt_kids_complete` with each lift in its `CompleteAtB` form: a padding weight is its frame, a
 selector or index chain at most 33 frames, `__loop79` at most 33 rounds with their
-`sumcheck_round4`, `__loop80` at most 33 frames. `vtKB fs` bounds every callee, entered or not.
+`sumcheck_round4`, `__loop80` at most 33 frames (`vtNameBd`, by the callee's name); `vtKidsTot`
+sums them over the 75 calls.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -27,44 +28,74 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
-/-- A bound on each of `verify_tables`' callees. -/
-abbrev vtKB (fs : String → ℕ) : ℕ :=
-  (pwNames.map fs).sum + 33 * (selNames.map fs).sum + 33 * (fs "__loop14" + fs "__loop16") +
+/-- A callee's bound, by its name: `__loop79` 33 rounds with their `sumcheck_round4`, `__loop16`
+19 frames, a padding weight its frame, any other loop 33 frames. -/
+def vtNameBd (fs : String → ℕ) (f : String) : ℕ :=
+  if f = "__loop79" then 33 * (fs "__loop79" + fs "sumcheck_round4")
+  else if f = "__loop16" then 19 * fs "__loop16"
+  else if pwNames.contains f then fs f
+  else 33 * fs f
+
+/-- The largest padding weight's frame. -/
+def pwMax (fs : String → ℕ) : ℕ := (pwNames.map fs).foldl max 0
+
+/-- The 75 callees' bound: six padding weights, the 65 selectors, the two index chains,
+`__loop79` and `__loop80`, each at its own name. -/
+abbrev vtKidsTot (fs : String → ℕ) : ℕ :=
+  6 * pwMax fs + 33 * (selNames.map fs).sum + 33 * fs "__loop14" + 19 * fs "__loop16" +
     33 * (fs "__loop79" + fs "sumcheck_round4") + 33 * fs "__loop80"
 
-theorem pw_le_vtKB (fs : String → ℕ) (j : ℕ) (hj : j < 29) : fs (pwNames.getD j "") ≤ vtKB fs := by
-  have := List.le_sum_of_mem (List.mem_map_of_mem (f := fs)
+theorem fs_le_vtNameBd (fs : String → ℕ) (f : String) : fs f ≤ vtNameBd fs f := by
+  unfold vtNameBd
+  split_ifs with h1 h2 <;> (try subst h1) <;> (try subst h2) <;> omega
+
+set_option maxRecDepth 100000 in
+theorem pw_names_facts : ∀ j < 29, pwNames.getD j "" ≠ "__loop79" ∧ pwNames.getD j "" ≠ "__loop16" ∧
+    pwNames.contains (pwNames.getD j "") = true := by decide
+
+set_option maxRecDepth 100000 in
+theorem sel_names_facts : ∀ i < 65, selNames.getD i "" ≠ "__loop79" ∧ selNames.getD i "" ≠ "__loop16" ∧
+    pwNames.contains (selNames.getD i "") = false := by decide
+
+theorem sel_nameBd (fs : String → ℕ) {i : ℕ} (hi : i < 65) :
+    vtNameBd fs (selNames.getD i "") = 33 * fs (selNames.getD i "") := by
+  obtain ⟨a, b, c⟩ := sel_names_facts i hi
+  simp only [vtNameBd, a, b, c, ↓reduceIte, Bool.false_eq_true]
+
+theorem pw_nameBd (fs : String → ℕ) {j : ℕ} (hj : j < 29) :
+    vtNameBd fs (pwNames.getD j "") = fs (pwNames.getD j "") := by
+  obtain ⟨a, b, c⟩ := pw_names_facts j hj
+  simp only [vtNameBd, a, b, c, ↓reduceIte]
+
+theorem pw_le_pwMax (fs : String → ℕ) {j : ℕ} (hj : j < 29) : fs (pwNames.getD j "") ≤ pwMax fs :=
+  le_foldl_max _ 0 _ (List.mem_map_of_mem (f := fs)
     (List.getD_eq_getElem pwNames "" (by simpa [pwNames] using hj) ▸ List.getElem_mem _ :
       pwNames.getD j "" ∈ pwNames))
-  simp only [vtKB]; omega
 
-theorem sel_le_vtKB (fs : String → ℕ) {i m : ℕ} (hi : i < 65) (hm : m ≤ 32) :
-    m * (fs (selNames.getD i "") + 0) + fs (selNames.getD i "") ≤ vtKB fs := by
-  have := List.le_sum_of_mem (List.mem_map_of_mem (f := fs) (vtSel_mem i hi))
-  have : m * (fs (selNames.getD i "") + 0) ≤ 32 * (selNames.map fs).sum := by
-    rw [Nat.add_zero]; exact Nat.mul_le_mul hm this
-  simp only [vtKB]; omega
+theorem sel_le33 (fs : String → ℕ) {i m : ℕ} (hm : m ≤ 32) :
+    m * (fs (selNames.getD i "") + 0) + fs (selNames.getD i "") ≤ 33 * fs (selNames.getD i "") := by
+  rw [Nat.add_zero]; nlinarith
 
-theorem idx14_le_vtKB (fs : String → ℕ) {m : ℕ} (hm : m ≤ 32) :
-    m * (fs "__loop14" + 0) + fs "__loop14" ≤ vtKB fs := by
-  have : m * (fs "__loop14" + 0) ≤ 32 * fs "__loop14" := by rw [Nat.add_zero]; exact Nat.mul_le_mul_right _ hm
-  simp only [vtKB]; omega
+theorem idx14_le (fs : String → ℕ) {m : ℕ} (hm : m ≤ 32) :
+    m * (fs "__loop14" + 0) + fs "__loop14" ≤ vtNameBd fs "__loop14" := by
+  have : vtNameBd fs "__loop14" = 33 * fs "__loop14" := by simp [vtNameBd, pwNames]
+  rw [this, Nat.add_zero]; nlinarith
 
-theorem idx16_le_vtKB (fs : String → ℕ) : 18 * (fs "__loop16" + 0) + fs "__loop16" ≤ vtKB fs := by
-  simp only [vtKB]; omega
+theorem idx16_le (fs : String → ℕ) : 18 * (fs "__loop16" + 0) + fs "__loop16" ≤ vtNameBd fs "__loop16" := by
+  have : vtNameBd fs "__loop16" = 19 * fs "__loop16" := by simp [vtNameBd]
+  rw [this]; omega
 
-theorem l79_le_vtKB (fs : String → ℕ) {m : ℕ} (hm : m ≤ 32) :
-    m * (fs "__loop79" + fs "sumcheck_round4") + fs "__loop79" ≤ vtKB fs := by
-  have : m * (fs "__loop79" + fs "sumcheck_round4") ≤ 32 * (fs "__loop79" + fs "sumcheck_round4") :=
-    Nat.mul_le_mul_right _ hm
-  simp only [vtKB]; omega
+theorem l79_le (fs : String → ℕ) {m : ℕ} (hm : m ≤ 32) :
+    m * (fs "__loop79" + fs "sumcheck_round4") + fs "__loop79" ≤ vtNameBd fs "__loop79" := by
+  have : vtNameBd fs "__loop79" = 33 * (fs "__loop79" + fs "sumcheck_round4") := by simp [vtNameBd]
+  rw [this]; nlinarith
 
-theorem l80_le_vtKB (fs : String → ℕ) {m : ℕ} (hm : m ≤ 32) :
-    m * (fs "__loop80" + 0) + fs "__loop80" ≤ vtKB fs := by
-  have : m * (fs "__loop80" + 0) ≤ 32 * fs "__loop80" := by rw [Nat.add_zero]; exact Nat.mul_le_mul_right _ hm
-  simp only [vtKB]; omega
+theorem l80_le (fs : String → ℕ) {m : ℕ} (hm : m ≤ 32) :
+    m * (fs "__loop80" + 0) + fs "__loop80" ≤ vtNameBd fs "__loop80" := by
+  have : vtNameBd fs "__loop80" = 33 * fs "__loop80" := by simp [vtNameBd, pwNames]
+  rw [this, Nat.add_zero]; nlinarith
 
-/-- **`verify_tables`' callees are complete, placed, by trees of at most `vtKB fs` words.** -/
+/-- **`verify_tables`' callees are complete, placed, each by a tree within its name's bound.** -/
 def VtKidsCompleteB : Prop :=
   ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), 7 ≤ κ → ∀ (Lin : Main.Layout) (b n logMem : ℕ)
     (ks τs nr : ℕ → ℕ) (point chis : List E) (cvr : ℕ → Digest) (cur : E) (cl ch : ℕ → E)
@@ -78,7 +109,7 @@ def VtKidsCompleteB : Prop :=
       ReadsAt rd chiP chis ∧ ReadsAt rd (cur * gen ^ 5) ((List.range n).flatMap wsr)) →
     ∀ k ∈ vtKids Lin b n point.length logMem ks τs nr point zeta sq chiP
       (vtOwnW ks point logMem n cvr cur cl ch chis), k.taken = true →
-      CompleteAtB fs cert κ k.f k.Lin k.args k.Out (vtKB fs)
+      CompleteAtB fs cert κ k.f k.Lin k.args k.Out (vtNameBd fs k.f)
 
 /-- **A selector's kid is complete by a bounded tree**, on its honest buffers. -/
 theorem vtc_sel_kidB {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {Lin : Main.Layout} {b n : ℕ}
@@ -90,10 +121,10 @@ theorem vtc_sel_kidB {fs : String → ℕ} {cert : String → V → ℕ} {κ : �
     CompleteAtB fs cert κ (selNames.getD i "") (Lin ++ bufL b (vtSizes n) own)
       [1, gen ^ (point.length - ks (selBlk.getD i 0)), vtPtr b n (selBuf i) * gen ^ ks (selBlk.getD i 0),
         vtPtr b n (selBuf i + 1), zeta * gen ^ ks (selBlk.getD i 0), vtPtr b n (selBuf i + 2), sq,
-        gen ^ ks (selBlk.getD i 0)] (Returns []) (vtKB fs) := by
+        gen ^ ks (selBlk.getD i 0)] (Returns []) (33 * fs (selNames.getD i "")) := by
   have hb : selBuf i + 2 < 205 := by unfold selBuf; split_ifs <;> omega
   refine (sel_completeAtB (sel_ok i hi) (vtSel_mem i hi) hm0 κ fun rd hlow hL rd' hag j hj => ?_).mono le_rfl
-    (sel_le_vtKB fs hi (by omega))
+    (sel_le33 fs (by omega))
   obtain ⟨hL1, -⟩ := Main.memL_append.mp hL
   have hagL : ∀ t, RegionL Lin t → rd' (gpow t) = rd (gpow t) := fun t ht =>
     hag t (regionL_append.mpr (Or.inl ht))
@@ -134,37 +165,36 @@ theorem vt_kids_completeB : VtKidsCompleteB := by
   rcases hk with ((⟨t, ht6, rfl⟩ | rfl | rfl | rfl | rfl | rfl) | ⟨i, hi, rfl⟩) | rfl | rfl
   · obtain ⟨h29, hτp, hnr⟩ := hτ t ht6
     have hj : τs t < pwNames.length := by simpa [pwNames] using h29
-    show CompleteAtB fs cert κ (pwNames.getD (τs t) "") Lin _ _ (vtKB fs)
+    show CompleteAtB fs cert κ (pwNames.getD (τs t) "") Lin _ _ (vtNameBd fs (pwNames.getD (τs t) ""))
     rw [List.getD_eq_getElem _ _ hj]
-    refine (pw_completeAtB (τs t) hj hnr hτp (fun rd h1 h2 => (hLin rd h1 h2).1)).mono le_rfl ?_
-    have := pw_le_vtKB fs (τs t) (by omega)
-    rwa [List.getD_eq_getElem _ _ hj] at this
-  · exact vtc_sel_kidB (i := 0) (by norm_num) hown
+    exact (pw_completeAtB (τs t) hj hnr hτp (fun rd h1 h2 => (hLin rd h1 h2).1)).mono le_rfl
+      (fs_le_vtNameBd fs _)
+  · exact (vtc_sel_kidB (i := 0) (by norm_num) hown
       (fun r hr => vtc_own_sel ks point logMem n cvr cur cl ch chis (by norm_num) hr) hzs hμ
-      (Nat.pos_of_ne_zero (by simpa using ht))
-  · exact vtc_sel_kidB (i := 1) (by norm_num) hown
+      (Nat.pos_of_ne_zero (by simpa using ht))).mono le_rfl (le_of_eq (sel_nameBd fs (by norm_num)).symm)
+  · exact (vtc_sel_kidB (i := 1) (by norm_num) hown
       (fun r hr => vtc_own_sel ks point logMem n cvr cur cl ch chis (by norm_num) hr) hzs hμ
-      (Nat.pos_of_ne_zero (by simpa using ht))
+      (Nat.pos_of_ne_zero (by simpa using ht))).mono le_rfl (le_of_eq (sel_nameBd fs (by norm_num)).symm)
   · refine (idx_completeAtB idx_ok.1 (by simp) (Nat.pos_of_ne_zero (by simpa using ht)) κ
-      fun rd hlow hL rd' hag j hj => ?_).mono le_rfl (idx14_le_vtKB fs (by omega))
+      fun rd hlow hL rd' hag j hj => ?_).mono le_rfl (idx14_le fs (by omega))
     obtain ⟨hz, hidx⟩ := hidxR hlow hL hag
     have R := vtc_own_reads hown hL hag (i := 11) (by omega)
     rw [o11] at R
     exact vtc_idxBody_honest hz hidx R hj (by omega) (by omega)
-  · exact vtc_sel_kidB (i := 2) (by norm_num) hown
+  · exact (vtc_sel_kidB (i := 2) (by norm_num) hown
       (fun r hr => vtc_own_sel ks point logMem n cvr cur cl ch chis (by norm_num) hr) hzs hμ
-      (Nat.pos_of_ne_zero (by simpa using ht))
+      (Nat.pos_of_ne_zero (by simpa using ht))).mono le_rfl (le_of_eq (sel_nameBd fs (by norm_num)).symm)
   · refine (idx_completeAtB idx_ok.2 (by simp) (by norm_num) κ fun rd hlow hL rd' hag j hj => ?_).mono
-      le_rfl (idx16_le_vtKB fs)
+      le_rfl (idx16_le fs)
     obtain ⟨hz, hidx⟩ := hidxR hlow hL hag
     have R := vtc_own_reads hown hL hag (i := 15) (by omega)
     rw [o15] at R
     exact vtc_idxBody_honest hz hidx R hj (by omega) (by omega)
-  · exact vtc_sel_kidB (i := i + 3) (by omega) hown
+  · exact (vtc_sel_kidB (i := i + 3) (by omega) hown
       (fun r hr => vtc_own_sel ks point logMem n cvr cur cl ch chis (by omega) hr) hzs hμ
-      (Nat.pos_of_ne_zero (by simpa using ht))
+      (Nat.pos_of_ne_zero (by simpa using ht))).mono le_rfl (le_of_eq (sel_nameBd fs (by omega)).symm)
   · refine (loop79_completeAtB (Nat.pos_of_ne_zero (by simpa using ht)) κ
-      fun rd hlow hL rd' hag j hj => ?_).mono le_rfl (l79_le_vtKB fs (by omega))
+      fun rd hlow hL rd' hag j hj => ?_).mono le_rfl (l79_le fs (by omega))
     obtain ⟨hL1, -⟩ := Main.memL_append.mp hL
     have hagL : ∀ t, RegionL Lin t → rd' (gpow t) = rd (gpow t) := fun t ht =>
       hag t (regionL_append.mpr (Or.inl ht))
@@ -175,7 +205,7 @@ theorem vt_kids_completeB : VtKidsCompleteB := by
     rw [vtc_own_tail ks point logMem n cvr cur cl ch chis (by omega)] at R C
     exact vtc_zcRound_honest R C hchi hchis hws hrun hj
   · refine (loop80_completeAtB (Nat.pos_of_ne_zero (by simpa using ht)) κ
-      fun rd hlow hL rd' hag j hj => ?_).mono le_rfl (l80_le_vtKB fs (by omega))
+      fun rd hlow hL rd' hag j hj => ?_).mono le_rfl (l80_le fs (by omega))
     obtain ⟨hL1, -⟩ := Main.memL_append.mp hL
     have hagL : ∀ t, RegionL Lin t → rd' (gpow t) = rd (gpow t) := fun t ht =>
       hag t (regionL_append.mpr (Or.inl ht))
@@ -185,38 +215,42 @@ theorem vt_kids_completeB : VtKidsCompleteB := by
     rw [vtc_own_tail ks point logMem n cvr cur cl ch chis (by omega)] at P
     exact vtc_peqBody_honest P hz hchi hj hn (by rw [hchis]; simp)
 
-/-- **The callees' bound**: every callee of `vtKids` within `vtKB fs`. -/
+/-- **The callees' bound**: the 75 callees of `vtKids`, each at its name's bound. -/
 theorem vtKids_bound (fs : String → ℕ) (Lin : Main.Layout) (b n μ logMem : ℕ) (ks τs nr : ℕ → ℕ)
-    (point : List E) (zeta sq chiP : E) (own : List (List E)) :
-    kidsBound fs (fun _ => vtKB fs) (vtKids Lin b n μ logMem ks τs nr point zeta sq chiP own) ≤
-      75 * vtKB fs := by
-  have hsel : ∀ i < 65, fs (selNames.getD i "") ≤ vtKB fs := fun i hi => by
-    have := sel_le_vtKB fs (m := 0) hi (by omega); omega
-  have h14 : fs "__loop14" ≤ vtKB fs := by simp only [vtKB]; omega
-  have h79 : fs "__loop79" ≤ vtKB fs := by simp only [vtKB]; omega
-  have h80 : fs "__loop80" ≤ vtKB fs := by simp only [vtKB]; omega
-  have hk : ∀ k ∈ vtKids Lin b n μ logMem ks τs nr point zeta sq chiP own,
-      (if k.taken = true then vtKB fs else fs k.f) ≤ vtKB fs := by
-    intro k hk
-    rw [vtKids_eq] at hk
-    simp only [List.mem_append, List.mem_map, List.mem_range, List.mem_cons, List.not_mem_nil,
-      or_false] at hk
-    rcases hk with ⟨t, -, rfl⟩ | (rfl | rfl | rfl | rfl | rfl) | ⟨i, hi, rfl⟩ | rfl | rfl
-    · simp
-    · split <;> first | exact le_rfl | exact hsel 0 (by omega)
-    · split <;> first | exact le_rfl | exact hsel 1 (by omega)
-    · split <;> first | exact le_rfl | exact h14
-    · split <;> first | exact le_rfl | exact hsel 2 (by omega)
-    · simp
-    · split <;> first | exact le_rfl | exact hsel (i + 3) (by omega)
-    · split <;> first | exact le_rfl | exact h79
-    · split <;> first | exact le_rfl | exact h80
+    (point : List E) (zeta sq chiP : E) (own : List (List E)) (hτ : ∀ t < 6, τs t < 29) :
+    kidsBound fs (fun k => vtNameBd fs k.f) (vtKids Lin b n μ logMem ks τs nr point zeta sq chiP own) ≤
+      vtKidsTot fs := by
   unfold kidsBound
-  refine le_trans (List.sum_le_length_nsmul _ (vtKB fs) fun x hx => ?_) ?_
-  · obtain ⟨k, hk', rfl⟩ := List.mem_map.mp hx
-    exact hk k hk'
-  · rw [List.length_map, vtKids_eq]
-    simp
+  refine le_trans (List.sum_le_sum (g := fun k => vtNameBd fs k.f) fun k _ => ?_) ?_
+  · split
+    · exact le_rfl
+    · exact fs_le_vtNameBd fs _
+  rw [vtKids_eq]
+  simp only [List.map_append, List.map_cons, List.map_nil, List.sum_append, List.sum_cons, List.sum_nil,
+    List.map_map, Function.comp_def, vtSelKid]
+  have hpw : ((List.range 6).map fun t => vtNameBd fs (pwNames.getD (τs t) "")).sum ≤ 6 * pwMax fs := by
+    refine le_trans (List.sum_le_length_nsmul _ (pwMax fs) fun x hx => ?_) (by simp)
+    obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hx
+    have h29 := hτ t (List.mem_range.mp ht)
+    rw [pw_nameBd fs h29]; exact pw_le_pwMax fs h29
+  have hsel : ((List.range 62).map fun i => vtNameBd fs (selNames.getD (i + 3) "")).sum =
+      33 * ((List.range 62).map fun i => fs (selNames.getD (i + 3) "")).sum := by
+    rw [← List.sum_map_mul_left]
+    exact congrArg List.sum (List.map_congr_left fun i hi => sel_nameBd fs (by have := List.mem_range.mp hi; omega))
+  have hsplit : (selNames.map fs).sum = fs (selNames.getD 0 "") + fs (selNames.getD 1 "") +
+      fs (selNames.getD 2 "") + ((List.range 62).map fun i => fs (selNames.getD (i + 3) "")).sum := by
+    have : selNames.map fs = [fs (selNames.getD 0 ""), fs (selNames.getD 1 ""), fs (selNames.getD 2 "")] ++
+        (List.range 62).map (fun i => fs (selNames.getD (i + 3) "")) := rfl
+    rw [this, List.sum_append]; simp only [List.sum_cons, List.sum_nil]; omega
+  rw [sel_nameBd fs (i := 0) (by norm_num), sel_nameBd fs (i := 1) (by norm_num),
+    sel_nameBd fs (i := 2) (by norm_num), hsel,
+    show vtNameBd fs "__loop14" = 33 * fs "__loop14" by simp [vtNameBd, pwNames],
+    show vtNameBd fs "__loop16" = 19 * fs "__loop16" by simp [vtNameBd],
+    show vtNameBd fs "__loop79" = 33 * (fs "__loop79" + fs "sumcheck_round4") by simp [vtNameBd],
+    show vtNameBd fs "__loop80" = 33 * fs "__loop80" by simp [vtNameBd, pwNames]]
+  simp only [vtKidsTot]
+  rw [hsplit]
+  omega
 
 /-- The buffers' sizes, at most. -/
 theorem vtSizes_sum_le {n : ℕ} (hn : n ≤ 32) : (vtSizes n).sum ≤ vtSzPre.sum + 198 := by
@@ -226,7 +260,7 @@ theorem vtSizes_sum_le {n : ℕ} (hn : n ≤ 32) : (vtSizes n).sum ≤ vtSzPre.s
 
 /-- **`verify_tables`' bound**: its frame, its buffers and its 75 callees. -/
 abbrev vtTablesBound (fs : String → ℕ) : ℕ :=
-  fs "verify_tables" + (vtSzPre.sum + 198) + 75 * vtKB fs
+  fs "verify_tables" + (vtSzPre.sum + 198) + vtKidsTot fs
 
 end
 end LeanVM.Guest.B1.VerifySub

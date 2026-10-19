@@ -84,21 +84,87 @@ theorem dispOk_of {σ : Val} {l : List Stmt}
   | dispatch x fs args rets => exact h (x, fs) (List.mem_filterMap.mpr ⟨_, hs, rfl⟩)
   | _ => trivial
 
-/-- One of the terminal's callees, at most: a prefix chain, `rs_eq_run`, `__loop83` over at most
-32 steps, a column selector. -/
-abbrev termKBound (fs : String → ℕ) : ℕ :=
-  eqpcBound fs + rsBound fs + (32 * fs "__loop83" + fs "__loop83") + (csNames.map fs).sum
+/-- A terminal callee's bound, by its name: a prefix chain, `rs_eq_run`, `__loop83` over at most
+32 steps, a column selector its frame. -/
+def termNameBd (fs : String → ℕ) (f : String) : ℕ :=
+  if f = "eq_prefix_chain" then eqpcBound fs else if f = "rs_eq_run" then rsBound fs
+  else if f = "__loop83" then 33 * fs "__loop83" else fs f
+
+/-- The largest column selector's frame. -/
+def csMax (fs : String → ℕ) : ℕ := (csNames.map fs).foldl max 0
+
+/-- The 97 callees' bound: three prefix chains, `__loop83`, 92 selectors, `rs_eq_run`. -/
+abbrev termKidsTot (fs : String → ℕ) : ℕ :=
+  3 * eqpcBound fs + 33 * fs "__loop83" + 92 * csMax fs + rsBound fs
 
 /-- The terminal's bound: its frame, its `HeapBuf`s at `τ = 20` and its 97 callees. -/
-abbrev termBound (fs : String → ℕ) : ℕ := fs "check_opening_terminal" + 1996 + 97 * termKBound fs
+abbrev termBound (fs : String → ℕ) : ℕ := fs "check_opening_terminal" + 1996 + termKidsTot fs
 
-theorem termKid_bd (fs : String → ℕ) (b : ℕ) (LB : Main.Layout) (a0 a1 a3 a4 a5 a6 a11 a13 : E)
-    (K O : ℕ → ℕ) (sel : ℕ → E) (i : ℕ) :
-    (if (termKid b LB a0 a1 a3 a4 a5 a6 a11 a13 K O sel i).taken = true then termKBound fs
-      else fs (termKid b LB a0 a1 a3 a4 a5 a6 a11 a13 K O sel i).f) ≤ termKBound fs := by
-  have h83 : fs "__loop83" ≤ termKBound fs := by simp only [termKBound]; omega
-  unfold termKid
-  split_ifs <;> simp_all
+theorem fs_le_termNameBd (fs : String → ℕ) (f : String) : fs f ≤ termNameBd fs f := by
+  unfold termNameBd
+  split_ifs with h1 h2 h3 <;> (try subst h1) <;> (try subst h2) <;> (try subst h3) <;>
+    (try simp only [eqpcBound, rsBound]) <;> omega
+
+set_option maxRecDepth 100000 in
+theorem cs_names_facts : ∀ j < 29, csNames.getD j "" ≠ "eq_prefix_chain" ∧ csNames.getD j "" ≠ "rs_eq_run" ∧
+    csNames.getD j "" ≠ "__loop83" := by decide
+
+theorem cs_foldl_max_ge : ∀ (l : List ℕ) (a x : ℕ), x ∈ l ∨ x ≤ a → x ≤ l.foldl max a
+  | [], _, _, h => h.resolve_left (by simp)
+  | y :: l, a, x, h => by
+    rw [List.foldl_cons]
+    refine cs_foldl_max_ge l _ x ?_
+    rcases h with h | h
+    · rcases List.mem_cons.mp h with rfl | h
+      · exact Or.inr (le_max_right _ _)
+      · exact Or.inl h
+    · exact Or.inr (le_trans h (le_max_left _ _))
+
+theorem cs_le_csMax (fs : String → ℕ) {j : ℕ} (hj : j < 29) : termNameBd fs (csNames.getD j "") ≤ csMax fs := by
+  obtain ⟨a, b, c⟩ := cs_names_facts j hj
+  simp only [termNameBd, a, b, c, ↓reduceIte]
+  exact cs_foldl_max_ge _ 0 _ (Or.inl (List.mem_map_of_mem (f := fs)
+    (List.getD_eq_getElem csNames "" (by simpa [csNames] using hj) ▸ List.getElem_mem _ :
+      csNames.getD j "" ∈ csNames)))
+
+/-- **The terminal's callees' bound**, each at its name's bound. -/
+theorem termKids_bound (fs : String → ℕ) (b : ℕ) (LB : Main.Layout) (a0 a1 a3 a4 a5 a6 a11 a13 : E)
+    (K O : ℕ → ℕ) (sel : ℕ → E) (hK : ∀ c < 92, K c < 29) :
+    kidsBound fs (fun k => termNameBd fs k.f)
+      ((List.range 97).map (termKid b LB a0 a1 a3 a4 a5 a6 a11 a13 K O sel)) ≤ termKidsTot fs := by
+  set c : ℕ → ℕ := fun i => if i < 3 then eqpcBound fs else if i = 3 then 33 * fs "__loop83"
+    else if i < 96 then csMax fs else rsBound fs with hc
+  unfold kidsBound
+  rw [List.map_map]
+  refine le_trans (List.sum_le_sum (g := c) fun i hi => ?_) (le_of_eq ?_)
+  · have hi' := List.mem_range.mp hi
+    refine le_trans (?_ : _ ≤ termNameBd fs (termKid b LB a0 a1 a3 a4 a5 a6 a11 a13 K O sel i).f) ?_
+    · simp only [Function.comp]
+      split
+      · exact le_rfl
+      · exact fs_le_termNameBd fs _
+    · simp only [hc]
+      unfold termKid
+      split_ifs with h0 h1 h2 h3 h4 h5 h6 h7 <;> (try omega) <;> simp_all [termNameBd]
+      exact cs_le_csMax fs (hK _ (by omega))
+  · rw [show 97 = 4 + 92 + 1 from rfl, List.range_add, List.range_add, List.map_append, List.map_append,
+      List.sum_append, List.sum_append]
+    have hmid : ((List.range 92).map (4 + ·)).map c = List.replicate 92 (csMax fs) := by
+      rw [List.map_map]
+      refine List.ext_getElem (by simp) fun j h1 h2 => ?_
+      simp only [List.getElem_map, List.getElem_range, Function.comp, List.getElem_replicate, hc]
+      simp only [List.length_map, List.length_range] at h1
+      rw [ite_neg' (by omega), ite_neg' (by omega), ite_pos' (by omega)]
+    rw [hmid, show List.range 4 = [0, 1, 2, 3] from rfl,
+      show List.map (fun x => 4 + 92 + x) (List.range 1) = [96] from rfl, List.sum_replicate, smul_eq_mul]
+    show _ = 3 * eqpcBound fs + 33 * fs "__loop83" + 92 * csMax fs + rsBound fs
+    have c0 : c 0 = eqpcBound fs := by rw [hc]; rfl
+    have c1 : c 1 = eqpcBound fs := by rw [hc]; rfl
+    have c2 : c 2 = eqpcBound fs := by rw [hc]; rfl
+    have c3 : c 3 = 33 * fs "__loop83" := by rw [hc]; rfl
+    have c96 : c 96 = rsBound fs := by rw [hc]; rfl
+    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, c0, c1, c2, c3, c96]
+    omega
 
 set_option maxHeartbeats 8000000 in
 /-- **`check_opening_terminal` is complete, placed, by a bounded tree** (TRIAGE #42, #43):
@@ -254,7 +320,7 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
       Lin ++ bufL b (termSizes τ) (termOwn bus.point chisF ptw fp a2 n τ) := fun b i => by
     unfold termKid; split_ifs <;> rfl
   refine CompleteAtB.mono ?_ le_rfl (show fs "check_opening_terminal" + (termSizes τ).sum +
-    97 * termKBound fs ≤ termBound fs by
+    termKidsTot fs ≤ termBound fs by
       simp only [termSizes, termBound, List.sum_cons, List.sum_nil]; omega)
   refine completeAt_flatB find_check_opening_terminal term_not_loop κ Lin _ _ term_body term_flat
     term_addrs (termSizes τ) (fun _ => termOwn bus.point chisF ptw fp a2 n τ)
@@ -262,14 +328,8 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
     (fun fp' => (List.range 97).map (termKid (fp' + fs "check_opening_terminal")
       (Lin ++ bufL (fp' + fs "check_opening_terminal") (termSizes τ)
         (termOwn bus.point chisF ptw fp a2 n τ)) a0 a1 a3 a4 a5 a6 a11 a13 K O sel))
-    (fun _ => termKBound fs) (97 * termKBound fs) ?_ (fun fp' => ?_) ?_ ?_ ?_
-  rotate_left
-  · unfold kidsBound
-    rw [List.map_map]
-    refine le_trans (List.sum_le_length_nsmul _ (termKBound fs) fun x hx => ?_) (by simp)
-    obtain ⟨i, -, rfl⟩ := List.mem_map.mp hx
-    exact termKid_bd fs _ _ _ _ _ _ _ _ _ _ _ _ _ i
-  rotate_right
+    (fun k => termNameBd fs k.f) (termKidsTot fs) ?_
+    (fun fp' => termKids_bound fs _ _ _ _ _ _ _ _ _ _ _ _ _ fun c hc => by have := hK28 c hc; omega) ?_ ?_ ?_
   · intro fp' k hk ht
     obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hk
     simp only [List.mem_range] at hi
@@ -285,19 +345,19 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
     split_ifs at ht ⊢ with h0 h1 h2 h3 h4
     · refine vtc_completeAt_of_rel_lowB pure_eqpc (by simp) κ ?_ fun rd _ t rets' hn hv hbo =>
         le_trans (eqpc_total (fs := fs) (m := bus.point.length) (by omega) hn (by rw [← hgmu]; exact hv)
-          hbo) (by simp only [termKBound]; omega)
+          hbo) (le_of_eq (by simp [termNameBd]))
       intro rd hlow hL rd' hag
       obtain ⟨⟨c17, -⟩, -⟩ := hM rd hlow hL rd' hag
       rw [word_one]; exact (eq_prefix_chain_iff _ _ _).mpr c17
     · refine vtc_completeAt_of_rel_lowB pure_eqpc (by simp) κ ?_ fun rd _ t rets' hn hv hbo =>
         le_trans (eqpc_total (fs := fs) (m := m1) (by omega) hn (by rw [← hgzcn]; exact hv)
-          hbo) (by simp only [termKBound]; omega)
+          hbo) (le_of_eq (by simp [termNameBd]))
       intro rd hlow hL rd' hag
       obtain ⟨⟨-, c19, -⟩, -⟩ := hM rd hlow hL rd' hag
       rw [word_one]; exact (eq_prefix_chain_iff _ _ _).mpr c19
     · refine vtc_completeAt_of_rel_lowB pure_eqpc (by simp) κ ?_ fun rd _ t rets' hn hv hbo =>
         le_trans (eqpc_total (fs := fs) (m := τ) (by omega) hn (by rw [← hgtau]; exact hv)
-          hbo) (by simp only [termKBound]; omega)
+          hbo) (le_of_eq (by simp [termNameBd]))
       intro rd hlow hL rd' hag
       obtain ⟨⟨-, -, c21, -⟩, -⟩ := hM rd hlow hL rd' hag
       rw [word_one, word_g8]; exact (eq_prefix_chain_iff _ _ _).mpr c21
@@ -315,7 +375,8 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
         exact loop83_complete hn2 hn33 hX hc
       · have := l83_total (fs := fs) (j := 1) (m := n) hn2 hn (by rw [pow_one]; exact hv) hbo
         have : (n - 1) * fs "__loop83" ≤ 32 * fs "__loop83" := Nat.mul_le_mul_right _ (by omega)
-        simp only [termKBound]; omega
+        show _ ≤ termNameBd fs "__loop83"
+        rw [show termNameBd fs "__loop83" = 33 * fs "__loop83" by simp [termNameBd]]; omega
     · have hc : i - 4 < 92 := by omega
       have hlt : K (i - 4) < csNames.length := by simp [csNames]; have := hK28 _ hc; omega
       rw [List.getD_eq_getElem _ _ hlt]
@@ -323,8 +384,7 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
         fun rd _ t rets' hn hv hbo => ?_
       swap
       · rw [cs_total (fs := fs) (List.getElem_mem hlt) hn hv hbo]
-        have := List.le_sum_of_mem (List.mem_map_of_mem (f := fs) (List.getElem_mem hlt))
-        simp only [termKBound]; omega
+        exact fs_le_termNameBd fs _
       intro rd hlow hL rd' hag
       obtain ⟨-, hpt'⟩ := hM rd hlow hL rd' hag
       refine column_selector_any' hlt ⟨O (i - 4), (List.range 28).map fun k => ptw.getD k 0,
@@ -337,7 +397,7 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
         rw [getD_map_range _ _ (by simp at ht; omega)]
     · refine vtc_completeAt_of_rel_lowB pure_rs (by simp) κ ?_ fun rd _ t rets' hn hv hbo =>
         le_trans (rs_total (fs := fs) (m := τ + 8) (by omega) hn
-          (by rw [hgtau, word_g8, ← pow_add] at hv; exact hv) hbo) (by simp only [termKBound]; omega)
+          (by rw [hgtau, word_g8, ← pow_add] at hv; exact hv) hbo) (le_of_eq (by simp [termNameBd]))
       intro rd hlow hL rd' hag
       obtain ⟨⟨-, -, -, -, -, hrs, -⟩, -⟩ := hM rd hlow hL rd' hag
       rw [word_g8]; exact (rs_eq_run_iff _ _ _).mpr hrs
