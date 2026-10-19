@@ -204,7 +204,8 @@ jobs:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # A build from a cold cache is several CPU-hours of kernel checks, built two modules at a time.
+    timeout-minutes: 360
     defaults:
       run:
         working-directory: formal/lean_vm
@@ -228,17 +229,33 @@ jobs:
             !formal/lean_vm/.lake/packages/mathlib/.lake
           key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/lean_xmss/LeanXmss/Scheme.lean', 'formal/lean_sphincs/Sphincs/Scheme.lean', 'formal/lean_da/LeanDa/Scheme.lean', 'formal/lean_da/LeanDa/Field.lean') }}
           restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json') }}-
-      # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
-      # Lean's three (`LeanVM.lean`'s `#guard_msgs`); `lake test` builds the tests.
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_vm
           auto-config: false
-          build: true
-          test: true
+          build: false
+          test: false
           lint: false
           use-github-cache: false
           use-mathlib-cache: auto
+      # The tests' build exceeds the runner's memory at its peak, and so does a module that runs
+      # beside a heavy one; the swap goes on the runner's scratch disk.
+      - name: Add swap
+        run: |
+          dir=/mnt; [ -d /mnt ] || dir=/
+          sudo fallocate -l 16G "$dir/swapfile.lean"
+          sudo chmod 600 "$dir/swapfile.lean"
+          sudo mkswap "$dir/swapfile.lean"
+          sudo swapon "$dir/swapfile.lean"
+          free -g
+      # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
+      # Lean's three (`LeanVM.lean`'s `#guard_msgs`). Lake has no job limit, and its parallel build
+      # of the generated kernel-checked families exceeds the runner's memory, so the script builds
+      # two modules at a time.
+      - name: Build
+        run: scripts/ci-build.sh
+      - name: Test
+        run: lake test
       - name: Check the Rust vectors' costly checks, compiled
         run: lake exe node-vectors
       - name: Check the guest's core IR data is current
