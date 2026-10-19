@@ -960,7 +960,7 @@ def locChunk : ℕ := 2000
 
 /-- The certificate of function `j`. -/
 def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ) (j : ℕ)
-    (cf : Core.Fn) : Except String (String × List ℕ × ℕ) := do
+    (cf : Core.Fn) : Except String (String × List ℕ × ℕ × List ℕ × Array GSeg) := do
   let f := fns[j]!
   let main := j == 1
   let F := factsOf T f main
@@ -1030,7 +1030,7 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
       | .branch _ _ _ x => tail x
       | _ => none
   let fsz := tailS.getD (f.code.foldl (fun m ins => max m (offTop ins)) (locs.foldl max 0) + 1)
-  return (·, sizes, fsz) <| locDefs ++ s!"/-- `{f.name}`. -/
+  return (·, sizes, fsz, locs, segs) <| locDefs ++ s!"/-- `{f.name}`. -/
 noncomputable def cert{j} : Check.Cert where
   facts := \{ env := {envT}, fpOne := {main}, arms := {armsT}, scaled := {scaled} }
   los := {listText (los.toList.map toString)}
@@ -1044,6 +1044,656 @@ noncomputable def cert{j} : Check.Cert where
   sem := {listText ((semOf f.name).map pairText)}
   cuts := {cutT}
   ends := {listText (cuts.map (toString ·.b))}
+"
+
+end GuestCert
+
+namespace GuestCert
+
+/-- Every atom of a block, in order, in every branch. -/
+partial def allAtoms : List Core.Stmt → List Core.Atom
+  | [] => []
+  | s :: ss => (match s with
+    | .atom a => [a]
+    | .ite _ z n => allAtoms z ++ allAtoms n
+    | .match_ _ arms => arms.flatMap allAtoms
+    | _ => []) ++ allAtoms ss
+
+/-- A short signature of an atom: kind, cells of its values, immediate or offset. -/
+def atomSig (cell : Core.V → ℕ) : Core.Atom → String × List ℕ × String
+  | .const d x => ("const", [cell d], toString (limbsOf x))
+  | .add d a b => ("add", [cell d, cell a, cell b], "")
+  | .mul d a b => ("mul", [cell d, cell a, cell b], "")
+  | .copy d s => ("copy", [cell d, cell s], "")
+  | .load d p off => ("load", [cell d, cell p], toString off)
+  | .assertEq a b => ("assertEq", [cell a, cell b], "")
+  | .assertNe x i p => ("assertNe", [cell x, cell i, cell p], "")
+  | .rangeCheck x y t1 t2 k => ("range", [cell x, cell y, cell t1, cell t2, cell k], "")
+  | .assertInK a b => ("inK", [cell a, cell b], "")
+  | .blake2s m0 m1 m2 m3 c0 c1 o0 o1 md => ("blake", [m0, m1, m2, m3, c0, c1, o0, o1, md].map cell, "")
+  | .frameAddr p run => ("addr", (p :: run).map cell, "")
+  | .hint h => ("hint", (Core.Hint.vals h).map cell, "")
+
+/-- The first occurrence of each value: its statement's signature. -/
+partial def firsts (cell : Core.V → ℕ) (m : Std.HashMap ℕ (String × List ℕ × String × Core.Stmt))
+    (ss : List Core.Stmt) : Std.HashMap ℕ (String × List ℕ × String × Core.Stmt) :=
+  ss.foldl (fun m s =>
+    let sig : String × List ℕ × String := match s with
+      | .atom a => atomSig cell a
+      | .call f args rets => ("call " ++ f, (args ++ rets).map cell, "")
+      | .callIf _ f args => ("callIf " ++ f, args.map cell, "")
+      | .dispatch _ fs args rets => ("dispatch " ++ toString fs.length, (args ++ rets).map cell, "")
+      | .ite c _ _ => ("ite", [cell c], "")
+      | .match_ x _ => ("match", [cell x], "")
+      | .ret vs => ("ret", vs.map cell, "")
+    let own := match s with
+      | .ite c _ _ => [c]
+      | .match_ x _ => [x]
+      | s => Core.Stmt.vals s
+    let m := own.foldl (fun m v => if m.contains v.idx then m else m.insert v.idx (sig.1, sig.2.1, sig.2.2, s)) m
+    match s with
+    | .ite _ z n => firsts cell (firsts cell m z) n
+    | .match_ _ arms => arms.foldl (firsts cell) m
+    | _ => m) m
+
+end GuestCert
+
+/-! ## Completeness certificates
+
+The completeness walk (`Cpl.block`): the core function walked along the executor's segments as
+the checker does, every instruction passed justified by what holds on the honest memory of a run
+on the path (a core atom on the path, a fixed cell, a callee frame), and the sharing of cells
+by values checked. It finds the call sites and table jumps `Data/Plumb*.lean` lists. -/
+
+
+namespace GuestCert
+namespace Cpl
+
+/-- Static plumbing content of a non-value cell. -/
+inductive PC where
+  | k (l : ℕ × ℕ × ℕ)
+  | fpg (e : ℕ)
+  deriving BEq, Repr
+
+/-- A callee frame cell's content. -/
+inductive FC where
+  | val (c : ℕ)
+  | self
+  | fp
+  | pc (r : ℕ)
+  | hdr (i : ℕ)
+  | fpg (e : ℕ)
+  deriving BEq, Repr
+
+structure Ctx where
+  fname : String
+  cell : ℕ → ℕ
+  vcells : Std.HashSet ℕ
+  plumb : Std.HashMap ℕ PC
+  pows : Std.HashMap ℕ ℕ
+  segs : Std.HashMap ℕ GSeg
+  entry : ℕ
+  nargs : ℕ
+  main : Bool
+  envOf : ℕ → List ℕ   -- callee entry pc ↦ its self cells
+  fsz : ℕ
+  bitsOf : ℕ → ℕ
+
+
+structure St where
+  book : Std.HashMap ℕ (List Core.Atom) := {}
+  inK : Std.HashSet ℕ := {}
+  know : Std.HashMap ℕ (ℕ × ℕ × ℕ) := {}
+  occ : Std.HashSet ℕ := {}
+  unk : Std.HashSet ℕ := {}
+  keys : Std.HashMap String (ℕ × ℕ × List ℕ) := {}
+  vconst : Std.HashMap ℕ (ℕ × ℕ × ℕ) := {}
+  vkeys : Std.HashMap ℕ (List (String × List ℕ)) := {}
+  veqs : Std.HashMap ℕ (List ℕ) := {}
+  named : Std.HashSet ℕ := {}
+  pend : List (ℕ × ℕ) := []
+  frames : Std.HashMap ℕ (List (ℕ × FC)) := {}
+  targets : Std.HashMap ℕ (ℕ × ℕ) := {}
+  next : List (ℕ × FC) := []
+  passed : Array OInstr := #[]
+
+/-- What the walk finds: failures, the call sites `(args, rets, q, r, target)` and the table
+jumps `(selector, target, base)`. -/
+structure Out where
+  fails : Array String := #[]
+  sites : Array (List ℕ × List ℕ × ℕ × ℕ × Option ℕ) := #[]
+  arms : Array (ℕ × ℕ × ℕ) := #[]
+
+abbrev M := ReaderT Ctx (StateT Out (Except String))
+
+def fail (msg : String) : M Unit := do
+  let c ← read
+  modify fun o => { o with fails := o.fails.push s!"{c.fname}: {msg}" }
+
+def isK (l : ℕ × ℕ × ℕ) : Bool := l.2.1 == 0 && l.2.2 == 0
+
+/-! ## Book and sharing -/
+
+def addKey (st : St) (k : String) (d : ℕ) (ins : List ℕ) (c : ℕ) : St :=
+  let st := { st with vkeys := st.vkeys.insert d ((k, ins) :: (st.vkeys.getD d [])) }
+  if st.keys.contains k then st else { st with keys := st.keys.insert k (c, d, ins) }
+
+def factOf (cell : ℕ → ℕ) (st : St) : Core.Atom → St
+  | .const d x =>
+    let l := limbsOf x
+    let st := { st with vconst := st.vconst.insert d.idx l }
+    let st := if isK l then { st with inK := st.inK.insert (cell d.idx) } else st
+    if st.know.contains (cell d.idx) then st else { st with know := st.know.insert (cell d.idx) l }
+  | .add d a b =>
+    let (cd, ca, cb) := (cell d.idx, cell a.idx, cell b.idx)
+    let st := addKey st s!"+{[ca, cb].mergeSort}" d.idx [a.idx, b.idx] cd
+    let st := addKey st s!"+{[cd, cb].mergeSort}" a.idx [d.idx, b.idx] ca
+    addKey st s!"+{[cd, ca].mergeSort}" b.idx [d.idx, a.idx] cb
+  | .mul d a b => addKey st s!"*{[cell a.idx, cell b.idx].mergeSort}" d.idx [a.idx, b.idx] (cell d.idx)
+  | .copy d x | .assertEq d x =>
+    let e := (st.veqs.insert d.idx (x.idx :: st.veqs.getD d.idx [])).insert x.idx (d.idx :: st.veqs.getD x.idx [])
+    { st with veqs := e }
+  | .load d p off =>
+    let st := { st with inK := st.inK.insert (cell p.idx) }
+    addKey st s!"L{cell p.idx},{off}" d.idx [p.idx] (cell d.idx)
+  | .blake2s m0 m1 m2 m3 c0 c1 o0 o1 md =>
+    let ins := [m0, m1, m2, m3, c0, c1, md].map (cell ·.idx)
+    let iv := [m0, m1, m2, m3, c0, c1, md].map (·.idx)
+    addKey (addKey st s!"B0{ins}" o0.idx iv (cell o0.idx)) s!"B1{ins}" o1.idx iv (cell o1.idx)
+  | .assertInK a b => { st with inK := (st.inK.insert (cell a.idx)).insert (cell b.idx) }
+  | .assertNe _ _ p =>
+    if st.know.contains (cell p.idx) then st else { st with know := st.know.insert (cell p.idx) (1, 0, 0) }
+  | .rangeCheck x y _ _ _ => { st with inK := (st.inK.insert (cell x.idx)).insert (cell y.idx) }
+  | .frameAddr p _ => { st with inK := st.inK.insert (cell p.idx) }
+  | _ => st
+
+def fileAtom (cell : ℕ → ℕ) (st : St) (a : Core.Atom) : St :=
+  let cs := ((Core.Atom.vals a).map (cell ·.idx)).eraseDups
+  { st with book := cs.foldl (fun b c => b.insert c (a :: b.getD c [])) st.book }
+
+def nameV (cell : ℕ → ℕ) (st : St) (v : ℕ) : St :=
+  if st.named.contains v then st
+  else
+    let c := cell v
+    let st := { st with named := st.named.insert v }
+    if c == 0 then st
+    else if st.occ.contains c || st.unk.contains c then { st with pend := (v, c) :: st.pend }
+    else { st with occ := st.occ.insert c }
+
+def discharge (cell : ℕ → ℕ) (st : St) : St :=
+  let ok (v c : ℕ) (pend : List (ℕ × ℕ)) : Bool :=
+    let good (x : ℕ) : Bool := st.named.contains x && !pend.any (·.1 == x)
+    let constOk := match st.vconst.get? v, st.know.get? c with
+      | some X, some Y => X == Y
+      | _, _ => false
+    let keyOk := !st.unk.contains c && (st.vkeys.getD v []).any fun (k, ins) => match st.keys.get? k with
+      | some (c', o, ins') => c' == c && o != v && good o && ins.all good && ins'.all good
+      | none => false
+    let eqOk := !st.unk.contains c && (st.veqs.getD v []).any fun x => x != v && cell x == c && good x
+    constOk || keyOk || eqOk
+  let rec go (n : ℕ) (p : List (ℕ × ℕ)) : List (ℕ × ℕ) :=
+    match n with
+    | 0 => p
+    | n + 1 => let p' := p.filter fun (v, c) => !ok v c p; if p'.length == p.length then p' else go n p'
+  { st with pend := go 1000 st.pend }
+
+def mayRet : Core.Stmt → Bool
+  | .ret _ => true
+  | .ite _ z n => Core.Stmt.noRetList z = false || Core.Stmt.noRetList n = false
+  | .match_ _ arms => arms.any (Core.Stmt.noRetList · = false)
+  | _ => false
+
+/-- The statements up to and including the first that may return. -/
+def run : List Core.Stmt → List Core.Stmt
+  | [] => []
+  | s :: ss => if mayRet s then [s] else s :: run ss
+
+def stmtNames : Core.Stmt → List Core.V
+  | .atom a => Core.Atom.vals a
+  | .call _ args rets | .dispatch _ _ args rets => args ++ rets
+  | .callIf c _ args => c :: args
+  | .ret vs => vs
+  | .ite c _ _ => [c]
+  | .match_ x _ => [x]
+
+def lookahead (cell : ℕ → ℕ) (st : St) (ss : List Core.Stmt) : St × List (ℕ × ℕ) :=
+  let r := run ss
+  let st := r.foldl (fun st s => match s with
+    | .atom a => fileAtom cell (factOf cell st a) a
+    | .ite c _ _ => { st with inK := st.inK.insert (cell c.idx) }
+    | .callIf c _ _ => { st with inK := st.inK.insert (cell c.idx) }
+    | _ => st) st
+  let st := r.foldl (fun st s => (stmtNames s).foldl (fun st v => nameV cell st v.idx) st) st
+  let st := discharge cell st
+  (({ st with pend := [] }), st.pend)
+
+/-! ## Justifying instructions -/
+
+def contentK (c : Ctx) (st : St) (o : ℕ) : Option (ℕ × ℕ × ℕ) :=
+  match c.plumb.get? o with
+  | some (.k l) => some l
+  | _ => st.know.get? o
+
+def isOne (c : Ctx) (st : St) (o : ℕ) : Bool := contentK c st o == some (1, 0, 0)
+def isZero (c : Ctx) (st : St) (o : ℕ) : Bool := contentK c st o == some (0, 0, 0)
+
+def bookAt (st : St) (o : ℕ) : List Core.Atom := st.book.getD o []
+
+def cellK (c : Ctx) (st : St) (o : ℕ) : Bool :=
+  o == 0 || o == 1 || st.inK.contains o || st.frames.contains o || st.targets.contains o ||
+  (match c.plumb.get? o with
+    | some (.k l) => isK l
+    | some (.fpg _) => true
+    | none => false) ||
+  (match st.know.get? o with
+    | some l => isK l
+    | none => false)
+
+def perm3 (x y z p q r : ℕ) : Bool :=
+  [x, y, z].mergeSort == [p, q, r].mergeSort
+
+/-- Two cells hold one word: one cell, or a copy/`assert ==` in the book. -/
+def sameW (c : Ctx) (st : St) (a b : ℕ) : Bool :=
+  a == b || (bookAt st a).any fun x => match x with
+    | .copy d s | .assertEq d s => let (cd, cs) := (c.cell d.idx, c.cell s.idx)
+        (cd == a && cs == b) || (cd == b && cs == a)
+    | _ => false
+
+def justify (c : Ctx) (st : St) (pc : ℕ) (ins : OInstr) : Bool :=
+  let cell := c.cell
+  match ins with
+  | .set o k0 k1 k2 => contentK c st o == some (k0, k1, k2)
+  | .xor a b d =>
+    (bookAt st d).any (fun x => match x with
+      | .add d' x y => perm3 a b d (cell d'.idx) (cell x.idx) (cell y.idx)
+      | _ => false) ||
+    (isZero c st d && sameW c st a b) || (a == d && isZero c st b) || (b == d && isZero c st a) ||
+    (b == d && (bookAt st a).any fun x => match x with
+      | .assertEq u w => (cell u.idx == a && isZero c st (cell w.idx)) || (cell w.idx == a && isZero c st (cell u.idx))
+      | _ => false)
+  | .mul a b d =>
+    (bookAt st d).any (fun x => match x with
+      | .mul d' x y => cell d'.idx == d && ((cell x.idx == a && cell y.idx == b) || (cell x.idx == b && cell y.idx == a))
+      | .rangeCheck x y _ _ k => cell k.idx == d && ((cell x.idx == a && cell y.idx == b) || (cell x.idx == b && cell y.idx == a))
+      | .assertNe x i p => cell p.idx == d && ((cell x.idx == a && cell i.idx == b) || (cell x.idx == b && cell i.idx == a))
+      | .frameAddr p run => cell p.idx == d &&
+          (match c.plumb.get? a, contentK c st b with
+            | some (.fpg e1), some (k0, 0, 0) => match (if k0 == 1 then some 0 else c.pows.get? k0), run with
+              | some e2, r :: _ => e1 + e2 == cell r.idx
+              | _, _ => false
+            | _, _ => false)
+      | _ => false) ||
+    (isOne c st b && sameW c st a d) || (isOne c st a && sameW c st b d) ||
+    (match c.plumb.get? d, c.plumb.get? a, contentK c st b with
+      | some (.fpg e), some (.fpg e1), some (k0, 0, 0) =>
+        (if k0 == 1 then some 0 else c.pows.get? k0) == some (e - e1)  && e1 ≤ e
+      | _, _, _ => false) ||
+    (d ≥ c.fsz && isOne c st b && (match st.next.find? (·.1 == d - c.fsz) with
+      | some (_, .val cv) => sameW c st a cv
+      | some (_, .hdr i) => a == i
+      | some (_, .fpg e) => (match c.plumb.get? a with
+          | some (.fpg e') => e' == e
+          | _ => false)
+      | _ => false))
+  | .deref o1 o2 o3 .cell =>
+    (bookAt st o3).any (fun x => match x with
+      | .load d p off => cell d.idx == o3 && cell p.idx == o1 && off == o2
+      | .rangeCheck x y t1 t2 _ => o2 == 0 && ((cell x.idx == o1 && cell t1.idx == o3) || (cell y.idx == o1 && cell t2.idx == o3))
+      | _ => false) ||
+    (match st.frames.get? o1 with
+      | some fcs => fcs.any fun (o, fc) => o == o2 && (match fc with
+        | .val cv => sameW c st cv o3
+        | .self => o3 == o1
+        | .pc r => contentK c st o3 == some (c.bitsOf r, 0, 0)
+        | _ => false)
+      | none => false) ||
+    (st.targets.get? o3 == some (o1, o2)) ||
+    (o2 == 0 && c.plumb.get? o1 == some (.fpg o3))
+  | .deref o1 o2 _ .fp =>
+    (match st.frames.get? o1 with
+      | some fcs => fcs.any fun (o, fc) => o == o2 && fc == .fp
+      | none => false) ||
+    (o2 == 0 && (match c.plumb.get? o1 with
+      | some (.fpg x) => c.plumb.get? x == some (.fpg 0)
+      | _ => false))
+  | .deref o1 o2 _ .pc =>
+    match st.frames.get? o1 with
+    | some fcs => fcs.any fun (o, fc) => o == o2 && fc == .pc (pc + 2)
+    | none => false
+  | .blake2s m0 m1 m2 m3 cv out md =>
+    (bookAt st out).any fun x => match x with
+      | .blake2s n0 n1 n2 n3 c0 c1 o0 o1 d =>
+        [n0, n1, n2, n3, c0, c1, o0, o1, d].map (cell ·.idx) == [m0, m1, m2, m3, cv, cv + 1, out, out + 1, md]
+      | _ => false
+  | .jump .. => false
+
+def passItem (st : St) (it : GItem) : M St := do
+  let c ← read
+  match it with
+  | .ins (.instr pc ins) =>
+    unless justify c st pc ins do fail s!"@{pc - c.entry} {instrText ins}"
+    pure { st with passed := st.passed.push ins }
+  | .ins (.jump oc od of) =>
+    unless cellK c st oc && cellK c st od && cellK c st of do fail s!"jump K {oc} {od} {of}"
+    pure st
+  | _ => pure st
+
+def getSeg (g : ℕ) : M GSeg := do
+  match (← read).segs.get? g with
+  | some s => pure s
+  | none => throw (s!"no segment {g}")
+
+/-- Check a segment's entry environment against what is known. -/
+def envCheck (st : St) (s : GSeg) : M Unit := do
+  let c ← read
+  for (o, sym) in s.env.toList do
+    let ok : Bool := match sym with
+      | .zero => contentK c st o == some (0, 0, 0)
+      | .gp e => match contentK c st o with
+        | some (k0, 0, 0) => (if k0 == 1 then some 0 else c.pows.get? k0) == some e
+        | _ => false
+      | .fpg e => c.plumb.get? o == some (.fpg e)
+    unless ok do fail s!"env {o} {symText sym} at seg {s.start}"
+
+/-- Pass items to the next branch or the end. -/
+def toEnd (p : Pos) (st : St) : M (Pos × St × Option GExit) := do
+  let s ← getSeg p.1
+  let mut i := p.2
+  let mut st := st
+  repeat
+    match s.items[i]? with
+    | some (.branch ..) => break
+    | some it => st ← passItem st it; i := i + 1
+    | none => break
+  return ((p.1, i), st, if i ≥ s.items.size then some s.exit else none)
+
+/-- The next branch, without passing the items before it. -/
+def peekBranch (p : Pos) : M (Pos × ℕ × ℕ × ℕ × GExit) := do
+  let s ← getSeg p.1
+  let mut i := p.2
+  repeat
+    match s.items[i]? with
+    | some (.branch oc od of x) => return ((p.1, i), oc, od, of, x)
+    | some _ => i := i + 1
+    | none => break
+  throw (s!"no branch after {p}")
+
+def toBranch (p : Pos) (st : St) : M (Pos × St × ℕ × ℕ × ℕ × GExit) := do
+  let (q, st, _) ← toEnd p st
+  let s ← getSeg q.1
+  match s.items[q.2]? with
+  | some (.branch oc od of x) => return (q, st, oc, od, of, x)
+  | _ => throw (s!"no branch at {q}")
+
+partial def chain (p : Pos) (n : ℕ := 6) : M (List ℕ) := do
+  if n == 0 then return []
+  let s ← getSeg p.1
+  let here := if p.2 == 0 then [p.1] else []
+  if s.items.toList.drop p.2 |>.any (fun | .branch .. => true | _ => false) then return here
+  match s.exit.kind with
+  | .next t => if (← read).segs.contains t then return here ++ (← chain (t, 0) (n - 1)) else return here
+  | _ => return here
+
+def meetJ (ends : List Pos) : M (Option ℕ) := do
+  let cs ← ends.mapM (chain ·)
+  match cs with
+  | [] => return none
+  | c :: rest => return c.find? fun J => rest.all (·.contains J)
+
+/-- After a join: the facts from before, the values named on every path, the cells occupied in
+a branch unknown unless every branch knows one constant there. -/
+def joinSt (pre : St) (bs : List St) : St :=
+  let named := match bs with
+    | [] => pre.named
+    | b :: rest => b.named.fold (fun h v => if rest.all (·.named.contains v) then h.insert v else h) pre.named
+  let newCells : Std.HashSet ℕ := bs.foldl (fun h b => b.occ.fold (fun h c => if pre.occ.contains c then h else h.insert c) h) {}
+  let (know, unk) := newCells.fold (fun (know, unk) c =>
+    let ks := bs.map fun b => if b.occ.contains c || b.unk.contains c then b.know.get? c else some (0, 0, 0)
+    match ks with
+    | some k :: rest => if rest.all (· == some k) && !pre.know.contains c then (know.insert c k, unk.insert c) else (know, unk.insert c)
+    | _ => (know, unk.insert c)) (pre.know, pre.unk)
+  let unk := bs.foldl (fun h b => b.unk.fold (·.insert ·) h) unk
+  { pre with named := named, know := know, unk := unk, passed := pre.passed }
+
+mutual
+partial def block (ss : List Core.Stmt) (p : Pos) (st : St) : M (Option (Pos × St)) := do
+  let c ← read
+  let (st0, pend) := lookahead c.cell st ss
+  for (v, cc) in pend do fail s!"share {v} at cell {cc}"
+  let mut st := st0
+  let mut p := p
+  let mut ss := ss
+  repeat
+    match ss with
+    | [] => return some (p, st)
+    | s :: rest =>
+      ss := rest
+      match s with
+      | .atom _ => pure ()
+      | .ite cv z n =>
+        let (q, st1, oc, od, of, x) ← toBranch p st
+        unless oc == c.cell cv.idx do fail s!"ite cond cell {oc}"
+        unless cellK c st1 od && cellK c st1 of do fail s!"ite jump K {od} {of}"
+        let .next t := x.kind | throw ("ite kind")
+        let rz ← block z (q.1, q.2 + 1) st1
+        let sn ← getSeg t
+        envCheck st1 sn
+        let rn ← block n (t, 0) st1
+        let ends := [rz, rn].filterMap id
+        match ← meetJ (ends.map (·.1)) with
+        | some J =>
+          let sj ← getSeg J
+          let st2 := joinSt st1 (ends.map (·.2))
+          envCheck st2 sj
+          p := (J, 0); st := st2
+        | none => return none
+      | .match_ xv arms =>
+        let (_, st1, x?) ← toEndPeek p st xv
+        let some x := x? | throw ("match end")
+        let rs ← (arms.zip x.succ).mapM fun (a, t) => do
+          let s ← getSeg t
+          envCheck st1 s
+          block a (t, 0) st1
+        let ends := rs.filterMap id
+        match ← meetJ (ends.map (·.1)) with
+        | some J =>
+          let sj ← getSeg J
+          let st2 := joinSt st1 (ends.map (·.2))
+          envCheck st2 sj
+          p := (J, 0); st := st2
+        | none => return none
+      | .call _ args rets | .dispatch _ _ args rets =>
+        let s0 ← getSeg p.1
+        let x := s0.exit
+        let .call pt q r := x.kind | throw (s!"call kind at {p}")
+        let envCells := match pt with
+          | .gp e => c.envOf e
+          | _ => []
+        let fcs := (args.zipIdx.map fun (a, k) => (2 + k, FC.val (c.cell a.idx))) ++
+          envCells.map (·, FC.self) ++ [(1, FC.fp), (0, FC.pc r)]
+        if st.frames.contains q then fail s!"frame cell {q} reused"
+        let tg : Option ℕ := match pt with
+          | .cell t => some t
+          | _ => none
+        modify fun o => { o with sites := o.sites.push (args.map (·.idx), rets.map (·.idx), q, r, tg) }
+        let mut st1 := { st with frames := st.frames.insert q fcs }
+        if let .cell t := pt then
+          -- the table read into `t`
+          let base := s0.items.toList.findSome? fun
+            | .ins (.instr _ (.deref o1 o2 o3 .cell)) => if o3 == t then some (o1, o2) else none
+            | _ => none
+          match base with
+          | some b => st1 := { st1 with targets := st1.targets.insert t b }
+          | none => fail s!"dispatch base {t}"
+        let (_, st2, _) ← toEnd p st1
+        let rr := r - c.entry
+        let sr ← getSeg rr
+        envCheck st2 sr
+        let fcs' := fcs ++ rets.zipIdx.map fun (v, k) => (2 + args.length + k, FC.val (c.cell v.idx))
+        p := (rr, 0); st := { st2 with frames := st2.frames.insert q fcs' }
+      | .callIf cv _ args =>
+        let (q, oc, od, of, x) ← peekBranch p
+        unless oc == c.cell cv.idx do fail s!"callIf cond cell {oc}"
+        match x.kind with
+        | .call (.gp e) fq r =>
+          let fcs := (args.zipIdx.map fun (a, k) => (2 + k, FC.val (c.cell a.idx))) ++
+            (c.envOf e).map (·, FC.self) ++ [(1, FC.fp), (0, FC.pc r)]
+          if st.frames.contains fq then fail s!"frame cell {fq} reused"
+          modify fun o => { o with sites := o.sites.push (args.map (·.idx), [], fq, r, none) }
+          -- the setup is before the branch: re-pass with the frame known
+          let (_, st2, _) ← toEnd p { st with frames := st.frames.insert fq fcs }
+          unless cellK c st2 od && cellK c st2 of do fail s!"callIf jump K {od} {of}"
+          let rr := r - c.entry
+          let sr ← getSeg rr
+          envCheck st2 sr
+          p := (rr, 0); st := st2
+          let _ := q
+        | .jump (.gp _) (.fpg S) =>
+          let nxt := (args.zipIdx.map fun (a, k) => (2 + k, FC.val (c.cell a.idx))) ++
+            [(0, FC.hdr 0), (1, FC.hdr 1)] ++ (c.envOf (c.entry)).map (·, FC.fpg S)
+          let (_, st2, _) ← toEnd p { st with next := nxt }
+          unless cellK c st2 od && cellK c st2 of do fail s!"tail jump K {od} {of}"
+          p := (q.1, q.2 + 1); st := st2
+        | _ => throw ("callIf kind")
+      | .ret _ =>
+        let (_, _, x?) ← toEnd p st
+        if x?.isNone then fail "ret not at end"
+        return none
+  return some (p, st)
+
+/-- `toEnd` for a `match`: the target cell registered from the table read before the items are
+passed. -/
+partial def toEndPeek (p : Pos) (st : St) (xv : Core.V) : M (Pos × St × Option GExit) := do
+  let c ← read
+  let s0 ← getSeg p.1
+  let mut st := st
+  match s0.exit.kind with
+  | .jump (.cell t) _ =>
+    let base := s0.items.toList.findSome? fun
+      | .ins (.instr _ (.deref o1 o2 o3 .cell)) => if o3 == t then some (o1, o2) else none
+      | _ => none
+    match base with
+    | some (o1, o2) =>
+      unless o1 == c.cell xv.idx do fail s!"match selector {o1}"
+      modify fun o => { o with arms := o.arms.push (xv.idx, t, o2) }
+      st := { st with targets := st.targets.insert t (o1, o2) }
+    | none => fail s!"match base {t}"
+  | _ => fail "match kind"
+  toEnd p st
+end
+
+end Cpl
+
+/-- Static plumbing of a function: its non-value cells' contents. -/
+def plumbOf (f : CompiledFn) (F : GFacts) (vcells : Std.HashSet ℕ) (pows : Std.HashMap ℕ ℕ)
+    (constCell : ℕ → (ℕ × ℕ × ℕ) → Bool) :
+    Std.HashMap ℕ Cpl.PC × List String := Id.run do
+  let code := f.code.toArray
+  let mut m : Std.HashMap ℕ Cpl.PC := {}
+  let mut errs : List String := []
+  let put (m : Std.HashMap ℕ Cpl.PC) (o : ℕ) (v : Cpl.PC) : Std.HashMap ℕ Cpl.PC × Option String :=
+    match m.get? o with
+    | some v' => if v' == v then (m, none) else (m, some s!"{f.name}: plumbing conflict at {o}")
+    | none => (m.insert o v, none)
+  for (o, _) in F.env do
+    let (m', e) := put m o (.fpg 0); m := m'; if let some e := e then errs := e :: errs
+  let mut sets : Std.HashMap ℕ (List (ℕ × ℕ × ℕ)) := {}
+  for ins in code do
+    match ins with
+    | .set o k0 k1 k2 => sets := sets.insert o (((sets.get? o).getD []).insert (k0, k1, k2))
+    | _ => pure ()
+  for (o, ks) in sets.toList do
+    match ks with
+    | [l] => if !vcells.contains o || constCell o l then
+        let (m', e) := put m o (.k l); m := m'; if let some e := e then errs := e :: errs
+    | _ => if !vcells.contains o then errs := s!"{f.name}: several SETs at non-value cell {o}" :: errs
+  -- the next frame `MUL nfp = self · g^S`, and bounces
+  for i in [0:code.size] do
+    match code[i]! with
+    | .mul a b c => if !vcells.contains c then
+        match m.get? a, m.get? b with
+        | some (.fpg e1), some (.k (k0, 0, 0)) =>
+          match (if k0 == 1 then some 0 else pows.get? k0) with
+          | some e2 => let (m', e) := put m c (.fpg (e1 + e2)); m := m'; if let some e := e then errs := e :: errs
+          | none => pure ()
+        | _, _ => pure ()
+    | .deref h 0 0 .fp =>
+      match code[i + 1]? with
+      | some (.deref h' 0 x .cell) => if h' == h then
+          let (m', e) := put m h (.fpg x); m := m'; if let some e := e then errs := e :: errs
+          let (m', e) := put m x (.fpg 0); m := m'; if let some e := e then errs := e :: errs
+      | _ => pure ()
+    | _ => pure ()
+  return (m, errs)
+
+
+end GuestCert
+
+namespace GuestCert
+
+/-- The completeness data of function `j`: the fixed cells, call sites, table jumps, temporaries
+and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
+def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap ℕ (List ℕ))
+    (expTable : Std.HashMap ℕ ℕ) (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (segs : Array GSeg)
+    (fsz : ℕ) : Except String String := do
+  let f := fns[j]!
+  let F := factsOf T f (j == 1)
+  let vcells : Std.HashSet ℕ := locs.foldl (·.insert ·) {}
+  let fm := firsts (fun v => locs.getD v.idx 0) {} cf.body
+  let byCell : Std.HashMap ℕ (List ℕ) := locs.zipIdx.foldl (fun m (c, v) => m.insert c (v :: m.getD c [])) {}
+  let constCell (o : ℕ) (l : ℕ × ℕ × ℕ) : Bool := (byCell.getD o []).all fun v => match fm.get? v with
+    | some (k, _, imm, _) => k == "const" && imm == toString l
+    | none => true
+  let (plumb, errs) := plumbOf f F vcells T.pows constCell
+  unless errs.isEmpty do throw s!"{errs}"
+  let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
+  let cell (v : ℕ) : ℕ := locs.getD v 0
+  let ctx : Cpl.Ctx := ⟨f.name, cell, vcells, plumb, T.pows, segMap, f.entry, cf.params.length,
+    j == 1, fun e => selfByEntry.getD e [], fsz, fun r => expTable.getD r 0⟩
+  let st00 : Cpl.St := plumb.fold (fun st o pc => match pc with
+    | .k l => if vcells.contains o then { st with know := st.know.insert o l, occ := st.occ.insert o } else st
+    | _ => st) {}
+  let st0 : Cpl.St := cf.params.foldl (fun st v => Cpl.nameV cell st v.idx) st00
+  let (_, out) ← ((Cpl.block cf.body (0, 0) st0).run ctx).run {}
+  unless out.fails.isEmpty do throw s!"completeness: {out.fails.toList.take 5}"
+  -- one site per key, its cells apart from the values and the fixed cells, and from each other
+  let mut byKey : Std.HashMap (List ℕ × List ℕ) (ℕ × ℕ × Option ℕ) := {}
+  let mut used : Std.HashSet ℕ := {}
+  for (a, r, q, rp, tg) in out.sites do
+    match byKey.get? (a, r) with
+    | some x => if x != (q, rp, tg) then throw s!"{f.name}: site {a} {r} ambiguous"
+    | none =>
+      byKey := byKey.insert (a, r) (q, rp, tg)
+      for c in q :: tg.toList do
+        if vcells.contains c || plumb.contains c || used.contains c then
+          throw s!"{f.name}: site cell {c} not apart"
+        used := used.insert c
+  let arms := out.arms.toList.eraseDups
+  for (_, t, _) in arms do
+    if vcells.contains t || plumb.contains t || used.contains t then
+      throw s!"{f.name}: table cell {t} not apart"
+    used := used.insert t
+  let pcText : Cpl.PC → String
+    | .k (k0, k1, k2) => s!"(.k {k0} {k1} {k2})"
+    | .fpg e => s!"(.fpg {e})"
+  let stat := (plumb.toList.mergeSort (·.1 ≤ ·.1)).map fun (o, pc) => s!"({o}, {pcText pc})"
+  let sites := (byKey.toList.mergeSort (fun a b => a.2.2.1 ≤ b.2.2.1)).map fun ((a, r), (q, rp, tg)) =>
+    s!"⟨{listText (a.map toString)}, {listText (r.map toString)}, {q}, {rp}, {tg.getD 0}⟩"
+  let atoms := allAtoms cf.body
+  let tmps := atoms.flatMap fun
+    | .rangeCheck _ _ t1 t2 _ => [t1, t2]
+    | _ => []
+  let runs := (atoms.flatMap fun
+    | .frameAddr _ run => run
+    | _ => []).eraseDups
+  let vc (v : Core.V) : String := s!"({v.idx}, {cell v.idx})"
+  return s!"/-- `{f.name}`. -/
+noncomputable def plumb{j} : B2C.Plumb where
+  stat := {listText stat}
+  sites := {listText sites}
+  arms := {listText (arms.map tripText)}
+  tmps := {listText (tmps.map vc)}
+  runs := {listText (runs.map vc)}
 "
 
 end GuestCert
@@ -1250,11 +1900,16 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
   let index := (fns.toList.zipIdx.map fun (f, j) => (f.name, j)).foldl
     (fun m (n, j) => if m.contains n then m else m.insert n j) ({} : Std.HashMap String ℕ)
   let mut certs : Array String := #[]
+  let mut plumbs : Array String := #[]
   let mut wins : Array (ℕ × ℕ × ℕ) := #[]
   let mut frames : Array ℕ := #[0]
+  let selfByEntry : Std.HashMap ℕ (List ℕ) := (fns.toList.drop 1).foldl (fun m f =>
+    m.insert f.entry ((factsOf T f false).env.map (·.1))) {}
+  let expTable : Std.HashMap ℕ ℕ := logTable.fold (fun m k e => m.insert e k) {}
   for (cf, i) in P.zipIdx do
-    let (c, sizes, fsz) ← certOf T fns index (i + 1) cf
+    let (c, sizes, fsz, locs, segs) ← certOf T fns index (i + 1) cf
     certs := certs.push c
+    plumbs := plumbs.push (← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz)
     frames := frames.push fsz
     wins := wins ++ (sizes.zipIdx.map fun (sz, w) => (i + 1, w, sz)).toArray
   let mut fs : Array (Array String) := #[#[]]
@@ -1269,7 +1924,28 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     (fileName k, header (fileName k) "Certificates of the guest's compiled functions." ++
       "public import LeanVM.Guest.Check\n" ++ preamble ++
       "\n".intercalate cs.toList ++ tail)
+  let mut pfs : Array (Array String) := #[#[]]
+  let mut psize := 0
+  for c in plumbs do
+    if psize + c.length > maxFile && psize > 0 then
+      pfs := pfs.push #[]
+      psize := 0
+    pfs := pfs.modify (pfs.size - 1) (·.push c)
+    psize := psize + c.length
+  let plumbName (k : ℕ) : String := if k < 10 then s!"Plumb0{k}" else s!"Plumb{k}"
+  let plumbFiles := pfs.toList.zipIdx.map fun (cs, k) =>
+    (plumbName k, header (plumbName k) "Completeness data of the guest's compiled functions." ++
+      "public import LeanVM.Guest.Exec\npublic import LeanVM.Guest.B2C.Types\n" ++ preamble ++
+      "\n".intercalate cs.toList ++ tail)
   let n := P.length
+  let pnames := "plumb0" :: (List.range n).map fun i => s!"plumb{i + 1}"
+  let prows := (List.range ((pnames.length + 15) / 16)).map fun r =>
+    "  " ++ " ".intercalate (((pnames.drop (16 * r)).take 16).map (· ++ " ::"))
+  let plumbIndex := header "Plumb" "The completeness data of the guest's compiled functions, by index." ++
+    String.join (plumbFiles.map fun (m, _) => s!"public import LeanVM.Guest.Data.{m}\n") ++
+    preamble ++ "/-- `__jump_tables`: nothing. -/\ndef plumb0 : B2C.Plumb := {}\n\n" ++
+    "/-- The completeness data, by compiled function index. -/\nnoncomputable def plumbs : List B2C.Plumb :=\n" ++
+    "\n".intercalate prows ++ " []\n" ++ tail
   let names := "cert0" :: (List.range n).map fun i => s!"cert{i + 1}"
   let rows := (List.range ((names.length + 15) / 16)).map fun r =>
     "  " ++ " ".intercalate (((names.drop (16 * r)).take 16).map (· ++ " ::"))
@@ -1290,7 +1966,7 @@ noncomputable def certs : List Check.Cert :=
 " ++ tail
   let nPow := (powTop (T.pows.toArray.qsort (·.1 < ·.1)) powCut 0).2.length
   return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
-      [("Cert", index)]).map fun (n, t) =>
+      [("Cert", index)] ++ plumbFiles ++ [("Plumb", plumbIndex)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++
     (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow).map fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
@@ -1304,7 +1980,7 @@ def existing : IO (List System.FilePath) := do
       ((cs.drop pre.length).take (cs.length - pre.length - 5)).all fun c => c.isDigit || c == '_'
   let ds ← dataDir.readDir
   let cs ← if ← checkedDir.isDir then checkedDir.readDir else pure #[]
-  return (ds.toList.filter (gen "Cert" ·.fileName)).map (·.path) ++
+  return (ds.toList.filter (fun e => gen "Cert" e.fileName || gen "Plumb" e.fileName)).map (·.path) ++
     (cs.toList.filter fun e => gen "F" e.fileName || gen "Fn" e.fileName || gen "Pow" e.fileName).map (·.path)
 
 end GuestCert
