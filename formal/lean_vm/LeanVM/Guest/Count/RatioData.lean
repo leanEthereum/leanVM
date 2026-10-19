@@ -37,56 +37,67 @@ def krVsJ3 : List ℕ := [99, 100, 101,
     159, 160, 161, 162]
 /-- Indices of the functions `verify_sub` reaches, part 4. -/
 def krVsJ4 : List ℕ := [163, 164,
-    165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183,
-    184, 185, 186]
+    165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180]
 /-- Indices of the functions `verify_sub` reaches, part 5. -/
-def krVsJ5 : List ℕ := [187, 188,
-    189, 190, 191, 192, 193, 194, 195]
+def krVsJ5 : List ℕ := [181, 182,
+    183, 184]
 /-- Indices of the functions `verify_sub` reaches, part 6. -/
-def krVsJ6 : List ℕ := [196, 197,
-    198, 199, 200, 201, 202, 203]
+def krVsJ6 : List ℕ := [185, 186,
+    187, 188]
 /-- Indices of the functions `verify_sub` reaches, part 7. -/
-def krVsJ7 : List ℕ := [204, 574,
+def krVsJ7 : List ℕ := [189, 190,
+    191, 192]
+/-- Indices of the functions `verify_sub` reaches, part 8. -/
+def krVsJ8 : List ℕ := [193, 194,
+    195, 196]
+/-- Indices of the functions `verify_sub` reaches, part 9. -/
+def krVsJ9 : List ℕ := [197, 198,
+    199, 200]
+/-- Indices of the functions `verify_sub` reaches, part 10. -/
+def krVsJ10 : List ℕ := [201, 202,
+    203]
+/-- Indices of the functions `verify_sub` reaches, part 11. -/
+def krVsJ11 : List ℕ := [204, 574,
     575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 591, 592, 593,
     594, 595, 596, 597, 598, 599, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612,
     613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631,
     632, 633, 634, 635, 636]
-/-- Indices of the functions `verify_sub` reaches, part 8. -/
-def krVsJ8 : List ℕ := [637, 638,
+/-- Indices of the functions `verify_sub` reaches, part 12. -/
+def krVsJ12 : List ℕ := [637, 638,
     639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 655, 656, 657,
     658, 659, 660, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670, 671, 672, 673, 674, 675, 676,
     677, 678, 679, 680, 681, 682, 683, 684, 685, 686, 687, 688, 689, 690, 691, 692, 693, 694, 695,
     696, 697, 698, 699, 700]
-/-- Indices of the functions `verify_sub` reaches, part 9. -/
-def krVsJ9 : List ℕ := [701, 702,
+/-- Indices of the functions `verify_sub` reaches, part 13. -/
+def krVsJ13 : List ℕ := [701, 702,
     703, 704, 705, 706, 707, 708, 709, 710, 711, 712, 713, 714, 715, 716, 717, 718, 719, 720, 721,
     722, 723, 724, 725, 726, 727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740,
     741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759,
     760, 761, 762, 763, 764]
-/-- Indices of the functions `verify_sub` reaches, part 10. -/
-def krVsJ10 : List ℕ := [765, 766,
+/-- Indices of the functions `verify_sub` reaches, part 14. -/
+def krVsJ14 : List ℕ := [765, 766,
     767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785,
     786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804,
     805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819, 820, 821, 822, 823,
     824, 825, 826, 827, 828]
-/-- Indices of the functions `verify_sub` reaches, part 11. -/
-def krVsJ11 : List ℕ := [829, 830,
+/-- Indices of the functions `verify_sub` reaches, part 15. -/
+def krVsJ15 : List ℕ := [829, 830,
     831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849,
     850, 851, 852, 853, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868,
     869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887,
     888, 889, 890, 891, 892]
-/-- Indices of the functions `verify_sub` reaches, part 12. -/
-def krVsJ12 : List ℕ := [893, 894,
+/-- Indices of the functions `verify_sub` reaches, part 16. -/
+def krVsJ16 : List ℕ := [893, 894,
     895, 896, 897, 898, 899, 900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913,
     971, 972, 973, 974, 975, 976, 977, 978, 979, 980, 981, 982, 983, 984, 985, 986, 987, 988, 989,
-    990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000, 1001, 1002, 1003, 1004, 1005, 1006,
-    1007, 1008, 1009, 1010, 1011, 1012, 1013]
-/-- Indices of the functions `verify_sub` reaches, part 13. -/
-def krVsJ13 : List ℕ := [1014, 1015,
-    1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031,
-    1032, 1033, 1034, 1035, 1036, 1037, 1038]
+    990, 991, 992, 993, 994, 995, 996, 997, 998, 999, 1000]
+/-- Indices of the functions `verify_sub` reaches, part 17. -/
+def krVsJ17 : List ℕ := [1001, 1002,
+    1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018,
+    1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1034,
+    1035, 1036, 1037, 1038]
 /-- The core indices of the functions `verify_sub`'s paths reach. -/
-def krVsJ : List ℕ := krVsJ0 ++ krVsJ1 ++ krVsJ2 ++ krVsJ3 ++ krVsJ4 ++ krVsJ5 ++ krVsJ6 ++ krVsJ7 ++ krVsJ8 ++ krVsJ9 ++ krVsJ10 ++ krVsJ11 ++ krVsJ12 ++ krVsJ13
+def krVsJ : List ℕ := krVsJ0 ++ krVsJ1 ++ krVsJ2 ++ krVsJ3 ++ krVsJ4 ++ krVsJ5 ++ krVsJ6 ++ krVsJ7 ++ krVsJ8 ++ krVsJ9 ++ krVsJ10 ++ krVsJ11 ++ krVsJ12 ++ krVsJ13 ++ krVsJ14 ++ krVsJ15 ++ krVsJ16 ++ krVsJ17
 
 /-- Their calls, by index, part 0. -/
 def krVsCL0 : List (ℕ × List ℕ) := [(3, [36]), (4, [37]),
@@ -240,12 +251,13 @@ def krVsA : Opcode → ℕ
 /-- Indices of the functions `da_verify` reaches, part 0. -/
 def krDvJ0 : List ℕ := [23, 24, 25,
     26, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546,
-    547, 548, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930,
-    931, 932, 933, 934, 935, 936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946, 947, 948, 949,
-    950, 951, 952, 953]
+    547, 548]
 /-- Indices of the functions `da_verify` reaches, part 1. -/
-def krDvJ1 : List ℕ := [954, 955, 956,
-    957, 958, 959, 960, 961, 962, 963, 964, 965, 966, 967, 968, 969, 970, 1039, 1040, 1041, 1042]
+def krDvJ1 : List ℕ := [914, 915, 916,
+    917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 934, 935,
+    936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946, 947, 948, 949, 950, 951, 952, 953, 954,
+    955, 956, 957, 958, 959, 960, 961, 962, 963, 964, 965, 966, 967, 968, 969, 970, 1039, 1040,
+    1041, 1042]
 /-- The core indices of the functions `da_verify`'s paths reach. -/
 def krDvJ : List ℕ := krDvJ0 ++ krDvJ1
 

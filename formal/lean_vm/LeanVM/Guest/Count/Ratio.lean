@@ -22,6 +22,10 @@ public import LeanVM.Guest.Count.RatioChkVs10
 public import LeanVM.Guest.Count.RatioChkVs11
 public import LeanVM.Guest.Count.RatioChkVs12
 public import LeanVM.Guest.Count.RatioChkVs13
+public import LeanVM.Guest.Count.RatioChkVs14
+public import LeanVM.Guest.Count.RatioChkVs15
+public import LeanVM.Guest.Count.RatioChkVs16
+public import LeanVM.Guest.Count.RatioChkVs17
 public import LeanVM.Guest.Count.RatioChkDv0
 public import LeanVM.Guest.Count.RatioChkDv1
 public import LeanVM.Guest.Count.RatioChkCl0
@@ -46,10 +50,10 @@ set_option maxRecDepth 100000
 @[expose] public section
 
 theorem krVs_closed : (krVsJ).all (krClosedAt krVsJ krVsC) = true :=
-  kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVs_closed0) krVs_closed1) krVs_closed2) krVs_closed3) krVs_closed4) krVs_closed5) krVs_closed6) krVs_closed7) krVs_closed8) krVs_closed9) krVs_closed10) krVs_closed11) krVs_closed12) krVs_closed13
+  kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVs_closed0) krVs_closed1) krVs_closed2) krVs_closed3) krVs_closed4) krVs_closed5) krVs_closed6) krVs_closed7) krVs_closed8) krVs_closed9) krVs_closed10) krVs_closed11) krVs_closed12) krVs_closed13) krVs_closed14) krVs_closed15) krVs_closed16) krVs_closed17
 
 theorem krVs_ratio : (krVsJ).all (krRatioAt krVsA) = true :=
-  kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVs_ratio0) krVs_ratio1) krVs_ratio2) krVs_ratio3) krVs_ratio4) krVs_ratio5) krVs_ratio6) krVs_ratio7) krVs_ratio8) krVs_ratio9) krVs_ratio10) krVs_ratio11) krVs_ratio12) krVs_ratio13
+  kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (kr_all_append (krVs_ratio0) krVs_ratio1) krVs_ratio2) krVs_ratio3) krVs_ratio4) krVs_ratio5) krVs_ratio6) krVs_ratio7) krVs_ratio8) krVs_ratio9) krVs_ratio10) krVs_ratio11) krVs_ratio12) krVs_ratio13) krVs_ratio14) krVs_ratio15) krVs_ratio16) krVs_ratio17
 
 /-- **`verify_sub`'s counts within its ratios of its words.** -/
 theorem krVs_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = "verify_sub" →

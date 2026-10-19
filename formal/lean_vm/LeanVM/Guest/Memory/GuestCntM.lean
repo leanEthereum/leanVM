@@ -24,16 +24,16 @@ theorem kwmcertOf_of_idx {j : ℕ} {g : String} (h : (coreProgram[j]?).map Fn.na
     kwmcertOf g = kwmcertJ j := by
   rw [kwmcertOf, kcIdx_of_name h]
 
-/-- Only the functions of `kcS` have certificates. -/
+/-- Only the covered functions have certificates. -/
 theorem kwmcertJ_list : (List.range coreProgram.length).all
-    (fun j => decide (j ∈ kcS) || match kwmcertJ j with | .none => true | _ => false) = true := by
+    (fun j => decide (kcIn j) || match kwmcertJ j with | .none => true | _ => false) = true := by
   rw [coreProgram_length]; decide +kernel
 
-/-- The functions of `kcS` call only functions of `kcS`. -/
-theorem kwmlnk_list : kcS.all (fun j => (kwmlnkJ j).all fun q => decide (q.2 ∈ kcS)) = true := by
+/-- The covered functions call only covered functions. -/
+theorem kwmlnk_list : kcST.all (fun j => (kwmlnkJ j).all fun q => decide (kcIn q.2)) = true := by
   decide +kernel
 
-theorem kwmcertJ_none {j : ℕ} (hj : j < coreProgram.length) (hS : j ∉ kcS) : kwmcertJ j = .none := by
+theorem kwmcertJ_none {j : ℕ} (hj : j < coreProgram.length) (hS : ¬ kcIn j) : kwmcertJ j = .none := by
   have h := List.all_eq_true.mp kwmcertJ_list j (List.mem_range.mpr hj)
   simp only [hS, decide_false, Bool.false_or] at h
   split at h
@@ -41,7 +41,7 @@ theorem kwmcertJ_none {j : ℕ} (hj : j < coreProgram.length) (hS : j ∉ kcS) :
   · exact absurd h (by simp)
 
 /-- The certificates were made at the frame weights `B2C.pathMax · .mulNative`. -/
-theorem kwmomegaJ_eq {j : ℕ} (hS : j ∈ kcS) (hj : j < coreProgram.length) :
+theorem kwmomegaJ_eq {j : ℕ} (hS : kcIn j) (hj : j < coreProgram.length) :
     kwmomegaJ j = B2C.pathMax coreProgram[j].name .mulNative := by
   unfold B2C.pathMax
   rw [kc_idxOf hj]
@@ -62,7 +62,7 @@ theorem kwmlookJ_ok {j : ℕ}
       rw [ite_eq_left (c := g = q.1) hq, kwmcertOf_of_idx (hq ▸ hp)]
     · rw [ite_eq_right (c := g = q.1) hq] at hg; exact absurd rfl hg
 
-theorem kwmomLookJ_ok {j : ℕ} (hS : j ∈ kcS)
+theorem kwmomLookJ_ok {j : ℕ} (hS : kcIn j)
     (hl : (kwmlnkJ j).all (fun q => decide ((coreProgram[q.2]?).map Fn.name = some q.1)) = true) :
     WlOk (kwmomLookJ j) (B2C.pathMax · .mulNative) := by
   intro g n hg
@@ -75,8 +75,10 @@ theorem kwmomLookJ_ok {j : ℕ} (hS : j ∈ kcS)
     · rw [ite_eq_left (c := g = q.1) hq, Option.some.injEq] at hg
       have hp := NTree.find_all hl hf
       simp only [decide_eq_true_eq] at hp
-      have hqS : q.2 ∈ kcS := by
-        have := NTree.find_all (List.all_eq_true.mp kwmlnk_list j hS) hf
+      have hqS : kcIn q.2 := by
+        have h1 := NTree.find_all (p := fun j => (kwmlnkJ j).all fun q => decide (kcIn q.2))
+          kwmlnk_list hS
+        have := NTree.find_all h1 hf
         simpa using this
       rcases hj : coreProgram[q.2]? with _ | fn
       · rw [hj] at hp; exact absurd hp (by simp)
@@ -95,7 +97,7 @@ theorem kwm_checked : Checked coreProgram false kwmcertOf (B2C.pathMax · .mulNa
   unfold kwmchkIdx at hc
   rw [List.getElem?_eq_getElem hj] at hc
   simp only [kwmhandJ, List.any_nil, Bool.false_or, Bool.and_eq_true] at hc
-  by_cases hS : j ∈ kcS
+  by_cases hS : kcIn j
   · refine ⟨kwmlookJ j, kwmomLookJ j, kwmlookJ_ok hc.1, kwmomLookJ_ok hS hc.1, ?_⟩
     show chkFn _ _ false (kwmcertOf coreProgram[j].name) (B2C.pathMax coreProgram[j].name .mulNative) _ = true
     rw [kwmcertOf, kcIdx_getElem hj, ← kwmomegaJ_eq hS hj]
