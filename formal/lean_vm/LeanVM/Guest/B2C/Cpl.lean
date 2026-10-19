@@ -916,13 +916,24 @@ noncomputable def winOkC (j i : ℕ) : Bool :=
 noncomputable def lastPart (j i k : ℕ) : Bool :=
   !(Nat.blt (k + 1) (nParts j i)) && !(Nat.blt i (certOf j).cuts.length)
 
+/-- A block ending with a `callIf` to `f`, then `ret []`. -/
+def endsTail (f : String) : List Core.Stmt → Bool
+  | [] => false
+  | [.callIf _ g _, .ret []] => g == f
+  | _ :: ss => endsTail f ss
+
 /-- **The completeness check of part `k` of window `i` of function `j`**: its statements return
 only at the function's end, it starts within its window and after the part before it, and its
-walk ends as `partEnd` says. -/
+walk ends as `partEnd` says; the function's last part is all of it or holds at least two
+statements, and if it ends as a loop helper, no statement of the function returns but its
+last. -/
 noncomputable def cplWin (j i k : ℕ) : Bool :=
   (bif Nat.beq k 0 then winOkC j i else Nat.ble (partS j i (k - 1)) (partS j i k)) &&
   Nat.ble (partS j i k) ((certOf j).stmtsAt (coreOf j) i).length &&
-  (bif lastPart j i k then lastOkC (partStmts j i k) else Stmt.noRetList (partStmts j i k)) &&
+  (bif lastPart j i k then lastOkC (partStmts j i k) &&
+      ((Nat.beq i 0 && Nat.beq k 0) || Nat.ble 2 (partStmts j i k).length) &&
+      (bif endsTail (coreOf j).name (partStmts j i k) then lastOkC (coreOf j).body else true)
+    else Stmt.noRetList (partStmts j i k)) &&
   partEnd j i k (cplRes j i k)
 
 /-- **The completeness check of function `j`**: every part of every window. -/
