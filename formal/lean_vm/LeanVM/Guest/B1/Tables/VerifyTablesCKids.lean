@@ -90,7 +90,8 @@ def VtPlacedOk : Prop :=
     VtHolds rd σ → LowDef κ rd → MemL rd Lin →
     point.length < 33 → 16 ≤ logMem → logMem ≤ 32 → rowsN.length = 6 → (∀ m ∈ rowsN, log2Ceil m < 29) →
     alphas.length = 4 → n = ((List.range 6).map fun t => log2Ceil (rowsN.getD t 0)).foldl max 0 →
-    n ≤ point.length → xs.length = 5 + 3 * n + 104 → claims.length = nClaims → chis.length = n →
+    n ≤ point.length → logMem ≤ point.length → 18 ≤ point.length → xs.length = 5 + 3 * n + 104 →
+    claims.length = nClaims → chis.length = n →
     cpw.length = nPooled →
     σ (.n 2) = ofK (Parameters.gpow c) → σ (.n 5) = ofK (Parameters.gpow z) →
     σ (.n 6) = gen ^ point.length → σ (.n 7) = ofK (Parameters.gpow dims) →
@@ -152,7 +153,7 @@ def VtGlue2 : Prop :=
     ReadsAt rd zeta point → (∀ t < 34, LoadHolds rd idxc t (1 + gen ^ 2 ^ t)) →
     ReadsAt rd pI (idxChainW point logMem) → LoadHolds rd bim 1 ((idxChainW point logMem).getD logMem 0) →
     (∀ i < 16, ∃ v, LoadHolds rd fpw i v) → ReadsAt rd cur [m0, m1, m2] → ReadsAt rd pool [m0, m1, m2] →
-    (∀ j < 3, LoadHolds rd cplen j (gen ^ logMem)) →
+    (∀ j < 3, LoadHolds rd cplen j (gen ^ logMem)) → logMem ≤ 32 →
     Completes (coreProgram.Rel rd) rd 1920 1997 ((vtPre.drop 1644).take 80) σ (fun σ' =>
       σ' (.n 1925) = pI ∧ σ' (.n 1937) = m0 ∧ σ' (.n 1955) = m1 ∧ σ' (.n 1973) = m2 ∧
         (σ' (.n 1986), σ' (.n 1987)) = digestScalars (obsAll cv [m0, m1, m2]))
