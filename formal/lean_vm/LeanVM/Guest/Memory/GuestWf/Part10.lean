@@ -7,7 +7,7 @@ namespace LeanVM.Guest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem wfRange_1020 : WfRange 1020 23 := by
+theorem wfRange_179 : WfRange 179 2 := by
   unfold WfRange; decide +kernel
 
 end

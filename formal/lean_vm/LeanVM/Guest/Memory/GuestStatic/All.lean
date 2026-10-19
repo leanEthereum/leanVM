@@ -32,6 +32,16 @@ public import LeanVM.Guest.Memory.GuestStatic.Part22
 public import LeanVM.Guest.Memory.GuestStatic.Part23
 public import LeanVM.Guest.Memory.GuestStatic.Part24
 public import LeanVM.Guest.Memory.GuestStatic.Part25
+public import LeanVM.Guest.Memory.GuestStatic.Part26
+public import LeanVM.Guest.Memory.GuestStatic.Part27
+public import LeanVM.Guest.Memory.GuestStatic.Part28
+public import LeanVM.Guest.Memory.GuestStatic.Part29
+public import LeanVM.Guest.Memory.GuestStatic.Part30
+public import LeanVM.Guest.Memory.GuestStatic.Part31
+public import LeanVM.Guest.Memory.GuestStatic.Part32
+public import LeanVM.Guest.Memory.GuestStatic.Part33
+public import LeanVM.Guest.Memory.GuestStatic.Part34
+public import LeanVM.Guest.Memory.GuestStatic.Part35
 
 namespace LeanVM.Guest
 
@@ -100,22 +110,54 @@ theorem chkIdx_all : ∀ j < 1043, chkIdx j = true := by
   · exact staticRange_136.get (by omega) (by omega)
   by_cases h10 : j < 180
   · exact staticRange_166.get (by omega) (by omega)
-  by_cases h11 : j < 183
+  by_cases hs180 : j < 181
   · exact staticRange_180.get (by omega) (by omega)
-  by_cases h12 : j < 186
+  by_cases hs181 : j < 182
+  · exact staticRange_181.get (by omega) (by omega)
+  by_cases hs182 : j < 183
+  · exact staticRange_182.get (by omega) (by omega)
+  by_cases hs183 : j < 184
   · exact staticRange_183.get (by omega) (by omega)
-  by_cases h13 : j < 189
+  by_cases hs184 : j < 185
+  · exact staticRange_184.get (by omega) (by omega)
+  by_cases hs185 : j < 186
+  · exact staticRange_185.get (by omega) (by omega)
+  by_cases hs186 : j < 187
   · exact staticRange_186.get (by omega) (by omega)
-  by_cases h14 : j < 192
+  by_cases hs187 : j < 188
+  · exact staticRange_187.get (by omega) (by omega)
+  by_cases hs188 : j < 189
+  · exact staticRange_188.get (by omega) (by omega)
+  by_cases hs189 : j < 190
   · exact staticRange_189.get (by omega) (by omega)
-  by_cases h15 : j < 195
+  by_cases hs190 : j < 191
+  · exact staticRange_190.get (by omega) (by omega)
+  by_cases hs191 : j < 192
+  · exact staticRange_191.get (by omega) (by omega)
+  by_cases hs192 : j < 193
   · exact staticRange_192.get (by omega) (by omega)
-  by_cases h16 : j < 198
+  by_cases hs193 : j < 194
+  · exact staticRange_193.get (by omega) (by omega)
+  by_cases hs194 : j < 195
+  · exact staticRange_194.get (by omega) (by omega)
+  by_cases hs195 : j < 196
   · exact staticRange_195.get (by omega) (by omega)
-  by_cases h17 : j < 201
+  by_cases hs196 : j < 197
+  · exact staticRange_196.get (by omega) (by omega)
+  by_cases hs197 : j < 198
+  · exact staticRange_197.get (by omega) (by omega)
+  by_cases hs198 : j < 199
   · exact staticRange_198.get (by omega) (by omega)
-  by_cases h18 : j < 204
+  by_cases hs199 : j < 200
+  · exact staticRange_199.get (by omega) (by omega)
+  by_cases hs200 : j < 201
+  · exact staticRange_200.get (by omega) (by omega)
+  by_cases hs201 : j < 202
   · exact staticRange_201.get (by omega) (by omega)
+  by_cases hs202 : j < 203
+  · exact staticRange_202.get (by omega) (by omega)
+  by_cases hs203 : j < 204
+  · exact staticRange_203.get (by omega) (by omega)
   by_cases h19 : j < 234
   · exact staticRange_204.get (by omega) (by omega)
   by_cases h20 : j < 264
@@ -168,9 +210,17 @@ theorem chkIdx_all : ∀ j < 1043, chkIdx j = true := by
   · exact staticRange_924.get (by omega) (by omega)
   by_cases h44 : j < 984
   · exact staticRange_954.get (by omega) (by omega)
-  by_cases h45 : j < 1014
+  by_cases h45 : j < 994
   · exact staticRange_984.get (by omega) (by omega)
-  exact staticRange_1014.get (by omega) (by omega)
+  by_cases h46 : j < 1004
+  · exact staticRange_994.get (by omega) (by omega)
+  by_cases h47 : j < 1014
+  · exact staticRange_1004.get (by omega) (by omega)
+  by_cases h48 : j < 1024
+  · exact staticRange_1014.get (by omega) (by omega)
+  by_cases h49 : j < 1034
+  · exact staticRange_1024.get (by omega) (by omega)
+  exact staticRange_1034.get (by omega) (by omega)
 
 end
 end LeanVM.Guest
