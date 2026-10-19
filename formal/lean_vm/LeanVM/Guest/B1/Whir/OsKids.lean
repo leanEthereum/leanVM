@@ -116,7 +116,7 @@ theorem os_levels_kids (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ �
       ∀ b, ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = ks.length ∧ Within L b N ∧ DisjL L ∧
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
-          (∀ l p i, RegionL (W l p) i → R i) →
+          (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →
           KidsFromIn coreProgram fs cert rd σ R Dacc (ks.flatMap OsLvK.calls) b N (fun _ => False)
   | [], _, _, b => ⟨0, [], [], rfl, fun _ h => by simp at h, disj_nil, fun _ _ _ _ _ _ _ _ _ =>
       ⟨rfl, fun _ h => h.elim⟩⟩
@@ -153,20 +153,20 @@ theorem os_levels_kids (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ �
       refine kidsFromIn_append _ _ _ _ _ _ _ _ (hKS rd R D1 hlow hLS (Main.memL_append.mpr ⟨hLk, hW0⟩) fun i hi => ?_) ?_
       · rcases os_regionL_append hi with hi | hi
         · exact Or.inl (hR i hi)
-        · exact Or.inl (hRW _ _ i hi)
+        · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)
       intro D2 hD2
       refine kidsFromIn_append _ _ _ _ _ _ _ _ (hKB rd R D2 hlow hLB
         (Main.memL_append.mpr ⟨Main.memL_append.mpr ⟨hLk, hW0⟩, hS0⟩) fun i hi => ?_) ?_
       · rcases os_regionL_append hi with hi | hi
         · rcases os_regionL_append hi with hi | hi
           · exact Or.inl (hR i hi)
-          · exact Or.inl (hRW _ _ i hi)
+          · exact Or.inl (hRW l0 le_rfl (by simp) _ i hi)
         · exact Or.inr (hD2 i hi)
       intro D3 _
       exact hKr rd R D3 hlow hLr hLk (fun i hi => by
         have := hWm (i + 1) (by simp; omega)
         simp only [List.getElem_cons_succ, show l0 + (i + 1) = l0 + 1 + i by omega] at this
-        exact this) hR hRW
+        exact this) hR (fun l h1 h2 => hRW l (by omega) (by simp; omega))
 
 end
 end LeanVM.Guest.B1
