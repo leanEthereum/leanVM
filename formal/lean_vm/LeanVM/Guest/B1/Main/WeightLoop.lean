@@ -253,8 +253,9 @@ def LoopWeightLe (ω : String → ℕ) (f : String) (K : ℕ) : Prop :=
 
 /-- **The weights of `main`'s callees and of its children's** at `ω`, on every valid tree: the
 loops' per iteration (`LoopWeightLe`), `aggregate_claims`' affine in its children (argument `0`
-being `g^n`), constants for the others; the claim lists', `da_verify`'s and `verify_sub`'s
-within `α / 1000` times their words (`WeightTot`). -/
+being `g^n`), constants for the others; the claim lists' and `verify_sub`'s
+within `α / 1000` times their words (`WeightTot`); `da_verify`'s weight rides its completeness
+(`CalleesAt.da_verify`). -/
 structure MainWeightHyps (fs ω : String → ℕ) : Type where
   Bexp : ℕ
   exp : WeightLe coreProgram ω "exponent_tables" fun _ => Bexp
@@ -285,8 +286,6 @@ structure MainWeightHyps (fs ω : String → ℕ) : Type where
   cl : WeightTot fs ω "claim_list_digest" αcl
   αccl : ℕ
   ccl : WeightTot fs ω "child_claim_list_digest" αccl
-  αdv : ℕ
-  dv : WeightTot fs ω "da_verify" αdv
   αvs : ℕ
   vs : WeightTot fs ω "verify_sub" αvs
 

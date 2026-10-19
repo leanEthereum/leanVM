@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.LoopAt
+public import LeanVM.Guest.B1.Main.WeightAt
 public import LeanVM.Guest.B1.Main.Callees
 public import LeanVM.Guest.B1.Digest.Statement
 public import LeanVM.Guest.B1.Digest.ChildList
@@ -102,10 +103,20 @@ def DaVerifyPreAt (root vd : Digest) (rd : Reader) : List E → List E → Prop
       (v0, v1) = digestScalars vd
   | _, _ => False
 
+/-- A completeness within the weights at every frame weight, at the weights `w θ`. -/
+theorem CompleteAtW.reindex {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String} {Lin : Layout}
+    {args : List E} {Out : List E → Layout → Prop} {B : ℕ} {Bw : (String → ℕ) → ℕ}
+    (h : CompleteAtW fs cert (fun θ : String → ℕ => θ) κ f Lin args Out B Bw) {Θ : Type} (w : Θ → String → ℕ) :
+    CompleteAtW fs cert w κ f Lin args Out B fun θ => Bw (w θ) := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hW, hd, hn, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hW, hd, hn, fun rd hl hm =>
+    let ⟨t, a, b, c, d, e, f', g, hwt⟩ := hr rd hl hm
+    ⟨t, a, b, c, d, e, f', g, fun θ => hwt (w θ)⟩⟩
+
 /-- **The bounds of `main`'s callees' trees**: constants for a signature verification, a
 statement's digest, a DA slot's cover and a child's `verify_sub`; by the claims' count for a DA
 list's digest, a claim list's and a child's claim list's; by the matrix's rows for the direct DA
-claim's check. -/
+claim's check, its weight by the frame weight and the rows. -/
 structure CalleeBounds where
   xmss : ℕ
   sphincs : ℕ
@@ -115,6 +126,7 @@ structure CalleeBounds where
   cl : ℕ → ℕ
   ccl : ℕ → ℕ
   daVerify : ℕ → ℕ
+  daVerifyW : (String → ℕ) → ℕ → ℕ
   vs : ℕ
 
 /-- **The callees of `main` other groups prove, complete uniformly and placed** at `κ`, by trees
@@ -133,8 +145,10 @@ structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     CompleteRelB fs cert κ "claim_list_digest" (ClPreAt cs) (Bd.cl (cs.length / 4))
   child_claim_list_digest : ∀ off cs,
     CompleteRelB fs cert κ "child_claim_list_digest" (CclPreAt off cs) (Bd.ccl (cs.length / 4))
-  da_verify : ∀ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd →
-    CompleteRelB fs cert κ "da_verify" (DaVerifyPreAt root vd) (Bd.daVerify wt.rows.length)
+  da_verify : ∀ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd → ∀ (args rets : List E) (Lin : Layout),
+    (∀ rd, LowDef κ rd → MemL rd Lin → DaVerifyPreAt root vd rd args rets) →
+    CompleteAtW fs cert (fun θ : String → ℕ => θ) κ "da_verify" Lin args (Returns rets)
+      (Bd.daVerify wt.rows.length) fun θ => Bd.daVerifyW θ wt.rows.length
   verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAtB fs cert κ "verify_sub"
     (VerifySub.vsExtL lpA sqA outA D) [(digestScalars D.pi).1, (digestScalars D.pi).2,
       (digestScalars D.seed).1, (digestScalars D.seed).2, ofK (gpow lpA), ofK (gpow sqA),

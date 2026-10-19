@@ -250,15 +250,15 @@ theorem lvName_ne {k l : ℕ} (hk : k ≤ 10) (hl : l < k) : lvName k l ≠ dlNa
 /-- **A tree by region**: `da_levels__L{2^k}_L{k}` at `g^nd` loads only its own words. -/
 theorem levels_relInT (fs : String → ℕ) {rd : Reader} {k : ℕ} (hk : k ≤ 10) {nd : ℕ} {R : ℕ → Prop}
     (hR : ∀ i, TreeR nd k i → R i) {rets : List E} (h : coreProgram.Rel rd (dlNames.getD k "") [gen ^ nd] rets) :
-    RelInT fs rd R (dlTot fs k) (dlNames.getD k "") [gen ^ nd] rets := by
+    RelInTW fs rd R (dlTot fs k) (dlNames.getD k "") [gen ^ nd] rets fun θ => dlTot θ k := by
   have hb : ∀ l < k, 2 ^ (k - l - 1) < 2 ^ 64 - 2 := fun l hl => by
     have : 2 ^ (k - l - 1) ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) (by omega)
     omega
-  have key := relInT_of_inv fs (R := R)
+  have key := relInTW_of_inv fs (R := R)
     (fun f args => (f = dlNames.getD k "" ∧ args = [gen ^ nd]) ∨
       (∃ l < k, f = lvName k l ∧ ∃ j < 2 ^ (k - l - 1), args = [gen ^ j, gen ^ 2 ^ (k - l - 1), gen ^ nd]))
-    (fun f args => if f = dlNames.getD k "" then dlTot fs k
-      else lvTot fs f (logG (args.getD 1 0)) (logG (args.getD 0 0)))
+    (fun θ f args => if f = dlNames.getD k "" then dlTot θ k
+      else lvTot θ f (logG (args.getD 1 0)) (logG (args.getD 0 0)))
     (fun f args σ fn es vs hI hf hp hw hok => ?_) (Or.inl ⟨rfl, rfl⟩) h
   · simpa using key
   rcases hI with ⟨rfl, rfl⟩ | ⟨l, hl, rfl, j, hj, rfl⟩
@@ -270,7 +270,8 @@ theorem levels_relInT (fs : String → ℕ) {rd : Reader} {k : ℕ} (hk : k ≤ 
       obtain ⟨l, hl, rfl⟩ := List.mem_map.mp hc'
       have hl' := List.mem_range.mp hl
       exact Or.inr ⟨l, hl', rfl, 0, by positivity, hargs l hl'⟩
-    · rw [hc, ha, callsTot, List.map_map, List.sum_nil, Nat.add_zero]
+    · intro θ
+      rw [hc, ha, callsTot, List.map_map, List.sum_nil, Nat.add_zero]
       simp only [↓reduceIte, dlTot]
       congr 2
       refine List.map_congr_left fun l hl => ?_
@@ -286,7 +287,8 @@ theorem levels_relInT (fs : String → ℕ) {rd : Reader} {k : ℕ} (hk : k ≤ 
       obtain rfl := List.mem_singleton.mp hc'
       simp only [decide_eq_true_eq] at ht
       exact Or.inr ⟨l, hl, rfl, j + 1, by omega, hnext⟩
-    · have hbl := hb l hl
+    · intro θ
+      have hbl := hb l hl
       rw [hc, ha, callsTot]
       simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, Nat.add_zero, lvName_ne hk hl,
         ↓reduceIte, hnext, List.getD_cons_succ, List.getD_cons_zero]

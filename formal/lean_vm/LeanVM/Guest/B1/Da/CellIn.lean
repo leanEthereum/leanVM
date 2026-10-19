@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Da.Cell
-public import LeanVM.Guest.B1.Da.RelIn
+public import LeanVM.Guest.B1.Da.WeightIn
 
 namespace LeanVM.Guest.B1.Digest
 
@@ -52,12 +52,12 @@ theorem vc_inst {σ : Val} {fn : Fn} {es : List Ev} {vs : List V} {l : ℕ}
 them it holds in that region, by a tree of its frame. -/
 theorem da_verify_cell_relInT (fs : String → ℕ) {rd : Reader} {R : ℕ → Prop} {l : ℕ}
     (hR : ∀ k < 256, R (l + k)) {rets : List E} (h : coreProgram.Rel rd "da_verify_cell" [gen ^ l] rets) :
-    RelInT fs rd R (fs "da_verify_cell") "da_verify_cell" [gen ^ l] rets := by
-  refine relInT_of_inv fs (fun f args => f = "da_verify_cell" ∧ args = [gen ^ l]) (fun f _ => fs f)
+    RelInTW fs rd R (fs "da_verify_cell") "da_verify_cell" [gen ^ l] rets fun θ => θ "da_verify_cell" := by
+  refine relInTW_of_inv fs (fun f args => f = "da_verify_cell" ∧ args = [gen ^ l]) (fun θ f _ => θ f)
     (fun f args σ fn es vs hI hf hp hw _ => ?_) ⟨rfl, rfl⟩ h
   obtain ⟨rfl, rfl⟩ := hI
   obtain ⟨hl, hc, ha⟩ := vc_inst hf hp hw
-  refine ⟨fun A hA => ?_, fun c hc' => by rw [hc] at hc'; simp at hc', by rw [hc, ha]; rfl⟩
+  refine ⟨fun A hA => ?_, fun c hc' => by rw [hc] at hc'; simp at hc', fun θ => by rw [hc, ha]; rfl⟩
   obtain ⟨i, hi, h1, h2⟩ := hl A hA
   exact ⟨i, hi, by have := hR (i - l) (by omega); rwa [show l + (i - l) = i by omega] at this⟩
 

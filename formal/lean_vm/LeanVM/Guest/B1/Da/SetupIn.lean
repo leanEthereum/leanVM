@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Da.SetupIn
 
   `da_verify`'s self-calling loops (`__loop88`, `__loop89`, `__loop92`, `__loop93`, `__loop94`)
-  loading from a region, by trees of known words (`RelInT`).
+  loading from a region, by trees of known words within weights (`RelInTW`).
 -/
 
 module
@@ -45,7 +45,8 @@ def R88 (r P : ℕ) (i : ℕ) : Prop := ∃ j < r, i = P + j
 theorem l88_relInT (fs : String → ℕ) {rd : Reader} {r P D : ℕ} {R : ℕ → Prop} (hr : r < 2 ^ 33)
     (hR : ∀ i, R88 r P i → R i) {j : ℕ} (hj : j < r)
     (h : coreProgram.Rel rd "__loop88" [gen ^ j, gen ^ r, gen ^ P, gen ^ D] []) :
-    RelInT fs rd R ((r - j) * fs "__loop88" + fs "__loop88") "__loop88" [gen ^ j, gen ^ r, gen ^ P, gen ^ D] [] := by
+    RelInTW fs rd R ((r - j) * fs "__loop88" + fs "__loop88") "__loop88" [gen ^ j, gen ^ r, gen ^ P, gen ^ D] []
+      fun θ => (r - j) * θ "__loop88" + θ "__loop88" := by
   refine loop_relInT fs (pre := l88Body.dropLast) (c := .n 15) (targs := [.n 17, .n 1, .n 2, .n 3])
     (ps := [gen ^ r, gen ^ P, gen ^ D]) find_l88 rfl rfl rfl rfl hr (fun j hj σ hp hok => ?_) hj h
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
@@ -71,7 +72,8 @@ def R89 (r A B : ℕ) (i : ℕ) : Prop := ∃ j < r, i = B + j ∨ i = A + 129 *
 theorem l89_relInT (fs : String → ℕ) {rd : Reader} {r A B : ℕ} {R : ℕ → Prop} (hr : r < 2 ^ 33)
     (hR : ∀ i, R89 r A B i → R i) {j : ℕ} (hj : j < r)
     (h : coreProgram.Rel rd "__loop89" [gen ^ j, gen ^ r, gen ^ A, gen ^ B] []) :
-    RelInT fs rd R ((r - j) * fs "__loop89" + fs "__loop89") "__loop89" [gen ^ j, gen ^ r, gen ^ A, gen ^ B] [] := by
+    RelInTW fs rd R ((r - j) * fs "__loop89" + fs "__loop89") "__loop89" [gen ^ j, gen ^ r, gen ^ A, gen ^ B] []
+      fun θ => (r - j) * θ "__loop89" + θ "__loop89" := by
   refine loop_relInT fs (pre := l89Body.dropLast) (c := .n 17) (targs := [.n 19, .n 1, .n 2, .n 3])
     (ps := [gen ^ r, gen ^ A, gen ^ B]) find_l89 rfl rfl rfl rfl hr (fun j hj σ hp hok => ?_) hj h
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
@@ -111,7 +113,8 @@ theorem l92_relInT (fs : String → ℕ) {rd : Reader} {r A B : ℕ} {R : ℕ �
     (hrb : ∀ j < r, rd (gpow (B + j)) = some (gen ^ (A + 129 * j)))
     (hR : ∀ i, R92 r A B i → R i) {j : ℕ} (hj : j < r)
     (h : coreProgram.Rel rd "__loop92" [gen ^ j, gen ^ r, gen ^ B] []) :
-    RelInT fs rd R ((r - j) * fs "__loop92" + fs "__loop92") "__loop92" [gen ^ j, gen ^ r, gen ^ B] [] := by
+    RelInTW fs rd R ((r - j) * fs "__loop92" + fs "__loop92") "__loop92" [gen ^ j, gen ^ r, gen ^ B] []
+      fun θ => (r - j) * θ "__loop92" + θ "__loop92" := by
   refine loop_relInT fs (pre := l92Body.dropLast) (c := .n 9) (targs := [.n 11, .n 1, .n 2])
     (ps := [gen ^ r, gen ^ B]) find_l92 rfl rfl rfl rfl hr (fun j hj σ hp hok => ?_) hj h
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
@@ -145,7 +148,8 @@ def R94 (G T r : ℕ) (i : ℕ) : Prop := ∃ d < G, i = T + 2 * (r + d) ∨ i =
 theorem l94_relInT (fs : String → ℕ) {rd : Reader} {G T r : ℕ} {R : ℕ → Prop} (hG : G < 2 ^ 33)
     (hR : ∀ i, R94 G T r i → R i) {d : ℕ} (hd : d < G)
     (h : coreProgram.Rel rd "__loop94" [gen ^ d, gen ^ G, gen ^ T, gen ^ r] []) :
-    RelInT fs rd R ((G - d) * fs "__loop94" + fs "__loop94") "__loop94" [gen ^ d, gen ^ G, gen ^ T, gen ^ r] [] := by
+    RelInTW fs rd R ((G - d) * fs "__loop94" + fs "__loop94") "__loop94" [gen ^ d, gen ^ G, gen ^ T, gen ^ r] []
+      fun θ => (G - d) * θ "__loop94" + θ "__loop94" := by
   refine loop_relInT fs (pre := l94Body.dropLast) (c := .n 12) (targs := [.n 14, .n 1, .n 2, .n 3])
     (ps := [gen ^ G, gen ^ T, gen ^ r]) find_l94 rfl rfl rfl rfl hG (fun d hd σ hp hok => ?_) hd h
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
@@ -186,7 +190,8 @@ theorem l93_relInT (fs : String → ℕ) {rd : Reader} {r P D T : ℕ} {R : ℕ 
     (hpb : ∀ j < r, rd (gpow (P + j)) = some (gen ^ (D + 128 * j)))
     (hR : ∀ i, R93 r P D T i → R i) {j : ℕ} (hj : j < r)
     (h : coreProgram.Rel rd "__loop93" [gen ^ j, gen ^ r, gen ^ P, gen ^ T] []) :
-    RelInT fs rd R ((r - j) * fs "__loop93" + fs "__loop93") "__loop93" [gen ^ j, gen ^ r, gen ^ P, gen ^ T] [] := by
+    RelInTW fs rd R ((r - j) * fs "__loop93" + fs "__loop93") "__loop93" [gen ^ j, gen ^ r, gen ^ P, gen ^ T] []
+      fun θ => (r - j) * θ "__loop93" + θ "__loop93" := by
   have hs : rhPre.all Main.Stmt.straight = true := by simp [rhPre, Main.Stmt.straight]
   refine loop_relInT fs (pre := rhPre) (c := .n 236) (targs := [.n 238, .n 1, .n 2, .n 3])
     (ps := [gen ^ r, gen ^ P, gen ^ T]) find_l93 (by simp [rhBody, rhPre]) hs
@@ -244,8 +249,8 @@ theorem drsBody_eq : drsBody = drsAtoms.map .atom ++ [.ret [.n 30, .n 31]] := rf
 theorem drs_relInT (fs : String → ℕ) {rd : Reader} {R : ℕ → Prop} {nb gsq : E} {lp : ℕ}
     (hR : ∃ i, (gsq * gen ^ lp).limb 0 * gpow 0 = gpow i ∧ R i)
     {rets : List E} (h : coreProgram.Rel rd "da_row_shape" [nb, gen ^ lp, gsq] rets) :
-    RelInT fs rd R (fs "da_row_shape") "da_row_shape" [nb, gen ^ lp, gsq] rets := by
-  refine relInT_of_inv fs (fun f args => f = "da_row_shape" ∧ args = [nb, gen ^ lp, gsq]) (fun f _ => fs f)
+    RelInTW fs rd R (fs "da_row_shape") "da_row_shape" [nb, gen ^ lp, gsq] rets fun θ => θ "da_row_shape" := by
+  refine relInTW_of_inv fs (fun f args => f = "da_row_shape" ∧ args = [nb, gen ^ lp, gsq]) (fun θ f _ => θ f)
     (fun f args σ fn es vs hI hf hp hw hok => ?_) ⟨rfl, rfl⟩ h
   obtain ⟨rfl, rfl⟩ := hI
   rw [find_da_row_shape, Option.some.injEq] at hf
@@ -262,7 +267,8 @@ theorem drs_relInT (fs : String → ℕ) {rd : Reader} {R : ℕ → Prop} {nb gs
     subst hA
     obtain ⟨i, hi, hRi⟩ := hR
     exact ⟨i, by rw [m15, h2, h1, hi], hRi⟩
-  · rw [calls_atoms, allocs_atoms σ (by decide +kernel)]
+  · intro θ
+    rw [calls_atoms, allocs_atoms σ (by decide +kernel)]
     simp [callsTot]
 
 end

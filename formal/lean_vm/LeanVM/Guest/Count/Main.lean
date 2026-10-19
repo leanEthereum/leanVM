@@ -55,8 +55,6 @@ def kcWt (op : Opcode) : MainWeightHyps B2C.fs (B2C.pathMax · op) where
   cl := krCl_weight op
   αccl := krCclA op
   ccl := krCcl_weight op
-  αdv := krDvA op
-  dv := krDv_weight op
   αvs := krVsA op
   vs := krVs_weight op
 

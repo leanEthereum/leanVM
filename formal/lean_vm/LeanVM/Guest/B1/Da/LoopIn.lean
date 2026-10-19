@@ -35,9 +35,9 @@ theorem loop_relInT (fs : String → ℕ) {rd : Reader} {R : ℕ → Prop} {f : 
       (∀ A ∈ loadAddrs σ (pre.flatMap (Main.slEvs σ)), ∃ i, A = gpow i ∧ R i) ∧
         (σ c ≠ 0 ↔ j + 1 < n) ∧ targs.map σ = gen ^ (j + 1) :: ps)
     {j : ℕ} (hj : j < n) (h : coreProgram.Rel rd f (gen ^ j :: ps) []) :
-    RelInT fs rd R ((n - j) * fs f + fs f) f (gen ^ j :: ps) [] := by
-  have key := relInT_of_inv fs (R := R) (fun f' args => f' = f ∧ ∃ j < n, args = gen ^ j :: ps)
-    (fun _ args => (n - logG (args.headD 0)) * fs f + fs f)
+    RelInTW fs rd R ((n - j) * fs f + fs f) f (gen ^ j :: ps) [] fun θ => (n - j) * θ f + θ f := by
+  have key := relInTW_of_inv fs (R := R) (fun f' args => f' = f ∧ ∃ j < n, args = gen ^ j :: ps)
+    (fun θ _ args => (n - logG (args.headD 0)) * θ f + θ f)
     (fun f' args σ fn' es vs hI hf' hp hw hok => ?_) ⟨rfl, j, hj, rfl⟩ h
   · simpa [logG_gen_pow (show j < 2 ^ 64 - 1 by omega)] using key
   obtain ⟨rfl, j, hj, rfl⟩ := hI
@@ -54,7 +54,8 @@ theorem loop_relInT (fs : String → ℕ) {rd : Reader} {R : ℕ → Prop} {f : 
     obtain rfl := List.mem_singleton.mp hc'
     simp only [decide_eq_true_eq] at ht
     exact ⟨rfl, j + 1, htk.mp ht, hta⟩
-  · rw [hcalls, hal', hal, callsTot]
+  · intro θ
+    rw [hcalls, hal', hal, callsTot]
     simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, Nat.add_zero, List.headD_cons, hta]
     rw [logG_gen_pow (show j < 2 ^ 64 - 1 by omega)]
     by_cases hj1 : j + 1 < n

@@ -24,7 +24,7 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Value LeanVM.Node
 open LeanVM.Protocol.Verifier (gen)
-open LeanVM.Guest.B1 (LowDef CompleteAt CompleteAtD CompleteAtB CompleteRel CompleteRelD DisjL disj_nil Within Returns)
+open LeanVM.Guest.B1 (LowDef CompleteAt CompleteAtD CompleteRel CompleteRelD DisjL disj_nil Within Returns)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
@@ -717,7 +717,7 @@ theorem da_verify_completeRel (fs : String → ℕ) (cert : String → V → ℕ
   rw [List.nil_append] at hL
   obtain ⟨hLo, hLi⟩ := Main.memL_append.mp hL
   have hlow : Low16 rd := fun i hi => hl i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) hκ))
-  have h := dv_relAtIn fs cert hlow (hpre rd hl hLi).1 hw hR fp (daMem_of_memL hLo fun q hq => hq)
+  have h := (dv_relAtIn fs cert hlow (hpre rd hl hLi).1 hw hR fp (daMem_of_memL hLo fun q hq => hq)).toRelAtIn
   rw [show r0 = (digestScalars root).1 from congrArg Prod.fst hr,
     show r1 = (digestScalars root).2 from congrArg Prod.snd hr,
     show v0 = (digestScalars vd).1 from congrArg Prod.fst hv,
@@ -750,7 +750,7 @@ theorem da_verify_completeRelD (fs : String → ℕ) (cert : String → V → �
   rw [List.nil_append] at hL
   obtain ⟨hLo, hLi⟩ := Main.memL_append.mp hL
   have hlow : Low16 rd := fun i hi => hl i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) hκ))
-  have h := dv_relAtIn fs cert hlow (hpre rd hl hLi).1 hw hR fp (daMem_of_memL hLo fun q hq => hq)
+  have h := (dv_relAtIn fs cert hlow (hpre rd hl hLi).1 hw hR fp (daMem_of_memL hLo fun q hq => hq)).toRelAtIn
   rw [show r0 = (digestScalars root).1 from congrArg Prod.fst hr,
     show r1 = (digestScalars root).2 from congrArg Prod.snd hr,
     show v0 = (digestScalars vd).1 from congrArg Prod.fst hv,
@@ -787,13 +787,14 @@ theorem da_verify_completeRelAtD (fs : String → ℕ) (cert : String → V → 
     · exact h.elim
 
 /-- **`da_verify` is complete, uniformly placed**, returning the claim a witness opens, by a tree of
-`dvTot` words. -/
-theorem da_verify_completeRelAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ)
+`dvTot` words weighing at most its words at every frame weight. -/
+theorem da_verify_completeRelAtW (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ)
     (hc20 : cert "da_verify" (.n 20) + 385 ≤ fs "da_verify")
     (hc4 : ∀ f, cert (vxName f) (.n 4) + 256 ≤ fs (vxName f)) (w : Da.Witness) (root vd : Digest)
     (hw : w.Opens root vd) :
     ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef κ rd → MemL rd Lin → DaPreAt root vd rd args rets) →
-      CompleteAtB fs cert κ "da_verify" Lin args (Returns rets) (dvTot fs w.rows.length) := by
+      LeanVM.Guest.B1.Main.CompleteAtW fs cert wId κ "da_verify" Lin args (Returns rets) (dvTot fs w.rows.length)
+        fun θ => dvTot θ w.rows.length := by
   intro args rets Lin hpre fp
   classical
   by_cases hex : ∃ rd1, LowDef κ rd1 ∧ MemL rd1 Lin
@@ -826,7 +827,7 @@ theorem da_verify_completeRelAtB (fs : String → ℕ) (cert : String → V → 
     show r1 = (digestScalars root).2 from congrArg Prod.snd hr,
     show v0 = (digestScalars vd).1 from congrArg Prod.fst hv,
     show v1 = (digestScalars vd).2 from congrArg Prod.snd hv]
-  exact LeanVM.Guest.B1.relAtIn_dmono h fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq
+  exact h.dmono fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq
 
 end
 end LeanVM.Guest.B1.Digest

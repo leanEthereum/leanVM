@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Da.Vector
 public import LeanVM.Guest.B1.Da.Atoms
+public import LeanVM.Guest.B1.Da.WeightIn
 
 /-!
 # `da_vector_cell__L{final}`, placed
@@ -24,6 +25,7 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen)
+open LeanVM.Guest.B1.Main (RelAtInW relAtInW_of_walk)
 
 @[expose] public section
 
@@ -50,8 +52,8 @@ theorem vx_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (final : 
     (hD : ∀ i, D i → fp + cert (vxName final) (.n 4) ≤ i ∧ i < fp + cert (vxName final) (.n 4) + 256)
     (rd : Reader) (hcv : CellsAt rd (ctr * (xb * xb * xb)) cv) (hcl : cv.length = 4)
     (hws : ∀ k < 256, ∀ v, rd (gpow (fp + cert (vxName final) (.n 4) + k)) = some v → v = ws.getD k 0) :
-    RelAtIn coreProgram fs cert rd R D fp (fs (vxName final)) (vxName final) [xb, h0, h1, ctr]
-      [o0, o1, gen ^ (fp + cert (vxName final) (.n 4))] := by
+    RelAtInW fs cert wId rd R D fp (fs (vxName final)) (vxName final) [xb, h0, h1, ctr]
+      [o0, o1, gen ^ (fp + cert (vxName final) (.n 4))] fun θ => θ (vxName final) := by
   rcases hch with ⟨h96, -⟩ | ⟨-, hd, hst0, hcan, hout⟩
   · omega
   set a0 := fp + cert (vxName final) (.n 4)
@@ -86,8 +88,8 @@ theorem vx_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (final : 
     · exact ⟨c + 3 * b + 1, by rw [h3468, limb0_gen_pow, gpow_add'], Or.inr (Or.inl (hR 1 (by omega)))⟩
     · exact ⟨c + 3 * b + 2, by rw [h3600, limb0_gen_pow, gpow_add'], Or.inr (Or.inl (hR 2 (by omega)))⟩
     · exact ⟨c + 3 * b + 3, by rw [h3732, limb0_gen_pow, gpow_add'], Or.inr (Or.inl (hR 3 (by omega)))⟩
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) coreProgram_wf
-    (R := R) (D := D) (Dk := fun _ => False) (fp := fp) (N := 0) (find_vx final)
+  have h := relAtInW_of_walk (fs := fs) (cert := cert) (w := wId) (σ := σ) (rd := rd)
+    (R := R) (D := D) (Dk := fun _ => False) (fp := fp) (N := 0) (bws := []) (find_vx final)
     (Or.inr (calls_atoms _)) hp (walk_atoms σ (vxAtoms final) _) hr (holds_atoms ha)
     (by rw [allocDsts_atoms (vx_noAlloc final), allocs_atoms σ (vx_noAlloc final)]; rfl)
     (fun q hq => by
@@ -97,7 +99,8 @@ theorem vx_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (final : 
       rw [show σ (.n (vxF final)) = gen ^ a0 by cases final <;> rfl, gen_pow_eq_ofK])
     (by rw [calls_atoms]; exact ⟨rfl, fun i h => h⟩) hload
     (fun i hi => Or.inl (Or.inr ⟨(.n 4, 256), by rw [runs_atoms, vx_runs]; simp, (hD i hi).1, (hD i hi).2⟩))
-  rwa [allocs_atoms σ (vx_noAlloc final), List.sum_nil, Nat.add_zero, Nat.add_zero] at h
+  simp only [allocs_atoms σ (vx_noAlloc final), List.sum_nil, Nat.add_zero, List.map_nil] at h
+  exact h
 
 /-- **The uniform placed form.** -/
 theorem vx_relAtIn_uniform (fs : String → ℕ) (cert : String → V → ℕ) (final : Bool)
@@ -107,9 +110,10 @@ theorem vx_relAtIn_uniform (fs : String → ℕ) (cert : String → V → ℕ) (
     (hR : ∀ k < 4, R (c + 3 * b + k)) (hcl : cv.length = 4) :
     ∀ fp, ∃ n, ∀ rd, (CellsAt rd (ctr * (xb * xb * xb)) cv ∧
       ∀ k < 256, ∀ v, rd (gpow (fp + cert (vxName final) (.n 4) + k)) = some v → v = ws.getD k 0) →
-      RelAtIn coreProgram fs cert rd R
+      RelAtInW fs cert wId rd R
         (fun i => fp + cert (vxName final) (.n 4) ≤ i ∧ i < fp + cert (vxName final) (.n 4) + 256) fp n
-        (vxName final) [xb, h0, h1, ctr] [o0, o1, gen ^ (fp + cert (vxName final) (.n 4))] :=
+        (vxName final) [xb, h0, h1, ctr] [o0, o1, gen ^ (fp + cert (vxName final) (.n 4))]
+        fun θ => θ (vxName final) :=
   fun fp => ⟨_, fun rd hm => vx_relAtIn fs cert final hxb hctr hch hR fp (fun _ h => h) rd hm.1 hcl hm.2⟩
 
 end

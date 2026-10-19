@@ -63,6 +63,7 @@ structure EaAffOk (Bd : CalleeBounds) (A : EaAffC) : Prop where
   ccl : ∀ n, Bd.ccl n ≤ A.aCcl * n + A.bCcl
   dl : ∀ n ≤ 16, Bd.daList n ≤ A.dlMax
   dv : ∀ r, Bd.daVerify r ≤ A.dvA + A.dvB * r
+  dvW : ∀ θ r, Bd.daVerifyW θ r ≤ Digest.dvWA θ + Digest.dvWB θ * r
 
 variable (fr : String → ℕ) (Bd : CalleeBounds) (A : EaAffC)
 
@@ -253,7 +254,8 @@ def eaWordsC (a86 b86 : ℕ) : EaAffC :=
 
 theorem ea_wordsOk {a86 b86 : ℕ} (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) :
     EaAffOk (calleeBd fs H) (eaWordsC fs H a86 b86) :=
-  ⟨ea_cl fs H h86, ea_ccl fs H, fun _ hn => ea_dl fs H hn, fun r => Digest.dv_tot_affine fs r⟩
+  ⟨ea_cl fs H h86, ea_ccl fs H, fun _ hn => ea_dl fs H hn, fun r => Digest.dv_tot_affine fs r,
+    fun θ r => Digest.dv_tot_affine θ r⟩
 
 /-- **The words budget.** -/
 def eaWords (a86 b86 : ℕ) : Linear := eaLin fs (calleeBd fs H) (eaWordsC fs H a86 b86)

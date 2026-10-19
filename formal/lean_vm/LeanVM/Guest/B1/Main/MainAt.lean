@@ -649,7 +649,7 @@ theorem sum_ite_pair (p : Prop) [Decidable p] (a b : ℕ) :
 noncomputable def mainWeight (ω : String → ℕ) (Bd : CalleeBounds) (H : MainWeightHyps fs ω) (W : MainWords) : ℕ :=
   ω "main" + (H.Bexp + ((W.da + W.ud) * H.Kl0 + H.Bdl + H.αcl * Bd.cl W.dx / 1000 +
     H.αcl * Bd.cl W.ds / 1000 + W.ux * H.Kl1 + W.us * H.Kl2 + W.rx * H.Kl3 + W.rs * H.Kl4 +
-    (if W.rd = 1 then H.αdv * Bd.daVerify W.drows / 1000 + H.Bcov else 0) +
+    (if W.rd = 1 then Bd.daVerifyW ω W.drows + H.Bcov else 0) +
     loopSum (ω "__loop5") (fun c => childW ω Bd H (W.child c)) 0 W.nc +
     (if W.nc = 0 then 0 else H.cAgg + H.dAgg * W.nc) + H.Bsd))
 
@@ -670,7 +670,7 @@ theorem main_relAtInW {Θ : Type} {w : Θ → String → ℕ} (Wt : ∀ θ, Main
         RelAtInW fs cert w rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] fun θ => mainWeight (w θ) Bd (Wt θ) W := by
   set bsDa : List ℕ := if W.rd = 1 then [Bd.daVerify W.drows, Bd.cover] else [] with hbsDa
-  set bwsDa : List (Θ → ℕ) := if W.rd = 1 then [fun θ => (Wt θ).αdv * Bd.daVerify W.drows / 1000,
+  set bwsDa : List (Θ → ℕ) := if W.rd = 1 then [fun θ => Bd.daVerifyW (w θ) W.drows,
     fun θ => (Wt θ).Bcov] else [] with hbwsDa
   set b5 := loopSum (fs "__loop5") (fun c => childBd fs Bd (W.child c)) 0 W.nc with hb5
   set bw5 : Θ → ℕ := fun θ => loopSum (w θ "__loop5") (fun c => childW (w θ) Bd (Wt θ) (W.child c)) 0 W.nc
@@ -682,7 +682,7 @@ theorem main_relAtInW {Θ : Type} {w : Θ → String → ℕ} (Wt : ∀ θ, Main
         fun h => by simp at h, trivial⟩
       · obtain ⟨wt, root, vd, ho, hrows, h⟩ := hW.daVerify hr
         rw [← hrows]
-        exact CompleteAtB.toW_tot (H.da_verify wt root vd ho _ _ _ h) fun θ => (Wt θ).dv
+        exact (H.da_verify wt root vd ho _ _ _ h).reindex w
       · obtain ⟨i, h⟩ := hW.daCover hr
         exact CompleteAtB.toW_weightLe (Bf := fun θ _ => (Wt θ).Bcov) (H.cover_da_root i _ _ _ h)
           fun θ => (Wt θ).cov

@@ -55,8 +55,8 @@ def eaWLin : Linear where
   coverage := Wt.Kl0 + Wt.Kl1 + Wt.Kl2
   rawXmss := Wt.Kl3
   rawSphincs := Wt.Kl4
-  rawDa := Wt.αdv * A.dvA / 1000 + 1 + Wt.Bcov
-  rawDaRows := Wt.αdv * A.dvB / 1000 + 1
+  rawDa := Digest.dvWA ω + Wt.Bcov
+  rawDaRows := Digest.dvWB ω
   children := ω "__loop5" + ewChK ω Bd A Wt + Wt.dAgg
   childClaims := ewChA ω A Wt
 
@@ -108,14 +108,10 @@ theorem ea_weight {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) {seed : D
     rw [Nat.mul_add, Nat.mul_add]; omega
   have m5 : W.rx * Wt.Kl3 = Wt.Kl3 * W.rx := Nat.mul_comm _ _
   have m6 : W.rs * Wt.Kl4 = Wt.Kl4 * W.rs := Nat.mul_comm _ _
-  have hda : (if W.rd = 1 then Wt.αdv * Bd.daVerify W.drows / 1000 + Wt.Bcov else 0) ≤
-      (Wt.αdv * A.dvA / 1000 + 1 + Wt.Bcov) * W.rd + (Wt.αdv * A.dvB / 1000 + 1) * W.drows := by
+  have hda : (if W.rd = 1 then Bd.daVerifyW ω W.drows + Wt.Bcov else 0) ≤
+      (Digest.dvWA ω + Wt.Bcov) * W.rd + Digest.dvWB ω * W.drows := by
     split_ifs with h
-    · rw [h, Nat.mul_one]
-      have h1 : Wt.αdv * Bd.daVerify W.drows / 1000 ≤ Wt.αdv * (A.dvB * W.drows + A.dvA) / 1000 :=
-        Nat.div_le_div_right (Nat.mul_le_mul_left _ (by have := hA.dv W.drows; omega))
-      have h2 := ea_ratio Wt.αdv A.dvB A.dvA W.drows
-      omega
+    · rw [h, Nat.mul_one]; have := hA.dvW ω W.drows; omega
     · exact Nat.zero_le _
   have hch : loopSum (ω "__loop5") (fun c => childW ω Bd Wt (W.child c)) 0 W.nc ≤
       W.nc * (ω "__loop5" + ewChK ω Bd A Wt) + ω "__loop5" + ewChA ω A Wt * (w.children.map cnw).sum := by

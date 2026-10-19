@@ -199,12 +199,12 @@ theorem rowLoop_relInT (fs : String → ℕ) (store : Bool) {rd : Reader} {r l q
     (hpb : store = true → ∀ j < r, rd (gpow (p + j)) = some (gen ^ (pd + 128 * j)))
     (hR : ∀ i, RowR store r l q b nd p a pd i → R i) {j : ℕ} (hj : j < r)
     (h : coreProgram.Rel rd (rowName store) [gen ^ j, gen ^ r, gen ^ l, gen ^ q, gen ^ b, gen ^ nd, gen ^ p] []) :
-    RelInT fs rd R (rowTot fs store r j) (rowName store)
-      [gen ^ j, gen ^ r, gen ^ l, gen ^ q, gen ^ b, gen ^ nd, gen ^ p] [] := by
-  have key := relInT_of_inv fs (R := R)
+    RelInTW fs rd R (rowTot fs store r j) (rowName store)
+      [gen ^ j, gen ^ r, gen ^ l, gen ^ q, gen ^ b, gen ^ nd, gen ^ p] [] fun θ => rowTot θ store r j := by
+  have key := relInTW_of_inv fs (R := R)
     (fun f args => (f = rowName store ∧ ∃ j < r, args = [gen ^ j, gen ^ r, gen ^ l, gen ^ q, gen ^ b, gen ^ nd, gen ^ p]) ∨
       (f = "da_verify_cell" ∧ args = [gen ^ l]))
-    (fun f args => if f = "da_verify_cell" then fs "da_verify_cell" else rowTot fs store r (logG (args.headD 0)))
+    (fun θ f args => if f = "da_verify_cell" then θ "da_verify_cell" else rowTot θ store r (logG (args.headD 0)))
     (fun f args σ fn es vs hI hf hp hw hok => ?_) (Or.inl ⟨rfl, j, hj, rfl⟩) h
   · simpa [rowName_ne store, logG_gen_pow (show j < 2 ^ 64 - 1 by omega)] using key
   rcases hI with ⟨rfl, j, hj, rfl⟩ | ⟨rfl, rfl⟩
@@ -218,7 +218,8 @@ theorem rowLoop_relInT (fs : String → ℕ) (store : Bool) {rd : Reader} {r l q
       · exact Or.inr ⟨rfl, h2⟩
       · simp only [decide_eq_true_eq] at ht
         exact Or.inl ⟨rfl, j + 1, by omega, hnext⟩
-    · rw [hc, ha, callsTot]
+    · intro θ
+      rw [hc, ha, callsTot]
       simp only [List.map_cons, List.map_nil, ↓reduceIte, List.sum_cons, List.sum_nil,
         rowName_ne store, hnext, List.headD_cons, Nat.add_zero, List.sum_nil]
       rw [logG_gen_pow (show j < 2 ^ 64 - 1 by omega)]
@@ -230,7 +231,7 @@ theorem rowLoop_relInT (fs : String → ℕ) (store : Bool) {rd : Reader} {r l q
         rw [logG_gen_pow (show j + 1 < 2 ^ 64 - 1 by omega), show r - j = (r - (j + 1)) + 1 by omega]
         ring
   · obtain ⟨hl, hc, ha⟩ := vc_inst hf hp hw
-    refine ⟨fun A hA => ?_, fun c hc' => by rw [hc] at hc'; simp at hc', by rw [hc, ha]; simp [callsTot]⟩
+    refine ⟨fun A hA => ?_, fun c hc' => by rw [hc] at hc'; simp at hc', fun θ => by rw [hc, ha]; simp [callsTot]⟩
     obtain ⟨i, hi, h1, h2⟩ := hl A hA
     exact ⟨i, hi, hR i (Or.inr ⟨h1, h2⟩)⟩
 
@@ -244,10 +245,11 @@ def gapTot (fs : String → ℕ) (store : Bool) (G d : ℕ) : ℕ := (G - d) * f
 theorem gapLoop_relInT (fs : String → ℕ) (store : Bool) {rd : Reader} {r G nd : ℕ} {R : ℕ → Prop}
     (hG : G < 2 ^ 33) (hR : ∀ i, GapR r G nd i → R i) {d : ℕ} (hd : d < G)
     (h : coreProgram.Rel rd (gapName store) [gen ^ d, gen ^ G, gen ^ nd, gen ^ r] []) :
-    RelInT fs rd R (gapTot fs store G d) (gapName store) [gen ^ d, gen ^ G, gen ^ nd, gen ^ r] [] := by
-  have key := relInT_of_inv fs (R := R)
+    RelInTW fs rd R (gapTot fs store G d) (gapName store) [gen ^ d, gen ^ G, gen ^ nd, gen ^ r] []
+      fun θ => gapTot θ store G d := by
+  have key := relInTW_of_inv fs (R := R)
     (fun f args => f = gapName store ∧ ∃ d < G, args = [gen ^ d, gen ^ G, gen ^ nd, gen ^ r])
-    (fun _ args => gapTot fs store G (logG (args.headD 0)))
+    (fun θ _ args => gapTot θ store G (logG (args.headD 0)))
     (fun f args σ fn es vs hI hf hp hw hok => ?_) ⟨rfl, d, hd, rfl⟩ h
   · simpa [logG_gen_pow (show d < 2 ^ 64 - 1 by omega)] using key
   obtain ⟨rfl, d, hd, rfl⟩ := hI
@@ -294,7 +296,8 @@ theorem gapLoop_relInT (fs : String → ℕ) (store : Bool) {rd : Reader} {r G n
     simp only [decide_eq_true_eq] at ht
     refine ⟨rfl, d + 1, by omega, ?_⟩
     simp only [List.map_cons, List.map_nil, g14, h1, h2, h3]
-  · rw [hc, hal, show (gapBody store).dropLast.filterMap Main.Stmt.allocSz = [] by cases store <;> rfl, callsTot]
+  · intro θ
+    rw [hc, hal, show (gapBody store).dropLast.filterMap Main.Stmt.allocSz = [] by cases store <;> rfl, callsTot]
     simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, List.headD_cons, Nat.add_zero, g14]
     rw [logG_gen_pow (show d < 2 ^ 64 - 1 by omega)]
     by_cases hd1 : d + 1 = G

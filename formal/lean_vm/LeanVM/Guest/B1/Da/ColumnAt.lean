@@ -27,6 +27,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sH
 open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen)
 
+open LeanVM.Guest.B1.Main (RelAtInW relAtInW_of_walk)
+
 @[expose] public section
 
 /-! ## The honest valuation -/
@@ -148,8 +150,9 @@ theorem col_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (store :
     (hgap : ∀ d < N - r, GapStep rd (gen ^ (fp + fs (colName store))) (gen ^ r) (gen ^ d))
     (hlv : Meaning_da_levels lp rd [gen ^ (fp + fs (colName store))] [c0, c1])
     (hct : CellsAt rd (gen ^ t * (gen ^ b * gen ^ b)) [c0, c1]) :
-    RelAtIn coreProgram fs cert rd R (fun _ => False) fp (colTot fs store b r N lp) (colName store)
-      [gen ^ b, gen ^ r, gen ^ N, gen ^ (N - r), gen ^ lp, gen ^ p, gen ^ t, gen ^ q, gen ^ h, gen ^ c] [] := by
+    RelAtInW fs cert wId rd R (fun _ => False) fp (colTot fs store b r N lp) (colName store)
+      [gen ^ b, gen ^ r, gen ^ N, gen ^ (N - r), gen ^ lp, gen ^ p, gen ^ t, gen ^ q, gen ^ h, gen ^ c] []
+      fun θ => colTot θ store b r N lp := by
   set nodeP := fp + fs (colName store)
   set b0 := nodeP + 4 * N
   set lvP := b0 + fs "da_vector_dispatch" + cert (vxName (decide (b = 127))) (.n 4)
@@ -160,7 +163,7 @@ theorem col_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (store :
   -- the body holds
   have hdisp : Meaning_da_vector_dispatch rd [gen ^ b, h0, h1, gen ^ c] [o0, o1, gen ^ lvP] :=
     (da_vector_dispatch_iff rd _ _).mp
-      (vd_relAtIn fs cert (D := fun _ => False) hb rfl rfl hch hRc b0 (fun _ h => h.elim) rd hcv hcl hws).relAt.rel
+      (vd_relAtIn fs cert (D := fun _ => False) hb rfl rfl hch hRc b0 (fun _ h => h.elim) rd hcv hcl hws).toRelAtIn.relAt.rel
   have hrowL : LoopTo (gen ^ r) fun j => RowCell store rd (gen ^ lvP) (gen ^ q) (gen ^ b) (gen ^ nodeP) (gen ^ p)
       (gen ^ j) := loopTo_all' hr1 hr33 hrows
   have hgapL : gen ^ (N - r) ≠ 1 → LoopTo (gen ^ (N - r)) fun j => GapStep rd (gen ^ nodeP) (gen ^ r) (gen ^ j) :=
@@ -211,18 +214,20 @@ theorem col_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (store :
   -- the callees
   have hrowRel : coreProgram.Rel rd (rowName store) [gen ^ 0, gen ^ r, gen ^ lvP, gen ^ q, gen ^ b, gen ^ nodeP, gen ^ p] [] := by
     rw [pow_zero]; exact (row_loop_meaning store rd _ _ _ _ _ _).mpr hrowL
-  have kid2 := relAtIn_of_relInT_pure cert (row_pure store) (by simp)
+  have kid2 := relAtInW_of_relInTW_pure fs cert (row_pure store) (by simp)
     (rowLoop_relInT fs store (R := RowR store r lvP q b nodeP p a pd) hr33 hrb hpb (fun _ h => h) hr1 hrowRel)
     (b0 + (fs "da_vector_dispatch" + fs (vxName (decide (b = 127)))))
   rw [pow_zero] at kid2
   have hlvRel : coreProgram.Rel rd (dlNames.getD lp "") [gen ^ nodeP] [c0, c1] := (da_levels_iff lp hlp _ _).mpr hlv
-  have kid4 := relAtIn_of_relInT_pure cert (lv_pure hlp) (by simp [lvSet])
+  have kid4 := relAtInW_of_relInTW_pure fs cert (lv_pure hlp) (by simp [lvSet])
     (levels_relInT fs hlp (R := TreeR nodeP lp) (fun _ h => h) hlvRel)
   rw [← dlNames_getElem! (by omega)] at kid4
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd) coreProgram_wf
+  have h := relAtInW_of_walk (fs := fs) (cert := cert) (w := wId) (σ := σ) (rd := rd)
     (R := R) (D := fun _ => False) (Dk := fun _ => False) (fp := fp)
     (N := fs "da_vector_dispatch" + fs (vxName (decide (b = 127))) + (rowTot fs store r 0 +
       ((if N - r = 0 then fs (gapName store) else gapTot fs store (N - r) 0) + (dlTot fs lp + 0))))
+    (bws := [fun θ => θ "da_vector_dispatch" + θ (vxName (decide (b = 127))), fun θ => rowTot θ store r 0,
+      fun θ => gapTot θ store (N - r) 0, fun θ => dlTot θ lp])
     (find_col store) (Or.inl (by cases store <;> decide +kernel)) rfl hw rfl hev
     (by
       rw [hal, hes, allocDsts_append, show allocDsts (.call dlNames[lp]! [.n 23] [.n 30, .n 31] ::
@@ -238,7 +243,14 @@ theorem col_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (store :
         show colPost.filterMap Main.Stmt.addrS = [] from rfl] at hq
       simp at hq)
     ?_ ?_ (fun _ h => h.elim)
-  · rwa [hal, List.sum_cons, List.sum_nil, Nat.add_zero] at h
+  · rw [hal, List.sum_cons, List.sum_nil, Nat.add_zero] at h
+    refine h.wmono fun θ => ?_
+    have hg : (if N - r = 0 then θ (gapName store) else gapTot θ store (N - r) 0) = gapTot θ store (N - r) 0 := by
+      split_ifs with h0
+      · simp [gapTot, h0]
+      · rfl
+    simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, colTot, hg, wId]
+    omega
   · rw [hcalls, hal, List.sum_cons, List.sum_nil, Nat.add_zero]
     refine ⟨_, _, R, fun i => lvP ≤ i ∧ i < lvP + 256, rfl, fun i hi => Or.inl (Or.inl hi),
       vd_relAtIn fs cert hb rfl rfl hch hRc b0 (fun _ h => h) rd hcv hcl hws, ?_⟩
@@ -265,7 +277,7 @@ theorem col_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (store :
       have hgRel : coreProgram.Rel rd (gapName store) [gen ^ 0, gen ^ (N - r), gen ^ nodeP, gen ^ r] [] := by
         rw [pow_zero]
         exact (gap_loop_meaning store rd _ _ _).mpr (hgapL fun he => hG ((gen_pow_eq_one_iff (by omega)).mp he))
-      have kid3 := relAtIn_of_relInT_pure cert (gap_pure store) (by simp)
+      have kid3 := relAtInW_of_relInTW_pure fs cert (gap_pure store) (by simp)
         (gapLoop_relInT fs store (R := GapR r (N - r) nodeP) (by omega) (fun _ h => h) hGp hgRel)
       rw [pow_zero] at kid3
       refine ⟨_, _, GapR r (N - r) nodeP, fun _ => False, rfl, fun i hi => ?_, ?_, ?_⟩

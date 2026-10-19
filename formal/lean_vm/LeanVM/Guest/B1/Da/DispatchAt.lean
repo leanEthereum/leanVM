@@ -22,6 +22,7 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen)
+open LeanVM.Guest.B1.Main (RelAtInW relAtInW_of_walk)
 
 @[expose] public section
 
@@ -55,9 +56,10 @@ theorem vd_relAtIn' (fs : String → ℕ) (cert : String → V → ℕ) {xb h0 h
     (rd : Reader) (hcv : CellsAt rd (ctr * (xb * xb * xb)) cv) (hcl : cv.length = 4)
     (hws : ∀ k < 256, ∀ v, rd (gpow (fp + fs "da_vector_dispatch" + cert (vxName (final)) (.n 4) + k)) =
       some v → v = ws.getD k 0) :
-    RelAtIn coreProgram fs cert rd R D fp (fs "da_vector_dispatch" + fs (vxName (final)))
+    RelAtInW fs cert wId rd R D fp (fs "da_vector_dispatch" + fs (vxName (final)))
       "da_vector_dispatch" [xb, h0, h1, ctr]
-      [o0, o1, gen ^ (fp + fs "da_vector_dispatch" + cert (vxName (final)) (.n 4))] := by
+      [o0, o1, gen ^ (fp + fs "da_vector_dispatch" + cert (vxName (final)) (.n 4))]
+      fun θ => θ "da_vector_dispatch" + θ (vxName final) := by
   set wp := gen ^ (fp + fs "da_vector_dispatch" + cert (vxName final) (.n 4))
   let σ : Val := listVal [xb, h0, h1, ctr, word 9223372036854775983 0 0, xb + word 9223372036854775983 0 0,
     o0, o1, wp, o0, o1, wp, o0, o1, wp, o0, o1, wp]
@@ -66,10 +68,10 @@ theorem vd_relAtIn' (fs : String → ℕ) (cert : String → V → ℕ) {xb h0 h
     (D := fun i => fp + fs "da_vector_dispatch" + cert (vxName final) (.n 4) ≤ i ∧
       i < fp + fs "da_vector_dispatch" + cert (vxName final) (.n 4) + 256)
     (fun i h => by rw [Nat.add_zero]; exact h) rd hcv hcl (by rw [Nat.add_zero]; exact hws)
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd) coreProgram_wf
+  have h := relAtInW_of_walk (fs := fs) (cert := cert) (w := wId) (σ := σ) (rd := rd)
     (R := R) (D := D) (Dk := fun i => fp + fs "da_vector_dispatch" + cert (vxName final) (.n 4) ≤ i ∧
       i < fp + fs "da_vector_dispatch" + cert (vxName final) (.n 4) + 256)
-    (fp := fp) (N := fs (vxName final)) find_vd (Or.inl (by decide +kernel)) rfl (vd_walk σ final h5)
+    (fp := fp) (N := fs (vxName final)) (bws := [fun θ => θ (vxName final)]) find_vd (Or.inl (by decide +kernel)) rfl (vd_walk σ final h5)
     rfl
     (fun e he => by
       have hk : IsInK (σ (.n 5)) := (isInK_add_left (by rw [hxb]; exact isInK_gen_pow b)).mpr
@@ -93,7 +95,8 @@ theorem vd_relAtIn' (fs : String → ℕ) (cert : String → V → ℕ) {xb h0 h
     (fun A hA => by cases final <;> simp [vdEs, loadAddrs, Ev.loadAddr?] at hA)
     (fun i hi => Or.inr (hD i hi))
   have e : allocs σ (vdEs final) = [] := by cases final <;> rfl
-  rwa [e, List.sum_nil, Nat.add_zero] at h
+  simp only [e, List.sum_nil, Nat.add_zero, List.map_cons, List.map_nil, List.sum_cons] at h
+  exact h
 
 /-- **`da_vector_dispatch` at `fp`**: the cell at `fp + fs "da_vector_dispatch"`, as
 `vx_relAtIn`. -/
@@ -106,9 +109,10 @@ theorem vd_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {xb h0 h1
     (rd : Reader) (hcv : CellsAt rd (ctr * (xb * xb * xb)) cv) (hcl : cv.length = 4)
     (hws : ∀ k < 256, ∀ v, rd (gpow (fp + fs "da_vector_dispatch" + cert (vxName (decide (b = 127))) (.n 4) + k)) =
       some v → v = ws.getD k 0) :
-    RelAtIn coreProgram fs cert rd R D fp (fs "da_vector_dispatch" + fs (vxName (decide (b = 127))))
+    RelAtInW fs cert wId rd R D fp (fs "da_vector_dispatch" + fs (vxName (decide (b = 127))))
       "da_vector_dispatch" [xb, h0, h1, ctr]
-      [o0, o1, gen ^ (fp + fs "da_vector_dispatch" + cert (vxName (decide (b = 127))) (.n 4))] :=
+      [o0, o1, gen ^ (fp + fs "da_vector_dispatch" + cert (vxName (decide (b = 127))) (.n 4))]
+      fun θ => θ "da_vector_dispatch" + θ (vxName (decide (b = 127))) :=
   vd_relAtIn' fs cert (decide (b = 127)) (by
     rw [e_add_eq_zero_iff, word_g127, hxb, decide_eq_true_iff]
     exact ⟨fun h => gen_pow_inj' (by omega) (by omega) h, fun h => by rw [h]⟩) hxb hctr hch hR fp hD rd hcv hcl hws

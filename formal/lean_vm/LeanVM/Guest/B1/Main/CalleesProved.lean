@@ -89,6 +89,7 @@ def calleeBd (fs : String → ℕ) {cert : String → V → ℕ} {bytecode : Lis
   cl := Digest.cldBound fs H.B86 H.Bct H.Bsl6
   ccl := Digest.ccldBound fs (fs "child_claims_window" + H.Bsl) H.Bsl6
   daVerify := Digest.dvTot fs
+  daVerifyW := fun θ r => Digest.dvTot θ r
   vs := vsBound fs (calleeVsB fs H)
 
 /-- A bound that holds whenever a memory holds the caller's words. -/
@@ -162,8 +163,8 @@ theorem calleesAt_proved (fs : String → ℕ) (cert : String → V → ℕ) {by
     Digest.ccld_completeRelAtB fs cert (by norm_num) off cs H.Bsl H.Bsl6 H.sl11 H.sl6 args rets Lin
       fun rd h1 h2 => cp_ccl (hpre rd h1 h2)
   da_verify := fun wt root vd hw args rets Lin hpre =>
-    (Digest.da_verify_completeRelAtB fs cert (by norm_num) H.dvc20 H.dvc4 wt root vd hw args rets Lin
-      fun rd h1 h2 => cp_dv (hpre rd h1 h2))
+    Digest.da_verify_completeRelAtW fs cert (by norm_num) H.dvc20 H.dvc4 wt root vd hw args rets Lin
+      fun rd h1 h2 => cp_dv (hpre rd h1 h2)
   verify_sub := fun D hD lpA sqA outA =>
     VerifySub.verify_sub_completeAtB (bytecode := bytecode) (CapOk := CapAgrees) (Bs := calleeVsB fs H)
       (by norm_num) (VerifySub.verify_bus_gkr_completeAtB fs cert (by norm_num)) H.tab
