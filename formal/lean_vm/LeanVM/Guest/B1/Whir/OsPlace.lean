@@ -59,7 +59,7 @@ theorem os_kidsFromIn_rmono {rd : Reader} {σ : Val} {R R' : ℕ → Prop} (hR :
   | _ :: cs, _, _, _, _, ⟨m, n', Rk, Dk, hn, hRk, hc, hk⟩ =>
     ⟨m, n', Rk, Dk, hn, fun i hi => (hRk i hi).imp_left (hR i), hc, os_kidsFromIn_rmono hR cs _ _ _ _ hk⟩
 
-private theorem os_take_getD_drop {α : Type} : ∀ (l : List α) (j : ℕ) (d : α), j < l.length →
+theorem os_take_getD_drop {α : Type} : ∀ (l : List α) (j : ℕ) (d : α), j < l.length →
     l = l.take j ++ l.getD j d :: l.drop (j + 1)
   | [], _, _, h => absurd h (by simp)
   | a :: l, 0, _, _ => rfl
@@ -79,7 +79,7 @@ theorem os_length_bases : ∀ (b : ℕ) (sizes : List ℕ), (bases b sizes).leng
   | _, [] => rfl
   | b, _ :: sizes => by simp [bases, os_length_bases _ sizes]
 
-private theorem os_bufL_getD {b : ℕ} {sizes : List ℕ} {own : List (List E)} {j : ℕ}
+theorem os_bufL_getD {b : ℕ} {sizes : List ℕ} {own : List (List E)} {j : ℕ}
     (hown : List.Forall₂ (fun c s => c.length ≤ s) own sizes) (hj : j < sizes.length) :
     (bufL b sizes own).getD j default = ((bases b sizes).getD j 0, own.getD j []) := by
   have hl1 : (bases b sizes).length = sizes.length := os_length_bases b sizes
