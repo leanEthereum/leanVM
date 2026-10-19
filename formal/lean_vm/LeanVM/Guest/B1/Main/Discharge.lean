@@ -20,6 +20,8 @@ public import LeanVM.Guest.B1.Tables.TCtx
 public import LeanVM.Guest.B1.Sig.Sphincs
 public import LeanVM.Guest.B1.Sig.SphincsData
 public import LeanVM.Guest.B1.Da.Verify
+public import LeanVM.Guest.B1.Tables.VerifyTablesSound
+public import LeanVM.Guest.B1.Whir.Stacked
 
 /-!
 # `main`'s callees, discharged
@@ -28,10 +30,11 @@ Each field of `Callees` is the owning group's lemma, restated: group 3's `Meanin
 scratch tables and canonicity dropped and `da_verify_sound`, group 2's `verify_lean_xmss_sound` and
 `verify_sig_lean_sphincs_sound` read through the claim's cells, group 6's `verify_sub_sound` with
 group 5's placement (`PCtx`, `hypKappa`, `soundPlace`), `verify_bus_gkr_sound`,
-`verify_flock_sound` and `check_opening_terminal_sound`. What is not proved yet is a field of
-`CalleesPending`: `verify_tables` (`SoundTables` with the terminal's `TCtx`) and `open_stacked`
-(`SoundOpen`). `callees_all` gives `Callees` on every memory `MemOk` admits, the form
-`End.B1Sound.callees` takes.
+`verify_flock_sound` and `check_opening_terminal_sound`. `CalleesPending` holds the last two,
+`verify_tables` (`SoundTables` with the terminal's `TCtx`) and `open_stacked` (`SoundOpen`);
+`callees_all` gives `Callees` on every memory `MemOk` admits from them, the form
+`End.B1Sound.callees` takes, and `callees_proved` discharges them (group 5's
+`verify_tables_sound`, group 4's `soundOpen`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -206,7 +209,7 @@ theorem verify_sub_callee {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
       htab hfl (soundPlace h32 L) (hypKappa _) hop hterm ht h
   exact ⟨pi, iv, c, π, hpi, hs, hsh, hr, hv⟩
 
-/-- **What `main`'s callees still rest on**: `verify_sub`'s callees `verify_tables` (with the
+/-- **What `main`'s callees rest on last**: `verify_sub`'s callees `verify_tables` (with the
 terminal's context `TCtx`, group 5a) and `open_stacked` (group 4), on every memory `MemOk`
 admits. -/
 structure CalleesPending (bytecode : List K) : Prop where
@@ -220,6 +223,15 @@ theorem callees_all {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
     (verify_sub_callee hb hm
       (by obtain ⟨κ, -, h32, L, rfl⟩ := hm; exact VerifySub.verify_bus_gkr_sound h32 L)
       (P.tables rd hm) (verify_flock_sound rd) (P.opening rd hm) (check_opening_terminal_sound rd))
+
+/-- **`main`'s callees on every memory**, nothing assumed (`End.B1Sound.callees`). -/
+theorem callees_proved {bytecode : List K} (hb : bytecode.length = 2 ^ 22) :
+    ∀ rd, MemOk rd → Callees bytecode rd :=
+  callees_all hb
+    { tables := fun rd hm => by
+        obtain ⟨κ, -, h32, L, rfl⟩ := hm
+        exact VerifySub.verify_tables_sound h32 L hb
+      opening := fun rd _ => soundOpen rd }
 
 end
 end LeanVM.Guest.B1.Main
