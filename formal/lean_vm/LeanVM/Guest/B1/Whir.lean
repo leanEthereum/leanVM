@@ -12,5 +12,6 @@ public import LeanVM.Guest.B1.Whir.Stacked
 public import LeanVM.Guest.B1.Whir.CapAgrees
 public import LeanVM.Guest.B1.Whir.CapAt
 public import LeanVM.Guest.B1.Whir.OsCallees
+public import LeanVM.Guest.B1.Whir.OpenLen
 public import LeanVM.Guest.B1.Whir.QueriesAtSpec0
 public import LeanVM.Guest.B1.Whir.QueriesAtSpec1
