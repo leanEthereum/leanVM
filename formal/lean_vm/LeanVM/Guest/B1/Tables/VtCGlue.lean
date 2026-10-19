@@ -283,5 +283,11 @@ theorem vt_glue2_of {rd : Reader} {σ : Val} {cur fpw pool cplen zeta idxc bim p
   · rw [h]
     exact ⟨e25, F1.1, F2.1, F3.1, F3.2⟩
 
+/-- **The memory block completes.** -/
+theorem vt_glue2 : VtGlue2 :=
+  fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ h2 h5 h11 h13 h14 h1817 h1852 h1893 hcv hl0 hlp hz hidx hpI hbim hfpw
+    hcur hpool hcpl hl32 =>
+  vt_glue2_of h2 h5 h11 h13 h14 h1817 h1852 h1893 hcv hl0 hlp hz hidx hpI hbim hfpw hcur hpool hcpl hl32
+
 end
 end LeanVM.Guest.B1.VerifySub
