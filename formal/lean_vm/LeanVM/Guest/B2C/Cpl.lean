@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Data.CplParts
+public import LeanVM.Guest.Data.CplArms
 public import LeanVM.Guest.B2C.Count
 public import LeanVM.Guest.ExecC
 
@@ -327,6 +328,8 @@ structure CX where
   nv : ℕ
   /-- Where the part stops inside a segment: the segment's start and the items passed. -/
   stop : Option (ℕ × ℕ)
+  /-- The `match`es whose arms are counted separately, by selector, with their arms' counts. -/
+  acs : List (ℕ × List (List ℕ))
 
 /-- A position of the walk: a segment and its items not yet passed, the facts, the callee frames
 in flight `(cell, its cells)`, the table reads `(target, selector, base)`, the next frame of a
@@ -622,6 +625,28 @@ def nvVals : List V → ℕ → ℕ
   | v :: vs, s => bif v.path.isEmpty && Nat.beq v.tag 0 then natSeq (setK s v.idx) fun s ↦ nvVals vs s
     else nvVals vs s
 
+/-- The arms' counts of the `match` on `x`, if counted separately. -/
+def armKeyD (acs : List (ℕ × List (List ℕ))) (x : ℕ) : Option (List Cnt) :=
+  (acs.find? fun p ↦ Nat.beq p.1 x).map fun p ↦ p.2.map Cnt.ofList
+
+/-- Arm `k` within its count, if counted separately. -/
+def armChkK (key : Option (List Cnt)) (k : ℕ) (c : Cnt) : Bool :=
+  match key with
+  | some cs => c.le (nth cs k Cnt.zero)
+  | none => true
+
+/-- The position the arms start from: the counts restarted if the arms are counted separately. -/
+def armSt (key : Option (List Cnt)) (se : CW) : CW :=
+  match key with
+  | some _ => { se with cnt := Cnt.zero }
+  | none => se
+
+/-- The counts after the arms: those at the jump if counted separately, else the arms' most. -/
+def armCnt (key : Option (List Cnt)) (se : CW) (c : Cnt) : Cnt :=
+  match key with
+  | some _ => se.cnt
+  | none => c
+
 /-- A selector the path names: a parameter, a value of one of the body's atoms, or of one of the
 atoms walked in the enclosing blocks. -/
 def selOk (st : CW) (v : V) : Bool := Nat.blt v.idx X.nargs || bitK X.nv v.idx || bitK st.nm v.idx
@@ -728,16 +753,19 @@ noncomputable def cw : List Core.Stmt → CW → RC
             armsOk X.G X.entry base 0 (t0 :: ts) then
           match endAtC X { st with tg := (t, o1, base) :: st.tg } with
           | .ok se =>
-            match segAtC X t0 se with
+            match segAtC X t0 (armSt (armKeyD X.acs v.idx) se) with
             | some s0 =>
               (fileB X.loc X.fs a0 se.book).seq fun B0 ↦
               match cw a0 { s0 with book := B0 } with
               | .join J c0 u0 =>
-                match cwArms J se as ts c0 u0 with
-                | some (c, u) => match segAtC X J se with
-                  | some sj => c.seq fun c ↦ natSeq u fun u ↦ cw ss { sj with cnt := c, uq := u }
-                  | none => .fail 20
-                | none => .fail 21
+                bif armChkK (armKeyD X.acs v.idx) 0 c0 then
+                  match cwArms J (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 with
+                  | some (c, u) => match segAtC X J se with
+                    | some sj => (armCnt (armKeyD X.acs v.idx) se c).seq fun c ↦ natSeq u fun u ↦
+                        cw ss { sj with cnt := c, uq := u }
+                    | none => .fail 20
+                  | none => .fail 21
+                else .fail 24
               | .fail e => .fail e
               | _ => .fail 22
             | none => .fail 23
@@ -839,19 +867,19 @@ noncomputable def cw : List Core.Stmt → CW → RC
 
 /-- The other arms of a `match`, each from its segment, ending at the join `J`: the most counts
 of any. -/
-noncomputable def cwArms (J : ℕ) (se : CW) :
-    List (List Core.Stmt) → List ℕ → Cnt → ℕ → Option (Cnt × ℕ)
-  | [], [], c, u => some (c, u)
-  | a :: as, t :: ts, c, u =>
+noncomputable def cwArms (J : ℕ) (se : CW) (key : Option (List Cnt)) :
+    List (List Core.Stmt) → List ℕ → Cnt → ℕ → ℕ → Option (Cnt × ℕ)
+  | [], [], c, u, _ => some (c, u)
+  | a :: as, t :: ts, c, u, k =>
     match segAtC X t se with
     | some s => (fileB X.loc X.fs a se.book).seq fun B ↦
       match cw a { s with book := B } with
-      | .join J' c' u' => bif Nat.beq J J' then (Cnt.max c c').seq fun c ↦ natSeq (Nat.lor u u') fun u ↦
-          cwArms J se as ts c u
+      | .join J' c' u' => bif Nat.beq J J' && armChkK key k c' then
+          (Cnt.max c c').seq fun c ↦ natSeq (Nat.lor u u') fun u ↦ cwArms J se key as ts c u (k + 1)
           else none
       | _ => none
     | none => none
-  | _, _, _, _ => none
+  | _, _, _, _, _ => none
 end
 
 end Walk
@@ -914,7 +942,8 @@ noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie
     (stop : Option (ℕ × ℕ)) : CX :=
   ⟨glob, (certOf j).facts, (fnOf j).entry, idx, loc, fsN j, stat, j == 1, (coreOf j).name,
     (coreOf j).params.length, (certOf j).nret, (certOf j).callees, (plumbOf j).sites,
-    (plumbOf j).arms, (certOf j).facts.env.map (·.1), Cnt.ofList (plumbOf j).pmax, nv, stop⟩
+    (plumbOf j).arms, (certOf j).facts.env.map (·.1), Cnt.ofList (plumbOf j).pmax, nv, stop,
+    nth Data.cplArms j []⟩
 
 /-- The renumbered values a block's own atoms name. -/
 def nvOf : List Core.Stmt → ℕ → ℕ
@@ -989,6 +1018,39 @@ noncomputable def cplWin (j i k : ℕ) : Bool :=
 noncomputable def CplOk (j : ℕ) : Prop :=
   ∀ i ≤ (certOf j).cuts.length, ∀ k < nParts j i, cplWin j i k = true
 
+/-! ## The counts of a path
+
+A `match` whose arms are counted separately (`Data.cplArms`) adds the count of the arm its
+selector picks; the rest of a path is counted by the most any path runs (`pathMax`). -/
+
+mutual
+/-- The separately counted arms a statement's path passes, under `σ`. -/
+noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Core.Stmt → Opcode → ℕ
+  | .ite c z n => if σ c = 0 then costW acs σ z else costW acs σ n
+  | .match_ x arms => costArms acs σ x (armKeyD acs x.idx) 0 arms
+  | _ => 0
+
+/-- The separately counted arms a block's path passes, under `σ`. -/
+noncomputable def costW (acs : List (ℕ × List (List ℕ))) (σ : Val) : List Core.Stmt → Opcode → ℕ
+  | [] => 0
+  | s :: ss => cost1 acs σ s + costW acs σ ss
+
+/-- The arm `σ` picks, from arm `k` on (`walkArms`), its count if counted separately. -/
+noncomputable def costArms (acs : List (ℕ × List (List ℕ))) (σ : Val) (x : V) (key : Option (List Cnt)) :
+    ℕ → List (List Core.Stmt) → Opcode → ℕ
+  | _, [] => 0
+  | k, a :: as => if σ x = ofK (gpow k) then
+      (match key with
+        | some cs => (nth cs k Cnt.zero).get
+        | none => 0) + costW acs σ a
+    else costArms acs σ x key (k + 1) as
+end
+
+/-- **The count of function `j`'s path under `σ`**: the most a path runs, and the separately
+counted arms it passes. -/
+noncomputable def pathCount (j : ℕ) (σ : Val) (op : Opcode) : ℕ :=
+  pathMax (coreOf j).name op + costW (nth Data.cplArms j []) σ (coreOf j).body op
+
 /-- **What the completeness check gives of function `j`** (`cpl_run`): on a memory holding the
 jump table, from an instance's frame holding what the check reads (`FrameHolds`) and its callees'
 runs (`KidsRun`), a counted run from its entry to its return registers (`main`: the final ones),
@@ -1002,7 +1064,7 @@ def CplRun (j : ℕ) : Prop :=
     FrameHolds L j fp σ es vs kfps hdr → ∀ ck : List (Opcode → ℕ), KidsRun L σ es kfps ck →
     ∃ (r : Regs K) (c : Opcode → ℕ), (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
       RunC guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
-      (∀ op, c op ≤ pathMax (coreOf j).name op + (ck.map (· op)).sum) ∧
+      (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
       ∀ k (hk : k < vs.length),
         L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])
 

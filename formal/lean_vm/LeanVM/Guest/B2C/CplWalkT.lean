@@ -156,23 +156,47 @@ theorem tbl_noRetArms : ∀ {arms : List (List Stmt)}, Stmt.noRetArms arms = tru
     | zero => exact h.1
     | succ k => exact tbl_noRetArms h.2 k (by simpa using hk)
 
-/-- Every arm of a `match` the walk accepts ends at the join, within the most counts. -/
-theorem tbl_arm {X : CX} {J : ℕ} {se : CW} {a0 : List Stmt} {as : List (List Stmt)} {t0 : ℕ}
-    {ts : List ℕ} {s0 : CW} {c0 : Cnt} {u0 : ℕ} {c : Cnt} {u : ℕ} (hs0 : segAtC X t0 se = some s0)
+/-- Every arm of a `match` the walk accepts ends at the join, within the most counts and, if
+counted separately, its own. -/
+theorem tbl_arm {X : CX} {J : ℕ} {se : CW} {key : Option (List Cnt)} {a0 : List Stmt}
+    {as : List (List Stmt)} {t0 : ℕ} {ts : List ℕ} {s0 : CW} {c0 : Cnt} {u0 : ℕ} {c : Cnt} {u : ℕ}
+    (hs0 : segAtC X t0 se = some s0)
     (h0 : cw X a0 { s0 with book := fileB X.loc X.fs a0 se.book } = .join J c0 u0)
-    (ha : cwArms X J se as ts c0 u0 = some (c, u)) (hl : ts.length = as.length) :
+    (hk0 : armChkK key 0 c0 = true)
+    (ha : cwArms X J se key as ts c0 u0 1 = some (c, u)) (hl : ts.length = as.length) :
     ∀ k (hk : k < (a0 :: as).length), ∃ (hk' : k < (t0 :: ts).length) (s : CW) (ck : Cnt) (uk : ℕ),
       segAtC X (t0 :: ts)[k] se = some s ∧
       cw X (a0 :: as)[k] { s with book := fileB X.loc X.fs (a0 :: as)[k] se.book } = .join J ck uk ∧
-      ∀ op, ck.get op ≤ c.get op := by
+      (∀ op, ck.get op ≤ c.get op) ∧ armChkK key k ck = true := by
   obtain ⟨-, hc, hks⟩ := cwArms_spec ha
   intro k hk
   cases k with
-  | zero => exact ⟨by simp, s0, c0, u0, hs0, h0, hc⟩
+  | zero => exact ⟨by simp, s0, c0, u0, hs0, h0, hc, hk0⟩
   | succ k =>
     have hk1 : k < as.length := by simpa using hk
-    obtain ⟨s, ck, uk, h1, h2, h3⟩ := hks k hk1 (hl ▸ hk1)
-    exact ⟨by simp; omega, s, ck, uk, h1, h2, h3⟩
+    obtain ⟨s, ck, uk, h1, h2, h3, h4⟩ := hks k hk1 (hl ▸ hk1)
+    exact ⟨by simp; omega, s, ck, uk, h1, h2, h3, by rw [Nat.add_comm]; exact h4⟩
+
+/-- The arm a `match` takes, and the separately counted arms its path passes. -/
+theorem tbl_walkArmsC {σ : Val} {acs : List (ℕ × List (List ℕ))} {key : Option (List Cnt)} {x : V} :
+    ∀ (arms : List (List Stmt)) (i : ℕ) {e : List Ev}, walkArms σ x i arms = .fall e →
+      ∃ k, ∃ hk : k < arms.length, σ x = ofK (gpow (i + k)) ∧ walk σ arms[k] = .fall e ∧
+        costArms acs σ x key i arms = (match key with
+          | some cs => (nth cs (i + k) Cnt.zero).get
+          | none => 0) + costW acs σ arms[k]
+  | [], _, _, h => by simp [walkArms] at h
+  | a :: as, i, e, h => by
+    unfold walkArms at h
+    split_ifs at h with hx
+    · refine ⟨0, by simp, by simpa using hx, h, ?_⟩
+      simp only [costArms, hx, ↓reduceIte, List.getElem_cons_zero]
+      rfl
+    · obtain ⟨k, hk, h1, h2, h3⟩ := tbl_walkArmsC as (i + 1) h
+      refine ⟨k + 1, by simpa using hk, by rw [show i + (k + 1) = i + 1 + k by omega]; exact h1, ?_, ?_⟩
+      · rw [List.getElem_cons_succ]
+        exact h2
+      · simp only [costArms, hx, ↓reduceIte, List.getElem_cons_succ]
+        rw [h3, show i + 1 + k = i + (k + 1) by omega]
 
 section Walk
 
@@ -183,10 +207,11 @@ variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs
 /-- Entering the join `J` with counts `c`: the run is at its segment. -/
 theorem tbl_segJ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {J : ℕ} {se sj : CW}
     (h : segAtC X J se = some sj) (hok : CWOk L fp X se) (he : EnvAt L fp X wJ wenv J) {W0 : Regs K}
-    {n : ℕ} {c : Cnt} (u : ℕ) {cr : Opcode → ℕ} (hr : RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr)
-    (hc : ∀ op, cr op ≤ c.get op + ksum ck n op)
+    {n : ℕ} {xc : Opcode → ℕ} {c : Cnt} (u : ℕ) {cr : Opcode → ℕ}
+    (hr : RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr)
+    (hc : ∀ op, cr op ≤ c.get op + xc op + ksum ck n op)
     (hnm : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
-    PosZ H { sj with cnt := c, uq := u } W0 n := by
+    PosZ H { sj with cnt := c, uq := u } W0 n xc := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
   have h' : segAtC X J { se with cnt := c, uq := u } =
       some ⟨s, s.items, se.book, se.fr, se.tg, se.nx, c, u, some J, se.nm⟩ := by
@@ -197,7 +222,7 @@ theorem tbl_segJ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {J : ℕ} {
 
 theorem walk_matchNilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) (ss : List Stmt)
     (st : CW) : WGood H (.match_ v [] :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   simp [cw, RC.ok] at hok
 
 /-- **A `match`**: the run jumps through the table to the arm the path takes, walks it to the
@@ -206,9 +231,10 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
     (as : List (List Stmt)) (ss : List Stmt) (st : CW)
     (iha : ∀ k (hk : k < (a0 :: as).length) st, WGood H (a0 :: as)[k] st)
     (ih : ∀ st, WGood H ss st) : WGood H (.match_ v (a0 :: as) :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   obtain ⟨t, ft, t0, ts, base, se, s0, J, c0, u0, c, u, sj, hk, hsu, htb, hself, hl, hvn, hsel, hin,
-    harm, hao, hse, hs0, h0, ha, hsj, hcw⟩ := cw_match hok
+    harm, hao, hse, hs0, h0, hck0, ha, hsj, hcw⟩ := cw_match hok
+  generalize hkey : armKeyD X.acs v.idx = key at hs0 hck0 ha hcw
   have hnr : Stmt.noRet (.match_ v (a0 :: as)) = true := by
     rcases hshape with h | ⟨h, -, -⟩
     · simp only [Stmt.noRetList, Bool.and_eq_true] at h
@@ -220,8 +246,8 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
     rcases walkArms_noRetC (σ := σ) v (a0 :: as) 0 hnr with h | h
     · exact h
     · exact absurd (show o = .stuck by rw [hw0, h]; rfl) hs
-  obtain ⟨k, hka, hvk, hwk⟩ := tbl_walkArms (a0 :: as) 0 hwa
-  rw [Nat.zero_add] at hvk
+  obtain ⟨k, hka, hvk, hwk, hcost⟩ := tbl_walkArmsC (acs := X.acs) (key := key) (a0 :: as) 0 hwa
+  rw [Nat.zero_add] at hvk hcost
   have hw' : o = (walk σ ss).pre e1 := by rw [hw0, hwa]; rfl
   have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hw', h]; rfl)
   have hes2 : es = ebef ++ e1 ++ ((walk σ ss).evs ++ eaft) := by
@@ -258,7 +284,7 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
       rw [hvk, limb_ofK0, ← gpow_addC, Nat.add_comm k a3]
       exact H.jt _ _ hslot
     · exact hp.ok.tg x hx
-  have hp0 : PosZ H { st with tg := (a2, X.loc.cell v, a3) :: st.tg } W0 (calls ebef).length :=
+  have hp0 : PosZ H { st with tg := (a2, X.loc.cell v, a3) :: st.tg } W0 (calls ebef).length xc :=
     ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, htg1, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
   -- the jump to the arm
   obtain ⟨hseg, hbk, hfr', htg, hnx, -, hreach⟩ := endAtC_reach H hp0 hse
@@ -280,30 +306,62 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
   have hok0 : CWOk L fp X se :=
     ⟨by rw [hseg]; exact hp.ok.env, by rw [hbk]; exact hp.ok.book, by rw [hfr']; exact hp.ok.fr,
       by rw [htg]; exact htg1, by rw [hnx]; exact hp.ok.nx⟩
-  -- the arm
-  obtain ⟨hkt', s, ckk, ukk, hsk, hcwk, hckc⟩ := tbl_arm hs0 h0 ha hl k hka
+  -- the arm, its counts restarted if counted separately
+  have hse'b : (armSt key se).book = se.book := by cases key <;> rfl
+  have hok0' : CWOk L fp X (armSt key se) := by
+    cases key <;> exact ⟨hok0.env, hok0.book, hok0.fr, hok0.tg, hok0.nx⟩
+  have hcnt' : ∀ op, (armSt key se).cnt.get op ≤ se.cnt.get op := by
+    intro op
+    cases key
+    · exact le_rfl
+    · cases op <;> exact Nat.zero_le _
   have hnm0 : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs := by
     rw [endAtC_nm hse]
     exact hp.nm
-  obtain ⟨hps, -⟩ := segAtC_pos H hsk hok0.book hok0.fr hok0.tg hok0.nx henvk hcr hcle hnm0
+  have hnm0' : ∀ n, (armSt key se).nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs := by
+    cases key <;> exact hnm0
+  obtain ⟨hkt', s, ckk, ukk, hsk, hcwk, hckc, hchk⟩ :=
+    tbl_arm hs0 (by rw [hse'b]; exact h0) hck0 ha hl k hka
+  let xa : Opcode → ℕ := fun op ↦ xc op + (se.cnt.get op - (armSt key se).cnt.get op)
+  obtain ⟨hps, -⟩ := segAtC_pos H (xc := xa) (n := (calls ebef).length) hsk hok0'.book hok0'.fr hok0'.tg hok0'.nx henvk hcr
+    (fun op ↦ by have := hcle op; have := hcnt' op; simp only [xa]; omega) hnm0'
   have hatoms : ∀ a, Stmt.atom a ∈ (a0 :: as)[k] → Ev.atom a ∈ es := fun a ha' ↦ by
     rw [hes2]
     exact List.mem_append_left _ (List.mem_append_right _ (atom_on_pathC hwk ha'))
-  have hB := fileB_ok H.frame H.loc H.hev _ se.book hok0.book hatoms
+  have hB := fileB_ok H.frame H.loc H.hev _ (armSt key se).book hok0'.book hatoms
   rw [← H.fs] at hB
-  have hpk : PosZ H { s with book := fileB X.loc X.fs (a0 :: as)[k] se.book } W0 (calls ebef).length :=
+  have hpk : PosZ H { s with book := fileB X.loc X.fs (a0 :: as)[k] (armSt key se).book } W0
+      (calls ebef).length xa :=
     ⟨hps.seg, ⟨hps.ok.env, hB, hps.ok.fr, hps.ok.tg, hps.ok.nx⟩, hps.run, hps.fresh, hps.nm, hps.ix⟩
-  have hokk : (cw X (a0 :: as)[k] { s with book := fileB X.loc X.fs (a0 :: as)[k] se.book }).ok = true := by
+  have hokk : (cw X (a0 :: as)[k]
+      { s with book := fileB X.loc X.fs (a0 :: as)[k] (armSt key se).book }).ok = true := by
     rw [hcwk]
     rfl
-  obtain ⟨hj1, -⟩ := iha k hka _ ebef ((walk σ ss).evs ++ eaft) (.fall e1) W0 [] hwk hes2
+  obtain ⟨hj1, -, -⟩ := iha k hka _ ebef ((walk σ ss).evs ++ eaft) (.fall e1) W0 [] xa hwk hes2
     (fun h ↦ by cases h) (Or.inl (tbl_noRetArms hnr k hka)) hpk hokk
   obtain ⟨es', hfe, hArr⟩ := hj1 J ckk ukk hcwk
   obtain rfl := Out.fall.inj hfe
   obtain ⟨⟨crj, hcrj, hcj⟩, henvJ⟩ := hArr
   -- the join
-  have hp'' := tbl_segJ H hsj hok0 henvJ u hcrj (c := c)
-    (fun op ↦ le_trans (hcj op) (Nat.add_le_add_right (hckc op) _)) hnm0
+  have hc1 : cost1 X.acs σ (.match_ v (a0 :: as)) = costArms X.acs σ v key 0 (a0 :: as) := by
+    rw [← hkey]
+    rfl
+  have hp'' := tbl_segJ H hsj hok0 henvJ u hcrj (c := armCnt key se c) (n := (calls (ebef ++ e1)).length)
+    (xc := xc + cost1 X.acs σ (.match_ v (a0 :: as))) (fun op ↦ by
+      have h1 := hcj op
+      have h2 := hckc op
+      rw [hc1, hcost]
+      simp only [Pi.add_apply, xa] at h1 ⊢
+      cases key with
+      | none =>
+        simp only [armCnt, armSt, Nat.sub_self, Nat.add_zero] at h1 ⊢
+        omega
+      | some cs =>
+        have h3 := Cnt.le_spec hchk op
+        simp only [armCnt, armSt] at h1 ⊢
+        have h4 : ({ se with cnt := Cnt.zero } : CW).cnt.get op = 0 := by cases op <;> rfl
+        rw [h4, Nat.sub_zero] at h1
+        omega) hnm0
   exact walk_step H ih hnr (show walk1 σ (.match_ v (a0 :: as)) = .fall e1 from hwa) hw hes hs
     hshape hp'' hcw hok
 
@@ -312,7 +370,7 @@ at the return point. -/
 theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) (fs : List String)
     (args rets : List V) (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) :
     WGood H (.dispatch v fs args rets :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   obtain ⟨t, q, r, base, sr, hk, -, hvn, hsel, htc, hle, hsu, hsite, -, -, -, hin, hself, haf, hcw⟩ :=
     cw_dispatch hok
   obtain ⟨se, s', hse, hs', rfl⟩ := afterC_ok haf
@@ -373,7 +431,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
       rw [hvk, limb_ofK0, ← gpow_addC, Nat.add_comm k base]
       exact H.jt _ _ hslot
     · exact hp.ok.tg x hx
-  have hp0 : PosZ H { st with tg := (t, X.loc.cell v, base) :: st.tg } W0 n :=
+  have hp0 : PosZ H { st with tg := (t, X.loc.cell v, base) :: st.tg } W0 n xc :=
     ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, htg1, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
   -- the call
   have hp1 := posZ_fr H hp0 hq hfcs
@@ -390,7 +448,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
   have henvR : EnvAt L fp X wJ wenv (r - X.entry) :=
     envAt_of_exit H hp.seg (H.exits _ hp.seg _ (Or.inl rfl)) (by rw [hsu]; simp) henv
   obtain ⟨hps, -⟩ :=
-    segAtC_pos H hs' (by rw [hbk]; exact hp.ok.book) (by rw [hfr']; exact hp1.ok.fr)
+    segAtC_pos H (xc := xc) hs' (by rw [hbk]; exact hp.ok.book) (by rw [hfr']; exact hp1.ok.fr)
       (by rw [htg]; exact htg1) (by rw [hnx]; exact hp.ok.nx) henvR (n := n + 1) hrun2
       (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega)
       (by rw [endAtC_nm hse]; exact hp.nm)

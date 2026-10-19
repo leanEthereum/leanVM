@@ -209,21 +209,22 @@ structure WH (L : MemImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (wJ 
   j1 : 1 ≤ j
   jn : j < nFns
 
-/-- **The run is at the walk's position `st`**, from `W0`, the first `n` callees run. -/
+/-- **The run is at the walk's position `st`**, from `W0`, the first `n` callees run, the
+separately counted arms passed counting `x`. -/
 structure PosZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) (W0 : Regs K)
-    (n : ℕ) : Prop where
+    (n : ℕ) (x : Opcode → ℕ) : Prop where
   seg : st.seg ∈ segs
   ok : CWOk L fp X st
   run : ∃ pre c, pre ++ st.its = st.seg.items ∧ Fall L (gpow fp) pre ∧
     RunC guest L W0 ⟨gpow (X.entry + st.seg.start), gpow fp⟩ c ∧
-    ∀ op, c op + itemOps pre op ≤ st.cnt.get op + ksum ck n op
+    ∀ op, c op + itemOps pre op ≤ st.cnt.get op + x op + ksum ck n op
   fresh : ∀ t, st.fresh = some t → st.seg.start = t ∧ st.its = st.seg.items ∧ getF X.idx t = some st.seg
   nm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs
   ix : getF X.idx st.seg.start = some st.seg
 
 /-- **A selector the check accepts is a value the path names.** -/
 theorem PosZ.sel {H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck} {st : CW} {W0 : Regs K} {n : ℕ}
-    (hp : PosZ H st W0 n) {v : V} (hv : v = V.n v.idx) (hs : selOk X st v = true) :
+    {x : Opcode → ℕ} (hp : PosZ H st W0 n x) {v : V} (hv : v = V.n v.idx) (hs : selOk X st v = true) :
     v ∈ namedOf (coreOf j).params es vs := by
   unfold selOk at hs
   rw [hv]
@@ -241,17 +242,17 @@ def EnvAt (L : MemImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (J 
 /-- **The run arrives at offset `J`**, from `W0`, within the counts `c` and the first `n`
 callees'. -/
 def Arr (L : MemImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (ck : List (Opcode → ℕ))
-    (W0 : Regs K) (J : ℕ) (c : Cnt) (n : ℕ) : Prop :=
-  (∃ cr, RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧ ∀ op, cr op ≤ c.get op + ksum ck n op) ∧
+    (W0 : Regs K) (J : ℕ) (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
+  (∃ cr, RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧ ∀ op, cr op ≤ c.get op + x op + ksum ck n op) ∧
     EnvAt L fp X wJ wenv J
 
 /-- **The run is inside the segment starting at `J`**, its first `m` items passed, within the
 counts `c` and the first `n` callees'. -/
 def ArrMid (L : MemImage κ) (fp : ℕ) (X : CX) (ck : List (Opcode → ℕ)) (W0 : Regs K) (J m : ℕ)
-    (c : Cnt) (n : ℕ) : Prop :=
+    (c : Cnt) (n : ℕ) (x : Opcode → ℕ) : Prop :=
   ∃ s, getF X.idx J = some s ∧ s.start = J ∧ m ≤ s.items.length ∧ EnvHolds L (gpow fp) s.env ∧
     ∃ cr, Fall L (gpow fp) (s.items.take m) ∧ RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧
-      ∀ op, cr op + itemOps (s.items.take m) op ≤ c.get op + ksum ck n op
+      ∀ op, cr op + itemOps (s.items.take m) op ≤ c.get op + x op + ksum ck n op
 
 /-! ## Moves -/
 
@@ -271,10 +272,11 @@ theorem segAtC_eq {t : ℕ} {st sn : CW} (h : segAtC X t st = some sn) :
 theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ} {st sn : CW}
     (h : segAtC X t st = some sn) (hb : BookOk L fp st.book) (hfr : FrOk L fp st.fr)
     (htg : TgOk L fp st.tg) (hnx : NxOk L fp X.fs st.nx) (he : EnvAt L fp X wJ wenv t)
-    {W0 : Regs K} {n : ℕ} {c : Opcode → ℕ} (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
-    (hc : ∀ op, c op ≤ st.cnt.get op + ksum ck n op)
+    {W0 : Regs K} {n : ℕ} {xc : Opcode → ℕ} {c : Opcode → ℕ}
+    (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
+    (hc : ∀ op, c op ≤ st.cnt.get op + xc op + ksum ck n op)
     (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
-    PosZ H sn W0 n ∧ sn.book = st.book ∧ sn.fr = st.fr ∧ sn.tg = st.tg ∧ sn.nx = st.nx ∧
+    PosZ H sn W0 n xc ∧ sn.book = st.book ∧ sn.fr = st.fr ∧ sn.tg = st.tg ∧ sn.nx = st.nx ∧
       sn.cnt = st.cnt ∧ sn.uq = st.uq ∧ sn.seg.start = t := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
   have hmem : s ∈ segs := by
@@ -311,11 +313,11 @@ theorem endAtC_eq {st se : CW} (h : endAtC X st = .ok se) :
 /-- **At the end of its segment the run reaches the segment exit's registers**, its environment
 holding there. -/
 theorem endAtC_reach (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st se : CW} {W0 : Regs K}
-    {n : ℕ} (hp : PosZ H st W0 n) (he : endAtC X st = .ok se) :
+    {n : ℕ} {xc : Opcode → ℕ} (hp : PosZ H st W0 n xc) (he : endAtC X st = .ok se) :
     se.seg = st.seg ∧ se.book = st.book ∧ se.fr = st.fr ∧ se.tg = st.tg ∧ se.nx = st.nx ∧
       se.uq = st.uq ∧
       ∀ r, st.seg.exit.kind.Regs L (gpow fp) X.entry r → ∃ cr, RunC guest L W0 r cr ∧
-        (∀ op, cr op ≤ se.cnt.get op + ksum ck n op) ∧ EnvHolds L (gpow fp) st.seg.exit.env := by
+        (∀ op, cr op ≤ se.cnt.get op + xc op + ksum ck n op) ∧ EnvHolds L (gpow fp) st.seg.exit.env := by
   obtain ⟨c, hpl, rfl⟩ := endAtC_eq he
   refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun r hr ↦ ?_⟩
   obtain ⟨pre2, hpre2, hf2, hc2, -⟩ := passL_sound H.hX hp.ok st.its st.cnt hpl
@@ -363,12 +365,13 @@ theorem brAtC_nm {st st' : CW} {oc od of : ℕ} {x : Exit} (h : brAtC X st = .ok
   rfl
 
 theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : CW} {oc od of : ℕ}
-    {x : Exit} {W0 : Regs K} {n : ℕ} (hp : PosZ H st W0 n) (hb : brAtC X st = .ok (st', oc, od, of, x)) :
+    {x : Exit} {W0 : Regs K} {n : ℕ} {xc : Opcode → ℕ} (hp : PosZ H st W0 n xc)
+    (hb : brAtC X st = .ok (st', oc, od, of, x)) :
     st'.seg = st.seg ∧ st'.book = st.book ∧ st'.fr = st.fr ∧ st'.tg = st.tg ∧ st'.nx = st.nx ∧
       st'.uq = st.uq ∧ st'.fresh = none ∧ x ∈ st.seg.exits ∧ CWOk L fp X st' ∧
-      ((Atom.jump oc od of).Holds L (gpow fp) → rdc L fp oc = some 0 → PosZ H st' W0 n) ∧
+      ((Atom.jump oc od of).Holds L (gpow fp) → rdc L fp oc = some 0 → PosZ H st' W0 n xc) ∧
       (Taken L (gpow fp) oc od of → ∀ r, x.kind.Regs L (gpow fp) X.entry r → ∃ cr,
-        RunC guest L W0 r cr ∧ (∀ op, cr op ≤ st'.cnt.get op + ksum ck n op) ∧
+        RunC guest L W0 r cr ∧ (∀ op, cr op ≤ st'.cnt.get op + xc op + ksum ck n op) ∧
         EnvHolds L (gpow fp) x.env) := by
   obtain ⟨its, c, hpl, rfl⟩ := brAtC_eq hb
   obtain ⟨pre2, hpre2, hf2, hc2, -⟩ := passL_sound H.hX hp.ok st.its st.cnt hpl
@@ -404,27 +407,28 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
 (`main`: the final ones) within the most a path runs and the first `n` callees' counts, its
 returned values at the cells after its parameters. -/
 def FinZ (L : MemImage κ) (j fp : ℕ) (X : CX) (ck : List (Opcode → ℕ)) (W0 : Regs K) (n : ℕ)
-    (vs' : List V) : Prop :=
+    (x : Opcode → ℕ) (vs' : List V) : Prop :=
   (∃ r cr, (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
-    RunC guest L W0 r cr ∧ ∀ op, cr op ≤ X.pmax.get op + ksum ck n op) ∧
+    RunC guest L W0 r cr ∧ ∀ op, cr op ≤ X.pmax.get op + x op + ksum ck n op) ∧
   ∀ k (hk : k < vs'.length), X.loc.cell vs'[k] = 2 + X.nargs + k ∧ 2 ≤ X.loc.cell vs'[k] ∧
     X.loc.cell vs'[k] < X.fs
 
 /-- **What the walk of a block from a position gives**: on a path through the block, from a
 position the run is at, the run arrives where the walk ends, or returns. -/
 def WGood (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (ss : List Stmt) (st : CW) : Prop :=
-  ∀ (ebef eaft : List Ev) (o : Out) (W0 : Regs K) (pre : List Stmt),
+  ∀ (ebef eaft : List Ev) (o : Out) (W0 : Regs K) (pre : List Stmt) (xc : Opcode → ℕ),
     walk σ ss = o → es = ebef ++ o.evs ++ eaft → o ≠ .stuck →
     (Stmt.noRetList ss = true ∨ (lastOkC ss = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ ss)) →
-    PosZ H st W0 (calls ebef).length → (cw X ss st).ok = true →
+    PosZ H st W0 (calls ebef).length xc → (cw X ss st).ok = true →
     (∀ J c u, cw X ss st = .join J c u → ∃ es', o = .fall es' ∧
-      Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length) ∧
+      Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length (xc + costW X.acs σ ss)) ∧
     (∀ J m c u, cw X ss st = .mid J m c u → ∃ es', o = .fall es' ∧
-      ArrMid L fp X ck W0 J m c (calls (ebef ++ es')).length) ∧
-    (cw X ss st = .done → ∃ es' vs', o = .ret es' vs' ∧ FinZ L j fp X ck W0 (calls (ebef ++ es')).length vs')
+      ArrMid L fp X ck W0 J m c (calls (ebef ++ es')).length (xc + costW X.acs σ ss)) ∧
+    (cw X ss st = .done → ∃ es' vs', o = .ret es' vs' ∧
+      FinZ L j fp X ck W0 (calls (ebef ++ es')).length (xc + costW X.acs σ ss) vs')
 
 theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) : WGood H [] st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   rw [walk] at hw
   subst hw
   rw [cw_nil] at hok ⊢
@@ -440,7 +444,7 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
         rw [hits] at hpre
         simpa using hpre
       subst this
-      refine ⟨⟨c, hst ▸ hrun, fun op ↦ by simpa [itemOps] using hc op⟩, fun s hs _ ↦ ?_,
+      refine ⟨⟨c, hst ▸ hrun, fun op ↦ by simpa [itemOps, costW] using hc op⟩, fun s hs _ ↦ ?_,
         fun _ hn ↦ by rw [hidx] at hn; cases hn⟩
       rw [hidx] at hs
       obtain rfl := Option.some.inj hs
@@ -483,6 +487,7 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
         exact ⟨hf, hf2⟩
       · rw [ht, itemOps_append, hc2 op]
         have := hc0 op
+        simp only [Pi.add_apply, costW, Pi.zero_apply, Nat.add_zero]
         omega
   · rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, -, -, -, he⟩ | ⟨-, _, _, _, -, -, -, -, -, he⟩ <;>
       rw [he] at hd <;> cases hd
@@ -501,14 +506,17 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
     (hstk : o ≠ .stuck)
     (hshape : Stmt.noRetList (s :: ss) = true ∨
       (lastOkC (s :: ss) = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ s :: ss))
-    (hp'' : PosZ H st'' W0 (calls (ebef ++ e1)).length) (hcw : cw X (s :: ss) st = cw X ss st'')
-    (hok : (cw X (s :: ss) st).ok = true) :
+    {xc : Opcode → ℕ} (hp'' : PosZ H st'' W0 (calls (ebef ++ e1)).length (xc + cost1 X.acs σ s))
+    (hcw : cw X (s :: ss) st = cw X ss st'') (hok : (cw X (s :: ss) st).ok = true) :
     (∀ J c u, cw X (s :: ss) st = .join J c u → ∃ es', o = .fall es' ∧
-      Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length) ∧
+      Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length (xc + costW X.acs σ (s :: ss))) ∧
     (∀ J m c u, cw X (s :: ss) st = .mid J m c u → ∃ es', o = .fall es' ∧
-      ArrMid L fp X ck W0 J m c (calls (ebef ++ es')).length) ∧
+      ArrMid L fp X ck W0 J m c (calls (ebef ++ es')).length (xc + costW X.acs σ (s :: ss))) ∧
     (cw X (s :: ss) st = .done → ∃ es' vs', o = .ret es' vs' ∧
-      FinZ L j fp X ck W0 (calls (ebef ++ es')).length vs') := by
+      FinZ L j fp X ck W0 (calls (ebef ++ es')).length (xc + costW X.acs σ (s :: ss)) vs') := by
+  have ex : xc + costW X.acs σ (s :: ss) = (xc + cost1 X.acs σ s) + costW X.acs σ ss := by
+    rw [costW, add_assoc]
+  rw [ex]
   rw [walk, hw1] at hw
   subst hw
   have hstk' : walk σ ss ≠ .stuck := fun h ↦ hstk (by rw [h]; rfl)
@@ -527,7 +535,7 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
       rw [hb, List.append_assoc]
       rfl
   rw [hcw] at hok ⊢
-  obtain ⟨h1, hm, h2⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) rfl hes' hstk' hshape' hp'' hok
+  obtain ⟨h1, hm, h2⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) _ rfl hes' hstk' hshape' hp'' hok
   refine ⟨fun J c u hj ↦ ?_, fun J m c u hj ↦ ?_, fun hd ↦ ?_⟩
   · obtain ⟨es', he, ha⟩ := h1 J c u hj
     refine ⟨e1 ++ es', by rw [he]; rfl, ?_⟩
@@ -544,7 +552,7 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
 
 theorem walk_atomZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (a : Core.Atom)
     (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) : WGood H (.atom a :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   refine walk_step H ih rfl rfl hw hes hs hshape ?_ (cw_atom a ss st) hok
   have hc : calls (ebef ++ [.atom a]) = calls ebef := by simp [calls, Ev.call?]
   rw [hc]
@@ -573,9 +581,9 @@ theorem argFC_mem {loc : CLoc} : ∀ {o : ℕ} {vs : List V} {p : ℕ × FC}, p 
       exact ⟨k + 1, by simpa using hk, by simp [Nat.add_assoc, Nat.add_comm 1 k]⟩
 
 theorem posZ_fr (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
-    (hp : PosZ H st W0 n) {q : ℕ} {fcs : List (ℕ × FC)} {kfp : ℕ}
+    {xc : Opcode → ℕ} (hp : PosZ H st W0 n xc) {q : ℕ} {fcs : List (ℕ × FC)} {kfp : ℕ}
     (hq : rdc L fp q = some (ofK (gpow kfp))) (hf : ∀ p ∈ fcs, FCHolds L fp kfp p.1 p.2) :
-    PosZ H { st with fr := (q, fcs) :: st.fr } W0 n :=
+    PosZ H { st with fr := (q, fcs) :: st.fr } W0 n xc :=
   ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, fun x hx ↦ by
     rcases List.mem_cons.mp hx with rfl | hx
     · exact ⟨kfp, hq, hf⟩
@@ -679,7 +687,7 @@ theorem walk_pre_evs {e1 : List Ev} {o' : Out} (hst : o' ≠ .stuck) : (o'.pre e
 theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : String)
     (args rets : List V) (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) :
     WGood H (.call f args rets :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   obtain ⟨e, q, r, j', sr, hk, hj, hf, hna, hnr, hle, hsu, hsite, hbit, hin, hself, haf, hcw⟩ :=
     cw_call H.G hok
   obtain ⟨se, s', hse, hs', rfl⟩ := afterC_ok haf
@@ -724,7 +732,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
   have henvR : EnvAt L fp X wJ wenv (r - X.entry) :=
     envAt_of_exit H hp.seg (H.exits _ hp.seg _ (Or.inl rfl)) (by rw [hsu]; simp) henv
   obtain ⟨hps, hbk', hfr', htg', hnx', hcnt', huq', hstart'⟩ :=
-    segAtC_pos H hs' (by rw [hbk]; exact hp.ok.book) (by rw [hfr]; exact hp1.ok.fr)
+    segAtC_pos H (xc := xc) hs' (by rw [hbk]; exact hp.ok.book) (by rw [hfr]; exact hp1.ok.fr)
       (by rw [htg]; exact hp.ok.tg) (by rw [hnx]; exact hp.ok.nx) henvR (n := n + 1) hrun2
       (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega)
       (by rw [endAtC_nm hse]; exact hp.nm)
@@ -758,16 +766,17 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
 /-! ## Branches -/
 
 theorem posZ_book (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
-    (hp : PosZ H st W0 n) {B : BookC} (hB : BookOk L fp B) : PosZ H { st with book := B } W0 n :=
+    {xc : Opcode → ℕ} (hp : PosZ H st W0 n xc) {B : BookC} (hB : BookOk L fp B) : PosZ H { st with book := B } W0 n xc :=
   ⟨hp.seg, ⟨hp.ok.env, hB, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
 
 /-- Entering offset `t` with given counts and set-up cells. -/
 theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ} {st sn : CW}
     (h : segAtC X t st = some sn) (hok : CWOk L fp X st) (he : EnvAt L fp X wJ wenv t)
-    {W0 : Regs K} {n : ℕ} {c : Opcode → ℕ} (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
-    {C : Cnt} {U : ℕ} (hc : ∀ op, c op ≤ C.get op + ksum ck n op)
+    {W0 : Regs K} {n : ℕ} {xc : Opcode → ℕ} {c : Opcode → ℕ}
+    (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
+    {C : Cnt} {U : ℕ} (hc : ∀ op, c op ≤ C.get op + xc op + ksum ck n op)
     (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
-    PosZ H { sn with cnt := C, uq := U } W0 n ∧ sn.book = st.book ∧ sn.fr = st.fr ∧
+    PosZ H { sn with cnt := C, uq := U } W0 n xc ∧ sn.book = st.book ∧ sn.fr = st.fr ∧
       sn.tg = st.tg ∧ sn.nx = st.nx := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
   have hmem : s ∈ segs := by
@@ -792,7 +801,7 @@ theorem noRet_of_shape {s : Stmt} {ss : List Stmt} (hs : ∀ vs, s ≠ .ret vs) 
 theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z n ss : List Stmt)
     (st : CW) (ihz : ∀ st, WGood H z st) (ihn : ∀ st, WGood H n st) (ih : ∀ st, WGood H ss st) :
     WGood H (.ite c z n :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   obtain ⟨st', od, of, x, t, sn, J, c1, u1, c2, u2, sj, hb, hk, hfr, hod, hof, hsu, hsn, hz, hn,
     hsj, hcw⟩ := cw_ite hok
   obtain ⟨hseg', hbk', hfr', htg', hnx', huq', hfresh', hx, hok', hfall, htaken⟩ := brAtC_pos H hp hb
@@ -833,47 +842,52 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
     rw [calls_append_none rfl]
   -- the branch's walk, to its join
   obtain ⟨cb, hcb, crun⟩ : ∃ cb : Cnt, (cb = c1 ∨ cb = c2) ∧
-      Arr L fp X wJ wenv ck W0 J cb (calls (ebef ++ [Ev.inK c] ++ eb)).length := by
+      Arr L fp X wJ wenv ck W0 J cb (calls (ebef ++ [Ev.inK c] ++ eb)).length
+        (xc + cost1 X.acs σ (.ite c z n)) := by
     by_cases h0 : σ c = 0
     · have hwz : walk σ z = .fall eb := by rw [← hweb, hwb]; simp only [h0, ↓reduceIte]
       have hpz := posZ_book H (hfall hjump (h0 ▸ hcell))
         (fileB_ok H.frame H.loc H.hev z st'.book (hbk' ▸ hp.ok.book) (hatoms z hwz))
       have hpz' : PosZ H { st' with book := fileB X.loc X.fs z st'.book } W0
-          (calls (ebef ++ [Ev.inK c])).length := by
+          (calls (ebef ++ [Ev.inK c])).length xc := by
         rw [hn1, H.fs]
         exact hpz
-      obtain ⟨h1, -, -⟩ := ihz _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwz
+      obtain ⟨h1, -, -⟩ := ihz _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] xc hwz
         (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.1) hpz' (by rw [hz]; rfl)
       obtain ⟨es', he', ha⟩ := h1 J c1 u1 hz
       simp only [Out.fall.injEq] at he'
       subst he'
-      exact ⟨c1, Or.inl rfl, ha⟩
+      have e : cost1 X.acs σ (.ite c z n) = costW X.acs σ z := by simp only [cost1, h0, ↓reduceIte]
+      exact ⟨c1, Or.inl rfl, by rw [e]; exact ha⟩
     · have hwn : walk σ n = .fall eb := by rw [← hweb, hwb]; simp only [h0, ↓reduceIte]
       obtain ⟨cr, hcr, hcle, henv⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ _ (by rw [hk]; rfl)
       have henvT : EnvAt L fp X wJ wenv t :=
         envAt_of_exit H hp.seg hx (by rw [hsu]; simp) henv
-      obtain ⟨hps, hbkn, -, -, -, -, -, -⟩ := segAtC_pos H hsn hok'.book hok'.fr hok'.tg hok'.nx
+      obtain ⟨hps, hbkn, -, -, -, -, -, -⟩ := segAtC_pos H (xc := xc) hsn hok'.book hok'.fr hok'.tg hok'.nx
         henvT hcr hcle (by rw [brAtC_nm hb]; exact hp.nm)
       have hpn : PosZ H { sn with book := fileB X.loc X.fs n st'.book } W0
-          (calls (ebef ++ [Ev.inK c])).length := by
+          (calls (ebef ++ [Ev.inK c])).length xc := by
         rw [hn1, H.fs]
         exact posZ_book H hps (fileB_ok H.frame H.loc H.hev n st'.book (hbk' ▸ hp.ok.book)
           (hatoms n hwn))
-      obtain ⟨h1, -, -⟩ := ihn _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwn
+      obtain ⟨h1, -, -⟩ := ihn _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] xc hwn
         (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.2) hpn (by rw [hn]; rfl)
       obtain ⟨es', he', ha⟩ := h1 J c2 u2 hn
       simp only [Out.fall.injEq] at he'
       subst he'
-      exact ⟨c2, Or.inr rfl, ha⟩
+      have e : cost1 X.acs σ (.ite c z n) = costW X.acs σ n := by simp only [cost1, h0, ↓reduceIte]
+      exact ⟨c2, Or.inr rfl, by rw [e]; exact ha⟩
   -- the join, then the rest
   obtain ⟨⟨cr, hcr, hcle⟩, henvJ⟩ := crun
-  obtain ⟨hpj, -⟩ := segAtC_posW H hsj hok' henvJ hcr (C := Cnt.max c1 c2) (U := Nat.lor u1 u2)
+  obtain ⟨hpj, -⟩ := segAtC_posW H (xc := xc + cost1 X.acs σ (.ite c z n)) hsj hok' henvJ hcr
+    (C := Cnt.max c1 c2) (U := Nat.lor u1 u2)
+    (n := (calls (ebef ++ [Ev.inK c] ++ eb)).length)
     (fun op ↦ by
       have := hcle op
+      have h1 : c1.get op ≤ Nat.max (c1.get op) (c2.get op) := Nat.le_max_left _ _
+      have h2 : c2.get op ≤ Nat.max (c1.get op) (c2.get op) := Nat.le_max_right _ _
       rw [Cnt.get_max]
-      rcases hcb with rfl | rfl
-      · exact le_trans this (Nat.add_le_add_right (Nat.le_max_left _ _) _)
-      · exact le_trans this (Nat.add_le_add_right (Nat.le_max_right _ _) _))
+      rcases hcb with rfl | rfl <;> omega)
     (by rw [brAtC_nm hb]; exact hp.nm)
   have hw1' : walk1 σ (.ite c z n) = .fall (Ev.inK c :: eb) := by rw [hw1, hweb]; rfl
   refine walk_step H ih (by simp [Stmt.noRet, hnr.1, hnr.2]) hw1' hw hes hs hshape ?_ hcw hok
@@ -919,8 +933,8 @@ theorem brAtC_peek {st st' : CW} {oc od of : ℕ} {x : Exit}
   exact passL_peek hpl
 
 theorem posZ_nx (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
-    (hp : PosZ H st W0 n) {nx : List (ℕ × FC)} (hn : NxOk L fp X.fs nx) :
-    PosZ H { st with nx := nx } W0 n :=
+    {xc : Opcode → ℕ} (hp : PosZ H st W0 n xc) {nx : List (ℕ × FC)} (hn : NxOk L fp X.fs nx) :
+    PosZ H { st with nx := nx } W0 n xc :=
   ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hn⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
 
 /-- A conditional call's event, `.skip` or `.call` as its condition says. -/
@@ -940,7 +954,7 @@ theorem Cnt.le_spec {c c' : Cnt} (h : c.le c' = true) : ∀ op, c.get op ≤ c'.
 theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (f : String)
     (args : List V) (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) :
     WGood H (.callIf c f args :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   obtain ⟨x, hpk, hin, hcase⟩ := cw_callIf H.G hok
   set ev : Ev := if σ c = 0 then Ev.skip f args else Ev.call f args [] with hev
   have hwo : o = (walk σ ss).pre [.inK c, ev] := by rw [← hw]; rfl
@@ -1000,7 +1014,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
     obtain ⟨cr, hcr, hcle, henvR⟩ : ∃ cr,
         RunC guest L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ cr ∧
-        (∀ op, cr op ≤ (Cnt.max se.cnt st'.cnt).get op + ksum ck (n + 1) op) ∧
+        (∀ op, cr op ≤ (Cnt.max se.cnt st'.cnt).get op + xc op + ksum ck (n + 1) op) ∧
         EnvAt L fp X wJ wenv (r - X.entry) := by
       by_cases h0 : σ c = 0
       · have hp' := hfall hjump (h0 ▸ hcell)
@@ -1010,8 +1024,10 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
         rw [hrt] at hcr
         refine ⟨cr, hcr, fun op ↦ ?_, ?_⟩
         · have := hle' op
+          have h1 : se.cnt.get op ≤ Nat.max (se.cnt.get op) (st'.cnt.get op) := Nat.le_max_left _ _
+          have h2 := ksum_mono ck (show n ≤ n + 1 by omega) op
           rw [Cnt.get_max]
-          exact le_trans this (Nat.add_le_add (Nat.le_max_left _ _) (ksum_mono ck (by omega) op))
+          omega
         · rw [← hrt]
           exact envAt_of_exit H hp'.seg (H.exits _ hp'.seg _ (Or.inl rfl)) (by rw [hsu']; simp) henv
       · obtain ⟨cr, hcr, hle', henv⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ ⟨gpow e, gpow kfp⟩
@@ -1030,7 +1046,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
           have := hle' op
           omega
         · exact envAt_of_exit H hp.seg hx (by rw [hsu]; simp) henv
-    obtain ⟨hpr, -⟩ := segAtC_posW H hsr hok' (by rw [hrt]; exact henvR) (n := n + 1)
+    obtain ⟨hpr, -⟩ := segAtC_posW H (xc := xc) hsr hok' (by rw [hrt]; exact henvR) (n := n + 1)
       (C := Cnt.max se.cnt st'.cnt) (U := setK st.uq q) (by rw [hrt]; exact hcr) hcle
       (by rw [brAtC_nm hb]; exact hp.nm)
     refine walk_step H ih rfl rfl hw hes hs hshape (by rw [hc1]; exact hpr) hcw hok
@@ -1099,14 +1115,17 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     have hrT : retRegs L (gpow fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
       retRegs_eq_some_iff.mpr ⟨_, _, hd0, hd1, rfl⟩
     obtain ⟨cr, hcr, hcle⟩ : ∃ cr, RunC guest L W0 ⟨hdr.1.limb 0, hdr.2.limb 0⟩ cr ∧
-        ∀ op, cr op ≤ X.pmax.get op + ksum ck (n + 1) op := by
+        ∀ op, cr op ≤ X.pmax.get op + xc op + ksum ck (n + 1) op := by
       by_cases h0 : σ c = 0
       · have hp' := hfall hjump (h0 ▸ hcell)
         obtain ⟨hsg, -, -, -, -, -, hr⟩ := endAtC_reach H hp' hse
         rw [hsg] at hkr
         obtain ⟨cr, hcr, hle', -⟩ := hr _ (by rw [hkr]; exact hrT)
-        refine ⟨cr, hcr, fun op ↦ le_trans (hle' op) ?_⟩
-        exact Nat.add_le_add (Cnt.le_spec hle2 op) (ksum_mono ck (by omega) op)
+        refine ⟨cr, hcr, fun op ↦ ?_⟩
+        have := hle' op
+        have h1 := Cnt.le_spec hle2 op
+        have h2 := ksum_mono ck (show n ≤ n + 1 by omega) op
+        omega
       · obtain ⟨cr, hcr, hle', -⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ ⟨gpow e, gpow fp * gpow S⟩
           (by rw [hk]; exact ⟨_, _, rfl, rfl, rfl⟩)
         obtain ⟨-, hkid⟩ := H.kids
@@ -1151,7 +1170,7 @@ theorem final_guest : Regs.final guest = ⟨gpow (2 ^ 18 - 1), gpow 0⟩ := by
 
 theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : List V)
     (ss : List Stmt) (st : CW) : WGood H (.ret vs' :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  intro ebef eaft o W0 pre xc hw hes hs hshape hp hok
   obtain ⟨se, hse, hkind, hle, hlen, hrun, hin, hcw⟩ := cw_ret hok
   have hwo : o = .ret [] vs' := by
     rw [← hw, walk]
@@ -1180,8 +1199,11 @@ theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : Lis
       exact hrT
   obtain ⟨cr, hcr, hcle, -⟩ := hr r hregs
   rw [List.append_nil]
-  refine ⟨⟨r, cr, hrg, hcr, fun op ↦ le_trans (hcle op)
-    (Nat.add_le_add_right (Cnt.le_spec hle op) _)⟩, fun k hk ↦ ?_⟩
+  refine ⟨⟨r, cr, hrg, hcr, fun op ↦ ?_⟩, fun k hk ↦ ?_⟩
+  · have h1 := hcle op
+    have h2 := Cnt.le_spec hle op
+    simp only [Pi.add_apply] at h1 ⊢
+    omega
   have hk' : k < (vs'.map X.loc.cell).length := by simpa using hk
   have hc := runCells_get hrun k hk'
   have hf := inFrame_mem hin _ (List.getElem_mem hk')

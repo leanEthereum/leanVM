@@ -326,27 +326,29 @@ theorem u_callIf (hX : X.sites = (plumbOf j).sites) (hG : X.G = glob) (c : V) (f
     rw [List.mem_singleton.mp hc', hnil] at hy
     cases hy
 
-theorem cwArms_u {J : ℕ} {se : CW} : ∀ {as : List (List Core.Stmt)} {ts : List ℕ} {c : Cnt} {u : ℕ}
-    {c' : Cnt} {u' : ℕ}, cwArms X J se as ts c u = some (c', u') →
+theorem cwArms_u {J : ℕ} {se : CW} {key : Option (List Cnt)} :
+    ∀ {as : List (List Core.Stmt)} {ts : List ℕ} {c : Cnt} {u : ℕ} {i : ℕ}
+    {c' : Cnt} {u' : ℕ}, cwArms X J se key as ts c u i = some (c', u') →
     (∀ x, u.testBit x = true → u'.testBit x = true) ∧
     ∀ k (hk : k < as.length) (hk' : k < ts.length) s ck uk, segAtC X ts[k] se = some s →
       cw X as[k] { s with book := fileB X.loc X.fs as[k] se.book } = .join J ck uk →
       ∀ x, uk.testBit x = true → u'.testBit x = true
-  | [], [], c, u, c', u', h => by
+  | [], [], c, u, _, c', u', h => by
     simp only [cwArms, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     exact ⟨fun _ h ↦ h, fun k hk ↦ absurd hk (Nat.not_lt_zero _)⟩
-  | a :: as, t :: ts, c, u, c', u', h => by
+  | a :: as, t :: ts, c, u, i, c', u', h => by
     simp only [cwArms] at h
     split at h
     · rename_i s hs
       simp only [Trie.seq_eq] at h
       split at h
       · rename_i J' ca ua hca
-        cases hJ : Nat.beq J J'
+        cases hJ : (Nat.beq J J' && armChkK key i ca)
         · rw [hJ] at h; cases h
         rw [hJ] at h
-        obtain rfl := Nat.eq_of_beq_eq_true hJ
+        simp only [Bool.and_eq_true] at hJ
+        obtain rfl := Nat.eq_of_beq_eq_true hJ.1
         simp only [Bool.cond_true, Cnt.seq_eq, natSeq_eq] at h
         obtain ⟨hu, hk⟩ := cwArms_u h
         refine ⟨fun x hx ↦ hu x (by rw [testBit_lorC, hx, Bool.true_or]), fun k hk1 hk2 s' ck uk hs' hck ↦ ?_⟩
@@ -363,8 +365,11 @@ theorem cwArms_u {J : ℕ} {se : CW} : ∀ {as : List (List Core.Stmt)} {ts : Li
           exact hk k (by simpa using hk1) (by simpa using hk2) s' ck uk hs' hck
       · cases h
     · cases h
-  | [], _ :: _, _, _, _, _, h => by simp [cwArms] at h
-  | _ :: _, [], _, _, _, _, h => by simp [cwArms] at h
+  | [], _ :: _, _, _, _, _, _, h => by simp [cwArms] at h
+  | _ :: _, [], _, _, _, _, _, h => by simp [cwArms] at h
+
+theorem armSt_uq (key : Option (List Cnt)) (se : CW) : (armSt key se).uq = se.uq := by
+  cases key <;> rfl
 
 theorem walkArms_some {x : V} : ∀ (arms : List (List Stmt)) (i : ℕ) {o : Out},
     walkArms σ x i arms = o → o ≠ .stuck → ∃ k, ∃ hk : k < arms.length, walk σ arms[k] = o
@@ -420,7 +425,7 @@ theorem u_match (v : V) (a0 : List Stmt) (as : List (List Stmt)) (ss : List Stmt
     (ih : ∀ st, UGood X j σ ss st) : UGood X j σ (.match_ v (a0 :: as) :: ss) st := by
   intro hok
   obtain ⟨t, ft, t0, ts, base, se, s0, J, c0, u0, c, u, sj, -, -, -, -, hl, -, -, -, -, -, hse, hs0,
-    h0, ha, hsj, hcw⟩ := cw_match hok
+    h0, -, ha, hsj, hcw⟩ := cw_match hok
   obtain ⟨cse, -, rfl⟩ := endAtC_eq hse
   obtain ⟨s2, -, -, rfl⟩ := segAtC_eq hsj
   obtain ⟨hl', -, hks⟩ := cwArms_spec ha
@@ -435,15 +440,22 @@ theorem u_match (v : V) (a0 : List Stmt) (as : List (List Stmt)) (ss : List Stmt
       obtain ⟨s1, -, -, rfl⟩ := segAtC_eq hs0
       have := iha 0 hk _ (by simp only [List.getElem_cons_zero]; rw [h0]; rfl)
       simp only [List.getElem_cons_zero] at this ⊢
-      exact ⟨fun eb hw ↦ sitesG_mono (this.1 eb hw J c0 u0 (Or.inl h0)) hu0, this.2⟩
+      refine ⟨fun eb hw ↦ sitesG_mono ?_ hu0, fun eb vb hw ↦ ?_⟩
+      · have r := this.1 eb hw J c0 u0 (Or.inl h0)
+        simpa only [armSt_uq] using r
+      · have r := this.2 eb vb hw
+        simpa only [armSt_uq] using r
     | succ k =>
       have hk1 : k < as.length := by simpa using hk
-      obtain ⟨s, ck, uk, hs, hck, -⟩ := hks k hk1 (by omega)
+      obtain ⟨s, ck, uk, hs, hck, -, -⟩ := hks k hk1 (by omega)
       obtain ⟨s1, -, -, rfl⟩ := segAtC_eq hs
       have := iha (k + 1) hk _ (by simp only [List.getElem_cons_succ]; rw [hck]; rfl)
       simp only [List.getElem_cons_succ] at this ⊢
-      exact ⟨fun eb hw ↦ sitesG_mono (this.1 eb hw J ck uk (Or.inl hck))
-        (huk k hk1 (by omega) _ ck uk hs hck), this.2⟩
+      refine ⟨fun eb hw ↦ sitesG_mono ?_ (huk k hk1 (by omega) _ ck uk hs hck), fun eb vb hw ↦ ?_⟩
+      · have r := this.1 eb hw J ck uk (Or.inl hck)
+        simpa only [armSt_uq] using r
+      · have r := this.2 eb vb hw
+        simpa only [armSt_uq] using r
   have hw1 : walk1 σ (.match_ v (a0 :: as)) = walkArms σ v 0 (a0 :: as) := rfl
   cases hwa : walkArms σ v 0 (a0 :: as) with
   | fall eb =>

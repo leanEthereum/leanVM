@@ -34,29 +34,38 @@ noncomputable def entryRegs (j fp : ℕ) : Regs K := ⟨gpow (fnOf j).entry, gpo
 noncomputable def partPos (j i k : ℕ) : ℕ := ((certOf j).cutAt i).start + partS j i k
 
 /-- **The run is at part `k`'s start**: at its segment's start, or past the items the part
-starts after, within its counts and the first `n` callees'. -/
-def PartArr {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (ck : List (Opcode → ℕ)) (i k n : ℕ) : Prop :=
+starts after, within its counts, the separately counted arms passed counting `x`, and the first
+`n` callees'. -/
+def PartArr {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (ck : List (Opcode → ℕ)) (i k n : ℕ)
+    (x : Opcode → ℕ) : Prop :=
   if partM j i k = 0 then
-    Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) (partJ j i k) (partC j i k) n
-  else ArrMid L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n
+    Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) (partJ j i k) (partC j i k) n x
+  else ArrMid L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x
 
 /-- **The run reaches part `k` of window `i`** on a path: the path from there returns, and the
 run is at the part's start within its counts and the callees' before it. -/
 def PartReach {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
     (ck : List (Opcode → ℕ)) (i k : ℕ) : Prop :=
-  ∃ ebef erest, walk σ ((coreOf j).body.drop (partPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
-    PartArr L j fp ck i k (calls ebef).length
+  ∃ ebef erest xc, walk σ ((coreOf j).body.drop (partPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
+    xc + costW (nth Data.cplArms j []) σ ((coreOf j).body.drop (partPos j i k)) =
+      costW (nth Data.cplArms j []) σ (coreOf j).body ∧
+    PartArr L j fp ck i k (calls ebef).length xc
 
 /-- What `CplRun` concludes of one path. -/
 def CplGoal {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ)) :
     Prop :=
   ∃ (r : Regs K) (c : Opcode → ℕ), (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
     RunC guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
-    (∀ op, c op ≤ pathMax (coreOf j).name op + (ck.map (· op)).sum) ∧
+    (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
     ∀ k (hk : k < vs.length),
       L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])
 
 /-! ## Pieces -/
+
+theorem costW_append (acs : List (ℕ × List (List ℕ))) (σ : Val) :
+    ∀ (A B : List Stmt), costW acs σ (A ++ B) = costW acs σ A + costW acs σ B
+  | [], B => by rw [List.nil_append, costW, zero_add]
+  | a :: A, B => by rw [List.cons_append, costW, costW, costW_append acs σ A B, add_assoc]
 
 theorem blt_falseC {a b : ℕ} (h : ¬ a < b) : Nat.blt a b = false := by
   cases hb : Nat.blt a b
@@ -217,40 +226,42 @@ section Comp
 variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
   {kfps : List ℕ} {hdr : E × E} {ck : List (Opcode → ℕ)}
 
-theorem partArr_zero {i k n : ℕ} (h : partM j i k = 0) : PartArr L j fp ck i k n ↔
-    Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) (partJ j i k) (partC j i k) n := by
+theorem partArr_zero {i k n : ℕ} {x : Opcode → ℕ} (h : partM j i k = 0) : PartArr L j fp ck i k n x ↔
+    Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) (partJ j i k) (partC j i k) n x := by
   unfold PartArr
   simp only [h, ↓reduceIte]
 
-theorem partArr_mid {i k n : ℕ} (h : partM j i k ≠ 0) : PartArr L j fp ck i k n ↔
-    ArrMid L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n := by
+theorem partArr_mid {i k n : ℕ} {x : Opcode → ℕ} (h : partM j i k ≠ 0) : PartArr L j fp ck i k n x ↔
+    ArrMid L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x := by
   unfold PartArr
   simp only [h, ↓reduceIte]
 
-theorem arr_mono {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Regs K} {J n : ℕ} {c c' : Cnt}
-    (h : Arr L fp X wJ wenv ck W0 J c n) (hc : c.le c' = true) : Arr L fp X wJ wenv ck W0 J c' n := by
+theorem arr_mono {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Regs K} {J n : ℕ} {x : Opcode → ℕ}
+    {c c' : Cnt} (h : Arr L fp X wJ wenv ck W0 J c n x) (hc : c.le c' = true) :
+    Arr L fp X wJ wenv ck W0 J c' n x := by
   obtain ⟨⟨cr, hr, hle⟩, he⟩ := h
-  exact ⟨⟨cr, hr, fun op ↦ le_trans (hle op) (Nat.add_le_add_right (Cnt.le_spec hc op) _)⟩, he⟩
+  exact ⟨⟨cr, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega⟩, he⟩
 
-theorem arrMid_mono {X : CX} {W0 : Regs K} {J m n : ℕ} {c c' : Cnt}
-    (h : ArrMid L fp X ck W0 J m c n) (hc : c.le c' = true) : ArrMid L fp X ck W0 J m c' n := by
+theorem arrMid_mono {X : CX} {W0 : Regs K} {J m n : ℕ} {x : Opcode → ℕ} {c c' : Cnt}
+    (h : ArrMid L fp X ck W0 J m c n x) (hc : c.le c' = true) : ArrMid L fp X ck W0 J m c' n x := by
   obtain ⟨s, hs, hst, hm, he, cr, hf, hr, hle⟩ := h
-  exact ⟨s, hs, hst, hm, he, cr, hf, hr, fun op ↦ le_trans (hle op) (Nat.add_le_add_right (Cnt.le_spec hc op) _)⟩
+  exact ⟨s, hs, hst, hm, he, cr, hf, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega⟩
 
 /-- At a segment's start, no item passed. -/
-theorem arrMid_zero {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Regs K} {J n : ℕ} {c : Cnt} {s : Exec.Seg}
-    (h : Arr L fp X wJ wenv ck W0 J c n) (hs : getF X.idx J = some s) (hst : s.start = J) :
-    ArrMid L fp X ck W0 J 0 c n := by
+theorem arrMid_zero {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Regs K} {J n : ℕ} {x : Opcode → ℕ}
+    {c : Cnt} {s : Exec.Seg}
+    (h : Arr L fp X wJ wenv ck W0 J c n x) (hs : getF X.idx J = some s) (hst : s.start = J) :
+    ArrMid L fp X ck W0 J 0 c n x := by
   obtain ⟨⟨cr, hr, hle⟩, he⟩ := h
   exact ⟨s, hs, hst, Nat.zero_le _, he.1 s hs hst, cr, trivial, hr, fun op ↦ by simpa [itemOps] using hle op⟩
 
 /-- **Into the next window**: the environment window `i` hands on holds the next window's. -/
 theorem arr_win (F : FnH L j fp σ es vs kfps hdr ck) {i k : ℕ} (hi : i < (certOf j).cuts.length)
-    {c c' : Cnt} {n : ℕ}
-    (h : Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) ((certOf j).cutAt (i + 1)).J c n)
+    {c c' : Cnt} {n : ℕ} {x : Opcode → ℕ}
+    (h : Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) ((certOf j).cutAt (i + 1)).J c n x)
     (hc : c.le c' = true) :
     Arr L fp (Xp j (i + 1) 0) (wJW j (i + 1)) (wenvW j (i + 1)) ck (entryRegs j fp)
-      (partJ j (i + 1) 0) c' n := by
+      (partJ j (i + 1) 0) c' n x := by
   obtain ⟨⟨cr, hr, hle⟩, he1, he2⟩ := h
   have hb : Nat.blt i (certOf j).cuts.length = true := Nat.blt_eq.mpr hi
   have hc1 := checkWin_cpl (F.chk i hi.le)
@@ -266,7 +277,7 @@ theorem arr_win (F : FnH L j fp σ es vs kfps hdr ck) {i k : ℕ} (hi : i < (cer
     | some s =>
       obtain ⟨hst, hsub⟩ := (hc1.2.2.2.2 hi).2 s hg
       exact (he1 s hg hst).sub hsub
-  refine ⟨⟨cr, hr, fun op ↦ le_trans (hle op) (Nat.add_le_add_right (Cnt.le_spec hc op) _)⟩,
+  refine ⟨⟨cr, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega⟩,
     fun s hs _ ↦ ?_, fun _ hn ↦ ?_⟩
   · have hs' : getF (index (segsW j (i + 1))) ((certOf j).cutAt (i + 1)).J = some s := hs
     obtain rfl := Option.some.inj (hs'.symm.trans hs0)
@@ -292,9 +303,11 @@ theorem reach_zero (F : FnH L j fp σ es vs kfps hdr ck) : PartReach L j fp σ e
     rw [Sym.beq_eq h1]
     simp only [PC.word, Nat.add_zero] at this
     simpa [Sym.val, gpow_addC] using this
-  refine ⟨[], es, ?_, rfl, (partArr_zero (partM_zero hc0)).mpr ?_⟩
+  refine ⟨[], es, 0, ?_, rfl, ?_, (partArr_zero (partM_zero hc0)).mpr ?_⟩
   · rw [partPos, partS_zero hc0]
     exact F.walk
+  · rw [zero_add, partPos, partS_zero hc0]
+    rfl
   refine ⟨⟨0, RunC.refl _, fun _ ↦ Nat.zero_le _⟩, fun s hs _ ↦ ?_, fun _ hn ↦ ?_⟩
   · have hs' : getF (index (segsW j 0)) ((certOf j).cutAt 0).J = some s := hs
     obtain rfl := Option.some.inj (hs'.symm.trans hs0)
@@ -307,10 +320,10 @@ theorem reach_zero (F : FnH L j fp σ es vs kfps hdr ck) : PartReach L j fp σ e
 theorem posZ_start {i k : ℕ}
     (H : WH L j fp (Xp j i k) (segsW j i) (wJW j i) (wenvW j i) σ es vs kfps hdr ck) {s : Exec.Seg}
     (hs : getF (index (segsW j i)) (partJ j i k) = some s) (hst : s.start = partJ j i k) {n : ℕ}
-    (hA : PartArr L j fp ck i k n)
+    {x : Opcode → ℕ} (hA : PartArr L j fp ck i k n x)
     (hatoms : ∀ a, Stmt.atom a ∈ partStmts j i k → Ev.atom a ∈ es) :
-    PosZ H (st0 j i k s) (entryRegs j fp) n := by
-  have hM : ArrMid L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n := by
+    PosZ H (st0 j i k s) (entryRegs j fp) n x := by
+  have hM : ArrMid L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x := by
     unfold PartArr at hA
     split_ifs at hA with h0
     · rw [h0]
@@ -343,18 +356,21 @@ theorem part_mid (F : FnH L j fp σ es vs kfps hdr ck)
     (hlb : lastOkC (coreOf j).body = true) {i k : ℕ}
     (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReach L j fp σ es vs ck i k)
     (hnr : Stmt.noRetList (partStmts j i k) = true) :
-    ∃ ebef erest, walk σ ((coreOf j).body.drop (nextPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
+    ∃ ebef erest xc, walk σ ((coreOf j).body.drop (nextPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
+      xc + costW (nth Data.cplArms j []) σ ((coreOf j).body.drop (nextPos j i k)) =
+        costW (nth Data.cplArms j []) σ (coreOf j).body ∧
       ((∃ J c u, cplRes j i k = .join J c u ∧
-        Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) J c (calls ebef).length) ∨
+        Arr L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) J c (calls ebef).length xc) ∨
        (∃ J m c u, cplRes j i k = .mid J m c u ∧
-        ArrMid L fp (Xp j i k) ck (entryRegs j fp) J m c (calls ebef).length)) := by
-  obtain ⟨ebef, erest, hwr, hes, hA⟩ := hr
+        ArrMid L fp (Xp j i k) ck (entryRegs j fp) J m c (calls ebef).length xc)) := by
+  obtain ⟨ebef, erest, xc, hwr, hes, hxc, hA⟩ := hr
   have hc := F.ok i hi
   have hsplit := part_split hk (fun h ↦ ((checkWin_cpl (F.chk i hi)).2.2.2.2 h).1) hc
   have hend := cplWin_end (hc k hk)
   obtain ⟨s, hs, hst, hres⟩ := cplRes_some hend
-  unfold partPos at hwr
+  unfold partPos at hwr hxc
   rw [hsplit, walk_appendC] at hwr
+  rw [hsplit, costW_append, ← add_assoc] at hxc
   rcases walk_noRetC _ hnr with ⟨e1, hw1⟩ | hw1
   · rw [hw1] at hwr
     obtain ⟨e2, hw2, he⟩ := seq_fall_ret hwr
@@ -365,15 +381,15 @@ theorem part_mid (F : FnH L j fp σ es vs kfps hdr ck)
     have hp := posZ_start H hs hst hA hatoms
     have hes' : es = ebef ++ (Out.fall e1).evs ++ e2 := by rw [hes, he, List.append_assoc]; rfl
     obtain ⟨h1, hm, h2⟩ := walk_Z H _ _ ebef e2 _ (entryRegs j fp) ((coreOf j).body.take (partPos j i k))
-      hw1 hes' (fun h ↦ by cases h) (Or.inl hnr) hp (cw_ok_of hres hend)
+      xc hw1 hes' (fun h ↦ by cases h) (Or.inl hnr) hp (cw_ok_of hres hend)
     have hes2 : es = (ebef ++ e1) ++ e2 := by rw [hes, he, List.append_assoc]
     rcases hcr : cplRes j i k with ⟨J, c, u⟩ | ⟨J, m, c, u⟩ | _ | e
     · obtain ⟨es', he', ha⟩ := h1 J c u (hres.symm.trans hcr)
       cases he'
-      exact ⟨ebef ++ e1, e2, hw2, hes2, Or.inl ⟨J, c, u, rfl, ha⟩⟩
+      exact ⟨ebef ++ e1, e2, _, hw2, hes2, hxc, Or.inl ⟨J, c, u, rfl, ha⟩⟩
     · obtain ⟨es', he', ha⟩ := hm J m c u (hres.symm.trans hcr)
       cases he'
-      exact ⟨ebef ++ e1, e2, hw2, hes2, Or.inr ⟨J, m, c, u, rfl, ha⟩⟩
+      exact ⟨ebef ++ e1, e2, _, hw2, hes2, hxc, Or.inr ⟨J, m, c, u, rfl, ha⟩⟩
     · obtain ⟨es', vs', he', -⟩ := h2 (hres.symm.trans hcr)
       cases he'
     · rw [hcr] at hend
@@ -386,7 +402,7 @@ theorem part_last (F : FnH L j fp σ es vs kfps hdr ck)
     (hlb : lastOkC (coreOf j).body = true) {i k : ℕ}
     (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReach L j fp σ es vs ck i k)
     (hn : ¬ k + 1 < nParts j i) (hci : ¬ i < (certOf j).cuts.length) : CplGoal L j fp σ vs ck := by
-  obtain ⟨ebef, erest, hwr, hes, hA⟩ := hr
+  obtain ⟨ebef, erest, xc, hwr, hes, hxc, hA⟩ := hr
   have hc := F.ok i hi
   have hsplit := part_split hk (fun h ↦ ((checkWin_cpl (F.chk i hi)).2.2.2.2 h).1) hc
   have hend := cplWin_end (hc k hk)
@@ -400,7 +416,7 @@ theorem part_last (F : FnH L j fp σ es vs kfps hdr ck)
   have hd : (coreOf j).body.drop (partPos j i k) = partStmts j i k := by
     unfold partPos
     rw [hsplit, hnext, List.drop_length, List.append_nil]
-  rw [hd] at hwr
+  rw [hd] at hwr hxc
   have hatoms : ∀ a, Stmt.atom a ∈ partStmts j i k → Ev.atom a ∈ es := fun a ha ↦ by
     rw [hes]
     exact List.mem_append_right _ (atoms_last hshp hwr (fun h ↦ by cases h) ha)
@@ -409,7 +425,7 @@ theorem part_last (F : FnH L j fp σ es vs kfps hdr ck)
   have hes' : es = ebef ++ (Out.ret erest vs).evs ++ [] := by rw [hes, List.append_nil]; rfl
   have hbody : (coreOf j).body = (coreOf j).body.take (partPos j i k) ++ partStmts j i k := by
     rw [← hd, List.take_append_drop]
-  obtain ⟨-, -, h2⟩ := walk_Z H _ _ ebef [] _ (entryRegs j fp) _ hwr hes' (fun h ↦ by cases h)
+  obtain ⟨-, -, h2⟩ := walk_Z H _ _ ebef [] _ (entryRegs j fp) _ xc hwr hes' (fun h ↦ by cases h)
     (Or.inr ⟨hshp, rfl, hbody⟩) hp (cw_ok_of hres hend)
   have hdone : cw (Xp j i k) (partStmts j i k) (st0 j i k s) = .done := by
     rw [← hres]
@@ -426,8 +442,13 @@ theorem part_last (F : FnH L j fp σ es vs kfps hdr ck)
   obtain ⟨es', vs', he', ⟨r, cr, hr0, hrun, hcr⟩, hcells⟩ := h2 hdone
   cases he'
   refine ⟨r, cr, hr0, hrun, fun op ↦ ?_, fun k' hk' ↦ ?_⟩
-  · rw [← pmax_get F.j1 F.jn i k op]
-    exact le_trans (hcr op) (Nat.add_le_add_left (ksum_le_sum ck _ op) _)
+  · have h1 := hcr op
+    have h2 := ksum_le_sum ck (calls (ebef ++ erest)).length op
+    have h3 : (xc + costW (Xp j i k).acs σ (partStmts j i k)) op =
+        costW (nth Data.cplArms j []) σ (coreOf j).body op := congrFun hxc op
+    rw [pmax_get F.j1 F.jn i k op, h3] at h1
+    unfold pathCount
+    omega
   · obtain ⟨hc1, hc2, hc3⟩ := hcells k' hk'
     have hv : vs[k'] ∈ namedOf (coreOf j).params es vs :=
       List.mem_append_right _ (List.getElem_mem hk')
@@ -451,8 +472,8 @@ theorem part_step (F : FnH L j fp σ es vs kfps hdr ck)
       unfold nextPos
       rw [hb]
       rfl
-    obtain ⟨ebef, erest, hw, hes, hres⟩ := part_mid F hlb hi hk hr (cplWin_mid (hc k hk) hlp)
-    refine Or.inl ⟨hn, ebef, erest, hnext ▸ hw, hes, ?_⟩
+    obtain ⟨ebef, erest, xc, hw, hes, hxc, hres⟩ := part_mid F hlb hi hk hr (cplWin_mid (hc k hk) hlp)
+    refine Or.inl ⟨hn, ebef, erest, xc, hnext ▸ hw, hes, hnext ▸ hxc, ?_⟩
     rcases hres with ⟨J, c, u, hres, hA⟩ | ⟨J, m, c, u, hres, hA⟩
     · rw [hres] at hend
       simp only [partEnd, hb, Bool.cond_true, Bool.and_eq_true] at hend
@@ -468,12 +489,12 @@ theorem part_step (F : FnH L j fp σ es vs kfps hdr ck)
   · by_cases hci : i < (certOf j).cuts.length
     · have hbi : Nat.blt i (certOf j).cuts.length = true := Nat.blt_eq.mpr hci
       have hlp : lastPart j i k = false := by simp only [lastPart, blt_falseC hn, hbi]; rfl
-      obtain ⟨ebef, erest, hw, hes, hres⟩ := part_mid F hlb hi hk hr (cplWin_mid (hc k hk) hlp)
+      obtain ⟨ebef, erest, xc, hw, hes, hxc, hres⟩ := part_mid F hlb hi hk hr (cplWin_mid (hc k hk) hlp)
       have hnext : nextPos j i k = partPos j (i + 1) 0 := by
         unfold nextPos partPos
         rw [blt_falseC hn, hbi, partS_zero (F.ok (i + 1) hci 0 (one_le_nParts j (i + 1)))]
         rfl
-      refine Or.inr (Or.inr ⟨hci, ebef, erest, hnext ▸ hw, hes,
+      refine Or.inr (Or.inr ⟨hci, ebef, erest, xc, hnext ▸ hw, hes, hnext ▸ hxc,
         (partArr_zero (partM_zero (F.ok (i + 1) hci 0 (one_le_nParts j (i + 1))))).mpr ?_⟩)
       rcases hres with ⟨J, c, u, hres, hA⟩ | ⟨J, m, c, u, hres, -⟩
       · rw [hres] at hend
