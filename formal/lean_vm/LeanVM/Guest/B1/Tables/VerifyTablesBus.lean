@@ -56,12 +56,11 @@ def padBlockEx (t : ℕ) (coords : List FormC) : Ex :=
   .add (.add (.var 12) (sumEx (coords.zipIdx.map fun p => .mul (.ext p.2) (.lit (coordPadK t p.1)))))
     (.lit 1)
 
-/-- The push side's padding mass: each table's padding weight times its blocks' selectors times
-their forms at the padding row plus one. -/
+/-- The push side's padding mass, block by block: the block's selector times its table's padding
+weight times its form at the padding row plus one. -/
 def pushPadEx : Ex :=
-  sumEx ((List.range 6).map fun t => .mul (.var (1739 + 14 * t))
-    (sumEx (((List.zip pushOwners pushCoordsC).zipIdx.filter (·.1.1 = t)).map fun p =>
-      .mul (busSel (3 + p.2)) (padBlockEx t p.1.2))))
+  sumEx ((List.range 34).map fun j => .mul (.mul (busSel (3 + j))
+    (.var (1739 + 14 * pushOwners.getD j 0))) (padBlockEx (pushOwners.getD j 0) (pushCoordsC.getD j [])))
 
 /-- The push side's framework fingerprints, weighted by their selectors (`fingerprints` at
 `pc = 1`, unit counts). -/
@@ -85,11 +84,10 @@ theorem vt_push_total : pushTotalSym.norm = pushTotalEx.norm := by decide +kerne
 /-- The pull side's table blocks' coordinates, symbolically, in block order. -/
 def pullCoordsC : List (List FormC) := (List.finRange 6).flatMap fun t => pySideC t .pull
 
-/-- The pull side's padding mass, its blocks' selectors their push twins'. -/
+/-- The pull side's padding mass, block by block, its blocks' selectors their push twins'. -/
 def pullPadEx : Ex :=
-  sumEx ((List.range 6).map fun t => .mul (.var (1739 + 14 * t))
-    (sumEx (((List.zip pushOwners pullCoordsC).zipIdx.filter (·.1.1 = t)).map fun p =>
-      .mul (busSel (3 + p.2)) (padBlockEx t p.1.2))))
+  sumEx ((List.range 34).map fun j => .mul (.mul (busSel (3 + j))
+    (.var (1739 + 14 * pushOwners.getD j 0))) (padBlockEx (pushOwners.getD j 0) (pullCoordsC.getD j [])))
 
 /-- The pull side's framework fingerprints, weighted by their selectors (`fingerprints` at the
 final `pc`, the final counters). -/
@@ -121,11 +119,12 @@ theorem vt_pull_total : pullTotalSym.norm = pullTotalEx.norm := by decide +kerne
 def countOwners : List ℕ :=
   [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
 
-/-- The count side's padding mass: a count block's form at its padding row is its count there. -/
+/-- The count side's padding mass, block by block: a count block's form at its padding row is
+its count there. -/
 def countPadEx : Ex :=
-  sumEx ((List.range 6).map fun t => .mul (.var (1739 + 14 * t))
-    (sumEx (((List.zip countOwners (vtCountCols.flatten)).zipIdx.filter (·.1.1 = t)).map fun p =>
-      .mul (busSel (37 + p.2)) (.add (.lit (padK t p.1.2)) (.lit 1)))))
+  sumEx ((List.range 28).map fun j => .mul (.mul (busSel (37 + j))
+    (.var (1739 + 14 * countOwners.getD j 0)))
+    (.add (.lit (padK (countOwners.getD j 0) (vtCountCols.flatten.getD j 0))) (.lit 1)))
 
 /-- What the count side's tables owe (`bus_table_total[COUNT]`). -/
 def countTotalEx : Ex :=
