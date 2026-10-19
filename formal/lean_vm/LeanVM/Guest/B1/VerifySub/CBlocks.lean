@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.VerifySub.CData
+public import LeanVM.Guest.B1.Uniform
 
 /-!
 # Complete templates
@@ -148,6 +149,21 @@ theorem rc_holds {κ : ℕ} (hκ : κ ≤ 32) (Lm : MemImage κ) {K e : ℕ} (hK
   simp only [Atom.Holds]
   rw [hx, hy, ht1, ht2, hk]
   exact ⟨l1, (gen_pow_eq_ofK (K - 1)).trans h2, l3⟩
+
+
+/-- A range check `log x < K` on `x = g^e`, on a memory defined below `2^k`. -/
+theorem rc_holds_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {K e : ℕ} (hK : K ≤ 2 ^ k)
+    (he : e < K) {σ : Val} {x y t1 t2 kv : V} (hx : σ x = gen ^ e) (hy : σ y = (rcLow rd e K).1)
+    (ht1 : σ t1 = (rcLow rd e K).2.1) (ht2 : σ t2 = (rcLow rd e K).2.2) (hk : σ kv = gen ^ (K - 1)) :
+    (Atom.rangeCheck x y t1 t2 kv).Holds rd σ := by
+  obtain ⟨l1, h2, l3⟩ := rc_complete_low hl hK he
+  simp only [Atom.Holds]
+  rw [hx, hy, ht1, ht2, hk, gen_pow_eq_ofK e]
+  exact ⟨l1, (gen_pow_eq_ofK (K - 1)).trans h2, l3⟩
+
+theorem lowDef_memImage {κ : ℕ} (hκ : κ ≤ 32) (Lm : MemImage κ) : LowDef κ Lm.read := fun i hi => by
+  have := (read_some_iff (by omega) Lm (gpow i) (Lm ⟨i, hi⟩)).mpr ⟨⟨i, hi⟩, rfl, rfl⟩
+  rw [this]; rfl
 
 /-- `g_power_of_word(E(N), g_squares)` at six bits, `N < 64`, over its honest bit buffer. -/
 theorem gpw6_complete {rd : Reader} {lp sq p : E} (ht : ExpTables rd lp sq) {N : ℕ} (hN : N < 64)

@@ -206,25 +206,24 @@ def sizesOut (D : VsData) (P : VsPtrs) : List (ℕ × E) :=
   [(138, gen ^ (D.rate - 1)), (143, P.dims), (144, gen ^ D.logMem)]
 
 /-- **The rate, `dims_g[0]` and the memory's log** (G:2108-2115). -/
-theorem c_sizes {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) {lp sq : E} (hm1 : 16 ≤ D.logMem) (hm2 : D.logMem ≤ 32) (hr1 : 1 ≤ D.rate)
+theorem c_sizes (hlow : LowDef 6 rd) {lp sq : E} (hm1 : 16 ≤ D.logMem) (hm2 : D.logMem ≤ 32) (hr1 : 1 ≤ D.rate)
     (hr2 : D.rate ≤ 4) {bytecode : List K} (hC : VsCallsOk C bytecode D P lp sq)
-    (hd0 : LoadHolds Lm.read P.dims 0 (gen ^ D.logMem)) (σ : Val)
+    (hd0 : LoadHolds rd P.dims 0 (gen ^ D.logMem)) (σ : Val)
     (hσ : Fixes σ [(5, sq), (15, eOfNat D.logMem), (121, eOfNat D.rate)]) :
-    Completes C Lm.read 136 155 bSizes σ
+    Completes C rd 136 155 bSizes σ
       (fun σ' => Fixes σ' (sizesOut D P)) := by
   have h5 : σ (.n 5) = sq := hσ.get (by simp)
   have h15 : σ (.n 15) = eOfNat D.logMem := hσ.get (by simp)
   have h121 : σ (.n 121) = eOfNat D.rate := hσ.get (by simp)
-  have h64 : (64 : ℕ) ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
   set r := D.rate
   set m := D.logMem
   refine completes_upds [(136, gen ^ r), (137, word 2 0 0), (138, gen ^ (r - 1)), (139, word 8 0 0),
-    (140, (rcAux Lm (gen ^ (r - 1)) 4).1), (141, (rcAux Lm (gen ^ (r - 1)) 4).2.1),
-    (142, (rcAux Lm (gen ^ (r - 1)) 4).2.2), (143, P.dims), (144, gen ^ m),
-    (145, word 4294967296 0 0), (146, (rcAux Lm (gen ^ m) 33).1), (147, (rcAux Lm (gen ^ m) 33).2.1),
-    (148, (rcAux Lm (gen ^ m) 33).2.2), (149, word 4294967296 0 0), (150, word 65536 0 0),
-    (151, gen ^ (m - 16)), (152, (rcAux Lm (gen ^ (m - 16)) 33).1),
-    (153, (rcAux Lm (gen ^ (m - 16)) 33).2.1), (154, (rcAux Lm (gen ^ (m - 16)) 33).2.2)]
+    (140, (rcLow rd (r - 1) 4).1), (141, (rcLow rd (r - 1) 4).2.1),
+    (142, (rcLow rd (r - 1) 4).2.2), (143, P.dims), (144, gen ^ m),
+    (145, word 4294967296 0 0), (146, (rcLow rd m 33).1), (147, (rcLow rd m 33).2.1),
+    (148, (rcLow rd m 33).2.2), (149, word 4294967296 0 0), (150, word 65536 0 0),
+    (151, gen ^ (m - 16)), (152, (rcLow rd (m - 16) 33).1),
+    (153, (rcLow rd (m - 16) 33).2.1), (154, (rcLow rd (m - 16) 33).2.2)]
     (by simp) (fun next kret hn => ?_) ?_
   · simp only [bSizes, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil]
     refine ⟨?_, ?_, ?_, ?_, ?_, trivial, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, trivial, hn⟩
@@ -237,7 +236,7 @@ theorem c_sizes {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ
       rw [word_gen]
       rw [← pow_succ, show r - 1 + 1 = r by omega]
     · simp [Atom.Holds, upds_n]
-    · exact rc_holds hκ Lm (K := 4) (e := r - 1) (by omega) (by omega) (by omega) (by simp [upds_n])
+    · exact rc_holds_low hlow (K := 4) (e := r - 1) (by omega) (by omega) (by simp [upds_n])
         (by simp [upds_n]) (by simp [upds_n]) (by simp [upds_n])
         (by vs_ev
             exact word_two_pow (a := 3) (by decide))
@@ -245,7 +244,7 @@ theorem c_sizes {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ
       rw [h15, h5]
       exact hC.gpwMem
     · simp [Atom.Holds, upds_n]
-    · exact rc_holds hκ Lm (K := 33) (e := m) (by omega) (by omega) (by omega) (by simp [upds_n])
+    · exact rc_holds_low hlow (K := 33) (e := m) (by omega) (by omega) (by simp [upds_n])
         (by simp [upds_n]) (by simp [upds_n]) (by simp [upds_n])
         (by vs_ev
             exact word_two_pow (a := 32) (by decide))
@@ -255,7 +254,7 @@ theorem c_sizes {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ
       vs_ev
       have w16 : word 65536 0 0 = gen ^ 16 := word_two_pow (a := 16) (by decide)
       rw [w16, ← pow_add, show m - 16 + 16 = m by omega]
-    · exact rc_holds hκ Lm (K := 33) (e := m - 16) (by omega) (by omega) (by omega) (by simp [upds_n])
+    · exact rc_holds_low hlow (K := 33) (e := m - 16) (by omega) (by omega) (by simp [upds_n])
         (by simp [upds_n]) (by simp [upds_n]) (by simp [upds_n])
         (by vs_ev
             exact word_two_pow (a := 32) (by decide))

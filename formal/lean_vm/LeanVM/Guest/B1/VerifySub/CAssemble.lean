@@ -188,49 +188,49 @@ macro "vs_mem" : tactic => `(tactic| simp [vsG0, vsG1, vsG2, vsG3, vsG4, vsG5, v
 
 section Steps
 
-variable {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) (hb : bytecode.length = 2 ^ 22)
-  (hok : D.Ok bytecode) (ht : ExpTables Lm.read lp sq) (hm : VsMem Lm.read D P out)
+variable (hlow : LowDef 6 rd) (hb : bytecode.length = 2 ^ 22)
+  (hok : D.Ok bytecode) (ht : ExpTables rd lp sq) (hm : VsMem rd D P out)
   (hC : VsCallsOk C bytecode D P lp sq)
 
 theorem s_seed (σ : Val) (h : Fixes σ (vsG0 D lp sq out)) :
-    Completes C Lm.read 7 15 bSeed σ (fun σ' => Fixes σ' (vsG1 D P lp sq out)) :=
+    Completes C rd 7 15 bSeed σ (fun σ' => Fixes σ' (vsG1 D P lp sq out)) :=
   completes_step (c_seed σ (h.get (by vs_mem)) (h.get (by vs_mem)) (h.get (by vs_mem))
     (h.get (by vs_mem))) h (by vs_mem)
 
 include hok hm in
 theorem s_reads (σ : Val) (h : Fixes σ (vsG1 D P lp sq out)) :
-    Completes C Lm.read 15 136 bReads σ (fun σ' => Fixes σ' (vsG2 D P lp sq out)) :=
+    Completes C rd 15 136 bReads σ (fun σ' => Fixes σ' (vsG2 D P lp sq out)) :=
   completes_step (c_reads hok.rows_length σ (h.sub fun _ hp => List.mem_append_left _ hp)
     (mem_stream hok.rows_length hm).1 (mem_rows hok.rows_length hm)) h (by vs_mem)
 
-include hκ hκ6 hok hm hC in
+include hlow hok hm hC in
 theorem s_sizes (σ : Val) (h : Fixes σ (vsG2 D P lp sq out)) :
-    Completes C Lm.read 136 155 bSizes σ (fun σ' => Fixes σ' (vsG3 D P lp sq out)) :=
-  completes_step (c_sizes hκ hκ6 Lm hok.logMem_ge hok.logMem_le hok.rate_ge hok.rate_le hC
+    Completes C rd 136 155 bSizes σ (fun σ' => Fixes σ' (vsG3 D P lp sq out)) :=
+  completes_step (c_sizes hlow hok.logMem_ge hok.logMem_le hok.rate_ge hok.rate_le hC
     (mem_dims hok hm).1 σ (h.sub (by vs_mem))) h (by vs_mem)
 
 include hok hm in
 theorem s_kbase (σ : Val) (h : Fixes σ (vsG3 D P lp sq out)) :
-    Completes C Lm.read 155 163 bKBase σ (fun σ' => Fixes σ' (vsG4 D P lp sq out)) :=
+    Completes C rd 155 163 bKBase σ (fun σ' => Fixes σ' (vsG4 D P lp sq out)) :=
   completes_step (c_kbase σ (h.sub (by vs_mem)) (mem_dims hok hm).2 (mem_kbase hok hm).1
     (mem_kbase hok hm).2.1 (mem_kbase hok hm).2.2.1) h (by vs_mem)
 
 include hok hm in
 theorem s_bk (σ : Val) (h : Fixes σ (vsG4 D P lp sq out)) :
-    Completes C Lm.read 163 270 bBlockKappa σ (fun σ' => Fixes σ' (vsG5 D P lp sq out)) :=
+    Completes C rd 163 270 bBlockKappa σ (fun σ' => Fixes σ' (vsG5 D P lp sq out)) :=
   completes_step (c_blockKappa σ (h.get (by vs_mem)) (mem_kbase hok hm).2.2.2 (mem_bk hm)) h
     (by vs_mem)
 
 include hb hok ht hm hC in
 theorem s_push (σ : Val) (h : Fixes σ (vsG5 D P lp sq out)) :
-    Completes C Lm.read 270 419 bPush σ (fun σ' => Fixes σ' (vsG6 D P lp sq out)) :=
+    Completes C rd 270 419 bPush σ (fun σ' => Fixes σ' (vsG6 D P lp sq out)) :=
   completes_step (c_push ht hok.rows_length hok.logMem_le (hs_lt hok)
     (by rw [← depth_eq hb hok, hok.point_length]; exact hok.depth_lt) (mem_bk_pow hok hm) hC σ
     (h.sub (by vs_mem))) h (by vs_mem)
 
 include hok hm hC in
 theorem s_root (σ : Val) (h : Fixes σ (vsG6 D P lp sq out)) :
-    Completes C Lm.read 419 451 bRoot σ (fun σ' => Fixes σ' (vsG7 D P lp sq out)) :=
+    Completes C rd 419 451 bRoot σ (fun σ' => Fixes σ' (vsG7 D P lp sq out)) :=
   completes_step (c_root σ (h.get (by vs_mem))
     (by rw [h.get (k := 134) (e := (digestScalars (obsAll D.cv0 D.ann)).1) (by vs_mem),
       h.get (k := 135) (e := (digestScalars (obsAll D.cv0 D.ann)).2) (by vs_mem)])
@@ -238,68 +238,68 @@ theorem s_root (σ : Val) (h : Fixes σ (vsG6 D P lp sq out)) :
 
 include hm in
 theorem s_bus (σ : Val) (h : Fixes σ (vsG7 D P lp sq out)) :
-    Completes C Lm.read 451 701 bBus σ (fun σ' => Fixes σ' (vsG8 D P lp sq out)) :=
+    Completes C rd 451 701 bBus σ (fun σ' => Fixes σ' (vsG8 D P lp sq out)) :=
   completes_step (c_bus σ (h.sub (by vs_mem)) (mem_alpha hm) (mem_fpw hm)) h (by vs_mem)
 
 include hok hm hC in
 theorem s_calls (σ : Val) (h : Fixes σ (vsG8 D P lp sq out)) :
-    Completes C Lm.read 701 735 bCalls σ (fun σ' => Fixes σ' (vsG9 D P lp sq out)) :=
+    Completes C rd 701 735 bCalls σ (fun σ' => Fixes σ' (vsG9 D P lp sq out)) :=
   completes_step (c_calls hok hm hC σ (h.sub (by vs_mem))) h (by vs_mem)
 
 include hok hm hC in
 theorem s_ring (σ : Val) (h : Fixes σ (vsG9 D P lp sq out)) :
-    Completes C Lm.read 735 1166 bRing σ (fun σ' => Fixes σ' (vsG10 D P lp sq out)) :=
+    Completes C rd 735 1166 bRing σ (fun σ' => Fixes σ' (vsG10 D P lp sq out)) :=
   completes_step (c_ring hok hm hC σ (h.sub (by vs_mem))) h (by vs_mem)
 
 include hok hm in
 theorem s_lam (σ : Val) (h : Fixes σ (vsG10 D P lp sq out)) :
-    Completes C Lm.read 1166 1629 bLam σ (fun σ' => Fixes σ' (vsG11 D P lp sq out)) :=
+    Completes C rd 1166 1629 bLam σ (fun σ' => Fixes σ' (vsG11 D P lp sq out)) :=
   completes_step (c_lam hok.claims_length hm σ (h.sub (by vs_mem))) h (by vs_mem)
 
-include hκ hκ6 hb hok hC in
+include hlow hb hok hC in
 theorem s_open (σ : Val) (h : Fixes σ (vsG11 D P lp sq out)) :
-    Completes C Lm.read 1629 1652 bOpen σ (fun σ' => Fixes σ' (vsG11 D P lp sq out)) :=
-  completes_last (c_open hκ hκ6 Lm hb hok hC σ (h.sub (by vs_mem))) h (by vs_mem)
+    Completes C rd 1629 1652 bOpen σ (fun σ' => Fixes σ' (vsG11 D P lp sq out)) :=
+  completes_last (c_open hlow hb hok hC σ (h.sub (by vs_mem))) h (by vs_mem)
 
 include hb hok hm in
 theorem s_defer (σ : Val) (h : Fixes σ (vsG11 D P lp sq out)) :
-    Completes C Lm.read 1652 1754 bDefer σ (fun σ' => Fixes σ' (vsG11 D P lp sq out)) :=
+    Completes C rd 1652 1754 bDefer σ (fun σ' => Fixes σ' (vsG11 D P lp sq out)) :=
   completes_last (c_defer hb hok hm σ (h.sub (by vs_mem))) h (by vs_mem)
 
 end Steps
 
 /-- **`verify_sub`'s body completes**, for any relation `C` its calls hold of, over the honest
 memory. -/
-theorem vs_body {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) (hb : bytecode.length = 2 ^ 22)
-    (hok : D.Ok bytecode) (ht : ExpTables Lm.read lp sq) (hm : VsMem Lm.read D P out)
+theorem vs_body (hlow : LowDef 6 rd) (hb : bytecode.length = 2 ^ 22)
+    (hok : D.Ok bytecode) (ht : ExpTables rd lp sq) (hm : VsMem rd D P out)
     (hC : VsCallsOk C bytecode D P lp sq) (σ0 : Val) (h0 : Fixes σ0 (vsG0 D lp sq out)) :
-    Completes C Lm.read 7 1754 vsBody σ0 (fun σ' => Fixes σ' (vsG11 D P lp sq out)) := by
+    Completes C rd 7 1754 vsBody σ0 (fun σ' => Fixes σ' (vsG11 D P lp sq out)) := by
   rw [vsBody_eq]
   refine Completes.append (by omega) (by omega) numBelow_pre12 ?_ fun σ _ h =>
-    s_defer Lm hb hok hm σ h
+    s_defer hb hok hm σ h
   refine Completes.append (by omega) (by omega) numBelow_pre11 ?_ fun σ _ h =>
-    s_open hκ hκ6 Lm hb hok hC σ h
+    s_open hlow hb hok hC σ h
   refine Completes.append (by omega) (by omega) numBelow_pre10 ?_ fun σ _ h =>
-    s_lam Lm hok hm σ h
+    s_lam hok hm σ h
   refine Completes.append (by omega) (by omega) numBelow_pre9 ?_ fun σ _ h =>
-    s_ring Lm hok hm hC σ h
+    s_ring hok hm hC σ h
   refine Completes.append (by omega) (by omega) numBelow_pre8 ?_ fun σ _ h =>
-    s_calls Lm hok hm hC σ h
+    s_calls hok hm hC σ h
   refine Completes.append (by omega) (by omega) numBelow_pre7 ?_ fun σ _ h =>
-    s_bus Lm hm σ h
+    s_bus hm σ h
   refine Completes.append (by omega) (by omega) numBelow_pre6 ?_ fun σ _ h =>
-    s_root Lm hok hm hC σ h
+    s_root hok hm hC σ h
   refine Completes.append (by omega) (by omega) numBelow_pre5 ?_ fun σ _ h =>
-    s_push Lm hb hok ht hm hC σ h
+    s_push hb hok ht hm hC σ h
   refine Completes.append (by omega) (by omega) numBelow_pre4 ?_ fun σ _ h =>
-    s_bk Lm hok hm σ h
+    s_bk hok hm σ h
   refine Completes.append (by omega) (by omega) numBelow_pre3 ?_ fun σ _ h =>
-    s_kbase Lm hok hm σ h
+    s_kbase hok hm σ h
   refine Completes.append (by omega) (by omega) numBelow_pre2 ?_ fun σ _ h =>
-    s_sizes hκ hκ6 Lm hok hm hC σ h
+    s_sizes hlow hok hm hC σ h
   refine Completes.append (by omega) (by omega) numBelow_pre1 ?_ fun σ _ h =>
-    s_reads Lm hok hm σ h
-  exact s_seed Lm σ0 h0
+    s_reads hok hm σ h
+  exact s_seed σ0 h0
 
 end
 end LeanVM.Guest.B1.VerifySub

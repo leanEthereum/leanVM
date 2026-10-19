@@ -195,12 +195,11 @@ theorem openNames_getD {j : ℕ} (hj : j < 28) : openNames.getD j "" = openNames
   List.getD_eq_getElem _ _ _
 
 /-- **The stack's size, the opening and the terminal** (G:2231-2263). -/
-theorem c_open {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) {bytecode : List K} {lp sq : E}
+theorem c_open (hlow : LowDef 6 rd) {bytecode : List K} {lp sq : E}
     (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (hC : VsCallsOk C bytecode D P lp sq)
     (σ : Val) (hσ : Fixes σ (openIn D P lp sq)) :
-    Completes C Lm.read 1629 1652 bOpen σ (fun _ => True) := by
+    Completes C rd 1629 1652 bOpen σ (fun _ => True) := by
   have e : ∀ k e, (k, e) ∈ openIn D P lp sq → σ (.n k) = e := fun k e h => hσ.get h
-  have h64 : (64 : ℕ) ≤ 2 ^ κ := le_trans (by decide) (Nat.pow_le_pow_right (by decide) hκ6)
   set μ := (layoutOf bytecode D.logMem D.rows).stackLog with hμ
   have hμe : μ = max 15 (log2Ceil D.stackTot) := stackLog_eq hb _ _
   have h1 := hok.stack_ge
@@ -212,14 +211,14 @@ theorem c_open {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
   have hsel : sel < 28 := by omega
   refine completes_upds [(1629, gen ^ D.stackTot), (1630, P.off), (1631, P.kap), (1632, gen ^ μ),
     (1633, word 8198552432976855044 0 0), (1634, gen ^ (μ - 22)), (1635, word 64 0 0),
-    (1636, (rcAux Lm (gen ^ (μ - 22)) 7).1), (1637, (rcAux Lm (gen ^ (μ - 22)) 7).2.1),
-    (1638, (rcAux Lm (gen ^ (μ - 22)) 7).2.2), (1639, gen ^ (r - 1) * gen ^ (r - 1)),
+    (1636, (rcLow rd (μ - 22) 7).1), (1637, (rcLow rd (μ - 22) 7).2.1),
+    (1638, (rcLow rd (μ - 22) 7).2.2), (1639, gen ^ (r - 1) * gen ^ (r - 1)),
     (1640, gen ^ (r - 1) * gen ^ (r - 1) * gen ^ (r - 1)),
     (1641, gen ^ (r - 1) * gen ^ (r - 1) * gen ^ (r - 1) * (gen ^ (r - 1) * gen ^ (r - 1) * gen ^ (r - 1))),
     (1642, gen ^ (r - 1) * gen ^ (r - 1) * gen ^ (r - 1) * (gen ^ (r - 1) * gen ^ (r - 1) * gen ^ (r - 1)) *
       gen ^ (r - 1)), (1643, gen ^ sel), (1644, word 134217728 0 0),
-    (1645, (rcAux Lm (gen ^ sel) 28).1), (1646, (rcAux Lm (gen ^ sel) 28).2.1),
-    (1647, (rcAux Lm (gen ^ sel) 28).2.2), (1648, D.w.target), (1649, P.pt), (1650, D.w.inner),
+    (1645, (rcLow rd sel 28).1), (1646, (rcLow rd sel 28).2.1),
+    (1647, (rcLow rd sel 28).2.2), (1648, D.w.target), (1649, P.pt), (1650, D.w.inner),
     (1651, D.w.residual)] (by simp) (fun next kret hn => ?_) trivial
   simp only [bOpen, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil]
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hn⟩
@@ -232,7 +231,7 @@ theorem c_open {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
     conv_rhs => rw [show μ = (μ - 22) + 22 by omega, pow_add, mul_assoc, mul_comm (gen ^ 22),
       minShiftInv, mul_one]
   · simp only [Atom.Holds]; vs_ev
-  · exact rc_holds hκ Lm (K := 7) (e := μ - 22) (by omega) (by omega) (by omega) (by vs_ev)
+  · exact rc_holds_low hlow (K := 7) (e := μ - 22) (by omega) (by omega) (by vs_ev)
       (by vs_ev) (by vs_ev) (by vs_ev) (by vs_ev; exact word_two_pow (a := 6) (by decide))
   · simp only [Atom.Holds]; vs_ev; rw [e 138 (gen ^ (r - 1)) (by simp [openIn, r])]
   · simp only [Atom.Holds]; vs_ev; rw [e 138 (gen ^ (r - 1)) (by simp [openIn, r])]
@@ -241,7 +240,7 @@ theorem c_open {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
   · simp only [Atom.Holds]; vs_ev
     simp only [← pow_add]; congr 1; omega
   · simp only [Atom.Holds]; vs_ev
-  · exact rc_holds hκ Lm (K := 28) (e := sel) (by omega) (by omega) hsel (by vs_ev)
+  · exact rc_holds_low hlow (K := 28) (e := sel) (by omega) hsel (by vs_ev)
       (by vs_ev) (by vs_ev) (by vs_ev) (by vs_ev; exact word_two_pow (a := 27) (by decide))
   · vs_ev
     refine ⟨sel, by simp [openNames]; omega, by rw [gen_pow_eq_ofK], ?_⟩

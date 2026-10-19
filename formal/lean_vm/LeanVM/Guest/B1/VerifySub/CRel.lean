@@ -178,7 +178,7 @@ theorem verify_sub_complete_rel {TCtx : Reader → Layout → BusResult → List
   have h0 : Fixes σ0 (vsG0 D lp sq out) := by
     intro p hp; simp only [vsG0, List.mem_cons, List.mem_nil_iff, or_false] at hp
     rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp [σ0, vsG0, upds_n]
-  obtain ⟨σ, he, -, hh⟩ := vs_body hκ hκ6 Lm hb hok ht hm hC σ0 h0
+  obtain ⟨σ, he, -, hh⟩ := vs_body ((lowDef_memImage hκ Lm).mono hκ6) hb hok ht hm hC σ0 h0
   rw [rel_iff_sem find_verify_sub, core15_body', core15_params]
   refine ⟨σ, ?_, ?_⟩
   · have hp : ∀ k < 7, σ (.n k) = σ0 (.n k) := fun k hk => he.apply (Or.inl hk)
