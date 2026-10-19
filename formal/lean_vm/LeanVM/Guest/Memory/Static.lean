@@ -32,8 +32,9 @@ collapsing their terms and checking their preconditions, or as the caller's para
 the caller's bound and preconditions then name; a loop entry is its iteration count times its
 iteration's bound. Branches add up, a fused dispatch adds every arm. A loop helper's own body is
 checked without its tail call, against its shape (`loopShape`). Counting words (`α`), each
-`HeapBuf` adds its size (`atomB`): `n` for `HeapBuf(n)`, the exponent of a dynamic one's size, a
-constant or a parameter's.
+`HeapBuf` adds its size (`atomB`): `n` for `HeapBuf(n)`, a bound on the exponent of a dynamic
+one's size (`bnd`): a constant's, a parameter's, or a tracked product `x·g^c`'s, `x`'s bound plus
+`c` (`logG_mul_le`), threaded in the environment's bounds (`BEnv`).
 
 **Soundness** (`chk_sound`): if the checker accepts every function of a program, every valid tree
 of a function costs at most its certificate's bound: its weight, and counting words its paths'
@@ -73,7 +74,8 @@ def ArgsPre (pre : List (ℕ × ℕ)) (args : List E) : Prop :=
 inductive Cert where
   /-- No bound. -/
   | none
-  /-- Weight at most `b`, under `pre`; the constants `ks` (value, exponent) the check uses. -/
+  /-- Weight at most `b`, under `pre`; the constants `ks` (value, exponent) the check uses, an
+  exponent `trackE` marking a value whose exponent bound it tracks instead. -/
   | stat (pre : List (ℕ × ℕ)) (b : Aff) (ks : List (V × ℕ))
   /-- A loop helper, its end its parameter 1 (`none`) or `g^e`: each iteration weighs at most
   `b`, under `pre`, neither naming the counter. -/
@@ -84,6 +86,13 @@ inductive Cert where
 
 /-- Constants known `g^e`. -/
 abbrev Env := List (V × ℕ)
+
+/-- Values whose exponent is bounded: `logG (σ v) ≤ b`. -/
+abbrev BEnv := List (V × Aff)
+
+/-- The exponent in a certificate's constants marking a value whose exponent bound the check
+tracks (no constant passes `constOk` at it). -/
+def trackE : ℕ := 2 ^ 20
 
 /-- A constant word is `g^e`: the word `2^e` below the first reduction, by digits above. -/
 def constOk (w : E) (e : ℕ) : Bool :=
@@ -113,6 +122,20 @@ def cls (ρ : Env) (ps : List V) (v : V) : VCls :=
   | none => match vidx v ps 0 with
     | some k => .param k
     | none => .none
+
+/-- A value's bound entry. -/
+def blookup (v : V) : BEnv → Option Aff
+  | [] => none
+  | q :: l => if v.idx == q.1.idx && decide (v = q.1) then some q.2 else blookup v l
+
+/-- A bound on a value's exponent: tracked, a known constant's, or a parameter's. -/
+def bnd (ρ : Env × BEnv) (ps : List V) (v : V) : Option Aff :=
+  match blookup v ρ.2 with
+  | some b => some b
+  | none => match cls ρ.1 ps v with
+    | .pow e => some ⟨e, []⟩
+    | .param k => some ⟨0, [(k, 1)]⟩
+    | .none => none
 
 /-- A bound and the preconditions it needs. -/
 abbrev Acc := Aff × List (ℕ × ℕ)
@@ -183,19 +206,25 @@ def siteB (cert : String → Cert) (ρ : Env) (ps : List V) (g : String) (args :
 def Acc.zero : Acc := (⟨0, []⟩, [])
 
 /-- **An atom's bound and the constants after it**: a certified constant joins them; counting
-words (`α`), a `HeapBuf(n)` adds `n` and a dynamic one the exponent of its size, a constant or a
-parameter's (`cls`), or fails. -/
-def atomB (α : Bool) (ks : List (V × ℕ)) (ps : List V) (ρ : Env) : Atom → Option (Acc × Env)
+words (`α`), a tracked product `d = x·g^c` is bounded by `x`'s bound plus `c`, a `HeapBuf(n)` adds
+`n` and a dynamic one its size's exponent bound (`bnd`), or fails. -/
+def atomB (α : Bool) (ks : List (V × ℕ)) (ps : List V) (ρ : Env × BEnv) :
+    Atom → Option (Acc × (Env × BEnv))
   | .const v w => match vlookup v ks with
-      | some e => if constOk w e then some (Acc.zero, (v, e) :: ρ) else some (Acc.zero, ρ)
+      | some e => if constOk w e then some (Acc.zero, ((v, e) :: ρ.1, ρ.2)) else some (Acc.zero, ρ)
       | none => some (Acc.zero, ρ)
+  | .mul d x y =>
+      if α && vlookup d ks == some trackE then
+        match bnd ρ ps x, cls ρ.1 ps y with
+        | some b, .pow c => some (Acc.zero, (ρ.1, (d, b.add ⟨c, []⟩) :: ρ.2))
+        | _, _ => none
+      else some (Acc.zero, ρ)
   | .hint (.alloc _ n) => some (if α then (⟨n, []⟩, []) else Acc.zero, ρ)
   | .hint (.allocDyn _ s) =>
       if α then
-        match cls ρ ps s with
-        | .pow e => some ((⟨e, []⟩, []), ρ)
-        | .param k => some ((⟨0, [(k, 1)]⟩, []), ρ)
-        | .none => none
+        match bnd ρ ps s with
+        | some b => some ((b, []), ρ)
+        | none => none
       else some (Acc.zero, ρ)
   | _ => some (Acc.zero, ρ)
 
@@ -203,7 +232,7 @@ mutual
 /-- **A block's bound**: its call sites' bounds (and, counting words, its `HeapBuf`s) summed, the
 certified constants threaded. -/
 def blockB (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V) (self : String) :
-    Env → List Stmt → Option Acc
+    Env × BEnv → List Stmt → Option Acc
   | _, [] => some (⟨0, []⟩, [])
   | ρ, .atom a :: ss =>
       match atomB α ks ps ρ a with
@@ -213,17 +242,17 @@ def blockB (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : Lis
       (Option.addAcc (blockB cert α ks ps self ρ n) (blockB cert α ks ps self ρ ss))
   | ρ, .match_ _ arms :: ss =>
       Option.addAcc (armsB cert α ks ps self ρ arms) (blockB cert α ks ps self ρ ss)
-  | ρ, .call g args _ :: ss => Option.addAcc (siteB cert ρ ps g args) (blockB cert α ks ps self ρ ss)
+  | ρ, .call g args _ :: ss => Option.addAcc (siteB cert ρ.1 ps g args) (blockB cert α ks ps self ρ ss)
   | ρ, .callIf _ g args :: ss =>
       if g = self then none
-      else Option.addAcc (siteB cert ρ ps g args) (blockB cert α ks ps self ρ ss)
+      else Option.addAcc (siteB cert ρ.1 ps g args) (blockB cert α ks ps self ρ ss)
   | ρ, .dispatch _ gs args _ :: ss =>
-      Option.addAcc (sumB (fun g => siteB cert ρ ps g args) gs) (blockB cert α ks ps self ρ ss)
+      Option.addAcc (sumB (fun g => siteB cert ρ.1 ps g args) gs) (blockB cert α ks ps self ρ ss)
   | _, .ret _ :: _ => some (⟨0, []⟩, [])
 
 /-- The arms' bounds, summed. -/
 def armsB (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V) (self : String) :
-    Env → List (List Stmt) → Option Acc
+    Env × BEnv → List (List Stmt) → Option Acc
   | _, [] => some (⟨0, []⟩, [])
   | ρ, a :: as => Option.addAcc (blockB cert α ks ps self ρ a) (armsB cert α ks ps self ρ as)
 end
@@ -233,15 +262,15 @@ constants after it, or stops the block (`ret`) (`stmtR`, `blockR`, `armsR`, equa
 by `blockR_eq`). -/
 noncomputable def stmtR (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V)
     (self : String) :
-    Stmt → Env → Option (Acc × Option Env) :=
-  @Stmt.rec (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
-    (fun _ => Env → Option Acc)
+    Stmt → Env × BEnv → Option (Acc × Option (Env × BEnv)) :=
+  @Stmt.rec (fun _ => Env × BEnv → Option (Acc × Option (Env × BEnv))) (fun _ => Env × BEnv → Option Acc)
+    (fun _ => Env × BEnv → Option Acc)
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none else (siteB cert ρ ps g args).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ ps g args) gs).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun _ g args ρ => if g = self then none else (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -254,15 +283,15 @@ noncomputable def stmtR (cert : String → Cert) (α : Bool) (ks : List (V × �
 /-- `stmtR` of a block. -/
 noncomputable def blockR (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V)
     (self : String) :
-    List Stmt → Env → Option Acc :=
-  @Stmt.rec_1 (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
-    (fun _ => Env → Option Acc)
+    List Stmt → Env × BEnv → Option Acc :=
+  @Stmt.rec_1 (fun _ => Env × BEnv → Option (Acc × Option (Env × BEnv))) (fun _ => Env × BEnv → Option Acc)
+    (fun _ => Env × BEnv → Option Acc)
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none else (siteB cert ρ ps g args).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ ps g args) gs).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun _ g args ρ => if g = self then none else (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -275,15 +304,15 @@ noncomputable def blockR (cert : String → Cert) (α : Bool) (ks : List (V × �
 /-- `stmtR` of arms. -/
 noncomputable def armsR (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V)
     (self : String) :
-    List (List Stmt) → Env → Option Acc :=
-  @Stmt.rec_2 (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
-    (fun _ => Env → Option Acc)
+    List (List Stmt) → Env × BEnv → Option Acc :=
+  @Stmt.rec_2 (fun _ => Env × BEnv → Option (Acc × Option (Env × BEnv))) (fun _ => Env × BEnv → Option Acc)
+    (fun _ => Env × BEnv → Option Acc)
     (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
-    (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
-    (fun _ g args ρ => if g = self then none else (siteB cert ρ ps g args).map fun r => (r, some ρ))
-    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ ps g args) gs).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun _ g args ρ => if g = self then none else (siteB cert ρ.1 ps g args).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ.1 ps g args) gs).map fun r => (r, some ρ))
     (fun _ _ => some (Acc.zero, none))
     (fun _ => some Acc.zero)
     (fun _ _ hs hss ρ => match hs ρ with
@@ -402,12 +431,12 @@ noncomputable def chkFn (look : String → Cert) (α : Bool) (own : Cert) (w : �
   match own with
   | .none => true
   | .stat pre b ks =>
-      match blockR look α ks fn.params fn.name fn.body [] with
+      match blockR look α ks fn.params fn.name fn.body ([], []) with
       | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
       | none => false
   | .loop endc pre b ks =>
       match loopShape fn endc with
-      | some pre' => match blockR look α ks fn.params fn.name pre' [] with
+      | some pre' => match blockR look α ks fn.params fn.name pre' ([], []) with
         | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre) &&
             b.cs.all (·.1 ≠ 0) && pre.all (·.1 ≠ 0)
         | none => false

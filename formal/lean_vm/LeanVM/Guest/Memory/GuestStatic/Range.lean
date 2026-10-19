@@ -30,7 +30,7 @@ def StaticRange (a n : ℕ) : Prop := (List.range' a n).all chkIdx = true
 /-- **A function checked in ranges of its body**: its certificate a bound with no constants. -/
 theorem chkIdx_of_split {j : ℕ} {fn : Fn} {pre : List (ℕ × ℕ)} {b : Aff} {R : Acc}
     (hfn : coreProgram[j]? = some fn) (hc : certJ j = .stat pre b [])
-    (hb : blockB (lookJ j) false [] fn.params fn.name [] fn.body = some R)
+    (hb : blockB (lookJ j) false [] fn.params fn.name ([], []) fn.body = some R)
     (hl : (lnkJ j).all (fun q => decide ((coreProgram[q.2]?).map Fn.name = some q.1)) = true)
     (hle : (Aff.leB ⟨omegaJ j + R.1.c, R.1.cs⟩ b && R.2.all (· ∈ pre)) = true) : chkIdx j = true := by
   unfold chkIdx
