@@ -569,12 +569,12 @@ theorem cpInitVals_W (w : ℕ → E) {c : ℕ} (hc : c < 92) : cpInitVals w (cpW
   split_ifs <;> first | omega | (congr 1; omega) | rfl
 
 /-- Column `c`'s size holds of the honest valuation. -/
-theorem cp_init_ok {μ : ℕ} (Lm : MemImage μ) {A B C D : ℕ → E × E × E} {kb sq : E} (κs : List ℕ)
+theorem cp_init_ok (rd : Reader) {A B C D : ℕ → E × E × E} {kb sq : E} (κs : List ℕ)
     {p2 p99 p100 : E}
     {w : ℕ → E} {F : ℕ → E} (hF : F = cpF A B C D κs kb sq p2 p99 p100 w)
-    (hw : ∀ c < 92, LoadHolds Lm.read kb (cpSrc c) (w c) ∧ w c * gen ^ cpAdj c = gen ^ κs.getD c 0)
-    (l2 : ∀ c < 92, LoadHolds Lm.read p2 c (gen ^ κs.getD c 0)) (c : ℕ) (hc : c < 92) :
-    CpInitOk Lm.read (fun v => F v.idx) c := by
+    (hw : ∀ c < 92, LoadHolds rd kb (cpSrc c) (w c) ∧ w c * gen ^ cpAdj c = gen ^ κs.getD c 0)
+    (l2 : ∀ c < 92, LoadHolds rd p2 c (gen ^ κs.getD c 0)) (c : ℕ) (hc : c < 92) :
+    CpInitOk rd (fun v => F v.idx) c := by
   have f0 : F 0 = kb := by rw [hF]; rfl
   have f2 : F 2 = p2 := by rw [hF]; rfl
   have hW : F (cpW c) = w c := by
@@ -606,18 +606,18 @@ def RcOk (rd : Reader) (x : E) (K : ℕ) (a : E × E × E) : Prop :=
 
 /-- Rank `r + 1` holds of the honest valuation. -/
 
-theorem cp_rank_ok {μ : ℕ} (Lm : MemImage μ) {A B C D : ℕ → E × E × E} {kb sq : E}
-    (hsq : ∀ j < 34, LoadHolds Lm.read sq j (gen ^ 2 ^ j)) (κs : List ℕ) (hlen : κs.length = 92)
+theorem cp_rank_ok (rd : Reader) {A B C D : ℕ → E × E × E} {kb sq : E}
+    (hsq : ∀ j < 34, LoadHolds rd sq j (gen ^ 2 ^ j)) (κs : List ℕ) (hlen : κs.length = 92)
     {p2 p99 p100 : E} {w : ℕ → E} {F : ℕ → E} (hF : F = cpF A B C D κs kb sq p2 p99 p100 w)
     (hπ : ∀ r < 92, cpPi κs r < 92) (hk : ∀ r < 92, cpK κs r < 34)
-    (l99 : ∀ r < 92, LoadHolds Lm.read p99 r (gen ^ cpPi κs r))
-    (l2 : ∀ c < 92, LoadHolds Lm.read p2 c (gen ^ κs.getD c 0))
-    (l100 : ∀ r < 92, LoadHolds Lm.read p100 (cpPi κs r) (gen ^ cpS κs r))
-    (hA : ∀ r < 92, RcOk Lm.read (gen ^ cpPi κs r) 92 (A r))
-    (hB : ∀ r < 92, RcOk Lm.read (gen ^ (cpK κs (r - 1) - cpK κs r)) 34 (B r))
-    (hC : ∀ r < 92, RcOk Lm.read (gen ^ (cpPi κs r - cpPi κs (r - 1))) 92 (C r))
-    (hD : ∀ r < 92, RcOk Lm.read (gen ^ cpK κs r) 34 (D r)) (r : ℕ) (hr : r < 91) :
-    CpRankOk Lm.read (fun v => F v.idx) (r + 1) := by
+    (l99 : ∀ r < 92, LoadHolds rd p99 r (gen ^ cpPi κs r))
+    (l2 : ∀ c < 92, LoadHolds rd p2 c (gen ^ κs.getD c 0))
+    (l100 : ∀ r < 92, LoadHolds rd p100 (cpPi κs r) (gen ^ cpS κs r))
+    (hA : ∀ r < 92, RcOk rd (gen ^ cpPi κs r) 92 (A r))
+    (hB : ∀ r < 92, RcOk rd (gen ^ (cpK κs (r - 1) - cpK κs r)) 34 (B r))
+    (hC : ∀ r < 92, RcOk rd (gen ^ (cpPi κs r - cpPi κs (r - 1))) 92 (C r))
+    (hD : ∀ r < 92, RcOk rd (gen ^ cpK κs r) 34 (D r)) (r : ℕ) (hr : r < 91) :
+    CpRankOk rd (fun v => F v.idx) (r + 1) := by
   have hR : ∀ R, 1 ≤ R → R ≤ 91 → ∀ j < 26,
       F (90 + 26 * R + j) = (cpRankVals A B C D κs sq p2 p100 R).getD j 0 := fun R h1 h2 j hj => by
     rw [hF]; exact cpF_rank A B C D κs rfl h1 h2 hj
@@ -772,7 +772,7 @@ theorem cp_complete {μ : ℕ} (hμ7 : 7 ≤ μ) (hμ : μ ≤ 32) (Lm : MemImag
     rw [List.getD_eq_getElem _ _ (by rw [hlen]; simpa using h1)]
   rw [cp_unfold]
   refine ⟨fun v => F v.idx, by show [F 0, F 1] = _; rw [f0, f1], fun c hc => ?_, ?_⟩
-  · exact cp_init_ok Lm κs hF hw l2 c hc
+  · exact cp_init_ok Lm.read κs hF hw l2 c hc
   · have v := fun j hj => h0 j hj
     have v0 : F 101 = gen ^ cpPi κs 0 := v 0 (by omega)
     have v1 : F 102 = w91 := v 1 (by omega)
@@ -808,7 +808,7 @@ theorem cp_complete {μ : ℕ} (hμ7 : 7 ≤ μ) (hμ : μ ≤ 32) (Lm : MemImag
     · show F 114 = F 1 * F 107; rw [v13, f1, v6]
     · show LoadHolds _ (F 114) 0 (F 115)
       rw [v13, v14, loadHolds_mul_gen_pow, Nat.add_zero]; exact hsq _ (hk 0 (by omega))
-    · exact cp_rank_ok Lm hsq κs hlen hF hπ hk l99 l2 l100 hA hB hC hD r hr
+    · exact cp_rank_ok Lm.read hsq κs hlen hF hπ hk l99 l2 l100 hA hB hC hD r hr
     · show F 2482 = F 2481
       rw [show F 2482 = gen ^ cpS κs 92 by rw [hF]; rfl]
       have := hR 91 (by omega) (by omega) 25 (by omega)
