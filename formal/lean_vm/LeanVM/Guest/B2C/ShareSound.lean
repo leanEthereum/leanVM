@@ -1627,5 +1627,249 @@ theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
 
 end Fn
 
+/-! ## The windows chained -/
+
+section Chain
+
+open LeanVM.Guest.Memory
+
+variable {j : ℕ} {rd : Reader} {σ : Val}
+
+theorem out_seq_assoc_sh : ∀ (o k l : Out), (o.seq k).seq l = o.seq (k.seq l)
+  | .fall es, .fall es', l => by cases l <;> simp [Out.seq, Out.pre, List.append_assoc]
+  | .fall es, .ret es' vs, l => by simp [Out.seq, Out.pre]
+  | .fall es, .stuck, l => by simp [Out.seq, Out.pre]
+  | .ret es vs, k, l => by simp [Out.seq]
+  | .stuck, k, l => by simp [Out.seq]
+
+theorem walk_append_sh : ∀ (l l' : List Stmt), walk σ (l ++ l') = (walk σ l).seq (walk σ l')
+  | [], l' => by
+      rw [List.nil_append, walk]
+      cases walk σ l' <;> simp [Out.seq, Out.pre]
+  | s :: l, l' => by rw [List.cons_append, walk, walk, walk_append_sh l l', out_seq_assoc_sh]
+
+/-- The statements from window `i` on. -/
+def fromAt (C : Check.Cert) (cf : Core.Fn) (i : ℕ) : List Stmt := cf.body.drop (C.cutAt i).start
+
+theorem fromAt_split {C : Check.Cert} {cf : Core.Fn} {i : ℕ} (hi : i < C.cuts.length)
+    (hle : (C.cutAt i).start ≤ (C.cutAt (i + 1)).start) :
+    fromAt C cf i = C.stmtsAt cf i ++ fromAt C cf (i + 1) := by
+  simp only [fromAt, Cert.stmtsAt, Nat.blt_eq.mpr hi, Bool.cond_true]
+  have := List.take_append_drop ((C.cutAt (i + 1)).start - (C.cutAt i).start) (cf.body.drop (C.cutAt i).start)
+  rw [List.drop_drop, Nat.add_sub_cancel' hle] at this
+  exact this.symm
+
+theorem fromAt_last {C : Check.Cert} {cf : Core.Fn} {i : ℕ} (hi : C.cuts.length ≤ i) :
+    fromAt C cf i = C.stmtsAt cf i := by
+  simp only [fromAt, Cert.stmtsAt, blt_false hi, Bool.cond_false]
+
+theorem monoOk_spec {C : Check.Cert} (h : monoOk C = true) {i : ℕ} (hi : i < C.cuts.length) :
+    (C.cutAt i).start ≤ (C.cutAt (i + 1)).start := by
+  simp only [monoOk, List.all_eq_true, List.mem_range, Nat.ble_eq] at h
+  exact h i hi
+
+theorem valOk_spec {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {v : V} (h : valOk loc tt tc fc n v = true) :
+    v = V.n v.idx ∧ (loc.get? v.idx).isSome ∧ loc.cell v < n ∧ bitN fc (loc.cell v) = false ∧
+      (bitN tc (loc.cell v) = false ∨ listedT tt v (loc.cell v) = true) := by
+  simp only [valOk, Bool.and_eq_true, beq_iff_eq, Nat.blt_eq, Bool.not_eq_true', Bool.or_eq_true] at h
+  exact ⟨h.1.1.1.1, h.1.1.1.2, h.1.1.2, h.1.2, h.2⟩
+
+/-- A window's values, its cells the certificate's. -/
+theorem fitV_of {loc : Loc} {tt : Exec.Trie ℕ} {tc fc n : ℕ} {cg : V → ℕ} {vs : List V}
+    (hA : ∀ v c, loc.get? v.idx = some c → cg v = c) (h : ∀ v ∈ vs, valOk loc tt tc fc n v = true) :
+    FitV loc cg vs := fun v hv ↦ by
+  obtain ⟨h1, h2, -⟩ := valOk_spec (h v hv)
+  obtain ⟨c, hc⟩ := Option.isSome_iff_exists.mp h2
+  refine ⟨h1, ?_⟩
+  unfold Loc.cell
+  rw [hc, hA v c hc]; rfl
+
+theorem locAgree_strong {loc : Loc} {cg : V → ℕ} (hA : ∀ v c, loc.get? v.idx = some c → cg v = c) :
+    LocAgree loc cg := fun v hv ↦ by
+  unfold Loc.cell at hv ⊢
+  cases hg : loc.get? v.idx with
+  | none => rw [hg] at hv; simp at hv
+  | some c => rw [hA v c hg]; rfl
+
+/-- The events of a walk that returns. -/
+theorem evs_ret {o : Out} {es : List Ev} {vs : List V} (h : o = .ret es vs) : o.evs = es := by
+  rw [h]; rfl
+
+/-- **The windows chained**: from window `i`'s start, on a path from there that returns, every value
+named before or on it holds its cell's word, and the cells occupied at the start keep theirs. -/
+theorem chain_sound (hS : ShareOk j)
+    (hA : ∀ i ≤ (certOf j).cuts.length, ∀ v c, (locW (certOf j) i).get? v.idx = some c → cellJ j v = c) :
+    ∀ k i, i + k = (certOf j).cuts.length → ∀ (pre : List V) (Ψ : ℕ → E),
+      Inv (cellJ j) rd σ (startSt j i) pre Ψ → ∀ es vs, walk σ (fromAt (certOf j) (coreOf j) i) = .ret es vs →
+      (∀ e ∈ es, e.Holds rd σ) → ∃ Ψf : ℕ → E,
+        (∀ v ∈ pre ++ es.flatMap Ev.uses ++ vs, 2 ≤ cellJ j v → σ v = Ψf (cellJ j v)) ∧
+        ∀ c, (startSt j i).occ.testBit c = true → Ψf c = Ψ c := by
+  intro k
+  induction k with
+  | zero =>
+    intro i hi pre Ψ hI es vs hw he
+    have hiN : i ≤ (certOf j).cuts.length := by omega
+    obtain ⟨-, -, hval, m, hsw, -⟩ := shareWin_spec (hS i hiN)
+    rw [fromAt_last (by omega)] at hw
+    have hfit : FitV (locW (certOf j) i) (cellJ j) (Stmt.usesList ((certOf j).stmtsAt (coreOf j) i)) :=
+      fitV_of (hA i hiN) fun v hv ↦ hval v (List.mem_append_left _ hv)
+    have hC := swL_sound (locAgree_strong (hA i hiN)) _ hsw hI hfit (by rw [evs_ret hw]; exact he)
+    rw [hw] at hC
+    obtain ⟨st'', pre', Ψ', hI', hs', hpe, hpre, hus, hvs⟩ := hC
+    have hpe' : st''.pend = [] := by
+      rcases hpe with hpe | rfl
+      · exact hpe
+      · exact swL_pend _ hsw
+    refine ⟨Ψ', fun v hv hc ↦ ?_, fun c hc ↦ (hs' c hc).2⟩
+    have hv' : v ∈ pre' := by
+      simp only [List.mem_append, List.mem_flatMap] at hv
+      rcases hv with (hv | ⟨e, he', hv⟩) | hv
+      · exact hpre v hv
+      · exact hus e he' v hv
+      · exact hvs v hv
+    exact hI'.good v hv' hc (by simp [isPend, hpe'])
+  | succ k ih =>
+    intro i hi pre Ψ hI es vs hw he
+    have hiN : i < (certOf j).cuts.length := by omega
+    obtain ⟨-, -, hval, m, hsw, href⟩ := shareWin_spec (hS i hiN.le)
+    obtain ⟨-, -, hmono, -⟩ := (shareWin_spec (hS 0 (Nat.zero_le _))).2.1 rfl
+    rw [fromAt_split hiN (monoOk_spec hmono hiN), walk_append_sh] at hw
+    have hfit : FitV (locW (certOf j) i) (cellJ j) (Stmt.usesList ((certOf j).stmtsAt (coreOf j) i)) :=
+      fitV_of (hA i hiN.le) fun v hv ↦ hval v (List.mem_append_left _ hv)
+    have hAi := locAgree_strong (hA i hiN.le)
+    cases hW : walk σ ((certOf j).stmtsAt (coreOf j) i) with
+    | stuck => rw [hW] at hw; simp [Out.seq] at hw
+    | ret es' vs' =>
+      rw [hW] at hw
+      simp only [Out.seq, Out.ret.injEq] at hw
+      obtain ⟨rfl, rfl⟩ := hw
+      have hC := swL_sound hAi _ hsw hI hfit (by rw [evs_ret hW]; exact he)
+      rw [hW] at hC
+      obtain ⟨st'', pre', Ψ', hI', hs', hpe, hpre, hus, hvs⟩ := hC
+      have hpe' : st''.pend = [] := by
+        rcases hpe with hpe | rfl
+        · exact hpe
+        · exact swL_pend _ hsw
+      refine ⟨Ψ', fun v hv hc ↦ ?_, fun c hc ↦ (hs' c hc).2⟩
+      have hv' : v ∈ pre' := by
+        simp only [List.mem_append, List.mem_flatMap] at hv
+        rcases hv with (hv | ⟨e, he', hv⟩) | hv
+        · exact hpre v hv
+        · exact hus e he' v hv
+        · exact hvs v hv
+      exact hI'.good v hv' hc (by simp [isPend, hpe'])
+    | fall es1 =>
+      rw [hW] at hw
+      simp only [Out.seq] at hw
+      cases hD : walk σ (fromAt (certOf j) (coreOf j) (i + 1)) with
+      | fall _ => rw [hD] at hw; simp [Out.pre] at hw
+      | stuck => rw [hD] at hw; simp [Out.pre] at hw
+      | ret es2 vs2 =>
+        rw [hD] at hw
+        simp only [Out.pre, Out.ret.injEq] at hw
+        obtain ⟨rfl, rfl⟩ := hw
+        have hC := swL_sound hAi _ hsw hI hfit (by
+          rw [hW]; exact fun e he' ↦ he e (List.mem_append_left _ he'))
+        rw [hW] at hC
+        obtain ⟨pre', Ψ', hI', hs', hpre, hus⟩ := hC
+        have hpe : m.pend = [] := swL_pend _ hsw
+        obtain ⟨hIs, hss⟩ := refines_inv hI' (href hiN)
+        have hst : startSt j (i + 1) = (snapAt (snapsOf j) (i + 1)).st := rfl
+        obtain ⟨Ψf, hf1, hf2⟩ := ih (i + 1) (by omega) [] Ψ' (hst ▸ hIs) es2 vs2 hD
+          fun e he' ↦ he e (List.mem_append_right _ he')
+        have hkeep : ∀ c, m.occ.testBit c = true → Ψf c = Ψ' c := fun c hc ↦
+          hf2 c (by rw [hst]; exact (hss c hc).1)
+        refine ⟨Ψf, fun v hv hc ↦ ?_, fun c hc ↦ ?_⟩
+        · have old : v ∈ pre' → σ v = Ψf (cellJ j v) := fun hv' ↦ by
+            rw [hkeep _ (hI'.occ v hv' hc)]
+            exact hI'.good v hv' hc (by simp [isPend, hpe])
+          rcases List.mem_append.mp hv with hv | hv
+          · rcases List.mem_append.mp hv with hv | hv
+            · exact old (hpre v hv)
+            · rw [List.flatMap_append] at hv
+              rcases List.mem_append.mp hv with hv | hv
+              · obtain ⟨e, he', hv⟩ := List.mem_flatMap.mp hv
+                exact old (hus e he' v hv)
+              · exact hf1 v (List.mem_append_left _ (by simpa using hv)) hc
+          · exact hf1 v (List.mem_append_right _ hv) hc
+        · rw [hkeep c (hs' c hc).1, (hs' c hc).2]
+
+end Chain
+
+/-! ## The check of a function -/
+
+section FnPath
+
+open LeanVM.Guest.Memory
+
+variable {j : ℕ} {rd : Reader} {σ : Val}
+
+theorem getF_initCst : ∀ (l : List (ℕ × PC)) (t : Exec.Trie (ℕ × ℕ × ℕ)) {c : ℕ} {x : ℕ × ℕ × ℕ},
+    getF (l.foldl (fun t q ↦ match q.2 with
+      | .k a b c => setF (a, b, c) envDepth t q.1
+      | .fpg _ => t) t) c = some x → (∃ q ∈ l, q.1 = c) ∨ getF t c = some x
+  | [], _, _, _, h => Or.inr h
+  | q :: l, t, c, x, h => by
+    rcases getF_initCst l _ h with ⟨q', hq', he⟩ | h
+    · exact Or.inl ⟨q', List.mem_cons_of_mem _ hq', he⟩
+    · rcases q with ⟨o, _ | _⟩
+      · simp only at h
+        rcases getF_setF h with ⟨rfl, -⟩ | h
+        · exact Or.inl ⟨_, List.mem_cons_self, rfl⟩
+        · exact Or.inr h
+      · exact Or.inr h
+
+/-- The words the fixed cells start with. -/
+noncomputable def initW (P : Plumb) (c : ℕ) : E :=
+  match getF (initSt P).cst c with
+  | some x => tw x
+  | none => 0
+
+theorem initSt_inv (P : Plumb) (cg : V → ℕ) : Inv cg rd σ (initSt P) [] (initW P) where
+  vn _ h := absurd h List.not_mem_nil
+  occ _ h := absurd h List.not_mem_nil
+  good _ h := absurd h List.not_mem_nil
+  named n hn _ := by simp [isNamed_eq, initSt] at hn
+  kc c x hx := by
+    refine ⟨?_, by simp only [initW, hx]⟩
+    rcases getF_initCst _ _ hx with ⟨q, hq, rfl⟩ | hx
+    · simp only [initSt]
+      exact (testBit_bitsOf _ _).mpr (List.mem_map_of_mem hq)
+    · simp [getF_eq] at hx
+  keys c k hk := by simp [initSt, getF_eq] at hk
+  pend p hp := by simp [initSt] at hp
+
+/-- **The sharing check's conclusion on a path** of function `j` that returns: one word per cell
+for every value the path names, a fixed cell's constant. -/
+theorem shareOk_path {G : Glob} {f : CompiledFn} {main : Bool} (hS : ShareOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true)
+    {es : List Ev} {vs : List V} (hw : walk σ (coreOf j).body = .ret es vs) (he : ∀ e ∈ es, e.Holds rd σ) :
+    ∃ Ψ : ℕ → E, (∀ v ∈ (coreOf j).params ++ es.flatMap Ev.uses ++ vs, 2 ≤ cellJ j v →
+      σ v = Ψ (cellJ j v)) ∧
+      ∀ o a b c, (o, PC.k a b c) ∈ (plumbOf j).stat → Ψ o = OInstr.imm a b c := by
+  have hcont := cont_of hchk
+  have hA : ∀ i ≤ (certOf j).cuts.length, ∀ v c, (locW (certOf j) i).get? v.idx = some c → cellJ j v = c :=
+    fun i hi v c h ↦ locW_get hcont hi (checkWin_parts (hchk i hi)).2 rfl (shareWin_spec (hS i hi)).1 h
+  obtain ⟨-, h0, -, -⟩ := shareWin_spec (hS 0 (Nat.zero_le _))
+  obtain ⟨-, hlists, -, hpv⟩ := h0 rfl
+  obtain ⟨Ψ1, hI1, hs1⟩ := nameStep_inv (sh := bitsOf (plumbOf j).sh) (locAgree_strong (hA 0 (Nat.zero_le _)))
+    (initSt_inv (plumbOf j) (cellJ j) (rd := rd) (σ := σ)) (fitV_of (hA 0 (Nat.zero_le _)) hpv)
+  have hst0 : startSt j 0 = nameStep (locW (certOf j) 0) (bitsOf (plumbOf j).sh) (initSt (plumbOf j))
+      (coreOf j).params := rfl
+  have hfrom : fromAt (certOf j) (coreOf j) 0 = (coreOf j).body := by
+    simp only [fromAt, Cert.cutAt, List.drop_zero]
+  obtain ⟨Ψf, hf1, hf2⟩ := chain_sound hS hA _ 0 (Nat.zero_add _) (coreOf j).params Ψ1 (hst0 ▸ by
+    simpa using hI1) es vs (by rw [hfrom]; exact hw) he
+  refine ⟨Ψf, fun v hv hc ↦ hf1 v (by simpa [List.append_assoc] using hv) hc, fun o a b c ho ↦ ?_⟩
+  simp only [listsOk, Exec.Trie.seq_eq, natSeq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
+  have := hlists.1.1.1.1.1 _ ho
+  simp only [beq_iff_eq] at this
+  have hocc : (initSt (plumbOf j)).occ.testBit o = true :=
+    (testBit_bitsOf _ _).mpr (List.mem_map_of_mem (f := Prod.fst) ho)
+  have h0 : initW (plumbOf j) o = OInstr.imm a b c := by simp only [initW, this.2]; rfl
+  rw [hf2 o (by rw [hst0]; exact (hs1 o hocc).1), (hs1 o hocc).2, h0]
+
+end FnPath
+
 end
 end LeanVM.Guest.B2C
