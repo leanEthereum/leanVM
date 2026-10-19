@@ -223,11 +223,10 @@ def runOf (cur : E) (b : ℕ) : OsRun where
 theorem runOf_ptrs (cur : E) (b : ℕ) : OsPtrsFrom cfg b (d.runOf cfg cur b) :=
   ⟨rfl, fun _ => rfl, fun _ => rfl, rfl, rfl, rfl, rfl, rfl, fun _ => rfl⟩
 
-/-- **The buffers' honest words**, in allocation order, the decoders' pointers from the levels'
-loops at `ps`. -/
-def own (fs : String → ℕ) (cert : String → V → ℕ) (ps : ℕ → ℕ) : List (List E) :=
+/-- **The buffers' honest words**, in allocation order, the decoders' pointers `Q`. -/
+def ownQ (Q : List E) : List (List E) :=
   [d.capsC cfg, d.flagsC cfg, d.fmsgC cfg, d.rootsC cfg, d.fchC cfg, d.betasC cfg, d.qwC cfg, d.qposC cfg,
-    qbpC cfg fs cert ps, d.oodzC cfg, d.oodC cfg] ++
+    Q, d.oodzC cfg, d.oodC cfg] ++
     (List.range cfg.levels.length).flatMap (fun l => [d.sqzC cfg l, d.rewC cfg l]) ++
     [d.tchC cfg, d.ptC cfg, d.baC cfg, d.bbC cfg, d.ichC cfg] ++
     (List.range cfg.levels.length).map (d.chvC cfg)
