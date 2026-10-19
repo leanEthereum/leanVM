@@ -256,7 +256,7 @@ theorem one_rel {rd : Reader} {f : String} {ps : List E} (h : coreProgram.Rel rd
     coreProgram.Rel rd f (1 :: ps) [] := by rwa [pow_zero] at h
 
 /-- **`da_verify`'s body holds** under its honest values, the pointers given. -/
-theorem dv_holds {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
+theorem dv_holds {rd : Reader} (hl : Low16 rd) {gsq : E} (hT : SquaresAt rd gsq)
     {r0 r1 v0 v1 : E} {r : ℕ} {pb pd hs ctr acc rb ct rt rc0 rc1 rr0 rr1 : E}
     (hr1 : 1 ≤ r) (hr2 : r ≤ LeanDa.maxRows)
     (h88 : ∀ i < r, L88Step rd pb pd (gen ^ i))
@@ -288,7 +288,7 @@ theorem dv_holds {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
   have hcolRel : ∀ b < 128, coreProgram.Rel rd (colName (decide (b < 64))) [gen ^ b, gen ^ r,
       gen ^ LeanDa.nPad r, gen ^ (LeanDa.nPad r - r), gen ^ LeanDa.logPad r, pb, ct, rb, hs, ctr] [] :=
     fun b hb => (da_verify_column_iff _ rd _ _).mpr (hcol b hb)
-  refine ⟨(da_row_shape_iff hm hT _ _ _).mpr ⟨_, _, _, _, _, rfl, rfl, r, hr1, hr2, rfl, rfl, rfl, rfl⟩,
+  refine ⟨da_row_shape_complete hl hT _ _ _ ⟨_, _, _, _, _, rfl, rfl, r, hr1, hr2, rfl, rfl, rfl, rfl⟩,
     rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, hk1,
     fun _ => one_rel ((l88_iff rd _ _ _ 0).mpr (loop_of_all hr1 hr33 h88)),
     rfl, by rw [← iv0_word] at hiv0; exact hiv0, rfl, by rw [← iv1_word] at hiv1; exact hiv1, fun a ha => ?_, ⟨hkc, fun k hk w hw => ?_⟩,
@@ -336,7 +336,7 @@ theorem da_verify_of_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squares
   obtain ⟨r, pb, pd, hs, ctr, acc, rb, ct, rt, rc0, rc1, rr0, rr1, hr1, hr2, h88, hiv0, hiv1, hkc, hctr, h89,
     hcol, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ := h
   rw [rel_of_find find_dv]
-  exact ⟨_, rfl, dv_holds hm hT hr1 hr2 h88 hiv0 hiv1 hkc hctr h89 hcol h92 hlv7 h93 h94 hlvr hfin hv0 hv1⟩
+  exact ⟨_, rfl, dv_holds hm.low16 hT hr1 hr2 h88 hiv0 hiv1 hkc hctr h89 hcol h92 hlv7 h93 h94 hlvr hfin hv0 hv1⟩
 
 end
 end LeanVM.Guest.B1.Digest

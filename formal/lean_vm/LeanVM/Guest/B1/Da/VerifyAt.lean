@@ -117,7 +117,7 @@ theorem l94_pure : coreProgram.PureIn ["__loop94"] := pure_one find_l94 (by deci
 /-- **`da_verify` at `fp`**: a witness opening `(root, vd)`, on a memory holding the honest words at
 `dvPtrs` and the squares table at `g^s`, holds placed by a tree of `dvTot` words loading only
 `g_squares[logPad r]` outside its own data. -/
-theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Reader} (hm : MemOk rd) {s : ℕ}
+theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Reader} (hl : Low16 rd) {s : ℕ}
     (hT : SquaresAt rd (gen ^ s)) {root vd : Digest} {w : Da.Witness} (hw : w.Opens root vd) (fp : ℕ)
     (hP : DaMem rd (dvPtrs fs cert w.rows.length fp) w) :
     RelAtIn coreProgram fs cert rd (fun i => i = s + LeanDa.logPad w.rows.length) (fun _ => False) fp
@@ -141,7 +141,7 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
     obtain ⟨hcm, hch⟩ := hcol b hb
     have hwl : (daWs w b).length = 256 := length_chunk (n := 128) hvl hb
     exact colMeaning_of_mem hb hr1 hr33 (by omega) (by omega) hwl (by simp) hcm hch (isInK_gen_pow _)
-  have hholds := dv_holds hm hT hr1 hr2 h88 hiv0 hiv1 hkc hctr h89 hcolM h92 hlv7 h93 h94 hlvr hfin hv0 hv1
+  have hholds := dv_holds hl hT hr1 hr2 h88 hiv0 hiv1 hkc hctr h89 hcolM h92 hlv7 h93 h94 hlvr hfin hv0 hv1
   set σ : Val := fun v => dvVals (gen ^ s) (gen ^ r) (gen ^ lp) (gen ^ N) (gen ^ (N - r)) P.pd P.pb P.hs P.ctr
     P.acc P.rb P.ct P.rt (digestScalars (colRootOf r (daSym w))).1 (digestScalars (colRootOf r (daSym w))).2
     (digestScalars (rowRootOf r (daSym w))).1 (digestScalars (rowRootOf r (daSym w))).2 (digestScalars root).1
@@ -265,7 +265,7 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
       show gen ^ Dx * (gen ^ j) ^ 128 = _; rw [← pow_mul, ← pow_add, Nat.mul_comm j]] at this
   -- the callees
   have hdrs : coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ lp, gen ^ s] [gen ^ N, gen ^ (N - r)] :=
-    (da_row_shape_iff hm hT _ _ _).mpr ⟨_, _, _, _, _, rfl, rfl, r, hr1, hr2, rfl, rfl, rfl, rfl⟩
+    da_row_shape_complete hl hT _ _ _ ⟨_, _, _, _, _, rfl, rfl, r, hr1, hr2, rfl, rfl, rfl, rfl⟩
   have k1 := relAtIn_of_relInT_pure cert drs_pure (List.mem_singleton_self _)
     (drs_relInT fs (R := fun i => i = s + lp) rfl hdrs)
   have k2 := relAtIn_of_relInT_pure cert l88_pure (List.mem_singleton_self _)
@@ -415,7 +415,7 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
 /-- **The uniform placed form.** -/
 theorem dv_relAtIn_uniform (fs : String → ℕ) (cert : String → V → ℕ) (s : ℕ) {root vd : Digest}
     {w : Da.Witness} (hw : w.Opens root vd) :
-    ∀ fp, ∃ n, ∀ rd, (MemOk rd ∧ SquaresAt rd (gen ^ s) ∧ DaMem rd (dvPtrs fs cert w.rows.length fp) w) →
+    ∀ fp, ∃ n, ∀ rd, (Low16 rd ∧ SquaresAt rd (gen ^ s) ∧ DaMem rd (dvPtrs fs cert w.rows.length fp) w) →
       RelAtIn coreProgram fs cert rd (fun i => i = s + LeanDa.logPad w.rows.length) (fun _ => False) fp n
         "da_verify" [gen ^ s]
         [(digestScalars root).1, (digestScalars root).2, (digestScalars vd).1, (digestScalars vd).2] :=

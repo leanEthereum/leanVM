@@ -58,6 +58,28 @@ theorem load_gpow {rd : Reader} (hm : MemOk rd) {x t : E} (h : LoadHolds rd x 0 
   refine ⟨i, lt_of_lt_of_le i.2 (Nat.pow_le_pow_right (by decide) hκ), ?_⟩
   rw [eq_ofK_limb hx, hi, gen_pow_eq_ofK]
 
+/-- The memory holds a word at every address `g^e`, `e < 2^16` (range checks read there). -/
+def Low16 (rd : Reader) : Prop := ∀ i < 2 ^ 16, (rd (Parameters.gpow i)).isSome
+
+/-- Every address `g^e`, `e < 2^16`, holds a word, on a memory defined there. -/
+theorem load_gpow_complete_low {rd : Reader} (hl : Low16 rd) {e : ℕ} (he : e < 2 ^ 16) :
+    ∃ t, LoadHolds rd (gen ^ e) 0 t := by
+  obtain ⟨t, ht⟩ := Option.isSome_iff_exists.mp (hl e he)
+  refine ⟨t, ?_, ?_⟩
+  · rw [gen_pow_eq_ofK]; exact ofK_isInK _
+  · rw [gen_pow_eq_ofK, limb_ofK]
+    simp only [Parameters.gpow, pow_zero, mul_one] at ht ⊢
+    exact ht
+
+/-- **A range check passes** on a memory defined below `2^16`. -/
+theorem rangeCheck_complete_low {rd : Reader} (hl : Low16 rd) {e e' : ℕ} (he : e < 2 ^ 16)
+    (he' : e' < 2 ^ 16) :
+    ∃ t1 t2, LoadHolds rd (gen ^ e) 0 t1 ∧ gen ^ (e + e') = gen ^ e * gen ^ e' ∧
+      LoadHolds rd (gen ^ e') 0 t2 := by
+  obtain ⟨t1, h1⟩ := load_gpow_complete_low hl he
+  obtain ⟨t2, h2⟩ := load_gpow_complete_low hl he'
+  exact ⟨t1, t2, h1, pow_add _ _ _, h2⟩
+
 /-- Every address `g^e`, `e < 2^16`, holds a word. -/
 theorem load_gpow_complete {rd : Reader} (hm : MemOk rd) {e : ℕ} (he : e < 2 ^ 16) :
     ∃ t, LoadHolds rd (gen ^ e) 0 t := by
@@ -86,6 +108,14 @@ theorem rangeCheck_complete {rd : Reader} (hm : MemOk rd) {e e' : ℕ} (he : e <
   obtain ⟨t1, h1⟩ := load_gpow_complete hm he
   obtain ⟨t2, h2⟩ := load_gpow_complete hm he'
   exact ⟨t1, t2, h1, pow_add _ _ _, h2⟩
+
+theorem MemOk.low16 {rd : Reader} (hm : MemOk rd) : Low16 rd := fun i hi => by
+  obtain ⟨t, h⟩ := load_gpow_complete hm hi
+  have := h.2
+  rw [gen_pow_eq_ofK, limb_ofK] at this
+  simp only [Parameters.gpow, pow_zero, mul_one] at this ⊢
+  simp only [Fin.val_zero, ↓reduceIte] at this
+  rw [this]; rfl
 
 /-- A word with zero upper limbs is the integer word. -/
 theorem word_eq_eOfNat (c : ℕ) : word c 0 0 = eOfNat c := by

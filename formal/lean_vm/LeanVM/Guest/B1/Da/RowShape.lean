@@ -83,84 +83,95 @@ theorem word_g1023 : word 140737488388109 0 0 = gen ^ 1023 := by
 theorem word_g10 : word 1024 0 0 = gen ^ 10 := by
   rw [gen_pow_eq_eOfNat (by omega), word_eq_eOfNat]; rfl
 
+/-- **`da_row_shape` is complete** on a memory defined below `2^16` holding the squares table. -/
+theorem da_row_shape_complete {rd : Reader} (hl : Low16 rd) {gsq : E} (hT : SquaresAt rd gsq)
+    (n_blob glp : E) (rets : List E) (h : Meaning_da_row_shape [n_blob, glp, gsq] rets) :
+    coreProgram.Rel rd "da_row_shape" [n_blob, glp, gsq] rets := by
+  rw [rel_of_find find_da_row_shape]
+  simp only [Fn.Sem, drsBody, List.map_cons, List.map_nil, List.cons_append, List.nil_append,
+    Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
+  revert h
+  rintro ⟨_, _, _, n_pad, gap, hargs, rfl, r, hr1, hr2, rfl, rfl, rfl, rfl⟩
+  simp only [List.cons.injEq, and_true] at hargs
+  obtain ⟨rfl, rfl, rfl⟩ := hargs
+  unfold LeanDa.maxRows at hr2
+  obtain ⟨lp, hlp⟩ : ∃ lp, lp = LeanDa.logPad r := ⟨_, rfl⟩
+  rw [LeanDa.nPad, ← hlp]
+  obtain ⟨hb1, hb2⟩ := (logPad_iff hr1).mp hlp
+  have hlp10 : lp ≤ 10 := by
+    by_contra h
+    have : 2 ^ 11 ≤ 2 ^ lp := Nat.pow_le_pow_right (by norm_num) (by omega)
+    omega
+  have hpow : 2 ^ lp ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hlp10
+  obtain ⟨t1, t2, l9, -, l10⟩ := rangeCheck_complete_low hl (e := r) (e' := 1024 - r) (by omega) (by omega)
+  obtain ⟨t3, t4, l13, -, l14⟩ := rangeCheck_complete_low hl (e := lp) (e' := 10 - lp) (by omega) (by omega)
+  obtain ⟨t5, t6, l20, -, l21⟩ := rangeCheck_complete_low hl (e := 2 ^ lp - r)
+    (e' := 1024 - (2 ^ lp - r)) (by omega) (by omega)
+  obtain ⟨t7, t8, l28, -, l29⟩ := rangeCheck_complete_low hl (e := 2 * r - 2 ^ lp - 1)
+    (e' := 1023 - (2 * r - 2 ^ lp - 1)) (by omega) (by omega)
+  have hne := gen_pow_ne_one hr1 (by omega)
+  rw [← word_one] at hne
+  refine ⟨listVal [gen ^ r, gen ^ lp, gsq, word 1 0 0, gen ^ r + word 1 0 0,
+    (gen ^ r + word 1 0 0)⁻¹, (gen ^ r + word 1 0 0) * (gen ^ r + word 1 0 0)⁻¹,
+    word 281474976776218 0 0, gen ^ (1024 - r), t1, t2, word 1024 0 0, gen ^ (10 - lp), t3, t4,
+    gsq * gen ^ lp, gen ^ (2 ^ lp), gen ^ (2 ^ lp - r), word 281474976776218 0 0,
+    gen ^ (1024 - (2 ^ lp - r)), t5, t6, word 140737488388109 0 0, gen ^ r * gen ^ r, word 2 0 0,
+    gen ^ (2 ^ lp) * word 2 0 0, gen ^ (2 * r - 2 ^ lp - 1),
+    gen ^ (1023 - (2 * r - 2 ^ lp - 1)), t7, t8, gen ^ (2 ^ lp), gen ^ (2 ^ lp - r)], rfl, ?_⟩
+  simp only [listVal, List.getD_cons_succ, List.getD_cons_zero, true_and]
+  rw [word_g1024, word_g10, word_g1023, word_gen, mul_inv_cancel₀ hne]
+  refine ⟨rfl, ⟨l9, by rw [← pow_add]; congr 1; omega, l10⟩,
+    ⟨l13, by rw [← pow_add]; congr 1; omega, l14⟩, ?_, by rw [← pow_add]; congr 1; omega,
+    ⟨l20, by rw [← pow_add]; congr 1; omega, l21⟩, ?_, ⟨l28, by rw [← pow_add]; congr 1; omega,
+      l29⟩, trivial⟩
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hT lp (by omega)
+  · rw [← pow_succ, ← pow_add, ← pow_add]; congr 1; omega
+
+
 /-- **`da_row_shape`**, on the squares table. -/
 theorem da_row_shape_iff {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
     (n_blob glp : E) (rets : List E) :
     coreProgram.Rel rd "da_row_shape" [n_blob, glp, gsq] rets ↔
       Meaning_da_row_shape [n_blob, glp, gsq] rets := by
-  rw [rel_of_find find_da_row_shape]
+  refine ⟨fun h => ?_, da_row_shape_complete hm.low16 hT _ _ _⟩
+  rw [rel_of_find find_da_row_shape] at h
   simp only [Fn.Sem, drsBody, List.map_cons, List.map_nil, List.cons_append, List.nil_append,
-    Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, Meaning_da_row_shape]
-  constructor
-  · rintro ⟨σ, hp, c3, a4, ⟨ne1, ne2⟩, c7, rc0, c11, rc1, m15, l16, m16, c18, rc17, c22, m23, c24,
-      m25, m23', rc26, h30, h31, hr⟩
-    simp only [List.cons.injEq, and_true] at hp
-    obtain ⟨rfl, rfl, rfl⟩ := hp
-    obtain ⟨r, e1, hr32, he1, h0, -, hk0⟩ := rangeCheck_sound hm rc0
-    rw [c7, word_g1024] at hk0
-    have hr1024 := gen_pow_inj' (by norm_num) (by omega) hk0
-    obtain ⟨lp, e2, hlp32, he2, h1, -, hk1⟩ := rangeCheck_sound hm rc1
-    rw [c11, word_g10] at hk1
-    have hlp := gen_pow_inj' (by norm_num) (by omega) hk1
-    have hr0 : 1 ≤ r := by
-      rcases Nat.eq_zero_or_pos r with h | h
-      · rw [a4, c3, word_one, h0, h, pow_zero, e_add_self, zero_mul] at ne1
-        rw [ne1] at ne2
-        exact absurd ne2 zero_ne_one
-      · exact h
-    rw [m15, h1, loadHolds_mul_gen_pow, Nat.add_zero] at l16
-    have h16 := loadHolds_unique l16 (hT lp (by omega))
-    obtain ⟨a, e3, ha32, he3, h17, -, hk17⟩ := rangeCheck_sound hm rc17
-    rw [c18, word_g1024] at hk17
-    have ha := gen_pow_inj' (by norm_num) (by omega) hk17
-    rw [h16, h17, h0, ← pow_add] at m16
-    have hpow : 2 ^ lp < 2 ^ 11 := Nat.pow_lt_pow_right (by norm_num) (by omega)
-    have e16 := gen_pow_inj' (by omega) (by omega) m16
-    obtain ⟨b, e4, hb32, he4, h26, -, hk26⟩ := rangeCheck_sound hm rc26
-    rw [c22, word_g1023] at hk26
-    have hb := gen_pow_inj' (by norm_num) (by omega) hk26
-    rw [m23, m25, c24, word_gen, h0, h16, h26, ← pow_add, ← pow_succ, ← pow_add] at m23'
-    have e23 := gen_pow_inj' (by omega) (by omega) m23'
-    have hlog := (logPad_iff (lp := lp) hr0).mpr ⟨by omega, by omega⟩
-    refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 30), σ (.n 31), rfl, hr.symm, r, hr0,
-      by unfold LeanDa.maxRows; omega, h0, by rw [h1, hlog], ?_, ?_⟩
-    · rw [h30, h16, LeanDa.nPad, ← hlog]
-    · rw [h31, h17, LeanDa.nPad, ← hlog]; congr 1; omega
-  · rintro ⟨_, _, _, n_pad, gap, hargs, rfl, r, hr1, hr2, rfl, rfl, rfl, rfl⟩
-    simp only [List.cons.injEq, and_true] at hargs
-    obtain ⟨rfl, rfl, rfl⟩ := hargs
-    unfold LeanDa.maxRows at hr2
-    obtain ⟨lp, hlp⟩ : ∃ lp, lp = LeanDa.logPad r := ⟨_, rfl⟩
-    rw [LeanDa.nPad, ← hlp]
-    obtain ⟨hb1, hb2⟩ := (logPad_iff hr1).mp hlp
-    have hlp10 : lp ≤ 10 := by
-      by_contra h
-      have : 2 ^ 11 ≤ 2 ^ lp := Nat.pow_le_pow_right (by norm_num) (by omega)
-      omega
-    have hpow : 2 ^ lp ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hlp10
-    obtain ⟨t1, t2, l9, -, l10⟩ := rangeCheck_complete hm (e := r) (e' := 1024 - r) (by omega) (by omega)
-    obtain ⟨t3, t4, l13, -, l14⟩ := rangeCheck_complete hm (e := lp) (e' := 10 - lp) (by omega) (by omega)
-    obtain ⟨t5, t6, l20, -, l21⟩ := rangeCheck_complete hm (e := 2 ^ lp - r)
-      (e' := 1024 - (2 ^ lp - r)) (by omega) (by omega)
-    obtain ⟨t7, t8, l28, -, l29⟩ := rangeCheck_complete hm (e := 2 * r - 2 ^ lp - 1)
-      (e' := 1023 - (2 * r - 2 ^ lp - 1)) (by omega) (by omega)
-    have hne := gen_pow_ne_one hr1 (by omega)
-    rw [← word_one] at hne
-    refine ⟨listVal [gen ^ r, gen ^ lp, gsq, word 1 0 0, gen ^ r + word 1 0 0,
-      (gen ^ r + word 1 0 0)⁻¹, (gen ^ r + word 1 0 0) * (gen ^ r + word 1 0 0)⁻¹,
-      word 281474976776218 0 0, gen ^ (1024 - r), t1, t2, word 1024 0 0, gen ^ (10 - lp), t3, t4,
-      gsq * gen ^ lp, gen ^ (2 ^ lp), gen ^ (2 ^ lp - r), word 281474976776218 0 0,
-      gen ^ (1024 - (2 ^ lp - r)), t5, t6, word 140737488388109 0 0, gen ^ r * gen ^ r, word 2 0 0,
-      gen ^ (2 ^ lp) * word 2 0 0, gen ^ (2 * r - 2 ^ lp - 1),
-      gen ^ (1023 - (2 * r - 2 ^ lp - 1)), t7, t8, gen ^ (2 ^ lp), gen ^ (2 ^ lp - r)], rfl, ?_⟩
-    simp only [listVal, List.getD_cons_succ, List.getD_cons_zero, true_and]
-    rw [word_g1024, word_g10, word_g1023, word_gen, mul_inv_cancel₀ hne]
-    refine ⟨rfl, ⟨l9, by rw [← pow_add]; congr 1; omega, l10⟩,
-      ⟨l13, by rw [← pow_add]; congr 1; omega, l14⟩, ?_, by rw [← pow_add]; congr 1; omega,
-      ⟨l20, by rw [← pow_add]; congr 1; omega, l21⟩, ?_, ⟨l28, by rw [← pow_add]; congr 1; omega,
-        l29⟩, trivial⟩
-    · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hT lp (by omega)
-    · rw [← pow_succ, ← pow_add, ← pow_add]; congr 1; omega
+    Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, Meaning_da_row_shape] at h ⊢
+  revert h
+  rintro ⟨σ, hp, c3, a4, ⟨ne1, ne2⟩, c7, rc0, c11, rc1, m15, l16, m16, c18, rc17, c22, m23, c24,
+    m25, m23', rc26, h30, h31, hr⟩
+  simp only [List.cons.injEq, and_true] at hp
+  obtain ⟨rfl, rfl, rfl⟩ := hp
+  obtain ⟨r, e1, hr32, he1, h0, -, hk0⟩ := rangeCheck_sound hm rc0
+  rw [c7, word_g1024] at hk0
+  have hr1024 := gen_pow_inj' (by norm_num) (by omega) hk0
+  obtain ⟨lp, e2, hlp32, he2, h1, -, hk1⟩ := rangeCheck_sound hm rc1
+  rw [c11, word_g10] at hk1
+  have hlp := gen_pow_inj' (by norm_num) (by omega) hk1
+  have hr0 : 1 ≤ r := by
+    rcases Nat.eq_zero_or_pos r with h | h
+    · rw [a4, c3, word_one, h0, h, pow_zero, e_add_self, zero_mul] at ne1
+      rw [ne1] at ne2
+      exact absurd ne2 zero_ne_one
+    · exact h
+  rw [m15, h1, loadHolds_mul_gen_pow, Nat.add_zero] at l16
+  have h16 := loadHolds_unique l16 (hT lp (by omega))
+  obtain ⟨a, e3, ha32, he3, h17, -, hk17⟩ := rangeCheck_sound hm rc17
+  rw [c18, word_g1024] at hk17
+  have ha := gen_pow_inj' (by norm_num) (by omega) hk17
+  rw [h16, h17, h0, ← pow_add] at m16
+  have hpow : 2 ^ lp < 2 ^ 11 := Nat.pow_lt_pow_right (by norm_num) (by omega)
+  have e16 := gen_pow_inj' (by omega) (by omega) m16
+  obtain ⟨b, e4, hb32, he4, h26, -, hk26⟩ := rangeCheck_sound hm rc26
+  rw [c22, word_g1023] at hk26
+  have hb := gen_pow_inj' (by norm_num) (by omega) hk26
+  rw [m23, m25, c24, word_gen, h0, h16, h26, ← pow_add, ← pow_succ, ← pow_add] at m23'
+  have e23 := gen_pow_inj' (by omega) (by omega) m23'
+  have hlog := (logPad_iff (lp := lp) hr0).mpr ⟨by omega, by omega⟩
+  refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 30), σ (.n 31), rfl, hr.symm, r, hr0,
+    by unfold LeanDa.maxRows; omega, h0, by rw [h1, hlog], ?_, ?_⟩
+  · rw [h30, h16, LeanDa.nPad, ← hlog]
+  · rw [h31, h17, LeanDa.nPad, ← hlog]; congr 1; omega
 
 end
 end LeanVM.Guest.B1.Digest
