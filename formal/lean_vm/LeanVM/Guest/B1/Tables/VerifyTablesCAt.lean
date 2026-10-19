@@ -30,15 +30,15 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Compile LeanVM.
 def VtHoldsAt (M : ℕ) (rd : Reader) (σ : Val) : Prop :=
   ∃ kret : List E → Prop, Stmt.HoldsList (coreProgram.Rel rd) rd σ (vtPre.take M) True kret
 
-theorem noRetList_take : ∀ (l : List Stmt) (M : ℕ), Stmt.noRetList l = true → Stmt.noRetList (l.take M) = true
+theorem vt_noRetList_take : ∀ (l : List Stmt) (M : ℕ), Stmt.noRetList l = true → Stmt.noRetList (l.take M) = true
   | [], M, _ => by rw [List.take_nil]; rfl
   | _ :: _, 0, _ => rfl
   | s :: l, M + 1, h => by
     rw [List.take_succ_cons]
     simp only [Stmt.noRetList, Bool.and_eq_true] at h ⊢
-    exact ⟨h.1, noRetList_take l M h.2⟩
+    exact ⟨h.1, vt_noRetList_take l M h.2⟩
 
-theorem vtPre_take_noRet (M : ℕ) : Stmt.noRetList (vtPre.take M) = true := noRetList_take _ M vtPre_noRet
+theorem vtPre_take_noRet (M : ℕ) : Stmt.noRetList (vtPre.take M) = true := vt_noRetList_take _ M vtPre_noRet
 
 section
 variable {rd : Reader} {σ : Val} {M : ℕ}
