@@ -814,7 +814,262 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
   rw [show ebef ++ Ev.inK c :: eb = ebef ++ [Ev.inK c] ++ eb by simp]
   exact hpj
 
+/-! ## Conditional calls -/
+
+theorem passL_peek {st : CW} : ∀ {its : List Item} {c : Cnt} {oc od of : ℕ} {x : Exit}
+    {rest : List Item} {c' : Cnt}, passL X st its c = .ok (.branch oc od of x :: rest, c') →
+    peekBr its = some (oc, x)
+  | [], _, _, _, _, _, _, _, h => by simp [passL] at h
+  | .ins (.instr pc ins) :: its, c, oc, od, of, x, rest, c', h => by
+    simp only [passL] at h
+    cases hj : justI X st pc ins
+    · rw [hj] at h; cases h
+    · rw [hj, Bool.cond_true, Cnt.seq_eq] at h
+      exact passL_peek (its := its) h
+  | .ins (.jump a b d) :: its, c, oc, od, of, x, rest, c', h => by
+    simp only [passL] at h
+    cases hj : cellK X st a && cellK X st b && cellK X st d
+    · rw [hj] at h; cases h
+    · rw [hj, Bool.cond_true, Cnt.seq_eq] at h
+      exact passL_peek (its := its) h
+  | .ins (.copy ..) :: _, _, _, _, _, _, _, _, h => by simp [passL] at h
+  | .ins (.eq ..) :: _, _, _, _, _, _, _, _, h => by simp [passL] at h
+  | .ins (.nz ..) :: _, _, _, _, _, _, _, _, h => by simp [passL] at h
+  | .ins (.ne ..) :: _, _, _, _, _, _, _, _, h => by simp [passL] at h
+  | .ins (.bool ..) :: _, _, _, _, _, _, _, _, h => by simp [passL] at h
+  | .ins (.range ..) :: _, _, _, _, _, _, _, _, h => by simp [passL] at h
+  | .ins (.powPair ..) :: _, _, _, _, _, _, _, _, h => by simp [passL] at h
+  | .fact _ :: its, c, oc, od, of, x, rest, c', h => by
+    simp only [passL] at h
+    exact passL_peek (its := its) h
+  | .branch oc' od' of' x' :: its, c, oc, od, of, x, rest, c', h => by
+    simp only [passL, Except.ok.injEq, Prod.mk.injEq, List.cons.injEq, Item.branch.injEq] at h
+    obtain ⟨⟨⟨rfl, rfl, rfl, rfl⟩, -⟩, -⟩ := h
+    rfl
+
+theorem brAtC_peek {st st' : CW} {oc od of : ℕ} {x : Exit}
+    (h : brAtC X st = .ok (st', oc, od, of, x)) : peekBr st.its = some (oc, x) := by
+  obtain ⟨its, c, hpl, -⟩ := brAtC_eq h
+  exact passL_peek hpl
+
+theorem posZ_nx (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
+    (hp : PosZ H st W0 n) {nx : List (ℕ × FC)} (hn : NxOk L fp X.fs nx) :
+    PosZ H { st with nx := nx } W0 n :=
+  ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hn⟩, hp.run, hp.fresh⟩
+
+/-- A conditional call's event, `.skip` or `.call` as its condition says. -/
+theorem callIf_ev (c : V) (f : String) (args : List V) :
+    Ev.call? (if σ c = 0 then Ev.skip f args else Ev.call f args []) =
+      some ⟨f, args, [], !(decide (σ c = 0))⟩ := by
+  split_ifs with h <;> simp [Ev.call?, h]
+
+theorem Cnt.le_spec {c c' : Cnt} (h : c.le c' = true) : ∀ op, c.get op ≤ c'.get op := by
+  simp only [Cnt.le, Bool.and_eq_true, Nat.ble_eq] at h
+  obtain ⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩ := h
+  intro op
+  cases op
+  exacts [h1, h2, h3, h4, h5, h6]
+
+/-- **A conditional call**, along the path: of another function, or a loop's closing one. -/
+theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (f : String)
+    (args : List V) (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) :
+    WGood H (.callIf c f args :: ss) st := by
+  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  obtain ⟨x, hpk, hin, hcase⟩ := cw_callIf hok
+  set ev : Ev := if σ c = 0 then Ev.skip f args else Ev.call f args [] with hev
+  have hwo : o = (walk σ ss).pre [.inK c, ev] := by rw [← hw]; rfl
+  have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hwo, h]; rfl)
+  have hes2 : es = (ebef ++ [Ev.inK c]) ++ ev :: ((walk σ ss).evs ++ eaft) := by
+    rw [hes, hwo, walk_pre_evs hst']
+    simp
+  have hinK : Ev.inK c ∈ es := by rw [hes2]; simp
+  have hcK : IsInK (σ c) := H.hev _ hinK
+  have hfr0 := inFrame_mem hin _ List.mem_cons_self
+  have hcell : rdc L fp (X.loc.cell c) = some (σ c) :=
+    val_cell H.frame H.loc (uses_named hinK (by simp [Ev.uses])) hfr0.1 (H.fs ▸ hfr0.2)
+  set n := (calls ebef).length with hn
+  have hn' : (calls (ebef ++ [Ev.inK c])).length = n := by rw [calls_append_none rfl]
+  have hci : (calls es)[n]? = some ⟨f, args, [], !(decide (σ c = 0))⟩ := by
+    rw [hes2, ← hn']
+    exact calls_at (callIf_ev c f args)
+  have hc1 : (calls (ebef ++ [Ev.inK c, ev])).length = n + 1 := by
+    rw [show ebef ++ [Ev.inK c, ev] = (ebef ++ [Ev.inK c]) ++ [ev] by simp,
+      calls_append_one (callIf_ev c f args), hn']
+  have hargs : ∀ k (hk : k < args.length), rdc L fp (X.loc.cell args[k]) = some (σ args[k]) := by
+    intro k hk
+    have hv : X.loc.cell args[k] ∈ X.loc.cell c :: args.map X.loc.cell :=
+      List.mem_cons_of_mem _ (List.mem_map.mpr ⟨_, List.getElem_mem hk, rfl⟩)
+    have hc := inFrame_mem hin _ hv
+    have hevm : ev ∈ es := by rw [hes2]; simp
+    refine val_cell H.frame H.loc (uses_named hevm ?_) hc.1 (H.fs ▸ hc.2)
+    rw [hev]
+    split_ifs <;> simp [Ev.uses, List.getElem_mem]
+  rcases hcase with ⟨e, q, r, j', st', oc', od, of, x', se, t, sr, hk, hj, hf, hna, hnr, hle, hsu,
+      hsite, hbit, hinq, hfne, hb, hod, hof, hse, ht, hrt, hsu', hsr, hcw⟩ |
+    ⟨e, S, st', oc', od, of, x', se, hk, hss, he, hf, hS, hna, hnr, hmain, hsn, hb, hod, hof,
+      hle1, hse, hkr, hle2, hcw⟩
+  · -- a call of another function
+    obtain ⟨hj1, hj2, hent⟩ := calleeC_some H.G hj
+    have hfn : f = (coreOf j').name := by rw [hf, H.G]; rfl
+    obtain ⟨s0, hs0, hq0, hr0, -⟩ := siteOk_spec hsite
+    have hnl := notLast (ebef := ebef ++ [Ev.inK c]) (callIf_ev c f args)
+      (fun c' args' h ↦ by cases h; exact hfne (by rw [H.name]))
+      (hshape.imp id fun h ↦ h.1) rfl htail hst' hes2
+    rw [hn'] at hnl
+    have hin' : inFrame X.fs (s0.q :: args.map X.loc.cell) = true := by
+      rw [hq0]
+      simp only [inFrame, Bool.and_eq_true] at hin hinq ⊢
+      exact ⟨hinq.1, hin.2⟩
+    obtain ⟨kfp, hkfp, hq, hfcs, hret⟩ := call_frame H hci hj1 hj2 hfn hs0 hnl hin'
+      (selfs := (X.G.sig j').env.map (·.1)) (fun o ho ↦ by rw [H.G] at ho; exact ho)
+    rw [hq0] at hq
+    rw [hr0] at hfcs hret
+    have hp1 := posZ_fr H hp hq hfcs
+    obtain ⟨hseg', -, -, -, -, -, -, hx, hok', hfall, htaken⟩ := brAtC_pos H hp1 hb
+    have hpk' := brAtC_peek hb
+    simp only at hpk' hseg' hx
+    rw [hpk] at hpk'
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hpk')
+    obtain ⟨vd, hvd, hKd⟩ := cellK_sound H.hX hok' hod
+    obtain ⟨vf, hvf, hKf⟩ := cellK_sound H.hX hok' hof
+    have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (gpow fp) :=
+      ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
+    have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
+    obtain ⟨cr, hcr, hcle, henvR⟩ : ∃ cr,
+        RunC guest L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ cr ∧
+        (∀ op, cr op ≤ (Cnt.max se.cnt st'.cnt).get op + ksum ck (n + 1) op) ∧
+        EnvAt L fp X wJ wenv (r - X.entry) := by
+      by_cases h0 : σ c = 0
+      · have hp' := hfall hjump (h0 ▸ hcell)
+        obtain ⟨hsg, -, -, -, -, -, hr⟩ := endAtC_reach H hp' hse
+        rw [hsg] at ht hsu'
+        obtain ⟨cr, hcr, hle', henv⟩ := hr ⟨gpow (X.entry + t), gpow fp⟩ (by rw [ht]; rfl)
+        rw [hrt] at hcr
+        refine ⟨cr, hcr, fun op ↦ ?_, ?_⟩
+        · have := hle' op
+          rw [Cnt.get_max]
+          exact le_trans this (Nat.add_le_add (Nat.le_max_left _ _) (ksum_mono ck (by omega) op))
+        · rw [← hrt]
+          exact envAt_of_exit H hp'.seg (H.exits _ hp'.seg _ (Or.inl rfl)) (by rw [hsu']; simp) henv
+      · obtain ⟨cr, hcr, hle', henv⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ ⟨gpow e, gpow kfp⟩
+          (by rw [hk]; exact ⟨_, gpow e, hq, isInK_ofK _, rfl, by simp⟩)
+        obtain ⟨-, hkid⟩ := H.kids
+        obtain ⟨⟨rr, hrr, hrun⟩, -⟩ := hkid n _ kfp hci hkfp (by simp [h0])
+        rw [hret] at hrr
+        obtain rfl := Option.some.inj hrr
+        have hentf : entryOf f = e := by rw [hfn, entryOf_callee hj1 hj2, hent]
+        rw [hentf] at hrun
+        refine ⟨cr + ck.getD n 0, by rw [← hgr]; exact hcr.trans hrun, fun op ↦ ?_, ?_⟩
+        · have h2 : st'.cnt.get op ≤ (Cnt.max se.cnt st'.cnt).get op := by
+            rw [Cnt.get_max]
+            exact Nat.le_max_right _ _
+          rw [Pi.add_apply, ksum_succ]
+          have := hle' op
+          omega
+        · exact envAt_of_exit H hp.seg hx (by rw [hsu]; simp) henv
+    obtain ⟨hpr, -⟩ := segAtC_posW H hsr hok' (by rw [hrt]; exact henvR) (n := n + 1)
+      (C := Cnt.max se.cnt st'.cnt) (U := setK st.uq q) (by rw [hrt]; exact hcr) hcle
+    refine walk_step H ih rfl (fun _ _ h ↦ by cases h; exact absurd (by rw [H.name]) hfne)
+      rfl hw hes hs hshape htail (by rw [hc1]; exact hpr) hcw hok
+  · -- a loop's closing call
+    subst hss
+    have hwo' : o = .ret [Ev.inK c, ev] [] := by rw [hwo]; rfl
+    rcases hshape with hsh | ⟨-, heaft, hbody⟩
+    · simp [Stmt.noRetList, Stmt.noRet] at hsh
+    subst heaft
+    have hloop : (coreOf j).loop = true := by
+      unfold Core.Fn.loop
+      rw [hbody]
+      simp [hf, H.name]
+    have hj1' : j ≠ 1 := fun h ↦ by simp [H.main, h] at hmain
+    have hj2 : 2 ≤ j := by have := H.j1; omega
+    have hes3 : es = (ebef ++ [Ev.inK c]) ++ [ev] := by
+      rw [hes2]
+      simp [walk, walk1, Out.seq, Out.evs]
+    have hlen : (calls es).length = n + 1 := by
+      rw [hes3, calls_append_one (callIf_ev c f args), hn']
+    have hlenk : n < kfps.length := by rw [H.frame.len, hlen]; omega
+    set kfp := kfps[n] with hkfpd
+    have hkfp : kfps[n]? = some kfp := List.getElem?_eq_getElem hlenk
+    have hlast : kfps.getLast? = some kfp := by
+      rw [List.getLast?_eq_getElem?, show kfps.length - 1 = n by rw [H.frame.len, hlen]; omega]
+      exact hkfp
+    have hkt := H.frame.tail hloop kfp hlast
+    have hkh : kidHdr j fp hdr es n = hdr := by
+      unfold kidHdr
+      rw [hci]
+      simp [hloop, hlen]
+    obtain ⟨h0', h1', hargsK, hselfK⟩ := H.frame.kid n _ kfp hci hkfp
+    rw [hkh] at h0' h1'
+    have hd0 := H.frame.hdr0
+    have hd1 := H.frame.hdr1
+    rw [gpow_addC] at hd0 hd1 h0' h1'
+    have hnx : NxOk L fp X.fs (argFC X.loc 2 args ++ [(0, .hdr 0), (1, .hdr 1)] ++
+        X.self.map (fun o ↦ (o, FC.self))) := by
+      intro p hp'
+      rw [show fp + X.fs = kfp by rw [hkt, H.fs]]
+      simp only [List.mem_append, List.mem_map, List.mem_cons, List.not_mem_nil, or_false] at hp'
+      rcases hp' with (hp' | (rfl | rfl)) | ⟨o, ho, rfl⟩
+      · obtain ⟨k, hk', rfl⟩ := argFC_mem hp'
+        refine ⟨σ args[k], hargs k hk', ?_⟩
+        have := hargsK k hk'
+        rw [gpow_addC] at this
+        exact this
+      · exact ⟨hdr.1, hd0, h0'⟩
+      · exact ⟨hdr.2, hd1, h1'⟩
+      · have hm : o ∈ selfCells f := by
+          rw [hf, H.name, selfCells_callee hj2 H.jn, ← H.self]
+          exact ho
+        have := hselfK o hm
+        rw [gpow_addC] at this
+        exact this
+    have hpN := posZ_nx H hp hnx
+    obtain ⟨hseg', -, -, -, -, -, -, hx, hok', hfall, htaken⟩ := brAtC_pos H hpN hb
+    have hpk' := brAtC_peek hb
+    simp only at hpk' hseg' hx
+    rw [hpk] at hpk'
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hpk')
+    obtain ⟨vd, hvd, hKd⟩ := cellK_sound H.hX hok' hod
+    obtain ⟨vf, hvf, hKf⟩ := cellK_sound H.hX hok' hof
+    have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (gpow fp) :=
+      ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
+    have hrT : retRegs L (gpow fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
+      retRegs_eq_some_iff.mpr ⟨_, _, hd0, hd1, rfl⟩
+    obtain ⟨cr, hcr, hcle⟩ : ∃ cr, RunC guest L W0 ⟨hdr.1.limb 0, hdr.2.limb 0⟩ cr ∧
+        ∀ op, cr op ≤ X.pmax.get op + ksum ck (n + 1) op := by
+      by_cases h0 : σ c = 0
+      · have hp' := hfall hjump (h0 ▸ hcell)
+        obtain ⟨hsg, -, -, -, -, -, hr⟩ := endAtC_reach H hp' hse
+        rw [hsg] at hkr
+        obtain ⟨cr, hcr, hle', -⟩ := hr _ (by rw [hkr]; exact hrT)
+        refine ⟨cr, hcr, fun op ↦ le_trans (hle' op) ?_⟩
+        exact Nat.add_le_add (Cnt.le_spec hle2 op) (ksum_mono ck (by omega) op)
+      · obtain ⟨cr, hcr, hle', -⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ ⟨gpow e, gpow fp * gpow S⟩
+          (by rw [hk]; exact ⟨_, _, rfl, rfl, rfl⟩)
+        obtain ⟨-, hkid⟩ := H.kids
+        obtain ⟨⟨rr, hrr, hrun⟩, -⟩ := hkid n _ kfp hci hkfp (by simp [h0])
+        have hrr' : retRegs L (gpow kfp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
+          retRegs_eq_some_iff.mpr ⟨_, _, h0', h1', rfl⟩
+        rw [hrr'] at hrr
+        obtain rfl := Option.some.inj hrr
+        have hentf : entryOf f = e := by
+          rw [hf, H.name, entryOf_callee hj2 H.jn, ← H.entry, he]
+        have hkf : gpow fp * gpow S = gpow kfp := by rw [hkt, hS, H.fs, gpow_addC]
+        rw [hentf, ← hkf] at hrun
+        refine ⟨cr + ck.getD n 0, hcr.trans hrun, fun op ↦ ?_⟩
+        rw [Pi.add_apply, ksum_succ]
+        have := hle' op
+        have h2 := Cnt.le_spec hle1 op
+        omega
+    refine ⟨fun J c' u hj ↦ (by rw [hcw] at hj; cases hj), fun _ ↦ ⟨[Ev.inK c, ev], [], hwo', ?_⟩⟩
+    rw [hc1]
+    unfold FinZ
+    refine ⟨⟨_, cr, ?_, hcr, hcle⟩, fun k hk ↦ absurd hk (Nat.not_lt_zero _)⟩
+    simp only [hj1', ↓reduceIte]
+    exact hrT
+
 end Walk
+
 
 
 
