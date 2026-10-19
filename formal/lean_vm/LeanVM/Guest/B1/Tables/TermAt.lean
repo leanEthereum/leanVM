@@ -44,7 +44,7 @@ def CompleteTermAt' : Prop :=
     (∀ rd, LowDef k rd → MemL rd Lin →
       TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args ∧
         ReadsAt rd (args.getD 1 0) chis) →
-    CompleteAt fs cert k "check_opening_terminal" Lin args (Returns [])
+    CompleteAtD fs cert k "check_opening_terminal" Lin args (Returns [])
 
 end Placed
 
