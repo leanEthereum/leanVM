@@ -64,11 +64,39 @@ theorem w176_0 : WinOk 176 0 := by decide +kernel
 /-- `log2_ceil_in_the_exponent__L15_L34`, window 0. -/
 theorem w177_0 : WinOk 177 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F161_0 : List (ℕ × ℕ) := [(161, 0), (162, 0), (163, 0), (164, 0), (165, 0), (166, 0), (167, 0), (168, 0), (169, 0), (170, 0), (171, 0), (172, 0), (173, 0), (174, 0), (175, 0), (176, 0), (177, 0)]
+theorem ok161 : CheckOk 161 := checkOk_one (by decide +kernel) w161_0
 
-theorem wins_F161_0 : ∀ p ∈ wl_F161_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w161_0, List.forall_mem_cons.2 ⟨w162_0, List.forall_mem_cons.2 ⟨w163_0, List.forall_mem_cons.2 ⟨w164_0, List.forall_mem_cons.2 ⟨w165_0, List.forall_mem_cons.2 ⟨w166_0, List.forall_mem_cons.2 ⟨w167_0, List.forall_mem_cons.2 ⟨w168_0, List.forall_mem_cons.2 ⟨w169_0, List.forall_mem_cons.2 ⟨w170_0, List.forall_mem_cons.2 ⟨w171_0, List.forall_mem_cons.2 ⟨w172_0, List.forall_mem_cons.2 ⟨w173_0, List.forall_mem_cons.2 ⟨w174_0, List.forall_mem_cons.2 ⟨w175_0, List.forall_mem_cons.2 ⟨w176_0, List.forall_mem_cons.2 ⟨w177_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok162 : CheckOk 162 := checkOk_one (by decide +kernel) w162_0
+
+theorem ok163 : CheckOk 163 := checkOk_one (by decide +kernel) w163_0
+
+theorem ok164 : CheckOk 164 := checkOk_one (by decide +kernel) w164_0
+
+theorem ok165 : CheckOk 165 := checkOk_one (by decide +kernel) w165_0
+
+theorem ok166 : CheckOk 166 := checkOk_one (by decide +kernel) w166_0
+
+theorem ok167 : CheckOk 167 := checkOk_one (by decide +kernel) w167_0
+
+theorem ok168 : CheckOk 168 := checkOk_one (by decide +kernel) w168_0
+
+theorem ok169 : CheckOk 169 := checkOk_one (by decide +kernel) w169_0
+
+theorem ok170 : CheckOk 170 := checkOk_one (by decide +kernel) w170_0
+
+theorem ok171 : CheckOk 171 := checkOk_one (by decide +kernel) w171_0
+
+theorem ok172 : CheckOk 172 := checkOk_one (by decide +kernel) w172_0
+
+theorem ok173 : CheckOk 173 := checkOk_one (by decide +kernel) w173_0
+
+theorem ok174 : CheckOk 174 := checkOk_one (by decide +kernel) w174_0
+
+theorem ok175 : CheckOk 175 := checkOk_one (by decide +kernel) w175_0
+
+theorem ok176 : CheckOk 176 := checkOk_one (by decide +kernel) w176_0
+
+theorem ok177 : CheckOk 177 := checkOk_one (by decide +kernel) w177_0
 
 end
 end LeanVM.Guest.Checked

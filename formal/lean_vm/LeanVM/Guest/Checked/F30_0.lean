@@ -70,11 +70,43 @@ theorem w47_0 : WinOk 47 0 := by decide +kernel
 /-- `padding_weight__L5`, window 0. -/
 theorem w48_0 : WinOk 48 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F30_0 : List (ℕ × ℕ) := [(30, 0), (31, 0), (32, 0), (33, 0), (34, 0), (35, 0), (36, 0), (37, 0), (38, 0), (39, 0), (40, 0), (41, 0), (42, 0), (43, 0), (44, 0), (45, 0), (46, 0), (47, 0), (48, 0)]
+theorem ok30 : CheckOk 30 := checkOk_one (by decide +kernel) w30_0
 
-theorem wins_F30_0 : ∀ p ∈ wl_F30_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w30_0, List.forall_mem_cons.2 ⟨w31_0, List.forall_mem_cons.2 ⟨w32_0, List.forall_mem_cons.2 ⟨w33_0, List.forall_mem_cons.2 ⟨w34_0, List.forall_mem_cons.2 ⟨w35_0, List.forall_mem_cons.2 ⟨w36_0, List.forall_mem_cons.2 ⟨w37_0, List.forall_mem_cons.2 ⟨w38_0, List.forall_mem_cons.2 ⟨w39_0, List.forall_mem_cons.2 ⟨w40_0, List.forall_mem_cons.2 ⟨w41_0, List.forall_mem_cons.2 ⟨w42_0, List.forall_mem_cons.2 ⟨w43_0, List.forall_mem_cons.2 ⟨w44_0, List.forall_mem_cons.2 ⟨w45_0, List.forall_mem_cons.2 ⟨w46_0, List.forall_mem_cons.2 ⟨w47_0, List.forall_mem_cons.2 ⟨w48_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok31 : CheckOk 31 := checkOk_one (by decide +kernel) w31_0
+
+theorem ok32 : CheckOk 32 := checkOk_one (by decide +kernel) w32_0
+
+theorem ok33 : CheckOk 33 := checkOk_one (by decide +kernel) w33_0
+
+theorem ok34 : CheckOk 34 := checkOk_one (by decide +kernel) w34_0
+
+theorem ok35 : CheckOk 35 := checkOk_one (by decide +kernel) w35_0
+
+theorem ok36 : CheckOk 36 := checkOk_one (by decide +kernel) w36_0
+
+theorem ok37 : CheckOk 37 := checkOk_one (by decide +kernel) w37_0
+
+theorem ok38 : CheckOk 38 := checkOk_one (by decide +kernel) w38_0
+
+theorem ok39 : CheckOk 39 := checkOk_one (by decide +kernel) w39_0
+
+theorem ok40 : CheckOk 40 := checkOk_one (by decide +kernel) w40_0
+
+theorem ok41 : CheckOk 41 := checkOk_one (by decide +kernel) w41_0
+
+theorem ok42 : CheckOk 42 := checkOk_one (by decide +kernel) w42_0
+
+theorem ok43 : CheckOk 43 := checkOk_one (by decide +kernel) w43_0
+
+theorem ok44 : CheckOk 44 := checkOk_one (by decide +kernel) w44_0
+
+theorem ok45 : CheckOk 45 := checkOk_one (by decide +kernel) w45_0
+
+theorem ok46 : CheckOk 46 := checkOk_one (by decide +kernel) w46_0
+
+theorem ok47 : CheckOk 47 := checkOk_one (by decide +kernel) w47_0
+
+theorem ok48 : CheckOk 48 := checkOk_one (by decide +kernel) w48_0
 
 end
 end LeanVM.Guest.Checked

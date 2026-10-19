@@ -22,11 +22,11 @@ theorem w527_0 : WinOk 527 0 := by decide +kernel
 /-- `child_claims_tail__L30`, window 0. -/
 theorem w528_0 : WinOk 528 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F526_0 : List (ℕ × ℕ) := [(526, 0), (527, 0), (528, 0)]
+theorem ok526 : CheckOk 526 := checkOk_one (by decide +kernel) w526_0
 
-theorem wins_F526_0 : ∀ p ∈ wl_F526_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w526_0, List.forall_mem_cons.2 ⟨w527_0, List.forall_mem_cons.2 ⟨w528_0, fun _ h ↦ by cases h⟩⟩⟩
+theorem ok527 : CheckOk 527 := checkOk_one (by decide +kernel) w527_0
+
+theorem ok528 : CheckOk 528 := checkOk_one (by decide +kernel) w528_0
 
 end
 end LeanVM.Guest.Checked

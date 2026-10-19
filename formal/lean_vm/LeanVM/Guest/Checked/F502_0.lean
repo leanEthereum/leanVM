@@ -46,11 +46,27 @@ theorem w511_0 : WinOk 511 0 := by decide +kernel
 /-- `child_claims_tail__L14`, window 0. -/
 theorem w512_0 : WinOk 512 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F502_0 : List (ℕ × ℕ) := [(502, 0), (503, 0), (504, 0), (505, 0), (506, 0), (507, 0), (508, 0), (509, 0), (510, 0), (511, 0), (512, 0)]
+theorem ok502 : CheckOk 502 := checkOk_one (by decide +kernel) w502_0
 
-theorem wins_F502_0 : ∀ p ∈ wl_F502_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w502_0, List.forall_mem_cons.2 ⟨w503_0, List.forall_mem_cons.2 ⟨w504_0, List.forall_mem_cons.2 ⟨w505_0, List.forall_mem_cons.2 ⟨w506_0, List.forall_mem_cons.2 ⟨w507_0, List.forall_mem_cons.2 ⟨w508_0, List.forall_mem_cons.2 ⟨w509_0, List.forall_mem_cons.2 ⟨w510_0, List.forall_mem_cons.2 ⟨w511_0, List.forall_mem_cons.2 ⟨w512_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok503 : CheckOk 503 := checkOk_one (by decide +kernel) w503_0
+
+theorem ok504 : CheckOk 504 := checkOk_one (by decide +kernel) w504_0
+
+theorem ok505 : CheckOk 505 := checkOk_one (by decide +kernel) w505_0
+
+theorem ok506 : CheckOk 506 := checkOk_one (by decide +kernel) w506_0
+
+theorem ok507 : CheckOk 507 := checkOk_one (by decide +kernel) w507_0
+
+theorem ok508 : CheckOk 508 := checkOk_one (by decide +kernel) w508_0
+
+theorem ok509 : CheckOk 509 := checkOk_one (by decide +kernel) w509_0
+
+theorem ok510 : CheckOk 510 := checkOk_one (by decide +kernel) w510_0
+
+theorem ok511 : CheckOk 511 := checkOk_one (by decide +kernel) w511_0
+
+theorem ok512 : CheckOk 512 := checkOk_one (by decide +kernel) w512_0
 
 end
 end LeanVM.Guest.Checked

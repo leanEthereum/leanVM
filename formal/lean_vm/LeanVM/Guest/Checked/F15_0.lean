@@ -16,11 +16,7 @@ namespace LeanVM.Guest.Checked
 /-- `check_opening_terminal`, window 0. -/
 theorem w15_0 : WinOk 15 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F15_0 : List (ℕ × ℕ) := [(15, 0)]
-
-theorem wins_F15_0 : ∀ p ∈ wl_F15_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w15_0, fun _ h ↦ by cases h⟩
+theorem ok15 : CheckOk 15 := checkOk_one (by decide +kernel) w15_0
 
 end
 end LeanVM.Guest.Checked

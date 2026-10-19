@@ -58,11 +58,35 @@ theorem w62_0 : WinOk 62 0 := by decide +kernel
 /-- `padding_weight__L20`, window 0. -/
 theorem w63_0 : WinOk 63 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F49_0 : List (ℕ × ℕ) := [(49, 0), (50, 0), (51, 0), (52, 0), (53, 0), (54, 0), (55, 0), (56, 0), (57, 0), (58, 0), (59, 0), (60, 0), (61, 0), (62, 0), (63, 0)]
+theorem ok49 : CheckOk 49 := checkOk_one (by decide +kernel) w49_0
 
-theorem wins_F49_0 : ∀ p ∈ wl_F49_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w49_0, List.forall_mem_cons.2 ⟨w50_0, List.forall_mem_cons.2 ⟨w51_0, List.forall_mem_cons.2 ⟨w52_0, List.forall_mem_cons.2 ⟨w53_0, List.forall_mem_cons.2 ⟨w54_0, List.forall_mem_cons.2 ⟨w55_0, List.forall_mem_cons.2 ⟨w56_0, List.forall_mem_cons.2 ⟨w57_0, List.forall_mem_cons.2 ⟨w58_0, List.forall_mem_cons.2 ⟨w59_0, List.forall_mem_cons.2 ⟨w60_0, List.forall_mem_cons.2 ⟨w61_0, List.forall_mem_cons.2 ⟨w62_0, List.forall_mem_cons.2 ⟨w63_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok50 : CheckOk 50 := checkOk_one (by decide +kernel) w50_0
+
+theorem ok51 : CheckOk 51 := checkOk_one (by decide +kernel) w51_0
+
+theorem ok52 : CheckOk 52 := checkOk_one (by decide +kernel) w52_0
+
+theorem ok53 : CheckOk 53 := checkOk_one (by decide +kernel) w53_0
+
+theorem ok54 : CheckOk 54 := checkOk_one (by decide +kernel) w54_0
+
+theorem ok55 : CheckOk 55 := checkOk_one (by decide +kernel) w55_0
+
+theorem ok56 : CheckOk 56 := checkOk_one (by decide +kernel) w56_0
+
+theorem ok57 : CheckOk 57 := checkOk_one (by decide +kernel) w57_0
+
+theorem ok58 : CheckOk 58 := checkOk_one (by decide +kernel) w58_0
+
+theorem ok59 : CheckOk 59 := checkOk_one (by decide +kernel) w59_0
+
+theorem ok60 : CheckOk 60 := checkOk_one (by decide +kernel) w60_0
+
+theorem ok61 : CheckOk 61 := checkOk_one (by decide +kernel) w61_0
+
+theorem ok62 : CheckOk 62 := checkOk_one (by decide +kernel) w62_0
+
+theorem ok63 : CheckOk 63 := checkOk_one (by decide +kernel) w63_0
 
 end
 end LeanVM.Guest.Checked

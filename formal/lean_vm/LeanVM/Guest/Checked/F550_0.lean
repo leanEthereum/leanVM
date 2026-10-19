@@ -67,11 +67,41 @@ theorem w566_0 : WinOk 566 0 := by decide +kernel
 /-- `__loop95`, window 0. -/
 theorem w567_0 : WinOk 567 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F550_0 : List (ℕ × ℕ) := [(550, 0), (551, 0), (552, 0), (553, 0), (554, 0), (555, 0), (556, 0), (557, 0), (558, 0), (559, 0), (560, 0), (561, 0), (562, 0), (563, 0), (564, 0), (565, 0), (566, 0), (567, 0)]
+theorem ok550 : CheckOk 550 := checkOk_one (by decide +kernel) w550_0
 
-theorem wins_F550_0 : ∀ p ∈ wl_F550_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w550_0, List.forall_mem_cons.2 ⟨w551_0, List.forall_mem_cons.2 ⟨w552_0, List.forall_mem_cons.2 ⟨w553_0, List.forall_mem_cons.2 ⟨w554_0, List.forall_mem_cons.2 ⟨w555_0, List.forall_mem_cons.2 ⟨w556_0, List.forall_mem_cons.2 ⟨w557_0, List.forall_mem_cons.2 ⟨w558_0, List.forall_mem_cons.2 ⟨w559_0, List.forall_mem_cons.2 ⟨w560_0, List.forall_mem_cons.2 ⟨w561_0, List.forall_mem_cons.2 ⟨w562_0, List.forall_mem_cons.2 ⟨w563_0, List.forall_mem_cons.2 ⟨w564_0, List.forall_mem_cons.2 ⟨w565_0, List.forall_mem_cons.2 ⟨w566_0, List.forall_mem_cons.2 ⟨w567_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok551 : CheckOk 551 := checkOk_one (by decide +kernel) w551_0
+
+theorem ok552 : CheckOk 552 := checkOk_one (by decide +kernel) w552_0
+
+theorem ok553 : CheckOk 553 := checkOk_one (by decide +kernel) w553_0
+
+theorem ok554 : CheckOk 554 := checkOk_one (by decide +kernel) w554_0
+
+theorem ok555 : CheckOk 555 := checkOk_one (by decide +kernel) w555_0
+
+theorem ok556 : CheckOk 556 := checkOk_one (by decide +kernel) w556_0
+
+theorem ok557 : CheckOk 557 := checkOk_one (by decide +kernel) w557_0
+
+theorem ok558 : CheckOk 558 := checkOk_one (by decide +kernel) w558_0
+
+theorem ok559 : CheckOk 559 := checkOk_one (by decide +kernel) w559_0
+
+theorem ok560 : CheckOk 560 := checkOk_one (by decide +kernel) w560_0
+
+theorem ok561 : CheckOk 561 := checkOk_one (by decide +kernel) w561_0
+
+theorem ok562 : CheckOk 562 := checkOk_one (by decide +kernel) w562_0
+
+theorem ok563 : CheckOk 563 := checkOk_one (by decide +kernel) w563_0
+
+theorem ok564 : CheckOk 564 := checkOk_one (by decide +kernel) w564_0
+
+theorem ok565 : CheckOk 565 := checkOk_one (by decide +kernel) w565_0
+
+theorem ok566 : CheckOk 566 := checkOk_one (by decide +kernel) w566_0
+
+theorem ok567 : CheckOk 567 := checkOk_one (by decide +kernel) w567_0
 
 end
 end LeanVM.Guest.Checked

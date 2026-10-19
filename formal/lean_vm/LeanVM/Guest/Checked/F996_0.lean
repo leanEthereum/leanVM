@@ -25,11 +25,13 @@ theorem w998_0 : WinOk 998 0 := by decide +kernel
 /-- `decode_query_bits__L22`, window 0. -/
 theorem w999_0 : WinOk 999 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F996_0 : List (ℕ × ℕ) := [(996, 0), (997, 0), (998, 0), (999, 0)]
+theorem ok996 : CheckOk 996 := checkOk_one (by decide +kernel) w996_0
 
-theorem wins_F996_0 : ∀ p ∈ wl_F996_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w996_0, List.forall_mem_cons.2 ⟨w997_0, List.forall_mem_cons.2 ⟨w998_0, List.forall_mem_cons.2 ⟨w999_0, fun _ h ↦ by cases h⟩⟩⟩⟩
+theorem ok997 : CheckOk 997 := checkOk_one (by decide +kernel) w997_0
+
+theorem ok998 : CheckOk 998 := checkOk_one (by decide +kernel) w998_0
+
+theorem ok999 : CheckOk 999 := checkOk_one (by decide +kernel) w999_0
 
 end
 end LeanVM.Guest.Checked

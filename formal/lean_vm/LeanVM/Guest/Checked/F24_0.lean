@@ -31,11 +31,17 @@ theorem w28_0 : WinOk 28 0 := by decide +kernel
 /-- `cover_da_root`, window 0. -/
 theorem w29_0 : WinOk 29 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F24_0 : List (ℕ × ℕ) := [(24, 0), (25, 0), (26, 0), (27, 0), (28, 0), (29, 0)]
+theorem ok24 : CheckOk 24 := checkOk_one (by decide +kernel) w24_0
 
-theorem wins_F24_0 : ∀ p ∈ wl_F24_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w24_0, List.forall_mem_cons.2 ⟨w25_0, List.forall_mem_cons.2 ⟨w26_0, List.forall_mem_cons.2 ⟨w27_0, List.forall_mem_cons.2 ⟨w28_0, List.forall_mem_cons.2 ⟨w29_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩
+theorem ok25 : CheckOk 25 := checkOk_one (by decide +kernel) w25_0
+
+theorem ok26 : CheckOk 26 := checkOk_one (by decide +kernel) w26_0
+
+theorem ok27 : CheckOk 27 := checkOk_one (by decide +kernel) w27_0
+
+theorem ok28 : CheckOk 28 := checkOk_one (by decide +kernel) w28_0
+
+theorem ok29 : CheckOk 29 := checkOk_one (by decide +kernel) w29_0
 
 end
 end LeanVM.Guest.Checked

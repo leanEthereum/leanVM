@@ -16,11 +16,7 @@ namespace LeanVM.Guest.Checked
 /-- `open_stacked__L7`, window 0. -/
 theorem w185_0 : WinOk 185 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F185_0 : List (ℕ × ℕ) := [(185, 0)]
-
-theorem wins_F185_0 : ∀ p ∈ wl_F185_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w185_0, fun _ h ↦ by cases h⟩
+theorem ok185 : CheckOk 185 := checkOk_one (by decide +kernel) w185_0
 
 end
 end LeanVM.Guest.Checked

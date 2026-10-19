@@ -28,11 +28,15 @@ theorem w571_0 : WinOk 571 0 := by decide +kernel
 /-- `batch_sumcheck__L28`, window 0. -/
 theorem w572_0 : WinOk 572 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F568_0 : List (ℕ × ℕ) := [(568, 0), (569, 0), (570, 0), (571, 0), (572, 0)]
+theorem ok568 : CheckOk 568 := checkOk_one (by decide +kernel) w568_0
 
-theorem wins_F568_0 : ∀ p ∈ wl_F568_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w568_0, List.forall_mem_cons.2 ⟨w569_0, List.forall_mem_cons.2 ⟨w570_0, List.forall_mem_cons.2 ⟨w571_0, List.forall_mem_cons.2 ⟨w572_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩
+theorem ok569 : CheckOk 569 := checkOk_one (by decide +kernel) w569_0
+
+theorem ok570 : CheckOk 570 := checkOk_one (by decide +kernel) w570_0
+
+theorem ok571 : CheckOk 571 := checkOk_one (by decide +kernel) w571_0
+
+theorem ok572 : CheckOk 572 := checkOk_one (by decide +kernel) w572_0
 
 end
 end LeanVM.Guest.Checked

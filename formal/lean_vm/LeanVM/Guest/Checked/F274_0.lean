@@ -217,11 +217,141 @@ theorem w340_0 : WinOk 340 0 := by decide +kernel
 /-- `sp_forest_key__L135`, window 0. -/
 theorem w341_0 : WinOk 341 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F274_0 : List (ℕ × ℕ) := [(274, 0), (275, 0), (276, 0), (277, 0), (278, 0), (279, 0), (280, 0), (281, 0), (282, 0), (283, 0), (284, 0), (285, 0), (286, 0), (287, 0), (288, 0), (289, 0), (290, 0), (291, 0), (292, 0), (293, 0), (294, 0), (295, 0), (296, 0), (297, 0), (298, 0), (299, 0), (300, 0), (301, 0), (302, 0), (303, 0), (304, 0), (305, 0), (306, 0), (307, 0), (308, 0), (309, 0), (310, 0), (311, 0), (312, 0), (313, 0), (314, 0), (315, 0), (316, 0), (317, 0), (318, 0), (319, 0), (320, 0), (321, 0), (322, 0), (323, 0), (324, 0), (325, 0), (326, 0), (327, 0), (328, 0), (329, 0), (330, 0), (331, 0), (332, 0), (333, 0), (334, 0), (335, 0), (336, 0), (337, 0), (338, 0), (339, 0), (340, 0), (341, 0)]
+theorem ok274 : CheckOk 274 := checkOk_one (by decide +kernel) w274_0
 
-theorem wins_F274_0 : ∀ p ∈ wl_F274_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w274_0, List.forall_mem_cons.2 ⟨w275_0, List.forall_mem_cons.2 ⟨w276_0, List.forall_mem_cons.2 ⟨w277_0, List.forall_mem_cons.2 ⟨w278_0, List.forall_mem_cons.2 ⟨w279_0, List.forall_mem_cons.2 ⟨w280_0, List.forall_mem_cons.2 ⟨w281_0, List.forall_mem_cons.2 ⟨w282_0, List.forall_mem_cons.2 ⟨w283_0, List.forall_mem_cons.2 ⟨w284_0, List.forall_mem_cons.2 ⟨w285_0, List.forall_mem_cons.2 ⟨w286_0, List.forall_mem_cons.2 ⟨w287_0, List.forall_mem_cons.2 ⟨w288_0, List.forall_mem_cons.2 ⟨w289_0, List.forall_mem_cons.2 ⟨w290_0, List.forall_mem_cons.2 ⟨w291_0, List.forall_mem_cons.2 ⟨w292_0, List.forall_mem_cons.2 ⟨w293_0, List.forall_mem_cons.2 ⟨w294_0, List.forall_mem_cons.2 ⟨w295_0, List.forall_mem_cons.2 ⟨w296_0, List.forall_mem_cons.2 ⟨w297_0, List.forall_mem_cons.2 ⟨w298_0, List.forall_mem_cons.2 ⟨w299_0, List.forall_mem_cons.2 ⟨w300_0, List.forall_mem_cons.2 ⟨w301_0, List.forall_mem_cons.2 ⟨w302_0, List.forall_mem_cons.2 ⟨w303_0, List.forall_mem_cons.2 ⟨w304_0, List.forall_mem_cons.2 ⟨w305_0, List.forall_mem_cons.2 ⟨w306_0, List.forall_mem_cons.2 ⟨w307_0, List.forall_mem_cons.2 ⟨w308_0, List.forall_mem_cons.2 ⟨w309_0, List.forall_mem_cons.2 ⟨w310_0, List.forall_mem_cons.2 ⟨w311_0, List.forall_mem_cons.2 ⟨w312_0, List.forall_mem_cons.2 ⟨w313_0, List.forall_mem_cons.2 ⟨w314_0, List.forall_mem_cons.2 ⟨w315_0, List.forall_mem_cons.2 ⟨w316_0, List.forall_mem_cons.2 ⟨w317_0, List.forall_mem_cons.2 ⟨w318_0, List.forall_mem_cons.2 ⟨w319_0, List.forall_mem_cons.2 ⟨w320_0, List.forall_mem_cons.2 ⟨w321_0, List.forall_mem_cons.2 ⟨w322_0, List.forall_mem_cons.2 ⟨w323_0, List.forall_mem_cons.2 ⟨w324_0, List.forall_mem_cons.2 ⟨w325_0, List.forall_mem_cons.2 ⟨w326_0, List.forall_mem_cons.2 ⟨w327_0, List.forall_mem_cons.2 ⟨w328_0, List.forall_mem_cons.2 ⟨w329_0, List.forall_mem_cons.2 ⟨w330_0, List.forall_mem_cons.2 ⟨w331_0, List.forall_mem_cons.2 ⟨w332_0, List.forall_mem_cons.2 ⟨w333_0, List.forall_mem_cons.2 ⟨w334_0, List.forall_mem_cons.2 ⟨w335_0, List.forall_mem_cons.2 ⟨w336_0, List.forall_mem_cons.2 ⟨w337_0, List.forall_mem_cons.2 ⟨w338_0, List.forall_mem_cons.2 ⟨w339_0, List.forall_mem_cons.2 ⟨w340_0, List.forall_mem_cons.2 ⟨w341_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok275 : CheckOk 275 := checkOk_one (by decide +kernel) w275_0
+
+theorem ok276 : CheckOk 276 := checkOk_one (by decide +kernel) w276_0
+
+theorem ok277 : CheckOk 277 := checkOk_one (by decide +kernel) w277_0
+
+theorem ok278 : CheckOk 278 := checkOk_one (by decide +kernel) w278_0
+
+theorem ok279 : CheckOk 279 := checkOk_one (by decide +kernel) w279_0
+
+theorem ok280 : CheckOk 280 := checkOk_one (by decide +kernel) w280_0
+
+theorem ok281 : CheckOk 281 := checkOk_one (by decide +kernel) w281_0
+
+theorem ok282 : CheckOk 282 := checkOk_one (by decide +kernel) w282_0
+
+theorem ok283 : CheckOk 283 := checkOk_one (by decide +kernel) w283_0
+
+theorem ok284 : CheckOk 284 := checkOk_one (by decide +kernel) w284_0
+
+theorem ok285 : CheckOk 285 := checkOk_one (by decide +kernel) w285_0
+
+theorem ok286 : CheckOk 286 := checkOk_one (by decide +kernel) w286_0
+
+theorem ok287 : CheckOk 287 := checkOk_one (by decide +kernel) w287_0
+
+theorem ok288 : CheckOk 288 := checkOk_one (by decide +kernel) w288_0
+
+theorem ok289 : CheckOk 289 := checkOk_one (by decide +kernel) w289_0
+
+theorem ok290 : CheckOk 290 := checkOk_one (by decide +kernel) w290_0
+
+theorem ok291 : CheckOk 291 := checkOk_one (by decide +kernel) w291_0
+
+theorem ok292 : CheckOk 292 := checkOk_one (by decide +kernel) w292_0
+
+theorem ok293 : CheckOk 293 := checkOk_one (by decide +kernel) w293_0
+
+theorem ok294 : CheckOk 294 := checkOk_one (by decide +kernel) w294_0
+
+theorem ok295 : CheckOk 295 := checkOk_one (by decide +kernel) w295_0
+
+theorem ok296 : CheckOk 296 := checkOk_one (by decide +kernel) w296_0
+
+theorem ok297 : CheckOk 297 := checkOk_one (by decide +kernel) w297_0
+
+theorem ok298 : CheckOk 298 := checkOk_one (by decide +kernel) w298_0
+
+theorem ok299 : CheckOk 299 := checkOk_one (by decide +kernel) w299_0
+
+theorem ok300 : CheckOk 300 := checkOk_one (by decide +kernel) w300_0
+
+theorem ok301 : CheckOk 301 := checkOk_one (by decide +kernel) w301_0
+
+theorem ok302 : CheckOk 302 := checkOk_one (by decide +kernel) w302_0
+
+theorem ok303 : CheckOk 303 := checkOk_one (by decide +kernel) w303_0
+
+theorem ok304 : CheckOk 304 := checkOk_one (by decide +kernel) w304_0
+
+theorem ok305 : CheckOk 305 := checkOk_one (by decide +kernel) w305_0
+
+theorem ok306 : CheckOk 306 := checkOk_one (by decide +kernel) w306_0
+
+theorem ok307 : CheckOk 307 := checkOk_one (by decide +kernel) w307_0
+
+theorem ok308 : CheckOk 308 := checkOk_one (by decide +kernel) w308_0
+
+theorem ok309 : CheckOk 309 := checkOk_one (by decide +kernel) w309_0
+
+theorem ok310 : CheckOk 310 := checkOk_one (by decide +kernel) w310_0
+
+theorem ok311 : CheckOk 311 := checkOk_one (by decide +kernel) w311_0
+
+theorem ok312 : CheckOk 312 := checkOk_one (by decide +kernel) w312_0
+
+theorem ok313 : CheckOk 313 := checkOk_one (by decide +kernel) w313_0
+
+theorem ok314 : CheckOk 314 := checkOk_one (by decide +kernel) w314_0
+
+theorem ok315 : CheckOk 315 := checkOk_one (by decide +kernel) w315_0
+
+theorem ok316 : CheckOk 316 := checkOk_one (by decide +kernel) w316_0
+
+theorem ok317 : CheckOk 317 := checkOk_one (by decide +kernel) w317_0
+
+theorem ok318 : CheckOk 318 := checkOk_one (by decide +kernel) w318_0
+
+theorem ok319 : CheckOk 319 := checkOk_one (by decide +kernel) w319_0
+
+theorem ok320 : CheckOk 320 := checkOk_one (by decide +kernel) w320_0
+
+theorem ok321 : CheckOk 321 := checkOk_one (by decide +kernel) w321_0
+
+theorem ok322 : CheckOk 322 := checkOk_one (by decide +kernel) w322_0
+
+theorem ok323 : CheckOk 323 := checkOk_one (by decide +kernel) w323_0
+
+theorem ok324 : CheckOk 324 := checkOk_one (by decide +kernel) w324_0
+
+theorem ok325 : CheckOk 325 := checkOk_one (by decide +kernel) w325_0
+
+theorem ok326 : CheckOk 326 := checkOk_one (by decide +kernel) w326_0
+
+theorem ok327 : CheckOk 327 := checkOk_one (by decide +kernel) w327_0
+
+theorem ok328 : CheckOk 328 := checkOk_one (by decide +kernel) w328_0
+
+theorem ok329 : CheckOk 329 := checkOk_one (by decide +kernel) w329_0
+
+theorem ok330 : CheckOk 330 := checkOk_one (by decide +kernel) w330_0
+
+theorem ok331 : CheckOk 331 := checkOk_one (by decide +kernel) w331_0
+
+theorem ok332 : CheckOk 332 := checkOk_one (by decide +kernel) w332_0
+
+theorem ok333 : CheckOk 333 := checkOk_one (by decide +kernel) w333_0
+
+theorem ok334 : CheckOk 334 := checkOk_one (by decide +kernel) w334_0
+
+theorem ok335 : CheckOk 335 := checkOk_one (by decide +kernel) w335_0
+
+theorem ok336 : CheckOk 336 := checkOk_one (by decide +kernel) w336_0
+
+theorem ok337 : CheckOk 337 := checkOk_one (by decide +kernel) w337_0
+
+theorem ok338 : CheckOk 338 := checkOk_one (by decide +kernel) w338_0
+
+theorem ok339 : CheckOk 339 := checkOk_one (by decide +kernel) w339_0
+
+theorem ok340 : CheckOk 340 := checkOk_one (by decide +kernel) w340_0
+
+theorem ok341 : CheckOk 341 := checkOk_one (by decide +kernel) w341_0
 
 end
 end LeanVM.Guest.Checked

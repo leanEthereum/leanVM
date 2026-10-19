@@ -16,11 +16,5 @@ namespace LeanVM.Guest.Checked
 /-- `verify_sub`, window 0. -/
 theorem w16_0 : WinOk 16 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F16_0 : List (ℕ × ℕ) := [(16, 0)]
-
-theorem wins_F16_0 : ∀ p ∈ wl_F16_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w16_0, fun _ h ↦ by cases h⟩
-
 end
 end LeanVM.Guest.Checked

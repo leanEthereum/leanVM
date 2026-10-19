@@ -28,11 +28,15 @@ theorem w22_0 : WinOk 22 0 := by decide +kernel
 /-- `child_claim_list_digest`, window 0. -/
 theorem w23_0 : WinOk 23 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F19_0 : List (ℕ × ℕ) := [(19, 0), (20, 0), (21, 0), (22, 0), (23, 0)]
+theorem ok19 : CheckOk 19 := checkOk_one (by decide +kernel) w19_0
 
-theorem wins_F19_0 : ∀ p ∈ wl_F19_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w19_0, List.forall_mem_cons.2 ⟨w20_0, List.forall_mem_cons.2 ⟨w21_0, List.forall_mem_cons.2 ⟨w22_0, List.forall_mem_cons.2 ⟨w23_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩
+theorem ok20 : CheckOk 20 := checkOk_one (by decide +kernel) w20_0
+
+theorem ok21 : CheckOk 21 := checkOk_one (by decide +kernel) w21_0
+
+theorem ok22 : CheckOk 22 := checkOk_one (by decide +kernel) w22_0
+
+theorem ok23 : CheckOk 23 := checkOk_one (by decide +kernel) w23_0
 
 end
 end LeanVM.Guest.Checked

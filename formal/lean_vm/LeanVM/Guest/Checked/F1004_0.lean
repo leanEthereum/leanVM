@@ -31,11 +31,17 @@ theorem w1008_0 : WinOk 1008 0 := by decide +kernel
 /-- `__loop456`, window 0. -/
 theorem w1009_0 : WinOk 1009 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F1004_0 : List (ℕ × ℕ) := [(1004, 0), (1005, 0), (1006, 0), (1007, 0), (1008, 0), (1009, 0)]
+theorem ok1004 : CheckOk 1004 := checkOk_one (by decide +kernel) w1004_0
 
-theorem wins_F1004_0 : ∀ p ∈ wl_F1004_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w1004_0, List.forall_mem_cons.2 ⟨w1005_0, List.forall_mem_cons.2 ⟨w1006_0, List.forall_mem_cons.2 ⟨w1007_0, List.forall_mem_cons.2 ⟨w1008_0, List.forall_mem_cons.2 ⟨w1009_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩
+theorem ok1005 : CheckOk 1005 := checkOk_one (by decide +kernel) w1005_0
+
+theorem ok1006 : CheckOk 1006 := checkOk_one (by decide +kernel) w1006_0
+
+theorem ok1007 : CheckOk 1007 := checkOk_one (by decide +kernel) w1007_0
+
+theorem ok1008 : CheckOk 1008 := checkOk_one (by decide +kernel) w1008_0
+
+theorem ok1009 : CheckOk 1009 := checkOk_one (by decide +kernel) w1009_0
 
 end
 end LeanVM.Guest.Checked

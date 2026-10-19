@@ -16,11 +16,5 @@ namespace LeanVM.Guest.Checked
 /-- `verify_tables`, window 5. -/
 theorem w12_5 : WinOk 12 5 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F12_5 : List (ℕ × ℕ) := [(12, 5)]
-
-theorem wins_F12_5 : ∀ p ∈ wl_F12_5, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w12_5, fun _ h ↦ by cases h⟩
-
 end
 end LeanVM.Guest.Checked

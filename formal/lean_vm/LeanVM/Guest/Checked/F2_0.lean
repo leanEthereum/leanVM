@@ -43,11 +43,25 @@ theorem w10_0 : WinOk 10 0 := by decide +kernel
 /-- `verify_bus_gkr`, window 0. -/
 theorem w11_0 : WinOk 11 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F2_0 : List (ℕ × ℕ) := [(2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (8, 0), (9, 0), (10, 0), (11, 0)]
+theorem ok2 : CheckOk 2 := checkOk_one (by decide +kernel) w2_0
 
-theorem wins_F2_0 : ∀ p ∈ wl_F2_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w2_0, List.forall_mem_cons.2 ⟨w3_0, List.forall_mem_cons.2 ⟨w4_0, List.forall_mem_cons.2 ⟨w5_0, List.forall_mem_cons.2 ⟨w6_0, List.forall_mem_cons.2 ⟨w7_0, List.forall_mem_cons.2 ⟨w8_0, List.forall_mem_cons.2 ⟨w9_0, List.forall_mem_cons.2 ⟨w10_0, List.forall_mem_cons.2 ⟨w11_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok3 : CheckOk 3 := checkOk_one (by decide +kernel) w3_0
+
+theorem ok4 : CheckOk 4 := checkOk_one (by decide +kernel) w4_0
+
+theorem ok5 : CheckOk 5 := checkOk_one (by decide +kernel) w5_0
+
+theorem ok6 : CheckOk 6 := checkOk_one (by decide +kernel) w6_0
+
+theorem ok7 : CheckOk 7 := checkOk_one (by decide +kernel) w7_0
+
+theorem ok8 : CheckOk 8 := checkOk_one (by decide +kernel) w8_0
+
+theorem ok9 : CheckOk 9 := checkOk_one (by decide +kernel) w9_0
+
+theorem ok10 : CheckOk 10 := checkOk_one (by decide +kernel) w10_0
+
+theorem ok11 : CheckOk 11 := checkOk_one (by decide +kernel) w11_0
 
 end
 end LeanVM.Guest.Checked

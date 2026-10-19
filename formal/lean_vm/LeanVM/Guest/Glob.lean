@@ -73,17 +73,10 @@ noncomputable instance (j i : ℕ) : Decidable (WinOk j i) := inferInstanceAs (D
 /-- **The check of function `j`**: every window's. -/
 noncomputable def CheckOk (j : ℕ) : Prop := ∀ i ≤ (certOf j).cuts.length, WinOk j i
 
-/-- Every window of every function but `__jump_tables` is among `ws`. -/
-noncomputable def covers (ws : List (ℕ × ℕ)) : Bool :=
-  (List.range' 1 (nFns - 1)).all fun j ↦
-    (List.range ((certOf j).cuts.length + 1)).all fun i ↦ ws.contains (j, i)
-
-theorem checkOk_of_covers {ws : List (ℕ × ℕ)} (hw : ∀ p ∈ ws, WinOk p.1 p.2)
-    (hc : covers ws = true) : ∀ j, 1 ≤ j → j < nFns → CheckOk j := by
-  intro j h1 h2 i hi
-  have := List.all_eq_true.mp hc j (List.mem_range'_1.mpr ⟨h1, by unfold nFns at h2 ⊢; omega⟩)
-  have := List.all_eq_true.mp this i (List.mem_range.mpr (by omega))
-  exact hw (j, i) (List.elem_iff.mp this)
+theorem checkOk_one {j : ℕ} (h : (certOf j).cuts.length = 0) (w : WinOk j 0) : CheckOk j := by
+  intro i hi
+  obtain rfl : i = 0 := by omega
+  exact w
 
 end
 end LeanVM.Guest

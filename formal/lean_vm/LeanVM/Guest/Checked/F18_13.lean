@@ -16,11 +16,5 @@ namespace LeanVM.Guest.Checked
 /-- `verify_sig_lean_sphincs`, window 13. -/
 theorem w18_13 : WinOk 18 13 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F18_13 : List (ℕ × ℕ) := [(18, 13)]
-
-theorem wins_F18_13 : ∀ p ∈ wl_F18_13, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w18_13, fun _ h ↦ by cases h⟩
-
 end
 end LeanVM.Guest.Checked

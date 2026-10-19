@@ -25,11 +25,13 @@ theorem w575_0 : WinOk 575 0 := by decide +kernel
 /-- `verify_log2_ceil__L0_L34`, window 0. -/
 theorem w576_0 : WinOk 576 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F573_0 : List (ℕ × ℕ) := [(573, 0), (574, 0), (575, 0), (576, 0)]
+theorem ok573 : CheckOk 573 := checkOk_one (by decide +kernel) w573_0
 
-theorem wins_F573_0 : ∀ p ∈ wl_F573_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w573_0, List.forall_mem_cons.2 ⟨w574_0, List.forall_mem_cons.2 ⟨w575_0, List.forall_mem_cons.2 ⟨w576_0, fun _ h ↦ by cases h⟩⟩⟩⟩
+theorem ok574 : CheckOk 574 := checkOk_one (by decide +kernel) w574_0
+
+theorem ok575 : CheckOk 575 := checkOk_one (by decide +kernel) w575_0
+
+theorem ok576 : CheckOk 576 := checkOk_one (by decide +kernel) w576_0
 
 end
 end LeanVM.Guest.Checked

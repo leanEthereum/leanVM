@@ -16,11 +16,5 @@ namespace LeanVM.Guest.Checked
 /-- `verify_lean_xmss`, window 3. -/
 theorem w17_3 : WinOk 17 3 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F17_3 : List (ℕ × ℕ) := [(17, 3)]
-
-theorem wins_F17_3 : ∀ p ∈ wl_F17_3, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w17_3, fun _ h ↦ by cases h⟩
-
 end
 end LeanVM.Guest.Checked

@@ -28,11 +28,15 @@ theorem w975_0 : WinOk 975 0 := by decide +kernel
 /-- `__loop431`, window 0. -/
 theorem w976_0 : WinOk 976 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F972_0 : List (ℕ × ℕ) := [(972, 0), (973, 0), (974, 0), (975, 0), (976, 0)]
+theorem ok972 : CheckOk 972 := checkOk_one (by decide +kernel) w972_0
 
-theorem wins_F972_0 : ∀ p ∈ wl_F972_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w972_0, List.forall_mem_cons.2 ⟨w973_0, List.forall_mem_cons.2 ⟨w974_0, List.forall_mem_cons.2 ⟨w975_0, List.forall_mem_cons.2 ⟨w976_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩
+theorem ok973 : CheckOk 973 := checkOk_one (by decide +kernel) w973_0
+
+theorem ok974 : CheckOk 974 := checkOk_one (by decide +kernel) w974_0
+
+theorem ok975 : CheckOk 975 := checkOk_one (by decide +kernel) w975_0
+
+theorem ok976 : CheckOk 976 := checkOk_one (by decide +kernel) w976_0
 
 end
 end LeanVM.Guest.Checked

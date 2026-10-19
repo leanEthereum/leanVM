@@ -49,11 +49,29 @@ theorem w159_0 : WinOk 159 0 := by decide +kernel
 /-- `column_selector__L16`, window 0. -/
 theorem w160_0 : WinOk 160 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F149_0 : List (ℕ × ℕ) := [(149, 0), (150, 0), (151, 0), (152, 0), (153, 0), (154, 0), (155, 0), (156, 0), (157, 0), (158, 0), (159, 0), (160, 0)]
+theorem ok149 : CheckOk 149 := checkOk_one (by decide +kernel) w149_0
 
-theorem wins_F149_0 : ∀ p ∈ wl_F149_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w149_0, List.forall_mem_cons.2 ⟨w150_0, List.forall_mem_cons.2 ⟨w151_0, List.forall_mem_cons.2 ⟨w152_0, List.forall_mem_cons.2 ⟨w153_0, List.forall_mem_cons.2 ⟨w154_0, List.forall_mem_cons.2 ⟨w155_0, List.forall_mem_cons.2 ⟨w156_0, List.forall_mem_cons.2 ⟨w157_0, List.forall_mem_cons.2 ⟨w158_0, List.forall_mem_cons.2 ⟨w159_0, List.forall_mem_cons.2 ⟨w160_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok150 : CheckOk 150 := checkOk_one (by decide +kernel) w150_0
+
+theorem ok151 : CheckOk 151 := checkOk_one (by decide +kernel) w151_0
+
+theorem ok152 : CheckOk 152 := checkOk_one (by decide +kernel) w152_0
+
+theorem ok153 : CheckOk 153 := checkOk_one (by decide +kernel) w153_0
+
+theorem ok154 : CheckOk 154 := checkOk_one (by decide +kernel) w154_0
+
+theorem ok155 : CheckOk 155 := checkOk_one (by decide +kernel) w155_0
+
+theorem ok156 : CheckOk 156 := checkOk_one (by decide +kernel) w156_0
+
+theorem ok157 : CheckOk 157 := checkOk_one (by decide +kernel) w157_0
+
+theorem ok158 : CheckOk 158 := checkOk_one (by decide +kernel) w158_0
+
+theorem ok159 : CheckOk 159 := checkOk_one (by decide +kernel) w159_0
+
+theorem ok160 : CheckOk 160 := checkOk_one (by decide +kernel) w160_0
 
 end
 end LeanVM.Guest.Checked

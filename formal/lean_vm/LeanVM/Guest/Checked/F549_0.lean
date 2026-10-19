@@ -16,11 +16,7 @@ namespace LeanVM.Guest.Checked
 /-- `da_vector_cell__L0`, window 0. -/
 theorem w549_0 : WinOk 549 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F549_0 : List (ℕ × ℕ) := [(549, 0)]
-
-theorem wins_F549_0 : ∀ p ∈ wl_F549_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w549_0, fun _ h ↦ by cases h⟩
+theorem ok549 : CheckOk 549 := checkOk_one (by decide +kernel) w549_0
 
 end
 end LeanVM.Guest.Checked

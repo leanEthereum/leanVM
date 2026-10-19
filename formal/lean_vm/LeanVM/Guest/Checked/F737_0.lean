@@ -91,11 +91,57 @@ theorem w761_0 : WinOk 761 0 := by decide +kernel
 /-- `__loop235`, window 0. -/
 theorem w762_0 : WinOk 762 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F737_0 : List (ℕ × ℕ) := [(737, 0), (738, 0), (739, 0), (740, 0), (741, 0), (742, 0), (743, 0), (744, 0), (745, 0), (746, 0), (747, 0), (748, 0), (749, 0), (750, 0), (751, 0), (752, 0), (753, 0), (754, 0), (755, 0), (756, 0), (757, 0), (758, 0), (759, 0), (760, 0), (761, 0), (762, 0)]
+theorem ok737 : CheckOk 737 := checkOk_one (by decide +kernel) w737_0
 
-theorem wins_F737_0 : ∀ p ∈ wl_F737_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w737_0, List.forall_mem_cons.2 ⟨w738_0, List.forall_mem_cons.2 ⟨w739_0, List.forall_mem_cons.2 ⟨w740_0, List.forall_mem_cons.2 ⟨w741_0, List.forall_mem_cons.2 ⟨w742_0, List.forall_mem_cons.2 ⟨w743_0, List.forall_mem_cons.2 ⟨w744_0, List.forall_mem_cons.2 ⟨w745_0, List.forall_mem_cons.2 ⟨w746_0, List.forall_mem_cons.2 ⟨w747_0, List.forall_mem_cons.2 ⟨w748_0, List.forall_mem_cons.2 ⟨w749_0, List.forall_mem_cons.2 ⟨w750_0, List.forall_mem_cons.2 ⟨w751_0, List.forall_mem_cons.2 ⟨w752_0, List.forall_mem_cons.2 ⟨w753_0, List.forall_mem_cons.2 ⟨w754_0, List.forall_mem_cons.2 ⟨w755_0, List.forall_mem_cons.2 ⟨w756_0, List.forall_mem_cons.2 ⟨w757_0, List.forall_mem_cons.2 ⟨w758_0, List.forall_mem_cons.2 ⟨w759_0, List.forall_mem_cons.2 ⟨w760_0, List.forall_mem_cons.2 ⟨w761_0, List.forall_mem_cons.2 ⟨w762_0, fun _ h ↦ by cases h⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+theorem ok738 : CheckOk 738 := checkOk_one (by decide +kernel) w738_0
+
+theorem ok739 : CheckOk 739 := checkOk_one (by decide +kernel) w739_0
+
+theorem ok740 : CheckOk 740 := checkOk_one (by decide +kernel) w740_0
+
+theorem ok741 : CheckOk 741 := checkOk_one (by decide +kernel) w741_0
+
+theorem ok742 : CheckOk 742 := checkOk_one (by decide +kernel) w742_0
+
+theorem ok743 : CheckOk 743 := checkOk_one (by decide +kernel) w743_0
+
+theorem ok744 : CheckOk 744 := checkOk_one (by decide +kernel) w744_0
+
+theorem ok745 : CheckOk 745 := checkOk_one (by decide +kernel) w745_0
+
+theorem ok746 : CheckOk 746 := checkOk_one (by decide +kernel) w746_0
+
+theorem ok747 : CheckOk 747 := checkOk_one (by decide +kernel) w747_0
+
+theorem ok748 : CheckOk 748 := checkOk_one (by decide +kernel) w748_0
+
+theorem ok749 : CheckOk 749 := checkOk_one (by decide +kernel) w749_0
+
+theorem ok750 : CheckOk 750 := checkOk_one (by decide +kernel) w750_0
+
+theorem ok751 : CheckOk 751 := checkOk_one (by decide +kernel) w751_0
+
+theorem ok752 : CheckOk 752 := checkOk_one (by decide +kernel) w752_0
+
+theorem ok753 : CheckOk 753 := checkOk_one (by decide +kernel) w753_0
+
+theorem ok754 : CheckOk 754 := checkOk_one (by decide +kernel) w754_0
+
+theorem ok755 : CheckOk 755 := checkOk_one (by decide +kernel) w755_0
+
+theorem ok756 : CheckOk 756 := checkOk_one (by decide +kernel) w756_0
+
+theorem ok757 : CheckOk 757 := checkOk_one (by decide +kernel) w757_0
+
+theorem ok758 : CheckOk 758 := checkOk_one (by decide +kernel) w758_0
+
+theorem ok759 : CheckOk 759 := checkOk_one (by decide +kernel) w759_0
+
+theorem ok760 : CheckOk 760 := checkOk_one (by decide +kernel) w760_0
+
+theorem ok761 : CheckOk 761 := checkOk_one (by decide +kernel) w761_0
+
+theorem ok762 : CheckOk 762 := checkOk_one (by decide +kernel) w762_0
 
 end
 end LeanVM.Guest.Checked

@@ -25,11 +25,13 @@ theorem w979_0 : WinOk 979 0 := by decide +kernel
 /-- `__loop434`, window 0. -/
 theorem w980_0 : WinOk 980 0 := by decide +kernel
 
-/-- The windows checked here. -/
-def wl_F977_0 : List (ℕ × ℕ) := [(977, 0), (978, 0), (979, 0), (980, 0)]
+theorem ok977 : CheckOk 977 := checkOk_one (by decide +kernel) w977_0
 
-theorem wins_F977_0 : ∀ p ∈ wl_F977_0, WinOk p.1 p.2 :=
-  List.forall_mem_cons.2 ⟨w977_0, List.forall_mem_cons.2 ⟨w978_0, List.forall_mem_cons.2 ⟨w979_0, List.forall_mem_cons.2 ⟨w980_0, fun _ h ↦ by cases h⟩⟩⟩⟩
+theorem ok978 : CheckOk 978 := checkOk_one (by decide +kernel) w978_0
+
+theorem ok979 : CheckOk 979 := checkOk_one (by decide +kernel) w979_0
+
+theorem ok980 : CheckOk 980 := checkOk_one (by decide +kernel) w980_0
 
 end
 end LeanVM.Guest.Checked

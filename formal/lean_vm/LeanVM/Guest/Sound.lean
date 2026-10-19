@@ -73,16 +73,12 @@ theorem winOk_of {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
 theorem jtHolds_of {κ : ℕ} {L : MemImage κ} (h : JumpTables L) : JTHolds glob L :=
   JumpTable.jt_of_jumpTables h (PowTree.ok_of_okW Checked.powTree_ok)
 
-/-- No window but `main`'s and `verify_sub`'s second takes anything from obligations. -/
-theorem cuts_plain : ∀ j < nFns, j ≠ 1 → j ≠ 16 →
-    (certOf j).cuts.all (fun c ↦ c.known.isEmpty && c.sems.isEmpty) = true := by
-  decide +kernel
-
-theorem known_plain {j : ℕ} (hj : j < nFns) (h1 : j ≠ 1) (h16 : j ≠ 16) {κ : ℕ} {L : MemImage κ}
-    {fp : K} {i : ℕ} (hi : i ≤ (certOf j).cuts.length) (h0 : 0 < i) :
+theorem known_plain {j : ℕ} (h0j : 1 ≤ j) (hj : j < nFns) (h1 : j ≠ 1) (h16 : j ≠ 16) {κ : ℕ}
+    {L : MemImage κ} {fp : K} {i : ℕ} (hi : i ≤ (certOf j).cuts.length) (h0 : 0 < i) :
     MemKnown L fp ((certOf j).cutAt i).known ∧ SemHolds glob L fp ((certOf j).cutAt i).sems := by
   obtain ⟨i, rfl⟩ : ∃ i', i = i' + 1 := ⟨i - 1, by omega⟩
-  have hall := List.all_eq_true.mp (cuts_plain j hj h1 h16) ((certOf j).cuts[i]'(by omega))
+  have hall := List.all_eq_true.mp (Checked.all_plain j h0j hj h1 h16)
+    ((certOf j).cuts[i]'(by omega))
     (List.getElem_mem _)
   simp only [Bool.and_eq_true, List.isEmpty_iff] at hall
   have hc : (certOf j).cutAt (i + 1) = (certOf j).cuts[i]'(by omega) := by
@@ -187,7 +183,7 @@ theorem b2_step (hvs : B1.VerifySub.VsKnown) :
       by_cases h16 : j = 16
       · subst h16
         exact known_vs hvs h16 h32 hsem hi h0 hl
-      · exact known_plain hj.2 (by omega) h16 hi h0)
+      · exact known_plain (by omega) hj.2 (by omega) h16 hi h0)
     hsafe
   obtain ⟨k', hk', r, hr, hs⟩ := hret rfl
   exact ⟨k', hk', r, hr, ⟨hrel, hpost⟩, hs⟩

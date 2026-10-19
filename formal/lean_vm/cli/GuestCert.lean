@@ -806,7 +806,7 @@ structure CutG where
   b : ℕ
 
 /-- The instructions a window runs over at most, when a function is cut for its size. -/
-def maxWin : ℕ := 1000
+def maxWin (name : String) : ℕ := if name == "verify_sig_lean_sphincs" then 600 else 1000
 
 /-- Where a window can start at a mark: its offset `J` and the previous window's end `b` (`J + 1`
 at a segment's start the walk enters, `J` when the walk reaches `J` by the end of its segment),
@@ -861,7 +861,7 @@ partial def laterNeeds (cellOf : Core.V → ℕ) : List Core.Stmt → List ℕ �
     (a' ++ a, b' ++ b)
 
 /-- The windows of a function: a cut before each statement in `forced` (with the memory bounds
-and semantic pairs it starts knowing), and, in a function longer than `maxWin`, wherever the
+and semantic pairs it starts knowing), and, in a function longer than `3 * maxWin`, wherever the
 next window would grow past it. -/
 def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
     (marks : Array (ℕ × Pos × ℕ × Option (ℕ × ℕ × ℕ))) (spine : Array Exec.Atom)
@@ -882,7 +882,8 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
     if constMax.getD m.1 0 < c.1 then some (m.1, c) else none
   for (i, _, _) in forced do
     unless cands.any (·.1 == i) do throw s!"{f.name}: no window can start at statement {i}"
-  let big := f.len > 3 * maxWin
+  let mw := maxWin f.name
+  let big := f.len > 3 * mw
   let mut a := 0
   let mut env : List (ℕ × Sym) := F.env
   let mut known : List (ℕ × ℕ × ℕ) := []
@@ -895,7 +896,7 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
     let (idx, J, b, extra) := cands[k]!
     let force := forced.find? (·.1 == idx)
     let nextJ := if k + 1 < cands.size then cands[k + 1]!.2.1 else f.len
-    unless force.isSome || (big && nextJ - a > maxWin && J ≥ a + maxWin / 4 && f.len - J > maxWin / 4) do continue
+    unless force.isSome || (big && nextJ - a > mw && J ≥ a + mw / 4 && f.len - J > mw / 4) do continue
     if J ≤ a then throw s!"{f.name}: cut {idx} at {J} not after {a}"
     if let some (_, kn, sm) := force then
       known := known ++ kn
@@ -1149,6 +1150,13 @@ def checkedName (p : ℕ × ℕ) : String := s!"F{p.1}_{p.2}"
 
 def powName (k : ℕ) : String := if k < 10 then s!"Pow0{k}" else s!"Pow{k}"
 
+/-- A proof for `j` from `lo` to `lo + n`, by halving the range, `leaf k` at `j = k`. -/
+partial def okTree (leaf : ℕ → String) (lo n : ℕ) : String :=
+  if n ≤ 1 then s!"(by obtain rfl : j = {lo} := (by omega); exact {leaf lo})"
+  else
+    let m := lo + n / 2
+    s!"(if h : j < {m} then {okTree leaf lo (n / 2)} else {okTree leaf m (n - n / 2)})"
+
 /-- The modules deciding the checks: each window's (`(function, window, instructions)`), in
 modules of consecutive windows, and each subtree of the power tree's. -/
 def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (nPow : ℕ) :
@@ -1164,32 +1172,48 @@ def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (n
       size := 0
     groups := groups.modify (groups.size - 1) (·.push (j, w))
     size := if cut j then maxChecked + 1 else size + l
-  let pairs (js : Array (ℕ × ℕ)) : String := listText (js.toList.map pairText)
   let key (js : Array (ℕ × ℕ)) : String := checkedName (js[0]?.getD (0, 0))
   let fnFiles := groups.toList.map fun js =>
     (key js, checkedHeader (key js) "The kernel's checks of windows of compiled functions." ++
       "public import LeanVM.Guest.Glob\n\nnamespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
       String.join (js.toList.map fun (j, w) =>
         s!"/-- `{fns[j]!.name}`, window {w}. -/\ntheorem w{j}_{w} : WinOk {j} {w} := by decide +kernel\n\n") ++
-      s!"/-- The windows checked here. -/\ndef wl_{key js} : List (ℕ × ℕ) := {pairs js}\n\n" ++
-      s!"theorem wins_{key js} : ∀ p ∈ wl_{key js}, WinOk p.1 p.2 :=\n  " ++
-      String.join (js.toList.map fun (j, w) => s!"List.forall_mem_cons.2 ⟨w{j}_{w}, ") ++
-      "fun _ h ↦ by cases h" ++ String.join (js.toList.map fun _ => "⟩") ++
-      "\n\nend\nend LeanVM.Guest.Checked\n")
+      String.join ((js.toList.filter fun (j, _) => !cut j).map fun (j, _) =>
+        s!"theorem ok{j} : CheckOk {j} := checkOk_one (by decide +kernel) w{j}_0\n\n") ++
+      "end\nend LeanVM.Guest.Checked\n")
   let powFiles := (List.range nPow).map fun i =>
     (powName i, checkedHeader (powName i) "The kernel's check of a subtree of the powers of `g`." ++
       s!"public import LeanVM.Guest.Pow\n\nnamespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
       s!"theorem powT{i}_ok : Data.powT{i}.OkW := by decide +kernel\n\nend\nend LeanVM.Guest.Checked\n")
-  let lists := " ++ ".intercalate (groups.toList.map fun js => s!"wl_{key js}")
-  let proofs := (groups.toList.map fun js => s!"wins_{key js}").foldr
-    (fun w acc => if acc.isEmpty then w else s!"List.forall_mem_append.2 ⟨{w}, {acc}⟩") ""
+  -- the functions cut in windows, from their windows' modules
+  let cutFns := (wins.toList.filterMap fun (j, w, _) => if w > 0 then some j else none).eraseDups
+  let cutOk := String.join (cutFns.map fun j =>
+    let ws := (wins.toList.filter (·.1 == j)).map (·.2.1)
+    s!"theorem ok{j} : CheckOk {j} := fun i hi ↦ by\n" ++
+    s!"  have h : (certOf {j}).cuts.length = {ws.length - 1} := by decide +kernel\n" ++
+    s!"  rw [h] at hi\n  interval_cases i\n" ++
+    String.join (ws.map fun w => s!"  · exact w{j}_{w}\n") ++ "\n" ++
+    (if j == 1 || j == 16 then "" else s!"theorem plain{j} : Plain {j} := by\n  unfold Plain\n  decide +kernel\n\n"))
   let index := ("Checked", checkedHeader "" "Every compiled function checked, and the powers of `g`." ++
     String.join ((fnFiles ++ powFiles).map fun (n, _) => s!"public import LeanVM.Guest.Checked.{n}\n") ++
     "\nnamespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Exec\n\n@[expose] public section\n\n" ++
-    s!"/-- The windows checked. -/\ndef windows : List (ℕ × ℕ) :=\n  {lists}\n\n" ++
+    "/-- Function `j`'s windows take nothing from obligations. -/\n" ++
+    "def Plain (j : ℕ) : Prop := (certOf j).cuts.all (fun c ↦ c.known.isEmpty && c.sems.isEmpty) = true\n\n" ++
+    "theorem plain_of_nil {j : ℕ} (h : (certOf j).cuts.length = 0) : Plain j := by\n" ++
+    "  unfold Plain\n  rw [List.length_eq_zero_iff.mp h]\n  rfl\n\n" ++
+    cutOk ++
+    String.join ((List.range (fns.size - 1)).filterMap fun i =>
+      if cutFns.contains (i + 1) then none
+      else some s!"theorem plain{i + 1} : Plain {i + 1} := plain_of_nil (by decide +kernel)\n") ++ "\n" ++
     "/-- Every function but `__jump_tables` is checked. -/\n" ++
-    "set_option maxRecDepth 100000 in\ntheorem all_ok : ∀ j, 1 ≤ j → j < nFns → CheckOk j :=\n" ++
-    s!"  checkOk_of_covers (ws := windows)\n    ({proofs})\n    (by decide +kernel)\n\n" ++
+    "theorem all_ok : ∀ j, 1 ≤ j → j < nFns → CheckOk j := fun j h1 h2 ↦\n  " ++
+    s!"have h2 : j < {fns.size} := h2\n  " ++
+    okTree (fun k => s!"ok{k}") 1 (fns.size - 1) ++ "\n\n" ++
+    "/-- No function but `main` and `verify_sub` takes anything from obligations. -/\n" ++
+    "theorem all_plain : ∀ j, 1 ≤ j → j < nFns → j ≠ 1 → j ≠ 16 → Plain j := fun j h1 h2 n1 n16 ↦\n  " ++
+    s!"have h2 : j < {fns.size} := h2\n  " ++
+    okTree (fun k => if k == 1 then "absurd rfl n1" else if k == 16 then "absurd rfl n16" else s!"plain{k}")
+      1 (fns.size - 1) ++ "\n\n" ++
     "/-- Every power of `g` the guest names is one. -/\ntheorem powTree_ok : Data.powTree.OkW :=\n  " ++
     (powTopProof ps powCut 0).1 ++ "\n\nend\nend LeanVM.Guest.Checked\n")
   return fnFiles ++ powFiles ++ [index]
