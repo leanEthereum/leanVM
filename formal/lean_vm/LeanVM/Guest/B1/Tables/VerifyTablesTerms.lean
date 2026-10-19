@@ -103,7 +103,7 @@ theorem count_cols : ∀ t < 6, ∀ i ∈ vtCountCols.getD t [], i < (vtEvalVars
   decide +kernel
 
 /-- A block form's value at two column functions agreeing on its coordinates' columns. -/
-theorem blockForm_congr (b : BusBlock) (w : List E) (beta : E) {c1 c2 : ℕ → E}
+theorem vt_blockForm_congr (b : BusBlock) (w : List E) (beta : E) {c1 c2 : ℕ → E}
     (h : ∀ f ∈ b.coordinates, ∀ t ∈ f.terms, ∀ i ∈ t.1, c1 i = c2 i) :
     (blockForm b w beta).evaluate c1 = (blockForm b w beta).evaluate c2 := by
   rw [evaluate_blockForm, evaluate_blockForm]

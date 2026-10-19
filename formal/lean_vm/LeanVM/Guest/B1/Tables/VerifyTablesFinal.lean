@@ -73,7 +73,7 @@ theorem side_congr (ρ χ : ℕ → E) (t : Fin 6) (eqh : List ℕ) (fl : List (
         ρ p.1 * (blockForm ⟨0, 0, p.2, t⟩ ((List.range 16).map χ) (ρ 12)).evaluate
           fun c => ρ ((vtEvalVars.getD t []).getD c 0)) := by
   refine congrArg sumE (List.map_congr_left fun p hp => ?_)
-  refine congrArg (ρ p.1 * ·) (blockForm_congr _ _ _ fun f hf tm htm i hi => vtCol_eq ?_)
+  refine congrArg (ρ p.1 * ·) (vt_blockForm_congr _ _ _ fun f hf tm htm i hi => vtCol_eq ?_)
   have hp2 := (List.of_mem_zip hp).2
   rcases hfl with rfl | rfl
   · obtain ⟨cs, hcs, hcs'⟩ := List.mem_map.mp hp2
