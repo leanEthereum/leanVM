@@ -676,7 +676,146 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
         exact hps.fresh t ht
   · exact hok
 
+/-! ## Branches -/
+
+theorem posZ_book (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
+    (hp : PosZ H st W0 n) {B : BookC} (hB : BookOk L fp B) : PosZ H { st with book := B } W0 n :=
+  ⟨hp.seg, ⟨hp.ok.env, hB, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh⟩
+
+/-- Entering offset `t` with given counts and set-up cells. -/
+theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ} {st sn : CW}
+    (h : segAtC X t st = some sn) (hok : CWOk L fp X st) (he : EnvAt L fp X wJ wenv t)
+    {W0 : Regs K} {n : ℕ} {c : Opcode → ℕ} (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
+    {C : Cnt} {U : ℕ} (hc : ∀ op, c op ≤ C.get op + ksum ck n op) :
+    PosZ H { sn with cnt := C, uq := U } W0 n ∧ sn.book = st.book ∧ sn.fr = st.fr ∧
+      sn.tg = st.tg ∧ sn.nx = st.nx := by
+  obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
+  have hmem : s ∈ segs := by
+    rw [H.idx, getF_eq] at hs
+    exact index_get hs
+  refine ⟨⟨hmem, ⟨he.1 s hs hst, hok.book, hok.fr, hok.tg, hok.nx⟩,
+    ⟨[], c, rfl, trivial, hst ▸ hr, fun op ↦ ?_⟩, fun t' ht' ↦ ?_⟩, rfl, rfl, rfl, rfl⟩
+  · simpa [itemOps] using hc op
+  · obtain rfl := Option.some.inj ht'
+    exact ⟨hst, rfl, hs⟩
+
+theorem noRet_of_shape {s : Stmt} {ss : List Stmt} (hs : ∀ vs, s ≠ .ret vs) {eaft : List Ev}
+    {pre : List Stmt} (h : Stmt.noRetList (s :: ss) = true ∨
+      (lastOkC (s :: ss) = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ s :: ss)) :
+    Stmt.noRet s = true := by
+  rcases h with h | ⟨h, -, -⟩
+  · simp only [Stmt.noRetList, Bool.and_eq_true] at h
+    exact h.1
+  · exact (lastOkC_cons h hs).1
+
+theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z n ss : List Stmt)
+    (st : CW) (ihz : ∀ st, WGood H z st) (ihn : ∀ st, WGood H n st) (ih : ∀ st, WGood H ss st) :
+    WGood H (.ite c z n :: ss) st := by
+  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  obtain ⟨st', od, of, x, t, sn, J, c1, u1, c2, u2, sj, hb, hk, hfr, hod, hof, hsu, hsn, hz, hn,
+    hsj, hcw⟩ := cw_ite hok
+  obtain ⟨hseg', hbk', hfr', htg', hnx', huq', hfresh', hx, hok', hfall, htaken⟩ := brAtC_pos H hp hb
+  have hnr := noRet_of_shape (fun _ h ↦ by cases h) hshape
+  simp only [Stmt.noRet, Bool.and_eq_true] at hnr
+  -- the branch the path takes
+  set wb := if σ c = 0 then walk σ z else walk σ n with hwb
+  have hw1 : walk1 σ (.ite c z n) = wb.pre [.inK c] := rfl
+  have hwo : o = (wb.pre [.inK c]).seq (walk σ ss) := by rw [← hw, walk, hw1]
+  have hwb_ns : wb ≠ .stuck := fun h ↦ hs (by rw [hwo, h]; rfl)
+  obtain ⟨eb, hweb⟩ : ∃ eb, wb = .fall eb := by
+    rcases (show (∃ es, wb = .fall es) ∨ wb = .stuck by
+      rw [hwb]; split_ifs
+      · exact walk_noRetC z hnr.1
+      · exact walk_noRetC n hnr.2) with h | h
+    · exact h
+    · exact absurd h hwb_ns
+  have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hwo, hweb, h]; rfl)
+  have hes2 : es = ebef ++ (Ev.inK c :: eb) ++ ((walk σ ss).evs ++ eaft) := by
+    rw [hes, hwo, hweb]
+    cases hws : walk σ ss with
+    | fall _ => simp [Out.seq, Out.pre, Out.evs]
+    | ret _ _ => simp [Out.seq, Out.pre, Out.evs]
+    | stuck => exact absurd hws hst'
+  have hinK : Ev.inK c ∈ es := by rw [hes2]; simp
+  have hcK : IsInK (σ c) := H.hev _ hinK
+  have hfc := inFrame_mem hfr _ List.mem_cons_self
+  have hcell : rdc L fp (X.loc.cell c) = some (σ c) :=
+    val_cell H.frame H.loc (uses_named hinK (by simp [Ev.uses])) hfc.1 (H.fs ▸ hfc.2)
+  obtain ⟨vd, hvd, hKd⟩ := cellK_sound H.hX hok' hod
+  obtain ⟨vf, hvf, hKf⟩ := cellK_sound H.hX hok' hof
+  have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (gpow fp) :=
+    ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
+  -- the rest of the path after the branch
+  have htail' : ∀ b : List Stmt, (coreOf j).loop = true → ¬ TailB j b →
+      ∃ e ∈ (walk σ ss).evs ++ eaft, (Ev.call? e).isSome := by
+    intro b hl _
+    by_cases ht : TailB j (.ite c z n :: ss)
+    · rcases tailB_cons ht with ⟨c', args, he, -⟩ | ht'
+      · cases he
+      · have hsh : Stmt.noRetList ss = true ∨ lastOkC ss = true := by
+          rcases hshape with h | ⟨h, -, -⟩
+          · simp only [Stmt.noRetList, Bool.and_eq_true] at h
+            exact Or.inl h.2
+          · exact Or.inr (lastOkC_cons h fun vs hv ↦ by cases hv).2
+        obtain ⟨e, he, hc'⟩ := tail_call_in ht' hsh rfl hst'
+        exact ⟨e, List.mem_append_left _ he, hc'⟩
+    · obtain ⟨e, he, hc'⟩ := htail hl ht
+      exact ⟨e, List.mem_append_right _ he, hc'⟩
+  have hatoms : ∀ b : List Stmt, walk σ b = .fall eb → ∀ a, Stmt.atom a ∈ b → Ev.atom a ∈ es :=
+    fun b hb a ha ↦ by rw [hes2]; simp [atom_on_pathC hb ha]
+  have hn1 : (calls (ebef ++ [Ev.inK c])).length = (calls ebef).length := by
+    rw [calls_append_none rfl]
+  -- the branch's walk, to its join
+  obtain ⟨cb, hcb, crun⟩ : ∃ cb : Cnt, (cb = c1 ∨ cb = c2) ∧
+      Arr L fp X wJ wenv ck W0 J cb (calls (ebef ++ [Ev.inK c] ++ eb)).length := by
+    by_cases h0 : σ c = 0
+    · have hwz : walk σ z = .fall eb := by rw [← hweb, hwb]; simp only [h0, ↓reduceIte]
+      have hpz := posZ_book H (hfall hjump (h0 ▸ hcell))
+        (fileB_ok H.frame H.loc H.hev z st'.book (hbk' ▸ hp.ok.book) (hatoms z hwz))
+      have hpz' : PosZ H { st' with book := fileB X.loc X.fs z st'.book } W0
+          (calls (ebef ++ [Ev.inK c])).length := by
+        rw [hn1, H.fs]
+        exact hpz
+      obtain ⟨h1, -⟩ := ihz _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwz
+        (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.1) (htail' z) hpz' (by rw [hz]; rfl)
+      obtain ⟨es', he', ha⟩ := h1 J c1 u1 hz
+      simp only [Out.fall.injEq] at he'
+      subst he'
+      exact ⟨c1, Or.inl rfl, ha⟩
+    · have hwn : walk σ n = .fall eb := by rw [← hweb, hwb]; simp only [h0, ↓reduceIte]
+      obtain ⟨cr, hcr, hcle, henv⟩ := htaken ⟨hjump, σ c, hcell, h0⟩ _ (by rw [hk]; rfl)
+      have henvT : EnvAt L fp X wJ wenv t :=
+        envAt_of_exit H hp.seg hx (by rw [hsu]; simp) henv
+      obtain ⟨hps, hbkn, -, -, -, -, -, -⟩ := segAtC_pos H hsn hok'.book hok'.fr hok'.tg hok'.nx
+        henvT hcr hcle
+      have hpn : PosZ H { sn with book := fileB X.loc X.fs n st'.book } W0
+          (calls (ebef ++ [Ev.inK c])).length := by
+        rw [hn1, H.fs]
+        exact posZ_book H hps (fileB_ok H.frame H.loc H.hev n st'.book (hbk' ▸ hp.ok.book)
+          (hatoms n hwn))
+      obtain ⟨h1, -⟩ := ihn _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwn
+        (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.2) (htail' n) hpn (by rw [hn]; rfl)
+      obtain ⟨es', he', ha⟩ := h1 J c2 u2 hn
+      simp only [Out.fall.injEq] at he'
+      subst he'
+      exact ⟨c2, Or.inr rfl, ha⟩
+  -- the join, then the rest
+  obtain ⟨⟨cr, hcr, hcle⟩, henvJ⟩ := crun
+  obtain ⟨hpj, -⟩ := segAtC_posW H hsj hok' henvJ hcr (C := Cnt.max c1 c2) (U := Nat.lor u1 u2)
+    (fun op ↦ by
+      have := hcle op
+      rw [Cnt.get_max]
+      rcases hcb with rfl | rfl
+      · exact le_trans this (Nat.add_le_add_right (Nat.le_max_left _ _) _)
+      · exact le_trans this (Nat.add_le_add_right (Nat.le_max_right _ _) _))
+  have hw1' : walk1 σ (.ite c z n) = .fall (Ev.inK c :: eb) := by rw [hw1, hweb]; rfl
+  refine walk_step H ih (by simp [Stmt.noRet, hnr.1, hnr.2]) (fun _ _ h ↦ by cases h) hw1' hw hes hs
+    hshape htail ?_ hcw hok
+  rw [show ebef ++ Ev.inK c :: eb = ebef ++ [Ev.inK c] ++ eb by simp]
+  exact hpj
+
 end Walk
+
 
 
 
