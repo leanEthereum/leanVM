@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Sig.Placed
 public import LeanVM.Guest.B1.Sig.SphincsIff
 public import LeanVM.Guest.B1.G1Placed
+public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.B1.Da.RelIn
 
 namespace LeanVM.Guest.B1
@@ -150,6 +151,33 @@ theorem lowLin_relAtInD {fs : String → ℕ} {cert : String → V → ℕ} {S :
 
 /-! ## The verifiers -/
 
+/-- **The relation on `lowLin` transfers** to every memory defined below `2^κ` and holding `Lin`,
+placed at every frame pointer, when its loads read `Lin`. -/
+theorem lowLin_relAtInB {fs : String → ℕ} {cert : String → V → ℕ} {S : List String} (hS : coreProgram.PureIn S)
+    {g : String} (hg : g ∈ S) {rd1 : Reader} {κ : ℕ} {Lin : Layout} (hL1 : MemL rd1 Lin) {args rets : List E}
+    (h : coreProgram.RelIn (lowLin rd1 κ Lin) (RegionL Lin) g args rets) {B : ℕ}
+    (hB : ∀ rd (t : Tree), t.name = g → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
+      t.total fs ≤ B) :
+    CompleteAtB fs cert κ g Lin args (Returns rets) B := by
+  obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg h
+  intro fp
+  have hnB : n ≤ B := by
+    obtain ⟨t, hname, hv, hbo, -, ht, -⟩ := hn fp (lowLin rd1 κ Lin) (fun _ _ => rfl) (fun _ h => h)
+    rw [← ht]; exact hB _ t hname hv hbo
+  refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, hnB, fun rd hl hL => ?_⟩
+  have hL' : MemL rd Lin := by simpa using hL
+  refine relAtIn_dmono (hn fp rd (fun i hi => ?_) (fun A hA => ?_)) (fun i hi => ?_)
+  · rw [lowLin, Main.restrict_of ⟨i, rfl, Or.inl hi⟩, Main.memL_agree hL' hL1 i hi]
+  · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hA
+    obtain ⟨i, rfl, hi | hi⟩ := Main.restrict_supp' rd1 _ _ _ hv
+    · rw [Main.memL_agree hL' hL1 i hi, ← Main.restrict_of (rd := rd1)
+        (S := fun i => RegionL Lin i ∨ i < 2 ^ κ) ⟨i, rfl, Or.inl hi⟩]
+      exact Option.isSome_iff_exists.mpr ⟨v, hv⟩
+    · exact hl i hi
+  · obtain ⟨q, hq, _⟩ := hi; simp at hq
+
+/-! ## The verifiers -/
+
 theorem xmss_relIn {rd : Reader} {R : ℕ → Prop} {p : E}
     (hreg : ∀ k < 4, ∃ i, p.limb 0 * gpow k = gpow i ∧ R i)
     (h : coreProgram.Rel rd "verify_lean_xmss" [p] []) : coreProgram.RelIn rd R "verify_lean_xmss" [p] [] := by
@@ -240,6 +268,28 @@ theorem verify_lean_xmss_completeRelD (fs : String → ℕ) (cert : String → V
   exact lowLin_relAtInD xmss_pure (List.mem_singleton_self _) hL1
     (xmss_relIn (fun k hk => let ⟨i, h1, h2⟩ := hreg k hk; ⟨i, h1, h2⟩) h0) fp
 
+/-- **`verify_lean_xmss` is complete, uniformly placed**, on memories defined below `2^κ`, `κ ≥ 6`. -/
+theorem verify_lean_xmss_completeRelB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {B : ℕ}
+    (hB : LeanVM.Guest.Memory.TotalLe coreProgram fs "verify_lean_xmss" fun _ => B) (hκ : 6 ≤ κ) :
+    CompleteRelB fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss B := by
+  intro args rets Lin hpre fp
+  classical
+  by_cases hex : ∃ rd1, LowDef κ rd1 ∧ MemL rd1 Lin
+  swap
+  · refine ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, Nat.zero_le _, fun rd hl hL => absurd ⟨rd, hl, ?_⟩ hex⟩
+    simpa using hL
+  obtain ⟨rd1, hl1, hL1⟩ := hex
+  obtain ⟨p, rfl, rfl, pk, m, hc1, sig, hv⟩ := hpre rd1 hl1 hL1
+  have hreg := claim_region hl1 hL1 (p := p) fun rd hl hL => by
+    obtain ⟨p', hp', -, pk', m', hc', -⟩ := hpre rd hl hL
+    rw [List.cons.injEq] at hp'
+    exact ⟨pk'.root, pk'.parameter, m', hp'.1 ▸ hc'⟩
+  have h0 : coreProgram.Rel (lowLin rd1 κ Lin) "verify_lean_xmss" [p] [] :=
+    (verify_lean_xmss_iff (lowLin_memOK hl1 (le_trans (by norm_num) (Nat.pow_le_pow_right (by norm_num) hκ)))).mpr
+      ⟨p, rfl, rfl, pk, m, lowLin_claim hc1 hreg, sig, hv⟩
+  exact lowLin_relAtInB xmss_pure (List.mem_singleton_self _) hL1
+    (xmss_relIn (fun k hk => let ⟨i, h1, h2⟩ := hreg k hk; ⟨i, h1, h2⟩) h0) (fun rd t hn hv hbo => hB rd t _ _ hn hv hbo) fp
+
 /-- **`verify_sig_lean_sphincs` is complete, uniformly placed**, on memories defined below `2^κ`,
 `κ ≥ 8`. -/
 theorem verify_sig_lean_sphincs_completeRel (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 8 ≤ κ) :
@@ -283,6 +333,29 @@ theorem verify_sig_lean_sphincs_completeRelD (fs : String → ℕ) (cert : Strin
       ⟨p, rfl, rfl, pk, m, lowLin_claim hc1 hreg, sig, hv⟩
   exact lowLin_relAtInD sphincs_pure (List.mem_cons_self ..) hL1
     (sphincs_relIn (fun k hk => let ⟨i, h1, h2⟩ := hreg k hk; ⟨i, h1, h2⟩) h0) fp
+
+/-- **`verify_sig_lean_sphincs` is complete, uniformly placed**, on memories defined below `2^κ`,
+`κ ≥ 8`. -/
+theorem verify_sig_lean_sphincs_completeRelB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} {B : ℕ}
+    (hB : LeanVM.Guest.Memory.TotalLe coreProgram fs "verify_sig_lean_sphincs" fun _ => B) (hκ : 8 ≤ κ) :
+    CompleteRelB fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs B := by
+  intro args rets Lin hpre fp
+  classical
+  by_cases hex : ∃ rd1, LowDef κ rd1 ∧ MemL rd1 Lin
+  swap
+  · refine ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, Nat.zero_le _, fun rd hl hL => absurd ⟨rd, hl, ?_⟩ hex⟩
+    simpa using hL
+  obtain ⟨rd1, hl1, hL1⟩ := hex
+  obtain ⟨p, rfl, rfl, pk, m, hc1, sig, hv⟩ := hpre rd1 hl1 hL1
+  have hreg := claim_region hl1 hL1 (p := p) fun rd hl hL => by
+    obtain ⟨p', hp', -, pk', m', hc', -⟩ := hpre rd hl hL
+    rw [List.cons.injEq] at hp'
+    exact ⟨pk'.root, pk'.parameter, m', hp'.1 ▸ hc'⟩
+  have h0 : coreProgram.Rel (lowLin rd1 κ Lin) "verify_sig_lean_sphincs" [p] [] :=
+    (verify_sig_lean_sphincs_iff (lowLin_memOK hl1 (le_trans (by norm_num) (Nat.pow_le_pow_right (by norm_num) hκ)))).mpr
+      ⟨p, rfl, rfl, pk, m, lowLin_claim hc1 hreg, sig, hv⟩
+  exact lowLin_relAtInB sphincs_pure (List.mem_cons_self ..) hL1
+    (sphincs_relIn (fun k hk => let ⟨i, h1, h2⟩ := hreg k hk; ⟨i, h1, h2⟩) h0) (fun rd t hn hv hbo => hB rd t _ _ hn hv hbo) fp
 
 end
 end LeanVM.Guest.B1
