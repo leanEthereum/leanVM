@@ -22,7 +22,7 @@ padding weights and `idxc_tab`, statements `0 ..< 1574`.
 namespace LeanVM.Guest.B1.VerifySub
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Protocol LeanVM.Protocol.Verifier
+open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Sig
 
 @[expose] public section
@@ -151,6 +151,16 @@ theorem vt_c_sel (hSel : VtSelComplete) {κ : ℕ} (hκ : 6 ≤ κ) (hlow : LowD
   exact hSel i hi κ hκ rd hlow σ zeta bk sq offP _ _ _ point _ _ h5 h6 h9 h10 h128 hk hpl hoff hdvd hbk
     hoffP hz hsq h12 h15 h16
 
+/-- `vt_c_sel` at literal positions. -/
+theorem vt_c_sel' (hSel : VtSelComplete) {κ : ℕ} (hκ : 6 ≤ κ) (hlow : LowDef κ rd) {σ : Val}
+    {zeta bk sq offP : E} {point : List E} {ks off : ℕ → ℕ} {ptr : ℕ → E} (hpl : point.length < 33)
+    (hz : ReadsAt rd zeta point) (hsq : ∀ j < 34, LoadHolds rd sq j (gen ^ 2 ^ j)) {i : ℕ} (hi : i < 65)
+    (hm : SelMem rd bk offP point ks off ptr i) {lo st : ℕ} (hlo : selVal.getD i 0 = lo)
+    (hst : selStmt.getD i 0 = st) (h5 : σ (.n 5) = zeta) (h6 : σ (.n 6) = gen ^ point.length)
+    (h9 : σ (.n 9) = bk) (h10 : σ (.n 10) = sq) (h128 : σ (.n 128) = offP) :
+    Completes (coreProgram.Rel rd) rd lo (lo + 27) ((vtPre.drop st).take 28) σ (SelPost point ks off ptr i) := by
+  rw [← hlo, ← hst]; exact vt_c_sel hSel hκ hlow hpl hz hsq hi hm h5 h6 h9 h10 h128
+
 /-- **A run of selectors, each followed by a pure window**, from selector `i0`. -/
 theorem vt_sel_run (hSel : VtSelComplete) {κ : ℕ} (hκ : 6 ≤ κ) (hlow : LowDef κ rd)
     {zeta bk sq offP : E} {point : List E} {ks off : ℕ → ℕ} {ptr : ℕ → E} (hpl : point.length < 33)
@@ -202,6 +212,92 @@ theorem vt_sel_run (hSel : VtSelComplete) {κ : ℕ} (hκ : 6 ≤ κ) (hlow : Lo
       · simpa using hp0
       · have := hr j (by omega)
         rw [show i0 + 1 + j = i0 + (j + 1) by omega] at this; exact this
+
+end
+
+theorem Ext.app' {lo hi : ℕ} {σ σ' : Val} (h : Ext lo hi σ σ') (k : ℕ) (hk : k < lo) : σ' (.n k) = σ (.n k) :=
+  h.apply (Or.inl hk)
+
+section
+variable {rd : Reader}
+
+set_option maxRecDepth 100000 in
+/-- **Statements `1574 ..< 1808`**: `block_index_mle` hinted, the selectors `0`, `1`, `2` with the
+boundary block, the memory block and the bytecode block between them. -/
+theorem vt_phaseB1 (hSel : VtSelComplete) (hG1 : VtGlue1) (hG2 : VtGlue2) (hG3 : VtGlue3) {κ : ℕ}
+    (hκ : 6 ≤ κ) (hlow : LowDef κ rd) {σ : Val}
+    {cur zeta bk sq fpw pool cplen idxc offP pbim pI2 pI3 m0 m1 m2 : E} {point : List E} {logMem : ℕ}
+    {cv : Digest} {ks off : ℕ → ℕ} {ptr : ℕ → E}
+    (h2 : σ (.n 2) = cur) (h5 : σ (.n 5) = zeta) (h6 : σ (.n 6) = gen ^ point.length) (h9 : σ (.n 9) = bk)
+    (h10 : σ (.n 10) = sq) (h11 : σ (.n 11) = fpw) (h13 : σ (.n 13) = pool) (h14 : σ (.n 14) = cplen)
+    (hcv : (σ (.n 19), σ (.n 20)) = digestScalars cv) (h128 : σ (.n 128) = offP) (h1817 : σ (.n 1817) = idxc)
+    (hpl : point.length < 33) (hz : ReadsAt rd zeta point) (hsq : ∀ j < 34, LoadHolds rd sq j (gen ^ 2 ^ j))
+    (hm : ∀ i < 65, SelMem rd bk offP point ks off ptr i) (hfpw : ∀ i < 16, ∃ v, LoadHolds rd fpw i v)
+    (hidxc : ∀ t < 34, LoadHolds rd idxc t (1 + gen ^ 2 ^ t))
+    (hk1 : ks (selBlk.getD 1 0) = logMem) (hk2 : ks (selBlk.getD 2 0) = 18) (h0lm : 0 < logMem)
+    (hlmp : logMem ≤ point.length) (hlm32 : logMem ≤ 32) (h18p : 18 ≤ point.length)
+    (hpI2 : ReadsAt rd pI2 (idxChainW point logMem))
+    (hb1 : LoadHolds rd pbim 1 ((idxChainW point logMem).getD logMem 0))
+    (hpI3 : ReadsAt rd pI3 (idxChainW point 18)) (hb2 : LoadHolds rd pbim 2 ((idxChainW point 18).getD 18 0))
+    (hcur : ReadsAt rd cur [m0, m1, m2]) (hpool : ReadsAt rd pool [m0, m1, m2])
+    (hcpl : ∀ j < 3, LoadHolds rd cplen j (gen ^ logMem)) :
+    Completes (coreProgram.Rel rd) rd 1852 2077
+      ((vtPre.drop 1574).take (3 + (28 + (11 + (28 + (80 + (28 + 56))))))) σ (fun σ' =>
+        σ' (.n 1852) = pbim ∧ (∀ i < 3, SelPost point ks off ptr i σ') ∧ σ' (.n 1925) = pI2 ∧
+          σ' (.n 1937) = m0 ∧ σ' (.n 1955) = m1 ∧ σ' (.n 1973) = m2 ∧
+          (σ' (.n 1986), σ' (.n 1987)) = digestScalars (obsAll cv [m0, m1, m2]) ∧ σ' (.n 2029) = pI3) := by
+  have stS : ∀ i lo, selVal.getD i 0 = lo → ∀ σ1 σ2 : Val, (∀ k < lo + 27, σ2 (.n k) = σ1 (.n k)) →
+      SelPost point ks off ptr i σ1 → SelPost point ks off ptr i σ2 := fun i lo hlo σ1 σ2 hag hp => by
+    subst hlo; unfold SelPost at hp ⊢; simp +contextual (disch := omega) only [hag]; exact hp
+  refine (vt_cons (by norm_num) (by norm_num) (numBelow_of_B (by decide +kernel)) (vt_c_bim pbim)
+    (by vt_stable) fun σ1 e1 p1 =>
+    vt_cons (by norm_num) (by norm_num) (numBelow_of_B (by decide +kernel))
+      (vt_c_sel' hSel hκ hlow hpl hz hsq (by norm_num : 0 < 65) (hm 0 (by norm_num)) (by decide) (by decide)
+        (by rw [Ext.app' e1 5 (by norm_num), h5]) (by rw [Ext.app' e1 6 (by norm_num), h6])
+        (by rw [Ext.app' e1 9 (by norm_num), h9]) (by rw [Ext.app' e1 10 (by norm_num), h10])
+        (by rw [Ext.app' e1 128 (by norm_num), h128])) (stS 0 1855 (by decide)) fun σ2 e2 p2 =>
+    vt_cons (by norm_num) (by norm_num) (numBelow_of_B (by decide +kernel))
+      (hG1 rd σ2 fpw (by rw [Ext.app' e2 11 (by norm_num), Ext.app' e1 11 (by norm_num), h11]) hfpw)
+      (fun _ _ _ _ => trivial) fun σ3 e3 _ =>
+    vt_cons (by norm_num) (by norm_num) (numBelow_of_B (by decide +kernel))
+      (vt_c_sel' hSel hκ hlow hpl hz hsq (by norm_num : 1 < 65) (hm 1 (by norm_num)) (by decide) (by decide)
+        (by simp (disch := omega) only [Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h5)
+        (by simp (disch := omega) only [Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h6)
+        (by simp (disch := omega) only [Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h9)
+        (by simp (disch := omega) only [Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h10)
+        (by simp (disch := omega) only [Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h128)) (stS 1 1893 (by decide)) fun σ4 e4 p4 =>
+    vt_cons (by norm_num) (by norm_num) (numBelow_of_B (by decide +kernel))
+      (hG2 rd σ4 cur fpw pool cplen zeta idxc pbim pI2 m0 m1 m2 point logMem cv
+        (by simp (disch := omega) only [Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h2)
+        (by simp (disch := omega) only [Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h5)
+        (by simp (disch := omega) only [Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h11)
+        (by simp (disch := omega) only [Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h13)
+        (by simp (disch := omega) only [Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h14)
+        (by simp (disch := omega) only [Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h1817)
+        (by simp (disch := omega) only [Ext.app' e4, Ext.app' e3, Ext.app' e2]; exact p1)
+        (by rw [← hk1]; exact (show selVal.getD 1 0 = 1893 by decide) ▸ p4.2.1)
+        (by simp (disch := omega) only [Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact hcv)
+        h0lm hlmp hz hidxc hpI2 hb1 hfpw hcur hpool hcpl hlm32) (by vt_stable) fun σ5 e5 _ =>
+    vt_cons (by norm_num) (by norm_num) (numBelow_of_B (by decide +kernel))
+      (vt_c_sel' hSel hκ hlow hpl hz hsq (by norm_num : 2 < 65) (hm 2 (by norm_num)) (by decide) (by decide)
+        (by simp (disch := omega) only [Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h5)
+        (by simp (disch := omega) only [Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h6)
+        (by simp (disch := omega) only [Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h9)
+        (by simp (disch := omega) only [Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h10)
+        (by simp (disch := omega) only [Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h128))
+      (stS 2 1997 (by decide)) fun σ6 e6 p6 =>
+    hG3 rd σ6 fpw zeta idxc pbim pI3 point
+      (by simp (disch := omega) only [Ext.app' e6, Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h5)
+      (by simp (disch := omega) only [Ext.app' e6, Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h11)
+      (by simp (disch := omega) only [Ext.app' e6, Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2, Ext.app' e1]; exact h1817)
+      (by simp (disch := omega) only [Ext.app' e6, Ext.app' e5, Ext.app' e4, Ext.app' e3, Ext.app' e2]; exact p1)
+      (by rw [← hk2]; exact (show selVal.getD 2 0 = 1997 by decide) ▸ p6.2.1) h18p hz hidxc hpI3 hb2 hfpw).mono le_rfl le_rfl ?_
+  rintro σ' ⟨q1, q2, -, q4, ⟨q25, q37, q55, q73, q86⟩, q6, q29⟩
+  refine ⟨q1, fun i hi => ?_, q25, q37, q55, q73, q86, q29⟩
+  interval_cases i
+  · exact q2
+  · exact q4
+  · exact q6
 
 end
 
