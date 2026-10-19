@@ -770,30 +770,6 @@ def needsG : Exec.Atom → List ℕ
   | .instr _ (.deref h _ _ .cell) => [h]
   | _ => []
 
-def atomVals : Core.Atom → List Core.V
-  | .const d _ => [d]
-  | .add d a b | .mul d a b => [d, a, b]
-  | .copy d x | .assertEq d x | .assertInK d x => [d, x]
-  | .load d q _ => [d, q]
-  | .assertNe x i q => [x, i, q]
-  | .rangeCheck x y t1 t2 k => [x, y, t1, t2, k]
-  | .blake2s m0 m1 m2 m3 cv0 cv1 o0 o1 md => [m0, m1, m2, m3, cv0, cv1, o0, o1, md]
-  | .frameAddr q run => q :: run
-  | .hint _ => []
-
-/-- The values a block names. -/
-partial def stmtVals : List Core.Stmt → List Core.V
-  | [] => []
-  | s :: ss => (match s with
-    | .atom a => atomVals a
-    | .ite c z n => c :: (stmtVals z ++ stmtVals n)
-    | .match_ x arms => x :: arms.flatMap stmtVals
-    | .call _ args rets => args ++ rets
-    | .callIf c _ args => c :: args
-    | .dispatch x _ args rets => x :: (args ++ rets)
-    | .ret vs => vs) ++ stmtVals ss
-
-
 def modeText : LeanVM.Semantics.DerefMode → String
   | .cell => ".cell"
   | .fp => ".fp"
@@ -864,6 +840,26 @@ def cutAtMark (segMap : Std.HashMap ℕ GSeg) (entry : ℕ)
   | .next t => if s.exit.succ == [t] then return (t, t, fs) else none
   | _ => none
 
+/-- What later statements look up beyond the facts they find: the cells of frame addresses,
+selectors and bounded call arguments, and the constants' cells and limbs. -/
+partial def laterNeeds (cellOf : Core.V → ℕ) : List Core.Stmt → List ℕ × List (ℕ × ℕ × ℕ × ℕ)
+  | [] => ([], [])
+  | s :: ss =>
+    let preCells (g : String) (args : List Core.V) : List ℕ :=
+      (bounds g).1.filterMap fun (o, _) => (args[o - 2]?).map cellOf
+    let (a, b) := laterNeeds cellOf ss
+    let (a', b') : List ℕ × List (ℕ × ℕ × ℕ × ℕ) := match s with
+      | .atom (.frameAddr q _) => ([cellOf q], [])
+      | .atom (.const v x) => let (k0, k1, k2) := limbsOfE x; ([], [(cellOf v, k0, k1, k2)])
+      | .match_ x arms => arms.foldl (fun (a, b) arm => let (a2, b2) := laterNeeds cellOf arm; (a ++ a2, b ++ b2))
+          ([cellOf x], [])
+      | .ite _ z n => let (a1, b1) := laterNeeds cellOf z; let (a2, b2) := laterNeeds cellOf n; (a1 ++ a2, b1 ++ b2)
+      | .dispatch x fs args _ => (cellOf x :: fs.flatMap (preCells · args), [])
+      | .call g args _ => (preCells g args, [])
+      | .callIf _ g args => (preCells g args, [])
+      | _ => ([], [])
+    (a' ++ a, b' ++ b)
+
 /-- The windows of a function: a cut before each statement in `forced` (with the memory bounds
 and semantic pairs it starts knowing), and, in a function longer than `maxWin`, wherever the
 next window would grow past it. -/
@@ -911,13 +907,16 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
     -- the passed facts later statements found, and those under the cells of later frame
     -- addresses and selectors
     let later := cf.body.drop idx
-    let sel : Std.HashSet ℕ := (later.flatMap fun
-      | .atom (.frameAddr q _) => [cellOf q]
-      | .match_ x _ | .dispatch x _ _ _ => [cellOf x]
-      | _ => []).foldl (·.insert ·) {}
+    let (selL, consts) := laterNeeds cellOf later
+    let sel : Std.HashSet ℕ := selL.foldl (·.insert ·) {}
+    let constSet : Std.HashSet (ℕ × ℕ × ℕ × ℕ) := consts.foldl (·.insert ·) {}
+    let isConst : Exec.Atom → Bool
+      | .instr _ (.set o k0 k1 k2) => constSet.contains (o, k0, k1, k2)
+      | _ => false
     let used : Std.HashSet ℕ := uses.foldl (fun h (t, k) => if t ≥ idx && k < n + extra.size then h.insert k else h) {}
     let fs := spine.extract 0 n ++ extra
-    let direct := (fs.zipIdx.filter fun (a, k) => used.contains k || (keysG a).any sel.contains).map (·.1)
+    let direct := (fs.zipIdx.filter fun (a, k) =>
+      used.contains k || isConst a || (keysG a).any sel.contains).map (·.1)
     let need : Std.HashSet ℕ := direct.foldl (fun h a => (needsG a).foldl (·.insert ·) h) {}
     let hand := direct ++ fs.filter fun a => (keysG a).any need.contains
     let seen : Std.HashSet String := {}
@@ -968,22 +967,50 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
   let armsT := listText ((F.arms.toList.mergeSort (·.1 ≤ ·.1)).map fun (i, a) =>
     s!"({i}, {listText (a.map toString)})")
   let scaled := listText (F.env.map (toString ·.1))
-  let chunks := (List.range ((locs.length + locChunk - 1) / locChunk)).map fun c =>
-    (locs.drop (c * locChunk)).take locChunk
+  -- each window's cells: the values from where the previous window's end, up to the last value
+  -- its statements name, and the earlier values they name with the window holding them
+  let wStarts := (0 :: cuts.map (·.start)).toArray
+  let nw := wStarts.size
+  let mut los : Array ℕ := #[]
+  let mut his : Array ℕ := #[]
+  let mut insW : Array (List (ℕ × ℕ × ℕ)) := #[]
+  let mut hi := 0
+  for w in [0:nw] do
+    let a := wStarts[w]!
+    let b := if w + 1 < nw then wStarts[w + 1]! else cf.body.length
+    let vs := (Check.stmtsVals ((cf.body.drop a).take (b - a))).map (·.idx) ++
+      (if w == 0 then cf.params.map (·.idx) else [])
+    let lo := hi
+    hi := vs.foldl (fun h v => max h (v + 1)) hi
+    if w + 1 == nw then hi := max hi locs.length
+    los := los.push lo
+    his := his.push hi
+    let homeOf (v : ℕ) : ℕ := ((List.range w).reverse.find? fun u => los[u]! ≤ v).getD 0
+    let ins := (vs.filter (· < lo)).eraseDups.mergeSort
+    insW := insW.push (ins.map fun v => (v, locs.getD v 0, homeOf v))
   let litOf (l : List ℕ) : String := if l.length < 32 then listText (l.map toString)
     else "(" ++ " :: ".intercalate (l.map toString) ++ " :: [])"
-  let locDefs := String.join (chunks.zipIdx.map fun (l, c) =>
-    s!"/-- `{f.name}`: the cells of values {c * locChunk} on. -/\n" ++
-    s!"def cert{j}_l{c} : List ℕ := {litOf l}\n\n")
-  let locT := if chunks.isEmpty then "[]"
-    else " ++ ".intercalate (chunks.zipIdx.map fun (_, c) => s!"cert{j}_l{c}")
+  let mut locDefs := ""
+  let mut cellT : Array String := #[]
+  for w in [0:nw] do
+    let cs := (locs.drop los[w]!).take (his[w]! - los[w]!)
+    let chunks := (List.range ((cs.length + locChunk - 1) / locChunk)).map fun c =>
+      (cs.drop (c * locChunk)).take locChunk
+    locDefs := locDefs ++ String.join (chunks.zipIdx.map fun (l, c) =>
+      s!"/-- `{f.name}`: window {w}'s cells, of values {los[w]! + c * locChunk} on. -/\n" ++
+      s!"def cert{j}_w{w}_{c} : List ℕ := {litOf l}\n\n")
+    cellT := cellT.push (if chunks.isEmpty then "[]"
+      else "(" ++ " ++ ".intercalate (chunks.zipIdx.map fun (_, c) => s!"cert{j}_w{w}_{c}") ++ ")")
+  let insT := listText (insW.toList.map fun l => listText (l.map fun (v, c, h) => s!"({v}, {c}, {h})"))
   let starts := 0 :: cuts.map (·.J)
   let stops := cuts.map (·.b) ++ [f.len]
   let sizes := (starts.zip stops).map fun (a, b) => b - a
   return (·, sizes) <| locDefs ++ s!"/-- `{f.name}`. -/
 noncomputable def cert{j} : Check.Cert where
   facts := \{ env := {envT}, fpOne := {main}, arms := {armsT}, scaled := {scaled} }
-  locs := {locT}
+  los := {listText (los.toList.map toString)}
+  cells := {listText cellT.toList}
+  ins := {insT}
   nret := {nr}
   callees := {listText (callees.map toString)}
   pre := {listText (pre.map pairText)}

@@ -468,8 +468,12 @@ structure Cut where
 structure Cert where
   /-- The executor's facts. -/
   facts : Exec.Facts
-  /-- The frame cell of each core value, by its number. -/
-  locs : List ℕ
+  /-- The frame cell of each core value, by its number, window by window: window `i`'s are the
+  cells `cells[i]` of the values from `los[i]`, and `ins[i]` those of the values its statements
+  name outside them, `(value, cell, window whose cells hold it)`. -/
+  los : List ℕ
+  cells : List (List ℕ)
+  ins : List (List (ℕ × ℕ × ℕ))
   /-- The number of return words. -/
   nret : ℕ
   /-- The functions it calls, by index. -/
@@ -947,14 +951,80 @@ noncomputable def winEnd (C : Cert) (i : ℕ) (idx : Trie Exec.Seg) (r : Res) : 
       | none => true)
   else r == .done
 
+/-- The frame cell of each core value: the windows' cells in order. -/
+def Cert.locs (C : Cert) : List ℕ := C.cells.flatten
+
+/-- Store the cells of `ps` into `t`. -/
+noncomputable def insTrie : List (ℕ × ℕ × ℕ) → Trie ℕ → Trie ℕ
+  | [], t => t
+  | p :: ps, t => (setF p.2.1 indexDepth t p.1).seq fun t ↦ insTrie ps t
+
+/-- Window `i`'s cells: its own, and those its statements name outside them. -/
+noncomputable def Cert.locAt (C : Cert) (i : ℕ) : Trie ℕ :=
+  (locTrieFrom (nth C.cells i []) (nth C.los i 0) .nil).seq fun t ↦ insTrie (nth C.ins i []) t
+
+/-- The windows' cells are consecutive: window `0`'s from value `0`, window `i + 1`'s right after
+window `i`'s. -/
+def Cert.contOk (C : Cert) (i : ℕ) : Bool :=
+  (bif i == 0 then nth C.los 0 0 == 0 else true) &&
+    (bif Nat.blt i C.cuts.length then nth C.los (i + 1) 0 == nth C.los i 0 + (nth C.cells i []).length
+      else true)
+
+/-- The cells a window takes from other windows are theirs. -/
+def Cert.insOk (C : Cert) (ps : List (ℕ × ℕ × ℕ)) : Bool :=
+  ps.all fun p ↦ Nat.ble p.2.2 C.cuts.length && Nat.ble (nth C.los p.2.2 0) p.1 &&
+    (nth C.cells p.2.2 [])[p.1 - nth C.los p.2.2 0]? == some p.2.1
+
+/-- The values an atom names. -/
+def atomVals : Core.Atom → List Core.V
+  | .const d _ => [d]
+  | .add d a b => [d, a, b]
+  | .mul d a b => [d, a, b]
+  | .copy d x => [d, x]
+  | .assertEq d x => [d, x]
+  | .assertInK d x => [d, x]
+  | .load d q _ => [d, q]
+  | .assertNe x i q => [x, i, q]
+  | .rangeCheck x y t1 t2 k => [x, y, t1, t2, k]
+  | .blake2s m0 m1 m2 m3 cv0 cv1 o0 o1 md => [m0, m1, m2, m3, cv0, cv1, o0, o1, md]
+  | .frameAddr q run => q :: run
+  | .hint _ => []
+
+mutual
+/-- The values a statement names. -/
+def stmtVals : Core.Stmt → List Core.V
+  | .atom a => atomVals a
+  | .ite c z n => c :: (stmtsVals z ++ stmtsVals n)
+  | .match_ x arms => x :: armsVals arms
+  | .call _ args rets => args ++ rets
+  | .callIf c _ args => c :: args
+  | .dispatch x _ args rets => x :: (args ++ rets)
+  | .ret vs => vs
+
+/-- The values a block names. -/
+def stmtsVals : List Core.Stmt → List Core.V
+  | [] => []
+  | s :: ss => stmtVals s ++ stmtsVals ss
+
+/-- The values arms name. -/
+def armsVals : List (List Core.Stmt) → List Core.V
+  | [] => []
+  | a :: as => stmtsVals a ++ armsVals as
+end
+
+/-- Every value of the statements has a cell. -/
+noncomputable def covOk (loc : Trie ℕ) (ss : List Core.Stmt) : Bool :=
+  (stmtsVals ss).all fun v ↦ (getF loc v.idx).isSome
+
 /-- **The check of window `i`** of `f` with core function `cf` and certificate `C`: its
-executor's segments are linked, its walk starts at its start offset in its environment with what
-the previous window handed on, and ends as `winEnd` says; the first window also has the
-parameters in their cells. -/
+executor's segments are linked, its cells are the certificate's and cover its statements, its walk
+starts at its start offset in its environment with what the previous window handed on, and ends
+as `winEnd` says; the first window also has the parameters in their cells. -/
 noncomputable def checkWin (G : Glob) (f : CompiledFn) (cf : Core.Fn) (C : Cert) (main : Bool)
     (i : ℕ) : Bool :=
   match execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with
-  | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (locTrie C.locs).seq fun loc ↦
+  | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (C.locAt i).seq fun loc ↦
+      C.contOk i && C.insOk (nth C.ins i []) && covOk loc (C.stmtsAt cf i) &&
       linkedWeak idx segs (C.fxAt G f cf main i segs idx loc).wJ (C.fxAt G f cf main i segs idx loc).wenv &&
       (bif i == 0 then runAt loc 2 cf.params && main == C.facts.fpOne else true) &&
       (match segAt (C.fxAt G f cf main i segs idx loc) (C.cutAt i).J

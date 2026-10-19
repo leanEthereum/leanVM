@@ -1818,6 +1818,184 @@ theorem bookOf_holds {fp : K} : ∀ (ps : List (ℕ × Exec.Atom)) {B : Book}, B
     · exact hp p List.mem_cons_self
     · exact hB o a ha
 
+/-! ### The cells of a window -/
+
+theorem locTrieFrom_get : ∀ (cs : List ℕ) (k : ℕ) (t : Trie ℕ) {v c : ℕ},
+    getF (locTrieFrom cs k t) v = some c →
+      (∃ m, ∃ h : m < cs.length, v = k + m ∧ cs[m] = c) ∨ getF t v = some c
+  | [], _, _, _, _, h => Or.inr h
+  | c0 :: cs, k, t, v, c, h => by
+    simp only [locTrieFrom, natSeq_eq, Trie.seq_eq] at h
+    rcases locTrieFrom_get cs (k + 1) _ h with ⟨m, hm, rfl, hc⟩ | h'
+    · exact Or.inl ⟨m + 1, by simpa using hm, by omega, by simpa using hc⟩
+    · rw [getF_eq, setF_eq] at h'
+      rcases Trie.get_set h' with ⟨rfl, rfl⟩ | h''
+      · exact Or.inl ⟨0, by simp, by omega, rfl⟩
+      · exact Or.inr (by rwa [getF_eq])
+
+theorem insTrie_get : ∀ (ps : List (ℕ × ℕ × ℕ)) (t : Trie ℕ) {v c : ℕ},
+    getF (insTrie ps t) v = some c → (∃ j, (v, c, j) ∈ ps) ∨ getF t v = some c
+  | [], _, _, _, h => Or.inr h
+  | p :: ps, t, v, c, h => by
+    simp only [insTrie, Trie.seq_eq] at h
+    rcases insTrie_get ps _ h with ⟨j, hj⟩ | h'
+    · exact Or.inl ⟨j, List.mem_cons_of_mem _ hj⟩
+    · rw [getF_eq, setF_eq] at h'
+      rcases Trie.get_set h' with ⟨rfl, rfl⟩ | h''
+      · exact Or.inl ⟨p.2.2, by simp⟩
+      · exact Or.inr (by rwa [getF_eq])
+
+theorem locAt_get {i v c : ℕ} (h : getF (C.locAt i) v = some c) :
+    (∃ m, ∃ hm : m < (nth C.cells i []).length, v = nth C.los i 0 + m ∧ (nth C.cells i [])[m] = c) ∨
+      ∃ j, (v, c, j) ∈ nth C.ins i [] := by
+  unfold Cert.locAt at h
+  rw [Trie.seq_eq] at h
+  rcases insTrie_get _ _ h with hj | h'
+  · exact Or.inr hj
+  · rcases locTrieFrom_get _ _ _ h' with hm | h''
+    · exact Or.inl hm
+    · simp [getF_eq] at h''
+
+/-- The windows' cells are consecutive, up to window `n`. -/
+def Cont (C : Cert) (n : ℕ) : Prop :=
+  nth C.los 0 0 = 0 ∧ ∀ i < n, nth C.los (i + 1) 0 = nth C.los i 0 + (nth C.cells i []).length
+
+theorem nth_of_le {α : Type} : ∀ {l : List α} {n : ℕ} {d : α}, l.length ≤ n → nth l n d = d
+  | [], _, _, _ => rfl
+  | _ :: _, 0, _, h => absurd h (by simp)
+  | _ :: as, n + 1, _, h => nth_of_le (l := as) (by simpa using h)
+
+theorem cont_lo {n : ℕ} (h : Cont C n) : ∀ j ≤ n,
+    nth C.los j 0 = ((C.cells.take j).map List.length).sum := by
+  intro j
+  induction j with
+  | zero => intro _; simpa using h.1
+  | succ j ih =>
+    intro hj
+    rw [h.2 j (by omega), ih (by omega)]
+    rcases Nat.lt_or_ge j C.cells.length with hl | hl
+    · rw [List.take_add_one, List.map_append, List.sum_append, List.getElem?_eq_getElem hl, nth_eq hl]
+      simp
+    · rw [List.take_of_length_le (by omega), List.take_of_length_le (by omega), nth_of_le hl]
+      simp
+
+theorem flatten_getD : ∀ (Ls : List (List ℕ)) (j : ℕ) (hl : j < Ls.length) (m : ℕ)
+    (hm : m < Ls[j].length), Ls.flatten.getD (((Ls.take j).map List.length).sum + m) 0 = Ls[j][m]
+  | _ :: _, 0, _, m, hm => by
+    simp only [List.take_zero, List.map_nil, List.sum_nil, Nat.zero_add, List.flatten_cons,
+      List.getD_eq_getElem?_getD, List.getElem_cons_zero] at hm ⊢
+    rw [List.getElem?_append_left hm, List.getElem?_eq_getElem hm, Option.getD_some]
+  | a :: Ls, j + 1, hl, m, hm => by
+    simp only [List.take_succ_cons, List.map_cons, List.sum_cons, List.flatten_cons,
+      List.getElem_cons_succ] at hm ⊢
+    have ih := flatten_getD Ls j (by simpa using hl) m hm
+    rw [List.getD_eq_getElem?_getD] at ih ⊢
+    rw [List.getElem?_append_right (by omega), show a.length + ((Ls.take j).map List.length).sum + m -
+      a.length = ((Ls.take j).map List.length).sum + m by omega, ih]
+
+/-- **The cells of a window are the certificate's**: window `j`'s cell `m` is the cell of value
+`los[j] + m`. -/
+theorem cont_locs {n : ℕ} (h : Cont C n) {j : ℕ} (hj : j ≤ n) {m : ℕ}
+    (hm : m < (nth C.cells j []).length) :
+    C.locs.getD (nth C.los j 0 + m) 0 = (nth C.cells j [])[m] := by
+  have hl : j < C.cells.length := by
+    by_contra hc
+    rw [nth_of_le (by omega)] at hm
+    exact absurd hm (Nat.not_lt_zero _)
+  have hc : nth C.cells j [] = C.cells[j] := nth_eq hl
+  rw [cont_lo h j hj]
+  simp only [hc] at hm ⊢
+  exact flatten_getD C.cells j hl m hm
+
+/-- The valuation of a function's check: every value is the word in its cell. -/
+noncomputable def valG (L : MemImage κ) (fp : K) (C : Cert) : Core.Val :=
+  fun v ↦ wd L fp (C.locs.getD v.idx 0)
+
+theorem locAt_val {n : ℕ} (hcont : Cont C n) {i : ℕ} (hi : i ≤ n)
+    (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n) {v : Core.V} {c : ℕ}
+    (h : getF (C.locAt i) v.idx = some c) : C.locs.getD v.idx 0 = c := by
+  rcases locAt_get h with ⟨m, hm, hv, hc⟩ | ⟨j, hj⟩
+  · rw [hv, cont_locs hcont hi hm, hc]
+  · have := List.all_eq_true.mp hins _ hj
+    simp only [Bool.and_eq_true, Nat.ble_eq, beq_iff_eq] at this
+    obtain ⟨⟨hjn, hlo⟩, hget⟩ := this
+    obtain ⟨hm, hget⟩ := List.getElem?_eq_some_iff.mp hget
+    rw [show v.idx = nth C.los j 0 + (v.idx - nth C.los j 0) by omega,
+      cont_locs hcont (hn ▸ hjn) hm, hget]
+
+/-! ### The valuation of a block -/
+
+section Congr
+
+variable {CR : Core.CallRel} {rd : Core.Reader} {σ σ' : Core.Val}
+
+theorem atom_congr {a : Core.Atom} (h : ∀ v ∈ atomVals a, σ v = σ' v) :
+    a.Holds rd σ ↔ a.Holds rd σ' := by
+  cases a with
+  | frameAddr q run =>
+    simp only [atomVals, List.mem_cons, forall_eq_or_imp] at h
+    simp only [Core.Atom.Holds, h.1]
+    refine and_congr_right fun _ ↦ forall_congr' fun k ↦ forall_congr' fun hk ↦ ?_
+    rw [h.2 _ (List.getElem_mem hk)]
+  | hint => simp [Core.Atom.Holds]
+  | _ => simp_all [atomVals, Core.Atom.Holds]
+
+mutual
+theorem holds_congr : ∀ (s : Core.Stmt) {next : Prop} {kret : List E → Prop},
+    (∀ v ∈ stmtVals s, σ v = σ' v) →
+      (Core.Stmt.Holds CR rd σ s next kret ↔ Core.Stmt.Holds CR rd σ' s next kret)
+  | .atom a, _, _, h => by
+    simp only [Core.Stmt.Holds]
+    rw [atom_congr (by simpa [stmtVals] using h)]
+  | .ite c z n, _, _, h => by
+    simp only [stmtVals, List.mem_cons, List.mem_append, forall_eq_or_imp] at h
+    simp only [Core.Stmt.Holds, h.1]
+    rw [holdsList_congr z fun v hv ↦ h.2 v (Or.inl hv), holdsList_congr n fun v hv ↦ h.2 v (Or.inr hv)]
+  | .match_ x arms, _, _, h => by
+    simp only [stmtVals, List.mem_cons, forall_eq_or_imp] at h
+    simp only [Core.Stmt.Holds]
+    exact holdsArms_congr x arms 0 h.1 h.2
+  | .call f args rets, _, _, h => by
+    simp only [stmtVals, List.mem_append] at h
+    simp only [Core.Stmt.Holds]
+    rw [List.map_congr_left fun v hv ↦ h v (Or.inl hv), List.map_congr_left fun v hv ↦ h v (Or.inr hv)]
+  | .callIf c f args, _, _, h => by
+    simp only [stmtVals, List.mem_cons, forall_eq_or_imp] at h
+    simp only [Core.Stmt.Holds, h.1]
+    rw [List.map_congr_left h.2]
+  | .dispatch x fs args rets, _, _, h => by
+    simp only [stmtVals, List.mem_cons, List.mem_append, forall_eq_or_imp] at h
+    simp only [Core.Stmt.Holds, h.1]
+    rw [List.map_congr_left fun v hv ↦ h.2 v (Or.inl hv),
+      List.map_congr_left fun v hv ↦ h.2 v (Or.inr hv)]
+  | .ret vs, _, _, h => by
+    simp only [Core.Stmt.Holds]
+    rw [List.map_congr_left fun v hv ↦ h v (by simpa [stmtVals] using hv)]
+
+theorem holdsList_congr : ∀ (ss : List Core.Stmt) {next : Prop} {kret : List E → Prop},
+    (∀ v ∈ stmtsVals ss, σ v = σ' v) →
+      (Core.Stmt.HoldsList CR rd σ ss next kret ↔ Core.Stmt.HoldsList CR rd σ' ss next kret)
+  | [], _, _, _ => Iff.rfl
+  | s :: ss, _, _, h => by
+    simp only [stmtsVals, List.mem_append] at h
+    simp only [Core.Stmt.HoldsList]
+    rw [holdsList_congr ss fun v hv ↦ h v (Or.inr hv)]
+    exact holds_congr s fun v hv ↦ h v (Or.inl hv)
+
+theorem holdsArms_congr (x : Core.V) : ∀ (arms : List (List Core.Stmt)) (j : ℕ) {next : Prop}
+    {kret : List E → Prop}, σ x = σ' x → (∀ v ∈ armsVals arms, σ v = σ' v) →
+      (Core.Stmt.HoldsArms CR rd σ x j arms next kret ↔ Core.Stmt.HoldsArms CR rd σ' x j arms next kret)
+  | [], _, _, _, _, _ => Iff.rfl
+  | a :: as, j, _, _, hx, h => by
+    simp only [armsVals, List.mem_append] at h
+    simp only [Core.Stmt.HoldsArms, hx]
+    rw [holdsList_congr a fun v hv ↦ h v (Or.inl hv), holdsArms_congr x as (j + 1) hx fun v hv ↦ h v (Or.inr hv)]
+end
+
+end Congr
+
+/-! ### A window -/
+
 /-- **The run at window `i`'s start** with `k` steps left: there, its environment and the facts
 and bounds handed on hold. -/
 def WinStart (L : MemImage κ) (fp : K) (f : CompiledFn) (C : Cert) (i k : ℕ) : Prop :=
@@ -1829,36 +2007,74 @@ abbrev RetOf (L : MemImage κ) (fp : K) (G : Glob) (f : CompiledFn) (cf : Core.F
     (main : Bool) (Kb : ℕ) : List E → Prop :=
   RetWords L fp (C.fxAt G f cf main 0 [] .nil .nil) Kb
 
-/-- **A checked window's run**, from its start with `k ≤ Kb` steps left: its statements hold
-under the check's valuation, and the run reaches the next window's start, or, the last window,
-its statements end by the return. -/
+theorem checkWin_parts {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = true) :
+    C.contOk i = true ∧ C.insOk (nth C.ins i []) = true := by
+  unfold checkWin at hc
+  rcases hR : execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with ⟨segs, dead⟩
+  rw [hR] at hc
+  simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true] at hc
+  exact ⟨hc.1.1.1.1.1, hc.1.1.1.1.2⟩
+
+/-- The first window's check fixes whether the frame is `main`'s. -/
+theorem checkWin_fpOne {main : Bool} (hc : checkWin G f cf C main 0 = true) : main = C.facts.fpOne := by
+  unfold checkWin at hc
+  rcases hR : execWin C.facts f (C.cutAt 0).J (C.cutAt 0).env (C.endAt f 0) with ⟨segs, dead⟩
+  rw [hR] at hc
+  simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true, beq_self_eq_true, Bool.cond_true,
+    beq_iff_eq] at hc
+  exact hc.1.2.2
+
+/-- **A checked window's run**, from its start with `k ≤ Kb` steps left, the windows' cells
+consecutive: its statements hold under the function's valuation, and the run reaches the next
+window's start, or, the last window, its statements end by the return; the first window has the
+parameters in their cells. -/
 theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = true)
+    (hcont : Cont C C.cuts.length) (hiN : i ≤ C.cuts.length)
     (hf : f ∈ Data.functions) (hpows : C.facts.pows.Ok) (hκ : κ ≤ 32) {fp : K}
     (hfp : C.facts.fpOne = true → fp = 1) {Kb : ℕ}
     (hC : ∀ j, FunSpecLt guest L Kb (G.sig j).entry (Pre G L j) (Post Prog G L j))
     (hjt : JTHolds G L) (hmem : MemPre L fp C.mem) (hknown : MemKnown L fp (C.cutAt i).known)
     (hsems : SemHolds G L fp (C.cutAt i).sems) {k : ℕ} (hk : k ≤ Kb) (hs : WinStart L fp f C i k) :
-    (i = 0 → runAt (locTrie C.locs) 2 cf.params = true) ∧
-    (i < C.cuts.length → Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp (locTrie C.locs))
+    (i = 0 → ∀ m (hm : m < cf.params.length), C.locs.getD cf.params[m].idx 0 = 2 + m) ∧
+    (i < C.cuts.length → Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C)
         (C.stmtsAt cf i) True (RetOf L fp G f cf C main Kb) ∧
         (C.cutAt i).start ≤ (C.cutAt (i + 1)).start ∧ ∃ k' ≤ k, WinStart L fp f C (i + 1) k') ∧
-    (C.cuts.length ≤ i → Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp (locTrie C.locs))
+    (C.cuts.length ≤ i → Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C)
         (C.stmtsAt cf i) False (RetOf L fp G f cf C main Kb)) := by
+  have hins := (checkWin_parts hc).2
   unfold checkWin at hc
   rcases hR : execWin C.facts f (C.cutAt i).J (C.cutAt i).env (C.endAt f i) with ⟨segs, dead⟩
   rw [hR] at hc
   simp only [listSeq_eq, Trie.seq_eq, Bool.and_eq_true] at hc
-  obtain ⟨⟨hlink, h0⟩, hc⟩ := hc
-  set X : Fx := C.fxAt G f cf main i segs (index segs) (locTrie C.locs) with hX
+  obtain ⟨⟨⟨⟨⟨-, -⟩, hcov⟩, hlink⟩, h0⟩, hc⟩ := hc
+  have hval : ∀ {v : Core.V} {c : ℕ}, getF (C.locAt i) v.idx = some c → C.locs.getD v.idx 0 = c :=
+    fun h ↦ locAt_val hcont hiN hins rfl h
+  have hcongr : ∀ v ∈ stmtsVals (C.stmtsAt cf i), val L fp (C.locAt i) v = valG L fp C v := by
+    intro v hv
+    have := List.all_eq_true.mp hcov v hv
+    obtain ⟨c, hcv⟩ := Option.isSome_iff_exists.mp this
+    simp only [val, valG, cellOf, getF_eq] at hcv ⊢
+    rw [hcv, hval (by rwa [getF_eq]), Option.getD_some]
+  set X : Fx := C.fxAt G f cf main i segs (index segs) (C.locAt i) with hX
   have hctx : Exec.Ctx C.facts κ fp := ⟨hpows, hfp, hκ⟩
   have H : WalkHyp L fp f X := ⟨hctx, guest_fetches hf, rfl, fun s hs ↦
     execWin_good hctx (guest_fetches hf) _ _ _ s (by rw [hR]; exact hs), rfl, hlink⟩
   have W : WalkEnv Prog L fp f X Kb := ⟨H, hjt, hmem, hknown, hsems, hC⟩
   have hret : RetWords L fp X Kb = RetOf L fp G f cf C main Kb := rfl
-  refine ⟨fun hi ↦ ?_, ?_⟩
+  have hconv : ∀ {N : Prop}, Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc)
+      (C.stmtsAt cf i) N (RetWords L fp X Kb) →
+      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C) (C.stmtsAt cf i) N
+        (RetOf L fp G f cf C main Kb) := fun h ↦
+    hret ▸ (holdsList_congr _ hcongr).mp h
+  refine ⟨fun hi m hm ↦ ?_, ?_⟩
   · subst hi
     simp only [beq_self_eq_true, Bool.cond_true, Bool.and_eq_true] at h0
-    exact h0.1
+    have := runAt_sound h0.1 m hm
+    unfold cellOf at this
+    rcases hg : getF (C.locAt 0) cf.params[m].idx with _ | c
+    · rw [hg, Option.getD_none] at this; omega
+    · rw [hg, Option.getD_some] at this
+      rw [hval hg, this]
   split at hc
   · rename_i st hst
     simp only [Bool.and_eq_true] at hc
@@ -1890,7 +2106,7 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
       obtain ⟨hl, -, harr⟩ := walk_sound W (C.stmtsAt cf i) st [] k True hp
         (by rw [hchk]; simp) (fun _ _ _ _ _ ↦ trivial)
       obtain ⟨k', hk', ⟨hsafe, hseg, hwend⟩, hhand⟩ := harr _ hchk
-      refine ⟨hret ▸ hl, hle, k', hk', hsafe, ?_, ?_⟩
+      refine ⟨hconv hl, hle, k', hk', hsafe, ?_, ?_⟩
       · split at henv
         · rename_i s hs'
           simp only [Bool.and_eq_true, beq_iff_eq] at henv
@@ -1909,7 +2125,7 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
       refine ⟨fun h ↦ absurd h hi, fun _ ↦ ?_⟩
       obtain ⟨hl, -, -⟩ := walk_sound W (C.stmtsAt cf i) st [] k False hp
         (by rw [hend]; simp) (fun J hJ ↦ by rw [hend] at hJ; cases hJ)
-      exact hret ▸ hl
+      exact hconv hl
   · simp at hc
 
 theorem stmtsAt_lt {i : ℕ} (hi : i < C.cuts.length) (hle : (C.cutAt i).start ≤ (C.cutAt (i + 1)).start) :
@@ -1923,9 +2139,19 @@ theorem stmtsAt_last {i : ℕ} (hi : C.cuts.length ≤ i) :
   simp only [Cert.stmtsAt, blt_false hi, Bool.cond_false]
   exact List.take_append_drop _ _
 
+theorem cont_of {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f cf C main i = true) :
+    Cont C C.cuts.length := by
+  refine ⟨?_, fun i hi ↦ ?_⟩
+  · have := (checkWin_parts (hc 0 (Nat.zero_le _))).1
+    simp only [Cert.contOk, beq_self_eq_true, Bool.cond_true, Bool.and_eq_true, beq_iff_eq] at this
+    exact this.1
+  · have := (checkWin_parts (hc i (by omega))).1
+    simp only [Cert.contOk, Nat.blt_eq.mpr hi, Bool.cond_true, Bool.and_eq_true, beq_iff_eq] at this
+    exact this.2
+
 /-- **A checked function's run**, from its entry with `k` steps left, every window checked and
-each window's memory bounds given by the statements before it: its core relation holds of its
-frame, and a run of a function other than `main` returns in fewer steps. -/
+each window's memory bounds and semantic pairs given by the statements before it: its core
+relation holds of its frame, and a run of a function other than `main` returns in fewer steps. -/
 theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f cf C main i = true)
     (hf : f ∈ Data.functions) (hfind : Prog.find? cf.name = some cf) (hpows : C.facts.pows.Ok)
     (hκ : κ ≤ 32) {fp : K} (hfp : C.facts.fpOne = true → fp = 1) {k : ℕ}
@@ -1933,24 +2159,28 @@ theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f 
     (hjt : JTHolds G L) (henv : EnvHolds L fp C.facts.entryEnv) (hpre : BndHolds L fp C.pre)
     (hmem : MemPre L fp C.mem) (hsem : SemHolds G L fp C.sem)
     (hknown : ∀ i ≤ C.cuts.length, 0 < i → Core.Stmt.HoldsList (Prog.Rel L.read) L.read
-      (val L fp (locTrie C.locs)) (cf.body.take (C.cutAt i).start) True (fun _ ↦ True) →
+      (valG L fp C) (cf.body.take (C.cutAt i).start) True (fun _ ↦ True) →
         MemKnown L fp (C.cutAt i).known ∧ SemHolds G L fp (C.cutAt i).sems)
     (hsafe : Safe guest L k ⟨gpow f.entry, fp⟩) :
     Prog.Rel L.read cf.name (frameWords L fp 2 cf.params.length)
         (frameWords L fp (2 + cf.params.length) C.nret) ∧ BndHolds L fp C.post ∧
       (main = false → ∃ k' < k, ∃ r, retRegs L fp = some r ∧ Safe guest L k' r) := by
+  have hcont := cont_of hc
   have run := fun i (hi : i ≤ C.cuts.length) {k'} hk' hs (hkn : _ ∧ _) ↦
-    checkWin_run (Prog := Prog) (hc i hi) hf hpows hκ hfp hC hjt hmem hkn.1 hkn.2 (k := k') hk' hs
+    checkWin_run (Prog := Prog) (hc i hi) hcont hi hf hpows hκ hfp hC hjt hmem hkn.1 hkn.2 (k := k')
+      hk' hs
   have hkn0 : MemKnown L fp (C.cutAt 0).known ∧ SemHolds G L fp (C.cutAt 0).sems :=
     ⟨fun _ h ↦ by simp [Cert.cutAt] at h, hsem⟩
+  have hs0 : WinStart L fp f C 0 k :=
+    ⟨by simpa [Cert.cutAt] using hsafe, henv, by simp [Cert.cutAt], hpre⟩
   have reach : ∀ i ≤ C.cuts.length, ∃ k' ≤ k, WinStart L fp f C i k' ∧
-      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp (locTrie C.locs))
+      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C)
         (cf.body.take (C.cutAt i).start) True (RetOf L fp G f cf C main k) := by
     intro i
     induction i with
     | zero =>
       intro _
-      refine ⟨k, le_rfl, ⟨by simpa [Cert.cutAt] using hsafe, henv, by simp [Cert.cutAt], hpre⟩, ?_⟩
+      refine ⟨k, le_rfl, hs0, ?_⟩
       simp [Cert.cutAt, Core.Stmt.HoldsList]
     | succ i ih =>
       intro hi
@@ -1972,16 +2202,18 @@ theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f 
     · exact hknown _ le_rfl hi0 (Core.holdsList_mono (fun _ _ _ h ↦ h) _ id (fun _ _ ↦ trivial) hl)
   have hr := run _ le_rfl hk' hs hkn
   have hlast := hr.2.2 le_rfl
-  have hall : Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp (locTrie C.locs)) cf.body False
+  have hall : Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C) cf.body False
       (RetOf L fp G f cf C main k) := by
     rw [← stmtsAt_last (C := C) (i := C.cuts.length) le_rfl, Core.holdsList_append]
     exact Core.holdsList_mono (fun _ _ _ h ↦ h) _ (fun _ ↦ hlast) (fun _ h ↦ h) hl
-  have hparams := (run 0 (Nat.zero_le _) le_rfl ⟨by simpa [Cert.cutAt] using hsafe, henv, by simp [Cert.cutAt], hpre⟩
-    hkn0).1 rfl
+  have hparams := (run 0 (Nat.zero_le _) le_rfl hs0 hkn0).1 rfl
   obtain ⟨rs, hw, hback, hpost⟩ := (holdsList_reach cf.body hall).resolve_left id
-  refine ⟨(Core.rel_iff Prog _ _ _).mpr ⟨cf, hfind, val L fp (locTrie C.locs), ?_, ?_⟩, hpost,
+  refine ⟨(Core.rel_iff Prog _ _ _).mpr ⟨cf, hfind, valG L fp C, ?_, ?_⟩, hpost,
     fun hm ↦ hback hm⟩
-  · rw [runAt_words hparams]
+  · apply List.ext_getElem (by simp [frameWords])
+    intro m h1 h2
+    simp only [List.getElem_map, frameWords, List.getElem_range, valG]
+    rw [hparams m (by simpa using h1)]
   · exact Core.holdsList_mono (fun _ _ _ h ↦ h) cf.body id (fun rs h ↦ h.1) hall
 
 end Fn
