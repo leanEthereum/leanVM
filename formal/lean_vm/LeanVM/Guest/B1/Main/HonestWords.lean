@@ -170,6 +170,7 @@ noncomputable def honestWords : MainWords where
   rd := hrd s w
   da := s.claims.da.length
   ud := (planD s w).2.length
+  drows := ((direct s.claims.da w.da).map fun p => p.2.rows.length).sum
   seed := seed
   daTab := (s.claims.da ++ (planD s w).2).flatMap daCellsOf
   xTab := (s.claims.xmss ++ (planX s w).2).flatMap xCellsOf

@@ -103,8 +103,9 @@ def DaVerifyPreAt (root vd : Digest) (rd : Reader) : List E → List E → Prop
   | _, _ => False
 
 /-- **The bounds of `main`'s callees' trees**: constants for a signature verification, a
-statement's digest, a DA slot's cover, the direct DA claim's check and a child's `verify_sub`; by
-the claims' count for a DA list's digest, a claim list's and a child's claim list's. -/
+statement's digest, a DA slot's cover and a child's `verify_sub`; by the claims' count for a DA
+list's digest, a claim list's and a child's claim list's; by the matrix's rows for the direct DA
+claim's check. -/
 structure CalleeBounds where
   xmss : ℕ
   sphincs : ℕ
@@ -113,7 +114,7 @@ structure CalleeBounds where
   cover : ℕ
   cl : ℕ → ℕ
   ccl : ℕ → ℕ
-  daVerify : ℕ
+  daVerify : ℕ → ℕ
   vs : ℕ
 
 /-- **The callees of `main` other groups prove, complete uniformly and placed** at `κ`, by trees
@@ -133,7 +134,7 @@ structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
   child_claim_list_digest : ∀ off cs,
     CompleteRelB fs cert κ "child_claim_list_digest" (CclPreAt off cs) (Bd.ccl (cs.length / 4))
   da_verify : ∀ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd →
-    CompleteRelB fs cert κ "da_verify" (DaVerifyPreAt root vd) Bd.daVerify
+    CompleteRelB fs cert κ "da_verify" (DaVerifyPreAt root vd) (Bd.daVerify wt.rows.length)
   verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAtB fs cert κ "verify_sub"
     (VerifySub.vsExtL lpA sqA outA D) [(digestScalars D.pi).1, (digestScalars D.pi).2,
       (digestScalars D.seed).1, (digestScalars D.seed).2, ofK (gpow lpA), ofK (gpow sqA),

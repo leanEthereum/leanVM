@@ -352,6 +352,8 @@ structure Work where
   rawSphincs : ℕ
   /-- The blob matrices held directly. -/
   rawDa : ℕ
+  /-- Their rows: the blobs held directly. -/
+  rawDaRows : ℕ
   /-- The children. -/
   children : ℕ
   /-- The children's declared claims, of the three lists. -/
@@ -364,6 +366,7 @@ def work (s : NodeStatement) (w : NodeWitness) : Work where
   rawXmss := (Hints.direct s.claims.xmss w.xmss).length
   rawSphincs := (Hints.direct s.claims.sphincs w.sphincs).length
   rawDa := (Hints.direct s.claims.da w.da).length
+  rawDaRows := ((Hints.direct s.claims.da w.da).map fun p ↦ p.2.rows.length).sum
   children := w.children.length
   childClaims := (w.children.map fun c ↦ c.statement.claims.xmss.length +
     c.statement.claims.sphincs.length + c.statement.claims.da.length).sum
@@ -376,13 +379,14 @@ structure Linear where
   rawXmss : ℕ
   rawSphincs : ℕ
   rawDa : ℕ
+  rawDaRows : ℕ
   children : ℕ
   childClaims : ℕ
 
 /-- The bound at the work `u`. -/
 def Linear.eval (l : Linear) (u : Work) : ℕ :=
   l.base + l.declared * u.declared + l.coverage * u.coverage + l.rawXmss * u.rawXmss +
-    l.rawSphincs * u.rawSphincs + l.rawDa * u.rawDa + l.children * u.children +
+    l.rawSphincs * u.rawSphincs + l.rawDa * u.rawDa + l.rawDaRows * u.rawDaRows + l.children * u.children +
     l.childClaims * u.childClaims
 
 /-- **A size budget**: bounds on the words a run allocates and on the instructions of each opcode

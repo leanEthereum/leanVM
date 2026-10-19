@@ -55,7 +55,8 @@ def eaWLin : Linear where
   coverage := Wt.Kl0 + Wt.Kl1 + Wt.Kl2
   rawXmss := Wt.Kl3
   rawSphincs := Wt.Kl4
-  rawDa := Wt.αdv * Bd.daVerify / 1000 + Wt.Bcov
+  rawDa := Wt.αdv * A.dvA / 1000 + 1 + Wt.Bcov
+  rawDaRows := Wt.αdv * A.dvB / 1000 + 1
   children := ω "__loop5" + ewChK ω Bd A Wt + Wt.dAgg
   childClaims := ewChA ω A Wt
 
@@ -86,6 +87,7 @@ theorem ea_weight {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) {seed : D
   have hrx : (work s w).rawXmss = W.rx := rfl
   have hrs : (work s w).rawSphincs = W.rs := rfl
   have hrd : (work s w).rawDa = W.rd := rfl
+  have hrr : (work s w).rawDaRows = W.drows := rfl
   have hnc : (work s w).children = W.nc := rfl
   have hcc : (work s w).childClaims = (w.children.map cnw).sum := rfl
   have hrd1 : W.rd ≤ 1 := hlim.directDa
@@ -106,10 +108,14 @@ theorem ea_weight {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) {seed : D
     rw [Nat.mul_add, Nat.mul_add]; omega
   have m5 : W.rx * Wt.Kl3 = Wt.Kl3 * W.rx := Nat.mul_comm _ _
   have m6 : W.rs * Wt.Kl4 = Wt.Kl4 * W.rs := Nat.mul_comm _ _
-  have hda : (if W.rd = 1 then Wt.αdv * Bd.daVerify / 1000 + Wt.Bcov else 0) ≤
-      (Wt.αdv * Bd.daVerify / 1000 + Wt.Bcov) * W.rd := by
+  have hda : (if W.rd = 1 then Wt.αdv * Bd.daVerify W.drows / 1000 + Wt.Bcov else 0) ≤
+      (Wt.αdv * A.dvA / 1000 + 1 + Wt.Bcov) * W.rd + (Wt.αdv * A.dvB / 1000 + 1) * W.drows := by
     split_ifs with h
     · rw [h, Nat.mul_one]
+      have h1 : Wt.αdv * Bd.daVerify W.drows / 1000 ≤ Wt.αdv * (A.dvB * W.drows + A.dvA) / 1000 :=
+        Nat.div_le_div_right (Nat.mul_le_mul_left _ (by have := hA.dv W.drows; omega))
+      have h2 := ea_ratio Wt.αdv A.dvB A.dvA W.drows
+      omega
     · exact Nat.zero_le _
   have hch : loopSum (ω "__loop5") (fun c => childW ω Bd Wt (W.child c)) 0 W.nc ≤
       W.nc * (ω "__loop5" + ewChK ω Bd A Wt) + ω "__loop5" + ewChA ω A Wt * (w.children.map cnw).sum := by
@@ -124,7 +130,7 @@ theorem ea_weight {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) {seed : D
   have hn5 : W.nc * (ω "__loop5" + ewChK ω Bd A Wt) = ω "__loop5" * W.nc + ewChK ω Bd A Wt * W.nc := by ring
   have hn6 : (ω "__loop5" + ewChK ω Bd A Wt + Wt.dAgg) * W.nc =
       ω "__loop5" * W.nc + ewChK ω Bd A Wt * W.nc + Wt.dAgg * W.nc := by ring
-  simp only [mainWeight, eaWLin, Linear.eval, hcov, hdecl, hrx, hrs, hrd, hnc, hcc]
+  simp only [mainWeight, eaWLin, Linear.eval, hcov, hdecl, hrx, hrs, hrd, hrr, hnc, hcc]
   omega
 
 /-! ## Per opcode -/

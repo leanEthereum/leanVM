@@ -252,6 +252,7 @@ theorem hon_sSig (hS : List.Forall₂ (SphincsHeld w.children) s.claims.sphincs 
 
 theorem hon_daVerify (hD : List.Forall₂ (DaHeld w.children) s.claims.da w.da) (h1 : hrd s w = 1) :
     ∃ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd ∧
+      wt.rows.length = (honestWords seed s w).drows ∧
       ∀ rd, MemL rd (mainIn fs fp (honestWords seed s w)) →
         DaVerifyPreAt root vd rd [ofK (gpow (mainExpBase fs fp (honestWords seed s w) + 34))]
           [(honestWords seed s w).dr.1, (honestWords seed s w).dr.2.1, (honestWords seed s w).dr.2.2.1,
@@ -260,7 +261,7 @@ theorem hon_daVerify (hD : List.Forall₂ (DaHeld w.children) s.claims.da w.da) 
   match hd : direct s.claims.da w.da, h1 with
   | [p], _ =>
     have hv := direct_mem hD (p := p) (by rw [hd]; exact List.mem_singleton_self p)
-    refine ⟨p.2, p.1.1, p.1.2, hv, fun rd hL => ⟨squaresAt_of_mainIn fs hL, ?_, ?_⟩⟩ <;>
+    refine ⟨p.2, p.1.1, p.1.2, hv, by simp [honestWords, hd], fun rd hL => ⟨squaresAt_of_mainIn fs hL, ?_, ?_⟩⟩ <;>
       simp [honestWords, hd, drOf]
 
 theorem loadHolds_cover {p : E} {a b c d i : ℕ} {v : E}

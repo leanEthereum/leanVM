@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.MainBudget
 public import LeanVM.Guest.B1.Main.CalleesProved
 public import LeanVM.Guest.B1.Main.HonestWords
+public import LeanVM.Guest.B1.Da.DvAffine
 
 /-!
 # `main`'s bound within a linear budget
@@ -46,19 +47,22 @@ theorem ea_le_max : ∀ {l : List ℕ} {x : ℕ}, x ∈ l → x ≤ eaMax l
 /-! ## Generic in the frame function and the callees' bounds -/
 
 /-- The affine constants of the callees' bounds that grow: a claim list's slope and constant, a
-child claim list's, and the DA lists' largest. -/
+child claim list's, the DA lists' largest, and the direct DA claim's check per matrix and per row. -/
 structure EaAffC where
   aCl : ℕ
   bCl : ℕ
   aCcl : ℕ
   bCcl : ℕ
   dlMax : ℕ
+  dvA : ℕ
+  dvB : ℕ
 
 /-- The callees' bounds within those constants. -/
 structure EaAffOk (Bd : CalleeBounds) (A : EaAffC) : Prop where
   cl : ∀ n, Bd.cl n ≤ A.aCl * n + A.bCl
   ccl : ∀ n, Bd.ccl n ≤ A.aCcl * n + A.bCcl
   dl : ∀ n ≤ 16, Bd.daList n ≤ A.dlMax
+  dv : ∀ r, Bd.daVerify r ≤ A.dvA + A.dvB * r
 
 variable (fr : String → ℕ) (Bd : CalleeBounds) (A : EaAffC)
 
@@ -112,14 +116,15 @@ def eaLin : Linear where
   coverage := 5 + fr "__loop0" + fr "__loop1" + fr "__loop2"
   rawXmss := fr "__loop3" + Bd.xmss
   rawSphincs := fr "__loop4" + Bd.sphincs
-  rawDa := Bd.daVerify + Bd.cover
+  rawDa := A.dvA + Bd.cover
+  rawDaRows := A.dvB
   children := 162 + fr "__loop5" + eaChK fr Bd A + eaAggA fr
   childClaims := eaChA fr Bd A
 
 theorem ea_eval (u : LeanVM.Guest.End.Work) : (eaLin fr Bd A).eval u =
     (eaLin fr Bd A).base + A.aCl * u.declared +
       (5 + fr "__loop0" + fr "__loop1" + fr "__loop2") * u.coverage + (fr "__loop3" + Bd.xmss) * u.rawXmss +
-      (fr "__loop4" + Bd.sphincs) * u.rawSphincs + (Bd.daVerify + Bd.cover) * u.rawDa +
+      (fr "__loop4" + Bd.sphincs) * u.rawSphincs + (A.dvA + Bd.cover) * u.rawDa + A.dvB * u.rawDaRows +
       (162 + fr "__loop5" + eaChK fr Bd A + eaAggA fr) * u.children + eaChA fr Bd A * u.childClaims := rfl
 
 set_option maxHeartbeats 1000000 in
@@ -136,6 +141,7 @@ theorem ea_bound {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) {seed : Di
   have hrx : (work s w).rawXmss = W.rx := rfl
   have hrs : (work s w).rawSphincs = W.rs := rfl
   have hrd : (work s w).rawDa = W.rd := rfl
+  have hrr : (work s w).rawDaRows = W.drows := rfl
   have hnc : (work s w).children = W.nc := rfl
   have hcc : (work s w).childClaims = (w.children.map cnw).sum := rfl
   have hrd1 : W.rd ≤ 1 := hlim.directDa
@@ -164,9 +170,10 @@ theorem ea_bound {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) {seed : Di
       (W.rx * (fr "__loop3" + Bd.xmss) + fr "__loop3") +
       (W.rs * (fr "__loop4" + Bd.sphincs) + fr "__loop4") := by
     simp only [mainBs8, List.sum_cons, List.sum_nil]; ring
-  have hda : (if W.rd = 1 then Bd.daVerify + Bd.cover else 0) ≤ (Bd.daVerify + Bd.cover) * W.rd := by
+  have hda : (if W.rd = 1 then Bd.daVerify W.drows + Bd.cover else 0) ≤
+      (A.dvA + Bd.cover) * W.rd + A.dvB * W.drows := by
     split_ifs with h
-    · rw [h, Nat.mul_one]
+    · rw [h, Nat.mul_one]; have := hA.dv W.drows; omega
     · exact Nat.zero_le _
   have hch : loopSum (fr "__loop5") (fun c => childBd fr Bd (W.child c)) 0 W.nc ≤
       W.nc * (fr "__loop5" + eaChK fr Bd A) + fr "__loop5" + eaChA fr Bd A * (w.children.map cnw).sum := by
@@ -183,7 +190,7 @@ theorem ea_bound {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) {seed : Di
   have hn5 : W.nc * (fr "__loop5" + eaChK fr Bd A) = fr "__loop5" * W.nc + eaChK fr Bd A * W.nc := by ring
   have hn6 : (162 + fr "__loop5" + eaChK fr Bd A + eaAggA fr) * W.nc =
       162 * W.nc + fr "__loop5" * W.nc + eaChK fr Bd A * W.nc + eaAggA fr * W.nc := by ring
-  simp only [mainBound, mainKidsBound, hsz, hbs8, eaLin, hcov, hdecl, hrx, hrs, hrd, hnc, hcc]
+  simp only [mainBound, mainKidsBound, hsz, hbs8, eaLin, hcov, hdecl, hrx, hrs, hrd, hrr, hnc, hcc]
   omega
 
 /-! ## At the words -/
@@ -241,11 +248,12 @@ theorem ea_dl {n : ℕ} (hn : n ≤ 16) : (calleeBd fs H).daList n ≤ eaDlMax f
   ea_le_max (List.mem_map.mpr ⟨n, List.mem_range.mpr (show n < 17 by omega), rfl⟩)
 
 /-- The words' affine constants. -/
-def eaWordsC (a86 b86 : ℕ) : EaAffC := ⟨eaClA a86, eaClB fs H b86, eaCclA fs H, eaCclB fs H, eaDlMax fs H⟩
+def eaWordsC (a86 b86 : ℕ) : EaAffC :=
+  ⟨eaClA a86, eaClB fs H b86, eaCclA fs H, eaCclB fs H, eaDlMax fs H, Digest.dvWA fs, Digest.dvWB fs⟩
 
 theorem ea_wordsOk {a86 b86 : ℕ} (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) :
     EaAffOk (calleeBd fs H) (eaWordsC fs H a86 b86) :=
-  ⟨ea_cl fs H h86, ea_ccl fs H, fun _ hn => ea_dl fs H hn⟩
+  ⟨ea_cl fs H h86, ea_ccl fs H, fun _ hn => ea_dl fs H hn, fun r => Digest.dv_tot_affine fs r⟩
 
 /-- **The words budget.** -/
 def eaWords (a86 b86 : ℕ) : Linear := eaLin fs (calleeBd fs H) (eaWordsC fs H a86 b86)

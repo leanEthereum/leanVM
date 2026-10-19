@@ -73,19 +73,6 @@ def VsGoodOf (bytecode : List K) (D : VsData) : Prop :=
   D.Ok bytecode ∧ D.TOk bytecode ∧
     CapAgrees (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os D.target
 
-/-- `da_verify`'s bound over the deployed row counts. -/
-def dvMax (fs : String → ℕ) : ℕ := ((List.range (LeanDa.maxRows + 1)).map (Digest.dvTot fs)).foldr max 0
-
-theorem cp_le_foldr_max : ∀ (l : List ℕ) (x : ℕ), x ∈ l → x ≤ l.foldr max 0
-  | [], _, h => absurd h (by simp)
-  | y :: l, x, h => by
-    rcases List.mem_cons.mp h with rfl | h
-    · exact le_max_left _ _
-    · exact le_trans (cp_le_foldr_max l x h) (le_max_right _ _)
-
-theorem cp_dvTot_le (fs : String → ℕ) {r : ℕ} (hr : r ≤ LeanDa.maxRows) : Digest.dvTot fs r ≤ dvMax fs :=
-  cp_le_foldr_max _ _ (List.mem_map.mpr ⟨r, List.mem_range.mpr (by omega), rfl⟩)
-
 /-- `verify_sub`'s callees' bounds. -/
 def calleeVsB (fs : String → ℕ) {cert : String → V → ℕ} {bytecode : List K} (H : CalleesHyps fs cert bytecode) :
     VsBounds :=
@@ -101,7 +88,7 @@ def calleeBd (fs : String → ℕ) {cert : String → V → ℕ} {bytecode : Lis
   cover := fs "cover_da_root"
   cl := Digest.cldBound fs H.B86 H.Bct H.Bsl6
   ccl := Digest.ccldBound fs (fs "child_claims_window" + H.Bsl) H.Bsl6
-  daVerify := dvMax fs
+  daVerify := Digest.dvTot fs
   vs := vsBound fs (calleeVsB fs H)
 
 /-- A bound that holds whenever a memory holds the caller's words. -/
@@ -176,7 +163,7 @@ theorem calleesAt_proved (fs : String → ℕ) (cert : String → V → ℕ) {by
       fun rd h1 h2 => cp_ccl (hpre rd h1 h2)
   da_verify := fun wt root vd hw args rets Lin hpre =>
     (Digest.da_verify_completeRelAtB fs cert (by norm_num) H.dvc20 H.dvc4 wt root vd hw args rets Lin
-      fun rd h1 h2 => cp_dv (hpre rd h1 h2)).mono le_rfl (cp_dvTot_le fs hw.2.1)
+      fun rd h1 h2 => cp_dv (hpre rd h1 h2))
   verify_sub := fun D hD lpA sqA outA =>
     VerifySub.verify_sub_completeAtB (bytecode := bytecode) (CapOk := CapAgrees) (Bs := calleeVsB fs H)
       (by norm_num) (VerifySub.verify_bus_gkr_completeAtB fs cert (by norm_num)) H.tab

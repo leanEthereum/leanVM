@@ -46,6 +46,8 @@ structure MainWords where
   rd : ℕ
   da : ℕ
   ud : ℕ
+  /-- The direct DA matrix's rows. -/
+  drows : ℕ
   /-- The seed. -/
   seed : Digest
   /-- The `HeapBuf`s' contents: DA claims, leanXMSS and leanSPHINCS claims, coverage marks, the
@@ -162,7 +164,7 @@ structure MainWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (fp : ℕ)
     (gen ^ W.rx * gen ^ c)
   sSig : ∀ c < W.rs, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
     Meaning_verify_sig_lean_sphincs rd [mainPtr fs fp W 2 * gen ^ (4 * W.slS c)] []
-  daVerify : W.rd = 1 → ∃ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd ∧
+  daVerify : W.rd = 1 → ∃ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd ∧ wt.rows.length = W.drows ∧
     ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) → DaVerifyPreAt root vd rd [ofK (gpow (mainExpBase fs fp W + 34))] [W.dr.1, W.dr.2.1, W.dr.2.2.1, W.dr.2.2.2]
   daCover : W.rd = 1 → ∃ i, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
     CoverPreAt i rd [mainPtr fs fp W 0, mainPtr fs fp W 4 * (gen ^ W.dx * gen ^ W.ux *
