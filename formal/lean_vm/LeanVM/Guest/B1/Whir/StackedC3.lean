@@ -21,7 +21,7 @@ open LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## The squeezes -/
 
@@ -39,8 +39,9 @@ theorem osSqueezes_complete {maxSq nsq qpos qbp : ℕ} {loop : String} (hnsq : 2
     (l0 : LoadHolds rd sqzv 0 (digestScalars cv).1) (l1 : LoadHolds rd sqzv 1 (digestScalars cv).2)
     (l2 : LoadHolds rd sqzv (2 * nsq) (digestScalars (sqAll nsq cv).2).1)
     (l3 : LoadHolds rd sqzv (2 * nsq + 1) (digestScalars (sqAll nsq cv).2).2)
+    (hcall : 1 + osGw nsq ≠ 0 → C loop [1, osGw nsq, sqzv, σ (.n qpos), σ (.n qbp)] [])
     (hv : ∀ j < 25, σ (.n (s.k + j)) = (osSqueezesVals maxSq nsq sqzv cv).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osSqueezes maxSq nsq qpos qbp loop s).1 True kret ∧
+    Stmt.HoldsList C rd σ (osSqueezes maxSq nsq qpos qbp loop s).1 True kret ∧
       OsAt σ (osSqueezes maxSq nsq qpos qbp loop s).2 (sqCv (sqAll nsq cv).2) cur p ∧
       σ (.n ((osSqueezes maxSq nsq qpos qbp loop s).2.k - 1)) = challengeOf (sqCv (sqAll nsq cv).2) ∧
       (osSqueezes maxSq nsq qpos qbp loop s).2.co = s.co ∧ (osSqueezes maxSq nsq qpos qbp loop s).2.cb = s.cb ∧
@@ -69,7 +70,8 @@ theorem osSqueezes_complete {maxSq nsq qpos qbp : ℕ} {loop : String} (hnsq : 2
     refine (holdsList_noRet _ (by simp [osHeap, Stmt.noRetList, Stmt.noRet]) _ _).mpr ⟨?_, ?_⟩
     · simp only [osHeap, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
         List.map_cons, List.map_nil, and_true, true_and, word_one]
-      refine ⟨e0, ?_, ?_, e2, e3, by rw [e4, e2, e3], e5, e6, ?_, fun _ => trivial, e7, by rw [e8, e1, e7], ?_, ?_⟩
+      refine ⟨e0, ?_, ?_, e2, e3, by rw [e4, e2, e3], e5, e6, ?_, fun h => by rw [e5, e6, e1]; exact hcall (by
+        rwa [e4] at h), e7, by rw [e8, e1, e7], ?_, ?_⟩
       · have f0e : σ (.n s.f0) = (digestScalars cv).1 := congrArg Prod.fst hat.fs
         rw [e1, f0e]; exact l0
       · have f1e : σ (.n s.f1) = (digestScalars cv).2 := congrArg Prod.snd hat.fs
@@ -95,7 +97,7 @@ def osLamPowsVals (lv : E) (nq : ℕ) : List E := 1 :: (List.range (nq - 1)).map
 theorem osLamPows_complete {lam qw base k : ℕ} {kret : List E → Prop} (nq : ℕ)
     (hst : ∀ i < nq, LoadHolds rd (σ (.n qw)) (base + i) (σ (.n lam) ^ i))
     (hv : ∀ j < nq, σ (.n (k + j)) = (osLamPowsVals (σ (.n lam)) nq).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osLamPows lam qw base k nq) True kret := by
+    Stmt.HoldsList C rd σ (osLamPows lam qw base k nq) True kret := by
   rcases nq with _ | nq
   · trivial
   rw [osLamPows]
@@ -181,12 +183,17 @@ theorem osQueries_complete {cfg : OsCfg} {lv : OsLvl} {lvl : ℕ} (hfo : lv.fold
     (lc0 : LoadHolds rd cur p c0) (lc2 : LoadHolds rd cur (p + 1) c2)
     (sr0 : LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars rt).1)
     (sr1 : LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars rt).2)
+    (hrw : C lv.rowWeights [σ (.n osFch) * gen ^ lv.foldsOff, rewv] [])
+    (hcap : C lv.verifyCap [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff]
+      [(digestScalars rt).1, (digestScalars rt).2])
+    (hqf : C lv.queriesFn [σ (.n osCaps) * gen ^ (4 * lv.capOff), σ (.n osFlags) * gen ^ lv.capOff,
+      σ (.n osQw) * gen ^ (lvl * cfg.maxQ), σ (.n osQbp) * gen ^ lv.posOff, rewv, osGw lv.queries] [qsum])
     (hv : ∀ j < (osQueriesSegs cfg lv lvl rewv (σ (.n osFch)) (σ (.n osCaps)) (σ (.n osFlags)) (σ (.n osQw))
         (σ (.n osQbp)) rt qsum c0 c2 cv).flatten.length,
       σ (.n (s.k + j)) = (osQueriesSegs cfg lv lvl rewv (σ (.n osFch)) (σ (.n osCaps)) (σ (.n osFlags)) (σ (.n osQw))
         (σ (.n osQbp)) rt qsum c0 c2 cv).flatten.getD j 0) :
     let q := osQueries cfg lv lvl s
-    Stmt.HoldsList osTC rd σ q.1 True kret ∧ OsAt σ q.2.1 (obsCv (obsCv cv c0) c2) cur (p + 2) ∧
+    Stmt.HoldsList C rd σ q.1 True kret ∧ OsAt σ q.2.1 (obsCv (obsCv cv c0) c2) cur (p + 2) ∧
       q.2.1.co = s.co + 2 ∧ q.2.1.cb = s.cb ∧ σ (.n q.2.2.1) = qsum ∧ σ (.n q.2.2.2.1) = c0 ∧
       σ (.n q.2.2.2.2.1) = qsum + c2 ∧ σ (.n q.2.2.2.2.2) = c2 ∧ σ (.n (s.k + 1)) = rewv ∧
       q.2.1.k = s.k + (osQueriesSegs cfg lv lvl rewv (σ (.n osFch)) (σ (.n osCaps)) (σ (.n osFlags)) (σ (.n osQw))
@@ -256,31 +263,31 @@ theorem osQueries_complete {cfg : OsCfg} {lv : OsLvl} {lvl : ℕ} (hfo : lv.fold
   rw [o0, Nat.add_zero] at look0
   have v0 : σ (.n k) = osGw cfg.maxIl := look0 0 (by omega)
   have v1 : σ (.n (k + 1)) = rewv := look0 1 (by omega)
-  have mP := osMat_complete (C := osTC) (rd := rd) (σ := σ) (base := osFch) (k := k + 2) (kret := kret) hfo
+  have mP := osMat_complete (C := C) (rd := rd) (σ := σ) (base := osFch) (k := k + 2) (kret := kret) hfo
     fun j hj => by rw [q1]; exact look1 j (by rwa [g1, ← hlen (σ (.n osFch))])
-  have mCP := osMat_complete (C := osTC) (rd := rd) (σ := σ) (base := osCaps) (k := P.2.2) (kret := kret) hco4
+  have mCP := osMat_complete (C := C) (rd := rd) (σ := σ) (base := osCaps) (k := P.2.2) (kret := kret) hco4
     fun j hj => by rw [q2]; exact look2 j (by rwa [g2, ← hlen (σ (.n osCaps))])
-  have mFP := osMat_complete (C := osTC) (rd := rd) (σ := σ) (base := osFlags) (k := CP.2.2) (kret := kret) hco1
+  have mFP := osMat_complete (C := C) (rd := rd) (σ := σ) (base := osFlags) (k := CP.2.2) (kret := kret) hco1
     fun j hj => by rw [q3]; exact look3 j (by rwa [g3, ← hlen (σ (.n osFlags))])
   have vr0 : σ (.n r) = (digestScalars rt).1 := by rw [q4]; exact look4 0 (by omega)
   have vr1 : σ (.n (r + 1)) = (digestScalars rt).2 := by
     have := look4 1 (by omega); rw [← q4] at this; exact this
-  have mCP2 := osMat_complete (C := osTC) (rd := rd) (σ := σ) (base := osCaps) (k := r + 2) (kret := kret) hco4
+  have mCP2 := osMat_complete (C := C) (rd := rd) (σ := σ) (base := osCaps) (k := r + 2) (kret := kret) hco4
     fun j hj => by rw [q5]; exact look5 j (by rwa [g5, ← hlen (σ (.n osCaps))])
-  have mFP2 := osMat_complete (C := osTC) (rd := rd) (σ := σ) (base := osFlags) (k := CP2.2.2) (kret := kret) hco1
+  have mFP2 := osMat_complete (C := C) (rd := rd) (σ := σ) (base := osFlags) (k := CP2.2.2) (kret := kret) hco1
     fun j hj => by rw [q6]; exact look6 j (by rwa [g6, ← hlen (σ (.n osFlags))])
-  have mQP := osMat_complete (C := osTC) (rd := rd) (σ := σ) (base := osQw) (k := FP2.2.2) (kret := kret) hqo
+  have mQP := osMat_complete (C := C) (rd := rd) (σ := σ) (base := osQw) (k := FP2.2.2) (kret := kret) hqo
     fun j hj => by rw [q7]; exact look7 j (by rwa [g7, ← hlen (σ (.n osQw))])
-  have mBP := osMat_complete (C := osTC) (rd := rd) (σ := σ) (base := osQbp) (k := QP.2.2) (kret := kret) hpo
+  have mBP := osMat_complete (C := C) (rd := rd) (σ := σ) (base := osQbp) (k := QP.2.2) (kret := kret) hpo
     fun j hj => by rw [q8]; exact look8 j (by rwa [g8, ← hlen (σ (.n osQbp))])
   have vg0 : σ (.n g) = osGw lv.queries := by rw [q9]; exact look9 0 (by omega)
   have vg1 : σ (.n (g + 1)) = qsum := by have := look9 1 (by omega); rw [← q9] at this; exact this
   set s1 : OsSt := { s with k := g + 2 }
   have hat1 : OsAt σ s1 cv cur p := ⟨hat.fs, hat.cursor⟩
-  obtain ⟨hi0, hat2⟩ := osFsNext_complete (C := osTC) (kret := kret) hat1 lc0 fun j hj => by
+  obtain ⟨hi0, hat2⟩ := osFsNext_complete (C := C) (kret := kret) hat1 lc0 fun j hj => by
     show σ (.n (g + 2 + j)) = _
     rw [q10]; exact look10 j (by omega)
-  obtain ⟨hi2, hat3⟩ := osFsNext_complete (C := osTC) (kret := kret) hat2 lc2 fun j hj => by
+  obtain ⟨hi2, hat3⟩ := osFsNext_complete (C := C) (kret := kret) hat2 lc2 fun j hj => by
     show σ (.n (g + 2 + 15 + j)) = _
     rw [q11]; exact look11 j (by omega)
   have vc0 : σ (.n s1.k) = c0 := by show σ (.n (g + 2)) = c0; rw [q10]; exact look10 0 (by omega)
@@ -289,7 +296,7 @@ theorem osQueries_complete {cfg : OsCfg} {lv : OsLvl} {lvl : ℕ} (hfo : lv.fold
   have vc1 : σ (.n (osFsNext (osFsNext s1).2).2.k) = qsum + c2 := by
     show σ (.n (g + 2 + 15 + 15)) = _; have := look12 0 (by omega); rw [Nat.add_zero, ← q12] at this; exact this
   refine ⟨?_, ⟨hat3.fs, hat3.cursor⟩, by simp [q, osQueries, osFsNext], rfl, vg1, vc0, vc1, vc2, v1, ?_⟩
-  · show Stmt.HoldsList osTC rd σ (osHeap cfg.maxIl k ++ P.1 ++ [.call lv.rowWeights [.n P.2.1, .n (k + 1)] []] ++
+  · show Stmt.HoldsList C rd σ (osHeap cfg.maxIl k ++ P.1 ++ [.call lv.rowWeights [.n P.2.1, .n (k + 1)] []] ++
       CP.1 ++ FP.1 ++ [.call lv.verifyCap [.n CP.2.1, .n FP.2.1] [.n r, .n (r + 1)],
         .atom (.load (.n r) (.n osRoots) (2 * lvl)), .atom (.load (.n (r + 1)) (.n osRoots) (2 * lvl + 1))] ++
       CP2.1 ++ FP2.1 ++ QP.1 ++ BP.1 ++ [.atom (.const (.n g) (osGw lv.queries)),
@@ -298,7 +305,8 @@ theorem osQueries_complete {cfg : OsCfg} {lv : OsLvl} {lvl : ℕ} (hfo : lv.fold
       [.atom (.add (.n (osFsNext (osFsNext s1).2).2.k) (.n (g + 1)) (.n (osFsNext s1).2.k))]) True kret
     simp only [holdsList_append]
     refine (holdsList_noRet _ rfl _ _).mpr ⟨?_, (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr ⟨mP.1,
-      (holdsList_noRet _ rfl _ _).mpr ⟨⟨trivial, trivial⟩, (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr ⟨mCP.1,
+      (holdsList_noRet _ rfl _ _).mpr ⟨⟨by simp only [List.map_cons, List.map_nil]; rw [mP.2, v1]; exact hrw, trivial⟩,
+      (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr ⟨mCP.1,
       (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr ⟨mFP.1, (holdsList_noRet _ rfl _ _).mpr ⟨?_,
       (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr ⟨mCP2.1, (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr
       ⟨mFP2.1, (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr ⟨mQP.1, (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr
@@ -306,10 +314,12 @@ theorem osQueries_complete {cfg : OsCfg} {lv : OsLvl} {lvl : ℕ} (hfo : lv.fold
       (holdsList_noRet _ rfl _ _).mpr ⟨hi2, ?_⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
     · simp only [osHeap, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       exact v0
-    · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-      exact ⟨trivial, by rw [vr0]; exact sr0, by rw [vr1]; exact sr1⟩
-    · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-      exact vg0
+    · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, and_true]
+      exact ⟨by rw [mCP.2, mFP.2, vr0, vr1]; exact hcap, by rw [vr0]; exact sr0, by rw [vr1]; exact sr1⟩
+    · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, and_true]
+      refine ⟨vg0, ?_⟩
+      rw [mCP2.2, mFP2.2, mQP.2, mBP.2, v1, vg0, vg1]
+      exact hqf
     · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       rw [vc1, vg1, vc2]
   · show (osFsNext (osFsNext s1).2).2.k + 1 = _

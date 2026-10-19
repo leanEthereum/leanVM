@@ -23,7 +23,7 @@ open LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- The head's values from `.n 0`: the parameters, the state's copies, the two reads, the first
 quadratic's middle coefficient, each fixed buffer's size and pointer. -/
@@ -45,27 +45,27 @@ theorem osHead_complete {cfg : OsCfg} {fs0 fs1 target root0 root1 cur : E} {cv :
     (lx1 : LoadHolds rd cur 1 x1) (lr0 : LoadHolds rd P.roots 0 root0) (lr1 : LoadHolds rd P.roots 1 root1)
     {kret : List E → Prop}
     (hv : ∀ j < 61, σ (.n j) = (osHeadVals cfg fs0 fs1 target root0 root1 cur cv x0 x1 P).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osHead cfg).1 True kret ∧
+    Stmt.HoldsList C rd σ (osHead cfg).1 True kret ∧
       OsAt σ (osHead cfg).2 (obsCv (obsCv cv x0) x1) cur 2 ∧ (osHead cfg).2.co = 2 ∧
       [σ (.n (osHead cfg).2.c), σ (.n (osHead cfg).2.b), σ (.n (osHead cfg).2.a)] = [x0, target + x1, x1] ∧
       σ (.n (osHead cfg).2.t) = target ∧ OsPtrsAt σ P ∧ (osHead cfg).2.k = 61 := by
   set A : List E := [fs0, fs1, target, root0, root1, cur, fs0, fs1]
   set B := osFsNextVals x0 cv
-  set C := osFsNextVals x1 (obsCv cv x0)
+  set Cn := osFsNextVals x1 (obsCv cv x0)
   set D : List E := [target + x1, osGw (4 * cfg.capLen), P.caps, osGw cfg.capLen, P.flags, osGw cfg.yrLen, P.fmsg,
       osGw (2 * cfg.levels.length), P.roots, osGw cfg.nFolds, P.fch, osGw cfg.levels.length, P.betas,
       osGw (cfg.levels.length * cfg.maxQ), P.qw, osGw cfg.posLen, P.qpos, osGw cfg.posLen, P.qbp,
       osGw (cfg.levels.length * 22), P.oodz, osGw (cfg.levels.length * 4), P.ood] with hD
-  have hV : osHeadVals cfg fs0 fs1 target root0 root1 cur cv x0 x1 P = A ++ B ++ C ++ D := rfl
-  have hl : (A ++ B ++ C ++ D).length = 61 := by rw [← hV]; exact os_length_headVals _ _ _ _ _ _ _ _ _ _ _
-  have hv' : ∀ j < (A ++ B ++ C ++ D).length, σ (.n (0 + j)) = (A ++ B ++ C ++ D).getD j 0 := fun j hj => by
+  have hV : osHeadVals cfg fs0 fs1 target root0 root1 cur cv x0 x1 P = A ++ B ++ Cn ++ D := rfl
+  have hl : (A ++ B ++ Cn ++ D).length = 61 := by rw [← hV]; exact os_length_headVals _ _ _ _ _ _ _ _ _ _ _
+  have hv' : ∀ j < (A ++ B ++ Cn ++ D).length, σ (.n (0 + j)) = (A ++ B ++ Cn ++ D).getD j 0 := fun j hj => by
     rw [Nat.zero_add, ← hV]; exact hv j (by rw [hl] at hj; exact hj)
   obtain ⟨hABC, gD⟩ := os_look_app hv'
   obtain ⟨hAB, gC⟩ := os_look_app hABC
   obtain ⟨gA, gB⟩ := os_look_app hAB
   have lA : A.length = 8 := rfl
   have lB : B.length = 15 := os_length_fsNextVals _ _
-  have lC : C.length = 15 := os_length_fsNextVals _ _
+  have lC : Cn.length = 15 := os_length_fsNextVals _ _
   simp only [List.length_append, lA, lB, lC, Nat.zero_add] at gB gC gD
   have a0 : σ (.n 0) = fs0 := gA 0 (by simp [A])
   have a1 : σ (.n 1) = fs1 := gA 1 (by simp [A])
@@ -88,11 +88,11 @@ theorem osHead_complete {cfg : OsCfg} {fs0 fs1 target root0 root1 cur : E} {cv :
   set s0 : OsSt := ⟨8, 6, 7, 5, 0, 0, 0, 0, 2⟩
   have hat0 : OsAt σ s0 cv cur 0 := ⟨by show (σ (.n 6), σ (.n 7)) = _; rw [a6, a7, hcv],
     by show σ (.n 5) * gen ^ 0 = cur * gen ^ 0; rw [a5]⟩
-  obtain ⟨hF1, hat1⟩ := osFsNext_complete (C := osTC) (kret := kret) hat0 lx0 fun j hj => gB j hj
-  obtain ⟨hF2, hat2⟩ := osFsNext_complete (C := osTC) (kret := kret) hat1 (by simpa using lx1) fun j hj =>
+  obtain ⟨hF1, hat1⟩ := osFsNext_complete (C := C) (kret := kret) hat0 lx0 fun j hj => gB j hj
+  obtain ⟨hF2, hat2⟩ := osFsNext_complete (C := C) (kret := kret) hat1 (by simpa using lx1) fun j hj =>
     gC j hj
   have b0 : σ (.n 8) = x0 := by simpa [B, osFsNextVals] using gB 0 (by omega)
-  have c0 : σ (.n 23) = x1 := by simpa [C, osFsNextVals] using gC 0 (by omega)
+  have c0 : σ (.n 23) = x1 := by simpa [Cn, osFsNextVals] using gC 0 (by omega)
   refine ⟨?_, ⟨hat2.fs, hat2.cursor⟩, rfl, ?_, a2, ⟨d2, d4, d6, d8, d10, d12, d14, d16, d18, d20, d22⟩, rfl⟩
   · unfold osHead
     dsimp only

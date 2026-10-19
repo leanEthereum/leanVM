@@ -23,7 +23,7 @@ open LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- The values of `osGlue` from its first: each product by the scalar, then its sum. -/
 def osGlueVals (sc v c0 c1 c2 c b a t : E) : List E :=
@@ -33,7 +33,7 @@ def osGlueVals (sc v c0 c1 c2 c b a t : E) : List E :=
 theorem osGlue_complete {sc v c0 c1 c2 : ℕ} {s : OsSt} {kret : List E → Prop}
     (hv : ∀ j < 8, σ (.n (s.k + j)) = (osGlueVals (σ (.n sc)) (σ (.n v)) (σ (.n c0)) (σ (.n c1)) (σ (.n c2))
       (σ (.n s.c)) (σ (.n s.b)) (σ (.n s.a)) (σ (.n s.t))).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osGlue sc v c0 c1 c2 s).1 True kret ∧
+    Stmt.HoldsList C rd σ (osGlue sc v c0 c1 c2 s).1 True kret ∧
       σ (.n (osGlue sc v c0 c1 c2 s).2.c) = σ (.n s.c) + σ (.n sc) * σ (.n c0) ∧
       σ (.n (osGlue sc v c0 c1 c2 s).2.b) = σ (.n s.b) + σ (.n sc) * σ (.n c1) ∧
       σ (.n (osGlue sc v c0 c1 c2 s).2.a) = σ (.n s.a) + σ (.n sc) * σ (.n c2) ∧
@@ -63,7 +63,7 @@ theorem osOodGlue_complete {so sc lam : ℕ} {s : OsSt} {y c0 c2 : E}
     {kret : List E → Prop}
     (hv : ∀ j < 13, σ (.n (s.k + j)) = (osOodGlueVals y c0 c2 (σ (.n sc)) (σ (.n lam)) (σ (.n s.c))
       (σ (.n s.b)) (σ (.n s.a)) (σ (.n s.t))).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osOodGlue so sc lam s).1 True kret ∧
+    Stmt.HoldsList C rd σ (osOodGlue so sc lam s).1 True kret ∧
       σ (.n (osOodGlue so sc lam s).2.c) = σ (.n s.c) + σ (.n sc) * c0 ∧
       σ (.n (osOodGlue so sc lam s).2.b) = σ (.n s.b) + σ (.n sc) * (y + c2) ∧
       σ (.n (osOodGlue so sc lam s).2.a) = σ (.n s.a) + σ (.n sc) * c2 ∧

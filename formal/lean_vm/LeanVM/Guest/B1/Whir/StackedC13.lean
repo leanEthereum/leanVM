@@ -21,7 +21,7 @@ open LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## The residual chains -/
 
@@ -39,8 +39,10 @@ theorem osResidual_complete {maxQ ich ba bb lvl k : ℕ} {lv : OsLvl} (hnq : lv.
     {chv ichv betav i0 b r : E} (hich : σ (.n ich) = ichv) (hbe : σ (.n osBetas) = betav)
     (l0 : LoadHolds rd chv 0 0) (l1 : LoadHolds rd ichv lvl i0) (l2 : LoadHolds rd betav lvl b)
     (l3 : LoadHolds rd chv lv.queries r) (l4 : LoadHolds rd ichv (lvl + 1) (i0 + b * r)) {kret : List E → Prop}
+    (hcall : 1 + osGw lv.queries ≠ 0 → C lv.resLoop [1, osGw lv.queries, σ (.n osQpos), σ (.n ba), σ (.n bb), chv,
+      σ (.n osQw)] [])
     (hv : ∀ j < 13, σ (.n (k + j)) = (osResVals maxQ lv.queries chv i0 b r).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osResidual maxQ ich ba bb lvl lv k) True kret := by
+    Stmt.HoldsList C rd σ (osResidual maxQ ich ba bb lvl lv k) True kret := by
   have e := fun j (hj : j < 13) => hv j hj
   have e0 := e 0 (by omega); have e1 := e 1 (by omega); have e2 := e 2 (by omega)
   have e3 := e 3 (by omega); have e4 := e 4 (by omega); have e5 := e 5 (by omega)
@@ -53,7 +55,8 @@ theorem osResidual_complete {maxQ ich ba bb lvl k : ℕ} {lv : OsLvl} (hnq : lv.
   simp only [List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, word_zero,
     word_one]
   refine ⟨e0, trivial, e2, by rw [e1, e2]; exact l0, e3, e4, by rw [e5, e3, e4], e6, e7,
-    by rw [e5]; exact os_one_add_gw_inK hnq, fun _ => trivial, by rw [e8, hich]; exact l1,
+    by rw [e5]; exact os_one_add_gw_inK hnq, fun h => by simp only [List.map_cons, List.map_nil]; rw [e6, e7, e1]; exact hcall (by rwa [e5] at h),
+    by rw [e8, hich]; exact l1,
     by rw [e9, hbe]; exact l2, by rw [e10, e1]; exact l3, by rw [e11, e9, e10], by rw [e12, e8, e11],
     by rw [e12, hich]; exact l4⟩
 
@@ -80,15 +83,18 @@ theorem osResiduals_complete {maxQ ich ba bb k : ℕ} {lvs : List OsLvl}
     (hm : ∀ lvl < lvs.length, LoadHolds rd (chv lvl) 0 0 ∧ LoadHolds rd ichv lvl (i0 lvl) ∧
       LoadHolds rd betav lvl (b lvl) ∧ LoadHolds rd (chv lvl) (lvs.getD lvl default).queries (r lvl) ∧
       LoadHolds rd ichv (lvl + 1) (i0 lvl + b lvl * r lvl)) {kret : List E → Prop}
+    (hcall : ∀ lvl < lvs.length, 1 + osGw (lvs.getD lvl default).queries ≠ 0 →
+      C (lvs.getD lvl default).resLoop [1, osGw (lvs.getD lvl default).queries, σ (.n osQpos), σ (.n ba), σ (.n bb),
+        chv lvl, σ (.n osQw)] [])
     (hv : ∀ j < 13 * lvs.length, σ (.n (k + j)) = (osResidualsVals maxQ lvs chv i0 b r).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osResiduals maxQ ich ba bb k lvs) True kret := by
+    Stmt.HoldsList C rd σ (osResiduals maxQ ich ba bb k lvs) True kret := by
   unfold osResiduals
   rw [os_zipIdx_map_rangeD, holdsList_range_flatten _ _ (fun _ => rfl)]
   refine ⟨fun lvl hl => ?_, trivial⟩
   obtain ⟨m0, m1, m2, m3, m4⟩ := hm lvl hl
   have hlv : lvs.getD lvl default ∈ lvs := by
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl]; exact List.getElem_mem _
-  refine osResidual_complete (hnq _ hlv) hich hbe m0 m1 m2 m3 m4 fun j hj => ?_
+  refine osResidual_complete (hnq _ hlv) hich hbe m0 m1 m2 m3 m4 (hcall lvl hl) fun j hj => ?_
   rw [Nat.add_assoc, hv _ (by nlinarith), osResidualsVals,
     oq_getD_flatten_uniform _ 13 (fun _ => rfl) _ lvl j hl hj]
 
@@ -112,7 +118,7 @@ theorem osOodWeight_complete {yrLog tch zf ris ol k : ℕ} {oodv oodzv : E} (hoo
     (hc : ∀ t < zf + yrLog, LoadHolds rd (σ (.n (osOodSrc tch zf ris t).1)) (osOodSrc tch zf ris t).2 (c t))
     {kret : List E → Prop}
     (hv : ∀ j < 1 + 6 * (zf + yrLog), σ (.n (k + j)) = (osOodWVals sc z c (zf + yrLog)).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osOodWeight yrLog tch zf ris ol 0 k) True kret := by
+    Stmt.HoldsList C rd σ (osOodWeight yrLog tch zf ris ol 0 k) True kret := by
   set n := zf + yrLog
   have h0 : σ (.n k) = sc := by simpa [osOodWVals] using hv 0 (by omega)
   have hf : ∀ t < n, ∀ i < 6, σ (.n (k + 1 + 6 * t + i)) =
@@ -188,7 +194,7 @@ theorem osOodWeights_complete {yrLog tch : ℕ} {oodv oodzv : E} (hood : σ (.n 
             (osOodSrc tch (osPrevColsAt lvs prev i - yrLog) (lvs.getD i default).foldsOff t).2 (c (ol + i) t)) →
       (∀ j < (osOodWsVals yrLog sc z c prev ol lvs accv).length,
         σ (.n (k + j)) = (osOodWsVals yrLog sc z c prev ol lvs accv).getD j 0) →
-      Stmt.HoldsList osTC rd σ (osOodWeights yrLog tch prev ol lvs acc k).1 True kret ∧
+      Stmt.HoldsList C rd σ (osOodWeights yrLog tch prev ol lvs acc k).1 True kret ∧
         (osOodWeights yrLog tch prev ol lvs acc k).2.2 = k + (osOodWsVals yrLog sc z c prev ol lvs accv).length ∧
         ((osOodWeights yrLog tch prev ol lvs acc k).2.1 = none ↔ osOodWsAcc yrLog sc z c prev ol lvs accv = none) ∧
         ∀ a v, (osOodWeights yrLog tch prev ol lvs acc k).2.1 = some a →
@@ -209,7 +215,7 @@ theorem osOodWeights_complete {yrLog tch : ℕ} {oodv oodzv : E} (hood : σ (.n 
     rw [hacc]
     obtain ⟨hv12, g3⟩ := os_look_app hv
     obtain ⟨g1, g2⟩ := os_look_app hv12
-    have hw1 := osOodWeight_complete (rd := rd) (kret := kret) (tch := tch) (ris := lv.foldsOff) hood hoz m0 mz mc
+    have hw1 := osOodWeight_complete (C := C) (rd := rd) (kret := kret) (tch := tch) (ris := lv.foldsOff) hood hoz m0 mz mc
       (k := k) (fun j hj => g1 j (by rw [os_length_oodWVals]; exact hj))
     have hlast : σ (.n (k + 6 * n)) = w := by
       rw [g1 _ (by rw [os_length_oodWVals]; omega), os_oodW_last _ _ _ hpos]

@@ -23,7 +23,7 @@ open LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-! ## The point -/
 
@@ -38,7 +38,7 @@ theorem osPoint_complete {nFolds lane yrLog tch k : ℕ} {ptv : E} {ent : ℕ �
     (hz : ∀ i < 42, osPtSrc nFolds lane yrLog tch i = none → ent i = 0)
     (hpt : ∀ i < 42, LoadHolds rd ptv i (ent i))
     (hv : ∀ j < 43, σ (.n (k + j)) = (osPtVals ptv ent).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osPoint nFolds lane yrLog tch k) True kret := by
+    Stmt.HoldsList C rd σ (osPoint nFolds lane yrLog tch k) True kret := by
   have h0 : σ (.n k) = ptv := by simpa [osPtVals] using hv 0 (by omega)
   have he : ∀ i < 42, σ (.n (k + 1 + i)) = ent i := fun i hi => by
     rw [Nat.add_assoc, hv _ (by omega), Nat.add_comm 1 i]
@@ -79,7 +79,7 @@ theorem osBasisRow_complete {ba bb : ℕ} {bav bbv : E} (hba : σ (.n ba) = bav)
     {cf : ℕ × (ℕ × ℕ) × ℕ → E} {kret : List E → Prop} :
     ∀ (items : List (ℕ × (ℕ × ℕ) × ℕ)) (k : ℕ), (∀ it ∈ items, OsBasisMem rd σ bav bbv (cf it) it) →
       (∀ j < (osBasisRowVals cf items).length, σ (.n (k + j)) = (osBasisRowVals cf items).getD j 0) →
-      Stmt.HoldsList osTC rd σ (osBasisRow ba bb items k).1 True kret ∧
+      Stmt.HoldsList C rd σ (osBasisRow ba bb items k).1 True kret ∧
         (osBasisRow ba bb items k).2 = k + (osBasisRowVals cf items).length
   | [], k, _, _ => ⟨trivial, by simp [osBasisRow, osBasisRowVals]⟩
   | (slot, src, inv) :: rest, k, hm, hv => by
@@ -90,7 +90,7 @@ theorem osBasisRow_complete {ba bb : ℕ} {bav bbv : E} (hba : σ (.n ba) = bav)
     obtain ⟨m0, m1, m2⟩ := hm _ List.mem_cons_self
     simp only at m0 m1 m2
     set c := cf (slot, src, inv)
-    have hblk : Stmt.HoldsList osTC rd σ (osBasisBlk ba bb slot src inv k).1 True kret ∧
+    have hblk : Stmt.HoldsList C rd σ (osBasisBlk ba bb slot src inv k).1 True kret ∧
         (osBasisBlk ba bb slot src inv k).2 = k + (osBasisBlkVals c inv).length := by
       unfold osBasisBlk osBasisBlkVals at *
       by_cases hi : inv = 1
@@ -133,7 +133,7 @@ theorem osBases_complete {yrLog tch ba bb : ℕ} {bav bbv : E} (hba : σ (.n ba)
         OsBasisMem rd σ bav bbv (cf it) it) →
       (∀ j < (osBasesVals yrLog tch cf lvl lvs).length,
         σ (.n (k + j)) = (osBasesVals yrLog tch cf lvl lvs).getD j 0) →
-      Stmt.HoldsList osTC rd σ (osBases yrLog tch ba bb lvl lvs k).1 True kret ∧
+      Stmt.HoldsList C rd σ (osBases yrLog tch ba bb lvl lvs k).1 True kret ∧
         (osBases yrLog tch ba bb lvl lvs k).2 = k + (osBasesVals yrLog tch cf lvl lvs).length
   | _, [], k, _, _ => ⟨trivial, by simp [osBases, osBasesVals]⟩
   | lvl, lv :: rest, k, hm, hv => by

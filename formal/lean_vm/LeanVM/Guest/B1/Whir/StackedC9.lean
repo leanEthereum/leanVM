@@ -71,19 +71,20 @@ theorem osLevel_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : L
       (osHWEnd cfg lvl xs p H).target = σ (.n (osLevel cfg lvl (cfg.lv lvl) s).2.t) ∧
       (osLevel cfg lvl (cfg.lv lvl) s).2.k = s.k + (osLvVals cfg lvl xs cv p w H s.co cur rt P sqzv rewv).length := by
   obtain ⟨hA, hB⟩ := os_look_app hv
-  obtain ⟨hHA, hatA, hcoA, hqA, htA, hkA⟩ := osLevelA_complete (rd := rd) (kret := kret) hspec hok hat hcop hco8 hq
+  obtain ⟨hHA, hatA, hcoA, hqA, htA, hkA⟩ := osLevelA_complete (C := osTC) (rd := rd) (kret := kret) hspec hok hat hcop hco8 hq
     hP.oodz hm.reads (fun j hj => by rw [hP.fch]; exact hm.fch j hj)
     (fun h => by rw [hP.roots]; exact hm.rt2 h)
     (fun h => by
       rw [hP.ood]
       obtain ⟨-, o1, o2, o3⟩ := hm.ood h
-      exact ⟨by simpa using o1, by simpa using o2, by simpa using o3⟩) hA
+      exact ⟨by simpa using o1, by simpa using o2, by simpa using o3⟩)
+    (fun _ _ _ _ => trivial) (fun _ => trivial) (fun _ => ⟨trivial, trivial, trivial⟩) trivial hA
   have hlen := hok.len
-  obtain ⟨hHB, hatB, hcoB, hqB, htB, hkB⟩ := osLevelB_complete (rd := rd) (kret := kret) (rewv := rewv) hspec hP
+  obtain ⟨hHB, hatB, hcoB, hqB, htB, hkB⟩ := osLevelB_complete (C := osTC) (rd := rd) (kret := kret) (rewv := rewv) hspec hP
     hatA hqA htA (hm.reads _ (by unfold osHPEnd at hlen; omega))
     (hm.reads (osHP2 cfg lvl p + 1 + 1) (by unfold osHPEnd at hlen; omega))
     hm.sq0 hm.sq1 hm.sq2 hm.sq3 hm.qw hm.rt0 hm.rt1 (fun h => hm.ood h) hm.beta
-    (fun j hj => by rw [hkA]; exact hB j hj)
+    (fun _ => trivial) trivial trivial trivial (fun j hj => by rw [hkA]; exact hB j hj)
   rw [osLevel_parts]
   refine ⟨?_, hatB, ?_, hqB, htB, ?_⟩
   · rw [holdsList_append]

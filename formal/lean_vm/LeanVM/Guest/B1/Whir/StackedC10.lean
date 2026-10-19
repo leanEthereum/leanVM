@@ -24,7 +24,7 @@ open LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- **The tail rounds, inverted**: `n + 1` tail rounds are `n` fold rounds from any state of the
 quadratic, then the closing challenge. -/
@@ -100,9 +100,12 @@ theorem osTail_complete {yrLog : ℕ} {s : OsSt} {cv : Digest} {cur : E} {p : �
     (htch : ∀ j < yrLog - 1, LoadHolds rd tchv j (chs.getD j 0))
     (hlast : LoadHolds rd tchv (yrLog - 1) (challengeOf (sqCv cv1)))
     (hz : ∀ j < 5 - yrLog, LoadHolds rd tchv (yrLog + j) 0) {kret : List E → Prop}
+    (hcf : ∀ (cv' : Digest) (p' : ℕ) (q' : List E), p' + 2 ≤ xs.length →
+      C "opening_fold" [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ p', q'.getD 0 0, q'.getD 1 0,
+        q'.getD 2 0] (osFoldRets xs cv' p' q' (cur * gen ^ p')))
     (hv : ∀ j < (osTailVals yrLog xs cv p w.quad (cur * gen ^ (p - s.co)) s.co tchv w1 cv1).length,
       σ (.n (s.k + j)) = (osTailVals yrLog xs cv p w.quad (cur * gen ^ (p - s.co)) s.co tchv w1 cv1).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osTail yrLog s).1 True kret ∧
+    Stmt.HoldsList C rd σ (osTail yrLog s).1 True kret ∧
       σ (.n (osTail yrLog s).2.1.t) = polyEval w1.quad (challengeOf (sqCv cv1)) ∧
       σ (.n (osTail yrLog s).2.2.1) = tchv ∧
       (osTail yrLog s).2.1.k = s.k + (osTailVals yrLog xs cv p w.quad (cur * gen ^ (p - s.co)) s.co tchv w1 cv1).length := by
@@ -128,7 +131,7 @@ theorem osTail_complete {yrLog : ℕ} {s : OsSt} {cv : Digest} {cur : E} {p : �
   set s2 : OsSt := { s with k := s.k + 2 }
   have hat2 : OsAt σ s2 cv cur p := ⟨hat.fs, hat.cursor⟩
   obtain ⟨hFh, hatF, hsp, hqF, -, -, -, -, -, hkF⟩ := osFolds_complete (rd := rd) (σ := σ) (fch := s.k + 1)
-    (kret := kret) (yrLog - 1) 0 s2 cv p w [] osp roots (w1, chs) _ hat2 (by show s.co < _; omega) hq hrun
+    (kret := kret) hcf (yrLog - 1) 0 s2 cv p w [] osp roots (w1, chs) _ hat2 (by show s.co < _; omega) hq hrun
     (fun j hj => by
       show σ (.n (s.k + 2 + j)) = _
       rw [show (σ (.n s2.cb)) = cur * gen ^ (p - s.co) from hcb] at hj ⊢

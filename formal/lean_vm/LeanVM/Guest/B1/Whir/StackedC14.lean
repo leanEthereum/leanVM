@@ -25,7 +25,7 @@ open LeanVM.Guest.B1.VerifySub
 
 @[expose] public section
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- The honest data after the tail: the residual's value, the buffers' pointers, the point's
 entries, the basis rows' challenges, each level's chain, inner sum, scalar and chain end, the
@@ -92,8 +92,12 @@ theorem osFinish_complete {cfg : OsCfg} {st : OsSt} {tch : ℕ} {D : OsFinD} {P 
           (osOodSrc tch (osPrevColsAt cfg.levels.tail (cfg.levels.headD default).logCols i - cfg.yrLog)
             (cfg.levels.tail.getD i default).foldsOff t).2 (D.c (1 + i) t))
     (hichN : LoadHolds rd D.ich cfg.levels.length D.ichN)
+    (hcff : C cfg.foldFinal [σ (.n osFmsg), σ (.n tch)] [D.yat])
+    (hcres : ∀ lvl < cfg.levels.length, 1 + osGw (cfg.levels.getD lvl default).queries ≠ 0 →
+      C (cfg.levels.getD lvl default).resLoop [1, osGw (cfg.levels.getD lvl default).queries, σ (.n osQpos),
+        D.ba, D.bb, D.chv lvl, σ (.n osQw)] [])
     (hv : ∀ j < (osFinishVals cfg tch D).length, σ (.n (st.k + j)) = (osFinishVals cfg tch D).getD j 0) :
-    Stmt.HoldsList osTC rd σ (osFinish cfg st tch) False (fun rs => rs = [D.t, D.pt, osFinTot cfg D, D.yat]) := by
+    Stmt.HoldsList C rd σ (osFinish cfg st tch) False (fun rs => rs = [D.t, D.pt, osFinTot cfg D, D.yat]) := by
   set n := cfg.levels.length
   set PT := osPtVals D.pt D.ent
   set H4 : List E := [osGw (n * 22), D.ba, osGw (n * 22), D.bb]
@@ -125,7 +129,7 @@ theorem osFinish_complete {cfg : OsCfg} {st : OsSt} {tch : ℕ} {D : OsFinD} {P 
   have hba : σ (.n (st.k + 1 + 44)) = D.ba := by rw [← h1]
   have hbb : σ (.n (st.k + 1 + 46)) = D.bb := by rw [← h3]
   set Kr : List E → Prop := fun rs => rs = [D.t, D.pt, osFinTot cfg D, D.yat] with hKr
-  obtain ⟨hBh, hBk⟩ := osBases_complete (rd := rd) (kret := Kr) hba hbb 0 cfg.levels
+  obtain ⟨hBh, hBk⟩ := osBases_complete (C := C) (rd := rd) (kret := Kr) hba hbb 0 cfg.levels
     (st.k + 1 + 47) hbas (fun j hj => by rw [show st.k + 1 + 47 + j = st.k + (1 + 43 + 4) + j by ring]; exact gB j hj)
   set bs := osBases cfg.yrLog tch (st.k + 1 + 44) (st.k + 1 + 46) 0 cfg.levels (st.k + 1 + 47) with hbs
   have hbsk : bs.2 = st.k + (1 + 43 + 4 + B.length) := by rw [hBk]; ring
@@ -133,14 +137,14 @@ theorem osFinish_complete {cfg : OsCfg} {st : OsSt} {tch : ℕ} {D : OsFinD} {P 
   have i0 := hI 0 (by omega); have i1 := hI 1 (by omega); have i2 := hI 2 (by omega)
   simp only [I3, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at i0 i1 i2
   -- the residual chains
-  have hR := osResiduals_complete (rd := rd) (σ := σ) (kret := Kr) (maxQ := cfg.maxQ) (ich := bs.2 + 1)
+  have hR := osResiduals_complete (C := C) (rd := rd) (σ := σ) (kret := Kr) (maxQ := cfg.maxQ) (ich := bs.2 + 1)
     (ba := st.k + 1 + 44) (bb := st.k + 1 + 46) (k := bs.2 + 3) hnq i1 hP.betas hres
-    (fun j hj => by
+    (fun lvl hl h => by rw [hba, hbb]; exact hcres lvl hl h) (fun j hj => by
       have e : bs.2 + 3 + j = st.k + (1 + 43 + 4 + B.length + 3) + j := by rw [hbsk]; ring
       rw [e]; exact gR j hj)
   -- the out-of-domain weights
   set rk := bs.2 + 3 + 13 * n
-  obtain ⟨hOh, hOk, hO1, hO2⟩ := osOodWeights_complete (rd := rd) (σ := σ) (kret := Kr) (yrLog := cfg.yrLog) (tch := tch)
+  obtain ⟨hOh, hOk, hO1, hO2⟩ := osOodWeights_complete (C := C) (rd := rd) (σ := σ) (kret := Kr) (yrLog := cfg.yrLog) (tch := tch)
     (sc := D.sc) (z := D.z) (c := D.c) hP.ood hP.oodz cfg.levels.tail 1 (cfg.levels.headD default).logCols none none
     rk hood1 ⟨fun _ => rfl, fun _ => rfl⟩ (fun _ _ h => absurd h (by simp)) hood
     (fun j hj => by
@@ -168,7 +172,7 @@ theorem osFinish_complete {cfg : OsCfg} {st : OsSt} {tch : ℕ} {D : OsFinD} {P 
   have hnrP : Stmt.noRetList (osPoint cfg.nFolds (cfg.levels.headD default).folds cfg.yrLog tch (st.k + 1)) = true := by
     simp only [osPoint, Stmt.noRetList, Stmt.noRet, Bool.true_and]
     rw [noRetList_flatten_range _ _ (fun i => by unfold osPtBlk; split <;> rfl)]
-  have hpre : Stmt.HoldsList osTC rd σ (Stmt.call cfg.foldFinal [V.n osFmsg, V.n tch] [V.n st.k] ::
+  have hpre : Stmt.HoldsList C rd σ (Stmt.call cfg.foldFinal [V.n osFmsg, V.n tch] [V.n st.k] ::
       osPoint cfg.nFolds (cfg.levels.headD default).folds cfg.yrLog tch (st.k + 1) ++
       [Stmt.atom (Atom.const (V.n (st.k + 1 + 43)) (osGw (cfg.levels.length * 22))),
         Stmt.atom (Atom.hint (Hint.allocDyn (V.n (st.k + 1 + 43 + 1)) (V.n (st.k + 1 + 43))))] ++
@@ -180,10 +184,10 @@ theorem osFinish_complete {cfg : OsCfg} {st : OsSt} {tch : ℕ} {D : OsFinD} {P 
       osResiduals cfg.maxQ (bs.2 + 1) (st.k + 1 + 44) (st.k + 1 + 46) (bs.2 + 3) cfg.levels ++ od.1 ++
       [Stmt.atom (Atom.copy (V.n od.2.2) (V.n st.t)), Stmt.atom (Atom.copy (V.n (od.2.2 + 1)) (V.n (st.k + 1))),
         Stmt.atom (Atom.load (V.n (od.2.2 + 2)) (V.n (bs.2 + 1)) cfg.levels.length)]) True Kr := by
-    have hP' := osPoint_complete (rd := rd) (σ := σ) (kret := Kr) (k := st.k + 1) (ptv := D.pt) (ent := D.ent) hsrc hz hpt
+    have hP' := osPoint_complete (C := C) (rd := rd) (σ := σ) (kret := Kr) (k := st.k + 1) (ptv := D.pt) (ent := D.ent) hsrc hz hpt
       (fun j hj => gPT j hj)
     simp only [List.cons_append]
-    refine ⟨trivial, ?_⟩
+    refine ⟨by simp only [List.map_cons, List.map_nil]; rw [hy]; exact hcff, ?_⟩
     simp only [holdsList_append]
     refine (holdsList_noRet _ hnrP _ _).mpr ⟨hP', (holdsList_noRet _ rfl _ _).mpr ⟨?_,
       (holdsList_noRet _ rfl _ _).mpr ⟨?_, (holdsList_noRet _ hnrB _ _).mpr ⟨hBh,
