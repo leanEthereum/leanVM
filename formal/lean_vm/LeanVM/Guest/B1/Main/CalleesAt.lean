@@ -27,7 +27,8 @@ tables, internal `HeapBuf`s) left to it:
 * `claim_list_digest`, `child_claim_list_digest` (`ClPreAt`, `CclPreAt`): for the claims' cells
   (and the child's table indices) given, the squares table and the meaning without the windows'
   scratch table;
-* `cover_da_root` (`CoverPre`): its meaning with the slot count at most `2^16`;
+* `cover_da_root` (`CoverPreAt i`): for the DA slot `i`, its meaning with the slot count at most
+  `2^16`;
 * `da_verify` (`DaVerifyPreAt`): for a witness opening the claim, the squares table and the claim's
   cells returned;
 * `verify_sub`: for every run of the deferring verifier `VsGood` admits (group 6's `VsData`, the
@@ -63,10 +64,10 @@ def CclPreAt (off : ℕ → ℕ) (cs : List E) (rd : Reader) : List E → List E
         (∀ c ∈ cs, IsCanonical128 c) ∧ (d0, d1) = digestScalars (blake2sBytes (cs.flatMap cellBytes))
   | _, _ => False
 
-/-- `cover_da_root`'s precondition: slot `i` of `M ≤ 2^16` slots holds the mark, and the claim of
-DA slot `i` is returned. -/
-def CoverPre (rd : Reader) : List E → List E → Prop
-  | [roots, cover, nslots, mark], [r0, r1, r2, r3] => ∃ i M, M ≤ 2 ^ 16 ∧ i < M ∧
+/-- `cover_da_root`'s precondition, for the DA slot `i`: slot `i` of `M ≤ 2^16` slots holds the
+mark, and the claim of DA slot `i` is returned. -/
+def CoverPreAt (i : ℕ) (rd : Reader) : List E → List E → Prop
+  | [roots, cover, nslots, mark], [r0, r1, r2, r3] => ∃ M, M ≤ 2 ^ 16 ∧ i < M ∧
       nslots = gen ^ M ∧ LoadHolds rd (cover * gen ^ i) 0 mark ∧
       CellsAt rd (roots * gen ^ (4 * i)) [r0, r1, r2, r3]
   | _, _ => False
@@ -86,7 +87,7 @@ structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     CompleteRel fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs
   statement_digest : CompleteRel fs cert κ "statement_digest" Meaning_statement_digest
   da_list_digest : CompleteRel fs cert κ "da_list_digest" Meaning_da_list_digest
-  cover_da_root : CompleteRel fs cert κ "cover_da_root" CoverPre
+  cover_da_root : ∀ i, CompleteRel fs cert κ "cover_da_root" (CoverPreAt i)
   claim_list_digest : ∀ cs, CompleteRel fs cert κ "claim_list_digest" (ClPreAt cs)
   child_claim_list_digest : ∀ off cs,
     CompleteRel fs cert κ "child_claim_list_digest" (CclPreAt off cs)

@@ -108,7 +108,7 @@ theorem honest_wordsOk {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {bytecode
       daVerify := fun h1 => by
         obtain ⟨wt, root, vd, ho, h⟩ := hon_daVerify fs (fp := fp) (seed := seed) hD h1
         exact ⟨wt, root, vd, ho, fun rd _ hL => h rd hL⟩
-      daCover := fun h1 rd _ hL => hon_daCover fs hlim h1 hL
+      daCover := fun h1 => ⟨_, fun rd _ hL => hon_daCover fs hlim h1 hL⟩
       written0 := by
         have := hon_written fs (fp := fp) (seed := seed) (s := s) (w := w) 0 (by omega)
         rw [show hbase s w 0 = hrx s w + hrs s w + hrd s w by simp [hbase], pow_add, pow_add] at this

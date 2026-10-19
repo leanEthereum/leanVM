@@ -564,7 +564,8 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
         rcases hk with rfl | rfl
         · obtain ⟨wt, root, vd, ho, h⟩ := hW.daVerify hr
           exact H.da_verify wt root vd ho _ _ _ h
-        · exact H.cover_da_root _ _ _ (hW.daCover hr)
+        · obtain ⟨i, h⟩ := hW.daCover hr
+          exact H.cover_da_root i _ _ _ h
       · simp [hr] at hk
     · simp only [mainKid5, decide_eq_true_eq] at htk
       exact loop5_completeAt H hκ hW.nc (by omega) (mainIn fs fp W) W.child hW.children

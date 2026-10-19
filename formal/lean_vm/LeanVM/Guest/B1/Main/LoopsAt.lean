@@ -322,12 +322,13 @@ theorem loop100_holds {C : CallRel} {x N cda roots dcov dslots base nsub r0 r1 r
     readsAt_getD' hcda (k := 2) (by simp), readsAt_getD' hcda (k := 3) (by simp), hK, hnext⟩
 
 /-- **`__loop100`, placed**: iteration `c < m` marks its DA slot by `cover_da_root` with
-`base·nsub·g^c`, which returns the root's cells `rt c`, stored at `cdab + 4c` (words of `Lin`). -/
-theorem loop100_completeAt {κ : ℕ} (H : CompleteRel fs cert κ "cover_da_root" CoverPre)
+`base·nsub·g^c` in DA slot `sl c`, which returns the root's cells `rt c`, stored at `cdab + 4c`
+(words of `Lin`). -/
+theorem loop100_completeAt {κ : ℕ} (H : ∀ i, CompleteRel fs cert κ "cover_da_root" (CoverPreAt i))
     {m cdab : ℕ} {roots dcov dslots base nsub : E} (hm : m < 2 ^ 16) (hm0 : 0 < m) (Lin : Layout)
-    (rt : ℕ → List E) (hlen : ∀ c < m, (rt c).length = 4)
+    (rt : ℕ → List E) (hlen : ∀ c < m, (rt c).length = 4) (sl : ℕ → ℕ)
     (hcov : ∀ c < m, ∀ rd, LowDef κ rd → MemL rd Lin →
-      CoverPre rd [roots, dcov, dslots, base * nsub * gen ^ c] (rt c))
+      CoverPreAt (sl c) rd [roots, dcov, dslots, base * nsub * gen ^ c] (rt c))
     (hcda : ∀ c < m, ∀ k < 4, CellL Lin (cdab + 4 * c + k) ((rt c).getD k 0)) :
     CompleteAt fs cert κ "__loop100" Lin
       [1, gen ^ m, ofK (gpow cdab), roots, dcov, dslots, base, nsub] (Returns []) := by
@@ -343,7 +344,7 @@ theorem loop100_completeAt {κ : ℕ} (H : CompleteRel fs cert κ "cover_da_root
     [⟨"cover_da_root", true, [roots, dcov, dslots, base * nsub * gen ^ j], Lin, Returns (rt j)⟩]
     (fun k hk _ => by
       rw [List.mem_singleton] at hk; subst hk
-      exact H _ _ Lin fun rd hl hL => hcov j hj rd hl hL)
+      exact H (sl j) _ _ Lin fun rd hl hL => hcov j hj rd hl hL)
     (fun k hk q hq => by rw [List.mem_singleton] at hk; subst hk; exact hq)
     [gen ^ (j + 1), gen ^ m, ofK (gpow cdab), roots, dcov, dslots, base, nsub] (decide (j + 1 ≠ m))
     fp mt (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hS⟩ =>

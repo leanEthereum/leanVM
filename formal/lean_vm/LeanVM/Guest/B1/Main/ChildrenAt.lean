@@ -209,8 +209,8 @@ structure ChildWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (Lin : La
     CclPreAt off cs rd [spT, cover, r.base * gen ^ r.nx, lxS, spS, gen ^ r.ns, gsq] [r.ds.1, r.ds.2]
   sig : CompressCells ![r.dx.1, r.dx.2, r.ds.1, r.ds.2] ivCells.1 ivCells.2
     (digestScalars r.sigD).1 (digestScalars r.sigD).2 (metadataCell 64 true)
-  cov : ∀ k (hk : k < r.da.length), ∀ rd, LowDef κ rd → MemL rd Lin →
-    CoverPre rd [daR, daC, daS, r.base * (gen ^ r.nx * gen ^ r.ns) * gen ^ k] (daCellsOf r.da[k])
+  cov : ∃ sl : ℕ → ℕ, ∀ k (hk : k < r.da.length), ∀ rd, LowDef κ rd → MemL rd Lin →
+    CoverPreAt (sl k) rd [daR, daC, daS, r.base * (gen ^ r.nx * gen ^ r.ns) * gen ^ k] (daCellsOf r.da[k])
   defer : ∀ rd, MemL rd Lin → CellsAt rd (carried * gen ^ (53 * c)) r.dcells
   dlen : r.dcells.length = 53
   seed : (seed0, seed1) = digestScalars seedD
@@ -247,6 +247,7 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
   obtain ⟨D, lpA, sqA, outA, hgood, hpi, hseed, hglp, hgsq, hout, hvsub⟩ := o.vs
   obtain ⟨offx, csx, hccx⟩ := o.ccx
   obtain ⟨offs, css, hccs⟩ := o.ccs
+  obtain ⟨dsl, hcov⟩ := o.cov
   set r := rs j with hr
   set b := fp + fs "__loop5" + mt with hb
   set nda := r.da.length with hnda
@@ -302,11 +303,11 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
     · exact H.child_claim_list_digest offs css _ _ _ fun rd hl h => hccs rd hl (mLb rd h)
     · simp only [decide_eq_true_eq] at ht
       refine loop100_completeAt H.cover_da_root (by have := o.nda; omega) (by omega) (Lb ++ Lin)
-        (fun k => (r.da.map daCellsOf).getD k []) (fun c hc => ?_) (fun c hc rd hl h => ?_)
+        (fun k => (r.da.map daCellsOf).getD k []) (fun c hc => ?_) dsl (fun c hc rd hl h => ?_)
         (fun c hc k hk => ?_)
       · rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map]; rfl
       · rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map]
-        exact o.cov c hc rd hl (mLb rd h)
+        exact hcov c hc rd hl (mLb rd h)
       · obtain ⟨h1, h2⟩ := getElem_flatten_uniform (w := 4) (r.da.map daCellsOf)
           (fun x hx => by obtain ⟨a, -, rfl⟩ := List.mem_map.mp hx; rfl) c (by simpa using hc) k hk
         refine ⟨b + 2, cells, by rw [hLbm]; simp, by omega, ?_⟩

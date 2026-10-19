@@ -136,7 +136,8 @@ theorem hon_ccs (hlim : Limits s w) {c : ℕ} (hc : c < w.children.length)
 theorem hon_childCov (hlim : Limits s w) {c : ℕ} (hc : c < w.children.length)
     (hL : MemL rd (mainIn fs fp (honestWords seed s w))) {k : ℕ}
     (hk : k < w.children[c].statement.claims.da.length) :
-    CoverPre rd [mainPtr fs fp (honestWords seed s w) 0,
+    CoverPreAt ((planD s w).1.getD (hrd s w + ((w.children.take c).map cnda).sum + k) 0) rd
+      [mainPtr fs fp (honestWords seed s w) 0,
       mainPtr fs fp (honestWords seed s w) 4 * (gen ^ s.claims.xmss.length * gen ^ (planX s w).2.length *
         (gen ^ s.claims.sphincs.length * gen ^ (planS s w).2.length)),
       gen ^ s.claims.da.length * gen ^ (planD s w).2.length,
@@ -150,7 +151,7 @@ theorem hon_childCov (hlim : Limits s w) {c : ℕ} (hc : c < w.children.length)
   rw [gD_child hc hk] at hm
   have hdau := honest_dau hlim
   have he := hon_dEntry fs hL hr ((writersD_child (s := s) hc hk).trans (List.getElem?_eq_getElem hk))
-  refine ⟨_, s.claims.da.length + (planD s w).2.length, by omega, hs, (pow_add _ _ _).symm, ?_, he⟩
+  refine ⟨s.claims.da.length + (planD s w).2.length, by omega, hs, (pow_add _ _ _).symm, ?_, he⟩
   have hv : gen ^ (hbase s w c + (cnx w.children[c] + cns w.children[c]) + k) =
       gen ^ hbase s w c * (gen ^ cnx w.children[c] * gen ^ cns w.children[c]) * gen ^ k := by ring
   rw [hv] at hm
@@ -213,7 +214,7 @@ theorem hon_child {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {bytecode : Li
       ccx := ⟨_, _, fun rd _ hL => hon_ccx fs hlim hc hL⟩
       ccs := ⟨_, _, fun rd _ hL => hon_ccs fs hlim hc hL⟩
       sig := hon_sig _ _
-      cov := fun k hk rd _ hL => hon_childCov fs hlim hc hL hk
+      cov := ⟨_, fun k hk rd _ hL => hon_childCov fs hlim hc hL hk⟩
       defer := fun rd hL => ?_
       dlen := defer_cells_length hb (hshp _ hmem)
       seed := rfl

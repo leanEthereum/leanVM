@@ -271,7 +271,7 @@ theorem loadHolds_cover {p : E} {a b c d i : ℕ} {v : E}
   rwa [Nat.add_zero]
 
 theorem hon_daCover (hlim : Limits s w) (h1 : hrd s w = 1) (hL : MemL rd (mainIn fs fp (honestWords seed s w))) :
-    CoverPre rd [mainPtr fs fp (honestWords seed s w) 0,
+    CoverPreAt ((planD s w).1.getD 0 0) rd [mainPtr fs fp (honestWords seed s w) 0,
       mainPtr fs fp (honestWords seed s w) 4 * (gen ^ s.claims.xmss.length * gen ^ (planX s w).2.length *
         (gen ^ s.claims.sphincs.length * gen ^ (planS s w).2.length)),
       gen ^ s.claims.da.length * gen ^ (planD s w).2.length, gen ^ hrx s w * gen ^ hrs s w]
@@ -283,7 +283,7 @@ theorem hon_daCover (hlim : Limits s w) (h1 : hrd s w = 1) (hL : MemL rd (mainIn
   have hm := hc.load hL
   rw [gD_raw (by omega), Nat.add_zero, pow_add] at hm
   have he := hon_dEntry fs hL hr (writersD_raw (by omega))
-  refine ⟨(planD s w).1.getD 0 0, s.claims.da.length + (planD s w).2.length, by omega, hs,
+  refine ⟨s.claims.da.length + (planD s w).2.length, by omega, hs,
     (pow_add _ _ _).symm, loadHolds_cover hm, ?_⟩
   unfold hrd at h1
   match hd : direct s.claims.da w.da, h1 with

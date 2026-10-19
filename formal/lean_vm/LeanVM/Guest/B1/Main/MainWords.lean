@@ -164,8 +164,8 @@ structure MainWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (fp : ℕ)
     Meaning_verify_sig_lean_sphincs rd [mainPtr fs fp W 2 * gen ^ (4 * W.slS c)] []
   daVerify : W.rd = 1 → ∃ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd ∧
     ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) → DaVerifyPreAt root vd rd [ofK (gpow (mainExpBase fs fp W + 34))] [W.dr.1, W.dr.2.1, W.dr.2.2.1, W.dr.2.2.2]
-  daCover : W.rd = 1 → ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
-    CoverPre rd [mainPtr fs fp W 0, mainPtr fs fp W 4 * (gen ^ W.dx * gen ^ W.ux *
+  daCover : W.rd = 1 → ∃ i, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
+    CoverPreAt i rd [mainPtr fs fp W 0, mainPtr fs fp W 4 * (gen ^ W.dx * gen ^ W.ux *
       (gen ^ W.ds * gen ^ W.us)), gen ^ W.da * gen ^ W.ud, gen ^ W.rx * gen ^ W.rs]
       [W.dr.1, W.dr.2.1, W.dr.2.2.1, W.dr.2.2.2]
   written0 : CellL (mainIn fs fp W) (mainBase fs fp W 8 + 0) (gen ^ W.rx * gen ^ W.rs * gen ^ W.rd)
