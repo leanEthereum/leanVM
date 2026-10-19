@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B2C.Defs
+public import LeanVM.Guest.B2C.Cells
 
 /-!
 # Counts as weights
@@ -131,6 +131,62 @@ theorem pathCountN_le (f : String) (σ : Val) (op : Opcode) : pathCountN f σ op
 /-- **The counts within the weights** at the path maxima. -/
 theorem cnt_le_weight (t : Tree) (op : Opcode) : cnt t op ≤ t.weight (pathMax · op) + jtSets op :=
   cnt_le_weight_of (fun op f ↦ pathMax f op) (fun op f σ ↦ pathCountN_le f σ op) t op
+
+/-! ## The separately counted arms -/
+
+/-- The weights: the most a path runs, and for `verify_lean_xmss` its arms' counts `C`. -/
+noncomputable def ωArm (C : Opcode → ℕ) (op : Opcode) (f : String) : ℕ :=
+  pathMax f op + if f = "verify_lean_xmss" then C op else 0
+
+/-- Only `verify_lean_xmss` (function `17`) counts arms separately. -/
+theorem cplArms_only17 : ∀ j, j ≠ 17 → nth Data.cplArms j [] = [] := by
+  intro j hj
+  by_cases hl : j < Data.cplArms.length
+  · have h : (List.range Data.cplArms.length).all
+        (fun j ↦ Nat.beq j 17 || (nth Data.cplArms j []).isEmpty) = true := by decide +kernel
+    have := List.all_eq_true.mp h j (List.mem_range.mpr hl)
+    simp only [Bool.or_eq_true, List.isEmpty_iff] at this
+    rcases this with h1 | h1
+    · exact absurd (Nat.eq_of_beq_eq_true h1) hj
+    · exact h1
+  · exact Check.nth_of_le (by omega)
+
+theorem coreOf17_name : (coreOf 17).name = "verify_lean_xmss" := by decide +kernel
+
+/-- **A valid instance's path count within its weight**, given `verify_lean_xmss`'s arms within
+`C` on its valid instances. -/
+theorem pathCountN_le_arm (C : Opcode → ℕ)
+    (hC : ∀ op σ bufs kids rd args rets,
+      (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
+        costW (nth Data.cplArms 17 []) σ (coreOf 17).body op ≤ C op)
+    (op : Opcode) (f : String) (σ : Val) (bufs : List ℕ) (kids : List Tree) (rd : Reader)
+    (args rets : List E) (hv : (Memory.Tree.node f σ bufs kids).Valid coreProgram rd args rets) :
+    pathCountN f σ op ≤ ωArm C op f := by
+  unfold ωArm pathCountN pathMax
+  split
+  · rename_i j hj
+    unfold pathCount
+    by_cases h17 : j = 17
+    · subst h17
+      obtain ⟨i, hi1, hi, hn, -, hcore, -⟩ := fn_of_idx hj
+      have hf : f = "verify_lean_xmss" := by rw [← hn, ← hcore, coreOf17_name]
+      subst hf
+      simp only [↓reduceIte]
+      have := hC op σ bufs kids rd args rets hv
+      omega
+    · rw [cplArms_only17 j h17, costW_nil, Pi.zero_apply]
+      omega
+  · exact Nat.zero_le _
+
+/-- **The counts within the weights `ωArm C`** on valid trees. -/
+theorem cnt_le_weight_arm (C : Opcode → ℕ)
+    (hC : ∀ op σ bufs kids rd args rets,
+      (Memory.Tree.node "verify_lean_xmss" σ bufs kids).Valid coreProgram rd args rets →
+        costW (nth Data.cplArms 17 []) σ (coreOf 17).body op ≤ C op) :
+    ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
+      cnt t op ≤ t.weight (ωArm C op) + jtSets op :=
+  cnt_le_weight_valid (ωArm C) fun op f σ bufs kids rd args rets hv ↦
+    pathCountN_le_arm C hC op f σ bufs kids rd args rets hv
 
 end
 end LeanVM.Guest.B2C
