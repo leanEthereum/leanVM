@@ -15,8 +15,8 @@ public import LeanVM.Guest.B1.Main.WeightLoop
 # `main`'s callees' counts
 
 `kcWt op : MainWeightHyps B2C.fs (B2C.pathMax · op)`: the statically bounded callees by their
-certificates (`Count/Static`), `claim_list_digest`, `child_claim_list_digest`, `da_verify` and
-`verify_sub` within their ratios of their words (`Count/Ratio`).
+certificates (`Count/Static`), `claim_list_digest`, `child_claim_list_digest` and `verify_sub`
+within their ratios of their words (`Count/Ratio`); `da_verify`'s weight rides its completeness.
 -/
 
 namespace LeanVM.Guest.Count
