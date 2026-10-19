@@ -1156,6 +1156,8 @@ structure St where
   targets : Std.HashMap ℕ (ℕ × ℕ) := {}
   next : List (ℕ × FC) := []
   passed : Array OInstr := #[]
+  /-- The instructions passed on this path, per opcode. -/
+  cnt : List ℕ := [0, 0, 0, 0, 0, 0]
 
 /-- What the walk finds: failures, the call sites `(args, rets, q, r, target)` and the table
 jumps `(selector, target, base)`. -/
@@ -1163,8 +1165,23 @@ structure Out where
   fails : Array String := #[]
   sites : Array (List ℕ × List ℕ × ℕ × ℕ × Option ℕ) := #[]
   arms : Array (ℕ × ℕ × ℕ) := #[]
+  /-- The most instructions of each opcode a path to a return passes. -/
+  best : List ℕ := [0, 0, 0, 0, 0, 0]
 
 abbrev M := ReaderT Ctx (StateT Out (Except String))
+
+/-- The opcode index of an instruction (`Opcode`'s constructor order). -/
+def opIdx : OInstr → ℕ
+  | .xor .. => 0
+  | .mul .. => 1
+  | .set .. => 2
+  | .deref .. => 3
+  | .jump .. => 4
+  | .blake2s .. => 5
+
+def bump (l : List ℕ) (i : ℕ) : List ℕ := l.mapIdx fun k x => if k == i then x + 1 else x
+
+def maxL (a b : List ℕ) : List ℕ := (a.zip b).map fun (x, y) => max x y
 
 def fail (msg : String) : M Unit := do
   let c ← read
@@ -1372,10 +1389,10 @@ def passItem (st : St) (it : GItem) : M St := do
   match it with
   | .ins (.instr pc ins) =>
     unless justify c st pc ins do fail s!"@{pc - c.entry} {instrText ins}"
-    pure { st with passed := st.passed.push ins }
+    pure { st with passed := st.passed.push ins, cnt := bump st.cnt (opIdx ins) }
   | .ins (.jump oc od of) =>
     unless cellK c st oc && cellK c st od && cellK c st of do fail s!"jump K {oc} {od} {of}"
-    pure st
+    pure { st with cnt := bump st.cnt 4 }
   | _ => pure st
 
 def getSeg (g : ℕ) : M GSeg := do
@@ -1453,7 +1470,8 @@ def joinSt (pre : St) (bs : List St) : St :=
     | some k :: rest => if rest.all (· == some k) && !pre.know.contains c then (know.insert c k, unk.insert c) else (know, unk.insert c)
     | _ => (know, unk.insert c)) (pre.know, pre.unk)
   let unk := bs.foldl (fun h b => b.unk.fold (·.insert ·) h) unk
-  { pre with named := named, know := know, unk := unk, passed := pre.passed }
+  let cnt := bs.foldl (fun c b => maxL c b.cnt) pre.cnt
+  { pre with named := named, know := know, unk := unk, passed := pre.passed, cnt := cnt }
 
 mutual
 partial def block (ss : List Core.Stmt) (p : Pos) (st : St) : M (Option (Pos × St)) := do
@@ -1463,15 +1481,23 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) : M (Option (Pos × 
   let mut st := st0
   let mut p := p
   let mut ss := ss
+  -- whether the walk passed items since it last stood at a segment's start
+  let mut moved := p.2 != 0
   repeat
     match ss with
-    | [] => return some (p, st)
+    | [] =>
+      -- a block's end at a segment's start stays; otherwise it passes its segment
+      if !moved then return some (p, st)
+      let (q, st1, _) ← toEnd p st
+      return some (q, st1)
     | s :: rest =>
       ss := rest
+      moved := true
       match s with
       | .atom _ => pure ()
       | .ite cv z n =>
         let (q, st1, oc, od, of, x) ← toBranch p st
+        let st1 := { st1 with cnt := bump st1.cnt 4 }
         unless oc == c.cell cv.idx do fail s!"ite cond cell {oc}"
         unless cellK c st1 od && cellK c st1 of do fail s!"ite jump K {od} {of}"
         let .next t := x.kind | throw ("ite kind")
@@ -1485,7 +1511,7 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) : M (Option (Pos × 
           let sj ← getSeg J
           let st2 := joinSt st1 (ends.map (·.2))
           envCheck st2 sj
-          p := (J, 0); st := st2
+          p := (J, 0); st := st2; moved := false
         | none => return none
       | .match_ xv arms =>
         let (_, st1, x?) ← toEndPeek p st xv
@@ -1500,7 +1526,7 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) : M (Option (Pos × 
           let sj ← getSeg J
           let st2 := joinSt st1 (ends.map (·.2))
           envCheck st2 sj
-          p := (J, 0); st := st2
+          p := (J, 0); st := st2; moved := false
         | none => return none
       | .call _ args rets | .dispatch _ _ args rets =>
         let s0 ← getSeg p.1
@@ -1530,7 +1556,7 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) : M (Option (Pos × 
         let sr ← getSeg rr
         envCheck st2 sr
         let fcs' := fcs ++ rets.zipIdx.map fun (v, k) => (2 + args.length + k, FC.val (c.cell v.idx))
-        p := (rr, 0); st := { st2 with frames := st2.frames.insert q fcs' }
+        p := (rr, 0); st := { st2 with frames := st2.frames.insert q fcs' }; moved := !rets.isEmpty
       | .callIf cv _ args =>
         let (q, oc, od, of, x) ← peekBranch p
         unless oc == c.cell cv.idx do fail s!"callIf cond cell {oc}"
@@ -1542,22 +1568,25 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) : M (Option (Pos × 
           modify fun o => { o with sites := o.sites.push (args.map (·.idx), [], fq, r, none) }
           -- the setup is before the branch: re-pass with the frame known
           let (_, st2, _) ← toEnd p { st with frames := st.frames.insert fq fcs }
+          let st2 := { st2 with cnt := bump st2.cnt 4 }
           unless cellK c st2 od && cellK c st2 of do fail s!"callIf jump K {od} {of}"
           let rr := r - c.entry
           let sr ← getSeg rr
           envCheck st2 sr
-          p := (rr, 0); st := st2
+          p := (rr, 0); st := st2; moved := false
           let _ := q
         | .jump (.gp _) (.fpg S) =>
           let nxt := (args.zipIdx.map fun (a, k) => (2 + k, FC.val (c.cell a.idx))) ++
             [(0, FC.hdr 0), (1, FC.hdr 1)] ++ (c.envOf (c.entry)).map (·, FC.fpg S)
           let (_, st2, _) ← toEnd p { st with next := nxt }
+          let st2 := { st2 with cnt := bump st2.cnt 4 }
           unless cellK c st2 od && cellK c st2 of do fail s!"tail jump K {od} {of}"
           p := (q.1, q.2 + 1); st := st2
         | _ => throw ("callIf kind")
       | .ret _ =>
-        let (_, _, x?) ← toEnd p st
+        let (_, st1, x?) ← toEnd p st
         if x?.isNone then fail "ret not at end"
+        modify fun o => { o with best := maxL o.best st1.cnt }
         return none
   return some (p, st)
 
@@ -1646,6 +1675,8 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
     | none => true
   let (plumb, errs) := plumbOf f F vcells T.pows constCell
   unless errs.isEmpty do throw s!"{errs}"
+  -- cells past the frame are the next iteration's
+  let plumb := plumb.filter fun o _ => o < fsz
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let cell (v : ℕ) : ℕ := locs.getD v 0
   let ctx : Cpl.Ctx := ⟨f.name, cell, vcells, plumb, T.pows, segMap, f.entry, cf.params.length,
@@ -1687,6 +1718,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
     | .frameAddr _ run => run
     | _ => []).eraseDups
   let vc (v : Core.V) : String := s!"({v.idx}, {cell v.idx})"
+  let pmax := out.best
   return s!"/-- `{f.name}`. -/
 noncomputable def plumb{j} : B2C.Plumb where
   stat := {listText stat}
@@ -1694,6 +1726,7 @@ noncomputable def plumb{j} : B2C.Plumb where
   arms := {listText (arms.map tripText)}
   tmps := {listText (tmps.map vc)}
   runs := {listText (runs.map vc)}
+  pmax := {listText (pmax.map toString)}
 "
 
 end GuestCert

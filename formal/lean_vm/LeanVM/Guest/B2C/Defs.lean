@@ -28,8 +28,8 @@ selector), and in `main` the jump table. A phantom's cells are its parameters an
 pointer cells, which its caller writes. A callee's header (`H`) is the return pc of its call site
 and the caller's frame, or, for a loop's tail call, the caller's own header.
 
-`cnt T op` counts `op` once per instruction of every instance of `T` that runs, plus the jump
-table's `SET`s.
+`cnt T op` counts, per instance of `T` that runs, the most instructions of opcode `op` a path
+through its function's code runs (`pathMax`), plus the jump table's `SET`s.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -160,17 +160,28 @@ noncomputable def H (I : Inst) (i : ℕ) : E × E :=
 
 /-! ## Instruction counts -/
 
-/-- The instructions of opcode `op` in function `f`'s code. -/
-noncomputable def opCount (f : String) (op : Opcode) : ℕ :=
+/-- An opcode's position in `Opcode`'s order. -/
+def opIdx : Opcode → ℕ
+  | .xor => 0
+  | .mulNative => 1
+  | .setConstant => 2
+  | .deref => 3
+  | .jump => 4
+  | .blake2s => 5
+
+/-- The most instructions of opcode `op` one path through function `f`'s code runs (the
+certificate's, which the completeness check confirms). -/
+noncomputable def pathMax (f : String) (op : Opcode) : ℕ :=
   match idxOf f with
-  | some j => ((fnOf j).code.filter fun ins => decide (ins.toInstr.opcode = op)).length
+  | some j => (plumbOf j).pmax.getD (opIdx op) 0
   | none => 0
 
 /-- The jump table's `SET`s, run before `main`. -/
 def jtSets (op : Opcode) : ℕ := if op = .setConstant then 4478 else 0
 
-/-- **The instructions of opcode `op` a run on the honest memory of `T` executes at most.** -/
-noncomputable def cnt (T : Tree) (op : Opcode) : ℕ := T.weight (opCount · op) + jtSets op
+/-- **The instructions of opcode `op` a run on the honest memory of `T` executes at most**: the
+most one path runs, per instance that runs, and the jump table. -/
+noncomputable def cnt (T : Tree) (op : Opcode) : ℕ := T.weight (pathMax · op) + jtSets op
 
 end
 end LeanVM.Guest.B2C

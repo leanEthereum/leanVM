@@ -43,13 +43,15 @@ structure Site where
 
 /-- What a function's frame holds beyond its core values: the fixed cells `stat`, the call sites,
 the table jumps `(selector value, target cell, table base)`, the range checks' temporaries and
-the frame runs' values with their cells `(value, cell)`. -/
+the frame runs' values with their cells `(value, cell)`, and the most instructions of each opcode
+(in `Opcode`'s order) a path through the function's code runs (`pmax`). -/
 structure Plumb where
   stat : List (ℕ × PC) := []
   sites : List Site := []
   arms : List (ℕ × ℕ × ℕ) := []
   tmps : List (ℕ × ℕ) := []
   runs : List (ℕ × ℕ) := []
+  pmax : List ℕ := []
   deriving Repr
 
 end
