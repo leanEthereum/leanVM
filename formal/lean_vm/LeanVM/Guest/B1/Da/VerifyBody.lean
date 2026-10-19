@@ -318,3 +318,7 @@ theorem da_verify_of_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squares
 
 end
 end LeanVM.Guest.B1.Digest
+
+namespace LeanVM.Guest.B1
+export Digest (da_verify_of_facts)
+end LeanVM.Guest.B1
