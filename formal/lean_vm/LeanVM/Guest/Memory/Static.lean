@@ -286,17 +286,17 @@ mutual
 /-- No `ret` in a statement. -/
 def Stmt.noRet : Stmt → Bool
   | .ret _ => false
-  | .ite _ z n => Stmt.noRetList z && Stmt.noRetList n
+  | .ite _ z n => Stmt.noRetListS z && Stmt.noRetListS n
   | .match_ _ arms => Stmt.noRetArms arms
   | _ => true
 
-def Stmt.noRetList : List Stmt → Bool
+def Stmt.noRetListS : List Stmt → Bool
   | [] => true
-  | s :: ss => Stmt.noRet s && Stmt.noRetList ss
+  | s :: ss => Stmt.noRet s && Stmt.noRetListS ss
 
 def Stmt.noRetArms : List (List Stmt) → Bool
   | [] => true
-  | a :: as => Stmt.noRetList a && Stmt.noRetArms as
+  | a :: as => Stmt.noRetListS a && Stmt.noRetArms as
 end
 
 /-- The top-level atom of a block defining `d`. -/
@@ -335,7 +335,7 @@ def loopShape (fn : Fn) (endc : Option ℕ) : Option (List Stmt) :=
   match fn.body.reverse, fn.params with
   | .ret [] :: .callIf c g (i' :: rest) :: rpre, p0 :: prest =>
       let pre := rpre.reverse
-      if g = fn.name ∧ rest = prest ∧ Stmt.noRetList pre = true ∧ isStep pre p0 i' = true ∧
+      if g = fn.name ∧ rest = prest ∧ Stmt.noRetListS pre = true ∧ isStep pre p0 i' = true ∧
           (match defAtom c pre with
             | some (.add _ x y) => (isStep pre p0 x && isEnd pre prest.head? endc y) ||
                 (isStep pre p0 y && isEnd pre prest.head? endc x)

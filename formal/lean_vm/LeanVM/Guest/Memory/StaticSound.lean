@@ -880,11 +880,11 @@ theorem walk1_noRet : ∀ (s : Stmt), Stmt.noRet s = true →
   | .dispatch x gs a r, _ => by rw [walk1]; exact pick_noRet gs 0
   | .ret _, h => by simp [Stmt.noRet] at h
 
-theorem walk_noRet : ∀ (ss : List Stmt), Stmt.noRetList ss = true →
+theorem walk_noRet : ∀ (ss : List Stmt), Stmt.noRetListS ss = true →
     (∃ es, walk σ ss = .fall es) ∨ walk σ ss = .stuck
   | [], _ => Or.inl ⟨[], rfl⟩
   | s :: ss, h => by
-      simp only [Stmt.noRetList, Bool.and_eq_true] at h
+      simp only [Stmt.noRetListS, Bool.and_eq_true] at h
       rw [walk]
       exact seq_noRet (walk1_noRet s h.1) (walk_noRet ss h.2)
 
@@ -900,11 +900,11 @@ theorem walkArms_noRet (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ), Stmt.n
 end
 
 /-- **A top-level atom of a block without `ret` is on its path.** -/
-theorem atom_on_path {a : Atom} : ∀ {l : List Stmt} {es : List Ev}, Stmt.noRetList l = true →
+theorem atom_on_path {a : Atom} : ∀ {l : List Stmt} {es : List Ev}, Stmt.noRetListS l = true →
     walk σ l = .fall es → Stmt.atom a ∈ l → Ev.atom a ∈ es
   | [], _, _, _, hm => (List.not_mem_nil hm).elim
   | s :: l, es, hn, hw, hm => by
-      simp only [Stmt.noRetList, Bool.and_eq_true] at hn
+      simp only [Stmt.noRetListS, Bool.and_eq_true] at hn
       rw [walk] at hw
       rcases walk1_noRet (σ := σ) s hn.1 with ⟨es1, h1⟩ | h1
       · rw [h1] at hw
@@ -976,7 +976,7 @@ theorem defAtom_const {d x : V} {w : E} : ∀ {l : List Stmt}, defAtom d l = som
   | .dispatch .. :: l, h => defAtom_const (by simpa [defAtom] using h)
   | .ret .. :: l, h => defAtom_const (by simpa [defAtom] using h)
 
-theorem ofK_mul (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
+theorem ofK_mulS (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
 
 theorem gpow_succ' (a : ℕ) : gpow a * gpow 1 = gpow (a + 1) := by
   simp [Parameters.gpow, pow_add]
@@ -984,11 +984,11 @@ theorem gpow_succ' (a : ℕ) : gpow a * gpow 1 = gpow (a + 1) := by
 variable {rd : Reader} {pre : List Stmt} {es : List Ev}
 
 /-- A defining atom of a block without `ret`, on its path, holds. -/
-theorem defAtom_holds (hn : Stmt.noRetList pre = true) (hw : walk σ pre = .fall es)
+theorem defAtom_holds (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es)
     (hh : HoldsAll rd σ es) {d : V} {a : Atom} (h : defAtom d pre = some a) : a.Holds rd σ :=
   hh _ (atom_on_path hn hw (defAtom_mem h))
 
-theorem isG_val (hn : Stmt.noRetList pre = true) (hw : walk σ pre = .fall es) (hh : HoldsAll rd σ es)
+theorem isG_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es) (hh : HoldsAll rd σ es)
     {z : V} (h : (match defAtom z pre with
       | some (.const _ w) => constOk w 1
       | _ => false) = true) : σ z = ofK (gpow 1) := by
@@ -999,7 +999,7 @@ theorem isG_val (hn : Stmt.noRetList pre = true) (hw : walk σ pre = .fall es) (
     exact this.trans (constOk_spec h).1
   · cases h
 
-theorem isStep_val (hn : Stmt.noRetList pre = true) (hw : walk σ pre = .fall es)
+theorem isStep_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es)
     (hh : HoldsAll rd σ es) {p d : V} (h : isStep pre p d = true) : σ d = σ p * ofK (gpow 1) := by
   unfold isStep at h
   split at h
@@ -1012,7 +1012,7 @@ theorem isStep_val (hn : Stmt.noRetList pre = true) (hw : walk σ pre = .fall es
     · rw [isG_val hn hw hh hz, mul_comm]
   · cases h
 
-theorem isEnd_val (hn : Stmt.noRetList pre = true) (hw : walk σ pre = .fall es)
+theorem isEnd_val (hn : Stmt.noRetListS pre = true) (hw : walk σ pre = .fall es)
     (hh : HoldsAll rd σ es) {p1 : Option V} {endc : Option ℕ} {y : V} (h : isEnd pre p1 endc y = true) :
     (endc = none → p1 = some y) ∧ ∀ e, endc = some e → σ y = ofK (gpow e) := by
   unfold isEnd at h
@@ -1032,7 +1032,7 @@ theorem isEnd_val (hn : Stmt.noRetList pre = true) (hw : walk σ pre = .fall es)
 /-- **A loop helper's shape.** -/
 theorem loopShape_spec {fn : Fn} {endc : Option ℕ} (h : loopShape fn endc = some pre) :
     ∃ c i' p0 prest, fn.params = p0 :: prest ∧
-      fn.body = pre ++ [.callIf c fn.name (i' :: prest), .ret []] ∧ Stmt.noRetList pre = true ∧
+      fn.body = pre ++ [.callIf c fn.name (i' :: prest), .ret []] ∧ Stmt.noRetListS pre = true ∧
       isStep pre p0 i' = true ∧ ∃ x y, defAtom c pre = some (.add c x y) ∧
         ((isStep pre p0 x = true ∧ isEnd pre prest.head? endc y = true) ∨
           (isStep pre p0 y = true ∧ isEnd pre prest.head? endc x = true)) := by
@@ -1164,7 +1164,7 @@ theorem chk_sound (hchk : Checked P cert ω) :
                 have hargs : args = σ p0 :: prest.map σ := by rw [← hp, hps, List.map_cons]
                 have hp0 : σ p0 = ofK (gpow a0) := by rw [← h0, hargs]; rfl
                 have hi' : σ i' = ofK (gpow (a0 + 1)) := by
-                  rw [isStep_val hnr hw1 hes1 hst, hp0, ← ofK_mul, gpow_succ']
+                  rw [isStep_val hnr hw1 hes1 hst, hp0, ← ofK_mulS, gpow_succ']
                 have hM : 1 ≤ e - a0 := by omega
                 match ks2, hk2 with
                 | [tk], ⟨htn, htv, _⟩ =>
@@ -1212,8 +1212,8 @@ theorem chk_sound (hchk : Checked P cert ω) :
                       apply h0c
                       rw [hcv, e_add_eq_zero_iff]
                       rcases hxy with ⟨hsx, hey⟩ | ⟨hsy, hex⟩
-                      · rw [isStep_val hnr hw1 hes1 hsx, hp0, ← ofK_mul, gpow_succ', hyv hey, hae']
-                      · rw [isStep_val hnr hw1 hes1 hsy, hp0, ← ofK_mul, gpow_succ', hyv hex, hae']
+                      · rw [isStep_val hnr hw1 hes1 hsx, hp0, ← ofK_mulS, gpow_succ', hyv hey, hae']
+                      · rw [isStep_val hnr hw1 hes1 hsy, hp0, ← ofK_mulS, gpow_succ', hyv hex, hae']
                     have hpre'' : ArgsPre pre ((i' :: prest).map σ) := by
                       intro q hq
                       rw [hget q.1 (hpc q hq)]
