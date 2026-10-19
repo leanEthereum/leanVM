@@ -447,7 +447,7 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       cost T ≤ budget s w
   /-- Agent T: `main`'s cells hold its jump table. -/
-  table : ∀ I : Memory.Inst, I.t.name = "main" → Memory.tableCells ⊆ C I
+  table : ∀ (I : Memory.Inst) σ bufs kids, I.t = .node "main" σ bufs kids → Memory.tableCells ⊆ C I
   /-- B2 (checker K: `exec_complete`, the certificates, `returns_induction`): on the honest
   memory, `main` runs from its entry at `fp = 1` to the halting registers. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
@@ -485,7 +485,7 @@ structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ �
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w)
   /-- Agent T: `main`'s cells hold its jump table. -/
-  table : ∀ I : Memory.Inst, I.t.name = "main" → Memory.tableCells ⊆ C I
+  table : ∀ (I : Memory.Inst) σ bufs kids, I.t = .node "main" σ bufs kids → Memory.tableCells ⊆ C I
   /-- B2 (checker K): as `CompletePieces.b2`. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] →
@@ -514,11 +514,17 @@ theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → �
 theorem jumpTables_honest {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
     {C : Memory.Inst → List (ℕ × E)} {hdr : E × E} {T : Memory.Tree} {rd : Reader}
     (hH : Memory.Honest coreProgram fs H C hdr T rd [] []) (hname : T.name = "main")
-    (htable : ∀ I : Memory.Inst, I.t.name = "main" → Memory.tableCells ⊆ C I) :
+    (htable : ∀ (I : Memory.Inst) σ bufs kids, I.t = .node "main" σ bufs kids → Memory.tableCells ⊆ C I) :
     JumpTables (Memory.honest coreProgram fs H C hdr T) := by
   intro q hq
   obtain ⟨I, hI, hIt, hfp, -⟩ := Memory.root_inst (fs := fs) (H := H) (hdr := hdr) (T := T)
-  have hC : (q.1, q.2) ∈ C I := htable I (by rw [hIt, hname]) hq
+  have hC : (q.1, q.2) ∈ C I := by
+    have hv := hH.valid
+    cases T with
+    | node f σ bufs kids =>
+      simp only [Memory.Tree.name] at hname
+      exact htable I σ bufs kids (by rw [hIt, hname]) hq
+    | phantom => exact (hv : False).elim
   have := hH.read_C hI hC
   rwa [hfp, gpow, pow_zero, one_mul] at this
 

@@ -71,7 +71,7 @@ structure CompleteParts : Prop where
   /-- Checker K: the counts do not see the temporaries. -/
   cntRetemp : CntRetemp fs cnt
   /-- Agent T: `main`'s cells hold its jump table. -/
-  table : ∀ I : Inst, I.t.name = "main" → tableCells ⊆ C I
+  table : ∀ (I : Inst) σ bufs kids, I.t = .node "main" σ bufs kids → tableCells ⊆ C I
   /-- Checker K: `CompletePiecesWithin.b2`. -/
   b2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt coreProgram fs H C hdr T cert rd [] [] →

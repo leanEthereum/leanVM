@@ -95,7 +95,7 @@ theorem ea_guest_complete {a86 b86 : ℕ} (instrs : Opcode → Linear) (Hh : Ins
     (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → ∀ op,
       mainWeight (ω op) (calleeBd fs H) (Wt op) (honestWords seed s w) + jt op ≤ (instrs op).eval (work s w))
     (hk : LeanVM.Guest.End.KFactsAll fs Hh C cert) (hrt : LeanVM.Guest.End.CntRetemp fs cnt)
-    (htab : ∀ I : Inst, I.t.name = "main" → tableCells ⊆ C I)
+    (htab : ∀ (I : Inst) σ bufs kids, I.t = .node "main" σ bufs kids → tableCells ⊆ C I)
     (hb2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
       HonestAt coreProgram fs Hh C hdr T cert rd [] [] →
         Reach guest (honest coreProgram fs Hh C hdr T) ⟨gpow LeanVM.Guest.End.mainEntry, 1⟩ (Regs.final guest))
