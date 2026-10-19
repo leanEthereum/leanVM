@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.MainWalk
 /-!
 # One branch, placed
 
-`completeAt_ite`: `completeAt_straight` for a body `pre ++ ite c t e :: post ++ [ret]`, every part
+`completeAt_iteD`: `completeAt_straightD` for a body `pre ++ ite c t e :: post ++ [ret]`, every part
 straight-line, on a branch fixed beforehand (`b`: `t` when `σ c = 0`). The path is the straight
 block `pre ++ br ++ post` with the condition's `inK` between, which no frame, `HeapBuf`,
 `frameAddr` or load reads.
@@ -54,7 +54,7 @@ theorem iteEvs_parts (σ : Val) (pre br post : List Stmt) (c : V) :
   simp [Ev.allocDst?, Ev.alloc?, Ev.addr?, Ev.call?, Ev.loadAddr?]
 
 /-- **A function with one branch is complete, placed**, its branch `b` fixed by its arguments. -/
-theorem completeAt_ite {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+theorem completeAt_iteD {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
     {pre t e post : List Stmt} {c : V} {vs : List V}
     (hb : fn.body = pre ++ .ite c t e :: (post ++ [.ret vs]))
@@ -63,7 +63,7 @@ theorem completeAt_ite {f : String} {fn : Fn} (hf : coreProgram.find? f = some f
     (haddrs : (pre ++ (if br then t else e) ++ post).filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
-    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out)
+    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
     (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
       RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)
     (hkm : ∀ fp rd, MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin → ∀ k ∈ kids fp,
@@ -81,11 +81,12 @@ theorem completeAt_ite {f : String} {fn : Fn} (hf : coreProgram.find? f = some f
         ∀ q ∈ (pre ++ (if br then t else e) ++ post).filterMap Stmt.loadS, ∃ i,
           (σ q.1).limb 0 * gpow q.2 = gpow i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)) :
-    CompleteAt fs cert κ f Lin args (Returns rets) := by
+    CompleteAtD fs cert κ f Lin args (Returns rets) := by
   intro fp
-  obtain ⟨N, L, outs, ho, hW, -, hK⟩ := kidsFromIn_of_kids' (fs := fs) (cert := cert) κ (kids fp)
+  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ (kids fp)
     (hkc fp) (fp + fs f + sizes.sum)
   refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ L, rets, [], ⟨rfl, rfl⟩, ?_,
+    by simpa using disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
     fun rd hlow hL => ?_⟩
   · simp only [List.nil_append, within_append]
     exact ⟨(bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
