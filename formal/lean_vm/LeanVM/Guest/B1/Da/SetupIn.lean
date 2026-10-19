@@ -240,11 +240,12 @@ def drsAtoms : List Atom :=
 
 theorem drsBody_eq : drsBody = drsAtoms.map .atom ++ [.ret [.n 30, .n 31]] := rfl
 
-/-- **`da_row_shape(n_blob, g^lp, g^s)` loads `g_squares[lp]`**, word `s + lp`. -/
-theorem drs_relInT (fs : String → ℕ) {rd : Reader} {R : ℕ → Prop} {nb : E} {lp s : ℕ} (hR : R (s + lp))
-    {rets : List E} (h : coreProgram.Rel rd "da_row_shape" [nb, gen ^ lp, gen ^ s] rets) :
-    RelInT fs rd R (fs "da_row_shape") "da_row_shape" [nb, gen ^ lp, gen ^ s] rets := by
-  refine relInT_of_inv fs (fun f args => f = "da_row_shape" ∧ args = [nb, gen ^ lp, gen ^ s]) (fun f _ => fs f)
+/-- **`da_row_shape(n_blob, g^lp, gsq)` loads `g_squares[lp]`** only. -/
+theorem drs_relInT (fs : String → ℕ) {rd : Reader} {R : ℕ → Prop} {nb gsq : E} {lp : ℕ}
+    (hR : ∃ i, (gsq * gen ^ lp).limb 0 * gpow 0 = gpow i ∧ R i)
+    {rets : List E} (h : coreProgram.Rel rd "da_row_shape" [nb, gen ^ lp, gsq] rets) :
+    RelInT fs rd R (fs "da_row_shape") "da_row_shape" [nb, gen ^ lp, gsq] rets := by
+  refine relInT_of_inv fs (fun f args => f = "da_row_shape" ∧ args = [nb, gen ^ lp, gsq]) (fun f _ => fs f)
     (fun f args σ fn es vs hI hf hp hw hok => ?_) ⟨rfl, rfl⟩ h
   obtain ⟨rfl, rfl⟩ := hI
   rw [find_da_row_shape, Option.some.injEq] at hf
@@ -259,7 +260,8 @@ theorem drs_relInT (fs : String → ℕ) {rd : Reader} {R : ℕ → Prop} {nb : 
   · rw [loadAddrs_atoms, show drsAtoms.filterMap atomLoad? = [(.n 15, 0)] by decide +kernel] at hA
     simp only [List.map_cons, List.map_nil, List.mem_singleton] at hA
     subst hA
-    exact ⟨s + lp, by rw [m15, h2, h1, ← pow_add, addr_gen, Nat.add_zero], hR⟩
+    obtain ⟨i, hi, hRi⟩ := hR
+    exact ⟨i, by rw [m15, h2, h1, hi], hRi⟩
   · rw [calls_atoms, allocs_atoms σ (by decide +kernel)]
     simp [callsTot]
 

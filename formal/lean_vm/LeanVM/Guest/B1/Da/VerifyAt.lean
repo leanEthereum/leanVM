@@ -115,13 +115,13 @@ theorem l94_pure : coreProgram.PureIn ["__loop94"] := pure_one find_l94 (by deci
 /-! ## The placed relation -/
 
 /-- **`da_verify` at `fp`**: a witness opening `(root, vd)`, on a memory holding the honest words at
-`dvPtrs` and the squares table at `g^s`, holds placed by a tree of `dvTot` words loading only
-`g_squares[logPad r]` outside its own data. -/
-theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Reader} (hl : Low16 rd) {s : ℕ}
-    (hT : SquaresAt rd (gen ^ s)) {root vd : Digest} {w : Da.Witness} (hw : w.Opens root vd) (fp : ℕ)
+`dvPtrs` and the squares table at `gsq`, holds placed by a tree of `dvTot` words loading only
+`g_squares[logPad r]` outside its own data, at a word of `R`. -/
+theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Reader} (hl : Low16 rd) {gsq : E}
+    (hT : SquaresAt rd gsq) {root vd : Digest} {w : Da.Witness} (hw : w.Opens root vd) {R : ℕ → Prop}
+    (hR : ∃ i, (gsq * gen ^ LeanDa.logPad w.rows.length).limb 0 * gpow 0 = gpow i ∧ R i) (fp : ℕ)
     (hP : DaMem rd (dvPtrs fs cert w.rows.length fp) w) :
-    RelAtIn coreProgram fs cert rd (fun i => i = s + LeanDa.logPad w.rows.length) (fun _ => False) fp
-      (dvTot fs w.rows.length) "da_verify" [gen ^ s]
+    RelAtIn coreProgram fs cert rd R (fun _ => False) fp (dvTot fs w.rows.length) "da_verify" [gsq]
       [(digestScalars root).1, (digestScalars root).2, (digestScalars vd).1, (digestScalars vd).2] := by
   obtain ⟨hcol, hr1, hr2, h88, hiv0, hiv1, hkc, hctr, h89, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ :=
     daMem_parts hw _ hP
@@ -142,7 +142,7 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
     have hwl : (daWs w b).length = 256 := length_chunk (n := 128) hvl hb
     exact colMeaning_of_mem hb hr1 hr33 (by omega) (by omega) hwl (by simp) hcm hch (isInK_gen_pow _)
   have hholds := dv_holds hl hT hr1 hr2 h88 hiv0 hiv1 hkc hctr h89 hcolM h92 hlv7 h93 h94 hlvr hfin hv0 hv1
-  set σ : Val := fun v => dvVals (gen ^ s) (gen ^ r) (gen ^ lp) (gen ^ N) (gen ^ (N - r)) P.pd P.pb P.hs P.ctr
+  set σ : Val := fun v => dvVals (gsq) (gen ^ r) (gen ^ lp) (gen ^ N) (gen ^ (N - r)) P.pd P.pb P.hs P.ctr
     P.acc P.rb P.ct P.rt (digestScalars (colRootOf r (daSym w))).1 (digestScalars (colRootOf r (daSym w))).2
     (digestScalars (rowRootOf r (daSym w))).1 (digestScalars (rowRootOf r (daSym w))).2 (digestScalars root).1
     (digestScalars root).2 (digestScalars vd).1 (digestScalars vd).2 v.idx with hσ
@@ -264,10 +264,10 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
     rwa [show P.pd * (gen ^ j) ^ 128 = gen ^ (Dx + 128 * j) by
       show gen ^ Dx * (gen ^ j) ^ 128 = _; rw [← pow_mul, ← pow_add, Nat.mul_comm j]] at this
   -- the callees
-  have hdrs : coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ lp, gen ^ s] [gen ^ N, gen ^ (N - r)] :=
+  have hdrs : coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ lp, gsq] [gen ^ N, gen ^ (N - r)] :=
     da_row_shape_complete hl hT _ _ _ ⟨_, _, _, _, _, rfl, rfl, r, hr1, hr2, rfl, rfl, rfl, rfl⟩
   have k1 := relAtIn_of_relInT_pure cert drs_pure (List.mem_singleton_self _)
-    (drs_relInT fs (R := fun i => i = s + lp) rfl hdrs)
+    (drs_relInT fs (R := R) hR hdrs)
   have k2 := relAtIn_of_relInT_pure cert l88_pure (List.mem_singleton_self _)
     (l88_relInT fs (R := R88 r Px) hr33 (fun _ h => h) hr1 ((l88_iff rd _ _ _ 0).mpr (loop_of_all hr1 hr33 h88)))
   have k3 := relAtIn_of_relInT_pure cert l89_pure (List.mem_singleton_self _)
@@ -283,7 +283,7 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
   rw [pow_zero] at k2 k3 k6 k8
   rw [← dlNames_getElem! (by omega)] at k10
   -- the column loops
-  set Rcol : ℕ → Prop := fun i => i = s + lp ∨ ownData cert fp b0 "da_verify" (dvSizes r N) es i with hRcol
+  set Rcol : ℕ → Prop := fun i => R i ∨ ownData cert fp b0 "da_verify" (dvSizes r N) es i with hRcol
   have hRc : ∀ b < 128, ∀ k < 4, Rcol (Cx + 3 * b + k) := fun b hb k hk => Or.inr (by
     rw [show Cx + 3 * b + k = Cx + (3 * b + k) by ring]; exact oC (by omega))
   have hRh : ∀ b < 128, ∀ k < 4, Rcol (Hx + 2 * b + k) := fun b hb k hk => Or.inr (by
@@ -326,7 +326,7 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
   rw [show (64 : ℕ) - clLo false = 0 from rfl, Nat.zero_mul, Nat.add_zero] at k5
   have hev' : ∀ e ∈ es, e.Holds rd σ := hev
   have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd) coreProgram_wf
-    (R := fun i => i = s + lp) (D := fun _ => False) (Dk := fun _ => False) (fp := fp)
+    (R := R) (D := fun _ => False) (Dk := fun _ => False) (fp := fp)
     (N := (dvKids fs r N lp).foldr (· + ·) 0) find_dv (Or.inl (by decide +kernel)) rfl hw' rfl hev'
     (by
       rw [hal, hes, allocDsts_append, show allocDsts (.call dlNames[lp]! [.n 429] [.n 436, .n 437] ::
@@ -344,7 +344,7 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
     ?_ ?_ (fun _ h => h.elim)
   · rwa [hal] at h
   · rw [hcalls, hal]
-    refine ⟨_, _, fun i => i = s + lp, fun _ => False, rfl, fun i hi => Or.inl (Or.inl hi), k1 _, ?_⟩
+    refine ⟨_, _, R, fun _ => False, rfl, fun i hi => Or.inl (Or.inl hi), k1 _, ?_⟩
     refine ⟨_, _, R88 r Px, fun _ => False, rfl, fun i hi => ?_, k2 _, ?_⟩
     · obtain ⟨j, hj, rfl⟩ := hi; exact Or.inl (Or.inr (oP hj))
     refine ⟨_, _, R89 r Ax Bx, fun _ => False, rfl, fun i hi => ?_, k3 _, ?_⟩
@@ -371,7 +371,7 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
       · exact Or.inl (Or.inr (oW (by omega)))
       · exact Or.inl (Or.inr (by rw [Nat.add_assoc]; exact oW (by omega)))
     have hlast : ∀ {Dacc : ℕ → Prop} {b : ℕ}, KidsFromIn coreProgram fs cert rd σ
-        (fun i => i = s + lp ∨ ownData cert fp b0 "da_verify" (dvSizes r N) es i) Dacc
+        (fun i => R i ∨ ownData cert fp b0 "da_verify" (dvSizes r N) es i) Dacc
         [⟨dlNames[lp]!, [.n 429], [.n 436, .n 437], true⟩] b (dlTot fs lp + 0) (fun _ => False) :=
       ⟨_, _, TreeR Wx lp, fun _ => False, rfl, fun i hi => ?_, k10 _, rfl, fun i hi => hi.elim⟩
     · by_cases hG : N - r = 0
@@ -413,13 +413,13 @@ theorem dv_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {rd : Rea
     · exact ⟨_, by rw [g17, addr_gen], Or.inl (oH (by norm_num))⟩
 
 /-- **The uniform placed form.** -/
-theorem dv_relAtIn_uniform (fs : String → ℕ) (cert : String → V → ℕ) (s : ℕ) {root vd : Digest}
-    {w : Da.Witness} (hw : w.Opens root vd) :
-    ∀ fp, ∃ n, ∀ rd, (Low16 rd ∧ SquaresAt rd (gen ^ s) ∧ DaMem rd (dvPtrs fs cert w.rows.length fp) w) →
-      RelAtIn coreProgram fs cert rd (fun i => i = s + LeanDa.logPad w.rows.length) (fun _ => False) fp n
-        "da_verify" [gen ^ s]
+theorem dv_relAtIn_uniform (fs : String → ℕ) (cert : String → V → ℕ) {gsq : E} {root vd : Digest}
+    {w : Da.Witness} (hw : w.Opens root vd) {R : ℕ → Prop}
+    (hR : ∃ i, (gsq * gen ^ LeanDa.logPad w.rows.length).limb 0 * gpow 0 = gpow i ∧ R i) :
+    ∀ fp, ∃ n, ∀ rd, (Low16 rd ∧ SquaresAt rd gsq ∧ DaMem rd (dvPtrs fs cert w.rows.length fp) w) →
+      RelAtIn coreProgram fs cert rd R (fun _ => False) fp n "da_verify" [gsq]
         [(digestScalars root).1, (digestScalars root).2, (digestScalars vd).1, (digestScalars vd).2] :=
-  fun fp => ⟨_, fun _ hm => dv_relAtIn fs cert hm.1 hm.2.1 hw fp hm.2.2⟩
+  fun fp => ⟨_, fun _ hm => dv_relAtIn fs cert hm.1 hm.2.1 hw hR fp hm.2.2⟩
 
 end
 end LeanVM.Guest.B1.Digest
