@@ -563,7 +563,119 @@ theorem call_frame (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {n : ℕ}
   · exact h1
   · exact h0
 
+theorem inFrame_append (n : ℕ) : ∀ (l₁ l₂ : List ℕ), inFrame n (l₁ ++ l₂) = (inFrame n l₁ && inFrame n l₂)
+  | [], _ => by simp [inFrame]
+  | c :: l₁, l₂ => by simp only [List.cons_append, inFrame, inFrame_append n l₁ l₂, Bool.and_assoc]
+
+/-- A call on the path, other than a loop's closing one, is not the path's last. -/
+theorem notLast {s : Stmt} {ss : List Stmt} {ebef eaft : List Ev} {ev : Ev} {c : Call}
+    (hc : ev.call? = some c) (hnt : ∀ c' args, s ≠ .callIf c' (coreOf j).name args)
+    (hshape : Stmt.noRetList (s :: ss) = true ∨ lastOkC (s :: ss) = true) (hs : Stmt.noRet s = true)
+    (htail : (coreOf j).loop = true → ¬ TailB j (s :: ss) → ∃ e ∈ eaft, (Ev.call? e).isSome)
+    (hst : walk σ ss ≠ .stuck) (hes : es = ebef ++ ev :: ((walk σ ss).evs ++ eaft)) :
+    (coreOf j).loop = true → (calls ebef).length + 1 < (calls es).length := by
+  intro hl
+  rw [hes]
+  refine calls_len_gt hc ?_
+  by_cases ht : TailB j (s :: ss)
+  · rcases tailB_cons ht with ⟨c', args, he, -⟩ | ht'
+    · exact absurd he (hnt c' args)
+    · have hsh : Stmt.noRetList ss = true ∨ lastOkC ss = true := by
+        rcases hshape with h | h
+        · simp only [Stmt.noRetList, Bool.and_eq_true] at h
+          exact Or.inl h.2
+        · exact Or.inr (lastOkC_cons h fun vs hv ↦ by subst hv; simp [Stmt.noRet] at hs).2
+      obtain ⟨e, he, hc'⟩ := tail_call_in ht' hsh rfl hst
+      exact ⟨e, List.mem_append_left _ he, hc'⟩
+  · obtain ⟨e, he, hc'⟩ := htail hl ht
+    exact ⟨e, List.mem_append_right _ he, hc'⟩
+
+theorem walk_pre_evs {e1 : List Ev} {o' : Out} (hst : o' ≠ .stuck) : (o'.pre e1).evs = e1 ++ o'.evs := by
+  cases o' with
+  | fall _ => rfl
+  | ret _ _ => rfl
+  | stuck => exact absurd rfl hst
+
+theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : String)
+    (args rets : List V) (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) :
+    WGood H (.call f args rets :: ss) st := by
+  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  obtain ⟨e, q, r, j', sr, hk, hj, hf, hna, hnr, hle, hsu, hsite, hbit, hin, haf, hcw⟩ := cw_call hok
+  obtain ⟨se, s', hse, hs', rfl⟩ := afterC_ok haf
+  obtain ⟨hj1, hj2, he⟩ := calleeC_some H.G hj
+  have hfn : f = (coreOf j').name := by rw [hf, H.G]; rfl
+  have hw' : o = (walk σ ss).pre [.call f args rets] := by rw [← hw]; rfl
+  have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hw', h]; rfl)
+  have hes2 : es = ebef ++ Ev.call f args rets :: ((walk σ ss).evs ++ eaft) := by
+    rw [hes, hw', walk_pre_evs hst']
+    simp
+  set n := (calls ebef).length with hn
+  have hci : (calls es)[n]? = some ⟨f, args, rets, true⟩ := by rw [hes2]; exact calls_at rfl
+  obtain ⟨s0, hs0, hq0, hr0, ht0⟩ := siteOk_spec hsite
+  have hnl := notLast (c := ⟨f, args, rets, true⟩) rfl (fun _ _ h ↦ by cases h)
+    (hshape.imp id fun h ↦ h.1) rfl htail hst' hes2
+  have hin' : inFrame X.fs (s0.q :: args.map X.loc.cell) = true := by
+    rw [hq0]
+    simp only [inFrame, Bool.and_eq_true] at hin ⊢
+    refine ⟨hin.1, ?_⟩
+    have h2 := hin.2
+    rw [List.map_append, inFrame_append, Bool.and_eq_true] at h2
+    exact h2.1
+  obtain ⟨kfp, hkfp, hq, hfcs, hret⟩ := call_frame H hci hj1 hj2 hfn hs0 hnl hin'
+    (selfs := (X.G.sig j').env.map (·.1)) (fun o ho ↦ by rw [H.G] at ho; exact ho)
+  rw [hq0] at hq
+  rw [hr0] at hfcs hret
+  obtain ⟨-, hkid⟩ := H.kids
+  obtain ⟨⟨rr, hrr, hrun⟩, hrets⟩ := hkid n _ kfp hci hkfp rfl
+  rw [hret] at hrr
+  obtain rfl := Option.some.inj hrr
+  have hp1 := posZ_fr H hp hq hfcs
+  obtain ⟨hseg, hbk, hfr, htg, hnx, huq, hreach⟩ := endAtC_reach H hp1 hse
+  simp only at hseg hbk hfr htg hnx huq hreach
+  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨gpow e, gpow kfp⟩ (by
+    rw [hk]
+    exact ⟨_, gpow e, hq, isInK_ofK _, rfl, by simp⟩)
+  have hent : entryOf f = e := by rw [hfn, entryOf_callee hj1 hj2, he]
+  rw [hent] at hrun
+  have hgr : gpow r = gpow (X.entry + (r - X.entry)) := by rw [Nat.add_sub_cancel' hle]
+  have hrun2 : RunC guest L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ (cr + ck.getD n 0) := by
+    rw [← hgr]
+    exact hcr.trans hrun
+  have henvR : EnvAt L fp X wJ wenv (r - X.entry) :=
+    envAt_of_exit H hp.seg (H.exits _ hp.seg _ (Or.inl rfl)) (by rw [hsu]; simp) henv
+  obtain ⟨hps, hbk', hfr', htg', hnx', hcnt', huq', hstart'⟩ :=
+    segAtC_pos H hs' (by rw [hbk]; exact hp.ok.book) (by rw [hfr]; exact hp1.ok.fr)
+      (by rw [htg]; exact hp.ok.tg) (by rw [hnx]; exact hp.ok.nx) henvR (n := n + 1) hrun2
+      (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega)
+  have hc1 : (calls (ebef ++ [.call f args rets])).length = n + 1 := calls_append_one rfl
+  refine walk_step H ih rfl (fun _ _ h ↦ by cases h) rfl hw hes hs hshape htail ?_ hcw ?_
+  · rw [hc1]
+    refine ⟨hps.seg, ⟨hps.ok.env, hps.ok.book, fun x hx ↦ ?_, hps.ok.tg, hps.ok.nx⟩, hps.run,
+      fun t ht ↦ ?_⟩
+    · rcases List.mem_cons.mp hx with rfl | hx
+      · refine ⟨kfp, hq, fun p hp' ↦ ?_⟩
+        rcases List.mem_append.mp hp' with hp' | hp'
+        · exact hfcs p hp'
+        · obtain ⟨k, hk', rfl⟩ := argFC_mem hp'
+          have hv : X.loc.cell rets[k] ∈ (args ++ rets).map X.loc.cell :=
+            List.mem_map.mpr ⟨_, List.mem_append_right _ (List.getElem_mem hk'), rfl⟩
+          have hc := inFrame_mem hin _ (List.mem_cons_of_mem _ hv)
+          have hm : Ev.call f args rets ∈ es := by rw [hes2]; simp
+          refine ⟨σ rets[k], val_cell H.frame H.loc (uses_named hm (by simp [Ev.uses, List.getElem_mem]))
+            hc.1 (H.fs ▸ hc.2), ?_⟩
+          have := hrets k hk'
+          rw [gpow_addC] at this
+          exact this
+      · exact hp.ok.fr x hx
+    · simp only at ht
+      cases hre : rets.isEmpty
+      · rw [hre] at ht; cases ht
+      · rw [hre] at ht
+        exact hps.fresh t ht
+  · exact hok
+
 end Walk
+
 
 
 
