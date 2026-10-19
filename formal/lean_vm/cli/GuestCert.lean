@@ -3,6 +3,7 @@ import LeanVM.Guest.Data.Bytecode
 import LeanVM.Guest.Expand
 import LeanVM.Guest.Renumber
 import LeanVM.Guest.Check
+import LeanVM.Guest.Memory.Fresh
 
 /-!
 # `guest-cert`: the certificates of the guest's compiled functions
@@ -960,7 +961,8 @@ def locChunk : ℕ := 2000
 
 /-- The certificate of function `j`. -/
 def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ) (j : ℕ)
-    (cf : Core.Fn) : Except String (String × List ℕ × ℕ × List ℕ × Array GSeg) := do
+    (cf : Core.Fn) : Except String (String × List ℕ × ℕ × List ℕ × Array GSeg ×
+      (Array ℕ × Array ℕ × Array ℕ × Array (List (ℕ × ℕ × ℕ)))) := do
   let f := fns[j]!
   let main := j == 1
   let F := factsOf T f main
@@ -1030,7 +1032,7 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
       | .branch _ _ _ x => tail x
       | _ => none
   let fsz := tailS.getD (f.code.foldl (fun m ins => max m (offTop ins)) (locs.foldl max 0) + 1)
-  return (·, sizes, fsz, locs, segs) <| locDefs ++ s!"/-- `{f.name}`. -/
+  return (·, sizes, fsz, locs, segs, (wStarts, los, his, insW)) <| locDefs ++ s!"/-- `{f.name}`. -/
 noncomputable def cert{j} : Check.Cert where
   facts := \{ env := {envT}, fpOne := {main}, arms := {armsT}, scaled := {scaled} }
   los := {listText (los.toList.map toString)}
@@ -1658,13 +1660,260 @@ def plumbOf (f : CompiledFn) (F : GFacts) (vcells : Std.HashSet ℕ) (pows : Std
 
 end GuestCert
 
+/-! ## The sharing check's snapshots
+
+An executable mirror of `B2C.Share`'s walk (`ShareM.swL`), run over each function's windows to
+find the state each window after the first starts from (`B2C.Snap`). The kernel reruns the walk
+and checks each window's end state refines the next snapshot, so nothing here is trusted. -/
+
+namespace GuestCert
+namespace ShareM
+
+structure PF where
+  v : ℕ
+  c : ℕ
+  kc : Option (ℕ × ℕ × ℕ)
+  keys : List (ℕ × List ℕ)
+  eqs : List ℕ
+
+structure SS where
+  occ : Std.HashSet ℕ := {}
+  cst : Std.HashMap ℕ (ℕ × ℕ × ℕ) := {}
+  keys : Std.HashMap ℕ (List (ℕ × List ℕ)) := {}
+  named : Std.HashSet ℕ := {}
+  pend : List PF := []
+
+structure Ctx where
+  cell : ℕ → ℕ
+  sh : Std.HashSet ℕ
+  tmpAt : Std.HashMap ℕ ℕ
+  runs : List (ℕ × ℕ)
+
+def constOf (a : Core.Atom) (v : ℕ) : Option (ℕ × ℕ × ℕ) :=
+  match a with
+  | .const d x => if d.idx == v then some (limbNat x 0, limbNat x 1, limbNat x 2) else none
+  | .assertNe _ _ p => if p.idx == v then some (1, 0, 0) else none
+  | _ => none
+
+def keysOf (a : Core.Atom) (v : ℕ) : List (ℕ × List ℕ) :=
+  match a with
+  | .add d x y => (if d.idx == v then [(0, [x.idx, y.idx])] else []) ++
+      (if x.idx == v then [(0, [d.idx, y.idx])] else []) ++
+      (if y.idx == v then [(0, [d.idx, x.idx])] else [])
+  | .mul d x y => if d.idx == v then [(1, [x.idx, y.idx])] else []
+  | .blake2s m0 m1 m2 m3 c0 c1 o0 o1 md =>
+    (if o0.idx == v then [(2, [m0.idx, m1.idx, m2.idx, m3.idx, c0.idx, c1.idx, md.idx])] else []) ++
+      (if o1.idx == v then [(3, [m0.idx, m1.idx, m2.idx, m3.idx, c0.idx, c1.idx, md.idx])] else [])
+  | .load d p off => if d.idx == v then [(off + 4, [p.idx])] else []
+  | _ => []
+
+def eqsOf (a : Core.Atom) (v : ℕ) : List ℕ :=
+  match a with
+  | .copy d x | .assertEq d x => (if d.idx == v then [x.idx] else []) ++ (if x.idx == v then [d.idx] else [])
+  | _ => []
+
+def keyCells (op : ℕ) (cs : List ℕ) : List ℕ :=
+  match op, cs with
+  | 0, [a, b] | 1, [a, b] => if a ≤ b then [a, b] else [b, a]
+  | _, cs => cs
+
+def cellKeys (X : Ctx) : Core.Atom → List (ℕ × ℕ × List ℕ)
+  | .add d x y => [(X.cell d.idx, 0, keyCells 0 [X.cell x.idx, X.cell y.idx]),
+      (X.cell x.idx, 0, keyCells 0 [X.cell d.idx, X.cell y.idx]),
+      (X.cell y.idx, 0, keyCells 0 [X.cell d.idx, X.cell x.idx])]
+  | .mul d x y => [(X.cell d.idx, 1, keyCells 1 [X.cell x.idx, X.cell y.idx])]
+  | .blake2s m0 m1 m2 m3 c0 c1 o0 o1 md =>
+    let ins := [m0, m1, m2, m3, c0, c1, md].map (X.cell ·.idx)
+    [(X.cell o0.idx, 2, ins), (X.cell o1.idx, 3, ins)]
+  | .load d p off => [(X.cell d.idx, off + 4, [X.cell p.idx])]
+  | _ => []
+
+def isPend (st : SS) (v : ℕ) : Bool := st.pend.any (·.v == v)
+
+def nameV (X : Ctx) (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SS) (v : Core.V) : SS :=
+  if st.named.contains v.idx || isPend st v.idx then st
+  else
+    let c := X.cell v.idx
+    if c < 2 then { st with named := st.named.insert v.idx }
+    else if st.occ.contains c then { st with pend := ⟨v.idx, c, none, [], []⟩ :: st.pend }
+    else
+      let cst := match kc v.idx with
+        | some x => if X.sh.contains c then st.cst.insert c x else st.cst
+        | none => st.cst
+      { st with occ := st.occ.insert c, cst := cst, named := st.named.insert v.idx }
+
+def nameAll (X : Ctx) (kc : ℕ → Option (ℕ × ℕ × ℕ)) (st : SS) (vs : List Core.V) : SS :=
+  vs.foldl (nameV X kc) st
+
+def addFacts (a : Core.Atom) (ps : List PF) : List PF :=
+  ps.map fun p => ⟨p.v, p.c, (match p.kc with
+    | some x => some x
+    | none => constOf a p.v), keysOf a p.v ++ p.keys, eqsOf a p.v ++ p.eqs⟩
+
+def knownIn (X : Ctx) (st : SS) (v : ℕ) : Bool := st.named.contains v && 2 ≤ X.cell v
+
+def keyOk (X : Ctx) (st : SS) (c : ℕ) (k : ℕ × List ℕ) : Bool :=
+  k.2.all (knownIn X st) && (st.keys.getD c []).any fun k' => k'.1 == k.1 && k'.2 == keyCells k.1 (k.2.map X.cell)
+
+def pfOk (X : Ctx) (st : SS) (p : PF) : Bool :=
+  (match p.kc, st.cst.get? p.c with
+    | some x, some y => x == y
+    | _, _ => false) ||
+  p.keys.any (keyOk X st p.c) || p.eqs.any fun x => st.named.contains x && X.cell x == p.c
+
+def discharge (X : Ctx) : ℕ → SS → SS
+  | 0, st => st
+  | n + 1, st =>
+    let ok := st.pend.filter (pfOk X st)
+    let named := ok.foldl (fun s p => s.insert p.v) st.named
+    let rest := st.pend.filter (!pfOk X st ·)
+    if ok.isEmpty then st
+    else discharge X n { st with named := named, pend := rest }
+
+def recCst (X : Ctx) (a : Core.Atom) (cst : Std.HashMap ℕ (ℕ × ℕ × ℕ)) : Std.HashMap ℕ (ℕ × ℕ × ℕ) :=
+  match a with
+  | .const d x => let c := X.cell d.idx
+    if !cst.contains c && 2 ≤ c && X.sh.contains c then cst.insert c (limbNat x 0, limbNat x 1, limbNat x 2) else cst
+  | .assertNe _ _ p => let c := X.cell p.idx
+    if !cst.contains c && 2 ≤ c && X.sh.contains c then cst.insert c (1, 0, 0) else cst
+  | _ => cst
+
+def record (X : Ctx) (a : Core.Atom) (st : SS) : SS :=
+  let keys := (cellKeys X a).foldl (fun t k => if 2 ≤ k.1 && X.sh.contains k.1 && k.2.2.all (2 ≤ ·) then
+    t.insert k.1 ((k.2.1, k.2.2) :: t.getD k.1 []) else t) st.keys
+  let cst := recCst X a st.cst
+  if (Memory.atomUses a).all (st.named.contains ·.idx) then { st with cst := cst, keys := keys }
+  else st
+
+def stepAtom (X : Ctx) (st : SS) (a : Core.Atom) : SS :=
+  let st := nameAll X (constOf a) st (Memory.atomUses a)
+  let st := discharge X (st.pend.length + 1) { st with pend := addFacts a st.pend }
+  record X a st
+
+def nameStep (X : Ctx) (st : SS) (vs : List Core.V) : SS :=
+  let st := nameAll X (fun _ => none) st vs
+  discharge X (st.pend.length + 1) st
+
+def listedT (X : Ctx) (v : Core.V) (c : ℕ) : Bool := v == Core.V.n v.idx && X.tmpAt.get? c == some v.idx
+
+def listed (l : List (ℕ × ℕ)) (v : Core.V) (c : ℕ) : Bool := v == Core.V.n v.idx && l.any fun p => p.1 == v.idx && p.2 == c
+
+def atomListed (X : Ctx) : Core.Atom → Bool
+  | .rangeCheck _ _ t1 t2 _ => listedT X t1 (X.cell t1.idx) && listedT X t2 (X.cell t2.idx)
+  | .frameAddr _ (r :: rs) => let base := X.cell r.idx
+    ((r :: rs).zipIdx.all fun (v, k) => X.cell v.idx == base + k && listed X.runs v (base + k))
+  | _ => true
+
+def stmtNames : Core.Stmt → List Core.V
+  | .call _ args rets => args ++ rets
+  | .callIf c _ args => c :: args
+  | .dispatch x _ args rets => x :: (args ++ rets)
+  | .ret vs => vs
+  | .ite c _ _ => [c]
+  | .match_ x _ => [x]
+  | .atom _ => []
+
+def mayRet : Core.Stmt → Bool
+  | .ret _ => true
+  | .ite _ z n => !Core.Stmt.noRetList z || !Core.Stmt.noRetList n
+  | .match_ _ arms => arms.any (!Core.Stmt.noRetList ·)
+  | _ => false
+
+def joinSt (pre : SS) (bs : List SS) : SS :=
+  let occ := bs.foldl (fun o b => b.occ.fold (·.insert ·) o) pre.occ
+  let named := match bs with
+    | [] => pre.named
+    | b :: rest => b.named.fold (fun h v => if rest.all (·.named.contains v) then h.insert v else h) {}
+  { pre with occ := occ, named := named, pend := [] }
+
+abbrev M := Except String
+
+mutual
+partial def swL (X : Ctx) (st : SS) : List Core.Stmt → M SS
+  | [] => if st.pend.isEmpty then pure st else throw s!"pending at a block end: {st.pend.map (·.v)}"
+  | s :: ss => do
+    let st' ← swS X st s
+    if mayRet s && !st'.pend.isEmpty then throw s!"pending after a return: {st'.pend.map (·.v)}"
+    swL X st' ss
+
+partial def swS (X : Ctx) (st : SS) : Core.Stmt → M SS
+  | .atom a => if atomListed X a then pure (stepAtom X st a) else throw "temporary or run not listed"
+  | .ite c z n => do
+    let st1 := nameStep X st [c]
+    unless st1.pend.isEmpty do throw s!"pending at a branch: {st1.pend.map (·.v)}"
+    let sz ← swL X st1 z
+    let sn ← swL X st1 n
+    pure (joinSt st1 [sz, sn])
+  | .match_ x arms => do
+    let st1 := nameStep X st [x]
+    unless st1.pend.isEmpty do throw s!"pending at a match: {st1.pend.map (·.v)}"
+    let bs ← arms.mapM (swL X st1)
+    pure (joinSt st1 bs)
+  | s => pure (nameStep X st (stmtNames s))
+end
+
+/-- The bit set of a set of naturals. -/
+def bitsOfSet (s : Std.HashSet ℕ) : ℕ := s.fold (fun n c => n ||| (1 <<< c)) 0
+
+/-- The snapshots of a function's windows after the first, as `B2C.Snap` literals: the walk of each
+window from the previous snapshot, handing on the values, constants and keys later windows name. -/
+def snaps (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (starts : Array ℕ) (los his : Array ℕ)
+    (insW : Array (List (ℕ × ℕ × ℕ))) (stat : List (ℕ × Cpl.PC)) (sh : List ℕ) (tmps runs : List (ℕ × ℕ)) :
+    Except String (List String) := do
+  let nw := starts.size
+  let locA := locs.toArray
+  let shS : Std.HashSet ℕ := sh.foldl (·.insert ·) {}
+  let tmpAt : Std.HashMap ℕ ℕ := tmps.foldl (fun m (v, c) => m.insert c v) {}
+  let stmtsAt (w : ℕ) : List Core.Stmt :=
+    let a := starts[w]!
+    if w + 1 < nw then (cf.body.drop a).take (starts[w + 1]! - a) else cf.body.drop a
+  let ctxAt (w : ℕ) : Ctx :=
+    let lo := los[w]!
+    let hi := his[w]!
+    let ins := insW[w]!
+    ⟨fun v => if lo ≤ v && v < min hi locA.size then locA[v]! else
+      match ins.find? (·.1 == v) with
+      | some (_, c, _) => c
+      | none => 0, shS, tmpAt, runs⟩
+  -- the values each window on names
+  let mut later : Array (Std.HashSet ℕ) := Array.replicate (nw + 1) {}
+  for w' in [0:nw] do
+    let w := nw - 1 - w'
+    later := later.set! w ((Check.stmtsVals (stmtsAt w)).foldl (fun h v => h.insert v.idx) later[w + 1]!)
+  let init : SS := stat.foldl (fun st (o, pc) => match pc with
+    | .k l => { st with occ := st.occ.insert o, cst := st.cst.insert o l }
+    | .fpg _ => { st with occ := st.occ.insert o }) {}
+  let mut st := nameStep (ctxAt 0) init cf.params
+  let mut out : List String := []
+  for w in [0:nw] do
+    let X := ctxAt w
+    let m ← (swL X st (stmtsAt w)).mapError (s!"sharing of function {j}, window {w}: " ++ ·)
+    if w + 1 < nw then
+      let used := later[w + 1]!
+      let cellsUsed : Std.HashSet ℕ := used.fold (fun h v => h.insert (locA.getD v 0)) {}
+      let named := (m.named.toList.filter used.contains).mergeSort
+      let cst := (m.cst.toList.filter fun (c, _) => cellsUsed.contains c).mergeSort (·.1 ≤ ·.1)
+      let keys := ((m.keys.toList.filter fun (c, _) => cellsUsed.contains c).flatMap fun (c, ks) =>
+        ks.map fun k => (c, k)).mergeSort (·.1 ≤ ·.1)
+      let cstM : Std.HashMap ℕ (ℕ × ℕ × ℕ) := cst.foldl (fun h (c, x) => h.insert c x) {}
+      let keysM : Std.HashMap ℕ (List (ℕ × List ℕ)) := keys.foldl (fun h (c, k) => h.insert c (k :: h.getD c [])) {}
+      let namedS : Std.HashSet ℕ := named.foldl (·.insert ·) {}
+      st := { occ := m.occ, cst := cstM, keys := keysM, named := namedS, pend := [] }
+      out := out ++ [s!"⟨{bitsOfSet m.occ}, {listText (named.map toString)}, " ++
+        s!"{listText (cst.map fun (c, (a, b, d)) => s!"({c}, {a}, {b}, {d})")}, " ++
+        s!"{listText (keys.map fun (c, (op, ins)) => s!"({c}, {op}, {listText (ins.map toString)})")}⟩"]
+  return out
+
+end ShareM
+end GuestCert
+
 namespace GuestCert
 
 /-- The completeness data of function `j`: the fixed cells, call sites, table jumps, temporaries
 and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
 def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap ℕ (List ℕ))
     (expTable : Std.HashMap ℕ ℕ) (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (segs : Array GSeg)
-    (fsz : ℕ) : Except String String := do
+    (fsz : ℕ) : Except String (String × List (ℕ × Cpl.PC) × List ℕ × List (ℕ × ℕ) × List (ℕ × ℕ)) := do
   let f := fns[j]!
   let F := factsOf T f (j == 1)
   let vcells : Std.HashSet ℕ := locs.foldl (·.insert ·) {}
@@ -1720,7 +1969,9 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
   let vc (v : Core.V) : String := s!"({v.idx}, {cell v.idx})"
   let pmax := out.best
   let sh := ((byCell.toList.filter fun (c, vs) => 2 ≤ c && 2 ≤ vs.length).map (·.1)).mergeSort (· ≤ ·)
-  return s!"/-- `{f.name}`. -/
+  let statL := plumb.toList.mergeSort (·.1 ≤ ·.1)
+  return (·, statL, sh, tmps.map (fun v => (v.idx, cell v.idx)), runs.map (fun v => (v.idx, cell v.idx))) <|
+    s!"/-- `{f.name}`. -/
 noncomputable def plumb{j} : B2C.Plumb where
   stat := {listText stat}
   sites := {listText sites}
@@ -1931,33 +2182,63 @@ def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (n
 
 def sharedDir : System.FilePath := "LeanVM/Guest/B2C/Shared"
 
-/-- The modules deciding the sharing check, `per` functions each, the largest alone. -/
-def sharedFiles (n : ℕ) : List (System.FilePath × String) := Id.run do
-  let alone : List ℕ := [1, 12, 16, 17, 18]
-  let mut groups : Array (List ℕ) := #[]
-  let mut cur : List ℕ := []
-  for j in [1:n + 1] do
-    if alone.contains j then
-      groups := groups.push [j]
-    else
-      cur := cur ++ [j]
-      if cur.length == 100 then groups := groups.push cur; cur := []
-  unless cur.isEmpty do groups := groups.push cur
-  let name (g : List ℕ) : String := s!"S{g.headD 0}"
-  let files := groups.toList.map fun g =>
-    (sharedDir / (name g ++ ".lean"), checkedHeader ("B2C.Shared." ++ name g)
-      "The kernel's sharing checks of compiled functions." ++
+/-- The most cost (values named) of the sharing windows one module decides. -/
+def maxShared : ℕ := 6000
+
+/-- The modules deciding the sharing check: each window's (`(function, window, cost)`), in modules
+of consecutive windows; a function of one window gets its `ShareOk` with it, one of several in
+the index. -/
+def sharedFiles (wins : Array (ℕ × ℕ × ℕ)) (n : ℕ) : List (System.FilePath × String) := Id.run do
+  let fns := Data.functions.toArray
+  let cut (j : ℕ) : Bool := wins.any fun (j', w, _) => j' == j && w > 0
+  let mut groups : Array (Array (ℕ × ℕ)) := #[#[]]
+  let mut size := 0
+  for (j, w, l) in wins do
+    if size + l > maxShared && size > 0 then
+      groups := groups.push #[]
+      size := 0
+    groups := groups.modify (groups.size - 1) (·.push (j, w))
+    size := size + l
+  let name (js : Array (ℕ × ℕ)) : String := let p := js[0]?.getD (0, 0); s!"S{p.1}_{p.2}"
+  let files := groups.toList.map fun js =>
+    (sharedDir / (name js ++ ".lean"), checkedHeader ("B2C.Shared." ++ name js)
+      "The kernel's sharing checks of windows of compiled functions." ++
       "public import LeanVM.Guest.B2C.Share\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
-      String.join (g.map fun j => s!"set_option maxRecDepth 100000 in\ntheorem s{j} : shareOk {j} = true := by decide +kernel\n\n") ++
+      String.join (js.toList.map fun (j, w) =>
+        s!"/-- `{fns[j]!.name}`, window {w}. -/\nset_option maxRecDepth 100000 in\n" ++
+        s!"theorem w{j}_{w} : shareWin {j} (snapsOf {j}) {w} = true := by decide +kernel\n\n") ++
+      String.join ((js.toList.filter fun (j, _) => !cut j).map fun (j, _) =>
+        s!"theorem ok{j} : ShareOk {j} := fun i hi ↦ by\n" ++
+        s!"  have h : (certOf {j}).cuts.length = 0 := by decide +kernel\n" ++
+        s!"  obtain rfl : i = 0 := by omega\n  exact w{j}_0\n\n") ++
       "end\nend LeanVM.Guest.B2C.Shared\n")
+  let cutFns := (wins.toList.filterMap fun (j, w, _) => if w > 0 then some j else none).eraseDups
+  let cutOk := String.join (cutFns.map fun j =>
+    let ws := (wins.toList.filter (·.1 == j)).map (·.2.1)
+    s!"theorem ok{j} : ShareOk {j} := fun i hi ↦ by\n" ++
+    s!"  have h : (certOf {j}).cuts.length = {ws.length - 1} := by decide +kernel\n" ++
+    s!"  rw [h] at hi\n  interval_cases i\n" ++
+    String.join (ws.map fun w => s!"  · exact w{j}_{w}\n") ++ "\n")
   let index := ("LeanVM/Guest/B2C" : System.FilePath) / "Shared.lean"
   let text := checkedHeader "B2C.Shared" "Every compiled function's sharing check." ++
-    String.join (groups.toList.map fun g => s!"public import LeanVM.Guest.B2C.Shared.{name g}\n") ++
-    "\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+    "public import Mathlib.Tactic.IntervalCases\n" ++ String.join (files.map fun (p, _) => s!"public import LeanVM.Guest.B2C.Shared.{(p.fileStem.getD "")}\n") ++
+    "\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++ cutOk ++
     "/-- Every function but `__jump_tables` passes the sharing check. -/\n" ++
-    "theorem all : ∀ j, 1 ≤ j → j < nFns → shareOk j = true := fun j h1 h2 ↦\n  " ++
-    s!"have h2 : j < {n + 1} := h2\n  " ++ okTree (fun k => s!"s{k}") 1 n ++ "\n\nend\nend LeanVM.Guest.B2C.Shared\n"
+    "theorem all : ∀ j, 1 ≤ j → j < nFns → ShareOk j := fun j h1 h2 ↦\n  " ++
+    s!"have h2 : j < {n + 1} := h2\n  " ++ okTree (fun k => s!"ok{k}") 1 n ++ "\n\nend\nend LeanVM.Guest.B2C.Shared\n"
   return files ++ [(index, text)]
+
+/-- The sharing check's snapshots, as `Data/Snaps.lean`. -/
+def snapsFile (ss : List (ℕ × List String)) : String :=
+  let ss := ss.filter (!·.2.isEmpty)
+  header "Snaps" "The sharing check's snapshots of the guest's compiled functions." ++
+    "public import LeanVM.Guest.B2C.Types\n" ++ preamble ++
+    String.join (ss.map fun (j, l) =>
+      s!"/-- Function {j}'s windows after the first start from these. -/\n" ++
+      s!"noncomputable def snaps{j} : List B2C.Snap := [\n  " ++ ",\n  ".intercalate l ++ "]\n\n") ++
+    "/-- The snapshots, by compiled function index (functions of one window omitted). -/\n" ++
+    "noncomputable def snaps : List (ℕ × List B2C.Snap) :=\n  " ++
+    listText (ss.map fun (j, _) => s!"({j}, snaps{j})") ++ "\n" ++ tail
 
 def files (P : Core.Program) : Except String (List (System.FilePath × String)) := do
   let fns := Data.functions.toArray
@@ -1971,12 +2252,20 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
   let selfByEntry : Std.HashMap ℕ (List ℕ) := (fns.toList.drop 1).foldl (fun m f =>
     m.insert f.entry ((factsOf T f false).env.map (·.1))) {}
   let expTable : Std.HashMap ℕ ℕ := logTable.fold (fun m k e => m.insert e k) {}
+  let mut shareWins : Array (ℕ × ℕ × ℕ) := #[]
+  let mut snapTexts : Array (ℕ × List String) := #[]
   for (cf, i) in P.zipIdx do
-    let (c, sizes, fsz, locs, segs) ← certOf T fns index (i + 1) cf
+    let (c, sizes, fsz, locs, segs, (starts, los, his, insW)) ← certOf T fns index (i + 1) cf
     certs := certs.push c
-    plumbs := plumbs.push (← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz)
+    let (pt, statL, sh, tmps, runs) ← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
+    plumbs := plumbs.push pt
+    snapTexts := snapTexts.push (i + 1, ← ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs)
     frames := frames.push fsz
     wins := wins ++ (sizes.zipIdx.map fun (sz, w) => (i + 1, w, sz)).toArray
+    for w in [0:starts.size] do
+      let a := starts[w]!
+      let ss := if w + 1 < starts.size then (cf.body.drop a).take (starts[w + 1]! - a) else cf.body.drop a
+      shareWins := shareWins.push (i + 1, w, (Check.stmtsVals ss).length)
   let mut fs : Array (Array String) := #[#[]]
   let mut size := 0
   for c in certs do
@@ -2035,7 +2324,8 @@ noncomputable def certs : List Check.Cert :=
     (dataDir / (n ++ ".lean"), t)) ++
     (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
-        else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles P.length
+        else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareWins P.length ++
+    [(dataDir / "Snaps.lean", snapsFile snapTexts.toList)]
 
 /-- The generated files on disk. -/
 def existing : IO (List System.FilePath) := do

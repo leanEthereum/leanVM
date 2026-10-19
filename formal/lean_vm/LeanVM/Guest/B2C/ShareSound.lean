@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B2C.Share
 public import LeanVM.Guest.CheckSound
+public import LeanVM.Guest.B2C.Cells
 
 /-!
 # Soundness of the sharing check
@@ -1110,14 +1111,14 @@ theorem conc_join {st st1 b : SSt} {bs : List SSt} {Ψ Ψ1 : ℕ → E} {pre1 : 
     · exact hp
   | stuck => trivial
 
-theorem pick_cases {x : V} {args rets : List V} : ∀ (fs : List String) (j : ℕ),
+theorem pick_cases_sh {x : V} {args rets : List V} : ∀ (fs : List String) (j : ℕ),
     pick σ x args rets j fs = .stuck ∨ ∃ g, pick σ x args rets j fs = .fall [.call g args rets]
   | [], _ => Or.inl (by simp [pick])
   | f :: fs, j => by
     unfold pick
     split_ifs
     · exact Or.inr ⟨f, rfl⟩
-    · exact pick_cases fs (j + 1)
+    · exact pick_cases_sh fs (j + 1)
 
 theorem seq_evs {o1 o2 : Out} (h : o1.seq o2 ≠ .stuck) :
     (∀ e ∈ o1.evs, e ∈ (o1.seq o2).evs) ∧ ∀ es1, o1 = .fall es1 → ∀ e ∈ o2.evs, e ∈ (o1.seq o2).evs := by
@@ -1196,7 +1197,7 @@ theorem swS_sound (hA : LocAgree loc cg) : ∀ (s : Stmt) {st st' : SSt} {pre : 
       subst h
       obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hA hI hv
       simp only [walk1]
-      rcases pick_cases (σ := σ) (x := x) (args := args) (rets := rets) fs 0 with hp | ⟨g, hp⟩
+      rcases pick_cases_sh (σ := σ) (x := x) (args := args) (rets := rets) fs 0 with hp | ⟨g, hp⟩
       · rw [hp]; trivial
       · rw [hp]
         refine conc_names hI' hs fun e he' v hv' ↦ ?_
@@ -1497,9 +1498,6 @@ theorem locW_get {C : Cert} {n i : ℕ} (hcont : Cont C n) (hi : i ≤ n)
     obtain ⟨⟨hjn, hlo⟩, hget⟩ := this
     obtain ⟨hm, hget⟩ := List.getElem?_eq_some_iff.mp hget
     rw [show v = nth C.los j 0 + (v - nth C.los j 0) by omega, cont_locs hcont (hn ▸ hjn) hm, hget]
-
-/-- The values' cells in function `j`. -/
-noncomputable def cellJ (j : ℕ) (v : V) : ℕ := (certOf j).locs.getD v.idx 0
 
 theorem locAgree_of {C : Cert} {n i : ℕ} {cg : V → ℕ} (hcg : ∀ v, cg v = C.locs.getD v.idx 0)
     (hcont : Cont C n) (hi : i ≤ n) (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n)
