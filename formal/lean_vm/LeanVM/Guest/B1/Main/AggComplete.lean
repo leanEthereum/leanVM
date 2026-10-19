@@ -362,26 +362,20 @@ def agVal (cs : List ChildClaims) (h : BatchHints) (P : AggPtrs) (pis fresh carr
       h.matrixA * s1, s2, h.matrixB * s2, h.matrixA * s1 + h.matrixB * s2])
     522 22 fun k => rb.1.1.getD k 0) 544 28 fun k => rm.1.1.getD k 0
 
-/-- **`aggregate_claims`, completely** (G:3319-3486; TRIAGE #77): for nonempty claims `cs` at the
-buffers (`ChildClaimsAt`), hints `h` of `22` and `28` rounds whose batching closes
-on `d`, stored at `defer_stmt`, every choice of the `HeapBuf` pointers `P` and every memory
-holding the honest words there (`AggMem`), `aggregate_claims` holds. -/
-theorem aggregate_claims_complete {cs : List ChildClaims} {h : BatchHints} {d : DeferredClaim}
+/-- `aggregate_claims`' body on its honest valuation. -/
+theorem agBody_holds {cs : List ChildClaims} {h : BatchHints} {d : DeferredClaim}
     (hne : cs ≠ []) (hb : batch cs h = some d)
     (hbr : h.bytecodeRounds.length = 22) (hmr : h.matrixRounds.length = 28)
     {pis fresh carried dp : E} (hC : ChildClaimsAt rd pis fresh carried cs)
     (hd : ReadsAt rd dp d.cells) (P : AggPtrs) (hM : AggMem rd P fresh carried cs h) :
-    coreProgram.Rel rd "aggregate_claims" [gen ^ cs.length, pis, fresh, carried, dp] [] := by
+    Stmt.HoldsList (coreProgram.Rel rd) rd (agVal cs h P pis fresh carried dp) agBody False
+      (fun rs => rs = []) := by
   have hn0 : 0 < cs.length := List.length_pos_iff.mpr hne
   rw [batch_eq] at hb
   split_ifs at hb with hck
   obtain ⟨hck1, hck2⟩ := hck
   cases hb
-  rw [rel_iff_sem find_aggregate_claims]
-  refine ⟨agVal cs h P pis fresh carried dp, by
-    simp only [show Fn.params Data.core29 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl, List.map_cons,
-      List.map_nil, agVal]; ag_look, ?_⟩
-  rw [core29_body, agBody]
+  rw [agBody]
   simp only [holdsList_append, holds_fsCompressT (.n 12) (.n 13) (.n 0) 14 (by decide : 1 < 256)]
   rw [holdsList_noRet (eqtreeT (.n 90) 0 (.n 96) 97) (noRetList_eqtreeT ..),
     holdsList_noRet (eqtreeT (.n 90) 14 (.n 301) 302) (noRetList_eqtreeT ..),
@@ -482,6 +476,23 @@ theorem aggregate_claims_complete {cs : List ChildClaims} {h : BatchHints} {d : 
     · ag_look
       have := hdk 52 (by omega)
       rwa [d5] at this
+
+/-- **`aggregate_claims`, completely** (G:3319-3486; TRIAGE #77): for nonempty claims `cs` at the
+buffers (`ChildClaimsAt`), hints `h` of `22` and `28` rounds whose batching closes
+on `d`, stored at `defer_stmt`, every choice of the `HeapBuf` pointers `P` and every memory
+holding the honest words there (`AggMem`), `aggregate_claims` holds. -/
+theorem aggregate_claims_complete {cs : List ChildClaims} {h : BatchHints} {d : DeferredClaim}
+    (hne : cs ≠ []) (hb : batch cs h = some d)
+    (hbr : h.bytecodeRounds.length = 22) (hmr : h.matrixRounds.length = 28)
+    {pis fresh carried dp : E} (hC : ChildClaimsAt rd pis fresh carried cs)
+    (hd : ReadsAt rd dp d.cells) (P : AggPtrs) (hM : AggMem rd P fresh carried cs h) :
+    coreProgram.Rel rd "aggregate_claims" [gen ^ cs.length, pis, fresh, carried, dp] [] := by
+  rw [rel_iff_sem find_aggregate_claims]
+  refine ⟨agVal cs h P pis fresh carried dp, by
+    simp only [show Fn.params Data.core29 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl, List.map_cons,
+      List.map_nil, agVal]; ag_look, ?_⟩
+  rw [core29_body]
+  exact agBody_holds hne hb hbr hmr hC hd P hM
 
 end
 end LeanVM.Guest.B1.Main
