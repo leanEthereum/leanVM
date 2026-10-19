@@ -190,7 +190,7 @@ theorem callees_of {bytecode : List K} (hm : MemOk rd)
 
 /-- `verify_sub`, soundly, in `Callees`' shape, on a memory of `2^κ` words, from its callees'. -/
 theorem verify_sub_callee {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
-    {TCtx : Reader → Layout → BusResult → List ColumnClaim → List E → Prop} (hm : MemOk rd)
+    {TCtx : Reader → Verifier.Layout → BusResult → List ColumnClaim → List E → Prop} (hm : MemOk rd)
     (hgkr : VerifySub.SoundGkr rd) (htab : VerifySub.SoundTables bytecode TCtx rd)
     (hfl : VerifySub.SoundFlock rd) (hop : VerifySub.SoundOpen rd)
     (hterm : VerifySub.SoundTerm TCtx PCtx rd) :
