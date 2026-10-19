@@ -622,5 +622,150 @@ theorem completes_fwd {C : CallRel} {rd : Reader} {lo hi : ℕ} (ss : List Stmt)
     rw [← eq_map_atoms ss hat]]
   exact holdsList_atoms _ (fRun_holds rd _ _ [] σ hok (fun _ => rfl) hob) hn
 
+/-! ## What a window defines -/
+
+/-- An atom defining its result by arithmetic. -/
+def fIsDef (lo : ℕ) (D : List ℕ) : Atom → Bool
+  | .const d _ | .copy d _ | .add d _ _ | .mul d _ _ => !fDef lo D d
+  | _ => false
+
+/-- The atoms of a window defining their results by arithmetic. -/
+def fDefAtoms (lo : ℕ) : List ℕ → List Atom → List Atom
+  | _, [] => []
+  | D, a :: as => (if fIsDef lo D a then [a] else []) ++ fDefAtoms lo (fDStep lo D a) as
+
+/-- The loads of a window defining their results: `(result, pointer, offset)`. -/
+def fLoads (lo : ℕ) : List ℕ → List Atom → List (V × V × ℕ)
+  | _, [] => []
+  | D, a :: as => (match a with
+      | .load d p off => if fDef lo D d then [] else [(d, p, off)]
+      | _ => []) ++ fLoads lo (fDStep lo D a) as
+
+theorem fObl1_of_def {rd : Reader} {lo : ℕ} {D : List ℕ} {σf : Val} {a : Atom}
+    (h : fIsDef lo D a = true) : fObl1 rd lo D σf a := by
+  cases a <;> simp [fIsDef] at h <;> simp [fObl1, h]
+
+/-- **The defining atoms hold**, with no obligation. -/
+theorem fRun_defs (rd : Reader) {lo hi : ℕ} (σf : Val) : ∀ (as : List Atom) (D : List ℕ) (σ : Val),
+    fOk lo hi D as = true → (∀ v, fRun rd lo D σ as v = σf v) → ∀ a ∈ fDefAtoms lo D as, a.Holds rd σf
+  | [], _, _, _, _, a, ha => absurd ha (by simp [fDefAtoms])
+  | b :: as, D, σ, hok, hf, a, ha => by
+    simp only [fOk, Bool.and_eq_true] at hok
+    simp only [fRun] at hf
+    simp only [fDefAtoms, List.mem_append] at ha
+    rcases ha with ha | ha
+    · split_ifs at ha with hd
+      · rcases List.mem_singleton.mp ha with rfl
+        rw [fStep_fst] at hf
+        refine fStep_holds (σ := σ) rd hok.1 (fun v hv => ?_) (fObl1_of_def hd)
+        rw [← hf v, ← fStep_fst rd lo D σ, fRun_frame rd lo as _ _ (by rw [fStep_fst]; exact fOk1_vars hok.1 v hv)]
+      · exact absurd ha (by simp)
+    · rw [fStep_fst] at hf
+      exact fRun_defs rd σf as _ _ hok.2 hf a ha
+
+/-- **The defining loads read the memory.** -/
+theorem fRun_loads (rd : Reader) {lo hi : ℕ} (σf : Val) : ∀ (as : List Atom) (D : List ℕ) (σ : Val),
+    fOk lo hi D as = true → (∀ v, fRun rd lo D σ as v = σf v) →
+      ∀ q ∈ fLoads lo D as, σf q.1 = memAt rd (σf q.2.1) q.2.2
+  | [], _, _, _, _, q, hq => absurd hq (by simp [fLoads])
+  | b :: as, D, σ, hok, hf, q, hq => by
+    simp only [fOk, Bool.and_eq_true] at hok
+    simp only [fRun] at hf
+    simp only [fLoads, List.mem_append] at hq
+    rcases hq with hq | hq
+    · cases b with
+      | load d p off =>
+        simp only at hq
+        split_ifs at hq with hd
+        · exact absurd hq (by simp)
+        · rcases List.mem_singleton.mp hq with rfl
+          simp only [Bool.not_eq_true] at hd
+          have hok1 := hok.1
+          simp only [fOk1, Bool.and_eq_true] at hok
+          have hfr := fun v (hv : fDef lo (fStep rd lo D σ (.load d p off)).1 v = true) =>
+            (hf v).symm.trans (fRun_frame rd lo as _ _ hv)
+          have e1 := hfr d (by rw [fStep_fst]; exact fOk1_vars hok1 d (by simp [atomUses]))
+          have e2 := hfr p (by rw [fStep_fst]; exact fOk1_vars hok1 p (by simp [atomUses]))
+          simp only [fStep, hd, Bool.false_eq_true, ↓reduceIte, Function.update_self] at e1 e2
+          rw [Function.update_of_ne (ne_of_def hok.1.1 hd)] at e2
+          dsimp only
+          rw [e1, e2]
+      | _ => simp at hq
+    · rw [fStep_fst] at hf
+      exact fRun_loads rd σf as _ _ hok.2 hf q hq
+
+/-! ## The obligations as a list -/
+
+/-- An obligation: an atom that holds, a nonzero divisor, a defined load, a defined range check. -/
+inductive Ob where
+  | holds (a : Atom)
+  | nz (v : V)
+  | ld (p : V) (off : ℕ)
+  | rc (x y : V)
+  deriving DecidableEq
+
+/-- What an obligation asks of the final valuation. -/
+def Ob.Holds (rd : Reader) (σf : Val) : Ob → Prop
+  | .holds a => a.Holds rd σf
+  | .nz v => σf v ≠ 0
+  | .ld p off => IsInK (σf p) ∧ (rd ((σf p).limb 0 * gpow off)).isSome
+  | .rc x y => σf x ≠ 0 ∧ IsInK (σf x) ∧ (rd ((σf x).limb 0 * gpow 0)).isSome ∧ IsInK (σf y) ∧
+      (rd ((σf y).limb 0 * gpow 0)).isSome
+
+/-- An atom's obligations. -/
+def fObs1 (lo : ℕ) (D : List ℕ) : Atom → List Ob
+  | a@(.const d _) | a@(.copy d _) | a@(.add d _ _) => if fDef lo D d then [.holds a] else []
+  | a@(.mul d x y) => if !fDef lo D d then [] else if !fDef lo D x then [.nz y]
+      else if !fDef lo D y then [.nz x] else [.holds a]
+  | a@(.load d p off) => if fDef lo D d then [.holds a] else [.ld p off]
+  | a@(.rangeCheck x y _ _ _) => if fDef lo D y then [.holds a] else [.rc x y]
+  | a => [.holds a]
+
+/-- A window's obligations. -/
+def fObs (lo : ℕ) : List ℕ → List Atom → List Ob
+  | _, [] => []
+  | D, a :: as => fObs1 lo D a ++ fObs lo (fDStep lo D a) as
+
+theorem fObl1_of_obs {rd : Reader} {lo : ℕ} {D : List ℕ} {σf : Val} {a : Atom}
+    (h : ∀ o ∈ fObs1 lo D a, o.Holds rd σf) : fObl1 rd lo D σf a := by
+  cases a with
+  | const d c =>
+    intro hd; simp only [fObs1, hd, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
+  | copy d s =>
+    intro hd; simp only [fObs1, hd, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
+  | add d x y =>
+    intro hd; simp only [fObs1, hd, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
+  | mul d x y =>
+    refine ⟨fun hd hx hy => ?_, fun hd hx => ?_, fun hd hx hy => ?_⟩
+    · simp only [fObs1, hd, hx, hy, Bool.not_true, Bool.false_eq_true, ↓reduceIte, List.mem_singleton,
+        forall_eq] at h
+      exact h
+    · simp only [fObs1, hd, hx, Bool.not_true, Bool.not_false, Bool.false_eq_true, ↓reduceIte,
+        List.mem_singleton, forall_eq] at h
+      exact h
+    · simp only [fObs1, hd, hx, hy, Bool.not_true, Bool.not_false, Bool.false_eq_true, ↓reduceIte,
+        List.mem_singleton, forall_eq] at h
+      exact h
+  | load d p off =>
+    refine ⟨fun hd => ?_, fun hd => ?_⟩
+    · simp only [fObs1, hd, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
+    · simp only [fObs1, hd, Bool.false_eq_true, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
+  | rangeCheck x y t1 t2 k =>
+    refine ⟨fun hy => ?_, fun hy => ?_⟩
+    · simp only [fObs1, hy, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
+    · simp only [fObs1, hy, Bool.false_eq_true, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
+  | assertEq x y => simpa [fObs1, Ob.Holds, fObl1] using h
+  | assertNe x i p => simpa [fObs1, Ob.Holds, fObl1] using h
+  | assertInK x y => simpa [fObs1, Ob.Holds, fObl1] using h
+  | blake2s m0 m1 m2 m3 c0 c1 o0 o1 md => simpa [fObs1, Ob.Holds, fObl1] using h
+  | frameAddr p run => simpa [fObs1, Ob.Holds, fObl1] using h
+  | hint x => simpa [fObs1, Ob.Holds, fObl1] using h
+
+theorem fObl_of_obs {rd : Reader} {lo : ℕ} {σf : Val} : ∀ (as : List Atom) (D : List ℕ),
+    (∀ o ∈ fObs lo D as, o.Holds rd σf) → fObl rd lo σf D as
+  | [], _, _ => trivial
+  | _ :: as, _, h => ⟨fObl1_of_obs fun o ho => h o (List.mem_append_left _ ho),
+      fObl_of_obs as _ fun o ho => h o (List.mem_append_right _ ho)⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
