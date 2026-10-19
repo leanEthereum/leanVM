@@ -20,6 +20,7 @@ uniform form (`completeAt_of_rel_pure`): `VmcCompleteAt`, at its five depths.
 namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Guest.B1.Main (MemL)
 
 @[expose] public section
 
