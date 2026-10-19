@@ -287,9 +287,17 @@ structure WSt where
   used : Std.HashSet String := {}
   fa : Array (ℕ × List ℕ) := #[]
   nr : ℕ := 0
-  /-- Before each top-level statement: its index, the position, the facts passed, and the
-  returned words of a call before it still to read back `(q, o, n)`. -/
-  marks : Array (ℕ × Pos × Array Exec.Atom × Option (ℕ × ℕ × ℕ)) := #[]
+  /-- Before each top-level statement: its index, the position, the number of facts passed (a
+  prefix of `spine`), and the returned words of a call before it still to read back
+  `(q, o, n)`. -/
+  marks : Array (ℕ × Pos × ℕ × Option (ℕ × ℕ × ℕ)) := #[]
+  /-- The facts passed at the top level, by the end. -/
+  spine : Array Exec.Atom := #[]
+  /-- The top-level statement being walked. -/
+  curTop : ℕ := 0
+  /-- A passed fact found for an atom: the top-level statement and the fact's index on the
+  path (on the spine below the facts passed at the branch it is on). -/
+  uses : Array (ℕ × ℕ) := #[]
 
 structure WCtx where
   segs : Std.HashMap ℕ GSeg
@@ -343,12 +351,14 @@ unused, else any. -/
 def find (p : Pos) (facts : Array Exec.Atom)
     (pred : Exec.Atom → WM (Option (List (ℕ × ℕ)))) :
     WM (Pos × Array Exec.Atom × Exec.Atom × List (ℕ × ℕ)) := do
-  let mut cons : Array (Exec.Atom × List (ℕ × ℕ)) := #[]
-  for ft in facts do
-    if let some r ← pred ft then cons := cons.push (ft, r)
+  let mut cons : Array (Exec.Atom × List (ℕ × ℕ) × ℕ) := #[]
+  for h : k in [0:facts.size] do
+    let ft := facts[k]
+    if let some r ← pred ft then cons := cons.push (ft, r, k)
   let st ← get
-  for (ft, r) in cons do
-    if r.all fun (v, c) => st.loc.get? v == some c then return (p, facts, ft, r)
+  let use (k : ℕ) : WM Unit := modify fun st => { st with uses := st.uses.push (st.curTop, k) }
+  for (ft, r, k) in cons do
+    if r.all fun (v, c) => st.loc.get? v == some c then use k; return (p, facts, ft, r)
   let mut q := p
   let mut fs := facts
   repeat
@@ -358,10 +368,10 @@ def find (p : Pos) (facts : Array Exec.Atom)
       q := q'
       fs := fs'
       if let some r ← pred fs.back! then return (q, fs, fs.back!, r)
-  for (ft, r) in cons do
-    if !st.used.contains (atomKey ft) then return (p, facts, ft, r)
+  for (ft, r, k) in cons do
+    if !st.used.contains (atomKey ft) then use k; return (p, facts, ft, r)
   match cons[0]? with
-  | some (ft, r) => return (p, facts, ft, r)
+  | some (ft, r, k) => use k; return (p, facts, ft, r)
   | none => throw s!"not found at {p}"
 
 def go (p : Pos) (facts : Array Exec.Atom) (pred : Exec.Atom → WM (Option (List (ℕ × ℕ)))) :
@@ -522,7 +532,7 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
   let mut facts := facts
   let mut loads : Option (ℕ × ℕ × ℕ) := none
   for (s, idx) in ss.zipIdx do
-    if top then modify fun st => { st with marks := st.marks.push (idx, p, facts, loads) }
+    if top then modify fun st => { st with marks := st.marks.push (idx, p, facts.size, loads), curTop := idx }
     loads := none
     match s with
     | .atom a =>
@@ -575,6 +585,7 @@ partial def block (ss : List Core.Stmt) (p : Pos) (facts : Array Exec.Atom) (top
         facts := fs
       | _ => throw "callIf kind"
     | .ret vs =>
+      if top then modify fun st => { st with spine := facts }
       let _ ← toEnd p facts
       let na := (← read).na
       for (v, i) in vs.zipIdx do
@@ -587,7 +598,8 @@ end
 
 /-- The cells of a function's values, by number, `0` for a value on no path. -/
 def inferLocs (segs : Array GSeg) (f : CompiledFn) (cf : Core.Fn) (main : Bool) :
-    Except String (List ℕ × ℕ × Array (ℕ × Pos × Array Exec.Atom × Option (ℕ × ℕ × ℕ))) := do
+    Except String (List ℕ × ℕ × Array (ℕ × Pos × ℕ × Option (ℕ × ℕ × ℕ)) × Array Exec.Atom ×
+      Array (ℕ × ℕ)) := do
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let setCells := f.code.foldl (fun m ins => match ins with
     | .set o k0 k1 k2 => m.insert (k0, k1, k2) (o :: (m.get? (k0, k1, k2)).getD [])
@@ -611,7 +623,7 @@ def inferLocs (segs : Array GSeg) (f : CompiledFn) (cf : Core.Fn) (main : Bool) 
       let cs := (setCells.get? l).getD []
       loc := loc.insert v (cs.foldl min (cs.headD 0))
   let m := loc.fold (fun m v _ => max m (v + 1)) 0
-  return ((List.range m).map fun v => loc.getD v 0, st.nr, st.marks)
+  return ((List.range m).map fun v => loc.getD v 0, st.nr, st.marks, st.spine, st.uses)
 
 end GuestCert
 
@@ -824,7 +836,7 @@ def maxWin : ℕ := 1000
 at a segment's start the walk enters, `J` when the walk reaches `J` by the end of its segment),
 with the facts passed there after the mark's (the returned words read back). -/
 def cutAtMark (segMap : Std.HashMap ℕ GSeg) (entry : ℕ)
-    (m : ℕ × Pos × Array Exec.Atom × Option (ℕ × ℕ × ℕ)) : Option (ℕ × ℕ × Array Exec.Atom) := do
+    (m : ℕ × Pos × ℕ × Option (ℕ × ℕ × ℕ)) : Option (ℕ × ℕ × Array Exec.Atom) := do
   let (_, p, _, loads) := m
   let s ← segMap.get? p.1
   let mut i := p.2
@@ -856,7 +868,8 @@ def cutAtMark (segMap : Std.HashMap ℕ GSeg) (entry : ℕ)
 and semantic pairs it starts knowing), and, in a function longer than `maxWin`, wherever the
 next window would grow past it. -/
 def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
-    (marks : Array (ℕ × Pos × Array Exec.Atom × Option (ℕ × ℕ × ℕ))) (segMap : Std.HashMap ℕ GSeg)
+    (marks : Array (ℕ × Pos × ℕ × Option (ℕ × ℕ × ℕ))) (spine : Array Exec.Atom)
+    (uses : Array (ℕ × ℕ)) (segMap : Std.HashMap ℕ GSeg)
     (pre : List (ℕ × ℕ)) (forced : List (ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ))) :
     Except String (List CutG) := do
   let cellOf (v : Core.V) : ℕ := locs.getD v.idx 0
@@ -873,7 +886,7 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
     if constMax.getD m.1 0 < c.1 then some (m.1, c) else none
   for (i, _, _) in forced do
     unless cands.any (·.1 == i) do throw s!"{f.name}: no window can start at statement {i}"
-  let big := f.len > maxWin + maxWin / 2
+  let big := f.len > 3 * maxWin
   let mut a := 0
   let mut env : List (ℕ × Sym) := F.env
   let mut known : List (ℕ × ℕ × ℕ) := []
@@ -883,7 +896,7 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
     let (idx, J, b, extra) := cands[k]!
     let force := forced.find? (·.1 == idx)
     let nextJ := if k + 1 < cands.size then cands[k + 1]!.2.1 else f.len
-    unless force.isSome || (big && nextJ - a > maxWin && J > a && f.len - J > maxWin / 4) do continue
+    unless force.isSome || (big && nextJ - a > maxWin && J ≥ a + maxWin / 4 && f.len - J > maxWin / 4) do continue
     if J ≤ a then throw s!"{f.name}: cut {idx} at {J} not after {a}"
     if let some (_, kn, sm) := force then
       known := known ++ kn
@@ -894,12 +907,24 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
       | none => match segs.find? (fun s => s.exit.kind == .next J) with
         | some s => pure s.exit.env
         | none => throw s!"{f.name}: no exit to {J}"
-    let live : Std.HashSet ℕ := (stmtVals (cf.body.drop idx)).foldl (fun h v => h.insert (cellOf v)) {}
-    let fs := (marks.find? (·.1 == idx)).map (fun m => m.2.2.1 ++ extra) |>.getD extra
-    let direct := fs.filter fun a => (keysG a).any live.contains
+    let n := ((marks.find? (·.1 == idx)).map (·.2.2.1)).getD 0
+    -- the passed facts later statements found, and those under the cells of later frame
+    -- addresses and selectors
+    let later := cf.body.drop idx
+    let sel : Std.HashSet ℕ := (later.flatMap fun
+      | .atom (.frameAddr q _) => [cellOf q]
+      | .match_ x _ | .dispatch x _ _ _ => [cellOf x]
+      | _ => []).foldl (·.insert ·) {}
+    let used : Std.HashSet ℕ := uses.foldl (fun h (t, k) => if t ≥ idx && k < n + extra.size then h.insert k else h) {}
+    let fs := spine.extract 0 n ++ extra
+    let direct := (fs.zipIdx.filter fun (a, k) => used.contains k || (keysG a).any sel.contains).map (·.1)
     let need : Std.HashSet ℕ := direct.foldl (fun h a => (needsG a).foldl (·.insert ·) h) {}
-    let hand := fs.filter fun a => (keysG a).any fun c => live.contains c || need.contains c
-    let handed := (hand.toList.flatMap fun a => (keysG a).map (·, a)).eraseDups
+    let hand := direct ++ fs.filter fun a => (keysG a).any need.contains
+    let seen : Std.HashSet String := {}
+    let (handed, _) := (hand.toList.flatMap fun a => (keysG a).map (·, a)).foldl
+      (fun (acc, seen) (k, a) => let key := s!"{k}{atomText a}"
+        if seen.contains key then (acc, seen) else (acc.push (k, a), seen.insert key)) (#[], seen)
+    let handed := handed.toList
     let envL := (env'.toList.mergeSort (·.1 ≤ ·.1))
     out := out.push ⟨J, envL, idx, handed, pre, known, sems, b⟩
     a := J
@@ -926,7 +951,7 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
   let main := j == 1
   let F := factsOf T f main
   let segs := execG F f 0 f.len (F.env.foldl (fun m (o, s) => m.insert o s) {})
-  let (locs, nr, marks) ← (inferLocs segs f cf main).mapError (s!"{f.name}: " ++ ·)
+  let (locs, nr, marks, spine, uses) ← (inferLocs segs f cf main).mapError (s!"{f.name}: " ++ ·)
   let callees := ((calleesOf cf.body).filterMap index.get?).eraseDups.mergeSort
   let (pre, post, mem, _) := bounds f.name
   let cell (v : ℕ) : ℕ := locs.getD v 0
@@ -934,7 +959,7 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
       (i, [(cell v, len, n)], ([] : List (ℕ × ℕ)))) ++
     (semsOf cf.body).map fun (i, p, q) => (i, ([] : List (ℕ × ℕ × ℕ)), [(cell p, cell q)])
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
-  let cuts ← planCuts F f cf locs marks segMap pre forced
+  let cuts ← planCuts F f cf locs marks spine uses segMap pre forced
   let cutT := listText (cuts.map fun c =>
     s!"⟨{c.J}, {listText (c.env.map fun (o, s) => s!"({o}, {symText s})")}, {c.start},\n      " ++
     s!"{listText (c.facts.map fun (k, a) => s!"({k}, {atomText a})")},\n      " ++
