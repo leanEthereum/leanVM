@@ -111,40 +111,6 @@ noncomputable def st0 (j i k : ℕ) (s : Exec.Seg) : CW :=
   ⟨s, s.items.drop (partM j i k), fileB (clocW (certOf j) i) (fsN j) (partStmts j i k) .nil, [], [], [],
     partC j i k, partU j i k, bif Nat.beq (partM j i k) 0 then some (partJ j i k) else none, 0⟩
 
-theorem drop_flatten_chunked {C : ℕ} (hC : 0 < C) : ∀ {cs : List (List OInstr)} {n : ℕ},
-    chunked C cs n = true → ∀ a, cs.flatten.drop a = (cs.drop (a / C)).flatten.drop (a % C)
-  | [], _, _, a => by simp
-  | c :: cs, n, h, a => by
-    by_cases ha : a < C
-    · rw [Nat.div_eq_of_lt ha, Nat.mod_eq_of_lt ha, List.drop_zero]
-    · have hq : a / C = (a - C) / C + 1 := Nat.div_eq_sub_div hC (by omega)
-      have hr : a % C = (a - C) % C := Nat.mod_eq_sub_mod (by omega)
-      unfold chunked at h
-      split_ifs at h with hn
-      · simp only [Bool.and_eq_true, List.isEmpty_iff, beq_iff_eq] at h
-        obtain ⟨rfl, hl⟩ := h
-        rw [hq, List.drop_succ_cons, List.drop_nil, List.flatten_nil, List.drop_nil, List.flatten_cons,
-          List.flatten_nil, List.append_nil, List.drop_eq_nil_of_le (by omega)]
-      · simp only [Bool.and_eq_true, beq_iff_eq] at h
-        obtain ⟨hl, h'⟩ := h
-        rw [hq, hr, List.drop_succ_cons, List.flatten_cons, List.drop_append,
-          List.drop_eq_nil_of_le (by omega), List.nil_append, hl]
-        exact drop_flatten_chunked hC h' (a - C)
-
-theorem fnOf_wellChunked (j : ℕ) : chunked chunkSize (fnOf j).chunks (fnOf j).len = true := by
-  by_cases h : j < Data.functions.length
-  · unfold fnOf
-    rw [nth_eq h]
-    exact List.all_eq_true.mp functions_wellChunked _ (List.getElem_mem h)
-  · unfold fnOf
-    rw [nth_of_le (by omega)]
-    rfl
-
-theorem execWinC_eq (j : ℕ) (F : Facts) (a : ℕ) (env : List (ℕ × Sym)) (b : ℕ) :
-    execWinC F (fnOf j) a env b = execWin F (fnOf j) a env b := by
-  unfold execWinC execWin codeFrom CompiledFn.code
-  rw [← drop_flatten_chunked (by decide) (fnOf_wellChunked j)]
-
 theorem cplRes_eq (j i k : ℕ) : cplRes j i k = (match getF (index (segsW j i)) (partJ j i k) with
     | some s => bif Nat.beq s.start (partJ j i k) then cw (Xp j i k) (partStmts j i k) (st0 j i k s)
       else .fail 91
