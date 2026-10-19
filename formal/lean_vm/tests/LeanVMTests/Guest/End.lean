@@ -1,6 +1,7 @@
 import LeanVM.Guest.EndSound
 import LeanVM.Guest.EndComplete
 import LeanVM.Guest.EndFinal
+import LeanVM.Guest.EndFinalComplete
 
 /-!
 # Tests: the end theorems' axioms
@@ -68,3 +69,7 @@ three standard axioms only.
 /-- info: 'LeanVM.Guest.End.aggregate_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.End.aggregate_sound
+
+/-- info: 'LeanVM.Guest.End.guest_complete_of_open' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.guest_complete_of_open

@@ -14,6 +14,7 @@ public import LeanVM.Guest.B2C.KTemps
 public import LeanVM.Guest.B2C.ArmsFresh
 public import LeanVM.Guest.B2C.CntWeight
 public import LeanVM.Guest.B2C.Table
+public import LeanVM.Guest.Count.Main
 
 /-!
 # Completeness at the deployed instance
@@ -24,8 +25,9 @@ the jump table's `jtSets`), the callees' hypotheses `calleesHyps_b2c`, `__loop86
 `loop86_bound_le`, `deferredCaps`, the instruction budget `eaInstrs` (`ea_hinstrs`), checker K's
 `cnt_le_weight`, `cntRetemp` and certificate facts (`b2c_kfactsAll`), and the jump table's cells
 (`tableC_node`). Still assumed, by name: `main`'s weight hypotheses per opcode (`MainWeightHyps` at
-`pathMax · op`), checker K's `run` (`B2cRun`), and the run reaching the end (`b2`) within the
-counts (`count`).
+`pathMax · op`), checker K's `run` (`B2cRun`), and the run reaching the end (`B2cB2`) within the
+counts (`B2cCount`). `guest_complete_b2c'`: the same at k4's weights `Count.kcWt`, within
+`b2cBudget'`.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -56,6 +58,19 @@ theorem b2c_kfactsAll (hrun : B2cRun) : KFactsAll fs H C cert := fun hdr T hn =>
     tmp := kfacts_tmp hdr T
     keep := kfacts_keep_all hdr T }
 
+/-- **Checker K's `b2`**: the honest memory runs from `main`'s entry to the end. -/
+def B2cB2 : Prop :=
+  ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
+    HonestAt coreProgram fs H C hdr T cert rd [] [] →
+      Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest)
+
+/-- **Checker K's `count`**: a run of the honest memory to the end is within the counts. -/
+def B2cCount : Prop :=
+  ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
+    HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
+      run guest (honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
+        ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op
+
 /-- `main`'s weight hypotheses at each opcode's path maxima. -/
 abbrev B2cWeightHyps : Type := ∀ op, MainWeightHyps fs (pathMax · op)
 
@@ -66,19 +81,20 @@ noncomputable def b2cBudget (Wt : B2cWeightHyps) : Budget :=
 
 /-- **Completeness within the budget at the deployed instance**, from `main`'s weight hypotheses,
 checker K's `run` and the run's end within the counts. -/
-theorem guest_complete_b2c (Wt : B2cWeightHyps) (hrun : B2cRun)
-    (hb2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
-      HonestAt coreProgram fs H C hdr T cert rd [] [] →
-        Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest))
-    (hcount : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
-      HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
-        run guest (honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
-          ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op) :
+theorem guest_complete_b2c (Wt : B2cWeightHyps) (hrun : B2cRun) (hb2 : B2cB2) (hcount : B2cCount) :
     GuestCompleteWithin (b2cBudget Wt) :=
   ea_guest_complete fs cert cnt calleesHyps_b2c _ H C (fun q => loop86_bound_le q) (two_le_fs _)
     deferredCaps (fun op f => pathMax f op) Wt jtSets cnt_le_weight
     (ea_hinstrs calleesHyps_b2c (fun q => loop86_bound_le q) Wt jtSets)
     (b2c_kfactsAll hrun) cntRetemp (fun _ _ _ _ ht => tableC_node ht) hb2 hcount
+
+/-- **The deployed budget**: `b2cBudget` at k4's weights `Count.kcWt`. -/
+noncomputable def b2cBudget' : Budget := b2cBudget Count.kcWt
+
+/-- **Completeness within the deployed budget**, from checker K's `run`, `b2` and `count`. -/
+theorem guest_complete_b2c' (hrun : B2cRun) (hb2 : B2cB2) (hcount : B2cCount) :
+    GuestCompleteWithin b2cBudget' :=
+  guest_complete_b2c Count.kcWt hrun hb2 hcount
 
 end
 end LeanVM.Guest.B2C
