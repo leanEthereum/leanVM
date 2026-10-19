@@ -504,5 +504,6 @@ theorem vt_body {κ : ℕ} (hκ : 7 ≤ κ) (hlow : LowDef κ rd) {σ : Val}
 
 end
 
+
 end
 end LeanVM.Guest.B1.VerifySub
