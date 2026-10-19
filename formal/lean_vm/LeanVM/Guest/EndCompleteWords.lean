@@ -195,39 +195,46 @@ def eaCtMax : ℕ := eaMax ((List.range 32).map H.Bct)
 def eaCctMax : ℕ := eaMax (Digest.cctNames.map fs)
 def eaDlMax : ℕ := eaMax ((List.range 17).map fun n => H.Bdl (gen ^ n))
 
-/-- A claim list's bound, affinely: slope and constant. -/
-def eaClA (a86 : ℕ) : ℕ := 4 + a86
+/-- `c` per block of 32 is at most `⌈c / 32⌉` per item. -/
+theorem ea_div32 (c n : ℕ) : c * ((n - 1) / 32) ≤ (c + 31) / 32 * n := by
+  have h1 : 32 * ((n - 1) / 32) ≤ n := by omega
+  have h2 : c ≤ (c + 31) / 32 * 32 := by omega
+  calc c * ((n - 1) / 32) ≤ (c + 31) / 32 * 32 * ((n - 1) / 32) := Nat.mul_le_mul_right _ h2
+    _ = (c + 31) / 32 * (32 * ((n - 1) / 32)) := by ring
+    _ ≤ (c + 31) / 32 * n := Nat.mul_le_mul_left _ h1
+
+/-- A claim list's bound, affinely: slope (a block of 32 claims per `__loop86` iteration) and
+constant. -/
+def eaClA (a86 : ℕ) : ℕ := (4 + a86 + 31) / 32
 def eaClB (b86 : ℕ) : ℕ := fs "claim_list_digest" + 4 + b86 + fs "__loop86" + eaCtMax fs H + H.Bsl6
 /-- A child claim list's. -/
-def eaCclA : ℕ := 4 + fs "__loop87" + (fs "child_claims_window" + H.Bsl)
+def eaCclA : ℕ := (4 + fs "__loop87" + (fs "child_claims_window" + H.Bsl) + 31) / 32
 def eaCclB : ℕ := fs "child_claim_list_digest" + 4 + fs "__loop87" + eaCctMax fs + H.Bsl6
 
 theorem ea_cl {a86 b86 : ℕ} (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) (n : ℕ) :
     (calleeBd fs H).cl n ≤ eaClA a86 * n + eaClB fs H b86 := by
-  simp only [calleeBd, Digest.cldBound, eaClA, eaClB]
-  have hq : (n - 1) / 32 ≤ n := le_trans (Nat.div_le_self _ _) (Nat.sub_le _ _)
+  simp only [calleeBd, Digest.cldBound, eaClB]
   have h1 := h86 ((n - 1) / 32)
-  have h2 : a86 * ((n - 1) / 32) ≤ a86 * n := Nat.mul_le_mul_left _ hq
+  have h2 : (4 + a86) * ((n - 1) / 32) ≤ eaClA a86 * n := ea_div32 _ _
   have h3 : H.Bct ((n - 1) % 32) ≤ eaCtMax fs H :=
     ea_le_max (List.mem_map.mpr ⟨_, List.mem_range.mpr (Nat.mod_lt (n - 1) (show 0 < 32 by norm_num)), rfl⟩)
-  have h4 : max (H.B86 (gen ^ ((n - 1) / 32))) (fs "__loop86") ≤ a86 * n + b86 + fs "__loop86" :=
+  have h4 : max (H.B86 (gen ^ ((n - 1) / 32))) (fs "__loop86") ≤ a86 * ((n - 1) / 32) + b86 + fs "__loop86" :=
     max_le (by omega) (by omega)
-  have h5 : (4 + a86) * n = 4 * n + a86 * n := by ring
+  have h5 : (4 + a86) * ((n - 1) / 32) = 4 * ((n - 1) / 32) + a86 * ((n - 1) / 32) := by ring
   omega
 
 theorem ea_ccl (n : ℕ) : (calleeBd fs H).ccl n ≤ eaCclA fs H * n + eaCclB fs H := by
-  simp only [calleeBd, Digest.ccldBound, Digest.l87Bound, eaCclA, eaCclB, Nat.sub_zero]
-  have hq : (n - 1) / 32 ≤ n := le_trans (Nat.div_le_self _ _) (Nat.sub_le _ _)
-  have h2 : (n - 1) / 32 * (fs "__loop87" + (fs "child_claims_window" + H.Bsl)) ≤
-      n * (fs "__loop87" + (fs "child_claims_window" + H.Bsl)) := Nat.mul_le_mul_right _ hq
+  simp only [calleeBd, Digest.ccldBound, Digest.l87Bound, eaCclB, Nat.sub_zero]
+  have h2 : (4 + fs "__loop87" + (fs "child_claims_window" + H.Bsl)) * ((n - 1) / 32) ≤ eaCclA fs H * n :=
+    ea_div32 _ _
   have h3 : fs (Digest.cctNames.getD ((n - 1) % 32) "") ≤ eaCctMax fs := by
     refine ea_le_max (List.mem_map.mpr ⟨_, ?_, rfl⟩)
     rw [List.getD_eq_getElem _ _ (by
       have : Digest.cctNames.length = 32 := by decide
       rw [this]; exact Nat.mod_lt _ (by norm_num))]
     exact List.getElem_mem _
-  have h5 : (4 + fs "__loop87" + (fs "child_claims_window" + H.Bsl)) * n =
-      4 * n + n * (fs "__loop87" + (fs "child_claims_window" + H.Bsl)) := by ring
+  have h5 : (4 + fs "__loop87" + (fs "child_claims_window" + H.Bsl)) * ((n - 1) / 32) =
+      4 * ((n - 1) / 32) + (n - 1) / 32 * (fs "__loop87" + (fs "child_claims_window" + H.Bsl)) := by ring
   omega
 
 theorem ea_dl {n : ℕ} (hn : n ≤ 16) : (calleeBd fs H).daList n ≤ eaDlMax fs H :=
