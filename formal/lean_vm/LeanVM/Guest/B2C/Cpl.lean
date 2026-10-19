@@ -425,7 +425,7 @@ noncomputable def fpgMul (a b d : ℕ) : Bool :=
 /-- A copy into the next frame's cell `o`. -/
 noncomputable def nextMul (a o : ℕ) : Bool :=
   match st.nx.find? (fun p ↦ Nat.beq p.1 o) with
-  | some (_, .val cv) => sameC X st a cv
+  | some (_, .val cv) => Nat.beq a cv || sameC X st a cv
   | some (_, .hdr i) => Nat.beq a i && Nat.ble i 1
   | some (_, .self) => decide (statAt X a = some (.fpg X.fs))
   | _ => false
@@ -434,7 +434,7 @@ noncomputable def nextMul (a o : ℕ) : Bool :=
 noncomputable def frameCell (o1 o2 o3 : ℕ) : Bool :=
   match st.fr.find? (fun q ↦ Nat.beq q.1 o1) with
   | some (_, fcs) => fcs.any fun p ↦ Nat.beq p.1 o2 && (match p.2 with
-    | .val cv => sameC X st cv o3
+    | .val cv => Nat.beq cv o3 || sameC X st cv o3
     | .self => Nat.beq o3 o1
     | .pc r => (match cstAt X st o3 with
       | some (k0, 0, 0) => decide (gpE X k0 = some r)
@@ -491,16 +491,16 @@ noncomputable def justI (pc : ℕ) : OInstr → Bool
   | .jump .. => false
 
 /-- Pass items, each justified and counted, up to the next branch or the end. -/
-noncomputable def passL : List Exec.Item → Cnt → Option (List Exec.Item × Cnt)
-  | [], c => some ([], c)
+noncomputable def passL : List Exec.Item → Cnt → Except ℕ (List Exec.Item × Cnt)
+  | [], c => .ok ([], c)
   | .ins (.instr pc ins) :: its, c =>
-      bif justI X st pc ins then (c.bump ins).seq fun c ↦ passL its c else none
+      bif justI X st pc ins then (c.bump ins).seq fun c ↦ passL its c else .error pc
   | .ins (.jump oc od of) :: its, c =>
       bif cellK X st oc && cellK X st od && cellK X st of then c.bumpJ.seq fun c ↦ passL its c
-      else none
-  | .ins _ :: _, _ => none
+      else .error (3 + 4 * oc)
+  | .ins _ :: _, _ => .error 2
   | .fact _ :: its, c => passL its c
-  | .branch oc od of x :: its, c => some (.branch oc od of x :: its, c)
+  | .branch oc od of x :: its, c => .ok (.branch oc od of x :: its, c)
 
 end Just
 
@@ -518,17 +518,19 @@ noncomputable def segAtC (t : ℕ) (st : CW) : Option CW :=
   | none => none
 
 /-- The position at the end of the segment, its items passed, if no branch is before it. -/
-noncomputable def endAtC (st : CW) : Option CW :=
+noncomputable def endAtC (st : CW) : Except ℕ CW :=
   match passL X st st.its st.cnt with
-  | some ([], c) => c.seq fun c ↦ some ⟨st.seg, [], st.book, st.fr, st.tg, st.nx, c, none⟩
-  | _ => none
+  | .ok ([], c) => c.seq fun c ↦ .ok ⟨st.seg, [], st.book, st.fr, st.tg, st.nx, c, none⟩
+  | .ok _ => .error 5
+  | .error e => .error e
 
 /-- The next branch, the items before it passed: the position after it, its cells and exit. -/
-noncomputable def brAtC (st : CW) : Option (CW × ℕ × ℕ × ℕ × Exec.Exit) :=
+noncomputable def brAtC (st : CW) : Except ℕ (CW × ℕ × ℕ × ℕ × Exec.Exit) :=
   match passL X st st.its st.cnt with
-  | some (.branch oc od of x :: its, c) => c.bumpJ.seq fun c ↦
-      some (⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c, none⟩, oc, od, of, x)
-  | _ => none
+  | .ok (.branch oc od of x :: its, c) => c.bumpJ.seq fun c ↦
+      .ok (⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c, none⟩, oc, od, of, x)
+  | .ok _ => .error 6
+  | .error e => .error e
 
 /-- The next branch's cells and exit, nothing passed. -/
 def peekBr : List Exec.Item → Option (ℕ × Exec.Exit)
@@ -594,21 +596,21 @@ noncomputable def endC (st : CW) : RC :=
   match st.fresh with
   | some t => .join t st.cnt
   | none => match endAtC X st with
-    | some se => match se.seg.exit.kind with
+    | .ok se => match se.seg.exit.kind with
       | .next t => bif se.seg.exit.succ == [t] then .join t se.cnt else .fail 1
       | _ => .fail 2
-    | none => .fail 0
+    | .error e => .fail e
 
 /-- After a call into the frame `fp[q]` returning to `r`: the position at the return point, its
 callee frame's returns known. -/
 noncomputable def afterC (st : CW) (q r : ℕ) (fcs : List (ℕ × FC)) (args rets : List V) :
-    Option CW :=
+    Except ℕ CW :=
   match endAtC X { st with fr := (q, fcs) :: st.fr } with
-  | some se => match segAtC X (r - X.entry) se with
-    | some sr => some ⟨sr.seg, sr.its, sr.book, (q, fcs ++ argFC X.loc (2 + args.length) rets) :: st.fr,
+  | .ok se => match segAtC X (r - X.entry) se with
+    | some sr => .ok ⟨sr.seg, sr.its, sr.book, (q, fcs ++ argFC X.loc (2 + args.length) rets) :: st.fr,
         sr.tg, sr.nx, sr.cnt, bif rets.isEmpty then sr.fresh else none⟩
-    | none => none
-  | none => none
+    | none => .error 7
+  | .error e => .error e
 
 mutual
 /-- **The completeness walk** of a block from a position. -/
@@ -617,7 +619,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
   | .atom _ :: ss, st => cw ss st
   | .ite c z n :: ss, st =>
     match brAtC X st with
-    | some (st', oc, od, of, x) =>
+    | .ok (st', oc, od, of, x) =>
       match x.kind with
       | .next t =>
         bif Nat.beq oc (X.loc.cell c) && inFrame X.fs [oc] && cellK X st' od && cellK X st' of &&
@@ -638,7 +640,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
           | none => .fail 13
         else .fail 14
       | _ => .fail 15
-    | none => .fail 16
+    | .error e => .fail e
   | .match_ _ [] :: _, _ => .fail 28
   | .match_ v (a0 :: as) :: ss, st =>
     match st.seg.exit.kind, st.seg.exit.succ with
@@ -650,7 +652,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
             X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
             armsOk X.G X.entry base 0 (t0 :: ts) then
           match endAtC X { st with tg := (t, o1, base) :: st.tg } with
-          | some se =>
+          | .ok se =>
             match segAtC X t0 se with
             | some s0 =>
               (fileB X.loc X.fs a0 se.book).seq fun B0 ↦
@@ -664,7 +666,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
               | .fail e => .fail e
               | _ => .fail 22
             | none => .fail 23
-          | none => .fail 24
+          | .error e => .fail e
         else .fail 25
       | none => .fail 26
     | _, _ => .fail 27
@@ -678,8 +680,8 @@ noncomputable def cw : List Core.Stmt → CW → RC
             st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r 0 &&
             inFrame X.fs (q :: (args ++ rets).map X.loc.cell) then
           match afterC X st q r (callFC X args ((X.G.sig j).env.map (·.1)) r) args rets with
-          | some sr => cw ss sr
-          | none => .fail 30
+          | .ok sr => cw ss sr
+          | .error e => .fail e
         else .fail 31
       | none => .fail 32
     | _ => .fail 33
@@ -693,8 +695,8 @@ noncomputable def cw : List Core.Stmt → CW → RC
             inFrame X.fs (t :: q :: o1 :: (args ++ rets).map X.loc.cell) then
           match afterC X { st with tg := (t, o1, base) :: st.tg } q r (callFC X args [] r) args
               rets with
-          | some sr => cw ss sr
-          | none => .fail 40
+          | .ok sr => cw ss sr
+          | .error e => .fail e
         else .fail 41
       | none => .fail 42
     | _ => .fail 43
@@ -710,10 +712,10 @@ noncomputable def cw : List Core.Stmt → CW → RC
                 Nat.beq (X.G.sig j).nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
                 siteOk X args [] q r 0 && inFrame X.fs [q] then
               match brAtC X { st with fr := (q, callFC X args ((X.G.sig j).env.map (·.1)) r) :: st.fr } with
-              | some (st', _, od, of, _) =>
+              | .ok (st', _, od, of, _) =>
                 bif cellK X st' od && cellK X st' of then
                   match endAtC X st' with
-                  | some se => match se.seg.exit.kind with
+                  | .ok se => match se.seg.exit.kind with
                     | .next t =>
                       bif Nat.beq t (r - X.entry) && se.seg.exit.succ == [t] then
                         match segAtC X t st' with
@@ -721,9 +723,9 @@ noncomputable def cw : List Core.Stmt → CW → RC
                         | none => .fail 50
                       else .fail 51
                     | _ => .fail 52
-                  | none => .fail 53
+                  | .error e => .fail e
                 else .fail 54
-              | none => .fail 55
+              | .error e => .fail e
             else .fail 56
           | none => .fail 57
         | .jump (.gp e) (.fpg S) =>
@@ -733,14 +735,14 @@ noncomputable def cw : List Core.Stmt → CW → RC
                 Nat.beq X.nret 0 && !X.main then
               match brAtC X { st with nx := (argFC X.loc 2 args ++ [(0, .hdr 0), (1, .hdr 1)] ++
                   X.self.map (fun o ↦ (o, FC.self))) } with
-              | some (st', _, od, of, _) =>
+              | .ok (st', _, od, of, _) =>
                 bif cellK X st' od && cellK X st' of && st'.cnt.le X.pmax then
                   match endAtC X st' with
-                  | some se =>
+                  | .ok se =>
                     bif decide (se.seg.exit.kind = .ret) && se.cnt.le X.pmax then .done else .fail 60
-                  | none => .fail 61
+                  | .error e => .fail e
                 else .fail 62
-              | none => .fail 63
+              | .error e => .fail e
             else .fail 64
           | _ => .fail 65
         | _ => .fail 66
@@ -748,10 +750,10 @@ noncomputable def cw : List Core.Stmt → CW → RC
     | none => .fail 68
   | .ret _ :: _, st =>
     match endAtC X st with
-    | some se =>
+    | .ok se =>
       bif (bif X.main then decide (se.seg.exit.kind = .jump (.gp (2 ^ 18 - 1)) (.gp 0))
           else decide (se.seg.exit.kind = .ret)) && se.cnt.le X.pmax then .done else .fail 70
-    | none => .fail 71
+    | .error e => .fail e
 
 /-- The other arms of a `match`, each from its segment, ending at the join `J`: the most counts
 of any. -/
