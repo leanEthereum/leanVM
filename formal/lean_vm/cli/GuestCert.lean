@@ -2433,11 +2433,15 @@ def atOffset (segMap : Std.HashMap ℕ GSeg) (entry J : ℕ) (m : ℕ × Pos × 
   if i == 0 && sg == J then (cnt, uq) else
     match segMap.get? sg with
     | some s =>
-      let its := s.items.toList.drop i
-      let last := its.zipIdx.foldl (fun l (it, k) => match it with
-        | .ins (.instr pc _) => if pc < entry + J then k + 1 else l
-        | _ => l) 0
-      (Cpl.countRest ⟨s.start, s.env, (its.take last).toArray, s.exit⟩ 0 cnt, uq)
+      -- each instruction's pc: an executed instruction carries it, a `JUMP` follows the last
+      let pcs := (s.items.toList.foldl (fun (acc : List (Option ℕ) × ℕ) it => match it with
+        | .ins (.instr pc _) => (some pc :: acc.1, pc + 1)
+        | .ins (.jump ..) | .branch .. => (some acc.2 :: acc.1, acc.2 + 1)
+        | _ => (none :: acc.1, acc.2)) ([], entry + s.start)).1.reverse
+      let before := ((s.items.toList.zip pcs).drop i).filter fun (_, pc) => match pc with
+        | some pc => pc < entry + J
+        | none => false
+      (Cpl.countRest ⟨s.start, s.env, (before.map (·.1)).toArray, s.exit⟩ 0 cnt, uq)
     | none => (cnt, uq)
 
 /-- The instructions a path passes up to a mark. -/
