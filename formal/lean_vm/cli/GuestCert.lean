@@ -818,17 +818,17 @@ structure CutG where
   b : ℕ
 
 /-- The instructions a window runs over at most, when a function is cut for its size. -/
-def maxWin : ℕ := 2000
+def maxWin : ℕ := 1000
 
 /-- Where a window can start at a mark: its offset `J` and the previous window's end `b` (`J + 1`
 at a segment's start the walk enters, `J` when the walk reaches `J` by the end of its segment),
-with the facts passed there. -/
+with the facts passed there after the mark's (the returned words read back). -/
 def cutAtMark (segMap : Std.HashMap ℕ GSeg) (entry : ℕ)
     (m : ℕ × Pos × Array Exec.Atom × Option (ℕ × ℕ × ℕ)) : Option (ℕ × ℕ × Array Exec.Atom) := do
-  let (_, p, facts, loads) := m
+  let (_, p, _, loads) := m
   let s ← segMap.get? p.1
   let mut i := p.2
-  let mut fs := facts
+  let mut fs : Array Exec.Atom := #[]
   if let some (q, o, n) := loads then
     let mut need := n
     while need > 0 do
@@ -859,16 +859,28 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
     (marks : Array (ℕ × Pos × Array Exec.Atom × Option (ℕ × ℕ × ℕ))) (segMap : Std.HashMap ℕ GSeg)
     (pre : List (ℕ × ℕ)) (forced : List (ℕ × List (ℕ × ℕ × ℕ) × List (ℕ × ℕ))) :
     Except String (List CutG) := do
-  let cands := marks.filterMap fun m => (cutAtMark segMap f.entry m).map fun c => (m.1, c)
+  let cellOf (v : Core.V) : ℕ := locs.getD v.idx 0
+  -- the first `SET` of each top-level constant's cell and limbs: a window ends after it
+  let setAt := f.code.zipIdx.foldl (fun (m : Std.HashMap (ℕ × ℕ × ℕ × ℕ) ℕ) (ins, i) =>
+    match ins with
+    | .set o k0 k1 k2 => if m.contains (o, k0, k1, k2) then m else m.insert (o, k0, k1, k2) i
+    | _ => m) {}
+  let constAt : Array ℕ := (cf.body.toArray.map fun
+    | .atom (.const v x) => let (k0, k1, k2) := limbsOfE x; (setAt.get? (cellOf v, k0, k1, k2)).getD f.len
+    | _ => 0)
+  let constMax : Array ℕ := constAt.foldl (fun acc o => acc.push (max o (acc.back?.getD 0))) #[0]
+  let cands := marks.filterMap fun m => (cutAtMark segMap f.entry m).bind fun c =>
+    if constMax.getD m.1 0 < c.1 then some (m.1, c) else none
+  for (i, _, _) in forced do
+    unless cands.any (·.1 == i) do throw s!"{f.name}: no window can start at statement {i}"
   let big := f.len > maxWin + maxWin / 2
   let mut a := 0
   let mut env : List (ℕ × Sym) := F.env
   let mut known : List (ℕ × ℕ × ℕ) := []
   let mut sems : List (ℕ × ℕ) := []
   let mut out : Array CutG := #[]
-  let cellOf (v : Core.V) : ℕ := locs.getD v.idx 0
   for k in [0:cands.size] do
-    let (idx, J, b, fs) := cands[k]!
+    let (idx, J, b, extra) := cands[k]!
     let force := forced.find? (·.1 == idx)
     let nextJ := if k + 1 < cands.size then cands[k + 1]!.2.1 else f.len
     unless force.isSome || (big && nextJ - a > maxWin && J > a && f.len - J > maxWin / 4) do continue
@@ -883,6 +895,7 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
         | some s => pure s.exit.env
         | none => throw s!"{f.name}: no exit to {J}"
     let live : Std.HashSet ℕ := (stmtVals (cf.body.drop idx)).foldl (fun h v => h.insert (cellOf v)) {}
+    let fs := (marks.find? (·.1 == idx)).map (fun m => m.2.2.1 ++ extra) |>.getD extra
     let direct := fs.filter fun a => (keysG a).any live.contains
     let need : Std.HashSet ℕ := direct.foldl (fun h a => (needsG a).foldl (·.insert ·) h) {}
     let hand := fs.filter fun a => (keysG a).any fun c => live.contains c || need.contains c
@@ -923,10 +936,9 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let cuts ← planCuts F f cf locs marks segMap pre forced
   let cutT := listText (cuts.map fun c =>
-    s!"\{ J := {c.J}, env := {listText (c.env.map fun (o, s) => s!"({o}, {symText s})")}, " ++
-    s!"start := {c.start},\n      facts := {listText (c.facts.map fun (k, a) => s!"({k}, {atomText a})")},\n" ++
-    s!"      bnd := {listText (c.bnd.map pairText)}, known := {listText (c.known.map tripText)}, " ++
-    s!"sems := {listText (c.sems.map pairText)} }")
+    s!"⟨{c.J}, {listText (c.env.map fun (o, s) => s!"({o}, {symText s})")}, {c.start},\n      " ++
+    s!"{listText (c.facts.map fun (k, a) => s!"({k}, {atomText a})")},\n      " ++
+    s!"{listText (c.bnd.map pairText)}, {listText (c.known.map tripText)}, {listText (c.sems.map pairText)}⟩")
   let envT := listText (F.env.map fun (o, s) => s!"({o}, {symText s})")
   let armsT := listText ((F.arms.toList.mergeSort (·.1 ≤ ·.1)).map fun (i, a) =>
     s!"({i}, {listText (a.map toString)})")
