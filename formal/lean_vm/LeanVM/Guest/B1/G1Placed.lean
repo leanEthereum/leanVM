@@ -114,6 +114,39 @@ theorem completeRel_of_const {fs : String → ℕ} {cert : String → V → ℕ}
     CompleteRel fs cert k f fun _ => Pre :=
   completeRel_of_lift h fun _ _ _ rd1 hl1 hL1 hpre _ _ => hpre rd1 hl1 hL1
 
+/-- `CompleteMem` on disjoint layouts. -/
+def CompleteMemD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
+    (Pre : Reader → List E → List E → Prop) : Prop :=
+  ∀ (args rets : List E) (Lin : Layout), (∀ rd, MemL rd Lin → Pre rd args rets) →
+    CompleteAtD fs cert k f Lin args (Returns rets)
+
+/-- `completeMem_of_iff`, on disjoint layouts. -/
+theorem completeMem_of_iffD {fs : String → ℕ} {cert : String → V → ℕ} {S : List String}
+    (hS : coreProgram.PureIn S) {f : String} (hf : f ∈ S) {M : Reader → List E → List E → Prop}
+    (hiff : ∀ rd args rets, coreProgram.Rel rd f args rets ↔ M rd args rets) (k : ℕ) :
+    CompleteMemD fs cert k f M := fun _ _ _ h =>
+  completeAt_of_rel_pureD hS hf (fun rd hL => (hiff rd _ _).mpr (h rd hL)) k
+
+/-- `completeRel_of_lift`, on disjoint layouts. -/
+theorem completeRel_of_liftD {fs : String → ℕ} {cert : String → V → ℕ} {k : ℕ} {f : String}
+    {Pre : Reader → List E → List E → Prop} (h : CompleteMemD fs cert k f Pre)
+    (hlift : ∀ (args rets : List E) (Lin : Layout) (rd1 : Reader), LowDef k rd1 → MemL rd1 Lin →
+      (∀ rd, LowDef k rd → MemL rd Lin → Pre rd args rets) → ∀ rd, MemL rd Lin → Pre rd args rets) :
+    CompleteRelD fs cert k f Pre := by
+  intro args rets Lin hpre fp
+  classical
+  by_cases hex : ∃ rd1, LowDef k rd1 ∧ MemL rd1 Lin
+  · obtain ⟨rd1, hl1, hL1⟩ := hex
+    exact h args rets Lin (hlift args rets Lin rd1 hl1 hL1 hpre) fp
+  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, fun rd hl hL =>
+      absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
+
+/-- `completeRel_of_const`, on disjoint layouts. -/
+theorem completeRel_of_constD {fs : String → ℕ} {cert : String → V → ℕ} {k : ℕ} {f : String}
+    {Pre : List E → List E → Prop} (h : CompleteMemD fs cert k f fun _ => Pre) :
+    CompleteRelD fs cert k f fun _ => Pre :=
+  completeRel_of_liftD h fun _ _ _ rd1 hl1 hL1 hpre _ _ => hpre rd1 hl1 hL1
+
 theorem g1_filterMap_nil {α β : Type} {f : α → Option β} {l : List α}
     (h : (l.filterMap f).isEmpty = true) : l.filterMap f = [] := List.isEmpty_iff.mp h
 

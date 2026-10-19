@@ -40,68 +40,136 @@ theorem opening_fold_completeMem : CompleteMem fs cert k "opening_fold" MeaningO
   completeMem_of_iff (g1_pure_one find_opening_fold (by decide +kernel)) (by simp) opening_fold_iff k
 
 set_option maxRecDepth 100000 in
+theorem opening_fold_completeMemD : CompleteMemD fs cert k "opening_fold" MeaningOpeningFold :=
+  completeMem_of_iffD (g1_pure_one find_opening_fold (by decide +kernel)) (by simp) opening_fold_iff k
+
+set_option maxRecDepth 100000 in
 theorem sumcheck_round4_completeMem : CompleteMem fs cert k "sumcheck_round4" MeaningSumcheckRound4 :=
   completeMem_of_iff (g1_pure_one find_sumcheck_round4 (by decide +kernel)) (by simp) sumcheck_round4_iff k
+
+set_option maxRecDepth 100000 in
+theorem sumcheck_round4_completeMemD : CompleteMemD fs cert k "sumcheck_round4" MeaningSumcheckRound4 :=
+  completeMem_of_iffD (g1_pure_one find_sumcheck_round4 (by decide +kernel)) (by simp) sumcheck_round4_iff k
 
 set_option maxRecDepth 100000 in
 theorem sumcheck_round5_completeMem : CompleteMem fs cert k "sumcheck_round5" MeaningSumcheckRound5 :=
   completeMem_of_iff (g1_pure_one find_sumcheck_round5 (by decide +kernel)) (by simp) sumcheck_round5_iff k
 
 set_option maxRecDepth 100000 in
+theorem sumcheck_round5_completeMemD : CompleteMemD fs cert k "sumcheck_round5" MeaningSumcheckRound5 :=
+  completeMem_of_iffD (g1_pure_one find_sumcheck_round5 (by decide +kernel)) (by simp) sumcheck_round5_iff k
+
+set_option maxRecDepth 100000 in
 theorem ofm_L4_completeMem : CompleteMem fs cert k "opening_final_message__L4" (MeaningOpeningFinalMessage 4) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "opening_final_message__L4") (j := 616) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_final_message_L4_iff k
+
+set_option maxRecDepth 100000 in
+theorem ofm_L4_completeMemD : CompleteMemD fs cert k "opening_final_message__L4" (MeaningOpeningFinalMessage 4) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "opening_final_message__L4") (j := 616) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_final_message_L4_iff k
 
 set_option maxRecDepth 100000 in
 theorem ofm_L8_completeMem : CompleteMem fs cert k "opening_final_message__L8" (MeaningOpeningFinalMessage 8) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "opening_final_message__L8") (j := 631) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_final_message_L8_iff k
 
 set_option maxRecDepth 100000 in
+theorem ofm_L8_completeMemD : CompleteMemD fs cert k "opening_final_message__L8" (MeaningOpeningFinalMessage 8) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "opening_final_message__L8") (j := 631) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_final_message_L8_iff k
+
+set_option maxRecDepth 100000 in
 theorem ofm_L16_completeMem : CompleteMem fs cert k "opening_final_message__L16" (MeaningOpeningFinalMessage 16) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "opening_final_message__L16") (j := 588) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_final_message_L16_iff k
+
+set_option maxRecDepth 100000 in
+theorem ofm_L16_completeMemD : CompleteMemD fs cert k "opening_final_message__L16" (MeaningOpeningFinalMessage 16) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "opening_final_message__L16") (j := 588) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_final_message_L16_iff k
 
 set_option maxRecDepth 100000 in
 theorem ofm_L32_completeMem : CompleteMem fs cert k "opening_final_message__L32" (MeaningOpeningFinalMessage 32) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "opening_final_message__L32") (j := 602) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_final_message_L32_iff k
 
 set_option maxRecDepth 100000 in
+theorem ofm_L32_completeMemD : CompleteMemD fs cert k "opening_final_message__L32" (MeaningOpeningFinalMessage 32) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "opening_final_message__L32") (j := 602) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_final_message_L32_iff k
+
+set_option maxRecDepth 100000 in
 theorem orw_L4_L0_completeMem : CompleteMem fs cert k "opening_row_weights__L4_L0" (MeaningOpeningRowWeights 4 0) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "opening_row_weights__L4_L0") (j := 582) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_row_weights_L4_L0_iff k
+
+set_option maxRecDepth 100000 in
+theorem orw_L4_L0_completeMemD : CompleteMemD fs cert k "opening_row_weights__L4_L0" (MeaningOpeningRowWeights 4 0) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "opening_row_weights__L4_L0") (j := 582) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_row_weights_L4_L0_iff k
 
 set_option maxRecDepth 100000 in
 theorem orw_L6_L1_completeMem : CompleteMem fs cert k "opening_row_weights__L6_L1" (MeaningOpeningRowWeights 6 1) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "opening_row_weights__L6_L1") (j := 578) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_row_weights_L6_L1_iff k
 
 set_option maxRecDepth 100000 in
+theorem orw_L6_L1_completeMemD : CompleteMemD fs cert k "opening_row_weights__L6_L1" (MeaningOpeningRowWeights 6 1) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "opening_row_weights__L6_L1") (j := 578) (by decide +kernel) rfl) (by decide +kernel)) (by simp) opening_row_weights_L6_L1_iff k
+
+set_option maxRecDepth 100000 in
 theorem ffm_L2_completeMem : CompleteMem fs cert k "fold_final_msg__L2" (MeaningFoldFinalMsg 2) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "fold_final_msg__L2") (j := 618) (by decide +kernel) rfl) (by decide +kernel)) (by simp) fold_final_msg_L2_iff k
+
+set_option maxRecDepth 100000 in
+theorem ffm_L2_completeMemD : CompleteMemD fs cert k "fold_final_msg__L2" (MeaningFoldFinalMsg 2) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "fold_final_msg__L2") (j := 618) (by decide +kernel) rfl) (by decide +kernel)) (by simp) fold_final_msg_L2_iff k
 
 set_option maxRecDepth 100000 in
 theorem ffm_L3_completeMem : CompleteMem fs cert k "fold_final_msg__L3" (MeaningFoldFinalMsg 3) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "fold_final_msg__L3") (j := 633) (by decide +kernel) rfl) (by decide +kernel)) (by simp) fold_final_msg_L3_iff k
 
 set_option maxRecDepth 100000 in
+theorem ffm_L3_completeMemD : CompleteMemD fs cert k "fold_final_msg__L3" (MeaningFoldFinalMsg 3) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "fold_final_msg__L3") (j := 633) (by decide +kernel) rfl) (by decide +kernel)) (by simp) fold_final_msg_L3_iff k
+
+set_option maxRecDepth 100000 in
 theorem ffm_L4_completeMem : CompleteMem fs cert k "fold_final_msg__L4" (MeaningFoldFinalMsg 4) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "fold_final_msg__L4") (j := 591) (by decide +kernel) rfl) (by decide +kernel)) (by simp) fold_final_msg_L4_iff k
+
+set_option maxRecDepth 100000 in
+theorem ffm_L4_completeMemD : CompleteMemD fs cert k "fold_final_msg__L4" (MeaningFoldFinalMsg 4) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "fold_final_msg__L4") (j := 591) (by decide +kernel) rfl) (by decide +kernel)) (by simp) fold_final_msg_L4_iff k
 
 set_option maxRecDepth 100000 in
 theorem ffm_L5_completeMem : CompleteMem fs cert k "fold_final_msg__L5" (MeaningFoldFinalMsg 5) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "fold_final_msg__L5") (j := 604) (by decide +kernel) rfl) (by decide +kernel)) (by simp) fold_final_msg_L5_iff k
 
 set_option maxRecDepth 100000 in
+theorem ffm_L5_completeMemD : CompleteMemD fs cert k "fold_final_msg__L5" (MeaningFoldFinalMsg 5) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "fold_final_msg__L5") (j := 604) (by decide +kernel) rfl) (by decide +kernel)) (by simp) fold_final_msg_L5_iff k
+
+set_option maxRecDepth 100000 in
 theorem bs_L22_completeMem : CompleteMem fs cert k "batch_sumcheck__L22" (MeaningBatchSumcheck 22) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "batch_sumcheck__L22") (j := 568) (by decide +kernel) rfl) (by decide +kernel)) (by simp) batch_sumcheck_L22_iff k
+
+set_option maxRecDepth 100000 in
+theorem bs_L22_completeMemD : CompleteMemD fs cert k "batch_sumcheck__L22" (MeaningBatchSumcheck 22) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "batch_sumcheck__L22") (j := 568) (by decide +kernel) rfl) (by decide +kernel)) (by simp) batch_sumcheck_L22_iff k
 
 set_option maxRecDepth 100000 in
 theorem bs_L28_completeMem : CompleteMem fs cert k "batch_sumcheck__L28" (MeaningBatchSumcheck 28) :=
   completeMem_of_iff (g1_pure_one (Program.find?_of_indexOf? (n := "batch_sumcheck__L28") (j := 571) (by decide +kernel) rfl) (by decide +kernel)) (by simp) batch_sumcheck_L28_iff k
 
 set_option maxRecDepth 100000 in
+theorem bs_L28_completeMemD : CompleteMemD fs cert k "batch_sumcheck__L28" (MeaningBatchSumcheck 28) :=
+  completeMem_of_iffD (g1_pure_one (Program.find?_of_indexOf? (n := "batch_sumcheck__L28") (j := 571) (by decide +kernel) rfl) (by decide +kernel)) (by simp) batch_sumcheck_L28_iff k
+
+set_option maxRecDepth 100000 in
 theorem eq_prefix_chain_completeMem : CompleteMem fs cert k "eq_prefix_chain" MeaningEqPrefixChain :=
   completeMem_of_iff (g1_pure_two find_eq_prefix_chain find_loop7 (by decide +kernel) (by decide +kernel)) (by simp) eq_prefix_chain_iff k
 
 set_option maxRecDepth 100000 in
+theorem eq_prefix_chain_completeMemD : CompleteMemD fs cert k "eq_prefix_chain" MeaningEqPrefixChain :=
+  completeMem_of_iffD (g1_pure_two find_eq_prefix_chain find_loop7 (by decide +kernel) (by decide +kernel)) (by simp) eq_prefix_chain_iff k
+
+set_option maxRecDepth 100000 in
 theorem rs_eq_run_completeMem : CompleteMem fs cert k "rs_eq_run" MeaningRsEqRun :=
   completeMem_of_iff (g1_pure_two find_rs_eq_run find_loop8 (by decide +kernel) (by decide +kernel)) (by simp) rs_eq_run_iff k
+
+set_option maxRecDepth 100000 in
+theorem rs_eq_run_completeMemD : CompleteMemD fs cert k "rs_eq_run" MeaningRsEqRun :=
+  completeMem_of_iffD (g1_pure_two find_rs_eq_run find_loop8 (by decide +kernel) (by decide +kernel)) (by simp) rs_eq_run_iff k
 
 set_option maxRecDepth 100000 in
 theorem assert_canonical_completeMem :
@@ -109,14 +177,40 @@ theorem assert_canonical_completeMem :
   completeMem_of_iff (g1_pure_one find_assert_canonical (by decide +kernel)) (by simp)
     assert_canonical_iff k
 
+set_option maxRecDepth 100000 in
+theorem assert_canonical_completeMemD :
+    CompleteMemD fs cert k "assert_canonical" fun _ args rets => MeaningAssertCanonical args rets :=
+  completeMem_of_iffD (g1_pure_one find_assert_canonical (by decide +kernel)) (by simp)
+    assert_canonical_iff k
+
 /-- **`assert_canonical`, placed**, in the `CompleteRel` form: its meaning reads no memory. -/
 theorem assert_canonical_completeRel :
     CompleteRel fs cert k "assert_canonical" fun _ args rets => MeaningAssertCanonical args rets :=
   completeRel_of_const (assert_canonical_completeMem fs cert k)
 
+/-- **`assert_canonical`, placed**, in the `CompleteRelD` form: its meaning reads no memory. -/
+theorem assert_canonical_completeRelD :
+    CompleteRelD fs cert k "assert_canonical" fun _ args rets => MeaningAssertCanonical args rets :=
+  completeRel_of_constD (assert_canonical_completeMemD fs cert k)
+
 /-- **`opening_fold`, placed**, in the `CompleteRel` form: the two words it reads are returned. -/
 theorem opening_fold_completeRel : CompleteRel fs cert k "opening_fold" MeaningOpeningFold := by
   refine completeRel_of_lift (opening_fold_completeMem fs cert k) fun args rets Lin rd1 hl1 hL1 hpre => ?_
+  obtain ⟨s0, s1, cur, c0, c1, c2, rfl⟩ : ∃ s0 s1 cur c0 c1 c2, args = [s0, s1, cur, c0, c1, c2] := by
+    match args, hpre rd1 hl1 hL1 with
+    | [a, b, c, d, e, f], _ => exact ⟨a, b, c, d, e, f, rfl⟩
+  have hr : ∀ rd, LowDef k rd → MemL rd Lin → ReadsAt rd cur [rets.getD 4 0, rets.getD 5 0] := by
+    intro rd hl hL
+    obtain ⟨_, _, _, _, _, _, _, -, hR, -, rfl⟩ := hpre rd hl hL
+    exact hR
+  have hr' := (readsAt_lift hl1 hL1 hr).2
+  intro rd hL
+  obtain ⟨cv, d0, d2, r, t, q, cv', hcv, -, hrun, rfl⟩ := hpre rd1 hl1 hL1
+  exact ⟨cv, d0, d2, r, t, q, cv', hcv, hr' rd hL, hrun, rfl⟩
+
+/-- **`opening_fold`, placed**, in the `CompleteRelD` form: the two words it reads are returned. -/
+theorem opening_fold_completeRelD : CompleteRelD fs cert k "opening_fold" MeaningOpeningFold := by
+  refine completeRel_of_liftD (opening_fold_completeMemD fs cert k) fun args rets Lin rd1 hl1 hL1 hpre => ?_
   obtain ⟨s0, s1, cur, c0, c1, c2, rfl⟩ : ∃ s0 s1 cur c0 c1 c2, args = [s0, s1, cur, c0, c1, c2] := by
     match args, hpre rd1 hl1 hL1 with
     | [a, b, c, d, e, f], _ => exact ⟨a, b, c, d, e, f, rfl⟩
