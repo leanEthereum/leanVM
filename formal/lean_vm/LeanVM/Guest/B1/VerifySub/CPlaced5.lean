@@ -26,7 +26,7 @@ open LeanVM.Guest.Memory LeanVM.Guest.B1.Sig
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem vsPre1_noRet : Stmt.noRetList vsPre1 = true := by decide +kernel
+theorem vsPre1_noRet : Core.Stmt.noRetList vsPre1 = true := by decide +kernel
 
 variable {rd : Reader} {D : VsData} {P : VsPtrs} {out lp sq : E} {bytecode : List K}
 

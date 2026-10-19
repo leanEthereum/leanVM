@@ -35,8 +35,9 @@ variable {fs : String → ℕ} {cert : String → V → ℕ} {bytecode : List K}
 
 /-- The calls before the dispatch: their callees' bounds, the second loop's or its frame. -/
 def vsKidsBound (fs : String → ℕ) (Bs : VsBounds) : ℕ :=
-  2 * (fs "g_power_of_word__L6" + 6) + log2Bound0 fs + 2 * Bs.ac + Bs.gkr + Bs.tab + Bs.fl +
-    Bs.l84 + max Bs.l85 (fs "__loop85") + Bs.pl + log2Bound15 fs
+  2 * (fs "g_power_of_word__L6" + 6) + log2Bound0 fs + 2 * fs "assert_canonical" + Bs.gkr + Bs.tab +
+    Bs.fl + 64 * (2 * fs "__loop84") + max (28 * (2 * fs "__loop85")) (fs "__loop85") + Bs.pl +
+    log2Bound15 fs
 
 /-- **`verify_sub`'s bound**: its frame, its buffers (at most `9086` words at the deployed
 limits), its callees'. -/
@@ -63,12 +64,7 @@ theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
     {Bs : VsBounds} (hG : CompleteGkrAtB fs cert κ Bs.gkr)
     (hT : CompleteTablesAtB fs cert κ bytecode TCtx Bs.tab) (hF : CompleteFlockAtB fs cert κ Bs.fl)
     (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hO : CompleteOpenAtB fs cert κ CapOk Bs.op)
-    (hE : CompleteTermAtB fs cert κ TCtx PCtx Bs.term) (hac : TotalLeA fs "assert_canonical" fun _ => Bs.ac)
-    {B84 B85 : List E → ℕ} (h84 : TotalLeA fs "__loop84" B84)
-    (hB84 : ∀ args : List E, args.getD 0 0 = word 1 0 0 → B84 args ≤ Bs.l84)
-    (h85 : TotalLeA fs "__loop85" B85)
-    (hB85 : ∀ τ < 29, ∀ args : List E, args.getD 0 0 = word 1 0 0 → args.getD 1 0 = gen ^ τ →
-      B85 args ≤ Bs.l85)
+    (hE : CompleteTermAtB fs cert κ TCtx PCtx Bs.term)
     (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (htok : D.TOk bytecode)
     (hcap : CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os
       D.target)
@@ -82,7 +78,7 @@ theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
   -- the calls before the dispatch
   obtain ⟨N1, L1, outs1, ho1, hw1, hd1, hb1, hi1, hK1⟩ :=
     kidsFromIn_of_kidsB κ (vsBd fs Bs) (vsKids1 fs D fp lpA sqA outA)
-    (vsKids1_completeB hb hok htok hG hT hF hPl hac h84 hB84 h85 hB85 hκ)
+    (vsKids1_completeB hb hok htok hG hT hF hPl hκ)
     (fp + fs "verify_sub" + (vsSizes D).sum)
   obtain ⟨o0, o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, rfl⟩ :=
     list12 (ho1.length.trans (by simp [vsKids1]))

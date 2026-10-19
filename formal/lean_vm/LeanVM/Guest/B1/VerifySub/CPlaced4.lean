@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.CLog2c
 public import LeanVM.Guest.B1.VerifySub.Inv5
+public import LeanVM.Guest.Memory.GuestSize
 public import LeanVM.Guest.B1.Tables.Kappas
 
 /-!
@@ -150,11 +151,6 @@ variable {fs bytecode D}
 
 /-! ## Their completeness -/
 
-/-- A bound on every valid tree of `f` by its arguments (`Memory.TotalLe`'s body). -/
-def TotalLeA (fs : String → ℕ) (f : String) (B : List E → ℕ) : Prop :=
-  ∀ rd (t : Tree) (args rets : List E), t.name = f → t.Valid coreProgram rd args rets →
-    t.BufsOk coreProgram → t.total fs ≤ B args
-
 /-- The bounds of `verify_sub`'s callees' trees. -/
 structure VsBounds where
   gkr : ℕ
@@ -163,20 +159,17 @@ structure VsBounds where
   pl : ℕ
   op : ℕ
   term : ℕ
-  ac : ℕ
-  l84 : ℕ
-  l85 : ℕ
 
 /-- A call before the dispatch: its callee's bound. -/
 def vsBd (fs : String → ℕ) (Bs : VsBounds) (k : Kid) : ℕ :=
   if k.f = "g_power_of_word__L6" then fs "g_power_of_word__L6" + 6
   else if k.f = "log2_ceil_in_the_exponent__L0_L34" then log2Bound0 fs
-  else if k.f = "assert_canonical" then Bs.ac
+  else if k.f = "assert_canonical" then fs "assert_canonical"
   else if k.f = "verify_bus_gkr" then Bs.gkr
   else if k.f = "verify_tables" then Bs.tab
   else if k.f = "verify_flock" then Bs.fl
-  else if k.f = "__loop84" then Bs.l84
-  else if k.f = "__loop85" then Bs.l85
+  else if k.f = "__loop84" then 64 * (2 * fs "__loop84")
+  else if k.f = "__loop85" then 28 * (2 * fs "__loop85")
   else if k.f = "certify_placement" then Bs.pl
   else log2Bound15 fs
 
@@ -194,20 +187,16 @@ theorem pushTotal_bounds (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) :
 theorem vsKids1_completeB {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode)
     (htok : D.TOk bytecode) {Bs : VsBounds} (hG : CompleteGkrAtB fs cert κ Bs.gkr)
     (hT : CompleteTablesAtB fs cert κ bytecode TCtx Bs.tab) (hF : CompleteFlockAtB fs cert κ Bs.fl)
-    (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hac : TotalLeA fs "assert_canonical" fun _ => Bs.ac)
-    {B84 B85 : List E → ℕ} (h84 : TotalLeA fs "__loop84" B84)
-    (hB84 : ∀ args : List E, args.getD 0 0 = word 1 0 0 → B84 args ≤ Bs.l84)
-    (h85 : TotalLeA fs "__loop85" B85)
-    (hB85 : ∀ τ < 29, ∀ args : List E, args.getD 0 0 = word 1 0 0 → args.getD 1 0 = gen ^ τ →
-      B85 args ≤ Bs.l85)
+    (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) 
     (hκ : 7 ≤ κ) :
     ∀ k ∈ vsKids1 fs D fp lpA sqA outA, k.taken = true →
       CompleteAtB fs cert κ k.f k.Lin k.args k.Out (vsBd fs Bs k) := by
   intro k hk ht
   have hc : ∀ x : E, IsCanonical128 x →
-      CompleteAtB fs cert κ "assert_canonical" [] [x] (Returns [0]) Bs.ac :=
-    fun x hx => completeAt_of_rel_pureB ac_pure (by simp)
-      (fun rd _ => (assert_canonical_iff rd [x] [0]).mpr ⟨hx, rfl⟩) κ (B := fun _ => Bs.ac) hac
+      CompleteAtB fs cert κ "assert_canonical" [] [x] (Returns [0]) (fs "assert_canonical") :=
+    fun x hx => completeAt_of_rel_pureBat ac_pure (by simp)
+      (fun rd _ => (assert_canonical_iff rd [x] [0]).mpr ⟨hx, rfl⟩) κ
+      fun rd t hn hv hb => assert_canonical_totalLe fs rd t _ _ hn hv hb
   obtain ⟨hN, hl⟩ := pushTotal_bounds hb hok
   have M := fun rd (hm : MemL rd (vsAllL fs D fp lpA sqA outA)) =>
     vsAll_mem (off := 0) (kap := 0) (pt := 0) hm
@@ -255,16 +244,36 @@ theorem vsKids1_completeB {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok
         rwa [CE.2.2.1] at this, (M rd hm).1.zchis, (M rd hm).1.lrs, (M rd hm).1.zpart⟩
     rw [← CE.2.2.1] at h
     exact h.mono le_rfl (by vs_bd)
-  · refine (completeAt_of_rel_pureB loop84_pure (by simp) (fun rd hm => ?_) κ (B := B84)
-      h84).mono le_rfl (le_trans (hB84 _ rfl) (by vs_bd))
+  · refine (completeAt_of_rel_pureBat loop84_pure (by simp) (fun rd hm => ?_) κ
+      (B := 64 * (2 * fs "__loop84")) fun rd t hn hv hb => ?_).mono le_rfl (by vs_bd)
+    swap
+    · have e0 : word 1 0 0 = ofK (Parameters.gpow 0) := by
+        rw [word_one, Parameters.gpow, pow_zero, ofK_one]
+      have h := loop84_totalLe fs rd t [word 1 0 0, (vsPtrsAt fs fp D 0 0 0).zpart,
+        (vsPtrsAt fs fp D 0 0 0).mcs, (vsPtrsAt fs fp D 0 0 0).rs] _ hn ⟨0, e0, by decide⟩ hv hb
+      simp only [List.getD_cons_zero, e0, logG_spec (show (0 : ℕ) < 2 ^ 64 - 1 by decide),
+        Nat.sub_zero] at h
+      exact h
     rw [word_one, ← pow_zero gen]
     exact loop84_complete (loop84_bodies (M rd hm).1 hok.s_length mcs_length)
-  · refine (completeAt_of_rel_pureB loop85_pure (by simp) (fun rd hm => ?_) κ (B := B85)
-      h85).mono le_rfl (le_trans (hB85 D.tau (tau_lt hok) _ rfl rfl) (by vs_bd))
-    have hτ : D.tau ≠ 0 := by
+  · have hτ : D.tau ≠ 0 := by
       intro h0
       simp only [h0, pow_zero, word_one, CharTwo.add_self_eq_zero, ne_eq, not_true_eq_false,
         decide_false, Bool.false_eq_true] at ht
+    have hτ29 := tau_lt hok
+    have e0 : word 1 0 0 = ofK (Parameters.gpow 0) := by
+      rw [word_one, Parameters.gpow, pow_zero, ofK_one]
+    refine (completeAt_of_rel_pureBat loop85_pure (by simp) (fun rd hm => ?_) κ
+      (B := D.tau * (2 * fs "__loop85")) fun rd t hn hv hb => ?_).mono le_rfl
+      (le_trans (Nat.mul_le_mul_right _ (show D.tau ≤ 28 by omega)) (by vs_bd))
+    swap
+    · have h := loop85_totalLe fs rd t [word 1 0 0, gen ^ D.tau,
+        (vsPtrsAt fs fp D 0 0 0).zvals * word 256 0 0, (vsPtrsAt fs fp D 0 0 0).zchis * word 256 0 0]
+        _ hn ⟨0, D.tau, e0, gen_pow_eq_ofK _, Nat.pos_of_ne_zero hτ, by omega⟩ hv hb
+      simp only [List.getD_cons_zero, List.getD_cons_succ, e0, gen_pow_eq_ofK,
+        logG_spec (show (0 : ℕ) < 2 ^ 64 - 1 by decide),
+        logG_spec (show D.tau < 2 ^ 64 - 1 by omega), Nat.sub_zero] at h
+      exact h
     have w8 : word 256 0 0 = gen ^ 8 := word_two_pow (a := 8) (by decide)
     have hm0 := (M rd hm).1
     rw [word_one, ← pow_zero gen, w8]

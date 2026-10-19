@@ -158,7 +158,7 @@ theorem vs_load (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) {σ : Val}
   · have h1149 : σ (.n 1149) = ofK (Parameters.gpow (vsB fs fp D 17 + 128)) := by
       have hrs : P.rs = ofK (Parameters.gpow (vsB fs fp D 17)) := rfl
       rw [hfix.get (k := 1149) (e := P.rs * word 325 0 0) (by vs_mem), word325, gen_pow_eq_ofK, hrs,
-        ← ofK_mul, Parameters.gpow, Parameters.gpow, ← pow_add]
+        ← Parameters.ofK_mul, Parameters.gpow, Parameters.gpow, ← pow_add]
     refine ⟨vsB fs fp D 17 + 128 + 1, by rw [h1149, Main.addr_ofK], Or.inl ⟨17, by omega, by omega, ?_⟩⟩
     simp [vsSizes]
   · exact own 18 (by omega) 1180 (hfix.get (k := 1180) (e := P.lam) (by vs_mem)) _
@@ -174,7 +174,7 @@ theorem vs_load (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) {σ : Val}
         (List.mem_append_right _ (List.mem_append_right _ (List.mem_append_right _
           (List.mem_append_right _ (List.mem_append_right _ (List.mem_append_left _
             (List.mem_append_right _ (List.mem_map.mpr ⟨b, List.mem_range.mpr (by omega), rfl⟩))))))))]
-      rw [gen_pow_eq_ofK, ← ofK_mul, Parameters.gpow, Parameters.gpow, ← pow_add]
+      rw [gen_pow_eq_ofK, ← Parameters.ofK_mul, Parameters.gpow, Parameters.gpow, ← pow_add]
     refine ⟨sqA + pkap D b + 0, by rw [hp, Main.addr_ofK], Or.inr ⟨(sqA, (List.range sizeBits).map
       fun j => gen ^ 2 ^ j), by simp [vsExtL, expL], by simp, by simp [sizeBits]; omega⟩⟩
 

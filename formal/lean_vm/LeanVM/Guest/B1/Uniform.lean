@@ -733,13 +733,14 @@ theorem kidsFromIn_of_kidsB (κ : ℕ) (bd : Kid → ℕ) : ∀ (ks : List Kid),
             exact this
 
 
-/-- `completeAt_of_rel_pure` by a bounded tree: the bound on every valid tree of `g`. -/
-theorem completeAt_of_rel_pureB {S : List String} (hS : coreProgram.PureIn S) {g : String}
+/-- `completeAt_of_rel_pure` by a bounded tree: the bound on the valid trees of `g` at the call's
+arguments. -/
+theorem completeAt_of_rel_pureBat {S : List String} (hS : coreProgram.PureIn S) {g : String}
     (hg : g ∈ S) {Lin : Layout} {args rets : List E}
-    (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) {B : List E → ℕ}
-    (hB : ∀ rd (t : Tree) args rets, t.name = g → t.Valid coreProgram rd args rets →
-      t.BufsOk coreProgram → t.total fs ≤ B args) :
-    CompleteAtB fs cert k g Lin args (Returns rets) (B args) := by
+    (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) {B : ℕ}
+    (hB : ∀ rd (t : Tree), t.name = g → t.Valid coreProgram rd args rets →
+      t.BufsOk coreProgram → t.total fs ≤ B) :
+    CompleteAtB fs cert k g Lin args (Returns rets) B := by
   intro fp
   classical
   by_cases hex : ∃ rd1, MemL rd1 Lin
@@ -752,9 +753,9 @@ theorem completeAt_of_rel_pureB {S : List String} (hS : coreProgram.PureIn S) {g
   have hsupp := Main.restrict_supp' rd1 (RegionL Lin)
   obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg
     (Main.relIn_of_rel_supp coreProgram_wf hsupp (h rd0 h0))
-  have hnB : n ≤ B args := by
+  have hnB : n ≤ B := by
     obtain ⟨t, hname, hv, hbo, -, ht, -⟩ := hn fp rd0 (fun _ _ => rfl) (fun _ h => h)
-    rw [← ht]; exact hB rd0 t args rets hname hv hbo
+    rw [← ht]; exact hB rd0 t hname hv hbo
   refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, hnB, fun rd _ hL => ?_⟩
   have hL' : MemL rd Lin := by simpa using hL
   refine relAtIn_dmono (hn fp rd (fun i hi => ?_) (fun A hA => ?_)) (fun i hi => ?_)
@@ -764,6 +765,15 @@ theorem completeAt_of_rel_pureB {S : List String} (hS : coreProgram.PureIn S) {g
     rw [Main.memL_agree hL' h1 i hi, ← Main.restrict_of (rd := rd1) (S := RegionL Lin) ⟨i, rfl, hi⟩, hv]
     rfl
   · obtain ⟨q, hq, _⟩ := hi; simp at hq
+
+/-- `completeAt_of_rel_pure` by a bounded tree: the bound on every valid tree of `g`. -/
+theorem completeAt_of_rel_pureB {S : List String} (hS : coreProgram.PureIn S) {g : String}
+    (hg : g ∈ S) {Lin : Layout} {args rets : List E}
+    (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) {B : List E → ℕ}
+    (hB : ∀ rd (t : Tree) args rets, t.name = g → t.Valid coreProgram rd args rets →
+      t.BufsOk coreProgram → t.total fs ≤ B args) :
+    CompleteAtB fs cert k g Lin args (Returns rets) (B args) :=
+  completeAt_of_rel_pureBat hS hg h k fun rd t hn hv hb => hB rd t args rets hn hv hb
 
 /-- `completeAt_leaf` by a tree of its frame and buffers. -/
 theorem completeAt_leafB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
