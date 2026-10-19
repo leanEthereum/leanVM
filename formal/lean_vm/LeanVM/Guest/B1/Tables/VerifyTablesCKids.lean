@@ -188,5 +188,38 @@ def VtGlue4 : Prop :=
         σ' (.n 3359) = mF ∧ σ' (.n 3409) = bF ∧
           (σ' (.n 3422), σ' (.n 3423)) = digestScalars (obsCv (obsCv cv mF) bF))
 
+/-! ## The placements fit the bus point; the callees complete -/
+
+/-- **The bus blocks fit the push side's depth** (protocol): with `μ` the push layout's depth (the
+GKR point's length), each of the 65 selectors' blocks has log-height `k ≤ μ` and offset below
+`2^μ` aligned to `2^k`; the framework's and the tables' log-heights are at most `μ`. -/
+def VtFits : Prop :=
+  ∀ (bytecode : List K), bytecode.length = 2 ^ 22 → ∀ (logMem : ℕ) (rowsN : List ℕ), 16 ≤ logMem →
+    logMem ≤ 32 → rowsN.length = 6 → (∀ m ∈ rowsN, log2Ceil m < 29) →
+    let τs := fun t => log2Ceil (rowsN.getD t 0)
+    let μ := (busLayout [0, logMem, 18] (layoutOf bytecode logMem rowsN).push).depth
+    logMem ≤ μ ∧ 18 ≤ μ ∧ (∀ t < 6, τs t ≤ μ) ∧
+      ∀ i < 65, vtKs logMem τs (selBlk.getD i 0) ≤ μ ∧ selOff (vtKs logMem τs) i < 2 ^ μ ∧
+        2 ^ vtKs logMem τs (selBlk.getD i 0) ∣ selOff (vtKs logMem τs) i
+
+/-- **The 75 callees complete, placed** (`completeAt_flatD`'s `hkc`): on the honest buffers, the
+caller's words holding the bus point at `zeta`, `g_squares` at `sq`, the challenges reversed at
+`chiP` and the rounds' words at the cursor five words on, every taken callee of `vtKids` is
+complete. -/
+def VtKidsComplete : Prop :=
+  ∀ (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ), 7 ≤ κ → ∀ (Lin : Main.Layout) (b n logMem : ℕ)
+    (ks τs nr : ℕ → ℕ) (point chis : List E) (cvr : ℕ → Digest) (cur : E) (cl ch : ℕ → E)
+    (wsr : ℕ → List E) (zeta sq chiP : E),
+    point.length < 33 → logMem ≤ point.length → 18 ≤ point.length → n ≤ point.length →
+    (∀ i < 65, ks (selBlk.getD i 0) ≤ point.length) →
+    (∀ t < 6, τs t < 29 ∧ τs t ≤ point.length ∧ nr t ≤ 2 ^ τs t) →
+    chis = ((List.range n).map ch).reverse →
+    (∀ r < n, RunsTo (roundPoly 4 (cl r) none) (cvr r) (wsr r) (cl (r + 1), ch r) (cvr (r + 1))) →
+    (∀ rd, LowDef κ rd → MemL rd Lin → ReadsAt rd zeta point ∧ (∀ j < 34, LoadHolds rd sq j (gen ^ 2 ^ j)) ∧
+      ReadsAt rd chiP chis ∧ ReadsAt rd (cur * gen ^ 5) ((List.range n).flatMap wsr)) →
+    ∀ k ∈ vtKids Lin b n point.length logMem ks τs nr point zeta sq chiP
+      (vtOwnW ks point logMem n cvr cur cl ch chis), k.taken = true →
+      CompleteAtD fs cert κ k.f k.Lin k.args k.Out
+
 end
 end LeanVM.Guest.B1.VerifySub
