@@ -452,5 +452,373 @@ theorem cp_sound {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) {kb sq : E}
     exact congrArg List.sum (List.map_congr_left fun c hc => by
       simp only [Function.comp_apply]; rw [hsize c (List.mem_range.mp hc)])
 
+/-! ## Completeness -/
+
+section
+variable (A B C D : ℕ → E × E × E) (κs : List ℕ)
+
+/-- Rank `r`'s column in `stackOffsets`'s order. -/
+def cpPi (r : ℕ) : ℕ := (stackOrder κs).getD r 0
+
+/-- Rank `r`'s size. -/
+def cpK (r : ℕ) : ℕ := κs.getD (cpPi κs r) 0
+
+/-- The running offset before rank `r`. -/
+def cpS (r : ℕ) : ℕ := prefixSize (κs.getD · 0) (stackOrder κs) r
+
+/-- Rank `r ≥ 1`'s honest values, from `B = 90 + 26·r`. -/
+def cpRankVals (sq p2 p100 : E) (r : ℕ) : List E :=
+  let x := gen ^ cpPi κs r
+  let kv := gen ^ cpK κs r
+  let q := gen ^ (cpK κs (r - 1) - cpK κs r)
+  let q' := gen ^ (cpPi κs r - cpPi κs (r - 1))
+  [x, w91, (A r).1, (A r).2.1, (A r).2.2, p2 * x, kv, w33, q,
+    (B r).1, (B r).2.1, (B r).2.2, gen ^ cpK κs (r - 1) + kv, w91, q',
+    (C r).1, (C r).2.1, (C r).2.2, p100 * x, w33,
+    (D r).1, (D r).2.1, (D r).2.2, sq * kv, gen ^ 2 ^ cpK κs r,
+    gen ^ cpS κs (r + 1)]
+
+/-- Rank `0`'s honest values, from `101`. -/
+def cpRank0Vals (sq p2 p100 : E) : List E :=
+  let x := gen ^ cpPi κs 0
+  let kv := gen ^ cpK κs 0
+  [x, w91, (A 0).1, (A 0).2.1, (A 0).2.2, p2 * x, kv, word 1 0 0,
+    p100 * x, w33, (D 0).1, (D 0).2.1, (D 0).2.2, sq * kv,
+    gen ^ 2 ^ cpK κs 0]
+
+/-- The columns' sizes' honest values, `3 .. 98`. -/
+noncomputable def cpInitVals (w : ℕ → E) (i : ℕ) : E :=
+  if i < 7 then w (i - 3) else if i = 7 then w 4 else if i = 8 then word (2 ^ 18) 0 0
+  else if i = 9 then w 4 * word (2 ^ 18) 0 0 else if i = 10 then w 5
+  else if i = 11 then word (2 ^ 8) 0 0 else if i = 12 then w 5 * word (2 ^ 8) 0 0 else w (i - 7)
+
+/-- The honest valuation's value `i`. -/
+noncomputable def cpF (kb sq p2 p99 p100 : E) (w : ℕ → E) (i : ℕ) : E :=
+  if i < 3 then [kb, sq, p2].getD i 0
+  else if i < 99 then cpInitVals w i
+  else if i = 99 then p99 else if i = 100 then p100
+  else if i < 116 then (cpRank0Vals A D κs sq p2 p100).getD (i - 101) 0
+  else if i < 2482 then (cpRankVals A B C D κs sq p2 p100 ((i - 90) / 26)).getD ((i - 90) % 26) 0
+  else if i = 2482 then gen ^ cpS κs 92 else if i = 2483 then p100 else p2
+
+variable {kb sq p2 p99 p100 : E} {w : ℕ → E}
+
+theorem cpF_rank {i r j : ℕ} (hi : i = 90 + 26 * r + j) (hr1 : 1 ≤ r) (hr : r ≤ 91) (hj : j < 26) :
+    cpF A B C D κs kb sq p2 p99 p100 w i = (cpRankVals A B C D κs sq p2 p100 r).getD j 0 := by
+  subst hi
+  rw [cpF, ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
+    ite_neg' (by omega), ite_pos' (by omega), show (90 + 26 * r + j - 90) / 26 = r by omega,
+    show (90 + 26 * r + j - 90) % 26 = j by omega]
+
+theorem cpF_rank0 {i j : ℕ} (hi : i = 101 + j) (hj : j < 15) :
+    cpF A B C D κs kb sq p2 p99 p100 w i = (cpRank0Vals A D κs sq p2 p100).getD j 0 := by
+  subst hi
+  rw [cpF, ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
+    ite_pos' (by omega), Nat.add_sub_cancel_left]
+
+theorem stackOrder_length : (stackOrder κs).length = κs.length := by
+  rw [stackOrder, List.length_mergeSort, List.length_range]
+
+theorem cpS_succ {r : ℕ} (hr : r < κs.length) : cpS κs (r + 1) = cpS κs r + 2 ^ cpK κs r := by
+  rw [cpS, cpS, prefixSize_succ _ _ _ (by rw [stackOrder_length]; exact hr)]; rfl
+
+/-- The running offset at rank `r`'s store. -/
+theorem cpF_G (hlen : κs.length = 92) {r : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 91) :
+    cpF A B C D κs kb sq p2 p99 p100 w (90 + 26 * r - 1) = gen ^ cpS κs r := by
+  rcases Nat.lt_or_ge r 2 with h | h
+  · obtain rfl : r = 1 := by omega
+    rw [cpF_rank0 A B C D κs (j := 14) rfl (by omega)]
+    simp only [cpRank0Vals, List.getD_cons_succ, List.getD_cons_zero]
+    rw [cpS_succ κs (by omega), cpS, prefixSize, List.take_zero, List.map_nil, List.sum_nil,
+      Nat.zero_add]
+  · rw [cpF_rank A B C D κs (r := r - 1) (j := 25) (by omega) (by omega) (by omega) (by omega)]
+    simp only [cpRankVals, List.getD_cons_succ, List.getD_cons_zero]
+    rw [Nat.sub_add_cancel (by omega)]
+
+end
+
+/-- `stackOrder` is sorted on adjacent entries: sizes do not increase, ties ascend. -/
+theorem stackOrder_adj (κs : List ℕ) {r : ℕ} (hr : r + 1 < κs.length) :
+    cpK κs (r + 1) ≤ cpK κs r ∧ (cpK κs r = cpK κs (r + 1) → cpPi κs r ≤ cpPi κs (r + 1)) := by
+  have htrans : ∀ a b c, stackLe (κs.getD · 0) a b = true → stackLe (κs.getD · 0) b c = true →
+      stackLe (κs.getD · 0) a c = true := by
+    intro a b c hab hbc
+    simp only [stackLe, Bool.or_eq_true, decide_eq_true_eq, Bool.and_eq_true] at *
+    omega
+  have htotal : ∀ a b, (stackLe (κs.getD · 0) a b || stackLe (κs.getD · 0) b a) = true := by
+    intro a b
+    simp only [stackLe, Bool.or_eq_true, decide_eq_true_eq, Bool.and_eq_true]
+    omega
+  have hp := List.pairwise_iff_getElem.mp (List.pairwise_mergeSort htrans htotal
+    (List.range κs.length))
+  have hl : (stackOrder κs).length = κs.length := stackOrder_length κs
+  have h := hp r (r + 1) (by rw [← stackOrder, hl]; omega) (by rw [← stackOrder, hl]; omega)
+    (by omega)
+  simp only [stackLe, Bool.or_eq_true, decide_eq_true_eq, Bool.and_eq_true] at h
+  simp only [cpK, cpPi, List.getD_eq_getElem _ _ (show r < (stackOrder κs).length by omega),
+    List.getD_eq_getElem _ _ (show r + 1 < (stackOrder κs).length by omega)]
+  unfold stackOrder at *
+  omega
+
+theorem cpF_init {A B C D : ℕ → E × E × E} {κs : List ℕ} {kb sq p2 p99 p100 : E} {w : ℕ → E}
+    {i : ℕ} (h3 : 3 ≤ i) (h99 : i < 99) : cpF A B C D κs kb sq p2 p99 p100 w i = cpInitVals w i := by
+  rw [cpF, ite_neg' (by omega), ite_pos' h99]
+
+theorem cpInitVals_W (w : ℕ → E) {c : ℕ} (hc : c < 92) : cpInitVals w (cpW c) = w c := by
+  unfold cpW cpInitVals
+  split_ifs <;> first | omega | (congr 1; omega) | rfl
+
+/-- Column `c`'s size holds of the honest valuation. -/
+theorem cp_init_ok {μ : ℕ} (Lm : MemImage μ) {A B C D : ℕ → E × E × E} {kb sq : E} (κs : List ℕ)
+    {p2 p99 p100 : E}
+    {w : ℕ → E} {F : ℕ → E} (hF : F = cpF A B C D κs kb sq p2 p99 p100 w)
+    (hw : ∀ c < 92, LoadHolds Lm.read kb (cpSrc c) (w c) ∧ w c * gen ^ cpAdj c = gen ^ κs.getD c 0)
+    (l2 : ∀ c < 92, LoadHolds Lm.read p2 c (gen ^ κs.getD c 0)) (c : ℕ) (hc : c < 92) :
+    CpInitOk Lm.read (fun v => F v.idx) c := by
+  have f0 : F 0 = kb := by rw [hF]; rfl
+  have f2 : F 2 = p2 := by rw [hF]; rfl
+  have hW : F (cpW c) = w c := by
+    rw [hF, cpF_init (by unfold cpW; split_ifs <;> omega) (by unfold cpW; split_ifs <;> omega),
+      cpInitVals_W w hc]
+  have hV : F (cpV c) = gen ^ κs.getD c 0 := by
+    by_cases ha : cpAdj c = 0
+    · have : cpV c = cpW c := by
+        unfold cpAdj at ha; unfold cpV cpW; split_ifs at ha ⊢ <;> rfl
+      rw [this, hW, ← (hw c hc).2, ha, pow_zero, mul_one]
+    · have hc45 : c = 4 ∨ c = 5 := by unfold cpAdj at ha; split_ifs at ha <;> omega
+      rcases hc45 with rfl | rfl
+      · rw [← (hw 4 hc).2, show cpV 4 = 9 from rfl, hF]
+        show w 4 * word (2 ^ 18) 0 0 = _
+        rw [word_two_pow (by omega)]; rfl
+      · rw [← (hw 5 hc).2, show cpV 5 = 12 from rfl, hF]
+        show w 5 * word (2 ^ 8) 0 0 = _
+        rw [word_two_pow (by omega)]; rfl
+  refine ⟨by show LoadHolds _ (F 0) _ (F (cpW c)); rw [f0, hW]; exact (hw c hc).1, fun ha => ?_,
+    by show LoadHolds _ (F 2) _ (F (cpV c)); rw [f2, hV]; exact l2 c hc⟩
+  have hc45 : c = 4 ∨ c = 5 := by unfold cpAdj at ha; split_ifs at ha <;> omega
+  rcases hc45 with rfl | rfl
+  · rw [hF]; exact ⟨rfl, rfl⟩
+  · rw [hF]; exact ⟨rfl, rfl⟩
+
+/-- A range check's auxiliary words `a` pass for `x` against `K`. -/
+def RcOk (rd : Reader) (x : E) (K : ℕ) (a : E × E × E) : Prop :=
+  LoadHolds rd x 0 a.2.1 ∧ ofK (Parameters.gpow (K - 1)) = x * a.1 ∧ LoadHolds rd a.1 0 a.2.2
+
+/-- Rank `r + 1` holds of the honest valuation. -/
+
+theorem cp_rank_ok {μ : ℕ} (Lm : MemImage μ) {A B C D : ℕ → E × E × E} {kb sq : E}
+    (hsq : ∀ j < 34, LoadHolds Lm.read sq j (gen ^ 2 ^ j)) (κs : List ℕ) (hlen : κs.length = 92)
+    {p2 p99 p100 : E} {w : ℕ → E} {F : ℕ → E} (hF : F = cpF A B C D κs kb sq p2 p99 p100 w)
+    (hπ : ∀ r < 92, cpPi κs r < 92) (hk : ∀ r < 92, cpK κs r < 34)
+    (l99 : ∀ r < 92, LoadHolds Lm.read p99 r (gen ^ cpPi κs r))
+    (l2 : ∀ c < 92, LoadHolds Lm.read p2 c (gen ^ κs.getD c 0))
+    (l100 : ∀ r < 92, LoadHolds Lm.read p100 (cpPi κs r) (gen ^ cpS κs r))
+    (hA : ∀ r < 92, RcOk Lm.read (gen ^ cpPi κs r) 92 (A r))
+    (hB : ∀ r < 92, RcOk Lm.read (gen ^ (cpK κs (r - 1) - cpK κs r)) 34 (B r))
+    (hC : ∀ r < 92, RcOk Lm.read (gen ^ (cpPi κs r - cpPi κs (r - 1))) 92 (C r))
+    (hD : ∀ r < 92, RcOk Lm.read (gen ^ cpK κs r) 34 (D r)) (r : ℕ) (hr : r < 91) :
+    CpRankOk Lm.read (fun v => F v.idx) (r + 1) := by
+  have hR : ∀ R, 1 ≤ R → R ≤ 91 → ∀ j < 26,
+      F (90 + 26 * R + j) = (cpRankVals A B C D κs sq p2 p100 R).getD j 0 := fun R h1 h2 j hj => by
+    rw [hF]; exact cpF_rank A B C D κs rfl h1 h2 hj
+  have h0 : ∀ j < 15, F (101 + j) = (cpRank0Vals A D κs sq p2 p100).getD j 0 := fun j hj => by
+    rw [hF]; exact cpF_rank0 A B C D κs rfl hj
+  have hG : ∀ R, 1 ≤ R → R ≤ 91 → F (90 + 26 * R - 1) = gen ^ cpS κs R := fun R h1 h2 => by
+    rw [hF]; exact cpF_G A B C D κs hlen h1 h2
+  have f1 : F 1 = sq := by rw [hF]; rfl
+  have f2 : F 2 = p2 := by rw [hF]; rfl
+  have f99 : F 99 = p99 := by rw [hF]; rfl
+  have f100 : F 100 = p100 := by rw [hF]; rfl
+  have hpkr : F (cpPk (r + 1)) = gen ^ cpK κs r := by
+    rcases Nat.eq_zero_or_pos r with rfl | hr0
+    · exact h0 6 (by omega)
+    · rw [show cpPk (r + 1) = 90 + 26 * r + 6 by unfold cpPk; rw [ite_neg' (by omega)]; omega]
+      exact hR r hr0 (by omega) 6 (by omega)
+  have hpcr : F (cpPc (r + 1)) = gen ^ cpPi κs r := by
+    rcases Nat.eq_zero_or_pos r with rfl | hr0
+    · exact h0 0 (by omega)
+    · rw [show cpPc (r + 1) = 90 + 26 * r by unfold cpPc; rw [ite_neg' (by omega)]; omega]
+      exact hR r hr0 (by omega) 0 (by omega)
+  have h1 : 1 ≤ r + 1 := by omega
+  have h2 : r + 1 ≤ 91 := by omega
+  have u := hR (r + 1) h1 h2
+  have hS := cpS_succ κs (r := r + 1) (by omega)
+  have adj := stackOrder_adj κs (r := r) (by omega)
+  have hπ1 := hπ (r + 1) (by omega)
+  have hk0 := hk r (by omega)
+  have hk1 := hk (r + 1) (by omega)
+  have hGr := hG (r + 1) h1 h2
+  have g : ∀ j (hj : j < 26), F (90 + 26 * (r + 1) + j) =
+      (cpRankVals A B C D κs sq p2 p100 (r + 1)).getD j 0 := u
+  simp only [cpRankVals, Nat.add_sub_cancel] at g
+  have u0 : F (90 + 26 * (r + 1)) = gen ^ cpPi κs (r + 1) := g 0 (by omega)
+  have u1 : F (90 + 26 * (r + 1) + 1) = w91 := g 1 (by omega)
+  have u2 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 2 (by omega)
+  have u3 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 3 (by omega)
+  have u4 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 4 (by omega)
+  have u5 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 5 (by omega)
+  have u6 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 6 (by omega)
+  have u7 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 7 (by omega)
+  have u8 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 8 (by omega)
+  have u9 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 9 (by omega)
+  have u10 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 10 (by omega)
+  have u11 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 11 (by omega)
+  have u12 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 12 (by omega)
+  have u13 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 13 (by omega)
+  have u14 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 14 (by omega)
+  have u15 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 15 (by omega)
+  have u16 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 16 (by omega)
+  have u17 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 17 (by omega)
+  have u18 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 18 (by omega)
+  have u19 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 19 (by omega)
+  have u20 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 20 (by omega)
+  have u21 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 21 (by omega)
+  have u22 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 22 (by omega)
+  have u23 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 23 (by omega)
+  have u24 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 24 (by omega)
+  have u25 := by simpa only [List.getD_cons_succ, List.getD_cons_zero] using g 25 (by omega)
+  obtain ⟨a0, b0, c0⟩ := hA (r + 1) (by omega)
+  obtain ⟨a1, b1, c1⟩ := hB (r + 1) (by omega)
+  obtain ⟨a3, b3, c3⟩ := hD (r + 1) (by omega)
+  rw [Nat.add_sub_cancel] at a1 b1
+  unfold CpRankOk RcHolds
+  dsimp only
+  refine ⟨?_, u1, ?_, ?_, ?_, u7, ?_, ?_, ?_, ⟨?_, fun hz => ?_⟩, ?_, ?_, u19, ?_, ?_, ?_, ?_⟩
+  · rw [f99, u0]; exact l99 _ (by omega)
+  · rw [u0, u1, u2, u3, u4]; exact ⟨a0, word_g91.trans b0, c0⟩
+  · rw [u5, f2, u0]
+  · rw [u5, u6, loadHolds_mul_gen_pow, Nat.add_zero]; exact l2 _ hπ1
+  · rw [hpkr, u8, u6, ← pow_add, Nat.sub_add_cancel adj.1]
+  · rw [u8, u7, u9, u10, u11]; exact ⟨a1, word_g33.trans b1, c1⟩
+  · rw [u12, hpkr, u6]
+  · rw [u12]; exact isInK_add (gen_pow_isInK _) (gen_pow_isInK _)
+  · rw [u12] at hz
+    have heq : cpK κs r = cpK κs (r + 1) :=
+      gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp hz)
+    have hle := adj.2 heq
+    obtain ⟨a2, b2, c2⟩ := hC (r + 1) (by omega)
+    rw [Nat.add_sub_cancel] at a2 b2
+    refine ⟨u13, ?_, ?_⟩
+    · rw [u0, u14, hpcr, ← pow_add, Nat.sub_add_cancel hle]
+    · rw [u14, u13, u15, u16, u17]; exact ⟨a2, word_g91.trans b2, c2⟩
+  · rw [u18, f100, u0]
+  · rw [u18, hGr, loadHolds_mul_gen_pow, Nat.add_zero]; exact l100 _ (by omega)
+  · rw [u6, u19, u20, u21, u22]; exact ⟨a3, word_g33.trans b3, c3⟩
+  · rw [u23, f1, u6]
+  · rw [u23, u24, loadHolds_mul_gen_pow, Nat.add_zero]; exact hsq _ hk1
+  · rw [u25, hGr, u24, ← pow_add, hS]
+
+theorem cp_complete {μ : ℕ} (hμ7 : 7 ≤ μ) (hμ : μ ≤ 32) (Lm : MemImage μ) {kb sq : E}
+    (hsq : ∀ j < 34, LoadHolds Lm.read sq j (gen ^ 2 ^ j)) (κs : List ℕ) (hlen : κs.length = 92)
+    (hκ : ∀ c < 92, κs.getD c 0 < 34 ∧
+      ∃ w, LoadHolds Lm.read kb (cpSrc c) w ∧ w * gen ^ cpAdj c = gen ^ κs.getD c 0)
+    (p2 p99 p100 : E) (h99 : ReadsAt Lm.read p99 ((stackOrder κs).map (gen ^ ·)))
+    (h2 : ReadsAt Lm.read p2 (κs.map (gen ^ ·)))
+    (h100 : ReadsAt Lm.read p100 ((stackOffsets κs).1.map (gen ^ ·))) :
+    coreProgram.Rel Lm.read "certify_placement" [kb, sq]
+      [gen ^ (κs.map (2 ^ ·)).sum, p100, p2] := by
+  obtain ⟨w, hw⟩ := exists_fun_of_forall (n := 92) (fun c hc => (hκ c hc).2)
+  have hK92 : 92 ≤ 2 ^ μ := le_trans (by decide) (Nat.pow_le_pow_right (by omega) hμ7)
+  have hK34 : 34 ≤ 2 ^ μ := le_trans (by decide) (Nat.pow_le_pow_right (by omega) hμ7)
+  have hol : (stackOrder κs).length = 92 := by rw [stackOrder_length, hlen]
+  have hperm : (stackOrder κs).Perm (List.range 92) := by
+    rw [← hlen]; exact List.mergeSort_perm _ _
+  have hπ : ∀ r < 92, cpPi κs r < 92 := fun r hr => by
+    have := hperm.subset (List.getElem_mem (show r < (stackOrder κs).length by omega))
+    rw [cpPi, List.getD_eq_getElem _ _ (by omega)]
+    exact List.mem_range.mp this
+  have hk : ∀ r < 92, cpK κs r < 34 := fun r hr => (hκ _ (hπ r hr)).1
+  have l99 : ∀ r < 92, LoadHolds Lm.read p99 r (gen ^ cpPi κs r) := fun r hr =>
+    readsAt_map_iff.mp h99 r (by omega)
+  have l2 : ∀ c < 92, LoadHolds Lm.read p2 c (gen ^ κs.getD c 0) := fun c hc =>
+    readsAt_map_iff.mp h2 c (by omega)
+  have l100 : ∀ r < 92, LoadHolds Lm.read p100 (cpPi κs r) (gen ^ cpS κs r) := fun r hr => by
+    have := readsAt_map_iff.mp h100 (cpPi κs r) (by rw [stackOffsets_length, hlen]; exact hπ r hr)
+    rwa [cpPi, stackOrder, stackOffsets_fst κs r (by omega)] at this
+  obtain ⟨A, hA⟩ := exists_fun_of_forall (n := 92) (α := E × E × E)
+    (P := fun r a => RcOk Lm.read (gen ^ cpPi κs r) 92 a)
+    fun r hr => ⟨_, rc_complete hμ Lm (K := 92) (e := cpPi κs r) (by omega) hK92 (hπ r hr)⟩
+  obtain ⟨B, hB⟩ := exists_fun_of_forall (n := 92) (α := E × E × E)
+    (P := fun r a => RcOk Lm.read (gen ^ (cpK κs (r - 1) - cpK κs r)) 34 a)
+    fun r hr => ⟨_, rc_complete hμ Lm (K := 34) (e := cpK κs (r - 1) - cpK κs r) (by omega) hK34
+      (lt_of_le_of_lt (Nat.sub_le _ _) (hk (r - 1) (by omega)))⟩
+  obtain ⟨C, hC⟩ := exists_fun_of_forall (n := 92) (α := E × E × E)
+    (P := fun r a => RcOk Lm.read (gen ^ (cpPi κs r - cpPi κs (r - 1))) 92 a)
+    fun r hr => ⟨_, rc_complete hμ Lm (K := 92) (e := cpPi κs r - cpPi κs (r - 1)) (by omega)
+      hK92 (lt_of_le_of_lt (Nat.sub_le _ _) (hπ r hr))⟩
+  obtain ⟨D, hD⟩ := exists_fun_of_forall (n := 92) (α := E × E × E)
+    (P := fun r a => RcOk Lm.read (gen ^ cpK κs r) 34 a)
+    fun r hr => ⟨_, rc_complete hμ Lm (K := 34) (e := cpK κs r) (by omega) hK34 (hk r hr)⟩
+  obtain ⟨F, hF⟩ : ∃ F, F = cpF A B C D κs kb sq p2 p99 p100 w := ⟨_, rfl⟩
+  have hR : ∀ R, 1 ≤ R → R ≤ 91 → ∀ j < 26,
+      F (90 + 26 * R + j) = (cpRankVals A B C D κs sq p2 p100 R).getD j 0 := fun R h1 h2 j hj => by
+    rw [hF]; exact cpF_rank A B C D κs rfl h1 h2 hj
+  have h0 : ∀ j < 15, F (101 + j) = (cpRank0Vals A D κs sq p2 p100).getD j 0 := fun j hj => by
+    rw [hF]; exact cpF_rank0 A B C D κs rfl hj
+  have hG : ∀ R, 1 ≤ R → R ≤ 91 → F (90 + 26 * R - 1) = gen ^ cpS κs R := fun R h1 h2 => by
+    rw [hF]; exact cpF_G A B C D κs hlen h1 h2
+  have f0 : F 0 = kb := by rw [hF]; rfl
+  have f1 : F 1 = sq := by rw [hF]; rfl
+  have f2 : F 2 = p2 := by rw [hF]; rfl
+  have f99 : F 99 = p99 := by rw [hF]; rfl
+  have f100 : F 100 = p100 := by rw [hF]; rfl
+  have hsum : cpS κs 92 = (κs.map (2 ^ ·)).sum := by
+    have hfull := prefixSize_full (κs.getD · 0) (stackOrder κs)
+    rw [hol] at hfull
+    rw [cpS, hfull, (hperm.map _).sum_eq]
+    congr 1
+    refine List.ext_getElem (by simp [hlen]) fun c h1 h2 => ?_
+    simp only [List.getElem_map, List.getElem_range]
+    rw [List.getD_eq_getElem _ _ (by rw [hlen]; simpa using h1)]
+  rw [cp_unfold]
+  refine ⟨fun v => F v.idx, by show [F 0, F 1] = _; rw [f0, f1], fun c hc => ?_, ?_⟩
+  · exact cp_init_ok Lm κs hF hw l2 c hc
+  · have v := fun j hj => h0 j hj
+    have v0 : F 101 = gen ^ cpPi κs 0 := v 0 (by omega)
+    have v1 : F 102 = w91 := v 1 (by omega)
+    have v2 : F 103 = (A 0).1 := v 2 (by omega)
+    have v3 : F 104 = (A 0).2.1 := v 3 (by omega)
+    have v4 : F 105 = (A 0).2.2 := v 4 (by omega)
+    have v5 : F 106 = p2 * gen ^ cpPi κs 0 := v 5 (by omega)
+    have v6 : F 107 = gen ^ cpK κs 0 := v 6 (by omega)
+    have v7 : F 108 = word 1 0 0 := v 7 (by omega)
+    have v8 : F 109 = p100 * gen ^ cpPi κs 0 := v 8 (by omega)
+    have v9 : F 110 = w33 := v 9 (by omega)
+    have v10 : F 111 = (D 0).1 := v 10 (by omega)
+    have v11 : F 112 = (D 0).2.1 := v 11 (by omega)
+    have v12 : F 113 = (D 0).2.2 := v 12 (by omega)
+    have v13 : F 114 = sq * gen ^ cpK κs 0 := v 13 (by omega)
+    have v14 : F 115 = gen ^ 2 ^ cpK κs 0 := v 14 (by omega)
+    obtain ⟨a0, b0, c0⟩ := hA 0 (by omega)
+    obtain ⟨a1, b1, c1⟩ := hD 0 (by omega)
+    refine ⟨?_, v1, ?_, ?_, ?_, v7, ?_, ?_, v9, ?_, ?_, ?_, fun r hr => ?_, ?_, ?_, ?_, ?_⟩
+    · show LoadHolds _ (F 99) 0 (F 101); rw [f99, v0]; exact l99 0 (by omega)
+    · show LoadHolds _ (F 101) 0 (F 104) ∧ F 102 = F 101 * F 103 ∧ LoadHolds _ (F 103) 0 (F 105)
+      rw [v0, v1, v2, v3, v4]; exact ⟨a0, word_g91.trans b0, c0⟩
+    · show F 106 = F 2 * F 101; rw [v5, f2, v0]
+    · show LoadHolds _ (F 106) 0 (F 107)
+      rw [v5, v6, loadHolds_mul_gen_pow, Nat.add_zero]; exact l2 _ (hπ 0 (by omega))
+    · show F 109 = F 100 * F 101; rw [v8, f100, v0]
+    · show LoadHolds _ (F 109) 0 (F 108)
+      rw [v8, v7, loadHolds_mul_gen_pow, Nat.add_zero, word_one]
+      have := l100 0 (by omega)
+      rwa [show cpS κs 0 = 0 by simp [cpS, prefixSize], pow_zero] at this
+    · show LoadHolds _ (F 107) 0 (F 112) ∧ F 110 = F 107 * F 111 ∧ LoadHolds _ (F 111) 0 (F 113)
+      rw [v6, v9, v10, v11, v12]; exact ⟨a1, word_g33.trans b1, c1⟩
+    · show F 114 = F 1 * F 107; rw [v13, f1, v6]
+    · show LoadHolds _ (F 114) 0 (F 115)
+      rw [v13, v14, loadHolds_mul_gen_pow, Nat.add_zero]; exact hsq _ (hk 0 (by omega))
+    · exact cp_rank_ok Lm hsq κs hlen hF hπ hk l99 l2 l100 hA hB hC hD r hr
+    · show F 2482 = F 2481
+      rw [show F 2482 = gen ^ cpS κs 92 by rw [hF]; rfl]
+      have := hR 91 (by omega) (by omega) 25 (by omega)
+      simp only [cpRankVals, List.getD_cons_succ, List.getD_cons_zero] at this
+      exact this.symm
+    · show F 2483 = F 100; rw [f100, hF]; rfl
+    · show F 2484 = F 2; rw [f2, hF]; rfl
+    · show [F 2482, F 2483, F 2484] = _
+      rw [show F 2482 = gen ^ cpS κs 92 by rw [hF]; rfl, show F 2483 = p100 by rw [hF]; rfl,
+        show F 2484 = p2 by rw [hF]; rfl, hsum]
+
 end
 end LeanVM.Guest.B1

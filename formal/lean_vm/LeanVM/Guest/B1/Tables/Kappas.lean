@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Tables.Placement
 public import LeanVM.Guest.B1.VerifySub.Interface
 public import LeanVM.Guest.B1.VerifySub.Layout
+public import LeanVM.Guest.B1.VerifySub.CompleteIface
 
 /-!
 # The placement's context and every column's `κ` below 29
@@ -123,18 +124,15 @@ theorem hypKappa (rd : Reader) : HypKappa PCtx rd := by
 
 /-! ## `certify_placement` in `verify_sub`'s shape -/
 
-/-- **`certify_placement` is sound** (`SoundPlace`) on any memory image of at most `2^32`
-words. -/
-theorem soundPlace {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) : SoundPlace PCtx Lm.read := by
-  intro lp sq kb lm hs rets hexp hlm hl hh hkb h
-  have hsq : ∀ j < 34, LoadHolds Lm.read sq j (gen ^ 2 ^ j) := fun j hj => (hexp j hj).2
-  have hm := cp_sound hμ Lm hsq _ h
-  obtain ⟨gT, offs, kaps, rfl⟩ : ∃ gT offs kaps, rets = [gT, offs, kaps] := by
-    match rets, hm with
-    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
-    | [], hm | [_], hm | [_, _], hm | _ :: _ :: _ :: _ :: _, hm => exact hm.elim
-  obtain ⟨κs, hlen, hκ, -, hkaps, hoffs, hgT⟩ := hm
-  have hbase : ∀ s < 8, LoadHolds Lm.read kb s (gen ^ (0 :: lm :: hs).getD s 0) := fun s hs8 => by
+/-- The guest's sizes from `kappa_base`: over `[1, g^log_mem, g^h_0, …, g^h_5]`, sizes below 34
+built as `kappa_base[src]·g^adj` are `committedKappas (columnKappas log_mem 18 h)`. -/
+theorem kappas_of_base {rd : Reader} {kb : E} {lm : ℕ} {hs κs : List ℕ} (hlm : lm ≤ 32)
+    (hl : hs.length = 6) (hh : ∀ h ∈ hs, h < 29)
+    (hkb : ReadsAt rd kb (1 :: gen ^ lm :: hs.map (gen ^ ·))) (hlen : κs.length = 92)
+    (hκ : ∀ c < 92, κs.getD c 0 < 34 ∧
+      ∃ w, LoadHolds rd kb (cpSrc c) w ∧ w * gen ^ cpAdj c = gen ^ κs.getD c 0) :
+    κs = committedKappas (columnKappas lm 18 hs) := by
+  have hbase : ∀ s < 8, LoadHolds rd kb s (gen ^ (0 :: lm :: hs).getD s 0) := fun s hs8 => by
     have := hkb s (by simp [hl]; omega)
     rcases s with _ | _ | s
     · simpa using this
@@ -152,17 +150,66 @@ theorem soundPlace {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) : SoundPlace 
       omega
   have hsrc : ∀ c, cpSrc c < 8 := fun c => by unfold cpSrc; split_ifs <;> omega
   have hadj : ∀ c, cpAdj c ≤ 18 := fun c => by unfold cpAdj; split_ifs <;> omega
-  have hκs : κs = committedKappas (columnKappas lm 18 hs) := by
-    rw [committedKappas_columnKappas lm hs hl]
-    refine List.ext_getElem (by simp [hlen]) fun c h1 h2 => ?_
-    have hc : c < 92 := by omega
-    obtain ⟨hlt, w, lw, ew⟩ := hκ c hc
-    rw [loadHolds_unique lw (hbase _ (hsrc c)), ← pow_add] at ew
-    have := gen_pow_inj' (by have := hb32 _ (hsrc c); have := hadj c; omega) (by omega) ew
-    rw [List.getElem_map, List.getElem_range, this, List.getD_eq_getElem _ _ h1]
-  subst hκs
+  rw [committedKappas_columnKappas lm hs hl]
+  refine List.ext_getElem (by simp [hlen]) fun c h1 h2 => ?_
+  have hc : c < 92 := by omega
+  obtain ⟨hlt, w, lw, ew⟩ := hκ c hc
+  rw [loadHolds_unique lw (hbase _ (hsrc c)), ← pow_add] at ew
+  have := gen_pow_inj' (by have := hb32 _ (hsrc c); have := hadj c; omega) (by omega) ew
+  rw [List.getElem_map, List.getElem_range, this, List.getD_eq_getElem _ _ h1]
+
+/-- **`certify_placement` is sound** (`SoundPlace`) on any memory image of at most `2^32`
+words. -/
+theorem soundPlace {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemImage μ) : SoundPlace PCtx Lm.read := by
+  intro lp sq kb lm hs rets hexp hlm hl hh hkb h
+  have hsq : ∀ j < 34, LoadHolds Lm.read sq j (gen ^ 2 ^ j) := fun j hj => (hexp j hj).2
+  have hm := cp_sound hμ Lm hsq _ h
+  obtain ⟨gT, offs, kaps, rfl⟩ : ∃ gT offs kaps, rets = [gT, offs, kaps] := by
+    match rets, hm with
+    | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
+    | [], hm | [_], hm | [_, _], hm | _ :: _ :: _ :: _ :: _, hm => exact hm.elim
+  obtain ⟨κs, hlen, hκ, -, hkaps, hoffs, hgT⟩ := hm
+  obtain rfl := kappas_of_base hlm hl hh hkb hlen hκ
   refine ⟨offs, kaps, ?_, columnKappas_length_110 _ _ _, hkaps, hoffs⟩
   rw [hgT, stackTotal_eq]
+
+/-! ## Completeness -/
+
+/-- **`certify_placement`'s honest memory**: `col_sort_order` at `p99` holds `stackOffsets`'s
+order of the sizes `κs` that `kappa_base` gives, and the returned buffers their logs and
+offsets. -/
+def PMem (rd : Reader) : List E → List E → List E → Prop
+  | [p99], [kb, _], [_, off, kap] => ∃ κs : List ℕ, κs.length = 92 ∧
+      (∀ c < 92, κs.getD c 0 < 34 ∧
+        ∃ w, LoadHolds rd kb (cpSrc c) w ∧ w * gen ^ cpAdj c = gen ^ κs.getD c 0) ∧
+      ReadsAt rd p99 ((stackOrder κs).map (gen ^ ·)) ∧ ReadsAt rd kap (κs.map (gen ^ ·)) ∧
+      ReadsAt rd off ((stackOffsets κs).1.map (gen ^ ·))
+  | _, _, _ => False
+
+/-- **`certify_placement` is complete** (`CompletePlace`) on a memory image of `2^μ` words,
+`7 ≤ μ ≤ 32`. -/
+theorem completePlace {μ : ℕ} (hμ7 : 7 ≤ μ) (hμ : μ ≤ 32) (Lm : MemImage μ) :
+    CompletePlace Lm.read PMem := by
+  intro ptrs lp sq kb lm hs off kap hexp hlm hl hh hkb hm
+  match ptrs, hm with
+  | [], hm => exact hm.elim
+  | _ :: _ :: _, hm => exact hm.elim
+  | [p99], hm =>
+  obtain ⟨κs, hlen, hκ, h99, h2, h100⟩ := hm
+  have e := kappas_of_base hlm hl hh hkb hlen hκ
+  have h := cp_complete hμ7 hμ Lm (fun j hj => (hexp j hj).2) κs hlen hκ kap p99 off h99 h2 h100
+  rwa [e, ← stackTotal_eq] at h
+
+/-- Over `certify_placement`'s honest memory, the terminal's context holds (`HypPCtx`). -/
+theorem hypPCtx (rd : Reader) : HypPCtx PCtx rd PMem := by
+  intro ptrs lp sq kb lm hs off kap hexp hlm hl hh hkb hm
+  match ptrs, hm with
+  | [], hm => exact hm.elim
+  | _ :: _ :: _, hm => exact hm.elim
+  | [p99], hm =>
+  obtain ⟨κs, hlen, hκ, -, h2, h100⟩ := hm
+  obtain rfl := kappas_of_base hlm hl hh hkb hlen hκ
+  exact ⟨columnKappas_length_110 _ _ _, h2, h100⟩
 
 end
 end LeanVM.Guest.B1
