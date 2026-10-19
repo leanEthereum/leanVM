@@ -27,20 +27,26 @@ open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-/-- A column's memory at `fp`: what `col_relAtIn` reads of the reader. -/
+/-- A column's memory: its vector hash's states, counter words, weights' run at `lv`, rows, gap
+rows, tree at `node` and root slot. -/
+def ColMem (store : Bool) (rd : Reader) (b r N lp : ℕ) (pb ct rb hs ctr node lv h0 h1 o0 o1 c0 c1 : E)
+    (ws cv : List E) : Prop :=
+  CellsAt rd (hs * (gen ^ b * gen ^ b)) [h0, h1] ∧
+  CellsAt rd (hs * (gen ^ b * gen * (gen ^ b * gen))) [o0, o1] ∧
+  CellsAt rd (ctr * (gen ^ b * gen ^ b * gen ^ b)) cv ∧
+  (∀ k < 256, ∀ v, rd (lv.limb 0 * Parameters.gpow k) = some v → v = ws.getD k 0) ∧
+  (∀ j < r, RowCell store rd lv rb (gen ^ b) node pb (gen ^ j)) ∧
+  (∀ d < N - r, GapStep rd node (gen ^ r) (gen ^ d)) ∧
+  Meaning_da_levels lp rd [node] [c0, c1] ∧
+  CellsAt rd (ct * (gen ^ b * gen ^ b)) [c0, c1]
+
+/-- A column's memory at `fp`: its tree right after its frame, its weights in its vector cell's
+frame. -/
 def ColAt (fs : String → ℕ) (cert : String → V → ℕ) (store : Bool) (rd : Reader)
     (b r N lp p t q h c : ℕ) (h0 h1 o0 o1 c0 c1 : E) (ws cv : List E) (fp : ℕ) : Prop :=
-  CellsAt rd (gen ^ h * (gen ^ b * gen ^ b)) [h0, h1] ∧
-  CellsAt rd (gen ^ h * (gen ^ b * gen * (gen ^ b * gen))) [o0, o1] ∧
-  CellsAt rd (gen ^ c * (gen ^ b * gen ^ b * gen ^ b)) cv ∧
-  (∀ k < 256, ∀ v, rd (gpow (fp + fs (colName store) + 4 * N + fs "da_vector_dispatch" +
-    cert (vxName (decide (b = 127))) (.n 4) + k)) = some v → v = ws.getD k 0) ∧
-  (∀ j < r, RowCell store rd (gen ^ (fp + fs (colName store) + 4 * N + fs "da_vector_dispatch" +
-    cert (vxName (decide (b = 127))) (.n 4))) (gen ^ q) (gen ^ b) (gen ^ (fp + fs (colName store))) (gen ^ p)
-    (gen ^ j)) ∧
-  (∀ d < N - r, GapStep rd (gen ^ (fp + fs (colName store))) (gen ^ r) (gen ^ d)) ∧
-  Meaning_da_levels lp rd [gen ^ (fp + fs (colName store))] [c0, c1] ∧
-  CellsAt rd (gen ^ t * (gen ^ b * gen ^ b)) [c0, c1]
+  ColMem store rd b r N lp (gen ^ p) (gen ^ t) (gen ^ q) (gen ^ h) (gen ^ c) (gen ^ (fp + fs (colName store)))
+    (gen ^ (fp + fs (colName store) + 4 * N + fs "da_vector_dispatch" + cert (vxName (decide (b = 127))) (.n 4)))
+    h0 h1 o0 o1 c0 c1 ws cv
 
 /-- The column loop's first and end columns. -/
 def clLo (store : Bool) : ℕ := if store then 0 else 64
@@ -178,7 +184,8 @@ theorem colLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (sto
     fun j hj1 hj2 => by
       obtain ⟨m1, m2, m3, m4, m5, m6, m7, m8⟩ := hmem j hj1 hj2
       exact col_relAtIn fs cert store (by omega) hr1 hrN hN hlp (hcl j) (hch j (by omega)) (hRc j (by omega))
-        (hRh j (by omega)) (hRt j (by omega)) (hRrow j (by omega)) _ rd m1 m2 m3 m4 m5 hrb hpb m6 m7 m8
+        (hRh j (by omega)) (hRt j (by omega)) (hRrow j (by omega)) _ rd m1 m2 m3
+        (fun k hk v hv => m4 k hk v (by rwa [limb0_gen_pow, gpow_add'])) m5 hrb hpb m6 m7 m8
   intro k
   induction k with
   | zero =>

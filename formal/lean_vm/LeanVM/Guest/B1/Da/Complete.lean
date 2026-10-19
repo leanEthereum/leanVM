@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Da.Witness
+public import LeanVM.Guest.B1.Da.ColLoopAt
 
 /-!
 # `da_verify`, completely
@@ -120,12 +121,37 @@ theorem ctr_load {rd : Reader} {ctr : E} (h : CellsAt rd ctr ((List.range 385).m
 
 /-! ## Completeness -/
 
-/-- **`da_verify` is complete**: a witness opening `(root, vd)` and, for any choice of the pointers,
-a memory holding the honest words there give `da_verify`'s relation returning their cells. -/
-theorem da_verify_complete {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
-    {root vd : Digest} {w : Da.Witness} (hw : w.Opens root vd) (P : DaPtrs) (hP : DaMem rd P w) :
-    coreProgram.Rel rd "da_verify" [gsq]
-      [(digestScalars root).1, (digestScalars root).2, (digestScalars vd).1, (digestScalars vd).2] := by
+/-- **What the honest memory holds**, a witness opening `(root, vd)`: every column's memory
+(`ColMem`) and its vector hash's chain, and the rest of `DaFacts` at the pointers `P`. -/
+theorem daMem_parts {rd : Reader} {root vd : Digest} {w : Da.Witness} (hw : w.Opens root vd) (P : DaPtrs)
+    (hP : DaMem rd P w) :
+    (∀ b < 128, ColMem (decide (b < 64)) rd b w.rows.length (LeanDa.nPad w.rows.length)
+        (LeanDa.logPad w.rows.length) P.pb P.ct P.rb P.hs P.ctr (P.node b) (P.lv b)
+        (digestScalars (daS w b)).1 (digestScalars (daS w b)).2 (digestScalars (daS w (b + 1))).1
+        (digestScalars (daS w (b + 1))).2
+        (digestScalars (nodeD (colLeafOf w.rows.length (daSym w) b) (LeanDa.logPad w.rows.length) 0)).1
+        (digestScalars (nodeD (colLeafOf w.rows.length (daSym w) b) (LeanDa.logPad w.rows.length) 0)).2
+        (daWs w b) ((List.range 4).map (cvOf b)) ∧
+      ChainCells ((digestScalars (daS w b)).1, (digestScalars (daS w b)).2) (vxBlocks ((daWs w b).getD · 0))
+        (vxMd (decide (b = 127)) (((List.range 4).map (cvOf b)).getD · 0)) 96
+        ((digestScalars (daS w (b + 1))).1, (digestScalars (daS w (b + 1))).2)) ∧
+    1 ≤ w.rows.length ∧ w.rows.length ≤ LeanDa.maxRows ∧
+    (∀ i < w.rows.length, L88Step rd P.pb P.pd (gen ^ i)) ∧
+    LoadHolds rd P.hs 0 (digestScalars paramIv).1 ∧ LoadHolds rd P.hs 1 (digestScalars paramIv).2 ∧
+    IsInK P.ctr ∧ (∀ k < 385, ∀ v, rd (P.ctr.limb 0 * Parameters.gpow k) = some v → v = word (k * 2048) 0 0) ∧
+    (∀ i < w.rows.length, L89Step rd P.acc P.rb (gen ^ i)) ∧
+    (∀ i < w.rows.length, L92Step rd P.rb (gen ^ i)) ∧
+    Meaning_da_levels 7 rd [P.ct] [(digestScalars (colRootOf w.rows.length (daSym w))).1,
+      (digestScalars (colRootOf w.rows.length (daSym w))).2] ∧
+    (∀ i < w.rows.length, L93Step rd P.pb P.rt (gen ^ i)) ∧
+    (∀ d < LeanDa.nPad w.rows.length - w.rows.length, L94Step rd P.rt (gen ^ w.rows.length) (gen ^ d)) ∧
+    Meaning_da_levels (LeanDa.logPad w.rows.length) rd [P.rt] [(digestScalars (rowRootOf w.rows.length (daSym w))).1,
+      (digestScalars (rowRootOf w.rows.length (daSym w))).2] ∧
+    CompressCells ![(digestScalars (rowRootOf w.rows.length (daSym w))).1,
+      (digestScalars (rowRootOf w.rows.length (daSym w))).2, (digestScalars (colRootOf w.rows.length (daSym w))).1,
+      (digestScalars (colRootOf w.rows.length (daSym w))).2] (digestScalars paramIv).1 (digestScalars paramIv).2
+      (digestScalars root).1 (digestScalars root).2 (metadataCell 64 true) ∧
+    LoadHolds rd P.hs 256 (digestScalars vd).1 ∧ LoadHolds rd P.hs 257 (digestScalars vd).2 := by
   obtain ⟨hr1, hr2, hrl, hcom, hvl, hvd, hdot⟩ := hw
   obtain ⟨m88, mpd, mhs, mctr, m89, macc, mct, mrt, mnode, mlv⟩ := hP
   set r := w.rows.length with hr
@@ -163,34 +189,29 @@ theorem da_verify_complete {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squares
       dot_eq hvec (hrow i hi) hws (fun b hb => hsyl b hb i hi)] at this
     exact this
   -- every column
-  have hcolR : ∀ b < 128, Meaning_da_verify_column (decide (b < 64)) rd [gen ^ b, gen ^ r,
-      gen ^ LeanDa.nPad r, gen ^ (LeanDa.nPad r - r), gen ^ lp, P.pb, P.ct, P.rb, P.hs, P.ctr] [] := by
+  have hcolR : ∀ b < 128, ColMem (decide (b < 64)) rd b r (LeanDa.nPad r) lp P.pb P.ct P.rb P.hs P.ctr
+        (P.node b) (P.lv b) (digestScalars (daS w b)).1 (digestScalars (daS w b)).2
+        (digestScalars (daS w (b + 1))).1 (digestScalars (daS w (b + 1))).2
+        (digestScalars (nodeD (colLeafOf r sym b) lp 0)).1 (digestScalars (nodeD (colLeafOf r sym b) lp 0)).2
+        (daWs w b) ((List.range 4).map (cvOf b)) ∧
+      ChainCells ((digestScalars (daS w b)).1, (digestScalars (daS w b)).2) (vxBlocks ((daWs w b).getD · 0))
+        (vxMd (decide (b = 127)) (((List.range 4).map (cvOf b)).getD · 0)) 96
+        ((digestScalars (daS w (b + 1))).1, (digestScalars (daS w (b + 1))).2) := by
     intro b hb
     have hcv : ∀ k < 4, ((List.range 4).map (cvOf b)).getD k 0 = cvOf b k := fun k hk => by
       rw [List.getD_eq_getElem _ _ (by simpa using hk)]; simp
-    refine ⟨_, _, _, _, _, _, _, _, _, _, rfl, rfl, (digestScalars (daS w b)).1, (digestScalars (daS w b)).2,
-      (digestScalars (daS w (b + 1))).1, (digestScalars (daS w (b + 1))).2, P.lv b, P.node b,
-      (digestScalars (nodeD (colLeafOf r sym b) lp 0)).1, (digestScalars (nodeD (colLeafOf r sym b) lp 0)).2,
-      ?_, ⟨gen ^ b, _, rfl, isInK_gen_pow b, ?_⟩, ?_, isInK_gen_pow r,
-      fun _ => loopTo_of_all hr1 hr33 fun i hi => ?_, isInK_gen_pow _, fun hne => ?_,
-      ⟨lp, by omega, rfl, levels_of_treeAt (mnode b hb)⟩, ?_⟩
+    refine ⟨⟨?_, ?_, fun k hk => ?_, fun k hk => (frameRun_of_cells (by rw [hws b hb]; norm_num) (mlv b hb)).2 k
+      (by rw [hws b hb]; exact hk),
+      fun i hi => ?_, fun d hd => ?_, levels_of_treeAt (mnode b hb), ?_⟩, ?_⟩
     · rw [gen_sq]; exact mhs b (by omega)
-    · rw [decide_gen127 hb]
-      refine ⟨_, _, _, _, _, _, _, rfl, rfl, daWs w b, (List.range 4).map (cvOf b), hws b hb, by simp,
-        fun k hk => ?_, ?_, frameRun_of_cells (by rw [hws b hb]; norm_num) (mlv b hb)⟩
-      · have hk' : k < 4 := by simpa using hk
-        rw [show gen ^ b * gen ^ b * gen ^ b = gen ^ (3 * b) by rw [← pow_add, ← pow_add]; congr 1; ring,
-          loadHolds_mul_gen_pow]
-        simp only [List.getElem_map, List.getElem_range, cvOf, Nat.add_mul]
-        have := ctr_load mctr (k := 3 * b + k) (by omega)
-        rwa [Nat.add_mul] at this
-      · rw [chainCells_congr (b' := vxBlocks ((daWs w b).getD · 0)) (md' := vxMd (decide (b = 127)) (cvOf b))
-          (fun _ _ => rfl) (fun j hj => vxMd_congr hcv hj)]
-        refine Or.inr ⟨by norm_num, daS w b, rfl, fun j hj => ⟨vxBlocks_canonical _ _, ?_⟩, ?_⟩
-        · rw [vxMd_counters hb hj]; exact isCanonical128_metadataCell _ _
-        · rw [daS, daS, vecChain_col _ hb]
     · rw [show gen ^ b * gen * (gen ^ b * gen) = gen ^ (2 * (b + 1)) by rw [← pow_succ, ← pow_add]; congr 1; ring]
       exact mhs (b + 1) (by omega)
+    · have hk' : k < 4 := by simpa using hk
+      rw [show gen ^ b * gen ^ b * gen ^ b = gen ^ (3 * b) by rw [← pow_add, ← pow_add]; congr 1; ring,
+        loadHolds_mul_gen_pow]
+      simp only [List.getElem_map, List.getElem_range, cvOf, Nat.add_mul]
+      have := ctr_load mctr (k := 3 * b + k) (by omega)
+      rwa [Nat.add_mul] at this
     · have hleaf := treeAt_leaf (mnode b hb) (j := i) (by rw [← hNdef]; omega)
       simp only [colLeafOf, hi, ↓reduceIte] at hleaf
       have hsucc : daA w i (b + 1) = daA w i b + daCellS w b i := Finset.sum_range_succ _ _
@@ -201,16 +222,17 @@ theorem da_verify_complete {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squares
         by rw [gen_sq]; exact hleaf, fun h64 => ⟨P.pd * gen ^ (128 * i), m88 i hi, ?_⟩⟩
       rw [gen_sq, mul_assoc, ← pow_add]
       exact mpd i hi b (of_decide_eq_true h64)
-    · have hpos : 0 < LeanDa.nPad r - r := by
-        by_contra h0
-        exact hne (by rw [show LeanDa.nPad r - r = 0 by omega, pow_zero])
-      refine loopTo_of_all hpos (by omega) fun d hd => ?_
-      unfold GapStep
+    · unfold GapStep
       rw [pad_ptr]
       have := treeAt_leaf (mnode b hb) (j := r + d) (by rw [← hNdef]; omega)
       simp only [colLeafOf, show ¬(r + d < r) by omega, ↓reduceIte, padCell_cells] at this
       exact this
     · rw [gen_sq]; exact treeAt_leaf mct (j := b) (by norm_num; omega)
+    · rw [chainCells_congr (b' := vxBlocks ((daWs w b).getD · 0)) (md' := vxMd (decide (b = 127)) (cvOf b))
+        (fun _ _ => rfl) (fun j hj => vxMd_congr hcv hj)]
+      refine Or.inr ⟨by norm_num, daS w b, rfl, fun j hj => ⟨vxBlocks_canonical _ _, ?_⟩, ?_⟩
+      · rw [vxMd_counters hb hj]; exact isCanonical128_metadataCell _ _
+      · rw [daS, daS, vecChain_col _ hb]
   -- the rows' digests
   let cs : ℕ → List E := fun i => (List.range 128).map fun k =>
     if k % 2 = 0 then (digestScalars (cellDOf sym (k / 2) i)).1 else (digestScalars (cellDOf sym (k / 2) i)).2
@@ -245,8 +267,8 @@ theorem da_verify_complete {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squares
       have := treeAt_leaf mrt (j := i) (by rw [← hNdef]; omega)
       simp only [rowLeafOf, hi, ↓reduceIte] at this
       exact this
-  refine da_verify_of_facts hm hT ⟨r, P.pb, P.pd, P.hs, P.ctr, P.acc, P.rb, P.ct, P.rt, _, _, _, _, hr1, hr2,
-    fun i hi => ?_, ?_, ?_, (mctr 0 (by simp)).1, fun k hk v hv => ?_, fun i hi => ⟨?_, ?_⟩, hcolR,
+  refine ⟨hcolR, hr1, hr2,
+    fun i hi => ?_, ?_, ?_, (mctr 0 (by simp)).1, fun k hk v hv => ?_, fun i hi => ⟨?_, ?_⟩,
     fun i hi => ⟨P.acc * gen ^ (129 * i), ?_, ?_⟩, levels_of_treeAt mct, h93, fun d hd => ?_, levels_of_treeAt mrt, ?_, ?_, ?_⟩
   · show LoadHolds rd (P.pb * gen ^ i) 0 (P.pd * (gen ^ i) ^ 128)
     rw [← pow_mul, Nat.mul_comm i 128]; exact m88 i hi
@@ -280,6 +302,45 @@ theorem da_verify_complete {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squares
     obtain ⟨-, x1⟩ := cellsAt_two.mp this
     rw [loadHolds_mul_gen_pow, hvd'] at *
     exact x1
+
+/-- A column's `Meaning` from its memory. -/
+theorem colMeaning_of_mem {store : Bool} {rd : Reader} {b r N lp : ℕ} (hb : b < 128) (hr1 : 1 ≤ r)
+    (hr33 : r < 2 ^ 33) (hN : N < 2 ^ 33) (hlp : lp < 11)
+    {pb ct rb hs ctr node lv h0 h1 o0 o1 c0 c1 : E} {ws cv : List E} (hwl : ws.length = 256) (hcl : cv.length = 4)
+    (hm : ColMem store rd b r N lp pb ct rb hs ctr node lv h0 h1 o0 o1 c0 c1 ws cv)
+    (hch : ChainCells (h0, h1) (vxBlocks (ws.getD · 0)) (vxMd (decide (b = 127)) (cv.getD · 0)) 96 (o0, o1))
+    (hlvK : IsInK lv) :
+    Meaning_da_verify_column store rd [gen ^ b, gen ^ r, gen ^ N, gen ^ (N - r), gen ^ lp, pb, ct, rb, hs, ctr] [] := by
+  obtain ⟨m1, m2, m3, m4, m5, m6, m7, m8⟩ := hm
+  refine ⟨_, _, _, _, _, _, _, _, _, _, rfl, rfl, h0, h1, o0, o1, lv, node, c0, c1, m1, ?_,
+    m2, isInK_gen_pow r, fun _ => loopTo_of_all hr1 hr33 m5, isInK_gen_pow _, fun hne => ?_,
+    ⟨lp, hlp, rfl, m7⟩, m8⟩
+  · refine ⟨gen ^ b, _, rfl, isInK_gen_pow b, ?_⟩
+    rw [decide_gen127 hb]
+    exact ⟨_, _, _, _, _, _, _, rfl, rfl, ws, cv, hwl, hcl, m3, hch, hlvK, fun k hk v hv => m4 k (by omega) v hv⟩
+  · have hpos : 0 < N - r := by
+      by_contra h0
+      exact hne (by rw [show N - r = 0 by omega, pow_zero])
+    exact loopTo_of_all hpos (by omega) m6
+
+/-- **`da_verify` is complete**: a witness opening `(root, vd)` and, for any choice of the pointers,
+a memory holding the honest words there give `da_verify`'s relation returning their cells. -/
+theorem da_verify_complete {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
+    {root vd : Digest} {w : Da.Witness} (hw : w.Opens root vd) (P : DaPtrs) (hP : DaMem rd P w) :
+    coreProgram.Rel rd "da_verify" [gsq]
+      [(digestScalars root).1, (digestScalars root).2, (digestScalars vd).1, (digestScalars vd).2] := by
+  obtain ⟨hcol, hr1, hr2, h88, hiv0, hiv1, hkc, hctr, h89, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ :=
+    daMem_parts hw P hP
+  have hr33 : w.rows.length < 2 ^ 33 := by unfold LeanDa.maxRows at hr2; omega
+  have hN := nPad_le hr2
+  have hlp := logPad_le hr2
+  have hvl := hw.2.2.2.2.1
+  refine da_verify_of_facts hm hT ⟨_, P.pb, P.pd, P.hs, P.ctr, P.acc, P.rb, P.ct, P.rt, _, _, _, _, hr1, hr2,
+    h88, hiv0, hiv1, hkc, hctr, h89, fun b hb => ?_, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩
+  obtain ⟨hcm, hch⟩ := hcol b hb
+  have hwl : (daWs w b).length = 256 := length_chunk (n := 128) hvl hb
+  exact colMeaning_of_mem hb hr1 hr33 (by omega) (by omega) hwl (by simp) hcm hch
+    (hP.2.2.2.2.2.2.2.2.2 b hb 0 (by rw [hwl]; norm_num)).1
 
 end
 end LeanVM.Guest.B1.Digest
