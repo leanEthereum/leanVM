@@ -137,6 +137,49 @@ theorem readWords_eq (σ : Val) {m r : ℕ} {rows : List ℕ} (hl : rows.length 
     List.map_cons, List.map_nil, rdB, List.cons_append]
   rw [h15, h0, h1, h2, h3, h4, h5, h121]
 
+/-! ## Results a program always returns -/
+
+/-- Every run of `p` returns a value satisfying `Q`. -/
+def Rets {α : Type} (Q : α → Prop) (p : Prog α) : Prop :=
+  ∀ s a s', runId p s = some (a, s') → Q a
+
+theorem rets_ret {α : Type} {Q : α → Prop} {a : α} (h : Q a) : Rets Q (Prog.ret a) :=
+  fun s b s' hr => by
+    have hr' : some (a, s) = some (b, s') := hr
+    simp only [Option.some.injEq, Prod.mk.injEq] at hr'
+    exact hr'.1 ▸ h
+
+theorem rets_bind {α β : Type} {Q : α → Prop} {R : β → Prop} {p : Prog α} {f : α → Prog β}
+    (hp : Rets Q p) (hf : ∀ x, Q x → Rets R (f x)) : Rets R (p >>= f) := fun s b s' hr => by
+  rw [prog_bind_eq, run_bind] at hr
+  cases h : runId p s with
+  | none => rw [h] at hr; exact absurd hr (by simp)
+  | some r =>
+    rw [h] at hr
+    exact hf r.1 (hp s r.1 r.2 h) _ _ _ hr
+
+theorem rets_true {α : Type} (p : Prog α) : Rets (fun _ => True) p := fun _ _ _ _ => trivial
+
+/-- The bus result's point is GKR's. -/
+theorem busRest_point (ev : Evaluations) (layout : Layout) (alphas : List E) (beta : E)
+    (point treeValues : List E) :
+    Rets (fun b => b.point = point) (busRest ev layout alphas beta point treeValues) := by
+  unfold busRest
+  exact rets_bind (rets_true _) fun _ _ => rets_bind (rets_true _) fun _ _ =>
+    rets_bind (rets_true _) fun _ _ => rets_bind (rets_true _) fun _ _ => rets_ret rfl
+
+theorem tablesSeg_point {ev : Evaluations} {layout : Layout} {pi : Digest} {alphas : List E}
+    {beta : E} {point treeValues : List E} {cv cv' : Digest} {xs : List E} {bus : BusResult}
+    {claims : List ColumnClaim}
+    (h : RunsTo (tablesSeg ev layout pi alphas beta point treeValues) cv xs (bus, claims) cv') :
+    bus.point = point := by
+  have hr : Rets (fun r : BusResult × List ColumnClaim => r.1.point = point)
+      (tablesSeg ev layout pi alphas beta point treeValues) := by
+    unfold tablesSeg
+    exact rets_bind (busRest_point ev layout alphas beta point treeValues) fun b hb =>
+      rets_bind (rets_true _) fun _ _ => rets_bind (rets_true _) fun _ _ => rets_ret hb
+  exact hr _ _ _ (h [] [] [])
+
 theorem sum_le_of_le (l : List ℕ) (B : ℕ) (h : ∀ x ∈ l, x ≤ B) : l.sum ≤ l.length * B := by
   have := List.sum_le_length_nsmul l B h
   simpa using this
@@ -297,7 +340,7 @@ theorem verify_sub_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : Me
     stackLog_eq hb m rowsN
   rw [← hsl] at hμ1 hμ2 hopen
   -- the opening
-  obtain ⟨cvW0, xsW, os, w, cvW, roots', hcvW0, hxsW, hrunW, pt, hretsW, hpt⟩ :=
+  obtain ⟨cvW0, xsW, os, w, cvW, roots', hcvW0, hxsW, hrunW, pt, hretsW, hpt, hwl⟩ :=
     hop _ _ hμ1 hμ2 hr1 hr2 root _ _ _ _ _ _ _ hroot hopen
   rw [h1171] at hcvW0
   have ecvW0 := digestScalars_injective hcvW0
@@ -306,6 +349,12 @@ theorem verify_sub_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : Me
   obtain ⟨r1648, r1649, r1650, r1651, -⟩ := hretsW
   -- the terminal
   have hkb := hkap _ _ _ hpctx (by rw [hsl] at hμ2; omega)
+  have hbusp : bus.point.length < 33 := by
+    have hT0 := hrunT (.claimed ⟨gr.2.1.take (layoutOf bytecode m rowsN).logBytecode ++
+      (sqAll 4 (obsAll (obsAll (blake2sBytes (digestBytes seed ++ digestBytes pi))
+        (announce m rowsN r)) [σ (.n 419), σ (.n 434)])).1, σ (.n 714), 0, 0, [], [], [], 0⟩)
+      (bytecodeAt_claimed _ bytecode)
+    rw [tablesSeg_point hT0, hptl]; exact hdepth
   have cE := hv.call 1927 "check_opening_terminal" [.n 418, .n 709, .n 715, .n 417, .n 713,
     .n 144, .n 718, .n 8, .n 1180, .n 1630, .n 1631, .n 734, .n 733, .n 1649, .n 1650, .n 1651,
     .n 1648] [] (by decide +kernel)
@@ -319,7 +368,10 @@ theorem verify_sub_sound {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : Me
         layoutOf_heights]; exact hpctx), (by rw [r1631]; exact hkb), (by rw [h144, layoutOf_logMemory]),
       (by rw [h718, layoutOf_heights]; rfl), (by rw [hcl]; exact hlp), hzv,
       (readsAt_of_getD fun k hk => hct k (by simpa [ringCoefficients, kBits] using hk)),
-      (by rw [r1649]; exact hpt), r1650, r1651, r1648⟩ cE
+      (by rw [r1649]; exact hpt), r1650, r1651, r1648, (by simp only [layoutOf]),
+      (by simp only [layoutOf]), (by omega), (by rw [layoutOf_logMemory]; omega), hbusp,
+      (by rw [hwl]), (by rw [layoutOf_heights]; simp [hrcsl, hchil, opBlake2s]; omega),
+      (by simp [ringCoefficients, kBits])⟩ cE
   -- the deferring verifier accepts
   rw [← r727, ← r728, ← r729] at hrunF
   have hrows32 : ∀ n ∈ rowsN, n ≤ 2 ^ 32 := fun n hn =>

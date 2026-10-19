@@ -378,13 +378,13 @@ def HypKappa : Prop :=
 at `j = (μ - 22) + 7·(r - 1)`: from the state of `cv`, the stack's root `root` committed with its
 shape, the words `xs` at the cursor and the openings `os` run `whirOpen μ r target` to `w`; the
 function returns `w`'s claim, a buffer holding its point (zero-padded to `42`), its glued weight
-and its residual's value. -/
+and its residual's value; the point has `μ` coordinates. -/
 def OpenOut (μ r : ℕ) (root : Digest) (fs0 fs1 target cur : E) (rets : List E) : Prop :=
   ∃ (cv : Digest) (xs : List E) (os : List Opening) (w : WhirEnd) (cv' : Digest)
     (roots' : List (Digest × ℕ × ℕ)), (fs0, fs1) = digestScalars cv ∧ ReadsAt rd cur xs ∧
     RunsWith (whirOpen μ r target) cv xs os [(root, stackShape μ r)] w cv' roots' ∧
     ∃ pt, rets = [w.target, pt, w.inner, w.residual] ∧
-      ReadsAt rd pt (w.point ++ List.replicate (pointCap - w.point.length) 0)
+      ReadsAt rd pt (w.point ++ List.replicate (pointCap - w.point.length) 0) ∧ w.point.length = μ
 
 /-- `open_stacked` is sound at every candidate. -/
 def SoundOpen : Prop :=
@@ -395,7 +395,8 @@ def SoundOpen : Prop :=
 
 /-- What `verify_sub` establishes before `check_opening_terminal`, for the layout, the bus result,
 the column claims, the batching challenge `lam`, Flock's point, the ring map's coefficients and
-the opening's end `w`. -/
+the opening's end `w`; the layout is `layoutOf`'s placement of its columns, and the points and
+tables have the lengths the terminal reads. -/
 def TermPre (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) (lam : E)
     (flockPoint coeffs : List E) (w : WhirEnd) : List E → Prop
   | [zeta, chi, rm, gmu, gzcn, glm, gtau, cplen, lampool, off, kap, zvals, ctable, pt, inner, yr,
@@ -407,7 +408,12 @@ def TermPre (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) (lam
       ReadsAt rd lampool (powersFrom lam lam claims.length) ∧ ReadsAt rd zvals flockPoint ∧
       ReadsAt rd ctable coeffs ∧
       ReadsAt rd pt (w.point ++ List.replicate (pointCap - w.point.length) 0) ∧
-      inner = w.inner ∧ yr = w.residual ∧ st = w.target
+      inner = w.inner ∧ yr = w.residual ∧ st = w.target ∧
+      let kap := columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights
+      layout.placements = (placementsOf kap).1 ∧ layout.stackLog = (placementsOf kap).2 ∧
+      layout.stackLog ≤ 28 ∧ 1 ≤ layout.logMemory ∧ bus.point.length < 33 ∧
+      w.point.length = layout.stackLog ∧
+      flockPoint.length = layout.tableLogHeights.getD opBlake2s 0 + 8 ∧ coeffs.length = 64
   | _ => False
 
 /-- **`check_opening_terminal(…)`** (G:2020-2075; TRIAGE #42, #43) is sound: under its
