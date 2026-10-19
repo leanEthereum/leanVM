@@ -133,5 +133,27 @@ def VtEvComplete : Prop :=
         σ' (.n (evVal.getD j 0)) = w ∧ σ' (.n (evVal.getD j 0 + 15)) = w ∧
           (σ' (.n (evVal.getD j 0 + 13)), σ' (.n (evVal.getD j 0 + 14))) = digestScalars (obsCv cv w))
 
+/-- The tables' constraint windows: first statements, ends, first values, ends, and each table's
+`g^τ` value. -/
+def airA : List ℕ := [4615, 5103, 5520, 5909, 6416, 7286]
+def airB : List ℕ := [4863, 5392, 5669, 6192, 6694, 7854]
+def airLo : List ℕ := [4901, 5389, 5806, 6195, 6702, 7572]
+def airHi : List ℕ := [5149, 5678, 5955, 6478, 6980, 8140]
+def tauV : List ℕ := [4660, 5148, 5677, 5954, 6477, 6979]
+
+/-- **A table's constraint window completes** (g5c; G:1759-1770): window `t < 6`, the statements
+`airA t ..< airB t` (values `airLo t ..< airHi t`) after table `t`'s evaluations: its
+`constraint_eval` and bus forms on `fp_w`, its weight `cprod[n - τ]·peq[τ]` read at the hinted
+`g^n` and the table's `g^τ`, and (for `t < 5`) the next table's `g^τ` read from `dims`. -/
+def VtAirComplete : Prop :=
+  ∀ (t : ℕ), t < 6 → ∀ (rd : Reader) (σ : Val) (fpw dims pC pP : E) (n τ : ℕ),
+    σ (.n 11) = fpw → σ (.n 7) = dims → σ (.n 4639) = pC → σ (.n 4655) = pP → σ (.n 4554) = gen ^ n →
+    σ (.n (tauV.getD t 0)) = gen ^ τ → τ ≤ n → (∀ i < 16, ∃ v, LoadHolds rd fpw i v) →
+    (∃ v, LoadHolds rd pC (n - τ) v) → (∃ v, LoadHolds rd pP τ v) →
+    (t < 5 → ∃ v, LoadHolds rd dims (t + 2) v) →
+    Completes (coreProgram.Rel rd) rd (airLo.getD t 0) (airHi.getD t 0)
+      ((vtPre.drop (airA.getD t 0)).take (airB.getD t 0 - airA.getD t 0)) σ (fun σ' =>
+        t < 5 → ∀ v, LoadHolds rd dims (t + 2) v → σ' (.n (tauV.getD (t + 1) 0)) = v)
+
 end
 end LeanVM.Guest.B1.VerifySub
