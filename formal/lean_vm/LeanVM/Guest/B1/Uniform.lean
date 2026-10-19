@@ -39,15 +39,18 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 /-- The layout lies in `[b, b + n)`. -/
 def Within (L : Layout) (b n : ℕ) : Prop := ∀ q ∈ L, b ≤ q.1 ∧ q.1 + q.2.length ≤ b + n
 
-/-- The memory is defined at the low addresses, where range checks read (any memory image of at
-least `2^16` words, `MemOk`). -/
-def LowDef (rd : Reader) : Prop := ∀ i < 2 ^ 16, (rd (gpow i)).isSome
+/-- The memory is defined at the addresses below `2^k`, where range checks `log x < K ≤ 2^k`
+read (any memory image of at least `2^k` words). -/
+def LowDef (k : ℕ) (rd : Reader) : Prop := ∀ i < 2 ^ k, (rd (gpow i)).isSome
+
+theorem LowDef.mono {k k' : ℕ} {rd : Reader} (h : LowDef k rd) (hk : k' ≤ k) : LowDef k' rd :=
+  fun i hi => h i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by decide) hk))
 
 /-- **`f` is complete at every frame pointer, uniformly in the memory.** -/
-def CompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (f : String) (Lin : Layout)
+def CompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
     (args : List E) (Out : List E → Layout → Prop) : Prop :=
   ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), Out rets Lout ∧
-    Within (Lout ++ Lown) fp n ∧ ∀ rd, LowDef rd → MemL rd (Lout ++ Lown ++ Lin) →
+    Within (Lout ++ Lown) fp n ∧ ∀ rd, LowDef k rd → MemL rd (Lout ++ Lown ++ Lin) →
       RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets
 
 /-- What a function returning `rets` and no buffer returns. -/
@@ -55,10 +58,10 @@ def Returns (rets : List E) : List E → Layout → Prop := fun r L => r = rets 
 
 /-- **`f` is complete on every precondition `Pre` the caller's words `Lin` make true**, returning the
 words `Pre` names and no buffer. -/
-def CompleteRel (fs : String → ℕ) (cert : String → V → ℕ) (f : String)
+def CompleteRel (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
     (Pre : Reader → List E → List E → Prop) : Prop :=
-  ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef rd → MemL rd Lin → Pre rd args rets) →
-    CompleteAt fs cert f Lin args (Returns rets)
+  ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef k rd → MemL rd Lin → Pre rd args rets) →
+    CompleteAt fs cert k f Lin args (Returns rets)
 
 /-! ## Composition -/
 
@@ -101,6 +104,13 @@ def OutsOk : List Kid → List (List E × Layout) → Prop
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
+theorem CompleteAt.mono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} (h : CompleteAt fs cert k' f Lin args Out) (hk : k' ≤ k) :
+    CompleteAt fs cert k f Lin args Out := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, fun rd hl hm => hr rd (hl.mono hk) hm⟩
+
+
 theorem kidsFromIn_dend {rd : Reader} {σ : Val} {R : ℕ → Prop} :
     ∀ (cs : List Call) (Dacc : ℕ → Prop) (b n : ℕ) {D D' : ℕ → Prop}, (∀ i, D' i → D i) →
       KidsFromIn coreProgram fs cert rd σ R Dacc cs b n D →
@@ -121,11 +131,11 @@ theorem Within.mono {L : Layout} {b n b' n' : ℕ} (h : Within L b n) (h1 : b' �
 
 /-- **The callees at their running offsets**: from `b`, one total `N`, one layout and one result
 per callee serve every memory holding the layouts and the words the callees read. -/
-theorem kidsFromIn_of_kids : ∀ (ks : List Kid),
-    (∀ k ∈ ks, k.taken = true → CompleteAt fs cert k.f k.Lin k.args k.Out) → ∀ b : ℕ,
+theorem kidsFromIn_of_kids (κ : ℕ) : ∀ (ks : List Kid),
+    (∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out) → ∀ b : ℕ,
     ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
       ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
-        LowDef rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
+        LowDef κ rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
         KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun i => Dacc i ∨ outRegion ks outs i)
   | [], _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, fun rd σ cs R Dacc hc _ _ _ _ => by
       match cs, hc with
@@ -133,7 +143,7 @@ theorem kidsFromIn_of_kids : ∀ (ks : List Kid),
   | k :: ks, hok, b => by
     by_cases ht : k.taken = true
     · obtain ⟨n, Lown, rets, Lout, hout, hw, hrel⟩ := hok k (by simp) ht b
-      obtain ⟨N, L, outs, ho, hW, hK⟩ := kidsFromIn_of_kids ks (fun k' hk' => hok k' (by simp [hk']))
+      obtain ⟨N, L, outs, ho, hW, hK⟩ := kidsFromIn_of_kids κ ks (fun k' hk' => hok k' (by simp [hk']))
         (b + n)
       refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, ⟨fun _ => hout, ho⟩, ?_, ?_⟩
       · rw [within_append]
@@ -158,7 +168,7 @@ theorem kidsFromIn_of_kids : ∀ (ks : List Kid),
               · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
               · exact Or.inr hi
             · simpa [hct] using hR2
-    · obtain ⟨N, L, outs, ho, hW, hK⟩ := kidsFromIn_of_kids ks (fun k' hk' => hok k' (by simp [hk']))
+    · obtain ⟨N, L, outs, ho, hW, hK⟩ := kidsFromIn_of_kids κ ks (fun k' hk' => hok k' (by simp [hk']))
         (b + fs k.f)
       refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), ?_⟩
@@ -193,8 +203,8 @@ theorem relAtIn_dmono {rd : Reader} {R D D' : ℕ → Prop} {fp n : ℕ} {f : St
 and no buffer. -/
 theorem completeAt_of_rel_pure {S : List String} (hS : coreProgram.PureIn S) {g : String}
     (hg : g ∈ S) {Lin : Layout} {args rets : List E}
-    (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) :
-    CompleteAt fs cert g Lin args (Returns rets) := by
+    (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) :
+    CompleteAt fs cert k g Lin args (Returns rets) := by
   intro fp
   classical
   by_cases hex : ∃ rd1, MemL rd1 Lin
