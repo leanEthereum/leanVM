@@ -16,8 +16,8 @@ public import LeanVM.Guest.B1.Whir.StackedQueries
 `osLevel_sound`: from the guest's state at the start of level `lvl` against the specification's
 (`OsLvInv`: the chain state, the words read, the running quadratic and claim, the fold challenges
 stored, the roots read so far with the level's root at its slot, and the claims glued so far,
-`gluedOf` of a record `OsRec` per level), the level's three programs in `whirLevelsOpen_cons`
-(`foldRounds`, `levelMid`, `levelQueries`) run, reading the words and the openings the guest
+`osGluedOf` of a record `OsRec` per level), the level's three programs in `os_whirLevelsOpen_cons`
+(`foldRounds`, `osLevelMid`, `osLevelQueries`) run, reading the words and the openings the guest
 reads, and the invariant holds at the next level. The configuration's facts the proof uses are
 `LvSpec`, decided per candidate; the callees' meanings are `LvCallees`.
 -/
@@ -44,10 +44,10 @@ structure OsRec where
 abbrev OsCfg.lv (cfg : OsCfg) (i : ℕ) : OsLvl := cfg.levels.getD i default
 
 /-- The fold challenges through level `i`. -/
-def levelF (cfg : OsCfg) (i : ℕ) : ℕ := (cfg.lv i).foldsOff + (cfg.lv i).folds
+def osLevelF (cfg : OsCfg) (i : ℕ) : ℕ := (cfg.lv i).foldsOff + (cfg.lv i).folds
 
 /-- The claims a level glues (V:1745-1748), after `F` fold challenges. -/
-def recGlued (logN F : ℕ) (r : OsRec) : List GluedClaim :=
+def osRecGlued (logN F : ℕ) (r : OsRec) : List GluedClaim :=
   match r.ood with
   | none => [⟨1 * r.lam, F, fun x ↦ inducedWeight (logN - F) r.queries
       (powers r.lam r.queries.length) x⟩]
@@ -55,16 +55,16 @@ def recGlued (logN F : ℕ) (r : OsRec) : List GluedClaim :=
       inducedWeight (logN - F) r.queries (powers r.lam r.queries.length) x⟩]
 
 /-- The claims glued by the levels of the records. -/
-def gluedOf (logN : ℕ) (cfg : OsCfg) (recs : List OsRec) : List GluedClaim :=
-  (recs.zipIdx.map fun p ↦ recGlued logN (levelF cfg p.2) p.1).flatten
+def osGluedOf (logN : ℕ) (cfg : OsCfg) (recs : List OsRec) : List GluedClaim :=
+  (recs.zipIdx.map fun p ↦ osRecGlued logN (osLevelF cfg p.2) p.1).flatten
 
-theorem gluedOf_append (logN : ℕ) (cfg : OsCfg) (recs : List OsRec) (r : OsRec) :
-    gluedOf logN cfg (recs ++ [r]) = gluedOf logN cfg recs ++ recGlued logN (levelF cfg recs.length) r := by
-  simp [gluedOf, List.zipIdx_append]
+private theorem gluedOf_append (logN : ℕ) (cfg : OsCfg) (recs : List OsRec) (r : OsRec) :
+    osGluedOf logN cfg (recs ++ [r]) = osGluedOf logN cfg recs ++ osRecGlued logN (osLevelF cfg recs.length) r := by
+  simp [osGluedOf, List.zipIdx_append]
 
 /-- What the guest stored for level `i`'s record: its positions, its query weights, its scalar,
 and its out-of-domain point and scalar. -/
-def RecOk (rd : Reader) (σ : Val) (cfg : OsCfg) (i : ℕ) (r : OsRec) : Prop :=
+def OsRecOk (rd : Reader) (σ : Val) (cfg : OsCfg) (i : ℕ) (r : OsRec) : Prop :=
   r.queries.length = (cfg.lv i).queries ∧
     (∀ j < (cfg.lv i).queries,
       LoadHolds rd (σ (.n osQpos)) ((cfg.lv i).posOff + j) (eOfNat (r.queries.getD j 0))) ∧
@@ -78,17 +78,17 @@ def RecOk (rd : Reader) (σ : Val) (cfg : OsCfg) (i : ℕ) (r : OsRec) : Prop :=
 `rest` after it, for a stack of log-size `logN`. -/
 def LvSpec (cfg : OsCfg) (logN lvl : ℕ) (L : Whir.Level) (rest : List Whir.Level) : Prop :=
   let lv := cfg.lv lvl
-  let ml := logN - levelF cfg lvl
+  let ml := logN - osLevelF cfg lvl
   lv.folds = L.fold ∧ 0 < L.fold ∧ lv.queries = L.queries ∧ 0 < ml ∧ ml < 2 ^ 62 ∧
     lv.logCols = ml ∧ lv.depth = ml + L.logInvRate ∧ lv.grindBits = Whir.queryGrindingBits ∧
     0 < 192 / lv.depth ∧ lv.queries ≤ lv.squeezes * (192 / lv.depth) ∧
     ((lv.squeezes - 1) * (192 / lv.depth) < lv.queries ∨ lv.squeezes = 0) ∧
     lv.squeezes ≤ lv.queries ∧ lv.squeezes < 2 ^ 62 ∧
-    digitsVal 1 (osPowDigits (192 / lv.depth)) = 192 / lv.depth ∧
+    osDigitsVal 1 (osPowDigits (192 / lv.depth)) = 192 / lv.depth ∧
     1 ≤ lv.capDepth ∧ lv.capDepth ≤ lv.depth ∧ lv.foldsOff < 2 ^ 128 ∧ 4 * lv.capOff < 2 ^ 128 ∧
     lvl * cfg.maxQ < 2 ^ 128 ∧ lv.posOff < 2 ^ 128 ∧ lv.queries < 2 ^ 62 ∧ (lvl + 1) * 22 < 2 ^ 128 ∧
     (rest = [] ↔ lvl = cfg.yrLevel) ∧ (rest = [] → cfg.yrLen = 2 ^ ml) ∧
-    ∀ next ∈ rest.head?, lv.oodNext = 1 ∧ (cfg.lv (lvl + 1)).foldsOff = levelF cfg lvl ∧
+    ∀ next ∈ rest.head?, lv.oodNext = 1 ∧ (cfg.lv (lvl + 1)).foldsOff = osLevelF cfg lvl ∧
       (cfg.lv (lvl + 1)).folds = next.fold ∧
       (cfg.lv (lvl + 1)).depth = ml - next.fold + next.logInvRate
 
@@ -128,21 +128,21 @@ structure OsLvInv (rd : Reader) (σ : Val) (cfg : OsCfg) (logN : ℕ) (cur : E) 
       oqR (if lvl = 0 then 1 else 0) (2 ^ (cfg.lv lvl).folds)) ∧
     LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars rt).1 ∧
     LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars rt).2
-  glued : ∃ recs : List OsRec, recs.length = lvl ∧ w.glued = gluedOf logN cfg recs ∧
-    ∀ i < lvl, RecOk rd σ cfg i (recs.getD i default)
+  glued : ∃ recs : List OsRec, recs.length = lvl ∧ w.glued = osGluedOf logN cfg recs ∧
+    ∀ i < lvl, OsRecOk rd σ cfg i (recs.getD i default)
 
 theorem LvSpec.yrLen {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} (h : LvSpec cfg logN lvl L []) :
-    cfg.yrLen = 2 ^ (logN - levelF cfg lvl) := by
+    cfg.yrLen = 2 ^ (logN - osLevelF cfg lvl) := by
   obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hyr, -⟩ := h
   exact hyr rfl
 
 theorem LvSpec.nextFolds {cfg : OsCfg} {logN lvl : ℕ} {L next : Whir.Level} {rest : List Whir.Level}
-    (h : LvSpec cfg logN lvl L (next :: rest)) : (cfg.lv (lvl + 1)).foldsOff = levelF cfg lvl := by
+    (h : LvSpec cfg logN lvl L (next :: rest)) : (cfg.lv (lvl + 1)).foldsOff = osLevelF cfg lvl := by
   obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnext⟩ := h
   exact (hnext next rfl).2.1
 
 theorem LvSpec.logCols {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : List Whir.Level}
-    (h : LvSpec cfg logN lvl L rest) : (cfg.lv lvl).logCols = logN - levelF cfg lvl ∧
+    (h : LvSpec cfg logN lvl L rest) : (cfg.lv lvl).logCols = logN - osLevelF cfg lvl ∧
       1 ≤ (cfg.lv lvl).logCols ∧ (cfg.lv lvl).queries < 2 ^ 62 := by
   obtain ⟨-, -, -, h0, -, hlc, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hnq, -⟩ := h
   exact ⟨hlc, by omega, hnq⟩
@@ -152,13 +152,13 @@ theorem LvSpec.logCols {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : L
 variable {rd : Reader} {σ : Val}
 
 /-- **The query positions and their bit runs** from `decode_query_bits` at every squeeze: query
-`i`'s position is `posOf` (V:1598) at `qpos[posOff + i]`, and its bits at `qbp[posOff + i]`. -/
-theorem queryBits_of_decode {depth nq nsq posOff : ℕ} {qpos qbp : E} {cv : Digest}
+`i`'s position is `osPosOf` (V:1598) at `qpos[posOff + i]`, and its bits at `qbp[posOff + i]`. -/
+private theorem queryBits_of_decode {depth nq nsq posOff : ℕ} {qpos qbp : E} {cv : Digest}
     (hper : 0 < 192 / depth) (hs1 : nq ≤ nsq * (192 / depth))
     (hdec : ∀ j < nsq, MeaningDecodeQueryBits depth rd [challengeOf (sqCv (sqAll j cv).2),
       qpos * gen ^ (posOff + j * (192 / depth)), qbp * gen ^ (posOff + j * (192 / depth))] []) :
-    QueryBits rd (qbp * gen ^ posOff) nq depth (posOf depth cv) ∧
-      ∀ i < nq, LoadHolds rd qpos (posOff + i) (eOfNat (posOf depth cv i)) := by
+    QueryBits rd (qbp * gen ^ posOff) nq depth (osPosOf depth cv) ∧
+      ∀ i < nq, LoadHolds rd qpos (posOff + i) (eOfNat (osPosOf depth cv i)) := by
   have hdiv : ∀ i < nq, i / (192 / depth) < nsq := fun i hi => by
     rw [Nat.div_lt_iff_lt_mul hper]; omega
   have hidx : ∀ i, posOff + i / (192 / depth) * (192 / depth) + i % (192 / depth) = posOff + i := by
@@ -179,7 +179,7 @@ theorem queryBits_of_decode {depth nq nsq posOff : ℕ} {qpos qbp : E} {cv : Dig
         rw [← Nat.succ_mul]; exact Nat.mul_le_mul_right _ hc
       have := Nat.div_mul_le_self 192 depth
       omega
-    rw [hfr _ hlt w hw, posOf, Nat.testBit_mod_two_pow, Nat.testBit_shiftRight]
+    rw [hfr _ hlt w hw, osPosOf, Nat.testBit_mod_two_pow, Nat.testBit_shiftRight]
     simp [hl]
   · obtain ⟨-, p, -, hj⟩ := hdec _ (hdiv i hi)
     obtain ⟨lq, -⟩ := hj _ (Nat.mod_lt i hper)
@@ -193,7 +193,7 @@ theorem os_getD_map_range {α : Type} {d : α} (f : ℕ → α) {n j : ℕ} (hj 
   simp [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hj]
 
 /-- **A level after its claims** (G:1136-1193): the nonce, the positions, `lam`, the query
-weights and the queries; `levelQueries` (V:1737-1749) runs over the words and openings the guest
+weights and the queries; `osLevelQueries` (V:1737-1749) runs over the words and openings the guest
 reads, gluing whatever claims are pending before the level's query claim. -/
 theorem osLevelQ_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : List Whir.Level}
     (hspec : LvSpec cfg logN lvl L rest) (hcall : LvCallees rd cfg lvl)
@@ -230,12 +230,12 @@ theorem osLevelQ_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : L
         LoadHolds rd (σ (.n osQpos)) ((cfg.lv lvl).posOff + j) (eOfNat (qs.getD j 0))) ∧
       (∀ j < (cfg.lv lvl).queries, LoadHolds rd (σ (.n osQw)) (lvl * cfg.maxQ + j) (lam ^ j)) ∧
       ∀ (w1 : WhirState) (pending : List (E × List E × (List E → E))) (r : List E) (o : List Opening),
-        Runs (levelQueries (logN - levelF cfg lvl) lvl L lf w1 pending) ⟨cvm, ysQ ++ r, os ++ o, roots⟩
+        Runs (osLevelQueries (logN - osLevelF cfg lvl) lvl L lf w1 pending) ⟨cvm, ysQ ++ r, os ++ o, roots⟩
           (glue lam w1 (pending ++
             [(σ (.n (osQueries cfg (cfg.lv lvl) lvl { ssq with k := ssq.k + (cfg.lv lvl).queries }).2.2.1),
               [c0, σ (.n (osQueries cfg (cfg.lv lvl) lvl { ssq with k := ssq.k + (cfg.lv lvl).queries }).2.2.1)
                 + c2, c2],
-              fun x ↦ inducedWeight (logN - levelF cfg lvl) qs (powers lam qs.length) x)]))
+              fun x ↦ inducedWeight (logN - osLevelF cfg lvl) qs (powers lam qs.length) x)]))
           ⟨cvq, r, o, roots⟩ := by
   obtain ⟨hf, hf0, hq, hml0, hml1, hlc, hdep, hgr, hper, hs1, hs2, hs3, hs4, hdig, hcd1, hcd2, hb1,
     hb2, hb4, hb5, hnq, hb6, hlast, hyr, hnext⟩ := hspec
@@ -262,25 +262,25 @@ theorem osLevelQ_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : L
   have hroot : root = rt := digestScalars_injective (Prod.ext (loadHolds_unique lr0 lrt0)
     (loadHolds_unique lr1 lrt1))
   subst hroot
-  set qs := (List.range (cfg.lv lvl).queries).map (posOf (cfg.lv lvl).depth cvg)
+  set qs := (List.range (cfg.lv lvl).queries).map (osPosOf (cfg.lv lvl).depth cvg)
   have hqsl : qs.length = (cfg.lv lvl).queries := by simp [qs]
   refine ⟨lam, qs, [n, c0, c2], os, _, c0, c2, hlam, by simpa using hatQ, by rw [hcoQ, hcoq, hcog],
     e0, e2, e1, hqsl, fun j hj => ?_, fun j hj => by simpa using hqw j hj,
     fun w1 pending r o => ?_⟩
   · rw [os_getD_map_range _ hj]
     exact hqpos j hj
-  simp only [levelQueries]
+  simp only [osLevelQueries]
   conv at hsum => rhs; rw [← hqsl]
   rw [← hdep, ← hq, hsum]
-  refine Runs.bind (runs_grindP hpow _ _ _) ?_
-  refine Runs.bind (RunsTo.runs (runsTo_sampleQueries hper hs1 hs2 hs3 cvg) _ _ _) ?_
-  refine Runs.bind (runs_sampleE _) ?_
-  refine Runs.bind (runs_queryP hrt (openAll_of qs os o (by rw [hosl, hqsl]) fun j hj => ?_)) ?_
+  refine Runs.bind (os_runs_grindP hpow _ _ _) ?_
+  refine Runs.bind (RunsTo.runs (os_runsTo_sampleQueries hper hs1 hs2 hs3 cvg) _ _ _) ?_
+  refine Runs.bind (os_runs_sampleE _) ?_
+  refine Runs.bind (os_runs_queryP hrt (os_openAll_of qs os o (by rw [hosl, hqsl]) fun j hj => ?_)) ?_
   · obtain ⟨h1, h2, h3⟩ := hos j hj
     refine ⟨h1, h2, ?_⟩
     rw [os_getD_map_range _ (show j < (cfg.lv lvl).queries by omega)]
     exact h3
-  refine Runs.bind (runs_roundPoly3 _ _ c0 c2 r _ _) ?_
+  refine Runs.bind (os_runs_roundPoly3 _ _ c0 c2 r _ _) ?_
   exact Runs.ret _ _
 
 /-! ## A level -/
@@ -292,10 +292,10 @@ structure OsEndInv (rd : Reader) (σ : Val) (cfg : OsCfg) (logN : ℕ) (cur : E)
   co : st.co ≤ 8
   quad : w.quad = [σ (.n st.c), σ (.n st.b), σ (.n st.a)]
   target : w.target = σ (.n st.t)
-  nfolds : w.folds.length = levelF cfg (n - 1)
+  nfolds : w.folds.length = osLevelF cfg (n - 1)
   folds : ∀ j < w.folds.length, LoadHolds rd (σ (.n osFch)) j (w.folds.getD j 0)
-  glued : ∃ recs : List OsRec, recs.length = n ∧ w.glued = gluedOf logN cfg recs ∧
-    ∀ i < n, RecOk rd σ cfg i (recs.getD i default)
+  glued : ∃ recs : List OsRec, recs.length = n ∧ w.glued = osGluedOf logN cfg recs ∧
+    ∀ i < n, OsRecOk rd σ cfg i (recs.getD i default)
 
 theorem osFinal_keep (name : String) (fmsg : ℕ) (s : OsSt) :
     (osFinal name fmsg s).2.c = s.c ∧ (osFinal name fmsg s).2.b = s.b ∧
@@ -311,13 +311,13 @@ theorem osRest_keep (cfg : OsCfg) (lv : OsLvl) (lvl : ℕ) (s : OsSt) :
     let q := (osQueries cfg lv lvl { sq with k := sq.k + lv.queries }).2.1
     q.c = s.c ∧ q.b = s.b ∧ q.a = s.a ∧ q.t = s.t := ⟨rfl, rfl, rfl, rfl⟩
 
-theorem digestOfScalars_pair {x0 x1 : E} (h0 : IsCanonical128 x0) (h1 : IsCanonical128 x1) :
+private theorem digestOfScalars_pair {x0 x1 : E} (h0 : IsCanonical128 x0) (h1 : IsCanonical128 x1) :
     digestOfScalars (x0, x1) = some (pairDigest x0 x1) := by
   simp [digestOfScalars, h0, h1, pairDigest]
 
-theorem recOk_append {cfg : OsCfg} {recs : List OsRec} {r : OsRec} {n : ℕ} (hl : recs.length = n)
-    (hrecs : ∀ i < n, RecOk rd σ cfg i (recs.getD i default)) (hr : RecOk rd σ cfg n r) :
-    ∀ i < n + 1, RecOk rd σ cfg i ((recs ++ [r]).getD i default) := by
+private theorem recOk_append {cfg : OsCfg} {recs : List OsRec} {r : OsRec} {n : ℕ} (hl : recs.length = n)
+    (hrecs : ∀ i < n, OsRecOk rd σ cfg i (recs.getD i default)) (hr : OsRecOk rd σ cfg n r) :
+    ∀ i < n + 1, OsRecOk rd σ cfg i ((recs ++ [r]).getD i default) := by
   intro i hi
   rcases Nat.lt_or_ge i n with h | h
   · rw [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega), ← List.getD_eq_getElem?_getD]
@@ -326,7 +326,7 @@ theorem recOk_append {cfg : OsCfg} {recs : List OsRec} {r : OsRec} {n : ℕ} (hl
     rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl, Nat.sub_self]
     exact hr
 
-theorem folds_append {fch : E} {ws chs : List E} {off : ℕ} (hoff : ws.length = off)
+private theorem folds_append {fch : E} {ws chs : List E} {off : ℕ} (hoff : ws.length = off)
     (h1 : ∀ j < ws.length, LoadHolds rd fch j (ws.getD j 0))
     (h2 : ∀ j < chs.length, LoadHolds rd fch (off + j) (chs.getD j 0)) :
     ∀ j < (ws ++ chs).length, LoadHolds rd fch j ((ws ++ chs).getD j 0) := by
@@ -373,7 +373,7 @@ theorem osOodGlues_noRet (lvl lam sc : ℕ) (s : OsSt) :
   simp [osOodGlues, osOodGlue, Stmt.noRetList, Stmt.noRet]
 
 /-- **One level** of `open_stacked` (G:1096-1213) against one level of `whirLevelsOpen`
-(`whirLevelsOpen_cons`): `foldRounds`, `levelMid` and `levelQueries` run over the words and the
+(`os_whirLevelsOpen_cons`): `foldRounds`, `osLevelMid` and `osLevelQueries` run over the words and the
 openings the guest reads; the invariant holds at the next level, or, after the last level, what
 the tail needs and the final message. -/
 theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : List Whir.Level}
@@ -383,13 +383,13 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
     (hinv : OsLvInv rd σ cfg logN cur lvl st cv xs w roots) {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osLevel cfg lvl (cfg.lv lvl) st).1 True kret) :
     ∃ (ys1 : List E) (cv1 : Digest) (w1 : WhirState) (chs : List E),
-      RunsTo (foldRounds L.fold w []) cv ys1 (w1, chs) cv1 ∧ w1.folds.length = levelF cfg lvl ∧
+      RunsTo (foldRounds L.fold w []) cv ys1 (w1, chs) cv1 ∧ w1.folds.length = osLevelF cfg lvl ∧
     ∃ (ysM : List E) (cv2 : Digest) (residual : List E)
       (pending : List (E × List E × (List E → E))) (roots2 : List (Digest × ℕ × ℕ)),
-      (∀ r o, Runs (levelMid (logN - levelF cfg lvl) rest) ⟨cv1, ysM ++ r, o, roots⟩ (residual, pending)
+      (∀ r o, Runs (osLevelMid (logN - osLevelF cfg lvl) rest) ⟨cv1, ysM ++ r, o, roots⟩ (residual, pending)
         ⟨cv2, r, o, roots2⟩) ∧
     ∃ (ysQ : List E) (os : List Opening) (cv' : Digest) (w' : WhirState),
-      (∀ r o, Runs (levelQueries (logN - levelF cfg lvl) lvl L chs w1 pending)
+      (∀ r o, Runs (osLevelQueries (logN - osLevelF cfg lvl) lvl L chs w1 pending)
         ⟨cv2, ysQ ++ r, os ++ o, roots2⟩ w' ⟨cv', r, o, roots2⟩) ∧
       (rest = [] → residual.length = cfg.yrLen ∧ ReadsAt rd (σ (.n osFmsg)) residual ∧
         OsEndInv rd σ cfg logN cur (lvl + 1) (osLevel cfg lvl (cfg.lv lvl) st).2 cv'
@@ -408,8 +408,8 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
   obtain ⟨ys1, cv1, chs, w1, hat1, hrun1, hchl, hq1, ht1, hfo1, hgl1, hlf1, hco1⟩ :=
     osFolds_sound (fch := osFch) _ _ _ _ _ w [] hat (by omega) hquad htgt hF
   rw [ite_neg' (by rw [hf]; omega)] at hco1
-  have hw1l : w1.folds.length = levelF cfg lvl := by
-    rw [hfo1, List.length_append, hnf, hchl, levelF]
+  have hw1l : w1.folds.length = osLevelF cfg lvl := by
+    rw [hfo1, List.length_append, hnf, hchl, osLevelF]
   refine ⟨ys1, cv1, w1, chs, by rw [← hf]; simpa using hrun1, hw1l, ?_⟩
   generalize hfr : osFolds osFch (cfg.lv lvl).foldsOff (cfg.lv lvl).folds st = fr at *
   by_cases hl : lvl = cfg.yrLevel
@@ -446,10 +446,10 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
     have hyr' := hyr rfl
     refine ⟨ms, obsAll cv1 ms, ms, [], roots, fun r o => ?_, ysQ, os, cvq, _, fun r o => hrunQ w1 [] r o,
       fun _ => ⟨by rw [hmsl], hfm, ?_⟩, fun hne => absurd rfl hne⟩
-    · simp only [levelMid]
+    · simp only [osLevelMid]
       rw [← hyr', ← hmsl]
       exact Runs.bind (RunsTo.runs (runsTo_readN cv1 ms) _ _ _) (Runs.ret _ _)
-    · simp only [List.nil_append, glue_one]
+    · simp only [List.nil_append, os_glue_one]
       refine ⟨⟨hatQ.fs, hatQ.reads, hatQ.cursor⟩, by
           show qq.2.1.co ≤ 8; rw [hcoQ, hcoM]; omega, ?_, ?_, ?_, ?_, ?_⟩
       · rw [hq1]
@@ -459,7 +459,7 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
         rw [g1, g2, g3]
       · show w1.target + 1 * lam * σ (.n qq.2.2.1) = _
         rw [ht1, g4, one_mul]
-      · show w1.folds.length = levelF cfg (lvl + 1 - 1)
+      · show w1.folds.length = osLevelF cfg (lvl + 1 - 1)
         rw [hw1l, Nat.add_sub_cancel]
       · show ∀ j < w1.folds.length, LoadHolds rd (σ (.n osFch)) j (w1.folds.getD j 0)
         rw [hfo1]
@@ -468,7 +468,7 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
           ⟨hqsl, hqpos, hqw, by simp [hl], fun _ => hB, fun z hz => absurd hz (by simp)⟩⟩
         show w1.glued ++ _ = _
         rw [gluedOf_append, hgl1, hgl, hrecl, hw1l]
-        simp [recGlued]
+        simp [osRecGlued]
   · obtain ⟨next, rest', rfl⟩ : ∃ next rest', rest = next :: rest' := by
       cases rest with
       | nil => exact absurd (hlast.mp rfl) hl
@@ -479,7 +479,7 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
     rw [hood] at h ⊢
     simp only [osOodGlues, List.append_nil, Nat.zero_mul, Nat.add_zero] at h ⊢
     generalize hLC : (cfg.lv lvl).logCols = lc at h ⊢
-    obtain rfl : lc = logN - levelF cfg lvl := hLC.symm.trans hlc
+    obtain rfl : lc = logN - osLevelF cfg lvl := hLC.symm.trans hlc
     obtain ⟨hM, h⟩ := holdsList_true_of (osCommit_noRet _ _ _ _ _ _) h
     obtain ⟨x0, x1, y, c0o, c2o, hk0, hk1, lx0, lx1, hatM, hrs, ly, lc0, lc2, hcoM⟩ :=
       osCommit_sound (by omega) (by omega) hb6 hat1 hM
@@ -489,7 +489,7 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
     obtain ⟨hQ, h⟩ := holdsList_true_of (osQueries_noRet _ _ _ _) h
     obtain ⟨hO, h⟩ := holdsList_true_of (by simp [osOodGlue, Stmt.noRetList, Stmt.noRet]) h
     obtain ⟨hB, h⟩ := holdsList_true_of (by rfl) h
-    have hrt' : (roots ++ [(pairDigest x0 x1, levelShape (logN - levelF cfg lvl) next
+    have hrt' : (roots ++ [(pairDigest x0 x1, levelShape (logN - osLevelF cfg lvl) next
         (3 * 2 ^ next.fold))])[lvl]? = some (rt, (cfg.lv lvl).depth,
         oqR (if lvl = 0 then 1 else 0) (2 ^ (cfg.lv lvl).folds)) := by
       rw [List.getElem?_append_left (by omega)]; exact hrt
@@ -499,12 +499,12 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
     have hgl := osGlue_sound h
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hB
     have hk := osRest_keep cfg (cfg.lv lvl) lvl
-      (osCommit lvl (logN - levelF cfg lvl) 1 osRoots osOodz osOod fr.2).2
+      (osCommit lvl (logN - osLevelF cfg lvl) 1 osRoots osOodz osOod fr.2).2
     simp only at hk
     obtain ⟨k1, k2, k3, k4⟩ := hk
-    obtain ⟨f1, f2, f3, f4⟩ := osCommit_keep lvl (logN - levelF cfg lvl) osRoots osOodz osOod fr.2
+    obtain ⟨f1, f2, f3, f4⟩ := osCommit_keep lvl (logN - osLevelF cfg lvl) osRoots osOodz osOod fr.2
     generalize (osSqueezes cfg.maxSq (cfg.lv lvl).squeezes osQpos osQbp (cfg.lv lvl).sqLoop
-      (osGrind (cfg.lv lvl).grindBits (osCommit lvl (logN - levelF cfg lvl) 1 osRoots osOodz osOod
+      (osGrind (cfg.lv lvl).grindBits (osCommit lvl (logN - osLevelF cfg lvl) 1 osRoots osOodz osOod
         fr.2).2).2).2 = ssq at *
     generalize osQueries cfg (cfg.lv lvl) lvl { ssq with k := ssq.k + (cfg.lv lvl).queries } = qq at *
     obtain ⟨g1, g2, g3, g4⟩ := hgl
@@ -514,19 +514,19 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
     rw [o2, k2, f2, e1] at g2
     rw [o3, k3, f3, e2] at g3
     rw [o4, k4, f4] at g4
-    set ml := logN - levelF cfg lvl
+    set ml := logN - osLevelF cfg lvl
     set cv12 := obsCv (obsCv cv1 x0) x1
     refine ⟨[x0, x1, y, c0o, c2o], obsCv (obsCv (obsCv (sqAll ml cv12).2 y) c0o) c2o, [],
       [(y, [c0o, y + c2o, c2o], fun x ↦ eqEval (sqAll ml cv12).1 x)],
       roots ++ [(pairDigest x0 x1, levelShape ml next (3 * 2 ^ next.fold))], fun r o => ?_,
       ysQ, os, cvq, _, fun r o => hrunQ w1 _ r o, fun h0 => absurd h0 (by simp), fun _ => ?_⟩
-    · simp only [levelMid, levelShape]
-      refine Runs.bind (runs_commitP (digestOfScalars_pair hk0 hk1) _ _ _ _ _) ?_
+    · simp only [osLevelMid, levelShape]
+      refine Runs.bind (os_runs_commitP (digestOfScalars_pair hk0 hk1) _ _ _ _ _) ?_
       refine Runs.bind (RunsTo.runs (runsTo_sampleN ml cv12) _ _ _) ?_
-      refine Runs.bind (runs_readE _ _ _ _ _) ?_
-      refine Runs.bind (runs_roundPoly3 _ _ _ _ _ _ _) ?_
+      refine Runs.bind (os_runs_readE _ _ _ _ _) ?_
+      refine Runs.bind (os_runs_roundPoly3 _ _ _ _ _ _ _) ?_
       exact Runs.ret _ _
-    · simp only [List.singleton_append, glue_two]
+    · simp only [List.singleton_append, os_glue_two]
       refine ⟨⟨hatQ.fs, hatQ.reads, hatQ.cursor⟩, by
           show qq.2.1.co ≤ 8; rw [hcoQ, hcoM, hco1], ?_, ?_, ?_, ?_, by simp [hrl], ?_, ?_⟩
       · rw [hq1]
@@ -552,7 +552,7 @@ theorem osLevel_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : Li
           ⟨hqsl, hqpos, hqw, by simp [hl], fun hz => absurd hz (by simp), fun z hz => ?_⟩⟩
         · show w1.glued ++ _ ++ _ = _
           rw [gluedOf_append, hgl1, hgl, hrecl, hw1l]
-          simp [recGlued, ml]
+          simp [osRecGlued, ml]
         · simp only [Option.some.injEq] at hz
           subst hz
           exact ⟨hB, by rw [length_sqAll, hlc], hrs, lo⟩

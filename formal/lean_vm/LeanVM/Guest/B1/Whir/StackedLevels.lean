@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.StackedLevel
 # The levels of the stacked opening (TRIAGE #36)
 
 `osLevels_sound`: by induction over the levels, `osLevel_sound` at each; the guest's levels read
-words and openings over which `whirLevelsOpen` runs to its tail (`tailOpen`), from the state the
+words and openings over which `whirLevelsOpen` runs to its tail (`osTailOpen`), from the state the
 guest leaves after its last level (`OsEndInv`), whatever the tail then reads.
 -/
 
@@ -82,7 +82,7 @@ theorem osLevels_sound {cfg : OsCfg} {logN lane : ℕ} {Lall : List Whir.Level}
           (xs ++ ys) wL ∧
         residual.length = cfg.yrLen ∧ ReadsAt rd (σ (.n osFmsg)) residual ∧
         ∀ (r : List E) (o : List Opening) (we : WhirEnd) (st' : St),
-          Runs (tailOpen (logN - levelF cfg (Lall.length - 1)) lane wL residual) ⟨cvL, r, o, rootsL⟩ we st' →
+          Runs (osTailOpen (logN - osLevelF cfg (Lall.length - 1)) lane wL residual) ⟨cvL, r, o, rootsL⟩ we st' →
           Runs (whirLevelsOpen logN lane lvl (Lall.drop lvl) w) ⟨cv, ys ++ r, os ++ o, roots⟩ we st' := by
   intro j
   induction j with
@@ -104,7 +104,7 @@ theorem osLevels_sound {cfg : OsCfg} {logN lane : ℕ} {Lall : List Whir.Level}
     refine ⟨ys1 ++ ysM ++ ysQ, os, cv', w', roots2, residual, by simpa [hlen, show lvl + 1 = Lall.length by omega]
       using hend, hresl, hres, fun r o we st' htail => ?_⟩
     rw [List.drop_eq_getElem_cons hl, show Lall[lvl] = Lall.getD lvl default by
-      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl], hLrest, whirLevelsOpen_cons]
+      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl], hLrest, os_whirLevelsOpen_cons]
     rw [show Lall.length - 1 = lvl by omega] at htail
     rw [← hw1l] at hrunM hrunQ htail
     simp only [List.append_assoc]
@@ -135,7 +135,7 @@ theorem osLevels_sound {cfg : OsCfg} {logN lane : ℕ} {Lall : List Whir.Level}
       | cons a b => exact ⟨a, b, rfl⟩
     have hrun' := hrun r o we st' htail
     rw [List.drop_eq_getElem_cons hl, show Lall[lvl] = Lall.getD lvl default by
-      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl], whirLevelsOpen_cons]
+      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl], os_whirLevelsOpen_cons]
     rw [← hw1l] at hrunM hrunQ
     simp only [List.append_assoc]
     refine Runs.bind (RunsTo.runs hrun1 _ _ _) ?_

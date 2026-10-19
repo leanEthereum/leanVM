@@ -73,7 +73,7 @@ theorem osHead_sound {cfg : OsCfg} {logN : ℕ} (hoff : (cfg.lv 0).foldsOff = 0)
 
 /-! ## The residual chains, every level -/
 
-theorem zipIdx_map_range' {α β : Type} [Inhabited α] (f : α × ℕ → β) (l : List α) :
+private theorem zipIdx_map_range' {α β : Type} [Inhabited α] (f : α × ℕ → β) (l : List α) :
     l.zipIdx.map f = (List.range l.length).map fun i => f (l.getD i default, i) := by
   apply List.ext_getElem (by simp)
   intro i h1 h2
@@ -111,14 +111,14 @@ structure OsCfgOk (cfg : OsCfg) (μ r : ℕ) (Lall : List Whir.Level) : Prop whe
   yr2 : 2 ≤ cfg.yrLog
   yr5 : cfg.yrLog ≤ 5
   yrLevel : cfg.yrLevel = cfg.levels.length - 1
-  nFolds : levelF cfg (cfg.levels.length - 1) = cfg.nFolds
+  nFolds : osLevelF cfg (cfg.levels.length - 1) = cfg.nFolds
   total : cfg.nFolds + cfg.yrLog = μ
   laneLe : (cfg.lv 0).folds ≤ cfg.nFolds
   pt42 : cfg.nFolds + cfg.yrLog ≤ 42
   ood : ∀ lv ∈ cfg.levels.tail, lv.oodHere = 1
-  lvs : ∀ i < cfg.levels.length, (cfg.lv i).prefixLen = cfg.nFolds - levelF cfg i ∧
-    (cfg.lv i).resFoldOff = levelF cfg i ∧ (cfg.lv i).prefixLen + cfg.yrLog = (cfg.lv i).logCols ∧
-    levelF cfg i ≤ cfg.nFolds ∧ TablesOkK (cfg.lv i)
+  lvs : ∀ i < cfg.levels.length, (cfg.lv i).prefixLen = cfg.nFolds - osLevelF cfg i ∧
+    (cfg.lv i).resFoldOff = osLevelF cfg i ∧ (cfg.lv i).prefixLen + cfg.yrLog = (cfg.lv i).logCols ∧
+    osLevelF cfg i ≤ cfg.nFolds ∧ OsTablesOkK (cfg.lv i)
 
 /-- The callees of a configuration, as their meanings, and its residual loops. -/
 structure OsCallees (rd : Reader) (cfg : OsCfg) : Prop where
@@ -128,7 +128,7 @@ structure OsCallees (rd : Reader) (cfg : OsCfg) : Prop where
   res : ∀ i < cfg.levels.length, ∃ fn, coreProgram.find? (cfg.lv i).resLoop = some fn ∧
     fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ∧ fn.body = resLoopOf cfg i (cfg.lv i)
 
-theorem readsAt_getD {p : E} {l : List E} (h : ReadsAt rd p l) :
+private theorem readsAt_getD {p : E} {l : List E} (h : ReadsAt rd p l) :
     ∀ j < l.length, LoadHolds rd p j (l.getD j 0) := fun j hj => by
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, Option.getD_some]; exact h j hj
 
@@ -161,7 +161,7 @@ theorem osOodWeights_noRet (yrLog tch : ℕ) : ∀ (prev ol : ℕ) (lvs : List O
     have hnr : ∀ k', Stmt.noRetList (osOodWeight yrLog tch (prev - yrLog) lv.foldsOff ol 0 k') = true := by
       intro k'
       unfold osOodWeight osOodFacs
-      rw [zipIdx_map_range, List.map_map]
+      rw [os_zipIdx_map_range, List.map_map]
       show Stmt.noRetList (List.flatten _) = true
       rw [noRetList_flatten_range _ _ (fun _ => rfl)]
     simp only [osOodWeights, h1, List.range_one, List.foldl_cons, List.foldl_nil]
@@ -176,8 +176,8 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
     (hcal : OsCallees rd cfg) {st : OsSt} {tch : ℕ} {wL : WhirState} {residual tf : List E}
     (hfl : wL.folds.length = cfg.nFolds)
     (hfch : ∀ j < wL.folds.length, LoadHolds rd (σ (.n osFch)) j (wL.folds.getD j 0))
-    (hgl : ∃ recs : List OsRec, recs.length = cfg.levels.length ∧ wL.glued = gluedOf μ cfg recs ∧
-      ∀ i < cfg.levels.length, RecOk rd σ cfg i (recs.getD i default))
+    (hgl : ∃ recs : List OsRec, recs.length = cfg.levels.length ∧ wL.glued = osGluedOf μ cfg recs ∧
+      ∀ i < cfg.levels.length, OsRecOk rd σ cfg i (recs.getD i default))
     (hresl : residual.length = cfg.yrLen) (hres : ReadsAt rd (σ (.n osFmsg)) residual)
     (htfl : tf.length = cfg.yrLog) (htch : ReadsAt rd (σ (.n tch)) (tf ++ List.replicate (5 - cfg.yrLog) 0))
     {rets : List E}
@@ -219,8 +219,8 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
     rw [hlast.yrLen, hok.nFolds, ← hok.total, Nat.add_sub_cancel_left]
   -- the residual's value
   obtain ⟨mm, ps, hmml, hpsl, hmm, hps, hyat⟩ := hcal.ff _ _ hF
-  have hps' : ps = tf := readsAt_unique hps (readsAt_prefix htch) (by rw [hpsl, htfl])
-  have hmm' : mm = residual := readsAt_unique hmm hres (by rw [hmml, hresl, hyr])
+  have hps' : ps = tf := os_readsAt_unique hps (os_readsAt_prefix htch) (by rw [hpsl, htfl])
+  have hmm' : mm = residual := os_readsAt_unique hmm hres (by rw [hmml, hresl, hyr])
   simp only [List.cons.injEq, and_true] at hyat
   rw [hps', hmm'] at hyat
   -- the point
@@ -237,7 +237,7 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
   -- the basis rows
   rw [← hbs] at hB
   have hbasis : ∀ i < n, ∀ it ∈ osBasisCoords cfg.yrLog tch i (cfg.lv i),
-      BasisOk rd σ (st.k + 1 + 44) (st.k + 1 + 46) it := fun i hi it hit =>
+      OsBasisOk rd σ (st.k + 1 + 44) (st.k + 1 + 46) it := fun i hi it hit =>
     osBases_sound 0 cfg.levels _ hB i hi it (by simpa using hit)
   -- the residual chains
   have hres' := osResiduals_sound (ich := bs.2 + 1) (ba := st.k + 1 + 44) (bb := st.k + 1 + 46)
@@ -252,13 +252,13 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
       rw [loadHolds_unique (hi0 i (by omega)) (ih (by omega))] at this
       rwa [Finset.sum_range_succ]
   -- the levels' terminal points
-  set pt : ℕ → List E := fun i => P.drop (levelF cfg i) ++ tf
-  have hIW : ∀ i < n, rr i = inducedWeight (μ - levelF cfg i) (recs.getD i default).queries
+  set pt : ℕ → List E := fun i => P.drop (osLevelF cfg i) ++ tf
+  have hIW : ∀ i < n, rr i = inducedWeight (μ - osLevelF cfg i) (recs.getD i default).queries
       (powers (recs.getD i default).lam (recs.getD i default).queries.length) (pt i) := by
     intro i hi
     obtain ⟨hpre, hrfo, hml, hFP, htab⟩ := hok.lvs i hi
     rw [← ((hspec i hi).logCols).1]
-    exact rc_eq_inducedWeight htfl (by rw [hfl]; exact hFP) (by rw [hfl]; exact hpre) hrfo hml htab.ok
+    exact os_rc_eq_inducedWeight htfl (by rw [hfl]; exact hFP) (by rw [hfl]; exact hpre) hrfo hml htab.ok
       hfch htch' (hbasis i hi) (hrecs i hi) (hrcB i hi) (hrc0 i hi) (hrr i hi)
   -- the out-of-domain weights
   set W : ℕ → E := fun j => match (recs.getD j default).ood with
@@ -276,11 +276,11 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
   rw [← hod] at hO
   have hOOD := osOodWeights_sound cfg.levels.tail 1 (cfg.lv 0).logCols none _ W hok.ood (fun i hi k' hk => by
     have hi' : i + 1 < n := by simp at hi; omega
-    have hpc : prevColsAt cfg.levels.tail (cfg.lv 0).logCols i = (cfg.lv i).logCols := by
+    have hpc : osPrevColsAt cfg.levels.tail (cfg.lv 0).logCols i = (cfg.lv i).logCols := by
       cases i with
       | zero => rfl
-      | succ i => simp only [prevColsAt, Nat.add_one_ne_zero, ↓reduceIte, Nat.add_sub_cancel, htail]
-    have hfo : (cfg.levels.tail.getD i default).foldsOff = levelF cfg i := by
+      | succ i => simp only [osPrevColsAt, Nat.add_one_ne_zero, ↓reduceIte, Nat.add_sub_cancel, htail]
+    have hfo : (cfg.levels.tail.getD i default).foldsOff = osLevelF cfg i := by
       rw [htail]
       have hs := hspec i (by omega)
       rw [List.drop_eq_getElem_cons (by rw [hok.len]; omega)] at hs
@@ -304,24 +304,24 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
         rw [loadHolds_mul_gen_pow] at this
         convert this using 2; ring)
       (fun t ht => by
-        unfold oodSrc
+        unfold osOodSrc
         split
         · rw [os_getD_append_lt (by simp [P, hfl]; omega), os_getD_drop']
           exact hfch _ (by rw [hfl]; omega)
         · rw [os_getD_append_ge (by simp [P, hfl]; omega)]
           simp only [List.length_drop, P, hfl]
-          rw [show t - (cfg.nFolds - levelF cfg i) = t - ((cfg.lv i).logCols - cfg.yrLog) by omega]
+          rw [show t - (cfg.nFolds - osLevelF cfg i) = t - ((cfg.lv i).logCols - cfg.yrLog) by omega]
           exact htch' _ (by omega))]
     simp only [W, hz]
-    rw [eqEval_eq z (pt i) (by rw [hzl, hptl]), hzl, hzf]) hO
-  simp only [accVal, zero_add] at hOOD
+    rw [os_eqEval_eq z (pt i) (by rw [hzl, hptl]), hzl, hzf]) hO
+  simp only [osAccVal, zero_add] at hOOD
   rw [hod] at hOOD
   -- the glued weight, level by level
-  have hlvl : ∀ i < n, recInner μ (levelF cfg i) (recs.getD i default) (pt i) = bv i * rr i + W i := by
+  have hlvl : ∀ i < n, osRecInner μ (osLevelF cfg i) (recs.getD i default) (pt i) = bv i * rr i + W i := by
     intro i hi
     obtain ⟨-, -, -, hnone, hb1, hb2⟩ := hrecs i hi
     rw [hIW i hi]
-    unfold recInner
+    unfold osRecInner
     simp only [W]
     cases h' : (recs.getD i default).ood with
     | none =>
@@ -337,7 +337,7 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
     simp only [W, this.mpr rfl]
   have hinner : wL.glued.foldl (fun w c ↦ w + c.scalar * c.weightAt (wL.folds.drop c.foldStart ++ tf)) 0 =
       (∑ i ∈ Finset.range n, bv i * rr i) + ∑ i ∈ Finset.range (n - 1), W i := by
-    rw [hglr, gluedOf_inner, hrecl, Finset.sum_congr rfl fun i hi => hlvl i (Finset.mem_range.mp hi),
+    rw [hglr, os_gluedOf_inner, hrecl, Finset.sum_congr rfl fun i hi => hlvl i (Finset.mem_range.mp hi),
       Finset.sum_add_distrib]
     congr 1
     rw [show n = n - 1 + 1 by omega, Finset.sum_range_succ, Nat.add_sub_cancel, hW0, add_zero]
@@ -404,13 +404,13 @@ theorem open_stacked_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (
       wL.glued.foldl (fun w c ↦ w + c.scalar * c.weightAt (wL.folds.drop c.foldStart ++ tf)) 0,
       multilinearEval residual tf, σ (.n tl.2.1.t)⟩, cvT, rootsL, hcv, hreads, fun rest orest => ?_,
     pt, by rw [hrets], by rw [hptl]; exact hpt, by rw [hptl, hok.total]⟩
-  have htail : Runs (tailOpen (μ - levelF cfg (cfg.levels.length - 1)) (cfg.lv 0).folds wL residual)
+  have htail : Runs (osTailOpen (μ - osLevelF cfg (cfg.levels.length - 1)) (cfg.lv 0).folds wL residual)
       ⟨cvL, ysT ++ rest, orest, rootsL⟩
       ⟨(wL.folds ++ tf).drop (cfg.lv 0).folds ++ (wL.folds ++ tf).take (cfg.lv 0).folds,
         wL.glued.foldl (fun w c ↦ w + c.scalar * c.weightAt (wL.folds.drop c.foldStart ++ tf)) 0,
         multilinearEval residual tf, σ (.n tl.2.1.t)⟩ ⟨cvT, rest, orest, rootsL⟩ := by
     rw [hok.nFolds, ← hok.total, Nat.add_sub_cancel_left]
-    unfold tailOpen
+    unfold osTailOpen
     rw [hend.quad]
     exact Runs.bind (RunsTo.runs (hrunT wL.target) _ _ _) (Runs.ret _ _)
   have hrun := hcont (ysT ++ rest) orest _ _ htail
@@ -421,7 +421,7 @@ theorem open_stacked_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (
   refine Runs.bind (Runs.ret _ _) ?_
   rw [hok.lane]
   simp only [List.append_assoc, List.cons_append, List.nil_append]
-  refine Runs.bind (runs_roundPoly3 cv target x0 x1 _ _ _) ?_
+  refine Runs.bind (os_runs_roundPoly3 cv target x0 x1 _ _ _) ?_
   exact hrun
 
 end

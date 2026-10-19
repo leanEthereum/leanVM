@@ -31,7 +31,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-! ## Powers by square-and-multiply -/
 
 /-- The exponent the digits `ds` give from `a`. -/
-def digitsVal (a : ℕ) (ds : List Bool) : ℕ := ds.foldl (fun a d => 2 * a + d.toNat) a
+def osDigitsVal (a : ℕ) (ds : List Bool) : ℕ := ds.foldl (fun a d => 2 * a + d.toNat) a
 
 theorem osPowSteps_noRet (x : ℕ) : ∀ ds acc k, Stmt.noRetList (osPowSteps x ds acc k).1 = true
   | [], _, _ => rfl
@@ -46,7 +46,7 @@ theorem osPowSteps_noRet (x : ℕ) : ∀ ds acc k, Stmt.noRetList (osPowSteps x 
 theorem osPowSteps_sound (x : ℕ) {kret : List E → Prop} :
     ∀ (ds : List Bool) (acc k a : ℕ), σ (.n acc) = σ (.n x) ^ a →
       Stmt.HoldsList C rd σ (osPowSteps x ds acc k).1 True kret →
-      σ (.n (osPowSteps x ds acc k).2) = σ (.n x) ^ digitsVal a ds
+      σ (.n (osPowSteps x ds acc k).2) = σ (.n x) ^ osDigitsVal a ds
   | [], acc, _, a, ha, _ => ha
   | d :: ds, acc, k, a, ha, h => by
     unfold osPowSteps at h ⊢
@@ -81,12 +81,12 @@ theorem sqPtr_sound {posOff q base k : ℕ} (hpo : posOff < 2 ^ 128) {kret : Lis
   · simp only [h0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, pow_zero, mul_one] at h ⊢
     exact h.1
   · simp only [h0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h ⊢
-    rw [h.2.2.1, h.2.1, h.1, gw_eq hpo]
+    rw [h.2.2.1, h.2.1, h.1, os_gw_eq hpo]
 
 theorem sqLoop_step {lv : OsLvl} {fn : Fn} (hfind : coreProgram.find? lv.sqLoop = some fn)
     (hp : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4]) (hb : fn.body = sqLoopOf lv)
     (hdec : ∀ a r, coreProgram.Rel rd lv.decode a r → MeaningDecodeQueryBits lv.depth rd a r)
-    (hdig : digitsVal 1 (osPowDigits (192 / lv.depth)) = 192 / lv.depth)
+    (hdig : osDigitsVal 1 (osPowDigits (192 / lv.depth)) = 192 / lv.depth)
     (hpo : lv.posOff < 2 ^ 128) {d : ℕ} {x N sqz qpos qbp : E}
     (h : coreProgram.relN rd (d + 1) lv.sqLoop [x, N, sqz, qpos, qbp] []) :
     SqBody rd lv.depth lv.posOff sqz qpos qbp x ∧ IsInK (x * gen + N) ∧
@@ -155,7 +155,7 @@ the returned `OsSt.k - 1`. -/
 theorem osSqueezes_sound {lv : OsLvl} {fn : Fn} (hfind : coreProgram.find? lv.sqLoop = some fn)
     (hp : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4]) (hb : fn.body = sqLoopOf lv)
     (hdec : ∀ a r, coreProgram.Rel rd lv.decode a r → MeaningDecodeQueryBits lv.depth rd a r)
-    (hdig : digitsVal 1 (osPowDigits (192 / lv.depth)) = 192 / lv.depth)
+    (hdig : osDigitsVal 1 (osPowDigits (192 / lv.depth)) = 192 / lv.depth)
     (hpo : lv.posOff < 2 ^ 128) {maxSq nsq qpos qbp : ℕ} (hnsq : nsq < 2 ^ 62) {cur : E} {s : OsSt}
     {cv : Digest} {xs : List E} (hat : OsCur rd σ cur s cv xs) {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osSqueezes maxSq nsq qpos qbp lv.sqLoop s).1 True kret) :
@@ -174,8 +174,8 @@ theorem osSqueezes_sound {lv : OsLvl} {fn : Fn} (hfind : coreProgram.find? lv.sq
   simp only [osHeap, List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
     List.map_cons, List.map_nil, and_true, word_one] at hpre
   obtain ⟨-, -, l0, l1, e2, e3, e4, e5, e6, -, hrun, e7, e8, l9, l10⟩ := hpre
-  rw [e4, e3, e2, gw_eq (by omega)] at hrun
-  rw [e5, e6, gw_eq (by omega)] at hrun
+  rw [e4, e3, e2, os_gw_eq (by omega)] at hrun
+  rw [e5, e6, os_gw_eq (by omega)] at hrun
   obtain ⟨m, hm, hN, hB⟩ := guarded_loop_sound (P := coreProgram) (f := lv.sqLoop)
     (ps := [gen ^ nsq, σ (.n (s.k + 1)), σ (.n qpos), σ (.n qbp)])
     (B := SqBody rd lv.depth lv.posOff (σ (.n (s.k + 1))) (σ (.n qpos)) (σ (.n qbp)))
@@ -202,7 +202,7 @@ theorem osSqueezes_sound {lv : OsLvl} {fn : Fn} (hfind : coreProgram.find? lv.sq
       rw [sqAll_succ_snd, show 2 * (j + 1) = 2 * j + 2 by ring]
       exact ⟨b2, by rw [show 2 * j + 2 + 1 = 2 * j + 3 by ring]; exact b3⟩
   obtain ⟨c0, c1⟩ := hchain m le_rfl
-  rw [e8, e7, gw_eq (by omega), loadHolds_mul_gen_pow] at l9 l10
+  rw [e8, e7, os_gw_eq (by omega), loadHolds_mul_gen_pow] at l9 l10
   have h9 := loadHolds_unique l9 (by simpa using c0)
   have h10 := loadHolds_unique l10 c1
   obtain ⟨⟨cv', hcv', hv⟩, -⟩ := (holds_squeezeT _ _ _ True _).mp hsq

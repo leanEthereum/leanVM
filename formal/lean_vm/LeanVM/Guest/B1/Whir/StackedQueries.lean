@@ -31,10 +31,10 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 /-! ## The rows and the climb -/
 
 /-- The rows `whirLevelsOpen` reads from the words of commitment `index` (V:1740-1741). -/
-def rowsOf (index : ℕ) (words : List (List K)) : List (List E) :=
+def osRowsOf (index : ℕ) (words : List (List K)) : List (List E) :=
   if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
 
-theorem climb_append_list (D : Digest) (q : ℕ) : ∀ ss ts : List Digest,
+private theorem climb_append_list (D : Digest) (q : ℕ) : ∀ ss ts : List Digest,
     climb (m := Id) blake2sBytes D q (ss ++ ts) =
       climb (m := Id) blake2sBytes (climb (m := Id) blake2sBytes D q ss) (q / 2 ^ ss.length) ts
   | [], ts => by simp; rfl
@@ -51,11 +51,11 @@ theorem leafRowWord_zero (leaf : List K) (jw : ℕ) :
   simp [leafRowWord, oqRowWord]
 
 /-- Level 0's row: the leaf read from the top down against the reversed weights. -/
-theorem dot_row0 {f : ℕ} {leaf : List K} (hl : leaf.length = 2 ^ f) {lf : List E}
+private theorem dot_row0 {f : ℕ} {leaf : List K} (hl : leaf.length = 2 ^ f) {lf : List E}
     (hlf : lf.length = f) :
     dot (leaf.reverse.map ofK) (eqKernel lf) =
       ∑ jw ∈ Finset.range (2 ^ f), leafRowWord 1 leaf jw * (eqKernel lf).getD (orwSlot f 1 jw) 0 := by
-  rw [dot_eq_sum' _ _ (by simp [hl, length_eqKernel, hlf]), List.length_map, List.length_reverse, hl,
+  rw [os_dot_eq_sum' _ _ (by simp [hl, length_eqKernel, hlf]), List.length_map, List.length_reverse, hl,
     ← Finset.sum_range_reflect]
   refine Finset.sum_congr rfl fun jw hjw => ?_
   have hj := Finset.mem_range.mp hjw
@@ -68,20 +68,20 @@ theorem dot_row0 {f : ℕ} {leaf : List K} (hl : leaf.length = 2 ^ f) {lf : List
   rfl
 
 /-- A deeper level's row: its words regrouped by three. -/
-theorem dot_rowExt {f : ℕ} {leaf : List K} (hl : leaf.length = 3 * 2 ^ f) {lf : List E}
+private theorem dot_rowExt {f : ℕ} {leaf : List K} (hl : leaf.length = 3 * 2 ^ f) {lf : List E}
     (hlf : lf.length = f) :
     dot (extRow leaf) (eqKernel lf) =
       ∑ jw ∈ Finset.range (2 ^ f), leafRowWord 0 leaf jw * (eqKernel lf).getD (orwSlot f 0 jw) 0 := by
-  rw [dot_eq_sum' _ _ (by rw [extRow_length _ _ hl, length_eqKernel, hlf]), extRow_length _ _ hl]
+  rw [os_dot_eq_sum' _ _ (by rw [os_extRow_length _ _ hl, length_eqKernel, hlf]), os_extRow_length _ _ hl]
   refine Finset.sum_congr rfl fun jw hjw => ?_
-  rw [extRow_getD _ _ hl jw (Finset.mem_range.mp hjw), leafRowWord_zero, orwSlot, ite_neg' (by decide)]
+  rw [os_extRow_getD _ _ hl jw (Finset.mem_range.mp hjw), leafRowWord_zero, orwSlot, ite_neg' (by decide)]
 
 /-! ## A query as an opening -/
 
 /-- **A query's opening** (V:543-552): the leaf `QueryOk` gives and its path, the siblings below
 the cap then the cap's own (`capSibs`), climb to the cap's root, which the refutation argument
 (`cap_climb`) reaches from the cap leaf. -/
-theorem queryOk_opening {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q : ℕ}
+private theorem queryOk_opening {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q : ℕ}
     {root : Digest} (hcd : 1 ≤ cd) (hcdd : cd ≤ depth) (hq : q < 2 ^ depth)
     (hroot : CapHashed rd cap 1) (hint : ∀ c, 2 ≤ c → c < 2 ^ cd → CapFlagged rd flags cap c)
     (hcell : CapCell rd cap 1 root)
@@ -109,14 +109,14 @@ theorem queryOk_opening {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {
     rw [climb_append_list, hsl]
     exact htop
 
-theorem rowsOf_getD (lvl : ℕ) (f : ℕ → Opening) (n i : ℕ) (hi : i < n) :
-    (rowsOf lvl (((List.range n).map f).map (·.leaf))).getD i [] =
+private theorem rowsOf_getD (lvl : ℕ) (f : ℕ → Opening) (n i : ℕ) (hi : i < n) :
+    (osRowsOf lvl (((List.range n).map f).map (·.leaf))).getD i [] =
       if lvl = 0 then (f i).leaf.reverse.map ofK else extRow (f i).leaf := by
-  unfold rowsOf
+  unfold osRowsOf
   split <;> simp [List.getD_eq_getElem?_getD, hi]
 
-theorem length_rowsOf (lvl : ℕ) (words : List (List K)) : (rowsOf lvl words).length = words.length := by
-  unfold rowsOf; split <;> simp
+private theorem length_rowsOf (lvl : ℕ) (words : List (List K)) : (osRowsOf lvl words).length = words.length := by
+  unfold osRowsOf; split <;> simp
 
 theorem osMat_eq {base off k : ℕ} {m : List Stmt × ℕ × ℕ} (hm : osMat base off k = m)
     (hoff : off < 2 ^ 128) {kret : List E → Prop}
@@ -152,7 +152,7 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
         (os[j]).path.length = lv.depth ∧
         climb (m := Id) blake2sBytes (hashWords (os[j]).leaf) (pos j) (os[j]).path = root) ∧
       σ (.n (osQueries cfg lv lvl s).2.2.1) =
-        enforcedSum (rowsOf lvl (os.map (·.leaf))) lf (powers lam lv.queries) ∧
+        enforcedSum (osRowsOf lvl (os.map (·.leaf))) lf (powers lam lv.queries) ∧
       OsCur rd σ cur (osQueries cfg lv lvl s).2.1 (obsCv (obsCv cv c0) c2) (xs ++ [c0, c2]) ∧
       (osQueries cfg lv lvl s).2.1.co = s.co + 2 ∧
       σ (.n (osQueries cfg lv lvl s).2.2.2.1) = c0 ∧
@@ -206,7 +206,7 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
   obtain ⟨r0, r1, -⟩ := hret
   -- the queries
   obtain ⟨eg, hqcall⟩ := hQS
-  rw [eg, gw_eq (by omega), ecp2, ← ecp, efp2, ← efp, eqp, ebp] at hqcall
+  rw [eg, os_gw_eq (by omega), ecp2, ← ecp, efp2, ← efp, eqp, ebp] at hqcall
   obtain ⟨qsc, -, l0, hok, sN, lN, hsN⟩ := hqM _ pos _ _ _ _ _ _ (by simp only [ordG]; omega) hbits hqcall
   simp only [List.cons.injEq, and_true] at hsN
   have : Nonempty Opening := ⟨⟨[], []⟩⟩
@@ -240,11 +240,11 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
   · simp only [List.length_map, List.length_range] at hj
     simp only [List.getElem_map, List.getElem_range]
     exact ⟨hlen j hj, hplen j hj, hclimb j hj⟩
-  · rw [hsN, hsum', enforcedSum_eq _ _ _ (by simp [length_powersFrom, length_rowsOf, powers]),
+  · rw [hsN, hsum', os_enforcedSum_eq _ _ _ (by simp [os_length_powersFrom, length_rowsOf, powers]),
       length_rowsOf, List.length_map, List.length_map, List.length_range]
     refine Finset.sum_congr rfl fun i hi => ?_
     have hi' := Finset.mem_range.mp hi
-    rw [powers_getD hi', rowsOf_getD _ _ _ _ hi']
+    rw [os_powers_getD hi', rowsOf_getD _ _ _ _ hi']
     congr 1
     have hmem : ∀ jw < 2 ^ lv.folds, memAt rd (σ (.n (s.k + 1))) jw =
         (eqKernel lf).getD (orwSlot lv.folds rev jw) 0 := fun jw hjw => memAt_of_load (hrew jw hjw)

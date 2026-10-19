@@ -43,9 +43,9 @@ structure OsCur (rd : Reader) (σ : Val) (cur : E) (st : OsSt) (cv : Digest) (xs
   reads : ReadsAt rd cur xs
   cursor : σ (.n st.cb) * gen ^ st.co = cur * gen ^ xs.length
 
-theorem gw_eq {e : ℕ} (h : e < 2 ^ 128) : gw e = gen ^ e := kw_gpowK h
+theorem os_gw_eq {e : ℕ} (h : e < 2 ^ 128) : osGw e = gen ^ e := kw_gpowK h
 
-theorem readsAt_append {cur : E} {xs ys : List E} (hx : ReadsAt rd cur xs)
+private theorem readsAt_append {cur : E} {xs ys : List E} (hx : ReadsAt rd cur xs)
     (hy : ∀ j (hj : j < ys.length), LoadHolds rd cur (xs.length + j) ys[j]) :
     ReadsAt rd cur (xs ++ ys) := by
   intro k hk
@@ -71,7 +71,7 @@ theorem osMat_sound {base off k : ℕ} (hoff : off < 2 ^ 128) {kret : List E →
   by_cases h0 : off = 0
   · simp only [h0, ↓reduceIte, pow_zero, mul_one]
   · simp only [h0, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h ⊢
-    rw [h.2.1, h.1, gw_eq hoff]
+    rw [h.2.1, h.1, os_gw_eq hoff]
 
 theorem osMat_next (base off k : ℕ) : k ≤ (osMat base off k).2.2 := by
   unfold osMat; split <;> simp
@@ -104,7 +104,7 @@ theorem osFsNext_sound {cur : E} {s : OsSt} {cv : Digest} {xs : List E} (hat : O
 
 /-! ## The fold rounds -/
 
-theorem range7_map (r : ℕ) : ((List.range 7).map fun j => V.n (r + j)) =
+private theorem range7_map (r : ℕ) : ((List.range 7).map fun j => V.n (r + j)) =
     [.n r, .n (r + 1), .n (r + 2), .n (r + 3), .n (r + 4), .n (r + 5), .n (r + 6)] := by
   simp [List.range_succ]
 
@@ -264,7 +264,7 @@ theorem osOodSample_sound {cur : E} {s : OsSt} {cv : Digest} {xs : List E}
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, and_true] at hpre
   obtain ⟨e0, e1, e2, hcall, e5, e6⟩ := hpre
   obtain ⟨m, hm, hng, p, hcase⟩ := (opening_ood_point_iff rd _ _).mp hcall
-  rw [e2, gw_eq (by omega)] at hng
+  rw [e2, os_gw_eq (by omega)] at hng
   have hmeq : m = logCols := gen_pow_inj hm (by omega) hng.symm
   subst hmeq
   rcases hcase with ⟨h0, -⟩ | ⟨-, cv0, rs, cv', hcv0, hrun, hrs, -, hret⟩
@@ -286,7 +286,7 @@ theorem osOodSample_sound {cur : E} {s : OsSt} {cv : Digest} {xs : List E}
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at h
   obtain ⟨ly, lc0, lc2⟩ := h
   refine ⟨_, _, _, by simpa using hat4, ?_, ly, lc0, lc2, rfl⟩
-  rw [e1, e0, gw_eq hoz] at hrs
+  rw [e1, e0, os_gw_eq hoz] at hrs
   exact hrs
 
 /-- **The next commitment** (G:1113-1135), with its one out-of-domain sample: the root's halves
@@ -342,7 +342,7 @@ theorem osGrind_sound {bits : ℕ} (hb0 : bits ≠ 0) (hb : bits < 2 ^ 63) {cur 
   have ln := hp
   obtain ⟨e1, hcall⟩ := hq
   obtain ⟨-, m, hm, hng, cv0, hcv0, hpow, -⟩ := (grind_check_iff rd _ _).mp hcall
-  rw [e1, gw_eq (by omega)] at hng
+  rw [e1, os_gw_eq (by omega)] at hng
   have hmeq : m = bits := gen_pow_inj hm (by omega) hng.symm
   have hcv : cv0 = cv := digestScalars_injective (hcv0.symm.trans hat.fs)
   rw [hmeq, hcv] at hpow

@@ -80,7 +80,7 @@ structure OsCfg where
   deriving Repr, Inhabited
 
 /-- The word of `g^e`, as the compiler folds it. -/
-def gw (e : ℕ) : E := kw (gpowK e)
+def osGw (e : ℕ) : E := kw (gpowK e)
 
 /-! ## Blocks -/
 
@@ -101,10 +101,10 @@ structure OsSt where
 pointer's value and the next free value. -/
 def osMat (base off k : ℕ) : List Stmt × ℕ × ℕ :=
   if off = 0 then ([], base, k)
-  else ([.atom (.const (.n k) (gw off)), .atom (.mul (.n (k + 1)) (.n base) (.n k))], k + 1, k + 2)
+  else ([.atom (.const (.n k) (osGw off)), .atom (.mul (.n (k + 1)) (.n base) (.n k))], k + 1, k + 2)
 
 /-- A fresh `HeapBuf(g^e)` at `k`: its size, then its pointer at `k + 1`. -/
-def osHeap (e k : ℕ) : List Stmt := [.atom (.const (.n k) (gw e)), .atom (.hint (.allocDyn (.n (k + 1)) (.n k)))]
+def osHeap (e k : ℕ) : List Stmt := [.atom (.const (.n k) (osGw e)), .atom (.hint (.allocDyn (.n (k + 1)) (.n k)))]
 
 /-- `fs_next` (G:510) at the state: the word at `k`, the new state at `k + 13`, `k + 14`. -/
 def osFsNext (s : OsSt) : List Stmt × OsSt :=
@@ -141,8 +141,8 @@ def osFinal (name : String) (fmsg : ℕ) (s : OsSt) : List Stmt × OsSt :=
 intro message read and stored in `ood`. -/
 def osOodSample (oz so logCols oodz ood : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let k := s.k
-  let pre : List Stmt := [.atom (.const (.n k) (gw oz)), .atom (.mul (.n (k + 1)) (.n oodz) (.n k)),
-    .atom (.const (.n (k + 2)) (gw logCols)),
+  let pre : List Stmt := [.atom (.const (.n k) (osGw oz)), .atom (.mul (.n (k + 1)) (.n oodz) (.n k)),
+    .atom (.const (.n (k + 2)) (osGw logCols)),
     .call "opening_ood_point" [.n s.f0, .n s.f1, .n (k + 1), .n (k + 2)] [.n (k + 3), .n (k + 4)],
     .atom (.copy (.n (k + 5)) (.n (k + 3))), .atom (.copy (.n (k + 6)) (.n (k + 4)))]
   let s1 : OsSt := { s with k := k + 7, f0 := k + 5, f1 := k + 6 }
@@ -178,7 +178,7 @@ def osGrind (bits : ℕ) (s : OsSt) : List Stmt × OsSt :=
   let k := s.k
   let chk : List Stmt :=
     if bits = 0 then [.atom (.const (.n (k + 1)) (word 0 0 0)), .atom (.assertEq (.n k) (.n (k + 1)))]
-    else [.atom (.const (.n (k + 1)) (gw bits)),
+    else [.atom (.const (.n (k + 1)) (osGw bits)),
       .call "grind_check" [.n s.f0, .n s.f1, .n k, .n (k + 1)] []]
   ([.atom (.load (.n k) (.n s.cb) s.co)] ++ chk ++ fsCompressT (.n s.f0) (.n s.f1) (.n k) (k + 2) 4,
    { s with k := k + 16, f0 := k + 14, f1 := k + 15, co := s.co + 1 })
@@ -190,11 +190,11 @@ def osSqueezes (maxSq nsq qpos qbp : ℕ) (loop : String) (s : OsSt) : List Stmt
   let k := s.k
   let pre : List Stmt := osHeap (2 * (maxSq + 1)) k ++
     [.atom (.load (.n s.f0) (.n (k + 1)) 0), .atom (.load (.n s.f1) (.n (k + 1)) 1),
-      .atom (.const (.n (k + 2)) (word 1 0 0)), .atom (.const (.n (k + 3)) (gw nsq)),
+      .atom (.const (.n (k + 2)) (word 1 0 0)), .atom (.const (.n (k + 3)) (osGw nsq)),
       .atom (.add (.n (k + 4)) (.n (k + 2)) (.n (k + 3))), .atom (.const (.n (k + 5)) (word 1 0 0)),
-      .atom (.const (.n (k + 6)) (gw nsq)),
+      .atom (.const (.n (k + 6)) (osGw nsq)),
       .callIf (.n (k + 4)) loop [.n (k + 5), .n (k + 6), .n (k + 1), .n qpos, .n qbp],
-      .atom (.const (.n (k + 7)) (gw (2 * nsq))), .atom (.mul (.n (k + 8)) (.n (k + 1)) (.n (k + 7))),
+      .atom (.const (.n (k + 7)) (osGw (2 * nsq))), .atom (.mul (.n (k + 8)) (.n (k + 1)) (.n (k + 7))),
       .atom (.load (.n (k + 9)) (.n (k + 8)) 0), .atom (.load (.n (k + 10)) (.n (k + 8)) 1)]
   (pre ++ squeezeT (.n (k + 9)) (.n (k + 10)) (k + 11),
    { s with k := k + 25, f0 := k + 16, f1 := k + 17 })
@@ -243,7 +243,7 @@ def osQueries (cfg : OsCfg) (lv : OsLvl) (lvl : ℕ) (s : OsSt) : List Stmt × O
   let qp := osMat osQw (lvl * cfg.maxQ) fp2.2.2
   let bp := osMat osQbp lv.posOff qp.2.2
   let g := bp.2.2
-  let qs : List Stmt := [.atom (.const (.n g) (gw lv.queries)),
+  let qs : List Stmt := [.atom (.const (.n g) (osGw lv.queries)),
     .call lv.queriesFn [.n cp2.2.1, .n fp2.2.1, .n qp.2.1, .n bp.2.1, .n (k + 1), .n g] [.n (g + 1)]]
   let s1 : OsSt := { s with k := g + 2 }
   let i0 := osFsNext s1
@@ -386,9 +386,9 @@ queries, `inner[lvl + 1] = inner[lvl] + beta·chain[n]`. -/
 def osResidual (maxQ ich ba bb lvl : ℕ) (lv : OsLvl) (k : ℕ) : List Stmt :=
   osHeap (maxQ + 1) k ++
     [.atom (.const (.n (k + 2)) (word 0 0 0)), .atom (.load (.n (k + 2)) (.n (k + 1)) 0),
-      .atom (.const (.n (k + 3)) (word 1 0 0)), .atom (.const (.n (k + 4)) (gw lv.queries)),
+      .atom (.const (.n (k + 3)) (word 1 0 0)), .atom (.const (.n (k + 4)) (osGw lv.queries)),
       .atom (.add (.n (k + 5)) (.n (k + 3)) (.n (k + 4))), .atom (.const (.n (k + 6)) (word 1 0 0)),
-      .atom (.const (.n (k + 7)) (gw lv.queries)),
+      .atom (.const (.n (k + 7)) (osGw lv.queries)),
       .callIf (.n (k + 5)) lv.resLoop
         [.n (k + 6), .n (k + 7), .n osQpos, .n ba, .n bb, .n (k + 1), .n osQw],
       .atom (.load (.n (k + 8)) (.n ich) lvl), .atom (.load (.n (k + 9)) (.n osBetas) lvl),
@@ -457,7 +457,7 @@ def osPowDigits (e : ℕ) : List Bool := (Nat.bits e).reverse.tail
 /-- The pointer `base·g^posOff·q` from `k`: the statements, its value and the next free value. -/
 def sqPtr (posOff q base k : ℕ) : List Stmt × ℕ × ℕ :=
   if posOff = 0 then ([.atom (.mul (.n k) (.n base) (.n q))], k, k + 1)
-  else ([.atom (.const (.n k) (gw posOff)), .atom (.mul (.n (k + 1)) (.n base) (.n k)),
+  else ([.atom (.const (.n k) (osGw posOff)), .atom (.mul (.n (k + 1)) (.n base) (.n k)),
     .atom (.mul (.n (k + 2)) (.n (k + 1)) (.n q))], k + 2, k + 3)
 
 /-- The squeeze loop's body (G:1147-1157), at `x, N, sqz, qpos, qbp` (values `0 .. 4`): the row

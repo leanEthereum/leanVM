@@ -29,7 +29,7 @@ variable {rd : Reader} {σ : Val}
 
 /-! ## The tail rounds -/
 
-theorem tailRounds_succ_succ (n : ℕ) (t : E) (q : List E) :
+private theorem tailRounds_succ_succ (n : ℕ) (t : E) (q : List E) :
     tailRounds (n + 2) t q = (do
       let (c, target, quad) ← foldStep q
       let (rest, t') ← tailRounds (n + 1) target quad
@@ -37,7 +37,7 @@ theorem tailRounds_succ_succ (n : ℕ) (t : E) (q : List E) :
   simp only [tailRounds, foldStep, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind,
     Nat.add_one_ne_zero, ↓reduceIte]
 
-theorem tailRounds_one (t : E) (q : List E) :
+private theorem tailRounds_one (t : E) (q : List E) :
     tailRounds 1 t q = (do let c ← Prog.sampleE; return ([c], polyEval q c)) := by
   simp only [tailRounds, Prog.bind_eq, Prog.pure_eq, ↓reduceIte]
 
@@ -75,16 +75,16 @@ theorem osTailFolds_sound {cur : E} {fch : ℕ} {kret : List E → Prop} :
       rw [tailRounds_succ_succ]
       exact RunsTo.of_eq (RunsTo.bind hrun1 (RunsTo.bind this (runsTo_ret _ _))) (by simp) rfl rfl
 
-theorem readsAt_unique {p : E} {a b : List E} (ha : ReadsAt rd p a) (hb : ReadsAt rd p b)
+theorem os_readsAt_unique {p : E} {a b : List E} (ha : ReadsAt rd p a) (hb : ReadsAt rd p b)
     (hl : a.length = b.length) : a = b :=
   List.ext_getElem hl fun k h1 h2 => loadHolds_unique (ha k h1) (hb k h2)
 
-theorem readsAt_prefix {p : E} {a b : List E} (h : ReadsAt rd p (a ++ b)) : ReadsAt rd p a :=
+theorem os_readsAt_prefix {p : E} {a b : List E} (h : ReadsAt rd p (a ++ b)) : ReadsAt rd p a :=
   fun k hk => by
     have := h k (by simp; omega)
     rwa [List.getElem_append_left hk] at this
 
-theorem readsAt_of_getD {p : E} {l : List E} (h : ∀ k < l.length, LoadHolds rd p k (l.getD k 0)) :
+private theorem readsAt_of_getD {p : E} {l : List E} (h : ∀ k < l.length, LoadHolds rd p k (l.getD k 0)) :
     ReadsAt rd p l := fun k hk => by
   have := h k hk
   rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some] at this
@@ -96,7 +96,7 @@ theorem os_getD_append_ge {l l' : List E} {n : ℕ} (h : l.length ≤ n) :
     (l ++ l').getD n 0 = l'.getD (n - l.length) 0 := by
   simp [List.getD_eq_getElem?_getD, List.getElem?_append_right h]
 
-theorem polyEval_three (c b a x : E) : polyEval [c, b, a] x = c + x * b + x * x * a := by
+private theorem polyEval_three (c b a x : E) : polyEval [c, b, a] x = c + x * b + x * x * a := by
   simp only [polyEval, List.foldr]; ring
 
 /-- **The tail rounds** (G:1216-1228): `tailRounds yrLog` (V:1689) over the words the guest
@@ -210,14 +210,14 @@ theorem osPoint_sound {nFolds lane yrLog tch k : ℕ} (hlane : lane ≤ nFolds) 
 
 /-- A basis coordinate `(slot, source, inverse)` (G:1262-1269): the challenge `c` at its source,
 `1 + c` at `basis_a[slot]`, `c·inverse` at `basis_b[slot]`. -/
-def BasisOk (rd : Reader) (σ : Val) (ba bb : ℕ) (it : ℕ × (ℕ × ℕ) × ℕ) : Prop :=
+def OsBasisOk (rd : Reader) (σ : Val) (ba bb : ℕ) (it : ℕ × (ℕ × ℕ) × ℕ) : Prop :=
   ∃ c, LoadHolds rd (σ (.n it.2.1.1)) it.2.1.2 c ∧ LoadHolds rd (σ (.n ba)) it.1 (1 + c) ∧
     LoadHolds rd (σ (.n bb)) it.1 (c * eOfNat it.2.2)
 
 theorem osBasisRow_sound {ba bb : ℕ} {kret : List E → Prop} :
     ∀ (items : List (ℕ × (ℕ × ℕ) × ℕ)) (k : ℕ),
       Stmt.HoldsList (coreProgram.Rel rd) rd σ (osBasisRow ba bb items k).1 True kret →
-      ∀ it ∈ items, BasisOk rd σ ba bb it
+      ∀ it ∈ items, OsBasisOk rd σ ba bb it
   | [], _, _, it, hit => absurd hit (by simp)
   | (slot, src, inv) :: rest, k, h, it, hit => by
     simp only [osBasisRow, holdsList_append] at h
@@ -243,7 +243,7 @@ theorem osBases_sound {yrLog tch ba bb : ℕ} {kret : List E → Prop} :
     ∀ (lvl : ℕ) (lvs : List OsLvl) (k : ℕ),
       Stmt.HoldsList (coreProgram.Rel rd) rd σ (osBases yrLog tch ba bb lvl lvs k).1 True kret →
       ∀ i < lvs.length, ∀ it ∈ osBasisCoords yrLog tch (lvl + i) (lvs.getD i default),
-        BasisOk rd σ ba bb it
+        OsBasisOk rd σ ba bb it
   | _, [], _, _, i, hi => absurd hi (by simp)
   | lvl, lv :: rest, k, h, i, hi => by
     simp only [osBases, holdsList_append] at h
@@ -278,8 +278,8 @@ theorem osResidual_sound {maxQ ich ba bb lvl k : ℕ} {lv : OsLvl} {fn : Fn}
   simp only [List.cons_append, List.nil_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
     List.map_cons, List.map_nil, and_true, word_zero, word_one] at h
   obtain ⟨-, -, e2, l2, e3, e4, e5, e6, e7, hK, hrun, l8, l9, l10, e11, e12, l12⟩ := h
-  rw [e5, e3, e4, gw_eq (by omega)] at hrun
-  rw [e6, e7, gw_eq (by omega)] at hrun
+  rw [e5, e3, e4, os_gw_eq (by omega)] at hrun
+  rw [e6, e7, os_gw_eq (by omega)] at hrun
   obtain ⟨m, hm, hN, hB⟩ := guarded_loop_sound (P := coreProgram) (f := lv.resLoop)
     (ps := [gen ^ lv.queries, σ (.n osQpos), σ (.n ba), σ (.n bb), σ (.n (k + 1)), σ (.n osQw)])
     (fun d x hx => resLoop_step hfind hp hb hc hx) hrun
@@ -290,7 +290,7 @@ theorem osResidual_sound {maxQ ich ba bb lvl k : ℕ} {lv : OsLvl} {fn : Fn}
 
 /-! ## The out-of-domain weights -/
 
-theorem zipIdx_map_range {α : Type} (f : ℕ → α) (n : ℕ) :
+theorem os_zipIdx_map_range {α : Type} (f : ℕ → α) (n : ℕ) :
     ((List.range n).map f).zipIdx = (List.range n).map fun j => (f j, j) := by
   apply List.ext_getElem (by simp)
   intro i h1 h2
@@ -298,7 +298,7 @@ theorem zipIdx_map_range {α : Type} (f : ℕ → α) (n : ℕ) :
 
 /-- The source of coordinate `t` of an out-of-domain weight: the fold challenges after `ris`,
 then the tail challenges. -/
-def oodSrc (tch zf ris t : ℕ) : ℕ × ℕ := if t < zf then (osFch, ris + t) else (tch, t - zf)
+def osOodSrc (tch zf ris t : ℕ) : ℕ × ℕ := if t < zf then (osFch, ris + t) else (tch, t - zf)
 
 /-- **An out-of-domain weight** (G:1302-1310): its scalar at `ood[ol·4]` times
 `∏ (1 + z_t + c_t)` over its point at `oodz[ol·22 ..]` and the terminal point's coordinates. -/
@@ -306,10 +306,10 @@ theorem osOodWeight_sound {yrLog tch zf ris ol k : ℕ} (hn : 0 < zf + yrLog) {k
     (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osOodWeight yrLog tch zf ris ol 0 k) True kret)
     {sc : E} {z c : ℕ → E} (hsc : LoadHolds rd (σ (.n osOod)) (ol * 4) sc)
     (hz : ∀ t < zf + yrLog, LoadHolds rd (σ (.n osOodz)) (ol * 22 + t) (z t))
-    (hc : ∀ t < zf + yrLog, LoadHolds rd (σ (.n (oodSrc tch zf ris t).1)) (oodSrc tch zf ris t).2 (c t)) :
+    (hc : ∀ t < zf + yrLog, LoadHolds rd (σ (.n (osOodSrc tch zf ris t).1)) (osOodSrc tch zf ris t).2 (c t)) :
     σ (.n (k + 6 * (zf + yrLog))) = sc * ∏ t ∈ Finset.range (zf + yrLog), (1 + z t + c t) := by
   unfold osOodWeight osOodFacs at h
-  rw [zipIdx_map_range, List.map_map] at h
+  rw [os_zipIdx_map_range, List.map_map] at h
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, Nat.zero_mul, Nat.add_zero] at h
   obtain ⟨l0, h⟩ := h
   rw [holdsList_range_flatten _ _ (fun _ => rfl)] at h
@@ -328,7 +328,7 @@ theorem osOodWeight_sound {yrLog tch zf ris ol k : ℕ} (hn : 0 < zf + yrLog) {k
       rw [show k + 6 * (0 + 1) = k + 1 + 6 * 0 + 5 by ring]
       simp only [Nat.mul_zero, Nat.add_zero] at e0 e2 e4 e5 ⊢
       rw [e5, e4, e2, e0, hs0, loadHolds_unique l1 (hz 0 hj), loadHolds_unique l3 (by
-        have := hc 0 hj; simpa [oodSrc] using this)]
+        have := hc 0 hj; simpa [osOodSrc] using this)]
       simp
     | succ j ih =>
       have := hb (j + 1) (by omega)
@@ -343,16 +343,16 @@ theorem osOodWeight_sound {yrLog tch zf ris ol k : ℕ} (hn : 0 < zf + yrLog) {k
   rwa [show zf + yrLog - 1 + 1 = zf + yrLog by omega] at this
 
 /-- The running sum's value, `0` before the first weight. -/
-def accVal (σ : Val) : Option ℕ → E
+def osAccVal (σ : Val) : Option ℕ → E
   | none => 0
   | some a => σ (.n a)
 
 /-- The message log before level `i` of `lvs`, `prev` before the first. -/
-def prevColsAt (lvs : List OsLvl) (prev i : ℕ) : ℕ := if i = 0 then prev else (lvs.getD (i - 1) default).logCols
+def osPrevColsAt (lvs : List OsLvl) (prev i : ℕ) : ℕ := if i = 0 then prev else (lvs.getD (i - 1) default).logCols
 
-theorem prevColsAt_cons (lv : OsLvl) (rest : List OsLvl) (prev i : ℕ) :
-    prevColsAt (lv :: rest) prev (i + 1) = prevColsAt rest lv.logCols i := by
-  cases i <;> simp [prevColsAt]
+private theorem prevColsAt_cons (lv : OsLvl) (rest : List OsLvl) (prev i : ℕ) :
+    osPrevColsAt (lv :: rest) prev (i + 1) = osPrevColsAt rest lv.logCols i := by
+  cases i <;> simp [osPrevColsAt]
 
 /-- **The out-of-domain weights** (G:1298-1310) of the levels `lvs`, one sample each, summed into
 the running sum `acc`, each weight `W i` as `osOodWeight_sound` gives it. -/
@@ -360,22 +360,22 @@ theorem osOodWeights_sound {yrLog tch : ℕ} {kret : List E → Prop} :
     ∀ (lvs : List OsLvl) (ol prev : ℕ) (acc : Option ℕ) (k : ℕ) (W : ℕ → E),
       (∀ lv ∈ lvs, lv.oodHere = 1) →
       (∀ i < lvs.length, ∀ k', Stmt.HoldsList (coreProgram.Rel rd) rd σ
-          (osOodWeight yrLog tch (prevColsAt lvs prev i - yrLog) (lvs.getD i default).foldsOff (ol + i) 0 k')
+          (osOodWeight yrLog tch (osPrevColsAt lvs prev i - yrLog) (lvs.getD i default).foldsOff (ol + i) 0 k')
           True kret →
-        σ (.n (k' + 6 * (prevColsAt lvs prev i - yrLog + yrLog))) = W i) →
+        σ (.n (k' + 6 * (osPrevColsAt lvs prev i - yrLog + yrLog))) = W i) →
       Stmt.HoldsList (coreProgram.Rel rd) rd σ (osOodWeights yrLog tch prev ol lvs acc k).1 True kret →
-      accVal σ (osOodWeights yrLog tch prev ol lvs acc k).2.1 =
-        accVal σ acc + ∑ i ∈ Finset.range lvs.length, W i
+      osAccVal σ (osOodWeights yrLog tch prev ol lvs acc k).2.1 =
+        osAccVal σ acc + ∑ i ∈ Finset.range lvs.length, W i
   | [], _, _, acc, _, _, _, _, _ => by simp [osOodWeights]
   | lv :: rest, ol, prev, acc, k, W, hood, hW, h => by
     have h1 : lv.oodHere = 1 := hood lv (by simp)
     have hW0 := hW 0 (by simp)
-    simp only [prevColsAt, ↓reduceIte, List.getD_cons_zero, Nat.add_zero] at hW0
+    simp only [osPrevColsAt, ↓reduceIte, List.getD_cons_zero, Nat.add_zero] at hW0
     simp only [osOodWeights, h1, List.range_one, List.foldl_cons, List.foldl_nil] at h ⊢
     have hnr : ∀ k', Stmt.noRetList (osOodWeight yrLog tch (prev - yrLog) lv.foldsOff ol 0 k') = true := by
       intro k'
       unfold osOodWeight osOodFacs
-      rw [zipIdx_map_range, List.map_map]
+      rw [os_zipIdx_map_range, List.map_map]
       show Stmt.noRetList (List.flatten _) = true
       rw [noRetList_flatten_range _ _ (fun _ => rfl)]
     have hrest := fun acc' k' => osOodWeights_sound (yrLog := yrLog) (tch := tch) (kret := kret) rest
@@ -389,7 +389,7 @@ theorem osOodWeights_sound {yrLog tch : ℕ} {kret : List E → Prop} :
       simp only [List.nil_append, holdsList_append] at h ⊢
       obtain ⟨hw, h⟩ := holdsList_true_of (hnr k) h
       rw [hrest _ _ h, List.length_cons, Finset.sum_range_succ']
-      simp only [accVal, zero_add]
+      simp only [osAccVal, zero_add]
       rw [hW0 k hw, add_comm]
     | some a =>
       simp only [List.nil_append, holdsList_append] at h ⊢
@@ -397,7 +397,7 @@ theorem osOodWeights_sound {yrLog tch : ℕ} {kret : List E → Prop} :
       obtain ⟨hadd, h⟩ := holdsList_true_of (by rfl) h
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hadd
       rw [hrest _ _ h, List.length_cons, Finset.sum_range_succ']
-      simp only [accVal]
+      simp only [osAccVal]
       rw [hadd, hW0 k hw]
       ring
 
