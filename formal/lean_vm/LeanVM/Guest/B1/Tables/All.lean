@@ -28,3 +28,4 @@ public import LeanVM.Guest.B1.Tables.VerifyTablesSpec
 public import LeanVM.Guest.B1.Tables.VerifyTablesSpecCe
 public import LeanVM.Guest.B1.Tables.VerifyTablesSpecBus
 public import LeanVM.Guest.B1.Tables.VerifyTablesSound
+public import LeanVM.Guest.B1.Tables.VerifyTablesCAtD
