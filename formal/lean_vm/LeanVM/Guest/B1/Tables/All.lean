@@ -11,3 +11,4 @@ public import LeanVM.Guest.B1.Tables.Kappas
 public import LeanVM.Guest.B1.Tables.Gkr
 public import LeanVM.Guest.B1.Tables.Flock
 public import LeanVM.Guest.B1.Tables.Terminal
+public import LeanVM.Guest.B1.Tables.VerifyTablesSpec
