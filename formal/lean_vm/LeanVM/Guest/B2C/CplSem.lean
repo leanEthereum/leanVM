@@ -383,15 +383,15 @@ theorem statT_get {n o : ℕ} {p : PC} : ∀ (ps : List (ℕ × PC)) (t : Trie P
 
 /-- **A window's context holds** on an instance's frame. -/
 theorem cxOk (hF : FrameHolds L j fp σ es vs kfps hdr) (hpows : (certOf j).facts.pows.Ok)
-    (idx : Trie Exec.Seg) (loc : CLoc) (nv : ℕ) :
-    CXOk L fp (cxOf j idx loc (statT (fsN j) (plumbOf j).stat .nil) nv) := by
+    (idx : Trie Exec.Seg) (loc : CLoc) (nv : ℕ) (stop : Option (ℕ × ℕ)) :
+    CXOk L fp (cxOf j idx loc (statT (fsN j) (plumbOf j).stat .nil) nv stop) := by
   refine ⟨fun o p h ↦ ?_, fun o ho ↦ ?_, hpows⟩
   · rcases statT_get _ _ h with ⟨hm, h2, h3⟩ | h'
     · have := hF.stat _ hm h2 h3
       rw [gpow_addC] at this
       exact this
     · simp [getF_eq] at h'
-  · have hK : (cxOf j idx loc (statT (fsN j) (plumbOf j).stat .nil) nv).main = false →
+  · have hK : (cxOf j idx loc (statT (fsN j) (plumbOf j).stat .nil) nv stop).main = false →
         IsInK hdr.1 ∧ IsInK hdr.2 := fun hm ↦ hF.hdrK (by
       intro h1
       simp [cxOf, h1] at hm)

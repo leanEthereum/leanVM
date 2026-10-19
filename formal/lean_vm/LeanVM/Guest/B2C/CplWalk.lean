@@ -219,6 +219,7 @@ structure PosZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) (W0
     ∀ op, c op + itemOps pre op ≤ st.cnt.get op + ksum ck n op
   fresh : ∀ t, st.fresh = some t → st.seg.start = t ∧ st.its = st.seg.items ∧ getF X.idx t = some st.seg
   nm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs
+  ix : getF X.idx st.seg.start = some st.seg
 
 /-- **A selector the check accepts is a value the path names.** -/
 theorem PosZ.sel {H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck} {st : CW} {W0 : Regs K} {n : ℕ}
@@ -243,6 +244,14 @@ def Arr (L : MemImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (ck :
     (W0 : Regs K) (J : ℕ) (c : Cnt) (n : ℕ) : Prop :=
   (∃ cr, RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧ ∀ op, cr op ≤ c.get op + ksum ck n op) ∧
     EnvAt L fp X wJ wenv J
+
+/-- **The run is inside the segment starting at `J`**, its first `m` items passed, within the
+counts `c` and the first `n` callees'. -/
+def ArrMid (L : MemImage κ) (fp : ℕ) (X : CX) (ck : List (Opcode → ℕ)) (W0 : Regs K) (J m : ℕ)
+    (c : Cnt) (n : ℕ) : Prop :=
+  ∃ s, getF X.idx J = some s ∧ s.start = J ∧ m ≤ s.items.length ∧ EnvHolds L (gpow fp) s.env ∧
+    ∃ cr, Fall L (gpow fp) (s.items.take m) ∧ RunC guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr ∧
+      ∀ op, cr op + itemOps (s.items.take m) op ≤ c.get op + ksum ck n op
 
 /-! ## Moves -/
 
@@ -272,7 +281,7 @@ theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ}
     rw [H.idx, getF_eq] at hs
     exact index_get hs
   refine ⟨⟨hmem, ⟨he.1 s hs hst, hb, hfr, htg, hnx⟩, ⟨[], c, rfl, trivial, hst ▸ hr, fun op ↦ ?_⟩,
-    fun t' ht' ↦ ?_, hnm⟩, rfl, rfl, rfl, rfl, rfl, rfl, hst⟩
+    fun t' ht' ↦ ?_, hnm, by rw [hst]; exact hs⟩, rfl, rfl, rfl, rfl, rfl, rfl, hst⟩
   · simpa [itemOps] using hc op
   · obtain rfl := Option.some.inj ht'
     exact ⟨hst, rfl, hs⟩
@@ -373,7 +382,7 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
     ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩
   refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, hx, hok, fun hj h0 ↦ ?_, fun ht r hr ↦ ?_⟩
   · refine ⟨hp.seg, hok, ⟨pre ++ pre2 ++ [.branch oc od of x], c0, by rw [hitems]; simp, ?_, hrun,
-      fun op ↦ ?_⟩, fun t ht ↦ (by cases ht), hp.nm⟩
+      fun op ↦ ?_⟩, fun t ht ↦ (by cases ht), hp.nm, hp.ix⟩
     · rw [fall_append, fall_append]
       exact ⟨⟨hf, hf2⟩, hj, h0, trivial⟩
     · have h1 := hc0 op
@@ -410,6 +419,8 @@ def WGood (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (ss : List Stmt) (
     PosZ H st W0 (calls ebef).length → (cw X ss st).ok = true →
     (∀ J c u, cw X ss st = .join J c u → ∃ es', o = .fall es' ∧
       Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length) ∧
+    (∀ J m c u, cw X ss st = .mid J m c u → ∃ es', o = .fall es' ∧
+      ArrMid L fp X ck W0 J m c (calls (ebef ++ es')).length) ∧
     (cw X ss st = .done → ∃ es' vs', o = .ret es' vs' ∧ FinZ L j fp X ck W0 (calls (ebef ++ es')).length vs')
 
 theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) : WGood H [] st := by
@@ -417,9 +428,9 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
   rw [walk] at hw
   subst hw
   rw [cw_nil] at hok ⊢
-  refine ⟨fun J c u hj ↦ ⟨[], rfl, ?_⟩, fun hd ↦ ?_⟩
+  refine ⟨fun J c u hj ↦ ⟨[], rfl, ?_⟩, fun J m c u hj ↦ ⟨[], rfl, ?_⟩, fun hd ↦ ?_⟩
   · rw [List.append_nil]
-    rcases endC_ok hok with ⟨t, hf, he⟩ | ⟨hf, se, t, hse, hk, hsu, he⟩
+    rcases endC_ok hok with ⟨t, hf, he⟩ | ⟨hf, -, se, t, hse, hk, hsu, he⟩ | ⟨-, _, _, _, -, -, -, -, -, he⟩
     · rw [he] at hj
       simp only [RC.join.injEq] at hj
       obtain ⟨rfl, rfl, rfl⟩ := hj
@@ -442,7 +453,39 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
       obtain ⟨cr, hcr, hle, henv⟩ := hr _ (by rw [hk]; rfl)
       exact ⟨⟨cr, hcr, hle⟩, envAt_of_exit H hp.seg (H.exits _ hp.seg _ (Or.inl rfl))
         (by rw [hsu]; exact List.mem_singleton_self _) henv⟩
-  · rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, se, t, -, -, -, he⟩ <;> rw [he] at hd <;> cases hd
+    · rw [he] at hj
+      cases hj
+  · rw [List.append_nil]
+    rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, -, -, -, he⟩ |
+      ⟨-, J', m', c', -, hJ, hm, hlen, hpl, he⟩
+    · rw [he] at hj
+      cases hj
+    · rw [he] at hj
+      cases hj
+    · rw [he] at hj
+      simp only [RC.mid.injEq] at hj
+      obtain ⟨rfl, rfl, rfl, rfl⟩ := hj
+      obtain ⟨pre2, hpre2, hf2, hc2, -⟩ := passL_sound H.hX hp.ok _ st.cnt hpl
+      obtain ⟨pre, c0, hpre, hf, hrun, hc0⟩ := hp.run
+      rw [List.append_nil] at hpre2
+      have hl : pre.length + st.its.length = st.seg.items.length := by
+        rw [← hpre, List.length_append]
+      have ht : st.seg.items.take m' = pre ++ pre2 := by
+        have hk : m' = pre.length + (st.its.length - (st.seg.items.length - m')) := by omega
+        calc st.seg.items.take m'
+            = (pre ++ st.its).take (pre.length + (st.its.length - (st.seg.items.length - m'))) := by
+              rw [hpre, ← hk]
+          _ = pre ++ pre2 := by
+              rw [List.take_append, hpre2, List.take_of_length_le (by omega), Nat.add_sub_cancel_left]
+      refine ⟨st.seg, by rw [← hJ]; exact hp.ix, hJ, hm, hp.ok.env, c0, ?_, by rw [← hJ]; exact hrun,
+        fun op ↦ ?_⟩
+      · rw [ht, fall_append]
+        exact ⟨hf, hf2⟩
+      · rw [ht, itemOps_append, hc2 op]
+        have := hc0 op
+        omega
+  · rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, -, -, -, he⟩ | ⟨-, _, _, _, -, -, -, -, -, he⟩ <;>
+      rw [he] at hd <;> cases hd
 
 theorem lastOkC_cons {s : Stmt} {ss : List Stmt} (h : lastOkC (s :: ss) = true)
     (hs : ∀ vs, s ≠ .ret vs) : Stmt.noRet s = true ∧ lastOkC ss = true := by
@@ -462,6 +505,8 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
     (hok : (cw X (s :: ss) st).ok = true) :
     (∀ J c u, cw X (s :: ss) st = .join J c u → ∃ es', o = .fall es' ∧
       Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length) ∧
+    (∀ J m c u, cw X (s :: ss) st = .mid J m c u → ∃ es', o = .fall es' ∧
+      ArrMid L fp X ck W0 J m c (calls (ebef ++ es')).length) ∧
     (cw X (s :: ss) st = .done → ∃ es' vs', o = .ret es' vs' ∧
       FinZ L j fp X ck W0 (calls (ebef ++ es')).length vs') := by
   rw [walk, hw1] at hw
@@ -482,9 +527,13 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
       rw [hb, List.append_assoc]
       rfl
   rw [hcw] at hok ⊢
-  obtain ⟨h1, h2⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) rfl hes' hstk' hshape' hp'' hok
-  refine ⟨fun J c u hj ↦ ?_, fun hd ↦ ?_⟩
+  obtain ⟨h1, hm, h2⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) rfl hes' hstk' hshape' hp'' hok
+  refine ⟨fun J c u hj ↦ ?_, fun J m c u hj ↦ ?_, fun hd ↦ ?_⟩
   · obtain ⟨es', he, ha⟩ := h1 J c u hj
+    refine ⟨e1 ++ es', by rw [he]; rfl, ?_⟩
+    rw [← List.append_assoc]
+    exact ha
+  · obtain ⟨es', he, ha⟩ := hm J m c u hj
     refine ⟨e1 ++ es', by rw [he]; rfl, ?_⟩
     rw [← List.append_assoc]
     exact ha
@@ -500,7 +549,7 @@ theorem walk_atomZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (a : Core
   have hc : calls (ebef ++ [.atom a]) = calls ebef := by simp [calls, Ev.call?]
   rw [hc]
   refine ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, fun t ht ↦ (by cases ht),
-    fun n hn ↦ ?_⟩
+    fun n hn ↦ ?_, hp.ix⟩
   rcases nvVals_spec _ _ n hn with h | h
   · exact hp.nm n h
   · refine uses_named (e := .atom a) ?_ h
@@ -530,7 +579,7 @@ theorem posZ_fr (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W
   ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, fun x hx ↦ by
     rcases List.mem_cons.mp hx with rfl | hx
     · exact ⟨kfp, hq, hf⟩
-    · exact hp.ok.fr x hx, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm⟩
+    · exact hp.ok.fr x hx, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
 
 theorem siteC_eq {X : CX} (hs : X.sites = (plumbOf j).sites) (c : Call) :
     siteC X c.args c.rets = siteOf j c := by
@@ -683,7 +732,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
   refine walk_step H ih rfl rfl hw hes hs hshape ?_ hcw ?_
   · rw [hc1]
     refine ⟨hps.seg, ⟨hps.ok.env, hps.ok.book, fun x hx ↦ ?_, hps.ok.tg, hps.ok.nx⟩, hps.run,
-      fun t ht ↦ ?_, hps.nm⟩
+      fun t ht ↦ ?_, hps.nm, hps.ix⟩
     · rcases List.mem_cons.mp hx with rfl | hx
       · refine ⟨kfp, hq, fun p hp' ↦ ?_⟩
         rcases List.mem_append.mp hp' with hp' | hp'
@@ -710,7 +759,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
 
 theorem posZ_book (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
     (hp : PosZ H st W0 n) {B : BookC} (hB : BookOk L fp B) : PosZ H { st with book := B } W0 n :=
-  ⟨hp.seg, ⟨hp.ok.env, hB, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm⟩
+  ⟨hp.seg, ⟨hp.ok.env, hB, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
 
 /-- Entering offset `t` with given counts and set-up cells. -/
 theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ} {st sn : CW}
@@ -725,7 +774,8 @@ theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ
     rw [H.idx, getF_eq] at hs
     exact index_get hs
   refine ⟨⟨hmem, ⟨he.1 s hs hst, hok.book, hok.fr, hok.tg, hok.nx⟩,
-    ⟨[], c, rfl, trivial, hst ▸ hr, fun op ↦ ?_⟩, fun t' ht' ↦ ?_, hnm⟩, rfl, rfl, rfl, rfl⟩
+    ⟨[], c, rfl, trivial, hst ▸ hr, fun op ↦ ?_⟩, fun t' ht' ↦ ?_, hnm, by rw [hst]; exact hs⟩, rfl, rfl,
+    rfl, rfl⟩
   · simpa [itemOps] using hc op
   · obtain rfl := Option.some.inj ht'
     exact ⟨hst, rfl, hs⟩
@@ -792,7 +842,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
           (calls (ebef ++ [Ev.inK c])).length := by
         rw [hn1, H.fs]
         exact hpz
-      obtain ⟨h1, -⟩ := ihz _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwz
+      obtain ⟨h1, -, -⟩ := ihz _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwz
         (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.1) hpz' (by rw [hz]; rfl)
       obtain ⟨es', he', ha⟩ := h1 J c1 u1 hz
       simp only [Out.fall.injEq] at he'
@@ -809,7 +859,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
         rw [hn1, H.fs]
         exact posZ_book H hps (fileB_ok H.frame H.loc H.hev n st'.book (hbk' ▸ hp.ok.book)
           (hatoms n hwn))
-      obtain ⟨h1, -⟩ := ihn _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwn
+      obtain ⟨h1, -, -⟩ := ihn _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwn
         (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.2) hpn (by rw [hn]; rfl)
       obtain ⟨es', he', ha⟩ := h1 J c2 u2 hn
       simp only [Out.fall.injEq] at he'
@@ -871,7 +921,7 @@ theorem brAtC_peek {st st' : CW} {oc od of : ℕ} {x : Exit}
 theorem posZ_nx (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
     (hp : PosZ H st W0 n) {nx : List (ℕ × FC)} (hn : NxOk L fp X.fs nx) :
     PosZ H { st with nx := nx } W0 n :=
-  ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hn⟩, hp.run, hp.fresh, hp.nm⟩
+  ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hn⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
 
 /-- A conditional call's event, `.skip` or `.call` as its condition says. -/
 theorem callIf_ev (c : V) (f : String) (args : List V) :
@@ -1074,7 +1124,8 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
         have := hle' op
         have h2 := Cnt.le_spec hle1 op
         omega
-    refine ⟨fun J c' u hj ↦ (by rw [hcw] at hj; cases hj), fun _ ↦ ⟨[Ev.inK c, ev], [], hwo', ?_⟩⟩
+    refine ⟨fun J c' u hj ↦ (by rw [hcw] at hj; cases hj), fun J m c' u hj ↦ (by rw [hcw] at hj; cases hj),
+      fun _ ↦ ⟨[Ev.inK c, ev], [], hwo', ?_⟩⟩
     rw [hc1]
     unfold FinZ
     refine ⟨⟨_, cr, ?_, hcr, hcle⟩, fun k hk ↦ absurd hk (Nat.not_lt_zero _)⟩
@@ -1105,7 +1156,8 @@ theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : Lis
   have hwo : o = .ret [] vs' := by
     rw [← hw, walk]
     rfl
-  refine ⟨fun J c u hj ↦ (by rw [hcw] at hj; cases hj), fun _ ↦ ⟨[], vs', hwo, ?_⟩⟩
+  refine ⟨fun J c u hj ↦ (by rw [hcw] at hj; cases hj), fun J m c u hj ↦ (by rw [hcw] at hj; cases hj),
+    fun _ ↦ ⟨[], vs', hwo, ?_⟩⟩
   obtain ⟨hsg, -, -, -, -, -, hr⟩ := endAtC_reach H hp hse
   rw [hsg] at hkind
   have hd0 := H.frame.hdr0

@@ -259,7 +259,7 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
       exact H.jt _ _ hslot
     · exact hp.ok.tg x hx
   have hp0 : PosZ H { st with tg := (a2, X.loc.cell v, a3) :: st.tg } W0 (calls ebef).length :=
-    ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, htg1, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm⟩
+    ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, htg1, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
   -- the jump to the arm
   obtain ⟨hseg, hbk, hfr', htg, hnx, -, hreach⟩ := endAtC_reach H hp0 hse
   simp only at hseg hbk hfr' htg hnx hreach
@@ -292,7 +292,7 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
   have hB := fileB_ok H.frame H.loc H.hev _ se.book hok0.book hatoms
   rw [← H.fs] at hB
   have hpk : PosZ H { s with book := fileB X.loc X.fs (a0 :: as)[k] se.book } W0 (calls ebef).length :=
-    ⟨hps.seg, ⟨hps.ok.env, hB, hps.ok.fr, hps.ok.tg, hps.ok.nx⟩, hps.run, hps.fresh, hps.nm⟩
+    ⟨hps.seg, ⟨hps.ok.env, hB, hps.ok.fr, hps.ok.tg, hps.ok.nx⟩, hps.run, hps.fresh, hps.nm, hps.ix⟩
   have hokk : (cw X (a0 :: as)[k] { s with book := fileB X.loc X.fs (a0 :: as)[k] se.book }).ok = true := by
     rw [hcwk]
     rfl
@@ -374,7 +374,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
       exact H.jt _ _ hslot
     · exact hp.ok.tg x hx
   have hp0 : PosZ H { st with tg := (t, X.loc.cell v, base) :: st.tg } W0 n :=
-    ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, htg1, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm⟩
+    ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, htg1, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm, hp.ix⟩
   -- the call
   have hp1 := posZ_fr H hp0 hq hfcs
   obtain ⟨hseg, hbk, hfr', htg, hnx, -, hreach⟩ := endAtC_reach H hp1 hse
@@ -400,7 +400,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
     hshape ?_ hcw hok
   rw [hc1]
   refine ⟨hps.seg, ⟨hps.ok.env, hps.ok.book, fun x hx ↦ ?_, hps.ok.tg, hps.ok.nx⟩, hps.run,
-    fun t' ht' ↦ ?_, hps.nm⟩
+    fun t' ht' ↦ ?_, hps.nm, hps.ix⟩
   · rcases List.mem_cons.mp hx with rfl | hx
     · refine ⟨kfp, hq, fun p hp' ↦ ?_⟩
       rcases List.mem_append.mp hp' with hp' | hp'

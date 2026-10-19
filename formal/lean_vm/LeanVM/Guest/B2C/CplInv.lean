@@ -121,17 +121,45 @@ theorem cw_atom (a : Core.Atom) (ss : List Core.Stmt) (st : CW) :
 
 theorem endC_ok {st : CW} (h : (endC X st).ok = true) :
     (∃ t, st.fresh = some t ∧ endC X st = .join t st.cnt st.uq) ∨
-    (st.fresh = none ∧ ∃ se t, endAtC X st = .ok se ∧ se.seg.exit.kind = .next t ∧
-      se.seg.exit.succ = [t] ∧ endC X st = .join t se.cnt se.uq) := by
+    (st.fresh = none ∧ X.stop = none ∧ ∃ se t, endAtC X st = .ok se ∧ se.seg.exit.kind = .next t ∧
+      se.seg.exit.succ = [t] ∧ endC X st = .join t se.cnt se.uq) ∨
+    (st.fresh = none ∧ ∃ J m c, X.stop = some (J, m) ∧ st.seg.start = J ∧ m ≤ st.seg.items.length ∧
+      st.seg.items.length - m ≤ st.its.length ∧
+      passL X st (st.its.take (st.its.length - (st.seg.items.length - m))) st.cnt = .ok ([], c) ∧
+      endC X st = .mid J m c st.uq) := by
   rcases hf : st.fresh with _ | t
-  · rcases he : endAtC X st with e | se
-    · simp [endC, hf, he, RC.ok] at h
-    · rcases hk : se.seg.exit.kind with t | _ | _ | _ <;>
-        simp only [endC, hf, he, hk, RC.ok, Bool.false_eq_true] at h
-      cases hs : se.seg.exit.succ == [t]
-      · simp [hs] at h
-      · refine Or.inr ⟨rfl, se, t, rfl, hk, beq_iff_eq.mp hs, ?_⟩
-        simp only [endC, hf, he, hk, hs, Bool.cond_true]
+  · rcases hs : X.stop with _ | ⟨J, m⟩
+    · rcases he : endAtC X st with e | se
+      · simp [endC, hf, hs, he, RC.ok] at h
+      · rcases hk : se.seg.exit.kind with t | _ | _ | _ <;>
+          simp only [endC, hf, hs, he, hk, RC.ok, Bool.false_eq_true] at h
+        cases hb : se.seg.exit.succ == [t]
+        · simp [hb] at h
+        · refine Or.inr (Or.inl ⟨rfl, rfl, se, t, rfl, hk, beq_iff_eq.mp hb, ?_⟩)
+          simp only [endC, hf, hs, he, hk, hb, Bool.cond_true]
+    · right; right
+      simp only [endC, hf, hs] at h
+      cases hb : (Nat.beq st.seg.start J && Nat.ble m st.seg.items.length &&
+          Nat.ble (st.seg.items.length - m) st.its.length)
+      · rw [hb] at h
+        simp [RC.ok] at h
+      · rw [hb] at h
+        simp only [Bool.cond_true] at h
+        have hb' := hb
+        simp only [Bool.and_eq_true] at hb'
+        obtain ⟨⟨b1, b2⟩, b3⟩ := hb'
+        rcases hp : passL X st (st.its.take (st.its.length - (st.seg.items.length - m))) st.cnt with
+          e | ⟨rest, c⟩
+        · rw [hp] at h
+          simp [RC.ok] at h
+        · cases rest with
+          | nil =>
+            refine ⟨rfl, J, m, c, rfl, Nat.eq_of_beq_eq_true b1, Nat.le_of_ble_eq_true b2,
+              Nat.le_of_ble_eq_true b3, hp, ?_⟩
+            simp only [endC, hf, hs, hb, hp, Bool.cond_true, Cnt.seq_eq]
+          | cons x xs =>
+            rw [hp] at h
+            simp [RC.ok] at h
   · exact Or.inl ⟨t, rfl, by simp only [endC, hf]⟩
 
 theorem cw_ite {c : V} {z n ss : List Core.Stmt} {st : CW}

@@ -138,7 +138,8 @@ variable {j : ℕ} {σ : Val} {X : CX}
 cells are apart and unset at its start, and set where it joins. -/
 def UGood (X : CX) (j : ℕ) (σ : Val) (ss : List Stmt) (st : CW) : Prop :=
   (cw X ss st).ok = true →
-    (∀ e, walk σ ss = .fall e → ∀ J c u, cw X ss st = .join J c u → SitesG j st.uq (calls e) u) ∧
+    (∀ e, walk σ ss = .fall e → ∀ J c u, (cw X ss st = .join J c u ∨ ∃ m, cw X ss st = .mid J m c u) →
+      SitesG j st.uq (calls e) u) ∧
     (∀ e vs, walk σ ss = .ret e vs → SitesP j st.uq (calls e))
 
 theorem u_step {s : Stmt} {ss : List Stmt} {st st'' : CW} {e1 : List Ev}
@@ -175,16 +176,26 @@ theorem u_nil (st : CW) : UGood X j σ [] st := by
   refine ⟨fun e hw J c u hj ↦ ?_, fun e vs hw ↦ (by rw [walk] at hw; cases hw)⟩
   rw [walk] at hw
   cases hw
-  rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, se, t, hse, -, -, he⟩
+  rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, -, se, t, hse, -, -, he⟩ | ⟨-, J', m', c', -, -, -, -, -, he⟩
   · rw [he] at hj
-    simp only [RC.join.injEq] at hj
-    obtain ⟨-, -, rfl⟩ := hj
-    exact sitesG_nil fun _ h ↦ h
+    rcases hj with hj | ⟨m, hj⟩
+    · simp only [RC.join.injEq] at hj
+      obtain ⟨-, -, rfl⟩ := hj
+      exact sitesG_nil fun _ h ↦ h
+    · cases hj
   · rw [he] at hj
-    simp only [RC.join.injEq] at hj
-    obtain ⟨-, -, rfl⟩ := hj
-    obtain ⟨c, -, rfl⟩ := endAtC_eq hse
-    exact sitesG_nil fun _ h ↦ h
+    rcases hj with hj | ⟨m, hj⟩
+    · simp only [RC.join.injEq] at hj
+      obtain ⟨-, -, rfl⟩ := hj
+      obtain ⟨c, -, rfl⟩ := endAtC_eq hse
+      exact sitesG_nil fun _ h ↦ h
+    · cases hj
+  · rw [he] at hj
+    rcases hj with hj | ⟨m, hj⟩
+    · cases hj
+    · simp only [RC.mid.injEq] at hj
+      obtain ⟨-, -, -, rfl⟩ := hj
+      exact sitesG_nil fun _ h ↦ h
 
 theorem u_atom (a : Core.Atom) (ss : List Stmt) (st : CW) (ih : ∀ st, UGood X j σ ss st) :
     UGood X j σ (.atom a :: ss) st :=
@@ -381,10 +392,10 @@ theorem u_ite (c : V) (z n ss : List Stmt) (st : CW) (ihz : ∀ st, UGood X j σ
       ∀ eb vb, wb = .ret eb vb → SitesP j st.uq (calls eb) := by
     by_cases h0 : σ c = 0
     · simp only [hwb, h0, ↓reduceIte]
-      exact ⟨fun eb hw ↦ sitesG_mono (hz'.1 eb hw J c1 u1 hz)
+      exact ⟨fun eb hw ↦ sitesG_mono (hz'.1 eb hw J c1 u1 (Or.inl hz))
         (fun y hy ↦ by rw [testBit_lorC, hy, Bool.true_or]), fun eb vb hw ↦ hz'.2 eb vb hw⟩
     · simp only [hwb, h0, ↓reduceIte]
-      exact ⟨fun eb hw ↦ sitesG_mono (hn'.1 eb hw J c2 u2 hn)
+      exact ⟨fun eb hw ↦ sitesG_mono (hn'.1 eb hw J c2 u2 (Or.inl hn))
         (fun y hy ↦ by rw [testBit_lorC, hy, Bool.or_true]), fun eb vb hw ↦ hn'.2 eb vb hw⟩
   have hw1 : walk1 σ (.ite c z n) = wb.pre [.inK c] := rfl
   have hci : ∀ eb, calls ([Ev.inK c] ++ eb) = calls eb := fun eb ↦ by rw [calls_appendC]; rfl
@@ -424,14 +435,14 @@ theorem u_match (v : V) (a0 : List Stmt) (as : List (List Stmt)) (ss : List Stmt
       obtain ⟨s1, -, -, rfl⟩ := segAtC_eq hs0
       have := iha 0 hk _ (by simp only [List.getElem_cons_zero]; rw [h0]; rfl)
       simp only [List.getElem_cons_zero] at this ⊢
-      exact ⟨fun eb hw ↦ sitesG_mono (this.1 eb hw J c0 u0 h0) hu0, this.2⟩
+      exact ⟨fun eb hw ↦ sitesG_mono (this.1 eb hw J c0 u0 (Or.inl h0)) hu0, this.2⟩
     | succ k =>
       have hk1 : k < as.length := by simpa using hk
       obtain ⟨s, ck, uk, hs, hck, -⟩ := hks k hk1 (by omega)
       obtain ⟨s1, -, -, rfl⟩ := segAtC_eq hs
       have := iha (k + 1) hk _ (by simp only [List.getElem_cons_succ]; rw [hck]; rfl)
       simp only [List.getElem_cons_succ] at this ⊢
-      exact ⟨fun eb hw ↦ sitesG_mono (this.1 eb hw J ck uk hck)
+      exact ⟨fun eb hw ↦ sitesG_mono (this.1 eb hw J ck uk (Or.inl hck))
         (huk k hk1 (by omega) _ ck uk hs hck), this.2⟩
   have hw1 : walk1 σ (.match_ v (a0 :: as)) = walkArms σ v 0 (a0 :: as) := rfl
   cases hwa : walkArms σ v 0 (a0 :: as) with
@@ -515,13 +526,14 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
       have hsplit := part_split hk (fun h ↦ ((checkWin_cpl (hchk i hi)).2.2.2.2 h).1) hc
       have hend := cplWin_end (hc k hk)
       obtain ⟨s, -, -, hres⟩ := cplRes_some hend
-      have hU := sites_Z (σ := σ) (X := Xp j i) (j := j) rfl rfl (partStmts j i k) (st0 j i k s)
+      have hU := sites_Z (σ := σ) (X := Xp j i k) (j := j) rfl rfl (partStmts j i k) (st0 j i k s)
         (cw_ok_of hres hend)
       unfold partPos at he
       rw [hsplit, walk_appendC] at he
       -- a part before the last: it joins within what the next part starts with
       have hmid : lastPart j i k = false → ∀ i' k', nextPos j i k = partPos j i' k' →
-          (∀ J c u, cplRes j i k = .join J c u → subK u (partU j i' k') = true) →
+          (∀ J c u, (cplRes j i k = .join J c u ∨ ∃ m, cplRes j i k = .mid J m c u) →
+            subK u (partU j i' k') = true) →
           (∀ e, walk σ ((coreOf j).body.drop (partPos j i' k')) = .ret e vs →
             SitesP j (partU j i' k') (calls e)) → SitesP j (partU j i k) (calls e) := by
         intro hlp i' k' hnx hsub hih
@@ -529,10 +541,13 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
         · rw [hw1] at he
           obtain ⟨e2, hw2, rfl⟩ := seq_fall_ret he
           rw [hnx] at hw2
-          rcases hcr : cplRes j i k with ⟨J, c, u⟩ | _ | e
-          · have hg := hU.1 e1 hw1 J c u (hres.symm.trans hcr)
+          rcases hcr : cplRes j i k with ⟨J, c, u⟩ | ⟨J, m, c, u⟩ | _ | e
+          · have hg := hU.1 e1 hw1 J c u (Or.inl (hres.symm.trans hcr))
             rw [calls_appendC]
-            exact sitesP_append (sitesG_mono hg (subK_spec (hsub J c u hcr))) (hih e2 hw2)
+            exact sitesP_append (sitesG_mono hg (subK_spec (hsub J c u (Or.inl hcr)))) (hih e2 hw2)
+          · have hg := hU.1 e1 hw1 J c u (Or.inr ⟨m, hres.symm.trans hcr⟩)
+            rw [calls_appendC]
+            exact sitesP_append (sitesG_mono hg (subK_spec (hsub J c u (Or.inr ⟨m, hcr⟩)))) (hih e2 hw2)
           · rw [hcr] at hend
             have hl : lastPart j i k = true := hend
             rw [hl] at hlp
@@ -545,9 +560,13 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
       · have hb : Nat.blt (k + 1) (nParts j i) = true := Nat.blt_eq.mpr hn
         refine hmid (by simp only [lastPart, hb]; rfl) i (k + 1) (by unfold nextPos; rw [hb]; rfl)
           (fun J c u hcr ↦ ?_) (ih (k + 1) (by omega) hn)
-        rw [hcr] at hend
-        simp only [partEnd, hb, Bool.cond_true, Bool.and_eq_true] at hend
-        exact hend.2
+        rcases hcr with hcr | ⟨m, hcr⟩
+        · rw [hcr] at hend
+          simp only [partEnd, hb, Bool.cond_true, Bool.and_eq_true] at hend
+          exact hend.2
+        · rw [hcr] at hend
+          simp only [partEnd, Bool.and_eq_true] at hend
+          exact hend.2
       · by_cases hci : i < (certOf j).cuts.length
         · have hbi : Nat.blt i (certOf j).cuts.length = true := Nat.blt_eq.mpr hci
           refine hmid (by simp only [lastPart, blt_falseC hn, hbi]; rfl) (i + 1) 0 ?_
@@ -555,10 +574,14 @@ theorem sitesApart_of {j : ℕ} (hok : CplOk j)
           · unfold nextPos partPos
             rw [blt_falseC hn, hbi, partS_zero (hok (i + 1) hci 0 (one_le_nParts j (i + 1)))]
             rfl
-          · rw [hcr] at hend
-            simp only [partEnd, blt_falseC hn, hbi, Bool.cond_false, Bool.true_and,
-              Bool.and_eq_true] at hend
-            exact hend.2
+          · rcases hcr with hcr | ⟨m, hcr⟩
+            · rw [hcr] at hend
+              simp only [partEnd, blt_falseC hn, hbi, Bool.cond_false, Bool.true_and,
+                Bool.and_eq_true] at hend
+              exact hend.2
+            · rw [hcr] at hend
+              simp only [partEnd, blt_falseC hn, Bool.false_and] at hend
+              cases hend
         · have hlp : lastPart j i k = true := by
             simp only [lastPart, blt_falseC hn, blt_falseC hci]
             rfl

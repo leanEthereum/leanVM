@@ -322,8 +322,10 @@ structure CX where
   self : List ℕ
   /-- The most instructions a path runs. -/
   pmax : Cnt
-  /-- The renumbered values the part's own atoms name (a bit set by number). -/
+  /-- The renumbered values the body's top-level atoms name (a bit set by number). -/
   nv : ℕ
+  /-- Where the part stops inside a segment: the segment's start and the items passed. -/
+  stop : Option (ℕ × ℕ)
 
 /-- A position of the walk: a segment and its items not yet passed, the facts, the callee frames
 in flight `(cell, its cells)`, the table reads `(target, selector, base)`, the next frame of a
@@ -577,6 +579,8 @@ def subK (s t : ℕ) : Bool := Nat.beq (Nat.land s t) s
 the return, or not at all (with a code saying where). -/
 inductive RC where
   | join (J : ℕ) (c : Cnt) (u : ℕ)
+  /-- Inside the segment starting at `J`, its first `m` items passed. -/
+  | mid (J m : ℕ) (c : Cnt) (u : ℕ)
   | done
   | fail (code : ℕ)
 
@@ -647,15 +651,24 @@ pointer and the return pc. -/
 def callFC (args : List V) (self : List ℕ) (r : ℕ) : List (ℕ × FC) :=
   argFC X.loc 2 args ++ self.map (fun o ↦ (o, FC.self)) ++ [(1, .fp), (0, .pc r)]
 
-/-- Where a block ends: at the start of a segment, or by its segment's local jump. -/
+/-- Where a block ends: at the start of a segment, at the part's stop inside its segment, or by
+its segment's local jump. -/
 noncomputable def endC (st : CW) : RC :=
   match st.fresh with
   | some t => .join t st.cnt st.uq
-  | none => match endAtC X st with
-    | .ok se => match se.seg.exit.kind with
-      | .next t => bif se.seg.exit.succ == [t] then .join t se.cnt se.uq else .fail 1
-      | _ => .fail 2
-    | .error e => .fail e
+  | none => match X.stop with
+    | some (J, m) =>
+      bif Nat.beq st.seg.start J && Nat.ble m st.seg.items.length &&
+          Nat.ble (st.seg.items.length - m) st.its.length then
+        match passL X st (st.its.take (st.its.length - (st.seg.items.length - m))) st.cnt with
+        | .ok ([], c) => c.seq fun c ↦ .mid J m c st.uq
+        | _ => .fail 3
+      else .fail 4
+    | none => match endAtC X st with
+      | .ok se => match se.seg.exit.kind with
+        | .next t => bif se.seg.exit.succ == [t] then .join t se.cnt se.uq else .fail 1
+        | _ => .fail 2
+      | .error e => .fail e
 
 /-- After a call into the frame `fp[q]` returning to `r`: the position at the return point, its
 callee frame's returns known. -/
@@ -859,8 +872,9 @@ noncomputable def statT (n : ℕ) : List (ℕ × PC) → Trie PC → Trie PC
   | p :: ps, t => bif Nat.ble 2 p.1 && Nat.blt p.1 n then (setF p.2 envDepth t p.1).seq fun t ↦
       statT n ps t else statT n ps t
 
-/-- The parts of window `i` of function `j`, `[s, J, counts, set-up cells]` each (none: one part
-from the window's start with nothing handed on). -/
+/-- The parts of window `i` of function `j`, `[s, J, counts, set-up cells, m]` each, `m` (absent:
+`0`) the items of the segment at `J` before the part (none: one part from the window's start with
+nothing handed on). -/
 noncomputable def partsOf (j i : ℕ) : List (List ℕ) := nth (nth Data.cplParts j []) i []
 
 /-- The number of parts of a window. -/
@@ -879,6 +893,15 @@ noncomputable def partC (j i k : ℕ) : Cnt := Cnt.ofList ((nth (partsOf j i) k 
 /-- The set-up site cells at part `k`'s start. -/
 noncomputable def partU (j i k : ℕ) : ℕ := nth (nth (partsOf j i) k []) 8 0
 
+/-- The items of its segment part `k` starts after (`0`: at the segment's start). -/
+noncomputable def partM (j i k : ℕ) : ℕ := nth (nth (partsOf j i) k []) 9 0
+
+/-- Where part `k` stops: inside a segment, if the next part starts there. -/
+noncomputable def stopOf (j i k : ℕ) : Option (ℕ × ℕ) :=
+  bif Nat.blt (k + 1) (nParts j i) && !(Nat.beq (partM j i (k + 1)) 0) then
+    some (partJ j i (k + 1), partM j i (k + 1))
+  else none
+
 /-- The statements of part `k`. -/
 noncomputable def partStmts (j i k : ℕ) : List Core.Stmt :=
   bif Nat.blt (k + 1) (nParts j i) then
@@ -886,10 +909,11 @@ noncomputable def partStmts (j i k : ℕ) : List Core.Stmt :=
   else ((certOf j).stmtsAt (coreOf j) i).drop (partS j i k)
 
 /-- The context of window `i` of function `j`. -/
-noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie PC) (nv : ℕ) : CX :=
+noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie PC) (nv : ℕ)
+    (stop : Option (ℕ × ℕ)) : CX :=
   ⟨glob, (certOf j).facts, (fnOf j).entry, idx, loc, fsN j, stat, j == 1, (coreOf j).name,
     (coreOf j).params.length, (certOf j).nret, (certOf j).callees, (plumbOf j).sites,
-    (plumbOf j).arms, (certOf j).facts.env.map (·.1), Cnt.ofList (plumbOf j).pmax, nv⟩
+    (plumbOf j).arms, (certOf j).facts.env.map (·.1), Cnt.ofList (plumbOf j).pmax, nv, stop⟩
 
 /-- The renumbered values a block's own atoms name. -/
 def nvOf : List Core.Stmt → ℕ → ℕ
@@ -902,9 +926,13 @@ what is handed on there, or by the return. -/
 noncomputable def partEnd (j i k : ℕ) : RC → Bool
   | .join J c u =>
     bif Nat.blt (k + 1) (nParts j i) then
-      Nat.beq J (partJ j i (k + 1)) && c.le (partC j i (k + 1)) && subK u (partU j i (k + 1))
+      Nat.beq J (partJ j i (k + 1)) && Nat.beq (partM j i (k + 1)) 0 && c.le (partC j i (k + 1)) &&
+        subK u (partU j i (k + 1))
     else Nat.blt i (certOf j).cuts.length && Nat.beq J ((certOf j).cutAt (i + 1)).J &&
       c.le (partC j (i + 1) 0) && subK u (partU j (i + 1) 0)
+  | .mid J m c u => Nat.blt (k + 1) (nParts j i) && Nat.beq J (partJ j i (k + 1)) &&
+      Nat.beq m (partM j i (k + 1)) && !(Nat.beq m 0) && c.le (partC j i (k + 1)) &&
+      subK u (partU j i (k + 1))
   | .done => !(Nat.blt (k + 1) (nParts j i)) && !(Nat.blt i (certOf j).cuts.length)
   | .fail _ => false
 
@@ -916,10 +944,11 @@ noncomputable def cplRes (j i k : ℕ) : RC :=
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
     (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
     (partC j i k).seq fun c ↦ natSeq (partU j i k) fun u ↦ natSeq (partJ j i k) fun J ↦
-    natSeq (nvOf (coreOf j).body 0) fun nv ↦
+    natSeq (nvOf (coreOf j).body 0) fun nv ↦ natSeq (partM j i k) fun m ↦
     match getF idx J with
     | some s => bif Nat.beq s.start J then
-        cw (cxOf j idx loc stat nv) (partStmts j i k) ⟨s, s.items, B, [], [], [], c, u, some J, 0⟩
+        cw (cxOf j idx loc stat nv (stopOf j i k)) (partStmts j i k)
+          ⟨s, s.items.drop m, B, [], [], [], c, u, bif Nat.beq m 0 then some J else none, 0⟩
       else .fail 91
     | none => .fail 90
 
@@ -934,7 +963,7 @@ starts with nothing handed on, its parameters `V.n 0, V.n 1, …` and its self f
 fixed. -/
 noncomputable def winOkC (j i : ℕ) : Bool :=
   (nth (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
-  Nat.beq (partS j i 0) 0 &&
+  Nat.beq (partS j i 0) 0 && Nat.beq (partM j i 0) 0 &&
   (coreOf j).params == (List.range (coreOf j).params.length).map V.n &&
   (bif Nat.beq i 0 then (partC j 0 0).le Cnt.zero && Nat.beq (partU j 0 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&

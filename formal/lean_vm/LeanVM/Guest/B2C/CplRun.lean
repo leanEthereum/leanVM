@@ -102,17 +102,17 @@ theorem fnOf_memC {j : ℕ} (h : j < nFns) : fnOf j ∈ Data.functions := by
   exact List.getElem_mem _
 
 /-- The context of part `k` of window `i` of function `j`. -/
-noncomputable def Xp (j i : ℕ) : CX :=
+noncomputable def Xp (j i k : ℕ) : CX :=
   cxOf j (index (segsW j i)) (clocW (certOf j) i) (statT (fsN j) (plumbOf j).stat .nil)
-    (nvOf (coreOf j).body 0)
+    (nvOf (coreOf j).body 0) (stopOf j i k)
 
 /-- The walk's start of part `k`. -/
 noncomputable def st0 (j i k : ℕ) (s : Exec.Seg) : CW :=
-  ⟨s, s.items, fileB (clocW (certOf j) i) (fsN j) (partStmts j i k) .nil, [], [], [], partC j i k,
-    partU j i k, some (partJ j i k), 0⟩
+  ⟨s, s.items.drop (partM j i k), fileB (clocW (certOf j) i) (fsN j) (partStmts j i k) .nil, [], [], [],
+    partC j i k, partU j i k, bif Nat.beq (partM j i k) 0 then some (partJ j i k) else none, 0⟩
 
 theorem cplRes_eq (j i k : ℕ) : cplRes j i k = (match getF (index (segsW j i)) (partJ j i k) with
-    | some s => bif Nat.beq s.start (partJ j i k) then cw (Xp j i) (partStmts j i k) (st0 j i k s)
+    | some s => bif Nat.beq s.start (partJ j i k) then cw (Xp j i k) (partStmts j i k) (st0 j i k s)
       else .fail 91
     | none => .fail 90) := by
   unfold cplRes Xp st0 segsW
@@ -196,15 +196,15 @@ theorem FnH.ctx (F : FnH L j fp σ es vs kfps hdr ck) : Exec.Ctx (certOf j).fact
 
 /-- **The walk's hypotheses hold in every part**, the part's atoms being events. -/
 theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck)
-    (hlb : lastOkC (coreOf j).body = true) {i : ℕ} (hi : i ≤ (certOf j).cuts.length) :
-    WH L j fp (Xp j i) (segsW j i) (wJW j i) (wenvW j i) σ es vs kfps hdr ck := by
+    (hlb : lastOkC (coreOf j).body = true) {i k : ℕ} (hi : i ≤ (certOf j).cuts.length) :
+    WH L j fp (Xp j i k) (segsW j i) (wJW j i) (wenvW j i) σ es vs kfps hdr ck := by
   have hctx := F.ctx
   have hfet := guest_fetches (fnOf_memC F.jn)
   have hcw := checkWin_cpl (F.chk i hi)
   have hw0 := winOkC_of (F.ok i hi 0 (one_le_nParts j i))
   simp only [winOkC, Bool.and_eq_true] at hw0
-  obtain ⟨⟨⟨hpack, -⟩, hpar⟩, -⟩ := hw0
-  refine ⟨cxOk F.frame F.pows _ _ _, hctx, fun s hs ↦ execWin_z hctx hfet hs,
+  obtain ⟨⟨⟨⟨hpack, -⟩, -⟩, hpar⟩, -⟩ := hw0
+  refine ⟨cxOk F.frame F.pows _ _ _ _, hctx, fun s hs ↦ execWin_z hctx hfet hs,
     fun s hs ↦ (execWin_good (L := L) hctx hfet _ _ _ s hs).2.2, rfl, hcw.2.2.1,
     fun v c h ↦ clocW_get (cont_of F.chk) hi hcw.2.1 rfl hpack h, rfl, rfl, rfl, rfl, rfl, rfl,
     rfl, rfl, rfl, fun n hsel ↦ ?_, F.frame, F.kids, F.hev, fun hl ↦ lastCall_of F.walk hl hlb, F.jt,
@@ -214,7 +214,7 @@ theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck)
   rcases hsel with h | h
   · have hpe : (coreOf j).params = (List.range (coreOf j).params.length).map V.n := beq_iff_eq.mp hpar
     refine List.mem_append_left _ (List.mem_append_left _ ?_)
-    have : (Xp j i).nargs = (coreOf j).params.length := rfl
+    have : (Xp j i k).nargs = (coreOf j).params.length := rfl
     rw [this] at h
     rw [hpe]
     exact List.mem_map.mpr ⟨n, List.mem_range.mpr h, rfl⟩
