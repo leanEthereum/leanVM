@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B2C.Cells
-public import LeanVM.Guest.Data.CplHand
+public import LeanVM.Guest.Data.CplParts
 public import LeanVM.Guest.B2C.Count
 
 /-!
@@ -212,12 +212,12 @@ them up by. -/
 /-- The cells a fact is filed under. -/
 def keysC : LAtom → List ℕ
   | .const d _ => [d]
-  | .add d a b => [d, a, b]
+  | .add d _ _ => [d]
   | .mul d _ _ => [d]
   | .same a b => [a, b]
-  | .load d p _ => [d, p]
+  | .load d _ _ => [d]
   | .ne _ _ p => [p]
-  | .range x y t1 t2 k => [t1, t2, k, x, y]
+  | .range x y _ _ _ => [x, y]
   | .inK a b => [a, b]
   | .blake _ _ _ _ _ _ o0 _ _ => [o0]
   | .addr p _ => [p]
@@ -268,7 +268,7 @@ noncomputable def lookC (B : BookC) (o : ℕ) : List LAtom := (getF B o).getD []
 
 /-- File `a` under `o`. -/
 noncomputable def addKeyC (a : LAtom) (B : BookC) (o : ℕ) : BookC :=
-  listSeq (lookC B o) fun l ↦ setF (a :: l) envDepth B o
+  optSeq (getF B o) fun l ↦ setF (a :: l.getD []) envDepth B o
 
 /-- File a fact under its keys. -/
 noncomputable def fileC (B : BookC) (a : LAtom) : BookC := (keysC a).foldl (addKeyC a) B
@@ -388,6 +388,12 @@ noncomputable def zeroBy (a : ℕ) : Bool :=
     | .same u w => (Nat.beq u a && isZ X st w) || (Nat.beq w a && isZ X st u)
     | _ => false
 
+/-- A sum filed under `c` over a permutation of the cells `a, b, d`. -/
+noncomputable def addAt (a b d c : ℕ) : Bool :=
+  (lookC st.book c).any fun x ↦ match x with
+    | .add d' x y => perm3 a b d d' x y
+    | _ => false
+
 /-- `{x, y} = {a, b}`. -/
 def pairEq (x y a b : ℕ) : Bool := (Nat.beq x a && Nat.beq y b) || (Nat.beq x b && Nat.beq y a)
 
@@ -401,7 +407,6 @@ noncomputable def cellK (o : ℕ) : Bool :=
     | none => false) ||
   (lookC st.book o).any (fun x ↦ match x with
     | .const d x => Nat.beq d o && Nat.beq (limbNat x 1) 0 && Nat.beq (limbNat x 2) 0
-    | .load _ p _ => Nat.beq p o
     | .range x y _ _ _ => Nat.beq x o || Nat.beq y o
     | .inK a b => Nat.beq a o || Nat.beq b o
     | .addr p _ => Nat.beq p o
@@ -457,23 +462,25 @@ a callee frame in flight, a table read, or the next frame. -/
 noncomputable def justI (pc : ℕ) : OInstr → Bool
   | .set o k0 k1 k2 => decide (cplCstAt X st o = some (k0, k1, k2))
   | .xor a b d =>
-    (lookC st.book d).any (fun x ↦ match x with
-      | .add d' x y => perm3 a b d d' x y
-      | _ => false) ||
+    addAt st a b d d || addAt st a b d a || addAt st a b d b ||
     (isZ X st d && sameC X st a b) || (Nat.beq a d && isZ X st b && known X st d) ||
     (Nat.beq b d && isZ X st a && known X st d) || (Nat.beq b d && known X st d && zeroBy X st a)
   | .mul a b d =>
     (lookC st.book d).any (fun x ↦ match x with
       | .mul d' x y => Nat.beq d' d && pairEq x y a b
-      | .range x y _ _ k => Nat.beq k d && pairEq x y a b
       | .ne x i p => Nat.beq p d && pairEq x i a b
       | .addr p run => Nat.beq p d && addrMul X st a b run
+      | _ => false) ||
+    (lookC st.book a).any (fun x ↦ match x with
+      | .range x y _ _ k => Nat.beq k d && pairEq x y a b
       | _ => false) ||
     (isO X st b && sameC X st a d) || (isO X st a && sameC X st b d) || fpgMul X st a b d ||
     (Nat.ble X.fs d && isO X st b && nextMul X st a (d - X.fs))
   | .deref o1 o2 o3 .cell =>
     (lookC st.book o3).any (fun x ↦ match x with
       | .load d p off => Nat.beq d o3 && Nat.beq p o1 && Nat.beq off o2
+      | _ => false) ||
+    (lookC st.book o1).any (fun x ↦ match x with
       | .range x y t1 t2 _ => Nat.beq o2 0 && ((Nat.beq x o1 && Nat.beq t1 o3) ||
           (Nat.beq y o1 && Nat.beq t2 o3))
       | _ => false) ||
@@ -794,13 +801,16 @@ end
 
 end Walk
 
-/-! ## A function, by windows
+/-! ## A function, by windows and parts
 
 Window `i` of function `j` is walked over the segments of the soundness certificate's window
-(`execWin` from `(cutAt i).J` to `endAt i`) and its statements (`stmtsAt i`), starting from the
-facts of its statements, no frame in flight, and the counts its start hands on
-(`Data.cplHands`); it ends at the next window's start within the counts handed on there, or, the
-last, by the return within the most a path runs (`Plumb.pmax`). -/
+(`execWin` from `(cutAt i).J` to `endAt i`), its statements (`stmtsAt i`) in parts, each walked
+by its own kernel evaluation (`Data.cplParts`): part `k` starts at statement `s` of the window at
+the start of the segment at offset `J` (the window's start for the first part), from the facts of
+its statements, no frame in flight, and the counts and set-up site cells its start hands on; it
+ends at the next part's start within what is handed on there, or, the window's last part, at the
+next window's start, or, the function's last, by the return within the most a path runs
+(`Plumb.pmax`). -/
 
 /-- The fixed cells in `[2, n)`, by cell. -/
 noncomputable def statT (n : ℕ) : List (ℕ × PC) → Trie PC → Trie PC
@@ -808,8 +818,31 @@ noncomputable def statT (n : ℕ) : List (ℕ × PC) → Trie PC → Trie PC
   | p :: ps, t => bif Nat.ble 2 p.1 && Nat.blt p.1 n then (setF p.2 envDepth t p.1).seq fun t ↦
       statT n ps t else statT n ps t
 
-/-- The counts at window `i`'s start of function `j`. -/
-noncomputable def cplHand (j i : ℕ) : Cnt := Cnt.ofList (nth (nth Data.cplHands j []) i [])
+/-- The parts of window `i` of function `j`, `[s, J, counts, set-up cells]` each (none: one part
+from the window's start with nothing handed on). -/
+noncomputable def partsOf (j i : ℕ) : List (List ℕ) := nth (nth Data.cplParts j []) i []
+
+/-- The number of parts of a window. -/
+noncomputable def nParts (j i : ℕ) : ℕ := Nat.max 1 (partsOf j i).length
+
+/-- The window statement part `k` starts at. -/
+noncomputable def partS (j i k : ℕ) : ℕ := nth (nth (partsOf j i) k []) 0 0
+
+/-- The code offset part `k` starts at: the window's start for the first. -/
+noncomputable def partJ (j i k : ℕ) : ℕ :=
+  bif Nat.beq k 0 then ((certOf j).cutAt i).J else nth (nth (partsOf j i) k []) 1 0
+
+/-- The counts at part `k`'s start. -/
+noncomputable def partC (j i k : ℕ) : Cnt := Cnt.ofList ((nth (partsOf j i) k []).drop 2)
+
+/-- The set-up site cells at part `k`'s start. -/
+noncomputable def partU (j i k : ℕ) : ℕ := nth (nth (partsOf j i) k []) 8 0
+
+/-- The statements of part `k`. -/
+noncomputable def partStmts (j i k : ℕ) : List Core.Stmt :=
+  bif Nat.blt (k + 1) (nParts j i) then
+    (((certOf j).stmtsAt (coreOf j) i).drop (partS j i k)).take (partS j i (k + 1) - partS j i k)
+  else ((certOf j).stmtsAt (coreOf j) i).drop (partS j i k)
 
 /-- The context of window `i` of function `j`. -/
 noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie PC) : CX :=
@@ -817,24 +850,29 @@ noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie
     (coreOf j).params.length, (certOf j).nret, (certOf j).callees, (plumbOf j).sites,
     (plumbOf j).arms, (certOf j).facts.env.map (·.1), Cnt.ofList (plumbOf j).pmax⟩
 
-/-- How window `i` must end: at the next window's start within its counts, or by the return. -/
-noncomputable def winEndC (C : Cert) (j i : ℕ) : RC → Bool
-  | .join J c u => Nat.blt i C.cuts.length && Nat.beq J (C.cutAt (i + 1)).J && c.le (cplHand j (i + 1)) &&
-      subK u ((nth (nth Data.cplHands j []) (i + 1) []).getD 6 0)
-  | .done => !(Nat.blt i C.cuts.length)
+/-- How part `k` of window `i` must end: at the next part's start, the next window's, within
+what is handed on there, or by the return. -/
+noncomputable def partEnd (j i k : ℕ) : RC → Bool
+  | .join J c u =>
+    bif Nat.blt (k + 1) (nParts j i) then
+      Nat.beq J (partJ j i (k + 1)) && c.le (partC j i (k + 1)) && subK u (partU j i (k + 1))
+    else Nat.blt i (certOf j).cuts.length && Nat.beq J ((certOf j).cutAt (i + 1)).J &&
+      c.le (partC j (i + 1) 0) && subK u (partU j (i + 1) 0)
+  | .done => !(Nat.blt (k + 1) (nParts j i)) && !(Nat.blt i (certOf j).cuts.length)
   | .fail _ => false
 
-/-- The walk's result of window `i` of function `j`. -/
-noncomputable def cplRes (j i : ℕ) : RC :=
+/-- The walk's result of part `k` of window `i` of function `j`. -/
+noncomputable def cplRes (j i k : ℕ) : RC :=
   match execWin (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
       ((certOf j).endAt (fnOf j) i) with
   | ⟨segs, _⟩ => listSeq segs fun segs ↦ (index segs).seq fun idx ↦ (clocW (certOf j) i).seq fun loc ↦
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
-    (fileB loc (fsN j) ((certOf j).stmtsAt (coreOf j) i) .nil).seq fun B ↦
-    (cplHand j i).seq fun c ↦
-    match getF idx ((certOf j).cutAt i).J with
-    | some s => cw (cxOf j idx loc stat) ((certOf j).stmtsAt (coreOf j) i)
-        ⟨s, s.items, B, [], [], [], c, nth (nth Data.cplHands j []) i [] |>.getD 6 0, some s.start⟩
+    (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
+    (partC j i k).seq fun c ↦ natSeq (partU j i k) fun u ↦ natSeq (partJ j i k) fun J ↦
+    match getF idx J with
+    | some s => bif Nat.beq s.start J then
+        cw (cxOf j idx loc stat) (partStmts j i k) ⟨s, s.items, B, [], [], [], c, u, some J⟩
+      else .fail 91
     | none => .fail 90
 
 /-- The last window's statements: none returns but the last, a `ret`. -/
@@ -843,22 +881,27 @@ def lastOkC : List Core.Stmt → Bool
   | [.ret _] => true
   | s :: ss => Stmt.noRet s && lastOkC ss
 
-/-- **The completeness check of window `i` of function `j`**: the window's cells pack, the
-first window starts with no counts and its self frame pointer cells fixed, and the walk ends as
-`winEndC` says. -/
-noncomputable def cplWin (j i : ℕ) : Bool :=
+/-- What a window's first part also checks: its cells pack, its statements return only at the
+function's end, and the function's first window starts with nothing handed on and its self frame
+pointer cells fixed. -/
+noncomputable def winOkC (j i : ℕ) : Bool :=
   (nth (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
+  Nat.beq (partS j i 0) 0 &&
   (bif Nat.blt i (certOf j).cuts.length then Stmt.noRetList ((certOf j).stmtsAt (coreOf j) i)
     else lastOkC ((certOf j).stmtsAt (coreOf j) i)) &&
-  (bif Nat.beq i 0 then (cplHand j 0).le Cnt.zero &&
-      Nat.beq ((nth (nth Data.cplHands j []) 0 []).getD 6 0) 0 &&
+  (bif Nat.beq i 0 then (partC j 0 0).le Cnt.zero && Nat.beq (partU j 0 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&
         decide (getF (statT (fsN j) (plumbOf j).stat .nil) p.1 = some (.fpg 0)))
-    else true) &&
-  winEndC (certOf j) j i (cplRes j i)
+    else true)
 
-/-- **The completeness check of function `j`**: every window's. -/
-noncomputable def CplOk (j : ℕ) : Prop := ∀ i ≤ (certOf j).cuts.length, cplWin j i = true
+/-- **The completeness check of part `k` of window `i` of function `j`.** -/
+noncomputable def cplWin (j i k : ℕ) : Bool :=
+  (bif Nat.beq k 0 then winOkC j i else Nat.ble (partS j i (k - 1)) (partS j i k)) &&
+  partEnd j i k (cplRes j i k)
+
+/-- **The completeness check of function `j`**: every part of every window. -/
+noncomputable def CplOk (j : ℕ) : Prop :=
+  ∀ i ≤ (certOf j).cuts.length, ∀ k < nParts j i, cplWin j i k = true
 
 /-- **What the completeness check gives of function `j`** (`cpl_run`): on a memory holding the
 jump table, from an instance's frame holding what the check reads (`FrameHolds`) and its callees'
