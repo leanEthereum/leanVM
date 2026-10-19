@@ -74,6 +74,8 @@ structure VsData where
   w : WhirEnd
   cvW : Digest
   roots' : List (Digest × ℕ × ℕ)
+  /-- The table sumcheck's point, where the tables' claims lie (`chi`). -/
+  chis : List E
 
 namespace VsData
 
