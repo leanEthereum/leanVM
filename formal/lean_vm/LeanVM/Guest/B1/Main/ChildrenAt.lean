@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.Main.ChildrenAt
 
-  `main`'s loop over its children (`__loop5`) placed, uniformly (`CompleteAtD`): per child, its
-  callees' `CompleteRelD`, its two `HeapBuf`s (the signer pair, the DA roots) and the words of the
-  caller's layout.
+  `main`'s loop over its children (`__loop5`) placed, uniformly, by bounded trees (`CompleteAtB`):
+  per child, its callees' `CompleteRelB`, its two `HeapBuf`s (the signer pair, the DA roots) and
+  the words of the caller's layout.
 -/
 
 module
@@ -19,16 +19,17 @@ claims, the two claim lists' digest cells, its signer set's and statement's dige
 deferred cells. `loop5Val` is the iteration's valuation, the range checks' words read from the
 memory; `loop5_holds` checks the body against it for any call relation. `ChildWordsOk`: what
 iteration `c` needs of the caller's layout and of its callees' preconditions.
-`loop5_completeAt`: `__loop5` is `CompleteAtD` over its `m` children, each iteration placing its
-signer pair and its DA roots' buffer after its tail.
+`loop5_completeAt`: `__loop5` is `CompleteAtB` over its `m` children, each iteration placing its
+signer pair and its DA roots' buffer after its tail, within its buffers and its callees' bounds
+(`childBd`).
 -/
 
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtD CompleteRelD Returns Kid CallsMatch OutsOk
-  relAtIn_dmono bufL Meaning_statement_digest Meaning_da_list_digest DaClaimsAt)
+open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtB CompleteRelB Returns Kid CallsMatch OutsOk
+  relAtIn_dmono bufL kidsBound Meaning_statement_digest Meaning_da_list_digest DaClaimsAt)
 open LeanVM.Guest.B1.Digest (CellsAt)
 
 @[expose] public section
@@ -203,9 +204,9 @@ structure ChildWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (Lin : La
   nx : r.nx < 2 ^ 16
   ns : r.ns < 2 ^ 16
   nda : r.da.length ≤ 16
-  ccx : ∃ off cs, ∀ rd, LowDef κ rd → MemL rd Lin →
+  ccx : ∃ off cs, cs.length = 4 * r.nx ∧ ∀ rd, LowDef κ rd → MemL rd Lin →
     CclPreAt off cs rd [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq] [r.dx.1, r.dx.2]
-  ccs : ∃ off cs, ∀ rd, LowDef κ rd → MemL rd Lin →
+  ccs : ∃ off cs, cs.length = 4 * r.ns ∧ ∀ rd, LowDef κ rd → MemL rd Lin →
     CclPreAt off cs rd [spT, cover, r.base * gen ^ r.nx, lxS, spS, gen ^ r.ns, gsq] [r.ds.1, r.ds.2]
   sig : CompressCells ![r.dx.1, r.dx.2, r.ds.1, r.ds.2] ivCells.1 ivCells.2
     (digestScalars r.sigD).1 (digestScalars r.sigD).2 (metadataCell 64 true)
@@ -224,29 +225,35 @@ structure ChildWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (Lin : La
 theorem logG_gen_pow' {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := by
   rw [gen_pow_eq_ofK]; exact logG_spec he
 
+/-- **A child's iteration's bound**: its two `HeapBuf`s and its callees' bounds. -/
+def childBd (fs : String → ℕ) (Bd : CalleeBounds) (r : ChildWords) : ℕ :=
+  2 + 4 * r.da.length + (Bd.ccl r.nx + (Bd.ccl r.ns + ((r.da.length * (fs "__loop100" + Bd.cover) +
+    fs "__loop100") + (Bd.daList r.da.length + (Bd.sd + Bd.vs)))))
+
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
 /-- **`__loop5`, placed**: its `m ≤ 16` children, child `c` computing `rs c` as `ChildWordsOk`
 says, each iteration's signer pair and DA roots in its own `HeapBuf`s. -/
-theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : CalleesAt fs cert κ VsGood)
+theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds}
+    (H : CalleesAt fs cert κ VsGood Bd)
     (hκ : 16 ≤ κ) {m wb cpib : ℕ} {lxT cover lxS gsq spT spS carried daR daC daS seed0 seed1 glp
       cfresh : E} {seedD : Digest} (hm : m ≤ 16) (hm0 : 0 < m) (Lin : Layout)
     (rs : ℕ → ChildWords)
     (hok : ∀ c < m, ChildWordsOk κ VsGood Lin wb cpib lxT cover lxS gsq spT spS carried daR daC daS
       seed0 seed1 glp cfresh seedD c (rs c)) :
-    CompleteAtD fs cert κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
-      carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] (Returns []) := by
-  suffices h : CompleteAtD fs cert κ "__loop5" Lin [gen ^ 0, gen ^ m, ofK (gpow wb), lxT, cover, lxS,
-      gsq, spT, spS, carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh]
-      (Returns []) by simpa using h
-  refine completeAt_loop (fs := fs) (cert := cert) (f := "__loop5") κ Lin
+    CompleteAtB fs cert κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
+      carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] (Returns [])
+      (loopSum (fs "__loop5") (fun c => childBd fs Bd (rs c)) 0 m) := by
+  have h := completeAt_loop (fs := fs) (cert := cert) (f := "__loop5") κ Lin
     (fun j => [gen ^ j, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR, daC,
-      daS, seed0, seed1, ofK (gpow cpib), glp, cfresh]) m (fun j hj fp mt => ?_) 0 hm0
+      daS, seed0, seed1, ofK (gpow cpib), glp, cfresh]) m (fun c => childBd fs Bd (rs c))
+    (fun j hj fp mt => ?_) 0 hm0
+  · simpa using h
   obtain ⟨p1, p2, p3, p4, p5⟩ := loop5_parts
   have o := hok j hj
   obtain ⟨D, lpA, sqA, outA, hgood, hpi, hseed, hglp, hgsq, hout, hvsub⟩ := o.vs
-  obtain ⟨offx, csx, hccx⟩ := o.ccx
-  obtain ⟨offs, css, hccs⟩ := o.ccs
+  obtain ⟨offx, csx, hlx, hccx⟩ := o.ccx
+  obtain ⟨offs, css, hls, hccs⟩ := o.ccs
   obtain ⟨dsl, hcov⟩ := o.cov
   set r := rs j with hr
   set b := fp + fs "__loop5" + mt with hb
@@ -295,14 +302,20 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
         Returns [(digestScalars r.pd).1, (digestScalars r.pd).2]⟩,
       ⟨"verify_sub", true, [(digestScalars r.pd).1, (digestScalars r.pd).2, seed0, seed1, glp, gsq,
         cfresh * gen ^ (106 * j)], VerifySub.vsExtL lpA sqA outA D, Returns []⟩]
-  have hks : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
-    intro k hk ht
-    simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
-    · exact H.child_claim_list_digest offx csx _ _ _ fun rd hl h => hccx rd hl (mLb rd h)
-    · exact H.child_claim_list_digest offs css _ _ _ fun rd hl h => hccs rd hl (mLb rd h)
-    · simp only [decide_eq_true_eq] at ht
-      refine loop100_completeAt H.cover_da_root (by have := o.nda; omega) (by omega) (Lb ++ Lin)
+  have c1 : CompleteAtB fs cert κ "child_claim_list_digest" (Lb ++ Lin)
+      [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq] (Returns [r.dx.1, r.dx.2]) (Bd.ccl r.nx) := by
+    have := H.child_claim_list_digest offx csx _ _ _ fun rd hl h => hccx rd hl (mLb rd h)
+    rwa [hlx, Nat.mul_div_cancel_left _ (by norm_num : 0 < 4)] at this
+  have c2 : CompleteAtB fs cert κ "child_claim_list_digest" (Lb ++ Lin)
+      [spT, cover, r.base * gen ^ r.nx, lxS, spS, gen ^ r.ns, gsq] (Returns [r.ds.1, r.ds.2])
+      (Bd.ccl r.ns) := by
+    have := H.child_claim_list_digest offs css _ _ _ fun rd hl h => hccs rd hl (mLb rd h)
+    rwa [hls, Nat.mul_div_cancel_left _ (by norm_num : 0 < 4)] at this
+  have c3 : nda ≠ 0 → CompleteAtB fs cert κ "__loop100" (Lb ++ Lin) [1, gen ^ nda, ofK (gpow (b + 2)),
+      daR, daC, daS, r.base, gen ^ r.nx * gen ^ r.ns] (Returns [])
+      (nda * (fs "__loop100" + Bd.cover) + fs "__loop100") := by
+    intro ht
+    · refine loop100_completeAt H.cover_da_root (by have := o.nda; omega) (by omega) (Lb ++ Lin)
         (fun k => (r.da.map daCellsOf).getD k []) (fun c hc => ?_) dsl (fun c hc rd hl h => ?_)
         (fun c hc k hk => ?_)
       · rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map]; rfl
@@ -315,29 +328,65 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
         refine ⟨by rw [e, hcells, List.flatMap_def]; exact h1, ?_⟩
         simp only [e, hcells, List.flatMap_def]
         exact h2
-    · exact H.da_list_digest r.da _ _ _ fun rd hl h => ⟨o.nda, rfl, hclaims rd h, rfl⟩
-    · exact H.statement_digest r.sigD r.dcells _ _ _ fun rd hl h => ⟨seedD, daListDigest r.da, o.dlen,
-        o.seed, hsigp rd h 0 (by simp), hsigp rd h 1 (by simp), rfl, o.defer rd (mLb rd h),
-        by rw [o.pd]⟩
-    · have := H.verify_sub D hgood lpA sqA outA
-      obtain ⟨hs0, hs1⟩ := Prod.ext_iff.mp o.seed
-      simp only at hs0 hs1
-      rw [hpi, hseed] at this
-      simp only
-      rw [hs0, hs1, hglp, hgsq, hout]
-      exact this
+  have c4 : CompleteAtB fs cert κ "da_list_digest" (Lb ++ Lin) [ofK (gpow (b + 2)), gen ^ nda]
+      (Returns [(digestScalars (daListDigest r.da)).1, (digestScalars (daListDigest r.da)).2])
+      (Bd.daList nda) :=
+    H.da_list_digest r.da _ _ _ fun rd hl h => ⟨o.nda, rfl, hclaims rd h, rfl⟩
+  have c5 : CompleteAtB fs cert κ "statement_digest" (Lb ++ Lin) [seed0, seed1, ofK (gpow b),
+      (digestScalars (daListDigest r.da)).1, (digestScalars (daListDigest r.da)).2,
+      carried * gen ^ (53 * j)] (Returns [(digestScalars r.pd).1, (digestScalars r.pd).2]) Bd.sd :=
+    H.statement_digest r.sigD r.dcells _ _ _ fun rd hl h => ⟨seedD, daListDigest r.da, o.dlen,
+      o.seed, hsigp rd h 0 (by simp), hsigp rd h 1 (by simp), rfl, o.defer rd (mLb rd h),
+      by rw [o.pd]⟩
+  have c6 : CompleteAtB fs cert κ "verify_sub" (VerifySub.vsExtL lpA sqA outA D)
+      [(digestScalars r.pd).1, (digestScalars r.pd).2, seed0, seed1, glp, gsq,
+        cfresh * gen ^ (106 * j)] (Returns []) Bd.vs := by
+    have := H.verify_sub D hgood lpA sqA outA
+    obtain ⟨hs0, hs1⟩ := Prod.ext_iff.mp o.seed
+    simp only at hs0 hs1
+    rw [hpi, hseed] at this
+    rw [hs0, hs1, hglp, hgsq, hout]
+    exact this
+  have hks : ∀ k ∈ ks, k.taken = true →
+      CompleteAtB fs cert κ k.f k.Lin k.args k.Out (kidInf fs cert κ k) := by
+    intro k hk ht
+    simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
+    rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
+    · exact completeAtB_kidInf c1
+    · exact completeAtB_kidInf c2
+    · simp only [decide_eq_true_eq] at ht
+      exact completeAtB_kidInf (c3 ht)
+    · exact completeAtB_kidInf c4
+    · exact completeAtB_kidInf c5
+    · exact completeAtB_kidInf c6
+  have hkb : kidsBound fs (kidInf fs cert κ) ks ≤ Bd.ccl r.nx + (Bd.ccl r.ns +
+      ((nda * (fs "__loop100" + Bd.cover) + fs "__loop100") + (Bd.daList nda + (Bd.sd + Bd.vs)))) := by
+    have e1 := kidInf_le' (tk := true) c1
+    have e2 := kidInf_le' (tk := true) c2
+    have e4 := kidInf_le' (tk := true) c4
+    have e5 := kidInf_le' (tk := true) c5
+    have e6 := kidInf_le' (tk := true) c6
+    simp only [kidsBound, ks, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte]
+    split_ifs with hz
+    · have e3 := kidInf_le' (tk := decide (nda ≠ 0)) (c3 (by simpa using hz))
+      omega
+    · omega
   refine Exists.elim (loopStep_bufs (fs := fs) (cert := cert) find_loop5 loop5_isLoop core35_split
     p1 _ p2 p3 κ Lin [gen ^ j, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR,
       daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] loop5Fronts (.n 85) loop5Targs p4
-    [2, 4 * nda] [[(digestScalars r.sigD).1, (digestScalars r.sigD).2], cells] hbl fp mt ks hks
+    [2, 4 * nda] [[(digestScalars r.sigD).1, (digestScalars r.sigD).2], cells] hbl fp mt ks
+    (kidInf fs cert κ) hks
     (fun k hk => by simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
                     rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
                     iterate 5 exact ⟨fun _ h => h, fun _ h => h⟩
                     exact hvsub.trans (SubL.of_mem fun q hq => List.mem_append_right _ hq))
     [gen ^ (j + 1), gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR, daC, daS,
       seed0, seed1, ofK (gpow cpib), glp, cfresh] (decide (j + 1 ≠ m))
-    (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hD, hS⟩ =>
-      ⟨n, L, hW, hD, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
+    (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hD, hNb, hS⟩ =>
+      ⟨n, L, hW, hD, by
+        simp only [List.sum_cons, List.sum_nil] at hNb
+        simp only [childBd, ← hnda]
+        omega, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
         fun h => hn (by simpa using h)⟩
   match outs, ho with
   | [q1, q2, q3, q4, q5, q6], ho =>

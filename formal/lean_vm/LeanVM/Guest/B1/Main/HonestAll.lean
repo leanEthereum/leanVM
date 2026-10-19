@@ -85,9 +85,9 @@ theorem honest_wordsOk {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {bytecode
       rs := by simp only [honestWords]; omega
       decl := hlim.nonempty
       lens := honest_lens hb ⟨hsh, hch, hX, hS, hD, hfin⟩ hfr
-      daList := ⟨_, fun rd _ hL => hon_daList fs hlim hL⟩
-      xList := ⟨_, fun rd _ hL => hon_xList fs hlim hL⟩
-      sList := ⟨_, fun rd _ hL => hon_sList fs hlim hL⟩
+      daList := ⟨_, rfl, fun rd _ hL => hon_daList fs hlim hL⟩
+      xList := ⟨_, length_flatMap_const _ 4 _ fun c _ => xCellsOf_length c, fun rd _ hL => hon_xList fs hlim hL⟩
+      sList := ⟨_, length_flatMap_const _ 4 _ fun c _ => sCellsOf_length c, fun rd _ hL => hon_sList fs hlim hL⟩
       sig := hon_sig _ _
       xSlot := fun c hc => (hon_markX fs (seed := seed) (fp := fp)
         (show c < (writersX s w).length by rw [writersX_len]; simp only [honestWords] at hc; omega)).1
@@ -142,26 +142,25 @@ theorem honest_wordsOk {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {bytecode
 
 /-- **`main` is complete, placed** (G:3119-3316; TRIAGE #76): for a witness of `NodeRel` within
 the deployed limits, every child's proof run by a run in `VsGood` and of the guest's fresh shape,
-and `main`'s callees complete (`CalleesAt`), at every `fp` one size and one layout of `main`'s
-words serve every memory holding them, defined below `2^κ`, with the statement's digest at words
-`0` and `1`: `main` holds by a tree placed at `fp`, loading from its own data or its header. -/
+and `main`'s callees complete within `Bd` (`CalleesAt`), at every `fp` one size, within
+`mainBound`, and one layout of `main`'s words serve every memory holding them, defined below
+`2^κ`, with the statement's digest at words `0` and `1`: `main` holds by a tree placed at `fp`,
+loading from its own data or its header. -/
 theorem main_complete {cert : String → V → ℕ} {κ : ℕ} {VsGood : VerifySub.VsData → Prop}
-    {bytecode : List K} (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ)
+    {Bd : CalleeBounds} {bytecode : List K} (H : CalleesAt fs cert κ VsGood Bd) (hκ : 16 ≤ κ)
     (hb : bytecode.length = 2 ^ 22) (hN : NodeRel bytecode seed s w) (hlim : Limits s w)
     (hfr : ∀ c ∈ w.children, FreshShaped c.fresh)
     (hvs : ∀ c ∈ w.children, ∃ D : VerifySub.VsData, VsGood D ∧ D.pi = statementDigest seed c.statement ∧
-      D.seed = seed ∧ D.fresh = c.fresh) (fp : ℕ) (B : String → List E → ℕ) :
+      D.seed = seed ∧ D.fresh = c.fresh) (fp : ℕ) :
     ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧ LeanVM.Guest.B1.DisjL L ∧
-      ((∀ c ∈ mainCalls fs fp (honestWords seed s w), c.2.1 = true → TotalLeAt fs c.1 c.2.2 (B c.1 c.2.2)) →
-        (∃ rd, LowDef κ rd ∧ MemL rd L) → m ≤ (honestWords seed s w).sizes.sum +
-        (fs "exponent_tables" + 68 + callsSize fs B (mainCalls fs fp (honestWords seed s w)))) ∧
+      fs "main" + m ≤ mainBound fs Bd (honestWords seed s w) ∧
       ∀ rd, LowDef κ rd → MemL rd L →
         rd 1 = some (digestScalars (statementDigest seed s)).1 →
         rd g = some (digestScalars (statementDigest seed s)).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] :=
-  let ⟨m, _, hW, hD, hB, h⟩ := main_relAtIn H hκ (honest_wordsOk fs (fp := fp) hb hN hlim hfr hvs) B
-  ⟨m, _, hW, hD, hB, h⟩
+  let ⟨m, _, hW, hD, hB, h⟩ := main_relAtIn H hκ (honest_wordsOk fs (fp := fp) hb hN hlim hfr hvs)
+  ⟨m, _, hW, hD, by unfold mainBound; omega, h⟩
 
 end
 end LeanVM.Guest.B1.Main

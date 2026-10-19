@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.TablesAt
 
-  `exponent_tables` placed, uniformly (`CompleteAtD`): its two tables in its own `HeapBuf`s, which
+  `exponent_tables` placed, uniformly, by a bounded tree (`CompleteAtB`): its two tables in its own `HeapBuf`s, which
   it returns.
 -/
 
@@ -23,7 +23,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol.Verifier (gen eOfNat)
-open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtD etBody etBlk1 etBlk2 core2_body find_exponent_tables
+open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtB etBody etBlk1 etBlk2 core2_body find_exponent_tables
   holdsList_range_flatten word_eOfNat)
 
 @[expose] public section
@@ -141,11 +141,12 @@ theorem exponent_tables_relAtIn (fp : ℕ) (rd : Reader)
         Or.inl (hown _ ⟨(b + 34, expTbl2), by simp, by omega, by simp [expTbl2]; omega⟩)⟩
       simp only [σ, etVal]; b1_look; exact addr_ofK (b + 34) j
 
-/-- **`exponent_tables`, placed**: at every `fp` its tables in its two `HeapBuf`s, returned. -/
+/-- **`exponent_tables`, placed**: at every `fp` its tables in its two `HeapBuf`s, returned, its
+tree its frame and the tables. -/
 theorem exponent_tables_completeAt (κ : ℕ) :
-    CompleteAtD fs cert κ "exponent_tables" [] [] ExpOut := by
+    CompleteAtB fs cert κ "exponent_tables" [] [] ExpOut (fs "exponent_tables" + 68) := by
   intro fp
-  refine ⟨_, [], _, _, ⟨fp + fs "exponent_tables", rfl, rfl⟩, fun q hq => ?_, ?_,
+  refine ⟨_, [], _, _, ⟨fp + fs "exponent_tables", rfl, rfl⟩, fun q hq => ?_, ?_, le_of_eq rfl,
     fun rd _ hL => exponent_tables_relAtIn fp rd (by simpa using hL)⟩
   · simp only [List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl <;> simp [expTbl1, expTbl2] <;> omega

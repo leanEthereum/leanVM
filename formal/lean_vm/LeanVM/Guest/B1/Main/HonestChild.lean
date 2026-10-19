@@ -211,8 +211,8 @@ theorem hon_child {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {bytecode : Li
       nx := (hlim.lists _ hmem).1
       ns := (hlim.lists _ hmem).2
       nda := hlim.daRoots.2 _ hmem
-      ccx := ⟨_, _, fun rd _ hL => hon_ccx fs hlim hc hL⟩
-      ccs := ⟨_, _, fun rd _ hL => hon_ccs fs hlim hc hL⟩
+      ccx := ⟨_, _, length_flatMap_const _ 4 _ fun c _ => xCellsOf_length c, fun rd _ hL => hon_ccx fs hlim hc hL⟩
+      ccs := ⟨_, _, length_flatMap_const _ 4 _ fun c _ => sCellsOf_length c, fun rd _ hL => hon_ccs fs hlim hc hL⟩
       sig := hon_sig _ _
       cov := ⟨_, fun k hk rd _ hL => hon_childCov fs hlim hc hL hk⟩
       defer := fun rd hL => ?_

@@ -141,13 +141,13 @@ structure MainWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (fp : ℕ)
   rs : W.rs ≤ 65535
   decl : 0 < W.dx + W.ds + W.da
   lens : W.bufs.map List.length = W.sizes
-  daList : ∃ claims, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
+  daList : ∃ claims : List DaClaim, claims.length = W.da ∧ ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
     DaListPreAt claims rd [mainPtr fs fp W 0, gen ^ W.da]
       [(digestScalars W.daDig).1, (digestScalars W.daDig).2]
-  xList : ∃ cs, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
+  xList : ∃ cs : List E, cs.length = 4 * W.dx ∧ ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
     ClPreAt cs rd [mainPtr fs fp W 1, gen ^ W.dx, ofK (gpow (mainExpBase fs fp W + 34))]
       [(digestScalars W.xDig).1, (digestScalars W.xDig).2]
-  sList : ∃ cs, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
+  sList : ∃ cs : List E, cs.length = 4 * W.ds ∧ ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
     ClPreAt cs rd [mainPtr fs fp W 2, gen ^ W.ds, ofK (gpow (mainExpBase fs fp W + 34))]
       [(digestScalars W.sDig).1, (digestScalars W.sDig).2]
   sig : CompressCells ![(digestScalars W.xDig).1, (digestScalars W.xDig).2, (digestScalars W.sDig).1,

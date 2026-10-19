@@ -2,7 +2,8 @@
   LeanVM.Guest.B1.Main.CalleesAt
 
   What `main`'s placed completeness assumes of the functions it calls that other groups prove:
-  each one's uniform placed completeness (`CompleteRelD`) on its honest precondition.
+  each one's uniform placed completeness by bounded trees (`CompleteRelB`) on its honest
+  precondition, within the bounds `CalleeBounds`.
 -/
 
 module
@@ -19,9 +20,10 @@ public import LeanVM.Guest.B1.VerifySub.CPlaced3
 /-!
 # The callees of `main`, placed
 
-`CalleesAt fs cert κ VsGood`: for each function another group proves, `CompleteRelD` at `κ` on
-the precondition its Rel-level completeness takes, with the function's own buffers (scratch
-tables, internal `HeapBuf`s) left to it:
+`CalleesAt fs cert κ VsGood Bd`: for each function another group proves, `CompleteRelB` at `κ`
+on the precondition its Rel-level completeness takes, within its bound in `Bd` (a constant, or a
+function of the claims' count for the lists), with the function's own buffers (scratch tables,
+internal `HeapBuf`s) left to it:
 
 * the signature verifiers: their meanings;
 * `statement_digest` (`SdPreAt sig cells`), `da_list_digest` (`DaListPreAt claims`): their
@@ -34,15 +36,16 @@ tables, internal `HeapBuf`s) left to it:
 * `da_verify` (`DaVerifyPreAt`): for a witness opening the claim, the squares table and the claim's
   cells returned;
 * `verify_sub`: for every run of the deferring verifier `VsGood` admits (group 6's `VsData`, the
-  run of an accepted proof within the deployed limits), group 6's `verify_sub_completeAt` shape:
-  the exponent tables and the run's fixed claims at the caller's words `vsExtL`.
+  run of an accepted proof within the deployed limits), group 6's
+  `verify_sub_completeAtB_of_accepts` shape: the exponent tables and the run's fixed claims at the
+  caller's words `vsExtL`, within a constant (group 6's `vsBound`).
 -/
 
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.B1 (CompleteRelD CompleteAtD Returns Meaning_verify_lean_xmss Meaning_verify_sig_lean_sphincs
+open LeanVM.Guest.B1 (CompleteRelB CompleteAtB Returns Meaning_verify_lean_xmss Meaning_verify_sig_lean_sphincs
   Meaning_statement_digest Meaning_da_list_digest)
 open LeanVM.Guest.B1.Digest (SquaresAt CellsAt)
 
@@ -99,24 +102,42 @@ def DaVerifyPreAt (root vd : Digest) (rd : Reader) : List E → List E → Prop
       (v0, v1) = digestScalars vd
   | _, _ => False
 
-/-- **The callees of `main` other groups prove, complete uniformly and placed** at `κ`. -/
+/-- **The bounds of `main`'s callees' trees**: constants for a signature verification, a
+statement's digest, a DA slot's cover, the direct DA claim's check and a child's `verify_sub`; by
+the claims' count for a DA list's digest, a claim list's and a child's claim list's. -/
+structure CalleeBounds where
+  xmss : ℕ
+  sphincs : ℕ
+  sd : ℕ
+  daList : ℕ → ℕ
+  cover : ℕ
+  cl : ℕ → ℕ
+  ccl : ℕ → ℕ
+  daVerify : ℕ
+  vs : ℕ
+
+/-- **The callees of `main` other groups prove, complete uniformly and placed** at `κ`, by trees
+within `Bd`. -/
 structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
-    (VsGood : VerifySub.VsData → Prop) : Prop where
-  verify_lean_xmss : CompleteRelD fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss
+    (VsGood : VerifySub.VsData → Prop) (Bd : CalleeBounds) : Prop where
+  verify_lean_xmss : CompleteRelB fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss Bd.xmss
   verify_sig_lean_sphincs :
-    CompleteRelD fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs
-  statement_digest : ∀ sig cells, CompleteRelD fs cert κ "statement_digest" (SdPreAt sig cells)
-  da_list_digest : ∀ claims, CompleteRelD fs cert κ "da_list_digest" (DaListPreAt claims)
-  cover_da_root : ∀ i, CompleteRelD fs cert κ "cover_da_root" (CoverPreAt i)
-  claim_list_digest : ∀ cs, CompleteRelD fs cert κ "claim_list_digest" (ClPreAt cs)
+    CompleteRelB fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs Bd.sphincs
+  statement_digest : ∀ sig cells,
+    CompleteRelB fs cert κ "statement_digest" (SdPreAt sig cells) Bd.sd
+  da_list_digest : ∀ claims,
+    CompleteRelB fs cert κ "da_list_digest" (DaListPreAt claims) (Bd.daList claims.length)
+  cover_da_root : ∀ i, CompleteRelB fs cert κ "cover_da_root" (CoverPreAt i) Bd.cover
+  claim_list_digest : ∀ cs,
+    CompleteRelB fs cert κ "claim_list_digest" (ClPreAt cs) (Bd.cl (cs.length / 4))
   child_claim_list_digest : ∀ off cs,
-    CompleteRelD fs cert κ "child_claim_list_digest" (CclPreAt off cs)
+    CompleteRelB fs cert κ "child_claim_list_digest" (CclPreAt off cs) (Bd.ccl (cs.length / 4))
   da_verify : ∀ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd →
-    CompleteRelD fs cert κ "da_verify" (DaVerifyPreAt root vd)
-  verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAtD fs cert κ "verify_sub"
+    CompleteRelB fs cert κ "da_verify" (DaVerifyPreAt root vd) Bd.daVerify
+  verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAtB fs cert κ "verify_sub"
     (VerifySub.vsExtL lpA sqA outA D) [(digestScalars D.pi).1, (digestScalars D.pi).2,
       (digestScalars D.seed).1, (digestScalars D.seed).2, ofK (gpow lpA), ofK (gpow sqA),
-      ofK (gpow outA)] (Returns [])
+      ofK (gpow outA)] (Returns []) Bd.vs
 
 end
 end LeanVM.Guest.B1.Main

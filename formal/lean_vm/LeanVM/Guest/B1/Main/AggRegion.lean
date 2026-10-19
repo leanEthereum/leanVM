@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.AggPlaced
+public import LeanVM.Guest.B1.Main.AggSize
 public import LeanVM.Guest.B1.Main.Restrict
 
 /-!
@@ -267,7 +268,7 @@ theorem aggregate_claims_relAtIn (fs : String → ℕ) (cert : String → V → 
     (hmr : h.matrixRounds.length = 28)
     (hsh : ∀ c ∈ cs, FreshShaped c.fresh ∧ c.carried.bytecodePoint.length = 22 ∧
       c.carried.matrixPoint.length = 28) (ap af ac ad fp : ℕ) :
-    ∃ n, fs "aggregate_claims" + (aggSizes cs.length).sum ≤ n ∧
+    ∃ n, fs "aggregate_claims" + (aggSizes cs.length).sum ≤ n ∧ n ≤ aggBound fs cs.length ∧
       ∀ rd : Reader, MemL rd (aggOwnL fs fp cs h (ofK (gpow af)) (ofK (gpow ac)) ++
         aggExtL ap af ac ad cs d) →
       RelAtIn coreProgram fs cert rd (RegionL (aggExtL ap af ac ad cs d)) (fun _ => False) fp n
@@ -341,7 +342,7 @@ theorem aggregate_claims_relAtIn (fs : String → ℕ) (cert : String → V → 
     fun i hi => (regionL_append.mp hi).elim (fun h => Or.inr (hown i h)) Or.inl
   by_cases hex : ∃ rd1, MemL rd1 L
   swap
-  · exact ⟨_, le_rfl, fun rd hL => absurd ⟨rd, hL⟩ hex⟩
+  · exact ⟨_, le_rfl, by unfold aggBound; omega, fun rd hL => absurd ⟨rd, hL⟩ hex⟩
   obtain ⟨rd1, h1⟩ := hex
   -- the restriction of one memory to the layouts
   have h0 : MemL (restrict rd1 S) L := memL_restrict h1 fun i hi => hi
@@ -366,8 +367,24 @@ theorem aggregate_claims_relAtIn (fs : String → ℕ) (cert : String → V → 
   have hs0 := walk_sat agBody hwf (agBody_holds hne hb hbr hmr hC0 hd0 P hM0)
   rw [hw] at hs0
   have hloadS := loads_of_supp hsupp fun e he => (hs0.1 e he).1
+  have hx : ∀ A v, restrict rd1 S A = some v → restrict rd1 S A = some v := fun _ _ h => h
+  have b95 : m95 ≤ cs.length * fs "__loop95" + fs "__loop95" := by
+    obtain ⟨t, hn, hv, hbo, -, ht, -⟩ := k95 0 _ hx; rw [← ht]; exact loop95_total hn0 hn hv hbo
+  have b96 : m96 ≤ cs.length * fs "__loop96" + fs "__loop96" := by
+    obtain ⟨t, hn, hv, hbo, -, ht, -⟩ := k96 0 _ hx; rw [← ht]; exact loop96_total hn0 hn hv hbo
+  have b97 : m97 ≤ cs.length * fs "__loop97" + fs "__loop97" := by
+    obtain ⟨t, hn, hv, hbo, -, ht, -⟩ := k97 0 _ hx; rw [← ht]; exact loop97_total hn0 hn hv hbo
+  have b98 : m98 ≤ cs.length * fs "__loop98" + fs "__loop98" := by
+    obtain ⟨t, hn, hv, hbo, -, ht, -⟩ := k98 0 _ hx; rw [← ht]; exact loop98_total hn0 hn hv hbo
+  have b99 : m99 ≤ cs.length * fs "__loop99" + fs "__loop99" := by
+    obtain ⟨t, hn, hv, hbo, -, ht, -⟩ := k99 0 _ hx; rw [← ht]; exact loop99_total hn0 hn hv hbo
+  have b22 : m22 = fs "batch_sumcheck__L22" := by
+    obtain ⟨t, hn, hv, hbo, -, ht, -⟩ := k22 0 _ hx; rw [← ht]; exact bs22_total hn hv hbo
+  have b28 : m28 = fs "batch_sumcheck__L28" := by
+    obtain ⟨t, hn, hv, hbo, -, ht, -⟩ := k28 0 _ hx; rw [← ht]; exact bs28_total hn hv hbo
   refine ⟨fs "aggregate_claims" + (allocs σ es).sum +
-    (m95 + (m96 + (m22 + (m97 + (m98 + (m28 + (m99 + 0))))))), by rw [hall]; omega, fun rd hL => ?_⟩
+    (m95 + (m96 + (m22 + (m97 + (m98 + (m28 + (m99 + 0))))))), by rw [hall]; omega,
+    by rw [hall]; unfold aggBound; omega, fun rd hL => ?_⟩
   obtain ⟨ho, he⟩ := memL_append.mp hL
   obtain ⟨hC, hd⟩ := childClaimsAt_of_memL hsh he
   have hs := walk_sat agBody hwf (agBody_holds hne hb hbr hmr hC hd P (aggMem_of_memL hbr hmr ho))

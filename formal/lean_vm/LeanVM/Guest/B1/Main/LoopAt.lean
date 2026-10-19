@@ -1,14 +1,15 @@
 /-
   LeanVM.Guest.B1.Main.LoopAt
 
-  The uniform placed completeness (`CompleteAtD`) of a loop helper from its iterations, and of a
-  straight-line iteration from its valuation and its callees' `CompleteAtD`.
+  The uniform placed completeness by bounded trees (`CompleteAtB`) of a loop helper from its
+  iterations, and of a straight-line iteration from its valuation and its callees' `CompleteAtB`.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Uniform
 public import LeanVM.Guest.B1.Main.Straight
+public import LeanVM.Guest.B1.Tables.VtCSize
 
 /-!
 # Loops, placed
@@ -17,10 +18,14 @@ A loop helper's iteration `j` is placed at `fp`, its tail call (iteration `j + 1
 of the call not taken) right after its frame, its own buffers and callees after the tail's
 subtree. `completeAt_loop` composes the iterations from the last one down: each iteration,
 given its tail's size `mt`, one size and one layout of its own words serving every memory that
-holds them and the caller's words `Lin`, is complete at every `fp`.
+holds them and the caller's words `Lin`, is complete at every `fp`, by a tree within the frames
+and the iterations' bounds (`loopSum`).
 
 `loopStep_straight`: an iteration of a straight-line body with no `HeapBuf` and no `frameAddr`,
-whose callees before the tail are `CompleteAtD` (`Kid`s reading within `Lin`) and whose loads read `Lin`, given its valuation on every memory.
+whose callees before the tail are `CompleteAtB` (`Kid`s reading within `Lin`) and whose loads read
+`Lin`, given its valuation on every memory, within its callees' bounds (`kidsBound`).
+`kidInf`: the least bound a callee is complete by. `leafLoop_total`: a `mul_range` loop helper with
+no callee and no `HeapBuf` is its frames.
 
 `CellL`, `regionL_of_mem`: the words of a layout and where they lie.
 -/
@@ -28,8 +33,10 @@ whose callees before the tail are `CompleteAtD` (`Kid`s reading within `Lin`) an
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
-open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtD Returns Kid CallsMatch OutsOk RegionsOk outRegion
-  kidsFromIn_of_kidsD relAtIn_dmono within_append)
+open LeanVM.Protocol.Verifier (gen)
+open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtB Returns Kid CallsMatch OutsOk RegionsOk outRegion
+  kidsFromIn_of_kidsB kidsBound relAtIn_dmono within_append
+  vtc_loop_total vtc_atom)
 
 @[expose] public section
 
@@ -86,39 +93,137 @@ theorem SubL.run {L : Layout} {b o : ℕ} {xs ys : List E} (hq : (b, ys) ∈ L)
     rw [List.mem_singleton] at hq'; subst hq'
     exact ⟨(b, ys), hq, by simp only at h1 ⊢; omega, by simp only at h2 ⊢; omega⟩
 
+/-! ## Bounds -/
+
+/-- **A loop's bound** from iteration `j` with `d` iterations left: each iteration's frame and
+bound `bs`, and the frame of the call not taken. -/
+def loopSum (c : ℕ) (bs : ℕ → ℕ) (j : ℕ) : ℕ → ℕ
+  | 0 => c
+  | d + 1 => c + bs j + loopSum c bs (j + 1) d
+
+theorem loopSum_const (c b : ℕ) : ∀ j d : ℕ, loopSum c (fun _ => b) j d = d * (c + b) + c
+  | _, 0 => by simp [loopSum]
+  | j, d + 1 => by rw [loopSum, loopSum_const c b (j + 1) d]; ring
+
+/-- **The least bound** a callee is complete by. -/
+noncomputable def kidInf (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (k : Kid) : ℕ :=
+  sInf {B | CompleteAtB fs cert κ k.f k.Lin k.args k.Out B}
+
+theorem kidInf_le {κ : ℕ} {k : Kid} {B : ℕ} (h : CompleteAtB fs cert κ k.f k.Lin k.args k.Out B) :
+    kidInf fs cert κ k ≤ B :=
+  Nat.sInf_le h
+
+theorem kidInf_le' {κ : ℕ} {f : String} {tk : Bool} {args : List E} {Lin : Layout}
+    {Out : List E → Layout → Prop} {B : ℕ} (h : CompleteAtB fs cert κ f Lin args Out B) :
+    kidInf fs cert κ ⟨f, tk, args, Lin, Out⟩ ≤ B :=
+  Nat.sInf_le h
+
+theorem completeAtB_kidInf {κ : ℕ} {k : Kid} {B : ℕ}
+    (h : CompleteAtB fs cert κ k.f k.Lin k.args k.Out B) :
+    CompleteAtB fs cert κ k.f k.Lin k.args k.Out (kidInf fs cert κ k) :=
+  Nat.sInf_mem (s := {B | CompleteAtB fs cert κ k.f k.Lin k.args k.Out B}) ⟨B, h⟩
+
+/-- **Callees within bounds**: each entered one complete by a tree within its bound, each one not
+entered its frame within it. -/
+def KidsB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (ks : List Kid) (bs : List ℕ) : Prop :=
+  List.Forall₂ (fun k b => (k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out b) ∧
+    (k.taken = false → fs k.f ≤ b)) ks bs
+
+theorem KidsB.complete {κ : ℕ} {ks : List Kid} {bs : List ℕ} (h : KidsB fs cert κ ks bs) :
+    ∀ k ∈ ks, k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out (kidInf fs cert κ k) := by
+  induction h with
+  | nil => intro k hk; simp at hk
+  | cons hkb _ ih =>
+    intro k hk ht
+    rcases List.mem_cons.mp hk with rfl | hk
+    · exact completeAtB_kidInf (hkb.1 ht)
+    · exact ih k hk ht
+
+theorem KidsB.bound {κ : ℕ} {ks : List Kid} {bs : List ℕ} (h : KidsB fs cert κ ks bs) :
+    kidsBound fs (kidInf fs cert κ) ks ≤ bs.sum := by
+  induction h with
+  | nil => simp [kidsBound]
+  | @cons k b ks bs hkb _ ih =>
+    simp only [kidsBound, List.map_cons, List.sum_cons] at ih ⊢
+    cases ht : k.taken
+    · simp only [Bool.false_eq_true, ↓reduceIte]; have := hkb.2 ht; omega
+    · simp only [↓reduceIte]; have := kidInf_le (hkb.1 ht); omega
+
+theorem KidsB.append {κ : ℕ} {ks ks' : List Kid} {bs bs' : List ℕ} (h : KidsB fs cert κ ks bs)
+    (h' : KidsB fs cert κ ks' bs') : KidsB fs cert κ (ks ++ ks') (bs ++ bs') :=
+  List.rel_append h h'
+
+theorem mem_of_getElem? {l : List Core.Stmt} {s : Core.Stmt} (i : ℕ) (h : l[i]? = some s) : s ∈ l :=
+  List.mem_of_getElem? h
+
+/-- **A `mul_range` loop helper with no callee and no `HeapBuf`**: its valid trees over `m`
+iterations are within its `m + 1` frames. -/
+theorem leafLoop_total {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    {pre : List Stmt} {ps : List V} {a b c d e : V}
+    (hb : fn.body = pre ++ [.callIf c f (e :: .n 1 :: ps), .ret []])
+    (hp : fn.params = .n 0 :: .n 1 :: ps)
+    (hst : pre.all Stmt.straight = true) (hna : pre.filterMap Stmt.allocSz = [])
+    (hcs : pre.filterMap Stmt.callS = [])
+    (ha : Core.Stmt.atom (.const a (word 2 0 0)) ∈ pre) (hb1 : Core.Stmt.atom (.mul b (.n 0) a) ∈ pre)
+    (hc : Core.Stmt.atom (.add c b (.n 1)) ∈ pre) (hd : Core.Stmt.atom (.const d (word 2 0 0)) ∈ pre)
+    (he : Core.Stmt.atom (.mul e (.n 0) d) ∈ pre)
+    {rd : Reader} {m : ℕ} {rest : List E} {t : Tree} {rets : List E} (hm : 0 < m)
+    (hn : t.name = f) (hv : t.Valid coreProgram rd (1 :: gen ^ m :: rest) rets)
+    (hbo : t.BufsOk coreProgram) : t.total fs ≤ m * fs f + fs f := by
+  have key := vtc_loop_total (fs := fs) hf hb hst hna rd m rest 0 ?_ m 0 t rets (by omega) hm hn
+    (by rwa [pow_zero]) hbo
+  · simpa using key
+  intro σ j _ hpσ hes
+  rw [hp] at hpσ
+  simp only [List.map_cons, List.cons.injEq] at hpσ
+  obtain ⟨h0, h1, hr⟩ := hpσ
+  have xa := vtc_atom hes ha
+  have xb := vtc_atom hes hb1
+  have xc := vtc_atom hes hc
+  have xd := vtc_atom hes hd
+  have xe := vtc_atom hes he
+  simp only [Atom.Holds, word_gen] at xa xb xc xd xe
+  refine ⟨by rw [xc, xb, xa, h0, h1], by simp [xe, xd, h0, h1, hr], fun kids hk _ => ?_⟩
+  rw [hcs] at hk
+  match kids, hk with
+  | [], _ => simp [Tree.totalKids]
+
 /-! ## The iterations -/
 
 /-- **A loop helper is complete from its iterations**: iteration `j < m`, its tail of size `mt`
 right after its frame (a `RelAtIn` when `j + 1 < m`, the frame of the call not taken otherwise),
-is complete at every `fp` with one size and one layout of its own words from
+is complete at every `fp` with one size, at most `bs j`, and one layout of its own words from
 `fp + fs f + mt`. -/
 theorem completeAt_loop {f : String} (κ : ℕ) (Lin : Layout) (A : ℕ → List E) (m : ℕ)
+    (bs : ℕ → ℕ)
     (step : ∀ j < m, ∀ fp mt : ℕ, ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧ DisjL L ∧
-      ∀ rd, LowDef κ rd → MemL rd (L ++ Lin) →
+      n ≤ bs j ∧ ∀ rd, LowDef κ rd → MemL rd (L ++ Lin) →
         (j + 1 < m → RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) (fp + fs f) mt f
           (A (j + 1)) []) →
         (j + 1 = m → mt = fs f) →
         RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) fp (fs f + mt + n) f
           (A j) []) :
-    ∀ j < m, CompleteAtD fs cert κ f Lin (A j) (Returns []) := by
-  have key : ∀ t j, j + t + 1 = m → CompleteAtD fs cert κ f Lin (A j) (Returns []) := by
+    ∀ j < m, CompleteAtB fs cert κ f Lin (A j) (Returns []) (loopSum (fs f) bs j (m - j)) := by
+  have key : ∀ t j, j + t + 1 = m →
+      CompleteAtB fs cert κ f Lin (A j) (Returns []) (loopSum (fs f) bs j (t + 1)) := by
     intro t
     induction t with
     | zero =>
       intro j hj fp
-      obtain ⟨n, L, hW, hD, hS⟩ := step j (by omega) fp (fs f)
-      refine ⟨fs f + fs f + n, L, [], [], ⟨rfl, rfl⟩, ?_, by simpa using hD, fun rd hl hL => ?_⟩
+      obtain ⟨n, L, hW, hD, hn, hS⟩ := step j (by omega) fp (fs f)
+      refine ⟨fs f + fs f + n, L, [], [], ⟨rfl, rfl⟩, ?_, by simpa using hD,
+        by simp only [loopSum]; omega, fun rd hl hL => ?_⟩
       · simpa using hW.mono (by omega) (by omega)
       · refine relAtIn_dmono (hS rd hl (by simpa using hL) (fun h => by omega) (fun _ => rfl))
           fun i hi => ?_
         obtain ⟨q, hq, _⟩ := hi; simp at hq
     | succ t ih =>
       intro j hj fp
-      obtain ⟨nt, Lt, rt, Lo, ⟨rfl, rfl⟩, hWt, hDt, hSt⟩ := ih (j + 1) (by omega) (fp + fs f)
-      obtain ⟨n, L, hW, hD, hS⟩ := step j (by omega) fp nt
+      obtain ⟨nt, Lt, rt, Lo, ⟨rfl, rfl⟩, hWt, hDt, hnt, hSt⟩ := ih (j + 1) (by omega) (fp + fs f)
+      obtain ⟨n, L, hW, hD, hn, hS⟩ := step j (by omega) fp nt
       simp only [List.nil_append] at hWt hDt
       refine ⟨fs f + nt + n, Lt ++ L, [], [], ⟨rfl, rfl⟩, ?_, by simpa using disj_append hDt hD hWt hW le_rfl,
-        fun rd hl hL => ?_⟩
+        by rw [loopSum]; omega, fun rd hl hL => ?_⟩
       · simp only [List.nil_append]
         rw [within_append]
         exact ⟨hWt.mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
@@ -129,7 +234,9 @@ theorem completeAt_loop {f : String} (κ : ℕ) (Lin : Layout) (A : ℕ → List
             fun i hi => ?_
           exact hi.elim
         · obtain ⟨q, hq, _⟩ := hi; simp at hq
-  exact fun j hj => key (m - 1 - j) j (by omega)
+  intro j hj
+  have := key (m - 1 - j) j (by omega)
+  rwa [show m - 1 - j + 1 = m - j by omega] at this
 
 /-! ## A straight-line iteration -/
 
@@ -142,15 +249,17 @@ theorem regionsOk_of_sub {R : ℕ → Prop} : ∀ (Dacc : ℕ → Prop) (ks : Li
       regionsOk_of_sub _ ks os fun k' hk' => h k' (by simp [hk'])⟩
 
 /-- **A straight-line loop iteration, placed**: the body `pre ++ [ret []]` places nothing, its
-callees before the tail are the `Kid`s `ks` (each `CompleteAtD`, reading within `Lin`), and on every memory holding their words and `Lin`, for their results, a valuation
-satisfies the body with the frames matching the kids and loads reading `Lin`. -/
+callees before the tail are the `Kid`s `ks` (each `CompleteAtB` by `bd`, reading within `Lin`),
+and on every memory holding their words and `Lin`, for their results, a valuation satisfies the
+body with the frames matching the kids and loads reading `Lin`. -/
 theorem loopStep_straight {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = true) {pre : List Stmt} (hb : fn.body = pre ++ [.ret []])
     (hs : pre.all Stmt.straight = true) (hal : pre.filterMap Stmt.allocSz = [])
     (had : pre.filterMap Stmt.addrS = []) (κ : ℕ) (Lin : Layout) (args : List E)
     (fronts : List (Option V × String × List V × List V)) (tc : V) (targs : List V)
     (hcs : pre.filterMap Stmt.callS = fronts ++ [(some tc, f, targs, [])])
-    (ks : List Kid) (hks : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
+    (ks : List Kid) (bd : Kid → ℕ)
+    (hks : ∀ k ∈ ks, k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out (bd k))
     (hsub : ∀ k ∈ ks, ∀ q ∈ k.Lin, q ∈ Lin)
     (targs' : List E) (more : Bool) (fp mt : ℕ)
     (hσ : ∀ rd, LowDef κ rd → MemL rd Lin → ∀ outs, OutsOk ks outs → ∃ σ : Val,
@@ -159,15 +268,15 @@ theorem loopStep_straight {f : String} {fn : Fn} (hf : coreProgram.find? f = som
       CallsMatch σ (fronts.map (mkCall σ)) ks outs ∧ decide (σ tc ≠ 0) = more ∧
       targs.map σ = targs' ∧
       ∀ q ∈ pre.filterMap LeanVM.Guest.B1.Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧ RegionL Lin i) :
-    ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧ DisjL L ∧
+    ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧ DisjL L ∧ n ≤ kidsBound fs bd ks ∧
       ∀ rd, LowDef κ rd → MemL rd (L ++ Lin) →
         (more = true → RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) (fp + fs f) mt f
           targs' []) →
         (more = false → mt = fs f) →
         RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) fp (fs f + mt + n) f args [] := by
-  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ ks hks
+  obtain ⟨N, L, outs, ho, hW, hD, hNb, -, hK⟩ := kidsFromIn_of_kidsB (fs := fs) (cert := cert) κ bd ks hks
     (fp + fs f + mt + 0)
-  refine ⟨N, L, by simpa using hW, hD, fun rd hlow hL htail hnot => ?_⟩
+  refine ⟨N, L, by simpa using hW, hD, hNb, fun rd hlow hL htail hnot => ?_⟩
   obtain ⟨hL1, hL2⟩ := memL_append.mp hL
   obtain ⟨σ, hp, hH, hcm, htk, hta, hld⟩ := hσ rd hlow hL2 outs ho
   have hwf : Stmt.wfList coreProgram fn.body = true :=
@@ -222,8 +331,8 @@ theorem loopStep_bufs {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
     (fronts : List (Option V × String × List V × List V)) (tc : V) (targs : List V)
     (hcs : pre.filterMap Stmt.callS = fronts ++ [(some tc, f, targs, [])])
     (sizes : List ℕ) (bufs : List (List E)) (hbl : List.Forall₂ (fun c s => c.length ≤ s) bufs sizes)
-    (fp mt : ℕ) (ks : List Kid)
-    (hks : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
+    (fp mt : ℕ) (ks : List Kid) (bd : Kid → ℕ)
+    (hks : ∀ k ∈ ks, k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out (bd k))
     (hsub : ∀ k ∈ ks, SubL k.Lin (bufL (fp + fs f + mt) sizes bufs ++ Lin))
     (targs' : List E) (more : Bool)
     (hσ : ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f + mt) sizes bufs ++ Lin) → ∀ outs, OutsOk ks outs →
@@ -236,17 +345,18 @@ theorem loopStep_bufs {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
       ∀ q ∈ pre.filterMap LeanVM.Guest.B1.Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
         (RegionL Lin i ∨ RegionL (bufL (fp + fs f + mt) sizes bufs) i)) :
     ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧ DisjL L ∧
+      n ≤ sizes.sum + kidsBound fs bd ks ∧
       ∀ rd, LowDef κ rd → MemL rd (L ++ Lin) →
         (more = true → RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) (fp + fs f) mt f
           targs' []) →
         (more = false → mt = fs f) →
         RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) fp (fs f + mt + n) f args [] := by
   set Lb := bufL (fp + fs f + mt) sizes bufs with hLb
-  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ ks hks
+  obtain ⟨N, L, outs, ho, hW, hD, hNb, -, hK⟩ := kidsFromIn_of_kidsB (fs := fs) (cert := cert) κ bd ks hks
     (fp + fs f + mt + sizes.sum)
   refine ⟨sizes.sum + N, Lb ++ L, ?_,
     disj_append (bufL_disj _ _ _ hbl) hD (LeanVM.Guest.B1.bufL_within _ _ _ hbl) hW le_rfl,
-    fun rd hlow hL htail hnot => ?_⟩
+    by omega, fun rd hlow hL htail hnot => ?_⟩
   · rw [within_append]
     exact ⟨(LeanVM.Guest.B1.bufL_within _ _ _ hbl).mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
   rw [List.append_assoc] at hL
