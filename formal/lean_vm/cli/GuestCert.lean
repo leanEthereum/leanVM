@@ -1719,6 +1719,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
     | _ => []).eraseDups
   let vc (v : Core.V) : String := s!"({v.idx}, {cell v.idx})"
   let pmax := out.best
+  let sh := ((byCell.toList.filter fun (c, vs) => 2 ≤ c && 2 ≤ vs.length).map (·.1)).mergeSort (· ≤ ·)
   return s!"/-- `{f.name}`. -/
 noncomputable def plumb{j} : B2C.Plumb where
   stat := {listText stat}
@@ -1727,6 +1728,7 @@ noncomputable def plumb{j} : B2C.Plumb where
   tmps := {listText (tmps.map vc)}
   runs := {listText (runs.map vc)}
   pmax := {listText (pmax.map toString)}
+  sh := {listText (sh.map toString)}
 "
 
 end GuestCert

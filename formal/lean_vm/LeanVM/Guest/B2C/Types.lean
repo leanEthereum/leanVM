@@ -43,8 +43,9 @@ structure Site where
 
 /-- What a function's frame holds beyond its core values: the fixed cells `stat`, the call sites,
 the table jumps `(selector value, target cell, table base)`, the range checks' temporaries and
-the frame runs' values with their cells `(value, cell)`, and the most instructions of each opcode
-(in `Opcode`'s order) a path through the function's code runs (`pmax`). -/
+the frame runs' values with their cells `(value, cell)`, the most instructions of each opcode
+(in `Opcode`'s order) a path through the function's code runs (`pmax`), and the cells holding
+several values (`sh`). -/
 structure Plumb where
   stat : List (ℕ × PC) := []
   sites : List Site := []
@@ -52,6 +53,17 @@ structure Plumb where
   tmps : List (ℕ × ℕ) := []
   runs : List (ℕ × ℕ) := []
   pmax : List ℕ := []
+  sh : List ℕ := []
+  deriving Repr
+
+/-- What the sharing check's window `i + 1` starts from: the occupied cells (a bit set), and the
+known values, the shared cells' constants `(cell, limbs)` and keys `(cell, op, input cells)` it
+hands on. -/
+structure Snap where
+  occ : ℕ
+  named : List ℕ
+  cst : List (ℕ × ℕ × ℕ × ℕ)
+  keys : List (ℕ × ℕ × List ℕ)
   deriving Repr
 
 end
