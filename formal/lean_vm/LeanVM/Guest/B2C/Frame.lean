@@ -701,5 +701,72 @@ theorem read_self {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
 
 end Args
 
+/-! ## The frame's placement -/
+
+section Place
+
+variable {j : ℕ}
+
+theorem kidsValid_length {rd : Reader} {σ : Val} : ∀ {cs : List Call} {ks : List Tree},
+    Tree.KidsValid coreProgram rd σ cs ks → ks.length = cs.length
+  | [], [], _ => rfl
+  | _ :: _, _ :: _, h => by
+    simp only [List.length_cons, kidsValid_length h.2.2]
+  | [], _ :: _, h => h.elim
+  | _ :: _, [], h => h.elim
+
+/-- A node instance valid on a reader, along its function's path. -/
+theorem node_valid {rd : Reader} {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
+    (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) (hg : I.Good coreProgram rd) :
+    ∃ es vs, walk σ (coreOf j).body = .ret es vs ∧ (∀ e ∈ es, e.Holds rd σ) ∧
+      Tree.KidsValid coreProgram rd σ (calls es) kids := by
+  obtain ⟨i, rfl, hi, -, hf, hc, -⟩ := fn_of_idx hj
+  rcases hg with ⟨args, rets, hv⟩ | ⟨f', σ', hp⟩
+  · rw [ht] at hv
+    obtain ⟨fn, hfn, -, es, vs, hw, -, he, hk⟩ := hv
+    rw [hf] at hfn; cases hfn
+    exact ⟨es, vs, by rw [hc]; exact hw, he, hk⟩
+  · rw [ht] at hp; cases hp
+
+/-- **One callee frame per call.** -/
+theorem frame_len {hdr : E × E} {T : Tree} {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T)
+    {rd : Reader} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids)
+    {es : List Ev} (hk : Tree.KidsValid coreProgram rd σ (calls es) kids) :
+    I.kidFps.length = (calls es).length := by
+  rw [honest_kidFps hI, length_kidPos, List.length_map, ht]
+  exact kidsValid_length hk
+
+/-- **The frame addresses** are the runs' addresses in the frame. -/
+theorem frame_addr {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
+    (h : HonestAt coreProgram fs H C hdr T cert rd args rets) {I : Inst}
+    (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
+    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
+    (hw : walk σ (coreOf j).body = .ret es vs) :
+    ∀ q ∈ addrs es, σ q.1 = ofK (gpow (I.fp + cellJ j q.2)) := by
+  obtain ⟨hev, -⟩ := node_path ht hj hw
+  obtain ⟨i, rfl, -, -, -, -, -, hcert, -⟩ := fn_of_idx hj
+  intro q hq
+  rw [(h.nodeAt hI ht).2 q (by rw [hev]; exact hq), hcert]; rfl
+
+/-- **A loop's last callee frame** is right after its own. -/
+theorem frame_tail {hdr : E × E} {T : Tree} {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T)
+    {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids)
+    (hj : idxOf f = some j) (hl : (coreOf j).loop = true) {kfp : ℕ} (hk : I.kidFps.getLast? = some kfp) :
+    kfp = I.fp + fsN j := by
+  obtain ⟨i, rfl, hi, -, hf, hc, hfs, -⟩ := fn_of_idx hj
+  have hlp : coreProgram.loop I.t.name = true := by
+    rw [ht]; simp only [Tree.name, Core.Program.loop, hf, ← hc]; exact hl
+  have hne : I.t.kids ≠ [] := by
+    intro he
+    have hlen := congrArg List.length (honest_kidFps hI)
+    rw [length_kidPos, List.length_map, he] at hlen
+    rw [List.length_eq_zero_iff.mp hlen] at hk
+    cases hk
+  rw [honest_kidFps_getLast? hI hlp hne] at hk
+  rw [← Option.some.inj hk, ht]
+  simp only [Tree.name, hfs]
+
+end Place
+
 end
 end LeanVM.Guest.B2C
