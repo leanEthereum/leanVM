@@ -37,10 +37,10 @@ def Tree.weightKids (ω : String → ℕ) : List Tree → ℕ
   | k :: ks => k.weight ω + Tree.weightKids ω ks
 end
 
-/-- Every valid tree of `f` on `args` weighs at most `B args`. -/
+/-- Every valid tree of `f` on `args`, its `HeapBuf`s its paths', weighs at most `B args`. -/
 def WeightLe (P : Core.Program) (ω : String → ℕ) (f : String) (B : List E → ℕ) : Prop :=
   ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = f → t.Valid P rd args rets →
-    t.weight ω ≤ B args
+    t.BufsOk P → t.weight ω ≤ B args
 
 /-- Every valid tree of `f` on `args`, its `HeapBuf`s its paths', allocates at most `B args` words
 (`Tree.Valid` leaves the sizes free, `Tree.BufsOk` fixes them). -/

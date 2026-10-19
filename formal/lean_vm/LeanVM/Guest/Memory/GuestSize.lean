@@ -63,7 +63,7 @@ theorem assert_canonical_totalLe (fs : String → ℕ) :
   have hω : omegaOf "assert_canonical" = 8 := by
     rw [omegaOf_of_idx (j := 1) (by decide +kernel)]; rfl
   intro rd t args rets htn hv hb
-  have hw := weightLe_of_stat coreProgram_checked hcf rd t args rets htn hv
+  have hw := weightLe_of_stat coreProgram_checked hcf rd t args rets htn hv hb
   have := total_le_self (ω := omegaOf) (n := 1) hl hc htn hv hb (by rw [hω]; decide) (by rw [hω]; simpa using hw)
   simpa [wordsVal_zero] using this
 
@@ -80,7 +80,7 @@ theorem loop84_totalLe (fs : String → ℕ) :
   have hω : omegaOf "__loop84" = 109 := by
     rw [omegaOf_of_idx (j := 174) (by decide +kernel)]; rfl
   intro rd t args rets htn ⟨a, ha, ha64⟩ hv hb
-  have hw := weight_le_of_loop coreProgram_checked hcf htn hv ha rfl ha64 (by decide)
+  have hw := weight_le_of_loop coreProgram_checked hcf htn hv hb ha rfl ha64 (by decide)
     (fun _ h => (List.not_mem_nil h).elim)
   have := total_le_self (ω := omegaOf) (n := 64 - a) hl hc htn hv hb (by rw [hω]; decide)
     (by rw [hω]; simpa [Aff.eval] using hw)
@@ -103,7 +103,7 @@ theorem loop85_totalLe (fs : String → ℕ) :
   have hω : omegaOf "__loop85" = 20 := by
     rw [omegaOf_of_idx (j := 175) (by decide +kernel)]; rfl
   intro rd t args rets htn ⟨a, e, ha, he, hae, heo⟩ hv hb
-  have hw := weight_le_of_loop coreProgram_checked hcf htn hv ha he hae heo
+  have hw := weight_le_of_loop coreProgram_checked hcf htn hv hb ha he hae heo
     (fun _ h => (List.not_mem_nil h).elim)
   have := total_le_self (ω := omegaOf) (n := e - a) hl hc htn hv hb (by rw [hω]; decide)
     (by rw [hω]; simpa [Aff.eval] using hw)

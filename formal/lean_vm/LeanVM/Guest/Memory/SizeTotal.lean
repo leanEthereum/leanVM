@@ -117,7 +117,7 @@ end
 /-- **TotalLe from WeightLe.** -/
 theorem totalLe_of_weightLe (hl : LocLe P fs ω S) (hc : CallsIn P S) {f : String} (hf : S f)
     {B : List E → ℕ} (hw : WeightLe P ω f B) : TotalLe P fs f B :=
-  fun rd t args rets hn hv hb => (total_le_weight hl hc t (hn ▸ hf) hv hb).trans (hw rd t args rets hn hv)
+  fun rd t args rets hn hv hb => (total_le_weight hl hc t (hn ▸ hf) hv hb).trans (hw rd t args rets hn hv hb)
 
 mutual
 /-- **A function calling only itself weighs `ω f` per instance.** -/

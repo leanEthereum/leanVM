@@ -61,15 +61,31 @@ theorem lookJ_ok {j : ℕ} (hl : (lnkJ j).all (fun q => decide ((coreProgram[q.2
       rw [ite_eq_left (c := g = q.1) hq, certOf_of_idx (hq ▸ hp)]
     · rw [ite_eq_right (c := g = q.1) hq] at hg; exact absurd rfl hg
 
+theorem omLookJ_ok {j : ℕ}
+    (hl : (lnkJ j).all (fun q => decide ((coreProgram[q.2]?).map Fn.name = some q.1)) = true) :
+    WlOk (omLookJ j) omegaOf := by
+  intro g n hg
+  unfold omLookJ at hg
+  rcases hf : (lnkJ j).find (nameKey g) with _ | q
+  · rw [hf] at hg; cases hg
+  · rw [hf] at hg
+    dsimp only at hg
+    by_cases hq : g = q.1
+    · rw [ite_eq_left (c := g = q.1) hq, Option.some.injEq] at hg
+      have hp := NTree.find_all hl hf
+      simp only [decide_eq_true_eq] at hp
+      rw [omegaOf_of_idx (hq ▸ hp), hg]
+    · rw [ite_eq_right (c := g = q.1) hq] at hg; cases hg
+
 /-- **The guest's certificates check.** -/
 theorem coreProgram_checked : Checked coreProgram false staticCertOf omegaOf := by
-  intro fn hfn
+  intro fn hfn _
   obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp hfn
   have hc := chkIdx_all j (by rw [coreProgram_length] at hj; exact hj)
   unfold chkIdx at hc
   rw [List.getElem?_eq_getElem hj] at hc
-  simp only [Bool.and_eq_true] at hc
-  refine ⟨lookJ j, lookJ_ok hc.1, ?_⟩
+  simp only [handJ, List.any_nil, Bool.false_or, Bool.and_eq_true] at hc
+  refine ⟨lookJ j, omLookJ j, lookJ_ok hc.1, omLookJ_ok hc.1, ?_⟩
   rw [staticCertOf, omegaOf, coreIdx_getElem hj]
   exact hc.2
 

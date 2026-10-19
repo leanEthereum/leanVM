@@ -310,7 +310,7 @@ allocate. -/
 noncomputable def Tree.cost (P : Core.Program) (α : Bool) (ω : String → ℕ) : Tree → ℕ
   | t@(.node f σ _ kids) =>
       ω f + (if α then (allocs σ (t.events P)).sum else 0) + Tree.costKids P α ω kids
-  | .phantom .. => 0
+  | .phantom f _ => if α then ω f else 0
 
 /-- The cost of a list of call trees. -/
 noncomputable def Tree.costKids (P : Core.Program) (α : Bool) (ω : String → ℕ) : List Tree → ℕ
@@ -324,7 +324,7 @@ theorem cost_false {P : Core.Program} {ω : String → ℕ} :
   | .node f σ b kids => by
       rw [Tree.cost, Tree.weight, costKids_false kids]
       simp
-  | .phantom .. => by rw [Tree.cost, Tree.weight]
+  | .phantom .. => by rw [Tree.cost, Tree.weight]; rfl
 
 theorem costKids_false {P : Core.Program} {ω : String → ℕ} :
     ∀ ks : List Tree, Tree.costKids P false ω ks = Tree.weightKids ω ks
@@ -466,9 +466,17 @@ variable (P α rd σ cert ω) in
 /-- **The callees of a path cost at most `X`, with its `HeapBuf`s**, every callee satisfying its
 certificate. -/
 def KB (es : List Ev) (X : ℕ) : Prop :=
-  ∀ kids, Tree.KidsValid P rd σ (calls es) kids →
-    (∀ k ∈ kids, ∀ args' rets', k.Valid P rd args' rets' → Bound P α cert ω k args') →
+  ∀ kids, Tree.KidsValid P rd σ (calls es) kids → Tree.BufsOkKids P kids →
+    (∀ k ∈ kids, ∀ args' rets', k.Valid P rd args' rets' → k.BufsOk P → Bound P α cert ω k args') →
       Tree.costKids P α ω kids + aw α σ es ≤ X
+
+theorem bufsOkKids_split : ∀ (ks ks' : List Tree),
+    Tree.BufsOkKids P (ks ++ ks') → Tree.BufsOkKids P ks ∧ Tree.BufsOkKids P ks'
+  | [], _, h => ⟨by rw [Tree.BufsOkKids]; trivial, h⟩
+  | k :: ks, ks', h => by
+      rw [List.cons_append, Tree.BufsOkKids] at h
+      obtain ⟨h1, h2⟩ := bufsOkKids_split ks ks' h.2
+      exact ⟨by rw [Tree.BufsOkKids]; exact ⟨h.1, h1⟩, h2⟩
 
 theorem calls_append (es es' : List Ev) : calls (es ++ es') = calls es ++ calls es' :=
   List.filterMap_append
@@ -489,28 +497,29 @@ theorem costKids_append (ks ks' : List Tree) :
   | cons k ks ih => rw [List.cons_append, Tree.costKids, Tree.costKids, ih]; omega
 
 theorem KB_mono {es : List Ev} {X Y : ℕ} (h : KB P rd σ cert ω α es X) (hXY : X ≤ Y) :
-    KB P rd σ cert ω α es Y := fun kids hk hb => (h kids hk hb).trans hXY
+    KB P rd σ cert ω α es Y := fun kids hk ho hb => (h kids hk ho hb).trans hXY
 
-theorem KB_nil (X : ℕ) : KB P rd σ cert ω α [] X := fun kids hk _ => by
+theorem KB_nil (X : ℕ) : KB P rd σ cert ω α [] X := fun kids hk _ _ => by
   cases kids with
   | nil => rw [Tree.costKids, aw_nil]; omega
   | cons _ _ => exact hk.elim
 
 theorem KB_append {es es' : List Ev} {X Y : ℕ} (h : KB P rd σ cert ω α es X)
-    (h' : KB P rd σ cert ω α es' Y) : KB P rd σ cert ω α (es ++ es') (X + Y) := fun kids hk hb => by
+    (h' : KB P rd σ cert ω α es' Y) : KB P rd σ cert ω α (es ++ es') (X + Y) := fun kids hk ho hb => by
   rw [calls_append] at hk
   obtain ⟨ks₁, ks₂, rfl, h1, h2⟩ := kidsValid_split hk
+  obtain ⟨ho1, ho2⟩ := bufsOkKids_split ks₁ ks₂ ho
   rw [costKids_append, aw_append]
-  have := Nat.add_le_add (h ks₁ h1 fun k hk' => hb k (List.mem_append_left _ hk'))
-    (h' ks₂ h2 fun k hk' => hb k (List.mem_append_right _ hk'))
+  have := Nat.add_le_add (h ks₁ h1 ho1 fun k hk' => hb k (List.mem_append_left _ hk'))
+    (h' ks₂ h2 ho2 fun k hk' => hb k (List.mem_append_right _ hk'))
   omega
 
 theorem KB_nocall {es : List Ev} (hc : calls es = []) (ha : aw α σ es = 0) (X : ℕ) :
     KB P rd σ cert ω α es X := by
-  intro kids hk hb
+  intro kids hk ho hb
   rw [hc] at hk
   have := KB_nil (P := P) (α := α) (rd := rd) (σ := σ) (cert := cert) (ω := ω) X kids
-    (by simpa [calls] using hk) hb
+    (by simpa [calls] using hk) ho hb
   rw [aw_nil] at this
   rw [ha]
   exact this
@@ -544,15 +553,15 @@ theorem KB_pre {o : Out} {c : V} {X : ℕ} (hh : HoldsAll rd σ (o.pre [.inK c])
   | fall es =>
       simp only [Out.pre, Out.evs, List.singleton_append] at hh ⊢
       have := h fun e he => hh e (List.mem_cons_of_mem _ he)
-      intro kids hk hb
+      intro kids hk ho hb
       rw [aw_cons_none rfl]
-      exact this kids (by simpa [calls, Ev.call?, Out.evs, List.filterMap_cons] using hk) hb
+      exact this kids (by simpa [calls, Ev.call?, Out.evs, List.filterMap_cons] using hk) ho hb
   | ret es vs =>
       simp only [Out.pre, Out.evs, List.singleton_append] at hh ⊢
       have := h fun e he => hh e (List.mem_cons_of_mem _ he)
-      intro kids hk hb
+      intro kids hk ho hb
       rw [aw_cons_none rfl]
-      exact this kids (by simpa [calls, Ev.call?, Out.evs, List.filterMap_cons] using hk) hb
+      exact this kids (by simpa [calls, Ev.call?, Out.evs, List.filterMap_cons] using hk) ho hb
   | stuck => simp only [Out.pre, Out.evs]; exact KB_nil _
 
 theorem pick_cases {x : V} {a r : List V} : ∀ (gs : List String) (j : ℕ),
@@ -582,24 +591,41 @@ theorem sumB_mem {α : Type} {f : α → Option Acc} {args : List E} :
 /-- A call site's callee: its bound bounds the callee of one frame. -/
 theorem KB_site {ρ : Env} {ps : List V} {args : List E} (hρ : EnvOk σ ρ) (hp : ps.map σ = args)
     {g : String} {a r : List V} {t : Bool} {R : Acc} (h : siteB cert ρ ps g a = some R)
-    (hr : ArgsPre R.2 args) {es : List Ev} (hc : calls es = [⟨g, a, r, t⟩]) (ha : aw α σ es = 0) :
-    KB P rd σ cert ω α es (R.1.eval args) := by
-  intro kids hk hb
+    (hr : ArgsPre R.2 args) {es : List Ev} (hc : calls es = [⟨g, a, r, t⟩]) (ha : aw α σ es = 0)
+    {Y : ℕ} (hY : t = false → (if α then ω g else 0) ≤ Y) :
+    KB P rd σ cert ω α es (R.1.eval args + Y) := by
+  intro kids hk ho hb
   rw [hc] at hk
   rw [ha]
   match kids, hk with
   | [k], ⟨hn, hkv, _⟩ =>
       rw [Tree.costKids, Tree.costKids]
       simp only at hn hkv
+      simp only [Tree.BufsOkKids] at ho
       by_cases ht : t = true
       · rw [ite_eq_left ht] at hkv
-        have := siteB_sound hρ hp h hr hn (hb k List.mem_cons_self _ _ hkv)
+        have := siteB_sound hρ hp h hr hn (hb k List.mem_cons_self _ _ hkv ho.1)
         omega
       · rw [ite_eq_right ht] at hkv
         obtain ⟨⟨f, σ', rfl⟩, -⟩ := hkv
-        simp [Tree.cost]
+        simp only [Tree.name] at hn
+        subst hn
+        have := hY (by simpa using ht)
+        rw [Tree.cost]
+        omega
 
-variable {ks : List (V × ℕ)} {ps : List V} {self : String} {args : List E}
+variable {ks : List (V × ℕ)} {ps : List V} {self : String} {args : List E} {wl : String → Option ℕ}
+
+/-- **A phantom's bound bounds its frame**, counting words. -/
+theorem phB_sound (hwl : WlOk wl ω) {g : String} {r : Acc} (h : phB wl α g = some r) :
+    (if α then ω g else 0) ≤ r.1.eval args := by
+  unfold phB at h
+  cases α with
+  | false => simp
+  | true =>
+      simp only [↓reduceIte, Option.map_eq_some_iff] at h ⊢
+      obtain ⟨n, hn, rfl⟩ := h
+      simpa [Aff.eval] using hwl g n hn
 
 /-- **An atom's bound bounds its `HeapBuf`**, and keeps the constants and the bounds true. -/
 theorem atomB_sound {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (hρ : Env2Ok σ args ρ)
@@ -676,9 +702,9 @@ theorem atomB_sound {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (hρ : Env2Ok σ
 
 mutual
 /-- **A block's bound bounds its path's callees.** -/
-theorem blockB_sound (hp : ps.map σ = args) : ∀ (ss : List Stmt) (ρ : Env × BEnv) (r : Acc),
+theorem blockB_sound (hp : ps.map σ = args) (hwl : WlOk wl ω) : ∀ (ss : List Stmt) (ρ : Env × BEnv) (r : Acc),
     Env2Ok σ args ρ →
-    blockB cert α ks ps self ρ ss = some r → ArgsPre r.2 args → HoldsAll rd σ (walk σ ss).evs →
+    blockB cert wl α ks ps self ρ ss = some r → ArgsPre r.2 args → HoldsAll rd σ (walk σ ss).evs →
       KB P rd σ cert ω α (walk σ ss).evs (r.1.eval args)
   | [], _, _, _, _, _, _ => by rw [walk]; exact KB_nil _
   | s :: ss, ρ, r, hρ, h, hr, hh => by
@@ -695,14 +721,14 @@ theorem blockB_sound (hp : ps.map σ = args) : ∀ (ss : List Stmt) (ρ : Env ×
             refine KB_seq hh (fun h1 => ?_) fun es he h1 h2 => ?_
             · simp only [walk1, Out.evs] at h1 ⊢
               obtain ⟨-, -, hw⟩ := atomB_sound hρ hp hab (h1 _ List.mem_cons_self)
-              intro kids hk hb
+              intro kids hk _ hb
               cases kids with
               | nil => rw [Tree.costKids]; omega
               | cons _ _ => rw [show calls [Ev.atom a] = [] from rfl] at hk; exact hk.elim
             · simp only [walk1, Out.fall.injEq] at he
               subst he
               obtain ⟨hρ', -, -⟩ := atomB_sound hρ hp hab (h1 _ List.mem_cons_self)
-              exact blockB_sound hp ss ρ' rr hρ' hrr hr.2 h2
+              exact blockB_sound hp hwl ss ρ' rr hρ' hrr hr.2 h2
           · cases h
       | ite c z n =>
           simp only [blockB] at h
@@ -711,66 +737,73 @@ theorem blockB_sound (hp : ps.map σ = args) : ∀ (ss : List Stmt) (ρ : Env ×
           simp only [Acc.add, argsPre_append] at hr
           simp only [Acc.add, Aff.eval_add]
           rw [← Nat.add_assoc]
-          refine KB_seq hh (fun h1 => ?_) fun es _ _ h2 => blockB_sound hp ss ρ rr hρ hrr hr.2.2 h2
+          refine KB_seq hh (fun h1 => ?_) fun es _ _ h2 => blockB_sound hp hwl ss ρ rr hρ hrr hr.2.2 h2
           rw [walk1] at h1 ⊢
           refine KB_pre h1 fun h1' => ?_
           split_ifs
           · rw [ite_eq_left (by assumption)] at h1'
-            exact KB_mono (blockB_sound hp z ρ rz hρ hz hr.1 h1') (Nat.le_add_right _ _)
+            exact KB_mono (blockB_sound hp hwl z ρ rz hρ hz hr.1 h1') (Nat.le_add_right _ _)
           · rw [ite_eq_right (by assumption)] at h1'
-            exact KB_mono (blockB_sound hp n ρ rn hρ hn hr.2.1 h1') (Nat.le_add_left _ _)
+            exact KB_mono (blockB_sound hp hwl n ρ rn hρ hn hr.2.1 h1') (Nat.le_add_left _ _)
       | match_ x arms =>
           simp only [blockB] at h
           obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
           simp only [Acc.add, argsPre_append] at hr
           simp only [Acc.add, Aff.eval_add]
-          refine KB_seq hh (fun h1 => ?_) fun es _ _ h2 => blockB_sound hp ss ρ rr hρ hrr hr.2 h2
+          refine KB_seq hh (fun h1 => ?_) fun es _ _ h2 => blockB_sound hp hwl ss ρ rr hρ hrr hr.2 h2
           rw [walk1] at h1 ⊢
-          exact armsB_sound hp x arms 0 ρ ra hρ ha hr.1 h1
+          exact armsB_sound hp hwl x arms 0 ρ ra hρ ha hr.1 h1
       | call g a r' =>
           simp only [blockB] at h
           obtain ⟨rs, rr, hs, hrr, rfl⟩ := addAcc_some h
           simp only [Acc.add, argsPre_append] at hr
           simp only [Acc.add, Aff.eval_add]
-          refine KB_seq hh (fun _ => KB_site hρ.1 hp hs hr.1 (t := true) (r := r') ?_ ?_)
-            fun es _ _ h2 => blockB_sound hp ss ρ rr hρ hrr hr.2 h2
+          refine KB_seq hh (fun _ => KB_mono (KB_site hρ.1 hp hs hr.1 (t := true) (r := r') ?_ ?_
+            (Y := 0) fun h => absurd h (by decide)) (by omega))
+            fun es _ _ h2 => blockB_sound hp hwl ss ρ rr hρ hrr hr.2 h2
           · simp [walk1, Out.evs, calls, Ev.call?]
           · simp only [walk1, Out.evs]; rw [aw_cons_none rfl, aw_nil]
       | callIf c g a =>
           simp only [blockB] at h
           split at h
           · cases h
-          · obtain ⟨rs, rr, hs, hrr, rfl⟩ := addAcc_some h
+          · obtain ⟨rs, rpr, hs, hpr, rfl⟩ := addAcc_some h
+            obtain ⟨rph, rr, hph, hrr, rfl⟩ := addAcc_some hpr
             simp only [Acc.add, argsPre_append] at hr
             simp only [Acc.add, Aff.eval_add]
-            refine KB_seq hh (fun _ => ?_) fun es _ _ h2 => blockB_sound hp ss ρ rr hρ hrr hr.2 h2
+            rw [← Nat.add_assoc]
+            refine KB_seq hh (fun _ => ?_) fun es _ _ h2 => blockB_sound hp hwl ss ρ rr hρ hrr hr.2.2 h2
+            have hY := phB_sound (args := args) hwl hph
             by_cases h0 : σ c = 0
             · exact KB_site hρ.1 hp hs hr.1 (t := false) (r := []) (by
                 simp only [walk1, Out.evs, h0, ↓reduceIte]; rfl)
                 (by simp only [walk1, Out.evs, h0, ↓reduceIte]; rw [aw_cons_none rfl, aw_cons_none rfl, aw_nil])
+                fun _ => hY
             · exact KB_site hρ.1 hp hs hr.1 (t := true) (r := []) (by
                 simp only [walk1, Out.evs, h0, ↓reduceIte]; rfl)
                 (by simp only [walk1, Out.evs, h0, ↓reduceIte]; rw [aw_cons_none rfl, aw_cons_none rfl, aw_nil])
+                fun h => absurd h (by decide)
       | dispatch x gs a r' =>
           simp only [blockB] at h
           obtain ⟨rs, rr, hs, hrr, rfl⟩ := addAcc_some h
           simp only [Acc.add, argsPre_append] at hr
           simp only [Acc.add, Aff.eval_add]
-          refine KB_seq hh (fun _ => ?_) fun es _ _ h2 => blockB_sound hp ss ρ rr hρ hrr hr.2 h2
+          refine KB_seq hh (fun _ => ?_) fun es _ _ h2 => blockB_sound hp hwl ss ρ rr hρ hrr hr.2 h2
           rw [walk1]
           rcases pick_cases (σ := σ) (x := x) (a := a) (r := r') gs 0 with hpk | ⟨g, hg, hpk⟩
           · rw [hpk]; exact KB_nil _
           · rw [hpk]
             obtain ⟨Rg, h1, h2, h3⟩ := sumB_mem (args := args) hs g hg
             exact KB_mono (KB_site hρ.1 hp h1 (h3 hr.1) (t := true) (r := r')
-              (by simp [Out.evs, calls, Ev.call?]) (by simp only [Out.evs]; rw [aw_cons_none rfl, aw_nil])) h2
+              (by simp [Out.evs, calls, Ev.call?]) (by simp only [Out.evs]; rw [aw_cons_none rfl, aw_nil])
+              (Y := 0) fun h => absurd h (by decide)) (by omega)
       | ret vs =>
           simp only [walk1, Out.seq, Out.evs]
           exact KB_nil _
 
 /-- `blockB_sound` for the arms of a `match`. -/
-theorem armsB_sound (hp : ps.map σ = args) (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ)
-    (ρ : Env × BEnv) (r : Acc), Env2Ok σ args ρ → armsB cert α ks ps self ρ arms = some r → ArgsPre r.2 args →
+theorem armsB_sound (hp : ps.map σ = args) (hwl : WlOk wl ω) (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ)
+    (ρ : Env × BEnv) (r : Acc), Env2Ok σ args ρ → armsB cert wl α ks ps self ρ arms = some r → ArgsPre r.2 args →
       HoldsAll rd σ (walkArms σ x j arms).evs → KB P rd σ cert ω α (walkArms σ x j arms).evs (r.1.eval args)
   | [], _, _, _, _, _, _, _ => by rw [walkArms]; exact KB_nil _
   | a :: as, j, ρ, r, hρ, h, hr, hh => by
@@ -780,8 +813,8 @@ theorem armsB_sound (hp : ps.map σ = args) (x : V) : ∀ (arms : List (List Stm
       simp only [Acc.add, Aff.eval_add]
       unfold walkArms at hh ⊢
       split_ifs at hh ⊢
-      · exact KB_mono (blockB_sound hp a ρ ra hρ ha hr.1 hh) (Nat.le_add_right _ _)
-      · exact KB_mono (armsB_sound hp x as (j + 1) ρ rs hρ hs hr.2 hh) (Nat.le_add_left _ _)
+      · exact KB_mono (blockB_sound hp hwl a ρ ra hρ ha hr.1 hh) (Nat.le_add_right _ _)
+      · exact KB_mono (armsB_sound hp hwl x as (j + 1) ρ rs hρ hs hr.2 hh) (Nat.le_add_left _ _)
 end
 
 end Block
@@ -790,7 +823,8 @@ end Block
 
 section Rec
 
-variable {cert : String → Cert} {α : Bool} {ks : List (V × ℕ)} {ps : List V} {self : String}
+variable {cert : String → Cert} {wl : String → Option ℕ} {α : Bool} {ks : List (V × ℕ)} {ps : List V}
+  {self : String}
 
 theorem Acc.zero_add (r : Acc) : Acc.zero.add r = r := by
   simp [Acc.zero, Acc.add, Aff.add]
@@ -803,27 +837,27 @@ theorem addAcc_some_zero (x : Option Acc) : Option.addAcc (some Acc.zero) x = x 
   cases x <;> simp [Option.addAcc, Acc.zero_add]
 
 theorem blockR_cons (s : Stmt) (ss : List Stmt) (ρ : Env × BEnv) :
-    blockR cert α ks ps self (s :: ss) ρ = match stmtR cert α ks ps self s ρ with
+    blockR cert wl α ks ps self (s :: ss) ρ = match stmtR cert wl α ks ps self s ρ with
       | none => none
-      | some (r, some ρ') => Option.addAcc (some r) (blockR cert α ks ps self ss ρ')
+      | some (r, some ρ') => Option.addAcc (some r) (blockR cert wl α ks ps self ss ρ')
       | some (r, none) => some r := rfl
 
 theorem stmtR_ite (c : V) (z n : List Stmt) (ρ : Env × BEnv) :
-    stmtR cert α ks ps self (.ite c z n) ρ =
-      (Option.addAcc (blockR cert α ks ps self z ρ) (blockR cert α ks ps self n ρ)).map fun r => (r, some ρ) :=
+    stmtR cert wl α ks ps self (.ite c z n) ρ =
+      (Option.addAcc (blockR cert wl α ks ps self z ρ) (blockR cert wl α ks ps self n ρ)).map fun r => (r, some ρ) :=
   rfl
 
 theorem stmtR_match (x : V) (arms : List (List Stmt)) (ρ : Env × BEnv) :
-    stmtR cert α ks ps self (.match_ x arms) ρ = (armsR cert α ks ps self arms ρ).map fun r => (r, some ρ) :=
+    stmtR cert wl α ks ps self (.match_ x arms) ρ = (armsR cert wl α ks ps self arms ρ).map fun r => (r, some ρ) :=
   rfl
 
 theorem armsR_cons (a : List Stmt) (as : List (List Stmt)) (ρ : Env × BEnv) :
-    armsR cert α ks ps self (a :: as) ρ = Option.addAcc (blockR cert α ks ps self a ρ) (armsR cert α ks ps self as ρ) :=
+    armsR cert wl α ks ps self (a :: as) ρ = Option.addAcc (blockR cert wl α ks ps self a ρ) (armsR cert wl α ks ps self as ρ) :=
   rfl
 
 mutual
 /-- **The recursor form is `blockB`.** -/
-theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert α ks ps self ss ρ = blockB cert α ks ps self ρ ss
+theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert wl α ks ps self ss ρ = blockB cert wl α ks ps self ρ ss
   | [], ρ => by rw [blockB]; rfl
   | s :: ss, ρ => by
       rw [blockR_cons]
@@ -835,12 +869,12 @@ theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert α ks p
           | some q => obtain ⟨r, ρ'⟩ := q; simp only [Option.map_some]; rw [blockR_eq]
       | ite c z n =>
           rw [stmtR_ite, blockR_eq z, blockR_eq n, blockB, ← addAcc_assoc]
-          cases Option.addAcc (blockB cert α ks ps self ρ z) (blockB cert α ks ps self ρ n) with
+          cases Option.addAcc (blockB cert wl α ks ps self ρ z) (blockB cert wl α ks ps self ρ n) with
           | none => rfl
           | some r => simp only [Option.map_some]; rw [blockR_eq]
       | match_ x arms =>
           rw [stmtR_match, armsR_eq arms, blockB]
-          cases armsB cert α ks ps self ρ arms with
+          cases armsB cert wl α ks ps self ρ arms with
           | none => rfl
           | some r => simp only [Option.map_some]; rw [blockR_eq]
       | call g args rets =>
@@ -852,7 +886,8 @@ theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert α ks p
           simp only [stmtR, blockB]
           split_ifs
           · rfl
-          · cases siteB cert ρ.1 ps g args with
+          · rw [← addAcc_assoc]
+            cases Option.addAcc (siteB cert ρ.1 ps g args) (phB wl α g) with
             | none => rfl
             | some r => simp only [Option.map_some]; rw [blockR_eq]
       | dispatch x gs args rets =>
@@ -864,7 +899,7 @@ theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env × BEnv), blockR cert α ks p
 
 /-- `blockR_eq` for arms. -/
 theorem armsR_eq : ∀ (arms : List (List Stmt)) (ρ : Env × BEnv),
-    armsR cert α ks ps self arms ρ = armsB cert α ks ps self ρ arms
+    armsR cert wl α ks ps self arms ρ = armsB cert wl α ks ps self ρ arms
   | [], ρ => by rw [armsB]; rfl
   | a :: as, ρ => by
       rw [armsR_cons, blockR_eq a, armsR_eq as, armsB]
@@ -876,14 +911,14 @@ end Rec
 
 section Append
 
-variable {cert : String → Cert} {α : Bool} {ps : List V} {self : String}
+variable {cert : String → Cert} {wl : String → Option ℕ} {α : Bool} {ps : List V} {self : String}
 
 /-- No top-level `ret`. -/
 def noTopRet (l : List Stmt) : Bool := l.all fun s => match s with
   | .ret _ => false
   | _ => true
 
-theorem blockB_nil (ρ : Env × BEnv) : blockB cert α [] ps self ρ [] = some Acc.zero := by rw [blockB]; rfl
+theorem blockB_nil (ρ : Env × BEnv) : blockB cert wl α [] ps self ρ [] = some Acc.zero := by rw [blockB]; rfl
 
 theorem atomB_nil_env {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (h : atomB α [] ps ρ a = some (r, ρ')) :
     ρ' = ρ := by
@@ -906,8 +941,8 @@ theorem atomB_nil_env {ρ ρ' : Env × BEnv} {a : Atom} {r : Acc} (h : atomB α 
 
 /-- **A block without constants is the sum of its ranges**, the first without `ret`. -/
 theorem blockB_append (ρ : Env × BEnv) : ∀ (l1 l2 : List Stmt), noTopRet l1 = true →
-    blockB cert α [] ps self ρ (l1 ++ l2) =
-      Option.addAcc (blockB cert α [] ps self ρ l1) (blockB cert α [] ps self ρ l2)
+    blockB cert wl α [] ps self ρ (l1 ++ l2) =
+      Option.addAcc (blockB cert wl α [] ps self ρ l1) (blockB cert wl α [] ps self ρ l2)
   | [], l2, _ => by rw [List.nil_append, blockB_nil, addAcc_some_zero]
   | s :: l1, l2, h => by
       simp only [noTopRet, List.all_cons, Bool.and_eq_true] at h
@@ -930,19 +965,19 @@ theorem blockB_append (ρ : Env × BEnv) : ∀ (l1 l2 : List Stmt), noTopRet l1 
           simp only [blockB]
           split_ifs
           · rfl
-          · rw [ih, addAcc_assoc]
+          · rw [ih, addAcc_assoc, addAcc_assoc]
       | dispatch x gs a r => simp only [blockB]; rw [ih, addAcc_assoc]
       | ret vs => simp at h
 
 /-- The ranges from `a` and from `a + n`, the first without `ret`. -/
 theorem blockB_drop (ρ : Env × BEnv) (l : List Stmt) (a n : ℕ) (h : noTopRet ((l.drop a).take n) = true) :
-    blockB cert α [] ps self ρ (l.drop a) =
-      Option.addAcc (blockB cert α [] ps self ρ ((l.drop a).take n)) (blockB cert α [] ps self ρ (l.drop (a + n))) := by
+    blockB cert wl α [] ps self ρ (l.drop a) =
+      Option.addAcc (blockB cert wl α [] ps self ρ ((l.drop a).take n)) (blockB cert wl α [] ps self ρ (l.drop (a + n))) := by
   rw [← blockB_append ρ _ _ h, ← List.drop_drop, List.take_append_drop]
 
 theorem blockB_drop' (ρ : Env × BEnv) (l : List Stmt) (a n b : ℕ) (h : noTopRet ((l.drop a).take n) = true)
-    (hb : a + n = b) : blockB cert α [] ps self ρ (l.drop a) =
-      Option.addAcc (blockB cert α [] ps self ρ ((l.drop a).take n)) (blockB cert α [] ps self ρ (l.drop b)) := by
+    (hb : a + n = b) : blockB cert wl α [] ps self ρ (l.drop a) =
+      Option.addAcc (blockB cert wl α [] ps self ρ ((l.drop a).take n)) (blockB cert wl α [] ps self ρ (l.drop b)) := by
   subst hb; exact blockB_drop ρ l a n h
 
 end Append
@@ -951,7 +986,8 @@ end Append
 
 section Look
 
-variable {look cert : String → Cert} {α : Bool} {ks : List (V × ℕ)} {ps : List V} {self : String}
+variable {look cert : String → Cert} {wl : String → Option ℕ} {α : Bool} {ks : List (V × ℕ)} {ps : List V}
+  {self : String}
 
 theorem siteB_mono (hl : LookOk look cert) {ρ : Env} {g : String} {a : List V} {r : Acc}
     (h : siteB look ρ ps g a = some r) : siteB cert ρ ps g a = some r := by
@@ -977,7 +1013,7 @@ theorem sumB_site_mono (hl : LookOk look cert) {ρ : Env} {a : List V} :
 mutual
 /-- **A block checked by a lookup is checked by `cert`.** -/
 theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env × BEnv) {r : Acc},
-    blockB look α ks ps self ρ ss = some r → blockB cert α ks ps self ρ ss = some r
+    blockB look wl α ks ps self ρ ss = some r → blockB cert wl α ks ps self ρ ss = some r
   | [], _, _, h => by rw [blockB] at h ⊢; exact h
   | s :: ss, ρ, r, h => by
       cases s with
@@ -1011,8 +1047,9 @@ theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env × 
           split at h
           · cases h
           · rw [ite_eq_right (by assumption)]
-            obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
-            rw [siteB_mono hl ha, blockB_mono hl ss ρ hrr]
+            obtain ⟨ra, rpr, ha, hpr, rfl⟩ := addAcc_some h
+            obtain ⟨rph, rr, hph, hrr, rfl⟩ := addAcc_some hpr
+            rw [siteB_mono hl ha, hph, blockB_mono hl ss ρ hrr]
             rfl
       | dispatch x gs a rets =>
           simp only [blockB] at h ⊢
@@ -1023,7 +1060,7 @@ theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env × 
 
 /-- `blockB_mono` for arms. -/
 theorem armsB_mono (hl : LookOk look cert) : ∀ (arms : List (List Stmt)) (ρ : Env × BEnv) {r : Acc},
-    armsB look α ks ps self ρ arms = some r → armsB cert α ks ps self ρ arms = some r
+    armsB look wl α ks ps self ρ arms = some r → armsB cert wl α ks ps self ρ arms = some r
   | [], _, _, h => by rw [armsB] at h ⊢; exact h
   | a :: as, ρ, r, h => by
       simp only [armsB] at h ⊢
@@ -1299,21 +1336,27 @@ theorem getD_tail {a : E} {l l' : List E} (h : a :: l = l') {k : ℕ} (hk : k �
 
 /-- **Soundness of the static checker**: if every function of the program passes, every valid
 tree satisfies its certificate. -/
-theorem chk_sound (hchk : Checked P α cert ω) :
-    ∀ (n : ℕ) (t : Tree) (args rets : List E), t.count ≤ n → t.Valid P rd args rets →
+theorem chk_sound {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
+    (hX : ∀ f, X f → ∀ (t : Tree) (args rets : List E), t.name = f → t.Valid P rd args rets →
+      t.BufsOk P → Bound P α cert ω t args) :
+    ∀ (n : ℕ) (t : Tree) (args rets : List E), t.count ≤ n → t.Valid P rd args rets → t.BufsOk P →
       Bound P α cert ω t args
-  | 0, t, _, _, hc, _ => by have := count_pos t; omega
-  | _ + 1, .phantom .., _, _, _, hv => hv.elim
-  | n + 1, .node f σ bufs kids, args, rets, hc, hv => by
+  | 0, t, _, _, hc, _, _ => by have := count_pos t; omega
+  | _ + 1, .phantom .., _, _, _, hv, _ => hv.elim
+  | n + 1, .node f σ bufs kids, args, rets, hc, hv, hbo => by
+      by_cases hXf : X f
+      · exact hX f hXf _ args rets rfl hv hbo
+      have hbk : Tree.BufsOkKids P kids := by simp only [Tree.BufsOk] at hbo; exact hbo.2
       obtain ⟨fn, hf, hp, es, vs, hw, hr, hes, hk⟩ := hv
       have hcost : (Tree.node f σ bufs kids).cost P α ω = ω f + aw α σ es + Tree.costKids P α ω kids := by
         rw [Tree.cost]
         simp only [Tree.events, Tree.name, Tree.val, hf, hw, aw]
       have hname := fn_name_of_find hf
-      obtain ⟨look, hlook, hc'⟩ := hchk fn (List.mem_of_find?_eq_some hf)
-      have hIH : ∀ k ∈ kids, ∀ args' rets', k.Valid P rd args' rets' → Bound P α cert ω k args' :=
-        fun k hk' a' r' hv' => chk_sound hchk n k a' r' (by
-          have := countKids_le hk'; rw [Tree.count] at hc; omega) hv'
+      obtain ⟨look, wl, hlook, hwl, hc'⟩ := hchk fn (List.mem_of_find?_eq_some hf) (by rw [hname]; exact hXf)
+      have hIH : ∀ k ∈ kids, ∀ args' rets', k.Valid P rd args' rets' → k.BufsOk P →
+          Bound P α cert ω k args' :=
+        fun k hk' a' r' hv' hb' => chk_sound hchk hX n k a' r' (by
+          have := countKids_le hk'; rw [Tree.count] at hc; omega) hv' hb'
       unfold Bound
       simp only [Tree.name]
       unfold chkFn at hc'
@@ -1330,9 +1373,9 @@ theorem chk_sound (hchk : Checked P α cert ω) :
             have hpr : ArgsPre r.2 args := fun q hq => hpre q (hc'.2 q hq)
             rw [blockR_eq] at hb
             replace hb := blockB_mono hlook _ _ hb
-            have hkb := blockB_sound (rd := rd) (ω := ω) hp fn.body ([], []) r
+            have hkb := blockB_sound (rd := rd) (ω := ω) hp hwl fn.body ([], []) r
               ⟨fun _ h => (List.not_mem_nil h).elim, fun _ h => (List.not_mem_nil h).elim⟩
-              hb hpr (by rw [hw]; exact hes) kids (by rw [hw]; exact hk) hIH
+              hb hpr (by rw [hw]; exact hes) kids (by rw [hw]; exact hk) hbk hIH
             rw [hw] at hkb
             simp only [Out.evs] at hkb
             rw [hcost]
@@ -1365,10 +1408,11 @@ theorem chk_sound (hchk : Checked P α cert ω) :
                 have hes1 : HoldsAll rd σ es1 := fun e he => hes e (List.mem_append_left _ he)
                 rw [calls_append] at hk
                 obtain ⟨ks1, ks2, rfl, hk1, hk2⟩ := kidsValid_split hk
+                obtain ⟨hbk1, hbk2⟩ := bufsOkKids_split ks1 ks2 hbk
                 intro a0 e h0 hend hae hord hpre0
-                have hkb := blockB_sound (rd := rd) (ω := ω) hp pre' ([], []) r
+                have hkb := blockB_sound (rd := rd) (ω := ω) hp hwl pre' ([], []) r
                   ⟨fun _ h => (List.not_mem_nil h).elim, fun _ h => (List.not_mem_nil h).elim⟩ hb (fun q hq => hpre0 q (hpre q hq))
-                  (by rw [hw1]; exact hes1) ks1 (by rw [hw1]; exact hk1)
+                  (by rw [hw1]; exact hes1) ks1 (by rw [hw1]; exact hk1) hbk1
                   (fun k hk' => hIH k (List.mem_append_left _ hk'))
                 have hle' := Aff.eval_le_of_leB hle args
                 simp only [Aff.eval] at hle' hkb
@@ -1393,12 +1437,15 @@ theorem chk_sound (hchk : Checked P α cert ω) :
                   by_cases h0c : σ c = 0
                   · simp only [h0c, decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte] at htv
                     obtain ⟨⟨g', σ', rfl⟩, -⟩ := htv
+                    simp only [Tree.name] at htn
+                    subst htn
                     simp only [Tree.cost, Aff.eval] at hkb hle' ⊢
                     have : b.eval args ≤ (e - a0) * b.eval args := Nat.le_mul_of_pos_left _ hM
                     simp only [Aff.eval] at this
                     omega
                   · simp only [h0c, decide_false, Bool.not_false, ↓reduceIte] at htv
                     have hb' := hIH tk (List.mem_append_right _ List.mem_cons_self) _ _ htv
+                      (by simp only [Tree.BufsOkKids] at hbk2; exact hbk2.1)
                     unfold Bound at hb'
                     rw [htn, hcf] at hb'
                     simp only at hb'
@@ -1458,51 +1505,59 @@ theorem chk_sound (hchk : Checked P α cert ω) :
           · cases hc'
 
 /-- **A checked bound**: every valid tree of a function with a `stat` certificate costs at most
-its bound, under its preconditions. -/
-theorem cost_le_of_stat (hchk : Checked P α cert ω) {f : String}
+its bound, under its preconditions, the functions of `X` satisfying theirs by hypothesis. -/
+theorem cost_le_of_stat {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
+    (hX : ∀ f, X f → ∀ (t : Tree) (args rets : List E), t.name = f → t.Valid P rd args rets →
+      t.BufsOk P → Bound P α cert ω t args) {f : String}
     {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)} (hcf : cert f = .stat pre b ks)
-    {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid P rd args rets)
+    {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid P rd args rets) (hb : t.BufsOk P)
     (hpre : ArgsPre pre args) : t.cost P α ω ≤ b.eval args := by
-  have := chk_sound hchk t.count t args rets le_rfl hv
+  have := chk_sound hchk hX t.count t args rets le_rfl hv hb
   unfold Bound at this
   rw [hn, hcf] at this
   exact this hpre
 
 /-- **A checked loop**: a valid tree of a loop helper started at `g^a`, its end `g^e`, `a < e`,
 costs at most `e - a` times its iteration's bound. -/
-theorem cost_le_of_loop (hchk : Checked P α cert ω) {f : String}
+theorem cost_le_of_loop {X : String → Prop} (hchk : CheckedExcept P α cert ω X)
+    (hX : ∀ f, X f → ∀ (t : Tree) (args rets : List E), t.name = f → t.Valid P rd args rets →
+      t.BufsOk P → Bound P α cert ω t args) {f : String}
     {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)}
     (hcf : cert f = .loop endc pre b ks) {t : Tree} {args rets : List E} (hn : t.name = f)
-    (hv : t.Valid P rd args rets) {a e : ℕ} (ha : args.getD 0 0 = ofK (gpow a))
+    (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ} (ha : args.getD 0 0 = ofK (gpow a))
     (he : endOf endc args = ofK (gpow e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
     (hpre : ArgsPre pre args) : t.cost P α ω ≤ (e - a) * b.eval args := by
-  have := chk_sound hchk t.count t args rets le_rfl hv
+  have := chk_sound hchk hX t.count t args rets le_rfl hv hb
   unfold Bound at this
   rw [hn, hcf] at this
   exact this a e ha he hae heo hpre
 
+theorem noHand : ∀ f, (fun _ => False) f → ∀ (t : Tree) (args rets : List E), t.name = f →
+    t.Valid P rd args rets → t.BufsOk P → Bound P α cert ω t args :=
+  fun _ h => h.elim
+
 /-- `cost_le_of_stat` for the weight. -/
 theorem weight_le_of_stat (hchk : Checked P false cert ω) {f : String}
     {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)} (hcf : cert f = .stat pre b ks)
-    {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid P rd args rets)
+    {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid P rd args rets) (hb : t.BufsOk P)
     (hpre : ArgsPre pre args) : t.weight ω ≤ b.eval args := by
-  rw [← cost_false (P := P)]; exact cost_le_of_stat hchk hcf hn hv hpre
+  rw [← cost_false (P := P)]; exact cost_le_of_stat hchk noHand hcf hn hv hb hpre
 
 /-- **A constant checked bound** is a `WeightLe`. -/
 theorem weightLe_of_stat (hchk : Checked P false cert ω) {f : String} {B : ℕ}
     {ks : List (V × ℕ)} (hcf : cert f = .stat [] ⟨B, []⟩ ks) : WeightLe P ω f fun _ => B :=
-  fun _ _ _ _ hn hv => by
-    have := weight_le_of_stat hchk hcf hn hv (fun _ h => (List.not_mem_nil h).elim)
+  fun _ _ _ _ hn hv hb => by
+    have := weight_le_of_stat hchk hcf hn hv hb (fun _ h => (List.not_mem_nil h).elim)
     simpa [Aff.eval] using this
 
 /-- `cost_le_of_loop` for the weight. -/
 theorem weight_le_of_loop (hchk : Checked P false cert ω) {f : String}
     {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)}
     (hcf : cert f = .loop endc pre b ks) {t : Tree} {args rets : List E} (hn : t.name = f)
-    (hv : t.Valid P rd args rets) {a e : ℕ} (ha : args.getD 0 0 = ofK (gpow a))
+    (hv : t.Valid P rd args rets) (hb : t.BufsOk P) {a e : ℕ} (ha : args.getD 0 0 = ofK (gpow a))
     (he : endOf endc args = ofK (gpow e)) (hae : a < e) (heo : e < 2 ^ 64 - 1)
     (hpre : ArgsPre pre args) : t.weight ω ≤ (e - a) * b.eval args := by
-  rw [← cost_false (P := P)]; exact cost_le_of_loop hchk hcf hn hv ha he hae heo hpre
+  rw [← cost_false (P := P)]; exact cost_le_of_loop hchk noHand hcf hn hv hb ha he hae heo hpre
 
 end Main
 

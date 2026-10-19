@@ -116,5 +116,11 @@ def lookJ (j : ℕ) (g : String) : Cert :=
   | some q => if g = q.1 then certJ q.2 else .none
   | none => .none
 
+/-- The frame weights of function `j`'s callees, by name. -/
+def omLookJ (j : ℕ) (g : String) : Option ℕ :=
+  match (lnkJ j).find (nameKey g) with
+  | some q => if g = q.1 then some (omegaJ q.2) else none
+  | none => none
+
 end
 end LeanVM.Guest.Data
