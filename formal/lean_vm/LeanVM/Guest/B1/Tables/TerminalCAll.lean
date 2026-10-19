@@ -52,9 +52,9 @@ theorem sel_below : ∀ c < 92, numBelowB (36 + 3 * (c + 1)) (Stmt.valsList (sel
   decide +kernel
 
 set_option maxHeartbeats 4000000 in
-/-- **`check_opening_terminal` holds** (TRIAGE #42, #43) under its precondition, each claim's
+/-- **`check_opening_terminal`'s body completes** under its precondition, each claim's
 point of its column's log, the opening accepting the stacked weight, and the honest memory. -/
-theorem check_opening_terminal_rel {layout : Layout} {bus : BusResult} {claims : List ColumnClaim}
+theorem term_body_complete {layout : Layout} {bus : BusResult} {claims : List ColumnClaim}
     {lam : E} {fp cs : List E} {w : WhirEnd}
     {a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 p17 p19 p21 p25 p1750 : E}
     (hpre : TermPre TCtx PCtx rd layout bus claims lam fp cs w
@@ -64,8 +64,11 @@ theorem check_opening_terminal_rel {layout : Layout} {bus : BusResult} {claims :
     (hacc : w.Accepts (stackWeight layout claims fp cs lam))
     (hM : TermMem rd [p17, p19, p21, p25, p1750]
       [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16]) :
-    coreProgram.Rel rd "check_opening_terminal"
-      [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16] [] := by
+    ∃ σ : Val, (Fn.params Data.core14).map σ =
+        [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16] ∧
+      Stmt.HoldsList (coreProgram.Rel rd) rd σ (Fn.body Data.core14) False (fun rs => rs = []) ∧
+      σ (.n 17) = p17 ∧ σ (.n 19) = p19 ∧ σ (.n 21) = p21 ∧ σ (.n 25) = p25 ∧
+      σ (.n 1750) = p1750 := by
   have hpre' := hpre
   obtain ⟨hT, hP, -, hglm, hgtau, hlp, hzv, hct, hpt, hin, hyr, hst, hpl, hsl, hμ28, hlm1, hbp,
     hxl, hfpl, hcsl⟩ := hpre
@@ -194,7 +197,9 @@ theorem check_opening_terminal_rel {layout : Layout} {bus : BusResult} {claims :
   obtain ⟨-, -, -, -, -, hrs', h1750⟩ := hM''
   have Pre : Completes (coreProgram.Rel rd) rd 17 2081 (tPre ++ (((List.range 92).map selBlk).flatten ++
       (((List.range 112).map claimBlk).flatten ++ (tPostA ++ (((List.range 64).map rinitBlk).flatten ++
-        (tPostB ++ ((List.range 64).map rsBlk).flatten)))))) (Val.ofArgs args) (fun _ => True) := by
+        (tPostB ++ ((List.range 64).map rsBlk).flatten)))))) (Val.ofArgs args) (fun σ' =>
+        σ' (.n 17) = p17 ∧ σ' (.n 19) = p19 ∧ σ' (.n 21) = p21 ∧ σ' (.n 25) = p25 ∧
+          σ' (.n 1750) = p1750) := by
     refine Completes.append (m := 36) (by omega) (by omega) (numBelow_of_B (by decide +kernel))
       (c_tpre hM (n := layout.logMemory) hlm1 (by omega) hglm (X := fun k => w.point.getD k 0)
         (fun k hk => hX k (by omega)) (Val.ofArgs args) hσ0).withExt fun σ1 e1 ⟨q1, _⟩ => ?_
@@ -241,13 +246,20 @@ theorem check_opening_terminal_rel {layout : Layout} {bus : BusResult} {claims :
     have hsq : sqI (args.getD 6 0 * word 256 0 0) 6 = gen ^ (64 * m) := by
       show sqI (a6 * word 256 0 0) 6 = _
       rw [word_g8, hgtau, ← pow_add, ← hmτ, sqI_gen]; norm_num
-    refine c_rs σ6 (ag E6 12 (by omega)) q6 (cs := fun k => cs.getD k 0)
+    have t1 : ∀ {k : ℕ} {v : E} {σ' : Val}, Ext 1826 2081 σ6 σ' → k < 36 → σ1 (.n k) = v →
+        σ' (.n k) = v := fun he hk h =>
+      he.get (by omega) (e6.get (by omega) (e5.get (by omega) (e4.get (by omega) (e3.get (by omega)
+        (e2.get (by omega) h)))))
+    refine (c_rs σ6 (ag E6 12 (by omega)) q6 (cs := fun k => cs.getD k 0)
       (fun k hk => (readsAt_iff_getD.mp hct) k (by omega)) (R := fun k =>
-        ringRow (c.getD k 0) (zs.take m) (ps.take m) k) (fun k hk => ?_)
+        ringRow (c.getD k 0) (zs.take m) (ps.take m) k) (fun k hk => ?_)).withExt.mono le_rfl le_rfl
+      fun σ' ⟨_, he⟩ => ⟨t1 he (by omega) (q1.get (by simp)), t1 he (by omega) (q1.get (by simp)),
+        t1 he (by omega) (q1.get (by simp)), t1 he (by omega) (q1.get (by simp)),
+        he.get (by omega) (e6.get (by omega) (e5.get (by omega) q4))⟩
     rw [hsq]
     exact lh_back (hrows (by omega) m le_rfl k hk) rfl
   -- the value the check compares
-  obtain ⟨σ7, e7, ⟨_, _, hh7⟩, _⟩ := Completes.withHolds Pre
+  obtain ⟨σ7, e7, ⟨⟨k17, k19, k21, k25, k1750⟩, _, hh7⟩, _⟩ := Completes.withHolds Pre
   have hall := hh7 True (fun rs => rs = []) trivial
   have hfl : [tPre, ((List.range 92).map selBlk).flatten, ((List.range 112).map claimBlk).flatten,
       tPostA, ((List.range 64).map rinitBlk).flatten, tPostB,
@@ -275,8 +287,9 @@ theorem check_opening_terminal_rel {layout : Layout} {bus : BusResult} {claims :
   -- the check
   obtain ⟨σ8, e8, -, hh8⟩ := c_tend (C := coreProgram.Rel rd) (rd := rd) σ7 (ag e7 15 (by omega))
     (ag e7 16 (by omega)) (by show (_ + _) * a15 = a16; rw [hv, hyr, hst]; exact hacc)
-  rw [rel_iff_sem find_check_opening_terminal, core14_body, core14_params]
-  refine ⟨σ8, ?_, ?_⟩
+  rw [core14_body, core14_params]
+  refine ⟨σ8, ?_, ?_, e8.get (by omega) k17, e8.get (by omega) k19, e8.get (by omega) k21,
+    e8.get (by omega) k25, e8.get (by omega) k1750⟩
   · simp only [List.map_cons, List.map_nil]
     rw [e8.apply (Or.inl (by omega)), e8.apply (Or.inl (by omega)), e8.apply (Or.inl (by omega)),
       e8.apply (Or.inl (by omega)), e8.apply (Or.inl (by omega)), e8.apply (Or.inl (by omega)),
@@ -292,6 +305,23 @@ theorem check_opening_terminal_rel {layout : Layout} {bus : BusResult} {claims :
     rw [hb, holdsList_append, holdsList_append]
     exact (holdsList_frame (numBelow_of_B (by decide +kernel)) e8.agree _ _).mp
       (hh7 _ _ (hh8 _ _ (by simp [Stmt.HoldsList, Stmt.Holds])))
+
+/-- **`check_opening_terminal` holds** (TRIAGE #42, #43) under its precondition, each claim's
+point of its column's log, the opening accepting the stacked weight, and the honest memory. -/
+theorem check_opening_terminal_rel {layout : Layout} {bus : BusResult} {claims : List ColumnClaim}
+    {lam : E} {fp cs : List E} {w : WhirEnd}
+    {a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 p17 p19 p21 p25 p1750 : E}
+    (hpre : TermPre TCtx PCtx rd layout bus claims lam fp cs w
+      [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16])
+    (hlens : ∀ j (p : List E), (claims.map (·.point))[j]? = some p →
+      p.length = (layout.placements.getD (claimColumns.getD j 0) default).vars)
+    (hacc : w.Accepts (stackWeight layout claims fp cs lam))
+    (hM : TermMem rd [p17, p19, p21, p25, p1750]
+      [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16]) :
+    coreProgram.Rel rd "check_opening_terminal"
+      [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16] [] := by
+  obtain ⟨σ, hp, hh, -⟩ := term_body_complete hpre hlens hacc hM
+  exact (rel_iff_sem find_check_opening_terminal _ _).mpr ⟨σ, hp, hh⟩
 
 /-- **`check_opening_terminal` is complete** (TRIAGE #42, #43): `CompleteTerm`'s statement over
 `TermMem`, with each claim's point of its column's log (the conjunct `TermPreAcc` adds to

@@ -87,7 +87,7 @@ theorem c_tpre {a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 p17 p1
     (hX : ∀ k < n, LoadHolds rd a13 k (X k)) (σ : Val)
     (hσ : Fixes σ (argFix [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16])) :
     Completes (coreProgram.Rel rd) rd 17 36 tPre σ
-      (fun σ' => Fixes σ' [(17, p17), (19, p19), (21, p21), (35, piVal a2 X n)]) := by
+      (fun σ' => Fixes σ' [(17, p17), (19, p19), (21, p21), (35, piVal a2 X n), (25, p25)]) := by
   obtain ⟨c17, c19, c21, h25, hpi, -, -⟩ := hM
   have hc := hpi n h5 hn X hX
   have g : ∀ k (hk : k < 17), σ (.n k) =
@@ -117,7 +117,7 @@ theorem c_tpre {a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 p17 p1
     · rw [h5]; exact lh_back (hc n hn1 le_rfl) (by omega)
   · intro p hp
     simp only [List.mem_cons, List.mem_nil_iff, or_false] at hp
-    rcases hp with rfl | rfl | rfl | rfl <;> simp [upds_n]
+    rcases hp with rfl | rfl | rfl | rfl | rfl <;> simp [upds_n]
 
 /-- The 29 arms of `column_selector` at once, backward. -/
 theorem column_selector_any' {jj : ℕ} (hj : jj < csNames.length) {o p : E} {rets : List E}
