@@ -48,6 +48,44 @@ theorem regionL_mono {L L' : Layout} (h : ∀ q ∈ L, q ∈ L') {i : ℕ} (hi :
 theorem memL_mono {rd : Reader} {L L' : Layout} (h : ∀ q ∈ L, q ∈ L') (hL : MemL rd L') :
     MemL rd L := fun q hq => hL q (h q hq)
 
+theorem regionL_append_or {L L' : Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
+    RegionL L i ∨ RegionL L' i := by
+  obtain ⟨q, hq, h1, h2⟩ := h
+  rcases List.mem_append.mp hq with hq | hq
+  · exact Or.inl ⟨q, hq, h1, h2⟩
+  · exact Or.inr ⟨q, hq, h1, h2⟩
+
+/-- **`L` lies within `L'`**: every memory holding `L'` holds `L`, and `L`'s words are `L'`'s. -/
+def SubL (L L' : Layout) : Prop := (∀ rd, MemL rd L' → MemL rd L) ∧ ∀ i, RegionL L i → RegionL L' i
+
+theorem SubL.of_mem {L L' : Layout} (h : ∀ q ∈ L, q ∈ L') : SubL L L' :=
+  ⟨fun _ hL => memL_mono h hL, fun _ hi => regionL_mono h hi⟩
+
+theorem SubL.append {L1 L2 L' : Layout} (h1 : SubL L1 L') (h2 : SubL L2 L') : SubL (L1 ++ L2) L' :=
+  ⟨fun rd hL => memL_append.mpr ⟨h1.1 rd hL, h2.1 rd hL⟩, fun i hi =>
+    (regionL_append_or hi).elim (h1.2 i) (h2.2 i)⟩
+
+theorem SubL.trans {L1 L2 L3 : Layout} (h1 : SubL L1 L2) (h2 : SubL L2 L3) : SubL L1 L3 :=
+  ⟨fun rd hL => h1.1 rd (h2.1 rd hL), fun i hi => h2.2 i (h1.2 i hi)⟩
+
+/-- A run of an entry's words is within it. -/
+theorem SubL.run {L : Layout} {b o : ℕ} {xs ys : List E} (hq : (b, ys) ∈ L)
+    (hlen : o + xs.length ≤ ys.length) (h : ∀ k (hk : k < xs.length), xs[k] = ys[o + k]'(by omega)) :
+    SubL [(b + o, xs)] L := by
+  refine ⟨fun rd hL q hq' => ?_, fun i hi => ?_⟩
+  · rw [List.mem_singleton] at hq'; subst hq'
+    intro k hk
+    have hk' : k < xs.length := hk
+    have := hL _ hq (o + k) (by simp only; omega)
+    rw [← h k hk'] at this
+    refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
+    rw [addr_ofK, Nat.add_assoc]
+    have h2 := this.2
+    rwa [addr_ofK] at h2
+  · obtain ⟨q, hq', h1, h2⟩ := hi
+    rw [List.mem_singleton] at hq'; subst hq'
+    exact ⟨(b, ys), hq, by simp only at h1 ⊢; omega, by simp only at h2 ⊢; omega⟩
+
 /-! ## The iterations -/
 
 /-- **A loop helper is complete from its iterations**: iteration `j < m`, its tail of size `mt`
@@ -184,7 +222,7 @@ theorem loopStep_bufs {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
     (sizes : List ℕ) (bufs : List (List E)) (hbl : List.Forall₂ (fun c s => c.length ≤ s) bufs sizes)
     (fp mt : ℕ) (ks : List Kid)
     (hks : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out)
-    (hsub : ∀ k ∈ ks, ∀ q ∈ k.Lin, q ∈ bufL (fp + fs f + mt) sizes bufs ++ Lin)
+    (hsub : ∀ k ∈ ks, SubL k.Lin (bufL (fp + fs f + mt) sizes bufs ++ Lin))
     (targs' : List E) (more : Bool)
     (hσ : ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f + mt) sizes bufs ++ Lin) → ∀ outs, OutsOk ks outs →
       ∃ σ : Val, fn.params.map σ = args ∧
@@ -246,14 +284,9 @@ theorem loopStep_bufs {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
   · have hsum : (allocs σ (pre.flatMap (slEvs σ))).sum = sizes.sum := by rw [hsz']
     rw [hsum]
     exact hK rd σ _ _ (fun _ => False) hcm hlow hL1
-      (memL_mono (fun q hq => by
-        obtain ⟨k, hk, hq⟩ := List.mem_flatMap.mp hq
-        exact hsub k hk q hq) (memL_append.mpr ⟨hLb, hL2⟩))
-      (regionsOk_of_sub _ _ _ fun k hk i hi => by
-        obtain ⟨q, hq, h1, h2⟩ := regionL_mono (hsub k hk) hi
-        rcases List.mem_append.mp hq with hq | hq
-        · exact Or.inr (hown i ⟨q, hq, h1, h2⟩)
-        · exact Or.inl ⟨q, hq, h1, h2⟩)
+      (LeanVM.Guest.B1.memL_lins fun k hk => (hsub k hk).1 rd (memL_append.mpr ⟨hLb, hL2⟩))
+      (regionsOk_of_sub _ _ _ fun k hk i hi =>
+        (regionL_append_or ((hsub k hk).2 i hi)).elim (fun h => Or.inr (hown i h)) Or.inl)
   · intro A hA
     rw [hld', List.mem_map] at hA
     obtain ⟨q, hq, rfl⟩ := hA

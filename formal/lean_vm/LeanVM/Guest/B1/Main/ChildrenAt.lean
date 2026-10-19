@@ -219,7 +219,7 @@ structure ChildWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (Lin : La
   pi1 : CellL Lin (cpib + (2 * c + 1)) (digestScalars r.pd).2
   vs : ∃ (D : VerifySub.VsData) (lpA sqA outA : ℕ), VsGood D ∧ D.pi = r.pd ∧ D.seed = seedD ∧
     glp = ofK (gpow lpA) ∧ gsq = ofK (gpow sqA) ∧ cfresh * gen ^ (106 * c) = ofK (gpow outA) ∧
-    ∀ q ∈ VerifySub.vsExtL lpA sqA outA D, q ∈ Lin
+    SubL (VerifySub.vsExtL lpA sqA outA D) Lin
 
 theorem logG_gen_pow' {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := by
   rw [gen_pow_eq_ofK]; exact logG_spec he
@@ -328,10 +328,10 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
     p1 _ p2 p3 κ Lin [gen ^ j, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR,
       daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] loop5Fronts (.n 85) loop5Targs p4
     [2, 4 * nda] [[(digestScalars r.sigD).1, (digestScalars r.sigD).2], cells] hbl fp mt ks hks
-    (fun k hk q hq => by simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
-                         rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
-                         any_goals exact hq
-                         exact List.mem_append_right _ (hvsub q hq))
+    (fun k hk => by simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
+                    rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
+                    iterate 5 exact ⟨fun _ h => h, fun _ h => h⟩
+                    exact hvsub.trans (SubL.of_mem fun q hq => List.mem_append_right _ hq))
     [gen ^ (j + 1), gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR, daC, daS,
       seed0, seed1, ofK (gpow cpib), glp, cfresh] (decide (j + 1 ≠ m))
     (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hS⟩ =>

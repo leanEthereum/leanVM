@@ -180,7 +180,7 @@ set_option maxHeartbeats 2000000 in
 `mainIn`, each `CompleteAt`, matching `main`'s frames under its valuation. -/
 theorem main_relAtIn_core (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W) (ks : List Kid)
     (hks : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out)
-    (hsub : ∀ k ∈ ks, ∀ q ∈ k.Lin, q ∈ mainIn fs fp W)
+    (hsub : ∀ k ∈ ks, SubL k.Lin (mainIn fs fp W))
     (hcm : ∀ rd, ∀ outs, OutsOk ks outs → CallsMatch (mainVal rd (mainRunAt fs fp W))
       ((mainFronts (decide (W.rd = 1)) (decide (W.nc = 0))).map
         (mkCall (mainVal rd (mainRunAt fs fp W)))) ks outs) :
@@ -245,11 +245,10 @@ theorem main_relAtIn_core (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W)
       rw [e65, e66]
       exact hexpRel
     · refine hK rd σ _ _ _ (hcm rd outs ho) hl hLk
-        (memL_lins fun k hk' => memL_mono (hsub k hk') hLin) (regionsOk_of fun k hk' _ i hi => ?_)
-      obtain ⟨q, hq, h1, h2⟩ := regionL_mono (hsub k hk') hi
-      rcases List.mem_append.mp hq with hq | hq
-      · exact Or.inl (Or.inr (hown i ⟨q, hq, h1, h2⟩))
-      · exact Or.inr (Or.inr ⟨rfl, q, hq, h1, h2⟩)
+        (memL_lins fun k hk' => (hsub k hk').1 rd hLin) (regionsOk_of fun k hk' _ i hi => ?_)
+      rcases regionL_append_or ((hsub k hk').2 i hi) with h | h
+      · exact Or.inl (Or.inr (hown i h))
+      · exact Or.inr (Or.inr ⟨rfl, h⟩)
   have := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := fun i => i < 2)
     (D := fun _ => False) (fp := fp) (σ := σ) (rd := rd) (args := []) (rets := [])
     coreProgram_wf find_main (Or.inl main_not_loop) rfl (by rw [core0_body]; exact hw) rfl
@@ -562,8 +561,9 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
     · simp only [mainKid5, decide_eq_true_eq] at htk
       exact loop5_completeAt H hκ hW.nc (by omega) (mainIn fs fp W) W.child hW.children
   have hsubPre : ∀ k ∈ mainKids8 fs fp W ++ (if W.rd = 1 then mainKidsDa fs fp W else []) ++
-      [mainKid5 fs fp W], ∀ q ∈ k.Lin, q ∈ mainIn fs fp W := by
-    intro k hk q hq
+      [mainKid5 fs fp W], SubL k.Lin (mainIn fs fp W) := by
+    intro k hk
+    refine SubL.of_mem fun q hq => ?_
     simp only [List.mem_append, List.mem_singleton] at hk
     rcases hk with (hk | hk) | rfl
     · simp only [mainKids8, List.mem_cons, List.not_mem_nil, or_false] at hk
@@ -576,7 +576,7 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
   have hsd : CompleteAt fs cert κ (mainKidSd fs fp W).f (mainKidSd fs fp W).Lin
       (mainKidSd fs fp W).args (mainKidSd fs fp W).Out := H.statement_digest _ _ _ hW.stmt
   by_cases hnc : W.nc = 0
-  · refine main_relAtIn_core hκ hW _ (fun k hk htk => ?_) (fun k hk q hq => ?_)
+  · refine main_relAtIn_core hκ hW _ (fun k hk htk => ?_) (fun k hk => ?_)
       (main_hcm hW [] fun rd o ho => by simp only [hnc, decide_true, ↓reduceIte]; exact callsMatch_nil o ho)
     · simp only [List.append_nil, List.mem_append, List.mem_singleton] at hk
       rcases hk with hk | rfl
@@ -584,10 +584,10 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
       · exact hsd
     · simp only [List.append_nil, List.mem_append, List.mem_singleton] at hk
       rcases hk with hk | rfl
-      · exact hsubPre k (by simp only [List.mem_append, List.mem_singleton]; exact hk) q hq
-      · exact hq
+      · exact hsubPre k (by simp only [List.mem_append, List.mem_singleton]; exact hk)
+      · exact SubL.of_mem fun q hq => hq
   · obtain ⟨cs, h, d, hlen, hb, hbr, hmr, hsh, hcpi, hfr, hcar, hdT⟩ := hW.agg hnc
-    refine main_relAtIn_core hκ hW _ (fun k hk htk => ?_) (fun k hk q hq => ?_)
+    refine main_relAtIn_core hκ hW _ (fun k hk htk => ?_) (fun k hk => ?_)
       (main_hcm hW [mainKidAgg fs fp W cs d] fun rd o ho => by
         simp only [hnc, decide_false, Bool.false_eq_true, ↓reduceIte]; exact main_cmAgg rd cs d o ho)
     · simp only [List.mem_append, List.mem_singleton] at hk
@@ -601,14 +601,15 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
       · exact hsd
     · simp only [List.mem_append, List.mem_singleton] at hk
       rcases hk with (hk | rfl) | rfl
-      · exact hsubPre k (by simp only [List.mem_append, List.mem_singleton]; exact hk) q hq
-      · simp only [mainKidAgg, aggExtL, List.mem_cons, List.not_mem_nil, or_false] at hq
+      · exact hsubPre k (by simp only [List.mem_append, List.mem_singleton]; exact hk)
+      · refine SubL.of_mem fun q hq => ?_
+        simp only [mainKidAgg, aggExtL, List.mem_cons, List.not_mem_nil, or_false] at hq
         rcases hq with rfl | rfl | rfl | rfl
         · rw [← hcpi]; exact mainIn_mem 5 (by omega)
         · rw [← hfr]; exact mainIn_mem 6 (by omega)
         · rw [← hcar]; exact mainIn_mem 7 (by omega)
         · rw [← hdT]; exact mainIn_mem 9 (by omega)
-      · exact hq
+      · exact SubL.of_mem fun q hq => hq
 
 end
 end LeanVM.Guest.B1.Main
