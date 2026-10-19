@@ -53,7 +53,7 @@ def OsAssertCanonicalAt (fs : String → ℕ) (cert : String → V → ℕ) (k :
 /-- `opening_ood_point`'s meaning without its states' run. -/
 def OodPointPre (rd : Reader) : List E → List E → Prop
   | [fs0, fs1, point, ng], rets =>
-      ∃ m < ordG, ng = gen ^ m ∧
+      ∃ m < ordG, 2 * m + 2 < ordG ∧ ng = gen ^ m ∧
         ((m = 0 ∧ rets = [fs0, fs1]) ∨
           (0 < m ∧ ∃ cv rs cv', (fs0, fs1) = digestScalars cv ∧ RunsTo (Prog.sampleN m) cv [] rs cv' ∧
             ReadsAt rd point rs ∧ rets = [(digestScalars cv').1, (digestScalars cv').2]))
