@@ -23,7 +23,9 @@ public import LeanVM.Guest.B1.VerifySub.CPlaced3
 the precondition its Rel-level completeness takes, with the function's own buffers (scratch
 tables, internal `HeapBuf`s) left to it:
 
-* the signature verifiers, `statement_digest`, `da_list_digest`: their meanings;
+* the signature verifiers: their meanings;
+* `statement_digest` (`SdPreAt sig cells`), `da_list_digest` (`DaListPreAt claims`): their
+  meanings with the words read from memory given;
 * `claim_list_digest`, `child_claim_list_digest` (`ClPreAt`, `CclPreAt`): for the claims' cells
   (and the child's table indices) given, the squares table and the meaning without the windows'
   scratch table;
@@ -64,6 +66,24 @@ def CclPreAt (off : ℕ → ℕ) (cs : List E) (rd : Reader) : List E → List E
         (∀ c ∈ cs, IsCanonical128 c) ∧ (d0, d1) = digestScalars (blake2sBytes (cs.flatMap cellBytes))
   | _, _ => False
 
+/-- `statement_digest`'s precondition, for the signer set's digest `sig` and the deferred cells
+`cells`: the statement's digest of the seed, `sig` read at `sigp`, the DA list's digest and
+`cells` read at `dp`. -/
+def SdPreAt (sig : Digest) (cells : List E) (rd : Reader) : List E → List E → Prop
+  | [seed0, seed1, sigp, da0, da1, dp], [d0, d1] => ∃ (seed da : Digest),
+      cells.length = Digest.deferStmtCells ∧ (seed0, seed1) = digestScalars seed ∧
+      LoadHolds rd sigp 0 (digestScalars sig).1 ∧ LoadHolds rd sigp 1 (digestScalars sig).2 ∧
+      (da0, da1) = digestScalars da ∧ CellsAt rd dp cells ∧
+      (d0, d1) = digestScalars (stmtDigestOf seed sig da cells)
+  | _, _ => False
+
+/-- `da_list_digest`'s precondition, for the claims `claims`: at most `16` of them at `roots`,
+their list digest returned. -/
+def DaListPreAt (claims : List DaClaim) (rd : Reader) : List E → List E → Prop
+  | [roots, ng], [d0, d1] => claims.length ≤ 16 ∧ ng = gen ^ claims.length ∧
+      LeanVM.Guest.B1.DaClaimsAt rd roots claims ∧ (d0, d1) = digestScalars (daListDigest claims)
+  | _, _ => False
+
 /-- `cover_da_root`'s precondition, for the DA slot `i`: slot `i` of `M ≤ 2^16` slots holds the
 mark, and the claim of DA slot `i` is returned. -/
 def CoverPreAt (i : ℕ) (rd : Reader) : List E → List E → Prop
@@ -85,8 +105,8 @@ structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
   verify_lean_xmss : CompleteRel fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss
   verify_sig_lean_sphincs :
     CompleteRel fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs
-  statement_digest : CompleteRel fs cert κ "statement_digest" Meaning_statement_digest
-  da_list_digest : CompleteRel fs cert κ "da_list_digest" Meaning_da_list_digest
+  statement_digest : ∀ sig cells, CompleteRel fs cert κ "statement_digest" (SdPreAt sig cells)
+  da_list_digest : ∀ claims, CompleteRel fs cert κ "da_list_digest" (DaListPreAt claims)
   cover_da_root : ∀ i, CompleteRel fs cert κ "cover_da_root" (CoverPreAt i)
   claim_list_digest : ∀ cs, CompleteRel fs cert κ "claim_list_digest" (ClPreAt cs)
   child_claim_list_digest : ∀ off cs,

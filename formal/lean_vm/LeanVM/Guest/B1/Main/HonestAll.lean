@@ -85,7 +85,7 @@ theorem honest_wordsOk {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {bytecode
       rs := by simp only [honestWords]; omega
       decl := hlim.nonempty
       lens := honest_lens hb ⟨hsh, hch, hX, hS, hD, hfin⟩ hfr
-      daList := fun rd _ hL => hon_daList fs hlim hL
+      daList := ⟨_, fun rd _ hL => hon_daList fs hlim hL⟩
       xList := ⟨_, fun rd _ hL => hon_xList fs hlim hL⟩
       sList := ⟨_, fun rd _ hL => hon_sList fs hlim hL⟩
       sig := hon_sig _ _
@@ -138,7 +138,7 @@ theorem honest_wordsOk {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {bytecode
         obtain ⟨c1, c2⟩ := (hch x hx).1
         rw [hb, Nat.log2_two_pow] at c1
         exact ⟨hfr x hx, c1, by rw [c2]; rfl⟩
-      stmt := fun rd _ hL => hon_stmt fs hb hsh hL }
+      stmt := ⟨_, _, fun rd _ hL => hon_stmt fs hb hsh hL⟩ }
 
 /-- **`main` is complete, placed** (G:3119-3316; TRIAGE #76): for a witness of `NodeRel` within
 the deployed limits, every child's proof run by a run in `VsGood` and of the guest's fresh shape,

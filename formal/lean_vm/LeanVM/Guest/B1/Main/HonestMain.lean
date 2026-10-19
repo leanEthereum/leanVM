@@ -59,12 +59,11 @@ theorem squaresAt_of_mainIn {W : MainWords} (hL : MemL rd (mainIn fs fp W)) :
 /-! ## The declared lists -/
 
 theorem hon_daList (hlim : Limits s w) (hL : MemL rd (mainIn fs fp (honestWords seed s w))) :
-    Meaning_da_list_digest rd [mainPtr fs fp (honestWords seed s w) 0, gen ^ s.claims.da.length]
+    DaListPreAt s.claims.da rd [mainPtr fs fp (honestWords seed s w) 0, gen ^ s.claims.da.length]
       [(digestScalars (daListDigest s.claims.da)).1, (digestScalars (daListDigest s.claims.da)).2] := by
   have h := mainIn_reads hL 0 (by omega)
   simp only [MainWords.bufs, honestWords, List.getD_cons_zero, List.flatMap_append] at h
-  exact ⟨_, _, _, _, rfl, rfl, s.claims.da, hlim.daRoots.1, rfl,
-    daClaimsAt_of_reads (readsAt_append'.mp h).1, rfl⟩
+  exact ⟨hlim.daRoots.1, rfl, daClaimsAt_of_reads (readsAt_append'.mp h).1, rfl⟩
 
 theorem hon_xList (hlim : Limits s w) (hL : MemL rd (mainIn fs fp (honestWords seed s w))) :
     ClPreAt (s.claims.xmss.flatMap xCellsOf) rd
@@ -310,7 +309,8 @@ theorem hon_written (c : ℕ) (hc : c ≤ w.children.length) :
 
 theorem hon_stmt {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
     (hsh : s.defer.Shaped bytecode) (hL : MemL rd (mainIn fs fp (honestWords seed s w))) :
-    Meaning_statement_digest rd [(digestScalars seed).1, (digestScalars seed).2,
+    SdPreAt (signersDigest s.claims.xmss s.claims.sphincs) s.defer.cells rd
+      [(digestScalars seed).1, (digestScalars seed).2,
       mainPtr fs fp (honestWords seed s w) 3, (digestScalars (daListDigest s.claims.da)).1,
       (digestScalars (daListDigest s.claims.da)).2, mainPtr fs fp (honestWords seed s w) 9]
       [(digestScalars (statementDigest seed s)).1, (digestScalars (statementDigest seed s)).2] := by
@@ -318,9 +318,8 @@ theorem hon_stmt {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
       [(digestScalars (signersDigest s.claims.xmss s.claims.sphincs)).1,
         (digestScalars (signersDigest s.claims.xmss s.claims.sphincs)).2] := mainIn_reads hL 3 (by omega)
   have h9 : ReadsAt rd (mainPtr fs fp (honestWords seed s w) 9) s.defer.cells := mainIn_reads hL 9 (by omega)
-  exact ⟨_, _, _, _, _, _, _, _, rfl, rfl, seed, signersDigest s.claims.xmss s.claims.sphincs,
-    daListDigest s.claims.da, s.defer.cells, defer_cells_length hb hsh, rfl, h3 0 (by simp),
-    h3 1 (by simp), rfl, h9, by rw [statementDigest_eq]; rfl⟩
+  exact ⟨seed, daListDigest s.claims.da, defer_cells_length hb hsh, rfl, h3 0 (by simp),
+    h3 1 (by simp), rfl, h9, by rw [statementDigest_eq]⟩
 
 end
 end LeanVM.Guest.B1.Main

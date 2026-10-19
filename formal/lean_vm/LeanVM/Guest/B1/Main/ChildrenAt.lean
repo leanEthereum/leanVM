@@ -315,11 +315,10 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
         refine ⟨by rw [e, hcells, List.flatMap_def]; exact h1, ?_⟩
         simp only [e, hcells, List.flatMap_def]
         exact h2
-    · exact H.da_list_digest _ _ _ fun rd hl h => ⟨_, _, _, _, rfl, rfl, r.da, o.nda, rfl,
-        hclaims rd h, rfl⟩
-    · exact H.statement_digest _ _ _ fun rd hl h => ⟨_, _, _, _, _, _, _, _, rfl, rfl, seedD, r.sigD,
-        daListDigest r.da, r.dcells, o.dlen, o.seed, hsigp rd h 0 (by simp), hsigp rd h 1 (by simp),
-        rfl, o.defer rd (mLb rd h), by rw [o.pd]; rfl⟩
+    · exact H.da_list_digest r.da _ _ _ fun rd hl h => ⟨o.nda, rfl, hclaims rd h, rfl⟩
+    · exact H.statement_digest r.sigD r.dcells _ _ _ fun rd hl h => ⟨seedD, daListDigest r.da, o.dlen,
+        o.seed, hsigp rd h 0 (by simp), hsigp rd h 1 (by simp), rfl, o.defer rd (mLb rd h),
+        by rw [o.pd]⟩
     · have := H.verify_sub D hgood lpA sqA outA
       obtain ⟨hs0, hs1⟩ := Prod.ext_iff.mp o.seed
       simp only at hs0 hs1

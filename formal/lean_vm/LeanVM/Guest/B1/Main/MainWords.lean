@@ -141,8 +141,8 @@ structure MainWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (fp : ℕ)
   rs : W.rs ≤ 65535
   decl : 0 < W.dx + W.ds + W.da
   lens : W.bufs.map List.length = W.sizes
-  daList : ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
-    Meaning_da_list_digest rd [mainPtr fs fp W 0, gen ^ W.da]
+  daList : ∃ claims, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
+    DaListPreAt claims rd [mainPtr fs fp W 0, gen ^ W.da]
       [(digestScalars W.daDig).1, (digestScalars W.daDig).2]
   xList : ∃ cs, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
     ClPreAt cs rd [mainPtr fs fp W 1, gen ^ W.dx, ofK (gpow (mainExpBase fs fp W + 34))]
@@ -186,8 +186,8 @@ structure MainWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (fp : ℕ)
     W.cpiTab = cs.flatMap (fun c => [(digestScalars c.publicInput).1, (digestScalars c.publicInput).2]) ∧
     W.frTab = cs.flatMap (fun c => fixedCells c.fresh) ∧ W.carTab = cs.flatMap (fun c => c.carried.cells) ∧
     W.dTab = d.cells
-  stmt : ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
-    Meaning_statement_digest rd [(digestScalars W.seed).1, (digestScalars W.seed).2,
+  stmt : ∃ sig cells, ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W) →
+    SdPreAt sig cells rd [(digestScalars W.seed).1, (digestScalars W.seed).2,
       mainPtr fs fp W 3, (digestScalars W.daDig).1, (digestScalars W.daDig).2, mainPtr fs fp W 9]
       [(digestScalars W.stDig).1, (digestScalars W.stDig).2]
 

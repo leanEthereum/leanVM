@@ -521,7 +521,7 @@ theorem main_ks8 (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : MainW
   rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp only [decide_eq_true_eq] at htk
   · exact quietLoop_completeAt loop0_quiet κ _ fun rd => loop0_complete (m := W.da + W.ud) (by omega)
       (pow_add _ _ _).symm
-  · exact H.da_list_digest _ _ _ hW.daList
+  · obtain ⟨cl, h⟩ := hW.daList; exact H.da_list_digest cl _ _ _ h
   · obtain ⟨cs, h⟩ := hW.xList; exact H.claim_list_digest cs _ _ _ h
   · obtain ⟨cs, h⟩ := hW.sList; exact H.claim_list_digest cs _ _ _ h
   · exact quietLoop_completeAt loop1_quiet κ _ fun rd => loop1_complete (by omega) rfl
@@ -583,7 +583,8 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
       · simp [hr] at hk
     · exact hq
   have hsd : CompleteAt fs cert κ (mainKidSd fs fp W).f (mainKidSd fs fp W).Lin
-      (mainKidSd fs fp W).args (mainKidSd fs fp W).Out := H.statement_digest _ _ _ hW.stmt
+      (mainKidSd fs fp W).args (mainKidSd fs fp W).Out := by
+    obtain ⟨sig, cells, h⟩ := hW.stmt; exact H.statement_digest sig cells _ _ _ h
   by_cases hnc : W.nc = 0
   · refine main_relAtIn_core hκ hW _ (fun k hk htk => ?_) (fun k hk => ?_)
       (main_hcm hW [] fun rd o ho => by simp only [hnc, decide_true, ↓reduceIte]; exact callsMatch_nil o ho)
