@@ -37,7 +37,8 @@ theorem c_p5 (hlen : xs.length = flLen τ) (σ : Val) (h3 : σ (.n 3) = gen ^ τ
     (hP : σ (.n 1841) = ∏ j ∈ Finset.range 64, (flZ τ cv xs + phi j))
     (hS : σ (.n 1844) = ∑ j ∈ Finset.range 64, numHi (flZ τ cv xs) j * xs.getD j 0) :
     Completes (coreProgram.Rel rd) rd 1845 1852 flP5 σ
-      (fun σ' => σ' (.n 1847) = (flSt0 τ cv xs).1) := by
+      (fun σ' => σ' (.n 1847) = (flSt0 τ cv xs).1 ∧
+        σ' (.n 1851) = gen ^ τ * word 16384 0 0 * word 2017612633061982209 0 0) := by
   refine completes_upds [(1845, word 233317187178767959 0 0),
     (1846, σ (.n 1841) * word 233317187178767959 0 0),
     (1847, σ (.n 1844) * (σ (.n 1841) * word 233317187178767959 0 0)), (1848, word 16384 0 0),
@@ -49,7 +50,8 @@ theorem c_p5 (hlen : xs.length = flLen τ) (σ : Val) (h3 : σ (.n 3) = gen ^ τ
     rw [h3]
     simp only [true_and]
     exact hn
-  · vs_ev
+  · refine ⟨?_, by vs_ev⟩
+    vs_ev
     rw [hP, hS, flSt0, interp_eq _ _ (by simp [flP]; unfold flLen at hlen; omega)]
     refine congrArg (· * _) (Finset.sum_congr rfl fun i hi => ?_)
     rw [flP, getD_take' _ (Finset.mem_range.mp hi)]
@@ -58,17 +60,22 @@ theorem c_p5 (hlen : xs.length = flLen τ) (σ : Val) (h3 : σ (.n 3) = gen ^ τ
 /-! ## The sampled rounds -/
 
 /-- What `flP7` leaves: the zerocheck's last row. -/
-def flP7Out (τ : ℕ) (cv : Digest) (xs : List E) (cur : E) : List (ℕ × E) :=
+def flP7Out (τ : ℕ) (cv : Digest) (xs : List E) (cur p2220 v : E) : List (ℕ × E) :=
   [(2237, (digestScalars (flScAt τ cv xs (τ + 8)).2).1),
     (2238, (digestScalars (flScAt τ cv xs (τ + 8)).2).2), (2239, (flScAt τ cv xs (τ + 8)).1),
-    (2240, cur * gen ^ (64 + 2 * (τ + 8)))]
+    (2240, cur * gen ^ (64 + 2 * (τ + 8))), (2220, p2220),
+    (2219, v * word 4 0 0 * (v * word 4 0 0) * (v * word 4 0 0 * (v * word 4 0 0))),
+    (2222, p2220 * word 268435456 0 0),
+    (2236, p2220 * (gen ^ τ * word 256 0 0 * (gen ^ τ * word 256 0 0) *
+      (gen ^ τ * word 256 0 0 * (gen ^ τ * word 256 0 0)))),
+    (2228, word 128 0 0 + gen ^ τ * word 256 0 0), (2229, word 128 0 0), (2231, gen ^ τ * word 256 0 0)]
 
 /-- **The sampled rounds** (G:1888-1910): row 7 of `flock_rounds` checked, `__loop82`, the last
 row read. -/
 theorem c_p7 (hτ : τ < 29) (hM : FlMem rd τ cv xs cur zchis lrs zpart p11 p24 p40 p2220) (σ : Val)
     (hF : Fixes σ [(2, cur), (3, gen ^ τ), (4, zchis), (11, p11)])
     (hI : FrInv τ cv xs cur zchis p11 7 σ) :
-    Completes (coreProgram.Rel rd) rd 2216 2241 flP7 σ (fun σ' => Fixes σ' (flP7Out τ cv xs cur)) := by
+    Completes (coreProgram.Rel rd) rd 2216 2241 flP7 σ (fun σ' => Fixes σ' (flP7Out τ cv xs cur p2220 (σ (.n 1851)))) := by
   have h2 : σ (.n 2) = cur := hF.get (k := 2) (e := cur) (by simp)
   have h3 : σ (.n 3) = gen ^ τ := hF.get (k := 3) (e := gen ^ τ) (by simp)
   have h4 : σ (.n 4) = zchis := hF.get (k := 4) (e := zchis) (by simp)
@@ -105,13 +112,13 @@ theorem c_p7 (hτ : τ < 29) (hM : FlMem rd τ cv xs cur zchis lrs zpart p11 p24
     · rw [hg]; exact loop82_complete hτ hM
   · intro p hp
     simp only [flP7Out, List.mem_cons, List.mem_nil_iff, or_false] at hp
-    rcases hp with rfl | rfl | rfl | rfl <;> simp [upds_n]
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp [upds_n, g]
 
 /-! ## The final evaluations and `alpha` -/
 
 /-- **The final evaluations** (G:1914-1916). -/
 theorem c_s8 (hM : FlMem rd τ cv xs cur zchis lrs zpart p11 p24 p40 p2220) (σ : Val)
-    (hF : Fixes σ (flP7Out τ cv xs cur)) :
+    {v : E} (hF : Fixes σ (flP7Out τ cv xs cur p2220 v)) :
     Completes (coreProgram.Rel rd) rd 2241 2273 flS8 σ (fun σ' =>
       σ' (.n 2241) = flA τ xs ∧ σ' (.n 2256) = flB τ xs ∧
       (σ' (.n 2269), σ' (.n 2270)) = digestScalars (flCv5 τ cv xs) ∧

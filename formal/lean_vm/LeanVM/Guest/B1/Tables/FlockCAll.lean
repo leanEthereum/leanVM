@@ -122,7 +122,9 @@ theorem flock_body_complete (hτ : τ < 29) (hM : FlMem rd τ cv xs cur zchis lr
       [σ' (.n 4369), σ' (.n 4370), σ' (.n 4373), σ' (.n 4374), σ' (.n 4375), σ' (.n 4376)] =
         [(digestScalars (obsAll (flLc τ cv xs).2 (flS τ xs))).1,
           (digestScalars (obsAll (flLc τ cv xs).2 (flS τ xs))).2,
-          cur * gen ^ (64 + 2 * (τ + 8)) * gen ^ 82, flZ τ cv xs, flAlpha τ cv xs, mv]) := by
+          cur * gen ^ (64 + 2 * (τ + 8)) * gen ^ 82, flZ τ cv xs, flAlpha τ cv xs, mv] ∧
+      Fixes σ' (flP0Out τ cv p11 p24 p40) ∧ Fixes σ' (flP7Out τ cv xs cur p2220
+        (gen ^ τ * word 16384 0 0 * word 2017612633061982209 0 0))) := by
   simp only [flSegs, List.flatten_cons, List.flatten_nil, List.append_nil]
   have a0 : ∀ k < 7, ∀ v, (k, v) ∈ flArgs τ cv cur zchis lrs zpart → σ0 (.n k) = v :=
     fun k _ v hv => hσ0 _ hv
@@ -158,7 +160,7 @@ theorem flock_body_complete (hτ : τ < 29) (hM : FlMem rd τ cv xs cur zchis lr
   -- the first claim
   refine Completes.append (m := 1852) (by omega) (by omega) (numBelow_of_B (by decide +kernel))
     (c_p5 hlen σ5 (E5.get (by omega) (a0 3 (by omega) _ (by simp [flArgs]))) hP hS)
-    fun σ6 e6 p6 => ?_
+    fun σ6 e6 ⟨p6, p6b⟩ => ?_
   have E6 := E5.trans e6 (by omega) (by omega)
   have g11 : σ6 (.n 11) = p11 := e6.get (by omega) (e5.get (by omega) (e4.get (by omega)
     (e3.get (by omega) (e2.get (by omega) (p1.get (by simp [flP0Out]))))))
@@ -254,6 +256,14 @@ theorem flock_body_complete (hτ : τ < 29) (hM : FlMem rd τ cv xs cur zchis lr
   have p16' := p16 (by omega)
   simp only [Nat.reduceEqDiff, ↓reduceIte, Nat.reduceMul, Nat.reduceAdd] at p16'
   -- the final check and the returns
+  have p6b' : σ7 (.n 1851) = gen ^ τ * word 16384 0 0 * word 2017612633061982209 0 0 :=
+    e7.get (by omega) p6b
+  have fx0 : ∀ {σa σb : Val} {lo hi : ℕ}, Fixes σa (flP0Out τ cv p11 p24 p40) → Ext lo hi σa σb →
+      41 ≤ lo → Fixes σb (flP0Out τ cv p11 p24 p40) := fun h he hlo =>
+    h.of_ext he (by simp [flP0Out]; omega)
+  have fx7 : ∀ {σa σb : Val} {lo hi : ℕ} {v : E}, Fixes σa (flP7Out τ cv xs cur p2220 v) →
+      Ext lo hi σa σb → 2241 ≤ lo → Fixes σb (flP7Out τ cv xs cur p2220 v) := fun h he hlo =>
+    h.of_ext he (by simp [flP7Out]; omega)
   have t13 : ∀ {k : ℕ} {v : E}, k < 4093 → σ13 (.n k) = v → σ16 (.n k) = v := fun hk h =>
     e16.get (by omega) (e15.get (by omega) (e14.get (by omega) h))
   have t11 : ∀ {k : ℕ} {v : E}, k < 2741 → σ11 (.n k) = v → σ16 (.n k) = v := fun hk h =>
@@ -267,9 +277,9 @@ theorem flock_body_complete (hτ : τ < 29) (hM : FlMem rd τ cv xs cur zchis lr
     (t13 (by omega) (congrArg Prod.fst p13)) (t13 (by omega) (congrArg Prod.snd p13))
     (t11 (by omega) g2240)
     (t11 (by omega) (e11.get (by omega) (e10.get (by omega) hZ9)))
-    (t11 (by omega) (p11'.get (k := 2733) (e := flAlpha τ cv xs) (by simp [flS10Out])))).mono
-    le_rfl le_rfl fun σ' h => ?_
-  rw [h]
+    (t11 (by omega) (p11'.get (k := 2733) (e := flAlpha τ cv xs) (by simp [flS10Out])))).withExt.mono
+    le_rfl le_rfl fun σ' ⟨h, he⟩ => ⟨by rw [h], (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 (fx0 p1 e2 (by omega)) e3 (by omega)) e4 (by omega)) e5 (by omega)) e6 (by omega)) e7 (by omega)) e8 (by omega)) e9 (by omega)) e10 (by omega)) e11 (by omega)) e12 (by omega)) e13 (by omega)) e14 (by omega)) e15 (by omega)) e16 (by omega)) he (by omega)),
+    (fx7 (fx7 (fx7 (fx7 (fx7 (fx7 (fx7 (fx7 (fx7 (by rw [← p6b']; exact p8) e9 (by omega)) e10 (by omega)) e11 (by omega)) e12 (by omega)) e13 (by omega)) e14 (by omega)) e15 (by omega)) e16 (by omega)) he (by omega))⟩
 
 /-- **`verify_flock` holds** over the honest memory of the run on `cv` and `xs`, the matrices'
 value `mv` passing the terminal check: it returns the run's final state, the cursor past the
@@ -296,7 +306,7 @@ theorem verify_flock_rel (hτ : τ < 29) (hM : FlMem rd τ cv xs cur zchis lrs z
   · rw [holdsList_append]
     refine hh _ _ ?_
     simp only [flRet, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil]
-    rw [hp, mul_assoc, ← pow_add, show 64 + 2 * (τ + 8) + 82 = flLen τ by unfold flLen; omega]
+    rw [hp.1, mul_assoc, ← pow_add, show 64 + 2 * (τ + 8) + 82 = flLen τ by unfold flLen; omega]
 
 /-- The buffers `verify_flock` allocates hold the honest words of the run on `cv` and `xs`. -/
 structure FlBufs (rd : Reader) (τ : ℕ) (cv : Digest) (xs : List E) (cur p11 p24 p40 p2220 : E) :

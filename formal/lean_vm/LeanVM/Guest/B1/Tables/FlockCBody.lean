@@ -40,7 +40,10 @@ def flArgs (τ : ℕ) (cv : Digest) (cur zchis lrs zpart : E) : List (ℕ × E) 
 /-- What the prelude leaves. -/
 def flP0Out (τ : ℕ) (cv : Digest) (p11 p24 p40 : E) : List (ℕ × E) :=
   [(11, p11), (24, p24), (38, (digestScalars (sqCv^[τ + 1] cv)).1),
-    (39, (digestScalars (sqCv^[τ + 1] cv)).2), (40, p40)]
+    (39, (digestScalars (sqCv^[τ + 1] cv)).2), (40, p40), (10, gen ^ τ * word 16384 0 0),
+    (23, gen ^ τ * word 16384 0 0 * word 4 0 0 * (gen ^ τ * word 16384 0 0 * word 4 0 0)),
+    (26, p24 * word 67108864 0 0), (37, p24 * (gen ^ τ * word 16384 0 0 * (gen ^ τ * word 16384 0 0))),
+    (30, word 8192 0 0 + gen ^ τ * word 16384 0 0), (31, word 8192 0 0), (33, gen ^ τ * word 16384 0 0)]
 
 theorem fixed_getD (τ : ℕ) (cv : Digest) {i : ℕ} (hi : i < 7) :
     flE τ cv i = fixedWords.getD i 0 := by
@@ -93,7 +96,7 @@ theorem c_p0 (hτ : τ < 29) (hM : FlMem rd τ cv xs cur zchis lrs zpart p11 p24
       exact lh_back b1 (by omega)
   · intro p hp
     simp only [flP0Out, List.mem_cons, List.mem_nil_iff, or_false] at hp
-    rcases hp with rfl | rfl | rfl | rfl | rfl <;> simp [upds_n]
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> simp [upds_n]
 
 /-! ## Round 1 -/
 
