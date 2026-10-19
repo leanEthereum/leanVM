@@ -106,6 +106,22 @@ def OsDecodeAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d 
         RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL (dqRunL cert name fp w)) fp (fs name) name
           [w, pos, ptrs] []
 
+/-- The depths `decode_query_bits` is specialized at, with their names. -/
+def osDqNames : List (ℕ × String) :=
+  [(14, "decode_query_bits__L14"),
+    (15, "decode_query_bits__L15"),
+    (16, "decode_query_bits__L16"),
+    (17, "decode_query_bits__L17"),
+    (18, "decode_query_bits__L18"),
+    (19, "decode_query_bits__L19"),
+    (20, "decode_query_bits__L20"),
+    (21, "decode_query_bits__L21"),
+    (22, "decode_query_bits__L22"),
+    (23, "decode_query_bits__L23"),
+    (24, "decode_query_bits__L24"),
+    (25, "decode_query_bits__L25"),
+    (26, "decode_query_bits__L26")]
+
 /-- **The callees of `open_stacked` from group 1**, at the names and shapes its 28
 configurations call. -/
 structure OsCalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop where
@@ -123,7 +139,7 @@ structure OsCalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (k : �
   foldFinal3 : OsFoldFinalAt fs cert k "fold_final_msg__L3" 3
   foldFinal4 : OsFoldFinalAt fs cert k "fold_final_msg__L4" 4
   foldFinal5 : OsFoldFinalAt fs cert k "fold_final_msg__L5" 5
-  decode : ∀ d, 14 ≤ d → d ≤ 26 → OsDecodeAt fs cert k d s!"decode_query_bits__L{d}"
+  decode : ∀ p ∈ osDqNames, OsDecodeAt fs cert k p.1 p.2
 
 end
 end LeanVM.Guest.B1
