@@ -1,0 +1,84 @@
+/-
+  LeanVM.Guest.EndCompleteFinal
+
+  Completeness within a budget at the deployed frame sizes, certificates, cells and headers
+  (`B2C`), from what is still open.
+-/
+
+module
+
+public import LeanVM.Guest.EndCompleteCounts
+public import LeanVM.Guest.DeferredCaps
+public import LeanVM.Guest.B2C.CalleesHyps
+public import LeanVM.Guest.B2C.KTemps
+public import LeanVM.Guest.B2C.ArmsFresh
+public import LeanVM.Guest.B2C.CntWeight
+public import LeanVM.Guest.B2C.Table
+
+/-!
+# Completeness at the deployed instance
+
+`guest_complete_b2c`: `GuestCompleteWithin (b2cBudget Wt)`, `ea_guest_complete` at `B2C.fs`,
+`B2C.cert`, `B2C.H`, `B2C.C` and the counts `B2C.cnt` (each opcode's path maxima `pathMax` plus
+the jump table's `jtSets`), the callees' hypotheses `calleesHyps_b2c`, `__loop86`'s bound
+`loop86_bound_le`, `deferredCaps`, the instruction budget `eaInstrs` (`ea_hinstrs`), checker K's
+`cnt_le_weight`, `cntRetemp` and certificate facts (`b2c_kfactsAll`), and the jump table's cells
+(`tableC_node`). Still assumed, by name: `main`'s weight hypotheses per opcode (`MainWeightHyps` at
+`pathMax · op`), checker K's `run` (`B2cRun`), and the run reaching the end (`b2`) within the
+counts (`count`).
+-/
+
+namespace LeanVM.Guest.B2C
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory LeanVM.Node
+open LeanVM.Guest.B1 LeanVM.Guest.B1.Main
+open LeanVM.Guest.End (GuestCompleteWithin KFactsAll CntRetemp Budget bytecode mainEntry)
+
+@[expose] public section
+
+/-- **Checker K's `run`**: each `frameAddr` buffer's words are among its instance's cells, off the
+temporaries. -/
+def B2cRun : Prop :=
+  ∀ hdr (T : Tree), T.name = "main" →
+    ∀ I ∈ honestInsts coreProgram fs H hdr T, ∀ f σ bufs kids, I.t = .node f σ bufs kids →
+      ∀ p r rs, Ev.atom (.frameAddr p (r :: rs)) ∈ I.t.events coreProgram →
+        ∀ (k : ℕ) (hk : k < (r :: rs).length), (cert f r + k, σ (r :: rs)[k]) ∈ C I ∧
+          ∀ t ∈ coreProgram.temps f, cert f r + k ≠ cert f t
+
+/-- **The certificate's facts**, from checker K's (`cellsOk_C`, `kfacts_cert_lt`,
+`kfacts_cert_inj`, `kfacts_tmp`, `kfacts_keep_all`) and `run`. -/
+theorem b2c_kfactsAll (hrun : B2cRun) : KFactsAll fs H C cert := fun hdr T hn =>
+  { cells := cellsOk_C _
+    cells' := fun _ => cellsOk_C _
+    cert_lt := kfacts_cert_lt
+    cert_inj := kfacts_cert_inj
+    run := hrun hdr T hn
+    tmp := kfacts_tmp hdr T
+    keep := kfacts_keep_all hdr T }
+
+/-- `main`'s weight hypotheses at each opcode's path maxima. -/
+abbrev B2cWeightHyps : Type := ∀ op, MainWeightHyps fs (pathMax · op)
+
+/-- **The budget**: the words `eaWords` and the instruction counts `eaInstrs` at the deployed
+callees, `__loop86`'s slope `482`. -/
+noncomputable def b2cBudget (Wt : B2cWeightHyps) : Budget :=
+  eaBudget fs cert calleesHyps_b2c 482 0 (eaInstrs calleesHyps_b2c 482 0 Wt jtSets)
+
+/-- **Completeness within the budget at the deployed instance**, from `main`'s weight hypotheses,
+checker K's `run` and the run's end within the counts. -/
+theorem guest_complete_b2c (Wt : B2cWeightHyps) (hrun : B2cRun)
+    (hb2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
+      HonestAt coreProgram fs H C hdr T cert rd [] [] →
+        Reach guest (honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest))
+    (hcount : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
+      HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
+        run guest (honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
+          ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op) :
+    GuestCompleteWithin (b2cBudget Wt) :=
+  ea_guest_complete fs cert cnt calleesHyps_b2c _ H C (fun q => loop86_bound_le q) (two_le_fs _)
+    deferredCaps (fun op f => pathMax f op) Wt jtSets cnt_le_weight
+    (ea_hinstrs calleesHyps_b2c (fun q => loop86_bound_le q) Wt jtSets)
+    (b2c_kfactsAll hrun) cntRetemp (fun _ _ _ _ ht => tableC_node ht) hb2 hcount
+
+end
+end LeanVM.Guest.B2C
