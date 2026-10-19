@@ -40,6 +40,7 @@ structure OsLayoutOk (cfg : OsCfg) : Prop where
   basis : ∀ i < cfg.levels.length, (cfg.lv i).prefixLen + cfg.yrLog ≤ 22
   sq : ∀ i < cfg.levels.length, (cfg.lv i).squeezes ≤ cfg.maxSq
   il : ∀ i < cfg.levels.length, 2 ^ (cfg.lv i).folds ≤ cfg.maxIl
+  queries : ∀ i < cfg.levels.length, 0 < (cfg.lv i).queries
 
 /-- **Windows in order are disjoint.** -/
 theorem os_segDisj_range {n : ℕ} (off : ℕ → ℕ) (c : ℕ → List E)
