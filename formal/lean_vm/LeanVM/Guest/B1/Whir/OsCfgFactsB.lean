@@ -39,7 +39,8 @@ def osLayOne (cfg : OsCfg) (i : ℕ) : Bool :=
     decide ((cfg.lv i).queries ≤ cfg.maxQ) &&
     decide ((cfg.lv i).posOff + (cfg.lv i).squeezes * (192 / (cfg.lv i).depth) ≤ cfg.posLen) &&
     decide ((cfg.lv i).logCols ≤ 22) && decide ((cfg.lv i).prefixLen + cfg.yrLog ≤ 22) &&
-    decide ((cfg.lv i).squeezes ≤ cfg.maxSq) && decide (2 ^ (cfg.lv i).folds ≤ cfg.maxIl)
+    decide ((cfg.lv i).squeezes ≤ cfg.maxSq) && decide (2 ^ (cfg.lv i).folds ≤ cfg.maxIl) &&
+    decide (0 < (cfg.lv i).queries)
 
 /-- The layout, by evaluation. -/
 def osLayoutB (cfg : OsCfg) : Bool :=
@@ -54,12 +55,12 @@ theorem os_layout_of {cfg : OsCfg} (h : osLayoutB cfg = true) : OsLayoutOk cfg :
   have O : ∀ i < cfg.levels.length, osLayOne cfg i = true := ho
   simp only [osLayPair, Bool.and_eq_true, decide_eq_true_eq] at P
   simp only [osLayOne, Bool.and_eq_true, decide_eq_true_eq] at O
-  exact ⟨fun i j hij hj => (P i j hij hj).1.1.1, fun i hi => (O i hi).1.1.1.1.1.1.1.1,
-    fun i j hij hj => (P i j hij hj).1.1.2, fun i hi => (O i hi).1.1.1.1.1.1.1.2,
-    fun i j hij hj => (P i j hij hj).1.2, fun i hi => (O i hi).1.1.1.1.1.1.2,
-    fun i hi => (O i hi).1.1.1.1.1.2, fun i j hij hj => (P i j hij hj).2,
-    fun i hi => (O i hi).1.1.1.1.2, fun i hi => (O i hi).1.1.1.2, fun i hi => (O i hi).1.1.2,
-    fun i hi => (O i hi).1.2, fun i hi => (O i hi).2⟩
+  exact ⟨fun i j hij hj => (P i j hij hj).1.1.1, fun i hi => (O i hi).1.1.1.1.1.1.1.1.1,
+    fun i j hij hj => (P i j hij hj).1.1.2, fun i hi => (O i hi).1.1.1.1.1.1.1.1.2,
+    fun i j hij hj => (P i j hij hj).1.2, fun i hi => (O i hi).1.1.1.1.1.1.1.2,
+    fun i hi => (O i hi).1.1.1.1.1.1.2, fun i j hij hj => (P i j hij hj).2,
+    fun i hi => (O i hi).1.1.1.1.1.2, fun i hi => (O i hi).1.1.1.1.2, fun i hi => (O i hi).1.1.1.2,
+    fun i hi => (O i hi).1.1.2, fun i hi => (O i hi).1.2, fun i hi => (O i hi).2⟩
 
 /-- The sizes, by evaluation. -/
 def osSizesB (cfg : OsCfg) : Bool :=
