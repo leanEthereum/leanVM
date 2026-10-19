@@ -175,9 +175,9 @@ theorem dq_completeAt {name : String} {f : Fn} (d : ℕ) (hd0 : 0 < d) (hd : d �
     rw [dqBody_eq] at hh
     have hw := Main.walk_straight τ [] (dqPre d) hst
     obtain ⟨e1, e2, e3, e4⟩ := Main.straight_parts τ (dqPre d) hst
-    rw [isEmpty_filterMap_eq hal, List.map_nil] at e1 e2
+    rw [g1_filterMap_nil hal, List.map_nil] at e1 e2
     rw [had] at e3
-    rw [isEmpty_filterMap_eq hca, List.map_nil] at e4
+    rw [g1_filterMap_nil hca, List.map_nil] at e4
     have hs := walk_sat _ hwf hh
     rw [hw] at hs
     have hru' := Digest.runs_straight τ (dqPre d) hst

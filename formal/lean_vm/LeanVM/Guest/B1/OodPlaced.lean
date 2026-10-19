@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.OpeningOod
 public import LeanVM.Guest.B1.G1Placed
+public import LeanVM.Guest.B1.Whir.OsCallees
 public import LeanVM.Guest.B1.Da.Atoms
 
 /-!
@@ -20,8 +21,8 @@ point. The challenges at `point` are pinned by `sampleN`'s determinism, so on ev
 below `2^k` holding the caller's words they lie in those words (`readsAt_lift`).
 
 `ood_holds`: the honest valuation (`opening_ood_point_iff`'s, kept explicit);
-`opening_ood_point_completeRel`: the placed form on `OodPre`, g4's `OodPointPre` with
-`2m + 2 < ordG`.
+`opening_ood_point_completeRel`: the placed form on `OodPointPre` (`Whir/OsCallees.lean`), the
+meaning without the states' run, `2m + 2 < ordG`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -89,12 +90,12 @@ theorem oodPre_shape : oodPre.all Main.Stmt.straight = true ∧
 def oodStates (cv : Digest) (m : ℕ) : List E :=
   (List.range (m + 1)).flatMap fun j => [(digestScalars (sqAll j cv).2).1, (digestScalars (sqAll j cv).2).2]
 
-theorem pairs_facts (f g : ℕ → E) : ∀ n, ((List.range n).flatMap fun c => [f c, g c]).length = 2 * n ∧
+theorem ood_pairs_facts (f g : ℕ → E) : ∀ n, ((List.range n).flatMap fun c => [f c, g c]).length = 2 * n ∧
     ∀ j < n, ((List.range n).flatMap fun c => [f c, g c]).getD (2 * j) 0 = f j ∧
       ((List.range n).flatMap fun c => [f c, g c]).getD (2 * j + 1) 0 = g j
   | 0 => ⟨rfl, fun _ h => absurd h (Nat.not_lt_zero _)⟩
   | n + 1 => by
-    obtain ⟨hl, hg⟩ := pairs_facts f g n
+    obtain ⟨hl, hg⟩ := ood_pairs_facts f g n
     rw [List.range_succ, List.flatMap_append]
     refine ⟨by simp [hl]; ring, fun j hj => ?_⟩
     by_cases hjn : j < n
@@ -106,12 +107,12 @@ theorem pairs_facts (f g : ℕ → E) : ∀ n, ((List.range n).flatMap fun c => 
       exact ⟨rfl, rfl⟩
 
 theorem length_oodStates (cv : Digest) (m : ℕ) : (oodStates cv m).length = 2 * m + 2 :=
-  (pairs_facts _ _ (m + 1)).1
+  (ood_pairs_facts _ _ (m + 1)).1
 
 theorem oodStates_getD (cv : Digest) (m : ℕ) {j : ℕ} (hj : j ≤ m) :
     (oodStates cv m).getD (2 * j) 0 = (digestScalars (sqAll j cv).2).1 ∧
       (oodStates cv m).getD (2 * j + 1) 0 = (digestScalars (sqAll j cv).2).2 :=
-  (pairs_facts _ _ (m + 1)).2 j (by omega)
+  (ood_pairs_facts _ _ (m + 1)).2 j (by omega)
 
 theorem find_loop9_pure : coreProgram.PureIn ["__loop9"] := g1_pure_one find_loop9 (by decide +kernel)
 
@@ -120,21 +121,11 @@ theorem not_loop_ood : coreProgram.loop "opening_ood_point" = false := by
 
 /-! ## The placed form -/
 
-/-- `opening_ood_point`'s meaning without its states' run, the run's `2m + 2` words below the
-order of `g`. -/
-def OodPre (rd : Reader) : List E → List E → Prop
-  | [fs0, fs1, point, ng], rets =>
-      ∃ m < ordG, 2 * m + 2 < ordG ∧ ng = gen ^ m ∧
-        ((m = 0 ∧ rets = [fs0, fs1]) ∨
-          (0 < m ∧ ∃ cv rs cv', (fs0, fs1) = digestScalars cv ∧ RunsTo (Prog.sampleN m) cv [] rs cv' ∧
-            ReadsAt rd point rs ∧ rets = [(digestScalars cv').1, (digestScalars cv').2]))
-  | _, _ => False
-
-theorem loadHolds_of_memL {rd : Reader} {b : ℕ} {xs : List E} (h : MemL rd [(b, xs)]) {j : ℕ}
+theorem g1_loadHolds_of_memL {rd : Reader} {b : ℕ} {xs : List E} (h : MemL rd [(b, xs)]) {j : ℕ}
     (hj : j < xs.length) : LoadHolds rd (ofK (Parameters.gpow b)) j (xs.getD j 0) := by
   rw [List.getD_eq_getElem _ _ hj]; exact h _ List.mem_cons_self j hj
 
-theorem one_add_gen_pow_ne {m : ℕ} (hm : m < ordG) (h0 : 0 < m) : 1 + gen ^ m ≠ 0 := by
+theorem ood_one_add_ne {m : ℕ} (hm : m < ordG) (h0 : 0 < m) : 1 + gen ^ m ≠ 0 := by
   intro h
   rw [e_add_eq_zero_iff, ← pow_zero gen] at h
   have := gen_pow_inj hm (by decide) h.symm
@@ -142,9 +133,9 @@ theorem one_add_gen_pow_ne {m : ℕ} (hm : m < ordG) (h0 : 0 < m) : 1 + gen ^ m 
 
 variable (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ)
 
-/-- **`opening_ood_point`, placed**: on `OodPre`, it returns the final state's cells and no buffer,
+/-- **`opening_ood_point`, placed**: on `OodPointPre`, it returns the final state's cells and no buffer,
 its states' run its own `HeapBuf`. -/
-theorem opening_ood_point_completeRel : CompleteRel fs cert k "opening_ood_point" OodPre := by
+theorem opening_ood_point_completeRel : CompleteRel fs cert k "opening_ood_point" OodPointPre := by
   intro args rets Lin hpre fp
   classical
   by_cases hex : ∃ rd1, LowDef k rd1 ∧ MemL rd1 Lin
@@ -185,11 +176,11 @@ theorem opening_ood_point_completeRel : CompleteRel fs cert k "opening_ood_point
         have hsc : OodScratch rd p cv m := fun j hj => by
           obtain ⟨a0, a1⟩ := oodStates_getD cv m hj
           rw [← a0, ← a1]
-          exact ⟨loadHolds_of_memL hS (by rw [length_oodStates]; omega),
-            loadHolds_of_memL hS (by rw [length_oodStates]; omega)⟩
+          exact ⟨g1_loadHolds_of_memL hS (by rw [length_oodStates]; omega),
+            g1_loadHolds_of_memL hS (by rw [length_oodStates]; omega)⟩
         exact ((guarded_loop_iff (loop9_step rd ng p point)).mpr ⟨m, hm, hN,
           (loop9_bodies_iff rd p point m h0).mpr ⟨cv, hsc, hpt' rd hL⟩⟩).2
-          (by rw [hN]; exact one_add_gen_pow_ne hm h0)
+          (by rw [hN]; exact ood_one_add_ne hm h0)
   have hLoopC : 0 < m → CompleteAt fs cert k "__loop9" ([(b0, st)] ++ Lin) [1, ng, p, point] (Returns []) :=
     fun h0 => completeAt_of_rel_pure find_loop9_pure (by simp) (hloop h0) k
   set b := b0 + (2 * m + 2) with hbdef
@@ -212,10 +203,10 @@ theorem opening_ood_point_completeRel : CompleteRel fs cert k "opening_ood_point
   rw [List.nil_append] at hM
   obtain ⟨hM1, hLin⟩ := Main.memL_append.mp hM
   obtain ⟨hS, hLl⟩ := Main.memL_append.mp hM1
-  have l0 : LoadHolds rd p 0 fs0 := s0 ▸ loadHolds_of_memL hS (by omega)
-  have l1 : LoadHolds rd p 1 fs1 := s1 ▸ loadHolds_of_memL hS (by omega)
-  have l13 : LoadHolds rd p (2 * m) r0 := sr0 ▸ loadHolds_of_memL hS (by omega)
-  have l14 : LoadHolds rd p (2 * m + 1) r1 := sr1 ▸ loadHolds_of_memL hS (by omega)
+  have l0 : LoadHolds rd p 0 fs0 := s0 ▸ g1_loadHolds_of_memL hS (by omega)
+  have l1 : LoadHolds rd p 1 fs1 := s1 ▸ g1_loadHolds_of_memL hS (by omega)
+  have l13 : LoadHolds rd p (2 * m) r0 := sr0 ▸ g1_loadHolds_of_memL hS (by omega)
+  have l14 : LoadHolds rd p (2 * m + 1) r1 := sr1 ▸ g1_loadHolds_of_memL hS (by omega)
   have hK : IsInK (1 + ng) := by
     rw [hN]; exact isInK_add (by rw [← pow_zero gen]; exact gen_pow_isInK 0) (gen_pow_isInK m)
   have hcall : 1 + ng ≠ 0 → coreProgram.Rel rd "__loop9" [1, ng, p, point] [] := fun hne =>
@@ -273,7 +264,7 @@ theorem opening_ood_point_completeRel : CompleteRel fs cert k "opening_ood_point
           exact Or.inl (Or.inr (hbuf i h1 (by rw [hst] at h2; exact h2)))
         · exact Or.inl (Or.inl ⟨q, hq, h1, h2⟩)
       · by_cases h0 : 0 < m
-        · have hne : τ (.n 9) ≠ 0 := by rw [t9, hN]; exact one_add_gen_pow_ne hm h0
+        · have hne : τ (.n 9) ≠ 0 := by rw [t9, hN]; exact ood_one_add_ne hm h0
           simp only [hne, ne_eq, not_false_eq_true, decide_true, ↓reduceIte, List.map_cons,
             List.map_nil, t10, t3, t7, t2]
           exact hRl h0 rd hl (by rw [List.nil_append]; exact Main.memL_append.mpr ⟨hLl, Main.memL_append.mpr ⟨hS, hLin⟩⟩)

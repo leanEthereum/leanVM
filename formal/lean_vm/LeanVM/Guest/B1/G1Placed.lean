@@ -114,7 +114,7 @@ theorem completeRel_of_const {fs : String → ℕ} {cert : String → V → ℕ}
     CompleteRel fs cert k f fun _ => Pre :=
   completeRel_of_lift h fun _ _ _ rd1 hl1 hL1 hpre _ _ => hpre rd1 hl1 hL1
 
-theorem isEmpty_filterMap_eq {α β : Type} {f : α → Option β} {l : List α}
+theorem g1_filterMap_nil {α β : Type} {f : α → Option β} {l : List α}
     (h : (l.filterMap f).isEmpty = true) : l.filterMap f = [] := List.isEmpty_iff.mp h
 
 /-! ## Purity -/

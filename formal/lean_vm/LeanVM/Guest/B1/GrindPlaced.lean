@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Grind
 public import LeanVM.Guest.B1.G1Placed
+public import LeanVM.Guest.B1.Whir.OsCallees
 public import LeanVM.Guest.B1.Da.Atoms
 
 /-!
@@ -20,8 +21,8 @@ At frame position `fp` the lane's 64 bits are the frame's cells from `fp + cert 
 The loop is pure, so it is placed by `completeAt_of_rel_pure` on the run.
 
 `gc_holds`: the honest valuation at a given run pointer (`grind_check_complete_aux`'s, kept
-explicit); `grind_check_completeRel`: the placed form on `GcPre`, `grind_check`'s meaning without
-its frame run, `bits ≤ 64`.
+explicit); `grind_check_completeRel`: the placed form on `GrindPre` (`Whir/OsCallees.lean`),
+`grind_check`'s meaning without its frame run, `bits ≤ 64`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -209,13 +210,6 @@ theorem gc_bits_of_powOk {m : ℕ} {nonce : E} {D : Digest} (hm : 0 < m) (h : po
 
 /-! ## The placed form -/
 
-/-- `grind_check`'s meaning without its frame run, the grinding bits at most the run's 64. -/
-def GcPre (_rd : Reader) : List E → List E → Prop
-  | [s0, s1, nonce, ng], rets =>
-      rets = [] ∧ ∃ m < ordG, m ≤ 64 ∧ ng = gen ^ m ∧ ∃ cv, (s0, s1) = digestScalars cv ∧
-        powOk m nonce (gcDigest cv nonce) = true
-  | _, _ => False
-
 /-- The lane's 64 bits for the digest of `cv` and `nonce`. -/
 noncomputable def gcBitsW (cv : Digest) (nonce : E) : List E :=
   (List.range 64).map fun i => bitE ((kToNat ((digestScalars (gcDigest cv nonce)).1.limb 0)).testBit i)
@@ -227,10 +221,10 @@ theorem not_loop_grind_check : coreProgram.loop "grind_check" = false := by
 
 variable (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ)
 
-/-- **`grind_check`, placed**: on `GcPre` (the state the cells of `cv`, `powOk bits` of the digest,
+/-- **`grind_check`, placed**: on `GrindPre` (the state the cells of `cv`, `powOk bits` of the digest,
 `bits ≤ 64`), it returns nothing and no buffer, its frame run the lane's bits. -/
 theorem grind_check_completeRel (hc : cert "grind_check" (.n 34) + 64 ≤ fs "grind_check") :
-    CompleteRel fs cert k "grind_check" GcPre := by
+    CompleteRel fs cert k "grind_check" GrindPre := by
   intro args rets Lin hpre fp
   classical
   by_cases hex : ∃ rd1, LowDef k rd1 ∧ MemL rd1 Lin
@@ -300,10 +294,10 @@ theorem grind_check_completeRel (hc : cert "grind_check" (.n 34) + 64 ≤ fs "gr
   set es := gcHead τ ++ gcRest.flatMap (Main.slEvs τ) with hes_def
   have hAD : allocDsts es = [] := by
     rw [allocDsts, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).1)]
-    exact e1.trans (by rw [isEmpty_filterMap_eq hal]; rfl)
+    exact e1.trans (by rw [g1_filterMap_nil hal]; rfl)
   have hAL : allocs τ es = [] := by
     rw [allocs, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).2.1)]
-    exact e2.trans (by rw [isEmpty_filterMap_eq hal]; rfl)
+    exact e2.trans (by rw [g1_filterMap_nil hal]; rfl)
   have hAA : addrs es = [(.n 287, .n 34)] := by
     rw [addrs, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).2.2.1)]
     exact e3.trans had
@@ -315,7 +309,7 @@ theorem grind_check_completeRel (hc : cert "grind_check" (.n 34) + 64 ≤ fs "gr
     exact (Digest.runs_straight τ gcRest hst).trans hru
   have hLA : loadAddrs τ es = [] := by
     rw [loadAddrs, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).2.2.2.2.2)]
-    exact (loadAddrs_straight τ gcRest hst).trans (by rw [isEmpty_filterMap_eq hlo]; rfl)
+    exact (loadAddrs_straight τ gcRest hst).trans (by rw [g1_filterMap_nil hlo]; rfl)
   have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := τ) (R := RegionL Lin)
     (D := RegionL []) (Dk := fun _ => False) (fp := fp) (N := nl) (es := es) (args := [s0, s1, nonce, N])
     (rets := []) coreProgram_wf
