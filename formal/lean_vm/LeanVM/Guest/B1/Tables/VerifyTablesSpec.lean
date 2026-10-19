@@ -17,9 +17,9 @@ public import LeanVM.Guest.B1.Tables.ColumnSelector
 * `tableWeights_eq`: at the point `rs.reverse` (the sumcheck's challenges in round order,
   reversed), a table of height `h` weighs the equality of its `h` coordinates times the product of
   the first `n - h` challenges.
-* `layoutOf_blocks`: the deployed layout's blocks per side, by owner (`pushOwners`,
-  `countOwners`), each block at its owner's height and row count, the pull side shaped as the push
-  side; `busLayout_pull_push`.
+* `layoutOf_blocks`: the deployed layout's blocks per side, by owner (`layoutPushOwners`,
+  `layoutCountOwners`), each block at its owner's height and row count, the pull side shaped as
+  the push side; `busLayout_pull_push`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -91,12 +91,12 @@ theorem tableWeights_eq (heights : List ℕ) (eqPoint rs : List E)
 /-! ## The bus blocks -/
 
 /-- The owners of the push side's blocks (and the pull side's). -/
-def pushOwners : List ℕ :=
+def layoutPushOwners : List ℕ :=
   [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5,
     5, 5]
 
 /-- The owners of the count side's blocks. -/
-def countOwners : List ℕ :=
+def layoutCountOwners : List ℕ :=
   [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
 
 theorem tables_opcode : ∀ i (h : i < tables.length), (tables[i]'h).opcode = i := by decide +kernel
@@ -145,11 +145,11 @@ theorem map_fields (G : Table × ℕ × ℕ → List BusBlock)
   simp only [Function.comp_apply, h1, h2]
 
 theorem push_owners :
-    tables.flatMap (fun t => t.flushes.push.map fun _ => t.opcode) = pushOwners := by
+    tables.flatMap (fun t => t.flushes.push.map fun _ => t.opcode) = layoutPushOwners := by
   decide +kernel
 
 theorem pull_owners :
-    tables.flatMap (fun t => t.flushes.pull.map fun _ => t.opcode) = pushOwners := by
+    tables.flatMap (fun t => t.flushes.pull.map fun _ => t.opcode) = layoutPushOwners := by
   decide +kernel
 
 theorem tables_counts : tables.map (fun t => (t.countColumns, t.opcode)) =
@@ -159,7 +159,7 @@ theorem tables_counts : tables.map (fun t => (t.countColumns, t.opcode)) =
     blake2sColumns, opXor, opMul, opSet, opDeref, opJump, opBlake2s]
 
 theorem count_owners :
-    tables.flatMap (fun t => t.countColumns.map fun _ => t.opcode) = countOwners := by
+    tables.flatMap (fun t => t.countColumns.map fun _ => t.opcode) = layoutCountOwners := by
   have e : tables.flatMap (fun t => t.countColumns.map fun _ => t.opcode) =
       (tables.map fun t => (t.countColumns, t.opcode)).flatMap
         (fun p => p.1.map fun _ => p.2) := by rw [List.flatMap_map]
@@ -173,11 +173,11 @@ theorem layoutOf_blocks (bytecode : List K) (hb : bytecode.length = 2 ^ 22) (log
     (rows : List ℕ) (hr : rows.length = 6) :
     let L := layoutOf bytecode logMem rows
     L.logBytecode = 18 ∧ L.tableLogHeights = rows.map log2Ceil ∧
-    L.push.map (·.owner) = pushOwners ∧ L.count.map (·.owner) = countOwners ∧
-    L.push.map (·.logRows) = pushOwners.map (fun t => log2Ceil (rows.getD t 0)) ∧
-    L.push.map (·.rows) = pushOwners.map (fun t => rows.getD t 0) ∧
-    L.count.map (·.logRows) = countOwners.map (fun t => log2Ceil (rows.getD t 0)) ∧
-    L.count.map (·.rows) = countOwners.map (fun t => rows.getD t 0) ∧
+    L.push.map (·.owner) = layoutPushOwners ∧ L.count.map (·.owner) = layoutCountOwners ∧
+    L.push.map (·.logRows) = layoutPushOwners.map (fun t => log2Ceil (rows.getD t 0)) ∧
+    L.push.map (·.rows) = layoutPushOwners.map (fun t => rows.getD t 0) ∧
+    L.count.map (·.logRows) = layoutCountOwners.map (fun t => log2Ceil (rows.getD t 0)) ∧
+    L.count.map (·.rows) = layoutCountOwners.map (fun t => rows.getD t 0) ∧
     L.push.map (·.coordinates) = tables.flatMap (·.flushes.push) ∧
     L.pull.map (·.coordinates) = tables.flatMap (·.flushes.pull) ∧
     L.count.map (·.coordinates) =
@@ -210,13 +210,13 @@ theorem layoutOf_blocks (bytecode : List K) (hb : bytecode.length = 2 ^ 22) (log
   have hGc : ∀ (t : Table) (h n : ℕ) (b : BusBlock), b ∈ Gc (t, h, n) →
       b.logRows = h ∧ b.rows = n ∧ b.owner = t.opcode :=
     fun t h n b => hm _ _ b h n _ fun _ => ⟨rfl, rfl, rfl⟩
-  have po : L.push.map (·.owner) = pushOwners := by
+  have po : L.push.map (·.owner) = layoutPushOwners := by
     rw [ep, flatMap_zip_map Gp (·.owner) (fun t => t.flushes.push.map fun _ => t.opcode)
       (fun t h n => by rw [hGpd, List.map_map]; rfl) _ _ _ hl1 hl2, push_owners]
-  have lo : L.pull.map (·.owner) = pushOwners := by
+  have lo : L.pull.map (·.owner) = layoutPushOwners := by
     rw [el, flatMap_zip_map Gl (·.owner) (fun t => t.flushes.pull.map fun _ => t.opcode)
       (fun t h n => by rw [hGld, List.map_map]; rfl) _ _ _ hl1 hl2, pull_owners]
-  have co : L.count.map (·.owner) = countOwners := by
+  have co : L.count.map (·.owner) = layoutCountOwners := by
     rw [ec, flatMap_zip_map Gc (·.owner) (fun t => t.countColumns.map fun _ => t.opcode)
       (fun t h n => by rw [hGcd, List.map_map]; rfl) _ _ _ hl1 hl2, count_owners]
   have pf := fun {α : Type} (f : ℕ → ℕ → ℕ → α) => map_fields Gp hGp rows hr f
