@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.LoopAt
 
-  The uniform placed completeness (`CompleteAt`) of a loop helper from its iterations, and of a
-  straight-line iteration from its valuation and its callees' `CompleteAt`.
+  The uniform placed completeness (`CompleteAtD`) of a loop helper from its iterations, and of a
+  straight-line iteration from its valuation and its callees' `CompleteAtD`.
 -/
 
 module
@@ -20,7 +20,7 @@ given its tail's size `mt`, one size and one layout of its own words serving eve
 holds them and the caller's words `Lin`, is complete at every `fp`.
 
 `loopStep_straight`: an iteration of a straight-line body with no `HeapBuf` and no `frameAddr`,
-whose callees before the tail are `CompleteAt` (`Kid`s reading within `Lin`) and whose loads read `Lin`, given its valuation on every memory.
+whose callees before the tail are `CompleteAtD` (`Kid`s reading within `Lin`) and whose loads read `Lin`, given its valuation on every memory.
 
 `CellL`, `regionL_of_mem`: the words of a layout and where they lie.
 -/
@@ -28,8 +28,8 @@ whose callees before the tail are `CompleteAt` (`Kid`s reading within `Lin`) and
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
-open LeanVM.Guest.B1 (Within LowDef CompleteAt Returns Kid CallsMatch OutsOk RegionsOk outRegion
-  kidsFromIn_of_kids relAtIn_dmono within_append)
+open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtD Returns Kid CallsMatch OutsOk RegionsOk outRegion
+  kidsFromIn_of_kidsD relAtIn_dmono within_append)
 
 @[expose] public section
 
@@ -93,31 +93,33 @@ right after its frame (a `RelAtIn` when `j + 1 < m`, the frame of the call not t
 is complete at every `fp` with one size and one layout of its own words from
 `fp + fs f + mt`. -/
 theorem completeAt_loop {f : String} (κ : ℕ) (Lin : Layout) (A : ℕ → List E) (m : ℕ)
-    (step : ∀ j < m, ∀ fp mt : ℕ, ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧
+    (step : ∀ j < m, ∀ fp mt : ℕ, ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧ DisjL L ∧
       ∀ rd, LowDef κ rd → MemL rd (L ++ Lin) →
         (j + 1 < m → RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) (fp + fs f) mt f
           (A (j + 1)) []) →
         (j + 1 = m → mt = fs f) →
         RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) fp (fs f + mt + n) f
           (A j) []) :
-    ∀ j < m, CompleteAt fs cert κ f Lin (A j) (Returns []) := by
-  have key : ∀ t j, j + t + 1 = m → CompleteAt fs cert κ f Lin (A j) (Returns []) := by
+    ∀ j < m, CompleteAtD fs cert κ f Lin (A j) (Returns []) := by
+  have key : ∀ t j, j + t + 1 = m → CompleteAtD fs cert κ f Lin (A j) (Returns []) := by
     intro t
     induction t with
     | zero =>
       intro j hj fp
-      obtain ⟨n, L, hW, hS⟩ := step j (by omega) fp (fs f)
-      refine ⟨fs f + fs f + n, L, [], [], ⟨rfl, rfl⟩, ?_, fun rd hl hL => ?_⟩
+      obtain ⟨n, L, hW, hD, hS⟩ := step j (by omega) fp (fs f)
+      refine ⟨fs f + fs f + n, L, [], [], ⟨rfl, rfl⟩, ?_, by simpa using hD, fun rd hl hL => ?_⟩
       · simpa using hW.mono (by omega) (by omega)
       · refine relAtIn_dmono (hS rd hl (by simpa using hL) (fun h => by omega) (fun _ => rfl))
           fun i hi => ?_
         obtain ⟨q, hq, _⟩ := hi; simp at hq
     | succ t ih =>
       intro j hj fp
-      obtain ⟨nt, Lt, rt, Lo, ⟨rfl, rfl⟩, hWt, hSt⟩ := ih (j + 1) (by omega) (fp + fs f)
-      obtain ⟨n, L, hW, hS⟩ := step j (by omega) fp nt
-      refine ⟨fs f + nt + n, Lt ++ L, [], [], ⟨rfl, rfl⟩, ?_, fun rd hl hL => ?_⟩
-      · simp only [List.nil_append] at hWt ⊢
+      obtain ⟨nt, Lt, rt, Lo, ⟨rfl, rfl⟩, hWt, hDt, hSt⟩ := ih (j + 1) (by omega) (fp + fs f)
+      obtain ⟨n, L, hW, hD, hS⟩ := step j (by omega) fp nt
+      simp only [List.nil_append] at hWt hDt
+      refine ⟨fs f + nt + n, Lt ++ L, [], [], ⟨rfl, rfl⟩, ?_, by simpa using disj_append hDt hD hWt hW le_rfl,
+        fun rd hl hL => ?_⟩
+      · simp only [List.nil_append]
         rw [within_append]
         exact ⟨hWt.mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
       · simp only [List.nil_append, List.append_assoc] at hL
@@ -140,7 +142,7 @@ theorem regionsOk_of_sub {R : ℕ → Prop} : ∀ (Dacc : ℕ → Prop) (ks : Li
       regionsOk_of_sub _ ks os fun k' hk' => h k' (by simp [hk'])⟩
 
 /-- **A straight-line loop iteration, placed**: the body `pre ++ [ret []]` places nothing, its
-callees before the tail are the `Kid`s `ks` (each `CompleteAt`, reading within `Lin`), and on every memory holding their words and `Lin`, for their results, a valuation
+callees before the tail are the `Kid`s `ks` (each `CompleteAtD`, reading within `Lin`), and on every memory holding their words and `Lin`, for their results, a valuation
 satisfies the body with the frames matching the kids and loads reading `Lin`. -/
 theorem loopStep_straight {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = true) {pre : List Stmt} (hb : fn.body = pre ++ [.ret []])
@@ -148,7 +150,7 @@ theorem loopStep_straight {f : String} {fn : Fn} (hf : coreProgram.find? f = som
     (had : pre.filterMap Stmt.addrS = []) (κ : ℕ) (Lin : Layout) (args : List E)
     (fronts : List (Option V × String × List V × List V)) (tc : V) (targs : List V)
     (hcs : pre.filterMap Stmt.callS = fronts ++ [(some tc, f, targs, [])])
-    (ks : List Kid) (hks : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out)
+    (ks : List Kid) (hks : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
     (hsub : ∀ k ∈ ks, ∀ q ∈ k.Lin, q ∈ Lin)
     (targs' : List E) (more : Bool) (fp mt : ℕ)
     (hσ : ∀ rd, LowDef κ rd → MemL rd Lin → ∀ outs, OutsOk ks outs → ∃ σ : Val,
@@ -157,15 +159,15 @@ theorem loopStep_straight {f : String} {fn : Fn} (hf : coreProgram.find? f = som
       CallsMatch σ (fronts.map (mkCall σ)) ks outs ∧ decide (σ tc ≠ 0) = more ∧
       targs.map σ = targs' ∧
       ∀ q ∈ pre.filterMap LeanVM.Guest.B1.Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧ RegionL Lin i) :
-    ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧
+    ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧ DisjL L ∧
       ∀ rd, LowDef κ rd → MemL rd (L ++ Lin) →
         (more = true → RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) (fp + fs f) mt f
           targs' []) →
         (more = false → mt = fs f) →
         RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) fp (fs f + mt + n) f args [] := by
-  obtain ⟨N, L, outs, ho, hW, hK⟩ := kidsFromIn_of_kids (fs := fs) (cert := cert) κ ks hks
+  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ ks hks
     (fp + fs f + mt + 0)
-  refine ⟨N, L, by simpa using hW, fun rd hlow hL htail hnot => ?_⟩
+  refine ⟨N, L, by simpa using hW, hD, fun rd hlow hL htail hnot => ?_⟩
   obtain ⟨hL1, hL2⟩ := memL_append.mp hL
   obtain ⟨σ, hp, hH, hcm, htk, hta, hld⟩ := hσ rd hlow hL2 outs ho
   have hwf : Stmt.wfList coreProgram fn.body = true :=
@@ -221,7 +223,7 @@ theorem loopStep_bufs {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
     (hcs : pre.filterMap Stmt.callS = fronts ++ [(some tc, f, targs, [])])
     (sizes : List ℕ) (bufs : List (List E)) (hbl : List.Forall₂ (fun c s => c.length ≤ s) bufs sizes)
     (fp mt : ℕ) (ks : List Kid)
-    (hks : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out)
+    (hks : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
     (hsub : ∀ k ∈ ks, SubL k.Lin (bufL (fp + fs f + mt) sizes bufs ++ Lin))
     (targs' : List E) (more : Bool)
     (hσ : ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f + mt) sizes bufs ++ Lin) → ∀ outs, OutsOk ks outs →
@@ -233,16 +235,18 @@ theorem loopStep_bufs {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
       targs.map σ = targs' ∧
       ∀ q ∈ pre.filterMap LeanVM.Guest.B1.Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧
         (RegionL Lin i ∨ RegionL (bufL (fp + fs f + mt) sizes bufs) i)) :
-    ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧
+    ∃ (n : ℕ) (L : Layout), Within L (fp + fs f + mt) n ∧ DisjL L ∧
       ∀ rd, LowDef κ rd → MemL rd (L ++ Lin) →
         (more = true → RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) (fp + fs f) mt f
           targs' []) →
         (more = false → mt = fs f) →
         RelAtIn coreProgram fs cert rd (RegionL Lin) (fun _ => False) fp (fs f + mt + n) f args [] := by
   set Lb := bufL (fp + fs f + mt) sizes bufs with hLb
-  obtain ⟨N, L, outs, ho, hW, hK⟩ := kidsFromIn_of_kids (fs := fs) (cert := cert) κ ks hks
+  obtain ⟨N, L, outs, ho, hW, hD, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ ks hks
     (fp + fs f + mt + sizes.sum)
-  refine ⟨sizes.sum + N, Lb ++ L, ?_, fun rd hlow hL htail hnot => ?_⟩
+  refine ⟨sizes.sum + N, Lb ++ L, ?_,
+    disj_append (bufL_disj _ _ _ hbl) hD (LeanVM.Guest.B1.bufL_within _ _ _ hbl) hW le_rfl,
+    fun rd hlow hL htail hnot => ?_⟩
   · rw [within_append]
     exact ⟨(LeanVM.Guest.B1.bufL_within _ _ _ hbl).mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
   rw [List.append_assoc] at hL

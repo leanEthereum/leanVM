@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Main.AggRegion
 /-!
 # `main`, placed
 
-`aggregate_claims_completeAt`: `aggregate_claims_relAtIn` as `CompleteAt`. `mainOk_of_words`:
+`aggregate_claims_completeAt`: `aggregate_claims_relAtIn` as `CompleteAtD`. `mainOk_of_words`:
 `MainOk` under the trivial call relation from `MainWordsOk` and a memory holding `mainIn`, which
 `main_body_holds` turns into the events of `main`'s path (`walk_mainBody`). `main_relAtIn_core`:
 `main`'s tree at `fp` from its callees after `exponent_tables` (`Kid`s matching its frames);
@@ -25,8 +25,8 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.B1 (Within LowDef CompleteAt CompleteRel Returns Kid CallsMatch OutsOk OutsIn
-  RegionsOk outRegion kidsFromIn_of_kids' regionsOk_of memL_lins relAtIn_dmono within_append bufL
+open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtD CompleteRelD Returns Kid CallsMatch OutsOk OutsIn
+  RegionsOk outRegion kidsFromIn_of_kidsD regionsOk_of memL_lins relAtIn_dmono within_append bufL
   bufL_region bufL_within)
 
 @[expose] public section
@@ -51,11 +51,13 @@ theorem aggregate_claims_completeAt (κ : ℕ) {cs : List ChildClaims} {h : Batc
     (hbr : h.bytecodeRounds.length = 22) (hmr : h.matrixRounds.length = 28)
     (hsh : ∀ c ∈ cs, FreshShaped c.fresh ∧ c.carried.bytecodePoint.length = 22 ∧
       c.carried.matrixPoint.length = 28) (ap af ac ad : ℕ) :
-    CompleteAt fs cert κ "aggregate_claims" (aggExtL ap af ac ad cs d)
+    CompleteAtD fs cert κ "aggregate_claims" (aggExtL ap af ac ad cs d)
       [gen ^ cs.length, ofK (gpow ap), ofK (gpow af), ofK (gpow ac), ofK (gpow ad)] (Returns []) := by
   intro fp
   obtain ⟨n, hn, hR⟩ := aggregate_claims_relAtIn fs cert hne hlen hb hbr hmr hsh ap af ac ad fp
   refine ⟨n, aggOwnL fs fp cs h (ofK (gpow af)) (ofK (gpow ac)), [], [], ⟨rfl, rfl⟩, ?_,
+    by simpa [aggOwnL, bufL] using (bufL_disj (fp + fs "aggregate_claims") (aggSizes cs.length)
+      (aggBufs cs h (ofK (gpow af)) (ofK (gpow ac))) (forall₂_of_map_length _ _ (length_aggBufs hbr hmr))),
     fun rd _ hL => relAtIn_dmono (hR rd (by simpa using hL)) fun i hi => ?_⟩
   · have := bufL_within (fp + fs "aggregate_claims") (aggSizes cs.length)
       (aggBufs cs h (ofK (gpow af)) (ofK (gpow ac)))
@@ -177,31 +179,42 @@ theorem mainExpBase_eq : mainExpBase fs fp W =
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 2000000 in
 /-- **`main` at `fp`, from its callees**: the callees after `exponent_tables` as `Kid`s reading
-`mainIn`, each `CompleteAt`, matching `main`'s frames under its valuation. -/
+`mainIn`, each `CompleteAtD`, matching `main`'s frames under its valuation. -/
 theorem main_relAtIn_core (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W) (ks : List Kid)
-    (hks : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out)
+    (hks : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out)
     (hsub : ∀ k ∈ ks, SubL k.Lin (mainIn fs fp W))
     (hcm : ∀ rd, ∀ outs, OutsOk ks outs → CallsMatch (mainVal rd (mainRunAt fs fp W))
       ((mainFronts (decide (W.rd = 1)) (decide (W.nc = 0))).map
         (mkCall (mainVal rd (mainRunAt fs fp W)))) ks outs) :
     ∃ (m : ℕ) (L : Layout), Within (mainIn fs fp W ++ L) (fp + fs "main") m ∧
-      ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W ++ L) →
+      DisjL (mainIn fs fp W ++ L) ∧ ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W ++ L) →
         rd 1 = some (digestScalars W.stDig).1 → rd g = some (digestScalars W.stDig).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] := by
   set b0 := fp + fs "main" with hb0
   set bK := b0 + W.sizes.sum with hbK
   set n0 := fs "exponent_tables" + [34, 34].sum + 0 with hn0
-  obtain ⟨N, Lk, outs, ho, hWk, -, hK⟩ := kidsFromIn_of_kids' (fs := fs) (cert := cert) κ ks hks
+  obtain ⟨N, Lk, outs, ho, hWk, hDk, -, hK⟩ := kidsFromIn_of_kidsD (fs := fs) (cert := cert) κ ks hks
     (bK + n0)
-  refine ⟨W.sizes.sum + (n0 + N), Lk, ?_, fun rd hl hL hp0 hp1 => ?_⟩
-  · rw [within_append, mainIn, within_append]
-    refine ⟨⟨(bufL_within _ _ _ (forall₂_of_map_length _ _ hW.lens)).mono le_rfl (by omega), ?_⟩,
-      hWk.mono (by omega) (by omega)⟩
+  have hf := forall₂_of_map_length _ _ hW.lens
+  have hWx : Within (mainLexp fs fp W) bK n0 := by
     intro q hq
     simp only [mainLexp, List.mem_cons, List.not_mem_nil, or_false] at hq
     rcases hq with rfl | rfl <;> simp only [mainExpBase, expTbl1, expTbl2, List.length_map,
       List.length_range, hn0, List.sum_cons, List.sum_nil] <;> omega
+  have hWin : Within (mainIn fs fp W) b0 (W.sizes.sum + n0) := by
+    rw [mainIn, within_append]
+    exact ⟨(bufL_within _ _ _ hf).mono le_rfl (by omega), hWx.mono (by omega) (by omega)⟩
+  have hDx : DisjL (mainLexp fs fp W) := by
+    simp only [mainLexp, DisjL, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+      forall_eq, List.Pairwise.nil, and_true, IsEmpty.forall_iff, implies_true]
+    left; simp [expTbl1]
+  have hDin : DisjL (mainIn fs fp W) :=
+    disj_append (bufL_disj _ _ _ hf) hDx (bufL_within _ _ _ hf) hWx (by omega)
+  refine ⟨W.sizes.sum + (n0 + N), Lk, ?_, disj_append hDin hDk hWin hWk (by omega),
+    fun rd hl hL hp0 hp1 => ?_⟩
+  · rw [within_append]
+    exact ⟨hWin.mono le_rfl (by omega), hWk.mono (by omega) (by omega)⟩
   obtain ⟨hLin, hLk⟩ := memL_append.mp hL
   set R := mainRunAt fs fp W with hR
   set σ := mainVal rd R with hσ
@@ -513,7 +526,7 @@ theorem main_hcm (hW : MainWordsOk fs κ VsGood fp W) (ksAgg : List Kid)
 /-! ## The callees' completeness -/
 
 theorem main_ks8 (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W) :
-    ∀ k ∈ mainKids8 fs fp W, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
+    ∀ k ∈ mainKids8 fs fp W, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
   have ht := hW.total
   unfold MainWords.total at ht
   intro k hk htk
@@ -549,12 +562,12 @@ and the public input at words `0`, `1`: `main` holds by a tree placed at `fp`, l
 own data or its header. -/
 theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W) :
     ∃ (m : ℕ) (L : Layout), Within (mainIn fs fp W ++ L) (fp + fs "main") m ∧
-      ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W ++ L) →
+      DisjL (mainIn fs fp W ++ L) ∧ ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W ++ L) →
         rd 1 = some (digestScalars W.stDig).1 → rd g = some (digestScalars W.stDig).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] := by
   have hpre : ∀ k ∈ mainKids8 fs fp W ++ (if W.rd = 1 then mainKidsDa fs fp W else []) ++
-      [mainKid5 fs fp W], k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
+      [mainKid5 fs fp W], k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
     intro k hk htk
     simp only [List.mem_append, List.mem_singleton] at hk
     rcases hk with (hk | hk) | rfl
@@ -582,7 +595,7 @@ theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : M
         rcases hk with rfl | rfl <;> exact hq
       · simp [hr] at hk
     · exact hq
-  have hsd : CompleteAt fs cert κ (mainKidSd fs fp W).f (mainKidSd fs fp W).Lin
+  have hsd : CompleteAtD fs cert κ (mainKidSd fs fp W).f (mainKidSd fs fp W).Lin
       (mainKidSd fs fp W).args (mainKidSd fs fp W).Out := by
     obtain ⟨sig, cells, h⟩ := hW.stmt; exact H.statement_digest sig cells _ _ _ h
   by_cases hnc : W.nc = 0

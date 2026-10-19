@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Main.CalleesAt
 
   What `main`'s placed completeness assumes of the functions it calls that other groups prove:
-  each one's uniform placed completeness (`CompleteRel`) on its honest precondition.
+  each one's uniform placed completeness (`CompleteRelD`) on its honest precondition.
 -/
 
 module
@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.VerifySub.CPlaced3
 /-!
 # The callees of `main`, placed
 
-`CalleesAt fs cert κ VsGood`: for each function another group proves, `CompleteRel` at `κ` on
+`CalleesAt fs cert κ VsGood`: for each function another group proves, `CompleteRelD` at `κ` on
 the precondition its Rel-level completeness takes, with the function's own buffers (scratch
 tables, internal `HeapBuf`s) left to it:
 
@@ -42,7 +42,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.B1 (CompleteRel CompleteAt Returns Meaning_verify_lean_xmss Meaning_verify_sig_lean_sphincs
+open LeanVM.Guest.B1 (CompleteRelD CompleteAtD Returns Meaning_verify_lean_xmss Meaning_verify_sig_lean_sphincs
   Meaning_statement_digest Meaning_da_list_digest)
 open LeanVM.Guest.B1.Digest (SquaresAt CellsAt)
 
@@ -102,18 +102,18 @@ def DaVerifyPreAt (root vd : Digest) (rd : Reader) : List E → List E → Prop
 /-- **The callees of `main` other groups prove, complete uniformly and placed** at `κ`. -/
 structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
     (VsGood : VerifySub.VsData → Prop) : Prop where
-  verify_lean_xmss : CompleteRel fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss
+  verify_lean_xmss : CompleteRelD fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss
   verify_sig_lean_sphincs :
-    CompleteRel fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs
-  statement_digest : ∀ sig cells, CompleteRel fs cert κ "statement_digest" (SdPreAt sig cells)
-  da_list_digest : ∀ claims, CompleteRel fs cert κ "da_list_digest" (DaListPreAt claims)
-  cover_da_root : ∀ i, CompleteRel fs cert κ "cover_da_root" (CoverPreAt i)
-  claim_list_digest : ∀ cs, CompleteRel fs cert κ "claim_list_digest" (ClPreAt cs)
+    CompleteRelD fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs
+  statement_digest : ∀ sig cells, CompleteRelD fs cert κ "statement_digest" (SdPreAt sig cells)
+  da_list_digest : ∀ claims, CompleteRelD fs cert κ "da_list_digest" (DaListPreAt claims)
+  cover_da_root : ∀ i, CompleteRelD fs cert κ "cover_da_root" (CoverPreAt i)
+  claim_list_digest : ∀ cs, CompleteRelD fs cert κ "claim_list_digest" (ClPreAt cs)
   child_claim_list_digest : ∀ off cs,
-    CompleteRel fs cert κ "child_claim_list_digest" (CclPreAt off cs)
+    CompleteRelD fs cert κ "child_claim_list_digest" (CclPreAt off cs)
   da_verify : ∀ (wt : Da.Witness) (root vd : Digest), wt.Opens root vd →
-    CompleteRel fs cert κ "da_verify" (DaVerifyPreAt root vd)
-  verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAt fs cert κ "verify_sub"
+    CompleteRelD fs cert κ "da_verify" (DaVerifyPreAt root vd)
+  verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAtD fs cert κ "verify_sub"
     (VerifySub.vsExtL lpA sqA outA D) [(digestScalars D.pi).1, (digestScalars D.pi).2,
       (digestScalars D.seed).1, (digestScalars D.seed).2, ofK (gpow lpA), ofK (gpow sqA),
       ofK (gpow outA)] (Returns [])

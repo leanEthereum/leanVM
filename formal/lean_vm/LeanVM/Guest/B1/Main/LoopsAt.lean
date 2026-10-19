@@ -1,9 +1,9 @@
 /-
   LeanVM.Guest.B1.Main.LoopsAt
 
-  `main`'s loops placed, uniformly (`CompleteAt`): the hint-filling loops (`__loop0`, `__loop1`,
+  `main`'s loops placed, uniformly (`CompleteAtD`): the hint-filling loops (`__loop0`, `__loop1`,
   `__loop2`), the raw signatures' writers (`__loop3`, `__loop4`) and a child's DA roots
-  (`__loop100`), from the words of the caller's layout and their callees' `CompleteRel`.
+  (`__loop100`), from the words of the caller's layout and their callees' `CompleteRelD`.
 -/
 
 module
@@ -26,7 +26,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.B1 (Within LowDef CompleteAt CompleteRel Returns Kid CallsMatch OutsOk
+open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtD CompleteRelD Returns Kid CallsMatch OutsOk
   relAtIn_dmono Meaning_verify_lean_xmss Meaning_verify_sig_lean_sphincs)
 
 @[expose] public section
@@ -68,11 +68,11 @@ theorem gen_pow_succ_add_ne {j m : ℕ} (hm : m < 2 ^ 34) (hj : j + 1 < 2 ^ 34) 
 /-- **A quiet loop holding on every memory is complete** at every frame pointer. -/
 theorem quietLoop_completeAt {f : String} (hS : coreProgram.QuietIn [f]) (κ : ℕ) (Lin : Layout)
     {args : List E} (h : ∀ rd, coreProgram.Rel rd f args []) :
-    CompleteAt fs cert κ f Lin args (Returns []) := by
+    CompleteAtD fs cert κ f Lin args (Returns []) := by
   obtain ⟨n, hn⟩ := relAtIn_uniform_quiet (fs := fs) (cert := cert) coreProgram_wf coreProgram_fresh hS
     (List.mem_singleton_self f) (h fun _ => none)
   intro fp
-  refine ⟨n, [], [], [], ⟨rfl, rfl⟩, fun q hq => by simp at hq, fun rd _ _ => ?_⟩
+  refine ⟨n, [], [], [], ⟨rfl, rfl⟩, fun q hq => by simp at hq, disj_nil, fun rd _ _ => ?_⟩
   refine relAtIn_dmono (hn fp (RegionL Lin) rd fun A hA => by simp at hA) fun i hi => ?_
   obtain ⟨q, hq, _⟩ := hi; simp at hq
 
@@ -137,14 +137,14 @@ theorem loop3_holds {C : CallRel} (hl : LowDef 16 rd) {x N cover table : E} {M :
 /-- **`__loop3`, placed**: iteration `c < m` marks slot `sl c` of the leanXMSS region `g^M` of the
 coverage table at `cb` with `g^c`, and verifies the claim at `tb·g^(4·sl c)`; the marks are words
 of `Lin`, and the claims' signatures verify on every memory holding it. -/
-theorem loop3_completeAt {κ : ℕ} (H : CompleteRel fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss)
+theorem loop3_completeAt {κ : ℕ} (H : CompleteRelD fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss)
     (hκ : 16 ≤ κ) {M m cb tb : ℕ} (hM : M ≤ 2 ^ 16) (hm : m < 2 ^ 16) (hm0 : 0 < m) (sl : ℕ → ℕ)
     (hs : ∀ c < m, sl c < M) (Lin : Layout) (hmark : ∀ c < m, CellL Lin (cb + sl c) (gen ^ c))
     (hv : ∀ c < m, ∀ rd, LowDef κ rd → MemL rd Lin →
       Meaning_verify_lean_xmss rd [ofK (gpow tb) * gen ^ (4 * sl c)] []) :
-    CompleteAt fs cert κ "__loop3" Lin [1, gen ^ m, gen ^ M, ofK (gpow cb), ofK (gpow tb)]
+    CompleteAtD fs cert κ "__loop3" Lin [1, gen ^ m, gen ^ M, ofK (gpow cb), ofK (gpow tb)]
       (Returns []) := by
-  suffices h : CompleteAt fs cert κ "__loop3" Lin [gen ^ 0, gen ^ m, gen ^ M, ofK (gpow cb),
+  suffices h : CompleteAtD fs cert κ "__loop3" Lin [gen ^ 0, gen ^ m, gen ^ M, ofK (gpow cb),
       ofK (gpow tb)] (Returns []) by simpa using h
   refine completeAt_loop (fs := fs) (cert := cert) (f := "__loop3") κ Lin
     (fun j => [gen ^ j, gen ^ m, gen ^ M, ofK (gpow cb), ofK (gpow tb)]) m (fun j hj fp mt => ?_) 0 hm0
@@ -157,8 +157,8 @@ theorem loop3_completeAt {κ : ℕ} (H : CompleteRel fs cert κ "verify_lean_xms
       exact H _ _ Lin fun rd hl hL => hv j hj rd hl hL)
     (fun k hk q hq => by rw [List.mem_singleton] at hk; subst hk; exact hq)
     [gen ^ (j + 1), gen ^ m, gen ^ M, ofK (gpow cb), ofK (gpow tb)] (decide (j + 1 ≠ m)) fp mt
-    (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hS⟩ =>
-      ⟨n, L, hW, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
+    (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hD, hS⟩ =>
+      ⟨n, L, hW, hD, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
         fun h => hn (by simpa using h)⟩
   match outs, ho with
   | [o], ⟨ho1, _⟩ =>
@@ -230,15 +230,15 @@ theorem loop4_holds {C : CallRel} (hl : LowDef 16 rd) {x N cover w table : E} {M
 with `w·g^c`, `sl c` in the leanSPHINCS region `g^M`, and verifies the claim at
 `tb·g^(4·sl c)`. -/
 theorem loop4_completeAt {κ : ℕ}
-    (H : CompleteRel fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs)
+    (H : CompleteRelD fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs)
     (hκ : 16 ≤ κ) {M Lx m cb tb : ℕ} {w : E} (hM : M ≤ 2 ^ 16) (hm : m < 2 ^ 16) (hm0 : 0 < m)
     (sl : ℕ → ℕ) (hs : ∀ c < m, sl c < M) (Lin : Layout)
     (hmark : ∀ c < m, CellL Lin (cb + (Lx + sl c)) (w * gen ^ c))
     (hv : ∀ c < m, ∀ rd, LowDef κ rd → MemL rd Lin →
       Meaning_verify_sig_lean_sphincs rd [ofK (gpow tb) * gen ^ (4 * sl c)] []) :
-    CompleteAt fs cert κ "__loop4" Lin
+    CompleteAtD fs cert κ "__loop4" Lin
       [1, gen ^ m, gen ^ M, ofK (gpow cb), gen ^ Lx, w, ofK (gpow tb)] (Returns []) := by
-  suffices h : CompleteAt fs cert κ "__loop4" Lin [gen ^ 0, gen ^ m, gen ^ M, ofK (gpow cb),
+  suffices h : CompleteAtD fs cert κ "__loop4" Lin [gen ^ 0, gen ^ m, gen ^ M, ofK (gpow cb),
       gen ^ Lx, w, ofK (gpow tb)] (Returns []) by simpa using h
   refine completeAt_loop (fs := fs) (cert := cert) (f := "__loop4") κ Lin
     (fun j => [gen ^ j, gen ^ m, gen ^ M, ofK (gpow cb), gen ^ Lx, w, ofK (gpow tb)]) m
@@ -252,8 +252,8 @@ theorem loop4_completeAt {κ : ℕ}
       exact H _ _ Lin fun rd hl hL => hv j hj rd hl hL)
     (fun k hk q hq => by rw [List.mem_singleton] at hk; subst hk; exact hq)
     [gen ^ (j + 1), gen ^ m, gen ^ M, ofK (gpow cb), gen ^ Lx, w, ofK (gpow tb)] (decide (j + 1 ≠ m))
-    fp mt (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hS⟩ =>
-      ⟨n, L, hW, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
+    fp mt (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hD, hS⟩ =>
+      ⟨n, L, hW, hD, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
         fun h => hn (by simpa using h)⟩
   match outs, ho with
   | [o], ⟨ho1, _⟩ =>
@@ -324,15 +324,15 @@ theorem loop100_holds {C : CallRel} {x N cda roots dcov dslots base nsub r0 r1 r
 /-- **`__loop100`, placed**: iteration `c < m` marks its DA slot by `cover_da_root` with
 `base·nsub·g^c` in DA slot `sl c`, which returns the root's cells `rt c`, stored at `cdab + 4c`
 (words of `Lin`). -/
-theorem loop100_completeAt {κ : ℕ} (H : ∀ i, CompleteRel fs cert κ "cover_da_root" (CoverPreAt i))
+theorem loop100_completeAt {κ : ℕ} (H : ∀ i, CompleteRelD fs cert κ "cover_da_root" (CoverPreAt i))
     {m cdab : ℕ} {roots dcov dslots base nsub : E} (hm : m < 2 ^ 16) (hm0 : 0 < m) (Lin : Layout)
     (rt : ℕ → List E) (hlen : ∀ c < m, (rt c).length = 4) (sl : ℕ → ℕ)
     (hcov : ∀ c < m, ∀ rd, LowDef κ rd → MemL rd Lin →
       CoverPreAt (sl c) rd [roots, dcov, dslots, base * nsub * gen ^ c] (rt c))
     (hcda : ∀ c < m, ∀ k < 4, CellL Lin (cdab + 4 * c + k) ((rt c).getD k 0)) :
-    CompleteAt fs cert κ "__loop100" Lin
+    CompleteAtD fs cert κ "__loop100" Lin
       [1, gen ^ m, ofK (gpow cdab), roots, dcov, dslots, base, nsub] (Returns []) := by
-  suffices h : CompleteAt fs cert κ "__loop100" Lin
+  suffices h : CompleteAtD fs cert κ "__loop100" Lin
       [gen ^ 0, gen ^ m, ofK (gpow cdab), roots, dcov, dslots, base, nsub] (Returns []) by
     simpa using h
   refine completeAt_loop (fs := fs) (cert := cert) (f := "__loop100") κ Lin
@@ -347,8 +347,8 @@ theorem loop100_completeAt {κ : ℕ} (H : ∀ i, CompleteRel fs cert κ "cover_
       exact H (sl j) _ _ Lin fun rd hl hL => hcov j hj rd hl hL)
     (fun k hk q hq => by rw [List.mem_singleton] at hk; subst hk; exact hq)
     [gen ^ (j + 1), gen ^ m, ofK (gpow cdab), roots, dcov, dslots, base, nsub] (decide (j + 1 ≠ m))
-    fp mt (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hS⟩ =>
-      ⟨n, L, hW, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
+    fp mt (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hD, hS⟩ =>
+      ⟨n, L, hW, hD, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
         fun h => hn (by simpa using h)⟩
   have hcj := hcda j hj
   obtain ⟨r0, r1, r2, r3, hr⟩ : ∃ a b c d, rt j = [a, b, c, d] := by

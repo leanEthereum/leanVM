@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Main.TablesAt
 
-  `exponent_tables` placed, uniformly (`CompleteAt`): its two tables in its own `HeapBuf`s, which
+  `exponent_tables` placed, uniformly (`CompleteAtD`): its two tables in its own `HeapBuf`s, which
   it returns.
 -/
 
@@ -23,7 +23,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol.Verifier (gen eOfNat)
-open LeanVM.Guest.B1 (Within LowDef CompleteAt etBody etBlk1 etBlk2 core2_body find_exponent_tables
+open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtD etBody etBlk1 etBlk2 core2_body find_exponent_tables
   holdsList_range_flatten word_eOfNat)
 
 @[expose] public section
@@ -143,12 +143,15 @@ theorem exponent_tables_relAtIn (fp : ℕ) (rd : Reader)
 
 /-- **`exponent_tables`, placed**: at every `fp` its tables in its two `HeapBuf`s, returned. -/
 theorem exponent_tables_completeAt (κ : ℕ) :
-    CompleteAt fs cert κ "exponent_tables" [] [] ExpOut := by
+    CompleteAtD fs cert κ "exponent_tables" [] [] ExpOut := by
   intro fp
-  refine ⟨_, [], _, _, ⟨fp + fs "exponent_tables", rfl, rfl⟩, fun q hq => ?_,
+  refine ⟨_, [], _, _, ⟨fp + fs "exponent_tables", rfl, rfl⟩, fun q hq => ?_, ?_,
     fun rd _ hL => exponent_tables_relAtIn fp rd (by simpa using hL)⟩
-  simp only [List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hq
-  rcases hq with rfl | rfl <;> simp [expTbl1, expTbl2] <;> omega
+  · simp only [List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hq
+    rcases hq with rfl | rfl <;> simp [expTbl1, expTbl2] <;> omega
+  · simp only [List.append_nil, DisjL, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+      forall_eq, List.Pairwise.nil, and_true, IsEmpty.forall_iff, implies_true]
+    left; simp [expTbl1]
 
 end
 end LeanVM.Guest.B1.Main

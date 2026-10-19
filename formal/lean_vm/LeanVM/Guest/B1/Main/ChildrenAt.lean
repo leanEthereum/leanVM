@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.B1.Main.ChildrenAt
 
-  `main`'s loop over its children (`__loop5`) placed, uniformly (`CompleteAt`): per child, its
-  callees' `CompleteRel`, its two `HeapBuf`s (the signer pair, the DA roots) and the words of the
+  `main`'s loop over its children (`__loop5`) placed, uniformly (`CompleteAtD`): per child, its
+  callees' `CompleteRelD`, its two `HeapBuf`s (the signer pair, the DA roots) and the words of the
   caller's layout.
 -/
 
@@ -19,7 +19,7 @@ claims, the two claim lists' digest cells, its signer set's and statement's dige
 deferred cells. `loop5Val` is the iteration's valuation, the range checks' words read from the
 memory; `loop5_holds` checks the body against it for any call relation. `ChildWordsOk`: what
 iteration `c` needs of the caller's layout and of its callees' preconditions.
-`loop5_completeAt`: `__loop5` is `CompleteAt` over its `m` children, each iteration placing its
+`loop5_completeAt`: `__loop5` is `CompleteAtD` over its `m` children, each iteration placing its
 signer pair and its DA roots' buffer after its tail.
 -/
 
@@ -27,7 +27,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.B1 (Within LowDef CompleteAt CompleteRel Returns Kid CallsMatch OutsOk
+open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtD CompleteRelD Returns Kid CallsMatch OutsOk
   relAtIn_dmono bufL Meaning_statement_digest Meaning_da_list_digest DaClaimsAt)
 open LeanVM.Guest.B1.Digest (CellsAt)
 
@@ -234,9 +234,9 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
     (rs : ℕ → ChildWords)
     (hok : ∀ c < m, ChildWordsOk κ VsGood Lin wb cpib lxT cover lxS gsq spT spS carried daR daC daS
       seed0 seed1 glp cfresh seedD c (rs c)) :
-    CompleteAt fs cert κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
+    CompleteAtD fs cert κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
       carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] (Returns []) := by
-  suffices h : CompleteAt fs cert κ "__loop5" Lin [gen ^ 0, gen ^ m, ofK (gpow wb), lxT, cover, lxS,
+  suffices h : CompleteAtD fs cert κ "__loop5" Lin [gen ^ 0, gen ^ m, ofK (gpow wb), lxT, cover, lxS,
       gsq, spT, spS, carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh]
       (Returns []) by simpa using h
   refine completeAt_loop (fs := fs) (cert := cert) (f := "__loop5") κ Lin
@@ -295,7 +295,7 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
         Returns [(digestScalars r.pd).1, (digestScalars r.pd).2]⟩,
       ⟨"verify_sub", true, [(digestScalars r.pd).1, (digestScalars r.pd).2, seed0, seed1, glp, gsq,
         cfresh * gen ^ (106 * j)], VerifySub.vsExtL lpA sqA outA D, Returns []⟩]
-  have hks : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
+  have hks : ∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
     intro k hk ht
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
@@ -336,8 +336,8 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : Ca
                     exact hvsub.trans (SubL.of_mem fun q hq => List.mem_append_right _ hq))
     [gen ^ (j + 1), gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR, daC, daS,
       seed0, seed1, ofK (gpow cpib), glp, cfresh] (decide (j + 1 ≠ m))
-    (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hS⟩ =>
-      ⟨n, L, hW, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
+    (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hD, hS⟩ =>
+      ⟨n, L, hW, hD, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
         fun h => hn (by simpa using h)⟩
   match outs, ho with
   | [q1, q2, q3, q4, q5, q6], ho =>

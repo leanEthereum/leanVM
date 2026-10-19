@@ -151,14 +151,14 @@ theorem main_complete {cert : String → V → ℕ} {κ : ℕ} {VsGood : VerifyS
     (hfr : ∀ c ∈ w.children, FreshShaped c.fresh)
     (hvs : ∀ c ∈ w.children, ∃ D : VerifySub.VsData, VsGood D ∧ D.pi = statementDigest seed c.statement ∧
       D.seed = seed ∧ D.fresh = c.fresh) (fp : ℕ) :
-    ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧
+    ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧ LeanVM.Guest.B1.DisjL L ∧
       ∀ rd, LowDef κ rd → MemL rd L →
         rd 1 = some (digestScalars (statementDigest seed s)).1 →
         rd g = some (digestScalars (statementDigest seed s)).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] :=
-  let ⟨m, _, hW, h⟩ := main_relAtIn H hκ (honest_wordsOk fs (fp := fp) hb hN hlim hfr hvs)
-  ⟨m, _, hW, h⟩
+  let ⟨m, _, hW, hD, h⟩ := main_relAtIn H hκ (honest_wordsOk fs (fp := fp) hb hN hlim hfr hvs)
+  ⟨m, _, hW, hD, h⟩
 
 end
 end LeanVM.Guest.B1.Main

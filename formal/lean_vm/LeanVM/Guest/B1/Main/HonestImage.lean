@@ -91,41 +91,5 @@ theorem memL_imageOf {κ : ℕ} (hκ : κ < 64) {L : Layout} (hc : LConsistent L
   rw [← hc q hq q' hm (q.1 + k) (by omega) (by omega) hp.1 hp.2, Nat.add_sub_cancel_left,
     List.getD_eq_getElem _ _ hk]
 
-/-! ## `main`'s own words are disjoint -/
-
-/-- Entries in disjoint slots. -/
-def PwDisj (L : Layout) : Prop :=
-  L.Pairwise fun q q' => q.1 + q.2.length ≤ q'.1 ∨ q'.1 + q'.2.length ≤ q.1
-
-theorem pwDisj_bufL : ∀ (b : ℕ) (sizes : List ℕ) (cs : List (List E)),
-    List.Forall₂ (fun c s => c.length ≤ s) cs sizes → PwDisj (LeanVM.Guest.B1.bufL b sizes cs)
-  | _, [], _, _ => by simp [LeanVM.Guest.B1.bufL, bases, PwDisj]
-  | b, s :: sizes, [], h => by cases h
-  | b, s :: sizes, c :: cs, h => by
-    obtain ⟨hc, h⟩ := List.forall₂_cons.mp h
-    simp only [LeanVM.Guest.B1.bufL, bases, List.zip_cons_cons, PwDisj, List.pairwise_cons]
-    exact ⟨fun q hq => Or.inl (by
-      have := LeanVM.Guest.B1.bufL_within (b + s) sizes cs h q hq; show b + c.length ≤ q.1; omega),
-      pwDisj_bufL (b + s) sizes cs h⟩
-
-theorem pwDisj_append {L L' : Layout} {b n b' n' : ℕ} (h : PwDisj L) (h' : PwDisj L')
-    (hw : LeanVM.Guest.B1.Within L b n) (hw' : LeanVM.Guest.B1.Within L' b' n') (hb : b + n ≤ b') :
-    PwDisj (L ++ L') :=
-  List.pairwise_append.mpr ⟨h, h', fun q hq q' hq' => by
-    have := hw q hq; have := hw' q' hq'; omega⟩
-
-theorem pwDisj_mainIn (fs : String → ℕ) (fp : ℕ) (W : MainWords) (hl : W.bufs.map List.length = W.sizes) :
-    PwDisj (mainIn fs fp W) := by
-  have hf := forall₂_of_map_length _ _ hl
-  refine pwDisj_append (pwDisj_bufL _ _ _ hf) ?_ (LeanVM.Guest.B1.bufL_within _ _ _ hf)
-    (b' := mainExpBase fs fp W) (n' := 68) (fun q hq => ?_) (by unfold mainExpBase; omega)
-  · simp only [mainLexp, PwDisj, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
-      forall_eq, List.not_mem_nil, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_true]
-    left; simp [expTbl1]
-  · simp only [mainLexp, List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with rfl | rfl
-    · simp [expTbl1]
-    · simp [expTbl2]
-
 end
 end LeanVM.Guest.B1.Main
