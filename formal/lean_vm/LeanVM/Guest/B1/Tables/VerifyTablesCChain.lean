@@ -98,5 +98,112 @@ theorem vt_phaseA (hS : VtSortComplete) {κ : ℕ} (hκ : 7 ≤ κ) (hlow : LowD
 
 end
 
+/-! ## The selectors -/
+
+/-- What selector `i` reads: its block's log-height `k` and offset `off i` fitting the point, the
+two in `block_kappa` and `block_off_g`, and its three buffers at `ptr (selBuf i + ·)`. -/
+def SelMem (rd : Reader) (bk offP : E) (point : List E) (ks off : ℕ → ℕ) (ptr : ℕ → E) (i : ℕ) : Prop :=
+  ks (selBlk.getD i 0) ≤ point.length ∧ off i < 2 ^ point.length ∧ 2 ^ ks (selBlk.getD i 0) ∣ off i ∧
+    LoadHolds rd bk (selBlk.getD i 0) (gen ^ ks (selBlk.getD i 0)) ∧
+    LoadHolds rd offP (selBlk.getD i 0) (gen ^ off i) ∧
+    ReadsAt rd (ptr (selBuf i)) ((List.range 34).map fun j => bitE ((off i).testBit j)) ∧
+    ReadsAt rd (ptr (selBuf i + 1)) ((List.range (point.length - ks (selBlk.getD i 0) + 1)).map fun t =>
+      ∏ j ∈ Finset.range t, (1 + bitE ((off i).testBit (ks (selBlk.getD i 0) + j)) +
+        point.getD (ks (selBlk.getD i 0) + j) 0)) ∧
+    ReadsAt rd (ptr (selBuf i + 2)) ((List.range (point.length - ks (selBlk.getD i 0) + 1)).map fun t =>
+      ∏ j ∈ Finset.range t, (1 + bitE ((off i).testBit (ks (selBlk.getD i 0) + j)) *
+        (gen ^ 2 ^ (ks (selBlk.getD i 0) + j) + 1)))
+
+/-- What selector `i` leaves: its `eqAbove`, `g^k` and the three pointers. -/
+def SelPost (point : List E) (ks off : ℕ → ℕ) (ptr : ℕ → E) (i : ℕ) (σ : Val) : Prop :=
+  σ (.n (selVal.getD i 0 + 23)) = ({ vars := ks (selBlk.getD i 0), index := off i } : Placement).eqAbove point ∧
+    σ (.n (selVal.getD i 0)) = gen ^ ks (selBlk.getD i 0) ∧ σ (.n (selVal.getD i 0 + 12)) = ptr (selBuf i) ∧
+    σ (.n (selVal.getD i 0 + 15)) = ptr (selBuf i + 1) ∧ σ (.n (selVal.getD i 0 + 16)) = ptr (selBuf i + 2)
+
+set_option maxRecDepth 100000 in
+theorem sel_nb : ∀ i < 65, numBelowB (selVal.getD i 0 + 27)
+    (Stmt.valsList ((vtPre.drop (selStmt.getD i 0)).take 28)) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem vtGaps_nb : vtGaps.all (fun g => numBelowB g.2.2.2
+    (Stmt.valsList ((vtPre.drop g.1).take (g.2.1 - g.1)))) = true := by decide +kernel
+
+theorem sel_mono : ∀ i < 65, ∀ j < 65, i ≤ j →
+    selStmt.getD i 0 ≤ selStmt.getD j 0 ∧ selVal.getD i 0 ≤ selVal.getD j 0 := by decide +kernel
+
+theorem sel_adj : ∀ i < 64, selStmt.getD i 0 + 28 ≤ selStmt.getD (i + 1) 0 ∧
+    selVal.getD i 0 + 27 ≤ selVal.getD (i + 1) 0 := by decide +kernel
+
+theorem sel_lo : ∀ i < 65, 129 ≤ selVal.getD i 0 := by decide +kernel
+
+section
+variable {rd : Reader}
+
+/-- **Selector `i` completes.** -/
+theorem vt_c_sel (hSel : VtSelComplete) {κ : ℕ} (hκ : 6 ≤ κ) (hlow : LowDef κ rd) {σ : Val}
+    {zeta bk sq offP : E} {point : List E} {ks off : ℕ → ℕ} {ptr : ℕ → E} (hpl : point.length < 33)
+    (hz : ReadsAt rd zeta point) (hsq : ∀ j < 34, LoadHolds rd sq j (gen ^ 2 ^ j)) {i : ℕ} (hi : i < 65)
+    (hm : SelMem rd bk offP point ks off ptr i) (h5 : σ (.n 5) = zeta) (h6 : σ (.n 6) = gen ^ point.length)
+    (h9 : σ (.n 9) = bk) (h10 : σ (.n 10) = sq) (h128 : σ (.n 128) = offP) :
+    Completes (coreProgram.Rel rd) rd (selVal.getD i 0) (selVal.getD i 0 + 27)
+      ((vtPre.drop (selStmt.getD i 0)).take 28) σ (SelPost point ks off ptr i) := by
+  obtain ⟨hk, hoff, hdvd, hbk, hoffP, h12, h15, h16⟩ := hm
+  exact hSel i hi κ hκ rd hlow σ zeta bk sq offP _ _ _ point _ _ h5 h6 h9 h10 h128 hk hpl hoff hdvd hbk
+    hoffP hz hsq h12 h15 h16
+
+/-- **A run of selectors, each followed by a pure window**, from selector `i0`. -/
+theorem vt_sel_run (hSel : VtSelComplete) {κ : ℕ} (hκ : 6 ≤ κ) (hlow : LowDef κ rd)
+    {zeta bk sq offP : E} {point : List E} {ks off : ℕ → ℕ} {ptr : ℕ → E} (hpl : point.length < 33)
+    (hz : ReadsAt rd zeta point) (hsq : ∀ j < 34, LoadHolds rd sq j (gen ^ 2 ^ j))
+    (hm : ∀ i < 65, SelMem rd bk offP point ks off ptr i) :
+    ∀ (d i0 : ℕ), (∀ j < d, i0 + j < 64 ∧ (selStmt.getD (i0 + j) 0 + 28, selStmt.getD (i0 + j + 1) 0,
+      selVal.getD (i0 + j) 0 + 27, selVal.getD (i0 + j + 1) 0) ∈ vtGaps) → i0 < 65 →
+    ∀ σ : Val, σ (.n 5) = zeta → σ (.n 6) = gen ^ point.length → σ (.n 9) = bk → σ (.n 10) = sq →
+      σ (.n 128) = offP →
+      Completes (coreProgram.Rel rd) rd (selVal.getD i0 0) (selVal.getD (i0 + d) 0)
+        ((vtPre.drop (selStmt.getD i0 0)).take (selStmt.getD (i0 + d) 0 - selStmt.getD i0 0)) σ
+        (fun σ' => ∀ j < d, SelPost point ks off ptr (i0 + j) σ')
+  | 0, i0, _, _, σ, _, _, _, _, _ => by
+    simp only [Nat.add_zero, Nat.sub_self, List.take_zero]
+    exact completes_nil _ _ σ fun j hj => absurd hj (Nat.not_lt_zero j)
+  | d + 1, i0, hrun, hi0, σ, h5, h6, h9, h10, h128 => by
+    obtain ⟨h0, hg⟩ := hrun 0 (by omega)
+    simp only [Nat.add_zero] at h0 hg
+    have hadj := sel_adj i0 h0
+    have hmo := sel_mono (i0 + 1) (by omega) (i0 + 1 + d) (by have := (hrun d (by omega)).1; omega) (by omega)
+    have hlo := sel_lo i0 hi0
+    rw [show i0 + (d + 1) = i0 + 1 + d by omega,
+      show selStmt.getD (i0 + 1 + d) 0 - selStmt.getD i0 0 =
+        (28 + (selStmt.getD (i0 + 1) 0 - (selStmt.getD i0 0 + 28))) +
+          (selStmt.getD (i0 + 1 + d) 0 - selStmt.getD (i0 + 1) 0) by omega]
+    refine (vt_cons (P := fun σ'' => SelPost point ks off ptr i0 σ'' ∧ True)
+      (Q := fun σ'' => ∀ j < d, SelPost point ks off ptr (i0 + 1 + j) σ'')
+      (mid := selVal.getD (i0 + 1) 0) (by omega) hmo.2 ?_ ?_ ?_ fun σ' e _ => ?_).mono le_rfl le_rfl ?_
+    · rw [List.take_add, valsList_append]
+      exact NumBelow.append ((numBelow_of_B (sel_nb i0 hi0)).mono hadj.2)
+        (by rw [List.drop_drop]; exact numBelow_of_B (List.all_eq_true.mp vtGaps_nb _ hg))
+    · exact vt_cons (by omega) hadj.2 (numBelow_of_B (sel_nb i0 hi0))
+        (vt_c_sel hSel hκ hlow hpl hz hsq hi0 (hm i0 hi0) h5 h6 h9 h10 h128)
+        (fun σ1 σ2 hag hp => by
+          unfold SelPost at hp ⊢; simp +contextual (disch := omega) only [hag]; exact hp)
+        fun σ' _ _ => vt_c_gap hg σ'
+    · intro σ1 σ2 hag hp
+      exact ⟨by unfold SelPost at hp ⊢; simp +contextual (disch := omega) only [hag]; exact hp.1, trivial⟩
+    · rw [show selStmt.getD i0 0 + (28 + (selStmt.getD (i0 + 1) 0 - (selStmt.getD i0 0 + 28))) =
+        selStmt.getD (i0 + 1) 0 by omega]
+      exact vt_sel_run hSel hκ hlow hpl hz hsq hm d (i0 + 1)
+        (fun j hj => by
+          have := hrun (j + 1) (by omega)
+          rw [show i0 + (j + 1) = i0 + 1 + j by omega] at this; exact this) (by omega) σ'
+        (by rw [e.apply (by omega), h5]) (by rw [e.apply (by omega), h6]) (by rw [e.apply (by omega), h9])
+        (by rw [e.apply (by omega), h10]) (by rw [e.apply (by omega), h128])
+    · rintro σ'' ⟨⟨hp0, -⟩, hr⟩ j hj
+      rcases j with _ | j
+      · simpa using hp0
+      · have := hr j (by omega)
+        rw [show i0 + 1 + j = i0 + (j + 1) by omega] at this; exact this
+
+end
+
 end
 end LeanVM.Guest.B1.VerifySub
