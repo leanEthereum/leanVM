@@ -474,5 +474,137 @@ theorem grind_check_completeRelD (hc : cert "grind_check" (.n 34) + 64 ≤ fs "g
     (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
   rwa [hAL, List.sum_nil, Nat.add_zero] at h
 
+/-- **`grind_check`, placed**: on `GrindPre` (the state the cells of `cv`, `powOk bits` of the digest,
+`bits ≤ 64`), it returns nothing and no buffer, its frame run the lane's bits. -/
+theorem grind_check_completeRelB (hc : cert "grind_check" (.n 34) + 64 ≤ fs "grind_check") (B6 : E → ℕ)
+    (h6 : TotalLe coreProgram fs "__loop6" fun a => B6 (a.getD 1 0)) :
+    ∀ (args rets : List E) (Lin : Main.Layout), (∀ rd, LowDef k rd → MemL rd Lin → GrindPre rd args rets) →
+      CompleteAtB fs cert k "grind_check" Lin args (Returns rets)
+        (fs "grind_check" + max (B6 (args.getD 3 0)) (fs "__loop6")) := by
+  intro args rets Lin hpre fp
+  classical
+  by_cases hex : ∃ rd1, LowDef k rd1 ∧ MemL rd1 Lin
+  swap
+  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, Nat.zero_le _, fun rd hl hL =>
+      absurd ⟨rd, hl, by simpa using hL⟩ hex⟩
+  obtain ⟨rd1, hl1, hL1⟩ := hex
+  obtain ⟨s0, s1, nonce, N, rfl⟩ : ∃ s0 s1 nonce N, args = [s0, s1, nonce, N] := by
+    match args, hpre rd1 hl1 hL1 with
+    | [a, b, c, d], _ => exact ⟨a, b, c, d, rfl⟩
+  obtain ⟨rfl, m, hm, hm64, hN, cv, hcv, hpow⟩ := hpre rd1 hl1 hL1
+  set c := cert "grind_check" (.n 34) with hcdef
+  set p : E := ofK (Parameters.gpow (fp + c)) with hpdef
+  set Lrun : Main.Layout := [(fp + c, gcBitsW cv nonce)] with hLrun
+  have hrd_run : ∀ rd, MemL rd Lrun → ∀ j < 64, LoadHolds rd p j ((gcBitsW cv nonce).getD j 0) := by
+    intro rd h j hj
+    have := h _ List.mem_cons_self j (by simpa [gcBitsW] using hj)
+    rwa [List.getD_eq_getElem _ _ (by simpa [gcBitsW] using hj)]
+  have hzero : ∀ rd, MemL rd Lrun → ∀ j < m, LoadHolds rd p j 0 := by
+    intro rd h j hj
+    have := hrd_run rd h j (by omega)
+    rwa [gcBitsW, List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map, List.getElem_range,
+      gc_bits_of_powOk (by omega) hpow j hj] at this
+  -- The loop, placed after the frame, when entered.
+  have hloop : 0 < m → CompleteAtB fs cert k "__loop6" Lrun [1, N, p] (Returns []) (B6 N) := fun h0 =>
+    completeAt_of_rel_pureB find_loop6_pure (by simp) (fun rd hL => ((guarded_loop_iff
+      (loop6_step rd N p)).mpr ⟨m, hm, hN, fun j hj => by
+        rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hzero rd hL j hj⟩).2 (by
+          rw [hN]; intro h
+          rw [e_add_eq_zero_iff, ← pow_zero gen] at h
+          have := gen_pow_inj (by omega) (by decide) h.symm
+          omega)) k h6
+  set b := fp + fs "grind_check"
+  obtain ⟨nl, Ll, hWl, hDl, hnb, hRl, hnl⟩ : ∃ (nl : ℕ) (Ll : Main.Layout), Within Ll b nl ∧ DisjL Ll ∧
+      nl ≤ max (B6 N) (fs "__loop6") ∧ (0 < m → ∀ rd, LowDef k rd →
+      MemL rd ([] ++ Ll ++ Lrun) →
+        RelAtIn coreProgram fs cert rd (RegionL Lrun) (RegionL []) b nl "__loop6" [1, N, p] []) ∧
+      (m = 0 → nl = fs "__loop6") := by
+    by_cases h0 : 0 < m
+    · obtain ⟨n', Lo, rets', Lout', ⟨rfl, rfl⟩, hw, hd, hnb, hr⟩ := hloop h0 b
+      exact ⟨n', Lo, by simpa using hw, by simpa using hd, le_trans hnb (le_max_left _ _), fun _ => hr, fun h => absurd h (by omega)⟩
+    · exact ⟨fs "__loop6", [], by simp [Within], disj_nil, le_max_right _ _, fun h => absurd h h0, fun _ => rfl⟩
+  have hWr : Within Lrun (fp + c) 64 := fun q hq => by
+    rw [hLrun, List.mem_singleton] at hq
+    subst hq
+    simp only [gcBitsW, List.length_map, List.length_range]
+    omega
+  refine ⟨fs "grind_check" + nl, Lrun ++ Ll, [], [], ⟨rfl, rfl⟩, ?_, ?_, Nat.add_le_add_left hnb _, fun rd hl hM => ?_⟩
+  · rw [List.nil_append, within_append]
+    exact ⟨fun q hq => by have := hWr q hq; omega, hWl.mono (by omega) (by omega)⟩
+  · rw [List.nil_append]
+    exact disj_append (by simp [hLrun, DisjL]) hDl hWr hWl (by omega)
+  rw [List.nil_append] at hM
+  obtain ⟨hM1, hLin⟩ := Main.memL_append.mp hM
+  obtain ⟨hRun, hLl⟩ := Main.memL_append.mp hM1
+  have hfr : ∀ k < 64, ∀ w, rd (p.limb 0 * Parameters.gpow k) = some w →
+      w = bitE ((kToNat ((digestScalars (gcDigest cv nonce)).1.limb 0)).testBit k) := by
+    intro j hj w hw
+    have := (hrd_run rd hRun j hj).2
+    rw [hw, Option.some.injEq] at this
+    rw [this, gcBitsW, List.getD_eq_getElem _ _ (by simp; omega), List.getElem_map, List.getElem_range]
+  obtain ⟨τ, ⟨t287, t289, t290, t3⟩, hpar, hh⟩ := gc_holds rd s0 s1 nonce N m hm hN cv hcv hpow p
+    (ofK_isInK _) hfr (hzero rd hRun)
+  have hwf : Stmt.wfList coreProgram (Fn.body Data.core3) = true :=
+    coreProgram_wf Data.core3 (List.mem_of_find?_eq_some find_grind_check)
+  rw [core3_body] at hwf
+  have hs := walk_sat _ hwf hh
+  rw [walk_gcBody] at hs
+  obtain ⟨hst, hal, had, hca, hru, hlo⟩ := gcRest_shape
+  obtain ⟨e1, e2, e3, e4⟩ := Main.straight_parts τ gcRest hst
+  set es := gcHead τ ++ gcRest.flatMap (Main.slEvs τ) with hes_def
+  have hAD : allocDsts es = [] := by
+    rw [allocDsts, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).1)]
+    exact e1.trans (by rw [g1_filterMap_nil hal]; rfl)
+  have hAL : allocs τ es = [] := by
+    rw [allocs, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).2.1)]
+    exact e2.trans (by rw [g1_filterMap_nil hal]; rfl)
+  have hAA : addrs es = [(.n 287, .n 34)] := by
+    rw [addrs, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).2.2.1)]
+    exact e3.trans had
+  have hCA : calls es = [⟨"__loop6", [.n 290, .n 3, .n 287], [], decide (τ (.n 289) ≠ 0)⟩] := by
+    rw [calls, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).2.2.2.1)]
+    exact e4.trans (by rw [hca]; rfl)
+  have hRU : runs es = [(.n 34, 64)] := by
+    rw [runs, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).2.2.2.2.1)]
+    exact (Digest.runs_straight τ gcRest hst).trans hru
+  have hLA : loadAddrs τ es = [] := by
+    rw [loadAddrs, hes_def, filterMap_gcHead τ (fun e he => (gcHead_none τ e he).2.2.2.2.2)]
+    exact (loadAddrs_straight τ gcRest hst).trans (by rw [g1_filterMap_nil hlo]; rfl)
+  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := τ) (R := RegionL Lin)
+    (D := RegionL []) (Dk := fun _ => False) (fp := fp) (N := nl) (es := es) (args := [s0, s1, nonce, N])
+    (rets := []) coreProgram_wf
+    find_grind_check (Or.inl not_loop_grind_check) hpar (by rw [core3_body]; exact walk_gcBody τ) rfl
+    (fun e he => (hs.1 e he).1) (by rw [hAD, hAL]; rfl)
+    (fun q hq => by
+      rw [hAA, List.mem_singleton] at hq
+      subst hq
+      exact t287)
+    (by
+      rw [hCA, hAL, List.sum_nil, Nat.add_zero]
+      refine ⟨nl, 0, RegionL Lrun, RegionL [], (Nat.add_zero nl).symm, fun i hi => ?_, ?_,
+        rfl, fun _ h => h.elim⟩
+      · obtain ⟨q, hq, h1, h2⟩ := hi
+        rw [hLrun, List.mem_singleton] at hq
+        subst hq
+        refine Or.inl (Or.inr (Or.inr ⟨(.n 34, 64), by rw [hRU]; exact List.mem_singleton_self _,
+          h1, ?_⟩))
+        simpa [gcBitsW] using h2
+      · by_cases h0 : 0 < m
+        · have hne : τ (.n 289) ≠ 0 := by
+            rw [t289, hN]; intro h
+            rw [e_add_eq_zero_iff, ← pow_zero gen] at h
+            have := gen_pow_inj (by omega) (by decide) h.symm
+            omega
+          simp only [hne, ne_eq, not_false_eq_true, decide_true, ↓reduceIte, List.map_cons,
+            List.map_nil, t290, t3, t287]
+          exact hRl h0 rd hl (by rw [List.nil_append]; exact Main.memL_append.mpr ⟨hLl, hRun⟩)
+        · have hz : τ (.n 289) = 0 := by
+            rw [t289, hN, show m = 0 by omega, pow_zero]; exact e_add_self 1
+          simp only [hz, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte]
+          exact hnl (by omega))
+    (fun A hA => by rw [hLA] at hA; exact absurd hA (List.not_mem_nil))
+    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+  rwa [hAL, List.sum_nil, Nat.add_zero] at h
+
 end
 end LeanVM.Guest.B1
