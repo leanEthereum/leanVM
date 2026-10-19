@@ -57,7 +57,7 @@ theorem osResidual_complete {maxQ ich ba bb lvl k : ℕ} {lv : OsLvl} (hnq : lv.
     by rw [e9, hbe]; exact l2, by rw [e10, e1]; exact l3, by rw [e11, e9, e10], by rw [e12, e8, e11],
     by rw [e12, hich]; exact l4⟩
 
-private theorem os_zipIdx_map_range' {α β : Type} [Inhabited α] (f : α × ℕ → β) (l : List α) :
+theorem os_zipIdx_map_rangeD {α β : Type} [Inhabited α] (f : α × ℕ → β) (l : List α) :
     l.zipIdx.map f = (List.range l.length).map fun i => f (l.getD i default, i) := by
   apply List.ext_getElem (by simp)
   intro i h1 h2
@@ -83,7 +83,7 @@ theorem osResiduals_complete {maxQ ich ba bb k : ℕ} {lvs : List OsLvl}
     (hv : ∀ j < 13 * lvs.length, σ (.n (k + j)) = (osResidualsVals maxQ lvs chv i0 b r).getD j 0) :
     Stmt.HoldsList osTC rd σ (osResiduals maxQ ich ba bb k lvs) True kret := by
   unfold osResiduals
-  rw [os_zipIdx_map_range', holdsList_range_flatten _ _ (fun _ => rfl)]
+  rw [os_zipIdx_map_rangeD, holdsList_range_flatten _ _ (fun _ => rfl)]
   refine ⟨fun lvl hl => ?_, trivial⟩
   obtain ⟨m0, m1, m2, m3, m4⟩ := hm lvl hl
   have hlv : lvs.getD lvl default ∈ lvs := by
