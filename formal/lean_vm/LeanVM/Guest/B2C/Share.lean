@@ -289,6 +289,10 @@ end Steps
 noncomputable def listed (l : List (ℕ × ℕ)) (v : V) (c : ℕ) : Bool :=
   v == V.n v.idx && l.any fun p ↦ Nat.beq p.1 v.idx && Nat.beq p.2 c
 
+/-- The certificate lists a temporary with its cell: `tt` is its temporaries by cell. -/
+noncomputable def listedT (tt : Trie ℕ) (v : V) (c : ℕ) : Bool :=
+  v == V.n v.idx && getF tt c == some v.idx
+
 /-- A frame run's values sit in consecutive cells from `base`, listed. -/
 noncomputable def runListed (loc : Loc) (l : List (ℕ × ℕ)) (base : ℕ) : ℕ → List V → Bool
   | _, [] => true
@@ -296,8 +300,8 @@ noncomputable def runListed (loc : Loc) (l : List (ℕ × ℕ)) (base : ℕ) : �
       runListed loc l base (k + 1) vs
 
 /-- The certificate's lists hold the atom's temporaries and run. -/
-noncomputable def atomListed (loc : Loc) (P : Plumb) : Core.Atom → Bool
-  | .rangeCheck _ _ t1 t2 _ => listed P.tmps t1 (loc.cell t1) && listed P.tmps t2 (loc.cell t2)
+noncomputable def atomListed (loc : Loc) (tt : Trie ℕ) (P : Plumb) : Core.Atom → Bool
+  | .rangeCheck _ _ t1 t2 _ => listedT tt t1 (loc.cell t1) && listedT tt t2 (loc.cell t2)
   | .frameAddr _ (r :: rs) => runListed loc P.runs (loc.cell r) 0 (r :: rs)
   | _ => true
 
@@ -338,7 +342,7 @@ def joinSt (pre : SSt) (bs : List SSt) : SSt :=
 
 section Walk
 
-variable (loc : Loc) (sh : ℕ) (P : Plumb)
+variable (loc : Loc) (sh : ℕ) (tt : Trie ℕ) (P : Plumb)
 
 mutual
 /-- **The walk** of a block: the state at its end, if every pending value is shown in time. -/
@@ -350,7 +354,7 @@ noncomputable def swL : SSt → List Stmt → Option SSt
 
 /-- One statement. -/
 noncomputable def swS (st : SSt) : Stmt → Option SSt
-  | .atom a => bif atomListed loc P a then some (stepAtom loc sh st a) else none
+  | .atom a => bif atomListed loc tt P a then some (stepAtom loc sh st a) else none
   | .ite c z n =>
     (nameStep loc sh st [c]).seq fun st1 ↦
       bif st1.pend.isEmpty then
@@ -396,9 +400,9 @@ noncomputable def fpgCells (P : Plumb) : ℕ :=
 
 /-- Every value is named by its number, has a cell below `n`, in no fixed frame pointer cell, and
 in no temporary's cell unless it is that temporary. -/
-noncomputable def valOk (loc : Loc) (P : Plumb) (tc fc : ℕ) (n : ℕ) (v : V) : Bool :=
+noncomputable def valOk (loc : Loc) (tt : Trie ℕ) (tc fc : ℕ) (n : ℕ) (v : V) : Bool :=
   v == V.n v.idx && (loc.get? v.idx).isSome && Nat.blt (loc.cell v) n && !bitN fc (loc.cell v) &&
-    (!bitN tc (loc.cell v) || listed P.tmps v (loc.cell v))
+    (!bitN tc (loc.cell v) || listedT tt v (loc.cell v))
 
 /-- The cells a list of `(value, cell)` pairs gives, by cell. -/
 noncomputable def byCell (l : List (ℕ × ℕ)) : Trie ℕ := l.foldl (fun t p ↦ setF p.1 envDepth t p.2) .nil
@@ -449,14 +453,15 @@ the frame's bounds, the lists and the windows' order. -/
 noncomputable def shareWin (j : ℕ) (snaps : List Snap) (i : ℕ) : Bool :=
   (locW (certOf j) i).seq fun loc ↦ natSeq (bitsOf (plumbOf j).sh) fun sh ↦
   natSeq (tmpCells (plumbOf j)) fun tc ↦ natSeq (fpgCells (plumbOf j)) fun fc ↦
+  (byCell (plumbOf j).tmps).seq fun tt ↦
   (nth (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
   (bif i == 0 then
       Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && monoOk (certOf j) &&
-        snaps.length == (certOf j).cuts.length && (coreOf j).params.all (valOk loc (plumbOf j) tc fc (fsN j))
+        snaps.length == (certOf j).cuts.length && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
     else true) &&
   (Memory.Stmt.usesList ((certOf j).stmtsAt (coreOf j) i) ++
-    Memory.Stmt.tmpsList ((certOf j).stmtsAt (coreOf j) i)).all (valOk loc (plumbOf j) tc fc (fsN j)) &&
-  (match swL loc sh (plumbOf j)
+    Memory.Stmt.tmpsList ((certOf j).stmtsAt (coreOf j) i)).all (valOk loc tt tc fc (fsN j)) &&
+  (match swL loc sh tt (plumbOf j)
       (bif i == 0 then nameStep loc sh (initSt (plumbOf j)) (coreOf j).params else (snapAt snaps i).st)
       ((certOf j).stmtsAt (coreOf j) i) with
     | some m => bif Nat.blt i (certOf j).cuts.length then refines m (snapAt snaps (i + 1)) else true

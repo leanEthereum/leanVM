@@ -13,12 +13,14 @@ public import LeanVM.Guest.CheckSound
 /-!
 # Soundness of the sharing check
 
-Along a path, the state of `swL` is read against a word per cell `Ψ` (`Inv`): every value named
-so far and not pending holds its cell's word, the known constants are the cells' words, the keys
-hold of them, and the pending values' facts hold. Naming a value at a cell nothing occupies sets
-that cell's word (`Ψ` changes only there), so a join keeps the facts of before the branch for the
-`Ψ` of the branch taken. At a return nothing is pending: every value the path names holds its
-cell's word (`sw_sound`).
+Along a path, the state of `swL` is read against a word per cell `Ψ` (`Inv`), the values' cells
+being the certificate's `cg`: every value named so far and not pending holds its cell's word, the
+known constants are the cells' words, the keys hold of them, and the pending values' facts hold.
+Naming a value at a cell nothing occupies sets that cell's word (`Ψ` changes only there), so a
+join keeps the facts of before the branch for the `Ψ` of the branch taken. The walk reads cells
+through a window's `Loc`, which agrees with `cg` on the window's values (`FitV`). A window's end
+state refines the next one's snapshot (`refines_inv`), so the windows chain (`chain_sound`); at a
+return nothing is pending: every value the path names holds its cell's word (`shareOk_path`).
 -/
 
 namespace LeanVM.Guest.B2C
@@ -72,34 +74,6 @@ theorem get_set_ne (a : α) : ∀ {d n m : ℕ} (t : Exec.Trie α), m ≠ n →
           · simp only [hm, hm1, ↓reduceIte]
             exact get_set_ne a _ (by omega)
 
-variable {f : Option α → Option α → Option α}
-
-theorem get_mergeR (hf : f none none = none) : ∀ (b : Exec.Trie α) (n : ℕ),
-    (mergeR f b).get n = f none (b.get n)
-  | .nil, n => by simp [mergeR, hf]
-  | .node v l r, n => by
-    rw [mergeR, Exec.Trie.get_node, Exec.Trie.get_node]
-    split_ifs
-    · rfl
-    · exact get_mergeR hf l _
-    · exact get_mergeR hf r _
-
-theorem get_merge (hf : f none none = none) : ∀ (a b : Exec.Trie α) (n : ℕ),
-    (merge f a b).get n = f (a.get n) (b.get n)
-  | .nil, b, n => by rw [merge, get_mergeR hf]; rfl
-  | .node v l r, .nil, n => by
-    rw [merge, Exec.Trie.get_node, Exec.Trie.get_node, Exec.Trie.get_nil]
-    split_ifs
-    · rfl
-    · rw [get_merge hf l .nil]; rfl
-    · rw [get_merge hf r .nil]; rfl
-  | .node v l r, .node v' l' r', n => by
-    rw [merge, Exec.Trie.get_node, Exec.Trie.get_node, Exec.Trie.get_node]
-    split_ifs
-    · rfl
-    · exact get_merge hf l l' _
-    · exact get_merge hf r r' _
-
 end Trie
 
 theorem getF_setF_self {α : Type} (a : α) {d n : ℕ} (t : Exec.Trie α) (h : n + 1 < 2 ^ d) :
@@ -113,6 +87,44 @@ theorem getF_setF_ne {α : Type} (a : α) {d n m : ℕ} (t : Exec.Trie α) (h : 
 theorem getF_setF {α : Type} {a b : α} {d n m : ℕ} {t : Exec.Trie α}
     (h : getF (setF a d t n) m = some b) : (m = n ∧ b = a) ∨ getF t m = some b := by
   rw [getF_eq, setF_eq] at h; rw [getF_eq]; exact Exec.Trie.get_set h
+
+/-! ## Bit sets -/
+
+@[simp] theorem nbeq_iff {a b : ℕ} : Nat.beq a b = true ↔ a = b :=
+  ⟨Nat.eq_of_beq_eq_true, fun h ↦ h ▸ Nat.beq_refl a⟩
+
+theorem bitN_eq (s n : ℕ) : bitN s n = s.testBit n := by
+  rw [Nat.testBit_eq_decide_div_mod_eq]
+  show Nat.beq ((s >>> n) % 2) 1 = _
+  rw [Nat.shiftRight_eq_div_pow]
+  cases h : Nat.beq (s / 2 ^ n % 2) 1
+  · simp only [Bool.false_eq, decide_eq_false_iff_not]
+    exact fun h' ↦ by rw [nbeq_iff.mpr h'] at h; cases h
+  · exact (decide_eq_true (nbeq_iff.mp h)).symm
+
+theorem testBit_setBit (s n m : ℕ) : (setBit s n).testBit m = (s.testBit m || decide (n = m)) := by
+  show (s ||| 1 <<< n).testBit m = _
+  rw [Nat.testBit_or, Nat.one_shiftLeft, Nat.testBit_two_pow]
+
+theorem testBit_foldl_setBit {α : Type} (g : α → ℕ) : ∀ (l : List α) (s n : ℕ),
+    (l.foldl (fun s x ↦ setBit s (g x)) s).testBit n = true ↔ s.testBit n = true ∨ ∃ x ∈ l, g x = n
+  | [], s, n => by simp
+  | x :: l, s, n => by
+    rw [List.foldl_cons, testBit_foldl_setBit g l, testBit_setBit]
+    simp only [Bool.or_eq_true, decide_eq_true_eq, List.mem_cons, exists_eq_or_imp]
+    tauto
+
+theorem testBit_bitsOf (l : List ℕ) (n : ℕ) : (bitsOf l).testBit n = true ↔ n ∈ l := by
+  have := testBit_foldl_setBit id l 0 n
+  simp only [id, Nat.zero_testBit, Bool.false_eq_true, false_or, exists_eq_right] at this
+  exact this
+
+theorem testBit_lor' (x y i : ℕ) : (Nat.lor x y).testBit i = (x.testBit i || y.testBit i) :=
+  Nat.testBit_or x y i
+
+theorem testBit_land' (x y i : ℕ) : (Nat.land x y).testBit i = (x.testBit i && y.testBit i) :=
+  Nat.testBit_and x y i
+
 
 /-! ## Keys -/
 
@@ -165,6 +177,7 @@ theorem keyHolds_keyCells {rd : Reader} {x : E} {Ψ : ℕ → E} (op : ℕ) (cs 
   | 1, _ :: _ :: _ :: _ => simp [keyCells]
   | n + 2, cs => simp [keyCells]
 
+
 /-! ## The invariant -/
 
 /-- The word of a constant's limbs. -/
@@ -172,27 +185,27 @@ def tw (x : ℕ × ℕ × ℕ) : E := OInstr.imm x.1 x.2.1 x.2.2
 
 section Inv
 
-variable (loc : Exec.Trie ℕ) (rd : Reader) (σ : Val)
+variable (cg : V → ℕ) (rd : Reader) (σ : Val)
 
 /-- **What the state says** of a path whose values named so far are `pre`, for the cells' words
-`Ψ`. -/
+`Ψ`, the values' cells being `cg`. -/
 structure Inv (st : SSt) (pre : List V) (Ψ : ℕ → E) : Prop where
   vn : ∀ v ∈ pre, v = V.n v.idx
-  occ : ∀ v ∈ pre, 2 ≤ cellOf loc v → (getF st.occ (cellOf loc v)).isSome
-  good : ∀ v ∈ pre, 2 ≤ cellOf loc v → isPend st v.idx = false → σ v = Ψ (cellOf loc v)
-  named : ∀ n, isNamed st n = true → 2 ≤ cellN loc n →
-    σ (V.n n) = Ψ (cellN loc n) ∧ (getF st.occ (cellN loc n)).isSome
-  kc : ∀ c x, getF st.occ c = some (some x) → Ψ c = tw x
+  occ : ∀ v ∈ pre, 2 ≤ cg v → st.occ.testBit (cg v)
+  good : ∀ v ∈ pre, 2 ≤ cg v → isPend st v.idx = false → σ v = Ψ (cg v)
+  named : ∀ n, isNamed st n = true → 2 ≤ cg (V.n n) →
+    σ (V.n n) = Ψ (cg (V.n n)) ∧ st.occ.testBit (cg (V.n n))
+  kc : ∀ c x, getF st.cst c = some x → st.occ.testBit c ∧ Ψ c = tw x
   keys : ∀ c, ∀ k ∈ (getF st.keys c).getD [], KeyHolds rd (Ψ c) k.1 (k.2.map Ψ) ∧
-    (getF st.occ c).isSome ∧ ∀ c' ∈ k.2, (getF st.occ c').isSome
-  pend : ∀ p ∈ st.pend, cellN loc p.v = p.c ∧ 2 ≤ p.c ∧ (getF st.occ p.c).isSome ∧
+    st.occ.testBit c ∧ ∀ c' ∈ k.2, st.occ.testBit c'
+  pend : ∀ p ∈ st.pend, cg (V.n p.v) = p.c ∧ 2 ≤ p.c ∧ st.occ.testBit p.c ∧
     (∀ x, p.kc = some x → σ (V.n p.v) = tw x) ∧
     (∀ k ∈ p.keys, KeyHolds rd (σ (V.n p.v)) k.1 (k.2.map fun u ↦ σ (V.n u))) ∧
     (∀ x ∈ p.eqs, σ (V.n p.v) = σ (V.n x))
 
 /-- From `st` to `st'`: every occupied cell stays occupied with its word. -/
 def Step (st : SSt) (Ψ : ℕ → E) (st' : SSt) (Ψ' : ℕ → E) : Prop :=
-  ∀ c, (getF st.occ c).isSome → (getF st'.occ c).isSome ∧ Ψ' c = Ψ c
+  ∀ c, st.occ.testBit c → st'.occ.testBit c ∧ Ψ' c = Ψ c
 
 theorem Step.refl (st : SSt) (Ψ : ℕ → E) : Step st Ψ st Ψ := fun _ h ↦ ⟨h, rfl⟩
 
@@ -201,59 +214,73 @@ theorem Step.trans {st₁ st₂ st₃ : SSt} {Ψ₁ Ψ₂ Ψ₃ : ℕ → E} (h�
   ⟨(h₂ c (h₁ c hc).1).1, (h₂ c (h₁ c hc).1).2.trans (h₁ c hc).2⟩
 
 /-- A step with the occupancy and the words unchanged. -/
-theorem Step.of_occ {st st' : SSt} {Ψ : ℕ → E} (h : ∀ c, (getF st.occ c).isSome → (getF st'.occ c).isSome) :
+theorem Step.of_occ {st st' : SSt} {Ψ : ℕ → E} (h : ∀ c, st.occ.testBit c → st'.occ.testBit c) :
     Step st Ψ st' Ψ := fun c hc ↦ ⟨h c hc, rfl⟩
 
-variable {loc rd σ}
+variable {cg rd σ}
 
 theorem isPend_iff {st : SSt} {v : ℕ} : isPend st v = true ↔ ∃ p ∈ st.pend, p.v = v := by
   simp only [isPend, List.any_eq_true]
   exact exists_congr fun p ↦ and_congr_right fun _ ↦ ⟨Nat.eq_of_beq_eq_true, fun h ↦ h ▸ Nat.beq_refl _⟩
 
+theorem isNamed_eq (st : SSt) (n : ℕ) : isNamed st n = st.named.testBit n := bitN_eq _ _
+
+variable {loc : Loc} {sh : ℕ}
+
 theorem nameV_skip {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
-    (h : (isNamed st v.idx || isPend st v.idx) = true) : nameV loc kc st v = st := by
+    (h : (isNamed st v.idx || isPend st v.idx) = true) : nameV loc sh kc st v = st := by
   unfold nameV; rw [h]; rfl
 
 theorem nameV_low {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
-    (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : cellOf loc v < 2) :
-    nameV loc kc st v = ⟨st.occ, st.keys, setF () indexDepth st.named v.idx, st.pend⟩ := by
+    (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : loc.cell v < 2) :
+    nameV loc sh kc st v = ⟨st.occ, st.cst, st.keys, setBit st.named v.idx, st.pend⟩ := by
   unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, Nat.blt_eq.mpr h2, Bool.cond_true]
 
-theorem nameV_occ {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V} {y : Option (ℕ × ℕ × ℕ)}
-    (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : 2 ≤ cellOf loc v)
-    (ho : getF st.occ (cellOf loc v) = some y) :
-    nameV loc kc st v = ⟨st.occ, st.keys, st.named, ⟨v.idx, cellOf loc v, none, [], []⟩ :: st.pend⟩ := by
-  have : Nat.blt (cellOf loc v) 2 = false :=
+theorem nameV_occ {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
+    (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : 2 ≤ loc.cell v)
+    (ho : st.occ.testBit (loc.cell v) = true) :
+    nameV loc sh kc st v = ⟨st.occ, st.cst, st.keys, st.named, ⟨v.idx, loc.cell v, none, [], []⟩ :: st.pend⟩ := by
+  have : Nat.blt (loc.cell v) 2 = false :=
     Bool.eq_false_iff.mpr fun hb ↦ absurd (Nat.blt_eq.mp hb) (by omega)
-  unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, ho]
+  unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, bitN_eq, ho, Bool.cond_true]
 
 theorem nameV_fresh {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {v : V}
-    (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : 2 ≤ cellOf loc v)
-    (ho : getF st.occ (cellOf loc v) = none) :
-    nameV loc kc st v = ⟨setF (kc v.idx) envDepth st.occ (cellOf loc v), st.keys,
-      setF () indexDepth st.named v.idx, st.pend⟩ := by
-  have : Nat.blt (cellOf loc v) 2 = false :=
+    (h : (isNamed st v.idx || isPend st v.idx) = false) (h2 : 2 ≤ loc.cell v)
+    (ho : st.occ.testBit (loc.cell v) = false) :
+    nameV loc sh kc st v = ⟨setBit st.occ (loc.cell v), cstAt sh st.cst (loc.cell v) (kc v.idx), st.keys,
+      setBit st.named v.idx, st.pend⟩ := by
+  have : Nat.blt (loc.cell v) 2 = false :=
     Bool.eq_false_iff.mpr fun hb ↦ absurd (Nat.blt_eq.mp hb) (by omega)
-  unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, ho]
+  unfold nameV; rw [h]; simp only [Bool.cond_false, natSeq_eq, this, bitN_eq, ho]
 
-theorem cellN_of_vn {v : V} (h : v = V.n v.idx) : cellN loc v.idx = cellOf loc v := by
-  rw [cellN, ← h]
+theorem getF_cstAt {cst : Exec.Trie (ℕ × ℕ × ℕ)} {c c' : ℕ} {k : Option (ℕ × ℕ × ℕ)} {x : ℕ × ℕ × ℕ}
+    (h : getF (cstAt sh cst c k) c' = some x) : (c' = c ∧ k = some x) ∨ getF cst c' = some x := by
+  cases k with
+  | none => exact Or.inr h
+  | some y =>
+    simp only [cstAt, Bool.cond_eq_ite] at h
+    split_ifs at h
+    · rcases getF_setF h with ⟨h1, rfl⟩ | h
+      · exact Or.inl ⟨h1, rfl⟩
+      · exact Or.inr h
+    · exact Or.inr h
 
 /-- **Naming a value** keeps the invariant: `Ψ` changes only at a cell nothing occupied. -/
 theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {pre : List V} {Ψ : ℕ → E} {v : V}
-    (hI : Inv loc rd σ st pre Ψ) (hv : v = V.n v.idx) (hb : cellOf loc v + 1 < 2 ^ envDepth)
+    (hI : Inv cg rd σ st pre Ψ) (hv : v = V.n v.idx) (hcg : loc.cell v = cg v)
     (hkc : ∀ x, kc v.idx = some x → σ v = tw x) :
-    ∃ Ψ', Inv loc rd σ (nameV loc kc st v) (pre ++ [v]) Ψ' ∧ Step st Ψ (nameV loc kc st v) Ψ' := by
+    ∃ Ψ', Inv cg rd σ (nameV loc sh kc st v) (pre ++ [v]) Ψ' ∧ Step st Ψ (nameV loc sh kc st v) Ψ' := by
   have hvn : ∀ u ∈ pre ++ [v], u = V.n u.idx := fun u hu ↦ by
     rcases List.mem_append.mp hu with hu | hu
     · exact hI.vn u hu
     · rw [List.mem_singleton.mp hu]; exact hv
+  have hcv : cg (V.n v.idx) = cg v := by rw [← hv]
   cases hnp : (isNamed st v.idx || isPend st v.idx)
   · -- a value not named before
     have hnp' := hnp
     simp only [Bool.or_eq_false_iff] at hnp'
     obtain ⟨hn, hp⟩ := hnp'
-    by_cases h2 : cellOf loc v < 2
+    by_cases h2 : loc.cell v < 2
     · rw [nameV_low hnp h2]
       refine ⟨Ψ, ⟨hvn, fun u hu hc ↦ ?_, fun u hu hc hpe ↦ ?_, fun n hn' hc ↦ ?_, hI.kc, hI.keys, hI.pend⟩,
         Step.refl _ _⟩
@@ -263,21 +290,56 @@ theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {pre : Li
       · rcases List.mem_append.mp hu with hu | hu
         · exact hI.good u hu hc hpe
         · rw [List.mem_singleton.mp hu] at hc; omega
-      · simp only [isNamed] at hn'
-        rcases Option.isSome_iff_exists.mp hn' with ⟨_, h⟩
-        rcases getF_setF h with ⟨rfl, -⟩ | h
-        · rw [cellN_of_vn hv] at hc; omega
-        · exact hI.named n (by simp [isNamed, h]) hc
-    · have h2' : 2 ≤ cellOf loc v := by omega
-      cases ho : getF st.occ (cellOf loc v) with
-      | some y =>
-        -- pending
+      · simp only [isNamed_eq, testBit_setBit, Bool.or_eq_true, decide_eq_true_eq] at hn'
+        rcases hn' with hn' | rfl
+        · exact hI.named n (by rw [isNamed_eq]; exact hn') hc
+        · rw [hcv] at hc; omega
+    · have h2' : 2 ≤ loc.cell v := by omega
+      cases ho : st.occ.testBit (loc.cell v)
+      · -- the first value at its cell
+        rw [nameV_fresh hnp h2' ho]
+        have ho' : st.occ.testBit (cg v) = false := by rw [← hcg]; exact ho
+        have hne : ∀ c', st.occ.testBit c' = true → c' ≠ cg v := fun c' h he ↦ by
+          rw [he, ho'] at h; cases h
+        refine ⟨Function.update Ψ (cg v) (σ v), ⟨hvn, fun u hu hc ↦ ?_, fun u hu hc hpe ↦ ?_,
+          fun n hn' hc ↦ ?_, fun c x hx ↦ ?_, fun c k hk ↦ ?_, fun p hp ↦ ?_⟩, fun c hc ↦ ?_⟩
+        · rw [testBit_setBit, Bool.or_eq_true, decide_eq_true_eq]
+          rcases List.mem_append.mp hu with hu | hu
+          · exact Or.inl (hI.occ u hu hc)
+          · rw [List.mem_singleton.mp hu, hcg]; exact Or.inr rfl
+        · rcases List.mem_append.mp hu with hu | hu
+          · rw [Function.update_of_ne (hne _ (hI.occ u hu hc))]
+            exact hI.good u hu hc hpe
+          · rw [List.mem_singleton.mp hu, Function.update_self]
+        · simp only [isNamed_eq, testBit_setBit, Bool.or_eq_true, decide_eq_true_eq] at hn'
+          rcases hn' with hn' | rfl
+          · obtain ⟨h1, h3⟩ := hI.named n (by rw [isNamed_eq]; exact hn') hc
+            rw [Function.update_of_ne (hne _ h3), testBit_setBit, h3, Bool.true_or]
+            exact ⟨h1, rfl⟩
+          · rw [hcv, ← hv, Function.update_self, testBit_setBit, hcg]
+            simp
+        · rcases getF_cstAt hx with ⟨rfl, hk⟩ | hx
+          · rw [hcg, testBit_setBit, Function.update_self]
+            exact ⟨by simp, hkc x hk⟩
+          · obtain ⟨h1, h3⟩ := hI.kc c x hx
+            rw [testBit_setBit, h1, Bool.true_or, Function.update_of_ne (hne c h1)]
+            exact ⟨rfl, h3⟩
+        · obtain ⟨h1, h3, h4⟩ := hI.keys c k hk
+          rw [Function.update_of_ne (hne c h3), testBit_setBit, h3, Bool.true_or]
+          refine ⟨?_, rfl, fun c' hc' ↦ by rw [testBit_setBit, h4 c' hc', Bool.true_or]⟩
+          have : k.2.map (Function.update Ψ (cg v) (σ v)) = k.2.map Ψ :=
+            List.map_congr_left fun c' hc' ↦ Function.update_of_ne (hne c' (h4 c' hc')) _ _
+          rw [this]; exact h1
+        · obtain ⟨h1, h3, h4, h5⟩ := hI.pend p hp
+          exact ⟨h1, h3, by rw [testBit_setBit, h4, Bool.true_or], h5⟩
+        · exact ⟨by rw [testBit_setBit, hc, Bool.true_or], Function.update_of_ne (hne c hc) _ _⟩
+      · -- pending
         rw [nameV_occ hnp h2' ho]
         refine ⟨Ψ, ⟨hvn, fun u hu hc ↦ ?_, fun u hu hc hpe ↦ ?_, hI.named, hI.kc, hI.keys, ?_⟩,
           Step.refl _ _⟩
         · rcases List.mem_append.mp hu with hu | hu
           · exact hI.occ u hu hc
-          · rw [List.mem_singleton.mp hu, ho]; rfl
+          · rw [List.mem_singleton.mp hu, ← hcg]; exact ho
         · rcases List.mem_append.mp hu with hu | hu
           · refine hI.good u hu hc ?_
             simp only [isPend, List.any_cons, Bool.or_eq_false_iff] at hpe ⊢
@@ -286,55 +348,9 @@ theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {pre : Li
             simp [isPend] at hpe
         · intro p hp
           rcases List.mem_cons.mp hp with rfl | hp
-          · exact ⟨cellN_of_vn hv, h2', by rw [ho]; rfl, (fun _ h ↦ by cases h), (fun _ h ↦ by cases h),
+          · exact ⟨by rw [hcv, hcg], h2', ho, (fun _ h ↦ by cases h), (fun _ h ↦ by cases h),
               (fun _ h ↦ by cases h)⟩
           · exact hI.pend p hp
-      | none =>
-        -- the first value at its cell
-        rw [nameV_fresh hnp h2' ho]
-        refine ⟨Function.update Ψ (cellOf loc v) (σ v), ⟨hvn, fun u hu hc ↦ ?_, fun u hu hc hpe ↦ ?_,
-          fun n hn' hc ↦ ?_, fun c x hx ↦ ?_, fun c k hk ↦ ?_, fun p hp ↦ ?_⟩, fun c hc ↦ ?_⟩
-        · by_cases hcu : cellOf loc u = cellOf loc v
-          · rw [hcu, getF_setF_self _ _ hb]; rfl
-          · rcases List.mem_append.mp hu with hu | hu
-            · rw [getF_setF_ne _ _ hcu]; exact hI.occ u hu hc
-            · exact absurd (by rw [List.mem_singleton.mp hu]) hcu
-        · rcases List.mem_append.mp hu with hu | hu
-          · have hocc := hI.occ u hu hc
-            have hne : cellOf loc u ≠ cellOf loc v := fun he ↦ by rw [he, ho] at hocc; cases hocc
-            rw [Function.update_of_ne hne]
-            exact hI.good u hu hc hpe
-          · rw [List.mem_singleton.mp hu, Function.update_self]
-        · simp only [isNamed] at hn'
-          rcases Option.isSome_iff_exists.mp hn' with ⟨_, h⟩
-          rcases getF_setF h with ⟨rfl, -⟩ | h
-          · rw [cellN_of_vn hv, ← hv, Function.update_self, getF_setF_self _ _ hb]
-            exact ⟨rfl, rfl⟩
-          · obtain ⟨h1, h3⟩ := hI.named n (by simp [isNamed, h]) hc
-            have hne : cellN loc n ≠ cellOf loc v := fun he ↦ by rw [he, ho] at h3; cases h3
-            rw [Function.update_of_ne hne, getF_setF_ne _ _ hne]
-            exact ⟨h1, h3⟩
-        · by_cases hcv : c = cellOf loc v
-          · subst hcv
-            rw [getF_setF_self _ _ hb] at hx
-            rw [Function.update_self]
-            exact hkc x (Option.some.inj hx)
-          · rw [getF_setF_ne _ _ hcv] at hx
-            rw [Function.update_of_ne hcv]
-            exact hI.kc c x hx
-        · obtain ⟨h1, h3, h4⟩ := hI.keys c k hk
-          have hne : ∀ c', (getF st.occ c').isSome → c' ≠ cellOf loc v := fun c' h he ↦ by
-            rw [he, ho] at h; cases h
-          rw [Function.update_of_ne (hne c h3), getF_setF_ne _ _ (hne c h3)]
-          refine ⟨?_, h3, fun c' hc' ↦ by rw [getF_setF_ne _ _ (hne c' (h4 c' hc'))]; exact h4 c' hc'⟩
-          have : k.2.map (Function.update Ψ (cellOf loc v) (σ v)) = k.2.map Ψ :=
-            List.map_congr_left fun c' hc' ↦ Function.update_of_ne (hne c' (h4 c' hc')) _ _
-          rw [this]; exact h1
-        · obtain ⟨h1, h3, h4, h5⟩ := hI.pend p hp
-          have hne : p.c ≠ cellOf loc v := fun he ↦ by rw [he, ho] at h4; cases h4
-          exact ⟨h1, h3, by rw [getF_setF_ne _ _ hne]; exact h4, h5⟩
-        · have hne : c ≠ cellOf loc v := fun he ↦ by rw [he, ho] at hc; cases hc
-          exact ⟨by rw [getF_setF_ne _ _ hne]; exact hc, Function.update_of_ne hne _ _⟩
   · -- named or pending already
     rw [nameV_skip hnp]
     refine ⟨Ψ, ⟨hvn, fun u hu hc ↦ ?_, fun u hu hc hpe ↦ ?_, hI.named, hI.kc, hI.keys, hI.pend⟩,
@@ -343,37 +359,46 @@ theorem nameV_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} {st : SSt} {pre : Li
       · exact hI.occ u hu hc
       · rw [List.mem_singleton.mp hu] at hc ⊢
         rcases Bool.or_eq_true_iff.mp hnp with hn | hp
-        · rw [← cellN_of_vn hv] at hc ⊢; exact (hI.named _ hn hc).2
+        · rw [← hcv] at hc ⊢; exact (hI.named _ hn hc).2
         · obtain ⟨p, hp, hpv⟩ := isPend_iff.mp hp
           obtain ⟨h1, -, h3, -⟩ := hI.pend p hp
-          rw [← cellN_of_vn hv, ← hpv, h1]; exact h3
+          rw [← hcv, ← hpv, h1]; exact h3
     · rcases List.mem_append.mp hu with hu | hu
       · exact hI.good u hu hc hpe
       · rw [List.mem_singleton.mp hu] at hc hpe ⊢
         rw [hpe, Bool.or_false] at hnp
-        rw [← cellN_of_vn hv] at hc ⊢
+        rw [← hcv] at hc ⊢
         rw [hv]; exact (hI.named _ hnp hc).1
 
 end Inv
 
+/-- Values named by their numbers whose window cells are their cells. -/
+def FitV (loc : Loc) (cg : V → ℕ) (vs : List V) : Prop :=
+  ∀ v ∈ vs, v = V.n v.idx ∧ loc.cell v = cg v
+
+theorem FitV.mono {loc : Loc} {cg : V → ℕ} {vs ws : List V} (h : FitV loc cg ws) (hs : ∀ v ∈ vs, v ∈ ws) :
+    FitV loc cg vs :=
+  fun v hv ↦ h v (hs v hv)
+
+/-- A window's cells are the values' cells, wherever it has one. -/
+def LocAgree (loc : Loc) (cg : V → ℕ) : Prop := ∀ v, 2 ≤ loc.cell v → loc.cell v = cg v
+
 section Steps
 
-variable {loc : Exec.Trie ℕ} {rd : Reader} {σ : Val}
+variable {loc : Loc} {sh : ℕ} {cg : V → ℕ} {rd : Reader} {σ : Val}
 
 theorem nameAll_inv {kc : ℕ → Option (ℕ × ℕ × ℕ)} : ∀ (vs : List V) {st : SSt} {pre : List V}
-    {Ψ : ℕ → E}, Inv loc rd σ st pre Ψ →
-    (∀ v ∈ vs, v = V.n v.idx ∧ cellOf loc v + 1 < 2 ^ envDepth ∧ ∀ x, kc v.idx = some x → σ v = tw x) →
-    ∃ Ψ', Inv loc rd σ (nameAll loc kc st vs) (pre ++ vs) Ψ' ∧ Step st Ψ (nameAll loc kc st vs) Ψ'
-  | [], st, pre, Ψ, hI, _ => ⟨Ψ, by simpa [nameAll] using hI, by simpa [nameAll] using Step.refl st Ψ⟩
-  | v :: vs, st, pre, Ψ, hI, h => by
+    {Ψ : ℕ → E}, Inv cg rd σ st pre Ψ → FitV loc cg vs → (∀ v ∈ vs, ∀ x, kc v.idx = some x → σ v = tw x) →
+    ∃ Ψ', Inv cg rd σ (nameAll loc sh kc st vs) (pre ++ vs) Ψ' ∧ Step st Ψ (nameAll loc sh kc st vs) Ψ'
+  | [], st, pre, Ψ, hI, _, _ => ⟨Ψ, by simpa [nameAll] using hI, by simpa [nameAll] using Step.refl st Ψ⟩
+  | v :: vs, st, pre, Ψ, hI, hf, hk => by
     simp only [nameAll, SSt.seq_eq]
-    obtain ⟨hv, hb, hk⟩ := h v List.mem_cons_self
-    obtain ⟨Ψ1, hI1, hs1⟩ := nameV_inv hI hv hb hk
-    obtain ⟨Ψ2, hI2, hs2⟩ := nameAll_inv vs hI1 fun u hu ↦ h u (List.mem_cons_of_mem _ hu)
+    obtain ⟨hv, hc⟩ := hf v List.mem_cons_self
+    obtain ⟨Ψ1, hI1, hs1⟩ := nameV_inv (sh := sh) hI hv hc (hk v List.mem_cons_self)
+    obtain ⟨Ψ2, hI2, hs2⟩ := nameAll_inv vs hI1 (hf.mono fun u hu ↦ List.mem_cons_of_mem _ hu)
+      fun u hu ↦ hk u (List.mem_cons_of_mem _ hu)
     exact ⟨Ψ2, by simpa using hI2, hs1.trans hs2⟩
 
-@[simp] theorem nbeq_iff {a b : ℕ} : Nat.beq a b = true ↔ a = b :=
-  ⟨Nat.eq_of_beq_eq_true, fun h ↦ h ▸ Nat.beq_refl a⟩
 
 theorem ofBits_one : K.ofBits 1 = 1 := by decide
 
@@ -471,14 +496,14 @@ theorem eqsOf_sound {a : Core.Atom} {v x : ℕ} (ha : a.Holds rd σ) (hvn : VnA 
   | _ => simp [eqsOf] at h
 
 theorem isPend_addFacts {a : Core.Atom} {st : SSt} {v : ℕ} :
-    isPend ⟨st.occ, st.keys, st.named, addFacts a st.pend⟩ v = isPend st v := by
+    isPend ⟨st.occ, st.cst, st.keys, st.named, addFacts a st.pend⟩ v = isPend st v := by
   simp only [isPend, addFacts, List.any_map]
   rfl
 
 /-- **An atom's facts** about the pending values hold. -/
 theorem addFacts_inv {a : Core.Atom} {st : SSt} {pre : List V} {Ψ : ℕ → E}
-    (hI : Inv loc rd σ st pre Ψ) (ha : a.Holds rd σ) (hvn : VnA a) :
-    Inv loc rd σ ⟨st.occ, st.keys, st.named, addFacts a st.pend⟩ pre Ψ := by
+    (hI : Inv cg rd σ st pre Ψ) (ha : a.Holds rd σ) (hvn : VnA a) :
+    Inv cg rd σ ⟨st.occ, st.cst, st.keys, st.named, addFacts a st.pend⟩ pre Ψ := by
   refine ⟨hI.vn, hI.occ, fun u hu hc hp ↦ hI.good u hu hc (by rwa [isPend_addFacts] at hp),
     hI.named, hI.kc, hI.keys, fun p hp ↦ ?_⟩
   simp only [addFacts, List.mem_map] at hp
@@ -499,9 +524,11 @@ theorem addFacts_inv {a : Core.Atom} {st : SSt} {pre : List V} {Ψ : ℕ → E}
     · exact eqsOf_sound ha hvn hx
     · exact h6 x hx
 
+
 /-- **A pending value shown** holds its cell's word. -/
-theorem pfOk_sound {st : SSt} {pre : List V} {Ψ : ℕ → E} (hI : Inv loc rd σ st pre Ψ) {p : PF}
-    (hp : p ∈ st.pend) (h : pfOk loc st p = true) : σ (V.n p.v) = Ψ p.c := by
+theorem pfOk_sound (hA : LocAgree loc cg) {st : SSt} {pre : List V} {Ψ : ℕ → E}
+    (hI : Inv cg rd σ st pre Ψ) {p : PF} (hp : p ∈ st.pend) (h : pfOk loc st p = true) :
+    σ (V.n p.v) = Ψ p.c := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hI.pend p hp
   simp only [pfOk, Bool.or_eq_true, List.any_eq_true] at h
   rcases h with (h | ⟨k, hk, hok⟩) | ⟨x, hx, hok⟩
@@ -509,16 +536,13 @@ theorem pfOk_sound {st : SSt} {pre : List V} {Ψ : ℕ → E} (hI : Inv loc rd �
     | none => rw [hkc] at h; simp at h
     | some x =>
       rw [hkc] at h
-      cases ho : getF st.occ p.c with
+      cases ho : getF st.cst p.c with
       | none => rw [ho] at h; simp at h
       | some y =>
         rw [ho] at h
-        cases y with
-        | none => simp at h
-        | some y =>
-          simp only [beq_iff_eq] at h
-          subst h
-          rw [h4 x hkc, hI.kc p.c x ho]
+        simp only [beq_iff_eq] at h
+        subst h
+        rw [h4 x hkc, (hI.kc p.c x ho).2]
   · simp only [keyOk, Bool.and_eq_true, List.all_eq_true, List.any_eq_true] at hok
     obtain ⟨hin, k', hk', hkk⟩ := hok
     simp only [nbeq_iff, beq_iff_eq] at hkk
@@ -529,13 +553,17 @@ theorem pfOk_sound {st : SSt} {pre : List V} {Ψ : ℕ → E} (hI : Inv loc rd �
       refine List.map_congr_left fun u hu ↦ ?_
       have := hin u hu
       simp only [knownIn, Bool.and_eq_true, Nat.ble_eq] at this
-      exact ((hI.named u this.1 this.2).1).symm
+      have hc : cellN loc u = cg (V.n u) := hA _ this.2
+      rw [Function.comp_apply, hc]
+      exact ((hI.named u this.1 (hc ▸ this.2)).1).symm
     rw [hmap] at hK
     exact (h5 k hk).unique hK
   · simp only [Bool.and_eq_true, nbeq_iff] at hok
     obtain ⟨hn, hc⟩ := hok
-    rw [h6 x hx, ← hc]
-    exact (hI.named x hn (by rw [hc]; exact h2)).1
+    have hc' : cellN loc x = cg (V.n x) := hA _ (show 2 ≤ cellN loc x by rw [hc]; exact h2)
+    rw [h6 x hx, ← hc, hc']
+    exact (hI.named x hn (by rw [← hc', hc]; exact h2)).1
+
 
 theorem splitPend_spec (st : SSt) : ∀ (ps : List PF) {ok rest : List PF},
     splitPend loc st ps = (ok, rest) →
@@ -573,19 +601,17 @@ theorem splitPend_spec (st : SSt) : ∀ (ps : List PF) {ok rest : List PF},
           · exact Or.inl (List.mem_cons_of_mem _ h)
           · exact Or.inr h
 
-theorem getF_foldl_setF {α : Type} {a b : α} {d n : ℕ} : ∀ (ps : List PF) (t : Exec.Trie α),
-    getF (ps.foldl (fun t p ↦ setF a d t p.v) t) n = some b → (∃ p ∈ ps, p.v = n) ∨ getF t n = some b
-  | [], t, h => Or.inr h
-  | p :: ps, t, h => by
-    rcases getF_foldl_setF ps _ h with ⟨q, hq, he⟩ | h
-    · exact Or.inl ⟨q, List.mem_cons_of_mem _ hq, he⟩
-    · rcases getF_setF h with ⟨he, -⟩ | h
-      · exact Or.inl ⟨p, List.mem_cons_self, he.symm⟩
-      · exact Or.inr h
+
+theorem testBit_foldl_pf (ps : List PF) (s n : ℕ) :
+    (ps.foldl (fun s p ↦ setBit s p.v) s).testBit n = true → (∃ p ∈ ps, p.v = n) ∨ s.testBit n = true := by
+  intro h
+  rcases (testBit_foldl_setBit (fun p : PF ↦ p.v) ps s n).mp h with h | ⟨p, hp, he⟩
+  · exact Or.inr h
+  · exact Or.inl ⟨p, hp, he⟩
 
 /-- **Showing pending values** keeps the invariant. -/
-theorem discharge_inv : ∀ (n : ℕ) {st : SSt} {pre : List V} {Ψ : ℕ → E}, Inv loc rd σ st pre Ψ →
-    Inv loc rd σ (discharge loc n st) pre Ψ ∧ (discharge loc n st).occ = st.occ
+theorem discharge_inv (hA : LocAgree loc cg) : ∀ (n : ℕ) {st : SSt} {pre : List V} {Ψ : ℕ → E},
+    Inv cg rd σ st pre Ψ → Inv cg rd σ (discharge loc n st) pre Ψ ∧ (discharge loc n st).occ = st.occ
   | 0, st, pre, Ψ, hI => ⟨hI, rfl⟩
   | n + 1, st, pre, Ψ, hI => by
     simp only [discharge]
@@ -594,33 +620,34 @@ theorem discharge_inv : ∀ (n : ℕ) {st : SSt} {pre : List V} {Ψ : ℕ → E}
     cases ok with
     | nil => exact ⟨hI, rfl⟩
     | cons p ok =>
-      simp only [Exec.Trie.seq_eq, SSt.seq_eq]
-      have hokv : ∀ q ∈ p :: ok, σ (V.n q.v) = Ψ q.c := fun q hq ↦ pfOk_sound hI (h1 q hq).1 (h1 q hq).2
-      refine (discharge_inv n ?_).imp id (fun h ↦ h)
+      simp only [natSeq_eq, SSt.seq_eq]
+      have hokv : ∀ q ∈ p :: ok, σ (V.n q.v) = Ψ q.c := fun q hq ↦
+        pfOk_sound hA hI (h1 q hq).1 (h1 q hq).2
+      refine (discharge_inv hA n ?_).imp id (fun h ↦ h)
       refine ⟨hI.vn, hI.occ, fun u hu hc hpe ↦ ?_, fun m hm hc ↦ ?_, hI.kc, hI.keys,
         fun q hq ↦ hI.pend q (h2 q hq)⟩
       · by_cases hold : isPend st u.idx = true
         · obtain ⟨q, hq, hqv⟩ := isPend_iff.mp hold
           rcases h3 q hq with hq' | hq'
           · obtain ⟨e1, -⟩ := hI.pend q hq
-            rw [hI.vn u hu, ← hqv, hokv q hq', ← e1, cellN, hqv, ← hI.vn u hu]
-          · have : isPend ⟨st.occ, st.keys, (p :: ok).foldl (fun t p ↦ setF () indexDepth t p.v) st.named,
+            rw [hI.vn u hu, ← hqv, hokv q hq', ← e1]
+          · have : isPend ⟨st.occ, st.cst, st.keys, (p :: ok).foldl (fun s p ↦ setBit s p.v) st.named,
                 rest⟩ u.idx = true := isPend_iff.mpr ⟨q, hq', hqv⟩
             rw [hpe] at this; cases this
         · exact hI.good u hu hc (by simpa using hold)
-      · simp only [isNamed] at hm
-        rcases Option.isSome_iff_exists.mp hm with ⟨_, hm⟩
-        rcases getF_foldl_setF _ _ hm with ⟨q, hq, rfl⟩ | hm
+      · rw [isNamed_eq] at hm
+        rcases testBit_foldl_pf _ _ _ hm with ⟨q, hq, rfl⟩ | hm
         · obtain ⟨e1, -, e3, -⟩ := hI.pend q (h1 q hq).1
           rw [e1]
           exact ⟨hokv q hq, e3⟩
-        · exact hI.named m (by simp [isNamed, hm]) hc
+        · exact hI.named m (by rw [isNamed_eq]; exact hm) hc
 
 end Steps
 
+
 section Record
 
-variable {loc : Exec.Trie ℕ} {rd : Reader} {σ : Val}
+variable {loc : Loc} {sh : ℕ} {cg : V → ℕ} {rd : Reader} {σ : Val}
 
 theorem mem_keyCells {c op : ℕ} {cs : List ℕ} : c ∈ keyCells op cs ↔ c ∈ cs := by
   match op, cs with
@@ -638,7 +665,7 @@ theorem mem_keyCells {c op : ℕ} {cs : List ℕ} : c ∈ keyCells op cs ↔ c �
 theorem cellKeys_sound {a : Core.Atom} (ha : a.Holds rd σ) {c op : ℕ} {ins : List ℕ}
     (h : (c, op, ins) ∈ cellKeys loc a) :
     ∃ out ∈ Memory.atomUses a, ∃ insV : List V, (∀ u ∈ insV, u ∈ Memory.atomUses a) ∧
-      c = cellOf loc out ∧ ins = keyCells op (insV.map (cellOf loc)) ∧
+      c = loc.cell out ∧ ins = keyCells op (insV.map loc.cell) ∧
       KeyHolds rd (σ out) op (insV.map σ) := by
   cases a with
   | add d x y =>
@@ -672,13 +699,13 @@ theorem cellKeys_sound {a : Core.Atom} (ha : a.Holds rd σ) {c op : ℕ} {ins : 
 /-- The keys after `record`: the old ones, or one of the atom's with its cells in frame. -/
 theorem mem_foldl_keys : ∀ (ks : List (ℕ × ℕ × List ℕ)) (t : Exec.Trie (List (ℕ × List ℕ))) (c : ℕ)
     (k : ℕ × List ℕ),
-    k ∈ (getF (ks.foldl (fun t k ↦ bif Nat.ble 2 k.1 && k.2.2.all (Nat.ble 2) then
+    k ∈ (getF (ks.foldl (fun t k ↦ bif Nat.ble 2 k.1 && bitN sh k.1 && k.2.2.all (Nat.ble 2) then
       setF ((k.2.1, k.2.2) :: (getF t k.1).getD []) envDepth t k.1 else t) t) c).getD [] →
     k ∈ (getF t c).getD [] ∨ ((c, k.1, k.2) ∈ ks ∧ 2 ≤ c ∧ ∀ c' ∈ k.2, 2 ≤ c')
   | [], t, c, k, h => Or.inl h
   | k0 :: ks, t, c, k, h => by
     rcases mem_foldl_keys ks _ c k h with h | ⟨h1, h2, h3⟩
-    · cases hb : (Nat.ble 2 k0.1 && k0.2.2.all (Nat.ble 2))
+    · cases hb : (Nat.ble 2 k0.1 && bitN sh k0.1 && k0.2.2.all (Nat.ble 2))
       · simp only [hb, Bool.cond_false] at h; exact Or.inl h
       · simp only [hb, Bool.cond_true] at h
         simp only [Bool.and_eq_true, Nat.ble_eq, List.all_eq_true] at hb
@@ -688,132 +715,119 @@ theorem mem_foldl_keys : ∀ (ks : List (ℕ × ℕ × List ℕ)) (t : Exec.Trie
           rw [hg] at h
           rcases getF_setF hg with ⟨rfl, rfl⟩ | hg'
           · rcases List.mem_cons.mp h with rfl | h
-            · exact Or.inr ⟨List.mem_cons_self, hb.1, hb.2⟩
+            · exact Or.inr ⟨List.mem_cons_self, hb.1.1, hb.2⟩
             · exact Or.inl h
           · rw [hg']; exact Or.inl h
     · exact Or.inr ⟨List.mem_cons_of_mem _ h1, h2, h3⟩
 
-/-- Cells of an atom fit the occupancy trie. -/
-def CellsFit (loc : Exec.Trie ℕ) (vs : List V) : Prop := ∀ u ∈ vs, cellOf loc u + 1 < 2 ^ envDepth
+theorem getF_recCst {a : Core.Atom} {cst : Exec.Trie (ℕ × ℕ × ℕ)} {c : ℕ} {x : ℕ × ℕ × ℕ}
+    (h : getF (recCst loc sh a cst) c = some x) : getF cst c = some x ∨
+      (getF cst c = none ∧ 2 ≤ c ∧ ((∃ d y, a = .const d y ∧ c = loc.cell d ∧
+        x = (limbNat y 0, limbNat y 1, limbNat y 2)) ∨
+        ∃ u i p, a = .assertNe u i p ∧ c = loc.cell p ∧ x = (1, 0, 0))) := by
+  unfold recCst at h
+  cases a with
+  | const d y =>
+    simp only at h
+    cases h0 : getF cst (loc.cell d) with
+    | some _ => rw [h0] at h; exact Or.inl h
+    | none =>
+      rw [h0] at h
+      simp only [Bool.cond_eq_ite, Bool.and_eq_true, Nat.ble_eq] at h
+      split_ifs at h with hc
+      · rcases getF_setF h with ⟨rfl, rfl⟩ | h
+        · exact Or.inr ⟨h0, hc.1, Or.inl ⟨d, y, rfl, rfl, rfl⟩⟩
+        · exact Or.inl h
+      · exact Or.inl h
+  | assertNe u i p =>
+    simp only at h
+    cases h0 : getF cst (loc.cell p) with
+    | some _ => rw [h0] at h; exact Or.inl h
+    | none =>
+      rw [h0] at h
+      simp only [Bool.cond_eq_ite, Bool.and_eq_true, Nat.ble_eq] at h
+      split_ifs at h with hc
+      · rcases getF_setF h with ⟨rfl, rfl⟩ | h
+        · exact Or.inr ⟨h0, hc.1, Or.inr ⟨u, i, p, rfl, rfl, rfl⟩⟩
+        · exact Or.inl h
+      · exact Or.inl h
+  | _ => exact Or.inl h
 
 /-- **Recording an atom's cell facts** keeps the invariant. -/
 theorem record_inv {a : Core.Atom} {st : SSt} {pre : List V} {Ψ : ℕ → E}
-    (hI : Inv loc rd σ st pre Ψ) (ha : a.Holds rd σ) (hvn : VnA a)
-    (hfit : CellsFit loc (Memory.atomUses a)) :
-    Inv loc rd σ (record loc a st) pre Ψ ∧ Step st Ψ (record loc a st) Ψ := by
+    (hI : Inv cg rd σ st pre Ψ) (ha : a.Holds rd σ) (hvn : VnA a)
+    (hfit : FitV loc cg (Memory.atomUses a)) :
+    Inv cg rd σ (record loc sh a st) pre Ψ ∧ Step st Ψ (record loc sh a st) Ψ := by
   unfold record
   cases hall : (Memory.atomUses a).all fun v ↦ isNamed st v.idx
   · rw [Bool.cond_false]; exact ⟨hI, Step.refl _ _⟩
   rw [Bool.cond_true]
   simp only [List.all_eq_true] at hall
   -- every value of the atom holds its cell's word, its cell occupied
-  have hval : ∀ u ∈ Memory.atomUses a, 2 ≤ cellOf loc u →
-      σ u = Ψ (cellOf loc u) ∧ (getF st.occ (cellOf loc u)).isSome := fun u hu hc ↦ by
-    have := hI.named u.idx (hall u hu) (by rw [cellN_of_vn (hvn u hu)]; exact hc)
-    rw [cellN_of_vn (hvn u hu), ← hvn u hu] at this
+  have hval : ∀ u ∈ Memory.atomUses a, 2 ≤ loc.cell u →
+      σ u = Ψ (loc.cell u) ∧ st.occ.testBit (loc.cell u) := fun u hu hc ↦ by
+    obtain ⟨hv, hcg⟩ := hfit u hu
+    have hcv : cg (V.n u.idx) = loc.cell u := by rw [← hv, hcg]
+    have := hI.named u.idx (hall u hu) (by rw [hcv]; exact hc)
+    rw [hcv, ← hv] at this
     exact this
-  -- a refinement at one cell `c0` of the word `w`
-  have hrefine : ∀ (c0 : ℕ) (x : ℕ × ℕ × ℕ), getF st.occ c0 = some none → c0 + 1 < 2 ^ envDepth →
-      Ψ c0 = tw x → (∀ c, (getF (setF (some x) envDepth st.occ c0) c).isSome = (getF st.occ c).isSome) ∧
-        ∀ c y, getF (setF (some x) envDepth st.occ c0) c = some (some y) → Ψ c = tw y := by
-    intro c0 x h0 hb hw
-    refine ⟨fun c ↦ ?_, fun c y hy ↦ ?_⟩
-    · by_cases hc : c = c0
-      · subst hc; rw [getF_setF_self _ _ hb, h0]; rfl
-      · rw [getF_setF_ne _ _ hc]
-    · by_cases hc : c = c0
-      · subst hc; rw [getF_setF_self _ _ hb] at hy; cases hy; exact hw
-      · rw [getF_setF_ne _ _ hc] at hy; exact hI.kc c y hy
-  have hO : (∀ c, (getF (recOcc loc a st.occ) c).isSome = (getF st.occ c).isSome) ∧
-      ∀ c y, getF (recOcc loc a st.occ) c = some (some y) → Ψ c = tw y := by
-    unfold recOcc
-    cases a with
-    | const d x =>
-      simp only
-      cases h0 : getF st.occ (cellOf loc d) with
-      | none => exact ⟨fun _ ↦ rfl, hI.kc⟩
-      | some y =>
-        cases y with
-        | some _ => exact ⟨fun _ ↦ rfl, hI.kc⟩
-        | none =>
-          simp only
-          cases hd2 : Nat.ble 2 (cellOf loc d)
-          · exact ⟨fun _ ↦ rfl, hI.kc⟩
-          · rw [Bool.cond_true]
-            have hdv := hval d (by simp [Memory.atomUses]) (Nat.ble_eq.mp hd2)
-            refine hrefine _ _ h0 (hfit d (by simp [Memory.atomUses])) ?_
-            rw [← hdv.1, tw_limbs]; exact ha
-    | assertNe x i p =>
-      simp only
-      cases h0 : getF st.occ (cellOf loc p) with
-      | none => exact ⟨fun _ ↦ rfl, hI.kc⟩
-      | some y =>
-        cases y with
-        | some _ => exact ⟨fun _ ↦ rfl, hI.kc⟩
-        | none =>
-          simp only
-          cases hp2 : Nat.ble 2 (cellOf loc p)
-          · exact ⟨fun _ ↦ rfl, hI.kc⟩
-          · rw [Bool.cond_true]
-            have hpv := hval p (by simp [Memory.atomUses]) (Nat.ble_eq.mp hp2)
-            refine hrefine _ _ h0 (hfit p (by simp [Memory.atomUses])) ?_
-            rw [← hpv.1, tw_one]; exact ha.2
-    | _ => exact ⟨fun _ ↦ rfl, hI.kc⟩
-  have hsome : ∀ c, (getF st.occ c).isSome → (getF (recOcc loc a st.occ) c).isSome := fun c h ↦ by
-    rw [hO.1 c]; exact h
-  refine ⟨⟨hI.vn, fun u hu hc ↦ hsome _ (hI.occ u hu hc), hI.good,
-    fun n hn hc ↦ ⟨(hI.named n hn hc).1, hsome _ (hI.named n hn hc).2⟩, hO.2, fun c k hk ↦ ?_,
-    fun p hp ↦ ?_⟩, fun c hc ↦ ⟨hsome c hc, rfl⟩⟩
+  refine ⟨⟨hI.vn, hI.occ, hI.good, hI.named, fun c x hx ↦ ?_, fun c k hk ↦ ?_, hI.pend⟩,
+    Step.refl _ _⟩
+  · rcases getF_recCst hx with hx | ⟨-, hc2, ⟨d, y, rfl, rfl, rfl⟩ | ⟨u, i, p, rfl, rfl, rfl⟩⟩
+    · exact hI.kc c x hx
+    · have hdv := hval d (by simp [Memory.atomUses]) hc2
+      refine ⟨hdv.2, ?_⟩
+      rw [← hdv.1, tw_limbs]; exact ha
+    · have hpv := hval p (by simp [Memory.atomUses]) hc2
+      refine ⟨hpv.2, ?_⟩
+      rw [← hpv.1, tw_one]; exact ha.2
   · rcases mem_foldl_keys _ _ c k hk with hk | ⟨hk, hc2, hins⟩
-    · obtain ⟨h1, h2, h3⟩ := hI.keys c k hk
-      exact ⟨h1, hsome _ h2, fun c' hc' ↦ hsome _ (h3 c' hc')⟩
+    · exact hI.keys c k hk
     · obtain ⟨out, hout, insV, hinsV, rfl, hins', hK⟩ := cellKeys_sound ha hk
-      have hcell : ∀ c' ∈ k.2, ∃ u ∈ insV, c' = cellOf loc u := fun c' hc' ↦ by
+      have hcell : ∀ c' ∈ k.2, ∃ u ∈ insV, c' = loc.cell u := fun c' hc' ↦ by
         rw [hins', mem_keyCells] at hc'
         obtain ⟨u, hu, rfl⟩ := List.mem_map.mp hc'
         exact ⟨u, hu, rfl⟩
-      have hmap : insV.map σ = (insV.map (cellOf loc)).map Ψ := by
+      have hmap : insV.map σ = (insV.map loc.cell).map Ψ := by
         rw [List.map_map]
         refine List.map_congr_left fun u hu ↦ ?_
         exact (hval u (hinsV u hu) (hins _ (by rw [hins', mem_keyCells]; exact List.mem_map_of_mem hu))).1
       rw [hmap, (hval out hout hc2).1, ← keyHolds_keyCells, ← hins'] at hK
-      refine ⟨hK, hsome _ (hval out hout hc2).2, fun c' hc' ↦ ?_⟩
+      refine ⟨hK, (hval out hout hc2).2, fun c' hc' ↦ ?_⟩
       obtain ⟨u, hu, rfl⟩ := hcell c' hc'
-      exact hsome _ (hval u (hinsV u hu) (hins _ hc')).2
-  · obtain ⟨h1, h2, h3, h4⟩ := hI.pend p hp
-    exact ⟨h1, h2, hsome _ h3, h4⟩
+      exact (hval u (hinsV u hu) (hins _ hc')).2
 
 end Record
 
 section Atoms
 
-variable {loc : Exec.Trie ℕ} {rd : Reader} {σ : Val}
+variable {loc : Loc} {sh : ℕ} {cg : V → ℕ} {rd : Reader} {σ : Val}
 
 /-- **An atom on the path** keeps the invariant, its values named. -/
-theorem stepAtom_inv {a : Core.Atom} {st : SSt} {pre : List V} {Ψ : ℕ → E}
-    (hI : Inv loc rd σ st pre Ψ) (ha : a.Holds rd σ) (hvn : VnA a)
-    (hfit : CellsFit loc (Memory.atomUses a)) :
-    ∃ Ψ', Inv loc rd σ (stepAtom loc st a) (pre ++ Memory.atomUses a) Ψ' ∧
-      Step st Ψ (stepAtom loc st a) Ψ' := by
+theorem stepAtom_inv (hA : LocAgree loc cg) {a : Core.Atom} {st : SSt} {pre : List V} {Ψ : ℕ → E}
+    (hI : Inv cg rd σ st pre Ψ) (ha : a.Holds rd σ) (hfit : FitV loc cg (Memory.atomUses a)) :
+    ∃ Ψ', Inv cg rd σ (stepAtom loc sh st a) (pre ++ Memory.atomUses a) Ψ' ∧
+      Step st Ψ (stepAtom loc sh st a) Ψ' := by
+  have hvn : VnA a := fun u hu ↦ (hfit u hu).1
   unfold stepAtom
   simp only [SSt.seq_eq]
-  obtain ⟨Ψ1, hI1, hs1⟩ := nameAll_inv (kc := constOf a) (Memory.atomUses a) hI fun v hv ↦
-    ⟨hvn v hv, hfit v hv, fun x hx ↦ by rw [hvn v hv]; exact constOf_sound ha hvn hx⟩
+  obtain ⟨Ψ1, hI1, hs1⟩ := nameAll_inv (sh := sh) (kc := constOf a) (Memory.atomUses a) hI hfit
+    fun v hv x hx ↦ by rw [hvn v hv]; exact constOf_sound ha hvn hx
   have hI2 := addFacts_inv hI1 ha hvn
-  obtain ⟨hI3, ho3⟩ := discharge_inv (_ + 1) hI2
-  obtain ⟨hI4, hs4⟩ := record_inv hI3 ha hvn hfit
+  obtain ⟨hI3, ho3⟩ := discharge_inv hA (_ + 1) hI2
+  obtain ⟨hI4, hs4⟩ := record_inv (sh := sh) hI3 ha hvn hfit
   refine ⟨Ψ1, hI4, hs1.trans ((Step.of_occ fun c h ↦ ?_).trans hs4)⟩
   rw [ho3]; exact h
 
 /-- **Other values named** keep the invariant. -/
-theorem nameStep_inv {vs : List V} {st : SSt} {pre : List V} {Ψ : ℕ → E}
-    (hI : Inv loc rd σ st pre Ψ) (hvn : ∀ v ∈ vs, v = V.n v.idx) (hfit : CellsFit loc vs) :
-    ∃ Ψ', Inv loc rd σ (nameStep loc st vs) (pre ++ vs) Ψ' ∧ Step st Ψ (nameStep loc st vs) Ψ' := by
+theorem nameStep_inv (hA : LocAgree loc cg) {vs : List V} {st : SSt} {pre : List V} {Ψ : ℕ → E}
+    (hI : Inv cg rd σ st pre Ψ) (hfit : FitV loc cg vs) :
+    ∃ Ψ', Inv cg rd σ (nameStep loc sh st vs) (pre ++ vs) Ψ' ∧ Step st Ψ (nameStep loc sh st vs) Ψ' := by
   unfold nameStep
   simp only [SSt.seq_eq]
-  obtain ⟨Ψ1, hI1, hs1⟩ := nameAll_inv (kc := fun _ ↦ none) vs hI fun v hv ↦
-    ⟨hvn v hv, hfit v hv, fun x hx ↦ by cases hx⟩
-  obtain ⟨hI2, ho2⟩ := discharge_inv (_ + 1) hI1
+  obtain ⟨Ψ1, hI1, hs1⟩ := nameAll_inv (sh := sh) (kc := fun _ ↦ none) vs hI hfit
+    fun v hv x hx ↦ by cases hx
+  obtain ⟨hI2, ho2⟩ := discharge_inv hA (_ + 1) hI1
   refine ⟨Ψ1, hI2, hs1.trans (Step.of_occ fun c h ↦ ?_)⟩
   rw [ho2]; exact h
 
@@ -823,104 +837,66 @@ end Atoms
 
 section Join
 
-theorem occJoin_none : occJoin none none = none := rfl
+theorem testBit_foldl_lor (bs : List SSt) (s c : ℕ) :
+    (bs.foldl (fun o b ↦ Nat.lor o b.occ) s).testBit c = true ↔ s.testBit c = true ∨ ∃ b ∈ bs, b.occ.testBit c = true := by
+  induction bs generalizing s with
+  | nil => simp
+  | cons b bs ih =>
+    rw [List.foldl_cons, ih, testBit_lor']
+    simp only [Bool.or_eq_true, List.mem_cons, exists_eq_or_imp]
+    tauto
 
-theorem bothU_none : bothU none none = none := rfl
-
-theorem get_occFold : ∀ (bs : List SSt) (acc : Exec.Trie (Option (ℕ × ℕ × ℕ))) (c : ℕ),
-    (bs.foldl (fun t b ↦ Trie.merge occJoin t b.occ) acc).get c =
-      match acc.get c with
-      | some x => some x
-      | none => if ∃ b ∈ bs, (b.occ.get c).isSome then some none else none
-  | [], acc, c => by cases h : acc.get c <;> simp [h]
-  | b :: bs, acc, c => by
-    simp only [List.foldl_cons]
-    rw [get_occFold bs _ c, Trie.get_merge occJoin_none]
-    cases ha : acc.get c with
-    | some x => simp [occJoin]
-    | none =>
-      cases hb : b.occ.get c with
-      | some y => simp [occJoin, hb]
-      | none =>
-        simp only [occJoin]
-        congr 1
-        simp only [List.mem_cons, exists_eq_or_imp, hb, Option.isSome_none, Bool.false_eq_true,
-          false_or]
-
-theorem get_namedFold : ∀ (bs : List SSt) (acc : Exec.Trie Unit) (n : ℕ),
-    (bs.foldl (fun t b ↦ Trie.merge bothU t b.named) acc).get n = some () →
-      acc.get n = some () ∧ ∀ b ∈ bs, b.named.get n = some ()
-  | [], acc, n, h => ⟨h, fun _ h ↦ by cases h⟩
-  | b :: bs, acc, n, h => by
-    simp only [List.foldl_cons] at h
-    obtain ⟨h1, h2⟩ := get_namedFold bs _ n h
-    rw [Trie.get_merge bothU_none] at h1
-    cases ha : acc.get n <;> cases hb : b.named.get n <;> rw [ha, hb] at h1 <;> simp only [bothU,
-      reduceCtorEq] at h1
-    exact ⟨rfl, fun b' hb' ↦ by
+theorem testBit_foldl_land (bs : List SSt) (s n : ℕ) :
+    (bs.foldl (fun t b ↦ Nat.land t b.named) s).testBit n = true → s.testBit n = true ∧ ∀ b ∈ bs, b.named.testBit n = true := by
+  induction bs generalizing s with
+  | nil => simp
+  | cons b bs ih =>
+    intro h
+    rw [List.foldl_cons] at h
+    obtain ⟨h1, h2⟩ := ih _ h
+    rw [testBit_land', Bool.and_eq_true] at h1
+    exact ⟨h1.1, fun b' hb' ↦ by
       rcases List.mem_cons.mp hb' with rfl | hb'
-      · exact hb
+      · exact h1.2
       · exact h2 b' hb'⟩
 
-variable {loc : Exec.Trie ℕ} {rd : Reader} {σ : Val}
+variable {cg : V → ℕ} {rd : Reader} {σ : Val}
 
 /-- **After a join**, for the branch taken: the facts from before the branch, with the branch's
 cell words. -/
 theorem joinSt_inv {st1 b : SSt} {bs : List SSt} {pre1 preb : List V} {Ψ1 Ψb : ℕ → E}
-    (hI1 : Inv loc rd σ st1 pre1 Ψ1) (hIb : Inv loc rd σ b preb Ψb) (hs : Step st1 Ψ1 b Ψb)
+    (hI1 : Inv cg rd σ st1 pre1 Ψ1) (hIb : Inv cg rd σ b preb Ψb) (hs : Step st1 Ψ1 b Ψb)
     (hb : b ∈ bs) (hp : b.pend = []) :
-    Inv loc rd σ (joinSt st1 bs) preb Ψb ∧ Step st1 Ψ1 (joinSt st1 bs) Ψb := by
-  have hocc : ∀ c, getF (joinSt st1 bs).occ c =
-      match getF st1.occ c with
-      | some x => some x
-      | none => if ∃ b ∈ bs, (getF b.occ c).isSome then some none else none := fun c ↦ by
-    simp only [joinSt, getF_eq]; exact get_occFold bs st1.occ c
-  have hsome : ∀ c, (getF b.occ c).isSome → (getF (joinSt st1 bs).occ c).isSome := fun c h ↦ by
-    rw [hocc]
-    cases h1 : getF st1.occ c with
-    | some x => rfl
-    | none => simp only [show ∃ b ∈ bs, (getF b.occ c).isSome = true from ⟨b, hb, h⟩, ↓reduceIte]; rfl
-  have hsome1 : ∀ c, (getF st1.occ c).isSome → getF (joinSt st1 bs).occ c = getF st1.occ c := fun c h ↦ by
-    rw [hocc]
-    obtain ⟨x, hx⟩ := Option.isSome_iff_exists.mp h
-    rw [hx]
+    Inv cg rd σ (joinSt st1 bs) preb Ψb ∧ Step st1 Ψ1 (joinSt st1 bs) Ψb := by
+  have hsome : ∀ c, b.occ.testBit c = true → (joinSt st1 bs).occ.testBit c = true := fun c h ↦
+    (testBit_foldl_lor bs st1.occ c).mpr (Or.inr ⟨b, hb, h⟩)
+  have hsome1 : ∀ c, st1.occ.testBit c = true → (joinSt st1 bs).occ.testBit c = true := fun c h ↦
+    (testBit_foldl_lor bs st1.occ c).mpr (Or.inl h)
   refine ⟨⟨hIb.vn, fun u hu hc ↦ hsome _ (hIb.occ u hu hc), fun u hu hc _ ↦ ?_, fun n hn hc ↦ ?_,
     fun c x hx ↦ ?_, fun c k hk ↦ ?_, fun p hp' ↦ by simp [joinSt] at hp'⟩,
-    fun c hc ↦ ⟨by rw [hsome1 c hc]; exact hc, (hs c hc).2⟩⟩
+    fun c hc ↦ ⟨hsome1 c hc, (hs c hc).2⟩⟩
   · exact hIb.good u hu hc (by simp [isPend, hp])
   · have hnb : isNamed b n = true := by
-      simp only [isNamed, joinSt] at hn ⊢
+      rw [isNamed_eq] at hn ⊢
+      simp only [joinSt] at hn
       cases bs with
       | nil => cases hb
       | cons b0 bs' =>
-        simp only at hn
-        rcases Option.isSome_iff_exists.mp hn with ⟨u, hu⟩
-        rw [getF_eq] at hu
-        obtain ⟨h1, h2⟩ := get_namedFold bs' b0.named n (by cases u; exact hu)
+        obtain ⟨h1, h2⟩ := testBit_foldl_land bs' b0.named n hn
         rcases List.mem_cons.mp hb with rfl | hb'
-        · rw [getF_eq, h1]; rfl
-        · rw [getF_eq, h2 b hb']; rfl
+        · exact h1
+        · exact h2 b hb'
     exact ⟨(hIb.named n hnb hc).1, hsome _ (hIb.named n hnb hc).2⟩
-  · rw [hocc] at hx
-    cases h1 : getF st1.occ c with
-    | some y =>
-      rw [h1] at hx
-      cases hx
-      rw [(hs c (by rw [h1]; rfl)).2]
-      exact hI1.kc c x h1
-    | none =>
-      rw [h1] at hx
-      simp only at hx
-      split_ifs at hx
-      cases hx
-  · have hk' : k ∈ (getF st1.keys c).getD [] := hk
-    obtain ⟨h1, h2, h3⟩ := hI1.keys c k hk'
-    refine ⟨?_, by rw [hsome1 c h2]; exact h2, fun c' hc' ↦ by rw [hsome1 c' (h3 c' hc')]; exact h3 c' hc'⟩
+  · obtain ⟨h1, h2⟩ := hI1.kc c x hx
+    exact ⟨hsome1 c h1, by rw [(hs c h1).2]; exact h2⟩
+  · obtain ⟨h1, h2, h3⟩ := hI1.keys c k hk
+    refine ⟨?_, hsome1 c h2, fun c' hc' ↦ hsome1 c' (h3 c' hc')⟩
     rw [(hs c h2).2]
     have : k.2.map Ψb = k.2.map Ψ1 := List.map_congr_left fun c' hc' ↦ (hs c' (h3 c' hc')).2
     rw [this]; exact h1
 
 end Join
+
 
 /-! ## Paths -/
 
@@ -1003,43 +979,38 @@ theorem mayRet_of_walk1 {s : Stmt} {es : List Ev} {vs : List V} (h : walk1 σ s 
 
 end Paths
 
+
 section Walk
 
 open LeanVM.Guest.Memory
 
-variable {loc : Exec.Trie ℕ} {P : Plumb} {rd : Reader} {σ : Val}
+variable {loc : Loc} {sh : ℕ} {tt : Exec.Trie ℕ} {P : Plumb} {cg : V → ℕ} {rd : Reader} {σ : Val}
 
-/-- Values named by their numbers whose cells fit the tries. -/
-def FitV (loc : Exec.Trie ℕ) (vs : List V) : Prop :=
-  ∀ v ∈ vs, v = V.n v.idx ∧ cellOf loc v + 1 < 2 ^ envDepth
-
-theorem FitV.mono {vs ws : List V} (h : FitV loc ws) (hs : ∀ v ∈ vs, v ∈ ws) : FitV loc vs :=
-  fun v hv ↦ h v (hs v hv)
 
 /-- What a walk gives of an outcome: at a fall-through, the end state with the path's values named;
 at a return, a state with every value named and nothing pending (or the end state itself). -/
-def Conc (loc : Exec.Trie ℕ) (rd : Reader) (σ : Val) (st : SSt) (Ψ : ℕ → E) (pre : List V)
+def Conc (cg : V → ℕ) (rd : Reader) (σ : Val) (st : SSt) (Ψ : ℕ → E) (pre : List V)
     (st' : SSt) : Out → Prop
-  | .fall es => ∃ pre' Ψ', Inv loc rd σ st' pre' Ψ' ∧ Step st Ψ st' Ψ' ∧ (∀ v ∈ pre, v ∈ pre') ∧
+  | .fall es => ∃ pre' Ψ', Inv cg rd σ st' pre' Ψ' ∧ Step st Ψ st' Ψ' ∧ (∀ v ∈ pre, v ∈ pre') ∧
       ∀ e ∈ es, ∀ v ∈ e.uses, v ∈ pre'
-  | .ret es vs => ∃ st'' pre' Ψ', Inv loc rd σ st'' pre' Ψ' ∧ Step st Ψ st'' Ψ' ∧
+  | .ret es vs => ∃ st'' pre' Ψ', Inv cg rd σ st'' pre' Ψ' ∧ Step st Ψ st'' Ψ' ∧
       (st''.pend = [] ∨ st'' = st') ∧
       (∀ v ∈ pre, v ∈ pre') ∧ (∀ e ∈ es, ∀ v ∈ e.uses, v ∈ pre') ∧ ∀ v ∈ vs, v ∈ pre'
   | .stuck => True
 
 /-- Names `vs` after `pre`: a fall-through naming `vs`. -/
 theorem conc_names {st st' : SSt} {Ψ Ψ' : ℕ → E} {pre vs : List V} {es : List Ev}
-    (hI : Inv loc rd σ st' (pre ++ vs) Ψ') (hs : Step st Ψ st' Ψ')
-    (hu : ∀ e ∈ es, ∀ v ∈ e.uses, v ∈ vs) : Conc loc rd σ st Ψ pre st' (.fall es) :=
+    (hI : Inv cg rd σ st' (pre ++ vs) Ψ') (hs : Step st Ψ st' Ψ')
+    (hu : ∀ e ∈ es, ∀ v ∈ e.uses, v ∈ vs) : Conc cg rd σ st Ψ pre st' (.fall es) :=
   ⟨pre ++ vs, Ψ', hI, hs, fun _ hv ↦ List.mem_append_left _ hv,
     fun e he v hv ↦ List.mem_append_right _ (hu e he v hv)⟩
 
 /-- A statement's outcome followed by the rest of its block's. -/
 theorem conc_seq {st st1 st' : SSt} {Ψ : ℕ → E} {pre : List V} {o1 o2 : Out}
-    (h1 : Conc loc rd σ st Ψ pre st1 o1)
-    (h2 : ∀ es1, o1 = .fall es1 → ∀ pre1 Ψ1, Inv loc rd σ st1 pre1 Ψ1 → Step st Ψ st1 Ψ1 →
-      (∀ v ∈ pre, v ∈ pre1) → Conc loc rd σ st1 Ψ1 pre1 st' o2)
-    (hr : ∀ es vs, o1 = .ret es vs → st1.pend = []) : Conc loc rd σ st Ψ pre st' (o1.seq o2) := by
+    (h1 : Conc cg rd σ st Ψ pre st1 o1)
+    (h2 : ∀ es1, o1 = .fall es1 → ∀ pre1 Ψ1, Inv cg rd σ st1 pre1 Ψ1 → Step st Ψ st1 Ψ1 →
+      (∀ v ∈ pre, v ∈ pre1) → Conc cg rd σ st1 Ψ1 pre1 st' o2)
+    (hr : ∀ es vs, o1 = .ret es vs → st1.pend = []) : Conc cg rd σ st Ψ pre st' (o1.seq o2) := by
   cases o1 with
   | fall es1 =>
     obtain ⟨pre1, Ψ1, hI1, hs1, hp1, hu1⟩ := h1
@@ -1074,14 +1045,14 @@ theorem evs_pre_head {es : List Ev} {o : Out} {e : Ev} (he : e ∈ es) (hs : o �
   cases o <;> simp_all [Out.pre, Out.evs]
 
 /-- A walk's end state has nothing pending. -/
-theorem swL_pend : ∀ (ss : List Stmt) {st st' : SSt}, swL loc P st ss = some st' → st'.pend = []
+theorem swL_pend : ∀ (ss : List Stmt) {st st' : SSt}, swL loc sh tt P st ss = some st' → st'.pend = []
   | [], st, st', h => by
     simp only [swL, Bool.cond_eq_ite] at h
     split_ifs at h with hp
     cases h; exact List.isEmpty_iff.mp hp
   | s :: ss, st, st', h => by
     simp only [swL] at h
-    cases hs : swS loc P st s with
+    cases hs : swS loc sh tt P st s with
     | none => rw [hs] at h; cases h
     | some st1 =>
       rw [hs] at h
@@ -1091,8 +1062,8 @@ theorem swL_pend : ∀ (ss : List Stmt) {st st' : SSt}, swL loc P st ss = some s
 
 /-- A conclusion for the values `vs` named first, before the events `es`. -/
 theorem conc_pre {st st' : SSt} {Ψ : ℕ → E} {pre vs : List V} {es : List Ev} {o : Out}
-    (h : Conc loc rd σ st Ψ (pre ++ vs) st' o) (hu : ∀ e ∈ es, ∀ v ∈ e.uses, v ∈ vs) :
-    Conc loc rd σ st Ψ pre st' (o.pre es) := by
+    (h : Conc cg rd σ st Ψ (pre ++ vs) st' o) (hu : ∀ e ∈ es, ∀ v ∈ e.uses, v ∈ vs) :
+    Conc cg rd σ st Ψ pre st' (o.pre es) := by
   cases o with
   | fall es' =>
     obtain ⟨pre', Ψ', hI, hs, hp, hu'⟩ := h
@@ -1111,7 +1082,7 @@ theorem conc_pre {st st' : SSt} {Ψ : ℕ → E} {pre vs : List V} {es : List Ev
 
 /-- A conclusion for fewer values named before. -/
 theorem conc_shrink {st st' : SSt} {Ψ : ℕ → E} {pre vs : List V} {o : Out}
-    (h : Conc loc rd σ st Ψ (pre ++ vs) st' o) : Conc loc rd σ st Ψ pre st' o := by
+    (h : Conc cg rd σ st Ψ (pre ++ vs) st' o) : Conc cg rd σ st Ψ pre st' o := by
   cases o with
   | fall es =>
     obtain ⟨pre', Ψ', hI, hs, hp, hu⟩ := h
@@ -1123,9 +1094,9 @@ theorem conc_shrink {st st' : SSt} {Ψ : ℕ → E} {pre vs : List V} {o : Out}
 
 /-- **A branch's conclusion** after the join, from before the branch. -/
 theorem conc_join {st st1 b : SSt} {bs : List SSt} {Ψ Ψ1 : ℕ → E} {pre1 : List V} {o : Out}
-    (hI1 : Inv loc rd σ st1 pre1 Ψ1) (hs1 : Step st Ψ st1 Ψ1) (hb : b ∈ bs)
-    (hC : Conc loc rd σ st1 Ψ1 pre1 b o) (hp : b.pend = []) :
-    Conc loc rd σ st Ψ pre1 (joinSt st1 bs) o := by
+    (hI1 : Inv cg rd σ st1 pre1 Ψ1) (hs1 : Step st Ψ st1 Ψ1) (hb : b ∈ bs)
+    (hC : Conc cg rd σ st1 Ψ1 pre1 b o) (hp : b.pend = []) :
+    Conc cg rd σ st Ψ pre1 (joinSt st1 bs) o := by
   cases o with
   | fall es =>
     obtain ⟨pre', Ψ', hI', hs', hp1, hu⟩ := hC
@@ -1154,15 +1125,15 @@ theorem seq_evs {o1 o2 : Out} (h : o1.seq o2 ≠ .stuck) :
 
 mutual
 /-- **One statement**: what the walk gives of its outcome on a path. -/
-theorem swS_sound : ∀ (s : Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ → E},
-    swS loc P st s = some st' → Inv loc rd σ st pre Ψ → FitV loc (Stmt.uses s) →
-    (∀ e ∈ (walk1 σ s).evs, e.Holds rd σ) → Conc loc rd σ st Ψ pre st' (walk1 σ s)
+theorem swS_sound (hA : LocAgree loc cg) : ∀ (s : Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ → E},
+    swS loc sh tt P st s = some st' → Inv cg rd σ st pre Ψ → FitV loc cg (Stmt.uses s) →
+    (∀ e ∈ (walk1 σ s).evs, e.Holds rd σ) → Conc cg rd σ st Ψ pre st' (walk1 σ s)
   | .atom a, st, st', pre, Ψ, h, hI, hv, he => by
       simp only [swS, Bool.cond_eq_ite] at h
       split_ifs at h
       cases h
       have ha : a.Holds rd σ := he (.atom a) (by simp [walk1, Out.evs])
-      obtain ⟨Ψ', hI', hs⟩ := stepAtom_inv hI ha (fun u hu ↦ (hv u hu).1) (fun u hu ↦ (hv u hu).2)
+      obtain ⟨Ψ', hI', hs⟩ := stepAtom_inv hA hI ha hv
       refine conc_names hI' hs fun e he' v hv' ↦ ?_
       simp only [List.mem_singleton] at he'
       subst he'
@@ -1170,44 +1141,42 @@ theorem swS_sound : ∀ (s : Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ → E
   | .ite c z n, st, st', pre, Ψ, h, hI, hv, he => by
       simp only [swS, SSt.seq_eq, Bool.cond_eq_ite] at h
       split_ifs at h with hp
-      cases hz : swL loc P (nameStep loc st [c]) z <;> cases hn : swL loc P (nameStep loc st [c]) n <;>
+      cases hz : swL loc sh tt P (nameStep loc sh st [c]) z <;> cases hn : swL loc sh tt P (nameStep loc sh st [c]) n <;>
         rw [hz, hn] at h <;> simp only [reduceCtorEq, Option.some.injEq] at h
       subst h
       rename_i sz sn
       have hc := hv c List.mem_cons_self
-      obtain ⟨Ψ1, hI1, hs1⟩ := nameStep_inv hI (fun u hu ↦ by
-        rw [List.mem_singleton.mp hu]; exact hc.1) (fun u hu ↦ by rw [List.mem_singleton.mp hu]; exact hc.2)
+      obtain ⟨Ψ1, hI1, hs1⟩ := nameStep_inv hA hI (fun u hu ↦ by rw [List.mem_singleton.mp hu]; exact hc)
       have hu : ∀ e ∈ [Ev.inK c], ∀ v ∈ e.uses, v ∈ [c] := fun e he v hv ↦ by
         simp only [List.mem_singleton] at he; subst he; exact hv
       simp only [walk1] at he ⊢
       by_cases hc0 : σ c = 0
       · simp only [hc0, ↓reduceIte] at he ⊢
         refine conc_pre (conc_join hI1 hs1 List.mem_cons_self ?_ (swL_pend z hz)) hu
-        exact swL_sound z hz hI1 (hv.mono fun v hv ↦ by simp [Stmt.uses, hv])
+        exact swL_sound hA z hz hI1 (hv.mono fun v hv ↦ by simp [Stmt.uses, hv])
           fun e he' ↦ he e (evs_pre he')
       · simp only [hc0, ↓reduceIte] at he ⊢
         refine conc_pre (conc_join hI1 hs1 (by simp) ?_ (swL_pend n hn)) hu
-        exact swL_sound n hn hI1 (hv.mono fun v hv ↦ by simp [Stmt.uses, hv])
+        exact swL_sound hA n hn hI1 (hv.mono fun v hv ↦ by simp [Stmt.uses, hv])
           fun e he' ↦ he e (evs_pre he')
   | .match_ x arms, st, st', pre, Ψ, h, hI, hv, he => by
       simp only [swS, SSt.seq_eq, Bool.cond_eq_ite] at h
       split_ifs at h with hp
-      cases ha : swArms loc P (nameStep loc st [x]) arms <;> rw [ha] at h <;>
+      cases ha : swArms loc sh tt P (nameStep loc sh st [x]) arms <;> rw [ha] at h <;>
         simp only [reduceCtorEq, Option.some.injEq] at h
       subst h
       rename_i bs
       have hx := hv x List.mem_cons_self
-      obtain ⟨Ψ1, hI1, hs1⟩ := nameStep_inv hI (fun u hu ↦ by
-        rw [List.mem_singleton.mp hu]; exact hx.1) (fun u hu ↦ by rw [List.mem_singleton.mp hu]; exact hx.2)
+      obtain ⟨Ψ1, hI1, hs1⟩ := nameStep_inv hA hI (fun u hu ↦ by rw [List.mem_singleton.mp hu]; exact hx)
       simp only [walk1] at he ⊢
-      rcases swArms_sound x arms 0 ha hI1 (hv.mono fun v hv ↦ by simp [Stmt.uses, hv]) he with
+      rcases swArms_sound hA x arms 0 ha hI1 (hv.mono fun v hv ↦ by simp [Stmt.uses, hv]) he with
         hst | ⟨b, hb, hC, hbp⟩
       · rw [hst]; trivial
       · exact conc_shrink (conc_join hI1 hs1 hb hC hbp)
   | .call f args rets, st, st', pre, Ψ, h, hI, hv, _ => by
       simp only [swS, Option.some.injEq] at h
       subst h
-      obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hI (fun u hu ↦ (hv u hu).1) (fun u hu ↦ (hv u hu).2)
+      obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hA hI hv
       refine conc_names hI' hs fun e he' v hv' ↦ ?_
       simp only [List.mem_singleton] at he'
       subst he'
@@ -1215,7 +1184,7 @@ theorem swS_sound : ∀ (s : Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ → E
   | .callIf c f args, st, st', pre, Ψ, h, hI, hv, _ => by
       simp only [swS, Option.some.injEq] at h
       subst h
-      obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hI (fun u hu ↦ (hv u hu).1) (fun u hu ↦ (hv u hu).2)
+      obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hA hI hv
       refine conc_names hI' hs fun e he' v hv' ↦ ?_
       simp only [List.mem_cons, List.not_mem_nil, or_false] at he'
       rcases he' with rfl | rfl
@@ -1225,7 +1194,7 @@ theorem swS_sound : ∀ (s : Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ → E
   | .dispatch x fs args rets, st, st', pre, Ψ, h, hI, hv, _ => by
       simp only [swS, Option.some.injEq] at h
       subst h
-      obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hI (fun u hu ↦ (hv u hu).1) (fun u hu ↦ (hv u hu).2)
+      obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hA hI hv
       simp only [walk1]
       rcases pick_cases (σ := σ) (x := x) (args := args) (rets := rets) fs 0 with hp | ⟨g, hp⟩
       · rw [hp]; trivial
@@ -1238,16 +1207,16 @@ theorem swS_sound : ∀ (s : Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ → E
   | .ret vs, st, st', pre, Ψ, h, hI, hv, _ => by
       simp only [swS, Option.some.injEq] at h
       subst h
-      obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hI (fun u hu ↦ (hv u hu).1) (fun u hu ↦ (hv u hu).2)
+      obtain ⟨Ψ', hI', hs⟩ := nameStep_inv hA hI hv
       simp only [walk1]
-      exact ⟨nameStep loc st (stmtNames (.ret vs)), pre ++ stmtNames (.ret vs), Ψ', hI', hs, Or.inr rfl,
+      exact ⟨nameStep loc sh st (stmtNames (.ret vs)), pre ++ stmtNames (.ret vs), Ψ', hI', hs, Or.inr rfl,
         fun _ hv ↦ List.mem_append_left _ hv, fun e he ↦ absurd he List.not_mem_nil,
         fun v hv ↦ List.mem_append_right _ hv⟩
 
 /-- **A block**: what the walk gives of its outcome on a path. -/
-theorem swL_sound : ∀ (ss : List Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ → E},
-    swL loc P st ss = some st' → Inv loc rd σ st pre Ψ → FitV loc (Stmt.usesList ss) →
-    (∀ e ∈ (walk σ ss).evs, e.Holds rd σ) → Conc loc rd σ st Ψ pre st' (walk σ ss)
+theorem swL_sound (hA : LocAgree loc cg) : ∀ (ss : List Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ → E},
+    swL loc sh tt P st ss = some st' → Inv cg rd σ st pre Ψ → FitV loc cg (Stmt.usesList ss) →
+    (∀ e ∈ (walk σ ss).evs, e.Holds rd σ) → Conc cg rd σ st Ψ pre st' (walk σ ss)
   | [], st, st', pre, Ψ, h, hI, _, _ => by
       simp only [swL, Bool.cond_eq_ite] at h
       split_ifs at h
@@ -1255,7 +1224,7 @@ theorem swL_sound : ∀ (ss : List Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ
       exact ⟨pre, Ψ, hI, Step.refl _ _, fun _ hv ↦ hv, fun e he ↦ by simp at he⟩
   | s :: ss, st, st', pre, Ψ, h, hI, hv, he => by
       simp only [swL] at h
-      cases hs : swS loc P st s with
+      cases hs : swS loc sh tt P st s with
       | none => rw [hs] at h; cases h
       | some st1 =>
         rw [hs] at h
@@ -1265,39 +1234,40 @@ theorem swL_sound : ∀ (ss : List Stmt) {st st' : SSt} {pre : List V} {Ψ : ℕ
         by_cases hst : (walk1 σ s).seq (walk σ ss) = .stuck
         · rw [hst]; trivial
         obtain ⟨he1, he2⟩ := seq_evs hst
-        have hvs : FitV loc (Stmt.uses s) := hv.mono fun v hv ↦ by simp [Stmt.usesList, hv]
-        have hvss : FitV loc (Stmt.usesList ss) := hv.mono fun v hv ↦ by simp [Stmt.usesList, hv]
-        refine conc_seq (swS_sound s hs hI hvs fun e h ↦ he e (he1 e h))
-          (fun es1 h1 pre1 Ψ1 hI1 _ _ ↦ swL_sound ss h hI1 hvss fun e h ↦ he e (he2 es1 h1 e h))
+        have hvs : FitV loc cg (Stmt.uses s) := hv.mono fun v hv ↦ by simp [Stmt.usesList, hv]
+        have hvss : FitV loc cg (Stmt.usesList ss) := hv.mono fun v hv ↦ by simp [Stmt.usesList, hv]
+        refine conc_seq (swS_sound hA s hs hI hvs fun e h ↦ he e (he1 e h))
+          (fun es1 h1 pre1 Ψ1 hI1 _ _ ↦ swL_sound hA ss h hI1 hvss fun e h ↦ he e (he2 es1 h1 e h))
           fun es vs hr ↦ ?_
         have := mayRet_of_walk1 hr
         simp only [this, Bool.true_and, Bool.not_eq_eq_eq_not, Bool.not_true] at hm
         simpa using hm
 
 /-- **The arms of a `match`**: the arm taken. -/
-theorem swArms_sound (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ) {st : SSt} {bs : List SSt}
-    {pre : List V} {Ψ : ℕ → E}, swArms loc P st arms = some bs → Inv loc rd σ st pre Ψ →
-    FitV loc (Stmt.usesArms arms) → (∀ e ∈ (walkArms σ x j arms).evs, e.Holds rd σ) →
+theorem swArms_sound (hA : LocAgree loc cg) (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ) {st : SSt} {bs : List SSt}
+    {pre : List V} {Ψ : ℕ → E}, swArms loc sh tt P st arms = some bs → Inv cg rd σ st pre Ψ →
+    FitV loc cg (Stmt.usesArms arms) → (∀ e ∈ (walkArms σ x j arms).evs, e.Holds rd σ) →
     walkArms σ x j arms = .stuck ∨
-      ∃ b ∈ bs, Conc loc rd σ st Ψ pre b (walkArms σ x j arms) ∧ b.pend = []
+      ∃ b ∈ bs, Conc cg rd σ st Ψ pre b (walkArms σ x j arms) ∧ b.pend = []
   | [], j, _, _, _, _, _, _, _, _ => Or.inl (by simp [walkArms])
   | a :: as, j, st, bs, pre, Ψ, h, hI, hv, he => by
       simp only [swArms] at h
-      cases ha : swL loc P st a <;> cases has : swArms loc P st as <;> rw [ha, has] at h <;>
+      cases ha : swL loc sh tt P st a <;> cases has : swArms loc sh tt P st as <;> rw [ha, has] at h <;>
         simp only [reduceCtorEq, Option.some.injEq] at h
       subst h
       rename_i b bs'
       unfold walkArms at he ⊢
       split_ifs at he ⊢
-      · exact Or.inr ⟨b, List.mem_cons_self, swL_sound a ha hI (hv.mono fun v hv ↦ by
+      · exact Or.inr ⟨b, List.mem_cons_self, swL_sound hA a ha hI (hv.mono fun v hv ↦ by
           simp [Stmt.usesArms, hv]) he, swL_pend a ha⟩
-      · rcases swArms_sound x as (j + 1) has hI (hv.mono fun v hv ↦ by simp [Stmt.usesArms, hv]) he with
+      · rcases swArms_sound hA x as (j + 1) has hI (hv.mono fun v hv ↦ by simp [Stmt.usesArms, hv]) he with
           h | ⟨b', hb', h⟩
         · exact Or.inl h
         · exact Or.inr ⟨b', List.mem_cons_of_mem _ hb', h⟩
 end
 
 end Walk
+
 
 /-! ## Atoms of a body -/
 
@@ -1324,11 +1294,11 @@ section Atoms2
 
 open LeanVM.Guest.Memory
 
-variable {loc : Exec.Trie ℕ} {P : Plumb}
+variable {loc : Loc} {sh : ℕ} {tt : Exec.Trie ℕ} {P : Plumb}
 
 mutual
-theorem swS_listed : ∀ (s : Stmt) {st st' : SSt}, swS loc P st s = some st' →
-    ∀ a ∈ sAtoms s, atomListed loc P a = true
+theorem swS_listed : ∀ (s : Stmt) {st st' : SSt}, swS loc sh tt P st s = some st' →
+    ∀ a ∈ sAtoms s, atomListed loc tt P a = true
   | .atom a, st, st', h, a', ha' => by
       simp only [swS, Bool.cond_eq_ite] at h
       split_ifs at h with hl
@@ -1337,7 +1307,7 @@ theorem swS_listed : ∀ (s : Stmt) {st st' : SSt}, swS loc P st s = some st' �
   | .ite c z n, st, st', h, a, ha => by
       simp only [swS, SSt.seq_eq, Bool.cond_eq_ite] at h
       split_ifs at h
-      cases hz : swL loc P (nameStep loc st [c]) z <;> cases hn : swL loc P (nameStep loc st [c]) n <;>
+      cases hz : swL loc sh tt P (nameStep loc sh st [c]) z <;> cases hn : swL loc sh tt P (nameStep loc sh st [c]) n <;>
         rw [hz, hn] at h <;> simp only [reduceCtorEq] at h
       simp only [sAtoms, List.mem_append] at ha
       rcases ha with ha | ha
@@ -1346,7 +1316,7 @@ theorem swS_listed : ∀ (s : Stmt) {st st' : SSt}, swS loc P st s = some st' �
   | .match_ x arms, st, st', h, a, ha => by
       simp only [swS, SSt.seq_eq, Bool.cond_eq_ite] at h
       split_ifs at h
-      cases har : swArms loc P (nameStep loc st [x]) arms <;> rw [har] at h <;>
+      cases har : swArms loc sh tt P (nameStep loc sh st [x]) arms <;> rw [har] at h <;>
         simp only [reduceCtorEq] at h
       exact swArms_listed arms har a ha
   | .call .., _, _, _, _, ha => by simp [sAtoms] at ha
@@ -1354,12 +1324,12 @@ theorem swS_listed : ∀ (s : Stmt) {st st' : SSt}, swS loc P st s = some st' �
   | .dispatch .., _, _, _, _, ha => by simp [sAtoms] at ha
   | .ret _, _, _, _, _, ha => by simp [sAtoms] at ha
 
-theorem swL_listed : ∀ (ss : List Stmt) {st st' : SSt}, swL loc P st ss = some st' →
-    ∀ a ∈ lAtoms ss, atomListed loc P a = true
+theorem swL_listed : ∀ (ss : List Stmt) {st st' : SSt}, swL loc sh tt P st ss = some st' →
+    ∀ a ∈ lAtoms ss, atomListed loc tt P a = true
   | [], _, _, _, _, ha => by simp [lAtoms] at ha
   | s :: ss, st, st', h, a, ha => by
       simp only [swL] at h
-      cases hs : swS loc P st s with
+      cases hs : swS loc sh tt P st s with
       | none => rw [hs] at h; cases h
       | some st1 =>
         rw [hs] at h
@@ -1371,11 +1341,11 @@ theorem swL_listed : ∀ (ss : List Stmt) {st st' : SSt}, swL loc P st ss = some
         · exact swL_listed ss h a ha
 
 theorem swArms_listed : ∀ (arms : List (List Stmt)) {st : SSt} {bs : List SSt},
-    swArms loc P st arms = some bs → ∀ a ∈ aAtoms arms, atomListed loc P a = true
+    swArms loc sh tt P st arms = some bs → ∀ a ∈ aAtoms arms, atomListed loc tt P a = true
   | [], _, _, _, _, ha => by simp [aAtoms] at ha
   | b :: as, st, bs, h, a, ha => by
       simp only [swArms] at h
-      cases hb : swL loc P st b <;> cases has : swArms loc P st as <;> rw [hb, has] at h <;>
+      cases hb : swL loc sh tt P st b <;> cases has : swArms loc sh tt P st as <;> rw [hb, has] at h <;>
         simp only [reduceCtorEq] at h
       simp only [aAtoms, List.mem_append] at ha
       rcases ha with ha | ha
@@ -1474,42 +1444,140 @@ end
 
 end Atoms2
 
-/-! ## Cells by number -/
 
-theorem locTrieFrom_lt : ∀ (cs : List ℕ) (k : ℕ) (t : Exec.Trie ℕ) {v : ℕ}, v < k →
-    getF (locTrieFrom cs k t) v = getF t v
-  | [], _, _, _, _ => rfl
-  | c0 :: cs, k, t, v, h => by
-    simp only [locTrieFrom, natSeq_eq, Exec.Trie.seq_eq]
-    rw [locTrieFrom_lt cs (k + 1) _ (by omega), getF_setF_ne _ _ (by omega)]
+/-! ## A window's cells -/
 
-theorem locTrieFrom_ge : ∀ (cs : List ℕ) (k : ℕ) (t : Exec.Trie ℕ) {v : ℕ}, k + cs.length ≤ v →
-    getF (locTrieFrom cs k t) v = getF t v
-  | [], _, _, _, _ => rfl
-  | c0 :: cs, k, t, v, h => by
-    simp only [locTrieFrom, natSeq_eq, Exec.Trie.seq_eq]
-    rw [locTrieFrom_ge cs (k + 1) _ (by simp at h; omega), getF_setF_ne _ _ (by simp at h; omega)]
+section Cells
 
-theorem locTrieFrom_self : ∀ (cs : List ℕ) (k : ℕ) (t : Exec.Trie ℕ) (m : ℕ) (hm : m < cs.length),
-    k + cs.length + 1 < 2 ^ indexDepth → getF (locTrieFrom cs k t) (k + m) = some cs[m]
-  | [], _, _, _, hm, _ => absurd hm (by simp)
-  | c0 :: cs, k, t, 0, _, hb => by
-    simp only [locTrieFrom, natSeq_eq, Exec.Trie.seq_eq, List.getElem_cons_zero]
-    rw [locTrieFrom_lt cs (k + 1) _ (by omega), Nat.add_zero, getF_setF_self _ _ (by simp at hb; omega)]
-  | c0 :: cs, k, t, m + 1, hm, hb => by
-    simp only [locTrieFrom, natSeq_eq, Exec.Trie.seq_eq, List.getElem_cons_succ]
-    rw [show k + (m + 1) = (k + 1) + m by omega]
-    exact locTrieFrom_self cs (k + 1) _ m (by simpa using hm) (by simp at hb ⊢; omega)
+theorem packCells_digit : ∀ (l : List ℕ) (m : ℕ) (hm : m < l.length), (∀ c ∈ l, c < 65536) →
+    packCells l / 65536 ^ m % 65536 = l[m]
+  | [], _, hm, _ => absurd hm (by simp)
+  | c :: cs, 0, _, h => by
+    have hc := h c List.mem_cons_self
+    show (c + packCells cs * 65536) / 65536 ^ 0 % 65536 = c
+    rw [pow_zero, Nat.div_one, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hc]
+  | c :: cs, m + 1, hm, h => by
+    have hc := h c List.mem_cons_self
+    have ih := packCells_digit cs m (by simpa using hm) fun c' hc' ↦ h c' (List.mem_cons_of_mem _ hc')
+    rw [List.getElem_cons_succ, ← ih]
+    show (c + packCells cs * 65536) / 65536 ^ (m + 1) % 65536 = packCells cs / 65536 ^ m % 65536
+    rw [pow_succ', ← Nat.div_div_eq_div_mul, Nat.add_mul_div_right _ _ (by norm_num),
+      Nat.div_eq_of_lt hc, Nat.zero_add]
 
-/-- **A value's cell by its number**, in the trie of a list of cells. -/
-theorem cellOf_locTrie {l : List ℕ} (hl : l.length + 1 < 2 ^ indexDepth) (v : V) :
-    cellOf (locTrie l) v = l.getD v.idx 0 := by
-  unfold cellOf locTrie
-  by_cases hv : v.idx < l.length
-  · have := locTrieFrom_self l 0 .nil v.idx hv (by omega)
-    rw [Nat.zero_add] at this
-    rw [this, List.getD_eq_getElem _ _ hv]; rfl
-  · rw [locTrieFrom_ge l 0 .nil (by omega), List.getD_eq_default _ _ (by omega)]; rfl
+theorem insGet_mem : ∀ (ps : List (ℕ × ℕ × ℕ)) {v c : ℕ}, insGet v ps = some c → ∃ j, (v, c, j) ∈ ps
+  | [], _, _, h => by simp [insGet] at h
+  | p :: ps, v, c, h => by
+    simp only [insGet, Bool.cond_eq_ite, nbeq_iff] at h
+    split_ifs at h with hp
+    · cases h
+      exact ⟨p.2.2, by rw [← hp]; exact List.mem_cons_self⟩
+    · obtain ⟨j, hj⟩ := insGet_mem ps h
+      exact ⟨j, List.mem_cons_of_mem _ hj⟩
+
+/-- **A window's cells are the certificate's.** -/
+theorem locW_get {C : Cert} {n i : ℕ} (hcont : Cont C n) (hi : i ≤ n)
+    (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n)
+    (hcells : ∀ c ∈ nth C.cells i [], c < 65536) {v c : ℕ} (h : (locW C i).get? v = some c) :
+    C.locs.getD v 0 = c := by
+  simp only [Loc.get?, locW, Bool.cond_eq_ite, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at h
+  split_ifs at h with hr
+  · cases h
+    obtain ⟨h1, h2⟩ := hr
+    have hm : v - nth C.los i 0 < (nth C.cells i []).length := by
+      show Nat.sub v (nth C.los i 0) < _
+      have : Nat.add (nth C.los i 0) (nth C.cells i []).length = nth C.los i 0 + (nth C.cells i []).length := rfl
+      rw [this] at h2; show v - nth C.los i 0 < _; omega
+    have hd := packCells_digit _ _ hm hcells
+    have e1 := cont_locs hcont hi hm
+    rw [show nth C.los i 0 + (v - nth C.los i 0) = v by omega] at e1
+    rw [e1]; exact hd.symm
+  · obtain ⟨j, hj⟩ := insGet_mem _ h
+    have := List.all_eq_true.mp hins _ hj
+    simp only [Bool.and_eq_true, Nat.ble_eq, beq_iff_eq] at this
+    obtain ⟨⟨hjn, hlo⟩, hget⟩ := this
+    obtain ⟨hm, hget⟩ := List.getElem?_eq_some_iff.mp hget
+    rw [show v = nth C.los j 0 + (v - nth C.los j 0) by omega, cont_locs hcont (hn ▸ hjn) hm, hget]
+
+/-- The values' cells in function `j`. -/
+noncomputable def cellJ (j : ℕ) (v : V) : ℕ := (certOf j).locs.getD v.idx 0
+
+theorem locAgree_of {C : Cert} {n i : ℕ} {cg : V → ℕ} (hcg : ∀ v, cg v = C.locs.getD v.idx 0)
+    (hcont : Cont C n) (hi : i ≤ n) (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n)
+    (hcells : ∀ c ∈ nth C.cells i [], c < 65536) : LocAgree (locW C i) cg := fun v hv ↦ by
+  unfold Loc.cell at hv ⊢
+  cases hg : (locW C i).get? v.idx with
+  | none => rw [hg] at hv; simp at hv
+  | some c => rw [hcg, locW_get hcont hi hins hn hcells hg]; rfl
+
+end Cells
+
+/-! ## Snapshots -/
+
+section Snaps
+
+variable {cg : V → ℕ} {rd : Reader} {σ : Val}
+
+theorem getF_foldl_cst : ∀ (l : List (ℕ × ℕ × ℕ × ℕ)) (t : Exec.Trie (ℕ × ℕ × ℕ)) {c : ℕ} {x : ℕ × ℕ × ℕ},
+    getF (l.foldl (fun t q ↦ setF q.2 envDepth t q.1) t) c = some x → (c, x) ∈ l ∨ getF t c = some x
+  | [], _, _, _, h => Or.inr h
+  | q :: l, t, c, x, h => by
+    rcases getF_foldl_cst l _ h with h | h
+    · exact Or.inl (List.mem_cons_of_mem _ h)
+    · rcases getF_setF h with ⟨rfl, rfl⟩ | h
+      · exact Or.inl List.mem_cons_self
+      · exact Or.inr h
+
+theorem mem_foldl_snapKeys : ∀ (l : List (ℕ × ℕ × List ℕ)) (t : Exec.Trie (List (ℕ × List ℕ))) {c : ℕ}
+    {k : ℕ × List ℕ}, k ∈ (getF (l.foldl (fun t q ↦ setF (q.2 :: (getF t q.1).getD []) envDepth t q.1) t) c).getD [] →
+    (c, k) ∈ l ∨ k ∈ (getF t c).getD []
+  | [], _, _, _, h => Or.inr h
+  | q :: l, t, c, k, h => by
+    rcases mem_foldl_snapKeys l _ h with h | h
+    · exact Or.inl (List.mem_cons_of_mem _ h)
+    · cases hg : getF (setF (q.2 :: (getF t q.1).getD []) envDepth t q.1) c with
+      | none => rw [hg] at h; cases h
+      | some l' =>
+        rw [hg] at h
+        rcases getF_setF hg with ⟨rfl, rfl⟩ | hg'
+        · rcases List.mem_cons.mp h with rfl | h
+          · exact Or.inl List.mem_cons_self
+          · exact Or.inr h
+        · rw [hg']; exact Or.inr h
+
+/-- **A window's end state refines the next one's snapshot**: the snapshot's state holds for the
+same words, every occupied cell staying occupied. -/
+theorem refines_inv {m : SSt} {pre : List V} {Ψ : ℕ → E} {s : Snap} (hI : Inv cg rd σ m pre Ψ)
+    (hr : refines m s = true) : Inv cg rd σ s.st [] Ψ ∧ Step m Ψ s.st Ψ := by
+  simp only [refines, Bool.and_eq_true, List.all_eq_true, nbeq_iff, beq_iff_eq, List.any_eq_true] at hr
+  obtain ⟨⟨⟨hocc, hnm⟩, hcst⟩, hky⟩ := hr
+  have hsub : ∀ c, m.occ.testBit c = true → s.occ.testBit c = true := fun c h ↦ by
+    have := congrArg (fun x ↦ x.testBit c) hocc
+    simp only [testBit_land', h, Bool.true_and] at this
+    exact this
+  refine ⟨⟨fun _ h ↦ absurd h List.not_mem_nil, fun _ h ↦ absurd h List.not_mem_nil,
+    fun _ h ↦ absurd h List.not_mem_nil, fun n hn hc ↦ ?_, fun c x hx ↦ ?_, fun c k hk ↦ ?_,
+    fun p hp ↦ by simp [Snap.st] at hp⟩, fun c hc ↦ ⟨hsub c hc, rfl⟩⟩
+  · rw [isNamed_eq] at hn
+    simp only [Snap.st] at hn
+    have hn' := hnm n ((testBit_bitsOf _ _).mp hn)
+    rw [bitN_eq] at hn'
+    obtain ⟨h1, h2⟩ := hI.named n (by rw [isNamed_eq]; exact hn') hc
+    exact ⟨h1, hsub _ h2⟩
+  · simp only [Snap.st] at hx
+    rcases getF_foldl_cst _ _ hx with hx | hx
+    · have := hcst _ hx
+      obtain ⟨h1, h2⟩ := hI.kc c x this
+      exact ⟨hsub c h1, h2⟩
+    · simp [getF_eq] at hx
+  · simp only [Snap.st] at hk
+    rcases mem_foldl_snapKeys _ _ hk with hk | hk
+    · obtain ⟨k', hk', he⟩ := hky _ hk
+      subst he
+      obtain ⟨h1, h2, h3⟩ := hI.keys c k' hk'
+      exact ⟨h1, hsub c h2, fun c' hc' ↦ hsub c' (h3 c' hc')⟩
+    · simp [getF_eq] at hk
+
+end Snaps
 
 /-! ## The check of a function -/
 
@@ -1517,79 +1585,45 @@ section Fn
 
 open LeanVM.Guest.Memory
 
-/-- The cell of a value of function `j`, as the sharing check reads it. -/
-noncomputable def cellJ (j : ℕ) (v : V) : ℕ := cellOf (locTrie (certOf j).locs) v
+variable {j : ℕ}
 
-/-- **What the sharing check of function `j` says statically**: its values' cells, its lists, every
-atom's temporaries and run listed. -/
-theorem shareOk_static {j : ℕ} (h : shareOk j = true) :
-    fsN j < 2 ^ envDepth ∧ (certOf j).locs.length + 1 < 2 ^ indexDepth ∧
-    (∀ v ∈ (coreOf j).params ++ Stmt.usesList (coreOf j).body ++ Stmt.tmpsList (coreOf j).body,
-      valOk (locTrie (certOf j).locs) (plumbOf j) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) v
+/-- The state window `i` of function `j` starts from. -/
+noncomputable def startSt (j i : ℕ) : SSt :=
+  bif i == 0 then nameStep (locW (certOf j) 0) (bitsOf (plumbOf j).sh) (initSt (plumbOf j)) (coreOf j).params
+  else (snapAt (snapsOf j) i).st
+
+/-- What a window's check says. -/
+theorem shareWin_spec {i : ℕ} (h : shareWin j (snapsOf j) i = true) :
+    (∀ c ∈ nth (certOf j).cells i [], c < 65536) ∧
+    (i = 0 → fsN j < 2 ^ envDepth ∧ listsOk (plumbOf j) (fsN j) = true ∧ monoOk (certOf j) = true ∧
+      ∀ v ∈ (coreOf j).params, valOk (locW (certOf j) 0) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j))
+        (fpgCells (plumbOf j)) (fsN j) v = true) ∧
+    (∀ v ∈ Stmt.usesList ((certOf j).stmtsAt (coreOf j) i) ++ Stmt.tmpsList ((certOf j).stmtsAt (coreOf j) i),
+      valOk (locW (certOf j) i) (byCell (plumbOf j).tmps) (tmpCells (plumbOf j)) (fpgCells (plumbOf j)) (fsN j) v
         = true) ∧
-    listsOk (plumbOf j) (fsN j) = true ∧
-    ∀ a ∈ lAtoms (coreOf j).body, atomListed (locTrie (certOf j).locs) (plumbOf j) a = true := by
-  simp only [shareOk, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq,
-    Option.isSome_iff_exists] at h
-  obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, st, h5⟩ := h
-  exact ⟨h1, h2, h3, h4, swL_listed _ h5⟩
-
-theorem cellJ_eq {j : ℕ} (h : shareOk j = true) (v : V) : cellJ j v = (certOf j).locs.getD v.idx 0 :=
-  cellOf_locTrie (shareOk_static h).2.1 v
-
-/-- **The sharing check's conclusion on a path** of function `j` that returns: one word per cell
-for every value the path names, a fixed cell's constant. -/
-theorem shareOk_path {j : ℕ} (h : shareOk j = true) {σ : Val} {rd : Reader} {es : List Ev}
-    {vs : List V} (hw : walk σ (coreOf j).body = .ret es vs) (he : ∀ e ∈ es, e.Holds rd σ) :
-    ∃ Ψ : ℕ → E, (∀ v ∈ (coreOf j).params ++ es.flatMap Ev.uses ++ vs, 2 ≤ cellJ j v →
-      σ v = Ψ (cellJ j v)) ∧
-      ∀ o a b c, (o, PC.k a b c) ∈ (plumbOf j).stat → Ψ o = OInstr.imm a b c := by
-  obtain ⟨hfs, -, hval, hlists, -⟩ := shareOk_static h
-  simp only [shareOk, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true,
-    Option.isSome_iff_exists] at h
-  obtain ⟨-, st', hst⟩ := h
-  set loc := locTrie (certOf j).locs
-  set P := plumbOf j
-  have hfit : ∀ v ∈ (coreOf j).params ++ Stmt.usesList (coreOf j).body ++ Stmt.tmpsList (coreOf j).body,
-      v = V.n v.idx ∧ cellOf loc v + 1 < 2 ^ envDepth := fun v hv ↦ by
-    have := hval v hv
-    simp only [valOk, Bool.and_eq_true, beq_iff_eq, Nat.blt_eq] at this
-    exact ⟨this.1.1.1, by have := this.1.1.2; omega⟩
-  -- the start: the fixed cells' constants
-  let Ψ0 : ℕ → E := fun c ↦ match getF (initSt P).occ c with
-    | some (some x) => tw x
-    | _ => 0
-  have hI0 : Inv loc rd σ (initSt P) [] Ψ0 :=
-    ⟨(fun _ h ↦ absurd h List.not_mem_nil), (fun _ h ↦ absurd h List.not_mem_nil),
-      (fun _ h ↦ absurd h List.not_mem_nil),
-      (fun n hn ↦ by simp [isNamed, initSt, getF_eq] at hn),
-      (fun c x hx ↦ by simp only [Ψ0, hx]),
-      (fun c k hk ↦ by simp [initSt, getF_eq] at hk),
-      (fun p hp ↦ by simp [initSt] at hp)⟩
-  obtain ⟨Ψ1, hI1, hs1⟩ := nameStep_inv (vs := (coreOf j).params) hI0 (fun v hv ↦ (hfit v (by simp [hv])).1)
-    (fun v hv ↦ (hfit v (by simp [hv])).2)
-  have hC := swL_sound (coreOf j).body hst hI1 (fun v hv ↦ hfit v (by simp [hv]))
-    (by rw [hw]; exact he)
-  rw [hw] at hC
-  obtain ⟨st'', pre', Ψ', hI', hs', hpe, hpre, hus, hvs⟩ := hC
-  have hpe' : st''.pend = [] := by
-    rcases hpe with hpe | rfl
-    · exact hpe
-    · exact swL_pend _ hst
-  refine ⟨Ψ', fun v hv hc ↦ ?_, fun o a b c ho ↦ ?_⟩
-  · have hv' : v ∈ pre' := by
-      simp only [List.mem_append, List.mem_flatMap] at hv
-      rcases hv with (hv | ⟨e, he', hv⟩) | hv
-      · exact hpre v (List.mem_append_right _ hv)
-      · exact hus e he' v hv
-      · exact hvs v hv
-    exact hI'.good v hv' hc (by simp [isPend, hpe'])
-  · simp only [listsOk, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true] at hlists
-    have := (hlists.1.1.1.1.1 _ ho)
-    simp only [beq_iff_eq] at this
-    have hocc := this.2
-    have h0 : Ψ0 o = OInstr.imm a b c := by simp only [Ψ0, hocc]; rfl
-    rw [(hs1.trans hs') o (by rw [hocc]; rfl) |>.2, h0]
+    ∃ m, swL (locW (certOf j) i) (bitsOf (plumbOf j).sh) (byCell (plumbOf j).tmps) (plumbOf j) (startSt j i)
+        ((certOf j).stmtsAt (coreOf j) i) = some m ∧
+      (i < (certOf j).cuts.length → refines m (snapAt (snapsOf j) (i + 1)) = true) := by
+  unfold shareWin at h
+  simp only [Loc.seq_eq, natSeq_eq, Exec.Trie.seq_eq, Bool.and_eq_true, List.all_eq_true,
+    Nat.blt_eq] at h
+  obtain ⟨⟨⟨hc, h0⟩, hv⟩, hw⟩ := h
+  refine ⟨hc, fun hi ↦ ?_, hv, ?_⟩
+  · subst hi
+    simp only [beq_self_eq_true, Bool.cond_true, Bool.and_eq_true, List.all_eq_true, Nat.blt_eq] at h0
+    exact ⟨h0.1.1.1.1, h0.1.1.1.2, h0.1.1.2, h0.2⟩
+  · have hs : startSt j i = (bif i == 0 then nameStep (locW (certOf j) i) (bitsOf (plumbOf j).sh)
+        (initSt (plumbOf j)) (coreOf j).params else (snapAt (snapsOf j) i).st) := by
+      unfold startSt
+      cases hi : i == 0
+      · rfl
+      · rw [beq_iff_eq.mp hi]
+    rw [hs]
+    split at hw
+    · rename_i m hm
+      refine ⟨m, hm, fun hi ↦ ?_⟩
+      simpa [Nat.blt_eq.mpr hi] using hw
+    · cases hw
 
 end Fn
 
