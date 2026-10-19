@@ -11,6 +11,7 @@ public import LeanVM.Guest.CheckSound
 public import LeanVM.Guest.Checked
 public import LeanVM.Guest.End
 public import LeanVM.Guest.B1.VerifySub.Known
+public import LeanVM.Guest.CoreNames
 
 /-!
 # B2 soundness
@@ -27,8 +28,8 @@ The contracts are checker K's over `glob`: function `j`'s entry, `Check.Pre glob
   written. Its second window starts after `exponent_tables`, whose returns it knows to be the
   tables (`exponent_tables_iff`).
 
-Names are unique in `coreProgram` (`hnames`) and the jump table is the one `__jump_tables`
-writes (`hjt`): both are hypotheses here until their proofs land.
+The jump table is the one `__jump_tables` writes (`JtWritten`): a hypothesis here until its
+proof lands.
 -/
 
 namespace LeanVM.Guest.End
@@ -37,10 +38,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Exec
 
 @[expose] public section
-
-/-- Names are unique in `coreProgram`. -/
-def NamesUnique : Prop :=
-  ∀ {j : ℕ} (h : j < coreProgram.length), coreProgram.find? coreProgram[j].name = some coreProgram[j]
 
 /-- The jump table is the one `__jump_tables` writes. -/
 def JtWritten : Prop :=
@@ -66,12 +63,12 @@ theorem fnOf_mem {j : ℕ} (h : j < nFns) : fnOf j ∈ Data.functions := by
   rw [nth_eq (functions_length ▸ h)]
   exact List.getElem_mem _
 
-theorem coreOf_find (hn : NamesUnique) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
+theorem coreOf_find {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     coreProgram.find? (coreOf j).name = some (coreOf j) := by
   have h : j - 1 < coreProgram.length := by have := coreProgram_length'; omega
   unfold coreOf
   rw [nth_eq h]
-  exact hn h
+  exact coreProgram_find_getElem h
 
 theorem winOk_of {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     ∀ i ≤ (certOf j).cuts.length, checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1) i = true :=
@@ -169,7 +166,7 @@ theorem known_main {κ : ℕ} {L : MemImage κ} {fp : K} {i : ℕ} (hi : i ≤ (
 
 /-- **B2's step**: each contract for runs shorter than `n + 1`, given all of them for runs
 shorter than `n`. -/
-theorem b2_step (hn : NamesUnique) (hvs : B1.VerifySub.VsKnown) :
+theorem b2_step (hvs : B1.VerifySub.VsKnown) :
     ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n,
       (∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L j)) →
@@ -183,7 +180,7 @@ theorem b2_step (hn : NamesUnique) (hvs : B1.VerifySub.VsKnown) :
   rw [h1] at hc
   have hfp := checkWin_fpOne (hc 0 (Nat.zero_le _))
   obtain ⟨hrel, hpost, hret⟩ := checkWins_run (Prog := coreProgram) hc (fnOf_mem hj.2)
-    (coreOf_find hn (by omega) hj.2) (certOf_pows_ok j) h32 (fun h ↦ by rw [← hfp] at h; cases h)
+    (coreOf_find (by omega) hj.2) (certOf_pows_ok j) h32 (fun h ↦ by rw [← hfp] at h; cases h)
     (fun i ↦ (hlt i).mono (by omega)) hjt henv hbnd hmem hsem
     (fun i hi h0 hl ↦ by
       by_cases h16 : j = 16
@@ -202,7 +199,7 @@ theorem fnOf_1 : (fnOf 1).entry = mainEntry := rfl
 
 /-- **B2 at `main`**: a halting run from `main`'s entry at `fp = 1`, the jump table written and
 every contract holding for runs shorter than it, gives `main`'s relation. -/
-theorem b2_main (hn : NamesUnique) (hjt : JtWritten) :
+theorem b2_main (hjt : JtWritten) :
     ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
       (∀ j, FunSpecLt guest L k (glob.sig j).entry (Check.Pre glob L j)
         (Check.Post coreProgram glob L j)) →
@@ -211,7 +208,7 @@ theorem b2_main (hn : NamesUnique) (hjt : JtWritten) :
   have hc := winOk_of (j := 1) le_rfl (by decide)
   obtain ⟨henv, hpre, hmem, hsem, hnret, hparams, hname⟩ := main_facts
   obtain ⟨hrel, -, -⟩ := checkWins_run (Prog := coreProgram) (fp := 1) hc (fnOf_mem (by decide))
-    (coreOf_find hn le_rfl (by decide)) (certOf_pows_ok 1) h32 (fun _ ↦ rfl) hlt
+    (coreOf_find le_rfl (by decide)) (certOf_pows_ok 1) h32 (fun _ ↦ rfl) hlt
     (jtHolds_of hjt hjtab) (by rw [Facts.entryEnv, henv]; exact EnvHolds.nil)
     (by rw [hpre]; intro _ h; simp at h) (by rw [hmem]; intro _ h; simp at h)
     (by rw [hsem]; intro _ h; simp at h) (fun i hi h0 hl ↦ known_main hi h0 hl)

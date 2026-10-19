@@ -833,7 +833,7 @@ def cutAtMark (segMap : Std.HashMap ℕ GSeg) (entry : ℕ)
   repeat
     match s.items[j]? with
     | some (.ins (.instr pc _)) => return (pc - entry, pc - entry, fs)
-    | some (.fact _) | some (.ins _) => j := j + 1
+    | some (.fact a) | some (.ins a) => fs := fs.push a; j := j + 1
     | some (.branch ..) => none
     | none => break
   match s.exit.kind with
@@ -888,6 +888,9 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
   let mut known : List (ℕ × ℕ × ℕ) := []
   let mut sems : List (ℕ × ℕ) := []
   let mut out : Array CutG := #[]
+  -- what the previous window starts with and the facts it passes: a window hands on only those
+  let mut prevN := 0
+  let mut prevHanded : Std.HashSet String := {}
   for k in [0:cands.size] do
     let (idx, J, b, extra) := cands[k]!
     let force := forced.find? (·.1 == idx)
@@ -915,15 +918,19 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
       | _ => false
     let used : Std.HashSet ℕ := uses.foldl (fun h (t, k) => if t ≥ idx && k < n + extra.size then h.insert k else h) {}
     let fs := spine.extract 0 n ++ extra
-    let direct := (fs.zipIdx.filter fun (a, k) =>
-      used.contains k || isConst a || (keysG a).any sel.contains).map (·.1)
-    let need : Std.HashSet ℕ := direct.foldl (fun h a => (needsG a).foldl (·.insert ·) h) {}
-    let hand := direct ++ fs.filter fun a => (keysG a).any need.contains
-    let seen : Std.HashSet String := {}
-    let (handed, _) := (hand.toList.flatMap fun a => (keysG a).map (·, a)).foldl
+    let avail (a : Exec.Atom) (k : ℕ) : Bool := k ≥ prevN || prevHanded.contains (atomText a)
+    let direct := fs.zipIdx.filter fun (a, k) =>
+      avail a k && (used.contains k || isConst a || (keysG a).any sel.contains)
+    let need : Std.HashSet ℕ := direct.foldl (fun h (a, _) => (needsG a).foldl (·.insert ·) h) {}
+    let hand := direct ++ fs.zipIdx.filter fun (a, k) => avail a k && (keysG a).any need.contains
+    let (handed, seen) := (hand.toList.flatMap fun (a, _) => (keysG a).map (·, a)).foldl
       (fun (acc, seen) (k, a) => let key := s!"{k}{atomText a}"
-        if seen.contains key then (acc, seen) else (acc.push (k, a), seen.insert key)) (#[], seen)
+        if seen.contains key then (acc, seen) else (acc.push (k, a), seen.insert key))
+      ((#[] : Array (ℕ × Exec.Atom)), ({} : Std.HashSet String))
+    let _ := seen
     let handed := handed.toList
+    prevN := n + extra.size
+    prevHanded := handed.foldl (fun h (_, a) => h.insert (atomText a)) {}
     let envL := (env'.toList.mergeSort (·.1 ≤ ·.1))
     out := out.push ⟨J, envL, idx, handed, pre, known, sems, b⟩
     a := J
@@ -1214,7 +1221,9 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     preamble ++ "/-- `__jump_tables`: its facts only. -/
 noncomputable def cert0 : Check.Cert where
   facts := {}
-  locs := []
+  los := []
+  cells := []
+  ins := []
   nret := 0
   callees := []
 
