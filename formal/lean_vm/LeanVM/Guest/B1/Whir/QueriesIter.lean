@@ -395,5 +395,151 @@ theorem oqIter_holds {base I blocks pd cd : ℕ} (hs : OqShape base I blocks pd 
   refine (holdsList_noRet _ rfl _ _).mpr ⟨hsumH, ?_⟩
   refine (holdsList_noRet _ (oqPathT_noRet _ _ _ _) _ _).mpr ⟨hpathH, hcapH⟩
 
+/-- **The pointers the body loads through**, at `oqIterVal`: the weights, the query sum's steps,
+the query's weight and bit run, the bits, the path's selected children in the frame run at `ptr`,
+the flag and the cap leaf. -/
+theorem oqIterVal_ptrs {base I blocks pd cd : ℕ} (hs : OqShape base I blocks pd cd)
+    {x N rew qsc qw qbp flags cap ptr : E} {leaf : List K} {q : ℕ}
+    (hq : q < 2 ^ (pd + cd)) {sibs : List Digest} (hsl : sibs.length = pd)
+    (hbits : ∀ l < pd + cd, memAt rd (memAt rd (qbp * x) 0) l = bitE (q.testBit l)) :
+    let σ := oqIterVal rd [x, N, rew, qsc, qw, qbp, flags, cap] base I blocks pd cd leaf q sibs ptr
+    let K7 := oqP base I blocks + 79 + 13 * pd + 6 * cd - 5
+    σ (.n 2) = rew ∧ σ (.n (oqK2 base I blocks)) = qsc * x ∧ σ (.n (oqK2 base I blocks + 2)) = qw * x ∧
+      σ (.n (oqK2 base I blocks + 6)) = qsc * x ∧ σ (.n (oqK2 base I blocks + 7)) = qbp * x ∧
+      σ (.n (oqP base I blocks - 1)) = memAt rd (qbp * x) 0 ∧
+      σ (.n (oqP base I blocks + 86)) = ptr * gen ^ (2 * (q.testBit 0).toNat) ∧
+      (∀ l, 1 ≤ l → l < pd → σ (.n (oqP base I blocks + 79 + 13 * l + 7)) =
+        ptr * gen ^ (4 * l + 2 * (q.testBit l).toNat)) ∧
+      σ (.n (K7 + 1)) = flags * gen ^ (2 ^ (cd - 1) + q / 2 ^ (pd + 1)) ∧
+      σ (.n (K7 + 10)) = cap * gen ^ (2 * (2 ^ cd + q / 2 ^ pd)) ∧
+      σ (.n (K7 + 14)) = cap * gen ^ (2 * (2 ^ cd + q / 2 ^ pd) + 1) ∧
+      σ (.n (K7 + 17)) = x * gen + N ∧ σ (.n (K7 + 19)) = x * gen ∧ σ (.n (oqP base I blocks + 4 * pd)) = ptr ∧
+      ∀ i < 8, σ (.n i) = [x, N, rew, qsc, qw, qbp, flags, cap].getD i 0 := by
+  intro σ' K7
+  simp only [σ', K7]
+  obtain ⟨hb, hI, h4, hbl, hfill, hpd1, hpd20, hcd1, hcd8⟩ := hs
+  set args := [x, N, rew, qsc, qw, qbp, flags, cap] with hargs
+  set R := oqR base I
+  set K1 := oqK1 base I
+  set K2 := oqK2 base I blocks
+  set P := oqP base I blocks
+  set r := oqRowR leaf
+  set σ1 := oqVal1 rd args base I leaf with hσ1
+  have hrew : args.getD 2 0 = rew := rfl
+  obtain ⟨rowsV, hrowsV⟩ : ∃ l, l = oqRowsVals base I (oqRowR leaf) (memAt rd rew) := ⟨_, rfl⟩
+  set bl := oqLeafBl σ1 base I
+  set leafV := oqLeafVals bl blocks with hleafV
+  set dot := σ1 (.n (K1 - 1))
+  set sumV := oqSumVals rd x qsc qw qbp dot
+  set D := hashWords leaf
+  set pathV := oqPathVals rd ptr D q pd sibs with hpathV
+  set dbp := memAt rd (qbp * x) 0
+  set capV := oqCapVals rd dbp flags cap x N pd cd with hcapV
+  set σ := oqIterVal rd args base I blocks pd cd leaf q sibs ptr with hσ
+  have hRlen : 8 + R + rowsV.length = K1 := by rw [hrowsV]; exact oq_length_rowsVals hb hI _ _
+  have hK2 : K2 = K1 + 2 + 3 * blocks := by simp only [K2, K1, oqK2]; ring
+  have hP : P = K2 + 9 := rfl
+  have hlv : leafV.length = 2 + 3 * blocks := oq_length_leafVals _ _
+  have hpv : pathV.length = 79 + 13 * pd := oq_length_pathVals rd ptr D q pd sibs hsl hpd1 hpd20
+  have hcv : capV.length = 1 + 6 * (cd - 1) + 20 := oq_length_capVals _ _ _ _ _ _ _ _
+  have hσeq : σ = setl (setl (setl (setl σ1 K1 leafV) K2 sumV) P pathV) (P + 79 + 13 * pd) capV := rfl
+  -- lookups
+  have l1 : ∀ i, i < K1 → σ (.n i) = σ1 (.n i) := fun i hi => by
+    rw [hσeq]; simp only [setl]
+    rw [set_n_lt (by omega), set_n_lt (by omega), set_n_lt (by omega), set_n_lt (by omega)]
+  have larg : ∀ i < 8, σ (.n i) = args.getD i 0 := fun i hi => by
+    rw [l1 i (by omega), hσ1, oqVal1]; simp only [setl]
+    rw [set_n_lt (by omega), set_n_lt (by omega)]; rfl
+  have lrow : ∀ j < R, σ (.n (8 + j)) = r j := fun j hj => by
+    rw [l1 _ (by omega), hσ1, oqVal1]; simp only [setl]
+    rw [set_n_lt (by omega), set_n_in (by omega) (by simp; omega), Nat.add_sub_cancel_left]
+    simp [List.getD_eq_getElem?_getD, List.getElem?_range (show j < oqR base I from hj), r]
+  have lrows : ∀ k < rowsV.length, σ (.n (8 + R + k)) = rowsV.getD k 0 := fun k hk => by
+    rw [l1 _ (by omega), hσ1, oqVal1]; simp only [setl, hrew, ← hrowsV]
+    rw [set_n_in (by omega) (by omega), Nat.add_sub_cancel_left]
+  have lleaf : ∀ k < 2 + 3 * blocks, σ (.n (K1 + k)) = leafV.getD k 0 := fun k hk => by
+    rw [hσeq]; simp only [setl]
+    rw [set_n_lt (by omega), set_n_lt (by omega), set_n_lt (by omega), set_n_in (by omega) (by omega),
+      Nat.add_sub_cancel_left]
+  have lsum : ∀ k < 9, σ (.n (K2 + k)) = sumV.getD k 0 := fun k hk => by
+    rw [hσeq]; simp only [setl]
+    rw [set_n_lt (by omega), set_n_lt (by omega), set_n_in (by omega) (by simp [sumV, oqSumVals]; omega),
+      Nat.add_sub_cancel_left]
+  have lpath : ∀ k < 79 + 13 * pd, σ (.n (P + k)) = pathV.getD k 0 := fun k hk => by
+    rw [hσeq]; simp only [setl]
+    rw [set_n_lt (by omega), set_n_in (by omega) (by omega), Nat.add_sub_cancel_left]
+  have lcap : ∀ k < 1 + 6 * (cd - 1) + 20, σ (.n (P + 79 + 13 * pd + k)) = capV.getD k 0 := fun k hk => by
+    rw [hσeq]; simp only [setl]
+    rw [set_n_in (by omega) (by omega), Nat.add_sub_cancel_left]
+  have a0 : σ (.n 0) = x := larg 0 (by omega)
+  have a1 : σ (.n 1) = N := larg 1 (by omega)
+  have a2 : σ (.n 2) = rew := larg 2 (by omega)
+  have a3 : σ (.n 3) = qsc := larg 3 (by omega)
+  have a4 : σ (.n 4) = qw := larg 4 (by omega)
+  have a5 : σ (.n 5) = qbp := larg 5 (by omega)
+  have a6 : σ (.n 6) = flags := larg 6 (by omega)
+  have a7 : σ (.n 7) = cap := larg 7 (by omega)
+  have hcl : (climbCells D q sibs).length = 4 * pd := by
+    rw [climbCells, List.flatMap, ← hsl]
+    exact (oq_length_flatten_uniform _ 4 (fun _ => length_lvlCells _ _ _) _).trans (by ring)
+  have hcb : ∀ t < cd, memAt rd dbp (pd + t) = bitE (q.testBit (pd + t)) := fun t ht => hbits (pd + t) (by omega)
+  have v0 := lsum 0 (by omega); have v2 := lsum 2 (by omega); have v6 := lsum 6 (by omega)
+  have v7 := lsum 7 (by omega); have v8 := lsum 8 (by omega)
+  simp only [sumV, oqSumVals, List.getD_cons_zero, List.getD_cons_succ, Nat.add_zero] at v0 v2 v6 v7 v8
+  refine ⟨a2, v0, v2, v6, v7, by rw [show oqP base I blocks - 1 = K2 + 8 by omega]; exact v8, ?_, fun l hl1 hl2 => ?_,
+    ?_, ?_, ?_, ?_, ?_, ?_, larg⟩
+  · have e := lpath 86 (by omega)
+    rw [hpathV, oqPathVals, oq_getD_app_lt (by simp [hcl, oqPath0Vals]; omega),
+      oq_getD_app_ge (by simp [hcl]; omega)] at e
+    simp only [List.length_append, hcl, List.length_singleton, List.length_map, List.length_range,
+      show 86 - (4 * pd + 1 + (80 - 4 * pd)) = 5 by omega, oqPath0Vals, List.getD_cons_succ,
+      List.getD_cons_zero] at e
+    rw [e, one_add_bitE_five]
+  · have e := lpath (92 + 13 * (l - 1) + 7) (by omega)
+    rw [hpathV, oqPathVals, oq_getD_app_ge (by simp [hcl, oqPath0Vals]; omega)] at e
+    simp only [List.length_append, hcl, List.length_map, List.length_range,
+      oqPath0Vals, List.length_cons, List.length_nil] at e
+    rw [show 92 + 13 * (l - 1) + 7 - (4 * pd + 1 + (80 - 4 * pd) + (0 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)) =
+      13 * (l - 1) + 7 by omega, oq_getD_flatten_uniform _ 13 (fun _ => rfl) _ _ _ (by omega) (by omega)] at e
+    simp only [oqPathLVals, List.getD_cons_succ, List.getD_cons_zero, show l - 1 + 1 = l by omega] at e
+    rw [show oqP base I blocks + 79 + 13 * l + 7 = P + (92 + 13 * (l - 1) + 7) by omega, e, one_add_bitE_five,
+      mul_assoc, ← pow_add]
+  · have e := lcap (6 * cd - 5 + 1) (by omega)
+    rw [show P + 79 + 13 * pd + (6 * cd - 5 + 1) = K7 + 1 by simp only [K7, P]; omega] at e
+    rw [e, hcapV, oqCapVals, oq_getD_app_ge (by simp [oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _)]; omega),
+      List.length_append, List.length_singleton, oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _),
+      show 6 * cd - 5 + 1 - (1 + 6 * (cd - 1)) = 1 by omega]
+    simp only [oqCapTailVals, List.getD_cons_succ, List.getD_cons_zero]
+    rw [oq_capPar_eq hcd1 hq hcb]
+  · have e := lcap (6 * cd - 5 + 10) (by omega)
+    rw [show P + 79 + 13 * pd + (6 * cd - 5 + 10) = K7 + 10 by simp only [K7, P]; omega] at e
+    rw [e, hcapV, oqCapVals, oq_getD_app_ge (by simp [oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _)]; omega),
+      List.length_append, List.length_singleton, oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _),
+      show 6 * cd - 5 + 10 - (1 + 6 * (cd - 1)) = 10 by omega]
+    simp only [oqCapTailVals, List.getD_cons_succ, List.getD_cons_zero]
+    rw [oq_capIdx_eq hcd1 hq hcb, ← pow_add, ← two_mul]
+  · have e := lcap (6 * cd - 5 + 14) (by omega)
+    rw [show P + 79 + 13 * pd + (6 * cd - 5 + 14) = K7 + 14 by simp only [K7, P]; omega] at e
+    rw [e, hcapV, oqCapVals, oq_getD_app_ge (by simp [oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _)]; omega),
+      List.length_append, List.length_singleton, oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _),
+      show 6 * cd - 5 + 14 - (1 + 6 * (cd - 1)) = 14 by omega]
+    simp only [oqCapTailVals, List.getD_cons_succ, List.getD_cons_zero]
+    rw [oq_capIdx_eq hcd1 hq hcb, mul_assoc, ← pow_add, ← pow_succ', ← two_mul]
+  · have e := lcap (6 * cd - 5 + 17) (by omega)
+    rw [show P + 79 + 13 * pd + (6 * cd - 5 + 17) = K7 + 17 by simp only [K7, P]; omega] at e
+    rw [e, hcapV, oqCapVals, oq_getD_app_ge (by simp [oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _)]; omega),
+      List.length_append, List.length_singleton, oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _),
+      show 6 * cd - 5 + 17 - (1 + 6 * (cd - 1)) = 17 by omega]
+    simp only [oqCapTailVals, List.getD_cons_succ, List.getD_cons_zero]
+  · have e := lcap (6 * cd - 5 + 19) (by omega)
+    rw [show P + 79 + 13 * pd + (6 * cd - 5 + 19) = K7 + 19 by simp only [K7, P]; omega] at e
+    rw [e, hcapV, oqCapVals, oq_getD_app_ge (by simp [oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _)]; omega),
+      List.length_append, List.length_singleton, oq_length_flatten_uniform _ 6 (fun _ => oq_length_capBitVals rd dbp pd cd _),
+      show 6 * cd - 5 + 19 - (1 + 6 * (cd - 1)) = 19 by omega]
+    simp only [oqCapTailVals, List.getD_cons_succ, List.getD_cons_zero]
+  · rw [lpath (4 * pd) (by omega), hpathV, oqPathVals, oq_getD_app_lt (by simp [hcl]),
+      oq_getD_app_lt (by simp [hcl]), oq_getD_app_lt (by simp [hcl]), oq_getD_app_ge (by simp [hcl])]
+    simp [hcl]
+
 end
 end LeanVM.Guest.B1
