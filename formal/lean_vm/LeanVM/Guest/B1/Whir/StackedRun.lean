@@ -205,7 +205,7 @@ theorem length_powersFrom (acc base : E) : ∀ n, (powersFrom acc base n).length
   | 0 => rfl
   | n + 1 => by simp [powersFrom, length_powersFrom _ _ n]
 
-theorem powersFrom_getD (base : E) : ∀ (n : ℕ) (acc : E) (i : ℕ), i < n →
+private theorem powersFrom_getD (base : E) : ∀ (n : ℕ) (acc : E) (i : ℕ), i < n →
     (powersFrom acc base n).getD i 0 = acc * base ^ i
   | 0, _, _, h => absurd h (Nat.not_lt_zero _)
   | n + 1, acc, 0, _ => by simp [powersFrom]
