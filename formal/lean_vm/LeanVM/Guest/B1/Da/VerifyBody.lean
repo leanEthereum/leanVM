@@ -222,5 +222,99 @@ theorem da_verify_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt 
     exact loop_all (B := fun j => L94Step rd (σ (.n 429)) (gen ^ r) (gen ^ j)) (by omega) rfl
       ((l94_iff rd _ _ _ 0).mp h94') d hd
 
+/-! ## The converse -/
+
+/-- `x` squared `n` times. -/
+def sqIter (x : E) : ℕ → E
+  | 0 => x
+  | n + 1 => sqIter x n * sqIter x n
+
+/-- The honest values of `da_verify`. -/
+def dvVals (gsq nb glp np gap pd pb hs ctr acc rb ct rt rc0 rc1 rr0 rr1 r0 r1 v0 v1 : E) (k : ℕ) : E :=
+  if k < 20 then [gsq, nb, glp, np, gap, sqIter np 1, sqIter np 2, sqIter np 3, sqIter np 4, sqIter np 5,
+    sqIter np 6, sqIter np 7, pd, pb, 1, 1 + nb, 1, hs, word 13503953895743350343 11912009169889063794 0,
+    word 11170449402626986623 6620516960021240235 0].getD k 0
+  else if k < 405 then word ((k - 20) * 2048) 0 0
+  else [ctr, sqIter nb 1, sqIter nb 2, sqIter nb 3, sqIter nb 4, sqIter nb 5, sqIter nb 6, sqIter nb 7,
+    sqIter nb 7 * nb, acc, rb, 1, 1 + nb, 1, ct, 1, gen ^ 64, 1, 1 + nb, 1, rc0, rc1, np * np,
+    np * np * (np * np), rt, 1, 1 + nb, 1, 1, 1 + gap, 1, rr0, rr1,
+    word 13503953895743350343 11912009169889063794 0, word 11170449402626986623 6620516960021240235 0,
+    word 64 4294967295 0, r0, r1, r0, r1, v0, v1].getD (k - 405) 0
+
+theorem dvVals_K (gsq nb glp np gap pd pb hs ctr acc rb ct rt rc0 rc1 rr0 rr1 r0 r1 v0 v1 : E) {w : ℕ}
+    (hw : w < 385) : dvVals gsq nb glp np gap pd pb hs ctr acc rb ct rt rc0 rc1 rr0 rr1 r0 r1 v0 v1 (20 + w) =
+      word (w * 2048) 0 0 := by
+  unfold dvVals
+  rw [ite_neg' (by omega), ite_pos' (by omega), Nat.add_sub_cancel_left]
+
+/-- A `mul_range(1, g^n)` loop's `loop_iff` form from its iterations. -/
+theorem loop_of_all {n : ℕ} {B : ℕ → Prop} (hn : 0 < n) (hn' : n < 2 ^ 33) (h : ∀ j < n, B j) :
+    ∃ m, 0 < m ∧ gen ^ n = gen ^ m ∧ (∀ j, 0 < j → j < m → gen ^ j ≠ gen ^ n) ∧ ∀ j, 0 ≤ j → j < m → B j :=
+  ⟨n, hn, rfl, fun j h1 h2 he => by have := gen_pow_inj' (by omega) hn' he; omega, fun j _ hj => h j hj⟩
+
+theorem one_rel {rd : Reader} {f : String} {ps : List E} (h : coreProgram.Rel rd f (gen ^ 0 :: ps) []) :
+    coreProgram.Rel rd f (1 :: ps) [] := by rwa [pow_zero] at h
+
+/-- **The converse of `da_verify_facts`**: the facts give `da_verify`'s relation. -/
+theorem da_verify_of_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
+    {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v1) : coreProgram.Rel rd "da_verify" [gsq] [r0, r1, v0, v1] := by
+  obtain ⟨r, pb, pd, hs, ctr, acc, rb, ct, rt, rc0, rc1, rr0, rr1, hr1, hr2, h88, hiv0, hiv1, hkc, hctr, h89,
+    hcol, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ := h
+  have hr33 : r < 2 ^ 33 := by unfold LeanDa.maxRows at hr2; omega
+  have hlp := logPad_le hr2
+  have hN := nPad_le hr2
+  have hrN : r ≤ LeanDa.nPad r := ((logPad_iff (lp := LeanDa.logPad r) hr1).mp rfl).1
+  rw [rel_of_find find_dv]
+  refine ⟨fun v => dvVals gsq (gen ^ r) (gen ^ LeanDa.logPad r) (gen ^ LeanDa.nPad r) (gen ^ (LeanDa.nPad r - r))
+    pd pb hs ctr acc rb ct rt rc0 rc1 rr0 rr1 r0 r1 v0 v1 v.idx, rfl, ?_⟩
+  rw [dvBody, holdsList_append, holdsList_append, holdsList_atoms']
+  simp only [dvA, dvB, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and,
+    word_one, word_g64]
+  have hk1 : IsInK (1 + gen ^ r) := isInK_one_add.mpr (isInK_gen_pow r)
+  have hcolRel : ∀ b < 128, coreProgram.Rel rd (colName (decide (b < 64))) [gen ^ b, gen ^ r,
+      gen ^ LeanDa.nPad r, gen ^ (LeanDa.nPad r - r), gen ^ LeanDa.logPad r, pb, ct, rb, hs, ctr] [] :=
+    fun b hb => (da_verify_column_iff _ rd _ _).mpr (hcol b hb)
+  refine ⟨(da_row_shape_iff hm hT _ _ _).mpr ⟨_, _, _, _, _, rfl, rfl, r, hr1, hr2, rfl, rfl, rfl, rfl⟩,
+    rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, hk1,
+    fun _ => one_rel ((l88_iff rd _ _ _ 0).mpr (loop_of_all hr1 hr33 h88)),
+    rfl, by rw [← iv0_word] at hiv0; exact hiv0, rfl, by rw [← iv1_word] at hiv1; exact hiv1, fun a ha => ?_, ⟨hkc, fun k hk w hw => ?_⟩,
+    rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, hk1,
+    fun _ => one_rel ((l89_iff rd _ _ _ 0).mpr (loop_of_all hr1 hr33 h89)),
+    rfl, one_rel ((colLoop_iff true rd _ rfl 0).mpr ⟨64, by norm_num, by rw [colLoopEnd_eq, ite_pos' rfl],
+      fun j h1 h2 he => ?_, fun b _ hb => ?_⟩),
+    rfl, ?_, rfl, rfl, rfl, hk1,
+    fun _ => one_rel ((l92_iff rd _ _ 0).mpr (loop_of_all hr1 hr33 h92)),
+    (da_levels_iff 7 (by norm_num) _ _).mpr hlv7, rfl, rfl, rfl, rfl, rfl, hk1,
+    fun _ => one_rel ((l93_iff rd _ _ _ 0).mpr (loop_of_all hr1 hr33 h93)),
+    rfl, rfl, rfl, isInK_one_add.mpr (isInK_gen_pow _), fun hne => ?_,
+    dl_dispatch.mpr ⟨_, by omega, rfl, hlvr⟩, rfl, rfl, rfl, ?_, rfl, rfl, hv0, hv1, rfl⟩
+  · obtain ⟨w, hw, rfl⟩ := List.mem_map.mp ha
+    exact dvVals_K _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (List.mem_range.mp hw)
+  · simp only [List.length_map, List.length_range] at hk
+    simp only [List.getElem_map, List.getElem_range]
+    rw [hctr k hk w hw]
+    exact (dvVals_K _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hk).symm
+  · rw [colLoopEnd_eq, ite_pos' rfl] at he
+    have := gen_pow_inj' (by omega) (by norm_num) he
+    omega
+  · have := hcolRel b (by omega)
+    rwa [decide_eq_true hb] at this
+  · refine (colLoop_iff false rd [gen ^ r, gen ^ LeanDa.nPad r, gen ^ (LeanDa.nPad r - r), gen ^ LeanDa.logPad r,
+      pb, ct, rb, hs, ctr] rfl 64).mpr ⟨128, by norm_num, by rw [colLoopEnd_eq, ite_neg' (by decide)],
+      fun j h1 h2 he => ?_, fun b hb hb' => ?_⟩
+    · rw [colLoopEnd_eq, ite_neg' (by decide)] at he
+      have := gen_pow_inj' (by omega) (by norm_num) he
+      omega
+    · have := hcolRel b hb'
+      rwa [decide_eq_false (by omega)] at this
+  · have hpos : 0 < LeanDa.nPad r - r := by
+      by_contra h0
+      apply hne
+      rw [show LeanDa.nPad r - r = 0 by omega, pow_zero]
+      exact e_add_eq_zero_iff.mpr rfl
+    exact one_rel ((l94_iff rd _ _ _ 0).mpr (loop_of_all hpos (by omega) h94))
+  · rw [← iv0_word, ← iv1_word, ← md64_word] at hfin
+    exact hfin
+
 end
 end LeanVM.Guest.B1.Digest
