@@ -56,10 +56,12 @@ structure Plumb where
   sh : List ℕ := []
   deriving Repr
 
-/-- What the sharing check's window `i + 1` starts from: the occupied cells (a bit set), and the
-known values, the shared cells' constants `(cell, limbs)` and keys `(cell, op, input cells)` it
-hands on. -/
+/-- What the sharing check's window `k + 1` starts from: its first statement, the soundness window
+whose cells it reads, the occupied cells (a bit set), and the known values, the shared cells'
+constants `(cell, limbs)` and keys `(cell, op, input cells)` handed on. -/
 structure Snap where
+  start : ℕ
+  win : ℕ
   occ : ℕ
   named : List ℕ
   cst : List (ℕ × ℕ × ℕ × ℕ)

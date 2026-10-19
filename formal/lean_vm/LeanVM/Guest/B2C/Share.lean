@@ -27,9 +27,9 @@ join the walk goes on with the facts from before the branch, the values known in
 and every cell a branch occupied as occupied.
 
 The occupied cells and the known values are bit sets (`ℕ`), whose operations the kernel does in
-one step each. A function is walked in the windows of its soundness certificate (`Cert.stmtsAt`),
-each with that window's cells (`Cert.locAt`): window `i + 1` starts from a `Snap` of the state
-window `i` ends in, which the end state must refine (`refines`).
+one step each. A function is walked in windows, each within a window of its soundness certificate
+and reading that window's cells (`locW`): window `k + 1` starts from a `Snap` of the state window
+`k` ends in, which the end state must refine (`refines`).
 
 The walk also confirms, per atom, the certificate's lists of temporaries and frame runs
 (`Plumb.tmps`, `Plumb.runs`), from which the honest memory's cells are built.
@@ -439,36 +439,48 @@ noncomputable def refines (m : SSt) (s : Snap) : Bool :=
     s.cst.all (fun q ↦ getF m.cst q.1 == some q.2) &&
     s.keys.all (fun q ↦ ((getF m.keys q.1).getD []).any fun k ↦ k == q.2)
 
-/-- The windows start at nondecreasing statements. -/
-def monoOk (C : Cert) : Bool :=
-  (List.range C.cuts.length).all fun i ↦ Nat.ble (C.cutAt i).start (C.cutAt (i + 1)).start
+/-- The snapshot window `k` starts from (`k ≥ 1`). -/
+def snapAt (snaps : List Snap) (k : ℕ) : Snap := nth snaps (k - 1) ⟨0, 0, 0, [], [], []⟩
 
-/-- The snapshot window `i` starts from (`i ≥ 1`). -/
-def snapAt (snaps : List Snap) (i : ℕ) : Snap := nth snaps (i - 1) ⟨0, [], [], []⟩
+/-- Where window `k` starts. -/
+def startW (snaps : List Snap) (k : ℕ) : ℕ := bif k == 0 then 0 else (snapAt snaps k).start
 
-/-- **Window `i` of function `j`**, starting from the snapshots `snaps`: its values numbered, in
-the window's cells and in the frame; its walk from the parameters' naming (the first window) or
-from its snapshot, ending in a state that refines the next one's; the first window also checks
-the frame's bounds, the lists and the windows' order. -/
-noncomputable def shareWin (j : ℕ) (snaps : List Snap) (i : ℕ) : Bool :=
-  (locW (certOf j) i).seq fun loc ↦ natSeq (bitsOf (plumbOf j).sh) fun sh ↦
+/-- The soundness window whose cells window `k` reads. -/
+def winW (snaps : List Snap) (k : ℕ) : ℕ := bif k == 0 then 0 else (snapAt snaps k).win
+
+/-- Window `k`'s statements. -/
+def stmtsW (body : List Stmt) (snaps : List Snap) (k : ℕ) : List Stmt :=
+  bif Nat.blt k snaps.length then (body.drop (startW snaps k)).take (startW snaps (k + 1) - startW snaps k)
+  else body.drop (startW snaps k)
+
+/-- The windows start at nondecreasing statements, each reading a soundness window's cells. -/
+def snapsOk (C : Cert) (snaps : List Snap) : Bool :=
+  (List.range snaps.length).all fun k ↦
+    Nat.ble (startW snaps k) (startW snaps (k + 1)) && Nat.ble (winW snaps (k + 1)) C.cuts.length
+
+/-- **Window `k` of function `j`**, starting from the snapshots `snaps`: its values numbered, in
+its soundness window's cells and in the frame; its walk from the parameters' naming (the first
+window) or from its snapshot, ending in a state that refines the next one's; the first window
+also checks the frame's bounds, the lists and the windows' order. -/
+noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
+  (locW (certOf j) (winW snaps k)).seq fun loc ↦ natSeq (bitsOf (plumbOf j).sh) fun sh ↦
   natSeq (tmpCells (plumbOf j)) fun tc ↦ natSeq (fpgCells (plumbOf j)) fun fc ↦
   (byCell (plumbOf j).tmps).seq fun tt ↦
-  (nth (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
-  (bif i == 0 then
-      Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && monoOk (certOf j) &&
-        snaps.length == (certOf j).cuts.length && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
+  (nth (certOf j).cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
+  (bif k == 0 then
+      Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) snaps &&
+        (coreOf j).params.all (valOk loc tt tc fc (fsN j))
     else true) &&
-  (Memory.Stmt.usesList ((certOf j).stmtsAt (coreOf j) i) ++
-    Memory.Stmt.tmpsList ((certOf j).stmtsAt (coreOf j) i)).all (valOk loc tt tc fc (fsN j)) &&
+  (Memory.Stmt.usesList (stmtsW (coreOf j).body snaps k) ++
+    Memory.Stmt.tmpsList (stmtsW (coreOf j).body snaps k)).all (valOk loc tt tc fc (fsN j)) &&
   (match swL loc sh tt (plumbOf j)
-      (bif i == 0 then nameStep loc sh (initSt (plumbOf j)) (coreOf j).params else (snapAt snaps i).st)
-      ((certOf j).stmtsAt (coreOf j) i) with
-    | some m => bif Nat.blt i (certOf j).cuts.length then refines m (snapAt snaps (i + 1)) else true
+      (bif k == 0 then nameStep loc sh (initSt (plumbOf j)) (coreOf j).params else (snapAt snaps k).st)
+      (stmtsW (coreOf j).body snaps k) with
+    | some m => bif Nat.blt k snaps.length then refines m (snapAt snaps (k + 1)) else true
     | none => false)
 
 /-- **The sharing check of function `j`**: every window's. -/
-def ShareOk (j : ℕ) : Prop := ∀ i ≤ (certOf j).cuts.length, shareWin j (snapsOf j) i = true
+def ShareOk (j : ℕ) : Prop := ∀ k ≤ (snapsOf j).length, shareWin j (snapsOf j) k = true
 
 end
 end LeanVM.Guest.B2C

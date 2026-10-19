@@ -1855,18 +1855,21 @@ end
 /-- The bit set of a set of naturals. -/
 def bitsOfSet (s : Std.HashSet ℕ) : ℕ := s.fold (fun n c => n ||| (1 <<< c)) 0
 
-/-- The snapshots of a function's windows after the first, as `B2C.Snap` literals: the walk of each
-window from the previous snapshot, handing on the values, constants and keys later windows name. -/
+/-- The most cost (values its statements name) of a sharing window. -/
+def maxShareWin : ℕ := 2500
+
+/-- The sharing check's windows of a function and their snapshots: each soundness window cut where
+its statements so far cost `maxShareWin` and nothing is pending, each window after the first
+starting from the walk's state at its start, handing on the values, constants and keys later
+statements name. Returns the `B2C.Snap` literals and each window's cost. -/
 def snaps (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (starts : Array ℕ) (los his : Array ℕ)
     (insW : Array (List (ℕ × ℕ × ℕ))) (stat : List (ℕ × Cpl.PC)) (sh : List ℕ) (tmps runs : List (ℕ × ℕ)) :
-    Except String (List String) := do
+    Except String (List String × List ℕ) := do
   let nw := starts.size
   let locA := locs.toArray
+  let body := cf.body.toArray
   let shS : Std.HashSet ℕ := sh.foldl (·.insert ·) {}
   let tmpAt : Std.HashMap ℕ ℕ := tmps.foldl (fun m (v, c) => m.insert c v) {}
-  let stmtsAt (w : ℕ) : List Core.Stmt :=
-    let a := starts[w]!
-    if w + 1 < nw then (cf.body.drop a).take (starts[w + 1]! - a) else cf.body.drop a
   let ctxAt (w : ℕ) : Ctx :=
     let lo := los[w]!
     let hi := his[w]!
@@ -1875,34 +1878,51 @@ def snaps (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (starts : Array ℕ) (los h
       match ins.find? (·.1 == v) with
       | some (_, c, _) => c
       | none => 0, shS, tmpAt, runs⟩
-  -- the values each window on names
-  let mut later : Array (Std.HashSet ℕ) := Array.replicate (nw + 1) {}
-  for w' in [0:nw] do
-    let w := nw - 1 - w'
-    later := later.set! w ((Check.stmtsVals (stmtsAt w)).foldl (fun h v => h.insert v.idx) later[w + 1]!)
   let init : SS := stat.foldl (fun st (o, pc) => match pc with
     | .k l => { st with occ := st.occ.insert o, cst := st.cst.insert o l }
     | .fpg _ => { st with occ := st.occ.insert o }) {}
+  -- the snapshot at statement `a`, read from window `w`'s cells, of the state `m`
+  let snap (a w : ℕ) (m : SS) : String × SS :=
+    let used : Std.HashSet ℕ := (Check.stmtsVals (cf.body.drop a)).foldl (fun h v => h.insert v.idx) {}
+    let cellsUsed : Std.HashSet ℕ := used.fold (fun h v => h.insert (locA.getD v 0)) {}
+    let named := (m.named.toList.filter used.contains).mergeSort
+    let cst := (m.cst.toList.filter fun (c, _) => cellsUsed.contains c).mergeSort (·.1 ≤ ·.1)
+    let keys := ((m.keys.toList.filter fun (c, _) => cellsUsed.contains c).flatMap fun (c, ks) =>
+      ks.map fun k => (c, k)).mergeSort (·.1 ≤ ·.1)
+    let cstM : Std.HashMap ℕ (ℕ × ℕ × ℕ) := cst.foldl (fun h (c, x) => h.insert c x) {}
+    let keysM : Std.HashMap ℕ (List (ℕ × List ℕ)) := keys.foldl (fun h (c, k) => h.insert c (k :: h.getD c [])) {}
+    let namedS : Std.HashSet ℕ := named.foldl (·.insert ·) {}
+    let st : SS := { occ := m.occ, cst := cstM, keys := keysM, named := namedS, pend := [] }
+    (s!"⟨{a}, {w}, {bitsOfSet m.occ}, {listText (named.map toString)}, " ++
+      s!"{listText (cst.map fun (c, (x, y, z)) => s!"({c}, {x}, {y}, {z})")}, " ++
+      s!"{listText (keys.map fun (c, (op, ins)) => s!"({c}, {op}, {listText (ins.map toString)})")}⟩", st)
   let mut st := nameStep (ctxAt 0) init cf.params
   let mut out : List String := []
+  let mut costs : List ℕ := []
+  let mut cost := 0
   for w in [0:nw] do
     let X := ctxAt w
-    let m ← (swL X st (stmtsAt w)).mapError (s!"sharing of function {j}, window {w}: " ++ ·)
-    if w + 1 < nw then
-      let used := later[w + 1]!
-      let cellsUsed : Std.HashSet ℕ := used.fold (fun h v => h.insert (locA.getD v 0)) {}
-      let named := (m.named.toList.filter used.contains).mergeSort
-      let cst := (m.cst.toList.filter fun (c, _) => cellsUsed.contains c).mergeSort (·.1 ≤ ·.1)
-      let keys := ((m.keys.toList.filter fun (c, _) => cellsUsed.contains c).flatMap fun (c, ks) =>
-        ks.map fun k => (c, k)).mergeSort (·.1 ≤ ·.1)
-      let cstM : Std.HashMap ℕ (ℕ × ℕ × ℕ) := cst.foldl (fun h (c, x) => h.insert c x) {}
-      let keysM : Std.HashMap ℕ (List (ℕ × List ℕ)) := keys.foldl (fun h (c, k) => h.insert c (k :: h.getD c [])) {}
-      let namedS : Std.HashSet ℕ := named.foldl (·.insert ·) {}
-      st := { occ := m.occ, cst := cstM, keys := keysM, named := namedS, pend := [] }
-      out := out ++ [s!"⟨{bitsOfSet m.occ}, {listText (named.map toString)}, " ++
-        s!"{listText (cst.map fun (c, (a, b, d)) => s!"({c}, {a}, {b}, {d})")}, " ++
-        s!"{listText (keys.map fun (c, (op, ins)) => s!"({c}, {op}, {listText (ins.map toString)})")}⟩"]
-  return out
+    let a := starts[w]!
+    let b := if w + 1 < nw then starts[w + 1]! else body.size
+    if w > 0 then
+      let (t, st') := snap a w st
+      out := out ++ [t]
+      costs := costs ++ [cost]
+      cost := 0
+      st := st'
+    for idx in [a:b] do
+      if cost ≥ maxShareWin && idx > a && st.pend.isEmpty then
+        let (t, st') := snap idx w st
+        out := out ++ [t]
+        costs := costs ++ [cost]
+        cost := 0
+        st := st'
+      let s := body[idx]!
+      st ← (swS X st s).mapError (s!"sharing of function {j}, statement {idx}: " ++ ·)
+      if mayRet s && !st.pend.isEmpty then throw s!"sharing of function {j}, statement {idx}: pending after a return"
+      cost := cost + (Check.stmtsVals [s]).length
+    unless st.pend.isEmpty do throw s!"sharing of function {j}: pending at the end of window {w}"
+  return (out, costs ++ [cost])
 
 end ShareM
 end GuestCert
@@ -2183,7 +2203,7 @@ def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (n
 def sharedDir : System.FilePath := "LeanVM/Guest/B2C/Shared"
 
 /-- The most cost (values named) of the sharing windows one module decides. -/
-def maxShared : ℕ := 6000
+def maxShared : ℕ := 5000
 
 /-- The modules deciding the sharing check: each window's (`(function, window, cost)`), in modules
 of consecutive windows; a function of one window gets its `ShareOk` with it, one of several in
@@ -2205,18 +2225,18 @@ def sharedFiles (wins : Array (ℕ × ℕ × ℕ)) (n : ℕ) : List (System.File
       "The kernel's sharing checks of windows of compiled functions." ++
       "public import LeanVM.Guest.B2C.Share\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
       String.join (js.toList.map fun (j, w) =>
-        s!"/-- `{fns[j]!.name}`, window {w}. -/\nset_option maxRecDepth 100000 in\n" ++
+        s!"set_option maxRecDepth 100000 in\n/-- `{fns[j]!.name}`, window {w}. -/\n" ++
         s!"theorem w{j}_{w} : shareWin {j} (snapsOf {j}) {w} = true := by decide +kernel\n\n") ++
       String.join ((js.toList.filter fun (j, _) => !cut j).map fun (j, _) =>
         s!"theorem ok{j} : ShareOk {j} := fun i hi ↦ by\n" ++
-        s!"  have h : (certOf {j}).cuts.length = 0 := by decide +kernel\n" ++
+        s!"  have h : (snapsOf {j}).length = 0 := by decide +kernel\n" ++
         s!"  obtain rfl : i = 0 := by omega\n  exact w{j}_0\n\n") ++
       "end\nend LeanVM.Guest.B2C.Shared\n")
   let cutFns := (wins.toList.filterMap fun (j, w, _) => if w > 0 then some j else none).eraseDups
   let cutOk := String.join (cutFns.map fun j =>
     let ws := (wins.toList.filter (·.1 == j)).map (·.2.1)
     s!"theorem ok{j} : ShareOk {j} := fun i hi ↦ by\n" ++
-    s!"  have h : (certOf {j}).cuts.length = {ws.length - 1} := by decide +kernel\n" ++
+    s!"  have h : (snapsOf {j}).length = {ws.length - 1} := by decide +kernel\n" ++
     s!"  rw [h] at hi\n  interval_cases i\n" ++
     String.join (ws.map fun w => s!"  · exact w{j}_{w}\n") ++ "\n")
   let index := ("LeanVM/Guest/B2C" : System.FilePath) / "Shared.lean"
@@ -2232,7 +2252,7 @@ def sharedFiles (wins : Array (ℕ × ℕ × ℕ)) (n : ℕ) : List (System.File
 def snapsFile (ss : List (ℕ × List String)) : String :=
   let ss := ss.filter (!·.2.isEmpty)
   header "Snaps" "The sharing check's snapshots of the guest's compiled functions." ++
-    "public import LeanVM.Guest.B2C.Types\n" ++ preamble ++
+    "public import LeanVM.Guest.Exec\npublic import LeanVM.Guest.B2C.Types\n" ++ preamble ++
     String.join (ss.map fun (j, l) =>
       s!"/-- Function {j}'s windows after the first start from these. -/\n" ++
       s!"noncomputable def snaps{j} : List B2C.Snap := [\n  " ++ ",\n  ".intercalate l ++ "]\n\n") ++
@@ -2259,13 +2279,11 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     certs := certs.push c
     let (pt, statL, sh, tmps, runs) ← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
     plumbs := plumbs.push pt
-    snapTexts := snapTexts.push (i + 1, ← ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs)
+    let (sts, costs) ← ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs
+    snapTexts := snapTexts.push (i + 1, sts)
     frames := frames.push fsz
     wins := wins ++ (sizes.zipIdx.map fun (sz, w) => (i + 1, w, sz)).toArray
-    for w in [0:starts.size] do
-      let a := starts[w]!
-      let ss := if w + 1 < starts.size then (cf.body.drop a).take (starts[w + 1]! - a) else cf.body.drop a
-      shareWins := shareWins.push (i + 1, w, (Check.stmtsVals ss).length)
+    shareWins := shareWins ++ (costs.zipIdx.map fun (c, k) => (i + 1, k, c)).toArray
   let mut fs : Array (Array String) := #[#[]]
   let mut size := 0
   for c in certs do
