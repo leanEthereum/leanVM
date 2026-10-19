@@ -8,3 +8,4 @@ module
 
 public import LeanVM.Guest.B1.Whir.Cap
 public import LeanVM.Guest.B1.Whir.QueriesSpec
+public import LeanVM.Guest.B1.Whir.Stacked
