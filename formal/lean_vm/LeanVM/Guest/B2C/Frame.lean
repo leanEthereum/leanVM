@@ -531,6 +531,59 @@ theorem read_tmp {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
   rw [gpow, pow_add]
   exact h.read_C hI hmem
 
+/-- **The honest memory reads each table jump's target.** -/
+theorem read_arm {hdr : E × E} {T : Tree} {rd : Reader} {args rets : List E}
+    (h : Honest coreProgram fs H C hdr T rd args rets) (hS : ShareOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G fc (coreOf j) (certOf j) main i = true)
+    {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T) {f : String} {σ : Val} {bufs : List ℕ}
+    {kids : List Tree} (ht : I.t = .node f σ bufs kids) (hj : idxOf f = some j) {es : List Ev} {vs : List V}
+    (hw : walk σ (coreOf j).body = .ret es vs)
+    {a : ℕ × ℕ × ℕ} (ha : a ∈ (plumbOf j).arms) (h2 : 2 ≤ a.2.1) (hn : a.2.1 < fsN j) :
+    (honest coreProgram fs H C hdr T).read (gpow (I.fp + a.2.1)) = some (armWord σ a.1 a.2.2) := by
+  have FS := fnStatic hS hchk
+  have AP := apart_j hS
+  obtain ⟨i, rfl, -, -, -, -, hfs, hcert, -⟩ := fn_of_idx hj
+  have hcJ : ∀ u, cert f u = cellJ (i + 1) u := fun u ↦ hcert u
+  obtain ⟨hev, hvs⟩ := node_path ht hj hw
+  obtain ⟨hat, har, has, hal, hsc⟩ := AP.arm a ha
+  have hmem : (a.2.1, armWord σ a.1 a.2.2) ∈ C I := by
+    rw [C_node ht hj, hfs]
+    refine frameE_cell ⟨(a.2.1, armWord σ a.1 a.2.2), ?_, rfl⟩ h2 hn fun x hx hxc ↦ ?_
+    · simp only [nodeE, List.mem_append, List.mem_map]
+      exact Or.inl (Or.inr ⟨a, ha, rfl⟩)
+    simp only [nodeE, List.mem_append, hev, hvs] at hx
+    rcases hx with (((((hx | hx) | hx) | hx) | hx) | hx) | hx
+    · simp only [valE, List.mem_map] at hx
+      obtain ⟨t, htm, rfl⟩ := hx
+      obtain ⟨j', hj', htl⟩ := temps_of htm
+      rw [hj] at hj'; cases hj'
+      exact absurd (by simp only [hcJ] at hxc; exact hxc) (hat _ (FS.tmp t htl).2)
+    · obtain ⟨u, hu, hcu, -⟩ := run_named hj hw FS hx
+      obtain ⟨p, r, rs, he', k, hk, rfl⟩ := mem_runsE hx
+      have ha' : Atom.frameAddr p (r :: rs) ∈ lAtoms (coreOf (i + 1)).body := walk_atoms _ (by rw [hw]; exact he')
+      obtain ⟨-, -, hrun⟩ := FS.run p r rs ha' k hk
+      exact absurd (by simp only [hcJ] at hxc; exact hxc) (har _ hrun)
+    · simp only [List.mem_map] at hx
+      obtain ⟨q, hq, rfl⟩ := hx
+      exact absurd hxc (has q hq)
+    · simp only [valE, List.mem_map] at hx
+      obtain ⟨u, hu, rfl⟩ := hx
+      simp only [hcJ] at hxc
+      exact absurd (hxc ▸ cellJ_mem (hxc ▸ h2)) hal
+    · exact absurd (hxc ▸ mem_siteE hx) hsc
+    · simp only [List.mem_map] at hx
+      obtain ⟨a', ha', rfl⟩ := hx
+      simp only at hxc ⊢
+      rw [List.inj_on_of_nodup_map (f := fun a : ℕ × ℕ × ℕ ↦ a.2.1) AP.armNodup ha' ha hxc]
+    · split_ifs at hx with h1
+      · have hlt := (AP.main h1).2.2.2.2.2 a ha
+        have : x.1 ∈ tableCells.map Prod.fst := List.mem_map_of_mem hx
+        rw [tableCells_offsets, List.mem_range'] at this
+        omega
+      · cases hx
+  rw [gpow, pow_add]
+  exact h.read_C hI hmem
+
 end Others
 
 end
