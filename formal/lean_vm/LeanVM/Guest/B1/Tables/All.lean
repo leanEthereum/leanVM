@@ -22,6 +22,7 @@ public import LeanVM.Guest.B1.Tables.FlockAtB
 public import LeanVM.Guest.B1.Tables.VtSortC
 public import LeanVM.Guest.B1.Tables.VtZcC
 public import LeanVM.Guest.B1.Tables.VtPlaced
+public import LeanVM.Guest.B1.Tables.VtFitsC
 public import LeanVM.Guest.B1.Tables.VerifyTablesSpec
 public import LeanVM.Guest.B1.Tables.VerifyTablesSpecCe
 public import LeanVM.Guest.B1.Tables.VerifyTablesSpecBus
