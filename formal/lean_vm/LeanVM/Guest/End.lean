@@ -17,6 +17,7 @@ public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.Logic
 public import LeanVM.Guest.Memory
 public import LeanVM.Guest.Hints
+public import LeanVM.Guest.B1.Whir.CapAgrees
 
 /-!
 # The end theorems
@@ -62,7 +63,8 @@ allocator's, its `frameAddr`s in its frames):
   each instance).
 
 `Limits` transcribes the six findings of `TRIAGE.md`; they do not bound the run's size, so the
-size is a seventh limit, `budget s w ≤ 2^28`. The deployed budget is linear in the node's work
+size is a seventh limit, `budget s w ≤ 2^28`. An eighth is on the children's proofs: their
+openings agree in the guest's write-once Merkle caps (`CapsAgree`). The deployed budget is linear in the node's work
 (`Budget`: the words a run allocates and the instructions of each opcode it executes, each a
 constant plus a coefficient per declared claim, coverage slot, raw signature or blob, child and
 child's claim, `work s w`), at `Trace.committedSize`'s formula (`Budget.size`), so the final
@@ -324,6 +326,18 @@ structure Limits (s : NodeStatement) (w : NodeWitness) : Prop where
   /-- 6. At least one declared claim (G:3207). -/
   nonempty : 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
 
+/-- **A child's openings agree in the guest's Merkle caps**: the guest writes each committed
+tree's cap once, so two openings of one query step meeting at a node must give it one digest,
+where the specification checks each opening alone against the root (`B1.CapAgrees`). It holds at
+every query step of each child's deferring verifier, under the node's seed; one tree's openings,
+the honest prover's, agree (`B1.capAgrees_of_tree`). -/
+def CapsAgree (seed : Digest) (w : NodeWitness) : Prop :=
+  ∀ c ∈ w.children, ∀ b ∈ B1.queriesOf
+      (Verifier.deferredProgram c.fresh bytecode (statementDigest seed c.statement))
+      ⟨blake2sBytes (digestBytes seed ++ digestBytes (statementDigest seed c.statement)),
+        c.proof.stream, c.proof.openings, []⟩,
+    B1.BatchAgrees b.1 b.2
+
 /-! ## The seventh limit -/
 
 /-- **A node's work**: what the size of its run grows with. -/
@@ -420,7 +434,7 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
   /-- B1 (group 7: `main`'s completeness at the bump allocator's `HeapBuf` pointers), agent T
   (`Program.Rel.tree`, and the discharge of `Honest`): a call tree of `main`, honest with the
   statement's digest as `main`'s header, of cost within the node's budget. -/
-  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       cost T ≤ budget s w
@@ -438,11 +452,11 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
       run guest (Memory.honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
         (⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Trace guest).committedSize ≤ cost T
 
-/-- **Completeness**, the statement: a witness of `NodeRel` within the deployed limits, the node
-within the budget, gives a valid execution of the guest on the statement's digest within the
+/-- **Completeness**, the statement: a witness of `NodeRel` within the deployed limits, its
+children's openings agreeing in the caps and the node within the budget, gives a valid execution of the guest on the statement's digest within the
 verifier's committed size. -/
 def GuestComplete (budget : NodeStatement → NodeWitness → ℕ) : Prop :=
-  ∀ seed s w, NodeRel bytecode seed s w → Limits s w → budget s w ≤ 2 ^ 28 →
+  ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → budget s w ≤ 2 ^ 28 →
     ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
       t.committedSize ≤ 2 ^ 28
 
@@ -457,7 +471,7 @@ structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ �
     (b : Budget) : Prop where
   /-- B1 (group 7), agent T: as `CompletePieces.honest`, the tree within the budget's words and
   instruction counts. -/
-  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
+  honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
       Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w)
@@ -478,8 +492,8 @@ theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → �
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cnt : Memory.Tree → Opcode → ℕ}
     {b : Budget} (h : CompletePiecesWithin fs H C cert cnt b) :
     CompletePieces fs H C cert (fun T ↦ sizeOf (T.total fs) (cnt T)) fun s w ↦ b.size (work s w) where
-  honest seed s w hrel hlim := by
-    obtain ⟨rd, T, hname, hH, hw, hc⟩ := h.honest seed s w hrel hlim
+  honest seed s w hrel hlim hcap := by
+    obtain ⟨rd, T, hname, hH, hw, hc⟩ := h.honest seed s w hrel hlim hcap
     exact ⟨rd, T, hname, hH, sizeOf_mono hw hc⟩
   table := h.table
   b2 := h.b2
@@ -503,8 +517,8 @@ theorem jumpTables_honest {fs : String → ℕ} {H : Memory.Inst → ℕ → E �
 theorem guest_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cost : Memory.Tree → ℕ}
     {budget : NodeStatement → NodeWitness → ℕ} (h : CompletePieces fs H C cert cost budget) :
-    GuestComplete budget := fun seed s w hrel hlim hbudget ↦ by
-  obtain ⟨rd, T, hname, hH, hcost⟩ := h.honest seed s w hrel hlim
+    GuestComplete budget := fun seed s w hrel hlim hcap hbudget ↦ by
+  obtain ⟨rd, T, hname, hH, hcost⟩ := h.honest seed s w hrel hlim hcap
   have hb := hH.toHonest.publicBoundary (prog := guest)
   have hreach := (reach_jumpTables (jumpTables_honest hH.toHonest hname h.table)).trans (h.b2 _ rd T hname hH)
   obtain ⟨n, hv⟩ := validExecution_of_reach hb hreach
@@ -547,12 +561,12 @@ theorem aggregate_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ →
     {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cost : Memory.Tree → ℕ}
     {budget : NodeStatement → NodeWitness → ℕ} (h : CompletePieces fs H C cert cost budget)
     {seed : Digest} {s : NodeStatement} {w : NodeWitness} (hrel : NodeRel bytecode seed s w)
-    (hlim : Limits s w) (hbudget : budget s w ≤ 2 ^ 28) :
+    (hlim : Limits s w) (hcap : CapsAgree seed w) (hbudget : budget s w ≤ 2 ^ 28) :
     ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
       ∀ ρ fuel, 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
         Pr{let z ← experiment (honestProver guest (publicInputOf (statementDigest seed s)) t ρ fuel)}[
           z.1.2 = false] ≤ completenessError fuel := by
-  obtain ⟨t, hv, hsize⟩ := guest_complete_of h seed s w hrel hlim hbudget
+  obtain ⟨t, hv, hsize⟩ := guest_complete_of h seed s w hrel hlim hcap hbudget
   exact ⟨t, hv, fun _ _ hρ hfuel ↦ completeness hv hsize hρ hfuel⟩
 
 end
