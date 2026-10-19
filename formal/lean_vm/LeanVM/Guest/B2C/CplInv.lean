@@ -351,7 +351,7 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
     {st : CW} (h : (cw X (.match_ v (a0 :: as) :: ss) st).ok = true) :
     ∃ t ft t0 ts base se s0 J c0 u0 c u sj, st.seg.exit.kind = .jump (.cell t) ft ∧
       st.seg.exit.succ = t0 :: ts ∧ tblRead t st.its = some (X.loc.cell v, base) ∧
-      X.F.self ft = true ∧ ts.length = as.length ∧ inFrame X.fs [X.loc.cell v, t] = true ∧
+      X.F.self ft = true ∧ ts.length = as.length ∧ v = V.n v.idx ∧ inFrame X.fs [X.loc.cell v, t] = true ∧
       X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) = true ∧
       armsOk X.G X.entry base 0 (t0 :: ts) = true ∧
       endAtC X { st with tg := (t, X.loc.cell v, base) :: st.tg } = .ok se ∧
@@ -365,15 +365,21 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
     split at h
     · rename_i o1 base htb
       cases hc : (X.F.self ft && Nat.beq ts.length as.length && Nat.beq o1 (X.loc.cell v) &&
-          inFrame X.fs [o1, t] &&
+          v.path.isEmpty && Nat.beq v.tag 0 && inFrame X.fs [o1, t] &&
           X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
           armsOk X.G X.entry base 0 (t0 :: ts))
       · rw [hc] at h; cases h
       rw [hc] at h
       simp only [Bool.cond_true] at h ⊢
       simp only [Bool.and_eq_true] at hc
-      obtain ⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g4⟩, g5⟩, g6⟩ := hc
+      obtain ⟨⟨⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g7⟩, g8⟩, g4⟩, g5⟩, g6⟩ := hc
       obtain rfl := Nat.eq_of_beq_eq_true g3
+      have hvn : v = V.n v.idx := by
+        obtain ⟨vp, vt, vi⟩ := v
+        simp only [List.isEmpty_iff] at g7
+        obtain rfl := g7
+        obtain rfl := Nat.eq_of_beq_eq_true g8
+        rfl
       split at h
       · rename_i se hse
         split at h
@@ -386,7 +392,7 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
               split at h
               · rename_i sj hsj
                 exact ⟨t, ft, t0, ts, base, se, s0, J, c0, u0, c, u, sj, hk, hsu, htb, g1,
-                  Nat.eq_of_beq_eq_true g2, g4, g5, g6, hse, hs0, h0, ha, hsj,
+                  Nat.eq_of_beq_eq_true g2, hvn, g4, g5, g6, hse, hs0, h0, ha, hsj,
                   by simp only [Cnt.seq_eq, natSeq_eq]⟩
               · cases h
             · cases h

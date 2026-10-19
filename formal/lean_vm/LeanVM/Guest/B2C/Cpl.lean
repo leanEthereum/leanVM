@@ -662,6 +662,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
       match tblRead t st.its with
       | some (o1, base) =>
         bif X.F.self ft && Nat.beq ts.length as.length && Nat.beq o1 (X.loc.cell v) &&
+            v.path.isEmpty && Nat.beq v.tag 0 &&
             inFrame X.fs [o1, t] &&
             X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
             armsOk X.G X.entry base 0 (t0 :: ts) then
