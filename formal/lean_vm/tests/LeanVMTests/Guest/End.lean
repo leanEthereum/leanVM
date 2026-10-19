@@ -34,3 +34,19 @@ three standard axioms only.
 /-- info: 'LeanVM.Guest.End.guest_complete_within' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.End.guest_complete_within
+
+/-- info: 'LeanVM.Guest.End.b1Sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.b1Sound
+
+/-- info: 'LeanVM.Guest.End.guest_sound_of_b2' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.guest_sound_of_b2
+
+/-- info: 'LeanVM.Guest.End.aggregate_sound_of_b2' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.aggregate_sound_of_b2
+
+/-- info: 'LeanVM.Guest.End.vsKnown_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.vsKnown_proved

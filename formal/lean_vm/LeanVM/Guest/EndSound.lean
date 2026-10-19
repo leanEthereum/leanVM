@@ -12,6 +12,10 @@ public import LeanVM.Guest.End
 public import LeanVM.Guest.Glob
 public import LeanVM.Guest.CheckSound
 public import LeanVM.Guest.B1.Main.Sound
+public import LeanVM.Guest.B1.Main.Discharge
+public import LeanVM.Guest.B1.VerifySub.Known
+public import LeanVM.Guest.B1.Tables.Gkr
+public import LeanVM.Guest.B1.Tables.VerifyTablesSound
 
 /-!
 # Soundness, the pieces' own forms
@@ -83,6 +87,31 @@ theorem aggregate_sound_of_parts (hb2 : B2Sound) (hb1 : B1Sound) {A : Adversary}
       ¬ ∃ seed s, statementDigest seed s = publicDigest z.1.1.1.2 ∧ s.defer.Shaped bytecode ∧
         NodeSpec bytecode seed s] ≤ soundnessError Q :=
   aggregate_sound_of (soundPieces_of hb2 hb1) hA
+
+/-- **B1 of `main`, proved** (group 7's `callees_proved`). -/
+theorem b1Sound : B1Sound := ⟨B1.Main.callees_proved bytecode_length⟩
+
+/-- **Soundness, from B2.** -/
+theorem guest_sound_of_b2 (hb2 : B2Sound) : GuestSound := guest_sound_of_parts hb2 b1Sound
+
+/-- **The guest's soundness in the random-oracle experiment, from B2.** -/
+theorem aggregate_sound_of_b2 (hb2 : B2Sound) {A : Adversary} {Q : ℕ}
+    (hA : A.IsTotalQueryBound Q) :
+    Pr{let z ← experiment A}[z.1.2 = true ∧ z.1.1.1.1 = guest ∧
+      ¬ ∃ seed s, statementDigest seed s = publicDigest z.1.1.1.2 ∧ s.defer.Shaped bytecode ∧
+        NodeSpec bytecode seed s] ≤ soundnessError Q :=
+  aggregate_sound_of_parts hb2 b1Sound hA
+
+/-- **`verify_sub`'s bound on `check_opening_terminal`'s column selectors**, which checker K's B2
+takes (`VerifySub.vsKnown`, from `verify_bus_gkr` and `verify_tables` sound). -/
+theorem vsKnown_proved : B1.VerifySub.VsKnown :=
+  B1.VerifySub.vsKnown (bytecode := bytecode)
+    (fun rd hm ↦ by
+      obtain ⟨κ, -, h32, L, rfl⟩ := hm
+      exact B1.VerifySub.verify_bus_gkr_sound h32 L)
+    (fun rd hm ↦ by
+      obtain ⟨κ, -, h32, L, rfl⟩ := hm
+      exact B1.VerifySub.verify_tables_sound h32 L bytecode_length)
 
 end
 end LeanVM.Guest.End
