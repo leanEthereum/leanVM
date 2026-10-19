@@ -352,7 +352,7 @@ noncomputable def statAt (o : ℕ) : Option PC := getF X.stat o
 noncomputable def gpE (k0 : ℕ) : Option ℕ := bif Nat.beq k0 1 then some 0 else X.F.pows.find k0
 
 /-- The constant a cell holds: a fixed cell's, a constant's, an `assert !=`'s `1`. -/
-noncomputable def cstAt (o : ℕ) : Option (ℕ × ℕ × ℕ) :=
+noncomputable def cplCstAt (o : ℕ) : Option (ℕ × ℕ × ℕ) :=
   match statAt X o with
   | some (.k k0 k1 k2) => some (k0, k1, k2)
   | _ => (lookC st.book o).findSome? fun a ↦ match a with
@@ -362,13 +362,13 @@ noncomputable def cstAt (o : ℕ) : Option (ℕ × ℕ × ℕ) :=
 
 /-- The cell holds `0`: a constant, or the segment's environment. -/
 noncomputable def isZ (o : ℕ) : Bool :=
-  (match cstAt X st o with
+  (match cplCstAt X st o with
     | some (0, 0, 0) => true
     | _ => false) || isZero (st.seg.env.get o)
 
 /-- The cell holds `1`: a constant, or the segment's environment. -/
 noncomputable def isO (o : ℕ) : Bool :=
-  (match cstAt X st o with
+  (match cplCstAt X st o with
     | some (1, 0, 0) => true
     | _ => false) || isOne (st.seg.env.get o)
 
@@ -412,7 +412,7 @@ noncomputable def cellK (o : ℕ) : Bool :=
 
 /-- A `MUL` of a frame address: `fp[a] = fp·g^e₁`, `fp[b] = g^e₂`, the run at `e₁ + e₂`. -/
 noncomputable def addrMul (a b : ℕ) (run : List ℕ) : Bool :=
-  match statAt X a, cstAt X st b, run with
+  match statAt X a, cplCstAt X st b, run with
   | some (.fpg e1), some (k0, 0, 0), r :: _ => match gpE X k0 with
     | some e2 => Nat.beq (e1 + e2) r
     | none => false
@@ -420,7 +420,7 @@ noncomputable def addrMul (a b : ℕ) (run : List ℕ) : Bool :=
 
 /-- A `MUL` of fixed cells: `fp·g^e = fp·g^e₁ · g^(e - e₁)`. -/
 noncomputable def fpgMul (a b d : ℕ) : Bool :=
-  match statAt X d, statAt X a, cstAt X st b with
+  match statAt X d, statAt X a, cplCstAt X st b with
   | some (.fpg e), some (.fpg e1), some (k0, 0, 0) => Nat.ble e1 e && (match gpE X k0 with
     | some e2 => Nat.beq e2 (e - e1)
     | none => false)
@@ -440,7 +440,7 @@ noncomputable def frameCell (o1 o2 o3 : ℕ) : Bool :=
   | some (_, fcs) => fcs.any fun p ↦ Nat.beq p.1 o2 && (match p.2 with
     | .val cv => Nat.beq cv o3 || sameC X st cv o3
     | .self => Nat.beq o3 o1
-    | .pc r => (match cstAt X st o3 with
+    | .pc r => (match cplCstAt X st o3 with
       | some (k0, 0, 0) => decide (gpE X k0 = some r)
       | _ => false)
     | _ => false)
@@ -455,7 +455,7 @@ noncomputable def frameHas (o1 o2 : ℕ) (fc : FC) : Bool :=
 /-- **An instruction at pc `pc` holds** on the frame: by a fact on its cells, the fixed cells,
 a callee frame in flight, a table read, or the next frame. -/
 noncomputable def justI (pc : ℕ) : OInstr → Bool
-  | .set o k0 k1 k2 => decide (cstAt X st o = some (k0, k1, k2))
+  | .set o k0 k1 k2 => decide (cplCstAt X st o = some (k0, k1, k2))
   | .xor a b d =>
     (lookC st.book d).any (fun x ↦ match x with
       | .add d' x y => perm3 a b d d' x y

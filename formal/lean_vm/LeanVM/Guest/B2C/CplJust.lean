@@ -214,9 +214,9 @@ theorem gpE_sound (hX : CXOk L fp X) {k0 e : ℕ} (h : gpE X k0 = some e) :
     obtain rfl := Option.some.inj h.symm
     rw [imm_one, gpow_zero', ofK_one]
 
-theorem cstAt_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o k0 k1 k2 : ℕ}
-    (h : cstAt X st o = some (k0, k1, k2)) : rdc L fp o = some (OInstr.imm k0 k1 k2) := by
-  unfold cstAt at h
+theorem cplCstAt_sound (hX : CXOk L fp X) (hst : BookOk L fp st.book) {o k0 k1 k2 : ℕ}
+    (h : cplCstAt X st o = some (k0, k1, k2)) : rdc L fp o = some (OInstr.imm k0 k1 k2) := by
+  unfold cplCstAt at h
   split at h
   · rename_i a b c hs
     simp only [Option.some.injEq, Prod.mk.injEq] at h
@@ -251,7 +251,7 @@ theorem isZ_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {o : ℕ} (h : isZ X
   rcases Bool.or_eq_true_iff.mp h with h | h
   · split at h
     · rename_i hc
-      rw [cstAt_sound hX hst.book hc, imm_zero]
+      rw [cplCstAt_sound hX hst.book hc, imm_zero]
     · cases h
   · exact hst.env o _ (isZero_eq h)
 
@@ -261,7 +261,7 @@ theorem isO_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {o : ℕ} (h : isO X
   rcases Bool.or_eq_true_iff.mp h with h | h
   · split at h
     · rename_i hc
-      rw [cstAt_sound hX hst.book hc, imm_one]
+      rw [cplCstAt_sound hX hst.book hc, imm_one]
     · cases h
   · obtain ⟨v, hv, h1⟩ := isOne_val h (gpow fp)
     rw [← h1]
@@ -413,7 +413,7 @@ theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
           obtain rfl := Nat.eq_of_beq_eq_true hp
           obtain ⟨rfl, -⟩ := List.cons.inj hr
           have h1 := statAt_sound hX ha
-          have h2 := cstAt_sound hX hst.book hb
+          have h2 := cplCstAt_sound hX hst.book hb
           rw [gpE_sound hX he] at h2
           unfold Guest.Holds
           refine ⟨_, _, h1, h2, ?_⟩
@@ -438,7 +438,7 @@ theorem mul_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc a b d : ℕ}
         rw [he] at h
         obtain rfl := Nat.eq_of_beq_eq_true h
         have h1 := statAt_sound hX ha
-        have h2 := cstAt_sound hX hst.book hb
+        have h2 := cplCstAt_sound hX hst.book hb
         rw [gpE_sound hX he] at h2
         unfold Guest.Holds
         refine ⟨_, _, h1, h2, ?_⟩
@@ -583,7 +583,7 @@ theorem derefCell_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc o1 o2 o3 :
         obtain rfl := Nat.eq_of_beq_eq_true h1
         split at hm
         · rename_i k0 hc
-          have h3 := cstAt_sound hX hst.book hc
+          have h3 := cplCstAt_sound hX hst.book hc
           rw [gpE_sound hX (of_decide_eq_true hm)] at h3
           exact deref_holds hq (isInK_ofK _) h3 (by rw [limb_ofK0]; exact hfc)
         · cases hm
@@ -665,7 +665,7 @@ theorem justI_sound (hX : CXOk L fp X) (hst : CWOk L fp X st) {pc : ℕ} {ins : 
   cases ins with
   | set o k0 k1 k2 =>
     unfold Guest.Holds
-    exact cstAt_sound hX hst.book (of_decide_eq_true h)
+    exact cplCstAt_sound hX hst.book (of_decide_eq_true h)
   | xor a b d => exact xor_sound hX hst h
   | mul a b d => exact mul_sound hX hst h
   | deref o1 o2 o3 mode =>
