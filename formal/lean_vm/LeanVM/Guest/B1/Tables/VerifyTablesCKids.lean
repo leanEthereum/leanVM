@@ -26,7 +26,7 @@ namespace LeanVM.Guest.B1.VerifySub
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Memory
+open LeanVM.Guest.Memory LeanVM.Guest.B1.Sig
 open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
@@ -130,6 +130,63 @@ def VtPlacedOk : Prop :=
       ∀ q ∈ vtPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.gpow q.2 = Parameters.gpow i ∧
         (RegionL Lin i ∨ RegionL (bufL b (vtSizes n) (vtOwnW (vtKs logMem fun t => log2Ceil (rowsN.getD t 0))
           point logMem n cvr (ofK (Parameters.gpow c)) cl ch chis)) i)
+
+/-! ## The bus decomposition's glue windows (g5c) -/
+
+/-- **Statements `1605 ..< 1616`** (values `1882 ..< 1893`): the boundary block's inner sum on
+`fp_w`. -/
+def VtGlue1 : Prop :=
+  ∀ (rd : Reader) (σ : Val) (fpw : E), σ (.n 11) = fpw → (∀ i < 16, ∃ v, LoadHolds rd fpw i v) →
+    Completes (coreProgram.Rel rd) rd 1882 1893 ((vtPre.drop 1605).take 11) σ (fun _ => True)
+
+/-- **The memory block, statements `1644 ..< 1724`** (values `1920 ..< 1997`): its index chain at
+the hinted `pI` (`__loop14` over `zeta[..logMem]`), stored at `block_index_mle[1]`; its three
+memory words `m` read at the cursor from the state `cv` and stored in `claim_pool[0..2]` with
+`g^logMem` in `claim_cplen_g`; the inner sum on `fp_w`. -/
+def VtGlue2 : Prop :=
+  ∀ (rd : Reader) (σ : Val) (cur fpw pool cplen zeta idxc bim pI m0 m1 m2 : E) (point : List E)
+    (logMem : ℕ) (cv : Digest),
+    σ (.n 2) = cur → σ (.n 5) = zeta → σ (.n 11) = fpw → σ (.n 13) = pool → σ (.n 14) = cplen →
+    σ (.n 1817) = idxc → σ (.n 1852) = bim → σ (.n 1893) = gen ^ logMem →
+    (σ (.n 19), σ (.n 20)) = digestScalars cv → 0 < logMem → logMem ≤ point.length →
+    ReadsAt rd zeta point → (∀ t < 34, LoadHolds rd idxc t (1 + gen ^ 2 ^ t)) →
+    ReadsAt rd pI (idxChainW point logMem) → LoadHolds rd bim 1 ((idxChainW point logMem).getD logMem 0) →
+    (∀ i < 16, ∃ v, LoadHolds rd fpw i v) → ReadsAt rd cur [m0, m1, m2] → ReadsAt rd pool [m0, m1, m2] →
+    (∀ j < 3, LoadHolds rd cplen j (gen ^ logMem)) →
+    Completes (coreProgram.Rel rd) rd 1920 1997 ((vtPre.drop 1644).take 80) σ (fun σ' =>
+      σ' (.n 1925) = pI ∧ σ' (.n 1937) = m0 ∧ σ' (.n 1955) = m1 ∧ σ' (.n 1973) = m2 ∧
+        (σ' (.n 1986), σ' (.n 1987)) = digestScalars (obsAll cv [m0, m1, m2]))
+
+/-- **The bytecode block, statements `1752 ..< 1808`** (values `2024 ..< 2077`): its index chain at
+the hinted `pI` (`__loop16` over `zeta[..18]`), stored at `block_index_mle[2]`; the inner sum on
+`fp_w`. -/
+def VtGlue3 : Prop :=
+  ∀ (rd : Reader) (σ : Val) (fpw zeta idxc bim pI : E) (point : List E),
+    σ (.n 5) = zeta → σ (.n 11) = fpw → σ (.n 1817) = idxc → σ (.n 1852) = bim →
+    σ (.n 1997) = gen ^ 18 → 18 ≤ point.length → ReadsAt rd zeta point →
+    (∀ t < 34, LoadHolds rd idxc t (1 + gen ^ 2 ^ t)) → ReadsAt rd pI (idxChainW point 18) →
+    LoadHolds rd bim 2 ((idxChainW point 18).getD 18 0) → (∀ i < 16, ∃ v, LoadHolds rd fpw i v) →
+    Completes (coreProgram.Rel rd) rd 2024 2077 ((vtPre.drop 1752).take 56) σ (fun σ' =>
+      σ' (.n 2029) = pI)
+
+/-- **The push side's padding and the pull side, statements `2826 ..< 3397`** (values
+`3061 ..< 3706`): the pull blocks' log-heights read from `block_kappa` and range-checked below
+`34`, their columns read back from `claim_pool` and `block_index_mle`, the memory's and the
+bytecode's final counters `mF`, `bF` read at the cursor's offsets `3`, `4` from the state `cv` and
+stored at slots `3`, `4` with the blocks' `g^κ`; the sums on `fp_w`. -/
+def VtGlue4 : Prop :=
+  ∀ (κ : ℕ), 6 ≤ κ → ∀ (rd : Reader), LowDef κ rd →
+    ∀ (σ : Val) (cur bk fpw pool cplen bim mF bF : E) (ks : ℕ → ℕ) (cv : Digest),
+      σ (.n 2) = cur → σ (.n 9) = bk → σ (.n 11) = fpw → σ (.n 13) = pool → σ (.n 14) = cplen →
+      σ (.n 1852) = bim → (σ (.n 1986), σ (.n 1987)) = digestScalars cv →
+      (∀ b < 102, LoadHolds rd bk b (gen ^ ks b)) → (∀ b < 102, ks b < 34) →
+      (∀ i < 16, ∃ v, LoadHolds rd fpw i v) → LoadHolds rd cur 3 mF → LoadHolds rd cur 4 bF →
+      (∀ j < 3, ∃ v, LoadHolds rd pool j v) → LoadHolds rd pool 3 mF → LoadHolds rd pool 4 bF →
+      LoadHolds rd cplen 3 (gen ^ ks 38) → LoadHolds rd cplen 4 (gen ^ ks 39) →
+      (∃ v, LoadHolds rd bim 1 v) → (∃ v, LoadHolds rd bim 2 v) →
+      Completes (coreProgram.Rel rd) rd 3061 3706 ((vtPre.drop 2826).take 571) σ (fun σ' =>
+        σ' (.n 3359) = mF ∧ σ' (.n 3409) = bF ∧
+          (σ' (.n 3422), σ' (.n 3423)) = digestScalars (obsCv (obsCv cv mF) bF))
 
 end
 end LeanVM.Guest.B1.VerifySub
