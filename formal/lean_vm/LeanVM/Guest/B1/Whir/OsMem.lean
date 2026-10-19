@@ -46,7 +46,7 @@ structure OsBufReads (rd : Reader) (cfg : OsCfg) (d : OsData) (b : ℕ) (Q : Lis
   ich : ReadsAt rd (osPtrAt cfg b (11 + 2 * cfg.levels.length + 4)) (d.ichC cfg)
   chv : ∀ l < cfg.levels.length, ReadsAt rd (osPtrAt cfg b (11 + 2 * cfg.levels.length + 5 + l)) (d.chvC cfg l)
 
-private theorem os_flatMap_pair_getD {α : Type} (f g : ℕ → α) (x : α) :
+theorem os_flatMap_pair_getD {α : Type} (f g : ℕ → α) (x : α) :
     ∀ n l, l < n → ((List.range n).flatMap fun i => [f i, g i]).getD (2 * l) x = f l ∧
       ((List.range n).flatMap fun i => [f i, g i]).getD (2 * l + 1) x = g l
   | 0, _, h => absurd h (by omega)
