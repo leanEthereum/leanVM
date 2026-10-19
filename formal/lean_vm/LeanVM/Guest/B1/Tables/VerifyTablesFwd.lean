@@ -69,6 +69,7 @@ noncomputable def fStep (rd : Reader) (lo : ℕ) (D : List ℕ) (σ : Val) : Ato
     else if !fDef lo D y then (fAdd D y, Function.update σ y (σ d * (σ x)⁻¹))
     else (D, σ)
   | .load d p off => if fDef lo D d then (D, σ) else (fAdd D d, Function.update σ d (memAt rd (σ p) off))
+  | .assertNe x i p => if fDef lo D p then (D, σ) else (fAdd D p, Function.update σ p (σ x * σ i))
   | .rangeCheck x y t1 t2 k =>
     if fDef lo D y || fDef lo D t1 || fDef lo D t2 then (D, σ) else
       (fAdd (fAdd (fAdd D y) t1) t2, Function.update (Function.update (Function.update σ y
@@ -93,13 +94,13 @@ def fOk1 (lo hi : ℕ) (D : List ℕ) : Atom → Bool
         (fNew lo hi D y && fNew lo hi D t1 && fNew lo hi D t2 && decide (y ≠ t1) && decide (y ≠ t2) &&
           decide (t1 ≠ t2)))
   | .assertEq x y => fDef lo D x && fDef lo D y
-  | .assertNe x i p => fDef lo D x && fDef lo D i && fDef lo D p
+  | .assertNe x i p => fDef lo D x && fDef lo D i && (fDef lo D p || fNew lo hi D p)
   | .assertInK x y => fDef lo D x && fDef lo D y
   | _ => false
 
 /-- The new values of `D` after an atom, by its shape. -/
 def fDStep (lo : ℕ) (D : List ℕ) : Atom → List ℕ
-  | .const d _ | .copy d _ | .add d _ _ | .load d _ _ => if fDef lo D d then D else fAdd D d
+  | .const d _ | .copy d _ | .add d _ _ | .load d _ _ | .assertNe _ _ d => if fDef lo D d then D else fAdd D d
   | .mul d x y =>
     if !fDef lo D d then fAdd D d else if !fDef lo D x then fAdd D x
     else if !fDef lo D y then fAdd D y else D
@@ -126,6 +127,7 @@ def fObl1 (rd : Reader) (lo : ℕ) (D : List ℕ) (σf : Val) : Atom → Prop
       (fDef lo D d = true → fDef lo D x = true → fDef lo D y = false → σf x ≠ 0)
   | .load d p off => (fDef lo D d = true → LoadHolds rd (σf p) off (σf d)) ∧
       (fDef lo D d = false → IsInK (σf p) ∧ (rd ((σf p).limb 0 * gpow off)).isSome)
+  | a@(.assertNe x i p) => (fDef lo D p = true → a.Holds rd σf) ∧ (fDef lo D p = false → σf x * σf i = 1)
   | a@(.rangeCheck x y _ _ _) => (fDef lo D y = true → a.Holds rd σf) ∧
       (fDef lo D y = false → σf x ≠ 0 ∧ IsInK (σf x) ∧ (rd ((σf x).limb 0 * gpow 0)).isSome ∧
         IsInK (σf y) ∧ (rd ((σf y).limb 0 * gpow 0)).isSome)
@@ -191,6 +193,10 @@ theorem fStep_frame (rd : Reader) (lo : ℕ) (D : List ℕ) (σ : Val) (a : Atom
     simp only [fStep]; split_ifs with h1
     · rfl
     · exact Function.update_of_ne (ne_of_def h (by simpa using h1)) _ _
+  | assertNe x i p =>
+    simp only [fStep]; split_ifs with h1
+    · rfl
+    · exact Function.update_of_ne (ne_of_def h (by simpa using h1)) _ _
   | mul d x y =>
     simp only [fStep]; split_ifs with h1 h2 h3
     · exact Function.update_of_ne (ne_of_def h (by simpa using h1)) _ _
@@ -251,6 +257,11 @@ theorem fStep_upd (rd : Reader) {lo hi : ℕ} {D : List ℕ} (σ : Val) {a : Ato
     · exact absurd rfl hv
     · rw [update_ne_imp hv]; exact def_or_new hok.2 (by simpa using h1)
   | load d p off =>
+    simp only [fStep] at hv; simp only [fOk1, Bool.and_eq_true] at hok
+    split_ifs at hv with h1
+    · exact absurd rfl hv
+    · rw [update_ne_imp hv]; exact def_or_new hok.2 (by simpa using h1)
+  | assertNe x i p =>
     simp only [fStep] at hv; simp only [fOk1, Bool.and_eq_true] at hok
     split_ifs at hv with h1
     · exact absurd rfl hv
@@ -423,9 +434,11 @@ theorem fOk1_vars {lo hi : ℕ} {D : List ℕ} {a : Atom} (hok : fOk1 lo hi D a 
     simp only [fOk1, Bool.and_eq_true] at hok
     simp only [atomUses, atomTmps, List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hv
     rcases hv with rfl | rfl | rfl
-    · exact hok.1.1
-    · exact hok.1.2
-    · exact hok.2
+    · exact fDStep_mono _ hok.1.1
+    · exact fDStep_mono _ hok.1.2
+    · simp only [fDStep]; split_ifs with h1
+      · exact h1
+      · exact fDef_add_self _
   | assertInK x y =>
     simp only [fOk1, Bool.and_eq_true] at hok
     simp only [atomUses, atomTmps, List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hv
@@ -571,7 +584,21 @@ theorem fStep_holds (rd : Reader) {lo hi : ℕ} {D : List ℕ} {σ : Val} {a : A
       refine ⟨loadHolds_memAt o1 o2, ?_, loadHolds_memAt o3 o4⟩
       rw [mul_comm (σ k), ← mul_assoc, mul_inv_cancel₀ o0, one_mul]
   | assertEq x y => exact hob
-  | assertNe x i p => exact hob
+  | assertNe x i p =>
+    by_cases hp : fDef lo D p = true
+    · exact hob.1 hp
+    · simp only [Bool.not_eq_true] at hp
+      simp only [fOk1, Bool.and_eq_true] at hok
+      have ep := hag p (by simp [atomUses])
+      have ex := hag x (by simp [atomUses])
+      have ei := hag i (by simp [atomUses])
+      simp only [fStep, hp, Bool.false_eq_true, ↓reduceIte, Function.update_self] at ep ex ei
+      rw [Function.update_of_ne (ne_of_def hok.1.1 hp)] at ex
+      rw [Function.update_of_ne (ne_of_def hok.1.2 hp)] at ei
+      have h1 := hob.2 hp
+      show σf p = σf x * σf i ∧ σf p = 1
+      rw [ep, ex, ei]; rw [ex, ei] at h1
+      exact ⟨rfl, h1⟩
   | assertInK x y => exact hob
   | _ => simp [fOk1] at hok
 
@@ -700,6 +727,7 @@ theorem fRun_loads (rd : Reader) {lo hi : ℕ} (σf : Val) : ∀ (as : List Atom
 inductive Ob where
   | holds (a : Atom)
   | nz (v : V)
+  | unit (x i : V)
   | ld (p : V) (off : ℕ)
   | rc (x y : V)
   deriving DecidableEq
@@ -708,6 +736,7 @@ inductive Ob where
 def Ob.Holds (rd : Reader) (σf : Val) : Ob → Prop
   | .holds a => a.Holds rd σf
   | .nz v => σf v ≠ 0
+  | .unit x i => σf x * σf i = 1
   | .ld p off => IsInK (σf p) ∧ (rd ((σf p).limb 0 * gpow off)).isSome
   | .rc x y => σf x ≠ 0 ∧ IsInK (σf x) ∧ (rd ((σf x).limb 0 * gpow 0)).isSome ∧ IsInK (σf y) ∧
       (rd ((σf y).limb 0 * gpow 0)).isSome
@@ -719,6 +748,7 @@ def fObs1 (lo : ℕ) (D : List ℕ) : Atom → List Ob
       else if !fDef lo D y then [.nz x] else [.holds a]
   | a@(.load d p off) => if fDef lo D d then [.holds a] else [.ld p off]
   | a@(.rangeCheck x y _ _ _) => if fDef lo D y then [.holds a] else [.rc x y]
+  | a@(.assertNe x i p) => if fDef lo D p then [.holds a] else [.unit x i]
   | a => [.holds a]
 
 /-- A window's obligations. -/
@@ -755,7 +785,10 @@ theorem fObl1_of_obs {rd : Reader} {lo : ℕ} {D : List ℕ} {σf : Val} {a : At
     · simp only [fObs1, hy, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
     · simp only [fObs1, hy, Bool.false_eq_true, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
   | assertEq x y => simpa [fObs1, Ob.Holds, fObl1] using h
-  | assertNe x i p => simpa [fObs1, Ob.Holds, fObl1] using h
+  | assertNe x i p =>
+    refine ⟨fun hp => ?_, fun hp => ?_⟩
+    · simp only [fObs1, hp, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
+    · simp only [fObs1, hp, Bool.false_eq_true, ↓reduceIte, List.mem_singleton, forall_eq] at h; exact h
   | assertInK x y => simpa [fObs1, Ob.Holds, fObl1] using h
   | blake2s m0 m1 m2 m3 c0 c1 o0 o1 md => simpa [fObs1, Ob.Holds, fObl1] using h
   | frameAddr p run => simpa [fObs1, Ob.Holds, fObl1] using h
