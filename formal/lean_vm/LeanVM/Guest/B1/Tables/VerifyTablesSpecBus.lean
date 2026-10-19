@@ -121,7 +121,7 @@ theorem ofK_four : ofK (K.ofBits 4) = gen ^ 2 := by
   rw [← word_ofK]; exact word_two_pow (a := 2) (by decide)
 
 /-- A block's form depends on its coordinates and the weights of its slots only. -/
-theorem blockForm_congr {b b' : BusBlock} {w w' : List E} {beta : E} (column : ℕ → E)
+private theorem blockForm_congr {b b' : BusBlock} {w w' : List E} {beta : E} (column : ℕ → E)
     (hc : b.coordinates = b'.coordinates) (hw : ∀ i < b.coordinates.length, w.getD i 0 = w'.getD i 0) :
     (blockForm b w beta).evaluate column = (blockForm b' w' beta).evaluate column := by
   rw [evaluate_blockForm, evaluate_blockForm, ← hc]
