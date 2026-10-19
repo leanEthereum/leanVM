@@ -149,6 +149,8 @@ def CompleteTablesAt : Prop :=
   ∀ (pi : Digest) (logMem : ℕ) (alphas point values : List E) (cv : Digest) (xs : List E)
     (cv' : Digest) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim)
     (beta bv rm gzcn : E) (c z lp sq dims rows bk fpw pool cplen chi : ℕ) (Lin : Main.Layout),
+    bytecode.length = 2 ^ 22 →
+    point.length = (busLayout [0, logMem, 18] (layoutOf bytecode logMem rowsN).push).depth →
     point.length < 33 → 16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
     rowsN.length = 6 → (∀ n ∈ rowsN, log2Ceil n < 29) → claims.length = nClaims →
     (∀ ev, BytecodeAt ev bytecode
@@ -260,6 +262,8 @@ def CompleteTablesAtB (B : ℕ) : Prop :=
   ∀ (pi : Digest) (logMem : ℕ) (alphas point values : List E) (cv : Digest) (xs : List E)
     (cv' : Digest) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim)
     (beta bv rm gzcn : E) (c z lp sq dims rows bk fpw pool cplen chi : ℕ) (Lin : Main.Layout),
+    bytecode.length = 2 ^ 22 →
+    point.length = (busLayout [0, logMem, 18] (layoutOf bytecode logMem rowsN).push).depth →
     point.length < 33 → 16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
     rowsN.length = 6 → (∀ n ∈ rowsN, log2Ceil n < 29) → claims.length = nClaims →
     (∀ ev, BytecodeAt ev bytecode

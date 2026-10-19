@@ -223,7 +223,9 @@ theorem vsKids1_completeB {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok
   · have h := hT D.pi D.logMem D.alphas D.gr.2.1 D.gr.2.2 D.cvG D.xsT D.cvT D.rows D.bus D.claims
       D.beta D.bv D.rm D.gzcn (vsB fs fp D 2 + 10 + D.xsG.length) (vsB fs fp D 7) lpA sqA
       (vsB fs fp D 4) (vsB fs fp D 3) (vsB fs fp D 6) (vsB fs fp D 9) (vsB fs fp D 0)
-      (vsB fs fp D 1) (vsB fs fp D 10) _ (by rw [hok.point_length]; exact hok.depth_lt)
+      (vsB fs fp D 1) (vsB fs fp D 10) _ hb (by
+        rw [hok.point_length]; unfold pushDepth; rw [layoutOf_logBytecode hb]; rfl)
+      (by rw [hok.point_length]; exact hok.depth_lt)
       hok.logMem_ge hok.logMem_le (by simp [VsData.alphas, sqAll_eq]) hok.values_length
       hok.rows_length hok.rows_log hok.claims_length hok.tables fun rd _ hm => by
         obtain ⟨h0, ht, hc, hp⟩ := M rd hm
@@ -368,7 +370,9 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
   · have h := hT D.pi D.logMem D.alphas D.gr.2.1 D.gr.2.2 D.cvG D.xsT D.cvT D.rows D.bus D.claims
       D.beta D.bv D.rm D.gzcn (vsB fs fp D 2 + 10 + D.xsG.length) (vsB fs fp D 7) lpA sqA
       (vsB fs fp D 4) (vsB fs fp D 3) (vsB fs fp D 6) (vsB fs fp D 9) (vsB fs fp D 0)
-      (vsB fs fp D 1) (vsB fs fp D 10) _ (by rw [hok.point_length]; exact hok.depth_lt)
+      (vsB fs fp D 1) (vsB fs fp D 10) _ hb (by
+        rw [hok.point_length]; unfold pushDepth; rw [layoutOf_logBytecode hb]; rfl)
+      (by rw [hok.point_length]; exact hok.depth_lt)
       hok.logMem_ge hok.logMem_le (by simp [VsData.alphas, sqAll_eq]) hok.values_length
       hok.rows_length hok.rows_log hok.claims_length hok.tables fun rd _ hm => by
         obtain ⟨h0, ht, hc, hp⟩ := M rd hm
