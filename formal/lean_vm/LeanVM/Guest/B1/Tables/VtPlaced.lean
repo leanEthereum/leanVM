@@ -321,5 +321,8 @@ theorem vt_placed_ok' : VtPlacedOk' := by
         simp only [List.getElem_map, List.getElem_range]
         exact ((hpre rd a e).2.2.1 j hj).2) hB
 
+/-- **`verify_tables`' placed conditions** (`VtPlacedOk`). -/
+theorem vt_placed_ok : VtPlacedOk := vt_placed_ok'
+
 end
 end LeanVM.Guest.B1.VerifySub
