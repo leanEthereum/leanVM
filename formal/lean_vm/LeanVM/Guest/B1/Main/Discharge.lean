@@ -15,19 +15,23 @@ public import LeanVM.Guest.B1.Da.ListDigest
 public import LeanVM.Guest.B1.Sig.Xmss
 public import LeanVM.Guest.B1.Sig.XmssData
 public import LeanVM.Guest.B1.VerifySub.Sound
-public import LeanVM.Guest.B1.Tables.Kappas
+public import LeanVM.Guest.B1.Tables.All
+public import LeanVM.Guest.B1.Tables.TCtx
+public import LeanVM.Guest.B1.Sig.Sphincs
+public import LeanVM.Guest.B1.Sig.SphincsData
+public import LeanVM.Guest.B1.Da.Verify
 
 /-!
 # `main`'s callees, discharged
 
 Each field of `Callees` is the owning group's lemma, restated: group 3's `Meaning_*` with their
-scratch tables and canonicity dropped, group 2's `verify_lean_xmss_sound` read through the
-claim's cells, group 6's `verify_sub_sound` with group 5's placement (`PCtx`, `hypKappa`,
-`soundPlace`). What is not proved yet is a field of `CalleesPending`: `verify_sig_lean_sphincs`
-(group 2) and `da_verify` (group 3) in `Callees`' own shape, and `verify_sub`'s callees in
-`verify_sub_sound`'s (`SoundGkr`, `SoundTables` with its `TCtx`, `SoundFlock`, `SoundOpen`,
-`SoundTerm`; groups 4 and 5). `callees_all` gives `Callees` on every memory `MemOk` admits, the
-form `End.B1Sound.callees` takes.
+scratch tables and canonicity dropped and `da_verify_sound`, group 2's `verify_lean_xmss_sound` and
+`verify_sig_lean_sphincs_sound` read through the claim's cells, group 6's `verify_sub_sound` with
+group 5's placement (`PCtx`, `hypKappa`, `soundPlace`), `verify_bus_gkr_sound`,
+`verify_flock_sound` and `check_opening_terminal_sound`. What is not proved yet is a field of
+`CalleesPending`: `verify_tables` (`SoundTables` with the terminal's `TCtx`) and `open_stacked`
+(`SoundOpen`). `callees_all` gives `Callees` on every memory `MemOk` admits, the form
+`End.B1Sound.callees` takes.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -137,6 +141,30 @@ theorem verify_lean_xmss_signed : ∀ p, coreProgram.Rel rd "verify_lean_xmss" [
   rw [e]
   exact hv
 
+theorem verify_sig_lean_sphincs_signed : ∀ p,
+    coreProgram.Rel rd "verify_sig_lean_sphincs" [p] [] → SphincsSigned rd p := by
+  intro p h
+  rw [rel_iff_sem Sig.find_verify_sig_lean_sphincs] at h
+  obtain ⟨σ, hp, h⟩ := h
+  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
+  obtain ⟨-, pk, m, hc, sig, hv⟩ := Sig.verify_sig_lean_sphincs_sound Sig.fkSound_rel h
+  rw [hp] at hc
+  refine ⟨_, _, _, _, readsAt_four.mpr ⟨hc 0, hc 1, hc 2, hc 3⟩, sig, ?_⟩
+  have e : sphincsOf (claimCells pk.root pk.parameter m 0) (claimCells pk.root pk.parameter m 1)
+      (claimCells pk.root pk.parameter m 2) (claimCells pk.root pk.parameter m 3) = (pk, m) := by
+    simp only [sphincsOf, claimCells, Matrix.cons_val_zero, Matrix.cons_val_one,
+      Matrix.cons_val_two, Matrix.cons_val_three, Matrix.head_cons, Matrix.tail_cons]
+    exact Prod.ext (congrArg₂ Sphincs.PublicKey.mk (Sig.cellVal_cellOf _) (Sig.cellVal_cellOf _))
+      (cellPairVal_cellOf m)
+  rw [e]
+  exact hv
+
+theorem da_verify_opens (hm : MemOk rd) : ∀ gsq r0 r1 v0 v1, SquaresTable rd gsq →
+    coreProgram.Rel rd "da_verify" [gsq] [r0, r1, v0, v1] →
+      ∃ (root vd : Digest) (w : Da.Witness), (r0, r1) = digestScalars root ∧
+        (v0, v1) = digestScalars vd ∧ w.Opens root vd :=
+  fun _ _ _ _ _ hT h => da_verify_sound (memOk_digest hm) (squaresAt_of_table hT) h
+
 /-- **`main`'s callees**, from the other groups' lemmas, given those not proved yet. -/
 theorem callees_of {bytecode : List K} (hm : MemOk rd)
     (hsph : ∀ p, coreProgram.Rel rd "verify_sig_lean_sphincs" [p] [] → SphincsSigned rd p)
@@ -178,29 +206,20 @@ theorem verify_sub_callee {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
       htab hfl (soundPlace h32 L) (hypKappa _) hop hterm ht h
   exact ⟨pi, iv, c, π, hpi, hs, hsh, hr, hv⟩
 
-/-- **What `main`'s callees still rest on**: the leanSPHINCS verifier (group 2), `da_verify`
-(group 3), and `verify_sub`'s callees (groups 4 and 5), on every memory `MemOk` admits. -/
-structure CalleesPending (bytecode : List K)
-    (TCtx : Reader → Layout → BusResult → List ColumnClaim → List E → Prop) : Prop where
-  verify_sig_lean_sphincs : ∀ rd, MemOk rd → ∀ p,
-    coreProgram.Rel rd "verify_sig_lean_sphincs" [p] [] → SphincsSigned rd p
-  da_verify : ∀ rd, MemOk rd → ∀ gsq r0 r1 v0 v1, SquaresTable rd gsq →
-    coreProgram.Rel rd "da_verify" [gsq] [r0, r1, v0, v1] →
-      ∃ (root vd : Digest) (w : Da.Witness), (r0, r1) = digestScalars root ∧
-        (v0, v1) = digestScalars vd ∧ w.Opens root vd
-  gkr : ∀ rd, MemOk rd → VerifySub.SoundGkr rd
-  tables : ∀ rd, MemOk rd → VerifySub.SoundTables bytecode TCtx rd
-  flock : ∀ rd, MemOk rd → VerifySub.SoundFlock rd
+/-- **What `main`'s callees still rest on**: `verify_sub`'s callees `verify_tables` (with the
+terminal's context `TCtx`, group 5a) and `open_stacked` (group 4), on every memory `MemOk`
+admits. -/
+structure CalleesPending (bytecode : List K) : Prop where
+  tables : ∀ rd, MemOk rd → VerifySub.SoundTables bytecode VerifySub.TCtx rd
   opening : ∀ rd, MemOk rd → VerifySub.SoundOpen rd
-  terminal : ∀ rd, MemOk rd → VerifySub.SoundTerm TCtx PCtx rd
 
 /-- **`main`'s callees on every memory** (`End.B1Sound.callees`), given what they still rest on. -/
 theorem callees_all {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
-    {TCtx : Reader → Layout → BusResult → List ColumnClaim → List E → Prop}
-    (P : CalleesPending bytecode TCtx) : ∀ rd, MemOk rd → Callees bytecode rd := fun rd hm =>
-  callees_of hm (P.verify_sig_lean_sphincs rd hm) (P.da_verify rd hm)
-    (verify_sub_callee hb hm (P.gkr rd hm) (P.tables rd hm) (P.flock rd hm) (P.opening rd hm)
-      (P.terminal rd hm))
+    (P : CalleesPending bytecode) : ∀ rd, MemOk rd → Callees bytecode rd := fun rd hm =>
+  callees_of hm verify_sig_lean_sphincs_signed (da_verify_opens hm)
+    (verify_sub_callee hb hm
+      (by obtain ⟨κ, -, h32, L, rfl⟩ := hm; exact VerifySub.verify_bus_gkr_sound h32 L)
+      (P.tables rd hm) (verify_flock_sound rd) (P.opening rd hm) (check_opening_terminal_sound rd))
 
 end
 end LeanVM.Guest.B1.Main
