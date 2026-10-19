@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B2C.Static
+public import LeanVM.Guest.Value.Tower
 
 /-!
 # The frame an instance runs on
@@ -853,6 +854,110 @@ theorem cand_site (hS : ShareOk j)
     · cases hx
 
 end Sites
+
+/-! ## The headers -/
+
+section Hdr
+
+/-- A header of words of `K`. -/
+def KHdr (h : E × E) : Prop := IsInK h.1 ∧ IsInK h.2
+
+theorem kHdr_ofK (a b : K) : KHdr (ofK a, ofK b) := ⟨Value.ofK_isInK a, Value.ofK_isInK b⟩
+
+theorem kHdr_zero : KHdr (0, 0) := by
+  have := kHdr_ofK 0 0
+  simpa [ofK_zero] using this
+
+/-- A callee's header is its caller's, or of `K`. -/
+theorem H_cases (I : Inst) (i : ℕ) : H I i = I.hdr ∨ KHdr (H I i) := by
+  unfold H
+  split
+  · split
+    · split
+      · exact Or.inl rfl
+      · split
+        · exact Or.inr (kHdr_ofK _ _)
+        · exact Or.inr kHdr_zero
+    · exact Or.inr kHdr_zero
+  · exact Or.inr kHdr_zero
+
+/-- Not a loop's: its callees' headers are of `K`. -/
+theorem H_K {I : Inst} (hl : coreProgram.loop I.t.name = false) (i : ℕ) : KHdr (H I i) := by
+  unfold H
+  split
+  · rename_i f _ _ _ j ht hj
+    split
+    · split
+      · rename_i h
+        rw [ht] at hl
+        simp only [Tree.name] at hl
+        rw [hl] at h
+        exact absurd h.1 (by simp)
+      · split
+        · exact kHdr_ofK _ _
+        · exact kHdr_zero
+    · exact kHdr_zero
+  · exact kHdr_zero
+
+mutual
+/-- Every instance's header is its tree's, or of `K`. -/
+theorem insts_hdr : ∀ (t : Tree) (fp : ℕ) (h : E × E), ∀ J ∈ t.insts fs coreProgram.loop H fp h,
+    J.hdr = h ∨ KHdr J.hdr
+  | .node f σ bufs kids, fp, h, J, hJ => by
+      rw [insts_node, List.mem_cons] at hJ
+      rcases hJ with rfl | hJ
+      · exact Or.inl rfl
+      · rcases instsKids_hdr kids _ _ 0 J hJ with he | hk
+        · exact Or.inl he
+        · exact Or.inr hk
+  | .phantom .., fp, h, J, hJ => by
+      rw [insts_phantom, List.mem_singleton] at hJ
+      subst hJ; exact Or.inl rfl
+
+theorem instsKids_hdr : ∀ (ks : List Tree) (ps : List ℕ) (I : Inst) (i : ℕ),
+    ∀ J ∈ Tree.instsKids fs coreProgram.loop H I i ps ks, J.hdr = I.hdr ∨ KHdr J.hdr
+  | [], _, _, _, J, hJ => by rw [instsKids_nil] at hJ; exact absurd hJ List.not_mem_nil
+  | _ :: _, [], _, _, J, hJ => by rw [instsKids_nil_left] at hJ; exact absurd hJ List.not_mem_nil
+  | k :: ks, p :: ps, I, i, J, hJ => by
+      rw [instsKids_cons, List.mem_append] at hJ
+      rcases hJ with hJ | hJ
+      · rcases insts_hdr k p (H I i) J hJ with he | hk
+        · rw [he]; exact H_cases I i
+        · exact Or.inr hk
+      · exact instsKids_hdr ks ps I (i + 1) J hJ
+end
+
+theorem instsKids_hdrK {I : Inst} (hI : ∀ i, KHdr (H I i)) : ∀ (ks : List Tree) (ps : List ℕ) (i : ℕ),
+    ∀ J ∈ Tree.instsKids fs coreProgram.loop H I i ps ks, KHdr J.hdr
+  | [], _, _, J, hJ => by rw [instsKids_nil] at hJ; exact absurd hJ List.not_mem_nil
+  | _ :: _, [], _, J, hJ => by rw [instsKids_nil_left] at hJ; exact absurd hJ List.not_mem_nil
+  | k :: ks, p :: ps, i, J, hJ => by
+      rw [instsKids_cons, List.mem_append] at hJ
+      rcases hJ with hJ | hJ
+      · rcases insts_hdr k p (H I i) J hJ with he | hk
+        · rw [he]; exact hI i
+        · exact hk
+      · exact instsKids_hdrK hI ks ps (i + 1) J hJ
+
+theorem main_not_loop : coreProgram.loop "main" = false := by decide +kernel
+
+/-- **Every instance but `main`'s returns to registers of `K`.** -/
+theorem honest_hdrK {hdr : E × E} {T : Tree} (hT : T.name = "main") {J : Inst}
+    (hJ : J ∈ honestInsts coreProgram fs H hdr T) (hn : J.t.name ≠ "main") : KHdr J.hdr := by
+  unfold honestInsts at hJ
+  cases T with
+  | phantom f σ =>
+    rw [insts_phantom, List.mem_singleton] at hJ
+    subst hJ; exact absurd hT hn
+  | node f σ bufs kids =>
+    rw [insts_node, List.mem_cons] at hJ
+    rcases hJ with rfl | hJ
+    · exact absurd hT hn
+    · refine instsKids_hdrK (fun i ↦ H_K ?_ i) kids _ 0 J hJ
+      simp only [Tree.name] at hT ⊢
+      rw [hT]; exact main_not_loop
+
+end Hdr
 
 end
 end LeanVM.Guest.B2C
