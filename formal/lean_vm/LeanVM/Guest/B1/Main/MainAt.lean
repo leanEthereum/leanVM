@@ -184,7 +184,7 @@ theorem main_relAtIn_core (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W)
     (hcm : ∀ rd, ∀ outs, OutsOk ks outs → CallsMatch (mainVal rd (mainRunAt fs fp W))
       ((mainFronts (decide (W.rd = 1)) (decide (W.nc = 0))).map
         (mkCall (mainVal rd (mainRunAt fs fp W)))) ks outs) :
-    ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧
+    ∃ (m : ℕ) (L : Layout), Within (mainIn fs fp W ++ L) (fp + fs "main") m ∧
       ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W ++ L) →
         rd 1 = some (digestScalars W.stDig).1 → rd g = some (digestScalars W.stDig).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
@@ -194,7 +194,14 @@ theorem main_relAtIn_core (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W)
   set n0 := fs "exponent_tables" + [34, 34].sum + 0 with hn0
   obtain ⟨N, Lk, outs, ho, hWk, -, hK⟩ := kidsFromIn_of_kids' (fs := fs) (cert := cert) κ ks hks
     (bK + n0)
-  refine ⟨W.sizes.sum + (n0 + N), Lk, hWk.mono (by omega) (by omega), fun rd hl hL hp0 hp1 => ?_⟩
+  refine ⟨W.sizes.sum + (n0 + N), Lk, ?_, fun rd hl hL hp0 hp1 => ?_⟩
+  · rw [within_append, mainIn, within_append]
+    refine ⟨⟨(bufL_within _ _ _ (forall₂_of_map_length _ _ hW.lens)).mono le_rfl (by omega), ?_⟩,
+      hWk.mono (by omega) (by omega)⟩
+    intro q hq
+    simp only [mainLexp, List.mem_cons, List.not_mem_nil, or_false] at hq
+    rcases hq with rfl | rfl <;> simp only [mainExpBase, expTbl1, expTbl2, List.length_map,
+      List.length_range, hn0, List.sum_cons, List.sum_nil] <;> omega
   obtain ⟨hLin, hLk⟩ := memL_append.mp hL
   set R := mainRunAt fs fp W with hR
   set σ := mainVal rd R with hσ
@@ -541,7 +548,7 @@ callees need, one size and one layout serve every memory holding `main`'s words,
 and the public input at words `0`, `1`: `main` holds by a tree placed at `fp`, loading from its
 own data or its header. -/
 theorem main_relAtIn (H : CalleesAt fs cert κ VsGood) (hκ : 16 ≤ κ) (hW : MainWordsOk fs κ VsGood fp W) :
-    ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧
+    ∃ (m : ℕ) (L : Layout), Within (mainIn fs fp W ++ L) (fp + fs "main") m ∧
       ∀ rd, LowDef κ rd → MemL rd (mainIn fs fp W ++ L) →
         rd 1 = some (digestScalars W.stDig).1 → rd g = some (digestScalars W.stDig).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
