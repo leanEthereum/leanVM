@@ -93,7 +93,8 @@ theorem osLevel_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : L
     (hv : ∀ j < (osLvVals cfg lvl xs cv p w H s.co cur rt P sqzv rewv).length,
       σ (.n (s.k + j)) = (osLvVals cfg lvl xs cv p w H s.co cur rt P sqzv rewv).getD j 0) :
     (OsCallsOk CA σ ((osLvF cfg lvl s).1 ++ (osLvM cfg lvl s).1 ++ (osLvG cfg lvl s).1) ∧
-      OsCallsOk CB σ (osLvStB cfg lvl (osLvG cfg lvl s).2)) ∧
+      OsCallsOk CB σ (osLvStB cfg lvl (osLvG cfg lvl s).2) ∧
+      σ (.n ((osLvG cfg lvl s).2.k + 4)) = 1 + osGw (cfg.lv lvl).squeezes) ∧
     Stmt.HoldsList osTC rd σ (osLevel cfg lvl (cfg.lv lvl) s).1 True kret ∧
       OsAt σ (osLevel cfg lvl (cfg.lv lvl) s).2 (osHCvEnd cfg lvl xs p H.cv1) cur (osHPEnd cfg lvl p) ∧
       (osLevel cfg lvl (cfg.lv lvl) s).2.co = (if lvl = cfg.yrLevel then 3 else 8) ∧
@@ -116,9 +117,13 @@ theorem osLevel_complete {cfg : OsCfg} {μ lvl : ℕ} {L : Whir.Level} {rest : L
     (hm.reads (osHP2 cfg lvl p + 1 + 1) (by unfold osHPEnd at hlen; omega))
     hm.sq0 hm.sq1 hm.sq2 hm.sq3 hm.qw hm.rt0 hm.rt1 (fun h => hm.ood h) hm.beta
     hc.sq hc.rw hc.cap hc.q (fun j hj => by rw [hkA]; exact hB j hj)
+  have h4 : σ (.n ((osLvG cfg lvl s).2.k + 4)) = 1 + osGw (cfg.lv lvl).squeezes := by
+    rw [hkA, hB 4 (by simp [osLvValsB, osSqueezesVals])]
+    simp only [osLvValsB, List.append_assoc]
+    rw [oq_getD_app_lt (by simp [osSqueezesVals])]; rfl
   rw [osLevel_parts]
   refine ⟨⟨os_callsOk_of_holdsList _ (osLvStA_straight _ _ _) hHA,
-    os_callsOk_of_holdsList _ (osLvStB_straight _ _ _) hHB⟩, ?_, hatB, ?_, hqB, htB, ?_⟩
+    os_callsOk_of_holdsList _ (osLvStB_straight _ _ _) hHB, h4⟩, ?_, hatB, ?_, hqB, htB, ?_⟩
   · rw [holdsList_append]
     refine (holdsList_noRet _ ?_ _ _).mpr ⟨os_holdsList_toTC hHA, os_holdsList_toTC hHB⟩
     simp only [noRetList_append, osFolds_noRet, osLvF, osLvG, osGrind_noRet, Bool.and_true, Bool.true_and]
@@ -169,6 +174,7 @@ def OsLvsCallsOk (CA CB : ℕ → CallRel) (cfg : OsCfg) (σ : Val) : ℕ → Os
   | lvl, s, n + 1 =>
     OsCallsOk (CA lvl) σ ((osLvF cfg lvl s).1 ++ (osLvM cfg lvl s).1 ++ (osLvG cfg lvl s).1) ∧
       OsCallsOk (CB lvl) σ (osLvStB cfg lvl (osLvG cfg lvl s).2) ∧
+      σ (.n ((osLvG cfg lvl s).2.k + 4)) = 1 + osGw (cfg.lv lvl).squeezes ∧
       OsLvsCallsOk CA CB cfg σ (lvl + 1) (osLevel cfg lvl (cfg.lv lvl) s).2 n
 
 /-- The chain state, the stream position and the state after the levels. -/
@@ -219,7 +225,7 @@ theorem osLevels_complete {cfg : OsCfg} {μ lane : ℕ} {Lall : List Whir.Level}
           (osHWEnd cfg lvl xs p H) (osHRootsEnd cfg lvl roots H) (osLevel cfg lvl (cfg.lv lvl) s).2 Hs := rfl
     rw [hvs] at hv ⊢
     obtain ⟨hv1, hv2⟩ := os_look_app hv
-    obtain ⟨⟨hca1, hcb1⟩, hH1, hat1, hco1, hq1, ht1, hk1⟩ := osLevel_complete (rd := rd) (kret := kret)
+    obtain ⟨⟨hca1, hcb1, hsq1⟩, hH1, hat1, hco1, hq1, ht1, hk1⟩ := osLevel_complete (rd := rd) (kret := kret)
       (rewv := rew lvl) hs hok hP hat hcop hco8 hq hm1 hc1 hv1
     have hend : osLvsEnd cfg xs lvl cv p w roots (H :: Hs) = osLvsEnd cfg xs (lvl + 1) (osHCvEnd cfg lvl xs p H.cv1)
         (osHPEnd cfg lvl p) (osHWEnd cfg lvl xs p H) (osHRootsEnd cfg lvl roots H) Hs := rfl
@@ -228,7 +234,7 @@ theorem osLevels_complete {cfg : OsCfg} {μ lane : ℕ} {Lall : List Whir.Level}
     · obtain ⟨rfl, -⟩ := hlast hy
       have hnil : cfg.levels.drop (lvl + 1) = [] := List.drop_eq_nil_of_le (by omega)
       rw [hnil]
-      refine ⟨⟨hca1, hcb1, trivial⟩, ?_, hat1, by show (osLevel cfg lvl (cfg.lv lvl) s).2.co = 3; rw [hco1, ite_pos' hy],
+      refine ⟨⟨hca1, hcb1, hsq1, trivial⟩, ?_, hat1, by show (osLevel cfg lvl (cfg.lv lvl) s).2.co = 3; rw [hco1, ite_pos' hy],
         hq1, ht1, ?_⟩
       · simp only [osLevels, List.append_nil]; exact hH1
       · simp only [osLevels, osLvsVals, List.append_nil]; exact hk1
@@ -238,7 +244,7 @@ theorem osLevels_complete {cfg : OsCfg} {μ lane : ℕ} {Lall : List Whir.Level}
         simp only [osHPEnd, osHP2, ite_neg' hy]; omega
       obtain ⟨hcs2, hH2, hat2, hco2, hq2, ht2, hk2⟩ := osLevels_complete hlen hspec hyl hP Hs (lvl + 1) _ _ _ _ _ _
         (by omega) hch' hat1 (by omega) (by omega) hq1 hm2 hc2 (fun j hj => by rw [hk1]; exact hv2 j hj)
-      refine ⟨⟨hca1, hcb1, hcs2⟩, ?_, hat2, hco2, hq2, ht2, ?_⟩
+      refine ⟨⟨hca1, hcb1, hsq1, hcs2⟩, ?_, hat2, hco2, hq2, ht2, ?_⟩
       · rw [holdsList_append]
         exact (holdsList_noRet _ (osLevel_noRet _ _ _ _) _ _).mpr ⟨hH1, hH2⟩
       · rw [hk2, hk1, List.length_append]; ring
