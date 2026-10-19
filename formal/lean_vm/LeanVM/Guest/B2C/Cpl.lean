@@ -900,23 +900,29 @@ def lastOkC : List Core.Stmt → Bool
   | [.ret _] => true
   | s :: ss => Stmt.noRet s && lastOkC ss
 
-/-- What a window's first part also checks: its cells pack, its statements return only at the
-function's end, and the function's first window starts with nothing handed on and its self frame
-pointer cells fixed. -/
+/-- What a window's first part also checks: its cells pack, and the function's first window
+starts with nothing handed on, its parameters `V.n 0, V.n 1, …` and its self frame pointer cells
+fixed. -/
 noncomputable def winOkC (j i : ℕ) : Bool :=
   (nth (certOf j).cells i []).all (fun c ↦ Nat.blt c 65536) &&
   Nat.beq (partS j i 0) 0 &&
   (coreOf j).params == (List.range (coreOf j).params.length).map V.n &&
-  (bif Nat.blt i (certOf j).cuts.length then Stmt.noRetList ((certOf j).stmtsAt (coreOf j) i)
-    else lastOkC ((certOf j).stmtsAt (coreOf j) i)) &&
   (bif Nat.beq i 0 then (partC j 0 0).le Cnt.zero && Nat.beq (partU j 0 0) 0 &&
       (certOf j).facts.env.all (fun p ↦ Sym.beq p.2 (.fpg 0) &&
         decide (getF (statT (fsN j) (plumbOf j).stat .nil) p.1 = some (.fpg 0)))
     else true)
 
-/-- **The completeness check of part `k` of window `i` of function `j`.** -/
+/-- The last part of the function's last window. -/
+noncomputable def lastPart (j i k : ℕ) : Bool :=
+  !(Nat.blt (k + 1) (nParts j i)) && !(Nat.blt i (certOf j).cuts.length)
+
+/-- **The completeness check of part `k` of window `i` of function `j`**: its statements return
+only at the function's end, it starts within its window and after the part before it, and its
+walk ends as `partEnd` says. -/
 noncomputable def cplWin (j i k : ℕ) : Bool :=
   (bif Nat.beq k 0 then winOkC j i else Nat.ble (partS j i (k - 1)) (partS j i k)) &&
+  Nat.ble (partS j i k) ((certOf j).stmtsAt (coreOf j) i).length &&
+  (bif lastPart j i k then lastOkC (partStmts j i k) else Stmt.noRetList (partStmts j i k)) &&
   partEnd j i k (cplRes j i k)
 
 /-- **The completeness check of function `j`**: every part of every window. -/
