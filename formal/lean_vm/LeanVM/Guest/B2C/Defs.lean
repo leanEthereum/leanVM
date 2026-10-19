@@ -63,6 +63,9 @@ noncomputable def fs (f : String) : ℕ :=
   | some i => max 2 (fsAt (i + 1))
   | none => 2
 
+/-- The frame size of compiled function `j`, `fs` by index. -/
+def fsN (j : ℕ) : ℕ := bif Nat.beq j 1 then mainFrame else max 2 (fsAt j)
+
 /-! ## The cells of a frame -/
 
 /-- A fixed cell's word in the frame at `fp`. -/
