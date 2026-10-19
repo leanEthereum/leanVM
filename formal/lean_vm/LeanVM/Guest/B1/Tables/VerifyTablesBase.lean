@@ -60,6 +60,13 @@ theorem VtHolds.slice {rd : Reader} {σ : Val} (h : VtHolds rd σ) (n : ℕ) (bl
   obtain ⟨k, h⟩ := h
   exact ⟨k, holds_slice vtPre_noRet h n blk heq⟩
 
+theorem vt_fs_chain {X : Digest} {p q r s w : E} (h : (p, q) = digestScalars X)
+    (hb : ∃ cv, (p, q) = digestScalars cv ∧ (r, s) = digestScalars (obsCv cv w)) :
+    (r, s) = digestScalars (obsCv X w) := by
+  obtain ⟨cv, h1, h2⟩ := hb
+  rw [digestScalars_injective (h1.symm.trans h)] at h2
+  exact h2
+
 /-- A conditional call of the body holds. -/
 theorem VtHolds.callIf {rd : Reader} {σ : Val} (h : VtHolds rd σ) (n : ℕ) (c : V) (f : String)
     (args : List V) (heq : stmtsEqb [.callIf c f args] ((vtPre.drop n).take 1) = true) :
