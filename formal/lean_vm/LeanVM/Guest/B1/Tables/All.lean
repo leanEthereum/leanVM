@@ -17,6 +17,8 @@ public import LeanVM.Guest.B1.Tables.TerminalCAll
 public import LeanVM.Guest.B1.Tables.TermAtProof
 public import LeanVM.Guest.B1.Tables.PlaceAt
 public import LeanVM.Guest.B1.Tables.FlatAtB
+public import LeanVM.Guest.B1.Tables.LoopSize
+public import LeanVM.Guest.B1.Tables.FlockAtB
 public import LeanVM.Guest.B1.Tables.VtSortC
 public import LeanVM.Guest.B1.Tables.VerifyTablesSpec
 public import LeanVM.Guest.B1.Tables.VerifyTablesSpecCe
