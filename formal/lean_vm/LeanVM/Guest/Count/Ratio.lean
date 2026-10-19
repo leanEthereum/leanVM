@@ -38,8 +38,8 @@ theorem krCl_ratio : (krClJ).all (krRatioAt krClA) = true :=
 /-- **`claim_list_digest`'s counts within its ratios of its words.** -/
 theorem krCl_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = "claim_list_digest" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      1000 * t.weight (pathMax · op) ≤ krClA op * t.total fs :=
-  fun _ _ _ _ hn hv _ => kr_weight krCl_closed krCl_ratio ⟨20, by decide +kernel, by decide +kernel⟩ op hn hv
+      1000 * t.weight (kcOm op) ≤ krClA op * t.total fs :=
+  fun _ _ _ _ hn hv _ => kr_weight krCl_closed krCl_ratio (by decide +kernel) ⟨20, by decide +kernel, by decide +kernel⟩ op hn hv
 
 
 
@@ -52,8 +52,8 @@ theorem krCcl_ratio : (krCclJ).all (krRatioAt krCclA) = true :=
 /-- **`child_claim_list_digest`'s counts within its ratios of its words.** -/
 theorem krCcl_weight (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = "child_claim_list_digest" →
     t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-      1000 * t.weight (pathMax · op) ≤ krCclA op * t.total fs :=
-  fun _ _ _ _ hn hv _ => kr_weight krCcl_closed krCcl_ratio ⟨22, by decide +kernel, by decide +kernel⟩ op hn hv
+      1000 * t.weight (kcOm op) ≤ krCclA op * t.total fs :=
+  fun _ _ _ _ hn hv _ => kr_weight krCcl_closed krCcl_ratio (by decide +kernel) ⟨22, by decide +kernel, by decide +kernel⟩ op hn hv
 
 
 end

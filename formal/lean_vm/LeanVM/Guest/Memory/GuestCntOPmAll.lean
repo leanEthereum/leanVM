@@ -15,6 +15,7 @@ public import LeanVM.Guest.Memory.GuestCntOPm.koSTrll
 public import LeanVM.Guest.Memory.GuestCntOPm.koSTrlr
 public import LeanVM.Guest.Memory.GuestCntOPm.koSTrrl
 public import LeanVM.Guest.Memory.GuestCntOPm.koSTrrr
+public import LeanVM.Guest.Memory.GuestCntPm
 
 namespace LeanVM.Guest
 
@@ -42,6 +43,11 @@ theorem ko_idxOf {j : ℕ} (hj : j < coreProgram.length) : B2C.idxOf coreProgram
   unfold B2C.idxOf
   rw [coreProgram_indexOf?_getElem hj]
   rfl
+
+/-- `verify_lean_xmss` (core index 16) is not covered. -/
+theorem ko_ne16 {j : ℕ} (hS : koIn j) : j ≠ 16 := by
+  rintro rfl
+  exact absurd hS (by decide +kernel)
 
 end
 end LeanVM.Guest

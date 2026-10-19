@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Memory.WeightRatio
+public import LeanVM.Guest.Memory.GuestCntPm
 
 /-!
 # Counts within a ratio of the words, by index
@@ -92,12 +93,23 @@ theorem kr_ratio {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = 
   simp only [hx]
   exact Nat.le_of_ble_eq_true hr
 
+/-- **Off `verify_lean_xmss`, the frame weights are the path maxima.** -/
+theorem kr_ratio_om {J : List ℕ} {A : Opcode → ℕ} (h : J.all (krRatioAt A) = true) (h16 : 16 ∉ J)
+    (op : Opcode) : ∀ g, krIn J g → 1000 * kcOm op g ≤ A op * fs g := by
+  intro g hg
+  obtain ⟨i, hJ, hi, rfl⟩ := kr_of_in hg
+  have hne : ¬ coreProgram[i].name = "verify_lean_xmss" := fun e => h16 ((kc_name_xmss hi).mp e ▸ hJ)
+  have := kr_ratio h op coreProgram[i].name ⟨i, hJ, by simp [List.getElem?_eq_getElem hi]⟩
+  unfold kcOm
+  simp only [hne, ↓reduceIte, Nat.add_zero]
+  exact this
+
 /-- **A valid tree of a function of `J` within the ratios of its words.** -/
 theorem kr_weight {J : List ℕ} {C : ℕ → List ℕ} {A : Opcode → ℕ} (hc : J.all (krClosedAt J C) = true)
-    (hr : J.all (krRatioAt A) = true) {f : String} (hf : krIn J f) (op : Opcode) {rd : Reader} {t : Tree}
-    {args rets : List E} (hn : t.name = f) (hv : t.Valid coreProgram rd args rets) :
-    1000 * t.weight (pathMax · op) ≤ A op * t.total fs :=
-  weight_le_ratio (S := krIn J) (kr_callsIn hc) (kr_ratio hr op) t (hn ▸ hf) hv
+    (hr : J.all (krRatioAt A) = true) (h16 : 16 ∉ J) {f : String} (hf : krIn J f) (op : Opcode)
+    {rd : Reader} {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid coreProgram rd args rets) :
+    1000 * t.weight (kcOm op) ≤ A op * t.total fs :=
+  weight_le_ratio (S := krIn J) (kr_callsIn hc) (kr_ratio_om hr h16 op) t (hn ▸ hf) hv
 
 end
 end LeanVM.Guest.Count

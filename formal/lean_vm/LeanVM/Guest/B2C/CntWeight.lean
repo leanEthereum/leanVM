@@ -118,20 +118,6 @@ theorem costArms_nil (σ : Val) (x : V) : ∀ (k : ℕ) (arms : List (List Stmt)
     · exact costArms_nil σ x (k + 1) as
 end
 
-/-- With no arm counted separately, a path's count is the most a path runs. -/
-theorem pathCountN_le (f : String) (σ : Val) (op : Opcode) : pathCountN f σ op ≤ pathMax f op := by
-  unfold pathCountN pathMax
-  split
-  · rename_i j _
-    unfold pathCount
-    rw [show nth Data.cplArms j [] = [] by simp [Data.cplArms, nth], costW_nil]
-    exact le_rfl
-  · exact le_rfl
-
-/-- **The counts within the weights** at the path maxima. -/
-theorem cnt_le_weight (t : Tree) (op : Opcode) : cnt t op ≤ t.weight (pathMax · op) + jtSets op :=
-  cnt_le_weight_of (fun op f ↦ pathMax f op) (fun op f σ ↦ pathCountN_le f σ op) t op
-
 /-! ## The separately counted arms -/
 
 /-- The weights: the most a path runs, and for `verify_lean_xmss` its arms' counts `C`. -/

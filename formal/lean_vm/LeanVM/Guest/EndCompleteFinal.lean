@@ -20,14 +20,14 @@ public import LeanVM.Guest.Count.Main
 # Completeness at the deployed instance
 
 `guest_complete_b2c`: `GuestCompleteWithin (b2cBudget Wt)`, `ea_guest_complete` at `B2C.fs`,
-`B2C.cert`, `B2C.H`, `B2C.C` and the counts `B2C.cnt` (each opcode's path maxima `pathMax` plus
-the jump table's `jtSets`), the callees' hypotheses `calleesHyps_b2c`, `__loop86`'s bound
-`loop86_bound_le`, `deferredCaps`, the instruction budget `eaInstrs` (`ea_hinstrs`), checker K's
-`cnt_le_weight`, `cntRetemp` and certificate facts (`b2c_kfactsAll`), and the jump table's cells
-(`tableC_node`). Still assumed, by name: `main`'s weight hypotheses per opcode (`MainWeightHyps` at
-`pathMax · op`), checker K's `run` (`B2cRun`), and the run reaching the end (`B2cB2`) within the
-counts (`B2cCount`). `guest_complete_b2c'`: the same at k4's weights `Count.kcWt`, within
-`b2cBudget'`.
+`B2C.cert`, `B2C.H`, `B2C.C` and the counts `B2C.cnt` (each instance's path count plus the jump
+table's `jtSets`), the callees' hypotheses `calleesHyps_b2c`, `__loop86`'s bound `loop86_bound_le`,
+`deferredCaps`, the instruction budget `eaInstrs` (`ea_hinstrs`), checker K's `cnt_le_weight_arm`
+at `verify_lean_xmss`'s arms (`B1.Sig.xmssArmC_spec`), `cntRetemp` and certificate facts
+(`b2c_kfactsAll`), and the jump table's cells (`tableC_node`). Still assumed, by name: `main`'s
+weight hypotheses per opcode (`MainWeightHyps` at `ωArm B1.Sig.xmssArmC op`), checker K's `run`
+(`B2cRun`), and the run reaching the end (`B2cB2`) within the counts (`B2cCount`).
+`guest_complete_b2c'`: the same at k4's weights `Count.kcWt`, within `b2cBudget'`.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -71,8 +71,8 @@ def B2cCount : Prop :=
       run guest (honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
         ∀ op, (⟨_, honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op
 
-/-- `main`'s weight hypotheses at each opcode's path maxima. -/
-abbrev B2cWeightHyps : Type := ∀ op, MainWeightHyps fs (pathMax · op)
+/-- `main`'s weight hypotheses at each opcode's path maxima, `verify_lean_xmss`'s arms counted separately. -/
+abbrev B2cWeightHyps : Type := ∀ op, MainWeightHyps fs (ωArm B1.Sig.xmssArmC op)
 
 /-- **The budget**: the words `eaWords` and the instruction counts `eaInstrs` at the deployed
 callees, `__loop86`'s slope `482`. -/
@@ -84,7 +84,8 @@ checker K's `run` and the run's end within the counts. -/
 theorem guest_complete_b2c (Wt : B2cWeightHyps) (hrun : B2cRun) (hb2 : B2cB2) (hcount : B2cCount) :
     GuestCompleteWithin (b2cBudget Wt) :=
   ea_guest_complete fs cert cnt calleesHyps_b2c _ H C (fun q => loop86_bound_le q) (two_le_fs _)
-    deferredCaps (fun op f => pathMax f op) Wt jtSets (fun _ t _ op => cnt_le_weight t op)
+    deferredCaps (fun op f => ωArm B1.Sig.xmssArmC op f) Wt jtSets
+    (cnt_le_weight_arm B1.Sig.xmssArmC B1.Sig.xmssArmC_spec)
     (ea_hinstrs calleesHyps_b2c (fun q => loop86_bound_le q) Wt jtSets)
     (b2c_kfactsAll hrun) cntRetemp (fun _ _ _ _ ht => tableC_node ht) hb2 hcount
 
