@@ -744,5 +744,66 @@ theorem fRunI_eqs (rd : Reader) {lo hi : ℕ} (hv : ℕ → E) (σf : Val) : ∀
     · exact hall _ (by simp [fSetItems])
     · exact fRunI_eqs rd hv σf its _ _ hok.2 hf e he
 
+/-! ## Comparing by kernel evaluation -/
+
+/-- Items compared, words limb by limb. -/
+def fitemEqb : FItem → FItem → Bool
+  | .atom a, .atom b => atomEqb a b
+  | .atom _, _ => false
+  | x, y => decide (x = y)
+
+theorem fitemEqb_sound {x y : FItem} (h : fitemEqb x y = true) : x = y := by
+  cases x <;> cases y <;> simp only [fitemEqb, decide_eq_true_eq, Bool.false_eq_true] at h <;>
+    first | exact h | rw [atomEqb_sound h]
+
+/-- Obligations compared, words limb by limb. -/
+def obEqb : Ob → Ob → Bool
+  | .holds a, .holds b => atomEqb a b
+  | .holds _, _ => false
+  | x, y => decide (x = y)
+
+theorem obEqb_sound {x y : Ob} (h : obEqb x y = true) : x = y := by
+  cases x <;> cases y <;> simp only [obEqb, decide_eq_true_eq, Bool.false_eq_true] at h <;>
+    first | exact h | rw [atomEqb_sound h]
+
+def iobEqb : IOb → IOb → Bool
+  | .ob a, .ob b => obEqb a b
+  | .ob _, _ => false
+  | x, y => decide (x = y)
+
+theorem iobEqb_sound {x y : IOb} (h : iobEqb x y = true) : x = y := by
+  cases x <;> cases y <;> simp only [iobEqb, decide_eq_true_eq, Bool.false_eq_true] at h <;>
+    first | exact h | rw [obEqb_sound h]
+
+def feqEqb : FEq → FEq → Bool
+  | .def a, .def b => atomEqb a b
+  | .def _, _ => false
+  | .item a, .item b => fitemEqb a b
+  | .item _, _ => false
+  | x, y => decide (x = y)
+
+theorem feqEqb_sound {x y : FEq} (h : feqEqb x y = true) : x = y := by
+  cases x <;> cases y <;> simp only [feqEqb, decide_eq_true_eq, Bool.false_eq_true] at h <;>
+    first | exact h | rw [atomEqb_sound h] | rw [fitemEqb_sound h]
+
+/-- Lists compared by a Boolean equality. -/
+def listEqb {α : Type} (eqb : α → α → Bool) : List α → List α → Bool
+  | [], [] => true
+  | a :: as, b :: bs => eqb a b && listEqb eqb as bs
+  | _, _ => false
+
+theorem listEqb_sound {α : Type} {eqb : α → α → Bool} (hs : ∀ {x y}, eqb x y = true → x = y) :
+    ∀ {l l' : List α}, listEqb eqb l l' = true → l = l'
+  | [], [], _ => rfl
+  | a :: as, b :: bs, h => by
+    simp only [listEqb, Bool.and_eq_true] at h
+    rw [hs h.1, listEqb_sound hs h.2]
+  | [], _ :: _, h | _ :: _, [], h => by simp [listEqb] at h
+
+theorem mem_of_any {α : Type} {eqb : α → α → Bool} (hs : ∀ {x y}, eqb x y = true → x = y) {x : α}
+    {l : List α} (h : l.any (eqb x) = true) : x ∈ l := by
+  obtain ⟨y, hy, he⟩ := List.any_eq_true.mp h
+  rw [hs he]; exact hy
+
 end
 end LeanVM.Guest.B1.VerifySub
