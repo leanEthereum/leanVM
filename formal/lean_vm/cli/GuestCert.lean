@@ -938,6 +938,13 @@ def planCuts (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs : List ℕ)
     env := envL
   return out.toList
 
+/-- The largest frame cell an instruction names. -/
+def offTop : OInstr → ℕ
+  | .xor a b c | .mul a b c | .jump a b c => max a (max b c)
+  | .set o _ _ _ => o
+  | .deref o1 _ o3 _ => max o1 o3
+  | .blake2s m0 m1 m2 m3 cv out md => max (max (max m0 m1) (max m2 m3)) (max (max (cv + 1) (out + 1)) md)
+
 structure CertOut where
   name : String
   text : String
@@ -953,7 +960,7 @@ def locChunk : ℕ := 2000
 
 /-- The certificate of function `j`. -/
 def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ) (j : ℕ)
-    (cf : Core.Fn) : Except String (String × List ℕ) := do
+    (cf : Core.Fn) : Except String (String × List ℕ × ℕ) := do
   let f := fns[j]!
   let main := j == 1
   let F := factsOf T f main
@@ -1013,7 +1020,17 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
   let starts := 0 :: cuts.map (·.J)
   let stops := cuts.map (·.b) ++ [f.len]
   let sizes := (starts.zip stops).map fun (a, b) => b - a
-  return (·, sizes) <| locDefs ++ s!"/-- `{f.name}`. -/
+  -- the frame size: a loop helper's is where its tail call puts the next frame, any other's past
+  -- every frame cell its code names
+  let tailS : Option ℕ := segs.toList.findSome? fun s =>
+    let tail (x : GExit) : Option ℕ := match x.kind with
+      | .jump (.gp e) (.fpg S) => if e == f.entry then some S else none
+      | _ => none
+    (tail s.exit).orElse fun _ => s.items.toList.findSome? fun
+      | .branch _ _ _ x => tail x
+      | _ => none
+  let fsz := tailS.getD (f.code.foldl (fun m ins => max m (offTop ins)) (locs.foldl max 0) + 1)
+  return (·, sizes, fsz) <| locDefs ++ s!"/-- `{f.name}`. -/
 noncomputable def cert{j} : Check.Cert where
   facts := \{ env := {envT}, fpOne := {main}, arms := {armsT}, scaled := {scaled} }
   los := {listText (los.toList.map toString)}
@@ -1106,6 +1123,15 @@ def gtabText : String := Id.run do
     rows := rows.push ("[" ++ ", ".intercalate row.toList ++ "]")
     x := y
   return "[" ++ ",\n  ".intercalate rows.toList ++ "]"
+
+/-- The frame sizes, by compiled function index. -/
+def framesFile (fsz : List ℕ) : String :=
+  header "FrameSizes" "The frame size of each compiled function, by index." ++
+  "public import LeanVM.Guest.Exec\n" ++ preamble ++
+  "/-- Frame sizes by compiled function index (`__jump_tables` shares `main`'s frame): a loop\n" ++
+  "helper's is where its tail call puts the next frame, any other's past every frame cell its\n" ++
+  "code and certificate name. -/\n" ++
+  s!"def frameSizes : List ℕ := {listText (fsz.map toString)}\n" ++ tail
 
 /-- The tables: the powers of `g` the guest names, the digit table and the jump table. -/
 def powsFile (T : Tables) : String :=
@@ -1225,9 +1251,11 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     (fun m (n, j) => if m.contains n then m else m.insert n j) ({} : Std.HashMap String ℕ)
   let mut certs : Array String := #[]
   let mut wins : Array (ℕ × ℕ × ℕ) := #[]
+  let mut frames : Array ℕ := #[0]
   for (cf, i) in P.zipIdx do
-    let (c, sizes) ← certOf T fns index (i + 1) cf
+    let (c, sizes, fsz) ← certOf T fns index (i + 1) cf
     certs := certs.push c
+    frames := frames.push fsz
     wins := wins ++ (sizes.zipIdx.map fun (sz, w) => (i + 1, w, sz)).toArray
   let mut fs : Array (Array String) := #[#[]]
   let mut size := 0
@@ -1261,7 +1289,8 @@ noncomputable def certs : List Check.Cert :=
 " ++ "\n".intercalate rows ++ " []
 " ++ tail
   let nPow := (powTop (T.pows.toArray.qsort (·.1 < ·.1)) powCut 0).2.length
-  return (([("Pows", powsFile T)] ++ certFiles ++ [("Cert", index)]).map fun (n, t) =>
+  return (([("Pows", powsFile T), ("FrameSizes", framesFile frames.toList)] ++ certFiles ++
+      [("Cert", index)]).map fun (n, t) =>
     (dataDir / (n ++ ".lean"), t)) ++
     (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow).map fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
