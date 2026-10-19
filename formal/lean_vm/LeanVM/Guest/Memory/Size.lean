@@ -42,10 +42,11 @@ def WeightLe (P : Core.Program) (ω : String → ℕ) (f : String) (B : List E �
   ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = f → t.Valid P rd args rets →
     t.weight ω ≤ B args
 
-/-- Every valid tree of `f` on `args` allocates at most `B args` words. -/
+/-- Every valid tree of `f` on `args`, its `HeapBuf`s its paths', allocates at most `B args` words
+(`Tree.Valid` leaves the sizes free, `Tree.BufsOk` fixes them). -/
 def TotalLe (P : Core.Program) (fs : String → ℕ) (f : String) (B : List E → ℕ) : Prop :=
   ∀ (rd : Reader) (t : Tree) (args rets : List E), t.name = f → t.Valid P rd args rets →
-    t.total fs ≤ B args
+    t.BufsOk P → t.total fs ≤ B args
 
 variable {P : Core.Program} {fs : String → ℕ} {ν : ℕ → String → Val → V → E} {ω : String → ℕ}
 
