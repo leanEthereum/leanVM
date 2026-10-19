@@ -432,7 +432,8 @@ theorem ccw_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ :
   refine completeAt_node find_child_claims_window (by
       rw [Program.loop_of_find? find_child_claims_window]
       simp only [Fn.loop, ccwBody_eq, List.reverse_append]
-      rfl) κ Lin _ _ [] (fun _ => []) (fun _ => List.Forall₂.nil)
+      rfl) κ Lin _ _ [] (fun _ => []) (fun _ _ h => by obtain ⟨q, hq, _⟩ := h; simp at hq)
+    (fun _ q hq => by simp at hq)
     (fun _ => [⟨"scaled_log__L11", true, [xq * word 2 0 0, gsq], Lin, [nxt]⟩])
     (fun _ k hk _ => by
       simp only [List.mem_singleton] at hk

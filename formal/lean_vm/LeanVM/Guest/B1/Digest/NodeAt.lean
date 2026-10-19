@@ -81,21 +81,22 @@ theorem memL_lins_of {rd : Reader} {ks : List Kid} (h : ∀ k ∈ ks, MemL rd k.
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
-/-- **A function with callees, complete from its valuations.** -/
+/-- **A function with callees, complete from its valuations**: its own words `Lb fp` lie in its
+`HeapBuf`s of sizes `sizes`. -/
 theorem completeAt_node {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E) (sizes : List ℕ)
-    (own : ℕ → List (List E)) (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
+    (Lb : ℕ → Layout) (hLb : ∀ fp i, RegionL (Lb fp) i →
+      ∃ q ∈ sizes.zip (bases (fp + fs f) sizes), q.2 ≤ i ∧ i < q.2 + q.1)
+    (hWb : ∀ fp, Within (Lb fp) (fp + fs f) sizes.sum)
     (ks : ℕ → List KidR)
     (hok : ∀ fp, ∀ k ∈ ks fp, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args (Returns k.rets))
-    (hkR : ∀ fp, ∀ k ∈ ks fp, k.taken = true → ∀ i, RegionL k.Lin i →
-      RegionL (bufL (fp + fs f) sizes (own fp)) i ∨ RegionL Lin i)
-    (hσ : ∀ fp rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+    (hkR : ∀ fp, ∀ k ∈ ks fp, k.taken = true → ∀ i, RegionL k.Lin i → RegionL (Lb fp) i ∨ RegionL Lin i)
+    (hσ : ∀ fp rd, LowDef κ rd → MemL rd (Lb fp) → MemL rd Lin →
       (∀ k ∈ ks fp, MemL rd k.Lin) ∧ ∃ (σ : Val) (es : List Ev) (vs : List V), fn.params.map σ = args ∧
         walk σ fn.body = .ret es vs ∧ vs.map σ = rets ∧ (∀ e ∈ es, e.Holds rd σ) ∧
         CallsR σ (calls es) (ks fp) ∧ addrs es = [] ∧ allocs σ es = sizes ∧
         (allocDsts es).map σ = (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
-        ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
-          (RegionL (bufL (fp + fs f) sizes (own fp)) i ∨ RegionL Lin i)) :
+        ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧ (RegionL (Lb fp) i ∨ RegionL Lin i)) :
     CompleteAt fs cert κ f Lin args (Returns rets) := by
   intro fp
   have hok' : ∀ k ∈ (ks fp).map KidR.kid, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
@@ -103,17 +104,15 @@ theorem completeAt_node {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     obtain ⟨k', hk', rfl⟩ := List.mem_map.mp hk
     exact hok fp k' hk' ht
   obtain ⟨N, LK, outs, ho, hW, hK⟩ := LeanVM.Guest.B1.kidsFromIn_of_kids κ _ hok' (fp + fs f + sizes.sum)
-  refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ LK, rets, [], ⟨rfl, rfl⟩, ?_,
-    fun rd hlow hL => ?_⟩
+  refine ⟨fs f + sizes.sum + N, Lb fp ++ LK, rets, [], ⟨rfl, rfl⟩, ?_, fun rd hlow hL => ?_⟩
   · rw [List.nil_append, LeanVM.Guest.B1.within_append]
-    exact ⟨(LeanVM.Guest.B1.bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
+    exact ⟨(hWb fp).mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
   rw [List.nil_append] at hL
   obtain ⟨hLo, hLin⟩ := Main.memL_append.mp hL
-  obtain ⟨hLb, hLK⟩ := Main.memL_append.mp hLo
-  obtain ⟨hkL, σ, es, vs, hp, hw, hr, hes, hc, ha, hal, hbuf, hload⟩ := hσ fp rd hlow hLb hLin
-  have hbo : ∀ i, RegionL (bufL (fp + fs f) sizes (own fp)) i →
-      ownData cert fp (fp + fs f) f (allocs σ es) es i := fun i hi => by
-    rw [hal]; exact Or.inl (LeanVM.Guest.B1.bufL_region _ _ _ (hown fp) i hi)
+  obtain ⟨hLb', hLK⟩ := Main.memL_append.mp hLo
+  obtain ⟨hkL, σ, es, vs, hp, hw, hr, hes, hc, ha, hal, hbuf, hload⟩ := hσ fp rd hlow hLb' hLin
+  have hbo : ∀ i, RegionL (Lb fp) i → ownData cert fp (fp + fs f) f (allocs σ es) es i := fun i hi => by
+    rw [hal]; exact Or.inl (hLb fp i hi)
   have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (rd := rd) coreProgram_wf
     (R := RegionL Lin) (D := RegionL []) (Dk := fun i => False ∨ outRegion ((ks fp).map KidR.kid) outs i)
     (fp := fp) (N := N) hf (Or.inl hl) hp hw hr hes (by rw [hal]; exact hbuf) (by rw [ha]; simp) ?_ ?_
