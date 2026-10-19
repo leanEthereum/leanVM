@@ -24,9 +24,10 @@ temporaries' cells, `0` on a cycle (`resolveF_spec`). Choosing each temporary as
 (`Tree.retemp`), every frame write and every equation of the re-chosen tree agrees with `F`.
 
 **Result** (`honestAt_retemp`): a placed tree valid on a memory image, its loads in its data or in
-a region `R` outside every frame (`Tree.LoadsIn`, at the root), with the certificate's facts about
-the cells (temporaries' cells hold only them, the other cells do not depend on them, `frameAddr`
-runs at their cells), has a re-chosen tree that is `HonestAt` on its honest memory.
+a region `R` outside every frame but `main`'s header cells `0`, `1` (`Tree.LoadsIn`, at the root),
+which the image holds, with the certificate's facts about the cells (temporaries' cells hold only
+them, the other cells do not depend on them, `frameAddr` runs at their cells), has a re-chosen
+tree that is `HonestAt` on its honest memory.
 -/
 
 namespace LeanVM.Guest.Memory
@@ -413,9 +414,10 @@ theorem atomEqns_congr {σ σ' : Val} : ∀ (a : Atom), atomTmps a = [] →
 
 variable (P fs cert) in
 /-- **What the discharge needs**: a placed tree valid on a memory image, its loads in its data
-or in a region `R` outside every frame, and the certificate's facts about the cells (for every
-re-choice `ν` of the temporaries): the cells fit, a temporary's cells hold only it, the other
-cells are the old tree's, `frameAddr` runs at their certificate cells, none a temporary's. -/
+or in a region `R` outside every frame but `main`'s header cells `0`, `1`, which the image holds,
+and the certificate's facts about the cells (for every re-choice `ν` of the temporaries): the
+cells fit, a temporary's cells hold only it, the other cells are the old tree's, `frameAddr` runs
+at their certificate cells, none a temporary's. -/
 structure DischargeHyps (H : Inst → ℕ → E × E) (C : Inst → List (ℕ × E)) (hdr : E × E)
     (T : Tree) (R : ℕ → Prop) (M : MemImage (logMem (T.total fs))) (args rets : List E) : Prop where
   fresh : P.Fresh
@@ -423,7 +425,9 @@ structure DischargeHyps (H : Inst → ℕ → E × E) (C : Inst → List (ℕ ×
   bufsOk : T.BufsOk P
   placed : T.Placed P fs cert 0
   loads : T.LoadsIn P fs cert R 0
-  region : ∀ i, R i → ∀ I ∈ honestInsts P fs H hdr T, ∀ o < fs I.t.name, gpow i ≠ gpow (I.fp + o)
+  region : ∀ i, R i → i < 2 ∨ ∀ I ∈ honestInsts P fs H hdr T, ∀ o < fs I.t.name,
+    gpow i ≠ gpow (I.fp + o)
+  hdr_read : M.read (gpow 0) = some hdr.1 ∧ M.read (gpow 1) = some hdr.2
   size : T.total fs ≤ 2 ^ 32
   addr : ∀ q ∈ T.eqns P, ∃ i : Fin (2 ^ logMem (T.total fs)), q.1 = gpow i
   cells : CellsOk fs C (honestInsts P fs H hdr T)
@@ -589,7 +593,28 @@ theorem DischargeHyps.cross_fixed {a : Write} (ha : a ∈ frameWrites C (honestI
   rcases h.classify hI ht he hta hq with ⟨K, hK, i, hb, hqi⟩ | ⟨i, hR, hqi⟩ |
       ⟨K, hK, g, σK, bK, kK, hKt, pK, r, rs, hfa, k, hk, hqi, hqe⟩
   · exact absurd (hx.trans hqi) (frameWrites_not_buf h.cells h.size hK hb _ ha)
-  · exact absurd (hx.trans hqi).symm (h.region i hR J hJ c.1 (h.cells.cell_lt hJ hc))
+  · rcases h.region i hR with hi2 | hR'
+    · obtain ⟨I0, hI0, -, hfp0, hh0⟩ := root_inst (P := P) (fs := fs) (H := H) (hdr := hdr) (T := T)
+      have hM := h.valid.eqns_read h.lt_64 T q hqT (h.addr q hqT)
+      rw [hqi] at hM
+      have hrd : ∀ j < 2, (gpow (I0.fp + j), if j = 0 then hdr.1 else hdr.2) ∈
+          frameWrites C (honestInsts P fs H hdr T) ∧
+            M.read (gpow j) = some (if j = 0 then hdr.1 else hdr.2) := by
+        intro j hj
+        rcases (by omega : j = 0 ∨ j = 1) with rfl | rfl
+        · refine ⟨?_, h.hdr_read.1⟩
+          have := honest_mem_frameWrites (C := C) hI0 (q := (0, I0.hdr.1)) List.mem_cons_self
+          rwa [hh0] at this
+        · refine ⟨?_, h.hdr_read.2⟩
+          have := honest_mem_frameWrites (C := C) hI0 (q := (1, I0.hdr.2))
+            (List.mem_cons_of_mem _ List.mem_cons_self)
+          rwa [hh0] at this
+      obtain ⟨hw, hr⟩ := hrd i hi2
+      have h1 := h.frames_consistent _ ha _ hw (by
+        simp only at hx ⊢; rw [hx, hqi, hfp0, Nat.zero_add])
+      rw [hM] at hr
+      exact h1.trans (Option.some.inj hr).symm
+    · exact absurd (hx.trans hqi).symm (hR' J hJ c.1 (h.cells.cell_lt hJ hc))
   · have hrun := (h.run K hK g σK bK kK hKt pK r rs hfa k hk).1
     have hfw := honest_mem_frameWrites hK (q := (cert g r + k, σK (r :: rs)[k]))
       (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hrun))
@@ -650,7 +675,14 @@ theorem DischargeHyps.temp_not_fixed {τ : Inst × V × K} (hτ : TempsOn P fs H
       · subst hKJ
         exact (insts_placed T 0 hdr _ hJ).frame_buf hF hb
       · exact (insts_pairwise T 0 hdr).forall hK hJ hKJ i (Or.inr hb) (Or.inl hF)
-    · exact h.region i hR τ.1 hJ (cert g τ.2.1) hlt' hqi.symm
+    · rcases h.region i hR with hi2 | hR'
+      · obtain ⟨I0, hI0, hI0t, -⟩ := root_inst (P := P) (fs := fs) (H := H) (hdr := hdr) (T := T)
+        have h2 := h.cells.two_le I0 hI0
+        have hT2 : 2 ≤ T.total fs := by rw [hI0t] at h2; exact h2.trans (le_total T)
+        have heq := h.inj hlt (by omega) hqi
+        have := (h.cert_lt g τ.2.1 hmem).1
+        omega
+      · exact hR' τ.1 hJ (cert g τ.2.1) hlt' hqi.symm
     · have hrun := h.run K hK g' σK bK kK hKt pK r rs hfa k hk
       have hKlt : cert g' r + k < fs K.t.name := (h.cells.off K hK _ hrun.1).2
       have heq := h.inj hlt (h.within hK hKlt) hqi
