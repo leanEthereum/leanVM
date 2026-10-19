@@ -1144,7 +1144,8 @@ module
 
 "
 
-def checkedName (k : ℕ) : String := if k < 10 then s!"Fn0{k}" else s!"Fn{k}"
+/-- A module of checks, named after its first window. -/
+def checkedName (p : ℕ × ℕ) : String := s!"F{p.1}_{p.2}"
 
 def powName (k : ℕ) : String := if k < 10 then s!"Pow0{k}" else s!"Pow{k}"
 
@@ -1153,40 +1154,44 @@ modules of consecutive windows, and each subtree of the power tree's. -/
 def checkedFiles (wins : Array (ℕ × ℕ × ℕ)) (ps : Array (ℕ × ℕ)) (nPow : ℕ) :
     List (String × String) := Id.run do
   let fns := Data.functions.toArray
+  -- a function cut in windows has a module per window
+  let cut (j : ℕ) : Bool := wins.any fun (j', w, _) => j' == j && w > 0
   let mut groups : Array (Array (ℕ × ℕ)) := #[#[]]
   let mut size := 0
   for (j, w, l) in wins do
-    if size + l > maxChecked && size > 0 then
+    if (size + l > maxChecked || cut j) && size > 0 then
       groups := groups.push #[]
       size := 0
     groups := groups.modify (groups.size - 1) (·.push (j, w))
-    size := size + l
+    size := if cut j then maxChecked + 1 else size + l
   let pairs (js : Array (ℕ × ℕ)) : String := listText (js.toList.map pairText)
-  let fnFiles := groups.toList.zipIdx.map fun (js, k) =>
-    (checkedName k, checkedHeader (checkedName k) "The kernel's checks of windows of compiled functions." ++
-      "public import LeanVM.Guest.Glob\n\nnamespace LeanVM.Guest.Checked\n\n" ++
+  let key (js : Array (ℕ × ℕ)) : String := checkedName (js[0]?.getD (0, 0))
+  let fnFiles := groups.toList.map fun js =>
+    (key js, checkedHeader (key js) "The kernel's checks of windows of compiled functions." ++
+      "public import LeanVM.Guest.Glob\n\nnamespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
       String.join (js.toList.map fun (j, w) =>
         s!"/-- `{fns[j]!.name}`, window {w}. -/\ntheorem w{j}_{w} : WinOk {j} {w} := by decide +kernel\n\n") ++
-      s!"theorem wins{k} : ∀ p ∈ ({pairs js} : List (ℕ × ℕ)), WinOk p.1 p.2 :=\n  " ++
+      s!"/-- The windows checked here. -/\ndef wl_{key js} : List (ℕ × ℕ) := {pairs js}\n\n" ++
+      s!"theorem wins_{key js} : ∀ p ∈ wl_{key js}, WinOk p.1 p.2 :=\n  " ++
       String.join (js.toList.map fun (j, w) => s!"List.forall_mem_cons.2 ⟨w{j}_{w}, ") ++
       "fun _ h ↦ by cases h" ++ String.join (js.toList.map fun _ => "⟩") ++
-      "\n\nend LeanVM.Guest.Checked\n")
+      "\n\nend\nend LeanVM.Guest.Checked\n")
   let powFiles := (List.range nPow).map fun i =>
     (powName i, checkedHeader (powName i) "The kernel's check of a subtree of the powers of `g`." ++
-      s!"public import LeanVM.Guest.Pow\n\nnamespace LeanVM.Guest.Checked\n\n" ++
-      s!"theorem powT{i}_ok : Data.powT{i}.OkW := by decide +kernel\n\nend LeanVM.Guest.Checked\n")
-  let lists := " ++ ".intercalate (groups.toList.map pairs)
-  let proofs := (groups.toList.zipIdx.map fun (_, k) => s!"wins{k}").foldr
+      s!"public import LeanVM.Guest.Pow\n\nnamespace LeanVM.Guest.Checked\n\n@[expose] public section\n\n" ++
+      s!"theorem powT{i}_ok : Data.powT{i}.OkW := by decide +kernel\n\nend\nend LeanVM.Guest.Checked\n")
+  let lists := " ++ ".intercalate (groups.toList.map fun js => s!"wl_{key js}")
+  let proofs := (groups.toList.map fun js => s!"wins_{key js}").foldr
     (fun w acc => if acc.isEmpty then w else s!"List.forall_mem_append.2 ⟨{w}, {acc}⟩") ""
   let index := ("Checked", checkedHeader "" "Every compiled function checked, and the powers of `g`." ++
     String.join ((fnFiles ++ powFiles).map fun (n, _) => s!"public import LeanVM.Guest.Checked.{n}\n") ++
-    "\nnamespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Exec\n\n" ++
+    "\nnamespace LeanVM.Guest.Checked\n\nopen LeanVM.Guest.Exec\n\n@[expose] public section\n\n" ++
     s!"/-- The windows checked. -/\ndef windows : List (ℕ × ℕ) :=\n  {lists}\n\n" ++
     "/-- Every function but `__jump_tables` is checked. -/\n" ++
-    "theorem all_ok : ∀ j, 1 ≤ j → j < nFns → CheckOk j :=\n" ++
+    "set_option maxRecDepth 100000 in\ntheorem all_ok : ∀ j, 1 ≤ j → j < nFns → CheckOk j :=\n" ++
     s!"  checkOk_of_covers (ws := windows)\n    ({proofs})\n    (by decide +kernel)\n\n" ++
     "/-- Every power of `g` the guest names is one. -/\ntheorem powTree_ok : Data.powTree.OkW :=\n  " ++
-    (powTopProof ps powCut 0).1 ++ "\n\nend LeanVM.Guest.Checked\n")
+    (powTopProof ps powCut 0).1 ++ "\n\nend\nend LeanVM.Guest.Checked\n")
   return fnFiles ++ powFiles ++ [index]
 
 def files (P : Core.Program) : Except String (List (System.FilePath × String)) := do
@@ -1243,11 +1248,11 @@ def existing : IO (List System.FilePath) := do
   let gen (pre : String) (n : String) : Bool :=
     let cs := n.toList
     cs.take pre.length == pre.toList && cs.reverse.take 5 == ".lean".toList.reverse &&
-      ((cs.drop pre.length).take (cs.length - pre.length - 5)).all Char.isDigit
+      ((cs.drop pre.length).take (cs.length - pre.length - 5)).all fun c => c.isDigit || c == '_'
   let ds ← dataDir.readDir
   let cs ← if ← checkedDir.isDir then checkedDir.readDir else pure #[]
   return (ds.toList.filter (gen "Cert" ·.fileName)).map (·.path) ++
-    (cs.toList.filter fun e => gen "Fn" e.fileName || gen "Pow" e.fileName).map (·.path)
+    (cs.toList.filter fun e => gen "F" e.fileName || gen "Fn" e.fileName || gen "Pow" e.fileName).map (·.path)
 
 end GuestCert
 

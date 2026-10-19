@@ -122,7 +122,8 @@ theorem known_vs (hvs : B1.VerifySub.VsKnown) {κ : ℕ} {L : MemImage κ} (h16 
   rw [hst, coreOf_16] at hl
   have ht : B1.ExpTables L.read (valG L fp (certOf 16) (.n 4)) (valG L fp (certOf 16) (.n 5)) := by
     have := hsem (6, 7) (by rw [vs_sem]; exact List.mem_singleton_self _)
-    simpa only [valG, Core.V.idx, c4, c5] using this
+    simp only [valG, c4, c5]
+    exact this
   have := hvs L.read ⟨κ, h16, h32, L, rfl⟩ _ ht hl c hc
   simpa only [valG, Core.V.idx, c1631] using this
 
@@ -137,9 +138,11 @@ theorem main_call : ((coreOf 1).body.take ((certOf 1).cutAt 1).start) =
       [.call "exponent_tables" [] [.n 65, .n 66]] := by
   have h : ((coreOf 1).body[((certOf 1).cutAt 1).start - 1]?) =
       some (.call "exponent_tables" [] [.n 65, .n 66]) := rfl
-  have hs : 0 < ((certOf 1).cutAt 1).start := by decide +kernel
-  obtain ⟨hlt, h'⟩ := List.getElem?_eq_some_iff.mp h
-  rw [← h', ← List.take_concat_get' _ _ hlt, Nat.sub_add_cancel hs]
+  obtain ⟨m, hm⟩ : ∃ m, ((certOf 1).cutAt 1).start = m + 1 :=
+    ⟨_, (Nat.succ_pred_eq_of_pos (by decide +kernel)).symm⟩
+  rw [hm, Nat.add_sub_cancel] at h ⊢
+  rw [List.take_add_one, h]
+  rfl
 
 theorem known_main {κ : ℕ} {L : MemImage κ} {fp : K} {i : ℕ} (hi : i ≤ (certOf 1).cuts.length)
     (h0 : 0 < i)

@@ -11,6 +11,9 @@ public import LeanVM.Guest.Pow
 
 namespace LeanVM.Guest.Checked
 
+@[expose] public section
+
 theorem powT18_ok : Data.powT18.OkW := by decide +kernel
 
+end
 end LeanVM.Guest.Checked
