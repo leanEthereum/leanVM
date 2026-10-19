@@ -7,8 +7,7 @@
 module
 
 public import LeanVM.Guest.B2C.KRetemp
-public import LeanVM.Guest.Memory.GuestFresh.Fresh16
-public import LeanVM.Guest.Memory.GuestFresh.Fresh17
+public import LeanVM.Guest.B2C.Temps1617
 
 /-!
 # The table selectors are not temporaries
@@ -46,33 +45,6 @@ def armOk (k : ℕ) (a : ℕ × ℕ × ℕ) : Bool :=
   (k == 17 && !temps16.contains a.1) || (k == 18 && !temps17.contains a.1)
 
 theorem armsCheck_plumbs : armsCheck armOk Data.plumbs 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- Core function `16`'s temporaries, by index. -/
-theorem tmps16 : (Stmt.tmpsList Data.core16.body).map V.idx = temps16 := by
-  have h730 : RangeFresh (Data.core16.body.drop 730) [] temps16 :=
-    rangeFresh_end (by decide +kernel) temps16
-  have h514 := rangeFresh_drop fresh16_514 h730
-  have h490 := rangeFresh_drop fresh16_490 h514
-  have h466 := rangeFresh_drop fresh16_466 h490
-  have h230 := rangeFresh_drop fresh16_230 h466
-  have h206 := rangeFresh_drop fresh16_206 h230
-  have h182 := rangeFresh_drop fresh16_182 h206
-  have h0 := rangeFresh_drop fresh16_0 h182
-  exact h0.1.trans (by decide +kernel)
-
-set_option maxRecDepth 100000 in
-/-- Core function `17`'s temporaries, by index. -/
-theorem tmps17 : (Stmt.tmpsList Data.core17.body).map V.idx = temps17 := by
-  have h1127 : RangeFresh (Data.core17.body.drop 1127) [] temps17 :=
-    rangeFresh_end (by decide +kernel) temps17
-  have h809 := rangeFresh_drop fresh17_809 h1127
-  have h793 := rangeFresh_drop fresh17_793 h809
-  have h777 := rangeFresh_drop fresh17_777 h793
-  have h761 := rangeFresh_drop fresh17_761 h777
-  have h745 := rangeFresh_drop fresh17_745 h761
-  have h0 := rangeFresh_drop fresh17_0 h745
-  exact h0.1.trans (by decide +kernel)
 
 private theorem not_tmp {body : List Stmt} {ts : List ℕ} (h : (Stmt.tmpsList body).map V.idx = ts)
     {x : ℕ} (hx : ts.contains x = false) : V.n x ∉ Stmt.tmpsList body := fun hm ↦ by
