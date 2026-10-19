@@ -156,5 +156,26 @@ theorem completeAt_of_rel_lowD {S : List String} (hS : coreProgram.PureIn S) {g 
     rfl
   · obtain ⟨q, hq, _⟩ := hi; simp at hq
 
+/-- **Frames matching callees, index by index.** -/
+theorem callsMatch_of (σ : Val) : ∀ (cs : List Call) (ks : List Kid) (outs : List (List E × Layout)),
+    cs.length = ks.length → OutsOk ks outs →
+    (∀ i (h1 : i < cs.length) (h2 : i < ks.length) (h3 : i < outs.length),
+      cs[i].f = ks[i].f ∧ cs[i].taken = ks[i].taken ∧ (ks[i].taken = true →
+        cs[i].args.map σ = ks[i].args ∧ (ks[i].Out outs[i].1 outs[i].2 → cs[i].rets.map σ = outs[i].1))) →
+    CallsMatch σ cs ks outs
+  | [], [], [], _, _, _ => trivial
+  | c :: cs, k :: ks, o :: os, hl, ⟨ho, hos⟩, h => by
+    obtain ⟨h1, h2, h3⟩ := h 0 (by simp) (by simp) (by simp)
+    simp only [List.getElem_cons_zero] at h1 h2 h3
+    refine ⟨h1, h2, fun ht => ⟨(h3 ht).1, (h3 ht).2 (ho ht)⟩,
+      callsMatch_of σ cs ks os (by simpa using hl) hos fun i a b d => ?_⟩
+    have := h (i + 1) (by simp; omega) (by simp; omega) (by simp; omega)
+    simp only [List.getElem_cons_succ] at this
+    exact this
+  | [], _ :: _, _, hl, _, _ => by simp at hl
+  | _ :: _, [], _, hl, _, _ => by simp at hl
+  | [], [], _ :: _, _, ho, _ => ho.elim
+  | _ :: _, _ :: _, [], _, ho, _ => ho.elim
+
 end
 end LeanVM.Guest.B1
