@@ -1068,7 +1068,63 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     simp only [hj1', ↓reduceIte]
     exact hrT
 
+/-! ## The return -/
+
+theorem runCells_get : ∀ {base : ℕ} {cs : List ℕ}, runCells base cs = true →
+    ∀ k (hk : k < cs.length), cs[k] = base + k
+  | _, [], _, _, hk => absurd hk (Nat.not_lt_zero _)
+  | base, c :: cs, h, k, hk => by
+    simp only [runCells, Bool.and_eq_true, beq_iff_eq] at h
+    cases k with
+    | zero => simpa using h.1
+    | succ k =>
+      simp only [List.getElem_cons_succ]
+      rw [runCells_get h.2 k (by simpa using hk)]
+      omega
+
+theorem final_guest : Regs.final guest = ⟨gpow (2 ^ 18 - 1), gpow 0⟩ := by
+  simp [Regs.final, Program.finalPc, guest_logSize]
+
+theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : List V)
+    (ss : List Stmt) (st : CW) : WGood H (.ret vs' :: ss) st := by
+  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  obtain ⟨se, hse, hkind, hle, hlen, hrun, hin, hcw⟩ := cw_ret hok
+  have hwo : o = .ret [] vs' := by
+    rw [← hw, walk]
+    rfl
+  refine ⟨fun J c u hj ↦ (by rw [hcw] at hj; cases hj), fun _ ↦ ⟨[], vs', hwo, ?_⟩⟩
+  obtain ⟨hsg, -, -, -, -, -, hr⟩ := endAtC_reach H hp hse
+  rw [hsg] at hkind
+  have hd0 := H.frame.hdr0
+  have hd1 := H.frame.hdr1
+  rw [gpow_addC] at hd0 hd1
+  have hrT : retRegs L (gpow fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩ :=
+    retRegs_eq_some_iff.mpr ⟨_, _, hd0, hd1, rfl⟩
+  obtain ⟨r, hrg, hregs⟩ : ∃ r, (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
+      st.seg.exit.kind.Regs L (gpow fp) X.entry r := by
+    by_cases hj1 : j = 1
+    · have hm : X.main = true := by rw [H.main, hj1]; rfl
+      simp only [hm, ↓reduceIte] at hkind
+      refine ⟨_, by simp only [hj1, ↓reduceIte]; exact final_guest, ?_⟩
+      rw [hkind]
+      exact ⟨_, _, rfl, rfl, rfl⟩
+    · have hm : X.main = false := by rw [H.main]; simpa using hj1
+      simp only [hm, Bool.false_eq_true, ↓reduceIte] at hkind
+      refine ⟨_, by simp only [hj1, ↓reduceIte]; exact hrT, ?_⟩
+      rw [hkind]
+      exact hrT
+  obtain ⟨cr, hcr, hcle, -⟩ := hr r hregs
+  rw [List.append_nil]
+  refine ⟨⟨r, cr, hrg, hcr, fun op ↦ le_trans (hcle op)
+    (Nat.add_le_add_right (Cnt.le_spec hle op) _)⟩, fun k hk ↦ ?_⟩
+  have hk' : k < (vs'.map X.loc.cell).length := by simpa using hk
+  have hc := runCells_get hrun k hk'
+  have hf := inFrame_mem hin _ (List.getElem_mem hk')
+  simp only [List.getElem_map] at hc hf
+  exact ⟨hc, hf.1, hf.2⟩
+
 end Walk
+
 
 
 
