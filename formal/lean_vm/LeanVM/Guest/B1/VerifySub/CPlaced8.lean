@@ -57,28 +57,46 @@ theorem vsKids1_bound {fp lpA sqA outA : ℕ} (Bs : VsBounds) :
     List.sum_cons, List.sum_nil, ↓reduceIte, vsKidsBound]
   split <;> omega
 
+/-- The calls before the dispatch: their callees' weights. -/
+def vsKidsBoundW {Θ : Type} (w : Θ → String → ℕ) (H : VsWeightHyps w) (Bsw : VsBoundsW Θ) (θ : Θ) : ℕ :=
+  2 * H.gpw θ + H.l2a θ + 2 * H.ac θ + Bsw.gkr θ + Bsw.tab θ + Bsw.fl θ + 64 * (2 * w θ "__loop84") +
+    28 * (2 * w θ "__loop85") + H.pl θ + H.l2b θ
+
+/-- **`verify_sub`'s weight**: its frame's, its callees'. -/
+def vsBoundW {Θ : Type} (w : Θ → String → ℕ) (H : VsWeightHyps w) (Bsw : VsBoundsW Θ) (θ : Θ) : ℕ :=
+  w θ "verify_sub" + vsKidsBoundW w H Bsw θ + H.os θ + Bsw.term θ
+
+theorem vsKids1_boundW {fp lpA sqA outA : ℕ} {Θ : Type} (w : Θ → String → ℕ) (H : VsWeightHyps w)
+    (Bsw : VsBoundsW Θ) (θ : Θ) :
+    Main.kidsBoundW (vsBdW w H Bsw) (vsKids1 fs D fp lpA sqA outA) θ ≤ vsKidsBoundW w H Bsw θ := by
+  simp (config := { decide := true }) only [Main.kidsBoundW, vsKids1, vsBdW, List.map_cons, List.map_nil,
+    List.sum_cons, List.sum_nil, ↓reduceIte, vsKidsBoundW]
+  split <;> omega
+
 /-- **`verify_sub` is complete**, uniformly and placed: on an accepting run within the deployed
-limits, from its callees' placed completeness. -/
-theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
+limits, from its callees' placed completeness, by a tree within its callees' weights. -/
+theorem verify_sub_completeAtW {κ : ℕ} (hκ : 7 ≤ κ)
     {CapOk : ℕ → ℕ → Digest → Digest → List E → List Opening → E → Prop}
-    {Bs : VsBounds} (hG : CompleteGkrAtB fs cert κ Bs.gkr)
-    (hT : CompleteTablesAtB fs cert κ bytecode TCtx Bs.tab) (hF : CompleteFlockAtB fs cert κ Bs.fl)
+    {Θ : Type} {w : Θ → String → ℕ} (H : VsWeightHyps w) {Bsw : VsBoundsW Θ}
+    {Bs : VsBounds} (hG : CompleteGkrAtW fs cert κ w Bs.gkr Bsw.gkr)
+    (hT : CompleteTablesAtW fs cert κ bytecode TCtx w Bs.tab Bsw.tab)
+    (hF : CompleteFlockAtW fs cert κ w Bs.fl Bsw.fl)
     (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hO : CompleteOpenAtB fs cert κ CapOk Bs.op)
-    (hE : CompleteTermAtB fs cert κ TCtx PCtx Bs.term)
+    (hE : CompleteTermAtW fs cert κ TCtx PCtx w Bs.term Bsw.term)
     (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (htok : D.TOk bytecode)
     (hcap : CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os
       D.target)
     (lpA sqA outA : ℕ) :
-    CompleteAtB fs cert κ "verify_sub" (vsExtL lpA sqA outA D)
+    Main.CompleteAtW fs cert w κ "verify_sub" (vsExtL lpA sqA outA D)
       [(digestScalars D.pi).1, (digestScalars D.pi).2, (digestScalars D.seed).1,
         (digestScalars D.seed).2, ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA),
-        ofK (Parameters.gpow outA)] (Returns []) (vsBound fs Bs) := by
+        ofK (Parameters.gpow outA)] (Returns []) (vsBound fs Bs) fun θ => vsBoundW w H Bsw θ := by
   intro fp
   have hfit := vsBufs_fit hok htok
   -- the calls before the dispatch
   obtain ⟨N1, L1, outs1, ho1, hw1, hd1, hb1, hi1, hK1⟩ :=
-    kidsFromIn_of_kidsB κ (vsBd fs Bs) (vsKids1 fs D fp lpA sqA outA)
-    (vsKids1_completeB hb hok htok hG hT hF hPl hκ)
+    Main.kidsFromInW_of_kidsBW κ (vsBd fs Bs) (vsBdW w H Bsw) (vsKids1 fs D fp lpA sqA outA)
+    (vsKids1_completeW hb hok htok H hG hT hF hPl hκ)
     (fp + fs "verify_sub" + (vsSizes D).sum)
   obtain ⟨o0, o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, rfl⟩ :=
     list12 (ho1.length.trans (by simp [vsKids1]))
@@ -87,19 +105,19 @@ theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
     exact ho1.2.2.2.2.2.2.2.2.2.2.1
   obtain ⟨off, kap, hr10, hpc⟩ := h10
   -- the opening
-  obtain ⟨N2, L2, outs2, ho2, hw2, hd2, hb2, hi2, hK2⟩ := kidsFromIn_of_kidsB κ (fun _ => Bs.op)
+  obtain ⟨N2, L2, outs2, ho2, hw2, hd2, hb2, hi2, hK2⟩ := Main.kidsFromInW_of_kidsBW κ (fun _ => Bs.op) (fun _ θ => H.os θ)
     [vsOpenKid fs bytecode D fp lpA sqA outA] (fun k hk _ => by
-      rw [List.mem_singleton] at hk; subst hk; exact vsOpenKid_completeB hok hO hcap)
+      rw [List.mem_singleton] at hk; subst hk; exact vsOpenKid_completeW H hok hO hcap)
     (fp + fs "verify_sub" + (vsSizes D).sum + N1)
   obtain ⟨oO, rfl⟩ := list1 (ho2.length.trans rfl)
   have hoO : OpenOutK D oO.1 oO.2 := by simpa [OutsOk, vsOpenKid] using ho2
   obtain ⟨bp, hr2, hLo⟩ := hoO
   set ptw := D.w.point ++ List.replicate (pointCap - D.w.point.length) 0
   -- the terminal
-  obtain ⟨N3, L3, outs3, ho3, hw3, hd3, hb3, hi3, hK3⟩ := kidsFromIn_of_kidsB κ (fun _ => Bs.term)
+  obtain ⟨N3, L3, outs3, ho3, hw3, hd3, hb3, hi3, hK3⟩ := Main.kidsFromInW_of_kidsBW κ (fun _ => Bs.term) (fun _ => Bsw.term)
     [vsTermKid fs D fp lpA sqA outA off kap (ofK (Parameters.gpow bp)) o10.2 [(bp, ptw)]]
     (fun k hk _ => by
-      rw [List.mem_singleton] at hk; subst hk; exact vsTermKid_completeB hb hok htok hE hpc)
+      rw [List.mem_singleton] at hk; subst hk; exact vsTermKid_completeW hb hok htok hE hpc)
     (fp + fs "verify_sub" + (vsSizes D).sum + N1 + N2)
   obtain ⟨oT, rfl⟩ := list1 (ho3.length.trans rfl)
   have hoT : oT.1 = [] := by
@@ -146,20 +164,39 @@ theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
         (vsPtrsAt fs fp D off kap (ofK (Parameters.gpow bp))) (ofK (Parameters.gpow lpA))
         (ofK (Parameters.gpow sqA)) := hcall
   rw [hcs] at hc
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert)
+  have h := Main.relAtInW_of_walk (fs := fs) (cert := cert) (w := w)
     (R := RegionL (vsExtL lpA sqA outA D)) (D := RegionL []) (Dk := fun _ => False)
-    (N := N1 + (N2 + N3)) (fp := fp) coreProgram_wf find_verify_sub (Or.inl vs_not_loop) hpar hw
+    (N := N1 + (N2 + N3)) (fp := fp)
+    (bws := Main.kidsWs (vsBdW w H Bsw) (vsKids1 fs D fp lpA sqA outA) ++
+      (Main.kidsWs (fun _ θ => H.os θ) [vsOpenKid fs bytecode D fp lpA sqA outA] ++
+        Main.kidsWs (fun _ => Bsw.term)
+          [vsTermKid fs D fp lpA sqA outA off kap (ofK (Parameters.gpow bp)) o10.2 [(bp, ptw)]]))
+    find_verify_sub (Or.inl vs_not_loop) hpar hw
     rfl (fun e he => (hev e he).1) (by rw [hal]; exact hbuf)
     (by rw [(vs_parts σ sel).2.2.1]; simp) ?_ ?_ (fun i ⟨q, hq, _⟩ => by simp at hq)
-  · rw [hal] at h; exact h
+  · rw [hal] at h
+    refine h.wmono fun θ => ?_
+    have := vsKids1_boundW (fs := fs) (D := D) (fp := fp) (lpA := lpA) (sqA := sqA) (outA := outA) w H Bsw θ
+    simp only [List.map_append, List.sum_append, Main.kidsWs_sum]
+    have e2 : Main.kidsBoundW (fun _ θ => H.os θ) [vsOpenKid fs bytecode D fp lpA sqA outA] θ = H.os θ := by
+      simp [Main.kidsBoundW, vsOpenKid]
+    have e3 : Main.kidsBoundW (fun _ => Bsw.term)
+        [vsTermKid fs D fp lpA sqA outA off kap (ofK (Parameters.gpow bp)) o10.2 [(bp, ptw)]] θ =
+          Bsw.term θ := by
+      simp [Main.kidsBoundW, vsTermKid]
+    rw [e2, e3]
+    unfold vsBoundW
+    omega
   · rw [hal, hcs]
-    refine kidsFromIn_append _ _ _ _ _ _ _ _ (hK1 rd σ _ _ (fun _ => False)
-      (match1 hok hfix (fun c hc' ht' => hc c (List.mem_append_left _ hc') ht') ho1
-        (by simpa using hr10)) (hlow) hL1 (memL_lins ?_) (regionsOk_of ?_))
-      fun Dacc' hD1 => kidsFromIn_append [_] [_] _ _ _ _ _ _ (hK2 rd σ _ _ Dacc'
+    have hm1 := match1 hok hfix (fun c hc' ht' => hc c (List.mem_append_left _ hc') ht') ho1
+      (by simpa using hr10)
+    refine Main.kidsFromInW_append _ _ _ _ _ _ _ _ _ _
+      (by rw [Main.kidsWs_length]; exact (Main.callsMatch_length hm1).symm) (hK1 rd σ _ _ (fun _ => False)
+      hm1 (hlow) hL1 (memL_lins ?_) (regionsOk_of ?_))
+      fun Dacc' hD1 => Main.kidsFromInW_append [_] [_] _ _ _ _ _ _ _ _ rfl (hK2 rd σ _ _ Dacc'
         (matchOpen (hc _ (List.mem_append_right _ List.mem_cons_self) rfl) hr2) hlow hL2
         (memL_lins ?_) (regionsOk_of ?_))
-        fun Dacc'' hD2 => kidsFromIn_dend _ _ _ _ (fun _ h => h.elim) (hK3 rd σ _ _ Dacc''
+        fun Dacc'' hD2 => Main.kidsFromInW_dend _ _ _ _ _ (fun _ h => h.elim) (hK3 rd σ _ _ Dacc''
           (matchTerm (hc _ (List.mem_append_right _ (List.mem_cons_of_mem _ List.mem_cons_self))
             rfl) hoT) hlow hL3 (memL_lins ?_) (regionsOk_of ?_))
     · intro k hk
@@ -210,6 +247,26 @@ theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
     rcases h with h | h
     · exact Or.inl (Or.inl (inBuf_own h))
     · exact Or.inr (Or.inl h)
+
+/-- **`verify_sub` is complete**, uniformly and placed: on an accepting run within the deployed
+limits, from its callees' placed completeness. -/
+theorem verify_sub_completeAtB {κ : ℕ} (hκ : 7 ≤ κ)
+    {CapOk : ℕ → ℕ → Digest → Digest → List E → List Opening → E → Prop}
+    {Bs : VsBounds} (hG : CompleteGkrAtB fs cert κ Bs.gkr)
+    (hT : CompleteTablesAtB fs cert κ bytecode TCtx Bs.tab) (hF : CompleteFlockAtB fs cert κ Bs.fl)
+    (hPl : CompletePlaceAtB fs cert κ PCtx Bs.pl) (hO : CompleteOpenAtB fs cert κ CapOk Bs.op)
+    (hE : CompleteTermAtB fs cert κ TCtx PCtx Bs.term)
+    (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (htok : D.TOk bytecode)
+    (hcap : CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os
+      D.target)
+    (lpA sqA outA : ℕ) :
+    CompleteAtB fs cert κ "verify_sub" (vsExtL lpA sqA outA D)
+      [(digestScalars D.pi).1, (digestScalars D.pi).2, (digestScalars D.seed).1,
+        (digestScalars D.seed).2, ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA),
+        ofK (Parameters.gpow outA)] (Returns []) (vsBound fs Bs) :=
+  (verify_sub_completeAtW hκ (VsWeightHyps.empty fun e => e.elim)
+    (Bsw := ⟨fun e => e.elim, fun e => e.elim, fun e => e.elim, fun e => e.elim⟩)
+    hG.toWE hT.toWE hF.toWE hPl hO hE.toWE hb hok htok hcap lpA sqA outA).toB
 
 /-- **`verify_sub` is complete**, uniformly and placed: on an accepting run within the deployed
 limits, from its callees' placed completeness. -/

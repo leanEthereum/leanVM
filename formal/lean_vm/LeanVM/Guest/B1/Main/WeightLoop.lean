@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.WeightAt
+public import LeanVM.Guest.B1.VerifySub.StaticW
 
 /-!
 # Callees and loops within weights
@@ -253,9 +254,9 @@ def LoopWeightLe (ω : String → ℕ) (f : String) (K : ℕ) : Prop :=
 
 /-- **The weights of `main`'s callees and of its children's** at `ω`, on every valid tree: the
 loops' per iteration (`LoopWeightLe`), `aggregate_claims`' affine in its children (argument `0`
-being `g^n`), constants for the others; the claim lists' and `verify_sub`'s
-within `α / 1000` times their words (`WeightTot`); `da_verify`'s weight rides its completeness
-(`CalleesAt.da_verify`). -/
+being `g^n`), constants for the others; the claim lists' within `α / 1000` times their words
+(`WeightTot`); `verify_sub`'s statically bounded callees' constants (`VsStatOk`); `da_verify`'s and
+`verify_sub`'s weights ride their completeness (`CalleesAt.da_verify`, `CalleesAt.verify_sub`). -/
 structure MainWeightHyps (fs ω : String → ℕ) : Type where
   Bexp : ℕ
   exp : WeightLe coreProgram ω "exponent_tables" fun _ => Bexp
@@ -286,8 +287,8 @@ structure MainWeightHyps (fs ω : String → ℕ) : Type where
   cl : WeightTot fs ω "claim_list_digest" αcl
   αccl : ℕ
   ccl : WeightTot fs ω "child_claim_list_digest" αccl
-  αvs : ℕ
-  vs : WeightTot fs ω "verify_sub" αvs
+  vsc : VerifySub.VsStat
+  vsOk : VerifySub.VsStatOk ω vsc
 
 /-- A loop from `1` to `g^e`, `0 < e`, entered: within `e` iterations. -/
 theorem LoopWeightLe.from_one {ω : String → ℕ} {f : String} {K : ℕ} (h : LoopWeightLe ω f K) {e : ℕ}

@@ -53,6 +53,7 @@ noncomputable def calleesHyps_b2c : Main.CalleesHyps fs cert bytecode where
   dvc4 := dvc4
   Btab := VerifySub.vtTablesBound fs
   tab := VerifySub.verify_tables_completeAtB fs cert (by norm_num) bytecode
+  tabW := fun w => VerifySub.verify_tables_completeAtW fs cert w (by norm_num) bytecode
   Bop := osBop fs (osCalleesMaxOf fs fsAgree_fs cert 16 g1Certs) (osPureSizes fs)
   op := open_stacked_completeAtB_of fs fsAgree_fs cert 16 g1Certs osOqFits
 

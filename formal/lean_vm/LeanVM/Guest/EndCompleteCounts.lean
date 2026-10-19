@@ -45,7 +45,7 @@ variable {fs : String → ℕ} (ω : String → ℕ) (Bd : CalleeBounds) (A : Ea
 def ewClA : ℕ := Wt.αcl * A.aCl / 1000 + 1
 def ewClB : ℕ := Wt.αcl * A.bCl / 1000 + 1
 /-- A child's weight, affinely in its claims: constant and slope. -/
-def ewChK : ℕ := 2 * (Wt.αccl * A.bCcl / 1000 + 1) + Wt.Bdl + Wt.Bsd + Wt.αvs * Bd.vs / 1000
+def ewChK : ℕ := 2 * (Wt.αccl * A.bCcl / 1000 + 1) + Wt.Bdl + Wt.Bsd + Bd.vsW ω Wt.vsc
 def ewChA : ℕ := Wt.αccl * A.aCcl / 1000 + 1 + Wt.Kl100
 
 /-- **`main`'s weight bound, linearly in the work.** -/

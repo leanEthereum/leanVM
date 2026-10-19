@@ -17,6 +17,7 @@ public import LeanVM.Guest.B1.Tables.VtCGkrB
 public import LeanVM.Guest.B1.Tables.FlockAtB
 public import LeanVM.Guest.B1.Tables.PlaceAt
 public import LeanVM.Guest.B1.Tables.TermAtProof
+public import LeanVM.Guest.B1.Tables.VtKidsB
 public import LeanVM.Guest.B1.Whir.CapAgrees
 
 /-!
@@ -65,6 +66,8 @@ structure CalleesHyps (fs : String → ℕ) (cert : String → V → ℕ) (bytec
   dvc4 : ∀ f, cert (Digest.vxName f) (.n 4) + 256 ≤ fs (Digest.vxName f)
   Btab : ℕ
   tab : VerifySub.CompleteTablesAtB fs cert 16 bytecode TCtx Btab
+  tabW : ∀ {Θ : Type} (w : Θ → String → ℕ),
+    VerifySub.CompleteTablesAtW fs cert 16 bytecode TCtx w Btab fun θ => VerifySub.vtTablesBoundW (w θ)
   Bop : ℕ
   op : VerifySub.CompleteOpenAtB fs cert 16 CapAgrees Bop
 
@@ -77,6 +80,11 @@ def VsGoodOf (bytecode : List K) (D : VsData) : Prop :=
 def calleeVsB (fs : String → ℕ) {cert : String → V → ℕ} {bytecode : List K} (H : CalleesHyps fs cert bytecode) :
     VsBounds :=
   ⟨VerifySub.vtcGkrBound fs, H.Btab, flockBound fs, fs "certify_placement" + 276, H.Bop, termBound fs⟩
+
+/-- `verify_sub`'s weight at `ω`, its statically bounded callees within `c`: its frame's, its callees'. -/
+def vsWOf (ω : String → ℕ) (c : VerifySub.VsStat) : ℕ :=
+  ω "verify_sub" + (2 * c.gpw + c.l2a + 2 * c.ac + VerifySub.vtcGkrBoundW ω + VerifySub.vtTablesBoundW ω +
+    flockBoundW ω + 64 * (2 * ω "__loop84") + 28 * (2 * ω "__loop85") + c.pl + c.l2b) + c.os + termBoundW ω
 
 /-- **The callees' bounds.** -/
 def calleeBd (fs : String → ℕ) {cert : String → V → ℕ} {bytecode : List K} (H : CalleesHyps fs cert bytecode) :
@@ -91,6 +99,7 @@ def calleeBd (fs : String → ℕ) {cert : String → V → ℕ} {bytecode : Lis
   daVerify := Digest.dvTot fs
   daVerifyW := fun θ r => Digest.dvTot θ r
   vs := vsBound fs (calleeVsB fs H)
+  vsW := vsWOf
 
 /-- A bound that holds whenever a memory holds the caller's words. -/
 theorem cp_atB_le {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String} {Lin : Layout}
@@ -165,11 +174,15 @@ theorem calleesAt_proved (fs : String → ℕ) (cert : String → V → ℕ) {by
   da_verify := fun wt root vd hw args rets Lin hpre =>
     Digest.da_verify_completeRelAtW fs cert (by norm_num) H.dvc20 H.dvc4 wt root vd hw args rets Lin
       fun rd h1 h2 => cp_dv (hpre rd h1 h2)
-  verify_sub := fun D hD lpA sqA outA =>
-    VerifySub.verify_sub_completeAtB (bytecode := bytecode) (CapOk := CapAgrees) (Bs := calleeVsB fs H)
-      (by norm_num) (VerifySub.verify_bus_gkr_completeAtB fs cert (by norm_num)) H.tab
-      (verify_flock_completeAtB fs cert 16) (certify_placement_completeAtB fs cert (by norm_num)) H.op
-      (check_opening_terminal_completeAtB fs cert 16) hb hD.1 hD.2.1 hD.2.2 lpA sqA outA
+  verify_sub := fun D hD lpA sqA outA _ w c hc =>
+    (VerifySub.verify_sub_completeAtW (bytecode := bytecode) (CapOk := CapAgrees) (Bs := calleeVsB fs H)
+      (by norm_num) (VerifySub.VsWeightHyps.ofStat c hc)
+      (Bsw := ⟨fun θ => VerifySub.vtcGkrBoundW (w θ), fun θ => VerifySub.vtTablesBoundW (w θ),
+        fun θ => flockBoundW (w θ), fun θ => termBoundW (w θ)⟩)
+      (VerifySub.verify_bus_gkr_completeAtW fs cert w (by norm_num)) (H.tabW w)
+      (verify_flock_completeAtW fs cert w 16) (certify_placement_completeAtB fs cert (by norm_num)) H.op
+      (check_opening_terminal_completeAtW fs cert w 16) hb hD.1 hD.2.1 hD.2.2 lpA sqA outA).wmono
+      fun _ => le_rfl
 
 end
 end LeanVM.Guest.B1.Main

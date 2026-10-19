@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Count.Static
+public import LeanVM.Guest.Count.OsStatic
 public import LeanVM.Guest.Count.Ratio
 public import LeanVM.Guest.B1.Main.WeightLoop
 
@@ -15,8 +16,9 @@ public import LeanVM.Guest.B1.Main.WeightLoop
 # `main`'s callees' counts
 
 `kcWt op : MainWeightHyps B2C.fs (B2C.pathMax · op)`: the statically bounded callees by their
-certificates (`Count/Static`), `claim_list_digest`, `child_claim_list_digest` and `verify_sub`
-within their ratios of their words (`Count/Ratio`); `da_verify`'s weight rides its completeness.
+certificates (`Count/Static`), `claim_list_digest` and `child_claim_list_digest` within their
+ratios of their words (`Count/Ratio`), `verify_sub`'s statically bounded callees by theirs
+(`Count/OsStatic`); `da_verify`'s and `verify_sub`'s weights ride their completeness.
 -/
 
 namespace LeanVM.Guest.Count
@@ -55,8 +57,9 @@ def kcWt (op : Opcode) : MainWeightHyps B2C.fs (B2C.pathMax · op) where
   cl := krCl_weight op
   αccl := krCclA op
   ccl := krCcl_weight op
-  αvs := krVsA op
-  vs := krVs_weight op
+  vsc := ⟨kcoGpw op, kcoL2a op, kcoL2b op, kcoAc op, kcoPl op, kcoOs op⟩
+  vsOk := ⟨kcoGpw_weightLe op, kcoL2a_weightLe op, kcoL2b_weightLe op, kcoAc_weightLe op, kcoPl_weightLe op,
+    fun μ r _ _ _ _ => kcoOs_weightLe op (μ - 22 + 7 * (r - 1)) (by omega)⟩
 
 end
 end LeanVM.Guest.Count

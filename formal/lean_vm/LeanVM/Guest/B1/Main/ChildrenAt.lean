@@ -234,7 +234,7 @@ def childBd (fs : String → ℕ) (Bd : CalleeBounds) (r : ChildWords) : ℕ :=
 /-- **A child's iteration's weight** at `ω`: its callees'. -/
 def childW (ω : String → ℕ) (Bd : CalleeBounds) (H : MainWeightHyps fs ω) (r : ChildWords) : ℕ :=
   H.αccl * Bd.ccl r.nx / 1000 + (H.αccl * Bd.ccl r.ns / 1000 + (r.da.length * H.Kl100 + (H.Bdl +
-    (H.Bsd + H.αvs * Bd.vs / 1000))))
+    (H.Bsd + Bd.vsW ω H.vsc))))
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
@@ -347,10 +347,10 @@ theorem loop5_completeAtW {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : 
     H.statement_digest r.sigD r.dcells _ _ _ fun rd hl h => ⟨seedD, daListDigest r.da, o.dlen,
       o.seed, hsigp rd h 0 (by simp), hsigp rd h 1 (by simp), rfl, o.defer rd (mLb rd h),
       by rw [o.pd]⟩
-  have c6 : CompleteAtB fs cert κ "verify_sub" (VerifySub.vsExtL lpA sqA outA D)
+  have c6 : CompleteAtW fs cert w κ "verify_sub" (VerifySub.vsExtL lpA sqA outA D)
       [(digestScalars r.pd).1, (digestScalars r.pd).2, seed0, seed1, glp, gsq,
-        cfresh * gen ^ (106 * j)] (Returns []) Bd.vs := by
-    have := H.verify_sub D hgood lpA sqA outA
+        cfresh * gen ^ (106 * j)] (Returns []) Bd.vs fun θ => Bd.vsW (w θ) (Wt θ).vsc := by
+    have := H.verify_sub D hgood lpA sqA outA w (fun θ => (Wt θ).vsc) fun θ => (Wt θ).vsOk
     obtain ⟨hs0, hs1⟩ := Prod.ext_iff.mp o.seed
     simp only at hs0 hs1
     rw [hpi, hseed] at this
@@ -360,7 +360,7 @@ theorem loop5_completeAtW {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : 
       nda * (fs "__loop100" + Bd.cover) + fs "__loop100", Bd.daList nda, Bd.sd, Bd.vs]
       [fun θ => (Wt θ).αccl * Bd.ccl r.nx / 1000, fun θ => (Wt θ).αccl * Bd.ccl r.ns / 1000,
         fun θ => nda * (Wt θ).Kl100, fun θ => (Wt θ).Bdl, fun θ => (Wt θ).Bsd,
-        fun θ => (Wt θ).αvs * Bd.vs / 1000] := by
+        fun θ => Bd.vsW (w θ) (Wt θ).vsc] := by
     refine ⟨fun _ => CompleteAtB.toW_tot c1 fun θ => (Wt θ).ccl, fun h => by simp at h,
       fun _ => CompleteAtB.toW_tot c2 fun θ => (Wt θ).ccl, fun h => by simp at h,
       fun ht => CompleteAtB.toW (c3 (by simpa using ht)) fun θ rd t rets hn hv hb =>
@@ -371,7 +371,7 @@ theorem loop5_completeAtW {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : 
       fun h => by simp at h,
       fun _ => CompleteAtB.toW_weightLe (Bf := fun θ _ => (Wt θ).Bsd) c5 fun θ => (Wt θ).sd,
       fun h => by simp at h,
-      fun _ => CompleteAtB.toW_tot c6 fun θ => (Wt θ).vs, fun h => by simp at h, trivial⟩
+      fun _ => c6, fun h => by simp at h, trivial⟩
   refine Exists.elim (loopStep_bufsW (fs := fs) (cert := cert) (w := w) find_loop5 loop5_isLoop core35_split
     p1 _ p2 p3 κ Lin [gen ^ j, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR,
       daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] loop5Fronts (.n 85) loop5Targs p4

@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Main.LoopAt
 public import LeanVM.Guest.B1.Main.WeightAt
+public import LeanVM.Guest.B1.VerifySub.StaticW
 public import LeanVM.Guest.B1.Main.Callees
 public import LeanVM.Guest.B1.Digest.Statement
 public import LeanVM.Guest.B1.Digest.ChildList
@@ -128,6 +129,7 @@ structure CalleeBounds where
   daVerify : ℕ → ℕ
   daVerifyW : (String → ℕ) → ℕ → ℕ
   vs : ℕ
+  vsW : (String → ℕ) → VerifySub.VsStat → ℕ
 
 /-- **The callees of `main` other groups prove, complete uniformly and placed** at `κ`, by trees
 within `Bd`. -/
@@ -149,10 +151,11 @@ structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
     (∀ rd, LowDef κ rd → MemL rd Lin → DaVerifyPreAt root vd rd args rets) →
     CompleteAtW fs cert (fun θ : String → ℕ => θ) κ "da_verify" Lin args (Returns rets)
       (Bd.daVerify wt.rows.length) fun θ => Bd.daVerifyW θ wt.rows.length
-  verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAtB fs cert κ "verify_sub"
+  verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, ∀ {Θ : Type} (w : Θ → String → ℕ)
+    (c : Θ → VerifySub.VsStat), (∀ θ, VerifySub.VsStatOk (w θ) (c θ)) → CompleteAtW fs cert w κ "verify_sub"
     (VerifySub.vsExtL lpA sqA outA D) [(digestScalars D.pi).1, (digestScalars D.pi).2,
       (digestScalars D.seed).1, (digestScalars D.seed).2, ofK (gpow lpA), ofK (gpow sqA),
-      ofK (gpow outA)] (Returns []) Bd.vs
+      ofK (gpow outA)] (Returns []) Bd.vs fun θ => Bd.vsW (w θ) (c θ)
 
 end
 end LeanVM.Guest.B1.Main
