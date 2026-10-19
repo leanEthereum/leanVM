@@ -471,5 +471,22 @@ theorem cld_completeRel (fs : String → ℕ) (cert : String → V → ℕ) {κ 
     · exact ⟨_, hcl 2 (by omega), Or.inr (Or.inl (hidx _ (by omega)).2)⟩
     · exact ⟨_, hcl 3 (by omega), Or.inr (Or.inl (hidx _ (by omega)).2)⟩
 
+/-- `claim_list_digest`'s precondition at the claims `cs`. -/
+def ClPreAt (cs : List E) (rd : Reader) : List E → List E → Prop
+  | [ptr, ng, gsq], [d0, d1] => SquaresAt rd gsq ∧ ∃ n < 2 ^ 16, ng = gen ^ n ∧ cs.length = 4 * n ∧
+      CellsAt rd ptr cs ∧ (∀ c ∈ cs, IsCanonical128 c) ∧
+        (d0, d1) = digestScalars (blake2sBytes (cs.flatMap cellBytes))
+  | _, _ => False
+
+/-- **`claim_list_digest` is complete, uniformly placed, at the claims `cs`.** -/
+theorem cld_completeRelAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ) (cs : List E) :
+    CompleteRel fs cert κ "claim_list_digest" (ClPreAt cs) :=
+  completeRel_mono (cld_completeRel fs cert hκ) fun rd args rets h => by
+    unfold ClPreAt at h
+    split at h
+    · obtain ⟨hT, n, hn, hng, hlen, hc, hcan, hd⟩ := h
+      exact ⟨hT, n, hn, hng, cs, hlen, hc, hcan, hd⟩
+    · exact h.elim
+
 end
 end LeanVM.Guest.B1.Digest

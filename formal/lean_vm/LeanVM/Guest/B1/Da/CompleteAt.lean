@@ -262,5 +262,22 @@ theorem da_verify_completeRel (fs : String → ℕ) (cert : String → V → ℕ
     show v1 = (digestScalars vd).2 from congrArg Prod.snd hv]
   exact LeanVM.Guest.B1.relAtIn_dmono h fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq
 
+/-- `da_verify`'s precondition returning `root` and `vd`. -/
+def DaPreAt (root vd : Digest) (rd : Reader) : List E → List E → Prop
+  | [gsq], [r0, r1, v0, v1] => SquaresAt rd gsq ∧ (r0, r1) = digestScalars root ∧ (v0, v1) = digestScalars vd
+  | _, _ => False
+
+/-- **`da_verify` is complete, uniformly placed**, returning the claim a witness opens. -/
+theorem da_verify_completeRelAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ)
+    (hc20 : cert "da_verify" (.n 20) + 385 ≤ fs "da_verify")
+    (hc4 : ∀ f, cert (vxName f) (.n 4) + 256 ≤ fs (vxName f)) (wt : Da.Witness) (root vd : Digest)
+    (hw : wt.Opens root vd) : CompleteRel fs cert κ "da_verify" (DaPreAt root vd) :=
+  completeRel_mono (da_verify_completeRel fs cert hκ hc20 hc4) fun rd args rets h => by
+    unfold DaPreAt at h
+    split at h
+    · obtain ⟨hT, hr, hv⟩ := h
+      exact ⟨hT, root, vd, wt, hw, hr, hv⟩
+    · exact h.elim
+
 end
 end LeanVM.Guest.B1.Digest
