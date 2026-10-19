@@ -31,10 +31,13 @@ through), the bound of one iteration (`loop`): a valid tree started at `i = g^a`
 collapsing their terms and checking their preconditions, or as the caller's parameters, which
 the caller's bound and preconditions then name; a loop entry is its iteration count times its
 iteration's bound. Branches add up, a fused dispatch adds every arm. A loop helper's own body is
-checked without its tail call, against its shape (`loopShape`).
+checked without its tail call, against its shape (`loopShape`). Counting words (`α`), each
+`HeapBuf` adds its size (`atomB`): `n` for `HeapBuf(n)`, the exponent of a dynamic one's size, a
+constant or a parameter's.
 
 **Soundness** (`chk_sound`): if the checker accepts every function of a program, every valid tree
-of a function weighs at most its certificate's bound.
+of a function costs at most its certificate's bound: its weight, and counting words its paths'
+`HeapBuf`s (`Tree.cost`).
 -/
 
 namespace LeanVM.Guest.Memory
@@ -176,50 +179,64 @@ def siteB (cert : String → Cert) (ρ : Env) (ps : List V) (g : String) (args :
             | .none => none
         | _ => none
 
+/-- The zero bound. -/
+def Acc.zero : Acc := (⟨0, []⟩, [])
+
+/-- **An atom's bound and the constants after it**: a certified constant joins them; counting
+words (`α`), a `HeapBuf(n)` adds `n` and a dynamic one the exponent of its size, a constant or a
+parameter's (`cls`), or fails. -/
+def atomB (α : Bool) (ks : List (V × ℕ)) (ps : List V) (ρ : Env) : Atom → Option (Acc × Env)
+  | .const v w => match vlookup v ks with
+      | some e => if constOk w e then some (Acc.zero, (v, e) :: ρ) else some (Acc.zero, ρ)
+      | none => some (Acc.zero, ρ)
+  | .hint (.alloc _ n) => some (if α then (⟨n, []⟩, []) else Acc.zero, ρ)
+  | .hint (.allocDyn _ s) =>
+      if α then
+        match cls ρ ps s with
+        | .pow e => some ((⟨e, []⟩, []), ρ)
+        | .param k => some ((⟨0, [(k, 1)]⟩, []), ρ)
+        | .none => none
+      else some (Acc.zero, ρ)
+  | _ => some (Acc.zero, ρ)
+
 mutual
-/-- **A block's bound**: its call sites' bounds summed, the certified constants threaded. -/
-def blockB (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : String) :
+/-- **A block's bound**: its call sites' bounds (and, counting words, its `HeapBuf`s) summed, the
+certified constants threaded. -/
+def blockB (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V) (self : String) :
     Env → List Stmt → Option Acc
   | _, [] => some (⟨0, []⟩, [])
-  | ρ, .atom (.const v w) :: ss =>
-      match vlookup v ks with
-      | some e => if constOk w e then blockB cert ks ps self ((v, e) :: ρ) ss
-          else blockB cert ks ps self ρ ss
-      | none => blockB cert ks ps self ρ ss
-  | ρ, .atom _ :: ss => blockB cert ks ps self ρ ss
-  | ρ, .ite _ z n :: ss => Option.addAcc (blockB cert ks ps self ρ z)
-      (Option.addAcc (blockB cert ks ps self ρ n) (blockB cert ks ps self ρ ss))
-  | ρ, .match_ _ arms :: ss => Option.addAcc (armsB cert ks ps self ρ arms) (blockB cert ks ps self ρ ss)
-  | ρ, .call g args _ :: ss => Option.addAcc (siteB cert ρ ps g args) (blockB cert ks ps self ρ ss)
+  | ρ, .atom a :: ss =>
+      match atomB α ks ps ρ a with
+      | some (r, ρ') => Option.addAcc (some r) (blockB cert α ks ps self ρ' ss)
+      | none => none
+  | ρ, .ite _ z n :: ss => Option.addAcc (blockB cert α ks ps self ρ z)
+      (Option.addAcc (blockB cert α ks ps self ρ n) (blockB cert α ks ps self ρ ss))
+  | ρ, .match_ _ arms :: ss =>
+      Option.addAcc (armsB cert α ks ps self ρ arms) (blockB cert α ks ps self ρ ss)
+  | ρ, .call g args _ :: ss => Option.addAcc (siteB cert ρ ps g args) (blockB cert α ks ps self ρ ss)
   | ρ, .callIf _ g args :: ss =>
       if g = self then none
-      else Option.addAcc (siteB cert ρ ps g args) (blockB cert ks ps self ρ ss)
+      else Option.addAcc (siteB cert ρ ps g args) (blockB cert α ks ps self ρ ss)
   | ρ, .dispatch _ gs args _ :: ss =>
-      Option.addAcc (sumB (fun g => siteB cert ρ ps g args) gs) (blockB cert ks ps self ρ ss)
+      Option.addAcc (sumB (fun g => siteB cert ρ ps g args) gs) (blockB cert α ks ps self ρ ss)
   | _, .ret _ :: _ => some (⟨0, []⟩, [])
 
 /-- The arms' bounds, summed. -/
-def armsB (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : String) :
+def armsB (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V) (self : String) :
     Env → List (List Stmt) → Option Acc
   | _, [] => some (⟨0, []⟩, [])
-  | ρ, a :: as => Option.addAcc (blockB cert ks ps self ρ a) (armsB cert ks ps self ρ as)
+  | ρ, a :: as => Option.addAcc (blockB cert α ks ps self ρ a) (armsB cert α ks ps self ρ as)
 end
-
-/-- The zero bound. -/
-def Acc.zero : Acc := (⟨0, []⟩, [])
 
 /-- **`blockB` on the recursor**, for the kernel: each statement gives its bound and the
 constants after it, or stops the block (`ret`) (`stmtR`, `blockR`, `armsR`, equal to `blockB`
 by `blockR_eq`). -/
-noncomputable def stmtR (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : String) :
+noncomputable def stmtR (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V)
+    (self : String) :
     Stmt → Env → Option (Acc × Option Env) :=
   @Stmt.rec (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
     (fun _ => Env → Option Acc)
-    (fun a ρ => match a with
-      | .const v w => match vlookup v ks with
-        | some e => if constOk w e then some (Acc.zero, some ((v, e) :: ρ)) else some (Acc.zero, some ρ)
-        | none => some (Acc.zero, some ρ)
-      | _ => some (Acc.zero, some ρ))
+    (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
@@ -235,15 +252,12 @@ noncomputable def stmtR (cert : String → Cert) (ks : List (V × ℕ)) (ps : Li
     (fun _ _ ha has ρ => Option.addAcc (ha ρ) (has ρ))
 
 /-- `stmtR` of a block. -/
-noncomputable def blockR (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : String) :
+noncomputable def blockR (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V)
+    (self : String) :
     List Stmt → Env → Option Acc :=
   @Stmt.rec_1 (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
     (fun _ => Env → Option Acc)
-    (fun a ρ => match a with
-      | .const v w => match vlookup v ks with
-        | some e => if constOk w e then some (Acc.zero, some ((v, e) :: ρ)) else some (Acc.zero, some ρ)
-        | none => some (Acc.zero, some ρ)
-      | _ => some (Acc.zero, some ρ))
+    (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
@@ -259,15 +273,12 @@ noncomputable def blockR (cert : String → Cert) (ks : List (V × ℕ)) (ps : L
     (fun _ _ ha has ρ => Option.addAcc (ha ρ) (has ρ))
 
 /-- `stmtR` of arms. -/
-noncomputable def armsR (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : String) :
+noncomputable def armsR (cert : String → Cert) (α : Bool) (ks : List (V × ℕ)) (ps : List V)
+    (self : String) :
     List (List Stmt) → Env → Option Acc :=
   @Stmt.rec_2 (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
     (fun _ => Env → Option Acc)
-    (fun a ρ => match a with
-      | .const v w => match vlookup v ks with
-        | some e => if constOk w e then some (Acc.zero, some ((v, e) :: ρ)) else some (Acc.zero, some ρ)
-        | none => some (Acc.zero, some ρ)
-      | _ => some (Acc.zero, some ρ))
+    (fun a ρ => (atomB α ks ps ρ a).map fun q => (q.1, some q.2))
     (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
     (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
     (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
@@ -386,17 +397,17 @@ def STree.find {α : Type} : STree α → String → Option α
 def Aff.leB (a b : Aff) : Bool := decide (a.c ≤ b.c) && a.cs == b.cs
 
 /-- **The check of a function** against its certificate `own`, its frame weighing `w`, its
-callees' certificates by `look`. -/
-noncomputable def chkFn (look : String → Cert) (own : Cert) (w : ℕ) (fn : Fn) : Bool :=
+callees' certificates by `look`, counting words if `α`. -/
+noncomputable def chkFn (look : String → Cert) (α : Bool) (own : Cert) (w : ℕ) (fn : Fn) : Bool :=
   match own with
   | .none => true
   | .stat pre b ks =>
-      match blockR look ks fn.params fn.name fn.body [] with
+      match blockR look α ks fn.params fn.name fn.body [] with
       | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
       | none => false
   | .loop endc pre b ks =>
       match loopShape fn endc with
-      | some pre' => match blockR look ks fn.params fn.name pre' [] with
+      | some pre' => match blockR look α ks fn.params fn.name pre' [] with
         | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre) &&
             b.cs.all (·.1 ≠ 0) && pre.all (·.1 ≠ 0)
         | none => false
@@ -407,8 +418,8 @@ def LookOk (look cert : String → Cert) : Prop := ∀ g, look g ≠ .none → l
 
 /-- **A checked program**: every function passes against its certificate, by some lookup of its
 callees' agreeing with `cert`. -/
-def Checked (P : Core.Program) (cert : String → Cert) (ω : String → ℕ) : Prop :=
-  ∀ fn ∈ P, ∃ look, LookOk look cert ∧ chkFn look (cert fn.name) (ω fn.name) fn = true
+def Checked (P : Core.Program) (α : Bool) (cert : String → Cert) (ω : String → ℕ) : Prop :=
+  ∀ fn ∈ P, ∃ look, LookOk look cert ∧ chkFn look α (cert fn.name) (ω fn.name) fn = true
 
 end
 end LeanVM.Guest.Memory

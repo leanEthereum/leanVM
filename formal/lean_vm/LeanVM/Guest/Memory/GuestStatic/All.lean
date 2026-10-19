@@ -41,7 +41,7 @@ open Core Memory Data
 
 set_option maxRecDepth 100000 in
 theorem chkIdx_16 : chkIdx 16 = true := by
-  have hb : blockB (lookJ 16) [] Data.core16.params Data.core16.name [] Data.core16.body = some (⟨0, []⟩, []) := by
+  have hb : blockB (lookJ 16) false [] Data.core16.params Data.core16.name [] Data.core16.body = some (⟨0, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core16.body)]
     rw [blockB_drop' _ _ 0 506 506 split_16_0.1 rfl, ← blockR_eq ((Data.core16.body.drop 0).take 506), split_16_0.2]
     rw [← blockR_eq (Data.core16.body.drop 506), split_16_506]
@@ -50,7 +50,7 @@ theorem chkIdx_16 : chkIdx 16 = true := by
 
 set_option maxRecDepth 100000 in
 theorem chkIdx_17 : chkIdx 17 = true := by
-  have hb : blockB (lookJ 17) [] Data.core17.params Data.core17.name [] Data.core17.body = some (⟨118784, []⟩, []) := by
+  have hb : blockB (lookJ 17) false [] Data.core17.params Data.core17.name [] Data.core17.body = some (⟨118784, []⟩, []) := by
     rw [← List.drop_zero (l := Data.core17.body)]
     rw [blockB_drop' _ _ 0 232 232 split_17_0.1 rfl, ← blockR_eq ((Data.core17.body.drop 0).take 232), split_17_0.2]
     rw [blockB_drop' _ _ 232 28 260 split_17_232.1 rfl, ← blockR_eq ((Data.core17.body.drop 232).take 28), split_17_232.2]

@@ -10,12 +10,12 @@ open Core Memory Data
 
 set_option maxRecDepth 100000 in
 theorem split_17_312 : noTopRet ((Data.core17.body.drop 312).take 28) = true ∧
-    blockR (lookJ 17) [] Data.core17.params Data.core17.name ((Data.core17.body.drop 312).take 28) [] = some (⟨7424, []⟩, []) := by
+    blockR (lookJ 17) false [] Data.core17.params Data.core17.name ((Data.core17.body.drop 312).take 28) [] = some (⟨7424, []⟩, []) := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
 theorem split_17_340 : noTopRet ((Data.core17.body.drop 340).take 12) = true ∧
-    blockR (lookJ 17) [] Data.core17.params Data.core17.name ((Data.core17.body.drop 340).take 12) [] = some (⟨7424, []⟩, []) := by
+    blockR (lookJ 17) false [] Data.core17.params Data.core17.name ((Data.core17.body.drop 340).take 12) [] = some (⟨7424, []⟩, []) := by
   decide +kernel
 
 end

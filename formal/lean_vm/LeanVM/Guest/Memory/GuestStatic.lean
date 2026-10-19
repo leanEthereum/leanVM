@@ -62,7 +62,7 @@ theorem lookJ_ok {j : ℕ} (hl : (lnkJ j).all (fun q => decide ((coreProgram[q.2
     · rw [ite_eq_right (c := g = q.1) hq] at hg; exact absurd rfl hg
 
 /-- **The guest's certificates check.** -/
-theorem coreProgram_checked : Checked coreProgram staticCertOf omegaOf := by
+theorem coreProgram_checked : Checked coreProgram false staticCertOf omegaOf := by
   intro fn hfn
   obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.mp hfn
   have hc := chkIdx_all j (by rw [coreProgram_length] at hj; exact hj)
