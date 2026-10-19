@@ -120,13 +120,13 @@ theorem loop5_holds {C : CallRel} (hl : LowDef 16 rd) {N written lxT cover lxS g
   have hKd : IsInK (1 + gen ^ r.da.length) :=
     isInK_add (by simpa using gen_pow_isInK 0) (gen_pow_isInK _)
   exact ⟨loadHolds_of_mul0 rfl hbase,
-    ⟨loadHolds_cellAt_low hl hnx, gen_pow_mul_gmax (by omega), loadHolds_cellAt_low hl (by omega)⟩,
-    ⟨loadHolds_cellAt_low hl hns, gen_pow_mul_gmax (by omega), loadHolds_cellAt_low hl (by omega)⟩,
+    ⟨loadHolds_cellAt_gen hl hnx, gen_pow_mul_gmax (by omega), loadHolds_cellAt_gen hl (by omega)⟩,
+    ⟨loadHolds_cellAt_gen hl hns, gen_pow_mul_gmax (by omega), loadHolds_cellAt_gen hl (by omega)⟩,
     hccx, hccs, rfl, rfl, hsig,
     by simpa using hsigp 0 (by simp), by simpa using hsigp 1 (by simp), by ring, by ring, by ring,
     by ring, by ring, by ring, by ring, by ring,
-    ⟨loadHolds_cellAt_low hl (by omega), by rw [← pow_add]; congr 1; omega,
-      loadHolds_cellAt_low hl (by omega)⟩, hKd,
+    ⟨loadHolds_cellAt_gen hl (by omega), by rw [← pow_add]; congr 1; omega,
+      loadHolds_cellAt_gen hl (by omega)⟩, hKd,
     fun hne => hdas fun h0 => hne (by rw [h0, pow_zero]; exact e_add_eq_zero_iff.mpr rfl), hdl,
     hsd, by ring, loadHolds_of_mul0 rfl hpi0, loadHolds_of_mul rfl hpi1, by ring, by ring, by ring,
     by ring, by ring, by ring, by ring, by ring, by ring, hvs, loadHolds_of_mul rfl hnext, hK,

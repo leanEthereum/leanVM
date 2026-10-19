@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Main.CalleesAt
 public import LeanVM.Guest.B1.Main.LoopsC
+public import LeanVM.Guest.B1.Main.MainC
 
 /-!
 # `main`'s loops, placed
@@ -56,12 +57,6 @@ theorem ofK_gpow_mul_gen (a b : ℕ) : ofK (gpow a) * gen ^ b = ofK (gpow (a + b
 theorem cellL_loadHolds {L : Layout} {b k : ℕ} {v : E} (hL : MemL rd L) (h : CellL L (b + k) v) :
     LoadHolds rd (ofK (gpow b) * gen ^ k) 0 v := by
   rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact h.load hL
-
-theorem loadHolds_cellAt_low (hl : LowDef 16 rd) {e : ℕ} (he : e < 2 ^ 16) :
-    LoadHolds rd (gen ^ e) 0 (cellAt rd (gen ^ e) 0) := by
-  have := LeanVM.Guest.B1.loadHolds_low hl he
-  rw [gen_pow_eq_ofK, cellAt, addr_ofK, Nat.add_zero]
-  exact this
 
 theorem gen_pow_succ_add_ne {j m : ℕ} (hm : m < 2 ^ 34) (hj : j + 1 < 2 ^ 34) :
     decide (gen ^ j * gen + gen ^ m ≠ 0) = decide (j + 1 ≠ m) := by
@@ -134,8 +129,8 @@ theorem loop3_holds {C : CallRel} (hl : LowDef 16 rd) {x N cover table : E} {M :
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen, loop3Val]
   b1_look
   simp only [true_and, and_true]
-  exact ⟨⟨loadHolds_cellAt_low hl (by omega), gen_pow_mul_ginv s hs,
-      loadHolds_cellAt_low hl (by omega)⟩,
+  exact ⟨⟨loadHolds_cellAt_gen hl (by omega), gen_pow_mul_ginv s hs,
+      loadHolds_cellAt_gen hl (by omega)⟩,
     by rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hmark, by rw [gen_pow_four]; exact hv, hK,
     hnext⟩
 
@@ -226,8 +221,8 @@ theorem loop4_holds {C : CallRel} (hl : LowDef 16 rd) {x N cover w table : E} {M
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen, loop4Val]
   b1_look
   simp only [true_and, and_true]
-  exact ⟨⟨loadHolds_cellAt_low hl (by omega), gen_pow_mul_ginv s hs,
-      loadHolds_cellAt_low hl (by omega)⟩,
+  exact ⟨⟨loadHolds_cellAt_gen hl (by omega), gen_pow_mul_ginv s hs,
+      loadHolds_cellAt_gen hl (by omega)⟩,
     by rw [← pow_add, loadHolds_mul_gen_pow, Nat.add_zero]; exact hmark,
     by rw [gen_pow_four]; exact hv, hK, hnext⟩
 

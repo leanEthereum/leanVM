@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.ChildrenC
 public import LeanVM.Guest.B1.Main.Sound
+public import LeanVM.Guest.B1.Uniform
 
 /-!
 # `main`, backward
@@ -17,8 +18,9 @@ public import LeanVM.Guest.B1.Main.Sound
 signatures per scheme, children, raw DA claims, declared and duplicate DA claims), the seed, the
 pointers of its `HeapBuf`s and of the exponent tables, the digests its callees return, the direct
 DA claim's cells and the leaf's deferred values. `mainVal rd R` is its valuation, each range
-check's temporaries the words `rd` holds there. `MainOk` is what the body needs of its callees and
-of the memory; `main_body_holds` checks the body against the valuation.
+check's temporaries the words `rd` holds there. `MainOk C` is what the body needs of its callees
+(under the call relation `C`) and of the memory; `main_body_holds` checks the body against the
+valuation.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -28,7 +30,7 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM
 
 @[expose] public section
 
-variable {rd : Reader}
+variable {rd : Reader} {C : CallRel}
 
 /-- **The words a run of `main` computes.** -/
 structure MainRun where
@@ -254,8 +256,8 @@ noncomputable def mainVal (rd : Reader) (R : MainRun) : Val :=
 
 /-- **What `main`'s body needs**: the counts' bounds, its callees' relations, the compression of
 the signer set, and the words of its `HeapBuf`s and of the public input. -/
-structure MainOk (rd : Reader) (R : MainRun) : Prop where
-  mem : MemOk rd
+structure MainOk (C : CallRel) (rd : Reader) (R : MainRun) : Prop where
+  low : LeanVM.Guest.B1.LowDef 16 rd
   total : R.total ≤ 65535
   nc : R.nc ≤ 16
   rd1 : R.rd ≤ 1
@@ -265,30 +267,30 @@ structure MainOk (rd : Reader) (R : MainRun) : Prop where
   rx : R.rx ≤ 65535
   rs : R.rs ≤ 65535
   decl : 0 < R.dx + R.ds + R.da
-  tables : coreProgram.Rel rd "exponent_tables" [] [R.glp, R.gsq]
-  loop0 : R.da + R.ud ≠ 0 → coreProgram.Rel rd "__loop0" [1, gen ^ R.da * gen ^ R.ud, R.daT] []
-  daList : coreProgram.Rel rd "da_list_digest" [R.daT, gen ^ R.da]
+  tables : C "exponent_tables" [] [R.glp, R.gsq]
+  loop0 : R.da + R.ud ≠ 0 → C "__loop0" [1, gen ^ R.da * gen ^ R.ud, R.daT] []
+  daList : C "da_list_digest" [R.daT, gen ^ R.da]
     [(digestScalars R.daDig).1, (digestScalars R.daDig).2]
-  xList : coreProgram.Rel rd "claim_list_digest" [R.xT, gen ^ R.dx, R.gsq]
+  xList : C "claim_list_digest" [R.xT, gen ^ R.dx, R.gsq]
     [(digestScalars R.xDig).1, (digestScalars R.xDig).2]
-  sList : coreProgram.Rel rd "claim_list_digest" [R.sT, gen ^ R.ds, R.gsq]
+  sList : C "claim_list_digest" [R.sT, gen ^ R.ds, R.gsq]
     [(digestScalars R.sDig).1, (digestScalars R.sDig).2]
-  loop1 : R.ux ≠ 0 → coreProgram.Rel rd "__loop1" [1, gen ^ R.ux, R.xT, gen ^ R.dx] []
-  loop2 : R.us ≠ 0 → coreProgram.Rel rd "__loop2" [1, gen ^ R.us, R.sT, gen ^ R.ds] []
+  loop1 : R.ux ≠ 0 → C "__loop1" [1, gen ^ R.ux, R.xT, gen ^ R.dx] []
+  loop2 : R.us ≠ 0 → C "__loop2" [1, gen ^ R.us, R.sT, gen ^ R.ds] []
   sig : CompressCells ![(digestScalars R.xDig).1, (digestScalars R.xDig).2, (digestScalars R.sDig).1,
     (digestScalars R.sDig).2] Value.ivCells.1 Value.ivCells.2 (digestScalars R.sigDig).1
     (digestScalars R.sigDig).2 (metadataCell 64 true)
   sigp : ReadsAt rd R.sigp [(digestScalars R.sigDig).1, (digestScalars R.sigDig).2]
-  loop3 : R.rx ≠ 0 → coreProgram.Rel rd "__loop3"
+  loop3 : R.rx ≠ 0 → C "__loop3"
     [1, gen ^ R.rx, gen ^ R.dx * gen ^ R.ux, R.cover, R.xT] []
-  loop4 : R.rs ≠ 0 → coreProgram.Rel rd "__loop4"
+  loop4 : R.rs ≠ 0 → C "__loop4"
     [1, gen ^ R.rs, gen ^ R.ds * gen ^ R.us, R.cover, gen ^ R.dx * gen ^ R.ux, gen ^ R.rx, R.sT] []
-  daVerify : R.rd = 1 → coreProgram.Rel rd "da_verify" [R.gsq] [R.dr0, R.dr1, R.dr2, R.dr3]
-  daCover : R.rd = 1 → coreProgram.Rel rd "cover_da_root"
+  daVerify : R.rd = 1 → C "da_verify" [R.gsq] [R.dr0, R.dr1, R.dr2, R.dr3]
+  daCover : R.rd = 1 → C "cover_da_root"
     [R.daT, R.cover * (gen ^ R.dx * gen ^ R.ux * (gen ^ R.ds * gen ^ R.us)),
       gen ^ R.da * gen ^ R.ud, gen ^ R.rx * gen ^ R.rs] [R.dr0, R.dr1, R.dr2, R.dr3]
   written0 : LoadHolds rd R.written 0 (gen ^ R.rx * gen ^ R.rs * gen ^ R.rd)
-  loop5 : R.nc ≠ 0 → coreProgram.Rel rd "__loop5"
+  loop5 : R.nc ≠ 0 → C "__loop5"
     [1, gen ^ R.nc, R.written, R.xT, R.cover, gen ^ R.dx * gen ^ R.ux, R.gsq, R.sT,
       gen ^ R.ds * gen ^ R.us, R.carried, R.daT,
       R.cover * (gen ^ R.dx * gen ^ R.ux * (gen ^ R.ds * gen ^ R.us)), gen ^ R.da * gen ^ R.ud,
@@ -297,19 +299,19 @@ structure MainOk (rd : Reader) (R : MainRun) : Prop where
     (gen ^ R.dx * gen ^ R.ux * (gen ^ R.ds * gen ^ R.us) * (gen ^ R.da * gen ^ R.ud))
   leaf : R.nc = 0 → ReadsAt rd R.dstmt
     (List.replicate 22 0 ++ [R.lbv] ++ List.replicate 28 0 ++ [R.lmA, R.lmB])
-  agg : R.nc ≠ 0 → coreProgram.Rel rd "aggregate_claims"
+  agg : R.nc ≠ 0 → C "aggregate_claims"
     [gen ^ R.nc, R.cpi, R.cfresh, R.carried, R.dstmt] []
-  stmt : coreProgram.Rel rd "statement_digest"
+  stmt : C "statement_digest"
     [(digestScalars R.seed).1, (digestScalars R.seed).2, R.sigp, (digestScalars R.daDig).1,
       (digestScalars R.daDig).2, R.dstmt] [(digestScalars R.stDig).1, (digestScalars R.stDig).2]
   pub0 : rd 1 = some (digestScalars R.stDig).1
   pub1 : rd g = some (digestScalars R.stDig).2
 
-theorem loadHolds_cellAt_gen (hm : MemOk rd) {e : ℕ} (he : e < 2 ^ 16) :
+theorem loadHolds_cellAt_gen (hl : LeanVM.Guest.B1.LowDef 16 rd) {e : ℕ} (he : e < 2 ^ 16) :
     LoadHolds rd (gen ^ e) 0 (cellAt rd (gen ^ e) 0) := by
-  obtain ⟨t1, t2, l1, -, -⟩ := LeanVM.Guest.B1.Digest.rangeCheck_complete (rd := rd) hm (e := e) (e' := 0)
-    he (by norm_num)
-  rw [cellAt_of_load l1]; exact l1
+  have := LeanVM.Guest.B1.loadHolds_low hl he
+  rw [gen_pow_eq_ofK, cellAt, addr_ofK, Nat.add_zero]
+  exact this
 
 theorem ne_zero_of_one_add {k : ℕ} (h : 1 + gen ^ k ≠ 0) : k ≠ 0 := fun hk =>
   h (by rw [hk, pow_zero]; exact e_add_eq_zero_iff.mpr rfl)
@@ -321,14 +323,14 @@ theorem one_add_isInK' (a b : ℕ) : IsInK (1 + gen ^ a * gen ^ b) := by
   rw [← pow_add]; exact one_add_isInK _
 
 set_option maxRecDepth 100000 in
-theorem main_pre_holds {R : MainRun} (h : MainOk rd R) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) mainPre True (fun rs => rs = []) := by
+theorem main_pre_holds {R : MainRun} (h : MainOk C rd R) :
+    Stmt.HoldsList C rd (mainVal rd R) mainPre True (fun rs => rs = []) := by
   simp only [mainPre, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
     word_gmax, word_g16, word_g257, word_gen, word_one, word_iv0, word_iv1, word_md64]
   simp only [mainVal]
   b1_look
   simp only [true_and, and_true]
-  have hm := h.mem
+  have hm := h.low
   have ht := h.total
   have hda := h.dau
   simp only [MainRun.total] at ht
@@ -365,8 +367,8 @@ theorem gen_pow_add_gen_eq_zero {k : ℕ} (hk : k ≤ 1) (h : gen ^ k + gen = 0)
   · omega
 
 set_option maxRecDepth 100000 in
-theorem main_da_holds {R : MainRun} (h : MainOk rd R) (h0 : mainVal rd R (.n 112) = 0) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) daBranch True (fun rs => rs = []) := by
+theorem main_da_holds {R : MainRun} (h : MainOk C rd R) (h0 : mainVal rd R (.n 112) = 0) :
+    Stmt.HoldsList C rd (mainVal rd R) daBranch True (fun rs => rs = []) := by
   have e : mainVal rd R (.n 112) = gen ^ R.rd + gen := by simp only [mainVal]; b1_look
   have h1 := gen_pow_add_gen_eq_zero h.rd1 (e ▸ h0)
   simp only [daBranch, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
@@ -377,8 +379,8 @@ theorem main_da_holds {R : MainRun} (h : MainOk rd R) (h0 : mainVal rd R (.n 112
     e_add_eq_zero_iff.mpr rfl, e_add_eq_zero_iff.mpr rfl⟩
 
 set_option maxRecDepth 100000 in
-theorem main_mid_holds {R : MainRun} (h : MainOk rd R) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) mainMid True (fun rs => rs = []) := by
+theorem main_mid_holds {R : MainRun} (h : MainOk C rd R) :
+    Stmt.HoldsList C rd (mainVal rd R) mainMid True (fun rs => rs = []) := by
   simp only [mainMid, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen,
     word_one]
   simp only [mainVal]
@@ -395,8 +397,8 @@ theorem gen_pow_add_one_eq_zero {k : ℕ} (hk : k ≤ 16) (h : gen ^ k + 1 = 0) 
   exact one_add_gen_pow_ne_zero (by omega) (by unfold ordG; omega) h
 
 set_option maxRecDepth 100000 in
-theorem main_leaf_holds {R : MainRun} (h : MainOk rd R) (h0 : mainVal rd R (.n 155) = 0) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) leafT True (fun rs => rs = []) := by
+theorem main_leaf_holds {R : MainRun} (h : MainOk C rd R) (h0 : mainVal rd R (.n 155) = 0) :
+    Stmt.HoldsList C rd (mainVal rd R) leafT True (fun rs => rs = []) := by
   have e : mainVal rd R (.n 155) = gen ^ R.nc + 1 := by simp only [mainVal]; b1_look
   have h1 := gen_pow_add_one_eq_zero h.nc (e ▸ h0)
   have hl := h.leaf h1
@@ -426,8 +428,8 @@ theorem main_leaf_holds {R : MainRun} (h : MainOk rd R) (h0 : mainVal rd R (.n 1
   · b1_look; exact hs 52 (by omega)
 
 set_option maxRecDepth 100000 in
-theorem main_agg_holds {R : MainRun} (h : MainOk rd R) (h0 : mainVal rd R (.n 155) ≠ 0) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) aggT True (fun rs => rs = []) := by
+theorem main_agg_holds {R : MainRun} (h : MainOk C rd R) (h0 : mainVal rd R (.n 155) ≠ 0) :
+    Stmt.HoldsList C rd (mainVal rd R) aggT True (fun rs => rs = []) := by
   have e : mainVal rd R (.n 155) = gen ^ R.nc + 1 := by simp only [mainVal]; b1_look
   have h1 : R.nc ≠ 0 := fun hz => h0 (by rw [e, hz, pow_zero]; exact e_add_eq_zero_iff.mpr rfl)
   simp only [aggT, Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil, and_true]
@@ -436,8 +438,8 @@ theorem main_agg_holds {R : MainRun} (h : MainOk rd R) (h0 : mainVal rd R (.n 15
   exact h.agg h1
 
 set_option maxRecDepth 100000 in
-theorem main_post_holds {R : MainRun} (h : MainOk rd R) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) mainPost False (fun rs => rs = []) := by
+theorem main_post_holds {R : MainRun} (h : MainOk C rd R) :
+    Stmt.HoldsList C rd (mainVal rd R) mainPost False (fun rs => rs = []) := by
   simp only [mainPost, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, word_gen,
     word_one]
   simp only [mainVal]
@@ -455,14 +457,14 @@ theorem main_post_holds {R : MainRun} (h : MainOk rd R) :
   exact ⟨h.stmt, l1, e_add_eq_zero_iff.mpr rfl, by rw [one_mul]; exact l2, e_add_eq_zero_iff.mpr rfl⟩
 
 /-- **`main`'s body on its honest valuation.** -/
-theorem main_body_holds {R : MainRun} (h : MainOk rd R) :
-    Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) mainBody False (fun rs => rs = []) := by
+theorem main_body_holds {R : MainRun} (h : MainOk C rd R) :
+    Stmt.HoldsList C rd (mainVal rd R) mainBody False (fun rs => rs = []) := by
   rw [mainBody, holdsList_append, holdsList_noRet mainPre rfl, Stmt.HoldsList,
     holds_ite_noRet (.n 112) daBranch [] rfl rfl, holdsList_append, holdsList_noRet mainMid rfl,
-    show Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) (Stmt.ite (.n 155) leafT aggT :: mainPost)
-      False (fun rs => rs = []) = Stmt.Holds (coreProgram.Rel rd) rd (mainVal rd R)
+    show Stmt.HoldsList C rd (mainVal rd R) (Stmt.ite (.n 155) leafT aggT :: mainPost)
+      False (fun rs => rs = []) = Stmt.Holds C rd (mainVal rd R)
         (Stmt.ite (.n 155) leafT aggT)
-        (Stmt.HoldsList (coreProgram.Rel rd) rd (mainVal rd R) mainPost False (fun rs => rs = []))
+        (Stmt.HoldsList C rd (mainVal rd R) mainPost False (fun rs => rs = []))
         (fun rs => rs = []) from rfl,
     holds_ite_noRet (.n 155) leafT aggT rfl rfl]
   refine ⟨main_pre_holds h, ⟨?_, main_da_holds h, fun _ => trivial⟩, main_mid_holds h,
@@ -473,7 +475,8 @@ theorem main_body_holds {R : MainRun} (h : MainOk rd R) :
     rw [e]; exact isInK_add (gen_pow_isInK _) (by simpa using gen_pow_isInK 0)
 
 /-- **`main` holds** once its body's needs hold (`MainOk`). -/
-theorem main_rel_of_ok {R : MainRun} (h : MainOk rd R) : coreProgram.Rel rd "main" [] [] := by
+theorem main_rel_of_ok {R : MainRun} (h : MainOk (coreProgram.Rel rd) rd R) :
+    coreProgram.Rel rd "main" [] [] := by
   rw [rel_iff_sem find_main]
   exact ⟨mainVal rd R, rfl, by rw [core0_body]; exact main_body_holds h⟩
 

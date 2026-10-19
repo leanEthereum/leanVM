@@ -258,16 +258,17 @@ set_option maxHeartbeats 1000000 in
 /-- **`aggregate_claims`, by regions** (G:3319-3486; TRIAGE #77): for nonempty claims `cs` of the
 guest's shape, at most `16`, hints of `22` and `28` rounds whose batching closes on `d`, the
 children's public inputs, fresh and carried claims at `g^ap`, `g^af`, `g^ac` and `defer_stmt` at
-`g^ad`, at every `fp` one size `n` serves every memory holding `aggregate_claims`' `HeapBuf`s at
-`fp` and the caller's buffers: `aggregate_claims` holds by a tree placed at `fp`, of `n` words,
-loading from its own data or the caller's buffers. -/
+`g^ad`, at every `fp` one size `n`, covering the frame and the `HeapBuf`s, serves every memory
+holding `aggregate_claims`' `HeapBuf`s at `fp` and the caller's buffers: `aggregate_claims` holds
+by a tree placed at `fp`, of `n` words, loading from its own data or the caller's buffers. -/
 theorem aggregate_claims_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) {cs : List ChildClaims}
     {h : BatchHints} {d : DeferredClaim} (hne : cs ≠ []) (hlen : cs.length ≤ 16)
     (hb : batch cs h = some d) (hbr : h.bytecodeRounds.length = 22)
     (hmr : h.matrixRounds.length = 28)
     (hsh : ∀ c ∈ cs, FreshShaped c.fresh ∧ c.carried.bytecodePoint.length = 22 ∧
       c.carried.matrixPoint.length = 28) (ap af ac ad fp : ℕ) :
-    ∃ n, ∀ rd : Reader, MemL rd (aggOwnL fs fp cs h (ofK (gpow af)) (ofK (gpow ac)) ++
+    ∃ n, fs "aggregate_claims" + (aggSizes cs.length).sum ≤ n ∧
+      ∀ rd : Reader, MemL rd (aggOwnL fs fp cs h (ofK (gpow af)) (ofK (gpow ac)) ++
         aggExtL ap af ac ad cs d) →
       RelAtIn coreProgram fs cert rd (RegionL (aggExtL ap af ac ad cs d)) (fun _ => False) fp n
         "aggregate_claims" [gen ^ cs.length, ofK (gpow ap), ofK (gpow af), ofK (gpow ac),
@@ -340,7 +341,7 @@ theorem aggregate_claims_relAtIn (fs : String → ℕ) (cert : String → V → 
     fun i hi => (regionL_append.mp hi).elim (fun h => Or.inr (hown i h)) Or.inl
   by_cases hex : ∃ rd1, MemL rd1 L
   swap
-  · exact ⟨0, fun rd hL => absurd ⟨rd, hL⟩ hex⟩
+  · exact ⟨_, le_rfl, fun rd hL => absurd ⟨rd, hL⟩ hex⟩
   obtain ⟨rd1, h1⟩ := hex
   -- the restriction of one memory to the layouts
   have h0 : MemL (restrict rd1 S) L := memL_restrict h1 fun i hi => hi
@@ -366,7 +367,7 @@ theorem aggregate_claims_relAtIn (fs : String → ℕ) (cert : String → V → 
   rw [hw] at hs0
   have hloadS := loads_of_supp hsupp fun e he => (hs0.1 e he).1
   refine ⟨fs "aggregate_claims" + (allocs σ es).sum +
-    (m95 + (m96 + (m22 + (m97 + (m98 + (m28 + (m99 + 0))))))), fun rd hL => ?_⟩
+    (m95 + (m96 + (m22 + (m97 + (m98 + (m28 + (m99 + 0))))))), by rw [hall]; omega, fun rd hL => ?_⟩
   obtain ⟨ho, he⟩ := memL_append.mp hL
   obtain ⟨hC, hd⟩ := childClaimsAt_of_memL hsh he
   have hs := walk_sat agBody hwf (agBody_holds hne hb hbr hmr hC hd P (aggMem_of_memL hbr hmr ho))
