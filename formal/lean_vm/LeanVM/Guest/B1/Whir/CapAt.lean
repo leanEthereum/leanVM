@@ -38,13 +38,13 @@ which it means `rets`, it returns them and no buffer. -/
 def VmcCompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (k D : ℕ) (name : String) : Prop :=
   ∀ (Lin : Main.Layout) (cap flags : E) (rets : List E),
     (∀ rd, MemL rd Lin → MeaningVerifyMerkleCap D rd [cap, flags] rets) →
-      CompleteAt fs cert k name Lin [cap, flags] (Returns rets)
+      CompleteAtD fs cert k name Lin [cap, flags] (Returns rets)
 
 theorem vmc_completeAt {fs : String → ℕ} {cert : String → V → ℕ} {k D : ℕ} {name loop : String}
     (hS : coreProgram.PureIn [name, loop])
     (hiff : ∀ rd args rets, coreProgram.Rel rd name args rets ↔ MeaningVerifyMerkleCap D rd args rets) :
     VmcCompleteAt fs cert k D name := fun _ _ _ _ h =>
-  completeAt_of_rel_pure hS (by simp) (fun rd hL => (hiff rd _ _).mpr (h rd hL)) k
+  completeAt_of_rel_pureD hS (by simp) (fun rd hL => (hiff rd _ _).mpr (h rd hL)) k
 
 set_option maxRecDepth 100000 in
 theorem vmc_completeAt_L4 (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) :

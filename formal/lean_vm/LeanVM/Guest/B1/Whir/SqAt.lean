@@ -213,6 +213,48 @@ theorem regionL_sqRuns {fs : String → ℕ} {cert : String → V → ℕ} {lv :
 /-- The challenge of iteration `j` from the chain state `cv`. -/
 def sqW (cv : Digest) (j : ℕ) : E := challengeOf (sqCv (sqAll j cv).2)
 
+theorem sqDecAt_eq (fs : String → ℕ) (lv : OsLvl) {n j : ℕ} (fp : ℕ) (hj : j < n) :
+    sqDecAt fs lv n fp j = fp + (n + 1) * fs lv.sqLoop + (n - 1 - j) * fs lv.decode := by
+  obtain ⟨t, rfl⟩ : ∃ t, n = j + 1 + t := ⟨n - j - 1, by omega⟩
+  unfold sqDecAt sqTailTot sqTot
+  split
+  · rw [show j + 1 + t - (j + 1) = t by omega, show j + 1 + t - 1 - j = t by omega]; ring
+  · obtain rfl : t = 0 := by omega
+    rw [show j + 1 + 0 - 1 - j = 0 by omega]; ring
+
+/-- Blocks in pairwise disjoint windows, each disjoint, are disjoint: the first parts, then the
+second parts. -/
+theorem os_disj_windows {m : ℕ} (A B : ℕ → Main.Layout) (lo len : ℕ → ℕ)
+    (hD : ∀ j < m, DisjL (A j ++ B j)) (hW : ∀ j < m, Within (A j ++ B j) (lo j) (len j))
+    (hsep : ∀ i < m, ∀ j < m, i ≠ j → lo i + len i ≤ lo j ∨ lo j + len j ≤ lo i) :
+    DisjL (((List.range m).map A).flatten ++ ((List.range m).map B).flatten) := by
+  have hwin : ∀ i < m, ∀ j < m, i ≠ j → ∀ x ∈ A i ++ B i, ∀ y ∈ A j ++ B j,
+      x.1 + x.2.length ≤ y.1 ∨ y.1 + y.2.length ≤ x.1 := fun i hi j hj hij x hx y hy => by
+    have h1 := hW i hi x hx; have h2 := hW j hj y hy; have := hsep i hi j hj hij; omega
+  have hpr : ∀ (C : ℕ → Main.Layout), (∀ j < m, ∀ x ∈ C j, x ∈ A j ++ B j) → (∀ j < m, DisjL (C j)) →
+      DisjL ((List.range m).map C).flatten := fun C hC hCD => by
+    unfold DisjL
+    rw [List.pairwise_flatten, List.pairwise_map]
+    refine ⟨fun l hl => ?_, (List.pairwise_lt_range (n := m)).imp_of_mem fun hi hj hij x hx y hy => ?_⟩
+    · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hl
+      exact hCD j (List.mem_range.mp hj)
+    · exact hwin _ (List.mem_range.mp hi) _ (List.mem_range.mp hj) (by omega) x
+        (hC _ (List.mem_range.mp hi) x hx) y (hC _ (List.mem_range.mp hj) y hy)
+  unfold DisjL
+  rw [List.pairwise_append]
+  refine ⟨hpr A (fun j _ x hx => List.mem_append_left _ hx) (fun j hj => (List.pairwise_append.mp (hD j hj)).1),
+    hpr B (fun j _ x hx => List.mem_append_right _ hx) (fun j hj => (List.pairwise_append.mp (hD j hj)).2.1),
+    fun x hx y hy => ?_⟩
+  obtain ⟨_, hl1, hx⟩ := List.mem_flatten.mp hx
+  obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hl1
+  obtain ⟨_, hl2, hy⟩ := List.mem_flatten.mp hy
+  obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hl2
+  rw [List.mem_range] at hi hj
+  by_cases hij : i = j
+  · subst hij
+    exact (List.pairwise_append.mp (hD i hi)).2.2 x hx y hy
+  · exact hwin i hi j hj hij x (List.mem_append_left _ hx) y (List.mem_append_right _ hy)
+
 /-- **A level's squeeze loop, placed** from its first iteration at `fp`: on every memory holding
 the state chain at `sqz` and, at `qpos` and `qbp`, what each decoder stores (the positions and
 the pointers into its frame run at `sqDecAt`), the loop holds, its decoders' frame runs its data
@@ -221,7 +263,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
     {fn : Fn} (hfind : coreProgram.find? lv.sqLoop = some fn) (hp : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4])
     (hb : fn.body = sqLoopOf lv) (hlp : coreProgram.loop lv.sqLoop = true) (hpo : lv.posOff < 2 ^ 128)
     (hdig : osDigitsVal 1 (osPowDigits (192 / lv.depth)) = 192 / lv.depth)
-    (hdec : OsDecodeAt fs cert k lv.depth lv.decode) {n : ℕ} (hn : 0 < n) (hn' : n + 1 < ordG)
+    (hdec : OsDecodeAtD fs cert k lv.depth lv.decode) {n : ℕ} (hn : 0 < n) (hn' : n + 1 < ordG)
     {sqz qpos qbp : E} {cv : Digest} {Lin : Main.Layout} (fp : ℕ)
     (hmem : ∀ rd, LowDef k rd → MemL rd Lin → ∀ j < n,
       LoadHolds rd sqz (2 * j) (digestScalars (sqAll j cv).2).1 ∧
@@ -235,7 +277,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
           (ofK (Parameters.gpow (sqDecAt fs lv n fp j + cert lv.decode (.n 3))) * gen ^ (i * lv.depth)))
     (hreg : ∀ j < n, ∀ t < 4, OqIn (RegionL Lin) (sqz.limb 0 * Parameters.gpow (2 * j + t))) :
     ∃ Lown : Main.Layout, Within (sqRuns fs cert lv n fp (sqW cv) 0 ++ Lown) fp (sqTot fs lv n 0) ∧
-      ∀ rd, LowDef k rd → MemL rd (sqRuns fs cert lv n fp (sqW cv) 0 ++ Lown ++ Lin) →
+      DisjL (sqRuns fs cert lv n fp (sqW cv) 0 ++ Lown) ∧ ∀ rd, LowDef k rd → MemL rd (sqRuns fs cert lv n fp (sqW cv) 0 ++ Lown ++ Lin) →
         RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL (sqRuns fs cert lv n fp (sqW cv) 0)) fp
           (sqTot fs lv n 0) lv.sqLoop [1, gen ^ n, sqz, qpos, qbp] [] := by
   have hn'' : n + 1 < 2 ^ 64 - 1 := hn'
@@ -244,7 +286,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
     rw [← pow_mul, mul_assoc, ← pow_add]
   have hdecj : ∀ j < n, ∃ Lj : Main.Layout,
       Within (dqRunL cert lv.decode (sqDecAt fs lv n fp j) (sqW cv j) ++ Lj) (sqDecAt fs lv n fp j) (fs lv.decode) ∧
-      ∀ rd, LowDef k rd → MemL rd (dqRunL cert lv.decode (sqDecAt fs lv n fp j) (sqW cv j) ++ Lj ++ Lin) →
+      DisjL (dqRunL cert lv.decode (sqDecAt fs lv n fp j) (sqW cv j) ++ Lj) ∧ ∀ rd, LowDef k rd → MemL rd (dqRunL cert lv.decode (sqDecAt fs lv n fp j) (sqW cv j) ++ Lj ++ Lin) →
         RelAtIn coreProgram fs cert rd (RegionL Lin)
           (RegionL (dqRunL cert lv.decode (sqDecAt fs lv n fp j) (sqW cv j))) (sqDecAt fs lv n fp j) (fs lv.decode)
           lv.decode [sqW cv j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
@@ -255,7 +297,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
   let Lj : ℕ → Main.Layout := fun j => if h : j < n then Classical.choose (hdecj j h) else []
   have hLj : ∀ j (h : j < n), Lj j = Classical.choose (hdecj j h) := fun j h => by simp [Lj, h]
   let Lown : Main.Layout := ((List.range n).map Lj).flatten
-  refine ⟨Lown, ?_, fun rd hlow hL => ?_⟩
+  refine ⟨Lown, ?_, ?_, fun rd hlow hL => ?_⟩
   · rw [within_append]
     refine ⟨fun q hq => ?_, fun q hq => ?_⟩
     · simp only [sqRuns, List.mem_flatten, List.mem_map, List.mem_range] at hq
@@ -274,6 +316,24 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
       have := sqTot_step fs lv (n := n) (j := j) hj
       simp only [sqDecAt] at hw ⊢
       omega
+  · have e1 : sqRuns fs cert lv n fp (sqW cv) 0 =
+        ((List.range n).map fun j => dqRunL cert lv.decode (sqDecAt fs lv n fp j) (sqW cv j)).flatten := by
+      simp [sqRuns]
+    rw [e1]
+    refine os_disj_windows _ Lj (fun j => sqDecAt fs lv n fp j) (fun _ => fs lv.decode) (fun j hj => ?_)
+      (fun j hj => ?_) (fun i hi j hj hij => ?_)
+    · rw [hLj j hj]; exact (Classical.choose_spec (hdecj j hj)).2.1
+    · rw [hLj j hj]; exact (Classical.choose_spec (hdecj j hj)).1
+    · rw [sqDecAt_eq fs lv fp hi, sqDecAt_eq fs lv fp hj]
+      rcases Nat.lt_or_gt_of_ne hij with h | h
+      · right
+        have : (n - 1 - j + 1) * fs lv.decode ≤ (n - 1 - i) * fs lv.decode := Nat.mul_le_mul_right _ (by omega)
+        rw [Nat.add_mul, Nat.one_mul] at this
+        omega
+      · left
+        have : (n - 1 - i + 1) * fs lv.decode ≤ (n - 1 - j) * fs lv.decode := Nat.mul_le_mul_right _ (by omega)
+        rw [Nat.add_mul, Nat.one_mul] at this
+        omega
   obtain ⟨h12, hLin⟩ := Main.memL_append.mp hL
   obtain ⟨hR, hO⟩ := Main.memL_append.mp h12
   have hd := hmem rd hlow hLin
@@ -281,7 +341,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
       (RegionL (dqRunL cert lv.decode (sqDecAt fs lv n fp j) (sqW cv j))) (sqDecAt fs lv n fp j) (fs lv.decode)
       lv.decode [sqW cv j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
         qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)] [] := fun j hj => by
-    refine (Classical.choose_spec (hdecj j hj)).2 rd hlow (Main.memL_append.mpr ⟨Main.memL_append.mpr ⟨?_, ?_⟩, hLin⟩)
+    refine (Classical.choose_spec (hdecj j hj)).2.2 rd hlow (Main.memL_append.mpr ⟨Main.memL_append.mpr ⟨?_, ?_⟩, hLin⟩)
     · intro q hq
       exact hR q (by
         simp only [sqRuns, List.mem_flatten, List.mem_map, List.mem_range]
