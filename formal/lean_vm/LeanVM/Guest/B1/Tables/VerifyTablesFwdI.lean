@@ -356,5 +356,56 @@ theorem completes_items {C : CallRel} {rd : Reader} {lo hi : ℕ} (hv : ℕ → 
   ⟨_, fRunI_ext rd hv hok, rfl, fun _ _ hn =>
     holdsList_flatMap its (fun it hit _ hn' => fRunI_holds rd hv _ its [] σ hok (fun _ => rfl) hob it hit _ _ hn') hn⟩
 
+/-! ## The obligations as a list -/
+
+/-- An item's obligation. -/
+inductive IOb where
+  | ob (o : Ob)
+  | fs (s0 s1 cur : V) (j : ℕ)
+  | sq (s0 s1 : V)
+  | callIf (c : V) (f : String) (args : List V)
+  | disp (x : V) (fns : List String) (args rets : List V)
+  deriving DecidableEq
+
+/-- What an item's obligation asks of the final valuation. -/
+def IOb.Holds (C : CallRel) (rd : Reader) (σf : Val) : IOb → Prop
+  | .ob o => o.Holds rd σf
+  | .fs s0 s1 cur j => IsInK (σf cur) ∧ (rd ((σf cur).limb 0 * Parameters.gpow j)).isSome ∧
+      ∃ cv, (σf s0, σf s1) = digestScalars cv
+  | .sq s0 s1 => ∃ cv, (σf s0, σf s1) = digestScalars cv
+  | .callIf c f args => IsInK (σf c) ∧ (σf c ≠ 0 → C f (args.map σf) [])
+  | .disp x fns args rets => ∃ (j : ℕ) (h : j < fns.length), σf x = ofK (Parameters.gpow j) ∧
+      C fns[j] (args.map σf) (rets.map σf)
+
+/-- An item's obligations. -/
+def iObs1 (lo : ℕ) (D : List ℕ) : FItem → List IOb
+  | .atom a => (fObs1 lo D a).map .ob
+  | .fs s0 s1 cur j _ => [.fs s0 s1 cur j]
+  | .sq s0 s1 _ => [.sq s0 s1]
+  | .callIf c f args => [.callIf c f args]
+  | .disp x fns args rets => [.disp x fns args rets]
+  | .hint _ => []
+
+/-- A body's obligations. -/
+def iObs (lo : ℕ) : List ℕ → List FItem → List IOb
+  | _, [] => []
+  | D, it :: its => iObs1 lo D it ++ iObs lo (fDStepI lo D it) its
+
+theorem IObl_of_obs {C : CallRel} {rd : Reader} {lo : ℕ} {D : List ℕ} {σf : Val} {it : FItem}
+    (h : ∀ o ∈ iObs1 lo D it, o.Holds C rd σf) : IObl C rd lo D σf it := by
+  cases it with
+  | atom a => exact fObl1_of_obs fun o ho => h (.ob o) (List.mem_map_of_mem ho)
+  | fs s0 s1 cur j b => exact h _ (List.mem_singleton_self _)
+  | sq s0 s1 b => exact h _ (List.mem_singleton_self _)
+  | callIf c f args => exact h _ (List.mem_singleton_self _)
+  | disp x fns args rets => exact h _ (List.mem_singleton_self _)
+  | hint _ => trivial
+
+theorem IObls_of_obs {C : CallRel} {rd : Reader} {lo : ℕ} {σf : Val} : ∀ (its : List FItem) (D : List ℕ),
+    (∀ o ∈ iObs lo D its, o.Holds C rd σf) → IObls C rd lo σf D its
+  | [], _, _ => trivial
+  | _ :: its, _, h => ⟨IObl_of_obs fun o ho => h o (List.mem_append_left _ ho),
+      IObls_of_obs its _ fun o ho => h o (List.mem_append_right _ ho)⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
