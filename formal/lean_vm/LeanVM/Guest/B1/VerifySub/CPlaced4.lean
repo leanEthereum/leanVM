@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.VerifySub.CPlaced3
+public import LeanVM.Guest.B1.VerifySub.CLog2c
 public import LeanVM.Guest.B1.Tables.Kappas
 
 /-!
@@ -16,8 +16,9 @@ public import LeanVM.Guest.B1.Tables.Kappas
 terminal, each with the words it reads (`vsAllL`, `verify_sub`'s own and the caller's, and for the
 terminal the buffers the placement and the opening return) and what it returns. Each is
 `CompleteAt` (`vsKids1_complete`, `vsOpenKid_complete`, `vsTermKid_complete`) from the callees'
-placed completeness, group 1's `g_power_of_word` (`gpw6_completeAt`), `assert_canonical` and
-the two loops (pure, `completeAt_of_rel_pure`).
+placed completeness, group 1's `g_power_of_word` (`gpw6_completeAt`) and
+`log2_ceil_in_the_exponent` (`CLog2c`), `assert_canonical` and the two loops (pure,
+`completeAt_of_rel_pure`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -160,8 +161,7 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
     (htok : D.TOk bytecode) (hG : CompleteGkrAt fs cert κ)
     (hT : CompleteTablesAt fs cert κ bytecode TCtx) (hF : CompleteFlockAt fs cert κ)
     (hPl : CompletePlaceAt fs cert κ PCtx)
-    (hL0 : CompleteRel fs cert κ "log2_ceil_in_the_exponent__L0_L34" (Log2Pre 0))
-    (hL15 : CompleteRel fs cert κ "log2_ceil_in_the_exponent__L15_L34" (Log2Pre 15)) :
+    (hκ : 6 ≤ κ) :
     ∀ k ∈ vsKids1 fs D fp lpA sqA outA, k.taken = true →
       CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
   intro k hk ht
@@ -173,12 +173,13 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
     vsAll_mem (off := 0) (kap := 0) (pt := 0) hm
   have CE := cur_eqs (fs := fs) (fp := fp) (D := D) (off := 0) (kap := 0) (pt := 0)
   obtain ⟨-, hl28, hst⟩ := stack_facts hb hok
+  have hE : ∀ q ∈ expL lpA sqA, q ∈ vsAllL fs D fp lpA sqA outA := fun q hq =>
+    List.mem_append_right _ (List.mem_append_left _ hq)
   simp only [vsKids1, List.mem_cons, List.mem_nil_iff, or_false] at hk
   rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · exact gpw6_completeAt' fs cert κ (by have := hok.rate_le; omega) sqA
   · exact gpw6_completeAt' fs cert κ (by have := hok.logMem_le; omega) sqA
-  · exact hL0 _ _ _ fun rd _ hm =>
-      ⟨D.pushTotal, _, _, rfl, by simp, hN, by simpa using hl, (M rd hm).2.1⟩
+  · exact log2L0_completeAt hκ hN hl lpA sqA _ hE
   · exact hc _ (isCanonical128_digestScalars _).1
   · exact hc _ (isCanonical128_digestScalars _).2
   · have h := hG D.cvB _ D.xsG D.gr D.cvG (vsB fs fp D 2 + 10) (vsB fs fp D 7) _ hok.depth_lt hok.gkr
@@ -238,8 +239,7 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
       rw [← this]; exact readsAt_getD hm0.zvals (by simp [VsData.fpoint, hok.rcs_length]; omega)
   · exact hPl _ _ _ D.logMem D.hs _ hok.logMem_le (hs_length hok) (hs_lt hok) fun rd _ hm =>
       placePre_of (M rd hm).2.1 (M rd hm).1
-  · exact hL15 _ _ _ fun rd _ hm =>
-      ⟨D.stackTot, _, _, rfl, rfl, hst, by omega, (M rd hm).2.1⟩
+  · exact log2L15_completeAt hκ hst (by omega) lpA sqA _ hE
 
 /-- **The opening is complete**, on its run and the agreement `CapOk` at the cap. -/
 theorem vsOpenKid_complete {κ : ℕ} {CapOk : ℕ → ℕ → Digest → Digest → List E → List Opening → E → Prop}

@@ -15,8 +15,7 @@ public import LeanVM.Guest.B1.VerifySub.CPlaced7
 the opening's agreement at the cap `CapOk`), at every frame pointer one tree of one size serves
 every memory holding `verify_sub`'s buffers, its callees' and the caller's words it reads (the
 exponent tables at `g^lpA`, `g^sqA`, `defer_out`'s cells at `g^outA`): `verify_sub` holds of the
-run's public input and seed, from its callees' placed completeness and group 1's
-`log2_ceil_in_the_exponent`.
+run's public input and seed, from its callees' placed completeness.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -32,10 +31,6 @@ set_option maxRecDepth 100000 in
 theorem vs_not_loop : coreProgram.loop "verify_sub" = false := by
   rw [Program.loop_of_find? find_verify_sub]; decide +kernel
 
-theorem list1 {α : Type} {l : List α} (h : l.length = 1) : ∃ a, l = [a] := by
-  rcases l with _ | ⟨a, _ | ⟨b, l⟩⟩ <;> simp at h
-  exact ⟨a, rfl⟩
-
 variable {fs : String → ℕ} {cert : String → V → ℕ} {bytecode : List K} {D : VsData}
 
 /-- **`verify_sub` is complete**, uniformly and placed: on an accepting run within the deployed
@@ -45,8 +40,6 @@ theorem verify_sub_completeAt {κ : ℕ} (hκ : 6 ≤ κ)
     (hG : CompleteGkrAt fs cert κ) (hT : CompleteTablesAt fs cert κ bytecode TCtx)
     (hF : CompleteFlockAt fs cert κ) (hPl : CompletePlaceAt fs cert κ PCtx)
     (hO : CompleteOpenAt fs cert κ CapOk) (hE : CompleteTermAt fs cert κ TCtx PCtx)
-    (hL0 : CompleteRel fs cert κ "log2_ceil_in_the_exponent__L0_L34" (Log2Pre 0))
-    (hL15 : CompleteRel fs cert κ "log2_ceil_in_the_exponent__L15_L34" (Log2Pre 15))
     (hb : bytecode.length = 2 ^ 22) (hok : D.Ok bytecode) (htok : D.TOk bytecode)
     (hcap : CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os
       D.target)
@@ -59,7 +52,7 @@ theorem verify_sub_completeAt {κ : ℕ} (hκ : 6 ≤ κ)
   have hfit := vsBufs_fit hok htok
   -- the calls before the dispatch
   obtain ⟨N1, L1, outs1, ho1, hw1, hi1, hK1⟩ := kidsFromIn_of_kids' κ (vsKids1 fs D fp lpA sqA outA)
-    (vsKids1_complete hb hok htok hG hT hF hPl hL0 hL15) (fp + fs "verify_sub" + (vsSizes D).sum)
+    (vsKids1_complete hb hok htok hG hT hF hPl hκ) (fp + fs "verify_sub" + (vsSizes D).sum)
   obtain ⟨o0, o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, rfl⟩ :=
     list12 (ho1.length.trans (by simp [vsKids1]))
   have h10 : PlaceOut D o10.1 o10.2 := by

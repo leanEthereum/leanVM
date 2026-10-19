@@ -15,8 +15,7 @@ public import LeanVM.Guest.B1.VerifySub.CPlaced2
 * `expL`: the exponent tables at `lpA`, `sqA`; `vsExtL`: those and `defer_out`'s cells, the words
   of the caller `verify_sub` reads; `vsOwnL`: its own buffers, from `fp + fs "verify_sub"`;
 * `vsMem0_of`: a memory holding them holds the run's buffers (`VsMem0`) at `vsPtrsAt`;
-* the cursors at their addresses (`cur_eqs`), and `Log2Pre`, the shape of group 1's
-  `log2_ceil_in_the_exponent` this file takes.
+* the cursors at their addresses (`cur_eqs`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -99,12 +98,6 @@ theorem chis_of (hL : MemL rd (vsOwnL fs fp D)) :
   exact g
 
 /-! ## The callees' preconditions -/
-
-/-- `log2_ceil_in_the_exponent`'s precondition, floor `lo`: `g^N`, `N < 2^34` with its result
-below `2^34`, and the exponent tables; its result returned. -/
-def Log2Pre (lo : ℕ) (rd : Reader) (args rets : List E) : Prop :=
-  ∃ (N : ℕ) (lp sq : E), args = [gen ^ N, lp, sq] ∧ rets = [gen ^ max lo (log2Ceil N)] ∧
-    N < 2 ^ 34 ∧ max lo (log2Ceil N) < 34 ∧ ExpTables rd lp sq
 
 /-- The address of `verify_sub`'s buffer `i` at `fp`. -/
 def vsB (fs : String → ℕ) (fp : ℕ) (D : VsData) (i : ℕ) : ℕ := (vsBases D (fp + fs "verify_sub")).getD i 0
