@@ -139,8 +139,23 @@ theorem g1_pure_two {f g : String} {fn gn : Fn} (hf : coreProgram.find? f = some
 
 /-! ## Certificate facts -/
 
-/-- `decode_query_bits` at depth `d`. -/
-def dqName (d : ℕ) : String := s!"decode_query_bits__L{d}"
+/-- `decode_query_bits` at depth `d`, `14 ≤ d ≤ 26` (literal names: the kernel does not reduce
+`Nat.repr`). -/
+def dqName : ℕ → String
+  | 14 => "decode_query_bits__L14"
+  | 15 => "decode_query_bits__L15"
+  | 16 => "decode_query_bits__L16"
+  | 17 => "decode_query_bits__L17"
+  | 18 => "decode_query_bits__L18"
+  | 19 => "decode_query_bits__L19"
+  | 20 => "decode_query_bits__L20"
+  | 21 => "decode_query_bits__L21"
+  | 22 => "decode_query_bits__L22"
+  | 23 => "decode_query_bits__L23"
+  | 24 => "decode_query_bits__L24"
+  | 25 => "decode_query_bits__L25"
+  | 26 => "decode_query_bits__L26"
+  | _ => ""
 
 /-- **The certificate facts of group 1's frame runs**: each run lies in its function's frame. -/
 structure G1Certs (fs : String → ℕ) (cert : String → V → ℕ) : Prop where
