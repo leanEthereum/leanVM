@@ -1,0 +1,24 @@
+module
+
+public import LeanVM.Guest.Memory.GuestCntOM.Range
+
+namespace LeanVM.Guest
+
+open Core Memory Data
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+theorem kwomstaticRange_184 : kwomStaticRange 184 2 := by
+  unfold kwomStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kwomstaticRange_186 : kwomStaticRange 186 1 := by
+  unfold kwomStaticRange; decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem kwomstaticRange_187 : kwomStaticRange 187 1 := by
+  unfold kwomStaticRange; decide +kernel
+
+end
+end LeanVM.Guest
