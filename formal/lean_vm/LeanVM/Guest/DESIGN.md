@@ -40,5 +40,5 @@ Per source function, a lemma relating its relation to the Spec definition it com
 
 ## Open
 
-* The budget's slack: `verify_sub`'s weight carries its callees' loops at their deployed maxima (`verify_tables`', `verify_flock`'s, `check_opening_terminal`'s), not the honest run's trip counts, which limits how many children a node within `2^28` may have.
+* The budget's slack, which limits how many children a node within `2^28` may have: first `verify_sub`'s words bound (`vsBound`: `open_stacked`'s `osBop` and its callees' loops at their deployed maxima), which sets the node's memory height; then its instruction weight, which carries the same loops (`verify_tables`', `verify_bus_gkr`'s, `check_opening_terminal`'s) at their maxima, not the honest run's trip counts. Bounding them by each child's own layout would need per-child layout terms in `End.Work`.
 * Modules above about 3.5 GB: a few generated windows that are one statement (a `match` or `dispatch` of many arms) and the largest hand-written `Tables` decides.
