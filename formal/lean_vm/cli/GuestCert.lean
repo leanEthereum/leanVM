@@ -1146,6 +1146,8 @@ structure Ctx where
   envOf : ℕ → List ℕ   -- callee entry pc ↦ its self cells
   fsz : ℕ
   bitsOf : ℕ → ℕ
+  /-- The selectors of the `match`es whose arms are counted separately. -/
+  keyed : Std.HashSet ℕ := {}
 
 
 structure St where
@@ -1184,6 +1186,8 @@ structure Out where
   /-- The callee frames and table reads in flight before each top-level atom after another
   statement. -/
   flight : Std.HashMap ℕ (Std.HashMap ℕ (List (ℕ × FC)) × Std.HashMap ℕ (ℕ × ℕ)) := {}
+  /-- Each separately counted `match`: its selector and each arm's counts to the join. -/
+  armCosts : Array (ℕ × List (List ℕ)) := #[]
 
 abbrev M := ReaderT Ctx (StateT Out (Except String))
 
@@ -1573,15 +1577,21 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
       | .match_ xv arms =>
         let (_, st1, x?) ← toEndPeek p st xv
         let some x := x? | throw ("match end")
+        -- a separately counted match's arms each count from zero, and the path after it from the jump
+        let keyed := c.keyed.contains xv.idx
         let rs ← (arms.zip x.succ).mapM fun (a, t) => do
           let s ← getSeg t
           envCheck st1 s
-          block a (t, 0) st1
+          block a (t, 0) (if keyed then { st1 with cnt := [0, 0, 0, 0, 0, 0] } else st1)
         let ends := rs.filterMap id
+        if keyed then
+          modify fun o => { o with armCosts := o.armCosts.push (xv.idx, rs.map fun r =>
+            (r.map (·.2.cnt)).getD [0, 0, 0, 0, 0, 0]) }
         match ← meetJ (ends.map (·.1)) with
         | some J =>
           let sj ← getSeg J
           let st2 := joinSt st1 (ends.map (·.2))
+          let st2 := if keyed then { st2 with cnt := st1.cnt } else st2
           envCheck st2 sj
           p := (J, 0); st := st2; moved := false
         | none => return none
@@ -1998,12 +2008,16 @@ end GuestCert
 
 namespace GuestCert
 
+/-- The functions whose top-level `match`es have their arms counted separately (`Data.cplArms`). -/
+def armedFns : List String := ["verify_lean_xmss"]
+
 /-- The completeness data of function `j`: the fixed cells, call sites, table jumps, temporaries
 and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
 def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap ℕ (List ℕ))
     (expTable : Std.HashMap ℕ ℕ) (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (segs : Array GSeg)
     (fsz : ℕ) : Except String (String × List (ℕ × Cpl.PC) × List ℕ × List (ℕ × ℕ) × List (ℕ × ℕ) ×
-      Array (ℕ × Pos × List ℕ × ℕ × ℕ) × (ℕ → List Core.Stmt → GSeg → ℕ → ℕ)) := do
+      Array (ℕ × Pos × List ℕ × ℕ × ℕ) × (ℕ → List Core.Stmt → GSeg → ℕ → ℕ) ×
+      Array (ℕ × List (List ℕ))) := do
   let f := fns[j]!
   let F := factsOf T f (j == 1)
   let vcells : Std.HashSet ℕ := locs.foldl (·.insert ·) {}
@@ -2019,7 +2033,10 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
   let cell (v : ℕ) : ℕ := locs.getD v 0
   let ctx : Cpl.Ctx := ⟨f.name, cell, vcells, plumb, T.pows, segMap, f.entry, cf.params.length,
-    j == 1, fun e => selfByEntry.getD e [], fsz, fun r => expTable.getD r 0⟩
+    j == 1, fun e => selfByEntry.getD e [], fsz, fun r => expTable.getD r 0,
+    if armedFns.contains f.name then (cf.body.filterMap fun
+      | .match_ v _ => some v.idx
+      | _ => none).foldl (·.insert ·) {} else {}⟩
   let st00 : Cpl.St := plumb.fold (fun st o pc => match pc with
     | .k l => if vcells.contains o then { st with know := st.know.insert o l, occ := st.occ.insert o } else st
     | _ => st) {}
@@ -2061,7 +2078,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
   let sh := ((byCell.toList.filter fun (c, vs) => 2 ≤ c && 2 ≤ vs.length).map (·.1)).mergeSort (· ≤ ·)
   let statL := plumb.toList.mergeSort (·.1 ≤ ·.1)
   return (·, statL, sh, tmps.map (fun v => (v.idx, cell v.idx)), runs.map (fun v => (v.idx, cell v.idx)),
-    out.marks, fun t => Cpl.midStop ctx st0 (out.flight.getD t ({}, {}))) <|
+    out.marks, fun t => Cpl.midStop ctx st0 (out.flight.getD t ({}, {})), out.armCosts) <|
     s!"/-- `{f.name}`. -/
 noncomputable def plumb{j} : B2C.Plumb where
   stat := {listText stat}
@@ -2575,6 +2592,21 @@ def cplwDir : System.FilePath := "LeanVM/Guest/B2C/Cplw"
 
 def partText (p : List ℕ) : String := listText (p.map toString)
 
+/-- `Data/CplArms.lean`: by compiled function, its separately counted `match`es, the counts of
+each arm. -/
+def armsFile (rows : List (Array (ℕ × List (List ℕ)))) : String :=
+  let n := (rows.zipIdx.filter (!·.1.isEmpty)).foldl (fun m (_, j) => max m (j + 1)) 0
+  let rowText (r : Array (ℕ × List (List ℕ))) : String :=
+    listText (r.toList.map fun (x, cs) => s!"({x}, {listText (cs.map partText)})")
+  header "Data.CplArms" "The per-arm instruction counts of the `match`es whose arms the completeness walk counts\n  separately." ++
+    "public import LeanVM.Guest.Code\n\n/-!\nFunction `j`'s entry is a list of `(x, costs)`: the `match` on the renumbered value `x` has its\n" ++
+    "arms counted separately, arm `k` at most `costs[k]` instructions of each opcode (in `Opcode`'s\n" ++
+    "order) from its segment to the join, the callees' apart. Every other `match` counts its arms by\n" ++
+    "their maximum. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\n@[expose] public section\n\n" ++
+    "/-- The per-arm counts, by function. -/\ndef cplArms : List (List (ℕ × List (List ℕ))) := " ++
+    (if n == 0 then "[]" else "[\n  " ++ ",\n  ".intercalate ((rows.take n).map rowText) ++ "]") ++
+    "\n\nend\nend LeanVM.Guest.Data\n"
+
 /-- `Data/CplParts.lean`, the decide modules `B2C/Cplw/C*.lean` and their index `B2C/Cplw.lean`. -/
 def cplFiles (fps : List FnParts) : List (System.FilePath × String) := Id.run do
   let n := fps.length
@@ -2656,20 +2688,22 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
   let mut shareStatics : Array (ℕ × ℕ) := #[]
   let mut snapTexts : Array (ℕ × List String) := #[]
   let mut cplFns : Array CplK.FnParts := #[]
+  let mut armRows : Array (Array (ℕ × List (List ℕ))) := #[#[]]
   for (cf, i) in P.zipIdx do
     -- the smaller windows, or the larger ones where the sharing check cannot cut the smaller, and
     -- for `main` and `verify_sub`, whose windows `Sound`'s obligations name
     let attempt (coarse : Bool) := do
       let (c, sizes, fsz, locs, segs, (starts, los, his, insW), offs) ← certOf coarse T fns index (i + 1) cf
-      let (pt, statL, sh, tmps, runs, marks, stopAt) ← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
+      let (pt, statL, sh, tmps, runs, marks, stopAt, acs) ← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
       let (sts, costs) ← ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs
-      pure (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, sts, costs)
-    let (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, sts, costs) ←
+      pure (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs)
+    let (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs) ←
       if i + 1 == 1 || i + 1 == 16 then attempt true
       else match attempt false with
         | .ok r => pure r
         | .error _ => attempt true
     certs := certs.push c
+    armRows := armRows.push acs
     cplFns := cplFns.push (CplK.partsOf (i + 1) fns[i + 1]! (factsOf T fns[i + 1]! (i == 0)) cf segs starts offs sizes marks
       stopAt)
     plumbs := plumbs.push pt
@@ -2739,7 +2773,7 @@ noncomputable def certs : List Check.Cert :=
     (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
         else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareStatics shareWins P.length ++
-    (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ CplK.cplFiles cplFns.toList
+    (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ CplK.cplFiles cplFns.toList ++ [(dataDir / "CplArms.lean", CplK.armsFile armRows.toList)]
 
 /-- The generated files on disk. -/
 def existing : IO (List System.FilePath) := do
