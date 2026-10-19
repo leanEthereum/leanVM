@@ -67,7 +67,7 @@ private theorem os_take_getD_drop {α : Type} : ∀ (l : List α) (j : ℕ) (d :
     simp only [List.take_succ_cons, List.getD_cons_succ, List.drop_succ_cons, List.cons_append]
     exact congrArg (a :: ·) (os_take_getD_drop l j d (by simpa using h))
 
-private theorem os_bases_getD : ∀ (b : ℕ) (sizes : List ℕ) (j : ℕ), j < sizes.length →
+theorem os_bases_getD : ∀ (b : ℕ) (sizes : List ℕ) (j : ℕ), j < sizes.length →
     (bases b sizes).getD j 0 = b + (sizes.take j).sum
   | _, [], _, h => absurd h (by simp)
   | b, s :: sizes, 0, _ => by simp [bases]
