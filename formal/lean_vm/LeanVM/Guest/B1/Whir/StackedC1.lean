@@ -130,7 +130,7 @@ theorem osFold_complete {s : OsSt} {cv : Digest} {cur : E} {p : ℕ} {xs : List 
     (hst : LoadHolds rd (σ (.n fch)) fo (challengeOf (sqCv cv))) :
     Stmt.HoldsList C rd σ (osFold s fch fo).1 True kret ∧
       OsAt σ (osFold s fch fo).2 (obsAll (sqCv cv) [xs.getD p 0, xs.getD (p + 1) 0]) cur (p + 2) ∧
-      (osFold s fch fo).2.co = 0 ∧
+      (osFold s fch fo).2.co = 0 ∧ σ (.n (osFold s fch fo).2.cb) = σ (.n s.cb) * osGw s.co * gen ^ 2 ∧
       σ (.n (osFold s fch fo).2.t) = polyEval [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (challengeOf (sqCv cv)) ∧
       [σ (.n (osFold s fch fo).2.c), σ (.n (osFold s fch fo).2.b), σ (.n (osFold s fch fo).2.a)] =
         [xs.getD p 0, polyEval [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (challengeOf (sqCv cv)) +
@@ -166,7 +166,7 @@ theorem osFold_complete {s : OsSt} {cv : Digest} {cur : E} {p : ℕ} {xs : List 
   unfold osFold
   dsimp only
   rw [hR]
-  refine ⟨?_, ⟨?_, ?_⟩, rfl, g3, ?_, by rw [hvals, hlen, hr]; ring⟩
+  refine ⟨?_, ⟨?_, ?_⟩, rfl, g2, g3, ?_, by rw [hvals, hlen, hr]; ring⟩
   · rw [holdsList_append]
     refine (holdsList_noRet _ (osMat_noRet _ _ _) _ _).mpr ⟨hm.1, ?_⟩
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, os_range7, List.map_cons, List.map_nil, and_true]
@@ -179,6 +179,150 @@ theorem osFold_complete {s : OsSt} {cv : Digest} {cur : E} {p : ℕ} {xs : List 
     rw [g2, pow_zero, mul_one, hgw, hat.cursor, mul_assoc, ← pow_add]
   · show [σ (.n (r + 4)), σ (.n (r + 9)), σ (.n (r + 5))] = _
     rw [g4, g9, g5]
+
+/-- The call relation `open_stacked`'s honest valuation is checked under: its callees are placed
+separately, so every call holds. -/
+abbrev osTC : CallRel := fun _ _ _ => True
+
+theorem os_drop_cons {xs : List E} {p : ℕ} {a : E} {rest : List E} (h : xs.drop p = a :: rest) :
+    xs.getD p 0 = a ∧ rest = xs.drop (p + 1) := by
+  have h0 := congrArg (·[0]?) h
+  simp only [List.getElem?_drop, Nat.add_zero, List.getElem?_cons_zero] at h0
+  refine ⟨by simp [List.getD_eq_getElem?_getD, h0], ?_⟩
+  rw [← List.drop_drop, h]; rfl
+
+theorem os_drop_cons2 {xs : List E} {p : ℕ} {a b : E} {rest : List E} (h : xs.drop p = a :: b :: rest) :
+    xs.getD p 0 = a ∧ xs.getD (p + 1) 0 = b ∧ rest = xs.drop (p + 2) := by
+  obtain ⟨h1, h2⟩ := os_drop_cons h
+  obtain ⟨h3, h4⟩ := os_drop_cons h2.symm
+  exact ⟨h1, h3, by rw [h4]⟩
+
+/-- The values of `n` fold rounds from their first. -/
+def osFoldsVals (xs : List E) : ℕ → Digest → ℕ → List E → E → ℕ → List E
+  | 0, _, _, _, _, _ => []
+  | n + 1, cv, p, q, bv, co =>
+    let ch := challengeOf (sqCv cv)
+    let t := polyEval q ch
+    let d0 := xs.getD p 0
+    let d2 := xs.getD (p + 1) 0
+    osFoldVals xs cv p q bv co ++
+      osFoldsVals xs n (obsAll (sqCv cv) [d0, d2]) (p + 2) [d0, t + d2, d2] (bv * osGw co * gen ^ 2) 0
+
+theorem os_foldRounds_folds : ∀ {n : ℕ} {w : WhirState} {lf : List E} {s : St} {res : WhirState × List E} {s' : St},
+    Runs (foldRounds n w lf) s res s' →
+      ∃ chs, res.1.folds = w.folds ++ chs ∧ res.2 = lf ++ chs ∧ chs.length = n
+  | 0, w, lf, s, res, s', h => by
+    obtain ⟨rfl, -⟩ := os_inv_pure h
+    exact ⟨[], by simp, by simp, rfl⟩
+  | n + 1, w, lf, s, res, s', h => by
+    simp only [foldRounds] at h
+    obtain ⟨ch, s1, -, h2⟩ := os_inv_bind h
+    obtain ⟨q, s2, -, h4⟩ := os_inv_bind h2
+    obtain ⟨chs, h5, h6, h7⟩ := os_foldRounds_folds h4
+    exact ⟨ch :: chs, by rw [h5]; simp, by rw [h6]; simp, by simp [h7]⟩
+
+theorem os_runs_foldStep {q : List E} {sp sp' : St} {r : E × E × List E}
+    (h : Runs (foldStep q) sp r sp') :
+    ∃ d0 d2 rest, sp.stream = d0 :: d2 :: rest ∧
+      r = (challengeOf (sqCv sp.cv), polyEval q (challengeOf (sqCv sp.cv)),
+        [d0, polyEval q (challengeOf (sqCv sp.cv)) + d2, d2]) ∧
+      sp' = ⟨obsAll (sqCv sp.cv) [d0, d2], rest, sp.openings, sp.roots⟩ := by
+  simp only [foldStep] at h
+  obtain ⟨ch, s1, h1, h2⟩ := os_inv_bind h
+  obtain ⟨qq, s2, h3, h4⟩ := os_inv_bind h2
+  obtain ⟨rfl, rfl⟩ := os_inv_pure h4
+  obtain ⟨rfl, rfl⟩ := os_inv_sampleE h1
+  obtain ⟨c0, c2, rest, hs, rfl, rfl⟩ := os_inv_roundPoly3 h3
+  exact ⟨c0, c2, rest, hs, rfl, rfl⟩
+
+/-- **The fold rounds** at their honest values: `n` rounds of `foldRounds` (V:1678) from the
+specification's state at `p` words of `xs` read, each challenge stored at `fch[fo + j]`. -/
+theorem osFolds_complete {xs : List E} {cur : E} {fch : ℕ} {kret : List E → Prop} :
+    ∀ (n fo : ℕ) (s : OsSt) (cv : Digest) (p : ℕ) (w : WhirState) (lf : List E) (osp : List Opening)
+      (roots : List (Digest × ℕ × ℕ)) (res : WhirState × List E) (sp' : St),
+      OsAt σ s cv cur p → s.co < 2 ^ 128 → w.quad = [σ (.n s.c), σ (.n s.b), σ (.n s.a)] →
+      Runs (foldRounds n w lf) ⟨cv, xs.drop p, osp, roots⟩ res sp' →
+      (∀ j < (osFoldsVals xs n cv p w.quad (σ (.n s.cb)) s.co).length,
+        σ (.n (s.k + j)) = (osFoldsVals xs n cv p w.quad (σ (.n s.cb)) s.co).getD j 0) →
+      (∀ j < n, LoadHolds rd (σ (.n fch)) (fo + j) (res.1.folds.getD (w.folds.length + j) 0)) →
+      Stmt.HoldsList osTC rd σ (osFolds fch fo n s).1 True kret ∧
+        OsAt σ (osFolds fch fo n s).2 sp'.cv cur (p + 2 * n) ∧ sp' = ⟨sp'.cv, xs.drop (p + 2 * n), osp, roots⟩ ∧
+        res.1.quad = [σ (.n (osFolds fch fo n s).2.c), σ (.n (osFolds fch fo n s).2.b),
+          σ (.n (osFolds fch fo n s).2.a)] ∧ res.1.target = (if n = 0 then w.target else σ (.n (osFolds fch fo n s).2.t)) ∧
+        res.1.glued = w.glued ∧ res.1.folds.length = w.folds.length + n ∧
+        (∃ chs, res.1.folds = w.folds ++ chs ∧ res.2 = lf ++ chs) ∧
+        (osFolds fch fo n s).2.co = (if n = 0 then s.co else 0) ∧
+        (osFolds fch fo n s).2.k = s.k + (osFoldsVals xs n cv p w.quad (σ (.n s.cb)) s.co).length
+  | 0, fo, s, cv, p, w, lf, osp, roots, res, sp', hat, _, _, hrun, _, _ => by
+    obtain ⟨rfl, rfl⟩ := os_inv_pure hrun
+    exact ⟨trivial, by simpa [osFolds] using hat, by simp, by simpa [osFolds], by simp, rfl, by simp,
+      ⟨[], by simp, by simp⟩, by simp [osFolds], by simp [osFolds, osFoldsVals]⟩
+  | n + 1, fo, s, cv, p, w, lf, osp, roots, res, sp', hat, hco, hq, hrun, hv, hst => by
+    rw [foldRounds_succ] at hrun
+    obtain ⟨⟨ch, t, q'⟩, sp1, h1, h2⟩ := os_inv_bind hrun
+    obtain ⟨d0, d2, rest, hs, he, hsp1⟩ := os_runs_foldStep h1
+    simp only at hs
+    obtain ⟨hd0, hd2, hrest⟩ := os_drop_cons2 hs
+    simp only [Prod.mk.injEq] at he
+    obtain ⟨rfl, rfl, rfl⟩ := he
+    subst hrest
+    simp only at hsp1
+    subst hsp1
+    rw [hq] at hv
+    set V1 := osFoldVals xs cv p [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (σ (.n s.cb)) s.co with hV1
+    have hvs : osFoldsVals xs (n + 1) cv p [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (σ (.n s.cb)) s.co =
+        V1 ++ osFoldsVals xs n (obsAll (sqCv cv) [d0, d2]) (p + 2)
+          [d0, polyEval [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (challengeOf (sqCv cv)) + d2, d2]
+          (σ (.n s.cb) * osGw s.co * gen ^ 2) 0 := by rw [osFoldsVals, ← hd0, ← hd2]
+    rw [hvs] at hv
+    obtain ⟨chs', hF1, hF2, hFl⟩ := os_foldRounds_folds h2
+    simp only at hF1 hF2
+    have hst0 : LoadHolds rd (σ (.n fch)) fo (challengeOf (sqCv cv)) := by
+      have := hst 0 (by omega)
+      rw [hF1, List.append_assoc, oq_getD_app_ge (by omega), Nat.add_sub_cancel_left] at this
+      simpa using this
+    obtain ⟨hH1, hat1, hco1, hcb1, ht1, hq1, hk1⟩ := osFold_complete (C := osTC) (rd := rd) (xs := xs)
+      (fch := fch) (fo := fo) (kret := kret) hat hco (fun j hj => by
+        have hj' : j < V1.length := hj
+        rw [hv j (by simp only [List.length_append]; omega), oq_getD_app_lt hj]) trivial hst0
+    rw [hd0, hd2] at hat1 hq1
+    rw [← hV1] at hk1
+    set st1 := (osFold s fch fo).2
+    set w1 : WhirState := ⟨polyEval [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (challengeOf (sqCv cv)),
+      [d0, polyEval [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (challengeOf (sqCv cv)) + d2, d2],
+      w.folds ++ [challengeOf (sqCv cv)], w.glued⟩ with hw1
+    have ih := osFolds_complete (xs := xs) (cur := cur) (fch := fch) (kret := kret) n (fo + 1) st1
+      (obsAll (sqCv cv) [d0, d2]) (p + 2) w1
+      (lf ++ [challengeOf (sqCv cv)]) osp roots res sp' hat1 (by rw [hco1]; exact Nat.two_pow_pos 128) (by rw [hq1])
+      (by simp only at h2; rw [hq] at h2; exact h2)
+      (fun j hj => by
+        rw [show w1.quad = [d0, polyEval [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (challengeOf (sqCv cv)) + d2, d2]
+          from rfl, hcb1, hco1] at hj ⊢
+        rw [hk1, Nat.add_assoc, hv _ (by simp only [List.length_append]; omega), oq_getD_app_ge (by omega),
+          Nat.add_sub_cancel_left])
+      (fun j hj => by
+        have := hst (j + 1) (by omega)
+        rwa [show fo + 1 + j = fo + (j + 1) by ring, show w1.folds.length + j = w.folds.length + (j + 1) by
+          rw [show w1.folds = w.folds ++ [challengeOf (sqCv cv)] from rfl]; simp; omega])
+    obtain ⟨hH, hat', hsp', hq', ht', hg', hfl', ⟨chs, hc1, hc2⟩, hco', hk'⟩ := ih
+    refine ⟨?_, by rwa [show p + 2 * (n + 1) = p + 2 + 2 * n by ring], by rw [hsp']; congr 2; ring, hq', ?_,
+      hg', by rw [hfl', show w1.folds = w.folds ++ [challengeOf (sqCv cv)] from rfl]; simp; omega,
+      ⟨challengeOf (sqCv cv) :: chs, by rw [hc1, show w1.folds = w.folds ++ [challengeOf (sqCv cv)] from rfl]; simp,
+        by rw [hc2]; simp⟩, ?_, ?_⟩
+    · show Stmt.HoldsList osTC rd σ ((osFold s fch fo).1 ++ (osFolds fch (fo + 1) n st1).1) True kret
+      rw [holdsList_append]
+      exact (holdsList_noRet _ (osFold_noRet _ _ _) _ _).mpr ⟨hH1, hH⟩
+    · rw [ht', ite_neg' (show ¬ (n + 1 = 0) by omega)]
+      rcases Nat.eq_zero_or_pos n with rfl | hn
+      · rw [ite_pos' (show (0 : ℕ) = 0 from rfl)]; exact ht1.symm
+      · rw [ite_neg' (show ¬ (n = 0) by omega)]; rfl
+    · show (osFolds fch (fo + 1) n st1).2.co = _
+      rw [hco', hco1]; split <;> simp
+    · show (osFolds fch (fo + 1) n st1).2.k = _
+      rw [hk', hk1, hq, hvs, List.length_append]
+      rw [show w1.quad = [d0, polyEval [σ (.n s.c), σ (.n s.b), σ (.n s.a)] (challengeOf (sqCv cv)) + d2, d2]
+        from rfl, hcb1, hco1]
+      ring
 
 end
 end LeanVM.Guest.B1
