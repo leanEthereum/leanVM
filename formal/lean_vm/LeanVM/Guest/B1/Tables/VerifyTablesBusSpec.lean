@@ -287,5 +287,191 @@ theorem vt_bus_totals (hP4 : PushTotalEval) (hP5 : PullTotalEval) (hP6 : CountTo
         List.getD_eq_getElem _ _ (by rw [hvl]; omega)])
       (hpwp _ _ hlco cown6 _ hcl28 hcl hcr) rfl).symm
 
+/-! ## The forms -/
+
+theorem push_runs : ∀ t < 6, ∀ j < 34, (layoutPushOwners.getD j 0 = t ↔ pushStart.getD t 0 ≤ j ∧
+    j < pushStart.getD t 0 + ((tables.getD t default).flushes.push).length) := by decide +kernel
+theorem pull_runs : ∀ t < 6, ∀ j < 34, (layoutPushOwners.getD j 0 = t ↔ pushStart.getD t 0 ≤ j ∧
+    j < pushStart.getD t 0 + ((tables.getD t default).flushes.pull).length) := by decide +kernel
+theorem push_starts : ∀ t < 6, pushStart.getD t 0 =
+    ((tables.take t).map fun x => x.flushes.push.length).sum ∧
+    pushStart.getD t 0 + ((tables.getD t default).flushes.push).length ≤ 34 ∧
+    ((vtEqhiVars.getD t []).getD 0 []).length = ((tables.getD t default).flushes.push).length := by
+  decide +kernel
+theorem pull_starts : ∀ t < 6, pushStart.getD t 0 =
+    ((tables.take t).map fun x => x.flushes.pull.length).sum ∧
+    pushStart.getD t 0 + ((tables.getD t default).flushes.pull).length ≤ 34 ∧
+    ((vtEqhiVars.getD t []).getD 1 []).length = ((tables.getD t default).flushes.pull).length := by
+  decide +kernel
+theorem count_runs : ∀ t < 6, ∀ j < 28, (layoutCountOwners.getD j 0 = t ↔ countStart.getD t 0 ≤ j ∧
+    j < countStart.getD t 0 + (vtCountCols.getD t []).length) := by decide +kernel
+theorem count_starts : ∀ t < 6, countStart.getD t 0 =
+    ((vtCountCols.take t).map List.length).sum ∧
+    countStart.getD t 0 + (vtCountCols.getD t []).length ≤ 28 ∧
+    ((vtEqhiVars.getD t []).getD 2 []).length = (vtCountCols.getD t []).length := by
+  decide +kernel
+
+theorem tables_countColumns : tables.map (·.countColumns) = vtCountCols := by
+  have := congrArg (List.map Prod.fst) tables_counts
+  rw [List.map_map] at this
+  exact this
+
+theorem countColumns_getD {t : ℕ} (ht : t < 6) :
+    (tables.getD t default).countColumns = vtCountCols.getD t [] := by
+  rw [← tables_countColumns, List.getD_eq_getElem _ _ (by simpa [tables_length'] using ht),
+    List.getD_eq_getElem _ _ (by simpa [tables_length'] using ht), List.getElem_map]
+
+theorem evaluate_col (l : ℕ) (column : ℕ → E) : (Form.col l).evaluate column = column l := by
+  simp [Form.col, evaluate_eq, termVal, vt_sumE_cons, vt_sumE_nil, Verifier.gpow]
+
+theorem sumE_ite_false {α : Type} (l : List α) (P : α → Prop) [DecidablePred P] (f : α → E) :
+    sumE (l.map fun p => if P p ∧ False then f p else 0) = 0 := by
+  simp only [and_false, ↓reduceIte]
+  exact vt_sumE_zero l
+
+/-- The selectors of a side's table blocks, from those of the whole side. -/
+theorem sels_getD {fw : List Placement} {tb : List Placement} {point : List E} {ρ : ℕ → E} {m n : ℕ}
+    (hfw : fw.length = m) (htb : tb.length = n)
+    (hsel : ∀ i < m + n, ρ (selVal.getD i 0 + 23) = ((fw ++ tb).getD i default).eqAbove point)
+    {j : ℕ} (hj : j < n) :
+    ρ (selVal.getD (m + j) 0 + 23) = (tb.map (·.eqAbove point)).getD j 0 := by
+  rw [hsel _ (by omega), List.getD_eq_getElem _ _ (by simp [hfw, htb]; omega),
+    List.getElem_append_right (by omega), List.getD_eq_getElem _ _ (by simp [htb]; omega),
+    List.getElem_map]
+  congr 2
+  omega
+
+/-- **The bus forms** at the guest's values: table `t`'s form on each side is its blocks' forms
+(its count columns, on the count side) weighted by its `eq_hi`. -/
+theorem vt_bus_forms {bytecode : List K} (hb : bytecode.length = 2 ^ 22) {logMem : ℕ}
+    {rows : List ℕ} (hr : rows.length = 6) {ρ χ : ℕ → E} {alphas point : List E}
+    (hal : alphas.length = 4) (hχ : ∀ i < 16, (eqKernel alphas).getD i 0 = χ i)
+    (hsel : ∀ i < 37, ρ (selVal.getD i 0 + 23) =
+      (((busLayout [0, logMem, 18] (layoutOf bytecode logMem rows).push).framework ++
+        (busLayout [0, logMem, 18] (layoutOf bytecode logMem rows).push).tables).getD i
+          default).eqAbove point)
+    (hselc : ∀ j < 28, ρ (selVal.getD (37 + j) 0 + 23) =
+      ((busLayout [] (layoutOf bytecode logMem rows).count).tables.getD j default).eqAbove point)
+    (heqhi : ∀ t < 6, ∀ s < 3, ∀ k < ((vtEqhiVars.getD t []).getD s []).length,
+      ρ (((vtEqhiVars.getD t []).getD s []).getD k 0) = ρ (selVal.getD (eqhiSel t s k) 0 + 23))
+    (treeValues memory : List E) (mF bF bv : E) {t : ℕ} (ht : t < 6) (ev : ℕ → E) :
+    let bus := busVal (layoutOf bytecode logMem rows) alphas (ρ 12) point treeValues memory mF bF bv
+    (formAt bus.forms t 0).evaluate ev =
+        sumE ((List.zip ((vtEqhiVars.getD t []).getD 0 []) (tables.getD t default).flushes.push).map
+          fun p => ρ p.1 * (blockForm ⟨0, 0, p.2, t⟩ ((List.range 16).map χ) (ρ 12)).evaluate ev) ∧
+      (formAt bus.forms t 1).evaluate ev =
+        sumE ((List.zip ((vtEqhiVars.getD t []).getD 1 []) (tables.getD t default).flushes.pull).map
+          fun p => ρ p.1 * (blockForm ⟨0, 0, p.2, t⟩ ((List.range 16).map χ) (ρ 12)).evaluate ev) ∧
+      (formAt bus.forms t 2).evaluate ev =
+        sumE ((List.zip ((vtEqhiVars.getD t []).getD 2 []) (vtCountCols.getD t [])).map
+          fun p => ρ p.1 * ev p.2) ∧
+      FormsShaped bus.forms := by
+  obtain ⟨hlb, -, hpo, hco, -, -, -, -, hpc, hlc, hcc, hpp⟩ :=
+    layoutOf_blocks bytecode hb logMem rows hr
+  set L := layoutOf bytecode logMem rows with hLd
+  have hlm : L.logMemory = logMem := rfl
+  have hwk := eqKernel_four hal hχ
+  have hlpo : layoutPushOwners.length = 34 := rfl
+  have hlco : layoutCountOwners.length = 28 := rfl
+  have hpl34 : L.push.length = 34 := by
+    have := congrArg List.length hpo; simp only [List.length_map] at this; rw [this, hlpo]
+  have hll34 : L.pull.length = 34 := by
+    have := congrArg List.length hpp; simp only [List.length_map] at this; rw [this, hpl34]
+  have hcl28 : L.count.length = 28 := by
+    have := congrArg List.length hco; simp only [List.length_map] at this; rw [this, hlco]
+  have hlo : L.pull.map (·.owner) = layoutPushOwners := by
+    have := congrArg (List.map fun x : ℕ × ℕ × ℕ => x.1) hpp
+    simp only [List.map_map] at this; rw [← hpo]; exact this
+  have hpull := busLayout_pull_push bytecode hb logMem rows hr
+  have po6 : ∀ b ∈ L.push, b.owner < 6 := fun b hb => by
+    have := List.mem_map_of_mem (f := (·.owner)) hb; rw [hpo] at this
+    exact vt_owners_lt.1 _ this
+  have lo6 : ∀ b ∈ L.pull, b.owner < 6 := fun b hb => by
+    have := List.mem_map_of_mem (f := (·.owner)) hb; rw [hlo] at this
+    exact vt_owners_lt.1 _ this
+  have co6 : ∀ b ∈ L.count, b.owner < 6 := fun b hb => by
+    have := List.mem_map_of_mem (f := (·.owner)) hb; rw [hco] at this
+    exact vt_owners_lt.2 _ this
+  obtain ⟨hfw, htl⟩ := busLayout_lengths [0, logMem, 18] L.push
+  obtain ⟨-, hctl⟩ := busLayout_lengths [] L.count
+  rw [hpl34] at htl
+  rw [hcl28] at hctl
+  simp only [busVal_eq, hlb, hlm]
+  set fp1 := fingerprints (eqKernel alphas) memory (point.take logMem) (point.take 18) bv
+    (Verifier.gpow 0) 1 1
+  set fp2 := fingerprints (eqKernel alphas) memory (point.take logMem) (point.take 18) bv
+    (Verifier.gpow (2 ^ 18 - 1)) mF bF
+  set A1 := accumulateSide (tables.map fun _ ↦ [{}, {}, {}]) 0 L.push
+    (busLayout [0, logMem, 18] L.push) fp1 (eqKernel alphas) (ρ 12) point (treeValues.getD 0 0)
+  set A2 := accumulateSide A1.1 1 L.pull (busLayout [0, logMem, 18] L.pull) fp2 (eqKernel alphas)
+    (ρ 12) point (treeValues.getD 1 0)
+  set A3 := accumulateSide A2.1 2 L.count (busLayout [] L.count) [] [1] 0 point
+    (treeValues.getD 2 0)
+  have F1 := fun s => accSide_forms (side := 0) (by omega) t s ev forms0_shaped po6
+    (busLayout [0, logMem, 18] L.push) fp1 (eqKernel alphas) (ρ 12) point (treeValues.getD 0 0)
+  have sh1 := (F1 0).2
+  have F2 := fun s => accSide_forms (side := 1) (by omega) t s ev sh1 lo6
+    (busLayout [0, logMem, 18] L.pull) fp2 (eqKernel alphas) (ρ 12) point (treeValues.getD 1 0)
+  have sh2 := (F2 0).2
+  have F3 := fun s => accSide_forms (side := 2) (by omega) t s ev sh2 co6
+    (busLayout [] L.count) [] [1] 0 point (treeValues.getD 2 0)
+  have hsp : ∀ k < 34, ρ (selVal.getD (3 + k) 0 + 23) =
+      ((busLayout [0, logMem, 18] L.push).tables.map (·.eqAbove point)).getD k 0 :=
+    fun k hk => sels_getD hfw htl hsel hk
+  have hsc : ∀ k < 28, ρ (selVal.getD (37 + k) 0 + 23) =
+      ((busLayout [] L.count).tables.map (·.eqAbove point)).getD k 0 := fun k hk => by
+    rw [hselc k hk, List.getD_eq_getElem _ _ (by simp [hctl]; omega),
+      List.getD_eq_getElem _ _ (by simp [hctl]; omega), List.getElem_map]
+  have hselLen : ((busLayout [0, logMem, 18] L.push).tables.map (·.eqAbove point)).length = 34 := by
+    simp [htl]
+  have hcLen : ((busLayout [] L.count).tables.map (·.eqAbove point)).length = 28 := by
+    simp [hctl]
+  refine ⟨?_, ?_, ?_, (F3 0).2⟩
+  · rw [(F3 0).1, (F2 0).1, (F1 0).1, formAt_forms0]
+    simp only [show ¬ ((1 : ℕ) = 0) from by decide, show ¬ ((2 : ℕ) = 0) from by decide, and_false,
+      and_true, ↓reduceIte, vt_sumE_zero, add_zero, zero_add, hwk]
+    obtain ⟨hst, hn, hel⟩ := push_starts t ht
+    refine Eq.trans ?_ (vt_side_sum layoutPushOwners pushStart (·.flushes.push) push_runs
+      (fun t ht => (push_starts t ht).1) (fun t ht => (push_starts t ht).2.1) hpl34 hselLen hpo hpc
+      (fun cs => (blockForm ⟨0, 0, cs, t⟩ ((List.range 16).map χ) (ρ 12)).evaluate ev) ρ ht hel
+      fun k hk => ?_)
+    · rfl
+    rw [heqhi t ht 0 (by omega) k hk, eqhiSel, ite_neg' (by omega), Nat.add_assoc, hsp _ (by omega)]
+  · rw [(F3 1).1, (F2 1).1, (F1 1).1, formAt_forms0]
+    simp only [show ¬ ((0 : ℕ) = 1) from by decide, show ¬ ((2 : ℕ) = 1) from by decide, and_false,
+      and_true, ↓reduceIte, vt_sumE_zero, add_zero, zero_add, hwk]
+    rw [hpull]
+    obtain ⟨hst, hn, hel⟩ := pull_starts t ht
+    refine Eq.trans ?_ (vt_side_sum layoutPushOwners pushStart (·.flushes.pull) pull_runs
+      (fun t ht => (pull_starts t ht).1) (fun t ht => (pull_starts t ht).2.1) hll34 hselLen hlo hlc
+      (fun cs => (blockForm ⟨0, 0, cs, t⟩ ((List.range 16).map χ) (ρ 12)).evaluate ev) ρ ht hel
+      fun k hk => ?_)
+    · rfl
+    rw [heqhi t ht 1 (by omega) k hk, eqhiSel, ite_neg' (by omega), Nat.add_assoc, hsp _ (by omega)]
+  · rw [(F3 2).1, (F2 2).1, (F1 2).1, formAt_forms0]
+    simp only [show ¬ ((0 : ℕ) = 2) from by decide, show ¬ ((1 : ℕ) = 2) from by decide, and_false,
+      and_true, ↓reduceIte, vt_sumE_zero, add_zero, zero_add]
+    obtain ⟨hst, hn, hel⟩ := count_starts t ht
+    have hfl : ∀ t < 6, ((tables.getD t default).countColumns.map fun l => [Form.col l]).length =
+        (vtCountCols.getD t []).length := fun t ht => by rw [List.length_map, countColumns_getD ht]
+    have hcst : ∀ t < 6, countStart.getD t 0 =
+        ((tables.take t).map fun x => (x.countColumns.map fun l => [Form.col l]).length).sum :=
+      fun t ht => by
+        rw [(count_starts t ht).1, ← tables_countColumns, ← List.map_take, List.map_map]
+        exact congrArg List.sum (List.map_congr_left fun x _ => (List.length_map _).symm)
+    refine Eq.trans (vt_side_sum layoutCountOwners countStart
+      (fun x => x.countColumns.map fun l => [Form.col l])
+      (fun t ht j hj => by rw [hfl t ht]; exact count_runs t ht j hj) hcst
+      (fun t ht => by rw [hfl t ht]; exact (count_starts t ht).2.1) hcl28 hcLen hco hcc
+      (fun cs => (blockForm ⟨0, 0, cs, t⟩ [1] 0).evaluate ev) ρ ht
+      (eqh := (vtEqhiVars.getD t []).getD 2 []) (by rw [hfl t ht]; exact hel)
+      fun k hk => ?_) ?_
+    · rw [heqhi t ht 2 (by omega) k hk, eqhiSel, ite_pos' rfl, Nat.add_assoc, hsc _ (by omega)]
+    · rw [countColumns_getD ht, List.zip_map_right, List.map_map]
+      refine congrArg sumE (List.map_congr_left fun p hp => ?_)
+      simp only [Function.comp_apply, Prod.map, id, evaluate_blockForm, List.zipIdx_cons,
+        List.zipIdx_nil, List.map_cons, List.map_nil, vt_sumE_cons, vt_sumE_nil, List.getD_cons_zero,
+        evaluate_col, one_mul, add_zero, zero_add]
+
 end
 end LeanVM.Guest.B1.VerifySub
