@@ -1,0 +1,122 @@
+/-
+  LeanVM.Guest.B1.Whir.OsCallees
+
+  The placed completeness `open_stacked` assumes of its callees from group 1.
+-/
+
+module
+
+public import LeanVM.Guest.B1.FiatShamir
+public import LeanVM.Guest.B1.Opening
+public import LeanVM.Guest.B1.RowWeights
+public import LeanVM.Guest.B1.FoldFinal
+public import LeanVM.Guest.B1.OpeningOod
+public import LeanVM.Guest.B1.Grind
+public import LeanVM.Guest.B1.QueryBits
+public import LeanVM.Guest.B1.Uniform
+
+/-!
+# `open_stacked`'s callees from group 1, placed
+
+What `open_stacked`'s completeness takes of the callees other groups prove, in the uniform placed
+form (`Uniform.lean`):
+
+* the functions returning fixed words, `CompleteRel` on their meaning without their own scratch:
+  `opening_fold`, `assert_canonical`, `opening_ood_point` (its states' run its own),
+  `grind_check` (its frame run its own), `opening_final_message__L{n}`,
+  `opening_row_weights__L{folds}_L{rev}`, `fold_final_msg__L{n}`;
+* `decode_query_bits__L{d}`, which stores pointers into its own frame run in the caller's buffer,
+  in an explicit form: at every frame pointer `fp`, a tree of `fs name` words whose data holds the
+  run of the word's 192 bits at its certificate cell (`dqRunL`), on every memory where the
+  caller's words hold the decoded positions and the run's pointers.
+
+`OsCalleesAt` collects them at the names and shapes the 28 configurations call.
+-/
+
+namespace LeanVM.Guest.B1
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Guest.B1.Main (MemL RegionL)
+
+@[expose] public section
+
+/-- **`opening_fold`, placed** (TRIAGE #31). -/
+def OsFoldAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop := CompleteRel fs cert k "opening_fold" MeaningOpeningFold
+
+/-- **`assert_canonical`, placed** (TRIAGE #2). -/
+def OsAssertCanonicalAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop :=
+  CompleteRel fs cert k "assert_canonical" fun _ args rets => MeaningAssertCanonical args rets
+
+/-- `opening_ood_point`'s meaning without its states' run. -/
+def OodPointPre (rd : Reader) : List E → List E → Prop
+  | [fs0, fs1, point, ng], rets =>
+      ∃ m < ordG, ng = gen ^ m ∧
+        ((m = 0 ∧ rets = [fs0, fs1]) ∨
+          (0 < m ∧ ∃ cv rs cv', (fs0, fs1) = digestScalars cv ∧ RunsTo (Prog.sampleN m) cv [] rs cv' ∧
+            ReadsAt rd point rs ∧ rets = [(digestScalars cv').1, (digestScalars cv').2]))
+  | _, _ => False
+
+/-- **`opening_ood_point`, placed** (TRIAGE #32). -/
+def OsOodPointAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop := CompleteRel fs cert k "opening_ood_point" OodPointPre
+
+/-- `grind_check`'s meaning without its frame run. -/
+def GrindPre (_rd : Reader) : List E → List E → Prop
+  | [s0, s1, nonce, ng], rets =>
+      rets = [] ∧ ∃ m < ordG, ng = gen ^ m ∧ ∃ cv, (s0, s1) = digestScalars cv ∧
+        powOk m nonce (gcDigest cv nonce) = true
+  | _, _ => False
+
+/-- **`grind_check`, placed** (TRIAGE #18). -/
+def OsGrindAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop := CompleteRel fs cert k "grind_check" GrindPre
+
+/-- **`opening_final_message__L{n}`, placed** (TRIAGE #33). -/
+def OsFinalMsgAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ) : Prop := CompleteRel fs cert k name (MeaningOpeningFinalMessage n)
+
+/-- **`opening_row_weights__L{folds}_L{rev}`, placed** (TRIAGE #34). -/
+def OsRowWeightsAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (folds rev : ℕ) : Prop :=
+  CompleteRel fs cert k name (MeaningOpeningRowWeights folds rev)
+
+/-- **`fold_final_msg__L{n}`, placed** (TRIAGE #24). -/
+def OsFoldFinalAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (name : String) (n : ℕ) : Prop := CompleteRel fs cert k name (MeaningFoldFinalMsg n)
+
+/-- `decode_query_bits`' frame run at `fp`: the 192 bits of the word `w` at the certificate's
+cell of its first value `.n 3`. -/
+def dqRunL (cert : String → V → ℕ) (name : String) (fp : ℕ) (w : E) : Main.Layout :=
+  [(fp + cert name (.n 3), (List.range 192).map fun i => bitE ((eToNat w).testBit i))]
+
+/-- **`decode_query_bits__L{d}`, placed** (TRIAGE #17): at every frame pointer `fp`, on every
+memory where the caller's words `Lin` hold the decoded positions at `pos` and the run's pointers
+`g^(fp + cert name (.n 3))·g^(j·d)` at `ptrs`, a tree of `fs name` words holds, its data holding
+the run `dqRunL`, its other words `Lown`, its loads in its data or `Lin`. -/
+def OsDecodeAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d : ℕ) (name : String) : Prop :=
+  ∀ (w pos ptrs : E) (Lin : Main.Layout) (fp : ℕ),
+    (∀ rd, LowDef k rd → MemL rd Lin → ∀ j < 192 / d,
+      LoadHolds rd pos j (eOfNat ((eToNat w >>> (j * d)) % 2 ^ d)) ∧
+        LoadHolds rd ptrs j (ofK (Parameters.gpow (fp + cert name (.n 3))) * gen ^ (j * d))) →
+    ∃ Lown : Main.Layout, Within (dqRunL cert name fp w ++ Lown) fp (fs name) ∧
+      ∀ rd, LowDef k rd → MemL rd (dqRunL cert name fp w ++ Lown ++ Lin) →
+        RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL (dqRunL cert name fp w)) fp (fs name) name
+          [w, pos, ptrs] []
+
+/-- **The callees of `open_stacked` from group 1**, at the names and shapes its 28
+configurations call. -/
+structure OsCalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) : Prop where
+  fold : OsFoldAt fs cert k
+  canonical : OsAssertCanonicalAt fs cert k
+  ood : OsOodPointAt fs cert k
+  grind : OsGrindAt fs cert k
+  finalMsg4 : OsFinalMsgAt fs cert k "opening_final_message__L4" 4
+  finalMsg8 : OsFinalMsgAt fs cert k "opening_final_message__L8" 8
+  finalMsg16 : OsFinalMsgAt fs cert k "opening_final_message__L16" 16
+  finalMsg32 : OsFinalMsgAt fs cert k "opening_final_message__L32" 32
+  rowWeights4 : OsRowWeightsAt fs cert k "opening_row_weights__L4_L0" 4 0
+  rowWeights6 : OsRowWeightsAt fs cert k "opening_row_weights__L6_L1" 6 1
+  foldFinal2 : OsFoldFinalAt fs cert k "fold_final_msg__L2" 2
+  foldFinal3 : OsFoldFinalAt fs cert k "fold_final_msg__L3" 3
+  foldFinal4 : OsFoldFinalAt fs cert k "fold_final_msg__L4" 4
+  foldFinal5 : OsFoldFinalAt fs cert k "fold_final_msg__L5" 5
+  decode : ∀ d, 14 ≤ d → d ≤ 26 → OsDecodeAt fs cert k d s!"decode_query_bits__L{d}"
+
+end
+end LeanVM.Guest.B1
