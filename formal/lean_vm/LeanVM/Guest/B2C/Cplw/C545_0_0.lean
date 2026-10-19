@@ -23,6 +23,27 @@ theorem cw546_0_0 : cplWin 546 0 0 = true := by decide +kernel
 /-- `da_levels__L1024_L10`, window 0, part 0. -/
 theorem cw547_0_0 : cplWin 547 0 0 = true := by decide +kernel
 
+/-- `da_vector_cell__L1`, window 0, part 0. -/
+theorem cw548_0_0 : cplWin 548 0 0 = true := by decide +kernel
+
+/-- `da_vector_cell__L1`, window 0, part 1. -/
+theorem cw548_0_1 : cplWin 548 0 1 = true := by decide +kernel
+
+/-- `da_vector_cell__L1`, window 0, part 2. -/
+theorem cw548_0_2 : cplWin 548 0 2 = true := by decide +kernel
+
+/-- `da_vector_cell__L1`, window 0, part 3. -/
+theorem cw548_0_3 : cplWin 548 0 3 = true := by decide +kernel
+
+/-- `da_vector_cell__L0`, window 0, part 0. -/
+theorem cw549_0_0 : cplWin 549 0 0 = true := by decide +kernel
+
+/-- `da_vector_cell__L0`, window 0, part 1. -/
+theorem cw549_0_1 : cplWin 549 0 1 = true := by decide +kernel
+
+/-- `da_vector_cell__L0`, window 0, part 2. -/
+theorem cw549_0_2 : cplWin 549 0 2 = true := by decide +kernel
+
 theorem ok545 : CplOk 545 := by
   intro i hi k hk
   have hc : (certOf 545).cuts.length = 0 := by decide +kernel
@@ -52,6 +73,19 @@ theorem ok547 : CplOk 547 := by
     rw [hn] at hk
     interval_cases k
     · exact cw547_0_0
+
+theorem ok548 : CplOk 548 := by
+  intro i hi k hk
+  have hc : (certOf 548).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 548 0 = 4 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw548_0_0
+    · exact cw548_0_1
+    · exact cw548_0_2
+    · exact cw548_0_3
 
 end
 end LeanVM.Guest.B2C.Cplw

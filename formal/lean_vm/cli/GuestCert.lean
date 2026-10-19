@@ -962,7 +962,7 @@ def locChunk : ℕ := 2000
 /-- The certificate of function `j`. -/
 def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ) (j : ℕ)
     (cf : Core.Fn) : Except String (String × List ℕ × ℕ × List ℕ × Array GSeg ×
-      (Array ℕ × Array ℕ × Array ℕ × Array (List (ℕ × ℕ × ℕ))) × List ℕ) := do
+      (Array ℕ × Array ℕ × Array ℕ × Array (List (ℕ × ℕ × ℕ))) × List (ℕ × List (ℕ × Sym) × ℕ)) := do
   let f := fns[j]!
   let main := j == 1
   let F := factsOf T f main
@@ -1033,7 +1033,9 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
       | .branch _ _ _ x => tail x
       | _ => none
   let fsz := tailS.getD (f.code.foldl (fun m ins => max m (offTop ins)) (locs.foldl max 0) + 1)
-  return (·, sizes, fsz, locs, segs, (wStarts, los, his, insW), starts) <| locDefs ++ s!"/-- `{f.name}`. -/
+  let wInfo := (starts.zip stops).zipIdx.map fun ((a, b), i) =>
+    (a, if i == 0 then F.env else (cuts[i - 1]?.map (·.env)).getD [], b)
+  return (·, sizes, fsz, locs, segs, (wStarts, los, his, insW), wInfo) <| locDefs ++ s!"/-- `{f.name}`. -/
 noncomputable def cert{j} : Check.Cert where
   facts := \{ env := {envT}, fpOne := {main}, arms := {armsT}, scaled := {scaled} }
   los := {listText (los.toList.map toString)}
@@ -1176,6 +1178,9 @@ structure Out where
   there, and whether the walk stands at a segment's start (`1`: after a statement a part may
   follow, `2`: after another, `0`: not at a start). -/
   marks : Array (ℕ × Pos × List ℕ × ℕ × ℕ) := #[]
+  /-- The callee frames and table reads in flight before each top-level atom after another
+  statement. -/
+  flight : Std.HashMap ℕ (Std.HashMap ℕ (List (ℕ × FC)) × Std.HashMap ℕ (ℕ × ℕ)) := {}
 
 abbrev M := ReaderT Ctx (StateT Out (Except String))
 
@@ -1490,6 +1495,21 @@ def countRest (s : GSeg) (i : ℕ) (cnt : List ℕ) : List ℕ :=
     | .ins (.jump ..) => bump c 4
     | _ => c) cnt
 
+/-- Where a part of statements `ss` may stop inside segment `s`, from item `i`, with the callee
+frames and table reads `fl` in flight: the first item their facts (and the fixed cells of `st`) do
+not justify, before any branch. -/
+def midStop (c : Ctx) (st : St) (fl : Std.HashMap ℕ (List (ℕ × FC)) × Std.HashMap ℕ (ℕ × ℕ))
+    (ss : List Core.Stmt) (s : GSeg) (i : ℕ) : ℕ := Id.run do
+  let st := (lookahead c.cell { st with frames := fl.1, targets := fl.2 } ss).1
+  let mut k := i
+  repeat
+    match s.items[k]? with
+    | some (.ins (.instr pc ins)) => if justify c st pc ins then k := k + 1 else break
+    | some (.ins (.jump oc od of)) => if cellK c st oc && cellK c st od && cellK c st of then k := k + 1 else break
+    | some (.fact _) => k := k + 1
+    | _ => break
+  return k
+
 mutual
 partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false) :
     M (Option (Pos × St)) := do
@@ -1503,11 +1523,17 @@ partial def block (ss : List Core.Stmt) (p : Pos) (st : St) (top : Bool := false
   let mut moved := p.2 != 0
   let mut nTop := 0
   let mut prevOk := false
+  let mut prevAtom := false
   repeat
     if top then
       let fl := if moved then 0 else if prevOk then 1 else 2
       modify fun o => { o with marks := o.marks.push (nTop, p, st.cnt, st.uq, fl) }
+      if !prevAtom then
+        modify fun o => { o with flight := o.flight.insert nTop (st.frames, st.targets) }
     nTop := nTop + 1
+    prevAtom := match ss with
+      | .atom _ :: _ => true
+      | _ => false
     prevOk := match ss with
       | .ite .. :: _ | .match_ .. :: _ | .callIf .. :: _ => true
       | .call _ _ [] :: _ | .dispatch _ _ _ [] :: _ => true
@@ -1974,7 +2000,7 @@ and runs, as a `B2C.Plumb` literal; fails if the completeness walk does. -/
 def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap ℕ (List ℕ))
     (expTable : Std.HashMap ℕ ℕ) (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (segs : Array GSeg)
     (fsz : ℕ) : Except String (String × List (ℕ × Cpl.PC) × List ℕ × List (ℕ × ℕ) × List (ℕ × ℕ) ×
-      Array (ℕ × Pos × List ℕ × ℕ × ℕ)) := do
+      Array (ℕ × Pos × List ℕ × ℕ × ℕ) × (ℕ → List Core.Stmt → GSeg → ℕ → ℕ)) := do
   let f := fns[j]!
   let F := factsOf T f (j == 1)
   let vcells : Std.HashSet ℕ := locs.foldl (·.insert ·) {}
@@ -2032,7 +2058,7 @@ def plumbOfFn (T : Tables) (fns : Array CompiledFn) (selfByEntry : Std.HashMap �
   let sh := ((byCell.toList.filter fun (c, vs) => 2 ≤ c && 2 ≤ vs.length).map (·.1)).mergeSort (· ≤ ·)
   let statL := plumb.toList.mergeSort (·.1 ≤ ·.1)
   return (·, statL, sh, tmps.map (fun v => (v.idx, cell v.idx)), runs.map (fun v => (v.idx, cell v.idx)),
-    out.marks) <|
+    out.marks, fun t => Cpl.midStop ctx st0 (out.flight.getD t ({}, {}))) <|
     s!"/-- `{f.name}`. -/
 noncomputable def plumb{j} : B2C.Plumb where
   stat := {listText stat}
@@ -2351,13 +2377,15 @@ opcode a path passes up to there, and the callee frame pointer and dispatch targ
 on the paths there (a bit set). The data are the completeness walk's (`Cpl.block`'s marks), the
 same counts the kernel's walk takes. A part starts at a segment's start after a statement the
 kernel's walk may stop after (`ite`, `match_`, a call or dispatch returning nothing, a `callIf`),
-never between a `match` or `dispatch` and the top-level atom naming its selector. A window is
+never between a `match` or `dispatch` and the top-level atom naming its selector; a costly window
+whose statements are mostly atoms is cut inside its first segment, after the items the earlier
+statements' facts justify (`Cpl.midStop`). A window is
 cut in parts so that each part's walk is cheap enough (`partCost`), and the checks are grouped in
 modules (`modCost`).
 -/
 
 /-- The most a part may cost (instructions passed, plus `stmtCost` per statement). -/
-def partCost : ℕ := 4000
+def partCost : ℕ := 3000
 
 
 /-- What a statement costs the walk besides its instructions. -/
@@ -2417,9 +2445,11 @@ def insAt (m : ℕ × Pos × List ℕ × ℕ × ℕ) : ℕ := m.2.2.1.foldl (· 
 
 /-- **The parts of function `j`'s windows** (`starts` their first statements, `offs` their code
 offsets, `sizes` their instructions), from the completeness walk's marks. -/
-def partsOf (j : ℕ) (f : CompiledFn) (cf : Core.Fn) (segs : Array GSeg) (starts : Array ℕ)
-    (offs : List ℕ) (sizes : List ℕ) (marks : Array (ℕ × Pos × List ℕ × ℕ × ℕ)) : FnParts := Id.run do
+def partsOf (j : ℕ) (f : CompiledFn) (F : GFacts) (cf : Core.Fn) (segs : Array GSeg) (starts : Array ℕ)
+    (wins0 : List (ℕ × List (ℕ × Sym) × ℕ)) (sizes : List ℕ) (marks : Array (ℕ × Pos × List ℕ × ℕ × ℕ))
+    (stopAt : ℕ → List Core.Stmt → GSeg → ℕ → ℕ) : FnParts := Id.run do
   let segMap := segs.foldl (fun m s => m.insert s.start s) ({} : Std.HashMap ℕ GSeg)
+  let offs := wins0.map (·.1)
   let body := cf.body.toArray
   let bad := forbidden body cf.params.length
   let nw := starts.size
@@ -2454,13 +2484,60 @@ def partsOf (j : ℕ) (f : CompiledFn) (cf : Core.Fn) (segs : Array GSeg) (start
             (if cost a u ≥ goal then cost a u - goal else goal - cost a u) then some t else some u
         | none => some t) none
       if let some t := best then cuts := cuts.push t
-    let bounds := a :: cuts.toList
-    let partCosts := (bounds.zip (cuts.toList ++ [b])).map fun (s, e) => cost s e + sizes.getD w 0
-    let ps := (0 :: 0 :: c0 ++ [u0]) :: cuts.toList.map fun t =>
+    -- each part: its first statement, segment and counts and set-up cells there
+    let starts0 : List (ℕ × ℕ × List ℕ × ℕ) := (a, offs.getD w 0, c0, u0) :: cuts.toList.map fun t =>
       match marks[t]? with
-      | some (_, (sg, _), cnt, uq, _) => (t - a) :: sg :: cnt ++ [uq]
-      | none => []
-    wins := wins.push (if cuts.isEmpty && c0 == zero && u0 == 0 then [] else ps)
+      | some (_, (sg, _), cnt, uq, _) => (t, sg, cnt, uq)
+      | none => (t, 0, zero, 0)
+    let ends0 := cuts.toList ++ [b]
+    let stmtsOf (x y : ℕ) : List Core.Stmt := (body.toList.drop x).take (y - x)
+    let mut ps : List (List ℕ) := []
+    let mut partCosts : List ℕ := []
+    for ((sa, J, cS, uS), se) in starts0.zip ends0 do
+      let pc := cost sa se + sizes.getD w 0
+      ps := ps ++ [(sa - a) :: (if sa == a then 0 else J) :: cS ++ [uS]]
+      -- a costly part that is mostly a run of atoms walked inside one segment (from its start):
+      -- cut that run inside the segment, by statements
+      let isAtom (x : ℕ) : Bool := match body[x]? with
+        | some (.atom _) => true
+        | _ => false
+      let runs := (List.range (se - sa)).filterMap fun d =>
+        let x := sa + d
+        let fresh := x == sa || (match marks[x]? with
+          | some (_, (_, 0), _, _, _) => true
+          | _ => false)
+        if isAtom x && (x == sa || !isAtom (x - 1)) && fresh then
+          some (x, ((List.range (se - x)).takeWhile fun e => isAtom (x + e)).length)
+        else none
+      let best := runs.foldl (fun (o : Option (ℕ × ℕ)) r => match o with
+        | some q => if r.2 > q.2 then some r else some q
+        | none => some r) none
+      let mut mids : Array (ℕ × ℕ) := #[]
+      if let some (t0, len) := best then
+        let (sg, c1, u1) := if t0 == sa then (J, cS, uS) else match marks[t0]? with
+          | some (_, (sg, _), cnt, uq, _) => (sg, cnt, uq)
+          | none => (J, cS, uS)
+        if pc > partCost && 2 * len ≥ se - sa then
+          -- the window's own segments, as the kernel's walk has them
+          let (J0, env0, e0) := wins0.getD w (0, [], f.len)
+          let segW := execG F f J0 e0 (env0.foldl (fun m (o, s) => m.insert o s) {})
+          if let some s0 := segW.find? (·.start == sg) then
+            let nm := (pc + partCost - 1) / partCost
+            let mut prevS := sa
+            let mut prevM := 0
+            for k in [1:nm] do
+              let s := t0 + len * k / nm
+              if s ≤ prevS || bad.contains s then continue
+              let m := stopAt t0 (stmtsOf prevS s) s0 prevM
+              if m ≤ prevM || m ≥ s0.items.size then continue
+              mids := mids.push (s, m)
+              prevS := s
+              prevM := m
+            ps := ps ++ mids.toList.map fun (s, m) =>
+              let cnt := Cpl.countRest ⟨s0.start, s0.env, (s0.items.toList.take m).toArray, s0.exit⟩ 0 c1
+              (s - a) :: sg :: cnt ++ [u1, m]
+      partCosts := partCosts ++ (List.range (mids.size + 1)).map fun _ => pc / (mids.size + 1)
+    wins := wins.push (if ps.length == 1 && c0 == zero && u0 == 0 then [] else ps)
     costs := costs.push partCosts
   return ⟨j, f.name, wins.toList, costs.toList⟩
 
@@ -2487,11 +2564,12 @@ def cplFiles (fps : List FnParts) : List (System.FilePath × String) := Id.run d
     if fp.wins.all (·.isEmpty) then "  []"
     else "  [" ++ ",\n   ".intercalate (fp.wins.map fun w => listText (w.map partText)) ++ "]"
   let data := header "Data.CplParts" "The parts of the completeness walk's windows, and what each part's start is handed." ++
-    "public import LeanVM.Guest.Code\n\n/-!\nPart `k` of window `i` of function `j` is `[s, J, x, m, c, d, jp, b, u]`: it starts at the\n" ++
+    "public import LeanVM.Guest.Code\n\n/-!\nPart `k` of window `i` of function `j` is `[s, J, x, m, c, d, jp, b, u, mo]`: it starts at the\n" ++
     "window's statement `s` and code offset `J` (the window's start for the first part), with the\n" ++
     "counts of each opcode (in `Opcode`'s order) the walk's paths pass at most up to there, and the\n" ++
-    "bit set `u` of the callee frame pointer and dispatch target cells they set up. A window of one\n" ++
-    "part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\n@[expose] public section\n\n" ++
+    "bit set `u` of the callee frame pointer and dispatch target cells they set up, and, for a part\n" ++
+    "starting inside the segment at `J`, the number `mo` of its items before (`0` if absent). A window\n" ++
+    "of one part with nothing handed on is `[]`. Checked by `B2C.cplWin`.\n-/\n\nnamespace LeanVM.Guest.Data\n\n@[expose] public section\n\n" ++
     "/-- The parts of each window, by function and window. -/\ndef cplParts : List (List (List (List ℕ))) := [\n  [],\n" ++
     ",\n".intercalate rows ++ "]\n\nend\nend LeanVM.Guest.Data\n"
   -- the checks, in modules of consecutive parts
@@ -2563,8 +2641,9 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
   for (cf, i) in P.zipIdx do
     let (c, sizes, fsz, locs, segs, (starts, los, his, insW), offs) ← certOf T fns index (i + 1) cf
     certs := certs.push c
-    let (pt, statL, sh, tmps, runs, marks) ← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
-    cplFns := cplFns.push (CplK.partsOf (i + 1) fns[i + 1]! cf segs starts offs sizes marks)
+    let (pt, statL, sh, tmps, runs, marks, stopAt) ← plumbOfFn T fns selfByEntry expTable (i + 1) cf locs segs fsz
+    cplFns := cplFns.push (CplK.partsOf (i + 1) fns[i + 1]! (factsOf T fns[i + 1]! (i == 0)) cf segs starts offs sizes marks
+      stopAt)
     plumbs := plumbs.push pt
     let (sts, costs) ← ShareM.snaps (i + 1) cf locs starts los his insW statL sh tmps runs
     snapTexts := snapTexts.push (i + 1, sts)

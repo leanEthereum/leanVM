@@ -17,5 +17,39 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `verify_flock`, window 0, part 0. -/
 theorem cw13_0_0 : cplWin 13 0 0 = true := by decide +kernel
 
+/-- `verify_flock`, window 0, part 1. -/
+theorem cw13_0_1 : cplWin 13 0 1 = true := by decide +kernel
+
+/-- `verify_flock`, window 0, part 2. -/
+theorem cw13_0_2 : cplWin 13 0 2 = true := by decide +kernel
+
+/-- `verify_flock`, window 0, part 3. -/
+theorem cw13_0_3 : cplWin 13 0 3 = true := by decide +kernel
+
+/-- `verify_flock`, window 0, part 4. -/
+theorem cw13_0_4 : cplWin 13 0 4 = true := by decide +kernel
+
+/-- `verify_flock`, window 0, part 5. -/
+theorem cw13_0_5 : cplWin 13 0 5 = true := by decide +kernel
+
+/-- `verify_flock`, window 0, part 6. -/
+theorem cw13_0_6 : cplWin 13 0 6 = true := by decide +kernel
+
+theorem ok13 : CplOk 13 := by
+  intro i hi k hk
+  have hc : (certOf 13).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 13 0 = 7 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw13_0_0
+    · exact cw13_0_1
+    · exact cw13_0_2
+    · exact cw13_0_3
+    · exact cw13_0_4
+    · exact cw13_0_5
+    · exact cw13_0_6
+
 end
 end LeanVM.Guest.B2C.Cplw

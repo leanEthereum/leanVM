@@ -17,5 +17,31 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `check_opening_terminal`, window 0, part 0. -/
 theorem cw15_0_0 : cplWin 15 0 0 = true := by decide +kernel
 
+/-- `check_opening_terminal`, window 0, part 1. -/
+theorem cw15_0_1 : cplWin 15 0 1 = true := by decide +kernel
+
+/-- `check_opening_terminal`, window 0, part 2. -/
+theorem cw15_0_2 : cplWin 15 0 2 = true := by decide +kernel
+
+/-- `check_opening_terminal`, window 0, part 3. -/
+theorem cw15_0_3 : cplWin 15 0 3 = true := by decide +kernel
+
+/-- `check_opening_terminal`, window 0, part 4. -/
+theorem cw15_0_4 : cplWin 15 0 4 = true := by decide +kernel
+
+theorem ok15 : CplOk 15 := by
+  intro i hi k hk
+  have hc : (certOf 15).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nParts 15 0 = 5 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw15_0_0
+    · exact cw15_0_1
+    · exact cw15_0_2
+    · exact cw15_0_3
+    · exact cw15_0_4
+
 end
 end LeanVM.Guest.B2C.Cplw

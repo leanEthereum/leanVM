@@ -38,6 +38,9 @@ theorem cw25_0_0 : cplWin 25 0 0 = true := by decide +kernel
 /-- `da_verify_cell`, window 0, part 0. -/
 theorem cw26_0_0 : cplWin 26 0 0 = true := by decide +kernel
 
+/-- `da_verify_cell`, window 0, part 1. -/
+theorem cw26_0_1 : cplWin 26 0 1 = true := by decide +kernel
+
 /-- `da_vector_dispatch`, window 0, part 0. -/
 theorem cw27_0_0 : cplWin 27 0 0 = true := by decide +kernel
 
@@ -49,6 +52,9 @@ theorem cw29_0_0 : cplWin 29 0 0 = true := by decide +kernel
 
 /-- `aggregate_claims`, window 0, part 0. -/
 theorem cw30_0_0 : cplWin 30 0 0 = true := by decide +kernel
+
+/-- `aggregate_claims`, window 0, part 1. -/
+theorem cw30_0_1 : cplWin 30 0 1 = true := by decide +kernel
 
 /-- `__loop0`, window 0, part 0. -/
 theorem cw31_0_0 : cplWin 31 0 0 = true := by decide +kernel
@@ -191,10 +197,11 @@ theorem ok26 : CplOk 26 := by
   have hc : (certOf 26).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 26 0 = 1 := by decide +kernel
+  · have hn : nParts 26 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw26_0_0
+    · exact cw26_0_1
 
 theorem ok27 : CplOk 27 := by
   intro i hi k hk
@@ -231,10 +238,11 @@ theorem ok30 : CplOk 30 := by
   have hc : (certOf 30).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
-  · have hn : nParts 30 0 = 1 := by decide +kernel
+  · have hn : nParts 30 0 = 2 := by decide +kernel
     rw [hn] at hk
     interval_cases k
     · exact cw30_0_0
+    · exact cw30_0_1
 
 theorem ok31 : CplOk 31 := by
   intro i hi k hk

@@ -17,5 +17,8 @@ namespace LeanVM.Guest.B2C.Cplw
 /-- `open_stacked__L3`, window 0, part 0. -/
 theorem cw181_0_0 : cplWin 181 0 0 = true := by decide +kernel
 
+/-- `open_stacked__L3`, window 0, part 1. -/
+theorem cw181_0_1 : cplWin 181 0 1 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Cplw

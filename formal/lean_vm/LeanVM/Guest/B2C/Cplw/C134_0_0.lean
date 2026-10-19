@@ -146,6 +146,12 @@ theorem cw176_0_0 : cplWin 176 0 0 = true := by decide +kernel
 /-- `log2_ceil_in_the_exponent__L15_L34`, window 0, part 0. -/
 theorem cw177_0_0 : cplWin 177 0 0 = true := by decide +kernel
 
+/-- `open_stacked__L0`, window 0, part 0. -/
+theorem cw178_0_0 : cplWin 178 0 0 = true := by decide +kernel
+
+/-- `open_stacked__L0`, window 0, part 1. -/
+theorem cw178_0_1 : cplWin 178 0 1 = true := by decide +kernel
+
 theorem ok134 : CplOk 134 := by
   intro i hi k hk
   have hc : (certOf 134).cuts.length = 0 := by decide +kernel
