@@ -21,12 +21,12 @@ to the exponent `t` of the target `g^t` the checker expects there. `jtOk` checks
 
 namespace LeanVM.Guest.JumpTable
 
-open LeanVM.Guest LeanVM.Guest.Exec
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
 /-- The entry `(s, t)` is the `SET` at instruction `s - 167` of `__jump_tables`. -/
-def entryOk (s t : ℕ) : Bool :=
+noncomputable def entryOk (s t : ℕ) : Bool :=
   Nat.blt (s - 167) Data.f0.len &&
     match Data.f0.instrAt (s - 167) with
     | .set o k0 k1 k2 => o == s && k1 == 0 && k2 == 0 && Data.powTree.find k0 == some t
@@ -63,9 +63,82 @@ theorem allEntries_get {p : ℕ → ℕ → Bool} :
         ring
       rwa [e]
 
+theorem allEntries_split {p : ℕ → ℕ → Bool} {t : Trie ℕ} {a b : ℕ} (hv : t.val.all (p b) = true)
+    (hl : allEntries p t.left (2 * a) (a + b) = true) (hr : allEntries p t.right (2 * a) (2 * a + b) = true) :
+    allEntries p t a b = true := by
+  cases t with
+  | nil => rfl
+  | node v l r =>
+    simp only [allEntries, Trie.val, Trie.left, Trie.right, Bool.and_eq_true] at hv hl hr ⊢
+    exact ⟨⟨hv, hl⟩, hr⟩
+
 set_option maxRecDepth 100000 in
-theorem jtOk : allEntries entryOk Data.jtTrie 1 0 = true := by
+theorem jtOk_0 : allEntries entryOk (Data.jtTrie.left.left.left.left) 16 15 = true := by
   decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_1 : allEntries entryOk (Data.jtTrie.left.left.left.right) 16 23 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_2 : allEntries entryOk (Data.jtTrie.left.left.right.left) 16 19 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_3 : allEntries entryOk (Data.jtTrie.left.left.right.right) 16 27 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_4 : allEntries entryOk (Data.jtTrie.left.right.left.left) 16 17 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_5 : allEntries entryOk (Data.jtTrie.left.right.left.right) 16 25 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_6 : allEntries entryOk (Data.jtTrie.left.right.right.left) 16 21 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_7 : allEntries entryOk (Data.jtTrie.left.right.right.right) 16 29 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_8 : allEntries entryOk (Data.jtTrie.right.left.left.left) 16 16 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_9 : allEntries entryOk (Data.jtTrie.right.left.left.right) 16 24 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_10 : allEntries entryOk (Data.jtTrie.right.left.right.left) 16 20 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_11 : allEntries entryOk (Data.jtTrie.right.left.right.right) 16 28 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_12 : allEntries entryOk (Data.jtTrie.right.right.left.left) 16 18 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_13 : allEntries entryOk (Data.jtTrie.right.right.left.right) 16 26 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_14 : allEntries entryOk (Data.jtTrie.right.right.right.left) 16 22 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk_15 : allEntries entryOk (Data.jtTrie.right.right.right.right) 16 30 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem jtOk : allEntries entryOk Data.jtTrie 1 0 = true :=
+  allEntries_split (by decide +kernel) (allEntries_split (by decide +kernel) (allEntries_split (by decide +kernel) (allEntries_split (by decide +kernel) jtOk_0 jtOk_1) (allEntries_split (by decide +kernel) jtOk_2 jtOk_3)) (allEntries_split (by decide +kernel) (allEntries_split (by decide +kernel) jtOk_4 jtOk_5) (allEntries_split (by decide +kernel) jtOk_6 jtOk_7))) (allEntries_split (by decide +kernel) (allEntries_split (by decide +kernel) (allEntries_split (by decide +kernel) jtOk_8 jtOk_9) (allEntries_split (by decide +kernel) jtOk_10 jtOk_11)) (allEntries_split (by decide +kernel) (allEntries_split (by decide +kernel) jtOk_12 jtOk_13) (allEntries_split (by decide +kernel) jtOk_14 jtOk_15)))
 
 /-- The jump table the checker reads is what `__jump_tables` wrote. -/
 theorem jt_of_jumpTables {κ : ℕ} {L : MemImage κ} (h : End.JumpTables L) (hpows : Data.powTree.Ok) :
@@ -83,7 +156,7 @@ theorem jt_of_jumpTables {κ : ℕ} {L : MemImage κ} (h : End.JumpTables L) (hp
   obtain ⟨⟨⟨ho, hk1⟩, hk2⟩, hf⟩ := he
   subst ho hk1 hk2
   have := h _ hmem
-  rwa [imm_of_ofBits (PowTree.find_ok hpows (Option.some_inj.mp hf))] at this
+  rwa [imm_of_ofBits (PowTree.find_ok hpows hf)] at this
 
 end
 end LeanVM.Guest.JumpTable
