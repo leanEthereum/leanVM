@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.VerifySub.Inv1
 
 * `runs_ret_inv`, `runs_require_inv`, `runs_sampleE_inv`, `runs_readN_inv`, `runs_sumcheck_inv`:
   what a run of each primitive returns and leaves;
-* `flock_inv`: a run of `verifyFlock` at the claimed values returns the lincheck's reversed point,
+* `vs_flock_inv`: a run of `verifyFlock` at the claimed values returns the lincheck's reversed point,
   the zerocheck's point past it and the slices, of the deployed lengths, at the claimed values'
   points, and runs the same at every evaluation that takes the claimed matrices' value there.
 -/
@@ -57,7 +57,8 @@ theorem runs_sampleE_inv {s s' : St} {x : E} (h : Runs Prog.sampleE s x s') :
   exact ⟨h.1.symm, h.2.symm⟩
 
 theorem runs_readE_inv {s s' : St} {x : E} (h : Runs Prog.readE s x s') :
-    s.stream = x :: s'.stream := by
+    s.stream = x :: s'.stream ∧ s'.cv = obsCv s.cv x ∧ s'.openings = s.openings ∧
+      s'.roots = s.roots := by
   obtain ⟨cv, xs, os, roots⟩ := s
   match xs, h with
   | [], h => cases h
@@ -65,20 +66,23 @@ theorem runs_readE_inv {s s' : St} {x : E} (h : Runs Prog.readE s x s') :
     unfold Runs at h
     simp only [runId, Compile.run, Prog.readE, bind, pure, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    rfl
+    exact ⟨rfl, rfl, rfl, rfl⟩
 
 theorem runs_readN_inv : ∀ {n : ℕ} {s s' : St} {xs : List E}, Runs (Prog.readN n) s xs s' →
-    xs.length = n ∧ s.stream = xs ++ s'.stream
+    xs.length = n ∧ s.stream = xs ++ s'.stream ∧ s'.cv = obsAll s.cv xs ∧
+      s'.openings = s.openings ∧ s'.roots = s.roots
   | 0, s, s', xs, h => by
     obtain ⟨rfl, rfl⟩ := runs_ret_inv h
-    exact ⟨rfl, rfl⟩
+    exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   | n + 1, s, s', xs, h => by
     unfold Prog.readN at h
     obtain ⟨x, s1, h1, h2⟩ := runs_bind_inv' h
     obtain ⟨ys, s2, h3, h4⟩ := runs_bind_inv' h2
     obtain ⟨rfl, rfl⟩ := runs_pure_inv h4
-    obtain ⟨hl, hs⟩ := runs_readN_inv h3
-    exact ⟨by simp [hl], by rw [runs_readE_inv h1, hs]; rfl⟩
+    obtain ⟨hl, hs, hc, ho, hr⟩ := runs_readN_inv h3
+    obtain ⟨e1, e2, e3, e4⟩ := runs_readE_inv h1
+    refine ⟨by simp [hl], by rw [e1, hs]; rfl, ?_, by rw [ho, e3], by rw [hr, e4]⟩
+    rw [hc, e2]; rfl
 
 theorem runs_sampleN_inv : ∀ {n : ℕ} {s s' : St} {xs : List E}, Runs (Prog.sampleN n) s xs s' →
     xs.length = n
@@ -117,7 +121,7 @@ then the zerocheck's point past its first `8` coordinates, and the slices; the z
 has `log_n - 6` coordinates, the lincheck's `8`, the slices `64`; the claimed values' points are
 these; and the run is the same at every evaluation of the matrices taking the claimed value
 there. -/
-theorem flock_inv {c : FixedClaims} {logN : ℕ} {s s' : St} {out : List E × List E}
+theorem vs_flock_inv {c : FixedClaims} {logN : ℕ} {s s' : St} {out : List E × List E}
     (h : Runs (verifyFlock (.claimed c) logN) s out s') :
     ∃ (zSkip : E) (chi rc : List E), out = (rc.reverse ++ chi.drop flockNumLincheckRounds, c.slices) ∧
       chi.length = 7 + (logN - flockKSkip - 7) ∧ rc.length = flockNumLincheckRounds ∧

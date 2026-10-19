@@ -11,9 +11,9 @@ public import LeanVM.Guest.B1.VerifySub.Inv2
 /-!
 # GKR and the tables, backward
 
-* `gkr_inv`: a run of `gkrPhase depth` returns a nonzero count root, a point of `depth`
+* `vs_gkr_inv`: a run of `gkrPhase depth` returns a nonzero count root, a point of `depth`
   coordinates and three values;
-* `tables_inv`: a run of `tablesSeg` at the claimed values reads the bytecode at the claimed point,
+* `vs_tables_inv`: a run of `tablesSeg` at the claimed values reads the bytecode at the claimed point,
   and runs the same at every evaluation taking the claimed value there.
 -/
 
@@ -24,7 +24,7 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Compile LeanVM.
 
 @[expose] public section
 
-theorem gkrStep_inv {step : ℕ} {g g' : GkrState} {s s' : St} (h : Runs (gkrStep step g) s g' s') :
+theorem vs_gkrStep_inv {step : ℕ} {g g' : GkrState} {s s' : St} (h : Runs (gkrStep step g) s g' s') :
     g'.point.length = step + g.point.length ∧ g'.values.length = 3 := by
   unfold gkrStep at h
   obtain ⟨cb, s1, -, h⟩ := runs_bind_inv' h
@@ -40,7 +40,7 @@ theorem gkrStep_inv {step : ℕ} {g g' : GkrState} {s s' : St} (h : Runs (gkrSte
   simp only [List.length_map] at h1
   simp [h1, h2]
 
-theorem gkrLayers_inv : ∀ {n : ℕ} {g g' : GkrState} {s s' : St}, Runs (gkrLayers n g) s g' s' →
+theorem vs_gkrLayers_inv : ∀ {n : ℕ} {g g' : GkrState} {s s' : St}, Runs (gkrLayers n g) s g' s' →
     g.values.length = 3 → g'.point.length = n + g.point.length ∧ g'.values.length = 3
   | 0, g, g', s, s', h, hv => by
     unfold gkrLayers at h
@@ -49,23 +49,23 @@ theorem gkrLayers_inv : ∀ {n : ℕ} {g g' : GkrState} {s s' : St}, Runs (gkrLa
   | 1, g, g', s, s', h, _ => by
     unfold gkrLayers at h
     obtain ⟨g1, s1, h1, h2⟩ := runs_bind_inv' h
-    obtain ⟨a1, a2⟩ := gkrStep_inv h1
-    obtain ⟨b1, b2⟩ := gkrLayers_inv h2 a2
+    obtain ⟨a1, a2⟩ := vs_gkrStep_inv h1
+    obtain ⟨b1, b2⟩ := vs_gkrLayers_inv h2 a2
     exact ⟨by omega, b2⟩
   | n + 2, g, g', s, s', h, _ => by
     unfold gkrLayers at h
     split at h
     · obtain ⟨g1, s1, h1, h2⟩ := runs_bind_inv' h
-      obtain ⟨a1, a2⟩ := gkrStep_inv h1
-      obtain ⟨b1, b2⟩ := gkrLayers_inv h2 a2
+      obtain ⟨a1, a2⟩ := vs_gkrStep_inv h1
+      obtain ⟨b1, b2⟩ := vs_gkrLayers_inv h2 a2
       exact ⟨by omega, b2⟩
     · obtain ⟨g1, s1, h1, h2⟩ := runs_bind_inv' h
-      obtain ⟨a1, a2⟩ := gkrStep_inv h1
-      obtain ⟨b1, b2⟩ := gkrLayers_inv h2 a2
+      obtain ⟨a1, a2⟩ := vs_gkrStep_inv h1
+      obtain ⟨b1, b2⟩ := vs_gkrLayers_inv h2 a2
       exact ⟨by omega, b2⟩
 
 /-- **GKR's run, backward.** -/
-theorem gkr_inv {depth : ℕ} {r : E × List E × List E} {s s' : St} (h : Runs (gkrPhase depth) s r s') :
+theorem vs_gkr_inv {depth : ℕ} {r : E × List E × List E} {s s' : St} (h : Runs (gkrPhase depth) s r s') :
     r.1 ≠ 0 ∧ r.2.1.length = depth ∧ r.2.2.length = 3 := by
   unfold gkrPhase verifyGkrGrandProducts at h
   obtain ⟨r0, s0, h, hq⟩ := runs_bind_inv' h
@@ -76,7 +76,7 @@ theorem gkr_inv {depth : ℕ} {r : E × List E × List E} {s s' : St} (h : Runs 
   obtain ⟨cn, s2, -, h⟩ := runs_bind_inv' h
   obtain ⟨g, s3, hg, h⟩ := runs_bind_inv' h
   obtain ⟨rfl, -⟩ := runs_pure_inv h
-  obtain ⟨a1, a2⟩ := gkrLayers_inv hg rfl
+  obtain ⟨a1, a2⟩ := vs_gkrLayers_inv hg rfl
   exact ⟨hne, by simpa using a1, a2⟩
 
 theorem claimed_bytecode_inv {c : FixedClaims} {w : List K} {pt : List E} {v : E} {s s' : St}
@@ -95,7 +95,7 @@ theorem claimed_bytecode_inv {c : FixedClaims} {w : List K} {pt : List E} {v : E
 
 /-- **The tables' run, backward**: at the claimed values, the bytecode is read at the claimed
 point, and the run is the same at every evaluation taking the claimed value there. -/
-theorem tables_inv {c : FixedClaims} {layout : Layout} {pi : Digest} {alphas : List E} {beta : E}
+theorem vs_tables_inv {c : FixedClaims} {layout : Layout} {pi : Digest} {alphas : List E} {beta : E}
     {point values : List E} {s s' : St} {out : BusResult × List ColumnClaim}
     (h : Runs (tablesSeg (.claimed c) layout pi alphas beta point values) s out s') :
     point.take layout.logBytecode ++ alphas = c.bytecodePoint ∧
