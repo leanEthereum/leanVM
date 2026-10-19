@@ -253,7 +253,7 @@ jobs:
       # of the generated kernel-checked families exceeds the runner's memory, so the script builds
       # two modules at a time.
       - name: Build
-        run: scripts/ci-build.sh
+        run: python3 -I scripts/ci-build.py
       - name: Test
         run: lake test
       - name: Check the Rust vectors' costly checks, compiled
