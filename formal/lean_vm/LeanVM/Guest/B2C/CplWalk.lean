@@ -89,7 +89,7 @@ structure PosZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) (W0
   run : ∃ pre c, pre ++ st.its = st.seg.items ∧ Fall L (gpow fp) pre ∧
     RunC guest L W0 ⟨gpow (X.entry + st.seg.start), gpow fp⟩ c ∧
     ∀ op, c op + itemOps pre op ≤ st.cnt.get op + ksum ck n op
-  fresh : ∀ t, st.fresh = some t → st.seg.start = t ∧ st.its = st.seg.items
+  fresh : ∀ t, st.fresh = some t → st.seg.start = t ∧ st.its = st.seg.items ∧ getF X.idx t = some st.seg
 
 /-- The environment of the segment at offset `J` holds; at the window's end, where none starts,
 the next window's. -/
@@ -134,7 +134,7 @@ theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ}
     fun t' ht' ↦ ?_⟩, rfl, rfl, rfl, rfl, rfl, rfl, hst⟩
   · simpa [itemOps] using hc op
   · obtain rfl := Option.some.inj ht'
-    exact ⟨hst, rfl⟩
+    exact ⟨hst, rfl, hs⟩
 
 /-- The successor `t` of an exit whose environment holds has its environment holding. -/
 theorem envAt_of_exit (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Exec.Seg}
@@ -235,7 +235,144 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
     rw [Pi.add_apply, Cnt.get_bumpJ, hc2 op]
     omega
 
+/-! ## The walk -/
+
+/-- A block ending with a loop's closing `callIf` to its function and `ret []`. -/
+def TailB (j : ℕ) (ss : List Stmt) : Prop :=
+  ∃ A c args, ss = A ++ [.callIf c (coreOf j).name args, .ret []]
+
+/-- **How the walk of a window ends by the return**: the run reaches the return registers
+(`main`: the final ones) within the most a path runs and the first `n` callees' counts, its
+returned values at the cells after its parameters. -/
+def FinZ (L : MemImage κ) (j fp : ℕ) (X : CX) (ck : List (Opcode → ℕ)) (W0 : Regs K) (n : ℕ)
+    (vs' : List V) : Prop :=
+  (∃ r cr, (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
+    RunC guest L W0 r cr ∧ ∀ op, cr op ≤ X.pmax.get op + ksum ck n op) ∧
+  ∀ k (hk : k < vs'.length), X.loc.cell vs'[k] = 2 + X.nargs + k ∧ 2 ≤ X.loc.cell vs'[k] ∧
+    X.loc.cell vs'[k] < X.fs
+
+/-- **What the walk of a block from a position gives**: on a path through the block, from a
+position the run is at, the run arrives where the walk ends, or returns. -/
+def WGood (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (ss : List Stmt) (st : CW) : Prop :=
+  ∀ (ebef eaft : List Ev) (o : Out) (W0 : Regs K) (pre : List Stmt),
+    walk σ ss = o → es = ebef ++ o.evs ++ eaft → o ≠ .stuck →
+    (Stmt.noRetList ss = true ∨ (lastOkC ss = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ ss)) →
+    ((coreOf j).loop = true → ¬ TailB j ss → ∃ e ∈ eaft, (Ev.call? e).isSome) →
+    PosZ H st W0 (calls ebef).length → (cw X ss st).ok = true →
+    (∀ J c u, cw X ss st = .join J c u → ∃ es', o = .fall es' ∧
+      Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length) ∧
+    (cw X ss st = .done → ∃ es' vs', o = .ret es' vs' ∧ FinZ L j fp X ck W0 (calls (ebef ++ es')).length vs')
+
+theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) : WGood H [] st := by
+  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  rw [walk] at hw
+  subst hw
+  rw [cw_nil] at hok ⊢
+  refine ⟨fun J c u hj ↦ ⟨[], rfl, ?_⟩, fun hd ↦ ?_⟩
+  · rw [List.append_nil]
+    rcases endC_ok hok with ⟨t, hf, he⟩ | ⟨hf, se, t, hse, hk, hsu, he⟩
+    · rw [he] at hj
+      simp only [RC.join.injEq] at hj
+      obtain ⟨rfl, rfl, rfl⟩ := hj
+      obtain ⟨hst, hits, hidx⟩ := hp.fresh _ hf
+      obtain ⟨pre, c, hpre, -, hrun, hc⟩ := hp.run
+      have : pre = [] := by
+        rw [hits] at hpre
+        simpa using hpre
+      subst this
+      refine ⟨⟨c, hst ▸ hrun, fun op ↦ by simpa [itemOps] using hc op⟩, fun s hs _ ↦ ?_,
+        fun _ hn ↦ by rw [hidx] at hn; cases hn⟩
+      rw [hidx] at hs
+      obtain rfl := Option.some.inj hs
+      exact hp.ok.env
+    · rw [he] at hj
+      simp only [RC.join.injEq] at hj
+      obtain ⟨rfl, rfl, rfl⟩ := hj
+      obtain ⟨hseg, -, -, -, -, -, hr⟩ := endAtC_reach H hp hse
+      rw [hseg] at hk hsu
+      obtain ⟨cr, hcr, hle, henv⟩ := hr _ (by rw [hk]; rfl)
+      exact ⟨⟨cr, hcr, hle⟩, envAt_of_exit H hp.seg (H.exits _ hp.seg _ (Or.inl rfl))
+        (by rw [hsu]; exact List.mem_singleton_self _) henv⟩
+  · rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, se, t, -, -, -, he⟩ <;> rw [he] at hd <;> cases hd
+
+theorem tailB_cons {s : Stmt} {ss : List Stmt} (h : TailB j (s :: ss)) :
+    (∃ c args, s = .callIf c (coreOf j).name args ∧ ss = [.ret []]) ∨ TailB j ss := by
+  obtain ⟨A, c, args, he⟩ := h
+  cases A with
+  | nil =>
+    simp only [List.nil_append, List.cons.injEq] at he
+    exact Or.inl ⟨c, args, he.1, he.2⟩
+  | cons a A =>
+    simp only [List.cons_append, List.cons.injEq] at he
+    exact Or.inr ⟨A, c, args, he.2⟩
+
+theorem lastOkC_cons {s : Stmt} {ss : List Stmt} (h : lastOkC (s :: ss) = true)
+    (hs : ∀ vs, s ≠ .ret vs) : Stmt.noRet s = true ∧ lastOkC ss = true := by
+  cases ss with
+  | nil => cases s <;> simp_all [lastOkC]
+  | cons s' ss => cases s <;> simp_all [lastOkC]
+
+/-- **A statement falling through, then the rest of the block.** -/
+theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt} {ss : List Stmt}
+    (ih : ∀ st, WGood H ss st) (hs : Stmt.noRet s = true)
+    (hnt : ∀ c args, s = .callIf c (coreOf j).name args → ss ≠ [.ret []])
+    {st st'' : CW} {ebef eaft e1 : List Ev} {o : Out} {W0 : Regs K} {pre : List Stmt}
+    (hw1 : walk1 σ s = .fall e1) (hw : walk σ (s :: ss) = o) (hes : es = ebef ++ o.evs ++ eaft)
+    (hstk : o ≠ .stuck)
+    (hshape : Stmt.noRetList (s :: ss) = true ∨
+      (lastOkC (s :: ss) = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ s :: ss))
+    (htail : (coreOf j).loop = true → ¬ TailB j (s :: ss) → ∃ e ∈ eaft, (Ev.call? e).isSome)
+    (hp'' : PosZ H st'' W0 (calls (ebef ++ e1)).length) (hcw : cw X (s :: ss) st = cw X ss st'')
+    (hok : (cw X (s :: ss) st).ok = true) :
+    (∀ J c u, cw X (s :: ss) st = .join J c u → ∃ es', o = .fall es' ∧
+      Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length) ∧
+    (cw X (s :: ss) st = .done → ∃ es' vs', o = .ret es' vs' ∧
+      FinZ L j fp X ck W0 (calls (ebef ++ es')).length vs') := by
+  rw [walk, hw1] at hw
+  subst hw
+  have hstk' : walk σ ss ≠ .stuck := fun h ↦ hstk (by rw [h]; rfl)
+  have hes' : es = (ebef ++ e1) ++ (walk σ ss).evs ++ eaft := by
+    rw [hes]
+    cases hws : walk σ ss with
+    | fall _ => simp [Out.seq, Out.pre, Out.evs, List.append_assoc]
+    | ret _ _ => simp [Out.seq, Out.pre, Out.evs, List.append_assoc]
+    | stuck => exact absurd hws hstk'
+  have hshape' : Stmt.noRetList ss = true ∨
+      (lastOkC ss = true ∧ eaft = [] ∧ (coreOf j).body = (pre ++ [s]) ++ ss) := by
+    rcases hshape with h | ⟨h, he, hb⟩
+    · simp only [Stmt.noRetList, Bool.and_eq_true] at h
+      exact Or.inl h.2
+    · refine Or.inr ⟨(lastOkC_cons h fun vs hv ↦ by subst hv; simp [Stmt.noRet] at hs).2, he, ?_⟩
+      rw [hb, List.append_assoc]
+      rfl
+  have htail' : (coreOf j).loop = true → ¬ TailB j ss → ∃ e ∈ eaft, (Ev.call? e).isSome := by
+    intro hl hnt'
+    refine htail hl fun ht ↦ ?_
+    rcases tailB_cons ht with ⟨c, args, rfl, he⟩ | ht
+    · exact hnt c args rfl he
+    · exact hnt' ht
+  rw [hcw] at hok ⊢
+  obtain ⟨h1, h2⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) rfl hes' hstk' hshape' htail' hp'' hok
+  refine ⟨fun J c u hj ↦ ?_, fun hd ↦ ?_⟩
+  · obtain ⟨es', he, ha⟩ := h1 J c u hj
+    refine ⟨e1 ++ es', by rw [he]; rfl, ?_⟩
+    rw [← List.append_assoc]
+    exact ha
+  · obtain ⟨es', vs', he, hf⟩ := h2 hd
+    refine ⟨e1 ++ es', vs', by rw [he]; rfl, ?_⟩
+    rw [← List.append_assoc]
+    exact hf
+
+theorem walk_atomZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (a : Core.Atom)
+    (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) : WGood H (.atom a :: ss) st := by
+  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  refine walk_step H ih rfl (fun c args h ↦ by cases h) rfl hw hes hs hshape htail ?_ (cw_atom a ss st) hok
+  have hc : calls (ebef ++ [.atom a]) = calls ebef := by simp [calls, Ev.call?]
+  rw [hc]
+  exact ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, fun t ht ↦ by cases ht⟩
+
 end Walk
+
 
 
 end

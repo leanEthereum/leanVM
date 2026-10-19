@@ -727,7 +727,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
           | some j =>
             bif f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
                 Nat.beq (X.G.sig j).nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
-                siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q] then
+                siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q] && !(f == X.name) then
               match brAtC X { st with fr := (q, callFC X args ((X.G.sig j).env.map (·.1)) r) :: st.fr } with
               | .ok (st', _, od, of, _) =>
                 bif cellK X st' od && cellK X st' of then

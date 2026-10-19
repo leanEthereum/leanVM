@@ -207,7 +207,7 @@ theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st
     ((∃ e q r j st' oc' od of x' se t sr, x.kind = .call (.gp e) q r ∧ calleeC X e = some j ∧
         f = (X.G.sig j).name ∧ args.length = (X.G.sig j).nargs ∧ (X.G.sig j).nret = 0 ∧
         X.entry ≤ r ∧ x.succ = [r - X.entry] ∧ siteOk X args [] q r 0 = true ∧
-        bitK st.uq q = false ∧ inFrame X.fs [q] = true ∧
+        bitK st.uq q = false ∧ inFrame X.fs [q] = true ∧ f ≠ X.name ∧
         brAtC X { st with fr := (q, callFC X args ((X.G.sig j).env.map (·.1)) r) :: st.fr } =
           .ok (st', oc', od, of, x') ∧ cellK X st' od = true ∧ cellK X st' of = true ∧
         endAtC X st' = .ok se ∧ se.seg.exit.kind = .next t ∧ t = r - X.entry ∧
@@ -239,12 +239,12 @@ theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st
       · rename_i j hj
         cases hc : (f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
             Nat.beq (X.G.sig j).nret 0 && Nat.ble X.entry r && x.succ == [r - X.entry] &&
-            siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q])
+            siteOk X args [] q r 0 && !bitK st.uq q && inFrame X.fs [q] && !(f == X.name))
         · rw [hc] at h; cases h
         rw [hc] at h
         simp only [Bool.cond_true] at h ⊢
         simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at hc
-        obtain ⟨⟨⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g4⟩, g5⟩, g6⟩, g7⟩, g8⟩ := hc
+        obtain ⟨⟨⟨⟨⟨⟨⟨⟨g1, g2⟩, g3⟩, g4⟩, g5⟩, g6⟩, g7⟩, g8⟩, g9⟩ := hc
         split at h
         · rename_i st' oc' od of x' hb
           cases hk2 : (cellK X st' od && cellK X st' of)
@@ -265,7 +265,8 @@ theorem cw_callIf {c : V} {f : String} {args : List V} {ss : List Core.Stmt} {st
               · rename_i sr hsr
                 exact ⟨e, q, r, j, st', oc', od, of, x', se, t, sr, hk, hj, g1,
                   Nat.eq_of_beq_eq_true g2, Nat.eq_of_beq_eq_true g3, Nat.le_of_ble_eq_true g4,
-                  g5, g6, g7, g8, hb, hk2.1, hk2.2, hse, ht, Nat.eq_of_beq_eq_true hk3.1, hk3.2,
+                  g5, g6, g7, g8, by simpa using g9, hb, hk2.1, hk2.2, hse, ht,
+                  Nat.eq_of_beq_eq_true hk3.1, hk3.2,
                   hsr, by simp only [Cnt.seq_eq, natSeq_eq]⟩
               · cases h
             · cases h
