@@ -150,12 +150,11 @@ theorem cGroup_sound {w : Wots} {σ : Val} (hmd : σ w.md = mdw (stepCount w.lx)
 
 /-! ## Completeness of a group -/
 
-/-- The reader is a memory of at most `2^32` words, holding at least `K`. -/
-def MemOK (rd : Reader) (K : Nat) : Prop :=
-  ∃ κ, κ ≤ 32 ∧ K ≤ 2 ^ κ ∧ ∃ L : MemImage κ, rd = L.read
+/-- The reader is defined at the first `K` powers of `g`, where the range checks read. -/
+def MemOK (rd : Reader) (K : Nat) : Prop := ∀ i < K, (rd (gpow i)).isSome
 
 theorem MemOK.mono {rd : Reader} {K K' : Nat} (h : MemOK rd K) (hle : K' ≤ K) : MemOK rd K' :=
-  let ⟨κ, h1, h2, L, e⟩ := h; ⟨κ, h1, le_trans hle h2, L, e⟩
+  fun i hi => h i (lt_of_lt_of_le hi hle)
 
 theorem digitSum_le (k : Nat) : ∀ n, digitSum k n ≤ 3 * n
   | 0 => le_rfl
@@ -170,13 +169,26 @@ theorem digitSum_lt_ten (k : Nat) {n : Nat} (hn : n ≤ 3) : digitSum k n < 10 :
 theorem word_two_pow {a : Nat} (h : a < 64) : word (2 ^ a) 0 0 = ofK (gpow a) := by
   rw [word_eq_eOfNat, eOfNat, Parameters.gpow, g_pow_eq_ofBits h]
 
-/-- **The range check is complete**: on a memory holding `K ≤ 2^64` words, `x = g^e`, `e < K`,
-passes it with its complement and the words it reads. -/
-theorem rangeCheck_witness {rd : Reader} {K : Nat} (hrd : MemOK rd K) (hK : 1 ≤ K) {e : Nat} (he : e < K) :
+theorem loadHolds_memOK {rd : Reader} {K : Nat} (hrd : MemOK rd K) {i : Nat} (hi : i < K) :
+    LoadHolds rd (ofK (gpow i)) 0 ((rd (gpow i)).getD 0) := by
+  refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
+  have e : (ofK (Parameters.gpow i)).limb 0 * Parameters.gpow 0 = Parameters.gpow i := by
+    simp [Parameters.gpow]
+  rw [e]
+  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hrd i hi)
+  rw [hv]; rfl
+
+/-- **The range check is complete**: on a memory defined at the first `K` powers, `x = g^e`,
+`e < K`, passes it with its complement and the words it reads. -/
+theorem rangeCheck_witness {rd : Reader} {K : Nat} (hrd : MemOK rd K) (_hK : 1 ≤ K) {e : Nat} (he : e < K) :
     ∃ y t1 t2 : E, LoadHolds rd (ofK (gpow e)) 0 t1 ∧ ofK (gpow (K - 1)) = ofK (gpow e) * y ∧
       LoadHolds rd y 0 t2 := by
-  obtain ⟨κ, hκ, hK2, L, rfl⟩ := hrd
-  exact (rangeCheck_iff hκ L (ofK (gpow e)) hK hK2).mpr ⟨e, he, rfl⟩
+  refine ⟨_, _, _, loadHolds_memOK hrd he, ?_, loadHolds_memOK hrd (i := K - 1 - e) (by omega)⟩
+  rw [← ofK_mul]
+  congr 1
+  simp only [Parameters.gpow, ← pow_add]
+  congr 1
+  omega
 
 /-- `σ` with the values numbered `lo ..< hi` taken from `g`. -/
 def patch (σ : Val) (lo hi : Nat) (g : Nat → E) : Val := fun v =>
