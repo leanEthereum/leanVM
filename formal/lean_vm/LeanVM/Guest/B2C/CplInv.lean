@@ -35,8 +35,9 @@ variable {X : CX}
 theorem cw_nil (st : CW) : cw X [] st = endC X st := by simp [cw]
 
 theorem cw_atom (a : Core.Atom) (ss : List Core.Stmt) (st : CW) :
-    cw X (.atom a :: ss) st = cw X ss ⟨st.seg, st.its, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, none⟩ := by
-  simp [cw]
+    cw X (.atom a :: ss) st =
+      cw X ss ⟨st.seg, st.its, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, none, nvVals (Memory.atomUses a) st.nm⟩ := by
+  simp [cw, natSeq_eq]
 
 theorem endC_ok {st : CW} (h : (endC X st).ok = true) :
     (∃ t, st.fresh = some t ∧ endC X st = .join t st.cnt st.uq) ∨
@@ -104,7 +105,7 @@ theorem afterC_ok {st sr : CW} {q r u : ℕ} {fcs : List (ℕ × FC)} {args rets
     (h : afterC X st q r u fcs args rets = .ok sr) :
     ∃ se s, endAtC X { st with fr := (q, fcs) :: st.fr } = .ok se ∧ segAtC X (r - X.entry) se = some s ∧
       sr = ⟨s.seg, s.its, s.book, (q, fcs ++ argFC X.loc (2 + args.length) rets) :: st.fr, s.tg, s.nx,
-        s.cnt, u, bif rets.isEmpty then s.fresh else none⟩ := by
+        s.cnt, u, bif rets.isEmpty then s.fresh else none, s.nm⟩ := by
   unfold afterC at h
   split at h
   · rename_i se hse
@@ -147,7 +148,7 @@ theorem cw_call {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW
 theorem cw_dispatch {v : V} {fs : List String} {args rets : List V} {ss : List Core.Stmt} {st : CW}
     (h : (cw X (.dispatch v fs args rets :: ss) st).ok = true) :
     ∃ t q r base sr, st.seg.exit.kind = .call (.cell t) q r ∧ tblRead t st.its = some (X.loc.cell v, base) ∧
-      v = V.n v.idx ∧ selOk X v = true ∧
+      v = V.n v.idx ∧ selOk X st v = true ∧
       tcOk X base args.length rets.length 0 fs = true ∧ X.entry ≤ r ∧
       st.seg.exit.succ = [r - X.entry] ∧ siteOk X args rets q r t = true ∧
       bitK st.uq q = false ∧ bitK st.uq t = false ∧ q ≠ t ∧
@@ -161,7 +162,7 @@ theorem cw_dispatch {v : V} {fs : List String} {args rets : List V} {ss : List C
   · rename_i t q r hk
     split at h
     · rename_i o1 base htb
-      cases hc : (Nat.beq o1 (X.loc.cell v) && v.path.isEmpty && Nat.beq v.tag 0 && selOk X v &&
+      cases hc : (Nat.beq o1 (X.loc.cell v) && v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v &&
           tcOk X base args.length rets.length 0 fs &&
           Nat.ble X.entry r && st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r t &&
           !bitK st.uq q && !bitK st.uq t && !Nat.beq q t &&
@@ -363,7 +364,7 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
     {st : CW} (h : (cw X (.match_ v (a0 :: as) :: ss) st).ok = true) :
     ∃ t ft t0 ts base se s0 J c0 u0 c u sj, st.seg.exit.kind = .jump (.cell t) ft ∧
       st.seg.exit.succ = t0 :: ts ∧ tblRead t st.its = some (X.loc.cell v, base) ∧
-      X.F.self ft = true ∧ ts.length = as.length ∧ v = V.n v.idx ∧ selOk X v = true ∧
+      X.F.self ft = true ∧ ts.length = as.length ∧ v = V.n v.idx ∧ selOk X st v = true ∧
       inFrame X.fs [X.loc.cell v, t] = true ∧
       X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) = true ∧
       armsOk X.G X.entry base 0 (t0 :: ts) = true ∧
@@ -378,7 +379,7 @@ theorem cw_match {v : V} {a0 : List Core.Stmt} {as : List (List Core.Stmt)} {ss 
     split at h
     · rename_i o1 base htb
       cases hc : (X.F.self ft && Nat.beq ts.length as.length && Nat.beq o1 (X.loc.cell v) &&
-          v.path.isEmpty && Nat.beq v.tag 0 && selOk X v && inFrame X.fs [o1, t] &&
+          v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v && inFrame X.fs [o1, t] &&
           X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
           armsOk X.G X.entry base 0 (t0 :: ts))
       · rw [hc] at h; cases h

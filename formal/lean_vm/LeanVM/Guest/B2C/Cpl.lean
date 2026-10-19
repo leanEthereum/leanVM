@@ -340,6 +340,8 @@ structure CW where
   cnt : Cnt
   uq : ℕ
   fresh : Option ℕ
+  /-- The renumbered values `V.n k` the atoms walked in the enclosing blocks name, as bits. -/
+  nm : ℕ
 
 /-! ## Justifying instructions -/
 
@@ -527,13 +529,13 @@ variable (X : CX)
 noncomputable def segAtC (t : ℕ) (st : CW) : Option CW :=
   match getF X.idx t with
   | some s => bif Nat.beq s.start t then
-      some ⟨s, s.items, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, some t⟩ else none
+      some ⟨s, s.items, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, some t, st.nm⟩ else none
   | none => none
 
 /-- The position at the end of the segment, its items passed, if no branch is before it. -/
 noncomputable def endAtC (st : CW) : Except ℕ CW :=
   match passL X st st.its st.cnt with
-  | .ok ([], c) => c.seq fun c ↦ .ok ⟨st.seg, [], st.book, st.fr, st.tg, st.nx, c, st.uq, none⟩
+  | .ok ([], c) => c.seq fun c ↦ .ok ⟨st.seg, [], st.book, st.fr, st.tg, st.nx, c, st.uq, none, st.nm⟩
   | .ok _ => .error 5
   | .error e => .error e
 
@@ -541,7 +543,7 @@ noncomputable def endAtC (st : CW) : Except ℕ CW :=
 noncomputable def brAtC (st : CW) : Except ℕ (CW × ℕ × ℕ × ℕ × Exec.Exit) :=
   match passL X st st.its st.cnt with
   | .ok (.branch oc od of x :: its, c) => c.bumpJ.seq fun c ↦
-      .ok (⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c, st.uq, none⟩, oc, od, of, x)
+      .ok (⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c, st.uq, none, st.nm⟩, oc, od, of, x)
   | .ok _ => .error 6
   | .error e => .error e
 
@@ -586,8 +588,15 @@ variable (X : CX)
 noncomputable def calleeC (pc : ℕ) : Option ℕ :=
   X.callees.find? fun j ↦ X.G.good j && Nat.beq (X.G.sig j).entry pc
 
-/-- A selector the path names: a parameter, or a value of one of the part's atoms. -/
-def selOk (v : V) : Bool := Nat.blt v.idx X.nargs || bitK X.nv v.idx
+/-- The renumbered values `V.n k` a value list names, set in `s`. -/
+def nvVals : List V → ℕ → ℕ
+  | [], s => s
+  | v :: vs, s => bif v.path.isEmpty && Nat.beq v.tag 0 then natSeq (setK s v.idx) fun s ↦ nvVals vs s
+    else nvVals vs s
+
+/-- A selector the path names: a parameter, a value of one of the body's atoms, or of one of the
+atoms walked in the enclosing blocks. -/
+def selOk (st : CW) (v : V) : Bool := Nat.blt v.idx X.nargs || bitK X.nv v.idx || bitK st.nm v.idx
 
 /-- The call site of a call with these argument and return values (`siteOf`). -/
 def siteC (args rets : List V) : Option Site :=
@@ -633,7 +642,7 @@ noncomputable def afterC (st : CW) (q r u : ℕ) (fcs : List (ℕ × FC)) (args 
   match endAtC X { st with fr := (q, fcs) :: st.fr } with
   | .ok se => match segAtC X (r - X.entry) se with
     | some sr => .ok ⟨sr.seg, sr.its, sr.book, (q, fcs ++ argFC X.loc (2 + args.length) rets) :: st.fr,
-        sr.tg, sr.nx, sr.cnt, u, bif rets.isEmpty then sr.fresh else none⟩
+        sr.tg, sr.nx, sr.cnt, u, bif rets.isEmpty then sr.fresh else none, sr.nm⟩
     | none => .error 7
   | .error e => .error e
 
@@ -641,7 +650,8 @@ mutual
 /-- **The completeness walk** of a block from a position. -/
 noncomputable def cw : List Core.Stmt → CW → RC
   | [], st => endC X st
-  | .atom _ :: ss, st => cw ss ⟨st.seg, st.its, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, none⟩
+  | .atom a :: ss, st => natSeq (nvVals (atomUses a) st.nm) fun m ↦
+    cw ss ⟨st.seg, st.its, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, none, m⟩
   | .ite c z n :: ss, st =>
     match brAtC X st with
     | .ok (st', oc, od, of, x) =>
@@ -674,7 +684,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
       match tblRead t st.its with
       | some (o1, base) =>
         bif X.F.self ft && Nat.beq ts.length as.length && Nat.beq o1 (X.loc.cell v) &&
-            v.path.isEmpty && Nat.beq v.tag 0 && selOk X v &&
+            v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v &&
             inFrame X.fs [o1, t] &&
             X.arms.any (fun a ↦ Nat.beq a.1 v.idx && Nat.beq a.2.1 t && Nat.beq a.2.2 base) &&
             armsOk X.G X.entry base 0 (t0 :: ts) then
@@ -718,7 +728,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
     | .call (.cell t) q r =>
       match tblRead t st.its with
       | some (o1, base) =>
-        bif Nat.beq o1 (X.loc.cell v) && v.path.isEmpty && Nat.beq v.tag 0 && selOk X v &&
+        bif Nat.beq o1 (X.loc.cell v) && v.path.isEmpty && Nat.beq v.tag 0 && selOk X st v &&
             tcOk X base args.length rets.length 0 fs &&
             Nat.ble X.entry r && st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r t &&
             !bitK st.uq q && !bitK st.uq t && !Nat.beq q t &&
@@ -857,12 +867,6 @@ noncomputable def cxOf (j : ℕ) (idx : Trie Exec.Seg) (loc : CLoc) (stat : Trie
     (coreOf j).params.length, (certOf j).nret, (certOf j).callees, (plumbOf j).sites,
     (plumbOf j).arms, (certOf j).facts.env.map (·.1), Cnt.ofList (plumbOf j).pmax, nv⟩
 
-/-- The renumbered values `V.n k` a value list names, set in `s`. -/
-def nvVals : List V → ℕ → ℕ
-  | [], s => s
-  | v :: vs, s => bif v.path.isEmpty && Nat.beq v.tag 0 then natSeq (setK s v.idx) fun s ↦ nvVals vs s
-    else nvVals vs s
-
 /-- The renumbered values a block's own atoms name. -/
 def nvOf : List Core.Stmt → ℕ → ℕ
   | [], s => s
@@ -888,10 +892,10 @@ noncomputable def cplRes (j i k : ℕ) : RC :=
     (statT (fsN j) (plumbOf j).stat .nil).seq fun stat ↦
     (fileB loc (fsN j) (partStmts j i k) .nil).seq fun B ↦
     (partC j i k).seq fun c ↦ natSeq (partU j i k) fun u ↦ natSeq (partJ j i k) fun J ↦
-    natSeq (nvOf (partStmts j i k) 0) fun nv ↦
+    natSeq (nvOf (coreOf j).body 0) fun nv ↦
     match getF idx J with
     | some s => bif Nat.beq s.start J then
-        cw (cxOf j idx loc stat nv) (partStmts j i k) ⟨s, s.items, B, [], [], [], c, u, some J⟩
+        cw (cxOf j idx loc stat nv) (partStmts j i k) ⟨s, s.items, B, [], [], [], c, u, some J, 0⟩
       else .fail 91
     | none => .fail 90
 
@@ -917,23 +921,13 @@ noncomputable def winOkC (j i : ℕ) : Bool :=
 noncomputable def lastPart (j i k : ℕ) : Bool :=
   !(Nat.blt (k + 1) (nParts j i)) && !(Nat.blt i (certOf j).cuts.length)
 
-/-- A block ending with a `callIf` to `f`, then `ret []`. -/
-def endsTail (f : String) : List Core.Stmt → Bool
-  | [] => false
-  | [.callIf _ g _, .ret []] => g == f
-  | _ :: ss => endsTail f ss
-
 /-- **The completeness check of part `k` of window `i` of function `j`**: its statements return
 only at the function's end, it starts within its window and after the part before it, and its
-walk ends as `partEnd` says; the function's last part is all of it or holds at least two
-statements, and if it ends as a loop helper, no statement of the function returns but its
-last. -/
+walk ends as `partEnd` says. -/
 noncomputable def cplWin (j i k : ℕ) : Bool :=
   (bif Nat.beq k 0 then winOkC j i else Nat.ble (partS j i (k - 1)) (partS j i k)) &&
   Nat.ble (partS j i k) ((certOf j).stmtsAt (coreOf j) i).length &&
-  (bif lastPart j i k then lastOkC (partStmts j i k) &&
-      ((Nat.beq i 0 && Nat.beq k 0) || Nat.ble 2 (partStmts j i k).length) &&
-      (bif endsTail (coreOf j).name (partStmts j i k) then lastOkC (coreOf j).body else true)
+  (bif lastPart j i k then lastOkC (partStmts j i k)
     else Stmt.noRetList (partStmts j i k)) &&
   partEnd j i k (cplRes j i k)
 

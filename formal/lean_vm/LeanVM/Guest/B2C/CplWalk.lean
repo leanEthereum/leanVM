@@ -117,6 +117,61 @@ theorem noRetList_append : ∀ (A B : List Stmt),
   | [], _ => by simp [Stmt.noRetList]
   | a :: A, B => by simp only [List.cons_append, Stmt.noRetList, noRetList_append A B, Bool.and_assoc]
 
+/-! ## Bit sets -/
+
+theorem bitK_eq (s n : ℕ) : bitK s n = s.testBit n := by
+  rw [Nat.testBit_eq_decide_div_mod_eq]
+  show Nat.beq ((s >>> n) % 2) 1 = _
+  rw [Nat.shiftRight_eq_div_pow]
+  cases h : Nat.beq (s / 2 ^ n % 2) 1
+  · simp only [Bool.false_eq, decide_eq_false_iff_not]
+    exact fun h' ↦ by rw [h', Nat.beq_refl] at h; cases h
+  · exact (decide_eq_true (Nat.eq_of_beq_eq_true h)).symm
+
+theorem testBit_setK (s n m : ℕ) : (setK s n).testBit m = (s.testBit m || decide (n = m)) := by
+  show (s ||| 1 <<< n).testBit m = _
+  rw [Nat.testBit_or, Nat.one_shiftLeft, Nat.testBit_two_pow]
+
+theorem nvVals_spec : ∀ (l : List V) (s n : ℕ), (nvVals l s).testBit n = true →
+    s.testBit n = true ∨ V.n n ∈ l
+  | [], s, n, h => Or.inl h
+  | v :: l, s, n, h => by
+    simp only [nvVals] at h
+    cases hb : (v.path.isEmpty && Nat.beq v.tag 0)
+    · rw [hb, Bool.cond_false] at h
+      exact (nvVals_spec l s n h).imp id fun h' ↦ List.mem_cons_of_mem _ h'
+    · rw [hb, Bool.cond_true, natSeq_eq] at h
+      rcases nvVals_spec l _ n h with h' | h'
+      · rw [testBit_setK, Bool.or_eq_true, decide_eq_true_eq] at h'
+        rcases h' with h' | rfl
+        · exact Or.inl h'
+        · right
+          simp only [Bool.and_eq_true, List.isEmpty_iff] at hb
+          obtain ⟨vp, vt, vi⟩ := v
+          simp only at hb
+          obtain ⟨rfl, hb⟩ := hb
+          obtain rfl := Nat.eq_of_beq_eq_true hb
+          exact List.mem_cons_self
+      · exact Or.inr (List.mem_cons_of_mem _ h')
+
+/-- A renumbered value whose bit a block's atoms set is a value of one of its atoms. -/
+theorem nvOf_spec : ∀ (ss : List Stmt) (s n : ℕ), (nvOf ss s).testBit n = true →
+    s.testBit n = true ∨ ∃ a, Stmt.atom a ∈ ss ∧ V.n n ∈ atomUses a
+  | [], s, n, h => Or.inl h
+  | .atom a :: ss, s, n, h => by
+    simp only [nvOf, natSeq_eq] at h
+    rcases nvOf_spec ss _ n h with h' | ⟨b, hb, hm⟩
+    · rcases nvVals_spec _ s n h' with h'' | h''
+      · exact Or.inl h''
+      · exact Or.inr ⟨a, List.mem_cons_self, h''⟩
+    · exact Or.inr ⟨b, List.mem_cons_of_mem _ hb, hm⟩
+  | .ite .. :: ss, s, n, h => (nvOf_spec ss s n h).imp id fun ⟨b, hb, hm⟩ ↦ ⟨b, List.mem_cons_of_mem _ hb, hm⟩
+  | .match_ .. :: ss, s, n, h => (nvOf_spec ss s n h).imp id fun ⟨b, hb, hm⟩ ↦ ⟨b, List.mem_cons_of_mem _ hb, hm⟩
+  | .call .. :: ss, s, n, h => (nvOf_spec ss s n h).imp id fun ⟨b, hb, hm⟩ ↦ ⟨b, List.mem_cons_of_mem _ hb, hm⟩
+  | .callIf .. :: ss, s, n, h => (nvOf_spec ss s n h).imp id fun ⟨b, hb, hm⟩ ↦ ⟨b, List.mem_cons_of_mem _ hb, hm⟩
+  | .dispatch .. :: ss, s, n, h => (nvOf_spec ss s n h).imp id fun ⟨b, hb, hm⟩ ↦ ⟨b, List.mem_cons_of_mem _ hb, hm⟩
+  | .ret _ :: ss, s, n, h => (nvOf_spec ss s n h).imp id fun ⟨b, hb, hm⟩ ↦ ⟨b, List.mem_cons_of_mem _ hb, hm⟩
+
 section Walk
 
 variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
@@ -143,8 +198,8 @@ structure WH (L : MemImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (wJ 
   arms : X.arms = (plumbOf j).arms
   self : X.self = (certOf j).facts.env.map (·.1)
   entry : X.entry = (fnOf j).entry
-  /-- A selector the check accepts is a value the path names. -/
-  named : ∀ v : V, v = V.n v.idx → selOk X v = true → v ∈ namedOf (coreOf j).params es vs
+  /-- A parameter, or a value of one of the body's atoms, is a value the path names. -/
+  named : ∀ n, (Nat.blt n X.nargs || bitK X.nv n) = true → V.n n ∈ namedOf (coreOf j).params es vs
   frame : FrameHolds L j fp σ es vs kfps hdr
   kids : KidsRun L σ es kfps ck
   hev : ∀ e ∈ es, e.Holds L.read σ
@@ -164,6 +219,18 @@ structure PosZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) (W0
     RunC guest L W0 ⟨gpow (X.entry + st.seg.start), gpow fp⟩ c ∧
     ∀ op, c op + itemOps pre op ≤ st.cnt.get op + ksum ck n op
   fresh : ∀ t, st.fresh = some t → st.seg.start = t ∧ st.its = st.seg.items ∧ getF X.idx t = some st.seg
+  nm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs
+
+/-- **A selector the check accepts is a value the path names.** -/
+theorem PosZ.sel {H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck} {st : CW} {W0 : Regs K} {n : ℕ}
+    (hp : PosZ H st W0 n) {v : V} (hv : v = V.n v.idx) (hs : selOk X st v = true) :
+    v ∈ namedOf (coreOf j).params es vs := by
+  unfold selOk at hs
+  rw [hv]
+  rcases Bool.or_eq_true_iff.mp hs with h | h
+  · exact H.named _ h
+  · rw [bitK_eq] at h
+    exact hp.nm _ h
 
 /-- The environment of the segment at offset `J` holds; at the window's end, where none starts,
 the next window's. -/
@@ -182,7 +249,7 @@ def Arr (L : MemImage κ) (fp : ℕ) (X : CX) (wJ : ℕ) (wenv : Trie Sym) (ck :
 
 theorem segAtC_eq {t : ℕ} {st sn : CW} (h : segAtC X t st = some sn) :
     ∃ s, getF X.idx t = some s ∧ s.start = t ∧
-      sn = ⟨s, s.items, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, some t⟩ := by
+      sn = ⟨s, s.items, st.book, st.fr, st.tg, st.nx, st.cnt, st.uq, some t, st.nm⟩ := by
   unfold segAtC at h
   split at h
   · rename_i s hs
@@ -197,7 +264,8 @@ theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ}
     (h : segAtC X t st = some sn) (hb : BookOk L fp st.book) (hfr : FrOk L fp st.fr)
     (htg : TgOk L fp st.tg) (hnx : NxOk L fp X.fs st.nx) (he : EnvAt L fp X wJ wenv t)
     {W0 : Regs K} {n : ℕ} {c : Opcode → ℕ} (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
-    (hc : ∀ op, c op ≤ st.cnt.get op + ksum ck n op) :
+    (hc : ∀ op, c op ≤ st.cnt.get op + ksum ck n op)
+    (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H sn W0 n ∧ sn.book = st.book ∧ sn.fr = st.fr ∧ sn.tg = st.tg ∧ sn.nx = st.nx ∧
       sn.cnt = st.cnt ∧ sn.uq = st.uq ∧ sn.seg.start = t := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
@@ -205,7 +273,7 @@ theorem segAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ}
     rw [H.idx, getF_eq] at hs
     exact index_get hs
   refine ⟨⟨hmem, ⟨he.1 s hs hst, hb, hfr, htg, hnx⟩, ⟨[], c, rfl, trivial, hst ▸ hr, fun op ↦ ?_⟩,
-    fun t' ht' ↦ ?_⟩, rfl, rfl, rfl, rfl, rfl, rfl, hst⟩
+    fun t' ht' ↦ ?_, hnm⟩, rfl, rfl, rfl, rfl, rfl, rfl, hst⟩
   · simpa [itemOps] using hc op
   · obtain rfl := Option.some.inj ht'
     exact ⟨hst, rfl, hs⟩
@@ -223,7 +291,7 @@ theorem envAt_of_exit (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : E
 
 theorem endAtC_eq {st se : CW} (h : endAtC X st = .ok se) :
     ∃ c, passL X st st.its st.cnt = .ok ([], c) ∧
-      se = ⟨st.seg, [], st.book, st.fr, st.tg, st.nx, c, st.uq, none⟩ := by
+      se = ⟨st.seg, [], st.book, st.fr, st.tg, st.nx, c, st.uq, none, st.nm⟩ := by
   unfold endAtC at h
   split at h
   · rename_i c hp
@@ -257,10 +325,18 @@ theorem endAtC_reach (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st se 
   rw [Pi.add_apply, hc2 op]
   omega
 
+theorem endAtC_nm {st se : CW} (he : endAtC X st = .ok se) : se.nm = st.nm := by
+  obtain ⟨c, -, rfl⟩ := endAtC_eq he
+  rfl
+
+theorem segAtC_nm {t : ℕ} {st sn : CW} (h : segAtC X t st = some sn) : sn.nm = st.nm := by
+  obtain ⟨s, -, -, rfl⟩ := segAtC_eq h
+  rfl
+
 theorem brAtC_eq {st st' : CW} {oc od of : ℕ} {x : Exit}
     (h : brAtC X st = .ok (st', oc, od, of, x)) :
     ∃ its c, passL X st st.its st.cnt = .ok (.branch oc od of x :: its, c) ∧
-      st' = ⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c.bumpJ, st.uq, none⟩ := by
+      st' = ⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c.bumpJ, st.uq, none, st.nm⟩ := by
   unfold brAtC at h
   split at h
   · rename_i oc' od' of' x' its c hp
@@ -273,6 +349,11 @@ theorem brAtC_eq {st st' : CW} {oc od of : ℕ} {x : Exit}
 
 /-- **At a branch**, the run falls through when its condition is `0`, and leaves by the branch's
 exit, its environment holding, when it is taken. -/
+theorem brAtC_nm {st st' : CW} {oc od of : ℕ} {x : Exit} (h : brAtC X st = .ok (st', oc, od, of, x)) :
+    st'.nm = st.nm := by
+  obtain ⟨its, c, -, rfl⟩ := brAtC_eq h
+  rfl
+
 theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : CW} {oc od of : ℕ}
     {x : Exit} {W0 : Regs K} {n : ℕ} (hp : PosZ H st W0 n) (hb : brAtC X st = .ok (st', oc, od, of, x)) :
     st'.seg = st.seg ∧ st'.book = st.book ∧ st'.fr = st.fr ∧ st'.tg = st.tg ∧ st'.nx = st.nx ∧
@@ -289,11 +370,11 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
   have hx : x ∈ st.seg.exits := H.exits _ hp.seg x (Or.inr (by
     rw [hitems, branchExits_append]
     simp [branchExits]))
-  have hok : CWOk L fp X ⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c.bumpJ, st.uq, none⟩ :=
+  have hok : CWOk L fp X ⟨st.seg, its, st.book, st.fr, st.tg, st.nx, c.bumpJ, st.uq, none, st.nm⟩ :=
     ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩
   refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, hx, hok, fun hj h0 ↦ ?_, fun ht r hr ↦ ?_⟩
   · refine ⟨hp.seg, hok, ⟨pre ++ pre2 ++ [.branch oc od of x], c0, by rw [hitems]; simp, ?_, hrun,
-      fun op ↦ ?_⟩, fun t ht ↦ by cases ht⟩
+      fun op ↦ ?_⟩, fun t ht ↦ (by cases ht), hp.nm⟩
     · rw [fall_append, fall_append]
       exact ⟨⟨hf, hf2⟩, hj, h0, trivial⟩
     · have h1 := hc0 op
@@ -419,7 +500,17 @@ theorem walk_atomZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (a : Core
   refine walk_step H ih rfl rfl hw hes hs hshape ?_ (cw_atom a ss st) hok
   have hc : calls (ebef ++ [.atom a]) = calls ebef := by simp [calls, Ev.call?]
   rw [hc]
-  exact ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, fun t ht ↦ by cases ht⟩
+  refine ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, fun t ht ↦ (by cases ht),
+    fun n hn ↦ ?_⟩
+  rcases nvVals_spec _ _ n hn with h | h
+  · exact hp.nm n h
+  · refine uses_named (e := .atom a) ?_ h
+    have hst : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [← hw, walk, h]; rfl)
+    rw [hes, ← hw]
+    cases h : walk σ ss with
+    | fall e => simp [walk, walk1, h, Out.seq, Out.pre, Out.evs]
+    | ret e v => simp [walk, walk1, h, Out.seq, Out.pre, Out.evs]
+    | stuck => exact absurd h hst
 
 /-! ## Calls -/
 
@@ -440,7 +531,7 @@ theorem posZ_fr (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W
   ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, fun x hx ↦ by
     rcases List.mem_cons.mp hx with rfl | hx
     · exact ⟨kfp, hq, hf⟩
-    · exact hp.ok.fr x hx, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh⟩
+    · exact hp.ok.fr x hx, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm⟩
 
 theorem siteC_eq {X : CX} (hs : X.sites = (plumbOf j).sites) (c : Call) :
     siteC X c.args c.rets = siteOf j c := by
@@ -588,11 +679,12 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
     segAtC_pos H hs' (by rw [hbk]; exact hp.ok.book) (by rw [hfr]; exact hp1.ok.fr)
       (by rw [htg]; exact hp.ok.tg) (by rw [hnx]; exact hp.ok.nx) henvR (n := n + 1) hrun2
       (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega)
+      (by rw [endAtC_nm hse]; exact hp.nm)
   have hc1 : (calls (ebef ++ [.call f args rets])).length = n + 1 := calls_append_one rfl
   refine walk_step H ih rfl rfl hw hes hs hshape ?_ hcw ?_
   · rw [hc1]
     refine ⟨hps.seg, ⟨hps.ok.env, hps.ok.book, fun x hx ↦ ?_, hps.ok.tg, hps.ok.nx⟩, hps.run,
-      fun t ht ↦ ?_⟩
+      fun t ht ↦ ?_, hps.nm⟩
     · rcases List.mem_cons.mp hx with rfl | hx
       · refine ⟨kfp, hq, fun p hp' ↦ ?_⟩
         rcases List.mem_append.mp hp' with hp' | hp'
@@ -619,13 +711,14 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
 
 theorem posZ_book (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
     (hp : PosZ H st W0 n) {B : BookC} (hB : BookOk L fp B) : PosZ H { st with book := B } W0 n :=
-  ⟨hp.seg, ⟨hp.ok.env, hB, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh⟩
+  ⟨hp.seg, ⟨hp.ok.env, hB, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, hp.fresh, hp.nm⟩
 
 /-- Entering offset `t` with given counts and set-up cells. -/
 theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ} {st sn : CW}
     (h : segAtC X t st = some sn) (hok : CWOk L fp X st) (he : EnvAt L fp X wJ wenv t)
     {W0 : Regs K} {n : ℕ} {c : Opcode → ℕ} (hr : RunC guest L W0 ⟨gpow (X.entry + t), gpow fp⟩ c)
-    {C : Cnt} {U : ℕ} (hc : ∀ op, c op ≤ C.get op + ksum ck n op) :
+    {C : Cnt} {U : ℕ} (hc : ∀ op, c op ≤ C.get op + ksum ck n op)
+    (hnm : ∀ n, st.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZ H { sn with cnt := C, uq := U } W0 n ∧ sn.book = st.book ∧ sn.fr = st.fr ∧
       sn.tg = st.tg ∧ sn.nx = st.nx := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
@@ -633,7 +726,7 @@ theorem segAtC_posW (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {t : ℕ
     rw [H.idx, getF_eq] at hs
     exact index_get hs
   refine ⟨⟨hmem, ⟨he.1 s hs hst, hok.book, hok.fr, hok.tg, hok.nx⟩,
-    ⟨[], c, rfl, trivial, hst ▸ hr, fun op ↦ ?_⟩, fun t' ht' ↦ ?_⟩, rfl, rfl, rfl, rfl⟩
+    ⟨[], c, rfl, trivial, hst ▸ hr, fun op ↦ ?_⟩, fun t' ht' ↦ ?_, hnm⟩, rfl, rfl, rfl, rfl⟩
   · simpa [itemOps] using hc op
   · obtain rfl := Option.some.inj ht'
     exact ⟨hst, rfl, hs⟩
@@ -711,7 +804,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
       have henvT : EnvAt L fp X wJ wenv t :=
         envAt_of_exit H hp.seg hx (by rw [hsu]; simp) henv
       obtain ⟨hps, hbkn, -, -, -, -, -, -⟩ := segAtC_pos H hsn hok'.book hok'.fr hok'.tg hok'.nx
-        henvT hcr hcle
+        henvT hcr hcle (by rw [brAtC_nm hb]; exact hp.nm)
       have hpn : PosZ H { sn with book := fileB X.loc X.fs n st'.book } W0
           (calls (ebef ++ [Ev.inK c])).length := by
         rw [hn1, H.fs]
@@ -732,6 +825,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
       rcases hcb with rfl | rfl
       · exact le_trans this (Nat.add_le_add_right (Nat.le_max_left _ _) _)
       · exact le_trans this (Nat.add_le_add_right (Nat.le_max_right _ _) _))
+    (by rw [brAtC_nm hb]; exact hp.nm)
   have hw1' : walk1 σ (.ite c z n) = .fall (Ev.inK c :: eb) := by rw [hw1, hweb]; rfl
   refine walk_step H ih (by simp [Stmt.noRet, hnr.1, hnr.2]) hw1' hw hes hs hshape ?_ hcw hok
   rw [show ebef ++ Ev.inK c :: eb = ebef ++ [Ev.inK c] ++ eb by simp]
@@ -778,7 +872,7 @@ theorem brAtC_peek {st st' : CW} {oc od of : ℕ} {x : Exit}
 theorem posZ_nx (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st : CW} {W0 : Regs K} {n : ℕ}
     (hp : PosZ H st W0 n) {nx : List (ℕ × FC)} (hn : NxOk L fp X.fs nx) :
     PosZ H { st with nx := nx } W0 n :=
-  ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hn⟩, hp.run, hp.fresh⟩
+  ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hn⟩, hp.run, hp.fresh, hp.nm⟩
 
 /-- A conditional call's event, `.skip` or `.call` as its condition says. -/
 theorem callIf_ev (c : V) (f : String) (args : List V) :
@@ -889,6 +983,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
         · exact envAt_of_exit H hp.seg hx (by rw [hsu]; simp) henv
     obtain ⟨hpr, -⟩ := segAtC_posW H hsr hok' (by rw [hrt]; exact henvR) (n := n + 1)
       (C := Cnt.max se.cnt st'.cnt) (U := setK st.uq q) (by rw [hrt]; exact hcr) hcle
+      (by rw [brAtC_nm hb]; exact hp.nm)
     refine walk_step H ih rfl rfl hw hes hs hshape (by rw [hc1]; exact hpr) hcw hok
   · -- a loop's closing call
     subst hss
