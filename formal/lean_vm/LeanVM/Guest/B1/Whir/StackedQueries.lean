@@ -51,7 +51,7 @@ theorem leafRowWord_zero (leaf : List K) (jw : ℕ) :
   simp [leafRowWord, oqRowWord]
 
 /-- Level 0's row: the leaf read from the top down against the reversed weights. -/
-private theorem dot_row0 {f : ℕ} {leaf : List K} (hl : leaf.length = 2 ^ f) {lf : List E}
+theorem os_dot_row0 {f : ℕ} {leaf : List K} (hl : leaf.length = 2 ^ f) {lf : List E}
     (hlf : lf.length = f) :
     dot (leaf.reverse.map ofK) (eqKernel lf) =
       ∑ jw ∈ Finset.range (2 ^ f), leafRowWord 1 leaf jw * (eqKernel lf).getD (orwSlot f 1 jw) 0 := by
@@ -68,7 +68,7 @@ private theorem dot_row0 {f : ℕ} {leaf : List K} (hl : leaf.length = 2 ^ f) {l
   rfl
 
 /-- A deeper level's row: its words regrouped by three. -/
-private theorem dot_rowExt {f : ℕ} {leaf : List K} (hl : leaf.length = 3 * 2 ^ f) {lf : List E}
+theorem os_dot_rowExt {f : ℕ} {leaf : List K} (hl : leaf.length = 3 * 2 ^ f) {lf : List E}
     (hlf : lf.length = f) :
     dot (extRow leaf) (eqKernel lf) =
       ∑ jw ∈ Finset.range (2 ^ f), leafRowWord 0 leaf jw * (eqKernel lf).getD (orwSlot f 0 jw) 0 := by
@@ -253,10 +253,10 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
     by_cases h0 : lvl = 0
     · simp only [h0, ↓reduceIte] at hrev ⊢
       subst hrev
-      exact (dot_row0 (by rw [hlen i hi']; simp [oqR]) hlfl).symm
+      exact (os_dot_row0 (by rw [hlen i hi']; simp [oqR]) hlfl).symm
     · simp only [h0, ↓reduceIte] at hrev ⊢
       subst hrev
-      exact (dot_rowExt (by rw [hlen i hi']; simp [oqR]) hlfl).symm
+      exact (os_dot_rowExt (by rw [hlen i hi']; simp [oqR]) hlfl).symm
 
 end
 end LeanVM.Guest.B1
