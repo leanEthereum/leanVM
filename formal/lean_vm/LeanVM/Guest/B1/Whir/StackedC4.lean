@@ -125,5 +125,52 @@ theorem os_holdsList_calls {C : CallRel} : ∀ (ss : List Stmt), ss.all Main.Stm
       exact ⟨h.1, fun hc0 => by simpa [Main.mkCall] using hc _ List.mem_cons_self (by simp [Main.mkCall, hc0]),
         ih h.2.2 fun c' hc' => hc c' (List.mem_cons_of_mem _ hc')⟩
 
+/-! ## The calls of a block -/
+
+/-- Every entered call of a straight block, its argument and return words under `σ`, satisfies `C`. -/
+def OsCallsOk (C : CallRel) (σ : Val) (ss : List Stmt) : Prop :=
+  ∀ c ∈ (ss.filterMap Main.Stmt.callS).map (Main.mkCall σ), c.taken = true → C c.f (c.args.map σ) (c.rets.map σ)
+
+theorem osCallsOk_append {C : CallRel} {σ : Val} {a b : List Stmt} (ha : OsCallsOk C σ a) (hb : OsCallsOk C σ b) :
+    OsCallsOk C σ (a ++ b) := fun c hc ht => by
+  rw [List.filterMap_append, List.map_append] at hc
+  rcases List.mem_append.mp hc with h | h
+  · exact ha c h ht
+  · exact hb c h ht
+
+/-- **A straight block's calls** satisfy the call relation it holds at. -/
+theorem os_callsOk_of_holdsList {C : CallRel} : ∀ (ss : List Stmt), ss.all Main.Stmt.straight = true →
+    ∀ {next : Prop} {kret : List E → Prop}, Stmt.HoldsList C rd σ ss next kret → OsCallsOk C σ ss
+  | [], _, _, _, _ => fun c hc => by simp at hc
+  | s :: ss, hs, next, kret, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at hs
+    match s, hs.1 with
+    | .atom a, _ =>
+      simp only [Stmt.HoldsList, Stmt.Holds] at h
+      intro c hc
+      rw [List.filterMap_cons_none (show Main.Stmt.callS (.atom a) = none from rfl)] at hc
+      exact os_callsOk_of_holdsList ss hs.2 h.2 c hc
+    | .call f args rets, _ =>
+      simp only [Stmt.HoldsList, Stmt.Holds] at h
+      intro c hc ht
+      rw [List.filterMap_cons_some (show Main.Stmt.callS (.call f args rets) = some (none, f, args, rets) from rfl),
+        List.map_cons] at hc
+      rcases List.mem_cons.mp hc with rfl | hc'
+      · simpa [Main.mkCall] using h.1
+      · exact os_callsOk_of_holdsList ss hs.2 h.2 c hc' ht
+    | .callIf cc f args, _ =>
+      simp only [Stmt.HoldsList, Stmt.Holds] at h
+      intro c hc ht
+      rw [List.filterMap_cons_some (show Main.Stmt.callS (.callIf cc f args) = some (some cc, f, args, []) from rfl),
+        List.map_cons] at hc
+      rcases List.mem_cons.mp hc with rfl | hc'
+      · simp only [Main.mkCall, decide_eq_true_eq] at ht
+        simpa [Main.mkCall] using h.2.1 ht
+      · exact os_callsOk_of_holdsList ss hs.2 h.2.2 c hc' ht
+
+theorem os_holdsList_toTC {C : CallRel} {ss : List Stmt} {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ ss next kret) : Stmt.HoldsList osTC rd σ ss next kret :=
+  holdsList_mono (fun _ _ _ _ => trivial) ss id (fun _ h => h) h
+
 end
 end LeanVM.Guest.B1
