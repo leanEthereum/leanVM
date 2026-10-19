@@ -959,5 +959,43 @@ theorem honest_hdrK {hdr : E × E} {T : Tree} (hT : T.name = "main") {J : Inst}
 
 end Hdr
 
+/-! ## The callees -/
+
+section Kids
+
+theorem kidsValid_at {rd : Reader} {σ : Val} : ∀ {cs : List Call} {ks : List Tree},
+    Tree.KidsValid coreProgram rd σ cs ks → ∀ (i : ℕ) (c : Call), cs[i]? = some c →
+      ∃ k, ks[i]? = some k ∧ k.name = c.f ∧
+        (if c.taken then k.Valid coreProgram rd (c.args.map σ) (c.rets.map σ)
+          else (∃ f σ', k = .phantom f σ') ∧ Phantom coreProgram k (c.args.map σ))
+  | [], [], _, _, _, h => by simp at h
+  | [], _ :: _, h, _, _, _ => h.elim
+  | _ :: _, [], h, _, _, _ => h.elim
+  | c :: cs, k :: ks, ⟨hn, hk, h⟩, i, c', hc => by
+    cases i with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hc
+      subst hc
+      exact ⟨k, rfl, hn, hk⟩
+    | succ i =>
+      simp only [List.getElem?_cons_succ] at hc ⊢
+      exact kidsValid_at h i c' hc
+
+/-- **The `i`-th callee of a path**: an instance at the `i`-th callee frame, with the header
+`H I i`, valid if the call is taken, else a phantom with the arguments. -/
+theorem kid_inst {hdr : E × E} {T : Tree} {I : Inst} (hI : I ∈ honestInsts coreProgram fs H hdr T)
+    {rd : Reader} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (ht : I.t = .node f σ bufs kids)
+    {es : List Ev} (hk : Tree.KidsValid coreProgram rd σ (calls es) kids) {i : ℕ} {c : Call} {kfp : ℕ}
+    (hc : (calls es)[i]? = some c) (hp : I.kidFps[i]? = some kfp) :
+    ∃ J ∈ honestInsts coreProgram fs H hdr T, J.fp = kfp ∧ J.hdr = H I i ∧ J.t.name = c.f ∧
+      (if c.taken then J.t.Valid coreProgram rd (c.args.map σ) (c.rets.map σ)
+        else (∃ f σ', J.t = .phantom f σ') ∧ Phantom coreProgram J.t (c.args.map σ)) := by
+  obtain ⟨k, hki, hn, hv⟩ := kidsValid_at hk i c hc
+  obtain ⟨J, hJ, rfl, hfp, hh⟩ := honest_kid hI (by rw [ht]; exact hki)
+  rw [hp] at hfp
+  exact ⟨J, hJ, (Option.some.inj hfp).symm, hh, hn, hv⟩
+
+end Kids
+
 end
 end LeanVM.Guest.B2C
