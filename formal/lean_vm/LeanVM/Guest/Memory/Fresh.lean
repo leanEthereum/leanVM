@@ -177,6 +177,76 @@ theorem fn_fresh_of_freshB {fn : Fn} (h : fn.freshB = true) : fn.Fresh := by
   · rw [testBit_idxMask (List.mem_append_left _ hu)] at hb; exact absurd hb (by simp)
   · rw [testBit_idxMask (List.mem_append_right _ hp)] at hb; exact absurd hb (by simp)
 
+/-! ## Freshness by ranges
+
+A body too large for one kernel check is cut into ranges of its statements: each range's
+temporaries have the indices `ts` and none of the function's temporaries `all` is among its uses
+(`RangeFresh`); the ranges concatenate (`RangeFresh.append`), and a body whose temporaries are
+`all`, distinct and no parameter, is fresh (`fn_fresh_of_rangeFresh`). -/
+
+theorem usesList_append : ∀ (ss ss' : List Stmt),
+    Stmt.usesList (ss ++ ss') = Stmt.usesList ss ++ Stmt.usesList ss'
+  | [], _ => by rw [List.nil_append, Stmt.usesList, List.nil_append]
+  | s :: ss, ss' => by
+      rw [List.cons_append, Stmt.usesList, Stmt.usesList, usesList_append ss ss', List.append_assoc]
+
+theorem tmpsList_append : ∀ (ss ss' : List Stmt),
+    Stmt.tmpsList (ss ++ ss') = Stmt.tmpsList ss ++ Stmt.tmpsList ss'
+  | [], _ => by rw [List.nil_append, Stmt.tmpsList, List.nil_append]
+  | s :: ss, ss' => by
+      rw [List.cons_append, Stmt.tmpsList, Stmt.tmpsList, tmpsList_append ss ss', List.append_assoc]
+
+theorem idxMask_append : ∀ (l l' : List V), idxMask (l ++ l') = idxMask l ||| idxMask l'
+  | [], l' => by rw [List.nil_append, idxMask, Nat.zero_or]
+  | v :: vs, l' => by
+      rw [List.cons_append, idxMask, idxMask, idxMask_append vs l', Nat.lor_assoc,
+        Nat.lor_comm (idxMask l'), ← Nat.lor_assoc]
+
+/-- A range of statements whose temporaries have the indices `ts`, its uses avoiding `all`. -/
+def RangeFresh (ss : List Stmt) (ts all : List ℕ) : Prop :=
+  (Stmt.tmpsList ss).map V.idx = ts ∧
+    (all.all fun t => !(idxMask (Stmt.usesList ss)).testBit t) = true
+
+theorem RangeFresh.append {ss ss' : List Stmt} {ts ts' all : List ℕ} (h : RangeFresh ss ts all)
+    (h' : RangeFresh ss' ts' all) : RangeFresh (ss ++ ss') (ts ++ ts') all := by
+  refine ⟨by rw [tmpsList_append, List.map_append, h.1, h'.1], ?_⟩
+  have h1 := h.2
+  have h2 := h'.2
+  simp only [List.all_eq_true, Bool.not_eq_true'] at h1 h2 ⊢
+  intro t ht
+  rw [usesList_append, idxMask_append, Nat.testBit_or, h1 t ht, h2 t ht]
+  rfl
+
+/-- The ranges from `a` and from `a + n` make the range from `a`. -/
+theorem rangeFresh_drop {l : List Stmt} {a n : ℕ} {ts ts' all : List ℕ}
+    (h : RangeFresh ((l.drop a).take n) ts all) (h' : RangeFresh (l.drop (a + n)) ts' all) :
+    RangeFresh (l.drop a) (ts ++ ts') all := by
+  have := h.append h'
+  rwa [← List.drop_drop, List.take_append_drop] at this
+
+theorem rangeFresh_end {l : List Stmt} {a : ℕ} (ha : l.length ≤ a) (all : List ℕ) :
+    RangeFresh (l.drop a) [] all := by
+  rw [List.drop_eq_nil_of_le ha]
+  refine ⟨rfl, ?_⟩
+  simp [Stmt.usesList, idxMask]
+
+/-- **A body certified by ranges is fresh**: its temporaries are `all`, distinct, and no
+parameter. -/
+theorem fn_fresh_of_rangeFresh {fn : Fn} {all : List ℕ} (h : RangeFresh fn.body all all)
+    (hnd : all.Nodup) (hp : (all.all fun t => !(idxMask fn.params).testBit t) = true) :
+    fn.Fresh := by
+  have h2 := h.2
+  simp only [List.all_eq_true, Bool.not_eq_true'] at h2 hp
+  have hidx : ∀ t ∈ Stmt.tmpsList fn.body, t.idx ∈ all := fun t ht => by
+    rw [← h.1]; exact List.mem_map_of_mem ht
+  refine ⟨List.Nodup.of_map V.idx (by rw [h.1]; exact hnd), fun t ht => ⟨fun hu => ?_, fun hpm => ?_⟩⟩
+  · have := h2 _ (hidx t ht)
+    rw [testBit_idxMask hu] at this
+    exact absurd this (by simp)
+  · have := hp _ (hidx t ht)
+    rw [testBit_idxMask hpm] at this
+    exact absurd this (by simp)
+
 /-! ## Paths -/
 
 /-- The events of an outcome. -/
