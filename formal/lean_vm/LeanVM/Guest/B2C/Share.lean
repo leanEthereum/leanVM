@@ -419,9 +419,6 @@ noncomputable def listsOk (P : Plumb) (n : ℕ) : Bool :=
   P.sites.all (fun s ↦ Nat.ble 2 s.q && Nat.blt s.q n) &&
   P.arms.all (fun a ↦ Nat.ble 2 a.2.1 && Nat.blt a.2.1 n && !(P.tmps.any fun p ↦ Nat.beq p.1 a.1))
 
-/-- The frame size the check bounds the cells by. -/
-def fsN (j : ℕ) : ℕ := bif Nat.beq j 1 then mainFrame else max 2 (fsAt j)
-
 /-- The snapshots of function `j`'s windows after the first. -/
 noncomputable def snapsOf (j : ℕ) : List Snap :=
   ((Data.snaps.find? fun p ↦ Nat.beq p.1 j).map Prod.snd).getD []
