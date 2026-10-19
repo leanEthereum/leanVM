@@ -255,18 +255,32 @@ theorem loop_of_all {n : ℕ} {B : ℕ → Prop} (hn : 0 < n) (hn' : n < 2 ^ 33)
 theorem one_rel {rd : Reader} {f : String} {ps : List E} (h : coreProgram.Rel rd f (gen ^ 0 :: ps) []) :
     coreProgram.Rel rd f (1 :: ps) [] := by rwa [pow_zero] at h
 
-/-- **The converse of `da_verify_facts`**: the facts give `da_verify`'s relation. -/
-theorem da_verify_of_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
-    {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v1) : coreProgram.Rel rd "da_verify" [gsq] [r0, r1, v0, v1] := by
-  obtain ⟨r, pb, pd, hs, ctr, acc, rb, ct, rt, rc0, rc1, rr0, rr1, hr1, hr2, h88, hiv0, hiv1, hkc, hctr, h89,
-    hcol, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ := h
+/-- **`da_verify`'s body holds** under its honest values, the pointers given. -/
+theorem dv_holds {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
+    {r0 r1 v0 v1 : E} {r : ℕ} {pb pd hs ctr acc rb ct rt rc0 rc1 rr0 rr1 : E}
+    (hr1 : 1 ≤ r) (hr2 : r ≤ LeanDa.maxRows)
+    (h88 : ∀ i < r, L88Step rd pb pd (gen ^ i))
+    (hiv0 : LoadHolds rd hs 0 (digestScalars paramIv).1) (hiv1 : LoadHolds rd hs 1 (digestScalars paramIv).2)
+    (hkc : IsInK ctr) (hctr : ∀ k < 385, ∀ w, rd (ctr.limb 0 * Parameters.gpow k) = some w → w = word (k * 2048) 0 0)
+    (h89 : ∀ i < r, L89Step rd acc rb (gen ^ i))
+    (hcol : ∀ b < 128, Meaning_da_verify_column (decide (b < 64)) rd
+      [gen ^ b, gen ^ r, gen ^ LeanDa.nPad r, gen ^ (LeanDa.nPad r - r), gen ^ LeanDa.logPad r, pb, ct, rb,
+        hs, ctr] [])
+    (h92 : ∀ i < r, L92Step rd rb (gen ^ i))
+    (hlv7 : Meaning_da_levels 7 rd [ct] [rc0, rc1])
+    (h93 : ∀ i < r, L93Step rd pb rt (gen ^ i))
+    (h94 : ∀ d < LeanDa.nPad r - r, L94Step rd rt (gen ^ r) (gen ^ d))
+    (hlvr : Meaning_da_levels (LeanDa.logPad r) rd [rt] [rr0, rr1])
+    (hfin : CompressCells ![rr0, rr1, rc0, rc1] (digestScalars paramIv).1 (digestScalars paramIv).2 r0 r1
+      (metadataCell 64 true))
+    (hv0 : LoadHolds rd hs 256 v0) (hv1 : LoadHolds rd hs 257 v1) :
+    Stmt.HoldsList (coreProgram.Rel rd) rd (fun v => dvVals gsq (gen ^ r) (gen ^ LeanDa.logPad r)
+      (gen ^ LeanDa.nPad r) (gen ^ (LeanDa.nPad r - r)) pd pb hs ctr acc rb ct rt rc0 rc1 rr0 rr1 r0 r1 v0 v1 v.idx)
+      dvBody False (fun rs => rs = [r0, r1, v0, v1]) := by
   have hr33 : r < 2 ^ 33 := by unfold LeanDa.maxRows at hr2; omega
   have hlp := logPad_le hr2
   have hN := nPad_le hr2
   have hrN : r ≤ LeanDa.nPad r := ((logPad_iff (lp := LeanDa.logPad r) hr1).mp rfl).1
-  rw [rel_of_find find_dv]
-  refine ⟨fun v => dvVals gsq (gen ^ r) (gen ^ LeanDa.logPad r) (gen ^ LeanDa.nPad r) (gen ^ (LeanDa.nPad r - r))
-    pd pb hs ctr acc rb ct rt rc0 rc1 rr0 rr1 r0 r1 v0 v1 v.idx, rfl, ?_⟩
   rw [dvBody, holdsList_append, holdsList_append, holdsList_atoms']
   simp only [dvA, dvB, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and,
     word_one, word_g64]
@@ -315,6 +329,14 @@ theorem da_verify_of_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squares
     exact one_rel ((l94_iff rd _ _ _ 0).mpr (loop_of_all hpos (by omega) h94))
   · rw [← iv0_word, ← iv1_word, ← md64_word] at hfin
     exact hfin
+
+/-- **The converse of `da_verify_facts`**: the facts give `da_verify`'s relation. -/
+theorem da_verify_of_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
+    {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v1) : coreProgram.Rel rd "da_verify" [gsq] [r0, r1, v0, v1] := by
+  obtain ⟨r, pb, pd, hs, ctr, acc, rb, ct, rt, rc0, rc1, rr0, rr1, hr1, hr2, h88, hiv0, hiv1, hkc, hctr, h89,
+    hcol, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ := h
+  rw [rel_of_find find_dv]
+  exact ⟨_, rfl, dv_holds hm hT hr1 hr2 h88 hiv0 hiv1 hkc hctr h89 hcol h92 hlv7 h93 h94 hlvr hfin hv0 hv1⟩
 
 end
 end LeanVM.Guest.B1.Digest

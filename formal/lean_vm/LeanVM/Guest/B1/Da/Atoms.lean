@@ -148,6 +148,28 @@ theorem loadAddrs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Main.Stmt.s
     | .callIf c f args, _ => by_cases hc : σ c = 0 <;>
       simp [Main.slEvs, hc, Ev.loadAddr?, stmtLoad?, List.filterMap_cons, List.filterMap_nil]
 
+/-- A statement's `frameAddr` run: its first value and its length. -/
+def stmtRun? : Stmt → Option (V × ℕ)
+  | .atom (.frameAddr _ (r :: rs)) => some (r, rs.length + 1)
+  | _ => none
+
+theorem runs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Main.Stmt.straight = true →
+    runs (pre.flatMap (Main.slEvs σ)) = pre.filterMap stmtRun?
+  | [], _ => rfl
+  | s :: pre, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    have ih := runs_straight σ pre h.2
+    simp only [runs, List.flatMap_cons, List.filterMap_append] at ih ⊢
+    rw [ih]
+    match s, h.1 with
+    | .atom a, _ =>
+      cases a with
+      | frameAddr p run => cases run <;> rfl
+      | _ => rfl
+    | .call f args rets, _ => rfl
+    | .callIf c f args, _ => by_cases hc : σ c = 0 <;>
+      simp [Main.slEvs, hc, Ev.run?, stmtRun?, List.filterMap_cons, List.filterMap_nil]
+
 /-- An atom of a straight body holds when its path's events are `Ok`. -/
 theorem atom_holds_of_ok {C : CallRel} {rd : Reader} {σ : Val} {pre : List Stmt} {a : Atom}
     (ha : Stmt.atom a ∈ pre) (h : ∀ e ∈ pre.flatMap (Main.slEvs σ), e.Ok C rd σ) : a.Holds rd σ :=

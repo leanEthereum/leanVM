@@ -159,7 +159,7 @@ theorem colLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (sto
       (vxMd (decide (b = 127)) ((CV b).getD · 0)) 96 (O0 b, O1 b))
     {R : ℕ → Prop} (hRc : ∀ b < 128, ∀ k < 4, R (c + 3 * b + k)) (hRh : ∀ b < 128, ∀ k < 4, R (h + 2 * b + k))
     (hRt : ∀ b < 128, ∀ k < 2, R (t + 2 * b + k))
-    (hRrow : ∀ b < 128, ∀ j < r, R (q + j) ∧ R (a + 129 * j + b) ∧ R (a + 129 * j + b + 1) ∧
+    (hRrow : ∀ b < clHi store, ∀ j < r, R (q + j) ∧ R (a + 129 * j + b) ∧ R (a + 129 * j + b + 1) ∧
       (store = true → R (p + j) ∧ R (pd + 128 * j + 2 * b) ∧ R (pd + 128 * j + 2 * b + 1)))
     (fp0 : ℕ) (rd : Reader)
     (hmem : ∀ b, clLo store ≤ b → b < clHi store → ColAt fs cert store rd b r N lp p t q h c (H0 b) (H1 b)
