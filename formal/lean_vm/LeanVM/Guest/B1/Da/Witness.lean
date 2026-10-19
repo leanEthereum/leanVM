@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Da.Verify
+public import LeanVM.Guest.B1.Da.Columns
 public import LeanVM.Protocol.Compile.Rom.Encoding
 
 /-!
