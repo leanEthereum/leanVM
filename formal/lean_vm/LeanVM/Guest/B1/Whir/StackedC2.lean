@@ -165,5 +165,119 @@ theorem osOodSample_complete {s : OsSt} {cv : Digest} {cur : E} {p : ℕ} (hat :
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
   exact ⟨by rw [v1]; exact sy, by rw [v2]; exact sc0, by rw [v3]; exact sc2⟩
 
+/-! ## The next commitment -/
+
+/-- The values of `osCommit` (one out-of-domain sample) from its first: the root's halves read,
+`assert_canonical`'s returns, the sample. -/
+def osCommitVals (lvl logCols : ℕ) (oodzv : E) (cv : Digest) (x0 x1 y c0 c2 : E) : List E :=
+  osFsNextVals x0 cv ++ osFsNextVals x1 (obsCv cv x0) ++ [0, 0] ++
+    osOodSampleVals ((lvl + 1 + 0) * 22) logCols oodzv (obsCv (obsCv cv x0) x1) y c0 c2
+
+/-- **The next commitment** at its honest values: the root's halves read and stored, then its
+out-of-domain sample. -/
+theorem osCommit_complete {lvl logCols roots oodz ood : ℕ} {s : OsSt} {cv : Digest} {cur : E} {p : ℕ}
+    (hat : OsAt σ s cv cur p) {x0 x1 y c0 c2 : E} {kret : List E → Prop}
+    (lx0 : LoadHolds rd cur p x0) (lx1 : LoadHolds rd cur (p + 1) x1)
+    (ly : LoadHolds rd cur (p + 2) y) (lc0 : LoadHolds rd cur (p + 3) c0) (lc2 : LoadHolds rd cur (p + 4) c2)
+    (sx0 : LoadHolds rd (σ (.n roots)) (2 * lvl + 2) x0) (sx1 : LoadHolds rd (σ (.n roots)) (2 * lvl + 3) x1)
+    (sy : LoadHolds rd (σ (.n ood)) ((lvl + 1) * 4 + 0 * 4 + 1) y)
+    (sc0 : LoadHolds rd (σ (.n ood)) ((lvl + 1) * 4 + 0 * 4 + 2) c0)
+    (sc2 : LoadHolds rd (σ (.n ood)) ((lvl + 1) * 4 + 0 * 4 + 3) c2)
+    (hv : ∀ j < 84, σ (.n (s.k + j)) = (osCommitVals lvl logCols (σ (.n oodz)) cv x0 x1 y c0 c2).getD j 0) :
+    Stmt.HoldsList osTC rd σ (osCommit lvl logCols 1 roots oodz ood s).1 True kret ∧
+      OsAt σ (osCommit lvl logCols 1 roots oodz ood s).2
+        (obsCv (obsCv (obsCv (sqAll logCols (obsCv (obsCv cv x0) x1)).2 y) c0) c2) cur (p + 5) ∧
+      (osCommit lvl logCols 1 roots oodz ood s).2.co = s.co + 5 ∧
+      (osCommit lvl logCols 1 roots oodz ood s).2.cb = s.cb ∧ (osCommit lvl logCols 1 roots oodz ood s).2.k = s.k + 84 := by
+  set F1 := osFsNextVals x0 cv
+  set F2 := osFsNextVals x1 (obsCv cv x0)
+  set Z : List E := [0, 0] with hZ
+  set O := osOodSampleVals ((lvl + 1 + 0) * 22) logCols (σ (.n oodz)) (obsCv (obsCv cv x0) x1) y c0 c2
+  have hvals : osCommitVals lvl logCols (σ (.n oodz)) cv x0 x1 y c0 c2 = F1 ++ (F2 ++ (Z ++ O)) := by
+    simp only [osCommitVals, List.append_assoc]; rfl
+  rw [hvals] at hv
+  have l1 : F1.length = 15 := os_length_fsNextVals _ _
+  have l2 : F2.length = 15 := os_length_fsNextVals _ _
+  have lZ : Z.length = 2 := rfl
+  obtain ⟨h1, hat1⟩ := osFsNext_complete (C := osTC) (kret := kret) hat lx0 fun j hj => by
+    rw [hv j (by omega), oq_getD_app_lt (by omega)]
+  obtain ⟨h2, hat2⟩ := osFsNext_complete (C := osTC) (kret := kret) hat1 lx1 fun j hj => by
+    rw [show (osFsNext s).2.k + j = s.k + (F1.length + j) by simp [osFsNext, l1]; ring, hv _ (by omega), os_skip,
+      oq_getD_app_lt (by omega)]
+  set st2 : OsSt := { (osFsNext (osFsNext s).2).2 with k := (osFsNext (osFsNext s).2).2.k + 2 }
+  have hk2 : st2.k = s.k + (F1.length + (F2.length + (Z.length + 0))) := by simp [st2, osFsNext, l1, l2, lZ]
+  have hat2' : OsAt σ st2 (obsCv (obsCv cv x0) x1) cur (p + 1 + 1) := ⟨hat2.fs, hat2.cursor⟩
+  obtain ⟨h3, hat3, hco3, hcb3, hk3⟩ := osOodSample_complete (oz := (lvl + 1 + 0) * 22)
+    (so := (lvl + 1) * 4 + 0 * 4) (logCols := logCols) (oodz := oodz) (ood := ood) (kret := kret) hat2'
+    (by simpa using ly) (by simpa [Nat.add_assoc] using lc0) (by simpa [Nat.add_assoc] using lc2) sy sc0 sc2
+    fun j hj => by rw [hk2, Nat.add_zero, show s.k + (F1.length + (F2.length + Z.length)) + j =
+      s.k + (F1.length + (F2.length + (Z.length + j))) by ring, hv _ (by omega), os_skip, os_skip, os_skip]
+  have v0 : σ (.n s.k) = x0 := by
+    have := hv 0 (by omega); rw [oq_getD_app_lt (by omega)] at this; exact this
+  have v1 : σ (.n (osFsNext s).2.k) = x1 := by
+    have := hv (F1.length + 0) (by omega); rw [os_skip, oq_getD_app_lt (by omega)] at this
+    rw [show (osFsNext s).2.k = s.k + (F1.length + 0) by simp [osFsNext, l1]]; exact this
+  have w0 : σ (.n ((osFsNext (osFsNext s).2).2.k)) = 0 := by
+    have := hv (F1.length + (F2.length + 0)) (by omega); rw [os_skip, os_skip, oq_getD_app_lt (by omega)] at this
+    rw [show (osFsNext (osFsNext s).2).2.k = s.k + (F1.length + (F2.length + 0)) by simp [osFsNext, l1, l2]]
+    exact this
+  have w1 : σ (.n ((osFsNext (osFsNext s).2).2.k + 1)) = 0 := by
+    have := hv (F1.length + (F2.length + 1)) (by omega); rw [os_skip, os_skip, oq_getD_app_lt (by omega)] at this
+    rw [show (osFsNext (osFsNext s).2).2.k + 1 = s.k + (F1.length + (F2.length + 1)) by simp [osFsNext, l1, l2]]
+    exact this
+  unfold osCommit
+  dsimp only
+  simp only [osOods, List.append_nil]
+  refine ⟨?_, by simpa [Nat.add_assoc] using hat3, by rw [hco3]; show s.co + 1 + 1 + 3 = s.co + 5; omega, by rw [hcb3]; rfl,
+    by rw [hk3, hk2]; simp [lZ, l1, l2]⟩
+  simp only [holdsList_append]
+  refine (holdsList_noRet _ rfl _ _).mpr ⟨h1, ?_⟩
+  refine (holdsList_noRet _ rfl _ _).mpr ⟨h2, ?_⟩
+  refine (holdsList_noRet _ rfl _ _).mpr ⟨?_, h3⟩
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, and_true]
+  exact ⟨trivial, trivial, by rw [v0]; exact sx0, by rw [v1]; exact sx1⟩
+
+/-! ## The proof of work -/
+
+/-- The values of `osGrind bits` (`bits ≠ 0`) from its first: the nonce, the bits' word, the
+absorb's values. -/
+def osGrindVals (bits : ℕ) (n : E) (cv : Digest) : List E :=
+  [n, osGw bits] ++ (List.range 14).map (fsVals n cv 4)
+
+/-- **The query nonce** at its honest values (`bits ≠ 0`): the word at the cursor, `grind_check`'s
+call, its absorb at tag 4. -/
+theorem osGrind_complete {bits : ℕ} (hb0 : bits ≠ 0) {s : OsSt} {cv : Digest} {cur : E} {p : ℕ}
+    (hat : OsAt σ s cv cur p) {n : E} (ln : LoadHolds rd cur p n) {kret : List E → Prop}
+    (hv : ∀ j < 16, σ (.n (s.k + j)) = (osGrindVals bits n cv).getD j 0) :
+    Stmt.HoldsList osTC rd σ (osGrind bits s).1 True kret ∧
+      OsAt σ (osGrind bits s).2 (absorbCv cv n 4) cur (p + 1) ∧ (osGrind bits s).2.co = s.co + 1 ∧
+      (osGrind bits s).2.cb = s.cb ∧ (osGrind bits s).2.k = s.k + 16 := by
+  have e0 : σ (.n s.k) = n := by simpa [osGrindVals] using hv 0 (by omega)
+  have e1 : σ (.n (s.k + 1)) = osGw bits := by simpa [osGrindVals] using hv 1 (by omega)
+  have e : ∀ j < 14, σ (.n (s.k + 2 + j)) = fsVals n cv 4 j := fun j hj => by
+    rw [Nat.add_assoc, hv _ (by omega), show 2 + j = j + 1 + 1 by ring]
+    simp [osGrindVals, List.getD_eq_getElem?_getD, hj]
+  unfold osGrind
+  dsimp only
+  rw [ite_neg' hb0]
+  refine ⟨?_, ⟨?_, ?_⟩, rfl, rfl, rfl⟩
+  · simp only [holdsList_append]
+    refine (holdsList_noRet _ rfl _ _).mpr ⟨?_, ?_⟩
+    · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
+      have hl := os_cursor_load (j := 0) hat (by rw [Nat.add_zero]; exact ln)
+      rw [Nat.add_zero] at hl
+      rw [e0]; exact hl
+    refine (holdsList_noRet _ rfl _ _).mpr ⟨?_, ?_⟩
+    · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
+      exact e1
+    · refine (holds_fsCompressT _ _ _ _ (tag := 4) (by decide) _ _).mpr ⟨⟨cv, hat.fs, fun j h1 h2 => ?_⟩, trivial⟩
+      rw [e j h2, e0]
+  · show (σ (.n (s.k + 14)), σ (.n (s.k + 15))) = _
+    rw [show s.k + 14 = s.k + 2 + 12 by ring, show s.k + 15 = s.k + 2 + 13 by ring, e 12 (by omega),
+      e 13 (by omega)]
+    simp only [fsVals]
+  · show σ (.n s.cb) * gen ^ (s.co + 1) = cur * gen ^ (p + 1)
+    rw [pow_succ, pow_succ, ← mul_assoc, ← mul_assoc, hat.cursor]
+
 end
 end LeanVM.Guest.B1
