@@ -33,7 +33,7 @@ theorem verify_sub_completeAt_of_accepts {κ : ℕ} (hκ : 6 ≤ κ)
     (hG : CompleteGkrAt fs cert κ) (hT : CompleteTablesAt fs cert κ bytecode TCtx)
     (hF : CompleteFlockAt fs cert κ) (hPl : CompletePlaceAt fs cert κ PCtx)
     (hO : CompleteOpenAt fs cert κ CapOk) (hE : CompleteTermAt fs cert κ TCtx PCtx)
-    (hwp : WhirPointLen) (hb : bytecode.length = 2 ^ 22) {seed pi : Digest} {c : FixedClaims}
+    (hb : bytecode.length = 2 ^ 22) {seed pi : Digest} {c : FixedClaims}
     {π : Proof} (h : verifyDeferred bytecode seed pi c π = true)
     (hlo : ∀ layout r, announced bytecode π.stream = some (layout, r) → 22 ≤ layout.stackLog)
     (hst : π.stream.length ≤ 8192)
@@ -44,7 +44,7 @@ theorem verify_sub_completeAt_of_accepts {κ : ℕ} (hκ : 6 ≤ κ)
       [(digestScalars pi).1, (digestScalars pi).2, (digestScalars seed).1, (digestScalars seed).2,
         ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA), ofK (Parameters.gpow outA)]
       (Returns []) := by
-  obtain ⟨D, hok, htok, rfl, rfl, rfl, hp⟩ := vs_inversion hb hwp h hlo hst
+  obtain ⟨D, hok, htok, rfl, rfl, rfl, hp⟩ := vs_inversion hb h hlo hst
   exact verify_sub_completeAt hκ hG hT hF hPl hO hE hb hok htok (hcap D hok rfl rfl hp) lpA sqA outA
 
 end

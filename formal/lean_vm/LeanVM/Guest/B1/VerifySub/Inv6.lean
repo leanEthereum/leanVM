@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.VerifySub.Inv6a
 public import LeanVM.Guest.B1.VerifySub.CPlaced0
 public import LeanVM.Guest.B1.Tables.VerifyTablesInv
+public import LeanVM.Guest.B1.Whir.OpenLen
 
 /-!
 # The inversion of `verifyDeferred`
@@ -17,8 +18,7 @@ public import LeanVM.Guest.B1.Tables.VerifyTablesInv
 `vs_inversion`: when the deferring verifier accepts `π` for `pi` under `seed` and the claims `c`,
 with a stack log of at least 22 and at most 8192 stream words, its run is a `VsData` within the
 deployed limits whose seed, public input, fixed claims and proof are those (`VsData.Ok`,
-`VsData.TOk`). It takes `WhirPointLen` (the opening's point has the stack's log-size coordinates,
-group 4's) as a hypothesis.
+`VsData.TOk`); the opening's point length is group 4's `whirOpen_point_length`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -28,13 +28,6 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Compile LeanVM.
 
 @[expose] public section
 
-/-- The opening's point has the stack's log-size coordinates (group 4's). -/
-def WhirPointLen : Prop :=
-  ∀ (μ r : ℕ) (target : E) (cv : Digest) (xs : List E) (os : List Opening)
-    (roots : List (Digest × ℕ × ℕ)) (w : WhirEnd) (cv' : Digest) (roots' : List (Digest × ℕ × ℕ)),
-    22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 → RunsWith (whirOpen μ r target) cv xs os roots w cv' roots' →
-      w.point.length = μ
-
 theorem runs_unique {α : Type} {p : Prog α} {s s1 s2 : St} {a1 a2 : α} (h1 : Runs p s a1 s1)
     (h2 : Runs p s a2 s2) : a1 = a2 ∧ s1 = s2 := by
   unfold Runs at h1 h2
@@ -43,7 +36,7 @@ theorem runs_unique {α : Type} {p : Prog α} {s s1 s2 : St} {a1 a2 : α} (h1 : 
 
 /-- **The inversion**: an accepting deferred verifier within the deployed limits runs as a
 `VsData` within them. -/
-theorem vs_inversion {bytecode : List K} (hb : bytecode.length = 2 ^ 22) (hwp : WhirPointLen)
+theorem vs_inversion {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
     {seed pi : Digest} {c : FixedClaims} {π : Proof} (h : verifyDeferred bytecode seed pi c π = true)
     (hlo : ∀ layout r, announced bytecode π.stream = some (layout, r) → 22 ≤ layout.stackLog)
     (hst : π.stream.length ≤ 8192) :
@@ -144,7 +137,7 @@ theorem vs_inversion {bytecode : List K} (hb : bytecode.length = 2 ^ 22) (hwp : 
     simp [layoutOf, opBlake2s]
     omega
   · exact hOpen
-  · exact hwp _ _ _ _ _ _ _ _ _ _ hs22 hs28 hr1 hr2 hOpen
+  · exact whirOpen_point_length hs22 hs28 hr1 hr2 hOpen
   · convert hacc using 1
     funext x
     simp only [stackWeight, ringSwitchClaim, List.length_cons, List.map_cons]
