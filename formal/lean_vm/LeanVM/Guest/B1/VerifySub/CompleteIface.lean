@@ -58,12 +58,16 @@ def CompleteTables (TMem : Reader → List E → List E → List E → Prop) : P
     TablesOut bytecode NoCtx rd pi logMem alphas point values args rets →
     TMem rd ptrs args rets → coreProgram.Rel rd "verify_tables" args rets
 
-/-- Over `verify_tables`' honest memory, the terminal's context holds. -/
+/-- Over `verify_tables`' honest memory, the terminal's context holds of the same run: whatever
+`Q` holds of the run's layout, bus result and claims, `TCtx` holds of them too. -/
 def HypTCtx (TMem : Reader → List E → List E → List E → Prop) : Prop :=
-  ∀ ptrs lp pi logMem alphas point values args rets,
+  ∀ (Q : Reader → Layout → BusResult → List ColumnClaim → List E → Prop) ptrs lp pi logMem alphas
+    point values args rets,
     TablesPre rd lp pi logMem alphas point values args →
-    TablesOut bytecode NoCtx rd pi logMem alphas point values args rets →
-    TMem rd ptrs args rets → TablesOut bytecode TCtx rd pi logMem alphas point values args rets
+    TablesOut bytecode Q rd pi logMem alphas point values args rets →
+    TMem rd ptrs args rets →
+      TablesOut bytecode (fun r l b c a ↦ Q r l b c a ∧ TCtx r l b c a) rd pi logMem alphas point
+        values args rets
 
 /-- `verify_flock` is complete over its honest scratch `FMem`. -/
 def CompleteFlock (FMem : Reader → List E → List E → List E → Prop) : Prop :=
