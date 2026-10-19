@@ -47,7 +47,9 @@ and reads `m[0]`, `m[1]`, which `ValidExecution` fixes to `publicDigest input`'s
 (`digestScalars_publicDigest`).
 
 **Completeness** (`CompletePieces`, `guest_complete_of`). The memory is the honest memory of a
-call tree (`Memory.honest`) at the certificates' frame sizes `fs`, headers `H` and cells `C`:
+call tree (`Memory.honest`) at the certificates' frame sizes `fs`, headers `H` and cells `C`, the
+tree placed at the certificates' cells `cert` (`Memory.HonestAt`: its `HeapBuf` pointers the bump
+allocator's, its `frameAddr`s in its frames):
 
 * `honest`: for `NodeRel` within the deployed limits (`Limits`), a tree of `main`, valid on some
   memory, satisfying `Memory.Honest` with the public input as `main`'s header, of cost at most
@@ -410,29 +412,29 @@ theorem committedSize_eq {n : ℕ} (L : MemImage (Memory.logMem n)) (steps : ℕ
 /-- `main`'s header: the public input's two words. -/
 abbrev hdrOf (d : Digest) : E × E := ((publicInputOf d).word0, (publicInputOf d).word1)
 
-/-- **What completeness rests on**, for the certificates' frame sizes `fs`, headers `H` and cells
-`C`, a cost of a call tree and a budget of a node. -/
+/-- **What completeness rests on**, for the certificates' frame sizes `fs`, headers `H`, cells `C`
+and value cells `cert`, a cost of a call tree and a budget of a node. -/
 structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E × E)
-    (C : Memory.Inst → List (ℕ × E)) (cost : Memory.Tree → ℕ)
+    (C : Memory.Inst → List (ℕ × E)) (cert : String → V → ℕ) (cost : Memory.Tree → ℕ)
     (budget : NodeStatement → NodeWitness → ℕ) : Prop where
   /-- B1 (group 7: `main`'s completeness at the bump allocator's `HeapBuf` pointers), agent T
   (`Program.Rel.tree`, and the discharge of `Honest`): a call tree of `main`, honest with the
   statement's digest as `main`'s header, of cost within the node's budget. -/
   honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
-      Memory.Honest coreProgram fs H C (hdrOf (statementDigest seed s)) T rd [] [] ∧
+      Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       cost T ≤ budget s w
   /-- Agent T: `main`'s cells hold its jump table. -/
   table : ∀ I : Memory.Inst, I.t.name = "main" → Memory.tableCells ⊆ C I
   /-- B2 (checker K: `exec_complete`, the certificates, `returns_induction`): on the honest
   memory, `main` runs from its entry at `fp = 1` to the halting registers. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    Memory.Honest coreProgram fs H C hdr T rd [] [] →
+    Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] →
       Reach guest (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest)
   /-- B2 (checker K, counting): a halting run on the honest memory commits at most the tree's
   cost. -/
   size : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    Memory.Honest coreProgram fs H C hdr T rd [] [] → ∀ n,
+    Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
       run guest (Memory.honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
         (⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Trace guest).committedSize ≤ cost T
 
@@ -451,30 +453,31 @@ abbrev GuestCompleteWithin (b : Budget) : Prop := GuestComplete fun s w ↦ b.si
 at the instruction counts `cnt T op` of a call tree, the run's against the tree's and the tree's
 against the budget. -/
 structure CompletePiecesWithin (fs : String → ℕ) (H : Memory.Inst → ℕ → E × E)
-    (C : Memory.Inst → List (ℕ × E)) (cnt : Memory.Tree → Opcode → ℕ) (b : Budget) : Prop where
+    (C : Memory.Inst → List (ℕ × E)) (cert : String → V → ℕ) (cnt : Memory.Tree → Opcode → ℕ)
+    (b : Budget) : Prop where
   /-- B1 (group 7), agent T: as `CompletePieces.honest`, the tree within the budget's words and
   instruction counts. -/
   honest : ∀ seed s w, NodeRel bytecode seed s w → Limits s w →
     ∃ (rd : Reader) (T : Memory.Tree), T.name = "main" ∧
-      Memory.Honest coreProgram fs H C (hdrOf (statementDigest seed s)) T rd [] [] ∧
+      Memory.HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
       T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w)
   /-- Agent T: `main`'s cells hold its jump table. -/
   table : ∀ I : Memory.Inst, I.t.name = "main" → Memory.tableCells ⊆ C I
   /-- B2 (checker K): as `CompletePieces.b2`. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    Memory.Honest coreProgram fs H C hdr T rd [] [] →
+    Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] →
       Reach guest (Memory.honest coreProgram fs H C hdr T) ⟨gpow mainEntry, 1⟩ (Regs.final guest)
   /-- B2 (checker K, counting): a halting run on the honest memory executes at most the tree's
   instructions of each opcode. -/
   count : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
-    Memory.Honest coreProgram fs H C hdr T rd [] [] → ∀ n,
+    Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] → ∀ n,
       run guest (Memory.honest coreProgram fs H C hdr T) n Regs.initial = some (Regs.final guest) →
         ∀ op, (⟨_, Memory.honest coreProgram fs H C hdr T, n⟩ : Trace guest).count op ≤ cnt T op
 
 theorem CompletePiecesWithin.pieces {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
-    {C : Memory.Inst → List (ℕ × E)} {cnt : Memory.Tree → Opcode → ℕ} {b : Budget}
-    (h : CompletePiecesWithin fs H C cnt b) :
-    CompletePieces fs H C (fun T ↦ sizeOf (T.total fs) (cnt T)) fun s w ↦ b.size (work s w) where
+    {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cnt : Memory.Tree → Opcode → ℕ}
+    {b : Budget} (h : CompletePiecesWithin fs H C cert cnt b) :
+    CompletePieces fs H C cert (fun T ↦ sizeOf (T.total fs) (cnt T)) fun s w ↦ b.size (work s w) where
   honest seed s w hrel hlim := by
     obtain ⟨rd, T, hname, hH, hw, hc⟩ := h.honest seed s w hrel hlim
     exact ⟨rd, T, hname, hH, sizeOf_mono hw hc⟩
@@ -498,19 +501,19 @@ theorem jumpTables_honest {fs : String → ℕ} {H : Memory.Inst → ℕ → E �
 
 /-- **Completeness, from its pieces.** -/
 theorem guest_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
-    {C : Memory.Inst → List (ℕ × E)} {cost : Memory.Tree → ℕ}
-    {budget : NodeStatement → NodeWitness → ℕ} (h : CompletePieces fs H C cost budget) :
+    {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cost : Memory.Tree → ℕ}
+    {budget : NodeStatement → NodeWitness → ℕ} (h : CompletePieces fs H C cert cost budget) :
     GuestComplete budget := fun seed s w hrel hlim hbudget ↦ by
   obtain ⟨rd, T, hname, hH, hcost⟩ := h.honest seed s w hrel hlim
-  have hb := hH.publicBoundary (prog := guest)
-  have hreach := (reach_jumpTables (jumpTables_honest hH hname h.table)).trans (h.b2 _ rd T hname hH)
+  have hb := hH.toHonest.publicBoundary (prog := guest)
+  have hreach := (reach_jumpTables (jumpTables_honest hH.toHonest hname h.table)).trans (h.b2 _ rd T hname hH)
   obtain ⟨n, hv⟩ := validExecution_of_reach hb hreach
   exact ⟨_, hv, (h.size _ rd T hname hH n hv.2).trans (hcost.trans hbudget)⟩
 
 /-- **Completeness within the budget `b`, from its pieces.** -/
 theorem guest_complete_within {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
-    {C : Memory.Inst → List (ℕ × E)} {cnt : Memory.Tree → Opcode → ℕ} {b : Budget}
-    (h : CompletePiecesWithin fs H C cnt b) : GuestCompleteWithin b :=
+    {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cnt : Memory.Tree → Opcode → ℕ}
+    {b : Budget} (h : CompletePiecesWithin fs H C cert cnt b) : GuestCompleteWithin b :=
   guest_complete_of h.pieces
 
 /-! ## Composition with the protocol -/
@@ -541,8 +544,8 @@ budget, there is an execution of the guest on the statement's digest whose hones
 inverse rate `2^ρ`, `1 ≤ ρ ≤ 4`, and a fuel of at most `2^64` nonces, the verifier rejects with
 probability at most `completenessError fuel` (`LeanVM.completeness`). -/
 theorem aggregate_complete_of {fs : String → ℕ} {H : Memory.Inst → ℕ → E × E}
-    {C : Memory.Inst → List (ℕ × E)} {cost : Memory.Tree → ℕ}
-    {budget : NodeStatement → NodeWitness → ℕ} (h : CompletePieces fs H C cost budget)
+    {C : Memory.Inst → List (ℕ × E)} {cert : String → V → ℕ} {cost : Memory.Tree → ℕ}
+    {budget : NodeStatement → NodeWitness → ℕ} (h : CompletePieces fs H C cert cost budget)
     {seed : Digest} {s : NodeStatement} {w : NodeWitness} (hrel : NodeRel bytecode seed s w)
     (hlim : Limits s w) (hbudget : budget s w ≤ 2 ^ 28) :
     ∃ t : Trace guest, ValidExecution guest (publicInputOf (statementDigest seed s)) t ∧
