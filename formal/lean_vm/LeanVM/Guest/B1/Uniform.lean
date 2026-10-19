@@ -39,11 +39,15 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 /-- The layout lies in `[b, b + n)`. -/
 def Within (L : Layout) (b n : ℕ) : Prop := ∀ q ∈ L, b ≤ q.1 ∧ q.1 + q.2.length ≤ b + n
 
+/-- The memory is defined at the low addresses, where range checks read (any memory image of at
+least `2^16` words, `MemOk`). -/
+def LowDef (rd : Reader) : Prop := ∀ i < 2 ^ 16, (rd (gpow i)).isSome
+
 /-- **`f` is complete at every frame pointer, uniformly in the memory.** -/
 def CompleteAt (fs : String → ℕ) (cert : String → V → ℕ) (f : String) (Lin : Layout)
     (args : List E) (Out : List E → Layout → Prop) : Prop :=
   ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), Out rets Lout ∧
-    Within (Lout ++ Lown) fp n ∧ ∀ rd, MemL rd (Lout ++ Lown ++ Lin) →
+    Within (Lout ++ Lown) fp n ∧ ∀ rd, LowDef rd → MemL rd (Lout ++ Lown ++ Lin) →
       RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets
 
 /-- What a function returning `rets` and no buffer returns. -/
@@ -53,7 +57,7 @@ def Returns (rets : List E) : List E → Layout → Prop := fun r L => r = rets 
 words `Pre` names and no buffer. -/
 def CompleteRel (fs : String → ℕ) (cert : String → V → ℕ) (f : String)
     (Pre : Reader → List E → List E → Prop) : Prop :=
-  ∀ (args rets : List E) (Lin : Layout), (∀ rd, MemL rd Lin → Pre rd args rets) →
+  ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef rd → MemL rd Lin → Pre rd args rets) →
     CompleteAt fs cert f Lin args (Returns rets)
 
 /-! ## Composition -/
@@ -121,9 +125,9 @@ theorem kidsFromIn_of_kids : ∀ (ks : List Kid),
     (∀ k ∈ ks, k.taken = true → CompleteAt fs cert k.f k.Lin k.args k.Out) → ∀ b : ℕ,
     ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
       ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
-        MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
+        LowDef rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
         KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun i => Dacc i ∨ outRegion ks outs i)
-  | [], _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, fun rd σ cs R Dacc hc _ _ _ => by
+  | [], _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, fun rd σ cs R Dacc hc _ _ _ _ => by
       match cs, hc with
       | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
   | k :: ks, hok, b => by
@@ -134,7 +138,7 @@ theorem kidsFromIn_of_kids : ∀ (ks : List Kid),
       refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, ⟨fun _ => hout, ho⟩, ?_, ?_⟩
       · rw [within_append]
         exact ⟨hw.mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
-      · intro rd σ cs R Dacc hc hL hLin hRg
+      · intro rd σ cs R Dacc hc hlow hL hLin hRg
         match cs, hc with
         | c :: cs, ⟨hf, hct, hcar, hc⟩ =>
           obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
@@ -146,8 +150,8 @@ theorem kidsFromIn_of_kids : ∀ (ks : List Kid),
           · rw [hct]
             simp only [ht, ↓reduceIte]
             rw [hf, ha, hr]
-            exact hrel rd (Main.memL_append.mpr ⟨hL1, hLk⟩)
-          · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hL2 hLs ?_)
+            exact hrel rd hlow (Main.memL_append.mpr ⟨hL1, hLk⟩)
+          · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL2 hLs ?_)
             · intro i hi
               rcases hi with hi | ⟨_, hi⟩ | hi
               · exact Or.inl (Or.inl hi)
@@ -158,7 +162,7 @@ theorem kidsFromIn_of_kids : ∀ (ks : List Kid),
         (b + fs k.f)
       refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
         hW.mono (by omega) (by omega), ?_⟩
-      intro rd σ cs R Dacc hc hL hLin hRg
+      intro rd σ cs R Dacc hc hlow hL hLin hRg
       match cs, hc with
       | c :: cs, ⟨hf, hct, _, hc⟩ =>
         simp only [Kid.lins, List.flatMap_cons] at hLin
@@ -167,7 +171,7 @@ theorem kidsFromIn_of_kids : ∀ (ks : List Kid),
           rw [hct, ht']
           simp only [Bool.false_eq_true, ↓reduceIte]
           rw [hf]
-        · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hL (Main.memL_append.mp hLin).2 ?_)
+        · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL (Main.memL_append.mp hLin).2 ?_)
           · intro i hi
             rcases hi with hi | ⟨h, _⟩ | hi
             · exact Or.inl (Or.inl hi)
@@ -195,14 +199,14 @@ theorem completeAt_of_rel_pure {S : List String} (hS : coreProgram.PureIn S) {g 
   classical
   by_cases hex : ∃ rd1, MemL rd1 Lin
   swap
-  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], fun rd hL => absurd ⟨rd, by simpa using hL⟩ hex⟩
+  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], fun rd _ hL => absurd ⟨rd, by simpa using hL⟩ hex⟩
   obtain ⟨rd1, h1⟩ := hex
   set rd0 := Main.restrict rd1 (RegionL Lin)
   have h0 : MemL rd0 Lin := Main.memL_restrict h1 fun i hi => hi
   have hsupp := Main.restrict_supp' rd1 (RegionL Lin)
   obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg
     (Main.relIn_of_rel_supp coreProgram_wf hsupp (h rd0 h0))
-  refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], fun rd hL => ?_⟩
+  refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], fun rd _ hL => ?_⟩
   have hL' : MemL rd Lin := by simpa using hL
   refine relAtIn_dmono (hn fp rd (fun i hi => ?_) (fun A hA => ?_)) (fun i hi => ?_)
   · rw [Main.memL_agree hL' h1 i hi, Main.restrict_of ⟨i, rfl, hi⟩]
