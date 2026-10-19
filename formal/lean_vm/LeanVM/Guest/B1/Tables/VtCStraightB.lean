@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.GkrIteAt
+public import LeanVM.Guest.B1.Main.WeightB
 
 /-!
 # Bounded trees: pure callees and one branch
@@ -20,11 +21,12 @@ on every memory holding the caller's words, a function with one branch by its fr
 namespace LeanVM.Guest.B1
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
-open LeanVM.Guest.B1.Main (Layout MemL RegionL)
+open LeanVM.Guest.B1.Main (Layout MemL RegionL CompleteAtW kidsBoundW kidsWs kidsWs_sum
+  kidsFromInW_of_kidsBW relAtInW_of_walk)
 
 @[expose] public section
 
-variable {fs : String → ℕ} {cert : String → V → ℕ}
+variable {fs : String → ℕ} {cert : String → V → ℕ} {Θ : Type} {w : Θ → String → ℕ}
 
 /-- **`completeAt_of_rel_lowD` by a bounded tree**: the bound on every valid tree of `g` with its
 paths' `HeapBuf`s, on every memory holding `Lin`. -/
@@ -61,9 +63,21 @@ theorem vtc_completeAt_of_rel_lowB {S : List String} (hS : coreProgram.PureIn S)
     rfl
   · obtain ⟨q, hq, _⟩ := hi; simp at hq
 
-/-- **A function with one branch is complete, placed, by a bounded tree**: `completeAt_iteD` with
+/-- **`vtc_completeAt_of_rel_lowB` within weights**: the bound on the valid trees' words at every
+frame size, at `w θ`. -/
+theorem vtc_completeAt_of_rel_lowW {S : List String} (hS : coreProgram.PureIn S) {g : String}
+    (hg : g ∈ S) {Lin : Layout} {args rets : List E} (k : ℕ)
+    (h : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
+      (∀ i, RegionL Lin i → rd' (gpow i) = rd (gpow i)) → coreProgram.Rel rd' g args rets)
+    {B : (String → ℕ) → ℕ}
+    (hB : ∀ (fs' : String → ℕ) rd, MemL rd Lin → ∀ (t : Tree) (rets' : List E), t.name = g →
+      t.Valid coreProgram rd args rets' → t.BufsOk coreProgram → t.total fs' ≤ B fs') :
+    CompleteAtW fs cert w k g Lin args (Returns rets) (B fs) fun θ => B (w θ) :=
+  Main.CompleteAtB.toW_memTot (vtc_completeAt_of_rel_lowB hS hg k h (hB fs)) fun θ => hB (w θ)
+
+/-- **A function with one branch is complete, placed, by a bounded tree within weights**: `completeAt_iteD` with
 its callees bounded by `bd`, at most `Bk` together. -/
-theorem vtc_completeAt_iteB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+theorem vtc_completeAt_iteW {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
     {pre t e post : List Stmt} {c : V} {vs : List V}
     (hb : fn.body = pre ++ .ite c t e :: (post ++ [.ret vs]))
@@ -72,8 +86,9 @@ theorem vtc_completeAt_iteB {f : String} {fn : Fn} (hf : coreProgram.find? f = s
     (haddrs : (pre ++ (if br then t else e) ++ post).filterMap Main.Stmt.addrS = [])
     (sizes : List ℕ) (own : ℕ → List (List E))
     (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
-    (bd : Kid → ℕ) (Bk : ℕ)
-    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out (bd k))
+    (bd : Kid → ℕ) (bdw : Kid → Θ → ℕ) (Bk : ℕ) (Bkw : Θ → ℕ)
+    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true →
+      CompleteAtW fs cert w κ k.f k.Lin k.args k.Out (bd k) (bdw k))
     (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
       RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)
     (hkm : ∀ fp rd, MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin → ∀ k ∈ kids fp,
@@ -91,10 +106,10 @@ theorem vtc_completeAt_iteB {f : String} {fn : Fn} (hf : coreProgram.find? f = s
         ∀ q ∈ (pre ++ (if br then t else e) ++ post).filterMap Stmt.loadS, ∃ i,
           (σ q.1).limb 0 * gpow q.2 = gpow i ∧
           (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i))
-    (hbd : ∀ fp, kidsBound fs bd (kids fp) ≤ Bk) :
-    CompleteAtB fs cert κ f Lin args (Returns rets) (fs f + sizes.sum + Bk) := by
+    (hbd : ∀ fp, kidsBound fs bd (kids fp) ≤ Bk) (hbdw : ∀ fp θ, kidsBoundW bdw (kids fp) θ ≤ Bkw θ) :
+    CompleteAtW fs cert w κ f Lin args (Returns rets) (fs f + sizes.sum + Bk) fun θ => w θ f + Bkw θ := by
   intro fp
-  obtain ⟨N, L, outs, ho, hW, hD, hNb, -, hK⟩ := kidsFromIn_of_kidsB (fs := fs) (cert := cert) κ bd (kids fp)
+  obtain ⟨N, L, outs, ho, hW, hD, hNb, -, hK⟩ := kidsFromInW_of_kidsBW (fs := fs) (cert := cert) (w := w) κ bd bdw (kids fp)
     (hkc fp) (fp + fs f + sizes.sum)
   refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ L, rets, [], ⟨rfl, rfl⟩, ?_,
     by simpa using disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
@@ -130,17 +145,55 @@ theorem vtc_completeAt_iteB {f : String} {fn : Fn} (hf : coreProgram.find? f = s
     (regionsOk_of fun k hk ht i hi => Or.inl ((hkr fp k hk ht i hi).imp_right (hown' i)))
   have hb' : fp + fs f + sizes.sum = fp + fs f + (allocs σ es).sum := by rw [hal]
   rw [hb'] at hk
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
+  have h := relAtInW_of_walk (fs := fs) (cert := cert) (w := w) (R := RegionL Lin)
     (D := RegionL []) (Dk := fun i => False ∨ outRegion (kids fp) outs i) (N := N) (fp := fp)
-    coreProgram_wf hf (Or.inl hl) hp hw hr hes (by rw [hal, j1, i1]; exact hbuf)
+    hf (Or.inl hl) hp hw hr hes (by rw [hal, j1, i1]; exact hbuf)
     (by rw [j3, i3, haddrs]; simp) hk (fun A hA => ?_) (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
   · rw [hal] at h
-    exact h
+    refine h.wmono fun θ => ?_
+    rw [kidsWs_sum]
+    exact Nat.add_le_add_left (hbdw fp θ) _
   · rw [j5, loadAddrs_straight σ lin hst] at hA
     obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
     obtain ⟨i, hi, h | h⟩ := hld q hq
     · exact ⟨i, hi, Or.inr (Or.inl h)⟩
     · exact ⟨i, hi, Or.inl (hown' i h)⟩
+
+/-- **A function with one branch is complete, placed, by a bounded tree**: `completeAt_iteD` with
+its callees bounded by `bd`, at most `Bk` together. -/
+theorem vtc_completeAt_iteB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hl : coreProgram.loop f = false) (κ : ℕ) (Lin : Layout) (args rets : List E)
+    {pre t e post : List Stmt} {c : V} {vs : List V}
+    (hb : fn.body = pre ++ .ite c t e :: (post ++ [.ret vs]))
+    (h1 : pre.all Main.Stmt.straight = true) (h2 : t.all Main.Stmt.straight = true)
+    (h3 : e.all Main.Stmt.straight = true) (h4 : post.all Main.Stmt.straight = true) (br : Bool)
+    (haddrs : (pre ++ (if br then t else e) ++ post).filterMap Main.Stmt.addrS = [])
+    (sizes : List ℕ) (own : ℕ → List (List E))
+    (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes) (kids : ℕ → List Kid)
+    (bd : Kid → ℕ) (Bk : ℕ)
+    (hkc : ∀ fp, ∀ k ∈ kids fp, k.taken = true → CompleteAtB fs cert κ k.f k.Lin k.args k.Out (bd k))
+    (hkr : ∀ fp, ∀ k ∈ kids fp, k.taken = true → ∀ i, RegionL k.Lin i →
+      RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i)
+    (hkm : ∀ fp rd, MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin → ∀ k ∈ kids fp,
+      MemL rd k.Lin)
+    (hσ : ∀ fp (outs : List (List E × Layout)), OutsOk (kids fp) outs → ∀ rd, LowDef κ rd →
+      MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+      ∃ σ : Val, (σ c = 0 ↔ br = true) ∧ fn.params.map σ = args ∧
+        Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False (fun r => r = rets) ∧
+        ((pre ++ (if br then t else e) ++ post).filterMap Main.Stmt.allocSz).map
+          (fun x => x.2.elim id fun s => logG (σ s)) = sizes ∧
+        (((pre ++ (if br then t else e) ++ post).filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
+          (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+        CallsMatch σ (((pre ++ (if br then t else e) ++ post).filterMap Main.Stmt.callS).map
+          (Main.mkCall σ)) (kids fp) outs ∧
+        ∀ q ∈ (pre ++ (if br then t else e) ++ post).filterMap Stmt.loadS, ∃ i,
+          (σ q.1).limb 0 * gpow q.2 = gpow i ∧
+          (RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes (own fp)) i))
+    (hbd : ∀ fp, kidsBound fs bd (kids fp) ≤ Bk) :
+    CompleteAtB fs cert κ f Lin args (Returns rets) (fs f + sizes.sum + Bk) :=
+  (vtc_completeAt_iteW (Θ := Empty) (w := fun e => e.elim) hf hl κ Lin args rets hb h1 h2 h3 h4 br haddrs sizes own
+    hown kids bd (fun _ e => e.elim) Bk (fun e => e.elim) (fun fp k hk ht => Main.CompleteAtB.toWE (hkc fp k hk ht))
+    hkr hkm hσ hbd (fun _ e => e.elim)).toB
 
 end
 end LeanVM.Guest.B1

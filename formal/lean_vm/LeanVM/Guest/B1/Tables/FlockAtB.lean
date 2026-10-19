@@ -32,43 +32,47 @@ abbrev flLoopsBound (fs : String → ℕ) : ℕ := 30 * fs "__loop81" + 30 * fs 
 /-- `verify_flock`'s bound: its frame, its `HeapBuf`s at `τ = 28` and its loops. -/
 abbrev flockBound (fs : String → ℕ) : ℕ := fs "verify_flock" + 346 + 2 * flLoopsBound fs
 
+/-- `verify_flock`'s weight: its frame's and its two loops'. -/
+abbrev flockBoundW (ω : String → ℕ) : ℕ := ω "verify_flock" + 2 * flLoopsBound ω
+
 set_option maxHeartbeats 4000000 in
-/-- **`verify_flock` is complete, placed, by a bounded tree** (TRIAGE #40): `CompleteFlockAtB`
-at its frame, its `HeapBuf`s and its two loops at `τ < 29`. -/
-theorem verify_flock_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
-    CompleteFlockAtB fs cert κ (flockBound fs) := by
+/-- **`verify_flock` is complete, placed, by a bounded tree within weights** (TRIAGE #40):
+`CompleteFlockAtW` at its frame, its `HeapBuf`s and its two loops at `τ < 29`. -/
+theorem verify_flock_completeAtW (fs : String → ℕ) (cert : String → V → ℕ) {Θ : Type} (w : Θ → String → ℕ)
+    (κ : ℕ) : CompleteFlockAtW fs cert κ w (flockBound fs) fun θ => flockBoundW (w θ) := by
   intro τ cv xs cv' zSkip alpha mv chi rcs s c zc lr zp Lin hτ hcl hrl hsl hrun hLin
   obtain ⟨hlen, hz, ha, hchiE, hrcE, hsE, hterm, hcv'⟩ :=
     flock_inv (hrun _ (flockEv_at alpha zSkip (chi.take 8) rcs.reverse s mv))
-  refine CompleteAtB.mono ?_ le_rfl (show fs "verify_flock" + (flSizes τ).sum + 2 * flLoopsBound fs ≤
+  refine Main.CompleteAtW.bmono ?_ (show fs "verify_flock" + (flSizes τ).sum + 2 * flLoopsBound fs ≤
     flockBound fs by simp only [flSizes, flockBound, List.sum_cons, List.sum_nil]; omega)
-  refine completeAt_straightB find_verify_flock fl_not_loop κ Lin _ _ fl_body fl_straight fl_addrs
+  refine completeAt_straightW find_verify_flock fl_not_loop κ Lin _ _ fl_body fl_straight fl_addrs
     (flSizes τ) (fun _ => flOwn τ cv xs (ofK (Parameters.gpow c))) (fun _ => flOwn_fit _ _ _ _)
     (fun fp => flKids τ cv xs (ofK (Parameters.gpow c)) (ofK (Parameters.gpow zc)) Lin
-      (fp + fs "verify_flock")) (fun _ => flLoopsBound fs) (2 * flLoopsBound fs) ?_
-    (fun fp => by simp [kidsBound, flKids]; omega) ?_ ?_ ?_
+      (fp + fs "verify_flock")) (fun _ => flLoopsBound fs) (fun _ θ => flLoopsBound (w θ))
+    (2 * flLoopsBound fs) (fun θ => 2 * flLoopsBound (w θ)) ?_
+    (fun fp => by simp [kidsBound, flKids]; omega) (fun fp θ => by simp [Main.kidsBoundW, flKids]; omega) ?_ ?_ ?_
   · intro fp k hk _
     simp only [flKids, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with rfl | rfl
-    · refine vtc_completeAt_of_rel_lowB pure81 (by simp) κ (fun rd hlow hL rd' hag => ?_)
-        fun rd _ t rets' hn hv hbo => ?_
+    · refine vtc_completeAt_of_rel_lowW (B := fun fs' => flLoopsBound fs') pure81 (by simp) κ
+        (fun rd hlow hL rd' hag => ?_) fun fs' rd _ t rets' hn hv hbo => ?_
       · obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
         have hM := flMem_of hLin hlen hchiE hrcE hsE hlow hL1 hL2 hag
         rw [word_g13, word_g14, ← pow_add]
         exact loop81_complete hτ hM
       · rw [word_g13, word_g14, ← pow_add] at hv
-        have := l81_total (fs := fs) (j := 13) (m := τ + 14) (by omega) hn hv hbo
-        have : (τ + 14 - 13) * fs "__loop81" ≤ 29 * fs "__loop81" := Nat.mul_le_mul_right _ (by omega)
+        have := l81_total (fs := fs') (j := 13) (m := τ + 14) (by omega) hn hv hbo
+        have : (τ + 14 - 13) * fs' "__loop81" ≤ 29 * fs' "__loop81" := Nat.mul_le_mul_right _ (by omega)
         simp only [flLoopsBound]; omega
-    · refine vtc_completeAt_of_rel_lowB pure82 (by simp) κ (fun rd hlow hL rd' hag => ?_)
-        fun rd _ t rets' hn hv hbo => ?_
+    · refine vtc_completeAt_of_rel_lowW (B := fun fs' => flLoopsBound fs') pure82 (by simp) κ
+        (fun rd hlow hL rd' hag => ?_) fun fs' rd _ t rets' hn hv hbo => ?_
       · obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
         have hM := flMem_of hLin hlen hchiE hrcE hsE hlow hL1 hL2 hag
         rw [word_g7, word_g8, ← pow_add]
         exact loop82_complete hτ hM
       · rw [word_g7, word_g8, ← pow_add] at hv
-        have := l82_total (fs := fs) (j := 7) (m := τ + 8) (by omega) hn hv hbo
-        have : (τ + 8 - 7) * fs "__loop82" ≤ 29 * fs "__loop82" := Nat.mul_le_mul_right _ (by omega)
+        have := l82_total (fs := fs') (j := 7) (m := τ + 8) (by omega) hn hv hbo
+        have : (τ + 8 - 7) * fs' "__loop82" ≤ 29 * fs' "__loop82" := Nat.mul_le_mul_right _ (by omega)
         simp only [flLoopsBound]; omega
   · intro fp k hk _ i hi
     simp only [flKids, List.mem_cons, List.not_mem_nil, or_false] at hk
@@ -198,6 +202,12 @@ theorem verify_flock_completeAtB (fs : String → ℕ) (cert : String → V → 
           Or.inr (region_buf (w := flW2220 τ cv xs (ofK (Parameters.gpow c)))
             (by simp [bufL, flBases, flOwn]) (by simp [flW2220]; omega))⟩
 
+
+/-- **`verify_flock` is complete, placed, by a bounded tree** (TRIAGE #40): `CompleteFlockAtB`
+at its frame, its `HeapBuf`s and its two loops at `τ < 29`. -/
+theorem verify_flock_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
+    CompleteFlockAtB fs cert κ (flockBound fs) :=
+  (verify_flock_completeAtW fs cert (Θ := Empty) (fun e => e.elim) κ).toB
 
 /-- **`verify_flock` is complete, placed** (TRIAGE #40): `CompleteFlockAt`. -/
 theorem verify_flock_completeAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :

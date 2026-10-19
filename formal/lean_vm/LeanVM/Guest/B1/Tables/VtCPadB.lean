@@ -57,6 +57,10 @@ theorem vtc_leaf_total_of_ok {fs : String → ℕ} {g : String} (hok : vtcLeafOk
 set_option maxRecDepth 100000 in
 theorem pw_leafOk : ∀ j < 29, vtcLeafOk (pwNames.getD j "") = true := by decide +kernel
 
+theorem pw_ok (j : ℕ) (hj : j < pwNames.length) : vtcLeafOk (pwNames[j]'hj) = true := by
+  have := pw_leafOk j (by simpa [pwNames] using hj)
+  rwa [List.getD_eq_getElem _ _ hj] at this
+
 /-- **A dispatched `padding_weight` arm is complete, placed, by a tree of its frame**:
 `pw_completeAtD` in `CompleteAtB` form. -/
 theorem pw_completeAtB {fs : String → ℕ} {cert : String → V → ℕ} (j : ℕ) (hj : j < pwNames.length)
@@ -64,9 +68,7 @@ theorem pw_completeAtB {fs : String → ℕ} {cert : String → V → ℕ} (j : 
     (hz : ∀ rd, LowDef k rd → MemL rd Lin → ReadsAt rd zeta zs) :
     CompleteAtB fs cert k (pwNames[j]'hj) Lin [eOfNat n, zeta]
       (Returns [paddingWeight (zs.take j) n, pwLead j n, pwRest j n]) (fs (pwNames[j]'hj)) := by
-  have hok : vtcLeafOk (pwNames[j]'hj) = true := by
-    have := pw_leafOk j (by simpa [pwNames] using hj)
-    rwa [List.getD_eq_getElem _ _ hj] at this
+  have hok := pw_ok j hj
   refine vtc_completeAt_of_rel_lowB pure_pw (List.getElem_mem hj) k (fun rd hlow hL rd' hag =>
     pw_dispatch_complete j hj ⟨n, zs.take j, hn, rfl, by simp only [List.length_take]; omega,
       fun i hi => by
@@ -74,6 +76,16 @@ theorem pw_completeAtB {fs : String → ℕ} {cert : String → V → ℕ} (j : 
         rw [List.getElem_take]
         exact loadHolds_agree hag (hz rd hlow hL i (by omega)) (addr_in_region hz hlow hL (by omega)),
       rfl⟩) fun _ _ t _ htn hv hbo => (vtc_leaf_total_of_ok hok htn hv hbo).le
+
+/-- `pw_completeAtB` within weights: the arm's frame. -/
+theorem pw_completeAtW {fs : String → ℕ} {cert : String → V → ℕ} {Θ : Type} {w : Θ → String → ℕ} (j : ℕ)
+    (hj : j < pwNames.length) {k : ℕ} {Lin : Main.Layout} {zeta : E} {zs : List E} {n : ℕ} (hn : n ≤ 2 ^ j)
+    (hzl : j ≤ zs.length) (hz : ∀ rd, LowDef k rd → MemL rd Lin → ReadsAt rd zeta zs) :
+    Main.CompleteAtW fs cert w k (pwNames[j]'hj) Lin [eOfNat n, zeta]
+      (Returns [paddingWeight (zs.take j) n, pwLead j n, pwRest j n]) (fs (pwNames[j]'hj))
+      fun θ => w θ (pwNames[j]'hj) :=
+  Main.CompleteAtB.toW_total (pw_completeAtB j hj hn hzl hz) fun _ _ _ _ htn hv hbo =>
+    (vtc_leaf_total_of_ok (pw_ok j hj) htn hv hbo).le
 
 end
 end LeanVM.Guest.B1.VerifySub

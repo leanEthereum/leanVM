@@ -29,7 +29,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
-variable {fs : String → ℕ} {cert : String → V → ℕ}
+variable {fs : String → ℕ} {cert : String → V → ℕ} {Θ : Type} {w : Θ → String → ℕ}
 
 private theorem vtcl_mem {l : List Stmt} {s : Stmt} (i : ℕ) (h : l[i]? = some s) : s ∈ l :=
   List.mem_of_getElem? h
@@ -104,6 +104,16 @@ theorem sel_completeAtB {self : String} (hok : selOk self = true) (hsel : self �
     (fun rd hl hL rd' hag => sel_complete hok hm0 rfl (hB rd hl hL rd' hag))
     fun _ _ _ _ hn hv hbo => vtc_sel_total hok hm0 hn hv hbo
 
+/-- `sel_completeAtB` within weights. -/
+theorem sel_completeAtW {self : String} (hok : selOk self = true) (hsel : self ∈ selNames)
+    {sb ec zh go sq ka : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) {Lin : Main.Layout}
+    (hB : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
+      (∀ i, RegionL Lin i → rd' (gpow i) = rd (gpow i)) → ∀ j < m, SelBody rd' sb ec zh go sq ka (gen ^ j)) :
+    Main.CompleteAtW fs cert w k self Lin [1, gen ^ m, sb, ec, zh, go, sq, ka] (Returns [])
+      (m * (fs self + 0) + fs self) fun θ => m * (w θ self + 0) + w θ self :=
+  Main.CompleteAtB.toW_total (sel_completeAtB hok hsel hm0 k hB) fun _ _ _ _ hn hv hbo =>
+    vtc_sel_total hok hm0 hn hv hbo
+
 theorem sel_completeAtD {self : String} (hok : selOk self = true) (hsel : self ∈ selNames)
     {sb ec zh go sq ka : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) {Lin : Main.Layout}
     (hB : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
@@ -156,6 +166,16 @@ theorem idx_completeAtB {self : String} (hok : idxOk self = true) (hself : self 
     (fun rd hl hL rd' hag => idx_complete hok hm0 rfl (hB rd hl hL rd' hag))
     fun _ _ _ _ hn hv hbo => vtc_idx_total hok hm0 hn hv hbo
 
+/-- `idx_completeAtB` within weights. -/
+theorem idx_completeAtW {self : String} (hok : idxOk self = true) (hself : self ∈ ["__loop14", "__loop16"])
+    {ch z fac : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) {Lin : Main.Layout}
+    (hB : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
+      (∀ i, RegionL Lin i → rd' (gpow i) = rd (gpow i)) → ∀ j < m, IdxBody rd' ch z fac (gen ^ j)) :
+    Main.CompleteAtW fs cert w k self Lin [1, gen ^ m, ch, z, fac] (Returns []) (m * (fs self + 0) + fs self)
+      fun θ => m * (w θ self + 0) + w θ self :=
+  Main.CompleteAtB.toW_total (idx_completeAtB hok hself hm0 k hB) fun _ _ _ _ hn hv hbo =>
+    vtc_idx_total hok hm0 hn hv hbo
+
 theorem idx_completeAtD {self : String} (hok : idxOk self = true) (hself : self ∈ ["__loop14", "__loop16"])
     {ch z fac : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) {Lin : Main.Layout}
     (hB : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
@@ -199,6 +219,14 @@ theorem loop80_completeAtB {peq zeta chi : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) 
   vtc_completeAt_of_rel_lowB pure80 (by simp) k
     (fun rd hl hL rd' hag => loop80_complete hm0 (hB rd hl hL rd' hag))
     fun _ _ _ _ hn hv hbo => vtc_l80_total hm0 hn hv hbo
+
+/-- `loop80_completeAtB` within weights. -/
+theorem loop80_completeAtW {peq zeta chi : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) {Lin : Main.Layout}
+    (hB : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
+      (∀ i, RegionL Lin i → rd' (gpow i) = rd (gpow i)) → ∀ j < m, PeqBody rd' peq zeta chi (gen ^ j)) :
+    Main.CompleteAtW fs cert w k "__loop80" Lin [1, gen ^ m, peq, zeta, chi] (Returns [])
+      (m * (fs "__loop80" + 0) + fs "__loop80") fun θ => m * (w θ "__loop80" + 0) + w θ "__loop80" :=
+  Main.CompleteAtB.toW_total (loop80_completeAtB hm0 k hB) fun _ _ _ _ hn hv hbo => vtc_l80_total hm0 hn hv hbo
 
 theorem loop80_completeAtD {peq zeta chi : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) {Lin : Main.Layout}
     (hB : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
@@ -251,6 +279,15 @@ theorem loop79_completeAtB {rounds chi gn cprod : E} {m : ℕ} (hm0 : 0 < m) (k 
   vtc_completeAt_of_rel_lowB pure79 (by simp) k
     (fun rd hl hL rd' hag => loop79_complete hm0 (hB rd hl hL rd' hag))
     fun _ _ _ _ hn hv hbo => vtc_l79_total hm0 hn hv hbo
+
+/-- `loop79_completeAtB` within weights. -/
+theorem loop79_completeAtW {rounds chi gn cprod : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) {Lin : Main.Layout}
+    (hB : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,
+      (∀ i, RegionL Lin i → rd' (gpow i) = rd (gpow i)) → ∀ j < m, ZcRound rd' rounds chi gn cprod (gen ^ j)) :
+    Main.CompleteAtW fs cert w k "__loop79" Lin [1, gen ^ m, rounds, chi, gn, cprod] (Returns [])
+      (m * (fs "__loop79" + fs "sumcheck_round4") + fs "__loop79")
+      fun θ => m * (w θ "__loop79" + w θ "sumcheck_round4") + w θ "__loop79" :=
+  Main.CompleteAtB.toW_total (loop79_completeAtB hm0 k hB) fun _ _ _ _ hn hv hbo => vtc_l79_total hm0 hn hv hbo
 
 theorem loop79_completeAtD {rounds chi gn cprod : E} {m : ℕ} (hm0 : 0 < m) (k : ℕ) {Lin : Main.Layout}
     (hB : ∀ rd, LowDef k rd → MemL rd Lin → ∀ rd' : Reader,

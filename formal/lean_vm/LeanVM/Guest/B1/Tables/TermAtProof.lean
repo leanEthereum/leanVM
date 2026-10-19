@@ -166,11 +166,15 @@ theorem termKids_bound (fs : String → ℕ) (b : ℕ) (LB : Main.Layout) (a0 a1
     simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, c0, c1, c2, c3, c96]
     omega
 
+/-- `check_opening_terminal`'s weight: its frame's and its 97 callees'. -/
+abbrev termBoundW (ω : String → ℕ) : ℕ := ω "check_opening_terminal" + termKidsTot ω
+
 set_option maxHeartbeats 8000000 in
-/-- **`check_opening_terminal` is complete, placed, by a bounded tree** (TRIAGE #42, #43):
-`CompleteTermAtB`. -/
-theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
-    CompleteTermAtB fs cert κ TCtx PCtx (termBound fs) := by
+/-- **`check_opening_terminal` is complete, placed, by a bounded tree within weights** (TRIAGE #42,
+#43): `CompleteTermAtW`. -/
+theorem check_opening_terminal_completeAtW (fs : String → ℕ) (cert : String → V → ℕ) {Θ : Type}
+    (wt : Θ → String → ℕ) (κ : ℕ) :
+    CompleteTermAtW fs cert κ TCtx PCtx wt (termBound fs) fun θ => termBoundW (wt θ) := by
   intro layout bus claims lam fp cs w chis args Lin hacc hlen' hgz hpre
   classical
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin
@@ -319,17 +323,19 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
       a0 a1 a3 a4 a5 a6 a11 a13 K O sel i).Lin =
       Lin ++ bufL b (termSizes τ) (termOwn bus.point chisF ptw fp a2 n τ) := fun b i => by
     unfold termKid; split_ifs <;> rfl
-  refine CompleteAtB.mono ?_ le_rfl (show fs "check_opening_terminal" + (termSizes τ).sum +
+  refine Main.CompleteAtW.bmono ?_ (show fs "check_opening_terminal" + (termSizes τ).sum +
     termKidsTot fs ≤ termBound fs by
       simp only [termSizes, termBound, List.sum_cons, List.sum_nil]; omega)
-  refine completeAt_flatB find_check_opening_terminal term_not_loop κ Lin _ _ term_body term_flat
+  refine completeAt_flatW find_check_opening_terminal term_not_loop κ Lin _ _ term_body term_flat
     term_addrs (termSizes τ) (fun _ => termOwn bus.point chisF ptw fp a2 n τ)
     (fun _ => termOwn_fit _ _ _ _ _ _ _)
     (fun fp' => (List.range 97).map (termKid (fp' + fs "check_opening_terminal")
       (Lin ++ bufL (fp' + fs "check_opening_terminal") (termSizes τ)
         (termOwn bus.point chisF ptw fp a2 n τ)) a0 a1 a3 a4 a5 a6 a11 a13 K O sel))
-    (fun k => termNameBd fs k.f) (termKidsTot fs) ?_
-    (fun fp' => termKids_bound fs _ _ _ _ _ _ _ _ _ _ _ _ _ fun c hc => by have := hK28 c hc; omega) ?_ ?_ ?_
+    (fun k => termNameBd fs k.f) (fun k θ => termNameBd (wt θ) k.f) (termKidsTot fs) (fun θ => termKidsTot (wt θ)) ?_
+    (fun fp' => termKids_bound fs _ _ _ _ _ _ _ _ _ _ _ _ _ fun c hc => by have := hK28 c hc; omega)
+    (fun fp' θ => (Main.kidsBoundW_le_kidsBound _ θ (wt θ) _ (fun _ => le_rfl) _).trans
+      (termKids_bound (wt θ) _ _ _ _ _ _ _ _ _ _ _ _ _ fun c hc => by have := hK28 c hc; omega)) ?_ ?_ ?_
   · intro fp' k hk ht
     obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hk
     simp only [List.mem_range] at hi
@@ -343,20 +349,23 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
         fun i hi => hag i (regionL_append.mpr (Or.inl hi))⟩
     unfold termKid at ht ⊢
     split_ifs at ht ⊢ with h0 h1 h2 h3 h4
-    · refine vtc_completeAt_of_rel_lowB pure_eqpc (by simp) κ ?_ fun rd _ t rets' hn hv hbo =>
-        le_trans (eqpc_total (fs := fs) (m := bus.point.length) (by omega) hn (by rw [← hgmu]; exact hv)
+    · refine vtc_completeAt_of_rel_lowW (B := fun fs' => termNameBd fs' _) pure_eqpc (by simp) κ ?_
+        fun fs' rd _ t rets' hn hv hbo =>
+        le_trans (eqpc_total (fs := fs') (m := bus.point.length) (by omega) hn (by rw [← hgmu]; exact hv)
           hbo) (le_of_eq (by simp [termNameBd]))
       intro rd hlow hL rd' hag
       obtain ⟨⟨c17, -⟩, -⟩ := hM rd hlow hL rd' hag
       rw [word_one]; exact (eq_prefix_chain_iff _ _ _).mpr c17
-    · refine vtc_completeAt_of_rel_lowB pure_eqpc (by simp) κ ?_ fun rd _ t rets' hn hv hbo =>
-        le_trans (eqpc_total (fs := fs) (m := m1) (by omega) hn (by rw [← hgzcn]; exact hv)
+    · refine vtc_completeAt_of_rel_lowW (B := fun fs' => termNameBd fs' _) pure_eqpc (by simp) κ ?_
+        fun fs' rd _ t rets' hn hv hbo =>
+        le_trans (eqpc_total (fs := fs') (m := m1) (by omega) hn (by rw [← hgzcn]; exact hv)
           hbo) (le_of_eq (by simp [termNameBd]))
       intro rd hlow hL rd' hag
       obtain ⟨⟨-, c19, -⟩, -⟩ := hM rd hlow hL rd' hag
       rw [word_one]; exact (eq_prefix_chain_iff _ _ _).mpr c19
-    · refine vtc_completeAt_of_rel_lowB pure_eqpc (by simp) κ ?_ fun rd _ t rets' hn hv hbo =>
-        le_trans (eqpc_total (fs := fs) (m := τ) (by omega) hn (by rw [← hgtau]; exact hv)
+    · refine vtc_completeAt_of_rel_lowW (B := fun fs' => termNameBd fs' _) pure_eqpc (by simp) κ ?_
+        fun fs' rd _ t rets' hn hv hbo =>
+        le_trans (eqpc_total (fs := fs') (m := τ) (by omega) hn (by rw [← hgtau]; exact hv)
           hbo) (le_of_eq (by simp [termNameBd]))
       intro rd hlow hL rd' hag
       obtain ⟨⟨-, -, c21, -⟩, -⟩ := hM rd hlow hL rd' hag
@@ -367,24 +376,25 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
         · exact h
         · exfalso; simp only [decide_eq_true_eq] at ht; apply ht
           rw [show n = 1 by omega, pow_one]; exact e_add_self _
-      refine vtc_completeAt_of_rel_lowB pure_l83 (by simp) κ ?_ fun rd _ t rets' hn hv hbo => ?_
+      refine vtc_completeAt_of_rel_lowW (B := fun fs' => termNameBd fs' _) pure_l83 (by simp) κ ?_
+        fun fs' rd _ t rets' hn hv hbo => ?_
       · intro rd hlow hL rd' hag
         obtain ⟨⟨-, -, -, -, hpi, -⟩, hpt'⟩ := hM rd hlow hL rd' hag
         have hX : ∀ k < n, LoadHolds rd' a13 k (ptw.getD k 0) := fun k hk => readsAt_get hpt' (by omega)
         have hc := hpi n hglm hn33 _ hX
         exact loop83_complete hn2 hn33 hX hc
-      · have := l83_total (fs := fs) (j := 1) (m := n) hn2 hn (by rw [pow_one]; exact hv) hbo
-        have : (n - 1) * fs "__loop83" ≤ 32 * fs "__loop83" := Nat.mul_le_mul_right _ (by omega)
-        show _ ≤ termNameBd fs "__loop83"
-        rw [show termNameBd fs "__loop83" = 33 * fs "__loop83" by simp [termNameBd]]; omega
+      · have := l83_total (fs := fs') (j := 1) (m := n) hn2 hn (by rw [pow_one]; exact hv) hbo
+        have : (n - 1) * fs' "__loop83" ≤ 32 * fs' "__loop83" := Nat.mul_le_mul_right _ (by omega)
+        show _ ≤ termNameBd fs' "__loop83"
+        rw [show termNameBd fs' "__loop83" = 33 * fs' "__loop83" by simp [termNameBd]]; omega
     · have hc : i - 4 < 92 := by omega
       have hlt : K (i - 4) < csNames.length := by simp [csNames]; have := hK28 _ hc; omega
       rw [List.getD_eq_getElem _ _ hlt]
-      refine vtc_completeAt_of_rel_lowB pure_cs (List.getElem_mem hlt) κ ?_
-        fun rd _ t rets' hn hv hbo => ?_
+      refine vtc_completeAt_of_rel_lowW (B := fun fs' => termNameBd fs' _) pure_cs (List.getElem_mem hlt) κ ?_
+        fun fs' rd _ t rets' hn hv hbo => ?_
       swap
-      · rw [cs_total (fs := fs) (List.getElem_mem hlt) hn hv hbo]
-        exact fs_le_termNameBd fs _
+      · rw [cs_total (fs := fs') (List.getElem_mem hlt) hn hv hbo]
+        exact fs_le_termNameBd fs' _
       intro rd hlow hL rd' hag
       obtain ⟨-, hpt'⟩ := hM rd hlow hL rd' hag
       refine column_selector_any' hlt ⟨O (i - 4), (List.range 28).map fun k => ptw.getD k 0,
@@ -395,8 +405,9 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
         congr 1
         refine Finset.prod_congr rfl fun t ht => ?_
         rw [getD_map_range _ _ (by simp at ht; omega)]
-    · refine vtc_completeAt_of_rel_lowB pure_rs (by simp) κ ?_ fun rd _ t rets' hn hv hbo =>
-        le_trans (rs_total (fs := fs) (m := τ + 8) (by omega) hn
+    · refine vtc_completeAt_of_rel_lowW (B := fun fs' => termNameBd fs' _) pure_rs (by simp) κ ?_
+        fun fs' rd _ t rets' hn hv hbo =>
+        le_trans (rs_total (fs := fs') (m := τ + 8) (by omega) hn
           (by rw [hgtau, word_g8, ← pow_add] at hv; exact hv) hbo) (le_of_eq (by simp [termNameBd]))
       intro rd hlow hL rd' hag
       obtain ⟨⟨-, -, -, -, -, hrs, -⟩, -⟩ := hM rd hlow hL rd' hag
@@ -547,6 +558,12 @@ theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String 
             by dsimp only; rw [hptr, s21, hv, addr_gen, Nat.add_zero],
             Or.inr (region_buf (w := twChain (chisF.take τ) ((ptw.drop 8).take τ) τ)
               (by simp [bufL, termBases, termOwn]) (by simp [twChain]; omega))⟩
+
+/-- **`check_opening_terminal` is complete, placed, by a bounded tree** (TRIAGE #42, #43):
+`CompleteTermAtB`. -/
+theorem check_opening_terminal_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
+    CompleteTermAtB fs cert κ TCtx PCtx (termBound fs) :=
+  (check_opening_terminal_completeAtW fs cert (Θ := Empty) (fun e => e.elim) κ).toB
 
 /-- **`check_opening_terminal` is complete, placed** (TRIAGE #42, #43): `CompleteTermAt`. -/
 theorem check_opening_terminal_completeAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :

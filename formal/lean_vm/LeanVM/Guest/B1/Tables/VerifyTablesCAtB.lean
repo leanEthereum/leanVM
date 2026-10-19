@@ -12,9 +12,10 @@ public import LeanVM.Guest.B1.Tables.VtKidsB
 /-!
 # `verify_tables`, placed and bounded
 
-`verify_tables_completeAt_of` with `completeAt_flatB`: its tree is its frame, its 205 buffers
+`verify_tables_completeAt_of` with `completeAt_flatW`: its tree is its frame, its 205 buffers
 (`vtSizes n`, at most `vtSzPre.sum + 198`) and its 75 callees, each within its name's bound
-(`vt_kids_completeB`, `vtKids_bound`).
+(`vt_kids_completeW`, `vtKids_bound`), and it weighs its frame and its callees' weights
+(`vtTablesBoundW`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -28,11 +29,11 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
-/-- **`verify_tables` is complete, placed, by a bounded tree**, given the placed form's conditions and
-the fit of the placements. -/
-theorem verify_tables_completeAtB_of (hPl : VtPlacedOk) (hF : VtFits) (fs : String → ℕ)
-    (cert : String → V → ℕ) {κ : ℕ} (hκ : 7 ≤ κ) (bytecode : List K) :
-    CompleteTablesAtB fs cert κ bytecode TCtx (vtTablesBound fs) := by
+/-- **`verify_tables` is complete, placed, by a bounded tree within weights**, given the placed
+form's conditions and the fit of the placements. -/
+theorem verify_tables_completeAtW_of (hPl : VtPlacedOk) (hF : VtFits) (fs : String → ℕ)
+    (cert : String → V → ℕ) {Θ : Type} (w : Θ → String → ℕ) {κ : ℕ} (hκ : 7 ≤ κ) (bytecode : List K) :
+    CompleteTablesAtW fs cert κ bytecode TCtx w (vtTablesBound fs) fun θ => vtTablesBoundW (w θ) := by
   intro pi logMem alphas point values cv xs cv' rowsN bus claims beta bv rm gzcn c z lp sq dims rows bk fpw pool
     cplen chi Lin hb hdep hpl hgz h16 h32 hal hvl hrl hrows hcl hrun hLin
   set L := layoutOf bytecode logMem rowsN with hL
@@ -202,15 +203,18 @@ theorem verify_tables_completeAtB_of (hPl : VtPlacedOk) (hF : VtFits) (fs : Stri
   have hsplit : ∀ rd, ReadsAt rd cur xs → ReadsAt rd cur [m0, m1, m2, mF, bF] ∧
       ReadsAt rd (cur * gen ^ 5) ((List.range n).flatMap wsr ++ evss.flatten) := fun rd h => by
     rw [hxs] at h; exact Main.readsAt_append'.mp h
-  refine CompleteAtB.mono (B := fs "verify_tables" + (vtSizes n).sum + vtKidsTot fs) ?_ le_rfl
+  refine Main.CompleteAtW.bmono (B := fs "verify_tables" + (vtSizes n).sum + vtKidsTot fs) ?_
     (by have := vtSizes_sum_le (n := n) (by omega); simp only [vtTablesBound]; omega)
-  refine completeAt_flatB find_verify_tables vt_not_loop κ Lin _ _ core11_body vtPre_flat vtPre_addrs (vtSizes n)
+  refine completeAt_flatW find_verify_tables vt_not_loop κ Lin _ _ core11_body vtPre_flat vtPre_addrs (vtSizes n)
     (fun _ => own) (fun _ => vtOwnW_fit _ _ _ _ _ _ _ _ _)
     (fun fp => vtKids Lin (fp + fs "verify_tables") n point.length logMem ks τs (fun t => rowsN.getD t 0) point
       (ofK (Parameters.gpow z)) (ofK (Parameters.gpow sq)) (ofK (Parameters.gpow chi)) own)
-    (fun k => vtNameBd fs k.f) (vtKidsTot fs) ?_ (fun fp => vtKids_bound fs _ _ _ _ _ _ _ _ _ _ _ _ _ hτ29) ?_ ?_ ?_
+    (fun k => vtNameBd fs k.f) (fun k θ => vtNameBd (w θ) k.f) (vtKidsTot fs) (fun θ => vtKidsTot (w θ)) ?_
+    (fun fp => vtKids_bound fs _ _ _ _ _ _ _ _ _ _ _ _ _ hτ29)
+    (fun fp θ => (Main.kidsBoundW_le_kidsBound _ θ (w θ) _ (fun _ => le_rfl) _).trans
+      (vtKids_bound (w θ) _ _ _ _ _ _ _ _ _ _ _ _ _ hτ29)) ?_ ?_ ?_
   · intro fp k hk ht
-    exact vt_kids_completeB fs cert κ hκ Lin (fp + fs "verify_tables") n logMem ks τs (fun t => rowsN.getD t 0)
+    exact vt_kids_completeW fs cert Θ w κ hκ Lin (fp + fs "verify_tables") n logMem ks τs (fun t => rowsN.getD t 0)
       point chis cvr cur cl ch wsr _ _ _ hpl hlmμ h18μ hnp (fun i hi => (hfit i hi).1)
       (fun t ht => ⟨hτ29 t ht, hτμ t ht, le_two_pow_log2Ceil _⟩) rfl hrnd
       (fun rd hlow hL => by
@@ -345,10 +349,16 @@ theorem verify_tables_completeAtB_of (hPl : VtPlacedOk) (hF : VtFits) (fs : Stri
       rw [r71, r72, r75, r76, r77, r78, hrm, hcv', hgz, hxsl, mul_assoc, ← pow_add]
       rfl
 
+/-- **`verify_tables` is complete, placed, by a bounded tree within weights** (`CompleteTablesAtW`). -/
+theorem verify_tables_completeAtW (fs : String → ℕ) (cert : String → V → ℕ) {Θ : Type} (w : Θ → String → ℕ)
+    {κ : ℕ} (hκ : 7 ≤ κ) (bytecode : List K) :
+    CompleteTablesAtW fs cert κ bytecode TCtx w (vtTablesBound fs) fun θ => vtTablesBoundW (w θ) :=
+  verify_tables_completeAtW_of vt_placed_ok vt_fits fs cert w hκ bytecode
+
 /-- **`verify_tables` is complete, placed, by a bounded tree** (`CompleteTablesAtB`). -/
 theorem verify_tables_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 7 ≤ κ)
     (bytecode : List K) : CompleteTablesAtB fs cert κ bytecode TCtx (vtTablesBound fs) :=
-  verify_tables_completeAtB_of vt_placed_ok vt_fits fs cert hκ bytecode
+  (verify_tables_completeAtW fs cert (Θ := Empty) (fun e => e.elim) hκ bytecode).toB
 
 end
 end LeanVM.Guest.B1.VerifySub

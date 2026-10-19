@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.VerifySub.Body
 public import LeanVM.Guest.B1.Uniform
+public import LeanVM.Guest.B1.Main.WeightB
 
 /-!
 # `verify_sub`'s completeness: the run, the memory, the callees
@@ -353,6 +354,145 @@ def CompleteOpenAtB (CapOk : ℕ → ℕ → Digest → Digest → List E → Li
         (digestScalars root).1, (digestScalars root).2, ofK (Parameters.gpow c)] (fun rets Lout =>
         ∃ b, rets = [w.target, ofK (Parameters.gpow b), w.inner, w.residual] ∧
           Lout = [(b, w.point ++ List.replicate (pointCap - w.point.length) 0)]) B
+
+
+/-! ### Within weights: the same shapes by trees weighing at most `Bw θ` at `wt θ` (`CompleteAtW`) -/
+
+section Weights
+
+variable {Θ : Type} (wt : Θ → String → ℕ)
+
+/-- `CompleteGkrAtB` within weights. -/
+def CompleteGkrAtW (B : ℕ) (Bw : Θ → ℕ) : Prop :=
+  ∀ (cv : Digest) (depth : ℕ) (xs : List E) (r : E × List E × List E) (cv' : Digest) (c z : ℕ)
+    (Lin : Main.Layout), depth < 33 → RunsTo (gkrPhase depth) cv xs r cv' → r.2.1.length = depth →
+    r.2.2.length = 3 →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow z)) r.2.1) →
+    Main.CompleteAtW fs cert wt k "verify_bus_gkr" Lin [(digestScalars cv).1, (digestScalars cv).2,
+      ofK (Parameters.gpow c), gen ^ depth, ofK (Parameters.gpow z)]
+      (Returns ([(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length] ++ r.2.2)) B Bw
+
+theorem CompleteGkrAtW.toB {B : ℕ} {Bw : Θ → ℕ} (h : CompleteGkrAtW fs cert k wt B Bw) :
+    CompleteGkrAtB fs cert k B := by
+  unfold CompleteGkrAtW at h
+  unfold CompleteGkrAtB
+  intros
+  exact Main.CompleteAtW.toB (by apply h <;> assumption)
+
+/-- `CompleteTablesAtB` within weights. -/
+def CompleteTablesAtW (B : ℕ) (Bw : Θ → ℕ) : Prop :=
+  ∀ (pi : Digest) (logMem : ℕ) (alphas point values : List E) (cv : Digest) (xs : List E)
+    (cv' : Digest) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim)
+    (beta bv rm gzcn : E) (c z lp sq dims rows bk fpw pool cplen chi : ℕ) (Lin : Main.Layout),
+    bytecode.length = 2 ^ 22 →
+    point.length = (busLayout [0, logMem, 18] (layoutOf bytecode logMem rowsN).push).depth →
+    point.length < 33 → gzcn = gen ^ (layoutOf bytecode logMem rowsN).tableLogHeights.foldl max 0 →
+    16 ≤ logMem → logMem ≤ 32 → alphas.length = 4 → values.length = 3 →
+    rowsN.length = 6 → (∀ n ∈ rowsN, log2Ceil n < 29) → claims.length = nClaims →
+    (∀ ev, BytecodeAt ev bytecode
+        (point.take (layoutOf bytecode logMem rowsN).logBytecode ++ alphas) bv →
+      RunsTo (tablesSeg ev (layoutOf bytecode logMem rowsN) pi alphas beta point values) cv xs
+        (bus, claims) cv') →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow z)) point ∧
+      ExpTables rd (ofK (Parameters.gpow lp)) (ofK (Parameters.gpow sq)) ∧
+      ReadsAt rd (ofK (Parameters.gpow rows)) (rowsN.map eOfNat) ∧
+      ReadsAt rd (ofK (Parameters.gpow dims)) (gen ^ logMem :: rowsN.map fun n ↦ gen ^ log2Ceil n) ∧
+      ReadsAt rd (ofK (Parameters.gpow bk))
+        (blockKappas (gen ^ logMem) (rowsN.map fun n ↦ gen ^ log2Ceil n)) ∧
+      ReadsAt rd (ofK (Parameters.gpow fpw)) (eqKernel alphas) ∧
+      ReadsAt rd (ofK (Parameters.gpow pool)) (claims.map (·.value)) ∧
+      TCtx rd (layoutOf bytecode logMem rowsN) bus claims [ofK (Parameters.gpow z),
+        ofK (Parameters.gpow chi), rm, gen ^ point.length, gzcn, ofK (Parameters.gpow cplen)]) →
+    Main.CompleteAtW fs cert wt k "verify_tables" Lin
+      [(digestScalars cv).1, (digestScalars cv).2, ofK (Parameters.gpow c), (digestScalars pi).1,
+        (digestScalars pi).2, ofK (Parameters.gpow z), gen ^ point.length,
+        ofK (Parameters.gpow dims), ofK (Parameters.gpow rows), ofK (Parameters.gpow bk),
+        ofK (Parameters.gpow sq), ofK (Parameters.gpow fpw), beta, ofK (Parameters.gpow pool),
+        ofK (Parameters.gpow cplen), ofK (Parameters.gpow chi), values.getD 0 0, values.getD 1 0,
+        values.getD 2 0]
+      (Returns [(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length, gzcn, bv, rm]) B Bw
+
+theorem CompleteTablesAtW.toB {B : ℕ} {Bw : Θ → ℕ} (h : CompleteTablesAtW fs cert k bytecode TCtx wt B Bw) :
+    CompleteTablesAtB fs cert k bytecode TCtx B := by
+  unfold CompleteTablesAtW at h
+  unfold CompleteTablesAtB
+  intros
+  exact Main.CompleteAtW.toB (by apply h <;> assumption)
+
+/-- `CompleteFlockAtB` within weights. -/
+def CompleteFlockAtW (B : ℕ) (Bw : Θ → ℕ) : Prop :=
+  ∀ (τ : ℕ) (cv : Digest) (xs : List E) (cv' : Digest) (zSkip alpha mv : E) (chi rcs s : List E)
+    (c zc lr zp : ℕ) (Lin : Main.Layout), τ < 29 → chi.length = 8 + τ → rcs.length = 8 →
+    s.length = 64 →
+    (∀ ev, MatricesAt ev alpha zSkip (chi.take 8) rcs.reverse s mv →
+      RunsTo (verifyFlock ev (blake2sR1csLogSize + τ)) cv xs (rcs.reverse ++ chi.drop 8, s) cv') →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow zc)) chi ∧
+      ReadsAt rd (ofK (Parameters.gpow lr)) rcs ∧ ReadsAt rd (ofK (Parameters.gpow zp)) s) →
+    Main.CompleteAtW fs cert wt k "verify_flock" Lin [(digestScalars cv).1, (digestScalars cv).2,
+      ofK (Parameters.gpow c), gen ^ τ, ofK (Parameters.gpow zc), ofK (Parameters.gpow lr),
+      ofK (Parameters.gpow zp)]
+      (Returns [(digestScalars cv').1, (digestScalars cv').2,
+        ofK (Parameters.gpow c) * gen ^ xs.length, zSkip, alpha, mv]) B Bw
+
+theorem CompleteFlockAtW.toB {B : ℕ} {Bw : Θ → ℕ} (h : CompleteFlockAtW fs cert k wt B Bw) :
+    CompleteFlockAtB fs cert k B := by
+  unfold CompleteFlockAtW at h
+  unfold CompleteFlockAtB
+  intros
+  exact Main.CompleteAtW.toB (by apply h <;> assumption)
+
+/-- `CompleteTermAtB` within weights. -/
+def CompleteTermAtW (B : ℕ) (Bw : Θ → ℕ) : Prop :=
+  ∀ (layout : Layout) (bus : BusResult) (claims : List ColumnClaim) (lam : E)
+    (flockPoint coeffs : List E) (w : WhirEnd) (chis : List E) (args : List E) (Lin : Main.Layout),
+    w.Accepts (stackWeight layout claims flockPoint coeffs lam) →
+    (∀ c ∈ claims, c.point.length = (layout.placements.getD c.column default).vars) →
+    args.getD 4 0 = gen ^ chis.length →
+    (∀ rd, LowDef k rd → MemL rd Lin →
+      TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args ∧
+        ReadsAt rd (args.getD 1 0) chis) →
+    Main.CompleteAtW fs cert wt k "check_opening_terminal" Lin args (Returns []) B Bw
+
+theorem CompleteTermAtW.toB {B : ℕ} {Bw : Θ → ℕ} (h : CompleteTermAtW fs cert k TCtx PCtx wt B Bw) :
+    CompleteTermAtB fs cert k TCtx PCtx B := by
+  unfold CompleteTermAtW at h
+  unfold CompleteTermAtB
+  intros
+  exact Main.CompleteAtW.toB (by apply h <;> assumption)
+theorem CompleteGkrAtB.toWE {wt : Empty → String → ℕ} {B : ℕ} {Bw : Empty → ℕ}
+    (h : CompleteGkrAtB fs cert k B) : CompleteGkrAtW fs cert k wt B Bw := by
+  unfold CompleteGkrAtB at h
+  unfold CompleteGkrAtW
+  intros
+  exact Main.CompleteAtB.toWE (by apply h <;> assumption)
+
+theorem CompleteTablesAtB.toWE {wt : Empty → String → ℕ} {B : ℕ} {Bw : Empty → ℕ}
+    (h : CompleteTablesAtB fs cert k bytecode TCtx B) : CompleteTablesAtW fs cert k bytecode TCtx wt B Bw := by
+  unfold CompleteTablesAtB at h
+  unfold CompleteTablesAtW
+  intros
+  exact Main.CompleteAtB.toWE (by apply h <;> assumption)
+
+theorem CompleteFlockAtB.toWE {wt : Empty → String → ℕ} {B : ℕ} {Bw : Empty → ℕ}
+    (h : CompleteFlockAtB fs cert k B) : CompleteFlockAtW fs cert k wt B Bw := by
+  unfold CompleteFlockAtB at h
+  unfold CompleteFlockAtW
+  intros
+  exact Main.CompleteAtB.toWE (by apply h <;> assumption)
+
+theorem CompleteTermAtB.toWE {wt : Empty → String → ℕ} {B : ℕ} {Bw : Empty → ℕ}
+    (h : CompleteTermAtB fs cert k TCtx PCtx B) : CompleteTermAtW fs cert k TCtx PCtx wt B Bw := by
+  unfold CompleteTermAtB at h
+  unfold CompleteTermAtW
+  intros
+  exact Main.CompleteAtB.toWE (by apply h <;> assumption)
+
+end Weights
 
 end Placed
 

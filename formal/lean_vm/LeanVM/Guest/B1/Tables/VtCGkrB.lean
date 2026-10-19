@@ -41,28 +41,33 @@ abbrev vtcGkrKB (fs : String → ℕ) : ℕ :=
 def vtcGkrBound (fs : String → ℕ) : ℕ :=
   fs "verify_bus_gkr" + (8 * 34 + 3448 + 1640 + 33 + 33) + vtcGkrKB fs
 
+/-- `verify_bus_gkr`'s weight: its frame's and its loops'. -/
+def vtcGkrBoundW (ω : String → ℕ) : ℕ := ω "verify_bus_gkr" + vtcGkrKB ω
+
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
-/-- **`verify_bus_gkr` is complete, placed, by a tree of at most `vtcGkrBound fs` words**
-(TRIAGE #37): `CompleteGkrAtB`, on memories defined below `2^κ`, `κ ≥ 6`. -/
-theorem verify_bus_gkr_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 6 ≤ κ) :
-    CompleteGkrAtB fs cert κ (vtcGkrBound fs) := by
+/-- **`verify_bus_gkr` is complete, placed, by a tree of at most `vtcGkrBound fs` words weighing
+at most `vtcGkrBoundW (w θ)`** (TRIAGE #37): `CompleteGkrAtW`, on memories defined below `2^κ`,
+`κ ≥ 6`. -/
+theorem verify_bus_gkr_completeAtW (fs : String → ℕ) (cert : String → V → ℕ) {Θ : Type}
+    (w : Θ → String → ℕ) {κ : ℕ} (hκ : 6 ≤ κ) :
+    CompleteGkrAtW fs cert κ w (vtcGkrBound fs) fun θ => vtcGkrBoundW (w θ) := by
   intro cv μ xs r cv' c z Lin hμ hrun hpl hvl hLin
   obtain ⟨T, hT⟩ := exists_trace hrun
   obtain ⟨hs1, hs2, hs3⟩ := vbg_straight
   have h2k : 33 ≤ 2 ^ κ := le_trans (by norm_num) (Nat.pow_le_pow_right (by norm_num) hκ)
   have hxl : 2 + 6 * (μ % 2) ≤ xs.length := by
     rw [hT.xs_len, ← hT.ys_len _ le_rfl]; simp [gCur]
-  refine CompleteAtB.mono (vtc_completeAt_iteB find_vbg vbg_not_loop κ Lin _ _ vbg_body' hs1 (by decide) hs2
+  refine Main.CompleteAtW.bmono (vtc_completeAt_iteW find_vbg vbg_not_loop κ Lin _ _ vbg_body' hs1 (by decide) hs2
     hs3 (decide (μ % 2 = 0)) (vbg_addrs _) (gkrSizes μ)
     (fun fp => gkrOwn T μ cv (ofK (Parameters.gpow c)) (ofK (Parameters.gpow (gP μ (fp + fs "verify_bus_gkr")))))
     (fun fp => gkrOwn_fit T hμ _ _ _) (fun fp => gkrKids T μ cv c z Lin (fp + fs "verify_bus_gkr"))
-    (vtcGkrBd fs) (vtcGkrKB fs) ?_ ?_ ?_ ?_ ?_) le_rfl ?_
+    (vtcGkrBd fs) (fun k θ => vtcGkrBd (w θ) k) (vtcGkrKB fs) (fun θ => vtcGkrKB (w θ)) ?_ ?_ ?_ ?_ ?_ ?_) ?_
   · intro fp k hk ht
     simp only [gkrKids, List.mem_cons, List.not_mem_nil, or_false] at hk
     rcases hk with rfl | rfl
-    · refine vtc_completeAt_of_rel_lowB pure10 (by simp) κ (fun rd hlow hL rd' hag => ?_)
-        (fun rd hL t rets' hn hv hbo => ?_)
+    · refine vtc_completeAt_of_rel_lowW (B := fun fs' => vtcGkrBd fs' _) pure10 (by simp) κ
+        (fun rd hlow hL rd' hag => ?_) (fun fs' rd hL t rets' hn hv hbo => ?_)
       swap
       · obtain ⟨-, hL2⟩ := Main.memL_append.mp hL
         have hM := gkrMem_at hL2
@@ -70,8 +75,8 @@ theorem verify_bus_gkr_completeAtB (fs : String → ℕ) (cert : String → V �
             (gen ^ (μ % 2)) := loadHolds_unshift (by rw [← vbgDs_get hμ]; exact hM.ds μ (by omega)) rfl
         have hm : 0 < μ / 2 := by simp only [decide_eq_true_eq] at ht; omega
         rw [word_one] at hv
-        have := vtc_l10_total (fs := fs) hm (by omega) (Nat.le_of_lt_succ (Nat.mod_lt _ (by omega))) hds hn hv hbo
-        have hle : μ / 2 * (fs "__loop10" + vtcK10 fs) ≤ 16 * (fs "__loop10" + vtcK10 fs) :=
+        have := vtc_l10_total (fs := fs') hm (by omega) (Nat.le_of_lt_succ (Nat.mod_lt _ (by omega))) hds hn hv hbo
+        have hle : μ / 2 * (fs' "__loop10" + vtcK10 fs') ≤ 16 * (fs' "__loop10" + vtcK10 fs') :=
           Nat.mul_le_mul_right _ (by omega)
         simp (config := { decide := true }) only [vtcGkrBd, ↓reduceIte]
         omega
@@ -81,13 +86,13 @@ theorem verify_bus_gkr_completeAtB (fs : String → ℕ) (cert : String → V �
         fun i hi => hag i (regionL_append.mpr (Or.inl hi))
       have hm : 0 < μ / 2 := by simp only [decide_eq_true_eq] at ht; omega
       rw [word_one]; exact gkr_loop10 hT hμ hM hx hm
-    · refine vtc_completeAt_of_rel_lowB pure11 (by simp) κ (fun rd hlow hL rd' hag => ?_)
-        (fun rd hL t rets' hn hv hbo => ?_)
+    · refine vtc_completeAt_of_rel_lowW (B := fun fs' => vtcGkrBd fs' _) pure11 (by simp) κ
+        (fun rd hlow hL rd' hag => ?_) (fun fs' rd hL t rets' hn hv hbo => ?_)
       swap
       · have hm : 0 < μ := by simp only [decide_eq_true_eq] at ht; omega
         rw [word_one] at hv
-        have := vtc_l11_total (fs := fs) hm hn hv hbo
-        have hle : μ * (fs "__loop11" + 0) ≤ 32 * (fs "__loop11" + 0) := Nat.mul_le_mul_right _ (by omega)
+        have := vtc_l11_total (fs := fs') hm hn hv hbo
+        have hle : μ * (fs' "__loop11" + 0) ≤ 32 * (fs' "__loop11" + 0) := Nat.mul_le_mul_right _ (by omega)
         simp (config := { decide := true }) only [vtcGkrBd, ↓reduceIte]
         omega
       obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
@@ -211,8 +216,17 @@ theorem verify_bus_gkr_completeAtB (fs : String → ℕ) (cert : String → V �
   · intro fp
     simp only [kidsBound, gkrKids, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, vtcGkrKB]
     split_ifs <;> (try simp (config := { decide := true }) only [vtcGkrBd, ↓reduceIte]) <;> omega
+  · intro fp θ
+    simp only [Main.kidsBoundW, gkrKids, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, vtcGkrKB]
+    split_ifs <;> (try simp (config := { decide := true }) only [vtcGkrBd, ↓reduceIte]) <;> omega
   · simp only [gkrSizes, List.sum_cons, List.sum_nil, vtcGkrBound]
     omega
+
+/-- **`verify_bus_gkr` is complete, placed, by a tree of at most `vtcGkrBound fs` words**
+(TRIAGE #37): `CompleteGkrAtB`, on memories defined below `2^κ`, `κ ≥ 6`. -/
+theorem verify_bus_gkr_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 6 ≤ κ) :
+    CompleteGkrAtB fs cert κ (vtcGkrBound fs) :=
+  (verify_bus_gkr_completeAtW fs cert (Θ := Empty) (fun e => e.elim) hκ).toB
 
 end
 end LeanVM.Guest.B1.VerifySub
