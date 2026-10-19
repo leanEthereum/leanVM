@@ -214,5 +214,32 @@ theorem walk_dispatch (σ : Val) (pre post : List Stmt) (hpre : pre.all Main.Stm
     rw [List.cons_append, walk, ih hpre.2, Main.walk1_straight σ s hpre.1, Out.seq, Out.pre,
       List.flatMap_cons, List.append_assoc]
 
+theorem logG_gen_pow {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := by
+  rw [gen_pow_eq_ofK, logG_spec he]
+
+/-- A straight run without its `ret` falls through with its statements' events. -/
+theorem walk_straight_fall (σ : Val) : ∀ pre : List Stmt, pre.all Main.Stmt.straight = true →
+    walk σ pre = .fall (pre.flatMap (Main.slEvs σ))
+  | [], _ => rfl
+  | s :: pre, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    rw [walk, walk_straight_fall σ pre h.2, Main.walk1_straight σ s h.1, Out.seq, Out.pre, List.flatMap_cons]
+
+/-- A dispatch between straight runs, without a `ret`, falls through with the chosen call. -/
+theorem walk_dispatch_fall (σ : Val) (pre post : List Stmt) (hpre : pre.all Main.Stmt.straight = true)
+    (hpost : post.all Main.Stmt.straight = true) (x : V) (fs : List String) (args rets : List V)
+    {i : ℕ} (hi : i < fs.length) (hfl : fs.length ≤ 2 ^ 64 - 1) (hx : σ x = ofK (gpow i)) :
+    walk σ (pre ++ .dispatch x fs args rets :: post) =
+      .fall (pre.flatMap (Main.slEvs σ) ++ .call fs[i]! args rets :: post.flatMap (Main.slEvs σ)) := by
+  induction pre with
+  | nil =>
+    rw [List.nil_append, walk, walk1, pick_eq σ x args rets fs 0 i hi (by omega) (by rw [Nat.zero_add]; exact hx),
+      walk_straight_fall σ post hpost]
+    rfl
+  | cons s pre ih =>
+    simp only [List.all_cons, Bool.and_eq_true] at hpre
+    rw [List.cons_append, walk, ih hpre.2, Main.walk1_straight σ s hpre.1, Out.seq, Out.pre,
+      List.flatMap_cons, List.append_assoc]
+
 end
 end LeanVM.Guest.B1.Digest

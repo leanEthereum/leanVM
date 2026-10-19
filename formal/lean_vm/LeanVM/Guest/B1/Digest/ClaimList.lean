@@ -329,6 +329,96 @@ noncomputable def cldList (p gsq c d0 d1 : E) (cs : List E) (n w t : ℕ) (t1 t2
   cs.getD (4 * (n - 1) + 0) 0, cs.getD (4 * (n - 1) + 1) 0, cs.getD (4 * (n - 1) + 2) 0,
   cs.getD (4 * (n - 1) + 3) 0, d0, d1]
 
+/-- **`claim_list_digest`'s body holds**, `n ≥ 1`, at its honest values, on a memory defined below
+`2^16` holding the squares table, the cells and the windows' scratch table at `c`. -/
+theorem cld_holds_pos {rd : Reader} (hl : Low16 rd) {gsq : E} (hT : SquaresAt rd gsq) {p c : E} {n : ℕ}
+    (hn : n < 2 ^ 16) (hn1 : 0 < n) {cs : List E} (hlen : cs.length = 4 * n) (hcells : CellsAt rd p cs)
+    (hcan : ∀ x ∈ cs, IsCanonical128 x) (hscr : ClScratch rd p c cs ((n - 1) / 32)) {d0 d1 : E}
+    (hd : (d0, d1) = digestScalars (blake2sBytes (cs.flatMap cellBytes))) :
+    ∃ t1 t2 t3 t4, Stmt.HoldsList (coreProgram.Rel rd) rd
+      (listVal (cldList p gsq c d0 d1 cs n ((n - 1) / 32) ((n - 1) % 32) t1 t2 t3 t4)) cldBody False
+      (fun rs => rs = [d0, d1]) := by
+  set w := (n - 1) / 32 with hw
+  set t := (n - 1) % 32 with ht
+  have hwt : n = 32 * w + t + 1 := by omega
+  have ht32 : t < 32 := by omega
+  have hw2 : w < 2048 := by omega
+  obtain ⟨t1, t2, l18, -, l19⟩ := rangeCheck_complete_low hl (e := t) (e' := 31 - t) (by omega) (by omega)
+  obtain ⟨t3, t4, l22, -, l23⟩ := rangeCheck_complete_low hl (e := w) (e' := 2047 - w) (by omega) (by omega)
+  have hsteps := windows_bwd hT hlen (by omega) hn hcells hcan hscr
+  have hS := fun q (hq : q ≤ w) => cellsAt_four.mp (hscr q hq)
+  obtain ⟨s00, s01, s02, s03⟩ := hS 0 (by omega)
+  obtain ⟨sw0, sw1, sw2, sw3⟩ := hS w le_rfl
+  simp only [Nat.mul_zero, pow_zero, mul_one, eOfNat_zero] at s00 s01 s02 s03
+  rw [← pow4_eq _ w rfl] at sw0 sw1 sw2 sw3
+  have hb := blocks_canonical hlen hcan
+  have hl : ∀ r < 4, LoadHolds rd (p * gen ^ (128 * w) * gen ^ (4 * t)) r
+      (cs.getD (4 * (n - 1) + r) 0) := fun r hr => by
+    rw [mul_assoc, ← pow_add, loadHolds_mul_gen_pow,
+      List.getD_eq_getElem _ _ (by omega), show 128 * w + 4 * t + r = 4 * (n - 1) + r by omega]
+    exact hcells _ (by omega)
+  have hlast : ![cs.getD (4 * (n - 1) + 0) 0, cs.getD (4 * (n - 1) + 1) 0,
+      cs.getD (4 * (n - 1) + 2) 0, cs.getD (4 * (n - 1) + 3) 0] = blocksOf cs (n - 1) := by
+    simp [blocksOf]
+  have hmd : eOfNat (2 ^ 6 * n) + word 0 4294967295 0 = metadataCell (64 * n) true := by
+    rw [md_final_word, eOfNat_add_metadataCell, Nat.xor_zero]; rfl
+  refine ⟨t1, t2, t3, t4, ?_⟩
+  simp only [cldBody, List.cons_append, List.nil_append, Stmt.HoldsList,
+    Stmt.Holds, Atom.Holds, true_and, List.map_cons, List.map_nil]
+  refine ⟨rfl, rfl, ?_, fun h => ?_, fun _ => ?_⟩
+  · show IsInK (gen ^ n + word 1 0 0)
+    rw [word_one, gen_pow_eq_ofK, ← ofK_one, ← ofK_add]; exact ofK_isInK _
+  · exfalso
+    have h' : gen ^ n + word 1 0 0 = 0 := h
+    rw [word_one] at h'
+    have := (gen_pow_eq_one_iff (by omega)).mp (e_add_eq_zero_iff.mp h')
+    omega
+  refine ⟨rfl, ⟨l18, ?_, l19⟩, rfl, ⟨l22, ?_, l23⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_,
+    rfl, rfl, rfl, rfl, rfl, ?_, rfl, ?_, rfl, ?_, ?_, rfl, rfl, rfl, ?_, ?_, rfl, rfl, rfl, ?_, ?_,
+    ?_, ?_, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_, ?_, rfl, rfl, ?_⟩
+  · show word 2147483648 0 0 = gen ^ t * gen ^ (31 - t)
+    rw [word_g31, ← pow_add]; congr 1; omega
+  · show word 55834575010 0 0 = gen ^ w * gen ^ (2047 - w)
+    rw [word_g2047, ← pow_add]; congr 1; omega
+  all_goals simp only [listVal, cldList, List.getD_cons_succ, List.getD_cons_zero]
+  · rw [show gen ^ n * word 9223372036854775821 0 0 = gen ^ (32 * w + t) by
+      rw [show gen ^ n = gen ^ (32 * w + t) * gen by rw [← pow_succ, hwt], mul_assoc,
+        mul_comm gen, ginv_mul_gen, mul_one], e_add_eq_zero_iff]
+    ring
+  · rw [iv0_word]; exact s00
+  · rw [iv1_word]; exact s01
+  · rw [word_zero]; exact s02
+  · exact s03
+  · rw [word_one, gen_pow_eq_ofK, ← ofK_one, ← ofK_add]; exact ofK_isInK _
+  · intro h
+    rw [word_one, ← pow_zero gen]
+    have hw0 : 0 < w := by
+      rcases Nat.eq_zero_or_pos w with h0 | h0
+      · exfalso; apply h; rw [h0, word_one, pow_zero, e_add_self]
+      · exact h0
+    exact (loop_iff (l86Step_mono rd c gsq) (l86_step rd (gen ^ w) c gsq) 0).mpr
+      ⟨w, hw0, rfl, fun j h1 h2 he => by have := gen_pow_inj' (by omega) (by omega) he; omega,
+        fun j _ h2 => hsteps j h2⟩
+  · exact sw0
+  · exact sw1
+  · exact sw2
+  · exact sw3
+  · refine ⟨t, by simp [ctNames]; omega, (gen_pow_eq_ofK t), ?_⟩
+    rw [← List.getD_eq_getElem _ "" (by simp [ctNames]; omega), claims_tail_iff t ht32]
+    refine ⟨_, _, _, _, _, _, _, rfl, rfl, rfl, sliceOf cs (32 * w) t, length_sliceOf _ _ _, ?_, ?_⟩
+    · rw [show 128 * w = 4 * (32 * w) by ring]
+      exact cellsAt_sliceOf hcells (by omega)
+    · refine (chainCells_prefix (blocksOf_sliceOf cs (32 * w) t)
+        (fun j hj => baseMd_eq w j (by omega))).mpr ⟨fun j hj r => hb _ (by omega) r, ?_⟩
+      rw [show 32 * w + t = n - 1 by omega]
+  · exact (scaled_log_6_iff hT _ _).mpr ⟨_, rfl, n, hn, rfl, rfl⟩
+  · exact hl 0 (by omega)
+  · exact hl 1 (by omega)
+  · exact hl 2 (by omega)
+  · exact hl 3 (by omega)
+  · rw [hlast, hmd]
+    exact (final_iff hlen (by omega) (hb (n - 1) (by omega))).mpr hd
+
 theorem claim_list_digest_iff {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
     (p n_g : E) (rets : List E) :
     coreProgram.Rel rd "claim_list_digest" [p, n_g, gsq] rets ↔
@@ -481,83 +571,10 @@ theorem claim_list_digest_iff {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : Squa
     · rcases hscr with h0 | ⟨c, hscr⟩
       · omega
       subst hng
-      set w := (n - 1) / 32 with hw
-      set t := (n - 1) % 32 with ht
-      have hwt : n = 32 * w + t + 1 := by omega
-      have ht32 : t < 32 := by omega
-      have hw2 : w < 2048 := by omega
-      obtain ⟨t1, t2, l18, -, l19⟩ := rangeCheck_complete hm (e := t) (e' := 31 - t) (by omega) (by omega)
-      obtain ⟨t3, t4, l22, -, l23⟩ := rangeCheck_complete hm (e := w) (e' := 2047 - w) (by omega) (by omega)
-      have hsteps := windows_bwd hT hlen (by omega) hn hcells hcan hscr
-      have hS := fun q (hq : q ≤ w) => cellsAt_four.mp (hscr q hq)
-      obtain ⟨s00, s01, s02, s03⟩ := hS 0 (by omega)
-      obtain ⟨sw0, sw1, sw2, sw3⟩ := hS w le_rfl
-      simp only [Nat.mul_zero, pow_zero, mul_one, eOfNat_zero] at s00 s01 s02 s03
-      rw [← pow4_eq _ w rfl] at sw0 sw1 sw2 sw3
-      have hb := blocks_canonical hlen hcan
-      have hl : ∀ r < 4, LoadHolds rd (p * gen ^ (128 * w) * gen ^ (4 * t)) r
-          (cs.getD (4 * (n - 1) + r) 0) := fun r hr => by
-        rw [mul_assoc, ← pow_add, loadHolds_mul_gen_pow,
-          List.getD_eq_getElem _ _ (by omega), show 128 * w + 4 * t + r = 4 * (n - 1) + r by omega]
-        exact hcells _ (by omega)
-      have hlast : ![cs.getD (4 * (n - 1) + 0) 0, cs.getD (4 * (n - 1) + 1) 0,
-          cs.getD (4 * (n - 1) + 2) 0, cs.getD (4 * (n - 1) + 3) 0] = blocksOf cs (n - 1) := by
-        simp [blocksOf]
-      have hmd : eOfNat (2 ^ 6 * n) + word 0 4294967295 0 = metadataCell (64 * n) true := by
-        rw [md_final_word, eOfNat_add_metadataCell, Nat.xor_zero]; rfl
-      refine ⟨listVal (cldList p gsq c d0 d1 cs n w t t1 t2 t3 t4), rfl, rfl, rfl, ?_, fun h => ?_, fun _ => ?_⟩
-      · show IsInK (gen ^ n + word 1 0 0)
-        rw [word_one, gen_pow_eq_ofK, ← ofK_one, ← ofK_add]; exact ofK_isInK _
-      · exfalso
-        have h' : gen ^ n + word 1 0 0 = 0 := h
-        rw [word_one] at h'
-        have := (gen_pow_eq_one_iff (by omega)).mp (e_add_eq_zero_iff.mp h')
-        omega
-      refine ⟨rfl, ⟨l18, ?_, l19⟩, rfl, ⟨l22, ?_, l23⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_,
-        rfl, rfl, rfl, rfl, rfl, ?_, rfl, ?_, rfl, ?_, ?_, rfl, rfl, rfl, ?_, ?_, rfl, rfl, rfl, ?_, ?_,
-        ?_, ?_, ?_, ?_, rfl, rfl, ?_, ?_, ?_, ?_, ?_, rfl, rfl, ?_⟩
-      · show word 2147483648 0 0 = gen ^ t * gen ^ (31 - t)
-        rw [word_g31, ← pow_add]; congr 1; omega
-      · show word 55834575010 0 0 = gen ^ w * gen ^ (2047 - w)
-        rw [word_g2047, ← pow_add]; congr 1; omega
-      all_goals simp only [listVal, cldList, List.getD_cons_succ, List.getD_cons_zero]
-      · rw [show gen ^ n * word 9223372036854775821 0 0 = gen ^ (32 * w + t) by
-          rw [show gen ^ n = gen ^ (32 * w + t) * gen by rw [← pow_succ, hwt], mul_assoc,
-            mul_comm gen, ginv_mul_gen, mul_one], e_add_eq_zero_iff]
-        ring
-      · rw [iv0_word]; exact s00
-      · rw [iv1_word]; exact s01
-      · rw [word_zero]; exact s02
-      · exact s03
-      · rw [word_one, gen_pow_eq_ofK, ← ofK_one, ← ofK_add]; exact ofK_isInK _
-      · intro h
-        rw [word_one, ← pow_zero gen]
-        have hw0 : 0 < w := by
-          rcases Nat.eq_zero_or_pos w with h0 | h0
-          · exfalso; apply h; rw [h0, word_one, pow_zero, e_add_self]
-          · exact h0
-        exact (loop_iff (l86Step_mono rd c gsq) (l86_step rd (gen ^ w) c gsq) 0).mpr
-          ⟨w, hw0, rfl, fun j h1 h2 he => by have := gen_pow_inj' (by omega) (by omega) he; omega,
-            fun j _ h2 => hsteps j h2⟩
-      · exact sw0
-      · exact sw1
-      · exact sw2
-      · exact sw3
-      · refine ⟨t, by simp [ctNames]; omega, (gen_pow_eq_ofK t), ?_⟩
-        rw [← List.getD_eq_getElem _ "" (by simp [ctNames]; omega), claims_tail_iff t ht32]
-        refine ⟨_, _, _, _, _, _, _, rfl, rfl, rfl, sliceOf cs (32 * w) t, length_sliceOf _ _ _, ?_, ?_⟩
-        · rw [show 128 * w = 4 * (32 * w) by ring]
-          exact cellsAt_sliceOf hcells (by omega)
-        · refine (chainCells_prefix (blocksOf_sliceOf cs (32 * w) t)
-            (fun j hj => baseMd_eq w j (by omega))).mpr ⟨fun j hj r => hb _ (by omega) r, ?_⟩
-          rw [show 32 * w + t = n - 1 by omega]
-      · exact (scaled_log_6_iff hT _ _).mpr ⟨_, rfl, n, hn, rfl, rfl⟩
-      · exact hl 0 (by omega)
-      · exact hl 1 (by omega)
-      · exact hl 2 (by omega)
-      · exact hl 3 (by omega)
-      · rw [hlast, hmd]
-        exact (final_iff hlen (by omega) (hb (n - 1) (by omega))).mpr hd
+      obtain ⟨t1, t2, t3, t4, h⟩ := cld_holds_pos hm.low16 hT hn hn1 hlen hcells hcan hscr hd
+      simp only [cldBody, List.cons_append, List.nil_append, Stmt.HoldsList,
+        Stmt.Holds, Atom.Holds, true_and, List.map_cons, List.map_nil] at h
+      exact ⟨listVal (cldList p gsq c d0 d1 cs n _ _ t1 t2 t3 t4), rfl, h⟩
 
 
 /-- Completeness, for every pointer `chain` of the windows' `HeapBuf` holding their honest

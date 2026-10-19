@@ -184,9 +184,6 @@ theorem row_inst {rd : Reader} (store : Bool) {σ : Val} {fn : Fn} {es : List Ev
     · simp only [↓reduceIte, List.map_cons, List.map_nil]
       rw [m25, hsucc h0 c24, h1, h2, h3, h4, h5, h6]
 
-theorem logG_gen_pow {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := by
-  rw [gen_pow_eq_ofK, logG_spec he]
-
 /-- The words of the row loop from row `j`: an iteration's frame and its cell's, then the skipped
 tail's frame. -/
 def rowTot (fs : String → ℕ) (store : Bool) (r j : ℕ) : ℕ :=

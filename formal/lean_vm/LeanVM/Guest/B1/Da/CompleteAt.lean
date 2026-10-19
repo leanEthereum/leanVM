@@ -8,13 +8,11 @@
 module
 
 public import LeanVM.Guest.B1.Da.VerifyAt
-public import LeanVM.Guest.B1.Uniform
+public import LeanVM.Guest.B1.Digest.Forced
 
 /-!
 # `da_verify`, uniformly placed
 
-* `forced_load`: a load every memory holding the caller's words `Lin` (and defined below `2^κ`)
-  satisfies reads a word of `Lin`: elsewhere a memory could hold another word.
 * `dvLayout`: `da_verify`'s own words at `fp`, `DaMem` as a layout (`daMem_of_memL`), within its
   `dvTot` words (`dvLayout_within`) when the certificate's frame runs fit their frames.
 * `da_verify_completeRel`: `CompleteRel` on `DaPre`, the squares table and a witness opening the
@@ -30,43 +28,6 @@ open LeanVM.Guest.B1 (LowDef CompleteAt CompleteRel Within Returns)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
-
-/-! ## Loads every memory holding a layout satisfies -/
-
-/-- **A forced load reads the layout**: if every memory defined below `2^κ` and holding `Lin` holds
-`v` at `p·g^k`, and one such memory exists, the address is a word of `Lin`. -/
-theorem forced_load {κ : ℕ} {Lin : Layout} {p : E} {k : ℕ} {v : E}
-    (hall : ∀ rd, LowDef κ rd → MemL rd Lin → LoadHolds rd p k v) {rd1 : Reader} (h1 : LowDef κ rd1)
-    (h1' : MemL rd1 Lin) : ∃ i, p.limb 0 * gpow k = gpow i ∧ RegionL Lin i := by
-  classical
-  by_contra hne
-  have hne' : ∀ i, p.limb 0 * gpow k = gpow i → ¬ RegionL Lin i := fun i h hr => hne ⟨i, h, hr⟩
-  let rd' : Reader := Function.update rd1 (p.limb 0 * gpow k) (some (v + 1))
-  have hl' : LowDef κ rd' := fun i hi => by
-    by_cases h : gpow i = p.limb 0 * gpow k
-    · simp only [rd', h, Function.update_self, Option.isSome_some]
-    · simp only [rd', Function.update_of_ne h]; exact h1 i hi
-  have hL' : MemL rd' Lin := fun q hq k' hk' => by
-    have h0 := h1' q hq k' hk'
-    refine ⟨h0.1, ?_⟩
-    have hA : (ofK (gpow q.1)).limb 0 * gpow k' ≠ p.limb 0 * gpow k := by
-      rw [Main.addr_ofK]
-      exact fun h => hne' _ h.symm ⟨q, hq, by omega, by omega⟩
-    simp only [rd', Function.update_of_ne hA]
-    exact h0.2
-  have h2 := (hall rd' hl' hL').2
-  simp only [rd', Function.update_self, Option.some.injEq] at h2
-  exact one_ne_zero (add_eq_left.mp h2)
-
-/-! ## Layout entries -/
-
-theorem cells_of_memL {rd : Reader} {L : Layout} (h : MemL rd L) {x : ℕ} {cs : List E} (hq : (x, cs) ∈ L) :
-    CellsAt rd (gen ^ x) cs := by
-  rw [gen_pow_eq_ofK]; exact h _ hq
-
-theorem load_of_memL {rd : Reader} {L : Layout} (h : MemL rd L) {x : ℕ} {v : E} (hq : (x, [v]) ∈ L) :
-    LoadHolds rd (gen ^ x) 0 v :=
-  cells_of_memL h hq 0 (by simp)
 
 /-- A tree's nodes from `base`, as `TreeAt` reads them. -/
 def treeL (base k : ℕ) (leaf : ℕ → Digest) : Layout :=
