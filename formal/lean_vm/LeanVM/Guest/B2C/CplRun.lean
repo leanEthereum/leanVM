@@ -53,7 +53,8 @@ theorem checkWin_cpl (hc : checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1)
         s.start = ((certOf j).cutAt i).J ∧ s.env.sub Sym.beq (envOf ((certOf j).cutAt i).env) = true) ∧
       (i < (certOf j).cuts.length → ((certOf j).cutAt i).start ≤ ((certOf j).cutAt (i + 1)).start ∧
         ∀ s, getF (index (segsW j i)) ((certOf j).cutAt (i + 1)).J = some s →
-          (envOf ((certOf j).cutAt (i + 1)).env).sub Sym.beq s.env = true) := by
+          s.start = ((certOf j).cutAt (i + 1)).J ∧
+            (envOf ((certOf j).cutAt (i + 1)).env).sub Sym.beq s.env = true) := by
   unfold checkWin at hc
   unfold segsW
   rcases hR : execWin (certOf j).facts (fnOf j) ((certOf j).cutAt i).J ((certOf j).cutAt i).env
@@ -88,7 +89,7 @@ theorem checkWin_cpl (hc : checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1)
       refine ⟨hle, fun s hs ↦ ?_⟩
       rw [hs] at henv
       simp only [Bool.and_eq_true] at henv
-      exact henv.2
+      exact ⟨beq_iff_eq.mp henv.1, henv.2⟩
     · cases hc
 
 end Win
@@ -177,8 +178,6 @@ theorem cplRes_eq (j i k : ℕ) : cplRes j i k = (match getF (index (segsW j i))
   simp only [listSeq_eq, Trie.seq_eq, CLoc.seq_eq, Cnt.seq_eq, natSeq_eq]
   rfl
 
-/-! ## A part's hypotheses -/
-
 /-! ## A loop helper's last call -/
 
 theorem loop_split {fn : Core.Fn} (h : fn.loop = true) :
@@ -213,6 +212,8 @@ theorem lastCall_of {fn : Core.Fn} {σ : Val} {es : List Ev} {vs : List V}
     rw [← hc']
   · rw [h1] at hw
     cases hw
+
+/-! ## A part's hypotheses -/
 
 section Part
 
