@@ -7,47 +7,49 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `column_selector__L5`, window 0. -/
-theorem w149_0 : WinOk 149 0 := by decide +kernel
+theorem w149_0 : WinOk 149 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L6`, window 0. -/
-theorem w150_0 : WinOk 150 0 := by decide +kernel
+theorem w150_0 : WinOk 150 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L7`, window 0. -/
-theorem w151_0 : WinOk 151 0 := by decide +kernel
+theorem w151_0 : WinOk 151 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L8`, window 0. -/
-theorem w152_0 : WinOk 152 0 := by decide +kernel
+theorem w152_0 : WinOk 152 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L9`, window 0. -/
-theorem w153_0 : WinOk 153 0 := by decide +kernel
+theorem w153_0 : WinOk 153 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L10`, window 0. -/
-theorem w154_0 : WinOk 154 0 := by decide +kernel
+theorem w154_0 : WinOk 154 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L11`, window 0. -/
-theorem w155_0 : WinOk 155 0 := by decide +kernel
+theorem w155_0 : WinOk 155 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L12`, window 0. -/
-theorem w156_0 : WinOk 156 0 := by decide +kernel
+theorem w156_0 : WinOk 156 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L13`, window 0. -/
-theorem w157_0 : WinOk 157 0 := by decide +kernel
+theorem w157_0 : WinOk 157 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L14`, window 0. -/
-theorem w158_0 : WinOk 158 0 := by decide +kernel
+theorem w158_0 : WinOk 158 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L15`, window 0. -/
-theorem w159_0 : WinOk 159 0 := by decide +kernel
+theorem w159_0 : WinOk 159 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L16`, window 0. -/
-theorem w160_0 : WinOk 160 0 := by decide +kernel
+theorem w160_0 : WinOk 160 0 := winOk_of_C (by decide +kernel)
 
 theorem ok149 : CheckOk 149 := checkOk_one (by decide +kernel) w149_0
 

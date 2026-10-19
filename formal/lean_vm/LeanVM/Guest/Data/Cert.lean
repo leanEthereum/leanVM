@@ -9,6 +9,9 @@ module
 
 public import LeanVM.Guest.Data.Cert00
 public import LeanVM.Guest.Data.Cert01
+public import LeanVM.Guest.Data.Cert02
+public import LeanVM.Guest.Data.Cert03
+public import LeanVM.Guest.Data.Cert04
 
 namespace LeanVM.Guest.Data
 

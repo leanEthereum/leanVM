@@ -17,9 +17,22 @@ public import LeanVM.Guest.Checked.F12_3
 public import LeanVM.Guest.Checked.F12_4
 public import LeanVM.Guest.Checked.F12_5
 public import LeanVM.Guest.Checked.F12_6
+public import LeanVM.Guest.Checked.F12_7
+public import LeanVM.Guest.Checked.F12_8
+public import LeanVM.Guest.Checked.F12_9
+public import LeanVM.Guest.Checked.F12_10
 public import LeanVM.Guest.Checked.F13_0
+public import LeanVM.Guest.Checked.F13_1
+public import LeanVM.Guest.Checked.F13_2
+public import LeanVM.Guest.Checked.F13_3
 public import LeanVM.Guest.Checked.F14_0
+public import LeanVM.Guest.Checked.F14_1
+public import LeanVM.Guest.Checked.F14_2
+public import LeanVM.Guest.Checked.F14_3
 public import LeanVM.Guest.Checked.F15_0
+public import LeanVM.Guest.Checked.F15_1
+public import LeanVM.Guest.Checked.F15_2
+public import LeanVM.Guest.Checked.F15_3
 public import LeanVM.Guest.Checked.F16_0
 public import LeanVM.Guest.Checked.F16_1
 public import LeanVM.Guest.Checked.F17_0
@@ -60,6 +73,7 @@ public import LeanVM.Guest.Checked.F17_34
 public import LeanVM.Guest.Checked.F17_35
 public import LeanVM.Guest.Checked.F17_36
 public import LeanVM.Guest.Checked.F17_37
+public import LeanVM.Guest.Checked.F17_38
 public import LeanVM.Guest.Checked.F18_0
 public import LeanVM.Guest.Checked.F18_1
 public import LeanVM.Guest.Checked.F18_2
@@ -88,43 +102,152 @@ public import LeanVM.Guest.Checked.F18_24
 public import LeanVM.Guest.Checked.F18_25
 public import LeanVM.Guest.Checked.F18_26
 public import LeanVM.Guest.Checked.F18_27
+public import LeanVM.Guest.Checked.F18_28
+public import LeanVM.Guest.Checked.F18_29
+public import LeanVM.Guest.Checked.F18_30
+public import LeanVM.Guest.Checked.F18_31
+public import LeanVM.Guest.Checked.F18_32
+public import LeanVM.Guest.Checked.F18_33
+public import LeanVM.Guest.Checked.F18_34
+public import LeanVM.Guest.Checked.F18_35
+public import LeanVM.Guest.Checked.F18_36
+public import LeanVM.Guest.Checked.F18_37
+public import LeanVM.Guest.Checked.F18_38
+public import LeanVM.Guest.Checked.F18_39
+public import LeanVM.Guest.Checked.F18_40
+public import LeanVM.Guest.Checked.F18_41
+public import LeanVM.Guest.Checked.F18_42
+public import LeanVM.Guest.Checked.F18_43
+public import LeanVM.Guest.Checked.F18_44
+public import LeanVM.Guest.Checked.F18_45
+public import LeanVM.Guest.Checked.F18_46
+public import LeanVM.Guest.Checked.F18_47
+public import LeanVM.Guest.Checked.F18_48
 public import LeanVM.Guest.Checked.F19_0
 public import LeanVM.Guest.Checked.F24_0
-public import LeanVM.Guest.Checked.F30_0
-public import LeanVM.Guest.Checked.F49_0
+public import LeanVM.Guest.Checked.F26_0
+public import LeanVM.Guest.Checked.F26_1
+public import LeanVM.Guest.Checked.F27_0
+public import LeanVM.Guest.Checked.F48_0
 public import LeanVM.Guest.Checked.F64_0
 public import LeanVM.Guest.Checked.F79_0
 public import LeanVM.Guest.Checked.F126_0
 public import LeanVM.Guest.Checked.F149_0
 public import LeanVM.Guest.Checked.F161_0
 public import LeanVM.Guest.Checked.F178_0
+public import LeanVM.Guest.Checked.F178_1
+public import LeanVM.Guest.Checked.F178_2
+public import LeanVM.Guest.Checked.F178_3
 public import LeanVM.Guest.Checked.F179_0
+public import LeanVM.Guest.Checked.F179_1
+public import LeanVM.Guest.Checked.F179_2
+public import LeanVM.Guest.Checked.F179_3
 public import LeanVM.Guest.Checked.F180_0
+public import LeanVM.Guest.Checked.F180_1
+public import LeanVM.Guest.Checked.F180_2
+public import LeanVM.Guest.Checked.F180_3
 public import LeanVM.Guest.Checked.F181_0
+public import LeanVM.Guest.Checked.F181_1
+public import LeanVM.Guest.Checked.F181_2
+public import LeanVM.Guest.Checked.F181_3
+public import LeanVM.Guest.Checked.F181_4
 public import LeanVM.Guest.Checked.F182_0
+public import LeanVM.Guest.Checked.F182_1
+public import LeanVM.Guest.Checked.F182_2
+public import LeanVM.Guest.Checked.F182_3
+public import LeanVM.Guest.Checked.F182_4
 public import LeanVM.Guest.Checked.F183_0
+public import LeanVM.Guest.Checked.F183_1
+public import LeanVM.Guest.Checked.F183_2
+public import LeanVM.Guest.Checked.F183_3
+public import LeanVM.Guest.Checked.F183_4
 public import LeanVM.Guest.Checked.F184_0
+public import LeanVM.Guest.Checked.F184_1
+public import LeanVM.Guest.Checked.F184_2
+public import LeanVM.Guest.Checked.F184_3
+public import LeanVM.Guest.Checked.F184_4
 public import LeanVM.Guest.Checked.F185_0
+public import LeanVM.Guest.Checked.F185_1
+public import LeanVM.Guest.Checked.F185_2
 public import LeanVM.Guest.Checked.F186_0
+public import LeanVM.Guest.Checked.F186_1
+public import LeanVM.Guest.Checked.F186_2
+public import LeanVM.Guest.Checked.F186_3
 public import LeanVM.Guest.Checked.F187_0
+public import LeanVM.Guest.Checked.F187_1
+public import LeanVM.Guest.Checked.F187_2
+public import LeanVM.Guest.Checked.F187_3
 public import LeanVM.Guest.Checked.F188_0
+public import LeanVM.Guest.Checked.F188_1
+public import LeanVM.Guest.Checked.F188_2
+public import LeanVM.Guest.Checked.F188_3
 public import LeanVM.Guest.Checked.F189_0
+public import LeanVM.Guest.Checked.F189_1
+public import LeanVM.Guest.Checked.F189_2
+public import LeanVM.Guest.Checked.F189_3
 public import LeanVM.Guest.Checked.F190_0
+public import LeanVM.Guest.Checked.F190_1
+public import LeanVM.Guest.Checked.F190_2
+public import LeanVM.Guest.Checked.F190_3
 public import LeanVM.Guest.Checked.F191_0
+public import LeanVM.Guest.Checked.F191_1
+public import LeanVM.Guest.Checked.F191_2
+public import LeanVM.Guest.Checked.F191_3
+public import LeanVM.Guest.Checked.F191_4
 public import LeanVM.Guest.Checked.F192_0
+public import LeanVM.Guest.Checked.F192_1
+public import LeanVM.Guest.Checked.F192_2
 public import LeanVM.Guest.Checked.F193_0
+public import LeanVM.Guest.Checked.F193_1
+public import LeanVM.Guest.Checked.F193_2
 public import LeanVM.Guest.Checked.F194_0
+public import LeanVM.Guest.Checked.F194_1
+public import LeanVM.Guest.Checked.F194_2
+public import LeanVM.Guest.Checked.F194_3
 public import LeanVM.Guest.Checked.F195_0
+public import LeanVM.Guest.Checked.F195_1
+public import LeanVM.Guest.Checked.F195_2
+public import LeanVM.Guest.Checked.F195_3
 public import LeanVM.Guest.Checked.F196_0
+public import LeanVM.Guest.Checked.F196_1
+public import LeanVM.Guest.Checked.F196_2
+public import LeanVM.Guest.Checked.F196_3
 public import LeanVM.Guest.Checked.F197_0
+public import LeanVM.Guest.Checked.F197_1
+public import LeanVM.Guest.Checked.F197_2
+public import LeanVM.Guest.Checked.F197_3
 public import LeanVM.Guest.Checked.F198_0
+public import LeanVM.Guest.Checked.F198_1
+public import LeanVM.Guest.Checked.F198_2
+public import LeanVM.Guest.Checked.F198_3
+public import LeanVM.Guest.Checked.F198_4
 public import LeanVM.Guest.Checked.F199_0
+public import LeanVM.Guest.Checked.F199_1
+public import LeanVM.Guest.Checked.F199_2
 public import LeanVM.Guest.Checked.F200_0
+public import LeanVM.Guest.Checked.F200_1
+public import LeanVM.Guest.Checked.F200_2
 public import LeanVM.Guest.Checked.F201_0
+public import LeanVM.Guest.Checked.F201_1
+public import LeanVM.Guest.Checked.F201_2
+public import LeanVM.Guest.Checked.F201_3
 public import LeanVM.Guest.Checked.F202_0
+public import LeanVM.Guest.Checked.F202_1
+public import LeanVM.Guest.Checked.F202_2
+public import LeanVM.Guest.Checked.F202_3
 public import LeanVM.Guest.Checked.F203_0
+public import LeanVM.Guest.Checked.F203_1
+public import LeanVM.Guest.Checked.F203_2
+public import LeanVM.Guest.Checked.F203_3
 public import LeanVM.Guest.Checked.F204_0
+public import LeanVM.Guest.Checked.F204_1
+public import LeanVM.Guest.Checked.F204_2
+public import LeanVM.Guest.Checked.F204_3
 public import LeanVM.Guest.Checked.F205_0
+public import LeanVM.Guest.Checked.F205_1
+public import LeanVM.Guest.Checked.F205_2
+public import LeanVM.Guest.Checked.F205_3
+public import LeanVM.Guest.Checked.F205_4
 public import LeanVM.Guest.Checked.F206_0
 public import LeanVM.Guest.Checked.F274_0
 public import LeanVM.Guest.Checked.F342_0
@@ -138,27 +261,36 @@ public import LeanVM.Guest.Checked.F523_0
 public import LeanVM.Guest.Checked.F526_0
 public import LeanVM.Guest.Checked.F529_0
 public import LeanVM.Guest.Checked.F548_0
+public import LeanVM.Guest.Checked.F548_1
+public import LeanVM.Guest.Checked.F548_2
+public import LeanVM.Guest.Checked.F548_3
 public import LeanVM.Guest.Checked.F549_0
+public import LeanVM.Guest.Checked.F549_1
+public import LeanVM.Guest.Checked.F549_2
+public import LeanVM.Guest.Checked.F549_3
 public import LeanVM.Guest.Checked.F550_0
+public import LeanVM.Guest.Checked.F567_0
+public import LeanVM.Guest.Checked.F567_1
 public import LeanVM.Guest.Checked.F568_0
 public import LeanVM.Guest.Checked.F573_0
-public import LeanVM.Guest.Checked.F577_0
-public import LeanVM.Guest.Checked.F603_0
-public import LeanVM.Guest.Checked.F629_0
-public import LeanVM.Guest.Checked.F658_0
-public import LeanVM.Guest.Checked.F684_0
-public import LeanVM.Guest.Checked.F711_0
-public import LeanVM.Guest.Checked.F737_0
-public import LeanVM.Guest.Checked.F763_0
-public import LeanVM.Guest.Checked.F788_0
-public import LeanVM.Guest.Checked.F812_0
-public import LeanVM.Guest.Checked.F837_0
-public import LeanVM.Guest.Checked.F863_0
-public import LeanVM.Guest.Checked.F889_0
-public import LeanVM.Guest.Checked.F915_0
-public import LeanVM.Guest.Checked.F972_0
-public import LeanVM.Guest.Checked.F977_0
-public import LeanVM.Guest.Checked.F981_0
+public import LeanVM.Guest.Checked.F573_1
+public import LeanVM.Guest.Checked.F574_0
+public import LeanVM.Guest.Checked.F594_0
+public import LeanVM.Guest.Checked.F621_0
+public import LeanVM.Guest.Checked.F649_0
+public import LeanVM.Guest.Checked.F677_0
+public import LeanVM.Guest.Checked.F700_0
+public import LeanVM.Guest.Checked.F729_0
+public import LeanVM.Guest.Checked.F756_0
+public import LeanVM.Guest.Checked.F779_0
+public import LeanVM.Guest.Checked.F805_0
+public import LeanVM.Guest.Checked.F831_0
+public import LeanVM.Guest.Checked.F854_0
+public import LeanVM.Guest.Checked.F882_0
+public import LeanVM.Guest.Checked.F909_0
+public import LeanVM.Guest.Checked.F952_0
+public import LeanVM.Guest.Checked.F975_0
+public import LeanVM.Guest.Checked.F980_0
 public import LeanVM.Guest.Checked.F984_0
 public import LeanVM.Guest.Checked.F988_0
 public import LeanVM.Guest.Checked.F992_0
@@ -238,1173 +370,23 @@ public import LeanVM.Guest.Checked.Pow60
 public import LeanVM.Guest.Checked.Pow61
 public import LeanVM.Guest.Checked.Pow62
 public import LeanVM.Guest.Checked.Pow63
+public import LeanVM.Guest.Checked.Fn0
+public import LeanVM.Guest.Checked.Fn1
+public import LeanVM.Guest.Checked.Fn2
+public import LeanVM.Guest.Checked.Fn3
+public import LeanVM.Guest.Checked.Fn4
+public import LeanVM.Guest.Checked.Fn5
+public import LeanVM.Guest.Checked.Fn6
+public import LeanVM.Guest.Checked.Fn7
+public import LeanVM.Guest.Checked.Fn8
+public import LeanVM.Guest.Checked.Fn9
+public import LeanVM.Guest.Checked.Fn10
 
 namespace LeanVM.Guest.Checked
 
 open LeanVM.Guest.Exec
 
 @[expose] public section
-
-/-- Function `j`'s windows take nothing from obligations. -/
-def Plain (j : ℕ) : Prop := (certOf j).cuts.all (fun c ↦ c.known.isEmpty && c.sems.isEmpty) = true
-
-theorem plain_of_nil {j : ℕ} (h : (certOf j).cuts.length = 0) : Plain j := by
-  unfold Plain
-  rw [List.length_eq_zero_iff.mp h]
-  rfl
-
-theorem ok1 : CheckOk 1 := fun i hi ↦ by
-  have h : (certOf 1).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1_0
-  · exact w1_1
-
-theorem ok12 : CheckOk 12 := fun i hi ↦ by
-  have h : (certOf 12).cuts.length = 6 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w12_0
-  · exact w12_1
-  · exact w12_2
-  · exact w12_3
-  · exact w12_4
-  · exact w12_5
-  · exact w12_6
-
-theorem plain12 : Plain 12 := by
-  unfold Plain
-  decide +kernel
-
-theorem ok16 : CheckOk 16 := fun i hi ↦ by
-  have h : (certOf 16).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w16_0
-  · exact w16_1
-
-theorem ok17 : CheckOk 17 := fun i hi ↦ by
-  have h : (certOf 17).cuts.length = 37 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w17_0
-  · exact w17_1
-  · exact w17_2
-  · exact w17_3
-  · exact w17_4
-  · exact w17_5
-  · exact w17_6
-  · exact w17_7
-  · exact w17_8
-  · exact w17_9
-  · exact w17_10
-  · exact w17_11
-  · exact w17_12
-  · exact w17_13
-  · exact w17_14
-  · exact w17_15
-  · exact w17_16
-  · exact w17_17
-  · exact w17_18
-  · exact w17_19
-  · exact w17_20
-  · exact w17_21
-  · exact w17_22
-  · exact w17_23
-  · exact w17_24
-  · exact w17_25
-  · exact w17_26
-  · exact w17_27
-  · exact w17_28
-  · exact w17_29
-  · exact w17_30
-  · exact w17_31
-  · exact w17_32
-  · exact w17_33
-  · exact w17_34
-  · exact w17_35
-  · exact w17_36
-  · exact w17_37
-
-theorem plain17 : Plain 17 := by
-  unfold Plain
-  decide +kernel
-
-theorem ok18 : CheckOk 18 := fun i hi ↦ by
-  have h : (certOf 18).cuts.length = 27 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w18_0
-  · exact w18_1
-  · exact w18_2
-  · exact w18_3
-  · exact w18_4
-  · exact w18_5
-  · exact w18_6
-  · exact w18_7
-  · exact w18_8
-  · exact w18_9
-  · exact w18_10
-  · exact w18_11
-  · exact w18_12
-  · exact w18_13
-  · exact w18_14
-  · exact w18_15
-  · exact w18_16
-  · exact w18_17
-  · exact w18_18
-  · exact w18_19
-  · exact w18_20
-  · exact w18_21
-  · exact w18_22
-  · exact w18_23
-  · exact w18_24
-  · exact w18_25
-  · exact w18_26
-  · exact w18_27
-
-theorem plain18 : Plain 18 := by
-  unfold Plain
-  decide +kernel
-
-theorem plain2 : Plain 2 := plain_of_nil (by decide +kernel)
-theorem plain3 : Plain 3 := plain_of_nil (by decide +kernel)
-theorem plain4 : Plain 4 := plain_of_nil (by decide +kernel)
-theorem plain5 : Plain 5 := plain_of_nil (by decide +kernel)
-theorem plain6 : Plain 6 := plain_of_nil (by decide +kernel)
-theorem plain7 : Plain 7 := plain_of_nil (by decide +kernel)
-theorem plain8 : Plain 8 := plain_of_nil (by decide +kernel)
-theorem plain9 : Plain 9 := plain_of_nil (by decide +kernel)
-theorem plain10 : Plain 10 := plain_of_nil (by decide +kernel)
-theorem plain11 : Plain 11 := plain_of_nil (by decide +kernel)
-theorem plain13 : Plain 13 := plain_of_nil (by decide +kernel)
-theorem plain14 : Plain 14 := plain_of_nil (by decide +kernel)
-theorem plain15 : Plain 15 := plain_of_nil (by decide +kernel)
-theorem plain19 : Plain 19 := plain_of_nil (by decide +kernel)
-theorem plain20 : Plain 20 := plain_of_nil (by decide +kernel)
-theorem plain21 : Plain 21 := plain_of_nil (by decide +kernel)
-theorem plain22 : Plain 22 := plain_of_nil (by decide +kernel)
-theorem plain23 : Plain 23 := plain_of_nil (by decide +kernel)
-theorem plain24 : Plain 24 := plain_of_nil (by decide +kernel)
-theorem plain25 : Plain 25 := plain_of_nil (by decide +kernel)
-theorem plain26 : Plain 26 := plain_of_nil (by decide +kernel)
-theorem plain27 : Plain 27 := plain_of_nil (by decide +kernel)
-theorem plain28 : Plain 28 := plain_of_nil (by decide +kernel)
-theorem plain29 : Plain 29 := plain_of_nil (by decide +kernel)
-theorem plain30 : Plain 30 := plain_of_nil (by decide +kernel)
-theorem plain31 : Plain 31 := plain_of_nil (by decide +kernel)
-theorem plain32 : Plain 32 := plain_of_nil (by decide +kernel)
-theorem plain33 : Plain 33 := plain_of_nil (by decide +kernel)
-theorem plain34 : Plain 34 := plain_of_nil (by decide +kernel)
-theorem plain35 : Plain 35 := plain_of_nil (by decide +kernel)
-theorem plain36 : Plain 36 := plain_of_nil (by decide +kernel)
-theorem plain37 : Plain 37 := plain_of_nil (by decide +kernel)
-theorem plain38 : Plain 38 := plain_of_nil (by decide +kernel)
-theorem plain39 : Plain 39 := plain_of_nil (by decide +kernel)
-theorem plain40 : Plain 40 := plain_of_nil (by decide +kernel)
-theorem plain41 : Plain 41 := plain_of_nil (by decide +kernel)
-theorem plain42 : Plain 42 := plain_of_nil (by decide +kernel)
-theorem plain43 : Plain 43 := plain_of_nil (by decide +kernel)
-theorem plain44 : Plain 44 := plain_of_nil (by decide +kernel)
-theorem plain45 : Plain 45 := plain_of_nil (by decide +kernel)
-theorem plain46 : Plain 46 := plain_of_nil (by decide +kernel)
-theorem plain47 : Plain 47 := plain_of_nil (by decide +kernel)
-theorem plain48 : Plain 48 := plain_of_nil (by decide +kernel)
-theorem plain49 : Plain 49 := plain_of_nil (by decide +kernel)
-theorem plain50 : Plain 50 := plain_of_nil (by decide +kernel)
-theorem plain51 : Plain 51 := plain_of_nil (by decide +kernel)
-theorem plain52 : Plain 52 := plain_of_nil (by decide +kernel)
-theorem plain53 : Plain 53 := plain_of_nil (by decide +kernel)
-theorem plain54 : Plain 54 := plain_of_nil (by decide +kernel)
-theorem plain55 : Plain 55 := plain_of_nil (by decide +kernel)
-theorem plain56 : Plain 56 := plain_of_nil (by decide +kernel)
-theorem plain57 : Plain 57 := plain_of_nil (by decide +kernel)
-theorem plain58 : Plain 58 := plain_of_nil (by decide +kernel)
-theorem plain59 : Plain 59 := plain_of_nil (by decide +kernel)
-theorem plain60 : Plain 60 := plain_of_nil (by decide +kernel)
-theorem plain61 : Plain 61 := plain_of_nil (by decide +kernel)
-theorem plain62 : Plain 62 := plain_of_nil (by decide +kernel)
-theorem plain63 : Plain 63 := plain_of_nil (by decide +kernel)
-theorem plain64 : Plain 64 := plain_of_nil (by decide +kernel)
-theorem plain65 : Plain 65 := plain_of_nil (by decide +kernel)
-theorem plain66 : Plain 66 := plain_of_nil (by decide +kernel)
-theorem plain67 : Plain 67 := plain_of_nil (by decide +kernel)
-theorem plain68 : Plain 68 := plain_of_nil (by decide +kernel)
-theorem plain69 : Plain 69 := plain_of_nil (by decide +kernel)
-theorem plain70 : Plain 70 := plain_of_nil (by decide +kernel)
-theorem plain71 : Plain 71 := plain_of_nil (by decide +kernel)
-theorem plain72 : Plain 72 := plain_of_nil (by decide +kernel)
-theorem plain73 : Plain 73 := plain_of_nil (by decide +kernel)
-theorem plain74 : Plain 74 := plain_of_nil (by decide +kernel)
-theorem plain75 : Plain 75 := plain_of_nil (by decide +kernel)
-theorem plain76 : Plain 76 := plain_of_nil (by decide +kernel)
-theorem plain77 : Plain 77 := plain_of_nil (by decide +kernel)
-theorem plain78 : Plain 78 := plain_of_nil (by decide +kernel)
-theorem plain79 : Plain 79 := plain_of_nil (by decide +kernel)
-theorem plain80 : Plain 80 := plain_of_nil (by decide +kernel)
-theorem plain81 : Plain 81 := plain_of_nil (by decide +kernel)
-theorem plain82 : Plain 82 := plain_of_nil (by decide +kernel)
-theorem plain83 : Plain 83 := plain_of_nil (by decide +kernel)
-theorem plain84 : Plain 84 := plain_of_nil (by decide +kernel)
-theorem plain85 : Plain 85 := plain_of_nil (by decide +kernel)
-theorem plain86 : Plain 86 := plain_of_nil (by decide +kernel)
-theorem plain87 : Plain 87 := plain_of_nil (by decide +kernel)
-theorem plain88 : Plain 88 := plain_of_nil (by decide +kernel)
-theorem plain89 : Plain 89 := plain_of_nil (by decide +kernel)
-theorem plain90 : Plain 90 := plain_of_nil (by decide +kernel)
-theorem plain91 : Plain 91 := plain_of_nil (by decide +kernel)
-theorem plain92 : Plain 92 := plain_of_nil (by decide +kernel)
-theorem plain93 : Plain 93 := plain_of_nil (by decide +kernel)
-theorem plain94 : Plain 94 := plain_of_nil (by decide +kernel)
-theorem plain95 : Plain 95 := plain_of_nil (by decide +kernel)
-theorem plain96 : Plain 96 := plain_of_nil (by decide +kernel)
-theorem plain97 : Plain 97 := plain_of_nil (by decide +kernel)
-theorem plain98 : Plain 98 := plain_of_nil (by decide +kernel)
-theorem plain99 : Plain 99 := plain_of_nil (by decide +kernel)
-theorem plain100 : Plain 100 := plain_of_nil (by decide +kernel)
-theorem plain101 : Plain 101 := plain_of_nil (by decide +kernel)
-theorem plain102 : Plain 102 := plain_of_nil (by decide +kernel)
-theorem plain103 : Plain 103 := plain_of_nil (by decide +kernel)
-theorem plain104 : Plain 104 := plain_of_nil (by decide +kernel)
-theorem plain105 : Plain 105 := plain_of_nil (by decide +kernel)
-theorem plain106 : Plain 106 := plain_of_nil (by decide +kernel)
-theorem plain107 : Plain 107 := plain_of_nil (by decide +kernel)
-theorem plain108 : Plain 108 := plain_of_nil (by decide +kernel)
-theorem plain109 : Plain 109 := plain_of_nil (by decide +kernel)
-theorem plain110 : Plain 110 := plain_of_nil (by decide +kernel)
-theorem plain111 : Plain 111 := plain_of_nil (by decide +kernel)
-theorem plain112 : Plain 112 := plain_of_nil (by decide +kernel)
-theorem plain113 : Plain 113 := plain_of_nil (by decide +kernel)
-theorem plain114 : Plain 114 := plain_of_nil (by decide +kernel)
-theorem plain115 : Plain 115 := plain_of_nil (by decide +kernel)
-theorem plain116 : Plain 116 := plain_of_nil (by decide +kernel)
-theorem plain117 : Plain 117 := plain_of_nil (by decide +kernel)
-theorem plain118 : Plain 118 := plain_of_nil (by decide +kernel)
-theorem plain119 : Plain 119 := plain_of_nil (by decide +kernel)
-theorem plain120 : Plain 120 := plain_of_nil (by decide +kernel)
-theorem plain121 : Plain 121 := plain_of_nil (by decide +kernel)
-theorem plain122 : Plain 122 := plain_of_nil (by decide +kernel)
-theorem plain123 : Plain 123 := plain_of_nil (by decide +kernel)
-theorem plain124 : Plain 124 := plain_of_nil (by decide +kernel)
-theorem plain125 : Plain 125 := plain_of_nil (by decide +kernel)
-theorem plain126 : Plain 126 := plain_of_nil (by decide +kernel)
-theorem plain127 : Plain 127 := plain_of_nil (by decide +kernel)
-theorem plain128 : Plain 128 := plain_of_nil (by decide +kernel)
-theorem plain129 : Plain 129 := plain_of_nil (by decide +kernel)
-theorem plain130 : Plain 130 := plain_of_nil (by decide +kernel)
-theorem plain131 : Plain 131 := plain_of_nil (by decide +kernel)
-theorem plain132 : Plain 132 := plain_of_nil (by decide +kernel)
-theorem plain133 : Plain 133 := plain_of_nil (by decide +kernel)
-theorem plain134 : Plain 134 := plain_of_nil (by decide +kernel)
-theorem plain135 : Plain 135 := plain_of_nil (by decide +kernel)
-theorem plain136 : Plain 136 := plain_of_nil (by decide +kernel)
-theorem plain137 : Plain 137 := plain_of_nil (by decide +kernel)
-theorem plain138 : Plain 138 := plain_of_nil (by decide +kernel)
-theorem plain139 : Plain 139 := plain_of_nil (by decide +kernel)
-theorem plain140 : Plain 140 := plain_of_nil (by decide +kernel)
-theorem plain141 : Plain 141 := plain_of_nil (by decide +kernel)
-theorem plain142 : Plain 142 := plain_of_nil (by decide +kernel)
-theorem plain143 : Plain 143 := plain_of_nil (by decide +kernel)
-theorem plain144 : Plain 144 := plain_of_nil (by decide +kernel)
-theorem plain145 : Plain 145 := plain_of_nil (by decide +kernel)
-theorem plain146 : Plain 146 := plain_of_nil (by decide +kernel)
-theorem plain147 : Plain 147 := plain_of_nil (by decide +kernel)
-theorem plain148 : Plain 148 := plain_of_nil (by decide +kernel)
-theorem plain149 : Plain 149 := plain_of_nil (by decide +kernel)
-theorem plain150 : Plain 150 := plain_of_nil (by decide +kernel)
-theorem plain151 : Plain 151 := plain_of_nil (by decide +kernel)
-theorem plain152 : Plain 152 := plain_of_nil (by decide +kernel)
-theorem plain153 : Plain 153 := plain_of_nil (by decide +kernel)
-theorem plain154 : Plain 154 := plain_of_nil (by decide +kernel)
-theorem plain155 : Plain 155 := plain_of_nil (by decide +kernel)
-theorem plain156 : Plain 156 := plain_of_nil (by decide +kernel)
-theorem plain157 : Plain 157 := plain_of_nil (by decide +kernel)
-theorem plain158 : Plain 158 := plain_of_nil (by decide +kernel)
-theorem plain159 : Plain 159 := plain_of_nil (by decide +kernel)
-theorem plain160 : Plain 160 := plain_of_nil (by decide +kernel)
-theorem plain161 : Plain 161 := plain_of_nil (by decide +kernel)
-theorem plain162 : Plain 162 := plain_of_nil (by decide +kernel)
-theorem plain163 : Plain 163 := plain_of_nil (by decide +kernel)
-theorem plain164 : Plain 164 := plain_of_nil (by decide +kernel)
-theorem plain165 : Plain 165 := plain_of_nil (by decide +kernel)
-theorem plain166 : Plain 166 := plain_of_nil (by decide +kernel)
-theorem plain167 : Plain 167 := plain_of_nil (by decide +kernel)
-theorem plain168 : Plain 168 := plain_of_nil (by decide +kernel)
-theorem plain169 : Plain 169 := plain_of_nil (by decide +kernel)
-theorem plain170 : Plain 170 := plain_of_nil (by decide +kernel)
-theorem plain171 : Plain 171 := plain_of_nil (by decide +kernel)
-theorem plain172 : Plain 172 := plain_of_nil (by decide +kernel)
-theorem plain173 : Plain 173 := plain_of_nil (by decide +kernel)
-theorem plain174 : Plain 174 := plain_of_nil (by decide +kernel)
-theorem plain175 : Plain 175 := plain_of_nil (by decide +kernel)
-theorem plain176 : Plain 176 := plain_of_nil (by decide +kernel)
-theorem plain177 : Plain 177 := plain_of_nil (by decide +kernel)
-theorem plain178 : Plain 178 := plain_of_nil (by decide +kernel)
-theorem plain179 : Plain 179 := plain_of_nil (by decide +kernel)
-theorem plain180 : Plain 180 := plain_of_nil (by decide +kernel)
-theorem plain181 : Plain 181 := plain_of_nil (by decide +kernel)
-theorem plain182 : Plain 182 := plain_of_nil (by decide +kernel)
-theorem plain183 : Plain 183 := plain_of_nil (by decide +kernel)
-theorem plain184 : Plain 184 := plain_of_nil (by decide +kernel)
-theorem plain185 : Plain 185 := plain_of_nil (by decide +kernel)
-theorem plain186 : Plain 186 := plain_of_nil (by decide +kernel)
-theorem plain187 : Plain 187 := plain_of_nil (by decide +kernel)
-theorem plain188 : Plain 188 := plain_of_nil (by decide +kernel)
-theorem plain189 : Plain 189 := plain_of_nil (by decide +kernel)
-theorem plain190 : Plain 190 := plain_of_nil (by decide +kernel)
-theorem plain191 : Plain 191 := plain_of_nil (by decide +kernel)
-theorem plain192 : Plain 192 := plain_of_nil (by decide +kernel)
-theorem plain193 : Plain 193 := plain_of_nil (by decide +kernel)
-theorem plain194 : Plain 194 := plain_of_nil (by decide +kernel)
-theorem plain195 : Plain 195 := plain_of_nil (by decide +kernel)
-theorem plain196 : Plain 196 := plain_of_nil (by decide +kernel)
-theorem plain197 : Plain 197 := plain_of_nil (by decide +kernel)
-theorem plain198 : Plain 198 := plain_of_nil (by decide +kernel)
-theorem plain199 : Plain 199 := plain_of_nil (by decide +kernel)
-theorem plain200 : Plain 200 := plain_of_nil (by decide +kernel)
-theorem plain201 : Plain 201 := plain_of_nil (by decide +kernel)
-theorem plain202 : Plain 202 := plain_of_nil (by decide +kernel)
-theorem plain203 : Plain 203 := plain_of_nil (by decide +kernel)
-theorem plain204 : Plain 204 := plain_of_nil (by decide +kernel)
-theorem plain205 : Plain 205 := plain_of_nil (by decide +kernel)
-theorem plain206 : Plain 206 := plain_of_nil (by decide +kernel)
-theorem plain207 : Plain 207 := plain_of_nil (by decide +kernel)
-theorem plain208 : Plain 208 := plain_of_nil (by decide +kernel)
-theorem plain209 : Plain 209 := plain_of_nil (by decide +kernel)
-theorem plain210 : Plain 210 := plain_of_nil (by decide +kernel)
-theorem plain211 : Plain 211 := plain_of_nil (by decide +kernel)
-theorem plain212 : Plain 212 := plain_of_nil (by decide +kernel)
-theorem plain213 : Plain 213 := plain_of_nil (by decide +kernel)
-theorem plain214 : Plain 214 := plain_of_nil (by decide +kernel)
-theorem plain215 : Plain 215 := plain_of_nil (by decide +kernel)
-theorem plain216 : Plain 216 := plain_of_nil (by decide +kernel)
-theorem plain217 : Plain 217 := plain_of_nil (by decide +kernel)
-theorem plain218 : Plain 218 := plain_of_nil (by decide +kernel)
-theorem plain219 : Plain 219 := plain_of_nil (by decide +kernel)
-theorem plain220 : Plain 220 := plain_of_nil (by decide +kernel)
-theorem plain221 : Plain 221 := plain_of_nil (by decide +kernel)
-theorem plain222 : Plain 222 := plain_of_nil (by decide +kernel)
-theorem plain223 : Plain 223 := plain_of_nil (by decide +kernel)
-theorem plain224 : Plain 224 := plain_of_nil (by decide +kernel)
-theorem plain225 : Plain 225 := plain_of_nil (by decide +kernel)
-theorem plain226 : Plain 226 := plain_of_nil (by decide +kernel)
-theorem plain227 : Plain 227 := plain_of_nil (by decide +kernel)
-theorem plain228 : Plain 228 := plain_of_nil (by decide +kernel)
-theorem plain229 : Plain 229 := plain_of_nil (by decide +kernel)
-theorem plain230 : Plain 230 := plain_of_nil (by decide +kernel)
-theorem plain231 : Plain 231 := plain_of_nil (by decide +kernel)
-theorem plain232 : Plain 232 := plain_of_nil (by decide +kernel)
-theorem plain233 : Plain 233 := plain_of_nil (by decide +kernel)
-theorem plain234 : Plain 234 := plain_of_nil (by decide +kernel)
-theorem plain235 : Plain 235 := plain_of_nil (by decide +kernel)
-theorem plain236 : Plain 236 := plain_of_nil (by decide +kernel)
-theorem plain237 : Plain 237 := plain_of_nil (by decide +kernel)
-theorem plain238 : Plain 238 := plain_of_nil (by decide +kernel)
-theorem plain239 : Plain 239 := plain_of_nil (by decide +kernel)
-theorem plain240 : Plain 240 := plain_of_nil (by decide +kernel)
-theorem plain241 : Plain 241 := plain_of_nil (by decide +kernel)
-theorem plain242 : Plain 242 := plain_of_nil (by decide +kernel)
-theorem plain243 : Plain 243 := plain_of_nil (by decide +kernel)
-theorem plain244 : Plain 244 := plain_of_nil (by decide +kernel)
-theorem plain245 : Plain 245 := plain_of_nil (by decide +kernel)
-theorem plain246 : Plain 246 := plain_of_nil (by decide +kernel)
-theorem plain247 : Plain 247 := plain_of_nil (by decide +kernel)
-theorem plain248 : Plain 248 := plain_of_nil (by decide +kernel)
-theorem plain249 : Plain 249 := plain_of_nil (by decide +kernel)
-theorem plain250 : Plain 250 := plain_of_nil (by decide +kernel)
-theorem plain251 : Plain 251 := plain_of_nil (by decide +kernel)
-theorem plain252 : Plain 252 := plain_of_nil (by decide +kernel)
-theorem plain253 : Plain 253 := plain_of_nil (by decide +kernel)
-theorem plain254 : Plain 254 := plain_of_nil (by decide +kernel)
-theorem plain255 : Plain 255 := plain_of_nil (by decide +kernel)
-theorem plain256 : Plain 256 := plain_of_nil (by decide +kernel)
-theorem plain257 : Plain 257 := plain_of_nil (by decide +kernel)
-theorem plain258 : Plain 258 := plain_of_nil (by decide +kernel)
-theorem plain259 : Plain 259 := plain_of_nil (by decide +kernel)
-theorem plain260 : Plain 260 := plain_of_nil (by decide +kernel)
-theorem plain261 : Plain 261 := plain_of_nil (by decide +kernel)
-theorem plain262 : Plain 262 := plain_of_nil (by decide +kernel)
-theorem plain263 : Plain 263 := plain_of_nil (by decide +kernel)
-theorem plain264 : Plain 264 := plain_of_nil (by decide +kernel)
-theorem plain265 : Plain 265 := plain_of_nil (by decide +kernel)
-theorem plain266 : Plain 266 := plain_of_nil (by decide +kernel)
-theorem plain267 : Plain 267 := plain_of_nil (by decide +kernel)
-theorem plain268 : Plain 268 := plain_of_nil (by decide +kernel)
-theorem plain269 : Plain 269 := plain_of_nil (by decide +kernel)
-theorem plain270 : Plain 270 := plain_of_nil (by decide +kernel)
-theorem plain271 : Plain 271 := plain_of_nil (by decide +kernel)
-theorem plain272 : Plain 272 := plain_of_nil (by decide +kernel)
-theorem plain273 : Plain 273 := plain_of_nil (by decide +kernel)
-theorem plain274 : Plain 274 := plain_of_nil (by decide +kernel)
-theorem plain275 : Plain 275 := plain_of_nil (by decide +kernel)
-theorem plain276 : Plain 276 := plain_of_nil (by decide +kernel)
-theorem plain277 : Plain 277 := plain_of_nil (by decide +kernel)
-theorem plain278 : Plain 278 := plain_of_nil (by decide +kernel)
-theorem plain279 : Plain 279 := plain_of_nil (by decide +kernel)
-theorem plain280 : Plain 280 := plain_of_nil (by decide +kernel)
-theorem plain281 : Plain 281 := plain_of_nil (by decide +kernel)
-theorem plain282 : Plain 282 := plain_of_nil (by decide +kernel)
-theorem plain283 : Plain 283 := plain_of_nil (by decide +kernel)
-theorem plain284 : Plain 284 := plain_of_nil (by decide +kernel)
-theorem plain285 : Plain 285 := plain_of_nil (by decide +kernel)
-theorem plain286 : Plain 286 := plain_of_nil (by decide +kernel)
-theorem plain287 : Plain 287 := plain_of_nil (by decide +kernel)
-theorem plain288 : Plain 288 := plain_of_nil (by decide +kernel)
-theorem plain289 : Plain 289 := plain_of_nil (by decide +kernel)
-theorem plain290 : Plain 290 := plain_of_nil (by decide +kernel)
-theorem plain291 : Plain 291 := plain_of_nil (by decide +kernel)
-theorem plain292 : Plain 292 := plain_of_nil (by decide +kernel)
-theorem plain293 : Plain 293 := plain_of_nil (by decide +kernel)
-theorem plain294 : Plain 294 := plain_of_nil (by decide +kernel)
-theorem plain295 : Plain 295 := plain_of_nil (by decide +kernel)
-theorem plain296 : Plain 296 := plain_of_nil (by decide +kernel)
-theorem plain297 : Plain 297 := plain_of_nil (by decide +kernel)
-theorem plain298 : Plain 298 := plain_of_nil (by decide +kernel)
-theorem plain299 : Plain 299 := plain_of_nil (by decide +kernel)
-theorem plain300 : Plain 300 := plain_of_nil (by decide +kernel)
-theorem plain301 : Plain 301 := plain_of_nil (by decide +kernel)
-theorem plain302 : Plain 302 := plain_of_nil (by decide +kernel)
-theorem plain303 : Plain 303 := plain_of_nil (by decide +kernel)
-theorem plain304 : Plain 304 := plain_of_nil (by decide +kernel)
-theorem plain305 : Plain 305 := plain_of_nil (by decide +kernel)
-theorem plain306 : Plain 306 := plain_of_nil (by decide +kernel)
-theorem plain307 : Plain 307 := plain_of_nil (by decide +kernel)
-theorem plain308 : Plain 308 := plain_of_nil (by decide +kernel)
-theorem plain309 : Plain 309 := plain_of_nil (by decide +kernel)
-theorem plain310 : Plain 310 := plain_of_nil (by decide +kernel)
-theorem plain311 : Plain 311 := plain_of_nil (by decide +kernel)
-theorem plain312 : Plain 312 := plain_of_nil (by decide +kernel)
-theorem plain313 : Plain 313 := plain_of_nil (by decide +kernel)
-theorem plain314 : Plain 314 := plain_of_nil (by decide +kernel)
-theorem plain315 : Plain 315 := plain_of_nil (by decide +kernel)
-theorem plain316 : Plain 316 := plain_of_nil (by decide +kernel)
-theorem plain317 : Plain 317 := plain_of_nil (by decide +kernel)
-theorem plain318 : Plain 318 := plain_of_nil (by decide +kernel)
-theorem plain319 : Plain 319 := plain_of_nil (by decide +kernel)
-theorem plain320 : Plain 320 := plain_of_nil (by decide +kernel)
-theorem plain321 : Plain 321 := plain_of_nil (by decide +kernel)
-theorem plain322 : Plain 322 := plain_of_nil (by decide +kernel)
-theorem plain323 : Plain 323 := plain_of_nil (by decide +kernel)
-theorem plain324 : Plain 324 := plain_of_nil (by decide +kernel)
-theorem plain325 : Plain 325 := plain_of_nil (by decide +kernel)
-theorem plain326 : Plain 326 := plain_of_nil (by decide +kernel)
-theorem plain327 : Plain 327 := plain_of_nil (by decide +kernel)
-theorem plain328 : Plain 328 := plain_of_nil (by decide +kernel)
-theorem plain329 : Plain 329 := plain_of_nil (by decide +kernel)
-theorem plain330 : Plain 330 := plain_of_nil (by decide +kernel)
-theorem plain331 : Plain 331 := plain_of_nil (by decide +kernel)
-theorem plain332 : Plain 332 := plain_of_nil (by decide +kernel)
-theorem plain333 : Plain 333 := plain_of_nil (by decide +kernel)
-theorem plain334 : Plain 334 := plain_of_nil (by decide +kernel)
-theorem plain335 : Plain 335 := plain_of_nil (by decide +kernel)
-theorem plain336 : Plain 336 := plain_of_nil (by decide +kernel)
-theorem plain337 : Plain 337 := plain_of_nil (by decide +kernel)
-theorem plain338 : Plain 338 := plain_of_nil (by decide +kernel)
-theorem plain339 : Plain 339 := plain_of_nil (by decide +kernel)
-theorem plain340 : Plain 340 := plain_of_nil (by decide +kernel)
-theorem plain341 : Plain 341 := plain_of_nil (by decide +kernel)
-theorem plain342 : Plain 342 := plain_of_nil (by decide +kernel)
-theorem plain343 : Plain 343 := plain_of_nil (by decide +kernel)
-theorem plain344 : Plain 344 := plain_of_nil (by decide +kernel)
-theorem plain345 : Plain 345 := plain_of_nil (by decide +kernel)
-theorem plain346 : Plain 346 := plain_of_nil (by decide +kernel)
-theorem plain347 : Plain 347 := plain_of_nil (by decide +kernel)
-theorem plain348 : Plain 348 := plain_of_nil (by decide +kernel)
-theorem plain349 : Plain 349 := plain_of_nil (by decide +kernel)
-theorem plain350 : Plain 350 := plain_of_nil (by decide +kernel)
-theorem plain351 : Plain 351 := plain_of_nil (by decide +kernel)
-theorem plain352 : Plain 352 := plain_of_nil (by decide +kernel)
-theorem plain353 : Plain 353 := plain_of_nil (by decide +kernel)
-theorem plain354 : Plain 354 := plain_of_nil (by decide +kernel)
-theorem plain355 : Plain 355 := plain_of_nil (by decide +kernel)
-theorem plain356 : Plain 356 := plain_of_nil (by decide +kernel)
-theorem plain357 : Plain 357 := plain_of_nil (by decide +kernel)
-theorem plain358 : Plain 358 := plain_of_nil (by decide +kernel)
-theorem plain359 : Plain 359 := plain_of_nil (by decide +kernel)
-theorem plain360 : Plain 360 := plain_of_nil (by decide +kernel)
-theorem plain361 : Plain 361 := plain_of_nil (by decide +kernel)
-theorem plain362 : Plain 362 := plain_of_nil (by decide +kernel)
-theorem plain363 : Plain 363 := plain_of_nil (by decide +kernel)
-theorem plain364 : Plain 364 := plain_of_nil (by decide +kernel)
-theorem plain365 : Plain 365 := plain_of_nil (by decide +kernel)
-theorem plain366 : Plain 366 := plain_of_nil (by decide +kernel)
-theorem plain367 : Plain 367 := plain_of_nil (by decide +kernel)
-theorem plain368 : Plain 368 := plain_of_nil (by decide +kernel)
-theorem plain369 : Plain 369 := plain_of_nil (by decide +kernel)
-theorem plain370 : Plain 370 := plain_of_nil (by decide +kernel)
-theorem plain371 : Plain 371 := plain_of_nil (by decide +kernel)
-theorem plain372 : Plain 372 := plain_of_nil (by decide +kernel)
-theorem plain373 : Plain 373 := plain_of_nil (by decide +kernel)
-theorem plain374 : Plain 374 := plain_of_nil (by decide +kernel)
-theorem plain375 : Plain 375 := plain_of_nil (by decide +kernel)
-theorem plain376 : Plain 376 := plain_of_nil (by decide +kernel)
-theorem plain377 : Plain 377 := plain_of_nil (by decide +kernel)
-theorem plain378 : Plain 378 := plain_of_nil (by decide +kernel)
-theorem plain379 : Plain 379 := plain_of_nil (by decide +kernel)
-theorem plain380 : Plain 380 := plain_of_nil (by decide +kernel)
-theorem plain381 : Plain 381 := plain_of_nil (by decide +kernel)
-theorem plain382 : Plain 382 := plain_of_nil (by decide +kernel)
-theorem plain383 : Plain 383 := plain_of_nil (by decide +kernel)
-theorem plain384 : Plain 384 := plain_of_nil (by decide +kernel)
-theorem plain385 : Plain 385 := plain_of_nil (by decide +kernel)
-theorem plain386 : Plain 386 := plain_of_nil (by decide +kernel)
-theorem plain387 : Plain 387 := plain_of_nil (by decide +kernel)
-theorem plain388 : Plain 388 := plain_of_nil (by decide +kernel)
-theorem plain389 : Plain 389 := plain_of_nil (by decide +kernel)
-theorem plain390 : Plain 390 := plain_of_nil (by decide +kernel)
-theorem plain391 : Plain 391 := plain_of_nil (by decide +kernel)
-theorem plain392 : Plain 392 := plain_of_nil (by decide +kernel)
-theorem plain393 : Plain 393 := plain_of_nil (by decide +kernel)
-theorem plain394 : Plain 394 := plain_of_nil (by decide +kernel)
-theorem plain395 : Plain 395 := plain_of_nil (by decide +kernel)
-theorem plain396 : Plain 396 := plain_of_nil (by decide +kernel)
-theorem plain397 : Plain 397 := plain_of_nil (by decide +kernel)
-theorem plain398 : Plain 398 := plain_of_nil (by decide +kernel)
-theorem plain399 : Plain 399 := plain_of_nil (by decide +kernel)
-theorem plain400 : Plain 400 := plain_of_nil (by decide +kernel)
-theorem plain401 : Plain 401 := plain_of_nil (by decide +kernel)
-theorem plain402 : Plain 402 := plain_of_nil (by decide +kernel)
-theorem plain403 : Plain 403 := plain_of_nil (by decide +kernel)
-theorem plain404 : Plain 404 := plain_of_nil (by decide +kernel)
-theorem plain405 : Plain 405 := plain_of_nil (by decide +kernel)
-theorem plain406 : Plain 406 := plain_of_nil (by decide +kernel)
-theorem plain407 : Plain 407 := plain_of_nil (by decide +kernel)
-theorem plain408 : Plain 408 := plain_of_nil (by decide +kernel)
-theorem plain409 : Plain 409 := plain_of_nil (by decide +kernel)
-theorem plain410 : Plain 410 := plain_of_nil (by decide +kernel)
-theorem plain411 : Plain 411 := plain_of_nil (by decide +kernel)
-theorem plain412 : Plain 412 := plain_of_nil (by decide +kernel)
-theorem plain413 : Plain 413 := plain_of_nil (by decide +kernel)
-theorem plain414 : Plain 414 := plain_of_nil (by decide +kernel)
-theorem plain415 : Plain 415 := plain_of_nil (by decide +kernel)
-theorem plain416 : Plain 416 := plain_of_nil (by decide +kernel)
-theorem plain417 : Plain 417 := plain_of_nil (by decide +kernel)
-theorem plain418 : Plain 418 := plain_of_nil (by decide +kernel)
-theorem plain419 : Plain 419 := plain_of_nil (by decide +kernel)
-theorem plain420 : Plain 420 := plain_of_nil (by decide +kernel)
-theorem plain421 : Plain 421 := plain_of_nil (by decide +kernel)
-theorem plain422 : Plain 422 := plain_of_nil (by decide +kernel)
-theorem plain423 : Plain 423 := plain_of_nil (by decide +kernel)
-theorem plain424 : Plain 424 := plain_of_nil (by decide +kernel)
-theorem plain425 : Plain 425 := plain_of_nil (by decide +kernel)
-theorem plain426 : Plain 426 := plain_of_nil (by decide +kernel)
-theorem plain427 : Plain 427 := plain_of_nil (by decide +kernel)
-theorem plain428 : Plain 428 := plain_of_nil (by decide +kernel)
-theorem plain429 : Plain 429 := plain_of_nil (by decide +kernel)
-theorem plain430 : Plain 430 := plain_of_nil (by decide +kernel)
-theorem plain431 : Plain 431 := plain_of_nil (by decide +kernel)
-theorem plain432 : Plain 432 := plain_of_nil (by decide +kernel)
-theorem plain433 : Plain 433 := plain_of_nil (by decide +kernel)
-theorem plain434 : Plain 434 := plain_of_nil (by decide +kernel)
-theorem plain435 : Plain 435 := plain_of_nil (by decide +kernel)
-theorem plain436 : Plain 436 := plain_of_nil (by decide +kernel)
-theorem plain437 : Plain 437 := plain_of_nil (by decide +kernel)
-theorem plain438 : Plain 438 := plain_of_nil (by decide +kernel)
-theorem plain439 : Plain 439 := plain_of_nil (by decide +kernel)
-theorem plain440 : Plain 440 := plain_of_nil (by decide +kernel)
-theorem plain441 : Plain 441 := plain_of_nil (by decide +kernel)
-theorem plain442 : Plain 442 := plain_of_nil (by decide +kernel)
-theorem plain443 : Plain 443 := plain_of_nil (by decide +kernel)
-theorem plain444 : Plain 444 := plain_of_nil (by decide +kernel)
-theorem plain445 : Plain 445 := plain_of_nil (by decide +kernel)
-theorem plain446 : Plain 446 := plain_of_nil (by decide +kernel)
-theorem plain447 : Plain 447 := plain_of_nil (by decide +kernel)
-theorem plain448 : Plain 448 := plain_of_nil (by decide +kernel)
-theorem plain449 : Plain 449 := plain_of_nil (by decide +kernel)
-theorem plain450 : Plain 450 := plain_of_nil (by decide +kernel)
-theorem plain451 : Plain 451 := plain_of_nil (by decide +kernel)
-theorem plain452 : Plain 452 := plain_of_nil (by decide +kernel)
-theorem plain453 : Plain 453 := plain_of_nil (by decide +kernel)
-theorem plain454 : Plain 454 := plain_of_nil (by decide +kernel)
-theorem plain455 : Plain 455 := plain_of_nil (by decide +kernel)
-theorem plain456 : Plain 456 := plain_of_nil (by decide +kernel)
-theorem plain457 : Plain 457 := plain_of_nil (by decide +kernel)
-theorem plain458 : Plain 458 := plain_of_nil (by decide +kernel)
-theorem plain459 : Plain 459 := plain_of_nil (by decide +kernel)
-theorem plain460 : Plain 460 := plain_of_nil (by decide +kernel)
-theorem plain461 : Plain 461 := plain_of_nil (by decide +kernel)
-theorem plain462 : Plain 462 := plain_of_nil (by decide +kernel)
-theorem plain463 : Plain 463 := plain_of_nil (by decide +kernel)
-theorem plain464 : Plain 464 := plain_of_nil (by decide +kernel)
-theorem plain465 : Plain 465 := plain_of_nil (by decide +kernel)
-theorem plain466 : Plain 466 := plain_of_nil (by decide +kernel)
-theorem plain467 : Plain 467 := plain_of_nil (by decide +kernel)
-theorem plain468 : Plain 468 := plain_of_nil (by decide +kernel)
-theorem plain469 : Plain 469 := plain_of_nil (by decide +kernel)
-theorem plain470 : Plain 470 := plain_of_nil (by decide +kernel)
-theorem plain471 : Plain 471 := plain_of_nil (by decide +kernel)
-theorem plain472 : Plain 472 := plain_of_nil (by decide +kernel)
-theorem plain473 : Plain 473 := plain_of_nil (by decide +kernel)
-theorem plain474 : Plain 474 := plain_of_nil (by decide +kernel)
-theorem plain475 : Plain 475 := plain_of_nil (by decide +kernel)
-theorem plain476 : Plain 476 := plain_of_nil (by decide +kernel)
-theorem plain477 : Plain 477 := plain_of_nil (by decide +kernel)
-theorem plain478 : Plain 478 := plain_of_nil (by decide +kernel)
-theorem plain479 : Plain 479 := plain_of_nil (by decide +kernel)
-theorem plain480 : Plain 480 := plain_of_nil (by decide +kernel)
-theorem plain481 : Plain 481 := plain_of_nil (by decide +kernel)
-theorem plain482 : Plain 482 := plain_of_nil (by decide +kernel)
-theorem plain483 : Plain 483 := plain_of_nil (by decide +kernel)
-theorem plain484 : Plain 484 := plain_of_nil (by decide +kernel)
-theorem plain485 : Plain 485 := plain_of_nil (by decide +kernel)
-theorem plain486 : Plain 486 := plain_of_nil (by decide +kernel)
-theorem plain487 : Plain 487 := plain_of_nil (by decide +kernel)
-theorem plain488 : Plain 488 := plain_of_nil (by decide +kernel)
-theorem plain489 : Plain 489 := plain_of_nil (by decide +kernel)
-theorem plain490 : Plain 490 := plain_of_nil (by decide +kernel)
-theorem plain491 : Plain 491 := plain_of_nil (by decide +kernel)
-theorem plain492 : Plain 492 := plain_of_nil (by decide +kernel)
-theorem plain493 : Plain 493 := plain_of_nil (by decide +kernel)
-theorem plain494 : Plain 494 := plain_of_nil (by decide +kernel)
-theorem plain495 : Plain 495 := plain_of_nil (by decide +kernel)
-theorem plain496 : Plain 496 := plain_of_nil (by decide +kernel)
-theorem plain497 : Plain 497 := plain_of_nil (by decide +kernel)
-theorem plain498 : Plain 498 := plain_of_nil (by decide +kernel)
-theorem plain499 : Plain 499 := plain_of_nil (by decide +kernel)
-theorem plain500 : Plain 500 := plain_of_nil (by decide +kernel)
-theorem plain501 : Plain 501 := plain_of_nil (by decide +kernel)
-theorem plain502 : Plain 502 := plain_of_nil (by decide +kernel)
-theorem plain503 : Plain 503 := plain_of_nil (by decide +kernel)
-theorem plain504 : Plain 504 := plain_of_nil (by decide +kernel)
-theorem plain505 : Plain 505 := plain_of_nil (by decide +kernel)
-theorem plain506 : Plain 506 := plain_of_nil (by decide +kernel)
-theorem plain507 : Plain 507 := plain_of_nil (by decide +kernel)
-theorem plain508 : Plain 508 := plain_of_nil (by decide +kernel)
-theorem plain509 : Plain 509 := plain_of_nil (by decide +kernel)
-theorem plain510 : Plain 510 := plain_of_nil (by decide +kernel)
-theorem plain511 : Plain 511 := plain_of_nil (by decide +kernel)
-theorem plain512 : Plain 512 := plain_of_nil (by decide +kernel)
-theorem plain513 : Plain 513 := plain_of_nil (by decide +kernel)
-theorem plain514 : Plain 514 := plain_of_nil (by decide +kernel)
-theorem plain515 : Plain 515 := plain_of_nil (by decide +kernel)
-theorem plain516 : Plain 516 := plain_of_nil (by decide +kernel)
-theorem plain517 : Plain 517 := plain_of_nil (by decide +kernel)
-theorem plain518 : Plain 518 := plain_of_nil (by decide +kernel)
-theorem plain519 : Plain 519 := plain_of_nil (by decide +kernel)
-theorem plain520 : Plain 520 := plain_of_nil (by decide +kernel)
-theorem plain521 : Plain 521 := plain_of_nil (by decide +kernel)
-theorem plain522 : Plain 522 := plain_of_nil (by decide +kernel)
-theorem plain523 : Plain 523 := plain_of_nil (by decide +kernel)
-theorem plain524 : Plain 524 := plain_of_nil (by decide +kernel)
-theorem plain525 : Plain 525 := plain_of_nil (by decide +kernel)
-theorem plain526 : Plain 526 := plain_of_nil (by decide +kernel)
-theorem plain527 : Plain 527 := plain_of_nil (by decide +kernel)
-theorem plain528 : Plain 528 := plain_of_nil (by decide +kernel)
-theorem plain529 : Plain 529 := plain_of_nil (by decide +kernel)
-theorem plain530 : Plain 530 := plain_of_nil (by decide +kernel)
-theorem plain531 : Plain 531 := plain_of_nil (by decide +kernel)
-theorem plain532 : Plain 532 := plain_of_nil (by decide +kernel)
-theorem plain533 : Plain 533 := plain_of_nil (by decide +kernel)
-theorem plain534 : Plain 534 := plain_of_nil (by decide +kernel)
-theorem plain535 : Plain 535 := plain_of_nil (by decide +kernel)
-theorem plain536 : Plain 536 := plain_of_nil (by decide +kernel)
-theorem plain537 : Plain 537 := plain_of_nil (by decide +kernel)
-theorem plain538 : Plain 538 := plain_of_nil (by decide +kernel)
-theorem plain539 : Plain 539 := plain_of_nil (by decide +kernel)
-theorem plain540 : Plain 540 := plain_of_nil (by decide +kernel)
-theorem plain541 : Plain 541 := plain_of_nil (by decide +kernel)
-theorem plain542 : Plain 542 := plain_of_nil (by decide +kernel)
-theorem plain543 : Plain 543 := plain_of_nil (by decide +kernel)
-theorem plain544 : Plain 544 := plain_of_nil (by decide +kernel)
-theorem plain545 : Plain 545 := plain_of_nil (by decide +kernel)
-theorem plain546 : Plain 546 := plain_of_nil (by decide +kernel)
-theorem plain547 : Plain 547 := plain_of_nil (by decide +kernel)
-theorem plain548 : Plain 548 := plain_of_nil (by decide +kernel)
-theorem plain549 : Plain 549 := plain_of_nil (by decide +kernel)
-theorem plain550 : Plain 550 := plain_of_nil (by decide +kernel)
-theorem plain551 : Plain 551 := plain_of_nil (by decide +kernel)
-theorem plain552 : Plain 552 := plain_of_nil (by decide +kernel)
-theorem plain553 : Plain 553 := plain_of_nil (by decide +kernel)
-theorem plain554 : Plain 554 := plain_of_nil (by decide +kernel)
-theorem plain555 : Plain 555 := plain_of_nil (by decide +kernel)
-theorem plain556 : Plain 556 := plain_of_nil (by decide +kernel)
-theorem plain557 : Plain 557 := plain_of_nil (by decide +kernel)
-theorem plain558 : Plain 558 := plain_of_nil (by decide +kernel)
-theorem plain559 : Plain 559 := plain_of_nil (by decide +kernel)
-theorem plain560 : Plain 560 := plain_of_nil (by decide +kernel)
-theorem plain561 : Plain 561 := plain_of_nil (by decide +kernel)
-theorem plain562 : Plain 562 := plain_of_nil (by decide +kernel)
-theorem plain563 : Plain 563 := plain_of_nil (by decide +kernel)
-theorem plain564 : Plain 564 := plain_of_nil (by decide +kernel)
-theorem plain565 : Plain 565 := plain_of_nil (by decide +kernel)
-theorem plain566 : Plain 566 := plain_of_nil (by decide +kernel)
-theorem plain567 : Plain 567 := plain_of_nil (by decide +kernel)
-theorem plain568 : Plain 568 := plain_of_nil (by decide +kernel)
-theorem plain569 : Plain 569 := plain_of_nil (by decide +kernel)
-theorem plain570 : Plain 570 := plain_of_nil (by decide +kernel)
-theorem plain571 : Plain 571 := plain_of_nil (by decide +kernel)
-theorem plain572 : Plain 572 := plain_of_nil (by decide +kernel)
-theorem plain573 : Plain 573 := plain_of_nil (by decide +kernel)
-theorem plain574 : Plain 574 := plain_of_nil (by decide +kernel)
-theorem plain575 : Plain 575 := plain_of_nil (by decide +kernel)
-theorem plain576 : Plain 576 := plain_of_nil (by decide +kernel)
-theorem plain577 : Plain 577 := plain_of_nil (by decide +kernel)
-theorem plain578 : Plain 578 := plain_of_nil (by decide +kernel)
-theorem plain579 : Plain 579 := plain_of_nil (by decide +kernel)
-theorem plain580 : Plain 580 := plain_of_nil (by decide +kernel)
-theorem plain581 : Plain 581 := plain_of_nil (by decide +kernel)
-theorem plain582 : Plain 582 := plain_of_nil (by decide +kernel)
-theorem plain583 : Plain 583 := plain_of_nil (by decide +kernel)
-theorem plain584 : Plain 584 := plain_of_nil (by decide +kernel)
-theorem plain585 : Plain 585 := plain_of_nil (by decide +kernel)
-theorem plain586 : Plain 586 := plain_of_nil (by decide +kernel)
-theorem plain587 : Plain 587 := plain_of_nil (by decide +kernel)
-theorem plain588 : Plain 588 := plain_of_nil (by decide +kernel)
-theorem plain589 : Plain 589 := plain_of_nil (by decide +kernel)
-theorem plain590 : Plain 590 := plain_of_nil (by decide +kernel)
-theorem plain591 : Plain 591 := plain_of_nil (by decide +kernel)
-theorem plain592 : Plain 592 := plain_of_nil (by decide +kernel)
-theorem plain593 : Plain 593 := plain_of_nil (by decide +kernel)
-theorem plain594 : Plain 594 := plain_of_nil (by decide +kernel)
-theorem plain595 : Plain 595 := plain_of_nil (by decide +kernel)
-theorem plain596 : Plain 596 := plain_of_nil (by decide +kernel)
-theorem plain597 : Plain 597 := plain_of_nil (by decide +kernel)
-theorem plain598 : Plain 598 := plain_of_nil (by decide +kernel)
-theorem plain599 : Plain 599 := plain_of_nil (by decide +kernel)
-theorem plain600 : Plain 600 := plain_of_nil (by decide +kernel)
-theorem plain601 : Plain 601 := plain_of_nil (by decide +kernel)
-theorem plain602 : Plain 602 := plain_of_nil (by decide +kernel)
-theorem plain603 : Plain 603 := plain_of_nil (by decide +kernel)
-theorem plain604 : Plain 604 := plain_of_nil (by decide +kernel)
-theorem plain605 : Plain 605 := plain_of_nil (by decide +kernel)
-theorem plain606 : Plain 606 := plain_of_nil (by decide +kernel)
-theorem plain607 : Plain 607 := plain_of_nil (by decide +kernel)
-theorem plain608 : Plain 608 := plain_of_nil (by decide +kernel)
-theorem plain609 : Plain 609 := plain_of_nil (by decide +kernel)
-theorem plain610 : Plain 610 := plain_of_nil (by decide +kernel)
-theorem plain611 : Plain 611 := plain_of_nil (by decide +kernel)
-theorem plain612 : Plain 612 := plain_of_nil (by decide +kernel)
-theorem plain613 : Plain 613 := plain_of_nil (by decide +kernel)
-theorem plain614 : Plain 614 := plain_of_nil (by decide +kernel)
-theorem plain615 : Plain 615 := plain_of_nil (by decide +kernel)
-theorem plain616 : Plain 616 := plain_of_nil (by decide +kernel)
-theorem plain617 : Plain 617 := plain_of_nil (by decide +kernel)
-theorem plain618 : Plain 618 := plain_of_nil (by decide +kernel)
-theorem plain619 : Plain 619 := plain_of_nil (by decide +kernel)
-theorem plain620 : Plain 620 := plain_of_nil (by decide +kernel)
-theorem plain621 : Plain 621 := plain_of_nil (by decide +kernel)
-theorem plain622 : Plain 622 := plain_of_nil (by decide +kernel)
-theorem plain623 : Plain 623 := plain_of_nil (by decide +kernel)
-theorem plain624 : Plain 624 := plain_of_nil (by decide +kernel)
-theorem plain625 : Plain 625 := plain_of_nil (by decide +kernel)
-theorem plain626 : Plain 626 := plain_of_nil (by decide +kernel)
-theorem plain627 : Plain 627 := plain_of_nil (by decide +kernel)
-theorem plain628 : Plain 628 := plain_of_nil (by decide +kernel)
-theorem plain629 : Plain 629 := plain_of_nil (by decide +kernel)
-theorem plain630 : Plain 630 := plain_of_nil (by decide +kernel)
-theorem plain631 : Plain 631 := plain_of_nil (by decide +kernel)
-theorem plain632 : Plain 632 := plain_of_nil (by decide +kernel)
-theorem plain633 : Plain 633 := plain_of_nil (by decide +kernel)
-theorem plain634 : Plain 634 := plain_of_nil (by decide +kernel)
-theorem plain635 : Plain 635 := plain_of_nil (by decide +kernel)
-theorem plain636 : Plain 636 := plain_of_nil (by decide +kernel)
-theorem plain637 : Plain 637 := plain_of_nil (by decide +kernel)
-theorem plain638 : Plain 638 := plain_of_nil (by decide +kernel)
-theorem plain639 : Plain 639 := plain_of_nil (by decide +kernel)
-theorem plain640 : Plain 640 := plain_of_nil (by decide +kernel)
-theorem plain641 : Plain 641 := plain_of_nil (by decide +kernel)
-theorem plain642 : Plain 642 := plain_of_nil (by decide +kernel)
-theorem plain643 : Plain 643 := plain_of_nil (by decide +kernel)
-theorem plain644 : Plain 644 := plain_of_nil (by decide +kernel)
-theorem plain645 : Plain 645 := plain_of_nil (by decide +kernel)
-theorem plain646 : Plain 646 := plain_of_nil (by decide +kernel)
-theorem plain647 : Plain 647 := plain_of_nil (by decide +kernel)
-theorem plain648 : Plain 648 := plain_of_nil (by decide +kernel)
-theorem plain649 : Plain 649 := plain_of_nil (by decide +kernel)
-theorem plain650 : Plain 650 := plain_of_nil (by decide +kernel)
-theorem plain651 : Plain 651 := plain_of_nil (by decide +kernel)
-theorem plain652 : Plain 652 := plain_of_nil (by decide +kernel)
-theorem plain653 : Plain 653 := plain_of_nil (by decide +kernel)
-theorem plain654 : Plain 654 := plain_of_nil (by decide +kernel)
-theorem plain655 : Plain 655 := plain_of_nil (by decide +kernel)
-theorem plain656 : Plain 656 := plain_of_nil (by decide +kernel)
-theorem plain657 : Plain 657 := plain_of_nil (by decide +kernel)
-theorem plain658 : Plain 658 := plain_of_nil (by decide +kernel)
-theorem plain659 : Plain 659 := plain_of_nil (by decide +kernel)
-theorem plain660 : Plain 660 := plain_of_nil (by decide +kernel)
-theorem plain661 : Plain 661 := plain_of_nil (by decide +kernel)
-theorem plain662 : Plain 662 := plain_of_nil (by decide +kernel)
-theorem plain663 : Plain 663 := plain_of_nil (by decide +kernel)
-theorem plain664 : Plain 664 := plain_of_nil (by decide +kernel)
-theorem plain665 : Plain 665 := plain_of_nil (by decide +kernel)
-theorem plain666 : Plain 666 := plain_of_nil (by decide +kernel)
-theorem plain667 : Plain 667 := plain_of_nil (by decide +kernel)
-theorem plain668 : Plain 668 := plain_of_nil (by decide +kernel)
-theorem plain669 : Plain 669 := plain_of_nil (by decide +kernel)
-theorem plain670 : Plain 670 := plain_of_nil (by decide +kernel)
-theorem plain671 : Plain 671 := plain_of_nil (by decide +kernel)
-theorem plain672 : Plain 672 := plain_of_nil (by decide +kernel)
-theorem plain673 : Plain 673 := plain_of_nil (by decide +kernel)
-theorem plain674 : Plain 674 := plain_of_nil (by decide +kernel)
-theorem plain675 : Plain 675 := plain_of_nil (by decide +kernel)
-theorem plain676 : Plain 676 := plain_of_nil (by decide +kernel)
-theorem plain677 : Plain 677 := plain_of_nil (by decide +kernel)
-theorem plain678 : Plain 678 := plain_of_nil (by decide +kernel)
-theorem plain679 : Plain 679 := plain_of_nil (by decide +kernel)
-theorem plain680 : Plain 680 := plain_of_nil (by decide +kernel)
-theorem plain681 : Plain 681 := plain_of_nil (by decide +kernel)
-theorem plain682 : Plain 682 := plain_of_nil (by decide +kernel)
-theorem plain683 : Plain 683 := plain_of_nil (by decide +kernel)
-theorem plain684 : Plain 684 := plain_of_nil (by decide +kernel)
-theorem plain685 : Plain 685 := plain_of_nil (by decide +kernel)
-theorem plain686 : Plain 686 := plain_of_nil (by decide +kernel)
-theorem plain687 : Plain 687 := plain_of_nil (by decide +kernel)
-theorem plain688 : Plain 688 := plain_of_nil (by decide +kernel)
-theorem plain689 : Plain 689 := plain_of_nil (by decide +kernel)
-theorem plain690 : Plain 690 := plain_of_nil (by decide +kernel)
-theorem plain691 : Plain 691 := plain_of_nil (by decide +kernel)
-theorem plain692 : Plain 692 := plain_of_nil (by decide +kernel)
-theorem plain693 : Plain 693 := plain_of_nil (by decide +kernel)
-theorem plain694 : Plain 694 := plain_of_nil (by decide +kernel)
-theorem plain695 : Plain 695 := plain_of_nil (by decide +kernel)
-theorem plain696 : Plain 696 := plain_of_nil (by decide +kernel)
-theorem plain697 : Plain 697 := plain_of_nil (by decide +kernel)
-theorem plain698 : Plain 698 := plain_of_nil (by decide +kernel)
-theorem plain699 : Plain 699 := plain_of_nil (by decide +kernel)
-theorem plain700 : Plain 700 := plain_of_nil (by decide +kernel)
-theorem plain701 : Plain 701 := plain_of_nil (by decide +kernel)
-theorem plain702 : Plain 702 := plain_of_nil (by decide +kernel)
-theorem plain703 : Plain 703 := plain_of_nil (by decide +kernel)
-theorem plain704 : Plain 704 := plain_of_nil (by decide +kernel)
-theorem plain705 : Plain 705 := plain_of_nil (by decide +kernel)
-theorem plain706 : Plain 706 := plain_of_nil (by decide +kernel)
-theorem plain707 : Plain 707 := plain_of_nil (by decide +kernel)
-theorem plain708 : Plain 708 := plain_of_nil (by decide +kernel)
-theorem plain709 : Plain 709 := plain_of_nil (by decide +kernel)
-theorem plain710 : Plain 710 := plain_of_nil (by decide +kernel)
-theorem plain711 : Plain 711 := plain_of_nil (by decide +kernel)
-theorem plain712 : Plain 712 := plain_of_nil (by decide +kernel)
-theorem plain713 : Plain 713 := plain_of_nil (by decide +kernel)
-theorem plain714 : Plain 714 := plain_of_nil (by decide +kernel)
-theorem plain715 : Plain 715 := plain_of_nil (by decide +kernel)
-theorem plain716 : Plain 716 := plain_of_nil (by decide +kernel)
-theorem plain717 : Plain 717 := plain_of_nil (by decide +kernel)
-theorem plain718 : Plain 718 := plain_of_nil (by decide +kernel)
-theorem plain719 : Plain 719 := plain_of_nil (by decide +kernel)
-theorem plain720 : Plain 720 := plain_of_nil (by decide +kernel)
-theorem plain721 : Plain 721 := plain_of_nil (by decide +kernel)
-theorem plain722 : Plain 722 := plain_of_nil (by decide +kernel)
-theorem plain723 : Plain 723 := plain_of_nil (by decide +kernel)
-theorem plain724 : Plain 724 := plain_of_nil (by decide +kernel)
-theorem plain725 : Plain 725 := plain_of_nil (by decide +kernel)
-theorem plain726 : Plain 726 := plain_of_nil (by decide +kernel)
-theorem plain727 : Plain 727 := plain_of_nil (by decide +kernel)
-theorem plain728 : Plain 728 := plain_of_nil (by decide +kernel)
-theorem plain729 : Plain 729 := plain_of_nil (by decide +kernel)
-theorem plain730 : Plain 730 := plain_of_nil (by decide +kernel)
-theorem plain731 : Plain 731 := plain_of_nil (by decide +kernel)
-theorem plain732 : Plain 732 := plain_of_nil (by decide +kernel)
-theorem plain733 : Plain 733 := plain_of_nil (by decide +kernel)
-theorem plain734 : Plain 734 := plain_of_nil (by decide +kernel)
-theorem plain735 : Plain 735 := plain_of_nil (by decide +kernel)
-theorem plain736 : Plain 736 := plain_of_nil (by decide +kernel)
-theorem plain737 : Plain 737 := plain_of_nil (by decide +kernel)
-theorem plain738 : Plain 738 := plain_of_nil (by decide +kernel)
-theorem plain739 : Plain 739 := plain_of_nil (by decide +kernel)
-theorem plain740 : Plain 740 := plain_of_nil (by decide +kernel)
-theorem plain741 : Plain 741 := plain_of_nil (by decide +kernel)
-theorem plain742 : Plain 742 := plain_of_nil (by decide +kernel)
-theorem plain743 : Plain 743 := plain_of_nil (by decide +kernel)
-theorem plain744 : Plain 744 := plain_of_nil (by decide +kernel)
-theorem plain745 : Plain 745 := plain_of_nil (by decide +kernel)
-theorem plain746 : Plain 746 := plain_of_nil (by decide +kernel)
-theorem plain747 : Plain 747 := plain_of_nil (by decide +kernel)
-theorem plain748 : Plain 748 := plain_of_nil (by decide +kernel)
-theorem plain749 : Plain 749 := plain_of_nil (by decide +kernel)
-theorem plain750 : Plain 750 := plain_of_nil (by decide +kernel)
-theorem plain751 : Plain 751 := plain_of_nil (by decide +kernel)
-theorem plain752 : Plain 752 := plain_of_nil (by decide +kernel)
-theorem plain753 : Plain 753 := plain_of_nil (by decide +kernel)
-theorem plain754 : Plain 754 := plain_of_nil (by decide +kernel)
-theorem plain755 : Plain 755 := plain_of_nil (by decide +kernel)
-theorem plain756 : Plain 756 := plain_of_nil (by decide +kernel)
-theorem plain757 : Plain 757 := plain_of_nil (by decide +kernel)
-theorem plain758 : Plain 758 := plain_of_nil (by decide +kernel)
-theorem plain759 : Plain 759 := plain_of_nil (by decide +kernel)
-theorem plain760 : Plain 760 := plain_of_nil (by decide +kernel)
-theorem plain761 : Plain 761 := plain_of_nil (by decide +kernel)
-theorem plain762 : Plain 762 := plain_of_nil (by decide +kernel)
-theorem plain763 : Plain 763 := plain_of_nil (by decide +kernel)
-theorem plain764 : Plain 764 := plain_of_nil (by decide +kernel)
-theorem plain765 : Plain 765 := plain_of_nil (by decide +kernel)
-theorem plain766 : Plain 766 := plain_of_nil (by decide +kernel)
-theorem plain767 : Plain 767 := plain_of_nil (by decide +kernel)
-theorem plain768 : Plain 768 := plain_of_nil (by decide +kernel)
-theorem plain769 : Plain 769 := plain_of_nil (by decide +kernel)
-theorem plain770 : Plain 770 := plain_of_nil (by decide +kernel)
-theorem plain771 : Plain 771 := plain_of_nil (by decide +kernel)
-theorem plain772 : Plain 772 := plain_of_nil (by decide +kernel)
-theorem plain773 : Plain 773 := plain_of_nil (by decide +kernel)
-theorem plain774 : Plain 774 := plain_of_nil (by decide +kernel)
-theorem plain775 : Plain 775 := plain_of_nil (by decide +kernel)
-theorem plain776 : Plain 776 := plain_of_nil (by decide +kernel)
-theorem plain777 : Plain 777 := plain_of_nil (by decide +kernel)
-theorem plain778 : Plain 778 := plain_of_nil (by decide +kernel)
-theorem plain779 : Plain 779 := plain_of_nil (by decide +kernel)
-theorem plain780 : Plain 780 := plain_of_nil (by decide +kernel)
-theorem plain781 : Plain 781 := plain_of_nil (by decide +kernel)
-theorem plain782 : Plain 782 := plain_of_nil (by decide +kernel)
-theorem plain783 : Plain 783 := plain_of_nil (by decide +kernel)
-theorem plain784 : Plain 784 := plain_of_nil (by decide +kernel)
-theorem plain785 : Plain 785 := plain_of_nil (by decide +kernel)
-theorem plain786 : Plain 786 := plain_of_nil (by decide +kernel)
-theorem plain787 : Plain 787 := plain_of_nil (by decide +kernel)
-theorem plain788 : Plain 788 := plain_of_nil (by decide +kernel)
-theorem plain789 : Plain 789 := plain_of_nil (by decide +kernel)
-theorem plain790 : Plain 790 := plain_of_nil (by decide +kernel)
-theorem plain791 : Plain 791 := plain_of_nil (by decide +kernel)
-theorem plain792 : Plain 792 := plain_of_nil (by decide +kernel)
-theorem plain793 : Plain 793 := plain_of_nil (by decide +kernel)
-theorem plain794 : Plain 794 := plain_of_nil (by decide +kernel)
-theorem plain795 : Plain 795 := plain_of_nil (by decide +kernel)
-theorem plain796 : Plain 796 := plain_of_nil (by decide +kernel)
-theorem plain797 : Plain 797 := plain_of_nil (by decide +kernel)
-theorem plain798 : Plain 798 := plain_of_nil (by decide +kernel)
-theorem plain799 : Plain 799 := plain_of_nil (by decide +kernel)
-theorem plain800 : Plain 800 := plain_of_nil (by decide +kernel)
-theorem plain801 : Plain 801 := plain_of_nil (by decide +kernel)
-theorem plain802 : Plain 802 := plain_of_nil (by decide +kernel)
-theorem plain803 : Plain 803 := plain_of_nil (by decide +kernel)
-theorem plain804 : Plain 804 := plain_of_nil (by decide +kernel)
-theorem plain805 : Plain 805 := plain_of_nil (by decide +kernel)
-theorem plain806 : Plain 806 := plain_of_nil (by decide +kernel)
-theorem plain807 : Plain 807 := plain_of_nil (by decide +kernel)
-theorem plain808 : Plain 808 := plain_of_nil (by decide +kernel)
-theorem plain809 : Plain 809 := plain_of_nil (by decide +kernel)
-theorem plain810 : Plain 810 := plain_of_nil (by decide +kernel)
-theorem plain811 : Plain 811 := plain_of_nil (by decide +kernel)
-theorem plain812 : Plain 812 := plain_of_nil (by decide +kernel)
-theorem plain813 : Plain 813 := plain_of_nil (by decide +kernel)
-theorem plain814 : Plain 814 := plain_of_nil (by decide +kernel)
-theorem plain815 : Plain 815 := plain_of_nil (by decide +kernel)
-theorem plain816 : Plain 816 := plain_of_nil (by decide +kernel)
-theorem plain817 : Plain 817 := plain_of_nil (by decide +kernel)
-theorem plain818 : Plain 818 := plain_of_nil (by decide +kernel)
-theorem plain819 : Plain 819 := plain_of_nil (by decide +kernel)
-theorem plain820 : Plain 820 := plain_of_nil (by decide +kernel)
-theorem plain821 : Plain 821 := plain_of_nil (by decide +kernel)
-theorem plain822 : Plain 822 := plain_of_nil (by decide +kernel)
-theorem plain823 : Plain 823 := plain_of_nil (by decide +kernel)
-theorem plain824 : Plain 824 := plain_of_nil (by decide +kernel)
-theorem plain825 : Plain 825 := plain_of_nil (by decide +kernel)
-theorem plain826 : Plain 826 := plain_of_nil (by decide +kernel)
-theorem plain827 : Plain 827 := plain_of_nil (by decide +kernel)
-theorem plain828 : Plain 828 := plain_of_nil (by decide +kernel)
-theorem plain829 : Plain 829 := plain_of_nil (by decide +kernel)
-theorem plain830 : Plain 830 := plain_of_nil (by decide +kernel)
-theorem plain831 : Plain 831 := plain_of_nil (by decide +kernel)
-theorem plain832 : Plain 832 := plain_of_nil (by decide +kernel)
-theorem plain833 : Plain 833 := plain_of_nil (by decide +kernel)
-theorem plain834 : Plain 834 := plain_of_nil (by decide +kernel)
-theorem plain835 : Plain 835 := plain_of_nil (by decide +kernel)
-theorem plain836 : Plain 836 := plain_of_nil (by decide +kernel)
-theorem plain837 : Plain 837 := plain_of_nil (by decide +kernel)
-theorem plain838 : Plain 838 := plain_of_nil (by decide +kernel)
-theorem plain839 : Plain 839 := plain_of_nil (by decide +kernel)
-theorem plain840 : Plain 840 := plain_of_nil (by decide +kernel)
-theorem plain841 : Plain 841 := plain_of_nil (by decide +kernel)
-theorem plain842 : Plain 842 := plain_of_nil (by decide +kernel)
-theorem plain843 : Plain 843 := plain_of_nil (by decide +kernel)
-theorem plain844 : Plain 844 := plain_of_nil (by decide +kernel)
-theorem plain845 : Plain 845 := plain_of_nil (by decide +kernel)
-theorem plain846 : Plain 846 := plain_of_nil (by decide +kernel)
-theorem plain847 : Plain 847 := plain_of_nil (by decide +kernel)
-theorem plain848 : Plain 848 := plain_of_nil (by decide +kernel)
-theorem plain849 : Plain 849 := plain_of_nil (by decide +kernel)
-theorem plain850 : Plain 850 := plain_of_nil (by decide +kernel)
-theorem plain851 : Plain 851 := plain_of_nil (by decide +kernel)
-theorem plain852 : Plain 852 := plain_of_nil (by decide +kernel)
-theorem plain853 : Plain 853 := plain_of_nil (by decide +kernel)
-theorem plain854 : Plain 854 := plain_of_nil (by decide +kernel)
-theorem plain855 : Plain 855 := plain_of_nil (by decide +kernel)
-theorem plain856 : Plain 856 := plain_of_nil (by decide +kernel)
-theorem plain857 : Plain 857 := plain_of_nil (by decide +kernel)
-theorem plain858 : Plain 858 := plain_of_nil (by decide +kernel)
-theorem plain859 : Plain 859 := plain_of_nil (by decide +kernel)
-theorem plain860 : Plain 860 := plain_of_nil (by decide +kernel)
-theorem plain861 : Plain 861 := plain_of_nil (by decide +kernel)
-theorem plain862 : Plain 862 := plain_of_nil (by decide +kernel)
-theorem plain863 : Plain 863 := plain_of_nil (by decide +kernel)
-theorem plain864 : Plain 864 := plain_of_nil (by decide +kernel)
-theorem plain865 : Plain 865 := plain_of_nil (by decide +kernel)
-theorem plain866 : Plain 866 := plain_of_nil (by decide +kernel)
-theorem plain867 : Plain 867 := plain_of_nil (by decide +kernel)
-theorem plain868 : Plain 868 := plain_of_nil (by decide +kernel)
-theorem plain869 : Plain 869 := plain_of_nil (by decide +kernel)
-theorem plain870 : Plain 870 := plain_of_nil (by decide +kernel)
-theorem plain871 : Plain 871 := plain_of_nil (by decide +kernel)
-theorem plain872 : Plain 872 := plain_of_nil (by decide +kernel)
-theorem plain873 : Plain 873 := plain_of_nil (by decide +kernel)
-theorem plain874 : Plain 874 := plain_of_nil (by decide +kernel)
-theorem plain875 : Plain 875 := plain_of_nil (by decide +kernel)
-theorem plain876 : Plain 876 := plain_of_nil (by decide +kernel)
-theorem plain877 : Plain 877 := plain_of_nil (by decide +kernel)
-theorem plain878 : Plain 878 := plain_of_nil (by decide +kernel)
-theorem plain879 : Plain 879 := plain_of_nil (by decide +kernel)
-theorem plain880 : Plain 880 := plain_of_nil (by decide +kernel)
-theorem plain881 : Plain 881 := plain_of_nil (by decide +kernel)
-theorem plain882 : Plain 882 := plain_of_nil (by decide +kernel)
-theorem plain883 : Plain 883 := plain_of_nil (by decide +kernel)
-theorem plain884 : Plain 884 := plain_of_nil (by decide +kernel)
-theorem plain885 : Plain 885 := plain_of_nil (by decide +kernel)
-theorem plain886 : Plain 886 := plain_of_nil (by decide +kernel)
-theorem plain887 : Plain 887 := plain_of_nil (by decide +kernel)
-theorem plain888 : Plain 888 := plain_of_nil (by decide +kernel)
-theorem plain889 : Plain 889 := plain_of_nil (by decide +kernel)
-theorem plain890 : Plain 890 := plain_of_nil (by decide +kernel)
-theorem plain891 : Plain 891 := plain_of_nil (by decide +kernel)
-theorem plain892 : Plain 892 := plain_of_nil (by decide +kernel)
-theorem plain893 : Plain 893 := plain_of_nil (by decide +kernel)
-theorem plain894 : Plain 894 := plain_of_nil (by decide +kernel)
-theorem plain895 : Plain 895 := plain_of_nil (by decide +kernel)
-theorem plain896 : Plain 896 := plain_of_nil (by decide +kernel)
-theorem plain897 : Plain 897 := plain_of_nil (by decide +kernel)
-theorem plain898 : Plain 898 := plain_of_nil (by decide +kernel)
-theorem plain899 : Plain 899 := plain_of_nil (by decide +kernel)
-theorem plain900 : Plain 900 := plain_of_nil (by decide +kernel)
-theorem plain901 : Plain 901 := plain_of_nil (by decide +kernel)
-theorem plain902 : Plain 902 := plain_of_nil (by decide +kernel)
-theorem plain903 : Plain 903 := plain_of_nil (by decide +kernel)
-theorem plain904 : Plain 904 := plain_of_nil (by decide +kernel)
-theorem plain905 : Plain 905 := plain_of_nil (by decide +kernel)
-theorem plain906 : Plain 906 := plain_of_nil (by decide +kernel)
-theorem plain907 : Plain 907 := plain_of_nil (by decide +kernel)
-theorem plain908 : Plain 908 := plain_of_nil (by decide +kernel)
-theorem plain909 : Plain 909 := plain_of_nil (by decide +kernel)
-theorem plain910 : Plain 910 := plain_of_nil (by decide +kernel)
-theorem plain911 : Plain 911 := plain_of_nil (by decide +kernel)
-theorem plain912 : Plain 912 := plain_of_nil (by decide +kernel)
-theorem plain913 : Plain 913 := plain_of_nil (by decide +kernel)
-theorem plain914 : Plain 914 := plain_of_nil (by decide +kernel)
-theorem plain915 : Plain 915 := plain_of_nil (by decide +kernel)
-theorem plain916 : Plain 916 := plain_of_nil (by decide +kernel)
-theorem plain917 : Plain 917 := plain_of_nil (by decide +kernel)
-theorem plain918 : Plain 918 := plain_of_nil (by decide +kernel)
-theorem plain919 : Plain 919 := plain_of_nil (by decide +kernel)
-theorem plain920 : Plain 920 := plain_of_nil (by decide +kernel)
-theorem plain921 : Plain 921 := plain_of_nil (by decide +kernel)
-theorem plain922 : Plain 922 := plain_of_nil (by decide +kernel)
-theorem plain923 : Plain 923 := plain_of_nil (by decide +kernel)
-theorem plain924 : Plain 924 := plain_of_nil (by decide +kernel)
-theorem plain925 : Plain 925 := plain_of_nil (by decide +kernel)
-theorem plain926 : Plain 926 := plain_of_nil (by decide +kernel)
-theorem plain927 : Plain 927 := plain_of_nil (by decide +kernel)
-theorem plain928 : Plain 928 := plain_of_nil (by decide +kernel)
-theorem plain929 : Plain 929 := plain_of_nil (by decide +kernel)
-theorem plain930 : Plain 930 := plain_of_nil (by decide +kernel)
-theorem plain931 : Plain 931 := plain_of_nil (by decide +kernel)
-theorem plain932 : Plain 932 := plain_of_nil (by decide +kernel)
-theorem plain933 : Plain 933 := plain_of_nil (by decide +kernel)
-theorem plain934 : Plain 934 := plain_of_nil (by decide +kernel)
-theorem plain935 : Plain 935 := plain_of_nil (by decide +kernel)
-theorem plain936 : Plain 936 := plain_of_nil (by decide +kernel)
-theorem plain937 : Plain 937 := plain_of_nil (by decide +kernel)
-theorem plain938 : Plain 938 := plain_of_nil (by decide +kernel)
-theorem plain939 : Plain 939 := plain_of_nil (by decide +kernel)
-theorem plain940 : Plain 940 := plain_of_nil (by decide +kernel)
-theorem plain941 : Plain 941 := plain_of_nil (by decide +kernel)
-theorem plain942 : Plain 942 := plain_of_nil (by decide +kernel)
-theorem plain943 : Plain 943 := plain_of_nil (by decide +kernel)
-theorem plain944 : Plain 944 := plain_of_nil (by decide +kernel)
-theorem plain945 : Plain 945 := plain_of_nil (by decide +kernel)
-theorem plain946 : Plain 946 := plain_of_nil (by decide +kernel)
-theorem plain947 : Plain 947 := plain_of_nil (by decide +kernel)
-theorem plain948 : Plain 948 := plain_of_nil (by decide +kernel)
-theorem plain949 : Plain 949 := plain_of_nil (by decide +kernel)
-theorem plain950 : Plain 950 := plain_of_nil (by decide +kernel)
-theorem plain951 : Plain 951 := plain_of_nil (by decide +kernel)
-theorem plain952 : Plain 952 := plain_of_nil (by decide +kernel)
-theorem plain953 : Plain 953 := plain_of_nil (by decide +kernel)
-theorem plain954 : Plain 954 := plain_of_nil (by decide +kernel)
-theorem plain955 : Plain 955 := plain_of_nil (by decide +kernel)
-theorem plain956 : Plain 956 := plain_of_nil (by decide +kernel)
-theorem plain957 : Plain 957 := plain_of_nil (by decide +kernel)
-theorem plain958 : Plain 958 := plain_of_nil (by decide +kernel)
-theorem plain959 : Plain 959 := plain_of_nil (by decide +kernel)
-theorem plain960 : Plain 960 := plain_of_nil (by decide +kernel)
-theorem plain961 : Plain 961 := plain_of_nil (by decide +kernel)
-theorem plain962 : Plain 962 := plain_of_nil (by decide +kernel)
-theorem plain963 : Plain 963 := plain_of_nil (by decide +kernel)
-theorem plain964 : Plain 964 := plain_of_nil (by decide +kernel)
-theorem plain965 : Plain 965 := plain_of_nil (by decide +kernel)
-theorem plain966 : Plain 966 := plain_of_nil (by decide +kernel)
-theorem plain967 : Plain 967 := plain_of_nil (by decide +kernel)
-theorem plain968 : Plain 968 := plain_of_nil (by decide +kernel)
-theorem plain969 : Plain 969 := plain_of_nil (by decide +kernel)
-theorem plain970 : Plain 970 := plain_of_nil (by decide +kernel)
-theorem plain971 : Plain 971 := plain_of_nil (by decide +kernel)
-theorem plain972 : Plain 972 := plain_of_nil (by decide +kernel)
-theorem plain973 : Plain 973 := plain_of_nil (by decide +kernel)
-theorem plain974 : Plain 974 := plain_of_nil (by decide +kernel)
-theorem plain975 : Plain 975 := plain_of_nil (by decide +kernel)
-theorem plain976 : Plain 976 := plain_of_nil (by decide +kernel)
-theorem plain977 : Plain 977 := plain_of_nil (by decide +kernel)
-theorem plain978 : Plain 978 := plain_of_nil (by decide +kernel)
-theorem plain979 : Plain 979 := plain_of_nil (by decide +kernel)
-theorem plain980 : Plain 980 := plain_of_nil (by decide +kernel)
-theorem plain981 : Plain 981 := plain_of_nil (by decide +kernel)
-theorem plain982 : Plain 982 := plain_of_nil (by decide +kernel)
-theorem plain983 : Plain 983 := plain_of_nil (by decide +kernel)
-theorem plain984 : Plain 984 := plain_of_nil (by decide +kernel)
-theorem plain985 : Plain 985 := plain_of_nil (by decide +kernel)
-theorem plain986 : Plain 986 := plain_of_nil (by decide +kernel)
-theorem plain987 : Plain 987 := plain_of_nil (by decide +kernel)
-theorem plain988 : Plain 988 := plain_of_nil (by decide +kernel)
-theorem plain989 : Plain 989 := plain_of_nil (by decide +kernel)
-theorem plain990 : Plain 990 := plain_of_nil (by decide +kernel)
-theorem plain991 : Plain 991 := plain_of_nil (by decide +kernel)
-theorem plain992 : Plain 992 := plain_of_nil (by decide +kernel)
-theorem plain993 : Plain 993 := plain_of_nil (by decide +kernel)
-theorem plain994 : Plain 994 := plain_of_nil (by decide +kernel)
-theorem plain995 : Plain 995 := plain_of_nil (by decide +kernel)
-theorem plain996 : Plain 996 := plain_of_nil (by decide +kernel)
-theorem plain997 : Plain 997 := plain_of_nil (by decide +kernel)
-theorem plain998 : Plain 998 := plain_of_nil (by decide +kernel)
-theorem plain999 : Plain 999 := plain_of_nil (by decide +kernel)
-theorem plain1000 : Plain 1000 := plain_of_nil (by decide +kernel)
-theorem plain1001 : Plain 1001 := plain_of_nil (by decide +kernel)
-theorem plain1002 : Plain 1002 := plain_of_nil (by decide +kernel)
-theorem plain1003 : Plain 1003 := plain_of_nil (by decide +kernel)
-theorem plain1004 : Plain 1004 := plain_of_nil (by decide +kernel)
-theorem plain1005 : Plain 1005 := plain_of_nil (by decide +kernel)
-theorem plain1006 : Plain 1006 := plain_of_nil (by decide +kernel)
-theorem plain1007 : Plain 1007 := plain_of_nil (by decide +kernel)
-theorem plain1008 : Plain 1008 := plain_of_nil (by decide +kernel)
-theorem plain1009 : Plain 1009 := plain_of_nil (by decide +kernel)
-theorem plain1010 : Plain 1010 := plain_of_nil (by decide +kernel)
-theorem plain1011 : Plain 1011 := plain_of_nil (by decide +kernel)
-theorem plain1012 : Plain 1012 := plain_of_nil (by decide +kernel)
-theorem plain1013 : Plain 1013 := plain_of_nil (by decide +kernel)
-theorem plain1014 : Plain 1014 := plain_of_nil (by decide +kernel)
-theorem plain1015 : Plain 1015 := plain_of_nil (by decide +kernel)
-theorem plain1016 : Plain 1016 := plain_of_nil (by decide +kernel)
-theorem plain1017 : Plain 1017 := plain_of_nil (by decide +kernel)
-theorem plain1018 : Plain 1018 := plain_of_nil (by decide +kernel)
-theorem plain1019 : Plain 1019 := plain_of_nil (by decide +kernel)
-theorem plain1020 : Plain 1020 := plain_of_nil (by decide +kernel)
-theorem plain1021 : Plain 1021 := plain_of_nil (by decide +kernel)
-theorem plain1022 : Plain 1022 := plain_of_nil (by decide +kernel)
-theorem plain1023 : Plain 1023 := plain_of_nil (by decide +kernel)
-theorem plain1024 : Plain 1024 := plain_of_nil (by decide +kernel)
-theorem plain1025 : Plain 1025 := plain_of_nil (by decide +kernel)
-theorem plain1026 : Plain 1026 := plain_of_nil (by decide +kernel)
-theorem plain1027 : Plain 1027 := plain_of_nil (by decide +kernel)
-theorem plain1028 : Plain 1028 := plain_of_nil (by decide +kernel)
-theorem plain1029 : Plain 1029 := plain_of_nil (by decide +kernel)
-theorem plain1030 : Plain 1030 := plain_of_nil (by decide +kernel)
-theorem plain1031 : Plain 1031 := plain_of_nil (by decide +kernel)
-theorem plain1032 : Plain 1032 := plain_of_nil (by decide +kernel)
-theorem plain1033 : Plain 1033 := plain_of_nil (by decide +kernel)
-theorem plain1034 : Plain 1034 := plain_of_nil (by decide +kernel)
-theorem plain1035 : Plain 1035 := plain_of_nil (by decide +kernel)
-theorem plain1036 : Plain 1036 := plain_of_nil (by decide +kernel)
-theorem plain1037 : Plain 1037 := plain_of_nil (by decide +kernel)
-theorem plain1038 : Plain 1038 := plain_of_nil (by decide +kernel)
-theorem plain1039 : Plain 1039 := plain_of_nil (by decide +kernel)
-theorem plain1040 : Plain 1040 := plain_of_nil (by decide +kernel)
-theorem plain1041 : Plain 1041 := plain_of_nil (by decide +kernel)
-theorem plain1042 : Plain 1042 := plain_of_nil (by decide +kernel)
-theorem plain1043 : Plain 1043 := plain_of_nil (by decide +kernel)
 
 /-- Every function but `__jump_tables` is checked. -/
 theorem all_ok : ∀ j, 1 ≤ j → j < nFns → CheckOk j := fun j h1 h2 ↦

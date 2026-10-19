@@ -7,59 +7,61 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `claims_tail__L8`, window 0. -/
-theorem w472_0 : WinOk 472 0 := by decide +kernel
+theorem w472_0 : WinOk 472 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L9`, window 0. -/
-theorem w473_0 : WinOk 473 0 := by decide +kernel
+theorem w473_0 : WinOk 473 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L10`, window 0. -/
-theorem w474_0 : WinOk 474 0 := by decide +kernel
+theorem w474_0 : WinOk 474 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L11`, window 0. -/
-theorem w475_0 : WinOk 475 0 := by decide +kernel
+theorem w475_0 : WinOk 475 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L12`, window 0. -/
-theorem w476_0 : WinOk 476 0 := by decide +kernel
+theorem w476_0 : WinOk 476 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L13`, window 0. -/
-theorem w477_0 : WinOk 477 0 := by decide +kernel
+theorem w477_0 : WinOk 477 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L14`, window 0. -/
-theorem w478_0 : WinOk 478 0 := by decide +kernel
+theorem w478_0 : WinOk 478 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L15`, window 0. -/
-theorem w479_0 : WinOk 479 0 := by decide +kernel
+theorem w479_0 : WinOk 479 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L16`, window 0. -/
-theorem w480_0 : WinOk 480 0 := by decide +kernel
+theorem w480_0 : WinOk 480 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L17`, window 0. -/
-theorem w481_0 : WinOk 481 0 := by decide +kernel
+theorem w481_0 : WinOk 481 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L18`, window 0. -/
-theorem w482_0 : WinOk 482 0 := by decide +kernel
+theorem w482_0 : WinOk 482 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L19`, window 0. -/
-theorem w483_0 : WinOk 483 0 := by decide +kernel
+theorem w483_0 : WinOk 483 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L20`, window 0. -/
-theorem w484_0 : WinOk 484 0 := by decide +kernel
+theorem w484_0 : WinOk 484 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L21`, window 0. -/
-theorem w485_0 : WinOk 485 0 := by decide +kernel
+theorem w485_0 : WinOk 485 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L22`, window 0. -/
-theorem w486_0 : WinOk 486 0 := by decide +kernel
+theorem w486_0 : WinOk 486 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L23`, window 0. -/
-theorem w487_0 : WinOk 487 0 := by decide +kernel
+theorem w487_0 : WinOk 487 0 := winOk_of_C (by decide +kernel)
 
 theorem ok472 : CheckOk 472 := checkOk_one (by decide +kernel) w472_0
 

@@ -7,14 +7,16 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `verify_lean_xmss`, window 7. -/
-theorem w17_7 : WinOk 17 7 := by decide +kernel
+theorem w17_7 : WinOk 17 7 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

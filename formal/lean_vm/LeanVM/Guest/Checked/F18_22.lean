@@ -7,14 +7,16 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `verify_sig_lean_sphincs`, window 22. -/
-theorem w18_22 : WinOk 18 22 := by decide +kernel
+theorem w18_22 : WinOk 18 22 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

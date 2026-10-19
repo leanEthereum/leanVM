@@ -7,56 +7,58 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `padding_weight__L21`, window 0. -/
-theorem w64_0 : WinOk 64 0 := by decide +kernel
+theorem w64_0 : WinOk 64 0 := winOk_of_C (by decide +kernel)
 
 /-- `padding_weight__L22`, window 0. -/
-theorem w65_0 : WinOk 65 0 := by decide +kernel
+theorem w65_0 : WinOk 65 0 := winOk_of_C (by decide +kernel)
 
 /-- `padding_weight__L23`, window 0. -/
-theorem w66_0 : WinOk 66 0 := by decide +kernel
+theorem w66_0 : WinOk 66 0 := winOk_of_C (by decide +kernel)
 
 /-- `padding_weight__L24`, window 0. -/
-theorem w67_0 : WinOk 67 0 := by decide +kernel
+theorem w67_0 : WinOk 67 0 := winOk_of_C (by decide +kernel)
 
 /-- `padding_weight__L25`, window 0. -/
-theorem w68_0 : WinOk 68 0 := by decide +kernel
+theorem w68_0 : WinOk 68 0 := winOk_of_C (by decide +kernel)
 
 /-- `padding_weight__L26`, window 0. -/
-theorem w69_0 : WinOk 69 0 := by decide +kernel
+theorem w69_0 : WinOk 69 0 := winOk_of_C (by decide +kernel)
 
 /-- `padding_weight__L27`, window 0. -/
-theorem w70_0 : WinOk 70 0 := by decide +kernel
+theorem w70_0 : WinOk 70 0 := winOk_of_C (by decide +kernel)
 
 /-- `padding_weight__L28`, window 0. -/
-theorem w71_0 : WinOk 71 0 := by decide +kernel
+theorem w71_0 : WinOk 71 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop12`, window 0. -/
-theorem w72_0 : WinOk 72 0 := by decide +kernel
+theorem w72_0 : WinOk 72 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop13`, window 0. -/
-theorem w73_0 : WinOk 73 0 := by decide +kernel
+theorem w73_0 : WinOk 73 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop14`, window 0. -/
-theorem w74_0 : WinOk 74 0 := by decide +kernel
+theorem w74_0 : WinOk 74 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop15`, window 0. -/
-theorem w75_0 : WinOk 75 0 := by decide +kernel
+theorem w75_0 : WinOk 75 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop16`, window 0. -/
-theorem w76_0 : WinOk 76 0 := by decide +kernel
+theorem w76_0 : WinOk 76 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop17`, window 0. -/
-theorem w77_0 : WinOk 77 0 := by decide +kernel
+theorem w77_0 : WinOk 77 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop18`, window 0. -/
-theorem w78_0 : WinOk 78 0 := by decide +kernel
+theorem w78_0 : WinOk 78 0 := winOk_of_C (by decide +kernel)
 
 theorem ok64 : CheckOk 64 := checkOk_one (by decide +kernel) w64_0
 

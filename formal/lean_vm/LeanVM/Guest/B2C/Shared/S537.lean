@@ -14,56 +14,21 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop318`, once. -/
-theorem st851 : shareStatic 851 = true := by decide +kernel
+/-- `__loop435`, once. -/
+theorem st982 : shareStatic 982 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop318`, window 0. -/
-theorem w851_0 : shareWin 851 (snapsOf 851) 0 = true := by decide +kernel
+/-- `__loop435`, window 0. -/
+theorem w982_0 : shareWin 982 (snapsOf 982) 0 = true := by decide +kernel
 
-theorem ok851 : ShareOk 851 := ⟨st851, fun i hi ↦ by
-  have h : (snapsOf 851).length = 0 := by decide +kernel
+theorem ok982 : ShareOk 982 := ⟨st982, fun i hi ↦ by
+  have h : (snapsOf 982).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w851_0⟩
+  exact w982_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop319`, once. -/
-theorem st852 : shareStatic 852 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop319`, window 0. -/
-theorem w852_0 : shareWin 852 (snapsOf 852) 0 = true := by decide +kernel
-
-theorem ok852 : ShareOk 852 := ⟨st852, fun i hi ↦ by
-  have h : (snapsOf 852).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w852_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop320`, once. -/
-theorem st853 : shareStatic 853 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop320`, window 0. -/
-theorem w853_0 : shareWin 853 (snapsOf 853) 0 = true := by decide +kernel
-
-theorem ok853 : ShareOk 853 := ⟨st853, fun i hi ↦ by
-  have h : (snapsOf 853).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w853_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop321`, once. -/
-theorem st854 : shareStatic 854 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop321`, window 0. -/
-theorem w854_0 : shareWin 854 (snapsOf 854) 0 = true := by decide +kernel
-
-theorem ok854 : ShareOk 854 := ⟨st854, fun i hi ↦ by
-  have h : (snapsOf 854).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w854_0⟩
+/-- `decode_query_bits__L18`, once. -/
+theorem st983 : shareStatic 983 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

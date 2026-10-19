@@ -7,26 +7,28 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `__loop96`, window 0. -/
-theorem w568_0 : WinOk 568 0 := by decide +kernel
+theorem w568_0 : WinOk 568 0 := winOk_of_C (by decide +kernel)
 
 /-- `batch_sumcheck__L22`, window 0. -/
-theorem w569_0 : WinOk 569 0 := by decide +kernel
+theorem w569_0 : WinOk 569 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop97`, window 0. -/
-theorem w570_0 : WinOk 570 0 := by decide +kernel
+theorem w570_0 : WinOk 570 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop98`, window 0. -/
-theorem w571_0 : WinOk 571 0 := by decide +kernel
+theorem w571_0 : WinOk 571 0 := winOk_of_C (by decide +kernel)
 
 /-- `batch_sumcheck__L28`, window 0. -/
-theorem w572_0 : WinOk 572 0 := by decide +kernel
+theorem w572_0 : WinOk 572 0 := winOk_of_C (by decide +kernel)
 
 theorem ok568 : CheckOk 568 := checkOk_one (by decide +kernel) w568_0
 

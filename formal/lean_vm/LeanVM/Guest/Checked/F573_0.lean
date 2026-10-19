@@ -7,31 +7,16 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `__loop99`, window 0. -/
-theorem w573_0 : WinOk 573 0 := by decide +kernel
-
-/-- `__loop100`, window 0. -/
-theorem w574_0 : WinOk 574 0 := by decide +kernel
-
-/-- `__loop101`, window 0. -/
-theorem w575_0 : WinOk 575 0 := by decide +kernel
-
-/-- `verify_log2_ceil__L0_L34`, window 0. -/
-theorem w576_0 : WinOk 576 0 := by decide +kernel
-
-theorem ok573 : CheckOk 573 := checkOk_one (by decide +kernel) w573_0
-
-theorem ok574 : CheckOk 574 := checkOk_one (by decide +kernel) w574_0
-
-theorem ok575 : CheckOk 575 := checkOk_one (by decide +kernel) w575_0
-
-theorem ok576 : CheckOk 576 := checkOk_one (by decide +kernel) w576_0
+theorem w573_0 : WinOk 573 0 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

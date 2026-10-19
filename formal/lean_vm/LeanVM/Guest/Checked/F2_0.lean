@@ -7,41 +7,43 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `assert_canonical`, window 0. -/
-theorem w2_0 : WinOk 2 0 := by decide +kernel
+theorem w2_0 : WinOk 2 0 := winOk_of_C (by decide +kernel)
 
 /-- `exponent_tables`, window 0. -/
-theorem w3_0 : WinOk 3 0 := by decide +kernel
+theorem w3_0 : WinOk 3 0 := winOk_of_C (by decide +kernel)
 
 /-- `grind_check`, window 0. -/
-theorem w4_0 : WinOk 4 0 := by decide +kernel
+theorem w4_0 : WinOk 4 0 := winOk_of_C (by decide +kernel)
 
 /-- `eq_prefix_chain`, window 0. -/
-theorem w5_0 : WinOk 5 0 := by decide +kernel
+theorem w5_0 : WinOk 5 0 := winOk_of_C (by decide +kernel)
 
 /-- `rs_eq_run`, window 0. -/
-theorem w6_0 : WinOk 6 0 := by decide +kernel
+theorem w6_0 : WinOk 6 0 := winOk_of_C (by decide +kernel)
 
 /-- `sumcheck_round4`, window 0. -/
-theorem w7_0 : WinOk 7 0 := by decide +kernel
+theorem w7_0 : WinOk 7 0 := winOk_of_C (by decide +kernel)
 
 /-- `sumcheck_round5`, window 0. -/
-theorem w8_0 : WinOk 8 0 := by decide +kernel
+theorem w8_0 : WinOk 8 0 := winOk_of_C (by decide +kernel)
 
 /-- `opening_fold`, window 0. -/
-theorem w9_0 : WinOk 9 0 := by decide +kernel
+theorem w9_0 : WinOk 9 0 := winOk_of_C (by decide +kernel)
 
 /-- `opening_ood_point`, window 0. -/
-theorem w10_0 : WinOk 10 0 := by decide +kernel
+theorem w10_0 : WinOk 10 0 := winOk_of_C (by decide +kernel)
 
 /-- `verify_bus_gkr`, window 0. -/
-theorem w11_0 : WinOk 11 0 := by decide +kernel
+theorem w11_0 : WinOk 11 0 := winOk_of_C (by decide +kernel)
 
 theorem ok2 : CheckOk 2 := checkOk_one (by decide +kernel) w2_0
 

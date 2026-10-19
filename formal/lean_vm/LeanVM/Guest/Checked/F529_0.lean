@@ -7,68 +7,70 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `child_claims_tail__L31`, window 0. -/
-theorem w529_0 : WinOk 529 0 := by decide +kernel
+theorem w529_0 : WinOk 529 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop88`, window 0. -/
-theorem w530_0 : WinOk 530 0 := by decide +kernel
+theorem w530_0 : WinOk 530 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop89`, window 0. -/
-theorem w531_0 : WinOk 531 0 := by decide +kernel
+theorem w531_0 : WinOk 531 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop90`, window 0. -/
-theorem w532_0 : WinOk 532 0 := by decide +kernel
+theorem w532_0 : WinOk 532 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop91`, window 0. -/
-theorem w533_0 : WinOk 533 0 := by decide +kernel
+theorem w533_0 : WinOk 533 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop92`, window 0. -/
-theorem w534_0 : WinOk 534 0 := by decide +kernel
+theorem w534_0 : WinOk 534 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L128_L7`, window 0. -/
-theorem w535_0 : WinOk 535 0 := by decide +kernel
+theorem w535_0 : WinOk 535 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop93`, window 0. -/
-theorem w536_0 : WinOk 536 0 := by decide +kernel
+theorem w536_0 : WinOk 536 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop94`, window 0. -/
-theorem w537_0 : WinOk 537 0 := by decide +kernel
+theorem w537_0 : WinOk 537 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L1_L0`, window 0. -/
-theorem w538_0 : WinOk 538 0 := by decide +kernel
+theorem w538_0 : WinOk 538 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L2_L1`, window 0. -/
-theorem w539_0 : WinOk 539 0 := by decide +kernel
+theorem w539_0 : WinOk 539 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L4_L2`, window 0. -/
-theorem w540_0 : WinOk 540 0 := by decide +kernel
+theorem w540_0 : WinOk 540 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L8_L3`, window 0. -/
-theorem w541_0 : WinOk 541 0 := by decide +kernel
+theorem w541_0 : WinOk 541 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L16_L4`, window 0. -/
-theorem w542_0 : WinOk 542 0 := by decide +kernel
+theorem w542_0 : WinOk 542 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L32_L5`, window 0. -/
-theorem w543_0 : WinOk 543 0 := by decide +kernel
+theorem w543_0 : WinOk 543 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L64_L6`, window 0. -/
-theorem w544_0 : WinOk 544 0 := by decide +kernel
+theorem w544_0 : WinOk 544 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L256_L8`, window 0. -/
-theorem w545_0 : WinOk 545 0 := by decide +kernel
+theorem w545_0 : WinOk 545 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L512_L9`, window 0. -/
-theorem w546_0 : WinOk 546 0 := by decide +kernel
+theorem w546_0 : WinOk 546 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_levels__L1024_L10`, window 0. -/
-theorem w547_0 : WinOk 547 0 := by decide +kernel
+theorem w547_0 : WinOk 547 0 := winOk_of_C (by decide +kernel)
 
 theorem ok529 : CheckOk 529 := checkOk_one (by decide +kernel) w529_0
 

@@ -14,8 +14,25 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 5. -/
-theorem w18_5 : shareWin 18 (snapsOf 18) 5 = true := by decide +kernel
+/-- `claim_list_digest`, once. -/
+theorem st21 : shareStatic 21 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `claim_list_digest`, window 0. -/
+theorem w21_0 : shareWin 21 (snapsOf 21) 0 = true := by decide +kernel
+
+theorem ok21 : ShareOk 21 := ⟨st21, fun i hi ↦ by
+  have h : (snapsOf 21).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w21_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `child_claims_window`, once. -/
+theorem st22 : shareStatic 22 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `child_claims_window`, window 0. -/
+theorem w22_0 : shareWin 22 (snapsOf 22) 0 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

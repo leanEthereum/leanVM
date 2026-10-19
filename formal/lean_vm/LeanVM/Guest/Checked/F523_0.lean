@@ -7,20 +7,22 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `child_claims_tail__L25`, window 0. -/
-theorem w523_0 : WinOk 523 0 := by decide +kernel
+theorem w523_0 : WinOk 523 0 := winOk_of_C (by decide +kernel)
 
 /-- `child_claims_tail__L26`, window 0. -/
-theorem w524_0 : WinOk 524 0 := by decide +kernel
+theorem w524_0 : WinOk 524 0 := winOk_of_C (by decide +kernel)
 
 /-- `child_claims_tail__L27`, window 0. -/
-theorem w525_0 : WinOk 525 0 := by decide +kernel
+theorem w525_0 : WinOk 525 0 := winOk_of_C (by decide +kernel)
 
 theorem ok523 : CheckOk 523 := checkOk_one (by decide +kernel) w523_0
 

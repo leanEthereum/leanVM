@@ -7,80 +7,82 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `__loop66`, window 0. -/
-theorem w126_0 : WinOk 126 0 := by decide +kernel
+theorem w126_0 : WinOk 126 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop67`, window 0. -/
-theorem w127_0 : WinOk 127 0 := by decide +kernel
+theorem w127_0 : WinOk 127 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop68`, window 0. -/
-theorem w128_0 : WinOk 128 0 := by decide +kernel
+theorem w128_0 : WinOk 128 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop69`, window 0. -/
-theorem w129_0 : WinOk 129 0 := by decide +kernel
+theorem w129_0 : WinOk 129 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop70`, window 0. -/
-theorem w130_0 : WinOk 130 0 := by decide +kernel
+theorem w130_0 : WinOk 130 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop71`, window 0. -/
-theorem w131_0 : WinOk 131 0 := by decide +kernel
+theorem w131_0 : WinOk 131 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop72`, window 0. -/
-theorem w132_0 : WinOk 132 0 := by decide +kernel
+theorem w132_0 : WinOk 132 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop73`, window 0. -/
-theorem w133_0 : WinOk 133 0 := by decide +kernel
+theorem w133_0 : WinOk 133 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop74`, window 0. -/
-theorem w134_0 : WinOk 134 0 := by decide +kernel
+theorem w134_0 : WinOk 134 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop75`, window 0. -/
-theorem w135_0 : WinOk 135 0 := by decide +kernel
+theorem w135_0 : WinOk 135 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop76`, window 0. -/
-theorem w136_0 : WinOk 136 0 := by decide +kernel
+theorem w136_0 : WinOk 136 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop77`, window 0. -/
-theorem w137_0 : WinOk 137 0 := by decide +kernel
+theorem w137_0 : WinOk 137 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop78`, window 0. -/
-theorem w138_0 : WinOk 138 0 := by decide +kernel
+theorem w138_0 : WinOk 138 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop79`, window 0. -/
-theorem w139_0 : WinOk 139 0 := by decide +kernel
+theorem w139_0 : WinOk 139 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop80`, window 0. -/
-theorem w140_0 : WinOk 140 0 := by decide +kernel
+theorem w140_0 : WinOk 140 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop81`, window 0. -/
-theorem w141_0 : WinOk 141 0 := by decide +kernel
+theorem w141_0 : WinOk 141 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop82`, window 0. -/
-theorem w142_0 : WinOk 142 0 := by decide +kernel
+theorem w142_0 : WinOk 142 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop83`, window 0. -/
-theorem w143_0 : WinOk 143 0 := by decide +kernel
+theorem w143_0 : WinOk 143 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L0`, window 0. -/
-theorem w144_0 : WinOk 144 0 := by decide +kernel
+theorem w144_0 : WinOk 144 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L1`, window 0. -/
-theorem w145_0 : WinOk 145 0 := by decide +kernel
+theorem w145_0 : WinOk 145 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L2`, window 0. -/
-theorem w146_0 : WinOk 146 0 := by decide +kernel
+theorem w146_0 : WinOk 146 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L3`, window 0. -/
-theorem w147_0 : WinOk 147 0 := by decide +kernel
+theorem w147_0 : WinOk 147 0 := winOk_of_C (by decide +kernel)
 
 /-- `column_selector__L4`, window 0. -/
-theorem w148_0 : WinOk 148 0 := by decide +kernel
+theorem w148_0 : WinOk 148 0 := winOk_of_C (by decide +kernel)
 
 theorem ok126 : CheckOk 126 := checkOk_one (by decide +kernel) w126_0
 

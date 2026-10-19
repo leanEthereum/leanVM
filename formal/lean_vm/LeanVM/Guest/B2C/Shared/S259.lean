@@ -14,16 +14,12 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 5. -/
-theorem w184_5 : shareWin 184 (snapsOf 184) 5 = true := by decide +kernel
+/-- `open_stacked__L13`, window 8. -/
+theorem w191_8 : shareWin 191 (snapsOf 191) 8 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L6`, window 6. -/
-theorem w184_6 : shareWin 184 (snapsOf 184) 6 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`, once. -/
-theorem st185 : shareStatic 185 = true := by decide +kernel
+/-- `open_stacked__L14`, once. -/
+theorem st192 : shareStatic 192 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -7,41 +7,23 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `da_verify`, window 0. -/
-theorem w24_0 : WinOk 24 0 := by decide +kernel
+theorem w24_0 : WinOk 24 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_row_shape`, window 0. -/
-theorem w25_0 : WinOk 25 0 := by decide +kernel
-
-/-- `da_verify_cell`, window 0. -/
-theorem w26_0 : WinOk 26 0 := by decide +kernel
-
-/-- `da_vector_dispatch`, window 0. -/
-theorem w27_0 : WinOk 27 0 := by decide +kernel
-
-/-- `da_list_digest`, window 0. -/
-theorem w28_0 : WinOk 28 0 := by decide +kernel
-
-/-- `cover_da_root`, window 0. -/
-theorem w29_0 : WinOk 29 0 := by decide +kernel
+theorem w25_0 : WinOk 25 0 := winOk_of_C (by decide +kernel)
 
 theorem ok24 : CheckOk 24 := checkOk_one (by decide +kernel) w24_0
 
 theorem ok25 : CheckOk 25 := checkOk_one (by decide +kernel) w25_0
-
-theorem ok26 : CheckOk 26 := checkOk_one (by decide +kernel) w26_0
-
-theorem ok27 : CheckOk 27 := checkOk_one (by decide +kernel) w27_0
-
-theorem ok28 : CheckOk 28 := checkOk_one (by decide +kernel) w28_0
-
-theorem ok29 : CheckOk 29 := checkOk_one (by decide +kernel) w29_0
 
 end
 end LeanVM.Guest.Checked

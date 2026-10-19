@@ -14,16 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `child_claims_tail__L28`, window 0. -/
-theorem w526_0 : shareWin 526 (snapsOf 526) 0 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claims_tail__L28`, window 1. -/
-theorem w526_1 : shareWin 526 (snapsOf 526) 1 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `child_claims_tail__L29`, once. -/
-theorem st527 : shareStatic 527 = true := by decide +kernel
+/-- `batch_sumcheck__L28`, window 1. -/
+theorem w572_1 : shareWin 572 (snapsOf 572) 1 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

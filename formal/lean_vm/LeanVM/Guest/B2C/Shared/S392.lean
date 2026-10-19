@@ -14,69 +14,21 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L195`, once. -/
-theorem st401 : shareStatic 401 = true := by decide +kernel
+/-- `child_claims_tail__L23`, once. -/
+theorem st521 : shareStatic 521 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L195`, window 0. -/
-theorem w401_0 : shareWin 401 (snapsOf 401) 0 = true := by decide +kernel
+/-- `child_claims_tail__L23`, window 0. -/
+theorem w521_0 : shareWin 521 (snapsOf 521) 0 = true := by decide +kernel
 
-theorem ok401 : ShareOk 401 := ⟨st401, fun i hi ↦ by
-  have h : (snapsOf 401).length = 0 := by decide +kernel
+theorem ok521 : ShareOk 521 := ⟨st521, fun i hi ↦ by
+  have h : (snapsOf 521).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w401_0⟩
+  exact w521_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L196`, once. -/
-theorem st402 : shareStatic 402 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L196`, window 0. -/
-theorem w402_0 : shareWin 402 (snapsOf 402) 0 = true := by decide +kernel
-
-theorem ok402 : ShareOk 402 := ⟨st402, fun i hi ↦ by
-  have h : (snapsOf 402).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w402_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L197`, once. -/
-theorem st403 : shareStatic 403 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L197`, window 0. -/
-theorem w403_0 : shareWin 403 (snapsOf 403) 0 = true := by decide +kernel
-
-theorem ok403 : ShareOk 403 := ⟨st403, fun i hi ↦ by
-  have h : (snapsOf 403).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w403_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L198`, once. -/
-theorem st404 : shareStatic 404 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L198`, window 0. -/
-theorem w404_0 : shareWin 404 (snapsOf 404) 0 = true := by decide +kernel
-
-theorem ok404 : ShareOk 404 := ⟨st404, fun i hi ↦ by
-  have h : (snapsOf 404).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w404_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L199`, once. -/
-theorem st405 : shareStatic 405 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L199`, window 0. -/
-theorem w405_0 : shareWin 405 (snapsOf 405) 0 = true := by decide +kernel
-
-theorem ok405 : ShareOk 405 := ⟨st405, fun i hi ↦ by
-  have h : (snapsOf 405).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w405_0⟩
+/-- `child_claims_tail__L24`, once. -/
+theorem st522 : shareStatic 522 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

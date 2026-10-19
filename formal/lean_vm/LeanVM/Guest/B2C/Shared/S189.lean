@@ -14,47 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `aggregate_claims`, window 1. -/
-theorem w30_1 : shareWin 30 (snapsOf 30) 1 = true := by decide +kernel
+/-- `column_selector__L10`, once. -/
+theorem st154 : shareStatic 154 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop0`, once. -/
-theorem st31 : shareStatic 31 = true := by decide +kernel
+/-- `column_selector__L10`, window 0. -/
+theorem w154_0 : shareWin 154 (snapsOf 154) 0 = true := by decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `__loop0`, window 0. -/
-theorem w31_0 : shareWin 31 (snapsOf 31) 0 = true := by decide +kernel
-
-theorem ok31 : ShareOk 31 := ⟨st31, fun i hi ↦ by
-  have h : (snapsOf 31).length = 0 := by decide +kernel
+theorem ok154 : ShareOk 154 := ⟨st154, fun i hi ↦ by
+  have h : (snapsOf 154).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w31_0⟩
+  exact w154_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop1`, once. -/
-theorem st32 : shareStatic 32 = true := by decide +kernel
+/-- `column_selector__L11`, once. -/
+theorem st155 : shareStatic 155 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop1`, window 0. -/
-theorem w32_0 : shareWin 32 (snapsOf 32) 0 = true := by decide +kernel
+/-- `column_selector__L11`, window 0. -/
+theorem w155_0 : shareWin 155 (snapsOf 155) 0 = true := by decide +kernel
 
-theorem ok32 : ShareOk 32 := ⟨st32, fun i hi ↦ by
-  have h : (snapsOf 32).length = 0 := by decide +kernel
+theorem ok155 : ShareOk 155 := ⟨st155, fun i hi ↦ by
+  have h : (snapsOf 155).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w32_0⟩
+  exact w155_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop2`, once. -/
-theorem st33 : shareStatic 33 = true := by decide +kernel
+/-- `column_selector__L12`, once. -/
+theorem st156 : shareStatic 156 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop2`, window 0. -/
-theorem w33_0 : shareWin 33 (snapsOf 33) 0 = true := by decide +kernel
+/-- `column_selector__L12`, window 0. -/
+theorem w156_0 : shareWin 156 (snapsOf 156) 0 = true := by decide +kernel
 
-theorem ok33 : ShareOk 33 := ⟨st33, fun i hi ↦ by
-  have h : (snapsOf 33).length = 0 := by decide +kernel
+theorem ok156 : ShareOk 156 := ⟨st156, fun i hi ↦ by
+  have h : (snapsOf 156).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w33_0⟩
+  exact w156_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

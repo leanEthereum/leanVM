@@ -14,69 +14,69 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L75`, once. -/
-theorem st281 : shareStatic 281 = true := by decide +kernel
+/-- `claims_tail__L3`, once. -/
+theorem st467 : shareStatic 467 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L75`, window 0. -/
-theorem w281_0 : shareWin 281 (snapsOf 281) 0 = true := by decide +kernel
+/-- `claims_tail__L3`, window 0. -/
+theorem w467_0 : shareWin 467 (snapsOf 467) 0 = true := by decide +kernel
 
-theorem ok281 : ShareOk 281 := ⟨st281, fun i hi ↦ by
-  have h : (snapsOf 281).length = 0 := by decide +kernel
+theorem ok467 : ShareOk 467 := ⟨st467, fun i hi ↦ by
+  have h : (snapsOf 467).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w281_0⟩
+  exact w467_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L76`, once. -/
-theorem st282 : shareStatic 282 = true := by decide +kernel
+/-- `claims_tail__L4`, once. -/
+theorem st468 : shareStatic 468 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L76`, window 0. -/
-theorem w282_0 : shareWin 282 (snapsOf 282) 0 = true := by decide +kernel
+/-- `claims_tail__L4`, window 0. -/
+theorem w468_0 : shareWin 468 (snapsOf 468) 0 = true := by decide +kernel
 
-theorem ok282 : ShareOk 282 := ⟨st282, fun i hi ↦ by
-  have h : (snapsOf 282).length = 0 := by decide +kernel
+theorem ok468 : ShareOk 468 := ⟨st468, fun i hi ↦ by
+  have h : (snapsOf 468).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w282_0⟩
+  exact w468_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L77`, once. -/
-theorem st283 : shareStatic 283 = true := by decide +kernel
+/-- `claims_tail__L5`, once. -/
+theorem st469 : shareStatic 469 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L77`, window 0. -/
-theorem w283_0 : shareWin 283 (snapsOf 283) 0 = true := by decide +kernel
+/-- `claims_tail__L5`, window 0. -/
+theorem w469_0 : shareWin 469 (snapsOf 469) 0 = true := by decide +kernel
 
-theorem ok283 : ShareOk 283 := ⟨st283, fun i hi ↦ by
-  have h : (snapsOf 283).length = 0 := by decide +kernel
+theorem ok469 : ShareOk 469 := ⟨st469, fun i hi ↦ by
+  have h : (snapsOf 469).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w283_0⟩
+  exact w469_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L78`, once. -/
-theorem st284 : shareStatic 284 = true := by decide +kernel
+/-- `claims_tail__L6`, once. -/
+theorem st470 : shareStatic 470 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L78`, window 0. -/
-theorem w284_0 : shareWin 284 (snapsOf 284) 0 = true := by decide +kernel
+/-- `claims_tail__L6`, window 0. -/
+theorem w470_0 : shareWin 470 (snapsOf 470) 0 = true := by decide +kernel
 
-theorem ok284 : ShareOk 284 := ⟨st284, fun i hi ↦ by
-  have h : (snapsOf 284).length = 0 := by decide +kernel
+theorem ok470 : ShareOk 470 := ⟨st470, fun i hi ↦ by
+  have h : (snapsOf 470).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w284_0⟩
+  exact w470_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L79`, once. -/
-theorem st285 : shareStatic 285 = true := by decide +kernel
+/-- `claims_tail__L7`, once. -/
+theorem st471 : shareStatic 471 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L79`, window 0. -/
-theorem w285_0 : shareWin 285 (snapsOf 285) 0 = true := by decide +kernel
+/-- `claims_tail__L7`, window 0. -/
+theorem w471_0 : shareWin 471 (snapsOf 471) 0 = true := by decide +kernel
 
-theorem ok285 : ShareOk 285 := ⟨st285, fun i hi ↦ by
-  have h : (snapsOf 285).length = 0 := by decide +kernel
+theorem ok471 : ShareOk 471 := ⟨st471, fun i hi ↦ by
+  have h : (snapsOf 471).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w285_0⟩
+  exact w471_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -14,12 +14,69 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L26`, window 4. -/
-theorem w204_4 : shareWin 204 (snapsOf 204) 4 = true := by decide +kernel
+/-- `sp_forest_key__L156`, once. -/
+theorem st362 : shareStatic 362 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `open_stacked__L27`, once. -/
-theorem st205 : shareStatic 205 = true := by decide +kernel
+/-- `sp_forest_key__L156`, window 0. -/
+theorem w362_0 : shareWin 362 (snapsOf 362) 0 = true := by decide +kernel
+
+theorem ok362 : ShareOk 362 := ⟨st362, fun i hi ↦ by
+  have h : (snapsOf 362).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w362_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `sp_forest_key__L157`, once. -/
+theorem st363 : shareStatic 363 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `sp_forest_key__L157`, window 0. -/
+theorem w363_0 : shareWin 363 (snapsOf 363) 0 = true := by decide +kernel
+
+theorem ok363 : ShareOk 363 := ⟨st363, fun i hi ↦ by
+  have h : (snapsOf 363).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w363_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `sp_forest_key__L158`, once. -/
+theorem st364 : shareStatic 364 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `sp_forest_key__L158`, window 0. -/
+theorem w364_0 : shareWin 364 (snapsOf 364) 0 = true := by decide +kernel
+
+theorem ok364 : ShareOk 364 := ⟨st364, fun i hi ↦ by
+  have h : (snapsOf 364).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w364_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `sp_forest_key__L159`, once. -/
+theorem st365 : shareStatic 365 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `sp_forest_key__L159`, window 0. -/
+theorem w365_0 : shareWin 365 (snapsOf 365) 0 = true := by decide +kernel
+
+theorem ok365 : ShareOk 365 := ⟨st365, fun i hi ↦ by
+  have h : (snapsOf 365).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w365_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `sp_forest_key__L160`, once. -/
+theorem st366 : shareStatic 366 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `sp_forest_key__L160`, window 0. -/
+theorem w366_0 : shareWin 366 (snapsOf 366) 0 = true := by decide +kernel
+
+theorem ok366 : ShareOk 366 := ⟨st366, fun i hi ↦ by
+  have h : (snapsOf 366).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w366_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

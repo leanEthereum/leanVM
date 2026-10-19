@@ -7,23 +7,25 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `__loop439`, window 0. -/
-theorem w988_0 : WinOk 988 0 := by decide +kernel
+theorem w988_0 : WinOk 988 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop440`, window 0. -/
-theorem w989_0 : WinOk 989 0 := by decide +kernel
+theorem w989_0 : WinOk 989 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop441`, window 0. -/
-theorem w990_0 : WinOk 990 0 := by decide +kernel
+theorem w990_0 : WinOk 990 0 := winOk_of_C (by decide +kernel)
 
 /-- `decode_query_bits__L20`, window 0. -/
-theorem w991_0 : WinOk 991 0 := by decide +kernel
+theorem w991_0 : WinOk 991 0 := winOk_of_C (by decide +kernel)
 
 theorem ok988 : CheckOk 988 := checkOk_one (by decide +kernel) w988_0
 

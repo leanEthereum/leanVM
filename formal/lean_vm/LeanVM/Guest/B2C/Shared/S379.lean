@@ -14,69 +14,69 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L130`, once. -/
-theorem st336 : shareStatic 336 = true := by decide +kernel
+/-- `child_claims_tail__L0`, once. -/
+theorem st498 : shareStatic 498 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L130`, window 0. -/
-theorem w336_0 : shareWin 336 (snapsOf 336) 0 = true := by decide +kernel
+/-- `child_claims_tail__L0`, window 0. -/
+theorem w498_0 : shareWin 498 (snapsOf 498) 0 = true := by decide +kernel
 
-theorem ok336 : ShareOk 336 := ⟨st336, fun i hi ↦ by
-  have h : (snapsOf 336).length = 0 := by decide +kernel
+theorem ok498 : ShareOk 498 := ⟨st498, fun i hi ↦ by
+  have h : (snapsOf 498).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w336_0⟩
+  exact w498_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L131`, once. -/
-theorem st337 : shareStatic 337 = true := by decide +kernel
+/-- `child_claims_tail__L1`, once. -/
+theorem st499 : shareStatic 499 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L131`, window 0. -/
-theorem w337_0 : shareWin 337 (snapsOf 337) 0 = true := by decide +kernel
+/-- `child_claims_tail__L1`, window 0. -/
+theorem w499_0 : shareWin 499 (snapsOf 499) 0 = true := by decide +kernel
 
-theorem ok337 : ShareOk 337 := ⟨st337, fun i hi ↦ by
-  have h : (snapsOf 337).length = 0 := by decide +kernel
+theorem ok499 : ShareOk 499 := ⟨st499, fun i hi ↦ by
+  have h : (snapsOf 499).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w337_0⟩
+  exact w499_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L132`, once. -/
-theorem st338 : shareStatic 338 = true := by decide +kernel
+/-- `child_claims_tail__L2`, once. -/
+theorem st500 : shareStatic 500 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L132`, window 0. -/
-theorem w338_0 : shareWin 338 (snapsOf 338) 0 = true := by decide +kernel
+/-- `child_claims_tail__L2`, window 0. -/
+theorem w500_0 : shareWin 500 (snapsOf 500) 0 = true := by decide +kernel
 
-theorem ok338 : ShareOk 338 := ⟨st338, fun i hi ↦ by
-  have h : (snapsOf 338).length = 0 := by decide +kernel
+theorem ok500 : ShareOk 500 := ⟨st500, fun i hi ↦ by
+  have h : (snapsOf 500).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w338_0⟩
+  exact w500_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L133`, once. -/
-theorem st339 : shareStatic 339 = true := by decide +kernel
+/-- `child_claims_tail__L3`, once. -/
+theorem st501 : shareStatic 501 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L133`, window 0. -/
-theorem w339_0 : shareWin 339 (snapsOf 339) 0 = true := by decide +kernel
+/-- `child_claims_tail__L3`, window 0. -/
+theorem w501_0 : shareWin 501 (snapsOf 501) 0 = true := by decide +kernel
 
-theorem ok339 : ShareOk 339 := ⟨st339, fun i hi ↦ by
-  have h : (snapsOf 339).length = 0 := by decide +kernel
+theorem ok501 : ShareOk 501 := ⟨st501, fun i hi ↦ by
+  have h : (snapsOf 501).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w339_0⟩
+  exact w501_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L134`, once. -/
-theorem st340 : shareStatic 340 = true := by decide +kernel
+/-- `child_claims_tail__L4`, once. -/
+theorem st502 : shareStatic 502 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sp_forest_key__L134`, window 0. -/
-theorem w340_0 : shareWin 340 (snapsOf 340) 0 = true := by decide +kernel
+/-- `child_claims_tail__L4`, window 0. -/
+theorem w502_0 : shareWin 502 (snapsOf 502) 0 = true := by decide +kernel
 
-theorem ok340 : ShareOk 340 := ⟨st340, fun i hi ↦ by
-  have h : (snapsOf 340).length = 0 := by decide +kernel
+theorem ok502 : ShareOk 502 := ⟨st502, fun i hi ↦ by
+  have h : (snapsOf 502).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w340_0⟩
+  exact w502_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

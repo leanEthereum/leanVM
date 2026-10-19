@@ -14,8 +14,56 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_sig_lean_sphincs`, window 15. -/
-theorem w18_15 : shareWin 18 (snapsOf 18) 15 = true := by decide +kernel
+/-- `__loop10`, once. -/
+theorem st41 : shareStatic 41 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop10`, window 0. -/
+theorem w41_0 : shareWin 41 (snapsOf 41) 0 = true := by decide +kernel
+
+theorem ok41 : ShareOk 41 := ⟨st41, fun i hi ↦ by
+  have h : (snapsOf 41).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w41_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop11`, once. -/
+theorem st42 : shareStatic 42 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop11`, window 0. -/
+theorem w42_0 : shareWin 42 (snapsOf 42) 0 = true := by decide +kernel
+
+theorem ok42 : ShareOk 42 := ⟨st42, fun i hi ↦ by
+  have h : (snapsOf 42).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w42_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `padding_weight__L0`, once. -/
+theorem st43 : shareStatic 43 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `padding_weight__L0`, window 0. -/
+theorem w43_0 : shareWin 43 (snapsOf 43) 0 = true := by decide +kernel
+
+theorem ok43 : ShareOk 43 := ⟨st43, fun i hi ↦ by
+  have h : (snapsOf 43).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w43_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `padding_weight__L1`, once. -/
+theorem st44 : shareStatic 44 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `padding_weight__L1`, window 0. -/
+theorem w44_0 : shareWin 44 (snapsOf 44) 0 = true := by decide +kernel
+
+theorem ok44 : ShareOk 44 := ⟨st44, fun i hi ↦ by
+  have h : (snapsOf 44).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w44_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

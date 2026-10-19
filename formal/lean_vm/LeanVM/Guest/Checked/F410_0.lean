@@ -7,197 +7,199 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `sp_forest_key__L204`, window 0. -/
-theorem w410_0 : WinOk 410 0 := by decide +kernel
+theorem w410_0 : WinOk 410 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L205`, window 0. -/
-theorem w411_0 : WinOk 411 0 := by decide +kernel
+theorem w411_0 : WinOk 411 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L206`, window 0. -/
-theorem w412_0 : WinOk 412 0 := by decide +kernel
+theorem w412_0 : WinOk 412 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L207`, window 0. -/
-theorem w413_0 : WinOk 413 0 := by decide +kernel
+theorem w413_0 : WinOk 413 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L208`, window 0. -/
-theorem w414_0 : WinOk 414 0 := by decide +kernel
+theorem w414_0 : WinOk 414 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L209`, window 0. -/
-theorem w415_0 : WinOk 415 0 := by decide +kernel
+theorem w415_0 : WinOk 415 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L210`, window 0. -/
-theorem w416_0 : WinOk 416 0 := by decide +kernel
+theorem w416_0 : WinOk 416 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L211`, window 0. -/
-theorem w417_0 : WinOk 417 0 := by decide +kernel
+theorem w417_0 : WinOk 417 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L212`, window 0. -/
-theorem w418_0 : WinOk 418 0 := by decide +kernel
+theorem w418_0 : WinOk 418 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L213`, window 0. -/
-theorem w419_0 : WinOk 419 0 := by decide +kernel
+theorem w419_0 : WinOk 419 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L214`, window 0. -/
-theorem w420_0 : WinOk 420 0 := by decide +kernel
+theorem w420_0 : WinOk 420 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L215`, window 0. -/
-theorem w421_0 : WinOk 421 0 := by decide +kernel
+theorem w421_0 : WinOk 421 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L216`, window 0. -/
-theorem w422_0 : WinOk 422 0 := by decide +kernel
+theorem w422_0 : WinOk 422 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L217`, window 0. -/
-theorem w423_0 : WinOk 423 0 := by decide +kernel
+theorem w423_0 : WinOk 423 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L218`, window 0. -/
-theorem w424_0 : WinOk 424 0 := by decide +kernel
+theorem w424_0 : WinOk 424 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L219`, window 0. -/
-theorem w425_0 : WinOk 425 0 := by decide +kernel
+theorem w425_0 : WinOk 425 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L220`, window 0. -/
-theorem w426_0 : WinOk 426 0 := by decide +kernel
+theorem w426_0 : WinOk 426 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L221`, window 0. -/
-theorem w427_0 : WinOk 427 0 := by decide +kernel
+theorem w427_0 : WinOk 427 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L222`, window 0. -/
-theorem w428_0 : WinOk 428 0 := by decide +kernel
+theorem w428_0 : WinOk 428 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L223`, window 0. -/
-theorem w429_0 : WinOk 429 0 := by decide +kernel
+theorem w429_0 : WinOk 429 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L224`, window 0. -/
-theorem w430_0 : WinOk 430 0 := by decide +kernel
+theorem w430_0 : WinOk 430 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L225`, window 0. -/
-theorem w431_0 : WinOk 431 0 := by decide +kernel
+theorem w431_0 : WinOk 431 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L226`, window 0. -/
-theorem w432_0 : WinOk 432 0 := by decide +kernel
+theorem w432_0 : WinOk 432 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L227`, window 0. -/
-theorem w433_0 : WinOk 433 0 := by decide +kernel
+theorem w433_0 : WinOk 433 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L228`, window 0. -/
-theorem w434_0 : WinOk 434 0 := by decide +kernel
+theorem w434_0 : WinOk 434 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L229`, window 0. -/
-theorem w435_0 : WinOk 435 0 := by decide +kernel
+theorem w435_0 : WinOk 435 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L230`, window 0. -/
-theorem w436_0 : WinOk 436 0 := by decide +kernel
+theorem w436_0 : WinOk 436 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L231`, window 0. -/
-theorem w437_0 : WinOk 437 0 := by decide +kernel
+theorem w437_0 : WinOk 437 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L232`, window 0. -/
-theorem w438_0 : WinOk 438 0 := by decide +kernel
+theorem w438_0 : WinOk 438 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L233`, window 0. -/
-theorem w439_0 : WinOk 439 0 := by decide +kernel
+theorem w439_0 : WinOk 439 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L234`, window 0. -/
-theorem w440_0 : WinOk 440 0 := by decide +kernel
+theorem w440_0 : WinOk 440 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L235`, window 0. -/
-theorem w441_0 : WinOk 441 0 := by decide +kernel
+theorem w441_0 : WinOk 441 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L236`, window 0. -/
-theorem w442_0 : WinOk 442 0 := by decide +kernel
+theorem w442_0 : WinOk 442 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L237`, window 0. -/
-theorem w443_0 : WinOk 443 0 := by decide +kernel
+theorem w443_0 : WinOk 443 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L238`, window 0. -/
-theorem w444_0 : WinOk 444 0 := by decide +kernel
+theorem w444_0 : WinOk 444 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L239`, window 0. -/
-theorem w445_0 : WinOk 445 0 := by decide +kernel
+theorem w445_0 : WinOk 445 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L240`, window 0. -/
-theorem w446_0 : WinOk 446 0 := by decide +kernel
+theorem w446_0 : WinOk 446 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L241`, window 0. -/
-theorem w447_0 : WinOk 447 0 := by decide +kernel
+theorem w447_0 : WinOk 447 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L242`, window 0. -/
-theorem w448_0 : WinOk 448 0 := by decide +kernel
+theorem w448_0 : WinOk 448 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L243`, window 0. -/
-theorem w449_0 : WinOk 449 0 := by decide +kernel
+theorem w449_0 : WinOk 449 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L244`, window 0. -/
-theorem w450_0 : WinOk 450 0 := by decide +kernel
+theorem w450_0 : WinOk 450 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L245`, window 0. -/
-theorem w451_0 : WinOk 451 0 := by decide +kernel
+theorem w451_0 : WinOk 451 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L246`, window 0. -/
-theorem w452_0 : WinOk 452 0 := by decide +kernel
+theorem w452_0 : WinOk 452 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L247`, window 0. -/
-theorem w453_0 : WinOk 453 0 := by decide +kernel
+theorem w453_0 : WinOk 453 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L248`, window 0. -/
-theorem w454_0 : WinOk 454 0 := by decide +kernel
+theorem w454_0 : WinOk 454 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L249`, window 0. -/
-theorem w455_0 : WinOk 455 0 := by decide +kernel
+theorem w455_0 : WinOk 455 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L250`, window 0. -/
-theorem w456_0 : WinOk 456 0 := by decide +kernel
+theorem w456_0 : WinOk 456 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L251`, window 0. -/
-theorem w457_0 : WinOk 457 0 := by decide +kernel
+theorem w457_0 : WinOk 457 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L252`, window 0. -/
-theorem w458_0 : WinOk 458 0 := by decide +kernel
+theorem w458_0 : WinOk 458 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L253`, window 0. -/
-theorem w459_0 : WinOk 459 0 := by decide +kernel
+theorem w459_0 : WinOk 459 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L254`, window 0. -/
-theorem w460_0 : WinOk 460 0 := by decide +kernel
+theorem w460_0 : WinOk 460 0 := winOk_of_C (by decide +kernel)
 
 /-- `sp_forest_key__L255`, window 0. -/
-theorem w461_0 : WinOk 461 0 := by decide +kernel
+theorem w461_0 : WinOk 461 0 := winOk_of_C (by decide +kernel)
 
 /-- `scaled_log__L11`, window 0. -/
-theorem w462_0 : WinOk 462 0 := by decide +kernel
+theorem w462_0 : WinOk 462 0 := winOk_of_C (by decide +kernel)
 
 /-- `__loop86`, window 0. -/
-theorem w463_0 : WinOk 463 0 := by decide +kernel
+theorem w463_0 : WinOk 463 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L0`, window 0. -/
-theorem w464_0 : WinOk 464 0 := by decide +kernel
+theorem w464_0 : WinOk 464 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L1`, window 0. -/
-theorem w465_0 : WinOk 465 0 := by decide +kernel
+theorem w465_0 : WinOk 465 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L2`, window 0. -/
-theorem w466_0 : WinOk 466 0 := by decide +kernel
+theorem w466_0 : WinOk 466 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L3`, window 0. -/
-theorem w467_0 : WinOk 467 0 := by decide +kernel
+theorem w467_0 : WinOk 467 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L4`, window 0. -/
-theorem w468_0 : WinOk 468 0 := by decide +kernel
+theorem w468_0 : WinOk 468 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L5`, window 0. -/
-theorem w469_0 : WinOk 469 0 := by decide +kernel
+theorem w469_0 : WinOk 469 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L6`, window 0. -/
-theorem w470_0 : WinOk 470 0 := by decide +kernel
+theorem w470_0 : WinOk 470 0 := winOk_of_C (by decide +kernel)
 
 /-- `claims_tail__L7`, window 0. -/
-theorem w471_0 : WinOk 471 0 := by decide +kernel
+theorem w471_0 : WinOk 471 0 := winOk_of_C (by decide +kernel)
 
 theorem ok410 : CheckOk 410 := checkOk_one (by decide +kernel) w410_0
 

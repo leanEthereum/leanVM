@@ -7,14 +7,16 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `verify_sub`, window 0. -/
-theorem w16_0 : WinOk 16 0 := by decide +kernel
+theorem w16_0 : WinOk 16 0 := winOk_of_C (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

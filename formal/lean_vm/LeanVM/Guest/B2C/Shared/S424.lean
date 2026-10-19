@@ -14,17 +14,56 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `child_claims_tail__L18`, once. -/
-theorem st516 : shareStatic 516 = true := by decide +kernel
+/-- `da_hash_roots__L11`, once. -/
+theorem st561 : shareStatic 561 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claims_tail__L18`, window 0. -/
-theorem w516_0 : shareWin 516 (snapsOf 516) 0 = true := by decide +kernel
+/-- `da_hash_roots__L11`, window 0. -/
+theorem w561_0 : shareWin 561 (snapsOf 561) 0 = true := by decide +kernel
 
-theorem ok516 : ShareOk 516 := ⟨st516, fun i hi ↦ by
-  have h : (snapsOf 516).length = 0 := by decide +kernel
+theorem ok561 : ShareOk 561 := ⟨st561, fun i hi ↦ by
+  have h : (snapsOf 561).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w516_0⟩
+  exact w561_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `da_hash_roots__L12`, once. -/
+theorem st562 : shareStatic 562 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_hash_roots__L12`, window 0. -/
+theorem w562_0 : shareWin 562 (snapsOf 562) 0 = true := by decide +kernel
+
+theorem ok562 : ShareOk 562 := ⟨st562, fun i hi ↦ by
+  have h : (snapsOf 562).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w562_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `da_hash_roots__L13`, once. -/
+theorem st563 : shareStatic 563 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_hash_roots__L13`, window 0. -/
+theorem w563_0 : shareWin 563 (snapsOf 563) 0 = true := by decide +kernel
+
+theorem ok563 : ShareOk 563 := ⟨st563, fun i hi ↦ by
+  have h : (snapsOf 563).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w563_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `da_hash_roots__L14`, once. -/
+theorem st564 : shareStatic 564 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_hash_roots__L14`, window 0. -/
+theorem w564_0 : shareWin 564 (snapsOf 564) 0 = true := by decide +kernel
+
+theorem ok564 : ShareOk 564 := ⟨st564, fun i hi ↦ by
+  have h : (snapsOf 564).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w564_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Data.Plumb00
+public import LeanVM.Guest.Data.Plumb01
 
 namespace LeanVM.Guest.Data
 

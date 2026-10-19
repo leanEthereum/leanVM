@@ -7,65 +7,64 @@
 
 module
 
-public import LeanVM.Guest.Glob
+public import LeanVM.Guest.CheckWinC
 
 namespace LeanVM.Guest.Checked
+
+open LeanVM.Guest.Check
 
 @[expose] public section
 
 /-- `da_hash_roots__L0`, window 0. -/
-theorem w550_0 : WinOk 550 0 := by decide +kernel
+theorem w550_0 : WinOk 550 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L1`, window 0. -/
-theorem w551_0 : WinOk 551 0 := by decide +kernel
+theorem w551_0 : WinOk 551 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L2`, window 0. -/
-theorem w552_0 : WinOk 552 0 := by decide +kernel
+theorem w552_0 : WinOk 552 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L3`, window 0. -/
-theorem w553_0 : WinOk 553 0 := by decide +kernel
+theorem w553_0 : WinOk 553 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L4`, window 0. -/
-theorem w554_0 : WinOk 554 0 := by decide +kernel
+theorem w554_0 : WinOk 554 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L5`, window 0. -/
-theorem w555_0 : WinOk 555 0 := by decide +kernel
+theorem w555_0 : WinOk 555 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L6`, window 0. -/
-theorem w556_0 : WinOk 556 0 := by decide +kernel
+theorem w556_0 : WinOk 556 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L7`, window 0. -/
-theorem w557_0 : WinOk 557 0 := by decide +kernel
+theorem w557_0 : WinOk 557 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L8`, window 0. -/
-theorem w558_0 : WinOk 558 0 := by decide +kernel
+theorem w558_0 : WinOk 558 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L9`, window 0. -/
-theorem w559_0 : WinOk 559 0 := by decide +kernel
+theorem w559_0 : WinOk 559 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L10`, window 0. -/
-theorem w560_0 : WinOk 560 0 := by decide +kernel
+theorem w560_0 : WinOk 560 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L11`, window 0. -/
-theorem w561_0 : WinOk 561 0 := by decide +kernel
+theorem w561_0 : WinOk 561 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L12`, window 0. -/
-theorem w562_0 : WinOk 562 0 := by decide +kernel
+theorem w562_0 : WinOk 562 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L13`, window 0. -/
-theorem w563_0 : WinOk 563 0 := by decide +kernel
+theorem w563_0 : WinOk 563 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L14`, window 0. -/
-theorem w564_0 : WinOk 564 0 := by decide +kernel
+theorem w564_0 : WinOk 564 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L15`, window 0. -/
-theorem w565_0 : WinOk 565 0 := by decide +kernel
+theorem w565_0 : WinOk 565 0 := winOk_of_C (by decide +kernel)
 
 /-- `da_hash_roots__L16`, window 0. -/
-theorem w566_0 : WinOk 566 0 := by decide +kernel
-
-/-- `__loop95`, window 0. -/
-theorem w567_0 : WinOk 567 0 := by decide +kernel
+theorem w566_0 : WinOk 566 0 := winOk_of_C (by decide +kernel)
 
 theorem ok550 : CheckOk 550 := checkOk_one (by decide +kernel) w550_0
 
@@ -100,8 +99,6 @@ theorem ok564 : CheckOk 564 := checkOk_one (by decide +kernel) w564_0
 theorem ok565 : CheckOk 565 := checkOk_one (by decide +kernel) w565_0
 
 theorem ok566 : CheckOk 566 := checkOk_one (by decide +kernel) w566_0
-
-theorem ok567 : CheckOk 567 := checkOk_one (by decide +kernel) w567_0
 
 end
 end LeanVM.Guest.Checked

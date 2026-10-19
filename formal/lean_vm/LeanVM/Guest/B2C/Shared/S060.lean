@@ -14,12 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 3. -/
-theorem w14_3 : shareWin 14 (snapsOf 14) 3 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `certify_placement`, window 4. -/
-theorem w14_4 : shareWin 14 (snapsOf 14) 4 = true := by decide +kernel
+/-- `verify_flock`, window 17. -/
+theorem w13_17 : shareWin 13 (snapsOf 13) 17 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

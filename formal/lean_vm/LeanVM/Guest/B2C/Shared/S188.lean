@@ -14,25 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `cover_da_root`, once. -/
-theorem st29 : shareStatic 29 = true := by decide +kernel
+/-- `column_selector__L8`, once. -/
+theorem st152 : shareStatic 152 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `cover_da_root`, window 0. -/
-theorem w29_0 : shareWin 29 (snapsOf 29) 0 = true := by decide +kernel
+/-- `column_selector__L8`, window 0. -/
+theorem w152_0 : shareWin 152 (snapsOf 152) 0 = true := by decide +kernel
 
-theorem ok29 : ShareOk 29 := ⟨st29, fun i hi ↦ by
-  have h : (snapsOf 29).length = 0 := by decide +kernel
+theorem ok152 : ShareOk 152 := ⟨st152, fun i hi ↦ by
+  have h : (snapsOf 152).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w29_0⟩
+  exact w152_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `aggregate_claims`, once. -/
-theorem st30 : shareStatic 30 = true := by decide +kernel
+/-- `column_selector__L9`, once. -/
+theorem st153 : shareStatic 153 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `aggregate_claims`, window 0. -/
-theorem w30_0 : shareWin 30 (snapsOf 30) 0 = true := by decide +kernel
+/-- `column_selector__L9`, window 0. -/
+theorem w153_0 : shareWin 153 (snapsOf 153) 0 = true := by decide +kernel
+
+theorem ok153 : ShareOk 153 := ⟨st153, fun i hi ↦ by
+  have h : (snapsOf 153).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w153_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
