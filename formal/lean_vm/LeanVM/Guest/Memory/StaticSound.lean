@@ -55,11 +55,18 @@ theorem Aff.eval_le_of_leB {a b : Aff} (h : a.leB b = true) (args : List E) : a.
 
 theorem constOk_spec {w : E} {e : ℕ} (h : constOk w e = true) : w = ofK (gpow e) ∧ e < 2 ^ 20 := by
   simp only [constOk, Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨he, h0⟩, h1⟩, h2⟩ := h
+  obtain ⟨⟨⟨he, h1⟩, h2⟩, h0⟩ := h
+  have h0' : w.limb 0 = gpow e := by
+    split at h0
+    · rename_i h64
+      rw [decide_eq_true_eq] at h0
+      rw [h0, Parameters.gpow, g_pow_eq_ofBits h64]
+    · rw [decide_eq_true_eq] at h0
+      rw [h0, Pow.gpowW_eq he]
   refine ⟨E.ext fun i => ?_, he⟩
   rw [limb_ofK]
   fin_cases i
-  · simp only [Fin.zero_eta, Fin.isValue, ↓reduceIte]; rw [h0, Pow.gpowW_eq he]
+  · simpa using h0'
   · simpa using h1
   · simpa using h2
 
@@ -68,9 +75,31 @@ theorem logG_ofK {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (ofK (gpow e)) = e := lo
 /-- Known constants hold: `σ v = g^e` below the order of `g`. -/
 def EnvOk (σ : Val) (ρ : Env) : Prop := ∀ q ∈ ρ, σ q.1 = ofK (gpow q.2) ∧ q.2 < 2 ^ 64 - 1
 
-theorem lookup_mem {ρ : Env} {v : V} {e : ℕ} (h : ρ.lookup v = some e) : (v, e) ∈ ρ := by
-  obtain ⟨l₁, l₂, rfl, -⟩ := List.lookup_eq_some_iff.mp h
-  exact List.mem_append_right _ List.mem_cons_self
+theorem lookup_mem {ρ : List (V × ℕ)} {v : V} {e : ℕ} : vlookup v ρ = some e → (v, e) ∈ ρ := by
+  induction ρ with
+  | nil => simp [vlookup]
+  | cons q l ih =>
+    intro h
+    simp only [vlookup] at h
+    split_ifs at h with hq
+    · cases h
+      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
+      rw [hq.2]
+      exact List.mem_cons_self
+    · exact List.mem_cons_of_mem _ (ih h)
+
+theorem vidx_get {v : V} : ∀ {ps : List V} {k j : ℕ}, vidx v ps k = some j → k ≤ j ∧ ps[j - k]? = some v
+  | [], _, _, h => by simp [vidx] at h
+  | p :: ps, k, j, h => by
+      simp only [vidx] at h
+      split_ifs at h with hq
+      · cases h
+        simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hq
+        simp [hq.2]
+      · obtain ⟨h1, h2⟩ := vidx_get h
+        refine ⟨by omega, ?_⟩
+        rw [show j - k = (j - (k + 1)) + 1 by omega, List.getElem?_cons_succ]
+        exact h2
 
 section Cls
 
@@ -93,9 +122,10 @@ theorem cls_param (hp : ps.map σ = args) {v : V} {k : ℕ} (h : cls ρ ps v = .
   · split at h
     · rename_i k' hk'
       cases h
-      obtain ⟨hk, hv, -⟩ := List.idxOf?_eq_some_iff.mp hk'
-      rw [← hp, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hk]
-      simp [hv]
+      have := (vidx_get hk').2
+      rw [Nat.sub_zero] at this
+      rw [← hp, List.getD_eq_getElem?_getD, List.getElem?_map, this]
+      rfl
     · cases h
 
 end Cls
@@ -562,6 +592,238 @@ end
 
 end Block
 
+/-! ## The recursor form -/
+
+section Rec
+
+variable {cert : String → Cert} {ks : List (V × ℕ)} {ps : List V} {self : String}
+
+theorem Acc.zero_add (r : Acc) : Acc.zero.add r = r := by
+  simp [Acc.zero, Acc.add, Aff.add]
+
+theorem addAcc_assoc (a b c : Option Acc) :
+    Option.addAcc (Option.addAcc a b) c = Option.addAcc a (Option.addAcc b c) := by
+  cases a <;> cases b <;> cases c <;> simp [Option.addAcc, Acc.add, Aff.add, Nat.add_assoc]
+
+theorem addAcc_some_zero (x : Option Acc) : Option.addAcc (some Acc.zero) x = x := by
+  cases x <;> simp [Option.addAcc, Acc.zero_add]
+
+theorem blockR_cons (s : Stmt) (ss : List Stmt) (ρ : Env) :
+    blockR cert ks ps self (s :: ss) ρ = match stmtR cert ks ps self s ρ with
+      | none => none
+      | some (r, some ρ') => Option.addAcc (some r) (blockR cert ks ps self ss ρ')
+      | some (r, none) => some r := rfl
+
+theorem stmtR_ite (c : V) (z n : List Stmt) (ρ : Env) :
+    stmtR cert ks ps self (.ite c z n) ρ =
+      (Option.addAcc (blockR cert ks ps self z ρ) (blockR cert ks ps self n ρ)).map fun r => (r, some ρ) :=
+  rfl
+
+theorem stmtR_match (x : V) (arms : List (List Stmt)) (ρ : Env) :
+    stmtR cert ks ps self (.match_ x arms) ρ = (armsR cert ks ps self arms ρ).map fun r => (r, some ρ) :=
+  rfl
+
+theorem armsR_cons (a : List Stmt) (as : List (List Stmt)) (ρ : Env) :
+    armsR cert ks ps self (a :: as) ρ = Option.addAcc (blockR cert ks ps self a ρ) (armsR cert ks ps self as ρ) :=
+  rfl
+
+mutual
+/-- **The recursor form is `blockB`.** -/
+theorem blockR_eq : ∀ (ss : List Stmt) (ρ : Env), blockR cert ks ps self ss ρ = blockB cert ks ps self ρ ss
+  | [], ρ => by rw [blockB]; rfl
+  | s :: ss, ρ => by
+      rw [blockR_cons]
+      cases s with
+      | atom a =>
+          cases a with
+          | const v w =>
+              simp only [stmtR, blockB]
+              cases hk : vlookup v ks with
+              | none => simp only [addAcc_some_zero]; exact blockR_eq ss ρ
+              | some e =>
+                  by_cases hc : constOk w e = true
+                  · simp only [hc, ↓reduceIte, addAcc_some_zero]; exact blockR_eq ss _
+                  · simp only [hc, Bool.false_eq_true, ↓reduceIte, addAcc_some_zero]
+                    exact blockR_eq ss ρ
+          | _ => simp only [stmtR, blockB, addAcc_some_zero]; exact blockR_eq ss ρ
+      | ite c z n =>
+          rw [stmtR_ite, blockR_eq z, blockR_eq n, blockB, ← addAcc_assoc]
+          cases Option.addAcc (blockB cert ks ps self ρ z) (blockB cert ks ps self ρ n) with
+          | none => rfl
+          | some r => simp only [Option.map_some]; rw [blockR_eq]
+      | match_ x arms =>
+          rw [stmtR_match, armsR_eq arms, blockB]
+          cases armsB cert ks ps self ρ arms with
+          | none => rfl
+          | some r => simp only [Option.map_some]; rw [blockR_eq]
+      | call g args rets =>
+          simp only [stmtR, blockB]
+          cases siteB cert ρ ps g args with
+          | none => rfl
+          | some r => simp only [Option.map_some]; rw [blockR_eq]
+      | callIf c g args =>
+          simp only [stmtR, blockB]
+          split_ifs
+          · rfl
+          · cases siteB cert ρ ps g args with
+            | none => rfl
+            | some r => simp only [Option.map_some]; rw [blockR_eq]
+      | dispatch x gs args rets =>
+          simp only [stmtR, blockB]
+          cases sumB (fun g => siteB cert ρ ps g args) gs with
+          | none => rfl
+          | some r => simp only [Option.map_some]; rw [blockR_eq]
+      | ret vs => simp only [stmtR, blockB]; rfl
+
+/-- `blockR_eq` for arms. -/
+theorem armsR_eq : ∀ (arms : List (List Stmt)) (ρ : Env),
+    armsR cert ks ps self arms ρ = armsB cert ks ps self ρ arms
+  | [], ρ => by rw [armsB]; rfl
+  | a :: as, ρ => by
+      rw [armsR_cons, blockR_eq a, armsR_eq as, armsB]
+end
+
+end Rec
+
+/-! ## Blocks in ranges -/
+
+section Append
+
+variable {cert : String → Cert} {ps : List V} {self : String}
+
+/-- No top-level `ret`. -/
+def noTopRet (l : List Stmt) : Bool := l.all fun s => match s with
+  | .ret _ => false
+  | _ => true
+
+theorem blockB_nil (ρ : Env) : blockB cert [] ps self ρ [] = some Acc.zero := by rw [blockB]; rfl
+
+/-- **A block without constants is the sum of its ranges**, the first without `ret`. -/
+theorem blockB_append (ρ : Env) : ∀ (l1 l2 : List Stmt), noTopRet l1 = true →
+    blockB cert [] ps self ρ (l1 ++ l2) =
+      Option.addAcc (blockB cert [] ps self ρ l1) (blockB cert [] ps self ρ l2)
+  | [], l2, _ => by rw [List.nil_append, blockB_nil, addAcc_some_zero]
+  | s :: l1, l2, h => by
+      simp only [noTopRet, List.all_cons, Bool.and_eq_true] at h
+      have ih := blockB_append ρ l1 l2 h.2
+      rw [List.cons_append]
+      cases s with
+      | atom a =>
+          cases a with
+          | const v w => simp only [blockB, vlookup]; exact ih
+          | _ => simp only [blockB]; exact ih
+      | ite c z n => simp only [blockB]; rw [ih, addAcc_assoc, addAcc_assoc]
+      | match_ x arms => simp only [blockB]; rw [ih, addAcc_assoc]
+      | call g a r => simp only [blockB]; rw [ih, addAcc_assoc]
+      | callIf c g a =>
+          simp only [blockB]
+          split_ifs
+          · rfl
+          · rw [ih, addAcc_assoc]
+      | dispatch x gs a r => simp only [blockB]; rw [ih, addAcc_assoc]
+      | ret vs => simp at h
+
+/-- The ranges from `a` and from `a + n`, the first without `ret`. -/
+theorem blockB_drop (ρ : Env) (l : List Stmt) (a n : ℕ) (h : noTopRet ((l.drop a).take n) = true) :
+    blockB cert [] ps self ρ (l.drop a) =
+      Option.addAcc (blockB cert [] ps self ρ ((l.drop a).take n)) (blockB cert [] ps self ρ (l.drop (a + n))) := by
+  rw [← blockB_append ρ _ _ h, ← List.drop_drop, List.take_append_drop]
+
+theorem blockB_drop' (ρ : Env) (l : List Stmt) (a n b : ℕ) (h : noTopRet ((l.drop a).take n) = true)
+    (hb : a + n = b) : blockB cert [] ps self ρ (l.drop a) =
+      Option.addAcc (blockB cert [] ps self ρ ((l.drop a).take n)) (blockB cert [] ps self ρ (l.drop b)) := by
+  subst hb; exact blockB_drop ρ l a n h
+
+end Append
+
+/-! ## Lookups -/
+
+section Look
+
+variable {look cert : String → Cert} {ks : List (V × ℕ)} {ps : List V} {self : String}
+
+theorem siteB_mono (hl : LookOk look cert) {ρ : Env} {g : String} {a : List V} {r : Acc}
+    (h : siteB look ρ ps g a = some r) : siteB cert ρ ps g a = some r := by
+  have hg : look g ≠ .none := by
+    intro h0
+    unfold siteB at h
+    rw [h0] at h
+    cases h
+  unfold siteB at h ⊢
+  rw [← hl g hg]
+  exact h
+
+theorem sumB_site_mono (hl : LookOk look cert) {ρ : Env} {a : List V} :
+    ∀ {gs : List String} {r : Acc}, sumB (fun g => siteB look ρ ps g a) gs = some r →
+      sumB (fun g => siteB cert ρ ps g a) gs = some r
+  | [], _, h => h
+  | g :: gs, r, h => by
+      simp only [sumB] at h ⊢
+      obtain ⟨rx, ry, hx, hy, rfl⟩ := addAcc_some h
+      rw [siteB_mono hl hx, sumB_site_mono hl hy]
+      rfl
+
+mutual
+/-- **A block checked by a lookup is checked by `cert`.** -/
+theorem blockB_mono (hl : LookOk look cert) : ∀ (ss : List Stmt) (ρ : Env) {r : Acc},
+    blockB look ks ps self ρ ss = some r → blockB cert ks ps self ρ ss = some r
+  | [], _, _, h => by rw [blockB] at h ⊢; exact h
+  | s :: ss, ρ, r, h => by
+      cases s with
+      | atom a =>
+          cases a with
+          | const v w =>
+              simp only [blockB] at h ⊢
+              split at h
+              · split at h
+                · rw [ite_eq_left (by assumption)]; exact blockB_mono hl ss _ h
+                · rw [ite_eq_right (by assumption)]; exact blockB_mono hl ss _ h
+              · exact blockB_mono hl ss _ h
+          | _ => simp only [blockB] at h ⊢; exact blockB_mono hl ss _ h
+      | ite c z n =>
+          simp only [blockB] at h ⊢
+          obtain ⟨rz, rnr, hz, hnr, rfl⟩ := addAcc_some h
+          obtain ⟨rn, rr, hn, hrr, rfl⟩ := addAcc_some hnr
+          rw [blockB_mono hl z ρ hz, blockB_mono hl n ρ hn, blockB_mono hl ss ρ hrr]
+          rfl
+      | match_ x arms =>
+          simp only [blockB] at h ⊢
+          obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
+          rw [armsB_mono hl arms ρ ha, blockB_mono hl ss ρ hrr]
+          rfl
+      | call g a rets =>
+          simp only [blockB] at h ⊢
+          obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
+          rw [siteB_mono hl ha, blockB_mono hl ss ρ hrr]
+          rfl
+      | callIf c g a =>
+          simp only [blockB] at h ⊢
+          split at h
+          · cases h
+          · rw [ite_eq_right (by assumption)]
+            obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
+            rw [siteB_mono hl ha, blockB_mono hl ss ρ hrr]
+            rfl
+      | dispatch x gs a rets =>
+          simp only [blockB] at h ⊢
+          obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
+          rw [sumB_site_mono hl ha, blockB_mono hl ss ρ hrr]
+          rfl
+      | ret vs => simp only [blockB] at h ⊢; exact h
+
+/-- `blockB_mono` for arms. -/
+theorem armsB_mono (hl : LookOk look cert) : ∀ (arms : List (List Stmt)) (ρ : Env) {r : Acc},
+    armsB look ks ps self ρ arms = some r → armsB cert ks ps self ρ arms = some r
+  | [], _, _, h => by rw [armsB] at h ⊢; exact h
+  | a :: as, ρ, r, h => by
+      simp only [armsB] at h ⊢
+      obtain ⟨ra, rr, ha, hrr, rfl⟩ := addAcc_some h
+      rw [blockB_mono hl a ρ ha, armsB_mono hl as ρ hrr]
+      rfl
+end
+
+end Look
+
 /-! ## Loop helpers -/
 
 section Loop
@@ -827,7 +1089,7 @@ theorem getD_tail {a : E} {l l' : List E} (h : a :: l = l') {k : ℕ} (hk : k �
 
 /-- **Soundness of the static checker**: if every function of the program passes, every valid
 tree satisfies its certificate. -/
-theorem chk_sound (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) :
+theorem chk_sound (hchk : Checked P cert ω) :
     ∀ (n : ℕ) (t : Tree) (args rets : List E), t.count ≤ n → t.Valid P rd args rets →
       Bound cert ω t args
   | 0, t, _, _, hc, _ => by have := count_pos t; omega
@@ -835,7 +1097,7 @@ theorem chk_sound (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) :
   | n + 1, .node f σ bufs kids, args, rets, hc, hv => by
       obtain ⟨fn, hf, hp, es, vs, hw, hr, hes, hk⟩ := hv
       have hname := fn_name_of_find hf
-      have hc' := hchk fn (List.mem_of_find?_eq_some hf)
+      obtain ⟨look, hlook, hc'⟩ := hchk fn (List.mem_of_find?_eq_some hf)
       have hIH : ∀ k ∈ kids, ∀ args' rets', k.Valid P rd args' rets' → Bound cert ω k args' :=
         fun k hk' a' r' hv' => chk_sound hchk n k a' r' (by
           have := countKids_le hk'; rw [Tree.count] at hc; omega) hv'
@@ -853,6 +1115,8 @@ theorem chk_sound (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) :
             simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hc'
             intro hpre
             have hpr : ArgsPre r.2 args := fun q hq => hpre q (hc'.2 q hq)
+            rw [blockR_eq] at hb
+            replace hb := blockB_mono hlook _ _ hb
             have hkb := blockB_sound (rd := rd) (ω := ω) hp fn.body [] r (fun _ h => (List.not_mem_nil h).elim)
               hb hpr (by rw [hw]; exact hes) kids (by rw [hw]; exact hk) hIH
             rw [Tree.weight]
@@ -870,6 +1134,8 @@ theorem chk_sound (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) :
               simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at hc'
               obtain ⟨⟨⟨hle, hpre⟩, hbc⟩, hpc⟩ := hc'
               obtain ⟨c, i', p0, prest, hps, hbody, hnr, hst, x, y, hadd, hxy⟩ := loopShape_spec hsh
+              rw [blockR_eq] at hb
+              replace hb := blockB_mono hlook _ _ hb
               rw [hname] at hbody
               rw [hbody, walk_append] at hw
               rcases walk_noRet (σ := σ) pre' hnr with ⟨es1, hw1⟩ | hw1
@@ -972,7 +1238,7 @@ theorem chk_sound (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) :
 
 /-- **A checked bound**: every valid tree of a function with a `stat` certificate weighs at most
 its bound, under its preconditions. -/
-theorem weight_le_of_stat (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) {f : String}
+theorem weight_le_of_stat (hchk : Checked P cert ω) {f : String}
     {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)} (hcf : cert f = .stat pre b ks)
     {t : Tree} {args rets : List E} (hn : t.name = f) (hv : t.Valid P rd args rets)
     (hpre : ArgsPre pre args) : t.weight ω ≤ b.eval args := by
@@ -982,7 +1248,7 @@ theorem weight_le_of_stat (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) {f : St
   exact this hpre
 
 /-- **A constant checked bound** is a `WeightLe`. -/
-theorem weightLe_of_stat (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) {f : String} {B : ℕ}
+theorem weightLe_of_stat (hchk : Checked P cert ω) {f : String} {B : ℕ}
     {ks : List (V × ℕ)} (hcf : cert f = .stat [] ⟨B, []⟩ ks) : WeightLe P ω f fun _ => B :=
   fun _ _ _ _ hn hv => by
     have := weight_le_of_stat hchk hcf hn hv (fun _ h => (List.not_mem_nil h).elim)
@@ -990,7 +1256,7 @@ theorem weightLe_of_stat (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) {f : Str
 
 /-- **A checked loop**: a valid tree of a loop helper started at `g^a`, its end `g^e`, `a < e`,
 weighs at most `e - a` times its iteration's bound. -/
-theorem weight_le_of_loop (hchk : ∀ fn ∈ P, chkFn cert ω fn = true) {f : String}
+theorem weight_le_of_loop (hchk : Checked P cert ω) {f : String}
     {endc : Option ℕ} {pre : List (ℕ × ℕ)} {b : Aff} {ks : List (V × ℕ)}
     (hcf : cert f = .loop endc pre b ks) {t : Tree} {args rets : List E} (hn : t.name = f)
     (hv : t.Valid P rd args rets) {a e : ℕ} (ha : args.getD 0 0 = ofK (gpow a))

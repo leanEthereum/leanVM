@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Memory.Size
 public import LeanVM.Guest.Pow
+public import LeanVM.Guest.Value.Tower
 
 /-!
 # Static weight bounds
@@ -81,10 +82,20 @@ inductive Cert where
 /-- Constants known `g^e`. -/
 abbrev Env := List (V × ℕ)
 
-/-- A constant word is `g^e`, by digits. -/
+/-- A constant word is `g^e`: the word `2^e` below the first reduction, by digits above. -/
 def constOk (w : E) (e : ℕ) : Bool :=
-  decide (e < 2 ^ 20) && decide (w.limb 0 = Pow.gpowW e) && decide (w.limb 1 = 0) &&
-    decide (w.limb 2 = 0)
+  decide (e < 2 ^ 20) && decide (w.limb 1 = 0) && decide (w.limb 2 = 0) &&
+    (if e < 64 then decide (w.limb 0 = K.ofBits (2 ^ e)) else decide (w.limb 0 = Pow.gpowW e))
+
+/-- A value's entry, its index compared first. -/
+def vlookup (v : V) : List (V × ℕ) → Option ℕ
+  | [] => none
+  | q :: l => if v.idx == q.1.idx && decide (v = q.1) then some q.2 else vlookup v l
+
+/-- A value's position among the parameters from `k`, its index compared first. -/
+def vidx (v : V) : List V → ℕ → Option ℕ
+  | [], _ => none
+  | p :: ps, k => if v.idx == p.idx && decide (v = p) then some k else vidx v ps (k + 1)
 
 /-- What a value is to the checker. -/
 inductive VCls where
@@ -94,9 +105,9 @@ inductive VCls where
 
 /-- A value: a known constant, a parameter, or unknown. -/
 def cls (ρ : Env) (ps : List V) (v : V) : VCls :=
-  match ρ.lookup v with
+  match vlookup v ρ with
   | some e => .pow e
-  | none => match ps.idxOf? v with
+  | none => match vidx v ps 0 with
     | some k => .param k
     | none => .none
 
@@ -171,7 +182,7 @@ def blockB (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self :
     Env → List Stmt → Option Acc
   | _, [] => some (⟨0, []⟩, [])
   | ρ, .atom (.const v w) :: ss =>
-      match ks.lookup v with
+      match vlookup v ks with
       | some e => if constOk w e then blockB cert ks ps self ((v, e) :: ρ) ss
           else blockB cert ks ps self ρ ss
       | none => blockB cert ks ps self ρ ss
@@ -193,6 +204,83 @@ def armsB (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : 
   | _, [] => some (⟨0, []⟩, [])
   | ρ, a :: as => Option.addAcc (blockB cert ks ps self ρ a) (armsB cert ks ps self ρ as)
 end
+
+/-- The zero bound. -/
+def Acc.zero : Acc := (⟨0, []⟩, [])
+
+/-- **`blockB` on the recursor**, for the kernel: each statement gives its bound and the
+constants after it, or stops the block (`ret`) (`stmtR`, `blockR`, `armsR`, equal to `blockB`
+by `blockR_eq`). -/
+noncomputable def stmtR (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : String) :
+    Stmt → Env → Option (Acc × Option Env) :=
+  @Stmt.rec (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
+    (fun _ => Env → Option Acc)
+    (fun a ρ => match a with
+      | .const v w => match vlookup v ks with
+        | some e => if constOk w e then some (Acc.zero, some ((v, e) :: ρ)) else some (Acc.zero, some ρ)
+        | none => some (Acc.zero, some ρ)
+      | _ => some (Acc.zero, some ρ))
+    (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
+    (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
+    (fun _ g args ρ => if g = self then none else (siteB cert ρ ps g args).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ ps g args) gs).map fun r => (r, some ρ))
+    (fun _ _ => some (Acc.zero, none))
+    (fun _ => some Acc.zero)
+    (fun _ _ hs hss ρ => match hs ρ with
+      | none => none
+      | some (r, some ρ') => Option.addAcc (some r) (hss ρ')
+      | some (r, none) => some r)
+    (fun _ => some Acc.zero)
+    (fun _ _ ha has ρ => Option.addAcc (ha ρ) (has ρ))
+
+/-- `stmtR` of a block. -/
+noncomputable def blockR (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : String) :
+    List Stmt → Env → Option Acc :=
+  @Stmt.rec_1 (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
+    (fun _ => Env → Option Acc)
+    (fun a ρ => match a with
+      | .const v w => match vlookup v ks with
+        | some e => if constOk w e then some (Acc.zero, some ((v, e) :: ρ)) else some (Acc.zero, some ρ)
+        | none => some (Acc.zero, some ρ)
+      | _ => some (Acc.zero, some ρ))
+    (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
+    (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
+    (fun _ g args ρ => if g = self then none else (siteB cert ρ ps g args).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ ps g args) gs).map fun r => (r, some ρ))
+    (fun _ _ => some (Acc.zero, none))
+    (fun _ => some Acc.zero)
+    (fun _ _ hs hss ρ => match hs ρ with
+      | none => none
+      | some (r, some ρ') => Option.addAcc (some r) (hss ρ')
+      | some (r, none) => some r)
+    (fun _ => some Acc.zero)
+    (fun _ _ ha has ρ => Option.addAcc (ha ρ) (has ρ))
+
+/-- `stmtR` of arms. -/
+noncomputable def armsR (cert : String → Cert) (ks : List (V × ℕ)) (ps : List V) (self : String) :
+    List (List Stmt) → Env → Option Acc :=
+  @Stmt.rec_2 (fun _ => Env → Option (Acc × Option Env)) (fun _ => Env → Option Acc)
+    (fun _ => Env → Option Acc)
+    (fun a ρ => match a with
+      | .const v w => match vlookup v ks with
+        | some e => if constOk w e then some (Acc.zero, some ((v, e) :: ρ)) else some (Acc.zero, some ρ)
+        | none => some (Acc.zero, some ρ)
+      | _ => some (Acc.zero, some ρ))
+    (fun _ _ _ hz hn ρ => (Option.addAcc (hz ρ) (hn ρ)).map fun r => (r, some ρ))
+    (fun _ _ ha ρ => (ha ρ).map fun r => (r, some ρ))
+    (fun g args _ ρ => (siteB cert ρ ps g args).map fun r => (r, some ρ))
+    (fun _ g args ρ => if g = self then none else (siteB cert ρ ps g args).map fun r => (r, some ρ))
+    (fun _ gs args _ ρ => (sumB (fun g => siteB cert ρ ps g args) gs).map fun r => (r, some ρ))
+    (fun _ _ => some (Acc.zero, none))
+    (fun _ => some Acc.zero)
+    (fun _ _ hs hss ρ => match hs ρ with
+      | none => none
+      | some (r, some ρ') => Option.addAcc (some r) (hss ρ')
+      | some (r, none) => some r)
+    (fun _ => some Acc.zero)
+    (fun _ _ ha has ρ => Option.addAcc (ha ρ) (has ρ))
 
 mutual
 /-- No `ret` in a statement. -/
@@ -255,24 +343,72 @@ def loopShape (fn : Fn) (endc : Option ℕ) : Option (List Stmt) :=
       then some pre else none
   | _, _ => none
 
+/-- A search tree by index. -/
+inductive NTree (α : Type) where
+  | leaf
+  | node (k : ℕ) (v : α) (l r : NTree α)
+
+/-- The value of an index. -/
+def NTree.find {α : Type} : NTree α → ℕ → Option α
+  | .leaf, _ => none
+  | .node k v l r, i => if Nat.beq i k then some v else if Nat.blt i k then l.find i else r.find i
+
+/-- Every value of the tree satisfies `p`. -/
+def NTree.all {α : Type} (p : α → Bool) : NTree α → Bool
+  | .leaf => true
+  | .node _ v l r => p v && l.all p && r.all p
+
+theorem NTree.find_all {α : Type} {p : α → Bool} : ∀ {t : NTree α} {k : ℕ} {v : α}, t.all p = true →
+    t.find k = some v → p v = true
+  | .leaf, _, _, _, h => by simp [NTree.find] at h
+  | .node k' v' l r, k, v, ha, h => by
+      simp only [NTree.all, Bool.and_eq_true] at ha
+      simp only [NTree.find] at h
+      split_ifs at h
+      · cases h; exact ha.1.1
+      · exact NTree.find_all ha.1.2 h
+      · exact NTree.find_all ha.2 h
+
+/-- A name as a number, for a search tree: its characters in base `2^21`, shifted by one. -/
+def nameKey (s : String) : ℕ := s.toList.foldr (fun c acc => c.toNat + 1 + 2 ^ 21 * acc) 0
+
+/-- A search tree by name. -/
+inductive STree (α : Type) where
+  | leaf
+  | node (k : String) (v : α) (l r : STree α)
+
+/-- The value of a name. -/
+def STree.find {α : Type} : STree α → String → Option α
+  | .leaf, _ => none
+  | .node k v l r, s => if s = k then some v else if s < k then l.find s else r.find s
+
 /-- `a`'s constant and terms are at most `b`'s, term by term. -/
 def Aff.leB (a b : Aff) : Bool := decide (a.c ≤ b.c) && a.cs == b.cs
 
-/-- **The check of a function** against its certificate. -/
-def chkFn (cert : String → Cert) (ω : String → ℕ) (fn : Fn) : Bool :=
-  match cert fn.name with
+/-- **The check of a function** against its certificate `own`, its frame weighing `w`, its
+callees' certificates by `look`. -/
+noncomputable def chkFn (look : String → Cert) (own : Cert) (w : ℕ) (fn : Fn) : Bool :=
+  match own with
   | .none => true
   | .stat pre b ks =>
-      match blockB cert ks fn.params fn.name [] fn.body with
-      | some r => Aff.leB ⟨ω fn.name + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
+      match blockR look ks fn.params fn.name fn.body [] with
+      | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre)
       | none => false
   | .loop endc pre b ks =>
       match loopShape fn endc with
-      | some pre' => match blockB cert ks fn.params fn.name [] pre' with
-        | some r => Aff.leB ⟨ω fn.name + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre) &&
+      | some pre' => match blockR look ks fn.params fn.name pre' [] with
+        | some r => Aff.leB ⟨w + r.1.c, r.1.cs⟩ b && r.2.all (· ∈ pre) &&
             b.cs.all (·.1 ≠ 0) && pre.all (·.1 ≠ 0)
         | none => false
       | none => false
+
+/-- A lookup agreeing with `cert` wherever it gives a certificate. -/
+def LookOk (look cert : String → Cert) : Prop := ∀ g, look g ≠ .none → look g = cert g
+
+/-- **A checked program**: every function passes against its certificate, by some lookup of its
+callees' agreeing with `cert`. -/
+def Checked (P : Core.Program) (cert : String → Cert) (ω : String → ℕ) : Prop :=
+  ∀ fn ∈ P, ∃ look, LookOk look cert ∧ chkFn look (cert fn.name) (ω fn.name) fn = true
 
 end
 end LeanVM.Guest.Memory
