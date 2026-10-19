@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.EndCompleteWords
 
-  The words budget: a `Linear` in the node's work dominating `main`'s bound `mainBound` at the
-  honest words, for the callees' bounds `calleeBd`.
+  `main`'s bound as a `Linear` in the node's work: generic in the frame function and the callees'
+  bounds (`eaLin`, `ea_bound`), at the words (`eaWords`, `ea_words`).
 -/
 
 module
@@ -12,13 +12,16 @@ public import LeanVM.Guest.B1.Main.CalleesProved
 public import LeanVM.Guest.B1.Main.HonestWords
 
 /-!
-# `main`'s words within a linear budget
+# `main`'s bound within a linear budget
 
-`eaWords fs H a86 b86`: a constant, plus per unit of work the words its callees and buffers take
-per declared claim, coverage slot, raw signature or matrix, child and child's claim.
-`ea_words`: at the honest words of a node within the limits, `mainBound fs (calleeBd fs H)` is
-at most it. The claim lists' bound is affine once `__loop86`'s is (`a86`, `b86`); the child lists'
-and the batching's are affine as they stand; the DA lists' is a constant (at most `16` roots).
+`mainBound fr Bd W` is `main`'s frame, buffers and callees' bounds at the frame function `fr` and
+the callees' bounds `Bd`. `eaLin fr Bd A`: a constant, plus per unit of work what a declared claim,
+a coverage slot, a raw signature or matrix, a child and a child's claim add, given the claim lists',
+the child claim lists' and the DA lists' bounds affine (`EaAffC`, `EaAffOk`). `ea_bound`: at the
+honest words of a node within the limits, `mainBound fr Bd` is at most it. At the words
+(`fr := fs`, `Bd := calleeBd fs H`): `eaWords`, `ea_words`, the claim lists' bound affine once
+`__loop86`'s is (`a86`, `b86`). At an instruction weight (`fr := ω`, `Bd` the callees' weight
+bounds), the same `ea_bound` gives the instruction budget.
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -40,6 +43,151 @@ theorem ea_le_max : ∀ {l : List ℕ} {x : ℕ}, x ∈ l → x ≤ eaMax l
     · exact le_max_left _ _
     · exact le_trans (ea_le_max h) (le_max_right _ _)
 
+/-! ## Generic in the frame function and the callees' bounds -/
+
+/-- The affine constants of the callees' bounds that grow: a claim list's slope and constant, a
+child claim list's, and the DA lists' largest. -/
+structure EaAffC where
+  aCl : ℕ
+  bCl : ℕ
+  aCcl : ℕ
+  bCcl : ℕ
+  dlMax : ℕ
+
+/-- The callees' bounds within those constants. -/
+structure EaAffOk (Bd : CalleeBounds) (A : EaAffC) : Prop where
+  cl : ∀ n, Bd.cl n ≤ A.aCl * n + A.bCl
+  ccl : ∀ n, Bd.ccl n ≤ A.aCcl * n + A.bCcl
+  dl : ∀ n ≤ 16, Bd.daList n ≤ A.dlMax
+
+variable (fr : String → ℕ) (Bd : CalleeBounds) (A : EaAffC)
+
+/-- The batching's slope and constant. -/
+def eaAggA : ℕ := 18 + fr "__loop95" + fr "__loop96" + fr "__loop97" + fr "__loop98" + fr "__loop99"
+def eaAggB : ℕ := fr "aggregate_claims" + 413 + fr "__loop95" + fr "__loop96" + fr "__loop97" +
+  fr "__loop98" + fr "__loop99" + fr "batch_sumcheck__L22" + fr "batch_sumcheck__L28"
+
+theorem ea_agg (n : ℕ) : aggBound fr n = eaAggA fr * n + eaAggB fr := by
+  simp only [aggBound, aggSizes, eaAggA, eaAggB, List.sum_cons, List.sum_nil]; ring
+
+/-- A child's bound, affinely in its claims: constant and slope. -/
+def eaChK : ℕ := 2 + 2 * A.bCcl + fr "__loop100" + A.dlMax + Bd.sd + Bd.vs
+def eaChA : ℕ := 4 + A.aCcl + fr "__loop100" + Bd.cover
+
+theorem ea_childBd {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) (r : ChildWords)
+    (hda : r.da.length ≤ 16) :
+    childBd fr Bd r ≤ eaChK fr Bd A + eaChA fr Bd A * (r.nx + r.ns + r.da.length) := by
+  have c1 := hA.ccl r.nx
+  have c2 := hA.ccl r.ns
+  have d := hA.dl r.da.length hda
+  have e1 : A.aCcl * r.nx ≤ eaChA fr Bd A * r.nx := Nat.mul_le_mul_right _ (by unfold eaChA; omega)
+  have e2 : A.aCcl * r.ns ≤ eaChA fr Bd A * r.ns := Nat.mul_le_mul_right _ (by unfold eaChA; omega)
+  have e3 : r.da.length * (fr "__loop100" + Bd.cover) + 4 * r.da.length ≤ eaChA fr Bd A * r.da.length := by
+    have : (fr "__loop100" + Bd.cover) + 4 ≤ eaChA fr Bd A := by unfold eaChA; omega
+    nlinarith
+  have e4 : eaChA fr Bd A * (r.nx + r.ns + r.da.length) =
+      eaChA fr Bd A * r.nx + eaChA fr Bd A * r.ns + eaChA fr Bd A * r.da.length := by ring
+  simp only [childBd, eaChK]
+  omega
+
+theorem ea_loopSum (c K K' : ℕ) (bs : ℕ → ℕ) : ∀ (L : List Child) (j : ℕ),
+    (∀ i (hi : i < L.length), bs (j + i) ≤ K + K' * cnw L[i]) →
+    loopSum c bs j L.length ≤ L.length * (c + K) + c + K' * (L.map cnw).sum
+  | [], _, _ => by simp [loopSum]
+  | x :: L, j, h => by
+    have ih := ea_loopSum c K K' bs L (j + 1) fun i hi => by
+      have := h (i + 1) (by simp; omega)
+      rw [show j + (i + 1) = j + 1 + i by ring] at this
+      simpa using this
+    have h0 := h 0 (by simp)
+    simp only [Nat.add_zero, List.getElem_cons_zero] at h0
+    simp only [List.length_cons, loopSum, List.map_cons, List.sum_cons]
+    nlinarith
+
+/-- **`main`'s bound, linearly in the work.** -/
+def eaLin : Linear where
+  base := fr "main" + 56 + fr "exponent_tables" + 68 + fr "__loop0" + A.dlMax + 2 * A.bCl +
+    fr "__loop1" + fr "__loop2" + fr "__loop3" + fr "__loop4" + fr "__loop5" + eaAggB fr + Bd.sd
+  declared := A.aCl
+  coverage := 5 + fr "__loop0" + fr "__loop1" + fr "__loop2"
+  rawXmss := fr "__loop3" + Bd.xmss
+  rawSphincs := fr "__loop4" + Bd.sphincs
+  rawDa := Bd.daVerify + Bd.cover
+  children := 162 + fr "__loop5" + eaChK fr Bd A + eaAggA fr
+  childClaims := eaChA fr Bd A
+
+theorem ea_eval (u : LeanVM.Guest.End.Work) : (eaLin fr Bd A).eval u =
+    (eaLin fr Bd A).base + A.aCl * u.declared +
+      (5 + fr "__loop0" + fr "__loop1" + fr "__loop2") * u.coverage + (fr "__loop3" + Bd.xmss) * u.rawXmss +
+      (fr "__loop4" + Bd.sphincs) * u.rawSphincs + (Bd.daVerify + Bd.cover) * u.rawDa +
+      (162 + fr "__loop5" + eaChK fr Bd A + eaAggA fr) * u.children + eaChA fr Bd A * u.childClaims := rfl
+
+set_option maxHeartbeats 1000000 in
+/-- **`main`'s bound at the honest words is within `eaLin`**, for a node within the limits. -/
+theorem ea_bound {Bd : CalleeBounds} {A : EaAffC} (hA : EaAffOk Bd A) {seed : Digest} {s : NodeStatement}
+    {w : NodeWitness} (hlim : Limits s w) :
+    mainBound fr Bd (honestWords seed s w) ≤ (eaLin fr Bd A).eval (work s w) := by
+  rw [ea_eval]
+  set W := honestWords seed s w with hW
+  have hcov : (work s w).coverage = W.total := by
+    show coverage s w = _
+    rw [coverage_eq]; rfl
+  have hdecl : (work s w).declared = W.dx + W.ds + W.da := rfl
+  have hrx : (work s w).rawXmss = W.rx := rfl
+  have hrs : (work s w).rawSphincs = W.rs := rfl
+  have hrd : (work s w).rawDa = W.rd := rfl
+  have hnc : (work s w).children = W.nc := rfl
+  have hcc : (work s w).childClaims = (w.children.map cnw).sum := rfl
+  have hrd1 : W.rd ≤ 1 := hlim.directDa
+  have hda16 : W.da ≤ 16 := hlim.daRoots.1
+  have htot : W.total = W.dx + W.ux + (W.ds + W.us) + (W.da + W.ud) := rfl
+  have hsz : W.sizes.sum = 5 * W.total + 162 * W.nc + 56 := by
+    simp only [MainWords.sizes, List.sum_cons, List.sum_nil, htot]; ring
+  have c1 := hA.cl W.dx
+  have c2 := hA.cl W.ds
+  have d1 := hA.dl W.da hda16
+  have m0 : (W.da + W.ud) * fr "__loop0" ≤ fr "__loop0" * W.total := by
+    rw [Nat.mul_comm]; exact Nat.mul_le_mul_left _ (by omega)
+  have m1 : W.ux * fr "__loop1" ≤ fr "__loop1" * W.total := by
+    rw [Nat.mul_comm]; exact Nat.mul_le_mul_left _ (by omega)
+  have m2 : W.us * fr "__loop2" ≤ fr "__loop2" * W.total := by
+    rw [Nat.mul_comm]; exact Nat.mul_le_mul_left _ (by omega)
+  have m3 : (5 + fr "__loop0" + fr "__loop1" + fr "__loop2") * W.total =
+      5 * W.total + fr "__loop0" * W.total + fr "__loop1" * W.total + fr "__loop2" * W.total := by ring
+  have m4 : A.aCl * (W.dx + W.ds + W.da) ≥ A.aCl * W.dx + A.aCl * W.ds := by
+    rw [Nat.mul_add, Nat.mul_add]; omega
+  have m5 : W.rx * (fr "__loop3" + Bd.xmss) = (fr "__loop3" + Bd.xmss) * W.rx := Nat.mul_comm _ _
+  have m6 : W.rs * (fr "__loop4" + Bd.sphincs) = (fr "__loop4" + Bd.sphincs) * W.rs := Nat.mul_comm _ _
+  have hbs8 : (mainBs8 fr Bd W).sum = (W.da + W.ud) * fr "__loop0" + fr "__loop0" +
+      Bd.daList W.da + Bd.cl W.dx + Bd.cl W.ds +
+      (W.ux * fr "__loop1" + fr "__loop1") + (W.us * fr "__loop2" + fr "__loop2") +
+      (W.rx * (fr "__loop3" + Bd.xmss) + fr "__loop3") +
+      (W.rs * (fr "__loop4" + Bd.sphincs) + fr "__loop4") := by
+    simp only [mainBs8, List.sum_cons, List.sum_nil]; ring
+  have hda : (if W.rd = 1 then Bd.daVerify + Bd.cover else 0) ≤ (Bd.daVerify + Bd.cover) * W.rd := by
+    split_ifs with h
+    · rw [h, Nat.mul_one]
+    · exact Nat.zero_le _
+  have hch : loopSum (fr "__loop5") (fun c => childBd fr Bd (W.child c)) 0 W.nc ≤
+      W.nc * (fr "__loop5" + eaChK fr Bd A) + fr "__loop5" + eaChA fr Bd A * (w.children.map cnw).sum := by
+    refine ea_loopSum (fr "__loop5") (eaChK fr Bd A) (eaChA fr Bd A) _ w.children 0 fun i hi => ?_
+    have hc : W.child (0 + i) = childWordsOf seed w.children[i] (hbase s w i) := by
+      simp only [hW, honestWords, Nat.zero_add, hi, ↓reduceDIte]
+    show childBd fr Bd (W.child (0 + i)) ≤ _
+    rw [hc]
+    exact ea_childBd fr hA _ (hlim.daRoots.2 _ (List.getElem_mem _))
+  have hagg : (if W.nc = 0 then 0 else aggBound fr W.nc) ≤ eaAggA fr * W.nc + eaAggB fr := by
+    split_ifs
+    · exact Nat.zero_le _
+    · rw [ea_agg]
+  have hn5 : W.nc * (fr "__loop5" + eaChK fr Bd A) = fr "__loop5" * W.nc + eaChK fr Bd A * W.nc := by ring
+  have hn6 : (162 + fr "__loop5" + eaChK fr Bd A + eaAggA fr) * W.nc =
+      162 * W.nc + fr "__loop5" * W.nc + eaChK fr Bd A * W.nc + eaAggA fr * W.nc := by ring
+  simp only [mainBound, mainKidsBound, hsz, hbs8, eaLin, hcov, hdecl, hrx, hrs, hrd, hnc, hcc]
+  omega
+
+/-! ## At the words -/
+
 variable (fs : String → ℕ) {cert : String → V → ℕ} {bc : List K} (H : CalleesHyps fs cert bc)
 
 /-- The claim tails' largest bound, the child claim tails' largest frame, the DA lists' largest. -/
@@ -53,13 +201,6 @@ def eaClB (b86 : ℕ) : ℕ := fs "claim_list_digest" + 4 + b86 + fs "__loop86" 
 /-- A child claim list's. -/
 def eaCclA : ℕ := 4 + fs "__loop87" + (fs "child_claims_window" + H.Bsl)
 def eaCclB : ℕ := fs "child_claim_list_digest" + 4 + fs "__loop87" + eaCctMax fs + H.Bsl6
-/-- The batching's. -/
-def eaAggA : ℕ := 18 + fs "__loop95" + fs "__loop96" + fs "__loop97" + fs "__loop98" + fs "__loop99"
-def eaAggB : ℕ := fs "aggregate_claims" + 413 + fs "__loop95" + fs "__loop96" + fs "__loop97" +
-  fs "__loop98" + fs "__loop99" + fs "batch_sumcheck__L22" + fs "batch_sumcheck__L28"
-
-theorem ea_agg (n : ℕ) : aggBound fs n = eaAggA fs * n + eaAggB fs := by
-  simp only [aggBound, aggSizes, eaAggA, eaAggB, List.sum_cons, List.sum_nil]; ring
 
 theorem ea_cl {a86 b86 : ℕ} (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) (n : ℕ) :
     (calleeBd fs H).cl n ≤ eaClA a86 * n + eaClB fs H b86 := by
@@ -92,134 +233,22 @@ theorem ea_ccl (n : ℕ) : (calleeBd fs H).ccl n ≤ eaCclA fs H * n + eaCclB fs
 theorem ea_dl {n : ℕ} (hn : n ≤ 16) : (calleeBd fs H).daList n ≤ eaDlMax fs H :=
   ea_le_max (List.mem_map.mpr ⟨n, List.mem_range.mpr (show n < 17 by omega), rfl⟩)
 
-/-- A child's bound, affinely in its claims: constant and slope. -/
-def eaChK : ℕ := 2 + 2 * eaCclB fs H + fs "__loop100" + eaDlMax fs H + H.Bsd + (calleeBd fs H).vs
-def eaChA : ℕ := 4 + eaCclA fs H + fs "__loop100" + fs "cover_da_root"
+/-- The words' affine constants. -/
+def eaWordsC (a86 b86 : ℕ) : EaAffC := ⟨eaClA a86, eaClB fs H b86, eaCclA fs H, eaCclB fs H, eaDlMax fs H⟩
 
-theorem ea_childBd (r : ChildWords) (hda : r.da.length ≤ 16) :
-    childBd fs (calleeBd fs H) r ≤ eaChK fs H + eaChA fs H * (r.nx + r.ns + r.da.length) := by
-  have c1 := ea_ccl fs H r.nx
-  have c2 := ea_ccl fs H r.ns
-  have d := ea_dl fs H hda
-  have e1 : eaCclA fs H * r.nx ≤ eaChA fs H * r.nx := Nat.mul_le_mul_right _ (by unfold eaChA; omega)
-  have e2 : eaCclA fs H * r.ns ≤ eaChA fs H * r.ns := Nat.mul_le_mul_right _ (by unfold eaChA; omega)
-  have e3 : r.da.length * (fs "__loop100" + fs "cover_da_root") + 4 * r.da.length ≤
-      eaChA fs H * r.da.length := by
-    have : (fs "__loop100" + fs "cover_da_root") + 4 ≤ eaChA fs H := by unfold eaChA; omega
-    nlinarith
-  have e4 : eaChA fs H * (r.nx + r.ns + r.da.length) =
-      eaChA fs H * r.nx + eaChA fs H * r.ns + eaChA fs H * r.da.length := by ring
-  simp only [childBd, eaChK]
-  have hcov : (calleeBd fs H).cover = fs "cover_da_root" := rfl
-  have hsd : (calleeBd fs H).sd = H.Bsd := rfl
-  rw [hcov, hsd]
-  omega
-
-theorem ea_loopSum (c K K' : ℕ) (bs : ℕ → ℕ) : ∀ (L : List Child) (j : ℕ),
-    (∀ i (hi : i < L.length), bs (j + i) ≤ K + K' * cnw L[i]) →
-    loopSum c bs j L.length ≤ L.length * (c + K) + c + K' * (L.map cnw).sum
-  | [], _, _ => by simp [loopSum]
-  | x :: L, j, h => by
-    have ih := ea_loopSum c K K' bs L (j + 1) fun i hi => by
-      have := h (i + 1) (by simp; omega)
-      rw [show j + (i + 1) = j + 1 + i by ring] at this
-      simpa using this
-    have h0 := h 0 (by simp)
-    simp only [Nat.add_zero, List.getElem_cons_zero] at h0
-    simp only [List.length_cons, loopSum, List.map_cons, List.sum_cons]
-    nlinarith
+theorem ea_wordsOk {a86 b86 : ℕ} (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) :
+    EaAffOk (calleeBd fs H) (eaWordsC fs H a86 b86) :=
+  ⟨ea_cl fs H h86, ea_ccl fs H, fun _ hn => ea_dl fs H hn⟩
 
 /-- **The words budget.** -/
-def eaWords (a86 b86 : ℕ) : Linear where
-  base := fs "main" + 56 + fs "exponent_tables" + 68 + fs "__loop0" + eaDlMax fs H + 2 * eaClB fs H b86 +
-    fs "__loop1" + fs "__loop2" + fs "__loop3" + fs "__loop4" + fs "__loop5" + eaAggB fs + H.Bsd
-  declared := eaClA a86
-  coverage := 5 + fs "__loop0" + fs "__loop1" + fs "__loop2"
-  rawXmss := fs "__loop3" + H.Bx
-  rawSphincs := fs "__loop4" + H.Bsp
-  rawDa := dvMax fs + fs "cover_da_root"
-  children := 162 + fs "__loop5" + eaChK fs H + eaAggA fs
-  childClaims := eaChA fs H
+def eaWords (a86 b86 : ℕ) : Linear := eaLin fs (calleeBd fs H) (eaWordsC fs H a86 b86)
 
-theorem ea_eval (a86 b86 : ℕ) (u : LeanVM.Guest.End.Work) : (eaWords fs H a86 b86).eval u =
-    (eaWords fs H a86 b86).base + eaClA a86 * u.declared +
-      (5 + fs "__loop0" + fs "__loop1" + fs "__loop2") * u.coverage + (fs "__loop3" + H.Bx) * u.rawXmss +
-      (fs "__loop4" + H.Bsp) * u.rawSphincs + (dvMax fs + fs "cover_da_root") * u.rawDa +
-      (162 + fs "__loop5" + eaChK fs H + eaAggA fs) * u.children + eaChA fs H * u.childClaims := rfl
-
-set_option maxHeartbeats 1000000 in
 /-- **`main`'s bound at the honest words is within the words budget**, for a node within the
 limits, once `__loop86`'s bound is affine. -/
 theorem ea_words {a86 b86 : ℕ} (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) {seed : Digest}
     {s : NodeStatement} {w : NodeWitness} (hlim : Limits s w) :
-    mainBound fs (calleeBd fs H) (honestWords seed s w) ≤ (eaWords fs H a86 b86).eval (work s w) := by
-  rw [ea_eval]
-  set W := honestWords seed s w with hW
-  have hcov : (work s w).coverage = W.total := by
-    show coverage s w = _
-    rw [coverage_eq]; rfl
-  have hdecl : (work s w).declared = W.dx + W.ds + W.da := rfl
-  have hrx : (work s w).rawXmss = W.rx := rfl
-  have hrs : (work s w).rawSphincs = W.rs := rfl
-  have hrd : (work s w).rawDa = W.rd := rfl
-  have hnc : (work s w).children = W.nc := rfl
-  have hcc : (work s w).childClaims = (w.children.map cnw).sum := rfl
-  have hrd1 : W.rd ≤ 1 := hlim.directDa
-  have hda16 : W.da ≤ 16 := hlim.daRoots.1
-  have htot : W.total = W.dx + W.ux + (W.ds + W.us) + (W.da + W.ud) := rfl
-  -- the buffers
-  have hsz : W.sizes.sum = 5 * W.total + 162 * W.nc + 56 := by
-    simp only [MainWords.sizes, List.sum_cons, List.sum_nil, htot]; ring
-  -- the eight calls
-  have c1 := ea_cl fs H h86 W.dx
-  have c2 := ea_cl fs H h86 W.ds
-  have d1 := ea_dl fs H hda16
-  have m0 : (W.da + W.ud) * fs "__loop0" ≤ fs "__loop0" * W.total := by
-    rw [Nat.mul_comm]; exact Nat.mul_le_mul_left _ (by omega)
-  have m1 : W.ux * fs "__loop1" ≤ fs "__loop1" * W.total := by
-    rw [Nat.mul_comm]; exact Nat.mul_le_mul_left _ (by omega)
-  have m2 : W.us * fs "__loop2" ≤ fs "__loop2" * W.total := by
-    rw [Nat.mul_comm]; exact Nat.mul_le_mul_left _ (by omega)
-  have m3 : (5 + fs "__loop0" + fs "__loop1" + fs "__loop2") * W.total =
-      5 * W.total + fs "__loop0" * W.total + fs "__loop1" * W.total + fs "__loop2" * W.total := by ring
-  have m4 : eaClA a86 * (W.dx + W.ds + W.da) ≥ eaClA a86 * W.dx + eaClA a86 * W.ds := by
-    rw [Nat.mul_add, Nat.mul_add]; omega
-  have m5 : W.rx * (fs "__loop3" + (calleeBd fs H).xmss) = (fs "__loop3" + H.Bx) * W.rx := Nat.mul_comm _ _
-  have m6 : W.rs * (fs "__loop4" + (calleeBd fs H).sphincs) = (fs "__loop4" + H.Bsp) * W.rs := Nat.mul_comm _ _
-  have hbs8 : (mainBs8 fs (calleeBd fs H) W).sum = (W.da + W.ud) * fs "__loop0" + fs "__loop0" +
-      (calleeBd fs H).daList W.da + (calleeBd fs H).cl W.dx + (calleeBd fs H).cl W.ds +
-      (W.ux * fs "__loop1" + fs "__loop1") + (W.us * fs "__loop2" + fs "__loop2") +
-      (W.rx * (fs "__loop3" + (calleeBd fs H).xmss) + fs "__loop3") +
-      (W.rs * (fs "__loop4" + (calleeBd fs H).sphincs) + fs "__loop4") := by
-    simp only [mainBs8, List.sum_cons, List.sum_nil]; ring
-  -- the direct DA claim
-  have hda : (if W.rd = 1 then (calleeBd fs H).daVerify + (calleeBd fs H).cover else 0) ≤
-      (dvMax fs + fs "cover_da_root") * W.rd := by
-    have hdv : (calleeBd fs H).daVerify = dvMax fs := by simp only [calleeBd]
-    have hcv : (calleeBd fs H).cover = fs "cover_da_root" := rfl
-    rw [hdv, hcv]
-    split_ifs with h
-    · rw [h, Nat.mul_one]
-    · exact Nat.zero_le _
-  -- the children
-  have hch : loopSum (fs "__loop5") (fun c => childBd fs (calleeBd fs H) (W.child c)) 0 W.nc ≤
-      W.nc * (fs "__loop5" + eaChK fs H) + fs "__loop5" + eaChA fs H * (w.children.map cnw).sum := by
-    refine ea_loopSum (fs "__loop5") (eaChK fs H) (eaChA fs H) _ w.children 0 fun i hi => ?_
-    have hc : W.child (0 + i) = childWordsOf seed w.children[i] (hbase s w i) := by
-      simp only [hW, honestWords, Nat.zero_add, hi, ↓reduceDIte]
-    show childBd fs (calleeBd fs H) (W.child (0 + i)) ≤ _
-    rw [hc]
-    exact ea_childBd fs H _ (hlim.daRoots.2 _ (List.getElem_mem _))
-  have hagg : (if W.nc = 0 then 0 else aggBound fs W.nc) ≤ eaAggA fs * W.nc + eaAggB fs := by
-    split_ifs
-    · exact Nat.zero_le _
-    · rw [ea_agg]
-  have hn5 : W.nc * (fs "__loop5" + eaChK fs H) = fs "__loop5" * W.nc + eaChK fs H * W.nc := by ring
-  have hn6 : (162 + fs "__loop5" + eaChK fs H + eaAggA fs) * W.nc =
-      162 * W.nc + fs "__loop5" * W.nc + eaChK fs H * W.nc + eaAggA fs * W.nc := by ring
-  have hsd : (calleeBd fs H).sd = H.Bsd := rfl
-  simp only [mainBound, mainKidsBound, hsz, hbs8, eaWords, hcov, hdecl, hrx, hrs, hrd, hnc, hcc, hsd]
-  omega
+    mainBound fs (calleeBd fs H) (honestWords seed s w) ≤ (eaWords fs H a86 b86).eval (work s w) :=
+  ea_bound fs (ea_wordsOk fs H h86) hlim
 
 end
 end LeanVM.Guest.B1.Main
