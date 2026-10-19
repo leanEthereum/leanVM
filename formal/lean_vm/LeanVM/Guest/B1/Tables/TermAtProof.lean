@@ -1,19 +1,19 @@
 /-
   LeanVM.Guest.B1.Tables.TermAtProof
 
-  `check_opening_terminal` complete in the uniform placed form (`CompleteTermAt'`).
+  `check_opening_terminal` complete in the uniform placed form (`CompleteTermAt`).
 -/
 
 module
 
 public import LeanVM.Guest.B1.Tables.TermAtBody
-public import LeanVM.Guest.B1.Tables.TermAt
+public import LeanVM.Guest.B1.VerifySub.CompleteIface
 
 /-!
 # `check_opening_terminal`, placed
 
 Its five `HeapBuf`s hold the run's chains and rows (`termOwn`, over the table point fixed by
-`CompleteTermAt'`); its 97 callees (three prefix chains, `__loop83`, the 92 selectors,
+`CompleteTermAt`); its 97 callees (three prefix chains, `__loop83`, the 92 selectors,
 `rs_eq_run`) are pure, on the caller's words and those buffers; every load reads one of them.
 -/
 
@@ -82,9 +82,9 @@ theorem dispOk_of {σ : Val} {l : List Stmt}
   | _ => trivial
 
 set_option maxHeartbeats 8000000 in
-/-- **`check_opening_terminal` is complete, placed** (TRIAGE #42, #43): `CompleteTermAt'`. -/
+/-- **`check_opening_terminal` is complete, placed** (TRIAGE #42, #43): `CompleteTermAt`. -/
 theorem check_opening_terminal_completeAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) :
-    CompleteTermAt' fs cert κ TCtx PCtx := by
+    CompleteTermAt fs cert κ TCtx PCtx := by
   intro layout bus claims lam fp cs w chis args Lin hacc hlen' hgz hpre
   classical
   by_cases hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 Lin

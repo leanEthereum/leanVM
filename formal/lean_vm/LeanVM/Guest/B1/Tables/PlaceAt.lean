@@ -240,27 +240,11 @@ theorem limb_mul_gen_pow' {p : E} (hp : IsInK p) (j off : ℕ) :
 
 end
 
-namespace VerifySub
-
-/-- **`certify_placement`, placed** (`CompletePlaceAt` with `q_flock`'s size below
-`SIZE_BITS = 34`, which its range check asks). -/
-def CompletePlaceAt' (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ)
-    (PCtx : Reader → List ℕ → E → E → Prop) : Prop :=
-  ∀ (lp sq kb : E) (logMem : ℕ) (hs : List ℕ) (Lin : Main.Layout), logMem ≤ 32 → hs.length = 6 →
-    (∀ h ∈ hs, h < 29) → hs.getD 5 0 + 8 < 34 →
-    (∀ rd, LowDef k rd → MemL rd Lin →
-      ExpTables rd lp sq ∧ ReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·))) →
-    CompleteAtD fs cert k "certify_placement" Lin [kb, sq] fun rets Lout =>
-      ∃ off kap, rets = [gen ^ stackTotal (columnKappas logMem 18 hs), off, kap] ∧
-        ∀ rd, MemL rd Lout → PCtx rd (columnKappas logMem 18 hs) off kap
-
-end VerifySub
-
 set_option maxHeartbeats 4000000 in
-/-- **`certify_placement` is complete, placed** (TRIAGE #41): `CompletePlaceAt'`, on memories
+/-- **`certify_placement` is complete, placed** (TRIAGE #41): `CompletePlaceAt`, on memories
 defined below `2^7`. -/
 theorem certify_placement_completeAt (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ}
-    (hκ : 7 ≤ κ) : CompletePlaceAt' fs cert κ PCtx := by
+    (hκ : 7 ≤ κ) : CompletePlaceAt fs cert κ PCtx := by
   intro lp sq kb lm hs Lin hlm hl hh h5 hpre
   set kps := columnKappas lm 18 hs
   set κs := committedKappas kps with hκsdef
