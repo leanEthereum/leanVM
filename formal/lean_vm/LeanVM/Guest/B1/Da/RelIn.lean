@@ -62,6 +62,25 @@ theorem relIn_of_inv {rd : Reader} {R : ℕ → Prop} (Inv : String → List E �
       refine relIn_of_walk coreProgram_wf hf hp hw hr (fun e he => (hok e he).1) hload fun c hc ht => ?_
       exact ih (hcalls c hc ht) ((hok _ (mem_calls_taken hc ht)).2 c.f c.args c.rets rfl)
 
+/-- The events of a path of a body that holds, hold. -/
+theorem holds_of_holdsList {rd : Reader} {σ : Val} {f : String} {fn : Fn} {es : List Ev} {vs : List V}
+    {kret : List E → Prop} (hf : coreProgram.find? f = some fn)
+    (hh : Stmt.HoldsList (coreProgram.Rel rd) rd σ fn.body False kret) (hw : walk σ fn.body = .ret es vs) :
+    ∀ e ∈ es, e.Holds rd σ := by
+  have := walk_sat (P := coreProgram) fn.body (coreProgram_wf fn (List.mem_of_find?_eq_some hf)) hh
+  rw [hw] at this
+  exact fun e he => (this.1 e he).1
+
+theorem allocs_append (σ : Val) (a b : List Ev) : allocs σ (a ++ b) = allocs σ a ++ allocs σ b :=
+  List.filterMap_append
+theorem allocDsts_append (a b : List Ev) : allocDsts (a ++ b) = allocDsts a ++ allocDsts b :=
+  List.filterMap_append
+theorem addrs_append (a b : List Ev) : addrs (a ++ b) = addrs a ++ addrs b := List.filterMap_append
+theorem runs_append (a b : List Ev) : runs (a ++ b) = runs a ++ runs b := List.filterMap_append
+theorem calls_append (a b : List Ev) : calls (a ++ b) = calls a ++ calls b := List.filterMap_append
+theorem loadAddrs_append (σ : Val) (a b : List Ev) : loadAddrs σ (a ++ b) = loadAddrs σ a ++ loadAddrs σ b :=
+  List.filterMap_append
+
 /-! ## With the words of the tree -/
 
 section Total
