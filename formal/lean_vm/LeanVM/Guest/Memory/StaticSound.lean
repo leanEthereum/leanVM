@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Memory.Static
 public import LeanVM.Guest.Memory.Fresh
+public import LeanVM.Guest.Memory.Restrict
 public import LeanVM.Guest.Value.Tower
 
 /-!
@@ -477,9 +478,6 @@ theorem bufsOkKids_split : ∀ (ks ks' : List Tree),
       rw [List.cons_append, Tree.BufsOkKids] at h
       obtain ⟨h1, h2⟩ := bufsOkKids_split ks ks' h.2
       exact ⟨by rw [Tree.BufsOkKids]; exact ⟨h.1, h1⟩, h2⟩
-
-theorem calls_append (es es' : List Ev) : calls (es ++ es') = calls es ++ calls es' :=
-  List.filterMap_append
 
 theorem kidsValid_split : ∀ {cs cs' : List Call} {ks : List Tree},
     Tree.KidsValid P rd σ (cs ++ cs') ks →
