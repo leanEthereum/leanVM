@@ -144,7 +144,7 @@ theorem mem_windows {α : Type} (g : List Stmt → List α) (hg : ∀ a b, g (a 
       x ∈ g (fromW (coreOf j).body (snapsOf j) i) → ∃ i', i' ≤ (snapsOf j).length ∧
         x ∈ g (stmtsW (coreOf j).body (snapsOf j) i') := by
   obtain ⟨-, h0, -, -⟩ := shareWin_spec (hS 0 (Nat.zero_le _))
-  obtain ⟨-, -, hmono, -⟩ := h0 rfl
+  obtain ⟨-, -, hmono, -, -⟩ := h0 rfl
   intro k
   induction k with
   | zero =>
@@ -185,7 +185,7 @@ theorem fnStatic {j : ℕ} {G : Glob} {f : CompiledFn} {main : Bool} (hS : Share
     (hchk : ∀ i ≤ (certOf j).cuts.length, checkWin G f (coreOf j) (certOf j) main i = true) : FnStatic j := by
   have hcont := cont_of hchk
   obtain ⟨-, h0, -, -⟩ := shareWin_spec (hS 0 (Nat.zero_le _))
-  obtain ⟨-, hlists, hsn, -⟩ := h0 rfl
+  obtain ⟨-, hlists, hsn, -, -⟩ := h0 rfl
   have hA : ∀ i ≤ (snapsOf j).length, ∀ v c, (locW (certOf j) (winW (snapsOf j) i)).get? v.idx = some c →
       cellJ j v = c := fun i hi v c h ↦
     locW_get hcont (winW_le hsn hi) (checkWin_parts (hchk _ (winW_le hsn hi))).2 rfl (shareWin_spec (hS i hi)).1 h

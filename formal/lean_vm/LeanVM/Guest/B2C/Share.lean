@@ -439,6 +439,24 @@ noncomputable def refines (m : SSt) (s : Snap) : Bool :=
     s.cst.all (fun q ↦ getF m.cst q.1 == some q.2) &&
     s.keys.all (fun q ↦ ((getF m.keys q.1).getD []).any fun k ↦ k == q.2)
 
+/-- `s` has none of `t`'s bits. -/
+def apart (s t : ℕ) : Bool := Nat.beq (Nat.land s t) 0
+
+/-- The cells of the call sites: the callee frame pointers' and the fused dispatches' targets. -/
+def siteCells (P : Plumb) : List ℕ := P.sites.flatMap fun s ↦ s.q :: (bif Nat.beq s.tgt 0 then [] else [s.tgt])
+
+/-- **The cells apart**, in `C`'s order: the fixed cells from the temporaries', the call sites'
+from the temporaries', the runs', the fixed cells and every value's, the table targets' from all
+of those; in `main`, all below the jump table. -/
+noncomputable def apartOk (j : ℕ) : Bool :=
+  natSeq (Nat.lor (tmpCells (plumbOf j)) (bitsOf ((plumbOf j).runs.map Prod.snd))) fun tr ↦
+  natSeq (bitsOf ((plumbOf j).stat.map Prod.fst)) fun st ↦
+  natSeq (Nat.lor (Nat.lor tr st) (bitsOf (certOf j).locs)) fun trsv ↦
+  natSeq (bitsOf (siteCells (plumbOf j))) fun sc ↦
+  natSeq (bitsOf ((plumbOf j).arms.map fun a ↦ a.2.1)) fun ac ↦
+  apart st (tmpCells (plumbOf j)) && apart sc trsv && apart ac (Nat.lor trsv sc) &&
+    (bif Nat.beq j 1 then Nat.blt (Nat.lor (Nat.lor trsv sc) ac) (2 ^ 167) else true)
+
 /-- The snapshot window `k` starts from (`k ≥ 1`). -/
 def snapAt (snaps : List Snap) (k : ℕ) : Snap := nth snaps (k - 1) ⟨0, 0, 0, [], [], []⟩
 
@@ -469,7 +487,7 @@ noncomputable def shareWin (j : ℕ) (snaps : List Snap) (k : ℕ) : Bool :=
   (nth (certOf j).cells (winW snaps k) []).all (fun c ↦ Nat.blt c 65536) &&
   (bif k == 0 then
       Nat.blt (fsN j) (2 ^ envDepth) && listsOk (plumbOf j) (fsN j) && snapsOk (certOf j) snaps &&
-        (coreOf j).params.all (valOk loc tt tc fc (fsN j))
+        apartOk j && (coreOf j).params.all (valOk loc tt tc fc (fsN j))
     else true) &&
   (Memory.Stmt.usesList (stmtsW (coreOf j).body snaps k) ++
     Memory.Stmt.tmpsList (stmtsW (coreOf j).body snaps k)).all (valOk loc tt tc fc (fsN j)) &&
