@@ -605,5 +605,81 @@ theorem loop10_back {rd : Reader} (d : ℕ) {x N dsb gmu layers rounds shE : E} 
   refine ⟨hr0, hr1, (by rw [e13]; exact hn16), (by rw [e13]; exact hn17), rfl, rfl, (by rw [e13]; rw [show σ (.n 293) = curT * gen ^ 12 from by show curT * word 4096 0 0 = _; rw [word_g12]]; exact hn18), rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, (by rw [e13]; exact hn19), rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, (by rw [e13]; exact hn20), rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, (by rw [e13]; exact hn21), rfl, rfl, (by rw [e13]; rw [show σ (.n 322) = row * gen ^ 40 from by show row * word 1099511627776 0 0 = _; rw [word_g40]]; exact hn22), rfl, rfl, rfl, (by rw [e13]; rw [show σ (.n 325) = pos * (x * x * shE) * gen from by show pos * ((x * x) * shE) * word 2 0 0 = _; rw [word_gen]]; exact hn23), rfl, rfl, rfl, rfl, rfl, (by rw [e328]; exact hK), (fun h => by rw [e328] at h; simp only [List.map_cons, List.map_nil]; rw [e330]; exact hnext h), ?_⟩
   rfl
 
+/-- Finitely many relations, each under its condition, hold at one depth. -/
+theorem rel_uniform_cond {rd : Reader} {F : ℕ → String} {A R : ℕ → List E} {P : ℕ → Prop} :
+    ∀ m : ℕ, (∀ j < m, P j → coreProgram.Rel rd (F j) (A j) (R j)) →
+      ∃ D, ∀ j < m, P j → coreProgram.relN rd D (F j) (A j) (R j)
+  | 0, _ => ⟨0, fun _ h => absurd h (Nat.not_lt_zero _)⟩
+  | m + 1, h => by
+    classical
+    obtain ⟨D, hD⟩ := rel_uniform_cond m fun j hj => h j (by omega)
+    by_cases hp : P m
+    · obtain ⟨D', hD'⟩ := h m (by omega) hp
+      refine ⟨max D D', fun j hj hpj => ?_⟩
+      rcases Nat.lt_or_ge j m with hj' | hj'
+      · exact relN_mono coreProgram (le_max_left _ _) _ _ _ (hD j hj' hpj)
+      · rw [show j = m by omega]; exact relN_mono coreProgram (le_max_right _ _) _ _ _ hD'
+    · refine ⟨D, fun j hj hpj => ?_⟩
+      rcases Nat.lt_or_ge j m with hj' | hj'
+      · exact hD j hj' hpj
+      · exact absurd (show P m by rw [show m = j by omega]; exact hpj) hp
+
+/-- The memory and callee facts one iteration of `__loop10` needs, at `x`. -/
+structure L10Iter (rd : Reader) (N dsb gmu layers rounds x shE : E) (cv cvT : Digest)
+    (cur v0 v1 v2 row pos curT claimT : E) (es : ℕ → E) : Prop where
+  hds : LoadHolds rd (dsb * gmu) 0 shE
+  hl0 : LoadHolds rd (layers * (x * x * shE) ^ 8) 0 (digestScalars cv).1
+  hl1 : LoadHolds rd (layers * (x * x * shE) ^ 8) 1 (digestScalars cv).2
+  hl2 : LoadHolds rd (layers * (x * x * shE) ^ 8) 2 cur
+  hl3 : LoadHolds rd (layers * (x * x * shE) ^ 8) 3 v0
+  hl4 : LoadHolds rd (layers * (x * x * shE) ^ 8) 4 v1
+  hl5 : LoadHolds rd (layers * (x * x * shE) ^ 8) 5 v2
+  hl6 : LoadHolds rd (layers * (x * x * shE) ^ 8) 6 row
+  hl7 : LoadHolds rd (layers * (x * x * shE) ^ 8) 7 pos
+  hh0 : LoadHolds rd (rounds * pos ^ 4) 0 (digestScalars (sqCv cv)).1
+  hh1 : LoadHolds rd (rounds * pos ^ 4) 1 (digestScalars (sqCv cv)).2
+  hh2 : LoadHolds rd (rounds * pos ^ 4) 2 cur
+  hh3 : LoadHolds rd (rounds * pos ^ 4) 3 (v0 + challengeOf (sqCv cv) * (v1 + challengeOf (sqCv cv) * v2))
+  ht0 : LoadHolds rd (rounds * (pos * (x * x * shE)) ^ 4) 0 (digestScalars cvT).1
+  ht1 : LoadHolds rd (rounds * (pos * (x * x * shE)) ^ 4) 1 (digestScalars cvT).2
+  ht2 : LoadHolds rd (rounds * (pos * (x * x * shE)) ^ 4) 2 curT
+  ht3 : LoadHolds rd (rounds * (pos * (x * x * shE)) ^ 4) 3 claimT
+  hr0 : LoadHolds rd (row) 40 (challengeOf (sqCv (l10cv cvT es 12)))
+  hr1 : LoadHolds rd (row) 41 (challengeOf (sqCv (sqCv (l10cv cvT es 12))))
+  hn16 : LoadHolds rd (layers * (x * x * shE) ^ 8) 16 (digestScalars (sqCv (sqCv (l10cv cvT es 12)))).1
+  hn17 : LoadHolds rd (layers * (x * x * shE) ^ 8) 17 (digestScalars (sqCv (sqCv (l10cv cvT es 12)))).2
+  hn18 : LoadHolds rd (layers * (x * x * shE) ^ 8) 18 (curT * gen ^ 12)
+  hn19 : LoadHolds rd (layers * (x * x * shE) ^ 8) 19 ((((es 0)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 0)) + ((es 1))))) + (((challengeOf (sqCv (sqCv (l10cv cvT es 12))))) * ((((es 0)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 0)) + ((es 1))))) + (((es 2)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 2)) + ((es 3))))))))
+  hn20 : LoadHolds rd (layers * (x * x * shE) ^ 8) 20 ((((es 4)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 4)) + ((es 5))))) + (((challengeOf (sqCv (sqCv (l10cv cvT es 12))))) * ((((es 4)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 4)) + ((es 5))))) + (((es 6)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 6)) + ((es 7))))))))
+  hn21 : LoadHolds rd (layers * (x * x * shE) ^ 8) 21 ((((es 8)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 8)) + ((es 9))))) + (((challengeOf (sqCv (sqCv (l10cv cvT es 12))))) * ((((es 8)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 8)) + ((es 9))))) + (((es 10)) + (((challengeOf (sqCv (l10cv cvT es 12)))) * (((es 10)) + ((es 11))))))))
+  hn22 : LoadHolds rd (layers * (x * x * shE) ^ 8) 22 (row * gen ^ 40)
+  hn23 : LoadHolds rd (layers * (x * x * shE) ^ 8) 23 (pos * (x * x * shE) * gen)
+  hK1 : IsInK (1 + (x * x * shE))
+  h101 : 1 + (x * x * shE) ≠ 0 → coreProgram.Rel rd "__loop101" [1, (x * x * shE), rounds, pos, row, row * gen ^ 40] []
+  hc : ∀ i < 12, LoadHolds rd curT i (es i)
+  hcheck : claimT = es 0 * es 1 * es 2 * es 3 + challengeOf (sqCv cv) * (es 4 * es 5 * es 6 * es 7 +
+    challengeOf (sqCv cv) * (es 8 * es 9 * es 10 * es 11))
+
+/-- **`__loop10`** runs the `m` pair iterations from their honest facts. -/
+theorem loop10_complete {rd : Reader} {dsb gmu layers rounds : E} {m : ℕ} (hm0 : 0 < m)
+    (hB : ∀ j < m, ∃ (shE : E) (cv cvT : Digest) (cur v0 v1 v2 row pos curT claimT : E) (es : ℕ → E),
+      L10Iter rd (gen ^ m) dsb gmu layers rounds (gen ^ j) shE cv cvT cur v0 v1 v2 row pos curT claimT es) :
+    coreProgram.Rel rd "__loop10" [1, gen ^ m, dsb, gmu, layers, rounds] [] := by
+  choose shE cv cvT cur v0 v1 v2 row pos curT claimT es hI using hB
+  classical
+  obtain ⟨D, hD⟩ := rel_uniform_cond (rd := rd) (F := fun _ => "__loop101")
+    (P := fun j => ∃ hj : j < m, 1 + gen ^ j * gen ^ j * shE j hj ≠ 0)
+    (A := fun j => if hj : j < m then [1, gen ^ j * gen ^ j * shE j hj, rounds, pos j hj, row j hj,
+      row j hj * gen ^ 40] else []) (R := fun _ => []) m fun j hj ⟨_, hne⟩ => by
+        simp only [hj, ↓reduceDIte]; exact (hI j hj).h101 hne
+  refine Main.loop_complete_from (D := D) (B := fun j => j < m) hm0 rfl (fun j hj => hj) ?_
+  intro d j hd hj hK hnext
+  have it := hI j hj
+  refine loop10_back d it.hds it.hl0 it.hl1 it.hl2 it.hl3 it.hl4 it.hl5 it.hl6 it.hl7 it.hh0 it.hh1
+    it.hh2 it.hh3 it.ht0 it.ht1 it.ht2 it.ht3 it.hr0 it.hr1 it.hn16 it.hn17 it.hn18 it.hn19 it.hn20
+    it.hn21 it.hn22 it.hn23 it.hK1 (fun hne => ?_) it.hc it.hcheck hK hnext
+  have := relN_mono coreProgram hd _ _ _ (hD j hj ⟨hj, hne⟩)
+  simpa only [hj, ↓reduceDIte] using this
+
 end
 end LeanVM.Guest.B1.VerifySub
