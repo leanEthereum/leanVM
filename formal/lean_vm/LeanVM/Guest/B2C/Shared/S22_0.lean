@@ -29,6 +29,10 @@ set_option maxRecDepth 100000 in
 /-- `da_row_shape`, window 0. -/
 theorem w25_0 : shareWin 25 (snapsOf 25) 0 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `da_verify_cell`, window 0. -/
+theorem w26_0 : shareWin 26 (snapsOf 26) 0 = true := by decide +kernel
+
 theorem ok22 : ShareOk 22 := fun i hi ↦ by
   have h : (snapsOf 22).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega

@@ -170,6 +170,10 @@ set_option maxRecDepth 100000 in
 theorem w972_0 : shareWin 972 (snapsOf 972) 0 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L17`, window 1. -/
+theorem w972_1 : shareWin 972 (snapsOf 972) 1 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
 /-- `__loop429`, window 0. -/
 theorem w973_0 : shareWin 973 (snapsOf 973) 0 = true := by decide +kernel
 
@@ -362,11 +366,6 @@ theorem ok971 : ShareOk 971 := fun i hi ↦ by
   have h : (snapsOf 971).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w971_0
-
-theorem ok972 : ShareOk 972 := fun i hi ↦ by
-  have h : (snapsOf 972).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w972_0
 
 theorem ok973 : ShareOk 973 := fun i hi ↦ by
   have h : (snapsOf 973).length = 0 := by decide +kernel

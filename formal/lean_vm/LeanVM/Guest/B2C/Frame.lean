@@ -81,6 +81,7 @@ structure Apart (j : ℕ) : Prop where
   statNodup : ((plumbOf j).stat.map Prod.fst).Nodup
   siteNodup : (siteCells (plumbOf j)).Nodup
   armNodup : ((plumbOf j).arms.map fun a ↦ a.2.1).Nodup
+  env : ∀ p ∈ (certOf j).facts.env, (p.1, PC.fpg 0) ∈ (plumbOf j).stat
   main : j = 1 → (∀ p ∈ (plumbOf j).tmps, p.2 < 167) ∧ (∀ p ∈ (plumbOf j).runs, p.2 < 167) ∧
     (∀ q ∈ (plumbOf j).stat, q.1 < 167) ∧ (∀ c ∈ (certOf j).locs, c < 167) ∧
     (∀ c ∈ siteCells (plumbOf j), c < 167) ∧ ∀ a ∈ (plumbOf j).arms, a.2.1 < 167
@@ -88,7 +89,7 @@ structure Apart (j : ℕ) : Prop where
 theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
   unfold apartOk at h
   simp only [natSeq_eq, Bool.and_eq_true] at h
-  obtain ⟨⟨⟨⟨⟨⟨ha, hb⟩, hc⟩, h4⟩, h5⟩, h6⟩, h7⟩ := h
+  obtain ⟨⟨⟨⟨⟨⟨⟨ha, hb⟩, hc⟩, h4⟩, h5⟩, h6⟩, h8⟩, h7⟩ := h
   have tc : ∀ p ∈ (plumbOf j).tmps, (tmpCells (plumbOf j)).testBit p.2 = true := fun p hp ↦
     mem_bitsOf (List.mem_map_of_mem hp)
   have rc : ∀ p ∈ (plumbOf j).runs, (bitsOf ((plumbOf j).runs.map Prod.snd)).testBit p.2 = true :=
@@ -100,7 +101,7 @@ theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
   have acc : ∀ a ∈ (plumbOf j).arms, (bitsOf ((plumbOf j).arms.map fun a ↦ a.2.1)).testBit a.2.1 = true :=
     fun a ha ↦ mem_bitsOf (List.mem_map_of_mem (f := fun a : ℕ × ℕ × ℕ ↦ a.2.1) ha)
   refine ⟨fun q hq p hp he ↦ ?_, fun c hc ↦ ?_, fun a ha ↦ ?_, (bitsNodup_spec _ _ h4).1,
-    (bitsNodup_spec _ _ h5).1, (bitsNodup_spec _ _ h6).1, fun hj ↦ ?_⟩
+    (bitsNodup_spec _ _ h5).1, (bitsNodup_spec _ _ h6).1, fun p hp ↦ ?_, fun hj ↦ ?_⟩
   · have := apart_spec ha (stc q hq)
     rw [← he, tc p hp] at this; cases this
   · have hs := apart_spec hb (scc c hc)
@@ -120,6 +121,9 @@ theorem apart_of {j : ℕ} (h : apartOk j = true) : Apart j := by
     · rw [← he, stc q hq] at hst; cases hst
     · rw [mem_bitsOf hl] at hv; cases hv
     · rw [scc _ hl] at hsc; cases hsc
+  · simp only [List.all_eq_true, List.any_eq_true, Bool.and_eq_true, nbeq_iff, beq_iff_eq] at h8
+    obtain ⟨q, hq, h1, h2⟩ := h8 p hp
+    rw [← h1, ← h2]; exact hq
   · subst hj
     simp only [show Nat.beq 1 1 = true from rfl, Bool.cond_true, Nat.blt_eq] at h7
     have hlt : ∀ c, (Nat.lor (Nat.lor (Nat.lor (Nat.lor (tmpCells (plumbOf 1)) (bitsOf ((plumbOf 1).runs.map Prod.snd)))

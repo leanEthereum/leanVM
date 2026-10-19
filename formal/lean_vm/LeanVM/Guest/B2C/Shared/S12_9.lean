@@ -21,5 +21,9 @@ set_option maxRecDepth 100000 in
 /-- `verify_tables`, window 10. -/
 theorem w12_10 : shareWin 12 (snapsOf 12) 10 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `verify_tables`, window 11. -/
+theorem w12_11 : shareWin 12 (snapsOf 12) 11 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Shared

@@ -1856,7 +1856,7 @@ end
 def bitsOfSet (s : Std.HashSet ℕ) : ℕ := s.fold (fun n c => n ||| (1 <<< c)) 0
 
 /-- The most cost (values its statements name) of a sharing window. -/
-def maxShareWin : ℕ := 2500
+def maxShareWin : ℕ := 2000
 
 /-- The sharing check's windows of a function and their snapshots: each soundness window cut where
 its statements so far cost `maxShareWin` and nothing is pending, each window after the first

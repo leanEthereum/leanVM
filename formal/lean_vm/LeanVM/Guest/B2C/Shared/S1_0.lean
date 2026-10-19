@@ -61,6 +61,10 @@ set_option maxRecDepth 100000 in
 /-- `verify_bus_gkr`, window 0. -/
 theorem w11_0 : shareWin 11 (snapsOf 11) 0 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `verify_tables`, window 0. -/
+theorem w12_0 : shareWin 12 (snapsOf 12) 0 = true := by decide +kernel
+
 theorem ok2 : ShareOk 2 := fun i hi ↦ by
   have h : (snapsOf 2).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega

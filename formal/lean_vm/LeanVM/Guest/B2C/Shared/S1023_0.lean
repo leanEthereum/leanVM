@@ -21,15 +21,14 @@ set_option maxRecDepth 100000 in
 /-- `decode_query_bits__L25`, window 0. -/
 theorem w1024_0 : shareWin 1024 (snapsOf 1024) 0 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L25`, window 1. -/
+theorem w1024_1 : shareWin 1024 (snapsOf 1024) 1 = true := by decide +kernel
+
 theorem ok1023 : ShareOk 1023 := fun i hi ↦ by
   have h : (snapsOf 1023).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w1023_0
-
-theorem ok1024 : ShareOk 1024 := fun i hi ↦ by
-  have h : (snapsOf 1024).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w1024_0
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -17,5 +17,9 @@ set_option maxRecDepth 100000 in
 /-- `verify_flock`, window 0. -/
 theorem w13_0 : shareWin 13 (snapsOf 13) 0 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `verify_flock`, window 1. -/
+theorem w13_1 : shareWin 13 (snapsOf 13) 1 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Shared

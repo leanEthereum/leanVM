@@ -17,5 +17,9 @@ set_option maxRecDepth 100000 in
 /-- `open_stacked__L19`, window 0. -/
 theorem w197_0 : shareWin 197 (snapsOf 197) 0 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `open_stacked__L19`, window 1. -/
+theorem w197_1 : shareWin 197 (snapsOf 197) 1 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Shared

@@ -452,8 +452,8 @@ def siteCells (P : Plumb) : List ℕ := P.sites.flatMap fun s ↦ s.q :: (bif Na
 
 /-- **The cells apart**, in `C`'s order: the fixed cells from the temporaries', the call sites'
 from the temporaries', the runs', the fixed cells and every value's, the table targets' from all
-of those, the fixed cells, the sites' and the targets' each once; in `main`, all below the jump
-table. -/
+of those, the fixed cells, the sites' and the targets' each once, the entry environment's cells
+fixed frame pointer cells; in `main`, all below the jump table. -/
 noncomputable def apartOk (j : ℕ) : Bool :=
   natSeq (Nat.lor (tmpCells (plumbOf j)) (bitsOf ((plumbOf j).runs.map Prod.snd))) fun tr ↦
   natSeq (bitsOf ((plumbOf j).stat.map Prod.fst)) fun st ↦
@@ -463,6 +463,7 @@ noncomputable def apartOk (j : ℕ) : Bool :=
   apart st (tmpCells (plumbOf j)) && apart sc trsv && apart ac (Nat.lor trsv sc) &&
     bitsNodup ((plumbOf j).stat.map Prod.fst) 0 && bitsNodup (siteCells (plumbOf j)) 0 &&
     bitsNodup ((plumbOf j).arms.map fun a ↦ a.2.1) 0 &&
+    (certOf j).facts.env.all (fun p ↦ (plumbOf j).stat.any fun q ↦ Nat.beq q.1 p.1 && q.2 == .fpg 0) &&
     (bif Nat.beq j 1 then Nat.blt (Nat.lor (Nat.lor trsv sc) ac) (2 ^ 167) else true)
 
 /-- The snapshot window `k` starts from (`k ≥ 1`). -/

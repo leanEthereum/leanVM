@@ -17,5 +17,9 @@ set_option maxRecDepth 100000 in
 /-- `da_vector_cell__L1`, window 1. -/
 theorem w548_1 : shareWin 548 (snapsOf 548) 1 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `da_vector_cell__L1`, window 2. -/
+theorem w548_2 : shareWin 548 (snapsOf 548) 2 = true := by decide +kernel
+
 end
 end LeanVM.Guest.B2C.Shared

@@ -25,6 +25,10 @@ set_option maxRecDepth 100000 in
 /-- `decode_query_bits__L20`, window 0. -/
 theorem w991_0 : shareWin 991 (snapsOf 991) 0 = true := by decide +kernel
 
+set_option maxRecDepth 100000 in
+/-- `decode_query_bits__L20`, window 1. -/
+theorem w991_1 : shareWin 991 (snapsOf 991) 1 = true := by decide +kernel
+
 theorem ok989 : ShareOk 989 := fun i hi ↦ by
   have h : (snapsOf 989).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
@@ -34,11 +38,6 @@ theorem ok990 : ShareOk 990 := fun i hi ↦ by
   have h : (snapsOf 990).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
   exact w990_0
-
-theorem ok991 : ShareOk 991 := fun i hi ↦ by
-  have h : (snapsOf 991).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w991_0
 
 end
 end LeanVM.Guest.B2C.Shared
