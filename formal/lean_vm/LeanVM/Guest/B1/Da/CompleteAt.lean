@@ -24,7 +24,7 @@ namespace LeanVM.Guest.B1.Digest
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sHash
 open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Value LeanVM.Node
 open LeanVM.Protocol.Verifier (gen)
-open LeanVM.Guest.B1 (LowDef CompleteAt CompleteAtD CompleteRel CompleteRelD DisjL disj_nil Within Returns)
+open LeanVM.Guest.B1 (LowDef CompleteAt CompleteAtD CompleteAtB CompleteRel CompleteRelD DisjL disj_nil Within Returns)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
@@ -785,6 +785,48 @@ theorem da_verify_completeRelAtD (fs : String → ℕ) (cert : String → V → 
     · obtain ⟨hT, hr, hv⟩ := h
       exact ⟨hT, root, vd, wt, hw, hr, hv⟩
     · exact h.elim
+
+/-- **`da_verify` is complete, uniformly placed**, returning the claim a witness opens, by a tree of
+`dvTot` words. -/
+theorem da_verify_completeRelAtB (fs : String → ℕ) (cert : String → V → ℕ) {κ : ℕ} (hκ : 16 ≤ κ)
+    (hc20 : cert "da_verify" (.n 20) + 385 ≤ fs "da_verify")
+    (hc4 : ∀ f, cert (vxName f) (.n 4) + 256 ≤ fs (vxName f)) (w : Da.Witness) (root vd : Digest)
+    (hw : w.Opens root vd) :
+    ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef κ rd → MemL rd Lin → DaPreAt root vd rd args rets) →
+      CompleteAtB fs cert κ "da_verify" Lin args (Returns rets) (dvTot fs w.rows.length) := by
+  intro args rets Lin hpre fp
+  classical
+  by_cases hex : ∃ rd1, LowDef κ rd1 ∧ MemL rd1 Lin
+  swap
+  · refine ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, Nat.zero_le _,
+      fun rd hl hL => absurd ⟨rd, hl, ?_⟩ hex⟩
+    simpa using hL
+  obtain ⟨rd1, hl1, hL1⟩ := hex
+  have hsh : ∃ gsq r0 r1 v0 v1, args = [gsq] ∧ rets = [r0, r1, v0, v1] := by
+    have h := hpre rd1 hl1 hL1
+    unfold DaPreAt at h
+    split at h
+    · exact ⟨_, _, _, _, _, rfl, rfl⟩
+    · exact h.elim
+  obtain ⟨gsq, r0, r1, v0, v1, rfl, rfl⟩ := hsh
+  obtain ⟨-, hr, hv⟩ := hpre rd1 hl1 hL1
+  have hlp : LeanDa.logPad w.rows.length < 16 := by have := logPad_le hw.2.1; omega
+  have hR := forced_load (p := gsq * gen ^ LeanDa.logPad w.rows.length) (k := 0)
+    (v := gen ^ 2 ^ LeanDa.logPad w.rows.length) (fun rd hl hL => by
+      have := (hpre rd hl hL).1 _ hlp
+      exact (LeanVM.Guest.B1.Digest.loadHolds_mul_gen_pow _ _ _ _).mpr (by rwa [Nat.add_zero])) hl1 hL1
+  refine ⟨dvTot fs w.rows.length, dvLayout fs cert w fp, _, [], ⟨rfl, rfl⟩,
+    by rw [List.nil_append]; exact dvLayout_within fs cert fp hw.1 hc20 hc4,
+    by rw [List.nil_append]; exact dvLayout_disj fs cert w fp hw.1 hc20 hc4, le_rfl, fun rd hl hL => ?_⟩
+  rw [List.nil_append] at hL
+  obtain ⟨hLo, hLi⟩ := Main.memL_append.mp hL
+  have hlow : Low16 rd := fun i hi => hl i (lt_of_lt_of_le hi (Nat.pow_le_pow_right (by norm_num) hκ))
+  have h := dv_relAtIn fs cert hlow (hpre rd hl hLi).1 hw hR fp (daMem_of_memL hLo fun q hq => hq)
+  rw [show r0 = (digestScalars root).1 from congrArg Prod.fst hr,
+    show r1 = (digestScalars root).2 from congrArg Prod.snd hr,
+    show v0 = (digestScalars vd).1 from congrArg Prod.fst hv,
+    show v1 = (digestScalars vd).2 from congrArg Prod.snd hv]
+  exact LeanVM.Guest.B1.relAtIn_dmono h fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq
 
 end
 end LeanVM.Guest.B1.Digest

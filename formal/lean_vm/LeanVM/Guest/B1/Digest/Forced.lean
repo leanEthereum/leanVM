@@ -23,7 +23,7 @@ namespace LeanVM.Guest.B1.Digest
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (gen)
-open LeanVM.Guest.B1 (LowDef CompleteRel CompleteRelD)
+open LeanVM.Guest.B1 (LowDef CompleteRel CompleteRelD CompleteAtB Returns)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section
@@ -89,6 +89,16 @@ theorem completeRel_mono {fs : String → ℕ} {cert : String → V → ℕ} {κ
 theorem completeRel_monoD {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
     {Pre Pre' : Reader → List E → List E → Prop} (h : CompleteRelD fs cert κ f Pre)
     (hP : ∀ rd args rets, Pre' rd args rets → Pre rd args rets) : CompleteRelD fs cert κ f Pre' :=
+  fun args rets Lin hpre => h args rets Lin fun rd hl hL => hP rd args rets (hpre rd hl hL)
+
+/-- Bounded `CompleteRel` is antitone in the precondition. -/
+theorem completeRel_monoB {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} {f : String}
+    {Pre Pre' : Reader → List E → List E → Prop} {B : List E → ℕ}
+    (h : ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef κ rd → MemL rd Lin → Pre rd args rets) →
+      CompleteAtB fs cert κ f Lin args (Returns rets) (B args))
+    (hP : ∀ rd args rets, Pre' rd args rets → Pre rd args rets) :
+    ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef κ rd → MemL rd Lin → Pre' rd args rets) →
+      CompleteAtB fs cert κ f Lin args (Returns rets) (B args) :=
   fun args rets Lin hpre => h args rets Lin fun rd hl hL => hP rd args rets (hpre rd hl hL)
 
 /-! ## Layout entries -/
