@@ -171,23 +171,21 @@ def CompletePlaceAt : Prop :=
       ∃ off kap, rets = [gen ^ stackTotal (columnKappas logMem 18 hs), off, kap] ∧
         ∀ rd, MemL rd Lout → PCtx rd (columnKappas logMem 18 hs) off kap
 
-/-- `open_stacked`'s run at `(μ, r)` on a memory: the words at the cursor and the openings run
-`whirOpen μ r target` to `w` from the state of `(fs0, fs1)`, the root committed. -/
-def OpenRun (μ r : ℕ) (root : Digest) (rd : Reader) (fs0 fs1 target cur : E) (w : WhirEnd) : Prop :=
-  ∃ (cv : Digest) (xs : List E) (os : List Opening) (cv' : Digest) (roots' : List (Digest × ℕ × ℕ)),
-    (fs0, fs1) = digestScalars cv ∧ ReadsAt rd cur xs ∧
-    RunsWith (whirOpen μ r target) cv xs os [(root, stackShape μ r)] w cv' roots'
-
-/-- **`open_stacked`, placed**, at every candidate: it returns `w`'s claim, a buffer holding `w`'s
-point (zero-padded to `42`, its `Lout`), its glued weight and its residual's value. -/
-def CompleteOpenAt : Prop :=
+/-- **`open_stacked`, placed**, at every candidate, on an explicit run of `whirOpen μ r target`
+from the state `cv` reading the words `xs` (held by `Lin` at `g^c`) and the openings `os`
+(`CapOk`, group 4's agreement of the queries at the cap): it returns `w`'s claim, the pointer to
+its point buffer, its glued weight and its residual's value, the buffer (`w`'s point zero-padded to
+`42`) its `Lout`. -/
+def CompleteOpenAt (CapOk : ℕ → ℕ → List Opening → Prop) : Prop :=
   ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
-    ∀ (root : Digest) (fs0 fs1 target root0 root1 cur : E) (w : WhirEnd) (Lin : Main.Layout),
-      (root0, root1) = digestScalars root →
-      (∀ rd, LowDef k rd → MemL rd Lin → OpenRun μ r root rd fs0 fs1 target cur w) →
-      CompleteAt fs cert k (openName μ r) Lin [fs0, fs1, target, root0, root1, cur] fun rets Lout =>
-        ∃ pt, rets = [w.target, pt, w.inner, w.residual] ∧ w.point.length = μ ∧
-          ∀ rd, MemL rd Lout → ReadsAt rd pt (w.point ++ List.replicate (pointCap - w.point.length) 0)
+    ∀ (root cv : Digest) (xs : List E) (os : List Opening) (w : WhirEnd) (cv' : Digest)
+      (roots' : List (Digest × ℕ × ℕ)) (target : E) (c : ℕ) (Lin : Main.Layout),
+      RunsWith (whirOpen μ r target) cv xs os [(root, stackShape μ r)] w cv' roots' →
+      CapOk μ r os → (∀ rd, LowDef k rd → MemL rd Lin → ReadsAt rd (ofK (Parameters.gpow c)) xs) →
+      CompleteAt fs cert k (openName μ r) Lin [(digestScalars cv).1, (digestScalars cv).2, target,
+        (digestScalars root).1, (digestScalars root).2, ofK (Parameters.gpow c)] fun rets Lout =>
+        ∃ b, rets = [w.target, ofK (Parameters.gpow b), w.inner, w.residual] ∧
+          Lout = [(b, w.point ++ List.replicate (pointCap - w.point.length) 0)]
 
 end Placed
 
