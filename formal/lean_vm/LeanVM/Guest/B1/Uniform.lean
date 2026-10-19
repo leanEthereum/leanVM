@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Main.Restrict
+public import LeanVM.Guest.B1.Main.Straight
 public import LeanVM.Guest.Memory.Retemp
 public import LeanVM.Guest.Memory.GuestFresh
 public import LeanVM.Guest.Memory.GuestWf
@@ -225,6 +226,115 @@ theorem completeAt_of_rel_pure {S : List String} (hS : coreProgram.PureIn S) {g 
     rw [Main.memL_agree hL' h1 i hi, ← Main.restrict_of (rd := rd1) (S := RegionL Lin) ⟨i, rfl, hi⟩, hv]
     rfl
   · obtain ⟨q, hq, _⟩ := hi; simp at hq
+
+/-! ## Range checks on a memory defined below `2^k` -/
+
+/-- A range check's auxiliary words for `x = g^e` against `g^(K-1)`: the complement `g^(K-1-e)`
+and the words the memory holds at both. -/
+noncomputable def rcLow (rd : Reader) (e K : ℕ) : E × E × E :=
+  (ofK (gpow (K - 1 - e)), (rd (gpow e)).getD 0, (rd (gpow (K - 1 - e))).getD 0)
+
+theorem loadHolds_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {i : ℕ} (hi : i < 2 ^ k) :
+    LoadHolds rd (ofK (gpow i)) 0 ((rd (gpow i)).getD 0) := by
+  refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
+  rw [Main.addr_ofK, Nat.add_zero]
+  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp (hl i hi)
+  rw [hv]; rfl
+
+/-- **A range check passes** on a memory defined below `2^k`, for `x = g^e`, `e < K ≤ 2^k`. -/
+theorem rc_complete_low {k : ℕ} {rd : Reader} (hl : LowDef k rd) {K e : ℕ} (hK : K ≤ 2 ^ k)
+    (he : e < K) :
+    LoadHolds rd (ofK (gpow e)) 0 (rcLow rd e K).2.1 ∧
+      ofK (gpow (K - 1)) = ofK (gpow e) * (rcLow rd e K).1 ∧
+      LoadHolds rd (rcLow rd e K).1 0 (rcLow rd e K).2.2 := by
+  refine ⟨loadHolds_low hl (by omega), ?_, loadHolds_low hl (by omega)⟩
+  rw [rcLow, ← ofK_mul, gpow, gpow, ← pow_add]
+  congr 2
+  omega
+
+/-! ## A function's own buffers -/
+
+/-- `HeapBuf`s of the given sizes from `b`, holding `cs`. -/
+def bufL (b : ℕ) (sizes : List ℕ) (cs : List (List E)) : Layout := (bases b sizes).zip cs
+
+theorem bufL_region : ∀ (b : ℕ) (sizes : List ℕ) (cs : List (List E)),
+    List.Forall₂ (fun c s => c.length ≤ s) cs sizes → ∀ i, RegionL (bufL b sizes cs) i →
+      ∃ q ∈ sizes.zip (bases b sizes), q.2 ≤ i ∧ i < q.2 + q.1
+  | _, [], _, _, _, ⟨_, hq, _⟩ => by simp [bufL, bases] at hq
+  | b, s :: sizes, [], h, _, _ => by cases h
+  | b, s :: sizes, c :: cs, h, i, ⟨q, hq, h1, h2⟩ => by
+    obtain ⟨hc, h⟩ := List.forall₂_cons.mp h
+    simp only [bufL, bases, List.zip_cons_cons, List.mem_cons] at hq ⊢
+    rcases hq with rfl | hq
+    · exact ⟨(s, b), Or.inl rfl, h1, by simp only at h2 ⊢; omega⟩
+    · obtain ⟨q', hq', h1', h2'⟩ := bufL_region (b + s) sizes cs h i ⟨q, hq, h1, h2⟩
+      exact ⟨q', Or.inr hq', h1', h2'⟩
+
+theorem bufL_within : ∀ (b : ℕ) (sizes : List ℕ) (cs : List (List E)),
+    List.Forall₂ (fun c s => c.length ≤ s) cs sizes → Within (bufL b sizes cs) b sizes.sum
+  | _, [], _, _ => fun q hq => by simp [bufL, bases] at hq
+  | b, s :: sizes, [], h => by cases h
+  | b, s :: sizes, c :: cs, h => by
+    obtain ⟨hc, h⟩ := List.forall₂_cons.mp h
+    intro q hq
+    simp only [bufL, bases, List.zip_cons_cons, List.mem_cons] at hq
+    rcases hq with rfl | hq
+    · simp only [List.sum_cons]; omega
+    · have := bufL_within (b + s) sizes cs h q hq
+      simp only [List.sum_cons]; omega
+
+/-- **A function calling nothing is complete** when, at every frame pointer and on every memory
+holding its buffers' honest words `own fp` and the caller's words, a valuation walks its body with
+no call and no `frameAddr`, its `HeapBuf` hints of the sizes `sizes` from `fp + fs f`, loading from
+its buffers or `Lin`. -/
+theorem completeAt_leaf {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hl : coreProgram.loop f = false) (k : ℕ) (Lin : Layout) (args rets : List E) (sizes : List ℕ)
+    (own : ℕ → List (List E)) (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
+    (hσ : ∀ fp rd, LowDef k rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+      ∃ (σ : Val) (es : List Ev) (vs : List V), fn.params.map σ = args ∧
+        walk σ fn.body = .ret es vs ∧ vs.map σ = rets ∧ (∀ e ∈ es, e.Holds rd σ) ∧
+        calls es = [] ∧ addrs es = [] ∧ allocs σ es = sizes ∧
+        (allocDsts es).map σ = (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+        ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
+          (RegionL (bufL (fp + fs f) sizes (own fp)) i ∨ RegionL Lin i)) :
+    CompleteAt fs cert k f Lin args (Returns rets) := by
+  intro fp
+  refine ⟨fs f + sizes.sum, bufL (fp + fs f) sizes (own fp), rets, [], ⟨rfl, rfl⟩,
+    by simpa using (bufL_within _ _ _ (hown fp)).mono (by omega) (by omega), fun rd hlow hL => ?_⟩
+  simp only [List.nil_append] at hL
+  obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
+  obtain ⟨σ, es, vs, hp, hw, hr, hes, hc, ha, hal, hbuf, hload⟩ := hσ fp rd hlow hL1 hL2
+  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
+    (D := RegionL []) (Dk := fun _ => False) (N := 0) (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw
+    hr hes (by rw [hal]; exact hbuf) (by rw [ha]; simp) (by rw [hc]; exact ⟨rfl, fun _ h => h⟩) (fun A hA => ?_)
+    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+  · rw [hal] at h; simpa using h
+  · obtain ⟨i, hi, h | h⟩ := hload A hA
+    · exact ⟨i, hi, Or.inl (Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i h))⟩
+    · exact ⟨i, hi, Or.inr (Or.inl h)⟩
+
+/-! ## Loads of a straight-line body -/
+
+/-- A `load`: its pointer and offset. -/
+def Stmt.loadS : Stmt → Option (V × ℕ)
+  | .atom (.load _ p off) => some (p, off)
+  | _ => none
+
+theorem loadAddrs_straight (σ : Val) : ∀ pre : List Stmt, pre.all Main.Stmt.straight = true →
+    loadAddrs σ (pre.flatMap (Main.slEvs σ)) =
+      (pre.filterMap Stmt.loadS).map fun q => (σ q.1).limb 0 * gpow q.2
+  | [], _ => rfl
+  | s :: pre, h => by
+    simp only [List.all_cons, Bool.and_eq_true] at h
+    have ih := loadAddrs_straight σ pre h.2
+    simp only [loadAddrs, List.flatMap_cons, List.filterMap_append] at ih ⊢
+    rw [ih]
+    match s, h.1 with
+    | .atom a, _ =>
+      cases a <;> simp [Main.slEvs, Ev.loadAddr?, Stmt.loadS, List.filterMap_cons]
+    | .call .., _ => simp [Main.slEvs, Ev.loadAddr?, Stmt.loadS, List.filterMap_cons]
+    | .callIf c _ _, _ =>
+      by_cases hc : σ c = 0 <;> simp [Main.slEvs, hc, Ev.loadAddr?, Stmt.loadS, List.filterMap_cons]
 
 end
 end LeanVM.Guest.B1
