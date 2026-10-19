@@ -53,9 +53,9 @@ theorem vl_completeAt {name : String} {fn : Fn} (fl : ℕ) (hfl : fl < 34)
     (hbody : fn.body = vlBody fl) (hl : coreProgram.loop name = false) {k : ℕ} (hk : 6 ≤ k) {N : ℕ}
     (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) (bA lpA sqA : ℕ) (Lin : Main.Layout)
     (hLin : ∀ q ∈ expL lpA sqA ++ [(bA, bitsW N)], q ∈ Lin) :
-    CompleteAt fs cert k name Lin [ofK (Parameters.gpow bA), ofK (Parameters.gpow lpA),
+    CompleteAtD fs cert k name Lin [ofK (Parameters.gpow bA), ofK (Parameters.gpow lpA),
       ofK (Parameters.gpow sqA)] (Returns [gen ^ max fl (log2Ceil N), gen ^ N]) := by
-  refine completeAt_leaf hf hl k Lin _ _ [35] (fun _ => [psW N]) (fun _ => by simp [psW])
+  refine completeAt_leafD hf hl k Lin _ _ [35] (fun _ => [psW N]) (fun _ => by simp [psW])
     fun fp rd hlow hL1 hL2 => ?_
   have hb := hLin (bA, bitsW N) (by simp)
   have hlp := hLin (lpA, (List.range sizeBits).map fun j => eOfNat (2 ^ j)) (by simp [expL])
@@ -120,28 +120,30 @@ theorem lc_completeAt {name callee : String} {fn : Fn} (fl : ℕ)
     (hbody : fn.body = lcBody callee) (hl : coreProgram.loop name = false) {k : ℕ}
     (hcallee : ∀ (N : ℕ), N < 2 ^ 34 → max fl (log2Ceil N) < 34 → ∀ (bA lpA sqA : ℕ) (Lin : Main.Layout),
       (∀ q ∈ expL lpA sqA ++ [(bA, bitsW N)], q ∈ Lin) →
-      CompleteAt fs cert k callee Lin [ofK (Parameters.gpow bA), ofK (Parameters.gpow lpA),
+      CompleteAtD fs cert k callee Lin [ofK (Parameters.gpow bA), ofK (Parameters.gpow lpA),
         ofK (Parameters.gpow sqA)] (Returns [gen ^ max fl (log2Ceil N), gen ^ N]))
     {N : ℕ} (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) (lpA sqA : ℕ) (Lin : Main.Layout)
     (hLin : ∀ q ∈ expL lpA sqA, q ∈ Lin) :
-    CompleteAt fs cert k name Lin [gen ^ N, ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA)]
+    CompleteAtD fs cert k name Lin [gen ^ N, ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA)]
       (Returns [gen ^ max fl (log2Ceil N)]) := by
   intro fp
   set bA := fp + fs name
   set L := max fl (log2Ceil N)
   let kid : Kid := ⟨callee, true, [ofK (Parameters.gpow bA), ofK (Parameters.gpow lpA),
     ofK (Parameters.gpow sqA)], expL lpA sqA ++ [(bA, bitsW N)], Returns [gen ^ L, gen ^ N]⟩
-  obtain ⟨N1, L1, outs, ho, hw, hK⟩ := kidsFromIn_of_kids k [kid] (fun k' hk' _ => by
+  obtain ⟨N1, L1, outs, ho, hw, hd, -, hK⟩ := kidsFromIn_of_kidsD k [kid] (fun k' hk' _ => by
       rw [List.mem_singleton] at hk'; subst hk'
       exact hcallee N hN hL bA lpA sqA _ fun q hq => hq) (bA + 34)
   obtain ⟨o, rfl⟩ := list1 (ho.length.trans rfl)
   have hor : o.1 = [gen ^ L, gen ^ N] := by
     have := ho; simp only [OutsOk, Returns, forall_const, kid] at this; exact this.1.1
+  have wb : Within [(bA, bitsW N)] bA 34 := fun q hq => by
+    simp only [List.mem_singleton] at hq; subst hq; simp [bitsW]
   refine ⟨fs name + 34 + N1, [(bA, bitsW N)] ++ L1, [gen ^ L], [], ⟨rfl, rfl⟩, ?_,
+    by rw [List.nil_append]; exact disj_append (List.pairwise_singleton _ _) hd wb hw le_rfl,
     fun rd hlow hM => ?_⟩
   · simp only [List.nil_append, within_append]
-    exact ⟨fun q hq => by simp only [List.mem_singleton] at hq; subst hq; simp [bitsW, bA]; omega,
-      hw.mono (by omega) (by omega)⟩
+    exact ⟨wb.mono (by omega) (by omega), hw.mono (by omega) (by omega)⟩
   simp only [List.nil_append] at hM
   obtain ⟨hM1, hMin⟩ := Main.memL_append.mp hM
   obtain ⟨hMb, hML1⟩ := Main.memL_append.mp hM1
@@ -225,7 +227,7 @@ theorem vl15_not_loop : coreProgram.loop "verify_log2_ceil__L15_L34" = false := 
 and the exponent tables at `g^lpA`, `g^sqA` among the caller's words, it returns `g^log2Ceil N`. -/
 theorem log2L0_completeAt {k : ℕ} (hk : 6 ≤ k) {N : ℕ} (hN : N < 2 ^ 34) (hL : log2Ceil N < 34)
     (lpA sqA : ℕ) (Lin : Main.Layout) (hLin : ∀ q ∈ expL lpA sqA, q ∈ Lin) :
-    CompleteAt fs cert k "log2_ceil_in_the_exponent__L0_L34" Lin
+    CompleteAtD fs cert k "log2_ceil_in_the_exponent__L0_L34" Lin
       [gen ^ N, ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA)] (Returns [gen ^ log2Ceil N]) := by
   have h := lc_completeAt (fs := fs) (cert := cert) (callee := "verify_log2_ceil__L0_L34") 0 find_lc0
     rfl rfl lc0_not_loop (fun N hN hL bA lpA sqA Lin h => vl_completeAt 0 (by decide)
@@ -237,7 +239,7 @@ theorem log2L0_completeAt {k : ℕ} (hk : 6 ≤ k) {N : ℕ} (hN : N < 2 ^ 34) (
 theorem log2L15_completeAt {k : ℕ} (hk : 6 ≤ k) {N : ℕ} (hN : N < 2 ^ 34)
     (hL : max 15 (log2Ceil N) < 34) (lpA sqA : ℕ) (Lin : Main.Layout)
     (hLin : ∀ q ∈ expL lpA sqA, q ∈ Lin) :
-    CompleteAt fs cert k "log2_ceil_in_the_exponent__L15_L34" Lin
+    CompleteAtD fs cert k "log2_ceil_in_the_exponent__L15_L34" Lin
       [gen ^ N, ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA)]
       (Returns [gen ^ max 15 (log2Ceil N)]) :=
   lc_completeAt (fs := fs) (cert := cert) (callee := "verify_log2_ceil__L15_L34") 15 find_lc15

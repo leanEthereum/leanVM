@@ -34,7 +34,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 theorem gpw6_completeAt' (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) {N : ℕ} (hN : N < 64)
     (qb : ℕ) :
-    CompleteAt fs cert k "g_power_of_word__L6" [(qb, gpwSq)] [eOfNat N, ofK (Parameters.gpow qb)]
+    CompleteAtD fs cert k "g_power_of_word__L6" [(qb, gpwSq)] [eOfNat N, ofK (Parameters.gpow qb)]
       (Returns [gen ^ N]) := by
   have h := gpw6_completeAt fs cert k hN qb
   rwa [gpwProd_pow (n := 6) (fun j hj => by simp [gpwSq, hj]) (by omega)] at h
@@ -163,10 +163,10 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
     (hPl : CompletePlaceAt fs cert κ PCtx)
     (hκ : 6 ≤ κ) :
     ∀ k ∈ vsKids1 fs D fp lpA sqA outA, k.taken = true →
-      CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
+      CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
   intro k hk ht
-  have hc : ∀ x : E, IsCanonical128 x → CompleteAt fs cert κ "assert_canonical" [] [x] (Returns [0]) :=
-    fun x hx => completeAt_of_rel_pure ac_pure (by simp)
+  have hc : ∀ x : E, IsCanonical128 x → CompleteAtD fs cert κ "assert_canonical" [] [x] (Returns [0]) :=
+    fun x hx => completeAt_of_rel_pureD ac_pure (by simp)
       (fun rd _ => (assert_canonical_iff rd [x] [0]).mpr ⟨hx, rfl⟩) κ
   obtain ⟨hN, hl⟩ := pushTotal_bounds hb hok
   have M := fun rd (hm : MemL rd (vsAllL fs D fp lpA sqA outA)) =>
@@ -212,10 +212,10 @@ theorem vsKids1_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.Ok 
         rwa [CE.2.2.1] at this, (M rd hm).1.zchis, (M rd hm).1.lrs, (M rd hm).1.zpart⟩
     rw [← CE.2.2.1] at h
     exact h
-  · refine completeAt_of_rel_pure loop84_pure (by simp) (fun rd hm => ?_) κ
+  · refine completeAt_of_rel_pureD loop84_pure (by simp) (fun rd hm => ?_) κ
     rw [word_one, ← pow_zero gen]
     exact loop84_complete (loop84_bodies (M rd hm).1 hok.s_length mcs_length)
-  · refine completeAt_of_rel_pure loop85_pure (by simp) (fun rd hm => ?_) κ
+  · refine completeAt_of_rel_pureD loop85_pure (by simp) (fun rd hm => ?_) κ
     have hτ : D.tau ≠ 0 := by
       intro h0
       simp only [h0, pow_zero, word_one, CharTwo.add_self_eq_zero, ne_eq, not_true_eq_false,
@@ -247,7 +247,7 @@ theorem vsOpenKid_complete {κ : ℕ} {CapOk : ℕ → ℕ → Digest → Digest
     (hcap : CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os
       D.target) :
     let k := vsOpenKid fs bytecode D fp lpA sqA outA
-    CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
+    CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
   intro k
   have h := hO _ D.rate hok.stack_ge hok.stack_le hok.rate_ge hok.rate_le D.root D.cvL D.xsW D.os D.w
     D.cvW D.roots' D.target _ (vsAllL fs D fp lpA sqA outA) hok.opening hcap fun rd _ hm => by
@@ -262,7 +262,7 @@ theorem vsTermKid_complete {κ : ℕ} (hb : bytecode.length = 2 ^ 22) (hok : D.O
     (hc : ∀ rd, MemL rd Lc → PCtx rd (columnKappas D.logMem 18 D.hs) off kap) :
     let k := vsTermKid fs D fp lpA sqA outA off kap (ofK (Parameters.gpow b)) Lc
       [(b, D.w.point ++ List.replicate (pointCap - D.w.point.length) 0)]
-    CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
+    CompleteAtD fs cert κ k.f k.Lin k.args k.Out := by
   intro k
   refine hE (layoutOf bytecode D.logMem D.rows) D.bus D.claims D.lam D.fpoint (ringCoefficients D.mcs)
     D.w _ _ hok.accepts htok.point_vars fun rd _ hm => ?_

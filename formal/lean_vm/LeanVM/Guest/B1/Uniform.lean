@@ -27,7 +27,9 @@ caller's honest memory can hold them with its own.
   it reads, what it returns), each `CompleteAt` and placed at the running offsets from `b`, give
   `KidsFromIn` on every memory holding their layouts, the size and layouts chosen first;
 * `completeAt_of_rel_pure`: a function of a pure set whose relation holds on every memory holding
-  `Lin` is `CompleteAt` with fixed returns and no buffers.
+  `Lin` is `CompleteAt` with fixed returns and no buffers;
+* `CompleteAtD`: `CompleteAt` on pairwise disjoint layouts (`DisjL`), with the generic lemmas in that
+  form (`kidsFromIn_of_kidsD`, `completeAt_leafD`, `completeAt_of_rel_pureD`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -437,6 +439,187 @@ theorem kidsFromIn_append {rd : Reader} {σ : Val} {R : ℕ → Prop} :
     ⟨m, n' + n2, Rk, Dk, by omega, hR, hc,
       kidsFromIn_append cs1 cs2 _ (b + m) n' n2 D1 D hk fun Dacc' h => by
         rw [show b + m + n' = b + n1 by omega]; exact h2 Dacc' h⟩
+
+/-! ## Completeness with disjoint layouts
+
+`CompleteAtD` is `CompleteAt` with its layouts pairwise disjoint (`DisjL`), so that a memory
+holding them exists; bump allocation gives it everywhere. The generic lemmas in the `D` form:
+`kidsFromIn_of_kidsD`, `completeAt_leafD`, `completeAt_of_rel_pureD`. -/
+
+/-- The layout's entries are pairwise disjoint, so some memory holds it. -/
+def DisjL (L : Layout) : Prop :=
+  L.Pairwise fun q q' => q.1 + q.2.length ≤ q'.1 ∨ q'.1 + q'.2.length ≤ q.1
+
+/-- **`f` is complete at every frame pointer, uniformly in the memory, on disjoint layouts.** -/
+def CompleteAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String) (Lin : Layout)
+    (args : List E) (Out : List E → Layout → Prop) : Prop :=
+  ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), Out rets Lout ∧
+    Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ ∀ rd, LowDef k rd →
+      MemL rd (Lout ++ Lown ++ Lin) →
+      RelAtIn coreProgram fs cert rd (RegionL Lin) (RegionL Lout) fp n f args rets
+
+/-- `CompleteRel` on disjoint layouts. -/
+def CompleteRelD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
+    (Pre : Reader → List E → List E → Prop) : Prop :=
+  ∀ (args rets : List E) (Lin : Layout), (∀ rd, LowDef k rd → MemL rd Lin → Pre rd args rets) →
+    CompleteAtD fs cert k f Lin args (Returns rets)
+
+theorem CompleteAtD.toCompleteAt {k : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k f Lin args Out) :
+    CompleteAt fs cert k f Lin args Out := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, _, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hr⟩
+
+theorem CompleteRelD.toCompleteRel {k : ℕ} {f : String} {Pre : Reader → List E → List E → Prop}
+    (h : CompleteRelD fs cert k f Pre) : CompleteRel fs cert k f Pre :=
+  fun args rets Lin hp => (h args rets Lin hp).toCompleteAt
+
+theorem CompleteAtD.mono {k k' : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k' f Lin args Out) (hk : k' ≤ k) :
+    CompleteAtD fs cert k f Lin args Out := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, fun rd hl hm => hr rd (hl.mono hk) hm⟩
+
+theorem disj_nil : DisjL [] := List.Pairwise.nil
+
+/-- Two disjoint layouts in consecutive slots are disjoint. -/
+theorem disj_append {L L' : Layout} {b n b' n' : ℕ} (h : DisjL L) (h' : DisjL L') (hw : Within L b n)
+    (hw' : Within L' b' n') (hb : b + n ≤ b') : DisjL (L ++ L') :=
+  List.pairwise_append.mpr ⟨h, h', fun q hq q' hq' => by
+    have := hw q hq; have := hw' q' hq'; omega⟩
+
+/-- **A function's buffers are disjoint.** -/
+theorem bufL_disj : ∀ (b : ℕ) (sizes : List ℕ) (cs : List (List E)),
+    List.Forall₂ (fun c s => c.length ≤ s) cs sizes → DisjL (bufL b sizes cs)
+  | _, [], _, _ => by simp [bufL, bases, disj_nil]
+  | b, s :: sizes, [], h => by cases h
+  | b, s :: sizes, c :: cs, h => by
+    obtain ⟨hc, h⟩ := List.forall₂_cons.mp h
+    simp only [bufL, bases, List.zip_cons_cons, DisjL, List.pairwise_cons]
+    exact ⟨fun q hq => Or.inl (by
+      have := bufL_within (b + s) sizes cs h q hq; show b + c.length ≤ q.1; omega),
+      bufL_disj (b + s) sizes cs h⟩
+
+theorem kidsFromIn_of_kidsD (κ : ℕ) : ∀ (ks : List Kid),
+    (∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out) → ∀ b : ℕ,
+    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)), OutsOk ks outs ∧ Within L b N ∧
+      DisjL L ∧ OutsIn ks outs L ∧
+      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop), CallsMatch σ cs ks outs →
+        LowDef κ rd → MemL rd L → MemL rd (Kid.lins ks) → RegionsOk R Dacc ks outs →
+        KidsFromIn coreProgram fs cert rd σ R Dacc cs b N (fun i => Dacc i ∨ outRegion ks outs i)
+  | [], _, b => ⟨0, [], [], trivial, fun _ h => by simp at h, disj_nil, trivial,
+      fun rd σ cs R Dacc hc _ _ _ _ => by
+      match cs, hc with
+      | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
+  | k :: ks, hok, b => by
+    by_cases ht : k.taken = true
+    · obtain ⟨n, Lown, rets, Lout, hout, hw, hd, hrel⟩ := hok k (by simp) ht b
+      obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_kidsD κ ks
+        (fun k' hk' => hok k' (by simp [hk'])) (b + n)
+      refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, ⟨fun _ => hout, ho⟩, ?_,
+        disj_append hd hD hw hW le_rfl,
+        ⟨fun _ q hq => by simp [hq], hI.mono fun q hq => by simp [hq]⟩, ?_⟩
+      · rw [within_append]
+        exact ⟨hw.mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
+      · intro rd σ cs R Dacc hc hlow hL hLin hRg
+        match cs, hc with
+        | c :: cs, ⟨hf, hct, hcar, hc⟩ =>
+          obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
+          simp only [Kid.lins, List.flatMap_cons] at hLin
+          obtain ⟨hLk, hLs⟩ := Main.memL_append.mp hLin
+          obtain ⟨hR1, hR2⟩ := hRg
+          obtain ⟨ha, hr⟩ := hcar ht
+          refine ⟨n, N, RegionL k.Lin, RegionL Lout, rfl, hR1 ht, ?_, ?_⟩
+          · rw [hct]
+            simp only [ht, ↓reduceIte]
+            rw [hf, ha, hr]
+            exact hrel rd hlow (Main.memL_append.mpr ⟨hL1, hLk⟩)
+          · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL2 hLs ?_)
+            · intro i hi
+              rcases hi with hi | ⟨_, hi⟩ | hi
+              · exact Or.inl (Or.inl hi)
+              · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
+              · exact Or.inr hi
+            · simpa [hct] using hR2
+    · obtain ⟨N, L, outs, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_kidsD κ ks
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
+      refine ⟨fs k.f + N, L, ([], []) :: outs, ⟨fun h => absurd h ht, ho⟩,
+        hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩, ?_⟩
+      intro rd σ cs R Dacc hc hlow hL hLin hRg
+      match cs, hc with
+      | c :: cs, ⟨hf, hct, _, hc⟩ =>
+        simp only [Kid.lins, List.flatMap_cons] at hLin
+        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        · have ht' : k.taken = false := by simpa using ht
+          rw [hct, ht']
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          rw [hf]
+        · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL (Main.memL_append.mp hLin).2 ?_)
+          · intro i hi
+            rcases hi with hi | ⟨h, _⟩ | hi
+            · exact Or.inl (Or.inl hi)
+            · exact absurd h ht
+            · exact Or.inr hi
+          · have := hRg.2
+            simp only [hct, ht, Bool.false_eq_true, false_and, or_false] at this ⊢
+            exact this
+
+
+/-- `completeAt_of_rel_pure`, on disjoint layouts (no buffer). -/
+theorem completeAt_of_rel_pureD {S : List String} (hS : coreProgram.PureIn S) {g : String}
+    (hg : g ∈ S) {Lin : Layout} {args rets : List E}
+    (h : ∀ rd, MemL rd Lin → coreProgram.Rel rd g args rets) (k : ℕ) :
+    CompleteAtD fs cert k g Lin args (Returns rets) := by
+  intro fp
+  classical
+  by_cases hex : ∃ rd1, MemL rd1 Lin
+  swap
+  · exact ⟨0, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil,
+      fun rd _ hL => absurd ⟨rd, by simpa using hL⟩ hex⟩
+  obtain ⟨rd1, h1⟩ := hex
+  set rd0 := Main.restrict rd1 (RegionL Lin)
+  have h0 : MemL rd0 Lin := Main.memL_restrict h1 fun i hi => hi
+  have hsupp := Main.restrict_supp' rd1 (RegionL Lin)
+  obtain ⟨n, hn⟩ := relAtIn_uniform_pure (fs := fs) (cert := cert) coreProgram_fresh hS hg
+    (Main.relIn_of_rel_supp coreProgram_wf hsupp (h rd0 h0))
+  refine ⟨n, [], rets, [], ⟨rfl, rfl⟩, by simp [Within], disj_nil, fun rd _ hL => ?_⟩
+  have hL' : MemL rd Lin := by simpa using hL
+  refine relAtIn_dmono (hn fp rd (fun i hi => ?_) (fun A hA => ?_)) (fun i hi => ?_)
+  · rw [Main.memL_agree hL' h1 i hi, Main.restrict_of ⟨i, rfl, hi⟩]
+  · obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp hA
+    obtain ⟨i, rfl, hi⟩ := hsupp _ _ hv
+    rw [Main.memL_agree hL' h1 i hi, ← Main.restrict_of (rd := rd1) (S := RegionL Lin) ⟨i, rfl, hi⟩, hv]
+    rfl
+  · obtain ⟨q, hq, _⟩ := hi; simp at hq
+
+/-- `completeAt_leaf`, on disjoint layouts (the function's own buffers). -/
+theorem completeAt_leafD {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hl : coreProgram.loop f = false) (k : ℕ) (Lin : Layout) (args rets : List E) (sizes : List ℕ)
+    (own : ℕ → List (List E)) (hown : ∀ fp, List.Forall₂ (fun c s => c.length ≤ s) (own fp) sizes)
+    (hσ : ∀ fp rd, LowDef k rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
+      ∃ (σ : Val) (es : List Ev) (vs : List V), fn.params.map σ = args ∧
+        walk σ fn.body = .ret es vs ∧ vs.map σ = rets ∧ (∀ e ∈ es, e.Holds rd σ) ∧
+        calls es = [] ∧ addrs es = [] ∧ allocs σ es = sizes ∧
+        (allocDsts es).map σ = (bases (fp + fs f) sizes).map (fun b => ofK (gpow b)) ∧
+        ∀ A ∈ loadAddrs σ es, ∃ i, A = gpow i ∧
+          (RegionL (bufL (fp + fs f) sizes (own fp)) i ∨ RegionL Lin i)) :
+    CompleteAtD fs cert k f Lin args (Returns rets) := by
+  intro fp
+  refine ⟨fs f + sizes.sum, bufL (fp + fs f) sizes (own fp), rets, [], ⟨rfl, rfl⟩,
+    by simpa using (bufL_within _ _ _ (hown fp)).mono (by omega) (by omega),
+    by simpa using bufL_disj _ _ _ (hown fp), fun rd hlow hL => ?_⟩
+  simp only [List.nil_append] at hL
+  obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
+  obtain ⟨σ, es, vs, hp, hw, hr, hes, hc, ha, hal, hbuf, hload⟩ := hσ fp rd hlow hL1 hL2
+  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL Lin)
+    (D := RegionL []) (Dk := fun _ => False) (N := 0) (fp := fp) coreProgram_wf hf (Or.inl hl) hp hw
+    hr hes (by rw [hal]; exact hbuf) (by rw [ha]; simp) (by rw [hc]; exact ⟨rfl, fun _ h => h⟩) (fun A hA => ?_)
+    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+  · rw [hal] at h; simpa using h
+  · obtain ⟨i, hi, h | h⟩ := hload A hA
+    · exact ⟨i, hi, Or.inl (Or.inl (by rw [hal]; exact bufL_region _ _ _ (hown fp) i h))⟩
+    · exact ⟨i, hi, Or.inr (Or.inl h)⟩
+
 
 end
 end LeanVM.Guest.B1

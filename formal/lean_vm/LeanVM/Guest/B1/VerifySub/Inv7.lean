@@ -40,7 +40,7 @@ theorem verify_sub_completeAt_of_accepts {κ : ℕ} (hκ : 6 ≤ κ)
     (hcap : ∀ D : VsData, D.Ok bytecode → D.seed = seed → D.pi = pi → D.proof = π →
       CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os D.target)
     (lpA sqA outA : ℕ) :
-    CompleteAt fs cert κ "verify_sub" (expL lpA sqA ++ [(outA, Node.fixedCells c)])
+    CompleteAtD fs cert κ "verify_sub" (expL lpA sqA ++ [(outA, Node.fixedCells c)])
       [(digestScalars pi).1, (digestScalars pi).2, (digestScalars seed).1, (digestScalars seed).2,
         ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA), ofK (Parameters.gpow outA)]
       (Returns []) := by

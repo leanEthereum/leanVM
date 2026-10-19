@@ -135,7 +135,7 @@ def CompleteGkrAt : Prop :=
     r.2.2.length = 3 →
     (∀ rd, LowDef k rd → MemL rd Lin →
       ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow z)) r.2.1) →
-    CompleteAt fs cert k "verify_bus_gkr" Lin [(digestScalars cv).1, (digestScalars cv).2,
+    CompleteAtD fs cert k "verify_bus_gkr" Lin [(digestScalars cv).1, (digestScalars cv).2,
       ofK (Parameters.gpow c), gen ^ depth, ofK (Parameters.gpow z)]
       (Returns ([(digestScalars cv').1, (digestScalars cv').2,
         ofK (Parameters.gpow c) * gen ^ xs.length] ++ r.2.2))
@@ -166,7 +166,7 @@ def CompleteTablesAt : Prop :=
       ReadsAt rd (ofK (Parameters.gpow pool)) (claims.map (·.value)) ∧
       TCtx rd (layoutOf bytecode logMem rowsN) bus claims [ofK (Parameters.gpow z),
         ofK (Parameters.gpow chi), rm, gen ^ point.length, gzcn, ofK (Parameters.gpow cplen)]) →
-    CompleteAt fs cert k "verify_tables" Lin
+    CompleteAtD fs cert k "verify_tables" Lin
       [(digestScalars cv).1, (digestScalars cv).2, ofK (Parameters.gpow c), (digestScalars pi).1,
         (digestScalars pi).2, ofK (Parameters.gpow z), gen ^ point.length,
         ofK (Parameters.gpow dims), ofK (Parameters.gpow rows), ofK (Parameters.gpow bk),
@@ -188,7 +188,7 @@ def CompleteFlockAt : Prop :=
     (∀ rd, LowDef k rd → MemL rd Lin →
       ReadsAt rd (ofK (Parameters.gpow c)) xs ∧ ReadsAt rd (ofK (Parameters.gpow zc)) chi ∧
       ReadsAt rd (ofK (Parameters.gpow lr)) rcs ∧ ReadsAt rd (ofK (Parameters.gpow zp)) s) →
-    CompleteAt fs cert k "verify_flock" Lin [(digestScalars cv).1, (digestScalars cv).2,
+    CompleteAtD fs cert k "verify_flock" Lin [(digestScalars cv).1, (digestScalars cv).2,
       ofK (Parameters.gpow c), gen ^ τ, ofK (Parameters.gpow zc), ofK (Parameters.gpow lr),
       ofK (Parameters.gpow zp)]
       (Returns [(digestScalars cv').1, (digestScalars cv').2,
@@ -204,7 +204,7 @@ def CompleteTermAt : Prop :=
     (∀ c ∈ claims, c.point.length = (layout.placements.getD c.column default).vars) →
     (∀ rd, LowDef k rd → MemL rd Lin →
       TermPre TCtx PCtx rd layout bus claims lam flockPoint coeffs w args) →
-    CompleteAt fs cert k "check_opening_terminal" Lin args (Returns [])
+    CompleteAtD fs cert k "check_opening_terminal" Lin args (Returns [])
 
 /-- **`certify_placement`, placed**: on a layout holding the exponent tables at `lp`, `sq` and the
 base `[1, g^log_mem, g^h_0, …]` at `kb`, it returns `g^(Σ 2^κ)` and two buffers, held by its `Lout`,
@@ -214,7 +214,7 @@ def CompletePlaceAt : Prop :=
     (∀ h ∈ hs, h < 29) →
     (∀ rd, LowDef k rd → MemL rd Lin →
       ExpTables rd lp sq ∧ ReadsAt rd kb (1 :: gen ^ logMem :: hs.map (gen ^ ·))) →
-    CompleteAt fs cert k "certify_placement" Lin [kb, sq] fun rets Lout =>
+    CompleteAtD fs cert k "certify_placement" Lin [kb, sq] fun rets Lout =>
       ∃ off kap, rets = [gen ^ stackTotal (columnKappas logMem 18 hs), off, kap] ∧
         ∀ rd, MemL rd Lout → PCtx rd (columnKappas logMem 18 hs) off kap
 
@@ -229,7 +229,7 @@ def CompleteOpenAt (CapOk : ℕ → ℕ → Digest → Digest → List E → Lis
       (roots' : List (Digest × ℕ × ℕ)) (target : E) (c : ℕ) (Lin : Main.Layout),
       RunsWith (whirOpen μ r target) cv xs os [(root, stackShape μ r)] w cv' roots' →
       CapOk μ r root cv xs os target → (∀ rd, LowDef k rd → MemL rd Lin → ReadsAt rd (ofK (Parameters.gpow c)) xs) →
-      CompleteAt fs cert k (openName μ r) Lin [(digestScalars cv).1, (digestScalars cv).2, target,
+      CompleteAtD fs cert k (openName μ r) Lin [(digestScalars cv).1, (digestScalars cv).2, target,
         (digestScalars root).1, (digestScalars root).2, ofK (Parameters.gpow c)] fun rets Lout =>
         ∃ b, rets = [w.target, ofK (Parameters.gpow b), w.inner, w.residual] ∧
           Lout = [(b, w.point ++ List.replicate (pointCap - w.point.length) 0)]

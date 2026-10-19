@@ -44,14 +44,15 @@ theorem verify_sub_completeAt {κ : ℕ} (hκ : 6 ≤ κ)
     (hcap : CapOk (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.root D.cvL D.xsW D.os
       D.target)
     (lpA sqA outA : ℕ) :
-    CompleteAt fs cert κ "verify_sub" (vsExtL lpA sqA outA D)
+    CompleteAtD fs cert κ "verify_sub" (vsExtL lpA sqA outA D)
       [(digestScalars D.pi).1, (digestScalars D.pi).2, (digestScalars D.seed).1,
         (digestScalars D.seed).2, ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA),
         ofK (Parameters.gpow outA)] (Returns []) := by
   intro fp
   have hfit := vsBufs_fit hok htok
   -- the calls before the dispatch
-  obtain ⟨N1, L1, outs1, ho1, hw1, hi1, hK1⟩ := kidsFromIn_of_kids' κ (vsKids1 fs D fp lpA sqA outA)
+  obtain ⟨N1, L1, outs1, ho1, hw1, hd1, hi1, hK1⟩ :=
+    kidsFromIn_of_kidsD κ (vsKids1 fs D fp lpA sqA outA)
     (vsKids1_complete hb hok htok hG hT hF hPl hκ) (fp + fs "verify_sub" + (vsSizes D).sum)
   obtain ⟨o0, o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, rfl⟩ :=
     list12 (ho1.length.trans (by simp [vsKids1]))
@@ -60,7 +61,7 @@ theorem verify_sub_completeAt {κ : ℕ} (hκ : 6 ≤ κ)
     exact ho1.2.2.2.2.2.2.2.2.2.2.1
   obtain ⟨off, kap, hr10, hpc⟩ := h10
   -- the opening
-  obtain ⟨N2, L2, outs2, ho2, hw2, hi2, hK2⟩ := kidsFromIn_of_kids' κ
+  obtain ⟨N2, L2, outs2, ho2, hw2, hd2, hi2, hK2⟩ := kidsFromIn_of_kidsD κ
     [vsOpenKid fs bytecode D fp lpA sqA outA] (fun k hk _ => by
       rw [List.mem_singleton] at hk; subst hk; exact vsOpenKid_complete hok hO hcap)
     (fp + fs "verify_sub" + (vsSizes D).sum + N1)
@@ -69,7 +70,7 @@ theorem verify_sub_completeAt {κ : ℕ} (hκ : 6 ≤ κ)
   obtain ⟨bp, hr2, hLo⟩ := hoO
   set ptw := D.w.point ++ List.replicate (pointCap - D.w.point.length) 0
   -- the terminal
-  obtain ⟨N3, L3, outs3, ho3, hw3, hi3, hK3⟩ := kidsFromIn_of_kids' κ
+  obtain ⟨N3, L3, outs3, ho3, hw3, hd3, hi3, hK3⟩ := kidsFromIn_of_kidsD κ
     [vsTermKid fs D fp lpA sqA outA off kap (ofK (Parameters.gpow bp)) o10.2 [(bp, ptw)]]
     (fun k hk _ => by
       rw [List.mem_singleton] at hk; subst hk; exact vsTermKid_complete hb hok htok hE hpc)
@@ -78,10 +79,19 @@ theorem verify_sub_completeAt {κ : ℕ} (hκ : 6 ≤ κ)
   have hoT : oT.1 = [] := by
     have := ho3; simp only [OutsOk, vsTermKid, Returns, forall_const] at this; exact this.1.1
   refine ⟨fs "verify_sub" + (vsSizes D).sum + (N1 + (N2 + N3)),
-    vsOwnL fs fp D ++ (L1 ++ (L2 ++ L3)), [], [], ⟨rfl, rfl⟩, ?_, fun rd hlow hL => ?_⟩
+    vsOwnL fs fp D ++ (L1 ++ (L2 ++ L3)), [], [], ⟨rfl, rfl⟩, ?_, ?_, fun rd hlow hL => ?_⟩
   · simp only [List.nil_append, within_append]
     refine ⟨(bufL_within _ _ _ hfit).mono (by omega) (by omega), hw1.mono (by omega) (by omega),
       hw2.mono (by omega) (by omega), hw3.mono (by omega) (by omega)⟩
+  · rw [List.nil_append]
+    have w23 : Within (L2 ++ L3) (fp + fs "verify_sub" + (vsSizes D).sum + N1) (N2 + N3) :=
+      within_append.mpr ⟨hw2.mono le_rfl (by omega), hw3.mono (by omega) (by omega)⟩
+    have w123 : Within (L1 ++ (L2 ++ L3)) (fp + fs "verify_sub" + (vsSizes D).sum)
+        (N1 + (N2 + N3)) :=
+      within_append.mpr ⟨hw1.mono le_rfl (by omega), w23.mono (by omega) (by omega)⟩
+    exact disj_append (bufL_disj _ _ _ hfit)
+      (disj_append hd1 (disj_append hd2 hd3 hw2 hw3 le_rfl) hw1 w23 le_rfl)
+      (bufL_within _ _ _ hfit) w123 le_rfl
   simp only [List.nil_append] at hL
   obtain ⟨hLm, hLe⟩ := Main.memL_append.mp hL
   obtain ⟨hOwn, hLs⟩ := Main.memL_append.mp hLm
