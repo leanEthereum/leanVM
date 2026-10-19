@@ -138,9 +138,9 @@ theorem rc_eq_inducedWeight {cfg : OsCfg} {i ba bb tch yrLog : ℕ} {F : ℕ} {P
     have hc : c = pt.getD t 0 := by
       by_cases h1 : t < lv.prefixLen
       · simp only [h1, ↓reduceIte, hrfo] at lc
-        rw [loadHolds_unique lc (hfch _ (by omega)), getD_append_lt (by simp; omega), getD_drop']
+        rw [loadHolds_unique lc (hfch _ (by omega)), os_getD_append_lt (by simp; omega), os_getD_drop']
       · simp only [h1, ↓reduceIte] at lc
-        rw [loadHolds_unique lc (htch _ (by omega)), getD_append_ge (by simp; omega)]
+        rw [loadHolds_unique lc (htch _ (by omega)), os_getD_append_ge (by simp; omega)]
         congr 1; simp; omega
     subst hc
     exact ⟨memAt_of_load la, memAt_of_load lb⟩

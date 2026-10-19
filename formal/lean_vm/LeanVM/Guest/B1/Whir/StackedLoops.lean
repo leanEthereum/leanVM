@@ -133,7 +133,7 @@ theorem sqLoop_step {lv : OsLvl} {fn : Fn} (hfind : coreProgram.find? lv.sqLoop 
     simp only [List.map_cons, List.map_nil, e4, e3, word_gen] at this
     exact this
 
-theorem gen_pow_sq (j : ℕ) : gen ^ j * gen ^ j = gen ^ (2 * j) := by rw [← pow_add, two_mul]
+theorem os_gen_pow_sq (j : ℕ) : gen ^ j * gen ^ j = gen ^ (2 * j) := by rw [← pow_add, two_mul]
 
 theorem sqBody_at {depth posOff : ℕ} {sqz qpos qbp : E} {j : ℕ}
     (h : SqBody rd depth posOff sqz qpos qbp (gen ^ j)) :
@@ -144,7 +144,7 @@ theorem sqBody_at {depth posOff : ℕ} {sqz qpos qbp : E} {j : ℕ}
       MeaningDecodeQueryBits depth rd [challengeOf (sqCv cv),
         qpos * gen ^ (posOff + j * (192 / depth)), qbp * gen ^ (posOff + j * (192 / depth))] [] := by
   obtain ⟨cv, l0, l1, l2, l3, hd⟩ := h
-  rw [gen_pow_sq, loadHolds_mul_gen_pow] at l0 l1 l2 l3
+  rw [os_gen_pow_sq, loadHolds_mul_gen_pow] at l0 l1 l2 l3
   rw [← pow_mul, mul_assoc, mul_assoc, ← pow_add] at hd
   rw [Nat.add_zero] at l0
   exact ⟨cv, l0, l1, l2, l3, hd⟩

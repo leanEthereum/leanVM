@@ -89,10 +89,10 @@ theorem readsAt_of_getD {p : E} {l : List E} (h : ∀ k < l.length, LoadHolds rd
   have := h k hk
   rwa [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some] at this
 
-theorem getD_append_lt {l l' : List E} {n : ℕ} (h : n < l.length) : (l ++ l').getD n 0 = l.getD n 0 := by
+theorem os_getD_append_lt {l l' : List E} {n : ℕ} (h : n < l.length) : (l ++ l').getD n 0 = l.getD n 0 := by
   simp [List.getD_eq_getElem?_getD, List.getElem?_append_left h]
 
-theorem getD_append_ge {l l' : List E} {n : ℕ} (h : l.length ≤ n) :
+theorem os_getD_append_ge {l l' : List E} {n : ℕ} (h : l.length ≤ n) :
     (l ++ l').getD n 0 = l'.getD (n - l.length) 0 := by
   simp [List.getD_eq_getElem?_getD, List.getElem?_append_right h]
 
@@ -139,14 +139,14 @@ theorem osTail_sound {yrLog : ℕ} (hy : 2 ≤ yrLog) (hy5 : yrLog ≤ 5) {cur :
     rwa [show yrLog - 1 + 1 = yrLog by omega] at this
   · simp only [List.length_append, List.length_cons, List.length_nil, List.length_replicate] at hj
     rcases Nat.lt_or_ge j (yrLog - 1) with h1 | h1
-    · rw [getD_append_lt (by simp; omega), getD_append_lt (by omega)]
+    · rw [os_getD_append_lt (by simp; omega), os_getD_append_lt (by omega)]
       simpa using hst j h1
     · rcases Nat.lt_or_ge j yrLog with h2 | h2
       · obtain rfl : j = yrLog - 1 := by omega
-        rw [getD_append_lt (by simp; omega), getD_append_ge (by omega), hlen, Nat.sub_self]
+        rw [os_getD_append_lt (by simp; omega), os_getD_append_ge (by omega), hlen, Nat.sub_self]
         simp only [List.getD_cons_zero]
         rw [← hlast]; exact llast
-      · rw [getD_append_ge (by simp; omega)]
+      · rw [os_getD_append_ge (by simp; omega)]
         simp only [List.length_append, List.length_cons, List.length_nil, hlen]
         rw [show yrLog - 1 + (0 + 1) = yrLog by omega, List.getD_eq_getElem?_getD,
           List.getElem?_replicate, ite_pos' (by omega)]
@@ -157,10 +157,10 @@ theorem osTail_sound {yrLog : ℕ} (hy : 2 ≤ yrLog) (hy5 : yrLog ≤ 5) {cur :
 
 /-! ## The point -/
 
-theorem getD_drop' (l : List E) (n i : ℕ) : (l.drop n).getD i 0 = l.getD (n + i) 0 := by
+theorem os_getD_drop' (l : List E) (n i : ℕ) : (l.drop n).getD i 0 = l.getD (n + i) 0 := by
   simp [List.getD_eq_getElem?_getD, List.getElem?_drop]
 
-theorem getD_take' {l : List E} {n i : ℕ} (h : i < n) : (l.take n).getD i 0 = l.getD i 0 := by
+theorem os_getD_take' {l : List E} {n i : ℕ} (h : i < n) : (l.take n).getD i 0 = l.getD i 0 := by
   simp [List.getD_eq_getElem?_getD, h]
 
 /-- **The rotated point** (G:1240-1247): with the fold challenges `P` at `fch` and the tail
@@ -184,25 +184,25 @@ theorem osPoint_sound {nFolds lane yrLog tch k : ℕ} (hlane : lane ≤ nFolds) 
   unfold osPtBlk osPtSrc at hbi
   by_cases c1 : i < nFolds - lane
   · simp only [c1, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hbi
-    rw [getD_append_lt (by simp [hlen]; omega), getD_append_lt (by simp [hlen]; omega), getD_drop',
-      getD_append_lt (by omega), ← loadHolds_unique hbi.1 (hfch _ (by omega))]
+    rw [os_getD_append_lt (by simp [hlen]; omega), os_getD_append_lt (by simp [hlen]; omega), os_getD_drop',
+      os_getD_append_lt (by omega), ← loadHolds_unique hbi.1 (hfch _ (by omega))]
     exact hbi.2
   · by_cases c2 : i < nFolds - lane + yrLog
     · simp only [c1, c2, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hbi
-      rw [getD_append_lt (by simp [hlen]; omega), getD_append_lt (by simp [hlen]; omega), getD_drop',
-        getD_append_ge (by omega), hP, show lane + i - nFolds = i - (nFolds - lane) by omega,
+      rw [os_getD_append_lt (by simp [hlen]; omega), os_getD_append_lt (by simp [hlen]; omega), os_getD_drop',
+        os_getD_append_ge (by omega), hP, show lane + i - nFolds = i - (nFolds - lane) by omega,
         ← loadHolds_unique hbi.1 (htch _ (by omega))]
       exact hbi.2
     · by_cases c3 : i < nFolds + yrLog
       · simp only [c1, c2, c3, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hbi
-        rw [getD_append_lt (by simp [hlen]; omega), getD_append_ge (by simp [hlen]; omega),
-          List.length_drop, hlen, getD_take' (by omega), getD_append_lt (by omega),
+        rw [os_getD_append_lt (by simp [hlen]; omega), os_getD_append_ge (by simp [hlen]; omega),
+          List.length_drop, hlen, os_getD_take' (by omega), os_getD_append_lt (by omega),
           show i - (nFolds + yrLog - lane) = i - (nFolds - lane) - yrLog by omega,
           ← loadHolds_unique hbi.1 (hfch _ (by omega))]
         exact hbi.2
       · simp only [c1, c2, c3, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true,
           word_zero] at hbi
-        rw [getD_append_ge (by simp [hlen]; omega), List.getD_eq_getElem?_getD, List.getElem?_replicate,
+        rw [os_getD_append_ge (by simp [hlen]; omega), List.getD_eq_getElem?_getD, List.getElem?_replicate,
           ite_pos' (by simp [hlen]; omega), Option.getD_some, ← hbi.1]
         exact hbi.2
 

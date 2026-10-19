@@ -226,7 +226,7 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
   -- the point
   have htch' : ∀ j < cfg.yrLog, LoadHolds rd (σ (.n tch)) j (tf.getD j 0) := fun j hj => by
     have := readsAt_getD htch j (by simp; omega)
-    rwa [getD_append_lt (by omega)] at this
+    rwa [os_getD_append_lt (by omega)] at this
   have hpt := osPoint_sound hok.laneLe hok.pt42 hfl htfl (fun j hj => hfch j (by rw [hfl]; exact hj))
     htch' hP
   set n := cfg.levels.length with hnn
@@ -306,9 +306,9 @@ theorem osFinish_sound {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level} (hok 
       (fun t ht => by
         unfold oodSrc
         split
-        · rw [getD_append_lt (by simp [P, hfl]; omega), getD_drop']
+        · rw [os_getD_append_lt (by simp [P, hfl]; omega), os_getD_drop']
           exact hfch _ (by rw [hfl]; omega)
-        · rw [getD_append_ge (by simp [P, hfl]; omega)]
+        · rw [os_getD_append_ge (by simp [P, hfl]; omega)]
           simp only [List.length_drop, P, hfl]
           rw [show t - (cfg.nFolds - levelF cfg i) = t - ((cfg.lv i).logCols - cfg.yrLog) by omega]
           exact htch' _ (by omega))]

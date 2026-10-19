@@ -188,7 +188,7 @@ theorem queryBits_of_decode {depth nq nsq posOff : ℕ} {qpos qbp : E} {cv : Dig
 
 /-! ## A level's proof of work, positions and queries -/
 
-theorem getD_map_range {α : Type} {d : α} (f : ℕ → α) {n j : ℕ} (hj : j < n) :
+theorem os_getD_map_range {α : Type} {d : α} (f : ℕ → α) {n j : ℕ} (hj : j < n) :
     ((List.range n).map f).getD j d = f j := by
   simp [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hj]
 
@@ -267,7 +267,7 @@ theorem osLevelQ_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : L
   refine ⟨lam, qs, [n, c0, c2], os, _, c0, c2, hlam, by simpa using hatQ, by rw [hcoQ, hcoq, hcog],
     e0, e2, e1, hqsl, fun j hj => ?_, fun j hj => by simpa using hqw j hj,
     fun w1 pending r o => ?_⟩
-  · rw [getD_map_range _ hj]
+  · rw [os_getD_map_range _ hj]
     exact hqpos j hj
   simp only [levelQueries]
   conv at hsum => rhs; rw [← hqsl]
@@ -278,7 +278,7 @@ theorem osLevelQ_sound {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : L
   refine Runs.bind (runs_queryP hrt (openAll_of qs os o (by rw [hosl, hqsl]) fun j hj => ?_)) ?_
   · obtain ⟨h1, h2, h3⟩ := hos j hj
     refine ⟨h1, h2, ?_⟩
-    rw [getD_map_range _ (show j < (cfg.lv lvl).queries by omega)]
+    rw [os_getD_map_range _ (show j < (cfg.lv lvl).queries by omega)]
     exact h3
   refine Runs.bind (runs_roundPoly3 _ _ c0 c2 r _ _) ?_
   exact Runs.ret _ _
