@@ -705,7 +705,7 @@ noncomputable def cw : List Core.Stmt → CW → RC
         bif f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
             Nat.beq rets.length (X.G.sig j).nret && Nat.ble X.entry r &&
             st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r 0 && !bitK st.uq q &&
-            inFrame X.fs (q :: (args ++ rets).map X.loc.cell) then
+            inFrame X.fs (q :: (args ++ rets).map X.loc.cell) && !(f == X.name) then
           match afterC X st q r (setK st.uq q) (callFC X args ((X.G.sig j).env.map (·.1)) r) args
               rets with
           | .ok sr => cw ss sr
@@ -722,7 +722,8 @@ noncomputable def cw : List Core.Stmt → CW → RC
             tcOk X base args.length rets.length 0 fs &&
             Nat.ble X.entry r && st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r t &&
             !bitK st.uq q && !bitK st.uq t && !Nat.beq q t &&
-            inFrame X.fs (t :: q :: o1 :: (args ++ rets).map X.loc.cell) then
+            inFrame X.fs (t :: q :: o1 :: (args ++ rets).map X.loc.cell) &&
+            fs.all (fun g ↦ !(g == X.name)) then
           match afterC X { st with tg := (t, o1, base) :: st.tg } q r (setK (setK st.uq q) t)
               (callFC X args [] r) args rets with
           | .ok sr => cw ss sr

@@ -179,6 +179,41 @@ theorem cplRes_eq (j i k : ℕ) : cplRes j i k = (match getF (index (segsW j i))
 
 /-! ## A part's hypotheses -/
 
+/-! ## A loop helper's last call -/
+
+theorem loop_split {fn : Core.Fn} (h : fn.loop = true) :
+    ∃ A c args, fn.body = A ++ [.callIf c fn.name args, .ret []] := by
+  unfold Core.Fn.loop at h
+  split at h
+  · rename_i c g args rest hr
+    refine ⟨rest.reverse, c, args, ?_⟩
+    rw [← List.reverse_reverse fn.body, hr, ← beq_iff_eq.mp h]
+    simp
+  · cases h
+
+/-- On a path through a loop helper returning only at its end, its last call is its closing one. -/
+theorem lastCall_of {fn : Core.Fn} {σ : Val} {es : List Ev} {vs : List V}
+    (hw : walk σ fn.body = .ret es vs) (hl : fn.loop = true) (hok : lastOkC fn.body = true) :
+    ∀ c, (calls es).getLast? = some c → c.f = fn.name := by
+  obtain ⟨A, c, args, hb⟩ := loop_split hl
+  obtain ⟨A', vs', hb', hA'⟩ := lastOkC_split hok
+  rw [hb, show A ++ [Stmt.callIf c fn.name args, .ret []] =
+    (A ++ [.callIf c fn.name args]) ++ [.ret []] by simp] at hb'
+  obtain ⟨rfl, -⟩ := List.append_inj' hb' rfl
+  rw [noRetList_append] at hA'
+  rw [hb, walk_appendC] at hw
+  rcases walk_noRetC A ((Bool.and_eq_true _ _).mp hA').1 with ⟨eA, h1⟩ | h1
+  · have hw2 : walk σ [Stmt.callIf c fn.name args, .ret []] =
+        .ret [Ev.inK c, if σ c = 0 then Ev.skip fn.name args else Ev.call fn.name args []] [] := rfl
+    rw [h1, hw2] at hw
+    simp only [Out.seq, Out.pre, Out.ret.injEq] at hw
+    obtain ⟨rfl, -⟩ := hw
+    intro c' hc'
+    simp [calls, List.filterMap_append, callIf_ev] at hc'
+    rw [← hc']
+  · rw [h1] at hw
+    cases hw
+
 section Part
 
 variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
@@ -199,6 +234,7 @@ structure FnH (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : Lis
   frame : FrameHolds L j fp σ es vs kfps hdr
   kids : KidsRun L σ es kfps ck
   hev : ∀ e ∈ es, e.Holds L.read σ
+  walk : walk σ (coreOf j).body = .ret es vs
 
 theorem one_le_nParts (j i : ℕ) : 0 < nParts j i := by
   unfold nParts
@@ -215,7 +251,9 @@ theorem FnH.ctx (F : FnH L j fp σ es vs kfps hdr ck) : Exec.Ctx (certOf j).fact
   rw [F.main (by simpa using this), gpow_zero']
 
 /-- **The walk's hypotheses hold in every part**, the part's atoms being events. -/
-theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck) {i k : ℕ} (hi : i ≤ (certOf j).cuts.length)
+theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck)
+    (hlb : (coreOf j).loop = true → lastOkC (coreOf j).body = true) {i k : ℕ}
+    (hi : i ≤ (certOf j).cuts.length)
     (hatoms : ∀ a, Stmt.atom a ∈ partStmts j i k → Ev.atom a ∈ es) :
     WH L j fp (Xp j i k) (segsW j i) (wJW j i) (wenvW j i) σ es vs kfps hdr ck := by
   have hctx := F.ctx
@@ -227,7 +265,7 @@ theorem wh_part (F : FnH L j fp σ es vs kfps hdr ck) {i k : ℕ} (hi : i ≤ (c
   refine ⟨cxOk F.frame F.pows _ _ _, hctx, fun s hs ↦ execWin_z hctx hfet hs,
     fun s hs ↦ (execWin_good (L := L) hctx hfet _ _ _ s hs).2.2, rfl, hcw.2.2.1,
     fun v c h ↦ clocW_get (cont_of F.chk) hi hcw.2.1 rfl hpack h, rfl, rfl, rfl, rfl, rfl, rfl,
-    rfl, rfl, rfl, fun v hv hsel ↦ ?_, F.frame, F.kids, F.hev, F.jt, F.tab, F.j1, F.jn⟩
+    rfl, rfl, rfl, fun v hv hsel ↦ ?_, F.frame, F.kids, F.hev, fun hl ↦ lastCall_of F.walk hl (hlb hl), F.jt, F.tab, F.j1, F.jn⟩
   simp only [selOk, Bool.or_eq_true, Nat.blt_eq] at hsel
   unfold namedOf
   rcases hsel with h | h

@@ -119,7 +119,7 @@ theorem cw_call {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW
     ∃ e q r j sr, st.seg.exit.kind = .call (.gp e) q r ∧ calleeC X e = some j ∧
       f = (X.G.sig j).name ∧ args.length = (X.G.sig j).nargs ∧ rets.length = (X.G.sig j).nret ∧
       X.entry ≤ r ∧ st.seg.exit.succ = [r - X.entry] ∧ siteOk X args rets q r 0 = true ∧
-      bitK st.uq q = false ∧ inFrame X.fs (q :: (args ++ rets).map X.loc.cell) = true ∧
+      bitK st.uq q = false ∧ inFrame X.fs (q :: (args ++ rets).map X.loc.cell) = true ∧ f ≠ X.name ∧
       afterC X st q r (setK st.uq q) (callFC X args ((X.G.sig j).env.map (·.1)) r) args rets = .ok sr ∧
       cw X (.call f args rets :: ss) st = cw X ss sr := by
   simp only [cw] at h ⊢
@@ -130,16 +130,16 @@ theorem cw_call {f : String} {args rets : List V} {ss : List Core.Stmt} {st : CW
       cases hc : (f == (X.G.sig j).name && Nat.beq args.length (X.G.sig j).nargs &&
           Nat.beq rets.length (X.G.sig j).nret && Nat.ble X.entry r &&
           st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r 0 && !bitK st.uq q &&
-          inFrame X.fs (q :: (args ++ rets).map X.loc.cell))
+          inFrame X.fs (q :: (args ++ rets).map X.loc.cell) && !(f == X.name))
       · rw [hc] at h; cases h
       rw [hc] at h
       simp only [Bool.cond_true] at h ⊢
       simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at hc
-      obtain ⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩ := hc
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩ := hc
       split at h
       · rename_i sr hsr
         exact ⟨e, q, r, j, sr, hk, hj, h1, Nat.eq_of_beq_eq_true h2, Nat.eq_of_beq_eq_true h3,
-          Nat.le_of_ble_eq_true h4, h5, h6, h7, h8, hsr, rfl⟩
+          Nat.le_of_ble_eq_true h4, h5, h6, h7, h8, (by simpa using h9), hsr, rfl⟩
       · cases h
     · cases h
   · cases h
@@ -152,6 +152,7 @@ theorem cw_dispatch {v : V} {fs : List String} {args rets : List V} {ss : List C
       st.seg.exit.succ = [r - X.entry] ∧ siteOk X args rets q r t = true ∧
       bitK st.uq q = false ∧ bitK st.uq t = false ∧ q ≠ t ∧
       inFrame X.fs (t :: q :: X.loc.cell v :: (args ++ rets).map X.loc.cell) = true ∧
+      (∀ g ∈ fs, g ≠ X.name) ∧
       afterC X { st with tg := (t, X.loc.cell v, base) :: st.tg } q r (setK (setK st.uq q) t)
         (callFC X args [] r) args rets = .ok sr ∧
       cw X (.dispatch v fs args rets :: ss) st = cw X ss sr := by
@@ -164,12 +165,13 @@ theorem cw_dispatch {v : V} {fs : List String} {args rets : List V} {ss : List C
           tcOk X base args.length rets.length 0 fs &&
           Nat.ble X.entry r && st.seg.exit.succ == [r - X.entry] && siteOk X args rets q r t &&
           !bitK st.uq q && !bitK st.uq t && !Nat.beq q t &&
-          inFrame X.fs (t :: q :: o1 :: (args ++ rets).map X.loc.cell))
+          inFrame X.fs (t :: q :: o1 :: (args ++ rets).map X.loc.cell) &&
+          fs.all (fun g ↦ !(g == X.name)))
       · rw [hc] at h; cases h
       rw [hc] at h
       simp only [Bool.cond_true] at h ⊢
       simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at hc
-      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, hp1⟩, hp2⟩, hp3⟩, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩ := hc
+      obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨h1, hp1⟩, hp2⟩, hp3⟩, h2⟩, h3⟩, h4⟩, h5⟩, h6⟩, h7⟩, h8⟩, h9⟩, h10⟩ := hc
       obtain rfl := Nat.eq_of_beq_eq_true h1
       have hvn : v = V.n v.idx := by
         obtain ⟨vp, vt, vi⟩ := v
@@ -180,7 +182,7 @@ theorem cw_dispatch {v : V} {fs : List String} {args rets : List V} {ss : List C
       split at h
       · rename_i sr hsr
         exact ⟨t, q, r, base, sr, hk, htb, hvn, hp3, h2, Nat.le_of_ble_eq_true h3, h4, h5, h6, h7,
-          Nat.ne_of_beq_eq_false h8, h9, hsr, rfl⟩
+          Nat.ne_of_beq_eq_false h8, h9, fun g hg ↦ (by simpa using List.all_eq_true.mp h10 g hg), hsr, rfl⟩
       · cases h
     · cases h
   · cases h

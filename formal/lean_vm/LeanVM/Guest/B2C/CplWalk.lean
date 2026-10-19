@@ -117,32 +117,6 @@ theorem noRetList_append : ∀ (A B : List Stmt),
   | [], _ => by simp [Stmt.noRetList]
   | a :: A, B => by simp only [List.cons_append, Stmt.noRetList, noRetList_append A B, Bool.and_assoc]
 
-/-- A loop's closing `callIf` is on a path through a block ending with it. -/
-theorem tail_call_in {j : ℕ} {σ : Val} {ss : List Stmt}
-    (ht : ∃ A c args, ss = A ++ [.callIf c (coreOf j).name args, .ret []])
-    (hs : Stmt.noRetList ss = true ∨ lastOkC ss = true) {o : Out} (hw : walk σ ss = o)
-    (hst : o ≠ .stuck) : ∃ e ∈ o.evs, (Ev.call? e).isSome := by
-  obtain ⟨A, c, args, rfl⟩ := ht
-  have hA : Stmt.noRetList A = true := by
-    rcases hs with hs | hs
-    · rw [noRetList_append] at hs
-      simp [Stmt.noRetList, Stmt.noRet] at hs
-    · obtain ⟨A', vs, he, hA'⟩ := lastOkC_split hs
-      rw [show A ++ [Stmt.callIf c (coreOf j).name args, .ret []] =
-        (A ++ [.callIf c (coreOf j).name args]) ++ [.ret []] by simp] at he
-      obtain ⟨rfl, -⟩ := List.append_inj' he rfl
-      rw [noRetList_append] at hA'
-      exact (Bool.and_eq_true _ _).mp hA' |>.1
-  rw [walk_appendC] at hw
-  rcases walk_noRetC A hA with ⟨eA, h1⟩ | h1
-  · rw [h1] at hw
-    subst hw
-    refine ⟨if σ c = 0 then .skip (coreOf j).name args else .call (coreOf j).name args [], ?_, ?_⟩
-    · simp [walk, walk1, Out.seq, Out.pre, Out.evs]
-    · split_ifs <;> rfl
-  · rw [h1] at hw
-    exact absurd hw.symm (by simpa [Out.seq] using hst)
-
 section Walk
 
 variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
@@ -174,6 +148,8 @@ structure WH (L : MemImage κ) (j fp : ℕ) (X : CX) (segs : List Exec.Seg) (wJ 
   frame : FrameHolds L j fp σ es vs kfps hdr
   kids : KidsRun L σ es kfps ck
   hev : ∀ e ∈ es, e.Holds L.read σ
+  /-- A loop helper's last call is its closing one. -/
+  lastCall : (coreOf j).loop = true → ∀ c, (calls es).getLast? = some c → c.f = (coreOf j).name
   jt : JTHolds glob L
   tab : ∀ q ∈ Memory.tableCells, L.read (gpow q.1) = some q.2
   j1 : 1 ≤ j
@@ -335,10 +311,6 @@ theorem brAtC_pos (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {st st' : 
 
 /-! ## The walk -/
 
-/-- A block ending with a loop's closing `callIf` to its function and `ret []`. -/
-def TailB (j : ℕ) (ss : List Stmt) : Prop :=
-  ∃ A c args, ss = A ++ [.callIf c (coreOf j).name args, .ret []]
-
 /-- **How the walk of a window ends by the return**: the run reaches the return registers
 (`main`: the final ones) within the most a path runs and the first `n` callees' counts, its
 returned values at the cells after its parameters. -/
@@ -355,14 +327,13 @@ def WGood (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (ss : List Stmt) (
   ∀ (ebef eaft : List Ev) (o : Out) (W0 : Regs K) (pre : List Stmt),
     walk σ ss = o → es = ebef ++ o.evs ++ eaft → o ≠ .stuck →
     (Stmt.noRetList ss = true ∨ (lastOkC ss = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ ss)) →
-    ((coreOf j).loop = true → ¬ TailB j ss → ∃ e ∈ eaft, (Ev.call? e).isSome) →
     PosZ H st W0 (calls ebef).length → (cw X ss st).ok = true →
     (∀ J c u, cw X ss st = .join J c u → ∃ es', o = .fall es' ∧
       Arr L fp X wJ wenv ck W0 J c (calls (ebef ++ es')).length) ∧
     (cw X ss st = .done → ∃ es' vs', o = .ret es' vs' ∧ FinZ L j fp X ck W0 (calls (ebef ++ es')).length vs')
 
 theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) : WGood H [] st := by
-  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  intro ebef eaft o W0 pre hw hes hs hshape hp hok
   rw [walk] at hw
   subst hw
   rw [cw_nil] at hok ⊢
@@ -393,17 +364,6 @@ theorem walk_nilZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (st : CW) 
         (by rw [hsu]; exact List.mem_singleton_self _) henv⟩
   · rcases endC_ok hok with ⟨t, -, he⟩ | ⟨-, se, t, -, -, -, he⟩ <;> rw [he] at hd <;> cases hd
 
-theorem tailB_cons {s : Stmt} {ss : List Stmt} (h : TailB j (s :: ss)) :
-    (∃ c args, s = .callIf c (coreOf j).name args ∧ ss = [.ret []]) ∨ TailB j ss := by
-  obtain ⟨A, c, args, he⟩ := h
-  cases A with
-  | nil =>
-    simp only [List.nil_append, List.cons.injEq] at he
-    exact Or.inl ⟨c, args, he.1, he.2⟩
-  | cons a A =>
-    simp only [List.cons_append, List.cons.injEq] at he
-    exact Or.inr ⟨A, c, args, he.2⟩
-
 theorem lastOkC_cons {s : Stmt} {ss : List Stmt} (h : lastOkC (s :: ss) = true)
     (hs : ∀ vs, s ≠ .ret vs) : Stmt.noRet s = true ∧ lastOkC ss = true := by
   cases ss with
@@ -413,13 +373,11 @@ theorem lastOkC_cons {s : Stmt} {ss : List Stmt} (h : lastOkC (s :: ss) = true)
 /-- **A statement falling through, then the rest of the block.** -/
 theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt} {ss : List Stmt}
     (ih : ∀ st, WGood H ss st) (hs : Stmt.noRet s = true)
-    (hnt : ∀ c args, s = .callIf c (coreOf j).name args → ss ≠ [.ret []])
     {st st'' : CW} {ebef eaft e1 : List Ev} {o : Out} {W0 : Regs K} {pre : List Stmt}
     (hw1 : walk1 σ s = .fall e1) (hw : walk σ (s :: ss) = o) (hes : es = ebef ++ o.evs ++ eaft)
     (hstk : o ≠ .stuck)
     (hshape : Stmt.noRetList (s :: ss) = true ∨
       (lastOkC (s :: ss) = true ∧ eaft = [] ∧ (coreOf j).body = pre ++ s :: ss))
-    (htail : (coreOf j).loop = true → ¬ TailB j (s :: ss) → ∃ e ∈ eaft, (Ev.call? e).isSome)
     (hp'' : PosZ H st'' W0 (calls (ebef ++ e1)).length) (hcw : cw X (s :: ss) st = cw X ss st'')
     (hok : (cw X (s :: ss) st).ok = true) :
     (∀ J c u, cw X (s :: ss) st = .join J c u → ∃ es', o = .fall es' ∧
@@ -443,14 +401,8 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
     · refine Or.inr ⟨(lastOkC_cons h fun vs hv ↦ by subst hv; simp [Stmt.noRet] at hs).2, he, ?_⟩
       rw [hb, List.append_assoc]
       rfl
-  have htail' : (coreOf j).loop = true → ¬ TailB j ss → ∃ e ∈ eaft, (Ev.call? e).isSome := by
-    intro hl hnt'
-    refine htail hl fun ht ↦ ?_
-    rcases tailB_cons ht with ⟨c, args, rfl, he⟩ | ht
-    · exact hnt c args rfl he
-    · exact hnt' ht
   rw [hcw] at hok ⊢
-  obtain ⟨h1, h2⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) rfl hes' hstk' hshape' htail' hp'' hok
+  obtain ⟨h1, h2⟩ := ih st'' (ebef ++ e1) eaft _ W0 (pre ++ [s]) rfl hes' hstk' hshape' hp'' hok
   refine ⟨fun J c u hj ↦ ?_, fun hd ↦ ?_⟩
   · obtain ⟨es', he, ha⟩ := h1 J c u hj
     refine ⟨e1 ++ es', by rw [he]; rfl, ?_⟩
@@ -463,8 +415,8 @@ theorem walk_step (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {s : Stmt}
 
 theorem walk_atomZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (a : Core.Atom)
     (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) : WGood H (.atom a :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
-  refine walk_step H ih rfl (fun c args h ↦ by cases h) rfl hw hes hs hshape htail ?_ (cw_atom a ss st) hok
+  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  refine walk_step H ih rfl rfl hw hes hs hshape ?_ (cw_atom a ss st) hok
   have hc : calls (ebef ++ [.atom a]) = calls ebef := by simp [calls, Ev.call?]
   rw [hc]
   exact ⟨hp.seg, ⟨hp.ok.env, hp.ok.book, hp.ok.fr, hp.ok.tg, hp.ok.nx⟩, hp.run, fun t ht ↦ by cases ht⟩
@@ -569,28 +521,15 @@ theorem inFrame_append (n : ℕ) : ∀ (l₁ l₂ : List ℕ), inFrame n (l₁ +
   | [], _ => by simp [inFrame]
   | c :: l₁, l₂ => by simp only [List.cons_append, inFrame, inFrame_append n l₁ l₂, Bool.and_assoc]
 
-/-- A call on the path, other than a loop's closing one, is not the path's last. -/
-theorem notLast {s : Stmt} {ss : List Stmt} {ebef eaft : List Ev} {ev : Ev} {c : Call}
-    (hc : ev.call? = some c) (hnt : ∀ c' args, s ≠ .callIf c' (coreOf j).name args)
-    (hshape : Stmt.noRetList (s :: ss) = true ∨ lastOkC (s :: ss) = true) (hs : Stmt.noRet s = true)
-    (htail : (coreOf j).loop = true → ¬ TailB j (s :: ss) → ∃ e ∈ eaft, (Ev.call? e).isSome)
-    (hst : walk σ ss ≠ .stuck) (hes : es = ebef ++ ev :: ((walk σ ss).evs ++ eaft)) :
-    (coreOf j).loop = true → (calls ebef).length + 1 < (calls es).length := by
+/-- A call on the path, other than to the function itself, is not a loop's last. -/
+theorem notLast (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {n : ℕ} {c : Call}
+    (hc : (calls es)[n]? = some c) (hf : c.f ≠ (coreOf j).name) :
+    (coreOf j).loop = true → n + 1 < (calls es).length := by
   intro hl
-  rw [hes]
-  refine calls_len_gt hc ?_
-  by_cases ht : TailB j (s :: ss)
-  · rcases tailB_cons ht with ⟨c', args, he, -⟩ | ht'
-    · exact absurd he (hnt c' args)
-    · have hsh : Stmt.noRetList ss = true ∨ lastOkC ss = true := by
-        rcases hshape with h | h
-        · simp only [Stmt.noRetList, Bool.and_eq_true] at h
-          exact Or.inl h.2
-        · exact Or.inr (lastOkC_cons h fun vs hv ↦ by subst hv; simp [Stmt.noRet] at hs).2
-      obtain ⟨e, he, hc'⟩ := tail_call_in ht' hsh rfl hst
-      exact ⟨e, List.mem_append_left _ he, hc'⟩
-  · obtain ⟨e, he, hc'⟩ := htail hl ht
-    exact ⟨e, List.mem_append_right _ he, hc'⟩
+  have hlt : n < (calls es).length := (List.getElem?_eq_some_iff.mp hc).1
+  refine lt_of_le_of_ne hlt fun he ↦ hf (H.lastCall hl c ?_)
+  rw [List.getLast?_eq_getElem?, ← he, Nat.add_sub_cancel]
+  exact hc
 
 theorem walk_pre_evs {e1 : List Ev} {o' : Out} (hst : o' ≠ .stuck) : (o'.pre e1).evs = e1 ++ o'.evs := by
   cases o' with
@@ -601,8 +540,9 @@ theorem walk_pre_evs {e1 : List Ev} {o' : Out} (hst : o' ≠ .stuck) : (o'.pre e
 theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : String)
     (args rets : List V) (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) :
     WGood H (.call f args rets :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
-  obtain ⟨e, q, r, j', sr, hk, hj, hf, hna, hnr, hle, hsu, hsite, hbit, hin, haf, hcw⟩ := cw_call hok
+  intro ebef eaft o W0 pre hw hes hs hshape hp hok
+  obtain ⟨e, q, r, j', sr, hk, hj, hf, hna, hnr, hle, hsu, hsite, hbit, hin, hself, haf, hcw⟩ :=
+    cw_call hok
   obtain ⟨se, s', hse, hs', rfl⟩ := afterC_ok haf
   obtain ⟨hj1, hj2, he⟩ := calleeC_some H.G hj
   have hfn : f = (coreOf j').name := by rw [hf, H.G]; rfl
@@ -614,8 +554,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
   set n := (calls ebef).length with hn
   have hci : (calls es)[n]? = some ⟨f, args, rets, true⟩ := by rw [hes2]; exact calls_at rfl
   obtain ⟨s0, hs0, hq0, hr0, ht0⟩ := siteOk_spec hsite
-  have hnl := notLast (c := ⟨f, args, rets, true⟩) rfl (fun _ _ h ↦ by cases h)
-    (hshape.imp id fun h ↦ h.1) rfl htail hst' hes2
+  have hnl := notLast H hci fun h ↦ hself (h.trans H.name.symm)
   have hin' : inFrame X.fs (s0.q :: args.map X.loc.cell) = true := by
     rw [hq0]
     simp only [inFrame, Bool.and_eq_true] at hin ⊢
@@ -650,7 +589,7 @@ theorem walk_callZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (f : Stri
       (by rw [htg]; exact hp.ok.tg) (by rw [hnx]; exact hp.ok.nx) henvR (n := n + 1) hrun2
       (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega)
   have hc1 : (calls (ebef ++ [.call f args rets])).length = n + 1 := calls_append_one rfl
-  refine walk_step H ih rfl (fun _ _ h ↦ by cases h) rfl hw hes hs hshape htail ?_ hcw ?_
+  refine walk_step H ih rfl rfl hw hes hs hshape ?_ hcw ?_
   · rw [hc1]
     refine ⟨hps.seg, ⟨hps.ok.env, hps.ok.book, fun x hx ↦ ?_, hps.ok.tg, hps.ok.nx⟩, hps.run,
       fun t ht ↦ ?_⟩
@@ -711,7 +650,7 @@ theorem noRet_of_shape {s : Stmt} {ss : List Stmt} (hs : ∀ vs, s ≠ .ret vs) 
 theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z n ss : List Stmt)
     (st : CW) (ihz : ∀ st, WGood H z st) (ihn : ∀ st, WGood H n st) (ih : ∀ st, WGood H ss st) :
     WGood H (.ite c z n :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  intro ebef eaft o W0 pre hw hes hs hshape hp hok
   obtain ⟨st', od, of, x, t, sn, J, c1, u1, c2, u2, sj, hb, hk, hfr, hod, hof, hsu, hsn, hz, hn,
     hsj, hcw⟩ := cw_ite hok
   obtain ⟨hseg', hbk', hfr', htg', hnx', huq', hfresh', hx, hok', hfall, htaken⟩ := brAtC_pos H hp hb
@@ -746,21 +685,6 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
   have hjump : (Atom.jump (X.loc.cell c) od of).Holds L (gpow fp) :=
     ⟨σ c, vd, vf, hcell, hvd, hvf, hcK, hKd, hKf⟩
   -- the rest of the path after the branch
-  have htail' : ∀ b : List Stmt, (coreOf j).loop = true → ¬ TailB j b →
-      ∃ e ∈ (walk σ ss).evs ++ eaft, (Ev.call? e).isSome := by
-    intro b hl _
-    by_cases ht : TailB j (.ite c z n :: ss)
-    · rcases tailB_cons ht with ⟨c', args, he, -⟩ | ht'
-      · cases he
-      · have hsh : Stmt.noRetList ss = true ∨ lastOkC ss = true := by
-          rcases hshape with h | ⟨h, -, -⟩
-          · simp only [Stmt.noRetList, Bool.and_eq_true] at h
-            exact Or.inl h.2
-          · exact Or.inr (lastOkC_cons h fun vs hv ↦ by cases hv).2
-        obtain ⟨e, he, hc'⟩ := tail_call_in ht' hsh rfl hst'
-        exact ⟨e, List.mem_append_left _ he, hc'⟩
-    · obtain ⟨e, he, hc'⟩ := htail hl ht
-      exact ⟨e, List.mem_append_right _ he, hc'⟩
   have hatoms : ∀ b : List Stmt, walk σ b = .fall eb → ∀ a, Stmt.atom a ∈ b → Ev.atom a ∈ es :=
     fun b hb a ha ↦ by rw [hes2]; simp [atom_on_pathC hb ha]
   have hn1 : (calls (ebef ++ [Ev.inK c])).length = (calls ebef).length := by
@@ -777,7 +701,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
         rw [hn1, H.fs]
         exact hpz
       obtain ⟨h1, -⟩ := ihz _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwz
-        (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.1) (htail' z) hpz' (by rw [hz]; rfl)
+        (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.1) hpz' (by rw [hz]; rfl)
       obtain ⟨es', he', ha⟩ := h1 J c1 u1 hz
       simp only [Out.fall.injEq] at he'
       subst he'
@@ -794,7 +718,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
         exact posZ_book H hps (fileB_ok H.frame H.loc H.hev n st'.book (hbk' ▸ hp.ok.book)
           (hatoms n hwn))
       obtain ⟨h1, -⟩ := ihn _ (ebef ++ [Ev.inK c]) ((walk σ ss).evs ++ eaft) _ W0 [] hwn
-        (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.2) (htail' n) hpn (by rw [hn]; rfl)
+        (by rw [hes2, show (Out.fall eb).evs = eb from rfl]; simp) (by simp) (Or.inl hnr.2) hpn (by rw [hn]; rfl)
       obtain ⟨es', he', ha⟩ := h1 J c2 u2 hn
       simp only [Out.fall.injEq] at he'
       subst he'
@@ -809,8 +733,7 @@ theorem walk_iteZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (z
       · exact le_trans this (Nat.add_le_add_right (Nat.le_max_left _ _) _)
       · exact le_trans this (Nat.add_le_add_right (Nat.le_max_right _ _) _))
   have hw1' : walk1 σ (.ite c z n) = .fall (Ev.inK c :: eb) := by rw [hw1, hweb]; rfl
-  refine walk_step H ih (by simp [Stmt.noRet, hnr.1, hnr.2]) (fun _ _ h ↦ by cases h) hw1' hw hes hs
-    hshape htail ?_ hcw hok
+  refine walk_step H ih (by simp [Stmt.noRet, hnr.1, hnr.2]) hw1' hw hes hs hshape ?_ hcw hok
   rw [show ebef ++ Ev.inK c :: eb = ebef ++ [Ev.inK c] ++ eb by simp]
   exact hpj
 
@@ -874,7 +797,7 @@ theorem Cnt.le_spec {c c' : Cnt} (h : c.le c' = true) : ∀ op, c.get op ≤ c'.
 theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V) (f : String)
     (args : List V) (ss : List Stmt) (st : CW) (ih : ∀ st, WGood H ss st) :
     WGood H (.callIf c f args :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  intro ebef eaft o W0 pre hw hes hs hshape hp hok
   obtain ⟨x, hpk, hin, hcase⟩ := cw_callIf hok
   set ev : Ev := if σ c = 0 then Ev.skip f args else Ev.call f args [] with hev
   have hwo : o = (walk σ ss).pre [.inK c, ev] := by rw [← hw]; rfl
@@ -912,10 +835,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
     obtain ⟨hj1, hj2, hent⟩ := calleeC_some H.G hj
     have hfn : f = (coreOf j').name := by rw [hf, H.G]; rfl
     obtain ⟨s0, hs0, hq0, hr0, -⟩ := siteOk_spec hsite
-    have hnl := notLast (ebef := ebef ++ [Ev.inK c]) (callIf_ev c f args)
-      (fun c' args' h ↦ by cases h; exact hfne (by rw [H.name]))
-      (hshape.imp id fun h ↦ h.1) rfl htail hst' hes2
-    rw [hn'] at hnl
+    have hnl := notLast H hci fun h ↦ hfne (h.trans H.name.symm)
     have hin' : inFrame X.fs (s0.q :: args.map X.loc.cell) = true := by
       rw [hq0]
       simp only [inFrame, Bool.and_eq_true] at hin hinq ⊢
@@ -969,8 +889,7 @@ theorem walk_callIfZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (c : V)
         · exact envAt_of_exit H hp.seg hx (by rw [hsu]; simp) henv
     obtain ⟨hpr, -⟩ := segAtC_posW H hsr hok' (by rw [hrt]; exact henvR) (n := n + 1)
       (C := Cnt.max se.cnt st'.cnt) (U := setK st.uq q) (by rw [hrt]; exact hcr) hcle
-    refine walk_step H ih rfl (fun _ _ h ↦ by cases h; exact absurd (by rw [H.name]) hfne)
-      rfl hw hes hs hshape htail (by rw [hc1]; exact hpr) hcw hok
+    refine walk_step H ih rfl rfl hw hes hs hshape (by rw [hc1]; exact hpr) hcw hok
   · -- a loop's closing call
     subst hss
     have hwo' : o = .ret [Ev.inK c, ev] [] := by rw [hwo]; rfl
@@ -1087,7 +1006,7 @@ theorem final_guest : Regs.final guest = ⟨gpow (2 ^ 18 - 1), gpow 0⟩ := by
 
 theorem walk_retZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (vs' : List V)
     (ss : List Stmt) (st : CW) : WGood H (.ret vs' :: ss) st := by
-  intro ebef eaft o W0 pre hw hes hs hshape htail hp hok
+  intro ebef eaft o W0 pre hw hes hs hshape hp hok
   obtain ⟨se, hse, hkind, hle, hlen, hrun, hin, hcw⟩ := cw_ret hok
   have hwo : o = .ret [] vs' := by
     rw [← hw, walk]
