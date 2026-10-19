@@ -995,7 +995,8 @@ def certOf (T : Tables) (fns : Array CompiledFn) (index : Std.HashMap String ℕ
   for w in [0:nw] do
     let a := wStarts[w]!
     let b := if w + 1 < nw then wStarts[w + 1]! else cf.body.length
-    let vs := (Check.stmtsVals ((cf.body.drop a).take (b - a))).map (·.idx) ++
+    let ws := (cf.body.drop a).take (b - a)
+    let vs := (Check.stmtsVals ws ++ Memory.Stmt.usesList ws ++ Memory.Stmt.tmpsList ws).map (·.idx) ++
       (if w == 0 then cf.params.map (·.idx) else [])
     let lo := hi
     hi := vs.foldl (fun h v => max h (v + 1)) hi
@@ -1915,7 +1916,9 @@ def snaps (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (starts : Array ℕ) (los h
     | .fpg _ => { st with occ := st.occ.insert o }) {}
   -- the snapshot at statement `a`, read from window `w`'s cells, of the state `m`
   let snap (a w : ℕ) (m : SS) : String × SS :=
-    let used : Std.HashSet ℕ := (Check.stmtsVals (cf.body.drop a)).foldl (fun h v => h.insert v.idx) {}
+    let rest := cf.body.drop a
+    let used : Std.HashSet ℕ := (Check.stmtsVals rest ++ Memory.Stmt.usesList rest ++ Memory.Stmt.tmpsList rest).foldl
+      (fun h v => h.insert v.idx) {}
     let cellsUsed : Std.HashSet ℕ := used.fold (fun h v => h.insert (locA.getD v 0)) {}
     let named := (m.named.toList.filter used.contains).mergeSort
     let cst := (m.cst.toList.filter fun (c, _) => cellsUsed.contains c).mergeSort (·.1 ≤ ·.1)
@@ -1950,6 +1953,11 @@ def snaps (j : ℕ) (cf : Core.Fn) (locs : List ℕ) (starts : Array ℕ) (los h
         cost := 0
         st := st'
       let s := body[idx]!
+      let lo := los[w]!
+      let hi := min his[w]! locA.size
+      for v in Memory.Stmt.usesList [s] ++ Memory.Stmt.tmpsList [s] do
+        unless (lo ≤ v.idx && v.idx < hi) || (insW[w]!).any (·.1 == v.idx) do
+          throw s!"sharing of function {j}, statement {idx}: value {v.idx} has no cell in window {w}"
       st ← (swS X st s).mapError (s!"sharing of function {j}, statement {idx}: " ++ ·)
       if mayRet s && !st.pend.isEmpty then throw s!"sharing of function {j}, statement {idx}: pending after a return"
       cost := cost + (Check.stmtsVals [s]).length
