@@ -60,5 +60,29 @@ theorem VtHolds.slice {rd : Reader} {σ : Val} (h : VtHolds rd σ) (n : ℕ) (bl
   obtain ⟨k, h⟩ := h
   exact ⟨k, holds_slice vtPre_noRet h n blk heq⟩
 
+/-- A conditional call of the body holds. -/
+theorem VtHolds.callIf {rd : Reader} {σ : Val} (h : VtHolds rd σ) (n : ℕ) (c : V) (f : String)
+    (args : List V) (heq : stmtsEqb [.callIf c f args] ((vtPre.drop n).take 1) = true) :
+    σ c ≠ 0 → coreProgram.Rel rd f (args.map σ) [] := by
+  obtain ⟨k, h⟩ := h
+  exact holds_callIf vtPre_noRet h n c f args heq
+
+/-- An `fs_next` of the body. -/
+theorem VtHolds.fsNext {rd : Reader} {σ : Val} (h : VtHolds rd σ) (n : ℕ) (s0 s1 cur : V) (j b : ℕ)
+    (heq : stmtsEqb (fsNextT s0 s1 cur j b) ((vtPre.drop n).take 13) = true) :
+    LoadHolds rd (σ cur) j (σ (.n b)) ∧ ∃ cv, (σ s0, σ s1) = digestScalars cv ∧
+      (σ (.n (b + 13)), σ (.n (b + 14))) = digestScalars (obsCv cv (σ (.n b))) := by
+  obtain ⟨k, h⟩ := h
+  exact holds_fsNextAt vtPre_noRet h n s0 s1 cur j b heq
+
+/-- A `squeeze` of the body. -/
+theorem VtHolds.squeeze {rd : Reader} {σ : Val} (h : VtHolds rd σ) (n : ℕ) (s0 s1 : V) (b : ℕ)
+    (heq : stmtsEqb (squeezeT s0 s1 b) ((vtPre.drop n).take 14) = true) :
+    ∃ cv, (σ s0, σ s1) = digestScalars cv ∧
+      (σ (.n (b + 5)), σ (.n (b + 6))) = digestScalars (sqCv cv) ∧
+      σ (.n (b + 13)) = challengeOf (sqCv cv) := by
+  obtain ⟨k, h⟩ := h
+  exact holds_squeezeAt vtPre_noRet h n s0 s1 b heq
+
 end
 end LeanVM.Guest.B1.VerifySub
