@@ -84,5 +84,62 @@ theorem readsAt_sub {rd : Reader} {p : E} {L l : List E} (h : ReadsAt rd p L) (h
     rw [← List.getD_eq_getElem l 0, he j hj, List.getD_eq_getElem]
   rw [e]; exact h j (by omega)
 
+theorem selBlk_facts : (∀ i < 37, selBlk.getD i 0 = i) ∧ (∀ j < 28, selBlk.getD (37 + j) 0 = 74 + j) := by
+  decide +kernel
+
+theorem selBuf_lt : ∀ i < 65, selBuf i + 2 < 205 := by decide
+
+theorem vtSizes_length (n : ℕ) : (vtSizes n).length = 205 := by simp [vtSizes, selSz]
+
+theorem vtOwnW_length (ks : ℕ → ℕ) (point : List E) (logMem n : ℕ) (cvr : ℕ → Digest) (cur : E)
+    (cl ch : ℕ → E) (chis : List E) : (vtOwnW ks point logMem n cvr cur cl ch chis).length = 205 := by
+  rw [← vtSizes_length n]; exact (vtOwnW_fit ks point logMem n cvr cur cl ch chis).length_eq
+
+theorem readsAt_chain {rd : Reader} {m : ℕ} (hm : m < 42) (f : ℕ → E) (L : List E)
+    (hL : L = (List.range 42).map (fun t => if t ≤ m then f t else 0)) (p : E) (hp : ReadsAt rd p L) :
+    ReadsAt rd p ((List.range (m + 1)).map f) := by
+  subst hL
+  refine readsAt_sub hp (by simp only [List.length_map, List.length_range]; omega) fun j hj => ?_
+  simp only [List.length_map, List.length_range] at hj
+  rw [List.getD_eq_getElem _ _ (by simp only [List.length_map, List.length_range]; omega),
+    List.getD_eq_getElem _ _ (by simp only [List.length_map, List.length_range]; omega),
+    List.getElem_map, List.getElem_map, List.getElem_range, List.getElem_range]
+  simp only [show j ≤ m by omega, ↓reduceIte]
+
+/-- **What the selectors read**, on a memory holding the honest buffers and `block_kappa`. -/
+theorem selMem_of {rd : Reader} {b n logMem : ℕ} {ks : ℕ → ℕ} {point : List E} {cvr : ℕ → Digest}
+    {cur : E} {cl ch : ℕ → E} {chis : List E} {bk : E}
+    (hB : MemL rd (bufL b (vtSizes n) (vtOwnW ks point logMem n cvr cur cl ch chis)))
+    (hbk : ∀ b' < 102, LoadHolds rd bk b' (gen ^ ks b'))
+    (hfit : ∀ i < 65, ks (selBlk.getD i 0) ≤ point.length ∧ selOff ks i < 2 ^ point.length ∧
+      2 ^ ks (selBlk.getD i 0) ∣ selOff ks i) (hpl : point.length < 33) :
+    ∀ i < 65, SelMem rd bk (vtPtr b n 2) point ks (selOff ks) (vtPtr b n) i := by
+  intro i hi
+  obtain ⟨hk, hoff, hdvd⟩ := hfit i hi
+  have get : ∀ j < 205, ReadsAt rd (vtPtr b n j) ((vtOwnW ks point logMem n cvr cur cl ch chis).getD j []) :=
+    fun j hj => memL_bufL_get (i := j) hB (by rw [vtSizes_length]; exact hj) (by rw [vtOwnW_length]; exact hj)
+  have hsel : ∀ k < 3, ReadsAt rd (vtPtr b n (selBuf i + k)) ((selW ks point i).getD k []) := fun k hk =>
+    vtOwnW_sel ks point logMem n cvr cur cl ch chis hi hk ▸ get (selBuf i + k) (by have := selBuf_lt i hi; omega)
+  have hb102 : selBlk.getD i 0 < 102 := by
+    rcases Nat.lt_or_ge i 37 with h | h
+    · rw [selBlk_facts.1 i h]; omega
+    · rw [show i = 37 + (i - 37) by omega, selBlk_facts.2 _ (by omega)]; omega
+  have hoffW : ReadsAt rd (vtPtr b n 2) (offW ks) := get 2 (by norm_num)
+  have chain := fun (f : ℕ → E) => readsAt_chain (rd := rd) (m := point.length - ks (selBlk.getD i 0))
+    (by omega) f
+  refine ⟨hk, hoff, hdvd, hbk _ hb102, ?_, ?_, chain _ _ rfl _ (hsel 1 (by norm_num)),
+    chain _ _ rfl _ (hsel 2 (by norm_num))⟩
+  · have := hoffW (selBlk.getD i 0) (by rw [offW, List.length_map, List.length_range]; exact hb102)
+    simp only [offW, List.getElem_map, List.getElem_range] at this
+    convert this using 1
+    unfold selOff
+    rcases Nat.lt_or_ge i 37 with h | h
+    · rw [selBlk_facts.1 i h]; simp only [h, ↓reduceIte]
+    · rw [show i = 37 + (i - 37) by omega, selBlk_facts.2 _ (by omega)]
+      simp only [show ¬ 37 + (i - 37) < 37 by omega, show ¬ 74 + (i - 37) < 37 by omega,
+        show 74 ≤ 74 + (i - 37) by omega, ↓reduceIte, Nat.add_sub_cancel_left]
+  · have h0 := hsel 0 (by norm_num)
+    rw [Nat.add_zero] at h0
+    exact h0
 end
 end LeanVM.Guest.B1.VerifySub
