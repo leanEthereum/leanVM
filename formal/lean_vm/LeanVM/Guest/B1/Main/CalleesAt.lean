@@ -14,11 +14,12 @@ public import LeanVM.Guest.B1.Digest.ChildList
 public import LeanVM.Guest.B1.Da.ListDigest
 public import LeanVM.Guest.B1.Sig.Sphincs
 public import LeanVM.Guest.Hints
+public import LeanVM.Guest.B1.VerifySub.CPlaced3
 
 /-!
 # The callees of `main`, placed
 
-`CalleesAt fs cert κ bytecode`: for each function another group proves, `CompleteRel` at `κ` on
+`CalleesAt fs cert κ VsGood`: for each function another group proves, `CompleteRel` at `κ` on
 the precondition its Rel-level completeness takes, with the function's own buffers (scratch
 tables, internal `HeapBuf`s) left to it:
 
@@ -27,16 +28,16 @@ tables, internal `HeapBuf`s) left to it:
   meaning without the windows' scratch table;
 * `cover_da_root` (`CoverPre`): its meaning with the slot count at most `2^16`;
 * `da_verify` (`DaVerifyPre`): the squares table and a witness opening the returned claim;
-* `verify_sub` (`VsPre`): the exponent tables, and a proof the deferring verifier accepts for the
-  child's public input under the seed, within the deployed stack log and stream limits, its fixed
-  claims at `out`.
+* `verify_sub`: for every run of the deferring verifier `VsGood` admits (group 6's `VsData`, the
+  run of an accepted proof within the deployed limits), group 6's `verify_sub_completeAt` shape:
+  the exponent tables and the run's fixed claims at the caller's words `vsExtL`.
 -/
 
 namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
-open LeanVM.Guest.B1 (CompleteRel Meaning_verify_lean_xmss Meaning_verify_sig_lean_sphincs
+open LeanVM.Guest.B1 (CompleteRel CompleteAt Returns Meaning_verify_lean_xmss Meaning_verify_sig_lean_sphincs
   Meaning_statement_digest Meaning_da_list_digest)
 open LeanVM.Guest.B1.Digest (SquaresAt CellsAt)
 
@@ -73,23 +74,9 @@ def DaVerifyPre (rd : Reader) : List E → List E → Prop
       w.Opens root vd ∧ (r0, r1) = digestScalars root ∧ (v0, v1) = digestScalars vd
   | _, _ => False
 
-/-- The deployed limits on a child's proof (`Limits.stackLog`, `Limits.stream`). -/
-def ProofLimits (bytecode : List K) (π : Proof) : Prop :=
-  (∀ layout r, announced bytecode π.stream = some (layout, r) →
-    22 ≤ layout.stackLog ∧ layout.stackLog ≤ 28) ∧ π.stream.length ≤ Hints.streamCap
-
-/-- `verify_sub`'s precondition: the exponent tables, and a proof the deferring verifier accepts
-for the public input `pi` under the seed, within the deployed limits, its fixed claims at `out`. -/
-def VsPre (bytecode : List K) (rd : Reader) : List E → List E → Prop
-  | [pi0, pi1, s0, s1, glp, gsq, out], [] => ExpTables rd glp gsq ∧
-      ∃ (pi seed : Digest) (fresh : FixedClaims) (π : Proof), (pi0, pi1) = digestScalars pi ∧
-        (s0, s1) = digestScalars seed ∧ verifyDeferred bytecode seed pi fresh π = true ∧
-        ProofLimits bytecode π ∧ ReadsAt rd out (fixedCells fresh)
-  | _, _ => False
-
 /-- **The callees of `main` other groups prove, complete uniformly and placed** at `κ`. -/
-structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (bytecode : List K) :
-    Prop where
+structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
+    (VsGood : VerifySub.VsData → Prop) : Prop where
   verify_lean_xmss : CompleteRel fs cert κ "verify_lean_xmss" Meaning_verify_lean_xmss
   verify_sig_lean_sphincs :
     CompleteRel fs cert κ "verify_sig_lean_sphincs" Meaning_verify_sig_lean_sphincs
@@ -99,7 +86,10 @@ structure CalleesAt (fs : String → ℕ) (cert : String → V → ℕ) (κ : �
   claim_list_digest : CompleteRel fs cert κ "claim_list_digest" ClPre
   child_claim_list_digest : CompleteRel fs cert κ "child_claim_list_digest" CclPre
   da_verify : CompleteRel fs cert κ "da_verify" DaVerifyPre
-  verify_sub : CompleteRel fs cert κ "verify_sub" (VsPre bytecode)
+  verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, CompleteAt fs cert κ "verify_sub"
+    (VerifySub.vsExtL lpA sqA outA D) [(digestScalars D.pi).1, (digestScalars D.pi).2,
+      (digestScalars D.seed).1, (digestScalars D.seed).2, ofK (gpow lpA), ofK (gpow sqA),
+      ofK (gpow outA)] (Returns [])
 
 end
 end LeanVM.Guest.B1.Main

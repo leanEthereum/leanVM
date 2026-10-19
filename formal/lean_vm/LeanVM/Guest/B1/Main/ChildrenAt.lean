@@ -195,7 +195,7 @@ theorem one_add_gen_pow_decide {k : ℕ} (hk : k ≤ 16) :
 /-- **What child `c`'s iteration needs** of the caller's layout `Lin` (the running counts at
 `wb`, the public inputs at `cpib`) and of its callees' preconditions on every memory holding
 `Lin`, the seed `seedD`. -/
-structure ChildWordsOk (κ : ℕ) (bytecode : List K) (Lin : Layout) (wb cpib : ℕ)
+structure ChildWordsOk (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (Lin : Layout) (wb cpib : ℕ)
     (lxT cover lxS gsq spT spS carried daR daC daS seed0 seed1 glp cfresh : E) (seedD : Digest)
     (c : ℕ) (r : ChildWords) : Prop where
   base : CellL Lin (wb + c) r.base
@@ -217,8 +217,9 @@ structure ChildWordsOk (κ : ℕ) (bytecode : List K) (Lin : Layout) (wb cpib : 
   pd : r.pd = stmtDigestOf seedD r.sigD (daListDigest r.da) r.dcells
   pi0 : CellL Lin (cpib + 2 * c) (digestScalars r.pd).1
   pi1 : CellL Lin (cpib + (2 * c + 1)) (digestScalars r.pd).2
-  vs : ∀ rd, LowDef κ rd → MemL rd Lin → VsPre bytecode rd [(digestScalars r.pd).1,
-    (digestScalars r.pd).2, seed0, seed1, glp, gsq, cfresh * gen ^ (106 * c)] []
+  vs : ∃ (D : VerifySub.VsData) (lpA sqA outA : ℕ), VsGood D ∧ D.pi = r.pd ∧ D.seed = seedD ∧
+    glp = ofK (gpow lpA) ∧ gsq = ofK (gpow sqA) ∧ cfresh * gen ^ (106 * c) = ofK (gpow outA) ∧
+    ∀ q ∈ VerifySub.vsExtL lpA sqA outA D, q ∈ Lin
 
 theorem logG_gen_pow' {e : ℕ} (he : e < 2 ^ 64 - 1) : logG (gen ^ e) = e := by
   rw [gen_pow_eq_ofK]; exact logG_spec he
@@ -227,11 +228,11 @@ set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
 /-- **`__loop5`, placed**: its `m ≤ 16` children, child `c` computing `rs c` as `ChildWordsOk`
 says, each iteration's signer pair and DA roots in its own `HeapBuf`s. -/
-theorem loop5_completeAt {κ : ℕ} {bytecode : List K} (H : CalleesAt fs cert κ bytecode)
+theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} (H : CalleesAt fs cert κ VsGood)
     (hκ : 16 ≤ κ) {m wb cpib : ℕ} {lxT cover lxS gsq spT spS carried daR daC daS seed0 seed1 glp
       cfresh : E} {seedD : Digest} (hm : m ≤ 16) (hm0 : 0 < m) (Lin : Layout)
     (rs : ℕ → ChildWords)
-    (hok : ∀ c < m, ChildWordsOk κ bytecode Lin wb cpib lxT cover lxS gsq spT spS carried daR daC daS
+    (hok : ∀ c < m, ChildWordsOk κ VsGood Lin wb cpib lxT cover lxS gsq spT spS carried daR daC daS
       seed0 seed1 glp cfresh seedD c (rs c)) :
     CompleteAt fs cert κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
       carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] (Returns []) := by
@@ -243,6 +244,7 @@ theorem loop5_completeAt {κ : ℕ} {bytecode : List K} (H : CalleesAt fs cert �
       daS, seed0, seed1, ofK (gpow cpib), glp, cfresh]) m (fun j hj fp mt => ?_) 0 hm0
   obtain ⟨p1, p2, p3, p4, p5⟩ := loop5_parts
   have o := hok j hj
+  obtain ⟨D, lpA, sqA, outA, hgood, hpi, hseed, hglp, hgsq, hout, hvsub⟩ := o.vs
   set r := rs j with hr
   set b := fp + fs "__loop5" + mt with hb
   set nda := r.da.length with hnda
@@ -289,7 +291,7 @@ theorem loop5_completeAt {κ : ℕ} {bytecode : List K} (H : CalleesAt fs cert �
         (digestScalars (daListDigest r.da)).2, carried * gen ^ (53 * j)], Lb ++ Lin,
         Returns [(digestScalars r.pd).1, (digestScalars r.pd).2]⟩,
       ⟨"verify_sub", true, [(digestScalars r.pd).1, (digestScalars r.pd).2, seed0, seed1, glp, gsq,
-        cfresh * gen ^ (106 * j)], Lb ++ Lin, Returns []⟩]
+        cfresh * gen ^ (106 * j)], VerifySub.vsExtL lpA sqA outA D, Returns []⟩]
   have hks : ∀ k ∈ ks, k.taken = true → CompleteAt fs cert κ k.f k.Lin k.args k.Out := by
     intro k hk ht
     simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
@@ -315,13 +317,21 @@ theorem loop5_completeAt {κ : ℕ} {bytecode : List K} (H : CalleesAt fs cert �
     · exact H.statement_digest _ _ _ fun rd hl h => ⟨_, _, _, _, _, _, _, _, rfl, rfl, seedD, r.sigD,
         daListDigest r.da, r.dcells, o.dlen, o.seed, hsigp rd h 0 (by simp), hsigp rd h 1 (by simp),
         rfl, o.defer rd (mLb rd h), by rw [o.pd]; rfl⟩
-    · exact H.verify_sub _ _ _ fun rd hl h => o.vs rd hl (mLb rd h)
+    · have := H.verify_sub D hgood lpA sqA outA
+      obtain ⟨hs0, hs1⟩ := Prod.ext_iff.mp o.seed
+      simp only at hs0 hs1
+      rw [hpi, hseed] at this
+      simp only
+      rw [hs0, hs1, hglp, hgsq, hout]
+      exact this
   refine Exists.elim (loopStep_bufs (fs := fs) (cert := cert) find_loop5 loop5_isLoop core35_split
     p1 _ p2 p3 κ Lin [gen ^ j, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR,
       daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] loop5Fronts (.n 85) loop5Targs p4
     [2, 4 * nda] [[(digestScalars r.sigD).1, (digestScalars r.sigD).2], cells] hbl fp mt ks hks
     (fun k hk q hq => by simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
-                         rcases hk with rfl | rfl | rfl | rfl | rfl | rfl <;> exact hq)
+                         rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
+                         any_goals exact hq
+                         exact List.mem_append_right _ (hvsub q hq))
     [gen ^ (j + 1), gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR, daC, daS,
       seed0, seed1, ofK (gpow cpib), glp, cfresh] (decide (j + 1 ≠ m))
     (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hS⟩ =>

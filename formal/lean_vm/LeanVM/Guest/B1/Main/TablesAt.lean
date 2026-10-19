@@ -87,16 +87,16 @@ theorem expTables_of_memL {rd : Reader} {b : ℕ} {L : Layout} (hL : MemL rd L)
   exact ⟨a, c⟩
 
 set_option maxRecDepth 100000 in
-/-- **`exponent_tables`, placed**: at every `fp` its tables in its two `HeapBuf`s, returned. -/
-theorem exponent_tables_completeAt (κ : ℕ) :
-    CompleteAt fs cert κ "exponent_tables" [] [] ExpOut := by
-  intro fp
+/-- **`exponent_tables` at `fp`**, on every memory holding its two tables at
+`b = fp + fs "exponent_tables"` and `b + 34`, which the caller may read afterwards. -/
+theorem exponent_tables_relAtIn (fp : ℕ) (rd : Reader)
+    (hL : MemL rd [(fp + fs "exponent_tables", expTbl1), (fp + fs "exponent_tables" + 34, expTbl2)]) :
+    RelAtIn coreProgram fs cert rd (RegionL [])
+      (RegionL [(fp + fs "exponent_tables", expTbl1), (fp + fs "exponent_tables" + 34, expTbl2)]) fp
+      (fs "exponent_tables" + [34, 34].sum + 0) "exponent_tables" []
+      [ofK (gpow (fp + fs "exponent_tables")), ofK (gpow (fp + fs "exponent_tables" + 34))] := by
   set b := fp + fs "exponent_tables" with hb
   obtain ⟨p1, p2, p3, p4, p5⟩ := etPre_parts
-  refine ⟨fs "exponent_tables" + [34, 34].sum + 0, [], [ofK (gpow b), ofK (gpow (b + 34))],
-    [(b, expTbl1), (b + 34, expTbl2)], ⟨b, rfl, rfl⟩, fun q hq => ?_, fun rd _ hL => ?_⟩
-  · simp only [List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hq
-    rcases hq with rfl | rfl <;> simp [expTbl1, expTbl2] <;> omega
   have ht := expTables_of_memL (b := b) hL (by simp) (by simp)
   set σ := etVal (ofK (gpow b)) (ofK (gpow (b + 34)))
   have hH := et_holds (C := fun _ _ _ => True) ht
@@ -140,6 +140,15 @@ theorem exponent_tables_completeAt (κ : ℕ) :
     · refine ⟨b + 34 + j, ?_,
         Or.inl (hown _ ⟨(b + 34, expTbl2), by simp, by omega, by simp [expTbl2]; omega⟩)⟩
       simp only [σ, etVal]; b1_look; exact addr_ofK (b + 34) j
+
+/-- **`exponent_tables`, placed**: at every `fp` its tables in its two `HeapBuf`s, returned. -/
+theorem exponent_tables_completeAt (κ : ℕ) :
+    CompleteAt fs cert κ "exponent_tables" [] [] ExpOut := by
+  intro fp
+  refine ⟨_, [], _, _, ⟨fp + fs "exponent_tables", rfl, rfl⟩, fun q hq => ?_,
+    fun rd _ hL => exponent_tables_relAtIn fp rd (by simpa using hL)⟩
+  simp only [List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hq
+  rcases hq with rfl | rfl <;> simp [expTbl1, expTbl2] <;> omega
 
 end
 end LeanVM.Guest.B1.Main

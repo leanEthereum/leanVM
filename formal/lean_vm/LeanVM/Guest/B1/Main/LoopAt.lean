@@ -93,17 +93,6 @@ theorem completeAt_loop {f : String} (κ : ℕ) (Lin : Layout) (A : ℕ → List
 
 /-! ## A straight-line iteration -/
 
-/-- The kids' results when every kid returns no buffer. -/
-theorem outRegion_nil : ∀ (ks : List Kid) (outs : List (List E × Layout)),
-    (∀ k ∈ ks, ∀ r L, k.Out r L → L = []) → OutsOk ks outs → ∀ i, ¬ outRegion ks outs i
-  | [], _, _, _, _, h => by simp [outRegion] at h
-  | _ :: _, [], _, ho, _, _ => ho.elim
-  | k :: ks, o :: os, hk, ⟨ho1, ho2⟩, i, h => by
-    rcases h with ⟨ht, hr⟩ | h
-    · rw [hk k (by simp) _ _ (ho1 ht)] at hr
-      obtain ⟨q, hq, _⟩ := hr; simp at hq
-    · exact outRegion_nil ks os (fun k' hk' => hk k' (by simp [hk'])) ho2 i h
-
 theorem regionsOk_of_sub {R : ℕ → Prop} : ∀ (Dacc : ℕ → Prop) (ks : List Kid)
     (outs : List (List E × Layout)), (∀ k ∈ ks, ∀ i, RegionL k.Lin i → R i) →
     RegionsOk R Dacc ks outs
