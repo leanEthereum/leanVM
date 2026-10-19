@@ -66,6 +66,37 @@ theorem os_chain_next {cfg : OsCfg} {μ lane : ℕ} {xs : List E} {Lall : List W
         obtain ⟨L', hL', h1, h2⟩ := ih.2 hy'
         exact ⟨L', List.mem_cons_of_mem _ hL', h1, h2⟩
 
+/-- **The fold challenges along a run**: each level's after its folds a prefix of the end's, the
+end's the last level's. -/
+theorem os_chain_folds {cfg : OsCfg} {μ lane : ℕ} {xs : List E} {Lall : List Whir.Level} {e : WhirEnd}
+    {sp' : St} {Q : List (ℕ × List (ℕ × Opening))} : ∀ (Hs : List OsLvH) lvl cv p w osp roots,
+      OsChain cfg μ lane xs Lall e sp' Q lvl cv p w osp roots Hs →
+      w.folds <+: (osLvsEnd cfg xs lvl cv p w roots Hs).2.2.folds ∧
+        (∀ L ∈ osLvsList cfg xs lvl cv p w osp roots Hs, L.H.w1.folds <+: (osLvsEnd cfg xs lvl cv p w roots Hs).2.2.folds) ∧
+        ∃ L ∈ osLvsList cfg xs lvl cv p w osp roots Hs, L.lvl = cfg.yrLevel ∧
+          (osLvsEnd cfg xs lvl cv p w roots Hs).2.2.folds = L.H.w1.folds
+  | [], _, _, _, _, _, _, h => h.elim
+  | H :: Hs, lvl, cv, p, w, osp, roots, h => by
+    obtain ⟨hok, -, hl, hn⟩ := h
+    have hw1 : w.folds <+: H.w1.folds := by rw [hok.chs.1]; exact List.prefix_append _ _
+    have hend : (osHWEnd cfg lvl xs p H).folds = H.w1.folds := os_glue_folds _ _ _
+    by_cases hy : lvl = cfg.yrLevel
+    · obtain ⟨rfl, -⟩ := hl hy
+      have e : (osLvsEnd cfg xs lvl cv p w roots [H]).2.2.folds = H.w1.folds := hend
+      refine ⟨by rw [e]; exact hw1, fun L hL => ?_, ⟨_, List.mem_cons_self, hy, e⟩⟩
+      simp only [osLvsList, List.mem_cons, List.not_mem_nil, or_false] at hL
+      subst hL; rw [e]
+    · obtain ⟨h1, h2, L', hL', hy', he'⟩ := os_chain_folds Hs _ _ _ _ _ _ (hn hy)
+      have e : osLvsEnd cfg xs lvl cv p w roots (H :: Hs) = osLvsEnd cfg xs (lvl + 1) (osHCvEnd cfg lvl xs p H.cv1)
+          (osHPEnd cfg lvl p) (osHWEnd cfg lvl xs p H) (osHRootsEnd cfg lvl roots H) Hs := rfl
+      rw [e]
+      rw [hend] at h1
+      refine ⟨hw1.trans h1, fun L hL => ?_, ⟨L', List.mem_cons_of_mem _ hL', hy', he'⟩⟩
+      simp only [osLvsList, List.mem_cons] at hL
+      rcases hL with rfl | hL
+      · exact h1
+      · exact h2 L hL
+
 namespace OsData
 
 variable {cfg : OsCfg} {d : OsData}
@@ -105,6 +136,38 @@ theorem rt_succ {μ lane : ℕ} {Lall : List Whir.Level} {e : WhirEnd} {sp' : St
   rw [hL'e, h2, hlv, List.getD_eq_getElem _ _ (by simp; omega), List.getElem_append_right (by omega)]
   simp only [hlen, hlv, Nat.sub_self, List.getElem_cons_zero]
   exact digestScalars_digestOfScalars hr
+
+/-- **The fold challenges' window of a level.** -/
+theorem fch_eq {μ lane : ℕ} {Lall : List Whir.Level} {e : WhirEnd} {sp' : St} {Q : List (ℕ × List (ℕ × Opening))}
+    (hch : OsChain cfg μ lane d.xs Lall e sp' Q 0 d.cv0 2 (osW0 d.target d.xs) d.os (d.roots0 cfg) d.Hs)
+    {l : ℕ} (hl : l < d.Hs.length) {j : ℕ} (hj : j < (cfg.lv l).folds) :
+    (d.fchC cfg).getD ((cfg.lv l).foldsOff + j) 0 = (d.lv cfg l).H.chs.getD j 0 := by
+  obtain ⟨hm, hlv⟩ := lv_mem (cfg := cfg) (d := d) hl
+  obtain ⟨-, hpre, -⟩ := os_chain_folds d.Hs 0 _ _ _ _ _ hch
+  have hp := hpre _ hm
+  have hok := (os_chain_mem d.Hs 0 _ _ _ _ _ hch _ hm).ok
+  rw [hlv] at hok
+  have hw1 := hok.w1len
+  obtain ⟨hc1, hc2⟩ := hok.chs
+  unfold osLevelF at hw1
+  have hwl : (d.lv cfg l).w.folds.length = (cfg.lv l).foldsOff := by
+    rw [hc1, List.length_append, hc2] at hw1; omega
+  have hidx : (cfg.lv l).foldsOff + j < (d.lv cfg l).H.w1.folds.length := by omega
+  unfold fchC
+  rw [List.getD_eq_getElem _ _ (by have := hp.length_le; omega), ← hp.getElem hidx]
+  simp only [hc1, List.getElem_append_right (show (d.lv cfg l).w.folds.length ≤ (cfg.lv l).foldsOff + j by omega),
+    hwl, Nat.add_sub_cancel_left]
+  rw [List.getD_eq_getElem _ _ (by omega)]
+
+/-- **The fold challenges' length.** -/
+theorem fch_len {μ r lane : ℕ} {Lall : List Whir.Level} (hok : OsCfgOk cfg μ r Lall) {e : WhirEnd} {sp' : St}
+    {Q : List (ℕ × List (ℕ × Opening))}
+    (hch : OsChain cfg μ lane d.xs Lall e sp' Q 0 d.cv0 2 (osW0 d.target d.xs) d.os (d.roots0 cfg) d.Hs) :
+    (d.fchC cfg).length = cfg.nFolds := by
+  obtain ⟨-, -, L, hL, hy, he⟩ := os_chain_folds d.Hs 0 _ _ _ _ _ hch
+  have hokL := (os_chain_mem d.Hs 0 _ _ _ _ _ hch _ hL).ok
+  unfold fchC
+  rw [he, hokL.w1len, hy, hok.yrLevel, hok.nFolds]
 
 end OsData
 

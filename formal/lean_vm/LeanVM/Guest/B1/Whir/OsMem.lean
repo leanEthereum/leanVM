@@ -61,7 +61,7 @@ theorem os_flatMap_pair_getD {α : Type} (f g : ℕ → α) (x : α) :
       rw [oq_getD_app_ge (by omega), oq_getD_app_ge (by omega), hlen]
       simp
 
-private theorem os_getD_skip {α : Type} (l l' : List α) (n : ℕ) (x : α) :
+theorem os_getD_skip {α : Type} (l l' : List α) (n : ℕ) (x : α) :
     (l ++ l').getD (l.length + n) x = l'.getD n x := by
   rw [oq_getD_app_ge (by omega), Nat.add_sub_cancel_left]
 
@@ -125,6 +125,18 @@ theorem os_bufReads {rd : Reader} {cfg : OsCfg} {d : OsData} {b : ℕ} {Q : List
     gA 6 (by omega), gA 7 (by omega), gA 8 (by omega), gA 9 (by omega), gA 10 (by omega),
     fun l hl' => (gF l hl').1, fun l hl' => (gF l hl').2, gT 0 (by omega), gT 1 (by omega), gT 2 (by omega),
     gT 3 (by omega), gT 4 (by omega), gM⟩
+
+/-- Level `l`'s squeeze run's buffer's words. -/
+theorem os_ownQ_getD_sqz {cfg : OsCfg} {d : OsData} {Q : List E} {l : ℕ} (hl : l < cfg.levels.length) :
+    (d.ownQ cfg Q).getD (11 + 2 * l) [] = d.sqzC cfg l := by
+  have lA : ([d.capsC cfg, d.flagsC cfg, d.fmsgC cfg, d.rootsC cfg, d.fchC cfg, d.betasC cfg, d.qwC cfg, d.qposC cfg,
+      Q, d.oodzC cfg, d.oodC cfg] : List (List E)).length = 11 := rfl
+  have lF : ((List.range cfg.levels.length).flatMap fun l => [d.sqzC cfg l, d.rewC cfg l]).length =
+      2 * cfg.levels.length := by simp [List.length_flatMap, List.map_const']; ring
+  unfold OsData.ownQ
+  simp only [List.append_assoc]
+  rw [← lA, os_getD_skip, oq_getD_app_lt (by rw [lF]; omega)]
+  exact (os_flatMap_pair_getD _ _ _ _ l hl).1
 
 end
 end LeanVM.Guest.B1

@@ -46,14 +46,24 @@ structure RunOk (cfg : OsCfg) (d : OsData) : Prop where
   rt : ∀ l, l + 1 < cfg.levels.length →
     digestScalars (d.rt cfg (l + 1)) = (osHW cfg l d.xs (d.lv cfg l).p 0, osHW cfg l d.xs (d.lv cfg l).p 1)
   chst : d.chst.length = cfg.yrLog - 1
+  fchLen : (d.fchC cfg).length = cfg.nFolds
+  fch : ∀ l < cfg.levels.length, ∀ j < (cfg.lv l).folds,
+    (d.fchC cfg).getD ((cfg.lv l).foldsOff + j) 0 = (d.lv cfg l).H.chs.getD j 0
 
 theorem fch_at (hlay : OsLayoutOk cfg) (hrun : RunOk cfg d) {rd : Reader} {ptr : E}
     (hr : ReadsAt rd ptr (d.fchC cfg)) {l : ℕ} (hl : l < cfg.levels.length) :
     ∀ j < (cfg.lv l).folds, LoadHolds rd ptr ((cfg.lv l).foldsOff + j) ((d.lv cfg l).H.chs.getD j 0) := by
   intro j hj
-  refine os_seg_at (off := fun l => (cfg.lv l).foldsOff) (c := fun l => (d.lv cfg l).H.chs) hr
-    (fun i k hik hk => by rw [hrun.chs i (by omega)]; exact hlay.fch i k hik hk)
-    (fun l hl => by rw [hrun.chs l hl]; exact hlay.fchFit l hl) hl j (by rw [hrun.chs l hl]; exact hj)
+  rw [← hrun.fch l hl j hj]
+  exact os_readsAt_getD hr (by rw [hrun.fchLen]; have := hlay.fchFit l hl; omega)
+
+theorem fch_readsAt (hlay : OsLayoutOk cfg) (hrun : RunOk cfg d) {rd : Reader} {ptr : E}
+    (hr : ReadsAt rd ptr (d.fchC cfg)) {l : ℕ} (hl : l < cfg.levels.length) :
+    ReadsAt rd (ptr * gen ^ (cfg.lv l).foldsOff) (d.lv cfg l).H.chs := by
+  intro j hj
+  rw [loadHolds_mul_gen_pow]
+  have := fch_at hlay hrun hr hl j (by rw [← hrun.chs l hl]; exact hj)
+  rwa [List.getD_eq_getElem _ _ hj] at this
 
 theorem roots_at {rd : Reader} {ptr : E} (hr : ReadsAt rd ptr (d.rootsC cfg)) {l : ℕ} (hl : l < cfg.levels.length) :
     LoadHolds rd ptr (2 * l) (digestScalars (d.rt cfg l)).1 ∧
@@ -155,7 +165,7 @@ theorem src_load (hrun : RunOk cfg d) (h1 : 1 ≤ cfg.yrLog) (h5 : cfg.yrLog ≤
   unfold osSrcPtr srcVal
   by_cases h : q.1 = osFch
   · rw [ite_pos' h, ite_pos' h]
-    exact os_readsAt_getD hbr.fch (by rw [fchC, os_length_segC]; exact hf h)
+    exact os_readsAt_getD hbr.fch (by rw [hrun.fchLen]; exact hf h)
   · rw [ite_neg' h, ite_neg' h]
     exact os_readsAt_getD hbr.tch (by rw [tch_len hrun h1 h5]; exact ht h)
 

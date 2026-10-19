@@ -69,15 +69,15 @@ private theorem os_forall₂_range {f : ℕ → List (List E)} {g : ℕ → List
 
 /-- **The honest words fit the buffers.** -/
 theorem os_own_fits {cfg : OsCfg} (hlay : OsLayoutOk cfg) (hyr5 : cfg.yrLog ≤ 5) {d : OsData} (hch : d.chst.length + 1 ≤ cfg.yrLog)
-    {Q : List E} (hQ : Q.length ≤ cfg.posLen) :
+    {Q : List E} (hQ : Q.length ≤ cfg.posLen) (hfl : (d.fchC cfg).length ≤ cfg.nFolds) :
     List.Forall₂ (fun c s => c.length ≤ s) (d.ownQ cfg Q) (osSizes cfg) := by
   have hseg : ∀ (sz : ℕ) (segs : List (ℕ × List E)), (osSegC sz segs).length ≤ sz := fun sz segs => by
     rw [os_length_segC]
   unfold OsData.ownQ osSizes
   refine os_forall₂_append (os_forall₂_append (os_forall₂_append ?_ ?_) ?_) ?_
-  · simp only [osHeadSizes, OsData.capsC, OsData.flagsC, OsData.rootsC, OsData.fchC, OsData.qwC, OsData.qposC,
+  · simp only [osHeadSizes, OsData.capsC, OsData.flagsC, OsData.rootsC, OsData.qwC, OsData.qposC,
       OsData.oodzC, OsData.oodC, OsData.betasC, OsData.fmsgC, osHMs]
-    refine .cons (hseg _ _) (.cons (hseg _ _) (.cons ?_ (.cons (hseg _ _) (.cons (hseg _ _) (.cons ?_
+    refine .cons (hseg _ _) (.cons (hseg _ _) (.cons ?_ (.cons (hseg _ _) (.cons hfl (.cons ?_
       (.cons (hseg _ _) (.cons (hseg _ _) (.cons hQ (.cons (hseg _ _) (.cons (hseg _ _) .nil))))))))))
     · simp
     · simp

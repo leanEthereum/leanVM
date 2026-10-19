@@ -99,8 +99,8 @@ def rootsC : List E :=
   osSegC (2 * cfg.levels.length) ((List.range cfg.levels.length).map fun l =>
     (2 * l, [(digestScalars (d.rt cfg l)).1, (digestScalars (d.rt cfg l)).2]))
 
-def fchC : List E :=
-  osSegC cfg.nFolds ((List.range cfg.levels.length).map fun l => ((cfg.lv l).foldsOff, (d.lv cfg l).H.chs))
+/-- The fold challenges: the state's after the levels. -/
+def fchC : List E := (osLvsEnd cfg d.xs 0 d.cv0 2 (osW0 d.target d.xs) (d.roots0 cfg) d.Hs).2.2.folds
 
 def betasC : List E := (List.range cfg.levels.length).map (d.beta cfg)
 
