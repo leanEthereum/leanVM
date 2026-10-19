@@ -20,7 +20,8 @@ public import LeanVM.Guest.B1.VerifySub.CTail
 proof (within the limits' stack log and stream), of the fresh shape (`ea_freshShaped`), its
 openings agreeing in the caps by `DeferredCaps`. Still assumed: `CalleesHyps` (the pure callees'
 bounds, `da_verify`'s certificate inequalities, the pending `CompleteTablesAtB` and
-`CompleteOpenAtB`), `__loop86`'s affine bound, `DeferredCaps` and the instruction counts (`hcnt`).
+`CompleteOpenAtB`), `__loop86`'s affine bound, `DeferredCaps`, the callees' weights `Wt` and the
+instruction counts (`hcnt`, `hinstrs`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -67,14 +68,13 @@ def eaBudget (a86 b86 : ℕ) (instrs : Opcode → Linear) : Budget := ⟨eaWords
 theorems, the children's runs and the words budget. -/
 theorem ea_mainComplete {a86 b86 : ℕ} (instrs : Opcode → Linear)
     (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) (hfs : 2 ≤ fs "main") (hcaps : DeferredCaps)
-    (hcnt : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
-      ∀ (N : ℕ) (L : Layout) (t : Tree), N ≤ (eaWords fs H a86 b86).eval (work s w) → t.name = "main" →
-        t.total fs = N →
-        t.Valid coreProgram (imageOf (logMem N) L (hdrOf (statementDigest seed s))).read [] [] →
-          ∀ op, cnt t op ≤ (instrs op).eval (work s w)) :
+    (ω : Opcode → String → ℕ) (Wt : ∀ op, MainWeightHyps fs (ω op)) (jt : Opcode → ℕ)
+    (hcnt : ∀ (t : Tree) op, cnt t op ≤ t.weight (ω op) + jt op)
+    (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → ∀ op,
+      mainWeight (ω op) (calleeBd fs H) (Wt op) (honestWords seed s w) + jt op ≤ (instrs op).eval (work s w)) :
     MainComplete fs cert cnt (eaBudget fs cert H a86 b86 instrs) := by
   refine mainComplete_of fs cert cnt (eaBudget fs cert H a86 b86 instrs) (calleesAt_proved fs cert H bytecode_length)
-    hfs ?_ ?_ hcnt
+    ω Wt jt hfs ?_ ?_ hcnt hinstrs
   · intro seed s w hN hlim hcw c hc
     obtain ⟨-, hdef⟩ := hN.2.1 c hc
     obtain ⟨D, hok, htok, hseed, hpi, hfr, hpf⟩ := VerifySub.vs_inversion bytecode_length hdef
@@ -90,11 +90,10 @@ theorem ea_mainComplete {a86 b86 : ℕ} (instrs : Opcode → Linear)
 theorem ea_guest_complete {a86 b86 : ℕ} (instrs : Opcode → Linear) (Hh : Inst → ℕ → E × E)
     (C : Inst → List (ℕ × E))
     (h86 : ∀ q, H.B86 (gen ^ q) ≤ a86 * q + b86) (hfs : 2 ≤ fs "main") (hcaps : DeferredCaps)
-    (hcnt : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w →
-      ∀ (N : ℕ) (L : Layout) (t : Tree), N ≤ (eaWords fs H a86 b86).eval (work s w) → t.name = "main" →
-        t.total fs = N →
-        t.Valid coreProgram (imageOf (logMem N) L (hdrOf (statementDigest seed s))).read [] [] →
-          ∀ op, cnt t op ≤ (instrs op).eval (work s w))
+    (ω : Opcode → String → ℕ) (Wt : ∀ op, MainWeightHyps fs (ω op)) (jt : Opcode → ℕ)
+    (hcnt : ∀ (t : Tree) op, cnt t op ≤ t.weight (ω op) + jt op)
+    (hinstrs : ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → ∀ op,
+      mainWeight (ω op) (calleeBd fs H) (Wt op) (honestWords seed s w) + jt op ≤ (instrs op).eval (work s w))
     (hk : LeanVM.Guest.End.KFactsAll fs Hh C cert) (hrt : LeanVM.Guest.End.CntRetemp fs cnt)
     (htab : ∀ I : Inst, I.t.name = "main" → tableCells ⊆ C I)
     (hb2 : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
@@ -106,7 +105,7 @@ theorem ea_guest_complete {a86 b86 : ℕ} (instrs : Opcode → Linear) (Hh : Ins
           ∀ op, (⟨_, honest coreProgram fs Hh C hdr T, n⟩ : Trace guest).count op ≤ cnt T op) :
     LeanVM.Guest.End.GuestCompleteWithin (eaBudget fs cert H a86 b86 instrs) :=
   LeanVM.Guest.End.guest_complete_of_parts
-    ⟨ea_mainComplete fs cert cnt H instrs h86 hfs hcaps hcnt, hk, hrt, htab, hb2, hcount⟩
+    ⟨ea_mainComplete fs cert cnt H instrs h86 hfs hcaps ω Wt jt hcnt hinstrs, hk, hrt, htab, hb2, hcount⟩
 
 end
 end LeanVM.Guest.B1.Main

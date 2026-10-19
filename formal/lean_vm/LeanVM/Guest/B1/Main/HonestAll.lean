@@ -145,7 +145,26 @@ the deployed limits, every child's proof run by a run in `VsGood` and of the gue
 and `main`'s callees complete within `Bd` (`CalleesAt`), at every `fp` one size, within
 `mainBound`, and one layout of `main`'s words serve every memory holding them, defined below
 `2^κ`, with the statement's digest at words `0` and `1`: `main` holds by a tree placed at `fp`,
-loading from its own data or its header. -/
+loading from its own data or its header, within `mainWeight` at the honest words at every
+`ωs θ` its callees' weights `Wt θ` are given at. -/
+theorem main_completeW {cert : String → V → ℕ} {κ : ℕ} {VsGood : VerifySub.VsData → Prop}
+    {Bd : CalleeBounds} {bytecode : List K} (H : CalleesAt fs cert κ VsGood Bd)
+    {Θ : Type} {ωs : Θ → String → ℕ} (Wt : ∀ θ, MainWeightHyps fs (ωs θ)) (hκ : 16 ≤ κ)
+    (hb : bytecode.length = 2 ^ 22) (hN : NodeRel bytecode seed s w) (hlim : Limits s w)
+    (hfr : ∀ c ∈ w.children, FreshShaped c.fresh)
+    (hvs : ∀ c ∈ w.children, ∃ D : VerifySub.VsData, VsGood D ∧ D.pi = statementDigest seed c.statement ∧
+      D.seed = seed ∧ D.fresh = c.fresh) (fp : ℕ) :
+    ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧ LeanVM.Guest.B1.DisjL L ∧
+      fs "main" + m ≤ mainBound fs Bd (honestWords seed s w) ∧
+      ∀ rd, LowDef κ rd → MemL rd L →
+        rd 1 = some (digestScalars (statementDigest seed s)).1 →
+        rd g = some (digestScalars (statementDigest seed s)).2 →
+        RelAtInW fs cert ωs rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
+          "main" [] [] fun θ => mainWeight (ωs θ) Bd (Wt θ) (honestWords seed s w) :=
+  let ⟨m, _, hW, hD, hB, h⟩ := main_relAtInW Wt H hκ (honest_wordsOk fs (fp := fp) hb hN hlim hfr hvs)
+  ⟨m, _, hW, hD, by unfold mainBound; omega, h⟩
+
+/-- **`main` is complete, placed**, by a bounded tree. -/
 theorem main_complete {cert : String → V → ℕ} {κ : ℕ} {VsGood : VerifySub.VsData → Prop}
     {Bd : CalleeBounds} {bytecode : List K} (H : CalleesAt fs cert κ VsGood Bd) (hκ : 16 ≤ κ)
     (hb : bytecode.length = 2 ^ 22) (hN : NodeRel bytecode seed s w) (hlim : Limits s w)
@@ -159,8 +178,9 @@ theorem main_complete {cert : String → V → ℕ} {κ : ℕ} {VsGood : VerifyS
         rd g = some (digestScalars (statementDigest seed s)).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] :=
-  let ⟨m, _, hW, hD, hB, h⟩ := main_relAtIn H hκ (honest_wordsOk fs (fp := fp) hb hN hlim hfr hvs)
-  ⟨m, _, hW, hD, by unfold mainBound; omega, h⟩
+  let ⟨m, L, hW, hD, hB, h⟩ := main_completeW fs H (ωs := fun (θ : Empty) => θ.elim) (fun θ => θ.elim) hκ hb hN
+    hlim hfr hvs fp
+  ⟨m, L, hW, hD, hB, fun rd hl hL h0 h1 => (h rd hl hL h0 h1).toRelAtIn⟩
 
 end
 end LeanVM.Guest.B1.Main

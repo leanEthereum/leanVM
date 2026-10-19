@@ -17,8 +17,10 @@ public import LeanVM.Guest.B1.Main.HonestPiece
 `MainComplete cert cnt b` is what group 7's completeness of `main` gives for `NodeRel` within the
 limits and the caps: a consistent layout `L` in `[2, N)`, `N ≤ 2^32` words within the budget's
 words, on every memory holding which and the statement's digest at words `0`, `1` `main` holds by
-a tree placed at `0` (`RelAtIn`, as `honest_of_relAtIn` takes it), and every tree of `main` valid
-on `L`'s image within the budget's instruction counts. `KFactsAll` is checker K's certificate
+a tree placed at `0` (`RelAtIn`'s tree, as `honest_of_relAtIn` takes it) within the budget's
+instruction counts. The counts are bounded on that tree, the one completeness builds, not on every
+valid tree: `main`'s and its children's counts are hints, which a valid tree pins only up to
+BLAKE2s collisions. `KFactsAll` is checker K's certificate
 facts for every tree of `main` (`B1.Main.KFacts`), and `CntRetemp cnt` that the counts do not
 see the temporaries' values (`Tree.retemp`). `honest_of_main` gives
 `CompletePiecesWithin.honest`, by `honestAt_retemp` as in `honest_of_relAtIn`, keeping the tree
@@ -37,19 +39,20 @@ variable (fs : String → ℕ) (H : Inst → ℕ → E × E) (C : Inst → List 
   (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ) (b : Budget)
 
 /-- **`main`'s completeness within the budget** (group 7): for `NodeRel` within the limits and
-the caps, the budget's size within `2^28`, a consistent layout of `N` words, `N` within the budget, on which `main` holds placed
-at `0` with the statement's digest as its header, every tree of `main` valid on its image within
-the budget's instruction counts. -/
+the caps, the budget's size within `2^28`, a consistent layout of `N` words, `N` within the budget,
+on every memory holding which with the statement's digest as its header `main` holds by a tree
+placed at `0`, of `N` words, loading from its own data or its header, within the budget's
+instruction counts. -/
 def MainComplete : Prop :=
   ∀ seed s w, NodeRel bytecode seed s w → Limits s w → CapsAgree seed w → b.size (work s w) ≤ 2 ^ 28 →
     ∃ (N : ℕ) (L : Layout), LConsistent L ∧ (∀ q ∈ L, 2 ≤ q.1 ∧ q.1 + q.2.length ≤ N) ∧
       N ≤ 2 ^ 32 ∧ N ≤ b.words.eval (work s w) ∧
-      (∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
+      ∀ rd, LowDef 16 rd → MemL rd L → rd 1 = some (hdrOf (statementDigest seed s)).1 →
         rd g = some (hdrOf (statementDigest seed s)).2 →
-          RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) 0 N "main" [] []) ∧
-      ∀ t : Tree, t.name = "main" → t.total fs = N →
-        t.Valid coreProgram (imageOf (logMem N) L (hdrOf (statementDigest seed s))).read [] [] →
-          ∀ op, cnt t op ≤ (b.instrs op).eval (work s w)
+          ∃ t : Tree, t.name = "main" ∧ t.Valid coreProgram rd [] [] ∧ t.BufsOk coreProgram ∧
+            t.Placed coreProgram fs cert 0 ∧ t.total fs = N ∧
+            t.LoadsIn coreProgram fs cert (fun i => i < 2) 0 ∧
+            ∀ op, cnt t op ≤ (b.instrs op).eval (work s w)
 
 /-- **The certificate's facts for every tree of `main`** (checker K). -/
 def KFactsAll : Prop :=
@@ -90,7 +93,7 @@ theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C 
         HonestAt coreProgram fs H C (hdrOf (statementDigest seed s)) T cert rd [] [] ∧
         T.total fs ≤ b.words.eval (work s w) ∧ ∀ op, cnt T op ≤ (b.instrs op).eval (work s w) := by
   intro seed s w hrel hlim hcap hbs
-  obtain ⟨N, L, hcons, hin, hN, hNb, hrelL, hcnt⟩ := hm seed s w hrel hlim hcap hbs
+  obtain ⟨N, L, hcons, hin, hN, hNb, hrelL⟩ := hm seed s w hrel hlim hcap hbs
   set hdr := hdrOf (statementDigest seed s) with hhdr
   have h16 : 16 ≤ logMem N := minLogMem_le_logMem N
   have h64 : logMem N < 64 := by have := logMem_le_maxLogMem hN; unfold maxLogMem at this; omega
@@ -104,9 +107,8 @@ theorem honest_of_main (hm : MainComplete fs cert cnt b) (hk : KFactsAll fs H C 
   obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (by omega) L hdr
   have e0 : (1 : K) = Parameters.gpow 0 := by simp [Parameters.gpow]
   have e1 : g = Parameters.gpow 1 := by simp [Parameters.gpow]
-  obtain ⟨t, hn, hv, hb, hp, ht, hl, -⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
+  obtain ⟨t, hn, hv, hb, hp, ht, hl, hcntT⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
     (by rw [e1]; exact hh1)
-  have hcntT := hcnt t hn ht hv
   subst ht
   have hkf := hk hdr t hn
   have hd : DischargeHyps coreProgram fs cert H C hdr t (fun i => i < 2) M [] [] :=

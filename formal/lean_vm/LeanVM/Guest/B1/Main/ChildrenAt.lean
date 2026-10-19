@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.B1.Main.LoopsAt
 public import LeanVM.Guest.B1.Main.ChildrenC
+public import LeanVM.Guest.B1.Main.WeightLoop
 
 /-!
 # The children, placed
@@ -230,24 +231,32 @@ def childBd (fs : String → ℕ) (Bd : CalleeBounds) (r : ChildWords) : ℕ :=
   2 + 4 * r.da.length + (Bd.ccl r.nx + (Bd.ccl r.ns + ((r.da.length * (fs "__loop100" + Bd.cover) +
     fs "__loop100") + (Bd.daList r.da.length + (Bd.sd + Bd.vs)))))
 
+/-- **A child's iteration's weight** at `ω`: its callees'. -/
+def childW (ω : String → ℕ) (Bd : CalleeBounds) (H : MainWeightHyps fs ω) (r : ChildWords) : ℕ :=
+  H.αccl * Bd.ccl r.nx / 1000 + (H.αccl * Bd.ccl r.ns / 1000 + (r.da.length * H.Kl100 + (H.Bdl +
+    (H.Bsd + H.αvs * Bd.vs / 1000))))
+
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
 /-- **`__loop5`, placed**: its `m ≤ 16` children, child `c` computing `rs c` as `ChildWordsOk`
-says, each iteration's signer pair and DA roots in its own `HeapBuf`s. -/
-theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds}
-    (H : CalleesAt fs cert κ VsGood Bd)
+says, each iteration's signer pair and DA roots in its own `HeapBuf`s, by a tree within
+`childW`'s weights at every `w θ`. -/
+theorem loop5_completeAtW {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds}
+    (H : CalleesAt fs cert κ VsGood Bd) {Θ : Type} {w : Θ → String → ℕ}
+    (Wt : ∀ θ, MainWeightHyps fs (w θ))
     (hκ : 16 ≤ κ) {m wb cpib : ℕ} {lxT cover lxS gsq spT spS carried daR daC daS seed0 seed1 glp
       cfresh : E} {seedD : Digest} (hm : m ≤ 16) (hm0 : 0 < m) (Lin : Layout)
     (rs : ℕ → ChildWords)
     (hok : ∀ c < m, ChildWordsOk κ VsGood Lin wb cpib lxT cover lxS gsq spT spS carried daR daC daS
       seed0 seed1 glp cfresh seedD c (rs c)) :
-    CompleteAtB fs cert κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
+    CompleteAtW fs cert w κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
       carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] (Returns [])
-      (loopSum (fs "__loop5") (fun c => childBd fs Bd (rs c)) 0 m) := by
-  have h := completeAt_loop (fs := fs) (cert := cert) (f := "__loop5") κ Lin
+      (loopSum (fs "__loop5") (fun c => childBd fs Bd (rs c)) 0 m)
+      (fun θ => loopSum (w θ "__loop5") (fun c => childW (w θ) Bd (Wt θ) (rs c)) 0 m) := by
+  have h := completeAt_loopW (fs := fs) (cert := cert) (w := w) (f := "__loop5") κ Lin
     (fun j => [gen ^ j, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR, daC,
       daS, seed0, seed1, ofK (gpow cpib), glp, cfresh]) m (fun c => childBd fs Bd (rs c))
-    (fun j hj fp mt => ?_) 0 hm0
+    (fun c θ => childW (w θ) Bd (Wt θ) (rs c)) (fun j hj fp mt => ?_) 0 hm0
   · simpa using h
   obtain ⟨p1, p2, p3, p4, p5⟩ := loop5_parts
   have o := hok j hj
@@ -347,35 +356,26 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : C
     rw [hpi, hseed] at this
     rw [hs0, hs1, hglp, hgsq, hout]
     exact this
-  have hks : ∀ k ∈ ks, k.taken = true →
-      CompleteAtB fs cert κ k.f k.Lin k.args k.Out (kidInf fs cert κ k) := by
-    intro k hk ht
-    simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
-    rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
-    · exact completeAtB_kidInf c1
-    · exact completeAtB_kidInf c2
-    · simp only [decide_eq_true_eq] at ht
-      exact completeAtB_kidInf (c3 ht)
-    · exact completeAtB_kidInf c4
-    · exact completeAtB_kidInf c5
-    · exact completeAtB_kidInf c6
-  have hkb : kidsBound fs (kidInf fs cert κ) ks ≤ Bd.ccl r.nx + (Bd.ccl r.ns +
-      ((nda * (fs "__loop100" + Bd.cover) + fs "__loop100") + (Bd.daList nda + (Bd.sd + Bd.vs)))) := by
-    have e1 := kidInf_le' (tk := true) c1
-    have e2 := kidInf_le' (tk := true) c2
-    have e4 := kidInf_le' (tk := true) c4
-    have e5 := kidInf_le' (tk := true) c5
-    have e6 := kidInf_le' (tk := true) c6
-    simp only [kidsBound, ks, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, ↓reduceIte]
-    split_ifs with hz
-    · have e3 := kidInf_le' (tk := decide (nda ≠ 0)) (c3 (by simpa using hz))
-      omega
-    · omega
-  refine Exists.elim (loopStep_bufs (fs := fs) (cert := cert) find_loop5 loop5_isLoop core35_split
+  have hkw : KidsW fs cert w κ ks [Bd.ccl r.nx, Bd.ccl r.ns,
+      nda * (fs "__loop100" + Bd.cover) + fs "__loop100", Bd.daList nda, Bd.sd, Bd.vs]
+      [fun θ => (Wt θ).αccl * Bd.ccl r.nx / 1000, fun θ => (Wt θ).αccl * Bd.ccl r.ns / 1000,
+        fun θ => nda * (Wt θ).Kl100, fun θ => (Wt θ).Bdl, fun θ => (Wt θ).Bsd,
+        fun θ => (Wt θ).αvs * Bd.vs / 1000] := by
+    refine ⟨fun _ => CompleteAtB.toW_tot c1 fun θ => (Wt θ).ccl, fun h => by simp at h,
+      fun _ => CompleteAtB.toW_tot c2 fun θ => (Wt θ).ccl, fun h => by simp at h,
+      fun ht => CompleteAtB.toW (c3 (by simpa using ht)) fun θ rd t rets hn hv hb =>
+        (Wt θ).l100.from_one (e := nda) (Nat.pos_of_ne_zero (by simpa using ht))
+          (by have := o.nda; omega) (by simp) (by simp) rd t rets hn hv hb,
+      fun _ => show fs "__loop100" ≤ _ by omega,
+      fun _ => CompleteAtB.toW_weightLe (Bf := fun θ _ => (Wt θ).Bdl) c4 fun θ => (Wt θ).dl,
+      fun h => by simp at h,
+      fun _ => CompleteAtB.toW_weightLe (Bf := fun θ _ => (Wt θ).Bsd) c5 fun θ => (Wt θ).sd,
+      fun h => by simp at h,
+      fun _ => CompleteAtB.toW_tot c6 fun θ => (Wt θ).vs, fun h => by simp at h, trivial⟩
+  refine Exists.elim (loopStep_bufsW (fs := fs) (cert := cert) (w := w) find_loop5 loop5_isLoop core35_split
     p1 _ p2 p3 κ Lin [gen ^ j, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR,
       daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] loop5Fronts (.n 85) loop5Targs p4
-    [2, 4 * nda] [[(digestScalars r.sigD).1, (digestScalars r.sigD).2], cells] hbl fp mt ks
-    (kidInf fs cert κ) hks
+    [2, 4 * nda] [[(digestScalars r.sigD).1, (digestScalars r.sigD).2], cells] hbl fp mt ks _ _ hkw
     (fun k hk => by simp only [ks, List.mem_cons, List.not_mem_nil, or_false] at hk
                     rcases hk with rfl | rfl | rfl | rfl | rfl | rfl
                     iterate 5 exact ⟨fun _ h => h, fun _ h => h⟩
@@ -386,8 +386,10 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : C
       ⟨n, L, hW, hD, by
         simp only [List.sum_cons, List.sum_nil] at hNb
         simp only [childBd, ← hnda]
-        omega, fun rd hl hL ht hn => hS rd hl hL (fun h => ht (by simp at h; omega))
-        fun h => hn (by simpa using h)⟩
+        omega, fun rd hl hL bt ht hn => (hS rd hl hL bt (fun h => ht (by simp at h; omega))
+        fun h => hn (by simpa using h)).wmono fun θ => by
+          simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, childW, ← hnda]
+          omega⟩
   match outs, ho with
   | [q1, q2, q3, q4, q5, q6], ho =>
     simp only [ks, OutsOk, Returns, forall_const] at ho
@@ -426,6 +428,19 @@ theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : C
         ⟨cpib + 2 * j, by rw [ofK_gpow_mul_gen, addr_ofK, Nat.add_zero], Or.inl o.pi0.region⟩,
         ⟨cpib + (2 * j + 1), by rw [ofK_gpow_mul_gen, addr_ofK, Nat.add_assoc], Or.inl o.pi1.region⟩,
         ⟨wb + (j + 1), by rw [ofK_gpow_mul_gen, addr_ofK, Nat.add_assoc], Or.inl o.next.region⟩]
+
+/-- **`__loop5`, placed**, by a bounded tree. -/
+theorem loop5_completeAt {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds}
+    (H : CalleesAt fs cert κ VsGood Bd)
+    (hκ : 16 ≤ κ) {m wb cpib : ℕ} {lxT cover lxS gsq spT spS carried daR daC daS seed0 seed1 glp
+      cfresh : E} {seedD : Digest} (hm : m ≤ 16) (hm0 : 0 < m) (Lin : Layout)
+    (rs : ℕ → ChildWords)
+    (hok : ∀ c < m, ChildWordsOk κ VsGood Lin wb cpib lxT cover lxS gsq spT spS carried daR daC daS
+      seed0 seed1 glp cfresh seedD c (rs c)) :
+    CompleteAtB fs cert κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
+      carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] (Returns [])
+      (loopSum (fs "__loop5") (fun c => childBd fs Bd (rs c)) 0 m) :=
+  (loop5_completeAtW H (w := fun (θ : Empty) => θ.elim) (fun θ => θ.elim) hκ hm hm0 Lin rs hok).toB
 
 end
 end LeanVM.Guest.B1.Main
