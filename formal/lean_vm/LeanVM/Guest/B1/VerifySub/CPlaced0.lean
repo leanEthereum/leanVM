@@ -45,6 +45,23 @@ structure VsData.TOk (bytecode : List K) (D : VsData) : Prop where
   point_vars : ∀ c ∈ D.claims,
     c.point.length = ((layoutOf bytecode D.logMem D.rows).placements.getD c.column default).vars
 
+/-- **The tables' claims as the terminal reads them**: the claims' columns, their points (the
+bus's a prefix of the GKR point `point`, the pooled ones a prefix of the sumcheck's point `chis`,
+the public input's `rm` then zeros), each point of its column's length, and `chis` no longer than
+`point`. -/
+def TablesClaimsOk (layout : Layout) (point : List E) (claims : List ColumnClaim) (chis : List E)
+    (rm : E) : Prop :=
+  chis.length ≤ point.length ∧ claims.map (·.column) = claimColumns ∧
+    (∀ j (p : List E), (claims.map (·.point))[j]? = some p →
+      (j < 5 → p = point.take p.length) ∧ (5 ≤ j → j < nPooled → p = chis.take p.length) ∧
+        (nPooled ≤ j → p = rm :: List.replicate ((layout.placements.getD memory0 default).vars - 1) 0)) ∧
+    ∀ c ∈ claims, c.point.length = (layout.placements.getD c.column default).vars
+
+theorem VsData.TOk.of_claims {bytecode : List K} {D : VsData}
+    (h : TablesClaimsOk (layoutOf bytecode D.logMem D.rows) D.gr.2.1 D.claims D.chis D.rm)
+    (hg : D.gzcn = gen ^ D.chis.length) (hs : D.stream.length ≤ 8192) : D.TOk bytecode :=
+  ⟨h.1, hg, h.2.1, h.2.2.1, hs, h.2.2.2⟩
+
 /-- The claims' point lengths in `claim_cplen_g`. -/
 def cplenWords (D : VsData) : List E := (D.claims.take nPooled).map fun c => gen ^ c.point.length
 
