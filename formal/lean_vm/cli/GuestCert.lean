@@ -1069,7 +1069,7 @@ end LeanVM.Guest.Data
 
 /-- The levels of the power tree written out in `powTree`, its subtrees below them defined
 apart (`powT{i}`), so that each is checked in a module of its own. -/
-def powCut : ℕ := 4
+def powCut : ℕ := 6
 
 /-- The top of a balanced tree over `ps`, the subtrees at depth `d` named `powT{i}` from `i`. -/
 partial def powTop (ps : Array (ℕ × ℕ)) (d : ℕ) (i : ℕ) : String × List (Array (ℕ × ℕ)) :=
@@ -1130,7 +1130,7 @@ noncomputable def jtTrie : Trie ℕ := {jt}
 def checkedDir : System.FilePath := "LeanVM/Guest/Checked"
 
 /-- The instructions a module of checks holds at most, a function larger than it alone. -/
-def maxChecked : ℕ := 2500
+def maxChecked : ℕ := 2000
 
 def checkedHeader (mod what : String) : String :=
   s!"/-
