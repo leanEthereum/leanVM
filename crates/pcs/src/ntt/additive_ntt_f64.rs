@@ -615,7 +615,7 @@ fn radix8_butterflies(rows: &mut [&mut [F64]; 8], t: &[F64; 7]) {
 ///
 /// - A Merkle leaf reads its lanes from the top index down.
 /// - So the absent all-zero lanes lead every leaf image.
-/// - Their whole 128-byte chunks are then one sponge state that every leaf shares.
+/// - Their whole 136-byte blocks are then one sponge state that every leaf shares.
 /// - The proof can leave them out.
 /// - Each lane is an independent codeword, so the order costs nothing.
 ///

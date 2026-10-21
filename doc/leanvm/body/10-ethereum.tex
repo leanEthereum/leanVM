@@ -13,7 +13,7 @@ The DA claim is a sorted, duplicate-free list of at most $16$ LeanDA roots, poss
 
 \subsubsection{The public input}\label{sec:rec-stmt}
 
-The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is the hash (Keccak-256 in the cell encoding, \S\ref{sec:tab-keccak}) of the following fields, in order:
+The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is the hash (Keccak-256, \S\ref{sec:prog-hashing}) of the following fields, in order:
 \begin{center}
 \begin{tabular}{@{}rl@{}}
 \hline
@@ -28,7 +28,7 @@ The deferred claim lets recursion postpone an expensive polynomial evaluation un
 
 The DA list digest is the hash of the concatenated pairs $(\daroot,\davechash)$, each a $32$-byte DA root $\daroot$ followed by a $32$-byte hash $\davechash$ of the membership test vector $\dual$.
 
-The signer-set digest is the hash of the leanXMSS list digest followed by the leanSPHINCS list digest, $64$ bytes, one permutation. Each list digest is the hash of that scheme's sorted claims, $64$ bytes (four cells) per $(\text{public key},\text{message})$ pair, so a block holds two claims and only the last block's shape depends on the list's length (\S\ref{sec:prog-hashing}).
+The signer-set digest is the hash of the leanXMSS list digest followed by the leanSPHINCS list digest, $64$ bytes, one permutation. Each list digest is the hash of that scheme's sorted claims, $64$ bytes per $(\text{public key},\text{message})$ pair (\S\ref{sec:prog-hashing}).
 
 \subsubsection{Checking coverage}
 
@@ -157,7 +157,7 @@ The matrix root is $\daroot=H(\darow,\dacol)$ (Figure~\ref{fig:da-hashing}). See
 
 A row is valid exactly when it consists of evaluations of a polynomial of degree less than $\kdim$. On our additive domain at rate $1/2$, such rows are orthogonal to every codeword, and this condition also characterizes them: the code is self-dual (Corollary~\ref{cor:rs-dual}). This gives an efficient membership test.
 
-The Fiat-Shamir challenges $\log_2\kdim$ in $\E$ are derived from the matrix root $\daroot$. These define the polynomial $\dual$ of \eqref{eq:dual-product} and its evaluation vector $\davec=(\dual(x))_{x\in\dom}$. Let $\davechash=H(\davec)$, serializing each entry as its three little-endian $64$-bit limbs, in domain order.
+The Fiat-Shamir challenges $\log_2\kdim$ in $\E$ are derived from the matrix root $\daroot$. These define the polynomial $\dual$ of \eqref{eq:dual-product} and its evaluation vector $\davec=(\dual(x))_{x\in\dom}$. Let $\davechash$ be the hash of the concatenated hashes of its $128$ columns, each $256$ consecutive entries in domain order, an entry serialized as its three little-endian $64$-bit limbs.
 
 The guest recomputes $\daroot$ from the encoded rows, receives $\davec$ as a hinted vector, checks its hash against $\davechash$, and uses it to check membership:
 \[

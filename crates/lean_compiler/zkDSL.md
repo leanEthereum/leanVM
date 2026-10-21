@@ -428,45 +428,42 @@ keccak(t[0:2], t[x:x + 2], t[4:6])    # slices of one large StackBuf
 keccak(h[0:2], hb[0:2], hb[2:4])      # HeapBuf slices, input and output
 keccak([tweak, pp], [word, 0], out, len=48)  # a 48-byte message, the padding in b's second cell
 
-# A 160-byte hash as two blocks: eight cells of message a block, the state carried.
-block0 = [1, 2, 3, 4, 5, 6, 7, 8]  # 128 bytes
-st = StackBuf(13)
-keccak(block0[0:2], block0[2:4], st, tail=block0[4:8], final=0)
-keccak([9, 10], [0, 0], out, state=st, len=32)
-
 keccak_cells(run, out)                # the hash of the whole run, however many blocks
+keccak_cells(run, out, len=292)       # the hash of the run's first 292 bytes
+keccak_cells([w[3 * k] for k in unroll(0, 20)], out)  # scattered words, read where they lie
+
+# A 304-byte hash in two calls: a block pair of seventeen cells, the state carried.
+st = StackBuf(13)
+keccak_cells(pair, st, final=0)       # pair = StackBuf(17), two blocks, no padding
+keccak_cells([18, 19], out, state=st)
 
 # A duplex step in overwrite mode (Fiat-Shamir): the rate is the eight message cells as
 # given, the capacity the last five cells of the previous output `st`.
 keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=st)
 ```
 
-The hash is Keccak-256 in the **cell encoding** (`primitives::hash::hash`): plain Keccak-256 of messages up to 128 bytes, and past that, Keccak-256 of the message cut into 128-byte chunks (the last holding the remaining 1 to 128) with the fixed eight bytes `00 00 00 00 00 00 00 80` after every chunk but the last. That makes one block eight whole 16-byte cells where the 136-byte rate would split a cell, and those gap bytes land in lane 16, the one lane the instruction supplies itself.
+The hash is Keccak-256 (`primitives::hash::hash`), Ethereum's. A block is 136 bytes, 8.5 cells: block `k` of a message in consecutive cells is the nine cells from `17k / 2`, starting halfway into the first when `k` is odd. The compiler XORs a block's nine cells into the previous output and emits one `KECCAK`, which reads the state in the cell layout of the block's parity and writes it in the next block's, so every XOR is of whole cells. The compiler also places the padding `0x01 ‖ 0^* ‖ 0x80`.
 
-The three positional arguments form a **statement**: one `KECCAK` instruction absorbs the block `a ‖ b ‖ tail` (two, two and four cells; `tail` omitted is zero) and writes the 13-cell sponge state into `out`, whose first two cells are the digest. With no keywords it computes the hash of exactly `a ‖ b`, 64 bytes (128 with `tail`), the form every Merkle node uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding and no XOR, the instruction reading the message cells and the capacity as they are. A 2-cell `out` receives just the digest, at two copies.
+Both builtins are **statements**: they write the 13-cell sponge state into `out`, whose first two cells are the digest. A 2-cell `out` receives just the digest, at two copies.
 
-The other optional keywords: `len` and `final` are compile-time, and `state`, like `tail` and `cap`, is a run.
+`keccak(a, b, out, tail=, len=)` is one instruction, the hash of at most 128 bytes: the cells `a ‖ b ‖ tail` (two, two and four; `tail` omitted is none), and the message their first `len` bytes (a compile-time integer, by default all of them: 64 bytes without `tail` and 128 with). The form every Merkle node and chain step uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding, the eight message cells absorbed into a zero rate, and the capacity the five cells a previous output ends with (`cap` that 13-cell output or those five cells).
 
-- `len=<bytes>`: this block is the last of a message ending `len` bytes into it, at most 128, and at least 1 after a `state=` (a message that fills its previous block ends there, with `len=128`). The compiler places the padding byte `0x01` there: into a constant cell it folds, into a cell the program wrote it costs one `XOR`. The bytes past it must be zero, which the circuit does not enforce. At 128 the byte lands in lane 16, beside the capacity;
-- `final=0`: this block carries 128 message bytes and more blocks follow, so it takes no padding;
-- `state=<run>`: the previous block's 13-cell output. Without it the block starts from the zero state. With it, each message cell is XORed into the state's (one `XOR` each, none for a cell known to be zero), and the state's capacity is passed on in place.
+`keccak_cells(cells, out, state=, len=, final=)` hashes a message of any compile-time length: `cells` is a run (a `StackBuf`, or a slice with compile-time bounds), a list of words, or a list comprehension `[e for k in unroll(lo, hi)]` (its bounds compile-time integers once `Const` parameters are substituted, expanded into the list of `e` at each `k`), and the message is their first `len` bytes (all of them by default). Words named in a list are read where they lie. `state=` continues a hash from a previous 13-cell output whose message so far is a whole number of block pairs, 272 bytes or 17 cells each, so that the cells start a block at a cell boundary: what a runtime loop absorbing a block pair a frame needs. `final=0` absorbs the cells zero-extended to whole blocks, with no padding: the start of a hash continued later, or a bare permutation.
 
-With neither `len` nor `final`, a block is the final one and its message fills the operands given.
+The padding's first byte goes where the message ends and its last byte at the end of the last block: into a constant cell it folds, into a cell the program wrote it costs one `XOR`. The message bytes past `len` must be zero, which the circuit does not enforce.
 
-The instruction reads thirteen canonical cells: its four `m` cells independently addressed, then two consecutive runs, the four `tail` cells and the five `cap` cells (lane 16 alone, then the capacity). A fresh block's constant `tail` and `cap` windows all come out of one six-cell run `[pad, 0, 0, 0, 0, 0]`, which each runtime path of a function emits once and reuses (six `SET`s, reverted at a join like every lazily-set constant).
+Each `KECCAK` reads four independently addressed cells (`m`), a 4-cell run (`tail`), one cell (`b8`) and a 4-cell run (`cap`, the capacity), and writes a 13-cell run. A first block's cells are the state, with a zero capacity; a later block's are XORed into the previous output, one `XOR` a cell and none for a known zero. The zero `cap`, a zero `tail` and a 64-byte message's `tail` `[pad, 0, 0, 0]` come from one five-cell run `[pad, 0, 0, 0, 0]`, set once per runtime path of a function (reverted at a join like every lazily-set constant) and never left unwritten, since an unwritten cell is the prover's to choose.
 
 Operands:
 
-- an **input operand written as a list**, `keccak([a, b], [c, d], out)`, names its words directly and allocates nothing: the opcode addresses `m` independently, so an operand whose words live in different places never has to be gathered into a consecutive run;
+- **words written as a list**, `keccak([a, b], [c, d], out)`, are named directly and allocate nothing: the opcode addresses `m` and `b8` independently, and a later block XORs every word wherever it is, so words that live in different places never have to be gathered into a consecutive run;
 - **stack operands** are read in place, at zero copies; a self-hash `keccak(h, h, out)` names one 2-cell pair as both inputs;
-- `tail` is one opcode offset and so must be consecutive: a list or a heap slice there is assembled into a fresh run, one instruction a cell;
+- `tail` is one opcode offset and so must be consecutive: cells that are not are copied into a fresh run, one instruction a cell;
 - **heap slices** are bridged through the stack: +1 `DEREF` per heap cell, a heap `state` and a 13-cell heap `out` included, which is what lets a loop frame carry a hash's state to the next through a heap chain.
-
-`keccak_cells(run, out)` hashes a whole run of compile-time length, eight cells a block, the last block padded where the run ends.
 
 If `out` was already written, the statement *asserts* the result equals it, write-once turning the hash into a verification, which is exactly what a signature verifier wants.
 
-The step, Keccak-f\[1600\] after XORing the padding's last bit into lane 16, is proven by a GKR over the Keccak rounds (`crates/keccak_gkr`); one instruction is one permutation.
+The permutation is proven by a GKR over the Keccak rounds (`crates/keccak_gkr`); one instruction is one permutation.
 
 ## Hints: `hint_witness(dest, "name")`
 

@@ -76,6 +76,27 @@ pub(super) fn parse_expr(s: &str) -> Result<Expr, String> {
         if inner.is_empty() {
             return Err("a list literal needs at least one element".into());
         }
+        if let Some((body, range)) = split_once_top(inner, " for ") {
+            let bad = || format!("a list comprehension is `[body for var in unroll(lo, hi)]`, got `{s}`");
+            let (var, range) = range.split_once(" in ").ok_or_else(bad)?;
+            let args = range
+                .trim()
+                .strip_prefix("unroll(")
+                .and_then(|r| r.strip_suffix(')'))
+                .ok_or_else(bad)?;
+            let [lo, hi] = split_top(args, ',')[..] else {
+                return Err(bad());
+            };
+            if !is_ident(var.trim()) {
+                return Err(bad());
+            }
+            return Ok(Expr::ListComp(
+                Box::new(parse_expr(body)?),
+                var.trim().to_string(),
+                Box::new(parse_expr(lo)?),
+                Box::new(parse_expr(hi)?),
+            ));
+        }
         return Ok(Expr::ListLit(
             split_top(inner, ',')
                 .iter()

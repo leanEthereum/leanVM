@@ -29,7 +29,7 @@ pub use transcript::Proof;
 
 use bus::{ColumnClaim, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};
-use hash::{Digest, KECCAK_END_BIT};
+use hash::Digest;
 use keccak::{KeccakShape, verify_keccak};
 use layout::{
     KECCAK_DEPTH, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES, OP_KECCAK, QKECCAK,
@@ -286,12 +286,6 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
             point: public_point.clone(),
             value: multilinear_eval(&[K(low), K(high)], &[public_challenge])?,
         });
-    }
-
-    // The committed input of a step is what it reads with the padding's last bit XORed into lane 16.
-    let end_lane = keccak_lane("in", 16);
-    for claim in claims.iter_mut().filter(|claim| claim.column == end_lane) {
-        claim.value += E::new(KECCAK_END_BIT, 0, 0);
     }
 
     // 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the

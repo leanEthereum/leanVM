@@ -3,11 +3,10 @@
 //!
 //! Three surfaces, in increasing order of how much of the machine they touch:
 //!
-//! - [`keccak_f`], the Keccak-f\[1600\] permutation. Every hash in leanVM is a
-//!   sponge over it, and it is what the VM's `KECCAK` opcode computes and
-//!   `keccak_gkr` proves.
-//! - [`hash`] / [`Hasher`], Keccak-256 over bytes, in the cell encoding that
-//!   makes a VM block eight whole 16-byte cells (plain Keccak-256 up to 128 bytes).
+//! - [`keccak_f`], the Keccak-f\[1600\] permutation, which the VM's `KECCAK` opcode computes
+//!   and `keccak_gkr` proves, and [`absorb`], one sponge step (XOR a block into the rate,
+//!   permute).
+//! - [`hash`] / [`Hasher`], Keccak-256 over bytes.
 //! - [`hash_many`], the batched form: `LANES` independent equal-length inputs
 //!   hashed together with the state transposed across lanes, which is how the
 //!   PCS Merkle tree gets SIMD out of hashes that are individually serial.
@@ -200,62 +199,33 @@ pub fn keccak_f(state: &mut [u64; STATE_LANES]) {
     permute(state);
 }
 
-/// The last padding bit as it sits in lane 16, the rate's last lane.
+/// The padding's last bit as it sits in lane 16, the rate's last lane.
 pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
-/// The rate lane [`END_BIT`] lives in.
-pub const END_LANE: usize = RATE_LANES - 1;
-/// Message bytes one block of the cell encoding carries: the rate's first 16
-/// lanes, eight whole 16-byte VM cells.
-pub const CHUNK: usize = 128;
-/// [`CHUNK`] in lanes.
-pub const CHUNK_LANES: usize = CHUNK / 8;
-
-/// One step of the cell sponge (see [`hash`]): XOR [`END_BIT`] into lane 16 and
-/// permute. This is the relation the VM's `KECCAK` opcode computes and `keccak_gkr`
-/// proves. Its caller has already XORed the block's message into lanes `0..16`
-/// (and, for a final block, the padding's first bit), while lane 16 carries the
-/// previous state untouched: the step supplies the one bit every block puts
-/// there.
-#[inline]
-pub fn step(input: &[u64; STATE_LANES]) -> [u64; STATE_LANES] {
-    let mut state = *input;
-    state[END_LANE] ^= END_BIT;
-    keccak_f(&mut state);
-    state
-}
 
 /// One sponge step: XOR the rate block `block` into `state` and permute.
 #[inline]
-fn absorb(state: &mut [u64; STATE_LANES], block: &[u64; RATE_LANES]) {
+pub fn absorb(state: &mut [u64; STATE_LANES], block: &[u64; RATE_LANES]) {
     for (s, b) in state.iter_mut().zip(block) {
         *s ^= b;
     }
     keccak_f(state);
 }
 
-/// A non-final block of the cell encoding: 128 message bytes, then the gap
-/// `0^56 ‖ 0x80` in lane 16.
+/// A full block of message bytes, as rate lanes.
 #[inline]
-fn chunk_block(chunk: &[u8; CHUNK]) -> [u64; RATE_LANES] {
-    std::array::from_fn(|i| {
-        if i < CHUNK_LANES {
-            u64::from_le_bytes(chunk[8 * i..8 * i + 8].try_into().unwrap())
-        } else {
-            END_BIT
-        }
-    })
+fn block_of(bytes: &[u8; RATE]) -> [u64; RATE_LANES] {
+    std::array::from_fn(|i| u64::from_le_bytes(bytes[8 * i..8 * i + 8].try_into().unwrap()))
 }
 
-/// The final block: the last `tail.len() <= CHUNK` message bytes, then the
-/// padding, as rate lanes.
+/// The final block: the last `tail.len() < RATE` message bytes, then the padding, as rate lanes.
 #[inline]
 pub fn final_block(tail: &[u8]) -> [u64; RATE_LANES] {
-    assert!(tail.len() <= CHUNK, "a final block holds at most CHUNK message bytes");
+    assert!(tail.len() < RATE, "a final block holds fewer than RATE message bytes");
     let mut bytes = [0u8; RATE];
     bytes[..tail.len()].copy_from_slice(tail);
     bytes[tail.len()] ^= PAD_FIRST;
     bytes[RATE - 1] ^= PAD_LAST;
-    std::array::from_fn(|i| u64::from_le_bytes(bytes[8 * i..8 * i + 8].try_into().unwrap()))
+    block_of(&bytes)
 }
 
 /// The digest: the first [`OUT_LEN`] bytes of the state.
@@ -268,25 +238,12 @@ pub fn digest_of(state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
     out
 }
 
-/// How a message of `len` bytes splits into blocks: the non-final 128-byte
-/// chunks, and the length of the final one, in `0..=CHUNK` (zero only for the
-/// empty message).
-#[inline]
-fn chunks_of(len: usize) -> (usize, usize) {
-    let nonfinal = len.saturating_sub(1) / CHUNK;
-    (nonfinal, len - nonfinal * CHUNK)
-}
-
 /// Streaming [`hash`].
-///
-/// The final block may be a full chunk, which is padded where a non-final one
-/// takes the gap, so the hasher holds a full buffer back until it knows more
-/// input follows.
 #[derive(Clone)]
 pub struct Hasher {
     state: [u64; STATE_LANES],
-    buf: [u8; CHUNK],
-    /// Bytes currently in `buf`, in `0..=CHUNK`.
+    buf: [u8; RATE],
+    /// Bytes currently in `buf`, in `0..RATE`.
     buf_len: usize,
 }
 
@@ -294,21 +251,21 @@ impl Hasher {
     pub fn new() -> Self {
         Self {
             state: [0; STATE_LANES],
-            buf: [0; CHUNK],
+            buf: [0; RATE],
             buf_len: 0,
         }
     }
 
     pub fn update(&mut self, mut data: &[u8]) -> &mut Self {
         while !data.is_empty() {
-            if self.buf_len == CHUNK {
-                absorb(&mut self.state, &chunk_block(&self.buf));
-                self.buf_len = 0;
-            }
-            let take = (CHUNK - self.buf_len).min(data.len());
+            let take = (RATE - self.buf_len).min(data.len());
             self.buf[self.buf_len..self.buf_len + take].copy_from_slice(&data[..take]);
             self.buf_len += take;
             data = &data[take..];
+            if self.buf_len == RATE {
+                absorb(&mut self.state, &block_of(&self.buf));
+                self.buf_len = 0;
+            }
         }
         self
     }
@@ -326,52 +283,35 @@ impl Default for Hasher {
     }
 }
 
-/// Keccak-256 of `data` under the cell encoding, the one hash of leanVM.
-///
-/// For inputs of at most [`CHUNK`] = 128 bytes this is plain Keccak-256. A longer
-/// input is cut into 128-byte chunks, the last holding the remaining 1 to 128
-/// bytes, and every chunk but the last is followed by the fixed 8-byte gap
-/// `00 00 00 00 00 00 00 80`; the result is Keccak-256 of that byte string. The
-/// encoding is injective, and it is what lets the VM absorb eight whole 16-byte
-/// cells per permutation where the 136-byte rate would split a cell across two
-/// blocks: the gap is lane 16, the one lane the opcode supplies itself
-/// ([`step`]).
+/// Keccak-256 of `data`, Ethereum's `keccak256`: FIPS 202's sponge over Keccak-f\[1600\] with
+/// rate [`RATE`] and Keccak's original padding.
 pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {
     hash_from_state(data, &[0; STATE_LANES])
 }
 
-/// The state after absorbing `n_chunks` all-zero non-final chunks.
+/// The state after absorbing `n_blocks` all-zero blocks.
 ///
-/// A leaf image that starts with whole zero chunks (the PCS's absent interleaving
-/// lanes) shares that prefix with every other leaf, so the committer computes this
-/// once and starts each leaf's sponge here. Nothing about the digest changes: a
-/// prefix's permutations depend on nothing after them, so the result is still the
-/// hash of the whole image.
-pub fn zero_prefix_state(n_chunks: usize) -> [u64; STATE_LANES] {
+/// A leaf image that starts with whole zero blocks (the PCS's absent interleaving lanes) shares
+/// that prefix with every other leaf, so the committer computes this once and starts each
+/// leaf's sponge here. Nothing about the digest changes: a prefix's permutations depend on
+/// nothing after them, so the result is still the hash of the whole image.
+pub fn zero_prefix_state(n_blocks: usize) -> [u64; STATE_LANES] {
     let mut state = [0; STATE_LANES];
-    for _ in 0..n_chunks {
-        state = step(&state);
+    for _ in 0..n_blocks {
+        keccak_f(&mut state);
     }
     state
 }
 
-/// [`hash`] continued from a sponge state that has absorbed whole non-final
-/// chunks (see [`zero_prefix_state`]): `data` is the rest of the message, and
-/// must not be empty.
+/// [`hash`] continued from a sponge state that has absorbed whole blocks (see
+/// [`zero_prefix_state`]): `data` is the rest of the message.
 pub fn hash_from_state(data: &[u8], state: &[u64; STATE_LANES]) -> [u8; OUT_LEN] {
-    assert!(
-        !data.is_empty() || *state == [0; STATE_LANES],
-        "a message continued past whole chunks ends in a block with at least one byte"
-    );
     let mut state = *state;
-    let (nonfinal, tail) = chunks_of(data.len());
-    for chunk in data[..nonfinal * CHUNK].as_chunks::<CHUNK>().0 {
-        absorb(&mut state, &chunk_block(chunk));
+    let (blocks, tail) = data.as_chunks::<RATE>();
+    for block in blocks {
+        absorb(&mut state, &block_of(block));
     }
-    absorb(
-        &mut state,
-        &final_block(&data[nonfinal * CHUNK..nonfinal * CHUNK + tail]),
-    );
+    absorb(&mut state, &final_block(tail));
     digest_of(&state)
 }
 
@@ -579,25 +519,20 @@ unsafe fn hash_group<S: Lanes64>(inputs: &[*const u8], len: usize, init: &[u64; 
         }
         permute(st);
     };
-    let (nonfinal, tail) = chunks_of(len);
-    for w in CHUNK_LANES..RATE_LANES {
-        for l in 0..S::WIDTH {
-            buf[w * S::WIDTH + l] = END_BIT;
-        }
-    }
-    for blk in 0..nonfinal {
+    let (blocks, tail) = (len / RATE, len % RATE);
+    for blk in 0..blocks {
         for (l, &input) in inputs.iter().enumerate() {
-            for w in 0..CHUNK_LANES {
-                // SAFETY: the chunk lies inside the input's `len` bytes.
-                let word = unsafe { input.add(blk * CHUNK + 8 * w).cast::<u64>().read_unaligned() };
+            for w in 0..RATE_LANES {
+                // SAFETY: the block lies inside the input's `len` bytes.
+                let word = unsafe { input.add(blk * RATE + 8 * w).cast::<u64>().read_unaligned() };
                 buf[w * S::WIDTH + l] = u64::from_le(word);
             }
         }
         absorb_buf(&mut st, &buf);
     }
     for (l, &input) in inputs.iter().enumerate() {
-        // SAFETY: the final chunk is the input's last `tail` bytes.
-        let bytes = unsafe { std::slice::from_raw_parts(input.add(nonfinal * CHUNK), tail) };
+        // SAFETY: the final block is the input's last `tail` bytes.
+        let bytes = unsafe { std::slice::from_raw_parts(input.add(blocks * RATE), tail) };
         for (w, lane) in final_block(bytes).into_iter().enumerate() {
             buf[w * S::WIDTH + l] = lane;
         }
@@ -660,10 +595,6 @@ pub fn hash_many_dyn_from_state(data: &[u8], len: usize, state: &[u64; STATE_LAN
     let n = out.len() / OUT_LEN;
     assert_eq!(out.len(), n * OUT_LEN);
     assert_eq!(data.len(), n * len);
-    assert!(
-        len > 0 || *state == [0; STATE_LANES],
-        "a message continued past whole chunks ends in a block with at least one byte"
-    );
     // SAFETY (each arm): the asserts above pin the buffer sizes the backends
     // require, and every backend is gated on the feature its intrinsics need.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
@@ -696,11 +627,7 @@ mod tests {
         (0..n).map(|i| ((i * 7 + 3) & 0xff) as u8).collect()
     }
 
-    /// Known answers from OpenSSL's `keccak-256`, of the input itself up to 128 bytes
-    /// and of its cell encoding past that (`0^7 ‖ 0x80` after every 128 bytes but
-    /// the last chunk). They span the empty input, both sides of the chunk
-    /// boundary (128 puts the padding's first bit in lane 16), Keccak's own rate
-    /// boundary, and multi-chunk inputs.
+    /// Known answers from OpenSSL's `keccak-256`.
     #[test]
     fn matches_reference_vectors() {
         assert_eq!(
@@ -717,39 +644,19 @@ mod tests {
             (64, "0251cf13aa5b18f1cbda7cddbe85f3dc536fc93df590c2d20ca9b28af1ed2c39"),
             (127, "fa3cd4a949bae0f7690ff5c8cbc6dc0332d192d790ab4d80dc97ba37b6569deb"),
             (128, "1c51c71b758998e7b841d7abde03b6f2b3e76b0313ed687269c30e16bb3aa488"),
-            (129, "3b95dee5829e33cef44f4608ffbfbadd8992e975b5a0385ef3ff361075901236"),
-            (135, "86e2cb68791fd722e06dbd9c5f5141fef4ab43922356f76e227446faed47c12f"),
-            (136, "ff0548ca71d990e5b8c6e6577021d9242b835e44eed810c908b061f9aaeba8b1"),
-            (256, "87ad67c8690f991c43928512a6ef4db3373af350bde44e63a0f0b2b2ce80b0e8"),
-            (257, "8d3cadea4a1b3308b8ae9d239dd9480848353c0dd396c7a55a675aa6b92aa202"),
-            (1024, "2c7bc9081cc1f1a1b0f22194a1fefa9a866e5df6b34d28f696db1e068400f499"),
         ] {
             assert_eq!(hex(&hash(&pattern(n))), expected, "{n} bytes");
         }
     }
 
-    /// A hash is the chain of [`step`]s the VM runs: message XORed into lanes
-    /// `0..16`, the padding's first bit placed by the caller, lane 16 left to the
-    /// step.
+    /// Ethereum's `keccak256`, as an independent implementation computes it, across both sides of
+    /// every block boundary up to five blocks.
     #[test]
-    fn hash_is_a_chain_of_steps() {
-        for n in [0usize, 48, 127, 128, 129, 300, 384] {
+    fn matches_ethereum_keccak256() {
+        use sha3::Digest;
+        for n in (0..700).chain([1023, 1024, 1025, 4096]) {
             let data = pattern(n);
-            let (nonfinal, tail) = chunks_of(n);
-            let mut state = [0u64; STATE_LANES];
-            for c in 0..=nonfinal {
-                let len = if c == nonfinal { tail } else { CHUNK };
-                let mut bytes = [0u8; RATE];
-                bytes[..len].copy_from_slice(&data[c * CHUNK..c * CHUNK + len]);
-                if c == nonfinal {
-                    bytes[len] ^= PAD_FIRST;
-                }
-                for (i, lane) in state[..RATE_LANES].iter_mut().enumerate() {
-                    *lane ^= u64::from_le_bytes(bytes[8 * i..8 * i + 8].try_into().unwrap());
-                }
-                state = step(&state);
-            }
-            assert_eq!(digest_of(&state), hash(&data), "{n} bytes");
+            assert_eq!(&hash(&data)[..], &sha3::Keccak256::digest(&data)[..], "{n} bytes");
         }
     }
 
@@ -757,10 +664,10 @@ mod tests {
     /// one-shot hash.
     #[test]
     fn streaming_matches_one_shot() {
-        for n in [0usize, 1, 63, 64, 127, 128, 129, 256, 577] {
+        for n in [0usize, 1, 63, 135, 136, 137, 272, 577] {
             let data = pattern(n);
             let want = hash(&data);
-            for split in [1usize, 7, 64, 128, 129] {
+            for split in [1usize, 7, 64, 136, 137] {
                 let mut h = Hasher::new();
                 for chunk in data.chunks(split) {
                     h.update(chunk);
@@ -774,12 +681,12 @@ mod tests {
     /// whole image, one input at a time and batched.
     #[test]
     fn continued_from_zero_prefix_matches_whole_image() {
-        for zero_chunks in [0usize, 1, 3] {
-            for rest in [8usize, 64, 128, 200, 384] {
-                let zlen = zero_chunks * CHUNK;
-                let state = zero_prefix_state(zero_chunks);
+        for zero_blocks in [0usize, 1, 3] {
+            for rest in [0usize, 8, 64, 135, 136, 200, 408] {
+                let zlen = zero_blocks * RATE;
+                let state = zero_prefix_state(zero_blocks);
                 for n in [1usize, 4, 17] {
-                    let data: Vec<u8> = (0..n * rest).map(|i| (i * 31 + zero_chunks) as u8).collect();
+                    let data: Vec<u8> = (0..n * rest).map(|i| (i * 31 + zero_blocks) as u8).collect();
                     let mut got = vec![0u8; n * OUT_LEN];
                     hash_many_dyn_from_state(&data, rest, &state, &mut got);
                     for i in 0..n {
@@ -789,7 +696,7 @@ mod tests {
                         assert_eq!(
                             &got[i * OUT_LEN..(i + 1) * OUT_LEN],
                             &want[..],
-                            "batched {zero_chunks} {rest} {n}"
+                            "batched {zero_blocks} {rest} {n}"
                         );
                         assert_eq!(hash_from_state(&data[i * rest..(i + 1) * rest], &state), want);
                     }
@@ -804,7 +711,7 @@ mod tests {
     fn every_backend_matches_scalar() {
         fn check<S: Lanes64>(name: &str) {
             for n in [1usize, S::WIDTH, S::WIDTH + 1, 3 * S::WIDTH + 1] {
-                for len in [0usize, 8, 64, 128, 129, 192, 1024] {
+                for len in [0usize, 8, 64, 135, 136, 137, 272, 1024] {
                     let data: Vec<u8> = (0..n * len).map(|i| ((i * 37 + 11) & 0xff) as u8).collect();
                     let mut got = vec![0u8; n * OUT_LEN];
                     // SAFETY: `data` holds `n * len` bytes and `got` `n * 32`.

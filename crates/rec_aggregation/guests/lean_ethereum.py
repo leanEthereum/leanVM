@@ -213,7 +213,6 @@ KECCAK_IOTA_IDX = KECCAK_IOTA_IDX_PLACEHOLDER
 KECCAK_PI = KECCAK_PI_PLACEHOLDER
 KECCAK_RHO = KECCAK_RHO_PLACEHOLDER
 KECCAK_SHIFT_USED = KECCAK_SHIFT_USED_PLACEHOLDER
-KECCAK_END_BIT = KECCAK_END_BIT_PLACEHOLDER
 KECCAK_LANES = 25
 KECCAK_Z_BITS = 6      # a bit position is z + 64 * lane
 KECCAK_LANE_BITS = 5
@@ -309,8 +308,7 @@ LIG_MIN_SHIFT_INV = LIG_MIN_SHIFT_INV_PLACEHOLDER
 # claim's x-part lives in, CLAIM_COMMITTED_COL maps it to the compact index of the
 # committed column it must open (a virtual KECCAK value claim maps to QKECCAK),
 # CLAIM_QKECCAK_SLOT_BITS holds the bits of the q_keccak slot a virtual claim reads
-# (zero for a non-virtual one), CLAIM_END_LANE marks the one lane committed with
-# the padding bit XORed in, and QKECCAK_COMMITTED_COL is the ring-switch target.
+# (zero for a non-virtual one), and QKECCAK_COMMITTED_COL is the ring-switch target.
 # A KECCAK output lane's claim is POINT_BUF_KECCAK_OUT: never opened, the 25 of them,
 # from KECCAK_OUT_POOL on, are the Keccak reduction's claim on the output.
 POINT_BUF_ZETA = 0
@@ -322,7 +320,6 @@ KECCAK_OUT_POOL = KECCAK_OUT_POOL_PLACEHOLDER
 CLAIM_POINT_BUF = CLAIM_POINT_BUF_PLACEHOLDER
 CLAIM_COMMITTED_COL = CLAIM_COMMITTED_COL_PLACEHOLDER
 CLAIM_QKECCAK_SLOT_BITS = CLAIM_QKECCAK_SLOT_BITS_PLACEHOLDER
-CLAIM_END_LANE = CLAIM_END_LANE_PLACEHOLDER
 QKECCAK_COMMITTED_COL = QKECCAK_COMMITTED_COL_PLACEHOLDER
 QKECCAK_VARS_CAP = QKECCAK_VARS_CAP_PLACEHOLDER
 
@@ -358,13 +355,14 @@ STMT_PAIRS = STMT_PAIRS_PLACEHOLDER
 STMT_CELLS = STMT_DEFER_OFF + 3 * STMT_PAIRS
 
 # ------------------------------------------------------------------ the hash
-# Every hash is Keccak-256 in the cell encoding (primitives::hash::hash): a `keccak`
-# block absorbs eight cells, and its output is the KECCAK_STATE-cell sponge state,
-# whose first two cells are the digest. A hash of runtime length carries that
-# state through a heap run between loop frames, KECCAK_STATE cells a step.
+# Every hash is Keccak-256 (primitives::hash::hash): a block is 136 bytes, eight and a
+# half cells, XORed into the previous KECCAK_STATE-cell sponge state before a KECCAK,
+# and the last output's first two cells are the digest. A hash of runtime length
+# carries that state through a heap run between loop frames, KECCAK_STATE cells a
+# step (`claim_list_digest`).
 KECCAK_STATE = KECCAK_STATE_PLACEHOLDER
-# One step of such a chain: the state, then whatever count the loop threads with it.
-STATE_SLOTS = KECCAK_STATE + 1
+# Claims a declared claim list absorbs a loop frame: 68 cells, four block pairs.
+CLAIM_GROUP = CLAIM_GROUP_PLACEHOLDER
 
 # --------------------------------------------------------- WOTS+C (host-supplied)
 # Both schemes' one-time keys: chains of CHAIN_LENGTH positions, whose digits are
@@ -448,6 +446,8 @@ SP_BYTE_VALUES = 256
 # rebuilding it from exactly that many bytes, so the guest accepts no preimage the
 # native verifier cannot parse.
 SP_COUNTER_BYTES = 4
+# The encoding's input: P, A, the forest's top nodes, then the counter.
+SP_ENCODING_BYTES = 16 * (2 + 2 * SP_TREES) + SP_COUNTER_BYTES
 # The bits past the second cell's fields, likewise: a byte at a time, the last one
 # holding the rest.
 SP_UNUSED_BYTES = (SP_UNUSED_BITS + 7) // 8
@@ -529,7 +529,7 @@ def challenge_from_state(state):
 
 
 # ==================================== Fiat-Shamir ===================================
-# A duplex sponge over the KECCAK step in overwrite mode (fiat_shamir::FiatShamirState). The
+# A duplex sponge over Keccak-f in overwrite mode (fiat_shamir::FiatShamirState). The
 # sponge is the 13-cell output `sp` of its last permutation, whose last FS_CELLS cells, the
 # capacity, are all the next permutation keeps: between functions and loop frames those
 # cells are all that travels, `fs0 .. fs4`. Scalars absorbed since wait in an eight-cell
@@ -1220,7 +1220,7 @@ def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, inter
                 row_word = row[3 * jw] + Y_TOWER * packed_row[(3 * jw + 1) // 2]
             part += row_word * row_eq_weights[GEN ** l]
         row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
-    # Hash the packed row, eight cells a block.
+    # Hash the packed row.
     leaf_hash_state = StackBuf(KECCAK_STATE)
     keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
     path_depth = depth - cap_depth
@@ -3165,7 +3165,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # The sponge's first permutation takes the program digest and the statement as
     # its rate, from the zero state.
     sp = StackBuf(KECCAK_STATE)
-    keccak([seed_0, seed_1], [pi_0, pi_1], sp, final=0)
+    keccak_cells([seed_0, seed_1, pi_0, pi_1], sp, final=0)
     stream = HeapBuf(STREAM_CAP)
     hint_witness(stream[0:STREAM_CAP], "stream")
     cursor = stream  # the proof stream, replayed word by word (advance = * g)
@@ -3300,8 +3300,6 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # the ring-switch claim takes lam_cl^0, the pool lam_cl^1 onward (bar the output
     # lanes' claims, which the Keccak reduction consumed), and the Keccak reduction's
     # claim on its committed outputs the power after the pool's last.
-    # The committed lane of a step's input holds the padding bit the VM reads
-    # without, a constant apart.
     sp, lam_cl = squeeze(sp, rate, 0)
     target = target_in
     lam_pool = HeapBuf(N_CLAIMS)
@@ -3309,10 +3307,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     for j in unroll(0, N_CLAIMS):
         if CLAIM_POINT_BUF[j] != POINT_BUF_KECCAK_OUT:
             lam_pool[GEN ** j] = lam_pow
-            if CLAIM_END_LANE[j] == 1:
-                target += lam_pow * (claim_pool[GEN ** j] + KECCAK_END_BIT)
-            else:
-                target += lam_pow * claim_pool[GEN ** j]
+            target += lam_pow * claim_pool[GEN ** j]
             lam_pow *= lam_cl
     target += lam_pow * keccak_word
 
@@ -3414,29 +3409,21 @@ def walk_group(at, pp, walks, first: Const, n: Const, k: Const, lx: Const, power
 
 
 @inline
+def leaf_word(p0, p1, walks, j: Const):
+    # Word j of a one-time leaf's input: the prefix (p0, p1), then the chain tips.
+    w = p0
+    if const(j == 1):
+        w = p1
+    if const(j != 0):
+        if const(j != 1):
+            w = chain_tip(walks, j - 2)
+    return w
+
+
+@inline
 def wots_leaf(p0, p1, walks, n: Const, leaf):
-    # The hash of the prefix (p0, p1) and the n chain tips, eight cells a block. A block
-    # takes its first four cells from anywhere, and a later one all eight, its message
-    # being XORed into the state, so the tips are read where their walks left them. The
-    # last block holds one to four cells (asserted host-side).
-    st = StackBuf(KECCAK_STATE)
-    keccak([p0, p1], [chain_tip(walks, 0), chain_tip(walks, 1)], st, tail=[chain_tip(walks, 2), chain_tip(walks, 3), chain_tip(walks, 4), chain_tip(walks, 5)], final=0)
-    for b in unroll(1, (n + 1) // 8):
-        t = 8 * b - 2  # the block's first tip
-        nxt = StackBuf(KECCAK_STATE)
-        keccak([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), chain_tip(walks, t + 3)], nxt, tail=[chain_tip(walks, t + 4), chain_tip(walks, t + 5), chain_tip(walks, t + 6), chain_tip(walks, t + 7)], state=st, final=0)
-        st = nxt
-    # The last block's one to four cells.
-    t = 8 * ((n + 1) // 8) - 2
-    last = n - t
-    if const(last == 1):
-        keccak([chain_tip(walks, t), 0], [0, 0], leaf, state=st, len=16)
-    elif const(last == 2):
-        keccak([chain_tip(walks, t), chain_tip(walks, t + 1)], [0, 0], leaf, state=st, len=32)
-    elif const(last == 3):
-        keccak([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), 0], leaf, state=st, len=48)
-    else:
-        keccak([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), chain_tip(walks, t + 3)], leaf, state=st, len=64)
+    # The hash of the prefix (p0, p1) and the n chain tips, each read where its walk left it.
+    keccak_cells([leaf_word(p0, p1, walks, j) for j in unroll(0, n + 2)], leaf)
     return
 
 
@@ -3674,8 +3661,8 @@ def verify_sig_lean_sphincs(signer, byte_bits):
 
     # ---- the few-time signature: two opened WOTS keys per tree of the forest ----
     # The encoding's input: P, A, then tree c's top nodes at tops[2 + 2c], the
-    # few-time key, which no hash folds.
-    tops = StackBuf(2 + 2 * SP_TREES)
+    # few-time key, which no hash folds, then the counter.
+    tops = StackBuf(3 + 2 * SP_TREES)
     tops[0] = pp
     tops[1] = idx + SP_TW_ENC
     encoded_words = 0
@@ -3733,12 +3720,9 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     ctr_bytes = StackBuf(SP_COUNTER_BYTES)
     hint_witness(ctr_bytes, "sp_counter")
     ctr = sp_from_bytes(byte_bits, ctr_bytes, SP_COUNTER_BYTES, SP_BYTE_VALUES)
-    first = StackBuf(KECCAK_STATE)
-    keccak(tops[0:2], tops[2:4], first, tail=tops[4:8], final=0)
-    second = StackBuf(KECCAK_STATE)
-    keccak(tops[8:10], tops[10:12], second, tail=tops[12:16], state=first, final=0)
+    tops[2 + 2 * SP_TREES] = ctr
     encoding = StackBuf(KECCAK_STATE)
-    keccak(tops[16:18], [ctr, 0], encoding, state=second, len=36)
+    keccak_cells(tops, encoding, len=SP_ENCODING_BYTES)
 
     # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
     # checked and dispatched once, the arm walking every chain's remaining steps
@@ -3813,12 +3797,11 @@ def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
     return st[0], st[1]
 
 
-# The declared claim lists are hashed as flat runs of cells, eight a block, two
-# claims of four cells, the sponge state carried between loop frames through a heap
-# chain of STATE_SLOTS cells a step. A chain starts from the zero state, which a
-# later block's XOR turns into a first block's message. A list's length is runtime,
-# but every block before the last is full, so only the last block's shape depends
-# on it, and that is a small `match`.
+# A declared claim list is hashed CLAIM_GROUP claims a loop frame: a claim is 64 bytes,
+# four cells, so a group is 68 cells, four block pairs, and the sponge state is carried
+# between frames through a heap chain of KECCAK_STATE cells a step, from the zero state.
+# Only the claims after the last whole group depend on the length: a `match` on their
+# count.
 
 
 @inline
@@ -3828,65 +3811,59 @@ def zero_state(chain):
     return
 
 
-def list_split(n_g, per_block: Const):
-    # A list of n items, per_block to a block, as (g^body, g^rest): body blocks
-    # before the last, and rest + 1 items in the last. The range check and the
-    # product identity leave that split the only solution.
+def list_split(n_g):
+    # A list of n claims as (g^groups, g^rest), n = CLAIM_GROUP * groups + rest. The range
+    # checks and the product identity leave that split the only solution.
     split = StackBuf(2)
     hint_witness(split, "signers_split")
-    body = split[0]
+    groups = split[0]
     rest = split[1]
-    # rest < per_block, which must hold before the caller dispatches on it: the
-    # first check rules out a negative exponent, the second, shifted so its bound
-    # is a literal, cuts the range down to per_block <= 4.
-    assert log(rest) < 4
-    assert log(rest * GEN ** (4 - per_block)) < 4
-    assert log(body) < MAX_KEYS
+    assert log(rest) < CLAIM_GROUP
+    assert log(groups) < MAX_KEYS
     # Both exponents are small and nonnegative, so this is an identity over the
-    # integers: per_block * body + rest + 1 == n.
-    assert body ** per_block * rest * GEN == n_g
-    return body, rest
-
+    # integers: CLAIM_GROUP * groups + rest == n.
+    assert groups ** CLAIM_GROUP * rest == n_g
+    return groups, rest
 
 
 def claim_list_digest(entries_ptr, n_g):
     # The hash of one scheme's declared claims: 64 bytes a claim, the claimed pubkey
-    # then the message it signed, so two claims a block. An empty list hashes the
-    # empty string, and the padding binds the length.
+    # then the message it signed. An empty list hashes the empty string, and the
+    # padding binds the length.
     digest = StackBuf(KECCAK_STATE)
     if n_g == 1:
         keccak([0, 0], [0, 0], digest, len=0)
     else:
-        body, rest = list_split(n_g, 2)
-        chain = HeapBuf((body * GEN) ** STATE_SLOTS)
+        groups, rest = list_split(n_g)
+        chain = HeapBuf((groups * GEN) ** KECCAK_STATE)
         zero_state(chain)
-        for xq in mul_range(1, body):
-            st = chain * xq ** STATE_SLOTS
-            nxt = st * GEN ** STATE_SLOTS
-            blk = entries_ptr * xq ** 8
-            hint_witness(blk[0:4], "claims")
-            hint_witness(blk[4:8], "claims")
-            keccak(blk[0:2], blk[2:4], nxt[0:KECCAK_STATE], tail=blk[4:8], state=st[0:KECCAK_STATE], final=0)
-        last = chain * body ** STATE_SLOTS
-        d0, d1 = match(log(rest), range(0, 2), lambda k: claim_list_last(last, entries_ptr * body ** 8, k))
+        for xq in mul_range(1, groups):
+            st = chain * xq ** KECCAK_STATE
+            nxt = st * GEN ** KECCAK_STATE
+            blk = entries_ptr * xq ** (4 * CLAIM_GROUP)
+            for j in unroll(0, CLAIM_GROUP):
+                hint_witness(blk[4 * j:4 * j + 4], "claims")
+            keccak_cells(blk[0:4 * CLAIM_GROUP], nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
+        last = chain * groups ** KECCAK_STATE
+        d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: claim_list_last(last, entries_ptr * groups ** (4 * CLAIM_GROUP), k))
         digest[0] = d0
         digest[1] = d1
     return digest[0], digest[1]
 
 
 def claim_list_last(state, blk, k: Const):
-    hint_witness(blk[0:4], "claims")
     digest = StackBuf(KECCAK_STATE)
-    if k == 0:
-        keccak(blk[0:2], blk[2:4], digest, state=state[0:KECCAK_STATE], len=64)
+    if const(k == 0):
+        keccak_cells([0], digest, state=state[0:KECCAK_STATE], len=0)
     else:
-        hint_witness(blk[4:8], "claims")
-        keccak(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=state[0:KECCAK_STATE])
+        for j in unroll(0, k):
+            hint_witness(blk[4 * j:4 * j + 4], "claims")
+        keccak_cells(blk[0:4 * k], digest, state=state[0:KECCAK_STATE])
     return digest[0], digest[1]
 
 
 @inline
-def child_claim_entries(entries_ptr, cover, marks, origin_g, limit_g, blk, n: Const):
+def child_claims(entries_ptr, cover, marks, origin_g, limit_g, blk, n: Const):
     # n of a child's claims, each read at a hinted index into THIS node's table and
     # marked in the coverage table. The index is an offset into the scheme's region
     # and bounded by that region's size, so a child's claim can only ever land on a
@@ -3904,39 +3881,35 @@ def child_claim_entries(entries_ptr, cover, marks, origin_g, limit_g, blk, n: Co
 def child_claim_list_digest(entries_ptr, cover, base, origin_g, limit_g, n_g):
     # The hash of one of a child's declared claim lists, over the same 64n bytes the
     # child hashed (`claim_list_digest`), so the digest it rebuilds is the one the
-    # child's statement carries. The chain threads the coverage write value, which
-    # counts the claims off as they are marked, from `base`.
+    # child's statement carries. The coverage marks count the claims off from `base`.
     digest = StackBuf(KECCAK_STATE)
     if n_g == 1:
         keccak([0, 0], [0, 0], digest, len=0)
     else:
-        body, rest = list_split(n_g, 2)
-        chain = HeapBuf((body * GEN) ** STATE_SLOTS)
+        groups, rest = list_split(n_g)
+        chain = HeapBuf((groups * GEN) ** KECCAK_STATE)
         zero_state(chain)
-        chain[GEN ** KECCAK_STATE] = base
-        for xq in mul_range(1, body):
-            st = chain * xq ** STATE_SLOTS
-            nxt = st * GEN ** STATE_SLOTS
-            marks = st[GEN ** KECCAK_STATE]
-            blk = StackBuf(8)
-            child_claim_entries(entries_ptr, cover, marks, origin_g, limit_g, blk, 2)
-            keccak(blk[0:2], blk[2:4], nxt[0:KECCAK_STATE], tail=blk[4:8], state=st[0:KECCAK_STATE], final=0)
-            nxt[GEN ** KECCAK_STATE] = marks * GEN ** 2
-        last = chain * body ** STATE_SLOTS
-        d0, d1 = match(log(rest), range(0, 2), lambda k: child_claim_list_last(last, entries_ptr, cover, origin_g, limit_g, k))
+        for xq in mul_range(1, groups):
+            st = chain * xq ** KECCAK_STATE
+            nxt = st * GEN ** KECCAK_STATE
+            blk = StackBuf(4 * CLAIM_GROUP)
+            child_claims(entries_ptr, cover, base * xq ** CLAIM_GROUP, origin_g, limit_g, blk, CLAIM_GROUP)
+            keccak_cells(blk, nxt[0:KECCAK_STATE], state=st[0:KECCAK_STATE], final=0)
+        last = chain * groups ** KECCAK_STATE
+        d0, d1 = match(log(rest), range(0, CLAIM_GROUP), lambda k: child_claim_list_last(last, entries_ptr, cover, base * groups ** CLAIM_GROUP, origin_g, limit_g, k))
         digest[0] = d0
         digest[1] = d1
     return digest[0], digest[1]
 
 
-def child_claim_list_last(state, entries_ptr, cover, origin_g, limit_g, k: Const):
-    blk = StackBuf(8)
-    child_claim_entries(entries_ptr, cover, state[GEN ** KECCAK_STATE], origin_g, limit_g, blk, k + 1)
+def child_claim_list_last(state, entries_ptr, cover, marks, origin_g, limit_g, k: Const):
     digest = StackBuf(KECCAK_STATE)
-    if k == 0:
-        keccak(blk[0:2], blk[2:4], digest, state=state[0:KECCAK_STATE], len=64)
+    if const(k == 0):
+        keccak_cells([0], digest, state=state[0:KECCAK_STATE], len=0)
     else:
-        keccak(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=state[0:KECCAK_STATE])
+        blk = StackBuf(4 * CLAIM_GROUP)
+        child_claims(entries_ptr, cover, marks, origin_g, limit_g, blk, k)
+        keccak_cells(blk[0:4 * k], digest, state=state[0:KECCAK_STATE])
     return digest[0], digest[1]
 
 
@@ -3964,11 +3937,9 @@ def da_verify(g_squares):
     for xi in mul_range(1, n_blob_g):
         prefix_bases[xi] = prefix_digests * (xi ** (2 * DA_PREFIX_CELLS))
 
-    # The membership vector's hash, one column's weights at a time: every column's
-    # weights are whole blocks, so the sponge state rides the chain between columns
-    # and only the last block of the last column is final.
-    hashes = HeapBuf(KECCAK_STATE * (DA_CELLS + 1))
-    zero_state(hashes)
+    # The membership vector's hash: the hash of its columns' hashes, two cells a
+    # column.
+    column_digests = HeapBuf(2 * DA_CELLS)
 
     # Each row's running sum uses a fresh write-once cell per column.
     acc = HeapBuf(n_blob_g ** (DA_CELLS + 1))
@@ -3982,9 +3953,9 @@ def da_verify(g_squares):
     # loop that knows it is inside the prefix, with no per-block branch.
     coltree = HeapBuf(4 * DA_CELLS)
     for xb in mul_range(1, GEN ** DA_PREFIX_CELLS):
-        da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, hashes, 1)
+        da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, column_digests, 1)
     for xb in mul_range(GEN ** DA_PREFIX_CELLS, GEN ** DA_CELLS):
-        da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, hashes, 0)
+        da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, column_digests, 0)
 
     for xi in mul_range(1, n_blob_g):
         chain = rowbase[xi]
@@ -4008,7 +3979,9 @@ def da_verify(g_squares):
 
     root = StackBuf(KECCAK_STATE)
     keccak([rr0, rr1], [rc0, rc1], root)
-    return root[0], root[1], hashes[GEN ** (KECCAK_STATE * DA_CELLS)], hashes[GEN ** (KECCAK_STATE * DA_CELLS + 1)]
+    vector = StackBuf(KECCAK_STATE)
+    keccak_cells(column_digests[0:2 * DA_CELLS], vector)
+    return root[0], root[1], vector[0], vector[1]
 
 
 def da_row_shape(n_blob_g, g_log_pad, g_squares):
@@ -4023,9 +3996,8 @@ def da_row_shape(n_blob_g, g_log_pad, g_squares):
     return n_pad_g, gap_g
 
 
-def da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, hashes, store: Const):
-    st = hashes * (xb ** KECCAK_STATE)
-    lvals = da_vector_dispatch(xb, st, st * GEN ** KECCAK_STATE)
+def da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, column_digests, store: Const):
+    lvals = da_vector_cell(column_digests * (xb * xb))
     node = HeapBuf(n_pad_g ** 4)
     for xi in mul_range(1, n_blob_g):
         d0, d1, s = da_verify_cell(lvals)
@@ -4075,20 +4047,9 @@ def da_levels(tree, n: Const, log_n: Const):
     return tree[GEN ** (4 * n - 4)], tree[GEN ** (4 * n - 3)]
 
 
-def da_vector_dispatch(xb, state, next_state):
-    # The last column's last block ends the vector's hash.
-    out = StackBuf(1)
-    if xb == GEN ** (DA_CELLS - 1):
-        out[0] = da_vector_cell(state, next_state, 1)
-    else:
-        out[0] = da_vector_cell(state, next_state, 0)
-    return out[0]
-
-
-def da_vector_cell(state, next_state, final: Const):
-    # One column's weights, absorbed into the vector's hash from `state`, the
-    # result written to `next_state`. Two extension-field entries become three
-    # canonical 128-bit cells, without padding.
+def da_vector_cell(digest):
+    # One column's weights, their hash written to the two cells at `digest`. Two
+    # extension-field entries become three canonical 128-bit cells.
     weights = StackBuf(DA_CELL)
     hint_witness(weights[0:DA_CELL], "da_weights")
     packed = StackBuf(DA_WEIGHT_CELLS)
@@ -4102,17 +4063,7 @@ def da_vector_cell(state, next_state, final: Const):
         packed[3 * p] = pack64x2(slo[0], slo[1])
         packed[3 * p + 1] = pack64x2(((s + slo[0]) * Y_INV + slo[1]) * Y_INV, tlo[0])
         packed[3 * p + 2] = pack64x2(tlo[1], ((t + tlo[0]) * Y_INV + tlo[1]) * Y_INV)
-    st = StackBuf(KECCAK_STATE)
-    keccak(packed[0:2], packed[2:4], st, tail=packed[4:8], state=state[0:KECCAK_STATE], final=0)
-    for b in unroll(1, DA_WEIGHT_CELLS // 8 - 1):
-        nxt = StackBuf(KECCAK_STATE)
-        keccak(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], nxt, tail=packed[8 * b + 4:8 * b + 8], state=st, final=0)
-        st = nxt
-    b = DA_WEIGHT_CELLS // 8 - 1
-    if const(final == 1):
-        keccak(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], next_state[0:KECCAK_STATE], tail=packed[8 * b + 4:8 * b + 8], state=st)
-    else:
-        keccak(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], next_state[0:KECCAK_STATE], tail=packed[8 * b + 4:8 * b + 8], state=st, final=0)
+    keccak_cells(packed, digest[0:2])
     weights_ptr = addr(weights)
     return weights_ptr
 

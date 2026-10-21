@@ -383,12 +383,11 @@ fn xi_form_pows(xi: F192) -> [F192; 3] {
     [pows[base], pows[base + 1], pows[base + 2]]
 }
 
-/// If `col` is a KECCAK **input** value column (global index), its `q_keccak` slot and
-/// the constant the committed lane differs by.
+/// If `col` is a KECCAK **input** value column (global index), its `q_keccak` slot.
 /// These columns are virtual (uncommitted): their evaluation claims are re-routed
 /// to `q_keccak` slot evaluations, which is the whole binding: the bus-tied value
 /// IS the proven `q_keccak` word, no separate check needed.
-fn keccak_value_slot(col: usize) -> Option<(usize, F192)> {
+fn keccak_value_slot(col: usize) -> Option<usize> {
     let base = schema().base[tables::KECCAK_TABLE];
     tables::KECCAK_VALUE_COLS
         .iter()
@@ -694,7 +693,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
 /// claim `value_col(r) = v` (at the `n_log`-dim instance point `r`) is re-routed
 /// to the equal `q_keccak` slot evaluation: an ordinary claim on the committed
 /// `QKECCAK` column at the point whose low coords are `r` and whose next
-/// `SLOT_LOG` are the slot's bits, shifted by the slot's constant. No downstream
+/// `SLOT_LOG` are the slot's bits. No downstream
 /// special-casing: it folds into the one opening like every other point claim.
 fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
     claims
@@ -702,11 +701,11 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
         .map(|c| {
             // A KECCAK value column (always virtual): its bus claim at instance point
             // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
-            if let Some((slot, shift)) = keccak_value_slot(c.col) {
+            if let Some(slot) = keccak_value_slot(c.col) {
                 return pcs::SlotClaim::Point {
                     offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
                     low_point: c.point,
-                    value: c.value + shift,
+                    value: c.value,
                 };
             }
             pcs::SlotClaim::Point {
@@ -727,69 +726,82 @@ mod tests {
         F192::new(x, 0, 0)
     }
 
-    /// A hand-built straight-line program with one KECCAK row: two message cells
-    /// (2, 3) read twice as `m`, a four-cell `tail` (4..8), a zero five-cell `cap`
-    /// (8..13), and the output run (13..26), padded with filler SETs so the last
-    /// executed instruction lands one before the sentinel.
-    fn keccak_program(a: F192, b: F192, tail: [F192; 4]) -> Program {
+    /// A hand-built straight-line program with two KECCAK rows. The first reads, in the even
+    /// layout, two message cells (2, 3) twice as `m`, a four-cell `tail` (4..8), `b8` (8) and a
+    /// zero `cap` (9..13), and writes 13..26 in the odd layout; the second reads that output in
+    /// the odd layout and writes 26..39 in the even one. Two filler SETs step the pc to 15, whose
+    /// slot is the never-executed sentinel.
+    fn keccak_program(a: F192, b: F192, tail: [F192; 4], b8: F192) -> Program {
         let mut prog = vec![Op::Set { o: 2, k: a }, Op::Set { o: 3, k: b }];
         for (i, &t) in tail.iter().enumerate() {
             prog.push(Op::Set { o: 4 + i as u32, k: t });
         }
-        for c in 0..5u32 {
+        prog.push(Op::Set { o: 8, k: b8 });
+        for c in 0..4u32 {
             prog.push(Op::Set {
-                o: 8 + c,
+                o: 9 + c,
                 k: F192::ZERO,
             });
         }
         prog.push(Op::Keccak {
             m: [2, 3, 2, 3],
             tail: 4,
-            cap: 8,
+            b8: 8,
+            cap: 9,
             out: 13,
+            in_odd: false,
+            out_odd: true,
         });
-        // 16 slots: 12 executed, then 3 filler SETs step the pc to 15, whose slot is
-        // the never-executed sentinel.
-        for k in 0..3u32 {
+        prog.push(Op::Keccak {
+            m: [13, 14, 15, 16],
+            tail: 17,
+            b8: 21,
+            cap: 22,
+            out: 26,
+            in_odd: true,
+            out_odd: false,
+        });
+        for k in 0..2u32 {
             prog.push(Op::Set {
-                o: 26 + k,
+                o: 39 + k,
                 k: F192::ONE,
             });
         }
         prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
         assert_eq!(prog.len(), 16);
-        Program::from_bytecode(prog, 32)
+        Program::from_bytecode(prog, 64)
     }
 
-    /// The opcode's execution semantics: the thirteen output cells hold the step
-    /// of the thirteen input cells, the two `m` pairs aliasing one another. With a
-    /// zero `cap` and the padding in `tail`, the first two output cells are the
-    /// hash of the 64 message bytes. Hand-assembled, the program is provable all the
-    /// same: its tables are not powers of two.
+    /// The opcode's execution semantics: the output cells hold the permutation of the lanes the
+    /// input cells hold, each side in its layout, the two `m` pairs aliasing one another and
+    /// `b8`'s free high limb ignored. With a zero `cap` and the padding in `tail` and `b8`, the
+    /// first permutation's first four lanes are the hash of the 64 message bytes. Hand-assembled,
+    /// the program is provable all the same: its tables are not powers of two.
     #[test]
-    fn keccak_computes_the_step() {
+    fn keccak_permutes_in_both_layouts() {
+        use crate::keccak::{STATE_CELLS, permute_cells, state_of_cells};
         let a = F192::new(0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210, 0);
         let b = F192::new(0xdead_beef_cafe_babe, 0x0bad_f00d_0bad_f00d, 0);
         let pad = F192::new(primitives::hash::PAD_FIRST as u64, 0, 0);
-        let program = keccak_program(a, b, [pad, F192::ZERO, F192::ZERO, F192::ZERO]);
+        let end = F192::new(primitives::hash::END_BIT, 0x5555, 0);
+        let program = keccak_program(a, b, [pad, F192::ZERO, F192::ZERO, F192::ZERO], end);
         let pi = [w(7), w(11)];
         let exec = program.execute(pi).unwrap();
 
-        let mut input = [F192::ZERO; crate::keccak::STATE_CELLS];
-        input[..4].copy_from_slice(&[a, b, a, b]);
-        input[4] = pad;
-        let out = crate::keccak::step_cells(&input);
+        let mut input = [F192::ZERO; STATE_CELLS];
+        input[..9].copy_from_slice(&[a, b, a, b, pad, F192::ZERO, F192::ZERO, F192::ZERO, end]);
+        let out = permute_cells(&input, false, true);
         assert_eq!(&exec.mem[13..26], &out[..]);
+        assert_eq!(&exec.mem[26..39], &permute_cells(&out, true, false)[..]);
 
         let bytes: Vec<u8> = [a, b, a, b]
             .iter()
             .flat_map(|c| [c.c0, c.c1])
             .flat_map(u64::to_le_bytes)
             .collect();
-        let digest: Vec<u8> = [out[0], out[1]]
+        let digest: Vec<u8> = state_of_cells(&out, true)[..4]
             .iter()
-            .flat_map(|c| [c.c0, c.c1])
-            .flat_map(u64::to_le_bytes)
+            .flat_map(|w| w.to_le_bytes())
             .collect();
         assert_eq!(digest, primitives::hash::hash(&bytes));
 
@@ -802,29 +814,11 @@ mod tests {
     /// stored word.
     #[test]
     fn keccak_requires_zero_third_limb() {
-        let err = keccak_program(F192::new(0, 0, 1), F192::ZERO, [F192::ZERO; 4])
+        let err = keccak_program(F192::new(0, 0, 1), F192::ZERO, [F192::ZERO; 4], F192::ZERO)
             .execute([w(7), w(11)])
             .err()
             .expect("the run must fail");
-        assert!(
-            matches!(err.fault, Fault::NotCanonical { cell: 0, bits: 128, .. }),
-            "{err}"
-        );
-    }
-
-    /// The lone lane-16 cell carries `(lo, 0, 0)`, read with two literal zeros.
-    #[test]
-    fn keccak_requires_zero_lone_high_lane() {
-        let mut program = keccak_program(F192::ZERO, F192::ZERO, [F192::ZERO; 4]);
-        program.prog[6] = Op::Set {
-            o: 8,
-            k: F192::new(0, 1, 0),
-        };
-        let err = program.execute([w(7), w(11)]).err().expect("the run must fail");
-        assert!(
-            matches!(err.fault, Fault::NotCanonical { cell: 8, bits: 64, .. }),
-            "{err}"
-        );
+        assert!(matches!(err.fault, Fault::NotCanonical { cell: 0, .. }), "{err}");
     }
 
     /// A 192-bit-word MUL: the E-product of two full machine words. Full-limb

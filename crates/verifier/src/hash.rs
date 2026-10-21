@@ -1,4 +1,4 @@
-//! Keccak-256 of the cell encoding, the VM's `KECCAK` step, and digests.
+//! Keccak-256 (Ethereum's), the permutation the VM's `KECCAK` applies, and digests.
 
 use crate::field::E;
 use crate::{VerifierError, require};
@@ -6,8 +6,6 @@ use crate::{VerifierError, require};
 pub const STATE_LANES: usize = 25;
 /// The sponge rate in bytes.
 const RATE: usize = 136;
-/// Message bytes one block carries: the rate's first 16 lanes, eight whole 16-byte cells.
-const CHUNK: usize = 128;
 const ROUNDS: usize = 24;
 
 pub const KECCAK_RC: [u64; ROUNDS] = [
@@ -49,10 +47,6 @@ pub const KECCAK_PI: [usize; STATE_LANES] = {
     }
     pi
 };
-/// The padding's last bit, which every step XORs into lane 16.
-pub const KECCAK_END_BIT: u64 = 0x80 << 56;
-const END_LANE: usize = 16;
-
 pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
     for rc in KECCAK_RC {
         let c: [u64; 5] = std::array::from_fn(|x| a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20]);
@@ -71,37 +65,27 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
     }
 }
 
-/// The VM's `KECCAK` step: XOR the padding's last bit into lane 16, then Keccak-f\[1600\].
-pub fn step(input: &[u64; STATE_LANES]) -> [u64; STATE_LANES] {
-    let mut state = *input;
-    state[END_LANE] ^= KECCAK_END_BIT;
-    keccak_f(&mut state);
-    state
-}
-
 fn xor_bytes(state: &mut [u64; STATE_LANES], bytes: &[u8]) {
     for (i, &byte) in bytes.iter().enumerate() {
         state[i / 8] ^= u64::from(byte) << (8 * (i % 8));
     }
 }
 
-/// Keccak-256 of `data` in the cell encoding: up to 128 bytes it is plain Keccak-256. A longer input is cut into
-/// 128-byte chunks, the last holding the remaining 1 to 128 bytes, and every chunk but the last is followed by the
-/// fixed eight bytes `0^7 ‖ 0x80`, so that a block is eight whole cells.
+/// Keccak-256 of `data`: 136-byte blocks, the last holding the remaining 0 to 135 bytes and the padding
+/// `0x01 ‖ 0^* ‖ 0x80`.
 pub fn keccak_hash(data: &[u8]) -> Digest {
     let mut state = [0u64; STATE_LANES];
-    let nonfinal = data.len().saturating_sub(1) / CHUNK;
-    for chunk in data[..nonfinal * CHUNK].chunks(CHUNK) {
-        xor_bytes(&mut state, chunk);
-        state = step(&state);
+    let (blocks, tail) = data.as_chunks::<RATE>();
+    for block in blocks {
+        xor_bytes(&mut state, block);
+        keccak_f(&mut state);
     }
-    // The last block: the remaining bytes, then Keccak's padding, whose last bit is the one `step` supplies.
-    let tail = &data[nonfinal * CHUNK..];
     let mut block = [0u8; RATE];
     block[..tail.len()].copy_from_slice(tail);
     block[tail.len()] ^= 0x01;
+    block[RATE - 1] ^= 0x80;
     xor_bytes(&mut state, &block);
-    state = step(&state);
+    keccak_f(&mut state);
     let mut value = [0u8; 32];
     for (bytes, lane) in value.as_chunks_mut().0.iter_mut().zip(state) {
         *bytes = lane.to_le_bytes();
@@ -144,18 +128,20 @@ impl Digest {
 mod tests {
     use super::*;
 
-    /// Keccak-256 of the cell encoding of the bytes `00 01 ..` (mod 256), from OpenSSL's `keccak-256`: plain Keccak-256 up to
-    /// 128 bytes, then each side of a chunk boundary.
-    const VECTORS: [(usize, &str); 9] = [
+    /// Keccak-256 of the bytes `00 01 ..` (mod 256), from the `sha3` crate's `Keccak256`, on each side of a block
+    /// boundary.
+    const VECTORS: [(usize, &str); 11] = [
         (0, "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"),
         (1, "bc36789e7a1e281436464229828f817d6612f7b477d66591ff96a9e064bcc98a"),
         (127, "c52f0bd08793b9e8601b29753539e1bf47f8e483eed0a901e8761982449c9b4c"),
         (128, "ed4c9adc183fb8cb025b1500ec3eeae1b45517314441a187605de1bb8a64726e"),
-        (129, "2900f87118e525c6a28e5d3a37a7f37db1b0b17661931ba7ba0be4fbb202f766"),
-        (200, "f4eb34198ddc4f2012a7791eb46292821d0904eb97640e9519ab735eef9c04ab"),
-        (256, "d63969818e044e52f1c4bb4b58569816bb0c5e7efadcee96f83b02a355a42686"),
-        (257, "2cc03e9f89462b48c53aae96d64d7a43482bdd896fa16f8308f8199538d0ba65"),
-        (512, "63e0372d8c2e3203e0a6a80bbafa151aba520de0c9baeb89907af0c242ed4e6a"),
+        (135, "cbdfd9dee5faad3818d6b06f95a219fd290b0e1706f6a82e5a595b9ce9faca62"),
+        (136, "7ce759f1ab7f9ce437719970c26b0a66ff11fe3e38e17df89cf5d29c7d7f807e"),
+        (137, "ac73d4fae68b8453f764007c1a20ce95994187861f0c3227a3a8e99a73a3b1db"),
+        (200, "bfb0aa97863e797943cf7c33bb7e880bb4543f3d2703c0923c6901c2af57b890"),
+        (271, "7c974895b2a88303ff2dc6b58f438ceb0b298cac91099ac0539cc0f477506191"),
+        (272, "fdf2ec49e749960d3c8521a0219af8d03e30e2b3bf19bd16150ee0eaf133d66e"),
+        (512, "f55ba327291604f0e5be6651752398b7be2331aad65f5763ce067df95cc13be1"),
     ];
 
     #[test]

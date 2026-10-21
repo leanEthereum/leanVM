@@ -1,15 +1,15 @@
 // CREDIT: the duplex challenger of https://github.com/Plonky3/Plonky3 (`challenger`), MIT OR Apache-2.0.
-//! Fiat-Shamir state and proof transport. The state is a duplex sponge over the VM's `KECCAK` step,
-//! one Keccak-f\[1600\] permutation a step, in overwrite mode.
+//! Fiat-Shamir state and proof transport. The state is a duplex sponge over Keccak-f\[1600\],
+//! in overwrite mode.
 //!
-//! The state is 25 lanes: the rate is lanes `0..16`, the eight message cells a `KECCAK` instruction
-//! reads, and the capacity lanes `16..25`. Absorbed scalars wait, up to four, and a permutation
-//! takes them all: scalar `i` overwrites lanes `4i..4i + 4` with its three limbs and a domain tag,
-//! the rate past the last scalar is zeroed, and the capacity carries over. A fifth scalar, or a
-//! challenge, permutes what is waiting; every challenge takes a permutation of its own and is the
-//! first three lanes of its output. So sending a round's coefficients and drawing its challenge is
-//! one permutation, and a guest replays a step as one `KECCAK` instruction whose message cells are
-//! the scalars and whose capacity cells are the previous output's.
+//! The state is 25 lanes: the rate is lanes `0..16` and the capacity lanes `16..25`. Absorbed
+//! scalars wait, up to four, and a permutation takes them all: scalar `i` overwrites lanes
+//! `4i..4i + 4` with its three limbs and a domain tag, the rate past the last scalar is zeroed, and
+//! the capacity carries over. A fifth scalar, or a challenge, permutes what is waiting; every
+//! challenge takes a permutation of its own and is the first three lanes of its output. So sending
+//! a round's coefficients and drawing its challenge is one permutation, and a guest replays it as
+//! one `KECCAK` instruction whose rate cells are the scalars and whose capacity cells are the
+//! previous output's.
 
 pub mod merkle;
 pub mod transcript;
@@ -66,7 +66,10 @@ impl FiatShamirState {
             *lane = word.0;
         }
         Self {
-            state: primitives::hash::step(&state),
+            state: {
+                primitives::hash::keccak_f(&mut state);
+                state
+            },
             pending: [(F192::ZERO, 0); RATE_SCALARS],
             n_pending: 0,
         }
@@ -85,7 +88,8 @@ impl FiatShamirState {
         for (i, &(x, tag)) in self.pending[..self.n_pending].iter().enumerate() {
             input[4 * i..4 * i + 4].copy_from_slice(&[x.c0, x.c1, x.c2, tag]);
         }
-        self.state = primitives::hash::step(&input);
+        primitives::hash::keccak_f(&mut input);
+        self.state = input;
         self.n_pending = 0;
     }
 
@@ -162,9 +166,9 @@ impl FiatShamirState {
                 .expect("a nonce exists")
         } else {
             // Many candidates at once through the batched hash. A candidate's permutation
-            // is one final 128-byte block absorbed into the zeroed rate: the block's
-            // padding puts PAD_FIRST and the end bit in lane 16, where the step puts the
-            // end bit alone, so the starting state carries PAD_FIRST to cancel it.
+            // is one final 128-byte message absorbed into the zeroed rate: its block's padding
+            // puts PAD_FIRST and PAD_LAST in lane 16, so the starting state carries both to
+            // cancel them.
             let mut base = self.clone();
             if base.n_pending == RATE_SCALARS {
                 base.duplex();
@@ -172,7 +176,7 @@ impl FiatShamirState {
             let slot = base.n_pending;
             let mut init = base.state;
             init[..16].fill(0);
-            init[16] ^= u64::from(primitives::hash::PAD_FIRST);
+            init[16] ^= u64::from(primitives::hash::PAD_FIRST) ^ primitives::hash::END_BIT;
             let mut rate = [0u64; 16];
             for (i, &(x, tag)) in base.pending[..slot].iter().enumerate() {
                 rate[4 * i..4 * i + 4].copy_from_slice(&[x.c0, x.c1, x.c2, tag]);

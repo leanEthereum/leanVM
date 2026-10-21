@@ -1,7 +1,7 @@
 //! Proof transport and Fiat-Shamir.
 
 use crate::field::{E, K, ZERO};
-use crate::hash::{Digest, STATE_LANES, keccak_hash, step};
+use crate::hash::{Digest, STATE_LANES, keccak_f, keccak_hash};
 use crate::merkle::{MerkleOpenings, MerklePath};
 use crate::multilinear::{log2_strict, poly_eval};
 use crate::{VerifierError, require};
@@ -34,7 +34,7 @@ const DS_POW_NONCE: u64 = 4;
 /// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, three limbs and a tag.
 const RATE_SCALARS: usize = 4;
 
-/// A duplex sponge over the VM's `KECCAK` step, in overwrite mode. The rate is lanes 0..16 and the capacity lanes
+/// A duplex sponge over Keccak-f\[1600\], in overwrite mode. The rate is lanes 0..16 and the capacity lanes
 /// 16..25. A permutation writes waiting scalar `i` over lanes `4i..4i+4`, zeroes the rest of the rate and keeps the
 /// capacity. A fifth scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
 #[derive(Clone, Debug)]
@@ -51,7 +51,10 @@ impl Sponge {
         state[..4].copy_from_slice(&fiat_shamir_iv.words());
         state[4..8].copy_from_slice(&public_input.words());
         Self {
-            state: step(&state),
+            state: {
+                keccak_f(&mut state);
+                state
+            },
             pending: [(ZERO, 0); RATE_SCALARS],
             n_pending: 0,
         }
@@ -68,7 +71,8 @@ impl Sponge {
         for (i, &(value, tag)) in self.pending[..self.n_pending].iter().enumerate() {
             input[4 * i..4 * i + 4].copy_from_slice(&[value.c0, value.c1, value.c2, tag]);
         }
-        self.state = step(&input);
+        keccak_f(&mut input);
+        self.state = input;
         self.n_pending = 0;
     }
 

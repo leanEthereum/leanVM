@@ -2,7 +2,7 @@
 
 use crate::bytecode::Bytecode;
 use crate::field::{E, GEN, ONE, ZERO};
-use crate::hash::{STATE_LANES, step};
+use crate::hash::{STATE_LANES, keccak_f};
 use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
 use std::collections::BTreeMap;
@@ -61,7 +61,7 @@ pub struct BusBlock {
 }
 
 pub const RELATION_LABEL: &[u8] =
-    b"leanVM keccak GKR: step, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
+    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
 
 // The columns no instruction table owns. They come first in the global column numbering, the tables after.
 pub const NUM_GLOBAL_COLUMNS: usize = 6;
@@ -285,52 +285,72 @@ fn jump_constraints(columns: &[E]) -> Vec<E> {
     vec![flag + condition * inverse, condition * (flag + ONE)]
 }
 
-/// The lanes each of a sponge state's thirteen cells holds: lanes 0..16 two to a cell, then lane 16 alone (its high
-/// lane a literal zero), then the capacity lanes 17..25.
-const KECCAK_CELL_LANES: [&[usize]; 13] = [
-    &[0, 1],
-    &[2, 3],
-    &[4, 5],
-    &[6, 7],
-    &[8, 9],
-    &[10, 11],
-    &[12, 13],
-    &[14, 15],
-    &[16],
-    &[17, 18],
-    &[19, 20],
-    &[21, 22],
-    &[23, 24],
-];
+/// The lanes each of a sponge state's thirteen cells holds, `(lo, hi)`, in the even layout or the odd one, `None`
+/// marking a limb that holds no lane: nine rate cells, lanes 0..16 two to a cell then lane 16 in a low limb (even), or
+/// lane 0 in a high limb then lanes 1..17 two to a cell (odd), then the capacity lanes 17..25.
+fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); 13] {
+    std::array::from_fn(|cell| match (odd, cell) {
+        (_, 9..) | (true, 1..) => (Some(2 * cell - 1), Some(2 * cell)),
+        (true, _) => (None, Some(0)),
+        (false, 8) => (Some(16), None),
+        (false, _) => (Some(2 * cell), Some(2 * cell + 1)),
+    })
+}
+
+/// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag` selects: `a + flag·(a + b)`,
+/// a missing lane being the column `missing`, or zero.
+fn layout_limb(even: Option<usize>, odd: Option<usize>, flag: usize, missing: Option<usize>) -> Form {
+    let (a, b) = (even.or(missing), odd.or(missing));
+    if a == b {
+        return a.map_or(constant(ZERO), |a| col(a, 0));
+    }
+    Form::sum(
+        [
+            a.map(|a| col(a, 0)),
+            a.map(|a| prod(flag, a, 0)),
+            b.map(|b| prod(flag, b, 0)),
+        ]
+        .into_iter()
+        .flatten(),
+    )
+}
 
 fn flushes_keccak() -> Flushes {
-    let [pc, fp, cnt_bc] = cols(KECCAK_COLUMNS, ["pc", "fp", "cnt_bc"]);
+    let [pc, fp, cnt_bc, free] = cols(KECCAK_COLUMNS, ["pc", "fp", "cnt_bc", "free"]);
     let o_m = cols(KECCAK_COLUMNS, ["o_m0", "o_m1", "o_m2", "o_m3"]);
-    let [o_tail, o_cap, o_out] = cols(KECCAK_COLUMNS, ["o_tail", "o_cap", "o_out"]);
+    let [o_tail, o_b8, o_cap, o_out] = cols(KECCAK_COLUMNS, ["o_tail", "o_b8", "o_cap", "o_out"]);
+    let [in_odd, out_odd] = cols(KECCAK_COLUMNS, ["odd_in", "odd_out"]);
+    let column = |name: String| cols(KECCAK_COLUMNS, [&name])[0];
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
-    let operands = [o_m[0], o_m[1], o_m[2], o_m[3], o_tail, o_cap, o_out];
+    let operands = [
+        o_m[0], o_m[1], o_m[2], o_m[3], o_tail, o_b8, o_cap, o_out, in_odd, out_odd,
+    ];
     flushes.bytecode(pc, cnt_bc, OP_KECCAK, operands.map(|i| col(i, 0)).to_vec());
-    // The thirteen cells read (four addressed ones, then the consecutive tail and cap runs), then the thirteen
-    // written. Each carries its q_keccak lanes and zeros above them.
-    let read = |cell: usize| match cell {
+    // The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the thirteen written, each
+    // holding its lanes in the layout its flag names: a read cell's free lane is the column `free`, a written one's zero.
+    let address = |cell: usize| match cell {
         0..4 => prod(fp, o_m[cell], 0),
         4..8 => prod(fp, o_tail, cell as u64 - 4),
-        _ => prod(fp, o_cap, cell as u64 - 8),
+        8 => prod(fp, o_b8, 0),
+        _ => prod(fp, o_cap, cell as u64 - 9),
     };
-    for (side, prefix) in ["in", "out"].into_iter().enumerate() {
-        for (cell, lanes) in KECCAK_CELL_LANES.iter().enumerate() {
-            let address = if side == 0 {
-                read(cell)
+    let (even, odd) = (keccak_cell_lanes(false), keccak_cell_lanes(true));
+    for (side, prefix, flag, missing) in [(0, "in", in_odd, Some(free)), (1, "out", out_odd, None)] {
+        let lane = |lane: Option<usize>| lane.map(|lane| column(format!("{prefix}_{lane}")));
+        for cell in 0..13 {
+            let limb = |e: Option<usize>, o: Option<usize>| layout_limb(lane(e), lane(o), flag, missing);
+            let values = [
+                limb(even[cell].0, odd[cell].0),
+                limb(even[cell].1, odd[cell].1),
+                constant(ZERO),
+            ];
+            let at = if side == 0 {
+                address(cell)
             } else {
                 prod(fp, o_out, cell as u64)
             };
-            let count = cols(KECCAK_COLUMNS, [&format!("cnt_{}", 13 * side + cell)])[0];
-            let limbs: Vec<usize> = lanes
-                .iter()
-                .map(|lane| cols(KECCAK_COLUMNS, [&format!("{prefix}_{lane}")])[0])
-                .collect();
-            flushes.memory_cols(address, count, &limbs);
+            flushes.memory(at, column(format!("cnt_{}", 13 * side + cell)), values);
         }
     }
     flushes
@@ -353,7 +373,9 @@ const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "
 const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
 #[rustfmt::skip]
 const KECCAK_COLUMNS: &[&str] = &[
-    "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_cap", "o_out",
+    "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out",
+    // The read limb that holds no lane.
+    "free",
     // These fifty value lanes are not committed here: an input lane is one of q_keccak's slots,
     // and the output lanes' claims are the Keccak reduction's claim on the output.
     "in_0", "in_1", "in_2", "in_3", "in_4", "in_5", "in_6", "in_7", "in_8", "in_9", "in_10", "in_11", "in_12", "in_13", "in_14", "in_15", "in_16", "in_17", "in_18", "in_19", "in_20", "in_21", "in_22", "in_23", "in_24",
@@ -363,8 +385,9 @@ const KECCAK_COLUMNS: &[&str] = &[
 ];
 
 pub fn tables() -> Vec<Table> {
-    // A padding row is zero, but for KECCAK's output lanes: a padding step reads zeros, so it writes their step.
-    let output = step(&[0; STATE_LANES]);
+    // A padding row is zero, but for KECCAK's output lanes: a padding row permutes zeros.
+    let mut output = [0; STATE_LANES];
+    keccak_f(&mut output);
     let table = |opcode, columns: &'static [&'static str], flushes, constraints| Table {
         opcode,
         columns,

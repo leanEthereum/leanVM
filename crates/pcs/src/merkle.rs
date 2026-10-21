@@ -27,13 +27,13 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 pub use fiat_shamir::merkle::{Hash, hash_leaf, hash_pair};
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{CHUNK, LANES, OUT_LEN, STATE_LANES, hash_many, hash_many_dyn_from_state, zero_prefix_state};
+use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_dyn_from_state, zero_prefix_state};
 use primitives::pretty_integer;
 
 /// Nodes one climb takes at most: 32 KiB of digests, which stay in L1.
 const UNIT: usize = 1 << 10;
 
-/// Staging tile for leaves whose zero padding does not end on a chunk boundary.
+/// Staging tile for leaves whose zero padding does not end on a block boundary.
 const STAGE_TILE_BYTES: usize = 16 << 10;
 
 /// Merkle tree over `num_leaves` equal byte leaves.
@@ -273,16 +273,14 @@ impl Progress {
 
 /// How rows become leaf digests, chosen once from the leaf shape.
 ///
-/// Whole chunks of leading zeros are one sponge state, absorbed once for every leaf.
+/// Whole blocks of leading zeros are one sponge state, absorbed once for every leaf.
 enum LeafHasher {
     /// Past the shared prefix, each row is its own image.
     Direct {
         row_bytes: usize,
         state: [u64; STATE_LANES],
     },
-    /// The rest of the padding does not fill a chunk, so rows are zero-extended in a tile first.
-    ///
-    /// The copy also aligns each image to whole cache lines, which the hasher's loads want.
+    /// The rest of the padding does not fill a block, so rows are zero-extended in a tile first.
     Staged {
         row_bytes: usize,
         image: usize,
@@ -293,10 +291,9 @@ enum LeafHasher {
 impl LeafHasher {
     fn new(row_bytes: usize, leaf_bytes: usize) -> Self {
         assert!(0 < row_bytes && row_bytes <= leaf_bytes, "a leaf holds its row");
-        // A shared chunk must be non-final, which it is: the row follows it.
-        let zero_chunks = (leaf_bytes - row_bytes) / CHUNK;
-        let state = zero_prefix_state(zero_chunks);
-        let image = leaf_bytes - zero_chunks * CHUNK;
+        let zero_blocks = (leaf_bytes - row_bytes) / RATE;
+        let state = zero_prefix_state(zero_blocks);
+        let image = leaf_bytes - zero_blocks * RATE;
         if image == row_bytes {
             Self::Direct { row_bytes, state }
         } else {
@@ -403,7 +400,7 @@ mod tests {
 
     #[test]
     fn byte_tree_matches_sequential() {
-        // Leaf sizes on both sides of a chunk, whole chunks or not.
+        // Leaf sizes on both sides of a block, whole blocks or not.
         //
         // Leaf counts cross the batch, the block, and the parallel top.
         for (num_leaves, leaf_size) in [
@@ -412,6 +409,8 @@ mod tests {
             (8, 32),
             (32, 64),
             (64, 128),
+            (64, 136),
+            (64, 272),
             (256, 192),
             (64, 256),
             (4096, 384),
@@ -439,17 +438,17 @@ mod tests {
             // Nothing to pad.
             (8usize, 64usize, 64usize),
             (1024, 8, 8),
-            // A shared prefix plus a partial chunk, staged.
+            // A shared prefix plus a partial block, staged.
             (2048, 37, 64),
             (256, 27, 64),
             (64, 1, 64),
-            // A prefix of whole chunks: the rows are hashed where they lie.
-            (256, 32, 64),
-            (1 << 14, 48, 64),
-            // A prefix shorter than one chunk: nothing shared, still staged.
+            // A prefix of whole blocks: the rows are hashed where they lie.
+            (256, 30, 64),
+            (1 << 14, 47, 64),
+            // A prefix shorter than one block: nothing shared, still staged.
             (32, 5, 8),
             (256, 61, 64),
-            // Leaves that are not a whole number of chunks.
+            // Leaves that are not a whole number of blocks.
             (16, 3, 5),
             (64, 7, 40),
         ] {

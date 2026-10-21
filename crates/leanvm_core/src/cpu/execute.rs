@@ -67,8 +67,8 @@ pub enum Fault {
     NotInK { what: &'static str, value: F192 },
     /// A word that has to be an address or a count is not a g-power in its range.
     NotAGPower { what: &'static str, value: F64 },
-    /// A `KECCAK` input cell outside its 64- or 128-bit embedding.
-    NotCanonical { cell: usize, bits: u32, value: F192 },
+    /// A `KECCAK` input cell outside the 128-bit embedding.
+    NotCanonical { cell: usize, value: F192 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
     /// The advice does not fit the program: a witness stream is missing or
@@ -130,9 +130,9 @@ impl std::fmt::Display for Fault {
             ),
             Self::NotInK { what, value } => write!(f, "{what} is not a K-valued word ({})", word(*value)),
             Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
-            Self::NotCanonical { cell, bits, value } => write!(
+            Self::NotCanonical { cell, value } => write!(
                 f,
-                "KECCAK input cell {cell} is not a canonical {bits}-bit embedding ({})",
+                "KECCAK input cell {cell} is not a canonical 128-bit embedding ({})",
                 word(*value)
             ),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
@@ -808,25 +808,24 @@ impl Program {
                         pc += 1;
                     }
                 }
-                Op::Keccak { .. } => {
-                    use crate::keccak::{CELL_LANES, ROW_CELLS, STATE_CELLS};
+                Op::Keccak { in_odd, out_odd, .. } => {
+                    use crate::keccak::{ROW_CELLS, STATE_CELLS};
                     let cells = crate::tables::keccak_cells(&self.prog, pc, fp);
                     let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
-                    // A cell carries two lanes, the lone lane-16 cell one: the table
-                    // reads them with literal zeros above, so anything else could
-                    // not balance the bus.
-                    for (cell, (&value, &(_, hi))) in input.iter().zip(&CELL_LANES).enumerate() {
-                        if value.c2 != 0 || (hi.is_none() && value.c1 != 0) {
-                            let bits = if hi.is_none() { 64 } else { 128 };
-                            return Err(fail(Fault::NotCanonical { cell, bits, value }));
+                    // The table reads every cell with a literal zero top limb, so anything
+                    // else could not balance the bus.
+                    for (cell, &value) in input.iter().enumerate() {
+                        if value.c2 != 0 {
+                            return Err(fail(Fault::NotCanonical { cell, value }));
                         }
                     }
                     // No table constraint covers the output (the relation is proven
                     // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
-                    let lanes = crate::keccak::state_of_cells(&input);
+                    let mut lanes = crate::keccak::state_of_cells(&input, in_odd);
                     keccak_step(&lanes);
-                    let output = crate::keccak::cells_of_state(&primitives::hash::step(&lanes));
+                    primitives::hash::keccak_f(&mut lanes);
+                    let output = crate::keccak::cells_of_state(&lanes, out_odd);
                     for (c, &v) in output.iter().enumerate() {
                         m.put(cells[STATE_CELLS + c], v)?;
                     }

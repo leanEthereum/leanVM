@@ -188,25 +188,22 @@ def powers(base: E, count: int) -> list[E]:
 
 # The hash and digests --------------------------------------------------------
 
-# Keccak-256 (Ethereum's hash) of the cell encoding: a message of more than 128 bytes is
-# cut into 128-byte chunks, the last holding the remaining 1 to 128, and every chunk but
-# the last is followed by the fixed gap 0^7 || 0x80, which is what lets the VM absorb
-# eight whole 16-byte cells per permutation. Up to 128 bytes it is plain Keccak-256. The
-# gap is lane 16, which every step supplies, so a chunk is absorbed as its sixteen lanes.
-HASH_CHUNK = 128
+# Keccak-256 (Ethereum's hash): 136-byte blocks, the last holding the remaining 0 to 135
+# bytes and the padding 0x01 || 0^* || 0x80.
+RATE = 136
 PAD_FIRST = 0x01  # the padding's first byte, after the message; FIPS 202's 256-bit hash would put 0x06
+PAD_LAST = 0x80
 
 
 def keccak_hash(data: bytes) -> Digest:
-    """The 32-byte hash of `data` in the cell encoding."""
-    nonfinal = max(len(data) - 1, 0) // HASH_CHUNK
+    """The 32-byte hash of `data`."""
+    blocks = len(data) // RATE + 1
+    padded = bytearray(data) + bytes(blocks * RATE - len(data))
+    padded[len(data)] ^= PAD_FIRST
+    padded[-1] ^= PAD_LAST
     state = [0] * 25
-    for c in range(nonfinal + 1):
-        block = bytearray(data[HASH_CHUNK * c : HASH_CHUNK * (c + 1)])
-        if c == nonfinal:
-            block.append(PAD_FIRST)
-        block += bytes(8 * 17 - len(block))
-        state = keccak_step([lane ^ word for lane, word in zip(state, unpack("<17Q", block))] + state[17:])
+    for b in range(blocks):
+        state = keccak_f([lane ^ word for lane, word in zip(state, unpack("<17Q", padded[RATE * b : RATE * (b + 1)]))] + state[17:])
     return Digest(pack("<4Q", *state[:4]))
 
 
@@ -366,10 +363,9 @@ def compress(left: Sequence[K | int], right: Sequence[K | int]) -> tuple[int, in
     return unpack("<4Q", keccak_hash(b"".join(int(x).to_bytes(8, "little") for x in (*left, *right))).value)
 
 
-def keccak_step(lanes: Sequence[int]) -> list[int]:
-    """The VM's KECCAK step: XOR the padding's last bit into lane 16, then Keccak-f[1600]."""
+def keccak_f(lanes: Sequence[int]) -> list[int]:
+    """Keccak-f[1600]."""
     a = list(lanes)
-    a[16] ^= KECCAK_END_BIT
     rot = lambda x, n: ((x << n) | (x >> (64 - n))) & LANE_MASK if n else x  # noqa: E731
     for rc in KECCAK_RC:
         c = [a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20] for x in range(5)]
@@ -385,14 +381,14 @@ def keccak_step(lanes: Sequence[int]) -> list[int]:
 class Transcript:
     def __init__(self, proof: Proof, fiat_shamir_IV: Digest, public_input: Digest) -> None:
         self.proof = proof
-        self.state = keccak_step([*fiat_shamir_IV.words(), *public_input.words(), *[0] * 17])
+        self.state = keccak_f([*fiat_shamir_IV.words(), *public_input.words(), *[0] * 17])
         self.pending: list[tuple[E, int]] = []
         self.stream_offset = 0  # in E field elements
         self.opening_offset = 0  # in bytes
 
     def _duplex(self) -> None:
         rate = [lane for value, tag in self.pending for lane in (value.c0.value, value.c1.value, value.c2.value, tag)]
-        self.state = keccak_step([*rate, *[0] * (16 - len(rate)), *self.state[16:]])
+        self.state = keccak_f([*rate, *[0] * (16 - len(rate)), *self.state[16:]])
         self.pending = []
 
     def _absorb(self, value: E, tag: int) -> None:
@@ -681,7 +677,7 @@ def table_sumcheck(
     return claims
 
 
-RELATION_LABEL = b"leanVM keccak GKR: step, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus"
+RELATION_LABEL = b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus"
 
 # The columns no instruction table owns. They come first in the global column numbering, the tables after.
 NUM_GLOBAL_COLUMNS = 6
@@ -796,10 +792,10 @@ class Table:
 
     @property
     def padding(self) -> tuple[E, ...]:
-        """The row a padding row holds: zero, but for KECCAK's output lanes, a padding step writing the step of a zero state."""
+        """The row a padding row holds: zero, but for KECCAK's output lanes, a padding row permuting zeros."""
         if self.opcode != OP_KECCAK:
             return tuple(ZERO for _ in self.columns)
-        output = keccak_step([0] * 25)
+        output = keccak_f([0] * 25)
         return tuple(E(output[KECCAK_OUTPUTS.index(name)]) if name in KECCAK_OUTPUTS else ZERO for name in self.columns)
 
 
@@ -868,31 +864,58 @@ def _jump_constraints(columns: Sequence[E]) -> tuple[E, ...]:
     return (flag + condition * inverse, condition * (flag + ONE))
 
 
-# The lanes each of a sponge state's thirteen cells holds: lanes 0..16 two to a cell,
-# then lane 16 alone (its high lane a literal zero), then the capacity lanes 17..25.
-KECCAK_CELL_LANES = tuple((2 * c, 2 * c + 1) if c < 8 else (16,) if c == 8 else (2 * c - 1, 2 * c) for c in range(13))
+# The lanes each of a sponge state's thirteen cells holds, (lo, hi), in the even layout or
+# the odd one, None marking a limb that holds no lane: nine rate cells, lanes 0..16
+# two to a cell then lane 16 in a low limb (even), or lane 0 in a high limb,
+# then lanes 1..17 two to a cell (odd), then the capacity lanes 17..25.
+def _keccak_cell_lanes(odd: bool) -> tuple[tuple[int | None, int | None], ...]:
+    def lanes(c: int) -> tuple[int | None, int | None]:
+        if c >= 9 or (odd and c >= 1):
+            return (2 * c - 1, 2 * c)
+        if odd:
+            return (None, 0)
+        return (16, None) if c == 8 else (2 * c, 2 * c + 1)
+
+    return tuple(lanes(c) for c in range(13))
+
+
+def _layout_limb(even: int | None, odd: int | None, flag: int, missing: int | None) -> Form:
+    """A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag` selects: a + flag*(a + b)."""
+    a = even if even is not None else missing
+    b = odd if odd is not None else missing
+    if a == b:
+        return _const(ZERO) if a is None else _col(a)
+    return Form.sum([*([_col(a), _prod(flag, a)] if a is not None else []), *([_prod(flag, b)] if b is not None else [])])
 
 
 def _flushes_keccak() -> Flushes:
-    pc, fp, cnt_bc = _cols(KECCAK_COLUMNS, "pc", "fp", "cnt_bc")
+    pc, fp, cnt_bc, free = _cols(KECCAK_COLUMNS, "pc", "fp", "cnt_bc", "free")
     o_m = _cols(KECCAK_COLUMNS, "o_m0", "o_m1", "o_m2", "o_m3")
-    o_tail, o_cap, o_out = _cols(KECCAK_COLUMNS, "o_tail", "o_cap", "o_out")
+    o_tail, o_b8, o_cap, o_out, odd_in, odd_out = _cols(KECCAK_COLUMNS, "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out")
     flushes = Flushes()
     flushes.state_step(pc, fp)
-    flushes.bytecode(pc, cnt_bc, OP_KECCAK, tuple(_col(i) for i in (*o_m, o_tail, o_cap, o_out)))
+    flushes.bytecode(pc, cnt_bc, OP_KECCAK, tuple(_col(i) for i in (*o_m, o_tail, o_b8, o_cap, o_out, odd_in, odd_out)))
 
-    # The thirteen cells read (four addressed ones, then the consecutive tail and cap runs), then
-    # the thirteen written. Each carries its q_keccak lanes and zeros above them.
-    def read(cell: int) -> Form:
+    # The thirteen cells read (four addressed ones, the tail run, b8, the cap run), then the
+    # thirteen written, each holding its lanes in the layout its flag names: a read cell's
+    # free lane is the column `free`, a written one's zero.
+    def address(cell: int) -> Form:
         if cell < 4:
             return _prod(fp, o_m[cell])
-        return _prod(fp, o_tail, cell - 4) if cell < 8 else _prod(fp, o_cap, cell - 8)
+        if cell < 8:
+            return _prod(fp, o_tail, cell - 4)
+        return _prod(fp, o_b8) if cell == 8 else _prod(fp, o_cap, cell - 9)
 
-    for side, lane_prefix in enumerate(("in", "out")):
-        for cell, lanes in enumerate(KECCAK_CELL_LANES):
-            address = read(cell) if side == 0 else _prod(fp, o_out, cell)
+    even, odd = _keccak_cell_lanes(False), _keccak_cell_lanes(True)
+    for side, (prefix, flag, missing) in enumerate((("in", odd_in, free), ("out", odd_out, None))):
+
+        def lane(lane: int | None) -> int | None:
+            return None if lane is None else _cols(KECCAK_COLUMNS, f"{prefix}_{lane}")[0]
+
+        for cell in range(13):
+            values = [_layout_limb(lane(even[cell][h]), lane(odd[cell][h]), flag, missing) for h in (0, 1)] + [_const(ZERO)]
             (count,) = _cols(KECCAK_COLUMNS, f"cnt_{13 * side + cell}")
-            flushes.memory_cols(address, count, *_cols(KECCAK_COLUMNS, *(f"{lane_prefix}_{lane}" for lane in lanes)))
+            flushes.memory(address(cell) if side == 0 else _prod(fp, o_out, cell), count, values)
     return flushes
 
 
@@ -903,7 +926,9 @@ SET_COLUMNS = ("pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc")
 DEREF_COLUMNS = ("pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "v3_2",  "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc",)  # fmt: skip
 JUMP_COLUMNS = ("pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b",)  # fmt: skip
 KECCAK_COLUMNS = (
-    "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_cap", "o_out",
+    "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out",
+    # The read limb that holds no lane.
+    "free",
     # These fifty value lanes are not committed here: an input lane is one of q_keccak's slots,
     # and the output lanes' claims are the Keccak reduction's claim on the output.
     *(f"in_{lane}" for lane in range(25)), *(f"out_{lane}" for lane in range(25)),
@@ -1174,7 +1199,6 @@ KECCAK_RC = (
 )  # fmt: skip
 KECCAK_RHO = (0, 1, 62, 28, 27, 36, 44, 6, 55, 20, 3, 10, 43, 25, 39, 41, 45, 15, 21, 8, 18, 2, 61, 56, 14)
 KECCAK_PI = tuple(i // 5 + 5 * ((2 * (i % 5) + 3 * (i // 5)) % 5) for i in range(25))  # where lane x + 5y lands
-KECCAK_END_BIT = 0x80 << 56  # the padding's last bit, which every step XORs into lane 16
 
 
 # Keccak, by GKR over its rounds ------------------------------------------------
@@ -1469,10 +1493,6 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     public_limbs = tuple(multilinear_eval(pair, [public_challenge]) for pair in ((first.c0, second.c0), (first.c1, second.c1), (first.c2, second.c2)))
     public_point = (public_challenge, *[ZERO] * (layout.placements[MEMORY_0].variables - 1))
     claims.extend(ColumnClaim(column, public_point, value) for column, value in zip((MEMORY_0, MEMORY_1, MEMORY_2), public_limbs))
-
-    # The committed input of a step is what it reads with the padding's last bit XORed into lane 16.
-    end_lane = GLOBAL_COLUMN_BASES[OP_KECCAK] + _cols(KECCAK_COLUMNS, "in_16")[0]
-    claims = [ColumnClaim(c.column, c.point, c.value + E(KECCAK_END_BIT)) if c.column == end_lane else c for c in claims]
 
     # 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the
     # reduction's claim on the permutation's output: they leave the batch.

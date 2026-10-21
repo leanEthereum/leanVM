@@ -1,6 +1,6 @@
 //! What the two schemes share: the tweakable hash
 //! `Th(P, A, M) = Truncate_n(H(P | A | M))`, `H` the leanVM hash
-//! ([`primitives::hash::hash`], Keccak-256 in the cell encoding), its address and
+//! ([`primitives::hash::hash`], Keccak-256), its address and
 //! the address types, so the recursion guest builds both schemes' addresses alike.
 //!
 //! The public parameter and the address are 16 bytes each, as every value hashed
@@ -65,9 +65,9 @@ pub fn address(tw: &Tweak) -> [u8; ADDRESS_LEN] {
 }
 
 /// Permutations the leanVM hash spends on a hash input whose payload is
-/// `payload` bytes: one per started 128-byte block.
+/// `payload` bytes: one per 136-byte block, the last holding the padding.
 pub const fn blocks(payload: usize) -> usize {
-    (PUBLIC_PARAM_LEN + ADDRESS_LEN + payload).div_ceil(primitives::hash::CHUNK)
+    (PUBLIC_PARAM_LEN + ADDRESS_LEN + payload) / primitives::hash::RATE + 1
 }
 
 /// A hasher that has absorbed `P | A`.

@@ -5,24 +5,24 @@
 
 The bytecode (of $\nprog=2^{\kbc}$ instructions) is encoded as one $\K$-valued multilinear $P$ in $\kbc+4$ variables:
 \begin{enumerate}[itemsep=1pt,topsep=3pt]
-\item lay instruction $z$ out as $16$ slots of $\K$: the opcode in slot $3$, the operands and immediate lanes in slots $4,\dots,10$, and $0$ everywhere else.
+\item lay instruction $z$ out as $16$ slots of $\K$: the opcode in slot $3$, the operands and immediate lanes in slots $4,\dots,13$, and $0$ everywhere else.
 \item read the resulting $2^{\kbc}\times16$ table as $P$, the low $\kbc$ variables indexing the instruction and the high four its slot, bits low first.
 \end{enumerate}
 \begin{center}
-\begin{tabular}{lllllllll}
+\begin{tabular}{llllllllllll}
 \hline
-Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$\\
+Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$ & $11$ & $12$ & $13$\\
 \hline
-\texttt{XOR}           & $\opc{XOR}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{MUL\_NATIVE}   & $\opc{MUL}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $k_2$ & $0$ & $0$ & $0$\\
-\texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$\\
-\texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{KECCAK}           & $\opc{KEC}$  & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$\\
+\texttt{XOR}           & $\opc{XOR}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{MUL\_NATIVE}   & $\opc{MUL}$ & $o_A$ & $o_B$ & $o_C$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $k_2$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ & $0$\\
+\texttt{KECCAK}        & $\opc{KEC}$ & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{b8}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$ & $\mathit{odd}_{\mathit{in}}$ & $\mathit{odd}_{\mathit{out}}$\\
 \hline
 \end{tabular}
 \end{center}
-So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand, and $P(z,0,0,0,0)=P(z,0,0,1,1)=0$.
+So $P(z,1,1,0,0)$ is instruction $z$'s opcode, $P(z,0,0,1,0)$ its first operand, and $P(z,0,0,0,0)=P(z,1,1,1,1)=0$.
 
 \subsection{Public input}\label{sec:e2e-pi}
 
@@ -62,7 +62,7 @@ The count tree pads the same way, and whatever its padding leaves are, $R_c\neq0
 
 \subsection{Fiat Shamir instantiation}\label{sec:e2e-fiat-shamir}
 
-The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3's duplex challenger~\cite{Plonky3}, over the permutation the \texttt{KECCAK} instruction computes: Keccak-$f[1600]$ after XORing the padding's last bit into lane $16$ (\S\ref{sec:tab-keccak}). Its state is $25$ lanes of $64$ bits. The \emph{rate} is lanes $0,\dots,15$, the eight message cells the instruction reads, and the \emph{capacity} lanes $16,\dots,24$, $576$ bits.
+The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3's duplex challenger~\cite{Plonky3}, over Keccak-$f[1600]$ (\S\ref{sec:vm}). The \emph{rate} is lanes $0,\dots,15$ and the \emph{capacity} lanes $16,\dots,24$, $576$ bits.
 
 \paragraph{Seed.} The first permutation takes, from the zero state, the $256$-bit IV (a digest of the bytecode and of the label fixing the Keccak reduction) in lanes $0,\dots,3$ and the $256$-bit public input in lanes $4,\dots,7$. The statement is bound before any challenge is drawn.
 
@@ -72,7 +72,7 @@ The transcript is a duplex sponge~\cite{BDPV11} in overwrite mode, after Plonky3
 
 \paragraph{Grinding.} A proof of work of $b$ bits absorbs the prover's nonce with its tag and draws a challenge, whose low $b$ bits must be zero; that challenge is used for nothing else. With $b=0$ the nonce must be zero.
 
-Merkle trees hash with Keccak-256 in the cell encoding, apart from the sponge.
+Merkle trees hash with Keccak-256, apart from the sponge.
 
 \subsection{The unrolled protocol}\label{sec:e2e-unrolled}
 
@@ -103,7 +103,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \begin{enumerate}
 \item \textbf{Verifier.} Samples and sends the batch challenge $\xi\in\E$. Its first $\nconstot=\sum_j\ncons{j}$ powers weight the constraints, a disjoint range per table; the last $\nside$ weight the bus forms, one per side and shared by every table. It draws no point: the batch runs at the bus point, $T_j$ tested at $\zeta_{<\tau_j}$.
 \item \textbf{Prover \& Verifier.} Run the sumcheck, $\taumax=\max_j\tau_j$ rounds with $T_j$ joining at round $\taumax-\tau_j$, against the target the verifier derived from the three leaf claims. Its summand has individual degree three and the round check pins one of the four coefficients (\S\ref{sec:prelim}), so a round costs three $\E$-elements.
-\item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{KECCAK}'s fifty value lanes are columns of its table but have no region of their own in the stack. An input lane is a slot of $\qkeccak$, so its claim is a claim on $\qkeccak$ at the same point followed by the slot's bits, the one on lane $16$ shifted by $x^{63}$ (\S\ref{sec:tab-keccak}). The claims on the output lanes leave the pool: they are the Keccak reduction's claims on the output.
+\item \textbf{Prover \& Verifier.} The prover sends one value per column of every table. The verifier rebuilds each $C_{j,i}$ and $B^{s}_j$ from them and checks that they reproduce the sumcheck's final value; the column values then enter the claim pool, $T_j$'s at $\fc_{<\tau_j}$. \texttt{KECCAK}'s fifty value lanes are columns of its table but have no region of their own in the stack. An input lane is a slot of $\qkeccak$, so its claim is a claim on $\qkeccak$ at the same point followed by the slot's bits (\S\ref{sec:tab-keccak}). The claims on the output lanes leave the pool: they are the Keccak reduction's claims on the output.
 \end{enumerate}
 
 \paragraph{Public input.}

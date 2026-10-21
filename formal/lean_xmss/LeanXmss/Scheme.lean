@@ -14,7 +14,7 @@ WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`;
   `lo (4 bytes) || hi (3 bytes) || (type + 32 step) || 0^8`, then the payload. The top layer sets
   bit 23 of `hi`. A chain step's address carries the step but not the chain, whose index follows the
   value in the payload.
-* `H` is the leanVM hash, Keccak-256 in the cell encoding, modeled as a random oracle on the bytes
+* `H` is the leanVM hash, Keccak-256, modeled as a random oracle on the bytes
   of its input.
 * The secret key is a 32-byte seed `S_0`. Every secret derives from `S = H("leanXMSS" || S_0)`, all
   32 bytes, and the signer keeps `S`.

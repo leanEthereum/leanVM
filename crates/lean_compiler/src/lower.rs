@@ -154,10 +154,10 @@ struct Scope {
     /// outside it, where the other path leaves the cell unwritten and therefore
     /// prover-chosen, which is why this reverts at a join with the bindings.
     const_cells: HashMap<[u64; 3], Off>,
-    /// Six consecutive frame cells holding `[pad, 0, 0, 0, 0, 0]`, `pad` the
-    /// padding's first byte at the start of a cell: every constant `tail` and
-    /// `cap` a fresh `keccak` block needs is a window of it. Emitted lazily at the
-    /// first dominating fresh hash in this control-flow scope.
+    /// Five consecutive frame cells holding `[pad, 0, 0, 0, 0]`, `pad` the padding's
+    /// first byte at the start of a cell: every constant `tail` and `cap` a fresh
+    /// `keccak` block needs is a window of it. Emitted lazily at the first dominating
+    /// fresh hash in this control-flow scope.
     keccak_pad: Option<Off>,
 }
 
@@ -987,6 +987,7 @@ impl FnLower<'_> {
             }
             Expr::Slice(..) => self.fail("a slice is not a scalar; it is only a keccak operand"),
             Expr::ListLit(..) => self.fail("a list literal must be bound to a name: `x = [a, b]`"),
+            Expr::ListComp(..) => self.fail("a list comprehension is only a keccak_cells argument"),
         }
     }
 

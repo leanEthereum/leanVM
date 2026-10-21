@@ -86,9 +86,9 @@ The memory is an array of $\nmem = 2^{\kmem}$ cells, $16\le\kmem\le32$ (\S\ref{s
 
 \subsection{Bytecode}\label{sec:bytecode}
 
-The bytecode is an array of $\nprog = 2^{\kbc}$ instructions, $\kbc \le 32$ (\S\ref{sec:e2e-bc}). Bus interaction uses domain separation $\sep=\dsep{BC} = \gen^{2}$. An instruction is an opcode plus seven operands, so $\ncomp=8$: with the separator, the address and the count ahead of them, this is the widest entry on the bus at $11$ coordinates, which is what forces the four index bits, hence the $m=16$ slots of \S\ref{sec:m3}. Coordinate $3$ is the opcode, naming the instruction:
+The bytecode is an array of $\nprog = 2^{\kbc}$ instructions, $\kbc \le 32$ (\S\ref{sec:e2e-bc}). Bus interaction uses domain separation $\sep=\dsep{BC} = \gen^{2}$. An instruction is an opcode plus ten operands, so $\ncomp=11$: with the separator, the address and the count ahead of them, this is the widest entry on the bus at $14$ coordinates, which is what forces the four index bits, hence the $m=16$ slots of \S\ref{sec:m3}. Coordinate $3$ is the opcode, naming the instruction:
 \[
-  \opc{XOR}=\gen^{0},\quad \opc{MUL}=\gen^{1},\quad \opc{SET}=\gen^{2},\quad \opc{DRF}=\gen^{3},\quad \opc{JMP}=\gen^{4},\quad \opc{B2S}=\gen^{5}.
+  \opc{XOR}=\gen^{0},\quad \opc{MUL}=\gen^{1},\quad \opc{SET}=\gen^{2},\quad \opc{DRF}=\gen^{3},\quad \opc{JMP}=\gen^{4},\quad \opc{KEC}=\gen^{5}.
 \] The program is public, i.e. not committed, the verifier can evaluate it directly.
 
 \subsection{The index column}\label{sec:idxcol}

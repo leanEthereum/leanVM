@@ -9,6 +9,7 @@ use crate::transcript::Sponge;
 
 const DA_LOG_K: usize = 14; // payload symbols per blob, as a logarithm
 const LOG_M: usize = DA_LOG_K + 1; // the rate-1/2 codeword
+const DA_LOG_CELL: usize = 8; // entries a column of the vector holds, as a logarithm
 const LABEL: &[u8] = b"leanDA/rs-membership/v1";
 
 /// `z_0 .. z_(log k - 1)`, drawn from a transcript of its own that has observed the commitment root.
@@ -83,11 +84,15 @@ pub fn membership_vector(root: &[u8; 32]) -> Vec<E> {
     dual_codeword(&membership_challenges(root))
 }
 
-/// The hash of the vector's three little-endian limbs per entry, in domain order.
+/// The hash of the hashes of the vector's columns, `2^DA_LOG_CELL` entries each in domain order, a column hashed as
+/// its entries' three little-endian limbs.
 pub fn vector_digest(vector: &[E]) -> [u8; 32] {
     assert_eq!(vector.len(), 1 << LOG_M);
-    let limbs = vector.iter().flat_map(|value| [value.c0, value.c1, value.c2]);
-    keccak_hash(&limbs.flat_map(u64::to_le_bytes).collect::<Vec<u8>>()).0
+    let columns = vector.chunks(1 << DA_LOG_CELL).flat_map(|column| {
+        let limbs = column.iter().flat_map(|value| [value.c0, value.c1, value.c2]);
+        keccak_hash(&limbs.flat_map(u64::to_le_bytes).collect::<Vec<u8>>()).0
+    });
+    keccak_hash(&columns.collect::<Vec<u8>>()).0
 }
 
 /// The hash of the concatenated `(root, vector digest)` pairs, or of the empty string: what the statement of an aggregate carries for its DA roots.

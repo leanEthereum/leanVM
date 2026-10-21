@@ -64,7 +64,7 @@ This specification defines leanSPHINCS, a stateless hash-based signature scheme 
   \item \textbf{NIST security level~1}~\cite{NISTPQC}, 127 bits of classical security in the Random Oracle model, and a target of $\approx 64$ bits in the Quantum Random Oracle model (Section~\ref{sec:security}).
   \item \textbf{Public key: 32 bytes.}
   \item \textbf{Signature: 4276 bytes.}
-  \item \textbf{Verification: 268 permutations} of Keccak-f.
+  \item \textbf{Verification: 267 permutations} of Keccak-f.
   \item \textbf{Lifetime: up to 1.3B signatures per key pair}, less for a key that trades lifetime for a faster key generation (Section~\ref{sec:security}).
 \end{itemize}
 \end{abstract}
@@ -76,11 +76,11 @@ The scheme has the shape of SLH-DSA-128-24~\cite{SP800230}, a single Merkle tree
 
 Write $\bits r$ for $r$-bit strings, $0^r$ for $r$ zero bits, $\concat$ for concatenation, $\LE_r(z)$ for the unsigned $r$-bit little-endian encoding of $z$, and $\LE^{-1}$ for its inverse. Write $x\getsr A$ for a uniform sample from $A$. Indices and bit positions start at zero; $\bot$ denotes failure.
 
-Let $\hash:\bits{*}\to\bits{256}$ be Keccak-256~\cite{keccak}, Ethereum's hash, which is the $256$-bit hash of FIPS~202~\cite{fips202} but for its padding's first byte, $\mathtt{0x01}$ where the standard has $\mathtt{0x06}$, in the cell encoding: write a message as $x=x_1\concat\dots\concat x_k$, every $x_i$ of $128$ bytes but the last, which has at most $128$ (the empty message is $k=1$), and set $\hash(x)=\mathrm{Keccak\text{-}256}(x_1\concat g\concat x_2\concat g\concat\dots\concat g\concat x_k)$ with the fixed eight bytes $g=\mathtt{00}^7\concat\mathtt{80}$. On messages of at most $128$ bytes this is plain Keccak-256, and on longer ones it differs. The encoding makes each $136$-byte block of Keccak-256 carry $128$ message bytes, eight whole $16$-byte cells of leanVM, which verifies these signatures. Most operations use its first $n=128$ output bits:
+Let $\hash:\bits{*}\to\bits{256}$ be Keccak-256~\cite{keccak}, Ethereum's hash, which is the $256$-bit hash of FIPS~202~\cite{fips202} but for its padding's first byte, $\mathtt{0x01}$ where the standard has $\mathtt{0x06}$. Most operations use its first $n=128$ output bits:
 \[
   \Th(P,\addr,M)=\Truncate_n\!\left(\hash(P\concat\addr\concat M)\right).
 \]
-Here $P$ is a 128-bit public parameter and $\addr$ is a 128-bit \emph{address} identifying the operation and its position in the construction. Appendix~\ref{sec:tweaks} gives every address's exact bytes. $\Truncate_r$ always keeps the first $r$ bits, with bits read least significant first within each byte. The parameter and the address take 32 of a block's 128 bytes, so a chain step and a Merkle node each cost one permutation, and every value a hash input holds starts on a 16-byte boundary.
+Here $P$ is a 128-bit public parameter and $\addr$ is a 128-bit \emph{address} identifying the operation and its position in the construction. Appendix~\ref{sec:tweaks} gives every address's exact bytes. $\Truncate_r$ always keeps the first $r$ bits, with bits read least significant first within each byte. The parameter and the address take 32 of a block's 136 bytes, so a chain step and a Merkle node each cost one permutation, and every value a hash input holds starts on a 16-byte boundary.
 
 The message $m$, the seed $S_0$ and the secret $S$ derived from it are each 256 bits. The signature contains a 128-bit randomizer $\rho$ and one 32-bit counter $c$. Chain values and Merkle nodes are 128 bits; write $\mathcal H=\bits n$.
 
@@ -137,7 +137,7 @@ $\Enc(P,e,M,c)$ first computes
 \[
   D=\Th\!\left(P,\addr_{\mathrm{enc}}(e),M\concat\LE_{32}(c)\right),
 \]
-$M$ being its sixteen values concatenated: $292$ bytes in all, the counter falling in the last $128$-byte block by design, so that a signer trying counters pays exactly one permutation for each. Interpret $D$ as a little-endian integer; it supplies 64 consecutive two-bit positions:
+$M$ being its sixteen values concatenated: $292$ bytes in all, the counter falling in the last $136$-byte block by design, so that a signer trying counters pays exactly one permutation for each. Interpret $D$ as a little-endian integer; it supplies 64 consecutive two-bit positions:
 \[
   x_i=\left\lfloor D/2^{2i}\right\rfloor\bmod 4,\qquad 0\leq i<v.
 \]
@@ -386,34 +386,34 @@ A signature starts with $\rho$, followed by the forest's opening in increasing t
   =4276\text{ bytes}.
 \]
 
-Count permutations of Keccak-f: an input of $r$ bytes costs $\lceil r/128\rceil$. Every signature takes exactly
+Count permutations of Keccak-f: an input of $r$ bytes costs $\lfloor r/136\rfloor+1$. Every signature takes exactly
 \[
   \underbrace{1}_{\text{digest}}
   +\underbrace{k\bigl(2(5+1+2)+1+3\bigr)}_{\text{forest}}
-  +\underbrace{3+(2^w-1)v-T+9}_{\text{WOTS$^+$C}}
+  +\underbrace{3+(2^w-1)v-T+8}_{\text{WOTS$^+$C}}
   +\underbrace{h}_{\text{path}}
-  =268
+  =267
 \]
-permutations to verify: per subtree 5 chain steps, 1 for the WOTS key's leaf and 2 folds, then 1 for the tree leaf and 3 folds; then 3 for the encoding, which absorbs the forest's key, the chain steps and 9 for the one-time leaf.
+permutations to verify: per subtree 5 chain steps, 1 for the WOTS key's leaf and 2 folds, then 1 for the tree leaf and 3 folds; then 3 for the encoding, which absorbs the forest's key, the chain steps and 8 for the one-time leaf.
 
-A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $233$ permutations and key generation $234\cdot2^b+2(h-b)+1$. A forest holds $2048$ WOTS keys of $28$ permutations each, which is what signing spends its hashes on: about $6\cdot10^4$, plus the $2^{h-b}$ expected randomizer trials of a pruned key, one permutation each, and the expected $2197$ encoding attempts, one permutation each once the forest's key is absorbed.
+A one-time key takes $32$ derivations and $192$ chain steps, so its leaf $232$ permutations and key generation $233\cdot2^b+2(h-b)+1$. A forest holds $2048$ WOTS keys of $28$ permutations each, which is what signing spends its hashes on: about $6\cdot10^4$, plus the $2^{h-b}$ expected randomizer trials of a pruned key, one permutation each, and the expected $2197$ encoding attempts, one permutation each once the forest's key is absorbed.
 
 \section{Security}
 \label{sec:security}
 
 Model $\hash$ as one shared random oracle. The challenger generates a key pair and gives $\pk$ to a classical probabilistic adversary, which may adaptively query the hash and request signatures on messages of its choice, at most $N$ of them. It finally returns $(m^*,\sigma^*)$ and wins exactly when $\Ver(\pk,m^*,\sigma^*)=1$ and no signing request for $m^*$ returned $\sigma^*$: \emph{strong unforgeability}. A query budget $q$ bounds every hash call of the complete experiment, including key generation, signing and final verification.
 
-The lifetime $N$ of a key depends on the height $b$ of the subtree it keeps. For each row below, with $N$ rounded down, every adversary making at most $N$ signing requests wins with probability at most $q/2^{127}$. Key generation costs $234\cdot2^b+2(h-b)+1$ permutations (Section~\ref{sec:costs}), rounded to nearest:
+The lifetime $N$ of a key depends on the height $b$ of the subtree it keeps. For each row below, with $N$ rounded down, every adversary making at most $N$ signing requests wins with probability at most $q/2^{127}$. Key generation costs $233\cdot2^b+2(h-b)+1$ permutations (Section~\ref{sec:costs}), rounded to nearest:
 \begin{center}
 \begin{tabular}{@{}rrr@{}}
 \toprule
 $b$ & lifetime $N$ (signatures) & key generation (permutations)\\
 \midrule
 26 & 1.3B & 16B\\
-20 & 26M & 250M\\
+20 & 26M & 240M\\
 14 & 480K & 3.8M\\
 13 & 240K & 1.9M\\
-12 & 120K & 960K\\
+12 & 120K & 950K\\
 10 & 33K & 240K\\
 8 & 8.8K & 60K\\
 \bottomrule

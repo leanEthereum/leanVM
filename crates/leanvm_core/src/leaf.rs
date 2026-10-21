@@ -35,7 +35,7 @@ pub enum Coord {
     Index,
     /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
     /// its MLE directly, so it raises no claim. Shared rather than owned: push and
-    /// pull carry the same eight columns, tens of megabytes at production sizes.
+    /// pull carry the same eleven columns, tens of megabytes at production sizes.
     Public(Arc<Vec<F64>>),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
@@ -124,7 +124,7 @@ pub fn fingerprint_weights(alphas: &[F192]) -> Vec<F192> {
     w
 }
 
-/// Bits indexing a bus tuple's coordinates: `m = 11` coordinates live in the
+/// Bits indexing a bus tuple's coordinates: `m = 14` coordinates live in the
 /// `2^4` slots of the bytecode encoding (§sec:m3, §sec:e2e-bc).
 pub const N_TUPLE_BITS: usize = 4;
 
@@ -589,7 +589,7 @@ fn decompose_prove(
 }
 
 /// Selector bits of the stacked bytecode polynomial: the public encoding
-/// columns (opcode + seven operand/immediate slots = eight) stack along
+/// columns (opcode + ten operand/immediate slots = eleven) stack along
 /// `2^N_BYTECODE_SELECTORS` slots. A column's slot is its bus tuple coordinate,
 /// which is what fixes the width at sixteen rather than at the column count.
 pub const N_BYTECODE_SELECTORS: usize = 4;
@@ -599,7 +599,7 @@ pub const N_BYTECODE_SELECTORS: usize = 4;
 /// bus tuple coordinate.
 pub const BYTECODE_PUBLIC_SLOT: usize = 3;
 
-/// The stacked bytecode polynomial as a dense table: eight public encoding
+/// The stacked bytecode polynomial as a dense table: eleven public encoding
 /// columns at their tuple coordinates, padded to sixteen selector slots. One
 /// multilinear polynomial B̃ in `κ_bc + 4` variables, which is what a bus leaf
 /// reads at `(ζ_lo, α⃗)` (§sec:e2e-bc); the outermost verifier evaluates it.

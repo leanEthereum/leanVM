@@ -189,9 +189,9 @@ def main():
     t[12] = z
     s[12] = w
     o1 = StackBuf(2)
-    keccak([y, y], [y, y], o1, state=t)
+    keccak_cells([y, y, y, y], o1, state=t)
     o2 = StackBuf(2)
-    keccak([y, y], [y, y], o2, state=s)
+    keccak_cells([y, y, y, y], o2, state=s)
     assert o1[0] != o2[0]
     p = 1
     p[1] = x

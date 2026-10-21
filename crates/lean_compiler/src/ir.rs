@@ -78,14 +78,17 @@ pub(crate) enum LOp {
         first: u32,
         dst: Off,
     },
-    /// `KECCAK`: one sponge step. The four `m` cells are addressed independently,
-    /// `tail` (4 cells), `cap` (5 cells) and the output `c` (13 cells) are
-    /// consecutive runs.
+    /// `KECCAK`: one permutation. The four `m` cells and `b8` are addressed
+    /// independently, `tail` (4 cells), `cap` (4 cells) and the output `c` (13 cells)
+    /// are consecutive runs; the flags name the layouts read and written.
     Keccak {
         m: [Off; 4],
         tail: Off,
+        b8: Off,
         cap: Off,
         c: Off,
+        in_odd: bool,
+        out_odd: bool,
     },
 }
 
@@ -142,14 +145,6 @@ pub(crate) struct JumpTables {
 pub(crate) enum CellRun {
     Stack { base: Off, len: u32 },
     Heap { ptr: Off, lo: u32, len: u32 },
-}
-
-impl CellRun {
-    pub(crate) fn cells(&self) -> u32 {
-        match *self {
-            CellRun::Stack { len, .. } | CellRun::Heap { len, .. } => len,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

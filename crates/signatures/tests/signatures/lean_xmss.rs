@@ -32,11 +32,11 @@ fn known_answer() {
     let signature = sign(&sk, &message, 0xA5C3_7E19).unwrap();
     assert_eq!(
         hex(&pk.as_ssz_bytes()),
-        "910ae9ee9393b89da0001859e1c03c1a8787ad501aafe4b64e2488107b5e3ec3"
+        "4066673001949b6ff8b9299fd4ea17d28787ad501aafe4b64e2488107b5e3ec3"
     );
     assert_eq!(
         hex(&primitives::hash::hash(&signature.as_ssz_bytes())),
-        "13a686fc997b905a9b71603edcba12651e9b246e3e120d53b6f3dcf963e30c41"
+        "f10d62beec95e64e1477028252c2c8683695eab9d8787ad8fa722f47b5fd5234"
     );
 }
 

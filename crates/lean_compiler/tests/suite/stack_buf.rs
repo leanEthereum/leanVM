@@ -74,42 +74,44 @@ def main():
     verify(&program, &want, &proof).expect("StackBuf self-hash verifies");
 }
 
-/// A 160-byte message is two blocks: a non-final chunk of eight cells, then a
-/// final one whose message ends 32 bytes in, the state carried between them.
+/// A 304-byte message is three blocks: a block pair of seventeen cells absorbed with no
+/// padding, the second block starting halfway through the ninth cell, then a final
+/// block from the state carried between them.
 #[test]
 fn keccak_two_blocks() {
     let src = "\
 def main():
-    block0 = [1, 2, 3, 4, 5, 6, 7, 8]
+    pair = StackBuf(17)
+    for k in unroll(0, 17):
+        pair[k] = const(k + 1)
     st = StackBuf(13)
-    keccak(block0[0:2], block0[2:4], st, tail=block0[4:8], final=0)
-    last = [9, 10]
+    keccak_cells(pair, st, final=0)
     out = StackBuf(2)
-    keccak(last, [0, 0], out, state=st, len=32)
+    keccak_cells([18, 19], out, state=st)
     p = 1
     p[1] = out[0]
     p[GEN] = out[1]
     return
 ";
-    let want = hash_cells(&scalar_cells(1..=10));
-    assert_eq!(mix(src, want)[5], 2);
+    let want = hash_cells(&scalar_cells(1..=19));
+    assert_eq!(mix(src, want)[5], 3);
     proves(src, want);
 }
 
-/// A final block of exactly 128 bytes puts the padding's first byte in lane 16,
-/// the lone cell: from the zero state (the padding run's first window serves as
-/// `cap`) and after a first block (the carried capacity is copied out beside it).
+/// A message on either side of a block's end, 135 and 136 bytes: the padding's last
+/// byte in lane 16 of the first block's ninth cell, or the padding a second block,
+/// odd, its first byte in that cell's high lane.
 #[test]
 fn keccak_full_final_block() {
     let src = "\
 def main():
-    m = [1, 2, 3, 4, 5, 6, 7, 8]
+    m = StackBuf(9)
+    for k in unroll(0, 9):
+        m[k] = const(k + 1)
     one = StackBuf(2)
-    keccak(m[0:2], m[2:4], one, tail=m[4:8])
-    st = StackBuf(13)
-    keccak(m[0:2], m[2:4], st, tail=m[4:8], final=0)
+    keccak_cells(m, one, len=135)
     two = StackBuf(2)
-    keccak(m[0:2], m[2:4], two, tail=m[4:8], state=st)
+    keccak_cells(m, two, len=136)
     assert two[0] == TWO_0
     assert two[1] == TWO_1
     p = 1
@@ -117,11 +119,12 @@ def main():
     p[GEN] = one[1]
     return
 ";
-    let one = hash_cells(&scalar_cells(1..=8));
-    let two = hash_cells(&scalar_cells((1..=8).chain(1..=8)));
+    let mut bytes = scalar_cells(1..=9);
+    let two = hash_cells(&bytes[..136]);
+    bytes.truncate(135);
     let lit = |x: F192| format!("f192({}, {}, 0)", x.c0, x.c1);
     let src = src.replace("TWO_0", &lit(two[0])).replace("TWO_1", &lit(two[1]));
-    proves(&src, one);
+    proves(&src, hash_cells(&bytes));
 }
 
 /// A message ending inside a cell: 52 bytes, the padding's first byte at byte 4
@@ -143,9 +146,8 @@ def main():
     proves(src, hash_cells(&bytes));
 }
 
-/// `keccak_cells` hashes a whole run: 20 cells are two non-final chunks and a final
-/// one of four cells, a heap run of 16 is a chunk and a full final one, whose
-/// padding lands in lane 16 after a first block.
+/// `keccak_cells` hashes a whole run: 20 cells are three blocks, the last odd, and a
+/// heap run of 16 is one.
 #[test]
 fn keccak_cells_hashes_the_run() {
     let src = "\
@@ -173,24 +175,45 @@ def main():
     proves(&src, hash_cells(&scalar_cells(1..=20)));
 }
 
-/// A state carried through the heap, the shape a hash in a runtime loop has: the
-/// first block writes its 13-cell output to a heap run, the second reads it back
-/// as its `state`.
+/// A list comprehension names scattered cells as a message, here every second cell of a
+/// run, with no copies: three blocks reading the cells where they lie.
 #[test]
-fn keccak_state_through_the_heap() {
+fn keccak_cells_of_a_comprehension() {
     let src = "\
 def main():
-    block0 = [1, 2, 3, 4, 5, 6, 7, 8]
-    chain = HeapBuf(13)
-    keccak(block0[0:2], block0[2:4], chain[0:13], tail=block0[4:8], final=0)
+    run = StackBuf(40)
+    for k in unroll(0, 40):
+        run[k] = const(k + 1)
     out = StackBuf(2)
-    keccak([9, 10], [0, 0], out, state=chain[0:13], len=32)
+    keccak_cells([run[2 * k] for k in unroll(0, 20)], out)
     p = 1
     p[1] = out[0]
     p[GEN] = out[1]
     return
 ";
-    proves(src, hash_cells(&scalar_cells(1..=10)));
+    proves(src, hash_cells(&scalar_cells((0..20).map(|k| 2 * k + 1))));
+}
+
+/// A state carried through the heap, the shape a hash in a runtime loop has: the
+/// first block pair writes its 13-cell output to a heap run, the final block reads it
+/// back as its `state`.
+#[test]
+fn keccak_state_through_the_heap() {
+    let src = "\
+def main():
+    pair = StackBuf(17)
+    for k in unroll(0, 17):
+        pair[k] = const(k + 1)
+    chain = HeapBuf(13)
+    keccak_cells(pair, chain[0:13], final=0)
+    out = StackBuf(2)
+    keccak_cells([18, 19], out, state=chain[0:13])
+    p = 1
+    p[1] = out[0]
+    p[GEN] = out[1]
+    return
+";
+    proves(src, hash_cells(&scalar_cells(1..=19)));
 }
 
 /// A padding run first materialized in an untaken runtime branch must not leak
@@ -251,31 +274,25 @@ def main():
 }
 
 #[test]
-#[should_panic(expected = "keccak len= 129 is past the block's 128 message bytes")]
-fn keccak_len_past_the_block_is_rejected() {
-    let src = "def main():\n    out = StackBuf(2)\n    keccak([1, 2], [3, 4], out, len=129)\n    return\n";
+#[should_panic(expected = "keccak len= 129 is past the 128 bytes of its 8 cells")]
+fn keccak_len_past_the_cells_is_rejected() {
+    let src =
+        "def main():\n    out = StackBuf(2)\n    keccak([1, 2], [3, 4], out, tail=[5, 6, 7, 8], len=129)\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
 
 #[test]
-#[should_panic(expected = "a keccak block with final=0 carries 128 message bytes")]
-fn keccak_short_non_final_block_is_rejected() {
-    let src = "def main():\n    out = StackBuf(13)\n    keccak([1, 2], [3, 4], out, final=0, len=64)\n    return\n";
+#[should_panic(expected = "keccak_cells final=0 absorbs whole cells: it takes no len=")]
+fn keccak_cells_non_final_len_is_rejected() {
+    let src = "def main():\n    out = StackBuf(13)\n    keccak_cells([1, 2], out, final=0, len=16)\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
 
 #[test]
-#[should_panic(expected = "keccak len=0 after a previous block hashes no message")]
-fn keccak_empty_block_after_a_previous_one_is_rejected() {
-    let src = "def main():\n    st = StackBuf(13)\n    keccak([1, 2], [3, 4], st, final=0, tail=[5, 6, 7, 8])\n    out = StackBuf(2)\n    keccak([0, 0], [0, 0], out, state=st, len=0)\n    return\n";
-    let _ = compile(&parse(src).expect("parse"));
-}
-
-#[test]
-#[should_panic(expected = "keccak state= must be the 13-cell run a previous keccak wrote")]
+#[should_panic(expected = "keccak_cells state= must be the 13-cell run a previous keccak wrote")]
 fn keccak_short_state_is_rejected() {
     let src =
-        "def main():\n    st = [1, 2]\n    out = StackBuf(2)\n    keccak([1, 2], [3, 4], out, state=st)\n    return\n";
+        "def main():\n    st = [1, 2]\n    out = StackBuf(2)\n    keccak_cells([1, 2], out, state=st)\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
 

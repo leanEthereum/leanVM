@@ -97,10 +97,7 @@ const _: () = assert!(leanvm_core::leaf::N_TUPLE_BITS == leanvm_core::leaf::N_BY
 const DIGIT_GROUP: usize = 3;
 const _: () = assert!(lean_sphincs::W * lean_sphincs::V == 128 && lean_sphincs::V % DIGIT_GROUP == 1);
 const _: () = assert!(lean_xmss::W == lean_sphincs::W && lean_xmss::V % DIGIT_GROUP == 1);
-// The guest's one-time leaf hash takes P, A and the tips eight cells a block, and its
-// last block from one to four cells. A leaf index is the two layers' indices, which
-// the guest decomposes into bits at once.
-const _: () = assert!(matches!((2 + lean_xmss::V) % 8, 1..=4) && matches!((2 + lean_sphincs::V) % 8, 1..=4));
+// A leaf index is the two layers' indices, which the guest decomposes into bits at once.
 const _: () = assert!(lean_xmss::LOG_LIFETIME == 32);
 // The guest takes the leanSPHINCS message digest's first cell as its sixteen
 // codewords, and reads the index and what the digest leaves unused from the bits
@@ -195,21 +192,23 @@ fn cell_bytes(cells: impl IntoIterator<Item = F192>) -> Vec<u8> {
     bytes
 }
 
-/// How the guest splits a list of `n` items, `per_block` to a hash block: the
-/// blocks before the last, and one less than the items in the last. Its own
-/// product identity and range check pin both, so this only has to agree with them
-/// (`list_split` in the guest). A list is never empty here: both claim lists are
-/// guarded at the call, since the guest hashes an empty one without a split at all.
-fn list_split(n: usize, per_block: usize) -> Vec<F192> {
+/// Claims the guest hashes a loop frame: 68 cells, four whole block pairs.
+const CLAIM_GROUP: usize = 17;
+const _: () = assert!((CLAIM_GROUP * 64).is_multiple_of(2 * primitives::hash::RATE));
+
+/// How the guest splits a list of `n` claims: the whole groups of [`CLAIM_GROUP`], one
+/// a loop frame, and the claims after them. Its own product identity and range checks
+/// pin both, so this only has to agree with them (`list_split` in the guest). A list
+/// is never empty here: both claim lists are guarded at the call, since the guest
+/// hashes an empty one without a split at all.
+fn list_split(n: usize) -> Vec<F192> {
     assert!(n > 0, "an empty list has no split");
-    let body = (n - 1) / per_block;
-    vec![count(body), count(n - 1 - per_block * body)]
+    vec![count(n / CLAIM_GROUP), count(n % CLAIM_GROUP)]
 }
 
 /// One scheme's declared claims, hashed plainly: 64 bytes a claim, its pubkey then
-/// the message it signed, so two claims a block, and an empty list hashes the empty
-/// string. The guest computes this same digest a block at a time
-/// (`claim_list_digest`).
+/// the message it signed, and an empty list hashes the empty string. The guest
+/// computes this same digest [`CLAIM_GROUP`] claims at a time (`claim_list_digest`).
 fn claim_list_digest(claims: impl IntoIterator<Item = [F192; 4]>) -> [F192; 2] {
     pack_hash_state(&primitives::hash::hash(&cell_bytes(claims.into_iter().flatten())))
 }
@@ -1829,7 +1828,7 @@ pub fn aggregate_with_stats(
         .collect();
     for cells in [&lean_xmss_cells, &lean_sphincs_cells] {
         if !cells.is_empty() {
-            hints.push("signers_split", list_split(cells.len(), 2));
+            hints.push("signers_split", list_split(cells.len()));
         }
         for claim in cells {
             hints.push("claims", claim.to_vec());
@@ -1865,7 +1864,7 @@ pub fn aggregate_with_stats(
         );
         for offsets in [&cover.xmss.children[i], &cover.lean_sphincs.children[i]] {
             if !offsets.is_empty() {
-                hints.push("signers_split", list_split(offsets.len(), 2));
+                hints.push("signers_split", list_split(offsets.len()));
             }
             for &offset in offsets {
                 hints.push("child_claim_index", vec![count(offset)]);
@@ -2148,7 +2147,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                         column: compact_col_pm[column],
                         qkeccak_slot: 0,
                     },
-                    Some(Some((slot, _))) => ClaimDescriptor {
+                    Some(Some(slot)) => ClaimDescriptor {
                         buffer: 3,
                         column: qkeccak_compact,
                         qkeccak_slot: slot,
@@ -2346,7 +2345,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
             used[(rot as usize + 1) % 64] = 1;
         }
         ps("KECCAK_SHIFT_USED", literals(used));
-        ps("KECCAK_END_BIT", primitives::hash::END_BIT.to_string());
     }
     // Tower F192 = F64[Y]/(Y^3+Y+1), Y = new(0,1,0). Y_TOWER embeds Y for
     // AIR lane reassembly; Y_INV splits a canonical word into its two K limbs.
@@ -2596,8 +2594,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
         .iter()
         .flat_map(|c| (0..slot_log).map(move |k| (c.qkeccak_slot >> k) & 1))
         .collect();
-    // The one committed lane that is not the lane the VM reads: the padding bit is XORed in.
-    let (end_slot, _) = leanvm_core::keccak::value_slot(primitives::hash::END_LANE).expect("an input lane");
     // The output lanes' claims, consecutive in the pool: the reduction's claim on the output.
     let out_pool = claims
         .iter()
@@ -2606,14 +2602,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     assert!((0..claims.len()).all(|j| (claims[j].buffer == POINT_BUF_KECCAK_OUT)
         == (out_pool..out_pool + primitives::hash::STATE_LANES).contains(&j)));
     ps("KECCAK_OUT_POOL", out_pool.to_string());
-    ps(
-        "CLAIM_END_LANE",
-        literals(
-            claims
-                .iter()
-                .map(|c| usize::from(c.buffer == 3 && c.qkeccak_slot == end_slot)),
-        ),
-    );
     ps("CLAIM_QKECCAK_SLOT_BITS", literals(&cpqbits));
     ps("QKECCAK_COMMITTED_COL", qkeccak_compact.to_string());
     ps("QKECCAK_VARS_CAP", (33 + slot_log).to_string());
@@ -2683,6 +2671,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("LX_HEIGHT", lean_xmss::LAYER_HEIGHT.to_string());
     ps("LX_TOP", address(lean_xmss::tweak(0, lean_xmss::TOP, 0)));
     ps("MAX_KEYS", MAX_KEYS.to_string());
+    ps("CLAIM_GROUP", CLAIM_GROUP.to_string());
     ps("MAX_DA_ROOTS", MAX_DA_ROOTS.to_string());
     ps("DA_ROOT_COUNTS", (MAX_DA_ROOTS + 1).to_string());
     ps("MAX_RECURSIONS", MAX_RECURSIONS.to_string());
@@ -3516,8 +3505,8 @@ def main():
         }
     }
 
-    /// A list hash's split is advice the guest then dispatches on, so the last
-    /// block's item count has to be bounded before the `match`: a negative
+    /// A list hash's split is advice the guest then dispatches on, so the claim count
+    /// after the last group has to be bounded before the `match`: a negative
     /// exponent that satisfies the product identity must fail the range check in
     /// `list_split` itself, not reach the dispatch as a wild jump.
     #[test]
@@ -3529,7 +3518,7 @@ def main():
             r#"{helpers}
 def main():
     n_g = hint_witness("n")
-    body, rest = list_split(n_g, 2)
+    body, rest = list_split(n_g)
     public = GEN ** 0
     assert public[1] == body
     assert public[GEN] == rest
@@ -3545,12 +3534,12 @@ def main():
             hints.install(&mut program);
             program.execute([body, rest])
         };
-        // Six claims two to a block: two whole blocks, then a last one of two.
-        assert!(run(count(2), count(1)).is_ok());
-        // Three blocks and a last one of g^-1 + 1 = 0 claims: the product identity
-        // holds, the range check must not.
-        let negative = F192::new(g_pow(1).inv().0, 0, 0);
-        let Err(err) = run(count(3), negative) else {
+        // Six claims: no whole group, then six.
+        assert!(run(count(0), count(6)).is_ok());
+        // One group and -11 claims after it: the product identity holds, the range
+        // check must not.
+        let negative = F192::new(g_pow(11).inv().0, 0, 0);
+        let Err(err) = run(count(1), negative) else {
             panic!("a negative last-block count was accepted");
         };
         assert!(err.to_string().contains("list_split"), "rejected elsewhere: {err}");

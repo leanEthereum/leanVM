@@ -3,7 +3,7 @@
 //! The committed states of every `KECCAK` step are one column of leanVM's ONE stacked `F64`
 //! witness (§sec:stacking), a lane per slot and a word per step, with no separate commitment:
 //! the input and the state after every `DEPTH` rounds before the output. The output is not
-//! committed. The VM's `KECCAK` table has no value column of its own: a claim on an input lane is
+//! committed. The VM's `KECCAK` table commits no value column of its own: a claim on an input lane is
 //! a claim on its slot of that column, and the claims on the output lanes are the reduction's
 //! claim on the permutation's output ([`keccak_gkr::OutputClaim`]). The GKR reduction proves the
 //! rounds between, and its openings join the batch-mixed opening ([`::pcs::stack_open`]): the
@@ -12,19 +12,16 @@
 //!
 //! ## The mapping
 //!
-//! The VM's `KECCAK(m, tail, cap) -> out` is one [`primitives::hash::step`] on the
-//! 25 lanes those thirteen cells hold, written to thirteen cells in the same
-//! order ([`CELL_LANES`]). A step is the permutation after [`END_BIT`] is XORed into lane 16,
-//! so the committed input is the lanes the VM reads with that bit flipped, and a claim on the
-//! VM's lane 16 moves to the committed one by that constant ([`value_slot`]). The output is the
-//! permutation's, written as it is.
+//! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, written to thirteen
+//! cells, each side in one of two layouts ([`cell_lanes`]). The committed input is the lanes
+//! the VM reads, and the output is the permutation's, written as it is.
 
 use crate::pcs::SlotClaim;
 use crate::transcript::ProverState;
 use keccak_gkr::witness::{BLOCK, Extent, Slot};
 use keccak_gkr::{Openings, OutputClaim, Shape};
 use primitives::field::{F64, F192};
-use primitives::hash::{END_BIT, END_LANE, STATE_LANES};
+use primitives::hash::STATE_LANES;
 
 pub use crate::pcs::{RingSwitchClaim, RingSwitchOpen};
 
@@ -55,7 +52,7 @@ pub fn relation_digest() -> [u8; 32] {
     primitives::hash::hash(RELATION_LABEL)
 }
 pub const RELATION_LABEL: &[u8] =
-    b"leanVM keccak GKR: step, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
+    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
 
 /// `log2` of the committed column, in words.
 pub fn qkeccak_kappa(n_blocks: usize) -> usize {
@@ -64,47 +61,47 @@ pub fn qkeccak_kappa(n_blocks: usize) -> usize {
 
 /// Cells a sponge state occupies.
 pub const STATE_CELLS: usize = 13;
+/// The rate cells of a state, the nine a block of a message laid out in cells covers.
+pub const RATE_CELLS: usize = 9;
 /// Cells one `KECCAK` row touches: thirteen read, thirteen written.
 pub const ROW_CELLS: usize = 2 * STATE_CELLS;
-/// The state cell holding lane 16 alone, its high lane zero.
-pub const LONE_CELL: usize = 8;
 
-/// The lanes each state cell holds, `(lo, hi)`, where a `None` high lane is a
-/// literal zero: lanes 0..16 two to a cell (the eight cells a block's 128 message
-/// bytes fill), then lane 16 alone, then the capacity lanes 17..25.
-pub const CELL_LANES: [(usize, Option<usize>); STATE_CELLS] = {
-    let mut t = [(0usize, None); STATE_CELLS];
+/// The lanes each state cell holds, `(lo, hi)`, in the even layout (`odd = false`) or the odd
+/// one, `None` marking a limb that holds no lane: nine rate cells, lanes `0..16` two to a cell
+/// then lane 16 in a low limb (even), or lane 0 in a high limb then lanes `1..17` two to a cell
+/// (odd), then the capacity lanes `17..25` two to a cell. A block of a message laid out in cells
+/// covers the nine rate cells of the layout of its parity.
+pub const fn cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); STATE_CELLS] {
+    let mut t = [(None, None); STATE_CELLS];
     let mut c = 0;
     while c < STATE_CELLS {
-        t[c] = if c < LONE_CELL {
-            (2 * c, Some(2 * c + 1))
-        } else if c == LONE_CELL {
-            (16, None)
+        t[c] = if c >= 9 || (odd && c >= 1) {
+            (Some(2 * c - 1), Some(2 * c))
+        } else if odd {
+            (None, Some(0))
+        } else if c == 8 {
+            (Some(16), None)
         } else {
-            (2 * c - 1, Some(2 * c))
+            (Some(2 * c), Some(2 * c + 1))
         };
         c += 1;
     }
     t
-};
-
-/// What a claim on value column `i`, in `tables::KECCAK_VALUE_COLS` order, is of the committed
-/// column: an input lane's slot, and the constant the committed lane differs from the VM's by.
-/// An output lane has none.
-pub fn value_slot(i: usize) -> Option<(usize, F192)> {
-    let shift = if i == END_LANE {
-        F192::new(END_BIT, 0, 0)
-    } else {
-        F192::ZERO
-    };
-    (i < STATE_LANES).then_some((i, shift))
 }
 
-/// The 25 lanes thirteen state cells hold.
-pub fn state_of_cells(cells: &[F192; STATE_CELLS]) -> [u64; STATE_LANES] {
+/// The committed column's slot for value column `i`, in `tables::KECCAK_VALUE_COLS` order: an
+/// input lane's own. An output lane has none.
+pub fn value_slot(i: usize) -> Option<usize> {
+    (i < STATE_LANES).then_some(i)
+}
+
+/// The 25 lanes thirteen state cells hold in a layout.
+pub fn state_of_cells(cells: &[F192; STATE_CELLS], odd: bool) -> [u64; STATE_LANES] {
     let mut s = [0u64; STATE_LANES];
-    for (cell, &(lo, hi)) in cells.iter().zip(&CELL_LANES) {
-        s[lo] = cell.c0;
+    for (cell, (lo, hi)) in cells.iter().zip(cell_lanes(odd)) {
+        if let Some(lo) = lo {
+            s[lo] = cell.c0;
+        }
         if let Some(hi) = hi {
             s[hi] = cell.c1;
         }
@@ -112,18 +109,21 @@ pub fn state_of_cells(cells: &[F192; STATE_CELLS]) -> [u64; STATE_LANES] {
     s
 }
 
-/// The thirteen state cells holding 25 lanes (canonical: top limbs zero, and the
-/// lone cell's high lane zero).
-pub fn cells_of_state(s: &[u64; STATE_LANES]) -> [F192; STATE_CELLS] {
+/// The thirteen canonical state cells holding 25 lanes in a layout, a free lane zero.
+pub fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F192; STATE_CELLS] {
+    let lanes = cell_lanes(odd);
     std::array::from_fn(|c| {
-        let (lo, hi) = CELL_LANES[c];
-        F192::new(s[lo], hi.map_or(0, |hi| s[hi]), 0)
+        let (lo, hi) = lanes[c];
+        F192::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]), 0)
     })
 }
 
-/// What a `KECCAK` instruction writes, given the thirteen cells it reads.
-pub fn step_cells(cells: &[F192; STATE_CELLS]) -> [F192; STATE_CELLS] {
-    cells_of_state(&primitives::hash::step(&state_of_cells(cells)))
+/// What a `KECCAK` instruction writes, given the cells it reads.
+#[cfg(test)]
+pub(crate) fn permute_cells(cells: &[F192; STATE_CELLS], in_odd: bool, out_odd: bool) -> [F192; STATE_CELLS] {
+    let mut s = state_of_cells(cells, in_odd);
+    primitives::hash::keccak_f(&mut s);
+    cells_of_state(&s, out_odd)
 }
 
 /// The reduction's witness: every round's state of every step, kept from the pass that wrote
@@ -135,12 +135,6 @@ impl PreparedReductionWitness {
     pub(crate) fn prove(&self, ps: &mut ProverState, q_keccak: &[F64], output: &OutputClaim) -> Openings {
         keccak_gkr::prove(ps, &self.0, q_keccak, output)
     }
-}
-
-/// The permutation's input for the lanes a step reads. A padding step reads zeros.
-fn permuted(mut state: [u64; STATE_LANES]) -> [u64; STATE_LANES] {
-    state[END_LANE] ^= END_BIT;
-    state
 }
 
 /// Build the committed column for `instances`, the lanes each step reads, padded with all-zero
@@ -156,9 +150,8 @@ pub(crate) fn build_qkeccak_prepared(
         1 << shape.stack_log(),
         "the committed column is the wrong size"
     );
-    let inputs: Vec<[u64; STATE_LANES]> = parallel::map_collect(shape.n(), |i| {
-        permuted(instances.get(i).copied().unwrap_or([0; STATE_LANES]))
-    });
+    let inputs: Vec<[u64; STATE_LANES]> =
+        parallel::map_collect(shape.n(), |i| instances.get(i).copied().unwrap_or([0; STATE_LANES]));
     PreparedReductionWitness(keccak_gkr::Witness::generate(shape, &inputs, q_keccak))
 }
 
@@ -175,7 +168,7 @@ pub(crate) struct Blocks {
 /// # Safety
 /// As [`keccak_gkr::witness::block`].
 unsafe fn run_block(steps: &[[u64; STATE_LANES]], slot: Slot) -> Vec<u64> {
-    let mut inputs = [permuted([0; STATE_LANES]); BLOCK];
+    let mut inputs = [[0; STATE_LANES]; BLOCK];
     inputs[..steps.len()].copy_from_slice(steps);
     // SAFETY: every word is written, a slot's lanes for each of the block's eight words.
     let mut lanes = unsafe { primitives::uninit_vec::<u64>((STATE_LANES * STATES) * BLOCK) };
@@ -233,7 +226,7 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
             blocks += 1;
         };
         let result = run(&mut |state| {
-            pending.push(permuted(*state));
+            pending.push(*state);
             steps += 1;
             if pending.len() == BLOCK {
                 dispatch(&mut pending, false);
@@ -337,7 +330,7 @@ mod tests {
     fn output_claim(instances: &[[u64; STATE_LANES]], point: Vec<F192>) -> OutputClaim {
         let shape = shape(instances.len());
         let inputs: Vec<[u64; STATE_LANES]> = (0..shape.n())
-            .map(|i| permuted(instances.get(i).copied().unwrap_or([0; STATE_LANES])))
+            .map(|i| instances.get(i).copied().unwrap_or([0; STATE_LANES]))
             .collect();
         OutputClaim::of_inputs(shape, &inputs, point)
     }
@@ -382,29 +375,49 @@ mod tests {
         assert!(label.contains(&format!("depth {DEPTH},")));
     }
 
-    /// The cell layout round-trips, and a zero-state step over 64 message bytes
-    /// and the padding is the hash of those bytes.
+    /// Both layouts round-trip, and a padded message laid out in cells, block `k`'s nine cells
+    /// from cell `17k / 2` XORed into the previous output, read and written in the layout of each
+    /// block's parity, the last written even, hashes to its Keccak-256.
     #[test]
-    fn cells_carry_the_state() {
+    fn layouts_absorb_a_message() {
+        use primitives::hash::{PAD_FIRST, PAD_LAST, RATE};
         let s: [u64; STATE_LANES] = std::array::from_fn(|i| 0x1111 * (i as u64 + 1));
-        assert_eq!(state_of_cells(&cells_of_state(&s)), s);
-        let msg: Vec<u8> = (0..64u8).collect();
-        let mut cells = [F192::ZERO; STATE_CELLS];
-        for (c, cell) in cells.iter_mut().enumerate().take(4) {
-            let w = |k: usize| u64::from_le_bytes(msg[8 * k..8 * k + 8].try_into().unwrap());
-            *cell = F192::new(w(2 * c), w(2 * c + 1), 0);
+        for odd in [false, true] {
+            assert_eq!(state_of_cells(&cells_of_state(&s, odd), odd), s);
         }
-        cells[4] = F192::new(primitives::hash::PAD_FIRST as u64, 0, 0);
-        let out = step_cells(&cells);
-        let digest: Vec<u8> = [out[0].c0, out[0].c1, out[1].c0, out[1].c1]
-            .iter()
-            .flat_map(|w| w.to_le_bytes())
-            .collect();
-        assert_eq!(digest, primitives::hash::hash(&msg));
+        for n in [0, 1, 64, 127, 135, 136, 137, 200, 271, 272, 300, 543, 1000] {
+            let msg: Vec<u8> = (0..n).map(|i| (i * 7 + 3) as u8).collect();
+            let blocks = n / RATE + 1;
+            let mut padded = msg.clone();
+            padded.resize(blocks * RATE + 8, 0);
+            padded[n] ^= PAD_FIRST;
+            padded[blocks * RATE - 1] ^= PAD_LAST;
+            let cells: Vec<F192> = padded
+                .as_chunks::<16>()
+                .0
+                .iter()
+                .map(|c| {
+                    let w = |k: usize| u64::from_le_bytes(c[8 * k..8 * k + 8].try_into().unwrap());
+                    F192::new(w(0), w(1), 0)
+                })
+                .collect();
+            let mut state = [F192::ZERO; STATE_CELLS];
+            for k in 0..blocks {
+                for (j, cell) in state.iter_mut().take(9).enumerate() {
+                    *cell += cells[17 * k / 2 + j];
+                }
+                state = permute_cells(&state, k % 2 == 1, k + 1 < blocks && k % 2 == 0);
+            }
+            let digest: Vec<u8> = [state[0].c0, state[0].c1, state[1].c0, state[1].c1]
+                .iter()
+                .flat_map(|w| w.to_le_bytes())
+                .collect();
+            assert_eq!(digest, primitives::hash::hash(&msg), "{n} bytes");
+        }
     }
 
-    /// The committed column holds every step's input lanes, a word per step: what the VM reads,
-    /// with the padding's last bit in lane 16. The output lanes have no slot.
+    /// The committed column holds every step's input lanes, a word per step. The output lanes
+    /// have no slot.
     #[test]
     fn qkeccak_words_match_layout() {
         let instances = sample_instances(5);
@@ -412,8 +425,8 @@ mod tests {
         let n = 1usize << n_blocks_log(instances.len());
         for (j, input) in instances.iter().enumerate() {
             for i in 0..STATE_LANES {
-                let (slot, shift) = value_slot(i).expect("an input lane");
-                assert_eq!(F192::from(q_keccak[slot * n + j]), F192::from(f(input[i])) + shift);
+                let slot = value_slot(i).expect("an input lane");
+                assert_eq!(q_keccak[slot * n + j], f(input[i]));
                 assert_eq!(value_slot(STATE_LANES + i), None);
             }
         }

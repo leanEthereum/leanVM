@@ -114,4 +114,4 @@ const _: () = assert!(TARGET_SUM < V * (CHAIN_LEN - 1));
 const _: () = assert!(CODEWORD_BITS == 8 && DIGEST_BITS == 234);
 const _: () = assert!(PUB_KEY_SIZE == 32);
 const _: () = assert!(SIG_SIZE == 4276);
-const _: () = assert!(VERIFY_PERMUTATIONS == 268);
+const _: () = assert!(VERIFY_PERMUTATIONS == 267);

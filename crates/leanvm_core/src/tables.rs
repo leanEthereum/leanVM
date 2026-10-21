@@ -144,7 +144,7 @@ impl FlushBuilder {
         );
     }
 
-    /// Bytecode read at `pc`: the program tuple (opcode + seven operand slots),
+    /// Bytecode read at `pc`: the program tuple (opcode + ten operand slots),
     /// with the per-pc execution count advanced by ×g on the push side.
     pub(crate) fn bytecode(&mut self, pc: usize, count: usize, opcode: F64, operands: &[Coord]) {
         let mut push = vec![Const(SEP_BYTECODE), Col(pc), GCol(count, 1), Const(opcode)];
@@ -178,11 +178,6 @@ impl FlushBuilder {
     /// because the bus balances only if the stored value's HI lane is likewise 0.
     pub(crate) fn memory_k(&mut self, addr: Coord, count: usize, val: usize) {
         self.memory_coords(addr, count, [Col(val), Const(F64::ZERO), Const(F64::ZERO)]);
-    }
-
-    /// Memory access to a canonical 128-bit word `(lo, hi, 0)`.
-    pub(crate) fn memory_128(&mut self, addr: Coord, count: usize, lo: usize, hi: usize) {
-        self.memory_coords(addr, count, [Col(lo), Col(hi), Const(F64::ZERO)]);
     }
 }
 
@@ -393,28 +388,29 @@ pub(crate) const KECCAK_TABLE: usize = 5;
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
 pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, crate::keccak::MIN_STEPS.ilog2() as usize];
 
-/// The twenty-six cells a `KECCAK` row touches, in flush order: the four `m` cells,
-/// the four `tail` cells, the five `cap` cells, then the thirteen output cells.
-/// Recovered from the instruction, not stored per row.
+/// The twenty-six cells a `KECCAK` row touches, in flush order: the four `m` cells, the four
+/// `tail` cells, `b8`, the four `cap` cells, then the thirteen output cells. Recovered from the
+/// instruction, not stored per row.
 pub(crate) fn keccak_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::keccak::ROW_CELLS] {
     match prog[pc as usize] {
-        Op::Keccak { m, tail, cap, out } => {
-            let in_cell = |c: u32| match c {
+        Op::Keccak {
+            m, tail, b8, cap, out, ..
+        } => std::array::from_fn(|c| {
+            let c = c as u32;
+            fp + match c {
                 0..4 => m[c as usize],
                 4..8 => tail + (c - 4),
-                _ => cap + (c - 8),
-            };
-            std::array::from_fn(|c| {
-                let c = c as u32;
-                fp + if c < 13 { in_cell(c) } else { out + (c - 13) }
-            })
-        }
+                8 => b8,
+                9..13 => cap + (c - 9),
+                _ => out + (c - 13),
+            }
+        }),
         op => unreachable!("a KECCAK row's pc {pc} holds {op:?}"),
     }
 }
 
 /// KECCAK value-column LOCAL indices: the input lanes, then the output lanes. These
-/// columns are VIRTUAL (never committed). `q_keccak` holds the input words at the
+/// columns are VIRTUAL (no placement of their own). `q_keccak` holds the input words at the
 /// input lanes' slots ([`crate::keccak::value_slot`]), so `cpu` routes their
 /// evaluation claims straight to it (`slot_claims`); the output lanes' claims are
 /// the Keccak reduction's claim on the permutation's output. Either way the value
@@ -821,24 +817,23 @@ impl Table for JumpTable {
 
 // ---- KECCAK ---------------------------------------------------------------------
 
-/// `KECCAK` (“KECCAK” in `doc/leanvm/body/07-instruction-tables.tex`): one step of the
-/// cell sponge. The four `m` cells are addressed *independently* at `fp·o_i`
-/// (`o_i = g^{m[i]}`), so a caller hashing e.g. `(tweak, pp)` need not copy them
-/// into adjacent cells; the four `tail` cells, the five `cap` cells and the
-/// thirteen output cells are consecutive runs based at `fp·o_T`, `fp·o_C` and
-/// `fp·o_O`. No address is committed: each rides the bus as the product `fp·o_X·g^k`
-/// (§sec:m3). The permutation relating output lanes to input lanes carries no
-/// table constraint either: it is proven by the Keccak reduction over `q_keccak`
-/// (§keccak), which leaves this table with no identity of its own.
+/// `KECCAK` (“KECCAK” in `doc/leanvm/body/07-instruction-tables.tex`): the Keccak-f\[1600\]
+/// permutation of a state in memory. The four `m` cells and `b8` are addressed *independently*
+/// at `fp·o_i` (`o_i = g^{m[i]}`), so a caller hashing e.g. `(tweak, pp)` need not copy them into
+/// adjacent cells; the four `tail` cells, the four `cap` cells and the thirteen output cells are
+/// consecutive runs based at `fp·o_T`, `fp·o_C` and `fp·o_O`. No address is committed: each rides
+/// the bus as the product `fp·o_X·g^k` (§sec:m3). The permutation relating output lanes to input
+/// lanes carries no table constraint either: it is proven by the Keccak reduction over
+/// `q_keccak` (§keccak), which leaves this table with no identity of its own.
 ///
-/// A cell carries two lanes with a literal-zero top limb (`memory_128`), except
-/// the lone lane-16 cell of each state, whose high lane is a literal zero too
-/// (`memory_k`), so the canonical embedding is proof-enforced and the zero limbs
-/// are never committed. The fifty lanes are fifty value columns, listed in
-/// `n_committed_columns` (they need a local index for the flushes and are filled
-/// from the trace for the bus), but `cpu` treats them as VIRTUAL and routes their
-/// bus claims to `q_keccak`, which already holds those words (see
-/// [`KECCAK_VALUE_COLS`]).
+/// The cells read and written hold the lanes in the layout their flag names
+/// ([`crate::keccak::cell_lanes`]), the flags bound by the bytecode read, so a cell's limb is the
+/// form `a + flag·(a + b)` of its lane in either layout, of degree two. The one limb of a read
+/// cell that holds no lane is the column `FREE`; written, it is zero. Every cell's top
+/// limb is a literal zero, so the canonical embedding is proof-enforced. The fifty lanes are
+/// value columns, listed in `n_committed_columns` (they need a local index for the flushes and
+/// are filled from the trace for the bus), but `cpu` treats them as VIRTUAL and routes their bus
+/// claims to `q_keccak`, which already holds those words (see [`KECCAK_VALUE_COLS`]).
 struct KeccakTable;
 
 pub(crate) mod keccakt {
@@ -849,13 +844,33 @@ pub(crate) mod keccakt {
     pub const FP: usize = 1;
     pub const O_M0: usize = 2; // operand g-powers of the four `m` cells …
     pub const O_TAIL: usize = 6; // … the `tail` base …
-    pub const O_CAP: usize = 7; // … the `cap` base …
-    pub const O_OUT: usize = 8; // … and the output base
-    pub const V_IN: usize = 9; // the 25 input lanes, in lane order …
+    pub const O_B8: usize = 7; // … `b8` …
+    pub const O_CAP: usize = 8; // … the `cap` base …
+    pub const O_OUT: usize = 9; // … and the output base
+    pub const IN_ODD: usize = 10; // the layout read …
+    pub const OUT_ODD: usize = 11; // … and the layout written
+    pub const FREE: usize = 12; // the read limb that holds no lane
+    pub const V_IN: usize = 13; // the 25 input lanes, in lane order …
     pub const V_OUT: usize = V_IN + STATE_LANES; // … and the 25 output lanes
     pub const R0: usize = V_OUT + STATE_LANES; // one read count per cell, in flush order
     pub const RBC: usize = R0 + ROW_CELLS;
     pub const N: usize = RBC + 1;
+}
+
+/// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag`
+/// selects: `a + flag·(a + b)`, a missing lane being `missing`.
+fn layout_limb(even: Option<usize>, odd: Option<usize>, values: usize, flag: usize, missing: Option<usize>) -> Coord {
+    let col = |lane: Option<usize>| lane.map(|l| values + l).or(missing);
+    let (a, b) = (col(even), col(odd));
+    if a == b {
+        return a.map_or(Const(F64::ZERO), Col);
+    }
+    Coord::Sum(
+        [a.map(Col), a.map(|a| Prod(flag, a, 0)), b.map(|b| Prod(flag, b, 0))]
+            .into_iter()
+            .flatten()
+            .collect(),
+    )
 }
 
 impl Table for KeccakTable {
@@ -875,75 +890,82 @@ impl Table for KeccakTable {
         };
         &COUNTS
     }
-    /// Zeros, but for the output lanes: a padding row, like the Keccak reduction's
-    /// padding steps, reads zeros, so it writes their step.
+    /// Zeros, but for the output lanes: a padding row, like the Keccak reduction's padding
+    /// steps, permutes zeros, in the even layout.
     fn padding(&self) -> Vec<F64> {
         let mut row = vec![F64::ZERO; keccakt::N];
-        let out = primitives::hash::step(&[0; primitives::hash::STATE_LANES]);
+        let mut out = [0; primitives::hash::STATE_LANES];
+        primitives::hash::keccak_f(&mut out);
         for (lane, w) in out.into_iter().enumerate() {
             row[keccakt::V_OUT + lane] = F64(w);
         }
         row
     }
     fn flushes(&self, f: &mut FlushBuilder) {
-        use crate::keccak::{CELL_LANES, STATE_CELLS};
+        use crate::keccak::{STATE_CELLS, cell_lanes};
         use keccakt::*;
         f.state_step(PC, FP);
-        f.bytecode(
-            PC,
-            RBC,
-            OP_KECCAK,
-            &[
-                Col(O_M0),
-                Col(O_M0 + 1),
-                Col(O_M0 + 2),
-                Col(O_M0 + 3),
-                Col(O_TAIL),
-                Col(O_CAP),
-                Col(O_OUT),
-            ],
-        );
-        // Thirteen cells read, then thirteen written, each state in `CELL_LANES`
-        // order. A consecutive cell is a free ×g on the product's g-power.
+        let operands: Vec<Coord> = (O_M0..=OUT_ODD).map(Col).collect();
+        f.bytecode(PC, RBC, OP_KECCAK, &operands);
         let addr = |c: usize| match c {
             0..4 => Prod(FP, O_M0 + c, 0),
             4..8 => Prod(FP, O_TAIL, (c - 4) as u32),
-            _ => Prod(FP, O_CAP, (c - 8) as u32),
+            8 => Prod(FP, O_B8, 0),
+            _ => Prod(FP, O_CAP, (c - 9) as u32),
         };
-        for (side, v) in [(0, V_IN), (1, V_OUT)] {
-            for (c, &(lo, hi)) in CELL_LANES.iter().enumerate() {
-                let (a, r) = if side == 0 {
-                    (addr(c), R0 + c)
-                } else {
-                    (Prod(FP, O_OUT, c as u32), R0 + STATE_CELLS + c)
-                };
-                match hi {
-                    Some(hi) => f.memory_128(a, r, v + lo, v + hi),
-                    None => f.memory_k(a, r, v + lo),
-                }
-            }
+        // Thirteen cells read, then thirteen written. A consecutive cell is a free ×g on the
+        // product's g-power.
+        let (even, odd) = (cell_lanes(false), cell_lanes(true));
+        let cell = |c: usize, values, flag, free| {
+            let lo = layout_limb(even[c].0, odd[c].0, values, flag, free);
+            let hi = layout_limb(even[c].1, odd[c].1, values, flag, free);
+            [lo, hi, Const(F64::ZERO)]
+        };
+        for c in 0..STATE_CELLS {
+            f.memory_coords(addr(c), R0 + c, cell(c, V_IN, IN_ODD, Some(FREE)));
+        }
+        for c in 0..STATE_CELLS {
+            f.memory_coords(
+                Prod(FP, O_OUT, c as u32),
+                R0 + STATE_CELLS + c,
+                cell(c, V_OUT, OUT_ODD, None),
+            );
         }
     }
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
         use crate::keccak::{STATE_CELLS, state_of_cells};
         use keccakt::*;
-        use primitives::hash::STATE_LANES;
         let rows = &ctx.trace.keccak;
         let cells = |r: &Brow| keccak_cells(ctx.prog, r.pc, r.fp);
+        let flags = |r: &Brow| match ctx.prog[r.pc as usize] {
+            Op::Keccak { in_odd, out_odd, .. } => (in_odd, out_odd),
+            _ => unreachable!("a KECCAK row"),
+        };
+        let read = |r: &Brow, first: usize| -> [F192; STATE_CELLS] {
+            let c = cells(r);
+            std::array::from_fn(|k| ctx.mem[c[first + k] as usize])
+        };
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         ctx.cols(out, rows, O_M0, |r| {
             let c = cells(r);
-            [c[0], c[1], c[2], c[3], c[4], c[8], c[13]].map(|a| ctx.g_at(a - r.fp))
+            [c[0], c[1], c[2], c[3], c[4], c[8], c[9], c[13]].map(|a| ctx.g_at(a - r.fp))
         });
-        // The lanes of the thirteen cells read, then of the thirteen written.
-        let lanes = |r: &Brow, first: usize| -> [F64; STATE_LANES] {
-            let c = cells(r);
-            let state: [F192; STATE_CELLS] = std::array::from_fn(|k| ctx.mem[c[first + k] as usize]);
-            state_of_cells(&state).map(F64)
-        };
-        ctx.cols(out, rows, V_IN, |r| lanes(r, 0));
-        ctx.cols(out, rows, V_OUT, |r| lanes(r, STATE_CELLS));
+        ctx.cols(out, rows, IN_ODD, |r| {
+            let (i, o) = flags(r);
+            [F64(u64::from(i)), F64(u64::from(o))]
+        });
+        // The free lane: cell 0's low lane in the odd layout, cell 8's high lane in the even one.
+        ctx.col(out, rows, FREE, |r| {
+            let in_odd = flags(r).0;
+            let (c, lo) = if in_odd { (0, true) } else { (8, false) };
+            let cell = ctx.mem[cells(r)[c] as usize];
+            F64(if lo { cell.c0 } else { cell.c1 })
+        });
+        ctx.cols(out, rows, V_IN, |r| state_of_cells(&read(r, 0), flags(r).0).map(F64));
+        ctx.cols(out, rows, V_OUT, |r| {
+            state_of_cells(&read(r, STATE_CELLS), flags(r).1).map(F64)
+        });
         ctx.cols(out, rows, R0, |r| r.r);
         ctx.col(out, rows, RBC, |r| r.bytecode_read);
     }

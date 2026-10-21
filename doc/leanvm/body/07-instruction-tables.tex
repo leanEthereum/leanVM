@@ -113,27 +113,23 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 
 \subsection{\texttt{KECCAK}}\label{sec:tab-keccak}
 
-\texttt{KECCAK}\ $[o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{cap}},o_{\mathit{out}}]$ applies one permutation of the sponge behind the machine's hash. The hash is Keccak-256~\cite{keccak}, Ethereum's hash, which is the $256$-bit hash of FIPS~202~\cite{fips202} but for its padding's first byte, $\mathtt{0x01}$ where the standard has $\mathtt{0x06}$, in the \emph{cell encoding}: plain Keccak-256 of a message of at most $128$ bytes, and otherwise Keccak-256 of the message cut into $128$-byte chunks, the last holding the remaining $1$ to $128$, with the fixed eight bytes $\mathtt{00}^{7}\,\mathtt{80}$ after every chunk but the last. Keccak-256 absorbs $136$ bytes per permutation, which would split a $16$-byte cell across two blocks; the encoding makes a block eight whole cells of message, and the gap is lane $16$, the rate's last lane, whose non-final value $\mathtt{0x80}\ll 56$ is also the final block's last padding bit. So the instruction XORs that bit into lane $16$ and permutes, and a program hashes any message by XORing each block of eight cells into the previous state and placing the padding's first byte $\mathtt{0x01}$ where the message ends, the one thing that depends on its length.
+\texttt{KECCAK} (\S\ref{sec:vm}) is proven by a GKR over the rounds of Keccak-$f[1600]$, one permutation per row (Annex~\ref{annex:keccak}). The prover commits each row's input and its state after $12$ rounds in one column $\qkeccak$ of $2^{6}$ slots per row: lane $\ell$ of the state after $12m$ rounds is slot $25m+\ell$. Nothing else of the permutation is committed.
 
-The instruction reads a state of $25$ lanes from thirteen cells, two lanes to a cell with its top limb zero: lanes $0..8$ at the four cells $\fp\cdot o_{m_0},\dots,\fp\cdot o_{m_3}$, addressed independently, lanes $8..16$ at the four consecutive cells $\gen^{k}\cdot\fp\cdot o_{\mathit{tail}}$, lane $16$ alone (its high limb zero too) and the capacity lanes $17..25$ at the five consecutive cells $\gen^{k}\cdot\fp\cdot o_{\mathit{cap}}$. It writes the thirteen output cells $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$, $k<13$, in the same layout. A first block reads a zero capacity; a later one reads the previous output's last five cells there and the previous output XORed with its message elsewhere.
-
-A GKR over the rounds of Keccak-$f[1600]$ proves these permutations, one per table row (Annex~\ref{annex:keccak}). For every row the prover commits two states of $25$ lanes, the one after $0$ and after $12$ rounds, in one column $\qkeccak$ of $2^{6}$ slots per row: lane $\ell$ of the state after $12m$ rounds is slot $25m+\ell$, one $\K$-element per row. Nothing else is committed, the output included.
-
-The fifty input and output lanes are columns of the table, but virtual ones. Input lane $\ell$ is slot $\ell$ of $\qkeccak$, so an evaluation claim on it at a point $\zeta$ is the claim on $\qkeccak$ at $\zeta$ followed by the slot's six bits. Output lane $\ell$ is lane $\ell$ of the permutation of the committed input: the claims on the output lanes are where the Keccak reduction starts, and it proves them (Annex~\ref{annex:keccak}). The one exception among the inputs is lane $16$: the committed state is the permutation's input, with the padding's last bit already XORed in, so slot $16$ is the lane the machine reads plus $x^{63}$, and a claim on that lane moves to the slot by adding this constant. Linking these values to the memory interaction implicitly forces the top limb of every memory cell accessed by \texttt{KECCAK} to be zero, and the high limb of the two lane-$16$ cells too. The GKR takes all $25$ input lanes as free input: the memory interactions via the bus bind them.
+The input lanes $s_\ell$ and output lanes $t_\ell$ are columns of the table with no region of their own in the stack. Input lane $s_\ell$ is slot $\ell$ of $\qkeccak$, so a claim on it at $\zeta$ is a claim on $\qkeccak$ at $\zeta$ followed by the six bits of $\ell$. The output lanes are not committed: the claims on them are where the Keccak reduction starts. A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. The top limb is a literal $0$.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; operands $o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{cap}},o_{\mathit{out}}$; one memory count per cell, twenty-six; bytecode count $r_{\mathrm{bc}}$. The fifty lanes are virtual, no duplicate columns needed. The twenty-six addresses are the products $\gen^{k}\fp\cdot o$.
+\item \textbf{Columns:} $\pc,\fp$; the operands, flags included; $\mathit{free}$; the lanes $s_\ell,t_\ell$, uncommitted; one count per cell, twenty-six; $r_{\mathrm{bc}}$. The addresses are the products $\gen^{k}\fp\cdot o$.
 \item \textbf{Constraints:} none. The permutation is proved by the GKR of Annex~\ref{annex:keccak}.
 \item \textbf{Flushes:}
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
-  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{KEC},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{cap}},o_{\mathit{out}}}$.
-  \item \textbf{Memory:} with $s_\ell$ the input lane $\ell$, $t_\ell$ the output lane $\ell$, and one count per cell,
+  \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{KEC},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}}}$.
+  \item \textbf{Memory:} with $u_c,v_c$ the forms of cell $c$'s limbs above, under $\mathit{odd}_{\mathit{in}}$,
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r,s_{2i},s_{2i+1},0}\quad(i<4),\\
-      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{tail}},r,s_{8+2i},s_{9+2i},0}\quad(i<4),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{cap}},r,s_{16},0,0},\\
-      &\rdf{\dsep{MEM},\gen^{1+i}\cdot\fp\cdot o_{\mathit{cap}},r,s_{17+2i},s_{18+2i},0}\quad(i<4),
+      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r,u_i,v_i,0}\quad(i<4),\\
+      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{tail}},r,u_{4+i},v_{4+i},0}\quad(i<4),\\
+      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{b8}},r,u_8,v_8,0},\\
+      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{cap}},r,s_{17+2i},s_{18+2i},0}\quad(i<4),
     \end{align*}
-    and the same thirteen for the output lanes $t_\ell$ at $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$, in the same order.
+    and the same thirteen at $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$ for the $t_\ell$, under $\mathit{odd}_{\mathit{out}}$.
   \end{itemize}
 \end{itemize}

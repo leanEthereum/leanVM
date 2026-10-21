@@ -32,24 +32,25 @@ pub enum Op {
         od: u32,
         of: u32,
     },
-    /// `KECCAK`: one step of the cell sponge ([`primitives::hash::step`]):
-    /// Keccak-f of a 25-lane state after XORing the padding's last bit into lane
-    /// 16. The state is read from thirteen canonical cells (two lanes each, top
-    /// limb zero) and the result written to thirteen, both in the order of
-    /// [`crate::keccak::CELL_LANES`]: four independently addressed cells `m`
-    /// (lanes 0..8, the first 64 bytes of a block), four consecutive cells from
-    /// `tail` (lanes 8..16, the other 64), and five consecutive cells from `cap`
-    /// (lane 16 alone, its high lane zero, then the capacity lanes 17..25).
+    /// `KECCAK`: the Keccak-f\[1600\] permutation of a 25-lane state held in thirteen cells,
+    /// read in the layout `in_odd` names and written to thirteen consecutive cells from `out` in
+    /// the layout `out_odd` names ([`crate::keccak::cell_lanes`]). The cells read are four
+    /// independently addressed cells `m`, four consecutive cells from `tail`, the cell `b8`, and
+    /// four consecutive cells from `cap` (the capacity lanes 17..25), each canonical (top limb
+    /// zero).
     ///
-    /// A fresh hash reads a zero `cap`; a later block reads the previous output's
-    /// last five cells there, and XORs its message into the previous output's
-    /// first eight to form `m` and `tail`. The relation is proven by the Keccak
-    /// reduction ([`crate::keccak`]).
+    /// A program absorbs a 136-byte block by XORing its nine message cells into the previous
+    /// output: block `k` of a message laid out in cells starts at cell `17k / 2`, halfway
+    /// through it when `k` is odd, and the odd layout pairs the lanes as such a block's cells
+    /// do. The relation is proven by the Keccak reduction ([`crate::keccak`]).
     Keccak {
         m: [u32; 4],
         tail: u32,
+        b8: u32,
         cap: u32,
         out: u32,
+        in_odd: bool,
+        out_odd: bool,
     },
 }
 

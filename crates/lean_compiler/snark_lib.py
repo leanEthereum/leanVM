@@ -204,42 +204,41 @@ def keccak(
     out,
     *,
     tail=None,
-    state=None,
     len: Optional[int] = None,
-    final: Optional[int] = None,
     cap=None,
 ) -> None:
-    """One block of the leanVM hash (Keccak-256 in the cell encoding), one `KECCAK`
-    instruction. The block's eight message cells are `a` (2 cells), `b` (2
-    cells) and `tail` (4 cells, zero when omitted); `out` receives the
+    """The leanVM hash (Keccak-256) of at most 128 bytes, one `KECCAK`
+    instruction. The message cells are `a` (2 cells), `b` (2 cells) and `tail`
+    (4 cells, none when omitted), and the message is their first `len` bytes
+    (all of them by default; bytes past it must be zero). `out` receives the
     13-cell sponge state, whose first two cells are the digest, or just the
     digest when it is a 2-cell run (write-once: if `out` was already written,
     this asserts it equals the result).
 
-    With no keywords this hashes exactly the 64 bytes `a || b` (128 with
-    `tail`) from the zero state, the form every Fiat-Shamir step and Merkle
-    node uses.
-
-    For a longer message, drive the blocks yourself: `final=0` marks a block of
-    128 message bytes that more blocks follow, and `state` carries the previous
-    block's 13-cell output into the next. `len=` makes a block the final one of a
-    message ending that many bytes into it (at most 128): the padding's first
-    byte is placed there, and bytes past it must be zero.
-
-    `cap=` makes the block a duplex step in overwrite mode (Fiat-Shamir): the
-    eight message cells are the rate as given, with no padding and no XOR, and
-    the capacity is the last five cells of `cap`, a previous 13-cell output (or
-    a 5-cell run).
+    `cap=` makes it a duplex step in overwrite mode (Fiat-Shamir): the eight
+    message cells absorbed into a zero rate, with no padding, and the capacity
+    the last five cells of `cap`, a previous 13-cell output (or a 5-cell run).
 
     Message and output operands are StackBufs or slices `buf[lo:hi]` of the right
     size, or lists of words (a literal `0` is known to be zero); heap runs are
-    bridged through the stack, one DEREF per cell, `state` and a 13-cell `out`
-    included."""
-    _ = a, b, out, tail, state, len, final, cap
+    bridged through the stack, one DEREF per cell, a 13-cell `out` included."""
+    _ = a, b, out, tail, len, cap
 
 
-def keccak_cells(run, out) -> None:
-    """The leanVM hash of the whole run of cells `run` (a StackBuf, or a slice
-    with compile-time bounds), eight cells a `KECCAK` instruction. `out` is as for
-    `keccak`."""
-    _ = run, out
+def keccak_cells(
+    cells,
+    out,
+    *,
+    state=None,
+    len: Optional[int] = None,
+    final: Optional[int] = None,
+) -> None:
+    """The leanVM hash of the message `cells` holds (a StackBuf, a slice with
+    compile-time bounds, a list of words, or a comprehension over `unroll`), its
+    first `len` bytes (all of them by default), 136 bytes a `KECCAK` instruction.
+    `out` is as for `keccak`.
+
+    `state` continues a hash from a previous 13-cell output whose message so far
+    is a whole number of 17-cell block pairs. `final=0` absorbs the cells
+    zero-extended to whole blocks, with no padding."""
+    _ = cells, out, state, len, final

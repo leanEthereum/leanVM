@@ -5,7 +5,7 @@
 
 use lean_compiler::{compile, parse_with_replacements};
 use leanvm_core::cpu::{Program, Proof, Stats, prove, verify};
-use primitives::field::{F64, F192, g_pow};
+use primitives::field::{F192, g_pow};
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::process::{Command, Output};
@@ -24,9 +24,9 @@ def mix(value, tag):
     return value * GEN + value
 
 def main():
-    seed = [5, 7]
+    # 160 bytes: two blocks, the second read in the odd layout.
     digest = StackBuf(2)
-    keccak(seed, seed, digest)
+    keccak_cells([5, 7, 5, 7, 5, 7, 5, 7, 5, 7], digest)
 
     chain = HeapBuf(LOOP_STEPS + 1)
     chain[1] = digest[0]
@@ -74,12 +74,15 @@ fn python_verify(directory: &Path, bytecode: &Path, public_input: &Path, stream:
 }
 
 fn public_input() -> [F192; 2] {
-    let seed = [F64(5), F64::ZERO, F64(7), F64::ZERO];
-    let digest = leanvm_core::vmhash::compress(seed, seed);
-    let digest = [
-        F192::new(digest[0].0, digest[1].0, 0),
-        F192::new(digest[2].0, digest[3].0, 0),
-    ];
+    let message: Vec<u8> = [5u64, 7]
+        .repeat(5)
+        .into_iter()
+        .flat_map(|v| [v, 0])
+        .flat_map(u64::to_le_bytes)
+        .collect();
+    let digest = primitives::hash::hash(&message);
+    let word = |i: usize| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap());
+    let digest = [F192::new(word(0), word(1), 0), F192::new(word(2), word(3), 0)];
     let mut value = digest[0];
     let mut index = F192::ONE;
     let generator = F192::from(g_pow(1));

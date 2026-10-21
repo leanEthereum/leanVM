@@ -214,11 +214,13 @@ pub(crate) fn committed_log(log_mem: usize, log_bytecode: usize, taus: [usize; t
         .mu
 }
 
-/// The eight PUBLIC bytecode columns over the program cube, in bytecode-slot
-/// order: the opcode, then seven operand/immediate slots. The program is not
-/// committed, so these ride the seed/finalize blocks as `Coord::Public` and
-/// stack into the polynomial [`bytecode_table`] returns.
-pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 8] {
+/// Operand slots of a bytecode tuple, after the opcode.
+pub const BYTECODE_OPERANDS: usize = 10;
+
+/// The PUBLIC bytecode columns over the program cube, in bytecode-slot order: the opcode, then
+/// the operand slots. The program is not committed, so these ride the seed/finalize blocks as
+/// `Coord::Public` and stack into the polynomial [`bytecode_table`] returns.
+pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
     let max_op = prog
         .iter()
         .map(|op| match *op {
@@ -226,7 +228,9 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 8] {
             Op::Set { o, .. } => o,
             Op::Deref { o1, o2, o3, .. } => o1.max(o2).max(o3),
             Op::Jump { oc, od, of } => oc.max(od).max(of),
-            Op::Keccak { m, tail, cap, out } => m[0].max(m[1]).max(m[2]).max(m[3]).max(tail).max(cap).max(out),
+            Op::Keccak {
+                m, tail, b8, cap, out, ..
+            } => m.into_iter().chain([tail, b8, cap, out]).max().expect("operands"),
         })
         .max()
         .unwrap_or(0) as usize;
@@ -241,65 +245,43 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 8] {
         Op::Jump { .. } => OP_JUMP,
         Op::Keccak { .. } => OP_KECCAK,
     };
-    let operands = |op: &Op| -> (F64, F64, F64) {
-        match *op {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => (g_at(a), g_at(b), g_at(c)),
-            // The immediate's first two K-limbs ride operand slots o2/o3; c2
-            // rides the fpc slot below.
-            Op::Set { o, k } => (g_at(o), F64(k.c0), F64(k.c1)),
-            Op::Deref { o1, o2, o3, .. } => (g_at(o1), g_at(o2), g_at(o3)),
-            Op::Jump { oc, od, of } => (g_at(oc), g_at(od), g_at(of)),
-            // KECCAK's first three `m` offsets; the rest ride the four slots below.
-            Op::Keccak { m, .. } => (g_at(m[0]), g_at(m[1]), g_at(m[2])),
-        }
+    // Offsets as g-powers; a `SET` immediate as its three limbs, the `DEREF` store-mode flags
+    // and `KECCAK`'s layout flags as 0 or 1. Unused slots are zero.
+    let flag = |b: bool| F64(u64::from(b));
+    let operands = |op: &Op| -> [F64; BYTECODE_OPERANDS] {
+        let mut slots = [F64::ZERO; BYTECODE_OPERANDS];
+        let used: Vec<F64> = match *op {
+            Op::Xor { a, b, c } | Op::Mul { a, b, c } => vec![g_at(a), g_at(b), g_at(c)],
+            Op::Set { o, k } => vec![g_at(o), F64(k.c0), F64(k.c1), F64(k.c2)],
+            Op::Deref { o1, o2, o3, mode } => vec![g_at(o1), g_at(o2), g_at(o3), mode.f_pc(), mode.f_fp()],
+            Op::Jump { oc, od, of } => vec![g_at(oc), g_at(od), g_at(of)],
+            Op::Keccak {
+                m,
+                tail,
+                b8,
+                cap,
+                out,
+                in_odd,
+                out_odd,
+            } => m
+                .into_iter()
+                .chain([tail, b8, cap, out])
+                .map(g_at)
+                .chain([flag(in_odd), flag(out_odd)])
+                .collect(),
+        };
+        slots[..used.len()].copy_from_slice(&used);
+        slots
     };
-    // The 4th/5th bytecode operand slots: the two DEREF store-mode flags, or
-    // KECCAK's last `m` offset and its `tail` base (0 elsewhere).
-    let fpc = |op: &Op| match op {
-        Op::Deref { mode, .. } => mode.f_pc(),
-        Op::Keccak { m, .. } => g_at(m[3]),
-        Op::Set { k, .. } => F64(k.c2),
-        _ => F64::ZERO,
-    };
-    let ffp = |op: &Op| match op {
-        Op::Deref { mode, .. } => mode.f_fp(),
-        Op::Keccak { tail, .. } => g_at(*tail),
-        _ => F64::ZERO,
-    };
-    // The 6th/7th bytecode operand slots: KECCAK's `cap` and output bases (0
-    // elsewhere).
-    let extra0 = |op: &Op| match op {
-        Op::Keccak { cap, .. } => g_at(*cap),
-        _ => F64::ZERO,
-    };
-    let extra1 = |op: &Op| match op {
-        Op::Keccak { out, .. } => g_at(*out),
-        _ => F64::ZERO,
-    };
-    // The program is PUBLIC (not committed): eight public columns over the
-    // program cube, embedded in the bytecode seed/finalize blocks below.
-    let column = |f: &(dyn Fn(&Op) -> F64 + Sync)| parallel::map_collect(prog.len(), |i| f(&prog[i]));
-    let prog_op: Vec<F64> = column(&opcode);
-    let prog_o1: Vec<F64> = column(&|o| operands(o).0);
-    let prog_o2: Vec<F64> = column(&|o| operands(o).1);
-    let prog_o3: Vec<F64> = column(&|o| operands(o).2);
-    let prog_fpc: Vec<F64> = column(&fpc);
-    let prog_ffp: Vec<F64> = column(&ffp);
-    let prog_extra0: Vec<F64> = column(&extra0);
-    let prog_extra1: Vec<F64> = column(&extra1);
-    [
-        prog_op,
-        prog_o1,
-        prog_o2,
-        prog_o3,
-        prog_fpc,
-        prog_ffp,
-        prog_extra0,
-        prog_extra1,
-    ]
+    let ops: Vec<F64> = parallel::map_collect(prog.len(), |i| opcode(&prog[i]));
+    let slots: Vec<[F64; BYTECODE_OPERANDS]> = parallel::map_collect(prog.len(), |i| operands(&prog[i]));
+    std::array::from_fn(|k| match k {
+        0 => ops.clone(),
+        _ => slots.iter().map(|s| s[k - 1]).collect(),
+    })
 }
 
-/// The stacked bytecode polynomial: the eight columns at their bus tuple
+/// The stacked bytecode polynomial: the eleven columns at their bus tuple
 /// coordinates, which is what makes the program's whole share of a bus leaf one
 /// evaluation at `(ζ, α⃗)` (see [`crate::leaf::stacked_bytecode_table`]).
 ///
@@ -334,7 +316,7 @@ pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: 
     // operand, an O(1) lookup each, rather than over the whole 2^log_mem memory.
     // Shared between the seed and finalize blocks: at kbc = 19 a copy is tens of
     // megabytes per column.
-    let prog_cols: [std::sync::Arc<Vec<F64>>; 8] = bytecode_columns(prog).map(std::sync::Arc::new);
+    let prog_cols: [std::sync::Arc<Vec<F64>>; 1 + BYTECODE_OPERANDS] = bytecode_columns(prog).map(std::sync::Arc::new);
 
     // ---- bus blocks ----
     use Coord::{Col, Const, Index, Public};

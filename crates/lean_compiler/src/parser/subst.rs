@@ -159,7 +159,7 @@ fn subst_kind(s: &StmtKind, name: &str, to: &Expr) -> (StmtKind, bool) {
 
 /// `e` with every `Var(name)` replaced by `to`: the `match` arm
 /// expansion, where the lambda parameter becomes the arm's integer literal.
-pub(super) fn subst_var(e: &Expr, name: &str, to: &Expr) -> Expr {
+pub(crate) fn subst_var(e: &Expr, name: &str, to: &Expr) -> Expr {
     let s = |b: &Expr| Box::new(subst_var(b, name, to));
     match e {
         Expr::Var(v) if v == name => to.clone(),
@@ -175,6 +175,12 @@ pub(super) fn subst_var(e: &Expr, name: &str, to: &Expr) -> Expr {
         Expr::Pow(a, b) => Expr::Pow(s(a), s(b)),
         Expr::HeapBufDyn(sz) => Expr::HeapBufDyn(s(sz)),
         Expr::ListLit(es) => Expr::ListLit(es.iter().map(|a| subst_var(a, name, to)).collect()),
+        Expr::ListComp(body, var, lo, hi) => Expr::ListComp(
+            if var == name { body.clone() } else { s(body) },
+            var.clone(),
+            s(lo),
+            s(hi),
+        ),
         Expr::Call(f, args) => Expr::Call(f.clone(), args.iter().map(|a| subst_var(a, name, to)).collect()),
         other => other.clone(),
     }

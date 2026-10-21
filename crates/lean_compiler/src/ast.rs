@@ -76,6 +76,10 @@ pub enum Expr {
     /// assignment (inside a function; a *top-level* `NAME = […]` is a constant
     /// array, see [`Ast::const_arrays`]).
     ListLit(Vec<Expr>),
+    /// `[body for var in unroll(lo, hi)]`: the list literal of `body` at each integer `var` of
+    /// `lo..hi`, expanded once the bounds are compile-time integers. Only a `keccak_cells`
+    /// argument.
+    ListComp(Box<Expr>, String, Box<Expr>, Box<Expr>),
 }
 
 /// A statement, with the source line it came from. The line is what every
@@ -319,6 +323,13 @@ fn free_vars_expr<'a>(e: &'a Expr, refs: &mut Vec<&'a str>) {
             free_vars_expr(hi, refs);
         }
         Expr::Call(_, args) | Expr::ListLit(args) => args.iter().for_each(|a| free_vars_expr(a, refs)),
+        Expr::ListComp(body, var, lo, hi) => {
+            let mut inner = Vec::new();
+            free_vars_expr(body, &mut inner);
+            refs.extend(inner.into_iter().filter(|v| v != var));
+            free_vars_expr(lo, refs);
+            free_vars_expr(hi, refs);
+        }
         Expr::HeapBufDyn(sz) | Expr::GenPow(sz) => free_vars_expr(sz, refs),
         Expr::Lit(_) | Expr::Gen | Expr::GPow(_) | Expr::HeapBuf(_) | Expr::StackBuf(_) => {}
     }
