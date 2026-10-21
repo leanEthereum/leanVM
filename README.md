@@ -14,11 +14,11 @@
 <table align="center">
   <tr>
     <td><a href="#leanxmss-aggregation">leanXMSS aggregation</a></td>
-    <td align="right"><b>pending</b></td>
+    <td align="right"><b>1130/s</b></td>
   </tr>
   <tr>
     <td><a href="#leansphincs-aggregation">leanSPHINCS aggregation</a></td>
-    <td align="right"><b>626/s</b></td>
+    <td align="right"><b>720/s</b></td>
   </tr>
   <tr>
     <td><a href="#data-availability">leanDA commitment</a></td>
@@ -28,15 +28,15 @@
 <table align="center">
   <tr>
     <td><a href="#recursion">2-to-1 recursion</a></td>
-    <td align="right"><b>0.33s</b></td>
+    <td align="right"><b>0.34s</b></td>
   </tr>
   <tr>
     <td><a href="#hashing">hash compressions</a></td>
-    <td align="right"><b>480K/s</b></td>
+    <td align="right"><b>500K/s</b></td>
   </tr>
   <tr>
     <td><a href="#fibonacci">cheap cycles</a></td>
-    <td align="right"><b>6,2M/s</b></td>
+    <td align="right"><b>5,7M/s</b></td>
   </tr>
 </table>
 

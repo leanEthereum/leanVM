@@ -22,29 +22,70 @@ The annex follows that order. \S\ref{keccak:statement} fixes the statement and w
 
 \subsection{Statement and commitment}\label{keccak:statement}
 
-\paragraph{Positions.} A state is $1600$ bits. Bit \emph{position} $j=z+64\ell$ is \emph{slice} $z$ of \emph{lane} $\ell$, with $0\le z<64$ and $0\le\ell<25$. Lane $\ell$ sits in column $\ell\bmod5$ and row $\lfloor\ell/5\rfloor$ of the $5\times5$ array of~\cite{fips202}. Write $\along{j}{k}$ for the position $k$ columns along from $j$, in the same row and slice: lane $\ell$ becomes lane $5\lfloor\ell/5\rfloor+\bigl((\ell+k)\bmod5\bigr)$. For each $k$ this is a permutation of the positions, with inverse $j\mapsto\along{j}{5-k}$.
+This subsection fixes how we name the bits of a Keccak state, recalls what one round does, and then says what the prover commits and what the reduction must prove.
 
-\paragraph{A round.} Round $R$, for $1\le R\le24$, sends a state $a$ to the state $a'$ in two steps. The first is the $\Ftwo$-linear map $\klin$, the composition of the steps theta, rho and pi of~\cite{fips202}: theta adds to every bit the parity of one neighbouring column in its slice and of the other in the slice before, rho rotates the slices of each lane by a fixed offset, and pi moves each lane to a fixed lane. The second is the step chi followed by iota, the only nonlinear part:
+\paragraph{The state.} A Keccak-$f[1600]$ state is $1600$ bits. FIPS~202~\cite{fips202} arranges them in a $5\times5$ grid of cells, with a stack of $64$ bits in each cell.
+\begin{itemize}
+\item The $64$ bits in one cell form a \emph{lane}. The grid has $5$ \emph{columns} and $5$ \emph{rows}, and lane number $\ell=5\cdot\text{row}+\text{column}$ is the cell in that column and row, so $\ell$ runs from $0$ to $24$. Conversely, lane $\ell$ is in column $\ell\bmod5$ and in row $\lfloor\ell/5\rfloor$.
+\item Bit $z$ of a lane, for $0\le z<64$, is at height $z$ in its stack. The $25$ bits at height $z$, one in each lane, form \emph{slice} $z$.
+\end{itemize}
+So a bit is given by a lane and a slice. We number it by its \emph{position}
+\[
+j=z+64\ell\qquad(0\le z<64,\ 0\le\ell<25),
+\]
+which is bit $z$ of lane $\ell$. The $64$ bits of lane $\ell$ are the consecutive positions $64\ell,\dots,64\ell+63$.
+
+\paragraph{Moving along a row.} Chi, the one nonlinear step of a round, combines each bit with two bits of the same row and the same slice: the one in the next column and the one two columns along, counting columns modulo $5$. We name these neighbours. For a position $j$ and $0\le k<5$, let $\along{j}{k}$ be the position in the same row and the same slice as $j$, but $k$ columns further along. Since a lane is one cell of the grid, a different column in the same row is a different lane: if $j$ is bit $z$ of lane $\ell$, then $\along{j}{k}$ is bit $z$ of lane
+\[
+5\lfloor\ell/5\rfloor+\bigl((\ell+k)\bmod5\bigr),
+\]
+the row $\lfloor\ell/5\rfloor$ unchanged and the column $\ell\bmod5$ moved by $k$. For example, with $k=1$, bit $z$ of lane $3$ goes to bit $z$ of lane $4$, and bit $z$ of lane $4$ wraps around to bit $z$ of lane $0$. Moving $k$ columns along and then $5-k$ more comes back to the start, so $j\mapsto\along{j}{k}$ is a permutation of the positions, and its inverse is $j\mapsto\along{j}{5-k}$.
+
+\paragraph{A round.} Keccak-$f[1600]$ is $24$ rounds. Round $R$, for $1\le R\le24$, maps a state $a$ to a new state $a'$ in two stages.
+\begin{enumerate}
+\item A linear map $\klin$: theta, then rho, then pi~\cite{fips202}.
+\begin{itemize}
+\item Theta adds to each bit two parities. Each is the sum of the five bits of one column at one slice, one bit per row. The first is from the previous column, at the same slice; the second from the next column, at the previous slice.
+\item Rho rotates each lane by a fixed amount: bit $z$ of lane $\ell$ moves to bit $z+\koff{\ell}\bmod64$ of the same lane.
+\item Pi moves each lane, whole, to another cell of the grid.
+\end{itemize}
+Each of the three only adds bits or moves them, so $\klin$ is linear over $\Ftwo$.
+\item A nonlinear map: chi, then iota. Chi adds to each bit the product of the next bit along its row, negated, and the bit after that. Iota then adds the $64$ bits of the round constant $\krc_R\in\cube{64}$ to lane $0$, that is to the positions $j<64$.
+\end{enumerate}
+In one formula, with $b$ the state between the two stages:
 \begin{equation}\label{keccak:eq:round}
-b=\klin(a),\qquad a'[j]=b[j]+\bigl(1+b[\along{j}{1}]\bigr)\,b[\along{j}{2}]+[\,j<64\,]\,\krc_R[j],
+b=\klin(a),\qquad a'[j]=b[j]+\bigl(1+b[\along{j}{1}]\bigr)\,b[\along{j}{2}]+[\,j<64\,]\,\krc_R[j].
 \end{equation}
-where $\krc_R\in\cube{64}$ is the round constant, which iota adds to lane $0$. Chi is the product, of degree two, and is the only part a layer needs a sumcheck for.
+The only product is chi's, of degree two. So a round is linear except for one product, and that product is the only part of a round that needs a sumcheck.
 
-\paragraph{The batch.} The \texttt{KECCAK} table has $2^{\kbatch}$ rows, $\kbatch$ being its log-height $\tau$, which is at least $9$ (\S\ref{sec:arith}). Every row is a step the reduction proves, padding rows included: an honest prover fills those with the permutation of the zero state (\S\ref{sec:e2e-pad}). A step is indexed by $t\in\cube{\kbatch}$.
+\paragraph{The steps.} The VM's \texttt{KECCAK} table has one row per step, and a step is one permutation: it reads a state and writes Keccak-$f[1600]$ of it. The table has $2^{\kbatch}$ rows, where $\kbatch$ is its log-height $\tau$, at least $9$ (\S\ref{sec:arith}). We index the steps by $t\in\cube{\kbatch}$. The reduction proves every row, padding rows included. An honest prover fills each padding row with the permutation of the zero state (\S\ref{sec:e2e-pad}), so padding rows are valid steps too.
 
-\paragraph{The commitment.} The prover commits each step's input, as lanes. They form one column
+\paragraph{What is committed.} The prover commits the input state of each step, and nothing else. It stores a lane as one element of $\K$: bit $z$ of the lane is the coefficient of $x^z$. The $25$ input lanes of all steps form one function
 \[
 \qkeccak:\cube{\kbatch}\times\cube{5}\to\K,
 \]
-whose second argument is a \emph{slot}: slot $\ell$ holds lane $\ell$ of the input, one $\K$-element per step, bit $z$ of the lane being the coefficient of $x^z$. That is $25$ slots, and the seven left are zero. With the bit slices $Q_0,\dots,Q_{63}$ of Annex~\ref{annex:rs}, $\qkeccak=\sum_{z<64}Q_z\,x^z$, slice $z$ of lane $\ell$ is $Q_z(t,\ell)$, and the column has $\nkeccak=\kbatch+5$ variables. It is one region of the stack (\S\ref{sec:stacking}).
+committed as one column of the VM's witness (a column of the commitment, not of the grid). Its first argument is the step $t$. Its second argument is a \emph{slot}: slot $\ell$ holds input lane $\ell$, for $\ell<25$, and the other seven slots hold zero. So $\qkeccak$ has $\nkeccak=\kbatch+5$ variables, and it is one region of the stack (\S\ref{sec:stacking}).
 
-\paragraph{What the main protocol holds.} The \texttt{KECCAK} table has no value column of its own (\S\ref{sec:tab-keccak}): its input lane $\ell$ is slot $\ell$, except that the step XORs the padding's last bit into lane $16$ before permuting, so the committed slot $16$ is the lane the machine reads plus $x^{63}$. Its output lane $\ell$ is the column $\kout{\ell}:\cube{\kbatch}\to\K$ of lane $\ell$ of what the permutation makes of the committed input, a function of the commitment that nobody commits to. The table sumcheck (\S\ref{sec:e2e-unrolled}) leaves one claim on each, at its point: with $(r_{\mathrm{low}},r_{\mathrm{pack}})=\fc_{<\kbatch}$, the first four coordinates and the rest, the prover has sent $\koutv{\ell}\in\E$ claiming $\koutv{\ell}=\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})$ for $\ell<25$. These $25$ values are where the reduction starts.
+The reduction works on bits, so we also name the bits of $\qkeccak$. Its \emph{bit slices} are the Boolean functions $Q_0,\dots,Q_{63}$ on the same domain with $\qkeccak=\sum_{z<64}Q_z\,x^z$ (Annex~\ref{annex:rs}). Then bit $z$ of input lane $\ell$ in step $t$ is $Q_z(t,\ell)$.
 
-\paragraph{The statement.} For $0\le e\le24$, let $a_{e}(j;t)\in\Ftwo$ be bit $j$ of the state obtained by applying the first $e$ rounds, by \eqref{keccak:eq:round}, to the committed input of step $t$. So $a_{0}(z+64\ell;t)=Q_z(t,\ell)$ is committed, every other $a_{e}$ is a function of the commitment that nobody commits to, and $\kout{\ell}(t)=\sum_{z<64}a_{24}(z+64\ell;t)\,x^z$. The statement is that the claims on the output hold:
+\paragraph{What the main protocol holds.} The \texttt{KECCAK} table has no value columns of its own (\S\ref{sec:tab-keccak}). Its $25$ input lanes and $25$ output lanes are virtual columns, defined from $\qkeccak$:
+\begin{itemize}
+\item Input lane $\ell$ is slot $\ell$ of $\qkeccak$, with one exception. Before permuting, the step adds the last bit of the padding into lane $16$. So the committed slot $16$ holds the lane the machine reads, plus $x^{63}$.
+\item Output lane $\ell$ is the function $\kout{\ell}:\cube{\kbatch}\to\K$ that gives, for each step, lane $\ell$ of the permutation of its committed input. It is determined by the commitment, but nobody commits to it.
+\end{itemize}
+The table sumcheck (\S\ref{sec:e2e-unrolled}) ends with one claim on each output lane, all at the same point $\fc_{<\kbatch}\in\E^{\kbatch}$. We split this point as $(r_{\mathrm{low}},r_{\mathrm{pack}})$: $r_{\mathrm{low}}$ is its first four coordinates and $r_{\mathrm{pack}}$ the other $\kbatch-4$. For each $\ell<25$, the prover has sent a value $\koutv{\ell}\in\E$ and claims $\koutv{\ell}=\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})$. These $25$ claims are where the reduction starts.
+
+\paragraph{The statement.} For $0\le e\le24$, let $a_{e}(j;t)\in\Ftwo$ be the bit at position $j$ after $e$ rounds \eqref{keccak:eq:round}, starting from the committed input of step $t$. Then:
+\begin{itemize}
+\item $a_0$ is the committed input: $a_{0}(z+64\ell;t)=Q_z(t,\ell)$;
+\item every other $a_e$ is determined by the commitment, but not committed;
+\item the output lanes are read off $a_{24}$: $\kout{\ell}(t)=\sum_{z<64}a_{24}(z+64\ell;t)\,x^z$.
+\end{itemize}
+The reduction proves that the claims on the output lanes are true:
 \begin{equation}\label{keccak:eq:statement}
 \koutv{\ell}=\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})\quad\text{for all }\ell<25.
 \end{equation}
-In words: the values the main protocol holds on the output lanes are those of the permutation of the committed input. Nothing else needs proving, since the input lanes are committed and the bus binds them to memory (\S\ref{sec:tab-keccak}).
+In words: the values the main protocol holds for the output lanes are those of the permutation of the committed inputs. Nothing more is needed, because the input lanes are committed and the bus binds them to memory (\S\ref{sec:tab-keccak}).
 
 \subsection{The embedding}\label{keccak:rmfe}
 
