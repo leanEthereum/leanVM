@@ -4,16 +4,18 @@ import KeccakGkr.Rmfe
 /-!
 # The statement and the claims
 
-The prover has committed a column `Q`: for every step `(i, p)` (an instance `i` of a pack `p`)
-and every slot `o`, a 64-bit lane. Slot `slotCube m ℓ` holds lane `ℓ` of the input of segment
-`m`, segment `m` being the `D` rounds from round `D m`. The statement (`Statement`, equations
-`keccak:eq:statement` and `keccak:eq:chain` of `doc/leanvm`, §`keccak:segments`) is that segment `0`, run from its committed input, ends on
-segment `1`'s committed input in every step (`Chain`), and that the main protocol's values `v`
-are the multilinear extensions of the output lanes at the step point.
+The prover has committed a column `Q`: for every step `(i, p)` (an instance `i` of a pack `p`) and
+every slot `o`, a 64-bit lane. Slot `slotCube m ℓ` holds lane `ℓ` of the input of segment `m`,
+segment `m` being the `D` rounds from round `D m`. The statement (`Statement`, equations
+`keccak:eq:statement` and `keccak:eq:chain` of `doc/leanvm`, `§keccak:segments`) is that segment
+`0`, run from its committed input, ends on segment `1`'s committed input in every step (`Chain`),
+and that the main protocol's values `v` are the multilinear extensions of the output lanes at the
+step point.
 
-A claim at level `e` (`Claim.Holds`, equation `keccak:eq:claim`) is a weighted sum of the bits of
-the states after `e` rounds of each segment. The protocol carries a claim from level `D` down to
-level `0`, where the states are committed.
+A claim at level `e` (`Claim.Holds`, equation `keccak:eq:claim` with the segment sum of
+`§keccak:segments`, at depth `D - e`) is a weighted sum of the bits of the states after `e` rounds
+of each segment. The protocol carries a claim from level `D` down to level `0`, where the states
+are committed.
 -/
 
 open Polynomial

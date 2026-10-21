@@ -4,9 +4,10 @@ import KeccakGkr.Sumcheck
 /-!
 # The algebra of a layer
 
-Layer `e` (`§keccak:layer` of `doc/leanvm`) turns a claim on the states after `e + 1` rounds of
-each segment into a claim on the states after `e`. With `b` the state round `D m + e` applies chi
-to (`chiIn`), the prover's product polynomial is `prodTrue` (equation `keccak:eq:product`), and:
+Layer `e` (layer `D - 1 - e` of `§keccak:layer` of `doc/leanvm`, with the segment variable of
+`§keccak:segments`) turns a claim on the states after `e + 1` rounds of each segment into a claim on
+the states after `e`. With `b` the state round `D m + e` applies chi to (`chiIn`), the prover's
+product polynomial is `prodTrue` (equation `keccak:eq:product`), and:
 
 * `proj_prodTrue`: its projection plus the round constants' share is the claimed value
   (equation `keccak:eq:projection`), by the embedding lemma;

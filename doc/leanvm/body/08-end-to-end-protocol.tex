@@ -18,7 +18,7 @@ Instruction & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$\\
 \texttt{SET\_CONSTANT} & $\opc{SET}$ & $o$   & $k_0$ & $k_1$ & $k_2$ & $0$ & $0$ & $0$\\
 \texttt{DEREF}         & $\opc{DRF}$ & $o_1$ & $o_2$ & $o_3$ & $f_{\pc}$ & $f_{\fp}$ & $0$ & $0$\\
 \texttt{JUMP}          & $\opc{JMP}$ & $o_c$ & $o_d$ & $o_f$ & $0$ & $0$ & $0$ & $0$\\
-\texttt{KECCAK}           & $\opc{S3}$  & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$\\
+\texttt{KECCAK}           & $\opc{KEC}$  & $o_{m_0}$ & $o_{m_1}$ & $o_{m_2}$ & $o_{m_3}$ & $o_{\mathit{tail}}$ & $o_{\mathit{cap}}$ & $o_{\mathit{out}}$\\
 \hline
 \end{tabular}
 \end{center}
@@ -38,7 +38,7 @@ and pools the claims $c_0,c_1,0$ on $\mem_0,\mem_1,\mem_2$ at $(r_m,0,\dots,0)$,
 
 \subsection{Padding rows}\label{sec:e2e-pad}
 
-An honest prover fills the padding rows of $T_j$ with the public row $\padrow{j}$: zero, except the twenty-five \texttt{KECCAK} output lanes (\S\ref{sec:tab-keccak}), which hold the step of a zero state. This is only for completeness: $\padrow{j}$ satisfies the constraints (\texttt{JUMP}'s vanish at zero), and the Keccak reduction (Annex~\ref{annex:keccak}) proves its step like any other. When the recursion guest needs a larger commitment (\S\ref{sec:recursion}), the prover grows the memory, not a table.
+An honest prover fills the padding rows of $T_j$ with the public row $\padrow{j}$: zero, except the twenty-five \texttt{KECCAK} output lanes (\S\ref{sec:tab-keccak}), which hold the instruction applied to a zero state. This is only for completeness: $\padrow{j}$ satisfies the constraints (\texttt{JUMP}'s vanish at zero), and the Keccak reduction (Annex~\ref{annex:keccak}) proves that permutation like any other. When the recursion guest needs a larger commitment (\S\ref{sec:recursion}), the prover grows the memory, not a table.
 
 The bus does not depend on what a padding row holds:
 
@@ -119,7 +119,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \item \textbf{Verifier.} Samples and sends the first claim's challenges, $r_{\mathrm{seg}}\in\E$ and $r_{\mathrm{lane}}\in\E^{5}$. The claim is made at the \texttt{KECCAK} table's point $\fc_{<\kbatch}$, with $\kbatch$ its log-height (\S\ref{keccak:claims}, \S\ref{keccak:segments}).
 \item \textbf{Prover \& Verifier.} The prover sends the part of the first claim on the committed state after twelve rounds; the part on the output is the table's claims on its output lanes. The parties run the layers of Protocol~\ref{keccak:protocol} with the middle state committed (\S\ref{keccak:segments}): twelve, one per round of a segment, which take the claim to one on the committed states twelve rounds earlier (\S\ref{keccak:layer}).
 \item \textbf{Prover \& Verifier.} Open the part on the committed state: a sumcheck over the slot leaves one evaluation of $\qkeccak$, an ordinary column claim, which joins the pool last (\S\ref{keccak:segments}).
-\item \textbf{Prover \& Verifier.} Open the last claim: a sumcheck over the steps of a pack, then over the slot, leaves the $64$ bit slices of $\qkeccak$ at one point, which the prover sends (\S\ref{keccak:openings}).
+\item \textbf{Prover \& Verifier.} Open the last claim: a sumcheck over the permutations of a pack, then over the slot, leaves the $64$ bit slices of $\qkeccak$ at one point, which the prover sends (\S\ref{keccak:openings}).
 \item \textbf{Prover \& Verifier.} The verifier samples the six challenges of the ring-switching map, and the ring switching of \S\ref{sec:ringswitch} reduces those $64$ values to a weighted-sum claim on the $\qkeccak$ region of the stack, with an MLE-friendly $\E$-valued weight (Definition~\ref{def:ipcs}).
 \end{enumerate}
 

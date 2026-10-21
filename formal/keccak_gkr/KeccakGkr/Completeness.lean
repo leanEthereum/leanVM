@@ -9,8 +9,8 @@ computes it, ends every possible execution with the verifier accepting, both cla
 true, and the statement holding at the point the verifier drew.
 
 The honest prover here computes in the field directly. The crate's prover computes in the basis
-of the powers of `s` and aborts when `s` lies in a proper subfield (`§keccak:soundness`,
-completeness), which this model does not include.
+of the powers of `s` and aborts when `s` lies in a proper subfield (`§keccak:cost`, prover),
+which this model does not include.
 -/
 
 open Polynomial OracleComp

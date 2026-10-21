@@ -3,11 +3,12 @@ import KeccakGkr.Completeness
 /-!
 # Keccak-f[1600] by GKR
 
-The protocol for Keccak-f[1600] with two segments of twelve rounds, as the VM runs it, over any
-finite field `E` of characteristic two holding a word basis `x` (in the VM, `E = GF(2^192)` and
-`x` generates `K = GF(2^64)`). The steps have `κ = n + 4` variables.
+Protocol `keccak:protocol` of `doc/leanvm` with the middle state committed (`§keccak:segments`): two
+segments of twelve rounds, as the VM runs it, over any finite field `E` of characteristic two
+holding a word basis `x` (in the VM, `E = GF(2^192)` and `x` generates `K = GF(2^64)`). The steps
+have `κ = n + 4` variables.
 
-* `keccak_sound`: the error is `(37 κ + 902) / |E|`, the bound of `§keccak:soundness`;
+* `keccak_sound`: the error is `(37 κ + 902) / |E|`;
 * `keccak_complete`: an honest prover is always accepted;
 * `statement_iff`: the statement is that the main protocol's values are, at its point, the
   multilinear extensions of the lanes of Keccak-f[1600] applied to the committed inputs, and that

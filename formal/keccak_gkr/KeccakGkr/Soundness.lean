@@ -6,7 +6,7 @@ import KeccakGkr.Protocol
 `protocol_sound`: for any committed column and any prover, with arbitrary private memory and
 randomness, the probability that the verifier ends holding true claims on the column while the
 statement is false is at most `(n + 10 + D (3n + 84) + 32) / |E|`. For Keccak, `D = 12` and
-`κ = n + 4` steps' variables, this is the `(37 κ + 902) / |E|` of `§keccak:soundness`.
+`κ = n + 4` steps' variables, this is `(37 κ + 902) / |E|`.
 -/
 
 open Polynomial OracleComp

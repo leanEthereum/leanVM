@@ -3,8 +3,9 @@ import KeccakGkr.LayerMath
 /-!
 # A layer
 
-Layer `e` (`§keccak:layer`, step 2 of `keccak:protocol`) takes a claim on the states after
-`e + 1` rounds of each segment to one on the states after `e`:
+Layer `e` (layer `D - 1 - e` of `§keccak:layer`, with the segment variable of `§keccak:segments`;
+step 2 of `keccak:protocol`) takes a claim on the states after `e + 1` rounds of each segment to one
+on the states after `e`:
 
 1. the prover sends the product polynomial `G` (degree at most `46`), which the verifier checks
    against the claim through the projection and the round constants;
@@ -16,7 +17,7 @@ Layer `e` (`§keccak:layer`, step 2 of `keccak:protocol`) takes a claim on the s
 
 The verifier carries some other data `α` along unchanged. `layer_sound`: from a false claim (or
 data failing `Px`), every prover makes the next claim true (with `Px`) with probability at most
-`(3n + 84) / |E|`, the annex's `(3κ + 72) / |E|` with `κ = n + 4`.
+`(3n + 84) / |E|`, that is `(3κ + 72) / |E|` with `κ = n + 4`.
 -/
 
 open Polynomial OracleComp

@@ -3,8 +3,8 @@ import KeccakGkr.Layer
 /-!
 # The two openings
 
-`§keccak:openings` of `doc/leanvm`. Both settle claims against the committed column by short
-sumchecks of degree `2`:
+`§keccak:segments` of `doc/leanvm`, the second as in `§keccak:openings`. Both settle claims against
+the committed column by short sumchecks of degree `2`:
 
 * the committed state after the first segment, which the first claim's `c_st` speaks of, reduces
   to an evaluation of the column's words at `(r_low, r_pack, ρ_out)` (`outSummand`, equations

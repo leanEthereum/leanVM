@@ -3,7 +3,8 @@ import KeccakGkr.Start
 /-!
 # Keccak by GKR: the protocol
 
-`protocol` is Protocol `keccak:protocol` of `doc/leanvm`, run from the main protocol's point
+`protocol` is Protocol `keccak:protocol` of `doc/leanvm` with the middle state committed
+(`§keccak:segments`), run from the main protocol's point
 `(r_low, r_pack)`, which the verifier samples, and its output values `v`, which the prover sends:
 
 1. the verifier samples `r_low`, `r_pack`; the prover sends `v`; the verifier samples `r_seg` and

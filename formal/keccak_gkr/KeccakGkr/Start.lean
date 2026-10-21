@@ -7,12 +7,11 @@ The protocol starts from the main protocol's point `(r_low, r_pack)` over the st
 values `v_ℓ` on the output lanes there. The verifier samples `r_seg` and `r_lane` (together `ρ`,
 `r_seg` its first coordinate), the prover sends `c_st`, its value for the committed state after
 the first segment, and the first claim is a random combination of both segments' outputs as
-words (`firstClaim`, `§keccak:claims`).
+words (`firstClaim`, `§keccak:segments`, the first claim).
 
-`firstClaim_identity` is the soundness analysis's comparison of the two sides
-(`§keccak:soundness`, the two ends): what the first claim and `keccak:eq:out` leave over is the
-multilinear extension of `startTable` at `ρ`, a table that vanishes exactly when the statement
-holds at the step point.
+`firstClaim_identity` compares the two sides of the first claim and of `keccak:eq:out`
+(`§keccak:segments`, the first claim): what they leave over is the multilinear extension of
+`startTable` at `ρ`, a table that vanishes exactly when the statement holds at the step point.
 -/
 
 open Polynomial
