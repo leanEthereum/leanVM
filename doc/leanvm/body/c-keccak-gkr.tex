@@ -9,7 +9,9 @@ The design is Lev Soukhanov's: Hashcaster~\cite{Hashcaster} (sumcheck rounds on 
 
 \subsection{Overview}\label{keccak:overview}
 
-The prover commits the inputs of the permutations, and the main protocol ends with claims on their outputs. A GKR~\cite{GKR08}, one layer per round, reduces a random combination of the output claims to a claim on the inputs. A round is a linear map followed by chi, of degree two; a claim crosses the linear map by transposing its weights. A layer packs sixteen permutations into one polynomial (\S\ref{keccak:rmfe}), receives chi's weighted sum as a polynomial $G$, evaluates $G$ at a random point, and runs one sumcheck over packs and positions. The last claim is reduced to the $64$ bit slices of the commitment at one point, for ring switching (Annex~\ref{annex:rs}). \S\ref{keccak:perm} to \S\ref{keccak:recursion} commit only the inputs; the VM also commits the state after twelve rounds (\S\ref{keccak:segments}).
+The prover commits the permutations' inputs; the main protocol ends with claims on their outputs. A round of Keccak-$f$ is a linear map followed by chi, of degree two. GKR~\cite{GKR08} goes back one round at a time: a \emph{layer} turns a claim on a round's output into a claim on its input.
+
+\S\ref{keccak:rmfe} packs sixteen permutations into one polynomial, \S\ref{keccak:idea} proves chi on one layer with it, \S\ref{keccak:layer} gives the full layer and \S\ref{keccak:openings} the final reduction to the commitment. Until \S\ref{keccak:segments}, only the inputs are committed.
 
 \subsection{Keccak-\texorpdfstring{$f[1600]$}{f[1600]}}\label{keccak:perm}
 
@@ -21,13 +23,66 @@ For a lane $0\le\ell<25$ and $0\le k<5$, $\along{\ell}{k}$ is the lane in the sa
 \[
 \along{\ell}{k}=5\lfloor\ell/5\rfloor+\bigl((\ell\bmod5)+k\bigr)\bmod5,\qquad \along{(z+64\ell)}{k}=z+64\,\along{\ell}{k}.
 \]
-For example $\along{3}{1}=4$ and $\along{4}{1}=0$. Shifting by $k$, then by $5-k$, returns to the start, so $j\mapsto\along{j}{k}$ is a bijection of the $1600$ positions with inverse $j\mapsto\along{j}{5-k}$. Chi uses $k=1,2$.
+For example $\along{3}{1}=4$ and $\along{4}{1}=0$. The map $j\mapsto\along{j}{k}$ is a bijection with inverse $j\mapsto\along{j}{5-k}$. Chi uses $k=1,2$.
 
 Round $R\in\{1,\dots,24\}$ maps a state $a$ to
 \begin{equation}\label{keccak:eq:round}
 b=\klin(a),\qquad a'[j]=b[j]+\bigl(1+b[\along{j}{1}]\bigr)\,b[\along{j}{2}]+[\,j<64\,]\,\krc_R[j],
 \end{equation}
 where $\klin$ is theta, then rho, then pi (theta adds to each bit the parities of the previous column at its slice and of the next column at the previous slice; rho moves bit $z$ of lane $\ell$ to bit $z+\koff{\ell}\bmod64$; pi permutes the lanes), the product is chi, and $\krc_R$ is FIPS~202's $\mathrm{RC}[R-1]$, added by iota.
+
+\subsection{Packing}\label{keccak:rmfe}
+
+Chi multiplies bits, and lifted to $\E$ each product of two bits costs a product in $\E$. Packing multiplies the bits of sixteen permutations at once with one carry-less product. The bits of sixteen permutations at one position form a vector of $\Ftwo^{16}$, indexed by $i\in\cube{4}$.
+
+\begin{lemma}[Embedding]\label{lem:rmfe}
+There are $\Ftwo$-linear maps $\kemb:\Ftwo^{16}\to\Ftwo^{\le23}[X]$ and $\kproj:\Ftwo^{\le46}[X]\to\Ftwo^{16}$ with $\kproj\bigl(\kemb(u)\cdot\kemb(v)\bigr)=u\wedge v$ for all $u,v$, $\wedge$ being the coordinatewise product.
+\end{lemma}
+
+The proof is in \S\ref{keccak:rmfe-proof}. Let $\kemb_i$ embed the unit vector at $i\in\cube{4}$ and $\kemb_{\allone}=\sum_i\kemb_i$, so that $\kproj(\kemb_{\allone}\cdot\kemb(u))=u$. Each bit of $\kproj$ is a parity of coefficients, hence extends to an $\E$-linear form on $\E^{\le46}[X]$, and for $\kw\in\E^{16}$, $\kproj_{\kw}(G)=\sum_i\kw_i\,\kproj(G)_i$.
+
+\subsection{Example: chi on one layer}\label{keccak:idea}
+
+Take $2^{\kbatch}$ permutations in \emph{packs} of sixteen: permutation $t=(i,p)$ is number $i\in\cube{4}$ of pack $p\in\cube{\kbatch-4}$. Keep only chi; the linear map and the round constant are left to \S\ref{keccak:layer}. With $b(j;t)$ the bits entering chi, the bits leaving it are
+\[
+a'(j;t)=b(j;t)+\bigl(1+b(\along{j}{1};t)\bigr)\,b(\along{j}{2};t),
+\]
+with bits in $\E$, XOR being $+$ and AND $\cdot$. The verifier holds a claim on a weighted sum of them, with weights $\eq(r,p)$ on the packs ($r\in\E^{\kbatch-4}$), $\kw_i$ within a pack and $\kpw_j$ on the positions:
+\[
+c=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{i\in\cube{4}}\kw_i\sum_{j<1600}\kpw_j\,a'\bigl(j;(i,p)\bigr).
+\]
+
+\paragraph{1. The product polynomial.} In pack $p$ at position $j$, let $S_{p,j}=\kemb\bigl((b(j;(i,p)))_i\bigr)$. Since $\kproj(\kemb_{\allone}\kemb(u))=u$ and $\kproj(\kemb(u)\kemb(v))=u\wedge v$, the polynomial $G_{p,j}=\kemb_{\allone}S_{p,j}+(\kemb_{\allone}+S_{p,\along{j}{1}})\,S_{p,\along{j}{2}}$ projects to the sixteen outputs of pack $p$ at $j$. The prover sends the $47$ coefficients of
+\[
+G=\sum_{p}\eq(r,p)\sum_j\kpw_j\,G_{p,j},
+\]
+and the verifier checks $\kproj_{\kw}(G)=c$.
+
+\paragraph{2. One instance per pack.} To check the received $G$, the verifier evaluates it at a random $\kpt\in\E$. As $\kemb$ is linear, evaluating $S_{p,j}$ at $\kpt$ combines the sixteen bits of pack $p$ at position $j$ into one element of $\E$:
+\[
+b^{\kpt}_j(p)=S_{p,j}(\kpt)=\sum_{i\in\cube{4}}\kw'_i\,b\bigl(j;(i,p)\bigr),\qquad \kw'_i=\kemb_i(\kpt).
+\]
+So $b^{\kpt}(p)$ is a single state over $\E$ standing for the sixteen of pack $p$. With $\kwsum'=\kemb_{\allone}(\kpt)$,
+\[
+G(\kpt)=\sum_p\eq(r,p)\sum_j\kpw_j\bigl(\kwsum'\,b^{\kpt}_j(p)+(\kwsum'+b^{\kpt}_{\along{j}{1}}(p))\,b^{\kpt}_{\along{j}{2}}(p)\bigr),
+\]
+chi on one instance over $\E$ per pack.
+
+\paragraph{3. Sumcheck.} $G(\kpt)$ is a sum over packs $p$ and positions $j$ (positions past $1600$ count as zero), each term the product of $\eq(r,p)$, $\kpw_j$ and chi of the merged state $b^{\kpt}(p)$ at $j$. A sumcheck over the $\kbatch-4$ bits of $p$, then the $11$ bits of $j$, turns this sum into a single term, at a random pack $\fc^{\mathrm{pack}}\in\E^{\kbatch-4}$ and a random position $\fc^{\mathrm{pos}}\in\E^{11}$, with $\kpw$ and $b^{\kpt}$ replaced by their multilinear extensions:
+\[
+\eq(r,\fc^{\mathrm{pack}})\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr),
+\]
+where $\kev_k$ is the merged state shifted by $k$ along the rows, at that pack and position:
+\[
+\kev_k=\sum_{p,j}\eq\bigl((\fc^{\mathrm{pack}},\fc^{\mathrm{pos}}),(p,j)\bigr)\,b^{\kpt}_{\along{j}{k}}(p)\qquad(k=0,1,2).
+\]
+The verifier computes $\eq(r,\fc^{\mathrm{pack}})$ and $\mle{\kpw}(\fc^{\mathrm{pos}})$ itself, the prover sends $\kev_0,\kev_1,\kev_2$, and the verifier checks the term against the sumcheck's last claim.
+
+\paragraph{4. One claim again.} The verifier samples $\kbeta$ and sets $c'=\kev_0+\kbeta\,\kev_1+\kbeta^2\,\kev_2$. Each $\kev_k$ is a weighted sum of the bits entering chi, so
+\[
+c'=\sum_{p}\eq(\fc^{\mathrm{pack}},p)\sum_{i}\kw'_i\sum_{j}\kpw'_j\,b\bigl(j;(i,p)\bigr),
+\]
+with $\kpw'_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}},\along{j}{3})$, the shifts moved onto the weights: a claim of the same form as $c$, on the bits entering chi.
 
 \subsection{Statement and commitment}\label{keccak:statement}
 
@@ -40,29 +95,6 @@ Let $a_e(j;t)$ be bit $j$ after $e$ rounds \eqref{keccak:eq:round} of permutatio
 \koutv{\ell}=\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})\quad\text{for all }\ell<25.
 \end{equation}
 
-\subsection{Packing}\label{keccak:rmfe}
-
-The bits of a pack at one position form a vector of $\Ftwo^{16}$ indexed by $i$.
-
-\begin{lemma}[Embedding]\label{lem:rmfe}
-There are $\Ftwo$-linear maps $\kemb:\Ftwo^{16}\to\Ftwo^{\le23}[X]$ and $\kproj:\Ftwo^{\le46}[X]\to\Ftwo^{16}$ with $\kproj\bigl(\kemb(u)\cdot\kemb(v)\bigr)=u\wedge v$ for all $u,v$, $\wedge$ being the coordinatewise product.
-\end{lemma}
-
-\begin{proof}
-The \emph{readings} of $h$ of degree at most $D$ are $h(0)$, $h(1)$ and its coefficient of $X^D$; those of $hh'$, of degree at most $D+D'$, are the products of those of $h$ and $h'$. Take the seven pairwise coprime irreducibles $g$ below, of product $F$, of degree $23$:
-{\setlength{\arraycolsep}{3pt}
-\[
-\begin{array}{c|ccccccc}
-g & X & X+1 & X^3+X+1 & X^3+X^2+1 & X^5+X^2+1 & X^5+X^3+1 & X^5+X^3+X^2+X+1\\\hline
-\deg g & 1 & 1 & 3 & 3 & 5 & 5 & 5\\
-n_g & 1 & 1 & 2 & 2 & 3 & 3 & 3
-\end{array}
-\]}
-Assign $u_0,\dots,u_{14}$ to the moduli in order, $n_g$ bits each, and let $h_g(u)$, linear in $u$, be the polynomial of degree below $n_g$ whose first $n_g$ readings, with $D=n_g-1$, are the bits assigned to $g$. As $2(n_g-1)<\deg g$, $h_g(u)\,h_g(v)$ is reduced modulo $g$. Put $\kemb(u)=H_u+u_{15}F$, with $H_u$ of degree below $23$, linear in $u$, and $H_u\equiv h_g(u)\pmod g$ for every $g$ (Chinese remainder theorem). Let $\kproj(P)$ be, for each $g$, the first $n_g$ readings of $P\bmod g$ with $D=2(n_g-1)$, then the coefficient of $X^{46}$. For $P=\kemb(u)\kemb(v)$, $P\equiv h_g(u)h_g(v)\pmod g$ gives the first fifteen products, and $P=H_uH_v+u_{15}FH_v+v_{15}FH_u+u_{15}v_{15}F^2$, whose first three terms have degree at most $45$ and $F^2$ is monic of degree $46$, gives $u_{15}v_{15}$ as the coefficient of $X^{46}$.
-\end{proof}
-
-Let $\kemb_i$ embed the unit vector at $i\in\cube{4}$ and $\kemb_{\allone}=\sum_i\kemb_i$, so that $\kproj(\kemb_{\allone}\cdot\kemb(u))=u$. Each bit of $\kproj$ is a parity of coefficients, hence extends to an $\E$-linear form on $\E^{\le46}[X]$, and for $\kw\in\E^{16}$, $\kproj_{\kw}(G)=\sum_i\kw_i\,\kproj(G)_i$.
-
 \subsection{Claims}\label{keccak:claims}
 
 \begin{definition}[Claim]\label{def:keccak-claim}
@@ -72,7 +104,7 @@ c=\sum_{p\in\cube{\kbatch-4}}\ \sum_{i\in\cube{4}}\ \sum_{j<1600}\eq(r,p)\,\kw_i
 \end{equation}
 \end{definition}
 
-\paragraph{The first claim.} Once the $\koutv{\ell}$ are in the transcript, the verifier samples $r_{\mathrm{lane}}\in\E^{5}$ and sets, at depth $0$,
+\paragraph{The first claim.} After the $\koutv{\ell}$, the verifier samples $r_{\mathrm{lane}}\in\E^{5}$ and sets, at depth $0$,
 \[
 \kw_i=\eq(r_{\mathrm{low}},i),\qquad r=r_{\mathrm{pack}},\qquad \kpw_{z+64\ell}=\eq(r_{\mathrm{lane}},\ell)\,x^{z},\qquad c=\sum_{\ell<25}\eq(r_{\mathrm{lane}},\ell)\,\koutv{\ell}.
 \]
@@ -84,6 +116,8 @@ Layer $d<24$ takes a claim $(c,\kw,r,\kpw)$ at depth $d$ to one at depth $d+1$, 
 \begin{equation}\label{keccak:eq:chi}
 a_{24-d}(j;t)=b(j;t)+\bigl(1+b(\along{j}{1};t)\bigr)\,b(\along{j}{2};t)+[\,j<64\,]\,\krc_{24-d}[j].
 \end{equation}
+
+Steps 1 to 5 are \S\ref{keccak:idea} with the round constant; step 6 crosses the linear map.
 
 \paragraph{1. Product polynomial.} Let $S_{p,j}=\kemb\bigl((b(j;(i,p)))_i\bigr)$ and $G_{p,j}=\kemb_{\allone}S_{p,j}+(\kemb_{\allone}+S_{p,\along{j}{1}})\,S_{p,\along{j}{2}}$; by Lemma~\ref{lem:rmfe}, $\kproj(G_{p,j})$ is pack $p$ of \eqref{keccak:eq:chi} at $j$, less the round constant. The prover sends the $47$ coefficients of
 \begin{equation}\label{keccak:eq:product}
@@ -166,7 +200,7 @@ In \eqref{keccak:eq:terminal}, $\kpair^{\mathrm{sl}}$ is an $\eq$ table and $\kr
 
 \subsection{Committing the middle state}\label{keccak:segments}
 
-The VM also commits each permutation's state after twelve rounds, halving the layers the verifier, and so the recursion guest, runs.
+The VM also commits each permutation's state after twelve rounds, which halves the layers the verifier (and the recursion guest) runs.
 
 \paragraph{Statement.} Segment $m<2$ is rounds $12m+1$ to $12m+12$. Slot $25m+\ell$ of $\qkeccak$ holds lane $\ell$ of segment $m$'s input: six slot variables, $\nkeccak=\kbatch+6$, slots $50$ to $63$ zero. With $a_{m,e}$ the state after $e$ rounds of segment $m$ from its committed input, $\kout{\ell}$ is read off $a_{1,12}$, and the statement is \eqref{keccak:eq:statement} and
 \begin{equation}\label{keccak:eq:chain}
@@ -193,3 +227,18 @@ $\kpw^{\mathrm{out}}$ zero elsewhere, by a degree-two sumcheck over the slot (ch
 Then the claim at depth $12$ is opened as in \S\ref{keccak:openings}, with $r_{<\kbatch-4}$ for $r$, $\kpw^{\mathrm{in}}(25m+\ell,z)=\eq(r_{\kbatch-4},m)\,\kpw_{z+64\ell}$, six slot rounds, and in \S\ref{keccak:recursion} $\kpair^{\mathrm{ln}}_\ell=\sum_m\eq(r_{\kbatch-4},m)\,\eq(\fc^{\mathrm{in}},25m+\ell)$.
 
 \paragraph{Cost.} $1+12(2\kbatch+77)+13+84$ elements: $1406$ for $\kbatch=16$. The prover crate \texttt{keccak\_gkr} takes any segment length dividing $24$; the VM's, \texttt{leanvm\_core::keccak::DEPTH}, is $12$.
+
+\subsection{Proof of the embedding lemma}\label{keccak:rmfe-proof}
+
+\begin{proof}
+The \emph{readings} of $h$ of degree at most $D$ are $h(0)$, $h(1)$ and its coefficient of $X^D$; those of $hh'$, of degree at most $D+D'$, are the products of those of $h$ and $h'$. Take the seven pairwise coprime irreducibles $g$ below, of product $F$, of degree $23$:
+{\setlength{\arraycolsep}{3pt}
+\[
+\begin{array}{c|ccccccc}
+g & X & X+1 & X^3+X+1 & X^3+X^2+1 & X^5+X^2+1 & X^5+X^3+1 & X^5+X^3+X^2+X+1\\\hline
+\deg g & 1 & 1 & 3 & 3 & 5 & 5 & 5\\
+n_g & 1 & 1 & 2 & 2 & 3 & 3 & 3
+\end{array}
+\]}
+Assign $u_0,\dots,u_{14}$ to the moduli in order, $n_g$ bits each, and let $h_g(u)$, linear in $u$, be the polynomial of degree below $n_g$ whose first $n_g$ readings, with $D=n_g-1$, are the bits assigned to $g$. As $2(n_g-1)<\deg g$, $h_g(u)\,h_g(v)$ is reduced modulo $g$. Put $\kemb(u)=H_u+u_{15}F$, with $H_u$ of degree below $23$, linear in $u$, and $H_u\equiv h_g(u)\pmod g$ for every $g$ (Chinese remainder theorem). Let $\kproj(P)$ be, for each $g$, the first $n_g$ readings of $P\bmod g$ with $D=2(n_g-1)$, then the coefficient of $X^{46}$. For $P=\kemb(u)\kemb(v)$, $P\equiv h_g(u)h_g(v)\pmod g$ gives the first fifteen products, and $P=H_uH_v+u_{15}FH_v+v_{15}FH_u+u_{15}v_{15}F^2$, whose first three terms have degree at most $45$ and $F^2$ is monic of degree $46$, gives $u_{15}v_{15}$ as the coefficient of $X^{46}$.
+\end{proof}
