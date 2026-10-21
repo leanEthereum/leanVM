@@ -34,7 +34,7 @@
 % Letters the document already spends (\mu, \kappa, \beta, s, t, \rho, \pi, \chi) are routed
 % through these; the name each object has in the code is given in brackets.
 \newcommand{\qkeccak}{q_{\keccak}}             % committed Keccak states, a lane per slot [q_keccak]
-\newcommand{\kbatch}{\kappa_{\mathrm{batch}}} % log number of SHA3 steps
+\newcommand{\kbatch}{\kappa_{\mathrm{batch}}} % log number of KECCAK steps
 \newcommand{\along}[2]{#1^{\rightarrow #2}}   % the position #2 columns along from #1 [along]
 \newcommand{\klin}{\mathsf{lin}}              % a round's linear map: theta, rho, pi [linear]
 \newcommand{\krc}{\mathsf{RC}}                % a round constant, as 64 bits
@@ -49,7 +49,7 @@
 \newcommand{\kpt}{\upsilon}                   % the point the embeddings are evaluated at [s]
 \newcommand{\kev}{\phi}                       % the three evaluations closing a layer [t]
 \newcommand{\kbeta}{\vartheta}                % their batching challenge [beta]
-\newcommand{\kout}[1]{\mathsf{out}_{#1}}      % the SHA3 table's output lane #1, a virtual column
+\newcommand{\kout}[1]{\mathsf{out}_{#1}}      % the KECCAK table's output lane #1, a virtual column
 \newcommand{\koutv}[1]{\mathsf{out}^{*}_{#1}} % the claimed value on it the reduction starts from [OutputClaim::lanes]
 
 % ---------- VM ----------

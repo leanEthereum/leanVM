@@ -1,8 +1,8 @@
 # `for i in unroll(a, b)` replicates the body at compile time, i substituted
 # as the integer literal of each iteration: zero loop overhead (no call, no
 # frame, no counter). Bounds are compile-time integers, including Const
-# parameters: `chain(buf, 3)` specializes and unrolls three SHA3 steps over
-# heap slices indexed by `i` (a 256-bit SHA3 digest is two canonical cells).
+# parameters: `chain(buf, 3)` specializes and unrolls three KECCAK steps over
+# heap slices indexed by `i` (a 256-bit KECCAK digest is two canonical cells).
 # Published: the two 128-bit digest cells of H^3(5, 7): same chain as
 # hash_heap_chain.py, unrolled instead of looped.
 # public_input: 27240554859721455327970068208906002034, 119514610692047185288834508057685931752
@@ -27,5 +27,5 @@ def main():
 
 def chain(buf, n: Const):
     for i in unroll(0, n):
-        sha3(buf[i * 2:i * 2 + 2], buf[i * 2:i * 2 + 2], buf[i * 2 + 2:i * 2 + 4])
+        keccak(buf[i * 2:i * 2 + 2], buf[i * 2:i * 2 + 2], buf[i * 2 + 2:i * 2 + 4])
     return

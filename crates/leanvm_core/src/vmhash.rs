@@ -7,7 +7,7 @@
 //! instructions.
 
 /// The hash of exactly 64 bytes (two 256-bit halves laid out little-endian), one
-/// `SHA3` instruction from the zero state, which is also the PCS Merkle parent.
+/// `KECCAK` instruction from the zero state, which is also the PCS Merkle parent.
 /// Lives in [`fiat_shamir`] (the shared [`fiat_shamir::FiatShamirState`] state is
 /// built on it).
 pub use fiat_shamir::compress;

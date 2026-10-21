@@ -34,7 +34,7 @@ const DS_POW_NONCE: u64 = 4;
 /// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, three limbs and a tag.
 const RATE_SCALARS: usize = 4;
 
-/// A duplex sponge over the VM's `SHA3` step, in overwrite mode. The rate is lanes 0..16 and the capacity lanes
+/// A duplex sponge over the VM's `KECCAK` step, in overwrite mode. The rate is lanes 0..16 and the capacity lanes
 /// 16..25. A permutation writes waiting scalar `i` over lanes `4i..4i+4`, zeroes the rest of the rate and keeps the
 /// capacity. A fifth scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
 #[derive(Clone, Debug)]

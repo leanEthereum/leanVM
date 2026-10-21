@@ -32,7 +32,7 @@ pub enum Op {
         od: u32,
         of: u32,
     },
-    /// `SHA3`: one step of the cell sponge ([`primitives::hash::step`]):
+    /// `KECCAK`: one step of the cell sponge ([`primitives::hash::step`]):
     /// Keccak-f of a 25-lane state after XORing the padding's last bit into lane
     /// 16. The state is read from thirteen canonical cells (two lanes each, top
     /// limb zero) and the result written to thirteen, both in the order of
@@ -45,7 +45,7 @@ pub enum Op {
     /// last five cells there, and XORs its message into the previous output's
     /// first eight to form `m` and `tail`. The relation is proven by the Keccak
     /// reduction ([`crate::keccak`]).
-    Sha3 {
+    Keccak {
         m: [u32; 4],
         tail: u32,
         cap: u32,

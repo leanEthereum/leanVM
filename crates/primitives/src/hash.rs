@@ -1,10 +1,10 @@
-//! Keccak-256, the repo's one hash function: Ethereum's, which is SHA3-256 (FIPS
-//! 202) with Keccak's original padding.
+//! Keccak-256, the repo's one hash function: Ethereum's, which is the 256-bit hash of FIPS
+//! 202 with Keccak's original padding.
 //!
 //! Three surfaces, in increasing order of how much of the machine they touch:
 //!
 //! - [`keccak_f`], the Keccak-f\[1600\] permutation. Every hash in leanVM is a
-//!   sponge over it, and it is what the VM's `SHA3` opcode computes and
+//!   sponge over it, and it is what the VM's `KECCAK` opcode computes and
 //!   `keccak_gkr` proves.
 //! - [`hash`] / [`Hasher`], Keccak-256 over bytes, in the cell encoding that
 //!   makes a VM block eight whole 16-byte cells (plain Keccak-256 up to 128 bytes).
@@ -31,7 +31,7 @@ pub const STATE_LANES: usize = 25;
 pub const ROUNDS: usize = 24;
 
 /// The first bit of Keccak's `10*1` padding, as the byte XORed right after the
-/// message. It is the only difference from SHA3-256, whose suffix makes it `0x06`.
+/// message. It is the only difference from FIPS 202's 256-bit hash, whose suffix makes it `0x06`.
 pub const PAD_FIRST: u8 = 0x01;
 /// The last bit of the `10*1` padding, XORed into the rate's last byte.
 pub const PAD_LAST: u8 = 0x80;
@@ -211,7 +211,7 @@ pub const CHUNK: usize = 128;
 pub const CHUNK_LANES: usize = CHUNK / 8;
 
 /// One step of the cell sponge (see [`hash`]): XOR [`END_BIT`] into lane 16 and
-/// permute. This is the relation the VM's `SHA3` opcode computes and `keccak_gkr`
+/// permute. This is the relation the VM's `KECCAK` opcode computes and `keccak_gkr`
 /// proves. Its caller has already XORed the block's message into lanes `0..16`
 /// (and, for a final block, the padding's first bit), while lane 16 carries the
 /// previous state untouched: the step supplies the one bit every block puts

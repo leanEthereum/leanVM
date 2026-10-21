@@ -32,8 +32,8 @@ use field::{ZERO, powers};
 use hash::{Digest, KECCAK_END_BIT};
 use keccak::{KeccakShape, verify_keccak};
 use layout::{
-    KECCAK_DEPTH, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES, OP_SHA3, QKECCAK,
-    build_layout, sha3_lane,
+    KECCAK_DEPTH, MAX_STACKED_LOG, MEMORY_0, MEMORY_1, MEMORY_2, MIN_STACKED_LOG, N_TABLES, OP_KECCAK, QKECCAK,
+    build_layout, keccak_lane,
 };
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
@@ -65,8 +65,8 @@ pub enum VerifierError {
     InducedBasisDimensions,
     WhirTerminal,
     WhirNoTerminalLevel,
-    /// The table sumcheck leaves other than one claim on each `SHA3` output lane, at one point.
-    Sha3OutputClaims,
+    /// The table sumcheck leaves other than one claim on each `KECCAK` output lane, at one point.
+    KeccakOutputClaims,
     KeccakProduct,
     KeccakLayer,
     KeccakOutputOpening,
@@ -100,7 +100,7 @@ impl std::fmt::Display for VerifierError {
             Self::InducedBasisDimensions => "bad induced-basis dimensions",
             Self::WhirTerminal => "WHIR terminal check failed",
             Self::WhirNoTerminalLevel => "WHIR verification ended without a terminal level",
-            Self::Sha3OutputClaims => "one claim on each SHA3 output lane",
+            Self::KeccakOutputClaims => "one claim on each KECCAK output lane",
             Self::KeccakProduct => "Keccak product polynomial does not carry the claim",
             Self::KeccakLayer => "Keccak layer evaluations do not match the sumcheck",
             Self::KeccakOutputOpening => "Keccak output opening ends on the wrong value",
@@ -289,14 +289,14 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     }
 
     // The committed input of a step is what it reads with the padding's last bit XORed into lane 16.
-    let end_lane = sha3_lane("in", 16);
+    let end_lane = keccak_lane("in", 16);
     for claim in claims.iter_mut().filter(|claim| claim.column == end_lane) {
         claim.value += E::new(KECCAK_END_BIT, 0, 0);
     }
 
-    // 6] SHA3 validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the
+    // 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the
     // reduction's claim on the permutation's output: they leave the batch.
-    let output_columns: Vec<usize> = (0..25).map(|lane| sha3_lane("out", lane)).collect();
+    let output_columns: Vec<usize> = (0..25).map(|lane| keccak_lane("out", lane)).collect();
     let (outputs, rest): (Vec<ColumnClaim>, Vec<ColumnClaim>) = claims
         .into_iter()
         .partition(|claim| output_columns.contains(&claim.column));
@@ -307,10 +307,10 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
             .map(|claim| claim.column)
             .eq(output_columns.iter().copied())
             && outputs.iter().all(|claim| claim.point == outputs[0].point),
-        VerifierError::Sha3OutputClaims,
+        VerifierError::KeccakOutputClaims,
     )?;
     let shape = KeccakShape {
-        log_steps: layout.table_log_heights[OP_SHA3],
+        log_steps: layout.table_log_heights[OP_KECCAK],
         depth: KECCAK_DEPTH,
     };
     let values: Vec<E> = outputs.iter().map(|claim| claim.value).collect();

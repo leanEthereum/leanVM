@@ -1,7 +1,7 @@
 //! The precompile and the hints: the two places a value arrives without an
 //! instruction computing it.
 //!
-//! `sha3` is a STATEMENT, not an expression: it writes the sponge state into a
+//! `keccak` is a STATEMENT, not an expression: it writes the sponge state into a
 //! run the caller names, so a pre-written destination checks the digest instead
 //! of computing it, by the same write-once rule as any store.
 //!
@@ -14,8 +14,8 @@
 use super::*;
 
 impl FnLower<'_> {
-    /// `sha3(a, b, out, tail=, state=, len=, final=)`: one block of
-    /// [`primitives::hash::hash`], one `SHA3` instruction.
+    /// `keccak(a, b, out, tail=, state=, len=, final=)`: one block of
+    /// [`primitives::hash::hash`], one `KECCAK` instruction.
     ///
     /// The block's eight message cells are `a ‖ b ‖ tail` (two, two and four
     /// cells; `tail` omitted is zero). Without `state` this is the first block of
@@ -35,24 +35,25 @@ impl FnLower<'_> {
     /// ARE the rate, and the capacity is `cap`'s, the five cells a previous output
     /// ends with (`cap` that 13-cell output or those five cells). No padding, no
     /// XOR: the instruction reads the message cells and `cap` as they are.
-    fn lower_sha3(&mut self, args: &[Expr]) {
+    fn lower_keccak(&mut self, args: &[Expr]) {
         let first_kw = args
             .iter()
             .position(|a| matches!(a, Expr::Call(name, _) if name.starts_with("__kw_")))
             .unwrap_or(args.len());
         if first_kw != 3 {
-            self.fail("sha3 takes three positional arguments: (a, b, out)")
+            self.fail("keccak takes three positional arguments: (a, b, out)")
         };
-        let kwargs = self.sha3_kwargs(&args[first_kw..], &["tail", "state", "len", "final", "cap"]);
+        let kwargs = self.keccak_kwargs(&args[first_kw..], &["tail", "state", "len", "final", "cap"]);
         let const_kw = |this: &Self, name: &str| -> Option<u128> {
             kwargs.get(name).map(|e| {
-                this.try_const_int(e)
-                    .unwrap_or_else(|| this.fail(format!("sha3 `{name}` must be a compile-time integer, got `{e:?}`")))
+                this.try_const_int(e).unwrap_or_else(|| {
+                    this.fail(format!("keccak `{name}` must be a compile-time integer, got `{e:?}`"))
+                })
             })
         };
         if let Some(cap) = kwargs.get("cap") {
             if ["state", "len", "final"].iter().any(|k| kwargs.contains_key(k)) {
-                self.fail("sha3 cap= is an overwrite duplex step: it takes no state=, len= or final=")
+                self.fail("keccak cap= is an overwrite duplex step: it takes no state=, len= or final=")
             }
             let cap = match self.try_cell_run(cap) {
                 Ok(CellRun::Stack { base, len }) if len == STATE_CELLS => base + 8,
@@ -66,17 +67,17 @@ impl FnLower<'_> {
                     run
                 }
                 _ => self.fail(format!(
-                    "sha3 cap= must be a previous {STATE_CELLS}-cell output or its last five cells"
+                    "keccak cap= must be a previous {STATE_CELLS}-cell output or its last five cells"
                 )),
             };
-            let [a0, a1] = self.sha3_words::<2>(&args[0]);
-            let [b0, b1] = self.sha3_words::<2>(&args[1]);
+            let [a0, a1] = self.keccak_words::<2>(&args[0]);
+            let [b0, b1] = self.keccak_words::<2>(&args[1]);
             let m = [a0, a1, b0, b1].map(|c| self.sponge_cell(c));
             let tail = match kwargs.get("tail") {
                 Some(tail) => match self.try_cell_run(tail) {
                     Ok(CellRun::Stack { base, len: 4 }) => base,
                     _ => {
-                        let cells = self.sha3_words::<4>(tail);
+                        let cells = self.keccak_words::<4>(tail);
                         let t = self.alloc_stack(4);
                         for (j, c) in cells.into_iter().enumerate() {
                             let dst = t + j as u32;
@@ -89,16 +90,16 @@ impl FnLower<'_> {
                         t
                     }
                 },
-                None => self.sha3_pad_run() + 1,
+                None => self.keccak_pad_run() + 1,
             };
-            let out = self.sha3_out(&args[2]);
-            self.emit(LOp::Sha3 {
+            let out = self.keccak_out(&args[2]);
+            self.emit(LOp::Keccak {
                 m,
                 tail,
                 cap,
                 c: out.state,
             });
-            self.sha3_finish(out);
+            self.keccak_finish(out);
             return;
         }
         let is_final = const_kw(self, "final").unwrap_or(1) != 0;
@@ -107,30 +108,30 @@ impl FnLower<'_> {
         let final_len = if is_final {
             let len = len.unwrap_or(if kwargs.contains_key("tail") { 128 } else { 64 });
             if len > 128 {
-                self.fail(format!("sha3 len= {len} is past the block's 128 message bytes"))
+                self.fail(format!("keccak len= {len} is past the block's 128 message bytes"))
             };
             // A message ending on a whole block ends in that block, never in an empty one.
             if len == 0 && kwargs.contains_key("state") {
-                self.fail("sha3 len=0 after a previous block hashes no message: end that block with len=128")
+                self.fail("keccak len=0 after a previous block hashes no message: end that block with len=128")
             };
             Some(len as u32)
         } else {
             if len.is_some_and(|l| l != 128) {
-                self.fail("a sha3 block with final=0 carries 128 message bytes, so len= can only be 128")
+                self.fail("a keccak block with final=0 carries 128 message bytes, so len= can only be 128")
             };
             None
         };
 
         let mut block = [SpongeCell::Zero; 8];
-        let [a0, a1] = self.sha3_words::<2>(&args[0]);
-        let [b0, b1] = self.sha3_words::<2>(&args[1]);
+        let [a0, a1] = self.keccak_words::<2>(&args[0]);
+        let [b0, b1] = self.keccak_words::<2>(&args[1]);
         block[..4].copy_from_slice(&[a0, a1, b0, b1]);
         let mut tail_run = None;
         if let Some(tail) = kwargs.get("tail") {
             if let Ok(CellRun::Stack { base, len: 4 }) = self.try_cell_run(tail) {
                 tail_run = Some(base);
             }
-            block[4..].copy_from_slice(&self.sha3_words::<4>(tail));
+            block[4..].copy_from_slice(&self.keccak_words::<4>(tail));
         }
         let state = kwargs.get("state").map(|state| match self.try_cell_run(state) {
             Ok(CellRun::Stack { base, len }) if len >= STATE_CELLS => base,
@@ -142,24 +143,24 @@ impl FnLower<'_> {
                 st
             }
             _ => self.fail(format!(
-                "sha3 state= must be the {STATE_CELLS}-cell run a previous sha3 wrote"
+                "keccak state= must be the {STATE_CELLS}-cell run a previous keccak wrote"
             )),
         });
-        let out = self.sha3_out(&args[2]);
-        self.emit_sha3_block(block, tail_run, state, final_len, out.state);
-        self.sha3_finish(out);
+        let out = self.keccak_out(&args[2]);
+        self.emit_keccak_block(block, tail_run, state, final_len, out.state);
+        self.keccak_finish(out);
     }
 
-    /// `sha3_cells(run, out)`: the hash of the whole run of cells `run` (a
-    /// `StackBuf`, or a slice with compile-time bounds), eight cells a `SHA3`
-    /// block, into `out` as for [`Self::lower_sha3`].
-    fn lower_sha3_cells(&mut self, args: &[Expr]) {
+    /// `keccak_cells(run, out)`: the hash of the whole run of cells `run` (a
+    /// `StackBuf`, or a slice with compile-time bounds), eight cells a `KECCAK`
+    /// block, into `out` as for [`Self::lower_keccak`].
+    fn lower_keccak_cells(&mut self, args: &[Expr]) {
         if args.len() != 2 {
-            self.fail("sha3_cells takes two arguments: (run, out)")
+            self.fail("keccak_cells takes two arguments: (run, out)")
         };
         let run = self.cell_run(&args[0]);
         let n = run.cells();
-        let out = self.sha3_out(&args[1]);
+        let out = self.keccak_out(&args[1]);
         // The chunk's cells, and its base if they are a consecutive stack run.
         let chunk = |this: &mut Self, lo: u32, len: u32| -> (Vec<SpongeCell>, Option<Off>) {
             match run {
@@ -182,7 +183,7 @@ impl FnLower<'_> {
             let (cells, base) = chunk(self, 8 * c, 8);
             let next = self.alloc_stack(STATE_CELLS);
             let block: [SpongeCell; 8] = cells.try_into().unwrap();
-            self.emit_sha3_block(block, base.map(|b| b + 4), state, None, next);
+            self.emit_keccak_block(block, base.map(|b| b + 4), state, None, next);
             state = Some(next);
         }
         let last = n - 8 * nonfinal;
@@ -190,25 +191,25 @@ impl FnLower<'_> {
         let mut block = [SpongeCell::Zero; 8];
         block[..last as usize].copy_from_slice(&cells);
         let tail_run = if last == 8 { base.map(|b| b + 4) } else { None };
-        self.emit_sha3_block(block, tail_run, state, Some(16 * last), out.state);
-        self.sha3_finish(out);
+        self.emit_keccak_block(block, tail_run, state, Some(16 * last), out.state);
+        self.keccak_finish(out);
     }
 
     /// The keywords after a builtin's positional arguments, checked against
     /// `allowed`.
-    fn sha3_kwargs<'e>(&self, kws: &'e [Expr], allowed: &[&str]) -> HashMap<&'e str, &'e Expr> {
+    fn keccak_kwargs<'e>(&self, kws: &'e [Expr], allowed: &[&str]) -> HashMap<&'e str, &'e Expr> {
         if !(kws
             .iter()
             .all(|a| matches!(a, Expr::Call(name, v) if name.starts_with("__kw_") && v.len() == 1)))
         {
-            self.fail("keyword arguments must follow the positional sha3 arguments")
+            self.fail("keyword arguments must follow the positional keccak arguments")
         };
         let mut kwargs: HashMap<&str, &Expr> = HashMap::new();
         for kw in kws {
             let Expr::Call(name, value) = kw else { unreachable!() };
             let key = name.strip_prefix("__kw_").unwrap();
             if kwargs.insert(key, &value[0]).is_some() {
-                self.fail(format!("duplicate sha3 keyword `{key}`"))
+                self.fail(format!("duplicate keccak keyword `{key}`"))
             };
         }
         if !(kwargs.keys().all(|k| allowed.contains(k))) {
@@ -216,33 +217,33 @@ impl FnLower<'_> {
             // differently between builds.
             let mut bad: Vec<&&str> = kwargs.keys().filter(|k| !allowed.contains(k)).collect();
             bad.sort_unstable();
-            self.fail(format!("unknown sha3 keyword {bad:?}; the keywords are {allowed:?}"))
+            self.fail(format!("unknown keccak keyword {bad:?}; the keywords are {allowed:?}"))
         };
         kwargs
     }
 
-    /// Where a `sha3` writes: the 13-cell stack run the instruction targets, and
+    /// Where a `keccak` writes: the 13-cell stack run the instruction targets, and
     /// what to copy out of it afterwards.
-    fn sha3_out(&mut self, e: &Expr) -> Sha3Out {
+    fn keccak_out(&mut self, e: &Expr) -> KeccakOut {
         match self.cell_run(e) {
-            CellRun::Stack { base, len } if len >= STATE_CELLS => Sha3Out {
+            CellRun::Stack { base, len } if len >= STATE_CELLS => KeccakOut {
                 state: base,
                 copy: None,
             },
             run @ (CellRun::Heap { len: STATE_CELLS, .. }
             | CellRun::Stack { len: 2, .. }
-            | CellRun::Heap { len: 2, .. }) => Sha3Out {
+            | CellRun::Heap { len: 2, .. }) => KeccakOut {
                 state: self.alloc_stack(STATE_CELLS),
                 copy: Some(run),
             },
             _ => self.fail(format!(
-                "a sha3 destination is a {STATE_CELLS}-cell run (the state) or a 2-cell run (the digest)"
+                "a keccak destination is a {STATE_CELLS}-cell run (the state) or a 2-cell run (the digest)"
             )),
         }
     }
 
-    /// Copy what [`Self::sha3_out`] promised out of the state it wrote.
-    fn sha3_finish(&mut self, out: Sha3Out) {
+    /// Copy what [`Self::keccak_out`] promised out of the state it wrote.
+    fn keccak_finish(&mut self, out: KeccakOut) {
         match out.copy {
             None => {}
             Some(CellRun::Stack { base, len }) => {
@@ -258,11 +259,11 @@ impl FnLower<'_> {
         }
     }
 
-    /// Emit one `SHA3` block into the 13-cell run `c`: the padding folded into
+    /// Emit one `KECCAK` block into the 13-cell run `c`: the padding folded into
     /// the message if `final_len` says this block ends it, the message XORed into
     /// `state` if there is one, every constant window of a fresh block taken from
     /// the padding run.
-    fn emit_sha3_block(
+    fn emit_keccak_block(
         &mut self,
         mut block: [SpongeCell; 8],
         mut tail_run: Option<Off>,
@@ -316,7 +317,7 @@ impl FnLower<'_> {
                 };
                 let cap = if lone_pad {
                     let cap = self.alloc_stack(5);
-                    let pad = self.sha3_pad_run();
+                    let pad = self.keccak_pad_run();
                     self.emit(LOp::Xor {
                         a: st + 8,
                         b: pad,
@@ -334,7 +335,7 @@ impl FnLower<'_> {
             // The first block, from the zero state: every constant window comes out
             // of the one padding run.
             None => {
-                let pad = self.sha3_pad_run();
+                let pad = self.keccak_pad_run();
                 let m: [Off; 4] = std::array::from_fn(|i| self.sponge_cell(block[i]));
                 let tail = match (tail_run, &block[4..]) {
                     (Some(base), _) => base,
@@ -347,7 +348,7 @@ impl FnLower<'_> {
                             SpongeCell::Zero,
                             SpongeCell::Zero,
                         ],
-                    ) if *v == sha3_pad_value() => pad,
+                    ) if *v == keccak_pad_value() => pad,
                     (None, cells) => {
                         let cells: Vec<SpongeCell> = cells.to_vec();
                         let t = self.alloc_stack(4);
@@ -365,7 +366,7 @@ impl FnLower<'_> {
                 (m, tail, if lone_pad { pad } else { pad + 1 })
             }
         };
-        self.emit(LOp::Sha3 { m, tail, cap, c });
+        self.emit(LOp::Keccak { m, tail, cap, c });
     }
 
     /// The statement-position builtins, `true` if `f` was one of them (else the
@@ -404,8 +405,8 @@ impl FnLower<'_> {
                     RHint::BitDecomposeExp { value, bits, nbits }
                 }));
             }
-            "sha3" => self.lower_sha3(args),
-            "sha3_cells" => self.lower_sha3_cells(args),
+            "keccak" => self.lower_keccak(args),
+            "keccak_cells" => self.lower_keccak_cells(args),
             "assert_in_k" => {
                 if args.len() != 2 {
                     self.fail("assert_in_k(a, b) takes two scalar cells")
@@ -444,15 +445,15 @@ impl FnLower<'_> {
         true
     }
 
-    /// `N` message cells of a `sha3` block: a list literal of `N` words (a literal
+    /// `N` message cells of a `keccak` block: a list literal of `N` words (a literal
     /// `0` known to be zero, which lets a constant window of the padding run stand
     /// in for it), or a run of `N` cells, a heap slice bridged through the stack
-    /// one `DEREF` per cell since `SHA3` addresses only frame cells.
-    fn sha3_words<const N: usize>(&mut self, e: &Expr) -> [SpongeCell; N] {
+    /// one `DEREF` per cell since `KECCAK` addresses only frame cells.
+    fn keccak_words<const N: usize>(&mut self, e: &Expr) -> [SpongeCell; N] {
         if let Expr::ListLit(words) = e {
             if words.len() != N {
                 self.fail(format!(
-                    "a sha3 operand written as a list needs exactly {N} words, got {}",
+                    "a keccak operand written as a list needs exactly {N} words, got {}",
                     words.len()
                 ))
             };
@@ -473,7 +474,7 @@ impl FnLower<'_> {
                 std::array::from_fn(|k| SpongeCell::Cell(t + k as u32))
             }
             _ => self.fail(format!(
-                "this sha3 operand spans exactly {N} cells; slice a larger buffer: `buf[lo:lo + {N}]`"
+                "this keccak operand spans exactly {N} cells; slice a larger buffer: `buf[lo:lo + {N}]`"
             )),
         }
     }
@@ -489,8 +490,8 @@ impl FnLower<'_> {
     /// A frame cell holding `c`.
     fn sponge_cell(&mut self, c: SpongeCell) -> Off {
         match c {
-            SpongeCell::Zero => self.sha3_pad_run() + 1,
-            SpongeCell::Const(v) if v == sha3_pad_value() => self.sha3_pad_run(),
+            SpongeCell::Zero => self.keccak_pad_run() + 1,
+            SpongeCell::Const(v) if v == keccak_pad_value() => self.keccak_pad_run(),
             SpongeCell::Const(v) => self.const_cell(v),
             SpongeCell::Cell(o) => o,
         }
@@ -520,23 +521,23 @@ impl FnLower<'_> {
         d
     }
 
-    /// The six cells `[pad, 0, 0, 0, 0, 0]` every fresh `sha3` in this scope
-    /// shares ([`Scope::sha3_pad`]): the zero `tail` and `cap` start at `+1`, a
+    /// The six cells `[pad, 0, 0, 0, 0, 0]` every fresh `keccak` in this scope
+    /// shares ([`Scope::keccak_pad`]): the zero `tail` and `cap` start at `+1`, a
     /// 64-byte message's `tail` and a 128-byte one's `cap` at `+0`.
-    fn sha3_pad_run(&mut self) -> Off {
-        if let Some(o) = self.scope.sha3_pad {
+    fn keccak_pad_run(&mut self) -> Off {
+        if let Some(o) = self.scope.keccak_pad {
             return o;
         }
         let o = self.alloc_stack(6);
         for k in 0..6 {
-            let value = if k == 0 { sha3_pad_value() } else { F192::ZERO };
+            let value = if k == 0 { keccak_pad_value() } else { F192::ZERO };
             self.set_const(o + k, value);
             self.scope
                 .const_cells
                 .entry([value.c0, value.c1, value.c2])
                 .or_insert(o + k);
         }
-        self.scope.sha3_pad = Some(o);
+        self.scope.keccak_pad = Some(o);
         o
     }
 
@@ -583,18 +584,18 @@ impl FnLower<'_> {
 const STATE_CELLS: u32 = leanvm_core::keccak::STATE_CELLS as u32;
 
 /// A cell holding the padding's first byte at its start: `0x01` in the low lane.
-fn sha3_pad_value() -> F192 {
+fn keccak_pad_value() -> F192 {
     F192::new(u64::from(primitives::hash::PAD_FIRST), 0, 0)
 }
 
-/// Where a `sha3` writes: the 13-cell stack run its instruction targets, and a
+/// Where a `keccak` writes: the 13-cell stack run its instruction targets, and a
 /// run to copy the state or the digest out to afterwards.
-struct Sha3Out {
+struct KeccakOut {
     state: Off,
     copy: Option<CellRun>,
 }
 
-/// One message cell of a `sha3` block, as the lowering knows it.
+/// One message cell of a `keccak` block, as the lowering knows it.
 #[derive(Clone, Copy, Debug)]
 enum SpongeCell {
     Zero,

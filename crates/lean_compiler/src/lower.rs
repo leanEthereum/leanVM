@@ -156,9 +156,9 @@ struct Scope {
     const_cells: HashMap<[u64; 3], Off>,
     /// Six consecutive frame cells holding `[pad, 0, 0, 0, 0, 0]`, `pad` the
     /// padding's first byte at the start of a cell: every constant `tail` and
-    /// `cap` a fresh `sha3` block needs is a window of it. Emitted lazily at the
+    /// `cap` a fresh `keccak` block needs is a window of it. Emitted lazily at the
     /// first dominating fresh hash in this control-flow scope.
-    sha3_pad: Option<Off>,
+    keccak_pad: Option<Off>,
 }
 
 impl Scope {
@@ -399,7 +399,7 @@ impl FnLower<'_> {
     }
 
     /// A frame cell holding `0`, set lazily once: the source for forwarded zero
-    /// words (a `sha3` padding cell), and the destination every `assert a == b`
+    /// words (a `keccak` padding cell), and the destination every `assert a == b`
     /// in this scope XORs into.
     fn zero(&mut self) -> Off {
         self.const_cell(F192::ZERO)
@@ -457,7 +457,7 @@ impl FnLower<'_> {
     }
 
     /// Run `f` with branch-local scope: bindings AND the lazily cached cells
-    /// (`one`, `self_fp`, range-check bounds, the `sha3` padding run) revert
+    /// (`one`, `self_fp`, range-check bounds, the `keccak` padding run) revert
     /// afterwards, since a cell whose `SET` sits inside a conditionally-executed
     /// region must not be trusted outside it.
     fn scoped(&mut self, f: impl FnOnce(&mut Self)) {
@@ -854,7 +854,7 @@ impl FnLower<'_> {
             Expr::Pow(b, e) => self.pow_expr(b, e),
             Expr::Var(v) => match self.scope.bound(v).map(|b| b.val) {
                 Some(Binding::Stack(..)) => {
-                    self.fail(format!("StackBuf `{v}` used as a scalar; index it (`{v}[k]`) or pass it to sha3"));
+                    self.fail(format!("StackBuf `{v}` used as a scalar; index it (`{v}[k]`) or pass it to keccak"));
                 }
                 Some(Binding::Gaddr(ga)) => self.materialize(ga),
                 Some(Binding::Scalar(o)) => o,
@@ -985,7 +985,7 @@ impl FnLower<'_> {
                     "`-`, `//`, `%` are compile-time only (field subtraction is `+`); use them in an index, a bound, or a `Const` argument, got `{e:?}`"
                 ))
             }
-            Expr::Slice(..) => self.fail("a slice is not a scalar; it is only a sha3 operand"),
+            Expr::Slice(..) => self.fail("a slice is not a scalar; it is only a keccak operand"),
             Expr::ListLit(..) => self.fail("a list literal must be bound to a name: `x = [a, b]`"),
         }
     }

@@ -161,7 +161,7 @@ def main():
     verify(&program, &want, &proof).expect("untaken branch must not consume its witness");
 }
 
-/// A `sha3` state names a CONSECUTIVE RUN, so no cell of it may be folded into a
+/// A `keccak` state names a CONSECUTIVE RUN, so no cell of it may be folded into a
 /// canonical elsewhere: a substitution speaks for one cell, and redirecting the
 /// run's base silently redirects the rest of it too.
 ///
@@ -189,9 +189,9 @@ def main():
     t[12] = z
     s[12] = w
     o1 = StackBuf(2)
-    sha3([y, y], [y, y], o1, state=t)
+    keccak([y, y], [y, y], o1, state=t)
     o2 = StackBuf(2)
-    sha3([y, y], [y, y], o2, state=s)
+    keccak([y, y], [y, y], o2, state=s)
     assert o1[0] != o2[0]
     p = 1
     p[1] = x

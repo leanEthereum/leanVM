@@ -1,4 +1,4 @@
-//! A Keccak hash chain: the benchmark of the `SHA3` opcode through the whole proof.
+//! A Keccak hash chain: the benchmark of the `KECCAK` opcode through the whole proof.
 
 use bench::Plan;
 use lean_compiler::{compile, parse};
@@ -67,7 +67,7 @@ fn chain_program(steps: usize, unroll: usize) -> String {
     );
     for step in 1..=unroll {
         body.push_str(&format!(
-            "        h{step} = StackBuf(13)\n        sha3(h{previous}[0:2], h{previous}[0:2], h{step})\n",
+            "        h{step} = StackBuf(13)\n        keccak(h{previous}[0:2], h{previous}[0:2], h{step})\n",
             previous = step - 1
         ));
     }

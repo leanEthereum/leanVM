@@ -67,7 +67,7 @@ pub enum Fault {
     NotInK { what: &'static str, value: F192 },
     /// A word that has to be an address or a count is not a g-power in its range.
     NotAGPower { what: &'static str, value: F64 },
-    /// A `SHA3` input cell outside its 64- or 128-bit embedding.
+    /// A `KECCAK` input cell outside its 64- or 128-bit embedding.
     NotCanonical { cell: usize, bits: u32, value: F192 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
@@ -132,7 +132,7 @@ impl std::fmt::Display for Fault {
             Self::NotAGPower { what, value } => write!(f, "{what} is not a g-power in range (0x{:016x})", value.0),
             Self::NotCanonical { cell, bits, value } => write!(
                 f,
-                "SHA3 input cell {cell} is not a canonical {bits}-bit embedding ({})",
+                "KECCAK input cell {cell} is not a canonical {bits}-bit embedding ({})",
                 word(*value)
             ),
             Self::BackSolveThroughZero => write!(f, "cannot back-solve MUL through a zero operand"),
@@ -193,12 +193,12 @@ impl Program {
         self.execute_with(public_input, &mut |_| {})
     }
 
-    /// [`Self::execute`], handing `sha3_step` the lanes each `SHA3` row reads, in row order
+    /// [`Self::execute`], handing `keccak_step` the lanes each `KECCAK` row reads, in row order
     /// and as the row runs.
     pub(crate) fn execute_with(
         &self,
         public_input: [F192; 2],
-        sha3_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
+        keccak_step: &mut dyn FnMut(&[u64; primitives::hash::STATE_LANES]),
     ) -> Result<Execution, ExecError> {
         use super::hints::{BitsDest, GPow, RHint};
 
@@ -261,7 +261,7 @@ impl Program {
         let mut set: Vec<Srow> = Vec::new();
         let mut deref: Vec<Drow> = Vec::new();
         let mut jump: Vec<Jrow> = Vec::new();
-        let mut sha3: Vec<Brow> = Vec::new();
+        let mut keccak: Vec<Brow> = Vec::new();
 
         // A cell that is not `Written` holds ZERO. A `DEREF` between two unwritten cells
         // links them, and a write to either reaches the other at once.
@@ -808,9 +808,9 @@ impl Program {
                         pc += 1;
                     }
                 }
-                Op::Sha3 { .. } => {
+                Op::Keccak { .. } => {
                     use crate::keccak::{CELL_LANES, ROW_CELLS, STATE_CELLS};
-                    let cells = crate::tables::sha3_cells(&self.prog, pc, fp);
+                    let cells = crate::tables::keccak_cells(&self.prog, pc, fp);
                     let input: [F192; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
                     // A cell carries two lanes, the lone lane-16 cell one: the table
                     // reads them with literal zeros above, so anything else could
@@ -825,7 +825,7 @@ impl Program {
                     // by the Keccak reduction, §keccak); the interpreter still computes it so
                     // the output cells are consistent for any later read.
                     let lanes = crate::keccak::state_of_cells(&input);
-                    sha3_step(&lanes);
+                    keccak_step(&lanes);
                     let output = crate::keccak::cells_of_state(&primitives::hash::step(&lanes));
                     for (c, &v) in output.iter().enumerate() {
                         m.put(cells[STATE_CELLS + c], v)?;
@@ -833,7 +833,7 @@ impl Program {
                     // In flush order, so a cell two operands alias still pairs each
                     // read with its own count.
                     let r: [F64; ROW_CELLS] = std::array::from_fn(|c| m.bump_access_count(cells[c]));
-                    sha3.push(Brow {
+                    keccak.push(Brow {
                         pc,
                         fp,
                         r,
@@ -893,7 +893,7 @@ impl Program {
             set,
             deref,
             jump,
-            sha3,
+            keccak,
             mem_count: m.count,
             bytecode_count,
         };

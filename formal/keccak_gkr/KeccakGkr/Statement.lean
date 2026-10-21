@@ -6,8 +6,8 @@ import KeccakGkr.Rmfe
 
 The prover has committed a column `Q`: for every step `(i, p)` (an instance `i` of a pack `p`)
 and every slot `o`, a 64-bit lane. Slot `slotCube m ℓ` holds lane `ℓ` of the input of segment
-`m`, segment `m` being the `D` rounds from round `D m`. The statement (`Statement`, equation
-`keccak:eq:statement` of `doc/leanvm`) is that segment `0`, run from its committed input, ends on
+`m`, segment `m` being the `D` rounds from round `D m`. The statement (`Statement`, equations
+`keccak:eq:statement` and `keccak:eq:chain` of `doc/leanvm`, §`keccak:segments`) is that segment `0`, run from its committed input, ends on
 segment `1`'s committed input in every step (`Chain`), and that the main protocol's values `v`
 are the multilinear extensions of the output lanes at the step point.
 
@@ -53,7 +53,7 @@ def mleStep (f : Cube 4 → Cube n → E) (rl : Fin 4 → E) (rp : Fin n → E) 
 def outEval (x : E) (ℓ : Lane) (rl : Fin 4 → E) (rp : Fin n → E) : E :=
   mleStep (fun i p => word x (segState P D Q true D i p) ℓ) rl rp
 
-/-- Equation `keccak:eq:statement`. -/
+/-- Equations `keccak:eq:statement` and `keccak:eq:chain`. -/
 def Statement (x : E) (rl : Fin 4 → E) (rp : Fin n → E) (v : Lane → E) : Prop :=
   Chain P D Q ∧ ∀ ℓ, v ℓ = outEval P D Q x ℓ rl rp
 

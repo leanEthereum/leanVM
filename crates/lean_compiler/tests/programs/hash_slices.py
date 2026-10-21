@@ -19,8 +19,8 @@ def main():
     hb[GEN] = 13      # heap cell g^1
     x = 0
     h = StackBuf(2)
-    sha3(a[x:x + 2], hb[0:2], h)  # stack slice + heap input slice
-    sha3(h, a[0:2], hb[2:4])  # digest lands in heap cells g^2, g^3
+    keccak(a[x:x + 2], hb[0:2], h)  # stack slice + heap input slice
+    keccak(h, a[0:2], hb[2:4])  # digest lands in heap cells g^2, g^3
     p = GEN ** 0
     p[1] = hb[GEN ** 2]
     p[GEN] = hb[GEN ** 3]

@@ -79,7 +79,7 @@ impl FnLower<'_> {
             // used to die later in `resolve` as a bare `no entry found for key`.
             None => self.fail(format!(
                 "no function named `{callee}`. A builtin that writes into a destination \
-                 (`sha3`, `assert_in_k`, a `hint_*`) is a statement and returns nothing, so it \
+                 (`keccak`, `assert_in_k`, a `hint_*`) is a statement and returns nothing, so it \
                  cannot be called for a value"
             )),
             _ => {}
@@ -495,7 +495,7 @@ impl FnLower<'_> {
     /// copied into a fresh consecutive run in the caller. `inline_stack_ret`
     /// describes those logical bindings to the surrounding let/tuple lowering.
     pub(super) fn call(&mut self, callee: &str, args: &[Expr], n_ret: usize) -> Vec<Off> {
-        if callee == "sha3" || callee == "sha3_cells" {
+        if callee == "keccak" || callee == "keccak_cells" {
             self.fail(format!(
                 "{callee} is a statement: it writes the state or the digest into its `out` run"
             ))
@@ -546,7 +546,7 @@ impl FnLower<'_> {
     /// Evaluate `callee(args)` into `dsts`, inlining the callee when it is
     /// `@inline` ([`Self::try_inline`]), else a real call.
     pub(super) fn call_into(&mut self, callee: &str, args: &[Expr], dsts: &[Off]) {
-        if callee == "sha3" || callee == "sha3_cells" {
+        if callee == "keccak" || callee == "keccak_cells" {
             self.fail(format!("{callee} is a statement, not a value-returning call"))
         };
         if !self.try_inline(callee, args, dsts) {

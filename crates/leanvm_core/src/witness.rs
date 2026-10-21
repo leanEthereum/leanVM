@@ -8,7 +8,7 @@ use primitives::field::F64;
 
 /// Where a column sits in the stacked witness. A [`Placement::VIRTUAL`] column is
 /// NOT committed: it carries data for the bus, but its evaluation claims settle
-/// against some other committed column (e.g. the SHA3 value columns route to `q_keccak`).
+/// against some other committed column (e.g. the KECCAK value columns route to `q_keccak`).
 #[derive(Clone, Copy, Debug)]
 pub struct Placement {
     pub n_vars: usize,

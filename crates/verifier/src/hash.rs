@@ -1,4 +1,4 @@
-//! Keccak-256 of the cell encoding, the VM's `SHA3` step, and digests.
+//! Keccak-256 of the cell encoding, the VM's `KECCAK` step, and digests.
 
 use crate::field::E;
 use crate::{VerifierError, require};
@@ -71,7 +71,7 @@ pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
     }
 }
 
-/// The VM's `SHA3` step: XOR the padding's last bit into lane 16, then Keccak-f\[1600\].
+/// The VM's `KECCAK` step: XOR the padding's last bit into lane 16, then Keccak-f\[1600\].
 pub fn step(input: &[u64; STATE_LANES]) -> [u64; STATE_LANES] {
     let mut state = *input;
     state[END_LANE] ^= KECCAK_END_BIT;

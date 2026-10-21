@@ -1,9 +1,9 @@
 //! Bridge to the Keccak prover ([`keccak_gkr`]), single-PCS.
 //!
-//! The committed states of every `SHA3` step are one column of leanVM's ONE stacked `F64`
+//! The committed states of every `KECCAK` step are one column of leanVM's ONE stacked `F64`
 //! witness (§sec:stacking), a lane per slot and a word per step, with no separate commitment:
 //! the input and the state after every `DEPTH` rounds before the output. The output is not
-//! committed. The VM's `SHA3` table has no value column of its own: a claim on an input lane is
+//! committed. The VM's `KECCAK` table has no value column of its own: a claim on an input lane is
 //! a claim on its slot of that column, and the claims on the output lanes are the reduction's
 //! claim on the permutation's output ([`keccak_gkr::OutputClaim`]). The GKR reduction proves the
 //! rounds between, and its openings join the batch-mixed opening ([`::pcs::stack_open`]): the
@@ -12,7 +12,7 @@
 //!
 //! ## The mapping
 //!
-//! The VM's `SHA3(m, tail, cap) -> out` is one [`primitives::hash::step`] on the
+//! The VM's `KECCAK(m, tail, cap) -> out` is one [`primitives::hash::step`] on the
 //! 25 lanes those thirteen cells hold, written to thirteen cells in the same
 //! order ([`CELL_LANES`]). A step is the permutation after [`END_BIT`] is XORed into lane 16,
 //! so the committed input is the lanes the VM reads with that bit flipped, and a claim on the
@@ -64,7 +64,7 @@ pub fn qkeccak_kappa(n_blocks: usize) -> usize {
 
 /// Cells a sponge state occupies.
 pub const STATE_CELLS: usize = 13;
-/// Cells one `SHA3` row touches: thirteen read, thirteen written.
+/// Cells one `KECCAK` row touches: thirteen read, thirteen written.
 pub const ROW_CELLS: usize = 2 * STATE_CELLS;
 /// The state cell holding lane 16 alone, its high lane zero.
 pub const LONE_CELL: usize = 8;
@@ -88,7 +88,7 @@ pub const CELL_LANES: [(usize, Option<usize>); STATE_CELLS] = {
     t
 };
 
-/// What a claim on value column `i`, in `tables::SHA3_VALUE_COLS` order, is of the committed
+/// What a claim on value column `i`, in `tables::KECCAK_VALUE_COLS` order, is of the committed
 /// column: an input lane's slot, and the constant the committed lane differs from the VM's by.
 /// An output lane has none.
 pub fn value_slot(i: usize) -> Option<(usize, F192)> {
@@ -121,7 +121,7 @@ pub fn cells_of_state(s: &[u64; STATE_LANES]) -> [F192; STATE_CELLS] {
     })
 }
 
-/// What a `SHA3` instruction writes, given the thirteen cells it reads.
+/// What a `KECCAK` instruction writes, given the thirteen cells it reads.
 pub fn step_cells(cells: &[F192; STATE_CELLS]) -> [F192; STATE_CELLS] {
     cells_of_state(&primitives::hash::step(&state_of_cells(cells)))
 }

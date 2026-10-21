@@ -82,7 +82,7 @@ enum Command {
     },
     /// Prove and verify a Keccak hash chain
     Hash {
-        /// Number of SHA3 steps.
+        /// Number of KECCAK steps.
         #[arg(long, default_value = "262144")]
         n: usize,
         /// Steps per loop iteration; must divide `n`.

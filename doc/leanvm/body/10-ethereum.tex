@@ -13,7 +13,7 @@ The DA claim is a sorted, duplicate-free list of at most $16$ LeanDA roots, poss
 
 \subsubsection{The public input}\label{sec:rec-stmt}
 
-The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is the hash (Keccak-256 in the cell encoding, \S\ref{sec:tab-sha3}) of the following fields, in order:
+The proof carries the signature claims and DA root list. Their digests bind these variable-length lists into a fixed-size statement. The VM's public input is the hash (Keccak-256 in the cell encoding, \S\ref{sec:tab-keccak}) of the following fields, in order:
 \begin{center}
 \begin{tabular}{@{}rl@{}}
 \hline

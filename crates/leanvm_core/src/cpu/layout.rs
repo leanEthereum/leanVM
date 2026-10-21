@@ -17,8 +17,8 @@ pub const MFCNT: usize = 3; // per-cell memory access count, g^{A[i]}
 pub const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
 // The Keccak reduction's committed states `q_keccak`, in the SAME stack as every
 // other column (single PCS). Size `2^(SLOT_LOG + tau)` F64 words for `2^tau`
-// SHA3 steps, never fewer than `MIN_STEPS`. It is the
-// SOLE copy of the input/output words: the VM's SHA3 value columns are
+// KECCAK steps, never fewer than `MIN_STEPS`. It is the
+// SOLE copy of the input/output words: the VM's KECCAK value columns are
 // virtual and their memory-bus claims route to `q_keccak` slots (§keccak), so
 // nothing duplicates them. The reduction's two claims are discharged by the single
 // stacked WHIR opening over this commitment.
@@ -153,18 +153,18 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
     // q_keccak is `2^(SLOT_LOG + n_blocks_log)` F64 words, and tau_5 IS
     // n_blocks_log (the announced-size certification uses the same floor), so this
     // reproduces `qkeccak_kappa`.
-    k[QKECCAK] = Some((2 + tables::SHA3_TABLE, crate::keccak::SLOT_LOG));
+    k[QKECCAK] = Some((2 + tables::KECCAK_TABLE, crate::keccak::SLOT_LOG));
     for (t, table) in tables::tables().iter().enumerate() {
         let base = sch.base[t];
         k[base..base + table.n_committed_columns()].fill(Some((2 + t, 0)));
     }
-    // The SHA3 value columns are ALWAYS virtual: `q_keccak` already holds those
+    // The KECCAK value columns are ALWAYS virtual: `q_keccak` already holds those
     // words at fixed slots, so committing them again is redundant. Their
     // memory-bus claims route directly to `q_keccak` slot evaluations (`slot_claims`),
     // which both binds them to the proven witness AND removes the separate
     // value-binding sub-protocol.
-    let b3 = sch.base[tables::SHA3_TABLE];
-    for &c in &tables::SHA3_VALUE_COLS {
+    let b3 = sch.base[tables::KECCAK_TABLE];
+    for &c in &tables::KECCAK_VALUE_COLS {
         k[b3 + c] = None;
     }
     k
@@ -226,7 +226,7 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 8] {
             Op::Set { o, .. } => o,
             Op::Deref { o1, o2, o3, .. } => o1.max(o2).max(o3),
             Op::Jump { oc, od, of } => oc.max(od).max(of),
-            Op::Sha3 { m, tail, cap, out } => m[0].max(m[1]).max(m[2]).max(m[3]).max(tail).max(cap).max(out),
+            Op::Keccak { m, tail, cap, out } => m[0].max(m[1]).max(m[2]).max(m[3]).max(tail).max(cap).max(out),
         })
         .max()
         .unwrap_or(0) as usize;
@@ -239,7 +239,7 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 8] {
         Op::Set { .. } => OP_SET,
         Op::Deref { .. } => OP_DEREF,
         Op::Jump { .. } => OP_JUMP,
-        Op::Sha3 { .. } => OP_SHA3,
+        Op::Keccak { .. } => OP_KECCAK,
     };
     let operands = |op: &Op| -> (F64, F64, F64) {
         match *op {
@@ -249,31 +249,31 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 8] {
             Op::Set { o, k } => (g_at(o), F64(k.c0), F64(k.c1)),
             Op::Deref { o1, o2, o3, .. } => (g_at(o1), g_at(o2), g_at(o3)),
             Op::Jump { oc, od, of } => (g_at(oc), g_at(od), g_at(of)),
-            // SHA3's first three `m` offsets; the rest ride the four slots below.
-            Op::Sha3 { m, .. } => (g_at(m[0]), g_at(m[1]), g_at(m[2])),
+            // KECCAK's first three `m` offsets; the rest ride the four slots below.
+            Op::Keccak { m, .. } => (g_at(m[0]), g_at(m[1]), g_at(m[2])),
         }
     };
     // The 4th/5th bytecode operand slots: the two DEREF store-mode flags, or
-    // SHA3's last `m` offset and its `tail` base (0 elsewhere).
+    // KECCAK's last `m` offset and its `tail` base (0 elsewhere).
     let fpc = |op: &Op| match op {
         Op::Deref { mode, .. } => mode.f_pc(),
-        Op::Sha3 { m, .. } => g_at(m[3]),
+        Op::Keccak { m, .. } => g_at(m[3]),
         Op::Set { k, .. } => F64(k.c2),
         _ => F64::ZERO,
     };
     let ffp = |op: &Op| match op {
         Op::Deref { mode, .. } => mode.f_fp(),
-        Op::Sha3 { tail, .. } => g_at(*tail),
+        Op::Keccak { tail, .. } => g_at(*tail),
         _ => F64::ZERO,
     };
-    // The 6th/7th bytecode operand slots: SHA3's `cap` and output bases (0
+    // The 6th/7th bytecode operand slots: KECCAK's `cap` and output bases (0
     // elsewhere).
     let extra0 = |op: &Op| match op {
-        Op::Sha3 { cap, .. } => g_at(*cap),
+        Op::Keccak { cap, .. } => g_at(*cap),
         _ => F64::ZERO,
     };
     let extra1 = |op: &Op| match op {
-        Op::Sha3 { out, .. } => g_at(*out),
+        Op::Keccak { out, .. } => g_at(*out),
         _ => F64::ZERO,
     };
     // The program is PUBLIC (not committed): eight public columns over the
@@ -424,16 +424,16 @@ pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: 
 pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_TABLES] {
     let taus = std::array::from_fn(|t| crate::log2_ceil_usize(rows[t]).max(tables::TABLE_LOG_FLOORS[t]));
     debug_assert_eq!(
-        taus[tables::SHA3_TABLE],
-        crate::keccak::n_blocks_log(rows[tables::SHA3_TABLE]),
-        "the SHA3 table is the Keccak reduction's batch"
+        taus[tables::KECCAK_TABLE],
+        crate::keccak::n_blocks_log(rows[tables::KECCAK_TABLE]),
+        "the KECCAK table is the Keccak reduction's batch"
     );
     taus
 }
 
 impl Program {
-    /// `sha3_blocks` is what [`crate::keccak::while_executing`] built behind `exec`'s run.
-    pub(crate) fn build(&self, exec: &Execution, sha3_blocks: crate::keccak::Blocks) -> Witness {
+    /// `keccak_blocks` is what [`crate::keccak::while_executing`] built behind `exec`'s run.
+    pub(crate) fn build(&self, exec: &Execution, keccak_blocks: crate::keccak::Blocks) -> Witness {
         assert!(self.prog.len().is_power_of_two());
         assert!(exec.mem.len().is_power_of_two());
         // The trace was emitted in the same walk as the memory image (no re-walk).
@@ -511,9 +511,9 @@ impl Program {
             parallel::fill(windows[BFCNT], |i| tr.bytecode_count[i]); // … at g^{A[pc]}
         });
         // The committed Keccak states q_keccak, ALWAYS in this same stack: built from
-        // the executed SHA3 rows in order (row j = step j).
+        // the executed KECCAK rows in order (row j = step j).
         let keccak_reduction = crate::stage!("Build q_keccak", || {
-            sha3_blocks.place(tr.sha3.len(), windows[QKECCAK])
+            keccak_blocks.place(tr.keccak.len(), windows[QKECCAK])
         });
 
         // (`execute` already asserts the run halts at the sentinel (pc, fp) =

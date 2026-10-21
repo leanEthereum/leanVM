@@ -3,7 +3,7 @@
 //! commitment and verified oracle-free. Addresses, the program counter, and read
 //! counts are g-powers, so every increment is a free ×g. Machine-word arithmetic
 //! is over `E = F192 = K[y]/(y³+y+1)` (XOR degree 1, MUL_NATIVE degree 2),
-//! with each word carried by three committed `K = F64` limbs. `SHA3` adds the
+//! with each word carried by three committed `K = F64` limbs. `KECCAK` adds the
 //! memory/state/bytecode plumbing for one Keccak-f sponge step whose relation
 //! is discharged by the Keccak reduction (see [`crate::keccak`]). All
 //! challenges and transcript scalars live in the same tower E.
@@ -15,7 +15,7 @@ use crate::constraints;
 use crate::leaf::{self, Block, ColumnClaim, Coord};
 use crate::pcs;
 use crate::tables::{
-    self, FillCtx, FlushBuilder, OP_DEREF, OP_JUMP, OP_MUL, OP_SET, OP_SHA3, OP_XOR, SEP_BYTECODE, SEP_MEM, SEP_STATE,
+    self, FillCtx, FlushBuilder, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM, SEP_STATE,
 };
 use crate::transcript::ProverState;
 use crate::witness;
@@ -383,31 +383,31 @@ fn xi_form_pows(xi: F192) -> [F192; 3] {
     [pows[base], pows[base + 1], pows[base + 2]]
 }
 
-/// If `col` is a SHA3 **input** value column (global index), its `q_keccak` slot and
+/// If `col` is a KECCAK **input** value column (global index), its `q_keccak` slot and
 /// the constant the committed lane differs by.
 /// These columns are virtual (uncommitted): their evaluation claims are re-routed
 /// to `q_keccak` slot evaluations, which is the whole binding: the bus-tied value
 /// IS the proven `q_keccak` word, no separate check needed.
-fn sha3_value_slot(col: usize) -> Option<(usize, F192)> {
-    let base = schema().base[tables::SHA3_TABLE];
-    tables::SHA3_VALUE_COLS
+fn keccak_value_slot(col: usize) -> Option<(usize, F192)> {
+    let base = schema().base[tables::KECCAK_TABLE];
+    tables::KECCAK_VALUE_COLS
         .iter()
         .position(|&c| base + c == col)
         .and_then(crate::keccak::value_slot)
 }
 
-/// The SHA3 table's claims on its output lanes, which are the Keccak reduction's claim on
+/// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on
 /// the permutation's output: the batch claims every column of the table at one point.
 fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::OutputClaim {
-    let claims = &table_claims[tables::SHA3_TABLE];
+    let claims = &table_claims[tables::KECCAK_TABLE];
     keccak_gkr::OutputClaim {
         instance: claims.chi.clone(),
-        lanes: std::array::from_fn(|l| claims.evals[tables::sha3t::V_OUT + l]),
+        lanes: std::array::from_fn(|l| claims.evals[tables::keccakt::V_OUT + l]),
     }
 }
 
 /// Run statistics returned alongside the proof: the cycle count (total executed
-/// instructions), the per-opcode row counts `[XOR, MUL, SET, DEREF, JUMP, SHA3]`,
+/// instructions), the per-opcode row counts `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`,
 /// and the committed witness size, the sum of the column lengths, i.e. the real data
 /// before the stacked witness is zero-padded to a power of two `2^m`.
 pub struct Stats {
@@ -426,7 +426,7 @@ pub struct Stats {
 
 impl Stats {
     /// Table names in `rows` order.
-    pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "SHA3"];
+    pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
 
     /// One line of per-table instruction counts and shares, largest first, followed by memory, bytecode and committed-witness sizes.
     ///
@@ -470,7 +470,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    let (exec, sha3_blocks) = crate::stage!("Execute program", || {
+    let (exec, keccak_blocks) = crate::stage!("Execute program", || {
         crate::keccak::while_executing(|step| program.execute_with(public_input, step))
     });
     let exec = exec.map_err(ProveError::Execution)?;
@@ -481,7 +481,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         return Err(ProveError::UnconstrainedReads(exec.unconstrained_reads));
     }
     let cycles = exec.cycles;
-    let w = crate::stage!("Build witness", || program.build(&exec, sha3_blocks));
+    let w = crate::stage!("Build witness", || program.build(&exec, keccak_blocks));
     if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&w.layout.shape.mu) {
         return Err(ProveError::WitnessOutOfRange {
             log_committed: w.layout.shape.mu,
@@ -502,9 +502,9 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
         pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate)
     });
 
-    // SHA3 (§keccak), single PCS: q_keccak is ALWAYS a column in `w.q` (the
-    // SHA3 table is filled to the reduction's floor, so the proof shape is uniform
-    // and there is no has/hasn't-SHA3 fork). The Keccak reduction's claims and
+    // KECCAK (§keccak), single PCS: q_keccak is ALWAYS a column in `w.q` (the
+    // KECCAK table is filled to the reduction's floor, so the proof shape is uniform
+    // and there is no has/hasn't-KECCAK fork). The Keccak reduction's claims and
     // EVERY leanVM point claim are discharged together by ONE
     // WHIR over this commitment (below). Input and output lanes bind through the
     // memory bus: their virtual value columns route to q_keccak, so no separate pin
@@ -559,7 +559,7 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // PCS below in the SAME WHIR as every leanVM point claim: one ring-switched,
     // one appended to the point claims.
     let keccak_reduction = w.keccak_reduction;
-    let n_blocks = 1usize << w.layout.taus[tables::SHA3_TABLE];
+    let n_blocks = 1usize << w.layout.taus[tables::KECCAK_TABLE];
     let offset = w.layout.placements[QKECCAK].offset;
     let q_keccak = &w.q[offset..offset + (1 << crate::keccak::qkeccak_kappa(n_blocks))];
     let openings = crate::stage!("Keccak reduction", || {
@@ -597,8 +597,8 @@ fn finish_claims(
     claims.reserve(sch.n - N_SHARED);
     for (t, table) in tables::tables().iter().enumerate() {
         for c in 0..table.n_committed_columns() {
-            if t == tables::SHA3_TABLE
-                && (tables::sha3t::V_OUT..tables::sha3t::V_OUT + primitives::hash::STATE_LANES).contains(&c)
+            if t == tables::KECCAK_TABLE
+                && (tables::keccakt::V_OUT..tables::keccakt::V_OUT + primitives::hash::STATE_LANES).contains(&c)
             {
                 continue; // the Keccak reduction's claim on the output (`keccak_output_claim`)
             }
@@ -690,7 +690,7 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
 /// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in
 /// the slot at `placements[c].offset`, with the claim's point as the low point.
 ///
-/// SHA3 value columns are virtual: they have no committed placement. A bus
+/// KECCAK value columns are virtual: they have no committed placement. A bus
 /// claim `value_col(r) = v` (at the `n_log`-dim instance point `r`) is re-routed
 /// to the equal `q_keccak` slot evaluation: an ordinary claim on the committed
 /// `QKECCAK` column at the point whose low coords are `r` and whose next
@@ -700,9 +700,9 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
     claims
         .into_iter()
         .map(|c| {
-            // A SHA3 value column (always virtual): its bus claim at instance point
+            // A KECCAK value column (always virtual): its bus claim at instance point
             // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
-            if let Some((slot, shift)) = sha3_value_slot(c.col) {
+            if let Some((slot, shift)) = keccak_value_slot(c.col) {
                 return pcs::SlotClaim::Point {
                     offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
                     low_point: c.point,
@@ -727,11 +727,11 @@ mod tests {
         F192::new(x, 0, 0)
     }
 
-    /// A hand-built straight-line program with one SHA3 row: two message cells
+    /// A hand-built straight-line program with one KECCAK row: two message cells
     /// (2, 3) read twice as `m`, a four-cell `tail` (4..8), a zero five-cell `cap`
     /// (8..13), and the output run (13..26), padded with filler SETs so the last
     /// executed instruction lands one before the sentinel.
-    fn sha3_program(a: F192, b: F192, tail: [F192; 4]) -> Program {
+    fn keccak_program(a: F192, b: F192, tail: [F192; 4]) -> Program {
         let mut prog = vec![Op::Set { o: 2, k: a }, Op::Set { o: 3, k: b }];
         for (i, &t) in tail.iter().enumerate() {
             prog.push(Op::Set { o: 4 + i as u32, k: t });
@@ -742,7 +742,7 @@ mod tests {
                 k: F192::ZERO,
             });
         }
-        prog.push(Op::Sha3 {
+        prog.push(Op::Keccak {
             m: [2, 3, 2, 3],
             tail: 4,
             cap: 8,
@@ -767,11 +767,11 @@ mod tests {
     /// hash of the 64 message bytes. Hand-assembled, the program is provable all the
     /// same: its tables are not powers of two.
     #[test]
-    fn sha3_computes_the_step() {
+    fn keccak_computes_the_step() {
         let a = F192::new(0x0123_4567_89ab_cdef, 0xfedc_ba98_7654_3210, 0);
         let b = F192::new(0xdead_beef_cafe_babe, 0x0bad_f00d_0bad_f00d, 0);
         let pad = F192::new(primitives::hash::PAD_FIRST as u64, 0, 0);
-        let program = sha3_program(a, b, [pad, F192::ZERO, F192::ZERO, F192::ZERO]);
+        let program = keccak_program(a, b, [pad, F192::ZERO, F192::ZERO, F192::ZERO]);
         let pi = [w(7), w(11)];
         let exec = program.execute(pi).unwrap();
 
@@ -801,8 +801,8 @@ mod tests {
     /// memory bus makes a read carrying a literal zero in limb 2 match only such a
     /// stored word.
     #[test]
-    fn sha3_requires_zero_third_limb() {
-        let err = sha3_program(F192::new(0, 0, 1), F192::ZERO, [F192::ZERO; 4])
+    fn keccak_requires_zero_third_limb() {
+        let err = keccak_program(F192::new(0, 0, 1), F192::ZERO, [F192::ZERO; 4])
             .execute([w(7), w(11)])
             .err()
             .expect("the run must fail");
@@ -814,8 +814,8 @@ mod tests {
 
     /// The lone lane-16 cell carries `(lo, 0, 0)`, read with two literal zeros.
     #[test]
-    fn sha3_requires_zero_lone_high_lane() {
-        let mut program = sha3_program(F192::ZERO, F192::ZERO, [F192::ZERO; 4]);
+    fn keccak_requires_zero_lone_high_lane() {
+        let mut program = keccak_program(F192::ZERO, F192::ZERO, [F192::ZERO; 4]);
         program.prog[6] = Op::Set {
             o: 8,
             k: F192::new(0, 1, 0),

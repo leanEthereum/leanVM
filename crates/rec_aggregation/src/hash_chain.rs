@@ -33,7 +33,7 @@ fn chain_source(steps: usize, unroll: usize) -> String {
     for step in 1..=unroll {
         body.push_str(&format!("        h{step} = StackBuf(13)\n"));
         body.push_str(&format!(
-            "        sha3(h{previous}[0:2], h{previous}[0:2], h{step})\n",
+            "        keccak(h{previous}[0:2], h{previous}[0:2], h{step})\n",
             previous = step - 1
         ));
     }
@@ -58,7 +58,7 @@ fn chain_source(steps: usize, unroll: usize) -> String {
 }
 
 #[test]
-fn sha3_hash_chain() {
+fn keccak_hash_chain() {
     let env_usize = |key: &str, default: usize| {
         std::env::var(key)
             .ok()

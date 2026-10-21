@@ -43,8 +43,8 @@ pub(crate) struct Jrow {
     pub(crate) bytecode_read: F64,
 }
 
-/// `SHA3` row: the per-cell memory access counts, in the order the table flushes
-/// them (`tables::sha3_cells`): the four `m` cells, the four `tail` cells, the five
+/// `KECCAK` row: the per-cell memory access counts, in the order the table flushes
+/// them (`tables::keccak_cells`): the four `m` cells, the four `tail` cells, the five
 /// `cap` cells, then the thirteen output cells. The fifty value lanes are those
 /// cells' lanes, read back from the final memory image.
 pub(crate) struct Brow {
@@ -60,7 +60,7 @@ pub(crate) struct Trace {
     pub(crate) set: Vec<Srow>,
     pub(crate) deref: Vec<Drow>,
     pub(crate) jump: Vec<Jrow>,
-    pub(crate) sha3: Vec<Brow>,
+    pub(crate) keccak: Vec<Brow>,
     pub(crate) mem_count: Vec<F64>, // per-cell running access count g^{count}; final = g^{A[i]}
     pub(crate) bytecode_count: Vec<F64>, // per-pc running execution count g^{count}; final = g^{A[pc]}
 }
@@ -74,7 +74,7 @@ impl Trace {
             self.set.len(),
             self.deref.len(),
             self.jump.len(),
-            self.sha3.len(),
+            self.keccak.len(),
         ]
     }
 }

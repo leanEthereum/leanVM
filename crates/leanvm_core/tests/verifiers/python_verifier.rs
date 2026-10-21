@@ -26,7 +26,7 @@ def mix(value, tag):
 def main():
     seed = [5, 7]
     digest = StackBuf(2)
-    sha3(seed, seed, digest)
+    keccak(seed, seed, digest)
 
     chain = HeapBuf(LOOP_STEPS + 1)
     chain[1] = digest[0]

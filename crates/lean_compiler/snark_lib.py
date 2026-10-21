@@ -151,7 +151,7 @@ def HeapBuf(n) -> _Elt:
 
 def StackBuf(n: int) -> _Elt:
     """Allocate `n` consecutive frame (stack) cells. A size-2 StackBuf holds a
-    256-bit value and is a valid `sha3` operand; a size-13 one holds a sponge
+    256-bit value and is a valid `keccak` operand; a size-13 one holds a sponge
     state."""
     _ = n
     return _Elt()
@@ -198,7 +198,7 @@ def hint_f192_limbs(dest, value) -> None:
     _ = dest, value
 
 
-def sha3(
+def keccak(
     a,
     b,
     out,
@@ -209,7 +209,7 @@ def sha3(
     final: Optional[int] = None,
     cap=None,
 ) -> None:
-    """One block of the leanVM hash (Keccak-256 in the cell encoding), one `SHA3`
+    """One block of the leanVM hash (Keccak-256 in the cell encoding), one `KECCAK`
     instruction. The block's eight message cells are `a` (2 cells), `b` (2
     cells) and `tail` (4 cells, zero when omitted); `out` receives the
     13-cell sponge state, whose first two cells are the digest, or just the
@@ -238,8 +238,8 @@ def sha3(
     _ = a, b, out, tail, state, len, final, cap
 
 
-def sha3_cells(run, out) -> None:
+def keccak_cells(run, out) -> None:
     """The leanVM hash of the whole run of cells `run` (a StackBuf, or a slice
-    with compile-time bounds), eight cells a `SHA3` instruction. `out` is as for
-    `sha3`."""
+    with compile-time bounds), eight cells a `KECCAK` instruction. `out` is as for
+    `keccak`."""
     _ = run, out

@@ -194,7 +194,7 @@ def powers(base: E, count: int) -> list[E]:
 # eight whole 16-byte cells per permutation. Up to 128 bytes it is plain Keccak-256. The
 # gap is lane 16, which every step supplies, so a chunk is absorbed as its sixteen lanes.
 HASH_CHUNK = 128
-PAD_FIRST = 0x01  # the padding's first byte, after the message; SHA3-256 would put 0x06
+PAD_FIRST = 0x01  # the padding's first byte, after the message; FIPS 202's 256-bit hash would put 0x06
 
 
 def keccak_hash(data: bytes) -> Digest:
@@ -350,7 +350,7 @@ class Proof:
 
 
 # Fiat--Shamir ---------------------------------------------------------------
-# A duplex sponge over the VM's SHA3 step, in overwrite mode. The rate is lanes 0..16 and the
+# A duplex sponge over the VM's KECCAK step, in overwrite mode. The rate is lanes 0..16 and the
 # capacity lanes 16..25. Up to four absorbed scalars wait; a permutation writes scalar i over lanes
 # 4i..4i+4 (three limbs and a tag), zeroes the rest of the rate and keeps the capacity. A fifth
 # scalar, or a challenge, permutes what waits, and every challenge takes a permutation of its own.
@@ -367,7 +367,7 @@ def compress(left: Sequence[K | int], right: Sequence[K | int]) -> tuple[int, in
 
 
 def keccak_step(lanes: Sequence[int]) -> list[int]:
-    """The VM's SHA3 step: XOR the padding's last bit into lane 16, then Keccak-f[1600]."""
+    """The VM's KECCAK step: XOR the padding's last bit into lane 16, then Keccak-f[1600]."""
     a = list(lanes)
     a[16] ^= KECCAK_END_BIT
     rot = lambda x, n: ((x << n) | (x >> (64 - n))) & LANE_MASK if n else x  # noqa: E731
@@ -796,11 +796,11 @@ class Table:
 
     @property
     def padding(self) -> tuple[E, ...]:
-        """The row a padding row holds: zero, but for SHA3's output lanes, a padding step writing the step of a zero state."""
-        if self.opcode != OP_SHA3:
+        """The row a padding row holds: zero, but for KECCAK's output lanes, a padding step writing the step of a zero state."""
+        if self.opcode != OP_KECCAK:
             return tuple(ZERO for _ in self.columns)
         output = keccak_step([0] * 25)
-        return tuple(E(output[SHA3_OUTPUTS.index(name)]) if name in SHA3_OUTPUTS else ZERO for name in self.columns)
+        return tuple(E(output[KECCAK_OUTPUTS.index(name)]) if name in KECCAK_OUTPUTS else ZERO for name in self.columns)
 
 
 def _flushes_arith(opcode: int, multiply: bool) -> Flushes:
@@ -870,16 +870,16 @@ def _jump_constraints(columns: Sequence[E]) -> tuple[E, ...]:
 
 # The lanes each of a sponge state's thirteen cells holds: lanes 0..16 two to a cell,
 # then lane 16 alone (its high lane a literal zero), then the capacity lanes 17..25.
-SHA3_CELL_LANES = tuple((2 * c, 2 * c + 1) if c < 8 else (16,) if c == 8 else (2 * c - 1, 2 * c) for c in range(13))
+KECCAK_CELL_LANES = tuple((2 * c, 2 * c + 1) if c < 8 else (16,) if c == 8 else (2 * c - 1, 2 * c) for c in range(13))
 
 
-def _flushes_sha3() -> Flushes:
-    pc, fp, cnt_bc = _cols(SHA3_COLUMNS, "pc", "fp", "cnt_bc")
-    o_m = _cols(SHA3_COLUMNS, "o_m0", "o_m1", "o_m2", "o_m3")
-    o_tail, o_cap, o_out = _cols(SHA3_COLUMNS, "o_tail", "o_cap", "o_out")
+def _flushes_keccak() -> Flushes:
+    pc, fp, cnt_bc = _cols(KECCAK_COLUMNS, "pc", "fp", "cnt_bc")
+    o_m = _cols(KECCAK_COLUMNS, "o_m0", "o_m1", "o_m2", "o_m3")
+    o_tail, o_cap, o_out = _cols(KECCAK_COLUMNS, "o_tail", "o_cap", "o_out")
     flushes = Flushes()
     flushes.state_step(pc, fp)
-    flushes.bytecode(pc, cnt_bc, OP_SHA3, tuple(_col(i) for i in (*o_m, o_tail, o_cap, o_out)))
+    flushes.bytecode(pc, cnt_bc, OP_KECCAK, tuple(_col(i) for i in (*o_m, o_tail, o_cap, o_out)))
 
     # The thirteen cells read (four addressed ones, then the consecutive tail and cap runs), then
     # the thirteen written. Each carries its q_keccak lanes and zeros above them.
@@ -889,20 +889,20 @@ def _flushes_sha3() -> Flushes:
         return _prod(fp, o_tail, cell - 4) if cell < 8 else _prod(fp, o_cap, cell - 8)
 
     for side, lane_prefix in enumerate(("in", "out")):
-        for cell, lanes in enumerate(SHA3_CELL_LANES):
+        for cell, lanes in enumerate(KECCAK_CELL_LANES):
             address = read(cell) if side == 0 else _prod(fp, o_out, cell)
-            (count,) = _cols(SHA3_COLUMNS, f"cnt_{13 * side + cell}")
-            flushes.memory_cols(address, count, *_cols(SHA3_COLUMNS, *(f"{lane_prefix}_{lane}" for lane in lanes)))
+            (count,) = _cols(KECCAK_COLUMNS, f"cnt_{13 * side + cell}")
+            flushes.memory_cols(address, count, *_cols(KECCAK_COLUMNS, *(f"{lane_prefix}_{lane}" for lane in lanes)))
     return flushes
 
 
-OP_XOR, OP_MUL, OP_SET, OP_DEREF, OP_JUMP, OP_SHA3 = range(6)
+OP_XOR, OP_MUL, OP_SET, OP_DEREF, OP_JUMP, OP_KECCAK = range(6)
 
 ARITH_COLUMNS = ("pc", "fp", "o_a", "o_b", "o_c", "va_0", "va_1", "va_2", "vb_0", "vb_1", "vb_2", "cnt_a", "cnt_b", "cnt_c", "cnt_bc",)  # fmt: skip
 SET_COLUMNS = ("pc", "fp", "o", "k_0", "k_1", "k_2", "cnt", "cnt_bc")
 DEREF_COLUMNS = ("pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "ptr", "v3_0", "v3_1", "v3_2",  "cnt_ptr", "cnt_target", "cnt_local", "cnt_bc",)  # fmt: skip
 JUMP_COLUMNS = ("pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b",)  # fmt: skip
-SHA3_COLUMNS = (
+KECCAK_COLUMNS = (
     "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_cap", "o_out",
     # These fifty value lanes are not committed here: an input lane is one of q_keccak's slots,
     # and the output lanes' claims are the Keccak reduction's claim on the output.
@@ -917,19 +917,19 @@ TABLES = (
     Table("set", OP_SET, SET_COLUMNS, _flushes_set()),
     Table("deref", OP_DEREF, DEREF_COLUMNS, _flushes_deref()),
     Table("jump", OP_JUMP, JUMP_COLUMNS, _flushes_jump(), _jump_constraints),
-    Table("sha3", OP_SHA3, SHA3_COLUMNS, _flushes_sha3()),
+    Table("keccak", OP_KECCAK, KECCAK_COLUMNS, _flushes_keccak()),
 )
 
-# The SHA3 value lanes in q_keccak slot order: the input state's. The output's have no slot.
-SHA3_SLOTS = tuple(f"in_{lane}" for lane in range(25))
-SHA3_OUTPUTS = tuple(f"out_{lane}" for lane in range(25))
+# The KECCAK value lanes in q_keccak slot order: the input state's. The output's have no slot.
+KECCAK_SLOTS = tuple(f"in_{lane}" for lane in range(25))
+KECCAK_OUTPUTS = tuple(f"out_{lane}" for lane in range(25))
 
 
 TABLE_WIDTHS = tuple(t.width for t in TABLES)
 GLOBAL_COLUMN_BASES = tuple(NUM_GLOBAL_COLUMNS + sum(TABLE_WIDTHS[:table]) for table in range(len(TABLES)))
 
 
-TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG)  # each table's least log height: 0, but the Keccak reduction's block of steps for SHA3
+TABLE_LOG_FLOORS = (0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG)  # each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK
 
 
 def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[int]) -> Layout:
@@ -951,15 +951,15 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
             count.append(BusBlock(height, rows, (_col(local),), table.opcode))
 
     # Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
-    qkeccak_kappa = table_log_heights[OP_SHA3] + QKECCAK_SLOT_BITS
+    qkeccak_kappa = table_log_heights[OP_KECCAK] + QKECCAK_SLOT_BITS
     kappas = [log_memory, log_memory, log_memory, log_memory, log_bytecode, qkeccak_kappa]
     for table in TABLES:
         kappas += [table_log_heights[table.opcode]] * table.width
 
-    # A SHA3 value lane gets no block of its own: an input lane is committed inside q_keccak, one
+    # A KECCAK value lane gets no block of its own: an input lane is committed inside q_keccak, one
     # slot of 2^height words each, and an output lane not at all, nothing ever opening it.
-    limbs = {GLOBAL_COLUMN_BASES[OP_SHA3] + _cols(SHA3_COLUMNS, name)[0]: slot for slot, name in enumerate(SHA3_SLOTS)}
-    outputs = {GLOBAL_COLUMN_BASES[OP_SHA3] + _cols(SHA3_COLUMNS, name)[0] for name in SHA3_OUTPUTS}
+    limbs = {GLOBAL_COLUMN_BASES[OP_KECCAK] + _cols(KECCAK_COLUMNS, name)[0]: slot for slot, name in enumerate(KECCAK_SLOTS)}
+    outputs = {GLOBAL_COLUMN_BASES[OP_KECCAK] + _cols(KECCAK_COLUMNS, name)[0] for name in KECCAK_OUTPUTS}
     blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in limbs and column not in outputs}
     block_offsets, total_log = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
@@ -1471,16 +1471,16 @@ def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
     claims.extend(ColumnClaim(column, public_point, value) for column, value in zip((MEMORY_0, MEMORY_1, MEMORY_2), public_limbs))
 
     # The committed input of a step is what it reads with the padding's last bit XORed into lane 16.
-    end_lane = GLOBAL_COLUMN_BASES[OP_SHA3] + _cols(SHA3_COLUMNS, "in_16")[0]
+    end_lane = GLOBAL_COLUMN_BASES[OP_KECCAK] + _cols(KECCAK_COLUMNS, "in_16")[0]
     claims = [ColumnClaim(c.column, c.point, c.value + E(KECCAK_END_BIT)) if c.column == end_lane else c for c in claims]
 
-    # 6] SHA3 validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the
+    # 6] KECCAK validity, by GKR over the rounds. The table's claims on its output lanes, all at one point, are the
     # reduction's claim on the permutation's output: they leave the batch.
-    output_columns = [GLOBAL_COLUMN_BASES[OP_SHA3] + _cols(SHA3_COLUMNS, name)[0] for name in SHA3_OUTPUTS]
+    output_columns = [GLOBAL_COLUMN_BASES[OP_KECCAK] + _cols(KECCAK_COLUMNS, name)[0] for name in KECCAK_OUTPUTS]
     lanes = [c for c in claims if c.column in output_columns]
-    require([c.column for c in lanes] == output_columns and len({c.point for c in lanes}) == 1, "one claim on each SHA3 output lane, in order")
+    require([c.column for c in lanes] == output_columns and len({c.point for c in lanes}) == 1, "one claim on each KECCAK output lane, in order")
     claims = [c for c in claims if c.column not in output_columns]
-    outputs, (point, slices) = verify_keccak(layout.table_log_heights[OP_SHA3], lanes[0].point, [c.value for c in lanes], transcript)
+    outputs, (point, slices) = verify_keccak(layout.table_log_heights[OP_KECCAK], lanes[0].point, [c.value for c in lanes], transcript)
     claims.extend(outputs)
 
     # 7] Ring-switching

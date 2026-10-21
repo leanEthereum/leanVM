@@ -78,10 +78,10 @@ pub(crate) enum LOp {
         first: u32,
         dst: Off,
     },
-    /// `SHA3`: one sponge step. The four `m` cells are addressed independently,
+    /// `KECCAK`: one sponge step. The four `m` cells are addressed independently,
     /// `tail` (4 cells), `cap` (5 cells) and the output `c` (13 cells) are
     /// consecutive runs.
-    Sha3 {
+    Keccak {
         m: [Off; 4],
         tail: Off,
         cap: Off,
@@ -137,8 +137,8 @@ pub(crate) struct JumpTables {
 
 /// A resolved run of consecutive cells ([`crate::lower::FnLower::cell_run`]): a
 /// frame (stack) run, used in place, or a heap slice (the buffer pointer's cell
-/// plus the first g-power offset), which a `sha3` operand must bridge through
-/// the stack since `SHA3` addresses only frame cells.
+/// plus the first g-power offset), which a `keccak` operand must bridge through
+/// the stack since `KECCAK` addresses only frame cells.
 pub(crate) enum CellRun {
     Stack { base: Off, len: u32 },
     Heap { ptr: Off, lo: u32, len: u32 },

@@ -92,7 +92,7 @@ pub struct Layout<'a> {
     pub push: Vec<BusBlock>,
     pub pull: Vec<BusBlock>,
     pub count: Vec<BusBlock>,
-    /// Where each column sits, `None` for a column nothing commits: the `SHA3` output lanes.
+    /// Where each column sits, `None` for a column nothing commits: the `KECCAK` output lanes.
     pub placements: Vec<Option<Placement>>,
     pub stack_log: usize,
     pub placed: u64, // the words the columns fill, from the bottom of the stack
@@ -287,7 +287,7 @@ fn jump_constraints(columns: &[E]) -> Vec<E> {
 
 /// The lanes each of a sponge state's thirteen cells holds: lanes 0..16 two to a cell, then lane 16 alone (its high
 /// lane a literal zero), then the capacity lanes 17..25.
-const SHA3_CELL_LANES: [&[usize]; 13] = [
+const KECCAK_CELL_LANES: [&[usize]; 13] = [
     &[0, 1],
     &[2, 3],
     &[4, 5],
@@ -303,14 +303,14 @@ const SHA3_CELL_LANES: [&[usize]; 13] = [
     &[23, 24],
 ];
 
-fn flushes_sha3() -> Flushes {
-    let [pc, fp, cnt_bc] = cols(SHA3_COLUMNS, ["pc", "fp", "cnt_bc"]);
-    let o_m = cols(SHA3_COLUMNS, ["o_m0", "o_m1", "o_m2", "o_m3"]);
-    let [o_tail, o_cap, o_out] = cols(SHA3_COLUMNS, ["o_tail", "o_cap", "o_out"]);
+fn flushes_keccak() -> Flushes {
+    let [pc, fp, cnt_bc] = cols(KECCAK_COLUMNS, ["pc", "fp", "cnt_bc"]);
+    let o_m = cols(KECCAK_COLUMNS, ["o_m0", "o_m1", "o_m2", "o_m3"]);
+    let [o_tail, o_cap, o_out] = cols(KECCAK_COLUMNS, ["o_tail", "o_cap", "o_out"]);
     let mut flushes = Flushes::default();
     flushes.state_step(pc, fp);
     let operands = [o_m[0], o_m[1], o_m[2], o_m[3], o_tail, o_cap, o_out];
-    flushes.bytecode(pc, cnt_bc, OP_SHA3, operands.map(|i| col(i, 0)).to_vec());
+    flushes.bytecode(pc, cnt_bc, OP_KECCAK, operands.map(|i| col(i, 0)).to_vec());
     // The thirteen cells read (four addressed ones, then the consecutive tail and cap runs), then the thirteen
     // written. Each carries its q_keccak lanes and zeros above them.
     let read = |cell: usize| match cell {
@@ -319,16 +319,16 @@ fn flushes_sha3() -> Flushes {
         _ => prod(fp, o_cap, cell as u64 - 8),
     };
     for (side, prefix) in ["in", "out"].into_iter().enumerate() {
-        for (cell, lanes) in SHA3_CELL_LANES.iter().enumerate() {
+        for (cell, lanes) in KECCAK_CELL_LANES.iter().enumerate() {
             let address = if side == 0 {
                 read(cell)
             } else {
                 prod(fp, o_out, cell as u64)
             };
-            let count = cols(SHA3_COLUMNS, [&format!("cnt_{}", 13 * side + cell)])[0];
+            let count = cols(KECCAK_COLUMNS, [&format!("cnt_{}", 13 * side + cell)])[0];
             let limbs: Vec<usize> = lanes
                 .iter()
-                .map(|lane| cols(SHA3_COLUMNS, [&format!("{prefix}_{lane}")])[0])
+                .map(|lane| cols(KECCAK_COLUMNS, [&format!("{prefix}_{lane}")])[0])
                 .collect();
             flushes.memory_cols(address, count, &limbs);
         }
@@ -341,7 +341,7 @@ pub const OP_MUL: usize = 1;
 pub const OP_SET: usize = 2;
 pub const OP_DEREF: usize = 3;
 pub const OP_JUMP: usize = 4;
-pub const OP_SHA3: usize = 5;
+pub const OP_KECCAK: usize = 5;
 pub const N_TABLES: usize = 6;
 
 #[rustfmt::skip]
@@ -352,7 +352,7 @@ const DEREF_COLUMNS: &[&str] = &["pc", "fp", "o1", "o2", "o3", "f_pc", "f_fp", "
 #[rustfmt::skip]
 const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc", "v_fp", "cnt_c", "cnt_d", "cnt_f", "cnt_bc", "w", "b"];
 #[rustfmt::skip]
-const SHA3_COLUMNS: &[&str] = &[
+const KECCAK_COLUMNS: &[&str] = &[
     "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_cap", "o_out",
     // These fifty value lanes are not committed here: an input lane is one of q_keccak's slots,
     // and the output lanes' claims are the Keccak reduction's claim on the output.
@@ -363,7 +363,7 @@ const SHA3_COLUMNS: &[&str] = &[
 ];
 
 pub fn tables() -> Vec<Table> {
-    // A padding row is zero, but for SHA3's output lanes: a padding step reads zeros, so it writes their step.
+    // A padding row is zero, but for KECCAK's output lanes: a padding step reads zeros, so it writes their step.
     let output = step(&[0; STATE_LANES]);
     let table = |opcode, columns: &'static [&'static str], flushes, constraints| Table {
         opcode,
@@ -371,7 +371,7 @@ pub fn tables() -> Vec<Table> {
         padding: columns
             .iter()
             .map(|&name| {
-                let lane = name.strip_prefix("out_").filter(|_| opcode == OP_SHA3);
+                let lane = name.strip_prefix("out_").filter(|_| opcode == OP_KECCAK);
                 E::new(lane.map_or(0, |lane| output[lane.parse::<usize>().unwrap()]), 0, 0)
             })
             .collect(),
@@ -384,7 +384,7 @@ pub fn tables() -> Vec<Table> {
         table(OP_SET, SET_COLUMNS, flushes_set(), |_| vec![]),
         table(OP_DEREF, DEREF_COLUMNS, flushes_deref(), |_| vec![]),
         table(OP_JUMP, JUMP_COLUMNS, flushes_jump(), jump_constraints),
-        table(OP_SHA3, SHA3_COLUMNS, flushes_sha3(), |_| vec![]),
+        table(OP_KECCAK, KECCAK_COLUMNS, flushes_keccak(), |_| vec![]),
     ]
 }
 
@@ -394,7 +394,7 @@ const TABLE_WIDTHS: [usize; N_TABLES] = [
     SET_COLUMNS.len(),
     DEREF_COLUMNS.len(),
     JUMP_COLUMNS.len(),
-    SHA3_COLUMNS.len(),
+    KECCAK_COLUMNS.len(),
 ];
 pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
     let mut bases = [NUM_GLOBAL_COLUMNS; N_TABLES];
@@ -406,12 +406,12 @@ pub const GLOBAL_COLUMN_BASES: [usize; N_TABLES] = {
     bases
 };
 
-/// The global column of a `SHA3` value lane: `prefix` is `in` or `out`.
-pub fn sha3_lane(prefix: &str, lane: usize) -> usize {
-    GLOBAL_COLUMN_BASES[OP_SHA3] + cols(SHA3_COLUMNS, [&format!("{prefix}_{lane}")])[0]
+/// The global column of a `KECCAK` value lane: `prefix` is `in` or `out`.
+pub fn keccak_lane(prefix: &str, lane: usize) -> usize {
+    GLOBAL_COLUMN_BASES[OP_KECCAK] + cols(KECCAK_COLUMNS, [&format!("{prefix}_{lane}")])[0]
 }
 
-/// Each table's least log height: 0, but the Keccak reduction's block of steps for SHA3.
+/// Each table's least log height: 0, but the Keccak reduction's block of steps for KECCAK.
 const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, KECCAK_MIN_STEPS_LOG];
 
 pub fn build_layout<'a>(
@@ -452,7 +452,7 @@ pub fn build_layout<'a>(
     }
 
     // Every column's log size, in global order: the framework's, q_keccak's, then each table's block.
-    let qkeccak_kappa = table_log_heights[OP_SHA3] + QKECCAK_SLOT_BITS;
+    let qkeccak_kappa = table_log_heights[OP_KECCAK] + QKECCAK_SLOT_BITS;
     let mut kappas = vec![
         log_memory,
         log_memory,
@@ -465,10 +465,10 @@ pub fn build_layout<'a>(
         kappas.extend(vec![table_log_heights[table.opcode]; table.width()]);
     }
 
-    // A SHA3 value lane gets no block of its own: an input lane is committed inside q_keccak, one slot of
+    // A KECCAK value lane gets no block of its own: an input lane is committed inside q_keccak, one slot of
     // 2^height words each, and an output lane not at all, nothing ever opening it.
-    let limbs: BTreeMap<usize, u64> = (0..25).map(|l| (sha3_lane("in", l), l as u64)).collect();
-    let outputs: Vec<usize> = (0..25).map(|l| sha3_lane("out", l)).collect();
+    let limbs: BTreeMap<usize, u64> = (0..25).map(|l| (keccak_lane("in", l), l as u64)).collect();
+    let outputs: Vec<usize> = (0..25).map(|l| keccak_lane("out", l)).collect();
     let blocks: Vec<usize> = (0..kappas.len())
         .filter(|column| !limbs.contains_key(column) && !outputs.contains(column))
         .collect();

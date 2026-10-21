@@ -101,7 +101,7 @@ pub(crate) const OP_MUL: F64 = g_pow(1);
 pub(crate) const OP_SET: F64 = g_pow(2);
 pub(crate) const OP_DEREF: F64 = g_pow(3);
 pub(crate) const OP_JUMP: F64 = g_pow(4);
-pub(crate) const OP_SHA3: F64 = g_pow(5);
+pub(crate) const OP_KECCAK: F64 = g_pow(5);
 
 // ---- flush builder -----------------------------------------------------------
 
@@ -372,7 +372,7 @@ pub trait Table: Sync {
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]);
 }
 
-/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, SHA3]`, the
+/// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
 /// order of `row_counts` / `taus` throughout `cpu`.
 pub const N_TABLES: usize = 6;
 
@@ -383,22 +383,22 @@ pub fn tables() -> [&'static dyn Table; N_TABLES] {
         &SetTable,
         &DerefTable,
         &JumpTable,
-        &Sha3Table,
+        &KeccakTable,
     ]
 }
 
-/// Index of the SHA3 table in [`tables`].
-pub(crate) const SHA3_TABLE: usize = 5;
+/// Index of the KECCAK table in [`tables`].
+pub(crate) const KECCAK_TABLE: usize = 5;
 
-/// Each table's least log height: 0, but the Keccak reduction's block of steps for `SHA3`.
+/// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
 pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, crate::keccak::MIN_STEPS.ilog2() as usize];
 
-/// The twenty-six cells a `SHA3` row touches, in flush order: the four `m` cells,
+/// The twenty-six cells a `KECCAK` row touches, in flush order: the four `m` cells,
 /// the four `tail` cells, the five `cap` cells, then the thirteen output cells.
 /// Recovered from the instruction, not stored per row.
-pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::keccak::ROW_CELLS] {
+pub(crate) fn keccak_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::keccak::ROW_CELLS] {
     match prog[pc as usize] {
-        Op::Sha3 { m, tail, cap, out } => {
+        Op::Keccak { m, tail, cap, out } => {
             let in_cell = |c: u32| match c {
                 0..4 => m[c as usize],
                 4..8 => tail + (c - 4),
@@ -409,27 +409,27 @@ pub(crate) fn sha3_cells(prog: &[Op], pc: u32, fp: u32) -> [u32; crate::keccak::
                 fp + if c < 13 { in_cell(c) } else { out + (c - 13) }
             })
         }
-        op => unreachable!("a SHA3 row's pc {pc} holds {op:?}"),
+        op => unreachable!("a KECCAK row's pc {pc} holds {op:?}"),
     }
 }
 
-/// SHA3 value-column LOCAL indices: the input lanes, then the output lanes. These
+/// KECCAK value-column LOCAL indices: the input lanes, then the output lanes. These
 /// columns are VIRTUAL (never committed). `q_keccak` holds the input words at the
 /// input lanes' slots ([`crate::keccak::value_slot`]), so `cpu` routes their
 /// evaluation claims straight to it (`slot_claims`); the output lanes' claims are
 /// the Keccak reduction's claim on the permutation's output. Either way the value
 /// the bus flushes IS the proven word.
-pub const SHA3_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
+pub const KECCAK_VALUE_COLS: [usize; 2 * primitives::hash::STATE_LANES] = {
     let mut c = [0usize; 2 * primitives::hash::STATE_LANES];
     let mut i = 0;
     while i < c.len() {
-        c[i] = sha3t::V_IN + i;
+        c[i] = keccakt::V_IN + i;
         i += 1;
     }
     c
 };
 // The fifty value lanes are laid out contiguously, inputs then outputs.
-const _: () = assert!(sha3t::V_OUT == sha3t::V_IN + primitives::hash::STATE_LANES);
+const _: () = assert!(keccakt::V_OUT == keccakt::V_IN + primitives::hash::STATE_LANES);
 
 // ---- XOR / MUL ---------------------------------------------------------------
 
@@ -819,9 +819,9 @@ impl Table for JumpTable {
     }
 }
 
-// ---- SHA3 ---------------------------------------------------------------------
+// ---- KECCAK ---------------------------------------------------------------------
 
-/// `SHA3` (“SHA3” in `doc/leanvm/body/07-instruction-tables.tex`): one step of the
+/// `KECCAK` (“KECCAK” in `doc/leanvm/body/07-instruction-tables.tex`): one step of the
 /// cell sponge. The four `m` cells are addressed *independently* at `fp·o_i`
 /// (`o_i = g^{m[i]}`), so a caller hashing e.g. `(tweak, pp)` need not copy them
 /// into adjacent cells; the four `tail` cells, the five `cap` cells and the
@@ -838,10 +838,10 @@ impl Table for JumpTable {
 /// `n_committed_columns` (they need a local index for the flushes and are filled
 /// from the trace for the bus), but `cpu` treats them as VIRTUAL and routes their
 /// bus claims to `q_keccak`, which already holds those words (see
-/// [`SHA3_VALUE_COLS`]).
-struct Sha3Table;
+/// [`KECCAK_VALUE_COLS`]).
+struct KeccakTable;
 
-pub(crate) mod sha3t {
+pub(crate) mod keccakt {
     use crate::keccak::ROW_CELLS;
     use primitives::hash::STATE_LANES;
 
@@ -858,19 +858,19 @@ pub(crate) mod sha3t {
     pub const N: usize = RBC + 1;
 }
 
-impl Table for Sha3Table {
+impl Table for KeccakTable {
     fn n_committed_columns(&self) -> usize {
-        sha3t::N
+        keccakt::N
     }
     fn count_columns(&self) -> &'static [usize] {
         const COUNTS: [usize; crate::keccak::ROW_CELLS + 1] = {
             let mut c = [0usize; crate::keccak::ROW_CELLS + 1];
             let mut i = 0;
             while i < crate::keccak::ROW_CELLS {
-                c[i] = sha3t::R0 + i;
+                c[i] = keccakt::R0 + i;
                 i += 1;
             }
-            c[crate::keccak::ROW_CELLS] = sha3t::RBC;
+            c[crate::keccak::ROW_CELLS] = keccakt::RBC;
             c
         };
         &COUNTS
@@ -878,21 +878,21 @@ impl Table for Sha3Table {
     /// Zeros, but for the output lanes: a padding row, like the Keccak reduction's
     /// padding steps, reads zeros, so it writes their step.
     fn padding(&self) -> Vec<F64> {
-        let mut row = vec![F64::ZERO; sha3t::N];
+        let mut row = vec![F64::ZERO; keccakt::N];
         let out = primitives::hash::step(&[0; primitives::hash::STATE_LANES]);
         for (lane, w) in out.into_iter().enumerate() {
-            row[sha3t::V_OUT + lane] = F64(w);
+            row[keccakt::V_OUT + lane] = F64(w);
         }
         row
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use crate::keccak::{CELL_LANES, STATE_CELLS};
-        use sha3t::*;
+        use keccakt::*;
         f.state_step(PC, FP);
         f.bytecode(
             PC,
             RBC,
-            OP_SHA3,
+            OP_KECCAK,
             &[
                 Col(O_M0),
                 Col(O_M0 + 1),
@@ -926,10 +926,10 @@ impl Table for Sha3Table {
     }
     fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
         use crate::keccak::{STATE_CELLS, state_of_cells};
+        use keccakt::*;
         use primitives::hash::STATE_LANES;
-        use sha3t::*;
-        let rows = &ctx.trace.sha3;
-        let cells = |r: &Brow| sha3_cells(ctx.prog, r.pc, r.fp);
+        let rows = &ctx.trace.keccak;
+        let cells = |r: &Brow| keccak_cells(ctx.prog, r.pc, r.fp);
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         ctx.cols(out, rows, O_M0, |r| {

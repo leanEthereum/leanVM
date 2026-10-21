@@ -181,7 +181,7 @@ TABLE_MUL = 1
 TABLE_SET = 2
 TABLE_DEREF = 3
 TABLE_JUMP = 4
-TABLE_SHA3 = 5
+TABLE_KECCAK = 5
 N_TABLES = N_TABLES_PLACEHOLDER
 FLOORS = FLOORS_PLACEHOLDER
 N_TABLE_COLS = N_TABLE_COLS_PLACEHOLDER
@@ -307,11 +307,11 @@ LIG_N_CANDIDATES = LIG_N_CANDIDATES_PLACEHOLDER
 LIG_MIN_SHIFT_INV = LIG_MIN_SHIFT_INV_PLACEHOLDER
 # eval_b claim descriptors. CLAIM_POINT_BUF says which point buffer a pooled
 # claim's x-part lives in, CLAIM_COMMITTED_COL maps it to the compact index of the
-# committed column it must open (a virtual SHA3 value claim maps to QKECCAK),
+# committed column it must open (a virtual KECCAK value claim maps to QKECCAK),
 # CLAIM_QKECCAK_SLOT_BITS holds the bits of the q_keccak slot a virtual claim reads
 # (zero for a non-virtual one), CLAIM_END_LANE marks the one lane committed with
 # the padding bit XORed in, and QKECCAK_COMMITTED_COL is the ring-switch target.
-# A SHA3 output lane's claim is POINT_BUF_KECCAK_OUT: never opened, the 25 of them,
+# A KECCAK output lane's claim is POINT_BUF_KECCAK_OUT: never opened, the 25 of them,
 # from KECCAK_OUT_POOL on, are the Keccak reduction's claim on the output.
 POINT_BUF_ZETA = 0
 POINT_BUF_RHO = 1
@@ -358,13 +358,13 @@ STMT_PAIRS = STMT_PAIRS_PLACEHOLDER
 STMT_CELLS = STMT_DEFER_OFF + 3 * STMT_PAIRS
 
 # ------------------------------------------------------------------ the hash
-# Every hash is Keccak-256 in the cell encoding (primitives::hash::hash): a `sha3`
-# block absorbs eight cells, and its output is the SHA3_STATE-cell sponge state,
+# Every hash is Keccak-256 in the cell encoding (primitives::hash::hash): a `keccak`
+# block absorbs eight cells, and its output is the KECCAK_STATE-cell sponge state,
 # whose first two cells are the digest. A hash of runtime length carries that
-# state through a heap run between loop frames, SHA3_STATE cells a step.
-SHA3_STATE = SHA3_STATE_PLACEHOLDER
+# state through a heap run between loop frames, KECCAK_STATE cells a step.
+KECCAK_STATE = KECCAK_STATE_PLACEHOLDER
 # One step of such a chain: the state, then whatever count the loop threads with it.
-STATE_SLOTS = SHA3_STATE + 1
+STATE_SLOTS = KECCAK_STATE + 1
 
 # --------------------------------------------------------- WOTS+C (host-supplied)
 # Both schemes' one-time keys: chains of CHAIN_LENGTH positions, whose digits are
@@ -529,7 +529,7 @@ def challenge_from_state(state):
 
 
 # ==================================== Fiat-Shamir ===================================
-# A duplex sponge over the SHA3 step in overwrite mode (fiat_shamir::FiatShamirState). The
+# A duplex sponge over the KECCAK step in overwrite mode (fiat_shamir::FiatShamirState). The
 # sponge is the 13-cell output `sp` of its last permutation, whose last FS_CELLS cells, the
 # capacity, are all the next permutation keeps: between functions and loop frames those
 # cells are all that travels, `fs0 .. fs4`. Scalars absorbed since wait in an eight-cell
@@ -540,7 +540,7 @@ def challenge_from_state(state):
 
 @inline
 def fs_pack(rate, k: Const, x, tag):
-    # Scalar x as lanes (c0, c1, c2, tag) over rate cells 2k and 2k + 1. SHA3 requires
+    # Scalar x as lanes (c0, c1, c2, tag) over rate cells 2k and 2k + 1. KECCAK requires
     # both cells' top limbs to be zero, which binds the hinted c2.
     limbs = StackBuf(3)
     hint_f192_limbs(limbs, x)
@@ -553,19 +553,19 @@ def fs_pack(rate, k: Const, x, tag):
 @inline
 def fs_perm(sp, rate, k: Const):
     # The permutation taking the k waiting scalars: they overwrite the rate, zero past them.
-    nxt = StackBuf(SHA3_STATE)
+    nxt = StackBuf(KECCAK_STATE)
     if k == 0:
-        sha3([0, 0], [0, 0], nxt, cap=sp)
+        keccak([0, 0], [0, 0], nxt, cap=sp)
     if k == 1:
-        sha3(rate[0:2], [0, 0], nxt, cap=sp)
+        keccak(rate[0:2], [0, 0], nxt, cap=sp)
     if k == 2:
-        sha3(rate[0:2], rate[2:4], nxt, cap=sp)
+        keccak(rate[0:2], rate[2:4], nxt, cap=sp)
     if k == 3:
         rate[6] = 0
         rate[7] = 0
-        sha3(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
+        keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
     if k == 4:
-        sha3(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
+        keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=sp)
     return nxt
 
 
@@ -573,8 +573,8 @@ def fs_perm(sp, rate, k: Const):
 def fs_perm4(sp, r0, r1, r2, r3):
     # The permutation whose rate is r0..r3 then zero: up to two waiting scalars, held as
     # cells rather than in a rate run.
-    nxt = StackBuf(SHA3_STATE)
-    sha3([r0, r1], [r2, r3], nxt, cap=sp)
+    nxt = StackBuf(KECCAK_STATE)
+    keccak([r0, r1], [r2, r3], nxt, cap=sp)
     return nxt
 
 
@@ -590,8 +590,8 @@ def fs_absorb_nonce(sp, rate, k: Const, nonce):
 @inline
 def fs_perm_pending(cap, rec, at: Const):
     # The permutation taking a full rate held in the record cells at..at+8.
-    nxt = StackBuf(SHA3_STATE)
-    sha3([rec[GEN ** at], rec[GEN ** (at + 1)]], [rec[GEN ** (at + 2)], rec[GEN ** (at + 3)]], nxt, tail=[rec[GEN ** (at + 4)], rec[GEN ** (at + 5)], rec[GEN ** (at + 6)], rec[GEN ** (at + 7)]], cap=cap)
+    nxt = StackBuf(KECCAK_STATE)
+    keccak([rec[GEN ** at], rec[GEN ** (at + 1)]], [rec[GEN ** (at + 2)], rec[GEN ** (at + 3)]], nxt, tail=[rec[GEN ** (at + 4)], rec[GEN ** (at + 5)], rec[GEN ** (at + 6)], rec[GEN ** (at + 7)]], cap=cap)
     return nxt
 
 
@@ -613,7 +613,7 @@ def fs_load(rec, field: Const, stride: Const):
 def fs_store(rec, field: Const, stride: Const, sp):
     # Store the capacity of permutation output `sp` as fs_load reads it.
     for j in unroll(0, FS_CELLS):
-        rec[GEN ** ((field + j) * stride)] = sp[SHA3_STATE - FS_CELLS + j]
+        rec[GEN ** ((field + j) * stride)] = sp[KECCAK_STATE - FS_CELLS + j]
     return
 
 
@@ -1043,15 +1043,15 @@ def verify_merkle_path(leaf, direction_bits, depth: Const):
         selected = path_ptr + direction_bits[GEN ** level] * path_step
         selected[GEN ** (4 * level)] = node[0]
         selected[GEN ** (4 * level + 1)] = node[1]
-        node = StackBuf(SHA3_STATE)
-        sha3(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], node)
+        node = StackBuf(KECCAK_STATE)
+        keccak(path[4 * level:4 * level + 2], path[4 * level + 2:4 * level + 4], node)
     return node
 
 
 def verify_merkle_cap(cap, flags, depth: Const):
     # Unrolled over the cap's nodes, so every address is an immediate. Every node's
     # hinted digest (node k at heap cells 2k, 2k+1) is read once into a frame run,
-    # and an internal node's run is SHA3_STATE cells long so that its hash can
+    # and an internal node's run is KECCAK_STATE cells long so that its hash can
     # write its state there, the digest landing on (and so asserting) the hinted
     # value. An active (flagged) node is hashed; an inactive one pins its children's
     # flags to zero, so every active node's parent is active too, up to the root,
@@ -1069,27 +1069,27 @@ def verify_merkle_cap(cap, flags, depth: Const):
             runs = StackBuf(15 * 128 - 13)
         else:
             runs = StackBuf(15 * 256 - 13)
-        # internal node k (1 <= k < n_leaves) at SHA3_STATE * (k - 1), leaf k after them
+        # internal node k (1 <= k < n_leaves) at KECCAK_STATE * (k - 1), leaf k after them
         for node in unroll(1, 2 * n_leaves):
             if const(node // n_leaves == 0):
-                at = SHA3_STATE * (node - 1)
+                at = KECCAK_STATE * (node - 1)
             else:
-                at = SHA3_STATE * (n_leaves - 1) + 2 * (node - n_leaves)
+                at = KECCAK_STATE * (n_leaves - 1) + 2 * (node - n_leaves)
             runs[at] = cap[GEN ** (2 * node)]
             runs[at + 1] = cap[GEN ** (2 * node + 1)]
         for node in unroll(1, n_leaves):
             if const(2 * node // n_leaves == 0):
-                left = SHA3_STATE * (2 * node - 1)
-                right = SHA3_STATE * (2 * node)
+                left = KECCAK_STATE * (2 * node - 1)
+                right = KECCAK_STATE * (2 * node)
             else:
-                left = SHA3_STATE * (n_leaves - 1) + 2 * (2 * node - n_leaves)
+                left = KECCAK_STATE * (n_leaves - 1) + 2 * (2 * node - n_leaves)
                 right = left + 2
-            at = SHA3_STATE * (node - 1)
+            at = KECCAK_STATE * (node - 1)
             if const(node == 1):
-                sha3(runs[left:left + 2], runs[right:right + 2], runs[at:at + SHA3_STATE])
+                keccak(runs[left:left + 2], runs[right:right + 2], runs[at:at + KECCAK_STATE])
             else:
                 if flags[GEN ** node] != 0:
-                    sha3(runs[left:left + 2], runs[right:right + 2], runs[at:at + SHA3_STATE])
+                    keccak(runs[left:left + 2], runs[right:right + 2], runs[at:at + KECCAK_STATE])
                 else:
                     if const(2 * node // n_leaves == 0):  # node has flagged children
                         flags[GEN ** (2 * node)] = 0
@@ -1124,8 +1124,8 @@ def opening_ood_point(fs0, fs1, fs2, fs3, fs4, r0, r1, r2, r3, r4, r5, r6, r7, p
     # One specialization per point dimension. The first coordinate's permutation takes
     # the rate r0..r7, the scalars waiting in the sponge and zero past them.
     cap = fs_cap(fs0, fs1, fs2, fs3, fs4)
-    sp = StackBuf(SHA3_STATE)
-    sha3([r0, r1], [r2, r3], sp, tail=[r4, r5, r6, r7], cap=cap)
+    sp = StackBuf(KECCAK_STATE)
+    keccak([r0, r1], [r2, r3], sp, tail=[r4, r5, r6, r7], cap=cap)
     point[GEN ** 0] = challenge_from_state(sp)
     no_rate = StackBuf(8)
     for x in unroll(1, n):
@@ -1221,8 +1221,8 @@ def opening_query(cap, flags, row_eq_weights, direction_bits, base: Const, inter
             part += row_word * row_eq_weights[GEN ** l]
         row_dot += row_eq_weights[GEN ** (lo_len + h)] * part
     # Hash the packed row, eight cells a block.
-    leaf_hash_state = StackBuf(SHA3_STATE)
-    sha3_cells(packed_row[0:leaf_cells], leaf_hash_state)
+    leaf_hash_state = StackBuf(KECCAK_STATE)
+    keccak_cells(packed_row[0:leaf_cells], leaf_hash_state)
     path_depth = depth - cap_depth
     node = verify_merkle_path(leaf_hash_state, direction_bits, path_depth)
     if cap_depth != 0:
@@ -2775,7 +2775,7 @@ def keccak_slot_lanes(slot, segment_point, out, first: Const, count: Const):
 
 
 def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_vals, slices):
-    # SHA3 validity (keccak_gkr::verify): a random claim on every segment's output,
+    # KECCAK validity (keccak_gkr::verify): a random claim on every segment's output,
     # KECCAK_DEPTH layers down to the committed inputs, every segment at once. The
     # last segment's output is the permutation's: the table's claims on its output
     # lanes, `output_lanes`, at the table's point chi[..tau], give that part of the
@@ -2783,7 +2783,7 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
     # openings of q_keccak, at the two points written to `z_vals` (tau +
     # QKECCAK_SLOT_LOG coordinates each, QKECCAK_VARS_CAP apart): the committed
     # outputs as words at the first, returned, and the 64 `slices` at the second.
-    # tau >= FLOORS[TABLE_SHA3] is certified, so the pack count is a real count. It
+    # tau >= FLOORS[TABLE_KECCAK] is certified, so the pack count is a real count. It
     # also draws the ring-switching map's first challenge, which the last slices wait
     # for, and returns it.
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
@@ -3079,7 +3079,7 @@ def selector_tables(point, point1):
     return sel_eq, sel_g
 
 
-def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_g, claim_cplen_g, lam_out, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target):
+def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, claim_cplen_g, lam_out, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target):
     # Evaluate each transparent weight at the complete point in witness order.
     # A claim is its low point followed by the certified column's selector bits;
     # a q_keccak lane puts its slot's bits between the two.
@@ -3088,8 +3088,8 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_
     eq_prefix_chain(zeta_eq_chain, 1, zeta, point1, g_bus_mu)
     chi_eq_chain = HeapBuf(SIZE_BITS + 1)
     eq_prefix_chain(chi_eq_chain, 1, chi, point1, g_zc_n)
-    slot_point = point * tau_sha3_g
-    slot_point1 = point1 * tau_sha3_g
+    slot_point = point * tau_keccak_g
+    slot_point1 = point1 * tau_keccak_g
     pi_chain = HeapBuf(SIZE_BITS + 1)
     pi_chain[GEN ** 0] = 1
     pi_chain[GEN ** 1] = rm + point1[GEN ** 0]
@@ -3137,9 +3137,9 @@ def check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_
 
     # The Keccak reduction's two claims on q_keccak, each over the whole column:
     # the ring-switched one leads the batch at lam_cl^0, the plain one closes it.
-    # A lane claim's low point is tau_sha3 long, the kappa check above holding it
+    # A lane claim's low point is tau_keccak long, the kappa check above holding it
     # to this column.
-    qkeccakv_g = tau_sha3_g * GEN ** QKECCAK_SLOT_LOG
+    qkeccakv_g = tau_keccak_g * GEN ** QKECCAK_SLOT_LOG
     assert qkeccakv_g == col_kappas[GEN ** QKECCAK_COMMITTED_COL]
     out_eq_chain = HeapBuf(SIZE_BITS + QKECCAK_SLOT_LOG + 1)
     eq_prefix_chain(out_eq_chain, 1, z_vals, point1, qkeccakv_g)
@@ -3164,8 +3164,8 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # ---- seed (statement pre-bound: hinted sub pi + baked program digest) ----
     # The sponge's first permutation takes the program digest and the statement as
     # its rate, from the zero state.
-    sp = StackBuf(SHA3_STATE)
-    sha3([seed_0, seed_1], [pi_0, pi_1], sp, final=0)
+    sp = StackBuf(KECCAK_STATE)
+    keccak([seed_0, seed_1], [pi_0, pi_1], sp, final=0)
     stream = HeapBuf(STREAM_CAP)
     hint_witness(stream[0:STREAM_CAP], "stream")
     cursor = stream  # the proof stream, replayed word by word (advance = * g)
@@ -3259,11 +3259,11 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     chi = HeapBuf(SIZE_BITS)  # chi[i] = the challenge that bound variable i
     fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_share, rm = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, block_kappa, g_squares, fp_w, beta, claim_pool, claim_cplen_g, chi, claim_push, claim_pull, claim_count)
 
-    # ---- SHA3 validity, by GKR over the rounds ----
-    tau_sha3_g = dims_g[GEN ** (TABLE_SHA3 + 1)]  # the SHA3 table's certified tau
+    # ---- KECCAK validity, by GKR over the rounds ----
+    tau_keccak_g = dims_g[GEN ** (TABLE_KECCAK + 1)]  # the KECCAK table's certified tau
     z_vals = HeapBuf(2 * QKECCAK_VARS_CAP)
     slices = HeapBuf(BASE_FIELD_BITS)
-    fs0, fs1, fs2, fs3, fs4, cursor, keccak_word, map_0 = verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_sha3_g, chi, claim_pool * GEN ** KECCAK_OUT_POOL, z_vals, slices)
+    fs0, fs1, fs2, fs3, fs4, cursor, keccak_word, map_0 = verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_keccak_g, chi, claim_pool * GEN ** KECCAK_OUT_POOL, z_vals, slices)
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
 
     # ---- stacked mixed opening: ring-switch front + claim combination ----
@@ -3334,7 +3334,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
     # is outside the recursively verified proof and intentionally unconstrained.
 
     # ---- generalized eval_b terminal (runtime claim shapes) ----
-    check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_sha3_g, claim_cplen_g, lam_pow, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target)
+    check_opening_terminal(zeta, chi, rm, g_bus_mu, g_zc_n, g_log_mem, tau_keccak_g, claim_cplen_g, lam_pow, lam_pool, col_offsets, col_kappas, z_vals, c_table, point, point1, inner_total, yr_at_tail, sumcheck_target)
 
     # ---- export this sub-proof's deferred-claim data to the caller (FRESH_*) ----
     for k in unroll(0, BYTECODE_LOG):
@@ -3348,7 +3348,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_logs_pow2, g_squares, defer_out):
 # =============================== WOTS+C, both schemes ===============================
 # Every hash input is P | A | M with P, A and each value of M 16 bytes, so each is
 # one cell: a hash's output feeds the next hash where it lands, and a hinted value
-# needs no check of its own, the SHA3 table reading only canonical cells. A chain's
+# needs no check of its own, the KECCAK table reading only canonical cells. A chain's
 # steps land in fixed slots of a `walks` run, so its tip is one cell whatever the
 # digit, read there by the leaf's hash.
 
@@ -3378,7 +3378,7 @@ def is_child(node, kids, k: Const, bit):
 @inline
 def chain_tip(walks, i: Const):
     # Chain i's tip, in the last of its CHAIN_STEPS slots of `walks`.
-    tip = walks[((i + 1) * CHAIN_STEPS - 1) * SHA3_STATE]
+    tip = walks[((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE]
     return tip
 
 
@@ -3389,15 +3389,15 @@ def walk(at, pp, walks, i: Const, k: Const, lx: Const):
     # leanSPHINCS step's address carries i and s, its input ending after the value; a
     # leanXMSS one only s, at[s] computed once per key, i riding after the value.
     if const(k == CHAIN_STEPS):
-        hint_witness(walks[((i + 1) * CHAIN_STEPS - 1) * SHA3_STATE:((i + 1) * CHAIN_STEPS - 1) * SHA3_STATE + 1], "chain_starts")
+        hint_witness(walks[((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE:((i + 1) * CHAIN_STEPS - 1) * KECCAK_STATE + 1], "chain_starts")
     else:
         value = hint_witness("chain_starts")
         for s in unroll(k, CHAIN_STEPS):
-            o = (CHAIN_STEPS * i + s) * SHA3_STATE
+            o = (CHAIN_STEPS * i + s) * KECCAK_STATE
             if const(lx == 1):
-                sha3([pp, at[s]], [value, i], walks[o:o + SHA3_STATE])
+                keccak([pp, at[s]], [value, i], walks[o:o + KECCAK_STATE])
             else:
-                sha3([pp, at + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], walks[o:o + SHA3_STATE], len=48)
+                keccak([pp, at + const(TW_CHAIN + i * HI_MUL + s * STEP_MUL)], [value, 0], walks[o:o + KECCAK_STATE], len=48)
             value = walks[o]
     return
 
@@ -3419,24 +3419,24 @@ def wots_leaf(p0, p1, walks, n: Const, leaf):
     # takes its first four cells from anywhere, and a later one all eight, its message
     # being XORed into the state, so the tips are read where their walks left them. The
     # last block holds one to four cells (asserted host-side).
-    st = StackBuf(SHA3_STATE)
-    sha3([p0, p1], [chain_tip(walks, 0), chain_tip(walks, 1)], st, tail=[chain_tip(walks, 2), chain_tip(walks, 3), chain_tip(walks, 4), chain_tip(walks, 5)], final=0)
+    st = StackBuf(KECCAK_STATE)
+    keccak([p0, p1], [chain_tip(walks, 0), chain_tip(walks, 1)], st, tail=[chain_tip(walks, 2), chain_tip(walks, 3), chain_tip(walks, 4), chain_tip(walks, 5)], final=0)
     for b in unroll(1, (n + 1) // 8):
         t = 8 * b - 2  # the block's first tip
-        nxt = StackBuf(SHA3_STATE)
-        sha3([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), chain_tip(walks, t + 3)], nxt, tail=[chain_tip(walks, t + 4), chain_tip(walks, t + 5), chain_tip(walks, t + 6), chain_tip(walks, t + 7)], state=st, final=0)
+        nxt = StackBuf(KECCAK_STATE)
+        keccak([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), chain_tip(walks, t + 3)], nxt, tail=[chain_tip(walks, t + 4), chain_tip(walks, t + 5), chain_tip(walks, t + 6), chain_tip(walks, t + 7)], state=st, final=0)
         st = nxt
     # The last block's one to four cells.
     t = 8 * ((n + 1) // 8) - 2
     last = n - t
     if const(last == 1):
-        sha3([chain_tip(walks, t), 0], [0, 0], leaf, state=st, len=16)
+        keccak([chain_tip(walks, t), 0], [0, 0], leaf, state=st, len=16)
     elif const(last == 2):
-        sha3([chain_tip(walks, t), chain_tip(walks, t + 1)], [0, 0], leaf, state=st, len=32)
+        keccak([chain_tip(walks, t), chain_tip(walks, t + 1)], [0, 0], leaf, state=st, len=32)
     elif const(last == 3):
-        sha3([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), 0], leaf, state=st, len=48)
+        keccak([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), 0], leaf, state=st, len=48)
     else:
-        sha3([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), chain_tip(walks, t + 3)], leaf, state=st, len=64)
+        keccak([chain_tip(walks, t), chain_tip(walks, t + 1)], [chain_tip(walks, t + 2), chain_tip(walks, t + 3)], leaf, state=st, len=64)
     return
 
 
@@ -3454,11 +3454,11 @@ def merkle_path(node, pp, bits, nodes, out, off: Const, height: Const, end: Cons
         if const(level + 1 == height):
             parent = out
         else:
-            parent = StackBuf(SHA3_STATE)
+            parent = StackBuf(KECCAK_STATE)
         if const(off + level + 1 == end):
-            sha3([pp, const(TW_NODE + (level + 1) * HI_MUL + top * LX_TOP)], kids, parent)
+            keccak([pp, const(TW_NODE + (level + 1) * HI_MUL + top * LX_TOP)], kids, parent)
         else:
-            sha3([pp, const(TW_NODE + (level + 1) * HI_MUL + top * LX_TOP) + nodes[off + level + 1]], kids, parent)
+            keccak([pp, const(TW_NODE + (level + 1) * HI_MUL + top * LX_TOP) + nodes[off + level + 1]], kids, parent)
         cur = parent[0]
     return
 
@@ -3495,11 +3495,11 @@ def verify_lean_xmss(signer):
         # D = Th(P, A, M | R), one block: 80 bytes at the bottom, and 64 at the top,
         # where M is the bottom root.
         rho = hint_witness("randomizer")
-        digest = StackBuf(SHA3_STATE)
+        digest = StackBuf(KECCAK_STATE)
         if const(layer == 0):
-            sha3([pp, idx + TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], digest, tail=[rho, 0, 0, 0], len=80)
+            keccak([pp, idx + TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], digest, tail=[rho, 0, 0, 0], len=80)
         else:
-            sha3([pp, idx + TW_MSG], [root[0], rho], digest)
+            keccak([pp, idx + TW_MSG], [root[0], rho], digest)
 
         # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
         # checked and dispatched once, the arm walking every chain's remaining steps
@@ -3509,7 +3509,7 @@ def verify_lean_xmss(signer):
         steps = StackBuf(CHAIN_STEPS)
         for st in unroll(0, CHAIN_STEPS):
             steps[st] = idx + const(TW_CHAIN + st * STEP_MUL)
-        walks = StackBuf(LX_V * CHAIN_STEPS * SHA3_STATE)
+        walks = StackBuf(LX_V * CHAIN_STEPS * KECCAK_STATE)
         digit_product = 1
         encoded = 0
         for p in unroll(0, LX_V // DIGIT_GROUP):
@@ -3523,9 +3523,9 @@ def verify_lean_xmss(signer):
         assert digit_product == GEN ** LX_TARGET_SUM
 
         # The one-time leaf, then the path to the layer's root.
-        leaf = StackBuf(SHA3_STATE)
+        leaf = StackBuf(KECCAK_STATE)
         wots_leaf(pp, idx + TW_LEAF, walks, LX_V, leaf)
-        root = StackBuf(SHA3_STATE)
+        root = StackBuf(KECCAK_STATE)
         merkle_path(leaf[0], pp, bits, nodes, root, LX_HEIGHT * layer, LX_HEIGHT, 2 * LX_HEIGHT, layer)
     assert root[0] == signer[1]
     return
@@ -3569,8 +3569,8 @@ def sp_forest_top(at, pp, tws, tops, t: Const, i: Const):
     else:
         value = hint_witness("sp_forest_values")
         for s in unroll(SP_FTOP - SP_CODEWORDS[SP_FCHAINS * t + i], SP_FTOP):
-            out = StackBuf(SHA3_STATE)
-            sha3([pp, at + tws[SP_FTOP * i + s]], [value, 0], out, len=48)
+            out = StackBuf(KECCAK_STATE)
+            keccak([pp, at + tws[SP_FTOP * i + s]], [value, 0], out, len=48)
             value = out[0]
         if const(i // 2 != 0):
             tops[i - 2] = value
@@ -3589,8 +3589,8 @@ def sp_forest_key(at, pp, tws, t: Const, w: Const):
     for i in unroll(2, SP_FCHAINS):
         top = sp_forest_top(at, pp, tws, tops, t, i)  # in `tops`
     # P, A and the six tops: 128 bytes, one block.
-    leaf = StackBuf(SHA3_STATE)
-    sha3([pp, at + tws[SP_FCHAINS * SP_FTOP]], [top_0, top_1], leaf, tail=tops)
+    leaf = StackBuf(KECCAK_STATE)
+    keccak([pp, at + tws[SP_FCHAINS * SP_FTOP]], [top_0, top_1], leaf, tail=tops)
     if const(w // 8 == 0):
         weight = const(t * 2 ** (8 * w))
     else:
@@ -3610,15 +3610,15 @@ def sp_fold(node, at, pp, out, tws, slot: Const, index: Const, height: Const, tw
     cur = node
     for level in unroll(0, height - 1):
         sibling = hint_witness("sp_forest_nodes")
-        parent = StackBuf(SHA3_STATE)
+        parent = StackBuf(KECCAK_STATE)
         if const(preset == 1):
             address = at + tws[(height - 1) * index + level]
         else:
             address = at + (const(index * own_mul) + const(tw + (level + 1) * level_mul + (index // 2 ** (level + 1)) * node_mul))
         if const((index // 2 ** level) % 2 == 0):
-            sha3([pp, address], [cur, sibling], parent)
+            keccak([pp, address], [cur, sibling], parent)
         else:
-            sha3([pp, address], [sibling, cur], parent)
+            keccak([pp, address], [sibling, cur], parent)
         cur = parent[0]
     out[slot + index // 2 ** (height - 1)] = cur
     hint_witness(out[slot + 1 - index // 2 ** (height - 1):slot + 2 - index // 2 ** (height - 1)], "sp_forest_nodes")
@@ -3650,8 +3650,8 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     # ---- the message digest, which chooses the few-time key and what it opens ----
     # D = H(P | A | m | rho), 80 bytes in one block.
     rho = hint_witness("sp_rand")
-    digest = StackBuf(SHA3_STATE)
-    sha3([pp, TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], digest, tail=[rho, 0, 0, 0], len=80)
+    digest = StackBuf(KECCAK_STATE)
+    keccak([pp, TW_MSG], [signer[GEN ** 2], signer[GEN ** 3]], digest, tail=[rho, 0, 0, 0], len=80)
 
     # The digest's first cell is the sixteen codewords and its second is bit
     # fields. A field a dispatch takes (a codeword, a tree's leaf, a subtree's
@@ -3719,8 +3719,8 @@ def verify_sig_lean_sphincs(signer, byte_bits):
                 encoded_words = encoded_words + weight
             key_mark[1], key_weight = match(log(key_mark[0]), range(0, SP_KEYS), lambda a: sp_subtree_arm(node, key_at, pp, subtops, sub_tws, c, j, a))
             bound = bound + key_weight
-        leaf = StackBuf(SHA3_STATE)
-        sha3_cells(subtops, leaf)
+        leaf = StackBuf(KECCAK_STATE)
+        keccak_cells(subtops, leaf)
         leaf_mark[1], leaf_weight = match(log(leaf_mark[0]), range(0, SP_LEAVES), lambda s: sp_tree_arm(leaf[0], leaf_at, pp, tops, sub_tws, c, s))
         if const(c + 1 == SP_TREES):
             digest[1] = bound + leaf_weight  # likewise, the second cell's fields
@@ -3733,19 +3733,19 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     ctr_bytes = StackBuf(SP_COUNTER_BYTES)
     hint_witness(ctr_bytes, "sp_counter")
     ctr = sp_from_bytes(byte_bits, ctr_bytes, SP_COUNTER_BYTES, SP_BYTE_VALUES)
-    first = StackBuf(SHA3_STATE)
-    sha3(tops[0:2], tops[2:4], first, tail=tops[4:8], final=0)
-    second = StackBuf(SHA3_STATE)
-    sha3(tops[8:10], tops[10:12], second, tail=tops[12:16], state=first, final=0)
-    encoding = StackBuf(SHA3_STATE)
-    sha3(tops[16:18], [ctr, 0], encoding, state=second, len=36)
+    first = StackBuf(KECCAK_STATE)
+    keccak(tops[0:2], tops[2:4], first, tail=tops[4:8], final=0)
+    second = StackBuf(KECCAK_STATE)
+    keccak(tops[8:10], tops[10:12], second, tail=tops[12:16], state=first, final=0)
+    encoding = StackBuf(KECCAK_STATE)
+    keccak(tops[16:18], [ctr, 0], encoding, state=second, len=36)
 
     # The codeword: DIGIT_GROUP digits at a time, hinted in the exponent, range
     # checked and dispatched once, the arm walking every chain's remaining steps
     # and folding its digits in: their sums into a product that must be the target
     # sum, and the digits, each group where the digest holds it, into D. The
     # one-time leaf's input is P, A, then the chains' tips.
-    walks = StackBuf(SP_V * CHAIN_STEPS * SHA3_STATE)
+    walks = StackBuf(SP_V * CHAIN_STEPS * KECCAK_STATE)
     powers = StackBuf(DIGIT_GROUP * CHAIN_STEPS + 1)
     for s in unroll(0, DIGIT_GROUP * CHAIN_STEPS + 1):
         powers[s] = GEN ** s
@@ -3763,9 +3763,9 @@ def verify_sig_lean_sphincs(signer, byte_bits):
     assert digit_product == GEN ** SP_TARGET_SUM
 
     # ---- the tree: the path from that one-time key to the public key's root ----
-    leaf = StackBuf(SHA3_STATE)
+    leaf = StackBuf(KECCAK_STATE)
     wots_leaf(pp, idx + TW_LEAF, walks, SP_V, leaf)
-    root = StackBuf(SHA3_STATE)
+    root = StackBuf(KECCAK_STATE)
     merkle_path(leaf[0], pp, bits, nodes, root, 0, SP_H, SP_H, 0)
     assert root[0] == signer[1]
     return
@@ -3784,7 +3784,7 @@ def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
     # bytecode over claims read out of the parent's own tables.
     #
     # The preimage is fixed-length, so a plain hash beats the Fiat-Shamir chain.
-    # A header value is a canonical cell and needs no check, the SHA3 table
+    # A header value is a canonical cell and needs no check, the KECCAK table
     # reading only cells whose top limb is zero. A deferred cell is a full field
     # element, so two fill three cells as (s0,s1) (s2,t0) (t1,t2), each top limb
     # derived from the two hinted below it and each pack proving its lanes in K.
@@ -3808,8 +3808,8 @@ def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
         cells[STMT_DEFER_OFF + 3 * p] = pack64x2(s_lo[0], s_lo[1])
         cells[STMT_DEFER_OFF + 3 * p + 1] = pack64x2(((s + s_lo[0]) * Y_INV + s_lo[1]) * Y_INV, t_lo[0])
         cells[STMT_DEFER_OFF + 3 * p + 2] = pack64x2(t_lo[1], ((t + t_lo[0]) * Y_INV + t_lo[1]) * Y_INV)
-    st = StackBuf(SHA3_STATE)
-    sha3_cells(cells, st)
+    st = StackBuf(KECCAK_STATE)
+    keccak_cells(cells, st)
     return st[0], st[1]
 
 
@@ -3823,7 +3823,7 @@ def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
 
 @inline
 def zero_state(chain):
-    for k in unroll(0, SHA3_STATE):
+    for k in unroll(0, KECCAK_STATE):
         chain[GEN ** k] = 0
     return
 
@@ -3853,9 +3853,9 @@ def claim_list_digest(entries_ptr, n_g):
     # The hash of one scheme's declared claims: 64 bytes a claim, the claimed pubkey
     # then the message it signed, so two claims a block. An empty list hashes the
     # empty string, and the padding binds the length.
-    digest = StackBuf(SHA3_STATE)
+    digest = StackBuf(KECCAK_STATE)
     if n_g == 1:
-        sha3([0, 0], [0, 0], digest, len=0)
+        keccak([0, 0], [0, 0], digest, len=0)
     else:
         body, rest = list_split(n_g, 2)
         chain = HeapBuf((body * GEN) ** STATE_SLOTS)
@@ -3866,7 +3866,7 @@ def claim_list_digest(entries_ptr, n_g):
             blk = entries_ptr * xq ** 8
             hint_witness(blk[0:4], "claims")
             hint_witness(blk[4:8], "claims")
-            sha3(blk[0:2], blk[2:4], nxt[0:SHA3_STATE], tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
+            keccak(blk[0:2], blk[2:4], nxt[0:KECCAK_STATE], tail=blk[4:8], state=st[0:KECCAK_STATE], final=0)
         last = chain * body ** STATE_SLOTS
         d0, d1 = match(log(rest), range(0, 2), lambda k: claim_list_last(last, entries_ptr * body ** 8, k))
         digest[0] = d0
@@ -3876,12 +3876,12 @@ def claim_list_digest(entries_ptr, n_g):
 
 def claim_list_last(state, blk, k: Const):
     hint_witness(blk[0:4], "claims")
-    digest = StackBuf(SHA3_STATE)
+    digest = StackBuf(KECCAK_STATE)
     if k == 0:
-        sha3(blk[0:2], blk[2:4], digest, state=state[0:SHA3_STATE], len=64)
+        keccak(blk[0:2], blk[2:4], digest, state=state[0:KECCAK_STATE], len=64)
     else:
         hint_witness(blk[4:8], "claims")
-        sha3(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=state[0:SHA3_STATE])
+        keccak(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=state[0:KECCAK_STATE])
     return digest[0], digest[1]
 
 
@@ -3906,22 +3906,22 @@ def child_claim_list_digest(entries_ptr, cover, base, origin_g, limit_g, n_g):
     # child hashed (`claim_list_digest`), so the digest it rebuilds is the one the
     # child's statement carries. The chain threads the coverage write value, which
     # counts the claims off as they are marked, from `base`.
-    digest = StackBuf(SHA3_STATE)
+    digest = StackBuf(KECCAK_STATE)
     if n_g == 1:
-        sha3([0, 0], [0, 0], digest, len=0)
+        keccak([0, 0], [0, 0], digest, len=0)
     else:
         body, rest = list_split(n_g, 2)
         chain = HeapBuf((body * GEN) ** STATE_SLOTS)
         zero_state(chain)
-        chain[GEN ** SHA3_STATE] = base
+        chain[GEN ** KECCAK_STATE] = base
         for xq in mul_range(1, body):
             st = chain * xq ** STATE_SLOTS
             nxt = st * GEN ** STATE_SLOTS
-            marks = st[GEN ** SHA3_STATE]
+            marks = st[GEN ** KECCAK_STATE]
             blk = StackBuf(8)
             child_claim_entries(entries_ptr, cover, marks, origin_g, limit_g, blk, 2)
-            sha3(blk[0:2], blk[2:4], nxt[0:SHA3_STATE], tail=blk[4:8], state=st[0:SHA3_STATE], final=0)
-            nxt[GEN ** SHA3_STATE] = marks * GEN ** 2
+            keccak(blk[0:2], blk[2:4], nxt[0:KECCAK_STATE], tail=blk[4:8], state=st[0:KECCAK_STATE], final=0)
+            nxt[GEN ** KECCAK_STATE] = marks * GEN ** 2
         last = chain * body ** STATE_SLOTS
         d0, d1 = match(log(rest), range(0, 2), lambda k: child_claim_list_last(last, entries_ptr, cover, origin_g, limit_g, k))
         digest[0] = d0
@@ -3931,12 +3931,12 @@ def child_claim_list_digest(entries_ptr, cover, base, origin_g, limit_g, n_g):
 
 def child_claim_list_last(state, entries_ptr, cover, origin_g, limit_g, k: Const):
     blk = StackBuf(8)
-    child_claim_entries(entries_ptr, cover, state[GEN ** SHA3_STATE], origin_g, limit_g, blk, k + 1)
-    digest = StackBuf(SHA3_STATE)
+    child_claim_entries(entries_ptr, cover, state[GEN ** KECCAK_STATE], origin_g, limit_g, blk, k + 1)
+    digest = StackBuf(KECCAK_STATE)
     if k == 0:
-        sha3(blk[0:2], blk[2:4], digest, state=state[0:SHA3_STATE], len=64)
+        keccak(blk[0:2], blk[2:4], digest, state=state[0:KECCAK_STATE], len=64)
     else:
-        sha3(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=state[0:SHA3_STATE])
+        keccak(blk[0:2], blk[2:4], digest, tail=blk[4:8], state=state[0:KECCAK_STATE])
     return digest[0], digest[1]
 
 
@@ -3967,7 +3967,7 @@ def da_verify(g_squares):
     # The membership vector's hash, one column's weights at a time: every column's
     # weights are whole blocks, so the sponge state rides the chain between columns
     # and only the last block of the last column is final.
-    hashes = HeapBuf(SHA3_STATE * (DA_CELLS + 1))
+    hashes = HeapBuf(KECCAK_STATE * (DA_CELLS + 1))
     zero_state(hashes)
 
     # Each row's running sum uses a fresh write-once cell per column.
@@ -3995,8 +3995,8 @@ def da_verify(g_squares):
     rowtree = HeapBuf(n_pad_g ** 4)
     for xi in mul_range(1, n_blob_g):
         run = prefix_bases[xi]
-        st = StackBuf(SHA3_STATE)
-        sha3_cells(run[0:2 * DA_PREFIX_CELLS], st)
+        st = StackBuf(KECCAK_STATE)
+        keccak_cells(run[0:2 * DA_PREFIX_CELLS], st)
         slot = rowtree * (xi ** 2)
         slot[1] = st[0]
         slot[GEN] = st[1]
@@ -4006,9 +4006,9 @@ def da_verify(g_squares):
         pad[GEN] = DA_PAD_ROW_1
     rr0, rr1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(rowtree, 2 ** k, k))
 
-    root = StackBuf(SHA3_STATE)
-    sha3([rr0, rr1], [rc0, rc1], root)
-    return root[0], root[1], hashes[GEN ** (SHA3_STATE * DA_CELLS)], hashes[GEN ** (SHA3_STATE * DA_CELLS + 1)]
+    root = StackBuf(KECCAK_STATE)
+    keccak([rr0, rr1], [rc0, rc1], root)
+    return root[0], root[1], hashes[GEN ** (KECCAK_STATE * DA_CELLS)], hashes[GEN ** (KECCAK_STATE * DA_CELLS + 1)]
 
 
 def da_row_shape(n_blob_g, g_log_pad, g_squares):
@@ -4024,8 +4024,8 @@ def da_row_shape(n_blob_g, g_log_pad, g_squares):
 
 
 def da_verify_column(xb, n_blob_g, n_pad_g, gap_g, g_log_pad, prefix_bases, coltree, rowbase, hashes, store: Const):
-    st = hashes * (xb ** SHA3_STATE)
-    lvals = da_vector_dispatch(xb, st, st * GEN ** SHA3_STATE)
+    st = hashes * (xb ** KECCAK_STATE)
+    lvals = da_vector_dispatch(xb, st, st * GEN ** KECCAK_STATE)
     node = HeapBuf(n_pad_g ** 4)
     for xi in mul_range(1, n_blob_g):
         d0, d1, s = da_verify_cell(lvals)
@@ -4059,8 +4059,8 @@ def da_verify_cell(lvals):
         packed[e] = pack64x2(sym[2 * e], sym[2 * e + 1])
         s = s + lvals[GEN ** (2 * e)] * sym[2 * e]
         s = s + lvals[GEN ** (2 * e + 1)] * sym[2 * e + 1]
-    st = StackBuf(SHA3_STATE)
-    sha3_cells(packed, st)
+    st = StackBuf(KECCAK_STATE)
+    keccak_cells(packed, st)
     return st[0], st[1], s
 
 
@@ -4071,7 +4071,7 @@ def da_levels(tree, n: Const, log_n: Const):
         for xp in mul_range(1, GEN ** (n // 2 ** (lvl + 1))):
             a = tree * (GEN ** (4 * n - 4 * n // 2 ** lvl)) * (xp ** 4)
             b = tree * (GEN ** (4 * n - 4 * n // 2 ** (lvl + 1))) * (xp * xp)
-            sha3(a[0:2], a[2:4], b[0:2])
+            keccak(a[0:2], a[2:4], b[0:2])
     return tree[GEN ** (4 * n - 4)], tree[GEN ** (4 * n - 3)]
 
 
@@ -4102,17 +4102,17 @@ def da_vector_cell(state, next_state, final: Const):
         packed[3 * p] = pack64x2(slo[0], slo[1])
         packed[3 * p + 1] = pack64x2(((s + slo[0]) * Y_INV + slo[1]) * Y_INV, tlo[0])
         packed[3 * p + 2] = pack64x2(tlo[1], ((t + tlo[0]) * Y_INV + tlo[1]) * Y_INV)
-    st = StackBuf(SHA3_STATE)
-    sha3(packed[0:2], packed[2:4], st, tail=packed[4:8], state=state[0:SHA3_STATE], final=0)
+    st = StackBuf(KECCAK_STATE)
+    keccak(packed[0:2], packed[2:4], st, tail=packed[4:8], state=state[0:KECCAK_STATE], final=0)
     for b in unroll(1, DA_WEIGHT_CELLS // 8 - 1):
-        nxt = StackBuf(SHA3_STATE)
-        sha3(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], nxt, tail=packed[8 * b + 4:8 * b + 8], state=st, final=0)
+        nxt = StackBuf(KECCAK_STATE)
+        keccak(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], nxt, tail=packed[8 * b + 4:8 * b + 8], state=st, final=0)
         st = nxt
     b = DA_WEIGHT_CELLS // 8 - 1
     if const(final == 1):
-        sha3(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], next_state[0:SHA3_STATE], tail=packed[8 * b + 4:8 * b + 8], state=st)
+        keccak(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], next_state[0:KECCAK_STATE], tail=packed[8 * b + 4:8 * b + 8], state=st)
     else:
-        sha3(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], next_state[0:SHA3_STATE], tail=packed[8 * b + 4:8 * b + 8], state=st, final=0)
+        keccak(packed[8 * b:8 * b + 2], packed[8 * b + 2:8 * b + 4], next_state[0:KECCAK_STATE], tail=packed[8 * b + 4:8 * b + 8], state=st, final=0)
     weights_ptr = addr(weights)
     return weights_ptr
 
@@ -4126,11 +4126,11 @@ def da_list_digest(roots, n_g):
 
 
 def da_hash_roots(roots, n: Const):
-    digest = StackBuf(SHA3_STATE)
+    digest = StackBuf(KECCAK_STATE)
     if const(n == 0):
-        sha3([0, 0], [0, 0], digest, len=0)
+        keccak([0, 0], [0, 0], digest, len=0)
     else:
-        sha3_cells(roots[0:4 * n], digest)
+        keccak_cells(roots[0:4 * n], digest)
     return digest[0], digest[1]
 
 
@@ -4231,8 +4231,8 @@ def main():
         hint_witness(dup[0:4], "dup_claims")
     # At least one published signature claim or DA root also ensures a nonempty coverage table.
     assert n_lx_g * n_lean_sphincs_g * n_da_g != 1
-    signers = StackBuf(SHA3_STATE)
-    sha3([xd_0, xd_1], [sd_0, sd_1], signers)
+    signers = StackBuf(KECCAK_STATE)
+    keccak([xd_0, xd_1], [sd_0, sd_1], signers)
     signers_hash = HeapBuf(DIGEST_CELLS)
     signers_hash[1] = signers[0]
     signers_hash[GEN] = signers[1]
@@ -4294,8 +4294,8 @@ def main():
         nsub_g = nsub_x_g * nsub_s_g
         cx_0, cx_1 = child_claim_list_digest(lx_table, cover, base, 1, lx_slots_g, nsub_x_g)
         cs_0, cs_1 = child_claim_list_digest(lean_sphincs_table, cover, base * nsub_x_g, lx_slots_g, lean_sphincs_slots_g, nsub_s_g)
-        sub_signers = StackBuf(SHA3_STATE)
-        sha3([cx_0, cx_1], [cs_0, cs_1], sub_signers)
+        sub_signers = StackBuf(KECCAK_STATE)
+        keccak([cx_0, cx_1], [cs_0, cs_1], sub_signers)
         sub_hash = HeapBuf(DIGEST_CELLS)
         sub_hash[1] = sub_signers[0]
         sub_hash[GEN] = sub_signers[1]

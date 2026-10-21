@@ -324,7 +324,7 @@ impl DeferredClaim {
 const STATEMENT_HEADER: usize = 6;
 
 /// A plain hash over a lane stream, two lanes a 128-bit cell: what the guest gets
-/// from `sha3_cells` over the same cells.
+/// from `keccak_cells` over the same cells.
 fn lane_hash(lanes: impl Iterator<Item = u64>) -> [F192; 2] {
     let bytes: Vec<u8> = lanes.flat_map(u64::to_le_bytes).collect();
     pack_hash_state(&primitives::hash::hash(&bytes))
@@ -1087,10 +1087,13 @@ fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
     (queries.next_power_of_two().ilog2() as usize).min(depth)
 }
 
-/// The SHA3 table's virtual value columns: the input lanes, then the output lanes.
-fn sha3_value_columns() -> Vec<usize> {
+/// The KECCAK table's virtual value columns: the input lanes, then the output lanes.
+fn keccak_value_columns() -> Vec<usize> {
     let base = leanvm_core::cpu::schema().base[5];
-    leanvm_core::tables::SHA3_VALUE_COLS.iter().map(|&c| base + c).collect()
+    leanvm_core::tables::KECCAK_VALUE_COLS
+        .iter()
+        .map(|&c| base + c)
+        .collect()
 }
 
 /// One entry of the guest's claim pool.
@@ -1158,7 +1161,7 @@ fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
 /// claim descriptors follow this order.
 fn walk_claims(layout: &leanvm_core::cpu::Layout, kbc: usize, mut visit: impl FnMut(ClaimSite)) {
     let sides: [&[Block]; 3] = [&layout.push, &layout.pull, &layout.count];
-    let valcols = sha3_value_columns();
+    let valcols = keccak_value_columns();
     // Only the framework blocks raise claims: a table's coords are settled inside
     // the table sumcheck.
     let is_framework: Vec<bool> = leanvm_core::cpu::block_kappa_sources(kbc)
@@ -2111,7 +2114,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     let ncl = nclaims + evtot + 3; // bus + constraint + the three PI memory-limb claims
 
     // ---- claim descriptor buffer ids (structural) ----
-    let valcols = sha3_value_columns();
+    let valcols = keccak_value_columns();
     let col_sources_pm = leanvm_core::cpu::col_kappa_sources(kbc);
     let mut compact_col_pm = vec![usize::MAX; col_sources_pm.len()];
     let mut n_committed = 0usize;
@@ -2651,7 +2654,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     let pairs = defer_cells.div_ceil(2);
     ps("STMT_ODD", (defer_cells % 2).to_string());
     ps("STMT_PAIRS", pairs.to_string());
-    ps("SHA3_STATE", leanvm_core::keccak::STATE_CELLS.to_string());
+    ps("KECCAK_STATE", leanvm_core::keccak::STATE_CELLS.to_string());
 
     // Both schemes' WOTS+C: the chain length, the digit sums of a dispatched group,
     // and the hash types they share, as the address lane holds them.
@@ -3571,7 +3574,7 @@ def main():
     cover[1] = 1
     a, b, v0, v1 = cover_da_root(roots, cover * GEN, n_slots, GEN)
     digest = StackBuf(2)
-    sha3([a, b], [v0, v1], digest)
+    keccak([a, b], [v0, v1], digest)
     public = GEN ** 0
     assert public[1] == digest[0]
     assert public[GEN] == digest[1]
@@ -3609,7 +3612,7 @@ def main():
         let source = include_str!("../guests/lean_ethereum.py");
         let (helpers, _) = source.split_once("\ndef main():").unwrap();
         let source = format!(
-            "{helpers}\ndef main():\n    _, squares = exponent_tables()\n    a, b, v0, v1 = da_verify(squares)\n    digest = StackBuf(2)\n    sha3([a, b], [v0, v1], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
+            "{helpers}\ndef main():\n    _, squares = exponent_tables()\n    a, b, v0, v1 = da_verify(squares)\n    digest = StackBuf(2)\n    keccak([a, b], [v0, v1], digest)\n    public = GEN ** 0\n    assert public[1] == digest[0]\n    assert public[GEN] == digest[1]\n    return\n"
         );
         let guest = compile(&parse_with_replacements(&source, &placeholder_map(20)).unwrap());
         let n_rows = 3usize;

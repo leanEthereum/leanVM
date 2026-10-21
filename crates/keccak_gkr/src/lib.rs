@@ -6,7 +6,7 @@
 //! `24 / depth` segments, for every instance of the batch. A segment's output is the next
 //! segment's committed input, except the last segment's, which is the permutation's output and is
 //! not committed: the caller holds a claim on it ([`OutputClaim`]), in the VM the memory bus's
-//! claim on the `SHA3` table's output lanes. Nothing between two committed states is committed.
+//! claim on the `KECCAK` table's output lanes. Nothing between two committed states is committed.
 //! The proof is that every segment of every instance follows the permutation, the last one ending
 //! where the caller's claim says.
 //!

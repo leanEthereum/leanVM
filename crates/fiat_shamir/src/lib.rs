@@ -1,14 +1,14 @@
 // CREDIT: the duplex challenger of https://github.com/Plonky3/Plonky3 (`challenger`), MIT OR Apache-2.0.
-//! Fiat-Shamir state and proof transport. The state is a duplex sponge over the VM's `SHA3` step,
+//! Fiat-Shamir state and proof transport. The state is a duplex sponge over the VM's `KECCAK` step,
 //! one Keccak-f\[1600\] permutation a step, in overwrite mode.
 //!
-//! The state is 25 lanes: the rate is lanes `0..16`, the eight message cells a `SHA3` instruction
+//! The state is 25 lanes: the rate is lanes `0..16`, the eight message cells a `KECCAK` instruction
 //! reads, and the capacity lanes `16..25`. Absorbed scalars wait, up to four, and a permutation
 //! takes them all: scalar `i` overwrites lanes `4i..4i + 4` with its three limbs and a domain tag,
 //! the rate past the last scalar is zeroed, and the capacity carries over. A fifth scalar, or a
 //! challenge, permutes what is waiting; every challenge takes a permutation of its own and is the
 //! first three lanes of its output. So sending a round's coefficients and drawing its challenge is
-//! one permutation, and a guest replays a step as one `SHA3` instruction whose message cells are
+//! one permutation, and a guest replays a step as one `KECCAK` instruction whose message cells are
 //! the scalars and whose capacity cells are the previous output's.
 
 pub mod merkle;
@@ -18,7 +18,7 @@ use primitives::field::{F64, F192};
 use primitives::hash::STATE_LANES;
 
 /// `f(a, b) = Keccak-256(a‖b)` on two 256-bit halves laid out little-endian into
-/// 64 bytes, *exactly* one VM `SHA3` instruction from the zero state: 64 input
+/// 64 bytes, *exactly* one VM `KECCAK` instruction from the zero state: 64 input
 /// bytes → 32-byte digest, split back into four field words. The Merkle trees'
 /// node hash.
 pub fn compress(a: [F64; 4], b: [F64; 4]) -> [F64; 4] {

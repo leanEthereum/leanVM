@@ -1,7 +1,7 @@
 # A miniature WOTS-style chain walk bundling the DSL's moving parts: a
 # runtime digit is range-checked (dispatch soundness), then match
 # dispatches it to a Const-specialized walker whose hash chain is unrolled
-# over heap slices (a 256-bit SHA3 digest occupies two canonical cells);
+# over heap slices (a 256-bit KECCAK digest occupies two canonical cells);
 # the walker also builds g^{2n} at runtime (unrolled MULs) to read its final
 # pair back through g-power indexing. The recomputation at the end lands on an
 # already-written StackBuf pair, so write-once turns the hash into a digest
@@ -23,7 +23,7 @@ def main():
     v = StackBuf(2)
     v[0] = t0
     v[1] = t1
-    sha3(buf[2:4], buf[2:4], v)  # recompute H(value1, value1): asserts v[0:2] == (t0, t1)
+    keccak(buf[2:4], buf[2:4], v)  # recompute H(value1, value1): asserts v[0:2] == (t0, t1)
     p = GEN ** 0
     p[1] = t0
     p[GEN] = t1
@@ -33,6 +33,6 @@ def main():
 def walk(buf, n: Const):
     p = 1
     for i in unroll(0, n):
-        sha3(buf[i * 2:i * 2 + 2], buf[i * 2:i * 2 + 2], buf[i * 2 + 2:i * 2 + 4])
+        keccak(buf[i * 2:i * 2 + 2], buf[i * 2:i * 2 + 2], buf[i * 2 + 2:i * 2 + 4])
         p = p * GEN * GEN
     return buf[p], buf[p * GEN]

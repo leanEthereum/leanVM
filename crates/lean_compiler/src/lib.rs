@@ -247,9 +247,9 @@ pub fn disassemble(prog: &[Op]) -> String {
             Op::Jump { oc, od, of } => {
                 format!("JUMP   if fp[{oc}]≠0: pc=fp[{od}], fp=fp[{of}]")
             }
-            Op::Sha3 { m, tail, cap, out } => {
+            Op::Keccak { m, tail, cap, out } => {
                 format!(
-                    "SHA3   fp[{out}..+13] = step(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], cap=fp[{cap}..+5])",
+                    "KECCAK   fp[{out}..+13] = step(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], cap=fp[{cap}..+5])",
                     m[0], m[1], m[2], m[3]
                 )
             }
@@ -322,7 +322,7 @@ fn resolve(op: &LOp, entry: &HashMap<String, u32>, sentinel: u32, pc0: u32, fram
             od: *od,
             of: *of,
         },
-        LOp::Sha3 { m, tail, cap, c } => Op::Sha3 {
+        LOp::Keccak { m, tail, cap, c } => Op::Keccak {
             m: *m,
             tail: *tail,
             cap: *cap,

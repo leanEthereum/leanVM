@@ -23,7 +23,7 @@ def main():
     h[0] = 5
     h[1] = 7
     d = StackBuf(2)
-    sha3(h, h, d)
+    keccak(h, h, d)
     packed = pack64x2(5, 7)
     p = 1
     p[1] = buff[GEN ** 4] + packed
@@ -41,7 +41,7 @@ def main():
     let text = disassemble(&program.prog);
     print!("{text}");
 
-    for mnemonic in ["SET", "XOR", "MUL", "DEREF", "JUMP", "SHA3"] {
+    for mnemonic in ["SET", "XOR", "MUL", "DEREF", "JUMP", "KECCAK"] {
         assert!(text.contains(mnemonic), "disassembly is missing {mnemonic}");
     }
 }
