@@ -1,5 +1,7 @@
 //! A GKR proof of batched Keccak-f\[1600\], one layer per round.
 //!
+//! Credit: Hashcaster 2 (<https://github.com/levs57/hashcaster2>)
+//!
 //! # Statement
 //!
 //! The prover commits a state every `depth` rounds, as lanes: the input of each of the

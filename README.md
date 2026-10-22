@@ -174,5 +174,5 @@ Fibonacci (in the exponent, i.e. modulo 2^64 - 1), N = 2,000,000
 
 - 192-bit binary field (degree-3 tower over the 64-bit field)
 - [WHIR](https://eprint.iacr.org/2024/1586) PCS, aka [Ligerito](https://eprint.iacr.org/2025/1187)
-- [Flock](https://github.com/succinctlabs/flock/tree/main) hash proving
+- [Hashcaster 2](https://github.com/levs57/hashcaster2) proving Keccak via GKR and RMFE
 - [Binius](https://github.com/IrreducibleOSS/binius)/[Binius64](https://github.com/binius-zk/binius64) ring switching, M3 arithmetisation, and more (see [DP23](https://eprint.iacr.org/2023/1784) and [DP24](https://eprint.iacr.org/2024/504))

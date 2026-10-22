@@ -1,11 +1,9 @@
 % !TeX root = ../drafts/c-keccak-gkr.tex
-\section{Keccak by GKR}\label{annex:keccak}
-
-This annex proves that the \texttt{KECCAK} table (\S\ref{sec:tab-keccak}) computes Keccak-$f[1600]$~\cite{fips202}.
+\section{Proving Keccak by GKR}\label{annex:keccak}
 
 \subsection{Credits}\label{keccak:credits}
 
-The design is Lev Soukhanov's: Hashcaster~\cite{Hashcaster} (sumcheck rounds on bits) and Hashcaster~2~\cite{Hashcaster2} (GKR for Keccak, packed products sent as a polynomial and checked through a projection~\cite{RMFESkip}). The packing is a reverse multiplication friendly embedding~\cite{CCXY18}.
+The design is based on Lev Soukhanov's Hashcaster~2~\cite{Hashcaster2}. The packing is a reverse multiplication friendly embedding~\cite{CCXY18}.
 
 \subsection{Overview}\label{keccak:overview}
 
