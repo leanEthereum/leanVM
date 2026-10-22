@@ -242,17 +242,48 @@ mod x86 {
 
     /// The products of eight pairs, as partial sums by word offset: lanes of `out[half][s]` hold
     /// the 128-bit sum of `a[i] * b[k]` over `i + k = s`, for the even or the odd four.
+    ///
+    /// Karatsuba's six products where the schoolbook takes nine: the carry-less multiplier is the
+    /// scarce unit.
     #[inline(always)]
     unsafe fn partial(a: &[__m512i; 3], b: &[__m512i; 3]) -> [[__m512i; 5]; 2] {
+        unsafe { karatsuba(a, &sums(a), b, &sums(b)) }
+    }
+
+    /// The pairwise sums of three words, `0 + 1`, `0 + 2`, `1 + 2`, which [`karatsuba`] multiplies.
+    #[inline(always)]
+    unsafe fn sums(a: &[__m512i; 3]) -> [__m512i; 3] {
         unsafe {
-            let mut out = [[_mm512_setzero_si512(); 5]; 2];
-            for i in 0..3 {
-                for k in 0..3 {
-                    out[0][i + k] = _mm512_xor_si512(out[0][i + k], _mm512_clmulepi64_epi128(a[i], b[k], 0x00));
-                    out[1][i + k] = _mm512_xor_si512(out[1][i + k], _mm512_clmulepi64_epi128(a[i], b[k], 0x11));
-                }
-            }
-            out
+            [
+                _mm512_xor_si512(a[0], a[1]),
+                _mm512_xor_si512(a[0], a[2]),
+                _mm512_xor_si512(a[1], a[2]),
+            ]
+        }
+    }
+
+    /// [`partial`] given each operand's [`sums`].
+    #[inline(always)]
+    unsafe fn karatsuba(a: &[__m512i; 3], sa: &[__m512i; 3], b: &[__m512i; 3], sb: &[__m512i; 3]) -> [[__m512i; 5]; 2] {
+        unsafe {
+            let product = |x: __m512i, y: __m512i| {
+                [
+                    _mm512_clmulepi64_epi128(x, y, 0x00),
+                    _mm512_clmulepi64_epi128(x, y, 0x11),
+                ]
+            };
+            let (p0, p1, p2) = (product(a[0], b[0]), product(a[1], b[1]), product(a[2], b[2]));
+            let (m01, m02, m12) = (product(sa[0], sb[0]), product(sa[1], sb[1]), product(sa[2], sb[2]));
+            std::array::from_fn(|h| {
+                let x = |u: __m512i, v: __m512i, w: __m512i| _mm512_ternarylogic_epi64::<0x96>(u, v, w);
+                [
+                    p0[h],
+                    x(m01[h], p0[h], p1[h]),
+                    _mm512_xor_si512(x(m02[h], p0[h], p1[h]), p2[h]),
+                    x(m12[h], p1[h], p2[h]),
+                    p2[h],
+                ]
+            })
         }
     }
 
@@ -383,21 +414,14 @@ mod x86 {
     ) {
         unsafe {
             let challenge: [__m512i; 3] = std::array::from_fn(|k| _mm512_set1_epi64(challenge[k] as i64));
+            let challenge_sums = sums(&challenge);
             for j in (0..width).step_by(8) {
                 let (l, h) = (load3(lo, width, j), load3(hi, width, j));
                 let delta = xor3(&l, &h);
                 // `delta * challenge` for the even and the odd four.
-                let mut sums = [[_mm512_setzero_si512(); 5]; 2];
-                for i in 0..3 {
-                    for k in 0..3 {
-                        sums[0][i + k] =
-                            _mm512_xor_si512(sums[0][i + k], _mm512_clmulepi64_epi128(delta[i], challenge[k], 0x00));
-                        sums[1][i + k] =
-                            _mm512_xor_si512(sums[1][i + k], _mm512_clmulepi64_epi128(delta[i], challenge[k], 0x01));
-                    }
-                }
+                let product = karatsuba(&delta, &sums(&delta), &challenge, &challenge_sums);
                 let reduced: [[__m512i; 3]; 2] = std::array::from_fn(|half| {
-                    let words: [__m512i; 6] = std::array::from_fn(|w| word(&sums[half], w));
+                    let words: [__m512i; 6] = std::array::from_fn(|w| word(&product[half], w));
                     reduce(field, &words)
                 });
                 for k in 0..3 {

@@ -244,30 +244,53 @@ impl Witness {
     /// Run every instance, padding the batch with all-zero inputs, and write the committed
     /// lanes into `committed`: lane `l` of the state after `depth * m` rounds, for `m` below the
     /// segment count, is slot `25 * m + l`, one word per instance, and whatever follows the last
-    /// slot is zeroed.
+    /// slot is zeroed. The blocks after the last input are run once, as the padding block.
     pub fn generate(shape: Shape, inputs: &[[u64; LANES]], committed: &mut [F64]) -> Self {
         let n = shape.n();
         assert!(inputs.len() <= n);
         assert!(committed.len() >= shape.slots() * n && committed.len() <= 1 << shape.stack_log());
         committed[shape.slots() * n..].fill(F64(0));
-        let committed_ptr = SendPtr(committed.as_mut_ptr());
-        let mut extent = Extent::new(0, shape.n_blocks());
-        let slots: Vec<Slot> = (0..shape.n_blocks()).map(|g| extent.slot(g)).collect();
-        parallel::for_each(shape.n_blocks(), |g| {
-            let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
-            let stream = primitives::stream::Stream::new();
-            // SAFETY: block `g` owns its slot, and its instances' words of every committed lane.
+        let written = inputs.len().div_ceil(BLOCK);
+        let padding = (written < shape.n_blocks()).then(|| {
+            let mut extent = Extent::new(written, 1);
+            let mut lanes = vec![0u64; shape.slots() * BLOCK];
+            // SAFETY: the extent's one slot, written here alone.
             unsafe {
-                block(shape.depth, inputs, slots[g], |slot, w, lanes| {
-                    stream.copy_uninit(committed_ptr.add(slot * n + g * BLOCK + 64 * w).cast::<u64>(), lanes)
+                block(shape.depth, &[], extent.slot(written), |slot, w, words| {
+                    lanes[slot * BLOCK + 64 * w..][..64].copy_from_slice(words)
                 })
             };
+            (extent, lanes)
+        });
+        let committed_ptr = SendPtr(committed.as_mut_ptr().cast::<u64>());
+        let mut extent = Extent::new(0, written);
+        let slots: Vec<Slot> = (0..written).map(|g| extent.slot(g)).collect();
+        parallel::for_each(shape.n_blocks(), |g| {
+            let stream = primitives::stream::Stream::new();
+            // SAFETY: block `g` owns its instances' words of every committed lane.
+            let column = |slot: usize, at: usize, words: &[u64]| unsafe {
+                stream.copy_uninit(committed_ptr.add(slot * n + g * BLOCK + at), words)
+            };
+            if g < written {
+                let inputs = &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())];
+                // SAFETY: block `g` owns its slot.
+                unsafe {
+                    block(shape.depth, inputs, slots[g], |slot, w, lanes| {
+                        column(slot, 64 * w, lanes)
+                    })
+                };
+            } else {
+                let lanes = &padding.as_ref().expect("a padding block").1;
+                for slot in 0..shape.slots() {
+                    column(slot, 0, &lanes[slot * BLOCK..][..BLOCK]);
+                }
+            }
         });
         Self {
             shape,
             extents: vec![extent],
-            written: shape.n_blocks(),
-            padding: None,
+            written,
+            padding: padding.map(|(extent, _)| extent),
         }
     }
 
@@ -291,6 +314,12 @@ impl Witness {
             written,
             padding,
         }
+    }
+
+    /// Blocks `written()..` of the batch are all the padding block, every instance of which is
+    /// the all-zero input.
+    pub fn written(&self) -> usize {
+        self.written
     }
 
     fn round(&self, round: usize, g: usize) -> &[u64] {
@@ -449,7 +478,7 @@ mod tests {
     #[test]
     fn committed_states_follow_the_permutation() {
         let mut rng = Rng::new(9);
-        let inputs: Vec<[u64; LANES]> = (0..700).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let inputs: Vec<[u64; LANES]> = (0..1100).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
         let shape = Shape::new(inputs.len(), 8);
         let mut committed = vec![F64(1); 1 << shape.stack_log()];
         Witness::generate(shape, &inputs, &mut committed);

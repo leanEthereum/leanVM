@@ -9,7 +9,7 @@ use crate::keccak::{BITS, LANES, LOCAL_VARS, along, iota_bit};
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
 use crate::rmfe::PROD_BITS;
-use crate::witness::{BLOCK_LEN, BLOCK_WORDS, Shape, Witness};
+use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Extent, Shape, Witness, block};
 
 /// The sliced state after `round` rounds.
 pub(crate) fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
@@ -186,6 +186,39 @@ fn proof_verifies_against_the_commitment() {
     // The VM's depth, over enough blocks that the input opening folds more than one run.
     end_to_end(8192, 12);
     end_to_end(8192, 6);
+}
+
+/// The witness of every block run, the padding ones included.
+fn dense(shape: Shape, inputs: &[[u64; LANES]]) -> Witness {
+    let mut extent = Extent::new(0, shape.n_blocks());
+    for g in 0..shape.n_blocks() {
+        let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
+        // SAFETY: each block's slot, written once.
+        unsafe { block(shape.depth(), inputs, extent.slot(g), |_, _, _| {}) };
+    }
+    // SAFETY: every block was written just above.
+    unsafe { Witness::from_extents(shape, vec![extent], shape.n_blocks(), None) }
+}
+
+/// The padding block, run once for the blocks after the last input, proves what running each
+/// of them does, whichever variables the boundary between them falls on.
+#[test]
+fn padding_proves_as_the_blocks_it_stands_for() {
+    let mut rng = Rng::new(79);
+    for (n, depth) in [(0, 12), (300, 24), (1100, 8), (2600, 12), (4700, 6)] {
+        let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let shape = Shape::new(n, depth);
+        let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+        let padded = Witness::generate(shape, &inputs, &mut committed);
+        let stream = |witness: &Witness| {
+            let mut ps = ProverState::from_label(LABEL);
+            let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+            ps.add_scalars(&output.lanes);
+            let openings = crate::prove(&mut ps, witness, &committed, &output);
+            (openings, ps.into_proof())
+        };
+        assert!(stream(&padded) == stream(&dense(shape, &inputs)), "{n} instances");
+    }
 }
 
 /// A committed state that does not follow the permutation is rejected, whichever state it
