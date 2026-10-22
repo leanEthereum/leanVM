@@ -434,16 +434,20 @@ pub fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F6
     let [v0, v1, v2] = values;
     let [f0, f1, f2] = fours;
     let [s0, s1, s2] = sixteens;
-    [(0, v0, f0, s0), (1, v1, f1, s1), (2, v2, f2, s2)].map(|(side, values, fours, sixteens)| gkr::Leaves {
-        values,
-        fours,
-        sixteens,
-        // The padding rows of the chunked blocks.
-        ones: blocks
+    [(0, v0, f0, s0), (1, v1, f1, s1), (2, v2, f2, s2)].map(|(side, values, fours, sixteens)| {
+        // The padding rows of the chunked blocks, by offset.
+        let mut ones: Vec<_> = blocks
             .iter()
             .filter(|blk| blk.side == side && blk.kappa >= CHUNKED && blk.rows < 1 << blk.kappa)
             .map(|blk| blk.offset + blk.rows..blk.offset + (1 << blk.kappa))
-            .collect(),
+            .collect();
+        ones.sort_unstable_by_key(|r| r.start);
+        gkr::Leaves {
+            values,
+            fours,
+            sixteens,
+            ones,
+        }
     })
 }
 
@@ -477,8 +481,7 @@ impl BusForm {
 
     /// The same form scaled by `w`. Every coefficient is `E`-valued already, so
     /// folding the side's `η`-power in here costs three multiplies once per table
-    /// instead of one per [`eval_unreduced`](Self::eval_unreduced), which the
-    /// zerocheck calls per row per round.
+    /// instead of one per row and round of the zerocheck.
     pub fn scaled(&self, w: F192) -> Self {
         Self {
             coeffs: self.coeffs.iter().map(|&c| c * w).collect(),
@@ -511,22 +514,6 @@ impl BusForm {
         }
         out.prods.retain(|p| p.2 != F192::ZERO);
         out
-    }
-
-    /// The form at one point, unreduced: `evals` are the columns' values there.
-    /// This is what the zerocheck evaluates, per row while a table is unfolded and
-    /// at the sumcheck point after, so a table's several forms share one reduction
-    /// rather than paying one per term.
-    /// `quadratic` selects only degree-two terms, for a sumcheck round coefficient.
-    pub fn eval_unreduced<T: ColVal>(&self, evals: &[T], quadratic: bool) -> T::Unreduced {
-        self.prods.iter().fold(
-            if quadratic {
-                T::lift(F192::ZERO)
-            } else {
-                T::dot_unreduced(&self.coeffs, evals) ^ T::lift(self.constant)
-            },
-            |acc, &(a, b, c)| acc ^ (evals[a] * evals[b]).mul_e_unreduced(c),
-        )
     }
 
     /// What the form sums to over the table's rows against `eq(ζ, ·)`, the target the

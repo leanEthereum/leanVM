@@ -412,8 +412,7 @@ impl RowForm {
         }
     }
 
-    /// [`leaf::BusForm::eval_unreduced`]: the form at one row, unreduced, or only its
-    /// degree-two terms when `quadratic`.
+    /// The form at one row, unreduced, or only its degree-two terms when `quadratic`.
     #[inline(always)]
     fn eval_unreduced<T: ColVal>(&self, vals: &[T], quadratic: bool) -> T::Unreduced {
         let mut acc = if quadratic {
@@ -424,6 +423,10 @@ impl RowForm {
                 .fold(T::lift(self.constant), |acc, &(i, c)| acc ^ vals[i].mul_e_unreduced(c))
         };
         for (a, terms) in &self.groups {
+            if let [(b, c)] = terms[..] {
+                acc ^= (vals[*a] * vals[b]).mul_e_unreduced(c);
+                continue;
+            }
             let inner = terms
                 .iter()
                 .fold(T::lift(F192::ZERO), |acc, &(b, c)| acc ^ vals[b].mul_e_unreduced(c));

@@ -154,6 +154,8 @@ pub enum Fault {
 
 /// The longest run the interpreter executes.
 const MAX_STEPS: usize = 100_000_000;
+// A row touches at most nine cells, so every access count fits the `u32` exponent.
+const _: () = assert!(9 * MAX_STEPS < u32::MAX as usize);
 
 impl ExecError {
     fn new(program: &Program, pc: u32, fault: Fault) -> Self {
