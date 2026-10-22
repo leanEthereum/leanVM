@@ -39,7 +39,7 @@ The root `Cargo.toml` is workspace-only: the libraries are in `crates/`, the CLI
 | `rec_aggregation` | recursive signature and DA aggregation: the guest and public entry points |
 | `leanvm`          | the public API: re-exports of `rec_aggregation`, `signatures`, `lean_da`, and the prover/verifier setup |
 
-`crates/leanvm/src/lib.rs` is the public API and the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there. `crates/leanvm/tests/api.rs` is the end-to-end use of the API; guests are zkDSL under `crates/rec_aggregation/guests/`. The benchmark CLI is its own package, `bins/leanvm` (`leanvm-cli`, binary `leanvm`), run with `cargo leanvm <subcommand>` (a `.cargo/config.toml` alias for `run --release -p leanvm-cli --`): `aggregate`, `recursion`, `fibonacci` and `hash`, whose drivers live there, over `rec_aggregation::aggregate_with_stats`.
+`crates/leanvm/src/lib.rs` is the public API and the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there. `crates/leanvm/tests/api.rs` is the end-to-end use of the API; guests are zkDSL under `crates/rec_aggregation/guests/`. The benchmark CLI is its own package, `bins/leanvm` (`leanvm-cli`, binary `leanvm`), run with `cargo leanvm <subcommand>` (a `.cargo/config.toml` alias for `run --release -p leanvm-cli --`): `aggregate`, `recursion` and `fibonacci`, whose drivers live there, over `rec_aggregation::aggregate_with_stats`, and `hash`, keccak_gkr's batch benchmark.
 
 ## Building / Testing / Formatting
 
@@ -75,9 +75,7 @@ The benchmarks we care about:
 - `cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3`
 - `cargo leanvm aggregate --sphincs 850 --log-inv-rate 1 --repeat 3`
 - `cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3`
-- `cargo leanvm hash --n 262144 --repeat 3` (a Keccak hash chain: the `KECCAK` opcode's throughput through a whole proof, VM overhead included)
-
-The Keccak prover has a standalone bench that prints throughput and proof size: `KECCAK_N_LOG=18 cargo bench -p keccak_gkr --bench hash_batch`.
+- `cargo leanvm hash --log-n 17 --repeat 3` (the Keccak GKR alone: a batch of permutations committed, reduced, opened and verified, as keccak_gkr's `hash_batch` bench, which shares its driver `keccak_gkr::batch_bench` behind the crate's `bench` feature)
 
 `aggregate` takes a count per scheme, both defaulting to zero, so either alone or a mix of the two is one command; `recursion --sphincs-per-leaf` likewise puts both schemes in one tree. One leanSPHINCS verification uses 267 permutations against leanXMSS's 186; use the benchmark output to compare complete VM cycle counts. `aggregate --blobs` adds LeanDA blobs, and `recursion --blobs-per-leaf` includes them in each child.
 

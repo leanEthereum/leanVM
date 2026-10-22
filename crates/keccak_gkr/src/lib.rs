@@ -81,6 +81,8 @@
 use fiat_shamir::transcript::ProverState;
 
 pub mod basis;
+#[cfg(feature = "bench")]
+pub mod batch_bench;
 pub mod keccak;
 pub mod kernels;
 pub mod open;

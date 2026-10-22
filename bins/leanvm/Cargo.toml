@@ -18,6 +18,7 @@ rec_aggregation = { workspace = true, features = ["signers-cache"] }
 leanvm_core.workspace = true
 lean_compiler.workspace = true
 lean_da.workspace = true
+keccak_gkr = { workspace = true, features = ["bench"] }
 signatures.workspace = true
 primitives.workspace = true
 bench.workspace = true

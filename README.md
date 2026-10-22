@@ -139,20 +139,20 @@ recursion 2→1, over leaves of 900 leanXMSS signatures
 ### hashing
 
 ```bash
-BENCH_REPEAT=3 BENCH_COOLDOWN=2 KECCAK_N_LOG=17 cargo bench -p keccak_gkr --bench hash_batch
+cargo leanvm hash --log-n 17 --repeat 3
 ```
 
 ```
 Keccak GKR batch proving, 131,072 permutations, a state committed every 12 rounds
-  witness                         :     11.1 ms ± 29.1%    4.3%
-  commit                          :     18.0 ms ± 11.7%    6.9%
-  layers and openings             :    190.0 ms ± 1.2%   73.0%
-  pcs opening                     :     33.9 ms ± 6.2%   13.0%
+  witness                         :      6.9 ms ± 2.5%    2.7%
+  commit                          :     14.8 ms ± 4.2%    5.7%
+  layers and openings             :    199.7 ms ± 1.9%   77.0%
+  pcs opening                     :     31.8 ms ± 2.6%   12.3%
   ------------------------------------------
-  prove TOTAL (witness included)  :    260.4 ms ± 2.5%
-  verify                          :     10.9 ms
-  throughput                      :        503,422 permutations/s ± 2.5%
-  proof size                      :       291.2 KiB  (1562 scalars, 254.6 KiB of Merkle openings)
+  prove TOTAL (witness included)  :    259.5 ms ± 1.7%
+  verify                          :     11.2 ms
+  throughput                      :        505,176 permutations/s ± 1.7%
+  proof size                      :       290.2 KiB  (1562 scalars, 253.6 KiB of Merkle openings)
 ```
 
 ### Fibonacci
