@@ -160,6 +160,14 @@ fn count(n: usize) -> F192 {
     F192::new(g_pow(n).0, 0, 0)
 }
 
+/// The bytes of a `bits`-bit value, low first, each in the exponent: how the guest
+/// bounds a value it rebuilds (`sp_from_bytes`).
+fn exponent_bytes(value: u64, bits: usize) -> Vec<F192> {
+    (0..bits.div_ceil(8))
+        .map(|k| count((value >> (8 * k) & 0xff) as usize))
+        .collect()
+}
+
 /// A field element as the decimal `u128` literal the zkDSL parser accepts.
 fn dsl_u128(value: F192) -> u128 {
     assert_eq!(value.c2, 0, "u128 DSL literal cannot encode the top F192 limb");
@@ -1675,6 +1683,17 @@ const STREAM_CAP: usize = 8192;
 /// Named hint entries for a single sub-proof, ordered within each stream.
 type SubHints = Vec<(&'static str, Vec<F192>)>;
 
+/// An edit to a node's hints: how a test hands the guest a witness the honest host
+/// would not.
+#[cfg(test)]
+type Forgery = Box<dyn FnOnce(&mut Hints)>;
+
+#[cfg(test)]
+thread_local! {
+    /// The forgery the next node this thread aggregates gets.
+    static FORGE: std::cell::RefCell<Option<Forgery>> = const { std::cell::RefCell::new(None) };
+}
+
 /// One `hint_witness` stream: a name and its entries, in the order the guest
 /// pops them.
 #[derive(Default)]
@@ -1686,6 +1705,13 @@ impl Hints {
             Some((_, entries)) => entries.push(entry),
             None => self.0.push((name.to_string(), vec![entry])),
         }
+    }
+
+    /// Entry `i` of stream `name`, for a test to forge.
+    #[cfg(test)]
+    fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<F192> {
+        let (_, entries) = self.0.iter_mut().find(|(n, _)| n == name).expect("a hinted stream");
+        &mut entries[i]
     }
 
     fn install(self, guest: &mut Program) {
@@ -1891,6 +1917,17 @@ fn push_lean_sphincs_hints(
         hints.push("sp_forest_values", vec![pack_16_bytes(value)]);
     }
     let (idx, marks) = lean_sphincs::message_digest(pp, &sig.randomizer, message);
+    // The digest's bits past its fields, which only the guest's rebuild of it reads.
+    let digest = lean_sphincs::hasher(pp, &lean_sphincs::tweak(lean_sphincs::TWEAK_MSG, 0, 0))
+        .update(message)
+        .update(&sig.randomizer)
+        .finalize();
+    let unused_bits = 8 * digest.len() - lean_sphincs::DIGEST_BITS;
+    let unused = (0..unused_bits).fold(0u64, |value, bit| {
+        let position = lean_sphincs::DIGEST_BITS + bit;
+        value | u64::from(digest[position / 8] >> (position % 8) & 1) << bit
+    });
+    hints.push("sp_unused", exponent_bytes(unused, unused_bits));
     for word in marks.iter().flat_map(|mark| mark.words) {
         hints.push("sp_words", vec![count(word)]);
     }
@@ -1899,10 +1936,15 @@ fn push_lean_sphincs_hints(
         let address = lean_sphincs::address(&lean_sphincs::tweak(0, field, 0));
         vec![count(index), pack_16_bytes(&address)]
     };
-    for (tree, mark_of) in sig.forest.iter().zip(&marks) {
-        hints.push("sp_leaves", mark(mark_of.leaf, lean_sphincs::leaf_field(mark_of.leaf)));
-        for (subtree, &key) in tree.subtrees.iter().zip(&mark_of.keys) {
-            hints.push("sp_keys", mark(key, lean_sphincs::key_field(key)));
+    // A leaf's address field carries its tree, a key's its subtree, so the guest
+    // reaches either address in one sum off the index.
+    for (c, (tree, mark_of)) in sig.forest.iter().zip(&marks).enumerate() {
+        hints.push(
+            "sp_leaves",
+            mark(mark_of.leaf, c as u32 | lean_sphincs::leaf_field(mark_of.leaf)),
+        );
+        for (j, (subtree, &key)) in tree.subtrees.iter().zip(&mark_of.keys).enumerate() {
+            hints.push("sp_keys", mark(key, (128 * j as u32) | lean_sphincs::key_field(key)));
             for node in &subtree.path {
                 hints.push("sp_forest_nodes", vec![pack_16_bytes(node)]);
             }
@@ -1914,7 +1956,10 @@ fn push_lean_sphincs_hints(
     let forest_key = lean_sphincs::forest_recover(pp, idx as u32, &marks, &sig.forest);
     let codeword = lean_sphincs::encode(pp, idx as u32, &forest_key, sig.counter)
         .ok_or(AggregationError::MalformedRawSignature)?;
-    hints.push("sp_counter", vec![F192::new(u64::from(sig.counter), 0, 0)]);
+    hints.push(
+        "sp_counter",
+        exponent_bytes(u64::from(sig.counter), 8 * lean_sphincs::COUNTER_LEN),
+    );
     for entry in digit_hints(&codeword) {
         hints.push("digits", entry);
     }
@@ -2221,6 +2266,10 @@ pub fn aggregate_with_stats(
     // `2^MU_MIN`. A run smaller than that (a leaf of a few dozen signatures) grows
     // its SET table until it clears the floor.
     program.min_log_committed = MU_MIN;
+    #[cfg(test)]
+    if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
+        forge(&mut hints);
+    }
     hints.install(&mut program);
     let (proof, stats) = prove(&program, public_input, log_inv_rate).map_err(AggregationError::ProofError)?;
     Ok((
@@ -3119,6 +3168,32 @@ mod tests {
         assert_eq!(aggregate.lean_sphincs_signers.len(), 1);
     }
 
+    /// The leanSPHINCS digest's fields are bound to it in-circuit: a node whose hints
+    /// give a tree's leaf the address field of another tree, or the digest's unused
+    /// bits off by one, fails the guest's run.
+    #[test]
+    fn forged_lean_sphincs_digest_fields_are_rejected() {
+        leanvm_core::init_prover();
+        let signers = get_lean_sphincs_signers(1);
+        let forgeries: [Forgery; 2] = [
+            Box::new(|hints: &mut Hints| {
+                let other_tree = pack_16_bytes(&lean_sphincs::address(&lean_sphincs::tweak(0, 1, 0)));
+                hints.entry_mut("sp_leaves", 0)[1] += other_tree;
+            }),
+            Box::new(|hints: &mut Hints| {
+                hints.entry_mut("sp_unused", 0)[0] *= count(1);
+            }),
+        ];
+        for forgery in forgeries {
+            FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+            let result = aggregate(&[], vec![], signers.clone(), &[], None, LOG_INV_RATE);
+            assert!(
+                matches!(result, Err(AggregationError::ProofError(_))),
+                "a forged digest field is rejected"
+            );
+        }
+    }
+
     #[test]
     fn aggregate_one_signer() {
         leanvm_core::init_prover();
@@ -3222,11 +3297,17 @@ mod tests {
         let source = format!(
             r#"{helpers}
 def main():
-    point = HeapBuf(MAX_STACK_LOG)
+    point = HeapBuf(4 * SEL_NIBBLES)
     hint_witness(point[0:MAX_STACK_LOG], "point")
+    for k in unroll(MAX_STACK_LOG, 4 * SEL_NIBBLES):
+        point[GEN ** k] = 0
+    point1 = HeapBuf(4 * SEL_NIBBLES)
+    for k in unroll(0, 4 * SEL_NIBBLES):
+        point1[GEN ** k] = 1 + point[GEN ** k]
+    sel_eq, sel_g = selector_tables(point, point1)
     offset = hint_witness("offset")
     kappa_g = hint_witness("kappa")
-    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, point, kappa))
+    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
     public = GEN ** 0
     assert public[1] == weight
     return
@@ -3285,10 +3366,10 @@ def main():
     direction = addr(bits)
     leaf = StackBuf(2)
     hint_witness(leaf[0:2], "leaf")
-    a, b = verify_merkle_path(leaf[0], leaf[1], direction, 3)
+    root = verify_merkle_path(leaf, direction, 3)
     public = GEN ** 0
-    assert public[1] == a
-    assert public[GEN] == b
+    assert public[1] == root[0]
+    assert public[GEN] == root[1]
     return
 "#
         );

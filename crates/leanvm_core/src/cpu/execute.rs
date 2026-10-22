@@ -11,7 +11,7 @@ use primitives::{
 };
 
 pub struct Execution {
-    pub mem: Vec<F192>,  // data memory after the run, write-once (size cells, power of two)
+    pub mem: Memory,     // data memory after the run, write-once (size cells, power of two)
     pub cycles: usize,   // number of instructions the run executed (trace length)
     pub mem_used: usize, // cells actually touched, before the power-of-two pad of `mem`
     /// Cells an instruction read before anything wrote them, so the value it read was
@@ -28,12 +28,82 @@ pub struct Execution {
     /// and an arithmetic back-solve writes its operand before reading it.
     pub unconstrained_reads: Vec<u32>,
     pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
+    /// `g^0, g^1, ..` as far as the run indexed them: every pc, frame base and cell it reached.
+    pub(crate) gpow: Vec<F64>,
 }
 
 impl Execution {
     /// Rows per table: the instructions of each opcode the run executed.
     pub fn rows(&self) -> [usize; crate::tables::N_TABLES] {
         self.trace.row_counts()
+    }
+}
+
+/// `log2` of the cells a [`Memory`] page holds.
+const PAGE_LOG: usize = 16;
+const PAGE: usize = 1 << PAGE_LOG;
+// The padded image is a whole number of pages.
+const _: () = assert!(PAGE_LOG <= MIN_LOG_MEM);
+
+/// A cell's write state. A cell not `Written` holds ZERO; a `DEREF` between two
+/// unwritten cells links them, and a write to either reaches the other at once.
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+enum State {
+    Unwritten = 0,
+    Linked,
+    Written,
+}
+
+/// One cell: its word, its access count as an exponent (the column holds `g^count`),
+/// and its write state, side by side so one access touches one line. All zero is an
+/// unwritten cell holding ZERO, never accessed.
+#[derive(Clone, Copy)]
+#[repr(C)]
+pub(crate) struct Cell {
+    pub(crate) word: F192,
+    pub(crate) count: u32,
+    state: State,
+}
+
+impl Cell {
+    pub(crate) const UNWRITTEN: Self = Self {
+        word: F192::ZERO,
+        count: 0,
+        state: State::Unwritten,
+    };
+}
+
+/// The write-once data memory: `len` cells, a power of two, in pages, so that the
+/// image grows without moving what it holds. Cells past the last page are unwritten
+/// and never accessed.
+pub struct Memory {
+    pages: Vec<Box<[Cell]>>,
+    len: usize,
+}
+
+impl Memory {
+    /// Cells in the image, its power-of-two pad included.
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// The word in cell `i`.
+    pub fn word(&self, i: usize) -> F192 {
+        self.page(i >> PAGE_LOG).map_or(F192::ZERO, |p| p[i & (PAGE - 1)].word)
+    }
+
+    /// Page `p`'s cells, `None` past the last one.
+    pub(crate) fn page(&self, p: usize) -> Option<&[Cell]> {
+        self.pages.get(p).map(|p| &p[..])
+    }
+
+    pub(crate) fn page_log() -> usize {
+        PAGE_LOG
     }
 }
 
@@ -155,32 +225,37 @@ fn in_k(what: &'static str, v: F192) -> Result<F64, Fault> {
     as_addr(v).ok_or(Fault::NotInK { what, value: v })
 }
 
-fn pop_witness<'a>(
-    witness: &'a HashMap<String, Vec<Vec<F192>>>,
-    positions: &mut HashMap<&'a str, usize>,
+/// A named witness stream and the next entry `hint_witness` pops from it. Resolved
+/// once per run, so a pop indexes it rather than hashing its name.
+struct Stream<'a> {
     name: &'a str,
-    len: u32,
-) -> Result<&'a [F192], Fault> {
-    let entries = witness
-        .get(name)
-        .ok_or_else(|| Fault::Witness(format!("no witness stream `{name}` (Program::set_witness)")))?;
-    let position = positions.entry(name).or_default();
-    let entry = entries.get(*position).ok_or_else(|| {
-        Fault::Witness(format!(
-            "witness stream `{name}` exhausted (needs entry {}, has {})",
-            *position + 1,
-            entries.len()
-        ))
-    })?;
-    if entry.len() != len as usize {
-        return Err(Fault::Witness(format!(
-            "witness `{name}` entry {} holds {} values, the destination {len}",
-            *position,
-            entry.len()
-        )));
+    entries: Option<&'a [Vec<F192>]>,
+    next: usize,
+}
+
+impl<'a> Stream<'a> {
+    fn pop(&mut self, len: u32) -> Result<&'a [F192], Fault> {
+        let name = self.name;
+        let entries = self
+            .entries
+            .ok_or_else(|| Fault::Witness(format!("no witness stream `{name}` (Program::set_witness)")))?;
+        let entry = entries.get(self.next).ok_or_else(|| {
+            Fault::Witness(format!(
+                "witness stream `{name}` exhausted (needs entry {}, has {})",
+                self.next + 1,
+                entries.len()
+            ))
+        })?;
+        if entry.len() != len as usize {
+            return Err(Fault::Witness(format!(
+                "witness `{name}` entry {} holds {} values, the destination {len}",
+                self.next,
+                entry.len()
+            )));
+        }
+        self.next += 1;
+        Ok(entry)
     }
-    *position += 1;
-    Ok(entry)
 }
 
 impl Program {
@@ -201,73 +276,84 @@ impl Program {
             .max(1 << MIN_LOG_MEM);
         let mut g = GPow::new(seed);
 
-        // Dense write-once data memory (read path stays a vector for speed), the
-        // per-cell access count (g^{count}, default g^0 = 1), and each cell's state.
+        // The write-once data memory, each cell's access count and write state with its word.
         let n0 = self.main_frame.max(2) as usize;
         let mut m = Mem {
-            cells: vec![F192::ZERO; n0],
-            state: vec![State::Unwritten; n0],
-            count: vec![F64::ONE; n0],
+            pages: Vec::new(),
+            used: 0,
+            counts: 0,
             links: HashMap::new(),
             unwritten_reads: Vec::new(),
             program: self,
             dbg_pc: 0,
             dbg_hint: None,
         };
+        m.ensure(n0 - 1);
         // Seed the public input into m[0], m[1] (addresses g^0, g^1, §sec:e2e-pi).
         m.put(0, public_input[0])?;
         m.put(1, public_input[1])?;
 
-        // Per-pc bytecode execution count (g^{count}).
-        let mut bytecode_count: Vec<F64> = vec![F64::ONE; self.prog.len()];
+        // Per-pc bytecode execution count, as an exponent of `g`.
+        let mut bytecode_count: Vec<u32> = vec![0; self.prog.len()];
 
         let mut next_free = self.main_frame;
         let (mut pc, mut fp) = (0u32, 0u32);
         let mut steps = 0usize;
+        // Witness streams, resolved by name once so a pop indexes one.
+        let mut streams: Vec<Stream> = Vec::new();
+        let mut stream_of: HashMap<&str, u32> = HashMap::new();
         // Per-pc hint index. `self.hints` is keyed by pc, so probing it each step
         // costs a hash of the counter for what is almost always a miss; the
         // program has one bytecode slot per pc, so flatten the map into a dense
-        // table: 0 = no hints, otherwise the 1-based index into `hint_lists`.
+        // table: 0 = no hints, otherwise the 1-based index into `hint_lists`, whose
+        // entries pair a pc's hints with where their streams start in `hint_streams`.
         let mut hint_at = vec![0u32; self.prog.len()];
-        let mut hint_lists: Vec<&[RHint]> = Vec::with_capacity(self.hints.len());
+        let mut hint_lists: Vec<(&[RHint], usize)> = Vec::with_capacity(self.hints.len());
+        let mut hint_streams: Vec<u32> = Vec::new();
         for (&hpc, hs) in &self.hints {
-            hint_lists.push(hs.as_slice());
+            hint_lists.push((hs.as_slice(), hint_streams.len()));
             hint_at[hpc as usize] = hint_lists.len() as u32;
+            for h in hs {
+                let (RHint::WitnessStack { name, .. } | RHint::WitnessHeap { name, .. }) = h else {
+                    hint_streams.push(u32::MAX);
+                    continue;
+                };
+                let s = *stream_of.entry(name).or_insert_with(|| {
+                    streams.push(Stream {
+                        name,
+                        entries: self.witness.get(name).map(Vec::as_slice),
+                        next: 0,
+                    });
+                    streams.len() as u32 - 1
+                });
+                hint_streams.push(s);
+            }
         }
         // `DBG_PROF=1`: per-pc step counts, printed as a per-function cycle
         // profile after the run (needs `fn_ranges`, i.e. a compiled program).
         let mut prof: Option<Vec<u64>> = std::env::var("DBG_PROF").is_ok().then(|| vec![0u64; self.prog.len()]);
 
-        // Per-stream cursor into the named witness data (`hint_witness` pops
-        // sequentially).
-        let mut witness_positions: HashMap<&str, usize> = HashMap::new();
         // Baby-step table for `hint_decompose_bits_exponent`, built on first use.
         let mut dlog_cache: Option<(GPow, F64)> = None;
 
         // Per-opcode trace rows, accumulated during the walk and assembled into the
         // `Trace` once the run finishes (alongside the final count columns).
-        let mut xor: Vec<Xrow> = Vec::new();
-        let mut mul: Vec<Xrow> = Vec::new();
-        let mut set: Vec<Srow> = Vec::new();
-        let mut deref: Vec<Drow> = Vec::new();
-        let mut jump: Vec<Jrow> = Vec::new();
-        let mut blake2s: Vec<Brow> = Vec::new();
+        let mut xor: Rows<Xrow> = Rows::new();
+        let mut mul: Rows<Xrow> = Rows::new();
+        let mut set: Rows<Srow> = Rows::new();
+        let mut deref: Rows<Drow> = Rows::new();
+        let mut jump: Rows<Jrow> = Rows::new();
+        let mut blake2s: Rows<Brow> = Rows::new();
 
-        // A cell that is not `Written` holds ZERO. A `DEREF` between two unwritten cells
-        // links them, and a write to either reaches the other at once.
-        #[derive(Clone, Copy, PartialEq, Eq)]
-        enum State {
-            Unwritten,
-            Linked,
-            Written,
-        }
-
-        // The three dense per-cell vectors, kept in lockstep. Every method on the hot
+        // The memory's pages, grown as the run reaches them. Every method on the hot
         // path is `#[inline(always)]`: they sit in the interpreter's opcode loop.
         struct Mem<'a> {
-            cells: Vec<F192>,
-            state: Vec<State>,
-            count: Vec<F64>,
+            pages: Vec<Box<[Cell]>>,
+            /// One past the highest cell accessed or reserved: every cell below it is
+            /// in a page.
+            used: usize,
+            /// The highest access count any cell reached.
+            counts: u32,
             /// The cells a `DEREF` linked each cell to.
             links: HashMap<u32, Vec<u32>>,
             /// Cells an instruction read before anything wrote them.
@@ -283,39 +369,57 @@ impl Program {
             dbg_hint: Option<&'static str>,
         }
         impl Mem<'_> {
-            // Grow the dense vectors so `idx` is in range. All accessed cells
-            // satisfy cell < next_free after their frame's allocation, so this
-            // only ever extends.
+            // Cover cell `idx`. All accessed cells satisfy cell < next_free after
+            // their frame's allocation, so this only ever extends.
             #[inline(always)]
             fn ensure(&mut self, idx: usize) {
-                if idx >= self.cells.len() {
-                    let n = idx + 1;
-                    self.cells.resize(n, F192::ZERO);
-                    self.state.resize(n, State::Unwritten);
-                    self.count.resize(n, F64::ONE);
+                if idx >= self.used {
+                    self.grow(idx);
                 }
+            }
+            #[cold]
+            #[inline(never)]
+            fn grow(&mut self, idx: usize) {
+                self.used = idx + 1;
+                while self.pages.len() <= idx >> PAGE_LOG {
+                    // SAFETY: all zero is a valid `Cell`, the unwritten one.
+                    self.pages
+                        .push(unsafe { Box::<[Cell]>::new_zeroed_slice(PAGE).assume_init() });
+                }
+            }
+            /// Cell `c`, which `ensure` has covered.
+            #[inline(always)]
+            fn at(&mut self, c: u32) -> &mut Cell {
+                let c = c as usize;
+                &mut self.pages[c >> PAGE_LOG][c & (PAGE - 1)]
+            }
+            #[inline(always)]
+            fn covered(&self, c: u32) -> Option<&Cell> {
+                let c = c as usize;
+                (c < self.used).then(|| &self.pages[c >> PAGE_LOG][c & (PAGE - 1)])
             }
             #[inline(always)]
             fn written(&self, cell: u32) -> bool {
-                self.state.get(cell as usize) == Some(&State::Written)
+                self.covered(cell).is_some_and(|c| c.state == State::Written)
             }
             // A hint's read, which writes nothing: what a hint computes is advice the
             // instructions go on to check.
             #[inline(always)]
             fn get(&self, cell: u32) -> F192 {
-                self.cells.get(cell as usize).copied().unwrap_or(F192::ZERO)
+                self.covered(cell).map_or(F192::ZERO, |c| c.word)
             }
             // An instruction's read. An unwritten cell reads as ZERO, which is then written
             // there: the row is filled from the final image, which has to agree.
             #[inline(always)]
             fn read(&mut self, cell: u32) -> F192 {
-                let c = cell as usize;
-                self.ensure(c);
-                if self.state[c] != State::Written {
-                    self.state[c] = State::Written;
+                self.ensure(cell as usize);
+                let c = self.at(cell);
+                let word = c.word;
+                if c.state != State::Written {
+                    c.state = State::Written;
                     self.unwritten_reads.push(cell);
                 }
-                self.cells[c]
+                word
             }
             // Write-once store, carried to every cell linked to this one.
             #[inline(always)]
@@ -328,14 +432,14 @@ impl Program {
             // `put` on one cell; whether it was linked.
             #[inline(always)]
             fn store(&mut self, cell: u32, v: F192) -> Result<bool, ExecError> {
-                let c = cell as usize;
-                self.ensure(c);
-                let s = self.state[c];
-                if s == State::Written && self.cells[c] != v {
+                self.ensure(cell as usize);
+                let c = self.at(cell);
+                let s = c.state;
+                if s == State::Written && c.word != v {
                     return Err(self.conflict(cell, v));
                 }
-                self.cells[c] = v;
-                self.state[c] = State::Written;
+                c.word = v;
+                c.state = State::Written;
                 Ok(s == State::Linked)
             }
             #[cold]
@@ -353,8 +457,9 @@ impl Program {
             fn link(&mut self, a: u32, b: u32) {
                 for (x, y) in [(a, b), (b, a)] {
                     self.ensure(x as usize);
-                    if self.state[x as usize] == State::Unwritten {
-                        self.state[x as usize] = State::Linked;
+                    let c = self.at(x);
+                    if c.state == State::Unwritten {
+                        c.state = State::Linked;
                     }
                     self.links.entry(x).or_default().push(y);
                 }
@@ -363,21 +468,21 @@ impl Program {
             fn conflict(&self, cell: u32, v: F192) -> ExecError {
                 let fault = Fault::Conflict {
                     cell,
-                    had: self.cells[cell as usize],
+                    had: self.get(cell),
                     new: v,
                     hint: self.dbg_hint,
                 };
                 ExecError::new(self.program, self.dbg_pc, fault)
             }
-            // Read the running access count and advance it by ×g (the free increment).
-            // ×g is ×x, i.e. `mul_by_g`, a shift+fold rather than a PMULL; this runs on every
-            // memory access (several million per run), so the cheap form matters.
+            // Read the running access count and advance it: the column's `×g`, on the
+            // exponent. A run makes fewer than `2^32` accesses in all, so it cannot wrap.
             #[inline(always)]
-            fn bump_access_count(&mut self, cell: u32) -> F64 {
+            fn bump_access_count(&mut self, cell: u32) -> u32 {
                 self.ensure(cell as usize);
-                let cell_idx = cell as usize;
-                let count = self.count[cell_idx];
-                self.count[cell_idx] = mul_by_g(count);
+                let c = self.at(cell);
+                let count = c.count;
+                c.count = count + 1;
+                self.counts = self.counts.max(count + 1);
                 count
             }
         }
@@ -449,8 +554,8 @@ impl Program {
 
             // Apply the hints scheduled before this instruction.
             if hint_at[pc as usize] != 0 {
-                let hs = hint_lists[hint_at[pc as usize] as usize - 1];
-                for h in hs {
+                let (hs, first) = hint_lists[hint_at[pc as usize] as usize - 1];
+                for (h, &stream) in hs.iter().zip(&hint_streams[first..]) {
                     m.dbg_hint = Some(match h {
                         RHint::FrameAddress { .. } => "FrameAddress",
                         RHint::AllocFrames { .. } => "AllocFrames",
@@ -524,7 +629,7 @@ impl Program {
                         RHint::Print { label, cell } => {
                             let c = fp + cell;
                             if m.written(c) {
-                                let v = m.cells[c as usize];
+                                let v = m.get(c);
                                 // Small integers and small g-powers overlap (8 = x^3
                                 // = g^3): show every reading that applies. Only a
                                 // K-valued word (extension limbs 0) can be a g-power.
@@ -550,17 +655,15 @@ impl Program {
                                 eprintln!("[print] {label} = <unwritten>");
                             }
                         }
-                        RHint::WitnessStack { name, base, len } => {
-                            let values =
-                                pop_witness(&self.witness, &mut witness_positions, name, *len).map_err(fail)?;
+                        RHint::WitnessStack { base, len, .. } => {
+                            let values = streams[stream as usize].pop(*len).map_err(fail)?;
                             for (k, &value) in values.iter().enumerate() {
                                 m.put(fp + base + k as u32, value)?;
                             }
                         }
-                        RHint::WitnessHeap { name, ptr, lo, len } => {
+                        RHint::WitnessHeap { ptr, lo, len, .. } => {
                             let b = heap_base(&m, &mut g, fp + ptr, "hint_witness heap pointer").map_err(fail)?;
-                            let values =
-                                pop_witness(&self.witness, &mut witness_positions, name, *len).map_err(fail)?;
+                            let values = streams[stream as usize].pop(*len).map_err(fail)?;
                             for (k, &value) in values.iter().enumerate() {
                                 m.put(b + lo + k as u32, value)?;
                             }
@@ -639,7 +742,7 @@ impl Program {
 
             let bytecode_read = {
                 let v = bytecode_count[pc as usize];
-                bytecode_count[pc as usize] = mul_by_g(v);
+                bytecode_count[pc as usize] = v + 1;
                 v
             };
 
@@ -721,9 +824,9 @@ impl Program {
                         // unwritten for good: only the validity of `a2` matters there.
                         DerefMode::Cell => {
                             if m.written(a2) {
-                                m.put(a3, m.cells[a2 as usize])?;
+                                m.put(a3, m.get(a2))?;
                             } else if m.written(a3) {
-                                m.put(a2, m.cells[a3 as usize])?;
+                                m.put(a2, m.get(a3))?;
                             } else {
                                 m.link(a2, a3);
                             }
@@ -894,20 +997,21 @@ impl Program {
             }
         }
 
-        let mut trace = Trace {
+        let counts = bytecode_count.iter().copied().max().unwrap_or(0).max(m.counts) as usize + 1;
+        let trace = Trace {
             xor,
             mul,
             set,
             deref,
             jump,
             blake2s,
-            mem_count: m.count,
             bytecode_count,
+            counts,
         };
         // Pad memory to a power of two (the boundary tables read a dense image), at
         // least 2^MIN_LOG_MEM cells (doc §Memory), doubled until the stacked witness
         // reaches `min_log_committed`.
-        let mem_used = m.cells.len();
+        let mem_used = m.used;
         let mut cells = mem_used.next_power_of_two().max(1 << MIN_LOG_MEM);
         let taus = super::layout::table_logs(trace.row_counts());
         let log_bytecode = crate::log2_strict_usize(self.prog.len());
@@ -916,14 +1020,16 @@ impl Program {
             cells *= 2;
         }
         assert!(cells <= 1 << MAX_LOG_MEM, "data memory exceeds 2^{MAX_LOG_MEM} cells");
-        m.cells.resize(cells, F192::ZERO);
-        trace.mem_count.resize(cells, F64::ONE);
         Ok(Execution {
-            mem: m.cells,
+            mem: Memory {
+                pages: m.pages,
+                len: cells,
+            },
             cycles: steps,
             mem_used,
             unconstrained_reads: m.unwritten_reads,
             trace,
+            gpow: g.into_powers(),
         })
     }
 }

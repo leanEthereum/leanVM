@@ -233,71 +233,41 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 8] {
     let gpow = primitives::field::g_powers((max_op + 1).max(2));
     let g_at = |i: u32| gpow[i as usize]; // operand g-power
 
-    let opcode = |op: &Op| match op {
-        Op::Xor { .. } => OP_XOR,
-        Op::Mul { .. } => OP_MUL,
-        Op::Set { .. } => OP_SET,
-        Op::Deref { .. } => OP_DEREF,
-        Op::Jump { .. } => OP_JUMP,
-        Op::Blake2s { .. } => OP_BLAKE2S,
-    };
-    let operands = |op: &Op| -> (F64, F64, F64) {
+    // The opcode, then seven operand slots: offsets as g-powers, the `SET` immediate's
+    // limbs (c2 in the fpc slot), the `DEREF` store-mode flags, and `BLAKE2s`'s four
+    // input words, chaining-value base, output base and metadata cell. Unused slots are zero.
+    let row = |op: &Op| -> [F64; 8] {
+        let z = F64::ZERO;
         match *op {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => (g_at(a), g_at(b), g_at(c)),
-            // The immediate's first two K-limbs ride operand slots o2/o3; c2
-            // rides the fpc slot below.
-            Op::Set { o, k } => (g_at(o), F64(k.c0), F64(k.c1)),
-            Op::Deref { o1, o2, o3, .. } => (g_at(o1), g_at(o2), g_at(o3)),
-            Op::Jump { oc, od, of } => (g_at(oc), g_at(od), g_at(of)),
-            // BLAKE2s's first three input-word offsets; the last two ride the
-            // fpc/ffp bytecode slots below.
-            Op::Blake2s { ins, .. } => (g_at(ins[0]), g_at(ins[1]), g_at(ins[2])),
+            Op::Xor { a, b, c } => [OP_XOR, g_at(a), g_at(b), g_at(c), z, z, z, z],
+            Op::Mul { a, b, c } => [OP_MUL, g_at(a), g_at(b), g_at(c), z, z, z, z],
+            Op::Set { o, k } => [OP_SET, g_at(o), F64(k.c0), F64(k.c1), F64(k.c2), z, z, z],
+            Op::Deref { o1, o2, o3, mode } => [OP_DEREF, g_at(o1), g_at(o2), g_at(o3), mode.f_pc(), mode.f_fp(), z, z],
+            Op::Jump { oc, od, of } => [OP_JUMP, g_at(oc), g_at(od), g_at(of), z, z, z, z],
+            Op::Blake2s { ins, cv, out, md } => [
+                OP_BLAKE2S,
+                g_at(ins[0]),
+                g_at(ins[1]),
+                g_at(ins[2]),
+                g_at(ins[3]),
+                g_at(cv),
+                g_at(out),
+                g_at(md),
+            ],
         }
     };
-    // The 4th/5th bytecode operand slots: the two DEREF store-mode flags, or
-    // BLAKE2s's remaining input word / chaining-value base (0 elsewhere).
-    let fpc = |op: &Op| match op {
-        Op::Deref { mode, .. } => mode.f_pc(),
-        Op::Blake2s { ins, .. } => g_at(ins[3]),
-        Op::Set { k, .. } => F64(k.c2),
-        _ => F64::ZERO,
-    };
-    let ffp = |op: &Op| match op {
-        Op::Deref { mode, .. } => mode.f_fp(),
-        Op::Blake2s { cv, .. } => g_at(*cv),
-        _ => F64::ZERO,
-    };
-    // The 6th/7th bytecode operand slots: BLAKE2s's output base and its metadata
-    // cell (0 elsewhere).
-    let extra0 = |op: &Op| match op {
-        Op::Blake2s { out, .. } => g_at(*out),
-        _ => F64::ZERO,
-    };
-    let extra1 = |op: &Op| match op {
-        Op::Blake2s { md, .. } => g_at(*md),
-        _ => F64::ZERO,
-    };
-    // The program is PUBLIC (not committed): eight public columns over the
-    // program cube, embedded in the bytecode seed/finalize blocks below.
-    let column = |f: &(dyn Fn(&Op) -> F64 + Sync)| parallel::map_collect(prog.len(), |i| f(&prog[i]));
-    let prog_op: Vec<F64> = column(&opcode);
-    let prog_o1: Vec<F64> = column(&|o| operands(o).0);
-    let prog_o2: Vec<F64> = column(&|o| operands(o).1);
-    let prog_o3: Vec<F64> = column(&|o| operands(o).2);
-    let prog_fpc: Vec<F64> = column(&fpc);
-    let prog_ffp: Vec<F64> = column(&ffp);
-    let prog_extra0: Vec<F64> = column(&extra0);
-    let prog_extra1: Vec<F64> = column(&extra1);
-    [
-        prog_op,
-        prog_o1,
-        prog_o2,
-        prog_o3,
-        prog_fpc,
-        prog_ffp,
-        prog_extra0,
-        prog_extra1,
-    ]
+    // The program is PUBLIC (not committed): eight public columns over the program
+    // cube, embedded in the bytecode seed/finalize blocks below, written in one pass.
+    // SAFETY: the pass below writes every slot of every column.
+    let mut columns: [Vec<F64>; 8] = std::array::from_fn(|_| unsafe { primitives::uninit_vec(prog.len()) });
+    let dst = columns.each_mut().map(|c| parallel::SendPtr(c.as_mut_ptr()));
+    parallel::for_each(prog.len(), |i| {
+        for (column, value) in dst.iter().zip(row(&prog[i])) {
+            // SAFETY: instruction `i` writes slot `i` of each column, in bounds and once.
+            unsafe { column.add(i).write(value) };
+        }
+    });
+    columns
 }
 
 /// The stacked bytecode polynomial: the eight columns at their bus tuple
@@ -443,10 +413,14 @@ impl Program {
         let log_mem = crate::log2_strict_usize(cells);
 
         let sch = schema();
-        // Precompute g^0..g^{span-1} once so every address/pc/operand fill is an
-        // O(1) lookup instead of an O(log) power.
-        let span = cells.max(bytecode_size);
-        let gpow = primitives::field::g_powers(span);
+        // g^0..g^{span-1}, so every pc/frame/operand/count fill is an O(1) lookup instead
+        // of an O(log) power: a frame base or an operand is below the cells the run used.
+        // The run's own table covers them unless a count outgrew it.
+        let span = exec.mem_used.max(bytecode_size).max(tr.counts);
+        let gpow = match exec.gpow.get(..span) {
+            Some(gpow) => std::borrow::Cow::Borrowed(gpow),
+            None => std::borrow::Cow::Owned(primitives::field::g_powers(span)),
+        };
 
         // The public layout (flush/count blocks, placements, boundary, taus) is a pure
         // function of the program + announced sizes + public input, with no committed
@@ -458,7 +432,7 @@ impl Program {
             row_counts.iter().all(|&r| r <= 1 << MAX_LOG_ROWS),
             "a table exceeds 2^{MAX_LOG_ROWS} rows"
         );
-        let pi = [exec.mem[0], exec.mem[1]];
+        let pi = [exec.mem.word(0), exec.mem.word(1)];
         let l = layout(&self.prog, log_mem, row_counts, pi);
 
         // The stacked witness is written exactly ONCE: allocate it, carve one window
@@ -504,11 +478,41 @@ impl Program {
             // be written: the stack is uninitialized, so one left out would be read
             // as indeterminate bytes rather than caught by a length mismatch.
             const _: () = assert!(N_SHARED == 6, "a new shared column needs a fill here");
-            parallel::fill(windows[MEM_LO], |i| F64(exec.mem[i].c0));
-            parallel::fill(windows[MEM_HI], |i| F64(exec.mem[i].c1));
-            parallel::fill(windows[MEM_TOP], |i| F64(exec.mem[i].c2));
-            parallel::fill(windows[MFCNT], |i| tr.mem_count[i]); // counts ended at g^{A[i]}
-            parallel::fill(windows[BFCNT], |i| tr.bytecode_count[i]); // … at g^{A[pc]}
+            // One pass over the image fills all four of its columns, streamed out a
+            // cache line of each at a time: nothing reads them before the commitment.
+            const LINE: usize = 8;
+            const BLOCK: usize = 1 << 10;
+            let page_log = Memory::page_log();
+            let image = [MEM_LO, MEM_HI, MEM_TOP, MFCNT].map(|c| {
+                assert_eq!(windows[c].len(), cells, "a memory column spans the image");
+                parallel::SendPtr(windows[c].as_mut_ptr())
+            });
+            parallel::for_each_chunk(cells / BLOCK, |first, end| {
+                let stream = primitives::stream::Stream::new();
+                for b in first..end {
+                    let at = b * BLOCK;
+                    let page = exec.mem.page(at >> page_log);
+                    for line in (at..at + BLOCK).step_by(LINE) {
+                        let mut buf = [[F64::ZERO; LINE]; 4];
+                        for j in 0..LINE {
+                            let i = line + j;
+                            let cell = page.map_or(&Cell::UNWRITTEN, |p| &p[i & ((1 << page_log) - 1)]);
+                            // counts ended at g^{A[i]}
+                            let values = [cell.word.c0, cell.word.c1, cell.word.c2].map(F64);
+                            buf[0][j] = values[0];
+                            buf[1][j] = values[1];
+                            buf[2][j] = values[2];
+                            buf[3][j] = gpow[cell.count as usize];
+                        }
+                        for (column, values) in image.iter().zip(&buf) {
+                            // SAFETY: block `b` owns cells `b·BLOCK..(b+1)·BLOCK` of every
+                            // column, in bounds as `cells` is a whole number of blocks.
+                            unsafe { stream.copy_uninit(column.add(line), values) };
+                        }
+                    }
+                }
+            });
+            parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]); // … at g^{A[pc]}
         });
         // flock's packed BLAKE2s witness q_flock, ALWAYS committed in this same stack:
         // built from the executed BLAKE2s rows in order (row j = flock instance j),
@@ -519,17 +523,17 @@ impl Program {
             // words are the nine cells they read, in the finished (write-once)
             // memory image.
             let blocks: Vec<_> = parallel::map_collect(tr.blake2s.len(), |i| {
-                let r = &tr.blake2s[i];
+                let r = tr.blake2s.get(i);
                 let a = tables::blake2s_addresses(&self.prog, r);
                 let chunk = |c0: u32, c1: u32| {
-                    let (w0, w1) = (exec.mem[c0 as usize], exec.mem[c1 as usize]);
+                    let (w0, w1) = (exec.mem.word(c0 as usize), exec.mem.word(c1 as usize));
                     [F64(w0.c0), F64(w0.c1), F64(w1.c0), F64(w1.c1)]
                 };
                 crate::hash_flock::compression(
                     chunk(a[0], a[1]),
                     chunk(a[2], a[3]),
                     chunk(a[4], a[4] + 1),
-                    exec.mem[a[6] as usize],
+                    exec.mem.word(a[6] as usize),
                 )
             });
             crate::hash_flock::build_qflock_prepared(&blocks, windows[QFLOCK])

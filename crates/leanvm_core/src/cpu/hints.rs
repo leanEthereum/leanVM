@@ -70,6 +70,11 @@ impl GPow {
         self.pow.len()
     }
 
+    /// The forward table, `g^0` to `g^{covered - 1}`.
+    pub(crate) fn into_powers(self) -> Vec<F64> {
+        self.pow
+    }
+
     /// Extend the forward table to cover index `upto`.
     pub fn grow_to(&mut self, upto: usize) {
         assert!(upto < MAX_CELLS as usize, "address space overflow (program too large)");

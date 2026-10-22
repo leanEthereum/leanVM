@@ -16,7 +16,7 @@
 //! `eval_constraint` takes.
 
 use crate::colval::ColVal;
-use crate::cpu::{Brow, Drow, Jrow, Op, Srow, Trace};
+use crate::cpu::{Brow, Drow, Jrow, Memory, Op, Rows, Srow, Trace};
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F192, mul_by_g};
 
@@ -192,7 +192,7 @@ impl FlushBuilder {
 /// image (for read values), and `g^0..` for O(1) address/operand lookups.
 pub struct FillCtx<'a> {
     pub(crate) trace: &'a Trace,
-    pub(crate) mem: &'a [F192],
+    pub(crate) mem: &'a Memory,
     pub(crate) gpow: &'a [F64],
     pub(crate) prog: &'a [Op],
     /// This table's height `2^tau`, the length of every window in `out`. Rows past the
@@ -212,7 +212,7 @@ pub type ColumnOut<'a> = &'a mut [F64];
 impl<'a> FillCtx<'a> {
     pub(crate) fn new(
         trace: &'a Trace,
-        mem: &'a [F192],
+        mem: &'a Memory,
         gpow: &'a [F64],
         prog: &'a [Op],
         height: usize,
@@ -246,7 +246,7 @@ impl<'a> FillCtx<'a> {
 
     /// Write local column `at`: `f` over the trace rows, then its padding value to the
     /// end of the window.
-    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &[R], at: usize, f: impl Fn(&R) -> F64 + Sync) {
+    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &Rows<R>, at: usize, f: impl Fn(&R) -> F64 + Sync) {
         self.cols(out, rows, at, |r| [f(r)]);
     }
 
@@ -257,11 +257,11 @@ impl<'a> FillCtx<'a> {
     fn cols<const N: usize, R: Sync>(
         &self,
         out: &mut [ColumnOut],
-        rows: &[R],
+        rows: &Rows<R>,
         at: usize,
         f: impl Fn(&R) -> [F64; N] + Sync,
     ) {
-        self.cols_at(out, rows.len(), at, |i| f(&rows[i]));
+        self.cols_at(out, rows.len(), at, |i| f(rows.get(i)));
     }
 
     /// [`Self::cols`] over row indices, for values held in a side buffer rather
@@ -282,20 +282,35 @@ impl<'a> FillCtx<'a> {
         });
         assert!(n_rows <= n, "a table's rows must fit its cube");
         let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
-        parallel::for_each(n, |i| {
-            let v = if i < n_rows { f(i) } else { padding };
-            for (k, p) in dst.iter().enumerate() {
-                // SAFETY: distinct `i` write disjoint in-bounds slots of each of the
-                // `N` windows, each exactly once, and the dispatch blocks until
-                // every write is finished.
-                unsafe { p.add(i).write(v[k]) };
+        // A cache line of rows is gathered column by column, then streamed out: the
+        // stack is read by a later pass, so its lines need not be fetched.
+        const LINE: usize = 8;
+        parallel::for_each_chunk(n.div_ceil(LINE), |first, end| {
+            let stream = primitives::stream::Stream::new();
+            for b in first..end {
+                let start = b * LINE;
+                let len = LINE.min(n - start);
+                let mut buf = [[F64::ZERO; LINE]; N];
+                for j in 0..len {
+                    let i = start + j;
+                    let v = if i < n_rows { f(i) } else { padding };
+                    for k in 0..N {
+                        buf[k][j] = v[k];
+                    }
+                }
+                for (p, column) in dst.iter().zip(&buf) {
+                    // SAFETY: block `b` writes rows `start..start + len` of each of the
+                    // `N` windows, in bounds and disjoint from every other block's, and
+                    // the dispatch blocks until every write is finished.
+                    unsafe { stream.copy_uninit(p.add(start), &column[..len]) };
+                }
             }
         });
     }
 
     /// The three `K`-lanes of the 192-bit word in memory cell `addr`.
     fn limbs(&self, addr: u32) -> [F64; 3] {
-        let w = self.mem[addr as usize];
+        let w = self.mem.word(addr as usize);
         [F64(w.c0), F64(w.c1), F64(w.c2)]
     }
 }
@@ -535,8 +550,8 @@ impl Table for Arith {
                 vb[2],
             ]
         });
-        ctx.cols(out, rows, RA, |r| [r.ra, r.rb, r.rc]);
-        ctx.col(out, rows, RBC, |r| r.bytecode_read);
+        ctx.cols(out, rows, RA, |r| [r.ra, r.rb, r.rc].map(|k| ctx.g_at(k)));
+        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
@@ -594,8 +609,8 @@ impl Table for SetTable {
             let k = imm(r).1;
             [F64(k.c0), F64(k.c1), F64(k.c2)]
         });
-        ctx.col(out, rows, R, |r| r.r);
-        ctx.col(out, rows, RBC, |r| r.bytecode_read);
+        ctx.col(out, rows, R, |r| ctx.g_at(r.r));
+        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
@@ -674,7 +689,7 @@ impl Table for DerefTable {
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
         debug_assert!(
             rows.iter().all(|r| {
-                let p = ctx.mem[(r.fp + ins(r).0) as usize];
+                let p = ctx.mem.word((r.fp + ins(r).0) as usize);
                 p.c1 == 0 && p.c2 == 0
             }),
             "deref pointer must be K-valued"
@@ -690,14 +705,14 @@ impl Table for DerefTable {
                 ctx.g_at(o3),
                 mode.f_pc(),
                 mode.f_fp(),
-                F64(ctx.mem[(r.fp + o1) as usize].c0),
+                F64(ctx.mem.word((r.fp + o1) as usize).c0),
                 v3[0],
                 v3[1],
                 v3[2],
             ]
         });
-        ctx.cols(out, rows, R1, |r| [r.r1, r.r2, r.r3]);
-        ctx.col(out, rows, RBC, |r| r.bytecode_read);
+        ctx.cols(out, rows, R1, |r| [r.r1, r.r2, r.r3].map(|k| ctx.g_at(k)));
+        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
@@ -776,7 +791,7 @@ impl Table for JumpTable {
             Op::Jump { oc, od, of } => (oc, od, of),
             op => unreachable!("a JUMP row's pc {} holds {op:?}", r.pc),
         };
-        let cell = |r: &Jrow, o: u32| ctx.mem[(r.fp + o) as usize];
+        let cell = |r: &Jrow, o: u32| ctx.mem.word((r.fp + o) as usize);
         let cond = |r: &Jrow| cell(r, ins(r).0);
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
@@ -814,8 +829,8 @@ impl Table for JumpTable {
             }
             let mut inv = acc.inv();
             let mut w = vec![F192::ZERO; rows.len()];
-            for (i, r) in rows.iter().enumerate().rev() {
-                let c = cond(r);
+            for i in (0..rows.len()).rev() {
+                let c = cond(rows.get(i));
                 if !c.is_zero() {
                     w[i] = inv * prefix[i];
                     inv *= c;
@@ -824,8 +839,8 @@ impl Table for JumpTable {
             (w, b)
         };
         ctx.cols_at(out, rows.len(), W, |i| [F64(w[i].c0), b[i]]);
-        ctx.cols(out, rows, RC, |r| [r.rc, r.rd, r.rf]);
-        ctx.col(out, rows, RBC, |r| r.bytecode_read);
+        ctx.cols(out, rows, RC, |r| [r.rc, r.rd, r.rf].map(|k| ctx.g_at(k)));
+        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 
@@ -947,7 +962,7 @@ impl Table for Blake2sTable {
         // the four message cells, then the cv pair, the output pair and the
         // metadata. A cell's two lanes are one read, so each group of four takes two.
         let word_pair = |c0: u32, c1: u32| {
-            let (w0, w1) = (ctx.mem[c0 as usize], ctx.mem[c1 as usize]);
+            let (w0, w1) = (ctx.mem.word(c0 as usize), ctx.mem.word(c1 as usize));
             [F64(w0.c0), F64(w0.c1), F64(w1.c0), F64(w1.c1)]
         };
         ctx.cols(out, rows, V_M0, |r| {
@@ -967,15 +982,16 @@ impl Table for Blake2sTable {
             word_pair(a[4], a[4] + 1)
         });
         ctx.cols(out, rows, MD0, |r| {
-            let md = ctx.mem[ad(r)[6] as usize];
+            let md = ctx.mem.word(ad(r)[6] as usize);
             [F64(md.c0), F64(md.c1)]
         });
         ctx.cols(out, rows, R_M0, |r| {
             [
                 r.ra[0], r.ra[1], r.rb[0], r.rb[1], r.rcv[0], r.rcv[1], r.rc[0], r.rc[1], r.rmd,
             ]
+            .map(|k| ctx.g_at(k))
         });
-        ctx.col(out, rows, RBC, |r| r.bytecode_read);
+        ctx.col(out, rows, RBC, |r| ctx.g_at(r.bytecode_read));
     }
 }
 

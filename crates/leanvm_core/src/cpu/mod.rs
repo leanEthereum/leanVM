@@ -27,10 +27,11 @@ pub mod hints;
 mod isa;
 pub mod layout;
 mod trace;
-pub use execute::{ExecError, Execution, Fault};
+pub(crate) use execute::Cell;
+pub use execute::{ExecError, Execution, Fault, Memory};
 pub use isa::{DerefMode, Op};
 pub use layout::*;
-pub(crate) use trace::{Brow, Drow, Jrow, Srow, Trace, Xrow};
+pub(crate) use trace::{Brow, Drow, Jrow, Rows, Srow, Trace, Xrow};
 
 /// Witness-gen `BLAKE2s` compression: the four message cells' eight
 /// words are laid out little-endian into 64 bytes, combined with the supplied
@@ -343,7 +344,7 @@ fn airs(
             // One form, not three: the batch adds the three sides' evaluations
             // anyway, and summing them here is a setup cost against a dot product
             // and a product list per row per node.
-            let bus = leaf::BusForm::sum((0..3).map(|s| forms[s][t].scaled(form_pows[s])));
+            let bus = RowForm::new(&leaf::BusForm::sum((0..3).map(|s| forms[s][t].scaled(form_pows[s]))));
             let bus_k = bus.clone();
             constraints::Air {
                 tau,
@@ -361,6 +362,75 @@ fn airs(
             }
         })
         .collect()
+}
+
+/// A table's bus form as the batch evaluates it on every row of every round: its
+/// nonzero coefficients, and its products grouped by a column they share,
+/// `Σ_a v_a·(Σ_b c_ab·v_b)`, so a column that several products share multiplies
+/// once rather than once per product. The arithmetic is exact, so the value is the form's.
+#[derive(Clone)]
+struct RowForm {
+    linear: Vec<(usize, F192)>,
+    constant: F192,
+    groups: Vec<(usize, Vec<(usize, F192)>)>,
+}
+
+impl RowForm {
+    fn new(form: &leaf::BusForm) -> Self {
+        let n = form.coeffs.len();
+        let linear = (0..n)
+            .filter(|&i| !form.coeffs[i].is_zero())
+            .map(|i| (i, form.coeffs[i]))
+            .collect();
+        let mut prods = form.prods.clone();
+        let mut groups: Vec<(usize, Vec<(usize, F192)>)> = Vec::new();
+        // Greedily factor out the column the most remaining products share.
+        while !prods.is_empty() {
+            let mut shared = vec![0usize; n];
+            for &(a, b, _) in &prods {
+                shared[a] += 1;
+                if b != a {
+                    shared[b] += 1;
+                }
+            }
+            let col = (0..n)
+                .max_by_key(|&c| (shared[c], std::cmp::Reverse(c)))
+                .expect("a column");
+            let (with, rest): (Vec<_>, Vec<_>) = prods.into_iter().partition(|&(a, b, _)| a == col || b == col);
+            groups.push((
+                col,
+                with.into_iter()
+                    .map(|(a, b, c)| (if a == col { b } else { a }, c))
+                    .collect(),
+            ));
+            prods = rest;
+        }
+        Self {
+            linear,
+            constant: form.constant,
+            groups,
+        }
+    }
+
+    /// [`leaf::BusForm::eval_unreduced`]: the form at one row, unreduced, or only its
+    /// degree-two terms when `quadratic`.
+    #[inline(always)]
+    fn eval_unreduced<T: ColVal>(&self, vals: &[T], quadratic: bool) -> T::Unreduced {
+        let mut acc = if quadratic {
+            T::lift(F192::ZERO)
+        } else {
+            self.linear
+                .iter()
+                .fold(T::lift(self.constant), |acc, &(i, c)| acc ^ vals[i].mul_e_unreduced(c))
+        };
+        for (a, terms) in &self.groups {
+            let inner = terms
+                .iter()
+                .fold(T::lift(F192::ZERO), |acc, &(b, c)| acc ^ vals[b].mul_e_unreduced(c));
+            acc ^= vals[*a].mul_e_unreduced(T::reduce(inner));
+        }
+        acc
+    }
 }
 
 /// Each table's claimed sum: its identities vanish, so what its summand comes to
@@ -807,8 +877,8 @@ mod tests {
         // The output cells hold the compression of the two inputs under the
         // pi-supplied chaining value (two 128-bit chunks).
         let d = blake2s_compress(a, b, cv_lanes(pi[0], pi[1]), md());
-        assert_eq!(exec.mem[6], cell(d[0], d[1]));
-        assert_eq!(exec.mem[7], cell(d[2], d[3]));
+        assert_eq!(exec.mem.word(6), cell(d[0], d[1]));
+        assert_eq!(exec.mem.word(7), cell(d[2], d[3]));
 
         let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &pi, &proof).expect("a hand-assembled program verifies");
@@ -859,8 +929,8 @@ mod tests {
 
         let exec = program.execute(pi).unwrap();
         let d = blake2s_compress(h, h, cv_lanes(pi[0], pi[1]), md());
-        assert_eq!(exec.mem[4], cell(d[0], d[1]));
-        assert_eq!(exec.mem[5], cell(d[2], d[3]));
+        assert_eq!(exec.mem.word(4), cell(d[0], d[1]));
+        assert_eq!(exec.mem.word(5), cell(d[2], d[3]));
     }
 
     /// A 192-bit-word MUL: the E-product of two full machine words. Full-limb
@@ -879,6 +949,6 @@ mod tests {
         let program = Program::from_bytecode(prog, 5);
         let pi = [w(1), w(2)];
         let exec = program.execute(pi).unwrap();
-        assert_eq!(exec.mem[4], x * y, "MUL computes the E product");
+        assert_eq!(exec.mem.word(4), x * y, "MUL computes the E product");
     }
 }

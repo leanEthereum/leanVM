@@ -10,6 +10,7 @@ use primitives::field::F8;
 pub mod additive_ntt_f64;
 pub mod inv_table;
 pub use additive_ntt_f64::{AdditiveNttF64, RowSink, transpose_lane_major};
+pub(crate) use additive_ntt_f64::{prefetch, transposed_butterfly_lanes};
 pub use inv_table::InvNttTableByteSingleGf8;
 
 /// Twiddle recurrence used to build the next subspace layer's evaluation points:

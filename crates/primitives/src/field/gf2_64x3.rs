@@ -352,7 +352,7 @@ impl F192Unreduced {
 
     /// Build from three 128-bit coefficients.
     #[inline]
-    fn from_wide(coeffs: [u128; 3]) -> Self {
+    pub(crate) fn from_wide(coeffs: [u128; 3]) -> Self {
         Self {
             coeffs: coeffs.map(|c| [c as u64, (c >> 64) as u64]),
         }
@@ -656,7 +656,7 @@ pub mod x86_64 {
     ///     d2 = p0 ^ p1 ^ p02
     /// ```
     #[inline(always)]
-    fn fold<V: Copy>(p0: V, p1: V, p2: V, p01: V, p02: V, p12: V, xor: impl Fn(V, V) -> V) -> [V; 3] {
+    pub(crate) fn fold<V: Copy>(p0: V, p1: V, p2: V, p01: V, p02: V, p12: V, xor: impl Fn(V, V) -> V) -> [V; 3] {
         // Shared by d0 and d1.
         let q = xor(p0, p12);
         [xor(xor(q, p1), p2), xor(q, p01), xor(xor(p0, p1), p02)]
@@ -737,7 +737,7 @@ pub mod x86_64 {
     #[cfg(all(target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     #[inline]
     #[target_feature(enable = "avx512f")]
-    unsafe fn reduce_lanes512(lo: __m512i, hi: __m512i) -> __m512i {
+    pub(crate) unsafe fn reduce_lanes512(lo: __m512i, hi: __m512i) -> __m512i {
         // The bits of `hi * 0x1B` shifted past x^63.
         let spill = _mm512_xor_si512(
             _mm512_xor_si512(_mm512_srli_epi64::<63>(hi), _mm512_srli_epi64::<61>(hi)),
