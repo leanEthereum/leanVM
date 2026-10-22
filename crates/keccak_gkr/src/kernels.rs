@@ -25,8 +25,8 @@ cfg_select! {
     _ => {
         mod simd {
             pub use super::{
-                embed_portable as embed, fold_group_portable as fold_group, products_portable as products,
-                skip_row_portable as skip_row,
+                embed_extend_portable as embed_extend, embed_portable as embed, fold_group_portable as fold_group,
+                products_portable as products, skip_row_portable as skip_row,
             };
         }
     }
@@ -69,68 +69,72 @@ impl SkipAcc {
     }
 }
 
+/// The points of `{0, 1, infinity}^2` of the high two variables, with infinity as 2, in the
+/// order [`extend_group`] builds their values: the four binary points, then the mixed ones.
+const HIGH: [(usize, usize); 9] = [(0, 0), (1, 0), (0, 1), (1, 1), (2, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
+/// The mixed points of the low two variables, in the order their values fill a vector.
+const LOW_MIXED: [(usize, usize); 4] = [(2, 0), (2, 1), (0, 2), (1, 2)];
+
+/// The slot of output `i` of group `half` of a block position: each group's first 64 outputs
+/// are whole vectors, and their last outputs share a pair of slots.
+#[inline(always)]
+pub const fn slot(half: usize, i: usize) -> usize {
+    if i < 64 { 64 * half + i } else { 128 + half }
+}
+
 /// Extend one group's values on the binary cube to the mixed points of `{0, 1, infinity}^SKIP`:
 /// along each variable, the value at infinity is the sum of the two others.
 ///
-/// The binary points are the values themselves, so only the mixed ones are written. They are
-/// built a variable at a time: the mixed points of `k` variables are those of the lower half,
-/// those of the upper half, then the last variable at infinity over the binary points and over
-/// the mixed ones. [`mixed_points`] names each output by its ternary digits.
-#[inline(always)]
-pub fn extend_group(v: &[u32; GROUP], out: &mut [u32]) {
-    let out: &mut [u32; MIXED] = (&mut out[..MIXED]).try_into().expect("65 mixed points");
-    // Two variables: the five mixed points of four values.
-    #[inline(always)]
-    fn quad(v: &[u32], out: &mut [u32]) {
-        out[0] = v[0] ^ v[1];
-        out[1] = v[2] ^ v[3];
-        out[2] = v[0] ^ v[2];
-        out[3] = v[1] ^ v[3];
-        out[4] = out[0] ^ out[1];
+/// The values are four vectors of four, the high two variables across the vectors and the low
+/// two within them. Across, there are nine vectors, five of them new. Within each of the nine,
+/// the low variables have five mixed points: four filling a vector, and the sum of all four
+/// lanes. The outputs are the new vectors' binary points, every vector's four low mixed points,
+/// then every vector's lane sum; [`mixed_points`] names each by its ternary digits.
+pub fn extend_group(v: &[u32; GROUP]) -> [u32; MIXED] {
+    let q = |k: usize| -> [u32; 4] { v[4 * k..][..4].try_into().unwrap() };
+    let x = |a: [u32; 4], b: [u32; 4]| -> [u32; 4] { std::array::from_fn(|l| a[l] ^ b[l]) };
+    let (w4, w5) = (x(q(0), q(1)), x(q(2), q(3)));
+    let w = [q(0), q(1), q(2), q(3), w4, w5, x(q(0), q(2)), x(q(1), q(3)), x(w4, w5)];
+    let mut out = [0u32; MIXED];
+    for (k, w) in w[4..].iter().enumerate() {
+        out[4 * k..][..4].copy_from_slice(w);
     }
-    // Three variables: nineteen, from two runs of four values.
-    for half in 0..2 {
-        let (v, at) = (&v[8 * half..][..8], 19 * half);
-        quad(&v[..4], &mut out[at..]);
-        quad(&v[4..], &mut out[at + 5..]);
-        for i in 0..4 {
-            out[at + 10 + i] = v[i] ^ v[4 + i];
-        }
-        for i in 0..5 {
-            out[at + 14 + i] = out[at + i] ^ out[at + 5 + i];
-        }
+    for (k, w) in w.iter().enumerate() {
+        out[20 + 4 * k..][..4].copy_from_slice(&[w[0] ^ w[1], w[2] ^ w[3], w[0] ^ w[2], w[1] ^ w[3]]);
+        out[56 + k] = w[0] ^ w[1] ^ w[2] ^ w[3];
     }
-    for i in 0..8 {
-        out[38 + i] = v[i] ^ v[8 + i];
-    }
-    for i in 0..19 {
-        out[46 + i] = out[i] ^ out[19 + i];
-    }
+    out
 }
 
 /// The ternary index of each output of [`extend_group`]: variable `k`'s point is its `k`-th
 /// digit, with infinity as 2.
 pub fn mixed_points() -> [usize; MIXED] {
-    // The ternary index of a binary assignment.
-    let binary = |i: usize, k: usize| (0..k).fold(0, |acc, d| acc + (i >> d & 1) * 3usize.pow(d as u32));
-    let mut points = vec![2usize];
-    for k in 1..SKIP {
-        let top = 3usize.pow(k as u32);
-        let mut next: Vec<usize> = points.clone();
-        next.extend(points.iter().map(|p| p + top));
-        next.extend((0..1 << k).map(|i| binary(i, k) + 2 * top));
-        next.extend(points.iter().map(|p| p + 2 * top));
-        points = next;
-    }
-    points.try_into().expect("65 mixed points")
+    let index = |(c0, c1): (usize, usize), (c2, c3): (usize, usize)| c0 + 3 * c1 + 9 * c2 + 27 * c3;
+    std::array::from_fn(|i| match i {
+        0..20 => index(((i % 4) & 1, (i % 4) >> 1), HIGH[4 + i / 4]),
+        20..56 => index(LOW_MIXED[(i - 20) % 4], HIGH[(i - 20) / 4]),
+        _ => index((2, 2), HIGH[i - 56]),
+    })
 }
 
-/// Both groups of a block position: group `h`'s mixed points fill slots `65 * h ..`.
-#[inline(always)]
+/// Both groups of a block position, at their [`slot`]s.
 pub fn extend(packs: &[u32; PACKS], out: &mut [u32; SLOTS]) {
-    let (lo, hi) = packs.split_at(GROUP);
-    extend_group(lo.try_into().unwrap(), &mut out[..MIXED]);
-    extend_group(hi.try_into().unwrap(), &mut out[MIXED..2 * MIXED]);
+    for half in 0..2 {
+        let e = extend_group(packs[GROUP * half..][..GROUP].try_into().unwrap());
+        for (i, &e) in e.iter().enumerate() {
+            out[slot(half, i)] = e;
+        }
+    }
+}
+
+/// [`extend`] of [`embed`].
+#[inline(always)]
+pub fn embed_extend(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS]) {
+    simd::embed_extend(words, out)
+}
+
+pub fn embed_extend_portable(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS]) {
+    extend(&embed(words), out)
 }
 
 /// The 32 packs of a block position, embedded.
@@ -193,31 +197,42 @@ pub fn fold_group_portable(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u1
 ))]
 mod x86 {
     use core::arch::x86_64::*;
-    use std::sync::LazyLock;
 
+    pub use super::embed_extend_portable as embed_extend;
     use super::*;
 
     /// The matrices sending a pack's low and high byte to each byte of its embedding. An affine
     /// byte map reads output bit `t` off matrix byte `7 - t`.
-    static MATRICES: LazyLock<[[i64; 3]; 2]> = LazyLock::new(|| {
-        std::array::from_fn(|half| {
-            std::array::from_fn(|k| {
+    const MATRICES: [[i64; 3]; 2] = {
+        let mut m = [[0i64; 3]; 2];
+        let mut half = 0;
+        while half < 2 {
+            let mut k = 0;
+            while k < 3 {
                 let mut matrix = 0u64;
-                for t in 0..8 {
-                    let row = (0..8).fold(0u64, |row, i| {
-                        row | ((RMFE.emb[8 * half + i] >> (8 * k + t) & 1) as u64) << i
-                    });
+                let mut t = 0;
+                while t < 8 {
+                    let mut row = 0u64;
+                    let mut i = 0;
+                    while i < 8 {
+                        row |= ((RMFE.emb[8 * half + i] >> (8 * k + t) & 1) as u64) << i;
+                        i += 1;
+                    }
                     matrix |= row << (8 * (7 - t));
+                    t += 1;
                 }
-                matrix as i64
-            })
-        })
-    });
+                m[half][k] = matrix as i64;
+                k += 1;
+            }
+            half += 1;
+        }
+        m
+    };
 
     #[inline(always)]
     pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
         unsafe {
-            let m = &*MATRICES;
+            let m = &MATRICES;
             let v = _mm512_loadu_si512(words.as_ptr().cast());
             // Byte `k` of the embedding, in the low byte of each pack's 16 bits.
             let byte = |k: usize| {
@@ -349,7 +364,6 @@ mod x86 {
 mod neon {
     use core::arch::aarch64::*;
     use core::mem::transmute;
-    use std::sync::LazyLock;
 
     use primitives::field::gf2_64::aarch64::{
         pmull, pmull_hi as mul_hi_scheduled, pmull_hi_asm as mul_hi, pmull_lo_asm as mul_lo,
@@ -359,24 +373,49 @@ mod neon {
 
     /// Byte `k` of the embedding of each nibble of a pack: table `4 * k + n` is nibble `n`, low
     /// first.
-    static NIBBLES: LazyLock<[[u8; 16]; 12]> = LazyLock::new(|| {
-        std::array::from_fn(|i| {
+    static NIBBLES: [[u8; 16]; 12] = {
+        let mut tables = [[0u8; 16]; 12];
+        let mut i = 0;
+        while i < 12 {
             let (k, n) = (i / 4, i % 4);
-            std::array::from_fn(|v| {
-                let e = (0..4)
-                    .filter(|t| v >> t & 1 == 1)
-                    .fold(0, |e, t| e ^ RMFE.emb[4 * n + t]);
-                (e >> (8 * k)) as u8
-            })
-        })
-    });
+            let mut v = 0;
+            while v < 16 {
+                let mut e = 0;
+                let mut t = 0;
+                while t < 4 {
+                    if v >> t & 1 == 1 {
+                        e ^= RMFE.emb[4 * n + t];
+                    }
+                    t += 1;
+                }
+                tables[i][v] = (e >> (8 * k)) as u8;
+                v += 1;
+            }
+            i += 1;
+        }
+        tables
+    };
 
     /// A linear map is the sum of its nibbles' images, so each byte of sixteen embeddings is four
     /// table lookups.
     #[inline(always)]
     pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
         unsafe {
-            let t: [uint8x16_t; 12] = std::array::from_fn(|i| vld1q_u8(NIBBLES[i].as_ptr()));
+            let p = NIBBLES.as_ptr().cast::<u8>();
+            let t = [
+                vld1q_u8(p),
+                vld1q_u8(p.add(16)),
+                vld1q_u8(p.add(32)),
+                vld1q_u8(p.add(48)),
+                vld1q_u8(p.add(64)),
+                vld1q_u8(p.add(80)),
+                vld1q_u8(p.add(96)),
+                vld1q_u8(p.add(112)),
+                vld1q_u8(p.add(128)),
+                vld1q_u8(p.add(144)),
+                vld1q_u8(p.add(160)),
+                vld1q_u8(p.add(176)),
+            ];
             let mask = vdupq_n_u8(0x0f);
             let mut out = [0u32; PACKS];
             for half in 0..2 {
@@ -411,6 +450,70 @@ mod neon {
     #[inline(always)]
     unsafe fn load(p: *const u32) -> uint64x2_t {
         unsafe { vmovl_u32(vld1_u32(p)) }
+    }
+
+    /// [`extend_group`] on the four vectors of a group, the values staying in registers: a
+    /// vector's low mixed points are two table lookups, and its lane sum is returned for the last
+    /// one, which [`embed_extend`] stores with the other group's.
+    #[inline(always)]
+    unsafe fn extend_vectors(v: [uint32x4_t; 4], out: *mut u32) -> uint32x4_t {
+        const FIRST: [u8; 16] = [0, 1, 2, 3, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7];
+        const SECOND: [u8; 16] = [4, 5, 6, 7, 12, 13, 14, 15, 8, 9, 10, 11, 12, 13, 14, 15];
+        unsafe {
+            let (first, second) = (vld1q_u8(FIRST.as_ptr()), vld1q_u8(SECOND.as_ptr()));
+            let (w4, w5) = (veorq_u32(v[0], v[1]), veorq_u32(v[2], v[3]));
+            let w = [
+                v[0],
+                v[1],
+                v[2],
+                v[3],
+                w4,
+                w5,
+                veorq_u32(v[0], v[2]),
+                veorq_u32(v[1], v[3]),
+                veorq_u32(w4, w5),
+            ];
+            for (k, &w) in w[4..].iter().enumerate() {
+                vst1q_u32(out.add(4 * k), w);
+            }
+            let low: [uint32x4_t; 9] = std::array::from_fn(|k| {
+                let b = vreinterpretq_u8_u32(w[k]);
+                vreinterpretq_u32_u8(veorq_u8(vqtbl1q_u8(b, first), vqtbl1q_u8(b, second)))
+            });
+            for (k, &l) in low.iter().enumerate() {
+                vst1q_u32(out.add(20 + 4 * k), l);
+            }
+            // Lanes 0 and 1 of a vector's low mixed points add to its lane sum: two vectors at a time.
+            let pair = |a: uint32x4_t, b: uint32x4_t| {
+                let z = vzip1q_u32(a, b);
+                veorq_u32(z, vextq_u32::<2>(z, z))
+            };
+            for k in (0..8).step_by(4) {
+                let (p, q) = (pair(low[k], low[k + 1]), pair(low[k + 2], low[k + 3]));
+                vst1q_u32(
+                    out.add(56 + k),
+                    vreinterpretq_u32_u64(vzip1q_u64(vreinterpretq_u64_u32(p), vreinterpretq_u64_u32(q))),
+                );
+            }
+            low[8]
+        }
+    }
+
+    #[inline(always)]
+    pub fn embed_extend(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS]) {
+        unsafe {
+            let e = embed(words);
+            let v = |half: usize| -> [uint32x4_t; 4] {
+                std::array::from_fn(|k| vld1q_u32(e.as_ptr().add(16 * half + 4 * k)))
+            };
+            let last0 = extend_vectors(v(0), out.as_mut_ptr());
+            let last1 = extend_vectors(v(1), out.as_mut_ptr().add(64));
+            let z = vzip1q_u32(last0, last1);
+            vst1_u32(
+                out.as_mut_ptr().add(128),
+                vget_low_u32(veorq_u32(z, vextq_u32::<2>(z, z))),
+            );
+        }
     }
 
     /// The low lanes' product through the intrinsics, as [`mul_hi_scheduled`] is, for [`skip_row`]:
@@ -493,11 +596,10 @@ mod tests {
     fn extension_follows_the_ternary_digits() {
         let mut rng = Rng::new(31);
         let v: [u32; GROUP] = std::array::from_fn(|_| rng.next_u64() as u32);
-        let mut out = [0u32; MIXED];
-        extend_group(&v, &mut out);
+        let out = extend_group(&v);
         let points = mixed_points();
         let mut seen = [false; TERNARY];
-        for (slot, &p) in points.iter().enumerate() {
+        for (i, &p) in points.iter().enumerate() {
             // A digit at infinity sums both points of its variable.
             let digits: [usize; SKIP] = std::array::from_fn(|k| p / 3usize.pow(k as u32) % 3);
             assert!(digits.contains(&2) && !seen[p]);
@@ -505,8 +607,11 @@ mod tests {
             let expected = (0..GROUP)
                 .filter(|q| (0..SKIP).all(|k| digits[k] == 2 || digits[k] == q >> k & 1))
                 .fold(0, |acc, q| acc ^ v[q]);
-            assert_eq!(out[slot], expected, "slot {slot}");
+            assert_eq!(out[i], expected, "output {i}");
         }
+        let slots: std::collections::BTreeSet<usize> =
+            (0..2).flat_map(|h| (0..MIXED).map(move |i| slot(h, i))).collect();
+        assert_eq!(slots, (0..2 * MIXED).collect());
     }
 
     #[test]
@@ -522,6 +627,10 @@ mod tests {
             );
             assert_eq!(products(&e, &b, &c), products_portable(&e, &b, &c));
 
+            let (mut xe, mut xp) = ([0u32; SLOTS], [0u32; SLOTS]);
+            embed_extend(&words, &mut xe);
+            extend(&embed_portable(&words), &mut xp);
+            assert_eq!(xe[..2 * MIXED], xp[..2 * MIXED]);
             let (mut xb, mut xc) = ([0u32; SLOTS], [0u32; SLOTS]);
             extend(&b, &mut xb);
             extend(&c, &mut xc);
