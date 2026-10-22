@@ -194,6 +194,51 @@ impl Lanes64 for u64 {
 }
 
 /// The Keccak-f\[1600\] permutation, in place.
+///
+/// With AVX-512 the scalar rounds are not [`permute`]'s: LLVM's SLP vectorizer turns its
+/// straight-line round into a mesh of vector inserts and extracts, where the round below,
+/// ρ and π as one in-place cycle, stays in general-purpose registers. Out of line, so a
+/// caller holding the state in locals cannot hand the vectorizer the same chance. Without
+/// AVX-512 the straight-line round stays scalar and is the faster of the two.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+#[inline(never)]
+pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
+    /// The π cycle from lane 1, and the ρ rotation each lane takes on arriving.
+    const CYCLE: [(usize, u32); STATE_LANES - 1] = {
+        let mut cycle = [(0, 0); STATE_LANES - 1];
+        let mut from = 1;
+        let mut i = 0;
+        while i < cycle.len() {
+            cycle[i] = (PI[from], RHO[from]);
+            from = PI[from];
+            i += 1;
+        }
+        cycle
+    };
+    for &rc in &RC {
+        let c: [u64; 5] = std::array::from_fn(|x| a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20]);
+        for x in 0..5 {
+            let d = c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1);
+            for y in 0..5 {
+                a[x + 5 * y] ^= d;
+            }
+        }
+        let mut carried = a[1];
+        for (to, rot) in CYCLE {
+            carried = std::mem::replace(&mut a[to], carried.rotate_left(rot));
+        }
+        for row in a.as_chunks_mut::<5>().0 {
+            let b = *row;
+            for x in 0..5 {
+                row[x] = b[x] ^ (!b[(x + 1) % 5] & b[(x + 2) % 5]);
+            }
+        }
+        a[0] ^= rc;
+    }
+}
+
+/// The Keccak-f\[1600\] permutation, in place.
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f")))]
 #[inline]
 pub fn keccak_f(state: &mut [u64; STATE_LANES]) {
     permute(state);

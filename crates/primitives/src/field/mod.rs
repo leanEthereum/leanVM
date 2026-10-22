@@ -14,6 +14,8 @@ pub mod neon;
 
 pub mod gf2_64;
 pub mod gf2_64x3;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+pub mod x8;
 
 pub use gf2_64::F64;
 pub use gf2_64x3::{F192, F192Unreduced, Weights8, dot_base, mul_base8, mul_unreduced4, mul2, mul4};

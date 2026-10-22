@@ -1155,12 +1155,11 @@ pub(crate) fn recursive_prover_with_prepared_basis(
     ps.hint_merkle(PrunedMerklePaths::prune(l0_tree, block_len_0, &queries_0, l0_row));
     drop(span);
 
-    // Induce basis_0 from the L0 opens. L0 dominates the induce phase, where
-    // the sparse-prefix transposed-NTT path wins; the dispatcher auto-selects
-    // it (deeper levels stay dense), mirroring the original.
+    // Induce basis_0 from the L0 opens. The dispatcher picks the sparse-prefix
+    // transposed NTT wherever a level opens more queries than its blowup.
     let sks_vks_n1 = eval_sk_at_vks(n1);
     let span = tracing::info_span!("Induce", level = 0).entered();
-    let (basis_0_induced, enforced_sum_0) = induce_sumcheck_poly_auto_base(
+    let (basis_0_induced, enforced_sum_0) = induce_sumcheck_poly_auto(
         n1,
         log_inv_rate_0,
         &sks_vks_n1,
@@ -1281,8 +1280,15 @@ pub(crate) fn recursive_prover_with_prepared_basis(
 
         let sks_vks_i = eval_sk_at_vks(n_next);
         let span = tracing::info_span!("Induce", level = i + 1).entered();
-        let (basis_i_induced, enforced_sum_i) =
-            induce_sumcheck_poly(n_next, &sks_vks_i, &opened_rows_i, &level_rs, &queries_i, &weights_i);
+        let (basis_i_induced, enforced_sum_i) = induce_sumcheck_poly_auto(
+            n_next,
+            config.log_inv_rates[i + 1],
+            &sks_vks_i,
+            &opened_rows_i,
+            &level_rs,
+            &queries_i,
+            &weights_i,
+        );
         drop(span);
 
         let span = tracing::info_span!("Introduce", level = i + 1).entered();
@@ -1452,8 +1458,7 @@ mod tests {
 
             let sks_vks = eval_sk_at_vks(log_msg_cols);
             let dense = induce_sumcheck_poly(log_msg_cols, &sks_vks, &rows, &v_challenges, &qs, &weights);
-            let via_ntt =
-                induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, &rows, &v_challenges, &qs, &weights);
+            let via_ntt = induce_sumcheck_poly_via_ntt(log_msg_cols, log_inv_rate, &rows, &v_challenges, &qs, &weights);
             assert_eq!(dense.1, via_ntt.1, "enforced_sum mismatch");
             assert_eq!(&*dense.0, &*via_ntt.0, "basis_poly mismatch");
         }

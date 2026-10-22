@@ -368,19 +368,21 @@ fn transpose_layers_ext_windowed(
     }
 }
 
-/// Sparse-prefix variant of [`transpose_forward_ntt_ext`]: the input has only
-/// `positions.len()` nonzeros and the first `k` transpose steps (forward
-/// layers `log_d-1 .. log_d-k`, pairing distances `1 .. 2^(k-1)`) mix only
-/// WITHIN `2^k`-aligned windows. We process just the windows that contain a
-/// nonzero (a dense `2^k` transpose each, disjoint so window-parallel),
-/// densify, then run the remaining steps as full dense sweeps. Output is
-/// identical to `transpose_forward_ntt_ext` on the scattered input. Mirror
-/// of `whir::transpose_forward_ntt_sparse`.
+/// Sparse-prefix variant of [`transpose_forward_ntt_ext`], keeping only the first
+/// `keep` outputs: the input has only `positions.len()` nonzeros, and the first
+/// `k` transpose steps (forward layers `log_d-1 .. log_d-k`, pairing distances
+/// `1 .. 2^(k-1)`) mix only WITHIN `2^k`-aligned windows. We process just the
+/// windows that contain a nonzero (a dense `2^k` transpose each, disjoint so
+/// window-parallel), then the remaining steps in two sweeps of the buffer (see
+/// [`transpose_dense_rest`]). Output is identical to the first `keep` entries of
+/// `transpose_forward_ntt_ext` on the scattered input. Mirror of
+/// `whir::transpose_forward_ntt_sparse`.
 fn transpose_forward_ntt_sparse_ext(
     ntt: &AdditiveNttF64,
     positions: &[usize],
     values: &[F192],
     log_d: usize,
+    keep: usize,
 ) -> Vec<F192> {
     let _span = tracing::info_span!(
         "NTT",
@@ -389,8 +391,20 @@ fn transpose_forward_ntt_sparse_ext(
         nonzero = positions.len()
     )
     .entered();
+    transpose_sparse_windowed(ntt, positions, values, log_d, keep, TRANSPOSE_WINDOW_LOG)
+}
+
+fn transpose_sparse_windowed(
+    ntt: &AdditiveNttF64,
+    positions: &[usize],
+    values: &[F192],
+    log_d: usize,
+    keep: usize,
+    window_log: usize,
+) -> Vec<F192> {
     use std::collections::HashMap;
     let n = 1usize << log_d;
+    assert!(keep.is_power_of_two() && keep <= n);
     // No prefix for small domains: just scatter + full dense transpose.
     let k = if log_d >= 12 { 8usize.min(log_d) } else { 0 };
 
@@ -403,6 +417,7 @@ fn transpose_forward_ntt_sparse_ext(
         if log_d > 0 {
             transpose_forward_ntt_ext(ntt, &mut data, log_d);
         }
+        data.truncate(keep);
         return data;
     }
 
@@ -438,29 +453,122 @@ fn transpose_forward_ntt_sparse_ext(
             }
         }
     });
+    win_vec.sort_unstable_by_key(|(w, _)| *w);
+    transpose_dense_rest(ntt, &win_vec, k, log_d, keep, window_log)
+}
 
-    // Densify (active windows only; the rest stay zero, which is the correct
-    // post-step-(k-1) state for an all-zero window).
-    // SAFETY: zero is a valid F192, and the inactive windows must read as zero.
-    let mut data = vec![F192::ZERO; n];
-    for (w, buf) in &win_vec {
-        data[(w << k)..((w + 1) << k)].copy_from_slice(buf);
+/// Rows, as a log, of the cache-resident windows of [`transpose_dense_rest`].
+const TRANSPOSE_WINDOW_LOG: usize = 15;
+
+/// Consecutive residues one gathered group of [`transpose_dense_rest`] takes: eight E values are three whole cache lines.
+const TRANSPOSE_RESIDUES: usize = 8;
+
+/// The dense steps after the sparse prefix, in two sweeps of the buffer.
+///
+/// ```text
+///     window pass:    one task per 2^w-row window, built from the sparse windows inside it,
+///                     every layer whose blocks fit the window run there
+///     gathered pass:  one task per group of rows r + i * 2^w, for 8 consecutive residues r,
+///                     the remaining top layers run in a scratch, layer 0 only for the outputs kept
+/// ```
+fn transpose_dense_rest(
+    ntt: &AdditiveNttF64,
+    windows: &[(usize, Vec<F192>)],
+    k: usize,
+    log_d: usize,
+    keep: usize,
+    window_log: usize,
+) -> Vec<F192> {
+    use crate::ntt::{prefetch, transposed_butterfly_lanes};
+    let n = 1usize << log_d;
+    let w_log = window_log.min(log_d).max(k);
+    let win = 1usize << w_log;
+    // The top layers left after the windows, run as one gathered transform of 2^top rows.
+    let top = log_d - w_log;
+    let as_words = |e: &mut [F192]| {
+        // SAFETY: an F192 is three F64 words with no padding.
+        unsafe { std::slice::from_raw_parts_mut(e.as_mut_ptr().cast::<F64>(), 3 * e.len()) }
+    };
+
+    // SAFETY: the window pass writes every slot before the gathered pass reads it.
+    let mut data = unsafe { primitives::uninit_vec::<F192>(n) };
+    parallel::chunks_mut(&mut data, win, |c, window| {
+        window.fill(F192::ZERO);
+        let base = c << w_log;
+        let first = windows.partition_point(|(w, _)| (*w << k) < base);
+        for (w, buf) in windows[first..].iter().take_while(|(w, _)| (*w << k) < base + win) {
+            window[(*w << k) - base..][..buf.len()].copy_from_slice(buf);
+        }
+        // Layers whose blocks fit the window, block sizes 2^(k+1) .. 2^w.
+        for layer in (top..log_d - k).rev() {
+            let block_size = 1usize << (log_d - layer);
+            for (b, block) in window.chunks_mut(block_size).enumerate() {
+                let (lo, hi) = block.split_at_mut(block_size / 2);
+                transposed_butterfly_lanes(
+                    as_words(lo),
+                    as_words(hi),
+                    ntt.twiddle(layer, (base >> (log_d - layer)) + b),
+                );
+            }
+        }
+    });
+    if top == 0 {
+        data.truncate(keep);
+        return data;
     }
+    assert!(keep < n, "layer 0 keeps only its top half");
+    // Rows kept from each group: those below `keep`.
 
-    // Remaining steps s = k..log_d-1 = forward layers (log_d-1-k) .. 0, dense.
-    transpose_layers_ext(ntt, &mut data, log_d, (0..(log_d - k)).rev());
+    let rows = 1usize << top;
+    let kept_rows = (keep >> w_log).max(1);
+    let group = TRANSPOSE_RESIDUES.min(win);
+    let base = parallel::SendPtr(data.as_mut_ptr());
+    parallel::for_each_chunk(win / group, |lo, hi| {
+        let mut scratch = vec![F192::ZERO; rows * group];
+        for g in lo..hi {
+            let r = g * group;
+            let at = |i: usize| (i << w_log) + r;
+            for (i, dst) in scratch.chunks_exact_mut(group).enumerate() {
+                if i + 8 < rows {
+                    prefetch(base.0.wrapping_add(at(i + 8)).cast::<F64>(), 3 * group);
+                }
+                // SAFETY: the window pass wrote every row, and this group alone owns these residues.
+                dst.copy_from_slice(unsafe { base.slice(at(i), group) });
+            }
+            // Layer `layer` pairs rows 2^(top-1-layer) apart, inside blocks of 2^(top-layer) rows.
+            for layer in (0..top).rev() {
+                let block_rows = 1usize << (top - layer);
+                for (b, block) in scratch.chunks_mut(block_rows * group).enumerate() {
+                    let (lo, hi) = block.split_at_mut(block_rows / 2 * group);
+                    if kept_rows <= block_rows / 2 {
+                        // Every later layer reads only the first `kept_rows` of each block, all in its top
+                        // half, whose output is the sum.
+                        for (a, &b) in lo[..kept_rows * group].iter_mut().zip(hi.iter()) {
+                            *a += b;
+                        }
+                    } else {
+                        transposed_butterfly_lanes(as_words(lo), as_words(hi), ntt.twiddle(layer, b));
+                    }
+                }
+            }
+            for (i, src) in scratch.chunks_exact(group).take(kept_rows).enumerate() {
+                // SAFETY: as above.
+                unsafe { base.slice(at(i), group) }.copy_from_slice(src);
+            }
+        }
+    });
+    data.truncate(keep);
     data
 }
 
 /// `F^T`-based fast path for [`induce_sumcheck_poly`]: scatter per-query
 /// E-weights into the codeword domain, apply `F^T` with K-twiddles, keep the
 /// low `2^log_msg_cols` outputs. Byte-identical output to the dense path
-/// (pinned by `induce_via_ntt_matches_dense`). Mirror of
-/// `whir::induce_sumcheck_poly_via_ntt` with the L0 mixed row dot.
-pub(crate) fn induce_sumcheck_poly_via_ntt_base(
+/// (pinned by `induce_via_ntt_matches_dense`).
+pub(crate) fn induce_sumcheck_poly_via_ntt<T: RowElem>(
     log_msg_cols: usize,
     log_inv_rate: usize,
-    opened_rows: &[Vec<F64>],
+    opened_rows: &[Vec<T>],
     v_challenges: &[F192],
     queries: &[usize],
     weights: &[F192],
@@ -470,13 +578,14 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
     let block_len = 1usize << log_block;
     let n_queries = queries.len();
     assert_eq!(opened_rows.len(), n_queries);
+    assert!(queries.iter().all(|&q| q < block_len), "queries lie in the codeword");
 
     let eq = build_eq_table_ext(v_challenges);
     debug_assert_eq!(weights.len(), n_queries);
 
     let mut enforced_sum = F192::ZERO;
     for i in 0..n_queries {
-        enforced_sum += F64::dot(&opened_rows[i], &eq) * weights[i];
+        enforced_sum += T::dot(&opened_rows[i], &eq) * weights[i];
     }
 
     let mut coeffs = if log_block == 0 {
@@ -488,40 +597,61 @@ pub(crate) fn induce_sumcheck_poly_via_ntt_base(
         c
     } else {
         let ntt = AdditiveNttF64::standard(log_block);
-        transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block)
+        transpose_forward_ntt_sparse_ext(&ntt, queries, weights, log_block, n)
     };
     coeffs.truncate(n);
     (coeffs, enforced_sum)
 }
 
-/// Query density threshold for choosing the sparse NTT over dense expansion.
-const NTT_QUERIES_PER_BLOWUP: usize = 8;
-
-/// Cost-based dispatch: the NTT overtakes the dense expansion once a level
-/// opens more than [`NTT_QUERIES_PER_BLOWUP`] queries per unit of blowup.
+/// Cost-based dispatch: the dense expansion costs a pass over the `2^log_msg_cols`
+/// outputs per query, the NTT a few passes over the `2^log_inv_rate` times larger
+/// codeword domain, so the NTT wins once a level opens more queries than its blowup.
 #[inline]
 pub(crate) fn induce_use_ntt_heuristic(log_msg_cols: usize, log_inv_rate: usize, n_queries: usize) -> bool {
-    log_msg_cols >= 12 && n_queries > NTT_QUERIES_PER_BLOWUP * (1usize << log_inv_rate)
+    log_msg_cols >= 12 && n_queries > 1usize << log_inv_rate
 }
 
 /// Dispatch between the dense [`induce_sumcheck_poly`] and the sparse
-/// [`induce_sumcheck_poly_via_ntt_base`] for L0 (base-field rows). Mirror of
-/// `whir::induce_sumcheck_poly_auto`: in the recursive PCS this fires
-/// only at the top level (large message domain, many queries); deeper levels
-/// stay dense. Both paths produce identical output, so a mis-dispatch only
-/// costs time.
-pub(crate) fn induce_sumcheck_poly_auto_base(
+/// [`induce_sumcheck_poly_via_ntt`]. Both paths produce identical output, so a
+/// mis-dispatch only costs time.
+pub(crate) fn induce_sumcheck_poly_auto<T: RowElem>(
     log_msg_cols: usize,
     log_inv_rate: usize,
     sks_vks: &[F64],
-    opened_rows: &[Vec<F64>],
+    opened_rows: &[Vec<T>],
     v_challenges: &[F192],
     queries: &[usize],
     weights: &[F192],
 ) -> (Vec<F192>, F192) {
     if induce_use_ntt_heuristic(log_msg_cols, log_inv_rate, queries.len()) {
-        induce_sumcheck_poly_via_ntt_base(log_msg_cols, log_inv_rate, opened_rows, v_challenges, queries, weights)
+        induce_sumcheck_poly_via_ntt(log_msg_cols, log_inv_rate, opened_rows, v_challenges, queries, weights)
     } else {
         induce_sumcheck_poly(log_msg_cols, sks_vks, opened_rows, v_challenges, queries, weights)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use primitives::test_rng::Rng;
+
+    /// The sparse transpose against the dense one, with windows small enough to leave a gathered pass.
+    #[test]
+    fn sparse_transpose_matches_dense() {
+        let mut rng = Rng::new(0x7A);
+        for (log_d, window_log, keep_log) in [(13usize, 9usize, 12usize), (14, 11, 11), (12, 12, 11), (16, 8, 15)] {
+            let ntt = AdditiveNttF64::standard(log_d);
+            let n = 1usize << log_d;
+            let positions: Vec<usize> = (0..50).map(|_| rng.next_u64() as usize % n).collect();
+            let values = rng.ext_vec(positions.len());
+            let mut want = vec![F192::ZERO; n];
+            for (&p, &v) in positions.iter().zip(&values) {
+                want[p] += v;
+            }
+            transpose_forward_ntt_ext(&ntt, &mut want, log_d);
+            want.truncate(1 << keep_log);
+            let got = transpose_sparse_windowed(&ntt, &positions, &values, log_d, 1 << keep_log, window_log);
+            assert_eq!(got, want, "log_d={log_d}, window_log={window_log}");
+        }
     }
 }

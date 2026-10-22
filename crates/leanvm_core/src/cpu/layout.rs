@@ -238,24 +238,31 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
     let gpow = primitives::field::g_powers((max_op + 1).max(2));
     let g_at = |i: u32| gpow[i as usize]; // operand g-power
 
-    let opcode = |op: &Op| match op {
-        Op::Xor { .. } => OP_XOR,
-        Op::Mul { .. } => OP_MUL,
-        Op::Set { .. } => OP_SET,
-        Op::Deref { .. } => OP_DEREF,
-        Op::Jump { .. } => OP_JUMP,
-        Op::Keccak { .. } => OP_KECCAK,
-    };
-    // Offsets as g-powers; a `SET` immediate as its three limbs, the `DEREF` store-mode flags
-    // and `KECCAK`'s layout flags as 0 or 1. Unused slots are zero.
+    // The opcode, then the operand slots: offsets as g-powers, a `SET` immediate as its three
+    // limbs, the `DEREF` store-mode flags and `KECCAK`'s layout flags as 0 or 1. Unused slots
+    // are zero.
     let flag = |b: bool| F64(u64::from(b));
-    let operands = |op: &Op| -> [F64; BYTECODE_OPERANDS] {
-        let mut slots = [F64::ZERO; BYTECODE_OPERANDS];
-        let used: Vec<F64> = match *op {
-            Op::Xor { a, b, c } | Op::Mul { a, b, c } => vec![g_at(a), g_at(b), g_at(c)],
-            Op::Set { o, k } => vec![g_at(o), F64(k.c0), F64(k.c1), F64(k.c2)],
-            Op::Deref { o1, o2, o3, mode } => vec![g_at(o1), g_at(o2), g_at(o3), mode.f_pc(), mode.f_fp()],
-            Op::Jump { oc, od, of } => vec![g_at(oc), g_at(od), g_at(of)],
+    let row = |op: &Op| -> [F64; 1 + BYTECODE_OPERANDS] {
+        let mut row = [F64::ZERO; 1 + BYTECODE_OPERANDS];
+        let (opcode, slots) = row.split_first_mut().expect("an opcode");
+        let mut put = |values: &[F64]| slots[..values.len()].copy_from_slice(values);
+        *opcode = match *op {
+            Op::Xor { a, b, c } | Op::Mul { a, b, c } => {
+                put(&[g_at(a), g_at(b), g_at(c)]);
+                if matches!(op, Op::Xor { .. }) { OP_XOR } else { OP_MUL }
+            }
+            Op::Set { o, k } => {
+                put(&[g_at(o), F64(k.c0), F64(k.c1), F64(k.c2)]);
+                OP_SET
+            }
+            Op::Deref { o1, o2, o3, mode } => {
+                put(&[g_at(o1), g_at(o2), g_at(o3), mode.f_pc(), mode.f_fp()]);
+                OP_DEREF
+            }
+            Op::Jump { oc, od, of } => {
+                put(&[g_at(oc), g_at(od), g_at(of)]);
+                OP_JUMP
+            }
             Op::Keccak {
                 m,
                 tail,
@@ -264,22 +271,37 @@ pub fn bytecode_columns(prog: &[Op]) -> [Vec<F64>; 1 + BYTECODE_OPERANDS] {
                 out,
                 in_odd,
                 out_odd,
-            } => m
-                .into_iter()
-                .chain([tail, b8, cap, out])
-                .map(g_at)
-                .chain([flag(in_odd), flag(out_odd)])
-                .collect(),
+            } => {
+                let [m0, m1, m2, m3] = m.map(g_at);
+                put(&[
+                    m0,
+                    m1,
+                    m2,
+                    m3,
+                    g_at(tail),
+                    g_at(b8),
+                    g_at(cap),
+                    g_at(out),
+                    flag(in_odd),
+                    flag(out_odd),
+                ]);
+                OP_KECCAK
+            }
         };
-        slots[..used.len()].copy_from_slice(&used);
-        slots
+        row
     };
-    let ops: Vec<F64> = parallel::map_collect(prog.len(), |i| opcode(&prog[i]));
-    let slots: Vec<[F64; BYTECODE_OPERANDS]> = parallel::map_collect(prog.len(), |i| operands(&prog[i]));
-    std::array::from_fn(|k| match k {
-        0 => ops.clone(),
-        _ => slots.iter().map(|s| s[k - 1]).collect(),
-    })
+    // One pass writes all eleven columns.
+    // SAFETY: the pass below writes every slot of every column.
+    let mut columns: [Vec<F64>; 1 + BYTECODE_OPERANDS] =
+        std::array::from_fn(|_| unsafe { primitives::uninit_vec(prog.len()) });
+    let dst = columns.each_mut().map(|c| parallel::SendPtr(c.as_mut_ptr()));
+    parallel::for_each(prog.len(), |i| {
+        for (column, value) in dst.iter().zip(row(&prog[i])) {
+            // SAFETY: instruction `i` writes slot `i` of each column, in bounds and once.
+            unsafe { column.add(i).write(value) };
+        }
+    });
+    columns
 }
 
 /// The stacked bytecode polynomial: the eleven columns at their bus tuple
@@ -426,10 +448,14 @@ impl Program {
         let log_mem = crate::log2_strict_usize(cells);
 
         let sch = schema();
-        // Precompute g^0..g^{span-1} once so every address/pc/operand fill is an
-        // O(1) lookup instead of an O(log) power.
-        let span = cells.max(bytecode_size);
-        let gpow = primitives::field::g_powers(span);
+        // g^0..g^{span-1}, so every pc/frame/operand/count fill is an O(1) lookup instead
+        // of an O(log) power: a frame base or an operand is below the cells the run used.
+        // The run's own table covers them unless a count outgrew it.
+        let span = exec.mem_used.max(bytecode_size).max(tr.counts);
+        let gpow = match exec.gpow.get(..span) {
+            Some(gpow) => std::borrow::Cow::Borrowed(gpow),
+            None => std::borrow::Cow::Owned(primitives::field::g_powers(span)),
+        };
 
         // The public layout (flush/count blocks, placements, boundary, taus) is a pure
         // function of the program + announced sizes + public input, with no committed
@@ -441,7 +467,7 @@ impl Program {
             row_counts.iter().all(|&r| r <= 1 << MAX_LOG_ROWS),
             "a table exceeds 2^{MAX_LOG_ROWS} rows"
         );
-        let pi = [exec.mem[0], exec.mem[1]];
+        let pi = [exec.mem.word(0), exec.mem.word(1)];
         let l = layout(&self.prog, log_mem, row_counts, pi);
 
         // The stacked witness is written exactly ONCE: allocate it, carve one window
@@ -487,11 +513,41 @@ impl Program {
             // be written: the stack is uninitialized, so one left out would be read
             // as indeterminate bytes rather than caught by a length mismatch.
             const _: () = assert!(N_SHARED == 6, "a new shared column needs a fill here");
-            parallel::fill(windows[MEM_LO], |i| F64(exec.mem[i].c0));
-            parallel::fill(windows[MEM_HI], |i| F64(exec.mem[i].c1));
-            parallel::fill(windows[MEM_TOP], |i| F64(exec.mem[i].c2));
-            parallel::fill(windows[MFCNT], |i| tr.mem_count[i]); // counts ended at g^{A[i]}
-            parallel::fill(windows[BFCNT], |i| tr.bytecode_count[i]); // … at g^{A[pc]}
+            // One pass over the image fills all four of its columns, streamed out a
+            // cache line of each at a time: nothing reads them before the commitment.
+            const LINE: usize = 8;
+            const BLOCK: usize = 1 << 10;
+            let page_log = Memory::page_log();
+            let image = [MEM_LO, MEM_HI, MEM_TOP, MFCNT].map(|c| {
+                assert_eq!(windows[c].len(), cells, "a memory column spans the image");
+                parallel::SendPtr(windows[c].as_mut_ptr())
+            });
+            parallel::for_each_chunk(cells / BLOCK, |first, end| {
+                let stream = primitives::stream::Stream::new();
+                for b in first..end {
+                    let at = b * BLOCK;
+                    let page = exec.mem.page(at >> page_log);
+                    for line in (at..at + BLOCK).step_by(LINE) {
+                        let mut buf = [[F64::ZERO; LINE]; 4];
+                        for j in 0..LINE {
+                            let i = line + j;
+                            let cell = page.map_or(&Cell::UNWRITTEN, |p| &p[i & ((1 << page_log) - 1)]);
+                            // counts ended at g^{A[i]}
+                            let values = [cell.word.c0, cell.word.c1, cell.word.c2].map(F64);
+                            buf[0][j] = values[0];
+                            buf[1][j] = values[1];
+                            buf[2][j] = values[2];
+                            buf[3][j] = gpow[cell.count as usize];
+                        }
+                        for (column, values) in image.iter().zip(&buf) {
+                            // SAFETY: block `b` owns cells `b·BLOCK..(b+1)·BLOCK` of every
+                            // column, in bounds as `cells` is a whole number of blocks.
+                            unsafe { stream.copy_uninit(column.add(line), values) };
+                        }
+                    }
+                }
+            });
+            parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]); // … at g^{A[pc]}
         });
         // The committed Keccak states q_keccak, ALWAYS in this same stack: built from
         // the executed KECCAK rows in order (row j = step j).

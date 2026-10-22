@@ -258,8 +258,14 @@ impl AdditiveNttF64 {
         // Where the deep pass starts.
         //
         //     every layer fits one L3 sub-block  ->  deep pass only, one sweep
-        //     otherwise                          ->  the deep pass keeps one L2 sub-block of layers
-        let deep = if log_d - start <= fit3 { fit3 } else { fit2 };
+        //     otherwise                          ->  as few gathered passes as an L3 deep pass needs,
+        //                                            then the smallest deep pass, at least L2-sized, they leave
+        let rest = log_d - start;
+        let deep = if rest <= fit3 {
+            fit3
+        } else {
+            fit2.max(rest - (rest - fit3).div_ceil(fit2) * fit2)
+        };
         let deep_start = log_d.saturating_sub(deep).max(par_log).max(start);
 
         // A buffer this large is evicted before the next pass reads it back.
@@ -379,35 +385,44 @@ impl AdditiveNttF64 {
         // Without one, a task is one (block, residue) pair.
         let n_tasks = if msg.is_some() { step } else { step << layer };
         let base = parallel::SendPtr(data.as_mut_ptr());
+        // With a message, every block of a residue starts from the same rows: they are gathered
+        // once, and each block but the last transforms a copy.
+        let n_blocks = if msg.is_some() { 1usize << layer } else { 1 };
+        let len = rows * num_ntts;
         parallel::for_each_chunk(n_tasks, |lo, hi| {
-            // One L2-resident scratch of 2^g rows serves every group of the task.
-            with_scratch(rows * num_ntts, |scratch| {
+            // One L2-resident scratch of 2^g rows (two with copies) serves every group of the task.
+            with_scratch(if n_blocks > 1 { 2 * len } else { len }, |scratch| {
+                let (gathered, work) = scratch.split_at_mut(len);
                 // One fence at the end of the task covers all its streaming stores.
                 let stream = stream.then(Stream::new);
-                let mut group = |block: usize, r: usize| {
-                    // Row `i` of the group, as a word offset inside its block.
-                    let row = |i: usize| (r + (i << log_step)) * num_ntts;
-                    let block_off = (block << (log_d - layer)) * num_ntts;
-                    // Gather: the scattered rows become one contiguous 2^g-row buffer.
-                    for (i, dst) in scratch.chunks_exact_mut(num_ntts).enumerate() {
+                // Row `i` of residue `r`, as a word offset inside its block.
+                let row = |r: usize, i: usize| (r + (i << log_step)) * num_ntts;
+                let block_off = |block: usize| (block << (log_d - layer)) * num_ntts;
+                // Gather: the scattered rows become one contiguous 2^g-row buffer.
+                let gather = |dst: &mut [F64], block: usize, r: usize| {
+                    let src_row = |i: usize| match msg {
+                        Some(m) => m.0.wrapping_add(row(r, i)).cast_const(),
+                        None => base.0.wrapping_add(block_off(block) + row(r, i)).cast_const(),
+                    };
+                    for (i, dst) in dst.chunks_exact_mut(num_ntts).enumerate() {
+                        // No prefetcher follows rows this far apart.
+                        if i + PREFETCH_ROWS < rows {
+                            prefetch(src_row(i + PREFETCH_ROWS), num_ntts);
+                        }
                         // SAFETY:
                         // - The message and the codeword both cover every row addressed here.
                         // - Tasks own disjoint residues, so no other task writes these rows.
-                        // - Block 0 is written last, after every read of the message in it.
-                        let src = unsafe {
-                            match msg {
-                                Some(m) => std::slice::from_raw_parts(m.add(row(i)), num_ntts),
-                                None => base.slice(block_off + row(i), num_ntts),
-                            }
-                        };
-                        dst.copy_from_slice(src);
+                        // - A residue reads all its message rows before it writes any of block 0.
+                        dst.copy_from_slice(unsafe { std::slice::from_raw_parts(src_row(i), num_ntts) });
                     }
-                    // Transform: a (layer + g)-layer domain whose sub-block index is the global block.
-                    self.run_layers(scratch, layer + g, num_ntts, layer, layer + g, layer, block);
-                    // Scatter: every row returns to its place.
-                    for (i, src) in scratch.chunks_exact(num_ntts).enumerate() {
+                };
+                // Transform, then scatter every row back to its place.
+                let finish = |buf: &mut [F64], block: usize, r: usize| {
+                    // A (layer + g)-layer domain whose sub-block index is the global block.
+                    self.run_layers(buf, layer + g, num_ntts, layer, layer + g, layer, block);
+                    for (i, src) in buf.chunks_exact(num_ntts).enumerate() {
                         // SAFETY: this group alone owns these rows of the codeword.
-                        let dst = unsafe { base.slice(block_off + row(i), num_ntts) };
+                        let dst = unsafe { base.slice(block_off(block) + row(r, i), num_ntts) };
                         match &stream {
                             Some(s) => s.copy(dst, src),
                             None => dst.copy_from_slice(src),
@@ -416,13 +431,18 @@ impl AdditiveNttF64 {
                 };
                 for t in lo..hi {
                     if msg.is_some() {
-                        // Block 0 may be the message itself, so it is transformed last.
-                        for block in (0..1usize << layer).rev() {
-                            group(block, t);
+                        gather(gathered, 0, t);
+                        // Block 0 may be the message itself, so it is written last.
+                        for block in (1..n_blocks).rev() {
+                            work.copy_from_slice(gathered);
+                            finish(work, block, t);
                         }
+                        finish(gathered, 0, t);
                     } else {
                         // Task index = block * step + residue.
-                        group(t >> log_step, t & (step - 1));
+                        let (block, r) = (t >> log_step, t & (step - 1));
+                        gather(gathered, block, r);
+                        finish(gathered, block, r);
                     }
                 }
             });
@@ -666,6 +686,25 @@ pub fn transpose_lane_major(out: &mut [F64], msg: &[F64], n_lanes: usize, log_ro
     });
 }
 
+/// Rows a gather fetches ahead of the one it copies.
+const PREFETCH_ROWS: usize = 8;
+
+/// Hint the cache lines of `len` words at `p` into L1. A hint only: it never faults.
+#[inline(always)]
+pub(crate) fn prefetch(p: *const F64, len: usize) {
+    #[cfg(target_arch = "x86_64")]
+    {
+        use core::arch::x86_64::{_MM_HINT_T0, _mm_prefetch};
+        let (start, end) = (p as usize & !63, p as usize + 8 * len);
+        for line in (start..end).step_by(64) {
+            // SAFETY: a prefetch never faults, whatever the address.
+            unsafe { _mm_prefetch::<_MM_HINT_T0>(line as *const i8) };
+        }
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    let _ = (p, len);
+}
+
 /// Words one L2-resident unit of work may span: a gathered row group or a deep sub-block.
 ///
 /// # Why this value
@@ -804,6 +843,20 @@ fn butterfly_interleaved_block(block: &mut [F64], twiddle: F64, block_size_half:
     }
 }
 
+/// The transposed butterfly over every lane of a (top row, bottom row) pair:
+/// `s = u + v; new_u = s; new_v = v + s*t`.
+pub(crate) fn transposed_butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
+    assert_eq!(top.len(), bot.len());
+    // The forward butterfly of (v, s) leaves v + s*t in v and s + (v + s*t) in s, which one more XOR undoes.
+    for (u, v) in top.iter_mut().zip(bot.iter()) {
+        *u += *v;
+    }
+    butterfly_lanes(bot, top, twiddle);
+    for (u, v) in top.iter_mut().zip(bot.iter()) {
+        *u += *v;
+    }
+}
+
 /// Butterfly all `num_ntts` lanes of one (top row, bottom row) pair with a
 /// shared twiddle: new_u = u + v*t; new_v = v + new_u.
 ///
@@ -817,18 +870,22 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
     #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
     {
         let vectors = top.len() / 8;
-        // SAFETY: the target features are enabled at compile time and each
-        // iteration reads and writes exactly eight elements from both rows.
+        let tail = top.len() % 8;
+        // SAFETY: the target features are enabled at compile time; each full
+        // iteration reads and writes exactly eight elements from both rows, and
+        // the masked tail only the `tail` elements left.
         unsafe {
             for i in 0..vectors {
                 butterfly_lanes_avx512(top.as_mut_ptr().add(8 * i), bot.as_mut_ptr().add(8 * i), twiddle.0);
             }
-        }
-        for lane in 8 * vectors..top.len() {
-            let v = bot[lane];
-            let new_u = top[lane] + v * twiddle;
-            top[lane] = new_u;
-            bot[lane] = v + new_u;
+            if tail != 0 {
+                butterfly_lanes_avx512_masked(
+                    top.as_mut_ptr().add(8 * vectors),
+                    bot.as_mut_ptr().add(8 * vectors),
+                    twiddle.0,
+                    (1u8 << tail) - 1,
+                );
+            }
         }
     }
     #[cfg(all(
@@ -839,18 +896,22 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
     ))]
     {
         let vectors = top.len() / 4;
-        // SAFETY: the target features are enabled at compile time and each
-        // iteration reads and writes exactly four elements from both rows.
+        let tail = top.len() % 4;
+        // SAFETY: the target features are enabled at compile time; each full
+        // iteration reads and writes exactly four elements from both rows, and
+        // the masked tail only the `tail` elements left.
         unsafe {
             for i in 0..vectors {
                 butterfly_lanes_avx2(top.as_mut_ptr().add(4 * i), bot.as_mut_ptr().add(4 * i), twiddle.0);
             }
-        }
-        for lane in 4 * vectors..top.len() {
-            let v = bot[lane];
-            let new_u = top[lane] + v * twiddle;
-            top[lane] = new_u;
-            bot[lane] = v + new_u;
+            if tail != 0 {
+                butterfly_lanes_avx2_masked(
+                    top.as_mut_ptr().add(4 * vectors),
+                    bot.as_mut_ptr().add(4 * vectors),
+                    twiddle.0,
+                    tail,
+                );
+            }
         }
     }
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
@@ -907,35 +968,76 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
 #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
 unsafe fn butterfly_lanes_avx2(top: *mut F64, bot: *mut F64, twiddle: u64) {
     use core::arch::x86_64::*;
+    // SAFETY: the caller supplies valid four-element rows and the function's
+    // target features cover every intrinsic below.
+    unsafe {
+        let (new_u, new_v) = butterfly_ymm(_mm256_loadu_si256(top.cast()), _mm256_loadu_si256(bot.cast()), twiddle);
+        _mm256_storeu_si256(top.cast(), new_u);
+        _mm256_storeu_si256(bot.cast(), new_v);
+    }
+}
+
+/// [`butterfly_lanes_avx2`] over the first `n < 4` lanes only.
+///
+/// # Safety
+/// Requires VPCLMULQDQ + AVX2; `top` and `bot` must each address `n` readable
+/// and writable F64 values.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "vpclmulqdq",
+    target_feature = "avx2",
+    not(target_feature = "avx512f")
+))]
+#[inline]
+#[target_feature(enable = "vpclmulqdq", enable = "avx2")]
+unsafe fn butterfly_lanes_avx2_masked(top: *mut F64, bot: *mut F64, twiddle: u64, n: usize) {
+    use core::arch::x86_64::*;
+    // SAFETY: masked-off lanes are neither read nor written, and the caller
+    // supplies the `n` lanes that are.
+    unsafe {
+        let mask = _mm256_cmpgt_epi64(_mm256_set1_epi64x(n as i64), _mm256_setr_epi64x(0, 1, 2, 3));
+        let u = _mm256_maskload_epi64(top.cast(), mask);
+        let v = _mm256_maskload_epi64(bot.cast(), mask);
+        let (new_u, new_v) = butterfly_ymm(u, v, twiddle);
+        _mm256_maskstore_epi64(top.cast(), mask, new_u);
+        _mm256_maskstore_epi64(bot.cast(), mask, new_v);
+    }
+}
+
+/// Four butterflies `u' = u + v * t`, `v' = v + u'` in registers.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "vpclmulqdq",
+    target_feature = "avx2",
+    not(target_feature = "avx512f")
+))]
+#[inline]
+#[target_feature(enable = "vpclmulqdq", enable = "avx2")]
+fn butterfly_ymm(
+    u: core::arch::x86_64::__m256i,
+    v: core::arch::x86_64::__m256i,
+    twiddle: u64,
+) -> (core::arch::x86_64::__m256i, core::arch::x86_64::__m256i) {
+    use core::arch::x86_64::*;
 
     #[inline]
     #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
-    unsafe fn reduce(p: __m256i, r: __m256i) -> __m256i {
+    fn reduce(p: __m256i, r: __m256i) -> __m256i {
         let t = _mm256_clmulepi64_epi128::<0x01>(p, r);
         let u = _mm256_clmulepi64_epi128::<0x01>(t, r);
         _mm256_xor_si256(_mm256_xor_si256(p, t), u)
     }
 
-    // SAFETY: the caller supplies valid four-element rows and the function's
-    // target features cover every intrinsic below.
-    unsafe {
-        let u = _mm256_loadu_si256(top.cast());
-        let v = _mm256_loadu_si256(bot.cast());
-        let tw = _mm256_set1_epi64x(twiddle as i64);
-        let r = _mm256_set1_epi64x(0x1b);
-
-        let even = reduce(_mm256_clmulepi64_epi128::<0x00>(v, tw), r);
-        let odd = reduce(_mm256_clmulepi64_epi128::<0x11>(v, tw), r);
-        // The odd products land in each lane's low half; swap them up, then take
-        // the odd qwords (32-bit elements 2, 3, 6, 7) from them.
-        let odd = _mm256_shuffle_epi32::<0x4e>(odd);
-        let product = _mm256_blend_epi32::<0b1100_1100>(even, odd);
-
-        let new_u = _mm256_xor_si256(u, product);
-        let new_v = _mm256_xor_si256(v, new_u);
-        _mm256_storeu_si256(top.cast(), new_u);
-        _mm256_storeu_si256(bot.cast(), new_v);
-    }
+    let tw = _mm256_set1_epi64x(twiddle as i64);
+    let r = _mm256_set1_epi64x(0x1b);
+    let even = reduce(_mm256_clmulepi64_epi128::<0x00>(v, tw), r);
+    let odd = reduce(_mm256_clmulepi64_epi128::<0x11>(v, tw), r);
+    // The odd products land in each lane's low half; swap them up, then take
+    // the odd qwords (32-bit elements 2, 3, 6, 7) from them.
+    let odd = _mm256_shuffle_epi32::<0x4e>(odd);
+    let product = _mm256_blend_epi32::<0b1100_1100>(even, odd);
+    let new_u = _mm256_xor_si256(u, product);
+    (new_u, _mm256_xor_si256(v, new_u))
 }
 
 /// Eight F64 butterflies as four independent NEON lane-pair reductions.
@@ -1014,6 +1116,48 @@ unsafe fn butterfly_lanes_neon_8(top: *mut F64, bot: *mut F64, twiddle: u64) {
 
 /// Eight F64 butterflies with a shared twiddle, one per 64-bit lane of an AVX-512 register.
 ///
+/// # Safety
+///
+/// - Requires VPCLMULQDQ and AVX-512F.
+/// - Each pointer must address eight readable and writable words.
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+#[inline]
+#[target_feature(enable = "vpclmulqdq", enable = "avx512f", enable = "avx2")]
+unsafe fn butterfly_lanes_avx512(top: *mut F64, bot: *mut F64, twiddle: u64) {
+    use core::arch::x86_64::*;
+    // SAFETY:
+    // - The caller supplies two valid eight-word rows.
+    // - This function's target features cover every intrinsic below.
+    unsafe {
+        let (new_u, new_v) = butterfly_zmm(_mm512_loadu_si512(top.cast()), _mm512_loadu_si512(bot.cast()), twiddle);
+        _mm512_storeu_si512(top.cast(), new_u);
+        _mm512_storeu_si512(bot.cast(), new_v);
+    }
+}
+
+/// [`butterfly_lanes_avx512`] over the lanes set in `mask` only.
+///
+/// # Safety
+///
+/// - Requires VPCLMULQDQ and AVX-512F.
+/// - Each pointer must address the masked lanes, readable and writable; the others are never touched.
+#[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
+#[inline]
+#[target_feature(enable = "vpclmulqdq", enable = "avx512f", enable = "avx2")]
+unsafe fn butterfly_lanes_avx512_masked(top: *mut F64, bot: *mut F64, twiddle: u64, mask: u8) {
+    use core::arch::x86_64::*;
+    // SAFETY: masked loads and stores touch only the lanes the caller vouches for.
+    unsafe {
+        let u = _mm512_maskz_loadu_epi64(mask, top.cast());
+        let v = _mm512_maskz_loadu_epi64(mask, bot.cast());
+        let (new_u, new_v) = butterfly_zmm(u, v, twiddle);
+        _mm512_mask_storeu_epi64(top.cast(), mask, new_u);
+        _mm512_mask_storeu_epi64(bot.cast(), mask, new_v);
+    }
+}
+
+/// Eight butterflies `u' = u + v * t`, `v' = v + u'` in registers, one per 64-bit lane.
+///
 /// # Algorithm
 ///
 /// ```text
@@ -1030,52 +1174,39 @@ unsafe fn butterfly_lanes_neon_8(top: *mut F64, bot: *mut F64, twiddle: u64) {
 /// - The unpacks stay inside 128-bit lanes, so no shuffle crosses lanes.
 /// - The reduction takes shifts and three-way XORs, `vpternlogq 0x96`, instead of two more carry-less multiplies.
 /// - Zen 5 has one carry-less multiplier per core, so those two would dominate the kernel.
-///
-/// # Safety
-///
-/// - Requires VPCLMULQDQ and AVX-512F.
-/// - Each pointer must address eight readable and writable words.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 #[inline]
 #[target_feature(enable = "vpclmulqdq", enable = "avx512f", enable = "avx2")]
-unsafe fn butterfly_lanes_avx512(top: *mut F64, bot: *mut F64, twiddle: u64) {
+fn butterfly_zmm(
+    u: core::arch::x86_64::__m512i,
+    v: core::arch::x86_64::__m512i,
+    twiddle: u64,
+) -> (core::arch::x86_64::__m512i, core::arch::x86_64::__m512i) {
     use core::arch::x86_64::*;
 
-    // SAFETY:
-    // - The caller supplies two valid eight-word rows.
-    // - This function's target features cover every intrinsic below.
-    unsafe {
-        // Load both rows and broadcast the twiddle to every lane.
-        let u = _mm512_loadu_si512(top.cast());
-        let v = _mm512_loadu_si512(bot.cast());
-        let tw = _mm512_set1_epi64(twiddle as i64);
+    let tw = _mm512_set1_epi64(twiddle as i64);
+    // Products v * t: even lanes, then odd lanes, one 128-bit product per 128-bit lane.
+    let even = _mm512_clmulepi64_epi128::<0x00>(v, tw);
+    let odd = _mm512_clmulepi64_epi128::<0x11>(v, tw);
+    // Back to lane order: qword i of lo / hi is the low / high half of lane i's product.
+    let lo = _mm512_unpacklo_epi64(even, odd);
+    let hi = _mm512_unpackhi_epi64(even, odd);
 
-        // Products v * t: even lanes, then odd lanes, one 128-bit product per 128-bit lane.
-        let even = _mm512_clmulepi64_epi128::<0x00>(v, tw);
-        let odd = _mm512_clmulepi64_epi128::<0x11>(v, tw);
-        // Back to lane order: qword i of lo / hi is the low / high half of lane i's product.
-        let lo = _mm512_unpacklo_epi64(even, odd);
-        let hi = _mm512_unpackhi_epi64(even, odd);
-
-        // Reduce modulo x^64 + x^4 + x^3 + x + 1 with shifts and three-way XORs.
-        const XOR3: i32 = 0x96;
-        // The bits of hi * (x^4 + x^3 + x + 1) that land past x^63.
-        let spill = _mm512_ternarylogic_epi64::<XOR3>(
-            _mm512_srli_epi64::<63>(hi),
-            _mm512_srli_epi64::<61>(hi),
-            _mm512_srli_epi64::<60>(hi),
-        );
-        // Both hi and spill are multiplied by the same constant, so fold them first.
-        let x = _mm512_xor_si512(hi, spill);
-        // g(x) = x ^ x<<1 ^ x<<3 ^ x<<4, split across two three-way XORs.
-        let fx = _mm512_ternarylogic_epi64::<XOR3>(x, _mm512_slli_epi64::<1>(x), _mm512_slli_epi64::<3>(x));
-        // Butterfly top: u' = u + v * t, with the product's lo and g(x) folded in one step.
-        let new_u = _mm512_ternarylogic_epi64::<XOR3>(u, lo, _mm512_xor_si512(fx, _mm512_slli_epi64::<4>(x)));
-        // Butterfly bottom: v' = v + u'.
-        let new_v = _mm512_xor_si512(v, new_u);
-        _mm512_storeu_si512(top.cast(), new_u);
-        _mm512_storeu_si512(bot.cast(), new_v);
-    }
+    // Reduce modulo x^64 + x^4 + x^3 + x + 1 with shifts and three-way XORs.
+    const XOR3: i32 = 0x96;
+    // The bits of hi * (x^4 + x^3 + x + 1) that land past x^63.
+    let spill = _mm512_ternarylogic_epi64::<XOR3>(
+        _mm512_srli_epi64::<63>(hi),
+        _mm512_srli_epi64::<61>(hi),
+        _mm512_srli_epi64::<60>(hi),
+    );
+    // Both hi and spill are multiplied by the same constant, so fold them first.
+    let x = _mm512_xor_si512(hi, spill);
+    // g(x) = x ^ x<<1 ^ x<<3 ^ x<<4, split across two three-way XORs.
+    let fx = _mm512_ternarylogic_epi64::<XOR3>(x, _mm512_slli_epi64::<1>(x), _mm512_slli_epi64::<3>(x));
+    // u' = u + v * t, with the product's lo and g(x) folded in one step.
+    let new_u = _mm512_ternarylogic_epi64::<XOR3>(u, lo, _mm512_xor_si512(fx, _mm512_slli_epi64::<4>(x)));
+    (new_u, _mm512_xor_si512(v, new_u))
 }
 
 /// Two F64 butterflies with a shared twiddle, NEON-resident end to end.
