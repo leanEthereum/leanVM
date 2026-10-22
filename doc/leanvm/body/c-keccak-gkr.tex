@@ -48,33 +48,33 @@ c=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{i\in\cube{4}}\kw_i\sum_{j<1600}\kpw_j
 
 \paragraph{1. The product polynomial.} In pack $p$ at position $j$, let $S_{p,j}=\kemb\bigl((b(j;(i,p)))_{i\in\cube{4}}\bigr)$. Since $\kproj(\kemb_{\allone}\kemb(u))=u$ and $\kproj(\kemb(u)\kemb(v))=u\wedge v$, the polynomial $G_{p,j}=\kemb_{\allone}S_{p,j}+(\kemb_{\allone}+S_{p,\along{j}{1}})\,S_{p,\along{j}{2}}$ projects to the sixteen outputs of pack $p$ at $j$. The prover sends the $47$ coefficients of
 \[
-G=\sum_{p}\eq(r,p)\sum_j\kpw_j\,G_{p,j},
+G=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\,G_{p,j},
 \]
 and the verifier checks $\kproj_{\kw}(G)=c$.
 
-\paragraph{2. One instance per pack.} To check that the received $G$ is correct, the verifier evaluates it at a random $\kpt\in\E$. As $\kemb$ is linear, evaluating $S_{p,j}$ at $\kpt$ combines the sixteen bits of pack $p$ at position $j$ into one element of $\E$:
-\[
-S_{p,j}(\kpt)=\sum_{i\in\cube{4}}\kw'_i\,b\bigl(j;(i,p)\bigr),\qquad \kw'_i=\kemb_i(\kpt).
-\]
-So the values $S_{p,j}(\kpt)$, $j<1600$, form a single state over $\E$ standing for the sixteen of pack $p$. With $\kwsum'=\kemb_{\allone}(\kpt)$,
-\[
-G(\kpt)=\sum_p\eq(r,p)\sum_j\kpw_j\bigl(\kwsum'\,S_{p,j}(\kpt)+(\kwsum'+S_{p,\along{j}{1}}(\kpt))\,S_{p,\along{j}{2}}(\kpt)\bigr),
-\]
-chi on one instance over $\E$ per pack.
+\paragraph{2. One state per pack.} The verifier tests $G$ at a random point: it samples $\kpt\in\E$ and computes $G(\kpt)$ from the coefficients it received. A wrong $G$ has the wrong value there, except with probability $46/|\E|$, so it remains to prove what $G(\kpt)$ should be.
 
-\paragraph{3. Sumcheck.} $G(\kpt)$ is a sum over packs $p$ and positions $j$ (positions past $1600$ count as zero), each term the product of $\eq(r,p)$, $\kpw_j$ and chi of that state at $j$. A sumcheck over the $\kbatch-4$ bits of $p$, then the $11$ bits of $j$, turns this sum into a single term, at a random pack $\fc^{\mathrm{pack}}\in\E^{\kbatch-4}$ and a random position $\fc^{\mathrm{pos}}\in\E^{11}$, with $\kpw$ replaced by its multilinear extension and $S_{p,j}$ by its multilinear extension in $p$, $S_{\fc,j}=\sum_p\eq(\fc,p)\,S_{p,j}$:
+Evaluating at $\kpt$ respects sums and products, and $\kemb$ is linear, so $S_{p,j}(\kpt)$ is a fixed combination of the sixteen bits of pack $p$ at position $j$:
 \[
-\eq(r,\fc^{\mathrm{pack}})\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr),
+S_{p,j}(\kpt)=\Bigl(\sum_{i\in\cube{4}}b\bigl(j;(i,p)\bigr)\,\kemb_i\Bigr)(\kpt)=\sum_{i\in\cube{4}}\kw'_i\,b\bigl(j;(i,p)\bigr),\qquad \kw'_i=\kemb_i(\kpt).
 \]
-where $\kev_k$ is the state shifted by $k$ along the rows, at that pack and position:
+For each pack, the $1600$ values $S_{p,j}(\kpt)$ thus form one state over $\E$, a random combination of the pack's sixteen states. With $\kwsum'=\kemb_{\allone}(\kpt)=\sum_{i\in\cube{4}}\kw'_i$, the value of $G$ is chi applied to these states:
+\begin{align*}
+G(\kpt)&=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\,G_{p,j}(\kpt)\\
+&=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\Bigl(\kemb_{\allone}(\kpt)\,S_{p,j}(\kpt)+\bigl(\kemb_{\allone}(\kpt)+S_{p,\along{j}{1}}(\kpt)\bigr)\,S_{p,\along{j}{2}}(\kpt)\Bigr)\\
+&=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,S_{p,j}(\kpt)+\bigl(\kwsum'+S_{p,\along{j}{1}}(\kpt)\bigr)\,S_{p,\along{j}{2}}(\kpt)\Bigr).
+\end{align*}
+
+\paragraph{3. Sumcheck.} The right side is a sum over packs and positions (positions past $1600$ count as zero). A sumcheck runs over it, first on the $\kbatch-4$ bits of $p$, then on the $11$ bits of $j$, and ends at a random pack $\fc^{\mathrm{pack}}\in\E^{\kbatch-4}$ and a random position $\fc^{\mathrm{pos}}\in\E^{11}$, where the summand is
 \[
-\kev_k=\sum_{j}\eq(\fc^{\mathrm{pos}},j)\,S_{\fc^{\mathrm{pack}},\along{j}{k}}(\kpt)\qquad(k=0,1,2).
+\eq(r,\fc^{\mathrm{pack}})\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr),\qquad
+\kev_k=\sum_{j<1600}\eq(\fc^{\mathrm{pos}},j)\,S_{\fc^{\mathrm{pack}},\along{j}{k}}(\kpt),
 \]
-The verifier computes $\eq(r,\fc^{\mathrm{pack}})$ and $\mle{\kpw}(\fc^{\mathrm{pos}})$ itself, the prover sends $\kev_0,\kev_1,\kev_2$, and the verifier checks the term against the sumcheck's last claim.
+with $S_{\fc,j}=\sum_{p\in\cube{\kbatch-4}}\eq(\fc,p)\,S_{p,j}$ the extension of $S$ in $p$: $\kev_k$ is the state at the random pack, shifted by $k$ along the rows, at the random position. The prover sends $\kev_0,\kev_1,\kev_2$; the verifier computes $\eq(r,\fc^{\mathrm{pack}})$ and $\mle{\kpw}(\fc^{\mathrm{pos}})$ and checks the summand against the sumcheck's last claim.
 
 \paragraph{4. One claim again.} The verifier samples $\kbeta$ and sets $c'=\kev_0+\kbeta\,\kev_1+\kbeta^2\,\kev_2$. Each $\kev_k$ is a weighted sum of the bits entering chi, so
 \[
-c'=\sum_{p}\eq(\fc^{\mathrm{pack}},p)\sum_{i}\kw'_i\sum_{j}\kpw'_j\,b\bigl(j;(i,p)\bigr),
+c'=\sum_{p\in\cube{\kbatch-4}}\eq(\fc^{\mathrm{pack}},p)\sum_{i\in\cube{4}}\kw'_i\sum_{j<1600}\kpw'_j\,b\bigl(j;(i,p)\bigr),
 \]
 with $\kpw'_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}},\along{j}{3})$, the shifts moved onto the weights: a claim of the same form as $c$, on the bits entering chi.
 
@@ -117,12 +117,12 @@ Steps 1 to 5 are \S\ref{keccak:idea} with the round constant; step 6 crosses the
 \begin{equation}\label{keccak:eq:product}
 G(X)=\sum_{p\in\cube{\kbatch-4}}\ \sum_{j<1600}\eq(r,p)\,\kpw_j\,G_{p,j}(X),
 \end{equation}
-and, with $\kwsum=\sum_i\kw_i$ and $\sum_p\eq(r,p)=1$, the verifier checks
+and, with $\kwsum=\sum_{i\in\cube{4}}\kw_i$ and $\sum_{p\in\cube{\kbatch-4}}\eq(r,p)=1$, the verifier checks
 \begin{equation}\label{keccak:eq:projection}
 \kproj_{\kw}(G)+\kwsum\sum_{z<64}\krc_{24-d}[z]\,\kpw_z\ \qeq\ c.
 \end{equation}
 
-\paragraph{2. Evaluation.} The verifier samples $\kpt\in\E$. Let $\kw'_i=\kemb_i(\kpt)$, $\kwsum'=\sum_i\kw'_i$, so that $S_{p,j}(\kpt)=\sum_i\kw'_i\,b(j;(i,p))$. Then
+\paragraph{2. Evaluation.} The verifier samples $\kpt\in\E$. Let $\kw'_i=\kemb_i(\kpt)$, $\kwsum'=\sum_{i\in\cube{4}}\kw'_i$, so that $S_{p,j}(\kpt)=\sum_{i\in\cube{4}}\kw'_i\,b(j;(i,p))$. Then
 \begin{equation}\label{keccak:eq:at-s}
 G(\kpt)=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,S_{p,j}(\kpt)+\bigl(\kwsum'+S_{p,\along{j}{1}}(\kpt)\bigr)\,S_{p,\along{j}{2}}(\kpt)\Bigr).
 \end{equation}
@@ -132,7 +132,7 @@ G(\kpt)=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,S_{
 \rc{\kbatch-4}=\eq(r,\fc^{\mathrm{pack}})\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,S_{\fc^{\mathrm{pack}},j}(\kpt)+\bigl(\kwsum'+S_{\fc^{\mathrm{pack}},\along{j}{1}}(\kpt)\bigr)\,S_{\fc^{\mathrm{pack}},\along{j}{2}}(\kpt)\Bigr).
 \end{equation}
 
-\paragraph{4. Positions.} The other $11$ rounds bind $j\in\cube{11}$ (slice low, lane high; $\kpw_j$ and $S_{p,\along{j}{k}}$ are zero at lanes $25$ to $31$), with challenges $\fc^{\mathrm{pos}}$; the summand having degree three, a round costs three $\E$-elements. The prover sends $\kev_k=\sum_j\eq(\fc^{\mathrm{pos}},j)\,S_{\fc^{\mathrm{pack}},\along{j}{k}}(\kpt)$ for $k=0,1,2$, and the verifier, computing $\mle{\kpw}(\fc^{\mathrm{pos}})$ itself, checks
+\paragraph{4. Positions.} The other $11$ rounds bind $j\in\cube{11}$ (slice low, lane high; $\kpw_j$ and $S_{p,\along{j}{k}}$ are zero at lanes $25$ to $31$), with challenges $\fc^{\mathrm{pos}}$; the summand having degree three, a round costs three $\E$-elements. The prover sends $\kev_k=\sum_{j<1600}\eq(\fc^{\mathrm{pos}},j)\,S_{\fc^{\mathrm{pack}},\along{j}{k}}(\kpt)$ for $k=0,1,2$, and the verifier, computing $\mle{\kpw}(\fc^{\mathrm{pos}})$ itself, checks
 \begin{equation}\label{keccak:eq:terminal}
 \eq(r,\fc^{\mathrm{pack}})\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr)\ \qeq\ \rc{\kbatch+7}.
 \end{equation}
@@ -142,9 +142,9 @@ G(\kpt)=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,S_{
 c'=\sum_{j<1600}\kpw^{\flat}_j\,S_{\fc^{\mathrm{pack}},j}(\kpt),\qquad
 \kpw^{\flat}_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}},\along{j}{3}),
 \end{equation}
-and, as $S_{\fc^{\mathrm{pack}},j}(\kpt)=\sum_{p,i}\eq(\fc^{\mathrm{pack}},p)\,\kw'_i\,b(j;(i,p))$ (Fact~\ref{fact:eq}), $(c',\kw',\fc^{\mathrm{pack}},\kpw^{\flat})$ is a claim of the shape \eqref{keccak:eq:claim} on $b$.
+and, as $S_{\fc^{\mathrm{pack}},j}(\kpt)=\sum_{p\in\cube{\kbatch-4},\,i\in\cube{4}}\eq(\fc^{\mathrm{pack}},p)\,\kw'_i\,b(j;(i,p))$ (Fact~\ref{fact:eq}), $(c',\kw',\fc^{\mathrm{pack}},\kpw^{\flat})$ is a claim of the shape \eqref{keccak:eq:claim} on $b$.
 
-\paragraph{6. Linear map.} As $\sum_j\kpw^{\flat}_j\,b(j;t)=\sum_j(\klin^{\top}\kpw^{\flat})_j\,a_{23-d}(j;t)$, the layer outputs $(c',\kw',\fc^{\mathrm{pack}},\klin^{\top}\kpw^{\flat})$ at depth $d+1$.
+\paragraph{6. Linear map.} As $\sum_{j<1600}\kpw^{\flat}_j\,b(j;t)=\sum_{j<1600}(\klin^{\top}\kpw^{\flat})_j\,a_{23-d}(j;t)$, the layer outputs $(c',\kw',\fc^{\mathrm{pack}},\klin^{\top}\kpw^{\flat})$ at depth $d+1$.
 
 \subsection{The opening}\label{keccak:openings}
 
