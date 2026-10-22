@@ -146,8 +146,8 @@ def main():
     proves(src, hash_cells(&bytes));
 }
 
-/// `keccak_cells` hashes a whole run: 20 cells are three blocks, the last odd, and a
-/// heap run of 16 is one.
+/// `keccak_cells` hashes a whole run: 20 cells, 320 bytes, are three blocks, the last
+/// (block 2) even, and a heap run of 16 is two.
 #[test]
 fn keccak_cells_hashes_the_run() {
     let src = "\
@@ -278,6 +278,14 @@ def main():
 fn keccak_len_past_the_cells_is_rejected() {
     let src =
         "def main():\n    out = StackBuf(2)\n    keccak([1, 2], [3, 4], out, tail=[5, 6, 7, 8], len=129)\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
+/// A cell the message ends before would be hashed with it.
+#[test]
+#[should_panic(expected = "keccak len= 40 ends before message cell 3, which is not a literal 0")]
+fn keccak_cell_past_len_is_rejected() {
+    let src = "def main():\n    out = StackBuf(2)\n    keccak([1, 2], [3, 4], out, len=40)\n    return\n";
     let _ = compile(&parse(src).expect("parse"));
 }
 

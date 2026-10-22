@@ -16,14 +16,11 @@
 //! cells, each side in one of two layouts ([`cell_lanes`]). The committed input is the lanes
 //! the VM reads, and the output is the permutation's, written as it is.
 
-use crate::pcs::SlotClaim;
 use crate::transcript::ProverState;
 use keccak_gkr::witness::{BLOCK, Extent, Slot};
 use keccak_gkr::{Openings, OutputClaim, Shape};
 use primitives::field::{F64, F192};
 use primitives::hash::STATE_LANES;
-
-pub use crate::pcs::{RingSwitchClaim, RingSwitchOpen};
 
 /// Rounds between two committed states.
 pub const DEPTH: usize = 12;
@@ -37,12 +34,12 @@ pub const MIN_STEPS: usize = 1 << MIN_STEPS_LOG;
 const MIN_STEPS_LOG: usize = 9;
 
 /// `log2` of the steps the reduction proves for `n` executed ones.
-pub fn n_blocks_log(n: usize) -> usize {
+pub fn n_steps_log(n: usize) -> usize {
     (n.max(1).next_power_of_two().ilog2() as usize).max(MIN_STEPS_LOG)
 }
 
-fn shape(n_blocks: usize) -> Shape {
-    Shape::new(n_blocks, DEPTH)
+fn shape(n_steps: usize) -> Shape {
+    Shape::new(n_steps, DEPTH)
 }
 
 /// Domain separator for the relation in the Fiat-Shamir seed (`leanvm_core::cpu`): the hash of
@@ -55,8 +52,8 @@ pub const RELATION_LABEL: &[u8] =
     b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
 
 /// `log2` of the committed column, in words.
-pub fn qkeccak_kappa(n_blocks: usize) -> usize {
-    n_blocks_log(n_blocks) + SLOT_LOG
+pub fn qkeccak_kappa(n_steps: usize) -> usize {
+    n_steps_log(n_steps) + SLOT_LOG
 }
 
 /// Cells a sponge state occupies.
@@ -138,7 +135,7 @@ impl PreparedReductionWitness {
 }
 
 /// Build the committed column for `instances`, the lanes each step reads, padded with all-zero
-/// steps to `2^n_blocks_log(instances.len())`, and keep the reduction's witness.
+/// steps to `2^n_steps_log(instances.len())`, and keep the reduction's witness.
 #[cfg(test)]
 pub(crate) fn build_qkeccak_prepared(
     instances: &[[u64; STATE_LANES]],
@@ -190,7 +187,9 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
     let queue = std::sync::Mutex::new(queue);
     // More workers than this slow the executing thread by more than they finish early.
     let workers = parallel::num_threads() / 2;
-    std::thread::scope(|scope| {
+    // Outlives the scope: the workers write into it until they are joined, even on a panic.
+    let mut extents: Vec<Extent> = Vec::new();
+    let (result, lanes, steps) = std::thread::scope(|scope| {
         let handles: Vec<_> = (0..workers)
             .map(|_| {
                 scope.spawn(|| {
@@ -206,7 +205,6 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
             })
             .collect();
 
-        let mut extents: Vec<Extent> = Vec::new();
         let mut inline = Vec::new();
         let mut pending = Vec::with_capacity(BLOCK);
         let mut blocks = 0;
@@ -242,8 +240,9 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
         }
         lanes.sort_unstable_by_key(|&(g, _)| g);
         let lanes = lanes.into_iter().map(|(_, lanes)| lanes).collect();
-        (result, Blocks { extents, lanes, steps })
-    })
+        (result, lanes, steps)
+    });
+    (result, Blocks { extents, lanes, steps })
 }
 
 impl Blocks {
@@ -292,25 +291,6 @@ impl Blocks {
     }
 }
 
-/// The reduction's openings as claims on the committed column at `offset`: the inputs'
-/// ring-switched, the committed outputs' an ordinary point claim to append to the batch.
-pub fn ring_switch_open(n_blocks: usize, offset: usize, openings: Openings) -> (RingSwitchOpen, Option<SlotClaim>) {
-    let ring = RingSwitchOpen {
-        offset,
-        qkeccak_vars: qkeccak_kappa(n_blocks),
-        claims: vec![RingSwitchClaim {
-            suffix_point: openings.inputs.point,
-            s_hat_v: Some(openings.inputs.slices),
-        }],
-    };
-    let outputs = openings.outputs.map(|outputs| SlotClaim::Point {
-        offset,
-        low_point: outputs.point,
-        value: outputs.value,
-    });
-    (ring, outputs)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -357,7 +337,7 @@ mod tests {
             let mut q_keccak = vec![f(0xdead_beef); expected.len()];
             let witness = blocks.place(n, &mut q_keccak);
             assert_eq!(q_keccak, expected, "{n} steps");
-            let point = (0..n_blocks_log(n)).map(|i| F192::new(3 + i as u64, 5, 7)).collect();
+            let point = (0..n_steps_log(n)).map(|i| F192::new(3 + i as u64, 5, 7)).collect();
             let output = output_claim(&instances, point);
             let stream = |witness: &PreparedReductionWitness| {
                 let mut ps = ProverState::from_label(b"blocks");
@@ -422,7 +402,7 @@ mod tests {
     fn qkeccak_words_match_layout() {
         let instances = sample_instances(5);
         let (q_keccak, _) = build_qkeccak(&instances);
-        let n = 1usize << n_blocks_log(instances.len());
+        let n = 1usize << n_steps_log(instances.len());
         for (j, input) in instances.iter().enumerate() {
             for i in 0..STATE_LANES {
                 let slot = value_slot(i).expect("an input lane");

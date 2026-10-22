@@ -6,7 +6,7 @@ use crate::{VerifierError, require};
 pub const STATE_LANES: usize = 25;
 /// The sponge rate in bytes.
 const RATE: usize = 136;
-const ROUNDS: usize = 24;
+pub const ROUNDS: usize = 24;
 
 pub const KECCAK_RC: [u64; ROUNDS] = [
     0x0000000000000001,
@@ -49,17 +49,20 @@ pub const KECCAK_PI: [usize; STATE_LANES] = {
 };
 pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
     for rc in KECCAK_RC {
+        // Row by row, so every index is a constant: an index computed per lane vectorizes to gathers.
         let c: [u64; 5] = std::array::from_fn(|x| a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20]);
-        for i in 0..STATE_LANES {
-            a[i] ^= c[(i + 4) % 5] ^ c[(i + 1) % 5].rotate_left(1);
+        let d: [u64; 5] = std::array::from_fn(|x| c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1));
+        for row in a.as_chunks_mut::<5>().0 {
+            for (lane, d) in row.iter_mut().zip(d) {
+                *lane ^= d;
+            }
         }
         let mut b = [0u64; STATE_LANES];
         for i in 0..STATE_LANES {
             b[KECCAK_PI[i]] = a[i].rotate_left(KECCAK_RHO[i]);
         }
-        for i in 0..STATE_LANES {
-            let row = i - i % 5;
-            a[i] = b[i] ^ (!b[row + (i + 1) % 5] & b[row + (i + 2) % 5]);
+        for (row, b) in a.as_chunks_mut::<5>().0.iter_mut().zip(b.as_chunks::<5>().0) {
+            *row = std::array::from_fn(|x| b[x] ^ (!b[(x + 1) % 5] & b[(x + 2) % 5]));
         }
         a[0] ^= rc;
     }

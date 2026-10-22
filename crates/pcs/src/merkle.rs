@@ -326,7 +326,7 @@ impl LeafHasher {
                 // Whole batches per tile.
                 let per_tile = STAGE_TILE_BYTES / image;
                 let per_tile = if per_tile >= LANES {
-                    per_tile - per_tile % LANES
+                    per_tile / LANES * LANES
                 } else {
                     per_tile
                 };

@@ -450,10 +450,9 @@ def ftsRecover (parameter : PublicParameter) (index : Index) (leaves : IndexGrou
 
 /-! ### The message digest -/
 
-/-- `m || rho`, what the message digest hashes after the parameter and the address. The first
-64-byte block is `P || A || m`, which a signer absorbs once per message; the second block is the
-randomizer alone. `P` binds the key, so the root is not hashed: the argument is kept for the
-callers. -/
+/-- `m || rho`, what the message digest hashes after the parameter and the address. The whole
+input `P || A || m || rho` fits in one 136-byte Keccak block. `P` binds the key, so the root is
+not hashed: the argument is kept for the callers. -/
 def messageDigestPayload (_root : Digest) (message : Message) (randomness : Randomness) : HashInput :=
   bytesLE 32 message ++ bytesLE 16 randomness
 

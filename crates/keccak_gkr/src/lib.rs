@@ -67,9 +67,12 @@
 //! # Soundness
 //!
 //! Every step loses at most a polynomial's degree over the field size: 46 for step 2, three per
-//! round of steps 3 and 4, two for step 5. The openings add two per round. With `n` instances
-//! and `depth` layers that is below `(depth + 1) * (130 + 3 log n)` over `2^192`, next to the
-//! commitment scheme's own error.
+//! round of steps 3 and 4, two for step 5. The first claim's challenges add one per variable, the
+//! openings two per round. With `n` instances, `S` segment variables and `L` slot variables,
+//! that is at most `depth (69 + 3 S + 3 log n) + log n + S + 4 L + 13` over `2^192`, next to the
+//! commitment scheme's own error. At the VM's depth of 12 it is the `(37 log n + 902) / 2^192`
+//! that `formal/keccak_gkr` proves (`KeccakGkr.keccak_sound_GF192`), derived in `doc/leanvm`
+//! Annex C (`keccak:soundness`).
 //!
 //! # Prover
 //!
@@ -81,6 +84,10 @@
 //! weighted sum is a carry-less product ([`basis`], [`power`]).
 
 use fiat_shamir::transcript::ProverState;
+use keccak::LANE_VARS;
+use primitives::field::{F64, F192, F192Unreduced};
+use primitives::multilinear::eq_table;
+use protocol::{Claim, dot, first_claim};
 
 pub mod basis;
 #[cfg(feature = "bench")]
@@ -98,6 +105,7 @@ pub mod witness;
 mod tests;
 
 pub use open::{Opening, Openings, WordOpening};
+pub use witness::{Shape, Witness};
 
 /// A claim on the permutation's output, from outside the reduction: `lanes[l]` is lane `l` of
 /// the output state, as words over the instances, evaluated at `instance` (an instance index's
@@ -119,21 +127,29 @@ impl OutputClaim {
             state
         };
         let padding = permute([0; keccak::LANES]);
-        let outputs: Vec<[u64; keccak::LANES]> =
-            parallel::map_collect(shape.n(), |i| inputs.get(i).map_or(padding, |&x| permute(x)));
-        let lanes = std::array::from_fn(|l| {
-            let words: Vec<primitives::field::F64> = outputs.iter().map(|o| primitives::field::F64(o[l])).collect();
-            primitives::multilinear::mle_eval(&words, &instance)
-        });
-        Self { instance, lanes }
+        let eq = eq_table(&instance);
+        let lanes = parallel::fold_reduce(
+            shape.n(),
+            || [F192Unreduced::ZERO; keccak::LANES],
+            |acc, i| {
+                let output = inputs.get(i).map_or(padding, |&x| permute(x));
+                for (acc, word) in acc.iter_mut().zip(output) {
+                    *acc ^= eq[i].mul_base_unreduced(F64(word));
+                }
+            },
+            |mut a, b| {
+                for (a, b) in a.iter_mut().zip(b) {
+                    *a ^= b;
+                }
+                a
+            },
+        );
+        Self {
+            instance,
+            lanes: lanes.map(F192Unreduced::reduce),
+        }
     }
 }
-pub use witness::{Shape, Witness};
-
-use keccak::LANE_VARS;
-use primitives::field::F192;
-use primitives::multilinear::eq_table;
-use protocol::{Claim, dot, first_claim};
 
 /// The first claim, valued at the last segment's part only: the caller's lanes, at the claim's
 /// segment and lane weights.
@@ -148,12 +164,7 @@ fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]
 
 /// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to openings
 /// of the commitment. `committed` is what [`Witness::generate`] wrote.
-pub fn prove(
-    ps: &mut ProverState,
-    witness: &Witness,
-    committed: &[primitives::field::F64],
-    output: &OutputClaim,
-) -> Openings {
+pub fn prove(ps: &mut ProverState, witness: &Witness, committed: &[F64], output: &OutputClaim) -> Openings {
     let shape = witness.shape;
     let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
     let mut first = first(shape, output, segment, &r_lane);
@@ -176,47 +187,4 @@ pub fn prove(
         (shape.segments() > 1).then(|| open::open_outputs(ps, shape, instance, &first, committed_value, folded));
     let inputs = open::open_inputs(ps, witness, &claim);
     Openings { outputs, inputs }
-}
-
-/// The transcript of a batch proved alone, as `verifier::verify_keccak_batch` reads it: seeded from
-/// `label` and, as its public input, the shape and the PCS rate.
-pub fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) -> ProverState {
-    let iv = fiat_shamir::digest_words(&primitives::hash::hash(label));
-    let statement = [shape.n_log(), shape.depth(), log_inv_rate, 0].map(|w| primitives::field::F64(w as u64));
-    ProverState::new(iv, statement)
-}
-
-/// The words of a stack holding the committed states alone.
-pub fn committed_len(shape: Shape) -> usize {
-    1 << shape.stack_log()
-}
-
-/// Discharge the two openings against the commitment to `stack`, which holds the committed
-/// states alone.
-pub fn open_commitment(
-    ps: &mut ProverState,
-    shape: Shape,
-    stack: &[primitives::field::F64],
-    prover_data: &pcs::whir::ProverData,
-    config: &pcs::whir::ProverConfig,
-    openings: Openings,
-) {
-    let ring = pcs::stack_open::RingSwitchOpen {
-        offset: 0,
-        qkeccak_vars: shape.stack_log(),
-        claims: vec![pcs::stack_open::RingSwitchClaim {
-            suffix_point: openings.inputs.point,
-            s_hat_v: Some(openings.inputs.slices),
-        }],
-    };
-    let points: Vec<_> = openings.outputs.into_iter().map(word_claim).collect();
-    pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
-}
-
-fn word_claim(opening: WordOpening) -> pcs::stack_open::StackClaim {
-    pcs::stack_open::StackClaim::Point {
-        offset: 0,
-        low_point: opening.point,
-        value: opening.value,
-    }
 }

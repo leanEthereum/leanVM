@@ -4,19 +4,19 @@
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
-use fiat_shamir::transcript::Proof;
-use pcs::whir::{INITIAL_FOLDING_FACTOR, commit, config_for_rate};
+use fiat_shamir::transcript::{Proof, ProverState};
+use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverConfig, ProverData, commit, config_for_rate};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
-use crate::{OutputClaim, Shape, Witness};
+use crate::{Openings, OutputClaim, Shape, Witness};
 
 const LABEL: &[u8] = b"keccak-gkr-batch";
 
 /// The timings and proof size of one run of [`run`].
 pub struct Report {
     shape: Shape,
-    /// Witness, commit, reduction, opening, whole pass.
-    stages: [Timing; 5],
+    /// Witness, commit, output claim, reduction, opening, whole pass.
+    stages: [Timing; 6],
     verify: Timing,
     stream_len: usize,
     merkle_bytes: usize,
@@ -37,33 +37,44 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let t_pass = Instant::now();
         let t = Instant::now();
         // SAFETY: the witness generator writes every word.
-        let mut committed = unsafe { primitives::uninit_vec::<F64>(crate::committed_len(shape)) };
+        let mut committed = unsafe { primitives::uninit_vec::<F64>(1 << mu) };
         let witness = tracing::info_span!("Witness").in_scope(|| Witness::generate(shape, &inputs, &mut committed));
         let witness_s = t.elapsed().as_secs_f64();
 
-        let mut ps = crate::batch_transcript(LABEL, shape, log_inv_rate);
+        let mut ps = batch_transcript(LABEL, shape, log_inv_rate);
         let t = Instant::now();
         let (commitment, prover_data) = commit(&committed, mu, INITIAL_FOLDING_FACTOR, log_inv_rate);
         ps.add_root(&commitment.root);
         let commit_s = t.elapsed().as_secs_f64();
 
-        let output = OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+        let t = Instant::now();
+        let instance = ps.sample_vec(shape.n_log());
+        let output = tracing::info_span!("Output claim").in_scope(|| OutputClaim::of_inputs(shape, &inputs, instance));
         ps.add_scalars(&output.lanes);
+        let output_s = t.elapsed().as_secs_f64();
+
         let t = Instant::now();
         let openings = crate::prove(&mut ps, &witness, &committed, &output);
         let gkr_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        crate::open_commitment(&mut ps, shape, &committed, &prover_data, &config, openings);
+        open_commitment(&mut ps, shape, &committed, &prover_data, &config, openings);
         let open_s = t.elapsed().as_secs_f64();
 
         (
             ps.into_proof(),
-            [witness_s, commit_s, gkr_s, open_s, t_pass.elapsed().as_secs_f64()],
+            [
+                witness_s,
+                commit_s,
+                output_s,
+                gkr_s,
+                open_s,
+                t_pass.elapsed().as_secs_f64(),
+            ],
         )
     };
 
-    let mut stages: [Timing; 5] = std::array::from_fn(|_| Timing::default());
+    let mut stages: [Timing; 6] = std::array::from_fn(|_| Timing::default());
     let mut warm = true;
     let (transcript, _) = plan.warm_then_measure(|final_pass| {
         let _quiet = (!final_pass).then(bench::suppress_tracing);
@@ -101,11 +112,11 @@ impl Report {
     /// The proving time in Bencher Metric Format, which is what CI compares.
     pub fn json(&self) -> String {
         let name = format!("keccak-hash-batch-{}", self.shape.n());
-        bencher_json(&[(name, vec![("latency", Metric::nanoseconds(&self.stages[4]))])])
+        bencher_json(&[(name, vec![("latency", Metric::nanoseconds(&self.stages[5]))])])
     }
 
     pub fn print(&self) {
-        let [witness, commit, gkr, open, pass] = &self.stages;
+        let [witness, commit, output, gkr, open, pass] = &self.stages;
         let pass_s = pass.mean();
         let line = |name: &str, t: &Timing| {
             println!(
@@ -123,6 +134,7 @@ impl Report {
         );
         line("witness", witness);
         line("commit", commit);
+        line("output claim", output);
         line("layers and openings", gkr);
         line("pcs opening", open);
         println!("  ------------------------------------------");
@@ -150,8 +162,31 @@ impl Report {
     }
 }
 
+/// The transcript of a batch proved alone, as `verifier::verify_keccak_batch` reads it: seeded
+/// from `label` and, as its public input, the shape and the PCS rate.
+pub(crate) fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) -> ProverState {
+    let iv = fiat_shamir::digest_words(&primitives::hash::hash(label));
+    let statement = [shape.n_log(), shape.depth(), log_inv_rate, 0].map(|w| F64(w as u64));
+    ProverState::new(iv, statement)
+}
+
+/// Discharge the reduction's openings against the commitment to `stack`, which holds the
+/// committed states alone.
+pub(crate) fn open_commitment(
+    ps: &mut ProverState,
+    shape: Shape,
+    stack: &[F64],
+    prover_data: &ProverData,
+    config: &ProverConfig,
+    openings: Openings,
+) {
+    let (ring, outputs) = openings.into_pcs_claims(0);
+    let points: Vec<_> = outputs.into_iter().collect();
+    pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
+}
+
 /// The wire proof in the `verifier` crate's types: the same limbs, digests and row words.
-fn scalar_proof(proof: &Proof) -> verifier::Proof {
+pub(crate) fn scalar_proof(proof: &Proof) -> verifier::Proof {
     let batches = proof.merkle.iter().map(|paths| verifier::PrunedMerklePaths {
         leaf_data: paths
             .leaf_data

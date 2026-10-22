@@ -37,6 +37,7 @@ use layout::{
 };
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
+use std::ops::Range;
 use transcript::Transcript;
 use whir::verify_whir;
 
@@ -65,7 +66,7 @@ pub enum VerifierError {
     InducedBasisDimensions,
     WhirTerminal,
     WhirNoTerminalLevel,
-    /// The table sumcheck leaves other than one claim on each `KECCAK` output lane, at one point.
+    /// The table sumcheck leaves other than one claim on each `KECCAK` output lane, in order, at one point.
     KeccakOutputClaims,
     KeccakProduct,
     KeccakLayer,
@@ -100,7 +101,7 @@ impl std::fmt::Display for VerifierError {
             Self::InducedBasisDimensions => "bad induced-basis dimensions",
             Self::WhirTerminal => "WHIR terminal check failed",
             Self::WhirNoTerminalLevel => "WHIR verification ended without a terminal level",
-            Self::KeccakOutputClaims => "one claim on each KECCAK output lane",
+            Self::KeccakOutputClaims => "one claim on each KECCAK output lane, in order",
             Self::KeccakProduct => "Keccak product polynomial does not carry the claim",
             Self::KeccakLayer => "Keccak layer evaluations do not match the sumcheck",
             Self::KeccakOutputOpening => "Keccak output opening ends on the wrong value",
@@ -161,6 +162,8 @@ pub struct Summary {
     pub log_inv_rate: usize,
     /// Where the bus reads the stacked bytecode. Its value there is the claim an aggregate defers.
     pub bytecode_point: Vec<E>,
+    /// The stream positions the Keccak reduction reads.
+    pub keccak_scalars: Range<usize>,
     /// One opening per query, in the order the walk read them.
     pub merkle_paths: Vec<MerklePath>,
 }
@@ -308,7 +311,9 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         depth: KECCAK_DEPTH,
     };
     let values: Vec<E> = outputs.iter().map(|claim| claim.value).collect();
+    let keccak_start = transcript.stream_offset();
     let openings = verify_keccak(&mut transcript, shape, &outputs[0].point, &values)?;
+    let keccak_scalars = keccak_start..transcript.stream_offset();
     if let Some((point, value)) = openings.outputs {
         claims.push(ColumnClaim {
             column: QKECCAK,
@@ -342,6 +347,7 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
         table_rows,
         log_inv_rate: log_inverse_rate as usize,
         bytecode_point: bus.bytecode_point,
+        keccak_scalars,
         merkle_paths: transcript.finish()?,
     })
 }

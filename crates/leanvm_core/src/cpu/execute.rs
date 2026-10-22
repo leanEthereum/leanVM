@@ -261,7 +261,7 @@ impl Program {
         let mut set: Vec<Srow> = Vec::new();
         let mut deref: Vec<Drow> = Vec::new();
         let mut jump: Vec<Jrow> = Vec::new();
-        let mut keccak: Vec<Brow> = Vec::new();
+        let mut keccak: Vec<Krow> = Vec::new();
 
         // A cell that is not `Written` holds ZERO. A `DEREF` between two unwritten cells
         // links them, and a write to either reaches the other at once.
@@ -832,7 +832,7 @@ impl Program {
                     // In flush order, so a cell two operands alias still pairs each
                     // read with its own count.
                     let r: [F64; ROW_CELLS] = std::array::from_fn(|c| m.bump_access_count(cells[c]));
-                    keccak.push(Brow {
+                    keccak.push(Krow {
                         pc,
                         fp,
                         r,

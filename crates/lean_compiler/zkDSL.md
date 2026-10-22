@@ -24,7 +24,7 @@ Machine **words** (the contents of a memory cell, an immediate, a hashed value, 
 - an integer literal `n` supplies up to 128 raw bits and is embedded as `F192(c0, c1, 0)`. This is a source-syntax limit, not the machine-word width: words have three 64-bit limbs. Thus `5` is `1 + x^2`, not the integer five, and the literal `18446744073709551616` is the tower element `y`. Written `2 ** 64` in a value position it is not: `**` there is a field power, so it is `x^64` reduced. `const(2 ** 64)` is the literal. Full-width constants use `f192(c0, c1, c2)`, with each limb an unsigned 64-bit compile-time integer,
 - `GEN` is the fixed generator `g = x` of the 64-bit subfield `K^×` (multiplicative order `2^64 − 1`),
 - `GEN ** e` is the compile-time constant `g^e ∈ K` (`**` takes base `GEN` and a compile-time integer exponent: a literal, a constant, an `unroll` variable, `len(...)`, or index arithmetic of those). So `buf[GEN ** i]` names heap cell `i` directly inside an `unroll` loop, with no running-pointer cursor.
-- constant arithmetic means different things in the two positions, and this is a silent trap: `a + b` on two constants is **integer** addition in an index, a bound or a keyword (`buf[GEN ** (i + 1)]`, `unroll(0, n + 1)`, `counter=64 * (q + 1)`), and **XOR** in a value, where `1 + 1` is `0`. So a literal built in a value position must not add overlapping integers: `tweak = base + (level + 1) * SHIFT` drops the whole term on odd levels. Products are safe (an integer times a power of two is that shift, as long as the top bit stays inside the limb); to add, name the regime with `const(...)`: `tweak = base + const((level + 1) * SHIFT)`.
+- constant arithmetic means different things in the two positions, and this is a silent trap: `a + b` on two constants is **integer** addition in an index, a bound or a keyword (`buf[GEN ** (i + 1)]`, `unroll(0, n + 1)`, `len=16 * (q + 1)`), and **XOR** in a value, where `1 + 1` is `0`. So a literal built in a value position must not add overlapping integers: `tweak = base + (level + 1) * SHIFT` drops the whole term on odd levels. Products are safe (an integer times a power of two is that shift, as long as the top bit stays inside the limb); to add, name the regime with `const(...)`: `tweak = base + const((level + 1) * SHIFT)`.
 - a **global constant** and a **`Const` parameter** are integer-arithmetic throughout, which is deliberate (it is what makes a derived size right) but means the same text means different things in the two places: `STEP = 3 + 1` is the integer `4` everywhere it appears, while the identical `x = 3 + 1` written inside a function is the field element `2`. Neither is wrong; they are two regimes, and a name crossing between them is where the trap bites.
 - a **compile-time `if`** must say which regime it means when the two disagree. The fold decides on the integer reading while the runtime test of the same condition compares field values, so `if 3 + 1 == 4` is true one way and false the other. Such a condition is **rejected**; write `if const(3 + 1 == 4):` to decide it with integer arithmetic, or spell the operands so the two readings agree (a product or a shift rather than a sum of overlapping integers). A condition whose readings already agree needs no wrapper.
 - `base ** e` with a **non-`GEN`** base and a compile-time exponent `e` is square-and-multiply: integer arithmetic in an index/bound position (`2 ** c`), or field arithmetic in a value position (`x ** k`, e.g. a loop counter `g^i` raised to a stride to reach cell `i·stride`). The base may be runtime.
@@ -134,9 +134,9 @@ Functions may recurse. Each call gets a **fresh frame**: the frame pointer is pr
 ### `StackBuf` parameters
 
 ```python
-def compress(cv: StackBuf(2), block: StackBuf(2)):
+def merkle_node(left: StackBuf(2), right: StackBuf(2)):
     out = StackBuf(2)
-    keccak(cv, block, out)
+    keccak(left, right, out)
     return out
 ```
 
@@ -429,7 +429,7 @@ keccak(h[0:2], hb[0:2], hb[2:4])      # HeapBuf slices, input and output
 keccak([tweak, pp], [word, 0], out, len=48)  # a 48-byte message, the padding in b's second cell
 
 keccak_cells(run, out)                # the hash of the whole run, however many blocks
-keccak_cells(run, out, len=292)       # the hash of the run's first 292 bytes
+keccak_cells(run, out, len=292)       # run = StackBuf(19): the hash of its first 292 bytes
 keccak_cells([w[3 * k] for k in unroll(0, 20)], out)  # scattered words, read where they lie
 
 # A 304-byte hash in two calls: a block pair of seventeen cells, the state carried.
@@ -437,8 +437,9 @@ st = StackBuf(13)
 keccak_cells(pair, st, final=0)       # pair = StackBuf(17), two blocks, no padding
 keccak_cells([18, 19], out, state=st)
 
-# A duplex step in overwrite mode (Fiat-Shamir): the rate is the eight message cells as
-# given, the capacity the last five cells of the previous output `st`.
+# A duplex step in overwrite mode (Fiat-Shamir): lanes 0..16 are the eight message cells
+# as given, lanes 16..25 (the transcript's capacity) the last five cells of the previous
+# output `st`.
 keccak(rate[0:2], rate[2:4], nxt, tail=rate[4:8], cap=st)
 ```
 
@@ -446,11 +447,11 @@ The hash is Keccak-256 (`primitives::hash::hash`), Ethereum's. A block is 136 by
 
 Both builtins are **statements**: they write the 13-cell sponge state into `out`, whose first two cells are the digest. A 2-cell `out` receives just the digest, at two copies.
 
-`keccak(a, b, out, tail=, len=)` is one instruction, the hash of at most 128 bytes: the cells `a ‖ b ‖ tail` (two, two and four; `tail` omitted is none), and the message their first `len` bytes (a compile-time integer, by default all of them: 64 bytes without `tail` and 128 with). The form every Merkle node and chain step uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding, the eight message cells absorbed into a zero rate, and the capacity the five cells a previous output ends with (`cap` that 13-cell output or those five cells).
+`keccak(a, b, out, tail=, len=)` is one instruction, the hash of at most 128 bytes: the cells `a ‖ b ‖ tail` (two, two and four; `tail` omitted is none), and the message their first `len` bytes (a compile-time integer, by default all of them: 64 bytes without `tail` and 128 with). The form every Merkle node and chain step uses. `cap=` is the Fiat-Shamir sponge's step instead: no padding, the eight message cells overwriting lanes 0..16, and lanes 16..25 the five cells a previous output ends with (`cap` that 13-cell output or those five cells). Keccak-256's rate is 17 lanes, 136 bytes, so lane 16 is rate to the hash; the transcript keeps it with the capacity, lanes 17..25, and calls lanes 16..25 its capacity.
 
 `keccak_cells(cells, out, state=, len=, final=)` hashes a message of any compile-time length: `cells` is a run (a `StackBuf`, or a slice with compile-time bounds), a list of words, or a list comprehension `[e for k in unroll(lo, hi)]` (its bounds compile-time integers once `Const` parameters are substituted, expanded into the list of `e` at each `k`), and the message is their first `len` bytes (all of them by default). Words named in a list are read where they lie. `state=` continues a hash from a previous 13-cell output whose message so far is a whole number of block pairs, 272 bytes or 17 cells each, so that the cells start a block at a cell boundary: what a runtime loop absorbing a block pair a frame needs. `final=0` absorbs the cells zero-extended to whole blocks, with no padding: the start of a hash continued later, or a bare permutation.
 
-The padding's first byte goes where the message ends and its last byte at the end of the last block: into a constant cell it folds, into a cell the program wrote it costs one `XOR`. The message bytes past `len` must be zero, which the circuit does not enforce.
+The padding's first byte goes where the message ends and its last byte at the end of the last block: into a constant cell it folds, into a cell the program wrote it costs one `XOR`. A cell wholly past `len` must be a literal `0`, or the compiler rejects it; the bytes past `len` in the cell where the message ends must be zero, which the circuit does not enforce.
 
 Each `KECCAK` reads four independently addressed cells (`m`), a 4-cell run (`tail`), one cell (`b8`) and a 4-cell run (`cap`, the capacity), and writes a 13-cell run. A first block's cells are the state, with a zero capacity; a later block's are XORed into the previous output, one `XOR` a cell and none for a known zero. The zero `cap`, a zero `tail` and a 64-byte message's `tail` `[pad, 0, 0, 0]` come from one five-cell run `[pad, 0, 0, 0, 0]`, set once per runtime path of a function (reverted at a join like every lazily-set constant) and never left unwritten, since an unwritten cell is the prover's to choose.
 

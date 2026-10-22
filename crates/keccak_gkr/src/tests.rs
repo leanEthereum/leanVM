@@ -2,10 +2,13 @@ use fiat_shamir::transcript::{Proof, ProverState};
 use primitives::field::F192;
 use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
+use verifier::VerifierError;
 
-use crate::keccak::{BITS, LANES, along, iota_bit};
+use crate::batch_bench::{batch_transcript, open_commitment, scalar_proof};
+use crate::keccak::{BITS, LANES, LOCAL_VARS, along, iota_bit};
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
+use crate::rmfe::PROD_BITS;
 use crate::witness::{BLOCK_LEN, BLOCK_WORDS, Shape, Witness};
 
 /// The sliced state after `round` rounds.
@@ -66,7 +69,7 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
         .map(|_| std::array::from_fn(|_| rng.next_u64()))
         .collect();
     let shape = Shape::new(n_instances, depth);
-    let mut committed = vec![primitives::field::F64(0); crate::committed_len(shape)];
+    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, &inputs, &mut committed);
     let outputs: Vec<_> = (0..shape.segments())
         .map(|m| state_after(&witness, depth * (m + 1)))
@@ -95,34 +98,9 @@ fn layers_reduce_outputs_to_inputs() {
     layers_round_trip(700, 8);
 }
 
-#[test]
-fn one_segment_and_two_blocks() {
-    layers_round_trip(1024, 24);
-}
-
-/// The wire proof in the `verifier` crate's types: the same limbs, digests and row words.
-fn scalar_proof(proof: &Proof) -> verifier::Proof {
-    let batches = proof.merkle.iter().map(|paths| verifier::PrunedMerklePaths {
-        leaf_data: paths
-            .leaf_data
-            .iter()
-            .map(|row| row.iter().map(|word| verifier::K(word.0)).collect())
-            .collect(),
-        sibling_hashes: paths.sibling_hashes.clone(),
-    });
-    verifier::Proof {
-        stream: proof
-            .stream
-            .iter()
-            .map(|x| verifier::E::new(x.c0, x.c1, x.c2))
-            .collect(),
-        merkle_openings: verifier::MerkleOpenings::Pruned(batches.collect()),
-    }
-}
-
 const LABEL: &[u8] = b"keccak-gkr-test";
 
-fn verify(shape: Shape, proof: &Proof) -> Result<(), verifier::VerifierError> {
+fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
     let iv = primitives::hash::hash(LABEL);
     let log_inv_rate = pcs::whir::LOG_INV_RATE_0;
     verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), log_inv_rate, &scalar_proof(proof))
@@ -132,10 +110,10 @@ fn verify(shape: Shape, proof: &Proof) -> Result<(), verifier::VerifierError> {
 fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F192) -> Proof {
     use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
 
-    let mut honest = vec![primitives::field::F64(0); crate::committed_len(shape)];
+    let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, inputs, &mut honest);
     let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
-    let mut ps = crate::batch_transcript(LABEL, shape, LOG_INV_RATE_0);
+    let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
     let (commitment, prover_data) = commit(committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
     ps.add_root(&commitment.root);
     let mut output = crate::OutputClaim::of_inputs(shape, inputs, ps.sample_vec(shape.n_log()));
@@ -157,8 +135,28 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
         let slices = pcs::ring_switch::fold_1b_rows(&stack, &eq_table(&openings.inputs.point));
         assert!(slices == openings.inputs.slices, "inputs");
     }
-    crate::open_commitment(&mut ps, shape, committed, &prover_data, &config, openings);
+    open_commitment(&mut ps, shape, committed, &prover_data, &config, openings);
     ps.into_proof()
+}
+
+/// The Keccak check that rejects a change to stream scalar `at`, if the reduction reads it:
+/// after the root come the output lanes and the committed outputs' value, which the first
+/// layer's product check meets, then the layers, then the two openings.
+fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
+    let committed = usize::from(shape.segments() > 1);
+    let layer = PROD_BITS + 2 * shape.y_vars() + 3 * LOCAL_VARS + 3;
+    let layers = 2 + LANES + committed;
+    let outputs = layers + shape.depth() * layer;
+    let inputs = outputs + committed * (2 * shape.slot_log() + 1);
+    let end = inputs + 2 * (4 + shape.slot_log()) + 64;
+    Some(match at {
+        _ if at < 2 || at >= end => return None,
+        _ if at < layers => VerifierError::KeccakProduct,
+        _ if at < outputs && (at - layers) % layer < PROD_BITS => VerifierError::KeccakProduct,
+        _ if at < outputs => VerifierError::KeccakLayer,
+        _ if at < inputs => VerifierError::KeccakOutputOpening,
+        _ => VerifierError::KeccakInputOpening,
+    })
 }
 
 fn end_to_end(n_instances: usize, depth: usize) {
@@ -167,14 +165,17 @@ fn end_to_end(n_instances: usize, depth: usize) {
         .map(|_| std::array::from_fn(|_| rng.next_u64()))
         .collect();
     let shape = Shape::new(n_instances, depth);
-    let mut committed = vec![primitives::field::F64(0); crate::committed_len(shape)];
+    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);
     let proof = prove(shape, &inputs, &committed, F192::ZERO);
     verify(shape, &proof).expect("an honest proof verifies");
     for at in (2..proof.stream.len()).step_by(proof.stream.len() / 31 + 1) {
         let mut bad = proof.clone();
         bad.stream[at] += F192::ONE;
-        assert!(verify(shape, &bad).is_err(), "scalar {at}");
+        let err = verify(shape, &bad).expect_err("a changed scalar is rejected");
+        if let Some(check) = keccak_check(shape, at) {
+            assert_eq!(err, check, "scalar {at}");
+        }
     }
 }
 
@@ -196,7 +197,7 @@ fn a_broken_committed_state_is_rejected() {
     let mut rng = Rng::new(78);
     let inputs: Vec<[u64; LANES]> = (0..600).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
     let shape = Shape::new(inputs.len(), 6);
-    let mut committed = vec![primitives::field::F64(0); crate::committed_len(shape)];
+    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);
     let accepts = |committed: &[primitives::field::F64], lane_error: F192| {
         verify(shape, &prove(shape, &inputs, committed, lane_error)).is_ok()

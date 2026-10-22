@@ -179,16 +179,6 @@ struct Layer<'a> {
 /// A row of a table in the power basis: three words per position, laid out by word.
 const ROW: usize = 3 * BITS;
 
-fn uninit(len: usize) -> Vec<u64> {
-    let mut v = Vec::with_capacity(len);
-    // SAFETY: a `u64` has no invalid bit pattern, and every caller writes all of it before reading.
-    #[allow(clippy::uninit_vec)]
-    unsafe {
-        v.set_len(len)
-    };
-    v
-}
-
 impl Layer<'_> {
     /// The blocks that hold data, as `(index among all blocks, block)`.
     fn block(&self, task: usize) -> (usize, &[u64]) {
@@ -313,11 +303,11 @@ impl Layer<'_> {
     }
 
     /// The table the remaining rounds fold, a row per group: `T[j]`, the value at `s` of position
-    /// `j`'s embeddings, folded over the group's packs at `rhos`. A block's two groups are the
-    /// first of those rounds' pairs, so its round values are summed while the rows are at hand.
-    fn table(&self, round: &Round, rhos: &[F192], eq: &[F192], table: &mut [u64]) -> (F192, F192) {
+    /// `j`'s embeddings, folded over the group's packs at `challenges`. A block's two groups are
+    /// the first of those rounds' pairs, so its round values are summed while the rows are at hand.
+    fn table(&self, round: &Round, challenges: &[F192], eq: &[F192], table: &mut [u64]) -> (F192, F192) {
         let field = round.field;
-        let fold: Vec<Element> = eq_table(rhos).iter().map(|&e| field.from_field(e)).collect();
+        let fold: Vec<Element> = eq_table(challenges).iter().map(|&e| field.from_field(e)).collect();
         let fold: [[u64; GROUP]; 3] = std::array::from_fn(|k| std::array::from_fn(|q| fold[q][k]));
         // Rows of segments that do not exist are zero, and so is their product.
         table[2 * self.n_tasks() * ROW..].fill(0);
@@ -407,18 +397,13 @@ impl<'a> Round<'a> {
     fn factors(&self, t: &[u64], b: &mut [u64], shifted: &mut [u64]) {
         // `T[j + 1] + kappa`, then `T[j + 2]`: a lane is 64 positions, five lanes to a row.
         for k in 0..3 {
-            let (src, next, dst) = (
-                &t[k * BITS..][..BITS],
-                &mut shifted[k * BITS..][..BITS],
-                &mut b[k * BITS..][..BITS],
-            );
+            let (src, next) = (&t[k * BITS..][..BITS], &mut shifted[k * BITS..][..BITS]);
             for lane in 0..BITS / 64 {
                 let at = |shift: usize| 64 * ((lane % 5 + shift) % 5 + 5 * (lane / 5));
                 for z in 0..64 {
                     next[64 * lane + z] = src[at(1) + z] ^ self.kappa[k];
                 }
             }
-            dst.copy_from_slice(next);
         }
         self.field.mul_row(b, &self.weights, shifted, &self.constant, BITS);
         for k in 0..3 {
@@ -462,11 +447,11 @@ impl<'a> Round<'a> {
 
     /// Fold the rows of `src` in pairs into `dst`, and sum the next round's values over the
     /// pairs of what was just written.
-    fn fold(&self, src: &[u64], dst: &mut [u64], rho: &Element, eq: &[F192]) -> (F192, F192) {
+    fn fold(&self, src: &[u64], dst: &mut [u64], challenge: &Element, eq: &[F192]) -> (F192, F192) {
         let rows = src.len() / (2 * ROW);
         if rows == 1 {
             self.field
-                .fold_row(&mut dst[..ROW], &src[..ROW], &src[ROW..], rho, BITS);
+                .fold_row(&mut dst[..ROW], &src[..ROW], &src[ROW..], challenge, BITS);
             return (F192::ZERO, F192::ZERO);
         }
         let ptr = parallel::SendPtr(dst.as_mut_ptr());
@@ -479,7 +464,7 @@ impl<'a> Round<'a> {
                 let pair = unsafe { ptr.slice(2 * t * ROW, 2 * ROW) };
                 for (half, out) in pair.as_chunks_mut::<ROW>().0.iter_mut().enumerate() {
                     let quad = &src[(4 * t + 2 * half) * ROW..][..2 * ROW];
-                    self.field.fold_row(out, &quad[..ROW], &quad[ROW..], rho, BITS);
+                    self.field.fold_row(out, &quad[..ROW], &quad[ROW..], challenge, BITS);
                 }
                 self.add_pair(sums, scratch, pair, eq[t]);
             },
@@ -510,12 +495,12 @@ fn local_round(w: &[F192], t: &[Vec<F192>; 3], kappa: F192) -> [F192; 4] {
     h
 }
 
-fn local_fold(table: &[F192], rho: F192) -> Vec<F192> {
+fn local_fold(table: &[F192], challenge: F192) -> Vec<F192> {
     table
         .as_chunks::<2>()
         .0
         .iter()
-        .map(|p| p[0] + rho * (p[0] + p[1]))
+        .map(|p| p[0] + challenge * (p[0] + p[1]))
         .collect()
 }
 
@@ -526,7 +511,8 @@ pub struct Scratch(Vec<u64>);
 impl Scratch {
     pub fn new(shape: Shape) -> Self {
         let rows = 1usize << (shape.y_vars() - SKIP);
-        Self(uninit(rows * ROW + rows * ROW / 2))
+        // SAFETY: every pass writes the rows it reads.
+        Self(unsafe { primitives::uninit_vec(rows * ROW + rows * ROW / 2) })
     }
 }
 
@@ -576,16 +562,16 @@ pub fn prove_layer(
         }
         let coeffs = [scale * h[0], scale * (h[0] + h[1] + h[2]), scale * h[2]];
         ps.add_round_poly(&coeffs, true);
-        let rho = ps.sample();
-        let eq = F192::ONE + claim.point[i] + rho;
-        value = eq * poly_eval(&coeffs, rho);
+        let challenge = ps.sample();
+        let eq = F192::ONE + claim.point[i] + challenge;
+        value = eq * poly_eval(&coeffs, challenge);
         scale *= eq;
-        point.push(rho);
+        point.push(challenge);
         sums = sums
             .as_chunks::<3>()
             .0
             .iter()
-            .map(|v| v[0] + rho * (v[0] + v[1]) + (rho.square() + rho) * v[2])
+            .map(|v| v[0] + challenge * (v[0] + v[1]) + (challenge.square() + challenge) * v[2])
             .collect();
     }
 
@@ -600,14 +586,14 @@ pub fn prove_layer(
     for i in SKIP..claim.point.len() {
         let coeffs = round_coefficients(scale, values.0, values.1, value, claim.point[i]);
         ps.add_round_poly(&coeffs, true);
-        let rho = ps.sample();
-        let eq = F192::ONE + claim.point[i] + rho;
-        value = eq * poly_eval(&coeffs, rho);
+        let challenge = ps.sample();
+        let eq = F192::ONE + claim.point[i] + challenge;
+        value = eq * poly_eval(&coeffs, challenge);
         scale *= eq;
-        point.push(rho);
+        point.push(challenge);
         let live = ROW << (claim.point.len() - i);
         let later = eq_table(claim.point.get(i + 2..).unwrap_or(&[]));
-        values = round.fold(&src[..live], &mut dst[..live / 2], &field.from_field(rho), &later);
+        values = round.fold(&src[..live], &mut dst[..live / 2], &field.from_field(challenge), &later);
         (src, dst) = (dst, src);
     }
     let table = &src[..ROW];
@@ -626,19 +612,18 @@ pub fn prove_layer(
             .map(|j| if j < BITS { t0[along(j, k)] } else { F192::ZERO })
             .collect()
     };
-    let mut t = [shift(1), shift(2), Vec::new()];
-    t.rotate_right(1);
-    t[0] = t0;
+    let (t1, t2) = (shift(1), shift(2));
+    let mut t = [t0, t1, t2];
     let mut w = claim.weights.clone();
     w.resize(cube, F192::ZERO);
     let mut local = Vec::with_capacity(LOCAL_VARS);
     for _ in 0..LOCAL_VARS {
         let coeffs = local_round(&w, &t, kappa).map(|c| scale * c);
         ps.add_round_poly(&coeffs, false);
-        let rho = ps.sample();
-        local.push(rho);
-        w = local_fold(&w, rho);
-        t = t.map(|v| local_fold(&v, rho));
+        let challenge = ps.sample();
+        local.push(challenge);
+        w = local_fold(&w, challenge);
+        t = t.map(|v| local_fold(&v, challenge));
     }
     let t = [t[0][0], t[1][0], t[2][0]];
     ps.add_scalars(&t);

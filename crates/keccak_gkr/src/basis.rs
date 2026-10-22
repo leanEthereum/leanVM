@@ -79,6 +79,17 @@ impl PowerBasis {
     }
 }
 
+/// The sum of every subset of eight weights, indexed by the byte whose bits pick it.
+pub fn byte_sums(weights: &[F192; 8]) -> [F192; 256] {
+    let mut t = [F192::ZERO; 256];
+    for (bit, &w) in weights.iter().enumerate() {
+        for byte in 1usize << bit..2 << bit {
+            t[byte] = t[byte - (1 << bit)] + w;
+        }
+    }
+    t
+}
+
 /// Evaluation at `s` of binary polynomials of at most `8 * n_bytes` coefficients.
 pub struct PolyEval {
     tables: Vec<[F192; 256]>,
@@ -86,20 +97,12 @@ pub struct PolyEval {
 
 impl PolyEval {
     pub fn new(s: F192, n_bytes: usize) -> Self {
-        let mut power = F192::ONE;
-        let tables = (0..n_bytes)
-            .map(|_| {
-                let mut t = [F192::ZERO; 256];
-                for bit in 0..8 {
-                    for byte in 1usize << bit..2 << bit {
-                        t[byte] = t[byte - (1 << bit)] + power;
-                    }
-                    power *= s;
-                }
-                t
-            })
+        let powers: Vec<F192> = std::iter::successors(Some(F192::ONE), |&p| Some(p * s))
+            .take(8 * n_bytes)
             .collect();
-        Self { tables }
+        Self {
+            tables: powers.as_chunks::<8>().0.iter().map(byte_sums).collect(),
+        }
     }
 
     #[inline]

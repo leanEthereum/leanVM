@@ -398,9 +398,9 @@ impl FnLower<'_> {
         o
     }
 
-    /// A frame cell holding `0`, set lazily once: the source for forwarded zero
-    /// words (a `keccak` padding cell), and the destination every `assert a == b`
-    /// in this scope XORs into.
+    /// A frame cell holding `0`, set lazily once (or a zero of the `keccak` padding
+    /// run, when that came first): the condition of `assert_in_k`'s untaken jump, and
+    /// the destination every `assert a == b` in this scope XORs into.
     fn zero(&mut self) -> Off {
         self.const_cell(F192::ZERO)
     }

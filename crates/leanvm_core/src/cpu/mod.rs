@@ -29,7 +29,7 @@ mod trace;
 pub use execute::{ExecError, Execution, Fault};
 pub use isa::{DerefMode, Op};
 pub use layout::*;
-pub(crate) use trace::{Brow, Drow, Jrow, Srow, Trace, Xrow};
+pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
 
 /// Data-memory size bounds (doc §Memory): memory is `2^h` cells with
 /// `MIN_LOG_MEM ≤ h ≤ MAX_LOG_MEM`. The prover pads up to the minimum; the
@@ -506,8 +506,8 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // and there is no has/hasn't-KECCAK fork). The Keccak reduction's claims and
     // EVERY leanVM point claim are discharged together by ONE
     // WHIR over this commitment (below). Input and output lanes bind through the
-    // memory bus: their virtual value columns route to q_keccak, so no separate pin
-    // claims are needed.
+    // memory bus: their virtual value columns route to q_keccak (inputs) and to the
+    // reduction's output claim (outputs), so no separate pin claims are needed.
     let (owners, spans) = bus_wiring(program, &w.layout);
     // The columns are windows into `w.q`, so both stages read them in place: the
     // table sumcheck lifts each K-column into a fresh `E` copy on the round it
@@ -558,14 +558,14 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
     // PCS below in the SAME WHIR as every leanVM point claim: one ring-switched,
     // one appended to the point claims.
     let keccak_reduction = w.keccak_reduction;
-    let n_blocks = 1usize << w.layout.taus[tables::KECCAK_TABLE];
+    let n_steps = 1usize << w.layout.taus[tables::KECCAK_TABLE];
     let offset = w.layout.placements[QKECCAK].offset;
-    let q_keccak = &w.q[offset..offset + (1 << crate::keccak::qkeccak_kappa(n_blocks))];
+    let q_keccak = &w.q[offset..offset + (1 << crate::keccak::qkeccak_kappa(n_steps))];
     let openings = crate::stage!("Keccak reduction", || {
         keccak_reduction.prove(&mut ps, q_keccak, &output)
     });
     drop(keccak_reduction);
-    let (ring, outputs) = crate::keccak::ring_switch_open(n_blocks, offset, openings);
+    let (ring, outputs) = openings.into_pcs_claims(offset);
     slots.extend(outputs);
     crate::stage!("PCS open", || { pcs::open(&mut ps, &committed, &w.q, &slots, &ring) });
     Ok((
@@ -582,9 +582,10 @@ pub fn prove(program: &Program, public_input: [F192; 2], log_inv_rate: usize) ->
 }
 
 /// Everything the PCS has to open, in the ORDER that feeds the batch's weights:
-/// the bus's framework claims, then the zerocheck's per-table column claims, then
-/// the three public-input limb claims, each located in its committed slot. Every
-/// verifier assembles the same list in the same order.
+/// the bus's framework claims, then the table sumcheck's per-table column claims (less the
+/// `KECCAK` output lanes', which go to the reduction), then the three public-input limb
+/// claims, each located in its committed slot. Every verifier assembles the same list in
+/// the same order.
 fn finish_claims(
     l: &Layout,
     bus_claims: Vec<ColumnClaim>,

@@ -58,7 +58,7 @@ pub fn multilinear_eval<T: Copy + Into<E>>(mle: &[T], point: &[E]) -> Result<E, 
     Ok(cur[0])
 }
 
-pub fn log2_ceil(value: u64) -> usize {
+pub const fn log2_ceil(value: u64) -> usize {
     (64 - value.saturating_sub(1).leading_zeros()) as usize
 }
 

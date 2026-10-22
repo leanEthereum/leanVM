@@ -15,6 +15,38 @@ use crate::basis::{PolyEval, PowerBasis};
 
 pub type Element = [u64; 3];
 
+/// A row kernel's vector form, where one is compiled and `width` is whole vectors of it, else
+/// `portable`. The caller bounds every row.
+macro_rules! row_kernel {
+    ($width:expr, $kernel:ident($($arg:expr),*), $portable:expr) => {
+        cfg_select! {
+            all(
+                target_arch = "x86_64",
+                target_feature = "avx512f",
+                target_feature = "avx512bw",
+                target_feature = "vpclmulqdq",
+                target_feature = "gfni"
+            ) => {
+                if $width.is_multiple_of(8) {
+                    // SAFETY: the features are enabled at compile time, and the caller bounds every row.
+                    unsafe { x86::$kernel($($arg),*) }
+                } else {
+                    $portable
+                }
+            }
+            all(target_arch = "aarch64", target_feature = "aes") => {
+                if $width.is_multiple_of(2) {
+                    // SAFETY: the feature is enabled at compile time, and the caller bounds every row.
+                    unsafe { neon::$kernel($($arg),*) }
+                } else {
+                    $portable
+                }
+            }
+            _ => $portable,
+        }
+    };
+}
+
 pub struct PowerField {
     pub basis: PowerBasis,
     /// `s^192`, the modulus without its leading term.
@@ -99,67 +131,27 @@ impl PowerField {
     /// unreduced.
     pub fn dot_pair(&self, a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 6], [u64; 6]) {
         assert!(a.iter().chain(&b).all(|row| row.len() >= 3 * width));
-        #[cfg(all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "vpclmulqdq",
-            target_feature = "gfni"
-        ))]
-        if width.is_multiple_of(8) {
-            // SAFETY: the features are enabled at compile time, and the assert above bounds every row.
-            return unsafe { x86::dot_pair(a, b, width) };
-        }
-        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-        if width.is_multiple_of(2) {
-            // SAFETY: the feature is enabled at compile time, and the assert above bounds every row.
-            return unsafe { neon::dot_pair(a, b, width) };
-        }
-        dot_pair_portable(a, b, width)
+        row_kernel!(width, dot_pair(a, b, width), dot_pair_portable(a, b, width))
     }
 
-    /// `dst[j] = lo[j] + rho * (lo[j] + hi[j])`.
-    pub fn fold_row(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], rho: &Element, width: usize) {
+    /// `dst[j] = lo[j] + challenge * (lo[j] + hi[j])`.
+    pub fn fold_row(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], challenge: &Element, width: usize) {
         assert!(dst.len() >= 3 * width && lo.len() >= 3 * width && hi.len() >= 3 * width);
-        #[cfg(all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "vpclmulqdq",
-            target_feature = "gfni"
-        ))]
-        if width.is_multiple_of(8) {
-            // SAFETY: as in `dot_pair`.
-            return unsafe { x86::fold_row(self, dst, lo, hi, rho, width) };
-        }
-        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-        if width.is_multiple_of(2) {
-            // SAFETY: the feature is enabled at compile time, and the assert above bounds every row.
-            return unsafe { neon::fold_row(self, dst, lo, hi, rho, width) };
-        }
-        self.fold_row_portable(dst, lo, hi, rho, width)
+        row_kernel!(
+            width,
+            fold_row(self, dst, lo, hi, challenge, width),
+            self.fold_row_portable(dst, lo, hi, challenge, width)
+        )
     }
 
     /// `dst[j] = wide[j]` reduced, for a row of four-word polynomials laid out by word.
     pub fn reduce_row(&self, dst: &mut [u64], wide: &[u64], width: usize) {
         assert!(dst.len() >= 3 * width && wide.len() >= 4 * width);
-        #[cfg(all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "vpclmulqdq",
-            target_feature = "gfni"
-        ))]
-        if width.is_multiple_of(8) {
-            // SAFETY: as in `dot_pair`.
-            return unsafe { x86::reduce_row(self, dst, wide, width) };
-        }
-        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-        if width.is_multiple_of(2) {
-            // SAFETY: the feature is enabled at compile time, and the assert above bounds every row.
-            return unsafe { neon::reduce_row(self, dst, wide, width) };
-        }
-        self.reduce_row_portable(dst, wide, width)
+        row_kernel!(
+            width,
+            reduce_row(self, dst, wide, width),
+            self.reduce_row_portable(dst, wide, width)
+        )
     }
 
     pub fn reduce_row_portable(&self, dst: &mut [u64], wide: &[u64], width: usize) {
@@ -172,23 +164,11 @@ impl PowerField {
     /// `dst[j] = a[j] * b[j] + c[j]`.
     pub fn mul_row(&self, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
         assert!(dst.len() >= 3 * width && [a, b, c].iter().all(|row| row.len() >= 3 * width));
-        #[cfg(all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "vpclmulqdq",
-            target_feature = "gfni"
-        ))]
-        if width.is_multiple_of(8) {
-            // SAFETY: as in `dot_pair`.
-            return unsafe { x86::mul_row(self, dst, a, b, c, width) };
-        }
-        #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-        if width.is_multiple_of(2) {
-            // SAFETY: the feature is enabled at compile time, and the assert above bounds every row.
-            return unsafe { neon::mul_row(self, dst, a, b, c, width) };
-        }
-        self.mul_row_portable(dst, a, b, c, width)
+        row_kernel!(
+            width,
+            mul_row(self, dst, a, b, c, width),
+            self.mul_row_portable(dst, a, b, c, width)
+        )
     }
 
     pub fn mul_row_portable(&self, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
@@ -198,11 +178,11 @@ impl PowerField {
         }
     }
 
-    pub fn fold_row_portable(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], rho: &Element, width: usize) {
+    pub fn fold_row_portable(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], challenge: &Element, width: usize) {
         for j in 0..width {
             let (l, h) = (get(lo, width, j), get(hi, width, j));
             let delta = [l[0] ^ h[0], l[1] ^ h[1], l[2] ^ h[2]];
-            let folded = self.mul(rho, &delta);
+            let folded = self.mul(challenge, &delta);
             for k in 0..3 {
                 dst[k * width + j] = l[k] ^ folded[k];
             }
@@ -296,7 +276,7 @@ mod x86 {
                     .zip([partial(&a0, &b0), partial(&xor3(&a0, &a1), &xor3(&b0, &b1))])
                 {
                     for s in 0..5 {
-                        *acc.get_unchecked_mut(s) = _mm512_xor_si512(acc[s], _mm512_xor_si512(p[0][s], p[1][s]));
+                        acc[s] = _mm512_xor_si512(acc[s], _mm512_xor_si512(p[0][s], p[1][s]));
                     }
                 }
             }
@@ -393,20 +373,27 @@ mod x86 {
         }
     }
 
-    pub unsafe fn fold_row(field: &PowerField, dst: &mut [u64], lo: &[u64], hi: &[u64], rho: &Element, width: usize) {
+    pub unsafe fn fold_row(
+        field: &PowerField,
+        dst: &mut [u64],
+        lo: &[u64],
+        hi: &[u64],
+        challenge: &Element,
+        width: usize,
+    ) {
         unsafe {
-            let rho: [__m512i; 3] = std::array::from_fn(|k| _mm512_set1_epi64(rho[k] as i64));
+            let challenge: [__m512i; 3] = std::array::from_fn(|k| _mm512_set1_epi64(challenge[k] as i64));
             for j in (0..width).step_by(8) {
                 let (l, h) = (load3(lo, width, j), load3(hi, width, j));
                 let delta = xor3(&l, &h);
-                // `delta * rho` for the even and the odd four.
+                // `delta * challenge` for the even and the odd four.
                 let mut sums = [[_mm512_setzero_si512(); 5]; 2];
                 for i in 0..3 {
                     for k in 0..3 {
                         sums[0][i + k] =
-                            _mm512_xor_si512(sums[0][i + k], _mm512_clmulepi64_epi128(delta[i], rho[k], 0x00));
+                            _mm512_xor_si512(sums[0][i + k], _mm512_clmulepi64_epi128(delta[i], challenge[k], 0x00));
                         sums[1][i + k] =
-                            _mm512_xor_si512(sums[1][i + k], _mm512_clmulepi64_epi128(delta[i], rho[k], 0x01));
+                            _mm512_xor_si512(sums[1][i + k], _mm512_clmulepi64_epi128(delta[i], challenge[k], 0x01));
                     }
                 }
                 let reduced: [[__m512i; 3]; 2] = std::array::from_fn(|half| {
@@ -429,6 +416,8 @@ mod x86 {
 mod neon {
     use core::arch::aarch64::*;
 
+    use primitives::field::gf2_64::aarch64::{pmull_hi_asm as mul_hi, pmull_lo_asm as mul_lo};
+
     use super::*;
 
     /// Entries `j` and `j + 1` of a row, a lane each, by word.
@@ -440,35 +429,6 @@ mod neon {
     #[inline(always)]
     unsafe fn xor3(a: &[uint64x2_t; 3], b: &[uint64x2_t; 3]) -> [uint64x2_t; 3] {
         unsafe { std::array::from_fn(|k| veorq_u64(a[k], b[k])) }
-    }
-
-    /// The product of the low lanes, and of the high lanes, written out: through the intrinsics,
-    /// which take the lanes as scalars, the compiler moves each operand over from a general
-    /// register.
-    #[inline(always)]
-    unsafe fn mul_lo(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        let out;
-        unsafe {
-            core::arch::asm!(
-                "pmull {o:v}.1q, {a:v}.1d, {b:v}.1d",
-                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
-                options(pure, nomem, nostack, preserves_flags),
-            );
-        }
-        out
-    }
-
-    #[inline(always)]
-    unsafe fn mul_hi(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        let out;
-        unsafe {
-            core::arch::asm!(
-                "pmull2 {o:v}.1q, {a:v}.2d, {b:v}.2d",
-                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
-                options(pure, nomem, nostack, preserves_flags),
-            );
-        }
-        out
     }
 
     /// The products `a[i] * b[k]` of the listed word pairs, of each lane, as 128-bit sums by
@@ -585,12 +545,19 @@ mod neon {
         }
     }
 
-    pub unsafe fn fold_row(field: &PowerField, dst: &mut [u64], lo: &[u64], hi: &[u64], rho: &Element, width: usize) {
+    pub unsafe fn fold_row(
+        field: &PowerField,
+        dst: &mut [u64],
+        lo: &[u64],
+        hi: &[u64],
+        challenge: &Element,
+        width: usize,
+    ) {
         unsafe {
-            let rho: [uint64x2_t; 3] = std::array::from_fn(|k| vdupq_n_u64(rho[k]));
+            let challenge: [uint64x2_t; 3] = std::array::from_fn(|k| vdupq_n_u64(challenge[k]));
             for j in (0..width).step_by(2) {
                 let l = load3(lo, width, j);
-                let sums = partial(&xor3(&l, &load3(hi, width, j)), &rho, ALL);
+                let sums = partial(&xor3(&l, &load3(hi, width, j)), &challenge, ALL);
                 let folded = reduce(field, &std::array::from_fn(|w| word(&sums, w)));
                 store3(dst, width, j, &xor3(&l, &folded));
             }
@@ -634,13 +601,16 @@ mod tests {
         let expected = (0..width).fold(F192::ZERO, |acc, j| acc + (a0[j] + a1[j]) * (b0[j] + b1[j]));
         assert_eq!(field.to_field(&field.reduce(&infinity)), expected);
 
-        let rho = rng.ext();
+        let challenge = rng.ext();
         let (mut fast, mut slow) = (vec![0u64; 3 * width], vec![0u64; 3 * width]);
-        field.fold_row(&mut fast, &ra0, &ra1, &field.from_field(rho), width);
-        field.fold_row_portable(&mut slow, &ra0, &ra1, &field.from_field(rho), width);
+        field.fold_row(&mut fast, &ra0, &ra1, &field.from_field(challenge), width);
+        field.fold_row_portable(&mut slow, &ra0, &ra1, &field.from_field(challenge), width);
         assert_eq!(fast, slow);
         for j in 0..width {
-            assert_eq!(field.to_field(&get(&fast, width, j)), a0[j] + rho * (a0[j] + a1[j]));
+            assert_eq!(
+                field.to_field(&get(&fast, width, j)),
+                a0[j] + challenge * (a0[j] + a1[j])
+            );
         }
         let wide: Vec<u64> = (0..4 * width).map(|_| rng.next_u64()).collect();
         field.reduce_row(&mut fast, &wide, width);

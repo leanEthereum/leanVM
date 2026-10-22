@@ -210,14 +210,18 @@ def keccak(
     """The leanVM hash (Keccak-256) of at most 128 bytes, one `KECCAK`
     instruction. The message cells are `a` (2 cells), `b` (2 cells) and `tail`
     (4 cells, none when omitted), and the message is their first `len` bytes
-    (all of them by default; bytes past it must be zero). `out` receives the
+    (all of them by default). A cell wholly past `len` must be a literal 0 (a
+    compile error otherwise); the bytes past `len` in the cell where the message
+    ends must be zero, which the circuit does not enforce. `out` receives the
     13-cell sponge state, whose first two cells are the digest, or just the
     digest when it is a 2-cell run (write-once: if `out` was already written,
     this asserts it equals the result).
 
-    `cap=` makes it a duplex step in overwrite mode (Fiat-Shamir): the eight
-    message cells absorbed into a zero rate, with no padding, and the capacity
-    the last five cells of `cap`, a previous 13-cell output (or a 5-cell run).
+    `cap=` makes it the Fiat-Shamir duplex step in overwrite mode, with no
+    padding: the eight message cells overwrite lanes 0..16, and lanes 16..25,
+    the transcript's capacity, are the last five cells of `cap`, a previous
+    13-cell output (or a 5-cell run). Lane 16 is in Keccak-256's 17-lane rate,
+    but the transcript keeps it.
 
     Message and output operands are StackBufs or slices `buf[lo:hi]` of the right
     size, or lists of words (a literal `0` is known to be zero); heap runs are
@@ -235,8 +239,8 @@ def keccak_cells(
 ) -> None:
     """The leanVM hash of the message `cells` holds (a StackBuf, a slice with
     compile-time bounds, a list of words, or a comprehension over `unroll`), its
-    first `len` bytes (all of them by default), 136 bytes a `KECCAK` instruction.
-    `out` is as for `keccak`.
+    first `len` bytes (all of them by default, and past `len` as for `keccak`),
+    136 bytes a `KECCAK` instruction. `out` is as for `keccak`.
 
     `state` continues a hash from a previous 13-cell output whose message so far
     is a whole number of 17-cell block pairs. `final=0` absorbs the cells

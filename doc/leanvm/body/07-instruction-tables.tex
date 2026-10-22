@@ -115,9 +115,9 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 
 \texttt{KECCAK} (\S\ref{sec:vm}) is proven by a GKR over the rounds of Keccak-$f[1600]$, one permutation per row (Annex~\ref{annex:keccak}). The prover commits each row's input and its state after $12$ rounds in one column $\qkeccak$ of $2^{6}$ slots per row: lane $\ell$ of the state after $12m$ rounds is slot $25m+\ell$. Nothing else of the permutation is committed.
 
-The input lanes $s_\ell$ and output lanes $t_\ell$ are columns of the table with no region of their own in the stack. Input lane $s_\ell$ is slot $\ell$ of $\qkeccak$, so a claim on it at $\zeta$ is a claim on $\qkeccak$ at $\zeta$ followed by the six bits of $\ell$. The output lanes are not committed: the claims on them are where the Keccak reduction starts. A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. The top limb is a literal $0$.
+The input lanes $\kin{\ell}$ and output lanes $\kout{\ell}$ are columns of the table with no region of their own in the stack. Input lane $\kin{\ell}$ is slot $\ell$ of $\qkeccak$, so a claim on it at $\zeta$ is a claim on $\qkeccak$ at $\zeta$ followed by the six bits of $\ell$. The output lanes are not committed: the claims on them are where the Keccak reduction starts. A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. The top limb is a literal $0$.
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; the operands, flags included; $\mathit{free}$; the lanes $s_\ell,t_\ell$, uncommitted; one count per cell, twenty-six; $r_{\mathrm{bc}}$. The addresses are the products $\gen^{k}\fp\cdot o$.
+\item \textbf{Columns:} $\pc,\fp$; the operands, flags included; $\mathit{free}$; the lanes $\kin{\ell},\kout{\ell}$, uncommitted; one count $r_c$ per cell $c<26$; $r_{\mathrm{bc}}$. The addresses are the products $\gen^{k}\fp\cdot o$.
 \item \textbf{Constraints:} none. The permutation is proved by the GKR of Annex~\ref{annex:keccak}.
 \item \textbf{Flushes:}
   \begin{itemize}
@@ -125,11 +125,11 @@ The input lanes $s_\ell$ and output lanes $t_\ell$ are columns of the table with
   \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{KEC},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}}}$.
   \item \textbf{Memory:} with $u_c,v_c$ the forms of cell $c$'s limbs above, under $\mathit{odd}_{\mathit{in}}$,
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r,u_i,v_i,0}\quad(i<4),\\
-      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{tail}},r,u_{4+i},v_{4+i},0}\quad(i<4),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{b8}},r,u_8,v_8,0},\\
-      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{cap}},r,s_{17+2i},s_{18+2i},0}\quad(i<4),
+      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r_i,u_i,v_i,0}\quad(i<4),\\
+      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{tail}},r_{4+i},u_{4+i},v_{4+i},0}\quad(i<4),\\
+      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{b8}},r_8,u_8,v_8,0},\\
+      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{cap}},r_{9+i},\kin{17+2i},\kin{18+2i},0}\quad(i<4),
     \end{align*}
-    and the same thirteen at $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$ for the $t_\ell$, under $\mathit{odd}_{\mathit{out}}$.
+    and the same thirteen at $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$ for the $\kout{\ell}$, under $\mathit{odd}_{\mathit{out}}$, with the counts $r_{13+c}$ in place of $r_c$.
   \end{itemize}
 \end{itemize}

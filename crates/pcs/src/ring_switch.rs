@@ -160,16 +160,6 @@ pub fn sample_map_challenges(ch: &mut ProverState) -> [F192; COMPOSITION_SHIFTS.
 // Building blocks
 // ---------------------------------------------------------------------------
 
-/// Standard inner product `sum_i a[i] * b[i]` over E.
-pub fn inner_product_ext(a: &[F192], b: &[F192]) -> F192 {
-    assert_eq!(a.len(), b.len());
-    let mut acc = F192::ZERO;
-    for (&x, &y) in a.iter().zip(b.iter()) {
-        acc += x * y;
-    }
-    acc
-}
-
 /// Compute the slice-MLE vector `s_hat_v` (length 64) from a packed witness
 /// and a tensor-expanded suffix point.
 ///
@@ -624,7 +614,10 @@ mod tests {
             }
         }
         assert_eq!(
-            inner_product_ext(&prefix_weights, &s_ref),
+            prefix_weights
+                .iter()
+                .zip(&s_ref)
+                .fold(F192::ZERO, |acc, (&w, &s)| acc + w * s),
             direct,
             "prefix x suffix split must factor the MLE"
         );

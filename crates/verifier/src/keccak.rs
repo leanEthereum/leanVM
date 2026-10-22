@@ -5,7 +5,7 @@
 //! in segment `m` is `eq(point, (y, m)) * weights[j] * mu[i]`. A pack is sixteen consecutive steps.
 
 use crate::field::{E, ONE, ZERO};
-use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO};
+use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO, ROUNDS};
 use crate::layout::K_BITS;
 use crate::multilinear::{dot, eq_kernel, log2_ceil, multilinear_eval, poly_eval};
 use crate::transcript::{Transcript, sumcheck};
@@ -18,7 +18,6 @@ const LANES: usize = 25;
 const BITS: usize = 64 * LANES;
 const LOCAL_BITS: usize = 11; // a bit position is z + 64 * lane, in a cube of 2048
 const LANE_BITS: usize = 5;
-const ROUNDS: usize = 24;
 
 /// Sixteen bits embed in a binary polynomial of degree at most 23, and a product of two embeddings projects to the
 /// AND of what they embed: each unit vector's embedding, and per bit of the projection the product coefficients it is
@@ -155,10 +154,10 @@ fn verify_layer(
     let mut point = Vec::with_capacity(claim.point.len());
     for &r in &claim.point {
         let message = transcript.sumcheck_round_poly(3, value, Some(r))?;
-        let rho = transcript.sample();
-        value = (ONE + r + rho) * poly_eval(&message, rho);
-        scale *= ONE + r + rho;
-        point.push(rho);
+        let challenge = transcript.sample();
+        value = (ONE + r + challenge) * poly_eval(&message, challenge);
+        scale *= ONE + r + challenge;
+        point.push(challenge);
     }
 
     // 4] The bit position: `sum_j w[j] (kappa T[j] + (kappa + T[j + 1]) T[j + 2])`, the weights one more multilinear factor.
@@ -173,13 +172,11 @@ fn verify_layer(
     }
 
     // 5] `t[k] = sum_j eq[j] T[j + k]`: one claim on the state before chi, then on the round's input through the linear map.
+    // Position `j` is `k` columns along from `along(j, 5 - k)`.
     let beta = transcript.sample();
-    let mut weights = vec![ZERO; BITS];
-    for j in 0..BITS {
-        for (k, scalar) in [ONE, beta, beta * beta].into_iter().enumerate() {
-            weights[along(j, k)] += scalar * eq[j];
-        }
-    }
+    let weights: Vec<E> = (0..BITS)
+        .map(|j| eq[j] + beta * (eq[along(j, 4)] + beta * eq[along(j, 3)]))
+        .collect();
     Ok(Claim {
         value: t[0] + beta * (t[1] + beta * t[2]),
         mu,
@@ -212,10 +209,10 @@ fn open(
 ) -> Result<(Vec<E>, [E; 64], E), VerifierError> {
     let (slot, value) = sumcheck(transcript, value, 3, &vec![None; shape.slot_bits()])?;
     let mut rows = slot_weights(shape, claim, first, count);
-    for &rho in &slot {
+    for &challenge in &slot {
         rows = rows
             .chunks(2)
-            .map(|pair| std::array::from_fn(|z| pair[0][z] + rho * (pair[0][z] + pair[1][z])))
+            .map(|pair| std::array::from_fn(|z| pair[0][z] + challenge * (pair[0][z] + pair[1][z])))
             .collect();
     }
     Ok((slot, rows[0], value))

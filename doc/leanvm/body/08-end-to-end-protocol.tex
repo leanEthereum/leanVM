@@ -116,7 +116,7 @@ The Fiat-Shamir initial state (\S\ref{sec:e2e-fiat-shamir}) is seeded by the pub
 \paragraph{KECCAK validity.}
 
 \begin{enumerate}
-\item \textbf{Verifier.} Samples and sends the first claim's challenges, $r_{\mathrm{seg}}\in\E$ and $r_{\mathrm{lane}}\in\E^{5}$. The claim is made at the \texttt{KECCAK} table's point $\fc_{<\kbatch}$, with $\kbatch$ its log-height (\S\ref{keccak:claims}, \S\ref{keccak:segments}).
+\item \textbf{Verifier.} Samples and sends the first claim's challenges, $r_{\mathrm{seg}}\in\E$ and $r_{\mathrm{lane}}\in\E^{5}$. The claim is made at the \texttt{KECCAK} table's point $\fc_{<\kbatch}$ (\S\ref{keccak:claims}, \S\ref{keccak:segments}).
 \item \textbf{Prover \& Verifier.} The prover sends the part of the first claim on the committed state after twelve rounds; the part on the output is the table's claims on its output lanes. The parties run the layers of Protocol~\ref{keccak:protocol} with the middle state committed (\S\ref{keccak:segments}): twelve, one per round of a segment, which take the claim to one on the committed states twelve rounds earlier (\S\ref{keccak:layer}).
 \item \textbf{Prover \& Verifier.} Open the part on the committed state: a sumcheck over the slot leaves one evaluation of $\qkeccak$, an ordinary column claim, which joins the pool last (\S\ref{keccak:segments}).
 \item \textbf{Prover \& Verifier.} Open the last claim: a sumcheck over the permutations of a pack, then over the slot, leaves the $64$ bit slices of $\qkeccak$ at one point, which the prover sends (\S\ref{keccak:openings}).

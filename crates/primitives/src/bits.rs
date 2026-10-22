@@ -66,6 +66,20 @@ fn bit_transpose_64bytes_portable(input: &[u8; 64], output: &mut [u8; 64]) {
     }
 }
 
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
+#[target_feature(enable = "avx512f,avx512vbmi,gfni")]
+unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
+    use core::arch::x86_64::*;
+
+    // SAFETY: each load and store is one 64-byte array.
+    unsafe {
+        let rows = bit_transpose_64bytes_m512(_mm512_loadu_si512(input.as_ptr().cast()));
+        _mm512_storeu_si512(output.as_mut_ptr().cast(), rows);
+    }
+}
+
+/// [`bit_transpose_64bytes`] in a register.
+///
 /// `vpermb` gathers each byte column into a word, rows reversed.
 ///
 /// `vgf2p8affineqb` then computes, per byte `j` of the constant and word `A`:
@@ -76,8 +90,8 @@ fn bit_transpose_64bytes_portable(input: &[u8; 64], output: &mut [u8; 64]) {
 ///
 /// With constant byte `j = 1 << j`, that is bit `j` of `A`'s byte `7 - i`: the reversal undoes it.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512vbmi", target_feature = "gfni"))]
-#[target_feature(enable = "avx512f,avx512vbmi,gfni")]
-unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
+#[inline(always)]
+pub fn bit_transpose_64bytes_m512(input: core::arch::x86_64::__m512i) -> core::arch::x86_64::__m512i {
     use core::arch::x86_64::*;
 
     // Word `b`, byte `j`: input row `7 - j`, column `b`.
@@ -90,15 +104,11 @@ unsafe fn bit_transpose_64bytes_gfni(input: &[u8; 64], output: &mut [u8; 64]) {
         }
         idx
     };
-    // SAFETY: each load and store is one 64-byte array.
+    // SAFETY: the features are enabled at compile time, and `IDX` is 64 bytes.
     unsafe {
-        let columns = _mm512_permutexvar_epi8(
-            _mm512_loadu_si512(IDX.as_ptr().cast()),
-            _mm512_loadu_si512(input.as_ptr().cast()),
-        );
+        let columns = _mm512_permutexvar_epi8(_mm512_loadu_si512(IDX.as_ptr().cast()), input);
         let unit = _mm512_set1_epi64(0x8040_2010_0804_0201_u64 as i64);
-        let rows = _mm512_gf2p8affine_epi64_epi8::<0>(unit, columns);
-        _mm512_storeu_si512(output.as_mut_ptr().cast(), rows);
+        _mm512_gf2p8affine_epi64_epi8::<0>(unit, columns)
     }
 }
 

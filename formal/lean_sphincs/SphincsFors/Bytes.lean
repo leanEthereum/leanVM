@@ -53,9 +53,8 @@ theorem fieldBytes_layout_example :
 theorem fieldBytes_length (fields : TweakFields) : (fieldBytes fields).length = 16 := by
   simp [fieldBytes, bytesLE_length]
 
-/-- A digest call hashes 80 bytes, `P || A || m || rho`: the first 64-byte block ends with the
-message and the second is the randomizer (`randomizer_and_digest_inputs` in
-`crates/sphincs/src/scheme.rs`). -/
+/-- A digest call hashes 80 bytes, `P || A || m || rho`, one 136-byte Keccak block
+(`message_digest` in `crates/signatures/src/lean_sphincs/scheme.rs`). -/
 theorem messageDigestInput_length (parameter : PublicParameter) (root : Digest) (message : Message)
     (randomness : Randomness) (call : Fin 2) :
     (tweakableHashInput parameter (.message call)

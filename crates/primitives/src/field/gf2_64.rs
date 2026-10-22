@@ -219,6 +219,43 @@ pub mod aarch64 {
         }
     }
 
+    /// The product of the low lanes, written out: `vmull_p64` takes the lanes as scalars, so
+    /// through it the compiler moves each operand over from a general register.
+    ///
+    /// # Safety
+    /// Requires the `aes` target feature; see [`pmull`].
+    #[inline(always)]
+    pub unsafe fn pmull_lo_asm(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        let out;
+        // SAFETY: one PMULL on vector registers.
+        unsafe {
+            core::arch::asm!(
+                "pmull {o:v}.1q, {a:v}.1d, {b:v}.1d",
+                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
+                options(pure, nomem, nostack, preserves_flags),
+            );
+        }
+        out
+    }
+
+    /// [`pmull_hi`], written out as [`pmull_lo_asm`] is.
+    ///
+    /// # Safety
+    /// Requires the `aes` target feature; see [`pmull`].
+    #[inline(always)]
+    pub unsafe fn pmull_hi_asm(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
+        let out;
+        // SAFETY: one PMULL2 on vector registers.
+        unsafe {
+            core::arch::asm!(
+                "pmull2 {o:v}.1q, {a:v}.2d, {b:v}.2d",
+                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
+                options(pure, nomem, nostack, preserves_flags),
+            );
+        }
+        out
+    }
+
     /// Reduce two 128-bit carry-less products into one lane pair: `[reduce(p0), reduce(p1)]`.
     ///
     /// Each product reduces in place, then one zip pairs the two low lanes:

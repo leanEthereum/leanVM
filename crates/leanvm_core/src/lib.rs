@@ -18,7 +18,7 @@
 //! - [`tables`]: the six instruction tables (columns, flushes, constraints).
 //! - [`cpu`]: whole-program assembly, control flow, and the prove/verify entry points.
 //! - [`keccak`]: the `KECCAK` glue: the Keccak GKR reduction over the same commitment.
-//! - [`vmhash`]: VM-native hashing (the one-block hash every Merkle node and transcript step uses).
+//! - [`vmhash`]: VM-native hashing (the one-block hash every Merkle node uses).
 
 pub mod colval;
 pub mod constraints;

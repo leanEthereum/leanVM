@@ -29,7 +29,7 @@ impl Proof {
     }
 }
 
-pub const DS_OBSERVE: u64 = 1;
+const DS_OBSERVE: u64 = 1;
 const DS_POW_NONCE: u64 = 4;
 /// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, three limbs and a tag.
 const RATE_SCALARS: usize = 4;
@@ -122,6 +122,11 @@ impl<'a> Transcript<'a> {
 
     pub fn sample(&mut self) -> E {
         self.sponge.sample()
+    }
+
+    /// How many scalars of the stream have been read.
+    pub fn stream_offset(&self) -> usize {
+        self.stream_offset
     }
 
     pub fn samples(&mut self, count: usize) -> Vec<E> {

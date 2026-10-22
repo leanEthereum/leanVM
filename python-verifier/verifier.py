@@ -358,15 +358,13 @@ RATE_SCALARS = 4
 LANE_MASK = 2**64 - 1
 
 
-def compress(left: Sequence[K | int], right: Sequence[K | int]) -> tuple[int, int, int, int]:
-    """Hash two four-word operands, a word being a plain integer or the K element standing for it."""
-    return unpack("<4Q", keccak_hash(b"".join(int(x).to_bytes(8, "little") for x in (*left, *right))).value)
-
-
 def keccak_f(lanes: Sequence[int]) -> list[int]:
     """Keccak-f[1600]."""
     a = list(lanes)
-    rot = lambda x, n: ((x << n) | (x >> (64 - n))) & LANE_MASK if n else x  # noqa: E731
+
+    def rot(x: int, n: int) -> int:
+        return ((x << n) | (x >> (64 - n))) & LANE_MASK if n else x
+
     for rc in KECCAK_RC:
         c = [a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20] for x in range(5)]
         a = [a[i] ^ c[(i - 1) % 5] ^ rot(c[(i + 1) % 5], 1) for i in range(25)]
@@ -684,7 +682,6 @@ NUM_GLOBAL_COLUMNS = 6
 MEMORY_0, MEMORY_1, MEMORY_2, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS, QKECCAK = range(NUM_GLOBAL_COLUMNS)
 
 K_BITS = 64
-LOG_PACKING = log2_ceil(K_BITS)  # bits per committed K-element (pcs::pack::LOG_PACKING)
 
 # The Keccak reduction commits a step's state every KECCAK_DEPTH rounds but the output, a lane per
 # slot of q_keccak and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
@@ -909,7 +906,7 @@ def _flushes_keccak() -> Flushes:
     even, odd = _keccak_cell_lanes(False), _keccak_cell_lanes(True)
     for side, (prefix, flag, missing) in enumerate((("in", odd_in, free), ("out", odd_out, None))):
 
-        def lane(lane: int | None) -> int | None:
+        def lane(lane: int | None, prefix: str = prefix) -> int | None:
             return None if lane is None else _cols(KECCAK_COLUMNS, f"{prefix}_{lane}")[0]
 
         for cell in range(13):
@@ -1320,10 +1317,10 @@ def verify_keccak_layer(transcript: Transcript, log_steps: int, step: int, claim
     point = []
     for r in claim.point:
         message = transcript.sumcheck_round_poly(3, value, r)
-        rho = transcript.sample()
-        value = (ONE + r + rho) * poly_eval(message, rho)
-        scale *= ONE + r + rho
-        point.append(rho)
+        challenge = transcript.sample()
+        value = (ONE + r + challenge) * poly_eval(message, challenge)
+        scale *= ONE + r + challenge
+        point.append(challenge)
 
     # 4] The bit position: `sum_j w[j] (kappa T[j] + (kappa + T[j + 1]) T[j + 2])`, the weights one more multilinear factor.
     local, value = sumcheck(transcript, value, 4, [None] * KECCAK_LOCAL_BITS)
@@ -1335,11 +1332,9 @@ def verify_keccak_layer(transcript: Transcript, log_steps: int, step: int, claim
     )
 
     # 5] `t[k] = sum_j eq[j] T[j + k]`: one claim on the state before chi, then on the round's input through the linear map.
+    # Position `j` is `k` columns along from `keccak_along(j, 5 - k)`.
     beta = transcript.sample()
-    weights = [ZERO] * KECCAK_BITS
-    for j in range(KECCAK_BITS):
-        for k, scalar in enumerate((ONE, beta, beta * beta)):
-            weights[keccak_along(j, k)] += scalar * eq[j]
+    weights = [eq[j] + beta * (eq[keccak_along(j, 4)] + beta * eq[keccak_along(j, 3)]) for j in range(KECCAK_BITS)]
     return KeccakClaim(t[0] + beta * (t[1] + beta * t[2]), mu, tuple(point), keccak_linear_transpose(weights))
 
 
@@ -1358,8 +1353,8 @@ def _keccak_open(transcript: Transcript, log_steps: int, claim: KeccakClaim, fir
     """A sumcheck over the slot: the point it ends on, the weight the claim puts on each slice there, and what is left to match."""
     slot, value = sumcheck(transcript, value, 3, [None] * QKECCAK_SLOT_BITS)
     rows = _keccak_slot_weights(log_steps, claim, first, count)
-    for rho in slot:
-        rows = [[lo + rho * (lo + hi) for lo, hi in zip(rows[2 * i], rows[2 * i + 1], strict=True)] for i in range(len(rows) // 2)]
+    for challenge in slot:
+        rows = [[lo + challenge * (lo + hi) for lo, hi in zip(rows[2 * i], rows[2 * i + 1], strict=True)] for i in range(len(rows) // 2)]
     return slot, rows[0], value
 
 

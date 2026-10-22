@@ -130,23 +130,18 @@ pub struct Witness {
 /// Transpose a 64 by 64 bit matrix: bit `c` of row `r` becomes bit `r` of row `c`.
 #[inline]
 pub fn transpose64(a: &mut [u64; 64]) {
-    #[cfg(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512vbmi",
-        target_feature = "gfni"
-    ))]
-    // SAFETY: the features are enabled at compile time.
-    unsafe {
-        x86::transpose64(a)
+    cfg_select! {
+        all(
+            target_arch = "x86_64",
+            target_feature = "avx512f",
+            target_feature = "avx512vbmi",
+            target_feature = "gfni"
+        ) => {
+            // SAFETY: the features are enabled at compile time.
+            unsafe { x86::transpose64(a) }
+        }
+        _ => transpose64_portable(a),
     }
-    #[cfg(not(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512vbmi",
-        target_feature = "gfni"
-    )))]
-    transpose64_portable(a)
 }
 
 pub fn transpose64_portable(a: &mut [u64; 64]) {
@@ -323,17 +318,7 @@ impl Witness {
 mod x86 {
     use core::arch::x86_64::*;
 
-    /// Byte `8 * b + j` of a group of eight rows gathered: byte `b` of row `7 - j`, so that a
-    /// word holds an 8 by 8 block, rows reversed as the affine map reads its matrix.
-    const GATHER: [u8; 64] = {
-        let mut idx = [0u8; 64];
-        let mut i = 0;
-        while i < 64 {
-            idx[i] = ((7 - i % 8) * 8 + i / 8) as u8;
-            i += 1;
-        }
-        idx
-    };
+    use primitives::bits::bit_transpose_64bytes_m512;
 
     /// The register of group `g` after the word transpose: groups 0, 1, 4, 5, 2, 3, 6, 7.
     const ORDER: [usize; 8] = [0, 1, 4, 5, 2, 3, 6, 7];
@@ -355,13 +340,9 @@ mod x86 {
     #[inline(always)]
     pub unsafe fn transpose64(a: &mut [u64; 64]) {
         unsafe {
-            let unit = _mm512_set1_epi64(0x8040_2010_0804_0201_u64 as i64);
-            let gather = _mm512_loadu_si512(GATHER.as_ptr().cast());
             // Word `b` of register `g`: the transposed block of rows `8 * g ..` and byte `b`.
-            let w: [__m512i; 8] = std::array::from_fn(|g| {
-                let rows = _mm512_loadu_si512(a.as_ptr().add(8 * g).cast());
-                _mm512_gf2p8affine_epi64_epi8::<0>(unit, _mm512_permutexvar_epi8(gather, rows))
-            });
+            let w: [__m512i; 8] =
+                std::array::from_fn(|g| bit_transpose_64bytes_m512(_mm512_loadu_si512(a.as_ptr().add(8 * g).cast())));
             // Word `b` of every register into register `b`: halves, quarters, then words.
             let mut r = w;
             for g in 0..4 {

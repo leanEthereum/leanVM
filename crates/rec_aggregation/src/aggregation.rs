@@ -233,7 +233,7 @@ fn lean_sphincs_claim_cells((pk, message): &LeanSphincsClaim) -> [F192; 4] {
 }
 
 /// The signer-set digest: the plain hash of the leanXMSS list's digest then the
-/// leanSPHINCS list's, one 64-byte block, one permutation (`main` in the guest). Each
+/// leanSPHINCS list's, a 64-byte message, one block, one permutation (`main` in the guest). Each
 /// list digest binds its own length through the hash's padding, so the pair binds
 /// both lists whole.
 fn signers_hash(xmss_signers: &[LeanXmssClaim], lean_sphincs_signers: &[LeanSphincsClaim]) -> [F192; 2] {
@@ -365,8 +365,8 @@ fn statement_digest(signers_hash: [F192; 2], da_digest: [u8; 32], defer: &Deferr
 }
 
 /// The deferred-claim data the guest binds to the outer public input: the outer
-/// verifier checks each claim natively (`doc/leanvm/main.tex` §Deferred evaluation claims;
-/// n_rec = 1 forwards fresh claims without batching).
+/// verifier checks each claim natively (`doc/leanvm/main.tex` §Deferred evaluation claims).
+/// A child's fresh claim is batched with its carried one at every child count, one included.
 struct DeferredSubproof {
     public_input: [F192; 2],
     bytecode_row_point: Vec<F192>,
@@ -2640,7 +2640,6 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     let defer_cells = kbc + log2_bc_cols + 1;
     ps("STMT_HEADER", STATEMENT_HEADER.to_string());
     let pairs = defer_cells.div_ceil(2);
-    ps("STMT_ODD", (defer_cells % 2).to_string());
     ps("STMT_PAIRS", pairs.to_string());
     ps("KECCAK_STATE", leanvm_core::keccak::STATE_CELLS.to_string());
 

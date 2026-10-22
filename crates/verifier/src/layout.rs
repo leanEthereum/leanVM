@@ -2,7 +2,7 @@
 
 use crate::bytecode::Bytecode;
 use crate::field::{E, GEN, ONE, ZERO};
-use crate::hash::{STATE_LANES, keccak_f};
+use crate::hash::{ROUNDS, STATE_LANES, keccak_f};
 use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
 use std::collections::BTreeMap;
@@ -77,7 +77,7 @@ pub const K_BITS: usize = 64;
 // The Keccak reduction commits a step's state every KECCAK_DEPTH rounds but the output, a lane per
 // slot of q_keccak and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
 pub const KECCAK_DEPTH: usize = 12;
-pub const QKECCAK_SLOT_BITS: usize = 6; // log2_ceil(25 * segments), two segments of 12 rounds
+pub const QKECCAK_SLOT_BITS: usize = log2_ceil((STATE_LANES * (ROUNDS / KECCAK_DEPTH)) as u64);
 pub const KECCAK_MIN_STEPS_LOG: usize = 9; // the reduction is sized for at least one block of 512 steps
 
 pub const MAX_TABLE_LOG: usize = 32;

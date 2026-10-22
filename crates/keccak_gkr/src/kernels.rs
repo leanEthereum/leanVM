@@ -9,6 +9,29 @@ use primitives::field::gf2_64::mul_wide;
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
 
+cfg_select! {
+    all(
+        target_arch = "x86_64",
+        target_feature = "avx512f",
+        target_feature = "avx512bw",
+        target_feature = "vpclmulqdq",
+        target_feature = "gfni"
+    ) => {
+        use x86 as simd;
+    }
+    all(target_arch = "aarch64", target_feature = "aes") => {
+        use neon as simd;
+    }
+    _ => {
+        mod simd {
+            pub use super::{
+                embed_portable as embed, fold_group_portable as fold_group, products_portable as products,
+                skip_row_portable as skip_row,
+            };
+        }
+    }
+}
+
 /// Packs in a block position.
 pub const PACKS: usize = 32;
 /// Packs the bit-level rounds fold together: half a block.
@@ -113,33 +136,7 @@ pub fn extend(packs: &[u32; PACKS], out: &mut [u32; SLOTS]) {
 /// The 32 packs of a block position, embedded.
 #[inline(always)]
 pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
-    #[cfg(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
-    ))]
-    // SAFETY: the features are enabled at compile time.
-    unsafe {
-        x86::embed(words)
-    }
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    // SAFETY: the feature is enabled at compile time.
-    unsafe {
-        neon::embed(words)
-    }
-    #[cfg(not(any(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "vpclmulqdq",
-            target_feature = "gfni"
-        ),
-        all(target_arch = "aarch64", target_feature = "aes")
-    )))]
-    embed_portable(words)
+    simd::embed(words)
 }
 
 pub fn embed_portable(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
@@ -149,33 +146,7 @@ pub fn embed_portable(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
 /// The unprojected `chi` of 32 packs: `ones * (a + c) + b * c`.
 #[inline(always)]
 pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
-    #[cfg(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
-    ))]
-    // SAFETY: the features are enabled at compile time.
-    unsafe {
-        x86::products(a, b, c)
-    }
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    // SAFETY: the feature is enabled at compile time.
-    unsafe {
-        neon::products(a, b, c)
-    }
-    #[cfg(not(any(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "vpclmulqdq",
-            target_feature = "gfni"
-        ),
-        all(target_arch = "aarch64", target_feature = "aes")
-    )))]
-    products_portable(a, b, c)
+    simd::products(a, b, c)
 }
 
 pub fn products_portable(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
@@ -187,33 +158,7 @@ pub fn products_portable(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -
 /// `acc[p] += sum over x of weights[x] * e[x + 1][p] * e[x + 2][p]`.
 #[inline(always)]
 pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
-    #[cfg(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
-    ))]
-    // SAFETY: the features are enabled at compile time.
-    unsafe {
-        x86::skip_row(acc, e, weights)
-    }
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    // SAFETY: the feature is enabled at compile time.
-    unsafe {
-        neon::skip_row(acc, e, weights)
-    }
-    #[cfg(not(any(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "vpclmulqdq",
-            target_feature = "gfni"
-        ),
-        all(target_arch = "aarch64", target_feature = "aes")
-    )))]
-    skip_row_portable(acc, e, weights)
+    simd::skip_row(acc, e, weights)
 }
 
 pub fn skip_row_portable(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
@@ -231,39 +176,14 @@ pub fn skip_row_portable(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u
 /// `sum over a group's packs of weights[.][q] * e[q]`, as three partial products.
 #[inline(always)]
 pub fn fold_group(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
-    #[cfg(all(
-        target_arch = "x86_64",
-        target_feature = "avx512f",
-        target_feature = "avx512bw",
-        target_feature = "vpclmulqdq",
-        target_feature = "gfni"
-    ))]
-    // SAFETY: the features are enabled at compile time.
-    unsafe {
-        x86::fold_group(e, weights)
-    }
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    // SAFETY: the feature is enabled at compile time.
-    unsafe {
-        neon::fold_group(e, weights)
-    }
-    #[cfg(not(any(
-        all(
-            target_arch = "x86_64",
-            target_feature = "avx512f",
-            target_feature = "avx512bw",
-            target_feature = "vpclmulqdq",
-            target_feature = "gfni"
-        ),
-        all(target_arch = "aarch64", target_feature = "aes")
-    )))]
-    fold_group_portable(e, weights)
+    simd::fold_group(e, weights)
 }
 
 pub fn fold_group_portable(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
     std::array::from_fn(|k| (0..GROUP).fold(0, |acc, q| acc ^ mul_wide(e[q] as u64, weights[k][q])))
 }
 
+/// Compiled only where its features are, so its kernels are safe to call.
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "avx512f",
@@ -295,7 +215,7 @@ mod x86 {
     });
 
     #[inline(always)]
-    pub unsafe fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
+    pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
         unsafe {
             let m = &*MATRICES;
             let v = _mm512_loadu_si512(words.as_ptr().cast());
@@ -344,7 +264,7 @@ mod x86 {
     }
 
     #[inline(always)]
-    pub unsafe fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
+    pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
         unsafe {
             let ones = _mm512_set1_epi64(RMFE.ones as i64);
             let mut out = [0u64; PACKS];
@@ -379,7 +299,7 @@ mod x86 {
 
     /// The accumulators of a run of patterns stay in registers across the row.
     #[inline(always)]
-    pub unsafe fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
+    pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
         unsafe {
             let w: [[__m512i; 3]; 5] =
                 std::array::from_fn(|x| std::array::from_fn(|k| _mm512_set1_epi64(weights[x][k] as i64)));
@@ -404,7 +324,7 @@ mod x86 {
     }
 
     #[inline(always)]
-    pub unsafe fn fold_group(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
+    pub fn fold_group(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
         unsafe {
             let mut out = [0u128; 3];
             for k in 0..3 {
@@ -424,11 +344,16 @@ mod x86 {
     }
 }
 
+/// Compiled only where its feature is, so its kernels are safe to call.
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
 mod neon {
     use core::arch::aarch64::*;
     use core::mem::transmute;
     use std::sync::LazyLock;
+
+    use primitives::field::gf2_64::aarch64::{
+        pmull, pmull_hi as mul_hi_scheduled, pmull_hi_asm as mul_hi, pmull_lo_asm as mul_lo,
+    };
 
     use super::*;
 
@@ -449,7 +374,7 @@ mod neon {
     /// A linear map is the sum of its nibbles' images, so each byte of sixteen embeddings is four
     /// table lookups.
     #[inline(always)]
-    pub unsafe fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
+    pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
         unsafe {
             let t: [uint8x16_t; 12] = std::array::from_fn(|i| vld1q_u8(NIBBLES[i].as_ptr()));
             let mask = vdupq_n_u8(0x0f);
@@ -488,49 +413,16 @@ mod neon {
         unsafe { vmovl_u32(vld1_u32(p)) }
     }
 
-    /// The product of the low lanes, and of the high lanes, written out: the intrinsics take the
-    /// lanes as scalars, so the compiler splits loads in general registers and moves each
-    /// operand over on its own.
-    #[inline(always)]
-    unsafe fn mul_lo(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        let out;
-        unsafe {
-            core::arch::asm!(
-                "pmull {o:v}.1q, {a:v}.1d, {b:v}.1d",
-                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
-                options(pure, nomem, nostack, preserves_flags),
-            );
-        }
-        out
-    }
-
-    #[inline(always)]
-    unsafe fn mul_hi(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        let out;
-        unsafe {
-            core::arch::asm!(
-                "pmull2 {o:v}.1q, {a:v}.2d, {b:v}.2d",
-                o = lateout(vreg) out, a = in(vreg) a, b = in(vreg) b,
-                options(pure, nomem, nostack, preserves_flags),
-            );
-        }
-        out
-    }
-
-    /// The same through the intrinsics, for [`skip_row`]: its products are the bound there, and
-    /// the compiler schedules them better around the rest of the loop than written-out ones.
+    /// The low lanes' product through the intrinsics, as [`mul_hi_scheduled`] is, for [`skip_row`]:
+    /// its products are the bound there, and the compiler schedules them better around the rest of
+    /// the loop than written-out ones.
     #[inline(always)]
     unsafe fn mul_lo_scheduled(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        unsafe { transmute::<u128, uint64x2_t>(vmull_p64(vgetq_lane_u64(a, 0), vgetq_lane_u64(b, 0))) }
+        unsafe { pmull(vgetq_lane_u64(a, 0), vgetq_lane_u64(b, 0)) }
     }
 
     #[inline(always)]
-    unsafe fn mul_hi_scheduled(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        unsafe { transmute::<u128, uint64x2_t>(vmull_high_p64(vreinterpretq_p64_u64(a), vreinterpretq_p64_u64(b))) }
-    }
-
-    #[inline(always)]
-    pub unsafe fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
+    pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
         unsafe {
             let ones = vdupq_n_u64(RMFE.ones as u64);
             let mut out = [0u64; PACKS];
@@ -550,9 +442,9 @@ mod neon {
     }
 
     /// Two slots at a time, their sums over the row kept in registers. The padding slots are
-    /// skipped: [`extend`] leaves them zero.
+    /// skipped: [`extend`] never writes them, and nothing reads their sums.
     #[inline(always)]
-    pub unsafe fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
+    pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
         unsafe {
             let w: [[uint64x2_t; 3]; 5] = std::array::from_fn(|x| std::array::from_fn(|k| vdupq_n_u64(weights[x][k])));
             for p in (0..2 * MIXED).step_by(2) {
@@ -578,7 +470,7 @@ mod neon {
     }
 
     #[inline(always)]
-    pub unsafe fn fold_group(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
+    pub fn fold_group(e: &[u32; GROUP], weights: &[[u64; GROUP]; 3]) -> [u128; 3] {
         unsafe {
             std::array::from_fn(|k| {
                 let mut acc = vdupq_n_u64(0);

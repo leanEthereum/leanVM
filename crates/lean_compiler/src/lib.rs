@@ -258,7 +258,7 @@ pub fn disassemble(prog: &[Op]) -> String {
             } => {
                 let layout = |odd: bool| if odd { "odd" } else { "even" };
                 format!(
-                    "KECCAK   fp[{out}..+13] {} = keccak_f(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], b8=fp[{b8}], cap=fp[{cap}..+4]) {}",
+                    "KECCAK fp[{out}..+13] {} = keccak_f(fp[{}],fp[{}],fp[{}],fp[{}], tail=fp[{tail}..+4], b8=fp[{b8}], cap=fp[{cap}..+4]) {}",
                     layout(*out_odd),
                     m[0],
                     m[1],

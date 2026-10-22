@@ -8,9 +8,11 @@
 //! are only ever needed as the one they add up to: the committed polynomial at that point.
 
 use fiat_shamir::transcript::ProverState;
+use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use primitives::field::{F64, F192, F192Unreduced};
 use primitives::multilinear::{eq_table, mle_eval, poly_eval};
 
+use crate::basis::byte_sums;
 use crate::keccak::{BITS, LANES, along, iota_bit};
 use crate::protocol::{Claim, dot};
 use crate::witness::{BLOCK_WORDS, Shape, Witness};
@@ -35,6 +37,27 @@ pub struct WordOpening {
 pub struct Openings {
     pub outputs: Option<WordOpening>,
     pub inputs: Opening,
+}
+
+impl Openings {
+    /// The openings as claims on the committed states, placed at `offset` of the stack: the
+    /// inputs' ring-switched, the outputs' a point claim to add to the batch.
+    pub fn into_pcs_claims(self, offset: usize) -> (RingSwitchOpen, Option<StackClaim>) {
+        let ring = RingSwitchOpen {
+            offset,
+            qkeccak_vars: self.inputs.point.len(),
+            claims: vec![RingSwitchClaim {
+                suffix_point: self.inputs.point,
+                s_hat_v: Some(self.inputs.slices),
+            }],
+        };
+        let outputs = self.outputs.map(|outputs| StackClaim::Point {
+            offset,
+            low_point: outputs.point,
+            value: outputs.value,
+        });
+        (ring, outputs)
+    }
 }
 
 /// The weight a claim puts on each `(slot, z)`: its position weights, on the slots of the states
@@ -71,21 +94,6 @@ fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -> [u64; BLO
     std::array::from_fn(|w| chi_word(block, round, j, w))
 }
 
-fn subset_sums(weights: &[F192]) -> Vec<[F192; 256]> {
-    weights
-        .chunks(8)
-        .map(|chunk| {
-            let mut t = [F192::ZERO; 256];
-            for (bit, &w) in chunk.iter().enumerate() {
-                for byte in 1usize << bit..2 << bit {
-                    t[byte] = t[byte - (1 << bit)] + w;
-                }
-            }
-            t
-        })
-        .collect()
-}
-
 /// Every position of every committed state, at a pack `point`, keeping the sixteen instances
 /// of a pack apart: entry `(i + 16 * slot) * 64 + z`.
 ///
@@ -98,7 +106,7 @@ fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
     let (low, runs) = (eq_table(&point[..5 + run_vars]), eq_table(&point[5 + run_vars..]));
     // Table `4 * block + p`: pack `p + 4 * w` of the run's block, over the eight words `w`.
     let tables: Vec<[F192; 256]> = (0..4 << run_vars)
-        .map(|t| subset_sums(&(0..8).map(|w| low[t % 4 + 4 * w + 32 * (t / 4)]).collect::<Vec<_>>())[0])
+        .map(|t| byte_sums(&std::array::from_fn(|w| low[t % 4 + 4 * w + 32 * (t / 4)])))
         .collect();
     // A task per position of a committed lane: a task per lane would leave threads idle.
     let positions: Vec<[F192; 16]> = parallel::map_collect(64 * shape.slots(), |task| {
@@ -112,7 +120,7 @@ fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
                 // Byte `8 * b + t` gathers bit `t` of byte `b` of each word: instance
                 // `8 * (b % 2) + t` of pack `b / 2`, across the eight words.
                 let mut gathered = [0u8; 64];
-                primitives::bits::bit_transpose_64bytes(bytes_of(&words), &mut gathered);
+                primitives::bits::bit_transpose_64bytes(&le_bytes(&words), &mut gathered);
                 for (i, sum) in sums.iter_mut().enumerate() {
                     for p in 0..4 {
                         *sum += tables[4 * block + p][gathered[8 * (2 * p + i / 8) + i % 8] as usize];
@@ -135,10 +143,13 @@ fn fold_packs(witness: &Witness, point: &[F192]) -> Vec<F192> {
     out
 }
 
-fn bytes_of(words: &[u64; BLOCK_WORDS]) -> &[u8; 64] {
-    // SAFETY: eight words are 64 bytes, and on this little-endian target byte `b` of word `x`
-    // is byte `8 * x + b`.
-    unsafe { &*words.as_ptr().cast() }
+/// Byte `b` of word `x` at `8 * x + b`.
+fn le_bytes(words: &[u64; BLOCK_WORDS]) -> [u8; 64] {
+    let mut bytes = [0u8; 64];
+    for (bytes, word) in bytes.as_chunks_mut::<8>().0.iter_mut().zip(words) {
+        *bytes = word.to_le_bytes();
+    }
+    bytes
 }
 
 /// The sum over rows of the two tables' dot product: its round values at `0` and infinity.
@@ -154,10 +165,10 @@ fn round_values(a: &[F192], b: &[F192], width: usize) -> (F192, F192) {
     (zero, infinity)
 }
 
-fn fold(table: &[F192], width: usize, rho: F192) -> Vec<F192> {
+fn fold(table: &[F192], width: usize, challenge: F192) -> Vec<F192> {
     table
         .chunks_exact(2 * width)
-        .flat_map(|pair| (0..width).map(move |j| pair[j] + rho * (pair[j] + pair[width + j])))
+        .flat_map(|pair| (0..width).map(move |j| pair[j] + challenge * (pair[j] + pair[width + j])))
         .collect()
 }
 
@@ -176,18 +187,17 @@ fn prove_rounds(
         let (zero, infinity) = (scale * zero, scale * infinity);
         let coeffs = [zero, *value + infinity, infinity];
         ps.add_round_poly(&coeffs, false);
-        let rho = ps.sample();
-        *value = poly_eval(&coeffs, rho);
-        point.push(rho);
-        a = fold(&a, width, rho);
-        b = fold(&b, width, rho);
+        let challenge = ps.sample();
+        *value = poly_eval(&coeffs, challenge);
+        point.push(challenge);
+        a = fold(&a, width, challenge);
+        b = fold(&b, width, challenge);
     }
     (a, b, point)
 }
 
-/// The weight a word-level claim puts on each slot: what [`slot_weights`] gives its bit 0.
-/// The word weights of the committed segment outputs: every segment's but the last, whose output
-/// is not committed.
+/// The weight a word-level claim puts on each slot of the committed segment outputs, every
+/// segment's but the last: what [`slot_weights`] gives its bit 0.
 fn word_weights(shape: Shape, claim: &Claim) -> Vec<F192> {
     slot_weights(shape, claim, 1, shape.segments() - 1)
         .into_iter()

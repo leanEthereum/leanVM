@@ -18,10 +18,11 @@ pub const BFCNT: usize = 4; // per-pc bytecode execution count, g^{A[pc]}
 // The Keccak reduction's committed states `q_keccak`, in the SAME stack as every
 // other column (single PCS). Size `2^(SLOT_LOG + tau)` F64 words for `2^tau`
 // KECCAK steps, never fewer than `MIN_STEPS`. It is the
-// SOLE copy of the input/output words: the VM's KECCAK value columns are
-// virtual and their memory-bus claims route to `q_keccak` slots (§keccak), so
-// nothing duplicates them. The reduction's two claims are discharged by the single
-// stacked WHIR opening over this commitment.
+// SOLE copy of the input words: the VM's KECCAK value columns are virtual, the
+// input lanes' memory-bus claims routing to `q_keccak` slots (§keccak) and the
+// output lanes' becoming the reduction's claim on the output, which is not
+// committed. The reduction's two claims are discharged by the single stacked
+// WHIR opening over this commitment.
 pub const QKECCAK: usize = 5;
 pub const N_SHARED: usize = 6;
 
@@ -150,19 +151,19 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
     k[MEM_TOP] = Some((1, 0));
     k[MFCNT] = Some((1, 0));
     k[BFCNT] = Some((0, log_bytecode));
-    // q_keccak is `2^(SLOT_LOG + n_blocks_log)` F64 words, and tau_5 IS
-    // n_blocks_log (the announced-size certification uses the same floor), so this
+    // q_keccak is `2^(SLOT_LOG + n_steps_log)` F64 words, and tau_5 IS
+    // n_steps_log (the announced-size certification uses the same floor), so this
     // reproduces `qkeccak_kappa`.
     k[QKECCAK] = Some((2 + tables::KECCAK_TABLE, crate::keccak::SLOT_LOG));
     for (t, table) in tables::tables().iter().enumerate() {
         let base = sch.base[t];
         k[base..base + table.n_committed_columns()].fill(Some((2 + t, 0)));
     }
-    // The KECCAK value columns are ALWAYS virtual: `q_keccak` already holds those
-    // words at fixed slots, so committing them again is redundant. Their
-    // memory-bus claims route directly to `q_keccak` slot evaluations (`slot_claims`),
-    // which both binds them to the proven witness AND removes the separate
-    // value-binding sub-protocol.
+    // The KECCAK value columns are ALWAYS virtual: `q_keccak` already holds the
+    // input words at fixed slots, and the output words are the reduction's to prove.
+    // The input lanes' memory-bus claims route directly to `q_keccak` slot
+    // evaluations (`slot_claims`), the output lanes' to the reduction's output claim,
+    // which binds both to the proven witness with no separate value-binding sub-protocol.
     let b3 = sch.base[tables::KECCAK_TABLE];
     for &c in &tables::KECCAK_VALUE_COLS {
         k[b3 + c] = None;
@@ -407,7 +408,7 @@ pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_T
     let taus = std::array::from_fn(|t| crate::log2_ceil_usize(rows[t]).max(tables::TABLE_LOG_FLOORS[t]));
     debug_assert_eq!(
         taus[tables::KECCAK_TABLE],
-        crate::keccak::n_blocks_log(rows[tables::KECCAK_TABLE]),
+        crate::keccak::n_steps_log(rows[tables::KECCAK_TABLE]),
         "the KECCAK table is the Keccak reduction's batch"
     );
     taus

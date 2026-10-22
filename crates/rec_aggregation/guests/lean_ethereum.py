@@ -1,6 +1,6 @@
 # The recursive aggregation guest: zkDSL, not runnable Python (see
 # crates/lean_compiler/zkDSL.md). One node of an aggregation tree verifies raw leanXMSS
-# and SPHINCS+ signatures and sub-proofs OF THIS SAME BYTECODE, and publishes the
+# and leanSPHINCS signatures and sub-proofs OF THIS SAME BYTECODE, and publishes the
 # statement digest binding its signature claims and a possibly empty list of LeanDA roots.
 # It may check a blob matrix directly and retain any roots proved by its children.
 # Reading order: `main` is the
@@ -176,10 +176,6 @@ LOG2_BYTECODE_COLS = LOG2_BYTECODE_COLS_PLACEHOLDER
 # every table, and that sharing is what makes the batch's target derivable from the
 # three leaf claims. FLOORS[t] is the table's least log height (the Keccak reduction
 # is sized for at least one block of 2^9 steps).
-TABLE_XOR = 0
-TABLE_MUL = 1
-TABLE_SET = 2
-TABLE_DEREF = 3
 TABLE_JUMP = 4
 TABLE_KECCAK = 5
 N_TABLES = N_TABLES_PLACEHOLDER
@@ -350,7 +346,6 @@ AGG_CHILD_WORDS = 2 + DEFER_SIZE + DEFER_STMT_CELLS
 # tag: the seed leads, and it binds this bytecode and the Keccak relation.
 STMT_HEADER = STMT_HEADER_PLACEHOLDER
 STMT_DEFER_OFF = STMT_HEADER
-STMT_ODD = STMT_ODD_PLACEHOLDER
 STMT_PAIRS = STMT_PAIRS_PLACEHOLDER
 STMT_CELLS = STMT_DEFER_OFF + 3 * STMT_PAIRS
 
@@ -393,7 +388,7 @@ LX_TARGET_SUM = LX_TARGET_SUM_PLACEHOLDER
 LX_HEIGHT = LX_HEIGHT_PLACEHOLDER
 LX_TOP = LX_TOP_PLACEHOLDER
 
-# ------------------------------------------------------ SPHINCS+ (host-supplied)
+# -------------------------------------------------- leanSPHINCS (host-supplied)
 # The scheme's own letters, prefixed SP_: one tree of height SP_H over WOTS+C keys,
 # each signing a forest of small WOTS keys.
 SP_V = SP_V_PLACEHOLDER
@@ -513,6 +508,20 @@ def canonical_limbs(word):
     hi = (word + lo[0]) * Y_INV
     assert_in_k(lo[0], hi)
     return lo[0], hi
+
+
+@inline
+def pack_pair(out, at: Const, s, t):
+    # Two field elements as three canonical cells out[at..at+3], (s0,s1) (s2,t0) (t1,t2):
+    # each top limb derived from the two hinted below it, each pack proving its lanes in K.
+    s_lo = StackBuf(2)
+    t_lo = StackBuf(2)
+    hint_f192_limbs(s_lo, s)
+    hint_f192_limbs(t_lo, t)
+    out[at] = pack64x2(s_lo[0], s_lo[1])
+    out[at + 1] = pack64x2(((s + s_lo[0]) * Y_INV + s_lo[1]) * Y_INV, t_lo[0])
+    out[at + 2] = pack64x2(t_lo[1], ((t + t_lo[0]) * Y_INV + t_lo[1]) * Y_INV)
+    return
 
 
 @inline
@@ -638,20 +647,6 @@ def squeeze(sp, rate, k: Const):
 
 
 # ============================ bits, logs, and the exponent ==========================
-
-
-@inline
-def bind_bits(bits_ptr, value, n: Const):
-    # Tie an advice bit run back to the value it decomposes. Booleanity is a
-    # write-once pin: the cell already holds the bit, so storing its square IS the
-    # assert, one instruction shorter than a separate equality.
-    acc = 0
-    for i in unroll(0, n):
-        b = bits_ptr[GEN ** i]
-        bits_ptr[GEN ** i] = b * b
-        acc += b * COORD_BASIS[i]
-    assert acc == value
-    return
 
 
 def exponent_tables():
@@ -2461,28 +2456,29 @@ def keccak_form(lanes, shifts, f_lanes, f_off: Const):
 def keccak_round(rd, pp, pt):
     # One round of a layer's pack and segment sumcheck, from the record at rd (fields
     # KR_CAP apart) to the next: q has degree two with the eq factor pulled out, and the prover
-    # sends its coefficients c1 and c2 (g_1, g_2), c0 being fixed by the claim. With r = pp[1],
-    # q(rho) = claim + (r + rho) c1 + (r + rho^2) c2, and the next claim is (1 + r + rho) q(rho).
+    # sends its coefficients c1 and c2 (g_1, g_2), c0 being fixed by the claim. With r the
+    # round's coordinate pp[GEN ** 0] and c its challenge, q(c) = claim + (r + c) c1 +
+    # (r + c^2) c2, and the next claim is (1 + r + c) q(c).
     sp = fs_load(rd, KR_FS, KR_CAP)
     cur = rd[GEN ** (KR_CURSOR * KR_CAP)]
-    r_eq = pp[1]
+    r_eq = pp[GEN ** 0]
     rate = StackBuf(8)
     g_1, cur = fs_next(rate, 0, cur)
     g_2, cur = fs_next(rate, 1, cur)
-    sp, rho = squeeze(sp, rate, 2)
-    pt[1] = rho
-    gap = r_eq + rho
+    sp, challenge = squeeze(sp, rate, 2)
+    pt[GEN ** 0] = challenge
+    gap = r_eq + challenge
     eq_factor = 1 + gap
     nxt = rd * GEN
     fs_store(nxt, KR_FS, KR_CAP, sp)
     nxt[GEN ** (KR_CURSOR * KR_CAP)] = cur
-    nxt[GEN ** (KR_CLAIM * KR_CAP)] = eq_factor * (rd[GEN ** (KR_CLAIM * KR_CAP)] + gap * g_1 + (r_eq + rho * rho) * g_2)
+    nxt[GEN ** (KR_CLAIM * KR_CAP)] = eq_factor * (rd[GEN ** (KR_CLAIM * KR_CAP)] + gap * g_1 + (r_eq + challenge * challenge) * g_2)
     nxt[GEN ** (KR_SCALE * KR_CAP)] = rd[GEN ** (KR_SCALE * KR_CAP)] * eq_factor
     return
 
 
 def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, half_g, y_last, claim, out, iota, first: Const, odd: Const):
-    # One layer (keccak_gkr::protocol::verify_layer): the claim on the states after
+    # One layer (verifier::keccak::verify_layer): the claim on the states after
     # a round becomes one on the states before it. A claim's position weights are
     # never written out: they are the transpose of the linear layer applied to a
     # lane table times the eq table of six slice coordinates, which is all the
@@ -2657,11 +2653,11 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, half_g, y_last, c
             rate = StackBuf(8)
             g_1, cur_i = fs_next(rate, 0, cur_i)
             g_2, cur_i = fs_next(rate, 1, cur_i)
-            round_sp, rho = squeeze(round_sp, rate, 2)
-            pt[GEN ** q] = rho
-            gap = r_eq + rho
+            round_sp, challenge = squeeze(round_sp, rate, 2)
+            pt[GEN ** q] = challenge
+            gap = r_eq + challenge
             eq_factor = 1 + gap
-            run = eq_factor * (run + gap * g_1 + (r_eq + rho * rho) * g_2)
+            run = eq_factor * (run + gap * g_1 + (r_eq + challenge * challenge) * g_2)
             scale = scale * eq_factor
         nxt = rd * GEN
         fs_store(nxt, KR_FS, KR_CAP, round_sp)
@@ -2682,11 +2678,11 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, half_g, y_last, c
         c0, cursor = fs_next(rate, 0, cursor)
         c2, cursor = fs_next(rate, 1, cursor)
         c3, cursor = fs_next(rate, 2, cursor)
-        sp, rho = squeeze(sp, rate, 3)
-        local[GEN ** i] = rho
-        # c1 = value + c2 + c3, so h(rho) = c0 + rho (value + (1 + rho) (c2 + (1 + rho) c3)).
-        rho1 = 1 + rho
-        value = c0 + rho * (value + rho1 * (c2 + rho1 * c3))
+        sp, challenge = squeeze(sp, rate, 3)
+        local[GEN ** i] = challenge
+        # c1 = value + c2 + c3, so h(c) = c0 + c (value + (1 + c) (c2 + (1 + c) c3)).
+        challenge1 = 1 + challenge
+        value = c0 + challenge * (value + challenge1 * (c2 + challenge1 * c3))
     rate = StackBuf(8)
     t0, cursor = fs_next(rate, 0, cursor)
     t1, cursor = fs_next(rate, 1, cursor)
@@ -2742,18 +2738,18 @@ def keccak_plain_rounds(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, value, point, n
                 rate[1] = p1
                 c0, cursor = fs_next(rate, 1, cursor)
                 c2, cursor = fs_next(rate, 2, cursor)
-                sp, rho = squeeze(sp, rate, 3)
+                sp, challenge = squeeze(sp, rate, 3)
             else:
                 c0, cursor = fs_next(rate, 0, cursor)
                 c2, cursor = fs_next(rate, 1, cursor)
-                sp, rho = squeeze(sp, rate, 2)
+                sp, challenge = squeeze(sp, rate, 2)
         else:
             c0, cursor = fs_next(rate, 0, cursor)
             c2, cursor = fs_next(rate, 1, cursor)
-            sp, rho = squeeze(sp, rate, 2)
+            sp, challenge = squeeze(sp, rate, 2)
         c1 = value + c2
-        point[GEN ** i] = rho
-        value = c0 + rho * (c1 + rho * c2)
+        point[GEN ** i] = challenge
+        value = c0 + challenge * (c1 + challenge * c2)
     return sp[8], sp[9], sp[10], sp[11], sp[12], cursor, value
 
 
@@ -2775,7 +2771,7 @@ def keccak_slot_lanes(slot, segment_point, out, first: Const, count: Const):
 
 
 def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_vals, slices):
-    # KECCAK validity (keccak_gkr::verify): a random claim on every segment's output,
+    # KECCAK validity (verifier::keccak::verify_keccak): a random claim on every segment's output,
     # KECCAK_DEPTH layers down to the committed inputs, every segment at once. The
     # last segment's output is the permutation's: the table's claims on its output
     # lanes, `output_lanes`, at the table's point chi[..tau], give that part of the
@@ -3770,8 +3766,7 @@ def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
     # The preimage is fixed-length, so a plain hash beats the Fiat-Shamir chain.
     # A header value is a canonical cell and needs no check, the KECCAK table
     # reading only cells whose top limb is zero. A deferred cell is a full field
-    # element, so two fill three cells as (s0,s1) (s2,t0) (t1,t2), each top limb
-    # derived from the two hinted below it and each pack proving its lanes in K.
+    # element, so two fill three cells (`pack_pair`).
     cells = StackBuf(STMT_CELLS)
     cells[0] = seed_0  # the STMT_HEADER header cells
     cells[1] = seed_1
@@ -3785,13 +3780,7 @@ def statement_digest(seed_0, seed_1, signers_hash, da_0, da_1, defer):
             t = 0  # an odd cell count pairs the last one with a zero partner
         else:
             t = defer[GEN ** (2 * p + 1)]
-        s_lo = StackBuf(2)
-        t_lo = StackBuf(2)
-        hint_f192_limbs(s_lo, s)
-        hint_f192_limbs(t_lo, t)
-        cells[STMT_DEFER_OFF + 3 * p] = pack64x2(s_lo[0], s_lo[1])
-        cells[STMT_DEFER_OFF + 3 * p + 1] = pack64x2(((s + s_lo[0]) * Y_INV + s_lo[1]) * Y_INV, t_lo[0])
-        cells[STMT_DEFER_OFF + 3 * p + 2] = pack64x2(t_lo[1], ((t + t_lo[0]) * Y_INV + t_lo[1]) * Y_INV)
+        pack_pair(cells, STMT_DEFER_OFF + 3 * p, s, t)
     st = StackBuf(KECCAK_STATE)
     keccak_cells(cells, st)
     return st[0], st[1]
@@ -4054,15 +4043,7 @@ def da_vector_cell(digest):
     hint_witness(weights[0:DA_CELL], "da_weights")
     packed = StackBuf(DA_WEIGHT_CELLS)
     for p in unroll(0, DA_CELL // 2):
-        s = weights[2 * p]
-        t = weights[2 * p + 1]
-        slo = StackBuf(2)
-        tlo = StackBuf(2)
-        hint_f192_limbs(slo, s)
-        hint_f192_limbs(tlo, t)
-        packed[3 * p] = pack64x2(slo[0], slo[1])
-        packed[3 * p + 1] = pack64x2(((s + slo[0]) * Y_INV + slo[1]) * Y_INV, tlo[0])
-        packed[3 * p + 2] = pack64x2(tlo[1], ((t + tlo[0]) * Y_INV + tlo[1]) * Y_INV)
+        pack_pair(packed, 3 * p, weights[2 * p], weights[2 * p + 1])
     keccak_cells(packed, digest[0:2])
     weights_ptr = addr(weights)
     return weights_ptr
@@ -4109,8 +4090,8 @@ def main():
     #
     # so one range check per write keeps each writer inside its own region: that is
     # what makes the statement's split mean which scheme verified which claim. A
-    # signature slot is four cells, a pubkey and the message that pubkey signed; a DA root
-    # occupies two cells.
+    # signature slot is four cells, a pubkey and the message that pubkey signed; a DA slot
+    # is four too, a root and its membership vector's digest.
     meta = StackBuf(8)
     hint_witness(meta, "meta")  # every count in the exponent
     n_lx_g = meta[0]

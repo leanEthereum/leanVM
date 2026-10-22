@@ -134,7 +134,8 @@ impl Rmfe {
         self.emb_lo[a as usize & 0xff] ^ self.emb_hi[a as usize >> 8]
     }
 
-    pub fn project(&self, product: u64) -> u16 {
+    #[cfg(test)]
+    fn project(&self, product: u64) -> u16 {
         (0..PACK).fold(0, |a, i| a | (((product & self.proj[i]).count_ones() as u16 & 1) << i))
     }
 }

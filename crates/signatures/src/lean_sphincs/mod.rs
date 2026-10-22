@@ -2,7 +2,7 @@
 //! `doc/lean_sphincs/main.tex`. One Merkle tree of height `h = 26` over WOTS+C keys,
 //! each signing the key of a few-time signature built from small WOTS keys, the
 //! two-level WOTS forest. A public key is 32 bytes, a signature 4276, and a
-//! verification 268 permutations.
+//! verification 267 permutations.
 //!
 //! `Th(P, A, M) = H(P | A | M)` truncated to `n = 16` bytes, `H` the leanVM hash,
 //! the 16-byte address `A` naming one hash call in the whole structure (the

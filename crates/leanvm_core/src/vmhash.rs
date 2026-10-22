@@ -7,6 +7,6 @@
 
 /// The hash of exactly 64 bytes (two 256-bit halves laid out little-endian), one
 /// `KECCAK` instruction from the zero state, which is also the PCS Merkle parent.
-/// Lives in [`fiat_shamir`] (the shared [`fiat_shamir::FiatShamirState`] state is
-/// built on it).
+/// Lives in [`fiat_shamir`], whose [`fiat_shamir::FiatShamirState`] is a duplex
+/// sponge over the same permutation.
 pub use fiat_shamir::compress;

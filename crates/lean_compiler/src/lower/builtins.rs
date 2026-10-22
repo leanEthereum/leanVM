@@ -17,15 +17,18 @@ impl FnLower<'_> {
     /// `keccak(a, b, out, tail=, len=)`: the Keccak-256 of a message of at most 128 bytes, one
     /// `KECCAK` instruction. The message cells are `a ‖ b ‖ tail` (two, two and four cells;
     /// `tail` omitted is none), and the message is their first `len` bytes (by default all of
-    /// them, 64 bytes without `tail` and 128 with; bytes past `len` must be zero).
+    /// them, 64 bytes without `tail` and 128 with). A cell wholly past `len` must be a literal
+    /// zero; the bytes past `len` in the cell where the message ends must be zero, unchecked.
     ///
     /// The output is the 13-cell state, its first two cells the digest. A 13-cell
     /// `out` receives it (a heap run through the stack), a 2-cell `out` just the
     /// digest (write-once: a pre-written `out` asserts it).
     ///
-    /// `cap=` is a duplex step in overwrite mode instead: the eight message cells ARE the
-    /// rate's first sixteen lanes, and lane 16 and the capacity are `cap`'s, the five cells a
-    /// previous output ends with (`cap` that 13-cell output or those five cells). No padding.
+    /// `cap=` is the Fiat-Shamir duplex step in overwrite mode instead, with no padding: the
+    /// eight message cells overwrite lanes `0..16`, and lanes `16..25`, the transcript's
+    /// capacity, are `cap`'s, the five cells a previous output ends with (`cap` that 13-cell
+    /// output or those five cells). Lane 16 is in Keccak-256's 17-lane rate, but the
+    /// transcript keeps it.
     fn lower_keccak(&mut self, args: &[Expr]) {
         let kwargs = self.keccak_kwargs(args, "keccak", &["a", "b", "out"], &["tail", "len", "cap"]);
         let [a0, a1] = self.keccak_words::<2>(&args[0]);
@@ -77,8 +80,8 @@ impl FnLower<'_> {
     /// `keccak_cells(cells, out, state=, len=, final=)`: the Keccak-256 of the message the
     /// cells hold, 136 bytes a `KECCAK` instruction, into `out` as for [`Self::lower_keccak`].
     /// `cells` is a run (a `StackBuf`, or a slice with compile-time bounds) or a list of words,
-    /// and the message is their first `len` bytes (all of them by default; bytes past `len`
-    /// must be zero).
+    /// and the message is their first `len` bytes (all of them by default; past `len`, as for
+    /// [`Self::lower_keccak`]).
     ///
     /// `state=`, a previous 13-cell output, continues a hash whose message so far is a whole
     /// number of block pairs, 272 bytes or 17 cells each, so that the cells start a block at
@@ -277,6 +280,14 @@ impl FnLower<'_> {
             cells.resize(read, SpongeCell::Zero);
         }
         if let Some(len) = final_len {
+            // A cell wholly past the message would be absorbed (or, past the last block,
+            // dropped) as if it were part of it.
+            let past = (len as usize).div_ceil(16);
+            if let Some(k) = (past..cells.len()).find(|&k| !matches!(cells[k], SpongeCell::Zero)) {
+                self.fail(format!(
+                    "keccak len= {len} ends before message cell {k}, which is not a literal 0"
+                ))
+            }
             self.xor_byte(&mut cells, len as usize, primitives::hash::PAD_FIRST);
             self.xor_byte(&mut cells, blocks * RATE - 1, primitives::hash::PAD_LAST);
         }

@@ -16,7 +16,7 @@
 //! `eval_constraint` takes.
 
 use crate::colval::ColVal;
-use crate::cpu::{Brow, Drow, Jrow, Op, Srow, Trace};
+use crate::cpu::{Drow, Jrow, Krow, Op, Srow, Trace};
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F192, mul_by_g};
 
@@ -832,8 +832,9 @@ impl Table for JumpTable {
 /// cell that holds no lane is the column `FREE`; written, it is zero. Every cell's top
 /// limb is a literal zero, so the canonical embedding is proof-enforced. The fifty lanes are
 /// value columns, listed in `n_committed_columns` (they need a local index for the flushes and
-/// are filled from the trace for the bus), but `cpu` treats them as VIRTUAL and routes their bus
-/// claims to `q_keccak`, which already holds those words (see [`KECCAK_VALUE_COLS`]).
+/// are filled from the trace for the bus), but `cpu` treats them as VIRTUAL: the input lanes' bus
+/// claims route to `q_keccak`, which holds those words, and the output lanes' are the Keccak
+/// reduction's claim on the output (see [`KECCAK_VALUE_COLS`]).
 struct KeccakTable;
 
 pub(crate) mod keccakt {
@@ -936,12 +937,12 @@ impl Table for KeccakTable {
         use crate::keccak::{STATE_CELLS, state_of_cells};
         use keccakt::*;
         let rows = &ctx.trace.keccak;
-        let cells = |r: &Brow| keccak_cells(ctx.prog, r.pc, r.fp);
-        let flags = |r: &Brow| match ctx.prog[r.pc as usize] {
+        let cells = |r: &Krow| keccak_cells(ctx.prog, r.pc, r.fp);
+        let flags = |r: &Krow| match ctx.prog[r.pc as usize] {
             Op::Keccak { in_odd, out_odd, .. } => (in_odd, out_odd),
             _ => unreachable!("a KECCAK row"),
         };
-        let read = |r: &Brow, first: usize| -> [F192; STATE_CELLS] {
+        let read = |r: &Krow, first: usize| -> [F192; STATE_CELLS] {
             let c = cells(r);
             std::array::from_fn(|k| ctx.mem[c[first + k] as usize])
         };
