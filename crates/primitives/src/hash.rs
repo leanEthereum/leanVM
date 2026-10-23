@@ -119,47 +119,41 @@ trait Lanes64: Copy {
 
 /// The 24 rounds, over any lane type. Straight-line, so every rotation is an
 /// immediate and every lane index a register.
+///
+/// ρ and π are written by output row, χ takes the rows in turn, and the next round's column
+/// parities accumulate from the lanes χ writes. Both x86 backends schedule this order better than
+/// one that forms every lane before χ and every parity after it.
 #[inline(always)]
 fn permute<S: Lanes64>(a: &mut [S; STATE_LANES]) {
+    let mut c: [S; 5] = std::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
     for &rc in &RC {
-        let c: [S; 5] = std::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
         let d: [S; 5] = std::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
-        let mut b = [a[0]; STATE_LANES];
-        // ρ and π together: lane `i` rotated by `RHO[i]` lands at `PI[i]`.
-        b[0] = a[0].xor(d[0]);
-        b[10] = a[1].xor(d[1]).rotl::<1>();
-        b[20] = a[2].xor(d[2]).rotl::<62>();
-        b[5] = a[3].xor(d[3]).rotl::<28>();
-        b[15] = a[4].xor(d[4]).rotl::<27>();
-        b[16] = a[5].xor(d[0]).rotl::<36>();
-        b[1] = a[6].xor(d[1]).rotl::<44>();
-        b[11] = a[7].xor(d[2]).rotl::<6>();
-        b[21] = a[8].xor(d[3]).rotl::<55>();
-        b[6] = a[9].xor(d[4]).rotl::<20>();
-        b[7] = a[10].xor(d[0]).rotl::<3>();
-        b[17] = a[11].xor(d[1]).rotl::<10>();
-        b[2] = a[12].xor(d[2]).rotl::<43>();
-        b[12] = a[13].xor(d[3]).rotl::<25>();
-        b[22] = a[14].xor(d[4]).rotl::<39>();
-        b[23] = a[15].xor(d[0]).rotl::<41>();
-        b[8] = a[16].xor(d[1]).rotl::<45>();
-        b[18] = a[17].xor(d[2]).rotl::<15>();
-        b[3] = a[18].xor(d[3]).rotl::<21>();
-        b[13] = a[19].xor(d[4]).rotl::<8>();
-        b[14] = a[20].xor(d[0]).rotl::<18>();
-        b[24] = a[21].xor(d[1]).rotl::<2>();
-        b[9] = a[22].xor(d[2]).rotl::<61>();
-        b[19] = a[23].xor(d[3]).rotl::<56>();
-        b[4] = a[24].xor(d[4]).rotl::<14>();
-        for y in 0..5 {
-            let r = 5 * y;
-            a[r] = S::chi(b[r], b[r + 1], b[r + 2]);
-            a[r + 1] = S::chi(b[r + 1], b[r + 2], b[r + 3]);
-            a[r + 2] = S::chi(b[r + 2], b[r + 3], b[r + 4]);
-            a[r + 3] = S::chi(b[r + 3], b[r + 4], b[r]);
-            a[r + 4] = S::chi(b[r + 4], b[r], b[r + 1]);
+        let th = |i: usize| a[i].xor(d[i % 5]);
+        // Row `y` holds the lanes π sends there, each rotated by its `RHO`.
+        #[rustfmt::skip]
+        let rows: [[S; 5]; 5] = [
+            [th(0), th(6).rotl::<44>(), th(12).rotl::<43>(), th(18).rotl::<21>(), th(24).rotl::<14>()],
+            [th(3).rotl::<28>(), th(9).rotl::<20>(), th(10).rotl::<3>(), th(16).rotl::<45>(), th(22).rotl::<61>()],
+            [th(1).rotl::<1>(), th(7).rotl::<6>(), th(13).rotl::<25>(), th(19).rotl::<8>(), th(20).rotl::<18>()],
+            [th(4).rotl::<27>(), th(5).rotl::<36>(), th(11).rotl::<10>(), th(17).rotl::<15>(), th(23).rotl::<56>()],
+            [th(2).rotl::<62>(), th(8).rotl::<55>(), th(14).rotl::<39>(), th(15).rotl::<41>(), th(21).rotl::<2>()],
+        ];
+        for (y, &[b0, b1, b2, b3, b4]) in rows.iter().enumerate() {
+            let mut row = [
+                S::chi(b0, b1, b2),
+                S::chi(b1, b2, b3),
+                S::chi(b2, b3, b4),
+                S::chi(b3, b4, b0),
+                S::chi(b4, b0, b1),
+            ];
+            if y == 0 {
+                row[0] = row[0].xor(S::splat(rc));
+            }
+            for x in 0..5 {
+                a[5 * y + x] = row[x];
+                c[x] = if y == 0 { row[x] } else { c[x].xor(row[x]) };
+            }
         }
-        a[0] = a[0].xor(S::splat(rc));
     }
 }
 
@@ -557,12 +551,12 @@ unsafe fn hash_group<S: Lanes64>(inputs: &[*const u8], len: usize, init: &[u64; 
     let mut st: [S; STATE_LANES] = std::array::from_fn(|i| S::splat(init[i]));
     // `buf[w * WIDTH + l]` is input `l`'s lane `w` of the current block.
     let mut buf = [0u64; RATE_LANES * MAX_WIDTH];
-    let absorb_buf = |st: &mut [S; STATE_LANES], buf: &[u64]| {
-        for (w, lane) in st[..RATE_LANES].iter_mut().enumerate() {
+    // XOR the first `n` lanes of `buf` into the rate.
+    let xor_buf = |st: &mut [S; STATE_LANES], buf: &[u64], n: usize| {
+        for (w, lane) in st[..n].iter_mut().enumerate() {
             // SAFETY: `buf` holds RATE_LANES * MAX_WIDTH >= (w + 1) * WIDTH words.
             *lane = lane.xor(unsafe { S::load(buf.as_ptr().add(w * S::WIDTH)) });
         }
-        permute(st);
     };
     let (blocks, tail) = (len / RATE, len % RATE);
     for blk in 0..blocks {
@@ -573,16 +567,29 @@ unsafe fn hash_group<S: Lanes64>(inputs: &[*const u8], len: usize, init: &[u64; 
                 buf[w * S::WIDTH + l] = u64::from_le(word);
             }
         }
-        absorb_buf(&mut st, &buf);
+        xor_buf(&mut st, &buf, RATE_LANES);
+        permute(&mut st);
     }
+    // The final block, read in place: its words, then the padding, which every input has in the same lanes.
+    let (words, part) = (tail / 8, tail % 8);
     for (l, &input) in inputs.iter().enumerate() {
         // SAFETY: the final block is the input's last `tail` bytes.
-        let bytes = unsafe { std::slice::from_raw_parts(input.add(blocks * RATE), tail) };
-        for (w, lane) in final_block(bytes).into_iter().enumerate() {
-            buf[w * S::WIDTH + l] = lane;
+        let input = unsafe { input.add(blocks * RATE) };
+        for w in 0..words {
+            // SAFETY: as above.
+            let word = unsafe { input.add(8 * w).cast::<u64>().read_unaligned() };
+            buf[w * S::WIDTH + l] = u64::from_le(word);
+        }
+        if part > 0 {
+            // SAFETY: as above.
+            let byte = |j: usize| u64::from(unsafe { *input.add(8 * words + j) }) << (8 * j);
+            buf[words * S::WIDTH + l] = (0..part).fold(0, |acc, j| acc | byte(j));
         }
     }
-    absorb_buf(&mut st, &buf);
+    xor_buf(&mut st, &buf, words + usize::from(part > 0));
+    st[words] = st[words].xor(S::splat(u64::from(PAD_FIRST) << (8 * part)));
+    st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(S::splat(END_BIT));
+    permute(&mut st);
     let mut lanes = [0u64; OUT_LANES * MAX_WIDTH];
     for (w, lane) in st[..OUT_LANES].iter().enumerate() {
         // SAFETY: `lanes` holds OUT_LANES * MAX_WIDTH >= (w + 1) * WIDTH words.
