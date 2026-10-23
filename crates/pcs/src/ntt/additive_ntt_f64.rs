@@ -264,7 +264,7 @@ impl AdditiveNttF64 {
         let deep = if rest <= fit3 {
             fit3
         } else {
-            fit2.max(rest - (rest - fit3).div_ceil(fit2) * fit2)
+            fit2.max(rest.saturating_sub((rest - fit3).div_ceil(fit2) * fit2))
         };
         let deep_start = log_d.saturating_sub(deep).max(par_log).max(start);
 
