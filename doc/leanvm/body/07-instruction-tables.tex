@@ -118,25 +118,29 @@ One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{ann
 \item $\pc$, $\fp$, the eight operand offsets, the two layout flags and $\mathit{free}$, and $27$ read counts, one per cell read or written and one for the bytecode.
 \item $\kin{\ell}$, the $25$ lanes of the state the row reads from memory.
 \item $\kmid{\ell}$, the $25$ lanes of the state after $12$ rounds. Committing it is an optimization and nothing more: it halves the depth of the reduction. No flush reads it.
-\item $\kout{\ell}$, the $25$ lanes the row writes back. These are \emph{virtual}: the flushes read them, but nothing commits them, and the claims the table sumcheck leaves on deferred to GKR, which reduce them to claims on $\kin{\ell}$ and $\kmid{\ell}$.
+\item $\kout{\ell}$, the $25$ lanes the row writes back. These are \emph{virtual}: the flushes read them, but nothing commits them, and the claims the table sumcheck leaves on them are deferred to the GKR, which reduces them to claims on $\kin{\ell}$ and $\kmid{\ell}$.
 \end{itemize}
-
-Every column but $\kout{\ell}$ is committed. The $50$ lanes of $\kin{}$ and $\kmid{}$ go into the stack (\S\ref{sec:stacking}) as one aligned run of $2^{6}$ columns, written $\qkeccak$, which the reduction addresses by a six-bit \emph{slot}: $\kin{\ell}$ is slot $\ell$, $\kmid{\ell}$ is slot $25+\ell$, and a claim on one at $\zeta$ is a claim on $\qkeccak$ at $\zeta$ followed by the slot's bits. The $14$ slots left over hold the row's other committed columns, $\pc$, $\fp$, the operands and flags, $\mathit{free}$, then $r_0$, read the same way: the reduction weighs nothing on them (\S\ref{keccak:statement}), and the stack holds each once instead of beside a block of zeros.
 
 A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. The top limb is a literal $0$.
 \begin{itemize}
 \item \textbf{Constraints:} none. The permutation is proved by the GKR of Annex~\ref{annex:keccak}.
-\item \textbf{Flushes:} the addresses being the products $\gen^{k}\fp\cdot o$.
+\item \textbf{Flushes:}
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
   \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{KEC},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}}}$.
-  \item \textbf{Memory:} with $u_c,v_c$ the forms of cell $c$'s limbs above, under $\mathit{odd}_{\mathit{in}}$,
+  \item \textbf{Memory:} cell $c<13$ is read at $a_c$ under $\mathit{odd}_{\mathit{in}}$ and written at $\gen^{c}\fp\cdot o_{\mathit{out}}$ under $\mathit{odd}_{\mathit{out}}$, where
+    \[
+      a_c=\begin{cases}
+        \fp\cdot o_{m_c} & c<4,\\
+        \gen^{c-4}\fp\cdot o_{\mathit{tail}} & 4\le c<8,\\
+        \fp\cdot o_{\mathit{b8}} & c=8,\\
+        \gen^{c-9}\fp\cdot o_{\mathit{cap}} & 9\le c<13,
+      \end{cases}
+    \]
     \begin{align*}
-      &\rdf{\dsep{MEM},\fp\cdot o_{m_i},r_i,u_i,v_i,0}\quad(i<4),\\
-      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{tail}},r_{4+i},u_{4+i},v_{4+i},0}\quad(i<4),\\
-      &\rdf{\dsep{MEM},\fp\cdot o_{\mathit{b8}},r_8,u_8,v_8,0},\\
-      &\rdf{\dsep{MEM},\gen^{i}\cdot\fp\cdot o_{\mathit{cap}},r_{9+i},\kin{17+2i},\kin{18+2i},0}\quad(i<4),
+      &\rdf{\dsep{MEM},a_c,r_c,u_c,v_c,0} &&(c<9),\\
+      &\rdf{\dsep{MEM},a_c,r_c,\kin{2c-1},\kin{2c},0} &&(9\le c<13),
     \end{align*}
-    and the same thirteen at $\gen^{k}\cdot\fp\cdot o_{\mathit{out}}$ for the $\kout{\ell}$, under $\mathit{odd}_{\mathit{out}}$, with the counts $r_{13+c}$ in place of $r_c$.
+    the writes the same with $\kout{\ell}$ and $r_{13+c}$. The rate cells take the forms $u_c,v_c$ above; the four capacity cells hold lanes $17$ to $24$ in either layout.
   \end{itemize}
 \end{itemize}
