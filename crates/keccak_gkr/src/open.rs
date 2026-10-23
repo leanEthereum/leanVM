@@ -208,13 +208,15 @@ fn word_weights(shape: Shape, claim: &Claim) -> Vec<F192> {
         .collect()
 }
 
-/// Every committed lane as a word, at an instance point, and the part of the word-level `claim`
-/// on the committed segment outputs among them. An opening is of the whole stack, so the lanes
-/// the claim puts no weight on are evaluated too.
+/// Every slot of the committed block as a word, at an instance point, and the part of the
+/// word-level `claim` on the committed segment outputs among them. An opening is of the whole
+/// block, so the slots the claim puts no weight on are evaluated too: the spare ones past
+/// [`Shape::slots`] carry other columns (§cpu), and the fold that follows must see them.
 pub fn output_claim(shape: Shape, committed: &[F64], instance: &[F192], claim: &Claim) -> (Vec<F192>, F192) {
     let n = shape.n();
-    let mut words = parallel::map_collect(shape.slots(), |slot| mle_eval(&committed[slot * n..][..n], instance));
-    words.resize(1 << shape.slot_log(), F192::ZERO);
+    let words = parallel::map_collect(1 << shape.slot_log(), |slot| {
+        mle_eval(&committed[slot * n..][..n], instance)
+    });
     let value = dot(&words, &word_weights(shape, claim));
     (words, value)
 }
@@ -238,8 +240,46 @@ pub fn open_outputs(
     }
 }
 
+/// The bit slices, at the instance point, of the committed slots the claim weighs nothing on:
+/// the spare ones past [`Shape::slots`], where other columns ride (§cpu). The reduction says
+/// nothing about them, but the claim it leaves is on the whole committed block, so the slot
+/// fold below has to carry their bits.
+///
+/// Slice `z` of slot `s` is `Σ_step eq(instance, step) · bit z of committed[s·n + step]`: a
+/// subset sum of the `eq` table over the steps whose bit is set, read eight steps at a time off
+/// their transposed bytes.
+fn spare_slices(shape: Shape, committed: &[F64], instance: &[F192]) -> Vec<[F192; 64]> {
+    let (n, spare) = (shape.n(), (1 << shape.slot_log()) - shape.slots());
+    let eq = eq_table(instance);
+    let (groups, slots) = (eq.as_chunks::<8>().0, &committed[shape.slots() * n..]);
+    // A task per group of eight steps rather than per slot: the subset sums are the work, and one
+    // group's table serves every slot, where a task per slot would rebuild it and, there being as
+    // few slots as there are, leave most of the pool idle.
+    parallel::fold_reduce(
+        n / 8,
+        || vec![[F192::ZERO; 64]; spare],
+        |acc, group| {
+            let table = byte_sums(&groups[group]);
+            for (slot, acc) in acc.iter_mut().enumerate() {
+                let words = std::array::from_fn(|w| slots[slot * n + 8 * group + w].0);
+                let mut gathered = [0u8; 64];
+                primitives::bits::bit_transpose_64bytes(&le_bytes(&words), &mut gathered);
+                for (acc, &byte) in acc.iter_mut().zip(&gathered) {
+                    *acc += table[byte as usize];
+                }
+            }
+        },
+        |mut a, b| {
+            for (a, b) in a.iter_mut().flatten().zip(b.iter().flatten()) {
+                *a += *b;
+            }
+            a
+        },
+    )
+}
+
 /// Open the claim on the inputs: the instances of a pack first, then the slot.
-pub fn open_inputs(ps: &mut ProverState, witness: &Witness, claim: &Claim) -> Opening {
+pub fn open_inputs(ps: &mut ProverState, witness: &Witness, committed: &[F64], claim: &Claim) -> Opening {
     let shape = witness.shape;
     let pack = &claim.point[..shape.pack_vars()];
     let folded = fold_packs(witness, pack);
@@ -263,6 +303,12 @@ pub fn open_inputs(ps: &mut ProverState, witness: &Witness, claim: &Claim) -> Op
                 out[z] += low_eq[i] * folded[(i + 16 * slot) * 64 + z];
             }
         }
+    }
+    for (slot, slices) in spare_slices(shape, committed, &[&low, pack].concat())
+        .into_iter()
+        .enumerate()
+    {
+        at_instance[(shape.slots() + slot) * 64..][..64].copy_from_slice(&slices);
     }
     let (slices, _, slot) = prove_rounds(ps, at_instance, weights, 64, mu[0], &mut value);
     ps.add_scalars(&slices);

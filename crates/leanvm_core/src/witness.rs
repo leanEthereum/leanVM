@@ -6,9 +6,10 @@
 
 use primitives::field::F64;
 
-/// Where a column sits in the stacked witness. A [`Placement::VIRTUAL`] column is
-/// NOT committed: it carries data for the bus, but its evaluation claims settle
-/// against some other committed column (e.g. the KECCAK value columns route to `q_keccak`).
+/// Where a column sits in the stacked witness. A [`Placement::VIRTUAL`] column has no
+/// placement of its own: either its words are committed inside another column, and its
+/// evaluation claims settle there (the KECCAK columns `q_keccak` carries), or they are not
+/// committed at all and something else proves them (the KECCAK output lanes).
 #[derive(Clone, Copy, Debug)]
 pub struct Placement {
     pub n_vars: usize,

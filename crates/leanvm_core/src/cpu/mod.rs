@@ -751,19 +751,18 @@ pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
 /// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in
 /// the slot at `placements[c].offset`, with the claim's point as the low point.
 ///
-/// KECCAK value columns are virtual: they have no committed placement. A bus
-/// claim `value_col(r) = v` (at the `n_log`-dim instance point `r`) is re-routed
-/// to the equal `q_keccak` slot evaluation: an ordinary claim on the committed
-/// `QKECCAK` column at the point whose low coords are `r` and whose next
-/// `SLOT_LOG` are the slot's bits. No downstream
-/// special-casing: it folds into the one opening like every other point claim.
+/// The columns `q_keccak` carries are virtual: they have no committed placement. A claim
+/// `col(r) = v` on one (at the `n_log`-dim instance point `r`) is re-routed to the equal
+/// `q_keccak` slot evaluation: an ordinary claim on the committed `QKECCAK` column at the
+/// point whose low coords are `r` and whose next `SLOT_LOG` are the slot's bits. No
+/// downstream special-casing: it folds into the one opening like every other point claim.
 fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
     claims
         .into_iter()
         .map(|c| {
             // A KECCAK value column (always virtual): its bus claim at instance point
             // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
-            if let Some(KeccakLane::Input(slot)) = keccak_value(c.col) {
+            if let Some(KeccakLane::Slot(slot)) = keccak_value(c.col) {
                 return pcs::SlotClaim::Point {
                     offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
                     low_point: c.point,

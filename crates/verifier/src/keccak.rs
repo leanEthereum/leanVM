@@ -53,7 +53,7 @@ pub struct KeccakShape {
 }
 
 impl KeccakShape {
-    fn segments(&self) -> usize {
+    pub fn segments(&self) -> usize {
         ROUNDS / self.depth
     }
 

@@ -28,6 +28,10 @@ const MIN_SHAPE: Shape = shape(0);
 /// `log2` of the slots the committed column holds per step: one per lane of each state but the
 /// output, rounded up to a power of two.
 pub const SLOT_LOG: usize = MIN_SHAPE.slot_log();
+/// Slots of a step the committed states occupy, one per lane of each: the ones from here to
+/// `2^SLOT_LOG` carry no state, and the KECCAK table's own columns ride them
+/// (`cpu::keccak_value`).
+pub const SLOTS: usize = MIN_SHAPE.slots();
 /// The fewest steps the reduction is sized for, one of its blocks.
 pub const MIN_STEPS: usize = MIN_SHAPE.n();
 
@@ -47,7 +51,7 @@ pub fn relation_digest() -> [u8; 32] {
     primitives::hash::hash(RELATION_LABEL)
 }
 pub const RELATION_LABEL: &[u8] =
-    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
+    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots then table columns, output claimed by the bus";
 
 /// `log2` of the committed column, in words.
 pub fn qkeccak_kappa(n_steps: usize) -> usize {
@@ -195,15 +199,17 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
 }
 
 impl Blocks {
-    /// Write the committed column of the `steps` steps these blocks hold, padded with
-    /// all-zero steps, and hand the reduction its witness.
+    /// Write the committed states of the `steps` steps these blocks hold, padded with
+    /// all-zero steps, and hand the reduction its witness. `q_keccak` is the states' part of
+    /// the committed block, its first [`SLOTS`] slots: the spare slots past them belong to the
+    /// columns that ride there and are written by their own fill.
     pub(crate) fn place(self, steps: usize, q_keccak: &mut [F64]) -> PreparedReductionWitness {
         assert_eq!(self.steps, steps, "the blocks are of another run");
         let shape = shape(self.steps);
         assert_eq!(
             q_keccak.len(),
-            1 << shape.stack_log(),
-            "the committed column is the wrong size"
+            shape.slots() * shape.n(),
+            "the committed states are the wrong size"
         );
         // SAFETY: `while_executing` ran block `g` into its slot of `extents`, in order, its
         // lanes being `lanes[g]`.
@@ -225,7 +231,8 @@ mod tests {
     /// witness.
     fn build_qkeccak(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, Witness) {
         let mut q_keccak = vec![F64::ZERO; 1 << qkeccak_kappa(instances.len())];
-        let witness = Witness::generate(shape(instances.len()), instances, &mut q_keccak);
+        let states = SLOTS * (1 << n_steps_log(instances.len()));
+        let witness = Witness::generate(shape(instances.len()), instances, &mut q_keccak[..states]);
         (q_keccak, witness)
     }
 
@@ -249,8 +256,12 @@ mod tests {
                 }
             });
             let mut q_keccak = vec![f(0xdead_beef); expected.len()];
-            let witness = blocks.place(n, &mut q_keccak);
-            assert_eq!(q_keccak, expected, "{n} steps");
+            let states = SLOTS * (1 << n_steps_log(n));
+            let witness = blocks.place(n, &mut q_keccak[..states]);
+            assert_eq!(q_keccak[..states], expected[..states], "{n} steps");
+            // What the columns riding the spare slots left there is none of the reduction's
+            // business, but both openings fold it, so the two runs have to see the same.
+            q_keccak[states..].fill(f(0x5151_5151));
             let point = (0..n_steps_log(n)).map(|i| F192::new(3 + i as u64, 5, 7)).collect();
             let output = OutputClaim::of_inputs(shape(n), &instances, point);
             let stream = |witness: &Witness| {

@@ -113,13 +113,20 @@ The store asserts that $v_2$ equals the source chosen by the mode $\dmode$ (\S\r
 
 \subsection{\texttt{KECCAK}}\label{sec:tab-keccak}
 
-The \texttt{KECCAK} table (\S\ref{sec:vm}) holds one Keccak-$f[1600]$ permutation per row, and the permutation itself is proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. Of each permutation the prover commits two states and nothing else: the input, and the state after $12$ rounds. Their $50$ lanes all ride a single committed column $\qkeccak$, \emph{not} one column per lane. It is a multilinear over $\cube{\kbatch}\times\cube{6}$, the table's row index then a slot index, so a row owns $2^{6}$ slots of it, and lane $\ell$ of the state after $12m$ rounds is slot $25m+\ell$. A slot is thus six more variables of that one polynomial, never a column of its own: this is what gives $\qkeccak$ one region of the stack (\S\ref{sec:stacking}) and one opening, and what lets the reduction end with two claims on $\qkeccak$ instead of one per lane. The slot index is a whole number of variables, so the $50$ occupied slots are padded to $2^{6}$: slots $50$ to $63$ carry nothing, no check weighs them, and an honest prover writes zero there. The output state is not committed at all.
-
-The input lanes $\kin{\ell}$ and output lanes $\kout{\ell}$ are columns of the table with no region of their own in the stack. Input lane $\kin{\ell}$ is slot $\ell$ of $\qkeccak$, so a claim on it at $\zeta$ is a claim on $\qkeccak$ at $\zeta$ followed by the six bits of $\ell$. The output lanes are not committed: the claims on them are where the Keccak reduction starts. A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. The top limb is a literal $0$.
+One row is one permutation (\S\ref{sec:vm}), proved by the GKR of Annex~\ref{annex:keccak} rather than by constraints. A row has $115$ columns:
 \begin{itemize}
-\item \textbf{Columns:} $\pc,\fp$; the operands, flags included; $\mathit{free}$; the lanes $\kin{\ell},\kout{\ell}$, uncommitted; one count $r_c$ per cell $c<26$; $r_{\mathrm{bc}}$. The addresses are the products $\gen^{k}\fp\cdot o$.
+\item $\pc$, $\fp$, the eight operand offsets, the two layout flags and $\mathit{free}$, and $27$ read counts, one per cell read or written and one for the bytecode.
+\item $\kin{\ell}$, the $25$ lanes of the state the row reads from memory.
+\item $\kmid{\ell}$, the $25$ lanes of the state after $12$ rounds. Committing it is an optimization and nothing more: it halves the depth of the reduction. No flush reads it.
+\item $\kout{\ell}$, the $25$ lanes the row writes back. These are \emph{virtual}: the flushes read them, but nothing commits them, and the claims the table sumcheck leaves on deferred to GKR, which reduce them to claims on $\kin{\ell}$ and $\kmid{\ell}$.
+\end{itemize}
+
+Every column but $\kout{\ell}$ is committed. The $50$ lanes of $\kin{}$ and $\kmid{}$ go into the stack (\S\ref{sec:stacking}) as one aligned run of $2^{6}$ columns, written $\qkeccak$, which the reduction addresses by a six-bit \emph{slot}: $\kin{\ell}$ is slot $\ell$, $\kmid{\ell}$ is slot $25+\ell$, and a claim on one at $\zeta$ is a claim on $\qkeccak$ at $\zeta$ followed by the slot's bits. The $14$ slots left over hold the row's other committed columns, $\pc$, $\fp$, the operands and flags, $\mathit{free}$, then $r_0$, read the same way: the reduction weighs nothing on them (\S\ref{keccak:statement}), and the stack holds each once instead of beside a block of zeros.
+
+A limb holding lane $a$ in the even layout and $b$ in the odd one is the degree-$2$ form $a+\mathit{odd}\,(a+b)$, a limb holding no lane being the column $\mathit{free}$ when read and $0$ when written. The top limb is a literal $0$.
+\begin{itemize}
 \item \textbf{Constraints:} none. The permutation is proved by the GKR of Annex~\ref{annex:keccak}.
-\item \textbf{Flushes:}
+\item \textbf{Flushes:} the addresses being the products $\gen^{k}\fp\cdot o$.
   \begin{itemize}
   \item \textbf{State:} \pull\ $\tup{\dsep{ST},\pc,\fp}$, \push\ $\tup{\dsep{ST},\gen\cdot\pc,\fp}$.
   \item \textbf{Bytecode:} $\rdf{\dsep{BC},\pc,r_{\mathrm{bc}},\opc{KEC},o_{m_0},o_{m_1},o_{m_2},o_{m_3},o_{\mathit{tail}},o_{\mathit{b8}},o_{\mathit{cap}},o_{\mathit{out}},\mathit{odd}_{\mathit{in}},\mathit{odd}_{\mathit{out}}}$.

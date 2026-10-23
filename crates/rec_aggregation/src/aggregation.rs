@@ -2105,7 +2105,7 @@ fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
                     column: compact_col_pm[column],
                     qkeccak_slot: 0,
                 },
-                Some(KeccakLane::Input(slot)) => ClaimDescriptor {
+                Some(KeccakLane::Slot(slot)) => ClaimDescriptor {
                     buffer: POINT_BUF_QKECCAK_RHO,
                     column: qkeccak_compact,
                     qkeccak_slot: slot,

@@ -103,7 +103,8 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, committed, &output);
-    if lane_error == F192::ZERO && committed == honest {
+    // The states must be the honest ones; what rides the spare slots past them is free.
+    if lane_error == F192::ZERO && committed[..shape.slots() * shape.n()] == honest[..shape.slots() * shape.n()] {
         // Each opening is what the commitment scheme means by it.
         let mut stack = committed.to_vec();
         stack.resize(1 << shape.stack_log(), primitives::field::F64(0));
@@ -150,6 +151,13 @@ fn end_to_end(n_instances: usize, depth: usize) {
     let shape = Shape::new(n_instances, depth);
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);
+    // Other columns ride the slots the states leave free (§cpu). The reduction weighs nothing
+    // there, but its openings are claims on the whole committed block, so they have to fold
+    // whatever sits in them: junk here, and the checks against the commitment below are what
+    // say the fold did.
+    for word in &mut committed[shape.slots() * shape.n()..] {
+        *word = primitives::field::F64(rng.next_u64());
+    }
     let proof = prove(shape, &inputs, &committed, F192::ZERO);
     verify(shape, &proof).expect("an honest proof verifies");
     for at in (2..proof.stream.len()).step_by(proof.stream.len() / 31 + 1) {
@@ -160,6 +168,38 @@ fn end_to_end(n_instances: usize, depth: usize) {
             assert_eq!(err, check, "scalar {at}");
         }
     }
+}
+
+/// Both openings are claims on the whole committed block, so the spare slots the reduction folds
+/// have to be the ones that were committed: a prover that folds any other word is rejected, which
+/// is what lets other columns ride there at all.
+#[test]
+fn spare_slots_must_be_the_committed_ones() {
+    use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+
+    let mut rng = Rng::new(81);
+    let (n, depth) = (600, 12);
+    let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+    let shape = Shape::new(n, depth);
+    let states = shape.slots() * shape.n();
+    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+    let witness = Witness::generate(shape, &inputs, &mut committed[..states]);
+    for word in &mut committed[states..] {
+        *word = primitives::field::F64(rng.next_u64());
+    }
+    // One word of the spare slots apart from what the commitment holds.
+    let mut folded = committed.clone();
+    folded[states] = primitives::field::F64(folded[states].0 ^ 1);
+
+    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
+    let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
+    let (commitment, prover_data) = commit(&committed, shape.stack_log(), INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0);
+    ps.add_root(&commitment.root);
+    let output = crate::OutputClaim::of_inputs(shape, &inputs, ps.sample_vec(shape.n_log()));
+    ps.add_scalars(&output.lanes);
+    let openings = witness.prove(&mut ps, &folded, &output);
+    open_commitment(&mut ps, shape, &committed, &prover_data, &config, openings);
+    verify(shape, &ps.into_proof()).expect_err("a spare slot that was not committed is rejected");
 }
 
 #[test]

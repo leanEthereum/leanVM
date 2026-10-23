@@ -49,21 +49,64 @@ pub fn schema() -> &'static Schema {
     })
 }
 
-/// A KECCAK value column. Both kinds are VIRTUAL, with no placement of their own.
+/// A KECCAK column that `q_keccak` carries. Both kinds are VIRTUAL, with no placement of
+/// their own.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KeccakLane {
-    /// Input lane `l`, whose words are `q_keccak`'s slot `l`: a claim on it is a claim on that slot.
-    Input(usize),
+    /// A column whose words ARE `q_keccak`'s slot `s`, so a claim on it is a claim on that
+    /// slot: an input lane (slot = lane), or one of the columns riding the spare slots.
+    Slot(usize),
     /// Output lane `l`, whose claim is the Keccak reduction's claim on the permutation's output.
     Output(usize),
 }
 
-/// The KECCAK value lane global column `col` is, if it is one.
+/// Slots of `q_keccak` no committed state occupies: the lanes of the states a step commits,
+/// `crate::keccak::SLOTS`, rounded up to the power of two the slot index needs. The reduction
+/// weighs nothing there, so they carry the KECCAK table's own first columns instead of zeros,
+/// which is `QKECCAK_SPARE` columns the stack does not have to hold twice.
+pub const QKECCAK_SPARE: usize = (1 << crate::keccak::SLOT_LOG) - crate::keccak::SLOTS;
+
+/// The local KECCAK column riding spare slot `k`: its committed columns in local order, which
+/// are the ones before the value lanes, then the read counts after them.
+const fn spare_local(k: usize) -> usize {
+    if k < tables::keccakt::V_IN {
+        k
+    } else {
+        tables::keccakt::R0 + (k - tables::keccakt::V_IN)
+    }
+}
+const _: () = {
+    let mut k = 0;
+    while k < QKECCAK_SPARE {
+        let local = spare_local(k);
+        // Increasing, so distinct: two spare slots sharing a column would leave the other's
+        // words unwritten. And never a value lane, which q_keccak already holds.
+        assert!(
+            k == 0 || spare_local(k - 1) < local,
+            "the spare columns must be distinct"
+        );
+        assert!(
+            local < tables::keccakt::V_IN || (local >= tables::keccakt::R0 && local < tables::keccakt::N),
+            "the KECCAK table has fewer committed columns than q_keccak has spare slots"
+        );
+        k += 1;
+    }
+};
+
+/// What `q_keccak` holds for the global column `col`, if it holds anything: a value lane of
+/// the KECCAK table, or one of its columns riding a spare slot.
 pub fn keccak_value(col: usize) -> Option<KeccakLane> {
     use primitives::hash::STATE_LANES;
-    let lane = col.checked_sub(schema().base[tables::KECCAK_TABLE] + tables::keccakt::V_IN)?;
+    let local = col.checked_sub(schema().base[tables::KECCAK_TABLE])?;
+    if local >= tables::keccakt::N {
+        return None;
+    }
+    if let Some(k) = (0..QKECCAK_SPARE).find(|&k| spare_local(k) == local) {
+        return Some(KeccakLane::Slot(crate::keccak::SLOTS + k));
+    }
+    let lane = local.checked_sub(tables::keccakt::V_IN)?;
     match lane {
-        0..STATE_LANES => Some(KeccakLane::Input(lane)),
+        0..STATE_LANES => Some(KeccakLane::Slot(lane)),
         _ if lane < 2 * STATE_LANES => Some(KeccakLane::Output(lane - STATE_LANES)),
         _ => None,
     }
@@ -135,7 +178,7 @@ impl Witness {
             .iter()
             .enumerate()
             .map(|(i, p)| match keccak_value(i) {
-                Some(KeccakLane::Input(l)) => &self.q[q_keccak + l * steps..][..steps],
+                Some(KeccakLane::Slot(slot)) => &self.q[q_keccak + slot * steps..][..steps],
                 _ if p.is_virtual() => &[][..],
                 _ => &self.q[p.offset..][..1 << p.n_vars],
             })
@@ -181,11 +224,12 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
         let base = sch.base[t];
         k[base..base + table.n_committed_columns()].fill(Some((2 + t, 0)));
     }
-    // The KECCAK value columns are ALWAYS virtual: `q_keccak` already holds the
-    // input words at fixed slots, and the output words are the reduction's to prove.
-    // The input lanes' memory-bus claims route directly to `q_keccak` slot
-    // evaluations (`slot_claims`), the output lanes' to the reduction's output claim,
-    // which binds both to the proven witness with no separate value-binding sub-protocol.
+    // The columns `q_keccak` carries are ALWAYS virtual: it already holds the input words at
+    // fixed slots and the KECCAK columns riding its spare ones, and the output words are the
+    // reduction's to prove. A slot column's bus claims route directly to the matching
+    // `q_keccak` slot evaluation (`slot_claims`), the output lanes' to the reduction's output
+    // claim, which binds both to the proven witness with no separate value-binding
+    // sub-protocol.
     for (col, k) in k.iter_mut().enumerate() {
         if keccak_value(col).is_some() {
             *k = None;
@@ -504,8 +548,8 @@ impl Program {
         // wrote every window it was given, and the shared columns below write theirs.
         let mut q = unsafe { witness::alloc_stack(l.shape) };
         // An output lane is neither in the stack nor in `q_keccak`, so its values need
-        // storage of their own: it carries data for the bus. An input lane is a slot of
-        // `q_keccak` ([`Witness::columns`]), so it gets no window and no fill.
+        // storage of their own: it carries data for the bus. Every other column `q_keccak`
+        // carries ([`Witness::columns`]) is filled through the slot window handed out below.
         let steps = 1 << l.taus[tables::KECCAK_TABLE];
         let mut virt: Vec<(usize, Vec<F64>)> = (0..sch.n)
             .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
@@ -516,6 +560,14 @@ impl Program {
         let mut windows = witness::split_stack(&mut q, &l.placements);
         for (i, buf) in virt.iter_mut() {
             windows[*i] = buf;
+        }
+        // q_keccak's window is the committed states and then the spare slots, a slot per
+        // KECCAK column riding them: hand each its slot, so its fill writes it where it
+        // lives and the stack never holds it twice.
+        let (states, spare) = std::mem::take(&mut windows[QKECCAK]).split_at_mut(crate::keccak::SLOTS * steps);
+        windows[QKECCAK] = states;
+        for (k, window) in spare.chunks_exact_mut(steps).enumerate() {
+            windows[sch.base[tables::KECCAK_TABLE] + spare_local(k)] = window;
         }
 
         // Each table fills its own columns from the trace (local indices, offset

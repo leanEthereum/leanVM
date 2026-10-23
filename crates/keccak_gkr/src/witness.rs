@@ -285,7 +285,9 @@ struct Column<'a> {
 }
 
 impl<'a> Column<'a> {
-    /// `committed`, zeroed past the last slot.
+    /// The writer for `committed`, which holds at least the states' `slots * n` words and at
+    /// most the whole block: anything it has past the last slot is zeroed, so a caller whose
+    /// spare slots carry other columns passes the states' prefix alone.
     fn new(shape: Shape, committed: &'a mut [F64]) -> Self {
         let (n, slots) = (shape.n(), shape.slots());
         assert!(committed.len() >= slots * n && committed.len() <= 1 << shape.stack_log());
@@ -323,8 +325,9 @@ impl<'a> Column<'a> {
 impl Witness {
     /// Run every instance, padding the batch with all-zero inputs, and write the committed
     /// lanes into `committed`: lane `l` of the state after `depth * m` rounds, for `m` below the
-    /// segment count, is slot `25 * m + l`, one word per instance, and whatever follows the last
-    /// slot is zeroed. The blocks after the last input are run once, as the padding block.
+    /// segment count, is slot `25 * m + l`, one word per instance. Whatever `committed` has past
+    /// the last slot is zeroed, so a caller whose spare slots carry other columns (§cpu) passes
+    /// the states' prefix alone. The blocks after the last input are run once, as the padding block.
     pub fn generate(shape: Shape, inputs: &[[u64; LANES]], committed: &mut [F64]) -> Self {
         assert!(inputs.len() <= shape.n());
         let column = Column::new(shape, committed);

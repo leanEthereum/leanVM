@@ -62,7 +62,7 @@ pub struct BusBlock {
 }
 
 pub const RELATION_LABEL: &[u8] =
-    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus";
+    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots then table columns, output claimed by the bus";
 
 // The columns no instruction table owns. They come first in the global column numbering, the tables after.
 pub const NUM_GLOBAL_COLUMNS: usize = 6;
@@ -382,6 +382,41 @@ pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
 const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
 const KECCAK_CNT_BC: usize = KECCAK_CNT + 2 * KECCAK_CELLS;
 
+/// The local KECCAK column riding spare slot `k` (`cpu::keccak_value` in the prover): its
+/// committed columns in local order, the ones before the value lanes then the read counts
+/// after them.
+const fn spare_local(k: usize) -> usize {
+    if k < KECCAK_IN { k } else { KECCAK_CNT + (k - KECCAK_IN) }
+}
+
+/// Slots of the run the committed states occupy, and the ones they leave over.
+const QKECCAK_SLOTS: usize = STATE_LANES * (crate::hash::ROUNDS / KECCAK_DEPTH);
+const QKECCAK_SPARE: usize = (1 << log2_ceil(QKECCAK_SLOTS as u64)) - QKECCAK_SLOTS;
+// The same guard the prover carries (`cpu::layout`): every spare slot needs a committed column
+// of the table to put in it, distinct from the others and not one of the value lanes. It holds
+// at this depth, not at every divisor of 24, and the two sides must refuse together.
+const _: () = {
+    let mut k = 0;
+    while k < QKECCAK_SPARE {
+        let local = spare_local(k);
+        assert!(k == 0 || spare_local(k - 1) < local);
+        assert!(local < KECCAK_IN || (local >= KECCAK_CNT && local < TABLE_WIDTHS[OP_KECCAK]));
+        k += 1;
+    }
+};
+
+/// The slot of `q_keccak` the global column `column` IS, if it is one: an input lane (slot =
+/// lane), or one of the KECCAK table's own columns riding a slot past the committed states.
+/// The reduction weighs nothing on those spare slots, so the stack carries those columns
+/// there rather than a block of zeros and a block of its own.
+fn qkeccak_slot(column: usize) -> Option<usize> {
+    let local = column.checked_sub(GLOBAL_COLUMN_BASES[OP_KECCAK])?;
+    if let Some(k) = (0..QKECCAK_SPARE).find(|&k| spare_local(k) == local) {
+        return Some(QKECCAK_SLOTS + k);
+    }
+    (KECCAK_IN..KECCAK_OUT).contains(&local).then(|| local - KECCAK_IN)
+}
+
 fn keccak_columns() -> Vec<String> {
     let lanes = |prefix: &'static str| (0..STATE_LANES).map(move |lane| format!("{prefix}_{lane}"));
     let counts = (0..2 * KECCAK_CELLS).map(|cell| format!("cnt_{cell}"));
@@ -495,13 +530,13 @@ pub fn build_layout<'a>(
         kappas.extend(vec![table_log_heights[table.opcode]; table.width()]);
     }
 
-    // A KECCAK value lane gets no block of its own: an input lane is committed inside q_keccak, one slot of
-    // 2^height words each, and an output lane not at all, nothing ever opening it.
+    // A column q_keccak carries gets no block of its own: it is one of its slots, 2^height words,
+    // whether an input lane or a KECCAK column riding a spare slot (`qkeccak_slot`). An output
+    // lane is not committed at all, nothing ever opening it.
     let base = GLOBAL_COLUMN_BASES[OP_KECCAK];
-    let inputs = base + KECCAK_IN..base + KECCAK_IN + STATE_LANES;
     let outputs = base + KECCAK_OUT..base + KECCAK_OUT + STATE_LANES;
     let blocks: Vec<usize> = (0..kappas.len())
-        .filter(|column| !inputs.contains(column) && !outputs.contains(column))
+        .filter(|column| qkeccak_slot(*column).is_none() && !outputs.contains(column))
         .collect();
     let block_kappas: Vec<usize> = blocks.iter().map(|&column| kappas[column]).collect();
     let (block_offsets, total_log) = stack_offsets(&block_kappas);
@@ -509,10 +544,9 @@ pub fn build_layout<'a>(
     let stack_log = MIN_STACKED_LOG.max(total_log); // Floor at the PCS minimum
     let placed = block_kappas.iter().map(|&kappa| 1 << kappa).sum();
     let placement = |(column, &kappa): (usize, &usize)| {
-        let index = if inputs.contains(&column) {
-            offsets[&QKECCAK] + (((column - inputs.start) as u64) << kappa)
-        } else {
-            *offsets.get(&column)?
+        let index = match qkeccak_slot(column) {
+            Some(slot) => offsets[&QKECCAK] + ((slot as u64) << kappa),
+            None => *offsets.get(&column)?,
         };
         Some(Placement {
             variables: kappa,

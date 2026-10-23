@@ -166,9 +166,16 @@ fn first(shape: Shape, output: &OutputClaim, segment: Vec<F192>, r_lane: &[F192]
 
 impl Witness {
     /// Reduce "the committed states follow Keccak-f, to an output satisfying `output`" to
-    /// openings of the commitment. `committed` is what [`Witness::generate`] wrote.
+    /// openings of the commitment. `committed` is the WHOLE committed block, spare slots and
+    /// all, not just the states [`Witness::generate`] wrote: the openings it leaves are claims
+    /// on all of it, so they fold whatever rides those slots (§cpu).
     pub fn prove(&self, ps: &mut ProverState, committed: &[F64], output: &OutputClaim) -> Openings {
         let shape = self.shape;
+        assert_eq!(
+            committed.len(),
+            1 << shape.stack_log(),
+            "the openings are claims on the whole committed block"
+        );
         let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
         let mut first = first(shape, output, segment, &r_lane);
         let instance = &output.instance;
@@ -188,7 +195,7 @@ impl Witness {
         let _span = tracing::info_span!("Openings").entered();
         let outputs =
             (shape.segments() > 1).then(|| open::open_outputs(ps, shape, instance, &first, committed_value, folded));
-        let inputs = open::open_inputs(ps, self, &claim);
+        let inputs = open::open_inputs(ps, self, committed, &claim);
         Openings { outputs, inputs }
     }
 }

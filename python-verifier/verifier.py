@@ -678,7 +678,9 @@ def table_sumcheck(
     return rows
 
 
-RELATION_LABEL = b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots, output claimed by the bus"
+RELATION_LABEL = (
+    b"leanVM keccak GKR: keccak-f in two cell layouts, depth 12, packs of 16 in degree 23, lane slots then table columns, output claimed by the bus"
+)
 
 # The columns no instruction table owns. They come first in the global column numbering, the tables after.
 NUM_GLOBAL_COLUMNS = 6
@@ -686,8 +688,9 @@ MEMORY_0, MEMORY_1, MEMORY_2, MEMORY_FINAL_COUNTERS, BYTECODE_FINAL_COUNTERS, QK
 
 K_BITS = 64
 
-# The Keccak reduction commits a step's state every KECCAK_DEPTH rounds but the output, a lane per
-# slot of q_keccak and a word per step: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
+# The Keccak reduction commits a step's state every KECCAK_DEPTH rounds but the output, a word per step
+# in each of 25 columns. Those columns are placed as one aligned run, q_keccak, a column of the run being
+# a slot: lane l of the state after KECCAK_DEPTH * m rounds is slot 25 m + l.
 KECCAK_DEPTH = 12
 KECCAK_SEGMENTS = ROUNDS // KECCAK_DEPTH
 KECCAK_SEGMENT_BITS = log2_ceil(KECCAK_SEGMENTS)
@@ -929,13 +932,26 @@ KECCAK_COLUMNS = (
     "pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out",
     # The read limb that holds no lane.
     "free",
-    # These fifty value lanes are not committed here: an input lane is one of q_keccak's slots,
-    # and the output lanes' claims are the Keccak reduction's claim on the output.
+    # The fifty value lanes: an input lane is a slot of q_keccak (below), and an output lane is not
+    # committed at all, the claims on it being where the Keccak reduction starts.
     *(f"in_{lane}" for lane in range(STATE_LANES)), *(f"out_{lane}" for lane in range(STATE_LANES)),
     # ...and the read counts, each cell read then each written, committed here like every other column.
     *(f"cnt_{cell}" for cell in range(2 * KECCAK_CELLS)), "cnt_bc",
 )  # fmt: skip
 KECCAK_IN, KECCAK_OUT, KECCAK_CNT = (KECCAK_COLUMNS.index(name) for name in ("in_0", "out_0", "cnt_0"))
+# Which slot of q_keccak each local KECCAK column is. The states take the first QKECCAK_SLOTS, the input
+# lanes among them; the run is a power of two wide, so the slots left over carry the table's own first
+# committed columns, which the reduction weighs nothing on and the stack then holds only once.
+QKECCAK_SLOTS = STATE_LANES * KECCAK_SEGMENTS
+QKECCAK_SPARE = 2**QKECCAK_SLOT_BITS - QKECCAK_SLOTS
+_KECCAK_COMMITTED = [local for local in range(len(KECCAK_COLUMNS)) if not KECCAK_IN <= local < KECCAK_CNT]
+# The guard the prover and the Rust verifier carry too: every spare slot needs a committed column of
+# the table to put in it. True at this depth, not at every divisor of 24, and the three must agree.
+assert len(_KECCAK_COMMITTED) >= QKECCAK_SPARE, "fewer committed KECCAK columns than q_keccak has spare slots"
+KECCAK_SLOT_OF = {KECCAK_IN + lane: lane for lane in range(STATE_LANES)} | {
+    local: QKECCAK_SLOTS + spare for spare, local in enumerate(_KECCAK_COMMITTED[:QKECCAK_SPARE])
+}
+
 
 TABLES = (
     Table("xor", OP_XOR, ARITH_COLUMNS, _flushes_arith(OP_XOR, multiply=False)),
@@ -978,23 +994,22 @@ def build_layout(bytecode: Sequence[K], log_memory: int, table_rows: Sequence[in
     for table in TABLES:
         kappas += [table_log_heights[table.opcode]] * table.width
 
-    # A KECCAK value lane gets no block of its own: an input lane is committed inside q_keccak, one
-    # slot of 2^height words each, and an output lane not at all, nothing ever opening it.
+    # A column q_keccak carries gets no block of its own: it IS one of its slots, 2^height words. An
+    # output lane is not committed at all, nothing ever opening it.
     base = GLOBAL_COLUMN_BASES[OP_KECCAK]
-    inputs = range(base + KECCAK_IN, base + KECCAK_IN + STATE_LANES)
     outputs = range(base + KECCAK_OUT, base + KECCAK_OUT + STATE_LANES)
-    blocks = {column: kappa for column, kappa in enumerate(kappas) if column not in inputs and column not in outputs}
+    slots = {column: KECCAK_SLOT_OF.get(column - base) for column in range(len(kappas))}
+    blocks = {column: kappa for column, kappa in enumerate(kappas) if slots[column] is None and column not in outputs}
     block_offsets, total_log = stack_offsets(list(blocks.values()))
     offsets = dict(zip(blocks, block_offsets))
     stack_log = max(MIN_STACKED_LOG, total_log)  # Floor at the PCS minimum
-    placements = [
-        Placement(kappa, offsets[QKECCAK] + ((column - inputs.start) << kappa))
-        if column in inputs
-        else None
-        if column in outputs
-        else Placement(kappa, offsets[column])
-        for column, kappa in enumerate(kappas)
-    ]
+
+    def placement(column: int, kappa: int) -> Placement | None:
+        if (slot := slots[column]) is not None:
+            return Placement(kappa, offsets[QKECCAK] + (slot << kappa))
+        return None if column in outputs else Placement(kappa, offsets[column])
+
+    placements = [placement(column, kappa) for column, kappa in enumerate(kappas)]
     return Layout(log_memory, log_bytecode, bytecode, tuple(push), tuple(pull), tuple(count), tuple(placements), stack_log, tuple(table_log_heights))
 
 
@@ -1339,21 +1354,16 @@ def verify_keccak_layer(transcript: Transcript, log_steps: int, step: int, claim
     return KeccakClaim(t[0] + beta * (t[1] + beta * t[2]), mu, tuple(point), keccak_linear_transpose(weights))
 
 
-def _keccak_slot_weights(log_steps: int, claim: KeccakClaim, first: int, count: int) -> list[list[E]]:
-    """The weight a claim puts on each (slot, z): its position weights on the slots of the states it speaks of, scaled by
-    the segment. `first` is the state segment 0 claims, and only the first `count` segments' states are committed."""
+def _keccak_open(transcript: Transcript, log_steps: int, claim: KeccakClaim, first: int, count: int, value: E) -> tuple[MultilinearPoint, list[E], E]:
+    """A sumcheck over the slot: the point it ends on, the weight the claim puts on each slice there, and what is left
+    to match. The claim weighs (slot, z) by its position weights, scaled by the segment, on the states it speaks of:
+    `count` segments from `first`, the slots of every other column of the run weighing nothing."""
+    slot, value = sumcheck(transcript, value, 3, [None] * QKECCAK_SLOT_BITS)
     segments = eq_kernel(claim.point[log_steps - PACK_BITS :])
     rows = [[ZERO] * 64 for _ in range(2**QKECCAK_SLOT_BITS)]
     for segment in range(count):
         for j in range(KECCAK_BITS):
             rows[STATE_LANES * (first + segment) + j // 64][j % 64] = segments[segment] * claim.weights[j]
-    return rows
-
-
-def _keccak_open(transcript: Transcript, log_steps: int, claim: KeccakClaim, first: int, count: int, value: E) -> tuple[MultilinearPoint, list[E], E]:
-    """A sumcheck over the slot: the point it ends on, the weight the claim puts on each slice there, and what is left to match."""
-    slot, value = sumcheck(transcript, value, 3, [None] * QKECCAK_SLOT_BITS)
-    rows = _keccak_slot_weights(log_steps, claim, first, count)
     for challenge in slot:
         rows = [[lo + challenge * (lo + hi) for lo, hi in zip(rows[2 * i], rows[2 * i + 1], strict=True)] for i in range(len(rows) // 2)]
     return slot, rows[0], value
