@@ -39,7 +39,16 @@ impl Shape {
         assert!(ROUNDS.is_multiple_of(depth), "depth must divide the round count");
         let n = if n_instances < BLOCK { BLOCK } else { n_instances };
         let n_log = n.next_power_of_two().ilog2() as usize;
-        Self { n_log, depth }
+        let shape = Self { n_log, depth };
+        // The bound the raw writes rely on. Every size this crate derives is at most the
+        // `2^stack_log` words of the committed block (`slots <= 2^slot_log`), so bounding that
+        // one bounds them all; without it `slots * n` and `1 << stack_log` wrap, and a buffer
+        // too small for the writes passes the checks that guard them.
+        assert!(
+            shape.stack_log() < usize::BITS as usize,
+            "too many instances for one batch"
+        );
+        shape
     }
 
     pub const fn n_log(&self) -> usize {
@@ -646,5 +655,13 @@ mod tests {
             }
         }
         assert!(committed[shape.slots() * n..].iter().all(|w| w.0 == 0));
+    }
+
+    /// A shape whose committed block would not fit a `usize` is refused, rather than wrapping
+    /// into sizes that let an undersized buffer pass the checks the raw writes rely on.
+    #[test]
+    #[should_panic(expected = "too many instances")]
+    fn an_unrepresentable_batch_is_refused() {
+        Shape::new(1usize << 63, 12);
     }
 }
