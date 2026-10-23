@@ -81,12 +81,15 @@ enum Command {
     },
     /// Prove and verify a batch of Keccak-f permutations with the VM's GKR, outside the VM.
     Hash {
-        /// Log2 of the number of permutations, at least that of the reduction's fewest steps.
+        /// Log2 of the number of permutations, from the reduction's fewest steps up to the
+        /// largest batch whose committed block the verifiers accept.
         #[arg(
             long,
             default_value_t = 17,
-            value_parser = clap::builder::RangedU64ValueParser::<usize>::new()
-                .range(u64::from(leanvm_core::keccak::MIN_STEPS.ilog2())..)
+            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(
+                u64::from(leanvm_core::keccak::MIN_STEPS.ilog2())
+                    ..=(leanvm_core::pcs::MAX_MU - leanvm_core::keccak::SLOT_LOG) as u64
+            )
         )]
         log_n: usize,
     },
