@@ -250,7 +250,14 @@ impl LeafBlock<'_> {
         padding.fill(F192::ONE);
         #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
         let done = self.fill8(z0, real_out, cols);
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq")))]
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx2",
+            target_feature = "vpclmulqdq",
+            not(target_feature = "avx512f")
+        ))]
+        let done = self.fill4(z0, real_out, cols);
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
         let done = 0;
         let mut index = g_pow(z0 + done);
         for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
@@ -292,6 +299,45 @@ impl LeafBlock<'_> {
             (acc.reduce() + constant).store(slot);
         }
         8 * chunks.len()
+    }
+
+    /// [`fill`](Self::fill) four rows at a time without AVX-512 ([`primitives::field::x4`]);
+    /// returns how many rows it wrote.
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "vpclmulqdq",
+        not(target_feature = "avx512f")
+    ))]
+    fn fill4(&self, z0: usize, out: &mut [F192], cols: &[&[F64]]) -> usize {
+        use primitives::field::x4::{F64x4, Mixed4, Splat4};
+        let four = |source: &[F64], z: usize| F64x4::load(source[z..z + 4].try_into().unwrap());
+        // `g^z` for the four rows, stepped by `g^4`.
+        let mut index = F64x4::load(&std::array::from_fn(|i| g_pow(z0 + i)));
+        let step = F64x4::splat(g_pow(4));
+        let coeffs: Vec<Splat4> = self
+            .terms
+            .iter()
+            .map(|t| match t {
+                Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => Splat4::new(*c),
+            })
+            .collect();
+        let (chunks, _) = out.as_chunks_mut::<4>();
+        for (k, slot) in chunks.iter_mut().enumerate() {
+            let z = z0 + 4 * k;
+            let mut acc = Mixed4::ZERO;
+            for (t, &c) in self.terms.iter().zip(&coeffs) {
+                match t {
+                    Term::Col(i, _) => acc.add(c, four(cols[*i], z)),
+                    Term::Prod(i, j, _) => acc.add(c, four(cols[*i], z) * four(cols[*j], z)),
+                    Term::Index(_) => acc.add(c, index),
+                    Term::Public(vals, _) => acc.add(c, four(vals, z)),
+                }
+            }
+            index = index * step;
+            *slot = acc.reduce(self.const_part);
+        }
+        4 * chunks.len()
     }
 }
 
@@ -403,8 +449,16 @@ pub fn build_leaves(sides: [(&[Block], &Layout, &[F192], F192); 3], cols: &[&[F6
             let (leaves, fours, sixteens) = (&mut stage[..len], &mut stage4[..len / 4], &mut stage16[..len / 16]);
             for blk in &groups[group] {
                 blk.fill(z0, leaves, cols);
-                gkr::products_into(leaves, fours);
-                gkr::products_into(fours, sixteens);
+                // Past the block's real rows every leaf, and so every tuple's product, is the identity.
+                let live = if gkr::SKIP_IDENTITY {
+                    blk.rows.saturating_sub(z0).next_multiple_of(16).min(len)
+                } else {
+                    len
+                };
+                gkr::products_into(&leaves[..live], &mut fours[..live / 4]);
+                gkr::products_into(&fours[..live / 4], &mut sixteens[..live / 16]);
+                fours[live / 4..].fill(F192::ONE);
+                sixteens[live / 16..].fill(F192::ONE);
                 let at = blk.offset + z0;
                 // SAFETY: a block's chunks are disjoint ranges of its side's leaves, blocks
                 // are disjoint, and a chunk owns the tuples it starts, `at` being a multiple

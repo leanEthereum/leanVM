@@ -193,29 +193,25 @@ impl SplitEq {
     }
 }
 
+/// The `eq`-weighted message terms of one pair, from each child's line `[value at 0, slope]`.
+/// The weight scales child 0's line, and with it every product: two products rather than four.
 #[inline(always)]
 fn quartic_summand(lines: [[F192; 2]; 4], equality: F192) -> [F192Unreduced; 4] {
-    let [left0, left2, right0, right2] = mul4(
-        [lines[0][0], lines[0][1], lines[2][0], lines[2][1]],
-        [lines[1][0], lines[1][1], lines[3][0], lines[3][1]],
-    );
-    let [left_at_one, right_at_one, c0, c4] = mul4(
-        [lines[0][0] + lines[0][1], lines[2][0] + lines[2][1], left0, left2],
-        [lines[1][0] + lines[1][1], lines[3][0] + lines[3][1], right0, right2],
-    );
+    let [[g0, s0], [g1, s1], [g2, s2], [g3, s3]] = lines;
+    let [a0, d0, right0, right2] = mul4([equality, equality, g2, s2], [g0, s0, g3, s3]);
+    let [left0, left2, left_at_one, right_at_one] = mul4([a0, d0, a0 + d0, g2 + s2], [g1, s1, g1 + s1, g3 + s3]);
     let left1 = left_at_one + left0 + left2;
     let right1 = right_at_one + right0 + right2;
-    let [middle, at_one, cross_even, cross_high] = mul4(
-        [left1, left0 + left1 + left2, left0 + left2, left1 + left2],
-        [right1, right0 + right1 + right2, right0 + right2, right1 + right2],
+    let [c0, c4, middle, at_one] = mul_unreduced4(
+        [left0, left2, left1, left_at_one],
+        [right0, right2, right1, right_at_one],
     );
-    let c2 = cross_even + c0 + c4 + middle;
-    let c3 = cross_high + middle + c4;
-    mul_unreduced4([equality; 4], [c0 + at_one, c2, c3, c4])
+    let cross_even = (left0 + left2).mul_unreduced(right0 + right2);
+    let cross_high = (left1 + left2).mul_unreduced(right1 + right2);
+    [c0 ^ at_one, cross_even ^ c0 ^ c4 ^ middle, cross_high ^ middle ^ c4, c4]
 }
 
 /// The rows of a level `shift` binary levels up whose children are all in `ones`.
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 fn coarsen(ones: &[Range<usize>], shift: usize) -> Vec<Range<usize>> {
     ones.iter()
         .map(|r| r.start.div_ceil(1 << shift)..r.end >> shift)
@@ -224,11 +220,39 @@ fn coarsen(ones: &[Range<usize>], shift: usize) -> Vec<Range<usize>> {
 }
 
 /// Whether `ones` covers `rows`.
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 fn covered(ones: &[Range<usize>], rows: Range<usize>) -> bool {
     let i = ones.partition_point(|r| r.start <= rows.start);
     i > 0 && ones[i - 1].end >= rows.end
 }
+
+/// `range` split at the edges of `ones` into maximal runs, each tagged with whether
+/// `ones` covers it.
+fn runs<'a>(range: Range<usize>, ones: &'a [Range<usize>]) -> impl Iterator<Item = (Range<usize>, bool)> + 'a {
+    let first = ones.partition_point(|r| r.end <= range.start);
+    let mut ones = ones[first..].iter().peekable();
+    let mut at = range.start;
+    std::iter::from_fn(move || {
+        if at >= range.end {
+            return None;
+        }
+        let run = match ones.peek() {
+            Some(r) if r.start <= at => {
+                let end = r.end.min(range.end);
+                ones.next();
+                (at..end, true)
+            }
+            Some(r) => (at..r.start.min(range.end), false),
+            None => (at..range.end, false),
+        };
+        at = run.0.end;
+        Some(run)
+    })
+}
+
+/// Whether the scalar kernels, and the leaf builder's products, skip the rows known to
+/// be the identity: they contribute nothing to a round message and fold to the
+/// identity. Not yet measured on aarch64, so it keeps computing them.
+pub(crate) const SKIP_IDENTITY: bool = cfg!(target_arch = "x86_64");
 
 /// Below this logical height a layer runs the scalar kernels.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
@@ -247,9 +271,8 @@ struct QuaternaryLayerState {
     groups: Vec<vertical::Group>,
     #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     spare: Vec<vertical::Group>,
-    /// Runs of rows known to be the identity, sorted: the vertical kernels skip
-    /// them, and leave their groups unwritten.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    /// Runs of rows known to be the identity, sorted: the kernels skip them, and
+    /// the vertical ones leave their groups unwritten.
     ones: Vec<Range<usize>>,
 }
 
@@ -267,7 +290,6 @@ impl QuaternaryLayerState {
             groups: Vec::new(),
             #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
             spare: Vec::new(),
-            #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
             ones: Vec::new(),
         }
     }
@@ -319,10 +341,13 @@ impl QuaternaryLayerState {
             });
             quartic_summand(lines, weight)
         };
+        let identity = coarsen(&self.ones, 1);
         let rows = window_rows(full_pairs);
         let window = |index: usize| {
             let base = index * rows;
-            eq.sum(base..(base + rows).min(full_pairs), summand)
+            runs(base..(base + rows).min(full_pairs), &identity)
+                .filter(|(_, ones)| !ones)
+                .fold([F192::ZERO; 4], |acc, (run, _)| add4(acc, eq.sum(run, summand)))
         };
         let mut message = sum_tasks(full_pairs.div_ceil(rows), full_pairs >= PAR_THRESHOLD, window);
         if !stored_rows.is_multiple_of(2) {
@@ -347,7 +372,11 @@ impl QuaternaryLayerState {
         // tail block the odd row, before anything reads it.
         let mut next: Vec<F192> = unsafe { primitives::uninit_vec(4 * rows) };
         let values = &self.values;
+        let identity = coarsen(&self.ones, 1);
         let fold_row = |row: usize| -> [F192; 4] {
+            if covered(&identity, row..row + 1) {
+                return [F192::ONE; 4];
+            }
             // One slice, not eight indexes: the bounds checks and the
             // index-by-24 multiplies fall out.
             let v = &values[8 * row..8 * row + 8];
@@ -400,6 +429,7 @@ impl QuaternaryLayerState {
         }
         self.values = next;
         self.logical_rows /= 2;
+        self.ones = identity;
     }
 
     fn fold_and_message_scalar(&mut self, challenge: F192, eq: &SplitEq) -> [F192; 4] {
@@ -408,6 +438,9 @@ impl QuaternaryLayerState {
         // SAFETY: the tasks below write every slot of `next[..4 * rows]` before anything reads it.
         let mut next: Vec<F192> = unsafe { primitives::uninit_vec(4 * rows) };
         let values = &self.values;
+        // Rows of the folded layer, and pairs of them, known to be the identity.
+        let identity = coarsen(&self.ones, 1);
+        let identity_pairs = coarsen(&identity, 1);
         let dst = parallel::SendPtr(next.as_mut_ptr());
         const PAIRS: usize = 16;
         let pairs = rows.div_ceil(2);
@@ -417,16 +450,20 @@ impl QuaternaryLayerState {
             let mut stage = [F192::ZERO; 8 * PAIRS];
             let end_row = (2 * end).min(rows);
             for row in 2 * first..end_row {
+                let offset = 4 * (row - 2 * first);
+                if covered(&identity, row..row + 1) {
+                    stage[offset..offset + 4].fill(F192::ONE);
+                    continue;
+                }
                 let lo = 8 * row;
                 let left = &values[lo..lo + 4];
                 let right = values.get(lo + 4..lo + 8).unwrap_or(&[F192::ONE; 4]);
                 let product = mul4(std::array::from_fn(|i| left[i] + right[i]), [challenge; 4]);
-                let offset = 4 * (row - 2 * first);
                 for i in 0..4 {
                     stage[offset + i] = left[i] + product[i];
                 }
             }
-            let message = eq.sum(first..end, |pair, weight| {
+            let summand = |pair: usize, weight: F192| {
                 let lo = 8 * (pair - first);
                 let left = &stage[lo..lo + 4];
                 let right = if 2 * pair + 1 < rows {
@@ -436,7 +473,10 @@ impl QuaternaryLayerState {
                 };
                 let lines = std::array::from_fn(|i| [left[i], left[i] + right[i]]);
                 quartic_summand(lines, weight)
-            });
+            };
+            let message = runs(first..end, &identity_pairs)
+                .filter(|(_, ones)| !ones)
+                .fold([F192::ZERO; 4], |acc, (run, _)| add4(acc, eq.sum(run, summand)));
             // The next round reads the destination; this round reads only the local stage.
             let stream = Stream::new();
             let len = 4 * (end_row - 2 * first);
@@ -447,6 +487,7 @@ impl QuaternaryLayerState {
         let message = sum_tasks(pairs.div_ceil(PAIRS), rows >= PAR_THRESHOLD, task);
         self.values = next;
         self.logical_rows /= 2;
+        self.ones = identity;
         message
     }
 
@@ -753,7 +794,6 @@ pub fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState, shape: Ro
         "batched trees must be nonempty prefixes of the first tree's logical tree"
     );
     // In leaves; a layer's rows over level `l` are runs of `2^(l + 2)` leaves.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
     let identities = leaves.each_ref().map(|lane| lane.ones.clone());
     let mut layers = leaves.map(|lane| build_layers(lane, mu));
     let roots = [layers[0][mu][0], layers[1][mu][0], layers[2][mu][0]];
@@ -802,9 +842,10 @@ pub fn prove_product_triple(leaves: [Leaves; 3], ps: &mut ProverState, shape: Ro
         #[allow(unused_mut)]
         let mut trees =
             [0, 1, 2].map(|tree| QuaternaryLayerState::new(std::mem::take(&mut layers[tree][layer - 2]), width));
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-        for (tree, ones) in trees.iter_mut().zip(&identities) {
-            tree.ones = coarsen(ones, layer);
+        if SKIP_IDENTITY {
+            for (tree, ones) in trees.iter_mut().zip(&identities) {
+                tree.ones = coarsen(ones, layer);
+            }
         }
         let mut round_point = Vec::with_capacity(round_count);
         // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.

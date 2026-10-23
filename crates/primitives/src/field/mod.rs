@@ -14,6 +14,13 @@ pub mod neon;
 
 pub mod gf2_64;
 pub mod gf2_64x3;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "vpclmulqdq",
+    not(target_feature = "avx512f")
+))]
+pub mod x4;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 pub mod x8;
 

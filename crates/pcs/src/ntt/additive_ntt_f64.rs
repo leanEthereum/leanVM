@@ -914,6 +914,28 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
             }
         }
     }
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "pclmulqdq",
+        target_feature = "avx2",
+        not(target_feature = "vpclmulqdq")
+    ))]
+    {
+        let vectors = top.len() / 4;
+        // SAFETY: the target features are enabled at compile time; each
+        // iteration reads and writes exactly four elements from both rows.
+        unsafe {
+            for i in 0..vectors {
+                butterfly_lanes_pclmul(top.as_mut_ptr().add(4 * i), bot.as_mut_ptr().add(4 * i), twiddle.0);
+            }
+        }
+        for lane in 4 * vectors..top.len() {
+            let v = bot[lane];
+            let new_u = top[lane] + v * twiddle;
+            top[lane] = new_u;
+            bot[lane] = v + new_u;
+        }
+    }
     #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
     {
         let vectors = top.len() / 8;
@@ -939,7 +961,7 @@ fn butterfly_lanes(top: &mut [F64], bot: &mut [F64], twiddle: F64) {
     }
     #[cfg(not(any(
         all(target_arch = "aarch64", target_feature = "aes"),
-        all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")
+        all(target_arch = "x86_64", target_feature = "pclmulqdq", target_feature = "avx2")
     )))]
     {
         for lane in 0..top.len() {
@@ -1019,25 +1041,55 @@ fn butterfly_ymm(
     twiddle: u64,
 ) -> (core::arch::x86_64::__m256i, core::arch::x86_64::__m256i) {
     use core::arch::x86_64::*;
-
-    #[inline]
-    #[target_feature(enable = "vpclmulqdq", enable = "avx2")]
-    fn reduce(p: __m256i, r: __m256i) -> __m256i {
-        let t = _mm256_clmulepi64_epi128::<0x01>(p, r);
-        let u = _mm256_clmulepi64_epi128::<0x01>(t, r);
-        _mm256_xor_si256(_mm256_xor_si256(p, t), u)
-    }
+    use primitives::field::gf2_64x3::x86_64::reduce_lanes256;
 
     let tw = _mm256_set1_epi64x(twiddle as i64);
-    let r = _mm256_set1_epi64x(0x1b);
-    let even = reduce(_mm256_clmulepi64_epi128::<0x00>(v, tw), r);
-    let odd = reduce(_mm256_clmulepi64_epi128::<0x11>(v, tw), r);
-    // The odd products land in each lane's low half; swap them up, then take
-    // the odd qwords (32-bit elements 2, 3, 6, 7) from them.
-    let odd = _mm256_shuffle_epi32::<0x4e>(odd);
-    let product = _mm256_blend_epi32::<0b1100_1100>(even, odd);
+    // Even lanes, then odd lanes: one 128-bit product per 128-bit lane, as in `butterfly_zmm`.
+    let even = _mm256_clmulepi64_epi128::<0x00>(v, tw);
+    let odd = _mm256_clmulepi64_epi128::<0x11>(v, tw);
+    // SAFETY: the function carries avx2.
+    let product = unsafe { reduce_lanes256(_mm256_unpacklo_epi64(even, odd), _mm256_unpackhi_epi64(even, odd)) };
     let new_u = _mm256_xor_si256(u, product);
     (new_u, _mm256_xor_si256(v, new_u))
+}
+
+/// Four butterflies `u' = u + v * t`, `v' = v + u'` on a machine with AVX2 and only the 128-bit
+/// carry-less multiply: four of them, one per lane, then one shift-and-XOR reduction across all four.
+///
+/// # Safety
+/// Requires PCLMULQDQ + AVX2; `top` and `bot` must each address four readable
+/// and writable F64 values.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "pclmulqdq",
+    target_feature = "avx2",
+    not(target_feature = "vpclmulqdq")
+))]
+#[inline]
+#[target_feature(enable = "pclmulqdq", enable = "avx2")]
+unsafe fn butterfly_lanes_pclmul(top: *mut F64, bot: *mut F64, twiddle: u64) {
+    use core::arch::x86_64::*;
+    use primitives::field::gf2_64x3::x86_64::reduce_lanes256;
+    // SAFETY: the caller supplies valid four-element rows and the function's
+    // target features cover every intrinsic below.
+    unsafe {
+        let tw = _mm_cvtsi64_si128(twiddle as i64);
+        let (v01, v23) = (_mm_loadu_si128(bot.cast()), _mm_loadu_si128(bot.add(2).cast()));
+        // Immediate bit 0 picks the qword of `v`: lane 2i, then lane 2i + 1.
+        let even = _mm256_set_m128i(
+            _mm_clmulepi64_si128::<0x00>(v23, tw),
+            _mm_clmulepi64_si128::<0x00>(v01, tw),
+        );
+        let odd = _mm256_set_m128i(
+            _mm_clmulepi64_si128::<0x01>(v23, tw),
+            _mm_clmulepi64_si128::<0x01>(v01, tw),
+        );
+        let product = reduce_lanes256(_mm256_unpacklo_epi64(even, odd), _mm256_unpackhi_epi64(even, odd));
+        let new_u = _mm256_xor_si256(_mm256_loadu_si256(top.cast()), product);
+        let new_v = _mm256_xor_si256(_mm256_loadu_si256(bot.cast()), new_u);
+        _mm256_storeu_si256(top.cast(), new_u);
+        _mm256_storeu_si256(bot.cast(), new_v);
+    }
 }
 
 /// Eight F64 butterflies as four independent NEON lane-pair reductions.
