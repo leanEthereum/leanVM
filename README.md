@@ -31,7 +31,7 @@
     <td align="right"><b>0.30s</b></td>
   </tr>
   <tr>
-    <td><a href="#hashing">hash compressions</a></td>
+    <td><a href="#hashing">proving KECCAK</a></td>
     <td align="right"><b>540K/s</b></td>
   </tr>
   <tr>
