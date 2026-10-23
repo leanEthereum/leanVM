@@ -95,6 +95,6 @@ Additionally, it asserts $\loc{o_1} \in \K$.
 \item odd ($1$): cell $0$ holds $(\cdot,0)$, cell $1\le c\le8$ holds $(2c-1,2c)$;
 \item both: cell $9\le c<13$ holds $(2c-1,2c)$.
 \end{itemize}
-A limb $\cdot$ is ignored when read and zero when written. The two layouts let a program absorb a hash block with whole-cell \texttt{XOR}s (\S\ref{sec:prog-hashing}).
+The 64-bit of the cell 8 (even) or 0 (odd) (denoted $\cdot$ above) is ignored for the input and set to zero for the output.
 
 

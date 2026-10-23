@@ -75,8 +75,6 @@ The leanXMSS parameters are specified in [leanXMSS.pdf](https://github.com/leanE
 cargo leanvm aggregate --xmss 1400 --log-inv-rate 1 --repeat 3
 ```
 
-**note**: The output below was measured on the single-layer XMSS over Keccak-256 that leanXMSS replaced. leanXMSS over Keccak-256 has not been measured yet.
-
 ```
 aggregation, 1,400 leanXMSS signatures
   cycles (VM steps)           : 1,569,406 = 2^20.582

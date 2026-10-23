@@ -29,4 +29,4 @@ via the PCS (Annex~\ref{annex:pcs}).
 
 \subsection{Committing to booleans via Ring-Switching}\label{sec:ringswitch}
 
-The Keccak argument (\S\ref{sec:tab-keccak}, Annex~\ref{annex:keccak}) ends on a claim about bits: the evaluations, at one shared point, of the $64$ Boolean multilinears that are the bit slices of the committed Keccak states. Those bits are committed packed, $64$ to a $\K$-element, as the $\K$-valued multilinear $\qkeccak$ in $\nkeccak$ variables, which occupies one region of the stack in \S\ref{sec:stacking}. Ring switching~\cite{DP24} turns the $64$ evaluations into one weighted claim on $\qkeccak$ (Annex~\ref{annex:rs}).
+The Keccak GKR (Annex~\ref{annex:keccak}) terminates with a claim about the inputs (and intermediate layer) at the bit-level. Those bits are committed packed, (interpeting each $64$ consecutive bits as a $\K$-element), as the $\K$-valued multilinear $\qkeccak$ in $\nkeccak$ variables, which occupies one region of the stack in \S\ref{sec:stacking}. Ring switching~\cite{DP24} turns $64$ bit-level evaluations claims into one single claim on $\qkeccak$ (Annex~\ref{annex:rs}).
