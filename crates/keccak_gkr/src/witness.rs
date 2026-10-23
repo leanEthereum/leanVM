@@ -140,6 +140,10 @@ pub fn transpose64(a: &mut [u64; 64]) {
             // SAFETY: the features are enabled at compile time.
             unsafe { x86::transpose64(a) }
         }
+        all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")) => {
+            // SAFETY: the feature is enabled at compile time.
+            unsafe { avx2::transpose64(a) }
+        }
         target_arch = "aarch64" => {
             // SAFETY: aarch64 always has NEON.
             unsafe { neon::transpose64(a) }
@@ -398,6 +402,71 @@ mod x86 {
                     a.as_mut_ptr().add(8 * b + 8).cast(),
                     _mm512_permutexvar_epi8(scatter, hi),
                 );
+            }
+        }
+    }
+}
+
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
+mod avx2 {
+    use core::arch::x86_64::*;
+
+    /// A 4 by 4 transpose of words.
+    #[inline(always)]
+    unsafe fn transpose4([a, b, c, d]: [__m256i; 4]) -> [__m256i; 4] {
+        unsafe {
+            let (ab0, ab1) = (_mm256_unpacklo_epi64(a, b), _mm256_unpackhi_epi64(a, b));
+            let (cd0, cd1) = (_mm256_unpacklo_epi64(c, d), _mm256_unpackhi_epi64(c, d));
+            [
+                _mm256_permute2x128_si256::<0x20>(ab0, cd0),
+                _mm256_permute2x128_si256::<0x20>(ab1, cd1),
+                _mm256_permute2x128_si256::<0x31>(ab0, cd0),
+                _mm256_permute2x128_si256::<0x31>(ab1, cd1),
+            ]
+        }
+    }
+
+    /// The portable form's swaps, which commute, with rows `i + 16 l` in lane `l` of register
+    /// `i`: those of `j` below 16 are across registers, a masked swap by shifts, and those of 16
+    /// and 32 within one, a permutation of its 16- and 32-bit fields.
+    #[inline(always)]
+    pub unsafe fn transpose64(a: &mut [u64; 64]) {
+        unsafe {
+            let mut r = [_mm256_setzero_si256(); 16];
+            for m in 0..4 {
+                let rows = std::array::from_fn(|l| _mm256_loadu_si256(a.as_ptr().add(4 * m + 16 * l).cast()));
+                r[4 * m..][..4].copy_from_slice(&transpose4(rows));
+            }
+            macro_rules! swap {
+                ($j:expr, $mask:expr) => {
+                    let mask = _mm256_set1_epi64x($mask);
+                    for i in (0..16).filter(|i| i & $j == 0) {
+                        let t = _mm256_and_si256(
+                            _mm256_xor_si256(_mm256_srli_epi64::<$j>(r[i]), r[i + $j]),
+                            mask,
+                        );
+                        r[i + $j] = _mm256_xor_si256(r[i + $j], t);
+                        r[i] = _mm256_xor_si256(r[i], _mm256_slli_epi64::<$j>(t));
+                    }
+                };
+            }
+            swap!(8, 0x00ff_00ff_00ff_00ff);
+            swap!(4, 0x0f0f_0f0f_0f0f_0f0f);
+            swap!(2, 0x3333_3333_3333_3333);
+            swap!(1, 0x5555_5555_5555_5555);
+            // Rows `k` and `k + 32` trade the high half of the one for the low half of the other,
+            // and rows `k` and `k + 16` the same of each 32-bit field.
+            let halves = _mm256_setr_epi32(0, 4, 2, 6, 1, 5, 3, 7);
+            let fields =
+                _mm256_broadcastsi128_si256(_mm_setr_epi8(0, 1, 8, 9, 4, 5, 12, 13, 2, 3, 10, 11, 6, 7, 14, 15));
+            for x in &mut r {
+                *x = _mm256_shuffle_epi8(_mm256_permutevar8x32_epi32(*x, halves), fields);
+            }
+            for m in 0..4 {
+                let rows = transpose4(r[4 * m..][..4].try_into().unwrap());
+                for (l, row) in rows.into_iter().enumerate() {
+                    _mm256_storeu_si256(a.as_mut_ptr().add(4 * m + 16 * l).cast(), row);
+                }
             }
         }
     }

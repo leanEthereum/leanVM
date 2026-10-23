@@ -91,6 +91,13 @@ use protocol::{Claim, dot, first_claim};
 pub mod basis;
 #[cfg(feature = "bench")]
 pub mod batch_bench;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "pclmulqdq",
+    not(target_feature = "avx512f")
+))]
+mod clmul;
 pub mod keccak;
 pub mod kernels;
 pub mod open;

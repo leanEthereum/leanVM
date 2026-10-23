@@ -44,10 +44,13 @@ const DIGITS: usize = 192 / DIGIT_BITS;
 /// The bits of a block position's products, 48 to each pack.
 const PAYLOAD_BITS: usize = 48 * PACKS;
 /// The packs of a part of a block position, and the words of their products: with AVX-512 the
-/// whole position, three registers; elsewhere a quarter, a block's worth of which stays in cache.
+/// whole position, three registers; with AVX2 half, three registers; elsewhere a quarter, a
+/// block's worth of which stays in cache.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 const PART: usize = PACKS;
-#[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f")))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
+const PART: usize = PACKS / 2;
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 const PART: usize = 8;
 const PART_WORDS: usize = 48 * PART / 64;
 
@@ -90,14 +93,14 @@ impl Part {
             }
         }
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
-        // SAFETY: both parts are six words, and AVX2 is enabled at compile time.
+        // SAFETY: both parts are three registers, and AVX2 is enabled at compile time.
         unsafe {
             use core::arch::x86_64::*;
             let (dst, src) = (self.0.as_mut_ptr(), other.0.as_ptr());
-            let (d, s) = (dst.cast::<__m256i>(), src.cast::<__m256i>());
-            _mm256_storeu_si256(d, _mm256_xor_si256(_mm256_loadu_si256(d), _mm256_loadu_si256(s)));
-            let (d, s) = (dst.add(4).cast::<__m128i>(), src.add(4).cast::<__m128i>());
-            _mm_storeu_si128(d, _mm_xor_si128(_mm_loadu_si128(d), _mm_loadu_si128(s)));
+            for i in (0..PART_WORDS).step_by(4) {
+                let (d, s) = (dst.add(i).cast::<__m256i>(), src.add(i).cast::<__m256i>());
+                _mm256_storeu_si256(d, _mm256_xor_si256(_mm256_loadu_si256(d), _mm256_loadu_si256(s)));
+            }
         }
         // Left to itself, the compiler XORs the words in general registers.
         #[cfg(target_arch = "aarch64")]

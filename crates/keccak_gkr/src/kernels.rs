@@ -1,8 +1,9 @@
 //! The bit-level kernels of the layer prover, over one block position at a time: the 32 packs of
 //! one bit position of one block.
 //!
-//! Each has a portable form, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI) and a NEON one (PMULL),
-//! which agree bit for bit. The vector forms are compiled only where their features are.
+//! Each has a portable form, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), an AVX2 one
+//! (PCLMULQDQ, and VPCLMULQDQ where it is) and a NEON one (PMULL), which agree bit for bit. The
+//! vector forms are compiled only where their features are.
 
 use primitives::field::gf2_64::mul_wide;
 
@@ -18,6 +19,14 @@ cfg_select! {
         target_feature = "gfni"
     ) => {
         use x86 as simd;
+    }
+    all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "pclmulqdq",
+        not(target_feature = "avx512f")
+    ) => {
+        use avx2 as simd;
     }
     all(target_arch = "aarch64", target_feature = "aes") => {
         use neon as simd;
@@ -189,6 +198,31 @@ pub fn fold_groups_portable(e: &[u32; PACKS], weights: &[[u64; GROUP]; 3]) -> [[
         std::array::from_fn(|k| (0..GROUP).fold(0, |acc, q| acc ^ mul_wide(e[GROUP * half + q] as u64, weights[k][q])))
     })
 }
+
+/// Byte `k` of the embedding of each nibble of a pack: table `4 * k + n` is nibble `n`, low
+/// first. The vector forms without an affine byte map look an embedding up a nibble at a time.
+pub static NIBBLES: [[u8; 16]; 12] = {
+    let mut tables = [[0u8; 16]; 12];
+    let mut i = 0;
+    while i < 12 {
+        let (k, n) = (i / 4, i % 4);
+        let mut v = 0;
+        while v < 16 {
+            let mut e = 0;
+            let mut t = 0;
+            while t < 4 {
+                if v >> t & 1 == 1 {
+                    e ^= RMFE.emb[4 * n + t];
+                }
+                t += 1;
+            }
+            tables[i][v] = (e >> (8 * k)) as u8;
+            v += 1;
+        }
+        i += 1;
+    }
+    tables
+};
 
 /// The five positions of a row and slice, which `chi` mixes.
 #[inline(always)]
@@ -593,6 +627,202 @@ mod x86 {
     }
 }
 
+/// Compiled only where its features are, so its kernels are safe to call. The embedding is
+/// NEON's nibble lookups; the products are a register of [`Vector`](crate::clmul::Vector) lanes, two packs to a lane.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "pclmulqdq",
+    not(target_feature = "avx512f")
+))]
+mod avx2 {
+    use core::arch::x86_64::*;
+
+    use super::*;
+    use crate::clmul::{V, Vector};
+
+    /// The 32 packs of a block position, embedded, four to a register.
+    #[inline(always)]
+    fn embed_vectors(words: &[u64; BLOCK_WORDS]) -> [__m128i; 8] {
+        // SAFETY: the loads are of the tables and the eight words.
+        unsafe {
+            let t: [__m256i; 12] =
+                std::array::from_fn(|i| _mm256_broadcastsi128_si256(_mm_loadu_si128(NIBBLES[i].as_ptr().cast())));
+            let mask = _mm256_set1_epi8(0x0f);
+            let (low_byte, high_byte) = (_mm256_set1_epi16(0x00ff), _mm256_set1_epi16(0xff00u16 as i16));
+            let mut out = [_mm_setzero_si128(); 8];
+            for half in 0..2 {
+                let v = _mm256_loadu_si256(words.as_ptr().add(4 * half).cast());
+                // A pack's low byte holds its nibbles 0 and 1, its high byte nibbles 2 and 3.
+                let nibbles = [
+                    _mm256_and_si256(v, mask),
+                    _mm256_and_si256(_mm256_srli_epi16(v, 4), mask),
+                ];
+                // Byte `k` of the embedding of each byte, read as a pack's low byte or as its high one.
+                let look = |k: usize, high: usize| {
+                    _mm256_xor_si256(
+                        _mm256_shuffle_epi8(t[4 * k + 2 * high], nibbles[0]),
+                        _mm256_shuffle_epi8(t[4 * k + 2 * high + 1], nibbles[1]),
+                    )
+                };
+                let low = _mm256_or_si256(
+                    _mm256_and_si256(_mm256_xor_si256(look(0, 0), _mm256_srli_epi16(look(0, 1), 8)), low_byte),
+                    _mm256_and_si256(
+                        _mm256_xor_si256(_mm256_slli_epi16(look(1, 0), 8), look(1, 1)),
+                        high_byte,
+                    ),
+                );
+                let high = _mm256_and_si256(_mm256_xor_si256(look(2, 0), _mm256_srli_epi16(look(2, 1), 8)), low_byte);
+                // Per lane, its four low packs, then its four high ones.
+                let (first, second) = (_mm256_unpacklo_epi16(low, high), _mm256_unpackhi_epi16(low, high));
+                out[4 * half] = _mm256_castsi256_si128(first);
+                out[4 * half + 1] = _mm256_castsi256_si128(second);
+                out[4 * half + 2] = _mm256_extracti128_si256::<1>(first);
+                out[4 * half + 3] = _mm256_extracti128_si256::<1>(second);
+            }
+            out
+        }
+    }
+
+    #[inline(always)]
+    pub fn embed(words: &[u64; BLOCK_WORDS]) -> [u32; PACKS] {
+        let mut out = [0u32; PACKS];
+        for (i, v) in embed_vectors(words).into_iter().enumerate() {
+            // SAFETY: four packs at `4 * i`.
+            unsafe { _mm_storeu_si128(out.as_mut_ptr().add(4 * i).cast(), v) };
+        }
+        out
+    }
+
+    /// NEON's [`extend_group`] on the four vectors of a group: a vector's low mixed points are
+    /// two shuffles, and its lane sum is returned for the last one, which [`embed_extend`] stores
+    /// with the other group's.
+    #[inline(always)]
+    unsafe fn extend_vectors(v: &[__m128i], out: *mut u32) -> __m128i {
+        unsafe {
+            let (w4, w5) = (_mm_xor_si128(v[0], v[1]), _mm_xor_si128(v[2], v[3]));
+            let w = [
+                v[0],
+                v[1],
+                v[2],
+                v[3],
+                w4,
+                w5,
+                _mm_xor_si128(v[0], v[2]),
+                _mm_xor_si128(v[1], v[3]),
+                _mm_xor_si128(w4, w5),
+            ];
+            for (k, &w) in w[4..].iter().enumerate() {
+                _mm_storeu_si128(out.add(4 * k).cast(), w);
+            }
+            // Lanes `0 + 1, 2 + 3, 0 + 2, 1 + 3`.
+            let low: [__m128i; 9] = std::array::from_fn(|k| {
+                _mm_xor_si128(
+                    _mm_shuffle_epi32::<0b01_00_10_00>(w[k]),
+                    _mm_shuffle_epi32::<0b11_10_11_01>(w[k]),
+                )
+            });
+            for (k, &l) in low.iter().enumerate() {
+                _mm_storeu_si128(out.add(20 + 4 * k).cast(), l);
+            }
+            // Lanes 0 and 1 of a vector's low mixed points add to its lane sum: two vectors at a time.
+            let pair = |a: __m128i, b: __m128i| {
+                let z = _mm_unpacklo_epi32(a, b);
+                _mm_xor_si128(z, _mm_unpackhi_epi64(z, z))
+            };
+            for k in (0..8).step_by(4) {
+                let (p, q) = (pair(low[k], low[k + 1]), pair(low[k + 2], low[k + 3]));
+                _mm_storeu_si128(out.add(56 + k).cast(), _mm_unpacklo_epi64(p, q));
+            }
+            low[8]
+        }
+    }
+
+    #[inline(always)]
+    pub fn embed_extend(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS]) {
+        let e = embed_vectors(words);
+        // SAFETY: each group's outputs lie in `out`.
+        unsafe {
+            let last0 = extend_vectors(&e[..4], out.as_mut_ptr());
+            let last1 = extend_vectors(&e[4..], out.as_mut_ptr().add(64));
+            let z = _mm_unpacklo_epi32(last0, last1);
+            _mm_storel_epi64(
+                out.as_mut_ptr().add(128).cast(),
+                _mm_xor_si128(z, _mm_unpackhi_epi64(z, z)),
+            );
+        }
+    }
+
+    #[inline(always)]
+    pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
+        let ones = V::splat(RMFE.ones as u64);
+        let mut out = [0u64; PACKS];
+        for q in (0..PACKS).step_by(2 * V::N) {
+            // SAFETY: `2 * N` packs at `q`, and as many words.
+            unsafe {
+                let (za, zb, zc) = (
+                    V::load_packs(a.as_ptr().add(q)),
+                    V::load_packs(b.as_ptr().add(q)),
+                    V::load_packs(c.as_ptr().add(q)),
+                );
+                let linear = za.xor(zc);
+                let even = zb.clmul::<0x00>(zc).xor(linear.clmul::<0x00>(ones));
+                let odd = zb.clmul::<0x11>(zc).xor(linear.clmul::<0x11>(ones));
+                V::store(out.as_mut_ptr().add(q), even.unpacklo(odd));
+            }
+        }
+        out
+    }
+
+    /// `2 * N` slots at a time, their sums over the row kept in registers. A slot's product lies
+    /// in the low word of its lane, which multiplies the weights as it is. The padding slots past
+    /// the last whole register are skipped: nothing reads their sums.
+    #[inline(always)]
+    pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 3]; 5]) {
+        let w: [[V; 3]; 5] = std::array::from_fn(|x| std::array::from_fn(|k| V::splat(weights[x][k])));
+        for p in (0..2 * MIXED).step_by(2 * V::N) {
+            // SAFETY: `p + 2 * N` is at most `SLOTS`.
+            let z: [V; 5] = std::array::from_fn(|x| unsafe { V::load_packs(e[x].as_ptr().add(p)) });
+            let mut sums = [[V::zero(); 2]; 3];
+            for x in 0..5 {
+                let (zb, zc) = (z[(x + 1) % 5], z[(x + 2) % 5]);
+                let products = [zb.clmul::<0x00>(zc), zb.clmul::<0x11>(zc)];
+                for (k, sums) in sums.iter_mut().enumerate() {
+                    for (sum, product) in sums.iter_mut().zip(products) {
+                        *sum = sum.xor(product.clmul::<0x00>(w[x][k]));
+                    }
+                }
+            }
+            // Slot `p + h + 2 * l` is lane `l` of `sums[.][h]`, and those lanes lie side by side.
+            for (acc, sums) in acc.0.iter_mut().zip(sums) {
+                for (h, sum) in sums.into_iter().enumerate() {
+                    let slot = acc[2 * (p / 8) + h].0[(p % 8) / 2..].as_mut_ptr().cast::<u64>();
+                    // SAFETY: `N` lanes from `(p % 8) / 2`, a multiple of `N`.
+                    unsafe { V::store(slot, V::load(slot).xor(sum)) };
+                }
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub fn fold_groups(e: &[u32; PACKS], weights: &[[u64; GROUP]; 3]) -> [[u128; 3]; 2] {
+        std::array::from_fn(|half| {
+            let mut acc = [V::zero(); 3];
+            for q in (0..GROUP).step_by(2 * V::N) {
+                // SAFETY: `2 * N` packs and weights at `q`.
+                unsafe {
+                    let ze = V::load_packs(e.as_ptr().add(GROUP * half + q));
+                    for (acc, weights) in acc.iter_mut().zip(weights) {
+                        let zw = V::load(weights.as_ptr().add(q));
+                        *acc = acc.xor(ze.clmul::<0x00>(zw)).xor(ze.clmul::<0x11>(zw));
+                    }
+                }
+            }
+            acc.map(V::sum)
+        })
+    }
+}
+
 /// Compiled only where its feature is, so its kernels are safe to call.
 #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
 mod neon {
@@ -604,31 +834,6 @@ mod neon {
     };
 
     use super::*;
-
-    /// Byte `k` of the embedding of each nibble of a pack: table `4 * k + n` is nibble `n`, low
-    /// first.
-    static NIBBLES: [[u8; 16]; 12] = {
-        let mut tables = [[0u8; 16]; 12];
-        let mut i = 0;
-        while i < 12 {
-            let (k, n) = (i / 4, i % 4);
-            let mut v = 0;
-            while v < 16 {
-                let mut e = 0;
-                let mut t = 0;
-                while t < 4 {
-                    if v >> t & 1 == 1 {
-                        e ^= RMFE.emb[4 * n + t];
-                    }
-                    t += 1;
-                }
-                tables[i][v] = (e >> (8 * k)) as u8;
-                v += 1;
-            }
-            i += 1;
-        }
-        tables
-    };
 
     /// A linear map is the sum of its nibbles' images, so each byte of sixteen embeddings is four
     /// table lookups.
