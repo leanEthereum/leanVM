@@ -14,7 +14,7 @@
 <table align="center">
   <tr>
     <td><a href="#leanxmss-aggregation">leanXMSS aggregation</a></td>
-    <td align="right"><b>1200/s</b></td>
+    <td align="right"><b>1,2K/s</b></td>
   </tr>
   <tr>
     <td><a href="#leansphincs-aggregation">leanSPHINCS aggregation</a></td>
