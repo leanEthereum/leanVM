@@ -667,28 +667,152 @@ pub(crate) fn build_initial_basis(
     )
 }
 
+/// Words a lane round folds at a time, in an L1-resident stage.
+const STAGE: usize = 128;
+
+/// One lane round's fold of `f` at `r`: `fold(out, o, x0)` writes words
+/// `x0 .. x0 + out.len()` of output lane `o`, folding lane `2o` with lane `2o+1`
+/// (absent past the last lane).
+fn lane_fold<T: RoundWitness>(f: &[T], block: usize, r: F192) -> impl Fn(&mut [F192], usize, usize) + Sync + '_ {
+    let n_in = f.len() / block;
+    move |out, o, x0| {
+        let len = out.len();
+        let src0 = 2 * o * block + x0;
+        // Sliced, not indexed: runs of one length let the bounds checks fall out
+        // and the pair fold vectorise, as the adjacent-pair kernel's do.
+        let lo = &f[src0..src0 + len];
+        if 2 * o + 1 < n_in {
+            for ((d, &x0), &x1) in out.iter_mut().zip(lo).zip(&f[src0 + block..src0 + block + len]) {
+                *d = T::fold_pair(x0, x1, r);
+            }
+        } else {
+            for (d, &x0) in out.iter_mut().zip(lo) {
+                *d = T::fold_lone(x0, r);
+            }
+        }
+    }
+}
+
+/// [`lane_fold`] twice, at `r0` then `r1`, straight from the base lanes, so the
+/// first lane round need not store its fold. Output lane `o` over base lanes
+/// `a_j = 4o + j` (absent ones zero) is
+/// `a0 + r0·(a0+a1) + r1·(a0+a2) + r0·r1·(a0+a1+a2+a3)`: three mixed products
+/// in place of reading back a stored E-vector.
+fn lifted_lane_fold(f: &[F64], block: usize, r0: F192, r1: F192) -> impl Fn(&mut [F192], usize, usize) + Sync + '_ {
+    let r01 = r0 * r1;
+    move |out, o, x0| {
+        let len = out.len();
+        let [l0, l1, l2, l3] = std::array::from_fn(|j| base_lane(f, block, 4 * o + j, x0, len));
+        for ((((d, &a0), &a1), &a2), &a3) in out.iter_mut().zip(l0).zip(l1).zip(l2).zip(l3) {
+            let (s1, s2) = (a0 + a1, a0 + a2);
+            let acc = r0.mul_base_unreduced(s1) ^ r1.mul_base_unreduced(s2) ^ r01.mul_base_unreduced(s1 + a2 + a3);
+            *d = F192::from(a0) + acc.reduce();
+        }
+    }
+}
+
+/// Words `x0 .. x0 + len` of base lane `l`, zero past the last lane.
+fn base_lane(f: &[F64], block: usize, l: usize, x0: usize, len: usize) -> &[F64] {
+    const ZERO: [F64; STAGE] = [F64::ZERO; STAGE];
+    if l < f.len() / block {
+        &f[l * block + x0..l * block + x0 + len]
+    } else {
+        &ZERO[..len]
+    }
+}
+
+/// The first of several lane rounds: folds `b` alone, the witness's fold being
+/// left for the next round to recompute ([`lifted_lane_fold`]). The message is
+/// linear in the folded witness `a0 + r·(a0+a1)`, so it is built from the base
+/// lanes as `msg(a0) + r·msg(a0+a1)`, with mixed products only.
+fn fold_base_and_msg_blocks(f: &[F64], b: &[F192], r: F192, block: usize) -> (Vec<F192>, SumcheckMessage) {
+    assert!(block > 0 && b.len().is_multiple_of(block) && b.len() == f.len());
+    let n_in = b.len() / block;
+    let n_out = n_in.div_ceil(2);
+    let fold_b = lane_fold(b, block, r);
+    // SAFETY: the loop below writes every slot before any is read.
+    let mut nb = unsafe { fold_out_buf(n_out * block) };
+    let nb_base = parallel::SendPtr(nb.as_mut_ptr());
+    let per = block.div_ceil(ROUND_CHUNK);
+    let task = |t: usize| -> (F192Unreduced, F192Unreduced) {
+        let (i, c) = (t / per, t % per);
+        let x0 = c * ROUND_CHUNK;
+        let len = ROUND_CHUNK.min(block - x0);
+        let stream = Stream::new();
+        let mut stage = [[F192::ZERO; STAGE]; 2];
+        let mut sums = [[F64::ZERO; STAGE]; 2];
+        let (mut acc_a, mut acc_s) = (
+            (F192Unreduced::ZERO, F192Unreduced::ZERO),
+            (F192Unreduced::ZERO, F192Unreduced::ZERO),
+        );
+        for s in (0..len).step_by(STAGE) {
+            let n = STAGE.min(len - s);
+            let [lo_b, hi_b] = &mut stage;
+            let [lo_s, hi_s] = &mut sums;
+            let lane = |l: usize| base_lane(f, block, l, x0 + s, n);
+            let fold = |out: &mut [F192], sum: &mut [F64], o: usize| {
+                fold_b(out, o, x0 + s);
+                // SAFETY: distinct (o, x0 + s) name disjoint in-bounds windows of
+                // `nb`, which stays borrowed for the whole dispatch.
+                unsafe { stream.copy(nb_base.slice(o * block + x0 + s, n), out) };
+                for ((d, &a0), &a1) in sum.iter_mut().zip(lane(2 * o)).zip(lane(2 * o + 1)) {
+                    *d = a0 + a1;
+                }
+            };
+            fold(&mut lo_b[..n], &mut lo_s[..n], 2 * i);
+            let (a, sum) = if 2 * i + 1 < n_out {
+                fold(&mut hi_b[..n], &mut hi_s[..n], 2 * i + 1);
+                (
+                    msg_terms_pair(lane(4 * i), lane(4 * i + 2), &lo_b[..n], &hi_b[..n]),
+                    msg_terms_pair(&lo_s[..n], &hi_s[..n], &lo_b[..n], &hi_b[..n]),
+                )
+            } else {
+                (
+                    msg_terms_lone(lane(4 * i), &lo_b[..n]),
+                    msg_terms_lone(&lo_s[..n], &lo_b[..n]),
+                )
+            };
+            acc_a.0 ^= a.0;
+            acc_a.1 ^= a.1;
+            acc_s.0 ^= sum.0;
+            acc_s.1 ^= sum.1;
+        }
+        let scaled = |a: F192Unreduced, s: F192Unreduced| a ^ F192Unreduced::from(r * s.reduce());
+        (scaled(acc_a.0, acc_s.0), scaled(acc_a.1, acc_s.1))
+    };
+    let (u_0, u_2) = accumulate_msg(n_out.div_ceil(2) * per, b.len() / 2, F192Unreduced::ZERO, task);
+    (
+        nb,
+        SumcheckMessage {
+            u_0: u_0.reduce(),
+            u_2: u_2.reduce(),
+        },
+    )
+}
+
 /// Fused lane fold + next-round message. Mirror of [`fold_and_msg_lsb`] for the
 /// block pairing: a task owns one output *pair* (so four input blocks), because
 /// that is the smallest unit the next round's message is local to.
 ///
+/// `fold_f` is the witness's fold (see [`lane_fold`]).
 /// `last` says this is the final lane round, so the round after it pairs adjacent
 /// elements of the single output block rather than another pair of blocks. Which
 /// pairing comes next is what lets the message be built here, while the folded
 /// values are still in L1.
-fn fold_and_msg_blocks<T: RoundWitness>(
-    f: &[T],
+fn fold_and_msg_blocks(
+    fold_f: impl Fn(&mut [F192], usize, usize) + Sync,
     b: &[F192],
     r: F192,
     block: usize,
     last: bool,
 ) -> (Vec<F192>, Vec<F192>, SumcheckMessage) {
-    assert_eq!(b.len(), f.len());
-    assert!(block > 0 && f.len().is_multiple_of(block));
-    let n_in = f.len() / block;
+    assert!(block > 0 && b.len().is_multiple_of(block));
+    let n_in = b.len() / block;
     let n_out = n_in.div_ceil(2);
     // Adjacent pairing next round is only possible once the lanes have collapsed
     // to a single block.
     assert!(!last || n_out == 1);
+    let fold_b = lane_fold(b, block, r);
 
     // SAFETY (x2): the loop below writes every slot of both buffers, one output
     // element per input pair, before any is read.
@@ -704,30 +828,10 @@ fn fold_and_msg_blocks<T: RoundWitness>(
     // streaming stores: nothing else touches it until the next round, by which
     // time a buffer this size is long evicted, so the fetch an ordinary store
     // would make of every line it overwrites is pure waste.
-    const STAGE: usize = 128;
     let fold_block = |stage: &mut [F192], stage_b: &mut [F192], out_blk: usize, x0: usize, stream: &Stream| {
         let len = stage.len();
-        let src0 = 2 * out_blk * block + x0;
-        // Sliced, not indexed: runs of one length let the bounds checks fall out
-        // and the pair fold vectorise, as the adjacent-pair kernel's do.
-        let (f_lo, b_lo) = (&f[src0..src0 + len], &b[src0..src0 + len]);
-        if 2 * out_blk + 1 < n_in {
-            let src1 = src0 + block;
-            let (f_hi, b_hi) = (&f[src1..src1 + len], &b[src1..src1 + len]);
-            for ((d, &x0), &x1) in stage.iter_mut().zip(f_lo).zip(f_hi) {
-                *d = T::fold_pair(x0, x1, r);
-            }
-            for ((d, &y0), &y1) in stage_b.iter_mut().zip(b_lo).zip(b_hi) {
-                *d = F192::fold_pair(y0, y1, r);
-            }
-        } else {
-            for (d, &x0) in stage.iter_mut().zip(f_lo) {
-                *d = T::fold_lone(x0, r);
-            }
-            for (d, &y0) in stage_b.iter_mut().zip(b_lo) {
-                *d = F192::fold_lone(y0, r);
-            }
-        }
+        fold_f(stage, out_blk, x0);
+        fold_b(stage_b, out_blk, x0);
         // SAFETY: distinct (out_blk, x0) name disjoint in-bounds windows of `nf`
         // and `nb`, which stay borrowed for the whole dispatch.
         unsafe {
@@ -763,7 +867,7 @@ fn fold_and_msg_blocks<T: RoundWitness>(
         }
         acc
     };
-    let (u_0, u_2) = accumulate_msg(n_out.div_ceil(2) * per, f.len() / 2, F192Unreduced::ZERO, task);
+    let (u_0, u_2) = accumulate_msg(n_out.div_ceil(2) * per, b.len() / 2, F192Unreduced::ZERO, task);
     (
         nf,
         nb,
@@ -774,11 +878,13 @@ fn fold_and_msg_blocks<T: RoundWitness>(
     )
 }
 
-/// Two-phase witness: the committed K-message (borrowed from the caller, it
-/// is only read until the first fold) before the first fold, an owned
-/// E-vector afterwards.
+/// The witness: the committed K-message (borrowed from the caller, it is only
+/// read during the lane rounds) before the first fold, the same message once the
+/// first lane round has folded it at the challenge it carries (that fold left
+/// unstored, see [`lifted_lane_fold`]), and an owned E-vector afterwards.
 enum Witness<'a> {
     Base(&'a [F64]),
+    Lifted(&'a [F64], F192),
     Ext(Vec<F192>),
 }
 
@@ -838,16 +944,28 @@ impl<'a> SumcheckProver<'a> {
         // `ilog2` rather than `trailing_zeros`: a lane round's length is
         // `n_lanes * block`, so it is generally not a power of two, and the two
         // kinds of round have to report a comparable number.
-        let log_size = match &self.f {
-            Witness::Base(f) => f.len().ilog2(),
-            Witness::Ext(f) => f.len().ilog2(),
-        };
+        let log_size = self.combined_basis.len().ilog2();
         let _span = tracing::info_span!("Sumcheck round", round = self.round, log_size).entered();
-        let (nf, nb, msg) = match &self.f {
-            Witness::Base(f) => fold_and_msg_blocks(f, &self.combined_basis, r, block, last),
-            Witness::Ext(f) => fold_and_msg_blocks(f, &self.combined_basis, r, block, last),
+        let b = &self.combined_basis;
+        let (f, nb, msg) = match self.f {
+            Witness::Base(f) if !last => {
+                let (nb, msg) = fold_base_and_msg_blocks(f, b, r, block);
+                (Witness::Lifted(f, r), nb, msg)
+            }
+            Witness::Base(f) => {
+                let (nf, nb, msg) = fold_and_msg_blocks(lane_fold(f, block, r), b, r, block, last);
+                (Witness::Ext(nf), nb, msg)
+            }
+            Witness::Lifted(f, r0) => {
+                let (nf, nb, msg) = fold_and_msg_blocks(lifted_lane_fold(f, block, r0, r), b, r, block, last);
+                (Witness::Ext(nf), nb, msg)
+            }
+            Witness::Ext(ref f) => {
+                let (nf, nb, msg) = fold_and_msg_blocks(lane_fold(f, block, r), b, r, block, last);
+                (Witness::Ext(nf), nb, msg)
+            }
         };
-        drop(std::mem::replace(&mut self.f, Witness::Ext(nf)));
+        drop(std::mem::replace(&mut self.f, f));
         drop(std::mem::replace(&mut self.combined_basis, nb));
         self.quad = RoundQuad::from_msg(msg, self.t_r);
         msg
@@ -856,14 +974,12 @@ impl<'a> SumcheckProver<'a> {
     fn fold(&mut self, r: F192) -> SumcheckMessage {
         self.t_r = self.quad.eval(r);
         self.round += 1;
-        let log_size = match &self.f {
-            Witness::Base(f) => f.len().ilog2(),
-            Witness::Ext(f) => f.len().ilog2(),
-        };
+        let log_size = self.combined_basis.len().ilog2();
         let _span = tracing::info_span!("Sumcheck round", round = self.round, log_size).entered();
         let (nf, nb, msg) = match &self.f {
             Witness::Base(f) => fold_and_msg_lsb(f, &self.combined_basis, r),
             Witness::Ext(f) => fold_and_msg_lsb(f, &self.combined_basis, r),
+            Witness::Lifted(..) => unreachable!("a lane round follows the first"),
         };
         // Swap the freshly folded buffers in and drop the consumed ones, so the
         // allocator serves the next round's `fold_out_buf` from their memory.
@@ -885,6 +1001,7 @@ impl<'a> SumcheckProver<'a> {
                 assert_eq!(b_new.len(), f.len());
                 round_msg_lsb(f, &b_new)
             }
+            Witness::Lifted(..) => unreachable!("no claim is introduced between lane rounds"),
         };
         self.pending.push((b_new, h_new, RoundQuad::from_msg(msg, h_new)));
         msg
@@ -896,7 +1013,7 @@ impl<'a> SumcheckProver<'a> {
     fn introduce_new_with_eval(&mut self, b_new: Vec<F192>) -> (SumcheckMessage, F192) {
         let f = match &self.f {
             Witness::Ext(f) => f,
-            Witness::Base(_) => panic!("OOD claim introduced before the first fold"),
+            Witness::Base(_) | Witness::Lifted(..) => panic!("OOD claim introduced before the lane rounds end"),
         };
         assert_eq!(b_new.len(), f.len());
         let (msg, h_new) = round_msg_and_eval_lsb_ext(f, &b_new);
@@ -939,7 +1056,7 @@ impl<'a> SumcheckProver<'a> {
     fn f_ext(&self) -> &[F192] {
         match &self.f {
             Witness::Ext(f) => f,
-            Witness::Base(_) => panic!("witness still in base phase (no fold yet)"),
+            Witness::Base(_) | Witness::Lifted(..) => panic!("witness still in base phase (lane rounds not done)"),
         }
     }
 }
@@ -1461,6 +1578,31 @@ mod tests {
             let via_ntt = induce_sumcheck_poly_via_ntt(log_msg_cols, log_inv_rate, &rows, &v_challenges, &qs, &weights);
             assert_eq!(dense.1, via_ntt.1, "enforced_sum mismatch");
             assert_eq!(&*dense.0, &*via_ntt.0, "basis_poly mismatch");
+        }
+    }
+
+    /// The second lane round must read the same folded witness from the base lanes
+    /// as from the first round's stored fold, at every count of absent lanes.
+    #[test]
+    fn lifted_lane_fold_matches_the_stored_fold() {
+        let mut rng = Rng::new(0x11F7);
+        for block in [16, ROUND_CHUNK, 2 * ROUND_CHUNK] {
+            for lanes in [1, 2, 3, 4, 5, 6, 7, 8, 37] {
+                let f: Vec<F64> = (0..block * lanes).map(|_| F64(rng.next_u64())).collect();
+                let b = rng.ext_vec(f.len());
+                let (r0, r1) = (rng.ext(), rng.ext());
+                let (nf, nb, msg) = fold_and_msg_blocks(lane_fold(&f, block, r0), &b, r0, block, false);
+                assert_eq!(
+                    fold_base_and_msg_blocks(&f, &b, r0, block),
+                    (nb.clone(), msg),
+                    "block={block}, lanes={lanes}"
+                );
+                for last in [false, lanes <= 4] {
+                    let stored = fold_and_msg_blocks(lane_fold(&nf, block, r1), &nb, r1, block, last);
+                    let lifted = fold_and_msg_blocks(lifted_lane_fold(&f, block, r0, r1), &nb, r1, block, last);
+                    assert_eq!(lifted, stored, "block={block}, lanes={lanes}, last={last}");
+                }
+            }
         }
     }
 
