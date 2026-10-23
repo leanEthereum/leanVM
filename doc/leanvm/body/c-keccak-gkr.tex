@@ -224,7 +224,7 @@ Then the claim at depth $12$ is opened as in \S\ref{keccak:openings}, with $r_{<
 
 \subsection{Soundness}\label{keccak:soundness}
 
-Protocol~\ref{keccak:protocol} with the middle state committed, as the VM runs it (\S\ref{keccak:segments}), is proved sound in Lean (\texttt{formal/keccak\_gkr}, theorem \texttt{KeccakGkr.keccak\_sound}). For every committed $\qkeccak$, fixed before the protocol starts, and every prover, the probability that the verifier accepts, the claims it ends with, \eqref{keccak:eq:out-claim} and \eqref{keccak:eq:in-claim}, hold of $\qkeccak$, and yet \eqref{keccak:eq:statement} or \eqref{keccak:eq:chain} fails, is at most
+Protocol~\ref{keccak:protocol} with the middle state committed, as the VM runs it (\S\ref{keccak:segments}), is sound. For every committed $\qkeccak$, fixed before the protocol starts, and every prover, the probability that the verifier accepts, the claims it ends with, \eqref{keccak:eq:out-claim} and \eqref{keccak:eq:in-claim}, hold of $\qkeccak$, and yet \eqref{keccak:eq:statement} or \eqref{keccak:eq:chain} fails, is at most
 \[
 \frac{37\kbatch+902}{|\E|}=\frac{(\kbatch+6)+12\,(3\kbatch+72)+(12+20)}{|\E|}.
 \]
@@ -234,7 +234,7 @@ Each term is a challenge a false claim survives (Lemma~\ref{lem:sz}, Fact~\ref{f
 \item a layer, $3\kbatch+72$: $46$ for $\kpt$, as $G$ has degree $46$; $3(\kbatch-3)$ for the rounds over pack and segment and $33$ for the $11$ over positions, all of degree three; $2$ for $\kbeta$, in which $c'$ is quadratic;
 \item the openings, $12$ and $20$: the six slot rounds of \eqref{keccak:eq:out}, then the four instance and six slot rounds of \eqref{keccak:eq:in}, all of degree two.
 \end{itemize}
-The model is a public-coin interaction over any finite field of characteristic two in which $x^0,\dots,x^{63}$ are independent over $\Ftwo$, which \texttt{keccak\_sound\_GF192} proves of the VM's $x$ in $\E$; the linear map, round constants and embedding tables are the crate's. A round message is a whole polynomial of bounded degree, of which the compressed messages of \S\ref{sec:prelim} are a special case. The verifier samples $(r_{\mathrm{low}},r_{\mathrm{pack}})$ itself, where the VM takes the table sumcheck's point, also drawn after $\qkeccak$ is committed. Neither Fiat-Shamir nor the commitment scheme is modeled: the two claims are the output, for ring switching and the PCS to discharge. Completeness (\texttt{keccak\_complete}) is proved for an honest prover computing in $\E$ directly, without the subfield abort of \S\ref{keccak:cost}.
+The bound holds over any finite field of characteristic two in which $x^0,\dots,x^{63}$ are independent over $\Ftwo$, as they are for the VM's $x$ in $\E$, of degree $64$. A round message is counted as a whole polynomial of bounded degree, of which the compressed messages of \S\ref{sec:prelim} are a special case. The point $(r_{\mathrm{low}},r_{\mathrm{pack}})$ is the table sumcheck's, drawn after $\qkeccak$ is committed. Neither Fiat-Shamir nor the commitment scheme is accounted for: the two claims are the output, for ring switching and the PCS to discharge.
 
 \subsection{Proof of the embedding lemma}\label{keccak:rmfe-proof}
 

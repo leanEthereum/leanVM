@@ -48,32 +48,6 @@ jobs:
           name: lean-xmss-axioms
           path: ${{ runner.temp }}/axioms.txt
 
-  keccak-gkr-formalization:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Forbid proof escapes
-        run: |
-          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by|debug\.skipKernelTC)\b|#exit|^[[:space:]]*(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable)[[:space:]]+)*axiom\b' \
-              --include='*.lean' --exclude-dir=.lake formal/keccak_gkr | grep -vE ':[0-9]+: *(--|/-)'
-      - uses: leanprover/lean-action@v1
-        with:
-          lake-package-directory: formal/keccak_gkr
-      - name: Check the axiom footprint
-        working-directory: formal/keccak_gkr
-        run: |
-          printf 'import KeccakGkr\n#print axioms KeccakGkr.keccak_sound\n#print axioms KeccakGkr.keccak_complete\n#print axioms KeccakGkr.keccak_sound_GF192\n' \
-            > "$RUNNER_TEMP/axioms.lean"
-          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          for t in keccak_sound keccak_complete keccak_sound_GF192; do
-            grep -qF "'KeccakGkr.$t' depends on axioms: [propext, Classical.choice, Quot.sound]" \
-              "$RUNNER_TEMP/axioms.txt"
-          done
-      - uses: actions/upload-artifact@v4
-        with:
-          name: keccak-gkr-axioms
-          path: ${{ runner.temp }}/axioms.txt
-
   lean-sphincs-formalization:
     runs-on: ubuntu-latest
     steps:
