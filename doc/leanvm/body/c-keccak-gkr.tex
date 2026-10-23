@@ -78,163 +78,94 @@ c'=\sum_{p\in\cube{\kbatch-4}}\eq(\fc^{\mathrm{pack}},p)\sum_{i\in\cube{4}}\kw'_
 \]
 with $\kpw'_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}},\along{j}{3})$, the shifts moved onto the weights: a claim of the same form as $c$, on the bits entering chi.
 
-\subsection{Statement and commitment}\label{keccak:statement}
+\subsection{The protocol}\label{keccak:statement}
 
-A table row is a \emph{permutation}: it reads a state from memory, its \emph{input}, and applies Keccak-$f[1600]$. The table has $2^{\kbatch}$ rows, $\kbatch\ge9$ (\S\ref{sec:arith}), indexed by $\kperm\in\cube{\kbatch}$, low bit first, and written $\kperm=(i,p)$ with $i\in\cube{4}$ the low four bits and $p\in\cube{\kbatch-4}$ the \emph{pack}; padding rows hold the instruction applied to the zero state (\S\ref{sec:e2e-pad}).
+A table row is a \emph{permutation}: it reads a state from memory, its \emph{input}, and applies Keccak-$f[1600]$. The table has $2^{\kbatch}$ rows, $\kbatch\ge9$ (\S\ref{sec:arith}), indexed by $\kperm\in\cube{\kbatch}$ low bit first and written $\kperm=(i,p)$ with $i\in\cube{4}$ the low four bits and $p\in\cube{\kbatch-4}$ the pack of \S\ref{keccak:idea}; padding rows hold the instruction applied to the zero state (\S\ref{sec:e2e-pad}).
 
-The prover commits the inputs as $\qkeccak:\cube{\kbatch}\times\cube{5}\to\K$: the input lanes as an aligned run of $2^{5}$ columns, a column of the run being a \emph{slot}, slot $\ell<25$ holding input lane $\ell$, bit $z$ being the coefficient of $x^z$. Its bit slices $Q_z$ satisfy $\qkeccak=\sum_{z<64}Q_z\,x^z$ (Annex~\ref{annex:rs}), so bit $z$ of input lane $\ell$ of permutation $\kperm$ is $Q_z(\kperm,\ell)$. The bus (\S\ref{sec:tab-keccak}) binds $\qkeccak$ to the state read from memory. Nothing here weighs the slots past the states, so this argument neither constrains them nor cares what they hold: the VM gives them to other columns of its \texttt{KECCAK} table, settled by their own claims, and the openings of \S\ref{keccak:openings}, being claims on all of $\qkeccak$, fold them like any other slot.
+The prover commits the inputs as $\qkeccak:\cube{\kbatch}\times\cube{5}\to\K$: the input lanes as an aligned run of $2^{5}$ columns, a column of the run being a \emph{slot}, slot $\ell<25$ holding input lane $\ell$, bit $z$ being the coefficient of $x^z$. Its bit slices $Q_z$ satisfy $\qkeccak=\sum_{z<64}Q_z\,x^z$ (Annex~\ref{annex:rs}), so bit $z$ of input lane $\ell$ of permutation $\kperm$ is $Q_z(\kperm,\ell)$, and the bus (\S\ref{sec:tab-keccak}) binds $\qkeccak$ to the state read from memory. Nothing below weighs the slots past the states, so this argument neither constrains them nor cares what they hold: the VM gives them to other columns of its \texttt{KECCAK} table, settled by their own claims, and the openings below, being claims on all of $\qkeccak$, fold them like any other slot.
 
-Let $a_e(j;\kperm)$ be bit $j$ after $e$ rounds \eqref{keccak:eq:round} of permutation $\kperm$, from its committed input, and $\kout{\ell}(\kperm)=\sum_{z<64}a_{24}(z+64\ell;\kperm)\,x^z$ its output lane $\ell$, a virtual column of the table. The table sumcheck (\S\ref{sec:e2e-unrolled}) leaves values $\koutv{\ell}$, claimed to be $\mle{\kout{\ell}}$ at one point $(r_{\mathrm{low}},r_{\mathrm{pack}})\in\E^{4}\times\E^{\kbatch-4}$. The reduction proves
+Let $a_e(j;\kperm)$ be bit $j$ after $e$ rounds \eqref{keccak:eq:round} of permutation $\kperm$, from its committed input, and $\kout{\ell}(\kperm)=\sum_{z<64}a_{24}(z+64\ell;\kperm)\,x^z$ its output lane $\ell$, a virtual column of the table. The table sumcheck (\S\ref{sec:e2e-unrolled}) leaves values $\koutv{\ell}$, claimed to be $\mle{\kout{\ell}}$ at one point $(r_{\mathrm{low}},r_{\mathrm{pack}})\in\E^{4}\times\E^{\kbatch-4}$, and the reduction proves
 \begin{equation}\label{keccak:eq:statement}
 \koutv{\ell}=\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})\quad\text{for all }\ell<25.
 \end{equation}
 
-\subsection{Claims}\label{keccak:claims}
-
-\begin{definition}[Claim]\label{def:keccak-claim}
-A \emph{claim at depth $d\le24$} is $(c,\kw,r,\kpw)$ with $c\in\E$, \emph{in-pack weights} $\kw\in\E^{16}$, $r\in\E^{\kbatch-4}$ and \emph{position weights} $\kpw\in\E^{1600}$. It asserts
+\paragraph{Claims.}\label{keccak:claims} The example's claim, with its weights named: a \emph{claim at depth $d\le24$} is $(c,\kw,r,\kpw)$, with $c\in\E$, \emph{in-pack weights} $\kw\in\E^{16}$, $r\in\E^{\kbatch-4}$ and \emph{position weights} $\kpw\in\E^{1600}$, asserting
 \begin{equation}\label{keccak:eq:claim}
 c=\sum_{p\in\cube{\kbatch-4}}\ \sum_{i\in\cube{4}}\ \sum_{j<1600}\eq(r,p)\,\kw_i\,\kpw_j\;a_{24-d}\bigl(j;(i,p)\bigr).
 \end{equation}
-\end{definition}
+For the first, at depth $0$, the verifier samples $r_{\mathrm{lane}}\in\E^{5}$ once the $\koutv{\ell}$ are in the transcript and sets $\kw_i=\eq(r_{\mathrm{low}},i)$, $r=r_{\mathrm{pack}}$, $\kpw_{z+64\ell}=\eq(r_{\mathrm{lane}},\ell)\,x^{z}$ and $c=\sum_{\ell<25}\eq(r_{\mathrm{lane}},\ell)\,\koutv{\ell}$: by Fact~\ref{fact:eq}, \eqref{keccak:eq:claim} then reads $c=\sum_\ell\eq(r_{\mathrm{lane}},\ell)\,\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})$, a random combination of the claims \eqref{keccak:eq:statement}.
 
-\paragraph{The first claim.} After the $\koutv{\ell}$, the verifier samples $r_{\mathrm{lane}}\in\E^{5}$ and sets, at depth $0$,
-\[
-\kw_i=\eq(r_{\mathrm{low}},i),\qquad r=r_{\mathrm{pack}},\qquad \kpw_{z+64\ell}=\eq(r_{\mathrm{lane}},\ell)\,x^{z},\qquad c=\sum_{\ell<25}\eq(r_{\mathrm{lane}},\ell)\,\koutv{\ell}.
-\]
-By Fact~\ref{fact:eq}, the right side of \eqref{keccak:eq:claim} is then $\sum_\ell\eq(r_{\mathrm{lane}},\ell)\,\mle{\kout{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}})$: the first claim is a random combination of the output claims.
-
-\subsection{A layer}\label{keccak:layer}
-
-Layer $d<24$ takes a claim $(c,\kw,r,\kpw)$ at depth $d$ to one at depth $d+1$, through round $24-d$. With $b=\klin(a_{23-d})$,
+\paragraph{A layer.}\label{keccak:layer} Layer $d<24$ takes a claim at depth $d$ to one at depth $d+1$, through round $24-d$: with $b=\klin(a_{23-d})$,
 \begin{equation}\label{keccak:eq:chi}
-a_{24-d}(j;\kperm)=b(j;\kperm)+\bigl(1+b(\along{j}{1};\kperm)\bigr)\,b(\along{j}{2};\kperm)+[\,j<64\,]\,\krc_{24-d}[j].
+a_{24-d}(j;\kperm)=b(j;\kperm)+\bigl(1+b(\along{j}{1};\kperm)\bigr)\,b(\along{j}{2};\kperm)+[\,j<64\,]\,\krc_{24-d}[j],
 \end{equation}
+which is the chi of \S\ref{keccak:idea} on $b$ plus the round constant. The layer runs that section's four steps, with the constant added to the first check and the linear map crossed at the last.
 
-Steps 1 to 5 are the four steps of \S\ref{keccak:idea}, its sumcheck split into steps 3 and 4, with the round constant added; step 6 crosses the linear map.
-
-\paragraph{1. Product polynomial.} Let $S_{p,j}=\kemb\bigl((b(j;(i,p)))_{i\in\cube{4}}\bigr)$ and $G_{p,j}=\kemb_{\allone}S_{p,j}+(\kemb_{\allone}+S_{p,\along{j}{1}})\,S_{p,\along{j}{2}}$; by Lemma~\ref{lem:rmfe}, $\kproj(G_{p,j})$ is pack $p$ of \eqref{keccak:eq:chi} at $j$, less the round constant. The prover sends the $47$ coefficients of
-\begin{equation}\label{keccak:eq:product}
-G(X)=\sum_{p\in\cube{\kbatch-4}}\ \sum_{j<1600}\eq(r,p)\,\kpw_j\,G_{p,j}(X),
-\end{equation}
-and, with $\kwsum=\sum_{i\in\cube{4}}\kw_i$ and $\sum_{p\in\cube{\kbatch-4}}\eq(r,p)=1$, the verifier checks
+With $S_{p,j}$ and $G_{p,j}$ as there, the prover sends the $47$ coefficients of $G=\sum_{p,j}\eq(r,p)\,\kpw_j\,G_{p,j}$, whose projection is \eqref{keccak:eq:chi} less the constant (Lemma~\ref{lem:rmfe}), so with $\kwsum=\sum_i\kw_i$ the verifier checks
 \begin{equation}\label{keccak:eq:projection}
 \kproj_{\kw}(G)+\kwsum\sum_{z<64}\krc_{24-d}[z]\,\kpw_z\ \qeq\ c.
 \end{equation}
-
-\paragraph{2. Evaluation.} The verifier samples $\kpt\in\E$. Let $\kw'_i=\kemb_i(\kpt)$, $\kwsum'=\sum_{i\in\cube{4}}\kw'_i$, so that $S_{p,j}(\kpt)=\sum_{i\in\cube{4}}\kw'_i\,b(j;(i,p))$. Then
-\begin{equation}\label{keccak:eq:at-s}
-G(\kpt)=\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,S_{p,j}(\kpt)+\bigl(\kwsum'+S_{p,\along{j}{1}}(\kpt)\bigr)\,S_{p,\along{j}{2}}(\kpt)\Bigr).
-\end{equation}
-
-\paragraph{3. Packs.} Steps 3 and 4 are one sumcheck on \eqref{keccak:eq:at-s}, of $\kbatch+7$ rounds, with running claims $\rc{k}$ from $\rc{0}=G(\kpt)$ (\S\ref{sec:prelim}). Its first $\kbatch-4$ rounds bind $p$, with challenges $\fc^{\mathrm{pack}}$; the summand being $\eq(r,\cdot)$ times degree two, a round costs two $\E$-elements (\S\ref{sec:prelim}):
-\begin{equation}\label{keccak:eq:after-packs}
-\rc{\kbatch-4}=\eq(r,\fc^{\mathrm{pack}})\sum_{j<1600}\kpw_j\Bigl(\kwsum'\,S_{\fc^{\mathrm{pack}},j}(\kpt)+\bigl(\kwsum'+S_{\fc^{\mathrm{pack}},\along{j}{1}}(\kpt)\bigr)\,S_{\fc^{\mathrm{pack}},\along{j}{2}}(\kpt)\Bigr).
-\end{equation}
-
-\paragraph{4. Positions.} The other $11$ rounds bind $j\in\cube{11}$ (slice low, lane high; $\kpw_j$ and $S_{p,\along{j}{k}}$ are zero at lanes $25$ to $31$), with challenges $\fc^{\mathrm{pos}}$; the summand having degree three, a round costs three $\E$-elements. The prover sends $\kev_k=\sum_{j<1600}\eq(\fc^{\mathrm{pos}},j)\,S_{\fc^{\mathrm{pack}},\along{j}{k}}(\kpt)$ for $k=0,1,2$, and the verifier, computing $\mle{\kpw}(\fc^{\mathrm{pos}})$ itself, checks
+It samples $\kpt\in\E$ and, with $\kw'_i=\kemb_i(\kpt)$ and $\kwsum'=\sum_i\kw'_i$, one sumcheck of $\kbatch+7$ rounds binds $G(\kpt)$, its running claims $\rc{k}$ starting from $\rc{0}=G(\kpt)$ (\S\ref{sec:prelim}): first $\kbatch-4$ rounds over $p$, challenges $\fc^{\mathrm{pack}}$, two $\E$-elements each, the summand being $\eq(r,\cdot)$ times degree two; then $11$ over $j\in\cube{11}$, challenges $\fc^{\mathrm{pos}}$, three elements each, slice low and lane high ($\kpw_j$ and $S_{p,\along{j}{k}}$ vanish at lanes $25$ to $31$). The prover sends $\kev_k=\sum_{j<1600}\eq(\fc^{\mathrm{pos}},j)\,S_{\fc^{\mathrm{pack}},\along{j}{k}}(\kpt)$ for $k=0,1,2$, and the verifier, computing $\mle{\kpw}(\fc^{\mathrm{pos}})$ itself, checks
 \begin{equation}\label{keccak:eq:terminal}
 \eq(r,\fc^{\mathrm{pack}})\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr)\ \qeq\ \rc{\kbatch+7}.
 \end{equation}
+It samples $\kbeta$ and batches, $c'=\kev_0+\kbeta\,\kev_1+\kbeta^{2}\,\kev_2$ with the shifts moved onto $\kpw^{\flat}_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}},\along{j}{3})$, which makes $(c',\kw',\fc^{\mathrm{pack}},\kpw^{\flat})$ a claim \eqref{keccak:eq:claim} on $b$. Crossing the linear map, $\sum_j\kpw^{\flat}_j\,b(j;\kperm)=\sum_j(\klin^{\top}\kpw^{\flat})_j\,a_{23-d}(j;\kperm)$, the layer outputs $(c',\kw',\fc^{\mathrm{pack}},\klin^{\top}\kpw^{\flat})$ at depth $d+1$.
 
-\paragraph{5. Batching.} The verifier samples $\kbeta$ and sets $c'=\kev_0+\kbeta\,\kev_1+\kbeta^{2}\,\kev_2$, so that, moving the shifts onto the weights,
-\begin{equation}\label{keccak:eq:flat}
-c'=\sum_{j<1600}\kpw^{\flat}_j\,S_{\fc^{\mathrm{pack}},j}(\kpt),\qquad
-\kpw^{\flat}_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}},\along{j}{3}),
-\end{equation}
-and, as $S_{\fc^{\mathrm{pack}},j}(\kpt)=\sum_{p\in\cube{\kbatch-4},\,i\in\cube{4}}\eq(\fc^{\mathrm{pack}},p)\,\kw'_i\,b(j;(i,p))$ (Fact~\ref{fact:eq}), $(c',\kw',\fc^{\mathrm{pack}},\kpw^{\flat})$ is a claim of the shape \eqref{keccak:eq:claim} on $b$.
-
-\paragraph{6. Linear map.} As $\sum_{j<1600}\kpw^{\flat}_j\,b(j;\kperm)=\sum_{j<1600}(\klin^{\top}\kpw^{\flat})_j\,a_{23-d}(j;\kperm)$, the layer outputs $(c',\kw',\fc^{\mathrm{pack}},\klin^{\top}\kpw^{\flat})$ at depth $d+1$.
-
-\subsection{The opening}\label{keccak:openings}
-
-The claim $(c,\kw,r,\kpw)$ at depth $24$ is on the committed inputs:
+\paragraph{The opening.}\label{keccak:openings} The claim at depth $24$ is on the committed inputs,
 \begin{equation}\label{keccak:eq:in}
 c=\sum_{i\in\cube{4}}\kw_i\sum_{o\in\cube{5}}\sum_{z<64}\kpw^{\mathrm{in}}(o,z)\;\mle{Q_z}\bigl(i,r,o\bigr),\qquad
 \kpw^{\mathrm{in}}(\ell,\,z)=\kpw_{z+64\ell},
 \end{equation}
-$\kpw^{\mathrm{in}}$ being zero on slots $25$ and above. A degree-two sumcheck binds $i$ (challenges $\fc^{\mathrm{low}}\in\E^{4}$), then the slot (challenges $\fc^{\mathrm{in}}\in\E^{5}$). The prover sends $s_0,\dots,s_{63}$ and the verifier checks the final claim against $\mle{\kw}(\fc^{\mathrm{low}})\sum_z\mle{\kpw^{\mathrm{in}}}(\fc^{\mathrm{in}},z)\,s_z$, leaving
+$\kpw^{\mathrm{in}}$ being zero on slots $25$ and above. A degree-two sumcheck binds $i$ (challenges $\fc^{\mathrm{low}}\in\E^{4}$), then the slot (challenges $\fc^{\mathrm{in}}\in\E^{5}$); the prover sends $s_0,\dots,s_{63}$ and the verifier checks the final claim against $\mle{\kw}(\fc^{\mathrm{low}})\sum_z\mle{\kpw^{\mathrm{in}}}(\fc^{\mathrm{in}},z)\,s_z$, leaving
 \begin{equation}\label{keccak:eq:in-claim}
 s_z=\mle{Q_z}\bigl(\fc^{\mathrm{low}},r,\fc^{\mathrm{in}}\bigr)\qquad(z<64),
 \end{equation}
 which ring switching takes (Annex~\ref{annex:rs}).
 
-\subsection{Protocol summary}\label{keccak:summary}
-
-\begin{protocol}[Keccak by GKR]\label{keccak:protocol}
-\leavevmode
-\begin{enumerate}
-\item The verifier samples $r_{\mathrm{lane}}$ (\S\ref{keccak:claims}).
-\item For $d=0,\dots,23$ (\S\ref{keccak:layer}): the prover sends $G$; the verifier checks \eqref{keccak:eq:projection} and samples $\kpt$; $\kbatch-4$ sumcheck rounds over packs and $11$ over positions; the prover sends $\kev_0,\kev_1,\kev_2$; the verifier checks \eqref{keccak:eq:terminal} and samples $\kbeta$.
-\item The opening (\S\ref{keccak:openings}): $4+5$ sumcheck rounds, then $s_0,\dots,s_{63}$.
-\end{enumerate}
-Ring switching (Annex~\ref{annex:rs}) turns \eqref{keccak:eq:in-claim} into one claim for the commitment scheme (\S\ref{sec:e2e-unrolled}).
-\end{protocol}
-
-\subsection{Cost}\label{keccak:cost}
-
-A layer sends $47+2(\kbatch-4)+33+3=2\kbatch+75$ elements of $\E$ and the opening $82$: $2650$ for $\kbatch=16$.
-
-The prover's witness is bit-sliced, $64$ permutations to a machine word. It computes $G$ on bits: two carry-less products per pack and position, $\kemb_{\allone}(S_{p,j}+S_{p,\along{j}{2}})$ and $S_{p,\along{j}{1}}S_{p,\along{j}{2}}$. The first four rounds of step 3 are computed from bits too~\cite{Hashcaster}. After $\kpt$ it works in the basis $1,\kpt,\kpt^2,\dots$, in which $S_{p,j}(\kpt)$ has the coefficients of $S_{p,j}$ as coordinates, so its weighted sums are carry-less products; that basis exists unless $\kpt$ lies in a proper subfield of $\E$, where the prover aborts, with probability below $2^{-95}$ a layer.
-
-\subsection{Weights in the recursion}\label{keccak:recursion}
-
-The recursive verifier (\S\ref{sec:recursion}) never writes the $1600$ weights $\klin^{\top}\kpw^{\flat}$. By \eqref{keccak:eq:flat}, $\kpw^{\flat}$ is a lane table times a slice table:
-\[
-\kpw^{\flat}_{z+64\ell}=\kpw^{\mathrm{ln}}_{\ell}\,\kpw^{\mathrm{sl}}_{z},\qquad
-\kpw^{\mathrm{sl}}_z=\eq(\fc^{\mathrm{pos}}_{<6},z),\qquad
-\kpw^{\mathrm{ln}}_\ell=\eq(\fc^{\mathrm{pos}}_{\ge6},\ell)+\kbeta\,\eq(\fc^{\mathrm{pos}}_{\ge6},\along{\ell}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}}_{\ge6},\along{\ell}{3}).
-\]
-(The first claim's weights factor too: lane table $\eq(r_{\mathrm{lane}},\ell)$, slice table $x^z$, and no $\klin^{\top}$.) Each use is a pairing $\inner{\klin^{\top}\kpw^{\flat}}{\kpair}=\inner{\kpw^{\flat}}{\klin(\kpair)}$ with $\kpair_{z+64\ell}=\kpair^{\mathrm{ln}}_\ell\kpair^{\mathrm{sl}}_z$: in \eqref{keccak:eq:terminal}, $\kpair$ is the next layer's $\eq(\fc^{\mathrm{pos}},\cdot)$; in \eqref{keccak:eq:projection}, it is the round constant, on lane $0$ and nonzero only at slices $2^k-1$; in the opening, $\kpair^{\mathrm{sl}}_z=s_z$ and $\kpair^{\mathrm{ln}}_\ell=\eq(\fc^{\mathrm{in}},\ell)$. With $\kto{\ell}$ the lane pi sends $\ell$ to and $\kpair^{\mathrm{ln}}_{[\ell]}=\sum_{k<5}\kpair^{\mathrm{ln}}_{(\ell\bmod5)+5k}$ the sum over the column of lane $\ell$,
-\begin{equation}\label{keccak:eq:form}
-\inner{\kpw^{\flat}}{\klin(\kpair)}=\sum_{\ell<25}\kpw^{\mathrm{ln}}_{\kto{\ell}}\Bigl(\bigl(\kpair^{\mathrm{ln}}_{\ell}+\kpair^{\mathrm{ln}}_{[\along{\ell}{4}]}\bigr)\,\krot_{\koff{\ell}}+\kpair^{\mathrm{ln}}_{[\along{\ell}{1}]}\,\krot_{\koff{\ell}+1}\Bigr),\qquad
-\krot_n=\sum_{z<64}\kpair^{\mathrm{sl}}_z\,\kpw^{\mathrm{sl}}_{(z+n)\bmod64}.
-\end{equation}
-In \eqref{keccak:eq:terminal}, $\kpair^{\mathrm{sl}}$ is an $\eq$ table and $\krot_n$ is the multilinear extension of $[\,z'=z+n\bmod64\,]$ at the two slice points, evaluated by a carry ripple over six bits; for the round constants, the claim's weight at each of the at most seven positions $2^k-1$ of lane $0$ a constant can set is formed once, and each segment adds the at most seven its round's constant sets, times $\eq(r_{\kbatch-4},m)$ (\S\ref{keccak:segments}); in the opening, the $s_z$ are folded against the slice point one bit at a time, for every $n$ at once.
-
 \subsection{Committing the middle state}\label{keccak:segments}
 
-The VM also commits each permutation's state after twelve rounds, which halves the layers the verifier (and the recursion guest) runs.
-
-\paragraph{Statement.} Segment $m<2$ is rounds $12m+1$ to $12m+12$. Slot $25m+\ell$ of $\qkeccak$ holds lane $\ell$ of segment $m$'s input, so the run is $2^{6}$ columns: six slot variables, $\nkeccak=\kbatch+6$, slots $50$ to $63$ weightless as in \S\ref{keccak:statement} and given to other columns. With $a_{m,e}$ the state after $e$ rounds of segment $m$ from its committed input, $\kout{\ell}$ is read off $a_{1,12}$, and the statement is \eqref{keccak:eq:statement} and
+The VM commits each permutation's state after twelve rounds as well, halving the layers the verifier (and the recursion guest) runs. Segment $m<2$ is rounds $12m+1$ to $12m+12$, and slot $25m+\ell$ of $\qkeccak$ holds lane $\ell$ of segment $m$'s input, so $\nkeccak=\kbatch+6$. With $a_{m,e}$ the state after $e$ rounds of segment $m$ from its committed input, $\kout{\ell}$ is read off $a_{1,12}$, and the statement is \eqref{keccak:eq:statement} and
 \begin{equation}\label{keccak:eq:chain}
 a_{0,12}(z+64\ell;\,\kperm)=Q_z\bigl(\kperm,\,25+\ell\bigr)\quad\text{for all }\kperm,\ \ell<25,\ z<64.
 \end{equation}
 
 \paragraph{Layers.} A claim's point gains a last coordinate, the segment: $r\in\E^{\kbatch-3}$, \eqref{keccak:eq:claim} also sums over $m$ with $\eq(r,(p,m))$, on $a_{m,12-d}$, and layer $d<12$ goes through round $12(m+1)-d$ of each segment. The constant term of \eqref{keccak:eq:projection} becomes $\kwsum\sum_m\eq(r_{\kbatch-4},m)\sum_z\krc_{12(m+1)-d}[z]\,\kpw_z$, and the sumcheck gains a round after the pack's: $\fc^{\mathrm{pack}}\in\E^{\kbatch-3}$, its last coordinate the next claim's segment, and \eqref{keccak:eq:terminal} ends on $\rc{\kbatch+8}$. The claim at depth $12$ is on the committed inputs $a_{m,0}$.
 
-\paragraph{The first claim.} Once the $\koutv{\ell}$ are in the transcript, the verifier samples $r_{\mathrm{seg}}$, then $r_{\mathrm{lane}}$; the first claim, at $(r_{\mathrm{pack}},r_{\mathrm{seg}})$, has the weights of \S\ref{keccak:claims} on both segments. Its part on segment $1$ is $r_{\mathrm{seg}}\sum_\ell\eq(r_{\mathrm{lane}},\ell)\,\koutv{\ell}$. With $\kmid{\ell}(\kperm)=\sum_z a_{0,12}(z+64\ell;\kperm)\,x^z$, the prover sends its part on segment $0$,
+\paragraph{The first claim.} The verifier samples $r_{\mathrm{seg}}$ then $r_{\mathrm{lane}}$, and the first claim, at $(r_{\mathrm{pack}},r_{\mathrm{seg}})$, carries the weights of \S\ref{keccak:claims} on both segments. With $\kmid{\ell}(\kperm)=\sum_z a_{0,12}(z+64\ell;\kperm)\,x^z$, the prover sends its part on segment $0$ and the verifier adds segment $1$'s, which the $\koutv{\ell}$ already give:
 \[
-c_{\mathrm{st}}=\eq(r_{\mathrm{seg}},0)\sum_{\ell<25}\eq(r_{\mathrm{lane}},\ell)\,\mle{\kmid{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}}),
+c_{\mathrm{st}}=\eq(r_{\mathrm{seg}},0)\sum_{\ell<25}\eq(r_{\mathrm{lane}},\ell)\,\mle{\kmid{\ell}}(r_{\mathrm{low}},r_{\mathrm{pack}}),\qquad
+c=c_{\mathrm{st}}+r_{\mathrm{seg}}\sum_{\ell<25}\eq(r_{\mathrm{lane}},\ell)\,\koutv{\ell}.
 \]
-and $c=c_{\mathrm{st}}+r_{\mathrm{seg}}\sum_\ell\eq(r_{\mathrm{lane}},\ell)\,\koutv{\ell}$. A word determines its bits, so \eqref{keccak:eq:chain} says $\kmid{\ell}$ is slot $25+\ell$ of $\qkeccak$, which \eqref{keccak:eq:out} checks at the random point.
 
-\paragraph{Openings.} First,
+\paragraph{Openings.} A word determines its bits, so \eqref{keccak:eq:chain} says $\kmid{\ell}$ is slot $25+\ell$, which a degree-two sumcheck over the slot (challenges $\fc^{\mathrm{out}}$) checks at a random point:
 \begin{equation}\label{keccak:eq:out}
 c_{\mathrm{st}}\ \qeq\sum_{o\in\cube{6}}\kpw^{\mathrm{out}}(o)\;\mle{\qkeccak}\bigl(r_{\mathrm{low}},r_{\mathrm{pack}},o\bigr),\qquad
 \kpw^{\mathrm{out}}(25+\ell)=\eq(r_{\mathrm{seg}},0)\,\eq(r_{\mathrm{lane}},\ell),
 \end{equation}
-$\kpw^{\mathrm{out}}$ zero elsewhere, by a degree-two sumcheck over the slot (challenges $\fc^{\mathrm{out}}$), after which the prover sends $c_{\mathrm{out}}$ and the verifier checks the last running claim against $\mle{\kpw^{\mathrm{out}}}(\fc^{\mathrm{out}})\,c_{\mathrm{out}}$, leaving for the main protocol's pool
+$\kpw^{\mathrm{out}}$ zero elsewhere. The prover sends $c_{\mathrm{out}}$, the verifier checks the last running claim against $\mle{\kpw^{\mathrm{out}}}(\fc^{\mathrm{out}})\,c_{\mathrm{out}}$, and the main protocol's pool gets
 \begin{equation}\label{keccak:eq:out-claim}
 \mle{\qkeccak}\bigl(r_{\mathrm{low}},r_{\mathrm{pack}},\fc^{\mathrm{out}}\bigr)=c_{\mathrm{out}}.
 \end{equation}
-Then the claim at depth $12$ is opened as in \S\ref{keccak:openings}, with $r_{<\kbatch-4}$ for $r$, $\kpw^{\mathrm{in}}(25m+\ell,z)=\eq(r_{\kbatch-4},m)\,\kpw_{z+64\ell}$, six slot rounds, and in \S\ref{keccak:recursion} $\kpair^{\mathrm{ln}}_\ell=\sum_m\eq(r_{\kbatch-4},m)\,\eq(\fc^{\mathrm{in}},25m+\ell)$.
+The depth-$12$ claim is opened as in \S\ref{keccak:openings}, with $r_{<\kbatch-4}$ for $r$, six slot rounds, and
+\[
+\kpw^{\mathrm{in}}(25m+\ell,z)=\eq(r_{\kbatch-4},m)\,\kpw_{z+64\ell}.
+\]
 
-\paragraph{Cost.} $1+12(2\kbatch+77)+13+84$ elements: $1406$ for $\kbatch=16$. The prover crate \texttt{keccak\_gkr} takes any segment length dividing $24$; the VM's, \texttt{leanvm\_core::keccak::DEPTH}, is $12$. When the segment count is not a power of two, the segment coordinates also index padded segments past the last: their states are zero, the constant term of \eqref{keccak:eq:projection} adds no round constant for them, so chi keeps them zero, and the openings give them zero weight.
+\paragraph{Cost.} $1+12(2\kbatch+77)+13+84$ elements of $\E$: $1406$ for $\kbatch=16$. Any segment length dividing $24$ works (\texttt{keccak\_gkr}); the VM's, \texttt{leanvm\_core::keccak::DEPTH}, is $12$. A segment count that is not a power of two leaves padded segments past the last: their states are zero, \eqref{keccak:eq:projection} adds them no round constant, so chi keeps them zero, and the openings give them zero weight.
 
 \subsection{Soundness}\label{keccak:soundness}
 
-Protocol~\ref{keccak:protocol} with the middle state committed, as the VM runs it (\S\ref{keccak:segments}), is sound. For every committed $\qkeccak$, fixed before the protocol starts, and every prover, the probability that the verifier accepts, the claims it ends with, \eqref{keccak:eq:out-claim} and \eqref{keccak:eq:in-claim}, hold of $\qkeccak$, and yet \eqref{keccak:eq:statement} or \eqref{keccak:eq:chain} fails, is at most
+Fix $\qkeccak$ before the protocol starts. For every prover, the probability that the verifier accepts with its two final claims \eqref{keccak:eq:out-claim} and \eqref{keccak:eq:in-claim} true of $\qkeccak$, while \eqref{keccak:eq:statement} or \eqref{keccak:eq:chain} fails, is at most
 \[
-\frac{37\kbatch+902}{|\E|}=\frac{(\kbatch+6)+12\,(3\kbatch+72)+(12+20)}{|\E|}.
+\frac{37\kbatch+902}{|\E|}=\frac{(\kbatch+6)+12\,(3\kbatch+72)+(12+20)}{|\E|},
 \]
-Each term is a challenge a false claim survives (Lemma~\ref{lem:sz}, Fact~\ref{fact:sumcheck}):
+a term per challenge a false claim must survive (Lemma~\ref{lem:sz}, Fact~\ref{fact:sumcheck}):
 \begin{itemize}
-\item the start, $\kbatch+6$: $r_{\mathrm{low}}$ and $r_{\mathrm{pack}}$, $\kbatch$ coordinates, hiding a wrong middle state in $\mle{\kmid{\ell}}$, then the six coordinates of $r_{\mathrm{seg}}$ and $r_{\mathrm{lane}}$, hiding a wrong lane among the fifty the first claim combines;
-\item a layer, $3\kbatch+72$: $46$ for $\kpt$, as $G$ has degree $46$; $3(\kbatch-3)$ for the rounds over pack and segment and $33$ for the $11$ over positions, all of degree three; $2$ for $\kbeta$, in which $c'$ is quadratic;
+\item the start, $\kbatch+6$: $r_{\mathrm{low}}$ and $r_{\mathrm{pack}}$ hide a wrong middle state in $\mle{\kmid{\ell}}$, $r_{\mathrm{seg}}$ and $r_{\mathrm{lane}}$ a wrong lane among the fifty the first claim combines;
+\item a layer, $3\kbatch+72$: $46$ for $\kpt$, as $G$ has degree $46$; $3(\kbatch-3)$ for the pack and segment rounds and $33$ for the $11$ over positions, all of degree three; $2$ for $\kbeta$, in which $c'$ is quadratic;
 \item the openings, $12$ and $20$: the six slot rounds of \eqref{keccak:eq:out}, then the four instance and six slot rounds of \eqref{keccak:eq:in}, all of degree two.
 \end{itemize}
-The bound holds over any finite field of characteristic two in which $x^0,\dots,x^{63}$ are independent over $\Ftwo$, as they are for the VM's $x$ in $\E$, of degree $64$. A round message is counted as a whole polynomial of bounded degree, of which the compressed messages of \S\ref{sec:prelim} are a special case. The point $(r_{\mathrm{low}},r_{\mathrm{pack}})$ is the table sumcheck's, drawn after $\qkeccak$ is committed. Neither Fiat-Shamir nor the commitment scheme is accounted for: the two claims are the output, for ring switching and the PCS to discharge.
+A round message counts as a whole polynomial of bounded degree, of which the compressed messages of \S\ref{sec:prelim} are a special case, and $(r_{\mathrm{low}},r_{\mathrm{pack}})$ is the table sumcheck's point, drawn after $\qkeccak$ is committed. The bound holds over any field of characteristic two in which $x^0,\dots,x^{63}$ are independent over $\Ftwo$, as they are in $\E$. Fiat-Shamir and the commitment scheme are not accounted for: the two claims are the output, for ring switching and the PCS to discharge.
 
 \subsection{Proof of the embedding lemma}\label{keccak:rmfe-proof}
 
